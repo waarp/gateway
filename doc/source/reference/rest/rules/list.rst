@@ -36,14 +36,14 @@ Lister les règles
       remplacé par 'localDir' & 'remoteDir')
    :resjson string workPath: Le dossier temporaire de la règle. Tous les fichiers
       entrants transférés avec cette règle sont déposés dans ce dossier le temps
-      du transfert. (OBSOLÈTE: remplacé par 'localTmpDir')
+      du transfert. (OBSOLÈTE: remplacé par 'tmpReceiveDir')
    :resjson string localDir: Le dossier de la règle sur le disque local de la
       Gateway. Si la règle est une règle d'envoi, ce dossier sert de source au
       fichier; dans le cas contraire, il sert de destination.
    :resjson string remoteDir: Le chemin de la règle sur l'hôte distant. Si la
       règle est une règle d'envoi, ce dossier sert de destination au fichier;
       dans le cas contraire, il sert de source.
-   :resjson string localTmpDir: Le dossier temporaire local de la règle. Tous
+   :resjson string tmpReceiveDir: Le dossier temporaire local de la règle. Tous
       les fichiers reçu avec cette règle sont déposés dans ce dossier le temps
       du transfert, puis déplacé dans le 'localDir' une fois terminé.
    :resjsonarr array preTasks: La liste des pré-traitements de la règle.
@@ -96,7 +96,7 @@ Lister les règles
              "path": "/chemin/identificateur/de/la/règle/1",
              "localDir": "/dossier/local/1",
              "remoteDir": "/dossier/distant/1",
-             "localTmpDir": "/dossier/temporaire/1",
+             "tmpReceiveDir": "/dossier/temporaire/1",
              "preTasks": [{
                "type": "COPY",
                "args": {"path":"/chemin/de/copie"}
@@ -120,7 +120,7 @@ Lister les règles
              "path": "/chemin/identificateur/de/la/règle/2",
              "localDir": "/dossier/local/2",
              "remoteDir": "/dossier/distant/2",
-             "localTmpDir": "/dossier/temporaire/2",
+             "tmpReceiveDir": "/dossier/temporaire/2",
              "preTasks": [{
                "type": "EXEC",
                "args": {"path":"/chemin/du/script","args":"{}","delay":"0"}

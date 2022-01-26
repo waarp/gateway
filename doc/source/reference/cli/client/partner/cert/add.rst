@@ -4,7 +4,7 @@ Ajouter un certificat à un partenaire
 
 .. program:: waarp-gateway partner cert add
 
-.. describe:: waarp-gateway <ADDR> partner cert <PARTNER> add
+.. describe:: waarp-gateway partner cert <PARTNER> add
 
 Attache un nouveau certificat au partenaire donné à partir des informations renseignées.
 

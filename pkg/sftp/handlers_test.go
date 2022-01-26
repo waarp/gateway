@@ -8,18 +8,17 @@ import (
 	"path/filepath"
 	"testing"
 
-	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/tk/service"
-
-	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/model/types"
 	"github.com/pkg/sftp"
 	. "github.com/smartystreets/goconvey/convey"
 
-	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/conf"
-	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/database"
-	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/log"
-	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/model"
-	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/model/config"
-	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/tk/utils/testhelpers"
+	"code.waarp.fr/apps/gateway/gateway/pkg/conf"
+	"code.waarp.fr/apps/gateway/gateway/pkg/database"
+	"code.waarp.fr/apps/gateway/gateway/pkg/log"
+	"code.waarp.fr/apps/gateway/gateway/pkg/model"
+	"code.waarp.fr/apps/gateway/gateway/pkg/model/config"
+	"code.waarp.fr/apps/gateway/gateway/pkg/model/types"
+	"code.waarp.fr/apps/gateway/gateway/pkg/tk/service"
+	"code.waarp.fr/apps/gateway/gateway/pkg/tk/utils/testhelpers"
 )
 
 func TestFileReader(t *testing.T) {
@@ -47,11 +46,10 @@ func TestFileReader(t *testing.T) {
 			So(db.Insert(rule).Run(), ShouldBeNil)
 
 			agent := &model.LocalAgent{
-				Name:        "test_sftp_server",
-				Protocol:    "sftp",
-				Root:        root,
-				ProtoConfig: json.RawMessage(`{}`),
-				Address:     "localhost:2023",
+				Name:     "test_sftp_server",
+				Protocol: "sftp",
+				RootDir:  root,
+				Address:  "localhost:2023",
 			}
 			So(db.Insert(agent).Run(), ShouldBeNil)
 
@@ -144,16 +142,15 @@ func TestFileWriter(t *testing.T) {
 			rule := &model.Rule{
 				Name:   "test_rule",
 				IsSend: false,
-				Path:   "/test_rule",
+				Path:   "/test/path",
 			}
 			So(db.Insert(rule).Run(), ShouldBeNil)
 
 			agent := &model.LocalAgent{
-				Name:        "test_sftp_server",
-				Protocol:    "sftp",
-				Root:        root,
-				ProtoConfig: json.RawMessage(`{}`),
-				Address:     "localhost:2023",
+				Name:     "test_sftp_server",
+				Protocol: "sftp",
+				RootDir:  root,
+				Address:  "localhost:2023",
 			}
 			So(db.Insert(agent).Run(), ShouldBeNil)
 
@@ -180,7 +177,7 @@ func TestFileWriter(t *testing.T) {
 
 				Convey("Given a request for an existing file in the rule path", func() {
 					request := &sftp.Request{
-						Filepath: "/test_rule/file.dst",
+						Filepath: "test/path/file.test",
 					}
 
 					Convey("When calling the handler", func() {
@@ -195,7 +192,7 @@ func TestFileWriter(t *testing.T) {
 
 							Convey("With a valid file and status", func() {
 								So(trans.LocalPath, ShouldEqual, filepath.Join(
-									root, agent.LocalTmpDir, "file.dst.part"))
+									root, agent.TmpReceiveDir, "file.test.part"))
 								So(trans.Status, ShouldEqual, types.StatusRunning)
 							})
 						})
@@ -204,7 +201,7 @@ func TestFileWriter(t *testing.T) {
 
 				Convey("Given a request for an non existing rule", func() {
 					request := &sftp.Request{
-						Filepath: "/toto/file.dst",
+						Filepath: "toto/file.test",
 					}
 
 					Convey("When calling the handler", func() {
@@ -218,7 +215,7 @@ func TestFileWriter(t *testing.T) {
 
 				Convey("Given a request for a file at the server root", func() {
 					request := &sftp.Request{
-						Filepath: "file.dst",
+						Filepath: "file.test",
 					}
 
 					Convey("When calling the handler", func() {

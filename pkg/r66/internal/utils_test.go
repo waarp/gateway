@@ -8,12 +8,13 @@ import (
 	"path/filepath"
 	"testing"
 
-	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/model/types"
-
-	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/log"
 	. "github.com/smartystreets/goconvey/convey"
+
+	"code.waarp.fr/apps/gateway/gateway/pkg/log"
+	"code.waarp.fr/apps/gateway/gateway/pkg/model/types"
 )
 
+//nolint:gochecknoinits // init is used by design
 func init() {
 	_ = log.InitBackend("DEBUG", "stdout", "")
 }

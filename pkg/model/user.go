@@ -3,11 +3,12 @@
 package model
 
 import (
-	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/conf"
-	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/database"
-	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/tk/utils"
+	"code.waarp.fr/apps/gateway/gateway/pkg/conf"
+	"code.waarp.fr/apps/gateway/gateway/pkg/database"
+	"code.waarp.fr/apps/gateway/gateway/pkg/tk/utils"
 )
 
+//nolint:gochecknoinits // init is used by design
 func init() {
 	database.AddTable(&User{})
 }
@@ -26,7 +27,7 @@ type User struct {
 	Username string `xorm:"unique(name) notnull 'username'"`
 
 	// The user's password
-	Password []byte `xorm:"notnull 'password'"`
+	PasswordHash string `xorm:"text notnull default('') 'password_hash'"`
 
 	// The users permissions for reading and writing the database.
 	Permissions PermsMask `xorm:"notnull binary(4) 'permissions'"`
@@ -48,27 +49,41 @@ func (u *User) GetID() uint64 {
 }
 
 // Init inserts the default user in the database when the table is created.
-func (u *User) Init(ses *database.Session) database.Error {
-	user := &User{
-		Username:    "admin",
-		Owner:       conf.GlobalConfig.GatewayName,
-		Password:    []byte("admin_password"),
-		Permissions: PermAll,
+func (u *User) Init(db database.Access) database.Error {
+	hash, err := utils.HashPassword(database.BcryptRounds, "admin_password")
+	if err != nil {
+		db.GetLogger().Errorf("Failed to hash the user password: %s", err)
+
+		return database.NewInternalError(err)
 	}
-	err := ses.Insert(user).Run()
-	return err
+
+	user := &User{
+		Username:     "admin",
+		Owner:        conf.GlobalConfig.GatewayName,
+		PasswordHash: hash,
+		Permissions:  PermAll,
+	}
+
+	if err := db.Insert(user).Run(); err != nil {
+	}
+
+	return nil
 }
 
 // BeforeDelete is called before removing the user from the database. Its
-// role is to check that at least one admin user remains
+// role is to check that at least one admin user remains.
+//
+// FIXME This function seems to just check that another user also exists, whether it is an admin or not.
 func (u *User) BeforeDelete(db database.Access) database.Error {
 	n, err := db.Count(&User{}).Where("owner=?", conf.GlobalConfig.GatewayName).Run()
 	if err != nil {
 		return err
 	}
-	if n < 2 {
+
+	if n < 2 { //nolint:gomnd // This is not a reuseable constant
 		return database.NewValidationError("cannot delete gateway last admin")
 	}
+
 	return nil
 }
 
@@ -79,12 +94,10 @@ func (u *User) BeforeWrite(db database.ReadAccess) database.Error {
 	if u.Username == "" {
 		return database.NewValidationError("the username cannot be empty")
 	}
-	if len(u.Password) == 0 {
+
+	if u.PasswordHash == "" {
 		return database.NewValidationError("the user password cannot be empty")
 	}
-
-	var users Users
-	_ = db.Select(&users).Run()
 
 	n, err := db.Count(&User{}).Where("id<>? AND owner=? AND username=?",
 		u.ID, u.Owner, u.Username).Run()
@@ -94,10 +107,5 @@ func (u *User) BeforeWrite(db database.ReadAccess) database.Error {
 		return database.NewValidationError("a user named '%s' already exist", u.Username)
 	}
 
-	var err1 error
-	if u.Password, err1 = utils.HashPassword(database.BcryptRounds, u.Password); err1 != nil {
-		db.GetLogger().Errorf("Failed to hash the user password: %s", err)
-		return database.NewInternalError(err)
-	}
 	return nil
 }

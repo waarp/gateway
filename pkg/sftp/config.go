@@ -2,20 +2,27 @@ package sftp
 
 import (
 	"bytes"
+	"errors"
 	"fmt"
 	"net"
 
-	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/model"
-	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/model/config"
-	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/tk/utils"
 	"golang.org/x/crypto/ssh"
+
+	"code.waarp.fr/apps/gateway/gateway/pkg/model"
+	"code.waarp.fr/apps/gateway/gateway/pkg/model/config"
+	"code.waarp.fr/apps/gateway/gateway/pkg/tk/utils"
+)
+
+var (
+	errSSHNoKey       = errors.New("no key found")
+	errSSHKeyMismatch = errors.New("the SSH key does not match known keys")
 )
 
 type fixedHostKeys []ssh.PublicKey
 
 func (f fixedHostKeys) check(_ string, _ net.Addr, remoteKey ssh.PublicKey) error {
 	if len(f) == 0 {
-		return fmt.Errorf("ssh: required host key was nil")
+		return fmt.Errorf("ssh: required host key was nil: %w", errSSHNoKey)
 	}
 
 	remoteBytes := remoteKey.Marshal()
@@ -24,24 +31,31 @@ func (f fixedHostKeys) check(_ string, _ net.Addr, remoteKey ssh.PublicKey) erro
 			return nil
 		}
 	}
-	return fmt.Errorf("ssh: host key mismatch")
+
+	return fmt.Errorf("ssh: host key mismatch: %w", errSSHKeyMismatch)
 }
 
 func makeFixedHostKeys(keys []ssh.PublicKey) ssh.HostKeyCallback {
 	hk := fixedHostKeys(keys)
+
 	return hk.check
 }
 
 func getSSHClientConfig(info *model.TransferContext, protoConfig *config.SftpProtoConfig) (*ssh.ClientConfig, error) {
-	var hostKeys []ssh.PublicKey
-	var algos []string
+	var (
+		hostKeys []ssh.PublicKey
+		algos    []string
+	)
+
 	for _, c := range info.RemoteAgentCryptos {
-		key, _, _, _, err := ssh.ParseAuthorizedKey([]byte(c.SSHPublicKey)) //nolint:dogsled
+		//nolint:dogsled // this is caused by the design of a third party library
+		key, _, _, _, err := ssh.ParseAuthorizedKey([]byte(c.SSHPublicKey))
 		if err != nil {
-			return nil, err
+			return nil, fmt.Errorf("cannot parse server key: %w", err)
 		}
 
 		hostKeys = append(hostKeys, key)
+
 		if !utils.ContainsStrings(algos, key.Type()) {
 			algos = append(algos, key.Type())
 		}
@@ -60,16 +74,20 @@ func getSSHClientConfig(info *model.TransferContext, protoConfig *config.SftpPro
 	}
 
 	var signers []ssh.Signer
+
 	for _, c := range info.RemoteAccountCryptos {
 		signer, err := ssh.ParsePrivateKey([]byte(c.PrivateKey))
 		if err != nil {
 			continue
 		}
+
 		signers = append(signers, signer)
 	}
+
 	if len(signers) > 0 {
 		conf.Auth = append(conf.Auth, ssh.PublicKeys(signers...))
 	}
+
 	if len(info.RemoteAccount.Password) > 0 {
 		conf.Auth = append(conf.Auth, ssh.Password(string(info.RemoteAccount.Password)))
 	}

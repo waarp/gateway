@@ -12,13 +12,14 @@ import (
 	"testing"
 	"time"
 
-	. "code.waarp.fr/waarp-gateway/waarp-gateway/pkg/admin/rest/api"
-	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/database"
-	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/log"
-	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/model"
-	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/model/types"
 	"github.com/gorilla/mux"
 	. "github.com/smartystreets/goconvey/convey"
+
+	. "code.waarp.fr/apps/gateway/gateway/pkg/admin/rest/api"
+	"code.waarp.fr/apps/gateway/gateway/pkg/database"
+	"code.waarp.fr/apps/gateway/gateway/pkg/log"
+	"code.waarp.fr/apps/gateway/gateway/pkg/model"
+	"code.waarp.fr/apps/gateway/gateway/pkg/model/types"
 )
 
 const historyURI = "http://localhost:8080/api/history"
@@ -72,7 +73,6 @@ func TestGetHistory(t *testing.T) {
 
 					Convey("Then the body should contain the requested transfer history "+
 						"in JSON format", func() {
-
 						exp, err := json.Marshal(FromHistory(h))
 
 						So(err, ShouldBeNil)
@@ -391,10 +391,9 @@ func TestRestartTransfer(t *testing.T) {
 
 		Convey("Given a database with 1 transfer history", func() {
 			partner := &model.RemoteAgent{
-				Name:        "partner",
-				Protocol:    testProto1,
-				ProtoConfig: json.RawMessage(`{}`),
-				Address:     "localhost:2022",
+				Name:     "partner",
+				Protocol: testProto1,
+				Address:  "localhost:2022",
 			}
 			So(db.Insert(partner).Run(), ShouldBeNil)
 
@@ -436,7 +435,8 @@ func TestRestartTransfer(t *testing.T) {
 
 				Convey("When sending the request to the handler", func() {
 					handler.ServeHTTP(w, req)
-					res := w.Result()
+					res := w.Result() //nolint:bodyclose // body is closed the line after !?
+					defer res.Body.Close()
 
 					Convey("Then it should reply 'CREATED'", func() {
 						So(res.StatusCode, ShouldEqual, http.StatusCreated)
@@ -450,7 +450,6 @@ func TestRestartTransfer(t *testing.T) {
 
 					Convey("Then the 'Location' header should contain the URI "+
 						"of the new transfer", func() {
-
 						loc, err := res.Location()
 						So(err, ShouldBeNil)
 						So(loc.String(), ShouldStartWith, transferURI)

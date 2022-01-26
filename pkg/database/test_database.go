@@ -5,24 +5,33 @@ import (
 	"crypto/aes"
 	"crypto/cipher"
 	"crypto/rand"
+	"database/sql"
 	"fmt"
 	"io/ioutil"
 	"os"
+	"strings"
 	"sync"
 
 	"code.bcarlin.xyz/go/logging"
-	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/conf"
-	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/log"
 	"github.com/smartystreets/goconvey/convey"
 	"golang.org/x/crypto/bcrypt"
 	"xorm.io/xorm"
 	"xorm.io/xorm/contexts"
+
+	"code.waarp.fr/apps/gateway/gateway/pkg/conf"
+	"code.waarp.fr/apps/gateway/gateway/pkg/database/migrations"
+	"code.waarp.fr/apps/gateway/gateway/pkg/log"
+	"code.waarp.fr/apps/gateway/gateway/pkg/tk/migration"
+	"code.waarp.fr/apps/gateway/gateway/pkg/tk/utils/testhelpers"
 )
 
 const (
-	testDBType = "test_db"
-	testDBEnv  = "GATEWAY_TEST_DB"
+	memoryDBType    = "test_db"
+	testDBEnv       = "GATEWAY_TEST_DB"
+	testDBMechanism = "GATEWAY_TEST_DB_MECHANISM"
 )
+
+var errSimulated = fmt.Errorf("simulated database error")
 
 func testinfo() (string, string, func(*xorm.Engine) error) {
 	return "sqlite3", fmt.Sprintf("file:%s?mode=memory&cache=shared",
@@ -34,9 +43,11 @@ func testGCM() {
 		return
 	}
 
-	key := make([]byte, 32)
+	key := make([]byte, aesKeySize)
+
 	_, err := rand.Read(key)
 	convey.So(err, convey.ShouldBeNil)
+
 	ciph, err := aes.NewCipher(key)
 	convey.So(err, convey.ShouldBeNil)
 
@@ -44,18 +55,21 @@ func testGCM() {
 	convey.So(err, convey.ShouldBeNil)
 }
 
-func tempFilename(pattern string) string {
-	f, err := ioutil.TempFile(os.TempDir(), pattern)
+func tempFilename() string {
+	f, err := ioutil.TempFile(os.TempDir(), "test_database_*.db")
 	convey.So(err, convey.ShouldBeNil)
 	convey.So(f.Close(), convey.ShouldBeNil)
 	convey.So(os.Remove(f.Name()), convey.ShouldBeNil)
+
 	return f.Name()
 }
 
 func initTestDBConf() {
+	BcryptRounds = bcrypt.MinCost
 	conf.GlobalConfig.GatewayName = "test_gateway"
 	config := &conf.GlobalConfig.Database
 	dbType := os.Getenv(testDBEnv)
+
 	switch dbType {
 	case PostgreSQL:
 		config.Type = PostgreSQL
@@ -69,13 +83,13 @@ func initTestDBConf() {
 		config.Address = "localhost:3306"
 	case SQLite:
 		config.Type = SQLite
-		config.Address = tempFilename("test_database_*.db")
+		config.Address = tempFilename()
 	case "":
-		supportedRBMS[testDBType] = testinfo
-		config.Type = testDBType
-		config.Address = tempFilename("test_memory_database_*.db")
+		supportedRBMS[memoryDBType] = testinfo
+		config.Type = memoryDBType
+		config.Address = tempFilename()
 	default:
-		panic(fmt.Sprintf("Unknown database type '%s'\n", dbType))
+		panic(fmt.Sprintf("Unknown database type '%s'\n", memoryDBType))
 	}
 }
 
@@ -84,16 +98,16 @@ func resetDB(db *DB) {
 	switch config.Type {
 	case PostgreSQL, MySQL:
 		for _, tbl := range tables {
-			convey.So(db.engine.DropTables(tbl.TableName()), convey.ShouldBeNil)
+			convey.So(db.engine.Cascade(true).DropTable(tbl.TableName()), convey.ShouldBeNil)
 		}
+
 		convey.So(db.engine.Close(), convey.ShouldBeNil)
-	case testDBType:
+	case memoryDBType, SQLite:
 		convey.So(db.engine.Close(), convey.ShouldBeNil)
-		convey.So(db.engine.Close(), convey.ShouldBeNil)
-	case SQLite:
-		convey.So(db.engine.Close(), convey.ShouldBeNil)
-		convey.So(db.engine.Close(), convey.ShouldBeNil)
-		convey.So(os.Remove(config.Address), convey.ShouldBeNil)
+
+		if _, err := os.Stat(config.Address); err == nil {
+			convey.So(os.Remove(config.Address), convey.ShouldBeNil)
+		}
 	default:
 		panic(fmt.Sprintf("Unknown database type '%s'\n", config.Type))
 	}
@@ -104,6 +118,7 @@ func resetDB(db *DB) {
 // The database will log messages at the level given.
 func TestDatabase(c convey.C, logLevel string) *DB {
 	BcryptRounds = bcrypt.MinCost
+
 	initTestDBConf()
 
 	level, err := logging.LevelByName(logLevel)
@@ -114,7 +129,20 @@ func TestDatabase(c convey.C, logLevel string) *DB {
 	logger.SetLevel(level)
 
 	testGCM()
+
 	db := &DB{logger: &log.Logger{Logger: logger}}
+
+	if os.Getenv(testDBMechanism) == "migration" {
+		startViaMigration(c)
+
+		defer func() {
+			for i := range tables {
+				if init, ok := tables[i].(initialiser); ok {
+					c.So(init.Init(db), convey.ShouldBeNil)
+				}
+			}
+		}()
+	}
 
 	c.So(db.Start(), convey.ShouldBeNil)
 	c.Reset(func() { resetDB(db) })
@@ -122,14 +150,62 @@ func TestDatabase(c convey.C, logLevel string) *DB {
 	return db
 }
 
+func startViaMigration(c convey.C) {
+	config := &conf.GlobalConfig
+
+	var (
+		sqlDB   *sql.DB
+		dialect string
+	)
+
+	switch config.Database.Type {
+	case PostgreSQL:
+		sqlDB = testhelpers.GetTestPostgreDBNoReset(c)
+		dialect = migration.PostgreSQL
+
+		_, err := sqlDB.Exec(migrations.PostgresCreationScript)
+		c.So(err, convey.ShouldBeNil)
+	case MySQL:
+		sqlDB = testhelpers.GetTestMySQLDBNoReset(c)
+		dialect = migration.MySQL
+
+		script := strings.Split(migrations.MysqlCreationScript, ";\n")
+		for _, cmd := range script {
+			_, err := sqlDB.Exec(cmd)
+			c.So(err, convey.ShouldBeNil)
+		}
+	case SQLite, memoryDBType:
+		var addr string
+		sqlDB, addr = testhelpers.GetTestSqliteDBNoReset(c)
+
+		dialect = migration.SQLite
+		config.Database.Address = addr
+
+		_, err := sqlDB.Exec(migrations.SqliteCreationScript)
+		c.So(err, convey.ShouldBeNil)
+	default:
+		panic(fmt.Sprintf("Unknown database type '%s'\n", config.Database.Type))
+	}
+
+	migrEngine, err := migration.NewEngine(sqlDB, dialect, nil)
+	c.So(err, convey.ShouldBeNil)
+
+	c.So(migrEngine.Upgrade(migrations.Migrations), convey.ShouldBeNil)
+	c.So(migrEngine.Upgrade(migrations.BumpToCurrent()), convey.ShouldBeNil)
+	c.So(sqlDB.Close(), convey.ShouldBeNil)
+}
+
 type errHook struct{ once sync.Once }
 
 func (e *errHook) BeforeProcess(c *contexts.ContextHook) (context.Context, error) {
-	ctx := c.Ctx
 	var err error
+
+	ctx := c.Ctx
+
 	e.once.Do(func() {
-		err = fmt.Errorf("simulated database error")
+		err = errSimulated
 	})
+
 	return ctx, err
 }
 

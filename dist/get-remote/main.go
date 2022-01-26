@@ -14,69 +14,84 @@ import (
 	"golang.org/x/crypto/ssh"
 )
 
+const (
+	exitLockFile    = 1
+	exitNoEnv       = 2
+	exitNoLogger    = 3
+	exitNoEnvVar    = 4
+	exitBadListFile = 5
+)
+
+var errUnknownProtocol = errors.New("unknown protocol")
+
+//nolint:forbidigo // main function must be able to print
 func main() {
 	if os.Getenv("WAARP_GATEWAY_ADDRESS") == "" {
 		fmt.Println("The environment variable WAARP_GATEWAY_ADDRESS must be defined")
-		os.Exit(4)
+		os.Exit(exitNoEnvVar)
 	}
 
 	// find out env
-	p, err := getPaths()
+	files, err := getPaths()
 	if err != nil {
 		fmt.Println(err)
-		os.Exit(2)
+		os.Exit(exitNoEnv)
 	}
 
 	// setup logger
-	log, err := newLogger(p.logFile())
+	log, err := newLogger(files.logFile())
 	if err != nil {
 		fmt.Println(err)
-		os.Exit(3)
+		os.Exit(exitNoLogger)
 	}
 
 	// lock/unlock
-	l := lock{p.lockFile()}
+	l := lock{files.lockFile()}
 	if l.isLocked() {
 		log.Print("Another instance of get-remote is already running.")
-		os.Exit(1)
+		os.Exit(exitLockFile)
+	}
+
+	// parse file
+	if !pathExists(files.listFile()) {
+		log.Printf("No file get-files.list found")
+
+		return
+	}
+
+	checklist, err := parseListFile(files.listFile())
+	if err != nil {
+		log.Printf("Cannot parse list file: %v", err)
+		os.Exit(exitBadListFile)
 	}
 
 	err = l.acquire()
 	if err != nil {
-		os.Exit(1)
+		os.Exit(exitLockFile)
 	}
 
 	defer func() {
-		if err := l.release(); err != nil {
-			log.Printf("Cannot release lock: %v\n", err)
-			os.Exit(1)
+		if err2 := l.release(); err2 != nil {
+			log.Printf("Cannot release lock: %v\n", err2)
+			os.Exit(exitLockFile)
 		}
 	}()
 
-	// parse file
-	if !pathExists(p.listFile()) {
-		log.Printf("No file get-files.list found")
-		os.Exit(0)
-	}
-
-	checklist, err := parseListFile(p.listFile())
-	if err != nil {
-		log.Printf("Cannot parse list file: %v", err)
-		os.Exit(5)
-	}
-
-	processChecks(log, p, checklist)
+	processChecks(log, files, checklist)
 }
 
 func processChecks(log *logger, p paths, checklist []check) {
-	for _, check := range checklist {
-		log.Printf("Checking files on %q for flow %q",
-			check.remoteHost, check.flowID)
+	for i := range checklist {
+		c := &checklist[i]
 
-		files, err := listFiles(check)
+		log.Printf("Checking files on %q for flow %q",
+			c.remoteHost, c.flowID)
+
+		files, err := listFiles(c)
 		if err != nil {
 			log.Printf("Cannot check files on %s for flow %s: %v",
-				check.remoteHost, check.flowID, err)
+				c.remoteHost, c.flowID, err)
+
 			continue
 		}
 
@@ -84,8 +99,9 @@ func processChecks(log *logger, p paths, checklist []check) {
 		for _, file := range files {
 			log.Printf("Add transfer for file %q", file)
 
-			if err := addTransfer(check, p, file); err != nil {
+			if err := addTransfer(c, p, file); err != nil {
 				log.Printf("Cannot add transfer for file %q: %v", file, err)
+
 				continue
 			}
 		}
@@ -105,13 +121,14 @@ type check struct {
 	pattern     string
 }
 
-func parseListFile(path string) ([]check, error) {
-	content, err := ioutil.ReadFile(path)
+func parseListFile(p string) ([]check, error) {
+	content, err := ioutil.ReadFile(filepath.Clean(p))
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("cannot read file %q: %w", p, err)
 	}
 
 	lines := strings.Split(string(content), "\n")
+
 	var checks []check
 
 	for i := range lines {
@@ -142,38 +159,37 @@ func parseLine(line string) check {
 	}
 }
 
-func listFiles(c check) ([]string, error) {
+func listFiles(c *check) ([]string, error) {
 	switch c.proto {
 	case "sftp":
 		return listFilesSftp(c)
 	default:
-		return nil, errors.New("unsupported protocol '" + c.proto + "'")
+		return nil, fmt.Errorf("unsupported protocol %q: %w", c.proto, errUnknownProtocol)
 	}
 }
 
-func listFilesSftp(c check) ([]string, error) {
+func listFilesSftp(c *check) ([]string, error) {
 	sshconfig := &ssh.ClientConfig{
 		User: c.user,
 		Auth: []ssh.AuthMethod{
 			ssh.Password(c.password),
 		},
-		HostKeyCallback: ssh.InsecureIgnoreHostKey(), //nolint: gosec // ignore for now
+		HostKeyCallback: ssh.InsecureIgnoreHostKey(), //nolint:gosec // ignore for now
 	}
 
 	conn, err := ssh.Dial("tcp", c.remoteHost+":"+c.remotePort, sshconfig)
 	if err != nil {
 		return nil, fmt.Errorf("cannot connect to %q: %w", c.remoteHost, err)
 	}
-	defer conn.Close()
+	defer conn.Close() //nolint:errcheck // nothing to handle the error
 
 	// create new SFTP client
 	client, err := sftp.NewClient(conn)
 	if err != nil {
 		return nil, fmt.Errorf("cannot create SFTP session for %q: %w", c.remoteHost, err)
 	}
-	defer client.Close()
+	defer client.Close() //nolint:errcheck // nothing to handle the error
 
-	fmt.Println("pattern=", c.pattern)
 	dir := c.pattern
 	if strings.Contains(c.pattern, "*") {
 		dir = path.Dir(c.pattern)
@@ -208,7 +224,7 @@ func filterFileInfoList(fil []os.FileInfo, pattern string) ([]os.FileInfo, error
 
 		matches, err := path.Match(pattern, fi.Name())
 		if err != nil {
-			return rv, err
+			return rv, fmt.Errorf("an error occurred while testing path %q: %w", fi.Name(), err)
 		}
 
 		if !matches {
@@ -221,7 +237,7 @@ func filterFileInfoList(fil []os.FileInfo, pattern string) ([]os.FileInfo, error
 	return rv, nil
 }
 
-func addTransfer(c check, p paths, file string) error {
+func addTransfer(c *check, p paths, file string) error {
 	//nolint: gosec // ignore for now
 	cmd := exec.Command(filepath.Join(p.binDir, "waarp-gateway"),
 		"transfer", "add",

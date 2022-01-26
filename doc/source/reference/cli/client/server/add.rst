@@ -4,7 +4,7 @@ Ajouter un serveur
 
 .. program:: waarp-gateway server add
 
-.. describe:: waarp-gateway <ADDR> server add
+.. describe:: waarp-gateway server add
 
 Ajoute un nouveau serveur de transfert à la gateway avec les attributs fournis.
 
@@ -20,7 +20,37 @@ Ajoute un nouveau serveur de transfert à la gateway avec les attributs fournis.
 
    L'adresse du serveur (au format [adresse:port]).
 
+.. option:: --root-dir=<ROOT_DIR>
+
+   Le dossier racine du serveur. Peut être un chemin relatif à la racine de la
+   *gateway*, ou bien absolu.
+
+.. option:: --receive-dir=<RECV_DIR>
+
+   Le dossier de réception du serveur. Les fichiers reçus sur le serveur seront
+   déposés dans ce dossier (sauf si la règle de transfert supplante ce dossier
+   avec son propre dossier local). Peut être un chemin relatif au *root-dir*
+   du serveur, ou bien absolu.
+
+.. option:: --send-dir=<SEND_DIR>
+
+   Le dossier d'envoi du serveur. Les fichiers téléchargés depuis le serveur
+   seront récupérés dans ce dossier (sauf si la règle de transfert supplante ce
+   dossier avec son propre dossier local). Peut être un chemin relatif au
+   *root-dir* du serveur, ou bien absolu.
+
+.. option:: --tmp-dir=<TMP_DIR>
+
+   Le dossier de réception temporaire du serveur. Les fichiers en cours de
+   réception par le serveur seront écrits dans ce dossier pour la durée du
+   transfert (sauf si la règle de transfert supplante ce dossier avec son propre
+   dossier temporaire local) avant d'être déposés dans le dossier de réception
+   une fois le transfert terminé. Peut être un chemin relatif au *root-dir*
+   du serveur, ou bien absolu.
+
 .. option:: -r <ROOT>, --root=<ROOT>
+
+   OBSOLÈTE: remplacé par l'option ``--root-dir``.
 
    Le dossier racine du serveur. Peut être un chemin relatif ou absolu. Si
    le chemin est relatif, il sera relatif à la racine de la *gateway* renseignée
@@ -28,15 +58,21 @@ Ajoute un nouveau serveur de transfert à la gateway avec les attributs fournis.
 
 .. option:: -i <IN_DIR>, --in=<IN_DIR>
 
+   OBSOLÈTE: remplacé par l'option ``--receive-dir``.
+
    Le dossier de réception du serveur. Peut être un chemin relatif ou absolu. Si
    le chemin est relatif, il sera relatif à la racine du serveur.
 
 .. option:: -o <OUT_DIR>, --out=<OUT_DIR>
 
+   OBSOLÈTE: remplacé par l'option ``--send-dir``.
+
    Le dossier d'envoi du serveur. Peut être un chemin relatif ou absolu. Si
    le chemin est relatif, il sera relatif à la racine du serveur.
 
 .. option:: -w <WORK_DIR>, --work=<WORK_DIR>
+
+   OBSOLÈTE: remplacé par l'option ``--tmp-dir``.
 
    Le dossier temporaire du serveur. Peut être un chemin relatif ou absolu. Si
    le chemin est relatif, il sera relatif à la racine du serveur.

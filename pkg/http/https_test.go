@@ -12,16 +12,13 @@ import (
 	"testing"
 	"time"
 
-	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/http/httpconst"
-
-	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/model/config"
-
-	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/pipeline/pipelinetest"
-
-	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/model"
-
-	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/tk/utils/testhelpers"
 	. "github.com/smartystreets/goconvey/convey"
+
+	"code.waarp.fr/apps/gateway/gateway/pkg/http/httpconst"
+	"code.waarp.fr/apps/gateway/gateway/pkg/model"
+	"code.waarp.fr/apps/gateway/gateway/pkg/model/config"
+	"code.waarp.fr/apps/gateway/gateway/pkg/pipeline/pipelinetest"
+	"code.waarp.fr/apps/gateway/gateway/pkg/tk/utils/testhelpers"
 )
 
 func TestHTTPSClient(t *testing.T) {
@@ -47,11 +44,10 @@ func TestHTTPSClient(t *testing.T) {
 		serv.StartTLS()
 		Reset(serv.Close)
 
-		addr := strings.TrimLeft(serv.URL, "https://")
+		addr := strings.TrimLeft(serv.URL, "https://") //nolint:staticcheck // duplicate characters are expected here
 
 		Convey("Given a new HTTPS push transfer", func(c C) {
-			ctx := pipelinetest.InitClientPush(c, "http",
-				&config.HTTPProtoConfig{UseHTTPS: true})
+			ctx := pipelinetest.InitClientPush(c, "https", &config.HTTPProtoConfig{})
 
 			ctx.Partner.Address = addr
 			So(ctx.DB.Update(ctx.Partner).Cols("address").Run(), ShouldBeNil)
@@ -76,8 +72,7 @@ func TestHTTPSClient(t *testing.T) {
 		})
 
 		Convey("Given a new HTTPS pull transfer", func(c C) {
-			ctx := pipelinetest.InitClientPull(c, "http", src.Content(),
-				&config.HTTPProtoConfig{UseHTTPS: true})
+			ctx := pipelinetest.InitClientPull(c, "https", src.Content(), &config.HTTPProtoConfig{})
 
 			ctx.Partner.Address = addr
 			So(ctx.DB.Update(ctx.Partner).Cols("address").Run(), ShouldBeNil)
@@ -105,7 +100,7 @@ func TestHTTPSClient(t *testing.T) {
 
 func TestHTTPSServer(t *testing.T) {
 	Convey("Given a HTTPS server for push transfers", t, func(c C) {
-		ctx := pipelinetest.InitServerPush(c, "http", &config.HTTPProtoConfig{UseHTTPS: true})
+		ctx := pipelinetest.InitServerPush(c, "https", NewService, &config.HTTPProtoConfig{})
 		serverCert := model.Crypto{
 			OwnerType:   ctx.Server.TableName(),
 			OwnerID:     ctx.Server.ID,
@@ -140,12 +135,15 @@ func TestHTTPSServer(t *testing.T) {
 				file := testhelpers.NewTestReader(c)
 
 				url := fmt.Sprintf("%s?%s=%s", addr, httpconst.Rule, ctx.ServerRule.Name)
-				req, err := http.NewRequest(http.MethodPost, url, file)
+				req, err := http.NewRequest(http.MethodPost, url, file) //nolint:noctx // this is a test
 				So(err, ShouldBeNil)
 
 				req.SetBasicAuth(ctx.LocAccount.Login, "")
 				resp, err := client.Do(req)
 				So(err, ShouldBeNil)
+
+				defer resp.Body.Close()
+
 				So(resp.StatusCode, ShouldEqual, http.StatusCreated)
 
 				Convey("Then it should have executed all the tasks in order", func(c C) {
@@ -167,21 +165,30 @@ func TestHTTPSServer(t *testing.T) {
 				RootCAs:      rootCAs,
 				Certificates: []tls.Certificate{cert},
 			}}
-			client := &http.Client{Transport: transport, Timeout: time.Second}
+			client := &http.Client{Transport: transport, Timeout: time.Hour}
 			addr := "https://" + ctx.Server.Address + "/" + ctx.Filename()
 
 			Convey("When executing the transfer", func(c C) {
 				file := testhelpers.NewTestReader(c)
 
 				url := fmt.Sprintf("%s?%s=%s", addr, httpconst.Rule, ctx.ServerRule.Name)
-				req, err := http.NewRequest(http.MethodPost, url, file)
+				req, err := http.NewRequest(http.MethodPost, url, file) //nolint:noctx // this is a test
 				So(err, ShouldBeNil)
 
 				req.SetBasicAuth(ctx.LocAccount.Login, "")
-				_, err = client.Do(req)
+				resp, err := client.Do(req)
+				So(err, ShouldBeNil)
+
+				defer resp.Body.Close()
+
+				body, err := ioutil.ReadAll(resp.Body)
+				So(err, ShouldBeNil)
+
+				code := resp.StatusCode
 
 				Convey("Then it should return an error", func() {
-					So(err, ShouldBeError)
+					So(code, ShouldEqual, http.StatusUnauthorized)
+					So(string(body), ShouldEqual, "Certificate is not valid for this user\n")
 				})
 			})
 		})

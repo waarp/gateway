@@ -2,14 +2,14 @@ package internal
 
 import (
 	"crypto/tls"
+	"fmt"
 	"sync"
-
-	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/conf"
-
-	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/log"
 
 	"code.bcarlin.xyz/go/logging"
 	"code.waarp.fr/waarp-r66/r66"
+
+	"code.waarp.fr/apps/gateway/gateway/pkg/conf"
+	"code.waarp.fr/apps/gateway/gateway/pkg/log"
 )
 
 type connInfo struct {
@@ -34,6 +34,7 @@ func (c *ConnPool) Exists(addr string) bool {
 	defer c.mux.Unlock()
 
 	_, ok := c.m[addr]
+
 	return ok
 }
 
@@ -48,24 +49,29 @@ func (c *ConnPool) Add(addr string, tlsConf *tls.Config, logger *log.Logger) (*r
 	info, ok := c.m[addr]
 	if ok {
 		info.num++
+
 		return info.conn, nil
 	}
 
 	realAddr, err := conf.GetRealAddress(addr)
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("failed to indirect the partner's address: %w", err)
 	}
+
 	var cli *r66.Client
+
 	if tlsConf == nil {
 		cli, err = r66.Dial(realAddr, logger.AsStdLog(logging.DEBUG))
 	} else {
 		cli, err = r66.DialTLS(realAddr, tlsConf, logger.AsStdLog(logging.DEBUG))
 	}
+
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("failed to connect to remote host: %w", err)
 	}
 
 	c.m[addr] = &connInfo{conn: cli, num: 1}
+
 	return cli, nil
 }
 

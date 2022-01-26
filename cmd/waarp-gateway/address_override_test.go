@@ -5,12 +5,12 @@ import (
 	"net/url"
 	"testing"
 
-	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/conf"
-
-	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/admin"
-	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/database"
 	"github.com/jessevdk/go-flags"
 	. "github.com/smartystreets/goconvey/convey"
+
+	"code.waarp.fr/apps/gateway/gateway/pkg/admin"
+	"code.waarp.fr/apps/gateway/gateway/pkg/conf"
+	"code.waarp.fr/apps/gateway/gateway/pkg/database"
 )
 
 func addrInfoString(target, redirect string) string {
@@ -18,7 +18,6 @@ func addrInfoString(target, redirect string) string {
 }
 
 func TestGetAddressOverride(t *testing.T) {
-
 	Convey("Testing the address override 'get' command", t, func() {
 		out = testFile()
 		command := &overrideAddressGet{}
@@ -52,7 +51,6 @@ func TestGetAddressOverride(t *testing.T) {
 }
 
 func TestSetAddressOverride(t *testing.T) {
-
 	Convey("Testing the address override 'set' command", t, func() {
 		out = testFile()
 		command := &overrideAddressSet{}
@@ -89,7 +87,6 @@ func TestSetAddressOverride(t *testing.T) {
 }
 
 func TestListAddressOverrides(t *testing.T) {
-
 	Convey("Testing the address override 'list' command", t, func() {
 		out = testFile()
 		command := &overrideAddressList{}
@@ -114,8 +111,8 @@ func TestListAddressOverrides(t *testing.T) {
 					So(command.Execute(params), ShouldBeNil)
 
 					Convey("Then is should display the indirection", func() {
-						So(getOutput(), ShouldEqual, addrInfoString("localhost", "127.0.0.1")+
-							addrInfoString("waarp.fr", "1.2.3.4"))
+						So(getOutput(), ShouldContainSubstring, addrInfoString("localhost", "127.0.0.1"))
+						So(getOutput(), ShouldContainSubstring, addrInfoString("waarp.fr", "1.2.3.4"))
 					})
 				})
 			})
@@ -124,7 +121,6 @@ func TestListAddressOverrides(t *testing.T) {
 }
 
 func TestDeleteAddressOverride(t *testing.T) {
-
 	Convey("Testing the address override 'delete' command", t, func() {
 		out = testFile()
 		command := &overrideAddressDelete{}

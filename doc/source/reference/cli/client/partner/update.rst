@@ -4,7 +4,7 @@ Modifier un partenaire
 
 .. program:: waarp-gateway partner update
 
-.. describe:: waarp-gateway <ADDR> partner update <PARTNER>
+.. describe:: waarp-gateway partner update <PARTNER>
 
 Remplace les attributs du partenaire donné par ceux fournis ci-dessous. Les
 attributs omis resteront inchangés.

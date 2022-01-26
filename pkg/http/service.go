@@ -7,30 +7,23 @@ import (
 	"context"
 	"crypto/tls"
 	"encoding/json"
+	"fmt"
 	"net/http"
 
 	"code.bcarlin.xyz/go/logging"
 
-	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/gatewayd"
-
-	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/model/config"
-
-	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/database"
-	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/log"
-	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/model"
-
-	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/tk/service"
+	"code.waarp.fr/apps/gateway/gateway/pkg/database"
+	"code.waarp.fr/apps/gateway/gateway/pkg/log"
+	"code.waarp.fr/apps/gateway/gateway/pkg/model"
+	"code.waarp.fr/apps/gateway/gateway/pkg/model/config"
+	"code.waarp.fr/apps/gateway/gateway/pkg/tk/service"
 )
-
-func init() {
-	gatewayd.ServiceConstructors["http"] = NewService
-}
 
 type httpService struct {
 	logger *log.Logger
 	db     *database.DB
 	agent  *model.LocalAgent
-	state  service.State
+	state  *service.State
 
 	conf    config.HTTPProtoConfig
 	serv    *http.Server
@@ -42,18 +35,20 @@ type httpService struct {
 // NewService initializes and returns a new HTTP service.
 func NewService(db *database.DB, agent *model.LocalAgent, logger *log.Logger) service.ProtoService {
 	return &httpService{
-		logger:   logger,
-		db:       db,
-		agent:    agent,
-		running:  service.NewTransferMap(),
-		shutdown: make(chan struct{}),
+		logger:  logger,
+		db:      db,
+		agent:   agent,
+		running: service.NewTransferMap(),
+		state:   &service.State{},
 	}
 }
 
 func (h *httpService) Start() error {
 	h.logger.Info("Starting HTTP service...")
+
 	if state, _ := h.state.Get(); state != service.Offline && state != service.Error {
 		h.logger.Infof("Cannot start because the server is already running.")
+
 		return nil
 	}
 
@@ -62,17 +57,19 @@ func (h *httpService) Start() error {
 	if err := json.Unmarshal(h.agent.ProtoConfig, &h.conf); err != nil {
 		h.logger.Errorf("Failed to parse server configuration: %s", err)
 		h.state.Set(service.Error, "failed to parse server configuration")
-		return err
+
+		return fmt.Errorf("failed to parse server configuration: %w", err)
 	}
 
 	var tlsConf *tls.Config
-	if h.conf.UseHTTPS {
+
+	if h.agent.Protocol == "https" {
 		var err error
 		if tlsConf, err = h.makeTLSConf(); err != nil {
 			h.state.Set(service.Error, err.Error())
+
 			return err
 		}
-
 	}
 
 	h.serv = &http.Server{
@@ -84,43 +81,65 @@ func (h *httpService) Start() error {
 
 	if err := h.listen(); err != nil {
 		h.state.Set(service.Error, err.Error())
+
 		return err
 	}
 
 	h.logger.Infof("HTTP server started at: %s", h.agent.Address)
 	h.state.Set(service.Running, "")
 
+	h.shutdown = make(chan struct{})
+
 	return nil
 }
 
 func (h *httpService) Stop(ctx context.Context) error {
-	h.logger.Info("Shutdown command received...")
 	if state, _ := h.state.Get(); state != service.Running {
-		h.logger.Info("Cannot stop because the server is not running")
 		return nil
 	}
 
+	h.logger.Info("Shutdown command received...")
 	h.state.Set(service.ShuttingDown, "")
-
-	if h.shutdown == nil {
-		h.shutdown = make(chan struct{})
-	}
 	close(h.shutdown)
 
+	if err := h.stop(ctx); err != nil {
+		h.logger.Warningf("Forcing service shutdown...")
+		_ = h.serv.Close() //nolint:errcheck //error is irrelevant at this point
+		h.state.Set(service.Error, err.Error())
+
+		h.logger.Debug("Service was shut down forcefully.")
+
+		return err
+	}
+
+	h.state.Set(service.Offline, "")
+	h.logger.Info("HTTP server shutdown successful")
+
+	return nil
+}
+
+func (h *httpService) stop(ctx context.Context) error {
+	h.logger.Debug("Interrupting transfers...")
+
 	if err := h.running.InterruptAll(ctx); err != nil {
-		h.logger.Error("Failed to interrupt R66 transfers, forcing exit")
-		return ctx.Err()
+		h.logger.Warningf("Failed to interrupt R66 transfers: %s", err)
+
+		return fmt.Errorf("could not halt the service gracefully: %w", err)
 	}
 
 	h.logger.Debug("Closing listener...")
-	_ = h.serv.Shutdown(ctx)
 
-	h.state.Set(service.Offline, "")
+	if err := h.serv.Shutdown(ctx); err != nil {
+		h.logger.Warningf("Error while closing HTTP listener: %s", err)
+
+		return fmt.Errorf("failed to stop the HTTP listener: %w", err)
+	}
+
 	return nil
 }
 
 func (h *httpService) State() *service.State {
-	panic("implement me")
+	return h.state
 }
 
 func (h *httpService) ManageTransfers() *service.TransferMap {

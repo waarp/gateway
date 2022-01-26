@@ -7,9 +7,8 @@ import (
 	"net/url"
 	"time"
 
-	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/admin/rest/api"
-	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/model/types"
-	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/tk/utils"
+	"code.waarp.fr/apps/gateway/gateway/pkg/admin/rest/api"
+	"code.waarp.fr/apps/gateway/gateway/pkg/model/types"
 )
 
 type transferCommand struct {
@@ -42,40 +41,47 @@ func coloredStatus(status types.TransferStatus) string {
 			return bold(string(status))
 		}
 	}()
+
 	return bold("[") + text + bold("]")
 }
 
 func displayTransfer(w io.Writer, trans *api.OutTransfer) {
-	role := "client"
+	role := roleClient
 	if trans.IsServer {
-		role = "server"
+		role = roleServer
 	}
-	dir := "receive"
+
+	dir := directionRecv
 	if trans.IsSend {
-		dir = "send"
+		dir = directionSend
 	}
-	size := "unknown"
+
+	size := sizeUnknown
 	if trans.Filesize >= 0 {
 		size = fmt.Sprint(trans.Filesize)
 	}
 
 	fmt.Fprintln(w, bold("● Transfer", trans.ID, "("+dir+" as "+role+")"), coloredStatus(trans.Status))
+
 	if trans.RemoteID != "" {
-		fmt.Fprintln(w, orange("    Remote ID:       "), trans.RemoteID)
+		fmt.Fprintln(w, orange("    Remote ID:      "), trans.RemoteID)
 	}
+
 	fmt.Fprintln(w, orange("    Rule:           "), trans.Rule)
 	fmt.Fprintln(w, orange("    Requester:      "), trans.Requester)
 	fmt.Fprintln(w, orange("    Requested:      "), trans.Requested)
-	fmt.Fprintln(w, orange("    Local filepath: "), trans.LocalPath)
-	fmt.Fprintln(w, orange("    Remote filepath:"), trans.RemotePath)
+	fmt.Fprintln(w, orange("    Local filepath: "), trans.LocalFilepath)
+	fmt.Fprintln(w, orange("    Remote filepath:"), trans.RemoteFilepath)
 	fmt.Fprintln(w, orange("    File size:      "), size)
-	fmt.Fprintln(w, orange("    Start time:     "), trans.Start.Format(time.RFC3339Nano))
+	fmt.Fprintln(w, orange("    Start date:     "), trans.Start.Format(time.RFC3339Nano))
 	fmt.Fprintln(w, orange("    Step:           "), trans.Step)
 	fmt.Fprintln(w, orange("    Progress:       "), trans.Progress)
 	fmt.Fprintln(w, orange("    Task number:    "), trans.TaskNumber)
+
 	if trans.ErrorCode != types.TeOk.String() {
 		fmt.Fprintln(w, orange("    Error code:     "), fmt.Sprint(trans.ErrorCode))
 	}
+
 	if trans.ErrorMsg != "" {
 		fmt.Fprintln(w, orange("    Error message:  "), trans.ErrorMsg)
 	}
@@ -83,13 +89,14 @@ func displayTransfer(w io.Writer, trans *api.OutTransfer) {
 
 // ######################## ADD ##########################
 
+//nolint:lll // struct tags can be long for command line args
 type transferAdd struct {
-	File    string  `required:"true" short:"f" long:"file" description:"The file to transfer"`
-	Way     string  `required:"true" short:"w" long:"way" description:"The direction of the transfer" choice:"send" choice:"receive"`
-	Name    *string `short:"n" long:"name" description:"[DEPRECATED] The name of the file after the transfer"` // DEPRECATED
-	Partner string  `required:"true" short:"p" long:"partner" description:"The partner with which the transfer is performed"`
-	Account string  `required:"true" short:"l" long:"login" description:"The login of the account used to connect on the partner"`
-	Rule    string  `required:"true" short:"r" long:"rule" description:"The rule to use for the transfer"`
+	File    string  `required:"yes" short:"f" long:"file" description:"The file to transfer"`
+	Way     string  `required:"yes" short:"w" long:"way" description:"The direction of the transfer" choice:"send" choice:"receive"`
+	Name    *string `short:"n" long:"name" description:"[DEPRECATED] The name of the file after the transfer"` // Deprecated: the source name is used instead
+	Partner string  `required:"yes" short:"p" long:"partner" description:"The partner with which the transfer is performed"`
+	Account string  `required:"yes" short:"l" long:"login" description:"The login of the account used to connect on the partner"`
+	Rule    string  `required:"yes" short:"r" long:"rule" description:"The rule to use for the transfer"`
 	Date    string  `short:"d" long:"date" description:"The starting date (in ISO 8601 format) of the transfer"`
 }
 
@@ -97,29 +104,34 @@ func (t *transferAdd) Execute([]string) (err error) {
 	trans := api.InTransfer{
 		Partner: t.Partner,
 		Account: t.Account,
-		IsSend:  utils.BoolPtr(t.Way == "send"),
+		IsSend:  dirToBoolPtr(t.Way),
 		File:    t.File,
 		Rule:    t.Rule,
 	}
+
 	if t.Name != nil {
-		fmt.Fprintln(out, "[WARNING] The '-n' ('-name') option is deprecated. "+
+		fmt.Fprintln(out, "[WARNING] The '-n' ('--name') option is deprecated. "+
 			"For simplicity, in the future, files will have the same name at "+
 			"the source and the destination")
+
 		trans.DestPath = *t.Name
 	}
 
 	if t.Date != "" {
 		trans.Start, err = time.Parse(time.RFC3339Nano, t.Date)
 		if err != nil {
-			return fmt.Errorf("'%s' is not a valid date", t.Date)
+			return fmt.Errorf("'%s' is not a valid date: %w", t.Date, errInvalidDate)
 		}
 	}
+
 	addr.Path = "/api/transfers"
 
 	if err := add(trans); err != nil {
 		return err
 	}
+
 	fmt.Fprintln(getColorable(), "The transfer of file", t.File, "was successfully added.")
+
 	return nil
 }
 
@@ -138,12 +150,15 @@ func (t *transferGet) Execute([]string) error {
 	if err := get(trans); err != nil {
 		return err
 	}
+
 	displayTransfer(getColorable(), trans)
+
 	return nil
 }
 
 // ######################## LIST ##########################
 
+//nolint:lll // struct tags can be long for command line args
 type transferList struct {
 	listOptions
 	SortBy   string   `short:"s" long:"sort" description:"Attribute used to sort the returned entries" choice:"start+" choice:"start-" choice:"id+" choice:"id-" choice:"rule+" choice:"rule-" default:"start+"`
@@ -162,22 +177,27 @@ func (t *transferList) listURL() error {
 	for _, rule := range t.Rules {
 		query.Add("rule", rule)
 	}
+
 	for _, status := range t.Statuses {
 		query.Add("status", status)
 	}
+
 	if t.Start != "" {
 		_, err := time.Parse(time.RFC3339Nano, t.Start)
 		if err != nil {
-			return fmt.Errorf("'%s' is not a valid date (accepted format: '%s')",
-				t.Start, time.RFC3339Nano)
+			return fmt.Errorf("'%s' is not a valid date (accepted format: '%s'): %w",
+				t.Start, time.RFC3339Nano, errInvalidDate)
 		}
+
 		query.Set("start", t.Start)
 	}
+
 	addr.RawQuery = query.Encode()
 
 	return nil
 }
 
+//nolint:dupl // duplicated code is about two different types
 func (t *transferList) Execute([]string) error {
 	if err := t.listURL(); err != nil {
 		return err
@@ -189,16 +209,20 @@ func (t *transferList) Execute([]string) error {
 	}
 
 	transfers := body["transfers"]
-	w := getColorable()
+
+	w := getColorable() //nolint:ifshort // decrease readability
+
 	if len(transfers) > 0 {
 		fmt.Fprintln(w, bold("Transfers:"))
-		for _, t := range transfers {
-			transfer := t
+
+		for i := range transfers {
+			transfer := transfers[i]
 			displayTransfer(w, &transfer)
 		}
 	} else {
 		fmt.Fprintln(w, "No transfers found.")
 	}
+
 	return nil
 }
 
@@ -218,20 +242,25 @@ func (t *transferPause) Execute([]string) error {
 	if err != nil {
 		return err
 	}
-	defer resp.Body.Close()
+	defer resp.Body.Close() //nolint:errcheck // no logger to handle the error
 
 	w := getColorable()
+
 	switch resp.StatusCode {
 	case http.StatusAccepted:
 		fmt.Fprintln(w, "The transfer", bold(id), "was successfully paused.",
 			"It can be resumed using the 'resume' command.")
+
 		return nil
+
 	case http.StatusNotFound:
 		return getResponseMessage(resp)
+
 	case http.StatusBadRequest:
 		return getResponseMessage(resp)
+
 	default:
-		return fmt.Errorf("unexpected error (%s): %s", resp.Status, getResponseMessage(resp).Error())
+		return fmt.Errorf("unexpected error (%s): %w", resp.Status, getResponseMessage(resp))
 	}
 }
 
@@ -243,6 +272,7 @@ type transferResume struct {
 	} `positional-args:"yes"`
 }
 
+//nolint:dupl // hard to factorize
 func (t *transferResume) Execute([]string) error {
 	id := fmt.Sprint(t.Args.ID)
 	addr.Path = fmt.Sprintf("/api/transfers/%d/resume", t.Args.ID)
@@ -251,19 +281,24 @@ func (t *transferResume) Execute([]string) error {
 	if err != nil {
 		return err
 	}
-	defer resp.Body.Close()
+	defer resp.Body.Close() //nolint:errcheck // nothing to handle the error
 
 	w := getColorable()
+
 	switch resp.StatusCode {
 	case http.StatusAccepted:
 		fmt.Fprintln(w, "The transfer", bold(id), "was successfully resumed.")
+
 		return nil
+
 	case http.StatusNotFound:
 		return getResponseMessage(resp)
+
 	case http.StatusBadRequest:
 		return getResponseMessage(resp)
+
 	default:
-		return fmt.Errorf("unexpected error (%s): %s", resp.Status, getResponseMessage(resp).Error())
+		return fmt.Errorf("unexpected error (%s): %w", resp.Status, getResponseMessage(resp))
 	}
 }
 
@@ -275,6 +310,7 @@ type transferCancel struct {
 	} `positional-args:"yes"`
 }
 
+//nolint:dupl // hard to factorize
 func (t *transferCancel) Execute([]string) error {
 	id := fmt.Sprint(t.Args.ID)
 	addr.Path = fmt.Sprintf("/api/transfers/%d/cancel", t.Args.ID)
@@ -283,18 +319,24 @@ func (t *transferCancel) Execute([]string) error {
 	if err != nil {
 		return err
 	}
-	defer resp.Body.Close()
+
+	defer resp.Body.Close() //nolint:errcheck // nothing to handle the error
 
 	w := getColorable()
+
 	switch resp.StatusCode {
 	case http.StatusAccepted:
-		fmt.Fprintln(w, "The transfer", bold(id), "was successfully cancelled.")
+		fmt.Fprintln(w, "The transfer", bold(id), "was successfully canceled.")
+
 		return nil
+
 	case http.StatusNotFound:
 		return getResponseMessage(resp)
+
 	case http.StatusBadRequest:
 		return getResponseMessage(resp)
+
 	default:
-		return fmt.Errorf("unexpected error (%s): %s", resp.Status, getResponseMessage(resp).Error())
+		return fmt.Errorf("unexpected error (%s): %w", resp.Status, getResponseMessage(resp))
 	}
 }

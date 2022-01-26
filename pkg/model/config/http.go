@@ -1,15 +1,15 @@
 package config
 
+//nolint:gochecknoinits // init is used by design
 func init() {
 	ProtoConfigs["http"] = func() ProtoConfig { return new(HTTPProtoConfig) }
+	ProtoConfigs["https"] = func() ProtoConfig { return new(HTTPProtoConfig) }
 }
 
-// HTTPProtoConfig represents the configuration of an HTTP agent.
-type HTTPProtoConfig struct {
-	UseHTTPS bool `json:"useHTTPS,omitempty"`
-}
+// HTTPProtoConfig represents the configuration of an HTTP or HTTPS agent.
+type HTTPProtoConfig struct{}
 
-// ValidServer checks if the configuration is valid for a local SFTP server.
+// ValidServer checks if the configuration is valid for a local HTTP server.
 func (h *HTTPProtoConfig) ValidServer() error {
 	return nil
 }

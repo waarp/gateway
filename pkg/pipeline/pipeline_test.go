@@ -7,13 +7,13 @@ import (
 	"path/filepath"
 	"testing"
 
-	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/tasks/taskstest"
-
-	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/database"
-	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/log"
-	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/model"
-	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/model/types"
 	. "github.com/smartystreets/goconvey/convey"
+
+	"code.waarp.fr/apps/gateway/gateway/pkg/database"
+	"code.waarp.fr/apps/gateway/gateway/pkg/log"
+	"code.waarp.fr/apps/gateway/gateway/pkg/model"
+	"code.waarp.fr/apps/gateway/gateway/pkg/model/types"
+	"code.waarp.fr/apps/gateway/gateway/pkg/tasks/taskstest"
 )
 
 func TestNewPipeline(t *testing.T) {
@@ -34,7 +34,7 @@ func TestNewPipeline(t *testing.T) {
 					So(pip, ShouldNotBeNil)
 
 					Convey("Then the pipeline's state machine should have been initiated", func(c C) {
-						So(pip.machine.Current(), ShouldEqual, "init")
+						So(pip.machine.Current(), ShouldEqual, stateInit)
 					})
 
 					Convey("Then the transfer's paths should have been initiated", func(c C) {
@@ -100,12 +100,12 @@ func TestNewPipeline(t *testing.T) {
 					So(pip, ShouldNotBeNil)
 
 					Convey("Then the pipeline's state machine should have been initiated", func(c C) {
-						So(pip.machine.Current(), ShouldEqual, "init")
+						So(pip.machine.Current(), ShouldEqual, stateInit)
 					})
 
 					Convey("Then the transfer's paths should have been initiated", func(c C) {
 						So(info.Transfer.LocalPath, ShouldEqual, filepath.Join(
-							ctx.root, ctx.recv.LocalTmpDir, filename))
+							ctx.root, ctx.recv.TmpLocalRcvDir, filename))
 						So(info.Transfer.RemotePath, ShouldEqual, path.Join("/",
 							ctx.recv.RemoteDir, filename))
 					})
@@ -239,8 +239,8 @@ func TestPipelineStartData(t *testing.T) {
 
 		pip, err := newPipeline(ctx.db, logger, info)
 		So(err, ShouldBeNil)
-		So(pip.machine.Transition("pre-tasks"), ShouldBeNil)
-		So(pip.machine.Transition("pre-tasks done"), ShouldBeNil)
+		So(pip.machine.Transition(statePreTasks), ShouldBeNil)
+		So(pip.machine.Transition(statePreTasksDone), ShouldBeNil)
 
 		Convey("When starting the data transfer", func(c C) {
 			stream, err := pip.StartData()
@@ -253,7 +253,7 @@ func TestPipelineStartData(t *testing.T) {
 			})
 
 			Convey("Then it should have opened/created the file", func(c C) {
-				_, err := os.Stat(filepath.Join(ctx.root, info.Rule.LocalTmpDir, filename+".part"))
+				_, err := os.Stat(filepath.Join(ctx.root, info.Rule.TmpLocalRcvDir, filename+".part"))
 				So(err, ShouldBeNil)
 			})
 
@@ -313,8 +313,8 @@ func TestPipelineEndData(t *testing.T) {
 
 		pip, err := newPipeline(ctx.db, logger, info)
 		So(err, ShouldBeNil)
-		So(pip.machine.Transition("pre-tasks"), ShouldBeNil)
-		So(pip.machine.Transition("pre-tasks done"), ShouldBeNil)
+		So(pip.machine.Transition(statePreTasks), ShouldBeNil)
+		So(pip.machine.Transition(statePreTasksDone), ShouldBeNil)
 
 		Convey("When ending the data transfer", func(c C) {
 			_, err := pip.StartData()
@@ -373,14 +373,12 @@ func TestPipelinePostTasks(t *testing.T) {
 
 		pip, err := newPipeline(ctx.db, logger, info)
 		So(err, ShouldBeNil)
-		So(pip.machine.Transition("pre-tasks"), ShouldBeNil)
-		So(pip.machine.Transition("pre-tasks done"), ShouldBeNil)
-		So(pip.machine.Transition("start data"), ShouldBeNil)
-		So(pip.machine.Transition("writing"), ShouldBeNil)
-		So(pip.machine.Transition("end data"), ShouldBeNil)
-		So(pip.machine.Transition("close"), ShouldBeNil)
-		So(pip.machine.Transition("move"), ShouldBeNil)
-		So(pip.machine.Transition("data ended"), ShouldBeNil)
+		So(pip.machine.Transition(statePreTasks), ShouldBeNil)
+		So(pip.machine.Transition(statePreTasksDone), ShouldBeNil)
+		So(pip.machine.Transition(stateStartData), ShouldBeNil)
+		So(pip.machine.Transition(stateWriting), ShouldBeNil)
+		So(pip.machine.Transition(stateDataEnd), ShouldBeNil)
+		So(pip.machine.Transition(stateDataEndDone), ShouldBeNil)
 
 		Convey("When calling the post-tasks", func(c C) {
 			So(pip.PostTasks(), ShouldBeNil)
@@ -844,7 +842,7 @@ func TestPipelineCancel(t *testing.T) {
 			Convey("Then it should NOT have called the error-tasks", func(c C) {
 				So(taskChecker.ClientErrTaskNB(), ShouldEqual, 0)
 
-				Convey("Then the transfer should have been cancelled", func(c C) {
+				Convey("Then the transfer should have been canceled", func(c C) {
 					var hist model.HistoryEntry
 					So(ctx.db.Get(&hist, "id=?", info.Transfer.ID).Run(), ShouldBeNil)
 					So(hist.Status, ShouldEqual, types.StatusCancelled)
@@ -887,7 +885,7 @@ func TestPipelineCancel(t *testing.T) {
 					types.TeExternalOperation, "pre-tasks failed"))
 				So(taskChecker.ClientPreTaskNB(), ShouldEqual, 1)
 
-				Convey("Then the transfer should have been cancelled", func(c C) {
+				Convey("Then the transfer should have been canceled", func(c C) {
 					var hist model.HistoryEntry
 					So(ctx.db.Get(&hist, "id=?", info.Transfer.ID).Run(), ShouldBeNil)
 					So(hist.Status, ShouldEqual, types.StatusCancelled)
@@ -911,7 +909,7 @@ func TestPipelineCancel(t *testing.T) {
 			Convey("Then it should NOT have called the error-tasks", func(c C) {
 				So(taskChecker.ClientErrTaskNB(), ShouldEqual, 0)
 
-				Convey("Then the transfer should have been cancelled", func(c C) {
+				Convey("Then the transfer should have been canceled", func(c C) {
 					var hist model.HistoryEntry
 					So(ctx.db.Get(&hist, "id=?", info.Transfer.ID).Run(), ShouldBeNil)
 					So(hist.Status, ShouldEqual, types.StatusCancelled)
@@ -959,7 +957,7 @@ func TestPipelineCancel(t *testing.T) {
 					types.TeExternalOperation, "post-tasks failed"))
 				So(taskChecker.ClientPostTaskNB(), ShouldEqual, 1)
 
-				Convey("Then the transfer should have been cancelled", func(c C) {
+				Convey("Then the transfer should have been canceled", func(c C) {
 					var hist model.HistoryEntry
 					So(ctx.db.Get(&hist, "id=?", info.Transfer.ID).Run(), ShouldBeNil)
 					So(hist.Status, ShouldEqual, types.StatusCancelled)
@@ -984,7 +982,7 @@ func TestPipelineCancel(t *testing.T) {
 			Convey("Then it should NOT have called the error-tasks", func(c C) {
 				So(taskChecker.ClientErrTaskNB(), ShouldEqual, 0)
 
-				Convey("Then the transfer should have been cancelled", func(c C) {
+				Convey("Then the transfer should have been canceled", func(c C) {
 					var hist model.HistoryEntry
 					So(ctx.db.Get(&hist, "id=?", info.Transfer.ID).Run(), ShouldBeNil)
 					So(hist.Status, ShouldEqual, types.StatusCancelled)

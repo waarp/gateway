@@ -4,35 +4,44 @@ import (
 	"encoding/json"
 	"testing"
 
-	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/model/config"
-
-	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/tk/utils/testhelpers"
-
-	. "code.waarp.fr/waarp-gateway/waarp-gateway/pkg/backup/file"
-	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/database"
-	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/model"
 	. "github.com/smartystreets/goconvey/convey"
 	"golang.org/x/crypto/bcrypt"
+
+	. "code.waarp.fr/apps/gateway/gateway/pkg/backup/file"
+	"code.waarp.fr/apps/gateway/gateway/pkg/conf"
+	"code.waarp.fr/apps/gateway/gateway/pkg/database"
+	"code.waarp.fr/apps/gateway/gateway/pkg/model"
+	"code.waarp.fr/apps/gateway/gateway/pkg/tk/utils/testhelpers"
 )
 
 func TestImportLocalAgents(t *testing.T) {
-
 	Convey("Given a database", t, func(c C) {
 		db := database.TestDatabase(c, "ERROR")
 
 		Convey("Given a database with some local agent", func() {
 			agent := &model.LocalAgent{
-				Name:        "server",
-				Protocol:    config.TestProtocol,
-				ProtoConfig: json.RawMessage(`{}`),
-				Address:     "localhost:2022",
+				Name:     "server",
+				Protocol: testProtocol,
+				Address:  "localhost:2022",
 			}
+
+			// add another LocalAgent with the same name but different owner
+			agent2 := &model.LocalAgent{
+				Name:     agent.Name,
+				Protocol: testProtocol,
+				Address:  "localhost:9999",
+			}
+			owner := conf.GlobalConfig.GatewayName
+			conf.GlobalConfig.GatewayName = "toto"
+			So(db.Insert(agent2).Run(), ShouldBeNil)
+			conf.GlobalConfig.GatewayName = owner
+
 			So(db.Insert(agent).Run(), ShouldBeNil)
 
 			Convey("Given a list of new agents", func() {
 				agent1 := LocalAgent{
 					Name:          "foo",
-					Protocol:      config.TestProtocol,
+					Protocol:      testProtocol,
 					Configuration: json.RawMessage(`{}`),
 					Address:       "localhost:2022",
 					Accounts: []LocalAccount{
@@ -48,7 +57,6 @@ func TestImportLocalAgents(t *testing.T) {
 				agents := []LocalAgent{agent1}
 
 				Convey("Given an empty database", func() {
-
 					Convey("When calling the importLocals method", func() {
 						err := importLocalAgents(discard, db, agents)
 
@@ -57,7 +65,8 @@ func TestImportLocalAgents(t *testing.T) {
 						})
 						Convey("Then the database should contains the local agents", func() {
 							var dbAgent model.LocalAgent
-							So(db.Get(&dbAgent, "name=?", agent1.Name).Run(), ShouldBeNil)
+							So(db.Get(&dbAgent, "name=? AND owner=?", agent1.Name,
+								conf.GlobalConfig.GatewayName).Run(), ShouldBeNil)
 
 							Convey("Then the data shuld correspond to the "+
 								"one imported", func() {
@@ -80,7 +89,7 @@ func TestImportLocalAgents(t *testing.T) {
 			Convey("Given a list of fully updated agents", func() {
 				agent1 := LocalAgent{
 					Name:          "server",
-					Protocol:      config.TestProtocol,
+					Protocol:      testProtocol,
 					Configuration: json.RawMessage(`{}`),
 					Address:       "localhost:6666",
 					Accounts: []LocalAccount{
@@ -107,9 +116,10 @@ func TestImportLocalAgents(t *testing.T) {
 					})
 					Convey("Then the database should contains the local agents", func() {
 						var dbAgent model.LocalAgent
-						So(db.Get(&dbAgent, "name=?", agent1.Name).Run(), ShouldBeNil)
+						So(db.Get(&dbAgent, "name=? AND owner=?", agent1.Name,
+							conf.GlobalConfig.GatewayName).Run(), ShouldBeNil)
 
-						Convey("Then the data shuld correspond to the "+
+						Convey("Then the data should correspond to the "+
 							"one imported", func() {
 							So(dbAgent.Name, ShouldEqual, agent1.Name)
 							So(dbAgent.Protocol, ShouldEqual, agent1.Protocol)
@@ -136,16 +146,14 @@ func TestImportLocalAgents(t *testing.T) {
 }
 
 func TestImportLocalAccounts(t *testing.T) {
-
 	Convey("Given a database", t, func(c C) {
 		db := database.TestDatabase(c, "ERROR")
 
 		Convey("Given a database with some a local agent and some local accounts", func() {
 			agent := &model.LocalAgent{
-				Name:        "server",
-				Protocol:    config.TestProtocol,
-				ProtoConfig: json.RawMessage(`{}`),
-				Address:     "localhost:2022",
+				Name:     "server",
+				Protocol: testProtocol,
+				Address:  "localhost:2022",
 			}
 			So(db.Insert(agent).Run(), ShouldBeNil)
 
@@ -186,27 +194,25 @@ func TestImportLocalAccounts(t *testing.T) {
 						Convey("Then the data should correspond to the "+
 							"one imported", func() {
 							for i := 0; i < len(accounts); i++ {
-								if accounts[i].Login == account1.Login {
-
+								switch {
+								case accounts[i].Login == account1.Login:
 									Convey("Then account1 is found", func() {
 										So(bcrypt.CompareHashAndPassword(
-											accounts[i].PasswordHash, []byte("pwd")),
-											ShouldBeNil)
+											[]byte(accounts[i].PasswordHash),
+											[]byte("pwd")), ShouldBeNil)
 									})
-								} else if accounts[i].Login == account2.Login {
-
+								case accounts[i].Login == account2.Login:
 									Convey("Then account2 is found", func() {
 										So(bcrypt.CompareHashAndPassword(
-											accounts[i].PasswordHash, []byte("pwd")),
-											ShouldBeNil)
+											[]byte(accounts[i].PasswordHash),
+											[]byte("pwd")), ShouldBeNil)
 									})
-								} else if accounts[i].Login == dbAccount.Login {
-
+								case accounts[i].Login == dbAccount.Login:
 									Convey("Then dbAccount is found", func() {
 										So(accounts[i].PasswordHash, ShouldResemble,
 											dbAccount.PasswordHash)
 									})
-								} else {
+								default:
 									Convey("Then they should be no other "+
 										"records", func() {
 										So(1, ShouldBeNil)
@@ -249,7 +255,6 @@ func TestImportLocalAccounts(t *testing.T) {
 							"one imported", func() {
 							for i := 0; i < len(accounts); i++ {
 								if accounts[i].Login == dbAccount.Login {
-
 									Convey("When dbAccount is found", func() {
 										So(accounts[i].PasswordHash, ShouldNotResemble,
 											dbAccount.PasswordHash)
@@ -303,14 +308,13 @@ func TestImportLocalAccounts(t *testing.T) {
 							"one imported", func() {
 							for i := 0; i < len(accounts); i++ {
 								if accounts[i].Login == dbAccount.Login {
-
 									Convey("When dbAccount is found", func() {
 										So(accounts[i].PasswordHash, ShouldResemble,
 											dbAccount.PasswordHash)
 										var cryptos model.Cryptos
 										So(db.Select(&cryptos).Where(
 											"owner_type=? AND owner_id=?",
-											dbAccount.ID, model.TableLocAccounts).
+											model.TableLocAccounts, dbAccount.ID).
 											Run(), ShouldBeNil)
 
 										So(len(accounts), ShouldEqual, 1)
@@ -326,7 +330,6 @@ func TestImportLocalAccounts(t *testing.T) {
 					})
 				})
 			})
-
 		})
 	})
 }

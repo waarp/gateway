@@ -6,14 +6,14 @@ import (
 	"net/url"
 	"testing"
 
-	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/tk/utils/testhelpers"
-
-	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/admin/rest"
-	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/admin/rest/api"
-	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/database"
-	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/model"
 	"github.com/jessevdk/go-flags"
 	. "github.com/smartystreets/goconvey/convey"
+
+	"code.waarp.fr/apps/gateway/gateway/pkg/admin/rest"
+	"code.waarp.fr/apps/gateway/gateway/pkg/admin/rest/api"
+	"code.waarp.fr/apps/gateway/gateway/pkg/database"
+	"code.waarp.fr/apps/gateway/gateway/pkg/model"
+	"code.waarp.fr/apps/gateway/gateway/pkg/tk/utils/testhelpers"
 )
 
 func certInfoString(c *api.OutCrypto) string {
@@ -24,7 +24,6 @@ func certInfoString(c *api.OutCrypto) string {
 }
 
 func TestGetCertificate(t *testing.T) {
-
 	Convey("Testing the certificate 'get' command", t, func() {
 		out = testFile()
 		command := &certGet{}
@@ -39,10 +38,9 @@ func TestGetCertificate(t *testing.T) {
 
 			Convey("Given a partner", func() {
 				partner := &model.RemoteAgent{
-					Name:        "partner",
-					Protocol:    testProto1,
-					ProtoConfig: json.RawMessage(`{}`),
-					Address:     "localhost:6666",
+					Name:     "partner",
+					Protocol: testProto1,
+					Address:  "localhost:6666",
 				}
 				So(db.Insert(partner).Run(), ShouldBeNil)
 
@@ -187,10 +185,9 @@ func TestGetCertificate(t *testing.T) {
 
 			Convey("Given a server", func() {
 				server := &model.LocalAgent{
-					Name:        "server",
-					Protocol:    testProto1,
-					ProtoConfig: json.RawMessage(`{}`),
-					Address:     "localhost:6666",
+					Name:     "server",
+					Protocol: testProto1,
+					Address:  "localhost:6666",
 				}
 				So(db.Insert(server).Run(), ShouldBeNil)
 
@@ -337,7 +334,6 @@ func TestGetCertificate(t *testing.T) {
 }
 
 func TestAddCertificate(t *testing.T) {
-
 	Convey("Testing the cert 'add' command", t, func(c C) {
 		out = testFile()
 		command := &certAdd{}
@@ -357,18 +353,17 @@ func TestAddCertificate(t *testing.T) {
 
 			Convey("Given a partner", func() {
 				partner := &model.RemoteAgent{
-					Name:        "partner",
-					Protocol:    testProto1,
-					ProtoConfig: json.RawMessage(`{}`),
-					Address:     "localhost:6666",
+					Name:     "partner",
+					Protocol: testProto1,
+					Address:  "localhost:6666",
 				}
 				So(db.Insert(partner).Run(), ShouldBeNil)
 
 				Convey("When adding a new certificate", func() {
-
 					Convey("Given valid partner & flags", func() {
 						commandLine.Partner.Cert.Args.Partner = partner.Name
-						args := []string{"-n", "partner_cert",
+						args := []string{
+							"-n", "partner_cert",
 							"-c", sCrt.Name(),
 						}
 
@@ -400,7 +395,8 @@ func TestAddCertificate(t *testing.T) {
 
 					Convey("Given an invalid partner", func() {
 						commandLine.Partner.Cert.Args.Partner = "tutu"
-						args := []string{"-n", "partner_cert",
+						args := []string{
+							"-n", "partner_cert",
 							"-p", sPk.Name(),
 							"-c", sCrt.Name(),
 						}
@@ -432,11 +428,11 @@ func TestAddCertificate(t *testing.T) {
 					So(db.Insert(account).Run(), ShouldBeNil)
 
 					Convey("When adding a new certificate", func() {
-
 						Convey("Given valid account, partner & flags", func() {
 							commandLine.Account.Remote.Args.Partner = partner.Name
 							commandLine.Account.Remote.Cert.Args.Account = account.Login
-							args := []string{"-n", "account_cert",
+							args := []string{
+								"-n", "account_cert",
 								"-p", cPk.Name(),
 								"-c", cCrt.Name(),
 							}
@@ -472,7 +468,8 @@ func TestAddCertificate(t *testing.T) {
 						Convey("Given an invalid partner", func() {
 							commandLine.Account.Remote.Args.Partner = "tutu"
 							commandLine.Account.Remote.Cert.Args.Account = account.Login
-							args := []string{"-n", "account_cert",
+							args := []string{
+								"-n", "account_cert",
 								"-p", cPk.Name(),
 								"-c", cCrt.Name(),
 							}
@@ -497,7 +494,8 @@ func TestAddCertificate(t *testing.T) {
 						Convey("Given an invalid account", func() {
 							commandLine.Account.Remote.Args.Partner = partner.Name
 							commandLine.Account.Remote.Cert.Args.Account = "tutu"
-							args := []string{"-n", "account_cert",
+							args := []string{
+								"-n", "account_cert",
 								"-p", cPk.Name(),
 								"-c", cCrt.Name(),
 							}
@@ -532,10 +530,10 @@ func TestAddCertificate(t *testing.T) {
 				So(db.Insert(server).Run(), ShouldBeNil)
 
 				Convey("When adding a new certificate", func() {
-
 					Convey("Given valid server & flags", func() {
 						commandLine.Server.Cert.Args.Server = server.Name
-						args := []string{"-n", "server_cert",
+						args := []string{
+							"-n", "server_cert",
 							"-p", sPk.Name(),
 							"-c", sCrt.Name(),
 						}
@@ -570,7 +568,8 @@ func TestAddCertificate(t *testing.T) {
 
 					Convey("Given an invalid server", func() {
 						commandLine.Server.Cert.Args.Server = "tutu"
-						args := []string{"-n", "server_cert",
+						args := []string{
+							"-n", "server_cert",
 							"-p", sPk.Name(),
 							"-c", sCrt.Name(),
 						}
@@ -602,11 +601,11 @@ func TestAddCertificate(t *testing.T) {
 					So(db.Insert(account).Run(), ShouldBeNil)
 
 					Convey("When adding a new certificate", func() {
-
 						Convey("Given valid account, server & flags", func() {
 							commandLine.Account.Local.Args.Server = server.Name
 							commandLine.Account.Local.Cert.Args.Account = account.Login
-							args := []string{"-n", "account_cert",
+							args := []string{
+								"-n", "account_cert",
 								"-c", cCrt.Name(),
 							}
 
@@ -640,7 +639,8 @@ func TestAddCertificate(t *testing.T) {
 						Convey("Given an invalid server", func() {
 							commandLine.Account.Local.Args.Server = "tutu"
 							commandLine.Account.Local.Cert.Args.Account = account.Login
-							args := []string{"-n", "account_cert",
+							args := []string{
+								"-n", "account_cert",
 								"-p", cPk.Name(),
 								"-c", cCrt.Name(),
 							}
@@ -665,7 +665,8 @@ func TestAddCertificate(t *testing.T) {
 						Convey("Given an invalid account", func() {
 							commandLine.Account.Local.Args.Server = server.Name
 							commandLine.Account.Local.Cert.Args.Account = "tutu"
-							args := []string{"-n", "account_cert",
+							args := []string{
+								"-n", "account_cert",
 								"-p", cPk.Name(),
 								"-c", cCrt.Name(),
 							}
@@ -694,7 +695,6 @@ func TestAddCertificate(t *testing.T) {
 }
 
 func TestDeleteCertificate(t *testing.T) {
-
 	Convey("Testing the certificate 'delete' command", t, func() {
 		out = testFile()
 		command := &certDelete{}
@@ -1103,7 +1103,6 @@ func TestDeleteCertificate(t *testing.T) {
 }
 
 func TestListCertificate(t *testing.T) {
-
 	Convey("Testing the certificate 'list' command", t, func() {
 		out = testFile()
 		command := &certList{}
@@ -1182,7 +1181,7 @@ func TestListCertificate(t *testing.T) {
 						Convey("When executing the command", func() {
 							params, err := flags.ParseArgs(command, args)
 							So(err, ShouldBeNil)
-							err = command.Execute(params)
+							command.Execute(params)
 
 							Convey("Then it should only display the 1st certificate", func() {
 								So(getOutput(), ShouldEqual, "Certificates:\n"+
@@ -1198,7 +1197,7 @@ func TestListCertificate(t *testing.T) {
 						Convey("When executing the command", func() {
 							params, err := flags.ParseArgs(command, args)
 							So(err, ShouldBeNil)
-							err = command.Execute(params)
+							command.Execute(params)
 
 							Convey("Then it should NOT display the 1st certificate", func() {
 								So(getOutput(), ShouldEqual, "Certificates:\n"+
@@ -1214,7 +1213,7 @@ func TestListCertificate(t *testing.T) {
 						Convey("When executing the command", func() {
 							params, err := flags.ParseArgs(command, args)
 							So(err, ShouldBeNil)
-							err = command.Execute(params)
+							command.Execute(params)
 
 							Convey("Then it should display the certificates in reverse", func() {
 								So(getOutput(), ShouldEqual, "Certificates:\n"+
@@ -1310,7 +1309,7 @@ func TestListCertificate(t *testing.T) {
 						Convey("When executing the command", func() {
 							params, err := flags.ParseArgs(command, args)
 							So(err, ShouldBeNil)
-							err = command.Execute(params)
+							command.Execute(params)
 
 							Convey("Then it should only display the 1st certificate", func() {
 								So(getOutput(), ShouldEqual, "Certificates:\n"+
@@ -1327,7 +1326,7 @@ func TestListCertificate(t *testing.T) {
 						Convey("When executing the command", func() {
 							params, err := flags.ParseArgs(command, args)
 							So(err, ShouldBeNil)
-							err = command.Execute(params)
+							command.Execute(params)
 
 							Convey("Then it should NOT display the 1st certificate", func() {
 								So(getOutput(), ShouldEqual, "Certificates:\n"+
@@ -1344,7 +1343,7 @@ func TestListCertificate(t *testing.T) {
 						Convey("When executing the command", func() {
 							params, err := flags.ParseArgs(command, args)
 							So(err, ShouldBeNil)
-							err = command.Execute(params)
+							command.Execute(params)
 
 							Convey("Then it should display the certificates in reverse", func() {
 								So(getOutput(), ShouldEqual, "Certificates:\n"+
@@ -1424,7 +1423,7 @@ func TestListCertificate(t *testing.T) {
 						Convey("When executing the command", func() {
 							params, err := flags.ParseArgs(command, args)
 							So(err, ShouldBeNil)
-							err = command.Execute(params)
+							command.Execute(params)
 
 							Convey("Then it should only display the 1st certificate", func() {
 								So(getOutput(), ShouldEqual, "Certificates:\n"+
@@ -1440,7 +1439,7 @@ func TestListCertificate(t *testing.T) {
 						Convey("When executing the command", func() {
 							params, err := flags.ParseArgs(command, args)
 							So(err, ShouldBeNil)
-							err = command.Execute(params)
+							command.Execute(params)
 
 							Convey("Then it should NOT display the 1st certificate", func() {
 								So(getOutput(), ShouldEqual, "Certificates:\n"+
@@ -1456,7 +1455,7 @@ func TestListCertificate(t *testing.T) {
 						Convey("When executing the command", func() {
 							params, err := flags.ParseArgs(command, args)
 							So(err, ShouldBeNil)
-							err = command.Execute(params)
+							command.Execute(params)
 
 							Convey("Then it should display the certificates in reverse", func() {
 								So(getOutput(), ShouldEqual, "Certificates:\n"+
@@ -1550,7 +1549,7 @@ func TestListCertificate(t *testing.T) {
 						Convey("When executing the command", func() {
 							params, err := flags.ParseArgs(command, args)
 							So(err, ShouldBeNil)
-							err = command.Execute(params)
+							command.Execute(params)
 
 							Convey("Then it should only display the 1st certificate", func() {
 								So(getOutput(), ShouldEqual, "Certificates:\n"+
@@ -1567,7 +1566,7 @@ func TestListCertificate(t *testing.T) {
 						Convey("When executing the command", func() {
 							params, err := flags.ParseArgs(command, args)
 							So(err, ShouldBeNil)
-							err = command.Execute(params)
+							command.Execute(params)
 
 							Convey("Then it should NOT display the 1st certificate", func() {
 								So(getOutput(), ShouldEqual, "Certificates:\n"+
@@ -1584,7 +1583,7 @@ func TestListCertificate(t *testing.T) {
 						Convey("When executing the command", func() {
 							params, err := flags.ParseArgs(command, args)
 							So(err, ShouldBeNil)
-							err = command.Execute(params)
+							command.Execute(params)
 
 							Convey("Then it should display the certificates in reverse", func() {
 								So(getOutput(), ShouldEqual, "Certificates:\n"+
@@ -1599,8 +1598,7 @@ func TestListCertificate(t *testing.T) {
 }
 
 func TestUpdateCertificate(t *testing.T) {
-
-	Convey("Testing the certificate 'delete' command", t, func() {
+	Convey("Testing the certificate 'update' command", t, func() {
 		out = testFile()
 		command := &certUpdate{}
 		commandLine = options{}
@@ -1671,7 +1669,8 @@ func TestUpdateCertificate(t *testing.T) {
 
 					Convey("Given an invalid partner name", func() {
 						commandLine.Partner.Cert.Args.Partner = "tutu"
-						args := []string{"-n", "partner_cert",
+						args := []string{
+							"-n", "partner_cert",
 							"-p", sPk.Name(),
 							"-c", sCrt.Name(),
 							cert.Name,
@@ -1697,7 +1696,8 @@ func TestUpdateCertificate(t *testing.T) {
 
 					Convey("Given an invalid certificate name", func() {
 						commandLine.Partner.Cert.Args.Partner = partner.Name
-						args := []string{"-n", "partner_cert",
+						args := []string{
+							"-n", "partner_cert",
 							"-p", sPk.Name(),
 							"-c", sCrt.Name(),
 							"tutu",

@@ -2,26 +2,22 @@ package http
 
 import (
 	"context"
+	"crypto/rand"
 	"encoding/json"
 	"fmt"
 	"io/ioutil"
 	"net/http"
-	"os"
-	"path/filepath"
 	"testing"
 	"time"
 
-	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/conf"
-
-	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/http/httpconst"
-
-	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/database"
-	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/gatewayd"
-	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/log"
-	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/model"
-	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/model/types"
-	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/pipeline/pipelinetest"
 	. "github.com/smartystreets/goconvey/convey"
+
+	"code.waarp.fr/apps/gateway/gateway/pkg/database"
+	"code.waarp.fr/apps/gateway/gateway/pkg/http/httpconst"
+	"code.waarp.fr/apps/gateway/gateway/pkg/log"
+	"code.waarp.fr/apps/gateway/gateway/pkg/model"
+	"code.waarp.fr/apps/gateway/gateway/pkg/model/types"
+	"code.waarp.fr/apps/gateway/gateway/pkg/pipeline/pipelinetest"
 )
 
 func TestServiceStart(t *testing.T) {
@@ -78,52 +74,46 @@ func TestServiceStop(t *testing.T) {
 }
 
 func TestServerInterruption(t *testing.T) {
-
 	Convey("Given an SFTP server ready for push transfers", t, func(c C) {
-		test := pipelinetest.InitServerPush(c, "http", nil)
+		test := pipelinetest.InitServerPush(c, "http", NewService, nil)
 
-		serv := gatewayd.ServiceConstructors["http"](test.DB, test.Server, log.NewLogger("server"))
+		serv := NewService(test.DB, test.Server, log.NewLogger("server"))
 		c.So(serv.Start(), ShouldBeNil)
 
 		Convey("Given a dummy HTTP client", func() {
-			cli := http.DefaultClient
+			cli := http.DefaultTransport
 
 			Convey("Given that a push transfer started", func() {
-				r, w, err := os.Pipe()
-				So(err, ShouldBeNil)
-				defer w.Close()
+				body := newLimitedReader(3)
 
 				url := fmt.Sprintf("http://%s/test_in_shutdown.dst?%s=%s",
 					test.Server.Address, httpconst.Rule, test.ServerRule.Name)
-				req, err := http.NewRequest(http.MethodPost, url, r)
+				req, err := http.NewRequest(http.MethodPost, url, body)
 				So(err, ShouldBeNil)
 				req.SetBasicAuth(pipelinetest.TestLogin, pipelinetest.TestPassword)
 
-				resChan := make(chan struct {
-					*http.Response
-					error
-				})
+				stop := make(chan error, 1)
+
 				go func() {
-					resp, err := cli.Do(req)
-					resChan <- struct {
-						*http.Response
-						error
-					}{Response: resp, error: err}
+					time.Sleep(500 * time.Millisecond)
+
+					ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+					defer cancel()
+
+					stop <- serv.Stop(ctx)
 				}()
-				_, err = w.Write([]byte("abc"))
-				So(err, ShouldBeNil)
 
 				Convey("When the server shuts down", func() {
-					time.Sleep(500 * time.Millisecond)
-					ctx, cancel := context.WithTimeout(context.Background(), 5*time.Minute)
-					defer cancel()
-					So(serv.Stop(ctx), ShouldBeNil)
+					resp, err := cli.RoundTrip(req)
+					So(err, ShouldBeNil)
 
-					result := <-resChan
-					So(result.error, ShouldBeNil)
-					So(result.StatusCode, ShouldEqual, http.StatusServiceUnavailable)
-					So(result.Header.Get(httpconst.TransferStatus), ShouldEqual, types.StatusInterrupted)
-					body, err := ioutil.ReadAll(result.Body)
+					So(<-stop, ShouldBeNil)
+
+					defer resp.Body.Close()
+
+					So(resp.StatusCode, ShouldEqual, http.StatusServiceUnavailable)
+					So(resp.Header.Get(httpconst.TransferStatus), ShouldEqual, types.StatusInterrupted)
+					body, err := ioutil.ReadAll(resp.Body)
 					So(err, ShouldBeNil)
 					So(string(body), ShouldResemble, "transfer interrupted by a server shutdown")
 
@@ -134,31 +124,28 @@ func TestServerInterruption(t *testing.T) {
 						var transfers model.Transfers
 						So(test.DB.Select(&transfers).Run(), ShouldBeNil)
 						So(transfers, ShouldNotBeEmpty)
+						So(transfers[0].Status, ShouldEqual, types.StatusInterrupted)
 
-						trans := model.Transfer{
-							ID:               transfers[0].ID,
-							RemoteTransferID: "",
-							Start:            transfers[0].Start,
-							IsServer:         true,
-							AccountID:        test.LocAccount.ID,
-							AgentID:          test.Server.ID,
-							LocalPath: filepath.Join(test.Server.Root,
-								test.Server.LocalTmpDir, "test_in_shutdown.dst.part"),
-							RemotePath: "/test_in_shutdown.dst",
-							Filesize:   -1,
-							RuleID:     test.ServerRule.ID,
-							Status:     types.StatusInterrupted,
-							Step:       types.StepData,
-							Owner:      conf.GlobalConfig.GatewayName,
-							Progress:   3,
-						}
-						So(transfers[0], ShouldResemble, trans)
-
-						ok := serv.(*httpService).running.Exists(trans.ID)
+						ok := serv.(*httpService).running.Exists(transfers[0].ID)
 						So(ok, ShouldBeFalse)
 					})
 				})
 			})
 		})
 	})
+}
+
+func newLimitedReader(lim int) *limitedReader {
+	return &limitedReader{lim: lim, tick: time.NewTicker(time.Second)}
+}
+
+type limitedReader struct {
+	lim  int
+	tick *time.Ticker
+}
+
+func (l *limitedReader) Read(b []byte) (int, error) {
+	<-l.tick.C
+
+	return rand.Read(b[:l.lim]) //nolint:wrapcheck //useless here, only used for tests
 }

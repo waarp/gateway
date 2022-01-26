@@ -9,20 +9,16 @@ import (
 	"testing"
 	"time"
 
-	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/conf"
-
-	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/gatewayd"
-
 	"code.bcarlin.xyz/go/logging"
 	"code.waarp.fr/waarp-r66/r66"
-
-	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/model/types"
-	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/pipeline/pipelinetest"
-
-	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/database"
-	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/log"
-	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/model"
 	. "github.com/smartystreets/goconvey/convey"
+
+	"code.waarp.fr/apps/gateway/gateway/pkg/conf"
+	"code.waarp.fr/apps/gateway/gateway/pkg/database"
+	"code.waarp.fr/apps/gateway/gateway/pkg/log"
+	"code.waarp.fr/apps/gateway/gateway/pkg/model"
+	"code.waarp.fr/apps/gateway/gateway/pkg/model/types"
+	"code.waarp.fr/apps/gateway/gateway/pkg/pipeline/pipelinetest"
 )
 
 func TestServiceStart(t *testing.T) {
@@ -79,11 +75,10 @@ func TestServiceStop(t *testing.T) {
 }
 
 func TestR66ServerInterruption(t *testing.T) {
-
 	Convey("Given an SFTP server ready for push transfers", t, func(c C) {
-		test := pipelinetest.InitServerPush(c, "r66", servConf)
+		test := pipelinetest.InitServerPush(c, "r66", NewService, servConf)
 
-		serv := gatewayd.ServiceConstructors["r66"](test.DB, test.Server, log.NewLogger("server"))
+		serv := NewService(test.DB, test.Server, log.NewLogger("server"))
 		c.So(serv.Start(), ShouldBeNil)
 
 		Convey("Given a dummy R66 client", func() {
@@ -106,7 +101,7 @@ func TestR66ServerInterruption(t *testing.T) {
 				Convey("When the server shuts down", func(c C) {
 					go func() {
 						time.Sleep(500 * time.Millisecond)
-						ctx, cancel := context.WithTimeout(context.Background(), 5*time.Minute)
+						ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 						defer cancel()
 						if err := serv.Stop(ctx); err != nil {
 							panic(err)
@@ -131,8 +126,8 @@ func TestR66ServerInterruption(t *testing.T) {
 							IsServer:         true,
 							AccountID:        test.LocAccount.ID,
 							AgentID:          test.Server.ID,
-							LocalPath: filepath.Join(test.Server.Root,
-								test.Server.LocalTmpDir, "test_in_shutdown.dst.part"),
+							LocalPath: filepath.Join(test.Server.RootDir,
+								test.Server.TmpReceiveDir, "test_in_shutdown.dst.part"),
 							RemotePath: "/test_in_shutdown.dst",
 							Filesize:   100,
 							RuleID:     test.ServerRule.ID,
@@ -169,5 +164,6 @@ type dummyFile struct{}
 
 func (d *dummyFile) ReadAt(p []byte, _ int64) (int, error) {
 	time.Sleep(100 * time.Millisecond)
-	return rand.Read(p)
+
+	return rand.Read(p) //nolint:wrapcheck // this is a test
 }

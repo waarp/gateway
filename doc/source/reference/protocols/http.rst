@@ -1,8 +1,8 @@
-===
-R66
-===
+============
+HTTP & HTTPS
+============
 
-L'implémentation de HTTP dans la *Gateway* ajoute quelques fonctionnalités
+L'implémentation de HTTP et HTTPS dans la *Gateway* ajoute quelques fonctionnalités
 supplémentaire par rapport au standard. À l'exception d'une seule, toutes ces
 fonctionnalités non-standard sont optionnelles, afin de permettre une compatibilité
 maximale.
@@ -14,7 +14,7 @@ L'authentification du client peut se faire de 2 manières:
 - authentification HTTP basique (via un mot de passe)
 - via un certificat (uniquement disponible en HTTPS)
 
-Il est a noter que même lorsqu'il s'authentifie via un certificat, le client
+Il est à noter que même lorsqu'il s'authentifie via un certificat, le client
 **doit** fournit son login via le header d'authentification basique. Si un
 certificat est fourni, le mot de passe n'est pas obligatoire, mais il sera
 vérifié si un est donné.

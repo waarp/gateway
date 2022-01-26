@@ -8,14 +8,9 @@ import (
 	"testing"
 
 	. "github.com/smartystreets/goconvey/convey"
-	"golang.org/x/crypto/bcrypt"
 
-	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/conf"
+	"code.waarp.fr/apps/gateway/gateway/pkg/conf"
 )
-
-func init() {
-	BcryptRounds = bcrypt.MinCost
-}
 
 func testSelectForUpdate(db *DB) {
 	bean1 := testValid{ID: 1, String: "str1"}
@@ -24,23 +19,23 @@ func testSelectForUpdate(db *DB) {
 
 	db2 := &DB{}
 	So(db2.Start(), ShouldBeNil)
-	//db2.engine.Exec("PRAGMA busy_timeout = 60000")
 	Reset(func() { So(db2.engine.Close(), ShouldBeNil) })
 
-	transRes := make(chan Error)
-	trans2 := func() {
-		defer close(transRes)
-		tErr2 := db2.WriteTransaction(func(ses *Session) Error {
+	transRes := make(chan Error, 1)
+	trans2 := func(ready chan<- bool) {
+		close(ready)
+		transRes <- db2.WriteTransaction(func(ses *Session) Error {
 			var beans validList
 			if err := ses.SelectForUpdate(&beans).Where("string=? AND id<>0", "str2").Run(); err != nil {
 				return err
 			}
+
 			if len(beans) != 0 {
 				return NewValidationError("%+v should be empty", beans)
 			}
+
 			return nil
 		})
-		transRes <- tErr2
 	}
 
 	Convey("When executing a 'SELECT FOR UPDATE' query", func() {
@@ -52,12 +47,15 @@ func testSelectForUpdate(db *DB) {
 			err := ses.SelectForUpdate(&beans).Where("string=?", "str2").Run()
 			So(err, ShouldBeNil)
 
-			go trans2()
+			ready := make(chan bool)
+			go trans2(ready)
+			<-ready
+
 			err2 := ses.UpdateAll(&testValid{}, UpdVals{"string": "new_str2"}, "string=?", "str2").Run()
 			So(err2, ShouldBeNil)
+
 			return nil
 		})
-		defer func() { <-transRes }()
 
 		So(tErr1, ShouldBeNil)
 		tErr2 := <-transRes
@@ -188,7 +186,6 @@ func testIterate(db *DB) {
 			runTests(ses)
 		})
 	})
-
 }
 
 func testSelect(db *DB) {
@@ -304,7 +301,6 @@ func testSelect(db *DB) {
 			runTests(ses)
 		})
 	})
-
 }
 
 func testInsert(db *DB) {
@@ -593,7 +589,6 @@ func testDelete(db *DB) {
 
 			runTests(ses)
 		})
-
 	})
 }
 
@@ -630,7 +625,6 @@ func testDeleteAll(db *DB) {
 
 			runTests(ses)
 		})
-
 	})
 }
 
@@ -659,7 +653,8 @@ func testTransaction(db *DB) {
 	Convey("Given an invalid transaction", func() {
 		trans := func(ses *Session) Error {
 			So(ses.Insert(&bean).Run(), ShouldBeNil)
-			return NewInternalError(fmt.Errorf("transaction failed"))
+
+			return NewInternalError(fmt.Errorf("transaction failed")) //nolint:goerr113 // this is a test
 		}
 
 		Convey("When executing the transaction", func() {
@@ -706,13 +701,16 @@ func TestSqlite(t *testing.T) {
 		if err := db.engine.Close(); err != nil {
 			t.Logf("Failed to close database: %s", err)
 		}
+
 		if err := os.Remove(conf.GlobalConfig.Database.AESPassphrase); err != nil {
 			t.Logf("Failed to delete passphrase file: %s", err)
 		}
+
 		if err := os.Remove(conf.GlobalConfig.Database.Address); err != nil {
 			t.Logf("Failed to delete sqlite file: %s", err)
 		}
 	}()
+
 	if err := db.Start(); err != nil {
 		t.Fatal(err)
 	}
@@ -725,6 +723,7 @@ func TestSqlite(t *testing.T) {
 func TestDatabaseStartWithNoPassPhraseFile(t *testing.T) {
 	gcm := GCM
 	GCM = nil
+
 	defer func() { GCM = gcm }()
 
 	conf.GlobalConfig.Log.Level = "CRITICAL"

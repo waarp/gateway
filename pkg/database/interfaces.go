@@ -1,8 +1,11 @@
 package database
 
 import (
-	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/log"
+	"fmt"
+
 	"xorm.io/xorm"
+
+	"code.waarp.fr/apps/gateway/gateway/pkg/log"
 )
 
 // ReadAccess is the interface listing all the read operations possible on the
@@ -151,10 +154,14 @@ type Iterator struct {
 // parameter with the parsed values. Returns an error if the line cannot be
 // retrieved, or if the parsed line does not correspond to the given model.
 func (i *Iterator) Scan(bean IterateBean) error {
-	return i.Rows.Scan(bean)
+	if err := i.Rows.Scan(bean); err != nil {
+		return fmt.Errorf("cannot scan database row: %w", err)
+	}
+
+	return nil
 }
 
 // Close closes the iterator, and releases the connection to the database.
 func (i *Iterator) Close() {
-	_ = i.Rows.Close()
+	_ = i.Rows.Close() //nolint:errcheck // nothing to handle the error
 }

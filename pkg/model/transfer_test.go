@@ -6,13 +6,13 @@ import (
 	"testing"
 	"time"
 
-	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/conf"
-	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/database"
-	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/log"
-	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/model/config"
-	. "code.waarp.fr/waarp-gateway/waarp-gateway/pkg/model/types"
-	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/tk/utils"
 	. "github.com/smartystreets/goconvey/convey"
+
+	"code.waarp.fr/apps/gateway/gateway/pkg/conf"
+	"code.waarp.fr/apps/gateway/gateway/pkg/database"
+	"code.waarp.fr/apps/gateway/gateway/pkg/log"
+	"code.waarp.fr/apps/gateway/gateway/pkg/model/types"
+	"code.waarp.fr/apps/gateway/gateway/pkg/tk/utils"
 )
 
 func TestTransferTableName(t *testing.T) {
@@ -35,10 +35,9 @@ func TestTransferBeforeWrite(t *testing.T) {
 
 		Convey("Given the database contains a valid remote agent", func() {
 			server := LocalAgent{
-				Name:        "remote",
-				Protocol:    dummyProto,
-				ProtoConfig: json.RawMessage(`{}`),
-				Address:     "localhost:2022",
+				Name:     "remote",
+				Protocol: testProtocol,
+				Address:  "localhost:2022",
 			}
 			So(db.Insert(&server).Run(), ShouldBeNil)
 
@@ -66,7 +65,7 @@ func TestTransferBeforeWrite(t *testing.T) {
 					LocalPath:        "/local/path",
 					RemotePath:       "/remote/path",
 					Start:            time.Now(),
-					Status:           StatusPlanned,
+					Status:           types.StatusPlanned,
 					Owner:            conf.GlobalConfig.GatewayName,
 				}
 
@@ -81,7 +80,6 @@ func TestTransferBeforeWrite(t *testing.T) {
 				}
 
 				Convey("Given that the new transfer is valid", func() {
-
 					Convey("When calling the 'BeforeWrite' function", func() {
 						So(trans.BeforeWrite(db), ShouldBeNil)
 
@@ -154,7 +152,7 @@ func TestTransferBeforeWrite(t *testing.T) {
 						RemotePath:       "/remote/path",
 						Filesize:         -1,
 						Start:            time.Date(2021, 1, 1, 1, 0, 0, 0, time.UTC),
-						Status:           StatusRunning,
+						Status:           types.StatusRunning,
 					}
 					So(db.Insert(t2).Run(), ShouldBeNil)
 
@@ -167,7 +165,7 @@ func TestTransferBeforeWrite(t *testing.T) {
 						ID:               10,
 						Owner:            conf.GlobalConfig.GatewayName,
 						RemoteTransferID: trans.RemoteTransferID,
-						Protocol:         config.TestProtocol,
+						Protocol:         testProtocol,
 						IsServer:         true,
 						Rule:             rule.Name,
 						Agent:            server.Name,
@@ -177,7 +175,7 @@ func TestTransferBeforeWrite(t *testing.T) {
 						Filesize:         100,
 						Start:            time.Date(2021, 1, 1, 1, 0, 0, 0, time.UTC),
 						Stop:             time.Date(2021, 1, 2, 1, 0, 0, 0, time.UTC),
-						Status:           StatusDone,
+						Status:           types.StatusDone,
 					}
 					So(db.Insert(t2).Run(), ShouldBeNil)
 
@@ -188,7 +186,7 @@ func TestTransferBeforeWrite(t *testing.T) {
 				Convey("Given that the account id does not belong to the agent", func() {
 					server2 := LocalAgent{
 						Name:        "remote2",
-						Protocol:    dummyProto,
+						Protocol:    testProtocol,
 						ProtoConfig: json.RawMessage(`{}`),
 						Address:     "localhost:2022",
 					}
@@ -210,11 +208,11 @@ func TestTransferBeforeWrite(t *testing.T) {
 				})
 
 				statusTestCases := []statusTestCase{
-					{StatusPlanned, true},
-					{StatusRunning, true},
-					{StatusDone, false},
-					{StatusError, true},
-					{StatusCancelled, false},
+					{types.StatusPlanned, true},
+					{types.StatusRunning, true},
+					{types.StatusDone, false},
+					{types.StatusError, true},
+					{types.StatusCancelled, false},
 					{"toto", false},
 				}
 				for _, tc := range statusTestCases {
@@ -233,7 +231,7 @@ func TestTransferToHistory(t *testing.T) {
 
 		remote := RemoteAgent{
 			Name:        "remote",
-			Protocol:    dummyProto,
+			Protocol:    testProtocol,
 			ProtoConfig: json.RawMessage(`{}`),
 			Address:     "localhost:2022",
 		}
@@ -263,13 +261,13 @@ func TestTransferToHistory(t *testing.T) {
 				LocalPath:  "/test/local/path",
 				RemotePath: "/test/remote/path",
 				Start:      time.Date(2021, 1, 1, 1, 0, 0, 0, time.Local),
-				Status:     StatusPlanned,
+				Status:     types.StatusPlanned,
 				Owner:      conf.GlobalConfig.GatewayName,
 			}
 			So(db.Insert(&trans).Run(), ShouldBeNil)
 
 			Convey("When calling the `ToHistory` method", func() {
-				trans.Status = StatusDone
+				trans.Status = types.StatusDone
 				end := time.Date(2022, 1, 1, 1, 0, 0, 0, time.Local)
 				So(trans.ToHistory(db, logger, end), ShouldBeNil)
 
@@ -304,15 +302,15 @@ func TestTransferToHistory(t *testing.T) {
 			})
 
 			type statusTestCase struct {
-				status          TransferStatus
+				status          types.TransferStatus
 				expectedSuccess bool
 			}
 			statusesTestCases := []statusTestCase{
-				{StatusPlanned, false},
-				{StatusRunning, false},
-				{StatusDone, true},
-				{StatusError, false},
-				{StatusCancelled, true},
+				{types.StatusPlanned, false},
+				{types.StatusRunning, false},
+				{types.StatusDone, true},
+				{types.StatusError, false},
+				{types.StatusCancelled, true},
 				{"toto", false},
 			}
 

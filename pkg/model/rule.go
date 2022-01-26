@@ -3,10 +3,11 @@ package model
 import (
 	"path"
 
-	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/database"
-	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/tk/utils"
+	"code.waarp.fr/apps/gateway/gateway/pkg/database"
+	"code.waarp.fr/apps/gateway/gateway/pkg/tk/utils"
 )
 
+//nolint:gochecknoinits // init is used by design
 func init() {
 	database.AddTable(&Rule{})
 }
@@ -36,8 +37,8 @@ type Rule struct {
 	// The remote directory for all file transfers using this rule.
 	RemoteDir string `xorm:"notnull 'remote_dir'"`
 
-	// The temporary directory for all running transfer files.
-	LocalTmpDir string `xorm:"notnull 'local_tmp_dir'"`
+	// The temporary directory for running incoming transfer files.
+	TmpLocalRcvDir string `xorm:"notnull 'tmp_local_receive_dir'"`
 }
 
 // TableName returns the remote accounts table name.
@@ -65,14 +66,17 @@ func (r *Rule) normalizePaths() {
 			r.Path = r.Path[1:]
 		}
 	}
+
 	if r.LocalDir != "" {
 		r.LocalDir = utils.ToOSPath(r.LocalDir)
 	}
+
 	if r.RemoteDir != "" {
 		r.RemoteDir = utils.ToStandardPath(r.RemoteDir)
 	}
-	if r.LocalTmpDir != "" {
-		r.LocalTmpDir = utils.ToOSPath(r.LocalTmpDir)
+
+	if r.TmpLocalRcvDir != "" {
+		r.TmpLocalRcvDir = utils.ToOSPath(r.TmpLocalRcvDir)
 	}
 }
 
@@ -80,13 +84,16 @@ func (r *Rule) checkAncestor(db database.ReadAccess, rulePath string) database.E
 	if rulePath == "" || rulePath == "." {
 		return nil
 	}
+
 	var rule Rule
 	if err := db.Get(&rule, "path=?", rulePath).Run(); err != nil {
 		if database.IsNotFound(err) {
 			return r.checkAncestor(db, path.Dir(rulePath))
 		}
+
 		return err
 	}
+
 	return database.NewValidationError("the rule's path cannot be the descendant of "+
 		"another rule's path (the path '%s' is already used by rule '%s')", rulePath, rule.Name)
 }
@@ -127,6 +134,7 @@ func (r *Rule) BeforeWrite(db database.ReadAccess) database.Error {
 	}
 
 	r.normalizePaths()
+
 	return r.checkPath(db)
 }
 
@@ -135,6 +143,7 @@ func (r *Rule) Direction() string {
 	if r.IsSend {
 		return "send"
 	}
+
 	return "receive"
 }
 
@@ -145,6 +154,7 @@ func (r *Rule) BeforeDelete(db database.Access) database.Error {
 	if err != nil {
 		return err
 	}
+
 	if n > 0 {
 		return database.NewValidationError("this rule is currently being used in a " +
 			"running transfer and cannot be deleted, cancel the transfer or wait " +
@@ -160,6 +170,7 @@ func (r *Rule) BeforeDelete(db database.Access) database.Error {
 	if err != nil {
 		return err
 	}
+
 	return nil
 }
 
@@ -196,9 +207,9 @@ func (r *Rule) IsAuthorized(db database.Access, target database.IterateBean) (bo
 		return false, database.NewValidationError("%T is not a valid target model for RuleAccess", target)
 	}
 
-	n, err := query.Run()
-	if err != nil {
+	if permCount, err := query.Run(); err != nil {
 		return false, err
+	} else {
+		return permCount != 0, nil
 	}
-	return n != 0, nil
 }

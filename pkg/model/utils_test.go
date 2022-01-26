@@ -1,27 +1,28 @@
 package model
 
 import (
-	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/log"
-	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/model/config"
 	"github.com/smartystreets/goconvey/convey"
 	"golang.org/x/crypto/bcrypt"
+
+	"code.waarp.fr/apps/gateway/gateway/pkg/log"
+	"code.waarp.fr/apps/gateway/gateway/pkg/model/config"
+	"code.waarp.fr/apps/gateway/gateway/pkg/tk/utils/testhelpers"
 )
 
-const dummyProto = "dummy"
+const testProtocol = "test_proto"
 
+//nolint:gochecknoinits // init is used to ease the tests
 func init() {
 	_ = log.InitBackend("DEBUG", "stdout", "")
 
-	config.ProtoConfigs[dummyProto] = func() config.ProtoConfig { return new(TestProtoConfig) }
+	config.ProtoConfigs[testProtocol] = func() config.ProtoConfig {
+		return new(testhelpers.TestProtoConfig)
+	}
 }
 
-type TestProtoConfig struct{}
-
-func (*TestProtoConfig) ValidServer() error  { return nil }
-func (*TestProtoConfig) ValidPartner() error { return nil }
-
-func hash(pwd string) []byte {
+func hash(pwd string) string {
 	h, err := bcrypt.GenerateFromPassword([]byte(pwd), bcrypt.MinCost)
 	convey.So(err, convey.ShouldBeNil)
-	return h
+
+	return string(h)
 }

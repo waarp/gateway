@@ -7,13 +7,14 @@ import (
 	"strings"
 	"testing"
 
-	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/admin/rest"
-	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/admin/rest/api"
-	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/database"
-	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/model"
 	"github.com/jessevdk/go-flags"
 	. "github.com/smartystreets/goconvey/convey"
 	"golang.org/x/crypto/bcrypt"
+
+	"code.waarp.fr/apps/gateway/gateway/pkg/admin/rest"
+	"code.waarp.fr/apps/gateway/gateway/pkg/admin/rest/api"
+	"code.waarp.fr/apps/gateway/gateway/pkg/database"
+	"code.waarp.fr/apps/gateway/gateway/pkg/model"
 )
 
 func accInfoString(a *api.OutAccount) string {
@@ -24,7 +25,6 @@ func accInfoString(a *api.OutAccount) string {
 }
 
 func TestGetLocalAccount(t *testing.T) {
-
 	Convey("Testing the local account 'get' command", t, func() {
 		out = testFile()
 		command := &locAccGet{}
@@ -37,10 +37,9 @@ func TestGetLocalAccount(t *testing.T) {
 			So(err, ShouldBeNil)
 
 			server := &model.LocalAgent{
-				Name:        "parent",
-				Protocol:    testProto1,
-				ProtoConfig: json.RawMessage(`{}`),
-				Address:     "localhost:1",
+				Name:     "parent",
+				Protocol: testProto1,
+				Address:  "localhost:1",
 			}
 			So(db.Insert(server).Run(), ShouldBeNil)
 			commandLine.Account.Local.Args.Server = server.Name
@@ -52,18 +51,22 @@ func TestGetLocalAccount(t *testing.T) {
 			}
 			So(db.Insert(account).Run(), ShouldBeNil)
 
-			send := &model.Rule{Name: "send", IsSend: true, Path: "send_path"}
+			send := &model.Rule{Name: "send_rule", IsSend: true, Path: "send_path"}
 			So(db.Insert(send).Run(), ShouldBeNil)
-			receive := &model.Rule{Name: "receive", IsSend: false, Path: "rcv_path"}
+			receive := &model.Rule{Name: "recv_rule", IsSend: false, Path: "rcv_path"}
 			So(db.Insert(receive).Run(), ShouldBeNil)
 			sendAll := &model.Rule{Name: "send_all", IsSend: true, Path: "send_all_path"}
 			So(db.Insert(sendAll).Run(), ShouldBeNil)
 
-			sAccess := &model.RuleAccess{RuleID: send.ID,
-				ObjectType: account.TableName(), ObjectID: account.ID}
+			sAccess := &model.RuleAccess{
+				RuleID:     send.ID,
+				ObjectType: account.TableName(), ObjectID: account.ID,
+			}
 			So(db.Insert(sAccess).Run(), ShouldBeNil)
-			rAccess := &model.RuleAccess{RuleID: receive.ID,
-				ObjectType: account.TableName(), ObjectID: account.ID}
+			rAccess := &model.RuleAccess{
+				RuleID:     receive.ID,
+				ObjectType: account.TableName(), ObjectID: account.ID,
+			}
 			So(db.Insert(rAccess).Run(), ShouldBeNil)
 
 			Convey("Given a valid account name", func() {
@@ -119,7 +122,6 @@ func TestGetLocalAccount(t *testing.T) {
 }
 
 func TestAddLocalAccount(t *testing.T) {
-
 	Convey("Testing the local account 'add' command", t, func() {
 		out = testFile()
 		command := &locAccAdd{}
@@ -132,10 +134,9 @@ func TestAddLocalAccount(t *testing.T) {
 			So(err, ShouldBeNil)
 
 			server := &model.LocalAgent{
-				Name:        "parent",
-				Protocol:    testProto1,
-				ProtoConfig: json.RawMessage(`{}`),
-				Address:     "localhost:1",
+				Name:     "parent",
+				Protocol: testProto1,
+				Address:  "localhost:1",
 			}
 			So(db.Insert(server).Run(), ShouldBeNil)
 			commandLine.Account.Local.Args.Server = server.Name
@@ -158,7 +159,7 @@ func TestAddLocalAccount(t *testing.T) {
 						So(db.Select(&accounts).Run(), ShouldBeNil)
 						So(accounts, ShouldNotBeEmpty)
 
-						So(bcrypt.CompareHashAndPassword(accounts[0].PasswordHash,
+						So(bcrypt.CompareHashAndPassword([]byte(accounts[0].PasswordHash),
 							[]byte(command.Password)), ShouldBeNil)
 						exp := model.LocalAccount{
 							ID:           1,
@@ -167,7 +168,6 @@ func TestAddLocalAccount(t *testing.T) {
 							PasswordHash: accounts[0].PasswordHash,
 						}
 						So(accounts, ShouldContain, exp)
-
 					})
 				})
 			})
@@ -191,7 +191,6 @@ func TestAddLocalAccount(t *testing.T) {
 }
 
 func TestDeleteLocalAccount(t *testing.T) {
-
 	Convey("Testing the local account 'delete' command", t, func() {
 		out = testFile()
 		command := &locAccDelete{}
@@ -204,10 +203,9 @@ func TestDeleteLocalAccount(t *testing.T) {
 			So(err, ShouldBeNil)
 
 			server := &model.LocalAgent{
-				Name:        "parent",
-				Protocol:    testProto1,
-				ProtoConfig: json.RawMessage(`{}`),
-				Address:     "localhost:1",
+				Name:     "parent",
+				Protocol: testProto1,
+				Address:  "localhost:1",
 			}
 			So(db.Insert(server).Run(), ShouldBeNil)
 			commandLine.Account.Local.Args.Server = server.Name
@@ -287,7 +285,6 @@ func TestDeleteLocalAccount(t *testing.T) {
 }
 
 func TestUpdateLocalAccount(t *testing.T) {
-
 	Convey("Testing the local account 'update' command", t, func() {
 		out = testFile()
 		command := &locAccUpdate{}
@@ -300,10 +297,9 @@ func TestUpdateLocalAccount(t *testing.T) {
 			So(err, ShouldBeNil)
 
 			server := &model.LocalAgent{
-				Name:        "parent",
-				Protocol:    testProto1,
-				ProtoConfig: json.RawMessage(`{}`),
-				Address:     "localhost:1",
+				Name:     "parent",
+				Protocol: testProto1,
+				Address:  "localhost:1",
 			}
 			So(db.Insert(server).Run(), ShouldBeNil)
 			commandLine.Account.Local.Args.Server = server.Name
@@ -334,7 +330,7 @@ func TestUpdateLocalAccount(t *testing.T) {
 						So(db.Select(&accounts).Run(), ShouldBeNil)
 						So(accounts, ShouldNotBeEmpty)
 
-						So(bcrypt.CompareHashAndPassword(accounts[0].PasswordHash,
+						So(bcrypt.CompareHashAndPassword([]byte(accounts[0].PasswordHash),
 							[]byte("new_password")), ShouldBeNil)
 						exp := model.LocalAccount{
 							ID:           account.ID,
@@ -393,7 +389,6 @@ func TestUpdateLocalAccount(t *testing.T) {
 }
 
 func TestListLocalAccount(t *testing.T) {
-
 	Convey("Testing the local account 'list' command", t, func() {
 		out = testFile()
 		command := &locAccList{}
@@ -542,7 +537,6 @@ func TestListLocalAccount(t *testing.T) {
 }
 
 func TestAuthorizeLocalAccount(t *testing.T) {
-
 	Convey("Testing the local account 'authorize' command", t, func() {
 		out = testFile()
 		command := &locAccAuthorize{}
@@ -673,7 +667,6 @@ func TestAuthorizeLocalAccount(t *testing.T) {
 }
 
 func TestRevokeLocalAccount(t *testing.T) {
-
 	Convey("Testing the local account 'revoke' command", t, func() {
 		out = testFile()
 		command := &locAccRevoke{}

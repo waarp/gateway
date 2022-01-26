@@ -2,15 +2,17 @@ package model
 
 import (
 	"encoding/json"
+	"fmt"
 	"net"
 
-	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/conf"
-	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/database"
-	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/model/config"
-	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/tk/service"
-	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/tk/utils"
+	"code.waarp.fr/apps/gateway/gateway/pkg/conf"
+	"code.waarp.fr/apps/gateway/gateway/pkg/database"
+	"code.waarp.fr/apps/gateway/gateway/pkg/model/config"
+	"code.waarp.fr/apps/gateway/gateway/pkg/tk/service"
+	"code.waarp.fr/apps/gateway/gateway/pkg/tk/utils"
 )
 
+//nolint:gochecknoinits // init is used by design
 func init() {
 	database.AddTable(&LocalAgent{})
 }
@@ -34,16 +36,16 @@ type LocalAgent struct {
 	Protocol string `xorm:"notnull 'protocol'"`
 
 	// The root directory of the agent.
-	Root string `xorm:"notnull 'root'"`
+	RootDir string `xorm:"notnull 'root_dir'"`
 
 	// The server's directory for received files.
-	LocalInDir string `xorm:"notnull 'server_local_in_dir'"`
+	ReceiveDir string `xorm:"notnull 'receive_dir'"`
 
 	// The server's directory for files to be sent.
-	LocalOutDir string `xorm:"notnull 'server_local_out_dir'"`
+	SendDir string `xorm:"notnull 'send_dir'"`
 
 	// The server's temporary directory for partially received files.
-	LocalTmpDir string `xorm:"notnull 'server_local_tmp_dir'"`
+	TmpReceiveDir string `xorm:"notnull 'tmp_receive_dir'"`
 
 	// The agent's configuration in raw JSON format.
 	ProtoConfig json.RawMessage `xorm:"notnull 'proto_config'"`
@@ -70,13 +72,22 @@ func (l *LocalAgent) GetID() uint64 {
 func (l *LocalAgent) validateProtoConfig() error {
 	protoConf, err := config.GetProtoConfig(l.Protocol, l.ProtoConfig)
 	if err != nil {
-		return err
+		return fmt.Errorf("cannot parse protocol config for server %q: %w", l.Name, err)
 	}
-	if err := protoConf.ValidServer(); err != nil {
-		return err
+
+	if err2 := protoConf.ValidServer(); err2 != nil {
+		return fmt.Errorf("the protocol configuration for server %q is not valid: %w",
+			l.Name, err2)
 	}
+
 	l.ProtoConfig, err = json.Marshal(protoConf)
-	return err
+
+	if err != nil {
+		return fmt.Errorf("cannot marshal the protocol config for server %q to JSON: %w",
+			l.Name, err)
+	}
+
+	return nil
 }
 
 func (l *LocalAgent) makePaths() {
@@ -84,23 +95,25 @@ func (l *LocalAgent) makePaths() {
 		return path == "." || path == ""
 	}
 
-	if !isEmpty(l.Root) {
-		l.Root = utils.ToOSPath(l.Root)
+	if !isEmpty(l.RootDir) {
+		l.RootDir = utils.ToOSPath(l.RootDir)
 
-		if isEmpty(l.LocalInDir) {
-			l.LocalInDir = "in"
+		if isEmpty(l.ReceiveDir) {
+			l.ReceiveDir = "in"
 		} else {
-			l.LocalInDir = utils.ToOSPath(l.LocalInDir)
+			l.ReceiveDir = utils.ToOSPath(l.ReceiveDir)
 		}
-		if isEmpty(l.LocalOutDir) {
-			l.LocalOutDir = "out"
+
+		if isEmpty(l.SendDir) {
+			l.SendDir = "out"
 		} else {
-			l.LocalOutDir = utils.ToOSPath(l.LocalOutDir)
+			l.SendDir = utils.ToOSPath(l.SendDir)
 		}
-		if isEmpty(l.LocalTmpDir) {
-			l.LocalTmpDir = "tmp"
+
+		if isEmpty(l.TmpReceiveDir) {
+			l.TmpReceiveDir = "tmp"
 		} else {
-			l.LocalTmpDir = utils.ToOSPath(l.LocalTmpDir)
+			l.TmpReceiveDir = utils.ToOSPath(l.TmpReceiveDir)
 		}
 	}
 }
@@ -114,20 +127,23 @@ func (l *LocalAgent) BeforeWrite(db database.ReadAccess) database.Error {
 	if l.Name == "" {
 		return database.NewValidationError("the agent's name cannot be empty")
 	}
-	if _, ok := service.CoreServiceNames[l.Name]; ok {
-		return database.NewValidationError("%s is reserved server name", l.Name)
+
+	if service.IsReservedServiceName(l.Name) {
+		return database.NewValidationError("%s is a reserved server name", l.Name)
 	}
 
 	if l.Address == "" {
 		return database.NewValidationError("the server's address cannot be empty")
 	}
+
 	if _, _, err := net.SplitHostPort(l.Address); err != nil {
 		return database.NewValidationError("'%s' is not a valid server address", l.Address)
 	}
 
 	if l.ProtoConfig == nil {
-		return database.NewValidationError("the agent's configuration cannot be empty")
+		l.ProtoConfig = json.RawMessage(`{}`)
 	}
+
 	if err := l.validateProtoConfig(); err != nil {
 		return database.NewValidationError(err.Error())
 	}
@@ -145,12 +161,13 @@ func (l *LocalAgent) BeforeWrite(db database.ReadAccess) database.Error {
 
 // BeforeDelete is called before deleting the account from the database. Its
 // role is to delete all the certificates tied to the account.
-//nolint:dupl
+//nolint:dupl // to many differences
 func (l *LocalAgent) BeforeDelete(db database.Access) database.Error {
 	n, err := db.Count(&Transfer{}).Where("is_server=? AND agent_id=?", true, l.ID).Run()
 	if err != nil {
 		return err
 	}
+
 	if n > 0 {
 		return database.NewValidationError("this server is currently being used in " +
 			"one or more running transfers and thus cannot be deleted, cancel " +

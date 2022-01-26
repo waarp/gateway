@@ -8,19 +8,17 @@ import (
 	"path/filepath"
 	"time"
 
-	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/model/config"
-
-	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/tasks/taskstest"
-
+	. "github.com/smartystreets/goconvey/convey"
 	"golang.org/x/crypto/bcrypt"
 
-	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/conf"
-	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/database"
-	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/log"
-	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/model"
-	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/model/types"
-	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/tk/utils/testhelpers"
-	. "github.com/smartystreets/goconvey/convey"
+	"code.waarp.fr/apps/gateway/gateway/pkg/conf"
+	"code.waarp.fr/apps/gateway/gateway/pkg/database"
+	"code.waarp.fr/apps/gateway/gateway/pkg/log"
+	"code.waarp.fr/apps/gateway/gateway/pkg/model"
+	"code.waarp.fr/apps/gateway/gateway/pkg/model/config"
+	"code.waarp.fr/apps/gateway/gateway/pkg/model/types"
+	"code.waarp.fr/apps/gateway/gateway/pkg/tasks/taskstest"
+	"code.waarp.fr/apps/gateway/gateway/pkg/tk/utils/testhelpers"
 )
 
 type testContext struct {
@@ -36,8 +34,15 @@ type testContext struct {
 	recv *model.Rule
 }
 
+const testProtocol = "test_proto"
+
+//nolint:gochecknoinits // init is used by design
 func init() {
 	_ = log.InitBackend("DEBUG", "stdout", "")
+
+	config.ProtoConfigs[testProtocol] = func() config.ProtoConfig {
+		return new(testhelpers.TestProtoConfig)
+	}
 }
 
 func initTaskChecker() *taskstest.TaskChecker {
@@ -48,15 +53,17 @@ func initTaskChecker() *taskstest.TaskChecker {
 	return taskChecker
 }
 
-func hash(pwd string) []byte {
+func hash(pwd string) string {
 	h, err := bcrypt.GenerateFromPassword([]byte(pwd), bcrypt.MinCost)
 	So(err, ShouldBeNil)
-	return h
+
+	return string(h)
 }
 
 func waitEndTransfer(pip *Pipeline) {
 	timeout := time.NewTimer(time.Second * 3)
 	ticker := time.NewTicker(time.Millisecond * 100)
+
 	defer func() {
 		timeout.Stop()
 		ticker.Stop()
@@ -84,9 +91,9 @@ func initTestDB(c C) *testContext {
 		DefaultOutDir: "out",
 		DefaultTmpDir: "work",
 	}
-	So(os.Mkdir(filepath.Join(root, conf.GlobalConfig.Paths.DefaultInDir), 0700), ShouldBeNil)
-	So(os.Mkdir(filepath.Join(root, conf.GlobalConfig.Paths.DefaultOutDir), 0700), ShouldBeNil)
-	So(os.Mkdir(filepath.Join(root, conf.GlobalConfig.Paths.DefaultTmpDir), 0700), ShouldBeNil)
+	So(os.Mkdir(filepath.Join(root, conf.GlobalConfig.Paths.DefaultInDir), 0o700), ShouldBeNil)
+	So(os.Mkdir(filepath.Join(root, conf.GlobalConfig.Paths.DefaultOutDir), 0o700), ShouldBeNil)
+	So(os.Mkdir(filepath.Join(root, conf.GlobalConfig.Paths.DefaultTmpDir), 0o700), ShouldBeNil)
 
 	send := &model.Rule{
 		Name:   "send",
@@ -103,7 +110,7 @@ func initTestDB(c C) *testContext {
 
 	server := &model.LocalAgent{
 		Name:        "server",
-		Protocol:    config.TestProtocol,
+		Protocol:    testProtocol,
 		ProtoConfig: json.RawMessage(`{}`),
 		Address:     "localhost:1111",
 	}
@@ -118,7 +125,7 @@ func initTestDB(c C) *testContext {
 
 	partner := &model.RemoteAgent{
 		Name:        "partner",
-		Protocol:    config.TestProtocol,
+		Protocol:    testProtocol,
 		ProtoConfig: json.RawMessage(`{}`),
 		Address:     "localhost:2222",
 	}
@@ -145,10 +152,10 @@ func initTestDB(c C) *testContext {
 
 func mkRecvTransfer(ctx *testContext, filename string) *model.TransferContext {
 	ctx.recv.LocalDir = "local"
-	ctx.recv.LocalTmpDir = "tmp"
+	ctx.recv.TmpLocalRcvDir = "tmp"
 	ctx.recv.RemoteDir = "remote"
 	So(os.MkdirAll(filepath.Join(ctx.root, ctx.send.LocalDir), 0o700), ShouldBeNil)
-	So(os.MkdirAll(filepath.Join(ctx.root, ctx.send.LocalTmpDir), 0o700), ShouldBeNil)
+	So(os.MkdirAll(filepath.Join(ctx.root, ctx.send.TmpLocalRcvDir), 0o700), ShouldBeNil)
 
 	trans := &model.Transfer{
 		IsServer:   false,
@@ -171,10 +178,10 @@ func mkRecvTransfer(ctx *testContext, filename string) *model.TransferContext {
 
 func mkSendTransfer(ctx *testContext, filename string) *model.TransferContext {
 	ctx.send.LocalDir = "local"
-	ctx.send.LocalTmpDir = "tmp"
+	ctx.send.TmpLocalRcvDir = "tmp"
 	ctx.send.RemoteDir = "remote"
 	So(os.MkdirAll(filepath.Join(ctx.root, ctx.send.LocalDir), 0o700), ShouldBeNil)
-	So(os.MkdirAll(filepath.Join(ctx.root, ctx.send.LocalTmpDir), 0o700), ShouldBeNil)
+	So(os.MkdirAll(filepath.Join(ctx.root, ctx.send.TmpLocalRcvDir), 0o700), ShouldBeNil)
 
 	trans := &model.Transfer{
 		IsServer:   false,
@@ -202,9 +209,9 @@ func initFilestream(ctx *testContext, logger *log.Logger, transCtx *model.Transf
 	pip, err := newPipeline(ctx.db, logger, transCtx)
 	So(err, ShouldBeNil)
 
-	So(pip.machine.Transition("pre-tasks"), ShouldBeNil)
-	So(pip.machine.Transition("pre-tasks done"), ShouldBeNil)
-	So(pip.machine.Transition("start data"), ShouldBeNil)
+	So(pip.machine.Transition(statePreTasks), ShouldBeNil)
+	So(pip.machine.Transition(statePreTasksDone), ShouldBeNil)
+	So(pip.machine.Transition(stateStartData), ShouldBeNil)
 
 	stream, err := newFileStream(pip, time.Nanosecond, false)
 	So(err, ShouldBeNil)
@@ -222,8 +229,9 @@ var (
 	errChan    = make(chan error, 1)
 )
 
+//nolint:gochecknoinits // init is used by design
 func init() {
-	ClientConstructors[config.TestProtocol] = newTestProtoClient
+	ClientConstructors[testProtocol] = newTestProtoClient
 }
 
 func newTestProtoClient(*Pipeline) (Client, *types.TransferError) {
@@ -238,6 +246,7 @@ func (t *testProtoClient) Request() *types.TransferError {
 	if t.request {
 		return errRequest
 	}
+
 	return nil
 }
 
@@ -245,6 +254,7 @@ func (t *testProtoClient) BeginPreTasks() *types.TransferError {
 	if t.pre1 {
 		return errPre
 	}
+
 	return nil
 }
 
@@ -252,6 +262,7 @@ func (t *testProtoClient) EndPreTasks() *types.TransferError {
 	if t.pre2 {
 		return errPre
 	}
+
 	return nil
 }
 
@@ -259,9 +270,11 @@ func (t *testProtoClient) Data(s DataStream) *types.TransferError {
 	if _, err := io.Copy(ioutil.Discard, s); err != nil {
 		return errData
 	}
+
 	if t.data {
 		return errData
 	}
+
 	return nil
 }
 
@@ -269,6 +282,7 @@ func (t *testProtoClient) BeginPostTasks() *types.TransferError {
 	if t.post1 {
 		return errPost
 	}
+
 	return nil
 }
 
@@ -276,13 +290,15 @@ func (t *testProtoClient) EndPostTasks() *types.TransferError {
 	if t.post2 {
 		return errPost
 	}
+
 	return nil
 }
 
 func (t *testProtoClient) EndTransfer() *types.TransferError {
-	if t.request {
+	if t.end {
 		return errEnd
 	}
+
 	return nil
 }
 

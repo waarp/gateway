@@ -8,53 +8,62 @@ import (
 	"testing"
 	"time"
 
-	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/admin/rest"
-	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/admin/rest/api"
-	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/conf"
-	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/database"
-	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/model"
-	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/model/types"
 	"github.com/jessevdk/go-flags"
 	. "github.com/smartystreets/goconvey/convey"
+
+	"code.waarp.fr/apps/gateway/gateway/pkg/admin/rest"
+	"code.waarp.fr/apps/gateway/gateway/pkg/admin/rest/api"
+	"code.waarp.fr/apps/gateway/gateway/pkg/conf"
+	"code.waarp.fr/apps/gateway/gateway/pkg/database"
+	"code.waarp.fr/apps/gateway/gateway/pkg/model"
+	"code.waarp.fr/apps/gateway/gateway/pkg/model/types"
 )
 
 func historyInfoString(h *api.OutHistory) string {
-	role := "client"
+	role := roleClient
 	if h.IsServer {
-		role = "server"
+		role = roleServer
 	}
-	way := "receive"
+
+	way := directionRecv
 	if h.IsSend {
-		way = "send"
+		way = directionSend
 	}
-	size := "unknown"
+
+	size := sizeUnknown
 	if h.Filesize >= 0 {
 		size = fmt.Sprint(h.Filesize)
 	}
+
 	rv := "● Transfer " + fmt.Sprint(h.ID) + " (as " + role + ") [" + string(h.Status) + "]\n"
 	if h.RemoteID != "" {
 		rv += "    Remote ID:        " + h.RemoteID + "\n"
 	}
+
 	stop := "N/A"
 	if h.Stop != nil {
 		stop = h.Stop.Local().Format(time.RFC3339Nano)
 	}
+
 	rv += "    Way:             " + way + "\n" +
 		"    Protocol:        " + h.Protocol + "\n" +
 		"    Rule:            " + h.Rule + "\n" +
 		"    Requester:       " + h.Requester + "\n" +
 		"    Requested:       " + h.Requested + "\n" +
-		"    Local filepath:  " + h.LocalPath + "\n" +
-		"    Remote filepath: " + h.RemotePath + "\n" +
+		"    Local filepath:  " + h.LocalFilepath + "\n" +
+		"    Remote filepath: " + h.RemoteFilepath + "\n" +
 		"    File size:       " + size + "\n" +
 		"    Start date:      " + h.Start.Local().Format(time.RFC3339Nano) + "\n" +
 		"    End date:        " + stop + "\n"
+
 	if h.ErrorCode != types.TeOk {
 		rv += "    Error code:      " + h.ErrorCode.String() + "\n"
+
 		if h.ErrorMsg != "" {
 			rv += "    Error message:   " + h.ErrorMsg + "\n"
 		}
 	}
+
 	if h.Step != types.StepNone {
 		rv += "    Failed step:     " + h.Step.String() + "\n"
 		if h.Step == types.StepData {
@@ -72,23 +81,23 @@ func TestDisplayHistory(t *testing.T) {
 		out = testFile()
 
 		hist := &api.OutHistory{
-			ID:         1,
-			IsServer:   true,
-			IsSend:     false,
-			Rule:       "Rule",
-			Requester:  "Account",
-			Requested:  "Server",
-			Protocol:   testProto1,
-			LocalPath:  "/local/path",
-			RemotePath: "/remote/path",
-			Start:      time.Now(),
-			Stop:       nil,
-			Status:     types.StatusCancelled,
-			Step:       types.StepSetup,
-			Progress:   1,
-			TaskNumber: 2,
-			ErrorMsg:   "error message",
-			ErrorCode:  types.TeUnknown,
+			ID:             1,
+			IsServer:       true,
+			IsSend:         false,
+			Rule:           "Rule",
+			Requester:      "Account",
+			Requested:      "Server",
+			Protocol:       testProto1,
+			LocalFilepath:  "/local/path",
+			RemoteFilepath: "/remote/path",
+			Start:          time.Now(),
+			Stop:           nil,
+			Status:         types.StatusCancelled,
+			Step:           types.StepSetup,
+			Progress:       1,
+			TaskNumber:     2,
+			ErrorMsg:       "error message",
+			ErrorCode:      types.TeUnknown,
 		}
 		Convey("When calling the `displayHistory` function", func() {
 			w := getColorable()
@@ -105,20 +114,20 @@ func TestDisplayHistory(t *testing.T) {
 
 		stopTime := time.Now().Add(time.Hour)
 		hist := api.OutHistory{
-			ID:         1,
-			IsServer:   true,
-			IsSend:     false,
-			Rule:       "rule",
-			Requester:  "source",
-			Requested:  "destination",
-			Protocol:   testProto1,
-			LocalPath:  "/local/path",
-			RemotePath: "/remote/path",
-			Start:      time.Now(),
-			Stop:       &stopTime,
-			Status:     types.StatusPlanned,
-			ErrorCode:  types.TeConnectionReset,
-			ErrorMsg:   "connexion reset by peer",
+			ID:             1,
+			IsServer:       true,
+			IsSend:         false,
+			Rule:           "rule",
+			Requester:      "source",
+			Requested:      "destination",
+			Protocol:       testProto1,
+			LocalFilepath:  "/local/path",
+			RemoteFilepath: "/remote/path",
+			Start:          time.Now(),
+			Stop:           &stopTime,
+			Status:         types.StatusPlanned,
+			ErrorCode:      types.TeConnectionReset,
+			ErrorMsg:       "connection reset by peer",
 		}
 		Convey("When calling the `displayHistory` function", func() {
 			w := getColorable()
@@ -442,7 +451,7 @@ func TestListHistory(t *testing.T) {
 						So(command.Execute(params), ShouldBeNil)
 
 						Convey("Then it should display all the entries using "+
-							"one of these protocoles", func() {
+							"one of these protocols", func() {
 							So(getOutput(), ShouldEqual, "History:\n"+
 								historyInfoString(hist1)+historyInfoString(hist2))
 						})
@@ -456,7 +465,7 @@ func TestListHistory(t *testing.T) {
 						"--requester=" + h1.Account, "--requester=" + h2.Account,
 						"--requested=" + h4.Agent, "--requested=" + h1.Agent,
 						"--rule=" + h3.Rule, "--rule=" + h1.Rule, "--rule=" + h2.Rule,
-						"--status=DONE", "--status=CANCELLED",
+						"--status=DONE", "--status=CANCELED",
 						"--protocol=" + testProto1,
 					}
 

@@ -4,7 +4,7 @@ Ajouter un certificat à un serveur
 
 .. program:: waarp-gateway server cert add
 
-.. describe:: waarp-gateway <ADDR> server cert <SERVER> add
+.. describe:: waarp-gateway server cert <SERVER> add
 
 Attache un nouveau certificat au serveur donné à partir des informations renseignées.
 

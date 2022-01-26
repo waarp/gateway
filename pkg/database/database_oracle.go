@@ -5,7 +5,7 @@ package database
 import (
 	"fmt"
 
-	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/conf"
+	"code.waarp.fr/apps/gateway/gateway/pkg/conf"
 	_ "github.com/mattn/go-oci8" // register the oracledb driver
 	"xorm.io/xorm"
 )
@@ -18,6 +18,7 @@ const (
 	OracleDriver = "oci8"
 )
 
+//nolint:gochecknoinits // init is used by design
 func init() {
 	supportedRBMS[oracle] = oracleinfo
 }

@@ -4,7 +4,7 @@ Status des services
 
 .. program:: waarp-gateway status
 
-.. describe:: waarp-gateway <ADDR> status
+.. describe:: waarp-gateway status
 
 Affiche le status des différents services de la gateway. Cela inclus les services
 nécessaires au fonctionnement de la gateway, ainsi que tous les serveurs locaux

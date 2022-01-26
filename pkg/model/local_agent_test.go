@@ -4,9 +4,10 @@ import (
 	"encoding/json"
 	"testing"
 
-	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/database"
-	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/tk/utils/testhelpers"
 	. "github.com/smartystreets/goconvey/convey"
+
+	"code.waarp.fr/apps/gateway/gateway/pkg/database"
+	"code.waarp.fr/apps/gateway/gateway/pkg/tk/utils/testhelpers"
 )
 
 func TestLocalAgentTableName(t *testing.T) {
@@ -29,10 +30,9 @@ func TestLocalAgentBeforeDelete(t *testing.T) {
 
 		Convey("Given a local agent entry", func() {
 			ag := LocalAgent{
-				Name:        "test agent",
-				Protocol:    dummyProto,
-				ProtoConfig: json.RawMessage(`{}`),
-				Address:     "localhost:6666",
+				Name:     "test agent",
+				Protocol: testProtocol,
+				Address:  "localhost:6666",
 			}
 			So(db.Insert(&ag).Run(), ShouldBeNil)
 
@@ -65,7 +65,6 @@ func TestLocalAgentBeforeDelete(t *testing.T) {
 			So(db.Insert(&certAcc).Run(), ShouldBeNil)
 
 			Convey("Given that the agent is unused", func() {
-
 				Convey("When calling the `BeforeDelete` hook", func() {
 					So(db.Transaction(func(ses *database.Session) database.Error {
 						return ag.BeforeDelete(ses)
@@ -125,25 +124,23 @@ func TestLocalAgentBeforeWrite(t *testing.T) {
 
 		Convey("Given the database contains 1 local agent", func() {
 			oldAgent := LocalAgent{
-				Owner:       "test_gateway",
-				Name:        "old",
-				Protocol:    dummyProto,
-				ProtoConfig: json.RawMessage(`{}`),
-				Address:     "localhost:2022",
+				Owner:    "test_gateway",
+				Name:     "old",
+				Protocol: testProtocol,
+				Address:  "localhost:2022",
 			}
 			So(db.Insert(&oldAgent).Run(), ShouldBeNil)
 
 			Convey("Given a new local agent", func() {
 				newAgent := &LocalAgent{
-					Owner:       "test_gateway",
-					Name:        "new",
-					Root:        "root",
-					LocalInDir:  "rcv",
-					LocalOutDir: "send",
-					LocalTmpDir: "tmp",
-					Protocol:    dummyProto,
-					ProtoConfig: json.RawMessage(`{}`),
-					Address:     "localhost:2023",
+					Owner:         "test_gateway",
+					Name:          "new",
+					RootDir:       "root",
+					ReceiveDir:    "rcv",
+					SendDir:       "send",
+					TmpReceiveDir: "tmp",
+					Protocol:      testProtocol,
+					Address:       "localhost:2023",
 				}
 
 				shouldFailWith := func(errDesc string, expErr error) {
@@ -153,7 +150,8 @@ func TestLocalAgentBeforeWrite(t *testing.T) {
 						})
 
 						Convey("Then the error should say that "+errDesc, func() {
-							So(err, ShouldBeError, expErr)
+							So(err, ShouldBeError)
+							So(err.Error(), ShouldContainSubstring, expErr.Error())
 						})
 					})
 				}

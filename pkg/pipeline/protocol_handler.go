@@ -8,9 +8,10 @@
 package pipeline
 
 import (
-	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/model/types"
+	"code.waarp.fr/apps/gateway/gateway/pkg/model/types"
 )
 
+//nolint:gochecknoglobals // global var is used by design
 // ClientConstructors is a map containing constructors for the various clients
 // supported by the gateway. It associates each protocol with the constructor for
 // its client. In order for the gateway to be able to execute a transfer in a
@@ -23,7 +24,7 @@ var ClientConstructors = map[string]ClientConstructor{}
 type ClientConstructor func(*Pipeline) (Client, *types.TransferError)
 
 // Client is the interface defining a protocol client. All protocol clients
-// (SFTP, R66, HTTP...) must implement this interface in order to be usable by
+// (SFTP, R66, HTTP, etc) must implement this interface in order to be usable by
 // the transfer pipeline.
 // The client must also provide a constructor and add it to the ClientConstructors
 // map.
@@ -59,7 +60,7 @@ type Server interface {
 // PreTasksHandler is an interface which clients can optionally implement in
 // order to give more control over the execution of pre-tasks on the remote partner.
 // If the client does not implement this interface, it will be assumed that
-// pre-tasks are executed just after the reception of the request (i.e. at the
+// pre-tasks are executed just after the reception of the request (so at the
 // end of the Client.Request method).
 type PreTasksHandler interface {
 
@@ -75,7 +76,7 @@ type PreTasksHandler interface {
 // PostTasksHandler is an interface which clients can optionally implement in
 // order to give more control over the execution of post-tasks on the remote partner.
 // If the client does not implement this interface, it will be assumed that
-// post-tasks are executed just before closing the connection (i.e. at the
+// post-tasks are executed just before closing the connection (so at the
 // beginning of the Client.EndTransfer method).
 type PostTasksHandler interface {
 
@@ -99,9 +100,9 @@ type PauseHandler interface {
 
 // CancelHandler is an interface which clients and servers can optionally
 // implement in order to allow the agent to inform the remote partner when a
-// transfer has been cancelled by a user. If this interface is not implemented,
+// transfer has been canceled by a user. If this interface is not implemented,
 // Client.SendError or Server.SendError will be used instead.
 type CancelHandler interface {
-	// Cancel informs the partner that the transfer has been cancelled.
+	// Cancel informs the partner that the transfer has been canceled.
 	Cancel() *types.TransferError
 }

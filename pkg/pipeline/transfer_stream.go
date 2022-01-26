@@ -3,8 +3,9 @@ package pipeline
 import (
 	"io"
 
-	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/model/types"
-	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/tk/utils"
+	"code.waarp.fr/apps/gateway/gateway/pkg/model/types"
+	"code.waarp.fr/apps/gateway/gateway/pkg/tk/statemachine"
+	"code.waarp.fr/apps/gateway/gateway/pkg/tk/utils"
 )
 
 func leaf(s string) utils.Leaf     { return utils.Leaf(s) }
@@ -31,56 +32,47 @@ type TransferStream interface {
 func newVoidStream(p *Pipeline) (*voidStream, *types.TransferError) {
 	var err error
 	if p.TransCtx.Rule.IsSend {
-		err = p.machine.Transition("reading")
+		err = p.machine.Transition(stateReading)
 	} else {
-		err = p.machine.Transition("writing")
+		err = p.machine.Transition(stateWriting)
 	}
+
 	if err != nil {
 		return nil, types.NewTransferError(types.TeInternal, err.Error())
 	}
+
 	return &voidStream{p}, nil
 }
 
 type voidStream struct{ *Pipeline }
 
-func (v *voidStream) checkState(state, fun string, defaultN int, defaultErr error) (int, error) {
+func (v *voidStream) checkState(state statemachine.State, fun string, defaultN int,
+	defaultErr error) (int, error) {
 	if curr := v.machine.Current(); curr != state {
 		v.handleStateErr(fun, curr)
+
 		return 0, errStateMachine
 	}
+
 	return defaultN, defaultErr
 }
 
 func (v *voidStream) Read([]byte) (int, error) {
-	return v.checkState("reading", "Read", 0, io.EOF)
+	return v.checkState(stateReading, "Read", 0, io.EOF)
 }
 
 func (v *voidStream) Write(p []byte) (int, error) {
-	return v.checkState("writing", "Write", len(p), nil)
+	return v.checkState(stateWriting, "Write", len(p), nil)
 }
 
 func (v *voidStream) ReadAt([]byte, int64) (int, error) {
-	return v.checkState("reading", "ReadAt", 0, io.EOF)
+	return v.checkState(stateReading, "ReadAt", 0, io.EOF)
 }
 
 func (v *voidStream) WriteAt(p []byte, _ int64) (int, error) {
-	return v.checkState("writing", "WriteAt", len(p), nil)
+	return v.checkState(stateWriting, "WriteAt", len(p), nil)
 }
 
-func (v *voidStream) close() *types.TransferError {
-	if err := v.machine.Transition("close"); err != nil {
-		v.handleStateErr("close", v.machine.Current())
-		return errStateMachine
-	}
-	return nil
-}
-
-func (v *voidStream) move() *types.TransferError {
-	if err := v.machine.Transition("move"); err != nil {
-		v.handleStateErr("move", v.machine.Current())
-		return errStateMachine
-	}
-	return nil
-}
-
-func (*voidStream) stop() {}
+func (*voidStream) close() *types.TransferError { return nil }
+func (*voidStream) move() *types.TransferError  { return nil }
+func (*voidStream) stop()                       {}

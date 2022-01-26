@@ -44,5 +44,6 @@ func TempFile(c convey.C, pattern string) string {
 		c.So(os.RemoveAll(file.Name()), convey.ShouldBeNil)
 	})
 	c.So(file.Close(), convey.ShouldBeNil)
+
 	return file.Name()
 }

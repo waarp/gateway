@@ -3,13 +3,15 @@ package rest
 import (
 	"net/http"
 
-	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/admin/rest/api"
-	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/database"
-	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/log"
-	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/model"
 	"github.com/gorilla/mux"
+
+	"code.waarp.fr/apps/gateway/gateway/pkg/admin/rest/api"
+	"code.waarp.fr/apps/gateway/gateway/pkg/database"
+	"code.waarp.fr/apps/gateway/gateway/pkg/log"
+	"code.waarp.fr/apps/gateway/gateway/pkg/model"
 )
 
+//nolint:dupl // duplicated code is about a different type
 func getLocAcc(r *http.Request, db *database.DB) (*model.LocalAgent, *model.LocalAccount, error) {
 	parent, err := getServ(r, db)
 	if err != nil {
@@ -28,8 +30,10 @@ func getLocAcc(r *http.Request, db *database.DB) (*model.LocalAgent, *model.Loca
 			return parent, nil, notFound("no account '%s' found for server %s",
 				login, parent.Name)
 		}
+
 		return parent, nil, err
 	}
+
 	return parent, &account, nil
 }
 
@@ -50,7 +54,7 @@ func getLocalAccount(logger *log.Logger, db *database.DB) http.HandlerFunc {
 	}
 }
 
-//nolint:dupl
+//nolint:dupl // duplicated code is about a different type
 func listLocalAccounts(logger *log.Logger, db *database.DB) http.HandlerFunc {
 	validSorting := orders{
 		"default": order{"login", true},
@@ -61,14 +65,17 @@ func listLocalAccounts(logger *log.Logger, db *database.DB) http.HandlerFunc {
 
 	return func(w http.ResponseWriter, r *http.Request) {
 		var accounts model.LocalAccounts
+
 		query, err := parseSelectQuery(r, db, validSorting, &accounts)
 		if handleError(w, logger, err) {
 			return
 		}
+
 		parent, err := getServ(r, db)
 		if handleError(w, logger, err) {
 			return
 		}
+
 		query.Where("local_agent_id=?", parent.ID)
 
 		if err := query.Run(); handleError(w, logger, err) {
@@ -79,6 +86,7 @@ func listLocalAccounts(logger *log.Logger, db *database.DB) http.HandlerFunc {
 		for i := range accounts {
 			ids[i] = accounts[i].ID
 		}
+
 		rules, err := getAuthorizedRuleList(db, typ, ids)
 		if handleError(w, logger, err) {
 			return
@@ -98,7 +106,8 @@ func addLocalAccount(logger *log.Logger, db *database.DB) http.HandlerFunc {
 		}
 
 		var jAcc api.InAccount
-		if err := readJSON(r, &jAcc); handleError(w, logger, err) {
+
+		if err2 := readJSON(r, &jAcc); handleError(w, logger, err2) {
 			return
 		}
 
@@ -124,7 +133,8 @@ func updateLocalAccount(logger *log.Logger, db *database.DB) http.HandlerFunc {
 		}
 
 		jAcc := newInLocAccount(old)
-		if err := readJSON(r, jAcc); handleError(w, logger, err) {
+
+		if err2 := readJSON(r, jAcc); handleError(w, logger, err2) {
 			return
 		}
 
@@ -150,7 +160,8 @@ func replaceLocalAccount(logger *log.Logger, db *database.DB) http.HandlerFunc {
 		}
 
 		var jAcc api.InAccount
-		if err := readJSON(r, &jAcc); handleError(w, logger, err) {
+
+		if err2 := readJSON(r, &jAcc); handleError(w, logger, err2) {
 			return
 		}
 
@@ -178,6 +189,7 @@ func deleteLocalAccount(logger *log.Logger, db *database.DB) http.HandlerFunc {
 		if err := db.Delete(acc).Run(); handleError(w, logger, err) {
 			return
 		}
+
 		w.WriteHeader(http.StatusNoContent)
 	}
 }

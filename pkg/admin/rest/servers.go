@@ -3,12 +3,13 @@ package rest
 import (
 	"net/http"
 
-	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/admin/rest/api"
-	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/conf"
-	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/database"
-	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/log"
-	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/model"
 	"github.com/gorilla/mux"
+
+	"code.waarp.fr/apps/gateway/gateway/pkg/admin/rest/api"
+	"code.waarp.fr/apps/gateway/gateway/pkg/conf"
+	"code.waarp.fr/apps/gateway/gateway/pkg/database"
+	"code.waarp.fr/apps/gateway/gateway/pkg/log"
+	"code.waarp.fr/apps/gateway/gateway/pkg/model"
 )
 
 func getServ(r *http.Request, db *database.DB) (*model.LocalAgent, error) {
@@ -23,8 +24,10 @@ func getServ(r *http.Request, db *database.DB) (*model.LocalAgent, error) {
 		if database.IsNotFound(err) {
 			return nil, notFound("server '%s' not found", serverName)
 		}
+
 		return nil, err
 	}
+
 	return &serv, nil
 }
 
@@ -57,13 +60,15 @@ func listServers(logger *log.Logger, db *database.DB) http.HandlerFunc {
 
 	return func(w http.ResponseWriter, r *http.Request) {
 		var servers model.LocalAgents
+
 		query, err := parseSelectQuery(r, db, validSorting, &servers)
 		if handleError(w, logger, err) {
 			return
 		}
 
 		query.Where("owner=?", conf.GlobalConfig.GatewayName)
-		if err := parseProtoParam(r, query); handleError(w, logger, err) {
+
+		if err2 := parseProtoParam(r, query); handleError(w, logger, err2) {
 			return
 		}
 
@@ -75,6 +80,7 @@ func listServers(logger *log.Logger, db *database.DB) http.HandlerFunc {
 		for i := range servers {
 			ids[i] = servers[i].ID
 		}
+
 		rules, err := getAuthorizedRuleList(db, typ, ids)
 		if handleError(w, logger, err) {
 			return
@@ -86,6 +92,7 @@ func listServers(logger *log.Logger, db *database.DB) http.HandlerFunc {
 	}
 }
 
+//nolint:dupl // duplicated code is about a different type
 func addServer(logger *log.Logger, db *database.DB) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		var serv api.InServer
@@ -103,6 +110,7 @@ func addServer(logger *log.Logger, db *database.DB) http.HandlerFunc {
 	}
 }
 
+//nolint:dupl // duplicated code is about a different type
 func updateServer(logger *log.Logger, db *database.DB) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		old, err := getServ(r, db)
@@ -157,6 +165,7 @@ func deleteServer(logger *log.Logger, db *database.DB) http.HandlerFunc {
 		if err := db.Delete(ag).Run(); handleError(w, logger, err) {
 			return
 		}
+
 		w.WriteHeader(http.StatusNoContent)
 	}
 }

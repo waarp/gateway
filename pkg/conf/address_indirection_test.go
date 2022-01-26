@@ -4,9 +4,9 @@ import (
 	"bytes"
 	"testing"
 
-	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/tk/utils/testhelpers"
-
 	. "github.com/smartystreets/goconvey/convey"
+
+	"code.waarp.fr/apps/gateway/gateway/pkg/tk/utils/testhelpers"
 )
 
 func TestAddressOverrideParse(t *testing.T) {
@@ -87,6 +87,7 @@ func TestOverrideWrite(t *testing.T) {
 				nextLine := func() string {
 					line, err := buf.ReadBytes('\n')
 					So(err, ShouldBeNil)
+
 					return string(line)
 				}
 				line1 := "IndirectAddress = 192.168.1.1 -> waarp.org\n"
@@ -219,7 +220,8 @@ func TestGetRealAddress(t *testing.T) {
 			_, err := GetRealAddress("waarp.fr")
 
 			Convey("Then it should return an error", func() {
-				So(err, ShouldBeError, "address waarp.fr: missing port in address")
+				So(err, ShouldBeError, "failed to split the target address: "+
+					"address waarp.fr: missing port in address")
 			})
 		})
 	})

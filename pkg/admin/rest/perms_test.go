@@ -5,17 +5,17 @@ import (
 	"net/http/httptest"
 	"testing"
 
-	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/admin/rest/api"
-	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/database"
-	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/log"
-	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/model"
 	"github.com/gorilla/mux"
 	. "github.com/smartystreets/goconvey/convey"
+
+	"code.waarp.fr/apps/gateway/gateway/pkg/admin/rest/api"
+	"code.waarp.fr/apps/gateway/gateway/pkg/database"
+	"code.waarp.fr/apps/gateway/gateway/pkg/log"
+	"code.waarp.fr/apps/gateway/gateway/pkg/model"
 )
 
 func TestMaskToPerm(t *testing.T) {
 	Convey("Testing the permission mask converter", t, func() {
-
 		Convey("Given a permission mask", func() {
 			mask := model.PermTransfersRead | model.PermTransfersWrite |
 				model.PermServersWrite |
@@ -64,7 +64,6 @@ func TestMaskToPerm(t *testing.T) {
 
 func TestPermsToMask(t *testing.T) {
 	Convey("Testing the permission mask converter", t, func() {
-
 		Convey("Given a permission mask and a permission string", func() {
 			mask := model.PermTransfersRead | model.PermTransfersWrite |
 				model.PermServersWrite |
@@ -109,15 +108,15 @@ func TestPermMiddleware(t *testing.T) {
 		db := database.TestDatabase(c, "ERROR")
 
 		success := model.User{
-			Username:    "success",
-			Password:    []byte("success"),
-			Permissions: model.PermAll,
+			Username:     "success",
+			PasswordHash: hash("success"),
+			Permissions:  model.PermAll,
 		}
 		So(db.Insert(&success).Run(), ShouldBeNil)
 		fail := model.User{
-			Username:    "fail",
-			Password:    []byte("fail"),
-			Permissions: 0,
+			Username:     "fail",
+			PasswordHash: hash("fail"),
+			Permissions:  0,
 		}
 		So(db.Insert(&fail).Run(), ShouldBeNil)
 
@@ -128,9 +127,9 @@ func TestPermMiddleware(t *testing.T) {
 				}
 			}
 			router := mux.NewRouter()
-			fac := makeHandlerFactory(logger, db, router)
+			fact := makeHandlerFactory(logger, db, router)
 
-			fac.mkHandler("/", f, model.PermUsersRead, http.MethodGet)
+			fact("/", f, model.PermUsersRead, http.MethodGet)
 
 			Convey("When sending a request", func() {
 				w := &httptest.ResponseRecorder{}
@@ -138,22 +137,26 @@ func TestPermMiddleware(t *testing.T) {
 				So(err, ShouldBeNil)
 
 				Convey("If the user is authorized", func() {
-					r.SetBasicAuth(success.Username, string(success.Password))
+					r.SetBasicAuth(success.Username, success.PasswordHash)
 
 					Convey("Then it should reply 'OK'", func() {
 						router.ServeHTTP(w, r)
 						res := w.Result()
+
+						defer res.Body.Close()
 
 						So(res.StatusCode, ShouldEqual, http.StatusOK)
 					})
 				})
 
 				Convey("If the user is NOT authorized", func() {
-					r.SetBasicAuth(fail.Username, string(fail.Password))
+					r.SetBasicAuth(fail.Username, fail.PasswordHash)
 
 					Convey("Then it should reply 'FORBIDDEN'", func() {
 						router.ServeHTTP(w, r)
 						res := w.Result()
+
+						defer res.Body.Close()
 
 						So(res.StatusCode, ShouldEqual, http.StatusForbidden)
 					})

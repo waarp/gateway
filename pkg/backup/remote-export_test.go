@@ -1,18 +1,14 @@
 package backup
 
 import (
-	"encoding/json"
 	"testing"
 
-	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/model/config"
-
-	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/model/types"
-
-	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/tk/utils/testhelpers"
-
-	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/database"
-	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/model"
 	. "github.com/smartystreets/goconvey/convey"
+
+	"code.waarp.fr/apps/gateway/gateway/pkg/database"
+	"code.waarp.fr/apps/gateway/gateway/pkg/model"
+	"code.waarp.fr/apps/gateway/gateway/pkg/model/types"
+	"code.waarp.fr/apps/gateway/gateway/pkg/tk/utils/testhelpers"
 )
 
 func TestExportRemoteAgents(t *testing.T) {
@@ -21,10 +17,9 @@ func TestExportRemoteAgents(t *testing.T) {
 
 		Convey("Given the database contains remotes agents with accounts", func() {
 			agent1 := &model.RemoteAgent{
-				Name:        "agent1",
-				Protocol:    config.TestProtocol,
-				ProtoConfig: json.RawMessage(`{}`),
-				Address:     "localhost:6666",
+				Name:     "agent1",
+				Protocol: testProtocol,
+				Address:  "localhost:6666",
 			}
 			So(db.Insert(agent1).Run(), ShouldBeNil)
 
@@ -44,10 +39,9 @@ func TestExportRemoteAgents(t *testing.T) {
 			So(db.Insert(cert).Run(), ShouldBeNil)
 
 			agent2 := &model.RemoteAgent{
-				Name:        "agent2",
-				Protocol:    config.TestProtocol,
-				ProtoConfig: json.RawMessage(`{}`),
-				Address:     "localhost:2023",
+				Name:     "agent2",
+				Protocol: testProtocol,
+				Address:  "localhost:2023",
 			}
 			So(db.Insert(agent2).Run(), ShouldBeNil)
 
@@ -78,10 +72,9 @@ func TestExportRemoteAgents(t *testing.T) {
 
 				Convey("When searching for remote agents", func() {
 					for i := 0; i < len(res); i++ {
-						if res[i].Name == agent1.Name {
-
+						switch {
+						case res[i].Name == agent1.Name:
 							Convey("When agent1 is found", func() {
-
 								Convey("Then it should be equal to the data in DB", func() {
 									So(res[i].Protocol, ShouldEqual, agent1.Protocol)
 									So(res[i].Address, ShouldEqual, agent1.Address)
@@ -97,10 +90,9 @@ func TestExportRemoteAgents(t *testing.T) {
 									})
 								})
 							})
-						} else if res[i].Name == agent2.Name {
 
+						case res[i].Name == agent2.Name:
 							Convey("When agent2 is found", func() {
-
 								Convey("Then it should be equal to the data in DB", func() {
 									So(res[i].Protocol, ShouldEqual, agent2.Protocol)
 									So(res[i].Address, ShouldEqual, agent2.Address)
@@ -115,8 +107,8 @@ func TestExportRemoteAgents(t *testing.T) {
 									})
 								})
 							})
-						} else {
 
+						default:
 							Convey("Then they should be no other records", func() {
 								So(1, ShouldBeNil)
 							})
@@ -136,10 +128,9 @@ func TestExportRemoteAccounts(t *testing.T) {
 			pwd1 := "pwd"
 			pwd2 := "bar"
 			agent := &model.RemoteAgent{
-				Name:        "partner",
-				Protocol:    config.TestProtocol,
-				ProtoConfig: json.RawMessage(`{}`),
-				Address:     "localhost:2022",
+				Name:     "partner",
+				Protocol: testProtocol,
+				Address:  "localhost:2022",
 			}
 			So(db.Insert(agent).Run(), ShouldBeNil)
 
@@ -179,10 +170,9 @@ func TestExportRemoteAccounts(t *testing.T) {
 
 				Convey("When searching for remote accounts", func() {
 					for i := 0; i < len(res); i++ {
-						if res[i].Login == account1.Login {
-
+						switch {
+						case res[i].Login == account1.Login:
 							Convey("When login1 is found", func() {
-
 								Convey("Then it should be equal to the data in DB", func() {
 									So(res[i].Password, ShouldResemble, pwd1)
 								})
@@ -191,10 +181,8 @@ func TestExportRemoteAccounts(t *testing.T) {
 									So(len(res[i].Certs), ShouldEqual, 0)
 								})
 							})
-						} else if res[i].Login == account2.Login {
-
+						case res[i].Login == account2.Login:
 							Convey("When login2 is found", func() {
-
 								Convey("Then it should be equal to the data in DB", func() {
 									So(res[i].Password, ShouldResemble, pwd2)
 								})
@@ -203,8 +191,7 @@ func TestExportRemoteAccounts(t *testing.T) {
 									So(len(res[i].Certs), ShouldEqual, 1)
 								})
 							})
-						} else {
-
+						default:
 							Convey("Then they should be no other records", func() {
 								So(1, ShouldBeNil)
 							})

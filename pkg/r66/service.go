@@ -7,24 +7,23 @@ import (
 	"crypto/tls"
 	"crypto/x509"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"net"
 
 	"code.bcarlin.xyz/go/logging"
-	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/conf"
-	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/database"
-	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/gatewayd"
-	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/log"
-	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/model"
-	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/model/config"
-	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/tk/service"
-	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/tk/utils"
 	"code.waarp.fr/waarp-r66/r66"
+
+	"code.waarp.fr/apps/gateway/gateway/pkg/conf"
+	"code.waarp.fr/apps/gateway/gateway/pkg/database"
+	"code.waarp.fr/apps/gateway/gateway/pkg/log"
+	"code.waarp.fr/apps/gateway/gateway/pkg/model"
+	"code.waarp.fr/apps/gateway/gateway/pkg/model/config"
+	"code.waarp.fr/apps/gateway/gateway/pkg/tk/service"
+	"code.waarp.fr/apps/gateway/gateway/pkg/tk/utils"
 )
 
-func init() {
-	gatewayd.ServiceConstructors["r66"] = NewService
-}
+var errInvalidCertificate = errors.New("invalid certificate")
 
 // Service represents a r66 service, which encompasses a r66 server usable for
 // transfers.
@@ -58,16 +57,22 @@ func (s *Service) makeTLSConf() (*tls.Config, error) {
 	if err != nil {
 		return nil, err
 	}
+
 	if len(certs) == 0 {
-		return nil, nil
+		return nil, nil //nolint:nilnil // returning nil is ok here
 	}
 
 	tlsCerts := make([]tls.Certificate, len(certs))
-	for i, cert := range certs {
+
+	for i := range certs {
 		var err error
-		tlsCerts[i], err = tls.X509KeyPair([]byte(cert.Certificate), []byte(cert.PrivateKey))
+		tlsCerts[i], err = tls.X509KeyPair(
+			[]byte(certs[i].Certificate),
+			[]byte(certs[i].PrivateKey),
+		)
+
 		if err != nil {
-			return nil, err
+			return nil, fmt.Errorf("cannot generate certificate list: %w", err)
 		}
 	}
 
@@ -75,15 +80,18 @@ func (s *Service) makeTLSConf() (*tls.Config, error) {
 	if cErr != nil {
 		ca = x509.NewCertPool()
 	}
+
 	var clientCerts model.Cryptos
 	if err := s.db.Select(&clientCerts).Where(
 		"owner_type=? AND owner_id IN (SELECT id FROM local_accounts WHERE local_agent_id=?)",
 		"local_accounts", s.agent.ID).Run(); err != nil {
 		return nil, err
 	}
+
 	for _, cert := range clientCerts {
 		if !ca.AppendCertsFromPEM([]byte(cert.Certificate)) {
-			return nil, fmt.Errorf("failed to add cert %s to trusted certificates pool", cert.Name)
+			return nil, fmt.Errorf("failed to add cert %s to trusted certificates pool: %w",
+				cert.Name, errInvalidCertificate)
 		}
 	}
 
@@ -103,16 +111,18 @@ func (s *Service) Start() error {
 	var r66Conf config.R66ProtoConfig
 	if err := json.Unmarshal(s.agent.ProtoConfig, &r66Conf); err != nil {
 		s.logger.Errorf("Failed to parse server ProtoConfig: %s", err)
-		err1 := fmt.Errorf("failed to parse ProtoConfig: %s", err)
+		err1 := fmt.Errorf("failed to parse ProtoConfig: %w", err)
 		s.state.Set(service.Error, err1.Error())
+
 		return err1
 	}
 
 	pwd, err := utils.AESDecrypt(database.GCM, r66Conf.ServerPassword)
 	if err != nil {
 		s.logger.Errorf("Failed to decrypt server password: %s", err)
-		dErr := fmt.Errorf("failed to decrypt server password: %s", err)
+		dErr := fmt.Errorf("failed to decrypt server password: %w", err)
 		s.state.Set(service.Error, dErr.Error())
+
 		return dErr
 	}
 
@@ -130,11 +140,14 @@ func (s *Service) Start() error {
 	}
 
 	if err := s.listen(); err != nil {
+		s.state.Set(service.Error, err.Error())
+
 		return err
 	}
 
 	s.state.Set(service.Running, "")
 	s.logger.Infof("R66 server started at %s", s.agent.Address)
+
 	return nil
 }
 
@@ -142,23 +155,27 @@ func (s *Service) listen() error {
 	tlsConf, err := s.makeTLSConf()
 	if err != nil {
 		s.logger.Errorf("Failed to parse server TLS config: %s", err)
-		s.state.Set(service.Error, "failed to parse server TLS config")
-		return err
+
+		return fmt.Errorf("failed to parse server TLS config: %w", err)
 	}
 
 	addr, err := conf.GetRealAddress(s.agent.Address)
 	if err != nil {
-		return err
+		s.logger.Errorf("Failed to parse server TLS config: %s", err)
+
+		return fmt.Errorf("failed to indirect the server address: %w", err)
 	}
+
 	if tlsConf != nil {
 		s.list, err = tls.Listen("tcp", addr, tlsConf)
 	} else {
 		s.list, err = net.Listen("tcp", addr)
 	}
+
 	if err != nil {
 		s.logger.Errorf("Failed to start R66 listener: %s", err)
-		s.state.Set(service.Error, err.Error())
-		return err
+
+		return fmt.Errorf("failed to start R66 listener: %w", err)
 	}
 
 	go func() {
@@ -166,9 +183,10 @@ func (s *Service) listen() error {
 			select {
 			case <-s.shutdown:
 				return
+
 			default:
-				s.logger.Errorf("Server has stopped unexpectedly: %s", err)
-				s.state.Set(service.Error, err.Error())
+				s.logger.Errorf("Server stopped unexpectedly: %s", err)
+				s.state.Set(service.Error, fmt.Sprintf("server stopped unexpectedly: %s", err))
 			}
 		}
 	}()
@@ -182,6 +200,7 @@ func (s *Service) Stop(ctx context.Context) error {
 
 	if code, _ := s.State().Get(); code == service.Error || code == service.Offline {
 		s.logger.Info("Server is already offline, nothing to do")
+
 		return nil
 	}
 
@@ -191,16 +210,23 @@ func (s *Service) Stop(ctx context.Context) error {
 	if s.shutdown == nil {
 		s.shutdown = make(chan struct{})
 	}
+
 	close(s.shutdown)
 
 	if err := s.runningTransfers.InterruptAll(ctx); err != nil {
 		s.logger.Error("Failed to interrupt R66 transfers, forcing exit")
-		return ctx.Err()
+
+		return fmt.Errorf("failed to interrupt R66 transfers: %w", err)
 	}
+
 	s.logger.Debug("Closing listener...")
-	_ = s.server.Shutdown(ctx)
+
+	if err := s.server.Shutdown(ctx); err != nil {
+		s.logger.Warning("Failed to properly shutdown R66 server")
+	}
 
 	s.logger.Info("R66 server shutdown successful")
+
 	return nil
 }
 
@@ -211,6 +237,7 @@ func (s *Service) State() *service.State {
 			s.state.Set(service.Offline, "")
 		}
 	}
+
 	return s.state
 }
 

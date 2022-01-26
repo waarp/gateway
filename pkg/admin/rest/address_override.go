@@ -3,11 +3,10 @@ package rest
 import (
 	"net/http"
 
-	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/conf"
-
 	"github.com/gorilla/mux"
 
-	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/log"
+	"code.waarp.fr/apps/gateway/gateway/pkg/conf"
+	"code.waarp.fr/apps/gateway/gateway/pkg/log"
 )
 
 type addr struct{ target, real string }
@@ -32,7 +31,9 @@ func getAddressOverride(logger *log.Logger) http.HandlerFunc {
 		if handleError(w, logger, err) {
 			return
 		}
+
 		responseBody := map[string]string{address.target: address.real}
+
 		handleError(w, logger, writeJSON(w, responseBody))
 	}
 }
@@ -50,11 +51,13 @@ func addAddressOverride(logger *log.Logger) http.HandlerFunc {
 		if err := readJSON(r, &indirections); handleError(w, logger, err) {
 			return
 		}
+
 		for target, realAddr := range indirections {
 			if err := conf.AddIndirection(target, realAddr); handleError(w, logger, err) {
 				return
 			}
 		}
+
 		w.WriteHeader(http.StatusCreated)
 	}
 }
@@ -62,12 +65,15 @@ func addAddressOverride(logger *log.Logger) http.HandlerFunc {
 func deleteAddressOverride(logger *log.Logger) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		address, err := getAddrOverride(r)
+
 		if handleError(w, logger, err) {
 			return
 		}
+
 		if err := conf.RemoveIndirection(address.target); handleError(w, logger, err) {
 			return
 		}
+
 		w.WriteHeader(http.StatusNoContent)
 	}
 }

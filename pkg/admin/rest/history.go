@@ -3,44 +3,58 @@ package rest
 import (
 	"fmt"
 	"net/http"
+	"path"
+	"path/filepath"
 	"strconv"
 	"time"
 
-	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/admin/rest/api"
-	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/database"
-	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/log"
-	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/model"
-	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/model/config"
 	"github.com/gorilla/mux"
+
+	"code.waarp.fr/apps/gateway/gateway/pkg/admin/rest/api"
+	"code.waarp.fr/apps/gateway/gateway/pkg/database"
+	"code.waarp.fr/apps/gateway/gateway/pkg/log"
+	"code.waarp.fr/apps/gateway/gateway/pkg/model"
+	"code.waarp.fr/apps/gateway/gateway/pkg/model/config"
+	"code.waarp.fr/apps/gateway/gateway/pkg/tk/utils"
 )
 
 // FromHistory transforms the given database history entry into its JSON equivalent.
-func FromHistory(h *model.HistoryEntry) *api.OutHistory {
+func FromHistory(hist *model.HistoryEntry) *api.OutHistory {
 	var stop *time.Time
-	if !h.Stop.IsZero() {
-		stop = &h.Stop
+	if !hist.Stop.IsZero() {
+		stop = &hist.Stop
+	}
+
+	src := path.Base(hist.RemotePath)
+	dst := filepath.Base(hist.LocalPath)
+
+	if hist.IsSend {
+		dst = path.Base(hist.RemotePath)
+		src = filepath.Base(hist.LocalPath)
 	}
 
 	return &api.OutHistory{
-		ID:         h.ID,
-		RemoteID:   h.RemoteTransferID,
-		IsServer:   h.IsServer,
-		IsSend:     h.IsSend,
-		Requester:  h.Account,
-		Requested:  h.Agent,
-		Protocol:   h.Protocol,
-		LocalPath:  h.LocalPath,
-		RemotePath: h.RemotePath,
-		Filesize:   h.Filesize,
-		Rule:       h.Rule,
-		Start:      h.Start.Local(),
-		Stop:       stop,
-		Status:     h.Status,
-		ErrorCode:  h.Error.Code,
-		ErrorMsg:   h.Error.Details,
-		Step:       h.Step,
-		Progress:   h.Progress,
-		TaskNumber: h.TaskNumber,
+		ID:             hist.ID,
+		RemoteID:       hist.RemoteTransferID,
+		IsServer:       hist.IsServer,
+		IsSend:         hist.IsSend,
+		Requester:      hist.Account,
+		Requested:      hist.Agent,
+		Protocol:       hist.Protocol,
+		SourceFilename: utils.NormalizePath(src),
+		DestFilename:   utils.NormalizePath(dst),
+		LocalFilepath:  hist.LocalPath,
+		RemoteFilepath: hist.RemotePath,
+		Filesize:       hist.Filesize,
+		Rule:           hist.Rule,
+		Start:          hist.Start.Local(),
+		Stop:           stop,
+		Status:         hist.Status,
+		ErrorCode:      hist.Error.Code,
+		ErrorMsg:       hist.Error.Details,
+		Step:           hist.Step,
+		Progress:       hist.Progress,
+		TaskNumber:     hist.TaskNumber,
 	}
 }
 
@@ -51,22 +65,28 @@ func FromHistories(hs []model.HistoryEntry) []api.OutHistory {
 	for i := range hs {
 		hist[i] = *FromHistory(&hs[i])
 	}
+
 	return hist
 }
 
+//nolint:dupl // duplicated code is about a different type
 func getHist(r *http.Request, db *database.DB) (*model.HistoryEntry, error) {
 	val := mux.Vars(r)["history"]
-	id, err := strconv.ParseUint(val, 10, 64)
+
+	id, err := strconv.ParseUint(val, 10, 64) //nolint:gomnd // no need for a constant here
 	if err != nil || id == 0 {
 		return nil, notFound("'%s' is not a valid transfer ID", val)
 	}
+
 	var history model.HistoryEntry
 	if err := db.Get(&history, "id=?", id).Run(); err != nil {
 		if database.IsNotFound(err) {
 			return nil, notFound("transfer %v not found", id)
 		}
+
 		return nil, err
 	}
+
 	return &history, nil
 }
 
@@ -75,18 +95,19 @@ func parseHistoryCond(r *http.Request, query *database.SelectQuery) error {
 	if len(accounts) > 0 {
 		query.In("account", accounts)
 	}
-	agents := r.Form["requested"]
-	if len(agents) > 0 {
+
+	if agents := r.Form["requested"]; len(agents) > 0 {
 		query.In("agent", agents)
 	}
-	rules := r.Form["rule"]
-	if len(rules) > 0 {
+
+	if rules := r.Form["rule"]; len(rules) > 0 {
 		query.In("rule", rules)
 	}
-	statuses := r.Form["status"]
-	if len(statuses) > 0 {
+
+	if statuses := r.Form["status"]; len(statuses) > 0 {
 		query.In("status", statuses)
 	}
+
 	protocols := r.Form["protocol"]
 	// Validate requested protocols
 	for _, p := range protocols {
@@ -98,21 +119,25 @@ func parseHistoryCond(r *http.Request, query *database.SelectQuery) error {
 	if len(protocols) > 0 {
 		query.In("protocol", protocols)
 	}
+
 	starts := r.Form["start"]
 	if len(starts) > 0 {
 		start, err := time.Parse(time.RFC3339Nano, starts[0])
 		if err != nil {
 			return badRequest("'%s' is not a valid date", starts[0])
 		}
+
 		query.Where("start >= ?", start.UTC().Truncate(time.Microsecond).
 			Format(time.RFC3339Nano))
 	}
+
 	stops := r.Form["stop"]
 	if len(stops) > 0 {
 		stop, err := time.Parse(time.RFC3339Nano, stops[0])
 		if err != nil {
 			return badRequest("'%s' is not a valid date", stops[0])
 		}
+
 		query.Where("stop <= ?", stop.UTC().Truncate(time.Microsecond).
 			Format(time.RFC3339Nano))
 	}
@@ -152,10 +177,12 @@ func listHistory(logger *log.Logger, db *database.DB) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		var results model.HistoryEntries
 		query, err := parseSelectQuery(r, db, validSorting, &results)
+
 		if handleError(w, logger, err) {
 			return
 		}
-		if err := parseHistoryCond(r, query); handleError(w, logger, err) {
+
+		if err2 := parseHistoryCond(r, query); handleError(w, logger, err2) {
 			return
 		}
 
@@ -186,6 +213,7 @@ func retryTransfer(logger *log.Logger, db *database.DB) http.HandlerFunc {
 
 		if check.IsServer {
 			handleError(w, logger, badRequest("only the client can retry a transfer"))
+
 			return
 		}
 

@@ -4,7 +4,7 @@ Modifier un certificat de partenaire
 
 .. program:: waarp-gateway partner cert update
 
-.. describe:: waarp-gateway <ADDR> partner cert <PARTNER> update <CERT>
+.. describe:: waarp-gateway partner cert <PARTNER> update <CERT>
 
 Remplace les attributs du certificat par ceux renseignés ci-dessous. Les
 attributs omis resteront inchangés.

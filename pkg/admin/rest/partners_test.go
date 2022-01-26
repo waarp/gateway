@@ -7,12 +7,13 @@ import (
 	"strings"
 	"testing"
 
-	. "code.waarp.fr/waarp-gateway/waarp-gateway/pkg/admin/rest/api"
-	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/database"
-	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/log"
-	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/model"
 	"github.com/gorilla/mux"
 	. "github.com/smartystreets/goconvey/convey"
+
+	. "code.waarp.fr/apps/gateway/gateway/pkg/admin/rest/api"
+	"code.waarp.fr/apps/gateway/gateway/pkg/database"
+	"code.waarp.fr/apps/gateway/gateway/pkg/log"
+	"code.waarp.fr/apps/gateway/gateway/pkg/model"
 )
 
 const testPartnersURI = "http://localhost:8080/api/partners/"
@@ -34,7 +35,6 @@ func TestListPartners(t *testing.T) {
 
 		Convey("Then the response body should contain an array "+
 			"of the requested agents in JSON format", func() {
-
 			exp, err := json.Marshal(expected)
 
 			So(err, ShouldBeNil)
@@ -50,28 +50,24 @@ func TestListPartners(t *testing.T) {
 
 		Convey("Given a database with 4 partners", func() {
 			a1 := &model.RemoteAgent{
-				Name:        "partner1",
-				Protocol:    testProto1,
-				ProtoConfig: json.RawMessage(`{}`),
-				Address:     "localhost:1",
+				Name:     "partner1",
+				Protocol: testProto1,
+				Address:  "localhost:1",
 			}
 			a2 := &model.RemoteAgent{
-				Name:        "partner2",
-				Protocol:    testProto1,
-				ProtoConfig: json.RawMessage(`{}`),
-				Address:     "localhost:2",
+				Name:     "partner2",
+				Protocol: testProto1,
+				Address:  "localhost:2",
 			}
 			a3 := &model.RemoteAgent{
-				Name:        "partner3",
-				Protocol:    testProto1,
-				ProtoConfig: json.RawMessage(`{}`),
-				Address:     "localhost:3",
+				Name:     "partner3",
+				Protocol: testProto1,
+				Address:  "localhost:3",
 			}
 			a4 := &model.RemoteAgent{
-				Name:        "partner4",
-				Protocol:    testProto2,
-				ProtoConfig: json.RawMessage(`{}`),
-				Address:     "localhost:4",
+				Name:     "partner4",
+				Protocol: testProto2,
+				Address:  "localhost:4",
 			}
 
 			So(db.Insert(a1).Run(), ShouldBeNil)
@@ -157,10 +153,9 @@ func TestGetPartner(t *testing.T) {
 
 		Convey("Given a database with 1 partner", func() {
 			existing := &model.RemoteAgent{
-				Name:        "existing",
-				Protocol:    testProto1,
-				ProtoConfig: json.RawMessage(`{}`),
-				Address:     "localhost:1",
+				Name:     "existing",
+				Protocol: testProto1,
+				Address:  "localhost:1",
 			}
 			So(db.Insert(existing).Run(), ShouldBeNil)
 
@@ -184,7 +179,6 @@ func TestGetPartner(t *testing.T) {
 
 					Convey("Then the body should contain the requested partner "+
 						"in JSON format", func() {
-
 						exp, err := json.Marshal(FromRemoteAgent(existing, &AuthorizedRules{}))
 
 						So(err, ShouldBeNil)
@@ -252,14 +246,12 @@ func TestCreatePartner(t *testing.T) {
 
 						Convey("Then the 'Location' header should contain the URI "+
 							"of the new partner", func() {
-
 							location := w.Header().Get("Location")
 							So(location, ShouldEqual, testPartnersURI+"new_partner")
 						})
 
 						Convey("Then the new partner should be inserted in "+
 							"the database", func() {
-
 							var ags model.RemoteAgents
 							So(db.Select(&ags).Run(), ShouldBeNil)
 							So(len(ags), ShouldEqual, 2)
@@ -275,7 +267,6 @@ func TestCreatePartner(t *testing.T) {
 
 						Convey("Then the existing partner should still be "+
 							"present as well", func() {
-
 							var ags model.RemoteAgents
 							So(db.Select(&ags).Run(), ShouldBeNil)
 							So(len(ags), ShouldEqual, 2)
@@ -391,7 +382,6 @@ func TestUpdatePartner(t *testing.T) {
 
 						Convey("Then the 'Location' header should contain "+
 							"the URI of the updated agent", func() {
-
 							location := w.Header().Get("Location")
 							So(location, ShouldEqual, testPartnersURI+"update")
 						})
@@ -489,7 +479,6 @@ func TestReplacePartner(t *testing.T) {
 
 						Convey("Then the 'Location' header should contain "+
 							"the URI of the updated agent", func() {
-
 							location := w.Header().Get("Location")
 							So(location, ShouldEqual, testServersURI+"update")
 						})

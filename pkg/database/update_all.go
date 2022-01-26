@@ -31,10 +31,11 @@ func (u *UpdateAllQuery) Run() Error {
 	query := builder.Update(builder.Eq(u.vals)).From(u.bean.TableName()).
 		Where(builder.Expr(u.conds, u.args...))
 
-	_, err := ses.Exec(query)
-	logSQL(ses, logger)
-	if err != nil {
+	defer logSQL(ses, logger)
+
+	if _, err := ses.Exec(query); err != nil {
 		logger.Errorf("Failed to update the %s entries: %s", u.bean.Appellation(), err)
+
 		return NewInternalError(err)
 	}
 

@@ -6,8 +6,8 @@ type Cryptos []Crypto
 // TableName returns the name of the certificates table.
 func (*Cryptos) TableName() string { return TableCrypto }
 
-// Elem returns the name of 1 element of the certificates table.
-func (*Cryptos) Elem() string { return "certificate" }
+// Elem returns the name of 1 element of the crypto table.
+func (*Cryptos) Elem() string { return "crypto credential" }
 
 // TransferInfoList is the type representing a slice of ExtInfo.
 type TransferInfoList []TransferInfo
@@ -97,6 +97,7 @@ type Transfers []Transfer
 func (*Transfers) TableName() string { return TableTransfers }
 
 // Elem returns the name of 1 element of the transfers table.
+//nolint:goconst // this is the same as a constant
 func (*Transfers) Elem() string { return "transfer" }
 
 // Users is the type representing a slice of User.

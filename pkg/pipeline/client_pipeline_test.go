@@ -6,11 +6,11 @@ import (
 	"testing"
 	"time"
 
-	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/conf"
-	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/model"
-	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/model/config"
-	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/model/types"
 	. "github.com/smartystreets/goconvey/convey"
+
+	"code.waarp.fr/apps/gateway/gateway/pkg/conf"
+	"code.waarp.fr/apps/gateway/gateway/pkg/model"
+	"code.waarp.fr/apps/gateway/gateway/pkg/model/types"
 )
 
 func TestClientPipelineRun(t *testing.T) {
@@ -23,7 +23,7 @@ func TestClientPipelineRun(t *testing.T) {
 			file := "client_pipeline_push"
 			So(ioutil.WriteFile(filepath.Join(conf.GlobalConfig.Paths.GatewayHome,
 				conf.GlobalConfig.Paths.DefaultOutDir,
-				file), content, 0600), ShouldBeNil)
+				file), content, 0o600), ShouldBeNil)
 
 			trans := &model.Transfer{
 				IsServer:   false,
@@ -52,7 +52,7 @@ func TestClientPipelineRun(t *testing.T) {
 						Rule:             ctx.send.Name,
 						Agent:            ctx.partner.Name,
 						Account:          ctx.remoteAccount.Login,
-						Protocol:         config.TestProtocol,
+						Protocol:         testProtocol,
 						LocalPath:        trans.LocalPath,
 						RemotePath:       trans.RemotePath,
 						Filesize:         int64(len(content)),

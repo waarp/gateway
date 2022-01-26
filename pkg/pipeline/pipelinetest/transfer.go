@@ -3,11 +3,12 @@ package pipelinetest
 import (
 	"path/filepath"
 
-	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/conf"
-
-	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/model"
-	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/model/types"
 	"github.com/smartystreets/goconvey/convey"
+
+	"code.waarp.fr/apps/gateway/gateway/pkg/conf"
+	"code.waarp.fr/apps/gateway/gateway/pkg/database"
+	"code.waarp.fr/apps/gateway/gateway/pkg/model"
+	"code.waarp.fr/apps/gateway/gateway/pkg/model/types"
 )
 
 type transData struct {
@@ -17,7 +18,6 @@ type transData struct {
 
 func (d *clientData) checkClientTransferOK(c convey.C, t *transData,
 	actual *model.HistoryEntry) {
-
 	c.Convey("Then there should be a client-side history entry", func(c convey.C) {
 		expected := &model.HistoryEntry{
 			ID:         t.ClientTrans.ID,
@@ -43,9 +43,8 @@ func (d *clientData) checkClientTransferOK(c convey.C, t *transData,
 	})
 }
 
-func (d *serverData) checkServerTransferOK(c convey.C, remoteTransferID,
-	filename string, progress uint64, actual *model.HistoryEntry) {
-
+func (d *serverData) checkServerTransferOK(c convey.C, remoteTransferID, filename string,
+	progress uint64, _ *database.DB, actual *model.HistoryEntry) {
 	c.Convey("Then there should be a server-side history entry", func(c convey.C) {
 		expected := &model.HistoryEntry{
 			ID:               actual.ID,
@@ -67,11 +66,13 @@ func (d *serverData) checkServerTransferOK(c convey.C, remoteTransferID,
 			Progress:         progress,
 			TaskNumber:       0,
 		}
+
 		if d.ServerRule.IsSend {
-			expected.LocalPath = filepath.Join(d.Server.Root, d.Server.LocalOutDir, filename)
+			expected.LocalPath = filepath.Join(d.Server.RootDir, d.Server.SendDir, filename)
 		} else {
-			expected.LocalPath = filepath.Join(d.Server.Root, d.Server.LocalInDir, filename)
+			expected.LocalPath = filepath.Join(d.Server.RootDir, d.Server.ReceiveDir, filename)
 		}
+
 		c.So(*actual, convey.ShouldResemble, *expected)
 	})
 }

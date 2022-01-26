@@ -8,19 +8,15 @@ import (
 	"path/filepath"
 	"time"
 
-	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/tk/service"
-
 	"code.waarp.fr/waarp-r66/r66"
-
-	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/gatewayd"
-
-	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/model/config"
-
-	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/database"
-	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/model"
-	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/tk/utils"
-	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/tk/utils/testhelpers"
 	"github.com/smartystreets/goconvey/convey"
+
+	"code.waarp.fr/apps/gateway/gateway/pkg/database"
+	"code.waarp.fr/apps/gateway/gateway/pkg/model"
+	"code.waarp.fr/apps/gateway/gateway/pkg/model/config"
+	"code.waarp.fr/apps/gateway/gateway/pkg/tk/service"
+	"code.waarp.fr/apps/gateway/gateway/pkg/tk/utils"
+	"code.waarp.fr/apps/gateway/gateway/pkg/tk/utils/testhelpers"
 )
 
 // ServerContext is a struct regrouping all the elements necessary for a server
@@ -29,6 +25,7 @@ type ServerContext struct {
 	*testData
 	*serverData
 	filename string
+	constr   serviceConstructor
 }
 
 type serverData struct {
@@ -37,7 +34,8 @@ type serverData struct {
 	ServerRule *model.Rule
 }
 
-func initServer(c convey.C, proto string, servConf config.ProtoConfig) *ServerContext {
+func initServer(c convey.C, proto string, constr serviceConstructor,
+	servConf config.ProtoConfig) *ServerContext {
 	t := initTestData(c)
 	port := testhelpers.GetFreePort(c)
 	server, locAcc := makeServerConf(c, t.DB, port, t.Paths.GatewayHome, proto, servConf)
@@ -49,6 +47,7 @@ func initServer(c convey.C, proto string, servConf config.ProtoConfig) *ServerCo
 			LocAccount: locAcc,
 		},
 		filename: "test_server.file",
+		constr:   constr,
 	}
 }
 
@@ -58,18 +57,22 @@ func (s *ServerContext) Filename() string { return s.filename }
 // InitServerPush creates a database and fills it with all the elements necessary
 // for a server push transfer test of the given protocol. It then returns all these
 // element inside a ServerContext.
-func InitServerPush(c convey.C, proto string, servConf config.ProtoConfig) *ServerContext {
-	ctx := initServer(c, proto, servConf)
+func InitServerPush(c convey.C, proto string, constr serviceConstructor,
+	servConf config.ProtoConfig) *ServerContext {
+	ctx := initServer(c, proto, constr, servConf)
 	ctx.ServerRule = makeServerPush(c, ctx.DB)
+
 	return ctx
 }
 
 // InitServerPull creates a database and fills it with all the elements necessary
 // for a server pull transfer test of the given protocol. It then returns all these
 // element inside a ServerContext.
-func InitServerPull(c convey.C, proto string, servConf config.ProtoConfig) *ServerContext {
-	ctx := initServer(c, proto, servConf)
+func InitServerPull(c convey.C, proto string, constr serviceConstructor,
+	servConf config.ProtoConfig) *ServerContext {
+	ctx := initServer(c, proto, constr, servConf)
 	ctx.ServerRule = makeServerPull(c, ctx.DB)
+
 	return ctx
 }
 
@@ -81,6 +84,7 @@ func makeServerPush(c convey.C, db *database.DB) *model.Rule {
 	}
 	c.So(db.Insert(rule).Run(), convey.ShouldBeNil)
 	makeRuleTasks(c, db, rule)
+
 	return rule
 }
 
@@ -92,13 +96,14 @@ func makeServerPull(c convey.C, db *database.DB) *model.Rule {
 	}
 	c.So(db.Insert(rule).Run(), convey.ShouldBeNil)
 	makeRuleTasks(c, db, rule)
+
 	return rule
 }
 
 func makeServerConf(c convey.C, db *database.DB, port uint16, home, proto string,
 	servConf config.ProtoConfig) (ag *model.LocalAgent, acc *model.LocalAccount) {
-
 	jsonServConf := json.RawMessage(`{}`)
+
 	if servConf != nil {
 		var err error
 		jsonServConf, err = json.Marshal(servConf)
@@ -111,24 +116,27 @@ func makeServerConf(c convey.C, db *database.DB, port uint16, home, proto string
 	server := &model.LocalAgent{
 		Name:        "server",
 		Protocol:    proto,
-		Root:        utils.ToStandardPath(root),
+		RootDir:     utils.ToOSPath(root),
 		ProtoConfig: jsonServConf,
 		Address:     fmt.Sprintf("127.0.0.1:%d", port),
 	}
+
 	c.So(db.Insert(server).Run(), convey.ShouldBeNil)
-	c.So(os.MkdirAll(filepath.Join(root, server.LocalInDir), 0o700), convey.ShouldBeNil)
-	c.So(os.MkdirAll(filepath.Join(root, server.LocalOutDir), 0o700), convey.ShouldBeNil)
-	c.So(os.MkdirAll(filepath.Join(root, server.LocalTmpDir), 0o700), convey.ShouldBeNil)
+	c.So(os.MkdirAll(filepath.Join(root, server.ReceiveDir), 0o700), convey.ShouldBeNil)
+	c.So(os.MkdirAll(filepath.Join(root, server.SendDir), 0o700), convey.ShouldBeNil)
+	c.So(os.MkdirAll(filepath.Join(root, server.TmpReceiveDir), 0o700), convey.ShouldBeNil)
 
 	pswd := TestPassword
 	if proto == "r66" {
 		pswd = string(r66.CryptPass([]byte(pswd)))
 	}
+
 	locAccount := &model.LocalAccount{
 		LocalAgentID: server.ID,
 		Login:        TestLogin,
 		PasswordHash: hash(pswd),
 	}
+
 	c.So(db.Insert(locAccount).Run(), convey.ShouldBeNil)
 
 	return server, locAccount
@@ -143,13 +151,15 @@ func (s *ServerContext) AddCryptos(c convey.C, certs ...model.Crypto) {
 
 // StartService starts the service associated with the server defined in ServerContext.
 func (s *ServerContext) StartService(c convey.C) service.Service {
-	serv := gatewayd.ServiceConstructors[s.Server.Protocol](s.DB, s.Server, s.Logger)
+	serv := s.constr(s.DB, s.Server, s.Logger)
 	c.So(serv.Start(), convey.ShouldBeNil)
 	c.Reset(func() {
 		ctx, cancel := context.WithTimeout(context.Background(), time.Second)
 		defer cancel()
+
 		c.So(serv.Stop(ctx), convey.ShouldBeNil)
 	})
+
 	return serv
 }
 
@@ -157,8 +167,10 @@ func (s *ServerContext) StartService(c convey.C) service.Service {
 // expected.
 func (s *ServerContext) CheckTransferOK(c convey.C) {
 	var actual model.HistoryEntry
+
 	c.So(s.DB.Get(&actual, "id=?", 1).Run(), convey.ShouldBeNil)
+
 	remoteID := ""
 	progress := uint64(TestFileSize)
-	s.checkServerTransferOK(c, remoteID, s.filename, progress, &actual)
+	s.checkServerTransferOK(c, remoteID, s.filename, progress, s.DB, &actual)
 }

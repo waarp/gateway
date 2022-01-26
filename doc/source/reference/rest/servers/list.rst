@@ -29,21 +29,23 @@ Lister les serveurs
    :resjsonarr string protocol: Le protocole utilisé par le serveur
    :resjsonarr string address: L'adresse du serveur (en format [adresse:port])
    :resjsonarr string root: La racine du serveur. Peut être relatif (à la racine
-      de la *gateway*) ou absolu.
-   :resjson string inDir: Le dossier de réception du serveur. Peut être
+      de la *gateway*) ou absolu (OBSOLÈTE: remplacé par 'rootDir').
+   :resjsonarr string inDir: Le dossier de réception du serveur. Peut être
       relatif (à la racine du serveur) ou absolu. (OBSOLÈTE: remplacé par
-      'serverLocalInDir')
-   :resjson string outDir: Le dossier d'envoi du serveur. Peut être
+      'receiveDir')
+   :resjsonarr string outDir: Le dossier d'envoi du serveur. Peut être
       relatif (à la racine du serveur) ou absolu. (OBSOLÈTE: remplacé par
-      'serverLocalOutDir')
-   :resjson string workDir: Le dossier temporaire du serveur. Peut être
+      'sendDir')
+   :resjsonarr string workDir: Le dossier temporaire du serveur. Peut être
       relatif (à la racine du serveur) ou absolu. (OBSOLÈTE: remplacé par
-      'serverLocalTmpDir')
-   :reqjson string serverLocalInDir: Le dossier de réception du serveur. Peut
+      'tmpReceiveDir')
+   :resjsonarr string rootDir: Chemin du dossier racine du serveur. Peut être
+      relatif (à la racine de la *gateway*) ou absolu.
+   :resjsonarr string receiveDir: Le dossier de réception du serveur. Peut
       être relatif (à la racine du serveur) ou absolu.
-   :reqjson string serverLocalOutDir: Le dossier d'envoi du serveur. Peut être
+   :resjsonarr string sendDir: Le dossier d'envoi du serveur. Peut être
       relatif (à la racine du serveur) ou absolu.
-   :reqjson string serverLocalTmpDir: Le dossier temporaire du serveur. Peut
+   :resjsonarr string tmpReceiveDir: Le dossier temporaire du serveur. Peut
       être relatif (à la racine du serveur) ou absolu.
    :resjsonarr object protoConfig: La configuration du serveur encodé sous forme
       d'un objet JSON. Cet objet dépend du protocole.
@@ -76,7 +78,7 @@ Lister les serveurs
              "name": "sftp_server_2",
              "protocol": "sftp",
              "address": "localhost:2023",
-             "root": "/sftp2/root",
+             "rootDir": "/sftp2/root",
              "protoConfig": {},
              "authorizedRules": {
                "sending": ["règle_envoi_1", "règle_envoi_2"],
@@ -86,7 +88,7 @@ Lister les serveurs
              "name": "sftp_server_1",
              "protocol": "sftp",
              "address": "localhost:2022",
-             "root": "/sftp/root",
+             "rootDir": "/sftp/root",
              "protoConfig": {},
              "authorizedRules": {
                "sending": ["règle_envoi_1", "règle_envoi_2"],

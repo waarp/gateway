@@ -3,41 +3,42 @@ package http
 import (
 	"crypto/tls"
 	"crypto/x509"
-	"encoding/json"
 	"fmt"
 	"net/http"
 
-	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/model/types"
-
-	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/model/config"
-
-	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/model"
-	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/pipeline"
+	"code.waarp.fr/apps/gateway/gateway/pkg/model"
+	"code.waarp.fr/apps/gateway/gateway/pkg/model/types"
+	"code.waarp.fr/apps/gateway/gateway/pkg/pipeline"
 )
 
 var (
 	errPause    = types.NewTransferError(types.TeStopped, "transfer paused by remote host")
 	errShutdown = types.NewTransferError(types.TeShuttingDown, "remote host is shutting down")
-	errCancel   = types.NewTransferError(types.TeCanceled, "transfer cancelled by remote host")
+	errCancel   = types.NewTransferError(types.TeCanceled, "transfer canceled by remote host")
 )
 
+//nolint:gochecknoinits // init is used by design
 func init() {
-	pipeline.ClientConstructors["http"] = NewClient
+	pipeline.ClientConstructors["http"] = newHTTPClient
+	pipeline.ClientConstructors["https"] = newHTTPSClient
 }
 
-// NewClient initializes and returns a new HTTP transfer client.
-func NewClient(pip *pipeline.Pipeline) (pipeline.Client, *types.TransferError) {
-	var conf config.HTTPProtoConfig
-	if err := json.Unmarshal(pip.TransCtx.RemoteAgent.ProtoConfig, &conf); err != nil {
-		pip.Logger.Errorf("failed to parse R66 partner configuration: %s", err)
-		return nil, types.NewTransferError(types.TeInternal, "failed to parse partner configuration")
-	}
-	tlsConf, err := makeTLSConf(pip.TransCtx, &conf)
+func newHTTPClient(pip *pipeline.Pipeline) (pipeline.Client, *types.TransferError) {
+	return newClient(pip, nil)
+}
+
+func newHTTPSClient(pip *pipeline.Pipeline) (pipeline.Client, *types.TransferError) {
+	tlsConf, err := makeTLSConf(pip.TransCtx)
 	if err != nil {
 		pip.Logger.Errorf("failed to make TLS configuration: %s", err)
+
 		return nil, types.NewTransferError(types.TeInternal, "failed to make TLS configuration")
 	}
 
+	return newClient(pip, tlsConf)
+}
+
+func newClient(pip *pipeline.Pipeline, tlsConf *tls.Config) (pipeline.Client, *types.TransferError) {
 	if pip.TransCtx.Rule.IsSend {
 		return &postClient{
 			pip:       pip,
@@ -46,33 +47,34 @@ func NewClient(pip *pipeline.Pipeline) (pipeline.Client, *types.TransferError) {
 			resp:      make(chan *http.Response),
 		}, nil
 	}
+
 	return &getClient{
 		pip:       pip,
 		transport: &http.Transport{TLSClientConfig: tlsConf},
 	}, nil
 }
 
-func makeTLSConf(transCtx *model.TransferContext, conf *config.HTTPProtoConfig) (*tls.Config, error) {
-	if !conf.UseHTTPS {
-		return nil, nil
-	}
-
+func makeTLSConf(transCtx *model.TransferContext) (*tls.Config, error) {
 	rootCAs, err := x509.SystemCertPool()
 	if err != nil {
 		rootCAs = x509.NewCertPool()
 	}
+
 	for _, ca := range transCtx.RemoteAgentCryptos {
 		if !rootCAs.AppendCertsFromPEM([]byte(ca.Certificate)) {
+			//nolint:wrapcheck,goerr113 // this is a base error
 			return nil, fmt.Errorf("failed to add certificate %s to cert pool", ca.Name)
 		}
 	}
 
 	var certs []tls.Certificate
+
 	for _, ce := range transCtx.RemoteAccountCryptos {
 		cert, err := tls.X509KeyPair([]byte(ce.Certificate), []byte(ce.PrivateKey))
 		if err != nil {
-			return nil, fmt.Errorf("failed to parse client certificate %s", ce.Name)
+			return nil, fmt.Errorf("failed to parse client certificate %s: %w", ce.Name, err)
 		}
+
 		certs = append(certs, cert)
 	}
 
@@ -85,8 +87,9 @@ func makeTLSConf(transCtx *model.TransferContext, conf *config.HTTPProtoConfig) 
 	for _, c := range transCtx.RemoteAccountCryptos {
 		cert, err := tls.X509KeyPair([]byte(c.Certificate), []byte(c.PrivateKey))
 		if err != nil {
-			return nil, err
+			return nil, fmt.Errorf("failed to parse TLS certificate: %w", err)
 		}
+
 		tlsConf.Certificates = append(tlsConf.Certificates, cert)
 	}
 

@@ -4,25 +4,27 @@ import (
 	"context"
 	"os"
 
-	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/database"
-	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/model"
-	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/tk/utils"
+	"code.waarp.fr/apps/gateway/gateway/pkg/database"
+	"code.waarp.fr/apps/gateway/gateway/pkg/model"
+	"code.waarp.fr/apps/gateway/gateway/pkg/tk/utils"
 )
 
-// deleteTask is a task which delete the current file from the system
+// deleteTask is a task which delete the current file from the system.
 type deleteTask struct{}
 
+//nolint:gochecknoinits // designed to use init
 func init() {
 	model.ValidTasks["DELETE"] = &deleteTask{}
 }
 
-// Validate the task
+// Validate the task.
 func (*deleteTask) Validate(map[string]string) error {
 	return nil
 }
 
-// Run delete the current file from the system
-func (*deleteTask) Run(_ context.Context, _ map[string]string, _ *database.DB, transCtx *model.TransferContext) (string, error) {
+// Run deletes the current file from the system.
+func (*deleteTask) Run(_ context.Context, _ map[string]string, _ *database.DB,
+	transCtx *model.TransferContext) (string, error) {
 	truePath := utils.ToOSPath(transCtx.Transfer.LocalPath)
 	if err := os.Remove(truePath); err != nil {
 		return "", normalizeFileError("delete file", err)

@@ -1,11 +1,12 @@
 package database
 
+//nolint:gochecknoglobals // global var is used by design
 var (
-	// tables lists the schema of all database tables
+	// Tables lists the schema of all database tables.
 	tables []Table
 
 	// BcryptRounds defines the number of rounds taken by bcrypt to hash passwords
-	// in the database
+	// in the database.
 	BcryptRounds = 12
 )
 
@@ -18,7 +19,7 @@ func AddTable(t Table) {
 // set default values after the table is created when the application is launched
 // for the first time.
 type initialiser interface {
-	Init(*Session) Error
+	Init(Access) Error
 }
 
 // initTables creates the database tables if they don't exist and fills them
@@ -28,21 +29,27 @@ func initTables(db *Standalone) error {
 		for _, tbl := range tables {
 			if ok, err := ses.session.IsTableExist(tbl.TableName()); err != nil {
 				db.logger.Criticalf("Failed to retrieve database table list: %s", err)
+
 				return NewInternalError(err)
 			} else if !ok {
 				if err := ses.session.Table(tbl.TableName()).CreateTable(tbl); err != nil {
 					db.logger.Criticalf("Failed to create the '%s' database table: %s",
 						tbl.TableName(), err)
+
 					return NewInternalError(err)
 				}
+
 				if err := ses.session.Table(tbl.TableName()).CreateUniques(tbl); err != nil {
 					db.logger.Criticalf("Failed to create the '%s' table uniques: %s",
 						tbl.TableName(), err)
+
 					return NewInternalError(err)
 				}
+
 				if err := ses.session.Table(tbl.TableName()).CreateIndexes(tbl); err != nil {
 					db.logger.Criticalf("Failed to create the '%s' table indexes: %s",
 						tbl.TableName(), err)
+
 					return NewInternalError(err)
 				}
 
@@ -53,6 +60,7 @@ func initTables(db *Standalone) error {
 				}
 			}
 		}
+
 		return nil
 	})
 }

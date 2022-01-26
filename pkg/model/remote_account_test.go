@@ -1,12 +1,12 @@
 package model
 
 import (
-	"encoding/json"
 	"testing"
 
-	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/database"
-	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/tk/utils/testhelpers"
 	. "github.com/smartystreets/goconvey/convey"
+
+	"code.waarp.fr/apps/gateway/gateway/pkg/database"
+	"code.waarp.fr/apps/gateway/gateway/pkg/tk/utils/testhelpers"
 )
 
 func TestRemoteAccountTableName(t *testing.T) {
@@ -29,10 +29,9 @@ func TestRemoteAccountBeforeDelete(t *testing.T) {
 
 		Convey("Given a remote account entry", func() {
 			ag := RemoteAgent{
-				Name:        "server",
-				Protocol:    dummyProto,
-				ProtoConfig: json.RawMessage(`{}`),
-				Address:     "localhost:1111",
+				Name:     "server",
+				Protocol: testProtocol,
+				Address:  "localhost:1111",
 			}
 			So(db.Insert(&ag).Run(), ShouldBeNil)
 
@@ -55,7 +54,6 @@ func TestRemoteAccountBeforeDelete(t *testing.T) {
 			So(db.Insert(&access).Run(), ShouldBeNil)
 
 			Convey("Given that the account is unused", func() {
-
 				Convey("When calling the `BeforeDelete` hook", func() {
 					So(db.Transaction(func(ses *database.Session) database.Error {
 						return acc.BeforeDelete(ses)
@@ -109,10 +107,9 @@ func TestRemoteAccountBeforeWrite(t *testing.T) {
 
 		Convey("Given the database contains 1 remote agent with 1 remote account", func() {
 			parentAgent := RemoteAgent{
-				Name:        "parent_agent",
-				Protocol:    dummyProto,
-				ProtoConfig: json.RawMessage(`{}`),
-				Address:     "localhost:2022",
+				Name:     "parent_agent",
+				Protocol: testProtocol,
+				Address:  "localhost:2022",
 			}
 			So(db.Insert(&parentAgent).Run(), ShouldBeNil)
 
@@ -182,10 +179,9 @@ func TestRemoteAccountBeforeWrite(t *testing.T) {
 				Convey("Given that the new account's name is already taken but the"+
 					"parent agent is different", func() {
 					otherAgent := RemoteAgent{
-						Name:        "other",
-						Protocol:    dummyProto,
-						ProtoConfig: json.RawMessage(`{}`),
-						Address:     "localhost:2022",
+						Name:     "other",
+						Protocol: testProtocol,
+						Address:  "localhost:2022",
 					}
 					So(db.Insert(&otherAgent).Run(), ShouldBeNil)
 

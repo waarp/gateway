@@ -16,15 +16,17 @@ func (i *InsertQuery) run(s *Session) Error {
 	if hook, ok := i.bean.(WriteHook); ok {
 		if err := hook.BeforeWrite(s); err != nil {
 			s.logger.Errorf("%s entry INSERT validation failed: %s", i.bean.Appellation(), err)
+
 			return err
 		}
 	}
 
 	query := s.session.Table(i.bean.TableName())
-	_, err := query.InsertOne(i.bean)
-	logSQL(query, s.logger)
-	if err != nil {
+	defer logSQL(query, s.logger)
+
+	if _, err := query.InsertOne(i.bean); err != nil {
 		s.logger.Errorf("Failed to insert the new %s entry: %s", i.bean.Appellation(), err)
+
 		return NewInternalError(err)
 	}
 

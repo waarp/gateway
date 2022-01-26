@@ -7,10 +7,10 @@ import (
 	"net/http"
 	"sync"
 
-	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/http/httpconst"
-	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/model/types"
-	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/pipeline"
-	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/tk/service"
+	"code.waarp.fr/apps/gateway/gateway/pkg/http/httpconst"
+	"code.waarp.fr/apps/gateway/gateway/pkg/model/types"
+	"code.waarp.fr/apps/gateway/gateway/pkg/pipeline"
+	"code.waarp.fr/apps/gateway/gateway/pkg/tk/service"
 )
 
 type downloadHandler struct {
@@ -20,37 +20,55 @@ type downloadHandler struct {
 	reply sync.Once
 }
 
+//nolint:dupl // factorizing would hurt readability
 func (d *downloadHandler) Pause(ctx context.Context) error {
 	d.reply.Do(func() {
 		d.pip.Pause()
-		_ = d.req.Body.Close()
+		_ = d.req.Body.Close() //nolint:errcheck // error is irrelevant at this point
 		d.resp.Header().Set(httpconst.TransferStatus, string(types.StatusPaused))
 		d.resp.WriteHeader(http.StatusServiceUnavailable)
 		fmt.Fprintf(d.resp, "transfer paused by user")
 	})
-	return ctx.Err()
+
+	if err := ctx.Err(); err != nil {
+		return context.Canceled
+	}
+
+	return nil
 }
 
+//nolint:dupl // factorizing would hurt readability
 func (d *downloadHandler) Interrupt(ctx context.Context) error {
 	d.reply.Do(func() {
 		d.pip.Interrupt()
-		_ = d.req.Body.Close()
+		_ = d.req.Body.Close() //nolint:errcheck // error is irrelevant at this point
 		d.resp.Header().Set(httpconst.TransferStatus, string(types.StatusInterrupted))
 		d.resp.WriteHeader(http.StatusServiceUnavailable)
 		fmt.Fprintf(d.resp, "transfer interrupted by a server shutdown")
 	})
-	return ctx.Err()
+
+	if err := ctx.Err(); err != nil {
+		return context.Canceled
+	}
+
+	return nil
 }
 
+//nolint:dupl // factorizing would hurt readability
 func (d *downloadHandler) Cancel(ctx context.Context) error {
 	d.reply.Do(func() {
 		d.pip.Cancel()
-		_ = d.req.Body.Close()
+		_ = d.req.Body.Close() //nolint:errcheck // error is irrelevant at this point
 		d.resp.Header().Set(httpconst.TransferStatus, string(types.StatusCancelled))
 		d.resp.WriteHeader(http.StatusServiceUnavailable)
-		fmt.Fprintf(d.resp, "transfer cancelled by user")
+		fmt.Fprintf(d.resp, "transfer canceled by user")
 	})
-	return ctx.Err()
+
+	if err := ctx.Err(); err != nil {
+		return context.Canceled
+	}
+
+	return nil
 }
 
 func runDownload(r *http.Request, w http.ResponseWriter, running *service.TransferMap,
@@ -60,6 +78,7 @@ func runDownload(r *http.Request, w http.ResponseWriter, running *service.Transf
 		req:  r,
 		resp: w,
 	}
+
 	running.Add(pip.TransCtx.Transfer.ID, down)
 	defer running.Delete(pip.TransCtx.Transfer.ID)
 
@@ -84,6 +103,7 @@ func (d *downloadHandler) handleEarlyError(err *types.TransferError) bool {
 		d.resp.Header().Set(httpconst.ErrorMessage, err.Details)
 		d.resp.WriteHeader(http.StatusInternalServerError)
 	})
+
 	return true
 }
 
@@ -104,6 +124,7 @@ func (d *downloadHandler) handleLateError(err *types.TransferError) bool {
 		d.resp.Header().Set(httpconst.ErrorCode, err.Code.String())
 		d.resp.Header().Set(httpconst.ErrorMessage, err.Details)
 	})
+
 	return true
 }
 
@@ -138,9 +159,13 @@ func (d *downloadHandler) run() {
 	if _, err := io.Copy(d.resp, file); err != nil {
 		cErr := types.NewTransferError(types.TeDataTransfer, "failed to copy data")
 		d.handleLateError(cErr)
+
 		return
 	}
-	_ = d.req.Body.Close()
+
+	if err := d.req.Body.Close(); err != nil {
+		d.pip.Logger.Warningf("Error while closing request body: %v", err)
+	}
 
 	if dErr := d.pip.EndData(); d.handleLateError(dErr) {
 		return

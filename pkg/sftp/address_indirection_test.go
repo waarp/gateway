@@ -3,21 +3,19 @@ package sftp
 import (
 	"testing"
 
-	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/model"
-
-	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/pipeline"
-	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/pipeline/pipelinetest"
-
-	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/conf"
-
 	. "github.com/smartystreets/goconvey/convey"
+
+	"code.waarp.fr/apps/gateway/gateway/pkg/conf"
+	"code.waarp.fr/apps/gateway/gateway/pkg/model"
+	"code.waarp.fr/apps/gateway/gateway/pkg/pipeline"
+	"code.waarp.fr/apps/gateway/gateway/pkg/pipeline/pipelinetest"
 )
 
 func TestAddressIndirection(t *testing.T) {
 	fakeAddr := "not_a_real_address:99999"
 
 	Convey("Given a SFTP service with an indirect address", t, func(c C) {
-		ctx := pipelinetest.InitSelfPushTransfer(c, "sftp", nil, nil)
+		ctx := pipelinetest.InitSelfPushTransfer(c, "sftp", NewService, nil, nil)
 		defer func() { pipeline.TestPipelineEnd = nil }()
 
 		realAddr := ctx.Server.Address
@@ -46,7 +44,6 @@ func TestAddressIndirection(t *testing.T) {
 		ctx.StartService(c)
 
 		Convey("Given a new SFTP transfer", func(c C) {
-
 			Convey("When connecting to the server", func(c C) {
 				pip, err := pipeline.NewClientPipeline(ctx.DB, ctx.ClientTrans)
 				So(err, ShouldBeNil)

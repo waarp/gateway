@@ -1,13 +1,12 @@
 package model
 
 import (
-	"encoding/json"
 	"testing"
 
-	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/tk/utils/testhelpers"
-
-	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/database"
 	. "github.com/smartystreets/goconvey/convey"
+
+	"code.waarp.fr/apps/gateway/gateway/pkg/database"
+	"code.waarp.fr/apps/gateway/gateway/pkg/tk/utils/testhelpers"
 )
 
 func TestCryptoTableName(t *testing.T) {
@@ -30,11 +29,10 @@ func TestCryptoBeforeWrite(t *testing.T) {
 
 		Convey("Given the database contains 1 local agent", func() {
 			parentAgent := &LocalAgent{
-				Owner:       "test_gateway",
-				Name:        "parent",
-				Protocol:    dummyProto,
-				ProtoConfig: json.RawMessage(`{}`),
-				Address:     "localhost:6666",
+				Owner:    "test_gateway",
+				Name:     "parent",
+				Protocol: testProtocol,
+				Address:  "localhost:6666",
 			}
 			So(db.Insert(parentAgent).Run(), ShouldBeNil)
 
@@ -63,7 +61,6 @@ func TestCryptoBeforeWrite(t *testing.T) {
 
 						Convey("Then it should NOT return an error", func() {
 							So(err, ShouldBeNil)
-
 						})
 					})
 				})
@@ -122,11 +119,10 @@ func TestCryptoBeforeWrite(t *testing.T) {
 				Convey("Given that the new credentials' name is already taken "+
 					"but the owner is different", func() {
 					otherAgent := &LocalAgent{
-						Owner:       "test_gateway",
-						Name:        "other",
-						Protocol:    dummyProto,
-						ProtoConfig: json.RawMessage(`{}`),
-						Address:     "localhost:6666",
+						Owner:    "test_gateway",
+						Name:     "other",
+						Protocol: testProtocol,
+						Address:  "localhost:6666",
 					}
 					So(db.Insert(otherAgent).Run(), ShouldBeNil)
 

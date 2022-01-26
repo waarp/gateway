@@ -9,6 +9,7 @@ import (
 	"github.com/jessevdk/go-flags"
 )
 
+//nolint:gochecknoglobals // global var is used by design
 var (
 	in          io.Reader = os.Stdin
 	out         io.Writer = os.Stdout
@@ -34,6 +35,7 @@ type options struct {
 
 func main() {
 	parser := flags.NewNamedParser("waarp-gateway", flags.Default)
+
 	_, err := parser.AddGroup("Commands", "", &commandLine)
 	if err != nil {
 		fmt.Fprint(os.Stderr, err.Error())

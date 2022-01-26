@@ -7,10 +7,10 @@ import (
 	"testing"
 
 	"github.com/gorilla/mux"
-
-	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/conf"
-	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/log"
 	. "github.com/smartystreets/goconvey/convey"
+
+	"code.waarp.fr/apps/gateway/gateway/pkg/conf"
+	"code.waarp.fr/apps/gateway/gateway/pkg/log"
 )
 
 func TestGetAddressOverride(t *testing.T) {
@@ -80,7 +80,7 @@ func TestListAddressOverride(t *testing.T) {
 			So(conf.AddIndirection("[::1]", "192.168.1.1"), ShouldBeNil)
 
 			Convey("When sending the request to the handler", func() {
-				r, err := http.NewRequest(http.MethodGet, "", nil)
+				r, err := http.NewRequest(http.MethodGet, "", nil) //nolint:noctx //this is a test
 				So(err, ShouldBeNil)
 				handler.ServeHTTP(w, r)
 

@@ -2,7 +2,6 @@ package sftp
 
 import (
 	"context"
-	"encoding/json"
 	"fmt"
 	"net"
 	"path"
@@ -10,15 +9,15 @@ import (
 	"testing"
 	"time"
 
-	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/conf"
-	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/database"
-	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/gatewayd"
-	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/log"
-	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/model"
-	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/model/types"
-	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/pipeline/pipelinetest"
 	. "github.com/smartystreets/goconvey/convey"
 	"golang.org/x/crypto/ssh"
+
+	"code.waarp.fr/apps/gateway/gateway/pkg/conf"
+	"code.waarp.fr/apps/gateway/gateway/pkg/database"
+	"code.waarp.fr/apps/gateway/gateway/pkg/log"
+	"code.waarp.fr/apps/gateway/gateway/pkg/model"
+	"code.waarp.fr/apps/gateway/gateway/pkg/model/types"
+	"code.waarp.fr/apps/gateway/gateway/pkg/pipeline/pipelinetest"
 )
 
 func getTestPort() string {
@@ -37,10 +36,9 @@ func TestServerStop(t *testing.T) {
 		port := getTestPort()
 
 		agent := &model.LocalAgent{
-			Name:        "test_sftp_server",
-			Protocol:    "sftp",
-			ProtoConfig: json.RawMessage(`{}`),
-			Address:     "localhost:" + port,
+			Name:     "test_sftp_server",
+			Protocol: "sftp",
+			Address:  "localhost:" + port,
 		}
 		So(db.Insert(agent).Run(), ShouldBeNil)
 
@@ -80,11 +78,10 @@ func TestServerStart(t *testing.T) {
 		So(err, ShouldBeNil)
 
 		agent := &model.LocalAgent{
-			Name:        "test_sftp_server",
-			Protocol:    "sftp",
-			Root:        root,
-			ProtoConfig: json.RawMessage(`{}`),
-			Address:     "localhost:" + port,
+			Name:     "test_sftp_server",
+			Protocol: "sftp",
+			RootDir:  root,
+			Address:  "localhost:" + port,
 		}
 		So(db.Insert(agent).Run(), ShouldBeNil)
 
@@ -96,6 +93,7 @@ func TestServerStart(t *testing.T) {
 		}
 		So(db.Insert(hostKey).Run(), ShouldBeNil)
 
+		//nolint:forcetypeassert //no need to check assertion, guaranteed to succeed here
 		sftpServer := NewService(db, agent, log.NewLogger("test_sftp_server")).(*Service)
 
 		Convey("Given that the configuration is valid", func() {
@@ -142,7 +140,8 @@ func TestServerStart(t *testing.T) {
 				err := sftpServer.Start()
 
 				Convey("Then it should return an error", func() {
-					So(err, ShouldBeError, fmt.Errorf("'%s' SFTP server is "+
+					So(err, ShouldBeError)
+					So(err.Error(), ShouldContainSubstring, fmt.Sprintf("'%s' SFTP server is "+
 						"missing a hostkey", agent.Name))
 				})
 			})
@@ -151,12 +150,11 @@ func TestServerStart(t *testing.T) {
 }
 
 func TestSSHServerInterruption(t *testing.T) {
-
 	Convey("Given an SFTP server ready for push transfers", t, func(c C) {
-		test := pipelinetest.InitServerPush(c, "sftp", nil)
+		test := pipelinetest.InitServerPush(c, "sftp", NewService, nil)
 		test.AddCryptos(c, makeServerKey(test.Server))
 
-		serv := gatewayd.ServiceConstructors[test.Server.Protocol](test.DB, test.Server, test.Logger)
+		serv := NewService(test.DB, test.Server, test.Logger)
 		c.So(serv.Start(), ShouldBeNil)
 
 		Convey("Given a dummy SFTP client", func() {
@@ -194,8 +192,8 @@ func TestSSHServerInterruption(t *testing.T) {
 							IsServer:  true,
 							AccountID: test.LocAccount.ID,
 							AgentID:   test.Server.ID,
-							LocalPath: filepath.Join(test.Server.Root,
-								test.Server.LocalTmpDir, "test_in_shutdown.dst.part"),
+							LocalPath: filepath.Join(test.Server.RootDir,
+								test.Server.TmpReceiveDir, "test_in_shutdown.dst.part"),
 							RemotePath: "/test_in_shutdown.dst",
 							Filesize:   model.UnknownSize,
 							RuleID:     test.ServerRule.ID,
@@ -208,67 +206,6 @@ func TestSSHServerInterruption(t *testing.T) {
 
 						ok := serv.(*Service).listener.runningTransfers.Exists(trans.ID)
 						So(ok, ShouldBeFalse)
-					})
-				})
-			})
-		})
-	})
-
-	Convey("Given an SFTP server ready for pull transfers", t, func(c C) {
-		test := pipelinetest.InitServerPull(c, "sftp", nil)
-		test.AddCryptos(c, makeServerKey(test.Server))
-
-		serv := gatewayd.ServiceConstructors[test.Server.Protocol](test.DB, test.Server, test.Logger)
-		c.So(serv.Start(), ShouldBeNil)
-
-		Convey("Given a dummy SFTP client", func() {
-			cli := makeDummyClient(test.Server.Address, pipelinetest.TestLogin, pipelinetest.TestPassword)
-
-			Convey("Given that a pull transfer started", func() {
-				pipelinetest.AddSourceFile(c, filepath.Join(test.Server.Root,
-					test.Server.LocalOutDir), "test_out_shutdown.src")
-				dst, err := cli.Open(path.Join(test.ServerRule.Path, "test_out_shutdown.src"))
-				So(err, ShouldBeNil)
-				test.ServerShouldHavePreTasked(c)
-
-				_, err = dst.Read(make([]byte, 3))
-				So(err, ShouldBeNil)
-
-				Convey("When the server shuts down", func(c C) {
-					res := make(chan error, 1)
-					go func() {
-						time.Sleep(100 * time.Millisecond)
-						_, err = dst.Read(make([]byte, 3))
-						res <- err
-					}()
-					ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
-					defer cancel()
-					So(serv.Stop(ctx), ShouldBeNil)
-					So(<-res, ShouldBeError, `sftp: "TransferError(TeShuttingDown):`+
-						` service is shutting down" (SSH_FX_FAILURE)`)
-
-					Convey("Then the transfer should have been interrupted", func() {
-						var transfers model.Transfers
-						So(test.DB.Select(&transfers).Run(), ShouldBeNil)
-						So(transfers, ShouldNotBeEmpty)
-
-						trans := model.Transfer{
-							ID:        transfers[0].ID,
-							Start:     transfers[0].Start,
-							IsServer:  true,
-							AccountID: test.LocAccount.ID,
-							AgentID:   test.Server.ID,
-							LocalPath: filepath.Join(test.Server.Root,
-								test.Server.LocalOutDir, "test_out_shutdown.src"),
-							RemotePath: "/test_out_shutdown.src",
-							Filesize:   pipelinetest.TestFileSize,
-							RuleID:     test.ServerRule.ID,
-							Status:     types.StatusInterrupted,
-							Step:       types.StepData,
-							Owner:      conf.GlobalConfig.GatewayName,
-							Progress:   3,
-						}
-						So(transfers[0], ShouldResemble, trans)
 					})
 				})
 			})

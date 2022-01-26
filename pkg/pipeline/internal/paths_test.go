@@ -1,32 +1,37 @@
 package internal
 
 import (
-	"encoding/json"
 	"fmt"
-	. "path/filepath"
+	"path/filepath"
 	"testing"
 
-	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/conf"
-
-	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/model/config"
-
+	. "github.com/smartystreets/goconvey/convey"
 	"golang.org/x/crypto/bcrypt"
 
-	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/database"
-	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/log"
-	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/model"
-	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/tk/utils/testhelpers"
-	. "github.com/smartystreets/goconvey/convey"
+	"code.waarp.fr/apps/gateway/gateway/pkg/conf"
+	"code.waarp.fr/apps/gateway/gateway/pkg/database"
+	"code.waarp.fr/apps/gateway/gateway/pkg/log"
+	"code.waarp.fr/apps/gateway/gateway/pkg/model"
+	"code.waarp.fr/apps/gateway/gateway/pkg/model/config"
+	"code.waarp.fr/apps/gateway/gateway/pkg/tk/utils/testhelpers"
 )
 
+const testProtocol = "test_proto"
+
+//nolint:gochecknoinits // init is used to ease the tests
 func init() {
 	_ = log.InitBackend("DEBUG", "stdout", "")
+
+	config.ProtoConfigs[testProtocol] = func() config.ProtoConfig {
+		return new(testhelpers.TestProtoConfig)
+	}
 }
 
-func hash(pwd string) []byte {
+func hash(pwd string) string {
 	h, err := bcrypt.GenerateFromPassword([]byte(pwd), bcrypt.MinCost)
 	So(err, ShouldBeNil)
-	return h
+
+	return string(h)
 }
 
 func TestPathBuilder(t *testing.T) {
@@ -40,14 +45,13 @@ func TestPathBuilder(t *testing.T) {
 		conf.GlobalConfig.Paths.DefaultTmpDir = "gwTmp"
 
 		server := &model.LocalAgent{
-			Name:        "server",
-			Protocol:    config.TestProtocol,
-			Root:        "serRoot",
-			LocalInDir:  "serIn",
-			LocalOutDir: "serOut",
-			LocalTmpDir: "serTmp",
-			ProtoConfig: json.RawMessage(`{}`),
-			Address:     "localhost:0",
+			Name:          "server",
+			Protocol:      testProtocol,
+			RootDir:       "serRoot",
+			ReceiveDir:    "serIn",
+			SendDir:       "serOut",
+			TmpReceiveDir: "serTmp",
+			Address:       "localhost:0",
 		}
 		So(db.Insert(server).Run(), ShouldBeNil)
 
@@ -59,22 +63,22 @@ func TestPathBuilder(t *testing.T) {
 		So(db.Insert(acc).Run(), ShouldBeNil)
 
 		send := &model.Rule{
-			Name:        "SEND",
-			IsSend:      true,
-			Path:        "/path",
-			LocalDir:    "sendLoc",
-			RemoteDir:   "sendRem",
-			LocalTmpDir: "sendTmp",
+			Name:           "SEND",
+			IsSend:         true,
+			Path:           "/path",
+			LocalDir:       "sendLoc",
+			RemoteDir:      "sendRem",
+			TmpLocalRcvDir: "sendTmp",
 		}
 		So(db.Insert(send).Run(), ShouldBeNil)
 
 		recv := &model.Rule{
-			Name:        "RECEIVE",
-			IsSend:      false,
-			Path:        "/path",
-			LocalDir:    "recvLoc",
-			RemoteDir:   "recvRem",
-			LocalTmpDir: "recvTmp",
+			Name:           "RECEIVE",
+			IsSend:         false,
+			Path:           "/path",
+			LocalDir:       "recvLoc",
+			RemoteDir:      "recvRem",
+			TmpLocalRcvDir: "recvTmp",
 		}
 		So(db.Insert(recv).Run(), ShouldBeNil)
 
@@ -98,14 +102,14 @@ func TestPathBuilder(t *testing.T) {
 			}
 			gwRoot := conf.GlobalConfig.Paths.GatewayHome
 			testCases := []testCase{
-				{"", "", "", Join(gwRoot, "gwTmp", file)},
-				{"serRoot", "", "", Join(gwRoot, "serRoot", "serTmp", file)},
-				{"", "recvLoc", "", Join(gwRoot, "recvLoc", file)},
-				{"", "", "recvTmp", Join(gwRoot, "recvTmp", file)},
-				{"serRoot", "recvLoc", "", Join(gwRoot, "serRoot", "recvLoc", file)},
-				{"serRoot", "", "recvTmp", Join(gwRoot, "serRoot", "recvTmp", file)},
-				{"", "recvLoc", "recvTmp", Join(gwRoot, "recvTmp", file)},
-				{"serRoot", "recvLoc", "recvTmp", Join(gwRoot, "serRoot", "recvTmp", file)},
+				{"", "", "", filepath.Join(gwRoot, "gwTmp", file)},
+				{"serRoot", "", "", filepath.Join(gwRoot, "serRoot", "serTmp", file)},
+				{"", "recvLoc", "", filepath.Join(gwRoot, "recvLoc", file)},
+				{"", "", "recvTmp", filepath.Join(gwRoot, "recvTmp", file)},
+				{"serRoot", "recvLoc", "", filepath.Join(gwRoot, "serRoot", "recvLoc", file)},
+				{"serRoot", "", "recvTmp", filepath.Join(gwRoot, "serRoot", "recvTmp", file)},
+				{"", "recvLoc", "recvTmp", filepath.Join(gwRoot, "recvTmp", file)},
+				{"serRoot", "recvLoc", "recvTmp", filepath.Join(gwRoot, "serRoot", "recvTmp", file)},
 			}
 
 			for _, tc := range testCases {
@@ -114,19 +118,19 @@ func TestPathBuilder(t *testing.T) {
 					tc.serRoot, tc.ruleLoc, tc.ruleTmp,
 				)
 				Convey(testCaseName, func() {
-					transCtx.LocalAgent.Root = tc.serRoot
+					transCtx.LocalAgent.RootDir = tc.serRoot
 					if tc.serRoot != "" {
-						transCtx.LocalAgent.LocalInDir = "serIn"
-						transCtx.LocalAgent.LocalOutDir = "serOut"
-						transCtx.LocalAgent.LocalTmpDir = "serTmp"
+						transCtx.LocalAgent.ReceiveDir = "serIn"
+						transCtx.LocalAgent.SendDir = "serOut"
+						transCtx.LocalAgent.TmpReceiveDir = "serTmp"
 					} else {
-						transCtx.LocalAgent.LocalInDir = ""
-						transCtx.LocalAgent.LocalOutDir = ""
-						transCtx.LocalAgent.LocalTmpDir = ""
+						transCtx.LocalAgent.ReceiveDir = ""
+						transCtx.LocalAgent.SendDir = ""
+						transCtx.LocalAgent.TmpReceiveDir = ""
 					}
 
 					transCtx.Rule.LocalDir = tc.ruleLoc
-					transCtx.Rule.LocalTmpDir = tc.ruleTmp
+					transCtx.Rule.TmpLocalRcvDir = tc.ruleTmp
 
 					Convey("When building the filepath", func() {
 						MakeFilepaths(transCtx)
@@ -160,10 +164,10 @@ func TestPathBuilder(t *testing.T) {
 			}
 			gwRoot := conf.GlobalConfig.Paths.GatewayHome
 			testCases := []testCase{
-				{"", "", Join(gwRoot, "gwOut", file)},
-				{"serRoot", "", Join(gwRoot, "serRoot", "serOut", file)},
-				{"", "sendLoc", Join(gwRoot, "sendLoc", file)},
-				{"serRoot", "sendLoc", Join(gwRoot, "serRoot", "sendLoc", file)},
+				{"", "", filepath.Join(gwRoot, "gwOut", file)},
+				{"serRoot", "", filepath.Join(gwRoot, "serRoot", "serOut", file)},
+				{"", "sendLoc", filepath.Join(gwRoot, "sendLoc", file)},
+				{"serRoot", "sendLoc", filepath.Join(gwRoot, "serRoot", "sendLoc", file)},
 			}
 
 			for _, tc := range testCases {
@@ -172,15 +176,15 @@ func TestPathBuilder(t *testing.T) {
 					tc.serRoot, tc.ruleLoc,
 				)
 				Convey(testCaseName, func() {
-					transCtx.LocalAgent.Root = tc.serRoot
+					transCtx.LocalAgent.RootDir = tc.serRoot
 					if tc.serRoot != "" {
-						transCtx.LocalAgent.LocalInDir = "serIn"
-						transCtx.LocalAgent.LocalOutDir = "serOut"
-						transCtx.LocalAgent.LocalTmpDir = "serTmp"
+						transCtx.LocalAgent.ReceiveDir = "serIn"
+						transCtx.LocalAgent.SendDir = "serOut"
+						transCtx.LocalAgent.TmpReceiveDir = "serTmp"
 					} else {
-						transCtx.LocalAgent.LocalInDir = ""
-						transCtx.LocalAgent.LocalOutDir = ""
-						transCtx.LocalAgent.LocalTmpDir = ""
+						transCtx.LocalAgent.ReceiveDir = ""
+						transCtx.LocalAgent.SendDir = ""
+						transCtx.LocalAgent.TmpReceiveDir = ""
 					}
 
 					transCtx.Rule.LocalDir = tc.ruleLoc

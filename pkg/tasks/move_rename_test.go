@@ -1,16 +1,18 @@
 package tasks
 
 import (
+	"context"
 	"io/ioutil"
 	"os"
 	"path"
 	"path/filepath"
 	"testing"
 
-	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/model"
-	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/tk/utils"
-	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/tk/utils/testhelpers"
 	. "github.com/smartystreets/goconvey/convey"
+
+	"code.waarp.fr/apps/gateway/gateway/pkg/model"
+	"code.waarp.fr/apps/gateway/gateway/pkg/tk/utils"
+	"code.waarp.fr/apps/gateway/gateway/pkg/tk/utils/testhelpers"
 )
 
 func TestMoveRenameTaskValidate(t *testing.T) {
@@ -41,7 +43,7 @@ func TestMoveRenameTaskValidate(t *testing.T) {
 			})
 
 			Convey("Then error should say `need path argument`", func() {
-				So(err.Error(), ShouldEqual, "cannot create a move_rename task without a `path` argument")
+				So(err.Error(), ShouldContainSubstring, "cannot create a move_rename task without a `path` argument")
 			})
 		})
 	})
@@ -70,9 +72,8 @@ func TestMoveRenameTaskRun(t *testing.T) {
 			args["path"] = path.Join(root, "dest", "move_rename.dst")
 
 			Convey("Given that the file exists", func() {
-
 				Convey("When calling the `Run` method", func() {
-					_, err := task.Run(nil, args, nil, transCtx)
+					_, err := task.Run(context.Background(), args, nil, transCtx)
 
 					Convey("Then it should NOT return an error", func() {
 						So(err, ShouldBeNil)
@@ -84,7 +85,7 @@ func TestMoveRenameTaskRun(t *testing.T) {
 					})
 
 					Convey("Then the transfer local filepath should be modified", func() {
-						So(transCtx.Transfer.LocalPath, ShouldEqual, utils.ToStandardPath(
+						So(transCtx.Transfer.LocalPath, ShouldEqual, utils.ToOSPath(
 							args["path"]))
 					})
 
@@ -98,14 +99,14 @@ func TestMoveRenameTaskRun(t *testing.T) {
 				So(os.Remove(srcPath), ShouldBeNil)
 
 				Convey("When calling the 'Run' method", func() {
-					_, err := task.Run(nil, args, nil, transCtx)
+					_, err := task.Run(context.Background(), args, nil, transCtx)
 
 					Convey("Then it should return an error", func() {
 						So(err, ShouldNotBeNil)
 					})
 
 					Convey("Then error should say `no such file`", func() {
-						So(err, ShouldBeError, &errFileNotFound{"open source file", srcPath})
+						So(err, ShouldBeError, &fileNotFoundError{"open source file", srcPath})
 					})
 				})
 			})

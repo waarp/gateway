@@ -3,6 +3,7 @@ package main
 import (
 	"fmt"
 	"os"
+	"path/filepath"
 	"time"
 )
 
@@ -12,11 +13,12 @@ type logger struct {
 }
 
 func newLogger(path string) (*logger, error) {
-	f, err := os.OpenFile(path, os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0o600)
+	f, err := os.OpenFile(filepath.Clean(path), os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0o600)
 	if err != nil {
 		return nil, fmt.Errorf("cannot open logfile: %w", err)
 	}
-	defer func() { _ = f.Close() }()
+
+	_ = f.Close() //nolint:errcheck // error is irrelevant
 
 	l := &logger{
 		path: path,
@@ -32,9 +34,10 @@ func (l logger) Print(msg string) {
 		return
 	}
 
-	defer func() { _ = f.Close() }()
+	defer func() { _ = f.Close() }() //nolint:errcheck,gosec // error is irrelevant
 
 	fmt.Fprintf(f, "%s [%d] %s\n", time.Now().Format(time.RFC3339Nano), l.pid, msg)
+	//nolint:forbidigo // A logger should be able to print
 	fmt.Printf("%s [%d] %s\n", time.Now().Format(time.RFC3339Nano), l.pid, msg)
 }
 

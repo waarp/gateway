@@ -4,10 +4,12 @@ import (
 	"fmt"
 )
 
+//nolint:gochecknoinits // init is used by design
 func init() {
 	ProtoConfigs["sftp"] = func() ProtoConfig { return new(SftpProtoConfig) }
 }
 
+//nolint:gochecknoglobals // global var is used by design
 var (
 	validKeyExchange = map[string]interface{}{
 		"diffie-hellman-group1-sha1":   nil,
@@ -42,19 +44,22 @@ type SftpProtoConfig struct {
 func (c SftpProtoConfig) valid() error {
 	for _, k := range c.KeyExchanges {
 		if _, ok := validKeyExchange[k]; !ok {
-			return fmt.Errorf("unknown key exchange algorithm '%s'", k)
+			return fmt.Errorf("unknown key exchange algorithm '%s': %w", k, errInvalidProtoConfig)
 		}
 	}
+
 	for _, c := range c.Ciphers {
 		if _, ok := validCipher[c]; !ok {
-			return fmt.Errorf("unknown cipher algorithm '%s'", c)
+			return fmt.Errorf("unknown cipher algorithm '%s': %w", c, errInvalidProtoConfig)
 		}
 	}
+
 	for _, m := range c.MACs {
 		if _, ok := validMACs[m]; !ok {
-			return fmt.Errorf("unknown MAC algorithm '%s'", m)
+			return fmt.Errorf("unknown MAC algorithm '%s': %w", m, errInvalidProtoConfig)
 		}
 	}
+
 	return nil
 }
 

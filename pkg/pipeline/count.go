@@ -5,7 +5,7 @@ import (
 	"math/bits"
 	"sync"
 
-	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/model/types"
+	"code.waarp.fr/apps/gateway/gateway/pkg/model/types"
 )
 
 // errLimitReached is the error returned when a counter cannot be incremented
@@ -15,10 +15,12 @@ var errLimitReached = types.NewTransferError(types.TeExceededLimit, "transfer li
 var (
 	// TransferInCount counts the current and maximum number of concurrent incoming
 	// transfers. A limit of 0 means no limit.
+	//nolint:gochecknoglobals // FIXME: could be refactored
 	TransferInCount = &count{}
 
 	// TransferOutCount counts the current and maximum number of concurrent outgoing
 	// transfers. A limit of 0 means no limit.
+	//nolint:gochecknoglobals // FIXME: could be refactored
 	TransferOutCount = &count{}
 )
 
@@ -49,7 +51,9 @@ func (c *count) Add() (added bool) {
 	if newCount > c.limit {
 		return false
 	}
+
 	c.count = newCount
+
 	return true
 }
 
@@ -67,12 +71,16 @@ func (c *count) GetAvailable() (int, bool) {
 	if c.limit == 0 {
 		return 0, false
 	}
+
 	available := c.limit - c.count
-	if bits.UintSize == 64 {
+
+	if bits.UintSize == 64 { //nolint:gomnd // a constant would be unnecessary
 		return int(available), true
 	}
+
 	if available <= math.MaxInt32 {
 		return int(available), true
 	}
+
 	return math.MaxInt32, true
 }

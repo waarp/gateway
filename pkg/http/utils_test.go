@@ -4,14 +4,13 @@ import (
 	"net/http"
 	"testing"
 
-	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/model"
-
 	. "github.com/smartystreets/goconvey/convey"
+
+	"code.waarp.fr/apps/gateway/gateway/pkg/model"
 )
 
 func TestGetContentRange(t *testing.T) {
 	Convey("Given the Content-Range parsing function", t, func() {
-
 		Convey("Given a Content-Range with both range & size", func() {
 			headers := make(http.Header)
 			headers.Add("Content-Range", "bytes 10-100/100")

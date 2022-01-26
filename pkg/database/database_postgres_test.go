@@ -1,4 +1,5 @@
-// +build test_full test_db_postgresql
+//go:build test_db_postgresql
+// +build test_db_postgresql
 
 package database
 
@@ -7,8 +8,9 @@ import (
 	"path/filepath"
 	"testing"
 
-	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/conf"
 	. "github.com/smartystreets/goconvey/convey"
+
+	"code.waarp.fr/apps/gateway/gateway/pkg/conf"
 )
 
 func TestPostgreSQL(t *testing.T) {

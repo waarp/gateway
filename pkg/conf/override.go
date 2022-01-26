@@ -1,32 +1,32 @@
 package conf
 
 import (
+	"fmt"
 	"io"
 	"os"
 	"path/filepath"
 	"sync"
 
-	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/tk/utils/testhelpers"
-
 	"github.com/smartystreets/goconvey/convey"
 
-	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/tk/config"
+	"code.waarp.fr/apps/gateway/gateway/pkg/tk/config"
+	"code.waarp.fr/apps/gateway/gateway/pkg/tk/utils/testhelpers"
 )
 
 // LocalOverrides is a global instance of configOverride containing the local
 // configuration overrides defined for this particular gateway node.
+//nolint:gochecknoglobals //global var is required here for simplicity
 var LocalOverrides *configOverride
-
-var overrideLock sync.RWMutex
 
 // configOverride is a struct defining a list of settings local to a gateway instance
 // (or node) which can be used to configOverride settings defined at the cluster level.
 type configOverride struct {
+	overrideLock    sync.RWMutex
 	filename        string
 	ListenAddresses *addressOverride `group:"Address Indirection"`
 }
 
-// newOverride returns a new correctly initialised, instance of configOverride.
+// newOverride returns a new correctly initialized, instance of configOverride.
 func newOverride() *configOverride {
 	return &configOverride{
 		ListenAddresses: &addressOverride{},
@@ -43,42 +43,68 @@ func InitTestOverrides(c convey.C) {
 }
 
 func (o *configOverride) writeFile() error {
-	file, err := os.OpenFile(o.filename, os.O_TRUNC|os.O_RDWR|os.O_CREATE, 0600)
+	file, err := os.OpenFile(o.filename, os.O_TRUNC|os.O_RDWR|os.O_CREATE, 0o600)
 	if err != nil {
-		return err
+		return fmt.Errorf("failed to open config override file: %w", err)
 	}
-	defer func() { _ = file.Close() }()
-	o.writeTo(file)
-	return file.Close()
+
+	if err := o.writeTo(file); err != nil {
+		_ = file.Close() //nolint:errcheck //the write error takes precedence
+
+		return fmt.Errorf("failed to write the config override file: %w", err)
+	}
+
+	if err := file.Close(); err != nil {
+		return fmt.Errorf("failed to close the config override file: %w", err)
+	}
+
+	return nil
 }
 
-func (o *configOverride) writeTo(w io.Writer) {
-	parser := config.NewParser(o)
+func (o *configOverride) writeTo(w io.Writer) error {
+	parser, err := config.NewParser(o)
+	if err != nil {
+		return fmt.Errorf("failed to initialize the config parser: %w", err)
+	}
+
 	parser.Write(w)
+
+	return nil
 }
 
 func createOverride(configFile, nodeID string) error {
 	if nodeID == "" {
 		return nil
 	}
-	overrideFile := filepath.Join(filepath.Dir(configFile), nodeID+".ini")
 
+	overrideFile := filepath.Join(filepath.Dir(configFile), nodeID+".ini")
 	o := newOverride()
-	p := config.NewParser(o)
-	return p.WriteFile(overrideFile)
+
+	p, err := config.NewParser(o)
+	if err != nil {
+		return fmt.Errorf("failed to initialize the config parser: %w", err)
+	}
+
+	if err := p.WriteFile(overrideFile); err != nil {
+		return fmt.Errorf("failed to write the config override file: %w", err)
+	}
+
+	return nil
 }
 
 func loadOverride(configPath, nodeID string) (*configOverride, error) {
-	if nodeID == "" {
-		return nil, nil
-	}
 	overrideFile := filepath.Join(filepath.Dir(configPath), nodeID+".ini")
-
 	o := newOverride()
-	p := config.NewParser(o)
-	if err := p.ParseFile(overrideFile); err != nil {
-		return nil, err
+
+	p, err := config.NewParser(o)
+	if err != nil {
+		return nil, fmt.Errorf("failed to initialize the config parser: %w", err)
 	}
+
+	if err := p.ParseFile(overrideFile); err != nil {
+		return nil, fmt.Errorf("failed to parse the config override file: %w", err)
+	}
+
 	return o, nil
 }
 
@@ -86,12 +112,22 @@ func updateOverride(configFile, nodeID string) error {
 	if nodeID == "" {
 		return nil
 	}
-	overrideFile := filepath.Join(filepath.Dir(configFile), nodeID+".ini")
 
+	overrideFile := filepath.Join(filepath.Dir(configFile), nodeID+".ini")
 	o := newOverride()
-	parser := config.NewParser(o)
-	if err := parser.ParseFile(overrideFile); err != nil {
-		return err
+
+	parser, err := config.NewParser(o)
+	if err != nil {
+		return fmt.Errorf("failed to initialize the config parser: %w", err)
 	}
-	return parser.WriteFile(overrideFile)
+
+	if err := parser.ParseFile(overrideFile); err != nil {
+		return fmt.Errorf("failed to parse the config override file: %w", err)
+	}
+
+	if err := parser.WriteFile(overrideFile); err != nil {
+		return fmt.Errorf("failed to write the config override file: %w", err)
+	}
+
+	return nil
 }

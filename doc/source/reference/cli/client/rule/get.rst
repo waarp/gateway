@@ -4,7 +4,7 @@ Afficher une règle
 
 .. program:: waarp-gateway rule get
 
-.. describe:: waarp-gateway <ADDR> rule list <RULE> <DIRECTION>
+.. describe:: waarp-gateway rule list <RULE> <DIRECTION>
 
 Affiche les informations de la règle donnée en paramètre de commande.
 

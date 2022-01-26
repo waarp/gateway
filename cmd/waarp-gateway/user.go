@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"io"
 
-	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/admin/rest/api"
+	"code.waarp.fr/apps/gateway/gateway/pkg/admin/rest/api"
 )
 
 type userCommand struct {
@@ -38,6 +38,7 @@ func (u *userAdd) Execute([]string) error {
 	if err != nil {
 		return err
 	}
+
 	newUser := &api.InUser{
 		Username: &u.Username,
 		Password: &u.Password,
@@ -48,7 +49,9 @@ func (u *userAdd) Execute([]string) error {
 	if err := add(newUser); err != nil {
 		return err
 	}
+
 	fmt.Fprintln(getColorable(), "The user", bold(u.Username), "was successfully added.")
+
 	return nil
 }
 
@@ -67,7 +70,9 @@ func (u *userGet) Execute([]string) error {
 	if err := get(user); err != nil {
 		return err
 	}
+
 	displayUser(getColorable(), user)
+
 	return nil
 }
 
@@ -84,13 +89,16 @@ type userUpdate struct {
 
 func (u *userUpdate) Execute([]string) error {
 	var perms *api.Perms
+
 	if u.Perms != nil {
 		var err error
 		perms, err = parsePerms(*u.Perms)
+
 		if err != nil {
 			return err
 		}
 	}
+
 	user := &api.InUser{
 		Username: u.Username,
 		Password: u.Password,
@@ -101,11 +109,14 @@ func (u *userUpdate) Execute([]string) error {
 	if err := update(user); err != nil {
 		return err
 	}
+
 	username := u.Args.Username
 	if user.Username != nil && *user.Username != "" {
 		username = *user.Username
 	}
+
 	fmt.Fprintln(getColorable(), "The user", bold(username), "was successfully updated.")
+
 	return nil
 }
 
@@ -123,12 +134,15 @@ func (u *userDelete) Execute([]string) error {
 	if err := remove(); err != nil {
 		return err
 	}
+
 	fmt.Fprintln(getColorable(), "The user", bold(u.Args.Username), "was successfully deleted.")
+
 	return nil
 }
 
 // ######################## LIST ##########################
 
+//nolint:lll // tags can be long for flags
 type userList struct {
 	listOptions
 	SortBy string `short:"s" long:"sort" description:"Attribute used to sort the returned entries" choice:"username+" choice:"username-" default:"username+"`
@@ -136,6 +150,7 @@ type userList struct {
 
 func (u *userList) Execute([]string) error {
 	addr.Path = "/api/users"
+
 	listURL(&u.listOptions, u.SortBy)
 
 	body := map[string][]api.OutUser{}
@@ -143,10 +158,12 @@ func (u *userList) Execute([]string) error {
 		return err
 	}
 
+	w := getColorable() //nolint:ifshort // false positive
+
 	users := body["users"]
-	w := getColorable()
 	if len(users) > 0 {
 		fmt.Fprintln(w, bold("Users:"))
+
 		for _, u := range users {
 			user := u
 			displayUser(w, &user)
@@ -154,5 +171,6 @@ func (u *userList) Execute([]string) error {
 	} else {
 		fmt.Fprintln(w, "No users found.")
 	}
+
 	return nil
 }

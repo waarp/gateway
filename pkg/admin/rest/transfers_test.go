@@ -12,14 +12,15 @@ import (
 	"testing"
 	"time"
 
-	. "code.waarp.fr/waarp-gateway/waarp-gateway/pkg/admin/rest/api"
-	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/conf"
-	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/database"
-	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/log"
-	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/model"
-	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/model/types"
 	"github.com/gorilla/mux"
 	. "github.com/smartystreets/goconvey/convey"
+
+	. "code.waarp.fr/apps/gateway/gateway/pkg/admin/rest/api"
+	"code.waarp.fr/apps/gateway/gateway/pkg/conf"
+	"code.waarp.fr/apps/gateway/gateway/pkg/database"
+	"code.waarp.fr/apps/gateway/gateway/pkg/log"
+	"code.waarp.fr/apps/gateway/gateway/pkg/model"
+	"code.waarp.fr/apps/gateway/gateway/pkg/model/types"
 )
 
 const transferURI = "http://localhost:8080/api/transfers"
@@ -34,10 +35,9 @@ func TestAddTransfer(t *testing.T) {
 
 		Convey("Given a database with 1 partner, 1 certificate & 1 account", func() {
 			partner := &model.RemoteAgent{
-				Name:        "remote",
-				Protocol:    testProto1,
-				Address:     "localhost:1",
-				ProtoConfig: json.RawMessage(`{}`),
+				Name:     "remote",
+				Protocol: testProto1,
+				Address:  "localhost:1",
 			}
 			So(db.Insert(partner).Run(), ShouldBeNil)
 
@@ -196,6 +196,7 @@ func TestAddTransfer(t *testing.T) {
 				}`)
 
 				Convey("When calling the handler", func() {
+					//nolint:noctx //this is a test
 					r, err := http.NewRequest(http.MethodPost, "", body)
 					So(err, ShouldBeNil)
 
@@ -225,10 +226,9 @@ func TestGetTransfer(t *testing.T) {
 
 		Convey("Given a database with 1 transfer", func() {
 			partner := &model.RemoteAgent{
-				Name:        "partner",
-				Protocol:    testProto1,
-				Address:     "localhost:1",
-				ProtoConfig: json.RawMessage(`{}`),
+				Name:     "partner",
+				Protocol: testProto1,
+				Address:  "localhost:1",
 			}
 			So(db.Insert(partner).Run(), ShouldBeNil)
 
@@ -314,18 +314,16 @@ func TestListTransfer(t *testing.T) {
 
 		Convey("Given a database with 2 transfer", func() {
 			p1 := &model.RemoteAgent{
-				Name:        "part1",
-				Protocol:    testProto1,
-				Address:     "localhost:1",
-				ProtoConfig: json.RawMessage(`{}`),
+				Name:     "part1",
+				Protocol: testProto1,
+				Address:  "localhost:1",
 			}
 			So(db.Insert(p1).Run(), ShouldBeNil)
 
 			p2 := &model.RemoteAgent{
-				Name:        "part2",
-				Protocol:    testProto2,
-				Address:     "localhost:2",
-				ProtoConfig: json.RawMessage(`{}`),
+				Name:     "part2",
+				Protocol: testProto2,
+				Address:  "localhost:2",
 			}
 			So(db.Insert(p2).Run(), ShouldBeNil)
 
@@ -516,10 +514,9 @@ func TestResumeTransfer(t *testing.T) {
 
 		Convey("Given a database with 1 transfer in error", func() {
 			partner := &model.RemoteAgent{
-				Name:        "test_server",
-				Protocol:    testProto1,
-				Address:     "localhost:1",
-				ProtoConfig: json.RawMessage(`{}`),
+				Name:     "test_server",
+				Protocol: testProto1,
+				Address:  "localhost:1",
 			}
 			So(db.Insert(partner).Run(), ShouldBeNil)
 
@@ -742,7 +739,7 @@ func TestCancelTransfer(t *testing.T) {
 						So(w.Code, ShouldEqual, http.StatusAccepted)
 					})
 
-					Convey("Then the transfer should have been cancelled", func() {
+					Convey("Then the transfer should have been canceled", func() {
 						exp := model.HistoryEntry{
 							ID:               trans.ID,
 							Owner:            conf.GlobalConfig.GatewayName,

@@ -6,7 +6,7 @@ Lister les comptes d'un serveur
 
 .. program:: waarp-gateway account local list
 
-.. describe:: waarp-gateway <ADDR> account local <SERVER> list
+.. describe:: waarp-gateway account local <SERVER> list
 
 Affiche une liste des comptes remplissant les critères donnés ci-dessous.
 

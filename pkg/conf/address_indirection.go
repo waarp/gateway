@@ -28,28 +28,37 @@ func (a *addressOverride) parse() error {
 	a.addressMap = map[string]string{}
 	for _, val := range a.Indirections {
 		slice := strings.Split(val, "->")
-		if len(slice) < 2 {
+		if len(slice) < 2 { //nolint:gomnd //too specific
+			//nolint:goerr113 //this is a base error
 			return fmt.Errorf("malformed address indirection '%s' (missing '->' separator)", val)
-		} else if len(slice) > 2 {
+		} else if len(slice) > 2 { //nolint:gomnd //too specific
+			//nolint:goerr113 //this is a base error
 			return fmt.Errorf("malformed address indirection '%s' (too many '->' separators)", val)
 		}
+
 		target := strings.TrimSpace(slice[0])
 		addr := strings.TrimSpace(slice[1])
+
 		if _, ok := a.addressMap[target]; ok {
+			//nolint:goerr113 //this is a base error
 			return fmt.Errorf("duplicate address indirection target '%s'", target)
 		}
+
 		a.addressMap[target] = addr
 	}
+
 	return nil
 }
 
 func (a *addressOverride) update() {
 	newIndirections := make([]string, len(a.addressMap))
 	i := 0
+
 	for target, redirect := range a.addressMap {
 		newIndirections[i] = fmt.Sprintf("%s -> %s", target, redirect)
 		i++
 	}
+
 	a.Indirections = newIndirections
 }
 
@@ -57,11 +66,12 @@ func (a *addressOverride) update() {
 // address if it exists in the global LocalOverrides instance. Otherwise, it
 // returns an empty string.
 func GetIndirection(target string) string {
-	overrideLock.RLock()
-	defer overrideLock.RUnlock()
 	if LocalOverrides == nil {
 		return ""
 	}
+
+	LocalOverrides.overrideLock.RLock()
+	defer LocalOverrides.overrideLock.RUnlock()
 
 	return LocalOverrides.ListenAddresses.addressMap[target]
 }
@@ -82,52 +92,59 @@ func GetIndirection(target string) string {
 // Finally, if no match is found for the host either, this means that the given
 // address has no known indirection, and so the address is returned as is.
 func GetRealAddress(target string) (string, error) {
-	overrideLock.RLock()
-	defer overrideLock.RUnlock()
 	if LocalOverrides == nil {
 		return target, nil
 	}
 
+	LocalOverrides.overrideLock.RLock()
+	defer LocalOverrides.overrideLock.RUnlock()
+
 	host, port, err := net.SplitHostPort(target)
 	if err != nil {
-		return "", err
+		return "", fmt.Errorf("failed to split the target address: %w", err)
 	}
+
 	if realAddr := LocalOverrides.ListenAddresses.addressMap[target]; realAddr != "" {
 		return realAddr, nil
 	}
+
 	if realHost := LocalOverrides.ListenAddresses.addressMap[host]; realHost != "" {
 		return net.JoinHostPort(realHost, port), nil
 	}
+
 	return target, nil
 }
 
 // GetAllIndirections return a map containing all the address indirections present
 // in the configuration. The returned map is a copy of the real, global map.
 func GetAllIndirections() map[string]string {
-	overrideLock.RLock()
-	defer overrideLock.RUnlock()
 	if LocalOverrides == nil {
 		return nil
 	}
+
+	LocalOverrides.overrideLock.RLock()
+	defer LocalOverrides.overrideLock.RUnlock()
 
 	newMap := map[string]string{}
 	for k, v := range LocalOverrides.ListenAddresses.addressMap {
 		newMap[k] = v
 	}
+
 	return newMap
 }
 
 // AddIndirection adds the given address indirection to the global LocalOverrides
 // instance. The associated file will also be updated. If the indirection already
 // exist, the old value will be overwritten.
-func AddIndirection(target, real string) error {
-	overrideLock.Lock()
-	defer overrideLock.Unlock()
+func AddIndirection(targetAddr, realAddr string) error {
 	if LocalOverrides == nil {
 		return nil
 	}
 
-	LocalOverrides.ListenAddresses.addressMap[target] = real
+	LocalOverrides.overrideLock.Lock()
+	defer LocalOverrides.overrideLock.Unlock()
+
+	LocalOverrides.ListenAddresses.addressMap[targetAddr] = realAddr
 	LocalOverrides.ListenAddresses.update()
 
 	return LocalOverrides.writeFile()
@@ -136,11 +153,12 @@ func AddIndirection(target, real string) error {
 // RemoveIndirection removes the given address indirection from the global
 // LocalOverrides instance, and from its associated file.
 func RemoveIndirection(target string) error {
-	overrideLock.Lock()
-	defer overrideLock.Unlock()
 	if LocalOverrides == nil {
 		return nil
 	}
+
+	LocalOverrides.overrideLock.Lock()
+	defer LocalOverrides.overrideLock.Unlock()
 
 	delete(LocalOverrides.ListenAddresses.addressMap, target)
 	LocalOverrides.ListenAddresses.update()

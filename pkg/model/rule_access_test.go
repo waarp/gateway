@@ -1,14 +1,12 @@
 package model
 
 import (
-	"encoding/json"
 	"fmt"
 	"testing"
 
-	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/model/config"
-
-	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/database"
 	. "github.com/smartystreets/goconvey/convey"
+
+	"code.waarp.fr/apps/gateway/gateway/pkg/database"
 )
 
 func TestRuleAccessTableName(t *testing.T) {
@@ -38,10 +36,9 @@ func TestIsRuleAuthorized(t *testing.T) {
 			So(db.Insert(&r).Run(), ShouldBeNil)
 
 			rAgent := RemoteAgent{
-				Name:        "partner",
-				Protocol:    config.TestProtocol,
-				ProtoConfig: json.RawMessage(`{}`),
-				Address:     "localhost:1111",
+				Name:     "partner",
+				Protocol: testProtocol,
+				Address:  "localhost:1111",
 			}
 			So(db.Insert(&rAgent).Run(), ShouldBeNil)
 
@@ -53,10 +50,9 @@ func TestIsRuleAuthorized(t *testing.T) {
 			So(db.Insert(&rAccount).Run(), ShouldBeNil)
 
 			lAgent := LocalAgent{
-				Name:        "server",
-				Protocol:    config.TestProtocol,
-				ProtoConfig: json.RawMessage(`{}`),
-				Address:     "localhost:2222",
+				Name:     "server",
+				Protocol: testProtocol,
+				Address:  "localhost:2222",
 			}
 			So(db.Insert(&lAgent).Run(), ShouldBeNil)
 
@@ -113,10 +109,9 @@ func TestRuleAccessBeforeWrite(t *testing.T) {
 			So(db.Insert(r).Run(), ShouldBeNil)
 
 			rAgent := RemoteAgent{
-				Name:        "partner",
-				Protocol:    config.TestProtocol,
-				ProtoConfig: json.RawMessage(`{}`),
-				Address:     "localhost:1111",
+				Name:     "partner",
+				Protocol: testProtocol,
+				Address:  "localhost:1111",
 			}
 			So(db.Insert(&rAgent).Run(), ShouldBeNil)
 
@@ -128,10 +123,9 @@ func TestRuleAccessBeforeWrite(t *testing.T) {
 			So(db.Insert(&rAccount).Run(), ShouldBeNil)
 
 			lAgent := LocalAgent{
-				Name:        "server",
-				Protocol:    config.TestProtocol,
-				ProtoConfig: json.RawMessage(`{}`),
-				Address:     "localhost:2222",
+				Name:     "server",
+				Protocol: testProtocol,
+				Address:  "localhost:2222",
 			}
 			So(db.Insert(&lAgent).Run(), ShouldBeNil)
 
@@ -174,8 +168,10 @@ func TestRuleAccessBeforeWrite(t *testing.T) {
 				})
 			})
 
-			for _, objType := range []string{TableLocAgents, TableLocAccounts,
-				TableRemAgents, TableRemAccounts} {
+			for _, objType := range []string{
+				TableLocAgents, TableLocAccounts,
+				TableRemAgents, TableRemAccounts,
+			} {
 				Convey(fmt.Sprintf("Given a RuleAccess with an invalid %s ID", objType), func() {
 					ra := &RuleAccess{
 						RuleID:     r.ID,

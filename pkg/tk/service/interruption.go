@@ -2,6 +2,7 @@ package service
 
 import (
 	"context"
+	"fmt"
 	"sync"
 )
 
@@ -42,52 +43,74 @@ func NewTransferMap() *TransferMap {
 func (t *TransferMap) Add(id uint64, ti TransferInterrupter) {
 	t.mut.Lock()
 	defer t.mut.Unlock()
+
 	t.m[id] = ti
 }
 
 // Pause pauses the transfer the given transfer ID if it exists in the map. If
-// the ID cannot be found, the returned boolean will be false.
+// the ID cannot be found, the returned boolean will be false. If the
+// transfer could not be paused, an error is returned.
 func (t *TransferMap) Pause(ctx context.Context, id uint64) (bool, error) {
 	t.mut.Lock()
 	defer t.mut.Unlock()
+
 	ti, ok := t.m[id]
 	if !ok {
 		return false, nil
 	}
-	return true, ti.Pause(ctx)
+
+	if err := ti.Pause(ctx); err != nil {
+		return true, fmt.Errorf("failed to pause tranfer: %w", err)
+	}
+
+	return true, nil
 }
 
 // Interrupt interrupts the transfer the given transfer ID if it exists in the
 // map. If the ID cannot be found, the returned boolean will be false. If the
-// transfer cannot be cancelled, an error is returned.
+// transfer could not be interrupted, an error is returned.
 func (t *TransferMap) Interrupt(ctx context.Context, id uint64) (bool, error) {
 	t.mut.Lock()
 	defer t.mut.Unlock()
+
 	ti, ok := t.m[id]
 	if !ok {
 		return false, nil
 	}
-	return true, ti.Interrupt(ctx)
+
+	if err := ti.Interrupt(ctx); err != nil {
+		return true, fmt.Errorf("failed to interrupt tranfer: %w", err)
+	}
+
+	return true, nil
 }
 
 // Cancel cancels the transfer the given transfer ID if it exists in the map.
 // If the ID cannot be found, the returned boolean will be false. If the
-// transfer cannot be cancelled, an error is returned.
+// transfer could not be canceled, an error is returned.
 func (t *TransferMap) Cancel(ctx context.Context, id uint64) (bool, error) {
 	t.mut.Lock()
 	defer t.mut.Unlock()
+
 	ti, ok := t.m[id]
 	if !ok {
 		return false, nil
 	}
-	return true, ti.Cancel(ctx)
+
+	if err := ti.Cancel(ctx); err != nil {
+		return true, fmt.Errorf("failed to cancel tranfer: %w", err)
+	}
+
+	return true, nil
 }
 
 // Exists returns whether the given ID exists in the map.
 func (t *TransferMap) Exists(id uint64) bool {
 	t.mut.Lock()
 	defer t.mut.Unlock()
+
 	_, ok := t.m[id]
+
 	return ok
 }
 
@@ -102,16 +125,29 @@ func (t *TransferMap) Delete(id uint64) {
 func (t *TransferMap) InterruptAll(ctx context.Context) error {
 	t.mut.Lock()
 	defer t.mut.Unlock()
+
 	t.closed = true
 	wg := sync.WaitGroup{}
+
+	var (
+		err     error
+		errOnce sync.Once
+	)
+
 	for id, ti := range t.m {
 		wg.Add(1)
+
 		go func() {
 			defer wg.Done()
-			_ = ti.Interrupt(ctx)
+
+			if iErr := ti.Interrupt(ctx); iErr != nil {
+				errOnce.Do(func() { err = iErr })
+			}
 		}()
 		delete(t.m, id)
 	}
+
 	wg.Wait()
-	return ctx.Err()
+
+	return err
 }
