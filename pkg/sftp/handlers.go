@@ -180,7 +180,7 @@ func (l *sshListener) getClosestRule(acc *model.LocalAccount, rulePath string,
 }
 
 func (l *sshListener) getRulesPaths(acc *model.LocalAccount, dir string) ([]string, error) {
-	dir = strings.TrimPrefix(dir, "/")
+	dir = strings.TrimPrefix(path.Clean(dir), "/")
 
 	var rules model.Rules
 
@@ -210,6 +210,7 @@ func (l *sshListener) getRulesPaths(acc *model.LocalAccount, dir string) ([]stri
 	}
 
 	paths := make([]string, 0, len(rules))
+	dir += "/"
 
 	for i := range rules {
 		p := rules[i].Path
