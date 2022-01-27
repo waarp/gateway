@@ -171,6 +171,5 @@ func MakeRESTHandler(logger *log.Logger, db *database.DB, router *mux.Router,
 	mkHandler.noDB(overrideSettingsAddressesPath, listAddressOverrides, model.PermAdminRead, http.MethodGet)
 	mkHandler.noDB(overrideSettingsAddressesPath, addAddressOverride, model.PermAdminWrite,
 		http.MethodPost, http.MethodPut, http.MethodPatch)
-	mkHandler.noDB(overrideSettingsAddressPath, getAddressOverride, model.PermAdminRead, http.MethodGet)
 	mkHandler.noDB(overrideSettingsAddressPath, deleteAddressOverride, model.PermAdminDelete, http.MethodDelete)
 }

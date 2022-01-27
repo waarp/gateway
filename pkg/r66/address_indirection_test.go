@@ -35,6 +35,7 @@ func TestAddressIndirection(t *testing.T) {
 				So(err, ShouldBeNil)
 
 				So(cli.Request(), ShouldBeNil)
+				defer ctx.TasksChecker.WaitServerDone()
 				defer clientConns.Done(fakeAddr)
 				defer cli.(*client).ses.Close()
 

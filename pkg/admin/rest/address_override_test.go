@@ -13,60 +13,6 @@ import (
 	"code.waarp.fr/apps/gateway/gateway/pkg/log"
 )
 
-func TestGetAddressOverride(t *testing.T) {
-	logger := log.NewLogger("rest_addr_ovrd_get_test")
-
-	Convey("Given the address override get handler", t, func() {
-		handler := getAddressOverride(logger)
-		w := httptest.NewRecorder()
-
-		Convey("Given a configuration with some address indirections", func(c C) {
-			conf.InitTestOverrides(c)
-			So(conf.AddIndirection("localhost", "127.0.0.1"), ShouldBeNil)
-			So(conf.AddIndirection("[::1]", "192.168.1.1"), ShouldBeNil)
-
-			Convey("Given a request with a valid address parameter", func() {
-				r, err := http.NewRequest(http.MethodGet, "", nil)
-				So(err, ShouldBeNil)
-				r = mux.SetURLVars(r, map[string]string{"address": "localhost"})
-
-				Convey("When sending the request to the handler", func() {
-					handler.ServeHTTP(w, r)
-
-					Convey("Then the body should contain the requested indirection "+
-						"in JSON format", func() {
-						So(w.Body.String(), ShouldResemble, `{"localhost":"127.0.0.1"}`+"\n")
-					})
-
-					Convey("Then it should reply 'OK'", func() {
-						So(w.Code, ShouldEqual, http.StatusOK)
-					})
-
-					Convey("Then the 'Content-Type' header should contain "+
-						"'application/json'", func() {
-						contentType := w.Header().Get("Content-Type")
-						So(contentType, ShouldEqual, "application/json")
-					})
-				})
-			})
-
-			Convey("Given a request with an unknown address parameter", func() {
-				r, err := http.NewRequest(http.MethodGet, "", nil)
-				So(err, ShouldBeNil)
-				r = mux.SetURLVars(r, map[string]string{"address": "unknown"})
-
-				Convey("When sending the request to the handler", func() {
-					handler.ServeHTTP(w, r)
-
-					Convey("Then it should reply 'Not Found'", func() {
-						So(w.Code, ShouldEqual, http.StatusNotFound)
-					})
-				})
-			})
-		})
-	})
-}
-
 func TestListAddressOverride(t *testing.T) {
 	logger := log.NewLogger("rest_addr_ovrd_list_test")
 

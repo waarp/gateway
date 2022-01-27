@@ -17,39 +17,6 @@ func addrInfoString(target, redirect string) string {
 	return "● Address " + target + " redirects to " + redirect + "\n"
 }
 
-func TestGetAddressOverride(t *testing.T) {
-	Convey("Testing the address override 'get' command", t, func() {
-		out = testFile()
-		command := &overrideAddressGet{}
-
-		Convey("Given a gateway", func(c C) {
-			db := database.TestDatabase(c, "ERROR")
-			gw := httptest.NewServer(admin.MakeHandler(discard, db, nil, nil))
-			conf.InitTestOverrides(c)
-			So(conf.AddIndirection("localhost", "127.0.0.1"), ShouldBeNil)
-			So(conf.AddIndirection("waarp.fr", "1.2.3.4"), ShouldBeNil)
-
-			var err error
-			addr, err = url.Parse("http://admin:admin_password@" + gw.Listener.Addr().String())
-			So(err, ShouldBeNil)
-
-			Convey("Given valid flags", func() {
-				args := []string{"localhost"}
-
-				Convey("When executing the command", func() {
-					params, err := flags.ParseArgs(command, args)
-					So(err, ShouldBeNil)
-					So(command.Execute(params), ShouldBeNil)
-
-					Convey("Then is should display the indirection", func() {
-						So(getOutput(), ShouldEqual, addrInfoString("localhost", "127.0.0.1"))
-					})
-				})
-			})
-		})
-	})
-}
-
 func TestSetAddressOverride(t *testing.T) {
 	Convey("Testing the address override 'set' command", t, func() {
 		out = testFile()

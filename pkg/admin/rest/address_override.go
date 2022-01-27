@@ -25,19 +25,6 @@ func getAddrOverride(r *http.Request) (*addr, error) {
 	return &addr{target: target, real: realAddress}, nil
 }
 
-func getAddressOverride(logger *log.Logger) http.HandlerFunc {
-	return func(w http.ResponseWriter, r *http.Request) {
-		address, err := getAddrOverride(r)
-		if handleError(w, logger, err) {
-			return
-		}
-
-		responseBody := map[string]string{address.target: address.real}
-
-		handleError(w, logger, writeJSON(w, responseBody))
-	}
-}
-
 func listAddressOverrides(logger *log.Logger) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		indirections := conf.GetAllIndirections()
