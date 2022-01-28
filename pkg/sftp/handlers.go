@@ -66,7 +66,7 @@ func (l *sshListener) listAt(r *sftp.Request, acc *model.LocalAccount) internal.
 				return 0, toSFTPErr(err)
 			}
 			for i := range rulesPaths {
-				infos = append(infos, internal.DirInfo(rulesPaths[i]))
+				infos = append(infos, &internal.DirInfo{Dir: rulesPaths[i]})
 			}
 		}
 
@@ -112,7 +112,7 @@ func (l *sshListener) statAt(r *sftp.Request, acc *model.LocalAccount) internal.
 			} else if n == 0 {
 				return 0, sftp.ErrSSHFxNoSuchFile
 			}
-			infos = internal.DirInfo(path.Base(r.Filepath))
+			infos = &internal.DirInfo{Dir: path.Base(r.Filepath)}
 		}
 
 		copy(fileInfos, []os.FileInfo{infos})

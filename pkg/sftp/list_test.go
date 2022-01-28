@@ -239,7 +239,7 @@ func TestSFTPList(t *testing.T) {
 						Convey("Then it should returns the directory's info", func() {
 							So(info.Name(), ShouldEqual, path.Base(virtDir))
 							So(info.Size(), ShouldEqual, 0)
-							So(info.Mode(), ShouldEqual, 0o700|os.ModeDir)
+							So(info.Mode(), ShouldEqual, 0o777|os.ModeDir)
 						})
 					})
 
