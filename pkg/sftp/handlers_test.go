@@ -81,6 +81,7 @@ func TestFileReader(t *testing.T) {
 					Convey("When calling the handler", func() {
 						f, err := handler.Fileread(request)
 						So(err, ShouldBeNil)
+						//nolint:forcetypeassert //no need, the type assertion will always succeed
 						Reset(func() { _ = f.(io.Closer).Close() })
 
 						Convey("Then a transfer should be present in db", func() {
@@ -181,6 +182,7 @@ func TestFileWriter(t *testing.T) {
 					Convey("When calling the handler", func() {
 						f, err := handler.Filewrite(request)
 						So(err, ShouldBeNil)
+						//nolint:forcetypeassert //no need, the type assertion will always succeed
 						Reset(func() { _ = f.(io.Closer).Close() })
 
 						Convey("Then a transfer should be present in db", func() {

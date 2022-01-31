@@ -99,6 +99,7 @@ func TestGetHistory(t *testing.T) {
 	})
 }
 
+//nolint:maintidx //FIXME factorize the function if possible to improve maintainability
 func TestListHistory(t *testing.T) {
 	logger := log.NewLogger("rest_history_get_test")
 

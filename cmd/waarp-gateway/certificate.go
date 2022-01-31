@@ -156,11 +156,9 @@ func (c *certList) Execute([]string) error {
 		return err
 	}
 
-	certs := body["certificates"]
-
 	w := getColorable() //nolint:ifshort // decrease readability
 
-	if len(certs) > 0 {
+	if certs := body["certificates"]; len(certs) > 0 {
 		fmt.Fprintln(w, bold("Certificates:"))
 
 		for i := range certs {

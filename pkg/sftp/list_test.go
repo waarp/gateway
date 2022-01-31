@@ -23,6 +23,7 @@ import (
 	"code.waarp.fr/apps/gateway/gateway/pkg/tk/utils/testhelpers"
 )
 
+//nolint:maintidx //FIXME factorize the function if possible to improve maintainability
 func TestSFTPList(t *testing.T) {
 	logger := log.NewLogger("test_sftp_list_server")
 

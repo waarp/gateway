@@ -245,6 +245,7 @@ func TestPipelineStartData(t *testing.T) {
 		Convey("When starting the data transfer", func(c C) {
 			stream, err := pip.StartData()
 			So(err, ShouldBeNil)
+			//nolint:forcetypeassert //no need, the type assertion will always succeed
 			Reset(func() { _ = stream.(*fileStream).file.Close() })
 
 			Convey("Then it should return a filestream for the transfer file", func(c C) {

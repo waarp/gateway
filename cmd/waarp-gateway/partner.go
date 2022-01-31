@@ -84,11 +84,9 @@ func (p *partnerList) Execute([]string) error {
 		return err
 	}
 
-	partners := body["partners"]
-
 	w := getColorable() //nolint:ifshort // decrease readability
 
-	if len(partners) > 0 {
+	if partners := body["partners"]; len(partners) > 0 {
 		fmt.Fprintln(w, bold("Partners:"))
 
 		for i := range partners {

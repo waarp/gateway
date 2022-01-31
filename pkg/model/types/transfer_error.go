@@ -168,6 +168,7 @@ func (tec *TransferErrorCode) FromDB(v []byte) error {
 func (tec TransferErrorCode) ToDB() ([]byte, error) {
 	v, err := tec.Value()
 
+	//nolint:forcetypeassert //no need, the type assertion will always succeed
 	return []byte(v.(string)), err
 }
 

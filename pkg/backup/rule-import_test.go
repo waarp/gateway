@@ -11,6 +11,7 @@ import (
 	"code.waarp.fr/apps/gateway/gateway/pkg/model"
 )
 
+//nolint:maintidx //FIXME factorize the function if possible to improve maintainability
 func TestImportRules(t *testing.T) {
 	Convey("Given a database", t, func(c C) {
 		db := database.TestDatabase(c, "ERROR")
