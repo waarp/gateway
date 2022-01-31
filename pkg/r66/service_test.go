@@ -138,6 +138,7 @@ func TestR66ServerInterruption(t *testing.T) {
 						}
 						So(transfers[0], ShouldResemble, trans)
 
+						//nolint:forcetypeassert //no need, the type assertion will always succeed
 						ok := serv.(*Service).runningTransfers.Exists(trans.ID)
 						So(ok, ShouldBeFalse)
 					})

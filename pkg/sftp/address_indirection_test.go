@@ -48,19 +48,18 @@ func TestAddressIndirection(t *testing.T) {
 				pip, err := pipeline.NewClientPipeline(ctx.DB, ctx.ClientTrans)
 				So(err, ShouldBeNil)
 
-				cli, err := NewClient(pip.Pip)
+				cli, err := newClient(pip.Pip)
 				So(err, ShouldBeNil)
 
 				So(cli.Request(), ShouldBeNil)
 				defer func() {
-					_ = cli.(*client).remoteFile.Close()
-					_ = cli.(*client).sftpSession.Close()
-					_ = cli.(*client).sshSession.Close()
+					_ = cli.remoteFile.Close()
+					_ = cli.sftpSession.Close()
+					_ = cli.sshSession.Close()
 				}()
 
 				Convey("Then it should have connected to the server", func() {
-					So(cli.(*client).sshSession.RemoteAddr().String(), ShouldEqual,
-						realAddr)
+					So(cli.sshSession.RemoteAddr().String(), ShouldEqual, realAddr)
 				})
 			})
 		})

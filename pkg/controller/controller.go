@@ -28,7 +28,7 @@ type Controller struct {
 
 	wg     *sync.WaitGroup
 	done   chan struct{}
-	ctx    context.Context
+	ctx    context.Context //nolint:containedctx //FIXME move the context to a function parameter
 	cancel context.CancelFunc
 }
 

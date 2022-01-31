@@ -179,10 +179,9 @@ func (h *historyList) Execute([]string) error {
 		return err
 	}
 
-	history := body["history"]
 	w := getColorable() //nolint:ifshort // decrease readability
 
-	if len(history) > 0 {
+	if history := body["history"]; len(history) > 0 {
 		fmt.Fprintln(w, bold("History:"))
 
 		for i := range history {

@@ -160,8 +160,7 @@ func (u *userList) Execute([]string) error {
 
 	w := getColorable() //nolint:ifshort // false positive
 
-	users := body["users"]
-	if len(users) > 0 {
+	if users := body["users"]; len(users) > 0 {
 		fmt.Fprintln(w, bold("Users:"))
 
 		for _, u := range users {

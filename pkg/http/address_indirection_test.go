@@ -33,16 +33,16 @@ func TestAddressIndirection(t *testing.T) {
 				pip, err := pipeline.NewClientPipeline(ctx.DB, ctx.ClientTrans)
 				So(err, ShouldBeNil)
 
-				cli, err := newClient(pip.Pip, nil)
-				So(err, ShouldBeNil)
+				//nolint:forcetypeassert //no need, the type assertion will always succeed
+				cli := newClient(pip.Pip, nil).(*postClient)
 
 				So(cli.Request(), ShouldBeNil)
 				defer func() {
-					_ = cli.(*postClient).Cancel()
+					_ = cli.Cancel()
 				}()
 
 				Convey("Then it should have connected to the server", func() {
-					So(cli.(*postClient).req.URL.Host, ShouldEqual, realAddr)
+					So(cli.req.URL.Host, ShouldEqual, realAddr)
 				})
 			})
 		})
@@ -66,14 +66,14 @@ func TestAddressIndirection(t *testing.T) {
 				pip, err := pipeline.NewClientPipeline(ctx.DB, ctx.ClientTrans)
 				So(err, ShouldBeNil)
 
-				cli, err := newClient(pip.Pip, nil)
-				So(err, ShouldBeNil)
+				//nolint:forcetypeassert //no need, the type assertion will always succeed
+				cli := newClient(pip.Pip, nil).(*getClient)
 
 				So(cli.Request(), ShouldBeNil)
-				defer cli.(*getClient).SendError(nil)
+				defer cli.SendError(nil)
 
 				Convey("Then it should have connected to the server", func() {
-					So(cli.(*getClient).resp.Request.URL.Host, ShouldEqual, realAddr)
+					So(cli.resp.Request.URL.Host, ShouldEqual, realAddr)
 				})
 			})
 		})

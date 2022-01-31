@@ -126,6 +126,7 @@ func TestServerInterruption(t *testing.T) {
 						So(transfers, ShouldNotBeEmpty)
 						So(transfers[0].Status, ShouldEqual, types.StatusInterrupted)
 
+						//nolint:forcetypeassert //no need, the type assertion will always succeed
 						ok := serv.(*httpService).running.Exists(transfers[0].ID)
 						So(ok, ShouldBeFalse)
 					})

@@ -24,6 +24,7 @@ import (
 	"code.waarp.fr/apps/gateway/gateway/pkg/tk/utils/testhelpers"
 )
 
+//nolint:maintidx //FIXME factorize the function if possible to improve maintainability
 func TestSFTPList(t *testing.T) {
 	logger := log.NewLogger("test_sftp_list_server")
 
@@ -180,6 +181,17 @@ func TestSFTPList(t *testing.T) {
 						})
 					})
 
+					Convey("When sending a List request on & directory", func() {
+						list, err := client.ReadDir("/path1")
+						So(err, ShouldBeNil)
+
+						Convey("Then it should return a list of all the authorized rule paths", func() {
+							So(len(list), ShouldEqual, 2)
+							So(list[0].Name(), ShouldEqual, "send1")
+							So(list[1].Name(), ShouldEqual, "subdir")
+						})
+					})
+
 					Convey("When sending a List with a rule's path", func() {
 						So(os.Mkdir(filepath.Join(root, "out"), 0o700), ShouldBeNil)
 						So(ioutil.WriteFile(filepath.Join(root, "out", "list_file1"),
@@ -230,7 +242,7 @@ func TestSFTPList(t *testing.T) {
 						Convey("Then it should returns the directory's info", func() {
 							So(info.Name(), ShouldEqual, path.Base(virtDir))
 							So(info.Size(), ShouldEqual, 0)
-							So(info.Mode(), ShouldEqual, 0o700|os.ModeDir)
+							So(info.Mode(), ShouldEqual, 0o777|os.ModeDir)
 						})
 					})
 

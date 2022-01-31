@@ -12,7 +12,7 @@ import (
 )
 
 func makeLogConf(verbose []bool) conf.LogConfig {
-	logConf := conf.LogConfig{LogTo: "/dev/null"}
+	logConf := conf.LogConfig{LogTo: "/dev/null", Level: "ERROR"}
 
 	switch len(verbose) {
 	case 0:

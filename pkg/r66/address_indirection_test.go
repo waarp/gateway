@@ -31,13 +31,13 @@ func TestAddressIndirection(t *testing.T) {
 				pip, err := pipeline.NewClientPipeline(ctx.DB, ctx.ClientTrans)
 				So(err, ShouldBeNil)
 
-				cli, err := NewClient(pip.Pip)
+				cli, err := newClient(pip.Pip)
 				So(err, ShouldBeNil)
 
 				So(cli.Request(), ShouldBeNil)
 				defer ctx.TasksChecker.WaitServerDone()
 				defer clientConns.Done(fakeAddr)
-				defer cli.(*client).ses.Close()
+				defer cli.ses.Close()
 
 				Convey("Then it should have connected to the server", func() {
 					So(clientConns.Exists(fakeAddr), ShouldBeTrue)

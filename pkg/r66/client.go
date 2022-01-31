@@ -26,13 +26,17 @@ type client struct {
 	conf      config.R66ProtoConfig
 	tlsConfig *tls.Config
 
-	ctx    context.Context
+	ctx    context.Context //nolint:containedctx //FIXME move the context to a function parameter
 	cancel func()
 	ses    *r66.Session
 }
 
 // NewClient creates and returns a new r66 client using the given transfer context.
 func NewClient(pip *pipeline.Pipeline) (pipeline.Client, *types.TransferError) {
+	return newClient(pip)
+}
+
+func newClient(pip *pipeline.Pipeline) (*client, *types.TransferError) {
 	var protoConfig config.R66ProtoConfig
 	if err := json.Unmarshal(pip.TransCtx.RemoteAgent.ProtoConfig, &protoConfig); err != nil {
 		pip.Logger.Errorf("Failed to parse R66 partner proto config: %s", err)

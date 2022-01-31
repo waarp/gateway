@@ -208,11 +208,9 @@ func (t *transferList) Execute([]string) error {
 		return err
 	}
 
-	transfers := body["transfers"]
-
 	w := getColorable() //nolint:ifshort // decrease readability
 
-	if len(transfers) > 0 {
+	if transfers := body["transfers"]; len(transfers) > 0 {
 		fmt.Fprintln(w, bold("Transfers:"))
 
 		for i := range transfers {

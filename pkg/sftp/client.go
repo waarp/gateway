@@ -37,6 +37,10 @@ type client struct {
 // local file, and signal channel. An error is returned if the client
 // configuration is incorrect.
 func NewClient(pip *pipeline.Pipeline) (pipeline.Client, *types.TransferError) {
+	return newClient(pip)
+}
+
+func newClient(pip *pipeline.Pipeline) (*client, *types.TransferError) {
 	var protoConf config.SftpProtoConfig
 	if err := json.Unmarshal(pip.TransCtx.RemoteAgent.ProtoConfig, &protoConf); err != nil {
 		pip.Logger.Errorf("Failed to parse SFTP partner protocol configuration: %s", err)
