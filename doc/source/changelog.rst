@@ -4,6 +4,21 @@ Historique des versions
 =======================
 
 * :release:`0.5.0 <>`
+* :feature:`270` Lors d'une requête SFTP, la recherche de la règle associée au
+  chemin de la requête se fait désormais récursivement, au lieu de juste prendre
+  le dossier parent. Cela a les conséquences suivantes:
+
+  - il est désormais possible d'ajouter des sous-dossiers à l'intérieur du dossier
+    d'une règle
+  - la commande SFTP `stat` fonctionne désormais correctement sur les dossiers
+  Pour que cela soit possible, les changements suivants ont été nécessaires:
+
+  - les chemins de règles ne sont plus stockés avec un '/' au début
+  - le chemin d'une règle ne peut plus être parent du chemin d'une autre règle
+    (par exemple, une règle `/toto/tata` ne peut exister en même temps qu'une
+    règle `/toto` car cela créerait des conflits)
+* :bug:`-` Les chemins de règle (*path*) ne sont désormais plus stockés avec le
+  '/' de début.
 * :feature:`247` Ajout d'un client et d'un serveur HTTP/S à la *gateway*. Il est
   donc désormais possible d'effectuer des transferts via ces 2 protocoles.
 * :feature:`194` Dépréciation des champs REST ``sourceFilename`` et ``destFilename``

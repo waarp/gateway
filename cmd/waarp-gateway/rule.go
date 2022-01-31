@@ -272,10 +272,9 @@ func (r *ruleList) Execute([]string) error {
 		return err
 	}
 
-	rules := body["rules"]
 	w := getColorable() //nolint:ifshort // decrease readability
 
-	if len(rules) > 0 {
+	if rules := body["rules"]; len(rules) > 0 {
 		fmt.Fprintln(w, bold("Rules:"))
 
 		for i := range rules {

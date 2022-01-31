@@ -332,6 +332,7 @@ func TestGetTransfer(t *testing.T) {
 	})
 }
 
+//nolint:maintidx //FIXME factorize the function if possible to improve maintainability
 func TestListTransfer(t *testing.T) {
 	Convey("Testing the transfer 'list' command", t, func() {
 		out = testFile()

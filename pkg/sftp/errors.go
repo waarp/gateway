@@ -10,8 +10,8 @@ import (
 
 var (
 	errDatabase      = errors.New("database error")
+	errFileSystem    = errors.New("file system error")
 	errInvalidHandle = errors.New("file handle is no longer valid")
-	errRuleForbidden = errors.New("user is not allowed to use the specified rule")
 	errAuthFailed    = errors.New("authentication failed")
 )
 

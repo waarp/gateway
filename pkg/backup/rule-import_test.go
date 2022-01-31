@@ -11,6 +11,7 @@ import (
 	"code.waarp.fr/apps/gateway/gateway/pkg/model"
 )
 
+//nolint:maintidx //FIXME factorize the function if possible to improve maintainability
 func TestImportRules(t *testing.T) {
 	Convey("Given a database", t, func(c C) {
 		db := database.TestDatabase(c, "ERROR")
@@ -85,7 +86,7 @@ func TestImportRules(t *testing.T) {
 				Rule1 := file.Rule{
 					Name:   "foo",
 					IsSend: true,
-					Path:   "/test/path",
+					Path:   "test/path",
 					Accesses: []string{
 						"local::server",
 						"local::server::account1",
@@ -161,7 +162,7 @@ func TestImportRules(t *testing.T) {
 				Rule1 := file.Rule{
 					Name:   insert.Name,
 					IsSend: insert.IsSend,
-					Path:   "/testing",
+					Path:   "testing",
 					Accesses: []string{
 						"local::server",
 						"local::server::account2",
@@ -235,7 +236,7 @@ func TestImportRules(t *testing.T) {
 				Rule1 := file.Rule{
 					Name:   insert.Name,
 					IsSend: insert.IsSend,
-					Path:   "/testing",
+					Path:   "testing",
 					Accesses: []string{
 						"local::server",
 						"local::server::account2",

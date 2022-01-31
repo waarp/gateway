@@ -26,7 +26,7 @@ type client struct {
 	conf      config.R66ProtoConfig
 	tlsConfig *tls.Config
 
-	ctx    context.Context
+	ctx    context.Context //nolint:containedctx //FIXME move the context to a function parameter
 	cancel func()
 	ses    *r66.Session
 }

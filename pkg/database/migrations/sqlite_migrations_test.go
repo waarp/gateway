@@ -42,6 +42,8 @@ func testMigrations(eng *migration.Engine, dbType string) {
 	testVer0_4_2RemoveHistoryRemoteIdUnique(eng, dbType)
 
 	// 0.5.0
+	testVer0_5_0RemoveRulePathSlash(eng, dbType)
+	testVer0_5_0CheckRulePathAncestor(eng, dbType)
 	testVer0_5_0LocalAgentChangePaths(eng)
 	testVer0_5_0LocalAgentsPathsRename(eng)
 	testVer0_5_0LocalAgentDisallowReservedNames(eng)

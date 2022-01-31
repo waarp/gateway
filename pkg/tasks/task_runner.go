@@ -21,7 +21,7 @@ type Runner struct {
 	db       *database.DB
 	logger   *log.Logger
 	transCtx *model.TransferContext
-	ctx      context.Context
+	ctx      context.Context //nolint:containedctx //FIXME move the context to a function parameter
 	Stop     context.CancelFunc
 	lock     sync.WaitGroup
 }

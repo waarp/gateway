@@ -56,13 +56,14 @@ func (r *Rule) GetID() uint64 {
 	return r.ID
 }
 
-func (r *Rule) normalizePaths() database.Error {
-	if r.Path == "" {
-		r.Path = "/" + r.Name
+func (r *Rule) normalizePaths() {
+	r.Path = path.Clean(r.Path)
+	if r.Path == "/" || r.Path == "." {
+		r.Path = r.Name
 	} else {
 		r.Path = utils.ToStandardPath(r.Path)
-		if !path.IsAbs(r.Path) {
-			r.Path = "/" + r.Path
+		if path.IsAbs(r.Path) {
+			r.Path = r.Path[1:]
 		}
 	}
 
@@ -77,8 +78,43 @@ func (r *Rule) normalizePaths() database.Error {
 	if r.TmpLocalRcvDir != "" {
 		r.TmpLocalRcvDir = utils.ToOSPath(r.TmpLocalRcvDir)
 	}
+}
 
-	return nil
+func (r *Rule) checkAncestor(db database.ReadAccess, rulePath string) database.Error {
+	if rulePath == "" || rulePath == "." {
+		return nil
+	}
+
+	var rule Rule
+	if err := db.Get(&rule, "path=?", rulePath).Run(); err != nil {
+		if database.IsNotFound(err) {
+			return r.checkAncestor(db, path.Dir(rulePath))
+		}
+
+		return err
+	}
+
+	return database.NewValidationError("the rule's path cannot be the descendant of "+
+		"another rule's path (the path '%s' is already used by rule '%s')", rulePath, rule.Name)
+}
+
+func (r *Rule) checkPath(db database.ReadAccess) database.Error {
+	if n, err := db.Count(r).Where("id<>? AND path=? AND send=?", r.ID, r.Path,
+		r.IsSend).Run(); err != nil {
+		return err
+	} else if n > 0 {
+		return database.NewValidationError("a rule with path: %s already exist", r.Path)
+	}
+
+	// check descendents
+	if n, err := db.Count(r).Where("path LIKE ?", r.Path+"/%").Run(); err != nil {
+		return err
+	} else if n != 0 {
+		return database.NewValidationError("the rule's path cannot be the ancestor " +
+			"of another rule's path")
+	}
+
+	return r.checkAncestor(db, path.Dir(r.Path))
 }
 
 // BeforeWrite is called before writing the `Rule` entry in the database. It
@@ -86,10 +122,6 @@ func (r *Rule) normalizePaths() database.Error {
 func (r *Rule) BeforeWrite(db database.ReadAccess) database.Error {
 	if r.Name == "" {
 		return database.NewValidationError("the rule's name cannot be empty")
-	}
-
-	if err := r.normalizePaths(); err != nil {
-		return err
 	}
 
 	n, err := db.Count(r).Where("id<>? AND name=? AND send=?", r.ID,
@@ -101,14 +133,9 @@ func (r *Rule) BeforeWrite(db database.ReadAccess) database.Error {
 			r.Direction(), r.Name)
 	}
 
-	n, err = db.Count(r).Where("id<>? AND path=? AND send=?", r.ID, r.Path, r.IsSend).Run()
-	if err != nil {
-		return err
-	} else if n > 0 {
-		return database.NewValidationError("a rule with path: %s already exist", r.Path)
-	}
+	r.normalizePaths()
 
-	return nil
+	return r.checkPath(db)
 }
 
 // Direction returns the direction (send or receive) of the rule as a string.

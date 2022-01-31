@@ -41,7 +41,7 @@ func TestFileReader(t *testing.T) {
 			rule := &model.Rule{
 				Name:     "test_rule",
 				IsSend:   true,
-				Path:     "/test_rule",
+				Path:     "/test/path",
 				LocalDir: "test_rule/out",
 			}
 			So(db.Insert(rule).Run(), ShouldBeNil)
@@ -75,12 +75,13 @@ func TestFileReader(t *testing.T) {
 
 				Convey("Given a request for an existing file in the rule path", func() {
 					request := &sftp.Request{
-						Filepath: "/test_rule/file_read.src",
+						Filepath: "test/path/file_read.src",
 					}
 
 					Convey("When calling the handler", func() {
 						f, err := handler.Fileread(request)
 						So(err, ShouldBeNil)
+						//nolint:forcetypeassert //no need, the type assertion will always succeed
 						Reset(func() { _ = f.(io.Closer).Close() })
 
 						Convey("Then a transfer should be present in db", func() {
@@ -142,7 +143,7 @@ func TestFileWriter(t *testing.T) {
 			rule := &model.Rule{
 				Name:   "test_rule",
 				IsSend: false,
-				Path:   "/test_rule",
+				Path:   "/test/path",
 			}
 			So(db.Insert(rule).Run(), ShouldBeNil)
 
@@ -175,12 +176,13 @@ func TestFileWriter(t *testing.T) {
 
 				Convey("Given a request for an existing file in the rule path", func() {
 					request := &sftp.Request{
-						Filepath: "/test_rule/file.dst",
+						Filepath: "test/path/file.test",
 					}
 
 					Convey("When calling the handler", func() {
 						f, err := handler.Filewrite(request)
 						So(err, ShouldBeNil)
+						//nolint:forcetypeassert //no need, the type assertion will always succeed
 						Reset(func() { _ = f.(io.Closer).Close() })
 
 						Convey("Then a transfer should be present in db", func() {
@@ -190,7 +192,7 @@ func TestFileWriter(t *testing.T) {
 
 							Convey("With a valid file and status", func() {
 								So(trans.LocalPath, ShouldEqual, filepath.Join(
-									root, agent.TmpReceiveDir, "file.dst.part"))
+									root, agent.TmpReceiveDir, "file.test.part"))
 								So(trans.Status, ShouldEqual, types.StatusRunning)
 							})
 						})
@@ -199,7 +201,7 @@ func TestFileWriter(t *testing.T) {
 
 				Convey("Given a request for an non existing rule", func() {
 					request := &sftp.Request{
-						Filepath: "/toto/file.dst",
+						Filepath: "toto/file.test",
 					}
 
 					Convey("When calling the handler", func() {
@@ -213,7 +215,7 @@ func TestFileWriter(t *testing.T) {
 
 				Convey("Given a request for a file at the server root", func() {
 					request := &sftp.Request{
-						Filepath: "file.dst",
+						Filepath: "file.test",
 					}
 
 					Convey("When calling the handler", func() {

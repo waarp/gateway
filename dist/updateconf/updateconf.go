@@ -159,7 +159,7 @@ func moveToConf(arch *zip.Reader, files ...string) error {
 			return err
 		}
 
-		dst, err := os.Create(confDir + f)
+		dst, err := os.Create(filepath.Clean(confDir + f))
 		if err != nil {
 			return fmt.Errorf("cannot open file %q: %w", confDir+f, err)
 		}

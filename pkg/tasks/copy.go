@@ -65,7 +65,7 @@ func doCopy(dest, source string) error {
 	// even in case of error or panic
 	defer func() { _ = srcFile.Close() }()
 
-	destFile, err := os.Create(trueDest)
+	destFile, err := os.Create(filepath.Clean(trueDest))
 	if err != nil {
 		return normalizeFileError("create destination file", err)
 	}

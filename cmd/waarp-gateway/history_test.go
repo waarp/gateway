@@ -203,6 +203,7 @@ func TestGetHistory(t *testing.T) {
 	})
 }
 
+//nolint:maintidx //FIXME factorize the function if possible to improve maintainability
 func TestListHistory(t *testing.T) {
 	Convey("Testing the history 'list' command", t, func() {
 		out = testFile()
