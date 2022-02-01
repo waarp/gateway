@@ -1,7 +1,7 @@
 code.bcarlin.xyz/go/logging v0.1.0 h1:dZawJNyTnfxUzdntZ3IDHJ1yA4Sh9fvHvCvg4//eFY8=
 code.bcarlin.xyz/go/logging v0.1.0/go.mod h1:y6jTyhj91rolUw/u+70uQrmbZWAt86Q9UGMRmUsn1bo=
-code.waarp.fr/lib/r66 v0.0.0-20211118104505-678bf4967d4a h1:L1HnOdsviAoOMiNOhL0l9/GDKdGUtrSfTe37Y8w4BXc=
-code.waarp.fr/lib/r66 v0.0.0-20211118104505-678bf4967d4a/go.mod h1:0LJ1uu6E78OxXF95vaReQRmkHfH4JO3Fmlp2Qz0tRkk=
+code.waarp.fr/lib/r66 v0.0.0-20220201174518-cc432e6e25d7 h1:ejrQb38YFbpie4TsKh1aC/QZzRL1z51eY++ui7NaSa4=
+code.waarp.fr/lib/r66 v0.0.0-20220201174518-cc432e6e25d7/go.mod h1:0LJ1uu6E78OxXF95vaReQRmkHfH4JO3Fmlp2Qz0tRkk=
 gitea.com/xorm/sqlfiddle v0.0.0-20180821085327-62ce714f951a h1:lSA0F4e9A2NcQSqGqTOXqu2aRi/XEQxDCBwM8yJtE6s=
 gitea.com/xorm/sqlfiddle v0.0.0-20180821085327-62ce714f951a/go.mod h1:EXuID2Zs0pAQhH8yz+DNjUbjppKQzKFAn28TMYPB6IU=
 github.com/BurntSushi/toml v0.3.1/go.mod h1:xHWCNGjB5oqiDr8zfno3MHue2Ht5sIBksp03qcyfWMU=
