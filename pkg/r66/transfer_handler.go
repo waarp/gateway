@@ -1,8 +1,8 @@
 package r66
 
 import (
-	"code.waarp.fr/waarp-r66/r66"
-	r66utils "code.waarp.fr/waarp-r66/r66/utils"
+	"code.waarp.fr/lib/r66"
+	r66utils "code.waarp.fr/lib/r66/utils"
 )
 
 type transferHandler struct {

@@ -3,7 +3,7 @@ package rest
 import (
 	"fmt"
 
-	"code.waarp.fr/waarp-r66/r66"
+	"code.waarp.fr/lib/r66"
 
 	"code.waarp.fr/apps/gateway/gateway/pkg/admin/rest/api"
 	"code.waarp.fr/apps/gateway/gateway/pkg/database"

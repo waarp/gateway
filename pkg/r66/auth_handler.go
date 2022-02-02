@@ -3,7 +3,7 @@ package r66
 import (
 	"strings"
 
-	"code.waarp.fr/waarp-r66/r66"
+	"code.waarp.fr/lib/r66"
 	"golang.org/x/crypto/bcrypt"
 
 	"code.waarp.fr/apps/gateway/gateway/pkg/database"

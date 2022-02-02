@@ -5,7 +5,7 @@ import (
 	"path"
 	"time"
 
-	"code.waarp.fr/waarp-r66/r66"
+	"code.waarp.fr/lib/r66"
 
 	"code.waarp.fr/apps/gateway/gateway/pkg/database"
 	"code.waarp.fr/apps/gateway/gateway/pkg/model"
