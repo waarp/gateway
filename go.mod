@@ -2,7 +2,7 @@ module code.waarp.fr/apps/gateway/gateway
 
 require (
 	code.bcarlin.xyz/go/logging v0.1.0
-	code.waarp.fr/lib/r66 v0.0.0-20220201174518-cc432e6e25d7
+	code.waarp.fr/lib/r66 v0.1.1
 	github.com/go-sql-driver/mysql v1.5.0
 	github.com/gorilla/mux v1.7.3
 	github.com/jackc/pgconn v1.8.0
@@ -18,7 +18,6 @@ require (
 	golang.org/x/crypto v0.0.0-20210322153248-0c34fe9e7dc2
 	golang.org/x/mod v0.4.2
 	golang.org/x/term v0.0.0-20201126162022-7de9c90e9dd1
-	golang.org/x/tools v0.1.5 // indirect
 	xorm.io/builder v0.3.8
 	xorm.io/xorm v1.1.2
 )
