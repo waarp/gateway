@@ -2,6 +2,7 @@ package sftp
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"io"
 	"net"
@@ -39,96 +40,82 @@ type sshListener struct {
 }
 
 func (l *sshListener) listen() {
-	l.handlerMaker = l.makeHandlers
-
-	go func() {
-		for {
-			conn, err := l.Listener.Accept()
-			if err != nil {
-				select {
-				case <-l.shutdown:
-					return
-
-				default:
-					l.Logger.Error("Failed to accept connection: %s", err)
-				}
-
-				continue
-			}
-
-			l.handleConnection(conn)
-		}
-	}()
-}
-
-//nolint:funlen // factorizing would add complexity
-func (l *sshListener) handleConnection(nConn net.Conn) {
-	l.connWg.Add(1)
-
-	go func() {
-		defer l.connWg.Done()
-
-		defer func() {
-			if err := nConn.Close(); err != nil {
-				l.Logger.Warning("An error occurred while closing the TCP connection: %v", err)
-			}
-		}()
-
-		servConn, channels, reqs, err := ssh.NewServerConn(nConn, l.SSHConf)
+	for {
+		conn, err := l.Listener.Accept()
 		if err != nil {
-			l.Logger.Error("Failed to perform handshake: %s", err)
-
-			return
-		}
-
-		defer func() {
-			if err := servConn.Close(); err != nil {
-				l.Logger.Warning("An error occurred while closing the SFTP connection: %v", err)
-			}
-		}()
-
-		go ssh.DiscardRequests(reqs)
-
-		var acc model.LocalAccount
-		if err := l.DB.Get(&acc, "local_agent_id=? AND login=?", l.Agent.ID,
-			servConn.User()).Run(); err != nil {
-			l.Logger.Error("Failed to retrieve SFTP user: %s", err)
-
-			return
-		}
-
-		sesWg := &sync.WaitGroup{}
-		defer sesWg.Wait()
-
-		for {
 			select {
 			case <-l.shutdown:
 				return
 
-			case newChannel, ok := <-channels:
-				if !ok {
-					return
-				}
-				select {
-				case <-l.shutdown:
-					if err := newChannel.Reject(ssh.ResourceShortage, "server shutting down"); err != nil {
-						l.Logger.Warning("An error occurred while rejecting an SFTP channel: %v", err)
-					}
-
-				default:
-					sesWg.Add(1)
-
-					go func() {
-						defer sesWg.Done()
-						l.handleSession(&acc, newChannel)
-					}()
-				}
+			default:
+				l.Logger.Error("Failed to accept connection: %s", err)
 			}
+
+			continue
 		}
-	}()
+
+		l.connWg.Add(1)
+
+		go l.handleConnection(conn)
+	}
 }
 
-func (l *sshListener) handleSession(acc *model.LocalAccount, newChannel ssh.NewChannel) {
+//nolint:funlen // factorizing would add complexity
+func (l *sshListener) handleConnection(nConn net.Conn) {
+	defer l.connWg.Done()
+	defer closeTCPConn(nConn, l.Logger)
+
+	servConn, channels, reqs, err := ssh.NewServerConn(nConn, l.SSHConf)
+	if err != nil {
+		l.Logger.Error("Failed to perform handshake: %s", err)
+
+		return
+	}
+
+	defer closeSSHConn(servConn, l.Logger)
+
+	go ssh.DiscardRequests(reqs)
+
+	var acc model.LocalAccount
+	if err := l.DB.Get(&acc, "local_agent_id=? AND login=?", l.Agent.ID,
+		servConn.User()).Run(); err != nil {
+		l.Logger.Error("Failed to retrieve SFTP user: %s", err)
+
+		return
+	}
+
+	sesWg := &sync.WaitGroup{}
+	defer sesWg.Wait()
+
+	for {
+		select {
+		case <-l.shutdown:
+			return
+
+		case newChannel, ok := <-channels:
+			if !ok {
+				return
+			}
+			select {
+			case <-l.shutdown:
+				if err := newChannel.Reject(ssh.ResourceShortage, "server shutting down"); err != nil {
+					l.Logger.Warning("An error occurred while rejecting an SFTP channel: %v", err)
+				}
+
+			default:
+				sesWg.Add(1)
+
+				go l.handleSession(sesWg, &acc, newChannel)
+			}
+		}
+	}
+}
+
+func (l *sshListener) handleSession(sesWg *sync.WaitGroup, acc *model.LocalAccount,
+	newChannel ssh.NewChannel,
+) {
+	defer sesWg.Done()
+
 	if newChannel.ChannelType() != "session" {
 		l.Logger.Warning("Unknown channel type received")
 
@@ -173,7 +160,7 @@ func (l *sshListener) handleSession(acc *model.LocalAccount, newChannel ssh.NewC
 	}
 	server = sftp.NewRequestServer(channel, l.handlerMaker(endSession, acc))
 
-	if err := server.Serve(); err != nil {
+	if err := server.Serve(); err != nil && !errors.Is(err, io.EOF) {
 		l.Logger.Warning("An error occurred while serving SFTP requests: %v", err)
 	}
 
@@ -298,9 +285,11 @@ func (l *sshListener) close(ctx context.Context) error {
 
 	close(l.shutdown)
 
-	if err := l.Listener.Close(); err != nil {
-		l.Logger.Warning("An error occurred while closing the network connection: %v", err)
-	}
+	defer func() {
+		if err := l.Listener.Close(); err != nil {
+			l.Logger.Warning("An error occurred while closing the network connection: %v", err)
+		}
+	}()
 
 	if err := l.runningTransfers.InterruptAll(ctx); err != nil {
 		l.Logger.Error("Could not interrupt running transfers")

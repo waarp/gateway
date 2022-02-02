@@ -3,6 +3,9 @@
 Historique des versions
 =======================
 
+* :bug:`291` Correction d'une erreur causant l'apparition impromptue de messages
+  d'erreur (*warnings*) lorsqu'un client SFTP termine normalement une connexion
+  vers un serveur SFTP de la *gateway*.
 * :feature:`345` Les erreurs pouvant survenir lors de l'interruption ou
   l'annulation d'un transfert sont dorénavant correctement loggées. Par ailleurs,
   il est désormais possible d'annuler un transfert en cours, et ce, même si la

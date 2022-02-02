@@ -81,7 +81,9 @@ func TestSFTPList(t *testing.T) {
 				Listener:         listener,
 				runningTransfers: service.NewTransferMap(),
 			}
-			sshList.listen()
+			sshList.handlerMaker = sshList.makeHandlers
+
+			go sshList.listen()
 			Reset(func() {
 				ctx, cancel := context.WithTimeout(context.Background(), time.Second)
 				defer cancel()

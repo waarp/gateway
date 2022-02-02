@@ -2,7 +2,9 @@ package sftp
 
 import (
 	"bytes"
+	"errors"
 	"fmt"
+	"net"
 
 	"code.waarp.fr/lib/log"
 	"golang.org/x/crypto/bcrypt"
@@ -111,5 +113,17 @@ func acceptRequests(in <-chan *ssh.Request, l *log.Logger) {
 		if err := req.Reply(ok, nil); err != nil {
 			l.Warning("An error occurred while replying to a request: %v", err)
 		}
+	}
+}
+
+func closeTCPConn(nConn net.Conn, logger *log.Logger) {
+	if err := nConn.Close(); err != nil && !errors.Is(err, net.ErrClosed) {
+		logger.Warning("An error occurred while closing the TCP connection: %v", err)
+	}
+}
+
+func closeSSHConn(servConn *ssh.ServerConn, logger *log.Logger) {
+	if err := servConn.Close(); err != nil && !errors.Is(err, net.ErrClosed) {
+		logger.Warning("An error occurred while closing the SFTP connection: %v", err)
 	}
 }
