@@ -241,12 +241,26 @@ func TestGetTransfer(t *testing.T) {
 			push := &model.Rule{Name: "push", IsSend: false, Path: "/push"}
 			So(db.Insert(push).Run(), ShouldBeNil)
 
+			// add a transfer from another gateway
+			owner := database.Owner
+			database.Owner = "foobar"
+			other := &model.Transfer{
+				RuleID:     push.ID,
+				AgentID:    partner.ID,
+				AccountID:  account.ID,
+				LocalPath:  "/local/file1.test",
+				RemotePath: "/remote/file1.test",
+				Start:      time.Date(2021, 1, 1, 1, 0, 0, 0, time.Local),
+			}
+			So(db.Insert(other).Run(), ShouldBeNil)
+			database.Owner = owner
+
 			trans := &model.Transfer{
 				RuleID:     push.ID,
 				AgentID:    partner.ID,
 				AccountID:  account.ID,
-				LocalPath:  "/local/file.test",
-				RemotePath: "/remote/file.test",
+				LocalPath:  "/local/file2.test",
+				RemotePath: "/remote/file2.test",
 				Start:      time.Date(2021, 1, 1, 1, 0, 0, 0, time.Local),
 			}
 			So(db.Insert(trans).Run(), ShouldBeNil)
@@ -393,6 +407,20 @@ func TestListTransfer(t *testing.T) {
 			So(err, ShouldBeNil)
 			trans3, err := FromTransfer(db, t3)
 			So(err, ShouldBeNil)
+
+			// add a transfer from another gateway
+			owner := database.Owner
+			database.Owner = "foobar"
+			other := &model.Transfer{
+				RuleID:     r1.ID,
+				AgentID:    p1.ID,
+				AccountID:  a1.ID,
+				LocalPath:  "/local/file4.test",
+				RemotePath: "/remote/file4.test",
+				Start:      time.Date(2021, 1, 1, 1, 0, 0, 0, time.Local),
+			}
+			So(db.Insert(other).Run(), ShouldBeNil)
+			database.Owner = owner
 
 			Convey("Given a request with no parameters", func() {
 				req, err := http.NewRequest(http.MethodGet, "", nil)

@@ -4,6 +4,14 @@ Historique des versions
 =======================
 
 * :release:`0.5.0 <>`
+* :bug:`294` Correction d'une erreur dans la réponse des requêtes de listage
+  d'utilisateurs sur l'interface REST d'administration (et le client terminal).
+  Lorsque la base de données est partagée entre plusieurs *gateways*, l'interface
+  d'administration renvoyait indistinctement les utilisateur de toutes les
+  *gateways* utilisant cette base de données, au lieu de renvoyer uniquement les
+  utilisateurs de l'instance interrogée. Désormais, l'interface REST ne renvoi que
+  les utilisateurs de la *gateway* interrogée. Un problème similaire a également
+  été corrigé pour les transferts.
 * :feature:`277` Ajout d'une option à la commande `history list` de la CLI
   permettant de trier les entrées de l'historique par date de fin (`stop+` et
   `stop-`). Cette option est également présente sur l'API REST de la *gateway*.

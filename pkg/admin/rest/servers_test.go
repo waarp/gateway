@@ -89,6 +89,19 @@ func TestListServers(t *testing.T) {
 			agent3 := *FromLocalAgent(&a3, &AuthorizedRules{})
 			agent4 := *FromLocalAgent(&a4, &AuthorizedRules{})
 
+			// add a server from another gateway
+			owner := database.Owner
+			database.Owner = "foobar"
+			a5 := model.LocalAgent{
+				Name:        "server5",
+				Protocol:    testProto1,
+				RootDir:     "/root5",
+				ProtoConfig: json.RawMessage(`{}`),
+				Address:     "localhost:5",
+			}
+			So(db.Insert(&a5).Run(), ShouldBeNil)
+			database.Owner = owner
+
 			Convey("Given a request with with no parameters", func() {
 				r, err := http.NewRequest(http.MethodGet, "", nil)
 				So(err, ShouldBeNil)
@@ -161,8 +174,21 @@ func TestGetServer(t *testing.T) {
 		w := httptest.NewRecorder()
 
 		Convey("Given a database with 1 server", func() {
-			existing := model.LocalAgent{
+			// add a server from another gateway
+			owner := database.Owner
+			database.Owner = "foobar"
+			other := model.LocalAgent{
 				Name:        "existing",
+				Protocol:    testProto1,
+				RootDir:     "/root1",
+				ProtoConfig: json.RawMessage(`{}`),
+				Address:     "localhost:10",
+			}
+			So(db.Insert(&other).Run(), ShouldBeNil)
+			database.Owner = owner
+
+			existing := model.LocalAgent{
+				Name:        other.Name,
 				Protocol:    testProto1,
 				RootDir:     "/root",
 				ProtoConfig: json.RawMessage(`{}`),
