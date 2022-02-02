@@ -2,6 +2,8 @@ code.bcarlin.xyz/go/logging v0.4.1-0.20220603090802-1ad2b38afe01 h1:FsXEBLTQvpmc
 code.bcarlin.xyz/go/logging v0.4.1-0.20220603090802-1ad2b38afe01/go.mod h1:eI6Lx+k576W8M5vl9b0QksJtYskQZNUG1ojwIXP6/Cg=
 code.waarp.fr/lib/log v1.1.0 h1:EbXl1/i82LAMGE+48WdJSarGFTdWWoUrpsQA0Yiur64=
 code.waarp.fr/lib/log v1.1.0/go.mod h1:qntTO07EAP1NIGo09Xe4BMuqKBbjb/L2uRTP3V1nYEE=
+code.waarp.fr/lib/log v1.2.0 h1:FvbVnporxqV4xyJhJQt+bKv+zFBvxOb9VfeM1ThIZAI=
+code.waarp.fr/lib/log v1.2.0/go.mod h1:qntTO07EAP1NIGo09Xe4BMuqKBbjb/L2uRTP3V1nYEE=
 code.waarp.fr/lib/migration v1.1.1 h1:X+At4UehS30enW+NzomOAwWp5ginf4L8DYey7Pdjuso=
 code.waarp.fr/lib/migration v1.1.1/go.mod h1:iU8UHZLgY0O2tPVroEZjQEpqVDJz5E8529CdpkdyHJY=
 code.waarp.fr/lib/r66 v0.1.5 h1:8LtNqXhDb2CHFbEfOlbpJVnNTsU7VXGwxcgGgpYuNy4=

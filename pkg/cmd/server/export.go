@@ -53,7 +53,7 @@ func (e *ExportCommand) Run(db *database.DB, logger *log.Logger) error {
 		return fmt.Errorf("error during export: %w", err)
 	}
 
-	logger.Info("Export successful.")
+	fmt.Fprintln(os.Stderr, "Export successful.")
 
 	return nil
 }

@@ -3,7 +3,6 @@ package sftp
 import (
 	"context"
 	"encoding/json"
-	"io/ioutil"
 	"net"
 	"os"
 	"path"
@@ -195,9 +194,9 @@ func TestSFTPList(t *testing.T) {
 
 					Convey("When sending a List with a rule's path", func() {
 						So(os.Mkdir(filepath.Join(root, "out"), 0o700), ShouldBeNil)
-						So(ioutil.WriteFile(filepath.Join(root, "out", "list_file1"),
+						So(os.WriteFile(filepath.Join(root, "out", "list_file1"),
 							[]byte("Hello world"), 0o600), ShouldBeNil)
-						So(ioutil.WriteFile(filepath.Join(root, "out", "list_file2"),
+						So(os.WriteFile(filepath.Join(root, "out", "list_file2"),
 							[]byte("Hello world"), 0o600), ShouldBeNil)
 
 						list, err := client.ReadDir(send1.Path)
@@ -220,7 +219,7 @@ func TestSFTPList(t *testing.T) {
 
 					Convey("When sending a Stat to an existing file", func() {
 						So(os.MkdirAll(filepath.Join(root, "out", "sub"), 0o700), ShouldBeNil)
-						So(ioutil.WriteFile(filepath.Join(root, "out", "sub", "stat_file"),
+						So(os.WriteFile(filepath.Join(root, "out", "sub", "stat_file"),
 							[]byte("Hello world"), 0o600), ShouldBeNil)
 
 						info, err := client.Stat(path.Join(send1.Path, "sub", "stat_file"))
