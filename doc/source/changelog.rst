@@ -8,6 +8,23 @@ Historique des versions
   de traitements de la règle (``pre``, ``post`` ou ``error``) est vide mais non-nulle,
   la chaîne de traitements en question sera vidée. Si la liste est manquante ou
   nulle, la chaîne de traitements restera inchangée.
+* :feature:`270` Lors d'une requête SFTP, la recherche de la règle associée au
+  chemin de la requête se fait désormais récursivement, au lieu de juste prendre
+  le dossier parent. Cela a les conséquences suivantes:
+
+  - il est désormais possible d'ajouter des sous-dossiers à l'intérieur du dossier
+    d'une règle
+  - la commande SFTP `stat` fonctionne désormais correctement sur les dossiers
+  Pour que cela soit possible, les changements suivants ont été nécessaires:
+
+  - les chemins de règles ne sont plus stockés avec un '/' au début
+  - le chemin d'une règle ne peut plus être parent du chemin d'une autre règle
+    (par exemple, une règle `/toto/tata` ne peut exister en même temps qu'une
+    règle `/toto` car cela créerait des conflits)
+* :bug:`-` Les chemins de règle (*path*) ne sont désormais plus stockés avec le
+  '/' de début.
+* :feature:`247` Ajout d'un client et d'un serveur HTTP/S à la *gateway*. Il est
+  donc désormais possible d'effectuer des transferts via ces 2 protocoles.
 * :feature:`194` Dépréciation des champs REST ``sourceFilename`` et ``destFilename``
   de l'objet JSON *history*, remplacés par les champs ``localFilepath`` et
   ``remoteFilepath``.
@@ -147,7 +164,7 @@ Historique des versions
 * :release:`0.3.3 <2021-04-07>`
 * :bug:`251` Corrige le problème de création du fichier distant en SFTP
   lorsque le serveur refuse l'ouverture de fichier en écriture ET en lecture.
-* :bug:`251` Corrige un problème du script d'updateconf qui sort en erreur
+* :bug:`251` Corrige un problème du script d'update-conf qui sort en erreur
   si les fichiers optionnels ne sont pas dans l'archive de déploiement.
 
 * :release:`0.3.2 <2021-04-06>`
@@ -237,6 +254,7 @@ Historique des versions
   resteront désormais dans la table ``transfers`` au lieu d'être déplacés dans
   la table ``transfer_history``. Cette dernière ne contiendra donc que les
   transferts terminés ou annulés. Ce changement a 2 conséquences:
+
   - Il est désormais possible de redémarrer n'importe quel transfert de l'historique
     via la commande ``history retry`` (ou le point d'accès REST ``/api/history/{id}/retry``).
     En revanche, ceux-ci reprendront dorénavant depuis le début avec un nouvel

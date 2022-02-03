@@ -1,5 +1,5 @@
-Lister les comptes locaux
-=========================
+Lister les comptes distants
+===========================
 
 .. http:get:: /api/partners/(string:partner_name)/accounts
 

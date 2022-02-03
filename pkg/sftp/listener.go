@@ -195,11 +195,15 @@ func (l *sshListener) makeFileReader(endSession func(context.Context), acc *mode
 		l.Logger.Debug("GET request received")
 
 		// Get rule according to request filepath
-		filepath := path.Join("/", path.Dir(r.Filepath))
+		rule, err := l.getClosestRule(acc, r.Filepath, true)
+		if err != nil {
+			l.Logger.Error(err.Error())
 
-		rule, rErr := getRule(l.DB, l.Logger, acc, filepath, true)
-		if rErr != nil {
-			return nil, rErr
+			return nil, err
+		}
+
+		if !rule.IsSend {
+			return nil, sftp.ErrSSHFxNoSuchFile
 		}
 
 		// Create Transfer
@@ -234,11 +238,15 @@ func (l *sshListener) makeFileWriter(endSession func(context.Context), acc *mode
 		l.Logger.Debug("PUT request received")
 
 		// Get rule according to request filepath
-		filepath := path.Join("/", path.Dir(r.Filepath))
+		rule, err := l.getClosestRule(acc, r.Filepath, false)
+		if err != nil {
+			l.Logger.Error(err.Error())
 
-		rule, rErr := getRule(l.DB, l.Logger, acc, filepath, false)
-		if rErr != nil {
-			return nil, rErr
+			return nil, err
+		}
+
+		if rule.IsSend {
+			return nil, sftp.ErrSSHFxPermissionDenied
 		}
 
 		// Create Transfer

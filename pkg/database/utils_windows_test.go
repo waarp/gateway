@@ -1,5 +1,6 @@
-//+build windows
+//go:build windows
+// +build windows
 
 package database
 
-const aesFilePerm = 0666
+const aesFilePerm = 0o666

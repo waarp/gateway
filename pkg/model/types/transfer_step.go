@@ -113,5 +113,6 @@ func (ts *TransferStep) FromDB(v []byte) error {
 func (ts TransferStep) ToDB() ([]byte, error) {
 	v, err := ts.Value()
 
+	//nolint:forcetypeassert //no need, the type assertion will always succeed
 	return []byte(v.(string)), err
 }

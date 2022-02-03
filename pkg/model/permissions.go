@@ -47,6 +47,7 @@ func (p *PermsMask) FromDB(bytes []byte) error {
 func (p PermsMask) ToDB() ([]byte, error) {
 	v, err := p.Value()
 
+	//nolint:forcetypeassert //no need, the type assertion will always succeed
 	return v.([]byte), err
 }
 

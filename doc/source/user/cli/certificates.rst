@@ -31,7 +31,7 @@ commande suivantes doivent être fournies:
 
 .. code-block:: shell
 
-   waarp-gateway 'https://admin@127.0.0.1:8080' server cert 'WAARP SFTP' add -n 'Cert SFTP' -c 'sftp.pem' -p 'sftp.key' -b 'sftp.pub'
+   waarp-gateway 'https://admin@127.0.0.1:8080' server cert 'WAARP SFTP' add -n 'Clé SFTP' -b 'sftp.pub'
 
 
 Modifier un certificat
@@ -46,7 +46,7 @@ options pour faire une mise à jour partielle.
 
 .. code-block:: shell
 
-   waarp-gateway 'https://admin@127.0.0.1:8080' server cert 'WAARP SFTP' update 'Cert SFTP' -b 'new_sftp.pub'
+   waarp-gateway 'https://admin@127.0.0.1:8080' server cert 'WAARP SFTP' update 'Clé SFTP' -b 'new_sftp.pub'
 
 
 Consulter les certificats
@@ -70,7 +70,7 @@ nom du certificat.
 
 .. code-block:: shell
 
-   waarp-gateway 'https://admin@127.0.0.1:8080' server cert 'WAARP SFTP' get 'Cert SFTP'
+   waarp-gateway 'https://admin@127.0.0.1:8080' server cert 'WAARP SFTP' get 'Clé SFTP'
 
 
 Supprimer un certificat
@@ -83,4 +83,4 @@ certificat à supprimer.
 
 .. code-block:: shell
 
-   waarp-gateway 'https://admin@127.0.0.1:8080' server cert 'WAARP SFTP' delete 'Cert SFTP'
+   waarp-gateway 'https://admin@127.0.0.1:8080' server cert 'WAARP SFTP' delete 'Clé SFTP'

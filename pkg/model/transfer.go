@@ -155,12 +155,7 @@ func (t *Transfer) validateServerTransfer(db database.ReadAccess) database.Error
 	return nil
 }
 
-// BeforeWrite checks if the new `Transfer` entry is valid and can be
-// inserted in the database.
-//nolint:funlen,gocyclo,cyclop // validations can be long...
-func (t *Transfer) BeforeWrite(db database.ReadAccess) database.Error {
-	t.Owner = database.Owner
-
+func (t *Transfer) checkMandatoryValues() database.Error {
 	if t.RuleID == 0 {
 		return database.NewValidationError("the transfer's rule ID cannot be empty")
 	}
@@ -173,12 +168,24 @@ func (t *Transfer) BeforeWrite(db database.ReadAccess) database.Error {
 		return database.NewValidationError("the transfer's account ID cannot be empty")
 	}
 
-	if t.LocalPath == "" {
+	if t.LocalPath == "" || t.LocalPath == "/" || t.LocalPath == "." {
 		return database.NewValidationError("the local filepath is missing")
 	}
 
 	if t.Start.IsZero() {
 		t.Start = time.Now()
+	}
+
+	return nil
+}
+
+// BeforeWrite checks if the new `Transfer` entry is valid and can be
+// inserted in the database.
+func (t *Transfer) BeforeWrite(db database.ReadAccess) database.Error {
+	t.Owner = database.Owner
+
+	if err := t.checkMandatoryValues(); err != nil {
+		return err
 	}
 
 	if t.Status == "" {

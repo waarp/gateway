@@ -88,6 +88,10 @@ func (s *serverPipeline) Pause(ctx context.Context) error {
 	})
 	s.endSession(ctx)
 
+	if err := ctx.Err(); err != nil {
+		return context.Canceled
+	}
+
 	return nil
 }
 
@@ -101,6 +105,10 @@ func (s *serverPipeline) Interrupt(ctx context.Context) error {
 	})
 	s.endSession(ctx)
 
+	if err := ctx.Err(); err != nil {
+		return context.Canceled
+	}
+
 	return nil
 }
 
@@ -113,6 +121,10 @@ func (s *serverPipeline) Cancel(ctx context.Context) error {
 		s.storage.StoreCtx(ctx, sigCancel)
 	})
 	s.endSession(ctx)
+
+	if err := ctx.Err(); err != nil {
+		return context.Canceled
+	}
 
 	return nil
 }

@@ -23,6 +23,7 @@ func certInfoString(c *api.OutCrypto) string {
 		"    Content:     " + c.Certificate + "\n"
 }
 
+//nolint:maintidx //FIXME factorize the function if possible to improve maintainability
 func TestGetCertificate(t *testing.T) {
 	Convey("Testing the certificate 'get' command", t, func() {
 		out = testFile()
@@ -333,6 +334,7 @@ func TestGetCertificate(t *testing.T) {
 	})
 }
 
+//nolint:maintidx //FIXME factorize the function if possible to improve maintainability
 func TestAddCertificate(t *testing.T) {
 	Convey("Testing the cert 'add' command", t, func(c C) {
 		out = testFile()
@@ -694,6 +696,7 @@ func TestAddCertificate(t *testing.T) {
 	})
 }
 
+//nolint:maintidx //FIXME factorize the function if possible to improve maintainability
 func TestDeleteCertificate(t *testing.T) {
 	Convey("Testing the certificate 'delete' command", t, func() {
 		out = testFile()
@@ -1102,6 +1105,7 @@ func TestDeleteCertificate(t *testing.T) {
 	})
 }
 
+//nolint:maintidx //FIXME factorize the function if possible to improve maintainability
 func TestListCertificate(t *testing.T) {
 	Convey("Testing the certificate 'list' command", t, func() {
 		out = testFile()
@@ -1597,8 +1601,9 @@ func TestListCertificate(t *testing.T) {
 	})
 }
 
+//nolint:maintidx //FIXME factorize the function if possible to improve maintainability
 func TestUpdateCertificate(t *testing.T) {
-	Convey("Testing the certificate 'delete' command", t, func() {
+	Convey("Testing the certificate 'update' command", t, func() {
 		out = testFile()
 		command := &certUpdate{}
 		commandLine = options{}

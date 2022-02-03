@@ -47,9 +47,9 @@ func TestNewFileStream(t *testing.T) {
 			pip, err := newPipeline(ctx.db, logger, transCtx)
 			So(err, ShouldBeNil)
 
-			So(pip.machine.Transition("pre-tasks"), ShouldBeNil)
-			So(pip.machine.Transition("pre-tasks done"), ShouldBeNil)
-			So(pip.machine.Transition("start data"), ShouldBeNil)
+			So(pip.machine.Transition(statePreTasks), ShouldBeNil)
+			So(pip.machine.Transition(statePreTasksDone), ShouldBeNil)
+			So(pip.machine.Transition(stateStartData), ShouldBeNil)
 
 			Convey("When creating a new transfer stream", func(c C) {
 				stream, err := newFileStream(pip, time.Hour, false)
@@ -87,9 +87,9 @@ func TestNewFileStream(t *testing.T) {
 			pip, err := newPipeline(ctx.db, logger, transCtx)
 			So(err, ShouldBeNil)
 
-			So(pip.machine.Transition("pre-tasks"), ShouldBeNil)
-			So(pip.machine.Transition("pre-tasks done"), ShouldBeNil)
-			So(pip.machine.Transition("start data"), ShouldBeNil)
+			So(pip.machine.Transition(statePreTasks), ShouldBeNil)
+			So(pip.machine.Transition(statePreTasksDone), ShouldBeNil)
+			So(pip.machine.Transition(stateStartData), ShouldBeNil)
 
 			Convey("When creating a new transfer stream", func(c C) {
 				stream, err := newFileStream(pip, time.Hour, false)
@@ -480,7 +480,7 @@ func TestStreamClose(t *testing.T) {
 		Convey("Given a file stream for this transfer", func(c C) {
 			stream := initFilestream(ctx, logger, transCtx)
 			stream.progress = 10
-			So(stream.machine.Transition("end data"), ShouldBeNil)
+			So(stream.machine.Transition(stateDataEnd), ShouldBeNil)
 
 			Convey("When closing the stream", func(c C) {
 				So(stream.close(), ShouldBeNil)
@@ -488,11 +488,6 @@ func TestStreamClose(t *testing.T) {
 				Convey("Then the underlying file should be closed", func(c C) {
 					So(stream.file.Close(), ShouldBeError, fmt.Sprintf(
 						"close %s: file already closed", trans.LocalPath))
-				})
-
-				Convey("Then subsequent call to `close` should return an error", func(c C) {
-					So(stream.close(), ShouldBeError, errStateMachine)
-					waitEndTransfer(stream.Pipeline)
 				})
 			})
 
@@ -534,7 +529,7 @@ func TestStreamMove(t *testing.T) {
 
 		Convey("Given a closed file stream for this transfer", func(c C) {
 			stream := initFilestream(ctx, logger, transCtx)
-			So(stream.machine.Transition("end data"), ShouldBeNil)
+			So(stream.machine.Transition(stateDataEnd), ShouldBeNil)
 			So(stream.close(), ShouldBeNil)
 
 			Convey("When moving the file", func(c C) {
@@ -543,11 +538,6 @@ func TestStreamMove(t *testing.T) {
 				Convey("Then the underlying file should have been be moved", func(c C) {
 					_, err := os.Stat(filepath.Join(ctx.root, ctx.db.Conf.Paths.DefaultInDir, "file"))
 					So(err, ShouldBeNil)
-				})
-
-				Convey("Then subsequent call to `move` should return an error", func(c C) {
-					So(stream.move(), ShouldBeError, errStateMachine)
-					waitEndTransfer(stream.Pipeline)
 				})
 			})
 
@@ -606,7 +596,7 @@ func TestStreamMove(t *testing.T) {
 
 		Convey("Given a closed file stream for this transfer", func(c C) {
 			stream := initFilestream(ctx, logger, transCtx)
-			So(stream.machine.Transition("end data"), ShouldBeNil)
+			So(stream.machine.Transition(stateDataEnd), ShouldBeNil)
 			So(stream.close(), ShouldBeNil)
 
 			Convey("When moving the file", func(c C) {

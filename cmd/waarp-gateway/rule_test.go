@@ -94,7 +94,7 @@ func TestDisplayRule(t *testing.T) {
 			Name:           "rule_name",
 			Comment:        "this is a comment",
 			IsSend:         true,
-			Path:           "/rule",
+			Path:           "rule/path",
 			LocalDir:       "/rule/local",
 			RemoteDir:      "/rule/remote",
 			TmpLocalRcvDir: "/rule/tmp",
@@ -216,7 +216,7 @@ func TestAddRule(t *testing.T) {
 			Convey("Given valid parameters", func() {
 				args := []string{
 					"--name", "new_rule", "--comment", "new_rule comment",
-					"--direction", "receive", "--path", "new_rule/path",
+					"--direction", "receive", "--path", "new/rule/path",
 					"--local-dir", "new_rule/local",
 					"--remote-dir", "new_rule/remote",
 					"--tmp-dir", "new_rule/tmp",
@@ -248,7 +248,7 @@ func TestAddRule(t *testing.T) {
 							Name:           "new_rule",
 							Comment:        "new_rule comment",
 							IsSend:         false,
-							Path:           "/new_rule/path",
+							Path:           "new/rule/path",
 							LocalDir:       utils.ToOSPath("new_rule/local"),
 							RemoteDir:      "new_rule/remote",
 							TmpLocalRcvDir: utils.ToOSPath("new_rule/tmp"),

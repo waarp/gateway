@@ -29,7 +29,6 @@ type ClientConstructor func(*Pipeline) (Client, *types.TransferError)
 // The client must also provide a constructor and add it to the ClientConstructors
 // map.
 type Client interface {
-
 	// Request opens a connection to the transfer partner and then sends a
 	// transfer request to the remote.
 	Request() *types.TransferError
@@ -63,7 +62,6 @@ type Server interface {
 // pre-tasks are executed just after the reception of the request (so at the
 // end of the Client.Request method).
 type PreTasksHandler interface {
-
 	// BeginPreTasks tells the remote partner to begin executing its pre-tasks.
 	// The function returns once the pre-tasks are over.
 	BeginPreTasks() *types.TransferError
@@ -79,7 +77,6 @@ type PreTasksHandler interface {
 // post-tasks are executed just before closing the connection (so at the
 // beginning of the Client.EndTransfer method).
 type PostTasksHandler interface {
-
 	// BeginPostTasks tells the remote partner to begin executing its post-tasks.
 	// The function returns once the post-tasks are over.
 	BeginPostTasks() *types.TransferError

@@ -178,11 +178,9 @@ func (s *serverList) Execute([]string) error {
 		return err
 	}
 
-	servers := body["servers"]
-
 	w := getColorable() //nolint:ifshort // decrease readability
 
-	if len(servers) > 0 {
+	if servers := body["servers"]; len(servers) > 0 {
 		fmt.Fprintln(w, bold("Servers:"))
 
 		for i := range servers {

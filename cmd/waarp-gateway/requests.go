@@ -14,9 +14,10 @@ import (
 const httpTimeout = 5 * time.Second
 
 func getHTTPClient() *http.Client {
+	//nolint:forcetypeassert //type assertion will always succeed
 	customTransport := http.DefaultTransport.(*http.Transport).Clone()
 
-	//nolint: gosec // needed to pass the option given by the user
+	//nolint:gosec // needed to pass the option given by the user
 	customTransport.TLSClientConfig = &tls.Config{InsecureSkipVerify: commandLine.addrOpt.Insecure}
 
 	return &http.Client{Transport: customTransport}

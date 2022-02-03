@@ -2,10 +2,8 @@ package sftp
 
 import (
 	"bytes"
-	"errors"
 	"fmt"
 
-	"github.com/pkg/sftp"
 	"golang.org/x/crypto/bcrypt"
 	"golang.org/x/crypto/ssh"
 
@@ -112,94 +110,4 @@ func acceptRequests(in <-chan *ssh.Request, l *log.Logger) {
 			l.Warningf("An error occurred while replying to a request: %v", err)
 		}
 	}
-}
-
-// getRule returns the rule matching the given path & direction. It also checks
-// is the given account has the rights to use said rule.
-func getRule(db *database.DB, logger *log.Logger, acc *model.LocalAccount,
-	rulePath string, isSend bool) (*model.Rule, error) {
-	var rule model.Rule
-	if err := db.Get(&rule, "path=? AND send=?", rulePath, isSend).Run(); err != nil {
-		if database.IsNotFound(err) {
-			direction := "receive"
-			if isSend {
-				direction = "sending"
-			}
-
-			logger.Debugf("No %s rule found for path '%s'", direction, rulePath)
-
-			return nil, sftp.ErrSSHFxNoSuchFile
-		}
-
-		logger.Errorf("Failed to retrieve rule: %v", err)
-
-		return nil, errDatabase
-	}
-
-	ok, err := rule.IsAuthorized(db, acc)
-	if err != nil {
-		logger.Errorf("Failed to check rule permissions: %v", err)
-
-		return nil, err
-	}
-
-	if !ok {
-		return nil, errRuleForbidden
-	}
-
-	return &rule, nil
-}
-
-// getListRule returns the rule associated with the given rule path, if the given
-// account is authorized to use it. If 2 rules have the same path, the sending
-// rule has priority.
-func getListRule(db *database.DB, logger *log.Logger, acc *model.LocalAccount,
-	rulePath string) (*model.Rule, error) {
-	sndRule, err := getRule(db, logger, acc, rulePath, true)
-	if err != nil && !errors.Is(err, sftp.ErrSSHFxNoSuchFile) {
-		return nil, err
-	}
-
-	rcvRule, err := getRule(db, logger, acc, rulePath, false)
-	if err != nil && !errors.Is(err, sftp.ErrSSHFxNoSuchFile) {
-		return nil, err
-	}
-
-	if sndRule == nil && rcvRule == nil {
-		logger.Infof("No rule found with path '%s'", rulePath)
-
-		return nil, sftp.ErrSSHFxNoSuchFile
-	}
-
-	return sndRule, nil
-}
-
-// getRulesPaths returns the paths of all the rules which the given account has
-// access to. Used for file listing purposes.
-func getRulesPaths(db *database.DB, logger *log.Logger, ag *model.LocalAgent,
-	acc *model.LocalAccount) ([]string, error) {
-	var rules model.Rules
-	query := db.Select(&rules).Distinct("path").Where(
-		`(id IN 
-			(SELECT DISTINCT rule_id FROM rule_access WHERE
-				(object_id=? AND object_type='local_accounts') OR
-				(object_id=? AND object_type='local_agents')
-			)
-		)
-		OR 
-		( (SELECT COUNT(*) FROM rule_access WHERE rule_id = id) = 0 )`,
-		acc.ID, ag.ID).OrderBy("path", true)
-
-	if err := query.Run(); err != nil {
-		logger.Errorf("Failed to retrieve rule list: %s", err)
-
-		return nil, err
-	}
-
-	paths := make([]string, len(rules))
-	for i := range rules {
-		paths[i] = rules[i].Path
-	}
-
-	return paths, nil
 }

@@ -6,8 +6,8 @@ import (
 	"io"
 	"strings"
 
-	"code.waarp.fr/waarp-r66/r66"
-	r66utils "code.waarp.fr/waarp-r66/r66/utils"
+	"code.waarp.fr/lib/r66"
+	r66utils "code.waarp.fr/lib/r66/utils"
 
 	"code.waarp.fr/apps/gateway/gateway/pkg/model/types"
 	"code.waarp.fr/apps/gateway/gateway/pkg/pipeline"
@@ -106,6 +106,10 @@ func (t *serverTransfer) Interrupt(ctx context.Context) error {
 		t.store.StoreCtx(ctx, sigShutdown)
 	})
 
+	if err := ctx.Err(); err != nil {
+		return context.Canceled
+	}
+
 	return nil
 }
 
@@ -116,6 +120,10 @@ func (t *serverTransfer) Pause(ctx context.Context) error {
 		t.store.StoreCtx(ctx, sigPause)
 	})
 
+	if err := ctx.Err(); err != nil {
+		return context.Canceled
+	}
+
 	return nil
 }
 
@@ -125,6 +133,10 @@ func (t *serverTransfer) Cancel(ctx context.Context) error {
 	defer t.pip.Cancel(func() {
 		t.store.StoreCtx(ctx, sigCancel)
 	})
+
+	if err := ctx.Err(); err != nil {
+		return context.Canceled
+	}
 
 	return nil
 }

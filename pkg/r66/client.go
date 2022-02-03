@@ -7,7 +7,7 @@ import (
 	"encoding/json"
 	"strings"
 
-	"code.waarp.fr/waarp-r66/r66"
+	"code.waarp.fr/lib/r66"
 
 	"code.waarp.fr/apps/gateway/gateway/pkg/model/config"
 	"code.waarp.fr/apps/gateway/gateway/pkg/model/types"
@@ -26,7 +26,7 @@ type client struct {
 	conf      config.R66ProtoConfig
 	tlsConfig *tls.Config
 
-	ctx    context.Context
+	ctx    context.Context //nolint:containedctx //FIXME move the context to a function parameter
 	cancel func()
 	ses    *r66.Session
 }

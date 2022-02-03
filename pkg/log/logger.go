@@ -18,10 +18,14 @@ type Logger struct {
 
 // InitBackend initializes the logging backend according to the given configuration.
 // If the backend cannot be accessed, an error is returned.
-func InitBackend(level, logTo, facility string) (err error) {
+func InitBackend(level, logTo, facility string) error {
+	var err error
+
 	switch logTo {
 	case "stdout":
 		backend = logging.NewStdoutBackend()
+	case "stderr":
+		backend = logging.NewStderrBackend()
 	case "/dev/null", "nul", "NUL":
 		backend, _ = logging.NewNoopBackend() //nolint:errcheck // error is always nil
 	case "syslog":
@@ -31,23 +35,25 @@ func InitBackend(level, logTo, facility string) (err error) {
 	}
 
 	if err != nil {
-		return
+		return fmt.Errorf("failed to initialize log backend: %w", err)
 	}
 
-	if err := setLevel(level, backend); err != nil {
+	if err1 := setLevel(level, backend); err1 != nil {
 		record := &logging.Record{
 			Logger:    "log",
 			Timestamp: time.Now(),
 			Level:     logging.ERROR,
-			Message:   err.Error(),
+			Message:   err1.Error(),
 		}
 
-		if err := backend.Write(record); err != nil {
-			return fmt.Errorf("cannot initialize logging backend: %w", err)
+		if err2 := backend.Write(record); err2 != nil {
+			return fmt.Errorf("cannot initialize logging backend: %w", err2)
 		}
+
+		return err1
 	}
 
-	return
+	return nil
 }
 
 // NewLogger initiates a new logger.

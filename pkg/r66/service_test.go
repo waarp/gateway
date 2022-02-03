@@ -4,13 +4,15 @@ import (
 	"context"
 	"crypto/rand"
 	"encoding/json"
+	"errors"
 	"fmt"
+	"net"
 	"path/filepath"
 	"testing"
 	"time"
 
 	"code.bcarlin.xyz/go/logging"
-	"code.waarp.fr/waarp-r66/r66"
+	"code.waarp.fr/lib/r66"
 	. "github.com/smartystreets/goconvey/convey"
 
 	"code.waarp.fr/apps/gateway/gateway/pkg/database"
@@ -100,7 +102,7 @@ func TestR66ServerInterruption(t *testing.T) {
 				Convey("When the server shuts down", func(c C) {
 					go func() {
 						time.Sleep(500 * time.Millisecond)
-						ctx, cancel := context.WithTimeout(context.Background(), 5*time.Minute)
+						ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 						defer cancel()
 						if err := serv.Stop(ctx); err != nil {
 							panic(err)
@@ -108,7 +110,21 @@ func TestR66ServerInterruption(t *testing.T) {
 					}()
 					f := func() ([]byte, error) { panic("should never be called") }
 					_, err := ses.Send(&dummyFile{}, f)
-					So(err, ShouldBeError, "S: service is shutting down")
+
+					var (
+						r66Err *r66.Error
+						netErr *net.OpError
+					)
+
+					switch {
+					case errors.As(err, &r66Err):
+						So(r66Err.Detail, ShouldEqual, "service is shutting down")
+						So(r66Err.Code, ShouldEqual, r66.Shutdown)
+					case errors.As(err, &netErr):
+						So(netErr.Op, ShouldEqual, "read")
+					default:
+						t.Fatalf("unexpected error: %#v", err)
+					}
 
 					Convey("Then the transfer should have been interrupted", func(c C) {
 						test.ServerShouldHavePreTasked(c)
@@ -137,6 +153,7 @@ func TestR66ServerInterruption(t *testing.T) {
 						}
 						So(transfers[0], ShouldResemble, trans)
 
+						//nolint:forcetypeassert //no need, the type assertion will always succeed
 						ok := serv.(*Service).runningTransfers.Exists(trans.ID)
 						So(ok, ShouldBeFalse)
 					})

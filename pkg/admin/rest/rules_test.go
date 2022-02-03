@@ -36,7 +36,7 @@ func TestCreateRule(t *testing.T) {
 				Name:    "existing",
 				Comment: "",
 				IsSend:  false,
-				Path:    "/existing",
+				Path:    "test/existing/path",
 			}
 			So(db.Insert(existing).Run(), ShouldBeNil)
 
@@ -87,7 +87,7 @@ func TestCreateRule(t *testing.T) {
 								Name:           "new_name",
 								Comment:        "new comment",
 								IsSend:         false,
-								Path:           "/test_path",
+								Path:           "test_path",
 								LocalDir:       filepath.FromSlash("/local/dir"),
 								RemoteDir:      "/remote/dir",
 								TmpLocalRcvDir: filepath.FromSlash("/local/tmp"),
@@ -517,21 +517,21 @@ func TestUpdateRule(t *testing.T) {
 			old := &model.Rule{
 				Name:      "old",
 				IsSend:    true,
-				Path:      "/old_send",
+				Path:      "old_send",
 				LocalDir:  "/send/local/dir",
 				RemoteDir: "/send/remote/dir",
 			}
 			oldRecv := &model.Rule{
 				Name:           "old",
 				IsSend:         false,
-				Path:           "/old_recv",
+				Path:           "/old/pathRecv",
 				LocalDir:       "/recv/local/dir",
 				RemoteDir:      "/recv/remote/dir",
 				TmpLocalRcvDir: "/recv/local/tmp",
 			}
 			other := &model.Rule{
 				Name:   "other",
-				Path:   "/path_other",
+				Path:   "path_other",
 				IsSend: false,
 			}
 			So(db.Insert(old).Run(), ShouldBeNil)
@@ -676,7 +676,7 @@ func TestUpdateRule(t *testing.T) {
 						}, {
 							Comment: strPtr("update comment"),
 						}, {
-							Path: strPtr("/path_update"),
+							Path: strPtr("path/update"),
 						}, {
 							LocalDir: strPtr("/update/local"),
 						}, {
@@ -813,7 +813,7 @@ func TestReplaceRule(t *testing.T) {
 		Convey("Given a database with a rule & a task", func() {
 			old := &model.Rule{
 				Name:           "old",
-				Path:           "/old",
+				Path:           "old/path",
 				LocalDir:       "/old/local",
 				RemoteDir:      "/old/remote",
 				TmpLocalRcvDir: "/old/tmp",
@@ -833,7 +833,7 @@ func TestReplaceRule(t *testing.T) {
 			Convey("Given new values to update the rule with", func() {
 				body := strings.NewReader(`{
 					"name": "update_name",
-					"path": "/update_path",
+					"path": "update_path",
 					"postTasks": [{
 						"type": "MOVE",
 						"args": {"path": "/move/path"}
@@ -873,7 +873,7 @@ func TestReplaceRule(t *testing.T) {
 							expected := model.Rule{
 								ID:     old.ID,
 								Name:   "update_name",
-								Path:   "/update_path",
+								Path:   "update_path",
 								IsSend: old.IsSend,
 							}
 							So(results[0], ShouldResemble, expected)
