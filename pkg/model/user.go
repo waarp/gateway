@@ -49,6 +49,12 @@ func (u *User) GetID() uint64 {
 
 // Init inserts the default user in the database when the table is created.
 func (u *User) Init(db database.Access) database.Error {
+	if n, err := u.countAdmins(db); err != nil {
+		return err
+	} else if n != 0 {
+		return nil // there is already an admin
+	}
+
 	hash, err := utils.HashPassword(database.BcryptRounds, "admin_password")
 	if err != nil {
 		db.GetLogger().Errorf("Failed to hash the user password: %s", err)
@@ -64,6 +70,7 @@ func (u *User) Init(db database.Access) database.Error {
 	}
 
 	if err := db.Insert(user).Run(); err != nil {
+		return err
 	}
 
 	return nil
@@ -71,16 +78,13 @@ func (u *User) Init(db database.Access) database.Error {
 
 // BeforeDelete is called before removing the user from the database. Its
 // role is to check that at least one admin user remains.
-//
-// FIXME This function seems to just check that another user also exists, whether it is an admin or not.
 func (u *User) BeforeDelete(db database.Access) database.Error {
-	n, err := db.Count(&User{}).Where("owner=?", database.Owner).Run()
-	if err != nil {
-		return err
-	}
-
-	if n < 2 { //nolint:gomnd // This is not a reuseable constant
-		return database.NewValidationError("cannot delete gateway last admin")
+	if u.Permissions&PermUsersWrite != 0 {
+		if n, err := u.countAdmins(db); err != nil {
+			return err
+		} else if n == 1 {
+			return database.NewValidationError("cannot delete the last gateway admin")
+		}
 	}
 
 	return nil
@@ -107,4 +111,21 @@ func (u *User) BeforeWrite(db database.ReadAccess) database.Error {
 	}
 
 	return nil
+}
+
+func (*User) countAdmins(db database.ReadAccess) (uint, database.Error) {
+	var users Users
+	if err := db.Select(&users).Where("owner=?", database.Owner).Run(); err != nil {
+		return 0, err
+	}
+
+	var n uint
+
+	for i := range users {
+		if users[i].Permissions&PermUsersWrite != 0 {
+			n++
+		}
+	}
+
+	return n, nil
 }

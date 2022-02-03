@@ -4,6 +4,10 @@ Historique des versions
 =======================
 
 * :release:`0.5.0 <>`
+* :bug:`292` Correction d'une erreur empêchant la création de l'utilisateur par
+  défaut lorsque la base de données est partagée entre plusieurs *gateways*.
+* :bug:`-` Correction d'un bug permettant la suppression du dernier administrateur
+  d'une *gateway*, rendant cette dernière impossible à administrer.
 * :bug:`294` Correction d'une erreur dans la réponse des requêtes de listage
   d'utilisateurs sur l'interface REST d'administration (et le client terminal).
   Lorsque la base de données est partagée entre plusieurs *gateways*, l'interface
