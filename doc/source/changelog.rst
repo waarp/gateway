@@ -4,6 +4,9 @@ Historique des versions
 =======================
 
 * :release:`0.5.0 <>`
+* :feature:`277` Ajout d'une option à la commande `history list` de la CLI
+  permettant de trier les entrées de l'historique par date de fin (`stop+` et
+  `stop-`). Cette option est également présente sur l'API REST de la *gateway*.
 * :bug:`278` Dans le fichier d'import, si une des listes définissant les chaînes
   de traitements de la règle (``pre``, ``post`` ou ``error``) est vide mais non-nulle,
   la chaîne de traitements en question sera vidée. Si la liste est manquante ou
