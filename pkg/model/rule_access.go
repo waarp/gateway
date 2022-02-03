@@ -37,19 +37,19 @@ func (r *RuleAccess) BeforeWrite(db database.ReadAccess) database.Error {
 	}
 
 	var (
-		n   uint64
-		err database.Error
+		count uint64
+		err   database.Error
 	)
 
 	switch r.ObjectType {
 	case TableLocAgents:
-		n, err = db.Count(&LocalAgent{}).Where("id=?", r.ObjectID).Run()
+		count, err = db.Count(&LocalAgent{}).Where("id=?", r.ObjectID).Run()
 	case TableRemAgents:
-		n, err = db.Count(&RemoteAgent{}).Where("id=?", r.ObjectID).Run()
+		count, err = db.Count(&RemoteAgent{}).Where("id=?", r.ObjectID).Run()
 	case TableLocAccounts:
-		n, err = db.Count(&LocalAccount{}).Where("id=?", r.ObjectID).Run()
+		count, err = db.Count(&LocalAccount{}).Where("id=?", r.ObjectID).Run()
 	case TableRemAccounts:
-		n, err = db.Count(&RemoteAccount{}).Where("id=?", r.ObjectID).Run()
+		count, err = db.Count(&RemoteAccount{}).Where("id=?", r.ObjectID).Run()
 	default:
 		return database.NewValidationError("the rule_access's object type must be one of %s",
 			validOwnerTypes)
@@ -57,15 +57,15 @@ func (r *RuleAccess) BeforeWrite(db database.ReadAccess) database.Error {
 
 	if err != nil {
 		return err
-	} else if n == 0 {
+	} else if count == 0 {
 		return database.NewValidationError("no %s found with ID %v", r.ObjectType, r.ObjectID)
 	}
 
-	n, err = db.Count(r).Where("rule_id=? AND object_type=? AND object_id=?",
+	count, err = db.Count(r).Where("rule_id=? AND object_type=? AND object_id=?",
 		r.RuleID, r.ObjectType, r.ObjectID).Run()
 	if err != nil {
 		return err
-	} else if n > 0 {
+	} else if count > 0 {
 		return database.NewValidationError("the agent has already been granted access " +
 			"to this rule")
 	}

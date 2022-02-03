@@ -4,6 +4,7 @@ import (
 	"database/sql/driver"
 	"fmt"
 
+	"code.waarp.fr/apps/gateway/gateway/pkg/database"
 	"code.waarp.fr/apps/gateway/gateway/pkg/tk/utils"
 )
 
@@ -18,7 +19,7 @@ func (c *CypherText) FromDB(bytes []byte) error {
 		return nil
 	}
 
-	plain, err := utils.AESDecrypt(string(bytes))
+	plain, err := utils.AESDecrypt(database.GCM, string(bytes))
 	if err != nil {
 		return fmt.Errorf("cannot decrypt password: %w", err)
 	}
@@ -35,7 +36,7 @@ func (c *CypherText) ToDB() ([]byte, error) {
 		return nil, nil
 	}
 
-	cypher, err := utils.AESCrypt(string(*c))
+	cypher, err := utils.AESCrypt(database.GCM, string(*c))
 	if err != nil {
 		return nil, fmt.Errorf("cannot encrypt password: %w", err)
 	}

@@ -1,4 +1,3 @@
-//nolint:goconst // this is just a test, maybe this has a lesser importance
 package main
 
 import (
@@ -17,21 +16,30 @@ import (
 type historyCommand struct {
 	Get     historyGet   `command:"get" description:"Consult a finished transfer"`
 	List    historyList  `command:"list" description:"List the finished transfers"`
-	Restart historyRetry `command:"retry" description:"Retry a failed transfer"`
+	Restart historyRetry `command:"retry" description:"Reprogram a canceled transfer"`
 }
 
 func displayHistory(w io.Writer, hist *api.OutHistory) {
-	role := "client"
+	role := roleClient
+
 	if hist.IsServer {
-		role = "server"
+		role = roleServer
 	}
 
-	way := "receive"
+	way := directionRecv
+
 	if hist.IsSend {
-		way = "send"
+		way = directionSend
+	}
+
+	size := sizeUnknown
+
+	if hist.Filesize >= 0 {
+		size = fmt.Sprint(hist.Filesize)
 	}
 
 	stop := "N/A"
+
 	if hist.Stop != nil {
 		stop = hist.Stop.Local().Format(time.RFC3339Nano)
 	}
@@ -42,32 +50,33 @@ func displayHistory(w io.Writer, hist *api.OutHistory) {
 		fmt.Fprintln(w, orange("    Remote ID:            "), hist.RemoteID)
 	}
 
-	fmt.Fprintln(w, orange("    Way:             "), way)
-	fmt.Fprintln(w, orange("    Protocol:        "), hist.Protocol)
-	fmt.Fprintln(w, orange("    Rule:            "), hist.Rule)
-	fmt.Fprintln(w, orange("    Requester:       "), hist.Requester)
-	fmt.Fprintln(w, orange("    Requested:       "), hist.Requested)
-	fmt.Fprintln(w, orange("    Source file:     "), hist.SourceFilename)
-	fmt.Fprintln(w, orange("    Destination file:"), hist.DestFilename)
-	fmt.Fprintln(w, orange("    Start date:      "), hist.Start.Format(time.RFC3339Nano))
-	fmt.Fprintln(w, orange("    End date:        "), stop)
+	fmt.Fprintln(w, orange("    Way:            "), way)
+	fmt.Fprintln(w, orange("    Protocol:       "), hist.Protocol)
+	fmt.Fprintln(w, orange("    Rule:           "), hist.Rule)
+	fmt.Fprintln(w, orange("    Requester:      "), hist.Requester)
+	fmt.Fprintln(w, orange("    Requested:      "), hist.Requested)
+	fmt.Fprintln(w, orange("    Local filepath: "), hist.LocalFilepath)
+	fmt.Fprintln(w, orange("    Remote filepath:"), hist.RemoteFilepath)
+	fmt.Fprintln(w, orange("    File size:      "), size)
+	fmt.Fprintln(w, orange("    Start date:     "), hist.Start.Format(time.RFC3339Nano))
+	fmt.Fprintln(w, orange("    End date:       "), stop)
 
 	if hist.ErrorCode != types.TeOk {
-		fmt.Fprintln(w, orange("    Error code:      "), hist.ErrorCode)
+		fmt.Fprintln(w, orange("    Error code:     "), hist.ErrorCode)
 
 		if hist.ErrorMsg != "" {
-			fmt.Fprintln(w, orange("    Error message:   "), hist.ErrorMsg)
+			fmt.Fprintln(w, orange("    Error message:  "), hist.ErrorMsg)
 		}
 	}
 
 	if hist.Step != types.StepNone {
-		fmt.Fprintln(w, orange("    Failed step:     "), hist.Step.String())
+		fmt.Fprintln(w, orange("    Failed step:    "), hist.Step.String())
 
 		switch hist.Step { //nolint:exhaustive // those are the only relevant cases here
 		case types.StepData:
-			fmt.Fprintln(w, orange("    Progress:        "), hist.Progress)
+			fmt.Fprintln(w, orange("    Progress:       "), hist.Progress)
 		case types.StepPreTasks, types.StepPostTasks:
-			fmt.Fprintln(w, orange("    Failed task:     "), hist.TaskNumber)
+			fmt.Fprintln(w, orange("    Failed task:    "), hist.TaskNumber)
 		}
 	}
 }
@@ -170,10 +179,9 @@ func (h *historyList) Execute([]string) error {
 		return err
 	}
 
-	history := body["history"]
 	w := getColorable() //nolint:ifshort // decrease readability
 
-	if len(history) > 0 {
+	if history := body["history"]; len(history) > 0 {
 		fmt.Fprintln(w, bold("History:"))
 
 		for i := range history {

@@ -41,8 +41,10 @@ func promptPassword() (string, error) {
 		return "", fmt.Errorf("cannot change terminal mode: %w", err)
 	}
 
+	//nolint:forcetypeassert //type assertion will always succeed here
 	defer func() { _ = term.Restore(int(in.(*os.File).Fd()), st) }() //nolint:errcheck // FIXME nothing to handle the error
 
+	//nolint:forcetypeassert //type assertion will always succeed here
 	terminal := term.NewTerminal(in.(*os.File), "")
 
 	pwd, err := terminal.ReadPassword("")

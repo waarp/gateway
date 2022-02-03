@@ -19,7 +19,7 @@ func AddTable(t Table) {
 // set default values after the table is created when the application is launched
 // for the first time.
 type initialiser interface {
-	Init(*Session) Error
+	Init(Access) Error
 }
 
 // initTables creates the database tables if they don't exist and fills them

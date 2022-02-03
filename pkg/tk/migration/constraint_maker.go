@@ -12,7 +12,6 @@ type constraintMaker interface {
 	makeDefault(builder *tableBuilder, formatter valueFormatter, value interface{}, colType sqlType) error
 	makeUnique(builder *tableBuilder) error
 	makeAutoIncrement(builder *tableBuilder, colType sqlType) error
-
 	makePrimaryKeys(builder *tableBuilder, uqe *tblPk) error
 	makeUniques(builder *tableBuilder, pk *tblUnique) error
 }

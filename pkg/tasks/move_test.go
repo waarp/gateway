@@ -1,13 +1,17 @@
 package tasks
 
 import (
+	"context"
 	"io/ioutil"
 	"os"
+	"path/filepath"
 	"testing"
 
 	. "github.com/smartystreets/goconvey/convey"
 
 	"code.waarp.fr/apps/gateway/gateway/pkg/model"
+	"code.waarp.fr/apps/gateway/gateway/pkg/tk/utils"
+	"code.waarp.fr/apps/gateway/gateway/pkg/tk/utils/testhelpers"
 )
 
 func TestMoveTaskValidate(t *testing.T) {
@@ -17,7 +21,7 @@ func TestMoveTaskValidate(t *testing.T) {
 		}
 
 		Convey("When calling the `Validate` method", func() {
-			runner := &MoveTask{}
+			runner := &moveTask{}
 			err := runner.Validate(args)
 
 			Convey("Then it should NOT return an error", func() {
@@ -30,7 +34,7 @@ func TestMoveTaskValidate(t *testing.T) {
 		args := map[string]string{}
 
 		Convey("When calling the `Validate` method", func() {
-			runner := &MoveTask{}
+			runner := &moveTask{}
 			err := runner.Validate(args)
 
 			Convey("Then it should return an error", func() {
@@ -45,160 +49,63 @@ func TestMoveTaskValidate(t *testing.T) {
 }
 
 func TestMoveTaskRun(t *testing.T) {
-	Convey("Given a Processor for a sending transfer", t, func() {
-		runner := &Processor{
+	Convey("Given a Runner for a MOVE task", t, func(c C) {
+		root := testhelpers.TempDir(c, "task_move")
+		task := &moveTask{}
+		srcPath := filepath.Join(root, "move.src")
+		So(ioutil.WriteFile(srcPath, []byte("Hello World"), 0o700), ShouldBeNil)
+
+		transCtx := &model.TransferContext{
 			Rule: &model.Rule{
 				IsSend: true,
 			},
 			Transfer: &model.Transfer{
-				TrueFilepath: "move_out.src",
-				SourceFile:   "move_out.src",
-				DestFile:     "move_out.dst",
+				LocalPath:  srcPath,
+				RemotePath: "/remote/move.src",
 			},
 		}
 
-		Convey("Given a model.Task", func() {
-			args := map[string]string{
-				"path": "move_out",
-			}
+		args := map[string]string{}
 
-			So(os.Mkdir("move_out", 0o700), ShouldBeNil)
+		Convey("Given that the path is valid", func() {
+			args["path"] = filepath.Join(root, "dest")
 
-			Reset(func() {
-				So(os.RemoveAll("move_out"), ShouldBeNil)
-			})
-
-			Convey("Given a file to transfer", func() {
-				err := ioutil.WriteFile("move_out.src", []byte("Hello World"), 0o700)
-				So(err, ShouldBeNil)
-				Reset(func() { _ = os.Remove("move_out.src") })
-
-				Convey("When calling the `run` method", func() {
-					task := &MoveTask{}
-					_, err := task.Run(args, runner)
+			Convey("Given that the file exists", func() {
+				Convey("When calling the `Run` method", func() {
+					_, err := task.Run(context.Background(), args, nil, transCtx)
 
 					Convey("Then it should NOT return an error", func() {
 						So(err, ShouldBeNil)
 					})
 
 					Convey("Then the destination file should exist", func() {
-						_, err := os.Stat("move_out/move_out.src")
+						_, err := os.Stat(args["path"])
 						So(err, ShouldBeNil)
 					})
 
-					Convey("Then the transfer true file path should be modified", func() {
-						So(runner.Transfer.TrueFilepath, ShouldEqual, "move_out/move_out.src")
+					Convey("Then the transfer local filepath should be modified", func() {
+						So(transCtx.Transfer.LocalPath, ShouldEqual, utils.ToOSPath(
+							args["path"]+"/move.src"))
 					})
 
-					Convey("Then the transfer source path should NOT be modified", func() {
-						So(runner.Transfer.SourceFile, ShouldEqual, "move_out.src")
+					Convey("Then the transfer remote path should NOT be modified", func() {
+						So(transCtx.Transfer.RemotePath, ShouldEqual, "/remote/move.src")
 					})
 				})
 			})
 
-			Convey("Given NO file to transfer", func() {
-				Convey("When calling the `run` method", func() {
-					task := &MoveTask{}
-					_, err := task.Run(args, runner)
+			Convey("Given that the file does NOT exist", func() {
+				So(os.Remove(srcPath), ShouldBeNil)
+
+				Convey("When calling the 'Run' method", func() {
+					_, err := task.Run(context.Background(), args, nil, transCtx)
 
 					Convey("Then it should return an error", func() {
 						So(err, ShouldNotBeNil)
 					})
 
 					Convey("Then error should say `no such file`", func() {
-						So(err, ShouldBeError, fileNotFound("move_out.src"))
-					})
-
-					Convey("Then the destination file should NOT exist", func() {
-						_, err := os.Stat("move_out/move_out.src")
-						So(err, ShouldNotBeNil)
-						So(os.IsNotExist(err), ShouldBeTrue)
-					})
-
-					Convey("Then the transfer true file path should NOT be modified", func() {
-						So(runner.Transfer.TrueFilepath, ShouldEqual, "move_out.src")
-					})
-
-					Convey("Then the transfer source path should NOT be modified", func() {
-						So(runner.Transfer.SourceFile, ShouldEqual, "move_out.src")
-					})
-				})
-			})
-		})
-	})
-
-	Convey("Given a Processor for a receiving transfer", t, func() {
-		runner := &Processor{
-			Rule: &model.Rule{
-				IsSend: false,
-			},
-			Transfer: &model.Transfer{
-				TrueFilepath: "move_in.dst",
-				SourceFile:   "move_in.src",
-				DestFile:     "move_in.dst",
-			},
-		}
-
-		Convey("Given a model.Task", func() {
-			args := map[string]string{
-				"path": "move_in",
-			}
-			So(os.Mkdir("move_in", 0o700), ShouldBeNil)
-			Reset(func() { _ = os.RemoveAll("move_in") })
-
-			Convey("Given a file to transfer", func() {
-				err := ioutil.WriteFile("move_in.dst", []byte("Hello World"), 0o700)
-				So(err, ShouldBeNil)
-				Reset(func() { _ = os.Remove("move_in.dst") })
-
-				Convey("When calling the `run` method", func() {
-					task := &MoveTask{}
-					_, err := task.Run(args, runner)
-
-					Convey("Then it should NOT return an error", func() {
-						So(err, ShouldBeNil)
-					})
-
-					Convey("Then the destination file should exist", func() {
-						_, err := os.Stat("move_in/move_in.dst")
-						So(err, ShouldBeNil)
-					})
-
-					Convey("Then the transfer true file path should be modified", func() {
-						So(runner.Transfer.TrueFilepath, ShouldEqual, "move_in/move_in.dst")
-					})
-
-					Convey("Then the transfer dest path shouldn't be modified", func() {
-						So(runner.Transfer.DestFile, ShouldEqual, "move_in.dst")
-					})
-				})
-			})
-
-			Convey("Given NO file to transfer", func() {
-				Convey("When calling the `run` method", func() {
-					task := &MoveTask{}
-					_, err := task.Run(args, runner)
-
-					Convey("Then it should return an error", func() {
-						So(err, ShouldNotBeNil)
-					})
-
-					Convey("Then error should say `no such file`", func() {
-						So(err, ShouldBeError, fileNotFound("move_in.dst"))
-					})
-
-					Convey("Then the destination file should NOT exist", func() {
-						_, err := os.Stat("move_in/move_in.dst")
-						So(err, ShouldNotBeNil)
-						So(os.IsNotExist(err), ShouldBeTrue)
-					})
-
-					Convey("Then the transfer true file path should NOT be modified", func() {
-						So(runner.Transfer.TrueFilepath, ShouldEqual, "move_in.dst")
-					})
-
-					Convey("Then the transfer dest path shouldn't be modified", func() {
-						So(runner.Transfer.DestFile, ShouldEqual, "move_in.dst")
+						So(err, ShouldBeError, &fileNotFoundError{"open source file", srcPath})
 					})
 				})
 			})

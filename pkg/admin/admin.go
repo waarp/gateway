@@ -18,16 +18,12 @@ import (
 	"code.waarp.fr/apps/gateway/gateway/pkg/tk/service"
 )
 
-const (
-	// ServiceName is the name of the administration interface service.
-	ServiceName = "Admin"
-)
-
 // Server is the administration service.
 type Server struct {
-	Conf     *conf.ServerConfig
-	DB       *database.DB
-	Services map[string]service.Service
+	Conf          *conf.ServerConfig
+	DB            *database.DB
+	CoreServices  map[string]service.Service
+	ProtoServices map[string]service.ProtoService
 
 	logger *log.Logger
 	state  service.State
@@ -76,16 +72,16 @@ func checkAddress(config conf.AdminConfig) (string, error) {
 // initServer initializes the HTTP server instance using the parameters defined
 // in the Admin configuration.
 // If the configuration is invalid, this function returns an error.
-func initServer(s *Server) error {
+func initServer(serv *Server) error {
 	// Load REST s address
-	addr, err := checkAddress(s.Conf.Admin)
+	addr, err := checkAddress(serv.Conf.Admin)
 	if err != nil {
 		return err
 	}
 
 	// Load TLS configuration
-	certFile := s.Conf.Admin.TLSCert
-	keyFile := s.Conf.Admin.TLSKey
+	certFile := serv.Conf.Admin.TLSCert
+	keyFile := serv.Conf.Admin.TLSKey
 
 	var tlsConfig *tls.Config
 
@@ -100,17 +96,17 @@ func initServer(s *Server) error {
 			Certificates: []tls.Certificate{cert},
 		}
 	} else {
-		s.logger.Info("No TLS certificate configured, using plain HTTP.")
+		serv.logger.Info("No TLS certificate configured, using plain HTTP.")
 	}
 
-	handler := MakeHandler(s.logger, s.DB, s.Services)
+	handler := MakeHandler(serv.logger, serv.DB, serv.CoreServices, serv.ProtoServices)
 
 	// Create http.Server instance
-	s.server = http.Server{
+	serv.server = http.Server{
 		Addr:      addr,
 		TLSConfig: tlsConfig,
 		Handler:   handler,
-		ErrorLog:  s.logger.AsStdLog(logging.ERROR),
+		ErrorLog:  serv.logger.AsStdLog(logging.ERROR),
 	}
 
 	return nil
@@ -119,7 +115,7 @@ func initServer(s *Server) error {
 // Start launches the administration service. If the service cannot be launched,
 // the function returns an error.
 func (s *Server) Start() error {
-	s.logger = log.NewLogger(ServiceName)
+	s.logger = log.NewLogger(service.AdminServiceName)
 
 	s.logger.Info("Startup command received...")
 

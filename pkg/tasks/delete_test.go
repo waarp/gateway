@@ -1,13 +1,17 @@
 package tasks
 
 import (
+	"context"
 	"io/ioutil"
 	"os"
+	"path/filepath"
 	"testing"
 
 	. "github.com/smartystreets/goconvey/convey"
 
 	"code.waarp.fr/apps/gateway/gateway/pkg/model"
+	"code.waarp.fr/apps/gateway/gateway/pkg/tk/utils"
+	"code.waarp.fr/apps/gateway/gateway/pkg/tk/utils/testhelpers"
 )
 
 func TestDeleteTaskValidate(t *testing.T) {
@@ -15,7 +19,7 @@ func TestDeleteTaskValidate(t *testing.T) {
 		args := map[string]string{}
 
 		Convey("When calling the validate method", func() {
-			task := &DeleteTask{}
+			task := &deleteTask{}
 			err := task.Validate(args)
 
 			Convey("Then it should NOT return an error", func() {
@@ -26,115 +30,45 @@ func TestDeleteTaskValidate(t *testing.T) {
 }
 
 func TestDeleteTaskRun(t *testing.T) {
-	Convey("Given a processor for a sending transfer", t, func() {
-		processor := &Processor{
-			Rule: &model.Rule{
-				IsSend: true,
-			},
-			Transfer: &model.Transfer{
-				TrueFilepath: "delete.src",
-				SourceFile:   "delete.src",
-				DestFile:     "delete.dst",
-			},
-		}
+	Convey("Given a processor for a sending transfer", t, func(c C) {
+		root := testhelpers.TempDir(c, "task_delete")
+		task := &deleteTask{}
+		srcFile := filepath.Join(root, "test.src")
 
-		Convey("Given a model.Task and a file to transfer", func() {
-			args := map[string]string{}
+		transCtx := &model.TransferContext{Transfer: &model.Transfer{
+			LocalPath: utils.ToOSPath(srcFile),
+		}}
 
-			Convey("Given a file to transfer", func() {
-				err := ioutil.WriteFile(processor.Transfer.TrueFilepath, []byte("Hello World"), 0o700)
+		So(ioutil.WriteFile(srcFile, []byte("Hello World"), 0o700), ShouldBeNil)
+		args := map[string]string{}
 
-				So(err, ShouldBeNil)
+		Convey("Given that the file exists", func() {
+			Convey("When calling the run method", func() {
+				_, err := task.Run(context.Background(), args, nil, transCtx)
 
-				Reset(func() {
-					_ = os.Remove(processor.Transfer.TrueFilepath)
+				Convey("Then it should NOT return an error", func() {
+					So(err, ShouldBeNil)
 				})
 
-				Convey("When calling the run method", func() {
-					task := &DeleteTask{}
-					_, err := task.Run(args, processor)
-
-					Convey("Then it should NOT return an error", func() {
-						So(err, ShouldBeNil)
-					})
-
-					Convey("Then the source file should not be present in the system", func() {
-						_, err := os.Stat(processor.Transfer.TrueFilepath)
-						So(os.IsNotExist(err), ShouldBeTrue)
-					})
-				})
-			})
-
-			Convey("Given no file to transfer", func() {
-				Convey("When calling the run method", func() {
-					task := &DeleteTask{}
-					_, err := task.Run(args, processor)
-
-					Convey("Then it should return an error", func() {
-						So(err, ShouldNotBeNil)
-					})
-
-					Convey("Then error should say `no such file`", func() {
-						So(err, ShouldBeError, fileNotFound(processor.Transfer.TrueFilepath,
-							"remove"))
-					})
+				Convey("Then the local file should no longer be present in the system", func() {
+					_, err := os.Stat(utils.ToOSPath(transCtx.Transfer.LocalPath))
+					So(os.IsNotExist(err), ShouldBeTrue)
 				})
 			})
 		})
-	})
 
-	Convey("Given a processor for a receiving transfer", t, func() {
-		processor := &Processor{
-			Rule: &model.Rule{
-				IsSend: false,
-			},
-			Transfer: &model.Transfer{
-				TrueFilepath: "delete.src",
-				SourceFile:   "delete.src",
-				DestFile:     "delete.dst",
-			},
-		}
+		Convey("Given that the file does NOT exist", func() {
+			So(os.Remove(srcFile), ShouldBeNil)
 
-		Convey("Given a model.Task and a file to transfer", func() {
-			args := map[string]string{}
+			Convey("When calling the run method", func() {
+				_, err := task.Run(context.Background(), args, nil, transCtx)
 
-			Convey("Given a file to transfer", func() {
-				err := ioutil.WriteFile(processor.Transfer.TrueFilepath, []byte("Hello World"), 0o700)
-
-				So(err, ShouldBeNil)
-
-				Reset(func() {
-					_ = os.Remove(processor.Transfer.TrueFilepath)
+				Convey("Then it should return an error", func() {
+					So(err, ShouldNotBeNil)
 				})
 
-				Convey("When calling the run method", func() {
-					task := &DeleteTask{}
-					_, err := task.Run(args, processor)
-
-					Convey("Then it should NOT return an error", func() {
-						So(err, ShouldBeNil)
-					})
-
-					Convey("Then the source file should not be present in the system", func() {
-						_, err := os.Stat(processor.Transfer.TrueFilepath)
-						So(os.IsNotExist(err), ShouldBeTrue)
-					})
-				})
-			})
-
-			Convey("Given no file to transfer", func() {
-				Convey("When calling the run method", func() {
-					task := &DeleteTask{}
-					_, err := task.Run(args, processor)
-
-					Convey("Then it should return an error", func() {
-						So(err, ShouldNotBeNil)
-					})
-
-					Convey("Then error should say `no such file`", func() {
-						So(err, ShouldBeError, fileNotFound(processor.Transfer.TrueFilepath,
-							"remove"))
-					})
+				Convey("Then error should say `no such file`", func() {
+					So(err, ShouldBeError, &fileNotFoundError{"delete file", srcFile})
 				})
 			})
 		})

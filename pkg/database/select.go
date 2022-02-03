@@ -44,6 +44,10 @@ func (s *SelectQuery) Where(sql string, args ...interface{}) *SelectQuery {
 // package cannot handle variadic placeholders in the Where function, a separate
 // method is required.
 func (s *SelectQuery) In(col string, vals ...interface{}) *SelectQuery {
+	if len(vals) == 0 {
+		return s
+	}
+
 	sql := &inCond{Builder: &strings.Builder{}}
 	if builder.In(col, vals...).WriteTo(sql) != nil {
 		return s

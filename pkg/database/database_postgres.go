@@ -1,23 +1,15 @@
 package database
 
 import (
-	"fmt"
-	"net"
-	"strings"
-
-	// Register the postgres driver.
-	_ "github.com/jackc/pgx/v4/stdlib"
 	"xorm.io/xorm"
 
 	"code.waarp.fr/apps/gateway/gateway/pkg/conf"
+	"code.waarp.fr/apps/gateway/gateway/pkg/database/migrations"
 )
 
 const (
 	// PostgreSQL is the configuration option for using the PostgreSQL RDBMS.
 	PostgreSQL = "postgresql"
-
-	// PostgresDriver is the name of the PostgreSQL database driver.
-	PostgresDriver = "pgx"
 )
 
 //nolint:gochecknoinits // init is used by design
@@ -26,44 +18,7 @@ func init() {
 }
 
 func postgresinfo(config *conf.DatabaseConfig) (string, string, func(*xorm.Engine) error) {
-	return PostgresDriver, PostgresDSN(config), func(*xorm.Engine) error {
+	return migrations.PostgresDriver, migrations.PostgresDSN(config), func(*xorm.Engine) error {
 		return nil
 	}
-}
-
-// PostgresDSN takes a database configuration and returns the corresponding
-// PostgreSQL DSN necessary to connect to the database.
-func PostgresDSN(config *conf.DatabaseConfig) string {
-	dns := []string{}
-	if config.User != "" {
-		dns = append(dns, fmt.Sprintf("user='%s'", config.User))
-	}
-
-	if config.Password != "" {
-		dns = append(dns, fmt.Sprintf("password='%s'", config.Password))
-	}
-
-	if config.Address != "" {
-		host, port, err := net.SplitHostPort(config.Address)
-		if err != nil {
-			dns = append(dns, fmt.Sprintf("host='%s'", config.Address))
-		} else {
-			dns = append(dns, fmt.Sprintf("host='%s'", host),
-				fmt.Sprintf("port='%s'", port))
-		}
-	}
-
-	if config.Name != "" {
-		dns = append(dns, fmt.Sprintf("dbname='%s'", config.Name))
-	}
-
-	if config.TLSCert != "" && config.TLSKey != "" {
-		dns = append(dns, "sslmode=verify-full",
-			fmt.Sprintf("sslcert='%s'", config.TLSCert),
-			fmt.Sprintf("sslkey='%s'", config.TLSKey))
-	} else {
-		dns = append(dns, "sslmode=disable")
-	}
-
-	return strings.Join(dns, " ")
 }

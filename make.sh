@@ -32,7 +32,7 @@ t_test_watch() {
 
 ensure-venv() {
   test -d .venv && return 0
-  
+
   local VENV_CMD="python -m venv"
   if ! $VENV_CMD -h >/dev/null 2>&1; then
     VENV_CMD=virtualenv
@@ -172,7 +172,7 @@ Warning:
 EOW
   
   mkdir -p build
-  
+
   GOOS=linux GOARCH=amd64 build_static_binaries
   GOOS=linux GOARCH=386 build_static_binaries
   GOOS=windows GOARCH=amd64 CC="x86_64-w64-mingw32-gcc" build_static_binaries

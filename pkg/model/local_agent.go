@@ -7,6 +7,8 @@ import (
 
 	"code.waarp.fr/apps/gateway/gateway/pkg/database"
 	"code.waarp.fr/apps/gateway/gateway/pkg/model/config"
+	"code.waarp.fr/apps/gateway/gateway/pkg/tk/service"
+	"code.waarp.fr/apps/gateway/gateway/pkg/tk/utils"
 )
 
 //nolint:gochecknoinits // init is used by design
@@ -33,16 +35,16 @@ type LocalAgent struct {
 	Protocol string `xorm:"notnull 'protocol'"`
 
 	// The root directory of the agent.
-	Root string `xorm:"notnull 'root'"`
+	RootDir string `xorm:"notnull 'root_dir'"`
 
-	// The agent's directory for received files.
-	InDir string `xorm:"notnull 'in_dir'"`
+	// The server's directory for received files.
+	ReceiveDir string `xorm:"notnull 'receive_dir'"`
 
-	// The agent's directory for files to be sent.
-	OutDir string `xorm:"notnull 'out_dir'"`
+	// The server's directory for files to be sent.
+	SendDir string `xorm:"notnull 'send_dir'"`
 
-	// The working directory of the agent.
-	WorkDir string `xorm:"notnull 'work_dir'"`
+	// The server's temporary directory for partially received files.
+	TmpReceiveDir string `xorm:"notnull 'tmp_receive_dir'"`
 
 	// The agent's configuration in raw JSON format.
 	ProtoConfig json.RawMessage `xorm:"notnull 'proto_config'"`
@@ -92,17 +94,25 @@ func (l *LocalAgent) makePaths() {
 		return path == "." || path == ""
 	}
 
-	if !isEmpty(l.Root) {
-		if isEmpty(l.InDir) {
-			l.InDir = "in"
+	if !isEmpty(l.RootDir) {
+		l.RootDir = utils.ToOSPath(l.RootDir)
+
+		if isEmpty(l.ReceiveDir) {
+			l.ReceiveDir = "in"
+		} else {
+			l.ReceiveDir = utils.ToOSPath(l.ReceiveDir)
 		}
 
-		if isEmpty(l.OutDir) {
-			l.OutDir = "out"
+		if isEmpty(l.SendDir) {
+			l.SendDir = "out"
+		} else {
+			l.SendDir = utils.ToOSPath(l.SendDir)
 		}
 
-		if isEmpty(l.WorkDir) {
-			l.WorkDir = "work"
+		if isEmpty(l.TmpReceiveDir) {
+			l.TmpReceiveDir = "tmp"
+		} else {
+			l.TmpReceiveDir = utils.ToOSPath(l.TmpReceiveDir)
 		}
 	}
 }
@@ -117,6 +127,10 @@ func (l *LocalAgent) BeforeWrite(db database.ReadAccess) database.Error {
 		return database.NewValidationError("the agent's name cannot be empty")
 	}
 
+	if service.IsReservedServiceName(l.Name) {
+		return database.NewValidationError("%s is a reserved server name", l.Name)
+	}
+
 	if l.Address == "" {
 		return database.NewValidationError("the server's address cannot be empty")
 	}
@@ -126,7 +140,7 @@ func (l *LocalAgent) BeforeWrite(db database.ReadAccess) database.Error {
 	}
 
 	if l.ProtoConfig == nil {
-		return database.NewValidationError("the agent's configuration cannot be empty")
+		l.ProtoConfig = json.RawMessage(`{}`)
 	}
 
 	if err := l.validateProtoConfig(); err != nil {
@@ -176,11 +190,8 @@ func (l *LocalAgent) BeforeDelete(db database.Access) database.Error {
 	}
 
 	accountQuery := db.DeleteAll(&LocalAccount{}).Where("local_agent_id=?", l.ID)
-	if err := accountQuery.Run(); err != nil {
-		return err
-	}
 
-	return nil
+	return accountQuery.Run()
 }
 
 // GetCryptos fetch in the database then return the associated Cryptos if they exist.

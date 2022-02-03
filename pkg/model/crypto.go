@@ -1,6 +1,7 @@
 package model
 
 import (
+	"net"
 	"strings"
 
 	"golang.org/x/crypto/ssh"
@@ -149,31 +150,38 @@ func (c *Crypto) checkContentRemote(parent database.GetBean) database.Error {
 	return nil
 }
 
+//nolint:funlen // splitting the function would add complexity
 func (c *Crypto) checkContent(db database.ReadAccess, parent database.GetBean) database.Error {
 	var (
 		host, proto string
 		isServer    bool
+		err         error
 	)
 
-	switch t := parent.(type) {
+	switch owner := parent.(type) {
 	case *LocalAgent:
 		isServer = true
-		host = t.Address
-		proto = t.Protocol
+
+		host, _, err = net.SplitHostPort(owner.Address)
+		if err != nil {
+			return database.NewValidationError("failed to parse certificate owner address")
+		}
+
+		proto = owner.Protocol
 
 		if err := c.checkContentLocal(parent); err != nil {
 			return err
 		}
 
 	case *LocalAccount:
-		host = t.Login
+		host = owner.Login
 
 		if err := c.checkContentRemote(parent); err != nil {
 			return err
 		}
 
 		var parentParent LocalAgent
-		if err := db.Get(&parentParent, "id=?", t.LocalAgentID).Run(); err != nil {
+		if err := db.Get(&parentParent, "id=?", owner.LocalAgentID).Run(); err != nil {
 			return err
 		}
 
@@ -181,22 +189,27 @@ func (c *Crypto) checkContent(db database.ReadAccess, parent database.GetBean) d
 
 	case *RemoteAgent:
 		isServer = true
-		host = t.Address
-		proto = t.Protocol
+
+		host, _, err = net.SplitHostPort(owner.Address)
+		if err != nil {
+			return database.NewValidationError("failed to parse certificate owner address")
+		}
+
+		proto = owner.Protocol
 
 		if err := c.checkContentRemote(parent); err != nil {
 			return err
 		}
 
 	case *RemoteAccount:
-		host = t.Login
+		host = owner.Login
 
 		if err := c.checkContentLocal(parent); err != nil {
 			return err
 		}
 
 		var parentParent RemoteAgent
-		if err := db.Get(&parentParent, "id=?", t.RemoteAgentID).Run(); err != nil {
+		if err := db.Get(&parentParent, "id=?", owner.RemoteAgentID).Run(); err != nil {
 			return err
 		}
 

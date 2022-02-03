@@ -11,9 +11,18 @@ import (
 	"strings"
 
 	"code.waarp.fr/apps/gateway/gateway/pkg/admin/rest/api"
+	"code.waarp.fr/apps/gateway/gateway/pkg/tk/utils"
 )
 
 var errBadPerm = errors.New("permissions are insorrect")
+
+const (
+	roleClient    = "client"
+	roleServer    = "server"
+	directionRecv = "receive"
+	directionSend = "send"
+	sizeUnknown   = "unknown"
+)
 
 func unmarshalBody(body io.Reader, object interface{}) error {
 	b, err := ioutil.ReadAll(body)
@@ -100,4 +109,15 @@ func parsePerms(str string) (*api.Perms, error) {
 	}
 
 	return &perms, nil
+}
+
+func dirToBoolPtr(dir string) *bool {
+	switch dir {
+	case directionSend:
+		return utils.TruePtr
+	case directionRecv:
+		return utils.FalsePtr
+	default:
+		return nil
+	}
 }

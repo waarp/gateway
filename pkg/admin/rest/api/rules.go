@@ -26,29 +26,39 @@ type InRule struct {
 // UptRule is the JSON representation of a transfer rule in updated requests made to
 // the REST interface.
 type UptRule struct {
-	Name       *string `json:"name,omitempty"`
-	Comment    *string `json:"comment,omitempty"`
-	Path       *string `json:"path,omitempty"`
-	InPath     *string `json:"inPath,omitempty"`
-	OutPath    *string `json:"outPath,omitempty"`
-	WorkPath   *string `json:"workPath,omitempty"`
-	PreTasks   []Task  `json:"preTasks,omitempty"`
-	PostTasks  []Task  `json:"postTasks,omitempty"`
-	ErrorTasks []Task  `json:"errorTasks,omitempty"`
+	Name           *string `json:"name,omitempty"`
+	Comment        *string `json:"comment,omitempty"`
+	Path           *string `json:"path,omitempty"`
+	LocalDir       *string `json:"localDir,omitempty"`
+	RemoteDir      *string `json:"remoteDir,omitempty"`
+	TmpLocalRcvDir *string `json:"tmpLocalRcvDir,omitempty"`
+	PreTasks       []Task  `json:"preTasks,omitempty"`
+	PostTasks      []Task  `json:"postTasks,omitempty"`
+	ErrorTasks     []Task  `json:"errorTasks,omitempty"`
+
+	// Deprecated fields
+	InPath   *string `json:"inPath,omitempty"`   // Deprecated: replaced by LocalDir & RemoteDir
+	OutPath  *string `json:"outPath,omitempty"`  // Deprecated: replaced by LocalDir & RemoteDir
+	WorkPath *string `json:"workPath,omitempty"` // Deprecated: replaced by TmpLocalRcvDir
 }
 
 // OutRule is the JSON representation of a transfer rule in responses sent by
 // the REST interface.
 type OutRule struct {
-	Name       string      `json:"name"`
-	Comment    string      `json:"comment,omitempty"`
-	IsSend     bool        `json:"isSend"`
-	Path       string      `json:"path"`
-	InPath     string      `json:"inPath,omitempty"`
-	OutPath    string      `json:"outPath,omitempty"`
-	WorkPath   string      `json:"workPath,omitempty"`
-	Authorized *RuleAccess `json:"authorized,omitempty"`
-	PreTasks   []Task      `json:"preTasks,omitempty"`
-	PostTasks  []Task      `json:"postTasks,omitempty"`
-	ErrorTasks []Task      `json:"errorTasks,omitempty"`
+	Name           string      `json:"name"`
+	Comment        string      `json:"comment,omitempty"`
+	IsSend         bool        `json:"isSend"`
+	Path           string      `json:"path"`
+	LocalDir       string      `json:"localDir,omitempty"`
+	RemoteDir      string      `json:"remoteDir,omitempty"`
+	TmpLocalRcvDir string      `json:"tmpLocalRcvDir,omitempty"`
+	Authorized     *RuleAccess `json:"authorized,omitempty"`
+	PreTasks       []Task      `json:"preTasks,omitempty"`
+	PostTasks      []Task      `json:"postTasks,omitempty"`
+	ErrorTasks     []Task      `json:"errorTasks,omitempty"`
+
+	// Deprecated fields
+	InPath   string `json:"inPath,omitempty"`   // Deprecated: replaced by LocalDir & RemoteDir
+	OutPath  string `json:"outPath,omitempty"`  // Deprecated: replaced by LocalDir & RemoteDir
+	WorkPath string `json:"workPath,omitempty"` // Deprecated: replaced by TmpLocalRcvDir
 }

@@ -1,7 +1,9 @@
 package utils
 
 import (
+	"crypto/cipher"
 	"crypto/rand"
+	"crypto/subtle"
 	"encoding/base64"
 	"errors"
 	"fmt"
@@ -9,8 +11,6 @@ import (
 	"strings"
 
 	"golang.org/x/crypto/bcrypt"
-
-	"code.waarp.fr/apps/gateway/gateway/pkg/database"
 )
 
 var errNonceTooLong = errors.New("the nonce cannot be longer than the text")
@@ -21,19 +21,19 @@ var errNonceTooLong = errors.New("the nonce cannot be longer than the text")
 //
 // If the slice is already encrypted, it is returned unchanged.
 // If the slice cannot be encrypted, an error is returned.
-func AESCrypt(password string) (string, error) {
+func AESCrypt(gcm cipher.AEAD, password string) (string, error) {
 	// If password is already encrypted, don't encrypt it again.
 	if strings.HasPrefix(password, "$AES$") {
 		return password, nil
 	}
 
-	nonce := make([]byte, database.GCM.NonceSize())
+	nonce := make([]byte, gcm.NonceSize())
 	if _, err := io.ReadFull(rand.Reader, nonce); err != nil {
 		return "", fmt.Errorf("cannot get random bytes: %w", err)
 	}
 
-	cipher := database.GCM.Seal(nonce, nonce, []byte(password), nil)
-	cipherText := "$AES$" + base64.StdEncoding.EncodeToString(cipher)
+	cipherBytes := gcm.Seal(nonce, nonce, []byte(password), nil)
+	cipherText := "$AES$" + base64.StdEncoding.EncodeToString(cipherBytes)
 
 	return cipherText, nil
 }
@@ -42,24 +42,24 @@ func AESCrypt(password string) (string, error) {
 // returns it decrypted.
 //
 // If the slice cannot be decrypted, an error is returned.
-func AESDecrypt(cipher string) (string, error) {
-	if !strings.HasPrefix(cipher, "$AES$") {
-		return cipher, nil
+func AESDecrypt(gcm cipher.AEAD, cipherStr string) (string, error) {
+	if !strings.HasPrefix(cipherStr, "$AES$") {
+		return cipherStr, nil
 	}
 
-	cryptPassword, err := base64.StdEncoding.DecodeString(cipher[5:])
+	cryptPassword, err := base64.StdEncoding.DecodeString(cipherStr[5:])
 	if err != nil {
 		return "", fmt.Errorf("failed to decode encrypted password string: %w", err)
 	}
 
-	nonceSize := database.GCM.NonceSize()
+	nonceSize := gcm.NonceSize()
 	if len(cryptPassword) < nonceSize {
 		return "", errNonceTooLong
 	}
 
 	nonce, cipherText := cryptPassword[:nonceSize], cryptPassword[nonceSize:]
 
-	password, err := database.GCM.Open(nil, nonce, cipherText, nil)
+	password, err := gcm.Open(nil, nonce, cipherText, nil)
 	if err != nil {
 		return "", fmt.Errorf("cannot decrypt password: %w", err)
 	}
@@ -72,16 +72,26 @@ func AESDecrypt(cipher string) (string, error) {
 //
 // If the password is already hashed, the hash is returned unchanged.
 // If the password cannot be hashed, an error is returned.
-func HashPassword(password []byte) ([]byte, error) {
+func HashPassword(bcryptRounds int, password string) (string, error) {
+	if password == "" {
+		return "", nil
+	}
+
 	// If password is already hashed, don't encrypt it again.
-	if _, isHashed := bcrypt.Cost(password); isHashed == nil {
+	if _, isHashed := bcrypt.Cost([]byte(password)); isHashed == nil {
 		return password, nil
 	}
 
-	hash, err := bcrypt.GenerateFromPassword(password, database.BcryptRounds)
+	hash, err := bcrypt.GenerateFromPassword([]byte(password), bcryptRounds)
 	if err != nil {
-		return nil, fmt.Errorf("cannot hash password: %w", err)
+		return "", fmt.Errorf("cannot hash password: %w", err)
 	}
 
-	return hash, nil
+	return string(hash), nil
+}
+
+// ConstantEqual takes a pair of strings and returns whether they are equal or
+// not. Comparison is done in constant time for security purposes.
+func ConstantEqual(s1, s2 string) bool {
+	return subtle.ConstantTimeCompare([]byte(s1), []byte(s2)) == 1
 }

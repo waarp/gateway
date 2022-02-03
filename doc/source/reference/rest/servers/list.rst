@@ -29,13 +29,24 @@ Lister les serveurs
    :resjsonarr string protocol: Le protocole utilisé par le serveur
    :resjsonarr string address: L'adresse du serveur (en format [adresse:port])
    :resjsonarr string root: La racine du serveur. Peut être relatif (à la racine
-      de la *gateway*) ou absolu.
+      de la *gateway*) ou absolu (OBSOLÈTE: remplacé par 'rootDir').
    :resjsonarr string inDir: Le dossier de réception du serveur. Peut être
-      relatif (à la racine du serveur) ou absolu.
+      relatif (à la racine du serveur) ou absolu. (OBSOLÈTE: remplacé par
+      'receiveDir')
    :resjsonarr string outDir: Le dossier d'envoi du serveur. Peut être
-      relatif (à la racine du serveur) ou absolu.
+      relatif (à la racine du serveur) ou absolu. (OBSOLÈTE: remplacé par
+      'sendDir')
    :resjsonarr string workDir: Le dossier temporaire du serveur. Peut être
+      relatif (à la racine du serveur) ou absolu. (OBSOLÈTE: remplacé par
+      'tmpReceiveDir')
+   :resjsonarr string rootDir: Chemin du dossier racine du serveur. Peut être
+      relatif (à la racine de la *gateway*) ou absolu.
+   :resjsonarr string receiveDir: Le dossier de réception du serveur. Peut
+      être relatif (à la racine du serveur) ou absolu.
+   :resjsonarr string sendDir: Le dossier d'envoi du serveur. Peut être
       relatif (à la racine du serveur) ou absolu.
+   :resjsonarr string tmpReceiveDir: Le dossier temporaire du serveur. Peut
+      être relatif (à la racine du serveur) ou absolu.
    :resjsonarr object protoConfig: La configuration du serveur encodé sous forme
       d'un objet JSON. Cet objet dépend du protocole.
    :resjsonarr object authorizedRules: Les règles que le serveur est autorisé à
@@ -67,7 +78,7 @@ Lister les serveurs
              "name": "sftp_server_2",
              "protocol": "sftp",
              "address": "localhost:2023",
-             "root": "/sftp2/root",
+             "rootDir": "/sftp2/root",
              "protoConfig": {},
              "authorizedRules": {
                "sending": ["règle_envoi_1", "règle_envoi_2"],
@@ -77,7 +88,7 @@ Lister les serveurs
              "name": "sftp_server_1",
              "protocol": "sftp",
              "address": "localhost:2022",
-             "root": "/sftp/root",
+             "rootDir": "/sftp/root",
              "protoConfig": {},
              "authorizedRules": {
                "sending": ["règle_envoi_1", "règle_envoi_2"],

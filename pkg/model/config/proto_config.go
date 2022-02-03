@@ -24,7 +24,6 @@ var ProtoConfigs = map[string]func() ProtoConfig{}
 type ProtoConfig interface {
 	ValidServer() error
 	ValidPartner() error
-	CertRequired() bool
 }
 
 // GetProtoConfig parse and returns the given configuration according to the

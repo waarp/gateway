@@ -22,7 +22,7 @@ Ajouter un utilisateur
       d'une création vu que l'utilisateur n'a pas de droits courants).
 
       * **transfers** (*string*) - Les droits sur les transferts. (*Note*:
-         les transferts ne peuvent pas être supprimés).
+        les transferts ne peuvent pas être supprimés).
       * **servers** (*string*) - Les droits sur les serveurs locaux.
       * **partners** (*string*) - Les droits sur les partenaires distants.
       * **rules** (*string*) - Les droits sur les règles de transfert.

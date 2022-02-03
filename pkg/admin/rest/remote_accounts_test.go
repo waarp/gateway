@@ -31,10 +31,9 @@ func TestGetRemoteAccount(t *testing.T) {
 
 		Convey("Given a database with 1 account", func() {
 			parent := &model.RemoteAgent{
-				Name:        "parent",
-				Protocol:    "test",
-				ProtoConfig: json.RawMessage(`{}`),
-				Address:     "localhost:1",
+				Name:     "parent",
+				Protocol: testProto1,
+				Address:  "localhost:1",
 			}
 			So(db.Insert(parent).Run(), ShouldBeNil)
 
@@ -145,16 +144,14 @@ func TestListRemoteAccounts(t *testing.T) {
 
 		Convey("Given a database with 4 remote accounts", func() {
 			p1 := &model.RemoteAgent{
-				Name:        "parent1",
-				Protocol:    "test",
-				ProtoConfig: json.RawMessage(`{}`),
-				Address:     "localhost:1",
+				Name:     "parent1",
+				Protocol: testProto1,
+				Address:  "localhost:1",
 			}
 			p2 := &model.RemoteAgent{
-				Name:        "parent2",
-				Protocol:    "test",
-				ProtoConfig: json.RawMessage(`{}`),
-				Address:     "localhost:2",
+				Name:     "parent2",
+				Protocol: testProto1,
+				Address:  "localhost:2",
 			}
 			So(db.Insert(p1).Run(), ShouldBeNil)
 			So(db.Insert(p2).Run(), ShouldBeNil)
@@ -289,7 +286,7 @@ func TestCreateRemoteAccount(t *testing.T) {
 		Convey("Given a database with 1 agent", func() {
 			parent := &model.RemoteAgent{
 				Name:        "parent",
-				Protocol:    "test",
+				Protocol:    testProto1,
 				ProtoConfig: json.RawMessage(`{}`),
 				Address:     "localhost:1",
 			}
@@ -382,7 +379,7 @@ func TestDeleteRemoteAccount(t *testing.T) {
 		Convey("Given a database with 1 account", func() {
 			parent := &model.RemoteAgent{
 				Name:        "parent",
-				Protocol:    "test",
+				Protocol:    testProto1,
 				ProtoConfig: json.RawMessage(`{}`),
 				Address:     "localhost:1",
 			}
@@ -471,7 +468,7 @@ func TestUpdateRemoteAccount(t *testing.T) {
 		Convey("Given a database with 1 account", func() {
 			parent := &model.RemoteAgent{
 				Name:        "parent",
-				Protocol:    "test",
+				Protocol:    testProto1,
 				ProtoConfig: json.RawMessage(`{}`),
 				Address:     "localhost:1",
 			}
@@ -607,7 +604,7 @@ func TestReplaceRemoteAccount(t *testing.T) {
 		Convey("Given a database with 1 account", func() {
 			parent := &model.RemoteAgent{
 				Name:        "parent",
-				Protocol:    "test",
+				Protocol:    testProto1,
 				ProtoConfig: json.RawMessage(`{}`),
 				Address:     "localhost:1",
 			}

@@ -19,16 +19,17 @@ type Service struct {
 	agent  *model.LocalAgent
 	logger *log.Logger
 
-	state    service.State
+	state    *service.State
 	listener *sshListener
 }
 
 // NewService returns a new SFTP service instance with the given attributes.
-func NewService(db *database.DB, agent *model.LocalAgent, logger *log.Logger) *Service {
+func NewService(db *database.DB, agent *model.LocalAgent, logger *log.Logger) service.ProtoService {
 	return &Service{
 		db:     db,
 		agent:  agent,
 		logger: logger,
+		state:  &service.State{},
 	}
 }
 
@@ -51,7 +52,7 @@ func (s *Service) Start() error {
 		if err1 != nil {
 			s.logger.Errorf("Failed to parse the SSH server configuration: %s", err1)
 
-			return err1
+			return fmt.Errorf("failed to parse the SSH server configuration: %w", err1)
 		}
 
 		listener, err2 := net.Listen("tcp", s.agent.Address)
@@ -63,15 +64,15 @@ func (s *Service) Start() error {
 		}
 
 		s.listener = &sshListener{
-			DB:          s.db,
-			Logger:      s.logger,
-			Agent:       s.agent,
-			ProtoConfig: &protoConfig,
-			SSHConf:     sshConf,
-			Listener:    listener,
-			GWConf:      s.db.Conf,
+			DB:               s.db,
+			Logger:           s.logger,
+			Agent:            s.agent,
+			ProtoConfig:      &protoConfig,
+			SSHConf:          sshConf,
+			Listener:         listener,
+			runningTransfers: service.NewTransferMap(),
+			shutdown:         make(chan struct{}),
 		}
-		s.listener.ctx, s.listener.cancel = context.WithCancel(context.Background())
 		s.listener.listen()
 
 		return nil
@@ -103,24 +104,26 @@ func (s *Service) Stop(ctx context.Context) error {
 		return nil
 	}
 
-	if s.listener.close(ctx) != nil {
+	s.state.Set(service.ShuttingDown, "")
+	defer s.state.Set(service.Offline, "")
+
+	if err := s.listener.close(ctx); err != nil {
 		s.logger.Error("Failed to shut down SFTP server, forcing exit")
-	} else {
-		s.logger.Info("SFTP server shutdown successful")
+
+		return err
 	}
 
-	s.state.Set(service.Offline, "")
+	s.logger.Info("SFTP server shutdown successful")
 
 	return nil
 }
 
 // State returns the state of the SFTP service.
 func (s *Service) State() *service.State {
-	if s.listener == nil {
-		if code, _ := s.state.Get(); code == service.Running {
-			s.state.Set(service.Offline, "")
-		}
-	}
+	return s.state
+}
 
-	return &s.state
+// ManageTransfers returns a map of the transfers currently running on the server.
+func (s *Service) ManageTransfers() *service.TransferMap {
+	return s.listener.runningTransfers
 }

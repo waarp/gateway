@@ -1,24 +1,27 @@
 package tasks
 
 import (
+	"context"
 	"fmt"
 	"path"
+	"path/filepath"
 
+	"code.waarp.fr/apps/gateway/gateway/pkg/database"
 	"code.waarp.fr/apps/gateway/gateway/pkg/model"
+	"code.waarp.fr/apps/gateway/gateway/pkg/tk/utils"
 )
 
-// MoveRenameTask is a task which move and rename the current file
-// to a given destination.
-type MoveRenameTask struct{}
+// moveRenameTask is a task which move and rename the current file to a given
+// destination.
+type moveRenameTask struct{}
 
 //nolint:gochecknoinits // init is used by design
 func init() {
-	RunnableTasks["MOVERENAME"] = &MoveRenameTask{}
-	model.ValidTasks["MOVERENAME"] = &MoveRenameTask{}
+	model.ValidTasks["MOVERENAME"] = &moveRenameTask{}
 }
 
 // Validate check if the task has a destination for the move.
-func (*MoveRenameTask) Validate(args map[string]string) error {
+func (*moveRenameTask) Validate(args map[string]string) error {
 	if _, ok := args["path"]; !ok {
 		return fmt.Errorf("cannot create a move_rename task without a `path` argument: %w",
 			errBadTaskArguments)
@@ -29,21 +32,18 @@ func (*MoveRenameTask) Validate(args map[string]string) error {
 
 // Run move and rename the current file to the destination and
 // modify the transfer model to reflect the file change.
-func (*MoveRenameTask) Run(args map[string]string, processor *Processor) (string, error) {
+func (*moveRenameTask) Run(_ context.Context, args map[string]string, _ *database.DB,
+	transCtx *model.TransferContext) (string, error) {
 	newPath := args["path"]
-	oldPath := processor.Transfer.TrueFilepath
+	oldPath := transCtx.Transfer.LocalPath
 
 	if err := MoveFile(oldPath, newPath); err != nil {
 		return err.Error(), err
 	}
 
-	processor.Transfer.TrueFilepath = newPath
-
-	if processor.Rule.IsSend {
-		processor.Transfer.SourceFile = path.Base(newPath)
-	} else {
-		processor.Transfer.DestFile = path.Base(newPath)
-	}
+	transCtx.Transfer.LocalPath = utils.ToOSPath(newPath)
+	transCtx.Transfer.RemotePath = path.Join(path.Dir(transCtx.Transfer.RemotePath),
+		filepath.Base(transCtx.Transfer.LocalPath))
 
 	return "", nil
 }

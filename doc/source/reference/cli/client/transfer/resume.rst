@@ -6,7 +6,7 @@ Reprendre un transfert
 
 .. program:: waarp-gateway transfer resume
 
-.. describe:: waarp-gateway <ADDR> transfer resume <TRANS>
+.. describe:: waarp-gateway transfer resume <TRANS>
 
 Reprend le transfert donné si celui-ci est interrompu, en pause ou en erreur.
 

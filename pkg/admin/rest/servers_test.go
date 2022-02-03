@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"net/http"
 	"net/http/httptest"
+	"path/filepath"
 	"strings"
 	"testing"
 
@@ -51,29 +52,29 @@ func TestListServers(t *testing.T) {
 		Convey("Given a database with 4 servers", func() {
 			a1 := model.LocalAgent{
 				Name:        "server1",
-				Protocol:    "test",
-				Root:        "/root1",
+				Protocol:    testProto1,
+				RootDir:     "/root1",
 				ProtoConfig: json.RawMessage(`{}`),
 				Address:     "localhost:1",
 			}
 			a2 := model.LocalAgent{
 				Name:        "server2",
-				Protocol:    "test",
-				Root:        "/root2",
+				Protocol:    testProto1,
+				RootDir:     "/root2",
 				ProtoConfig: json.RawMessage(`{}`),
 				Address:     "localhost:2",
 			}
 			a3 := model.LocalAgent{
 				Name:        "server3",
-				Protocol:    "test",
-				Root:        "/root3",
+				Protocol:    testProto1,
+				RootDir:     "/root3",
 				ProtoConfig: json.RawMessage(`{}`),
 				Address:     "localhost:3",
 			}
 			a4 := model.LocalAgent{
 				Name:        "server4",
-				Protocol:    "test2",
-				Root:        "/root4",
+				Protocol:    testProto2,
+				RootDir:     "/root4",
 				ProtoConfig: json.RawMessage(`{}`),
 				Address:     "localhost:4",
 			}
@@ -137,7 +138,7 @@ func TestListServers(t *testing.T) {
 			})
 
 			Convey("Given a request with protocol parameters", func() {
-				r, err := http.NewRequest(http.MethodGet, "?type=http&protocol=test", nil)
+				r, err := http.NewRequest(http.MethodGet, "?type=http&protocol="+testProto1, nil)
 				So(err, ShouldBeNil)
 
 				Convey("When sending the request to the handler", func() {
@@ -162,8 +163,8 @@ func TestGetServer(t *testing.T) {
 		Convey("Given a database with 1 server", func() {
 			existing := model.LocalAgent{
 				Name:        "existing",
-				Protocol:    "test",
-				Root:        "/root",
+				Protocol:    testProto1,
+				RootDir:     "/root",
 				ProtoConfig: json.RawMessage(`{}`),
 				Address:     "localhost:1",
 			}
@@ -225,8 +226,8 @@ func TestCreateServer(t *testing.T) {
 		Convey("Given a database with 1 server", func() {
 			existing := model.LocalAgent{
 				Name:        "existing",
-				Protocol:    "test",
-				Root:        "/root",
+				Protocol:    testProto1,
+				RootDir:     "/root",
 				ProtoConfig: json.RawMessage(`{}`),
 				Address:     "localhost:1",
 			}
@@ -235,8 +236,8 @@ func TestCreateServer(t *testing.T) {
 			Convey("Given a new server to insert in the database", func() {
 				body := strings.NewReader(`{
 					"name": "new_server",
-					"protocol": "test",
-					"root": "/new_root",
+					"protocol": "` + testProto1 + `",
+					"rootDir": "/new_root",
 					"protoConfig": {},
 					"address": "localhost:2"
 				}`)
@@ -266,16 +267,16 @@ func TestCreateServer(t *testing.T) {
 						Convey("Then the new server should be inserted in "+
 							"the database", func() {
 							exp := model.LocalAgent{
-								ID:          2,
-								Owner:       database.Owner,
-								Name:        "new_server",
-								Protocol:    "test",
-								Address:     "localhost:2",
-								Root:        "/new_root",
-								InDir:       "in",
-								OutDir:      "out",
-								WorkDir:     "work",
-								ProtoConfig: json.RawMessage("{}"),
+								ID:            2,
+								Owner:         database.Owner,
+								Name:          "new_server",
+								Protocol:      testProto1,
+								Address:       "localhost:2",
+								RootDir:       filepath.FromSlash("/new_root"),
+								ReceiveDir:    filepath.FromSlash("in"),
+								SendDir:       filepath.FromSlash("out"),
+								TmpReceiveDir: filepath.FromSlash("tmp"),
+								ProtoConfig:   json.RawMessage("{}"),
 							}
 							var res model.LocalAgents
 							So(db.Select(&res).Run(), ShouldBeNil)
@@ -309,8 +310,8 @@ func TestDeleteServer(t *testing.T) {
 		Convey("Given a database with 1 server", func() {
 			existing := model.LocalAgent{
 				Name:        "existing1",
-				Protocol:    "test",
-				Root:        "/root",
+				Protocol:    testProto1,
+				RootDir:     "/root",
 				ProtoConfig: json.RawMessage(`{}`),
 				Address:     "localhost:1",
 			}
@@ -367,23 +368,23 @@ func TestUpdateServer(t *testing.T) {
 
 		Convey("Given a database with 1 agent", func() {
 			old := model.LocalAgent{
-				Name:        "old",
-				Protocol:    "test",
-				Address:     "localhost:1",
-				Root:        "/old/root",
-				InDir:       "/old/in",
-				OutDir:      "/old/out",
-				WorkDir:     "/old/work",
-				ProtoConfig: json.RawMessage(`{}`),
+				Name:          "old",
+				Protocol:      testProto1,
+				Address:       "localhost:1",
+				RootDir:       "/old/root",
+				ReceiveDir:    "/old/in",
+				SendDir:       "/old/out",
+				TmpReceiveDir: "/old/tmp",
+				ProtoConfig:   json.RawMessage(`{}`),
 			}
 			So(db.Insert(&old).Run(), ShouldBeNil)
 
 			Convey("Given new values to update the agent with", func() {
 				body := strings.NewReader(`{
 					"name": "update",
-					"root": "/upt/root",
-					"inDir": "/upt/in",
-					"outDir": "",
+					"rootDir": "/upt/root",
+					"receiveDir": "/upt/in",
+					"sendDir": "",
 					"address": "localhost:2"
 				}`)
 
@@ -410,16 +411,17 @@ func TestUpdateServer(t *testing.T) {
 
 					Convey("Then the agent should have been updated", func() {
 						exp := model.LocalAgent{
-							ID:          old.ID,
-							Owner:       database.Owner,
-							Name:        "update",
-							Protocol:    "test",
-							Address:     "localhost:2",
-							Root:        "/upt/root",
-							InDir:       "/upt/in",
-							OutDir:      "out", // sub-dirs cannot be empty if root isn't empty, so OutDir is reset to default
-							WorkDir:     "/old/work",
-							ProtoConfig: json.RawMessage(`{}`),
+							ID:         old.ID,
+							Owner:      database.Owner,
+							Name:       "update",
+							Protocol:   testProto1,
+							Address:    "localhost:2",
+							RootDir:    filepath.FromSlash("/upt/root"),
+							ReceiveDir: filepath.FromSlash("/upt/in"),
+							// sub-dirs cannot be empty if root isn't empty, so OutDir is reset to default
+							SendDir:       filepath.FromSlash("out"),
+							TmpReceiveDir: filepath.FromSlash("/old/tmp"),
+							ProtoConfig:   json.RawMessage(`{}`),
 						}
 
 						var res model.LocalAgents
@@ -468,25 +470,25 @@ func TestReplaceServer(t *testing.T) {
 
 		Convey("Given a database with 1 agent", func() {
 			old := model.LocalAgent{
-				Name:        "old",
-				Protocol:    "test",
-				Address:     "localhost:1",
-				Root:        "/old/root",
-				InDir:       "/old/in",
-				OutDir:      "/old/out",
-				WorkDir:     "/old/work",
-				ProtoConfig: json.RawMessage(`{}`),
+				Name:          "old",
+				Protocol:      testProto1,
+				Address:       "localhost:1",
+				RootDir:       "/old/root",
+				ReceiveDir:    "/old/in",
+				SendDir:       "/old/out",
+				TmpReceiveDir: "/old/tmp",
+				ProtoConfig:   json.RawMessage(`{}`),
 			}
 			So(db.Insert(&old).Run(), ShouldBeNil)
 
 			Convey("Given new values to update the agent with", func() {
 				body := strings.NewReader(`{
 					"name": "update",
-					"protocol": "test2",
+					"protocol": "` + testProto2 + `",
 					"address": "localhost:2",
-					"root": "/upt/root",
-					"inDir": "/upt/in",
-					"outDir": "",
+					"rootDir": "/upt/root",
+					"receiveDir": "/upt/in",
+					"sendDir": "",
 					"protoConfig": {}
 				}`)
 
@@ -514,16 +516,17 @@ func TestReplaceServer(t *testing.T) {
 
 					Convey("Then the agent should have been updated", func() {
 						exp := model.LocalAgent{
-							ID:          old.ID,
-							Owner:       database.Owner,
-							Name:        "update",
-							Protocol:    "test2",
-							Address:     "localhost:2",
-							Root:        "/upt/root",
-							InDir:       "/upt/in",
-							OutDir:      "out",  // sub-dirs cannot be empty if root isn't empty, so OutDir is reset to default
-							WorkDir:     "work", // idem
-							ProtoConfig: json.RawMessage(`{}`),
+							ID:         old.ID,
+							Owner:      database.Owner,
+							Name:       "update",
+							Protocol:   testProto2,
+							Address:    "localhost:2",
+							RootDir:    filepath.FromSlash("/upt/root"),
+							ReceiveDir: filepath.FromSlash("/upt/in"),
+							// sub-dirs cannot be empty if root isn't empty, so OutDir is reset to default
+							SendDir:       filepath.FromSlash("out"),
+							TmpReceiveDir: filepath.FromSlash("tmp"), // idem
+							ProtoConfig:   json.RawMessage(`{}`),
 						}
 
 						var res model.LocalAgents

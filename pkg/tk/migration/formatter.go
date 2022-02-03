@@ -79,15 +79,16 @@ func (*standardFormatter) formatTinyInt(val interface{}) (string, error) {
 }
 
 func (*standardFormatter) formatSmallInt(val interface{}) (string, error) {
-	return convert(val, "%d", reflect.Int16)
+	return convert(val, "%d", reflect.Int16, reflect.Int8)
 }
 
 func (*standardFormatter) formatInteger(val interface{}) (string, error) {
-	return convert(val, "%d", reflect.Int, reflect.Int32)
+	return convert(val, "%d", reflect.Int, reflect.Int32, reflect.Int16, reflect.Int8)
 }
 
 func (*standardFormatter) formatBigInt(val interface{}) (string, error) {
-	return convert(val, "%d", reflect.Int64)
+	return convert(val, "%d", reflect.Int64, reflect.Int, reflect.Int32,
+		reflect.Int16, reflect.Int8)
 }
 
 func (*standardFormatter) formatFloat(val interface{}) (string, error) {
@@ -95,7 +96,7 @@ func (*standardFormatter) formatFloat(val interface{}) (string, error) {
 }
 
 func (*standardFormatter) formatDouble(val interface{}) (string, error) {
-	return convert(val, "%f", reflect.Float64)
+	return convert(val, "%f", reflect.Float64, reflect.Float32)
 }
 
 func (*standardFormatter) formatVarChar(val interface{}) (string, error) {

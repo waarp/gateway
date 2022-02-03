@@ -47,8 +47,8 @@ ou plusieurs options pour faire une mise à jour partielle.
    waarp-gateway 'https://admin@127.0.0.1:8080' account remote 'WAARP R66' update 'titi' -p 'sésame2'
 
 
-Consulter les comptes locaux
-----------------------------
+Consulter les comptes distants
+------------------------------
 
 Pour lister les comptes d'un partenaire, la commande est ``account remote list``.
 Les options de commande permettent de filtrer les résultats selon divers critères,

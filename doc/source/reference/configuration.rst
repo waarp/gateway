@@ -10,6 +10,23 @@ Fichier de configuration ``waarp-gatewayd.ini``
 Le fichier de configuration ``waarp-gatewayd.ini`` permet de contrôler et modifier
 le comportement du démon ``waarp-gatewayd``.
 
+.. confval:: GatewayName
+
+   Définit le nom de la *gateway*. Par défaut, le nom ``waarp-gateway`` est utilisé.
+   Il est cependant recommandé de donner un nom unique à chaque nouvelle instance
+   pour éviter les confusions.
+
+   Il est également possible de donner le même nom à plusieurs instances partageant
+   une même base de données. Dans ce cas, les instances seront des copies les unes
+   des autres (elles auront la même configuration et le même historique).
+
+   .. warning:: Dans une configuration avec plusieurs instances identiques, il est
+      très fortement déconseillé de laisser la valeur par défaut de ``MaxTransfersOut``,
+      et de fixer une limite au nombre de transferts client autorisés en parallèle
+      pour une instance. En l'absence de limite, les transferts clients seront tous
+      exécutés par la même instance au lieu d'être répartis sur les différentes
+      instances.
+
 Section ``[path]``
 ==================
 
@@ -23,19 +40,44 @@ La section ``[path]`` contient les différents chemins de la gateway.
 
 .. confval:: InDirectory
 
+   *[OBSOLÈTE]: remplacé par ``DefaultInDir``*
+
    Le dossier dans lequel sont déposés les fichiers reçus. Par défaut, la racine
    de la *gateway* est utilisée à la place.
 
 .. confval:: OutDirectory
+
+   *[OBSOLÈTE]: remplacé par ``DefaultOutDir``*
 
    Le dossier dans lequel les fichiers à envoyer sont cherchés. Par défaut,
    la racine de la *gateway* est utilisée à la place.
 
 .. confval:: WorkDirectory
 
+   *[OBSOLÈTE]: remplacé par ``DefaultTmpDir``*
+
    Le dossier dans lequel les fichiers en cours de réception sont déposés avant
    d'être déplacés dans le ``InDirectory``. Par défaut, la racine de la *gateway*
    est utilisée à la place.
+
+.. confval:: DefaultInDirectory
+
+   Le dossier par défaut dans lequel sont déposés les fichiers reçus si le serveur
+   et la règle concernés ne spécifient pas ce dossier de réception. Par défaut,
+   un dossier 'in' est créé à cet effet sous la racine de la *Gateway*.
+
+.. confval:: DefaultOutDirectory
+
+   Le dossier par défaut depuis lequel sont récupérés les fichiers à envoyer si
+   le serveur et la règle concernés ne spécifient pas ce dossier d'envoi. Par
+   défaut, un dossier 'out' est créé à cet effet sous la racine de la *Gateway*.
+
+.. confval:: DefaultTmpDirectory
+
+   Le dossier par défaut dans lequel sont déposés les fichiers en cours de réception
+   (avant dépôt dans le dossier de réception *in*) si le serveur et la règle
+   concernés ne spécifient pas ce dossier temporaire. Par défaut, un dossier
+   'tmp' est créé à cet effet sous la racine de la *Gateway*.
 
 Section ``[log]``
 =================
@@ -162,11 +204,6 @@ La section ``[controller]`` regroupe toutes les options de configuration du
    "s", "m", "h".
 
    Valeur par défaut : ``5s``
-
-.. confval:: R66Home
-
-   Le dossier racine du serveur *Waarp-R66* associé à cette *gateway* (s'il y en
-   a un).
 
 .. confval:: MaxTransfersIn
 

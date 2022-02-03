@@ -9,7 +9,6 @@ import (
 	. "github.com/smartystreets/goconvey/convey"
 	"golang.org/x/crypto/bcrypt"
 
-	"code.waarp.fr/apps/gateway/gateway/pkg/admin"
 	"code.waarp.fr/apps/gateway/gateway/pkg/admin/rest"
 	"code.waarp.fr/apps/gateway/gateway/pkg/admin/rest/api"
 	"code.waarp.fr/apps/gateway/gateway/pkg/database"
@@ -33,14 +32,14 @@ func TestGetUser(t *testing.T) {
 
 		Convey("Given a gateway with 1 user", func(c C) {
 			db := database.TestDatabase(c, "ERROR")
-			gw := httptest.NewServer(admin.MakeHandler(discard, db, nil))
+			gw := httptest.NewServer(testHandler(db))
 			var err error
 			addr, err = url.Parse("http://admin:admin_password@" + gw.Listener.Addr().String())
 			So(err, ShouldBeNil)
 
 			user := &model.User{
-				Username: "toto",
-				Password: []byte("password"),
+				Username:     "toto",
+				PasswordHash: hash("password"),
 				Permissions: model.PermTransfersRead |
 					model.PermServersRead |
 					model.PermPartnersRead |
@@ -88,7 +87,7 @@ func TestAddUser(t *testing.T) {
 
 		Convey("Given a gateway", func(c C) {
 			db := database.TestDatabase(c, "ERROR")
-			gw := httptest.NewServer(admin.MakeHandler(discard, db, nil))
+			gw := httptest.NewServer(testHandler(db))
 			var err error
 			addr, err = url.Parse("http://admin:admin_password@" + gw.Listener.Addr().String())
 			So(err, ShouldBeNil)
@@ -111,13 +110,13 @@ func TestAddUser(t *testing.T) {
 						So(db.Select(&users).Run(), ShouldBeNil)
 						So(len(users), ShouldEqual, 2)
 
-						So(bcrypt.CompareHashAndPassword(users[1].Password,
+						So(bcrypt.CompareHashAndPassword([]byte(users[1].PasswordHash),
 							[]byte("password")), ShouldBeNil)
 						exp := model.User{
-							Owner:    database.Owner,
-							ID:       2,
-							Username: "user",
-							Password: users[1].Password,
+							Owner:        database.Owner,
+							ID:           2,
+							Username:     "user",
+							PasswordHash: users[1].PasswordHash,
 							Permissions: model.PermTransfersRead |
 								model.PermServersRead | model.PermPartnersRead,
 						}
@@ -136,14 +135,14 @@ func TestDeleteUser(t *testing.T) {
 
 		Convey("Given a gateway with 1 user", func(c C) {
 			db := database.TestDatabase(c, "ERROR")
-			gw := httptest.NewServer(admin.MakeHandler(discard, db, nil))
+			gw := httptest.NewServer(testHandler(db))
 			var err error
 			addr, err = url.Parse("http://admin:admin_password@" + gw.Listener.Addr().String())
 			So(err, ShouldBeNil)
 
 			user := &model.User{
-				Username: "user",
-				Password: []byte("password"),
+				Username:     "user",
+				PasswordHash: hash("password"),
 			}
 			So(db.Insert(user).Run(), ShouldBeNil)
 
@@ -198,14 +197,14 @@ func TestUpdateUser(t *testing.T) {
 
 		Convey("Given a gateway with 1 user", func(c C) {
 			db := database.TestDatabase(c, "ERROR")
-			gw := httptest.NewServer(admin.MakeHandler(discard, db, nil))
+			gw := httptest.NewServer(testHandler(db))
 			var err error
 			addr, err = url.Parse("http://admin:admin_password@" + gw.Listener.Addr().String())
 			So(err, ShouldBeNil)
 
 			user := &model.User{
-				Username: "user",
-				Password: []byte("password"),
+				Username:     "user",
+				PasswordHash: hash("password"),
 				Permissions: model.PermTransfersRead |
 					model.PermServersRead |
 					model.PermPartnersRead |
@@ -235,13 +234,13 @@ func TestUpdateUser(t *testing.T) {
 						So(db.Select(&users).Run(), ShouldBeNil)
 						So(len(users), ShouldEqual, 2)
 
-						So(bcrypt.CompareHashAndPassword(users[1].Password,
+						So(bcrypt.CompareHashAndPassword([]byte(users[1].PasswordHash),
 							[]byte("new_password")), ShouldBeNil)
 						exp := model.User{
-							Owner:    database.Owner,
-							ID:       user.ID,
-							Username: "new_user",
-							Password: users[1].Password,
+							Owner:        database.Owner,
+							ID:           user.ID,
+							Username:     "new_user",
+							PasswordHash: users[1].PasswordHash,
 							Permissions: model.PermTransfersRead | model.PermTransfersWrite |
 								model.PermPartnersWrite | model.PermPartnersDelete |
 								model.PermRulesWrite |
@@ -282,13 +281,13 @@ func TestListUser(t *testing.T) {
 
 		Convey("Given a gateway with 2 users", func(c C) {
 			db := database.TestDatabase(c, "ERROR")
-			gw := httptest.NewServer(admin.MakeHandler(discard, db, nil))
+			gw := httptest.NewServer(testHandler(db))
 			So(db.DeleteAll(&model.User{}).Where("username='admin'").Run(), ShouldBeNil)
 
 			user1 := &model.User{
-				Username:    "user1",
-				Password:    []byte("password"),
-				Permissions: model.PermUsersRead,
+				Username:     "user1",
+				PasswordHash: hash("password"),
+				Permissions:  model.PermUsersRead,
 			}
 			So(db.Insert(user1).Run(), ShouldBeNil)
 			var err error
@@ -296,8 +295,8 @@ func TestListUser(t *testing.T) {
 			So(err, ShouldBeNil)
 
 			user2 := &model.User{
-				Username: "user2",
-				Password: []byte("password"),
+				Username:     "user2",
+				PasswordHash: hash("password"),
 			}
 			So(db.Insert(user2).Run(), ShouldBeNil)
 

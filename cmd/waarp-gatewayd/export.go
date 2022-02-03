@@ -17,7 +17,7 @@ type exportCommand struct {
 }
 
 func (e *exportCommand) Execute([]string) error {
-	db, err := initImportExport(e.ConfigFile, e.Verbose)
+	db, logger, err := initImportExport(e.ConfigFile, e.Verbose)
 	if err != nil {
 		return fmt.Errorf("error at init: %w", err)
 	}
@@ -31,14 +31,19 @@ func (e *exportCommand) Execute([]string) error {
 			return fmt.Errorf("failed to open the output file: %w", err)
 		}
 
-		defer func() { _ = f.Close() }() //nolint:errcheck // cannot handle the error
+		//nolint:gosec //close must be deferred here
+		defer func() {
+			if err := f.Close(); err != nil {
+				logger.Warningf("Error while closing the destination file: %s", err)
+			}
+		}()
 	}
 
 	if err := backup.ExportData(db, f, e.Target); err != nil {
 		return fmt.Errorf("error during export: %w", err)
 	}
 
-	fmt.Fprintln(os.Stderr, "Export successful.")
+	logger.Info("Export successful.")
 
 	return nil
 }

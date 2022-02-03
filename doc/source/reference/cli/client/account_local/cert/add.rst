@@ -4,7 +4,7 @@ Ajouter un certificat à un compte local
 
 .. program:: waarp-gateway account local cert add
 
-.. describe:: waarp-gateway <ADDR> account local <SERVER> cert <LOGIN> add
+.. describe:: waarp-gateway account local <SERVER> cert <LOGIN> add
 
 Attache un nouveau certificat au compte donné à partir des informations renseignées.
 

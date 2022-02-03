@@ -1,130 +1,22 @@
 package sftp
 
 import (
-	"context"
-	"fmt"
-	"io"
-
-	"github.com/pkg/sftp"
 	"github.com/smartystreets/goconvey/convey"
 	"golang.org/x/crypto/bcrypt"
 
-	"code.waarp.fr/apps/gateway/gateway/pkg/conf"
 	"code.waarp.fr/apps/gateway/gateway/pkg/log"
-	"code.waarp.fr/apps/gateway/gateway/pkg/model"
-	"code.waarp.fr/apps/gateway/gateway/pkg/pipeline"
-	"code.waarp.fr/apps/gateway/gateway/pkg/tasks"
 )
-
-const (
-	testLogin    = "test_user"
-	testPassword = "test_password"
-)
-
-var clientTestPort uint16 //nolint:gochecknoglobals // It is global to make tests easier
 
 //nolint:gochecknoinits // it is used by design
 func init() {
-	tasks.RunnableTasks["TESTCHECK"] = &testTaskSuccess{}
-	tasks.RunnableTasks["TESTFAIL"] = &testTaskFail{}
-	model.ValidTasks["TESTCHECK"] = &testTaskSuccess{}
-	model.ValidTasks["TESTFAIL"] = &testTaskFail{}
-
-	logConf := conf.LogConfig{
-		Level: "DEBUG",
-		LogTo: "stdout",
-	}
-	_ = log.InitBackend(logConf)
+	_ = log.InitBackend("DEBUG", "stdout", "")
 }
 
-func hash(pwd string) []byte {
+func hash(pwd string) string {
 	h, err := bcrypt.GenerateFromPassword([]byte(pwd), bcrypt.MinCost)
 	convey.So(err, convey.ShouldBeNil)
 
-	return h
-}
-
-//nolint:gochecknoglobals // It is global to make tests easier
-var checkChannel = make(chan string, 100)
-
-type testTaskSuccess struct{}
-
-func (t *testTaskSuccess) Validate(map[string]string) error {
-	return nil
-}
-
-func (t *testTaskSuccess) Run(args map[string]string, _ *tasks.Processor) (string, error) {
-	checkChannel <- args["msg"]
-
-	return "", nil
-}
-
-type testTaskFail struct{}
-
-func (t *testTaskFail) Validate(map[string]string) error {
-	return nil
-}
-
-func (t *testTaskFail) Run(args map[string]string, _ *tasks.Processor) (string, error) {
-	checkChannel <- args["msg"]
-
-	return "task failed", fmt.Errorf("task failed") //nolint:goerr113 // it is a test
-}
-
-type testSFTPStream struct {
-	*sftpStream
-}
-
-func (t *testSFTPStream) Close() error {
-	err := t.sftpStream.Close()
-	checkChannel <- "END SERVER TRANSFER"
-
-	return err
-}
-
-func (l *sshListener) makeTestFileReader(ctx context.Context, accountID uint64,
-	paths *pipeline.Paths) fileReaderFunc {
-	handler := l.makeFileReader(ctx, accountID, paths)
-
-	return func(r *sftp.Request) (io.ReaderAt, error) {
-		reader, err := handler(r)
-		if err != nil {
-			return nil, err
-		}
-
-		return &testSFTPStream{reader.(*sftpStream)}, nil
-	}
-}
-
-func (l *sshListener) makeTestFileWriter(ctx context.Context, accountID uint64,
-	paths *pipeline.Paths) fileWriterFunc {
-	handler := l.makeFileWriter(ctx, accountID, paths)
-
-	return func(r *sftp.Request) (io.WriterAt, error) {
-		writer, err := handler(r)
-		if err != nil {
-			return nil, err
-		}
-
-		return &testSFTPStream{writer.(*sftpStream)}, nil
-	}
-}
-
-func (l *sshListener) makeTestHandlers(ctx context.Context, accountID uint64) sftp.Handlers {
-	paths := &pipeline.Paths{
-		PathsConfig: l.GWConf.Paths,
-		ServerRoot:  l.Agent.Root,
-		ServerIn:    l.Agent.InDir,
-		ServerOut:   l.Agent.OutDir,
-		ServerWork:  l.Agent.WorkDir,
-	}
-
-	return sftp.Handlers{
-		FileGet:  l.makeTestFileReader(ctx, accountID, paths),
-		FilePut:  l.makeTestFileWriter(ctx, accountID, paths),
-		FileCmd:  makeFileCmder(),
-		FileList: l.makeFileLister(paths, accountID),
-	}
+	return string(h)
 }
 
 const rsaPK = `-----BEGIN RSA PRIVATE KEY-----

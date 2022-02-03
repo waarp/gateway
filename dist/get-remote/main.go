@@ -32,34 +32,34 @@ func main() {
 	}
 
 	// find out env
-	p, err := getPaths()
+	files, err := getPaths()
 	if err != nil {
 		fmt.Println(err)
 		os.Exit(exitNoEnv)
 	}
 
 	// setup logger
-	log, err := newLogger(p.logFile())
+	log, err := newLogger(files.logFile())
 	if err != nil {
 		fmt.Println(err)
 		os.Exit(exitNoLogger)
 	}
 
 	// lock/unlock
-	l := lock{p.lockFile()}
+	l := lock{files.lockFile()}
 	if l.isLocked() {
 		log.Print("Another instance of get-remote is already running.")
 		os.Exit(exitLockFile)
 	}
 
 	// parse file
-	if !pathExists(p.listFile()) {
+	if !pathExists(files.listFile()) {
 		log.Printf("No file get-files.list found")
 
 		return
 	}
 
-	checklist, err := parseListFile(p.listFile())
+	checklist, err := parseListFile(files.listFile())
 	if err != nil {
 		log.Printf("Cannot parse list file: %v", err)
 		os.Exit(exitBadListFile)
@@ -77,7 +77,7 @@ func main() {
 		}
 	}()
 
-	processChecks(log, p, checklist)
+	processChecks(log, files, checklist)
 }
 
 func processChecks(log *logger, p paths, checklist []check) {

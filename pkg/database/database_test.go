@@ -44,10 +44,9 @@ func testSelectForUpdate(db *DB) {
 	transRes := make(chan Error, 1)
 	trans2 := func(ready chan<- bool) {
 		close(ready)
-		db2.engine.Exec("PRAGMA busy_timeout = 10000")
 		transRes <- db2.WriteTransaction(func(ses *Session) Error {
 			var beans validList
-			if err := ses.SelectForUpdate(&beans).Where("string=?", "str2").Run(); err != nil {
+			if err := ses.SelectForUpdate(&beans).Where("string=? AND id<>0", "str2").Run(); err != nil {
 				return err
 			}
 
@@ -712,6 +711,10 @@ func testDatabase(db *DB) {
 
 func TestSqlite(t *testing.T) {
 	db := sqliteTestDatabase
+	if err := db.Start(); err != nil {
+		t.Fatal(err)
+	}
+
 	defer func() {
 		if err := db.engine.Close(); err != nil {
 			t.Logf("Failed to close database: %s", err)
@@ -725,10 +728,6 @@ func TestSqlite(t *testing.T) {
 			t.Logf("Failed to delete sqlite file: %s", err)
 		}
 	}()
-
-	if err := db.Start(); err != nil {
-		t.Fatal(err)
-	}
 
 	Convey("Given a Sqlite service", t, func() {
 		testDatabase(db)

@@ -1,5 +1,5 @@
-//go:build test_full || test_db_postgresql
-// +build test_full test_db_postgresql
+//go:build test_db_postgresql
+// +build test_db_postgresql
 
 package migration
 

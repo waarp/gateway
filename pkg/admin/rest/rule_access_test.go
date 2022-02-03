@@ -22,7 +22,7 @@ func TestAuthorizeRule(t *testing.T) {
 		rule := &model.Rule{
 			Name:   "rule",
 			IsSend: true,
-			Path:   "rule/path",
+			Path:   "/rule_path",
 		}
 		So(db.Insert(rule).Run(), ShouldBeNil)
 
@@ -62,10 +62,9 @@ func TestAuthorizeRule(t *testing.T) {
 
 		Convey("Given a server", func() {
 			server := &model.LocalAgent{
-				Name:        "server",
-				Protocol:    "test",
-				ProtoConfig: json.RawMessage(`{}`),
-				Address:     "localhost:1",
+				Name:     "server",
+				Protocol: testProto1,
+				Address:  "localhost:1",
 			}
 			So(db.Insert(server).Run(), ShouldBeNil)
 
@@ -84,7 +83,7 @@ func TestAuthorizeRule(t *testing.T) {
 				account := &model.LocalAccount{
 					LocalAgentID: server.ID,
 					Login:        "toto",
-					PasswordHash: hash("password"),
+					PasswordHash: hash("sesame"),
 				}
 				So(db.Insert(account).Run(), ShouldBeNil)
 
@@ -103,10 +102,9 @@ func TestAuthorizeRule(t *testing.T) {
 
 		Convey("Given a partner", func() {
 			partner := &model.RemoteAgent{
-				Name:        "partner",
-				Protocol:    "test",
-				ProtoConfig: json.RawMessage(`{}`),
-				Address:     "localhost:1",
+				Name:     "partner",
+				Protocol: testProto1,
+				Address:  "localhost:1",
 			}
 			So(db.Insert(partner).Run(), ShouldBeNil)
 
@@ -125,7 +123,7 @@ func TestAuthorizeRule(t *testing.T) {
 				account := &model.RemoteAccount{
 					RemoteAgentID: partner.ID,
 					Login:         "toto",
-					Password:      "password",
+					Password:      "sesame",
 				}
 				So(db.Insert(account).Run(), ShouldBeNil)
 
@@ -152,7 +150,7 @@ func TestRevokeRule(t *testing.T) {
 		rule := &model.Rule{
 			Name:   "rule",
 			IsSend: true,
-			Path:   "rule/path",
+			Path:   "/rule_path",
 		}
 		So(db.Insert(rule).Run(), ShouldBeNil)
 
@@ -190,10 +188,9 @@ func TestRevokeRule(t *testing.T) {
 
 		Convey("Given a server", func() {
 			server := &model.LocalAgent{
-				Name:        "server",
-				Protocol:    "test",
-				ProtoConfig: json.RawMessage(`{}`),
-				Address:     "localhost:1",
+				Name:     "server",
+				Protocol: testProto1,
+				Address:  "localhost:1",
 			}
 			So(db.Insert(server).Run(), ShouldBeNil)
 			vals["server"] = server.Name
@@ -214,7 +211,7 @@ func TestRevokeRule(t *testing.T) {
 				account := &model.LocalAccount{
 					LocalAgentID: server.ID,
 					Login:        "toto",
-					PasswordHash: hash("password"),
+					PasswordHash: hash("sesame"),
 				}
 				So(db.Insert(account).Run(), ShouldBeNil)
 
@@ -235,7 +232,7 @@ func TestRevokeRule(t *testing.T) {
 		Convey("Given a partner", func() {
 			partner := &model.RemoteAgent{
 				Name:        "partner",
-				Protocol:    "test",
+				Protocol:    testProto1,
 				ProtoConfig: json.RawMessage(`{}`),
 				Address:     "localhost:1",
 			}
@@ -259,7 +256,7 @@ func TestRevokeRule(t *testing.T) {
 				account := &model.RemoteAccount{
 					RemoteAgentID: partner.ID,
 					Login:         "toto",
-					Password:      "password",
+					Password:      "sesame",
 				}
 				So(db.Insert(account).Run(), ShouldBeNil)
 
@@ -287,20 +284,20 @@ func TestRuleAllowAll(t *testing.T) {
 		rule := &model.Rule{
 			Name:   "rule",
 			IsSend: true,
-			Path:   "rule/path",
+			Path:   "/rule_path",
 		}
 		So(db.Insert(rule).Run(), ShouldBeNil)
 
 		Convey("Given multiple accesses to that rule", func() {
 			s := &model.LocalAgent{
 				Name:        "server",
-				Protocol:    "test",
+				Protocol:    testProto1,
 				ProtoConfig: json.RawMessage(`{}`),
 				Address:     "localhost:1",
 			}
 			p := &model.RemoteAgent{
 				Name:        "partner",
-				Protocol:    "test",
+				Protocol:    testProto1,
 				ProtoConfig: json.RawMessage(`{}`),
 				Address:     "localhost:1",
 			}
@@ -310,12 +307,12 @@ func TestRuleAllowAll(t *testing.T) {
 			la := &model.LocalAccount{
 				LocalAgentID: s.ID,
 				Login:        "toto",
-				PasswordHash: hash("password"),
+				PasswordHash: hash("sesame"),
 			}
 			ra := &model.RemoteAccount{
 				RemoteAgentID: p.ID,
 				Login:         "tata",
-				Password:      "password",
+				Password:      "sesame",
 			}
 			So(db.Insert(la).Run(), ShouldBeNil)
 			So(db.Insert(ra).Run(), ShouldBeNil)

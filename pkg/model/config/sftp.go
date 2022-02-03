@@ -72,10 +72,3 @@ func (c *SftpProtoConfig) ValidPartner() error {
 func (c *SftpProtoConfig) ValidServer() error {
 	return c.valid()
 }
-
-// CertRequired returns whether, according to the configuration, a certificate
-// is required for the agent. This function always returns true since SFTP
-// always requires at least a public key to establish a connection.
-func (c *SftpProtoConfig) CertRequired() bool {
-	return true
-}

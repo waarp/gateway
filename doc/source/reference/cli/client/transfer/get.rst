@@ -4,7 +4,7 @@ Afficher un transfert
 
 .. program:: waarp-gateway transfer get
 
-.. describe:: waarp-gateway <ADDR> transfer get <TRANS>
+.. describe:: waarp-gateway transfer get <TRANS>
 
 Affiche les informations du transfert demandé.
 

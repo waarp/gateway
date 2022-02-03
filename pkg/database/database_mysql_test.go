@@ -1,5 +1,5 @@
-//go:build test_full || test_db_mysql
-// +build test_full test_db_mysql
+//go:build test_db_mysql
+// +build test_db_mysql
 
 package database
 
@@ -8,8 +8,9 @@ import (
 	"os"
 	"testing"
 
-	"code.waarp.fr/apps/gateway/gateway/pkg/conf"
 	. "github.com/smartystreets/goconvey/convey"
+
+	"code.waarp.fr/apps/gateway/gateway/pkg/conf"
 )
 
 var (
@@ -39,7 +40,7 @@ func TestMySQL(t *testing.T) {
 		if err := db.engine.Close(); err != nil {
 			t.Logf("Failed to close database: %s", err)
 		}
-		if err := os.Remove(sqliteConfig.Database.AESPassphrase); err != nil {
+		if err := os.Remove(mysqlConfig.Database.AESPassphrase); err != nil {
 			t.Logf("Failed to delete passphrase file: %s", err)
 		}
 	}()

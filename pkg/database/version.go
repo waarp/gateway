@@ -19,6 +19,6 @@ func (v *version) TableName() string { return "version" }
 func (v *version) Appellation() string { return "version" }
 
 // Init initializes the version table with the current program version.
-func (v *version) Init(ses *Session) Error {
-	return ses.Insert(&version{vers.Num}).Run()
+func (v *version) Init(db Access) Error {
+	return db.Insert(&version{vers.Num}).Run()
 }

@@ -91,3 +91,12 @@ func (s *standardSQL) addColumn(trad translator, table, column string, typ sqlTy
 
 	return nil
 }
+
+func (s *standardSQL) SwapColumns(table, col1, col2, cond string) error {
+	query := "UPDATE %s SET %s=%s, %s=%s"
+	if cond != "" {
+		query += " WHERE " + cond
+	}
+
+	return s.Exec(query, table, col1, col2, col2, col1)
+}

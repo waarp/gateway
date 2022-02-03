@@ -2,108 +2,71 @@ package sftp
 
 import (
 	"errors"
-	"fmt"
 	"io"
 	"io/ioutil"
 	"os"
 	"path"
-	"time"
+	"strings"
 
 	"github.com/pkg/sftp"
 
 	"code.waarp.fr/apps/gateway/gateway/pkg/database"
 	"code.waarp.fr/apps/gateway/gateway/pkg/model"
-	"code.waarp.fr/apps/gateway/gateway/pkg/pipeline"
+	"code.waarp.fr/apps/gateway/gateway/pkg/sftp/internal"
 	"code.waarp.fr/apps/gateway/gateway/pkg/tk/utils"
 )
 
-var errForbiddenRule = errors.New("user is not allowed to use the specified rule")
+func leaf(str string) utils.Leaf     { return utils.Leaf(str) }
+func branch(str string) utils.Branch { return utils.Branch(str) }
 
-type fileWriterFunc func(r *sftp.Request) (io.WriterAt, error)
-
-func (fw fileWriterFunc) Filewrite(r *sftp.Request) (io.WriterAt, error) {
-	return fw(r)
-}
-
-type fileReaderFunc func(r *sftp.Request) (io.ReaderAt, error)
-
-func (fr fileReaderFunc) Fileread(r *sftp.Request) (io.ReaderAt, error) {
-	return fr(r)
-}
-
-type fileCmdFunc func(r *sftp.Request) error
-
-func (fc fileCmdFunc) Filecmd(r *sftp.Request) error {
-	return fc(r)
-}
-
-type fileListerFunc func(r *sftp.Request) (sftp.ListerAt, error)
-
-func (fl fileListerFunc) Filelist(r *sftp.Request) (sftp.ListerAt, error) {
-	return fl(r)
-}
-
-type listerAtFunc func(ls []os.FileInfo, offset int64) (int, error)
-
-func (la listerAtFunc) ListAt(ls []os.FileInfo, offset int64) (int, error) {
-	return la(ls, offset)
-}
-
-func makeFileCmder() fileCmdFunc {
+func makeFileCmder() internal.CmdFunc {
 	return func(r *sftp.Request) error {
 		return sftp.ErrSSHFxOpUnsupported
 	}
 }
 
-func (l *sshListener) makeFileLister(paths *pipeline.Paths, accountID uint64) fileListerFunc {
+func (l *sshListener) makeFileLister(acc *model.LocalAccount) internal.FileListerAtFunc {
 	return func(r *sftp.Request) (sftp.ListerAt, error) {
 		switch r.Method {
 		case "Stat":
-			return l.statAt(r, paths, accountID), nil
+			return l.statAt(r, acc), nil
 		case "List":
-			return l.listAt(r, paths, accountID), nil
+			return l.listAt(r, acc), nil
 		default:
 			return nil, sftp.ErrSSHFxOpUnsupported
 		}
 	}
 }
 
-func (l *sshListener) listAt(r *sftp.Request, paths *pipeline.Paths, accountID uint64) listerAtFunc {
-	return func(ls []os.FileInfo, offset int64) (int, error) {
-		var infos []os.FileInfo
-
+func (l *sshListener) listAt(r *sftp.Request, acc *model.LocalAccount) internal.ListerAtFunc {
+	return func(fileInfos []os.FileInfo, offset int64) (int, error) {
 		l.Logger.Debugf("Received 'List' request on %s", r.Filepath)
 
-		if r.Filepath == "" || r.Filepath == "/" {
-			paths, err := l.getRulesPaths(accountID)
-			if err != nil {
-				return 0, fmt.Errorf("cannot list rule directories: %w", err)
-			}
+		var infos []os.FileInfo
 
-			for i := range paths {
-				infos = append(infos, dirInfo(paths[i]))
+		realDir, err := l.getRealPath(acc, r.Filepath)
+		if err != nil {
+			return 0, toSFTPErr(err)
+		}
+
+		if realDir != "" {
+			infos, err = ioutil.ReadDir(realDir)
+			if err != nil {
+				if os.IsNotExist(err) {
+					return 0, sftp.ErrSSHFxNoSuchFile
+				}
+
+				l.Logger.Errorf("Failed to list directory: %s", err)
+
+				return 0, errFileSystem
 			}
 		} else {
-			rule, err := l.getListRule(r.Filepath, accountID)
+			rulesPaths, err := l.getRulesPaths(acc, r.Filepath)
 			if err != nil {
-				return 0, err
+				return 0, toSFTPErr(err)
 			}
-
-			if rule != nil {
-				dir := utils.GetPath("", utils.Elems{
-					{rule.OutPath, true},
-					{paths.ServerOut, true},
-					{paths.ServerRoot, false},
-					{paths.OutDirectory, true},
-					{paths.GatewayHome, false},
-				})
-
-				infos, err = ioutil.ReadDir(utils.DenormalizePath(dir))
-				if err != nil {
-					l.Logger.Errorf("Failed to list directory: %v", err)
-
-					return 0, fmt.Errorf("failed to list directory: %w", err)
-				}
+			for i := range rulesPaths {
+				infos = append(infos, &internal.DirInfo{Dir: rulesPaths[i]})
 			}
 		}
 
@@ -111,8 +74,8 @@ func (l *sshListener) listAt(r *sftp.Request, paths *pipeline.Paths, accountID u
 			return 0, io.EOF
 		}
 
-		n := copy(ls, infos[offset:])
-		if n < len(ls) {
+		n := copy(fileInfos, infos[offset:])
+		if n < len(fileInfos) {
 			return n, io.EOF
 		}
 
@@ -120,118 +83,120 @@ func (l *sshListener) listAt(r *sftp.Request, paths *pipeline.Paths, accountID u
 	}
 }
 
-func (l *sshListener) getListRule(rulePath string, accountID uint64) (*model.Rule, error) {
-	sndRule, err := l.getRule(accountID, rulePath, true)
-	if err != nil {
-		return nil, err
+func (l *sshListener) statAt(r *sftp.Request, acc *model.LocalAccount) internal.ListerAtFunc {
+	return func(fileInfos []os.FileInfo, _ int64) (int, error) {
+		l.Logger.Debugf("Received 'Stat' request on %s", r.Filepath)
+
+		var infos os.FileInfo
+
+		realDir, err := l.getRealPath(acc, r.Filepath)
+		if err != nil {
+			return 0, toSFTPErr(err)
+		}
+
+		if realDir != "" {
+			infos, err = os.Stat(realDir)
+			if err != nil {
+				if os.IsNotExist(err) {
+					return 0, sftp.ErrSSHFxNoSuchFile
+				}
+
+				l.Logger.Errorf("Failed to stat file %s", err)
+
+				return 0, errFileSystem
+			}
+		} else {
+			if n, err := l.DB.Count(&model.Rule{}).Where("path LIKE ?",
+				r.Filepath[1:]+"%").Run(); err != nil {
+				return 0, err
+			} else if n == 0 {
+				return 0, sftp.ErrSSHFxNoSuchFile
+			}
+			infos = &internal.DirInfo{Dir: path.Base(r.Filepath)}
+		}
+
+		copy(fileInfos, []os.FileInfo{infos})
+
+		return 1, io.EOF
+	}
+}
+
+func (l *sshListener) getRealPath(acc *model.LocalAccount, dir string) (string, error) {
+	dir = strings.TrimPrefix(dir, "/")
+
+	rule, err := l.getClosestRule(acc, dir, true)
+	if errors.Is(err, sftp.ErrSSHFxNoSuchFile) {
+		return "", nil
 	}
 
-	rcvRule, err := l.getRule(accountID, rulePath, false)
 	if err != nil {
-		return nil, err
+		return "", err
 	}
 
-	if sndRule == nil && rcvRule == nil {
-		l.Logger.Infof("No rule found with path '%s'", rulePath)
+	rest := strings.TrimPrefix(dir, rule.Path)
+	rest = strings.TrimPrefix(rest, "/")
+	realDir := utils.GetPath(rest, leaf(rule.LocalDir), leaf(l.Agent.SendDir),
+		branch(l.Agent.RootDir), leaf(l.DB.Conf.Paths.DefaultOutDir),
+		branch(l.DB.Conf.Paths.GatewayHome))
 
+	return realDir, nil
+}
+
+func (l *sshListener) getClosestRule(acc *model.LocalAccount, rulePath string,
+	isSendPriority bool) (*model.Rule, error) {
+	rulePath = strings.TrimPrefix(rulePath, "/")
+	if rulePath == "" || rulePath == "." || rulePath == "/" {
 		return nil, sftp.ErrSSHFxNoSuchFile
 	}
 
-	return sndRule, nil
-}
-
-func (l *sshListener) statAt(r *sftp.Request, paths *pipeline.Paths, accountID uint64) listerAtFunc {
-	return func(ls []os.FileInfo, offset int64) (int, error) {
-		l.Logger.Debugf("Received 'Stat' request on %s", r.Filepath)
-
-		rule, err := l.getRule(accountID, path.Dir(r.Filepath), true)
-		if err != nil || rule == nil {
-			return 0, fmt.Errorf("failed to retrieve rule for path '%s': %w", r.Filepath, err)
-		}
-
-		file := utils.GetPath(path.Base(r.Filepath), utils.Elems{
-			{rule.OutPath, true},
-			{paths.ServerOut, true},
-			{paths.ServerRoot, false},
-			{paths.OutDirectory, true},
-			{paths.GatewayHome, false},
-		})
-
-		fi, err := os.Stat(utils.DenormalizePath(file))
-		if err != nil {
-			if os.IsNotExist(err) {
-				return 0, sftp.ErrSSHFxNoSuchFile
-			}
-
-			l.Logger.Errorf("Failed to get file stats: %s", r.Filepath)
-
-			return 0, fmt.Errorf("failed to get file stats: %w", err)
-		}
-
-		tmp := []os.FileInfo{fi}
-
-		n := copy(ls, tmp)
-		if n < len(ls) {
-			return n, io.EOF
-		}
-
-		return n, nil
-	}
-}
-
-func (l *sshListener) getRule(accountID uint64, rulePath string, isSend bool) (*model.Rule, error) {
 	var rule model.Rule
-	if err := l.DB.Get(&rule, "path=? AND send=?", rulePath, isSend).Run(); err != nil {
-		if database.IsNotFound(err) {
-			direction := "receive"
-			if isSend {
-				direction = "sending"
+	if err := l.DB.Get(&rule, "path=? AND send=?", rulePath, isSendPriority).Run(); err != nil {
+		if !database.IsNotFound(err) {
+			l.Logger.Errorf("Failed to retrieve rule: %s", err)
+
+			return nil, errDatabase
+		}
+
+		if err := l.DB.Get(&rule, "path=? AND send=?", rulePath, !isSendPriority).Run(); err != nil {
+			if database.IsNotFound(err) {
+				return l.getClosestRule(acc, path.Dir(rulePath), isSendPriority)
 			}
 
-			l.Logger.Debugf("No %s rule found for path '%s'", direction, rulePath)
+			l.Logger.Errorf("Failed to retrieve rule: %s", err)
 
-			return nil, nil
-		}
-
-		l.Logger.Errorf("Failed to retrieve rule: %s", err)
-
-		return nil, fmt.Errorf("failed to retrieve rule: %w", err)
-	}
-
-	var accesses model.RuleAccesses
-	if err := l.DB.Select(&accesses).Where("rule_id=?", rule.ID).Run(); err != nil {
-		l.Logger.Errorf("Failed to retrieve rule permissions: %s", err)
-
-		return nil, fmt.Errorf("failed to retrieve rule permissions: %w", err)
-	}
-
-	if len(accesses) == 0 {
-		return &rule, nil
-	}
-
-	for i := range accesses {
-		access := accesses[i]
-		if (access.ObjectType == model.TableLocAgents && access.ObjectID == l.Agent.ID) ||
-			(access.ObjectType == model.TableLocAccounts && access.ObjectID == accountID) {
-			return &rule, nil
+			return nil, errDatabase
 		}
 	}
 
-	return nil, errForbiddenRule
+	if ok, err := rule.IsAuthorized(l.DB, acc); err != nil {
+		l.Logger.Errorf("Failed to check rule permissions: %s", err)
+
+		return nil, errDatabase
+	} else if !ok {
+		return &rule, sftp.ErrSSHFxPermissionDenied
+	}
+
+	return &rule, nil
 }
 
-func (l *sshListener) getRulesPaths(accountID uint64) ([]string, error) {
+func (l *sshListener) getRulesPaths(acc *model.LocalAccount, dir string) ([]string, error) {
+	dir = strings.TrimPrefix(path.Clean(dir), "/")
+
 	var rules model.Rules
+
 	query := l.DB.Select(&rules).Distinct("path").Where(
-		`(id IN 
-			(SELECT DISTINCT rule_id FROM `+model.TableRuleAccesses+` WHERE
-				(object_id=? AND object_type=?) OR
-				(object_id=? AND object_type=?)
+		`(path LIKE ?) AND
+		(
+			(id IN 
+				(SELECT DISTINCT rule_id FROM `+model.TableRuleAccesses+` WHERE
+					(object_id=? AND object_type=?) OR
+					(object_id=? AND object_type=?)
+				)
 			)
-		)
-		OR 
-		( (SELECT COUNT(*) FROM `+model.TableRuleAccesses+` WHERE rule_id = id) = 0 )`,
-		accountID, model.TableLocAccounts, l.Agent.ID, model.TableLocAgents).
+			OR 
+			( (SELECT COUNT(*) FROM `+model.TableRuleAccesses+` WHERE rule_id = id) = 0 )
+		)`,
+		dir+"%", acc.ID, model.TableLocAccounts, l.Agent.ID, model.TableLocAgents).
 		OrderBy("path", true)
 
 	if err := query.Run(); err != nil {
@@ -240,42 +205,22 @@ func (l *sshListener) getRulesPaths(accountID uint64) ([]string, error) {
 		return nil, err
 	}
 
-	paths := make([]string, len(rules))
+	if len(rules) == 0 {
+		return nil, sftp.ErrSSHFxNoSuchFile
+	}
+
+	paths := make([]string, 0, len(rules))
+	dir += "/"
 
 	for i := range rules {
 		p := rules[i].Path
-		if p[0] == '/' {
-			p = p[1:]
-		}
+		p = strings.TrimPrefix(p, dir)
+		p = strings.SplitN(p, "/", 2)[0] //nolint:gomnd //not needed here
 
-		paths[i] = p
+		if len(paths) == 0 || paths[len(paths)-1] != p {
+			paths = append(paths, p)
+		}
 	}
 
 	return paths, nil
-}
-
-type dirInfo string
-
-func (f dirInfo) Name() string {
-	return string(f)
-}
-
-func (f dirInfo) Size() int64 {
-	return 0
-}
-
-func (f dirInfo) Mode() os.FileMode {
-	return os.ModeDir | 0o700
-}
-
-func (f dirInfo) ModTime() time.Time {
-	return time.Now()
-}
-
-func (f dirInfo) IsDir() bool {
-	return true
-}
-
-func (f dirInfo) Sys() interface{} {
-	return nil
 }

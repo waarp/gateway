@@ -149,7 +149,7 @@ func removeTypeLength(typ string) string {
 
 //nolint:unparam // table could receive other values
 func colShouldHaveType(engine testEngine, table, col string, exp sqlType) {
-	rows, err := engine.Query("SELECT %s FROM %s", col, table)
+	rows, err := engine.Query("SELECT " + col + " FROM " + table)
 	So(err, ShouldBeNil)
 	So(rows.Err(), ShouldBeNil)
 

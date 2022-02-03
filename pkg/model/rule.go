@@ -31,14 +31,14 @@ type Rule struct {
 	// This path is always an absolute path.
 	Path string `xorm:"unique(path) notnull 'path'"`
 
-	// The directory for all incoming files.
-	InPath string `xorm:"notnull 'in_path'"`
+	// The local directory for all file transfers using this rule.
+	LocalDir string `xorm:"notnull 'local_dir'"`
 
-	// The directory for all outgoing files.
-	OutPath string `xorm:"notnull 'out_path'"`
+	// The remote directory for all file transfers using this rule.
+	RemoteDir string `xorm:"notnull 'remote_dir'"`
 
-	// The temp directory for all running transfer files.
-	WorkPath string `xorm:"notnull 'work_path'"`
+	// The temporary directory for running incoming transfer files.
+	TmpLocalRcvDir string `xorm:"notnull 'tmp_local_receive_dir'"`
 }
 
 // TableName returns the remote accounts table name.
@@ -57,26 +57,64 @@ func (r *Rule) GetID() uint64 {
 }
 
 func (r *Rule) normalizePaths() {
-	if r.Path == "" {
-		r.Path = "/" + r.Name
+	r.Path = path.Clean(r.Path)
+	if r.Path == "/" || r.Path == "." {
+		r.Path = r.Name
 	} else {
-		r.Path = utils.NormalizePath(r.Path)
-		if !path.IsAbs(r.Path) {
-			r.Path = "/" + r.Path
+		r.Path = utils.ToStandardPath(r.Path)
+		if path.IsAbs(r.Path) {
+			r.Path = r.Path[1:]
 		}
 	}
 
-	if r.InPath != "" {
-		r.InPath = utils.NormalizePath(r.InPath)
+	if r.LocalDir != "" {
+		r.LocalDir = utils.ToOSPath(r.LocalDir)
 	}
 
-	if r.OutPath != "" {
-		r.OutPath = utils.NormalizePath(r.OutPath)
+	if r.RemoteDir != "" {
+		r.RemoteDir = utils.ToStandardPath(r.RemoteDir)
 	}
 
-	if r.WorkPath != "" {
-		r.WorkPath = utils.NormalizePath(r.WorkPath)
+	if r.TmpLocalRcvDir != "" {
+		r.TmpLocalRcvDir = utils.ToOSPath(r.TmpLocalRcvDir)
 	}
+}
+
+func (r *Rule) checkAncestor(db database.ReadAccess, rulePath string) database.Error {
+	if rulePath == "" || rulePath == "." {
+		return nil
+	}
+
+	var rule Rule
+	if err := db.Get(&rule, "path=?", rulePath).Run(); err != nil {
+		if database.IsNotFound(err) {
+			return r.checkAncestor(db, path.Dir(rulePath))
+		}
+
+		return err
+	}
+
+	return database.NewValidationError("the rule's path cannot be the descendant of "+
+		"another rule's path (the path '%s' is already used by rule '%s')", rulePath, rule.Name)
+}
+
+func (r *Rule) checkPath(db database.ReadAccess) database.Error {
+	if n, err := db.Count(r).Where("id<>? AND path=? AND send=?", r.ID, r.Path,
+		r.IsSend).Run(); err != nil {
+		return err
+	} else if n > 0 {
+		return database.NewValidationError("a rule with path: %s already exist", r.Path)
+	}
+
+	// check descendents
+	if n, err := db.Count(r).Where("path LIKE ?", r.Path+"/%").Run(); err != nil {
+		return err
+	} else if n != 0 {
+		return database.NewValidationError("the rule's path cannot be the ancestor " +
+			"of another rule's path")
+	}
+
+	return r.checkAncestor(db, path.Dir(r.Path))
 }
 
 // BeforeWrite is called before writing the `Rule` entry in the database. It
@@ -85,8 +123,6 @@ func (r *Rule) BeforeWrite(db database.ReadAccess) database.Error {
 	if r.Name == "" {
 		return database.NewValidationError("the rule's name cannot be empty")
 	}
-
-	r.normalizePaths()
 
 	n, err := db.Count(r).Where("id<>? AND name=? AND send=?", r.ID,
 		r.Name, r.IsSend).Run()
@@ -97,14 +133,9 @@ func (r *Rule) BeforeWrite(db database.ReadAccess) database.Error {
 			r.Direction(), r.Name)
 	}
 
-	n, err = db.Count(r).Where("id<>? AND path=? AND send=?", r.ID, r.Path, r.IsSend).Run()
-	if err != nil {
-		return err
-	} else if n > 0 {
-		return database.NewValidationError("a rule with path: %s already exist", r.Path)
-	}
+	r.normalizePaths()
 
-	return nil
+	return r.checkPath(db)
 }
 
 // Direction returns the direction (send or receive) of the rule as a string.
@@ -141,4 +172,49 @@ func (r *Rule) BeforeDelete(db database.Access) database.Error {
 	}
 
 	return nil
+}
+
+// IsAuthorized returns whether the given target is authorized to use the rule
+// for transfers. It will return true either if the rule has no restrictions, or
+// if the target has been given access to the rule.
+//
+// Valid target types are: LocalAgent, RemoteAgent, LocalAccount & RemoteAccount.
+func (r *Rule) IsAuthorized(db database.Access, target database.IterateBean) (bool, database.Error) {
+	var perms RuleAccess
+
+	permCount, err := db.Count(&perms).Where("rule_id=?", r.ID).Run()
+	if err != nil {
+		return false, err
+	}
+
+	if permCount == 0 {
+		return true, nil
+	}
+
+	var query *database.CountQuery
+	switch object := target.(type) {
+	case *LocalAgent:
+		query = db.Count(&perms).Where("rule_id=? AND (object_type=? AND object_id=?)",
+			r.ID, object.TableName(), object.ID)
+	case *RemoteAgent:
+		query = db.Count(&perms).Where("rule_id=? AND (object_type=? AND object_id=?)",
+			r.ID, object.TableName(), object.ID)
+	case *LocalAccount:
+		query = db.Count(&perms).Where("rule_id=? AND ((object_type=? AND object_id=?) "+
+			"OR (object_type=? AND object_id=?))", r.ID, object.TableName(), object.ID,
+			"local_agents", object.LocalAgentID)
+	case *RemoteAccount:
+		query = db.Count(&perms).Where("rule_id=? AND ((object_type=? AND object_id=?) "+
+			"OR (object_type=? AND object_id=?))", r.ID, object.TableName(), object.ID,
+			"local_agents", object.RemoteAgentID)
+	default:
+		return false, database.NewValidationError("%T is not a valid target model for RuleAccess", target)
+	}
+
+	permCount, err = query.Run()
+	if err != nil {
+		return false, err
+	}
+
+	return permCount != 0, nil
 }

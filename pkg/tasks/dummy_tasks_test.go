@@ -3,18 +3,16 @@
 package tasks
 
 import (
+	"context"
 	"errors"
 	"time"
 
+	"code.waarp.fr/apps/gateway/gateway/pkg/database"
 	"code.waarp.fr/apps/gateway/gateway/pkg/model"
 )
 
 //nolint:gochecknoinits // designed this way
 func init() {
-	RunnableTasks[taskSuccess] = &testTaskSuccess{}
-	RunnableTasks[taskWarning] = &testTaskWarning{}
-	RunnableTasks[taskFail] = &testTaskFail{}
-	RunnableTasks[taskLong] = &testTaskLong{}
 	model.ValidTasks[taskSuccess] = &testTaskSuccess{}
 	model.ValidTasks[taskWarning] = &testTaskWarning{}
 	model.ValidTasks[taskFail] = &testTaskFail{}
@@ -39,7 +37,8 @@ func (t *testTaskSuccess) Validate(map[string]string) error {
 	return nil
 }
 
-func (t *testTaskSuccess) Run(map[string]string, *Processor) (string, error) {
+func (t *testTaskSuccess) Run(context.Context, map[string]string, *database.DB,
+	*model.TransferContext) (string, error) {
 	dummyTaskCheck <- "SUCCESS"
 
 	return "", nil
@@ -51,10 +50,11 @@ func (t *testTaskWarning) Validate(map[string]string) error {
 	return nil
 }
 
-func (t *testTaskWarning) Run(map[string]string, *Processor) (string, error) {
+func (t *testTaskWarning) Run(context.Context, map[string]string, *database.DB,
+	*model.TransferContext) (string, error) {
 	dummyTaskCheck <- "WARNING"
 
-	return "warning message", errWarning
+	return "warning message", &warningError{"warning message"}
 }
 
 type testTaskFail struct{}
@@ -63,7 +63,7 @@ func (t *testTaskFail) Validate(map[string]string) error {
 	return nil
 }
 
-func (t *testTaskFail) Run(map[string]string, *Processor) (string, error) {
+func (t *testTaskFail) Run(context.Context, map[string]string, *database.DB, *model.TransferContext) (string, error) {
 	dummyTaskCheck <- "FAILURE"
 
 	return "task failed", errTaskFailed
@@ -75,7 +75,7 @@ func (t *testTaskLong) Validate(map[string]string) error {
 	return nil
 }
 
-func (t *testTaskLong) Run(map[string]string, *Processor) (string, error) {
+func (t *testTaskLong) Run(context.Context, map[string]string, *database.DB, *model.TransferContext) (string, error) {
 	dummyTaskCheck <- "LONG"
 
 	time.Sleep(time.Minute)

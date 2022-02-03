@@ -3,9 +3,10 @@ package rest
 import (
 	"fmt"
 
-	"code.waarp.fr/waarp-r66/r66"
+	"code.waarp.fr/lib/r66"
 
 	"code.waarp.fr/apps/gateway/gateway/pkg/admin/rest/api"
+	"code.waarp.fr/apps/gateway/gateway/pkg/database"
 	"code.waarp.fr/apps/gateway/gateway/pkg/model"
 	"code.waarp.fr/apps/gateway/gateway/pkg/tk/utils"
 )
@@ -13,7 +14,7 @@ import (
 func newInLocAccount(old *model.LocalAccount) *api.InAccount {
 	return &api.InAccount{
 		Login:    &old.Login,
-		Password: strPtr(string(old.PasswordHash)),
+		Password: strPtr(old.PasswordHash),
 	}
 }
 
@@ -32,7 +33,7 @@ func accToLocal(acc *api.InAccount, agent *model.LocalAgent, id uint64) (*model.
 		acc.Password = strPtr(string(r66.CryptPass([]byte(str(acc.Password)))))
 	}
 
-	hash, err := utils.HashPassword([]byte(str(acc.Password)))
+	hash, err := utils.HashPassword(database.BcryptRounds, str(acc.Password))
 	if err != nil {
 		return nil, fmt.Errorf("failed to hash passwordi: %w", err)
 	}

@@ -17,8 +17,8 @@ func TestExportCertificates(t *testing.T) {
 
 		Convey("Given the database contains 1 local agent with a certificate", func() {
 			agent := &model.LocalAgent{
-				Name:        "test",
-				Protocol:    "test",
+				Name:        "server",
+				Protocol:    testProtocol,
 				ProtoConfig: json.RawMessage(`{}`),
 				Address:     "localhost:6666",
 			}
@@ -28,8 +28,8 @@ func TestExportCertificates(t *testing.T) {
 				Name:        "test_cert",
 				OwnerType:   model.TableLocAgents,
 				OwnerID:     agent.ID,
-				Certificate: testhelpers.LocalhostCert,
-				PrivateKey:  testhelpers.LocalhostKey,
+				Certificate: testhelpers.OtherLocalhostCert,
+				PrivateKey:  testhelpers.OtherLocalhostKey,
 			}
 			So(db.Insert(cert).Run(), ShouldBeNil)
 
@@ -72,7 +72,7 @@ func TestExportCertificates(t *testing.T) {
 				account := &model.LocalAccount{
 					LocalAgentID: agent.ID,
 					Login:        "foo",
-					PasswordHash: hash("bar"),
+					PasswordHash: hash("sesame"),
 				}
 				So(db.Insert(account).Run(), ShouldBeNil)
 
@@ -80,7 +80,7 @@ func TestExportCertificates(t *testing.T) {
 					Name:        "cert1",
 					OwnerType:   model.TableLocAccounts,
 					OwnerID:     account.ID,
-					Certificate: testhelpers.ClientCert,
+					Certificate: testhelpers.ClientFooCert,
 				}
 				So(db.Insert(cert1).Run(), ShouldBeNil)
 
@@ -88,7 +88,7 @@ func TestExportCertificates(t *testing.T) {
 					Name:        "cert2",
 					OwnerType:   model.TableLocAccounts,
 					OwnerID:     account.ID,
-					Certificate: testhelpers.ClientCert,
+					Certificate: testhelpers.ClientFooCert2,
 				}
 				So(db.Insert(cert2).Run(), ShouldBeNil)
 

@@ -16,13 +16,24 @@ Modifier un serveur
    :reqjson string protocol: Le protocole utilisé par le serveur
    :reqjson string address: L'adresse du serveur (en format [adresse:port])
    :reqjson string root: La racine du serveur. Peut être relatif (à la racine
-      de la *gateway*) ou absolu.
+      de la *gateway*) ou absolu (OBSOLÈTE: remplacé par 'rootDir').
    :reqjson string inDir: Le dossier de réception du serveur. Peut être
-      relatif (à la racine du serveur) ou absolu.
+      relatif (à la racine du serveur) ou absolu. (OBSOLÈTE: remplacé par
+      'receiveDir')
    :reqjson string outDir: Le dossier d'envoi du serveur. Peut être
-      relatif (à la racine du serveur) ou absolu.
+      relatif (à la racine du serveur) ou absolu. (OBSOLÈTE: remplacé par
+      'sendDir')
    :reqjson string workDir: Le dossier temporaire du serveur. Peut être
+      relatif (à la racine du serveur) ou absolu. (OBSOLÈTE: remplacé par
+      'tmpReceiveDir')
+   :reqjson string rootDir: Chemin du dossier racine du serveur. Peut être
+      relatif (à la racine de la *gateway*) ou absolu.
+   :reqjson string receiveDir: Le dossier de réception du serveur. Peut
+      être relatif (à la racine du serveur) ou absolu.
+   :reqjson string sendDir: Le dossier d'envoi du serveur. Peut être
       relatif (à la racine du serveur) ou absolu.
+   :reqjson string tmpReceiveDir: Le dossier temporaire du serveur. Peut
+      être relatif (à la racine du serveur) ou absolu.
    :reqjson object protoConfig: La configuration du serveur encodé sous forme
       d'un objet JSON. Cet objet dépend du protocole.
 
@@ -49,7 +60,7 @@ Modifier un serveur
            "name": "sftp_server_new",
            "protocol": "sftp",
            "address": "localhost:2023",
-           "root": "/new/sftp/root",
+           "rootDir": "/new/sftp/root",
            "protoConfig": {}
          }
 

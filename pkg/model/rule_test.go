@@ -1,7 +1,7 @@
 package model
 
 import (
-	"encoding/json"
+	"path"
 	"testing"
 
 	. "github.com/smartystreets/goconvey/convey"
@@ -31,14 +31,14 @@ func TestRuleBeforeWrite(t *testing.T) {
 			old := Rule{
 				Name:   "old",
 				IsSend: true,
-				Path:   "old_path",
+				Path:   "old_path/subdir",
 			}
 			So(db.Insert(&old).Run(), ShouldBeNil)
 
 			rule := Rule{
-				Name:   "rule",
+				Name:   "new",
 				IsSend: true,
-				Path:   "path",
+				Path:   "new_path",
 			}
 
 			shouldSucceed := func() {
@@ -82,6 +82,19 @@ func TestRuleBeforeWrite(t *testing.T) {
 					"a %s rule named '%s' already exist", rule.Direction(), rule.Name))
 			})
 
+			Convey("Given a rule with a path ancestor to this rule's path", func() {
+				rule.Path = path.Join(old.Path, rule.Path)
+				shouldFailWith("the path cannot be a descendant", database.NewValidationError(
+					"the rule's path cannot be the descendant of another rule's path "+
+						"(the path '%s' is already used by rule '%s')", old.Path, old.Name))
+			})
+
+			Convey("Given a rule with a path descendant to this rule's path", func() {
+				rule.Path = path.Dir(old.Path)
+				shouldFailWith("the path cannot be an ancestor", database.NewValidationError(
+					"the rule's path cannot be the ancestor of another rule's path"))
+			})
+
 			Convey("Given a rule without a path", func() {
 				rule.Path = ""
 
@@ -94,7 +107,7 @@ func TestRuleBeforeWrite(t *testing.T) {
 						So(err, ShouldBeNil)
 
 						Convey("Then the path should have been filled", func() {
-							So(rule.Path, ShouldEqual, "/"+rule.Name)
+							So(rule.Path, ShouldEqual, rule.Name)
 						})
 					})
 				})
@@ -121,13 +134,12 @@ func TestRuleBeforeDelete(t *testing.T) {
 			So(db.Insert(&t2).Run(), ShouldBeNil)
 
 			server := LocalAgent{
-				Name:        "server",
-				Protocol:    dummyProto,
-				ProtoConfig: json.RawMessage(`{}`),
-				Address:     "localhost:1111",
+				Name:     "server",
+				Protocol: testProtocol,
+				Address:  "localhost:1111",
 			}
 			So(db.Insert(&server).Run(), ShouldBeNil)
-			account := LocalAccount{LocalAgentID: server.ID, Login: "toto", PasswordHash: hash("password")}
+			account := LocalAccount{LocalAgentID: server.ID, Login: "toto", PasswordHash: hash("sesame")}
 			So(db.Insert(&account).Run(), ShouldBeNil)
 
 			a1 := RuleAccess{RuleID: rule.ID, ObjectID: server.ID, ObjectType: server.TableName()}
@@ -153,8 +165,8 @@ func TestRuleBeforeDelete(t *testing.T) {
 					IsServer:   true,
 					AgentID:    server.ID,
 					AccountID:  account.ID,
-					SourceFile: "file.src",
-					DestFile:   "file.dst",
+					LocalPath:  "file.loc",
+					RemotePath: "file.rem",
 				}
 				So(db.Insert(&trans).Run(), ShouldBeNil)
 

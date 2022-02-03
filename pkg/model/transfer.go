@@ -3,14 +3,17 @@ package model
 import (
 	"fmt"
 	"path"
-	"path/filepath"
 	"time"
 
 	"code.waarp.fr/apps/gateway/gateway/pkg/database"
-	"code.waarp.fr/apps/gateway/gateway/pkg/model/config"
+	"code.waarp.fr/apps/gateway/gateway/pkg/log"
 	"code.waarp.fr/apps/gateway/gateway/pkg/model/types"
 	"code.waarp.fr/apps/gateway/gateway/pkg/tk/utils"
 )
+
+// UnknownSize defines the value given to Transfer.Filesize when the file size is
+// unknown.
+const UnknownSize int64 = -1
 
 //nolint:gochecknoinits // init is used by design
 func init() {
@@ -20,18 +23,18 @@ func init() {
 // Transfer represents one record of the 'transfers' table.
 type Transfer struct {
 	ID               uint64               `xorm:"pk autoincr <- 'id'"`
+	Owner            string               `xorm:"notnull 'owner'"`
 	RemoteTransferID string               `xorm:"notnull 'remote_transfer_id'"`
-	RuleID           uint64               `xorm:"notnull 'rule_id'"`
 	IsServer         bool                 `xorm:"notnull 'is_server'"`
+	RuleID           uint64               `xorm:"notnull 'rule_id'"`
 	AgentID          uint64               `xorm:"notnull 'agent_id'"`
 	AccountID        uint64               `xorm:"notnull 'account_id'"`
-	TrueFilepath     string               `xorm:"notnull 'true_filepath'"`
-	SourceFile       string               `xorm:"notnull 'source_file'"`
-	DestFile         string               `xorm:"notnull 'dest_file'"`
+	LocalPath        string               `xorm:"notnull 'local_path'"`
+	RemotePath       string               `xorm:"notnull 'remote_path'"`
+	Filesize         int64                `xorm:"bigint notnull default(-1) 'filesize'"`
 	Start            time.Time            `xorm:"notnull timestampz 'start'"`
-	Step             types.TransferStep   `xorm:"notnull varchar(50) 'step'"`
 	Status           types.TransferStatus `xorm:"notnull 'status'"`
-	Owner            string               `xorm:"notnull 'owner'"`
+	Step             types.TransferStep   `xorm:"notnull varchar(50) 'step'"`
 	Progress         uint64               `xorm:"notnull 'progression'"`
 	TaskNumber       uint64               `xorm:"notnull 'task_number'"`
 	Error            types.TransferError  `xorm:"extends"`
@@ -52,7 +55,7 @@ func (t *Transfer) GetID() uint64 {
 	return t.ID
 }
 
-// SetTransferInfo replaces all the TransferInfo in the database of the the given transfer
+// SetTransferInfo replaces all the TransferInfo in the database of the given transfer
 // by those given in the map parameter.
 func (t *Transfer) SetTransferInfo(db database.Access, info map[string]interface{}) error {
 	if err := db.DeleteAll(&TransferInfo{TransferID: t.ID}).Run(); err != nil {
@@ -70,6 +73,8 @@ func (t *Transfer) SetTransferInfo(db database.Access, info map[string]interface
 }
 
 func (t *Transfer) validateClientTransfer(db database.ReadAccess) database.Error {
+	t.RemoteTransferID = ""
+
 	remote := &RemoteAgent{}
 	if err := db.Get(remote, "id=?", t.AgentID).Run(); err != nil {
 		if database.IsNotFound(err) {
@@ -88,43 +93,12 @@ func (t *Transfer) validateClientTransfer(db database.ReadAccess) database.Error
 			t.AgentID, t.AccountID)
 	}
 
-	if t.RemoteTransferID != "" {
-		n, err := db.Count(t).Where("remote_transfer_id=? AND account_id=?",
-			t.RemoteTransferID, t.AccountID).Run()
-		if err != nil {
-			return err
-		}
-
-		if n != 0 {
-			return database.NewValidationError("a transfer with the same remote ID already exists")
-		}
-	}
-
 	// Check for rule access
 	if auth, err := IsRuleAuthorized(db, t); err != nil {
 		return err
 	} else if !auth {
 		return database.NewValidationError("rule %d is not authorized for this transfer",
 			t.RuleID)
-	}
-
-	protoConf, err1 := config.GetProtoConfig(remote.Protocol, remote.ProtoConfig)
-	if err1 != nil {
-		return database.NewValidationError("invalid partner protocol configuration: %s", err1)
-	}
-
-	if protoConf.CertRequired() {
-		n, err := db.Count(&Crypto{}).Where("owner_type=? AND owner_id=?",
-			remote.TableName(), remote.ID).Run()
-		if err != nil {
-			return err
-		}
-
-		if n == 0 {
-			return database.NewValidationError(
-				"the %s partner is missing a certificate when it was required",
-				remote.Protocol)
-		}
 	}
 
 	return nil
@@ -151,6 +125,26 @@ func (t *Transfer) validateServerTransfer(db database.ReadAccess) database.Error
 			t.AgentID, t.AccountID)
 	}
 
+	if t.RemoteTransferID != "" {
+		n1, err := db.Count(t).Where("id<>? AND remote_transfer_id=? AND account_id=?",
+			t.ID, t.RemoteTransferID, t.AccountID).Run()
+		if err != nil {
+			return err
+		}
+
+		n2, err := db.Count(&HistoryEntry{}).Where("id<>? AND remote_transfer_id=? AND "+
+			"account=(SELECT login FROM local_accounts WHERE id=?)", t.ID,
+			t.RemoteTransferID, t.AccountID).Run()
+		if err != nil {
+			return err
+		}
+
+		if n1 != 0 || n2 != 0 {
+			return database.NewValidationError("a transfer from the same account " +
+				"with the same remote ID already exists")
+		}
+	}
+
 	// Check for rule access
 	if auth, err := IsRuleAuthorized(db, t); err != nil {
 		return err
@@ -161,12 +155,7 @@ func (t *Transfer) validateServerTransfer(db database.ReadAccess) database.Error
 	return nil
 }
 
-// BeforeWrite checks if the new `Transfer` entry is valid and can be
-// inserted in the database.
-//nolint:funlen // validations can be long...
-func (t *Transfer) BeforeWrite(db database.ReadAccess) database.Error {
-	t.Owner = database.Owner
-
+func (t *Transfer) checkMandatoryValues() database.Error {
 	if t.RuleID == 0 {
 		return database.NewValidationError("the transfer's rule ID cannot be empty")
 	}
@@ -179,16 +168,24 @@ func (t *Transfer) BeforeWrite(db database.ReadAccess) database.Error {
 		return database.NewValidationError("the transfer's account ID cannot be empty")
 	}
 
-	if t.SourceFile == "" {
-		return database.NewValidationError("the transfer's source cannot be empty")
-	}
-
-	if t.DestFile == "" {
-		return database.NewValidationError("the transfer's destination cannot be empty")
+	if t.LocalPath == "" || t.LocalPath == "/" || t.LocalPath == "." {
+		return database.NewValidationError("the local filepath is missing")
 	}
 
 	if t.Start.IsZero() {
 		t.Start = time.Now()
+	}
+
+	return nil
+}
+
+// BeforeWrite checks if the new `Transfer` entry is valid and can be
+// inserted in the database.
+func (t *Transfer) BeforeWrite(db database.ReadAccess) database.Error {
+	t.Owner = database.Owner
+
+	if err := t.checkMandatoryValues(); err != nil {
+		return err
 	}
 
 	if t.Status == "" {
@@ -207,19 +204,22 @@ func (t *Transfer) BeforeWrite(db database.ReadAccess) database.Error {
 		return database.NewValidationError("'%s' is not a valid transfer error code", t.Error.Code)
 	}
 
-	if t.SourceFile != filepath.Base(t.SourceFile) {
-		return database.NewValidationError("the source file cannot contain subdirectories")
-	}
-
-	if t.DestFile != filepath.Base(t.DestFile) {
-		return database.NewValidationError("the destination file cannot contain subdirectories")
-	}
-
-	if t.TrueFilepath != "" {
-		t.TrueFilepath = utils.NormalizePath(t.TrueFilepath)
-		if !path.IsAbs(t.TrueFilepath) {
-			return database.NewValidationError("the filepath must be an absolute path")
+	if t.LocalPath != "" {
+		t.LocalPath = utils.ToOSPath(t.LocalPath)
+		if !path.IsAbs(t.LocalPath) && t.LocalPath != path.Base(t.LocalPath) {
+			return database.NewValidationError("the local file cannot contain subdirectories")
 		}
+	} else {
+		return database.NewValidationError("the local file cannot be empty")
+	}
+
+	if t.RemotePath != "" {
+		t.RemotePath = utils.ToStandardPath(t.RemotePath)
+		if !path.IsAbs(t.RemotePath) && t.RemotePath != path.Base(t.RemotePath) {
+			return database.NewValidationError("the remote file cannot contain subdirectories")
+		}
+	} else {
+		return database.NewValidationError("the remote file cannot be empty")
 	}
 
 	n, err := db.Count(&Rule{}).Where("id=?", t.RuleID).Run()
@@ -244,40 +244,45 @@ func (t *Transfer) BeforeWrite(db database.ReadAccess) database.Error {
 	return nil
 }
 
-// ToHistory converts the `Transfer` entry into an equivalent `TransferHistory`
+func (t *Transfer) makeAgentInfo(db database.ReadAccess) (string, string, string, database.Error) {
+	if t.IsServer {
+		var agent LocalAgent
+		if err := db.Get(&agent, "id=?", t.AgentID).Run(); err != nil {
+			return "", "", "", err
+		}
+
+		var account LocalAccount
+		if err := db.Get(&account, "id=?", t.AccountID).Run(); err != nil {
+			return "", "", "", err
+		}
+
+		return agent.Name, account.Login, agent.Protocol, nil
+	}
+
+	var agent RemoteAgent
+	if err := db.Get(&agent, "id=?", t.AgentID).Run(); err != nil {
+		return "", "", "", err
+	}
+
+	var account RemoteAccount
+	if err := db.Get(&account, "id=?", t.AccountID).Run(); err != nil {
+		return "", "", "", err
+	}
+
+	return agent.Name, account.Login, agent.Protocol, nil
+}
+
+// makeHistoryEntry converts the `Transfer` entry into an equivalent `HistoryEntry`
 // entry with the given time as the end date.
-func (t *Transfer) ToHistory(db database.ReadAccess, stop time.Time) (*TransferHistory, database.Error) {
-	rule := &Rule{}
-	if err := db.Get(rule, "id=?", t.RuleID).Run(); err != nil {
+func (t *Transfer) makeHistoryEntry(db database.ReadAccess, stop time.Time) (*HistoryEntry, database.Error) {
+	var rule Rule
+	if err := db.Get(&rule, "id=?", t.RuleID).Run(); err != nil {
 		return nil, err
 	}
 
-	var agentName, accountLogin, protocol string
-
-	if t.IsServer {
-		agent := &LocalAgent{}
-		if err := db.Get(agent, "id=?", t.AgentID).Run(); err != nil {
-			return nil, err
-		}
-
-		account := &LocalAccount{}
-		if err := db.Get(account, "id=?", t.AccountID).Run(); err != nil {
-			return nil, err
-		}
-
-		agentName, accountLogin, protocol = agent.Name, account.Login, agent.Protocol
-	} else {
-		agent := &RemoteAgent{}
-		if err := db.Get(agent, "id=?", t.AgentID).Run(); err != nil {
-			return nil, err
-		}
-
-		account := &RemoteAccount{}
-		if err := db.Get(account, "id=?", t.AccountID).Run(); err != nil {
-			return nil, err
-		}
-
-		agentName, accountLogin, protocol = agent.Name, account.Login, agent.Protocol
+	agentName, accountLogin, protocol, err2 := t.makeAgentInfo(db)
+	if err2 != nil {
+		return nil, err2
 	}
 
 	if !types.ValidateStatusForHistory(t.Status) {
@@ -285,7 +290,7 @@ func (t *Transfer) ToHistory(db database.ReadAccess, stop time.Time) (*TransferH
 			"a transfer cannot be recorded in history with status '%s'", t.Status)
 	}
 
-	hist := TransferHistory{
+	hist := HistoryEntry{
 		ID:               t.ID,
 		Owner:            t.Owner,
 		RemoteTransferID: t.RemoteTransferID,
@@ -294,8 +299,9 @@ func (t *Transfer) ToHistory(db database.ReadAccess, stop time.Time) (*TransferH
 		Account:          accountLogin,
 		Agent:            agentName,
 		Protocol:         protocol,
-		SourceFilename:   t.SourceFile,
-		DestFilename:     t.DestFile,
+		LocalPath:        t.LocalPath,
+		RemotePath:       t.RemotePath,
+		Filesize:         t.Filesize,
 		Rule:             rule.Name,
 		Start:            t.Start,
 		Stop:             stop,
@@ -307,6 +313,34 @@ func (t *Transfer) ToHistory(db database.ReadAccess, stop time.Time) (*TransferH
 	}
 
 	return &hist, nil
+}
+
+// ToHistory removes the transfer entry from the database, converts it into a
+// history entry, and inserts the new history entry in the database.
+// If any of these steps fails, the changes are reverted and an error is returned.
+func (t *Transfer) ToHistory(db *database.DB, logger *log.Logger, end time.Time) database.Error {
+	return db.Transaction(func(ses *database.Session) database.Error {
+		if err := ses.Delete(t).Run(); err != nil {
+			logger.Errorf("Failed to delete transfer for archival: %s", err)
+
+			return err
+		}
+
+		hist, err := t.makeHistoryEntry(ses, end)
+		if err != nil {
+			logger.Errorf("Failed to convert transfer to history: %s", err)
+
+			return err
+		}
+
+		if err := ses.Insert(hist).Run(); err != nil {
+			logger.Errorf("Failed to create new history entry: %s", err)
+
+			return err
+		}
+
+		return nil
+	})
 }
 
 // GetTransferInfo returns the list of the transfer's TransferInfo as a map[string]string.

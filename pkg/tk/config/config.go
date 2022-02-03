@@ -26,7 +26,7 @@ type Parser struct {
 func NewParser(data interface{}) (*Parser, error) {
 	var options flags.Options = flags.Default | flags.IgnoreUnknown
 	parser := flags.NewNamedParser(path.Base(os.Args[0]), options)
-	// FIXME error should not be discarded.
+
 	_, err := parser.AddGroup("global", "", data)
 	if err != nil {
 		return nil, fmt.Errorf("cannot add a global group to the parser: %w", err)
@@ -36,7 +36,6 @@ func NewParser(data interface{}) (*Parser, error) {
 		parser: parser,
 	}
 
-	// FIXME error should not be discarded.
 	_, err = p.parser.ParseArgs([]string{})
 	if err != nil {
 		return nil, fmt.Errorf("cannot initialize parser: %w", err)

@@ -3,7 +3,7 @@ package backup
 import (
 	"fmt"
 
-	"code.waarp.fr/waarp-r66/r66"
+	"code.waarp.fr/lib/r66"
 
 	"code.waarp.fr/apps/gateway/gateway/pkg/backup/file"
 	"code.waarp.fr/apps/gateway/gateway/pkg/database"
@@ -12,6 +12,7 @@ import (
 	"code.waarp.fr/apps/gateway/gateway/pkg/tk/utils"
 )
 
+//nolint:funlen // splitting the function would add complexity
 func importLocalAgents(logger *log.Logger, db database.Access, list []file.LocalAgent) database.Error {
 	for i := range list {
 		src := &list[i]
@@ -30,14 +31,16 @@ func importLocalAgents(logger *log.Logger, db database.Access, list []file.Local
 
 		// Populate
 		agent.Name = src.Name
-		agent.Root = src.Root
-		agent.InDir = src.InDir
-		agent.OutDir = src.OutDir
-		agent.WorkDir = src.WorkDir
+		agent.RootDir = src.RootDir
+		agent.ReceiveDir = src.ReceiveDir
+		agent.SendDir = src.SendDir
+		agent.TmpReceiveDir = src.TmpReceiveDir
 		agent.Address = src.Address
 		agent.Protocol = src.Protocol
 		agent.ProtoConfig = src.Configuration
 		agent.Owner = ""
+
+		checkLocalAgentDeprecatedFields(logger, &agent, src)
 
 		// Create/Update
 		if exists {
@@ -65,6 +68,41 @@ func importLocalAgents(logger *log.Logger, db database.Access, list []file.Local
 	return nil
 }
 
+func checkLocalAgentDeprecatedFields(logger *log.Logger, agent *model.LocalAgent,
+	src *file.LocalAgent) {
+	if src.Root != "" {
+		logger.Warning("JSON field 'locals.Root' is deprecated, use 'rootDir' instead")
+
+		if agent.RootDir == "" {
+			agent.RootDir = utils.DenormalizePath(src.Root)
+		}
+	}
+
+	if src.InDir != "" {
+		logger.Warning("JSON field 'locals.inDir' is deprecated, use 'receiveDir' instead")
+
+		if agent.ReceiveDir == "" {
+			agent.ReceiveDir = utils.DenormalizePath(src.InDir)
+		}
+	}
+
+	if src.OutDir != "" {
+		logger.Warning("JSON field 'locals.outDir' is deprecated, use 'sendDir' instead")
+
+		if agent.SendDir == "" {
+			agent.ReceiveDir = utils.DenormalizePath(src.OutDir)
+		}
+	}
+
+	if src.WorkDir != "" {
+		logger.Warning("JSON field 'locals.workDir' is deprecated, use 'tmpDir' instead")
+
+		if agent.TmpReceiveDir == "" {
+			agent.TmpReceiveDir = utils.DenormalizePath(src.WorkDir)
+		}
+	}
+}
+
 //nolint:dupl // duplicated code is about two different types
 func importLocalAccounts(logger *log.Logger, db database.Access,
 	list []file.LocalAccount, server *model.LocalAgent) database.Error {
@@ -84,16 +122,16 @@ func importLocalAccounts(logger *log.Logger, db database.Access,
 		account.Login = src.Login
 
 		if src.PasswordHash != "" {
-			account.PasswordHash = []byte(src.PasswordHash)
+			account.PasswordHash = src.PasswordHash
 		} else if src.Password != "" {
-			pswd := []byte(src.Password)
+			pswd := src.Password
 			if server.Protocol == "r66" {
 				// Unlike other protocols, when authenticating, an R66 client sends a
 				// hash instead of a password, so we replace the password with its hash.
-				pswd = r66.CryptPass(pswd)
+				pswd = string(r66.CryptPass([]byte(pswd)))
 			}
 			var err error
-			if account.PasswordHash, err = utils.HashPassword(pswd); err != nil {
+			if account.PasswordHash, err = utils.HashPassword(database.BcryptRounds, pswd); err != nil {
 				return database.NewInternalError(fmt.Errorf("failed to hash account password: %w", err))
 			}
 		}

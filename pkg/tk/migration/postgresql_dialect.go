@@ -75,7 +75,10 @@ type postgreActions struct {
 }
 
 func newPostgreEngine(db *queryWriter) Actions {
-	return &postgreActions{standardSQL: &standardSQL{queryWriter: db}}
+	return &postgreActions{
+		standardSQL: &standardSQL{queryWriter: db},
+		trad:        &postgreTranslator{},
+	}
 }
 
 func (*postgreActions) GetDialect() string { return PostgreSQL }

@@ -10,7 +10,6 @@ import (
 	"fmt"
 	"io/ioutil"
 	"os"
-	"path/filepath"
 	"time"
 
 	"xorm.io/xorm"
@@ -20,14 +19,10 @@ import (
 	"code.waarp.fr/apps/gateway/gateway/pkg/conf"
 	"code.waarp.fr/apps/gateway/gateway/pkg/log"
 	"code.waarp.fr/apps/gateway/gateway/pkg/tk/service"
+	"code.waarp.fr/apps/gateway/gateway/pkg/tk/utils"
 )
 
-const (
-	// ServiceName is the name of the gatewayd database service.
-	ServiceName = "Database"
-
-	aesKeySize = 32
-)
+const aesKeySize = 32
 
 //nolint:gochecknoglobals // global var is used by design
 var (
@@ -61,7 +56,7 @@ func (db *DB) loadAESKey() error {
 	}
 
 	filename := db.Conf.Database.AESPassphrase
-	if _, err := os.Stat(filepath.FromSlash(filename)); os.IsNotExist(err) {
+	if _, err := os.Stat(utils.ToOSPath(filename)); os.IsNotExist(err) {
 		db.logger.Infof("Creating AES passphrase file at '%s'", filename)
 
 		key := make([]byte, aesKeySize)
@@ -70,12 +65,12 @@ func (db *DB) loadAESKey() error {
 			return fmt.Errorf("cannot generate AES key: %w", err)
 		}
 
-		if err := ioutil.WriteFile(filepath.FromSlash(filename), key, 0o600); err != nil {
+		if err := ioutil.WriteFile(utils.ToOSPath(filename), key, 0o600); err != nil {
 			return fmt.Errorf("cannot write AES key to file %q: %w", filename, err)
 		}
 	}
 
-	key, err := ioutil.ReadFile(filepath.FromSlash(filename))
+	key, err := ioutil.ReadFile(utils.ToOSPath(filename))
 	if err != nil {
 		return fmt.Errorf("cannot read AES key from file %q: %w", filename, err)
 	}
@@ -93,18 +88,19 @@ func (db *DB) loadAESKey() error {
 	return nil
 }
 
-// createDSN creates and returns the dataSourceName string necessary to open
-// a connection to the database. The DSN varies depending on the options given
+// createConnectionInfo creates and returns the dataSourceName string necessary
+// to open a connection to the database, along with the driver and an optional
+// initialisation function. The DSN varies depending on the options given
 // in the database configuration.
-func (db *DB) createConnectionInfo() (string, string, func(*xorm.Engine) error, error) {
-	rdbms := db.Conf.Database.Type
+func createConnectionInfo(c *conf.DatabaseConfig) (string, string, func(*xorm.Engine) error, error) {
+	rdbms := c.Type
 
 	info, ok := supportedRBMS[rdbms]
 	if !ok {
 		return "", "", nil, fmt.Errorf("unknown database type '%s': %w", rdbms, errUnsuportedDB)
 	}
 
-	driver, dsn, f := info(&db.Conf.Database)
+	driver, dsn, f := info(c)
 
 	return driver, dsn, f, nil
 }
@@ -115,7 +111,7 @@ type dbinfo func(*conf.DatabaseConfig) (string, string, func(*xorm.Engine) error
 var supportedRBMS = map[string]dbinfo{}
 
 func (db *DB) initEngine() (*xorm.Engine, error) {
-	driver, dsn, init, err := db.createConnectionInfo()
+	driver, dsn, init, err := createConnectionInfo(&db.Conf.Database)
 	if err != nil {
 		db.logger.Criticalf("Database configuration invalid: %s", err)
 
@@ -151,7 +147,7 @@ func (db *DB) initEngine() (*xorm.Engine, error) {
 // If the service is already running, this function does nothing.
 func (db *DB) Start() error {
 	if db.logger == nil {
-		db.logger = log.NewLogger(ServiceName)
+		db.logger = log.NewLogger(service.DatabaseServiceName)
 	}
 
 	db.logger.Info("Starting database service...")
@@ -185,25 +181,25 @@ func (db *DB) Start() error {
 		conf:   &db.Conf.Database,
 	}
 
-	if err := initTables(db.Standalone); err != nil {
+	if err1 := db.checkVersion(); err1 != nil {
 		if err2 := engine.Close(); err2 != nil {
 			db.logger.Warningf("an error occurred while closing the database: %v", err2)
 		}
 
-		db.state.Set(service.Error, err.Error())
-		db.logger.Errorf("Failed to create tables: %s", err)
+		db.state.Set(service.Error, err1.Error())
 
-		return err
+		return err1
 	}
 
-	if err := db.checkVersion(); err != nil {
+	if err1 := initTables(db.Standalone); err1 != nil {
 		if err2 := engine.Close(); err2 != nil {
 			db.logger.Warningf("an error occurred while closing the database: %v", err2)
 		}
 
-		db.state.Set(service.Error, err.Error())
+		db.state.Set(service.Error, err1.Error())
+		db.logger.Errorf("Failed to create tables: %s", err1)
 
-		return err
+		return err1
 	}
 
 	db.logger.Info("Startup successful")
@@ -246,8 +242,10 @@ func (db *DB) State() *service.State {
 	ctx, cancel := context.WithTimeout(context.Background(), time.Second)
 	defer cancel()
 
-	//nolint:errcheck //thiserror is handled another inside ping
-	_ = ping(&db.state, db.Standalone.engine.Context(ctx), db.logger)
+	if db.engine != nil {
+		//nolint:errcheck //this error is handled another inside ping
+		_ = ping(&db.state, db.Standalone.engine.Context(ctx), db.logger)
+	}
 
 	return &db.state
 }

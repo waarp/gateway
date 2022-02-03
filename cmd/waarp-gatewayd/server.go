@@ -5,7 +5,6 @@ import (
 
 	"code.waarp.fr/apps/gateway/gateway/pkg/conf"
 	"code.waarp.fr/apps/gateway/gateway/pkg/gatewayd"
-	"code.waarp.fr/apps/gateway/gateway/pkg/log"
 )
 
 var errNoConfigFile = fmt.Errorf("the path to the configuration file must be given with the argument --config")
@@ -45,10 +44,6 @@ func (cmd *serverCommand) Execute([]string) error {
 	config, err := conf.LoadServerConfig(cmd.ConfigFile)
 	if err != nil {
 		return fmt.Errorf("cannot load server config: %w", err)
-	}
-
-	if err := log.InitBackend(config.Log); err != nil {
-		return fmt.Errorf("cannot initialize logging backend: %w", err)
 	}
 
 	s := gatewayd.NewWG(config)

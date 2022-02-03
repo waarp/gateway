@@ -29,7 +29,10 @@ type mySQLActions struct {
 }
 
 func newMySQLEngine(db *queryWriter) Actions {
-	return &mySQLActions{standardSQL: &standardSQL{queryWriter: db}}
+	return &mySQLActions{
+		standardSQL: &standardSQL{queryWriter: db},
+		trad:        &mysqlTranslator{},
+	}
 }
 
 func (*mySQLActions) GetDialect() string { return MySQL }
@@ -61,4 +64,13 @@ func (m *mySQLActions) ChangeColumnType(table, col string, from, to sqlType) err
 
 func (m *mySQLActions) AddRow(table string, values Cells) error {
 	return m.addRow(m.trad, table, values)
+}
+
+func (m *mySQLActions) SwapColumns(table, col1, col2, cond string) error {
+	query := "UPDATE %s SET %s=(@temp:=%s), %s=%s, %s=@temp"
+	if cond != "" {
+		query += " WHERE " + cond
+	}
+
+	return m.Exec(query, table, col1, col1, col1, col2, col2)
 }

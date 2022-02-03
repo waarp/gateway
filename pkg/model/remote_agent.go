@@ -84,7 +84,7 @@ func (r *RemoteAgent) BeforeWrite(db database.ReadAccess) database.Error {
 	}
 
 	if r.ProtoConfig == nil {
-		return database.NewValidationError("the agent's configuration cannot be empty")
+		r.ProtoConfig = json.RawMessage(`{}`)
 	}
 
 	if err := r.validateProtoConfig(); err != nil {
@@ -134,11 +134,8 @@ func (r *RemoteAgent) BeforeDelete(db database.Access) database.Error {
 	}
 
 	accountQuery := db.DeleteAll(&RemoteAccount{}).Where("remote_agent_id=?", r.ID)
-	if err := accountQuery.Run(); err != nil {
-		return err
-	}
 
-	return nil
+	return accountQuery.Run()
 }
 
 // GetCryptos returns a list of all the partner's certificates.

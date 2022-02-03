@@ -3,6 +3,8 @@ package rest
 import (
 	"fmt"
 	"net/http"
+	"path"
+	"path/filepath"
 	"strconv"
 	"time"
 
@@ -13,40 +15,52 @@ import (
 	"code.waarp.fr/apps/gateway/gateway/pkg/log"
 	"code.waarp.fr/apps/gateway/gateway/pkg/model"
 	"code.waarp.fr/apps/gateway/gateway/pkg/model/config"
+	"code.waarp.fr/apps/gateway/gateway/pkg/tk/utils"
 )
 
 // FromHistory transforms the given database history entry into its JSON equivalent.
-func FromHistory(h *model.TransferHistory) *api.OutHistory {
+func FromHistory(hist *model.HistoryEntry) *api.OutHistory {
 	var stop *time.Time
-	if !h.Stop.IsZero() {
-		stop = &h.Stop
+	if !hist.Stop.IsZero() {
+		stop = &hist.Stop
+	}
+
+	src := path.Base(hist.RemotePath)
+	dst := filepath.Base(hist.LocalPath)
+
+	if hist.IsSend {
+		dst = path.Base(hist.RemotePath)
+		src = filepath.Base(hist.LocalPath)
 	}
 
 	return &api.OutHistory{
-		ID:             h.ID,
-		RemoteID:       h.RemoteTransferID,
-		IsServer:       h.IsServer,
-		IsSend:         h.IsSend,
-		Requester:      h.Account,
-		Requested:      h.Agent,
-		Protocol:       h.Protocol,
-		SourceFilename: h.SourceFilename,
-		DestFilename:   h.DestFilename,
-		Rule:           h.Rule,
-		Start:          h.Start.Local(),
+		ID:             hist.ID,
+		RemoteID:       hist.RemoteTransferID,
+		IsServer:       hist.IsServer,
+		IsSend:         hist.IsSend,
+		Requester:      hist.Account,
+		Requested:      hist.Agent,
+		Protocol:       hist.Protocol,
+		SourceFilename: utils.NormalizePath(src),
+		DestFilename:   utils.NormalizePath(dst),
+		LocalFilepath:  hist.LocalPath,
+		RemoteFilepath: hist.RemotePath,
+		Filesize:       hist.Filesize,
+		Rule:           hist.Rule,
+		Start:          hist.Start.Local(),
 		Stop:           stop,
-		Status:         h.Status,
-		ErrorCode:      h.Error.Code,
-		ErrorMsg:       h.Error.Details,
-		Step:           h.Step,
-		Progress:       h.Progress,
-		TaskNumber:     h.TaskNumber,
+		Status:         hist.Status,
+		ErrorCode:      hist.Error.Code,
+		ErrorMsg:       hist.Error.Details,
+		Step:           hist.Step,
+		Progress:       hist.Progress,
+		TaskNumber:     hist.TaskNumber,
 	}
 }
 
 // FromHistories transforms the given list of database history entries into its
 // JSON equivalent.
-func FromHistories(hs []model.TransferHistory) []api.OutHistory {
+func FromHistories(hs []model.HistoryEntry) []api.OutHistory {
 	hist := make([]api.OutHistory, len(hs))
 	for i := range hs {
 		hist[i] = *FromHistory(&hs[i])
@@ -56,7 +70,7 @@ func FromHistories(hs []model.TransferHistory) []api.OutHistory {
 }
 
 //nolint:dupl // duplicated code is about a different type
-func getHist(r *http.Request, db *database.DB) (*model.TransferHistory, error) {
+func getHist(r *http.Request, db *database.DB) (*model.HistoryEntry, error) {
 	val := mux.Vars(r)["history"]
 
 	id, err := strconv.ParseUint(val, 10, 64) //nolint:gomnd // no need for a constant here
@@ -64,7 +78,7 @@ func getHist(r *http.Request, db *database.DB) (*model.TransferHistory, error) {
 		return nil, notFound("'%s' is not a valid transfer ID", val)
 	}
 
-	var history model.TransferHistory
+	var history model.HistoryEntry
 	if err := db.Get(&history, "id=?", id).Run(); err != nil {
 		if database.IsNotFound(err) {
 			return nil, notFound("transfer %v not found", id)
@@ -161,7 +175,7 @@ func listHistory(logger *log.Logger, db *database.DB) http.HandlerFunc {
 	}
 
 	return func(w http.ResponseWriter, r *http.Request) {
-		var results model.Histories
+		var results model.HistoryEntries
 		query, err := parseSelectQuery(r, db, validSorting, &results)
 
 		if handleError(w, logger, err) {
