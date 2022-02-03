@@ -4,6 +4,10 @@ Historique des versions
 =======================
 
 * :release:`0.5.0 <>`
+* :bug:`278` Dans le fichier d'import, si une des listes définissant les chaînes
+  de traitements de la règle (``pre``, ``post`` ou ``error``) est vide mais non-nulle,
+  la chaîne de traitements en question sera vidée. Si la liste est manquante ou
+  nulle, la chaîne de traitements restera inchangée.
 * :feature:`270` Lors d'une requête SFTP, la recherche de la règle associée au
   chemin de la requête se fait désormais récursivement, au lieu de juste prendre
   le dossier parent. Cela a les conséquences suivantes:

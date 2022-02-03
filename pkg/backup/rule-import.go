@@ -201,7 +201,7 @@ func createLocalAccess(db database.ReadAccess, arr []string,
 
 func importRuleTasks(logger *log.Logger, db database.Access, list []file.Task,
 	ruleID uint64, chain model.Chain) database.Error {
-	if len(list) == 0 {
+	if list == nil {
 		return nil
 	}
 
