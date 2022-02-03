@@ -129,7 +129,7 @@ func getTrans(r *http.Request, db *database.DB) (*model.Transfer, error) {
 	}
 
 	var transfer model.Transfer
-	if err := db.Get(&transfer, "id=?", id).Run(); err != nil {
+	if err := db.Get(&transfer, "id=? AND owner=?", id, database.Owner).Run(); err != nil {
 		if database.IsNotFound(err) {
 			return nil, notFound("transfer %v not found", id)
 		}
@@ -187,7 +187,7 @@ func listTransfers(logger *log.Logger, db *database.DB) http.HandlerFunc {
 			return
 		}
 
-		if err := query.Run(); handleError(w, logger, err) {
+		if err := query.Where("owner=?", database.Owner).Run(); handleError(w, logger, err) {
 			return
 		}
 
