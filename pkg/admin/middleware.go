@@ -28,15 +28,8 @@ func authentication(logger *log.Logger, db *database.DB) mux.MiddlewareFunc {
 
 			var user model.User
 			if err := db.Get(&user, "username=? AND owner=?", login, database.Owner).
-				Run(); err != nil {
-				if database.IsNotFound(err) {
-					logger.Warningf("Invalid authentication for user '%s'", login)
-					w.Header().Set("WWW-Authenticate", "Basic")
-					http.Error(w, "the given credentials are invalid", http.StatusUnauthorized)
-
-					return
-				}
-				logger.Criticalf("Database error: %s", err)
+				Run(); err != nil && !database.IsNotFound(err) {
+				logger.Errorf("Database error: %s", err)
 				http.Error(w, "internal database error", http.StatusInternalServerError)
 
 				return
@@ -44,7 +37,7 @@ func authentication(logger *log.Logger, db *database.DB) mux.MiddlewareFunc {
 
 			if err := bcrypt.CompareHashAndPassword([]byte(user.PasswordHash),
 				[]byte(password)); err != nil {
-				logger.Warningf("Invalid password for user '%s'", login)
+				logger.Warningf("Invalid credentials for user '%s'", login)
 				w.Header().Set("WWW-Authenticate", "Basic")
 				http.Error(w, "the given credentials are invalid", http.StatusUnauthorized)
 
