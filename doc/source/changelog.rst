@@ -8,6 +8,25 @@ Historique des versions
   de la base de données sont désormais via des indexes uniques, au lieu des
   contraintes sur les colonnes. Le module de migration est désormais consistant
   avec le module d'initialisation de la base sur ce point.
+* :bug:`292` Correction d'une erreur empêchant la création de l'utilisateur par
+  défaut lorsque la base de données est partagée entre plusieurs *gateways*.
+* :bug:`-` Correction d'un bug permettant la suppression du dernier administrateur
+  d'une *gateway*, rendant cette dernière impossible à administrer.
+* :bug:`294` Correction d'une erreur dans la réponse des requêtes de listage
+  d'utilisateurs sur l'interface REST d'administration (et le client terminal).
+  Lorsque la base de données est partagée entre plusieurs *gateways*, l'interface
+  d'administration renvoyait indistinctement les utilisateur de toutes les
+  *gateways* utilisant cette base de données, au lieu de renvoyer uniquement les
+  utilisateurs de l'instance interrogée. Désormais, l'interface REST ne renvoi que
+  les utilisateurs de la *gateway* interrogée. Un problème similaire a également
+  été corrigé pour les transferts.
+* :feature:`277` Ajout d'une option à la commande `history list` de la CLI
+  permettant de trier les entrées de l'historique par date de fin (`stop+` et
+  `stop-`). Cette option est également présente sur l'API REST de la *gateway*.
+* :bug:`278` Dans le fichier d'import, si une des listes définissant les chaînes
+  de traitements de la règle (``pre``, ``post`` ou ``error``) est vide mais non-nulle,
+  la chaîne de traitements en question sera vidée. Si la liste est manquante ou
+  nulle, la chaîne de traitements restera inchangée.
 * :feature:`270` Lors d'une requête SFTP, la recherche de la règle associée au
   chemin de la requête se fait désormais récursivement, au lieu de juste prendre
   le dossier parent. Cela a les conséquences suivantes:

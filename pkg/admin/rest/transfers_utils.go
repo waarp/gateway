@@ -90,7 +90,7 @@ func getTransNames(db *database.DB, trans *model.Transfer) (*model.Rule, string,
 //nolint:funlen // FIXME should be refactored
 func parseTransferListQuery(r *http.Request, db *database.DB,
 	transfers *model.Transfers) (*database.SelectQuery, error) {
-	query := db.Select(transfers)
+	query := db.Select(transfers).Where("owner=?", database.Owner)
 
 	sorting := orders{
 		"default": order{col: "start", asc: true},

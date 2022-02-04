@@ -89,7 +89,9 @@ func initTestDBConf(config *conf.DatabaseConfig) {
 	}
 }
 
-func resetDB(db *DB, config *conf.DatabaseConfig) {
+func resetDB(db *DB) {
+	config := &db.Conf.Database
+
 	switch config.Type {
 	case PostgreSQL, MySQL:
 		for _, tbl := range tables {
@@ -112,6 +114,24 @@ func resetDB(db *DB, config *conf.DatabaseConfig) {
 // purposes. The function must be called within a convey context.
 // The database will log messages at the level given.
 func TestDatabase(c convey.C, logLevel string) *DB {
+	db := initTestDatabase(c, logLevel)
+
+	c.So(db.Start(), convey.ShouldBeNil)
+	c.Reset(func() { resetDB(db) })
+
+	return db
+}
+
+func TestDatabaseNoInit(c convey.C, logLevel string) *DB {
+	db := initTestDatabase(c, logLevel)
+
+	c.So(db.start(false), convey.ShouldBeNil)
+	c.Reset(func() { resetDB(db) })
+
+	return db
+}
+
+func initTestDatabase(c convey.C, logLevel string) *DB {
 	BcryptRounds = bcrypt.MinCost
 	config := &conf.ServerConfig{}
 	config.GatewayName = "test_gateway"
@@ -133,18 +153,7 @@ func TestDatabase(c convey.C, logLevel string) *DB {
 
 	if os.Getenv(testDBMechanism) == "migration" {
 		startViaMigration(c, config)
-
-		defer func() {
-			for i := range tables {
-				if init, ok := tables[i].(initialiser); ok {
-					c.So(init.Init(db), convey.ShouldBeNil)
-				}
-			}
-		}()
 	}
-
-	c.So(db.Start(), convey.ShouldBeNil)
-	c.Reset(func() { resetDB(db, &config.Database) })
 
 	return db
 }

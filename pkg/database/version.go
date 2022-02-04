@@ -20,5 +20,11 @@ func (v *version) Appellation() string { return "version" }
 
 // Init initializes the version table with the current program version.
 func (v *version) Init(db Access) Error {
+	if n, err := db.Count(&version{}).Run(); err != nil {
+		return err
+	} else if n != 0 {
+		return nil
+	}
+
 	return db.Insert(&version{vers.Num}).Run()
 }

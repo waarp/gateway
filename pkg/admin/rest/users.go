@@ -103,7 +103,7 @@ func listUsers(logger *log.Logger, db *database.DB) http.HandlerFunc {
 			return
 		}
 
-		if err := query.Run(); handleError(w, logger, err) {
+		if err := query.Where("owner=?", database.Owner).Run(); handleError(w, logger, err) {
 			return
 		}
 

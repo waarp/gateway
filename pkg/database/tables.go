@@ -24,7 +24,7 @@ type initialiser interface {
 
 // initTables creates the database tables if they don't exist and fills them
 // with the default entries.
-func initTables(db *Standalone) error {
+func initTables(db *Standalone, withInit bool) error {
 	return db.Transaction(func(ses *Session) Error {
 		for _, tbl := range tables {
 			if ok, err := ses.session.IsTableExist(tbl.TableName()); err != nil {
@@ -52,11 +52,11 @@ func initTables(db *Standalone) error {
 
 					return NewInternalError(err)
 				}
+			}
 
-				if init, ok := tbl.(initialiser); ok {
-					if err := init.Init(ses); err != nil {
-						return err
-					}
+			if init, ok := tbl.(initialiser); ok && withInit {
+				if err := init.Init(ses); err != nil {
+					return err
 				}
 			}
 		}
