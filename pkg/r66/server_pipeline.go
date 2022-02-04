@@ -6,8 +6,8 @@ import (
 	"io"
 	"strings"
 
-	"code.waarp.fr/waarp-r66/r66"
-	r66utils "code.waarp.fr/waarp-r66/r66/utils"
+	"code.waarp.fr/lib/r66"
+	r66utils "code.waarp.fr/lib/r66/utils"
 
 	"code.waarp.fr/apps/gateway/gateway/pkg/model/types"
 	"code.waarp.fr/apps/gateway/gateway/pkg/pipeline"

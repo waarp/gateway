@@ -189,5 +189,9 @@ func (b *postBody) Read(p []byte) (n int, err error) {
 func (b *postBody) Close() error {
 	close(b.closed)
 
+	if err := b.src.Close(); err != nil {
+		return fmt.Errorf("failed to close request body: %w", err)
+	}
+
 	return nil
 }

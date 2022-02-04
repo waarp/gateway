@@ -13,12 +13,17 @@ import (
 	"code.waarp.fr/apps/gateway/gateway/pkg/tk/utils/testhelpers"
 )
 
+type postgreTestEngine struct{ *postgreActions }
+
+func (p *postgreActions) getTranslator() translator { return p.trad }
+
 func testPostgreEngine(db *sql.DB) testEngine {
-	return &postgreDialect{
+	return &postgreTestEngine{&postgreActions{
 		standardSQL: &standardSQL{
 			queryWriter: &queryWriter{db: db, writer: os.Stdout},
 		},
-	}
+		trad: &postgreTranslator{},
+	}}
 }
 
 func TestPostgreCreateTable(t *testing.T) {

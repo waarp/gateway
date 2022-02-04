@@ -9,26 +9,25 @@ func _() {
 	// Re-run the stringer command to generate them again.
 	var x [1]struct{}
 	_ = x[nullType-0]
-	_ = x[internal-1]
-	_ = x[boolean-2]
-	_ = x[tinyint-3]
-	_ = x[smallint-4]
-	_ = x[integer-5]
-	_ = x[bigint-6]
-	_ = x[float-7]
-	_ = x[double-8]
-	_ = x[varchar-9]
-	_ = x[text-10]
-	_ = x[date-11]
-	_ = x[timestamp-12]
-	_ = x[timestampz-13]
-	_ = x[binary-14]
-	_ = x[blob-15]
+	_ = x[boolean-1]
+	_ = x[tinyint-2]
+	_ = x[smallint-3]
+	_ = x[integer-4]
+	_ = x[bigint-5]
+	_ = x[float-6]
+	_ = x[double-7]
+	_ = x[varchar-8]
+	_ = x[text-9]
+	_ = x[date-10]
+	_ = x[timestamp-11]
+	_ = x[timestampz-12]
+	_ = x[binary-13]
+	_ = x[blob-14]
 }
 
-const _sqlTypeCode_name = "nullTypeinternalbooleantinyintsmallintintegerbigintfloatdoublevarchartextdatetimestamptimestampzbinaryblob"
+const _sqlTypeCode_name = "nullTypebooleantinyintsmallintintegerbigintfloatdoublevarchartextdatetimestamptimestampzbinaryblob"
 
-var _sqlTypeCode_index = [...]uint8{0, 8, 16, 23, 30, 38, 45, 51, 56, 62, 69, 73, 77, 86, 96, 102, 106}
+var _sqlTypeCode_index = [...]uint8{0, 8, 15, 22, 30, 37, 43, 48, 54, 61, 65, 69, 78, 88, 94, 98}
 
 func (i sqlTypeCode) String() string {
 	if i >= sqlTypeCode(len(_sqlTypeCode_index)-1) {

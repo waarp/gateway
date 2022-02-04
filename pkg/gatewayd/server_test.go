@@ -2,6 +2,7 @@ package gatewayd
 
 import (
 	"encoding/json"
+	"fmt"
 	"os"
 	"path/filepath"
 	"testing"
@@ -26,7 +27,7 @@ func testSetup(c C) (*WG, *model.LocalAgent, *model.LocalAgent) {
 			Name:        name,
 			Protocol:    testProtocol,
 			ProtoConfig: json.RawMessage("{}"),
-			Address:     "localhost:1234",
+			Address:     fmt.Sprintf("localhost:%d", testhelpers.GetFreePort(c)),
 		}
 		So(db.Insert(s).Run(), ShouldBeNil)
 
@@ -49,7 +50,7 @@ func testSetup(c C) (*WG, *model.LocalAgent, *model.LocalAgent) {
 	}
 	conf.GlobalConfig.Admin = conf.AdminConfig{
 		Host: "localhost",
-		Port: 8080,
+		Port: testhelpers.GetFreePort(c),
 	}
 	conf.GlobalConfig.Controller = conf.ControllerConfig{
 		Delay: time.Minute,

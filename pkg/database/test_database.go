@@ -34,7 +34,7 @@ const (
 var errSimulated = fmt.Errorf("simulated database error")
 
 func testinfo() (string, string, func(*xorm.Engine) error) {
-	return "sqlite3", fmt.Sprintf("file:%s?mode=memory&cache=shared",
+	return "sqlite3", fmt.Sprintf("file:%s?mode=memory&_busy_timeout=10000&cachee=shared",
 		conf.GlobalConfig.Database.Address), sqliteInit
 }
 
@@ -95,6 +95,7 @@ func initTestDBConf() {
 
 func resetDB(db *DB) {
 	config := &conf.GlobalConfig.Database
+
 	switch config.Type {
 	case PostgreSQL, MySQL:
 		for _, tbl := range tables {
@@ -117,6 +118,24 @@ func resetDB(db *DB) {
 // purposes. The function must be called within a convey context.
 // The database will log messages at the level given.
 func TestDatabase(c convey.C, logLevel string) *DB {
+	db := initTestDatabase(c, logLevel)
+
+	c.So(db.Start(), convey.ShouldBeNil)
+	c.Reset(func() { resetDB(db) })
+
+	return db
+}
+
+func TestDatabaseNoInit(c convey.C, logLevel string) *DB {
+	db := initTestDatabase(c, logLevel)
+
+	c.So(db.start(false), convey.ShouldBeNil)
+	c.Reset(func() { resetDB(db) })
+
+	return db
+}
+
+func initTestDatabase(c convey.C, logLevel string) *DB {
 	BcryptRounds = bcrypt.MinCost
 
 	initTestDBConf()
@@ -134,18 +153,7 @@ func TestDatabase(c convey.C, logLevel string) *DB {
 
 	if os.Getenv(testDBMechanism) == "migration" {
 		startViaMigration(c)
-
-		defer func() {
-			for i := range tables {
-				if init, ok := tables[i].(initialiser); ok {
-					c.So(init.Init(db), convey.ShouldBeNil)
-				}
-			}
-		}()
 	}
-
-	c.So(db.Start(), convey.ShouldBeNil)
-	c.Reset(func() { resetDB(db) })
 
 	return db
 }

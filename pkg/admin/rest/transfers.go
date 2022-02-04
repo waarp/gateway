@@ -12,6 +12,7 @@ import (
 	"github.com/gorilla/mux"
 
 	"code.waarp.fr/apps/gateway/gateway/pkg/admin/rest/api"
+	"code.waarp.fr/apps/gateway/gateway/pkg/conf"
 	"code.waarp.fr/apps/gateway/gateway/pkg/database"
 	"code.waarp.fr/apps/gateway/gateway/pkg/log"
 	"code.waarp.fr/apps/gateway/gateway/pkg/model"
@@ -129,7 +130,8 @@ func getTrans(r *http.Request, db *database.DB) (*model.Transfer, error) {
 	}
 
 	var transfer model.Transfer
-	if err := db.Get(&transfer, "id=?", id).Run(); err != nil {
+	if err := db.Get(&transfer, "id=? AND owner=?", id, conf.GlobalConfig.GatewayName).
+		Run(); err != nil {
 		if database.IsNotFound(err) {
 			return nil, notFound("transfer %v not found", id)
 		}
@@ -187,7 +189,8 @@ func listTransfers(logger *log.Logger, db *database.DB) http.HandlerFunc {
 			return
 		}
 
-		if err := query.Run(); handleError(w, logger, err) {
+		if err := query.Where("owner=?", conf.GlobalConfig.GatewayName).
+			Run(); handleError(w, logger, err) {
 			return
 		}
 

@@ -77,11 +77,12 @@ func TestServerInterruption(t *testing.T) {
 	Convey("Given an SFTP server ready for push transfers", t, func(c C) {
 		test := pipelinetest.InitServerPush(c, "http", NewService, nil)
 
-		serv := NewService(test.DB, test.Server, log.NewLogger("server"))
+		//nolint:forcetypeassert //no need, the type assertion will always succeed
+		serv := NewService(test.DB, test.Server, log.NewLogger("server")).(*httpService)
 		c.So(serv.Start(), ShouldBeNil)
 
 		Convey("Given a dummy HTTP client", func() {
-			cli := http.DefaultTransport
+			cli := http.DefaultClient
 
 			Convey("Given that a push transfer started", func() {
 				body := newLimitedReader(3)
@@ -91,6 +92,8 @@ func TestServerInterruption(t *testing.T) {
 				req, err := http.NewRequest(http.MethodPost, url, body)
 				So(err, ShouldBeNil)
 				req.SetBasicAuth(pipelinetest.TestLogin, pipelinetest.TestPassword)
+				req.Close = true
+				req.ContentLength = 1000
 
 				stop := make(chan error, 1)
 
@@ -104,7 +107,7 @@ func TestServerInterruption(t *testing.T) {
 				}()
 
 				Convey("When the server shuts down", func() {
-					resp, err := cli.RoundTrip(req)
+					resp, err := cli.Do(req)
 					So(err, ShouldBeNil)
 
 					So(<-stop, ShouldBeNil)
@@ -126,8 +129,7 @@ func TestServerInterruption(t *testing.T) {
 						So(transfers, ShouldNotBeEmpty)
 						So(transfers[0].Status, ShouldEqual, types.StatusInterrupted)
 
-						//nolint:forcetypeassert //no need, the type assertion will always succeed
-						ok := serv.(*httpService).running.Exists(transfers[0].ID)
+						ok := serv.running.Exists(transfers[0].ID)
 						So(ok, ShouldBeFalse)
 					})
 				})

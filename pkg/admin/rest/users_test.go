@@ -28,10 +28,22 @@ func TestGetUser(t *testing.T) {
 		handler := getUser(logger, db)
 		w := httptest.NewRecorder()
 
-		Convey("Given a database with 1 user", func() {
-			expected := &model.User{
+		Convey("Given a database with 2 users", func() {
+			// add a user from another gateway
+			owner := conf.GlobalConfig.GatewayName
+			conf.GlobalConfig.GatewayName = "foobar"
+			other := &model.User{
 				Username:     "existing",
-				PasswordHash: hash("existing"),
+				PasswordHash: hash("existing1"),
+				Permissions:  model.PermTransfersWrite,
+			}
+			So(db.Insert(other).Run(), ShouldBeNil)
+			conf.GlobalConfig.GatewayName = owner
+
+			expected := &model.User{
+				Username:     other.Username,
+				PasswordHash: hash("existing2"),
+				Permissions:  model.PermAll,
 			}
 			So(db.Insert(expected).Run(), ShouldBeNil)
 
@@ -111,7 +123,7 @@ func TestListUsers(t *testing.T) {
 		w := httptest.NewRecorder()
 		expected := map[string][]OutUser{}
 
-		Convey("Given a database with 4 users", func() {
+		Convey("Given a database with 5 users", func() {
 			u1 := &model.User{
 				Username:     "user1",
 				PasswordHash: hash("user1"),
@@ -139,6 +151,15 @@ func TestListUsers(t *testing.T) {
 			user2 := *FromUser(u2)
 			user3 := *FromUser(u3)
 			user4 := *FromUser(u4)
+
+			owner := conf.GlobalConfig.GatewayName
+			conf.GlobalConfig.GatewayName = "foobar"
+			u5 := &model.User{
+				Username:     "user5",
+				PasswordHash: hash("user5"),
+			}
+			So(db.Insert(u5).Run(), ShouldBeNil)
+			conf.GlobalConfig.GatewayName = owner
 
 			Convey("Given a request with with no parameters", func() {
 				r, err := http.NewRequest(http.MethodGet, "", nil)

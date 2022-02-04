@@ -5,7 +5,7 @@ import (
 	"path"
 	"time"
 
-	"code.waarp.fr/waarp-r66/r66"
+	"code.waarp.fr/lib/r66"
 
 	"code.waarp.fr/apps/gateway/gateway/pkg/database"
 	"code.waarp.fr/apps/gateway/gateway/pkg/model"
@@ -102,7 +102,9 @@ func (s *sessionHandler) getRule(ruleName string, isSend bool) (*model.Rule, *r6
 	var rule model.Rule
 	if err := s.db.Get(&rule, "name=? AND send=?", ruleName, isSend).Run(); err != nil {
 		if database.IsNotFound(err) {
-			s.logger.Warningf("Requested transfer rule '%s' does not exist", rule.Name)
+			rule.IsSend = isSend
+			s.logger.Warningf("Requested %s transfer rule '%s' does not exist",
+				rule.Direction(), ruleName)
 
 			return nil, internal.NewR66Error(r66.IncorrectCommand, "rule does not exist")
 		}

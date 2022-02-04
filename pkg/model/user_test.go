@@ -92,8 +92,15 @@ func TestUsersBeforeDelete(t *testing.T) {
 			mine := &User{
 				Username:     "existing",
 				PasswordHash: hash("password_existing"),
+				Permissions:  PermAll,
 			}
 			So(db.Insert(mine).Run(), ShouldBeNil)
+
+			mine2 := &User{
+				Username:     "existing2",
+				PasswordHash: hash("password_existing2"),
+			}
+			So(db.Insert(mine2).Run(), ShouldBeNil)
 
 			// Change database ownership
 			conf.GlobalConfig.GatewayName = "tata"
@@ -106,7 +113,7 @@ func TestUsersBeforeDelete(t *testing.T) {
 			conf.GlobalConfig.GatewayName = owner
 
 			// Delete base admin
-			So(db.DeleteAll(&User{}).Where("username='admin'").Run(), ShouldBeNil)
+			So(db.DeleteAll(&User{}).Where("username=?", "admin").Run(), ShouldBeNil)
 
 			Convey("When calling BeforeDelete", func() {
 				err := db.Transaction(func(ses *database.Session) database.Error {
@@ -118,7 +125,7 @@ func TestUsersBeforeDelete(t *testing.T) {
 
 					Convey("Then the error should say the last admin cannot be deleted", func() {
 						So(err, ShouldBeError, database.NewValidationError(
-							"cannot delete gateway last admin"))
+							"cannot delete the last gateway admin"))
 					})
 				})
 			})
@@ -147,6 +154,66 @@ func TestUsersBeforeDelete(t *testing.T) {
 
 				Convey("Then it should return No error", func() {
 					So(err, ShouldBeNil)
+				})
+			})
+		})
+	})
+}
+
+func TestUserInit(t *testing.T) {
+	Convey("Given the user init function", t, func(c C) {
+		init := (&User{}).Init
+
+		Convey("Given a database with no admins", func() {
+			db := database.TestDatabaseNoInit(c, "ERROR")
+
+			// Add a user from another gateway
+			owner := conf.GlobalConfig.GatewayName
+			conf.GlobalConfig.GatewayName = "tata"
+			other := &User{
+				Username:     "other",
+				PasswordHash: hash("password_other"),
+				Permissions:  PermAll,
+			}
+			So(db.Insert(other).Run(), ShouldBeNil)
+			conf.GlobalConfig.GatewayName = owner
+
+			Convey("When calling the user init function", func() {
+				So(init(db), ShouldBeNil)
+
+				Convey("Then it should have added the default admin user", func() {
+					var users Users
+					So(db.Select(&users).Where("owner=?", conf.GlobalConfig.GatewayName).Run(), ShouldBeNil)
+					So(users, ShouldHaveLength, 1)
+
+					So(users[0].Username, ShouldEqual, "admin")
+					So(bcrypt.CompareHashAndPassword([]byte(users[0].PasswordHash),
+						[]byte("admin_password")), ShouldBeNil)
+					So(users[0].Permissions, ShouldEqual, PermAll)
+				})
+			})
+		})
+
+		Convey("Given an database with an admin", func() {
+			db := database.TestDatabaseNoInit(c, "ERROR")
+
+			// Add another admin
+			other := &User{
+				Username:     "other",
+				PasswordHash: hash("password_other"),
+				Permissions:  PermUsersWrite,
+			}
+			So(db.Insert(other).Run(), ShouldBeNil)
+
+			Convey("When calling the user init function", func() {
+				So(init(db), ShouldBeNil)
+
+				Convey("Then it should NOT have added the default admin user", func() {
+					var users Users
+					So(db.Select(&users).Where("owner=?", conf.GlobalConfig.GatewayName).Run(), ShouldBeNil)
+					So(users, ShouldHaveLength, 1)
+
+					So(users[0], ShouldResemble, *other)
 				})
 			})
 		})

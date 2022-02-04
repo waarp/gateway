@@ -140,6 +140,10 @@ func (db *DB) initEngine() (*xorm.Engine, error) {
 // cannot be reached, an error is returned.
 // If the service is already running, this function does nothing.
 func (db *DB) Start() error {
+	return db.start(true)
+}
+
+func (db *DB) start(withInit bool) error {
 	if db.logger == nil {
 		db.logger = log.NewLogger(service.DatabaseServiceName)
 	}
@@ -183,7 +187,7 @@ func (db *DB) Start() error {
 		return err1
 	}
 
-	if err1 := initTables(db.Standalone); err1 != nil {
+	if err1 := initTables(db.Standalone, withInit); err1 != nil {
 		if err2 := engine.Close(); err2 != nil {
 			db.logger.Warningf("an error occurred while closing the database: %v", err2)
 		}
