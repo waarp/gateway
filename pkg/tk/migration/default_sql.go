@@ -5,10 +5,16 @@ import (
 	"strings"
 )
 
-type sqlFormatter interface {
-	formatValueToSQL(val interface{}, sqlTyp sqlType) (string, error)
-	sqlTypeToDBType(sqlType sqlType) (string, error)
-	makeConstraints(col *Column) ([]string, error)
+type translator interface {
+	typer
+	constraintMaker
+	valueFormatter
+}
+
+type standardTranslator struct {
+	standardFormatter
+	standardConstraintMaker
+	standardTyper
 }
 
 // standardSQL is the dialect engine for standard SQL. Other dialect engines should
@@ -33,38 +39,18 @@ func (s *standardSQL) RenameColumn(table, oldName, newName string) error {
 	return s.Exec(query, table, oldName, newName)
 }
 
-func (s *standardSQL) addColumn(form sqlFormatter, table, column string, typ sqlType, cons []Constraint) error {
-	dbType, err := form.sqlTypeToDBType(typ)
-	if err != nil {
-		return fmt.Errorf("cannot get SQL Type for column: %w", err)
-	}
-
-	c := Col(column, typ, cons...)
-
-	consList, err := form.makeConstraints(&c)
-	if err != nil {
-		return fmt.Errorf("cannot make constraints: %w", err)
-	}
-
-	query := "ALTER TABLE %s ADD COLUMN %s"
-
-	def := append([]string{column, dbType}, consList...)
-
-	return s.Exec(query, table, strings.Join(def, " "))
-}
-
 func (s *standardSQL) DropColumn(table, name string) error {
 	query := "ALTER TABLE %s DROP COLUMN %s"
 
 	return s.Exec(query, table, name)
 }
 
-func (s *standardSQL) addRow(conv sqlFormatter, table string,
+func (s *standardSQL) addRow(conv valueFormatter, table string,
 	values Cells) error {
 	var colList, valuesList []string
 
 	for col, cell := range values { //nolint:gocritic // FIXME to be refactored
-		str, err := conv.formatValueToSQL(cell.Val, cell.Type)
+		str, err := formatValue(cell.Val, cell.Type, conv)
 		if err != nil {
 			return fmt.Errorf("cannot format value to SQL: %w", err)
 		}
@@ -77,65 +63,33 @@ func (s *standardSQL) addRow(conv sqlFormatter, table string,
 		strings.Join(colList, ", "), strings.Join(valuesList, ", "))
 }
 
-func (s *standardSQL) makeColumnDef(formatter sqlFormatter, col Column) (string, error) {
-	constr, err := formatter.makeConstraints(&col)
-	if err != nil {
-		return "", fmt.Errorf("cannot make constraints: %w", err)
+func (s *standardSQL) createTable(trad translator, table string, defs []Definition) error {
+	maker := &tableMaker{
+		querier: s.queryWriter,
+		name:    table,
+		defs:    defs,
+		trad:    trad,
 	}
 
-	typ, err := formatter.sqlTypeToDBType(col.Type)
-	if err != nil {
-		return "", fmt.Errorf("cannot get SQL Type for column: %w", err)
-	}
-
-	return strings.Join(append([]string{col.Name, typ}, constr...), " "), nil
+	return maker.makeTable()
 }
 
-func (s *standardSQL) makeTblConstraint(cons TableConstraint) (string, error) {
-	switch con := cons.(type) {
-	case tblPk:
-		return fmt.Sprintf("PRIMARY KEY (%s)", strings.Join(con.cols, ", ")), nil
-	case tblUnique:
-		return fmt.Sprintf("UNIQUE (%s)", strings.Join(con.cols, ", ")), nil
-	default:
-		return "", fmt.Errorf("invalid table definition %#v: %w", con, errBadConstraint)
+func (s *standardSQL) addColumn(trad translator, table, column string, typ sqlType, cons []Constraint) error {
+	maker := &tableMaker{name: table, trad: trad}
+	builder := &tableBuilder{tableName: table}
+
+	if err := maker.makeColumn(&Column{column, typ, cons}, builder); err != nil {
+		return err
 	}
-}
 
-func (s *standardSQL) createTable(formatter sqlFormatter, table string, defs []Definition) error {
-	var colDefs, constrDefs []string
-
-	for _, d := range defs {
-		switch def := d.(type) {
-		case Column:
-			str, err := s.makeColumnDef(formatter, def)
-			if err != nil {
-				return err
-			}
-
-			colDefs = append(colDefs, str)
-
-		case TableConstraint:
-			str, err := s.makeTblConstraint(def)
-			if err != nil {
-				return err
-			}
-
-			constrDefs = append(constrDefs, str)
+	statements := builder.buildAddColumn()
+	for i := range statements {
+		if err := s.queryWriter.Exec(statements[i]); err != nil {
+			return err
 		}
 	}
 
-	if len(colDefs) == 0 {
-		return fmt.Errorf("cannot create a table without columns: %w", errOperation)
-	}
-
-	colDefs = append(colDefs, constrDefs...)
-
-	if len(colDefs) == 1 {
-		return s.Exec("CREATE TABLE %s (%s)", table, colDefs[0])
-	}
-
-	return s.Exec("CREATE TABLE %s (\n    %s\n)", table, strings.Join(colDefs, ",\n    "))
+	return nil
 }
 
 func (s *standardSQL) SwapColumns(table, col1, col2, cond string) error {

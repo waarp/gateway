@@ -10,15 +10,20 @@ import (
 	"code.waarp.fr/apps/gateway/gateway/pkg/tk/utils/testhelpers"
 )
 
+type sqliteTestEngine struct{ *sqliteActions }
+
+func (s *sqliteTestEngine) getTranslator() translator { return s.trad }
+
 func testSQLiteEngine(db *sql.DB) testEngine {
 	_, err := db.Exec("PRAGMA foreign_keys = ON")
 	So(err, ShouldBeNil)
 
-	return &sqliteDialect{
+	return &sqliteTestEngine{&sqliteActions{
 		standardSQL: &standardSQL{
 			queryWriter: &queryWriter{db: db, writer: os.Stdout},
 		},
-	}
+		trad: &sqliteTranslator{},
+	}}
 }
 
 func TestSQLiteCreateTable(t *testing.T) {

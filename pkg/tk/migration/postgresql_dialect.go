@@ -1,7 +1,6 @@
 package migration
 
 import (
-	"database/sql/driver"
 	"fmt"
 	"reflect"
 
@@ -17,145 +16,89 @@ func init() {
 	dialects[PostgreSQL] = newPostgreEngine
 }
 
-// postgreDialect is the dialect engine for SQLite.
-type postgreDialect struct{ *standardSQL }
+type postgreTranslator struct{ standardTranslator }
 
-func newPostgreEngine(db *queryWriter) Actions {
-	return &postgreDialect{standardSQL: &standardSQL{queryWriter: db}}
-}
+func (*postgreTranslator) booleanType() string      { return "BOOL" }
+func (*postgreTranslator) tinyIntType() string      { return "INT2" }
+func (*postgreTranslator) smallIntType() string     { return "INT2" }
+func (*postgreTranslator) integerType() string      { return "INT4" }
+func (*postgreTranslator) bigIntType() string       { return "INT8" }
+func (*postgreTranslator) floatType() string        { return "FLOAT4" }
+func (*postgreTranslator) doubleType() string       { return "FLOAT8" }
+func (*postgreTranslator) binaryType(uint64) string { return "BYTEA" }
+func (*postgreTranslator) blobType() string         { return "BYTEA" }
+func (*postgreTranslator) timeStampZType() string   { return "TIMESTAMPTZ" }
 
-func (*postgreDialect) GetDialect() string { return PostgreSQL }
-
-func (p *postgreDialect) formatValueToSQL(val interface{}, sqlTyp sqlType) (string, error) {
-	if valuer, ok := val.(driver.Valuer); ok {
-		value, err := valuer.Value()
-		if err != nil {
-			return "", fmt.Errorf("cannot get SQL value: %w", err)
-		}
-
-		return p.formatValueToSQL(value, sqlTyp)
+func (p *postgreTranslator) formatBinary(val interface{}) (string, error) {
+	if typ := reflect.TypeOf(val); typ.AssignableTo(reflect.TypeOf(0)) {
+		return fmt.Sprintf("'\\x%X'", val), nil
 	}
 
+	return p.formatBlob(val)
+}
+
+func (*postgreTranslator) formatBlob(val interface{}) (string, error) {
 	typ := reflect.TypeOf(val)
 	kind := typ.Kind()
 
-	switch sqlTyp.code {
-	case internal:
-		return fmt.Sprint(val), nil
-	case binary:
-		if typ.AssignableTo(reflect.TypeOf(0)) {
-			return fmt.Sprintf("'\\x%X'", val), nil
-		}
-
-		fallthrough
-
-	case blob:
-		if kind != reflect.Slice && typ.Elem().Kind() != reflect.Uint8 {
-			//nolint:goerr113 // it is a base error
-			return "", fmt.Errorf("expected value of type []byte, got %T", val)
-		}
-
-		return fmt.Sprintf("'\\x%X'", val), nil
-
-	default:
-		return p.standardSQL.formatValueToSQL(val, sqlTyp)
+	if kind != reflect.Slice && typ.Elem().Kind() != reflect.Uint8 {
+		return wrongType(val, "[]byte")
 	}
+
+	return fmt.Sprintf("'\\x%X'", val), nil
 }
 
-func (p *postgreDialect) sqlTypeToDBType(typ sqlType) (string, error) {
-	switch typ.code {
-	case internal:
-		return typ.name, nil
-	case boolean:
-		return "BOOL", nil
+func (*postgreTranslator) makeAutoIncrement(builder *tableBuilder, colType sqlType) error {
+	if !isIntegerType(colType) {
+		return fmt.Errorf("auto-increments can only be used on "+
+			"integer types (%s is not an integer type): %w",
+			colType.code.String(), errBadConstraint)
+	}
+	// PostgreSQL handles auto-increments by changing the type to a serial.
+	//nolint:exhaustive // those are the only possible values
+	switch colType.code {
 	case tinyint, smallint:
-		return "INT2", nil
+		builder.getLastCol().typ = "SMALLSERIAL"
 	case integer:
-		return "INT4", nil
+		builder.getLastCol().typ = "SERIAL"
 	case bigint:
-		return "INT8", nil
-	case float:
-		return "FLOAT4", nil
-	case double:
-		return "FLOAT8", nil
-	case varchar:
-		return fmt.Sprintf("VARCHAR(%d)", typ.size), nil
-	case text:
-		return "TEXT", nil
-	case date:
-		return "DATE", nil
-	case timestamp:
-		return "TIMESTAMP", nil
-	case timestampz:
-		return "TIMESTAMPTZ", nil
-	case binary, blob:
-		return "BYTEA", nil
-	default:
-		return "", fmt.Errorf("unsupported SQL datatype") //nolint:goerr113 // base error
+		builder.getLastCol().typ = "BIGSERIAL"
+	}
+
+	return nil
+}
+
+// postgreActions is the dialect engine for SQLite.
+type postgreActions struct {
+	*standardSQL
+	trad *postgreTranslator
+}
+
+func newPostgreEngine(db *queryWriter) Actions {
+	return &postgreActions{
+		standardSQL: &standardSQL{queryWriter: db},
+		trad:        &postgreTranslator{},
 	}
 }
 
-func (p *postgreDialect) makeConstraints(col *Column) ([]string, error) {
-	var consList []string
+func (*postgreActions) GetDialect() string { return PostgreSQL }
 
-	for _, c := range col.Constraints {
-		switch con := c.(type) {
-		case pk:
-			consList = append(consList, "PRIMARY KEY")
-		case fk:
-			consList = append(consList, fmt.Sprintf("REFERENCES %s(%s)", con.table, con.col))
-		case notNull:
-			consList = append(consList, "NOT NULL")
-		case autoIncr:
-			if !isIntegerType(col.Type) {
-				return nil, fmt.Errorf("auto-increments can only be used on "+
-					"integer types (%s is not an integer type): %w",
-					col.Type.code.String(), errBadConstraint)
-			}
-			// PostgreSQL handles auto-increments by changing the type to a serial.
-			//nolint:exhaustive // those are the only possible values
-			switch col.Type.code {
-			case tinyint, smallint:
-				col.Type = custom("SMALLSERIAL")
-			case integer:
-				col.Type = custom("SERIAL")
-			case bigint:
-				col.Type = custom("BIGSERIAL")
-			}
-		case unique:
-			consList = append(consList, "UNIQUE")
-		case defaul:
-			sqlVal, err := p.formatValueToSQL(con.val, col.Type)
-			if err != nil {
-				return nil, err
-			}
-
-			consList = append(consList, fmt.Sprintf("DEFAULT %s", sqlVal))
-
-		default:
-			return nil, fmt.Errorf("unknown constraint type %T: %w", c, errBadConstraint)
-		}
-	}
-
-	return consList, nil
+func (p *postgreActions) CreateTable(table string, defs ...Definition) error {
+	return p.standardSQL.createTable(p.trad, table, defs)
 }
 
-func (p *postgreDialect) CreateTable(table string, defs ...Definition) error {
-	return p.standardSQL.createTable(p, table, defs)
-}
-
-func (p *postgreDialect) AddColumn(table, column string, dataType sqlType,
+func (p *postgreActions) AddColumn(table, column string, dataType sqlType,
 	constraints ...Constraint) error {
-	return p.standardSQL.addColumn(p, table, column, dataType, constraints)
+	return p.standardSQL.addColumn(p.trad, table, column, dataType, constraints)
 }
 
-func (p *postgreDialect) ChangeColumnType(table, col string, from, to sqlType) error {
+func (p *postgreActions) ChangeColumnType(table, col string, from, to sqlType) error {
 	if !from.canConvertTo(to) {
 		return fmt.Errorf("cannot convert from type %s to type %s: %w", from.code.String(),
 			to.code.String(), errOperation)
 	}
 
-	newType, err := p.sqlTypeToDBType(to)
+	newType, err := makeType(to, p.trad)
 	if err != nil {
 		return err
 	}
@@ -165,6 +108,6 @@ func (p *postgreDialect) ChangeColumnType(table, col string, from, to sqlType) e
 	return p.Exec(query, table, col, newType, col, newType)
 }
 
-func (p *postgreDialect) AddRow(table string, values Cells) error {
-	return p.standardSQL.addRow(p, table, values)
+func (p *postgreActions) AddRow(table string, values Cells) error {
+	return p.standardSQL.addRow(p.trad, table, values)
 }

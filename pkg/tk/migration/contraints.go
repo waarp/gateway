@@ -2,6 +2,9 @@ package migration
 
 import "errors"
 
+var errBadConstraint = errors.New("bad constraint")
+
+// The different types of column constraints usable in a CREATE TABLE statement.
 type (
 	pk       struct{}
 	fk       struct{ table, col string }
@@ -11,52 +14,41 @@ type (
 	defaul   struct{ val interface{} }
 )
 
-var errBadConstraint = errors.New("bad constraint")
-
-func defaultFn(val interface{}) defaul { return defaul{val: val} }
-func fkFn(table, col string) fk        { return fk{table: table, col: col} }
-
-// The different types of column constraints usable in a CREATE TABLE statement.
+// PrimaryKey declares the column as the table's primary key. Only 1 primary
+// key is allowed per table. For multi-column primary keys, use table constraints
+// instead.
 //nolint:gochecknoglobals // global var is used by design
-var (
-	// PrimaryKey declares the column as the table's primary key. Only 1 primary
-	// key is allowed per table. For multi-column primary keys, use table constraints
-	// instead.
-	PrimaryKey = pk{}
+var PrimaryKey Constraint = pk{}
 
-	// ForeignKey declares the column as a foreign key referencing the given table.
-	ForeignKey = fkFn
+// ForeignKey declares the column as a foreign key referencing the given table.
+func ForeignKey(table, col string) Constraint { return fk{table: table, col: col} }
 
-	// NotNull adds a 'not null' constraint to the column.
-	NotNull = notNull{}
+// NotNull adds a 'NOT NULL' constraint to the column.
+//nolint:gochecknoglobals // global var is used by design
+var NotNull Constraint = notNull{}
 
-	// AutoIncr adds an auto-increment to the column. Only works on columns with
-	// type TinyInt, SmallInt, Integer & BigInt.
-	AutoIncr = autoIncr{}
+// AutoIncr adds an auto-increment to the column. Only works on columns with
+// type TinyInt, SmallInt, Integer & BigInt.
+//nolint:gochecknoglobals // global var is used by design
+var AutoIncr Constraint = autoIncr{}
 
-	// Unique adds a 'unique' constraint to the column. To place a 'unique'
-	// constraint on multiple columns, use table constraints instead.
-	Unique = unique{}
+// Default adds a default value to the column. The value should be given as
+// parameter of the constraint (ex: Default(0)).
+func Default(val interface{}) Constraint { return defaul{val: val} }
 
-	// Default adds a default value to the column. The value should be given as
-	// parameter of the constraint (ex: Default(0)).
-	Default = defaultFn
-)
+// Unique adds a 'unique' constraint to the column. To place a 'unique'
+// constraint on multiple columns, use table constraints instead.
+//nolint:gochecknoglobals // global var is used by design
+var Unique Constraint = unique{}
 
+// The different types of table constraints usable in a CREATE TABLE statement.
 type (
 	tblPk     struct{ cols []string }
 	tblUnique struct{ cols []string }
 )
 
-func pkFn(cols ...string) tblPk         { return tblPk{cols: cols} }
-func uniqueFn(cols ...string) tblUnique { return tblUnique{cols: cols} }
+// PrimaryKeys adds a primary-key constraint to the given columns.
+func PrimaryKeys(cols ...string) TableConstraint { return tblPk{cols: cols} }
 
-// The different types of table constraints usable in a CREATE TABLE statement.
-//nolint:gochecknoglobals // global var is used by design
-var (
-	// MultiPrimaryKey adds a primary-key constraint to the given columns.
-	MultiPrimaryKey = pkFn
-
-	// MultiUnique adds a 'unique' constraint to the given columns.
-	MultiUnique = uniqueFn
-)
+// Uniques adds a 'unique' constraint to the given columns.
+func Uniques(cols ...string) TableConstraint { return tblUnique{cols: cols} }

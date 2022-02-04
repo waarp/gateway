@@ -7,10 +7,10 @@ import (
 	"strings"
 	"testing"
 
+	. "github.com/smartystreets/goconvey/convey"
+
 	"code.waarp.fr/apps/gateway/gateway/pkg/tk/migration"
 	"code.waarp.fr/apps/gateway/gateway/pkg/tk/utils/testhelpers"
-
-	. "github.com/smartystreets/goconvey/convey"
 )
 
 func getMySQLEngine(c C) *migration.Engine {

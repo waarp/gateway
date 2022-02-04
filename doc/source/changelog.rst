@@ -4,6 +4,10 @@ Historique des versions
 =======================
 
 * :release:`0.5.0 <>`
+* :feature:`274` Les contraintes d'unicité déclarées dans les scripts de migration
+  de la base de données sont désormais via des indexes uniques, au lieu des
+  contraintes sur les colonnes. Le module de migration est désormais consistant
+  avec le module d'initialisation de la base sur ce point.
 * :bug:`292` Correction d'une erreur empêchant la création de l'utilisateur par
   défaut lorsque la base de données est partagée entre plusieurs *gateways*.
 * :bug:`-` Correction d'un bug permettant la suppression du dernier administrateur

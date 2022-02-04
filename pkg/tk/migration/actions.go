@@ -16,11 +16,11 @@ type Definition interface{}
 
 // Constraint represents a single SQL column constraint to be used when declaring
 // a column. Valid constraints are: PrimaryKey, ForeignKey, NotNull, AutoIncr,
-// Unique and Default.
+// Uniques and Default.
 type Constraint interface{}
 
 // TableConstraint represents a constraint put on an SQL table when declaring said
-// table. Valid table constraints are: MultiPrimaryKey and MultiUnique.
+// table. Valid table constraints are: PrimaryKeys and Uniques.
 type TableConstraint interface{}
 
 // Querier is an interface exposing the common function for sending database
@@ -37,7 +37,8 @@ type Executor interface {
 	Exec(string, ...interface{}) error
 }
 
-// Actions is an interface regrouping all the.
+// Actions is an interface regrouping all the database actions available inside
+// a migration script.
 type Actions interface {
 	Querier
 	Executor

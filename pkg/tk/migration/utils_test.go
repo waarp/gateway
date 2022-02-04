@@ -21,7 +21,7 @@ func init() {
 }
 
 type testEngine interface {
-	sqlFormatter
+	getTranslator() translator
 	Actions
 }
 
@@ -93,6 +93,8 @@ func isColumnNotFound(err error) bool {
 }
 
 func isColumnAlreadyExist(err error) bool {
+	So(err, ShouldNotBeNil)
+
 	var sqlErr sqlite3.Error
 	if errors.As(err, &sqlErr) {
 		return strings.Contains(sqlErr.Error(), "duplicate column name:")
@@ -153,7 +155,7 @@ func colShouldHaveType(engine testEngine, table, col string, exp sqlType) {
 
 	defer rows.Close()
 
-	typ, err := engine.sqlTypeToDBType(exp)
+	typ, err := makeType(exp, engine.getTranslator())
 	So(err, ShouldBeNil)
 
 	typ = removeTypeLength(typ)
@@ -169,11 +171,11 @@ func getTimeFormats(eng Actions) (date, ts, tsz string) {
 	ts = "2006-01-02 15:04:05.999999999"
 	tsz = "2006-01-02 15:04:05.999999999Z07:00"
 
-	if _, ok := eng.(*mySQLDialect); ok {
+	if eng.GetDialect() == MySQL {
 		ts = "2006-01-02 15:04:05"
 	}
 
-	if _, ok := eng.(*postgreDialect); ok {
+	if eng.GetDialect() == PostgreSQL {
 		date = time.RFC3339
 		ts = "2006-01-02T15:04:05.999999Z07:00"
 		tsz = ts

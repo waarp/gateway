@@ -1,7 +1,6 @@
 package migration
 
 import (
-	"database/sql/driver"
 	"fmt"
 	"reflect"
 	"strings"
@@ -13,7 +12,6 @@ type sqlTypeCode uint16
 
 const (
 	nullType sqlTypeCode = iota
-	internal
 	boolean
 	tinyint
 	smallint
@@ -32,7 +30,6 @@ const (
 
 type sqlType struct {
 	code sqlTypeCode
-	name string
 	size uint64
 }
 
@@ -76,7 +73,6 @@ func (t sqlType) canConvertTo(target sqlType) bool {
 // equivalent.
 //nolint:gochecknoglobals // global var is used by design
 var (
-	custom  = func(s string) sqlType { return sqlType{code: internal, name: s} }
 	Boolean = sqlType{code: boolean}
 
 	TinyInt  = sqlType{code: tinyint}
@@ -98,66 +94,10 @@ var (
 	Blob   = sqlType{code: blob}
 )
 
-func (s *standardSQL) formatValueToSQL(val interface{}, sqlTyp sqlType) (string, error) {
-	if valuer, ok := val.(driver.Valuer); ok {
-		value, err := valuer.Value()
-		if err != nil {
-			return "", fmt.Errorf("failed to retrieve value from %T parameter: %w", val, err)
-		}
-
-		return s.formatValueToSQL(value, sqlTyp)
-	}
-
-	typ := reflect.TypeOf(val)
-	kind := typ.Kind()
-
-	switch sqlTyp.code {
-	case boolean:
-		return convert(val, kind, "%t", reflect.Bool)
-	case tinyint:
-		return convert(val, kind, "%d", reflect.Int8)
-	case smallint:
-		return convert(val, kind, "%d", reflect.Int16, reflect.Int8)
-	case integer:
-		return convert(val, kind, "%d", reflect.Int, reflect.Int32, reflect.Int16, reflect.Int8)
-	case bigint:
-		return convert(val, kind, "%d", reflect.Int64, reflect.Int, reflect.Int32,
-			reflect.Int16, reflect.Int8)
-	case float:
-		return convert(val, kind, "%f", reflect.Float32)
-	case double:
-		return convert(val, kind, "%f", reflect.Float64, reflect.Float32)
-	case varchar, text:
-		return convert(val, kind, "'%s'", reflect.String)
-	case date:
-		return parseTime(val, kind, "2006-01-02", true)
-	case timestamp:
-		return parseTime(val, kind, "2006-01-02 15:04:05.999999999", true)
-	case timestampz:
-		return parseTime(val, kind, "2006-01-02 15:04:05.999999999Z07:00", false)
-	case binary:
-		if typ.AssignableTo(reflect.TypeOf(0)) {
-			return fmt.Sprintf("X'%X'", val), nil
-		}
-
-		fallthrough
-
-	case blob:
-		if kind != reflect.Slice && typ.Elem().Kind() != reflect.Uint8 {
-			return wrongType("[]byte")
-		}
-
-		return fmt.Sprintf("X'%X'", val), nil
-
-	default:
-		return "", fmt.Errorf("unsupported SQL datatype") //nolint:goerr113 // no need here
-	}
-}
-
 func wrongType(val interface{}, exp ...string) (string, error) {
 	//nolint:goerr113 // no need here
-	return "", fmt.Errorf("expected value of type %s, got %T",
-		strings.Join(exp, ", "), val)
+	return "", fmt.Errorf("failed to format value '%v': expected value of type %s",
+		val, strings.Join(exp, ", "))
 }
 
 func wrongKind(val interface{}, kinds ...reflect.Kind) (string, error) {
@@ -169,14 +109,16 @@ func wrongKind(val interface{}, kinds ...reflect.Kind) (string, error) {
 	return wrongType(val, str...)
 }
 
-func parseTime(val interface{}, kind reflect.Kind, timeFormat string, makeUTC bool) (string, error) {
+func parseTime(val interface{}, timeFormat string, makeUTC bool) (string, error) {
+	kind := reflect.TypeOf(val).Kind()
+
 	ti, ok := val.(time.Time)
 	if !ok {
 		if kind == reflect.String { // exception for special values like 'current_time()'
 			return fmt.Sprintf("%s", val), nil
 		}
 
-		return wrongType("time.Time")
+		return wrongType(val, "time.Time")
 	}
 
 	if makeUTC {
@@ -186,7 +128,9 @@ func parseTime(val interface{}, kind reflect.Kind, timeFormat string, makeUTC bo
 	return fmt.Sprintf("'%s'", ti.Format(timeFormat)), nil
 }
 
-func convert(val interface{}, kind reflect.Kind, format string, expKinds ...reflect.Kind) (string, error) {
+func convert(val interface{}, format string, expKinds ...reflect.Kind) (string, error) {
+	kind := reflect.TypeOf(val).Kind()
+
 	for _, expKind := range expKinds {
 		if kind == expKind {
 			return fmt.Sprintf(format, val), nil

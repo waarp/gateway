@@ -37,7 +37,7 @@ func testSQLCreateTable(t *testing.T, dbms string, initDB func(C) *sql.DB,
 					Col("dat", Date),
 					Col("ts", Timestamp),
 					Col("tsz", Timestampz),
-					MultiUnique("i32", "i8"),
+					Uniques("i32", "i8"),
 				}
 				So(engine.CreateTable("toto", defs...), ShouldBeNil)
 
