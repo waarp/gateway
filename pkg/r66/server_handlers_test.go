@@ -108,7 +108,7 @@ func TestValidAuth(t *testing.T) {
 func TestValidRequest(t *testing.T) {
 	logger := log.NewLogger("test_valid_request")
 
-	Convey("Given an R66 authentication handler", t, func(c C) {
+	Convey("Given an R66 session handler", t, func(c C) {
 		db := database.TestDatabase(c, "ERROR")
 		root := testhelpers.TempDir(c, "r66_valid_request")
 
@@ -164,7 +164,7 @@ func TestValidRequest(t *testing.T) {
 			}
 
 			shouldFailWith := func(desc, msg string) {
-				Convey("When calling the `ValidAuth` function", func() {
+				Convey("When calling the `ValidRequest` function", func() {
 					_, err := ses.ValidRequest(packet)
 
 					Convey("Then it should return an error saying that "+desc, func() {
@@ -174,7 +174,7 @@ func TestValidRequest(t *testing.T) {
 			}
 
 			Convey("Given that the packet is valid", func() {
-				Convey("When calling the `ValidAuth` function", func() {
+				Convey("When calling the `ValidRequest` function", func() {
 					t, err := ses.ValidRequest(packet)
 					So(err, ShouldBeNil)
 					handler, ok := t.(*transferHandler)
@@ -201,6 +201,20 @@ func TestValidRequest(t *testing.T) {
 				})
 			})
 
+			Convey("Given that the file size is missing", func() {
+				packet.FileSize = model.UnknownSize
+
+				Convey("When calling the `ValidRequest` function", func() {
+					t, err := ses.ValidRequest(packet)
+
+					Convey("Then it should return NO error", func() {
+						So(err, ShouldBeNil)
+						_, ok := t.(*transferHandler)
+						So(ok, ShouldBeTrue)
+					})
+				})
+			})
+
 			Convey("Given that the filename is missing", func() {
 				packet.Filepath = ""
 				shouldFailWith("the filename is missing", "n: missing filepath")
@@ -215,13 +229,6 @@ func TestValidRequest(t *testing.T) {
 				packet.Block = 0
 				shouldFailWith("the block size is missing", "n: missing block size")
 			})
-
-			/*
-				Convey("Given that the file size is missing", func() {
-					packet.FileSize = model.UnknownSize
-					shouldFailWith("the file size is missing", "n: missing file size")
-				})
-			*/
 		})
 	})
 }

@@ -2,6 +2,10 @@ code.bcarlin.xyz/go/logging v0.1.0 h1:dZawJNyTnfxUzdntZ3IDHJ1yA4Sh9fvHvCvg4//eFY
 code.bcarlin.xyz/go/logging v0.1.0/go.mod h1:y6jTyhj91rolUw/u+70uQrmbZWAt86Q9UGMRmUsn1bo=
 code.waarp.fr/lib/r66 v0.1.1 h1:es5TT/z5RhkBp+SKvNnlYf2V8+KFj7HD7nL6Xe0MBGc=
 code.waarp.fr/lib/r66 v0.1.1/go.mod h1:0LJ1uu6E78OxXF95vaReQRmkHfH4JO3Fmlp2Qz0tRkk=
+code.waarp.fr/lib/r66 v0.1.2-0.20220204154805-e69c9449fef0 h1:X0CUXOkdCcuTmlpDBqzliyo4zmCadL4rOC6mUomBHV0=
+code.waarp.fr/lib/r66 v0.1.2-0.20220204154805-e69c9449fef0/go.mod h1:0LJ1uu6E78OxXF95vaReQRmkHfH4JO3Fmlp2Qz0tRkk=
+code.waarp.fr/lib/r66 v0.1.2 h1:RYfQd+xMg8V4CTYWOYMpyncPod8dFRJ9FiULtOBN8Gc=
+code.waarp.fr/lib/r66 v0.1.2/go.mod h1:avEs87Jd9UV9z+t0lAKWazVTH/6lF1OaukIfQEpJ+XE=
 gitea.com/xorm/sqlfiddle v0.0.0-20180821085327-62ce714f951a h1:lSA0F4e9A2NcQSqGqTOXqu2aRi/XEQxDCBwM8yJtE6s=
 gitea.com/xorm/sqlfiddle v0.0.0-20180821085327-62ce714f951a/go.mod h1:EXuID2Zs0pAQhH8yz+DNjUbjppKQzKFAn28TMYPB6IU=
 github.com/BurntSushi/toml v0.3.1/go.mod h1:xHWCNGjB5oqiDr8zfno3MHue2Ht5sIBksp03qcyfWMU=
@@ -263,6 +267,7 @@ golang.org/x/tools v0.0.0-20190823170909-c4a336ef6a2f/go.mod h1:b+2E5dAYhXwXZwtn
 golang.org/x/tools v0.0.0-20191029041327-9cc4af7d6b2c/go.mod h1:b+2E5dAYhXwXZwtnZ6UAqBI28+e2cm9otk0dWdXHAEo=
 golang.org/x/tools v0.0.0-20191029190741-b9c20aec41a5/go.mod h1:b+2E5dAYhXwXZwtnZ6UAqBI28+e2cm9otk0dWdXHAEo=
 golang.org/x/tools v0.0.0-20191119224855-298f0cb1881e/go.mod h1:b+2E5dAYhXwXZwtnZ6UAqBI28+e2cm9otk0dWdXHAEo=
+golang.org/x/tools v0.0.0-20201124115921-2c860bdd6e78 h1:M8tBwCtWD/cZV9DZpFYRUgaymAYAr+aIUTWzDaM3uPs=
 golang.org/x/tools v0.0.0-20201124115921-2c860bdd6e78/go.mod h1:emZCQorbCU4vsT4fOWvOPXz4eW1wZW4PmDk9uLelYpA=
 golang.org/x/tools v0.0.0-20210101214203-2dba1e4ea05c/go.mod h1:emZCQorbCU4vsT4fOWvOPXz4eW1wZW4PmDk9uLelYpA=
 golang.org/x/tools v0.1.0/go.mod h1:xkSsbof2nBLbhDlRMhhhyNLN/zl3eTqcnHD5viDpcZ0=

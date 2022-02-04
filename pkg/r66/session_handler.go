@@ -32,7 +32,7 @@ func (s *sessionHandler) ValidRequest(req *r66.Request) (r66.TransferHandler, er
 		return nil, err
 	}
 
-	if rule.IsSend {
+	if !rule.IsSend {
 		s.logger.Infof("Upload of file %s was requested by %s, using rule %s",
 			path.Base(req.Filepath), s.account.Login, req.Rule)
 	} else {
