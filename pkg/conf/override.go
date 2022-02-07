@@ -27,9 +27,10 @@ type configOverride struct {
 }
 
 // newOverride returns a new correctly initialized, instance of configOverride.
-func newOverride() *configOverride {
+func newOverride(filename string) *configOverride {
 	return &configOverride{
-		ListenAddresses: &addressOverride{},
+		filename:        filename,
+		ListenAddresses: &addressOverride{addressMap: map[string]string{}},
 	}
 }
 
@@ -37,9 +38,12 @@ func newOverride() *configOverride {
 // LocalOverrides global variable. This function should only be used in tests.
 func InitTestOverrides(c convey.C) {
 	ovrdFile := testhelpers.TempFile(c, "test_addr_override_*.ini")
-	LocalOverrides = newOverride()
-	LocalOverrides.filename = ovrdFile
+	LocalOverrides = newOverride(ovrdFile)
 	c.So(LocalOverrides.ListenAddresses.parse(), convey.ShouldBeNil)
+}
+
+func (o *configOverride) parse() error {
+	return o.ListenAddresses.parse()
 }
 
 func (o *configOverride) writeFile() error {
@@ -78,7 +82,7 @@ func createOverride(configFile, nodeID string) error {
 	}
 
 	overrideFile := filepath.Join(filepath.Dir(configFile), nodeID+".ini")
-	o := newOverride()
+	o := newOverride(overrideFile)
 
 	p, err := config.NewParser(o)
 	if err != nil {
@@ -94,7 +98,7 @@ func createOverride(configFile, nodeID string) error {
 
 func loadOverride(configPath, nodeID string) (*configOverride, error) {
 	overrideFile := filepath.Join(filepath.Dir(configPath), nodeID+".ini")
-	o := newOverride()
+	o := newOverride(overrideFile)
 
 	p, err := config.NewParser(o)
 	if err != nil {
@@ -105,7 +109,7 @@ func loadOverride(configPath, nodeID string) (*configOverride, error) {
 		return nil, fmt.Errorf("failed to parse the config override file: %w", err)
 	}
 
-	return o, nil
+	return o, o.parse()
 }
 
 func updateOverride(configFile, nodeID string) error {
@@ -114,7 +118,7 @@ func updateOverride(configFile, nodeID string) error {
 	}
 
 	overrideFile := filepath.Join(filepath.Dir(configFile), nodeID+".ini")
-	o := newOverride()
+	o := newOverride(overrideFile)
 
 	parser, err := config.NewParser(o)
 	if err != nil {
