@@ -4,6 +4,8 @@ Historique des versions
 =======================
 
 * :release:`0.5.0 <>`
+* :bug:`275` Correction d'une erreur empêchant l'acceptation de transfert de
+  fichier vide via R66.
 * :feature:`274` Les contraintes d'unicité déclarées dans les scripts de migration
   de la base de données sont désormais via des indexes uniques, au lieu des
   contraintes sur les colonnes. Le module de migration est désormais consistant

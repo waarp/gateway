@@ -32,7 +32,7 @@ func (s *sessionHandler) ValidRequest(req *r66.Request) (r66.TransferHandler, er
 		return nil, err
 	}
 
-	if req.IsRecv {
+	if !rule.IsSend {
 		s.logger.Infof("Upload of file %s was requested by %s, using rule %s",
 			path.Base(req.Filepath), s.account.Login, req.Rule)
 	} else {
@@ -51,7 +51,7 @@ func (s *sessionHandler) ValidRequest(req *r66.Request) (r66.TransferHandler, er
 
 	pip, pErr := pipeline.NewServerPipeline(s.db, trans)
 	if pErr != nil {
-		return nil, internal.ToR66Error(err)
+		return nil, internal.ToR66Error(pErr)
 	}
 
 	if err := s.getSize(req, rule, trans); err != nil {
@@ -91,9 +91,11 @@ func (s *sessionHandler) checkRequest(req *r66.Request) *r66.Error {
 		return internal.NewR66Error(r66.IncorrectCommand, "missing transfer rule")
 	}
 
-	if !req.IsRecv && s.conf.Filesize && req.FileSize < 0 {
-		return internal.NewR66Error(r66.IncorrectCommand, "missing file size")
-	}
+	/*
+		if !req.IsRecv && s.conf.Filesize && req.FileSize < 0 {
+			return internal.NewR66Error(r66.IncorrectCommand, "missing file size")
+		}
+	*/
 
 	return nil
 }
