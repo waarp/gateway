@@ -214,11 +214,10 @@ func (t *serverTransfer) validEndTransfer(end *r66.EndTransfer) error {
 		return checkAfter(t.store, sErr)
 	}
 
-	if len(end.Hash) > 0 || t.pip.TransCtx.Transfer.Filesize > 0 {
-		if hErr := t.checkHash(end.Hash); hErr != nil {
-			return checkAfter(t.store, hErr)
-		}
+	if hErr := t.checkHash(end.Hash); hErr != nil {
+		return checkAfter(t.store, hErr)
 	}
+
 	return nil
 }
 

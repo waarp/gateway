@@ -6,6 +6,10 @@ code.waarp.fr/lib/r66 v0.1.2-0.20220204154805-e69c9449fef0 h1:X0CUXOkdCcuTmlpDBq
 code.waarp.fr/lib/r66 v0.1.2-0.20220204154805-e69c9449fef0/go.mod h1:0LJ1uu6E78OxXF95vaReQRmkHfH4JO3Fmlp2Qz0tRkk=
 code.waarp.fr/lib/r66 v0.1.2 h1:RYfQd+xMg8V4CTYWOYMpyncPod8dFRJ9FiULtOBN8Gc=
 code.waarp.fr/lib/r66 v0.1.2/go.mod h1:avEs87Jd9UV9z+t0lAKWazVTH/6lF1OaukIfQEpJ+XE=
+code.waarp.fr/lib/r66 v0.1.3-0.20220207171718-8cdfb59590ac h1:9vjKJ/qxLizArfw7hZqzdBgQd6HukQyLBhSAvhXaFjc=
+code.waarp.fr/lib/r66 v0.1.3-0.20220207171718-8cdfb59590ac/go.mod h1:avEs87Jd9UV9z+t0lAKWazVTH/6lF1OaukIfQEpJ+XE=
+code.waarp.fr/lib/r66 v0.1.3 h1:KWclsUguW0PYWuvFn3b/ysLIcI02SpUAJZZM3K+YFwQ=
+code.waarp.fr/lib/r66 v0.1.3/go.mod h1:avEs87Jd9UV9z+t0lAKWazVTH/6lF1OaukIfQEpJ+XE=
 gitea.com/xorm/sqlfiddle v0.0.0-20180821085327-62ce714f951a h1:lSA0F4e9A2NcQSqGqTOXqu2aRi/XEQxDCBwM8yJtE6s=
 gitea.com/xorm/sqlfiddle v0.0.0-20180821085327-62ce714f951a/go.mod h1:EXuID2Zs0pAQhH8yz+DNjUbjppKQzKFAn28TMYPB6IU=
 github.com/BurntSushi/toml v0.3.1/go.mod h1:xHWCNGjB5oqiDr8zfno3MHue2Ht5sIBksp03qcyfWMU=

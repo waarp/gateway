@@ -34,6 +34,10 @@ func (t *serverTransfer) checkSize() *types.TransferError {
 }
 
 func (t *serverTransfer) checkHash(exp []byte) *types.TransferError {
+	if !t.conf.FinalHash || (len(exp) == 0 && t.pip.TransCtx.Transfer.Filesize <= 0) {
+		return nil
+	}
+
 	hash, err := t.makeHash()
 	if err != nil {
 		return err
