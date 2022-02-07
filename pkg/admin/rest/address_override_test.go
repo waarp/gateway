@@ -64,7 +64,7 @@ func TestAddAddressOverride(t *testing.T) {
 
 			Convey("When sending the request to the handler", func() {
 				body := strings.NewReader(`{"localhost":"127.0.0.1",
-					"example.com":"8.8.8.8:80"}`)
+					"example.com:443":"8.8.8.8:80"}`)
 				r, err := http.NewRequest(http.MethodPost, "", body)
 				So(err, ShouldBeNil)
 				handler.ServeHTTP(w, r)
@@ -79,7 +79,7 @@ func TestAddAddressOverride(t *testing.T) {
 
 				Convey("Then the indirections should have been added to the config", func() {
 					So(conf.GetIndirection("localhost"), ShouldEqual, "127.0.0.1")
-					So(conf.GetIndirection("example.com"), ShouldEqual, "8.8.8.8:80")
+					So(conf.GetIndirection("example.com:443"), ShouldEqual, "8.8.8.8:80")
 				})
 			})
 		})

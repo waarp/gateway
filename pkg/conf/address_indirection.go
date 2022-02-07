@@ -1,9 +1,15 @@
 package conf
 
 import (
+	"errors"
 	"fmt"
 	"net"
 	"strings"
+)
+
+var (
+	errIndirectionWithPort = errors.New("an address with port must redirect to another address with port")
+	errIndirectionNoPort   = errors.New("an address without port must redirect to another address without port")
 )
 
 // addressOverride is a struct defining a local list of address indirections
@@ -44,7 +50,48 @@ func (a *addressOverride) parse() error {
 			return fmt.Errorf("duplicate address indirection target '%s'", target)
 		}
 
+		if err := checkIndirectionConsistency(target, addr); err != nil {
+			return err
+		}
+
 		a.addressMap[target] = addr
+	}
+
+	return nil
+}
+
+func checkIndirectionConsistency(target, redirect string) error {
+	const missingPort = "missing port in address"
+
+	targetHasPort := true
+	redirectHasPort := true
+
+	if _, _, err := net.SplitHostPort(target); err != nil {
+		var addrErr *net.AddrError
+		if errors.As(err, &addrErr) && addrErr.Err == missingPort {
+			targetHasPort = false
+		} else {
+			return fmt.Errorf("failed to parse the target address %q: %w", target, err)
+		}
+	}
+
+	if _, _, err := net.SplitHostPort(redirect); err != nil {
+		var addrErr *net.AddrError
+		if errors.As(err, &addrErr) && addrErr.Err == missingPort {
+			redirectHasPort = false
+		} else {
+			return fmt.Errorf("failed to parse the real address %q: %w", redirect, err)
+		}
+	}
+
+	if targetHasPort != redirectHasPort {
+		if targetHasPort {
+			return fmt.Errorf("address %q is missing a port number: %w",
+				redirect, errIndirectionWithPort)
+		} else {
+			return fmt.Errorf("address %q should not have a port number: %w",
+				redirect, errIndirectionNoPort)
+		}
 	}
 
 	return nil
@@ -143,6 +190,10 @@ func AddIndirection(targetAddr, realAddr string) error {
 
 	LocalOverrides.overrideLock.Lock()
 	defer LocalOverrides.overrideLock.Unlock()
+
+	if err := checkIndirectionConsistency(targetAddr, realAddr); err != nil {
+		return err
+	}
 
 	LocalOverrides.ListenAddresses.addressMap[targetAddr] = realAddr
 	LocalOverrides.ListenAddresses.update()

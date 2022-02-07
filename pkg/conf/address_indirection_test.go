@@ -54,6 +54,12 @@ func TestAddressOverrideParse(t *testing.T) {
 					"malformed address indirection '127.0.0.1 -> 0.0.0.0 ->' (too many '->' separators)")},
 				{"that the target address is a duplicate", "192.168.1.1 -> 0.0.0.0", shouldFailWith(
 					"duplicate address indirection target '192.168.1.1'")},
+				{"that the target has a port but the redirect doesn't", "127.0.0.1:80 -> 0.0.0.0", shouldFailWith(
+					"address \"0.0.0.0\" is missing a port number: an address with port must redirect " +
+						"to another address with port")},
+				{"that the target has no port but the redirect does", "127.0.0.1 -> 0.0.0.0:80", shouldFailWith(
+					"address \"0.0.0.0:80\" should not have a port number: an address without port must " +
+						"redirect to another address without port")},
 			}
 
 			for _, test := range testCases {
@@ -130,13 +136,22 @@ func TestAddIndirection(t *testing.T) {
 		})
 
 		Convey("When updating an existing indirection", func() {
-			So(AddIndirection("localhost:5555", "9.8.7.6"), ShouldBeNil)
+			So(AddIndirection("localhost:5555", "9.8.7.6:5432"), ShouldBeNil)
 
 			Convey("Then it should have updated the indirection", func() {
 				So(LocalOverrides.ListenAddresses.addressMap["localhost:5555"],
-					ShouldEqual, "9.8.7.6")
+					ShouldEqual, "9.8.7.6:5432")
 				So(LocalOverrides.ListenAddresses.Indirections, ShouldContain,
-					"localhost:5555 -> 9.8.7.6")
+					"localhost:5555 -> 9.8.7.6:5432")
+			})
+		})
+
+		Convey("When adding a new inconsistent indirection", func() {
+			err := AddIndirection("localhost:5555", "9.8.7.6")
+
+			Convey("Then it should return an error", func() {
+				So(err, ShouldBeError, "address \"9.8.7.6\" is missing a port number: "+
+					"an address with port must redirect to another address with port")
 			})
 		})
 	})
