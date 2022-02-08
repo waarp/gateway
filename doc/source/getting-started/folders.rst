@@ -4,6 +4,8 @@
 Gestion des dossiers
 ####################
 
+.. todo:: Refaire ce fichier
+
 ======
 Résumé
 ======
@@ -29,8 +31,8 @@ spécifique :
 
 Les chemins plus spécifiques ont la priorité sur les chemins plus globaux.
 
-.. warning:: Les chemins `inPath`, `outPath` & `workPath` d'une règle ne doivent
-   pas être confondu avec le `path` de la règle. Celui-ci sert uniquement à des
+.. warning:: Les chemins `Local directory`, `Remote directory` & `Temp receive directory` d'une règle ne doivent
+   pas être confondu avec le `Path` de la règle. Celui-ci sert uniquement à des
    fins d'identification de le règle, et n'intervient donc pas dans le calcul des
    chemin de fichiers.
 
@@ -77,8 +79,8 @@ si l'utilisateur n'a pas renseigné de racine, le dossier courant est utilisé.
 Tous les chemins non-absolus seront relatif à cette racine.
 
 C'est également dans le fichier de configuration que nos 3 dossiers mentionnés
-plus haut sont définis, respectivement avec les options : *InDirectory*,
-*OutDirectory* et *WorkDirectory*. Lors d'un transfert, si aucun chemin plus
+plus haut sont définis, respectivement avec les options : *DefaultInDir*,
+*DefaultOutDir* et *DefaultTmpDir*. Lors d'un transfert, si aucun chemin plus
 spécifique n'est renseigné, ces dossiers seront utilisés comme source ou
 destination du fichier.
 
@@ -87,13 +89,15 @@ Ces chemins sont relatifs à la racine mentionnée plus haut. Il est également
 possible de renseigner un chemin absolu si l'utilisateur ne souhaite pas que un
 ou plusieurs des dossiers se trouvent sous la racine.
 
+.. todo:: Par défaut GatewayHome est utilisé non ?
+
 -------------------
 Dossiers de serveur
 -------------------
 
 Lors de la création d'un :term:`serveur local<server>`, il est possible de
-renseigner une racine au serveur (attribut `root`), ainsi que des dossier `in`,
-`out` et `work`.
+renseigner une racine au serveur (attribut `root`), ainsi que des dossier `Receive`,
+`Send` et `Temp receive`.
 
 La racine peut être un chemin absolu ou relatif. Dans le second cas, le chemin
 sera relatif à la racine de la gateway. De même, les sous-dossiers peuvent être
@@ -109,7 +113,7 @@ Dossiers de règle
 -----------------
 
 À la création d'une règle de transfert, il est possible d'ajouter des chemins
-*in*, *out* et *work* à celle-ci. Tous les fichiers transférés avec cette règle
+*Local*, *Remote* et *Temp receive* à celle-ci. Tous les fichiers transférés avec cette règle
 utiliseront donc ces dossiers. Contrairement aux chemins de niveaux supérieurs,
 les chemins d'une règle sont toujours relatifs.
 

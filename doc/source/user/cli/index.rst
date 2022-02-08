@@ -20,7 +20,7 @@ Toutes les commandes doivent donc commencer comme ceci :
    waarp-gateway -a http://user:mot_de_passe@127.0.0.1:8080 ...
 
 
-Le mot de passe peut être omis, auquel cas, il sera demandé via l'invité de
+Le mot de passe peut être omis, auquel cas, il sera demandé via l'invite de
 commande.
 
 Afin de ne pas avoir à saisir l'URL à chaque commande, il est possible de

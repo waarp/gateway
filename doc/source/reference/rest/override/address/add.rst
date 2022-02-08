@@ -5,7 +5,8 @@ Ajouter une indirection
 
    Ajoute une ou plusieurs indirection(s) d'adresse.
 
-   .. note:: Si une adresse possède déjà une indirection, celle-ci sera écrasée
+   .. note::
+      Si une adresse possède déjà une indirection, celle-ci sera écrasée
       par la nouvelle.
 
    :reqheader Authorization: Les identifiants de l'utilisateur

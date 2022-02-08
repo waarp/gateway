@@ -5,6 +5,8 @@ Envoi d'un fichier en R66
 .. _documentation Waarp-R66: https://doc.waarp.org/waarp-r66/latest/fr/
 .. _page de téléchargements: https://dl.waarp.org/
 
+.. todo:: A revoir
+
 Nous allons maintenant mettre en place le second transfert: l'envoi d'un
 fichier avec la Gateway vers un serveur R66. Nous allons pour cela utiliser un
 serveur R66 installé sur le serveur comme serveur de destination.
