@@ -19,7 +19,7 @@ MySQL (+its variants)
 - Works in clusters with a load balancer
 - Administration via a REST API & command line interface
 
-##Getting started
+## Getting started
 
 ### Build from source
 
@@ -29,6 +29,7 @@ also required on the machine to compile the program.
 
 ```shell
 git clone https://code.waarp.fr/apps/gateway/gateway
+cd gateway
 ./make.sh build
 ```
 
@@ -99,4 +100,10 @@ on port 8082 with the documentation hosted on it.
 *Waarp-Gateway*.
 
 ## Licence
+
+## Links
+
+- **Download**: [dl.waarp.org](https://dl.waarp.org/dist/waarp-gateway/)
+- **Documentation**: [doc.waarp.org](https://doc.waarp.org/waarp-gateway/latest)
+- **Support**: [info@waarp.fr](mailto:info@waarp.fr)
 
