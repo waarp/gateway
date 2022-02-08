@@ -8,7 +8,6 @@ import (
 	"code.bcarlin.xyz/go/logging"
 	"code.waarp.fr/lib/r66"
 
-	"code.waarp.fr/apps/gateway/gateway/pkg/conf"
 	"code.waarp.fr/apps/gateway/gateway/pkg/log"
 )
 
@@ -53,17 +52,14 @@ func (c *ConnPool) Add(addr string, tlsConf *tls.Config, logger *log.Logger) (*r
 		return info.conn, nil
 	}
 
-	realAddr, err := conf.GetRealAddress(addr)
-	if err != nil {
-		return nil, fmt.Errorf("failed to indirect the partner's address: %w", err)
-	}
+	var err error
 
 	var cli *r66.Client
 
 	if tlsConf == nil {
-		cli, err = r66.Dial(realAddr, logger.AsStdLog(logging.DEBUG))
+		cli, err = r66.Dial(addr, logger.AsStdLog(logging.DEBUG))
 	} else {
-		cli, err = r66.DialTLS(realAddr, tlsConf, logger.AsStdLog(logging.DEBUG))
+		cli, err = r66.DialTLS(addr, tlsConf, logger.AsStdLog(logging.DEBUG))
 	}
 
 	if err != nil {
