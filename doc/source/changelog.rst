@@ -4,6 +4,13 @@ Historique des versions
 =======================
 
 * :release:`0.5.0 <>`
+* :feature:`268` Ajout d'un fichier *override* permettant à une instance de
+  *gateway* au sein d'une grappe d'écraser localement certaines parties de la
+  configuration globale de la grappe (voir :ref:`la documentation<reference-conf-override>`
+  du fichier d'override de configuration pour plus de détails).
+  Pour l'heure, ce fichier permet de définir des remplacement d'adresses pour les
+  serveurs locaux, ce qui est nécessaire pour que la *gateway* fonctionne
+  correctement en grappe.
 * :bug:`275` Correction d'une erreur empêchant l'acceptation de transfert de
   fichier vide via R66.
 * :feature:`274` Les contraintes d'unicité déclarées dans les scripts de migration

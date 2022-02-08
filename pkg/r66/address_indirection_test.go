@@ -1,7 +1,9 @@
 package r66
 
 import (
+	"context"
 	"testing"
+	"time"
 
 	. "github.com/smartystreets/goconvey/convey"
 
@@ -20,9 +22,7 @@ func TestAddressIndirection(t *testing.T) {
 
 		So(conf.AddIndirection(fakeAddr, realAddr), ShouldBeNil)
 		ctx.Server.Address = fakeAddr
-		ctx.Partner.Address = fakeAddr
 		So(ctx.DB.Update(ctx.Server).Cols("address").Run(), ShouldBeNil)
-		So(ctx.DB.Update(ctx.Partner).Cols("address").Run(), ShouldBeNil)
 
 		ctx.StartService(c)
 
@@ -35,12 +35,17 @@ func TestAddressIndirection(t *testing.T) {
 				So(err, ShouldBeNil)
 
 				So(cli.Request(), ShouldBeNil)
-				defer ctx.TasksChecker.WaitServerDone()
-				defer clientConns.Done(fakeAddr)
-				defer cli.ses.Close()
+				defer func() {
+					cli.ses.Close()
+					clientConns.Done(fakeAddr)
+
+					cont, cancel := context.WithTimeout(context.Background(), time.Second)
+					defer cancel()
+					_ = ctx.Service().Stop(cont)
+				}()
 
 				Convey("Then it should have connected to the server", func() {
-					So(clientConns.Exists(fakeAddr), ShouldBeTrue)
+					So(clientConns.Exists(realAddr), ShouldBeTrue)
 				})
 			})
 		})

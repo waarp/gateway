@@ -23,9 +23,7 @@ func TestAddressIndirection(t *testing.T) {
 
 		So(conf.AddIndirection(fakeAddr, realAddr), ShouldBeNil)
 		ctx.Server.Address = fakeAddr
-		ctx.Partner.Address = fakeAddr
 		So(ctx.DB.Update(ctx.Server).Cols("address").Run(), ShouldBeNil)
-		So(ctx.DB.Update(ctx.Partner).Cols("address").Run(), ShouldBeNil)
 
 		serverHostkey := model.Crypto{
 			OwnerType:  ctx.Server.TableName(),

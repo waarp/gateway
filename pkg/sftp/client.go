@@ -11,7 +11,6 @@ import (
 	"github.com/pkg/sftp"
 	"golang.org/x/crypto/ssh"
 
-	"code.waarp.fr/apps/gateway/gateway/pkg/conf"
 	"code.waarp.fr/apps/gateway/gateway/pkg/model/config"
 	"code.waarp.fr/apps/gateway/gateway/pkg/model/types"
 	"code.waarp.fr/apps/gateway/gateway/pkg/pipeline"
@@ -71,12 +70,9 @@ func (c *client) Request() (tErr *types.TransferError) {
 		}
 	}()
 
-	addr, err := conf.GetRealAddress(c.pip.TransCtx.RemoteAgent.Address)
-	if err != nil {
-		c.pip.Logger.Errorf("Failed to parse SFTP partner address: %s", err)
+	addr := c.pip.TransCtx.RemoteAgent.Address
 
-		return c.fromSFTPErr(err, types.TeInternal)
-	}
+	var err error
 
 	c.sshSession, err = ssh.Dial("tcp", addr, c.sshConf)
 	if err != nil {

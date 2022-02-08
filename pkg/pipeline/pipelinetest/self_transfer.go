@@ -137,6 +137,9 @@ func (s *SelfContext) StartService(c convey.C) {
 	})
 }
 
+// Service returns the context's service.
+func (s *SelfContext) Service() service.ProtoService { return s.service }
+
 // AddCryptos adds the given cryptos to the test database.
 func (s *SelfContext) AddCryptos(c convey.C, certs ...model.Crypto) {
 	for i := range certs {
