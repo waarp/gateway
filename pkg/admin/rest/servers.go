@@ -6,6 +6,7 @@ import (
 	"github.com/gorilla/mux"
 
 	"code.waarp.fr/apps/gateway/gateway/pkg/admin/rest/api"
+	"code.waarp.fr/apps/gateway/gateway/pkg/conf"
 	"code.waarp.fr/apps/gateway/gateway/pkg/database"
 	"code.waarp.fr/apps/gateway/gateway/pkg/log"
 	"code.waarp.fr/apps/gateway/gateway/pkg/model"
@@ -18,7 +19,7 @@ func getServ(r *http.Request, db *database.DB) (*model.LocalAgent, error) {
 	}
 
 	var serv model.LocalAgent
-	if err := db.Get(&serv, "name=? AND owner=?", serverName, database.Owner).
+	if err := db.Get(&serv, "name=? AND owner=?", serverName, conf.GlobalConfig.GatewayName).
 		Run(); err != nil {
 		if database.IsNotFound(err) {
 			return nil, notFound("server '%s' not found", serverName)
@@ -65,7 +66,7 @@ func listServers(logger *log.Logger, db *database.DB) http.HandlerFunc {
 			return
 		}
 
-		query.Where("owner=?", database.Owner)
+		query.Where("owner=?", conf.GlobalConfig.GatewayName)
 
 		if err2 := parseProtoParam(r, query); handleError(w, logger, err2) {
 			return

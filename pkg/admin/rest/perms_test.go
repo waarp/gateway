@@ -28,11 +28,12 @@ func TestMaskToPerm(t *testing.T) {
 
 				Convey("Then it should return the correct permissions", func() {
 					exp := &api.Perms{
-						Transfers: "rw-",
-						Servers:   "-w-",
-						Partners:  "r-d",
-						Rules:     "rwd",
-						Users:     "-wd",
+						Transfers:      "rw-",
+						Servers:        "-w-",
+						Partners:       "r-d",
+						Rules:          "rwd",
+						Users:          "-wd",
+						Administration: "---",
 					}
 					So(perms, ShouldResemble, exp)
 				})
@@ -47,11 +48,12 @@ func TestMaskToPerm(t *testing.T) {
 
 				Convey("Then it should return the correct permissions", func() {
 					exp := &api.Perms{
-						Transfers: "rw-",
-						Servers:   "rwd",
-						Partners:  "rwd",
-						Rules:     "rwd",
-						Users:     "rwd",
+						Transfers:      "rw-",
+						Servers:        "rwd",
+						Partners:       "rwd",
+						Rules:          "rwd",
+						Users:          "rwd",
+						Administration: "rwd",
 					}
 					So(perms, ShouldResemble, exp)
 				})
@@ -67,13 +69,15 @@ func TestPermsToMask(t *testing.T) {
 				model.PermServersWrite |
 				model.PermPartnersRead | model.PermPartnersDelete |
 				model.PermRulesRead | model.PermRulesWrite | model.PermRulesDelete |
-				model.PermUsersWrite | model.PermUsersDelete
+				model.PermUsersWrite | model.PermUsersDelete |
+				model.PermAdminRead
 			perms := api.Perms{
-				Transfers: "-w=w",
-				Servers:   "+r",
-				Partners:  "-d",
-				Rules:     "-wd+w",
-				Users:     "=rw+d",
+				Transfers:      "-w=w",
+				Servers:        "+r",
+				Partners:       "-d",
+				Rules:          "-wd+w",
+				Users:          "=rw+d",
+				Administration: "-r+rw",
 			}
 
 			Convey("When calling the permsToMask function", func() {
@@ -85,7 +89,8 @@ func TestPermsToMask(t *testing.T) {
 						model.PermServersWrite | model.PermServersRead |
 						model.PermPartnersRead |
 						model.PermRulesRead | model.PermRulesWrite |
-						model.PermUsersRead | model.PermUsersWrite | model.PermUsersDelete
+						model.PermUsersRead | model.PermUsersWrite | model.PermUsersDelete |
+						model.PermAdminRead | model.PermAdminWrite
 
 					actual := maskToPerms(newMask)
 					expected := maskToPerms(exp)
@@ -122,9 +127,9 @@ func TestPermMiddleware(t *testing.T) {
 				}
 			}
 			router := mux.NewRouter()
-			fac := makeHandlerFactory(logger, db, router)
+			fact := makeHandlerFactory(logger, db, router)
 
-			fac("/", f, model.PermUsersRead, http.MethodGet)
+			fact("/", f, model.PermUsersRead, http.MethodGet)
 
 			Convey("When sending a request", func() {
 				w := &httptest.ResponseRecorder{}

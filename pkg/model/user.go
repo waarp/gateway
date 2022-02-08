@@ -3,6 +3,7 @@
 package model
 
 import (
+	"code.waarp.fr/apps/gateway/gateway/pkg/conf"
 	"code.waarp.fr/apps/gateway/gateway/pkg/database"
 	"code.waarp.fr/apps/gateway/gateway/pkg/tk/utils"
 )
@@ -64,7 +65,7 @@ func (u *User) Init(db database.Access) database.Error {
 
 	user := &User{
 		Username:     "admin",
-		Owner:        database.Owner,
+		Owner:        conf.GlobalConfig.GatewayName,
 		PasswordHash: hash,
 		Permissions:  PermAll,
 	}
@@ -82,7 +83,7 @@ func (u *User) BeforeDelete(db database.Access) database.Error {
 	if u.Permissions&PermUsersWrite != 0 {
 		if n, err := u.countAdmins(db); err != nil {
 			return err
-		} else if n == 1 {
+		} else if n <= 1 {
 			return database.NewValidationError("cannot delete the last gateway admin")
 		}
 	}
@@ -93,7 +94,7 @@ func (u *User) BeforeDelete(db database.Access) database.Error {
 // BeforeWrite checks if the new `User` entry is valid and can be
 // inserted in the database.
 func (u *User) BeforeWrite(db database.ReadAccess) database.Error {
-	u.Owner = database.Owner
+	u.Owner = conf.GlobalConfig.GatewayName
 	if u.Username == "" {
 		return database.NewValidationError("the username cannot be empty")
 	}
@@ -115,7 +116,8 @@ func (u *User) BeforeWrite(db database.ReadAccess) database.Error {
 
 func (*User) countAdmins(db database.ReadAccess) (uint, database.Error) {
 	var users Users
-	if err := db.Select(&users).Where("owner=?", database.Owner).Run(); err != nil {
+	if err := db.Select(&users).Where("owner=?", conf.GlobalConfig.GatewayName).
+		Run(); err != nil {
 		return 0, err
 	}
 

@@ -85,15 +85,15 @@ func initTestDB(c C) *testContext {
 	root := testhelpers.TempDir(c, "new_transfer_stream")
 	db := database.TestDatabase(c, "ERROR")
 
-	db.Conf.Paths = conf.PathsConfig{
+	conf.GlobalConfig.Paths = conf.PathsConfig{
 		GatewayHome:   root,
 		DefaultInDir:  "in",
 		DefaultOutDir: "out",
 		DefaultTmpDir: "work",
 	}
-	So(os.Mkdir(filepath.Join(root, db.Conf.Paths.DefaultInDir), 0o700), ShouldBeNil)
-	So(os.Mkdir(filepath.Join(root, db.Conf.Paths.DefaultOutDir), 0o700), ShouldBeNil)
-	So(os.Mkdir(filepath.Join(root, db.Conf.Paths.DefaultTmpDir), 0o700), ShouldBeNil)
+	So(os.Mkdir(filepath.Join(root, conf.GlobalConfig.Paths.DefaultInDir), 0o700), ShouldBeNil)
+	So(os.Mkdir(filepath.Join(root, conf.GlobalConfig.Paths.DefaultOutDir), 0o700), ShouldBeNil)
+	So(os.Mkdir(filepath.Join(root, conf.GlobalConfig.Paths.DefaultTmpDir), 0o700), ShouldBeNil)
 
 	send := &model.Rule{
 		Name:   "send",
@@ -172,7 +172,7 @@ func mkRecvTransfer(ctx *testContext, filename string) *model.TransferContext {
 		Rule:          ctx.recv,
 		RemoteAgent:   ctx.partner,
 		RemoteAccount: ctx.remoteAccount,
-		Paths:         &ctx.db.Conf.Paths,
+		Paths:         &conf.GlobalConfig.Paths,
 	}
 }
 
@@ -201,7 +201,7 @@ func mkSendTransfer(ctx *testContext, filename string) *model.TransferContext {
 		Rule:          ctx.send,
 		RemoteAgent:   ctx.partner,
 		RemoteAccount: ctx.remoteAccount,
-		Paths:         &ctx.db.Conf.Paths,
+		Paths:         &conf.GlobalConfig.Paths,
 	}
 }
 

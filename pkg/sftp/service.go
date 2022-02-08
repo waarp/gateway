@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"net"
 
+	"code.waarp.fr/apps/gateway/gateway/pkg/conf"
 	"code.waarp.fr/apps/gateway/gateway/pkg/database"
 	"code.waarp.fr/apps/gateway/gateway/pkg/log"
 	"code.waarp.fr/apps/gateway/gateway/pkg/model"
@@ -33,55 +34,61 @@ func NewService(db *database.DB, agent *model.LocalAgent, logger *log.Logger) se
 	}
 }
 
-// Start starts the SFTP service.
-func (s *Service) Start() error {
-	start := func() error {
-		var protoConfig config.SftpProtoConfig
-		if err := json.Unmarshal(s.agent.ProtoConfig, &protoConfig); err != nil {
-			return fmt.Errorf("cannot parse the protocol configuration of this agent: %w", err)
-		}
-
-		hostKeys, err := s.agent.GetCryptos(s.db)
-		if err != nil {
-			s.logger.Errorf("Failed to retrieve the server host keys: %s", err)
-
-			return err
-		}
-
-		sshConf, err1 := getSSHServerConfig(s.db, hostKeys, &protoConfig, s.agent)
-		if err1 != nil {
-			s.logger.Errorf("Failed to parse the SSH server configuration: %s", err1)
-
-			return fmt.Errorf("failed to parse the SSH server configuration: %w", err1)
-		}
-
-		listener, err2 := net.Listen("tcp", s.agent.Address)
-		if err2 != nil {
-			err3 := fmt.Errorf("failed to start server listener: %w", err2)
-			s.logger.Errorf(err3.Error())
-
-			return err3
-		}
-
-		s.listener = &sshListener{
-			DB:               s.db,
-			Logger:           s.logger,
-			Agent:            s.agent,
-			ProtoConfig:      &protoConfig,
-			SSHConf:          sshConf,
-			Listener:         listener,
-			runningTransfers: service.NewTransferMap(),
-			shutdown:         make(chan struct{}),
-		}
-		s.listener.listen()
-
-		return nil
+func (s *Service) start() error {
+	var protoConfig config.SftpProtoConfig
+	if err := json.Unmarshal(s.agent.ProtoConfig, &protoConfig); err != nil {
+		return fmt.Errorf("cannot parse the protocol configuration of this agent: %w", err)
 	}
 
+	hostKeys, err := s.agent.GetCryptos(s.db)
+	if err != nil {
+		s.logger.Errorf("Failed to retrieve the server host keys: %s", err)
+
+		return err
+	}
+
+	sshConf, err1 := getSSHServerConfig(s.db, hostKeys, &protoConfig, s.agent)
+	if err1 != nil {
+		s.logger.Errorf("Failed to parse the SSH server configuration: %s", err1)
+
+		return fmt.Errorf("failed to parse the SSH server configuration: %w", err1)
+	}
+
+	addr, err2 := conf.GetRealAddress(s.agent.Address)
+	if err2 != nil {
+		s.logger.Errorf("Failed to indirect the server address: %s", err2)
+
+		return fmt.Errorf("failed to indirect the server address: %w", err2)
+	}
+
+	listener, err3 := net.Listen("tcp", addr)
+	if err3 != nil {
+		s.logger.Errorf("Failed to start server listener: %s", err3)
+
+		return fmt.Errorf("failed to start server listener: %w", err3)
+	}
+
+	s.listener = &sshListener{
+		DB:               s.db,
+		Logger:           s.logger,
+		Agent:            s.agent,
+		ProtoConfig:      &protoConfig,
+		SSHConf:          sshConf,
+		Listener:         listener,
+		runningTransfers: service.NewTransferMap(),
+		shutdown:         make(chan struct{}),
+	}
+	s.listener.listen()
+
+	return nil
+}
+
+// Start starts the SFTP service.
+func (s *Service) Start() error {
 	s.logger.Infof("Starting SFTP server...")
 	s.state.Set(service.Starting, "")
 
-	if err := start(); err != nil {
+	if err := s.start(); err != nil {
 		s.state.Set(service.Error, err.Error())
 		s.logger.Error("Failed to start SFTP service")
 

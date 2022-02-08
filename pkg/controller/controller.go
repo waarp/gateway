@@ -8,6 +8,7 @@ import (
 	"sync"
 	"time"
 
+	"code.waarp.fr/apps/gateway/gateway/pkg/conf"
 	"code.waarp.fr/apps/gateway/gateway/pkg/database"
 	"code.waarp.fr/apps/gateway/gateway/pkg/log"
 	"code.waarp.fr/apps/gateway/gateway/pkg/model"
@@ -37,7 +38,7 @@ func (c *Controller) checkIsDBDown() bool {
 	}
 
 	query := c.DB.UpdateAll(&model.Transfer{}, database.UpdVals{"status": types.StatusInterrupted},
-		"owner=? AND status=?", database.Owner, types.StatusRunning)
+		"owner=? AND status=?", conf.GlobalConfig.GatewayName, types.StatusRunning)
 	if err := query.Run(); err != nil {
 		c.logger.Errorf("Failed to access database: %s", err.Error())
 
@@ -77,9 +78,9 @@ func (c *Controller) retrieveTransfers() (model.Transfers, error) {
 		}
 
 		query := ses.SelectForUpdate(&transfers).Where("owner=? AND status=? AND "+
-			"is_server=? AND start<?", database.Owner, types.StatusPlanned, false,
-			time.Now().UTC().Truncate(time.Microsecond).Format(time.RFC3339Nano)).
-			Limit(lim, 0)
+			"is_server=? AND start<?", conf.GlobalConfig.GatewayName,
+			types.StatusPlanned, false, time.Now().UTC().Truncate(time.Microsecond).
+				Format(time.RFC3339Nano)).Limit(lim, 0)
 
 		if err := query.Run(); err != nil {
 			c.logger.Errorf("Failed to access database: %s", err.Error())
@@ -133,9 +134,10 @@ func (c *Controller) startNewTransfers() {
 func (c *Controller) Start() error {
 	c.logger = log.NewLogger(service.ControllerServiceName)
 
-	pipeline.TransferInCount.SetLimit(c.DB.Conf.Controller.MaxTransfersIn)
-	pipeline.TransferOutCount.SetLimit(c.DB.Conf.Controller.MaxTransfersOut)
-	c.ticker = time.NewTicker(c.DB.Conf.Controller.Delay)
+	config := &conf.GlobalConfig.Controller
+	pipeline.TransferInCount.SetLimit(config.MaxTransfersIn)
+	pipeline.TransferOutCount.SetLimit(config.MaxTransfersOut)
+	c.ticker = time.NewTicker(config.Delay)
 	c.state.Set(service.Running, "")
 
 	c.listen()

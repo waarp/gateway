@@ -33,9 +33,9 @@ const (
 
 var errSimulated = fmt.Errorf("simulated database error")
 
-func testinfo(c *conf.DatabaseConfig) (string, string, func(*xorm.Engine) error) {
-	return "sqlite3", fmt.Sprintf("file:%s?mode=memory&_busy_timeout=10000",
-		c.Address), sqliteInit
+func testinfo() (string, string, func(*xorm.Engine) error) {
+	return "sqlite3", fmt.Sprintf("file:%s?mode=memory&_busy_timeout=10000&cachee=shared",
+		conf.GlobalConfig.Database.Address), sqliteInit
 }
 
 func testGCM() {
@@ -64,8 +64,12 @@ func tempFilename() string {
 	return f.Name()
 }
 
-func initTestDBConf(config *conf.DatabaseConfig) {
+func initTestDBConf() {
+	BcryptRounds = bcrypt.MinCost
+	conf.GlobalConfig.GatewayName = "test_gateway"
+	config := &conf.GlobalConfig.Database
 	dbType := os.Getenv(testDBEnv)
+
 	switch dbType {
 	case PostgreSQL:
 		config.Type = PostgreSQL
@@ -90,7 +94,7 @@ func initTestDBConf(config *conf.DatabaseConfig) {
 }
 
 func resetDB(db *DB) {
-	config := &db.Conf.Database
+	config := &conf.GlobalConfig.Database
 
 	switch config.Type {
 	case PostgreSQL, MySQL:
@@ -133,9 +137,8 @@ func TestDatabaseNoInit(c convey.C, logLevel string) *DB {
 
 func initTestDatabase(c convey.C, logLevel string) *DB {
 	BcryptRounds = bcrypt.MinCost
-	config := &conf.ServerConfig{}
-	config.GatewayName = "test_gateway"
-	initTestDBConf(&config.Database)
+
+	initTestDBConf()
 
 	level, err := logging.LevelByName(logLevel)
 	c.So(err, convey.ShouldBeNil)
@@ -146,20 +149,17 @@ func initTestDatabase(c convey.C, logLevel string) *DB {
 
 	testGCM()
 
-	db := &DB{
-		Conf:   config,
-		logger: &log.Logger{Logger: logger},
-	}
+	db := &DB{logger: &log.Logger{Logger: logger}}
 
 	if os.Getenv(testDBMechanism) == "migration" {
-		startViaMigration(c, config)
+		startViaMigration(c)
 	}
 
 	return db
 }
 
-func startViaMigration(c convey.C, config *conf.ServerConfig) {
-	Owner = config.GatewayName
+func startViaMigration(c convey.C) {
+	config := &conf.GlobalConfig
 
 	var (
 		sqlDB   *sql.DB

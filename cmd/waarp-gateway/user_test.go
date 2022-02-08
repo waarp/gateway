@@ -11,6 +11,7 @@ import (
 
 	"code.waarp.fr/apps/gateway/gateway/pkg/admin/rest"
 	"code.waarp.fr/apps/gateway/gateway/pkg/admin/rest/api"
+	"code.waarp.fr/apps/gateway/gateway/pkg/conf"
 	"code.waarp.fr/apps/gateway/gateway/pkg/database"
 	"code.waarp.fr/apps/gateway/gateway/pkg/model"
 )
@@ -113,7 +114,7 @@ func TestAddUser(t *testing.T) {
 						So(bcrypt.CompareHashAndPassword([]byte(users[1].PasswordHash),
 							[]byte("password")), ShouldBeNil)
 						exp := model.User{
-							Owner:        database.Owner,
+							Owner:        conf.GlobalConfig.GatewayName,
 							ID:           2,
 							Username:     "user",
 							PasswordHash: users[1].PasswordHash,
@@ -237,7 +238,7 @@ func TestUpdateUser(t *testing.T) {
 						So(bcrypt.CompareHashAndPassword([]byte(users[1].PasswordHash),
 							[]byte("new_password")), ShouldBeNil)
 						exp := model.User{
-							Owner:        database.Owner,
+							Owner:        conf.GlobalConfig.GatewayName,
 							ID:           user.ID,
 							Username:     "new_user",
 							PasswordHash: users[1].PasswordHash,

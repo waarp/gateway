@@ -36,6 +36,12 @@ Elle accepte les options suivantes :
 
    Le paramètre :any:`--config` doit être renseigné.
 
+.. option:: --instance NAME, -i NAME
+
+   Le nom unique de l'instance. Lorsque la *gateway* fonctionne en grappe, ce nom
+   sert à différencier les différentes instances entre elles. Ce paramètre n'est
+   pas nécessaire si la *gateway* ne fonctionne pas en grappe.
+
 .. option:: --help, -h
 
    Affiche l'aide de la commande.

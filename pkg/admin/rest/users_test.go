@@ -12,6 +12,7 @@ import (
 	"golang.org/x/crypto/bcrypt"
 
 	. "code.waarp.fr/apps/gateway/gateway/pkg/admin/rest/api"
+	"code.waarp.fr/apps/gateway/gateway/pkg/conf"
 	"code.waarp.fr/apps/gateway/gateway/pkg/database"
 	"code.waarp.fr/apps/gateway/gateway/pkg/log"
 	"code.waarp.fr/apps/gateway/gateway/pkg/model"
@@ -29,15 +30,15 @@ func TestGetUser(t *testing.T) {
 
 		Convey("Given a database with 2 users", func() {
 			// add a user from another gateway
-			owner := database.Owner
-			database.Owner = "foobar"
+			owner := conf.GlobalConfig.GatewayName
+			conf.GlobalConfig.GatewayName = "foobar"
 			other := &model.User{
 				Username:     "existing",
 				PasswordHash: hash("existing1"),
 				Permissions:  model.PermTransfersWrite,
 			}
 			So(db.Insert(other).Run(), ShouldBeNil)
-			database.Owner = owner
+			conf.GlobalConfig.GatewayName = owner
 
 			expected := &model.User{
 				Username:     other.Username,
@@ -151,14 +152,14 @@ func TestListUsers(t *testing.T) {
 			user3 := *FromUser(u3)
 			user4 := *FromUser(u4)
 
-			owner := database.Owner
-			database.Owner = "foobar"
+			owner := conf.GlobalConfig.GatewayName
+			conf.GlobalConfig.GatewayName = "foobar"
 			u5 := &model.User{
 				Username:     "user5",
 				PasswordHash: hash("user5"),
 			}
 			So(db.Insert(u5).Run(), ShouldBeNil)
-			database.Owner = owner
+			conf.GlobalConfig.GatewayName = owner
 
 			Convey("Given a request with with no parameters", func() {
 				r, err := http.NewRequest(http.MethodGet, "", nil)
@@ -271,7 +272,7 @@ func TestCreateUser(t *testing.T) {
 								[]byte("sesame")), ShouldBeNil)
 							So(users[1], ShouldResemble, model.User{
 								ID:           3,
-								Owner:        database.Owner,
+								Owner:        conf.GlobalConfig.GatewayName,
 								Username:     "toto",
 								PasswordHash: users[1].PasswordHash,
 								Permissions: model.PermTransfersRead | model.PermTransfersWrite |
@@ -470,7 +471,7 @@ func TestUpdateUser(t *testing.T) {
 								[]byte("sesame")), ShouldBeNil)
 							So(users[0], ShouldResemble, model.User{
 								ID:           2,
-								Owner:        database.Owner,
+								Owner:        conf.GlobalConfig.GatewayName,
 								Username:     "toto",
 								PasswordHash: users[0].PasswordHash,
 								Permissions: model.PermTransfersRead |
@@ -553,7 +554,7 @@ func TestUpdateUser(t *testing.T) {
 								maskToPerms(old.Permissions))
 							So(users[0], ShouldResemble, model.User{
 								ID:           2,
-								Owner:        database.Owner,
+								Owner:        conf.GlobalConfig.GatewayName,
 								Username:     "upd_user",
 								PasswordHash: users[0].PasswordHash,
 								Permissions:  old.Permissions,
@@ -604,7 +605,7 @@ func TestUpdateUser(t *testing.T) {
 								[]byte("upd_password")), ShouldBeNil)
 							So(users[0], ShouldResemble, model.User{
 								ID:           2,
-								Owner:        database.Owner,
+								Owner:        conf.GlobalConfig.GatewayName,
 								Username:     "old",
 								PasswordHash: users[0].PasswordHash,
 								Permissions:  old.Permissions,
@@ -675,7 +676,7 @@ func TestReplaceUser(t *testing.T) {
 								[]byte("upd_password")), ShouldBeNil)
 							So(users[0], ShouldResemble, model.User{
 								ID:           2,
-								Owner:        database.Owner,
+								Owner:        conf.GlobalConfig.GatewayName,
 								Username:     "upd_user",
 								PasswordHash: users[0].PasswordHash,
 							})

@@ -15,6 +15,7 @@ import (
 	"code.waarp.fr/lib/r66"
 	. "github.com/smartystreets/goconvey/convey"
 
+	"code.waarp.fr/apps/gateway/gateway/pkg/conf"
 	"code.waarp.fr/apps/gateway/gateway/pkg/database"
 	"code.waarp.fr/apps/gateway/gateway/pkg/log"
 	"code.waarp.fr/apps/gateway/gateway/pkg/model"
@@ -148,7 +149,7 @@ func TestR66ServerInterruption(t *testing.T) {
 							RuleID:     test.ServerRule.ID,
 							Status:     types.StatusInterrupted,
 							Step:       types.StepData,
-							Owner:      database.Owner,
+							Owner:      conf.GlobalConfig.GatewayName,
 							Progress:   transfers[0].Progress,
 						}
 						So(transfers[0], ShouldResemble, trans)

@@ -11,6 +11,7 @@ import (
 
 	. "github.com/smartystreets/goconvey/convey"
 
+	"code.waarp.fr/apps/gateway/gateway/pkg/conf"
 	"code.waarp.fr/apps/gateway/gateway/pkg/database"
 	"code.waarp.fr/apps/gateway/gateway/pkg/log"
 	"code.waarp.fr/apps/gateway/gateway/pkg/model"
@@ -35,7 +36,7 @@ func TestNewFileStream(t *testing.T) {
 			Transfer:      trans,
 			RemoteAgent:   ctx.partner,
 			RemoteAccount: ctx.remoteAccount,
-			Paths:         &ctx.db.Conf.Paths,
+			Paths:         &conf.GlobalConfig.Paths,
 		}
 
 		Convey("Given a new send transfer", func(c C) {
@@ -130,7 +131,7 @@ func TestStreamRead(t *testing.T) {
 			Rule:          ctx.send,
 			RemoteAgent:   ctx.partner,
 			RemoteAccount: ctx.remoteAccount,
-			Paths:         &ctx.db.Conf.Paths,
+			Paths:         &conf.GlobalConfig.Paths,
 		}
 
 		Convey("Given a file stream for this transfer", func(c C) {
@@ -215,7 +216,7 @@ func TestStreamReadAt(t *testing.T) {
 			Rule:          ctx.send,
 			RemoteAgent:   ctx.partner,
 			RemoteAccount: ctx.remoteAccount,
-			Paths:         &ctx.db.Conf.Paths,
+			Paths:         &conf.GlobalConfig.Paths,
 		}
 
 		Convey("Given a file stream for this transfer", func(c C) {
@@ -301,7 +302,7 @@ func TestStreamWrite(t *testing.T) {
 			Rule:          ctx.recv,
 			RemoteAgent:   ctx.partner,
 			RemoteAccount: ctx.remoteAccount,
-			Paths:         &ctx.db.Conf.Paths,
+			Paths:         &conf.GlobalConfig.Paths,
 		}
 
 		Convey("Given a file stream for this transfer", func(c C) {
@@ -387,7 +388,7 @@ func TestStreamWriteAt(t *testing.T) {
 			Rule:          ctx.recv,
 			RemoteAgent:   ctx.partner,
 			RemoteAccount: ctx.remoteAccount,
-			Paths:         &ctx.db.Conf.Paths,
+			Paths:         &conf.GlobalConfig.Paths,
 		}
 
 		Convey("Given a file stream for this transfer", func(c C) {
@@ -474,7 +475,7 @@ func TestStreamClose(t *testing.T) {
 			Rule:          ctx.recv,
 			RemoteAgent:   ctx.partner,
 			RemoteAccount: ctx.remoteAccount,
-			Paths:         &ctx.db.Conf.Paths,
+			Paths:         &conf.GlobalConfig.Paths,
 		}
 
 		Convey("Given a file stream for this transfer", func(c C) {
@@ -513,7 +514,7 @@ func TestStreamMove(t *testing.T) {
 			IsServer:   false,
 			AgentID:    ctx.partner.ID,
 			AccountID:  ctx.remoteAccount.ID,
-			LocalPath:  filepath.Join(ctx.root, ctx.db.Conf.Paths.DefaultTmpDir, "file"),
+			LocalPath:  filepath.Join(ctx.root, conf.GlobalConfig.Paths.DefaultTmpDir, "file"),
 			RemotePath: "/remote/file",
 			RuleID:     ctx.recv.ID,
 		}
@@ -524,7 +525,7 @@ func TestStreamMove(t *testing.T) {
 			Rule:          ctx.recv,
 			RemoteAgent:   ctx.partner,
 			RemoteAccount: ctx.remoteAccount,
-			Paths:         &ctx.db.Conf.Paths,
+			Paths:         &conf.GlobalConfig.Paths,
 		}
 
 		Convey("Given a closed file stream for this transfer", func(c C) {
@@ -536,7 +537,7 @@ func TestStreamMove(t *testing.T) {
 				So(stream.move(), ShouldBeNil)
 
 				Convey("Then the underlying file should have been be moved", func(c C) {
-					_, err := os.Stat(filepath.Join(ctx.root, ctx.db.Conf.Paths.DefaultInDir, "file"))
+					_, err := os.Stat(filepath.Join(ctx.root, conf.GlobalConfig.Paths.DefaultInDir, "file"))
 					So(err, ShouldBeNil)
 				})
 			})
@@ -576,7 +577,7 @@ func TestStreamMove(t *testing.T) {
 			IsServer:   false,
 			AgentID:    ctx.partner.ID,
 			AccountID:  ctx.remoteAccount.ID,
-			LocalPath:  filepath.Join(ctx.root, ctx.db.Conf.Paths.DefaultOutDir, "file"),
+			LocalPath:  filepath.Join(ctx.root, conf.GlobalConfig.Paths.DefaultOutDir, "file"),
 			RemotePath: "/remote/file",
 			RuleID:     ctx.send.ID,
 		}
@@ -587,10 +588,10 @@ func TestStreamMove(t *testing.T) {
 			Rule:          ctx.send,
 			RemoteAgent:   ctx.partner,
 			RemoteAccount: ctx.remoteAccount,
-			Paths:         &ctx.db.Conf.Paths,
+			Paths:         &conf.GlobalConfig.Paths,
 		}
 
-		path := filepath.Join(ctx.root, ctx.db.Conf.Paths.DefaultOutDir, "file")
+		path := filepath.Join(ctx.root, conf.GlobalConfig.Paths.DefaultOutDir, "file")
 		So(ioutil.WriteFile(path, []byte("file content"), 0o700), ShouldBeNil)
 		Reset(func() { _ = os.Remove(path) })
 

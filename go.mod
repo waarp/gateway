@@ -22,6 +22,8 @@ require (
 	xorm.io/xorm v1.1.2
 )
 
+require golang.org/x/time v0.0.0-20211116232009-f0f3c7e86c11
+
 require (
 	github.com/golang/snappy v0.0.0-20180518054509-2e65f85255db // indirect
 	github.com/gopherjs/gopherjs v0.0.0-20181017120253-0766667cb4d1 // indirect

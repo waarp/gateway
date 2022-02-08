@@ -11,6 +11,7 @@ import (
 	"github.com/pkg/sftp"
 	"golang.org/x/crypto/ssh"
 
+	"code.waarp.fr/apps/gateway/gateway/pkg/conf"
 	"code.waarp.fr/apps/gateway/gateway/pkg/model/config"
 	"code.waarp.fr/apps/gateway/gateway/pkg/model/types"
 	"code.waarp.fr/apps/gateway/gateway/pkg/pipeline"
@@ -26,8 +27,7 @@ func init() {
 type client struct {
 	pip *pipeline.Pipeline
 
-	sshConf *ssh.ClientConfig
-
+	sshConf     *ssh.ClientConfig
 	sshSession  *ssh.Client
 	sftpSession *sftp.Client
 	remoteFile  *sftp.File
@@ -37,15 +37,19 @@ type client struct {
 // local file, and signal channel. An error is returned if the client
 // configuration is incorrect.
 func NewClient(pip *pipeline.Pipeline) (pipeline.Client, *types.TransferError) {
-	var conf config.SftpProtoConfig
-	if err := json.Unmarshal(pip.TransCtx.RemoteAgent.ProtoConfig, &conf); err != nil {
+	return newClient(pip)
+}
+
+func newClient(pip *pipeline.Pipeline) (*client, *types.TransferError) {
+	var protoConf config.SftpProtoConfig
+	if err := json.Unmarshal(pip.TransCtx.RemoteAgent.ProtoConfig, &protoConf); err != nil {
 		pip.Logger.Errorf("Failed to parse SFTP partner protocol configuration: %s", err)
 
 		return nil, types.NewTransferError(types.TeInternal,
 			"failed to parse SFTP partner protocol configuration")
 	}
 
-	sshConf, err := getSSHClientConfig(pip.TransCtx, &conf)
+	sshConf, err := getSSHClientConfig(pip.TransCtx, &protoConf)
 	if err != nil {
 		pip.Logger.Errorf("Failed to make SFTP client configuration: %s", err)
 
@@ -58,17 +62,23 @@ func NewClient(pip *pipeline.Pipeline) (pipeline.Client, *types.TransferError) {
 	}, nil
 }
 
-func (c *client) Request() *types.TransferError {
-	var err error
+func (c *client) Request() (tErr *types.TransferError) {
 	defer func() {
-		if err != nil {
+		if tErr != nil {
 			if cErr := c.EndTransfer(); cErr != nil {
 				c.pip.Logger.Warningf("Failed to end SFTP transfer: %v", cErr)
 			}
 		}
 	}()
 
-	c.sshSession, err = ssh.Dial("tcp", c.pip.TransCtx.RemoteAgent.Address, c.sshConf)
+	addr, err := conf.GetRealAddress(c.pip.TransCtx.RemoteAgent.Address)
+	if err != nil {
+		c.pip.Logger.Errorf("Failed to parse SFTP partner address: %s", err)
+
+		return c.fromSFTPErr(err, types.TeInternal)
+	}
+
+	c.sshSession, err = ssh.Dial("tcp", addr, c.sshConf)
 	if err != nil {
 		c.pip.Logger.Errorf("Failed to connect to SFTP host: %s", err)
 

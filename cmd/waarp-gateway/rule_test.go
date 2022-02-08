@@ -217,8 +217,8 @@ func TestAddRule(t *testing.T) {
 				args := []string{
 					"--name", "new_rule", "--comment", "new_rule comment",
 					"--direction", "receive", "--path", "new/rule/path",
-					"--local-dir", "new_rule/local",
-					"--remote-dir", "new_rule/remote",
+					"--local-dir", "new/rule/local",
+					"--remote-dir", "new/rule/remote",
 					"--tmp-dir", "new_rule/tmp",
 					"--pre", `{"type":"COPY","args":{"path":"/path/to/copy"}}`,
 					"--pre", `{"type":"EXEC","args":{"path":"/path/to/script","args":"{}","delay":"0"}}`,
@@ -249,8 +249,8 @@ func TestAddRule(t *testing.T) {
 							Comment:        "new_rule comment",
 							IsSend:         false,
 							Path:           "new/rule/path",
-							LocalDir:       utils.ToOSPath("new_rule/local"),
-							RemoteDir:      "new_rule/remote",
+							LocalDir:       utils.ToOSPath("new/rule/local"),
+							RemoteDir:      "new/rule/remote",
 							TmpLocalRcvDir: utils.ToOSPath("new_rule/tmp"),
 						}
 						So(rules[0], ShouldResemble, rule)

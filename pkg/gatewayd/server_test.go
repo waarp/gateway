@@ -38,32 +38,25 @@ func testSetup(c C) (*WG, *model.LocalAgent, *model.LocalAgent) {
 	s2 := addServ("serv2")
 
 	root := testhelpers.TempDir(c, "start_services")
-	config := &conf.ServerConfig{
-		GatewayName: db.Conf.GatewayName,
-		Paths: conf.PathsConfig{
-			GatewayHome:   root,
-			DefaultInDir:  filepath.Join(root, "in"),
-			DefaultOutDir: filepath.Join(root, "out"),
-			DefaultTmpDir: filepath.Join(root, "tmp"),
-		},
-		Log: conf.LogConfig{
-			Level: "WARNING",
-			LogTo: "stdout",
-		},
-		Admin: conf.AdminConfig{
-			Host: "localhost",
-			Port: testhelpers.GetFreePort(c),
-		},
-		Database: db.Conf.Database,
-		Controller: conf.ControllerConfig{
-			Delay: time.Minute,
-		},
+	conf.GlobalConfig.Paths = conf.PathsConfig{
+		GatewayHome:   root,
+		DefaultInDir:  filepath.Join(root, "in"),
+		DefaultOutDir: filepath.Join(root, "out"),
+		DefaultTmpDir: filepath.Join(root, "tmp"),
+	}
+	conf.GlobalConfig.Log = conf.LogConfig{
+		Level: "WARNING",
+		LogTo: "stdout",
+	}
+	conf.GlobalConfig.Admin = conf.AdminConfig{
+		Host: "localhost",
+		Port: testhelpers.GetFreePort(c),
+	}
+	conf.GlobalConfig.Controller = conf.ControllerConfig{
+		Delay: time.Minute,
 	}
 
-	return &WG{
-		Logger: log.NewLogger("wg"),
-		Conf:   config,
-	}, s1, s2
+	return &WG{Logger: log.NewLogger("wg")}, s1, s2
 }
 
 func checkState(wg *WG, code service.StateCode, s1, s2 *model.LocalAgent) {

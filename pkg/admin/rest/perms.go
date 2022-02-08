@@ -6,6 +6,7 @@ import (
 	"github.com/gorilla/mux"
 
 	"code.waarp.fr/apps/gateway/gateway/pkg/admin/rest/api"
+	"code.waarp.fr/apps/gateway/gateway/pkg/conf"
 	"code.waarp.fr/apps/gateway/gateway/pkg/database"
 	"code.waarp.fr/apps/gateway/gateway/pkg/log"
 	"code.waarp.fr/apps/gateway/gateway/pkg/model"
@@ -15,6 +16,7 @@ func invalidMode(mode string) error {
 	return badRequest("invalid permission mode '%s'", mode)
 }
 
+//nolint:gomnd // too specific
 func permToMask(old *model.PermsMask, perm string, off int) error {
 	if len(perm) == 0 {
 		return nil
@@ -24,7 +26,7 @@ func permToMask(old *model.PermsMask, perm string, off int) error {
 
 	ops := map[rune]func(){
 		'=': func() {
-			*old &^= 0b111 << (32 - 1 - off - 2) //nolint:gomnd // too specific
+			*old &^= 0b111 << (32 - 1 - off - 2)
 			process = func(o int) {
 				*old |= 1 << (32 - 1 - off - o)
 			}
@@ -48,7 +50,7 @@ func permToMask(old *model.PermsMask, perm string, off int) error {
 			process(1)
 		},
 		'd': func() {
-			process(2) //nolint:gomnd // too specific
+			process(2)
 		},
 	}
 
@@ -60,7 +62,7 @@ func permToMask(old *model.PermsMask, perm string, off int) error {
 		}
 
 		if process == nil {
-			*old &^= 0b111 << (32 - 1 - off - 2) //nolint:gomnd // too specific
+			*old &^= 0b111 << (32 - 1 - off - 2)
 			process = func(o int) {
 				*old |= 1 << (32 - 1 - off - o)
 			}
@@ -103,6 +105,10 @@ func permsToMask(old model.PermsMask, perms *api.Perms) (model.PermsMask, error)
 		return 0, err
 	}
 
+	if err := permToMask(&old, perms.Administration, 15); err != nil { //nolint:gomnd // too specific
+		return 0, err
+	}
+
 	return old, nil
 }
 
@@ -125,16 +131,18 @@ func maskToStr(m model.PermsMask, s int) string {
 func maskToPerms(m model.PermsMask) *api.Perms {
 	//nolint:gomnd // too specific
 	return &api.Perms{
-		Transfers: maskToStr(m, 0),
-		Servers:   maskToStr(m, 3),
-		Partners:  maskToStr(m, 6),
-		Rules:     maskToStr(m, 9),
-		Users:     maskToStr(m, 12),
+		Transfers:      maskToStr(m, 0),
+		Servers:        maskToStr(m, 3),
+		Partners:       maskToStr(m, 6),
+		Rules:          maskToStr(m, 9),
+		Users:          maskToStr(m, 12),
+		Administration: maskToStr(m, 15),
 	}
 }
 
 type (
 	handler        func(*log.Logger, *database.DB) http.HandlerFunc
+	handlerNoDB    func(*log.Logger) http.HandlerFunc
 	handlerFactory func(string, handler, model.PermsMask, ...string)
 )
 
@@ -150,7 +158,7 @@ func makeHandlerFactory(logger *log.Logger, db *database.DB, router *mux.Router)
 			}
 
 			var user model.User
-			if err := db.Get(&user, "username=? AND owner=?", login, database.Owner).
+			if err := db.Get(&user, "username=? AND owner=?", login, conf.GlobalConfig.GatewayName).
 				Run(); err != nil {
 				logger.Errorf("Database error: %s", err)
 				http.Error(w, "internal database error", http.StatusInternalServerError)
@@ -172,4 +180,10 @@ func makeHandlerFactory(logger *log.Logger, db *database.DB, router *mux.Router)
 
 		router.HandleFunc(path, auth).Methods(methods...)
 	}
+}
+
+func (f handlerFactory) noDB(path string, handle handlerNoDB, perm model.PermsMask, methods ...string) {
+	f(path, func(logger *log.Logger, _ *database.DB) http.HandlerFunc {
+		return handle(logger)
+	}, perm, methods...)
 }

@@ -43,15 +43,10 @@ LogTo stdout
 
 		Convey("Given there are no configuration file", func() {
 			Convey("When the configuration is loaded", func() {
-				c, err := LoadServerConfig(userConf)
+				_, err := LoadServerConfig(userConf)
 
-				Convey("Then there are no file not found error", func() {
-					So(err, ShouldBeNil)
-				})
-
-				Convey("Then the default configuration is used", func() {
-					So(c.Log.LogTo, ShouldEqual, "stdout")
-					So(c.Admin.Host, ShouldEqual, "localhost")
+				Convey("Then it should return a file not found error", func() {
+					So(err, ShouldBeError, ErrNoConfigFile)
 				})
 			})
 		})
@@ -63,10 +58,7 @@ LogTo stdout
 
 				Convey("When the configuration is loaded", func() {
 					c, err := LoadServerConfig(userConf)
-
-					Convey("Then there are no file not found error", func() {
-						So(err, ShouldBeNil)
-					})
+					So(err, ShouldBeNil)
 
 					Convey("Then it is parsed", func() {
 						So(c.Log.LogTo, ShouldEqual, "stdout")
@@ -101,10 +93,7 @@ LogTo stdout
 
 			Convey("When the configuration is loaded", func() {
 				c, err := LoadServerConfig(userConf)
-
-				Convey("Then there are no file not found error", func() {
-					So(err, ShouldBeNil)
-				})
+				So(err, ShouldBeNil)
 
 				Convey("Then it is parsed", func() {
 					So(c.Log.LogTo, ShouldEqual, "stdout")
@@ -125,10 +114,7 @@ LogTo stdout
 
 			Convey("When the configuration is loaded", func() {
 				c, err := LoadServerConfig(userConf)
-
-				Convey("Then there are no file not found error", func() {
-					So(err, ShouldBeNil)
-				})
+				So(err, ShouldBeNil)
 
 				Convey("Then only the one in the same directory is parsed", func() {
 					So(c.Log.LogTo, ShouldEqual, "stdout")
@@ -152,10 +138,7 @@ LogTo stdout
 			Convey("Given no other configuration files exist", func() {
 				Convey("When the configuration is loaded", func() {
 					c, err := LoadServerConfig(userConf)
-
-					Convey("Then there are no file not found error", func() {
-						So(err, ShouldBeNil)
-					})
+					So(err, ShouldBeNil)
 
 					Convey("Then it is parsed", func() {
 						So(c.Log.LogTo, ShouldEqual, "stdout")
@@ -174,10 +157,7 @@ LogTo stdout
 
 				Convey("When the configuration is loaded", func() {
 					c, err := LoadServerConfig(userConf)
-
-					Convey("Then there are no file not found error", func() {
-						So(err, ShouldBeNil)
-					})
+					So(err, ShouldBeNil)
 
 					Convey("Then it is parsed", func() {
 						So(c.Log.LogTo, ShouldEqual, "stdout")

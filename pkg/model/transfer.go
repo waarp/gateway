@@ -5,6 +5,7 @@ import (
 	"path"
 	"time"
 
+	"code.waarp.fr/apps/gateway/gateway/pkg/conf"
 	"code.waarp.fr/apps/gateway/gateway/pkg/database"
 	"code.waarp.fr/apps/gateway/gateway/pkg/log"
 	"code.waarp.fr/apps/gateway/gateway/pkg/model/types"
@@ -182,7 +183,7 @@ func (t *Transfer) checkMandatoryValues() database.Error {
 // BeforeWrite checks if the new `Transfer` entry is valid and can be
 // inserted in the database.
 func (t *Transfer) BeforeWrite(db database.ReadAccess) database.Error {
-	t.Owner = database.Owner
+	t.Owner = conf.GlobalConfig.GatewayName
 
 	if err := t.checkMandatoryValues(); err != nil {
 		return err

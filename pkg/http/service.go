@@ -94,33 +94,46 @@ func (h *httpService) Start() error {
 }
 
 func (h *httpService) Stop(ctx context.Context) error {
-	h.logger.Info("Shutdown command received...")
-
 	if state, _ := h.state.Get(); state != service.Running {
-		h.logger.Info("Cannot stop because the server is not running")
-
 		return nil
 	}
 
+	h.logger.Info("Shutdown command received...")
 	h.state.Set(service.ShuttingDown, "")
-
 	close(h.shutdown)
 
-	if err := h.running.InterruptAll(ctx); err != nil {
-		h.logger.Error("Failed to interrupt R66 transfers, forcing exit")
+	if err := h.stop(ctx); err != nil {
+		h.logger.Warningf("Forcing service shutdown...")
+		_ = h.serv.Close() //nolint:errcheck //error is irrelevant at this point
+		h.state.Set(service.Error, err.Error())
 
-		return fmt.Errorf("could not halt service gracefully: %w", err)
+		h.logger.Debug("Service was shut down forcefully.")
+
+		return err
+	}
+
+	h.state.Set(service.Offline, "")
+	h.logger.Info("HTTP server shutdown successful")
+
+	return nil
+}
+
+func (h *httpService) stop(ctx context.Context) error {
+	h.logger.Debug("Interrupting transfers...")
+
+	if err := h.running.InterruptAll(ctx); err != nil {
+		h.logger.Warningf("Failed to interrupt R66 transfers: %s", err)
+
+		return fmt.Errorf("could not halt the service gracefully: %w", err)
 	}
 
 	h.logger.Debug("Closing listener...")
 
 	if err := h.serv.Shutdown(ctx); err != nil {
-		h.logger.Warningf("Error while closing HTTP listener: %v", err)
-		_ = h.serv.Close() //nolint:errcheck //error is irrelevant at this point
-	}
+		h.logger.Warningf("Error while closing HTTP listener: %s", err)
 
-	h.state.Set(service.Offline, "")
-	h.logger.Info("HTTP server shutdown successful")
+		return fmt.Errorf("failed to stop the HTTP listener: %w", err)
+	}
 
 	return nil
 }

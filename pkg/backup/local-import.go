@@ -6,6 +6,7 @@ import (
 	"code.waarp.fr/lib/r66"
 
 	"code.waarp.fr/apps/gateway/gateway/pkg/backup/file"
+	"code.waarp.fr/apps/gateway/gateway/pkg/conf"
 	"code.waarp.fr/apps/gateway/gateway/pkg/database"
 	"code.waarp.fr/apps/gateway/gateway/pkg/log"
 	"code.waarp.fr/apps/gateway/gateway/pkg/model"
@@ -21,7 +22,7 @@ func importLocalAgents(logger *log.Logger, db database.Access, list []file.Local
 
 		// Check if agent exists
 		exists := true
-		err := db.Get(&agent, "name=? AND owner=?", src.Name, database.Owner).Run()
+		err := db.Get(&agent, "name=? AND owner=?", src.Name, conf.GlobalConfig.GatewayName).Run()
 
 		if database.IsNotFound(err) {
 			exists = false

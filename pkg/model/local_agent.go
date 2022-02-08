@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"net"
 
+	"code.waarp.fr/apps/gateway/gateway/pkg/conf"
 	"code.waarp.fr/apps/gateway/gateway/pkg/database"
 	"code.waarp.fr/apps/gateway/gateway/pkg/model/config"
 	"code.waarp.fr/apps/gateway/gateway/pkg/tk/service"
@@ -69,17 +70,17 @@ func (l *LocalAgent) GetID() uint64 {
 }
 
 func (l *LocalAgent) validateProtoConfig() error {
-	conf, err := config.GetProtoConfig(l.Protocol, l.ProtoConfig)
+	protoConf, err := config.GetProtoConfig(l.Protocol, l.ProtoConfig)
 	if err != nil {
 		return fmt.Errorf("cannot parse protocol config for server %q: %w", l.Name, err)
 	}
 
-	if err2 := conf.ValidServer(); err2 != nil {
+	if err2 := protoConf.ValidServer(); err2 != nil {
 		return fmt.Errorf("the protocol configuration for server %q is not valid: %w",
 			l.Name, err2)
 	}
 
-	l.ProtoConfig, err = json.Marshal(conf)
+	l.ProtoConfig, err = json.Marshal(protoConf)
 
 	if err != nil {
 		return fmt.Errorf("cannot marshal the protocol config for server %q to JSON: %w",
@@ -120,7 +121,7 @@ func (l *LocalAgent) makePaths() {
 // BeforeWrite is called before inserting a new `LocalAgent` entry in the
 // database. It checks whether the new entry is valid or not.
 func (l *LocalAgent) BeforeWrite(db database.ReadAccess) database.Error {
-	l.Owner = database.Owner
+	l.Owner = conf.GlobalConfig.GatewayName
 	l.makePaths()
 
 	if l.Name == "" {

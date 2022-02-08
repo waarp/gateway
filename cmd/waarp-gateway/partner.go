@@ -129,9 +129,9 @@ type partnerDelete struct {
 }
 
 func (p *partnerDelete) Execute([]string) error {
-	uri := path.Join("/api/partners", p.Args.Name)
+	addr.Path = path.Join("/api/partners", p.Args.Name)
 
-	if err := remove(uri); err != nil {
+	if err := remove(); err != nil {
 		return err
 	}
 

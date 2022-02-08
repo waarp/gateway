@@ -66,7 +66,7 @@ func initTestData(c convey.C) *testData {
 	db := database.TestDatabase(c, "ERROR")
 	home := testhelpers.TempDir(c, "transfer_test")
 	paths := makePaths(c, home)
-	db.Conf.Paths = *paths
+	conf.GlobalConfig.Paths = *paths
 	tasksChecker := taskstest.InitTaskChecker()
 	model.ValidTasks[taskstest.TaskOK] = &taskstest.TestTask{TaskChecker: tasksChecker}
 	model.ValidTasks[taskstest.TaskErr] = &taskstest.TestTaskError{TaskChecker: tasksChecker}

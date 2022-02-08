@@ -33,8 +33,12 @@ type client struct {
 
 // NewClient creates and returns a new r66 client using the given transfer context.
 func NewClient(pip *pipeline.Pipeline) (pipeline.Client, *types.TransferError) {
-	var conf config.R66ProtoConfig
-	if err := json.Unmarshal(pip.TransCtx.RemoteAgent.ProtoConfig, &conf); err != nil {
+	return newClient(pip)
+}
+
+func newClient(pip *pipeline.Pipeline) (*client, *types.TransferError) {
+	var protoConfig config.R66ProtoConfig
+	if err := json.Unmarshal(pip.TransCtx.RemoteAgent.ProtoConfig, &protoConfig); err != nil {
 		pip.Logger.Errorf("Failed to parse R66 partner proto config: %s", err)
 
 		return nil, types.NewTransferError(types.TeInternal, "failed to parse R66 partner proto config")
@@ -42,7 +46,7 @@ func NewClient(pip *pipeline.Pipeline) (pipeline.Client, *types.TransferError) {
 
 	var tlsConf *tls.Config
 
-	if conf.IsTLS {
+	if protoConfig.IsTLS {
 		var err error
 
 		tlsConf, err = internal.MakeClientTLSConfig(pip.TransCtx)
@@ -57,7 +61,7 @@ func NewClient(pip *pipeline.Pipeline) (pipeline.Client, *types.TransferError) {
 
 	return &client{
 		pip:       pip,
-		conf:      conf,
+		conf:      protoConfig,
 		tlsConfig: tlsConf,
 		ctx:       ctx,
 		cancel:    cancel,

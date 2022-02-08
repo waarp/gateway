@@ -4,6 +4,7 @@ import (
 	"path"
 	"time"
 
+	"code.waarp.fr/apps/gateway/gateway/pkg/conf"
 	"code.waarp.fr/apps/gateway/gateway/pkg/database"
 	"code.waarp.fr/apps/gateway/gateway/pkg/model/config"
 	"code.waarp.fr/apps/gateway/gateway/pkg/model/types"
@@ -56,7 +57,7 @@ func (h *HistoryEntry) GetID() uint64 {
 // inserted in the database.
 //nolint:funlen,gocyclo,cyclop // validation can be long...
 func (h *HistoryEntry) BeforeWrite(db database.ReadAccess) database.Error {
-	h.Owner = database.Owner
+	h.Owner = conf.GlobalConfig.GatewayName
 
 	if h.Owner == "" {
 		return database.NewValidationError("the transfer's owner cannot be empty")

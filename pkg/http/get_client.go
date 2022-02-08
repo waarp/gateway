@@ -7,6 +7,7 @@ import (
 	"net/http"
 	"path"
 
+	"code.waarp.fr/apps/gateway/gateway/pkg/conf"
 	"code.waarp.fr/apps/gateway/gateway/pkg/http/httpconst"
 	"code.waarp.fr/apps/gateway/gateway/pkg/model/types"
 	"code.waarp.fr/apps/gateway/gateway/pkg/pipeline"
@@ -29,7 +30,14 @@ func (g *getClient) Request() *types.TransferError {
 		scheme = "https://"
 	}
 
-	url := scheme + path.Join(g.pip.TransCtx.RemoteAgent.Address, g.pip.TransCtx.Transfer.RemotePath)
+	addr, err := conf.GetRealAddress(g.pip.TransCtx.RemoteAgent.Address)
+	if err != nil {
+		g.pip.Logger.Errorf("Failed to retrieve HTTP address: %s", err)
+
+		return types.NewTransferError(types.TeInternal, "failed to retrieve HTTP address")
+	}
+
+	url := scheme + path.Join(addr, g.pip.TransCtx.Transfer.RemotePath)
 
 	req, err := http.NewRequestWithContext(g.ctx, http.MethodGet, url, nil)
 	if err != nil {

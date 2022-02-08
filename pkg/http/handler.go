@@ -258,6 +258,8 @@ func (h *httpHandler) handle(isSend bool) {
 	} else {
 		runUpload(h.req, h.resp, h.running, pip)
 	}
+
+	h.logger.Debugf("File transfer done")
 }
 
 func (h *httpHandler) sendError(status int, code types.TransferErrorCode, msg string) {

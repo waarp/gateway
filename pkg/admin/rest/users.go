@@ -7,6 +7,7 @@ import (
 	"github.com/gorilla/mux"
 
 	"code.waarp.fr/apps/gateway/gateway/pkg/admin/rest/api"
+	"code.waarp.fr/apps/gateway/gateway/pkg/conf"
 	"code.waarp.fr/apps/gateway/gateway/pkg/database"
 	"code.waarp.fr/apps/gateway/gateway/pkg/log"
 	"code.waarp.fr/apps/gateway/gateway/pkg/model"
@@ -34,7 +35,7 @@ func userToDB(user *api.InUser, old *model.User) (*model.User, error) {
 
 	return &model.User{
 		ID:           old.ID,
-		Owner:        database.Owner,
+		Owner:        conf.GlobalConfig.GatewayName,
 		Username:     str(user.Username),
 		PasswordHash: hash,
 		Permissions:  mask,
@@ -65,7 +66,7 @@ func getUsr(r *http.Request, db *database.DB) (*model.User, error) {
 	}
 
 	var user model.User
-	if err := db.Get(&user, "username=? AND owner=?", username, database.Owner).
+	if err := db.Get(&user, "username=? AND owner=?", username, conf.GlobalConfig.GatewayName).
 		Run(); err != nil {
 		if database.IsNotFound(err) {
 			return nil, notFound("user '%s' not found", username)
@@ -103,7 +104,8 @@ func listUsers(logger *log.Logger, db *database.DB) http.HandlerFunc {
 			return
 		}
 
-		if err := query.Where("owner=?", database.Owner).Run(); handleError(w, logger, err) {
+		if err := query.Where("owner=?", conf.GlobalConfig.GatewayName).
+			Run(); handleError(w, logger, err) {
 			return
 		}
 

@@ -8,6 +8,7 @@ import (
 	"golang.org/x/crypto/bcrypt"
 
 	. "code.waarp.fr/apps/gateway/gateway/pkg/backup/file"
+	"code.waarp.fr/apps/gateway/gateway/pkg/conf"
 	"code.waarp.fr/apps/gateway/gateway/pkg/database"
 	"code.waarp.fr/apps/gateway/gateway/pkg/model"
 	"code.waarp.fr/apps/gateway/gateway/pkg/tk/utils/testhelpers"
@@ -30,10 +31,10 @@ func TestImportLocalAgents(t *testing.T) {
 				Protocol: testProtocol,
 				Address:  "localhost:9999",
 			}
-			owner := database.Owner
-			database.Owner = "toto"
+			owner := conf.GlobalConfig.GatewayName
+			conf.GlobalConfig.GatewayName = "toto"
 			So(db.Insert(agent2).Run(), ShouldBeNil)
-			database.Owner = owner
+			conf.GlobalConfig.GatewayName = owner
 
 			So(db.Insert(agent).Run(), ShouldBeNil)
 
@@ -65,7 +66,7 @@ func TestImportLocalAgents(t *testing.T) {
 						Convey("Then the database should contains the local agents", func() {
 							var dbAgent model.LocalAgent
 							So(db.Get(&dbAgent, "name=? AND owner=?", agent1.Name,
-								database.Owner).Run(), ShouldBeNil)
+								conf.GlobalConfig.GatewayName).Run(), ShouldBeNil)
 
 							Convey("Then the data shuld correspond to the "+
 								"one imported", func() {
@@ -116,7 +117,7 @@ func TestImportLocalAgents(t *testing.T) {
 					Convey("Then the database should contains the local agents", func() {
 						var dbAgent model.LocalAgent
 						So(db.Get(&dbAgent, "name=? AND owner=?", agent1.Name,
-							database.Owner).Run(), ShouldBeNil)
+							conf.GlobalConfig.GatewayName).Run(), ShouldBeNil)
 
 						Convey("Then the data should correspond to the "+
 							"one imported", func() {

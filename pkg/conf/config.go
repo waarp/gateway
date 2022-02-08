@@ -5,6 +5,7 @@ package conf
 import (
 	"errors"
 	"fmt"
+	"io/fs"
 	"os"
 	"path/filepath"
 	"time"
@@ -13,7 +14,12 @@ import (
 	"code.waarp.fr/apps/gateway/gateway/pkg/tk/config"
 )
 
-// ServerConfig holds the server configuration options.
+// GlobalConfig is a global instance of ServerConfig containing the
+// configuration of the gateway instance.
+//nolint:gochecknoglobals //global var is needed here for simplicity
+var GlobalConfig ServerConfig
+
+// ServerConfig holds the server configuration options
 //nolint:lll // cannot split struct tags
 type ServerConfig struct {
 	GatewayName string           `ini-name:"GatewayName" default:"waarp-gateway" description:"The name given to identify this gateway instance. If the the database is shared between multiple gateways, this name MUST be unique across these gateways."`
@@ -113,66 +119,77 @@ func normalizePaths(configFile *ServerConfig, logger *log.Logger) error {
 	return nil
 }
 
-func InitServerConfig(userConfig string) (*ServerConfig, error) {
+var ErrNoConfigFile = errors.New("no config file found")
+
+// ParseServerConfig parses and returns the ServerConfig contained in the given
+// user config file. If no user file is given, the file will be taken from the
+// OS's default config file locations.
+func ParseServerConfig(userConfig string) (*ServerConfig, error) {
 	c := &ServerConfig{}
 
 	p, err := config.NewParser(c)
 	if err != nil {
-		return nil, fmt.Errorf("cannot initialize a parser for the server configuration: %w", err)
+		return nil, fmt.Errorf("failed to initialize the config parser: %w", err)
 	}
 
 	if userConfig != "" {
 		if err := p.ParseFile(userConfig); err != nil {
-			return nil, fmt.Errorf("cannot parse configuration file %q: %w", userConfig, err)
+			return nil, fmt.Errorf("failed to parse the config file: %w", err)
 		}
 	} else {
-		if err := loadDefaultConfig(p); err != nil {
-			return nil, err
+		for _, file := range getDefaultConfFiles() {
+			if err := p.ParseFile(file); err != nil {
+				if errors.Is(err, fs.ErrNotExist) {
+					continue
+				}
+
+				return nil, fmt.Errorf("failed to parse the config file: %w", err)
+			}
+
+			userConfig = file
+
+			break
+		}
+
+		if userConfig == "" {
+			return nil, ErrNoConfigFile
 		}
 	}
 
 	return c, nil
+}
+
+func loadServerConfig(userConfig string) (*ServerConfig, string, error) {
+	c, err := ParseServerConfig(userConfig)
+	if err != nil {
+		return nil, "", err
+	}
+
+	if err := log.InitBackend(c.Log.Level, c.Log.LogTo, c.Log.SyslogFacility); err != nil {
+		return nil, "", fmt.Errorf("failed to initialize log backend: %w", err)
+	}
+
+	logger := log.NewLogger("Config file")
+	if err := normalizePaths(c, logger); err != nil {
+		return nil, "", err
+	}
+
+	return c, userConfig, nil
 }
 
 // LoadServerConfig creates a configuration object.
 // It tries to read configuration files from common places to populate the
 // configuration object (paths are relative to cwd):
-// - gatewayd.ini,
-// - etc/gatewayd.ini,
+// - gatewayd.ini
+// - etc/gatewayd.ini
 // - /etc/waarp/gatewayd.ini.
 func LoadServerConfig(userConfig string) (*ServerConfig, error) {
-	c, err := InitServerConfig(userConfig)
+	c, _, err := loadServerConfig(userConfig)
 	if err != nil {
 		return nil, err
 	}
 
-	if err := log.InitBackend(c.Log.Level, c.Log.LogTo, c.Log.SyslogFacility); err != nil {
-		return nil, fmt.Errorf("failed to initialize log backend: %w", err)
-	}
-
-	logger := log.NewLogger("Config file")
-	if err := normalizePaths(c, logger); err != nil {
-		return nil, err
-	}
-
 	return c, nil
-}
-
-func loadDefaultConfig(p *config.Parser) error {
-	for _, file := range getDefaultConfFiles() {
-		err := p.ParseFile(file)
-		if err != nil {
-			if errors.Is(err, os.ErrNotExist) {
-				continue
-			}
-
-			return fmt.Errorf("cannot parse configuration file %q: %w", file, err)
-		}
-
-		break
-	}
-
-	return nil
 }
 
 // UpdateServerConfig updates a configuration file to a newer version of the
@@ -210,4 +227,45 @@ func CreateServerConfig(configFile string) error {
 	}
 
 	return nil
+}
+
+// LoadGatewayConfig loads the given configuration file, along with the local
+// configOverride file associated with the given node ID, and stores both in the global
+// GlobalConfig variable.
+func LoadGatewayConfig(configFile, nodeID string) error {
+	serverConfig, configPath, err := loadServerConfig(configFile)
+	if err != nil {
+		return err
+	}
+
+	if nodeID != "" {
+		LocalOverrides, err = loadOverride(configPath, nodeID)
+		if err != nil {
+			return err
+		}
+	}
+
+	GlobalConfig = *serverConfig
+
+	return nil
+}
+
+// UpdateGatewayConfig updates both the gateway configuration file, and the
+// settings configOverride file associated with the given node ID to their latest versions.
+func UpdateGatewayConfig(configFile, nodeID string) error {
+	if err := UpdateServerConfig(configFile); err != nil {
+		return err
+	}
+
+	return updateOverride(configFile, nodeID)
+}
+
+// CreateGatewayConfig creates a new configuration file at the given location,
+// along with a new settings configOverride file for the given node ID.
+func CreateGatewayConfig(configFile, nodeID string) error {
+	if err := CreateServerConfig(configFile); err != nil {
+		return err
+	}
+
+	return createOverride(configFile, nodeID)
 }

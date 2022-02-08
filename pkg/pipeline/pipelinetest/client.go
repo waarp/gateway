@@ -117,7 +117,7 @@ func makeClientConf(c convey.C, db *database.DB, port uint16, proto string,
 		Name:        "partner",
 		Protocol:    proto,
 		ProtoConfig: jsonPartConf,
-		Address:     fmt.Sprintf("localhost:%d", port),
+		Address:     fmt.Sprintf("127.0.0.1:%d", port),
 	}
 	c.So(db.Insert(partner).Run(), convey.ShouldBeNil)
 
@@ -187,5 +187,5 @@ func (cc *ClientContext) CheckTransferOK(c convey.C) {
 	var actual model.HistoryEntry
 
 	c.So(cc.DB.Get(&actual, "id=?", cc.ClientTrans.ID).Run(), convey.ShouldBeNil)
-	cc.checkClientTransferOK(c, cc.transData, cc.DB, &actual)
+	cc.checkClientTransferOK(c, cc.transData, &actual)
 }

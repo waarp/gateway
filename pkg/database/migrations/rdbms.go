@@ -28,7 +28,7 @@ const (
 
 type dbInfo struct {
 	driver  string
-	makeDSN func(*conf.DatabaseConfig) string
+	makeDSN func() string
 }
 
 //nolint:gochecknoglobals // global var is used by design
@@ -49,7 +49,9 @@ var rdbms = map[string]dbInfo{
 
 // SqliteDSN takes a database configuration and returns the corresponding
 // SQLite DSN necessary to connect to the database.
-func SqliteDSN(config *conf.DatabaseConfig) string {
+func SqliteDSN() string {
+	config := &conf.GlobalConfig.Database
+
 	var user, pass string
 	if config.User != "" {
 		user = fmt.Sprintf("&_auth_user=%s", config.User)
@@ -65,7 +67,9 @@ func SqliteDSN(config *conf.DatabaseConfig) string {
 
 // PostgresDSN takes a database configuration and returns the corresponding
 // PostgreSQL DSN necessary to connect to the database.
-func PostgresDSN(config *conf.DatabaseConfig) string {
+func PostgresDSN() string {
+	config := &conf.GlobalConfig.Database
+
 	dns := []string{}
 	if config.User != "" {
 		dns = append(dns, fmt.Sprintf("user='%s'", config.User))
@@ -102,7 +106,9 @@ func PostgresDSN(config *conf.DatabaseConfig) string {
 
 // MysqlDSN takes a database configuration and returns the corresponding MySQL
 // DSN necessary to connect to the database.
-func MysqlDSN(config *conf.DatabaseConfig) string {
+func MysqlDSN() string {
+	config := &conf.GlobalConfig.Database
+
 	dsn := mysql.NewConfig()
 	dsn.Addr = config.Address
 	dsn.DBName = config.Name

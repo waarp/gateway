@@ -243,9 +243,9 @@ func (r *ruleDelete) Execute([]string) error {
 		return err
 	}
 
-	uri := path.Join("/api/rules", r.Args.Name, r.Args.Direction)
+	addr.Path = path.Join("/api/rules", r.Args.Name, r.Args.Direction)
 
-	if err := remove(uri); err != nil {
+	if err := remove(); err != nil {
 		return err
 	}
 

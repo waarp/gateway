@@ -22,13 +22,13 @@ func init() {
 
 func TestStart(t *testing.T) {
 	Convey("Given an admin service", t, func() {
-		config := &conf.ServerConfig{}
-		config.Admin.Host = "localhost"
-		config.Admin.Port = 0
-		config.Admin.TLSCert = "../../test_data/rest_cert.pem"
-		config.Admin.TLSKey = "../../test_data/rest_key.pem"
+		conf.GlobalConfig.Admin = conf.AdminConfig{
+			Host:    "localhost",
+			Port:    0,
+			TLSCert: "../../test_data/rest_cert.pem",
+			TLSKey:  "../../test_data/rest_key.pem",
+		}
 		server := &Server{
-			Conf:          config,
 			CoreServices:  map[string]service.Service{},
 			ProtoServices: map[string]service.ProtoService{},
 		}
@@ -67,10 +67,9 @@ func TestStart(t *testing.T) {
 		})
 
 		Convey("Given an incorrect host", func() {
-			config.Admin.Host = "invalid_host"
-			config.Admin.Port = 0
+			conf.GlobalConfig.Admin.Host = "invalid_host"
+			conf.GlobalConfig.Admin.Port = 0
 			rest := &Server{
-				Conf:          config,
 				CoreServices:  map[string]service.Service{},
 				ProtoServices: map[string]service.ProtoService{},
 			}
@@ -85,12 +84,11 @@ func TestStart(t *testing.T) {
 		})
 
 		Convey("Given an incorrect certificate", func() {
-			config.Admin.Host = "localhost"
-			config.Admin.Port = 0
-			config.Admin.TLSCert = "not_a_cert"
-			config.Admin.TLSKey = "not_a_key"
+			conf.GlobalConfig.Admin.Host = "localhost"
+			conf.GlobalConfig.Admin.Port = 0
+			conf.GlobalConfig.Admin.TLSCert = "not_a_cert"
+			conf.GlobalConfig.Admin.TLSKey = "not_a_key"
 			rest := &Server{
-				Conf:          config,
 				CoreServices:  map[string]service.Service{},
 				ProtoServices: map[string]service.ProtoService{},
 			}
@@ -108,11 +106,8 @@ func TestStart(t *testing.T) {
 
 func TestStop(t *testing.T) {
 	Convey("Given a running REST service", t, func() {
-		config := &conf.ServerConfig{}
-		config.Admin.Host = "localhost"
-		config.Admin.Port = 0
+		conf.GlobalConfig.Admin = conf.AdminConfig{Host: "localhost"}
 		rest := &Server{
-			Conf:          config,
 			CoreServices:  map[string]service.Service{},
 			ProtoServices: map[string]service.ProtoService{},
 		}

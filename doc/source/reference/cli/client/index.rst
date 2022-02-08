@@ -14,6 +14,7 @@ Client ``waarp-gateway``
 
    connection
    status
+   version
    user/index
    server/index
    account_local/index
@@ -22,4 +23,4 @@ Client ``waarp-gateway``
    rule/index
    transfer/index
    history/index
-   version
+   override/index

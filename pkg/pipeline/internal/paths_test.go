@@ -8,6 +8,7 @@ import (
 	. "github.com/smartystreets/goconvey/convey"
 	"golang.org/x/crypto/bcrypt"
 
+	"code.waarp.fr/apps/gateway/gateway/pkg/conf"
 	"code.waarp.fr/apps/gateway/gateway/pkg/database"
 	"code.waarp.fr/apps/gateway/gateway/pkg/log"
 	"code.waarp.fr/apps/gateway/gateway/pkg/model"
@@ -38,10 +39,10 @@ func TestPathBuilder(t *testing.T) {
 
 	Convey("Given a Gateway configuration", t, func(c C) {
 		db := database.TestDatabase(c, "ERROR")
-		db.Conf.Paths.GatewayHome = testhelpers.TempDir(c, "path_builder")
-		db.Conf.Paths.DefaultInDir = "gwIn"
-		db.Conf.Paths.DefaultOutDir = "gwOut"
-		db.Conf.Paths.DefaultTmpDir = "gwTmp"
+		conf.GlobalConfig.Paths.GatewayHome = testhelpers.TempDir(c, "path_builder")
+		conf.GlobalConfig.Paths.DefaultInDir = "gwIn"
+		conf.GlobalConfig.Paths.DefaultOutDir = "gwOut"
+		conf.GlobalConfig.Paths.DefaultTmpDir = "gwTmp"
 
 		server := &model.LocalAgent{
 			Name:          "server",
@@ -99,7 +100,7 @@ func TestPathBuilder(t *testing.T) {
 				serRoot, ruleLoc, ruleTmp string
 				expTmp                    string
 			}
-			gwRoot := db.Conf.Paths.GatewayHome
+			gwRoot := conf.GlobalConfig.Paths.GatewayHome
 			testCases := []testCase{
 				{"", "", "", filepath.Join(gwRoot, "gwTmp", file)},
 				{"serRoot", "", "", filepath.Join(gwRoot, "serRoot", "serTmp", file)},
@@ -161,7 +162,7 @@ func TestPathBuilder(t *testing.T) {
 				serRoot, ruleLoc string
 				expFinal         string
 			}
-			gwRoot := db.Conf.Paths.GatewayHome
+			gwRoot := conf.GlobalConfig.Paths.GatewayHome
 			testCases := []testCase{
 				{"", "", filepath.Join(gwRoot, "gwOut", file)},
 				{"serRoot", "", filepath.Join(gwRoot, "serRoot", "serOut", file)},

@@ -8,6 +8,7 @@ import (
 
 	. "github.com/smartystreets/goconvey/convey"
 
+	"code.waarp.fr/apps/gateway/gateway/pkg/conf"
 	"code.waarp.fr/apps/gateway/gateway/pkg/database"
 	"code.waarp.fr/apps/gateway/gateway/pkg/log"
 	"code.waarp.fr/apps/gateway/gateway/pkg/model/types"
@@ -65,7 +66,7 @@ func TestTransferBeforeWrite(t *testing.T) {
 					RemotePath:       "/remote/path",
 					Start:            time.Now(),
 					Status:           types.StatusPlanned,
-					Owner:            database.Owner,
+					Owner:            conf.GlobalConfig.GatewayName,
 				}
 
 				shouldFailWith := func(errDesc string, expErr error) {
@@ -141,7 +142,7 @@ func TestTransferBeforeWrite(t *testing.T) {
 
 				Convey("Given that an transfer with the same remoteID already exist", func() {
 					t2 := &Transfer{
-						Owner:            database.Owner,
+						Owner:            conf.GlobalConfig.GatewayName,
 						RemoteTransferID: trans.RemoteTransferID,
 						IsServer:         true,
 						RuleID:           rule.ID,
@@ -162,7 +163,7 @@ func TestTransferBeforeWrite(t *testing.T) {
 				Convey("Given that an history entry with the same remoteID already exist", func() {
 					t2 := &HistoryEntry{
 						ID:               10,
-						Owner:            database.Owner,
+						Owner:            conf.GlobalConfig.GatewayName,
 						RemoteTransferID: trans.RemoteTransferID,
 						Protocol:         testProtocol,
 						IsServer:         true,
@@ -261,7 +262,7 @@ func TestTransferToHistory(t *testing.T) {
 				RemotePath: "/test/remote/path",
 				Start:      time.Date(2021, 1, 1, 1, 0, 0, 0, time.Local),
 				Status:     types.StatusPlanned,
-				Owner:      database.Owner,
+				Owner:      conf.GlobalConfig.GatewayName,
 			}
 			So(db.Insert(&trans).Run(), ShouldBeNil)
 

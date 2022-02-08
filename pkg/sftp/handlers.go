@@ -10,6 +10,7 @@ import (
 
 	"github.com/pkg/sftp"
 
+	"code.waarp.fr/apps/gateway/gateway/pkg/conf"
 	"code.waarp.fr/apps/gateway/gateway/pkg/database"
 	"code.waarp.fr/apps/gateway/gateway/pkg/model"
 	"code.waarp.fr/apps/gateway/gateway/pkg/sftp/internal"
@@ -133,11 +134,12 @@ func (l *sshListener) getRealPath(acc *model.LocalAccount, dir string) (string, 
 		return "", err
 	}
 
+	confPaths := &conf.GlobalConfig.Paths
 	rest := strings.TrimPrefix(dir, rule.Path)
 	rest = strings.TrimPrefix(rest, "/")
 	realDir := utils.GetPath(rest, leaf(rule.LocalDir), leaf(l.Agent.SendDir),
-		branch(l.Agent.RootDir), leaf(l.DB.Conf.Paths.DefaultOutDir),
-		branch(l.DB.Conf.Paths.GatewayHome))
+		branch(l.Agent.RootDir), leaf(confPaths.DefaultOutDir),
+		branch(confPaths.GatewayHome))
 
 	return realDir, nil
 }

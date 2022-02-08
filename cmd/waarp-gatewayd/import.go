@@ -28,7 +28,7 @@ func makeLogConf(verbose []bool) conf.LogConfig {
 }
 
 func initImportExport(configFile string, verbose []bool) (*database.DB, *log.Logger, error) {
-	config, err := conf.InitServerConfig(configFile)
+	config, err := conf.ParseServerConfig(configFile)
 	if err != nil {
 		return nil, nil, fmt.Errorf("cannot load server config: %w", err)
 	}
@@ -39,7 +39,8 @@ func initImportExport(configFile string, verbose []bool) (*database.DB, *log.Log
 		return nil, nil, fmt.Errorf("cannot initialize log backend: %w", err2)
 	}
 
-	db := &database.DB{Conf: config}
+	conf.GlobalConfig = *config
+	db := &database.DB{}
 
 	err = db.Start()
 	if err != nil {

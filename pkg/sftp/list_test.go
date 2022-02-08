@@ -15,6 +15,7 @@ import (
 	. "github.com/smartystreets/goconvey/convey"
 	"golang.org/x/crypto/ssh"
 
+	"code.waarp.fr/apps/gateway/gateway/pkg/conf"
 	"code.waarp.fr/apps/gateway/gateway/pkg/database"
 	"code.waarp.fr/apps/gateway/gateway/pkg/log"
 	"code.waarp.fr/apps/gateway/gateway/pkg/model"
@@ -30,6 +31,7 @@ func TestSFTPList(t *testing.T) {
 	Convey("Given a SFTP server", t, func(c C) {
 		root := testhelpers.TempDir(c, "test_list_root")
 		db := database.TestDatabase(c, "ERROR")
+		conf.GlobalConfig.Paths.GatewayHome = root
 
 		Convey("Given an SFTP server", func() {
 			listener, err := net.Listen("tcp", "localhost:0")

@@ -3,7 +3,6 @@ package database
 import (
 	"xorm.io/xorm"
 
-	"code.waarp.fr/apps/gateway/gateway/pkg/conf"
 	"code.waarp.fr/apps/gateway/gateway/pkg/database/migrations"
 )
 
@@ -17,8 +16,8 @@ func init() {
 	supportedRBMS[PostgreSQL] = postgresinfo
 }
 
-func postgresinfo(config *conf.DatabaseConfig) (string, string, func(*xorm.Engine) error) {
-	return migrations.PostgresDriver, migrations.PostgresDSN(config), func(*xorm.Engine) error {
+func postgresinfo() (string, string, func(*xorm.Engine) error) {
+	return migrations.PostgresDriver, migrations.PostgresDSN(), func(*xorm.Engine) error {
 		return nil
 	}
 }

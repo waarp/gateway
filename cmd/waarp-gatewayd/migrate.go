@@ -63,7 +63,7 @@ func (cmd *migrateCommand) Execute([]string) error {
 }
 
 func (cmd *migrateCommand) getMigrationConf() (*conf.ServerConfig, *log.Logger, error) {
-	config, err := conf.InitServerConfig(string(cmd.ConfigFile))
+	config, err := conf.ParseServerConfig(string(cmd.ConfigFile))
 	if err != nil {
 		return nil, nil, fmt.Errorf("cannot load server config: %w", err)
 	}

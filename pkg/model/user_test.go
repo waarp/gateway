@@ -6,6 +6,7 @@ import (
 	. "github.com/smartystreets/goconvey/convey"
 	"golang.org/x/crypto/bcrypt"
 
+	"code.waarp.fr/apps/gateway/gateway/pkg/conf"
 	"code.waarp.fr/apps/gateway/gateway/pkg/database"
 )
 
@@ -85,7 +86,7 @@ func TestUsersBeforeWrite(t *testing.T) {
 func TestUsersBeforeDelete(t *testing.T) {
 	Convey("Given a database", t, func(c C) {
 		db := database.TestDatabase(c, "ERROR")
-		owner := database.Owner
+		owner := conf.GlobalConfig.GatewayName
 
 		Convey("Given the database contains 1 user for this gateway", func() {
 			mine := &User{
@@ -102,14 +103,14 @@ func TestUsersBeforeDelete(t *testing.T) {
 			So(db.Insert(mine2).Run(), ShouldBeNil)
 
 			// Change database ownership
-			database.Owner = "tata"
+			conf.GlobalConfig.GatewayName = "tata"
 			other := &User{
 				Username:     "old",
 				PasswordHash: hash("password_old"),
 			}
 			So(db.Insert(other).Run(), ShouldBeNil)
 			// Revert database ownership
-			database.Owner = owner
+			conf.GlobalConfig.GatewayName = owner
 
 			// Delete base admin
 			So(db.DeleteAll(&User{}).Where("username=?", "admin").Run(), ShouldBeNil)
@@ -167,22 +168,22 @@ func TestUserInit(t *testing.T) {
 			db := database.TestDatabaseNoInit(c, "ERROR")
 
 			// Add a user from another gateway
-			owner := database.Owner
-			database.Owner = "tata"
+			owner := conf.GlobalConfig.GatewayName
+			conf.GlobalConfig.GatewayName = "tata"
 			other := &User{
 				Username:     "other",
 				PasswordHash: hash("password_other"),
 				Permissions:  PermAll,
 			}
 			So(db.Insert(other).Run(), ShouldBeNil)
-			database.Owner = owner
+			conf.GlobalConfig.GatewayName = owner
 
 			Convey("When calling the user init function", func() {
 				So(init(db), ShouldBeNil)
 
 				Convey("Then it should have added the default admin user", func() {
 					var users Users
-					So(db.Select(&users).Where("owner=?", database.Owner).Run(), ShouldBeNil)
+					So(db.Select(&users).Where("owner=?", conf.GlobalConfig.GatewayName).Run(), ShouldBeNil)
 					So(users, ShouldHaveLength, 1)
 
 					So(users[0].Username, ShouldEqual, "admin")
@@ -209,7 +210,7 @@ func TestUserInit(t *testing.T) {
 
 				Convey("Then it should NOT have added the default admin user", func() {
 					var users Users
-					So(db.Select(&users).Where("owner=?", database.Owner).Run(), ShouldBeNil)
+					So(db.Select(&users).Where("owner=?", conf.GlobalConfig.GatewayName).Run(), ShouldBeNil)
 					So(users, ShouldHaveLength, 1)
 
 					So(users[0], ShouldResemble, *other)

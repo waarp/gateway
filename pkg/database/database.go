@@ -29,18 +29,12 @@ var (
 	// GCM is the Galois Counter Mode cipher used to encrypt external accounts passwords.
 	GCM cipher.AEAD
 
-	// Owner is the name of the gateway instance specified in the configuration file.
-	Owner string
-
 	errUnsuportedDB = errors.New("unsupported database")
 )
 
 // DB is the database service. It encapsulates a data connection and implements
 // Accessor.
 type DB struct {
-	// The gateway configuration
-	Conf *conf.ServerConfig
-
 	// The service Logger
 	logger *log.Logger
 	// The state of the database service
@@ -55,7 +49,7 @@ func (db *DB) loadAESKey() error {
 		return nil
 	}
 
-	filename := db.Conf.Database.AESPassphrase
+	filename := conf.GlobalConfig.Database.AESPassphrase
 	if _, err := os.Stat(utils.ToOSPath(filename)); os.IsNotExist(err) {
 		db.logger.Infof("Creating AES passphrase file at '%s'", filename)
 
@@ -92,26 +86,26 @@ func (db *DB) loadAESKey() error {
 // to open a connection to the database, along with the driver and an optional
 // initialisation function. The DSN varies depending on the options given
 // in the database configuration.
-func createConnectionInfo(c *conf.DatabaseConfig) (string, string, func(*xorm.Engine) error, error) {
-	rdbms := c.Type
+func (db *DB) createConnectionInfo() (string, string, func(*xorm.Engine) error, error) {
+	rdbms := conf.GlobalConfig.Database.Type
 
 	info, ok := supportedRBMS[rdbms]
 	if !ok {
 		return "", "", nil, fmt.Errorf("unknown database type '%s': %w", rdbms, errUnsuportedDB)
 	}
 
-	driver, dsn, f := info(c)
+	driver, dsn, f := info()
 
 	return driver, dsn, f, nil
 }
 
-type dbinfo func(*conf.DatabaseConfig) (string, string, func(*xorm.Engine) error)
+type dbinfo func() (string, string, func(*xorm.Engine) error)
 
 //nolint:gochecknoglobals // global var is used by design
 var supportedRBMS = map[string]dbinfo{}
 
 func (db *DB) initEngine() (*xorm.Engine, error) {
-	driver, dsn, init, err := createConnectionInfo(&db.Conf.Database)
+	driver, dsn, init, err := db.createConnectionInfo()
 	if err != nil {
 		db.logger.Criticalf("Database configuration invalid: %s", err)
 
@@ -163,7 +157,6 @@ func (db *DB) start(withInit bool) error {
 	}
 
 	db.state.Set(service.Starting, "")
-	Owner = db.Conf.GatewayName
 
 	if err := db.loadAESKey(); err != nil {
 		db.state.Set(service.Error, err.Error())
@@ -182,7 +175,6 @@ func (db *DB) start(withInit bool) error {
 	db.Standalone = &Standalone{
 		engine: engine,
 		logger: db.logger,
-		conf:   &db.Conf.Database,
 	}
 
 	if err1 := db.checkVersion(); err1 != nil {

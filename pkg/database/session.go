@@ -3,7 +3,6 @@ package database
 import (
 	"xorm.io/xorm"
 
-	"code.waarp.fr/apps/gateway/gateway/pkg/conf"
 	"code.waarp.fr/apps/gateway/gateway/pkg/log"
 )
 
@@ -12,11 +11,6 @@ import (
 type Session struct {
 	session *xorm.Session
 	logger  *log.Logger
-	conf    *conf.DatabaseConfig
-}
-
-func (s *Session) getType() string {
-	return s.conf.Type
 }
 
 func (s *Session) getUnderlying() xorm.Interface {

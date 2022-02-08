@@ -12,6 +12,7 @@ import (
 	. "github.com/smartystreets/goconvey/convey"
 
 	. "code.waarp.fr/apps/gateway/gateway/pkg/admin/rest/api"
+	"code.waarp.fr/apps/gateway/gateway/pkg/conf"
 	"code.waarp.fr/apps/gateway/gateway/pkg/database"
 	"code.waarp.fr/apps/gateway/gateway/pkg/log"
 	"code.waarp.fr/apps/gateway/gateway/pkg/model"
@@ -90,8 +91,8 @@ func TestListServers(t *testing.T) {
 			agent4 := *FromLocalAgent(&a4, &AuthorizedRules{})
 
 			// add a server from another gateway
-			owner := database.Owner
-			database.Owner = "foobar"
+			owner := conf.GlobalConfig.GatewayName
+			conf.GlobalConfig.GatewayName = "foobar"
 			a5 := model.LocalAgent{
 				Name:        "server5",
 				Protocol:    testProto1,
@@ -100,7 +101,7 @@ func TestListServers(t *testing.T) {
 				Address:     "localhost:5",
 			}
 			So(db.Insert(&a5).Run(), ShouldBeNil)
-			database.Owner = owner
+			conf.GlobalConfig.GatewayName = owner
 
 			Convey("Given a request with with no parameters", func() {
 				r, err := http.NewRequest(http.MethodGet, "", nil)
@@ -175,8 +176,8 @@ func TestGetServer(t *testing.T) {
 
 		Convey("Given a database with 1 server", func() {
 			// add a server from another gateway
-			owner := database.Owner
-			database.Owner = "foobar"
+			owner := conf.GlobalConfig.GatewayName
+			conf.GlobalConfig.GatewayName = "foobar"
 			other := model.LocalAgent{
 				Name:        "existing",
 				Protocol:    testProto1,
@@ -185,7 +186,7 @@ func TestGetServer(t *testing.T) {
 				Address:     "localhost:10",
 			}
 			So(db.Insert(&other).Run(), ShouldBeNil)
-			database.Owner = owner
+			conf.GlobalConfig.GatewayName = owner
 
 			existing := model.LocalAgent{
 				Name:        other.Name,
@@ -294,7 +295,7 @@ func TestCreateServer(t *testing.T) {
 							"the database", func() {
 							exp := model.LocalAgent{
 								ID:            2,
-								Owner:         database.Owner,
+								Owner:         conf.GlobalConfig.GatewayName,
 								Name:          "new_server",
 								Protocol:      testProto1,
 								Address:       "localhost:2",
@@ -438,7 +439,7 @@ func TestUpdateServer(t *testing.T) {
 					Convey("Then the agent should have been updated", func() {
 						exp := model.LocalAgent{
 							ID:         old.ID,
-							Owner:      database.Owner,
+							Owner:      conf.GlobalConfig.GatewayName,
 							Name:       "update",
 							Protocol:   testProto1,
 							Address:    "localhost:2",
@@ -543,7 +544,7 @@ func TestReplaceServer(t *testing.T) {
 					Convey("Then the agent should have been updated", func() {
 						exp := model.LocalAgent{
 							ID:         old.ID,
-							Owner:      database.Owner,
+							Owner:      conf.GlobalConfig.GatewayName,
 							Name:       "update",
 							Protocol:   testProto2,
 							Address:    "localhost:2",

@@ -5,6 +5,7 @@ import (
 	"net/http"
 
 	"code.waarp.fr/apps/gateway/gateway/pkg/admin/rest/api"
+	"code.waarp.fr/apps/gateway/gateway/pkg/conf"
 	"code.waarp.fr/apps/gateway/gateway/pkg/database"
 	"code.waarp.fr/apps/gateway/gateway/pkg/log"
 	"code.waarp.fr/apps/gateway/gateway/pkg/model"
@@ -66,7 +67,7 @@ func servToDB(serv *api.InServer, serverID uint64, logger *log.Logger) *model.Lo
 
 	return &model.LocalAgent{
 		ID:            serverID,
-		Owner:         database.Owner,
+		Owner:         conf.GlobalConfig.GatewayName,
 		Name:          str(serv.Name),
 		Address:       str(serv.Address),
 		RootDir:       root,

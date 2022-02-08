@@ -7,6 +7,7 @@ import (
 
 	. "github.com/smartystreets/goconvey/convey"
 
+	"code.waarp.fr/apps/gateway/gateway/pkg/conf"
 	"code.waarp.fr/apps/gateway/gateway/pkg/database"
 	"code.waarp.fr/apps/gateway/gateway/pkg/model/types"
 )
@@ -43,7 +44,7 @@ func TestHistoryBeforeWrite(t *testing.T) {
 				Stop:       time.Now(),
 				Protocol:   testProtocol,
 				Status:     "DONE",
-				Owner:      database.Owner,
+				Owner:      conf.GlobalConfig.GatewayName,
 			}
 
 			shouldFailWith := func(errDesc string, expErr error) {
@@ -195,7 +196,7 @@ func TestTransferHistoryRestart(t *testing.T) {
 
 			history := &HistoryEntry{
 				ID:               1,
-				Owner:            database.Owner,
+				Owner:            conf.GlobalConfig.GatewayName,
 				RemoteTransferID: "2",
 				IsServer:         false,
 				IsSend:           rule.IsSend,
@@ -232,7 +233,7 @@ func TestTransferHistoryRestart(t *testing.T) {
 						Start:            date,
 						Step:             types.StepNone,
 						Status:           types.StatusPlanned,
-						Owner:            database.Owner,
+						Owner:            conf.GlobalConfig.GatewayName,
 						Progress:         0,
 						TaskNumber:       0,
 						Error:            types.TransferError{},
@@ -259,7 +260,7 @@ func TestTransferHistoryRestart(t *testing.T) {
 
 			history := &HistoryEntry{
 				ID:               1,
-				Owner:            database.Owner,
+				Owner:            conf.GlobalConfig.GatewayName,
 				RemoteTransferID: "2",
 				IsServer:         true,
 				IsSend:           rule.IsSend,
@@ -296,7 +297,7 @@ func TestTransferHistoryRestart(t *testing.T) {
 						Start:            date,
 						Step:             types.StepNone,
 						Status:           types.StatusPlanned,
-						Owner:            database.Owner,
+						Owner:            conf.GlobalConfig.GatewayName,
 						Progress:         0,
 						TaskNumber:       0,
 						Error:            types.TransferError{},

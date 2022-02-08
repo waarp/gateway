@@ -9,6 +9,7 @@ import (
 	"time"
 
 	"code.waarp.fr/apps/gateway/gateway/pkg/admin/rest/api"
+	"code.waarp.fr/apps/gateway/gateway/pkg/conf"
 	"code.waarp.fr/apps/gateway/gateway/pkg/database"
 	"code.waarp.fr/apps/gateway/gateway/pkg/model"
 	"code.waarp.fr/apps/gateway/gateway/pkg/pipeline"
@@ -90,7 +91,7 @@ func getTransNames(db *database.DB, trans *model.Transfer) (*model.Rule, string,
 //nolint:funlen // FIXME should be refactored
 func parseTransferListQuery(r *http.Request, db *database.DB,
 	transfers *model.Transfers) (*database.SelectQuery, error) {
-	query := db.Select(transfers).Where("owner=?", database.Owner)
+	query := db.Select(transfers).Where("owner=?", conf.GlobalConfig.GatewayName)
 
 	sorting := orders{
 		"default": order{col: "start", asc: true},

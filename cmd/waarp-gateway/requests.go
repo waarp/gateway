@@ -135,9 +135,7 @@ func update(object interface{}) error {
 	}
 }
 
-func remove(path string) error {
-	addr.Path = path
-
+func remove() error {
 	resp, err := sendRequest(nil, http.MethodDelete)
 	if err != nil {
 		return err

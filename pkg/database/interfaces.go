@@ -17,7 +17,6 @@ import (
 // to make these operation more precise. Once the query is defined, it can be
 // executed using the `Run` function.
 type ReadAccess interface {
-	getType() string
 	getUnderlying() xorm.Interface
 
 	// GetLogger returns the database logger instance.

@@ -12,6 +12,7 @@ import (
 	. "github.com/smartystreets/goconvey/convey"
 	"golang.org/x/crypto/bcrypt"
 
+	"code.waarp.fr/apps/gateway/gateway/pkg/conf"
 	"code.waarp.fr/apps/gateway/gateway/pkg/database"
 	"code.waarp.fr/apps/gateway/gateway/pkg/log"
 	"code.waarp.fr/apps/gateway/gateway/pkg/model"
@@ -239,7 +240,9 @@ func TestUpdateTransferInfo(t *testing.T) {
 	Convey("Given an R66 transfer handler", t, func(c C) {
 		db := database.TestDatabase(c, "ERROR")
 		root := testhelpers.TempDir(c, "r66_update_info")
-		db.Conf.Paths.GatewayHome = root
+		conf.GlobalConfig.Paths = conf.PathsConfig{
+			GatewayHome: root,
+		}
 
 		send := &model.Rule{Name: "send", IsSend: true, Path: "/send", LocalDir: "send_dir"}
 		So(db.Insert(send).Run(), ShouldBeNil)

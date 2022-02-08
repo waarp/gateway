@@ -118,7 +118,7 @@ func makeServerConf(c convey.C, db *database.DB, port uint16, home, proto string
 		Protocol:    proto,
 		RootDir:     utils.ToOSPath(root),
 		ProtoConfig: jsonServConf,
-		Address:     fmt.Sprintf("localhost:%d", port),
+		Address:     fmt.Sprintf("127.0.0.1:%d", port),
 	}
 
 	c.So(db.Insert(server).Run(), convey.ShouldBeNil)

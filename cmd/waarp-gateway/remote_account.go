@@ -82,9 +82,9 @@ type remAccDelete struct {
 
 func (r *remAccDelete) Execute([]string) error {
 	partner := commandLine.Account.Remote.Args.Partner
-	uri := fmt.Sprintf("/api/partners/%s/accounts/%s", partner, r.Args.Login)
+	addr.Path = fmt.Sprintf("/api/partners/%s/accounts/%s", partner, r.Args.Login)
 
-	if err := remove(uri); err != nil {
+	if err := remove(); err != nil {
 		return err
 	}
 

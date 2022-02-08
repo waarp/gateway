@@ -127,9 +127,9 @@ type locAccDelete struct {
 
 func (l *locAccDelete) Execute([]string) error {
 	server := commandLine.Account.Local.Args.Server
-	uri := fmt.Sprintf("/api/servers/%s/accounts/%s", server, l.Args.Login)
+	addr.Path = fmt.Sprintf("/api/servers/%s/accounts/%s", server, l.Args.Login)
 
-	if err := remove(uri); err != nil {
+	if err := remove(); err != nil {
 		return err
 	}
 

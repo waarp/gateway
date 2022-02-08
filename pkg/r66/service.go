@@ -14,6 +14,7 @@ import (
 	"code.bcarlin.xyz/go/logging"
 	"code.waarp.fr/lib/r66"
 
+	"code.waarp.fr/apps/gateway/gateway/pkg/conf"
 	"code.waarp.fr/apps/gateway/gateway/pkg/database"
 	"code.waarp.fr/apps/gateway/gateway/pkg/log"
 	"code.waarp.fr/apps/gateway/gateway/pkg/model"
@@ -107,8 +108,8 @@ func (s *Service) Start() error {
 	s.logger.Infof("Starting R66 server '%s'...", s.agent.Name)
 	s.state.Set(service.Starting, "")
 
-	var conf config.R66ProtoConfig
-	if err := json.Unmarshal(s.agent.ProtoConfig, &conf); err != nil {
+	var r66Conf config.R66ProtoConfig
+	if err := json.Unmarshal(s.agent.ProtoConfig, &r66Conf); err != nil {
 		s.logger.Errorf("Failed to parse server ProtoConfig: %s", err)
 		err1 := fmt.Errorf("failed to parse ProtoConfig: %w", err)
 		s.state.Set(service.Error, err1.Error())
@@ -116,7 +117,7 @@ func (s *Service) Start() error {
 		return err1
 	}
 
-	pwd, err := utils.AESDecrypt(database.GCM, conf.ServerPassword)
+	pwd, err := utils.AESDecrypt(database.GCM, r66Conf.ServerPassword)
 	if err != nil {
 		s.logger.Errorf("Failed to decrypt server password: %s", err)
 		dErr := fmt.Errorf("failed to decrypt server password: %w", err)
@@ -126,7 +127,7 @@ func (s *Service) Start() error {
 	}
 
 	s.server = &r66.Server{
-		Login:    conf.ServerLogin,
+		Login:    r66Conf.ServerLogin,
 		Password: []byte(pwd),
 		Logger:   s.logger.AsStdLog(logging.DEBUG),
 		Conf: &r66.Config{
@@ -139,6 +140,8 @@ func (s *Service) Start() error {
 	}
 
 	if err := s.listen(); err != nil {
+		s.state.Set(service.Error, err.Error())
+
 		return err
 	}
 
@@ -152,22 +155,27 @@ func (s *Service) listen() error {
 	tlsConf, err := s.makeTLSConf()
 	if err != nil {
 		s.logger.Errorf("Failed to parse server TLS config: %s", err)
-		s.state.Set(service.Error, "failed to parse server TLS config")
 
-		return err
+		return fmt.Errorf("failed to parse server TLS config: %w", err)
+	}
+
+	addr, err := conf.GetRealAddress(s.agent.Address)
+	if err != nil {
+		s.logger.Errorf("Failed to parse server TLS config: %s", err)
+
+		return fmt.Errorf("failed to indirect the server address: %w", err)
 	}
 
 	if tlsConf != nil {
-		s.list, err = tls.Listen("tcp", s.agent.Address, tlsConf)
+		s.list, err = tls.Listen("tcp", addr, tlsConf)
 	} else {
-		s.list, err = net.Listen("tcp", s.agent.Address)
+		s.list, err = net.Listen("tcp", addr)
 	}
 
 	if err != nil {
 		s.logger.Errorf("Failed to start R66 listener: %s", err)
-		s.state.Set(service.Error, err.Error())
 
-		return fmt.Errorf("cannot start listener: %w", err)
+		return fmt.Errorf("failed to start R66 listener: %w", err)
 	}
 
 	go func() {
@@ -177,8 +185,8 @@ func (s *Service) listen() error {
 				return
 
 			default:
-				s.logger.Errorf("Server has stopped unexpectedly: %s", err)
-				s.state.Set(service.Error, err.Error())
+				s.logger.Errorf("Server stopped unexpectedly: %s", err)
+				s.state.Set(service.Error, fmt.Sprintf("server stopped unexpectedly: %s", err))
 			}
 		}
 	}()

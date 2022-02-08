@@ -8,7 +8,7 @@ import (
 
 	. "github.com/smartystreets/goconvey/convey"
 
-	"code.waarp.fr/apps/gateway/gateway/pkg/database"
+	"code.waarp.fr/apps/gateway/gateway/pkg/conf"
 	"code.waarp.fr/apps/gateway/gateway/pkg/model"
 	"code.waarp.fr/apps/gateway/gateway/pkg/model/types"
 )
@@ -21,8 +21,8 @@ func TestClientPipelineRun(t *testing.T) {
 
 		Convey("Given a client push transfer", func() {
 			file := "client_pipeline_push"
-			So(ioutil.WriteFile(filepath.Join(ctx.db.Conf.Paths.GatewayHome,
-				ctx.db.Conf.Paths.DefaultOutDir,
+			So(ioutil.WriteFile(filepath.Join(conf.GlobalConfig.Paths.GatewayHome,
+				conf.GlobalConfig.Paths.DefaultOutDir,
 				file), content, 0o600), ShouldBeNil)
 
 			trans := &model.Transfer{
@@ -45,7 +45,7 @@ func TestClientPipelineRun(t *testing.T) {
 				Convey("Then the transfer should be in the history", func() {
 					exp := model.HistoryEntry{
 						ID:               trans.ID,
-						Owner:            database.Owner,
+						Owner:            conf.GlobalConfig.GatewayName,
 						RemoteTransferID: "",
 						IsServer:         false,
 						IsSend:           true,

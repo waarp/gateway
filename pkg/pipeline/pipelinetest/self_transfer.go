@@ -11,6 +11,7 @@ import (
 
 	"github.com/smartystreets/goconvey/convey"
 
+	"code.waarp.fr/apps/gateway/gateway/pkg/conf"
 	"code.waarp.fr/apps/gateway/gateway/pkg/model"
 	"code.waarp.fr/apps/gateway/gateway/pkg/model/config"
 	"code.waarp.fr/apps/gateway/gateway/pkg/model/types"
@@ -238,7 +239,7 @@ func (s *SelfContext) CheckClientTransferOK(c convey.C) {
 	var actual model.HistoryEntry
 
 	c.So(s.DB.Get(&actual, "id=?", s.ClientTrans.ID).Run(), convey.ShouldBeNil)
-	s.checkClientTransferOK(c, s.transData, s.DB, &actual)
+	s.checkClientTransferOK(c, s.transData, &actual)
 }
 
 // CheckServerTransferOK checks if the server transfer history entry has
@@ -266,7 +267,7 @@ func (s *SelfContext) CheckEndTransferOK(c convey.C) {
 		c.So(s.DB.Select(&results).OrderBy("id", true).Run(), convey.ShouldBeNil)
 		c.So(len(results), convey.ShouldEqual, 2) //nolint:gomnd // necessary here
 
-		s.checkClientTransferOK(c, s.transData, s.DB, &results[0])
+		s.checkClientTransferOK(c, s.transData, &results[0])
 
 		var remoteID string
 		if s.protoFeatures.transID {
@@ -317,7 +318,7 @@ func (s *SelfContext) CheckClientTransferError(c convey.C, errCode types.Transfe
 
 	c.Convey("Then there should be a client-side transfer in error", func(c convey.C) {
 		c.So(actual.ID, convey.ShouldEqual, 1)
-		c.So(actual.Owner, convey.ShouldEqual, s.DB.Conf.GatewayName)
+		c.So(actual.Owner, convey.ShouldEqual, conf.GlobalConfig.GatewayName)
 		c.So(actual.IsServer, convey.ShouldBeFalse)
 		c.So(actual.Status, convey.ShouldEqual, types.StatusError)
 		c.So(actual.RuleID, convey.ShouldEqual, s.ClientRule.ID)
@@ -357,7 +358,7 @@ func (s *SelfContext) CheckServerTransferError(c convey.C, errCode types.Transfe
 
 	c.Convey("Then there should be a server-side transfer in error", func(c convey.C) {
 		c.So(actual.ID, convey.ShouldEqual, 2) //nolint:gomnd // necessary here
-		c.So(actual.Owner, convey.ShouldEqual, s.DB.Conf.GatewayName)
+		c.So(actual.Owner, convey.ShouldEqual, conf.GlobalConfig.GatewayName)
 		c.So(actual.IsServer, convey.ShouldBeTrue)
 		c.So(actual.Status, convey.ShouldEqual, types.StatusError)
 		c.So(actual.RuleID, convey.ShouldEqual, s.ServerRule.ID)

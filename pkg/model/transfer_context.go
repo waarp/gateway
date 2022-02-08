@@ -40,7 +40,7 @@ func GetTransferContext(db *database.DB, logger *log.Logger, trans *Transfer,
 ) (*TransferContext, *types.TransferError) {
 	transCtx := &TransferContext{
 		Transfer:      trans,
-		Paths:         &db.Conf.Paths,
+		Paths:         &conf.GlobalConfig.Paths,
 		Rule:          &Rule{},
 		RemoteAgent:   &RemoteAgent{},
 		RemoteAccount: &RemoteAccount{},

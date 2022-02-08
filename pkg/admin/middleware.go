@@ -6,6 +6,7 @@ import (
 	"github.com/gorilla/mux"
 	"golang.org/x/crypto/bcrypt"
 
+	"code.waarp.fr/apps/gateway/gateway/pkg/conf"
 	"code.waarp.fr/apps/gateway/gateway/pkg/database"
 	"code.waarp.fr/apps/gateway/gateway/pkg/log"
 	"code.waarp.fr/apps/gateway/gateway/pkg/model"
@@ -27,7 +28,7 @@ func authentication(logger *log.Logger, db *database.DB) mux.MiddlewareFunc {
 			}
 
 			var user model.User
-			if err := db.Get(&user, "username=? AND owner=?", login, database.Owner).
+			if err := db.Get(&user, "username=? AND owner=?", login, conf.GlobalConfig.GatewayName).
 				Run(); err != nil && !database.IsNotFound(err) {
 				logger.Errorf("Database error: %s", err)
 				http.Error(w, "internal database error", http.StatusInternalServerError)

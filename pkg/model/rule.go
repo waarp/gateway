@@ -181,13 +181,9 @@ func (r *Rule) BeforeDelete(db database.Access) database.Error {
 // Valid target types are: LocalAgent, RemoteAgent, LocalAccount & RemoteAccount.
 func (r *Rule) IsAuthorized(db database.Access, target database.IterateBean) (bool, database.Error) {
 	var perms RuleAccess
-
-	permCount, err := db.Count(&perms).Where("rule_id=?", r.ID).Run()
-	if err != nil {
+	if n, err := db.Count(&perms).Where("rule_id=?", r.ID).Run(); err != nil {
 		return false, err
-	}
-
-	if permCount == 0 {
+	} else if n == 0 {
 		return true, nil
 	}
 
@@ -211,10 +207,9 @@ func (r *Rule) IsAuthorized(db database.Access, target database.IterateBean) (bo
 		return false, database.NewValidationError("%T is not a valid target model for RuleAccess", target)
 	}
 
-	permCount, err = query.Run()
-	if err != nil {
+	if permCount, err := query.Run(); err != nil {
 		return false, err
+	} else {
+		return permCount != 0, nil
 	}
-
-	return permCount != 0, nil
 }

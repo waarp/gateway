@@ -27,7 +27,7 @@ func TestFileReader(t *testing.T) {
 	Convey("Given a file", t, func(c C) {
 		root := testhelpers.TempDir(c, "file_reader_test_root")
 
-		rulePath := filepath.Join(root, "test_rule", "out")
+		rulePath := filepath.Join(root, "test", "out")
 		So(os.MkdirAll(rulePath, 0o700), ShouldBeNil)
 
 		file := filepath.Join(rulePath, "file_read.src")
@@ -36,13 +36,12 @@ func TestFileReader(t *testing.T) {
 
 		Convey("Given a database with a rule, a localAgent and a localAccount", func(dbc C) {
 			db := database.TestDatabase(dbc, "ERROR")
-			db.Conf.Paths = conf.PathsConfig{GatewayHome: root}
 
 			rule := &model.Rule{
-				Name:     "test_rule",
+				Name:     "test",
 				IsSend:   true,
-				Path:     "/test/path",
-				LocalDir: "test_rule/out",
+				Path:     "test/path",
+				LocalDir: "test/out",
 			}
 			So(db.Insert(rule).Run(), ShouldBeNil)
 
@@ -65,6 +64,8 @@ func TestFileReader(t *testing.T) {
 			So(json.Unmarshal(agent.ProtoConfig, &serverConf), ShouldBeNil)
 
 			Convey("Given the FileReader", func() {
+				conf.GlobalConfig.Paths = conf.PathsConfig{GatewayHome: root}
+
 				handler := (&sshListener{
 					DB:               db,
 					Logger:           logger,
@@ -138,7 +139,6 @@ func TestFileWriter(t *testing.T) {
 
 		Convey("Given a database with a rule and a localAgent", func(dbc C) {
 			db := database.TestDatabase(dbc, "ERROR")
-			db.Conf.Paths = conf.PathsConfig{GatewayHome: root}
 
 			rule := &model.Rule{
 				Name:   "test_rule",
@@ -166,6 +166,8 @@ func TestFileWriter(t *testing.T) {
 			So(json.Unmarshal(agent.ProtoConfig, &serverConf), ShouldBeNil)
 
 			Convey("Given the Filewriter", func() {
+				conf.GlobalConfig.Paths = conf.PathsConfig{GatewayHome: root}
+
 				handler := (&sshListener{
 					DB:               db,
 					Logger:           logger,

@@ -12,6 +12,7 @@ import (
 
 	. "github.com/smartystreets/goconvey/convey"
 
+	"code.waarp.fr/apps/gateway/gateway/pkg/conf"
 	"code.waarp.fr/apps/gateway/gateway/pkg/database"
 	"code.waarp.fr/apps/gateway/gateway/pkg/log"
 	"code.waarp.fr/apps/gateway/gateway/pkg/model"
@@ -66,6 +67,7 @@ func TestControllerListen(t *testing.T) {
 
 		Convey("Given a controller", func() {
 			tick := time.Nanosecond
+			conf.GlobalConfig.Paths = conf.PathsConfig{GatewayHome: tmpDir}
 			cont := &Controller{
 				DB:     db,
 				ticker: time.NewTicker(tick),
@@ -88,7 +90,7 @@ func TestControllerListen(t *testing.T) {
 					RemotePath: "/file_1",
 					Start:      start,
 					Status:     types.StatusPlanned,
-					Owner:      database.Owner,
+					Owner:      conf.GlobalConfig.GatewayName,
 				}
 				So(db.Insert(trans).Run(), ShouldBeNil)
 
@@ -150,7 +152,7 @@ func TestControllerListen(t *testing.T) {
 					RemotePath: "/file_2",
 					Start:      start,
 					Status:     types.StatusRunning,
-					Owner:      database.Owner,
+					Owner:      conf.GlobalConfig.GatewayName,
 				}
 				So(db.Insert(trans).Run(), ShouldBeNil)
 

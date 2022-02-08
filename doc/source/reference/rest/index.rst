@@ -18,4 +18,5 @@ en interrogeant l'adresse d'administration donnée dans la configuration.
    servers/index
    partners/index
    rules/index
+   override/index
 

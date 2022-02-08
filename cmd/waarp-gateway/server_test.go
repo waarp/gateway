@@ -12,6 +12,7 @@ import (
 
 	"code.waarp.fr/apps/gateway/gateway/pkg/admin/rest"
 	"code.waarp.fr/apps/gateway/gateway/pkg/admin/rest/api"
+	"code.waarp.fr/apps/gateway/gateway/pkg/conf"
 	"code.waarp.fr/apps/gateway/gateway/pkg/database"
 	"code.waarp.fr/apps/gateway/gateway/pkg/model"
 	"code.waarp.fr/apps/gateway/gateway/pkg/model/config"
@@ -145,7 +146,7 @@ func TestAddServer(t *testing.T) {
 
 						exp := model.LocalAgent{
 							ID:            1,
-							Owner:         database.Owner,
+							Owner:         conf.GlobalConfig.GatewayName,
 							Name:          command.Name,
 							Address:       command.Address,
 							Protocol:      command.Protocol,
@@ -240,19 +241,19 @@ func TestAddServer(t *testing.T) {
 						So(db.Select(&servers).Run(), ShouldBeNil)
 						So(len(servers), ShouldEqual, 1)
 
-						var conf config.R66ProtoConfig
-						So(json.Unmarshal(servers[0].ProtoConfig, &conf), ShouldBeNil)
-						pwd, err := utils.AESDecrypt(database.GCM, conf.ServerPassword)
+						var r66Conf config.R66ProtoConfig
+						So(json.Unmarshal(servers[0].ProtoConfig, &r66Conf), ShouldBeNil)
+						pwd, err := utils.AESDecrypt(database.GCM, r66Conf.ServerPassword)
 						So(err, ShouldBeNil)
 
 						So(pwd, ShouldEqual, "sesame")
-						conf.ServerPassword = "sesame"
-						servers[0].ProtoConfig, err = json.Marshal(conf)
+						r66Conf.ServerPassword = "sesame"
+						servers[0].ProtoConfig, err = json.Marshal(r66Conf)
 						So(err, ShouldBeNil)
 
 						exp := model.LocalAgent{
 							ID:            1,
-							Owner:         database.Owner,
+							Owner:         conf.GlobalConfig.GatewayName,
 							Name:          "r66_server",
 							Address:       "localhost:1",
 							Protocol:      "r66",

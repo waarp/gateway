@@ -12,6 +12,7 @@ import (
 	"path/filepath"
 	"time"
 
+	"code.waarp.fr/apps/gateway/gateway/pkg/conf"
 	"code.waarp.fr/apps/gateway/gateway/pkg/http/httpconst"
 	"code.waarp.fr/apps/gateway/gateway/pkg/model/types"
 	"code.waarp.fr/apps/gateway/gateway/pkg/pipeline"
@@ -98,27 +99,7 @@ func (p *postClient) updateTransForResume(prog uint64) *types.TransferError {
 	return nil
 }
 
-func (p *postClient) prepareRequest(ready chan struct{}) *types.TransferError {
-	scheme := "http://"
-	if p.transport.TLSClientConfig != nil {
-		scheme = "https://"
-	}
-
-	url := scheme + path.Join(p.pip.TransCtx.RemoteAgent.Address, p.pip.TransCtx.Transfer.RemotePath)
-	if err := p.checkResume(url); err != nil {
-		return err
-	}
-
-	body, writer := io.Pipe()
-	p.writer = writer
-
-	req, err := http.NewRequestWithContext(context.Background(), http.MethodPost, url, body)
-	if err != nil {
-		p.pip.Logger.Errorf("Failed to make HTTP request: %s", err)
-
-		return types.NewTransferError(types.TeInternal, "failed to make HTTP request")
-	}
-
+func (p *postClient) setRequestHeaders(req *http.Request) *types.TransferError {
 	req.SetBasicAuth(p.pip.TransCtx.RemoteAccount.Login, string(p.pip.TransCtx.RemoteAccount.Password))
 
 	ct := mime.TypeByExtension(filepath.Ext(p.pip.TransCtx.Transfer.LocalPath))
@@ -146,6 +127,41 @@ func (p *postClient) prepareRequest(ready chan struct{}) *types.TransferError {
 	}
 
 	req.Header.Set("Waarp-File-Size", fmt.Sprint(fileInfo.Size()))
+
+	return nil
+}
+
+func (p *postClient) prepareRequest(ready chan struct{}) *types.TransferError {
+	scheme := "http://"
+	if p.transport.TLSClientConfig != nil {
+		scheme = "https://"
+	}
+
+	addr, err := conf.GetRealAddress(p.pip.TransCtx.RemoteAgent.Address)
+	if err != nil {
+		p.pip.Logger.Errorf("Failed to retrieve HTTP address: %s", err)
+
+		return types.NewTransferError(types.TeInternal, "failed to retrieve HTTP address")
+	}
+
+	url := scheme + path.Join(addr, p.pip.TransCtx.Transfer.RemotePath)
+	if err := p.checkResume(url); err != nil {
+		return err
+	}
+
+	body, writer := io.Pipe()
+	p.writer = writer
+
+	req, err := http.NewRequestWithContext(context.Background(), http.MethodPost, url, body)
+	if err != nil {
+		p.pip.Logger.Errorf("Failed to make HTTP request: %s", err)
+
+		return types.NewTransferError(types.TeInternal, "failed to make HTTP request")
+	}
+
+	if err := p.setRequestHeaders(req); err != nil {
+		return err
+	}
 
 	trace := httptrace.ClientTrace{
 		Wait100Continue: func() { close(ready) },

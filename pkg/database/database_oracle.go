@@ -23,13 +23,14 @@ func init() {
 	supportedRBMS[oracle] = oracleinfo
 }
 
-func oracleinfo(config *conf.DatabaseConfig) (string, string, func(*xorm.Engine) error) {
-	return OracleDriver, oracleDSN(config), func(*xorm.Engine) error {
+func oracleinfo() (string, string, func(*xorm.Engine) error) {
+	return OracleDriver, oracleDSN(), func(*xorm.Engine) error {
 		return nil
 	}
 }
 
-func oracleDSN(config *conf.DatabaseConfig) string {
+func oracleDSN() string {
+	config := &conf.GlobalConfig.Database
 	var pass string
 	if config.Password != "" {
 		pass = fmt.Sprintf("/%s", config.Password)

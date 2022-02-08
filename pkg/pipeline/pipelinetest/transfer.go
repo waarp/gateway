@@ -5,6 +5,7 @@ import (
 
 	"github.com/smartystreets/goconvey/convey"
 
+	"code.waarp.fr/apps/gateway/gateway/pkg/conf"
 	"code.waarp.fr/apps/gateway/gateway/pkg/database"
 	"code.waarp.fr/apps/gateway/gateway/pkg/model"
 	"code.waarp.fr/apps/gateway/gateway/pkg/model/types"
@@ -15,12 +16,12 @@ type transData struct {
 	fileContent []byte
 }
 
-func (d *clientData) checkClientTransferOK(c convey.C, t *transData, db *database.DB,
+func (d *clientData) checkClientTransferOK(c convey.C, t *transData,
 	actual *model.HistoryEntry) {
 	c.Convey("Then there should be a client-side history entry", func(c convey.C) {
 		expected := &model.HistoryEntry{
 			ID:         t.ClientTrans.ID,
-			Owner:      db.Conf.GatewayName,
+			Owner:      conf.GlobalConfig.GatewayName,
 			Protocol:   d.Partner.Protocol,
 			Rule:       d.ClientRule.Name,
 			IsServer:   false,
@@ -43,12 +44,12 @@ func (d *clientData) checkClientTransferOK(c convey.C, t *transData, db *databas
 }
 
 func (d *serverData) checkServerTransferOK(c convey.C, remoteTransferID, filename string,
-	progress uint64, db *database.DB, actual *model.HistoryEntry) {
+	progress uint64, _ *database.DB, actual *model.HistoryEntry) {
 	c.Convey("Then there should be a server-side history entry", func(c convey.C) {
 		expected := &model.HistoryEntry{
 			ID:               actual.ID,
 			RemoteTransferID: remoteTransferID,
-			Owner:            db.Conf.GatewayName,
+			Owner:            conf.GlobalConfig.GatewayName,
 			Protocol:         d.Server.Protocol,
 			IsServer:         true,
 			IsSend:           d.ServerRule.IsSend,
@@ -65,11 +66,13 @@ func (d *serverData) checkServerTransferOK(c convey.C, remoteTransferID, filenam
 			Progress:         progress,
 			TaskNumber:       0,
 		}
+
 		if d.ServerRule.IsSend {
 			expected.LocalPath = filepath.Join(d.Server.RootDir, d.Server.SendDir, filename)
 		} else {
 			expected.LocalPath = filepath.Join(d.Server.RootDir, d.Server.ReceiveDir, filename)
 		}
+
 		c.So(*actual, convey.ShouldResemble, *expected)
 	})
 }

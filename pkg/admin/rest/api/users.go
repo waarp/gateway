@@ -19,9 +19,10 @@ type OutUser struct {
 
 // Perms is a struct regrouping a user's permissions into different categories.
 type Perms struct {
-	Transfers string `json:"transfers"`
-	Servers   string `json:"servers"`
-	Partners  string `json:"partners"`
-	Rules     string `json:"rules"`
-	Users     string `json:"users"`
+	Transfers      string `json:"transfers"`
+	Servers        string `json:"servers"`
+	Partners       string `json:"partners"`
+	Rules          string `json:"rules"`
+	Users          string `json:"users"`
+	Administration string `json:"administration"`
 }

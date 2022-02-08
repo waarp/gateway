@@ -5,7 +5,6 @@ import (
 
 	"xorm.io/xorm"
 
-	"code.waarp.fr/apps/gateway/gateway/pkg/conf"
 	"code.waarp.fr/apps/gateway/gateway/pkg/database/migrations"
 )
 
@@ -27,6 +26,6 @@ func sqliteInit(db *xorm.Engine) error {
 	return nil
 }
 
-func sqliteinfo(config *conf.DatabaseConfig) (string, string, func(*xorm.Engine) error) {
-	return migrations.SqliteDriver, migrations.SqliteDSN(config), sqliteInit
+func sqliteinfo() (string, string, func(*xorm.Engine) error) {
+	return migrations.SqliteDriver, migrations.SqliteDSN(), sqliteInit
 }

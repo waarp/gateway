@@ -5,6 +5,7 @@ import (
 
 	. "github.com/smartystreets/goconvey/convey"
 
+	"code.waarp.fr/apps/gateway/gateway/pkg/conf"
 	"code.waarp.fr/apps/gateway/gateway/pkg/database"
 	"code.waarp.fr/apps/gateway/gateway/pkg/model"
 	"code.waarp.fr/apps/gateway/gateway/pkg/tk/utils/testhelpers"
@@ -13,7 +14,7 @@ import (
 func TestExportLocalAgents(t *testing.T) {
 	Convey("Given a database", t, func(c C) {
 		db := database.TestDatabase(c, "ERROR")
-		owner := database.Owner
+		owner := conf.GlobalConfig.GatewayName
 
 		Convey("Given the database contains locals agents with accounts", func() {
 			agent1 := &model.LocalAgent{
@@ -24,14 +25,14 @@ func TestExportLocalAgents(t *testing.T) {
 			So(db.Insert(agent1).Run(), ShouldBeNil)
 
 			// Change owner for this insert
-			database.Owner = "unknown"
+			conf.GlobalConfig.GatewayName = "unknown"
 			So(db.Insert(&model.LocalAgent{
 				Name:     "foo",
 				Protocol: testProtocol,
 				Address:  "localhost:2022",
 			}).Run(), ShouldBeNil)
 			// Revert database owner
-			database.Owner = owner
+			conf.GlobalConfig.GatewayName = owner
 
 			account1a := &model.LocalAccount{
 				LocalAgentID: agent1.ID,

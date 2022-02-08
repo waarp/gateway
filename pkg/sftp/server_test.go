@@ -12,6 +12,7 @@ import (
 	. "github.com/smartystreets/goconvey/convey"
 	"golang.org/x/crypto/ssh"
 
+	"code.waarp.fr/apps/gateway/gateway/pkg/conf"
 	"code.waarp.fr/apps/gateway/gateway/pkg/database"
 	"code.waarp.fr/apps/gateway/gateway/pkg/log"
 	"code.waarp.fr/apps/gateway/gateway/pkg/model"
@@ -92,7 +93,8 @@ func TestServerStart(t *testing.T) {
 		}
 		So(db.Insert(hostKey).Run(), ShouldBeNil)
 
-		sftpServer := NewService(db, agent, log.NewLogger("test_sftp_server"))
+		//nolint:forcetypeassert //no need to check assertion, guaranteed to succeed here
+		sftpServer := NewService(db, agent, log.NewLogger("test_sftp_server")).(*Service)
 
 		Convey("Given that the configuration is valid", func() {
 			Convey("When starting the server", func() {
@@ -106,6 +108,27 @@ func TestServerStart(t *testing.T) {
 
 				Convey("Then it should NOT return an error", func() {
 					So(err, ShouldBeNil)
+				})
+			})
+		})
+
+		Convey("Given that the server address is indirect", func(c C) {
+			conf.InitTestOverrides(c)
+			So(conf.AddIndirection("indirect.ex:99999", "127.0.0.1:"+port), ShouldBeNil)
+			agent.Address = "indirect.ex:99999"
+			So(db.Update(agent).Cols("address").Run(), ShouldBeNil)
+
+			Convey("When starting the server", func() {
+				err := sftpServer.Start()
+
+				Reset(func() {
+					_ = sftpServer.Stop(context.Background())
+				})
+
+				Convey("Then it should NOT return an error", func() {
+					So(err, ShouldBeNil)
+					So(sftpServer.listener.Listener.Addr().String(), ShouldEqual,
+						"127.0.0.1:"+port)
 				})
 			})
 		})
@@ -176,7 +199,7 @@ func TestSSHServerInterruption(t *testing.T) {
 							RuleID:     test.ServerRule.ID,
 							Status:     types.StatusInterrupted,
 							Step:       types.StepData,
-							Owner:      database.Owner,
+							Owner:      conf.GlobalConfig.GatewayName,
 							Progress:   3,
 						}
 						So(transfers[0], ShouldResemble, trans)

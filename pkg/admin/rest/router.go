@@ -59,6 +59,9 @@ const (
 	remAccCertPath  = "/api/partners/{partner}/accounts/{remote_account}/certificates/{certificate}"
 	remAccAuthPath  = "/api/partners/{partner}/accounts/{remote_account}/authorize/{rule}/{direction:send|receive}"
 	remAccRevPath   = "/api/partners/{partner}/accounts/{remote_account}/revoke/{rule}/{direction:send|receive}"
+
+	overrideSettingsAddressesPath = "/api/override/addresses"
+	overrideSettingsAddressPath   = "/api/override/addresses/{address}"
 )
 
 // MakeRESTHandler appends all the REST API handlers to the given HTTP router.
@@ -163,4 +166,10 @@ func MakeRESTHandler(logger *log.Logger, db *database.DB, router *mux.Router,
 	mkHandler(remAccCertPath, replaceRemAccountCert, model.PermPartnersWrite, http.MethodPut)
 	mkHandler(remAccAuthPath, authorizeRemoteAccount, model.PermRulesWrite, http.MethodPut)
 	mkHandler(remAccRevPath, revokeRemoteAccount, model.PermRulesWrite, http.MethodPut)
+
+	// Settings override
+	mkHandler.noDB(overrideSettingsAddressesPath, listAddressOverrides, model.PermAdminRead, http.MethodGet)
+	mkHandler.noDB(overrideSettingsAddressesPath, addAddressOverride, model.PermAdminWrite,
+		http.MethodPost, http.MethodPut, http.MethodPatch)
+	mkHandler.noDB(overrideSettingsAddressPath, deleteAddressOverride, model.PermAdminDelete, http.MethodDelete)
 }

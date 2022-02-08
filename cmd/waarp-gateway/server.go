@@ -149,9 +149,9 @@ type serverDelete struct {
 }
 
 func (s *serverDelete) Execute([]string) error {
-	uri := path.Join("/api/servers", s.Args.Name)
+	addr.Path = path.Join("/api/servers", s.Args.Name)
 
-	if err := remove(uri); err != nil {
+	if err := remove(); err != nil {
 		return err
 	}
 

@@ -24,7 +24,7 @@ func init() {
 }
 
 func newHTTPClient(pip *pipeline.Pipeline) (pipeline.Client, *types.TransferError) {
-	return newClient(pip, nil)
+	return newClient(pip, nil), nil
 }
 
 func newHTTPSClient(pip *pipeline.Pipeline) (pipeline.Client, *types.TransferError) {
@@ -35,23 +35,23 @@ func newHTTPSClient(pip *pipeline.Pipeline) (pipeline.Client, *types.TransferErr
 		return nil, types.NewTransferError(types.TeInternal, "failed to make TLS configuration")
 	}
 
-	return newClient(pip, tlsConf)
+	return newClient(pip, tlsConf), nil
 }
 
-func newClient(pip *pipeline.Pipeline, tlsConf *tls.Config) (pipeline.Client, *types.TransferError) {
+func newClient(pip *pipeline.Pipeline, tlsConf *tls.Config) pipeline.Client {
 	if pip.TransCtx.Rule.IsSend {
 		return &postClient{
 			pip:       pip,
 			transport: &http.Transport{TLSClientConfig: tlsConf},
 			reqErr:    make(chan error),
 			resp:      make(chan *http.Response),
-		}, nil
+		}
 	}
 
 	return &getClient{
 		pip:       pip,
 		transport: &http.Transport{TLSClientConfig: tlsConf},
-	}, nil
+	}
 }
 
 func makeTLSConf(transCtx *model.TransferContext) (*tls.Config, error) {

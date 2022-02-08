@@ -127,9 +127,9 @@ type certDelete struct {
 }
 
 func (c *certDelete) Execute([]string) error {
-	uri := path.Join(getCertPath(), "certificates", c.Args.Cert)
+	addr.Path = path.Join(getCertPath(), "certificates", c.Args.Cert)
 
-	if err := remove(uri); err != nil {
+	if err := remove(); err != nil {
 		return err
 	}
 

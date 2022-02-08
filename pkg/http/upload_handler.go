@@ -126,9 +126,9 @@ func (u *uploadHandler) run() {
 	}
 
 	if _, err := io.Copy(file, u.reqBody); err != nil {
-		u.pip.Logger.Errorf("Failed to copy data: %s", err.Error())
-
 		cErr := types.NewTransferError(types.TeDataTransfer, "failed to copy data")
+
+		errors.As(err, &cErr)
 		u.handleError(cErr)
 
 		return
@@ -188,6 +188,10 @@ func (b *postBody) Read(p []byte) (n int, err error) {
 
 func (b *postBody) Close() error {
 	close(b.closed)
+
+	if err := b.src.Close(); err != nil {
+		return fmt.Errorf("failed to close request body: %w", err)
+	}
 
 	return nil
 }

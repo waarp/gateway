@@ -8,6 +8,7 @@ import (
 	"code.bcarlin.xyz/go/logging"
 	"code.waarp.fr/lib/r66"
 
+	"code.waarp.fr/apps/gateway/gateway/pkg/conf"
 	"code.waarp.fr/apps/gateway/gateway/pkg/log"
 )
 
@@ -27,6 +28,16 @@ func NewConnPool() *ConnPool {
 	return &ConnPool{m: map[string]*connInfo{}}
 }
 
+// Exists returns whether a connection to the given address exists in the pool.
+func (c *ConnPool) Exists(addr string) bool {
+	c.mux.Lock()
+	defer c.mux.Unlock()
+
+	_, ok := c.m[addr]
+
+	return ok
+}
+
 // Add returns an R66 connection to the given address. If a connection to that
 // address already exists in the connection pool, it returns that connection and
 // increments its usage counter. If no connection exists to the given address,
@@ -42,15 +53,17 @@ func (c *ConnPool) Add(addr string, tlsConf *tls.Config, logger *log.Logger) (*r
 		return info.conn, nil
 	}
 
-	var (
-		cli *r66.Client
-		err error
-	)
+	realAddr, err := conf.GetRealAddress(addr)
+	if err != nil {
+		return nil, fmt.Errorf("failed to indirect the partner's address: %w", err)
+	}
+
+	var cli *r66.Client
 
 	if tlsConf == nil {
-		cli, err = r66.Dial(addr, logger.AsStdLog(logging.DEBUG))
+		cli, err = r66.Dial(realAddr, logger.AsStdLog(logging.DEBUG))
 	} else {
-		cli, err = r66.DialTLS(addr, tlsConf, logger.AsStdLog(logging.DEBUG))
+		cli, err = r66.DialTLS(realAddr, tlsConf, logger.AsStdLog(logging.DEBUG))
 	}
 
 	if err != nil {
