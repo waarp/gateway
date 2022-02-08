@@ -3,7 +3,8 @@
 Historique des versions
 =======================
 
-* :release:`0.5.0 <>`
+* :release:`0.5.0 <2022-04-14>`
+* :bug:`309` Génération et publication d'images Docker
 * :bug:`311` Correction d'une erreur du client SFTP pouvant survenir lorsque
   celui-ci effectue un transfert vers un serveur configuré en lecture unique
   (*read-once*). Pour cela, 2 nouvelles options ``useStat`` et
