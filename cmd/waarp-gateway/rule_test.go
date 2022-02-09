@@ -331,10 +331,39 @@ func TestAddRule(t *testing.T) {
 							" rule named '"+existing.Name+"' already exist")
 					})
 
-					Convey("Then the rule should have been updated", func() {
+					Convey("Then the rule should NOT have been inserted", func() {
 						var rules model.Rules
 						So(db.Select(&rules).Run(), ShouldBeNil)
-						So(rules, ShouldContain, *existing)
+						So(rules, ShouldHaveLength, 1)
+
+						So(rules[0], ShouldResemble, *existing)
+					})
+				})
+			})
+
+			Convey("Given that that one of the task's JSON is invalid", func() {
+				args := []string{
+					"--name", "new_rule", "--comment", "new_rule comment",
+					"--direction", "receive", "--path", "new/rule/path",
+					"--pre", `{"type":NOT_A_TYPE,"args":{"path":"/path/to/copy"}}`,
+				}
+
+				Convey("When executing the command", func() {
+					params, err := flags.ParseArgs(command, args)
+					So(err, ShouldBeNil)
+					err = command.Execute(params)
+
+					Convey("Then it should return an error", func() {
+						So(err, ShouldBeError, "invalid pre task: invalid character"+
+							" 'N' looking for beginning of value")
+					})
+
+					Convey("Then the rule should NOT have been inserted", func() {
+						var rules model.Rules
+						So(db.Select(&rules).Run(), ShouldBeNil)
+						So(rules, ShouldHaveLength, 1)
+
+						So(rules[0], ShouldResemble, *existing)
 					})
 				})
 			})
