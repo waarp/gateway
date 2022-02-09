@@ -91,13 +91,14 @@ func displayTransfer(w io.Writer, trans *api.OutTransfer) {
 
 //nolint:lll // struct tags can be long for command line args
 type transferAdd struct {
-	File    string  `required:"yes" short:"f" long:"file" description:"The file to transfer"`
-	Way     string  `required:"yes" short:"w" long:"way" description:"The direction of the transfer" choice:"send" choice:"receive"`
-	Name    *string `short:"n" long:"name" description:"[DEPRECATED] The name of the file after the transfer"` // Deprecated: the source name is used instead
-	Partner string  `required:"yes" short:"p" long:"partner" description:"The partner with which the transfer is performed"`
-	Account string  `required:"yes" short:"l" long:"login" description:"The login of the account used to connect on the partner"`
-	Rule    string  `required:"yes" short:"r" long:"rule" description:"The rule to use for the transfer"`
-	Date    string  `short:"d" long:"date" description:"The starting date (in ISO 8601 format) of the transfer"`
+	File    string `required:"yes" short:"f" long:"file" description:"The file to transfer"`
+	Way     string `required:"yes" short:"w" long:"way" description:"The direction of the transfer" choice:"send" choice:"receive"`
+	Partner string `required:"yes" short:"p" long:"partner" description:"The partner with which the transfer is performed"`
+	Account string `required:"yes" short:"l" long:"login" description:"The login of the account used to connect on the partner"`
+	Rule    string `required:"yes" short:"r" long:"rule" description:"The rule to use for the transfer"`
+	Date    string `short:"d" long:"date" description:"The starting date (in ISO 8601 format) of the transfer"`
+
+	Name *string `short:"n" long:"name" description:"[DEPRECATED] The name of the file after the transfer"` // Deprecated: the source name is used instead
 }
 
 func (t *transferAdd) Execute([]string) (err error) {
@@ -162,9 +163,9 @@ func (t *transferGet) Execute([]string) error {
 type transferList struct {
 	listOptions
 	SortBy   string   `short:"s" long:"sort" description:"Attribute used to sort the returned entries" choice:"start+" choice:"start-" choice:"id+" choice:"id-" choice:"rule+" choice:"rule-" default:"start+"`
-	Rules    []string `short:"r" long:"rule" description:"Filter the transfers based on the ID of the transfer rule used. Can be repeated multiple times to filter multiple rules."`
+	Rules    []string `short:"r" long:"rule" description:"Filter the transfers based on the name of the transfer rule used. Can be repeated multiple times to filter multiple rules."`
 	Statuses []string `short:"t" long:"status" description:"Filter the transfers based on the transfer's status. Can be repeated multiple times to filter multiple statuses." choice:"PLANNED" choice:"RUNNING" choice:"INTERRUPTED" choice:"PAUSED"`
-	Start    string   `short:"d" long:"date" description:"Filter the transfers which started after a given date. Date must be in RFC3339 format."`
+	Start    string   `short:"d" long:"date" description:"Filter the transfers which started after a given date. Date must be in ISO 8601 format."`
 }
 
 func (t *transferList) listURL() error {

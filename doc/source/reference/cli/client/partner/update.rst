@@ -34,4 +34,4 @@ attributs omis resteront inchangés.
 
 .. code-block:: shell
 
-   waarp-gateway http://user:password@localhost:8080 partner update partenaire_sftp -n partner_sftp_new -p sftp -a waarp.fr:2022
+   waarp-gateway -a 'http://user:password@localhost:8080' partner update 'partenaire_sftp' -n 'partner_sftp_new' -p 'sftp' -a 'waarp.fr:2022'

@@ -14,4 +14,4 @@ Retire au serveur fourni en paramètre la permission d'utiliser la règle donné
 
 .. code-block:: shell
 
-   waarp-gateway http://user:password@localhost:8080 server revoke serveur_sftp règle_1
+   waarp-gateway -a 'http://user:password@localhost:8080' server revoke 'serveur_sftp' 'règle_1'

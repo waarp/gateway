@@ -14,4 +14,4 @@ Supprime le compte donné en paramètre de commande.
 
 .. code-block:: shell
 
-   waarp-gateway http://user:password@localhost:8080 account local serveur_sftp delete tata
+   waarp-gateway -a 'http://user:password@localhost:8080' account local 'serveur_sftp' delete 'tata'

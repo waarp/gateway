@@ -8,7 +8,7 @@ Lister les comptes d'un partenaire
 
 .. describe:: waarp-gateway account remote <PARTNER> list
 
-Affiche un liste des comptes remplissant les critères ci-dessous.
+Affiche un liste des comptes rattachés au partenaire donné.
 
 .. option:: -l <LIMIT>, --limit=<LIMIT>
 
@@ -31,4 +31,4 @@ Affiche un liste des comptes remplissant les critères ci-dessous.
 
 .. code-block:: shell
 
-   waarp-gateway -a http://user:password@remotehost:8080 account remote waarp_sftp list -l 10 -o 5 -s login-
+   waarp-gateway -a http://user:password@remotehost:8080 account remote 'waarp_sftp list' -l 10 -o 5 -s 'login-'

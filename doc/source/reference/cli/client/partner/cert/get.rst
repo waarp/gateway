@@ -15,4 +15,4 @@ certificat doivent être spécifiés en arguments de programme.
 
 .. code-block:: shell
 
-   waarp-gateway http://user:password@localhost:8080 partenaire cert waarp_sftp get cert_waarp
+   waarp-gateway -a 'http://user:password@localhost:8080' partner cert 'waarp_sftp' get 'waarp_hostkey'

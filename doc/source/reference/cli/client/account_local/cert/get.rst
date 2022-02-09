@@ -15,4 +15,4 @@ et du certificat doivent être spécifiés en arguments de programme.
 
 .. code-block:: shell
 
-   waarp-gateway http://user:password@localhost:8080 account local serveur_sftp cert tata get cert_sftp
+   waarp-gateway -a 'http://user:password@localhost:8080' account local 'serveur_sftp' cert 'tata' get 'key_tata'

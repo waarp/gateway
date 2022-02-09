@@ -48,6 +48,13 @@ Ajoute un nouveau serveur de transfert à la gateway avec les attributs fournis.
    une fois le transfert terminé. Peut être un chemin relatif au *root-dir*
    du serveur, ou bien absolu.
 
+.. option:: -c <KEY:VAL>, --config=<KEY:VAL>
+
+   La configuration protocolaire du serveur. Répéter pour chaque paramètre de la
+   configuration. Les options de la configuration varient en fonction du protocole
+   utilisé (voir :ref:`configuration protocolaire <reference-proto-config>` pour
+   plus de détails).
+
 .. option:: -r <ROOT>, --root=<ROOT>
 
    OBSOLÈTE: remplacé par l'option ``--root-dir``.
@@ -74,20 +81,10 @@ Ajoute un nouveau serveur de transfert à la gateway avec les attributs fournis.
 
    OBSOLÈTE: remplacé par l'option ``--tmp-dir``.
 
-   Le dossier temporaire du serveur. Peut être un chemin relatif ou absolu. Si
-   le chemin est relatif, il sera relatif à la racine du serveur.
-
-.. option:: -c <KEY:VAL>, --config=<KEY:VAL>
-
-   La configuration protocolaire du serveur. Répéter pour chaque paramètre de la
-   configuration. Les options de la configuration varient en fonction du protocole
-   utilisé (voir :ref:`configuration protocolaire <reference-proto-config>` pour
-   plus de détails).
-
 
 
 **Exemple**
 
 .. code-block:: shell
 
-   waarp-gateway http://user:password@localhost:8080 server add -n server_sftp -r /sftp/root -p sftp -a localhost:21 -c 'keyExchanges:["ecdh-sha2-nistp256"]'
+   waarp-gateway -a 'http://user:password@localhost:8080' server add -n 'server_sftp' -p 'sftp' -a 'localhost:21' --root-dir 'sftp/root' --config 'keyExchanges:["ecdh-sha2-nistp256"]'

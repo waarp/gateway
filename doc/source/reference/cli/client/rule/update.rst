@@ -37,23 +37,6 @@ Les attributs omis resteront inchangés.
    d'un transfert lorsque le protocole ne le permet pas. Par conséquent,
    ce chemin doit être unique.
 
-.. option:: -o <PATH>, --out_path=<PATH>
-
-   OBSOLÈTE: remplacé par les options ``--local-dir`` et ``--remote-dir``.
-
-   Le chemin source des fichiers transférés. Lorsqu'un transfert est créé,
-   le fichier sera cherché dans ce dossier. Ce chemin peut être laissé vide
-   si l'on ne souhaite pas que la règle ait un dossier source spécifique.
-
-.. option:: -i <PATH>, --in_path=<PATH>
-
-   OBSOLÈTE: remplacé par les options ``--local-dir`` et ``--remote-dir``.
-
-   Le chemin de destination des fichiers transférés. Une fois un transfert
-   terminé, le fichier est déposé dans ce dossier. Ce chemin peut être
-   laissé vide si l'on ne souhaite pas que la règle ait un dossier destination
-   spécifique.
-
 .. option:: --local-dir=<DIRECTORY>
 
    Le chemin du dossier local des fichiers transférés. Dans le cas d'une règle
@@ -69,6 +52,12 @@ Les attributs omis resteront inchangés.
    Dans le cas d'une règle de réception, ce dossier est utilisé comme source des
    fichiers. Ce chemin faisant partie d'un URI, il doit toujours être au format
    Unix standard.
+
+.. option:: --tmp-dir=<DIRECTORY>
+
+   Le chemin du dossier local temporaire des fichiers an cours de réception.
+   Par conséquent, ce dossier n'est utile que pour les règles de réception.
+   Le format du chemin dépend de l'OS de la *gateway*.
 
 .. option:: -r <TASK>, --pre=<TASK>
 
@@ -100,10 +89,22 @@ Les attributs omis resteront inchangés.
    *string* contenant la commande a exécuter, le second est un objet JSON
    contenant les arguments de la commande.
 
+.. option:: -o <PATH>, --out_path=<PATH>
+
+   OBSOLÈTE: remplacé par les options ``--local-dir`` et ``--remote-dir``.
+
+.. option:: -i <PATH>, --in_path=<PATH>
+
+   OBSOLÈTE: remplacé par les options ``--local-dir`` et ``--remote-dir``.
+
+.. option:: -w <PATH>, --work_path=<PATH>
+
+   OBSOLÈTE: remplacé par ``--tmp-dir``.
+
 |
 
 **Exemple**
 
 .. code-block:: shell
 
-   waarp-gateway http://user:password@localhost:8080 rule update règle_1 "send" -n "règle_1_new" -c "nouvelle règle de réception des fichiers avec SFTP" -p "/règle_1_new" -i "/règle_1_new/in" -o "/règle_1_new/out" --pre='{"type":"COPY","args":{"path":"chemin/copie"}}' --post='{"type":"DELETE","args":{}}' --err='{"type":"MOVE","args":{"path":"chemin/déplacement"}}'
+   waarp-gateway -a 'http://user:password@localhost:8080' rule update règle_1 'send' -n 'règle_1_new' -c 'nouvelle règle de réception des fichiers avec SFTP' -p '/règle_1_new' -i '/règle_1_new/in' -o '/règle_1_new/out' --pre '{"type":"COPY","args":{"path":"chemin/copie"}}' --post '{"type":"DELETE","args":{}}' --err '{"type":"MOVE","args":{"path":"chemin/déplacement"}}'

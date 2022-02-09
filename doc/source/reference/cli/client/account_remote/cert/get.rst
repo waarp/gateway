@@ -15,4 +15,4 @@ et du certificat doivent être spécifiés en arguments de programme.
 
 .. code-block:: shell
 
-   waarp-gateway http://user:password@localhost:8080 account remote waarp_sftp cert titi get cert_sftp
+   waarp-gateway -a 'http://user:password@localhost:8080' account remote 'waarp_sftp' cert 'titi' get 'key_titi'

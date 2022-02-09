@@ -26,24 +26,8 @@ Ajoute une nouvelle règle avec les attributs fournis ci-dessous.
 
    Le chemin associé à la règle. Ce chemin sert à identifier la règle lors
    d'un transfert lorsque le protocole ne le permet pas. Par conséquent,
-   ce chemin doit être unique.
-
-.. option:: -o <PATH>, --out_path=<PATH>
-
-   OBSOLÈTE: remplacé par les options ``--local-dir`` et ``--remote-dir``.
-
-   Le chemin source des fichiers transférés. Lorsqu'un transfert est créé,
-   le fichier sera cherché dans ce dossier. Ce chemin peut être laissé vide
-   si l'on ne souhaite pas que la règle ait un dossier source spécifique.
-
-.. option:: -i <PATH>, --in_path=<PATH>
-
-   OBSOLÈTE: remplacé par les options ``--local-dir`` et ``--remote-dir``.
-
-   Le chemin de destination des fichiers transférés. Une fois un transfert
-   terminé, le fichier est déposé dans ce dossier. Ce chemin peut être
-   laissé vide si l'on ne souhaite pas que la règle ait un dossier destination
-   spécifique.
+   ce chemin doit être unique. Par défaut, le nom de règle est utilisé comme
+   chemin.
 
 .. option:: --local-dir=<DIRECTORY>
 
@@ -60,6 +44,12 @@ Ajoute une nouvelle règle avec les attributs fournis ci-dessous.
    Dans le cas d'une règle de réception, ce dossier est utilisé comme source des
    fichiers. Ce chemin faisant partie d'un URI, il doit toujours être au format
    Unix standard.
+
+.. option:: --tmp-dir=<DIRECTORY>
+
+   Le chemin du dossier local temporaire des fichiers an cours de réception.
+   Par conséquent, ce dossier n'est utile que pour les règles de réception.
+   Le format du chemin dépend de l'OS de la *gateway*.
 
 .. option:: -r <TASK>, --pre=<TASK>
 
@@ -91,10 +81,35 @@ Ajoute une nouvelle règle avec les attributs fournis ci-dessous.
    *string* contenant la commande a exécuter, le second est un objet JSON
    contenant les arguments de la commande.
 
+.. option:: -o <PATH>, --out_path=<PATH>
+
+   OBSOLÈTE: remplacé par les options ``--local-dir`` et ``--remote-dir``.
+
+   Le chemin source des fichiers transférés. Lorsqu'un transfert est créé,
+   le fichier sera cherché dans ce dossier. Ce chemin peut être laissé vide
+   si l'on ne souhaite pas que la règle ait un dossier source spécifique.
+
+.. option:: -i <PATH>, --in_path=<PATH>
+
+   OBSOLÈTE: remplacé par les options ``--local-dir`` et ``--remote-dir``.
+
+   Le chemin de destination des fichiers transférés. Une fois un transfert
+   terminé, le fichier est déposé dans ce dossier. Ce chemin peut être
+   laissé vide si l'on ne souhaite pas que la règle ait un dossier destination
+   spécifique.
+
+.. option:: -w <PATH>, --work_path=<PATH>
+
+   OBSOLÈTE: remplacé par ``--tmp-dir``.
+
+   Le chemin du dossier local temporaire des fichiers an cours de réception.
+   Ce chemin peut être laissé vide si l'on ne souhaite pas que la règle ait un
+   dossier destination spécifique.
+
 |
 
 **Exemple**
 
 .. code-block:: shell
 
-   waarp-gateway http://user:password@localhost:8080 rule add -n "règle_1" -c "règle de réception des fichiers avec SFTP" -d "receive" -p "/règle_1" -i "/règle_1/in" -o "/règle_1/out"  -r '{"type":"COPY","args":{"path":"chemin/copie"}}' -s '{"type":"DELETE","args":{}}' -e '{"type":"MOVE","args":{"path":"chemin/déplacement"}}'
+   waarp-gateway -a 'http://user:password@localhost:8080' rule add -n 'règle_1' -c 'règle de réception des fichiers avec SFTP' -d 'receive' -p '/règle_1' -i '/règle_1/in' -o '/règle_1/out'  --pre '{"type":"COPY","args":{"path":"chemin/copie"}}' --post '{"type":"DELETE","args":{}}' --err '{"type":"MOVE","args":{"path":"chemin/déplacement"}}'

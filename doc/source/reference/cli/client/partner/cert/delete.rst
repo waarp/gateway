@@ -15,4 +15,4 @@ Supprime le certificat demandé. Les noms du partenaire et du certificat doivent
 
 .. code-block:: shell
 
-   waarp-gateway http://user:password@localhost:8080 partner cert waarp_sftp delete cert_waarp
+   waarp-gateway -a 'http://user:password@localhost:8080' partner cert 'waarp_sftp' delete 'waarp_hostkey'

@@ -27,6 +27,7 @@ omis restent inchangés.
    * **P** pour les partenaires distants
    * **R** pour les règles de transfert
    * **U** pour les utilisateurs
+   * **A** pour l'administration de la *gateway*
 
    Il existe 3 permissions pour chaque cible:
 
@@ -54,4 +55,4 @@ la suivante.
 
 .. code-block:: shell
 
-   waarp-gateway http://user:password@localhost:8080 user update toto -u 'toto2' -p 'sésame2' -r 'R-d,U+rw'
+   waarp-gateway -a 'http://user:password@localhost:8080' user update 'toto' -u 'toto2' -p 'sésame2' -r 'R-d,U+rw'

@@ -61,6 +61,13 @@ Les attributs omis resteront inchangés.
    le chemin est relatif, il sera relatif à la racine de la *gateway* renseignée
    dans le fichier de configuration.
 
+.. option:: -c <KEY:VAL>, --config=<KEY:VAL>
+
+   La configuration protocolaire du serveur. Répéter pour chaque paramètre de la
+   configuration. Les options de la configuration varient en fonction du protocole
+   utilisé (voir :ref:`configuration protocolaire <reference-proto-config>` pour
+   plus de détails).
+
 .. option:: -i <IN_DIR>, --in=<IN_DIR>
 
    OBSOLÈTE: remplacé par l'option ``--receive-dir``.
@@ -82,17 +89,10 @@ Les attributs omis resteront inchangés.
    Le dossier temporaire du serveur. Peut être un chemin relatif ou absolu. Si
    le chemin est relatif, il sera relatif à la racine du serveur.
 
-.. option:: -c <KEY:VAL>, --config=<KEY:VAL>
-
-   La configuration protocolaire du serveur. Répéter pour chaque paramètre de la
-   configuration. Les options de la configuration varient en fonction du protocole
-   utilisé (voir :ref:`configuration protocolaire <reference-proto-config>` pour
-   plus de détails).
-
 |
 
 **Exemple**
 
 .. code-block:: shell
 
-   waarp-gateway http://user:password@localhost:8080 server update serveur_sftp -n server_sftp_new -a localhost:22 -r /sftp/root_new -i in -o out -w work -p sftp
+   waarp-gateway -a 'http://user:password@localhost:8080' server update 'serveur_sftp' -n 'server_sftp_new' -a 'localhost:22' --root-dir 'sftp/root_new'

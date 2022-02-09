@@ -4,7 +4,7 @@ Afficher un transfert
 
 .. program:: waarp-gateway transfer get
 
-.. describe:: waarp-gateway transfer get <TRANS>
+.. describe:: waarp-gateway transfer get <TRANSFER_ID>
 
 Affiche les informations du transfert demandé.
 
@@ -14,4 +14,4 @@ Affiche les informations du transfert demandé.
 
 .. code-block:: shell
 
-   waarp-gateway http://user:password@localhost:8080 transfer get 1234
+   waarp-gateway -a 'http://user:password@localhost:8080' transfer get 1234

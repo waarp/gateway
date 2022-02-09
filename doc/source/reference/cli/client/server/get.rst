@@ -14,4 +14,4 @@ Affiche les informations du serveur donné en paramètre de commande.
 
 .. code-block:: shell
 
-   waarp-gateway http://user:password@localhost:8080 server get serveur_sftp
+   waarp-gateway -a 'http://user:password@localhost:8080' server get 'serveur_sftp'

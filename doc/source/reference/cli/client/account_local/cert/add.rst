@@ -12,18 +12,16 @@ Attache un nouveau certificat au compte donné à partir des informations rensei
 
    Le nom du certificat. Doit être unique pour le compte concerné.
 
-.. option:: -p <PRIV_KEY>, --private_key=<PRIV_KEY>
+.. option:: -c <CERT>, --certificate=<CERT>
 
-   Le chemin vers le fichier contenant la clé privée du certificat.
+   Le chemin vers le fichier contenant le certificat TLS du client, avec
+   la chaîne de certification complète en format PEM. Mutuellement exclusif avec
+   l'option `-b` (ou `--public_key`).
 
 .. option:: -b <PUB_KEY>, --public_key=<PUB_KEY>
 
-   Le chemin vers le fichier contenant la clé publique du certificat.
-
-.. option:: -c <CERT>, --certificate=<CERT>
-
-   Le chemin vers le fichier contenant le certificat du compte, avec
-   la chaîne de certification complète.
+   Le chemin vers le fichier contenant la clé publique SSH du client en format
+   *authorized_key*. Mutuellement exclusif avec l'option `-c` (ou `--certificate`).
 
 |
 
@@ -31,4 +29,4 @@ Attache un nouveau certificat au compte donné à partir des informations rensei
 
 .. code-block:: shell
 
-   waarp-gateway http://user:password@localhost:8080 account local serveur_sftp cert tata add -n cert_tata -p /tata.pub -b /tata.key -c /tata.pem
+   waarp-gateway -a 'http://user:password@localhost:8080' account local 'serveur_sftp' cert 'tata' add -n 'key_tata' -b './tata.pub'

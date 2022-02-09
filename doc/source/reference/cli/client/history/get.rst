@@ -15,4 +15,4 @@ paramètre de commande.
 
 .. code-block:: shell
 
-   waarp-gateway http://user:password@localhost:8080 history get 1234
+   waarp-gateway -a 'http://user:password@localhost:8080' history get 1234

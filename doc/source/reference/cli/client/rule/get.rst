@@ -14,4 +14,4 @@ Affiche les informations de la règle donnée en paramètre de commande.
 
 .. code-block:: shell
 
-   waarp-gateway http://user:password@localhost:8080 rule get "règle_1" "send"
+   waarp-gateway -a 'http://user:password@localhost:8080' rule get 'règle_1' 'send'
