@@ -210,6 +210,3 @@ dossier par défaut du service qui est utilisé :
    
    Plus d'informations sur la :ref:`gestion des dossiers <_gestion_dossiers>`.
 
-.. todo::  link n'existe pas
-
-

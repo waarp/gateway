@@ -8,4 +8,5 @@ Ce guide regroupe plusieurs rubriques expliquant comment utiliser la *gateway*.
    :maxdepth: 3
 
    usage
+   service
    backup

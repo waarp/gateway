@@ -31,9 +31,7 @@ Vous pouvez vérifier que le service a bien démarré avec la commande
 
    Pour plus d'information sur la gestion du service, ou savoir comment procéder
    si l'installation n'a pas été faite avec les dépôts ou les packages,
-   consultez la page :any:`gestion du service <service-management>`.
-
-.. todo:: Créer une page "gestion du service"
+   consultez la page :any:`gestion du service <service_management>`.
 
 Un autre moyen de savoir si le service est bien démarré est d'utiliser le client
 en ligne de commande (nommé après "le client").

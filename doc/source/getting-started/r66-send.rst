@@ -64,12 +64,14 @@ Ajouter une entrée sous la forme suivante :
    configuration :
 
    .. code-block:: shell-session
+
       $ ./bin/waarp-password.sh -ki "./etc/certs/cryptokey.des" -pwd "$PASSWORD" -po "/dev/null"
 
 Une fois le fichier sauvegardé, rechargez la configuration de *Waarp-R66* avec
 la commande suivante :
 
 .. code-block:: shell-session
+
    $ ./bin/waarp-r66client.sh r66_server loadconf
 
 C'est suffisant, on va maintenant pouvoir se connecter au serveur ``r66_server``

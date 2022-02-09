@@ -50,9 +50,6 @@ Waarp Gateway supporte également les serveurs de base de données MySQL et
 PostgreSQL. Pour utiliser ces serveurs comme base de données, les étapes
 suivantes sont requises :
 
-.. todo::
-   Quand est il d'oracle DB
-
 1) Créer une base de données vierge sur le serveur. Une base déjà existante
 peut être utilisée, mais cela n'est pas recommandé.
 
@@ -86,20 +83,6 @@ Pour fonctionner, la *gateway* nécessite un fichier de configuration en format
 .. code-block:: shell
 
    waarp-gatewayd server -n -c chemin/de/la/configuration.ini
-
-.. todo::
-  Le fichiers généré contients les champs suivants
-
-   ; DEPRECATED, use DefaultInDir instead
-   ; InDirectory =
-
-   ; DEPRECATED, use DefaultOutDir instead
-   ; OutDirectory =
-
-   ; DEPRECATED, use DefaultTmpDir instead
-   ; WorkDirectory =
-   
-   Doivent ils être présents ?
 
 
 .. note::
