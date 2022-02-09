@@ -4,6 +4,8 @@ Historique des versions
 =======================
 
 * :release:`0.5.0 <>`
+* :bug:`301` Correction d'une erreur de création des dossiers in/out/temp au lancement
+  de la gateway.
 * :feature:`300` Correction d'une erreur du client terminal dans la commande de
   création et de mise à jour des règles de transfert. Si le JSON définissant une
   tâche était invalide, celui-ci était ignoré au lieu qu'une erreur soit levée,
