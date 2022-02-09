@@ -104,7 +104,7 @@ func parseTasks(rule *api.UptRule, pre, post, errs []string) error {
 		preDecoder := json.NewDecoder(strings.NewReader("[" + strings.Join(pre, ",") + "]"))
 		preDecoder.DisallowUnknownFields()
 
-		if err := preDecoder.Decode(&rule.PreTasks); err != nil && errors.Is(err, io.EOF) {
+		if err := preDecoder.Decode(&rule.PreTasks); err != nil && !errors.Is(err, io.EOF) {
 			return fmt.Errorf("invalid pre task: %w", err)
 		}
 	}
@@ -113,7 +113,7 @@ func parseTasks(rule *api.UptRule, pre, post, errs []string) error {
 		postDecoder := json.NewDecoder(strings.NewReader("[" + strings.Join(post, ",") + "]"))
 		postDecoder.DisallowUnknownFields()
 
-		if err := postDecoder.Decode(&rule.PostTasks); err != nil && errors.Is(err, io.EOF) {
+		if err := postDecoder.Decode(&rule.PostTasks); err != nil && !errors.Is(err, io.EOF) {
 			return fmt.Errorf("invalid post task: %w", err)
 		}
 	}
@@ -122,7 +122,7 @@ func parseTasks(rule *api.UptRule, pre, post, errs []string) error {
 		errDecoder := json.NewDecoder(strings.NewReader("[" + strings.Join(errs, ",") + "]"))
 		errDecoder.DisallowUnknownFields()
 
-		if err := errDecoder.Decode(&rule.ErrorTasks); err != nil && errors.Is(err, io.EOF) {
+		if err := errDecoder.Decode(&rule.ErrorTasks); err != nil && !errors.Is(err, io.EOF) {
 			return fmt.Errorf("invalid error task: %w", err)
 		}
 	}

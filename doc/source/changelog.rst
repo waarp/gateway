@@ -4,6 +4,11 @@ Historique des versions
 =======================
 
 * :release:`0.5.0 <>`
+* :feature:`300` Correction d'une erreur du client terminal dans la commande de
+  création et de mise à jour des règles de transfert. Si le JSON définissant une
+  tâche était invalide, celui-ci était ignoré au lieu qu'une erreur soit levée,
+  et la règle était simplement ajoutée sans cette tâche. Désormais, un JSON de
+  tâche invalide produira une erreur comme attendu.
 * :feature:`268` Ajout d'un fichier *override* permettant à une instance de
   *gateway* au sein d'une grappe d'écraser localement certaines parties de la
   configuration globale de la grappe (voir :ref:`la documentation<reference-conf-override>`
