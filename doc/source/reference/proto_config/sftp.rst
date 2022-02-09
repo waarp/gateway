@@ -6,21 +6,8 @@ Configuration SFTP
 L'objet JSON de configuration du protocole SFTP est identique pour les serveurs
 et les partenaires. Les options disponibles sont les suivantes :
 
-address
-   :type: string
-
-   L'adresse du serveur SFTP (local ou distant).
-
-port
-   :type: integer
-
-   Le port utilisé par le serveur SFTP.
-
-keyExchanges
-   :type: array of string
-
-   Liste des algorithmes d'échange de clé autorisés sur le serveur. Les
-   algorithmes supportés sont :
+* **keyExchanges** (*array of string*) - *Optionnel* Liste des algorithmes d'échange de clé
+  autorisés sur le serveur. Les algorithmes supportés sont :
 
    - ``diffie-hellman-group1-sha1``
    - ``diffie-hellman-group14-sha1``
@@ -31,11 +18,8 @@ keyExchanges
 
    Par défaut, tous les algorithmes sont autorisés.
 
-ciphers
-   :type: array of string
-
-   Liste des algorithmes de cryptage symétrique de données autorisés sur le
-   serveur. Les algorithmes supportés sont :
+* **ciphers** (*array of string*) - *Optionnel* Liste des algorithmes de cryptage symétrique 
+  de données autorisés sur le serveur. Les algorithmes supportés sont :
 
    - ``aes128-gcm@openssh.com``
    - ``aes128-ctr``
@@ -45,11 +29,8 @@ ciphers
 
    Par défaut, tous les algorithmes sont autorisés.
 
-macs
-   :type: array of string
-
-   Liste des algorithmes d'authentification de message (MAC) autorisés sur le
-   serveur. Les algorithmes supportés sont :
+* **macs** (*array of string*) -  *Optionnel* Liste des algorithmes d'authentification de message 
+  (MAC) autorisés sur le serveur. Les algorithmes supportés sont :
 
    - ``hmac-sha2-256-etm@openssh.com``
    - ``hmac-sha2-256``
