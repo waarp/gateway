@@ -8,6 +8,7 @@ import (
 	"fmt"
 	"os"
 	"os/signal"
+	"path/filepath"
 	"sync"
 	"syscall"
 	"time"
@@ -44,6 +45,14 @@ func NewWG() *WG {
 	}
 }
 
+func getDir(dir, home string) string {
+	if filepath.IsAbs(dir) {
+		return dir
+	}
+
+	return filepath.Join(home, dir)
+}
+
 func (wg *WG) makeDirs() error {
 	config := &conf.GlobalConfig.Paths
 
@@ -51,15 +60,15 @@ func (wg *WG) makeDirs() error {
 		return fmt.Errorf("failed to create gateway home directory: %w", err)
 	}
 
-	if err := os.MkdirAll(config.DefaultInDir, 0o744); err != nil {
+	if err := os.MkdirAll(getDir(config.DefaultInDir, config.GatewayHome), 0o744); err != nil {
 		return fmt.Errorf("failed to create gateway in directory: %w", err)
 	}
 
-	if err := os.MkdirAll(config.DefaultOutDir, 0o744); err != nil {
+	if err := os.MkdirAll(getDir(config.DefaultOutDir, config.GatewayHome), 0o744); err != nil {
 		return fmt.Errorf("failed to create gateway out directory: %w", err)
 	}
 
-	if err := os.MkdirAll(config.DefaultTmpDir, 0o744); err != nil {
+	if err := os.MkdirAll(getDir(config.DefaultTmpDir, config.GatewayHome), 0o744); err != nil {
 		return fmt.Errorf("failed to create gateway work directory: %w", err)
 	}
 
