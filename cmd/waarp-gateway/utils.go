@@ -66,6 +66,8 @@ func getPermTarget(c rune, perm *api.Perms) *string {
 		return &perm.Rules
 	case 'U':
 		return &perm.Users
+	case 'A':
+		return &perm.Administration
 	default:
 		return nil
 	}

@@ -15,4 +15,4 @@ de *gateway* interrogée.
 
 .. code-block:: shell
 
-   waarp-gateway http://user:password@localhost:8080 override address list
+   waarp-gateway -a 'http://user:password@localhost:8080' override address list

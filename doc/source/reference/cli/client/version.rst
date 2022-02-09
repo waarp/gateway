@@ -5,7 +5,7 @@
 
 .. program:: waarp-gateway version
 
-``waarp-gateway version`` affiche les information de version du serveur.
+``waarp-gateway version`` affiche les information de version du client.
 
 Elle accepte les options suivantes :
 

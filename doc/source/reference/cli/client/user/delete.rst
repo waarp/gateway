@@ -14,4 +14,4 @@ Supprime l'utilisateur donné en paramètre.
 
 .. code-block:: shell
 
-   waarp-gateway http://user:password@localhost:8080 user delete toto
+   waarp-gateway -a 'http://user:password@localhost:8080' user delete 'toto'

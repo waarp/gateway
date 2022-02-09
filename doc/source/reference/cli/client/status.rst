@@ -16,4 +16,4 @@ rattachés à celle-ci.
 
 .. code-block:: shell
 
-   waarp-gateway http://user:password@localhost:8080 status
+   waarp-gateway -a 'http://user:password@localhost:8080' status

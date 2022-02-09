@@ -14,18 +14,15 @@ resteront inchangés.
 
    Le nom du certificat. Doit être unique pour un compte donné.
 
-.. option:: -p <PRIV_KEY>, --private_key=<PRIV_KEY>
-
-   Le chemin vers le fichier contenant la clé privée du certificat.
-
-.. option:: -b <PUB_KEY>, --public_key=<PUB_KEY>
-
-   Le chemin vers le fichier contenant la clé publique du certificat.
-
 .. option:: -c <CERT>, --certificate=<CERT>
 
-   Le chemin vers le fichier contenant le certificat du compte, avec
-   la chaîne de certification complète.
+   Le chemin vers le fichier contenant le certificat TLS du serveur, avec
+   la chaîne de certification complète en format PEM.
+
+.. option:: -p <PRIV_KEY>, --private_key=<PRIV_KEY>
+
+   Le chemin vers le fichier contenant la clé privée (TLS ou SSH) de l'agent,
+   en format PEM.
 
 |
 
@@ -33,4 +30,4 @@ resteront inchangés.
 
 .. code-block:: shell
 
-   waarp-gateway http://user:password@localhost:8080 account remote waarp_sftp cert titi update cert_titi -n cert_titi2 -p /titi2.pub -b titi2.key -c titi2.pem
+   waarp-gateway -a 'http://user:password@localhost:8080' account remote 'waarp_sftp' cert 'titi' update 'key_titi' -n 'key_titi2' -p './titi2.key'

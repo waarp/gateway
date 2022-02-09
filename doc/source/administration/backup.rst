@@ -24,8 +24,8 @@ Les options suivantes sont requises pour que la commande puisse s'exécuter :
   de connexion à la base de données).
 - ``-f``: le nom du fichier vers lequel les données seront exportées (par défaut
   le fichier sera nommé ``waarp-gateway-export.json``).
-- ``-t``: la liste des éléments à exporter sous forme d'une liste séparée par
-  des virgules. Les valeurs acceptées sont ``rules``, ``servers``, ``partners``
+- ``-t``: les éléments à exporter, l'option peut être répétée pour exporter plusieurs 
+  éléments. Les valeurs acceptées sont ``rules``, ``servers``, ``partners``
   ou ``all``.
 
 Par exemple, la commande suivante exporte les serveurs et les partenaires de la
@@ -33,7 +33,7 @@ Par exemple, la commande suivante exporte les serveurs et les partenaires de la
 
 .. code-block:: shell
 
-   waarp gatewayd export -c 'waarp-gateway.ini' -f 'gateway_backup.json' -t 'servers,partners'
+   waarp-gatewayd export -c 'waarp-gateway.ini' -f 'gateway_backup.json' -t 'servers' -t 'partners'
 
 
 Import
@@ -47,8 +47,8 @@ La commande requiert les options suivantes :
 - ``-c``: le fichier de configuration de la *gateway* (contient les informations
   de connexion à la base de données).
 - ``-s``: le fichier source de l'import.
-- ``-t``: la liste des éléments à importer sous forme d'une liste séparée par
-  des virgules, les valeurs acceptées sont ``rules``, ``servers``, ``partners``
+- ``-t``: les éléments à importer. L'option peut être répétée pour importer plusieurs 
+  éléments, les valeurs acceptées sont ``rules``, ``servers``, ``partners``
   ou ``all``.
 
 Par exemple, la commande suivante importe les serveurs et les partenaires depuis
@@ -56,7 +56,7 @@ le fichier ``gateway_backup.json`` et les insère dans la base de données :
 
 .. code-block:: shell
 
-   waarp-gatewayd import -c 'waarp-gateway.ini' -s 'gateway_backup.json' -t 'servers,partners'
+   waarp-gatewayd import -c 'waarp-gateway.ini' -s 'gateway_backup.json' -t 'servers' -t 'partners'
 
 
 La commande ``import`` inclue également une option ``-d`` ou ``--dry-run``

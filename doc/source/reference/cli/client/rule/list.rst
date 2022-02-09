@@ -30,4 +30,4 @@ Affiche une liste de toutes les règles remplissant les critères ci-dessous.
 
 .. code-block:: shell
 
-   waarp-gateway http://user:password@localhost:8080 rule list 1 -l 10 -o 5 -s name-
+   waarp-gateway -a 'http://user:password@localhost:8080' rule list -l 10 -o 5 -s 'name-'

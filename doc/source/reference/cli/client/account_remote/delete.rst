@@ -14,4 +14,4 @@ Supprime le compte donné en paramètre de commande.
 
 .. code-block:: shell
 
-   waarp-gateway http://user:password@remotehost:8080 account remote waarp_sftp delete titi
+   waarp-gateway -a http://user:password@remotehost:8080 account remote 'waarp_sftp' delete 'titi'

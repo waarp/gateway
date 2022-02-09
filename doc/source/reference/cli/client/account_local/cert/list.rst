@@ -29,4 +29,4 @@ Affiche les informations des certificats du compte suivant les critères donnés
 
 .. code-block:: shell
 
-   waarp-gateway http://user:password@localhost:8080 account local serveur_sftp cert tata list -l 10 -o 5 -s name-
+   waarp-gateway -a 'http://user:password@localhost:8080' account local 'serveur_sftp' cert 'tata' list -l 10 -o 5 -s 'name-'

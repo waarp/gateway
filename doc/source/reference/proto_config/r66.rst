@@ -3,18 +3,48 @@
 Configuration R66
 #################
 
-L'objet JSON de configuration du protocole SFTP est identique pour les serveurs
-et les partenaires. Sa structure est la suivante :
+La structure de l'objet JSON de configuration du protocole R66 pour un client est 
+la suivante :
 
-* **BlockSize** (*number*) - *Optionnel* La taille (en octets) d'un bloc de
-  données R66. Par défaut 65536.
-* **ServerPassword** (*string*) - Le mot de passe du serveur/partenaire R66.
+* **serverLogin** (*string*) - Le login du partenaire R66.
+* **ServerPassword** (*string*) - Le mot de passe du partenaire R66.
+* **IsTLS** (*boolean*) - *Optionnel* Si le partenaire utilise TLS. Par défaut faux.
+* **BlockSize** (*number*) - *Optionnel* La taille (en octets) d'un bloc de données R66. 
+  Par défaut 65536.
+* **NoFinalHash** (*boolean*) - *Optionnel* Si un contrôle de hash est demandé après le
+  transfert d'un fichier. Par défaut faux.
+* **CheckBlockHash** (*boolean*) - *Optionnel* Si un contrôle de hash est demandé 
+  sur chaque bloc du fichier transféré. Par défaut faux.
 
 **Exemple**
 
 .. code-block:: json
 
    {
-     "blockSize":
-     "macs":
+     "blockSize": 1234,
+     "serverLogin": "test",
+     "serverPassword": "password",
+   }
+
+La structure de l'objet JSON de configuration du protocole R66 pour un serveur est 
+la suivante :
+
+* **ServerPassword** (*string*) - Le mot de passe du server R66.
+
+* **IsTLS** (*boolean*) - *Optionnel* Si le server utilise TLS. Par défaut faux.
+
+* **BlockSize** (*number*) - *Optionnel* La taille (en octets) maximum d'un bloc de 
+  données R66. Par défaut 65536.
+
+* **NoFinalHash** (*boolean*) - *Optionnel* Si le serveur contrôle le hash du fichier 
+  après le transfert. Par défaut faux.
+
+**Exemple**
+
+.. code-block:: json
+
+   {
+     "blockSize": 1234,
+     "serverPassword": "password",
+     "noFilalHash": true,
    }

@@ -38,7 +38,7 @@ ajoutons au serveur SFTP :
 
 .. code-block:: shell-session
 
-   # ssh-keygen -t rsa -b 4096 -f gateway-sftp -N "" -C "Waarp Gateway SFTP server"
+   # ssh-keygen -t ssh-ed25519 -b 4096 -f gateway-sftp -N "" -C "Waarp Gateway SFTP server"
    Generating public/private rsa key pair.
    Your identification has been saved in gateway-sftp.
    Your public key has been saved in gateway-sftp.pub.
@@ -57,7 +57,7 @@ ajoutons au serveur SFTP :
    |           .o    |
    +----[SHA256]-----+
 
-   # waarp-gateway server cert "sftp_server" add --name "sftp_hostkey" --private_key "./gateway-sftp" --public_key "./gateway-sftp.pub"
+   # waarp-gateway server cert "sftp_server" add --name "sftp_hostkey" --private_key "./gateway-sftp"
    The certificate sftp_server was successfully added.
 
 Le serveur SFTP est maintenant créé mais n'est pas actif. Comme la Gateway doit
@@ -208,6 +208,5 @@ dossier par défaut du service qui est utilisé :
 
 .. seealso::
    
-   Plus d'informations sur la :any:`gestion des dossiers <gestion_dossiers>`.
-
+   Plus d'informations sur la :ref:`gestion des dossiers <_gestion_dossiers>`.
 

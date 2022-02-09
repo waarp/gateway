@@ -15,4 +15,4 @@ certificat doivent être spécifiés en arguments de programme.
 
 .. code-block:: shell
 
-   waarp-gateway http://user:password@localhost:8080 serveur cert gw_r66 get cert_r66
+   waarp-gateway -a 'http://user:password@localhost:8080' serveur cert 'gw_r66' get 'cert_r66'

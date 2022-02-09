@@ -22,4 +22,4 @@ Attache un nouveau compte au serveur donné à partir des informations renseign�
 
 .. code-block:: shell
 
-   waarp-gateway http://user:password@localhost:8080 account local serveur_sftp add -l tata -p password
+   waarp-gateway -a 'http://user:password@localhost:8080' account local 'serveur_sftp' add -l 'tata' -p 'password'

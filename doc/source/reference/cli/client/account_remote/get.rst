@@ -6,7 +6,7 @@ Afficher un compte distant
 
 .. describe:: waarp-gateway account remote <PARTNER> get <LOGIN>
 
-Affiche les informations du compte donné en paramètre de commande.
+Affiche les informations du compte demandé en paramètre de commande.
 
 |
 
@@ -14,4 +14,4 @@ Affiche les informations du compte donné en paramètre de commande.
 
 .. code-block:: shell
 
-   waarp-gateway http://user:password@remotehost:8080 account remote waarp_sftp get titi
+   waarp-gateway -a http://user:password@remotehost:8080 account remote 'waarp_sftp' get 'titi'

@@ -84,6 +84,7 @@ Pour fonctionner, la *gateway* nécessite un fichier de configuration en format
 
    waarp-gatewayd server -n -c chemin/de/la/configuration.ini
 
+
 .. note::
    Bien qu'il soit possible d'utiliser la Gateway avec la configuration par
    défaut, il est fortement recommandé de consulter le détail du

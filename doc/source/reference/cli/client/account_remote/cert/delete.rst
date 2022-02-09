@@ -15,4 +15,4 @@ doivent être spécifiés en arguments de programme.
 
 .. code-block:: shell
 
-   waarp-gateway http://user:password@localhost:8080 account remote waarp_sftp cert titi delete cert_titi
+   waarp-gateway -a 'http://user:password@localhost:8080' account remote 'waarp_sftp' cert 'titi' delete 'key_titi'

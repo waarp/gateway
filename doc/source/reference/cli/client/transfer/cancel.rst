@@ -4,7 +4,7 @@ Annuler un transfert
 
 .. program:: waarp-gateway transfer cancel
 
-.. describe:: waarp-gateway transfer cancel <TRANS>
+.. describe:: waarp-gateway transfer cancel <TRANSFER_ID>
 
 Annule le transfert donné. Une fois annulé, le transfert est déplacé dans
 l'historique.
@@ -15,4 +15,4 @@ l'historique.
 
 .. code-block:: shell
 
-   waarp-gateway http://user:password@localhost:8080 transfer cancel 1234
+   waarp-gateway -a 'http://user:password@localhost:8080' transfer cancel 1234

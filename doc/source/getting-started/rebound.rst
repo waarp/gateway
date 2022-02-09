@@ -61,9 +61,7 @@ avec la commande suivante :
 
    La liste des substitutions est consultable :any:`ici <reference-tasks-substitutions>`
 
-.. todo::
-
-   - ajouter une page sur les substitutions
+.. todo:: ajouter une page sur les substitutions
 
 
 Test de transfert

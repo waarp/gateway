@@ -16,4 +16,4 @@ règle être spécifié en argument de programme.
 
 .. code-block:: shell
 
-   waarp-gateway http://user:password@localhost:8080 rule allow règle_1
+   waarp-gateway -a 'http://user:password@localhost:8080' rule allow 'règle_1'

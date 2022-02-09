@@ -14,4 +14,4 @@ Supprime le partenaire donné en paramètre.
 
 .. code-block:: shell
 
-   waarp-gateway http://user:password@localhost:8080 partner delete partenaire_sftp
+   waarp-gateway -a 'http://user:password@localhost:8080' partner delete 'partenaire_sftp'

@@ -22,4 +22,4 @@ Ajoute un nouveau compte sur le partenaire donné avec les identifiants ci-desso
 
 .. code-block:: shell
 
-   waarp-gateway http://user:password@remotehost:8080 account remote waarp_sftp add -l titi -p password
+   waarp-gateway -a http://user:password@remotehost:8080 account remote 'waarp_sftp' add -l 'titi' -p 'password'

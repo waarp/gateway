@@ -26,6 +26,7 @@ Ajoute un nouvel utilisateur avec les identifiants donnés.
    * **P** pour les partenaires distants
    * **R** pour les règles de transfert
    * **U** pour les utilisateurs
+   * **A** pour l'administration de la *gateway*
 
    Il existe 3 permissions pour chaque cible:
 
@@ -55,4 +56,4 @@ serveurs/partenaires, et d'ajouter/supprimer des règles; la syntaxe est la suiv
 
 .. code-block:: shell
 
-   waarp-gateway http://user:password@localhost:8080 user add -u 'toto' -p 'sésame' -r 'T=rw,S=r,P=r,R=rwd'
+   waarp-gateway -a 'http://user:password@localhost:8080' user add -u 'toto' -p 'sésame' -r 'T=rw,S=r,P=r,R=rwd'

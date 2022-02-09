@@ -14,12 +14,22 @@ suivantes doivent être fournies:
 
 - ``-u``: le nom de l'utilisateur
 - ``-p``: le mot de passe
+- ``-r``: les droits de l'utilisateur sur les éléments de la gateway. L'option peut 
+  être répété pour donner des droits sur plusieurs éléments. Les valeurs acceptées sont
+  ``U`` pour les utilisateurs, ``S`` pour les serveurs, ``P`` pour les partenaires``,
+  ``R`` pour les règles, ``T`` pour les transferts. Chacune de ces valeurs doit être 
+  suivie de ``r`` pour authoriser la consultation, ``w`` pour authoriser la modification, 
+  ``d`` pour authoriser la suppression.
+
 
 **Exemple**
 
+La commande si dessous créer l'utilisateur `toto` avec le mot de passe `papa` et lui donne le droit de consulter et de modifier les transferts.
+Ainsi que de consulter, modifier et supprimer les règles de transfert.
+
 .. code-block:: shell
 
-   waarp-gateway 'https://admin@127.0.0.1:8080' user add -u 'toto' -p 'sésame'
+   waarp-gateway -a 'https://admin@127.0.0.1:8080' user add -u 'toto' -p 'sésame' -r 'Twr' -r 'Rwrd'
 
 
 Modifier un utilisateur
@@ -34,7 +44,7 @@ ou plusieurs options pour faire une mise à jour partielle.
 
 .. code-block:: shell
 
-   waarp-gateway 'https://admin@127.0.0.1:8080' user update 'toto' -p 'sésame2'
+   waarp-gateway -a 'https://admin@127.0.0.1:8080' user update 'toto' -p 'sésame2'
 
 
 Consulter les utilisateurs

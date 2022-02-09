@@ -14,4 +14,4 @@ Supprime la règle donnée en paramètre.
 
 .. code-block:: shell
 
-   waarp-gateway http://user:password@localhost:8080 rule delete règle_1
+   waarp-gateway -a 'http://user:password@localhost:8080' rule delete 'règle_1'

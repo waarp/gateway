@@ -18,7 +18,6 @@ Voici les fonctionnalités qui ont déjà été implémentées dans la *Gateway*
 Les fonctionnalités R66 suivantes ne sont **pas** implémentées pour l'instant :
 
 - Listing des fichiers (par règle)
-- Listing des règles (par fichier)
 - Export/import de configuration via R66
 - Gestion à distance des limites de bande passante
 - Blocage de nouvelles requêtes entrantes

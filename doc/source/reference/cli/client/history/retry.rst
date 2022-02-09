@@ -22,4 +22,4 @@ argument de commande. Seuls les transferts ayant échoué peuvent être retenté
 
 .. code-block:: shell
 
-   waarp-gateway http://user:password@localhost:8080 history restart 1234
+   waarp-gateway -a 'http://user:password@localhost:8080' history restart 1234
