@@ -63,9 +63,10 @@ func (s *sessionHandler) ValidRequest(req *r66.Request) (r66.TransferHandler, er
 	// TODO: add transfer info to DB
 
 	r66Pip := &serverTransfer{
-		conf:  s.conf,
-		pip:   pip,
-		store: utils.NewErrorStorage(),
+		r66Conf: s.r66Conf,
+		conf:    s.conf,
+		pip:     pip,
+		store:   utils.NewErrorStorage(),
 	}
 
 	s.runningTransfers.Add(trans.ID, r66Pip)

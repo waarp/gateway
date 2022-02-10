@@ -1,6 +1,7 @@
 package testhelpers
 
 import (
+	"fmt"
 	"net"
 
 	"github.com/smartystreets/goconvey/convey"
@@ -16,4 +17,9 @@ func GetFreePort(c convey.C) uint16 {
 	c.So(l.Close(), convey.ShouldBeNil)
 
 	return port
+}
+
+// GetLocalAddress returns a local address ready to be used for a test server.
+func GetLocalAddress(c convey.C) string {
+	return fmt.Sprintf("localhost:%d", GetFreePort(c))
 }

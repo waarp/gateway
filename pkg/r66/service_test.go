@@ -21,6 +21,7 @@ import (
 	"code.waarp.fr/apps/gateway/gateway/pkg/model"
 	"code.waarp.fr/apps/gateway/gateway/pkg/model/types"
 	"code.waarp.fr/apps/gateway/gateway/pkg/pipeline/pipelinetest"
+	"code.waarp.fr/apps/gateway/gateway/pkg/tk/utils/testhelpers"
 )
 
 func TestServiceStart(t *testing.T) {
@@ -32,7 +33,7 @@ func TestServiceStart(t *testing.T) {
 			Name:        "r66_server",
 			Protocol:    "r66",
 			ProtoConfig: json.RawMessage(`{"blockSize":512,"serverPassword":"c2VzYW1l"}`),
-			Address:     "localhost:8066",
+			Address:     testhelpers.GetLocalAddress(c),
 		}
 		So(db.Insert(server).Run(), ShouldBeNil)
 
@@ -43,6 +44,57 @@ func TestServiceStart(t *testing.T) {
 
 			Convey("Then it should not return an error", func() {
 				So(err, ShouldBeNil)
+			})
+		})
+	})
+
+	Convey("Given an R66-TLS service", t, func(c C) {
+		db := database.TestDatabase(c, "ERROR")
+		server := &model.LocalAgent{
+			Name:        "r66_server",
+			Protocol:    "r66",
+			ProtoConfig: json.RawMessage(`{"blockSize":512,"serverPassword":"c2VzYW1l","isTLS":true}`),
+			Address:     testhelpers.GetLocalAddress(c),
+		}
+		So(db.Insert(server).Run(), ShouldBeNil)
+		cert := &model.Crypto{
+			OwnerType:   server.TableName(),
+			OwnerID:     server.ID,
+			Name:        "r66_cert",
+			PrivateKey:  testhelpers.LocalhostKey,
+			Certificate: testhelpers.LocalhostCert,
+		}
+		So(db.Insert(cert).Run(), ShouldBeNil)
+
+		serv := NewService(db, server, logger)
+
+		Convey("When calling the 'Start' function", func() {
+			err := serv.Start()
+
+			Convey("Then it should not return an error", func() {
+				So(err, ShouldBeNil)
+			})
+		})
+	})
+
+	Convey("Given an R66-TLS service with no certificate", t, func(c C) {
+		db := database.TestDatabase(c, "ERROR")
+		server := &model.LocalAgent{
+			Name:        "r66_server",
+			Protocol:    "r66",
+			ProtoConfig: json.RawMessage(`{"blockSize":512,"serverPassword":"c2VzYW1l","isTLS":true}`),
+			Address:     testhelpers.GetLocalAddress(c),
+		}
+		So(db.Insert(server).Run(), ShouldBeNil)
+
+		serv := NewService(db, server, logger)
+
+		Convey("When calling the 'Start' function", func() {
+			err := serv.Start()
+
+			Convey("Then it should return an error", func() {
+				So(err, ShouldBeError, "failed to make the server TLS config: "+
+					"no certificates found")
 			})
 		})
 	})

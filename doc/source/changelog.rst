@@ -4,6 +4,10 @@ Historique des versions
 =======================
 
 * :release:`0.5.0 <>`
+* :bug:`302` Correction d'une erreur du serveur R66 causée par le fait que le
+  serveur ne prenait pas en compte certaine partie de sa *ProtoConfig*. Cela causait
+  par exemple le démarrage du serveur en clair lorsqu'aucun certificats n'était
+  trouvé, et ce, malgré le fait que le serveur soit configuré pour opérer avec TLS.
 * :bug:`301` Correction d'une erreur de création des dossiers in/out/temp au lancement
   de la gateway.
 * :feature:`300` Correction d'une erreur du client terminal dans la commande de

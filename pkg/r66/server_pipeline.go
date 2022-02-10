@@ -9,6 +9,7 @@ import (
 	"code.waarp.fr/lib/r66"
 	r66utils "code.waarp.fr/lib/r66/utils"
 
+	"code.waarp.fr/apps/gateway/gateway/pkg/model/config"
 	"code.waarp.fr/apps/gateway/gateway/pkg/model/types"
 	"code.waarp.fr/apps/gateway/gateway/pkg/pipeline"
 	"code.waarp.fr/apps/gateway/gateway/pkg/r66/internal"
@@ -94,9 +95,10 @@ func (s *serverStream) WriteAt(p []byte, off int64) (int, error) {
 }
 
 type serverTransfer struct {
-	conf  *r66.Authent
-	pip   *pipeline.Pipeline
-	store *utils.ErrorStorage
+	r66Conf *config.R66ProtoConfig
+	conf    *r66.Authent
+	pip     *pipeline.Pipeline
+	store   *utils.ErrorStorage
 }
 
 func (t *serverTransfer) Interrupt(ctx context.Context) error {
