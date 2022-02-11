@@ -22,7 +22,7 @@ do_start() {
         echo "Waarp Gateway is already running."
         rv=2
     else 
-        nohup "$DAEMONPATH" "$DAEMON_PARAMS" >> "$STARTLOG" 2>&1 &
+        nohup "$DAEMONPATH" $DAEMON_PARAMS >> "$STARTLOG" 2>&1 &
         local pid=$!
         sleep 2
         if pgrep -f $DAEMONNAME | grep $pid >/dev/null 2>&1; then

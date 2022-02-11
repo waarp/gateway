@@ -204,7 +204,7 @@ build_portable_archive() {
   dest="build/waarp-gateway-$(cat VERSION)"
   version=$(cat VERSION)
 
-  mkdir -p "$dest"/{etc,bin,log,share}
+  mkdir -p "$dest"/{etc,bin,log,share,data/db}
   cp ./dist/manage.sh "$dest/bin"
   cp ./build/waarp-gatewayd_linux_amd64 "$dest/bin/waarp-gatewayd"
   cp ./build/waarp-gateway_linux_amd64 "$dest/bin/waarp-gateway"
@@ -216,6 +216,7 @@ build_portable_archive() {
     -e "s|; \(GatewayHome =\)|\1 data|" \
     -e "s|; \(Address =\) |\1 data/db/|" \
     -e "s|; \(AESPassphrase =\) |\1 etc/|" \
+    -e "s|; \(LogTo =\) stdout|\1 log/gatewayd.log|" \
     "$dest/etc/gatewayd.ini"
 
   pushd build || return 2
