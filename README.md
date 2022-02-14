@@ -132,4 +132,5 @@ Waarp Gateway is licensed under the terms of the GPLv3 License.
 
 - **Download**: [dl.waarp.org](https://dl.waarp.org/dist/waarp-gateway/)
 - **Documentation**: [doc.waarp.org](https://doc.waarp.org/waarp-gateway/latest)
-- **Support**: [info@waarp.fr](mailto:info@waarp.fr)
+- **Forums**: [discuss.waarp.org](https://discuss.waarp.org/)
+- **Contact**: [info@waarp.fr](mailto:info@waarp.fr)
