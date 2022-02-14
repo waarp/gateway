@@ -194,17 +194,20 @@ t_package() {
   nfpm pkg -p rpm -f dist/nfpm.yaml --target build/
   nfpm pkg -p deb -f dist/nfpm.yaml --target build/
 
-  build_portable_archive
+  build_portable_linux_archive
+  build_portable_windows_archive
 
   t_doc_dist
 }
 
-build_portable_archive() {
+build_portable_linux_archive() {
   local dest version
   dest="build/waarp-gateway-$(cat VERSION)"
   version=$(cat VERSION)
 
+  rm -rf $dest
   mkdir -p "$dest"/{etc,bin,log,share,data/db}
+
   cp ./dist/manage.sh "$dest/bin"
   cp ./build/waarp-gatewayd_linux_amd64 "$dest/bin/waarp-gatewayd"
   cp ./build/waarp-gateway_linux_amd64 "$dest/bin/waarp-gateway"
@@ -221,6 +224,33 @@ build_portable_archive() {
 
   pushd build || return 2
   tar czf "waarp-gateway-$version.linux.tar.gz" "waarp-gateway-$version"
+  popd || return 2
+}
+
+build_portable_windows_archive() {
+  local dest version
+  dest="build/waarp-gateway-$(cat VERSION)"
+  version=$(cat VERSION)
+
+  rm -rf $dest
+  mkdir -p "$dest"/{etc,bin,log,share,data/db}
+  
+  cp ./dist/manage.bat "$dest/bin"
+  cp ./build/waarp-gatewayd_windows_amd64 "$dest/bin/waarp-gatewayd.exe"
+  cp ./build/waarp-gateway_windows_amd64 "$dest/bin/waarp-gateway.exe"
+  cp ./build/get-remote_windows_amd64 "$dest/share/get-remote.exe"
+  cp ./build/updateconf_windows_amd64 "$dest/share/updateconf.exe"
+
+  ./build/waarp-gatewayd_linux_amd64 server -c "$dest/etc/gatewayd.ini" -n
+  sed -i \
+    -e "s|; \(GatewayHome =\)|\1 data|" \
+    -e "s|; \(Address =\) |\1 data/db/|" \
+    -e "s|; \(AESPassphrase =\) |\1 etc/|" \
+    -e "s|; \(LogTo =\) stdout|\1 log/gatewayd.log|" \
+    "$dest/etc/gatewayd.ini"
+
+  pushd build || return 2
+  zip -r "waarp-gateway-$version.windows.zip" "waarp-gateway-$version"
   popd || return 2
 }
 
