@@ -8,8 +8,9 @@ import (
 	"path/filepath"
 	"testing"
 
-	"code.waarp.fr/apps/gateway/gateway/pkg/conf"
 	. "github.com/smartystreets/goconvey/convey"
+
+	"code.waarp.fr/apps/gateway/gateway/pkg/conf"
 )
 
 func TestOracleDB(t *testing.T) {

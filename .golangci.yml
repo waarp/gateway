@@ -165,6 +165,12 @@ linters-settings:
     # if not set, use goimports.local-prefixes
     #local-prefixes: github.com/org/project
 
+    # Import should be separated into 3 groups: standard, third party & internal.
+    sections:
+      - standard
+      - default
+      - prefix(code.waarp.fr/apps/gateway)
+
   gocognit:
     # minimal code complexity to report, 30 by default (but we recommend 10-20)
     min-complexity: 30
@@ -706,6 +712,12 @@ issues:
         - gosec
         - varnamelen
 
+    # Allow dot import aliases in test files.
+    - path: _test\.go
+      text: "Expected '\"', Found '.'"
+      linters:
+        - gci
+
     # Exclude known linters from partially hard-vendored code,
     # which is impossible to exclude via "nolint" comments.
     - path: internal/hmac/
@@ -761,8 +773,11 @@ issues:
   # Default is false.
   new: false
 
-  # Show only new issues created after git revision `REV`
-  #new-from-rev: REV
+  # Show only new issues not already present in the git 'master' branch
+  new-from-rev: master
+
+  # Show issues in any part of update files (requires new-from-rev or new-from-patch)
+  whole-files: true
 
   # Show only new issues created in git patch with set file path.
   #new-from-patch: path/to/patch/file
