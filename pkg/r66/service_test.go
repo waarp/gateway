@@ -2,12 +2,9 @@ package r66
 
 import (
 	"context"
-	"crypto/rand"
 	"encoding/json"
 	"errors"
-	"fmt"
 	"net"
-	"path/filepath"
 	"testing"
 	"time"
 
@@ -15,7 +12,6 @@ import (
 	"code.waarp.fr/lib/r66"
 	. "github.com/smartystreets/goconvey/convey"
 
-	"code.waarp.fr/apps/gateway/gateway/pkg/conf"
 	"code.waarp.fr/apps/gateway/gateway/pkg/database"
 	"code.waarp.fr/apps/gateway/gateway/pkg/log"
 	"code.waarp.fr/apps/gateway/gateway/pkg/model"
@@ -132,7 +128,7 @@ func TestR66ServerInterruption(t *testing.T) {
 	Convey("Given an SFTP server ready for push transfers", t, func(c C) {
 		test := pipelinetest.InitServerPush(c, "r66", NewService, servConf)
 
-		serv := NewService(test.DB, test.Server, log.NewLogger("server"))
+		serv := newService(test.DB, test.Server, log.NewLogger("server"))
 		c.So(serv.Start(), ShouldBeNil)
 
 		Convey("Given a dummy R66 client", func() {
@@ -154,15 +150,18 @@ func TestR66ServerInterruption(t *testing.T) {
 
 				Convey("When the server shuts down", func(c C) {
 					go func() {
-						time.Sleep(500 * time.Millisecond)
+						test.TasksChecker.WaitServerPreTasks()
+
 						ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 						defer cancel()
 						if err := serv.Stop(ctx); err != nil {
 							panic(err)
 						}
 					}()
+
 					f := func() ([]byte, error) { panic("should never be called") }
-					_, err := ses.Send(&dummyFile{}, f)
+					file := testhelpers.NewLimitedReader(3)
+					_, err := ses.Send(file, f)
 
 					var (
 						r66Err *r66.Error
@@ -186,28 +185,9 @@ func TestR66ServerInterruption(t *testing.T) {
 						var transfers model.Transfers
 						So(test.DB.Select(&transfers).Run(), ShouldBeNil)
 						So(transfers, ShouldNotBeEmpty)
+						So(transfers[0].Status, ShouldEqual, types.StatusInterrupted)
 
-						trans := model.Transfer{
-							ID:               transfers[0].ID,
-							RemoteTransferID: fmt.Sprint(req.ID),
-							Start:            transfers[0].Start,
-							IsServer:         true,
-							AccountID:        test.LocAccount.ID,
-							AgentID:          test.Server.ID,
-							LocalPath: filepath.Join(test.Server.RootDir,
-								test.Server.TmpReceiveDir, "test_in_shutdown.dst.part"),
-							RemotePath: "/test_in_shutdown.dst",
-							Filesize:   100,
-							RuleID:     test.ServerRule.ID,
-							Status:     types.StatusInterrupted,
-							Step:       types.StepData,
-							Owner:      conf.GlobalConfig.GatewayName,
-							Progress:   transfers[0].Progress,
-						}
-						So(transfers[0], ShouldResemble, trans)
-
-						//nolint:forcetypeassert //no need, the type assertion will always succeed
-						ok := serv.(*Service).runningTransfers.Exists(trans.ID)
+						ok := serv.runningTransfers.Exists(transfers[0].ID)
 						So(ok, ShouldBeFalse)
 					})
 				})
@@ -227,12 +207,4 @@ func makeDummyClient(test *pipelinetest.ServerContext) *r66.Session {
 	So(err, ShouldBeNil)
 
 	return ses
-}
-
-type dummyFile struct{}
-
-func (d *dummyFile) ReadAt(p []byte, _ int64) (int, error) {
-	time.Sleep(100 * time.Millisecond)
-
-	return rand.Read(p) //nolint:wrapcheck // this is a test
 }

@@ -93,8 +93,7 @@ func TestServerStart(t *testing.T) {
 		}
 		So(db.Insert(hostKey).Run(), ShouldBeNil)
 
-		//nolint:forcetypeassert //no need to check assertion, guaranteed to succeed here
-		sftpServer := NewService(db, agent, log.NewLogger("test_sftp_server")).(*Service)
+		sftpServer := newService(db, agent, log.NewLogger("test_sftp_server"))
 
 		Convey("Given that the configuration is valid", func() {
 			Convey("When starting the server", func() {
@@ -154,7 +153,7 @@ func TestSSHServerInterruption(t *testing.T) {
 		test := pipelinetest.InitServerPush(c, "sftp", NewService, nil)
 		test.AddCryptos(c, makeServerKey(test.Server))
 
-		serv := NewService(test.DB, test.Server, test.Logger)
+		serv := newService(test.DB, test.Server, test.Logger)
 		c.So(serv.Start(), ShouldBeNil)
 
 		Convey("Given a dummy SFTP client", func() {
@@ -205,7 +204,7 @@ func TestSSHServerInterruption(t *testing.T) {
 						So(transfers[0], ShouldResemble, trans)
 
 						//nolint:forcetypeassert //no need, the type assertion will always succeed
-						ok := serv.(*Service).listener.runningTransfers.Exists(trans.ID)
+						ok := serv.listener.runningTransfers.Exists(trans.ID)
 						So(ok, ShouldBeFalse)
 					})
 				})

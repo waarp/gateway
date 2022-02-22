@@ -182,12 +182,7 @@ func (p *Pipeline) StartData() (TransferStream, *types.TransferError) {
 	defer doTrantition()
 
 	if p.TransCtx.Transfer.Step > types.StepData {
-		var err *types.TransferError
-		if p.Stream, err = newVoidStream(p); err != nil {
-			p.handleError(types.TeInternal, "Failed to create file stream", err.Error())
-
-			return nil, err
-		}
+		p.Stream = newVoidStream(p)
 
 		return p.Stream, nil
 	}

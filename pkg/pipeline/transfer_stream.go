@@ -29,9 +29,7 @@ type TransferStream interface {
 	stop()
 }
 
-func newVoidStream(p *Pipeline) (*voidStream, *types.TransferError) {
-	return &voidStream{p}, nil
-}
+func newVoidStream(p *Pipeline) *voidStream { return &voidStream{p} }
 
 type voidStream struct{ *Pipeline }
 
