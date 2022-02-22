@@ -58,17 +58,6 @@ func newFileStream(pipeline *Pipeline, updateInterval time.Duration, isResume bo
 
 	stream.file = file
 
-	var mErr error
-	if stream.TransCtx.Rule.IsSend {
-		mErr = stream.machine.Transition(stateReading)
-	} else {
-		mErr = stream.machine.Transition(stateWriting)
-	}
-
-	if mErr != nil {
-		return nil, types.NewTransferError(types.TeInternal, mErr.Error())
-	}
-
 	return stream, nil
 }
 

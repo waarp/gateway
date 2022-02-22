@@ -211,11 +211,16 @@ func initFilestream(ctx *testContext, logger *log.Logger, transCtx *model.Transf
 
 	So(pip.machine.Transition(statePreTasks), ShouldBeNil)
 	So(pip.machine.Transition(statePreTasksDone), ShouldBeNil)
-	So(pip.machine.Transition(stateStartData), ShouldBeNil)
 
 	stream, err := newFileStream(pip, time.Nanosecond, false)
 	So(err, ShouldBeNil)
 	Reset(func() { _ = stream.file.Close() })
+
+	if transCtx.Rule.IsSend {
+		So(pip.machine.Transition(stateReading), ShouldBeNil)
+	} else {
+		So(pip.machine.Transition(stateWriting), ShouldBeNil)
+	}
 
 	return stream
 }

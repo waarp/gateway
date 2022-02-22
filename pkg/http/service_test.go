@@ -97,16 +97,18 @@ func TestServerInterruption(t *testing.T) {
 
 				stop := make(chan error, 1)
 
-				go func() {
-					time.Sleep(500 * time.Millisecond)
-
-					ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
-					defer cancel()
-
-					stop <- serv.Stop(ctx)
-				}()
-
 				Convey("When the server shuts down", func() {
+					defer test.TasksChecker.WaitServerDone()
+
+					go func() {
+						test.TasksChecker.WaitServerPreTasks()
+
+						ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+						defer cancel()
+
+						stop <- serv.Stop(ctx)
+					}()
+
 					resp, err := cli.Do(req)
 					So(err, ShouldBeNil)
 
@@ -122,7 +124,6 @@ func TestServerInterruption(t *testing.T) {
 
 					Convey("Then the transfer should have been interrupted", func(c C) {
 						test.ServerShouldHavePreTasked(c)
-						test.TasksChecker.WaitServerDone()
 
 						var transfers model.Transfers
 						So(test.DB.Select(&transfers).Run(), ShouldBeNil)

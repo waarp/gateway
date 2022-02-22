@@ -376,7 +376,6 @@ func TestPipelinePostTasks(t *testing.T) {
 		So(err, ShouldBeNil)
 		So(pip.machine.Transition(statePreTasks), ShouldBeNil)
 		So(pip.machine.Transition(statePreTasksDone), ShouldBeNil)
-		So(pip.machine.Transition(stateStartData), ShouldBeNil)
 		So(pip.machine.Transition(stateWriting), ShouldBeNil)
 		So(pip.machine.Transition(stateDataEnd), ShouldBeNil)
 		So(pip.machine.Transition(stateDataEndDone), ShouldBeNil)

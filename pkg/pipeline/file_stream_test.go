@@ -50,7 +50,6 @@ func TestNewFileStream(t *testing.T) {
 
 			So(pip.machine.Transition(statePreTasks), ShouldBeNil)
 			So(pip.machine.Transition(statePreTasksDone), ShouldBeNil)
-			So(pip.machine.Transition(stateStartData), ShouldBeNil)
 
 			Convey("When creating a new transfer stream", func(c C) {
 				stream, err := newFileStream(pip, time.Hour, false)
@@ -90,7 +89,6 @@ func TestNewFileStream(t *testing.T) {
 
 			So(pip.machine.Transition(statePreTasks), ShouldBeNil)
 			So(pip.machine.Transition(statePreTasksDone), ShouldBeNil)
-			So(pip.machine.Transition(stateStartData), ShouldBeNil)
 
 			Convey("When creating a new transfer stream", func(c C) {
 				stream, err := newFileStream(pip, time.Hour, false)
