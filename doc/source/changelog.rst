@@ -4,6 +4,8 @@ Historique des versions
 =======================
 
 * :release:`0.5.0 <>`
+* :bug:`304` Correction d'un bug de blocage de transfert dû à un problème
+  de concurrence pouvant survenir lors de l'interruption d'un transfert.
 * :bug:`302` Correction d'une erreur du serveur R66 causée par le fait que le
   serveur ne prenait pas en compte certaine partie de sa *ProtoConfig*. Cela causait
   par exemple le démarrage du serveur en clair lorsqu'aucun certificats n'était
