@@ -4,6 +4,10 @@ Historique des versions
 =======================
 
 * :release:`0.5.0 <>`
+* :feature:`306` Ajout de l'attribut ``protocol`` à l'objet JSON de transfert.
+  Cela permet plus de consistance avec l'objet d'historique qui contenait déjà
+  cet attribut. Le protocole est également visible désormais en sortie de la
+  commande ``transfer get`` du terminal.
 * :bug:`-` Correction d'une erreur SIGSEGV survenant lors de l'exécution d'une
   commande su client terminal sans que l'adresse de la *gateway* soit renseignée.
   Désormais, le client lèvera une erreur plus claire au lieu de paniquer.

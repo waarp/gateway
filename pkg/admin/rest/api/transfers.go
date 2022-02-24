@@ -32,6 +32,7 @@ type OutTransfer struct {
 	IsSend         bool                 `json:"isSend"`
 	Requested      string               `json:"requested"`
 	Requester      string               `json:"requester"`
+	Protocol       string               `json:"protocol"`
 	LocalFilepath  string               `json:"localFilepath"`
 	RemoteFilepath string               `json:"remoteFilepath"`
 	Filesize       int64                `json:"filesize"`
