@@ -1,13 +1,15 @@
-// +build  oracle
+//go:build oracle
+// +build oracle
 
 package database
 
 import (
 	"fmt"
 
-	"code.waarp.fr/apps/gateway/gateway/pkg/conf"
 	_ "github.com/mattn/go-oci8" // register the oracledb driver
 	"xorm.io/xorm"
+
+	"code.waarp.fr/apps/gateway/gateway/pkg/conf"
 )
 
 const (
