@@ -49,14 +49,14 @@ Marqueur               Signification
 ``#ORIGINALFULLPATH#`` Le chemin d'origine du fichier avant le transfert
 ``#ORIGINALFILENAME#`` Le nom d'origine du fichier avant le transfert
 ``#FILESIZE#``         La taille du fichier
-``#INPATH#``           Le chemin vers le dossier d'envoi pour le transfert en
-                       cours. Ce chemin dépend de la configuration (dossier
-                       d'envoi de la règle, du serveur ou de la Gateway selon
-                       les cas)
-``#OUTPATH#``          Le chemin vers le dossier de réception pour le transfert
-                       en cours. Ce chemin dépend de la configuration (dossier
-                       d'envoi de la règle, du serveur ou de la Gateway selon
-                       les cas)
+``#HOMEPATH#``         Le dossier racine de la *gateway*. Ce chemin est toujours
+                       absolu.
+``#INPATH#``           Le dossier de réception par défaut définit dans le fichier
+                       de configuration. Ce chemin est toujours absolu.
+``#OUTPATH#``          Le dossier d'envoi par défaut définit dans le fichier de
+                       configuration. Ce chemin est toujours absolu.
+``#WORKPATH#``         Le dossier temporaire de réception par défaut définit dans
+                       le fichier de configuration. Ce chemin est toujours absolu.
 ``#RULE#``             La règle utilisée par le transfert
 ``#DATE#``             La date (au format ``AAAAMMJJ``) au moment de l'éxecution
                        de la tâche
@@ -74,9 +74,7 @@ Marqueur               Signification
 ``#ERRORCODE#``        Code d'erreur (dans les traitements d'erreur)
 ====================== =============
 
-.. ``#WORKPATH#`` 
-   ``#ARCHPATH#`` 
-   ``#HOMEPATH#`` 
+.. ``#ARCHPATH#``
    ``#REMOTEHOSTIP#``
    ``#LOCALIP#`` 
    ``#RANKTRANSFER#`` 

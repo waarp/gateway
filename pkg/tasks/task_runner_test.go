@@ -10,11 +10,13 @@ import (
 
 	. "github.com/smartystreets/goconvey/convey"
 
+	"code.waarp.fr/apps/gateway/gateway/pkg/conf"
 	"code.waarp.fr/apps/gateway/gateway/pkg/database"
 	"code.waarp.fr/apps/gateway/gateway/pkg/log"
 	"code.waarp.fr/apps/gateway/gateway/pkg/model"
 	"code.waarp.fr/apps/gateway/gateway/pkg/model/types"
 	"code.waarp.fr/apps/gateway/gateway/pkg/tk/utils"
+	"code.waarp.fr/apps/gateway/gateway/pkg/tk/utils/testhelpers"
 )
 
 //nolint:gochecknoinits // designed this way
@@ -23,7 +25,10 @@ func init() {
 }
 
 func TestSetup(t *testing.T) {
-	Convey("Given a Task with some replacement variables", t, func() {
+	Convey("Given a Task with some replacement variables", t, func(c C) {
+		root := testhelpers.TempDir(c, "task_setup")
+		rootAlt := testhelpers.TempDir(c, "task_setup_alt")
+
 		task := &model.Task{
 			Type: "DUMMY",
 			Args: []byte(`{"rule":"#RULE#", "date":"#DATE#", "hour":"#HOUR#", 
@@ -32,7 +37,9 @@ func TestSetup(t *testing.T) {
 			"remoteHost":"#REMOTEHOST#", "localHost":"#LOCALHOST#", 
 			"transferID":"#TRANFERID#", "requesterHost":"#REQUESTERHOST#",
 			"requestedHost":"#REQUESTEDHOST#", "fullTransferID":"#FULLTRANFERID#",
-			"errCode":"#ERRORCODE#", "errMsg":"#ERRORMSG#", "errStrCode":"#ERRORSTRCODE#"}`),
+			"errCode":"#ERRORCODE#", "errMsg":"#ERRORMSG#", "errStrCode":"#ERRORSTRCODE#",
+			"inPath":"#INPATH#", "outPath":"#OUTPATH#", "workPath":"#WORKPATH#",
+			"homePath":"#HOMEPATH#"}`),
 		}
 
 		Convey("Given a Runner", func(c C) {
@@ -55,6 +62,12 @@ func TestSetup(t *testing.T) {
 			r := &Runner{
 				db: db,
 				transCtx: &model.TransferContext{
+					Paths: &conf.PathsConfig{
+						GatewayHome:   root,
+						DefaultInDir:  "in_dir",
+						DefaultOutDir: "out_dir",
+						DefaultTmpDir: filepath.Join(rootAlt, "tmp_dir"),
+					},
 					Rule: &model.Rule{
 						Name:     "rulename",
 						IsSend:   true,
@@ -223,6 +236,42 @@ func TestSetup(t *testing.T) {
 
 						Convey("Then res[errStrCode] should contain the resolved variable", func() {
 							So(val, ShouldEqual, r.transCtx.Transfer.Error.Details)
+						})
+					})
+
+					Convey("Then res should contain an entry `homePath`", func() {
+						val, ok := res["homePath"]
+						So(ok, ShouldBeTrue)
+
+						Convey("Then res[homePath] should contain the resolved variable", func() {
+							So(val, ShouldEqual, root)
+						})
+					})
+
+					Convey("Then res should contain an entry `inPath`", func() {
+						val, ok := res["inPath"]
+						So(ok, ShouldBeTrue)
+
+						Convey("Then res[inPath] should contain the resolved variable", func() {
+							So(val, ShouldEqual, filepath.Join(root, r.transCtx.Paths.DefaultInDir))
+						})
+					})
+
+					Convey("Then res should contain an entry `outPath`", func() {
+						val, ok := res["outPath"]
+						So(ok, ShouldBeTrue)
+
+						Convey("Then res[outPath] should contain the resolved variable", func() {
+							So(val, ShouldEqual, filepath.Join(root, r.transCtx.Paths.DefaultOutDir))
+						})
+					})
+
+					Convey("Then res should contain an entry `workPath`", func() {
+						val, ok := res["workPath"]
+						So(ok, ShouldBeTrue)
+
+						Convey("Then res[workPath] should contain the resolved variable", func() {
+							So(val, ShouldEqual, r.transCtx.Paths.DefaultTmpDir)
 						})
 					})
 				})
