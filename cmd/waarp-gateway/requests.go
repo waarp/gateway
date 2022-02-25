@@ -23,7 +23,7 @@ func getHTTPClient() *http.Client {
 	return &http.Client{Transport: customTransport}
 }
 
-func sendRequest(object interface{}, method string) (*http.Response, error) {
+func sendRequest(ctx context.Context, object interface{}, method string) (*http.Response, error) {
 	var body io.Reader
 
 	if object != nil {
@@ -37,9 +37,6 @@ func sendRequest(object interface{}, method string) (*http.Response, error) {
 
 	user := addr.User.Username()
 	passwd, _ := addr.User.Password()
-
-	ctx, cancel := context.WithTimeout(context.Background(), httpTimeout)
-	defer cancel()
 
 	req, err := http.NewRequestWithContext(ctx, method, addr.String(), body)
 	if err != nil {
@@ -57,7 +54,10 @@ func sendRequest(object interface{}, method string) (*http.Response, error) {
 }
 
 func add(object interface{}) error {
-	resp, err := sendRequest(object, http.MethodPost)
+	ctx, cancel := context.WithTimeout(context.Background(), httpTimeout)
+	defer cancel()
+
+	resp, err := sendRequest(ctx, object, http.MethodPost)
 	if err != nil {
 		return err
 	}
@@ -76,7 +76,10 @@ func add(object interface{}) error {
 }
 
 func list(target interface{}) error {
-	resp, err := sendRequest(nil, http.MethodGet)
+	ctx, cancel := context.WithTimeout(context.Background(), httpTimeout)
+	defer cancel()
+
+	resp, err := sendRequest(ctx, nil, http.MethodGet)
 	if err != nil {
 		return err
 	}
@@ -95,7 +98,10 @@ func list(target interface{}) error {
 }
 
 func get(target interface{}) error {
-	resp, err := sendRequest(nil, http.MethodGet)
+	ctx, cancel := context.WithTimeout(context.Background(), httpTimeout)
+	defer cancel()
+
+	resp, err := sendRequest(ctx, nil, http.MethodGet)
 	if err != nil {
 		return err
 	}
@@ -116,7 +122,10 @@ func update(object interface{}) error {
 		return errNothingToDo
 	}
 
-	resp, err := sendRequest(object, http.MethodPatch)
+	ctx, cancel := context.WithTimeout(context.Background(), httpTimeout)
+	defer cancel()
+
+	resp, err := sendRequest(ctx, object, http.MethodPatch)
 	if err != nil {
 		return err
 	}
@@ -136,7 +145,10 @@ func update(object interface{}) error {
 }
 
 func remove() error {
-	resp, err := sendRequest(nil, http.MethodDelete)
+	ctx, cancel := context.WithTimeout(context.Background(), httpTimeout)
+	defer cancel()
+
+	resp, err := sendRequest(ctx, nil, http.MethodDelete)
 	if err != nil {
 		return err
 	}

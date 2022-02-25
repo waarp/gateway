@@ -1,6 +1,7 @@
 package main
 
 import (
+	"context"
 	"fmt"
 	"io"
 	"net/http"
@@ -221,7 +222,10 @@ func (h *historyRetry) Execute([]string) error {
 
 	addr.RawQuery = query.Encode()
 
-	resp, err := sendRequest(nil, http.MethodPut)
+	ctx, cancel := context.WithTimeout(context.Background(), httpTimeout)
+	defer cancel()
+
+	resp, err := sendRequest(ctx, nil, http.MethodPut)
 	if err != nil {
 		return err
 	}

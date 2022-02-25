@@ -1,6 +1,7 @@
 package main
 
 import (
+	"context"
 	"fmt"
 	"net/http"
 )
@@ -10,7 +11,10 @@ func authorize(targetType, target, rule, direction string) error {
 		return err
 	}
 
-	resp, err := sendRequest(nil, http.MethodPut)
+	ctx, cancel := context.WithTimeout(context.Background(), httpTimeout)
+	defer cancel()
+
+	resp, err := sendRequest(ctx, nil, http.MethodPut)
 	if err != nil {
 		return err
 	}
@@ -44,7 +48,10 @@ func revoke(targetType, target, rule, direction string) error {
 		return err
 	}
 
-	resp, err := sendRequest(nil, http.MethodPut)
+	ctx, cancel := context.WithTimeout(context.Background(), httpTimeout)
+	defer cancel()
+
+	resp, err := sendRequest(ctx, nil, http.MethodPut)
 	if err != nil {
 		return err
 	}

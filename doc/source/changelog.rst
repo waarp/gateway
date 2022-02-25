@@ -4,6 +4,11 @@ Historique des versions
 =======================
 
 * :release:`0.5.0 <>`
+* :bug:`-` Correction d'une erreur SIGSEGV survenant lors de l'exécution d'une
+  commande su client terminal sans que l'adresse de la *gateway* soit renseignée.
+  Désormais, le client lèvera une erreur plus claire au lieu de paniquer.
+* :bug:`307` Correction d'une erreur *"context canceled"* pouvant survenir lors
+  de l'exécution de certaines commandes du client terminal.
 * :bug:`302` Correction d'une erreur du serveur R66 causée par le fait que le
   serveur ne prenait pas en compte certaine partie de sa *ProtoConfig*. Cela causait
   par exemple le démarrage du serveur en clair lorsqu'aucun certificats n'était
