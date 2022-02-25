@@ -65,7 +65,7 @@ func transToDB(trans *api.InTransfer, db *database.DB, logger *log.Logger) (*mod
 
 // FromTransfer transforms the given database transfer into its JSON equivalent.
 func FromTransfer(db *database.DB, trans *model.Transfer) (*api.OutTransfer, error) {
-	rule, requester, requested, err := getTransNames(db, trans)
+	rule, requester, requested, proto, err := getTransNames(db, trans)
 	if err != nil {
 		return nil, err
 	}
@@ -85,6 +85,7 @@ func FromTransfer(db *database.DB, trans *model.Transfer) (*api.OutTransfer, err
 		IsServer:       trans.IsServer,
 		Requested:      requested,
 		Requester:      requester,
+		Protocol:       proto,
 		TrueFilepath:   trans.LocalPath,
 		SourcePath:     src,
 		DestPath:       dst,

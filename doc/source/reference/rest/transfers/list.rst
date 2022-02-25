@@ -49,6 +49,7 @@ Lister les transferts
    :resjsonarr string rule: L'identifiant de la règle de transfert
    :resjsonarr string requester: Le nom du compte ayant demandé le transfert
    :resjsonarr string requested: Le nom du serveur/partenaire auquel le transfert a été demandé
+   :resjsonarr string protocol: Le protocole utilisé pour effectuer le transfert
    :resjsonarr string trueFilepath: Le chemin local complet du fichier (OBSOLÈTE: remplacé par 'localFilepath')
    :resjsonarr string sourcePath: Le fichier source du transfer (OBSOLÈTE: remplacé par 'localFilepath' & 'remoteFilepath')
    :resjsonarr string destPath: Le fichier destination du transfer (OBSOLÈTE: remplacé par 'localFilepath' & 'remoteFilepath')
@@ -88,6 +89,7 @@ Lister les transferts
              "rule": "règle_1",
              "requester": "toto",
              "requested": "waarp_sftp",
+             "protocol": "sftp",
              "localFilepath": "/chemin/local/fichier1",
              "remoteFilepath": "/chemin/distant/fichier1",
              "start": "2019-01-01T02:00:00+02:00",
@@ -100,6 +102,7 @@ Lister les transferts
              "rule": "règle_2",
              "requester": "tata",
              "requested": "sftp_serveur",
+             "protocol": "r66",
              "localFilepath": "/chemin/local/fichier2",
              "remoteFilepath": "/chemin/distant/fichier2",
              "start": "2019-01-01T03:00:00+02:00",

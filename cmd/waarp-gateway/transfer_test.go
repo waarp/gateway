@@ -44,6 +44,7 @@ func transferInfoString(t *api.OutTransfer) string {
 	}
 
 	rv += "    Rule:            " + t.Rule + "\n" +
+		"    Protocol:        " + t.Protocol + "\n" +
 		"    Requester:       " + t.Requester + "\n" +
 		"    Requested:       " + t.Requested + "\n" +
 		"    Local filepath:  " + t.LocalFilepath + "\n" +

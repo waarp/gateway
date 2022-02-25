@@ -54,38 +54,40 @@ func getTransIDs(db *database.DB, trans *api.InTransfer) (uint64, uint64, uint64
 }
 
 // getTransNames returns (in this order) the transfer's rule, and the names of
-// the requester and requested.
-func getTransNames(db *database.DB, trans *model.Transfer) (*model.Rule, string, string, error) {
-	var rule model.Rule
-	if err := db.Get(&rule, "id=?", trans.RuleID).Run(); err != nil {
-		return nil, "", "", err
+// the requester, the requested, and the protocol.
+func getTransNames(db *database.DB, trans *model.Transfer) (rule *model.Rule,
+	requester, requested, proto string, err error) {
+	rule = &model.Rule{}
+
+	if err := db.Get(rule, "id=?", trans.RuleID).Run(); err != nil {
+		return nil, "", "", "", err
 	}
 
 	if trans.IsServer {
-		var requester model.LocalAccount
-		if err := db.Get(&requester, "id=?", trans.AccountID).Run(); err != nil {
-			return nil, "", "", err
+		var acc model.LocalAccount
+		if err = db.Get(&acc, "id=?", trans.AccountID).Run(); err != nil {
+			return
 		}
 
-		var requested model.LocalAgent
-		if err := db.Get(&requested, "id=?", trans.AgentID).Run(); err != nil {
-			return nil, "", "", err
+		var ag model.LocalAgent
+		if err = db.Get(&ag, "id=?", trans.AgentID).Run(); err != nil {
+			return
 		}
 
-		return &rule, requester.Login, requested.Name, nil
+		return rule, acc.Login, ag.Name, ag.Protocol, nil
 	}
 
-	var requester model.RemoteAccount
-	if err := db.Get(&requester, "id=?", trans.AccountID).Run(); err != nil {
-		return nil, "", "", err
+	var acc model.RemoteAccount
+	if err = db.Get(&acc, "id=?", trans.AccountID).Run(); err != nil {
+		return
 	}
 
-	var requested model.RemoteAgent
-	if err := db.Get(&requested, "id=?", trans.AgentID).Run(); err != nil {
-		return nil, "", "", err
+	var ag model.RemoteAgent
+	if err = db.Get(&ag, "id=?", trans.AgentID).Run(); err != nil {
+		return
 	}
 
-	return &rule, requester.Login, requested.Name, nil
+	return rule, acc.Login, ag.Name, ag.Protocol, nil
 }
 
 //nolint:funlen // FIXME should be refactored
