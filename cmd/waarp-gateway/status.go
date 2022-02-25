@@ -1,6 +1,7 @@
 package main
 
 import (
+	"context"
 	"fmt"
 	"io"
 	"net/http"
@@ -57,7 +58,10 @@ func showStatus(statuses api.Statuses, w io.Writer) {
 func (s *statusCommand) Execute([]string) error {
 	addr.Path = "/api/status"
 
-	resp, err := sendRequest(nil, http.MethodGet)
+	ctx, cancel := context.WithTimeout(context.Background(), httpTimeout)
+	defer cancel()
+
+	resp, err := sendRequest(ctx, nil, http.MethodGet)
 	if err != nil {
 		return err
 	}

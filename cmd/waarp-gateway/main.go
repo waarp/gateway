@@ -17,6 +17,11 @@ var (
 	addr        *url.URL
 )
 
+//nolint:gochecknoinits // init is required here
+func init() {
+	addr = &url.URL{}
+}
+
 type options struct {
 	addrOpt
 	Status  statusCommand  `command:"status" description:"Show the status of the gateway services"`
