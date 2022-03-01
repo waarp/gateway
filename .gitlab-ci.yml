@@ -17,6 +17,7 @@ variables:
   PACKAGE_DEB: "waarp-gateway_${VERSION}-1_amd64.deb"
   PACKAGE_RPM: "waarp-gateway-${VERSION}-1.x86_64.rpm"
   PACKAGE_LIN: "waarp-gateway-${VERSION}.linux.tar.gz"
+  PACKAGE_WIN: "waarp-gateway-${VERSION}.windows.zip"
   PACKAGE_DOC: "waarp-gateway-doc-${VERSION}.zip"
 
 stages:
@@ -127,6 +128,8 @@ upload-packages:
     - |
       curl --header "JOB-TOKEN: ${CI_JOB_TOKEN}" --upload-file bin/${PACKAGE_LIN} ${PACKAGE_REGISTRY_URL}/${PACKAGE_LIN}
     - |
+      curl --header "JOB-TOKEN: ${CI_JOB_TOKEN}" --upload-file bin/${PACKAGE_WIN} ${PACKAGE_REGISTRY_URL}/${PACKAGE_WIN}
+    - |
       curl --header "JOB-TOKEN: ${CI_JOB_TOKEN}" --upload-file bin/${PACKAGE_DOC} ${PACKAGE_REGISTRY_URL}/${PACKAGE_DOC}
 
 upload-docker:
@@ -147,9 +150,14 @@ release:
     - if: $CI_COMMIT_TAG
   script:
     - |
-      release-cli create --name "${CI_COMMIT_MESSAGE}" --tag-name $CI_COMMIT_TAG \
+      release-cli create \
+        --name "${CI_COMMIT_TAG}" \
+        --tag-name $CI_COMMIT_TAG \
+        --released-at "$CI_COMMIT_TIMESTAMP" \
+        --description "${CI_COMMIT_MESSAGE} \
         --assets-link "{\"name\":\"${PACKAGE_DEB}\",\"url\":\"${PACKAGE_REGISTRY_URL}/${PACKAGE_DEB}\"}" \
         --assets-link "{\"name\":\"${PACKAGE_RPM}\",\"url\":\"${PACKAGE_REGISTRY_URL}/${PACKAGE_RPM}\"}" \
         --assets-link "{\"name\":\"${PACKAGE_LIN}\",\"url\":\"${PACKAGE_REGISTRY_URL}/${PACKAGE_LIN}\"}" \
+        --assets-link "{\"name\":\"${PACKAGE_WIN}\",\"url\":\"${PACKAGE_REGISTRY_URL}/${PACKAGE_WIN}\"}" \
         --assets-link "{\"name\":\"${PACKAGE_DOC}\",\"url\":\"${PACKAGE_REGISTRY_URL}/${PACKAGE_DOC}\"}"
 
