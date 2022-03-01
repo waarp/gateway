@@ -151,8 +151,9 @@ build_static_binaries() {
         echo "ERROR: $binary_file is not a stripped binary"
         return 2
       fi
-      if [[ "$out" = *"for GNU/Linux 4.4.0"* ]]; then
-        echo "ERROR: $binary_file is only compatible with Linux 4.4.0+"
+      if [[ ! "$out" = *"for GNU/Linux 3.2.0"* && "$out" = *"GNU/Linux"* ]]; then
+        echo "ERROR: $binary_file is only not compatible with older Linux."
+        echo "       Try calling './make.sh build dist' with an older glibc."
         return 2
       fi
     done
@@ -161,26 +162,25 @@ build_static_binaries() {
 
 t_build_dist() {
   cat <<EOW
-This procedure will build static stripped binaries for Linux (32 and 64 bits)
-and Windows (32 and 64 bits).
+This procedure will build static stripped binaries for Linux (64 bits)
+and Windows (64 bits).
 
 Warning:
-  It needs a gcc compiler for linux 32bits (in archlinux, the package
-  "lib32-gcc-libs") and for Windows (mingw-w64-gcc).
-
+  It needs a gcc compiler for Windows (in Archlinux, the package mingw-w64-gcc).
 
 EOW
   
   mkdir -p build
 
   GOOS=linux GOARCH=amd64 build_static_binaries
-  GOOS=linux GOARCH=386 build_static_binaries
+  #GOOS=linux GOARCH=386 build_static_binaries
   GOOS=windows GOARCH=amd64 CC="x86_64-w64-mingw32-gcc" build_static_binaries
 }
 
 t_package() {
-  rm -rf build
-  t_build_dist
+  local flavors
+  flavors=${*-rpm deb portlin portwin container doc}
+
   ./build/waarp-gatewayd_linux_amd64 server -c build/waarp-gatewayd.ini -n
 
   # pre-configure the service
@@ -191,13 +191,37 @@ t_package() {
     build/waarp-gatewayd.ini
 
   # build the packages
-  nfpm pkg -p rpm -f dist/nfpm.yaml --target build/
-  nfpm pkg -p deb -f dist/nfpm.yaml --target build/
-
-  build_portable_linux_archive
-  build_portable_windows_archive
-
-  t_doc_dist
+  for flavor in $flavors; do
+    case $flavor in
+      rpm)
+        echo "==> creating RPM package"
+        nfpm pkg -p rpm -f dist/nfpm.yaml --target build/
+        ;;
+      deb)
+        echo "==> creating DEB package"
+        nfpm pkg -p deb -f dist/nfpm.yaml --target build/
+        ;;
+      portlin)
+        echo "==> creating Linux portable archive"
+        build_portable_linux_archive
+        ;;
+      portwin)
+        echo "==> creating Windows portable archive"
+        build_portable_windows_archive
+        ;;
+      container)
+        echo "==> creating container image"
+        build_container
+        ;;
+      doc)
+        echo "==> creating documentation archive"
+        t_doc_dist
+        ;;
+      *)
+        echo "Unsupported flavor $flavor"
+        ;;
+    esac
+  done
 }
 
 build_portable_linux_archive() {
@@ -205,7 +229,7 @@ build_portable_linux_archive() {
   dest="build/waarp-gateway-$(cat VERSION)"
   version=$(cat VERSION)
 
-  rm -rf $dest
+  rm -rf "$dest"
   mkdir -p "$dest"/{etc,bin,log,share,data/db}
 
   cp ./dist/manage.sh "$dest/bin"
@@ -232,7 +256,7 @@ build_portable_windows_archive() {
   dest="build/waarp-gateway-$(cat VERSION)"
   version=$(cat VERSION)
 
-  rm -rf $dest
+  rm -rf "$dest"
   mkdir -p "$dest"/{etc,bin,log,share,data/db}
   
   cp ./dist/manage.bat "$dest/bin"
@@ -254,6 +278,37 @@ build_portable_windows_archive() {
   popd || return 2
 }
 
+build_container() {
+  IMAGE_TAG=${IMAGE_TAG:-waarp-gateway:dev}
+
+  local dest
+  dest="build/waarp-gateway-docker"
+
+  rm -rf "$dest"
+  mkdir -p "$dest"/{etc,bin,share,data/db}
+
+  # build container-entrypoint
+  GOOS=linux GOARCH=amd64 CGO_ENABLED=0 go build -ldflags "-s -w" \
+    -tags 'osusergo netgo static_build sqlite_omit_load_extension' \
+    -o "build/container-entrypoint_linux_amd64" ./dist/container-entrypoint
+  
+  cp ./build/waarp-gatewayd_linux_amd64 "$dest/bin/waarp-gatewayd"
+  cp ./build/waarp-gateway_linux_amd64 "$dest/bin/waarp-gateway"
+  cp ./build/get-remote_linux_amd64 "$dest/share/get-remote"
+  cp ./build/updateconf_linux_amd64 "$dest/share/updateconf"
+  cp ./build/container-entrypoint_linux_amd64  "$dest/bin/container-entrypoint"
+
+  # generate config
+  ./build/waarp-gatewayd_linux_amd64 server -c "$dest/etc/gatewayd.ini" -n
+  sed -i \
+    -e "s|; \(GatewayHome =\)|\1 /app/data|" \
+    -e "s|; \(Address =\) |\1 /app/data/db/|" \
+    -e "s|; \(AESPassphrase =\) |\1 /app/etc/|" \
+    "$dest/etc/gatewayd.ini"
+
+  $DOCKER_CMD image build -t "$IMAGE_TAG" .
+}
+
 t_bump() {
   if [ -z "$1" ]; then
     echo "ERROR: bump needs the version to be specified as the first argument"
@@ -263,30 +318,58 @@ t_bump() {
   sed -i -e "s|version:.*|version: v$(cat VERSION)|" dist/nfpm.yaml
 }
 
+set_docker_cmd() {
+  if which podman >/dev/null 2>&1; then 
+    DOCKER_CMD=podman
+  elif which docker >/dev/null 2>&1; then 
+    DOCKER_CMD=docker
+  fi
+}
+
 t_usage() {
-  echo "Usage $0 [ACTION]"
-  echo ""
-  echo "Available actions"
-  echo ""
-  echo "  generate    Runs go generate"
-  echo "  build       Builds binaries"
-  echo "  build dist  Builds binaries for distribution"
-  echo "  package     Generates packages"
-  echo "  check       Run static analysis"
-  echo "  test        Run tests"
-  echo "  test watch  Starts convey to watch code and run tests when"
-  echo "              it has been changed"
-  echo "  doc         Builds the doc"
-  echo "  doc watch   Watch the source of the documentation and builds it when"
-  echo "  doc dist    Builds doc for distribution"
-  echo "              it has been changed"
-  echo "  bump        Sets the version"
-  echo ""
+  cat <<EOT
+Usage $0 [ACTION]
+
+Available actions:
+
+  generate           Runs go generate
+  build              Builds binaries
+  build dist         Builds binaries for distribution
+  package [FLAVORS]  Generates packages
+  check              Run static analysis
+  test               Run tests
+  test watch         Starts convey to watch code and run tests when
+                     it has been changed
+  doc                Builds the doc
+  doc watch          Watch the source of the documentation and builds it when
+  doc dist           Builds doc for distribution
+                     it has been changed
+  bump               Sets the version
+
+Package flavors:
+
+  The package subcommand accepts one or more optional flavors to package.
+  By default, all flavours are built.
+
+  Supported flavors are:
+
+    rpm         Builds the Linux RPM packages
+    deb         Builds the Linux RPM packages
+    portwin     Builds the Windows portable archive
+    portlin     Builds the Linux portable archive
+    container   Builds a container image. The tag of the built image is set the 
+                environment variable '\$IMAGE_TAG' (defaults to
+                'waarp-gateway:dev')
+    doc         Builds a zip containing the documentation in HTML
+EOT
 }
 
 #####################################################################
 ###  MAIN
 #####################################################################
+
+DOCKER_CMD=""
+set_docker_cmd
 
 case $ACTION in
   generate)
@@ -308,7 +391,7 @@ case $ACTION in
     ;;
 
   package)
-    t_package
+    t_package "$@"
     ;;
 
   check)

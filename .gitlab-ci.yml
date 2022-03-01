@@ -11,6 +11,8 @@ image: golang:latest
 
 variables:
   VERSION: "${CI_COMMIT_TAG}"
+  IMAGE_TAG: $CI_REGISTRY_IMAGE:$CI_COMMIT_TAG
+  LATEST_IMAGE_TAG: $CI_REGISTRY_IMAGE:latest
   PACKAGE_REGISTRY_URL: "${CI_API_V4_URL}/projects/${CI_PROJECT_ID}/packages/generic/waarp-gateway/${VERSION}"
   PACKAGE_DEB: "waarp-gateway_${VERSION}-1_amd64.deb"
   PACKAGE_RPM: "waarp-gateway-${VERSION}-1.x86_64.rpm"
@@ -87,11 +89,12 @@ compile:
 
 package:
   stage: build
-  only: [ tags ]
+  rules:
+    - if: $CI_COMMIT_TAG
   before_script:
     - >
       apt update -y
-      && apt install -y file gcc-multilib gcc-mingw-w64-x86-64 virtualenv zip
+      && apt install -y file gcc-mingw-w64-x86-64 virtualenv zip docker.io
       && apt clean
       && rm -rf /var/lib/apt/lists/*
     - export GOPATH="$CI_PROJECT_DIR/.gocache"
@@ -99,7 +102,10 @@ package:
     - git config url."https://gitlab-ci-token:$CI_JOB_TOKEN@code.waarp.fr".insteadOf "https://code.waarp.fr"
     - go install github.com/goreleaser/nfpm/v2/cmd/nfpm@latest
   script:
+    - ./make.sh build dist
     - ./make.sh package
+    - docker login -u $CI_REGISTRY_USER -p $CI_JOB_TOKEN $CI_REGISTRY
+    - docker push $IMAGE_TAG
   cache:
     key: go_dependencies_cache
     paths:
@@ -108,7 +114,7 @@ package:
     paths:
       - build/
 
-upload:
+upload-packages:
   stage: upload
   image: curlimages/curl:latest
   rules:
@@ -123,9 +129,18 @@ upload:
     - |
       curl --header "JOB-TOKEN: ${CI_JOB_TOKEN}" --upload-file bin/${PACKAGE_DOC} ${PACKAGE_REGISTRY_URL}/${PACKAGE_DOC}
 
+upload-docker:
+  image: docker:18.09
+  stage: upload
+  rules:
+    - if: $CI_COMMIT_TAG
+  script:
+    - docker login -u $CI_REGISTRY_USER -p $CI_JOB_TOKEN $CI_REGISTRY
+    - docker pull "$IMAGE_TAG"
+    - docker tag "$IMAGE_TAG" "$LATEST_IMAGE_TAG"
+    - docker push "$LATEST_IMAGE_TAG"
+
 release:
-  # Caution, as of 2021-02-02 these assets links require a login, see:
-  # https://gitlab.com/gitlab-org/gitlab/-/issues/299384
   stage: release
   image: registry.gitlab.com/gitlab-org/release-cli:latest
   rules:

@@ -50,6 +50,7 @@ extensions = [
     'sphinx.ext.todo',
     'sphinx.ext.ifconfig',
     'sphinxcontrib.httpdomain',
+    'sphinxcontrib.plantuml',
     'releases',
 ]
 
