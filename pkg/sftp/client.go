@@ -26,6 +26,7 @@ func init() {
 type client struct {
 	pip *pipeline.Pipeline
 
+	protoConf   *config.SftpProtoConfig
 	sshConf     *ssh.ClientConfig
 	sshSession  *ssh.Client
 	sftpSession *sftp.Client
@@ -56,8 +57,9 @@ func newClient(pip *pipeline.Pipeline) (*client, *types.TransferError) {
 	}
 
 	return &client{
-		pip:     pip,
-		sshConf: sshConf,
+		pip:       pip,
+		protoConf: &protoConf,
+		sshConf:   sshConf,
 	}, nil
 }
 
@@ -81,7 +83,17 @@ func (c *client) Request() (tErr *types.TransferError) {
 		return c.fromSFTPErr(err, types.TeConnection)
 	}
 
-	c.sftpSession, err = sftp.NewClient(c.sshSession)
+	var opts []sftp.ClientOption
+
+	if !c.protoConf.UseStat {
+		opts = append(opts, sftp.UseFstat(true))
+	}
+
+	if c.protoConf.DisableClientConcurrentReads {
+		opts = append(opts, sftp.UseConcurrentReads(false))
+	}
+
+	c.sftpSession, err = sftp.NewClient(c.sshSession, opts...)
 	if err != nil {
 		c.pip.Logger.Errorf("Failed to start SFTP session: %s", err)
 

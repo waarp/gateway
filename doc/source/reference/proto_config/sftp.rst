@@ -39,6 +39,31 @@ et les partenaires. Les options disponibles sont les suivantes :
 
    Par défaut, tous les algorithmes sont autorisés.
 
+* **useStat** (*boolean*) - *Optionnel* Lorsque la *gateway* récupère un fichier
+  depuis un serveur SFTP distant, le SFTP client de la *gateway* envoie une
+  commande SFTP ``Fstat`` sur le fichier ouvert pour récupérer sa taille avant de
+  commencer à le lire. Cependant, la commande ``Fstat`` peut causer des problèmes
+  de compatibilité avec certains serveurs SFTP. Cette option permet de remplacer
+  la commande ``Fstat`` par une commande ``Stat`` qui est plus largement supportée.
+
+  **Note:** Cette option n'a aucun effet si l'option ``disableClientConcurrentReads``
+  décrite ci-dessous est également activée.
+
+* **disableClientConcurrentReads** (*boolean*) - *Optionnel* Par défaut, lorsque
+  la *gateway* récupère un fichier depuis un serveur SFTP distant, le fichier est
+  lu en parallèle par plusieurs *workers* afin de maximiser le débit de transfert.
+  Cependant, cette méthode de lecture en parallèle requiert que le client connaisse
+  la taille du fichier (afin de déterminer le nombre de *workers* à utiliser). Pour
+  cela, le client envoie une commande ``Fstat`` (ou ``Stat``) au fichier une fois
+  ouvert. Cependant, cette commande peut parfois causer des problèmes avec certains
+  serveurs, notamment les serveurs ne permettant qu'une lecture unique du fichier
+  (*read-once*). Cette option permet de désactiver la lecture concurrente du fichier,
+  ce qui désactive également l'envoi de cette commande ``Fstat``. Notez cependant,
+  que en conséquence, le fichier sera alors lu de façon séquentielle ce qui impactera
+  les performances du transfert.
+
+  **Note:** Activer cette option rend l'option ``useStat`` décrite ci-dessus ineffective.
+
 **Exemple**
 
 .. code-block:: json
@@ -64,5 +89,7 @@ et les partenaires. Les options disponibles sont les suivantes :
        "hmac-sha2-256",
        "hmac-sha1",
        "hmac-sha1-96"
-     ]
+     ],
+     "useStat": true,
+     "disableClientConcurrentReads": false
    }

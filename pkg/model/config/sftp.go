@@ -36,9 +36,11 @@ var (
 
 // SftpProtoConfig represents the configuration of an SFTP agent.
 type SftpProtoConfig struct {
-	KeyExchanges []string `json:"keyExchanges,omitempty"`
-	Ciphers      []string `json:"ciphers,omitempty"`
-	MACs         []string `json:"macs,omitempty"`
+	KeyExchanges                 []string `json:"keyExchanges,omitempty"`
+	Ciphers                      []string `json:"ciphers,omitempty"`
+	MACs                         []string `json:"macs,omitempty"`
+	DisableClientConcurrentReads bool     `json:"disableClientConcurrentReads,omitempty"`
+	UseStat                      bool     `json:"useStat,omitempty"`
 }
 
 func (c SftpProtoConfig) valid() error {
