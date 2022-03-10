@@ -79,6 +79,34 @@ func (t *TaskChecker) ClientDone() { close(t.cDone) }
 // ServerDone signals the TaskChecker that the server has finished its side of the transfer.
 func (t *TaskChecker) ServerDone() { close(t.sDone) }
 
+// WaitClientPreTasks waits until the client has executed at least 1 pre-task.
+func (t *TaskChecker) WaitClientPreTasks() { waitTask(t.ClientPreTaskNB) }
+
+// WaitServerPreTasks waits until the server has executed at least 1 pre-task.
+func (t *TaskChecker) WaitServerPreTasks() { waitTask(t.ServerPreTaskNB) }
+
+// WaitClientPostTasks waits until the client has executed at least 1 post-task.
+func (t *TaskChecker) WaitClientPostTasks() { waitTask(t.ClientPreTaskNB) }
+
+// WaitServerPostTasks waits until the server has executed at least 1 post-task.
+func (t *TaskChecker) WaitServerPostTasks() { waitTask(t.ServerPreTaskNB) }
+
+// waitTask waits until the given function returns any number greater than 0.
+func waitTask(f func() uint32) {
+	timer := time.NewTimer(taskTimeout)
+
+	for {
+		select {
+		case <-timer.C:
+			panic("timeout waiting for task")
+		default:
+			if f() > 0 {
+				return
+			}
+		}
+	}
+}
+
 // WaitClientDone waits for the client to have finished its side of the transfer.
 func (t *TaskChecker) WaitClientDone() {
 	timer := time.NewTimer(taskTimeout)

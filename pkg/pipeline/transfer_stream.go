@@ -29,20 +29,7 @@ type TransferStream interface {
 	stop()
 }
 
-func newVoidStream(p *Pipeline) (*voidStream, *types.TransferError) {
-	var err error
-	if p.TransCtx.Rule.IsSend {
-		err = p.machine.Transition(stateReading)
-	} else {
-		err = p.machine.Transition(stateWriting)
-	}
-
-	if err != nil {
-		return nil, types.NewTransferError(types.TeInternal, err.Error())
-	}
-
-	return &voidStream{p}, nil
-}
+func newVoidStream(p *Pipeline) *voidStream { return &voidStream{p} }
 
 type voidStream struct{ *Pipeline }
 

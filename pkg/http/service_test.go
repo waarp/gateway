@@ -2,7 +2,6 @@ package http
 
 import (
 	"context"
-	"crypto/rand"
 	"encoding/json"
 	"fmt"
 	"io/ioutil"
@@ -18,6 +17,7 @@ import (
 	"code.waarp.fr/apps/gateway/gateway/pkg/model"
 	"code.waarp.fr/apps/gateway/gateway/pkg/model/types"
 	"code.waarp.fr/apps/gateway/gateway/pkg/pipeline/pipelinetest"
+	"code.waarp.fr/apps/gateway/gateway/pkg/tk/utils/testhelpers"
 )
 
 func TestServiceStart(t *testing.T) {
@@ -85,7 +85,7 @@ func TestServerInterruption(t *testing.T) {
 			cli := http.DefaultClient
 
 			Convey("Given that a push transfer started", func() {
-				body := newLimitedReader(3)
+				body := testhelpers.NewLimitedReader(3)
 
 				url := fmt.Sprintf("http://%s/test_in_shutdown.dst?%s=%s",
 					test.Server.Address, httpconst.Rule, test.ServerRule.Name)
@@ -97,16 +97,18 @@ func TestServerInterruption(t *testing.T) {
 
 				stop := make(chan error, 1)
 
-				go func() {
-					time.Sleep(500 * time.Millisecond)
-
-					ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
-					defer cancel()
-
-					stop <- serv.Stop(ctx)
-				}()
-
 				Convey("When the server shuts down", func() {
+					defer test.TasksChecker.WaitServerDone()
+
+					go func() {
+						test.TasksChecker.WaitServerPreTasks()
+
+						ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+						defer cancel()
+
+						stop <- serv.Stop(ctx)
+					}()
+
 					resp, err := cli.Do(req)
 					So(err, ShouldBeNil)
 
@@ -122,7 +124,6 @@ func TestServerInterruption(t *testing.T) {
 
 					Convey("Then the transfer should have been interrupted", func(c C) {
 						test.ServerShouldHavePreTasked(c)
-						test.TasksChecker.WaitServerDone()
 
 						var transfers model.Transfers
 						So(test.DB.Select(&transfers).Run(), ShouldBeNil)
@@ -136,19 +137,4 @@ func TestServerInterruption(t *testing.T) {
 			})
 		})
 	})
-}
-
-func newLimitedReader(lim int) *limitedReader {
-	return &limitedReader{lim: lim, tick: time.NewTicker(time.Second)}
-}
-
-type limitedReader struct {
-	lim  int
-	tick *time.Ticker
-}
-
-func (l *limitedReader) Read(b []byte) (int, error) {
-	<-l.tick.C
-
-	return rand.Read(b[:l.lim]) //nolint:wrapcheck //useless here, only used for tests
 }

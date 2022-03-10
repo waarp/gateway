@@ -26,6 +26,10 @@ type Service struct {
 
 // NewService returns a new SFTP service instance with the given attributes.
 func NewService(db *database.DB, agent *model.LocalAgent, logger *log.Logger) service.ProtoService {
+	return newService(db, agent, logger)
+}
+
+func newService(db *database.DB, agent *model.LocalAgent, logger *log.Logger) *Service {
 	return &Service{
 		db:     db,
 		agent:  agent,

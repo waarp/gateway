@@ -164,19 +164,25 @@ func (p *Pipeline) PreTasks() *types.TransferError {
 // TransferStream and returns it. In the case of a retry, the data transfer will
 // resume at the offset indicated by the Transfer.Progress field.
 func (p *Pipeline) StartData() (TransferStream, *types.TransferError) {
-	if err := p.machine.Transition(stateStartData); err != nil {
+	var newState statemachine.State
+
+	if p.TransCtx.Rule.IsSend {
+		newState = stateReading
+	} else {
+		newState = stateWriting
+	}
+
+	doTrantition, err := p.machine.DeferTransition(newState)
+	if err != nil {
 		p.handleStateErr("StartData", p.machine.Current())
 
 		return nil, errStateMachine
 	}
 
-	if p.TransCtx.Transfer.Step > types.StepData {
-		var err *types.TransferError
-		if p.Stream, err = newVoidStream(p); err != nil {
-			p.handleError(types.TeInternal, "Failed to create file stream", err.Error())
+	defer doTrantition()
 
-			return nil, err
-		}
+	if p.TransCtx.Transfer.Step > types.StepData {
+		p.Stream = newVoidStream(p)
 
 		return p.Stream, nil
 	}
@@ -189,6 +195,7 @@ func (p *Pipeline) StartData() (TransferStream, *types.TransferError) {
 		p.TransCtx.Transfer.TaskNumber = 0
 
 		if dbErr := p.DB.Update(p.TransCtx.Transfer).Cols("step", "task_number").Run(); dbErr != nil {
+			doTrantition()
 			p.handleError(types.TeInternal, "Failed to update transfer step for pre-tasks",
 				dbErr.Error())
 
@@ -196,13 +203,13 @@ func (p *Pipeline) StartData() (TransferStream, *types.TransferError) {
 		}
 	}
 
-	var err *types.TransferError
+	var tErr *types.TransferError
 
-	p.Stream, err = newFileStream(p, time.Second, isResume)
+	p.Stream, tErr = newFileStream(p, time.Second, isResume)
 	if err != nil {
-		p.handleError(err.Code, "Failed to create file stream", err.Details)
+		p.handleError(tErr.Code, "Failed to create file stream", tErr.Details)
 
-		return nil, err
+		return nil, tErr
 	}
 
 	return p.Stream, nil
@@ -297,30 +304,45 @@ func (p *Pipeline) EndTransfer() *types.TransferError {
 		return errStateMachine
 	}
 
-	p.runner.Stop()
-	p.TransCtx.Transfer.Status = types.StatusDone
-	p.TransCtx.Transfer.Step = types.StepNone
-	p.TransCtx.Transfer.TaskNumber = 0
+	var sErr *types.TransferError
 
-	if err := p.TransCtx.Transfer.ToHistory(p.DB, p.Logger, time.Now()); err != nil {
-		p.handleError(types.TeInternal, "Failed to archive transfer", err.Error())
+	p.errOnce.Do(func() {
+		p.runner.Stop()
+		p.TransCtx.Transfer.Status = types.StatusDone
+		p.TransCtx.Transfer.Step = types.StepNone
+		p.TransCtx.Transfer.TaskNumber = 0
 
-		return errDatabase
-	}
+		if err := p.TransCtx.Transfer.ToHistory(p.DB, p.Logger, time.Now()); err != nil {
+			if mErr := p.machine.Transition(stateError); mErr != nil {
+				p.Logger.Warningf("Failed to transition to 'error' state: %v", mErr)
+			}
 
-	if err := p.machine.Transition(stateAllDone); err != nil {
-		p.handleStateErr("Done", p.machine.Current())
+			p.errDo(types.TeInternal, "Failed to archive transfer", err.Error())
+			sErr = errDatabase
 
-		return errStateMachine
-	}
+			return
+		}
 
-	p.Logger.Debug("Transfer ended without errors")
+		if err := p.machine.Transition(stateAllDone); err != nil {
+			if mErr := p.machine.Transition(stateError); mErr != nil {
+				p.Logger.Warningf("Failed to transition to 'error' state: %v", mErr)
+			}
 
-	if TestPipelineEnd != nil {
-		TestPipelineEnd(p.TransCtx.Transfer.IsServer)
-	}
+			p.errDo(types.TeInternal, "Pipeline state machine violation", fmt.Sprintf(
+				"cannot call EndTransfer while in state %s", p.machine.Current()))
+			sErr = errStateMachine
 
-	return nil
+			return
+		}
+
+		p.Logger.Debug("Transfer ended without errors")
+
+		if TestPipelineEnd != nil {
+			TestPipelineEnd(p.TransCtx.Transfer.IsServer)
+		}
+	})
+
+	return sErr
 }
 
 func (p *Pipeline) errorTasks() {
@@ -349,12 +371,6 @@ func (p *Pipeline) errorTasks() {
 }
 
 func (p *Pipeline) errDo(code types.TransferErrorCode, msg, cause string) {
-	if err := p.machine.Transition(stateError); err != nil {
-		p.Logger.Critical(err.Error())
-
-		return
-	}
-
 	fullMsg := fmt.Sprintf("%s: %s", msg, cause)
 
 	p.Logger.Error(fullMsg)
@@ -388,6 +404,10 @@ func (p *Pipeline) errDo(code types.TransferErrorCode, msg, cause string) {
 
 func (p *Pipeline) handleError(code types.TransferErrorCode, msg, cause string) {
 	p.errOnce.Do(func() {
+		if mErr := p.machine.Transition(stateError); mErr != nil {
+			p.Logger.Warningf("Failed to transition to 'error' state: %v", mErr)
+		}
+
 		p.errDo(code, msg, cause)
 	})
 }
@@ -400,13 +420,17 @@ func (p *Pipeline) handleStateErr(fun string, currentState statemachine.State) {
 // SetError stops the pipeline and sets its error to the given value.
 func (p *Pipeline) SetError(err *types.TransferError) {
 	p.errOnce.Do(func() {
+		if mErr := p.machine.Transition(stateError); mErr != nil {
+			p.Logger.Warningf("Failed to transition to 'error' state: %v", mErr)
+		}
+
 		p.stop()
 		p.errDo(err.Code, "Error on remote partner", err.Details)
 	})
 }
 
 func (p *Pipeline) stop() {
-	switch p.machine.Current() {
+	switch p.machine.Last() {
 	case statePreTasks, statePostTasks:
 		p.runner.Stop()
 	case stateReading, stateWriting, stateDataEnd:
@@ -426,16 +450,16 @@ func (p *Pipeline) Interrupt(handles ...func()) {
 
 func (p *Pipeline) halt(msg string, status types.TransferStatus, handles ...func()) {
 	p.errOnce.Do(func() {
+		if mErr := p.machine.Transition(stateError); mErr != nil {
+			p.Logger.Warningf("Failed to transition to 'error' state: %v", mErr)
+		}
+
 		for _, handle := range handles {
 			handle()
 		}
 
 		p.Logger.Info(msg)
 		p.stop()
-
-		if mErr := p.machine.Transition(stateError); mErr != nil {
-			p.Logger.Warningf("Failed to transition to 'error' state: %v", mErr)
-		}
 
 		p.TransCtx.Transfer.Status = status
 		if err := p.DB.Update(p.TransCtx.Transfer).Cols("status").Run(); err != nil {
@@ -455,16 +479,16 @@ func (p *Pipeline) halt(msg string, status types.TransferStatus, handles ...func
 // Cancel stops the pipeline and cancels the transfer.
 func (p *Pipeline) Cancel(handles ...func()) {
 	p.errOnce.Do(func() {
+		if mErr := p.machine.Transition(stateError); mErr != nil {
+			p.Logger.Warningf("Failed to transition to 'error' state: %v", mErr)
+		}
+
 		for _, handle := range handles {
 			handle()
 		}
 
 		p.Logger.Info("Transfer canceled by user")
 		p.stop()
-
-		if mErr := p.machine.Transition(stateError); mErr != nil {
-			p.Logger.Warningf("Failed to transition to 'error' state: %v", mErr)
-		}
 
 		p.TransCtx.Transfer.Status = types.StatusCancelled
 		if err := p.TransCtx.Transfer.ToHistory(p.DB, p.Logger, time.Now()); err != nil {

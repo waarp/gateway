@@ -4,6 +4,8 @@ Historique des versions
 =======================
 
 * :release:`0.5.0 <>`
+* :bug:`304` Correction d'un bug de blocage de transfert dû à un problème
+  de concurrence pouvant survenir lors de l'interruption d'un transfert.
 * :feature:`306` Ajout de l'attribut ``protocol`` à l'objet JSON de transfert.
   Cela permet plus de consistance avec l'objet d'historique qui contenait déjà
   cet attribut. Le protocole est également visible désormais en sortie de la
