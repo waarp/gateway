@@ -19,6 +19,7 @@ Consulter un transfert
    :resjson string rule: L'identifiant de la règle de transfert
    :resjson string requester: Le nom du compte ayant demandé le transfert
    :resjson string requested: Le nom du serveur/partenaire auquel le transfert a été demandé
+   :resjson string protocol: Le protocole utilisé pour effectuer le transfert
    :resjson string trueFilepath: Le chemin local complet du fichier (OBSOLÈTE: remplacé par 'localFilepath')
    :resjson string sourcePath: Le fichier source du transfer (OBSOLÈTE: remplacé par 'localFilepath' & 'remoteFilepath')
    :resjson string destPath: Le fichier destination du transfer (OBSOLÈTE: remplacé par 'localFilepath' & 'remoteFilepath')
@@ -57,6 +58,7 @@ Consulter un transfert
            "rule": "règle_1",
            "requester": "toto",
            "requested": "waarp_sftp",
+           "protocol": "sftp",
            "localFilepath": "/chemin/local/fichier1",
            "remoteFilepath": "/chemin/distant/fichier1",
            "start": "2019-01-01T02:00:00+02:00",

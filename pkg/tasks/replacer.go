@@ -39,11 +39,22 @@ var replacers = map[string]replacer{
 	"#FILESIZE#": func(r *Runner) (string, error) {
 		return fmt.Sprint(r.transCtx.Transfer.Filesize), nil
 	},
-	"#INPATH#":   notImplemented("#INPATH#"),
-	"#OUTPATH#":  notImplemented("#OUTPATH#"),
-	"#WORKPATH#": notImplemented("#WORKPATH#"),
+	"#INPATH#": func(r *Runner) (string, error) {
+		return utils.GetPath(r.transCtx.Paths.DefaultInDir,
+			utils.Branch(r.transCtx.Paths.GatewayHome)), nil
+	},
+	"#OUTPATH#": func(r *Runner) (string, error) {
+		return utils.GetPath(r.transCtx.Paths.DefaultOutDir,
+			utils.Branch(r.transCtx.Paths.GatewayHome)), nil
+	},
+	"#WORKPATH#": func(r *Runner) (string, error) {
+		return utils.GetPath("", utils.Leaf(r.transCtx.Paths.DefaultTmpDir),
+			utils.Branch(r.transCtx.Paths.GatewayHome)), nil
+	},
 	"#ARCHPATH#": notImplemented("#ARCHPATH#"),
-	"#HOMEPATH#": notImplemented("#HOMEPATH#"),
+	"#HOMEPATH#": func(r *Runner) (string, error) {
+		return r.transCtx.Paths.GatewayHome, nil
+	},
 	"#RULE#": func(r *Runner) (string, error) {
 		return r.transCtx.Rule.Name, nil
 	},

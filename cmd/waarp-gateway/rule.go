@@ -1,6 +1,7 @@
 package main
 
 import (
+	"context"
 	"encoding/json"
 	"errors"
 	"fmt"
@@ -385,7 +386,10 @@ func (r *ruleAllowAll) Execute([]string) error {
 	addr.Path = fmt.Sprintf("/api/rules/%s/%s/allow_all", r.Args.Name,
 		strings.ToLower(r.Args.Direction))
 
-	resp, err := sendRequest(nil, http.MethodPut)
+	ctx, cancel := context.WithTimeout(context.Background(), httpTimeout)
+	defer cancel()
+
+	resp, err := sendRequest(ctx, nil, http.MethodPut)
 	if err != nil {
 		return err
 	}

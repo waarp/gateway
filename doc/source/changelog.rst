@@ -6,6 +6,15 @@ Historique des versions
 * :release:`0.5.0 <>`
 * :bug:`304` Correction d'un bug de blocage de transfert dû à un problème
   de concurrence pouvant survenir lors de l'interruption d'un transfert.
+* :feature:`306` Ajout de l'attribut ``protocol`` à l'objet JSON de transfert.
+  Cela permet plus de consistance avec l'objet d'historique qui contenait déjà
+  cet attribut. Le protocole est également visible désormais en sortie de la
+  commande ``transfer get`` du terminal.
+* :bug:`-` Correction d'une erreur SIGSEGV survenant lors de l'exécution d'une
+  commande su client terminal sans que l'adresse de la *gateway* soit renseignée.
+  Désormais, le client lèvera une erreur plus claire au lieu de paniquer.
+* :bug:`307` Correction d'une erreur *"context canceled"* pouvant survenir lors
+  de l'exécution de certaines commandes du client terminal.
 * :bug:`302` Correction d'une erreur du serveur R66 causée par le fait que le
   serveur ne prenait pas en compte certaine partie de sa *ProtoConfig*. Cela causait
   par exemple le démarrage du serveur en clair lorsqu'aucun certificats n'était

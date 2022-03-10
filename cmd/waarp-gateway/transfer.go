@@ -1,6 +1,7 @@
 package main
 
 import (
+	"context"
 	"fmt"
 	"io"
 	"net/http"
@@ -68,6 +69,7 @@ func displayTransfer(w io.Writer, trans *api.OutTransfer) {
 	}
 
 	fmt.Fprintln(w, orange("    Rule:           "), trans.Rule)
+	fmt.Fprintln(w, orange("    Protocol:       "), trans.Protocol)
 	fmt.Fprintln(w, orange("    Requester:      "), trans.Requester)
 	fmt.Fprintln(w, orange("    Requested:      "), trans.Requested)
 	fmt.Fprintln(w, orange("    Local filepath: "), trans.LocalFilepath)
@@ -237,7 +239,10 @@ func (t *transferPause) Execute([]string) error {
 	id := fmt.Sprint(t.Args.ID)
 	addr.Path = fmt.Sprintf("/api/transfers/%d/pause", t.Args.ID)
 
-	resp, err := sendRequest(nil, http.MethodPut)
+	ctx, cancel := context.WithTimeout(context.Background(), httpTimeout)
+	defer cancel()
+
+	resp, err := sendRequest(ctx, nil, http.MethodPut)
 	if err != nil {
 		return err
 	}
@@ -276,7 +281,10 @@ func (t *transferResume) Execute([]string) error {
 	id := fmt.Sprint(t.Args.ID)
 	addr.Path = fmt.Sprintf("/api/transfers/%d/resume", t.Args.ID)
 
-	resp, err := sendRequest(nil, http.MethodPut)
+	ctx, cancel := context.WithTimeout(context.Background(), httpTimeout)
+	defer cancel()
+
+	resp, err := sendRequest(ctx, nil, http.MethodPut)
 	if err != nil {
 		return err
 	}
@@ -314,7 +322,10 @@ func (t *transferCancel) Execute([]string) error {
 	id := fmt.Sprint(t.Args.ID)
 	addr.Path = fmt.Sprintf("/api/transfers/%d/cancel", t.Args.ID)
 
-	resp, err := sendRequest(nil, http.MethodPut)
+	ctx, cancel := context.WithTimeout(context.Background(), httpTimeout)
+	defer cancel()
+
+	resp, err := sendRequest(ctx, nil, http.MethodPut)
 	if err != nil {
 		return err
 	}
