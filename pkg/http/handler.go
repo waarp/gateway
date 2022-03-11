@@ -75,6 +75,8 @@ func (h *httpHandler) checkRulePermission() bool {
 		return true
 	}
 
+	h.logger.Warningf("Account %s is not allowed to use %s rule %s", h.account.Login,
+		h.rule.Direction(), h.rule.Name)
 	h.sendError(http.StatusForbidden, types.TeForbidden, "you do not have permission to use this rule")
 
 	return false
