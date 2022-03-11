@@ -12,10 +12,10 @@ require (
 	github.com/mattn/go-colorable v0.1.6
 	github.com/mattn/go-oci8 v0.0.2
 	github.com/mattn/go-sqlite3 v1.14.7
-	github.com/pkg/sftp v1.11.0
+	github.com/pkg/sftp v1.13.4
 	github.com/smartystreets/assertions v0.0.0-20180927180507-b2de0cb4f26d
 	github.com/smartystreets/goconvey v1.6.4
-	golang.org/x/crypto v0.0.0-20210322153248-0c34fe9e7dc2
+	golang.org/x/crypto v0.0.0-20210421170649-83a5a9bb288b
 	golang.org/x/mod v0.4.2
 	golang.org/x/term v0.0.0-20210927222741-03fcf44c2211
 	xorm.io/builder v0.3.8
