@@ -267,14 +267,7 @@ func cancelTransfer(protoServices map[string]service.ProtoService) handler {
 				return
 			}
 
-			switch trans.Status {
-			case types.StatusPlanned:
-				trans.Status = types.StatusCancelled
-				if err := trans.ToHistory(db, logger, time.Time{}); handleError(w, logger, err) {
-					return
-				}
-
-			case types.StatusRunning:
+			if trans.Status == types.StatusRunning {
 				pips, err := getPipelineMap(db, protoServices, trans)
 				if handleError(w, logger, err) {
 					return
@@ -289,12 +282,11 @@ func cancelTransfer(protoServices map[string]service.ProtoService) handler {
 
 					return
 				}
-
-			default:
-				err := badRequest("cannot pause an already interrupted transfer")
-				handleError(w, logger, err)
-
-				return
+			} else {
+				trans.Status = types.StatusCancelled
+				if err := trans.ToHistory(db, logger, time.Time{}); handleError(w, logger, err) {
+					return
+				}
 			}
 
 			r.URL.Path = "/api/history"
