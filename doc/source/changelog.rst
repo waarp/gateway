@@ -4,6 +4,11 @@ Historique des versions
 =======================
 
 * :release:`0.5.0 <>`
+* :bug:`311` Correction d'une erreur du client SFTP pouvant survenir lorsque
+  celui-ci effectue un transfert vers un serveur configuré en lecture unique
+  (*read-once*). Pour cela, 2 nouvelles options ``useStat`` et
+  ``disableClientConcurrentReads`` ont été ajoutée à la
+  :ref:`configuration protocolaire SFTP<proto-config-sftp>`
 * :bug:`304` Correction d'un bug de blocage de transfert dû à un problème
   de concurrence pouvant survenir lors de l'interruption d'un transfert.
 * :feature:`306` Ajout de l'attribut ``protocol`` à l'objet JSON de transfert.
