@@ -198,11 +198,11 @@ func (r *Rule) IsAuthorized(db database.Access, target database.IterateBean) (bo
 	case *LocalAccount:
 		query = db.Count(&perms).Where("rule_id=? AND ((object_type=? AND object_id=?) "+
 			"OR (object_type=? AND object_id=?))", r.ID, object.TableName(), object.ID,
-			"local_agents", object.LocalAgentID)
+			TableLocAgents, object.LocalAgentID)
 	case *RemoteAccount:
 		query = db.Count(&perms).Where("rule_id=? AND ((object_type=? AND object_id=?) "+
 			"OR (object_type=? AND object_id=?))", r.ID, object.TableName(), object.ID,
-			"local_agents", object.RemoteAgentID)
+			TableRemAgents, object.RemoteAgentID)
 	default:
 		return false, database.NewValidationError("%T is not a valid target model for RuleAccess", target)
 	}

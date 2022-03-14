@@ -63,7 +63,7 @@ func TestIsRuleAuthorized(t *testing.T) {
 			}
 			So(db.Insert(&lAccount).Run(), ShouldBeNil)
 
-			Convey("Given a remote_agent authorized for the rule", func() {
+			Convey("Given a local_agent authorized for the rule", func() {
 				lAccess := RuleAccess{
 					RuleID:     r.ID,
 					ObjectType: TableLocAgents,

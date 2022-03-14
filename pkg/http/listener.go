@@ -183,7 +183,7 @@ func (h *httpService) checkAuthent(w http.ResponseWriter, r *http.Request,
 func (h *httpService) passwdAuth(w http.ResponseWriter, login, pswd string,
 ) (*model.LocalAccount, bool) {
 	var acc model.LocalAccount
-	if err := h.db.Get(&acc, "login=?", login).Run(); err != nil {
+	if err := h.db.Get(&acc, "login=? AND local_agent_id=?", login, h.agent.ID).Run(); err != nil {
 		if !database.IsNotFound(err) {
 			h.logger.Errorf("Failed to retrieve user credentials: %s", err)
 			http.Error(w, "Failed to retrieve user credentials", http.StatusInternalServerError)
