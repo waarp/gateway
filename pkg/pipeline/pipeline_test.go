@@ -10,46 +10,46 @@ import (
 	. "github.com/smartystreets/goconvey/convey"
 
 	"code.waarp.fr/apps/gateway/gateway/pkg/database"
-	"code.waarp.fr/apps/gateway/gateway/pkg/log"
 	"code.waarp.fr/apps/gateway/gateway/pkg/model"
 	"code.waarp.fr/apps/gateway/gateway/pkg/model/types"
 	"code.waarp.fr/apps/gateway/gateway/pkg/tasks/taskstest"
 )
 
-func TestNewPipeline(t *testing.T) {
-	logger := log.NewLogger("test_new_pipeline")
+func TestNewClientPipeline(t *testing.T) {
+	TransferOutCount = &count{}
+	TransferInCount = &count{}
 
 	Convey("Given a database", t, func(c C) {
 		ctx := initTestDB(c)
 
 		Convey("Given a send transfer", func(c C) {
-			info := mkSendTransfer(ctx, "file")
+			trans := mkSendTransfer(ctx, "file")
 			file := filepath.Join(ctx.root, ctx.send.LocalDir, "file")
 
 			Convey("When initiating a new pipeline for this transfer", func(c C) {
-				pip, err := newPipeline(ctx.db, logger, info)
+				pip, err := NewClientPipeline(ctx.db, trans)
 				So(err, ShouldBeNil)
 
 				Convey("Then it should create the corresponding pipeline", func(c C) {
 					So(pip, ShouldNotBeNil)
 
 					Convey("Then the pipeline's state machine should have been initiated", func(c C) {
-						So(pip.machine.Current(), ShouldEqual, stateInit)
+						So(pip.pip.machine.Current(), ShouldEqual, stateInit)
 					})
 
 					Convey("Then the transfer's paths should have been initiated", func(c C) {
-						So(info.Transfer.LocalPath, ShouldEqual, file)
-						So(info.Transfer.RemotePath, ShouldEqual, path.Join("/",
+						So(trans.LocalPath, ShouldEqual, file)
+						So(trans.RemotePath, ShouldEqual, path.Join("/",
 							ctx.send.RemoteDir, "file"))
 					})
 				})
 			})
 
-			Convey("Given that the file cannot be found", func(c3b C) {
+			Convey("Given that the file cannot be found", func(c C) {
 				So(os.Remove(file), ShouldBeNil)
 
 				Convey("When initiating a new pipeline for this transfer", func(c C) {
-					_, err := newPipeline(ctx.db, logger, info)
+					_, err := NewClientPipeline(ctx.db, trans)
 
 					Convey("Then it should return an error", func(c C) {
 						So(err, ShouldBeError, types.NewTransferError(
@@ -67,7 +67,7 @@ func TestNewPipeline(t *testing.T) {
 				})
 
 				Convey("When initiating a new pipeline for this transfer", func(c C) {
-					_, err := newPipeline(ctx.db, logger, info)
+					_, err := NewClientPipeline(ctx.db, trans)
 
 					Convey("Then it should return an error", func(c C) {
 						So(err, ShouldBeError, errLimitReached)
@@ -79,7 +79,7 @@ func TestNewPipeline(t *testing.T) {
 				database.SimulateError(c, ctx.db)
 
 				Convey("When initiating a new pipeline for this transfer", func(c C) {
-					_, err := newPipeline(ctx.db, logger, info)
+					_, err := NewClientPipeline(ctx.db, trans)
 
 					Convey("Then it should return an error", func(c C) {
 						So(err, ShouldBeError, errDatabase)
@@ -90,38 +90,38 @@ func TestNewPipeline(t *testing.T) {
 
 		Convey("Given a receive transfer", func(c C) {
 			filename := "file"
-			info := mkRecvTransfer(ctx, filename)
+			trans := mkRecvTransfer(ctx, filename)
 
 			Convey("When initiating a new pipeline for this transfer", func(c C) {
-				pip, err := newPipeline(ctx.db, logger, info)
+				pip, err := NewClientPipeline(ctx.db, trans)
 				So(err, ShouldBeNil)
 
 				Convey("Then it should create the corresponding pipeline", func(c C) {
 					So(pip, ShouldNotBeNil)
 
 					Convey("Then the pipeline's state machine should have been initiated", func(c C) {
-						So(pip.machine.Current(), ShouldEqual, stateInit)
+						So(pip.pip.machine.Current(), ShouldEqual, stateInit)
 					})
 
 					Convey("Then the transfer's paths should have been initiated", func(c C) {
-						So(info.Transfer.LocalPath, ShouldEqual, filepath.Join(
+						So(trans.LocalPath, ShouldEqual, filepath.Join(
 							ctx.root, ctx.recv.TmpLocalRcvDir, filename))
-						So(info.Transfer.RemotePath, ShouldEqual, path.Join("/",
+						So(trans.RemotePath, ShouldEqual, path.Join("/",
 							ctx.recv.RemoteDir, filename))
 					})
 				})
 			})
 
 			Convey("Given that the transfer limit has been reached", func(c C) {
-				TransferOutCount.SetLimit(1)
-				TransferOutCount.Add()
+				TransferInCount.SetLimit(1)
+				TransferInCount.Add()
 				Reset(func() {
-					TransferOutCount.Sub()
-					TransferOutCount.SetLimit(0)
+					TransferInCount.Sub()
+					TransferInCount.SetLimit(0)
 				})
 
 				Convey("When initiating a new pipeline for this transfer", func(c C) {
-					_, err := newPipeline(ctx.db, logger, info)
+					_, err := NewClientPipeline(ctx.db, trans)
 
 					Convey("Then it should return an error", func(c C) {
 						So(err, ShouldBeError, errLimitReached)
@@ -133,31 +133,27 @@ func TestNewPipeline(t *testing.T) {
 }
 
 func TestPipelinePreTasks(t *testing.T) {
-	logger := log.NewLogger("test_pre_tasks")
-
-	Convey("Given a transfer pipeline", t, func(c1 C) {
-		ctx := initTestDB(c1)
+	Convey("Given a transfer pipeline", t, func(c C) {
+		ctx := initTestDB(c)
 		filename := "file"
-		info := mkRecvTransfer(ctx, filename)
-
+		trans := mkRecvTransfer(ctx, filename)
+		pip := newTestPipeline(ctx.db, trans)
 		taskChecker := initTaskChecker()
-		info.PreTasks = model.Tasks{{
+
+		pip.TransCtx.PreTasks = model.Tasks{{
 			RuleID: ctx.recv.ID,
 			Chain:  model.ChainPre,
 			Rank:   0,
 			Type:   taskstest.TaskOK,
 			Args:   json.RawMessage(`{}`),
 		}}
-		info.ErrTasks = model.Tasks{{
+		pip.TransCtx.ErrTasks = model.Tasks{{
 			RuleID: ctx.recv.ID,
 			Chain:  model.ChainError,
 			Rank:   0,
 			Type:   taskstest.TaskOK,
 			Args:   json.RawMessage(`{}`),
 		}}
-
-		pip, err := newPipeline(ctx.db, logger, info)
-		So(err, ShouldBeNil)
 
 		Convey("When calling the pre-tasks", func(c C) {
 			So(pip.PreTasks(), ShouldBeNil)
@@ -173,7 +169,7 @@ func TestPipelinePreTasks(t *testing.T) {
 		})
 
 		Convey("Given that the transfer is a recovery", func(c C) {
-			info.Transfer.Step = types.StepData
+			trans.Step = types.StepData
 
 			Convey("When calling the pre-tasks", func(c C) {
 				So(pip.PreTasks(), ShouldBeNil)
@@ -198,7 +194,7 @@ func TestPipelinePreTasks(t *testing.T) {
 		})
 
 		Convey("Given that on of the tasks fails", func(c C) {
-			info.PreTasks = append(info.PreTasks, model.Task{
+			pip.TransCtx.PreTasks = append(pip.TransCtx.PreTasks, model.Task{
 				RuleID: ctx.recv.ID,
 				Chain:  model.ChainPre,
 				Rank:   1,
@@ -221,24 +217,21 @@ func TestPipelinePreTasks(t *testing.T) {
 }
 
 func TestPipelineStartData(t *testing.T) {
-	logger := log.NewLogger("test_start_data")
-
 	Convey("Given a transfer pipeline", t, func(c C) {
 		ctx := initTestDB(c)
 		filename := "file"
-		info := mkRecvTransfer(ctx, filename)
+		trans := mkRecvTransfer(ctx, filename)
 
 		taskChecker := initTaskChecker()
-		info.ErrTasks = model.Tasks{{
+		So(ctx.db.Insert(&model.Task{
 			RuleID: ctx.recv.ID,
 			Chain:  model.ChainError,
 			Rank:   0,
 			Type:   taskstest.TaskOK,
 			Args:   json.RawMessage(`{}`),
-		}}
+		}).Run(), ShouldBeNil)
 
-		pip, err := newPipeline(ctx.db, logger, info)
-		So(err, ShouldBeNil)
+		pip := newTestPipeline(ctx.db, trans)
 		So(pip.machine.Transition(statePreTasks), ShouldBeNil)
 		So(pip.machine.Transition(statePreTasksDone), ShouldBeNil)
 
@@ -254,7 +247,8 @@ func TestPipelineStartData(t *testing.T) {
 			})
 
 			Convey("Then it should have opened/created the file", func(c C) {
-				_, err := os.Stat(filepath.Join(ctx.root, info.Rule.TmpLocalRcvDir, filename+".part"))
+				_, err := os.Stat(filepath.Join(ctx.root, pip.TransCtx.Rule.
+					TmpLocalRcvDir, filename+".part"))
 				So(err, ShouldBeNil)
 			})
 
@@ -296,24 +290,21 @@ func TestPipelineStartData(t *testing.T) {
 }
 
 func TestPipelineEndData(t *testing.T) {
-	logger := log.NewLogger("test_end_data")
-
 	Convey("Given a transfer pipeline", t, func(c C) {
 		ctx := initTestDB(c)
 		filename := "file"
-		info := mkRecvTransfer(ctx, filename)
+		trans := mkRecvTransfer(ctx, filename)
 
 		taskChecker := initTaskChecker()
-		info.ErrTasks = model.Tasks{{
+		So(ctx.db.Insert(&model.Task{
 			RuleID: ctx.recv.ID,
 			Chain:  model.ChainError,
 			Rank:   0,
 			Type:   taskstest.TaskOK,
 			Args:   json.RawMessage(`{}`),
-		}}
+		}).Run(), ShouldBeNil)
 
-		pip, err := newPipeline(ctx.db, logger, info)
-		So(err, ShouldBeNil)
+		pip := newTestPipeline(ctx.db, trans)
 		So(pip.machine.Transition(statePreTasks), ShouldBeNil)
 		So(pip.machine.Transition(statePreTasksDone), ShouldBeNil)
 
@@ -323,7 +314,8 @@ func TestPipelineEndData(t *testing.T) {
 			So(pip.EndData(), ShouldBeNil)
 
 			Convey("Then it should have closed and moved the file", func(c C) {
-				_, err := os.Stat(filepath.Join(ctx.root, info.Rule.LocalDir, filename))
+				_, err := os.Stat(filepath.Join(ctx.root, pip.TransCtx.Rule.
+					LocalDir, filename))
 				So(err, ShouldBeNil)
 			})
 
@@ -349,22 +341,22 @@ func TestPipelineEndData(t *testing.T) {
 }
 
 func TestPipelinePostTasks(t *testing.T) {
-	logger := log.NewLogger("test_post_tasks")
-
 	Convey("Given a transfer pipeline", t, func(c C) {
 		ctx := initTestDB(c)
 		filename := "file"
-		info := mkRecvTransfer(ctx, filename)
+		trans := mkRecvTransfer(ctx, filename)
 
+		pip := newTestPipeline(ctx.db, trans)
 		taskChecker := initTaskChecker()
-		info.PostTasks = model.Tasks{{
+
+		pip.TransCtx.PostTasks = model.Tasks{{
 			RuleID: ctx.recv.ID,
 			Chain:  model.ChainPost,
 			Rank:   0,
 			Type:   taskstest.TaskOK,
 			Args:   json.RawMessage(`{}`),
 		}}
-		info.ErrTasks = model.Tasks{{
+		pip.TransCtx.ErrTasks = model.Tasks{{
 			RuleID: ctx.recv.ID,
 			Chain:  model.ChainError,
 			Rank:   0,
@@ -372,8 +364,6 @@ func TestPipelinePostTasks(t *testing.T) {
 			Args:   json.RawMessage(`{}`),
 		}}
 
-		pip, err := newPipeline(ctx.db, logger, info)
-		So(err, ShouldBeNil)
 		So(pip.machine.Transition(statePreTasks), ShouldBeNil)
 		So(pip.machine.Transition(statePreTasksDone), ShouldBeNil)
 		So(pip.machine.Transition(stateWriting), ShouldBeNil)
@@ -394,7 +384,7 @@ func TestPipelinePostTasks(t *testing.T) {
 		})
 
 		Convey("Given that the transfer is a recovery", func(c C) {
-			info.Transfer.Step = types.StepFinalization
+			trans.Step = types.StepFinalization
 
 			Convey("When calling the post-tasks", func(c C) {
 				So(pip.PostTasks(), ShouldBeNil)
@@ -419,7 +409,7 @@ func TestPipelinePostTasks(t *testing.T) {
 		})
 
 		Convey("Given that on of the tasks fails", func(c C) {
-			info.PostTasks = append(info.PostTasks, model.Task{
+			pip.TransCtx.PostTasks = append(pip.TransCtx.PostTasks, model.Task{
 				RuleID: ctx.recv.ID,
 				Chain:  model.ChainPost,
 				Rank:   1,
@@ -442,7 +432,6 @@ func TestPipelinePostTasks(t *testing.T) {
 }
 
 func TestPipelineSetError(t *testing.T) {
-	logger := log.NewLogger("test_set_error")
 	remErr := types.NewTransferError(types.TeUnknownRemote, "remote error")
 	expErr := *types.NewTransferError(types.TeUnknownRemote,
 		"Error on remote partner: remote error")
@@ -450,19 +439,17 @@ func TestPipelineSetError(t *testing.T) {
 	Convey("Given a transfer pipeline", t, func(c C) {
 		ctx := initTestDB(c)
 		filename := "file"
-		info := mkRecvTransfer(ctx, filename)
+		trans := mkRecvTransfer(ctx, filename)
+		pip := newTestPipeline(ctx.db, trans)
 
 		taskChecker := initTaskChecker()
-		info.ErrTasks = model.Tasks{{
+		pip.TransCtx.ErrTasks = model.Tasks{{
 			RuleID: ctx.recv.ID,
 			Chain:  model.ChainError,
 			Rank:   0,
 			Type:   taskstest.TaskOK,
 			Args:   json.RawMessage(`{}`),
 		}}
-
-		pip, err := newPipeline(ctx.db, logger, info)
-		So(err, ShouldBeNil)
 
 		Convey("Given an pre-transfer error", func(c C) {
 			pip.SetError(remErr)
@@ -472,10 +459,10 @@ func TestPipelineSetError(t *testing.T) {
 				c.So(taskChecker.ClientErrTaskNB(), ShouldEqual, 1)
 
 				Convey("Then the transfer should have the ERROR status", func(c C) {
-					var trans model.Transfer
-					So(ctx.db.Get(&trans, "id=?", info.Transfer.ID).Run(), ShouldBeNil)
-					So(trans.Status, ShouldEqual, types.StatusError)
-					So(trans.Error, ShouldResemble, expErr)
+					var dbTrans model.Transfer
+					So(ctx.db.Get(&dbTrans, "id=?", trans.ID).Run(), ShouldBeNil)
+					So(dbTrans.Status, ShouldEqual, types.StatusError)
+					So(dbTrans.Error, ShouldResemble, expErr)
 				})
 
 				Convey("Then any calls to the pipeline should return an error", func(c C) {
@@ -485,7 +472,7 @@ func TestPipelineSetError(t *testing.T) {
 		})
 
 		Convey("Given an error during the pre-tasks", func(c C) {
-			info.PreTasks = model.Tasks{{
+			pip.TransCtx.PreTasks = model.Tasks{{
 				RuleID: ctx.recv.ID,
 				Chain:  model.ChainPre,
 				Rank:   0,
@@ -518,10 +505,10 @@ func TestPipelineSetError(t *testing.T) {
 				})
 
 				Convey("Then the transfer should have the ERROR status", func(c C) {
-					var trans model.Transfer
-					So(ctx.db.Get(&trans, "id=?", info.Transfer.ID).Run(), ShouldBeNil)
-					So(trans.Status, ShouldEqual, types.StatusError)
-					So(trans.Error, ShouldResemble, expErr)
+					var dbTrans model.Transfer
+					So(ctx.db.Get(&dbTrans, "id=?", trans.ID).Run(), ShouldBeNil)
+					So(dbTrans.Status, ShouldEqual, types.StatusError)
+					So(dbTrans.Error, ShouldResemble, expErr)
 				})
 
 				Convey("Then any calls to the pipeline should return an error", func(c C) {
@@ -543,10 +530,10 @@ func TestPipelineSetError(t *testing.T) {
 				c.So(taskChecker.ClientErrTaskNB(), ShouldEqual, 1)
 
 				Convey("Then the transfer should have the ERROR status", func(c C) {
-					var trans model.Transfer
-					So(ctx.db.Get(&trans, "id=?", info.Transfer.ID).Run(), ShouldBeNil)
-					So(trans.Status, ShouldEqual, types.StatusError)
-					So(trans.Error, ShouldResemble, expErr)
+					var dbTrans model.Transfer
+					So(ctx.db.Get(&dbTrans, "id=?", trans.ID).Run(), ShouldBeNil)
+					So(dbTrans.Status, ShouldEqual, types.StatusError)
+					So(dbTrans.Error, ShouldResemble, expErr)
 				})
 
 				Convey("Then any calls to the pipeline should return an error", func(c C) {
@@ -556,7 +543,7 @@ func TestPipelineSetError(t *testing.T) {
 		})
 
 		Convey("Given an error during the post-tasks", func(c C) {
-			info.PostTasks = model.Tasks{{
+			pip.TransCtx.PostTasks = model.Tasks{{
 				RuleID: ctx.recv.ID,
 				Chain:  model.ChainPost,
 				Rank:   0,
@@ -594,10 +581,10 @@ func TestPipelineSetError(t *testing.T) {
 				})
 
 				Convey("Then the transfer should have the ERROR status", func(c C) {
-					var trans model.Transfer
-					So(ctx.db.Get(&trans, "id=?", info.Transfer.ID).Run(), ShouldBeNil)
-					So(trans.Status, ShouldEqual, types.StatusError)
-					So(trans.Error, ShouldResemble, expErr)
+					var dbTrans model.Transfer
+					So(ctx.db.Get(&dbTrans, "id=?", trans.ID).Run(), ShouldBeNil)
+					So(dbTrans.Status, ShouldEqual, types.StatusError)
+					So(dbTrans.Error, ShouldResemble, expErr)
 				})
 
 				Convey("Then any calls to the pipeline should return an error", func(c C) {
@@ -620,10 +607,10 @@ func TestPipelineSetError(t *testing.T) {
 				c.So(taskChecker.ClientErrTaskNB(), ShouldEqual, 1)
 
 				Convey("Then the transfer should have the ERROR status", func(c C) {
-					var trans model.Transfer
-					So(ctx.db.Get(&trans, "id=?", info.Transfer.ID).Run(), ShouldBeNil)
-					So(trans.Status, ShouldEqual, types.StatusError)
-					So(trans.Error, ShouldResemble, expErr)
+					var dbTrans model.Transfer
+					So(ctx.db.Get(&dbTrans, "id=?", trans.ID).Run(), ShouldBeNil)
+					So(dbTrans.Status, ShouldEqual, types.StatusError)
+					So(dbTrans.Error, ShouldResemble, expErr)
 				})
 
 				Convey("Then any calls to the pipeline should return an error", func(c C) {
@@ -635,24 +622,20 @@ func TestPipelineSetError(t *testing.T) {
 }
 
 func TestPipelinePause(t *testing.T) {
-	logger := log.NewLogger("test_pause")
-
 	Convey("Given a transfer pipeline", t, func(c C) {
 		ctx := initTestDB(c)
 		filename := "file"
-		info := mkRecvTransfer(ctx, filename)
-
+		trans := mkRecvTransfer(ctx, filename)
+		pip := newTestPipeline(ctx.db, trans)
 		taskChecker := initTaskChecker()
-		info.ErrTasks = model.Tasks{{
+
+		pip.TransCtx.ErrTasks = model.Tasks{{
 			RuleID: ctx.recv.ID,
 			Chain:  model.ChainError,
 			Rank:   0,
 			Type:   taskstest.TaskOK,
 			Args:   json.RawMessage(`{}`),
 		}}
-
-		pip, err := newPipeline(ctx.db, logger, info)
-		So(err, ShouldBeNil)
 
 		Convey("Given an pre-transfer pause", func(c C) {
 			pip.Pause()
@@ -662,9 +645,9 @@ func TestPipelinePause(t *testing.T) {
 				So(taskChecker.ClientErrTaskNB(), ShouldEqual, 0)
 
 				Convey("Then the transfer should have the PAUSED status", func(c C) {
-					var trans model.Transfer
-					So(ctx.db.Get(&trans, "id=?", info.Transfer.ID).Run(), ShouldBeNil)
-					So(trans.Status, ShouldEqual, types.StatusPaused)
+					var dbTrans model.Transfer
+					So(ctx.db.Get(&dbTrans, "id=?", trans.ID).Run(), ShouldBeNil)
+					So(dbTrans.Status, ShouldEqual, types.StatusPaused)
 				})
 
 				Convey("Then any calls to the pipeline should return an error", func(c C) {
@@ -674,7 +657,7 @@ func TestPipelinePause(t *testing.T) {
 		})
 
 		Convey("Given a pause during the pre-tasks", func(c C) {
-			info.PreTasks = model.Tasks{{
+			pip.TransCtx.PreTasks = model.Tasks{{
 				RuleID: ctx.recv.ID,
 				Chain:  model.ChainPre,
 				Rank:   0,
@@ -705,9 +688,9 @@ func TestPipelinePause(t *testing.T) {
 				So(taskChecker.ClientPreTaskNB(), ShouldEqual, 1)
 
 				Convey("Then the transfer should have the PAUSED status", func(c C) {
-					var trans model.Transfer
-					So(ctx.db.Get(&trans, "id=?", info.Transfer.ID).Run(), ShouldBeNil)
-					So(trans.Status, ShouldEqual, types.StatusPaused)
+					var dbTrans model.Transfer
+					So(ctx.db.Get(&dbTrans, "id=?", trans.ID).Run(), ShouldBeNil)
+					So(dbTrans.Status, ShouldEqual, types.StatusPaused)
 				})
 
 				Convey("Then any calls to the pipeline should return an error", func(c C) {
@@ -729,9 +712,9 @@ func TestPipelinePause(t *testing.T) {
 				So(taskChecker.ClientErrTaskNB(), ShouldEqual, 0)
 
 				Convey("Then the transfer should have the PAUSED status", func(c C) {
-					var trans model.Transfer
-					So(ctx.db.Get(&trans, "id=?", info.Transfer.ID).Run(), ShouldBeNil)
-					So(trans.Status, ShouldEqual, types.StatusPaused)
+					var dbTrans model.Transfer
+					So(ctx.db.Get(&dbTrans, "id=?", trans.ID).Run(), ShouldBeNil)
+					So(dbTrans.Status, ShouldEqual, types.StatusPaused)
 				})
 
 				Convey("Then any calls to the pipeline should return an error", func(c C) {
@@ -741,7 +724,7 @@ func TestPipelinePause(t *testing.T) {
 		})
 
 		Convey("Given an error during the post-tasks", func(c C) {
-			info.PostTasks = model.Tasks{{
+			pip.TransCtx.PostTasks = model.Tasks{{
 				RuleID: ctx.recv.ID,
 				Chain:  model.ChainPost,
 				Rank:   0,
@@ -777,9 +760,9 @@ func TestPipelinePause(t *testing.T) {
 				So(taskChecker.ClientPostTaskNB(), ShouldEqual, 1)
 
 				Convey("Then the transfer should have the PAUSED status", func(c C) {
-					var trans model.Transfer
-					So(ctx.db.Get(&trans, "id=?", info.Transfer.ID).Run(), ShouldBeNil)
-					So(trans.Status, ShouldEqual, types.StatusPaused)
+					var dbTrans model.Transfer
+					So(ctx.db.Get(&dbTrans, "id=?", trans.ID).Run(), ShouldBeNil)
+					So(dbTrans.Status, ShouldEqual, types.StatusPaused)
 				})
 
 				Convey("Then any calls to the pipeline should return an error", func(c C) {
@@ -802,9 +785,9 @@ func TestPipelinePause(t *testing.T) {
 				So(taskChecker.ClientErrTaskNB(), ShouldEqual, 0)
 
 				Convey("Then the transfer should have the PAUSED status", func(c C) {
-					var trans model.Transfer
-					So(ctx.db.Get(&trans, "id=?", info.Transfer.ID).Run(), ShouldBeNil)
-					So(trans.Status, ShouldEqual, types.StatusPaused)
+					var dbTrans model.Transfer
+					So(ctx.db.Get(&dbTrans, "id=?", trans.ID).Run(), ShouldBeNil)
+					So(dbTrans.Status, ShouldEqual, types.StatusPaused)
 				})
 
 				Convey("Then any calls to the pipeline should return an error", func(c C) {
@@ -816,24 +799,20 @@ func TestPipelinePause(t *testing.T) {
 }
 
 func TestPipelineCancel(t *testing.T) {
-	logger := log.NewLogger("test_cancel")
-
 	Convey("Given a transfer pipeline", t, func(c C) {
 		ctx := initTestDB(c)
 		filename := "file"
-		info := mkRecvTransfer(ctx, filename)
-
+		trans := mkRecvTransfer(ctx, filename)
+		pip := newTestPipeline(ctx.db, trans)
 		taskChecker := initTaskChecker()
-		info.ErrTasks = model.Tasks{{
+
+		pip.TransCtx.ErrTasks = model.Tasks{{
 			RuleID: ctx.recv.ID,
 			Chain:  model.ChainError,
 			Rank:   0,
 			Type:   taskstest.TaskOK,
 			Args:   json.RawMessage(`{}`),
 		}}
-
-		pip, err := newPipeline(ctx.db, logger, info)
-		So(err, ShouldBeNil)
 
 		Convey("Given an pre-transfer cancel", func(c C) {
 			pip.Cancel()
@@ -844,7 +823,7 @@ func TestPipelineCancel(t *testing.T) {
 
 				Convey("Then the transfer should have been canceled", func(c C) {
 					var hist model.HistoryEntry
-					So(ctx.db.Get(&hist, "id=?", info.Transfer.ID).Run(), ShouldBeNil)
+					So(ctx.db.Get(&hist, "id=?", trans.ID).Run(), ShouldBeNil)
 					So(hist.Status, ShouldEqual, types.StatusCancelled)
 				})
 
@@ -855,7 +834,7 @@ func TestPipelineCancel(t *testing.T) {
 		})
 
 		Convey("Given a pause during the pre-tasks", func(c C) {
-			info.PreTasks = model.Tasks{{
+			pip.TransCtx.PreTasks = model.Tasks{{
 				RuleID: ctx.recv.ID,
 				Chain:  model.ChainPre,
 				Rank:   0,
@@ -887,7 +866,7 @@ func TestPipelineCancel(t *testing.T) {
 
 				Convey("Then the transfer should have been canceled", func(c C) {
 					var hist model.HistoryEntry
-					So(ctx.db.Get(&hist, "id=?", info.Transfer.ID).Run(), ShouldBeNil)
+					So(ctx.db.Get(&hist, "id=?", trans.ID).Run(), ShouldBeNil)
 					So(hist.Status, ShouldEqual, types.StatusCancelled)
 				})
 
@@ -911,7 +890,7 @@ func TestPipelineCancel(t *testing.T) {
 
 				Convey("Then the transfer should have been canceled", func(c C) {
 					var hist model.HistoryEntry
-					So(ctx.db.Get(&hist, "id=?", info.Transfer.ID).Run(), ShouldBeNil)
+					So(ctx.db.Get(&hist, "id=?", trans.ID).Run(), ShouldBeNil)
 					So(hist.Status, ShouldEqual, types.StatusCancelled)
 				})
 
@@ -922,7 +901,7 @@ func TestPipelineCancel(t *testing.T) {
 		})
 
 		Convey("Given an error during the post-tasks", func(c C) {
-			info.PostTasks = model.Tasks{{
+			pip.TransCtx.PostTasks = model.Tasks{{
 				RuleID: ctx.recv.ID,
 				Chain:  model.ChainPost,
 				Rank:   0,
@@ -959,7 +938,7 @@ func TestPipelineCancel(t *testing.T) {
 
 				Convey("Then the transfer should have been canceled", func(c C) {
 					var hist model.HistoryEntry
-					So(ctx.db.Get(&hist, "id=?", info.Transfer.ID).Run(), ShouldBeNil)
+					So(ctx.db.Get(&hist, "id=?", trans.ID).Run(), ShouldBeNil)
 					So(hist.Status, ShouldEqual, types.StatusCancelled)
 				})
 
@@ -984,7 +963,7 @@ func TestPipelineCancel(t *testing.T) {
 
 				Convey("Then the transfer should have been canceled", func(c C) {
 					var hist model.HistoryEntry
-					So(ctx.db.Get(&hist, "id=?", info.Transfer.ID).Run(), ShouldBeNil)
+					So(ctx.db.Get(&hist, "id=?", trans.ID).Run(), ShouldBeNil)
 					So(hist.Status, ShouldEqual, types.StatusCancelled)
 				})
 

@@ -5,11 +5,7 @@ import (
 
 	"code.waarp.fr/apps/gateway/gateway/pkg/model/types"
 	"code.waarp.fr/apps/gateway/gateway/pkg/tk/statemachine"
-	"code.waarp.fr/apps/gateway/gateway/pkg/tk/utils"
 )
-
-func leaf(s string) utils.Leaf     { return utils.Leaf(s) }
-func branch(s string) utils.Branch { return utils.Branch(s) }
 
 // DataStream is an interface regrouping the common functions used for reading
 // and writing data.
@@ -34,7 +30,8 @@ func newVoidStream(p *Pipeline) *voidStream { return &voidStream{p} }
 type voidStream struct{ *Pipeline }
 
 func (v *voidStream) checkState(state statemachine.State, fun string, defaultN int,
-	defaultErr error) (int, error) {
+	defaultErr error,
+) (int, error) {
 	if curr := v.machine.Current(); curr != state {
 		v.handleStateErr(fun, curr)
 

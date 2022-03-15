@@ -22,8 +22,7 @@ func TestClientPipelineRun(t *testing.T) {
 		Convey("Given a client push transfer", func() {
 			file := "client_pipeline_push"
 			So(ioutil.WriteFile(filepath.Join(conf.GlobalConfig.Paths.GatewayHome,
-				conf.GlobalConfig.Paths.DefaultOutDir,
-				file), content, 0o600), ShouldBeNil)
+				ctx.send.LocalDir, file), content, 0o600), ShouldBeNil)
 
 			trans := &model.Transfer{
 				IsServer:   false,

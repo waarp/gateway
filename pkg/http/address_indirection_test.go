@@ -32,7 +32,7 @@ func TestAddressIndirection(t *testing.T) {
 				So(err, ShouldBeNil)
 
 				//nolint:forcetypeassert //no need, the type assertion will always succeed
-				cli := newClient(pip.Pip, nil).(*postClient)
+				cli := newClient(pip.Pipeline(), nil).(*postClient)
 
 				So(cli.Request(), ShouldBeNil)
 				defer func() {
@@ -63,7 +63,7 @@ func TestAddressIndirection(t *testing.T) {
 				So(err, ShouldBeNil)
 
 				//nolint:forcetypeassert //no need, the type assertion will always succeed
-				cli := newClient(pip.Pip, nil).(*getClient)
+				cli := newClient(pip.Pipeline(), nil).(*getClient)
 
 				So(cli.Request(), ShouldBeNil)
 				defer cli.SendError(nil)

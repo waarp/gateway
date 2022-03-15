@@ -2,7 +2,6 @@ package controller
 
 import (
 	"context"
-	"encoding/json"
 	"io/ioutil"
 	"os"
 	"path/filepath"
@@ -49,28 +48,10 @@ func TestControllerListen(t *testing.T) {
 		}
 		So(db.Insert(rule).Run(), ShouldBeNil)
 
-		sleepTask := &testTaskSleep{}
-
-		model.ValidTasks["TESTSLEEP"] = sleepTask
-		defer delete(model.ValidTasks, "TESTSLEEP")
-
-		ruleTask := &model.Task{
-			RuleID: rule.ID,
-			Chain:  model.ChainPre,
-			Rank:   1,
-			Type:   "TESTSLEEP",
-			Args:   json.RawMessage("{}"),
-		}
-		So(db.Insert(ruleTask).Run(), ShouldBeNil)
-
-		start := time.Now()
-
 		Convey("Given a controller", func() {
-			tick := time.Nanosecond
-			conf.GlobalConfig.Paths = conf.PathsConfig{GatewayHome: tmpDir}
 			cont := &Controller{
 				DB:     db,
-				ticker: time.NewTicker(tick),
+				ticker: time.NewTicker(time.Second),
 				logger: log.NewLogger("test_controller"),
 				wg:     new(sync.WaitGroup),
 				ctx:    context.Background(),
@@ -88,7 +69,7 @@ func TestControllerListen(t *testing.T) {
 					AccountID:  account.ID,
 					LocalPath:  path1,
 					RemotePath: "/file_1",
-					Start:      start,
+					Start:      time.Date(2022, 1, 1, 1, 0, 0, 0, time.UTC),
 					Status:     types.StatusPlanned,
 					Owner:      conf.GlobalConfig.GatewayName,
 				}
@@ -132,7 +113,9 @@ func TestControllerListen(t *testing.T) {
 						cont.wg.Wait()
 
 						Convey("Then the transfer has only been started once", func() {
-							So(sleepTask.c, ShouldEqual, 1)
+							var hist model.HistoryEntries
+							So(db.Select(&hist).Run(), ShouldBeNil)
+							So(hist, ShouldHaveLength, 1)
 						})
 					})
 				})
@@ -150,36 +133,28 @@ func TestControllerListen(t *testing.T) {
 					AccountID:  account.ID,
 					LocalPath:  path2,
 					RemotePath: "/file_2",
-					Start:      start,
+					Start:      time.Date(2022, 1, 1, 1, 0, 0, 0, time.UTC),
 					Status:     types.StatusRunning,
 					Owner:      conf.GlobalConfig.GatewayName,
 				}
-				So(db.Insert(trans).Run(), ShouldBeNil)
+				So(cont.DB.Insert(trans).Run(), ShouldBeNil)
 
 				Convey("Given that the database stops responding", func() {
-					db.State().Set(service.Error, "test error")
+					cont.DB.State().Set(service.Error, "test error")
+					cont.wasDown = true
 
-					Convey("When the controller starts listening", func() {
-						cont.listen()
-						Reset(func() {
-							ctx, cancel := context.WithTimeout(context.Background(), time.Second)
-							defer cancel()
-							So(cont.Stop(ctx), ShouldBeNil)
-						})
+					Convey("When the database comes back online", func() {
+						cont.DB.State().Set(service.Running, "")
 
-						Convey("When the database comes back online", func() {
-							time.Sleep(100 * time.Millisecond)
-							db.State().Set(service.Running, "")
+						Convey("When the controller starts new transfers again", func() {
+							cont.startNewTransfers()
+							So(cont.wasDown, ShouldBeFalse)
 
-							Convey("After waiting enough time", func() {
-								time.Sleep(100 * time.Millisecond)
-
-								Convey("Then the running entry should now be "+
-									"interrupted", func() {
-									result := &model.Transfer{}
-									So(db.Get(result, "id=?", trans.ID).Run(), ShouldBeNil)
-									So(result.Status, ShouldEqual, types.StatusInterrupted)
-								})
+							Convey("Then the running entry should now be "+
+								"interrupted", func() {
+								result := &model.Transfer{}
+								So(db.Get(result, "id=?", trans.ID).Run(), ShouldBeNil)
+								So(result.Status, ShouldEqual, types.StatusInterrupted)
 							})
 						})
 					})
@@ -187,20 +162,4 @@ func TestControllerListen(t *testing.T) {
 			})
 		})
 	})
-}
-
-type testTaskSleep struct {
-	c int
-}
-
-func (t *testTaskSleep) Validate(map[string]string) error {
-	return nil
-}
-
-func (t *testTaskSleep) Run(context.Context, map[string]string, *database.DB, *model.TransferContext) (string, error) {
-	t.c++
-
-	time.Sleep(30 * time.Millisecond)
-
-	return "", nil
 }

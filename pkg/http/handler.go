@@ -83,8 +83,6 @@ func (h *httpHandler) checkRulePermission() bool {
 }
 
 func (h *httpHandler) getSizeProgress(trans *model.Transfer) bool {
-	var cols []string
-
 	if h.rule.IsSend {
 		progress, err := getRange(h.req)
 		if err != nil {
@@ -96,8 +94,6 @@ func (h *httpHandler) getSizeProgress(trans *model.Transfer) bool {
 
 		if progress < trans.Progress {
 			trans.Progress = progress
-
-			cols = append(cols, "progression")
 		}
 	} else {
 		progress, filesize, err := getContentRange(h.req.Header)
@@ -107,27 +103,19 @@ func (h *httpHandler) getSizeProgress(trans *model.Transfer) bool {
 
 			return false
 		}
+
 		if progress > trans.Progress {
 			h.sendError(http.StatusRequestedRangeNotSatisfiable, types.TeBadSize, "unacceptable range start")
 
 			return false
 		}
+
 		if progress < trans.Progress {
 			trans.Progress = progress
-			cols = append(cols, "progression")
 		}
+
 		if filesize != trans.Filesize {
 			trans.Filesize = filesize
-			cols = append(cols, "filesize")
-		}
-	}
-
-	if len(cols) > 0 {
-		if err := h.db.Update(trans).Cols(cols...).Run(); err != nil {
-			h.logger.Errorf("Failed to update transfer file attributes: %s", err)
-			h.sendError(http.StatusInternalServerError, types.TeInternal, "failed to update transfer file attributes")
-
-			return false
 		}
 	}
 
@@ -169,7 +157,7 @@ func (h *httpHandler) getTransfer(isSend bool) (*model.Transfer, bool) {
 
 	var err *types.TransferError
 
-	trans, err = pipeline.GetServerTransfer(h.db, h.logger, trans)
+	trans, err = pipeline.GetOldTransfer(h.db, h.logger, trans)
 	if err != nil {
 		h.sendError(http.StatusInternalServerError, err.Code, err.Details)
 

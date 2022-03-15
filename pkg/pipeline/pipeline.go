@@ -10,7 +10,6 @@ import (
 	"code.waarp.fr/apps/gateway/gateway/pkg/log"
 	"code.waarp.fr/apps/gateway/gateway/pkg/model"
 	"code.waarp.fr/apps/gateway/gateway/pkg/model/types"
-	"code.waarp.fr/apps/gateway/gateway/pkg/pipeline/internal"
 	"code.waarp.fr/apps/gateway/gateway/pkg/tasks"
 	"code.waarp.fr/apps/gateway/gateway/pkg/tk/statemachine"
 )
@@ -48,59 +47,79 @@ type Pipeline struct {
 }
 
 func newPipeline(db *database.DB, logger *log.Logger, transCtx *model.TransferContext,
-) (*Pipeline, *types.TransferError) {
-	runner := tasks.NewTaskRunner(db, logger, transCtx)
-	internal.MakeFilepaths(transCtx)
+) (*Pipeline, []string, *types.TransferError) {
+	cols := []string{"progression", "filesize"}
 
-	if dbErr := db.Update(transCtx.Transfer).Cols("local_path", "remote_path").Run(); dbErr != nil {
-		logger.Errorf("Failed to update transfer paths: %s", dbErr)
-
-		return nil, errDatabase
-	}
-
-	if transCtx.Rule.IsSend {
-		if err := internal.CheckFileExist(transCtx.Transfer, db, logger); err != nil {
-			return nil, err
-		}
-	}
-
-	if !transCtx.Transfer.IsServer {
-		if !TransferOutCount.Add() {
-			return nil, errLimitReached
-		}
-	} else {
-		if !TransferInCount.Add() {
-			return nil, errLimitReached
-		}
-	}
-
-	transCtx.Transfer.Status = types.StatusRunning
-	cols := []string{"status"}
-
-	if transCtx.Transfer.Step < types.StepSetup {
-		transCtx.Transfer.Step = types.StepSetup
-
-		cols = append(cols, "step")
-	} else {
-		transCtx.Transfer.Error = types.TransferError{}
-
-		cols = append(cols, "error_code", "error_details")
-	}
-
-	if dbErr := db.Update(transCtx.Transfer).Cols(cols...).Run(); dbErr != nil {
-		logger.Errorf("Failed to update transfer status to RUNNING: %s", dbErr)
-
-		return nil, errDatabase
-	}
-
-	return &Pipeline{
+	pipeline := &Pipeline{
 		DB:       db,
 		Logger:   logger,
 		TransCtx: transCtx,
 		machine:  pipelineSateMachine.New(),
 		Stream:   nil,
-		runner:   runner,
-	}, nil
+		runner:   tasks.NewTaskRunner(db, logger, transCtx),
+	}
+
+	pipeline.makeFilePaths()
+
+	cols = append(cols, "local_path", "remote_path")
+
+	if transCtx.Rule.IsSend {
+		if err := pipeline.checkFileExist(); err != nil {
+			return nil, cols, err
+		}
+	}
+
+	if transCtx.Transfer.Status != types.StatusRunning {
+		transCtx.Transfer.Status = types.StatusRunning
+
+		cols = append(cols, "status")
+	}
+
+	if transCtx.Transfer.Step < types.StepSetup {
+		transCtx.Transfer.Step = types.StepSetup
+
+		cols = append(cols, "step")
+	}
+
+	if transCtx.Transfer.Error.Code != types.TeOk {
+		transCtx.Transfer.Error.Code = types.TeOk
+
+		cols = append(cols, "error_code")
+	}
+
+	if transCtx.Transfer.Error.Details != "" {
+		transCtx.Transfer.Error.Details = ""
+
+		cols = append(cols, "error_details")
+	}
+
+	return pipeline, cols, nil
+}
+
+func (p *Pipeline) init() (err *types.TransferError) {
+	if p.TransCtx.Rule.IsSend {
+		if !TransferOutCount.Add() {
+			err = errLimitReached
+		}
+	} else {
+		if !TransferInCount.Add() {
+			err = errLimitReached
+		}
+	}
+
+	if err != nil {
+		p.Logger.Errorf("Failed to initiate transfer pipeline: ¨%s", err)
+		p.TransCtx.Transfer.Error = *err
+
+		if dbErr := p.DB.Update(p.TransCtx.Transfer).Cols("error_code", "error_details").
+			Run(); dbErr != nil {
+			p.Logger.Errorf("Failed to update the transfer error: %s", dbErr)
+
+			return errDatabase
+		}
+	}
+
+	return err
 }
 
 // UpdateTrans updates the given columns of the pipeline's transfer.
@@ -234,7 +253,7 @@ func (p *Pipeline) EndData() *types.TransferError {
 	}
 
 	if p.TransCtx.Transfer.Filesize < 0 {
-		if err := internal.CheckFileExist(p.TransCtx.Transfer, p.DB, p.Logger); err != nil {
+		if err := p.checkFileExist(); err != nil {
 			p.handleError(err.Code, "Error during final file check", err.Details)
 
 			return err
@@ -336,10 +355,7 @@ func (p *Pipeline) EndTransfer() *types.TransferError {
 		}
 
 		p.Logger.Debug("Transfer ended without errors")
-
-		if TestPipelineEnd != nil {
-			TestPipelineEnd(p.TransCtx.Transfer.IsServer)
-		}
+		p.done()
 	})
 
 	return sErr
@@ -396,9 +412,7 @@ func (p *Pipeline) errDo(code types.TransferErrorCode, msg, cause string) {
 			return
 		}
 
-		if TestPipelineEnd != nil {
-			TestPipelineEnd(p.TransCtx.Transfer.IsServer)
-		}
+		p.done()
 	}()
 }
 
@@ -470,9 +484,7 @@ func (p *Pipeline) halt(msg string, status types.TransferStatus, handles ...func
 			p.Logger.Warningf("Failed to transition to 'in error' state: %v", mErr)
 		}
 
-		if TestPipelineEnd != nil {
-			TestPipelineEnd(p.TransCtx.Transfer.IsServer)
-		}
+		p.done()
 	})
 }
 
@@ -499,15 +511,33 @@ func (p *Pipeline) Cancel(handles ...func()) {
 			p.Logger.Warningf("Failed to transition to 'in error' state: %v", mErr)
 		}
 
-		if TestPipelineEnd != nil {
-			TestPipelineEnd(p.TransCtx.Transfer.IsServer)
-		}
+		p.done()
 	})
 }
 
 // RebuildFilepaths rebuilds the transfer's local and remote paths, just like it
 // is done at the beginning of the transfer. This is useful if the file's name
 // has changed during the transfer.
-func (p *Pipeline) RebuildFilepaths() {
-	internal.MakeFilepaths(p.TransCtx)
+func (p *Pipeline) RebuildFilepaths() *types.TransferError {
+	p.makeFilePaths()
+
+	if err := p.DB.Update(p.TransCtx.Transfer).Cols("local_path", "remote_path").Run(); err != nil {
+		p.Logger.Errorf("Failed to update the transfer file paths: %s", err)
+
+		return errDatabase
+	}
+
+	return nil
+}
+
+func (p *Pipeline) done() {
+	if !p.TransCtx.Transfer.IsServer {
+		TransferOutCount.Sub()
+	} else {
+		TransferInCount.Sub()
+	}
+
+	if TestPipelineEnd != nil {
+		TestPipelineEnd(p.TransCtx.Transfer.IsServer)
+	}
 }

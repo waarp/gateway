@@ -96,17 +96,26 @@ func initTestDB(c C) *testContext {
 	So(os.Mkdir(filepath.Join(root, conf.GlobalConfig.Paths.DefaultTmpDir), 0o700), ShouldBeNil)
 
 	send := &model.Rule{
-		Name:   "send",
-		IsSend: true,
-		Path:   "/send",
+		Name:      "send",
+		IsSend:    true,
+		Path:      "/send",
+		LocalDir:  "sLocal",
+		RemoteDir: "sRemote",
 	}
 	recv := &model.Rule{
-		Name:   "recv",
-		IsSend: false,
-		Path:   "/recv",
+		Name:           "recv",
+		IsSend:         false,
+		Path:           "/recv",
+		LocalDir:       "rLocal",
+		RemoteDir:      "rRemote",
+		TmpLocalRcvDir: "rTmp",
 	}
 	c.So(db.Insert(recv).Run(), ShouldBeNil)
 	c.So(db.Insert(send).Run(), ShouldBeNil)
+
+	So(os.Mkdir(filepath.Join(root, send.LocalDir), 0o700), ShouldBeNil)
+	So(os.Mkdir(filepath.Join(root, recv.LocalDir), 0o700), ShouldBeNil)
+	So(os.Mkdir(filepath.Join(root, recv.TmpLocalRcvDir), 0o700), ShouldBeNil)
 
 	server := &model.LocalAgent{
 		Name:        "server",
@@ -150,10 +159,7 @@ func initTestDB(c C) *testContext {
 	}
 }
 
-func mkRecvTransfer(ctx *testContext, filename string) *model.TransferContext {
-	ctx.recv.LocalDir = "local"
-	ctx.recv.TmpLocalRcvDir = "tmp"
-	ctx.recv.RemoteDir = "remote"
+func mkRecvTransfer(ctx *testContext, filename string) *model.Transfer {
 	So(os.MkdirAll(filepath.Join(ctx.root, ctx.send.LocalDir), 0o700), ShouldBeNil)
 	So(os.MkdirAll(filepath.Join(ctx.root, ctx.send.TmpLocalRcvDir), 0o700), ShouldBeNil)
 
@@ -167,19 +173,10 @@ func mkRecvTransfer(ctx *testContext, filename string) *model.TransferContext {
 	}
 	So(ctx.db.Insert(trans).Run(), ShouldBeNil)
 
-	return &model.TransferContext{
-		Transfer:      trans,
-		Rule:          ctx.recv,
-		RemoteAgent:   ctx.partner,
-		RemoteAccount: ctx.remoteAccount,
-		Paths:         &conf.GlobalConfig.Paths,
-	}
+	return trans
 }
 
-func mkSendTransfer(ctx *testContext, filename string) *model.TransferContext {
-	ctx.send.LocalDir = "local"
-	ctx.send.TmpLocalRcvDir = "tmp"
-	ctx.send.RemoteDir = "remote"
+func mkSendTransfer(ctx *testContext, filename string) *model.Transfer {
 	So(os.MkdirAll(filepath.Join(ctx.root, ctx.send.LocalDir), 0o700), ShouldBeNil)
 	So(os.MkdirAll(filepath.Join(ctx.root, ctx.send.TmpLocalRcvDir), 0o700), ShouldBeNil)
 
@@ -196,33 +193,34 @@ func mkSendTransfer(ctx *testContext, filename string) *model.TransferContext {
 	So(ioutil.WriteFile(filepath.Join(ctx.root, ctx.send.LocalDir, filename),
 		[]byte("new pipeline content"), 0o700), ShouldBeNil)
 
-	return &model.TransferContext{
-		Transfer:      trans,
-		Rule:          ctx.send,
-		RemoteAgent:   ctx.partner,
-		RemoteAccount: ctx.remoteAccount,
-		Paths:         &conf.GlobalConfig.Paths,
-	}
+	return trans
 }
 
-func initFilestream(ctx *testContext, logger *log.Logger, transCtx *model.TransferContext) *fileStream {
-	pip, err := newPipeline(ctx.db, logger, transCtx)
+func initFilestream(ctx *testContext, trans *model.Transfer) *fileStream {
+	pip, err := NewClientPipeline(ctx.db, trans)
 	So(err, ShouldBeNil)
 
-	So(pip.machine.Transition(statePreTasks), ShouldBeNil)
-	So(pip.machine.Transition(statePreTasksDone), ShouldBeNil)
+	So(pip.pip.machine.Transition(statePreTasks), ShouldBeNil)
+	So(pip.pip.machine.Transition(statePreTasksDone), ShouldBeNil)
 
-	stream, err := newFileStream(pip, time.Nanosecond, false)
+	stream, err := newFileStream(pip.pip, time.Nanosecond, false)
 	So(err, ShouldBeNil)
 	Reset(func() { _ = stream.file.Close() })
 
-	if transCtx.Rule.IsSend {
-		So(pip.machine.Transition(stateReading), ShouldBeNil)
+	if pip.pip.TransCtx.Rule.IsSend {
+		So(pip.pip.machine.Transition(stateReading), ShouldBeNil)
 	} else {
-		So(pip.machine.Transition(stateWriting), ShouldBeNil)
+		So(pip.pip.machine.Transition(stateWriting), ShouldBeNil)
 	}
 
 	return stream
+}
+
+func newTestPipeline(db *database.DB, trans *model.Transfer) *Pipeline {
+	pip, err := NewClientPipeline(db, trans)
+	So(err, ShouldBeNil)
+
+	return pip.pip
 }
 
 var (

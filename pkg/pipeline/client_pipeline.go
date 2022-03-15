@@ -20,7 +20,7 @@ var ClientTransfers = service.NewTransferMap()
 // ClientPipeline associates a Pipeline with a Client, allowing to run complete
 // client transfers.
 type ClientPipeline struct {
-	Pip    *Pipeline
+	pip    *Pipeline
 	client Client
 }
 
@@ -34,31 +34,65 @@ func NewClientPipeline(db *database.DB, trans *model.Transfer) (*ClientPipeline,
 		return nil, err
 	}
 
-	constr, ok := ClientConstructors[transCtx.RemoteAgent.Protocol]
-	if !ok {
-		logger.Errorf("No client found for protocol %s", transCtx.RemoteAgent.Protocol)
+	cli, cols, tErr := newClientPipeline(db, logger, transCtx)
+	if tErr != nil {
+		trans.Status = types.StatusError
+		trans.Error = *tErr
 
-		return nil, types.NewTransferError(types.TeInternal, "no client found for protocol %s",
-			transCtx.RemoteAgent.Protocol)
+		cols = append(cols, "status", "error_code", "error_details")
+
+		if dbErr := db.Update(transCtx.Transfer).Cols(cols...).Run(); dbErr != nil {
+			logger.Errorf("Failed to update the transfer error: %s", dbErr)
+		}
+
+		return nil, tErr
 	}
 
-	pipeline, err := newPipeline(db, logger, transCtx)
-	if err != nil {
-		return nil, err
+	if dbErr := db.Update(transCtx.Transfer).Cols(cols...).Run(); dbErr != nil {
+		logger.Errorf("Failed to update the transfer details: %s", dbErr)
+
+		return nil, errDatabase
+	}
+
+	if iErr := cli.pip.init(); iErr != nil {
+		return nil, iErr
+	}
+
+	return cli, nil
+}
+
+func newClientPipeline(db *database.DB, logger *log.Logger, transCtx *model.TransferContext,
+) (*ClientPipeline, []string, *types.TransferError) {
+	proto := transCtx.RemoteAgent.Protocol
+
+	constr, ok := ClientConstructors[proto]
+	if !ok {
+		logger.Errorf("No client found for protocol %s", proto)
+
+		return nil, nil, types.NewTransferError(types.TeInternal,
+			fmt.Sprintf("no client found for protocol %s", proto))
+	}
+
+	pipeline, cols, pErr := newPipeline(db, logger, transCtx)
+	if pErr != nil {
+		return nil, cols, pErr
 	}
 
 	client, err := constr(pipeline)
 	if err != nil {
-		return nil, err
+		logger.Errorf("Failed to instantiate the %s transfer client: %s", proto, err)
+
+		return nil, cols, err
 	}
 
 	c := &ClientPipeline{
-		Pip:    pipeline,
+		pip:    pipeline,
 		client: client,
 	}
-	ClientTransfers.Add(trans.ID, c)
 
-	return c, nil
+	ClientTransfers.Add(transCtx.Transfer.ID, c)
+
+	return c, cols, nil
 }
 
 //nolint:dupl // factorizing would hurt readability
@@ -66,7 +100,7 @@ func (c *ClientPipeline) preTasks() error {
 	// Simple pre-tasks
 	pt, ok := c.client.(PreTasksHandler)
 	if !ok {
-		if err := c.Pip.PreTasks(); err != nil {
+		if err := c.pip.PreTasks(); err != nil {
 			c.client.SendError(err)
 
 			return err
@@ -77,19 +111,19 @@ func (c *ClientPipeline) preTasks() error {
 
 	// Extended pre-task handling
 	if err := pt.BeginPreTasks(); err != nil {
-		c.Pip.SetError(err)
+		c.pip.SetError(err)
 
 		return err
 	}
 
-	if err := c.Pip.PreTasks(); err != nil {
+	if err := c.pip.PreTasks(); err != nil {
 		c.client.SendError(err)
 
 		return err
 	}
 
 	if err := pt.EndPreTasks(); err != nil {
-		c.Pip.SetError(err)
+		c.pip.SetError(err)
 
 		return err
 	}
@@ -102,7 +136,7 @@ func (c *ClientPipeline) postTasks() error {
 	// Simple post-tasks
 	pt, ok := c.client.(PostTasksHandler)
 	if !ok {
-		if err := c.Pip.PostTasks(); err != nil {
+		if err := c.pip.PostTasks(); err != nil {
 			c.client.SendError(err)
 
 			return err
@@ -113,19 +147,19 @@ func (c *ClientPipeline) postTasks() error {
 
 	// Extended post-task handling
 	if err := pt.BeginPostTasks(); err != nil {
-		c.Pip.SetError(err)
+		c.pip.SetError(err)
 
 		return err
 	}
 
-	if err := c.Pip.PostTasks(); err != nil {
+	if err := c.pip.PostTasks(); err != nil {
 		c.client.SendError(err)
 
 		return err
 	}
 
 	if err := pt.EndPostTasks(); err != nil {
-		c.Pip.SetError(err)
+		c.pip.SetError(err)
 
 		return err
 	}
@@ -136,11 +170,11 @@ func (c *ClientPipeline) postTasks() error {
 // Run executes the full client transfer pipeline in order. If a transfer error
 // occurs, it will be handled internally.
 func (c *ClientPipeline) Run() {
-	defer ClientTransfers.Delete(c.Pip.TransCtx.Transfer.ID)
+	defer ClientTransfers.Delete(c.pip.TransCtx.Transfer.ID)
 
 	// REQUEST
 	if err := c.client.Request(); err != nil {
-		c.Pip.SetError(err)
+		c.pip.SetError(err)
 		c.client.SendError(err)
 
 		return
@@ -152,19 +186,19 @@ func (c *ClientPipeline) Run() {
 	}
 
 	// DATA
-	file, fErr := c.Pip.StartData()
+	file, fErr := c.pip.StartData()
 	if fErr != nil {
 		return
 	}
 
 	if err := c.client.Data(file); err != nil {
-		c.Pip.SetError(err)
+		c.pip.SetError(err)
 		c.client.SendError(err)
 
 		return
 	}
 
-	if err := c.Pip.EndData(); err != nil {
+	if err := c.pip.EndData(); err != nil {
 		c.client.SendError(err)
 
 		return
@@ -177,13 +211,13 @@ func (c *ClientPipeline) Run() {
 
 	// END TRANSFER
 	if err := c.client.EndTransfer(); err != nil {
-		c.Pip.SetError(err)
+		c.pip.SetError(err)
 
 		return
 	}
 
 	//nolint:errcheck // error is irrelevant at this point
-	_ = c.Pip.EndTransfer()
+	_ = c.pip.EndTransfer()
 }
 
 // Pause stops the client pipeline and pauses the transfer.
@@ -207,7 +241,7 @@ func (c *ClientPipeline) Pause(ctx context.Context) error {
 		}
 	}
 
-	c.Pip.Pause(handle)
+	c.pip.Pause(handle)
 
 	return nil
 }
@@ -229,7 +263,7 @@ func (c *ClientPipeline) Interrupt(ctx context.Context) error {
 		}
 	}
 
-	c.Pip.Interrupt(handle)
+	c.pip.Interrupt(handle)
 
 	return nil
 }
@@ -255,7 +289,11 @@ func (c *ClientPipeline) Cancel(ctx context.Context) (err error) {
 		}
 	}
 
-	c.Pip.Cancel(handle)
+	c.pip.Cancel(handle)
 
 	return nil
+}
+
+func (c *ClientPipeline) Pipeline() *Pipeline {
+	return c.pip
 }

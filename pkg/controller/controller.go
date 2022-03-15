@@ -26,15 +26,22 @@ type Controller struct {
 	logger *log.Logger
 	state  service.State
 
-	wg     *sync.WaitGroup
-	done   chan struct{}
-	ctx    context.Context //nolint:containedctx //FIXME move the context to a function parameter
-	cancel context.CancelFunc
+	wg      *sync.WaitGroup
+	done    chan struct{}
+	ctx     context.Context //nolint:containedctx //FIXME move the context to a function parameter
+	cancel  context.CancelFunc
+	wasDown bool
 }
 
 func (c *Controller) checkIsDBDown() bool {
 	if st, _ := c.DB.State().Get(); st != service.Running {
+		c.wasDown = true
+
 		return true
+	}
+
+	if !c.wasDown {
+		return false
 	}
 
 	query := c.DB.UpdateAll(&model.Transfer{}, database.UpdVals{"status": types.StatusInterrupted},
@@ -44,6 +51,8 @@ func (c *Controller) checkIsDBDown() bool {
 
 		return true
 	}
+
+	c.wasDown = false
 
 	return false
 }

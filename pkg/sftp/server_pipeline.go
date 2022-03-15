@@ -28,10 +28,11 @@ type serverPipeline struct {
 
 // initPipeline initializes the pipeline.
 func initPipeline(db *database.DB, logger *log.Logger, trans *model.Transfer,
-	endSession func(context.Context), transList *service.TransferMap) (*serverPipeline, error) {
+	endSession func(context.Context), transList *service.TransferMap,
+) (*serverPipeline, error) {
 	var tErr *types.TransferError
 
-	trans, tErr = pipeline.GetServerTransfer(db, logger, trans)
+	trans, tErr = pipeline.GetOldTransfer(db, logger, trans)
 	if tErr != nil {
 		return nil, toSFTPErr(tErr)
 	}
@@ -56,7 +57,8 @@ func initPipeline(db *database.DB, logger *log.Logger, trans *model.Transfer,
 // newServerPipeline creates a new serverPipeline, executes the transfer's
 // pre-tasks, and returns the pipeline.
 func newServerPipeline(db *database.DB, logger *log.Logger, trans *model.Transfer,
-	transList *service.TransferMap, endSession func(context.Context)) (*serverPipeline, error) {
+	transList *service.TransferMap, endSession func(context.Context),
+) (*serverPipeline, error) {
 	servPip, err := initPipeline(db, logger, trans, endSession, transList)
 	if err != nil {
 		return nil, err
