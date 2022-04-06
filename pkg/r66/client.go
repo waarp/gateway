@@ -49,7 +49,7 @@ func newClient(pip *pipeline.Pipeline) (*client, *types.TransferError) {
 	if protoConfig.IsTLS {
 		var err error
 
-		tlsConf, err = internal.MakeClientTLSConfig(pip.TransCtx)
+		tlsConf, err = internal.MakeClientTLSConfig(pip)
 		if err != nil {
 			pip.Logger.Errorf("Failed to parse R66 TLS config: %s", err)
 

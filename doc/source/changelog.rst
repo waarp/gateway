@@ -4,6 +4,9 @@ Historique des versions
 =======================
 
 * :release:`0.5.2 <>`
+* :bug:`318` Dépréciation de tous les algorithme de signature TLS basés sur SHA1.
+  Les certificats signés avec SHA1 sont encore acceptés pour le moment mais seront
+  systématiquement refusés dans les versions futures.
 * :bug:`330` Correction de l'option ``-c --config`` de la commande ``partner add``
   pour qu'elle ait le même comportement que sur les autres commandes similaires.
   L'option peut maintenant être répétée pour chaque paramètre supplémentaire,

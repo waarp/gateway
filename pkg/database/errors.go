@@ -44,9 +44,7 @@ func (i *InternalError) db() {}
 
 // NotFoundError is the error returned when the requested element in a 'Get',
 // 'Update' or 'Delete' command could not be found.
-type NotFoundError struct {
-	msg string
-}
+type NotFoundError struct{ msg string }
 
 func (n *NotFoundError) Error() string {
 	return n.msg

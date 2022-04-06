@@ -6,9 +6,9 @@ import (
 	"fmt"
 	"net/http"
 
-	"code.waarp.fr/apps/gateway/gateway/pkg/model"
 	"code.waarp.fr/apps/gateway/gateway/pkg/model/types"
 	"code.waarp.fr/apps/gateway/gateway/pkg/pipeline"
+	"code.waarp.fr/apps/gateway/gateway/pkg/utils/compatibility"
 )
 
 var (
@@ -28,7 +28,7 @@ func newHTTPClient(pip *pipeline.Pipeline) (pipeline.Client, *types.TransferErro
 }
 
 func newHTTPSClient(pip *pipeline.Pipeline) (pipeline.Client, *types.TransferError) {
-	tlsConf, err := makeTLSConf(pip.TransCtx)
+	tlsConf, err := makeTLSConf(pip)
 	if err != nil {
 		pip.Logger.Errorf("failed to make TLS configuration: %s", err)
 
@@ -54,13 +54,13 @@ func newClient(pip *pipeline.Pipeline, tlsConf *tls.Config) pipeline.Client {
 	}
 }
 
-func makeTLSConf(transCtx *model.TransferContext) (*tls.Config, error) {
+func makeTLSConf(pip *pipeline.Pipeline) (*tls.Config, error) {
 	rootCAs, err := x509.SystemCertPool()
 	if err != nil {
 		rootCAs = x509.NewCertPool()
 	}
 
-	for _, ca := range transCtx.RemoteAgentCryptos {
+	for _, ca := range pip.TransCtx.RemoteAgentCryptos {
 		if !rootCAs.AppendCertsFromPEM([]byte(ca.Certificate)) {
 			//nolint:wrapcheck,goerr113 // this is a base error
 			return nil, fmt.Errorf("failed to add certificate %s to cert pool", ca.Name)
@@ -69,7 +69,7 @@ func makeTLSConf(transCtx *model.TransferContext) (*tls.Config, error) {
 
 	var certs []tls.Certificate
 
-	for _, ce := range transCtx.RemoteAccountCryptos {
+	for _, ce := range pip.TransCtx.RemoteAccountCryptos {
 		cert, err := tls.X509KeyPair([]byte(ce.Certificate), []byte(ce.PrivateKey))
 		if err != nil {
 			return nil, fmt.Errorf("failed to parse client certificate %s: %w", ce.Name, err)
@@ -79,12 +79,13 @@ func makeTLSConf(transCtx *model.TransferContext) (*tls.Config, error) {
 	}
 
 	tlsConf := &tls.Config{
-		MinVersion:   tls.VersionTLS12,
-		RootCAs:      rootCAs,
-		Certificates: certs,
+		MinVersion:       tls.VersionTLS12,
+		RootCAs:          rootCAs,
+		Certificates:     certs,
+		VerifyConnection: compatibility.LogSha1(pip.Logger),
 	}
 
-	for _, c := range transCtx.RemoteAccountCryptos {
+	for _, c := range pip.TransCtx.RemoteAccountCryptos {
 		cert, err := tls.X509KeyPair([]byte(c.Certificate), []byte(c.PrivateKey))
 		if err != nil {
 			return nil, fmt.Errorf("failed to parse TLS certificate: %w", err)

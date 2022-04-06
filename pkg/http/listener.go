@@ -14,6 +14,7 @@ import (
 	"code.waarp.fr/apps/gateway/gateway/pkg/database"
 	"code.waarp.fr/apps/gateway/gateway/pkg/model"
 	"code.waarp.fr/apps/gateway/gateway/pkg/tk/service"
+	"code.waarp.fr/apps/gateway/gateway/pkg/utils/compatibility"
 )
 
 var errNoValidCert = errors.New("could not find a valid certificate for HTTP server")
@@ -65,10 +66,11 @@ func (h *httpService) makeTLSConf() (*tls.Config, error) {
 	}
 
 	tlsConfig := &tls.Config{
-		MinVersion:   tls.VersionTLS12,
-		Certificates: tlsCerts,
-		ClientAuth:   tls.RequestClientCert, // client certs are manually verified
-		ClientCAs:    clientCAs,
+		MinVersion:       tls.VersionTLS12,
+		Certificates:     tlsCerts,
+		ClientAuth:       tls.RequestClientCert, // client certs are manually verified
+		ClientCAs:        clientCAs,
+		VerifyConnection: compatibility.LogSha1(h.logger),
 	}
 
 	return tlsConfig, nil
