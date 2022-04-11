@@ -40,8 +40,9 @@ type options struct {
 	Override overrideCommand `command:"override" description:"Manage the node's setting overrides"`
 }
 
-// Main parses & executes the waarp-gateway command using the given parser.
-func Main(parser *flags.Parser) {
+// InitParser initializes the given parser with the waarp-gateway options and
+// subcommands.
+func InitParser(parser *flags.Parser) {
 	_, err := parser.AddGroup("Commands", "", &commandLine)
 	if err != nil {
 		fmt.Fprint(os.Stderr, err.Error())
@@ -54,10 +55,11 @@ func Main(parser *flags.Parser) {
 		fmt.Fprint(os.Stderr, err.Error())
 		os.Exit(1)
 	}
+}
 
-	_, err = parser.Parse()
-
-	if err != nil && !flags.WroteHelp(err) {
+// Main parses & executes the waarp-gateway command using the given parser.
+func Main(parser *flags.Parser) {
+	if _, err := parser.Parse(); err != nil && !flags.WroteHelp(err) {
 		os.Exit(1)
 	}
 }

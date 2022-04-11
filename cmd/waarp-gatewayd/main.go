@@ -9,5 +9,6 @@ import (
 func main() {
 	parser := flags.NewNamedParser("waarp-gatewayd", flags.Default)
 
+	wgd.InitParser(parser)
 	wgd.Main(parser)
 }
