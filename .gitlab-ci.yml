@@ -122,15 +122,15 @@ upload-packages:
     - if: $CI_COMMIT_TAG
   script:
     - |
-      curl --header "JOB-TOKEN: ${CI_JOB_TOKEN}" --upload-file bin/${PACKAGE_DEB} ${PACKAGE_REGISTRY_URL}/${PACKAGE_DEB}
+      curl --header "JOB-TOKEN: ${CI_JOB_TOKEN}" --upload-file build/${PACKAGE_DEB} ${PACKAGE_REGISTRY_URL}/${PACKAGE_DEB}
     - |
-      curl --header "JOB-TOKEN: ${CI_JOB_TOKEN}" --upload-file bin/${PACKAGE_RPM} ${PACKAGE_REGISTRY_URL}/${PACKAGE_RPM}
+      curl --header "JOB-TOKEN: ${CI_JOB_TOKEN}" --upload-file build/${PACKAGE_RPM} ${PACKAGE_REGISTRY_URL}/${PACKAGE_RPM}
     - |
-      curl --header "JOB-TOKEN: ${CI_JOB_TOKEN}" --upload-file bin/${PACKAGE_LIN} ${PACKAGE_REGISTRY_URL}/${PACKAGE_LIN}
+      curl --header "JOB-TOKEN: ${CI_JOB_TOKEN}" --upload-file build/${PACKAGE_LIN} ${PACKAGE_REGISTRY_URL}/${PACKAGE_LIN}
     - |
-      curl --header "JOB-TOKEN: ${CI_JOB_TOKEN}" --upload-file bin/${PACKAGE_WIN} ${PACKAGE_REGISTRY_URL}/${PACKAGE_WIN}
+      curl --header "JOB-TOKEN: ${CI_JOB_TOKEN}" --upload-file build/${PACKAGE_WIN} ${PACKAGE_REGISTRY_URL}/${PACKAGE_WIN}
     - |
-      curl --header "JOB-TOKEN: ${CI_JOB_TOKEN}" --upload-file bin/${PACKAGE_DOC} ${PACKAGE_REGISTRY_URL}/${PACKAGE_DOC}
+      curl --header "JOB-TOKEN: ${CI_JOB_TOKEN}" --upload-file build/${PACKAGE_DOC} ${PACKAGE_REGISTRY_URL}/${PACKAGE_DOC}
 
 upload-docker:
   image: docker:18.09
