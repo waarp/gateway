@@ -17,6 +17,7 @@ require (
 	github.com/smartystreets/goconvey v1.6.4
 	golang.org/x/crypto v0.0.0-20210421170649-83a5a9bb288b
 	golang.org/x/mod v0.4.2
+	golang.org/x/net v0.0.0-20210226172049-e18ecbb05110
 	golang.org/x/term v0.0.0-20210927222741-03fcf44c2211
 	xorm.io/builder v0.3.8
 	xorm.io/xorm v1.1.2

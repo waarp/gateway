@@ -19,6 +19,25 @@ breaking.
 
 ## Getting started
 
+### Installation with the pre-built packages
+
+DEB, RPM and portable archives are available on our
+[download site](https://dl.waarp.org/dist/waarp-gateway/). 
+
+The installation documentation is available
+[here](https://doc.waarp.org/waarp-gateway/latest/reference/container.html).
+
+### With a container
+
+You can start a container for Waarp Gateway with the command :
+
+```shell
+docker run code.waarp.fr:5000/apps/gateway/gateway:latest
+```
+
+The documentation to setup the container is available
+[here](https://doc.waarp.org/waarp-gateway/latest/reference/container.html).
+
 ### Build from source
 
 *Waarp Gateway* requires Go version 1.17 or later to compile. Since

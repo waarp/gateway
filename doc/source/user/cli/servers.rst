@@ -1,3 +1,5 @@
+.. _user-server-management:
+
 ####################
 Gestion des serveurs
 ####################
