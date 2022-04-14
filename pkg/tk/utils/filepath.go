@@ -38,7 +38,7 @@ func GetPath(file string, elems ...Elem) string {
 	strings := []string{file}
 
 	for i := range elems {
-		if elems[i].String() == "" {
+		if elems[i].String() == "" || elems[i].String() == "." {
 			continue
 		}
 

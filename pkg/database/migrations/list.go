@@ -92,4 +92,9 @@ var Migrations = []migration.Migration{
 		Description: "Rename and change the type of the user 'password' column",
 		Script:      ver0_5_0UserPasswordChange{},
 	},
+	{ // #19
+		Description: "Bump the database version to 0.5.0",
+		Script:      bumpVersion{from: "0.4.4", to: "0.5.0"},
+		VersionTag:  "0.5.0",
+	},
 }
