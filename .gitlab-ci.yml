@@ -153,6 +153,7 @@ release:
       release-cli create \
         --name "${CI_COMMIT_TAG}" \
         --tag-name $CI_COMMIT_TAG \
+        --milestone $CI_COMMIT_TAG \
         --released-at "$CI_COMMIT_TIMESTAMP" \
         --description "${CI_COMMIT_MESSAGE} \
         --assets-link "{\"name\":\"${PACKAGE_DEB}\",\"url\":\"${PACKAGE_REGISTRY_URL}/${PACKAGE_DEB}\"}" \
