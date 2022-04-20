@@ -14,7 +14,7 @@ import (
 )
 
 //nolint:lll // tags can be long for flags
-type migrateCommand struct {
+type MigrateCommand struct {
 	ConfigFile    flags.Filename `required:"yes" short:"c" long:"config" description:"The configuration file to use"`
 	DryRun        bool           `short:"d" long:"dry-run" description:"Simulate the migration but does not commit the changes"`
 	ExtractToFile flags.Filename `short:"f" long:"file" description:"Writes the migration commands into a file instead of sending them to the database"`
@@ -28,7 +28,7 @@ type migrateCommand struct {
 	FromIndex int `hidden:"yes" long:"from-index" default:"-1"`
 }
 
-func (cmd *migrateCommand) Execute([]string) error {
+func (cmd *MigrateCommand) Execute([]string) error {
 	config, logger, err := cmd.getMigrationConf()
 	if err != nil {
 		return err
@@ -62,7 +62,7 @@ func (cmd *migrateCommand) Execute([]string) error {
 	return nil
 }
 
-func (cmd *migrateCommand) getMigrationConf() (*conf.ServerConfig, *log.Logger, error) {
+func (cmd *MigrateCommand) getMigrationConf() (*conf.ServerConfig, *log.Logger, error) {
 	config, err := conf.ParseServerConfig(string(cmd.ConfigFile))
 	if err != nil {
 		return nil, nil, fmt.Errorf("cannot load server config: %w", err)

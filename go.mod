@@ -9,7 +9,7 @@ require (
 	github.com/jackc/pgconn v1.8.0
 	github.com/jackc/pgerrcode v0.0.0-20201024163028-a0d42d470451
 	github.com/jackc/pgx/v4 v4.10.1
-	github.com/jessevdk/go-flags v1.4.1-0.20181006083204-9c49a3351d49
+	github.com/jessevdk/go-flags v1.5.0
 	github.com/mattn/go-colorable v0.1.6
 	github.com/mattn/go-oci8 v0.0.2
 	github.com/pkg/sftp v1.13.4

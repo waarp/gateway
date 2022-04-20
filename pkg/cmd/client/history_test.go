@@ -143,7 +143,7 @@ func TestDisplayHistory(t *testing.T) {
 func TestGetHistory(t *testing.T) {
 	Convey("Testing the partner 'get' command", t, func() {
 		out = testFile()
-		command := &historyGet{}
+		command := &HistoryGet{}
 
 		Convey("Given a database", func(c C) {
 			db := database.TestDatabase(c, "ERROR")
@@ -209,7 +209,7 @@ func TestGetHistory(t *testing.T) {
 func TestListHistory(t *testing.T) {
 	Convey("Testing the history 'list' command", t, func() {
 		out = testFile()
-		command := &historyList{}
+		command := &HistoryList{}
 
 		Convey("Given a database", func(c C) {
 			db := database.TestDatabase(c, "ERROR")
@@ -495,7 +495,7 @@ func TestListHistory(t *testing.T) {
 func TestRetryHistory(t *testing.T) {
 	Convey("Testing the history 'retry' command", t, func() {
 		out = testFile()
-		command := &historyRetry{}
+		command := &HistoryRetry{}
 
 		Convey("Given a database", func(c C) {
 			db := database.TestDatabase(c, "ERROR")

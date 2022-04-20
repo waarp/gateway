@@ -12,14 +12,6 @@ import (
 	"code.waarp.fr/apps/gateway/gateway/pkg/tk/utils"
 )
 
-type certificateCommand struct {
-	Get    certGet    `command:"get" description:"Retrieve a certificate's information"`
-	Add    certAdd    `command:"add" description:"Add a new certificate"`
-	Delete certDelete `command:"delete" description:"Delete a certificate"`
-	List   certList   `command:"list" description:"List the known certificates"`
-	Update certUpdate `command:"update" description:"Update an existing certificate"`
-}
-
 func displayCertificate(w io.Writer, cert *api.OutCrypto) {
 	fmt.Fprintln(w, orange(bold("● Certificate", cert.Name)))
 	fmt.Fprintln(w, orange("    Private key:"), cert.PrivateKey)
@@ -28,32 +20,29 @@ func displayCertificate(w io.Writer, cert *api.OutCrypto) {
 }
 
 func getCertPath() string {
-	if partner := commandLine.Partner.Cert.Args.Partner; partner != "" {
-		return fmt.Sprintf("/api/partners/%s", partner)
-	} else if server := commandLine.Server.Cert.Args.Server; server != "" {
-		return fmt.Sprintf("/api/servers/%s", server)
-	} else if partner := commandLine.Account.Remote.Args.Partner; partner != "" {
-		account := commandLine.Account.Remote.Cert.Args.Account
-
-		return fmt.Sprintf("/api/partners/%s/accounts/%s", partner, account)
-	} else if server := commandLine.Account.Local.Args.Server; server != "" {
-		account := commandLine.Account.Local.Cert.Args.Account
-
-		return fmt.Sprintf("/api/servers/%s/accounts/%s", server, account)
-	} else {
+	switch {
+	case LocalAccount != "":
+		return fmt.Sprintf("/api/servers/%s/accounts/%s", Server, LocalAccount)
+	case RemoteAccount != "":
+		return fmt.Sprintf("/api/partners/%s/accounts/%s", Partner, RemoteAccount)
+	case Server != "":
+		return fmt.Sprintf("/api/servers/%s", Server)
+	case Partner != "":
+		return fmt.Sprintf("/api/partners/%s", Partner)
+	default:
 		panic("unknown certificate recipient")
 	}
 }
 
 // ######################## GET ##########################
 
-type certGet struct {
+type CertGet struct {
 	Args struct {
 		Cert string `required:"yes" positional-arg-name:"cert" description:"The certificate's name"`
 	} `positional-args:"yes"`
 }
 
-func (c *certGet) Execute([]string) error {
+func (c *CertGet) Execute([]string) error {
 	addr.Path = path.Join(getCertPath(), "certificates", c.Args.Cert)
 
 	cert := &api.OutCrypto{}
@@ -68,14 +57,14 @@ func (c *certGet) Execute([]string) error {
 
 // ######################## ADD ##########################
 
-type certAdd struct {
+type CertAdd struct {
 	Name        string         `required:"true" short:"n" long:"name" description:"The certificate's name"`
 	PrivateKey  flags.Filename `short:"p" long:"private_key" description:"The path to the certificate's private key file"`
 	PublicKey   flags.Filename `short:"b" long:"public_key" description:"The path to the certificate's public key file"`
 	Certificate flags.Filename `short:"c" long:"certificate" description:"The path to the certificate file"`
 }
 
-func (c *certAdd) Execute([]string) (err error) {
+func (c *CertAdd) Execute([]string) (err error) {
 	inCrypto := &api.InCrypto{
 		Name: &c.Name,
 	}
@@ -120,13 +109,13 @@ func (c *certAdd) Execute([]string) (err error) {
 
 // ######################## DELETE ##########################
 
-type certDelete struct {
+type CertDelete struct {
 	Args struct {
 		Cert string `required:"yes" positional-arg-name:"cert" description:"The certificate's name"`
 	} `positional-args:"yes"`
 }
 
-func (c *certDelete) Execute([]string) error {
+func (c *CertDelete) Execute([]string) error {
 	addr.Path = path.Join(getCertPath(), "certificates", c.Args.Cert)
 
 	if err := remove(); err != nil {
@@ -141,15 +130,15 @@ func (c *certDelete) Execute([]string) error {
 // ######################## LIST ##########################
 
 //nolint:lll // struct tags for command line arguments can be long
-type certList struct {
-	listOptions
+type CertList struct {
+	ListOptions
 	SortBy string `short:"s" long:"sort" description:"Attribute used to sort the returned entries" choice:"name+" choice:"name-" default:"name+"`
 }
 
-func (c *certList) Execute([]string) error {
+func (c *CertList) Execute([]string) error {
 	addr.Path = path.Join(getCertPath(), "certificates")
 
-	listURL(&c.listOptions, c.SortBy)
+	listURL(&c.ListOptions, c.SortBy)
 
 	body := map[string][]api.OutCrypto{}
 	if err := list(&body); err != nil {
@@ -173,7 +162,7 @@ func (c *certList) Execute([]string) error {
 
 // ######################## UPDATE ##########################
 
-type certUpdate struct {
+type CertUpdate struct {
 	Args struct {
 		Cert string `required:"yes" positional-arg-name:"cert" description:"The certificate's name"`
 	} `positional-args:"yes"`
@@ -183,7 +172,7 @@ type certUpdate struct {
 	Certificate flags.Filename `short:"c" long:"certificate" description:"The path to the certificate file"`
 }
 
-func (c *certUpdate) Execute([]string) (err error) {
+func (c *CertUpdate) Execute([]string) (err error) {
 	inCrypto := &api.InCrypto{
 		Name: c.Name,
 	}

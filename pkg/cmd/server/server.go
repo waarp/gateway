@@ -10,14 +10,14 @@ import (
 var errNoConfigFile = fmt.Errorf("the path to the configuration file must be given with the argument --config")
 
 //nolint:lll // tags are long for flags
-type serverCommand struct {
+type ServerCommand struct {
 	ConfigFile   string `short:"c" long:"config" description:"The configuration file to use"`
 	Update       bool   `short:"u" long:"update" description:"Updates the configuration file at the location given with --config"`
 	Create       bool   `short:"n" long:"create" description:"Creates a new configuration file at the location given with --config"`
 	InstanceName string `short:"i" long:"instance" description:"The unique identifier of the instance inside a cluster"`
 }
 
-func (cmd *serverCommand) Execute([]string) error {
+func (cmd *ServerCommand) Execute([]string) error {
 	switch {
 	case cmd.Create:
 		if cmd.ConfigFile == "" {

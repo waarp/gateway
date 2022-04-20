@@ -19,7 +19,7 @@ import (
 func TestGetRemoteAccount(t *testing.T) {
 	Convey("Testing the account 'get' command", t, func() {
 		out = testFile()
-		command := &remAccGet{}
+		command := &RemAccGet{}
 
 		Convey("Given a gateway with 1 remote account", func(c C) {
 			db := database.TestDatabase(c, "ERROR")
@@ -34,7 +34,7 @@ func TestGetRemoteAccount(t *testing.T) {
 				Address:  "localhost:1",
 			}
 			So(db.Insert(partner).Run(), ShouldBeNil)
-			commandLine.Account.Remote.Args.Partner = partner.Name
+			Partner = partner.Name
 
 			account := &model.RemoteAccount{
 				Login:         "toto",
@@ -96,7 +96,7 @@ func TestGetRemoteAccount(t *testing.T) {
 			})
 
 			Convey("Given an invalid partner name", func() {
-				commandLine.Account.Remote.Args.Partner = "toto"
+				Partner = "toto"
 				args := []string{account.Login}
 
 				Convey("When executing the command", func() {
@@ -116,7 +116,7 @@ func TestGetRemoteAccount(t *testing.T) {
 func TestAddRemoteAccount(t *testing.T) {
 	Convey("Testing the account 'add' command", t, func() {
 		out = testFile()
-		command := &remAccAdd{}
+		command := &RemAccAdd{}
 
 		Convey("Given a gateway", func(c C) {
 			db := database.TestDatabase(c, "ERROR")
@@ -131,7 +131,7 @@ func TestAddRemoteAccount(t *testing.T) {
 				Address:  "localhost:1",
 			}
 			So(db.Insert(partner).Run(), ShouldBeNil)
-			commandLine.Account.Remote.Args.Partner = partner.Name
+			Partner = partner.Name
 
 			Convey("Given valid flags", func() {
 				args := []string{"-l", "toto", "-p", "sesame"}
@@ -163,7 +163,7 @@ func TestAddRemoteAccount(t *testing.T) {
 
 			Convey("Given an invalid partner name", func() {
 				args := []string{"-l", "toto", "-p", "sesame"}
-				commandLine.Account.Remote.Args.Partner = "toto"
+				Partner = "toto"
 
 				Convey("When executing the command", func() {
 					params, err := flags.ParseArgs(command, args)
@@ -182,7 +182,7 @@ func TestAddRemoteAccount(t *testing.T) {
 func TestDeleteRemoteAccount(t *testing.T) {
 	Convey("Testing the account 'delete' command", t, func() {
 		out = testFile()
-		command := &remAccDelete{}
+		command := &RemAccDelete{}
 
 		Convey("Given a gateway with 1 remote account", func(c C) {
 			db := database.TestDatabase(c, "ERROR")
@@ -198,7 +198,7 @@ func TestDeleteRemoteAccount(t *testing.T) {
 				Address:     "localhost:1",
 			}
 			So(db.Insert(partner).Run(), ShouldBeNil)
-			commandLine.Account.Remote.Args.Partner = partner.Name
+			Partner = partner.Name
 
 			account := &model.RemoteAccount{
 				RemoteAgentID: partner.ID,
@@ -251,7 +251,7 @@ func TestDeleteRemoteAccount(t *testing.T) {
 
 			Convey("Given an invalid partner name", func() {
 				args := []string{account.Login}
-				commandLine.Account.Remote.Args.Partner = "toto"
+				Partner = "toto"
 
 				Convey("When executing the command", func() {
 					params, err := flags.ParseArgs(command, args)
@@ -276,7 +276,7 @@ func TestDeleteRemoteAccount(t *testing.T) {
 func TestUpdateRemoteAccount(t *testing.T) {
 	Convey("Testing the account 'delete' command", t, func() {
 		out = testFile()
-		command := &remAccUpdate{}
+		command := &RemAccUpdate{}
 
 		Convey("Given a gateway with 1 remote account", func(c C) {
 			db := database.TestDatabase(c, "ERROR")
@@ -292,7 +292,7 @@ func TestUpdateRemoteAccount(t *testing.T) {
 				Address:     "localhost:1",
 			}
 			So(db.Insert(partner).Run(), ShouldBeNil)
-			commandLine.Account.Remote.Args.Partner = partner.Name
+			Partner = partner.Name
 
 			account := &model.RemoteAccount{
 				RemoteAgentID: partner.ID,
@@ -352,7 +352,7 @@ func TestUpdateRemoteAccount(t *testing.T) {
 
 			Convey("Given an invalid partner name", func() {
 				args := []string{"-l", "new_login", "-p", "new_password", account.Login}
-				commandLine.Account.Remote.Args.Partner = "toto"
+				Partner = "toto"
 
 				Convey("When executing the command", func() {
 					params, err := flags.ParseArgs(command, args)
@@ -377,7 +377,7 @@ func TestUpdateRemoteAccount(t *testing.T) {
 func TestListRemoteAccount(t *testing.T) {
 	Convey("Testing the account 'list' command", t, func() {
 		out = testFile()
-		command := &remAccList{}
+		command := &RemAccList{}
 
 		Convey("Given a gateway with 2 remote accounts", func(c C) {
 			db := database.TestDatabase(c, "ERROR")
@@ -393,7 +393,7 @@ func TestListRemoteAccount(t *testing.T) {
 				Address:     "localhost:1",
 			}
 			So(db.Insert(partner1).Run(), ShouldBeNil)
-			commandLine.Account.Remote.Args.Partner = partner1.Name
+			Partner = partner1.Name
 
 			partner2 := &model.RemoteAgent{
 				Name:        "partner2",
@@ -445,7 +445,7 @@ func TestListRemoteAccount(t *testing.T) {
 
 			Convey("Given a different partner name", func() {
 				args := []string{}
-				commandLine.Account.Remote.Args.Partner = partner2.Name
+				Partner = partner2.Name
 
 				Convey("When executing the command", func() {
 					params, err := flags.ParseArgs(command, args)
@@ -461,7 +461,7 @@ func TestListRemoteAccount(t *testing.T) {
 
 			Convey("Given an invalid partner name", func() {
 				args := []string{}
-				commandLine.Account.Remote.Args.Partner = "toto"
+				Partner = "toto"
 
 				Convey("When executing the command", func() {
 					params, err := flags.ParseArgs(command, args)
@@ -525,7 +525,7 @@ func TestListRemoteAccount(t *testing.T) {
 func TestAuthorizeRemoteAccount(t *testing.T) {
 	Convey("Testing the remote account 'authorize' command", t, func() {
 		out = testFile()
-		command := &remAccAuthorize{}
+		command := &RemAccAuthorize{}
 
 		Convey("Given a gateway with 1 remote account and 1 rule", func(c C) {
 			db := database.TestDatabase(c, "ERROR")
@@ -557,7 +557,7 @@ func TestAuthorizeRemoteAccount(t *testing.T) {
 			So(db.Insert(rule).Run(), ShouldBeNil)
 
 			Convey("Given a valid partner, account & rule names", func() {
-				commandLine.Account.Remote.Args.Partner = partner.Name
+				Partner = partner.Name
 				args := []string{account.Login, rule.Name, direction(rule)}
 
 				Convey("When executing the command", func() {
@@ -587,7 +587,7 @@ func TestAuthorizeRemoteAccount(t *testing.T) {
 			})
 
 			Convey("Given an invalid partner name", func() {
-				commandLine.Account.Remote.Args.Partner = "toto"
+				Partner = "toto"
 				args := []string{account.Login, rule.Name, direction(rule)}
 
 				Convey("When executing the command", func() {
@@ -608,7 +608,7 @@ func TestAuthorizeRemoteAccount(t *testing.T) {
 			})
 
 			Convey("Given an invalid rule name", func() {
-				commandLine.Account.Remote.Args.Partner = partner.Name
+				Partner = partner.Name
 				args := []string{account.Login, "toto", direction(rule)}
 
 				Convey("When executing the command", func() {
@@ -629,7 +629,7 @@ func TestAuthorizeRemoteAccount(t *testing.T) {
 			})
 
 			Convey("Given an invalid account name", func() {
-				commandLine.Account.Remote.Args.Partner = partner.Name
+				Partner = partner.Name
 				args := []string{"tata", rule.Name, direction(rule)}
 
 				Convey("When executing the command", func() {
@@ -655,7 +655,7 @@ func TestAuthorizeRemoteAccount(t *testing.T) {
 func TestRevokeRemoteAccount(t *testing.T) {
 	Convey("Testing the remote account 'revoke' command", t, func() {
 		out = testFile()
-		command := &remAccRevoke{}
+		command := &RemAccRevoke{}
 
 		Convey("Given a gateway with 1 remote account and 1 rule", func(c C) {
 			db := database.TestDatabase(c, "ERROR")
@@ -694,7 +694,7 @@ func TestRevokeRemoteAccount(t *testing.T) {
 			So(db.Insert(access).Run(), ShouldBeNil)
 
 			Convey("Given a valid partner & rule names", func() {
-				commandLine.Account.Remote.Args.Partner = partner.Name
+				Partner = partner.Name
 				args := []string{account.Login, rule.Name, direction(rule)}
 
 				Convey("When executing the command", func() {
@@ -718,7 +718,7 @@ func TestRevokeRemoteAccount(t *testing.T) {
 			})
 
 			Convey("Given an invalid partner name", func() {
-				commandLine.Account.Remote.Args.Partner = "toto"
+				Partner = "toto"
 				args := []string{account.Login, rule.Name, direction(rule)}
 
 				Convey("When executing the command", func() {
@@ -739,7 +739,7 @@ func TestRevokeRemoteAccount(t *testing.T) {
 			})
 
 			Convey("Given an invalid rule name", func() {
-				commandLine.Account.Remote.Args.Partner = partner.Name
+				Partner = partner.Name
 				args := []string{account.Login, "toto", direction(rule)}
 
 				Convey("When executing the command", func() {
@@ -760,7 +760,7 @@ func TestRevokeRemoteAccount(t *testing.T) {
 			})
 
 			Convey("Given an invalid account name", func() {
-				commandLine.Account.Remote.Args.Partner = partner.Name
+				Partner = partner.Name
 				args := []string{"tata", rule.Name, direction(rule)}
 
 				Convey("When executing the command", func() {

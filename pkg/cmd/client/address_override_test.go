@@ -20,7 +20,7 @@ func addrInfoString(target, redirect string) string {
 func TestSetAddressOverride(t *testing.T) {
 	Convey("Testing the address override 'set' command", t, func() {
 		out = testFile()
-		command := &overrideAddressSet{}
+		command := &OverrideAddressSet{}
 
 		Convey("Given a gateway", func(c C) {
 			db := database.TestDatabase(c, "ERROR")
@@ -56,7 +56,7 @@ func TestSetAddressOverride(t *testing.T) {
 func TestListAddressOverrides(t *testing.T) {
 	Convey("Testing the address override 'list' command", t, func() {
 		out = testFile()
-		command := &overrideAddressList{}
+		command := &OverrideAddressList{}
 
 		Convey("Given a gateway", func(c C) {
 			db := database.TestDatabase(c, "ERROR")
@@ -90,7 +90,7 @@ func TestListAddressOverrides(t *testing.T) {
 func TestDeleteAddressOverride(t *testing.T) {
 	Convey("Testing the address override 'delete' command", t, func() {
 		out = testFile()
-		command := &overrideAddressDelete{}
+		command := &OverrideAddressDelete{}
 
 		Convey("Given a gateway", func(c C) {
 			db := database.TestDatabase(c, "ERROR")

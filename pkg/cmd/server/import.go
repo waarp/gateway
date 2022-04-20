@@ -51,7 +51,7 @@ func initImportExport(configFile string, verbose []bool) (*database.DB, *log.Log
 }
 
 //nolint:lll // tags can be long for flags
-type importCommand struct {
+type ImportCommand struct {
 	ConfigFile string   `short:"c" long:"config" description:"The configuration file to use"`
 	File       string   `short:"s" long:"source" description:"The data file to import"`
 	Target     []string `short:"t" long:"target" default:"all" choice:"rules" choice:"servers" choice:"partners" choice:"all" description:"Limit the import to a subset of data. Can be repeated to import multiple subsets."`
@@ -59,7 +59,7 @@ type importCommand struct {
 	Verbose    []bool   `short:"v" long:"verbose" description:"Show verbose debug information. Can be repeated to increase verbosity"`
 }
 
-func (i *importCommand) Execute([]string) error {
+func (i *ImportCommand) Execute([]string) error {
 	db, logger, err := initImportExport(i.ConfigFile, i.Verbose)
 	if err != nil {
 		return fmt.Errorf("error at init: %w", err)

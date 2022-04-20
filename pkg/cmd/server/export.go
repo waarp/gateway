@@ -9,14 +9,14 @@ import (
 )
 
 //nolint:lll // tags can be long for flags
-type exportCommand struct {
+type ExportCommand struct {
 	ConfigFile string   `short:"c" long:"config" description:"The configuration file to use"`
 	File       string   `short:"f" long:"file" description:"The destination file. If none is given, the content of the export will be written to the standard output"`
 	Target     []string `short:"t" long:"target" default:"all" choice:"rules" choice:"servers" choice:"partners" choice:"all" description:"Limit the export to a subset of data. Can be repeated to export multiple subsets."`
 	Verbose    []bool   `short:"v" long:"verbose" description:"Show verbose debug information. Can be repeated to increase verbosity"`
 }
 
-func (e *exportCommand) Execute([]string) error {
+func (e *ExportCommand) Execute([]string) error {
 	db, logger, err := initImportExport(e.ConfigFile, e.Verbose)
 	if err != nil {
 		return fmt.Errorf("error at init: %w", err)

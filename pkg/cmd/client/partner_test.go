@@ -29,7 +29,7 @@ func partnerInfoString(p *api.OutPartner) string {
 func TestGetPartner(t *testing.T) {
 	Convey("Testing the partner 'get' command", t, func() {
 		out = testFile()
-		command := &partnerGet{}
+		command := &PartnerGet{}
 
 		Convey("Given a gateway with 1 distant partner", func(c C) {
 			db := database.TestDatabase(c, "ERROR")
@@ -102,7 +102,7 @@ func TestGetPartner(t *testing.T) {
 func TestAddPartner(t *testing.T) {
 	Convey("Testing the partner 'add' command", t, func() {
 		out = testFile()
-		command := &partnerAdd{}
+		command := &PartnerAdd{}
 
 		Convey("Given a gateway", func(c C) {
 			db := database.TestDatabase(c, "ERROR")
@@ -204,7 +204,7 @@ func TestAddPartner(t *testing.T) {
 func TestListPartners(t *testing.T) {
 	Convey("Testing the partner 'list' command", t, func() {
 		out = testFile()
-		command := &partnerList{}
+		command := &PartnerList{}
 
 		Convey("Given a gateway with 2 distant partners", func(c C) {
 			db := database.TestDatabase(c, "ERROR")
@@ -311,7 +311,7 @@ func TestListPartners(t *testing.T) {
 func TestDeletePartner(t *testing.T) {
 	Convey("Testing the partner 'delete' command", t, func() {
 		out = testFile()
-		command := &partnerDelete{}
+		command := &PartnerDelete{}
 
 		Convey("Given a gateway with 1 distant partner", func(c C) {
 			db := database.TestDatabase(c, "ERROR")
@@ -374,7 +374,7 @@ func TestDeletePartner(t *testing.T) {
 func TestUpdatePartner(t *testing.T) {
 	Convey("Testing the partner 'update' command", t, func() {
 		out = testFile()
-		command := &partnerUpdate{}
+		command := &PartnerUpdate{}
 
 		Convey("Given a gateway with 1 distant partner", func(c C) {
 			db := database.TestDatabase(c, "ERROR")
@@ -530,7 +530,7 @@ func TestUpdatePartner(t *testing.T) {
 func TestAuthorizePartner(t *testing.T) {
 	Convey("Testing the partner 'authorize' command", t, func() {
 		out = testFile()
-		command := &partnerAuthorize{}
+		command := &PartnerAuthorize{}
 
 		Convey("Given a gateway with 1 distant partner and 1 rule", func(c C) {
 			db := database.TestDatabase(c, "ERROR")
@@ -628,7 +628,7 @@ func TestAuthorizePartner(t *testing.T) {
 func TestRevokePartner(t *testing.T) {
 	Convey("Testing the partner 'revoke' command", t, func() {
 		out = testFile()
-		command := &partnerRevoke{}
+		command := &PartnerRevoke{}
 
 		Convey("Given a gateway with 1 distant partner and 1 rule", func(c C) {
 			db := database.TestDatabase(c, "ERROR")

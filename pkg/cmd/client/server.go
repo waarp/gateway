@@ -10,20 +10,15 @@ import (
 	"code.waarp.fr/apps/gateway/gateway/pkg/admin/rest/api"
 )
 
-type serverCommand struct {
-	Get       serverGet       `command:"get" description:"Retrieve a server's information"`
-	Add       serverAdd       `command:"add" description:"Add a new server"`
-	Delete    serverDelete    `command:"delete" description:"Delete a server"`
-	List      serverList      `command:"list" description:"List the known servers"`
-	Update    serverUpdate    `command:"update" description:"Modify a server's information"`
-	Authorize serverAuthorize `command:"authorize" description:"Give a server permission to use a rule"`
-	Revoke    serverRevoke    `command:"revoke" description:"Revoke a server's permission to use a rule"`
-	Cert      struct {
-		Args struct {
-			Server string `required:"yes" positional-arg-name:"server" description:"The server's name"`
-		} `positional-args:"yes"`
-		certificateCommand
-	} `command:"cert" description:"Manage a server's certificates"`
+//nolint:gochecknoglobals //a global var is required here
+var Server string
+
+type ServerArg struct{}
+
+func (ServerArg) UnmarshalFlag(value string) error {
+	Server = value
+
+	return nil
 }
 
 func displayServer(w io.Writer, server *api.OutServer) {
@@ -45,13 +40,13 @@ func displayServer(w io.Writer, server *api.OutServer) {
 
 // ######################## GET ##########################
 
-type serverGet struct {
+type ServerGet struct {
 	Args struct {
 		Name string `required:"yes" positional-arg-name:"name" description:"The server's name"`
 	} `positional-args:"yes"`
 }
 
-func (s *serverGet) Execute([]string) error {
+func (s *ServerGet) Execute([]string) error {
 	addr.Path = path.Join("/api/servers", s.Args.Name)
 
 	server := &api.OutServer{}
@@ -67,7 +62,7 @@ func (s *serverGet) Execute([]string) error {
 // ######################## ADD ##########################
 
 //nolint:lll // struct tags can be long for command line args
-type serverAdd struct {
+type ServerAdd struct {
 	Name        string             `required:"yes" short:"n" long:"name" description:"The server's name"`
 	Protocol    string             `required:"yes" short:"p" long:"protocol" description:"The server's protocol"`
 	Address     string             `required:"yes" short:"a" long:"address" description:"The server's [address:port]"`
@@ -84,7 +79,7 @@ type serverAdd struct {
 	WorkDir *string `short:"w" long:"work" description:"[DEPRECATED] The server's work directory"`     // Deprecated: replaced by TempRcvDir
 }
 
-func (s *serverAdd) Execute([]string) error {
+func (s *ServerAdd) Execute([]string) error {
 	conf, err := json.Marshal(s.ProtoConfig)
 	if err != nil {
 		return fmt.Errorf("invalid config: %w", err)
@@ -142,13 +137,13 @@ func (s *serverAdd) Execute([]string) error {
 
 // ######################## DELETE ##########################
 
-type serverDelete struct {
+type ServerDelete struct {
 	Args struct {
 		Name string `required:"yes" positional-arg-name:"name" description:"The server's name"`
 	} `positional-args:"yes"`
 }
 
-func (s *serverDelete) Execute([]string) error {
+func (s *ServerDelete) Execute([]string) error {
 	addr.Path = path.Join("/api/servers", s.Args.Name)
 
 	if err := remove(); err != nil {
@@ -163,15 +158,15 @@ func (s *serverDelete) Execute([]string) error {
 // ######################## LIST ##########################
 
 //nolint:lll // struct tags can be long for command line args
-type serverList struct {
-	listOptions
+type ServerList struct {
+	ListOptions
 	SortBy    string   `short:"s" long:"sort" description:"Attribute used to sort the returned entries" choice:"name+" choice:"name-" choice:"protocol+" choice:"protocol-" default:"name+" `
 	Protocols []string `short:"p" long:"protocol" description:"Filter the agents based on the protocol they use. Can be repeated multiple times to filter multiple protocols."`
 }
 
 //nolint:dupl // hard to factorize
-func (s *serverList) Execute([]string) error {
-	agentListURL("/api/servers", &s.listOptions, s.SortBy, s.Protocols)
+func (s *ServerList) Execute([]string) error {
+	agentListURL("/api/servers", &s.ListOptions, s.SortBy, s.Protocols)
 
 	body := map[string][]api.OutServer{}
 	if err := list(&body); err != nil {
@@ -197,7 +192,7 @@ func (s *serverList) Execute([]string) error {
 // ######################## UPDATE ##########################
 
 //nolint:lll // struct tags can be long for command line args
-type serverUpdate struct {
+type ServerUpdate struct {
 	Args struct {
 		Name string `required:"yes" positional-arg-name:"name" description:"The server's name"`
 	} `positional-args:"yes"`
@@ -217,7 +212,7 @@ type serverUpdate struct {
 	WorkDir *string `short:"w" long:"work" description:"[DEPRECATED] The server's work directory"`     // Deprecated: replaced by TempRcvDir
 }
 
-func (s *serverUpdate) Execute([]string) error {
+func (s *ServerUpdate) Execute([]string) error {
 	conf, err := json.Marshal(s.ProtoConfig)
 	if err != nil {
 		return fmt.Errorf("invalid config: %w", err)
@@ -281,7 +276,7 @@ func (s *serverUpdate) Execute([]string) error {
 // ######################## AUTHORIZE ##########################
 
 //nolint:lll // struct tags can be long for command line args
-type serverAuthorize struct {
+type ServerAuthorize struct {
 	Args struct {
 		Server    string `required:"yes" positional-arg-name:"server" description:"The server's name"`
 		Rule      string `required:"yes" positional-arg-name:"rule" description:"The rule's name"`
@@ -289,7 +284,7 @@ type serverAuthorize struct {
 	} `positional-args:"yes"`
 }
 
-func (s *serverAuthorize) Execute([]string) error {
+func (s *ServerAuthorize) Execute([]string) error {
 	addr.Path = fmt.Sprintf("/api/servers/%s/authorize/%s/%s", s.Args.Server,
 		s.Args.Rule, s.Args.Direction)
 
@@ -299,7 +294,7 @@ func (s *serverAuthorize) Execute([]string) error {
 // ######################## REVOKE ##########################
 
 //nolint:lll // struct tags can be long for command line args
-type serverRevoke struct {
+type ServerRevoke struct {
 	Args struct {
 		Server    string `required:"yes" positional-arg-name:"server" description:"The server's name"`
 		Rule      string `required:"yes" positional-arg-name:"rule" description:"The rule's name"`
@@ -307,7 +302,7 @@ type serverRevoke struct {
 	} `positional-args:"yes"`
 }
 
-func (s *serverRevoke) Execute([]string) error {
+func (s *ServerRevoke) Execute([]string) error {
 	addr.Path = fmt.Sprintf("/api/servers/%s/revoke/%s/%s", s.Args.Server,
 		s.Args.Rule, s.Args.Direction)
 

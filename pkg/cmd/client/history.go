@@ -14,12 +14,6 @@ import (
 	"code.waarp.fr/apps/gateway/gateway/pkg/model/types"
 )
 
-type historyCommand struct {
-	Get     historyGet   `command:"get" description:"Consult a finished transfer"`
-	List    historyList  `command:"list" description:"List the finished transfers"`
-	Restart historyRetry `command:"retry" description:"Reprogram a canceled transfer"`
-}
-
 func displayHistory(w io.Writer, hist *api.OutHistory) {
 	role := roleClient
 
@@ -84,13 +78,13 @@ func displayHistory(w io.Writer, hist *api.OutHistory) {
 
 // ######################## GET ##########################
 
-type historyGet struct {
+type HistoryGet struct {
 	Args struct {
 		ID uint64 `required:"yes" positional-arg-name:"id" description:"The transfer's ID"`
 	} `positional-args:"yes"`
 }
 
-func (h *historyGet) Execute([]string) error {
+func (h *HistoryGet) Execute([]string) error {
 	addr.Path = path.Join("/api/history/", fmt.Sprint(h.Args.ID))
 
 	trans := &api.OutHistory{}
@@ -106,8 +100,8 @@ func (h *historyGet) Execute([]string) error {
 // ######################## LIST ##########################
 
 //nolint:lll // struct tags can be long for command line args
-type historyList struct {
-	listOptions
+type HistoryList struct {
+	ListOptions
 	SortBy    string   `short:"s" long:"sort" description:"Attribute used to sort the returned entries" choice:"start+" choice:"start-" choice:"id+" choice:"id-" choice:"start+" choice:"start-" choice:"stop+" choice:"stop-" choice:"rule+" choice:"rule-" choice:"requester+" choice:"requester-" choice:"requested+" choice:"requested-" default:"start+"`
 	Requester []string `short:"q" long:"requester" description:"Filter the transfers based on the transfer's requester. Can be repeated multiple times to filter multiple sources."`
 	Requested []string `short:"d" long:"requested" description:"Filter the transfers based on the transfer's requested. Can be repeated multiple times to filter multiple destinations."`
@@ -118,7 +112,7 @@ type historyList struct {
 	Stop      string   `short:"e" long:"stop" description:"Filter the transfers which ended before a given date. Date must be in RFC3339 format."`
 }
 
-func (h *historyList) listURL() error {
+func (h *HistoryList) listURL() error {
 	addr.Path = "/api/history"
 	query := url.Values{}
 	query.Set("limit", fmt.Sprint(h.Limit))
@@ -170,7 +164,7 @@ func (h *historyList) listURL() error {
 	return nil
 }
 
-func (h *historyList) Execute([]string) error {
+func (h *HistoryList) Execute([]string) error {
 	if err := h.listURL(); err != nil {
 		return err
 	}
@@ -195,17 +189,17 @@ func (h *historyList) Execute([]string) error {
 	return nil
 }
 
-// ######################## RESTART ##########################
+// ######################## RETRY ##########################
 
 //nolint:lll // struct tags can be long for command line args
-type historyRetry struct {
+type HistoryRetry struct {
 	Args struct {
 		ID uint64 `required:"yes" positional-arg-name:"id" description:"The transfer's ID"`
 	} `positional-args:"yes"`
 	Date string `short:"d" long:"date" description:"Set the date at which the transfer should restart. Date must be in RFC3339 format."`
 }
 
-func (h *historyRetry) Execute([]string) error {
+func (h *HistoryRetry) Execute([]string) error {
 	addr.Path = fmt.Sprintf("/api/history/%d/retry", h.Args.ID)
 
 	query := url.Values{}

@@ -140,7 +140,7 @@ func TestDisplayRule(t *testing.T) {
 func TestGetRule(t *testing.T) {
 	Convey("Testing the rule 'get' command", t, func() {
 		out = testFile()
-		command := &ruleGet{}
+		command := &RuleGet{}
 
 		Convey("Given a gateway with 1 rule", func(c C) {
 			db := database.TestDatabase(c, "ERROR")
@@ -196,7 +196,7 @@ func TestGetRule(t *testing.T) {
 func TestAddRule(t *testing.T) {
 	Convey("Testing the rule 'add' command", t, func() {
 		out = testFile()
-		command := &ruleAdd{}
+		command := &RuleAdd{}
 
 		Convey("Given a gateway with 1 rule", func(c C) {
 			db := database.TestDatabase(c, "ERROR")
@@ -374,7 +374,7 @@ func TestAddRule(t *testing.T) {
 func TestDeleteRule(t *testing.T) {
 	Convey("Testing the rule 'delete' command", t, func() {
 		out = testFile()
-		command := &ruleDelete{}
+		command := &RuleDelete{}
 
 		Convey("Given a gateway with 1 rule", func(c C) {
 			db := database.TestDatabase(c, "ERROR")
@@ -437,7 +437,7 @@ func TestDeleteRule(t *testing.T) {
 func TestListRules(t *testing.T) {
 	Convey("Testing the rule 'list' command", t, func() {
 		out = testFile()
-		command := &ruleList{}
+		command := &RuleList{}
 
 		Convey("Given a gateway with 2 rules", func(c C) {
 			db := database.TestDatabase(c, "ERROR")
@@ -539,7 +539,7 @@ func TestListRules(t *testing.T) {
 func TestRuleAllowAll(t *testing.T) {
 	Convey("Testing the rule 'list' command", t, func() {
 		out = testFile()
-		command := &ruleAllowAll{}
+		command := &RuleAllowAll{}
 
 		Convey("Given a database with a rule", func(c C) {
 			db := database.TestDatabase(c, "ERROR")
