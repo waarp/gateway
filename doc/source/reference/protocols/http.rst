@@ -5,7 +5,8 @@ HTTP & HTTPS
 L'implémentation de HTTP et HTTPS dans la *Gateway* ajoute quelques fonctionnalités
 supplémentaire par rapport au standard. À l'exception d'une seule, toutes ces
 fonctionnalités non-standard sont optionnelles, afin de permettre une compatibilité
-maximale.
+maximale. Notez également que, bien que semblables, HTTP et HTTPS sont considérés
+comme des protocoles séparés par la *gateway*.
 
 **Authentification**
 
@@ -18,6 +19,9 @@ Il est à noter que même lorsqu'il s'authentifie via un certificat, le client
 **doit** fournit son login via le header d'authentification basique. Si un
 certificat est fourni, le mot de passe n'est pas obligatoire, mais il sera
 vérifié si un est donné.
+
+.. warning:: TLS version 1.2 est requit au minimum pour utiliser HTTPS. Toutes
+   les versions antérieurs seront refusées lors de la négociation.
 
 **Requête**
 

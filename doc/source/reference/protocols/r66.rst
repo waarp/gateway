@@ -15,6 +15,10 @@ Voici les fonctionnalités qui ont déjà été implémentées dans la *Gateway*
   l'algorithme SHA-256 est supporté pour l'instant)
 - Vérification du hash individuel de chaque bloc.
 
+.. warning:: La version 1.2 de TLS est requise au minimum pour effectuer des
+   transferts avec R66 avec TLS. Toutes les versions antérieurs seront
+   systématiquement refusées à la négociation.
+
 Les fonctionnalités R66 suivantes ne sont **pas** implémentées pour l'instant :
 
 - Listing des fichiers (par règle)
