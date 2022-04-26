@@ -155,7 +155,7 @@ release:
         --tag-name $CI_COMMIT_TAG \
         --milestone $CI_COMMIT_TAG \
         --released-at "$CI_COMMIT_TIMESTAMP" \
-        --description "${CI_COMMIT_MESSAGE} \
+        --description "${CI_COMMIT_MESSAGE}" \
         --assets-link "{\"name\":\"${PACKAGE_DEB}\",\"url\":\"${PACKAGE_REGISTRY_URL}/${PACKAGE_DEB}\"}" \
         --assets-link "{\"name\":\"${PACKAGE_RPM}\",\"url\":\"${PACKAGE_REGISTRY_URL}/${PACKAGE_RPM}\"}" \
         --assets-link "{\"name\":\"${PACKAGE_LIN}\",\"url\":\"${PACKAGE_REGISTRY_URL}/${PACKAGE_LIN}\"}" \
