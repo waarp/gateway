@@ -64,7 +64,7 @@ type CertAdd struct {
 	Certificate flags.Filename `short:"c" long:"certificate" description:"The path to the certificate file"`
 }
 
-func (c *CertAdd) Execute([]string) (err error) {
+func (c *CertAdd) Execute([]string) error {
 	inCrypto := &api.InCrypto{
 		Name: &c.Name,
 	}
@@ -172,7 +172,7 @@ type CertUpdate struct {
 	Certificate flags.Filename `short:"c" long:"certificate" description:"The path to the certificate file"`
 }
 
-func (c *CertUpdate) Execute([]string) (err error) {
+func (c *CertUpdate) Execute([]string) error {
 	inCrypto := &api.InCrypto{
 		Name: c.Name,
 	}

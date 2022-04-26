@@ -1,6 +1,9 @@
 package main
 
 import (
+	"fmt"
+	"os"
+
 	"github.com/jessevdk/go-flags"
 
 	wgd "code.waarp.fr/apps/gateway/gateway/pkg/cmd/server"
@@ -18,6 +21,13 @@ type commands struct {
 func main() {
 	parser := flags.NewNamedParser("waarp-gatewayd", flags.Default)
 
-	wgd.InitParser(parser, &commands{})
-	wgd.Main(parser)
+	if err := wgd.InitParser(parser, &commands{}); err != nil {
+		fmt.Fprintln(os.Stderr, err)
+		os.Exit(1)
+	}
+
+	if err := wgd.Main(parser, os.Args[1:]); err != nil {
+		fmt.Fprintln(os.Stderr, err)
+		os.Exit(1)
+	}
 }

@@ -1,6 +1,9 @@
 package main
 
 import (
+	"fmt"
+	"os"
+
 	"github.com/jessevdk/go-flags"
 
 	wg "code.waarp.fr/apps/gateway/gateway/pkg/cmd/client"
@@ -144,6 +147,13 @@ func main() {
 	cmd := &commands{}
 	cmd.Connection.Insecure = wg.SetInsecureFlag
 
-	wg.InitParser(parser, cmd)
-	wg.Main(parser)
+	if err := wg.InitParser(parser, cmd); err != nil {
+		fmt.Fprintln(os.Stderr, err)
+		os.Exit(1)
+	}
+
+	if err := wg.Main(parser, os.Args[1:]); err != nil {
+		fmt.Fprintln(os.Stderr, err)
+		os.Exit(1)
+	}
 }

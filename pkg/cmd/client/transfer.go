@@ -95,7 +95,7 @@ type TransferAdd struct {
 	Name *string `short:"n" long:"name" description:"[DEPRECATED] The name of the file after the transfer"` // Deprecated: the source name is used instead
 }
 
-func (t *TransferAdd) Execute([]string) (err error) {
+func (t *TransferAdd) Execute([]string) error {
 	trans := api.InTransfer{
 		Partner: t.Partner,
 		Account: t.Account,
@@ -114,8 +114,8 @@ func (t *TransferAdd) Execute([]string) (err error) {
 	}
 
 	if t.Date != "" {
-		trans.Start, err = time.Parse(time.RFC3339Nano, t.Date)
-		if err != nil {
+		var err error
+		if trans.Start, err = time.Parse(time.RFC3339Nano, t.Date); err != nil {
 			return fmt.Errorf("'%s' is not a valid date: %w", t.Date, errInvalidDate)
 		}
 	}
