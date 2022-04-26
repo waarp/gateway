@@ -3,6 +3,10 @@
 Historique des versions
 =======================
 
+* :release:`0.5.1 <>`
+* :bug:`322` Correction d'une erreur `provided data is not a pointer to struct`
+  survenant lors de l'appel au client *waarp-gateway*.
+
 * :release:`0.5.0 <2022-04-14>`
 * :bug:`309` Génération et publication d'images Docker
 * :bug:`311` Correction d'une erreur du client SFTP pouvant survenir lorsque

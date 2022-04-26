@@ -38,19 +38,13 @@ type options struct {
 	Rule     ruleCommand     `command:"rule" description:"Manage the transfer rules"`
 	User     userCommand     `command:"user" description:"Manage the gateway users"`
 	Override overrideCommand `command:"override" description:"Manage the node's setting overrides"`
+	Version  versionCommand  `command:"version" description:"Print version and exit"`
 }
 
 // InitParser initializes the given parser with the waarp-gateway options and
 // subcommands.
 func InitParser(parser *flags.Parser) {
 	_, err := parser.AddGroup("Commands", "", &commandLine)
-	if err != nil {
-		fmt.Fprint(os.Stderr, err.Error())
-		os.Exit(1)
-	}
-
-	_, err = parser.AddCommand("version", "Print version and exit",
-		"Print version and exit", versionCommand{})
 	if err != nil {
 		fmt.Fprint(os.Stderr, err.Error())
 		os.Exit(1)
