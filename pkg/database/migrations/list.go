@@ -97,4 +97,9 @@ var Migrations = []migration.Migration{
 		Script:      bumpVersion{from: "0.4.4", to: "0.5.0"},
 		VersionTag:  "0.5.0",
 	},
+	{ // #20
+		Description: "Bump the database version to 0.5.1",
+		Script:      bumpVersion{from: "0.5.0", to: "0.5.1"},
+		VersionTag:  "0.5.1",
+	},
 }

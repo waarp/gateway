@@ -3,7 +3,7 @@
 Historique des versions
 =======================
 
-* :release:`0.5.1 <>`
+* :release:`0.5.1 <2022-04-26>`
 * :bug:`322` Correction d'une erreur `provided data is not a pointer to struct`
   survenant lors de l'appel au client *waarp-gateway*.
 
