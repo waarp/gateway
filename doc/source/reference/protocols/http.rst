@@ -20,8 +20,8 @@ Il est à noter que même lorsqu'il s'authentifie via un certificat, le client
 certificat est fourni, le mot de passe n'est pas obligatoire, mais il sera
 vérifié si un est donné.
 
-.. warning:: TLS version 1.2 est requit au minimum pour utiliser HTTPS. Toutes
-   les versions antérieurs seront refusées lors de la négociation.
+.. warning:: TLS version 1.2 est requis au minimum pour utiliser HTTPS. Toutes
+   les versions antérieures seront refusées lors de la négociation.
 
 **Requête**
 
