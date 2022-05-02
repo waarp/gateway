@@ -3,6 +3,7 @@ package pipelinetest
 import (
 	"encoding/json"
 	"fmt"
+	"path"
 	"path/filepath"
 	"time"
 
@@ -53,7 +54,7 @@ func initClient(c convey.C, proto string, partConf config.ProtoConfig) *ClientCo
 // element inside a ClientContext.
 func InitClientPush(c convey.C, proto string, partConf config.ProtoConfig) *ClientContext {
 	ctx := initClient(c, proto, partConf)
-	ctx.ClientRule = makeClientPush(c, ctx.DB)
+	ctx.ClientRule = makeClientPush(c, ctx.DB, proto)
 	ctx.addPushTransfer(c)
 
 	return ctx
@@ -64,7 +65,7 @@ func InitClientPush(c convey.C, proto string, partConf config.ProtoConfig) *Clie
 // element inside a ClientContext.
 func InitClientPull(c convey.C, proto string, cont []byte, partConf config.ProtoConfig) *ClientContext {
 	ctx := initClient(c, proto, partConf)
-	ctx.ClientRule = makeClientPull(c, ctx.DB)
+	ctx.ClientRule = makeClientPull(c, ctx.DB, proto)
 	ctx.addPullTransfer(c, cont)
 
 	return ctx
@@ -77,26 +78,37 @@ func (cc *ClientContext) AddCryptos(c convey.C, certs ...model.Crypto) {
 	}
 }
 
-func makeClientPush(c convey.C, db *database.DB) *model.Rule {
+func makeClientPush(c convey.C, db *database.DB, proto string) *model.Rule {
 	rule := &model.Rule{
 		Name:      "PUSH",
 		IsSend:    true,
-		Path:      "/push",
-		RemoteDir: "/push",
+		LocalDir:  "cli_push_loc",
+		RemoteDir: "cli_push_rem",
 	}
+
+	if !protocols[proto].ruleName {
+		rule.RemoteDir = path.Join("push", rule.RemoteDir)
+	}
+
 	c.So(db.Insert(rule).Run(), convey.ShouldBeNil)
 	makeRuleTasks(c, db, rule)
 
 	return rule
 }
 
-func makeClientPull(c convey.C, db *database.DB) *model.Rule {
+func makeClientPull(c convey.C, db *database.DB, proto string) *model.Rule {
 	rule := &model.Rule{
-		Name:      "PULL",
-		IsSend:    false,
-		Path:      "/pull",
-		RemoteDir: "/pull",
+		Name:           "PULL",
+		IsSend:         false,
+		LocalDir:       "cli_pull_loc",
+		TmpLocalRcvDir: "cli_pull_tmp",
+		RemoteDir:      "cli_pull_rem",
 	}
+
+	if !protocols[proto].ruleName {
+		rule.RemoteDir = path.Join("pull", rule.RemoteDir)
+	}
+
 	c.So(db.Insert(rule).Run(), convey.ShouldBeNil)
 	makeRuleTasks(c, db, rule)
 
@@ -104,7 +116,8 @@ func makeClientPull(c convey.C, db *database.DB) *model.Rule {
 }
 
 func makeClientConf(c convey.C, db *database.DB, port uint16, proto string,
-	partConf config.ProtoConfig) (*model.RemoteAgent, *model.RemoteAccount) {
+	partConf config.ProtoConfig,
+) (*model.RemoteAgent, *model.RemoteAccount) {
 	jsonPartConf := json.RawMessage(`{}`)
 
 	if partConf != nil {
@@ -133,7 +146,7 @@ func makeClientConf(c convey.C, db *database.DB, port uint16, proto string,
 
 //nolint:dupl // factorizing would hurt readability
 func (cc *ClientContext) addPushTransfer(c convey.C) {
-	testDir := filepath.Join(cc.Paths.GatewayHome, cc.Paths.DefaultOutDir)
+	testDir := filepath.Join(cc.Paths.GatewayHome, cc.ClientRule.LocalDir)
 	cc.fileContent = AddSourceFile(c, testDir, "self_transfer_push")
 
 	trans := &model.Transfer{
@@ -174,7 +187,7 @@ func (cc *ClientContext) RunTransfer(c convey.C) {
 	pip, err := pipeline.NewClientPipeline(cc.DB, cc.ClientTrans)
 	c.So(err, convey.ShouldBeNil)
 
-	pip.Run()
+	convey.So(pip.Run(), convey.ShouldBeNil)
 	cc.TasksChecker.WaitClientDone()
 
 	ok := pipeline.ClientTransfers.Exists(cc.ClientTrans.ID)

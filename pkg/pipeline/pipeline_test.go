@@ -34,7 +34,7 @@ func TestNewClientPipeline(t *testing.T) {
 					So(pip, ShouldNotBeNil)
 
 					Convey("Then the pipeline's state machine should have been initiated", func(c C) {
-						So(pip.pip.machine.Current(), ShouldEqual, stateInit)
+						So(pip.Pip.machine.Current(), ShouldEqual, stateInit)
 					})
 
 					Convey("Then the transfer's paths should have been initiated", func(c C) {
@@ -100,7 +100,7 @@ func TestNewClientPipeline(t *testing.T) {
 					So(pip, ShouldNotBeNil)
 
 					Convey("Then the pipeline's state machine should have been initiated", func(c C) {
-						So(pip.pip.machine.Current(), ShouldEqual, stateInit)
+						So(pip.Pip.machine.Current(), ShouldEqual, stateInit)
 					})
 
 					Convey("Then the transfer's paths should have been initiated", func(c C) {

@@ -7,6 +7,7 @@ import (
 	"net/http/httptest"
 	"net/url"
 	"path"
+	"path/filepath"
 	"strconv"
 	"strings"
 	"testing"
@@ -57,7 +58,8 @@ func TestAddTransfer(t *testing.T) {
 					"partner": "remote",
 					"account": "toto",
 					"isSend": true,
-					"file": "test.file",
+					"file": "src_dir/test.file",
+					"output": "/dst_dir/test.file",
 					"start": "2023-01-01T01:00:00+00:00"
 				}`)
 
@@ -93,8 +95,8 @@ func TestAddTransfer(t *testing.T) {
 						So(transfers[0].RuleID, ShouldEqual, push.ID)
 						So(transfers[0].AgentID, ShouldEqual, partner.ID)
 						So(transfers[0].AccountID, ShouldEqual, account.ID)
-						So(transfers[0].LocalPath, ShouldEqual, "test.file")
-						So(transfers[0].RemotePath, ShouldEqual, "test.file")
+						So(transfers[0].LocalPath, ShouldEqual, filepath.Join("src_dir", "test.file"))
+						So(transfers[0].RemotePath, ShouldEqual, "dst_dir/test.file")
 						So(transfers[0].Filesize, ShouldEqual, model.UnknownSize)
 						So(transfers[0].Start.Equal(time.Date(2023, 1, 1, 1, 0, 0, 0, time.UTC)), ShouldBeTrue)
 						So(transfers[0].Step, ShouldEqual, types.StepNone)

@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"net/http/httptest"
 	"net/url"
+	"path/filepath"
 	"testing"
 	"time"
 
@@ -112,7 +113,7 @@ func TestAddTransfer(t *testing.T) {
 
 			rule := &model.Rule{
 				Name:   "rule",
-				IsSend: true,
+				IsSend: false,
 				Path:   "path",
 			}
 			So(db.Insert(rule).Run(), ShouldBeNil)
@@ -134,7 +135,8 @@ func TestAddTransfer(t *testing.T) {
 			Convey("Given all valid flags", func() {
 				args := []string{
 					"--partner", partner.Name, "--login", account.Login,
-					"--way", "send", "--rule", rule.Name, "--file", "test_file",
+					"--way", rule.Direction(), "--rule", rule.Name,
+					"--file", "src_dir/test_file", "--out", "dst_dir/test_file",
 					"--date", "2020-01-01T01:00:00+00:00",
 				}
 
@@ -144,8 +146,8 @@ func TestAddTransfer(t *testing.T) {
 					So(command.Execute(params), ShouldBeNil)
 
 					Convey("Then is should display a message saying the transfer was added", func() {
-						So(getOutput(), ShouldEqual, "The transfer of file test_file"+
-							" was successfully added.\n")
+						So(getOutput(), ShouldEqual, "The transfer of file "+
+							command.File+" was successfully added.\n")
 					})
 
 					Convey("Then the new transfer should have been added", func() {
@@ -159,8 +161,8 @@ func TestAddTransfer(t *testing.T) {
 						So(transfers[0].RuleID, ShouldEqual, rule.ID)
 						So(transfers[0].AgentID, ShouldEqual, partner.ID)
 						So(transfers[0].AccountID, ShouldEqual, account.ID)
-						So(transfers[0].LocalPath, ShouldEqual, "test_file")
-						So(transfers[0].RemotePath, ShouldEqual, "test_file")
+						So(transfers[0].LocalPath, ShouldEqual, filepath.Join("dst_dir", "test_file"))
+						So(transfers[0].RemotePath, ShouldEqual, "src_dir/test_file")
 						So(transfers[0].Filesize, ShouldEqual, model.UnknownSize)
 						So(transfers[0].Start, ShouldEqual, time.Date(2020, 1, 1, 1, 0, 0, 0, time.UTC))
 						So(transfers[0].Step, ShouldEqual, types.StepNone)
@@ -176,7 +178,7 @@ func TestAddTransfer(t *testing.T) {
 			Convey("Given an invalid rule name", func() {
 				args := []string{
 					"--partner", partner.Name, "--login", account.Login,
-					"--way", "send", "--rule", "toto", "--file", "file",
+					"--way", rule.Direction(), "--rule", "toto", "--file", "file",
 					"--date", "2020-01-01T01:00:00+01:00",
 				}
 
@@ -194,7 +196,7 @@ func TestAddTransfer(t *testing.T) {
 			Convey("Given an invalid account name", func() {
 				args := []string{
 					"--partner", partner.Name, "--login", "tata",
-					"--way", "send", "--rule", rule.Name, "--file", "file",
+					"--way", rule.Direction(), "--rule", rule.Name, "--file", "file",
 					"--date", "2020-01-01T01:00:00+01:00",
 				}
 
@@ -213,7 +215,7 @@ func TestAddTransfer(t *testing.T) {
 			Convey("Given an invalid partner name", func() {
 				args := []string{
 					"--partner", "tata", "--login", account.Login,
-					"--way", "send", "--rule", rule.Name, "--file", "file",
+					"--way", rule.Direction(), "--rule", rule.Name, "--file", "file",
 					"--date", "2020-01-01T01:00:00+01:00",
 				}
 
@@ -231,7 +233,7 @@ func TestAddTransfer(t *testing.T) {
 			Convey("Given an invalid start date", func() {
 				args := []string{
 					"--partner", partner.Name, "--login", account.Login,
-					"--way", "send", "--rule", rule.Name, "--file", "file",
+					"--way", rule.Direction(), "--rule", rule.Name, "--file", "file",
 					"--date", "toto",
 				}
 

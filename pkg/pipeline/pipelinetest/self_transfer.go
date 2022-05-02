@@ -5,6 +5,7 @@ package pipelinetest
 import (
 	"context"
 	"io/ioutil"
+	"path"
 	"path/filepath"
 	"time"
 
@@ -67,7 +68,7 @@ func InitSelfPushTransfer(c convey.C, proto string, constr serviceConstructor,
 	partConf, servConf config.ProtoConfig,
 ) *SelfContext {
 	ctx := initSelfTransfer(c, proto, constr, partConf, servConf)
-	ctx.ClientRule = makeClientPush(c, ctx.DB)
+	ctx.ClientRule = makeClientPush(c, ctx.DB, proto)
 	ctx.ServerRule = makeServerPush(c, ctx.DB)
 	ctx.addPushTransfer(c)
 
@@ -81,7 +82,7 @@ func InitSelfPullTransfer(c convey.C, proto string, constr serviceConstructor,
 	partConf, servConf config.ProtoConfig,
 ) *SelfContext {
 	ctx := initSelfTransfer(c, proto, constr, partConf, servConf)
-	ctx.ClientRule = makeClientPull(c, ctx.DB)
+	ctx.ClientRule = makeClientPull(c, ctx.DB, proto)
 	ctx.ServerRule = makeServerPull(c, ctx.DB)
 	ctx.addPullTransfer(c)
 
@@ -90,7 +91,7 @@ func InitSelfPullTransfer(c convey.C, proto string, constr serviceConstructor,
 
 //nolint:dupl // factorizing would hurt readability
 func (s *SelfContext) addPushTransfer(c convey.C) {
-	testDir := filepath.Join(s.Paths.GatewayHome, s.Paths.DefaultOutDir)
+	testDir := filepath.Join(s.Paths.GatewayHome, s.ClientRule.LocalDir, "loc_sub_dir")
 	s.fileContent = AddSourceFile(c, testDir, "self_transfer_push")
 
 	trans := &model.Transfer{
@@ -98,18 +99,21 @@ func (s *SelfContext) addPushTransfer(c convey.C) {
 		IsServer:   false,
 		AgentID:    s.Partner.ID,
 		AccountID:  s.RemAccount.ID,
-		LocalPath:  "self_transfer_push",
-		RemotePath: "self_transfer_push",
+		LocalPath:  "loc_sub_dir/self_transfer_push",
+		RemotePath: "rem_sub_dir/self_transfer_push",
 		Start:      time.Now(),
 	}
 	c.So(s.DB.Insert(trans).Run(), convey.ShouldBeNil)
 
 	s.ClientTrans = trans
+	// s.locFileName = trans.LocalPath
+	s.remFileName = trans.RemotePath
 }
 
 //nolint:dupl // factorizing would hurt readability
 func (s *SelfContext) addPullTransfer(c convey.C) {
-	testDir := filepath.Join(s.Server.RootDir, s.Server.SendDir)
+	testDir := filepath.Join(s.Server.RootDir, s.ServerRule.LocalDir,
+		s.getClientRemoteDir(), "rem_sub_dir")
 	s.fileContent = AddSourceFile(c, testDir, "self_transfer_pull")
 
 	trans := &model.Transfer{
@@ -117,14 +121,16 @@ func (s *SelfContext) addPullTransfer(c convey.C) {
 		IsServer:   false,
 		AgentID:    s.Partner.ID,
 		AccountID:  s.RemAccount.ID,
-		LocalPath:  "self_transfer_pull",
-		RemotePath: "self_transfer_pull",
+		LocalPath:  "loc_sub_dir/self_transfer_pull",
+		RemotePath: "rem_sub_dir/self_transfer_pull",
 		Filesize:   model.UnknownSize,
 		Start:      time.Now(),
 	}
 	c.So(s.DB.Insert(trans).Run(), convey.ShouldBeNil)
 
 	s.ClientTrans = trans
+	// s.locFileName = trans.LocalPath
+	s.remFileName = trans.RemotePath
 }
 
 // StartService starts the service associated with the test server defined in
@@ -202,11 +208,14 @@ func (s *SelfContext) AddServerPostTaskError(c convey.C) {
 }
 
 // RunTransfer executes the test self-transfer in its entirety.
-func (s *SelfContext) RunTransfer(c convey.C) {
+func (s *SelfContext) RunTransfer(c convey.C, willFail bool) {
 	pip, err := pipeline.NewClientPipeline(s.DB, s.ClientTrans)
 	c.So(err, convey.ShouldBeNil)
 
-	pip.Run()
+	if tErr := pip.Run(); !willFail {
+		convey.So(tErr, convey.ShouldBeNil)
+	}
+
 	s.TasksChecker.WaitClientDone()
 	s.TasksChecker.WaitServerDone()
 	s.waitForListDeletion()
@@ -226,7 +235,7 @@ func (s *SelfContext) resetTransfer(c convey.C) {
 func (s *SelfContext) TestRetry(c convey.C, checkRemainingTasks ...func(c convey.C)) {
 	c.Convey("When retrying the transfer", func(c convey.C) {
 		s.resetTransfer(c)
-		s.RunTransfer(c)
+		s.RunTransfer(c, false)
 
 		c.Convey("Then it should have executed all the tasks in order", func(c convey.C) {
 			for _, f := range checkRemainingTasks {
@@ -247,21 +256,38 @@ func (s *SelfContext) CheckClientTransferOK(c convey.C) {
 	s.checkClientTransferOK(c, s.transData, &actual)
 }
 
+func (s *SelfContext) getClientRemoteDir() string {
+	ruleDir := s.ClientRule.RemoteDir
+
+	if !s.protoFeatures.ruleName {
+		var err error
+
+		ruleDir, err = filepath.Rel(s.ServerRule.Path, ruleDir)
+		convey.So(err, convey.ShouldBeNil)
+	}
+
+	return ruleDir
+}
+
+func (s *SelfContext) checkServerTransferOK(c convey.C, actual *model.HistoryEntry) {
+	remoteID := s.transData.ClientTrans.RemoteTransferID
+	if !s.protoFeatures.transID {
+		remoteID = actual.RemoteTransferID
+	}
+
+	progress := uint64(len(s.fileContent))
+	filename := path.Join(s.getClientRemoteDir(), s.transData.remFileName)
+
+	s.serverData.checkServerTransferOK(c, remoteID, filename, progress, s.DB, actual)
+}
+
 // CheckServerTransferOK checks if the server transfer history entry has
 // succeeded as expected.
 func (s *SelfContext) CheckServerTransferOK(c convey.C) {
 	var actual model.HistoryEntry
 
 	c.So(s.DB.Get(&actual, "id=?", s.ClientTrans.ID+1).Run(), convey.ShouldBeNil)
-
-	remoteID := s.transData.ClientTrans.RemoteTransferID
-	if !s.protoFeatures.transID {
-		remoteID = actual.RemoteTransferID
-	}
-
-	filename := filepath.Base(s.transData.ClientTrans.LocalPath)
-	progress := uint64(len(s.fileContent))
-	s.checkServerTransferOK(c, remoteID, filename, progress, s.DB, &actual)
+	s.checkServerTransferOK(c, &actual)
 }
 
 // CheckEndTransferOK checks whether both the server & client test transfers
@@ -273,15 +299,7 @@ func (s *SelfContext) CheckEndTransferOK(c convey.C) {
 		c.So(len(results), convey.ShouldEqual, 2) //nolint:gomnd // necessary here
 
 		s.checkClientTransferOK(c, s.transData, &results[0])
-
-		remoteID := s.transData.ClientTrans.RemoteTransferID
-		if !s.protoFeatures.transID {
-			remoteID = results[1].RemoteTransferID
-		}
-
-		filename := filepath.Base(s.transData.ClientTrans.LocalPath)
-		progress := uint64(len(s.fileContent))
-		s.checkServerTransferOK(c, remoteID, filename, progress, s.DB, &results[1])
+		s.checkServerTransferOK(c, &results[1])
 	})
 
 	s.CheckDestFile(c)
@@ -291,13 +309,13 @@ func (s *SelfContext) CheckEndTransferOK(c convey.C) {
 // its content is as expected.
 func (s *SelfContext) CheckDestFile(c convey.C) {
 	c.Convey("Then the file should have been sent entirely", func(c convey.C) {
-		path := s.ClientTrans.LocalPath
+		fullPath := s.ClientTrans.LocalPath
 		if s.ClientRule.IsSend {
-			path = filepath.Join(s.Server.RootDir, s.Server.ReceiveDir,
-				filepath.Base(s.ClientTrans.LocalPath))
+			fullPath = filepath.Join(s.Server.RootDir, s.ServerRule.LocalDir,
+				s.getClientRemoteDir(), s.remFileName)
 		}
 
-		content, err := ioutil.ReadFile(filepath.Clean(path))
+		content, err := ioutil.ReadFile(filepath.Clean(fullPath))
 
 		c.So(err, convey.ShouldBeNil)
 		c.So(len(content), convey.ShouldEqual, TestFileSize)

@@ -9,10 +9,11 @@ import (
 )
 
 var (
-	errDatabase      = errors.New("database error")
-	errFileSystem    = errors.New("file system error")
-	errInvalidHandle = errors.New("file handle is no longer valid")
-	errAuthFailed    = errors.New("authentication failed")
+	errDatabase        = errors.New("database error")
+	errFileSystem      = errors.New("file system error")
+	errInvalidHandle   = errors.New("file handle is no longer valid")
+	errAuthFailed      = errors.New("authentication failed")
+	errFilepathParsing = errors.New("failed to parse file path")
 )
 
 // toSFTPErr converts the given error into its closest equivalent

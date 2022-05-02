@@ -133,7 +133,7 @@ func (c *Controller) startNewTransfers() {
 		c.wg.Add(1)
 
 		go func() {
-			pip.Run()
+			pip.Run() //nolint:errcheck //error is irrelevant here
 			c.wg.Done()
 		}()
 	}

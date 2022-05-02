@@ -59,7 +59,7 @@ func newPipeline(db *database.DB, logger *log.Logger, transCtx *model.TransferCo
 		runner:   tasks.NewTaskRunner(db, logger, transCtx),
 	}
 
-	pipeline.makeFilePaths()
+	pipeline.setFilePaths()
 
 	cols = append(cols, "local_path", "remote_path")
 
@@ -67,6 +67,8 @@ func newPipeline(db *database.DB, logger *log.Logger, transCtx *model.TransferCo
 		if err := pipeline.checkFileExist(); err != nil {
 			return nil, cols, err
 		}
+
+		cols = append(cols, "filesize")
 	}
 
 	if transCtx.Transfer.Status != types.StatusRunning {
@@ -519,10 +521,11 @@ func (p *Pipeline) Cancel(handles ...func()) {
 // is done at the beginning of the transfer. This is useful if the file's name
 // has changed during the transfer.
 func (p *Pipeline) RebuildFilepaths() *types.TransferError {
-	p.makeFilePaths()
+	p.setFilePaths()
 
 	if err := p.DB.Update(p.TransCtx.Transfer).Cols("local_path", "remote_path").Run(); err != nil {
-		p.Logger.Errorf("Failed to update the transfer file paths: %s", err)
+		p.handleError(types.TeInternal, "Failed to update the transfer file paths",
+			err.Error())
 
 		return errDatabase
 	}

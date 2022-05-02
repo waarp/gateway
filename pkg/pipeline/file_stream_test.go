@@ -75,11 +75,11 @@ func TestNewFileStream(t *testing.T) {
 			pip, err := NewClientPipeline(ctx.db, trans)
 			So(err, ShouldBeNil)
 
-			So(pip.pip.machine.Transition(statePreTasks), ShouldBeNil)
-			So(pip.pip.machine.Transition(statePreTasksDone), ShouldBeNil)
+			So(pip.Pip.machine.Transition(statePreTasks), ShouldBeNil)
+			So(pip.Pip.machine.Transition(statePreTasksDone), ShouldBeNil)
 
 			Convey("When creating a new transfer stream", func(c C) {
-				stream, err := newFileStream(pip.pip, time.Hour, false)
+				stream, err := newFileStream(pip.Pip, time.Hour, false)
 				So(err, ShouldBeNil)
 				Reset(func() { _ = stream.file.Close() })
 

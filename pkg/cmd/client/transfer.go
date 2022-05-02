@@ -93,12 +93,13 @@ func displayTransfer(w io.Writer, trans *api.OutTransfer) {
 
 //nolint:lll // struct tags can be long for command line args
 type transferAdd struct {
-	File    string `required:"yes" short:"f" long:"file" description:"The file to transfer"`
-	Way     string `required:"yes" short:"w" long:"way" description:"The direction of the transfer" choice:"send" choice:"receive"`
-	Partner string `required:"yes" short:"p" long:"partner" description:"The partner with which the transfer is performed"`
-	Account string `required:"yes" short:"l" long:"login" description:"The login of the account used to connect on the partner"`
-	Rule    string `required:"yes" short:"r" long:"rule" description:"The rule to use for the transfer"`
-	Date    string `short:"d" long:"date" description:"The starting date (in ISO 8601 format) of the transfer"`
+	File    string  `required:"yes" short:"f" long:"file" description:"The file to transfer"`
+	Out     *string `short:"o" long:"out" description:"The destination of the file"`
+	Way     string  `required:"yes" short:"w" long:"way" description:"The direction of the transfer" choice:"send" choice:"receive"`
+	Partner string  `required:"yes" short:"p" long:"partner" description:"The partner with which the transfer is performed"`
+	Account string  `required:"yes" short:"l" long:"login" description:"The login of the account used to connect on the partner"`
+	Rule    string  `required:"yes" short:"r" long:"rule" description:"The rule to use for the transfer"`
+	Date    string  `short:"d" long:"date" description:"The starting date (in ISO 8601 format) of the transfer"`
 
 	Name *string `short:"n" long:"name" description:"[DEPRECATED] The name of the file after the transfer"` // Deprecated: the source name is used instead
 }
@@ -109,6 +110,7 @@ func (t *transferAdd) Execute([]string) (err error) {
 		Account: t.Account,
 		IsSend:  dirToBoolPtr(t.Way),
 		File:    t.File,
+		Output:  t.Out,
 		Rule:    t.Rule,
 	}
 

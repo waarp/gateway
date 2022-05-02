@@ -2,7 +2,7 @@ package model
 
 import (
 	"fmt"
-	"path"
+	"path/filepath"
 	"strings"
 	"time"
 
@@ -226,23 +226,13 @@ func (t *Transfer) BeforeWrite(db database.ReadAccess) database.Error {
 		return database.NewValidationError("'%s' is not a valid transfer error code", t.Error.Code)
 	}
 
-	if t.LocalPath != "" {
-		t.LocalPath = utils.ToOSPath(t.LocalPath)
-		if !path.IsAbs(t.LocalPath) && t.LocalPath != path.Base(t.LocalPath) {
-			return database.NewValidationError("the local file cannot contain subdirectories")
-		}
-	} else {
-		return database.NewValidationError("the local file cannot be empty")
+	t.LocalPath = utils.ToOSPath(t.LocalPath)
+
+	if t.RemotePath == "" || t.RemotePath == "/" || t.RemotePath == "." {
+		t.RemotePath = filepath.Base(t.LocalPath)
 	}
 
-	if t.RemotePath != "" {
-		t.RemotePath = utils.ToStandardPath(t.RemotePath)
-		if !path.IsAbs(t.RemotePath) && t.RemotePath != path.Base(t.RemotePath) {
-			return database.NewValidationError("the remote file cannot contain subdirectories")
-		}
-	} else {
-		return database.NewValidationError("the remote file cannot be empty")
-	}
+	t.RemotePath = utils.ToStandardPath(t.RemotePath)
 
 	n, err := db.Count(&Rule{}).Where("id=?", t.RuleID).Run()
 	if err != nil {

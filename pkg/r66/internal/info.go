@@ -7,6 +7,7 @@ import (
 
 	"code.waarp.fr/apps/gateway/gateway/pkg/model/types"
 	"code.waarp.fr/apps/gateway/gateway/pkg/pipeline"
+	"code.waarp.fr/apps/gateway/gateway/pkg/tk/utils"
 )
 
 // UpdateInfo updates the pipeline transfer's attributes with the ones given.
@@ -18,9 +19,12 @@ func UpdateInfo(info *r66.UpdateInfo, pip *pipeline.Pipeline) *types.TransferErr
 	var cols []string
 
 	if info.Filename != "" {
-		pip.TransCtx.Transfer.LocalPath = path.Base(info.Filename)
+		pip.TransCtx.Transfer.LocalPath = utils.ToOSPath(info.Filename)
 		pip.TransCtx.Transfer.RemotePath = path.Base(info.Filename)
-		pip.RebuildFilepaths()
+
+		if err := pip.RebuildFilepaths(); err != nil {
+			return err
+		}
 
 		cols = append(cols, "local_path", "remote_path")
 	}

@@ -14,6 +14,8 @@ import (
 type transData struct {
 	ClientTrans *model.Transfer
 	fileContent []byte
+	// locFileName string
+	remFileName string
 }
 
 func (d *clientData) checkClientTransferOK(c convey.C, t *transData,
@@ -61,19 +63,14 @@ func (d *serverData) checkServerTransferOK(c convey.C, remoteTransferID, filenam
 			Agent:            d.Server.Name,
 			Start:            actual.Start,
 			Stop:             actual.Stop,
-			RemotePath:       "/" + filename,
+			LocalPath:        filepath.Join(d.Server.RootDir, d.ServerRule.LocalDir, filename),
+			RemotePath:       "/" + filepath.Base(filename),
 			Filesize:         TestFileSize,
 			Status:           types.StatusDone,
 			Step:             types.StepNone,
 			Error:            types.TransferError{},
 			Progress:         progress,
 			TaskNumber:       0,
-		}
-
-		if d.ServerRule.IsSend {
-			expected.LocalPath = filepath.Join(d.Server.RootDir, d.Server.SendDir, filename)
-		} else {
-			expected.LocalPath = filepath.Join(d.Server.RootDir, d.Server.ReceiveDir, filename)
 		}
 
 		c.So(*actual, convey.ShouldResemble, *expected)

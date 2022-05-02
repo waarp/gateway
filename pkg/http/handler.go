@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"net/http"
 	"path"
+	"strings"
 	"time"
 
 	"code.waarp.fr/apps/gateway/gateway/pkg/database"
@@ -148,18 +149,18 @@ func (h *httpHandler) getTransfer(isSend bool) (*model.Transfer, bool) {
 		RuleID:           h.rule.ID,
 		AgentID:          h.agent.ID,
 		AccountID:        h.account.ID,
-		LocalPath:        path.Base(h.req.URL.Path),
+		LocalPath:        strings.TrimPrefix(h.req.URL.Path, "/"),
 		RemotePath:       path.Base(h.req.URL.Path),
 		Filesize:         model.UnknownSize,
 		Start:            time.Now(),
 		Status:           types.StatusPlanned,
 	}
 
-	var err *types.TransferError
+	var tErr *types.TransferError
 
-	trans, err = pipeline.GetOldTransfer(h.db, h.logger, trans)
-	if err != nil {
-		h.sendError(http.StatusInternalServerError, err.Code, err.Details)
+	trans, tErr = pipeline.GetOldTransfer(h.db, h.logger, trans)
+	if tErr != nil {
+		h.sendError(http.StatusInternalServerError, tErr.Code, tErr.Details)
 
 		return nil, false
 	}
@@ -238,7 +239,7 @@ func (h *httpHandler) handle(isSend bool) {
 
 	pip, err := pipeline.NewServerPipeline(h.db, trans)
 	if err != nil {
-		http.Error(h.resp, err.Error(), http.StatusInternalServerError)
+		h.sendError(http.StatusInternalServerError, err.Code, err.Details)
 
 		return
 	}

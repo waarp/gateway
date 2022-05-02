@@ -16,7 +16,7 @@ func TestSelfPushOK(t *testing.T) {
 		ctx.StartService(c)
 
 		Convey("When executing the transfer", func(c C) {
-			ctx.RunTransfer(c)
+			ctx.RunTransfer(c, false)
 
 			Convey("Then it should execute all the tasks in order", func(c C) {
 				ctx.ServerShouldHavePreTasked(c)
@@ -37,7 +37,7 @@ func TestSelfPullOK(t *testing.T) {
 		ctx.StartService(c)
 
 		Convey("When executing the transfer", func(c C) {
-			ctx.RunTransfer(c)
+			ctx.RunTransfer(c, false)
 
 			Convey("Then it should have executed all the tasks in order", func(c C) {
 				ctx.ServerShouldHavePreTasked(c)
@@ -59,7 +59,7 @@ func TestPushClientPreError(t *testing.T) {
 
 		Convey("Given that an error occurs in client pre-tasks", func(c C) {
 			ctx.AddClientPreTaskError(c)
-			ctx.RunTransfer(c)
+			ctx.RunTransfer(c, true)
 
 			Convey("Then it should have executed all the tasks in order", func(c C) {
 				ctx.ServerShouldHavePreTasked(c)
@@ -88,7 +88,7 @@ func TestPushServerPreError(t *testing.T) {
 
 		Convey("Given that an error occurs in server pre-tasks", func(c C) {
 			ctx.AddServerPreTaskError(c)
-			ctx.RunTransfer(c)
+			ctx.RunTransfer(c, true)
 
 			Convey("Then it should have executed all the tasks in order", func(c C) {
 				ctx.ServerShouldHavePreTasked(c)
@@ -116,7 +116,7 @@ func TestPushClientPostError(t *testing.T) {
 
 		Convey("Given that an error occurs in client post-tasks", func(c C) {
 			ctx.AddClientPostTaskError(c)
-			ctx.RunTransfer(c)
+			ctx.RunTransfer(c, true)
 
 			Convey("Then it should have executed all the tasks in order", func(c C) {
 				ctx.ServerShouldHavePreTasked(c)
@@ -146,7 +146,7 @@ func TestPushServerPostError(t *testing.T) {
 
 		Convey("Given that an error occurs in server post-tasks", func(c C) {
 			ctx.AddServerPostTaskError(c)
-			ctx.RunTransfer(c)
+			ctx.RunTransfer(c, true)
 
 			Convey("Then it should have executed all the tasks in order", func(c C) {
 				ctx.ServerShouldHavePreTasked(c)
@@ -177,7 +177,7 @@ func TestPullClientPreError(t *testing.T) {
 
 		Convey("Given that an error occurs in client pre-tasks", func(c C) {
 			ctx.AddClientPreTaskError(c)
-			ctx.RunTransfer(c)
+			ctx.RunTransfer(c, true)
 
 			Convey("Then it should have executed all the tasks in order", func(c C) {
 				ctx.ServerShouldHavePreTasked(c)
@@ -206,7 +206,7 @@ func TestPullServerPreError(t *testing.T) {
 
 		Convey("Given that an error occurs in server pre-tasks", func(c C) {
 			ctx.AddServerPreTaskError(c)
-			ctx.RunTransfer(c)
+			ctx.RunTransfer(c, true)
 
 			Convey("Then it should have executed all the tasks in order", func(c C) {
 				ctx.ServerShouldHavePreTasked(c)
@@ -234,7 +234,7 @@ func TestPullClientPostError(t *testing.T) {
 
 		Convey("Given that an error occurs in client post-tasks", func(c C) {
 			ctx.AddClientPostTaskError(c)
-			ctx.RunTransfer(c)
+			ctx.RunTransfer(c, true)
 
 			Convey("Then it should have executed all the tasks in order", func(c C) {
 				ctx.ServerShouldHavePreTasked(c)
@@ -264,7 +264,7 @@ func TestPullServerPostError(t *testing.T) {
 
 		Convey("Given that an error occurs in server post-tasks", func(c C) {
 			ctx.AddServerPostTaskError(c)
-			ctx.RunTransfer(c)
+			ctx.RunTransfer(c, true)
 
 			Convey("Then it should have executed all the tasks in order", func(c C) {
 				ctx.ServerShouldHavePreTasked(c)

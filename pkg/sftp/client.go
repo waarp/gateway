@@ -100,17 +100,17 @@ func (c *client) Request() (tErr *types.TransferError) {
 		return c.fromSFTPErr(err, types.TeUnknownRemote)
 	}
 
+	filepath := strings.TrimPrefix(c.pip.TransCtx.Transfer.RemotePath, "/")
+
 	if c.pip.TransCtx.Rule.IsSend {
-		c.remoteFile, err = c.sftpSession.Create(strings.TrimPrefix(
-			c.pip.TransCtx.Transfer.RemotePath, "/"))
+		c.remoteFile, err = c.sftpSession.Create(filepath)
 		if err != nil {
 			c.pip.Logger.Errorf("Failed to create remote file: %s", err)
 
 			return c.fromSFTPErr(err, types.TeUnknownRemote)
 		}
 	} else {
-		c.remoteFile, err = c.sftpSession.Open(strings.TrimPrefix(
-			c.pip.TransCtx.Transfer.RemotePath, "/"))
+		c.remoteFile, err = c.sftpSession.Open(filepath)
 		if err != nil {
 			c.pip.Logger.Errorf("Failed to open remote file: %s", err)
 

@@ -81,9 +81,11 @@ func InitServerPull(c convey.C, proto string, constr serviceConstructor,
 
 func makeServerPush(c convey.C, db *database.DB) *model.Rule {
 	rule := &model.Rule{
-		Name:   "PUSH",
-		IsSend: false,
-		Path:   "/push",
+		Name:           "PUSH",
+		IsSend:         false,
+		Path:           "push",
+		LocalDir:       "serv_push_dir",
+		TmpLocalRcvDir: "serv_push_tmp",
 	}
 	c.So(db.Insert(rule).Run(), convey.ShouldBeNil)
 	makeRuleTasks(c, db, rule)
@@ -93,9 +95,10 @@ func makeServerPush(c convey.C, db *database.DB) *model.Rule {
 
 func makeServerPull(c convey.C, db *database.DB) *model.Rule {
 	rule := &model.Rule{
-		Name:   "PULL",
-		IsSend: true,
-		Path:   "/pull",
+		Name:     "PULL",
+		IsSend:   true,
+		Path:     "pull",
+		LocalDir: "serv_pull_dir",
 	}
 	c.So(db.Insert(rule).Run(), convey.ShouldBeNil)
 	makeRuleTasks(c, db, rule)
@@ -118,11 +121,14 @@ func makeServerConf(c convey.C, db *database.DB, port uint16, home, proto string
 	c.So(os.MkdirAll(root, 0o700), convey.ShouldBeNil)
 
 	server := &model.LocalAgent{
-		Name:        "server",
-		Protocol:    proto,
-		RootDir:     utils.ToOSPath(root),
-		ProtoConfig: jsonServConf,
-		Address:     fmt.Sprintf("127.0.0.1:%d", port),
+		Name:          "server",
+		Protocol:      proto,
+		RootDir:       utils.ToOSPath(root),
+		ProtoConfig:   jsonServConf,
+		Address:       fmt.Sprintf("127.0.0.1:%d", port),
+		ReceiveDir:    "receive",
+		SendDir:       "send",
+		TmpReceiveDir: "tmp",
 	}
 
 	c.So(db.Insert(server).Run(), convey.ShouldBeNil)
