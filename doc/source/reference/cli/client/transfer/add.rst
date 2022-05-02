@@ -10,7 +10,14 @@ Programme un nouveau transfert avec les attributs ci-dessous.
 
 .. option:: -f <FILENAME>, --file=<FILENAME>
 
-   Le nom du fichier à transférer.
+   Le chemin du fichier à transférer. Si le chemin est relatif, il sera relatif
+   au dossier de la règle (ou du serveur en l'absence de dossier de règle).
+
+.. option:: -f <FILENAME>, --file=<FILENAME>
+
+   Le chemin de destination du fichier transféré. Si le chemin est relatif, il
+   sera relatif au dossier de la règle (ou du serveur en l'absence de dossier
+   de règle).
 
 .. option:: -w <DIRECTION>, --way=<DIRECTION>
 
@@ -36,8 +43,7 @@ Programme un nouveau transfert avec les attributs ci-dessous.
 
 .. option:: -n <FILENAME>, --name=<FILENAME>
 
-   OBSOLÈTE: le nom d'origine du fichier sera toujours utilisé avant et après
-   le transfert.
+   OBSOLÈTE: remplacé par `--out`.
 
    Le nom du fichier après le transfer. Par défaut, le nom d'origine est
    utilisé.

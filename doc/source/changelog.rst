@@ -4,6 +4,9 @@ Historique des versions
 =======================
 
 * :release:`0.5.2 <>`
+* :bug:`326` Les fichiers transférés ne sont plus requis de se trouver immédiatement
+  dans le dossier de la règle avec laquelle ils sont transférés. Il est désormais
+  possible de transférer des fichiers se trouvant dans des sous-dossiers.
 * :bug:`318` Dépréciation de tous les algorithmes de signature TLS basés sur SHA1.
   Les certificats signés avec SHA1 sont encore acceptés pour le moment mais seront
   systématiquement refusés dans les versions futures.

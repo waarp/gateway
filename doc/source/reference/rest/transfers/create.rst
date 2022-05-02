@@ -14,9 +14,11 @@ Programmer un transfert
      réception (``false``).
    :reqjson string account: Le nom du compte ayant demandé le transfert
    :reqjson string partner: Le nom du serveur/partenaire auquel le transfert a été demandé
+   :reqjson string partner: Le nom du serveur/partenaire auquel le transfert a été demandé
    :reqjson string sourcePath: Le chemin du fichier source (OBSOLÈTE: remplacé par 'file')
-   :reqjson string destPath: Le chemin de destination du fichier (OBSOLÈTE: remplacé par 'file')
-   :reqjson string file: Le nom du fichier à transférer
+   :reqjson string destPath: Le chemin de destination du fichier (OBSOLÈTE: remplacé par 'output')
+   :reqjson string file: Le chemin du fichier à transférer
+   :reqjson string output: Le chemin de destination du fichier
    :reqjson date start: La date de début du transfert (en format ISO 8601)
 
    :statuscode 202: Le transfert a été lancé avec succès
@@ -43,6 +45,7 @@ Programmer un transfert
            "account": "toto",
            "partner": "waarp_sftp",
            "file": "chemin/du/fichier",
+           "output": "destination/du/fichier",
            "start": "2019-01-01T02:00:00+02:00"
          }
 
