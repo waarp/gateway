@@ -21,7 +21,7 @@ var ClientTransfers = service.NewTransferMap()
 // client transfers.
 type ClientPipeline struct {
 	Pip    *Pipeline
-	client Client
+	Client Client
 }
 
 // NewClientPipeline initializes and returns a new ClientPipeline for the given
@@ -75,7 +75,7 @@ func newClientPipeline(db *database.DB, logger *log.Logger,
 			fmt.Sprintf("no client found for protocol %s", proto))
 	}
 
-	pipeline, cols, pErr := newPipeline(db, logger, transCtx)
+	pipeline, cols, pErr := NewPipeline(db, logger, transCtx)
 	if pErr != nil {
 		return nil, cols, pErr
 	}
@@ -89,7 +89,7 @@ func newClientPipeline(db *database.DB, logger *log.Logger,
 
 	c := &ClientPipeline{
 		Pip:    pipeline,
-		client: client,
+		Client: client,
 	}
 
 	ClientTransfers.Add(transCtx.Transfer.ID, c)
@@ -100,10 +100,10 @@ func newClientPipeline(db *database.DB, logger *log.Logger,
 //nolint:dupl // factorizing would hurt readability
 func (c *ClientPipeline) preTasks() *types.TransferError {
 	// Simple pre-tasks
-	pt, ok := c.client.(PreTasksHandler)
+	pt, ok := c.Client.(PreTasksHandler)
 	if !ok {
 		if err := c.Pip.PreTasks(); err != nil {
-			c.client.SendError(err)
+			c.Client.SendError(err)
 
 			return err
 		}
@@ -119,7 +119,7 @@ func (c *ClientPipeline) preTasks() *types.TransferError {
 	}
 
 	if err := c.Pip.PreTasks(); err != nil {
-		c.client.SendError(err)
+		c.Client.SendError(err)
 
 		return err
 	}
@@ -136,10 +136,10 @@ func (c *ClientPipeline) preTasks() *types.TransferError {
 //nolint:dupl // factorizing would hurt readability
 func (c *ClientPipeline) postTasks() *types.TransferError {
 	// Simple post-tasks
-	pt, ok := c.client.(PostTasksHandler)
+	pt, ok := c.Client.(PostTasksHandler)
 	if !ok {
 		if err := c.Pip.PostTasks(); err != nil {
-			c.client.SendError(err)
+			c.Client.SendError(err)
 
 			return err
 		}
@@ -155,7 +155,7 @@ func (c *ClientPipeline) postTasks() *types.TransferError {
 	}
 
 	if err := c.Pip.PostTasks(); err != nil {
-		c.client.SendError(err)
+		c.Client.SendError(err)
 
 		return err
 	}
@@ -175,9 +175,9 @@ func (c *ClientPipeline) Run() *types.TransferError {
 	defer ClientTransfers.Delete(c.Pip.TransCtx.Transfer.ID)
 
 	// REQUEST
-	if err := c.client.Request(); err != nil {
+	if err := c.Client.Request(); err != nil {
 		c.Pip.SetError(err)
-		c.client.SendError(err)
+		c.Client.SendError(err)
 
 		return err
 	}
@@ -195,15 +195,15 @@ func (c *ClientPipeline) Run() *types.TransferError {
 		return fErr
 	}
 
-	if err := c.client.Data(file); err != nil {
+	if err := c.Client.Data(file); err != nil {
 		c.Pip.SetError(err)
-		c.client.SendError(err)
+		c.Client.SendError(err)
 
 		return err
 	}
 
 	if err := c.Pip.EndData(); err != nil {
-		c.client.SendError(err)
+		c.Client.SendError(err)
 
 		return err
 	}
@@ -214,7 +214,7 @@ func (c *ClientPipeline) Run() *types.TransferError {
 	}
 
 	// END TRANSFER
-	if err := c.client.EndTransfer(); err != nil {
+	if err := c.Client.EndTransfer(); err != nil {
 		c.Pip.SetError(err)
 
 		return err
@@ -231,10 +231,10 @@ func (c *ClientPipeline) Pause(ctx context.Context) error {
 		go func() {
 			defer close(done)
 
-			if pa, ok := c.client.(PauseHandler); ok {
+			if pa, ok := c.Client.(PauseHandler); ok {
 				_ = pa.Pause() //nolint:errcheck // error is irrelevant at this point
 			} else {
-				c.client.SendError(types.NewTransferError(types.TeStopped,
+				c.Client.SendError(types.NewTransferError(types.TeStopped,
 					"transfer paused by user"))
 			}
 		}()
@@ -257,7 +257,7 @@ func (c *ClientPipeline) Interrupt(ctx context.Context) error {
 		go func() {
 			defer close(done)
 
-			c.client.SendError(types.NewTransferError(types.TeShuttingDown,
+			c.Client.SendError(types.NewTransferError(types.TeShuttingDown,
 				"transfer interrupted by service shutdown"))
 		}()
 		select {
@@ -279,10 +279,10 @@ func (c *ClientPipeline) Cancel(ctx context.Context) (err error) {
 		go func() {
 			defer close(done)
 
-			if ca, ok := c.client.(CancelHandler); ok {
+			if ca, ok := c.Client.(CancelHandler); ok {
 				_ = ca.Cancel() //nolint:errcheck // error is irrelevant at this point
 			} else {
-				c.client.SendError(types.NewTransferError(types.TeCanceled,
+				c.Client.SendError(types.NewTransferError(types.TeCanceled,
 					"transfer canceled by user"))
 			}
 		}()

@@ -40,7 +40,7 @@ type Pipeline struct {
 	runner *tasks.Runner
 }
 
-func newPipeline(db *database.DB, logger *log.Logger, transCtx *model.TransferContext,
+func NewPipeline(db *database.DB, logger *log.Logger, transCtx *model.TransferContext,
 ) (*Pipeline, []string, *types.TransferError) {
 	cols := []string{"progression", "filesize"}
 

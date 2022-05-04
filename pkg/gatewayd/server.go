@@ -85,7 +85,10 @@ func (wg *WG) initServices() {
 		CoreServices:  core,
 		ProtoServices: wg.ProtoServices,
 	}
-	wg.controller = &controller.Controller{DB: wg.dbService}
+	gwController := controller.GatewayController{DB: wg.dbService}
+	wg.controller = &controller.Controller{
+		Action: gwController.Run,
+	}
 
 	core[service.DatabaseServiceName] = wg.dbService
 	core[service.AdminServiceName] = wg.adminService

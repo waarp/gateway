@@ -9,10 +9,7 @@ import (
 	"time"
 
 	"code.waarp.fr/apps/gateway/gateway/pkg/conf"
-	"code.waarp.fr/apps/gateway/gateway/pkg/database"
 	"code.waarp.fr/apps/gateway/gateway/pkg/log"
-	"code.waarp.fr/apps/gateway/gateway/pkg/model"
-	"code.waarp.fr/apps/gateway/gateway/pkg/model/types"
 	"code.waarp.fr/apps/gateway/gateway/pkg/pipeline"
 	"code.waarp.fr/apps/gateway/gateway/pkg/tk/service"
 )
@@ -20,41 +17,16 @@ import (
 // Controller is the service responsible for checking the database for new
 // transfers at regular intervals, and starting those new transfers.
 type Controller struct {
-	DB *database.DB
+	Action func(*sync.WaitGroup)
 
 	ticker *time.Ticker
 	logger *log.Logger
 	state  service.State
 
-	wg      *sync.WaitGroup
-	done    chan struct{}
-	ctx     context.Context //nolint:containedctx //FIXME move the context to a function parameter
-	cancel  context.CancelFunc
-	wasDown bool
-}
-
-func (c *Controller) checkIsDBDown() bool {
-	if st, _ := c.DB.State().Get(); st != service.Running {
-		c.wasDown = true
-
-		return true
-	}
-
-	if !c.wasDown {
-		return false
-	}
-
-	query := c.DB.UpdateAll(&model.Transfer{}, database.UpdVals{"status": types.StatusInterrupted},
-		"owner=? AND status=?", conf.GlobalConfig.GatewayName, types.StatusRunning)
-	if err := query.Run(); err != nil {
-		c.logger.Errorf("Failed to access database: %s", err.Error())
-
-		return true
-	}
-
-	c.wasDown = false
-
-	return false
+	wg     *sync.WaitGroup
+	done   chan struct{}
+	ctx    context.Context //nolint:containedctx //FIXME move the context to a function parameter
+	cancel context.CancelFunc
 }
 
 func (c *Controller) listen() {
@@ -71,72 +43,10 @@ func (c *Controller) listen() {
 
 				return
 			case <-c.ticker.C:
-				c.startNewTransfers()
+				c.Action(c.wg)
 			}
 		}
 	}()
-}
-
-func (c *Controller) retrieveTransfers() (model.Transfers, error) {
-	var transfers model.Transfers
-
-	if tErr := c.DB.Transaction(func(ses *database.Session) database.Error {
-		lim, hasLimit := pipeline.TransferOutCount.GetAvailable()
-		if hasLimit && lim == 0 {
-			return nil // cannot start more transfers, limit has been reached
-		}
-
-		query := ses.SelectForUpdate(&transfers).Where("owner=? AND status=? AND "+
-			"is_server=? AND start<?", conf.GlobalConfig.GatewayName,
-			types.StatusPlanned, false, time.Now().UTC().Truncate(time.Microsecond).
-				Format(time.RFC3339Nano)).Limit(lim, 0)
-
-		if err := query.Run(); err != nil {
-			c.logger.Errorf("Failed to access database: %s", err.Error())
-
-			return err
-		}
-
-		for i := range transfers {
-			transfers[i].Status = types.StatusRunning
-			if err := ses.Update(&transfers[i]).Cols("status").Run(); err != nil {
-				return err
-			}
-		}
-
-		return nil
-	}); tErr != nil {
-		return nil, tErr
-	}
-
-	return transfers, nil
-}
-
-// startNewTransfers checks the database for new planned transfers and starts
-// them, as long as there are available transfer slots.
-func (c *Controller) startNewTransfers() {
-	if c.checkIsDBDown() {
-		return
-	}
-
-	plannedTrans, err := c.retrieveTransfers()
-	if err != nil {
-		return
-	}
-
-	for i := range plannedTrans {
-		pip, err := pipeline.NewClientPipeline(c.DB, &plannedTrans[i])
-		if err != nil {
-			continue
-		}
-
-		c.wg.Add(1)
-
-		go func() {
-			pip.Run() //nolint:errcheck //error is irrelevant here
-			c.wg.Done()
-		}()
-	}
 }
 
 // Start starts the transfer controller service.

@@ -58,7 +58,7 @@ func newServerPipeline(db *database.DB, trans *model.Transfer,
 		return nil, err
 	}
 
-	pipeline, cols, pErr := newPipeline(db, logger, transCtx)
+	pipeline, cols, pErr := NewPipeline(db, logger, transCtx)
 	if pErr != nil {
 		if trans.ID == 0 {
 			return nil, pErr
