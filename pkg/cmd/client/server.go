@@ -15,7 +15,7 @@ var Server string
 
 type ServerArg struct{}
 
-func (ServerArg) UnmarshalFlag(value string) error {
+func (*ServerArg) UnmarshalFlag(value string) error {
 	Server = value
 
 	return nil

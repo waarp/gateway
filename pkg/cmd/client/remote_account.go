@@ -11,7 +11,7 @@ var RemoteAccount string
 
 type RemAccArg struct{}
 
-func (RemAccArg) UnmarshalFlag(value string) error {
+func (*RemAccArg) UnmarshalFlag(value string) error {
 	RemoteAccount = value
 
 	return nil

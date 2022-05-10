@@ -15,7 +15,7 @@ var Partner string
 
 type PartnerArg struct{}
 
-func (PartnerArg) UnmarshalFlag(value string) error {
+func (*PartnerArg) UnmarshalFlag(value string) error {
 	Partner = value
 
 	return nil

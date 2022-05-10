@@ -13,7 +13,7 @@ var LocalAccount string
 
 type LocAccArg struct{}
 
-func (LocAccArg) UnmarshalFlag(value string) error {
+func (*LocAccArg) UnmarshalFlag(value string) error {
 	LocalAccount = value
 
 	return nil
