@@ -67,6 +67,10 @@ func (h *HistoryEntry) BeforeWrite(db database.ReadAccess) database.Error {
 		return database.NewValidationError("the transfer's ID cannot be empty")
 	}
 
+	if h.RemoteTransferID == "" {
+		return database.NewValidationError("the transfer's remote ID is missing")
+	}
+
 	if h.Rule == "" {
 		return database.NewValidationError("the transfer's rule cannot be empty")
 	}
@@ -156,16 +160,15 @@ func (h *HistoryEntry) Restart(db database.Access, date time.Time) (*Transfer, d
 	}
 
 	return &Transfer{
-		RuleID:           rule.ID,
-		RemoteTransferID: h.RemoteTransferID,
-		IsServer:         h.IsServer,
-		AgentID:          agentID,
-		AccountID:        accountID,
-		LocalPath:        path.Base(h.LocalPath),
-		RemotePath:       path.Base(h.RemotePath),
-		Start:            date,
-		Status:           types.StatusPlanned,
-		Step:             types.StepNone,
-		Owner:            h.Owner,
+		RuleID:     rule.ID,
+		IsServer:   h.IsServer,
+		AgentID:    agentID,
+		AccountID:  accountID,
+		LocalPath:  path.Base(h.LocalPath),
+		RemotePath: path.Base(h.RemotePath),
+		Start:      date,
+		Status:     types.StatusPlanned,
+		Step:       types.StepNone,
+		Owner:      h.Owner,
 	}, nil
 }

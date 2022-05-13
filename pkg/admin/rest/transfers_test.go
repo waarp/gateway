@@ -57,7 +57,8 @@ func TestAddTransfer(t *testing.T) {
 					"partner": "remote",
 					"account": "toto",
 					"isSend": true,
-					"file": "test.file"
+					"file": "test.file",
+					"start": "2023-01-01T01:00:00+00:00"
 				}`)
 
 				Convey("When calling the handler", func() {
@@ -84,28 +85,24 @@ func TestAddTransfer(t *testing.T) {
 						"the database", func() {
 						var transfers model.Transfers
 						So(db.Select(&transfers).Run(), ShouldBeNil)
-						So(transfers, ShouldNotBeEmpty)
+						So(transfers, ShouldHaveLength, 1)
 
-						exp := model.Transfer{
-							ID:               1,
-							RemoteTransferID: "",
-							RuleID:           push.ID,
-							IsServer:         false,
-							AgentID:          partner.ID,
-							AccountID:        account.ID,
-							LocalPath:        "test.file",
-							RemotePath:       "test.file",
-							Filesize:         model.UnknownSize,
-							Start:            transfers[0].Start,
-							Step:             types.StepNone,
-							Status:           types.StatusPlanned,
-							Owner:            conf.GlobalConfig.GatewayName,
-							Progress:         0,
-							TaskNumber:       0,
-							Error:            types.TransferError{},
-						}
-
-						So(transfers[0], ShouldResemble, exp)
+						So(transfers[0].ID, ShouldEqual, 1)
+						So(transfers[0].RemoteTransferID, ShouldNotBeBlank)
+						So(transfers[0].IsServer, ShouldBeFalse)
+						So(transfers[0].RuleID, ShouldEqual, push.ID)
+						So(transfers[0].AgentID, ShouldEqual, partner.ID)
+						So(transfers[0].AccountID, ShouldEqual, account.ID)
+						So(transfers[0].LocalPath, ShouldEqual, "test.file")
+						So(transfers[0].RemotePath, ShouldEqual, "test.file")
+						So(transfers[0].Filesize, ShouldEqual, model.UnknownSize)
+						So(transfers[0].Start.Equal(time.Date(2023, 1, 1, 1, 0, 0, 0, time.UTC)), ShouldBeTrue)
+						So(transfers[0].Step, ShouldEqual, types.StepNone)
+						So(transfers[0].Status, ShouldEqual, types.StatusPlanned)
+						So(transfers[0].Owner, ShouldEqual, conf.GlobalConfig.GatewayName)
+						So(transfers[0].Progress, ShouldEqual, 0)
+						So(transfers[0].TaskNumber, ShouldEqual, 0)
+						So(transfers[0].Error, ShouldBeZeroValue)
 					})
 				})
 			})
@@ -595,19 +592,20 @@ func TestResumeTransfer(t *testing.T) {
 
 					Convey("Then the transfer should have been reprogrammed", func() {
 						exp := model.Transfer{
-							ID:         trans.ID,
-							Owner:      conf.GlobalConfig.GatewayName,
-							RuleID:     rule.ID,
-							AgentID:    partner.ID,
-							AccountID:  account.ID,
-							LocalPath:  "file.loc",
-							RemotePath: "file.rem",
-							Start:      trans.Start.Local(),
-							Status:     types.StatusPlanned,
-							Step:       types.StepData,
-							Error:      types.TransferError{},
-							Progress:   10,
-							TaskNumber: 0,
+							ID:               trans.ID,
+							Owner:            conf.GlobalConfig.GatewayName,
+							RemoteTransferID: trans.RemoteTransferID,
+							RuleID:           rule.ID,
+							AgentID:          partner.ID,
+							AccountID:        account.ID,
+							LocalPath:        "file.loc",
+							RemotePath:       "file.rem",
+							Start:            trans.Start.Local(),
+							Status:           types.StatusPlanned,
+							Step:             types.StepData,
+							Error:            types.TransferError{},
+							Progress:         10,
+							TaskNumber:       0,
 						}
 
 						var transfers model.Transfers
@@ -682,19 +680,20 @@ func TestPauseTransfer(t *testing.T) {
 
 					Convey("Then the transfer should have been paused", func() {
 						exp := model.Transfer{
-							ID:         trans.ID,
-							Owner:      conf.GlobalConfig.GatewayName,
-							RuleID:     rule.ID,
-							AgentID:    partner.ID,
-							AccountID:  account.ID,
-							LocalPath:  "file.loc",
-							RemotePath: "file.rem",
-							Start:      trans.Start.Local(),
-							Status:     types.StatusPaused,
-							Step:       types.StepData,
-							Error:      types.TransferError{},
-							Progress:   10,
-							TaskNumber: 0,
+							ID:               trans.ID,
+							RemoteTransferID: trans.RemoteTransferID,
+							Owner:            conf.GlobalConfig.GatewayName,
+							RuleID:           rule.ID,
+							AgentID:          partner.ID,
+							AccountID:        account.ID,
+							LocalPath:        "file.loc",
+							RemotePath:       "file.rem",
+							Start:            trans.Start.Local(),
+							Status:           types.StatusPaused,
+							Step:             types.StepData,
+							Error:            types.TransferError{},
+							Progress:         10,
+							TaskNumber:       0,
 						}
 
 						var transfers model.Transfers
@@ -771,7 +770,7 @@ func TestCancelTransfer(t *testing.T) {
 						exp := model.HistoryEntry{
 							ID:               trans.ID,
 							Owner:            conf.GlobalConfig.GatewayName,
-							RemoteTransferID: "",
+							RemoteTransferID: trans.RemoteTransferID,
 							IsServer:         trans.IsServer,
 							IsSend:           rule.IsSend,
 							Account:          account.Login,

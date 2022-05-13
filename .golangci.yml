@@ -684,6 +684,9 @@ linters:
     - prealloc
     - scopelint
     - testpackage
+    - exhaustruct #non-nullable attributes don't need to be explicitly declared
+    - nonamedreturns #named return variables are sometimes ok
+    - execinquery #raises lots of false-positives, might re-enable once fixed
   #presets:
   #  - bugs
   #  - unused

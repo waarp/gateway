@@ -22,7 +22,8 @@ var GlobalConfig ServerConfig
 // ServerConfig holds the server configuration options
 //nolint:lll // cannot split struct tags
 type ServerConfig struct {
-	GatewayName string           `ini-name:"GatewayName" default:"waarp-gateway" description:"The name given to identify this gateway instance. If the the database is shared between multiple gateways, this name MUST be unique across these gateways."`
+	GatewayName string `ini-name:"GatewayName" default:"waarp-gateway" description:"The name given to identify this gateway instance. If the the database is shared between multiple gateways, this name MUST be unique across these gateways."`
+	NodeID      string
 	Paths       PathsConfig      `group:"paths"`
 	Log         LogConfig        `group:"log"`
 	Admin       AdminConfig      `group:"admin"`
@@ -245,6 +246,7 @@ func LoadGatewayConfig(configFile, nodeID string) error {
 		}
 	}
 
+	serverConfig.NodeID = nodeID
 	GlobalConfig = *serverConfig
 
 	return nil

@@ -135,7 +135,7 @@ func TestAddTransfer(t *testing.T) {
 				args := []string{
 					"--partner", partner.Name, "--login", account.Login,
 					"--way", "send", "--rule", rule.Name, "--file", "test_file",
-					"--date", "2020-01-01T01:00:00+01:00",
+					"--date", "2020-01-01T01:00:00+00:00",
 				}
 
 				Convey("When executing the command", func() {
@@ -151,27 +151,24 @@ func TestAddTransfer(t *testing.T) {
 					Convey("Then the new transfer should have been added", func() {
 						var transfers model.Transfers
 						So(db.Select(&transfers).Run(), ShouldBeNil)
-						So(transfers, ShouldNotBeEmpty)
+						So(transfers, ShouldHaveLength, 1)
 
-						trans := model.Transfer{
-							ID:               1,
-							RemoteTransferID: "",
-							RuleID:           rule.ID,
-							IsServer:         false,
-							AgentID:          partner.ID,
-							AccountID:        account.ID,
-							LocalPath:        "test_file",
-							RemotePath:       "test_file",
-							Filesize:         -1,
-							Start:            transfers[0].Start,
-							Step:             types.StepNone,
-							Status:           types.StatusPlanned,
-							Owner:            conf.GlobalConfig.GatewayName,
-							Progress:         0,
-							TaskNumber:       0,
-							Error:            types.TransferError{},
-						}
-						So(transfers, ShouldContain, trans)
+						So(transfers[0].ID, ShouldEqual, 1)
+						So(transfers[0].RemoteTransferID, ShouldNotBeBlank)
+						So(transfers[0].IsServer, ShouldBeFalse)
+						So(transfers[0].RuleID, ShouldEqual, rule.ID)
+						So(transfers[0].AgentID, ShouldEqual, partner.ID)
+						So(transfers[0].AccountID, ShouldEqual, account.ID)
+						So(transfers[0].LocalPath, ShouldEqual, "test_file")
+						So(transfers[0].RemotePath, ShouldEqual, "test_file")
+						So(transfers[0].Filesize, ShouldEqual, model.UnknownSize)
+						So(transfers[0].Start, ShouldEqual, time.Date(2020, 1, 1, 1, 0, 0, 0, time.UTC))
+						So(transfers[0].Step, ShouldEqual, types.StepNone)
+						So(transfers[0].Status, ShouldEqual, types.StatusPlanned)
+						So(transfers[0].Owner, ShouldEqual, conf.GlobalConfig.GatewayName)
+						So(transfers[0].Progress, ShouldEqual, 0)
+						So(transfers[0].TaskNumber, ShouldEqual, 0)
+						So(transfers[0].Error, ShouldBeZeroValue)
 					})
 				})
 			})
@@ -846,23 +843,24 @@ func TestCancelTransfer(t *testing.T) {
 							So(history, ShouldNotBeEmpty)
 
 							hist := model.HistoryEntry{
-								ID:         trans.ID,
-								Owner:      trans.Owner,
-								IsServer:   trans.IsServer,
-								IsSend:     rule.IsSend,
-								Account:    account.Login,
-								Agent:      partner.Name,
-								Protocol:   partner.Protocol,
-								LocalPath:  trans.LocalPath,
-								RemotePath: trans.RemotePath,
-								Rule:       rule.Name,
-								Start:      trans.Start,
-								Stop:       history[0].Stop,
-								Status:     types.StatusCancelled,
-								Error:      types.TransferError{},
-								Step:       trans.Step,
-								Progress:   0,
-								TaskNumber: 0,
+								ID:               trans.ID,
+								RemoteTransferID: trans.RemoteTransferID,
+								Owner:            trans.Owner,
+								IsServer:         trans.IsServer,
+								IsSend:           rule.IsSend,
+								Account:          account.Login,
+								Agent:            partner.Name,
+								Protocol:         partner.Protocol,
+								LocalPath:        trans.LocalPath,
+								RemotePath:       trans.RemotePath,
+								Rule:             rule.Name,
+								Start:            trans.Start,
+								Stop:             history[0].Stop,
+								Status:           types.StatusCancelled,
+								Error:            types.TransferError{},
+								Step:             trans.Step,
+								Progress:         0,
+								TaskNumber:       0,
 							}
 							So(history, ShouldContain, hist)
 						})

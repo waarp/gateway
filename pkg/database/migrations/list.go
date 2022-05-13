@@ -102,4 +102,8 @@ var Migrations = []migration.Migration{
 		Script:      bumpVersion{from: "0.5.0", to: "0.5.1"},
 		VersionTag:  "0.5.1",
 	},
+	{ // #21
+		Description: "Fill the remote_transfer_id column where it is empty",
+		Script:      ver0_5_2FillRemoteTransferID{},
+	},
 }

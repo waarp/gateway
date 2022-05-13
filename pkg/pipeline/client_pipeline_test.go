@@ -46,7 +46,7 @@ func TestClientPipelineRun(t *testing.T) {
 					exp := model.HistoryEntry{
 						ID:               trans.ID,
 						Owner:            conf.GlobalConfig.GatewayName,
-						RemoteTransferID: "",
+						RemoteTransferID: trans.RemoteTransferID,
 						IsServer:         false,
 						IsSend:           true,
 						Rule:             ctx.send.Name,

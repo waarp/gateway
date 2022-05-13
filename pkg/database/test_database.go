@@ -67,6 +67,7 @@ func tempFilename() string {
 func initTestDBConf() {
 	BcryptRounds = bcrypt.MinCost
 	conf.GlobalConfig.GatewayName = "test_gateway"
+	conf.GlobalConfig.NodeID = "test_node"
 	config := &conf.GlobalConfig.Database
 	dbType := os.Getenv(testDBEnv)
 

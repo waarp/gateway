@@ -83,6 +83,10 @@ func TestTransferBeforeWrite(t *testing.T) {
 					Convey("When calling the 'BeforeWrite' function", func() {
 						So(trans.BeforeWrite(db), ShouldBeNil)
 
+						Convey("Then the remote ID should have been initialized", func() {
+							So(trans.RemoteTransferID, ShouldNotBeBlank)
+						})
+
 						Convey("Then the transfer status should be 'planned'", func() {
 							So(trans.Status, ShouldEqual, "PLANNED")
 						})
@@ -127,7 +131,7 @@ func TestTransferBeforeWrite(t *testing.T) {
 						"the rule %d does not exist", trans.RuleID))
 				})
 
-				Convey("Given that the remote id is invalid", func() {
+				Convey("Given that the agent id is invalid", func() {
 					trans.AgentID = 1000
 					shouldFailWith("the server does not exist", database.NewValidationError(
 						"the server %d does not exist", trans.AgentID))
@@ -144,10 +148,10 @@ func TestTransferBeforeWrite(t *testing.T) {
 					t2 := &Transfer{
 						Owner:            conf.GlobalConfig.GatewayName,
 						RemoteTransferID: trans.RemoteTransferID,
-						IsServer:         true,
+						IsServer:         trans.IsServer,
 						RuleID:           rule.ID,
-						AgentID:          server.ID,
-						AccountID:        account.ID,
+						AgentID:          trans.AgentID,
+						AccountID:        trans.AccountID,
 						LocalPath:        "/local/path",
 						RemotePath:       "/remote/path",
 						Filesize:         -1,
@@ -276,19 +280,20 @@ func TestTransferToHistory(t *testing.T) {
 					So(db.Get(&hist, "id=?", trans.ID).Run(), ShouldBeNil)
 
 					expected := HistoryEntry{
-						ID:         trans.ID,
-						Owner:      trans.Owner,
-						IsServer:   false,
-						IsSend:     true,
-						Account:    account.Login,
-						Agent:      remote.Name,
-						Protocol:   remote.Protocol,
-						LocalPath:  trans.LocalPath,
-						RemotePath: trans.RemotePath,
-						Rule:       rule.Name,
-						Start:      trans.Start,
-						Stop:       end,
-						Status:     trans.Status,
+						ID:               trans.ID,
+						RemoteTransferID: trans.RemoteTransferID,
+						Owner:            trans.Owner,
+						IsServer:         false,
+						IsSend:           true,
+						Account:          account.Login,
+						Agent:            remote.Name,
+						Protocol:         remote.Protocol,
+						LocalPath:        trans.LocalPath,
+						RemotePath:       trans.RemotePath,
+						Rule:             rule.Name,
+						Start:            trans.Start,
+						Stop:             end,
+						Status:           trans.Status,
 					}
 
 					So(hist, ShouldResemble, expected)

@@ -3,7 +3,10 @@ package model
 import (
 	"fmt"
 	"path"
+	"strings"
 	"time"
+
+	"github.com/bwmarrin/snowflake"
 
 	"code.waarp.fr/apps/gateway/gateway/pkg/conf"
 	"code.waarp.fr/apps/gateway/gateway/pkg/database"
@@ -16,9 +19,17 @@ import (
 // unknown.
 const UnknownSize int64 = -1
 
+//nolint:gochecknoglobals //global var is required here
+var idGenerator *snowflake.Node
+
 //nolint:gochecknoinits // init is used by design
 func init() {
 	database.AddTable(&Transfer{})
+
+	var err error
+	if idGenerator, err = makeIDGenerator(); err != nil {
+		panic(err)
+	}
 }
 
 // Transfer represents one record of the 'transfers' table.
@@ -73,9 +84,34 @@ func (t *Transfer) SetTransferInfo(db database.Access, info map[string]interface
 	return nil
 }
 
-func (t *Transfer) validateClientTransfer(db database.ReadAccess) database.Error {
-	t.RemoteTransferID = ""
+func (t *Transfer) checkRemoteTransferID(db database.ReadAccess) database.Error {
+	n1, err := db.Count(t).Where("id<>? AND is_server=? AND remote_transfer_id=?"+
+		" AND account_id=?", t.ID, t.IsServer, t.RemoteTransferID, t.AccountID).Run()
+	if err != nil {
+		return err
+	}
 
+	tbl := "local_accounts"
+	if !t.IsServer {
+		tbl = "remote_accounts"
+	}
+
+	n2, err := db.Count(&HistoryEntry{}).Where(fmt.Sprintf("remote_transfer_id=? "+
+		"AND is_server=? AND account=(SELECT login FROM %s WHERE id=?)", tbl),
+		t.RemoteTransferID, t.IsServer, t.AccountID).Run()
+	if err != nil {
+		return err
+	}
+
+	if n1 != 0 || n2 != 0 {
+		return database.NewValidationError("a transfer from the same account " +
+			"with the same remote ID already exists")
+	}
+
+	return nil
+}
+
+func (t *Transfer) validateClientTransfer(db database.ReadAccess) database.Error {
 	remote := &RemoteAgent{}
 	if err := db.Get(remote, "id=?", t.AgentID).Run(); err != nil {
 		if database.IsNotFound(err) {
@@ -126,26 +162,6 @@ func (t *Transfer) validateServerTransfer(db database.ReadAccess) database.Error
 			t.AgentID, t.AccountID)
 	}
 
-	if t.RemoteTransferID != "" {
-		n1, err := db.Count(t).Where("id<>? AND remote_transfer_id=? AND account_id=?",
-			t.ID, t.RemoteTransferID, t.AccountID).Run()
-		if err != nil {
-			return err
-		}
-
-		n2, err := db.Count(&HistoryEntry{}).Where("id<>? AND remote_transfer_id=? AND "+
-			"account=(SELECT login FROM local_accounts WHERE id=?)", t.ID,
-			t.RemoteTransferID, t.AccountID).Run()
-		if err != nil {
-			return err
-		}
-
-		if n1 != 0 || n2 != 0 {
-			return database.NewValidationError("a transfer from the same account " +
-				"with the same remote ID already exists")
-		}
-	}
-
 	// Check for rule access
 	if auth, err := IsRuleAuthorized(db, t); err != nil {
 		return err
@@ -177,6 +193,15 @@ func (t *Transfer) checkMandatoryValues() database.Error {
 		t.Start = time.Now()
 	}
 
+	if t.Status == "" {
+		t.Status = types.StatusPlanned
+	}
+
+	if strings.TrimSpace(t.RemoteTransferID) == "" {
+		remoteID := idGenerator.Generate()
+		t.RemoteTransferID = remoteID.String()
+	}
+
 	return nil
 }
 
@@ -187,10 +212,6 @@ func (t *Transfer) BeforeWrite(db database.ReadAccess) database.Error {
 
 	if err := t.checkMandatoryValues(); err != nil {
 		return err
-	}
-
-	if t.Status == "" {
-		t.Status = types.StatusPlanned
 	}
 
 	if !types.ValidateStatusForTransfer(t.Status) {
@@ -242,7 +263,7 @@ func (t *Transfer) BeforeWrite(db database.ReadAccess) database.Error {
 		}
 	}
 
-	return nil
+	return t.checkRemoteTransferID(db)
 }
 
 func (t *Transfer) makeAgentInfo(db database.ReadAccess) (string, string, string, database.Error) {
@@ -358,4 +379,13 @@ func (t *Transfer) GetTransferInfo(db database.ReadAccess, tID uint64) (map[stri
 	}
 
 	return infoMap, nil
+}
+
+func (t *Transfer) TransferID() (int64, error) {
+	id, err := snowflake.ParseString(t.RemoteTransferID)
+	if err != nil {
+		return 0, fmt.Errorf("failed to parse the remote transfer ID: %w", err)
+	}
+
+	return id.Int64(), nil
 }

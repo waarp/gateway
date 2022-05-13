@@ -46,7 +46,7 @@ func (p *postClient) checkResume(url string) *types.TransferError {
 	}
 
 	req.SetBasicAuth(p.pip.TransCtx.RemoteAccount.Login, string(p.pip.TransCtx.RemoteAccount.Password))
-	req.Header.Set(httpconst.TransferID, fmt.Sprint(p.pip.TransCtx.Transfer.ID))
+	req.Header.Set(httpconst.TransferID, p.pip.TransCtx.Transfer.RemoteTransferID)
 
 	resp, err := http.DefaultClient.Do(req)
 	if err != nil {
@@ -108,7 +108,7 @@ func (p *postClient) setRequestHeaders(req *http.Request) *types.TransferError {
 
 	req.Header.Set("Content-Type", ct)
 	req.Header.Set("Expect", "100-continue")
-	req.Header.Set(httpconst.TransferID, fmt.Sprint(p.pip.TransCtx.Transfer.ID))
+	req.Header.Set(httpconst.TransferID, p.pip.TransCtx.Transfer.RemoteTransferID)
 	req.Header.Set(httpconst.RuleName, p.pip.TransCtx.Rule.Name)
 	makeContentRange(req.Header, p.pip.TransCtx.Transfer)
 

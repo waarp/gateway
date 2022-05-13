@@ -4,7 +4,6 @@ package pipelinetest
 
 import (
 	"context"
-	"fmt"
 	"io/ioutil"
 	"path/filepath"
 	"time"
@@ -36,7 +35,8 @@ type SelfContext struct {
 }
 
 func initSelfTransfer(c convey.C, proto string, constr serviceConstructor,
-	partConf, servConf config.ProtoConfig) *SelfContext {
+	partConf, servConf config.ProtoConfig,
+) *SelfContext {
 	feat, ok := protocols[proto]
 	c.So(ok, convey.ShouldBeTrue)
 	t := initTestData(c)
@@ -64,7 +64,8 @@ func initSelfTransfer(c convey.C, proto string, constr serviceConstructor,
 // necessary for a push self-transfer test of the given protocol. It then returns
 // all these element inside a SelfContext.
 func InitSelfPushTransfer(c convey.C, proto string, constr serviceConstructor,
-	partConf, servConf config.ProtoConfig) *SelfContext {
+	partConf, servConf config.ProtoConfig,
+) *SelfContext {
 	ctx := initSelfTransfer(c, proto, constr, partConf, servConf)
 	ctx.ClientRule = makeClientPush(c, ctx.DB)
 	ctx.ServerRule = makeServerPush(c, ctx.DB)
@@ -77,7 +78,8 @@ func InitSelfPushTransfer(c convey.C, proto string, constr serviceConstructor,
 // necessary for a pull self-transfer test of the given protocol. It then returns
 // all these element inside a SelfContext.
 func InitSelfPullTransfer(c convey.C, proto string, constr serviceConstructor,
-	partConf, servConf config.ProtoConfig) *SelfContext {
+	partConf, servConf config.ProtoConfig,
+) *SelfContext {
 	ctx := initSelfTransfer(c, proto, constr, partConf, servConf)
 	ctx.ClientRule = makeClientPull(c, ctx.DB)
 	ctx.ServerRule = makeServerPull(c, ctx.DB)
@@ -252,9 +254,9 @@ func (s *SelfContext) CheckServerTransferOK(c convey.C) {
 
 	c.So(s.DB.Get(&actual, "id=?", s.ClientTrans.ID+1).Run(), convey.ShouldBeNil)
 
-	var remoteID string
-	if s.protoFeatures.transID {
-		remoteID = fmt.Sprint(s.transData.ClientTrans.ID)
+	remoteID := s.transData.ClientTrans.RemoteTransferID
+	if !s.protoFeatures.transID {
+		remoteID = actual.RemoteTransferID
 	}
 
 	filename := filepath.Base(s.transData.ClientTrans.LocalPath)
@@ -272,10 +274,11 @@ func (s *SelfContext) CheckEndTransferOK(c convey.C) {
 
 		s.checkClientTransferOK(c, s.transData, &results[0])
 
-		var remoteID string
-		if s.protoFeatures.transID {
-			remoteID = fmt.Sprint(s.transData.ClientTrans.ID)
+		remoteID := s.transData.ClientTrans.RemoteTransferID
+		if !s.protoFeatures.transID {
+			remoteID = results[1].RemoteTransferID
 		}
+
 		filename := filepath.Base(s.transData.ClientTrans.LocalPath)
 		progress := uint64(len(s.fileContent))
 		s.checkServerTransferOK(c, remoteID, filename, progress, s.DB, &results[1])
@@ -309,7 +312,8 @@ func (s *SelfContext) CheckDestFile(c convey.C) {
 // filesize (for the receiver), progress, task. The rest of the transfer entry's
 // attribute will be deduced automatically.
 func (s *SelfContext) CheckClientTransferError(c convey.C, errCode types.TransferErrorCode,
-	errMsg string, steps ...types.TransferStep) {
+	errMsg string, steps ...types.TransferStep,
+) {
 	var actual model.Transfer
 
 	c.So(s.DB.Get(&actual, "id=?", s.ClientTrans.ID).Run(), convey.ShouldBeNil)
@@ -321,6 +325,7 @@ func (s *SelfContext) CheckClientTransferError(c convey.C, errCode types.Transfe
 
 	c.Convey("Then there should be a client-side transfer in error", func(c convey.C) {
 		c.So(actual.ID, convey.ShouldEqual, 1)
+		c.So(actual.RemoteTransferID, convey.ShouldNotBeBlank)
 		c.So(actual.Owner, convey.ShouldEqual, conf.GlobalConfig.GatewayName)
 		c.So(actual.IsServer, convey.ShouldBeFalse)
 		c.So(actual.Status, convey.ShouldEqual, types.StatusError)
@@ -349,7 +354,8 @@ func (s *SelfContext) CheckClientTransferError(c convey.C, errCode types.Transfe
 // filesize (for the receiver), progress, task. The rest of the transfer entry's
 // attribute will be deduced automatically.
 func (s *SelfContext) CheckServerTransferError(c convey.C, errCode types.TransferErrorCode,
-	errMsg string, steps ...types.TransferStep) {
+	errMsg string, steps ...types.TransferStep,
+) {
 	var actual model.Transfer
 
 	c.So(s.DB.Get(&actual, "id=?", s.ClientTrans.ID+1).Run(), convey.ShouldBeNil)
@@ -361,6 +367,7 @@ func (s *SelfContext) CheckServerTransferError(c convey.C, errCode types.Transfe
 
 	c.Convey("Then there should be a server-side transfer in error", func(c convey.C) {
 		c.So(actual.ID, convey.ShouldEqual, 2) //nolint:gomnd // necessary here
+
 		c.So(actual.Owner, convey.ShouldEqual, conf.GlobalConfig.GatewayName)
 		c.So(actual.IsServer, convey.ShouldBeTrue)
 		c.So(actual.Status, convey.ShouldEqual, types.StatusError)
@@ -374,6 +381,10 @@ func (s *SelfContext) CheckServerTransferError(c convey.C, errCode types.Transfe
 		c.So(actual.Filesize, testhelpers.ShouldBeOneOf, model.UnknownSize, TestFileSize)
 		c.So(actual.Progress, convey.ShouldBeBetweenOrEqual, 0, TestFileSize)
 		c.So(actual.Step.String(), testhelpers.ShouldBeOneOf, stepsStr)
+
+		if s.protoFeatures.transID {
+			c.So(actual.RemoteTransferID, convey.ShouldEqual, s.ClientTrans.RemoteTransferID)
+		}
 
 		if actual.Step == types.StepPreTasks || actual.Step == types.StepPostTasks {
 			c.So(actual.TaskNumber, convey.ShouldEqual, 1)

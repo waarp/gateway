@@ -11,13 +11,14 @@ Consulter une entrée de l'historique
    :statuscode 401: Authentification d'utilisateur invalide
    :statuscode 404: Le transfert demandé n'existe pas
 
-   :resjson number id: L'identifiant unique du transfert
+   :resjson number id: L'identifiant local du transfert
+   :resjson string remoteID: L'identifiant global du transfert
    :resjson bool isServer: Indique si la *gateway* est agit en tant que serveur
      (``true``) ou en tant que client (``false``)
    :resjson bool isSend: Indique si le transfert est un envoi (``true``) ou une
      réception (``false``)
-   :resjson string account: Le nom du compte ayant demandé le transfert
-   :resjson string remote: Le nom du partenaire avec lequel le transfert a été effectué
+   :resjson string requester: Le nom du compte ayant demandé le transfert
+   :resjson string requested: Le nom du partenaire avec lequel le transfert a été effectué
    :resjson string protocol: Le protocole utilisé pour le transfert
    :resjson string sourceFilename: Le nom du fichier avant le transfert (OBSOLÈTE: remplacé par 'localFilepath' & 'remoteFilepath')
    :resjson string destFilename: Le nom du fichier après le transfert (OBSOLÈTE: remplacé par 'localFilepath' & 'remoteFilepath')

@@ -3,7 +3,12 @@ package model
 import (
 	"crypto/x509"
 	"fmt"
+	"math"
+	"math/big"
 
+	"github.com/bwmarrin/snowflake"
+
+	"code.waarp.fr/apps/gateway/gateway/pkg/conf"
 	"code.waarp.fr/apps/gateway/gateway/pkg/database"
 )
 
@@ -61,4 +66,20 @@ func (c *Cryptos) CheckClientAuthent(login string, certs []*x509.Certificate) er
 	}
 
 	return nil
+}
+
+func makeIDGenerator() (*snowflake.Node, error) {
+	var nodeID, mod, machineID big.Int
+
+	nodeID.SetBytes([]byte(conf.GlobalConfig.NodeID))
+	mod.SetInt64(math.MaxInt64)
+
+	machineID.Mod(&nodeID, &mod)
+
+	generator, err := snowflake.NewNode(machineID.Int64())
+	if err != nil {
+		return nil, fmt.Errorf("failed to create the ID generator: %w", err)
+	}
+
+	return generator, nil
 }
