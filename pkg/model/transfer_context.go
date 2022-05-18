@@ -19,16 +19,16 @@ type TransferContext struct {
 	ErrTasks  Tasks
 
 	RemoteAgent        *RemoteAgent
-	RemoteAgentCryptos []Crypto
+	RemoteAgentCryptos Cryptos
 
 	RemoteAccount        *RemoteAccount
-	RemoteAccountCryptos []Crypto
+	RemoteAccountCryptos Cryptos
 
 	LocalAgent        *LocalAgent
-	LocalAgentCryptos []Crypto
+	LocalAgentCryptos Cryptos
 
 	LocalAccount        *LocalAccount
-	LocalAccountCryptos []Crypto
+	LocalAccountCryptos Cryptos
 
 	Paths *conf.PathsConfig
 }

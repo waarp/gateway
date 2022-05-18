@@ -26,7 +26,6 @@ var validOwnerTypes = []string{
 // channels. This includes both TLS and SSH tunnels. These credentials can be
 // attached to both local/remote agents & local/remote accounts.
 type Crypto struct {
-
 	// The credentials' database ID.
 	ID uint64 `xorm:"pk autoincr <- 'id'"`
 
@@ -228,13 +227,9 @@ func (c *Crypto) validateContent(host, proto string, isServer bool) database.Err
 			return newErr("failed to parse certificate: %s", err)
 		}
 
-		if err := utils.CheckCertChain(certChain, isServer); err != nil {
-			return newErr("certificate validation failed: %s", err)
-		}
-
-		if host != "" && proto != "r66" {
-			if err := certChain[0].VerifyHostname(host); err != nil {
-				return newErr("the certificate is not valid for host '%s'", host)
+		if proto != "r66" || !isLegacyR66Cert(certChain[0]) {
+			if err := utils.CheckCertChain(certChain, isServer, host); err != nil {
+				return newErr(err.Error())
 			}
 		}
 	}

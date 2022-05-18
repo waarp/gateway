@@ -5,7 +5,6 @@ package r66
 import (
 	"context"
 	"crypto/tls"
-	"crypto/x509"
 	"encoding/json"
 	"errors"
 	"fmt"
@@ -24,10 +23,7 @@ import (
 	"code.waarp.fr/apps/gateway/gateway/pkg/utils/compatibility"
 )
 
-var (
-	errNoCertificates     = errors.New("no certificates found")
-	errInvalidCertificate = errors.New("invalid certificate")
-)
+var errNoCertificates = errors.New("no certificates found")
 
 // Service represents a r66 service, which encompasses a r66 server usable for
 // transfers.
@@ -85,32 +81,10 @@ func (s *Service) makeTLSConf() (*tls.Config, error) {
 		}
 	}
 
-	ca, cErr := x509.SystemCertPool()
-	if cErr != nil {
-		ca = x509.NewCertPool()
-	}
-
-	var clientCerts model.Cryptos
-	if err := s.db.Select(&clientCerts).Where(
-		"owner_type=? AND owner_id IN (SELECT id FROM local_accounts WHERE local_agent_id=?)",
-		"local_accounts", s.agent.ID).Run(); err != nil {
-		s.logger.Errorf("Failed to retrieve the client certificates: %s", err)
-
-		return nil, fmt.Errorf("failed to retrieve the client certificates: %w", err)
-	}
-
-	for _, cert := range clientCerts {
-		if !ca.AppendCertsFromPEM([]byte(cert.Certificate)) {
-			return nil, fmt.Errorf("failed to add cert %s to trusted certificates pool: %w",
-				cert.Name, errInvalidCertificate)
-		}
-	}
-
 	return &tls.Config{
 		Certificates:     tlsCerts,
 		MinVersion:       tls.VersionTLS12,
-		ClientAuth:       tls.VerifyClientCertIfGiven,
-		ClientCAs:        ca,
+		ClientAuth:       tls.RequestClientCert,
 		VerifyConnection: compatibility.LogSha1(s.logger),
 	}, nil
 }

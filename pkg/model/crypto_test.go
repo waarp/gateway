@@ -150,8 +150,9 @@ func TestCryptoBeforeWrite(t *testing.T) {
 				Convey("Given that the certificate is not valid for the host", func() {
 					parentAgent.Address = "not_localhost:1"
 					So(db.Update(parentAgent).Cols("address").Run(), ShouldBeNil)
-					shouldFailWith("the certificate host is incorrect", database.NewValidationError(
-						"the certificate is not valid for host 'not_localhost'"))
+					shouldFailWith("the certificate host is incorrect",
+						database.NewValidationError("certificate is invalid: x509: "+
+							"certificate is valid for localhost, not not_localhost"))
 				})
 			})
 		})

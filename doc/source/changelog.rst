@@ -4,6 +4,10 @@ Historique des versions
 =======================
 
 * :release:`0.5.2 <>`
+* :bug:`329` Correction de l'impossibilité pour la *gateway* de se connecter via
+  R66-TLS à un agent *Waarp-R66*. Une exception a été ajoutée pour le certificat
+  de *Waarp-R66* afin que celui-ci soit accepté par la *gateway* (voir
+  :ref:`les détails d'implémentation R66<ref-proto-r66>` pour plus d'informations).
 * :bug:`326` Les fichiers transférés ne sont plus requis de se trouver immédiatement
   dans le dossier de la règle avec laquelle ils sont transférés. Il est désormais
   possible de transférer des fichiers se trouvant dans des sous-dossiers.
