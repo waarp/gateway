@@ -67,8 +67,9 @@ tests:
     - $CI_PROJECT_DIR/.gocache/
   artifacts:
     reports:
-      cobertura: coverage.xml
-      junit: tests.junit.xml
+      coverage_report:
+        coverage_format: cobertura
+        path: coverage.xml
 
 compile:
   stage: build
