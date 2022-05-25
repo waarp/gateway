@@ -4,6 +4,10 @@ Historique des versions
 =======================
 
 * :release:`0.5.2 <>`
+* :bug:`315` Les erreurs survenant lors de l'initialisation du transfert sont
+   maintenant correctement gérées. Précédemment, la mauvaise gestion de ces
+   erreur pouvait conduire un transfert à se retrouver dans le mauvais statut
+   lorsqu'une erreur se produisait.
 * :bug:`328` Correction d'une erreur pouvant causer des collisions d'identifiants
   de transfert lorsque l'incrément de la base de données est réinitialisé. La
   *gateway* génère dorénavant un identifiant de transfert unique (le

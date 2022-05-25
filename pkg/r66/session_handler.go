@@ -144,7 +144,7 @@ func (s *sessionHandler) getTransfer(req *r66.Request, rule *model.Rule) (*model
 		Status:           types.StatusPlanned,
 	}
 
-	trans, err := pipeline.GetServerTransfer(s.db, s.logger, trans)
+	trans, err := pipeline.GetOldTransfer(s.db, s.logger, trans)
 	if err != nil {
 		return nil, internal.ToR66Error(err)
 	}

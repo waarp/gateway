@@ -13,14 +13,11 @@ import (
 
 	"code.waarp.fr/apps/gateway/gateway/pkg/conf"
 	"code.waarp.fr/apps/gateway/gateway/pkg/database"
-	"code.waarp.fr/apps/gateway/gateway/pkg/log"
 	"code.waarp.fr/apps/gateway/gateway/pkg/model"
 	"code.waarp.fr/apps/gateway/gateway/pkg/model/types"
 )
 
 func TestNewFileStream(t *testing.T) {
-	logger := log.NewLogger("test_new_transfer_stream")
-
 	Convey("Given a new database", t, func(c C) {
 		ctx := initTestDB(c)
 
@@ -32,21 +29,12 @@ func TestNewFileStream(t *testing.T) {
 			RemotePath: "/remote/file",
 		}
 
-		transCtx := &model.TransferContext{
-			Transfer:      trans,
-			RemoteAgent:   ctx.partner,
-			RemoteAccount: ctx.remoteAccount,
-			Paths:         &conf.GlobalConfig.Paths,
-		}
-
 		Convey("Given a new send transfer", func(c C) {
 			trans.RuleID = ctx.send.ID
 			So(ctx.db.Insert(trans).Run(), ShouldBeNil)
-			transCtx.Rule = ctx.send
 
 			So(ioutil.WriteFile(trans.LocalPath, []byte("Hello World"), 0o700), ShouldBeNil)
-			pip, err := newPipeline(ctx.db, logger, transCtx)
-			So(err, ShouldBeNil)
+			pip := newTestPipeline(ctx.db, trans)
 
 			So(pip.machine.Transition(statePreTasks), ShouldBeNil)
 			So(pip.machine.Transition(statePreTasksDone), ShouldBeNil)
@@ -83,15 +71,15 @@ func TestNewFileStream(t *testing.T) {
 		Convey("Given a new receive transfer", func(c C) {
 			trans.RuleID = ctx.recv.ID
 			So(ctx.db.Insert(trans).Run(), ShouldBeNil)
-			transCtx.Rule = ctx.recv
-			pip, err := newPipeline(ctx.db, logger, transCtx)
+
+			pip, err := NewClientPipeline(ctx.db, trans)
 			So(err, ShouldBeNil)
 
-			So(pip.machine.Transition(statePreTasks), ShouldBeNil)
-			So(pip.machine.Transition(statePreTasksDone), ShouldBeNil)
+			So(pip.pip.machine.Transition(statePreTasks), ShouldBeNil)
+			So(pip.pip.machine.Transition(statePreTasksDone), ShouldBeNil)
 
 			Convey("When creating a new transfer stream", func(c C) {
-				stream, err := newFileStream(pip, time.Hour, false)
+				stream, err := newFileStream(pip.pip, time.Hour, false)
 				So(err, ShouldBeNil)
 				Reset(func() { _ = stream.file.Close() })
 
@@ -109,8 +97,6 @@ func TestNewFileStream(t *testing.T) {
 }
 
 func TestStreamRead(t *testing.T) {
-	logger := log.NewLogger("test_stream_read")
-
 	Convey("Given an outgoing transfer", t, func(c C) {
 		ctx := initTestDB(c)
 
@@ -124,18 +110,10 @@ func TestStreamRead(t *testing.T) {
 		}
 		So(ctx.db.Insert(trans).Run(), ShouldBeNil)
 
-		transCtx := &model.TransferContext{
-			Transfer:      trans,
-			Rule:          ctx.send,
-			RemoteAgent:   ctx.partner,
-			RemoteAccount: ctx.remoteAccount,
-			Paths:         &conf.GlobalConfig.Paths,
-		}
-
 		Convey("Given a file stream for this transfer", func(c C) {
 			content := []byte("read file content")
 			So(ioutil.WriteFile(trans.LocalPath, content, 0o600), ShouldBeNil)
-			stream := initFilestream(ctx, logger, transCtx)
+			stream := initFilestream(ctx, trans)
 
 			Convey("When reading from the stream", func(c C) {
 				b := make([]byte, 4)
@@ -194,8 +172,6 @@ func TestStreamRead(t *testing.T) {
 }
 
 func TestStreamReadAt(t *testing.T) {
-	logger := log.NewLogger("test_stream_read_at")
-
 	Convey("Given an outgoing transfer", t, func(c C) {
 		ctx := initTestDB(c)
 
@@ -209,18 +185,10 @@ func TestStreamReadAt(t *testing.T) {
 		}
 		So(ctx.db.Insert(trans).Run(), ShouldBeNil)
 
-		transCtx := &model.TransferContext{
-			Transfer:      trans,
-			Rule:          ctx.send,
-			RemoteAgent:   ctx.partner,
-			RemoteAccount: ctx.remoteAccount,
-			Paths:         &conf.GlobalConfig.Paths,
-		}
-
 		Convey("Given a file stream for this transfer", func(c C) {
 			content := []byte("read file content")
 			So(ioutil.WriteFile(trans.LocalPath, content, 0o600), ShouldBeNil)
-			stream := initFilestream(ctx, logger, transCtx)
+			stream := initFilestream(ctx, trans)
 
 			Convey("When reading from the stream with an offset", func(c C) {
 				b := make([]byte, 4)
@@ -280,8 +248,6 @@ func TestStreamReadAt(t *testing.T) {
 }
 
 func TestStreamWrite(t *testing.T) {
-	logger := log.NewLogger("test_stream_write")
-
 	Convey("Given an incoming transfer", t, func(c C) {
 		ctx := initTestDB(c)
 
@@ -295,16 +261,8 @@ func TestStreamWrite(t *testing.T) {
 		}
 		So(ctx.db.Insert(trans).Run(), ShouldBeNil)
 
-		transCtx := &model.TransferContext{
-			Transfer:      trans,
-			Rule:          ctx.recv,
-			RemoteAgent:   ctx.partner,
-			RemoteAccount: ctx.remoteAccount,
-			Paths:         &conf.GlobalConfig.Paths,
-		}
-
 		Convey("Given a file stream for this transfer", func(c C) {
-			stream := initFilestream(ctx, logger, transCtx)
+			stream := initFilestream(ctx, trans)
 
 			Convey("When writing to the stream", func(c C) {
 				b := []byte("file content")
@@ -366,8 +324,6 @@ func TestStreamWrite(t *testing.T) {
 }
 
 func TestStreamWriteAt(t *testing.T) {
-	logger := log.NewLogger("test_stream_write_at")
-
 	Convey("Given an incoming transfer", t, func(c C) {
 		ctx := initTestDB(c)
 
@@ -381,16 +337,8 @@ func TestStreamWriteAt(t *testing.T) {
 		}
 		So(ctx.db.Insert(trans).Run(), ShouldBeNil)
 
-		transCtx := &model.TransferContext{
-			Transfer:      trans,
-			Rule:          ctx.recv,
-			RemoteAgent:   ctx.partner,
-			RemoteAccount: ctx.remoteAccount,
-			Paths:         &conf.GlobalConfig.Paths,
-		}
-
 		Convey("Given a file stream for this transfer", func(c C) {
-			stream := initFilestream(ctx, logger, transCtx)
+			stream := initFilestream(ctx, trans)
 
 			Convey("When writing to the stream with an offset", func(c C) {
 				b := []byte("file content")
@@ -453,8 +401,6 @@ func TestStreamWriteAt(t *testing.T) {
 }
 
 func TestStreamClose(t *testing.T) {
-	logger := log.NewLogger("test_stream_close")
-
 	Convey("Given an incoming transfer", t, func(c C) {
 		ctx := initTestDB(c)
 
@@ -468,16 +414,8 @@ func TestStreamClose(t *testing.T) {
 		}
 		So(ctx.db.Insert(trans).Run(), ShouldBeNil)
 
-		transCtx := &model.TransferContext{
-			Transfer:      trans,
-			Rule:          ctx.recv,
-			RemoteAgent:   ctx.partner,
-			RemoteAccount: ctx.remoteAccount,
-			Paths:         &conf.GlobalConfig.Paths,
-		}
-
 		Convey("Given a file stream for this transfer", func(c C) {
-			stream := initFilestream(ctx, logger, transCtx)
+			stream := initFilestream(ctx, trans)
 			stream.progress = 10
 			So(stream.machine.Transition(stateDataEnd), ShouldBeNil)
 
@@ -503,8 +441,6 @@ func TestStreamClose(t *testing.T) {
 }
 
 func TestStreamMove(t *testing.T) {
-	logger := log.NewLogger("test_stream_move")
-
 	Convey("Given an incoming transfer", t, func(c C) {
 		ctx := initTestDB(c)
 
@@ -512,22 +448,14 @@ func TestStreamMove(t *testing.T) {
 			IsServer:   false,
 			AgentID:    ctx.partner.ID,
 			AccountID:  ctx.remoteAccount.ID,
-			LocalPath:  filepath.Join(ctx.root, conf.GlobalConfig.Paths.DefaultTmpDir, "file"),
+			LocalPath:  filepath.Join(ctx.root, ctx.recv.TmpLocalRcvDir, "file"),
 			RemotePath: "/remote/file",
 			RuleID:     ctx.recv.ID,
 		}
 		So(ctx.db.Insert(trans).Run(), ShouldBeNil)
 
-		transCtx := &model.TransferContext{
-			Transfer:      trans,
-			Rule:          ctx.recv,
-			RemoteAgent:   ctx.partner,
-			RemoteAccount: ctx.remoteAccount,
-			Paths:         &conf.GlobalConfig.Paths,
-		}
-
 		Convey("Given a closed file stream for this transfer", func(c C) {
-			stream := initFilestream(ctx, logger, transCtx)
+			stream := initFilestream(ctx, trans)
 			So(stream.machine.Transition(stateDataEnd), ShouldBeNil)
 			So(stream.close(), ShouldBeNil)
 
@@ -535,7 +463,7 @@ func TestStreamMove(t *testing.T) {
 				So(stream.move(), ShouldBeNil)
 
 				Convey("Then the underlying file should have been be moved", func(c C) {
-					_, err := os.Stat(filepath.Join(ctx.root, conf.GlobalConfig.Paths.DefaultInDir, "file"))
+					_, err := os.Stat(filepath.Join(ctx.root, ctx.recv.LocalDir, "file"))
 					So(err, ShouldBeNil)
 				})
 			})
@@ -581,20 +509,12 @@ func TestStreamMove(t *testing.T) {
 		}
 		So(ctx.db.Insert(trans).Run(), ShouldBeNil)
 
-		transCtx := &model.TransferContext{
-			Transfer:      trans,
-			Rule:          ctx.send,
-			RemoteAgent:   ctx.partner,
-			RemoteAccount: ctx.remoteAccount,
-			Paths:         &conf.GlobalConfig.Paths,
-		}
-
 		path := filepath.Join(ctx.root, conf.GlobalConfig.Paths.DefaultOutDir, "file")
 		So(ioutil.WriteFile(path, []byte("file content"), 0o700), ShouldBeNil)
 		Reset(func() { _ = os.Remove(path) })
 
 		Convey("Given a closed file stream for this transfer", func(c C) {
-			stream := initFilestream(ctx, logger, transCtx)
+			stream := initFilestream(ctx, trans)
 			So(stream.machine.Transition(stateDataEnd), ShouldBeNil)
 			So(stream.close(), ShouldBeNil)
 

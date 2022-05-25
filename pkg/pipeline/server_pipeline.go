@@ -9,35 +9,32 @@ import (
 	"code.waarp.fr/apps/gateway/gateway/pkg/model/types"
 )
 
-// GetServerTransfer searches the database for an interrupted transfer with the
+// GetOldTransfer searches the database for an interrupted transfer with the
 // given remoteID and made with the given account. If such a transfer is found,
 // the request is considered a retry, and the old entry is thus returned.
 //
-// If the transfer cannot be found, a new one is created from the information
-// given, and then returned.
-func GetServerTransfer(db *database.DB, logger *log.Logger, trans *model.Transfer,
+// If no transfer can be found, the entry is returned as is.
+func GetOldTransfer(db *database.DB, logger *log.Logger, trans *model.Transfer,
 ) (*model.Transfer, *types.TransferError) {
-	if trans.RemoteTransferID != "" {
-		err := db.Get(trans, "is_server=? AND remote_transfer_id=? AND account_id=?",
-			true, trans.RemoteTransferID, trans.AccountID).Run()
-		if err == nil {
-			if trans.Status == types.StatusRunning {
-				return nil, types.NewTransferError(types.TeForbidden, "cannot "+
-					"resume a currently running transfer")
-			}
-
-			return trans, nil
-		}
-
-		if !database.IsNotFound(err) {
-			logger.Errorf("Failed to retrieve old server transfer: %s", err)
-
-			return nil, errDatabase
-		}
+	if trans.RemoteTransferID == "" {
+		return trans, nil
 	}
 
-	if err := db.Insert(trans).Run(); err != nil {
-		logger.Errorf("Failed to insert new server transfer: %s", err)
+	var oldTrans model.Transfer
+
+	err := db.Get(&oldTrans, "is_server=? AND remote_transfer_id=? AND account_id=?",
+		true, trans.RemoteTransferID, trans.AccountID).Run()
+	if err == nil {
+		if oldTrans.Status == types.StatusRunning {
+			return nil, types.NewTransferError(types.TeForbidden,
+				"cannot resume a currently running transfer")
+		}
+
+		return &oldTrans, nil
+	}
+
+	if !database.IsNotFound(err) {
+		logger.Errorf("Failed to retrieve old server transfer: %s", err)
 
 		return nil, errDatabase
 	}
@@ -51,10 +48,50 @@ func NewServerPipeline(db *database.DB, trans *model.Transfer,
 ) (*Pipeline, *types.TransferError) {
 	logger := log.NewLogger(fmt.Sprintf("Pipeline %d (server)", trans.ID))
 
-	transCtx, err := model.GetTransferContext(db, logger, trans)
-	if err != nil {
-		return nil, err
+	pip, cols, tErr := newServerPipeline(db, trans, logger)
+	if tErr != nil {
+		if trans.ID == 0 {
+			return nil, tErr
+		}
+
+		trans.Status = types.StatusError
+		trans.Error = *tErr
+
+		cols = append(cols, "status", "error_code", "error_details")
+
+		if err := db.Update(trans).Cols(cols...).Run(); err != nil {
+			logger.Errorf("Failed to update the transfer error: %s", err)
+		}
+
+		return nil, tErr
 	}
 
-	return newPipeline(db, logger, transCtx)
+	if trans.ID == 0 {
+		if err := db.Insert(trans).Run(); err != nil {
+			logger.Errorf("failed to insert the new transfer entry: %s", err)
+
+			return nil, errDatabase
+		}
+	} else if err := db.Update(trans).Cols(cols...).Run(); err != nil {
+		logger.Errorf("Failed to update the transfer details: %s", err)
+
+		return nil, errDatabase
+	}
+
+	return pip, nil
+}
+
+func newServerPipeline(db *database.DB, trans *model.Transfer, logger *log.Logger,
+) (*Pipeline, []string, *types.TransferError) {
+	transCtx, err := model.GetTransferContext(db, logger, trans)
+	if err != nil {
+		return nil, nil, err
+	}
+
+	pipeline, cols, pErr := newPipeline(db, logger, transCtx)
+	if pErr != nil {
+		return nil, cols, pErr
+	}
+
+	return pipeline, cols, nil
 }

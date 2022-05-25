@@ -31,7 +31,7 @@ func TestAddressIndirection(t *testing.T) {
 				pip, err := pipeline.NewClientPipeline(ctx.DB, ctx.ClientTrans)
 				So(err, ShouldBeNil)
 
-				cli, err := newClient(pip.Pip)
+				cli, err := newClient(pip.Pipeline())
 				So(err, ShouldBeNil)
 
 				So(cli.Request(), ShouldBeNil)

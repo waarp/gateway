@@ -1,4 +1,4 @@
-package internal
+package pipeline
 
 import (
 	"fmt"
@@ -6,33 +6,13 @@ import (
 	"testing"
 
 	. "github.com/smartystreets/goconvey/convey"
-	"golang.org/x/crypto/bcrypt"
 
 	"code.waarp.fr/apps/gateway/gateway/pkg/conf"
 	"code.waarp.fr/apps/gateway/gateway/pkg/database"
 	"code.waarp.fr/apps/gateway/gateway/pkg/log"
 	"code.waarp.fr/apps/gateway/gateway/pkg/model"
-	"code.waarp.fr/apps/gateway/gateway/pkg/model/config"
 	"code.waarp.fr/apps/gateway/gateway/pkg/tk/utils/testhelpers"
 )
-
-const testProtocol = "test_proto"
-
-//nolint:gochecknoinits // init is used to ease the tests
-func init() {
-	_ = log.InitBackend("DEBUG", "stdout", "")
-
-	config.ProtoConfigs[testProtocol] = func() config.ProtoConfig {
-		return new(testhelpers.TestProtoConfig)
-	}
-}
-
-func hash(pwd string) string {
-	h, err := bcrypt.GenerateFromPassword([]byte(pwd), bcrypt.MinCost)
-	So(err, ShouldBeNil)
-
-	return string(h)
-}
 
 func TestPathBuilder(t *testing.T) {
 	logger := log.NewLogger("test_path_builder")
@@ -91,6 +71,8 @@ func TestPathBuilder(t *testing.T) {
 				LocalPath:  "file.loc",
 				RemotePath: "file.rem",
 			}
+			So(db.Insert(trans).Run(), ShouldBeNil)
+
 			file := trans.LocalPath
 
 			transCtx, err := model.GetTransferContext(db, logger, trans)
@@ -133,7 +115,8 @@ func TestPathBuilder(t *testing.T) {
 					transCtx.Rule.TmpLocalRcvDir = tc.ruleTmp
 
 					Convey("When building the filepath", func() {
-						MakeFilepaths(transCtx)
+						pip := &Pipeline{TransCtx: transCtx}
+						pip.makeFilePaths()
 
 						Convey("Then it should have built the expected tmp path", func() {
 							So(transCtx.Transfer.LocalPath, ShouldEqual, tc.expTmp)
@@ -152,6 +135,7 @@ func TestPathBuilder(t *testing.T) {
 				LocalPath:  "file.loc",
 				RemotePath: "file.rem",
 			}
+			So(db.Insert(trans).Run(), ShouldBeNil)
 
 			file := trans.LocalPath
 
@@ -190,7 +174,8 @@ func TestPathBuilder(t *testing.T) {
 					transCtx.Rule.LocalDir = tc.ruleLoc
 
 					Convey("When building the filepath", func() {
-						MakeFilepaths(transCtx)
+						pip := &Pipeline{TransCtx: transCtx}
+						pip.makeFilePaths()
 
 						Convey("Then it should have built the expected out path", func() {
 							So(transCtx.Transfer.LocalPath, ShouldEqual, tc.expFinal)

@@ -12,7 +12,6 @@ import (
 	"time"
 
 	"code.waarp.fr/apps/gateway/gateway/pkg/model/types"
-	"code.waarp.fr/apps/gateway/gateway/pkg/pipeline/internal"
 	"code.waarp.fr/apps/gateway/gateway/pkg/tasks"
 	"code.waarp.fr/apps/gateway/gateway/pkg/tk/statemachine"
 	"code.waarp.fr/apps/gateway/gateway/pkg/tk/utils"
@@ -51,7 +50,7 @@ func newFileStream(pipeline *Pipeline, updateInterval time.Duration, isResume bo
 		}
 	}
 
-	file, err := internal.GetFile(stream.Logger, stream.TransCtx.Rule, stream.TransCtx.Transfer)
+	file, err := stream.getFile()
 	if err != nil {
 		return nil, err
 	}
@@ -307,7 +306,7 @@ func (f *fileStream) move() *types.TransferError {
 
 	moveErr := types.NewTransferError(types.TeFinalization, "failed to move temp file")
 
-	if err := internal.CreateDir(dest); err != nil {
+	if err := createDir(dest); err != nil {
 		f.handleError(types.TeFinalization, "Failed to create destination directory",
 			err.Error())
 
