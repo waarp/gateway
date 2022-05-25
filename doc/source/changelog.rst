@@ -3,6 +3,14 @@
 Historique des versions
 =======================
 
+* :release:`0.5.2 <>`
+* :bug:`328` Correction d'une erreur pouvant causer des collisions d'identifiants
+  de transfert lorsque l'incrément de la base de données est réinitialisé. La
+  *gateway* génère dorénavant un identifiant de transfert unique (le
+  *RemoteTransferID*) qui est envoyé dans la requête de transfert à la place de
+  l'ancien auto-incrément. L'identifiant auto-incrémenté reste disponible à des
+  fins d'administration.
+
 * :release:`0.5.1 <2022-04-26>`
 * :bug:`322` Correction d'une erreur `provided data is not a pointer to struct`
   survenant lors de l'appel au client *waarp-gateway*.

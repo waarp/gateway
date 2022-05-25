@@ -37,7 +37,7 @@ func historyInfoString(h *api.OutHistory) string {
 
 	rv := "● Transfer " + fmt.Sprint(h.ID) + " (as " + role + ") [" + string(h.Status) + "]\n"
 	if h.RemoteID != "" {
-		rv += "    Remote ID:        " + h.RemoteID + "\n"
+		rv += "    Remote ID:       " + h.RemoteID + "\n"
 	}
 
 	stop := "N/A"
@@ -154,19 +154,20 @@ func TestGetHistory(t *testing.T) {
 
 			Convey("Given a valid history entry", func() {
 				h := &model.HistoryEntry{
-					ID:         1,
-					IsServer:   true,
-					IsSend:     false,
-					Rule:       "rule",
-					Account:    "source",
-					Agent:      "destination",
-					Protocol:   testProto1,
-					LocalPath:  "/local/path",
-					RemotePath: "/remote/path",
-					Start:      time.Date(2021, 1, 1, 1, 0, 0, 0, time.Local),
-					Stop:       time.Date(2021, 1, 1, 2, 0, 0, 0, time.Local),
-					Status:     types.StatusDone,
-					Owner:      conf.GlobalConfig.GatewayName,
+					ID:               1,
+					RemoteTransferID: "1234",
+					IsServer:         true,
+					IsSend:           false,
+					Rule:             "rule",
+					Account:          "source",
+					Agent:            "destination",
+					Protocol:         testProto1,
+					LocalPath:        "/local/path",
+					RemotePath:       "/remote/path",
+					Start:            time.Date(2021, 1, 1, 1, 0, 0, 0, time.Local),
+					Stop:             time.Date(2021, 1, 1, 2, 0, 0, 0, time.Local),
+					Status:           types.StatusDone,
+					Owner:            conf.GlobalConfig.GatewayName,
 				}
 				So(db.Insert(h).Run(), ShouldBeNil)
 				id := fmt.Sprint(h.ID)
@@ -219,60 +220,64 @@ func TestListHistory(t *testing.T) {
 
 			Convey("Given 4 valid history entries", func() {
 				h1 := &model.HistoryEntry{
-					ID:         1,
-					IsServer:   true,
-					IsSend:     false,
-					Account:    "src1",
-					Agent:      "dst1",
-					Protocol:   testProto1,
-					LocalPath:  "/local/path1",
-					RemotePath: "/remote/path1",
-					Rule:       "rule1",
-					Start:      time.Date(2019, 1, 1, 1, 1, 0, 1000, time.Local),
-					Stop:       time.Date(2019, 1, 1, 1, 2, 0, 1000, time.Local),
-					Status:     types.StatusDone,
+					ID:               1,
+					RemoteTransferID: "111",
+					IsServer:         true,
+					IsSend:           false,
+					Account:          "src1",
+					Agent:            "dst1",
+					Protocol:         testProto1,
+					LocalPath:        "/local/path1",
+					RemotePath:       "/remote/path1",
+					Rule:             "rule1",
+					Start:            time.Date(2019, 1, 1, 1, 1, 0, 1000, time.Local),
+					Stop:             time.Date(2019, 1, 1, 1, 2, 0, 1000, time.Local),
+					Status:           types.StatusDone,
 				}
 				h2 := &model.HistoryEntry{
-					ID:         2,
-					IsServer:   true,
-					IsSend:     false,
-					Account:    "src2",
-					Agent:      "dst2",
-					Protocol:   testProto1,
-					LocalPath:  "/local/path2",
-					RemotePath: "/remote/path2",
-					Rule:       "rule2",
-					Start:      time.Date(2019, 1, 1, 2, 0, 0, 2000, time.Local),
-					Stop:       time.Date(2019, 1, 1, 2, 1, 0, 2000, time.Local),
-					Status:     types.StatusCancelled,
+					ID:               2,
+					RemoteTransferID: "222",
+					IsServer:         true,
+					IsSend:           false,
+					Account:          "src2",
+					Agent:            "dst2",
+					Protocol:         testProto1,
+					LocalPath:        "/local/path2",
+					RemotePath:       "/remote/path2",
+					Rule:             "rule2",
+					Start:            time.Date(2019, 1, 1, 2, 0, 0, 2000, time.Local),
+					Stop:             time.Date(2019, 1, 1, 2, 1, 0, 2000, time.Local),
+					Status:           types.StatusCancelled,
 				}
 				h3 := &model.HistoryEntry{
-					ID:         3,
-					IsServer:   true,
-					IsSend:     false,
-					Account:    "src3",
-					Agent:      "dst3",
-					Protocol:   testProto2,
-					LocalPath:  "/local/path3",
-					RemotePath: "/remote/path3",
-					Rule:       "rule3",
-					Start:      time.Date(2019, 1, 1, 3, 0, 0, 3000, time.Local),
-					Stop:       time.Date(2019, 1, 1, 3, 1, 0, 3000, time.Local),
-					Status:     types.StatusDone,
+					ID:               3,
+					RemoteTransferID: "333",
+					IsServer:         true,
+					IsSend:           false,
+					Account:          "src3",
+					Agent:            "dst3",
+					Protocol:         testProto2,
+					LocalPath:        "/local/path3",
+					RemotePath:       "/remote/path3",
+					Rule:             "rule3",
+					Start:            time.Date(2019, 1, 1, 3, 0, 0, 3000, time.Local),
+					Stop:             time.Date(2019, 1, 1, 3, 1, 0, 3000, time.Local),
+					Status:           types.StatusDone,
 				}
 				h4 := &model.HistoryEntry{
-					ID:         4,
-					IsServer:   true,
-					IsSend:     false,
-					Account:    "src4",
-					Agent:      "dst4",
-					Protocol:   testProto2,
-					LocalPath:  "/local/path4",
-					RemotePath: "/remote/path4",
-					Rule:       "rule4",
-					Start:      time.Date(2019, 1, 1, 4, 0, 0, 4000, time.Local),
-					Stop:       time.Date(2019, 1, 1, 4, 1, 0, 4000, time.Local),
-					Status:     types.StatusCancelled,
+					ID:               4,
+					RemoteTransferID: "444",
+					IsServer:         true,
+					IsSend:           false,
+					Account:          "src4",
+					Agent:            "dst4",
+					Protocol:         testProto2,
+					LocalPath:        "/local/path4",
+					RemotePath:       "/remote/path4",
+					Rule:             "rule4",
+					Start:            time.Date(2019, 1, 1, 4, 0, 0, 4000, time.Local),
+					Stop:             time.Date(2019, 1, 1, 4, 1, 0, 4000, time.Local),
+					Status:           types.StatusCancelled,
 				}
 				So(db.Insert(h1).Run(), ShouldBeNil)
 				So(db.Insert(h2).Run(), ShouldBeNil)
@@ -523,19 +528,20 @@ func TestRetryHistory(t *testing.T) {
 				So(db.Insert(r).Run(), ShouldBeNil)
 
 				hist := &model.HistoryEntry{
-					ID:         1,
-					IsServer:   false,
-					IsSend:     r.IsSend,
-					Rule:       r.Name,
-					Account:    acc.Login,
-					Agent:      part.Name,
-					Protocol:   part.Protocol,
-					LocalPath:  "/local/path.loc",
-					RemotePath: "/remote/path.rem",
-					Start:      time.Date(2021, 1, 1, 1, 0, 0, 0, time.Local),
-					Stop:       time.Date(2021, 1, 1, 2, 0, 0, 0, time.Local),
-					Status:     types.StatusCancelled,
-					Owner:      conf.GlobalConfig.GatewayName,
+					ID:               1,
+					RemoteTransferID: "1234",
+					IsServer:         false,
+					IsSend:           r.IsSend,
+					Rule:             r.Name,
+					Account:          acc.Login,
+					Agent:            part.Name,
+					Protocol:         part.Protocol,
+					LocalPath:        "/local/path.loc",
+					RemotePath:       "/remote/path.rem",
+					Start:            time.Date(2021, 1, 1, 1, 0, 0, 0, time.Local),
+					Stop:             time.Date(2021, 1, 1, 2, 0, 0, 0, time.Local),
+					Status:           types.StatusCancelled,
+					Owner:            conf.GlobalConfig.GatewayName,
 				}
 				So(db.Insert(hist).Run(), ShouldBeNil)
 				id := fmt.Sprint(hist.ID)
@@ -555,22 +561,21 @@ func TestRetryHistory(t *testing.T) {
 						})
 
 						Convey("Then the transfer should have been added", func() {
-							expected := model.Transfer{
-								ID:         1,
-								RuleID:     r.ID,
-								IsServer:   false,
-								AgentID:    part.ID,
-								AccountID:  acc.ID,
-								LocalPath:  "path.loc",
-								RemotePath: "path.rem",
-								Start:      time.Date(2030, 1, 1, 1, 0, 0, 123000, time.Local),
-								Status:     types.StatusPlanned,
-								Owner:      hist.Owner,
-							}
-
 							var trans model.Transfers
 							So(db.Select(&trans).Run(), ShouldBeNil)
-							So(trans[0], ShouldResemble, expected)
+							So(trans[0], ShouldResemble, model.Transfer{
+								ID:               1,
+								RemoteTransferID: trans[0].RemoteTransferID,
+								RuleID:           r.ID,
+								IsServer:         false,
+								AgentID:          part.ID,
+								AccountID:        acc.ID,
+								LocalPath:        "path.loc",
+								RemotePath:       "path.rem",
+								Start:            time.Date(2030, 1, 1, 1, 0, 0, 123000, time.Local),
+								Status:           types.StatusPlanned,
+								Owner:            hist.Owner,
+							})
 						})
 					})
 				})

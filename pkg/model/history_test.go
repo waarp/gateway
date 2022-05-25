@@ -32,19 +32,20 @@ func TestHistoryBeforeWrite(t *testing.T) {
 
 		Convey("Given a new history entry", func() {
 			hist := &HistoryEntry{
-				ID:         1,
-				Rule:       "rule",
-				IsServer:   true,
-				IsSend:     true,
-				Agent:      "from",
-				Account:    "to",
-				LocalPath:  "test/local/path",
-				RemotePath: "test/remote/path",
-				Start:      time.Now(),
-				Stop:       time.Now(),
-				Protocol:   testProtocol,
-				Status:     "DONE",
-				Owner:      conf.GlobalConfig.GatewayName,
+				ID:               1,
+				RemoteTransferID: "12345",
+				Rule:             "rule",
+				IsServer:         true,
+				IsSend:           true,
+				Agent:            "from",
+				Account:          "to",
+				LocalPath:        "test/local/path",
+				RemotePath:       "test/remote/path",
+				Start:            time.Now(),
+				Stop:             time.Now(),
+				Protocol:         testProtocol,
+				Status:           "DONE",
+				Owner:            conf.GlobalConfig.GatewayName,
 			}
 
 			shouldFailWith := func(errDesc string, expErr error) {
@@ -221,24 +222,21 @@ func TestTransferHistoryRestart(t *testing.T) {
 				So(err, ShouldBeNil)
 
 				Convey("Then it should return a new transfer instance", func() {
-					exp := &Transfer{
-						ID:               0,
-						RemoteTransferID: "2",
-						RuleID:           rule.ID,
-						IsServer:         false,
-						AgentID:          agent.ID,
-						AccountID:        account.ID,
-						LocalPath:        "file.loc",
-						RemotePath:       "file.rem",
-						Start:            date,
-						Step:             types.StepNone,
-						Status:           types.StatusPlanned,
-						Owner:            conf.GlobalConfig.GatewayName,
-						Progress:         0,
-						TaskNumber:       0,
-						Error:            types.TransferError{},
-					}
-					So(trans, ShouldResemble, exp)
+					So(trans.ID, ShouldEqual, 0)
+					So(trans.RemoteTransferID, ShouldBeBlank)
+					So(trans.RuleID, ShouldEqual, rule.ID)
+					So(trans.IsServer, ShouldEqual, false)
+					So(trans.AgentID, ShouldEqual, agent.ID)
+					So(trans.AccountID, ShouldEqual, account.ID)
+					So(trans.LocalPath, ShouldEqual, "file.loc")
+					So(trans.RemotePath, ShouldEqual, "file.rem")
+					So(trans.Start, ShouldEqual, date)
+					So(trans.Step, ShouldEqual, types.StepNone)
+					So(trans.Status, ShouldEqual, types.StatusPlanned)
+					So(trans.Owner, ShouldEqual, conf.GlobalConfig.GatewayName)
+					So(trans.Progress, ShouldEqual, 0)
+					So(trans.TaskNumber, ShouldEqual, 0)
+					So(trans.Error, ShouldBeZeroValue)
 				})
 			})
 		})
@@ -285,24 +283,21 @@ func TestTransferHistoryRestart(t *testing.T) {
 				So(err, ShouldBeNil)
 
 				Convey("Then it should return a new transfer instance", func() {
-					exp := &Transfer{
-						ID:               0,
-						RemoteTransferID: "2",
-						RuleID:           rule.ID,
-						IsServer:         true,
-						AgentID:          agent.ID,
-						AccountID:        account.ID,
-						LocalPath:        "file.loc",
-						RemotePath:       "file.rem",
-						Start:            date,
-						Step:             types.StepNone,
-						Status:           types.StatusPlanned,
-						Owner:            conf.GlobalConfig.GatewayName,
-						Progress:         0,
-						TaskNumber:       0,
-						Error:            types.TransferError{},
-					}
-					So(trans, ShouldResemble, exp)
+					So(trans.ID, ShouldEqual, 0)
+					So(trans.RemoteTransferID, ShouldBeBlank)
+					So(trans.RuleID, ShouldEqual, rule.ID)
+					So(trans.IsServer, ShouldEqual, true)
+					So(trans.AgentID, ShouldEqual, agent.ID)
+					So(trans.AccountID, ShouldEqual, account.ID)
+					So(trans.LocalPath, ShouldEqual, "file.loc")
+					So(trans.RemotePath, ShouldEqual, "file.rem")
+					So(trans.Start, ShouldEqual, date)
+					So(trans.Step, ShouldEqual, types.StepNone)
+					So(trans.Status, ShouldEqual, types.StatusPlanned)
+					So(trans.Owner, ShouldEqual, conf.GlobalConfig.GatewayName)
+					So(trans.Progress, ShouldEqual, 0)
+					So(trans.TaskNumber, ShouldEqual, 0)
+					So(trans.Error, ShouldBeZeroValue)
 				})
 			})
 		})

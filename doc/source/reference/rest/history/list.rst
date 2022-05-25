@@ -49,13 +49,14 @@ Filtrer l'historique
    :statuscode 401: Authentification d'utilisateur invalide
 
    :resjson array history: La liste des transferts demandés
-   :resjsonarr number id: L'identifiant unique du transfert
+   :resjsonarr number id: L'identifiant local du transfert
+   :resjsonarr string remoteID: L'identifiant global du transfert
    :resjsonarr bool isServer: Indique si la *gateway* est agit en tant que serveur
      (``true``) ou en tant que client (``false``)
    :resjsonarr bool isSend: Indique si le transfert est un envoi (``true``) ou une
      réception (``false``)
-   :resjsonarr string account: Le nom du compte ayant demandé le transfert
-   :resjsonarr string remote: Le nom du partenaire avec lequel le transfert a été effectué
+   :resjsonarr string requester: Le nom du compte ayant demandé le transfert
+   :resjsonarr string requested: Le nom du partenaire avec lequel le transfert a été effectué
    :resjsonarr string protocol: Le protocole utilisé pour le transfert
    :resjsonarr string sourceFilename: Le nom du fichier avant le transfert (OBSOLÈTE: remplacé par 'localFilepath' & 'remoteFilepath')
    :resjsonarr string destFilename: Le nom du fichier après le transfert (OBSOLÈTE: remplacé par 'localFilepath' & 'remoteFilepath')

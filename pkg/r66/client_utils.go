@@ -104,8 +104,13 @@ func (c *client) request() *types.TransferError {
 		}
 	}
 
+	transID, err := c.pip.TransCtx.Transfer.TransferID()
+	if err != nil {
+		return types.NewTransferError(types.TeInternal, err.Error())
+	}
+
 	req := &r66.Request{
-		ID:       int64(c.pip.TransCtx.Transfer.ID),
+		ID:       transID,
 		Filepath: c.pip.TransCtx.Transfer.RemotePath,
 		FileSize: c.pip.TransCtx.Transfer.Filesize,
 		Rule:     c.pip.TransCtx.Rule.Name,
@@ -116,9 +121,9 @@ func (c *client) request() *types.TransferError {
 	}
 
 	if c.pip.TransCtx.Rule.IsSend {
-		info, err := os.Stat(c.pip.TransCtx.Transfer.LocalPath)
-		if err != nil {
-			c.pip.Logger.Errorf("Failed to retrieve file size: %s", err)
+		info, statErr := os.Stat(c.pip.TransCtx.Transfer.LocalPath)
+		if statErr != nil {
+			c.pip.Logger.Errorf("Failed to retrieve file size: %s", statErr)
 
 			return types.NewTransferError(types.TeInternal, "failed to retrieve file size")
 		}

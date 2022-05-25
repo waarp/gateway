@@ -11,7 +11,8 @@ Consulter un transfert
    :statuscode 401: Authentification d'utilisateur invalide
    :statuscode 404: Le transfert demandé n'existe pas
 
-   :resjson number id: L'identifiant unique du transfert
+   :resjson number id: L'identifiant local du transfert
+   :resjson string remoteID: L'identifiant global du transfert
    :resjson bool isServer: Indique si la *gateway* est agit en tant que serveur
      (``true``) ou en tant que client (``false``)
    :resjson bool isSend: Indique si le transfert est un envoi (``true``) ou une

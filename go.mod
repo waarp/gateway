@@ -24,6 +24,7 @@ require (
 )
 
 require (
+	github.com/bwmarrin/snowflake v0.3.0 // indirect
 	github.com/golang/snappy v0.0.0-20180518054509-2e65f85255db // indirect
 	github.com/gopherjs/gopherjs v0.0.0-20181017120253-0766667cb4d1 // indirect
 	github.com/jackc/chunkreader/v2 v2.0.1 // indirect

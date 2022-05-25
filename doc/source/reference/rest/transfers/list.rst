@@ -41,7 +41,8 @@ Lister les transferts
    :statuscode 401: Authentification d'utilisateur invalide
 
    :resjson array transfers: La liste des transferts demandés
-   :resjsonarr number id: L'identifiant unique du transfert
+   :resjsonarr number id: L'identifiant local du transfert
+   :resjsonarr string remoteID: L'identifiant global du transfert
    :resjsonarr bool isServer: Indique si la *gateway* est agit en tant que serveur
      (``true``) ou en tant que client (``false``)
    :resjsonarr bool isSend: Indique si le transfert est un envoi (``true``) ou une

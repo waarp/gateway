@@ -2,7 +2,6 @@ package http
 
 import (
 	"context"
-	"fmt"
 	"io"
 	"net/http"
 	"path"
@@ -42,7 +41,7 @@ func (g *getClient) Request() *types.TransferError {
 
 	req.SetBasicAuth(g.pip.TransCtx.RemoteAccount.Login, string(g.pip.TransCtx.RemoteAccount.Password))
 
-	req.Header.Set(httpconst.TransferID, fmt.Sprint(g.pip.TransCtx.Transfer.ID))
+	req.Header.Set(httpconst.TransferID, g.pip.TransCtx.Transfer.RemoteTransferID)
 	req.Header.Set(httpconst.RuleName, g.pip.TransCtx.Rule.Name)
 	makeRange(req, g.pip.TransCtx.Transfer)
 	req.Trailer = make(http.Header)

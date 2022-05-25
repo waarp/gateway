@@ -35,7 +35,8 @@ type serverData struct {
 }
 
 func initServer(c convey.C, proto string, constr serviceConstructor,
-	servConf config.ProtoConfig) *ServerContext {
+	servConf config.ProtoConfig,
+) *ServerContext {
 	t := initTestData(c)
 	port := testhelpers.GetFreePort(c)
 	server, locAcc := makeServerConf(c, t.DB, port, t.Paths.GatewayHome, proto, servConf)
@@ -58,7 +59,8 @@ func (s *ServerContext) Filename() string { return s.filename }
 // for a server push transfer test of the given protocol. It then returns all these
 // element inside a ServerContext.
 func InitServerPush(c convey.C, proto string, constr serviceConstructor,
-	servConf config.ProtoConfig) *ServerContext {
+	servConf config.ProtoConfig,
+) *ServerContext {
 	ctx := initServer(c, proto, constr, servConf)
 	ctx.ServerRule = makeServerPush(c, ctx.DB)
 
@@ -69,7 +71,8 @@ func InitServerPush(c convey.C, proto string, constr serviceConstructor,
 // for a server pull transfer test of the given protocol. It then returns all these
 // element inside a ServerContext.
 func InitServerPull(c convey.C, proto string, constr serviceConstructor,
-	servConf config.ProtoConfig) *ServerContext {
+	servConf config.ProtoConfig,
+) *ServerContext {
 	ctx := initServer(c, proto, constr, servConf)
 	ctx.ServerRule = makeServerPull(c, ctx.DB)
 
@@ -101,7 +104,8 @@ func makeServerPull(c convey.C, db *database.DB) *model.Rule {
 }
 
 func makeServerConf(c convey.C, db *database.DB, port uint16, home, proto string,
-	servConf config.ProtoConfig) (ag *model.LocalAgent, acc *model.LocalAccount) {
+	servConf config.ProtoConfig,
+) (ag *model.LocalAgent, acc *model.LocalAccount) {
 	jsonServConf := json.RawMessage(`{}`)
 
 	if servConf != nil {
@@ -170,7 +174,7 @@ func (s *ServerContext) CheckTransferOK(c convey.C) {
 
 	c.So(s.DB.Get(&actual, "id=?", 1).Run(), convey.ShouldBeNil)
 
-	remoteID := ""
+	remoteID := actual.RemoteTransferID
 	progress := uint64(TestFileSize)
 	s.checkServerTransferOK(c, remoteID, s.filename, progress, s.DB, &actual)
 }

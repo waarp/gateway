@@ -186,11 +186,12 @@ func TestSSHServerInterruption(t *testing.T) {
 						So(transfers, ShouldNotBeEmpty)
 
 						trans := model.Transfer{
-							ID:        transfers[0].ID,
-							Start:     transfers[0].Start,
-							IsServer:  true,
-							AccountID: test.LocAccount.ID,
-							AgentID:   test.Server.ID,
+							ID:               transfers[0].ID,
+							RemoteTransferID: transfers[0].RemoteTransferID,
+							Start:            transfers[0].Start,
+							IsServer:         true,
+							AccountID:        test.LocAccount.ID,
+							AgentID:          test.Server.ID,
 							LocalPath: filepath.Join(test.Server.RootDir,
 								test.Server.TmpReceiveDir, "test_in_shutdown.dst.part"),
 							RemotePath: "/test_in_shutdown.dst",

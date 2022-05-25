@@ -34,18 +34,19 @@ func TestGetHistory(t *testing.T) {
 
 		Convey("Given a database with 1 transfer history", func() {
 			h := &model.HistoryEntry{
-				ID:         1,
-				IsServer:   true,
-				IsSend:     false,
-				Rule:       "rule",
-				Account:    "acc",
-				Agent:      "server",
-				Protocol:   "sftp",
-				LocalPath:  "/local/file.test",
-				RemotePath: "/remote/file.test",
-				Start:      time.Date(2021, 1, 2, 3, 4, 5, 678000, time.Local),
-				Stop:       time.Date(2021, 2, 3, 4, 5, 6, 789000, time.Local),
-				Status:     "DONE",
+				ID:               1,
+				RemoteTransferID: "1234",
+				IsServer:         true,
+				IsSend:           false,
+				Rule:             "rule",
+				Account:          "acc",
+				Agent:            "server",
+				Protocol:         "sftp",
+				LocalPath:        "/local/file.test",
+				RemotePath:       "/remote/file.test",
+				Start:            time.Date(2021, 1, 2, 3, 4, 5, 678000, time.Local),
+				Stop:             time.Date(2021, 2, 3, 4, 5, 6, 789000, time.Local),
+				Status:           "DONE",
 			}
 			So(db.Insert(h).Run(), ShouldBeNil)
 
@@ -112,66 +113,70 @@ func TestListHistory(t *testing.T) {
 
 		Convey("Given a database with 4 transfer history", func() {
 			h1 := &model.HistoryEntry{
-				ID:         1,
-				IsServer:   true,
-				IsSend:     false,
-				Account:    "from1",
-				Agent:      "to3",
-				Protocol:   "sftp",
-				Rule:       "rule1",
-				Start:      time.Date(2019, 1, 1, 1, 0, 0, 1000, time.Local),
-				Stop:       time.Date(2019, 1, 1, 3, 0, 0, 1000, time.Local),
-				Status:     types.StatusDone,
-				LocalPath:  "/local/file1.test",
-				RemotePath: "/remote/file1.test",
+				ID:               1,
+				RemoteTransferID: "1111",
+				IsServer:         true,
+				IsSend:           false,
+				Account:          "from1",
+				Agent:            "to3",
+				Protocol:         "sftp",
+				Rule:             "rule1",
+				Start:            time.Date(2019, 1, 1, 1, 0, 0, 1000, time.Local),
+				Stop:             time.Date(2019, 1, 1, 3, 0, 0, 1000, time.Local),
+				Status:           types.StatusDone,
+				LocalPath:        "/local/file1.test",
+				RemotePath:       "/remote/file1.test",
 			}
 			So(db.Insert(h1).Run(), ShouldBeNil)
 
 			h2 := &model.HistoryEntry{
-				ID:         2,
-				IsServer:   false,
-				IsSend:     false,
-				Account:    "from2",
-				Agent:      "to1",
-				Protocol:   "sftp",
-				Rule:       "rule2",
-				Start:      time.Date(2019, 1, 1, 2, 0, 0, 2000, time.Local),
-				Stop:       time.Date(2019, 1, 1, 4, 0, 0, 2000, time.Local),
-				Status:     types.StatusCancelled,
-				LocalPath:  "/local/file2.test",
-				RemotePath: "/remote/file2.test",
+				ID:               2,
+				RemoteTransferID: "2222",
+				IsServer:         false,
+				IsSend:           false,
+				Account:          "from2",
+				Agent:            "to1",
+				Protocol:         "sftp",
+				Rule:             "rule2",
+				Start:            time.Date(2019, 1, 1, 2, 0, 0, 2000, time.Local),
+				Stop:             time.Date(2019, 1, 1, 4, 0, 0, 2000, time.Local),
+				Status:           types.StatusCancelled,
+				LocalPath:        "/local/file2.test",
+				RemotePath:       "/remote/file2.test",
 			}
 			So(db.Insert(h2).Run(), ShouldBeNil)
 
 			h3 := &model.HistoryEntry{
-				ID:         3,
-				IsServer:   false,
-				IsSend:     true,
-				Account:    "from3",
-				Agent:      "to2",
-				Protocol:   "sftp",
-				Rule:       "rule1",
-				Start:      time.Date(2019, 1, 1, 3, 0, 0, 3000, time.Local),
-				Stop:       time.Date(2019, 1, 1, 5, 0, 0, 3000, time.Local),
-				Status:     types.StatusCancelled,
-				LocalPath:  "/local/file3.test",
-				RemotePath: "/remote/file3.test",
+				ID:               3,
+				RemoteTransferID: "3333",
+				IsServer:         false,
+				IsSend:           true,
+				Account:          "from3",
+				Agent:            "to2",
+				Protocol:         "sftp",
+				Rule:             "rule1",
+				Start:            time.Date(2019, 1, 1, 3, 0, 0, 3000, time.Local),
+				Stop:             time.Date(2019, 1, 1, 5, 0, 0, 3000, time.Local),
+				Status:           types.StatusCancelled,
+				LocalPath:        "/local/file3.test",
+				RemotePath:       "/remote/file3.test",
 			}
 			So(db.Insert(h3).Run(), ShouldBeNil)
 
 			h4 := &model.HistoryEntry{
-				ID:         4,
-				IsServer:   false,
-				IsSend:     true,
-				Account:    "from4",
-				Agent:      "to3",
-				Protocol:   "sftp",
-				Rule:       "rule2",
-				Start:      time.Date(2019, 1, 1, 4, 0, 0, 4000, time.Local),
-				Stop:       time.Date(2019, 1, 1, 6, 0, 0, 4000, time.Local),
-				Status:     types.StatusDone,
-				LocalPath:  "/local/file4.test",
-				RemotePath: "/remote/file4.test",
+				ID:               4,
+				RemoteTransferID: "4444",
+				IsServer:         false,
+				IsSend:           true,
+				Account:          "from4",
+				Agent:            "to3",
+				Protocol:         "sftp",
+				Rule:             "rule2",
+				Start:            time.Date(2019, 1, 1, 4, 0, 0, 4000, time.Local),
+				Stop:             time.Date(2019, 1, 1, 6, 0, 0, 4000, time.Local),
+				Status:           types.StatusDone,
+				LocalPath:        "/local/file4.test",
+				RemotePath:       "/remote/file4.test",
 			}
 			So(db.Insert(h4).Run(), ShouldBeNil)
 
@@ -409,18 +414,19 @@ func TestRestartTransfer(t *testing.T) {
 			So(db.Insert(&rule).Run(), ShouldBeNil)
 
 			h := &model.HistoryEntry{
-				ID:         2,
-				IsServer:   false,
-				IsSend:     rule.IsSend,
-				Rule:       rule.Name,
-				Account:    account.Login,
-				Agent:      partner.Name,
-				Protocol:   testProto1,
-				LocalPath:  "/local/file.test",
-				RemotePath: "/remote/file.test",
-				Start:      time.Date(2019, 1, 1, 0, 0, 0, 0, time.Local),
-				Stop:       time.Date(2019, 1, 1, 1, 0, 0, 0, time.Local),
-				Status:     types.StatusCancelled,
+				ID:               2,
+				RemoteTransferID: "1234",
+				IsServer:         false,
+				IsSend:           rule.IsSend,
+				Rule:             rule.Name,
+				Account:          account.Login,
+				Agent:            partner.Name,
+				Protocol:         testProto1,
+				LocalPath:        "/local/file.test",
+				RemotePath:       "/remote/file.test",
+				Start:            time.Date(2019, 1, 1, 0, 0, 0, 0, time.Local),
+				Stop:             time.Date(2019, 1, 1, 1, 0, 0, 0, time.Local),
+				Status:           types.StatusCancelled,
 			}
 			So(db.Insert(h).Run(), ShouldBeNil)
 
@@ -457,23 +463,21 @@ func TestRestartTransfer(t *testing.T) {
 					})
 
 					Convey("Then the transfer should have been reprogrammed", func() {
-						expected := model.Transfer{
-							ID:         1,
-							RuleID:     rule.ID,
-							IsServer:   false,
-							AgentID:    partner.ID,
-							AccountID:  account.ID,
-							LocalPath:  path.Base(h.LocalPath),
-							RemotePath: path.Base(h.RemotePath),
-							Start:      h.Start,
-							Status:     types.StatusPlanned,
-							Owner:      h.Owner,
-						}
-
 						var transfers model.Transfers
 						So(db.Select(&transfers).Run(), ShouldBeNil)
 						So(transfers, ShouldNotBeEmpty)
-						So(transfers[0], ShouldResemble, expected)
+
+						So(transfers[0].ID, ShouldEqual, 1)
+						So(transfers[0].RemoteTransferID, ShouldNotEqual, h.RemoteTransferID)
+						So(transfers[0].RuleID, ShouldEqual, rule.ID)
+						So(transfers[0].IsServer, ShouldEqual, false)
+						So(transfers[0].AgentID, ShouldEqual, partner.ID)
+						So(transfers[0].AccountID, ShouldEqual, account.ID)
+						So(transfers[0].LocalPath, ShouldEqual, path.Base(h.LocalPath))
+						So(transfers[0].RemotePath, ShouldEqual, path.Base(h.RemotePath))
+						So(transfers[0].Start, ShouldEqual, h.Start)
+						So(transfers[0].Status, ShouldEqual, types.StatusPlanned)
+						So(transfers[0].Owner, ShouldEqual, h.Owner)
 					})
 				})
 			})
