@@ -43,18 +43,23 @@ func displayPartner(w io.Writer, partner *api.OutPartner) {
 
 //nolint:lll // struct tags for command line arguments can be long
 type partnerAdd struct {
-	Name        string `required:"yes" short:"n" long:"name" description:"The partner's name"`
-	Protocol    string `required:"yes" short:"p" long:"protocol" description:"The partner's protocol"`
-	Address     string `required:"yes" short:"a" long:"address" description:"The partner's [address:port]"`
-	ProtoConfig string `required:"yes" short:"c" long:"config" description:"The partner's configuration in JSON" default:"{}"`
+	Name        string             `required:"yes" short:"n" long:"name" description:"The partner's name"`
+	Protocol    string             `required:"yes" short:"p" long:"protocol" description:"The partner's protocol"`
+	Address     string             `required:"yes" short:"a" long:"address" description:"The partner's [address:port]"`
+	ProtoConfig map[string]confVal `short:"c" long:"config" description:"The partner's configuration, in key:val format. Can be repeated."`
 }
 
 func (p *partnerAdd) Execute([]string) error {
+	conf, err := json.Marshal(p.ProtoConfig)
+	if err != nil {
+		return fmt.Errorf("invalid config: %w", err)
+	}
+
 	partner := api.InPartner{
 		Name:        &p.Name,
 		Protocol:    &p.Protocol,
 		Address:     &p.Address,
-		ProtoConfig: json.RawMessage(p.ProtoConfig),
+		ProtoConfig: conf,
 	}
 	addr.Path = "/api/partners"
 
@@ -142,6 +147,7 @@ func (p *partnerDelete) Execute([]string) error {
 
 // ######################## UPDATE ##########################
 
+//nolint:lll // struct tags for command line arguments can be long
 type partnerUpdate struct {
 	Args struct {
 		Name string `required:"yes" positional-arg-name:"name" description:"The partner's name"`
@@ -149,7 +155,7 @@ type partnerUpdate struct {
 	Name        *string            `short:"n" long:"name" description:"The partner's name"`
 	Protocol    *string            `short:"p" long:"protocol" description:"The partner's protocol'"`
 	Address     *string            `short:"a" long:"address" description:"The partner's [address:port]"`
-	ProtoConfig map[string]confVal `short:"c" long:"config" description:"The partner's configuration in JSON"`
+	ProtoConfig map[string]confVal `short:"c" long:"config" description:"The partner's configuration, in key:val format. Can be repeated."`
 }
 
 func (p *partnerUpdate) Execute([]string) error {

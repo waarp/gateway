@@ -63,7 +63,7 @@ func writeFile(content string) *os.File {
 	return file
 }
 
-type TestProtoConfig struct{}
+type TestProtoConfig map[string]interface{}
 
 func (*TestProtoConfig) ValidServer() error  { return nil }
 func (*TestProtoConfig) ValidPartner() error { return nil }
