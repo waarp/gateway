@@ -1,6 +1,7 @@
 package rest
 
 import (
+	"fmt"
 	"net/http"
 
 	"github.com/gorilla/mux"
@@ -9,6 +10,7 @@ import (
 	"code.waarp.fr/apps/gateway/gateway/pkg/database"
 	"code.waarp.fr/apps/gateway/gateway/pkg/model"
 	"code.waarp.fr/apps/gateway/gateway/pkg/model/types"
+	"code.waarp.fr/apps/gateway/gateway/pkg/utils/compatibility"
 )
 
 // cryptoToModel transforms the JSON secure credentials into its database equivalent.
@@ -74,7 +76,8 @@ func retrieveCrypto(r *http.Request, db *database.DB, ownerType string, ownerID 
 }
 
 func getCrypto(w http.ResponseWriter, r *http.Request, db *database.DB,
-	ownerType string, ownerID uint64) error {
+	ownerType string, ownerID uint64,
+) error {
 	result, err := retrieveCrypto(r, db, ownerType, ownerID)
 	if err != nil {
 		return err
@@ -84,13 +87,16 @@ func getCrypto(w http.ResponseWriter, r *http.Request, db *database.DB,
 }
 
 func createCrypto(w http.ResponseWriter, r *http.Request, db *database.DB,
-	ownerType string, ownerID uint64) error {
+	ownerType string, ownerID uint64,
+) error {
 	var inCrypto api.InCrypto
 	if err := readJSON(r, &inCrypto); err != nil {
 		return err
 	}
 
 	crypto := cryptoToModel(&inCrypto, 0, ownerType, ownerID)
+	warn := compatibility.CheckSHA1(crypto.Certificate)
+
 	if err := db.Insert(crypto).Run(); err != nil {
 		return err
 	}
@@ -98,11 +104,16 @@ func createCrypto(w http.ResponseWriter, r *http.Request, db *database.DB,
 	w.Header().Set("Location", location(r.URL, crypto.Name))
 	w.WriteHeader(http.StatusCreated)
 
+	if warn != "" {
+		fmt.Fprint(w, warn)
+	}
+
 	return nil
 }
 
 func listCryptos(w http.ResponseWriter, r *http.Request, db *database.DB,
-	ownerType string, ownerID uint64) error {
+	ownerType string, ownerID uint64,
+) error {
 	validSorting := orders{
 		"default": order{col: "name", asc: true},
 		"name+":   order{col: "name", asc: true},
@@ -128,7 +139,8 @@ func listCryptos(w http.ResponseWriter, r *http.Request, db *database.DB,
 }
 
 func deleteCrypto(w http.ResponseWriter, r *http.Request, db *database.DB,
-	ownerType string, ownerID uint64) error {
+	ownerType string, ownerID uint64,
+) error {
 	crypto, err := retrieveCrypto(r, db, ownerType, ownerID)
 	if err != nil {
 		return err
@@ -144,7 +156,8 @@ func deleteCrypto(w http.ResponseWriter, r *http.Request, db *database.DB,
 }
 
 func replaceCrypto(w http.ResponseWriter, r *http.Request, db *database.DB,
-	ownerType string, ownerID uint64) error {
+	ownerType string, ownerID uint64,
+) error {
 	old, err := retrieveCrypto(r, db, ownerType, ownerID)
 	if err != nil {
 		return err
@@ -156,6 +169,8 @@ func replaceCrypto(w http.ResponseWriter, r *http.Request, db *database.DB,
 	}
 
 	crypto := cryptoToModel(&inAuth, old.ID, ownerType, ownerID)
+	warn := compatibility.CheckSHA1(crypto.Certificate)
+
 	if err := db.Update(crypto).Run(); err != nil {
 		return err
 	}
@@ -163,11 +178,16 @@ func replaceCrypto(w http.ResponseWriter, r *http.Request, db *database.DB,
 	w.Header().Set("Location", locationUpdate(r.URL, crypto.Name))
 	w.WriteHeader(http.StatusCreated)
 
+	if warn != "" {
+		fmt.Fprint(w, warn)
+	}
+
 	return nil
 }
 
 func updateCrypto(w http.ResponseWriter, r *http.Request, db *database.DB,
-	ownerType string, ownerID uint64) error {
+	ownerType string, ownerID uint64,
+) error {
 	old, err := retrieveCrypto(r, db, ownerType, ownerID)
 	if err != nil {
 		return err
@@ -179,12 +199,18 @@ func updateCrypto(w http.ResponseWriter, r *http.Request, db *database.DB,
 	}
 
 	crypto := cryptoToModel(inAuth, old.ID, ownerType, ownerID)
+	warn := compatibility.CheckSHA1(crypto.Certificate)
+
 	if err := db.Update(crypto).Run(); err != nil {
 		return err
 	}
 
 	w.Header().Set("Location", locationUpdate(r.URL, crypto.Name))
 	w.WriteHeader(http.StatusCreated)
+
+	if warn != "" {
+		fmt.Fprint(w, warn)
+	}
 
 	return nil
 }

@@ -18,7 +18,10 @@ func getHTTPClient() *http.Client {
 	customTransport := http.DefaultTransport.(*http.Transport).Clone()
 
 	//nolint:gosec // needed to pass the option given by the user
-	customTransport.TLSClientConfig = &tls.Config{InsecureSkipVerify: commandLine.addrOpt.Insecure}
+	customTransport.TLSClientConfig = &tls.Config{
+		InsecureSkipVerify: commandLine.addrOpt.Insecure,
+		MinVersion:         tls.VersionTLS12,
+	}
 
 	return &http.Client{Transport: customTransport}
 }

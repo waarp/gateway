@@ -21,6 +21,7 @@ import (
 	"code.waarp.fr/apps/gateway/gateway/pkg/model/config"
 	"code.waarp.fr/apps/gateway/gateway/pkg/tk/service"
 	"code.waarp.fr/apps/gateway/gateway/pkg/tk/utils"
+	"code.waarp.fr/apps/gateway/gateway/pkg/utils/compatibility"
 )
 
 var (
@@ -106,10 +107,11 @@ func (s *Service) makeTLSConf() (*tls.Config, error) {
 	}
 
 	return &tls.Config{
-		Certificates: tlsCerts,
-		MinVersion:   tls.VersionTLS12,
-		ClientAuth:   tls.VerifyClientCertIfGiven,
-		ClientCAs:    ca,
+		Certificates:     tlsCerts,
+		MinVersion:       tls.VersionTLS12,
+		ClientAuth:       tls.VerifyClientCertIfGiven,
+		ClientCAs:        ca,
+		VerifyConnection: compatibility.LogSha1(s.logger),
 	}, nil
 }
 

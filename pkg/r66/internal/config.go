@@ -6,16 +6,17 @@ import (
 	"crypto/x509"
 	"fmt"
 
-	"code.waarp.fr/apps/gateway/gateway/pkg/model"
+	"code.waarp.fr/apps/gateway/gateway/pkg/pipeline"
+	"code.waarp.fr/apps/gateway/gateway/pkg/utils/compatibility"
 )
 
 // MakeClientTLSConfig takes a client R66 transfer context and returns a TLS
 // configuration suited for making that transfer. If the partner does not use
 // TLS, the returned configuration will be nil.
-func MakeClientTLSConfig(info *model.TransferContext) (*tls.Config, error) {
-	tlsCerts := make([]tls.Certificate, len(info.RemoteAccountCryptos))
+func MakeClientTLSConfig(pip *pipeline.Pipeline) (*tls.Config, error) {
+	tlsCerts := make([]tls.Certificate, len(pip.TransCtx.RemoteAccountCryptos))
 
-	for i, cert := range info.RemoteAccountCryptos {
+	for i, cert := range pip.TransCtx.RemoteAccountCryptos {
 		var err error
 
 		tlsCerts[i], err = tls.X509KeyPair([]byte(cert.Certificate), []byte(cert.PrivateKey))
@@ -25,7 +26,7 @@ func MakeClientTLSConfig(info *model.TransferContext) (*tls.Config, error) {
 	}
 
 	var caPool *x509.CertPool
-	for _, cert := range info.RemoteAgentCryptos {
+	for _, cert := range pip.TransCtx.RemoteAgentCryptos {
 		if caPool == nil {
 			caPool = x509.NewCertPool()
 		}
@@ -34,8 +35,9 @@ func MakeClientTLSConfig(info *model.TransferContext) (*tls.Config, error) {
 	}
 
 	return &tls.Config{
-		Certificates: tlsCerts,
-		MinVersion:   tls.VersionTLS12,
-		RootCAs:      caPool,
+		Certificates:     tlsCerts,
+		MinVersion:       tls.VersionTLS12,
+		RootCAs:          caPool,
+		VerifyConnection: compatibility.LogSha1(pip.Logger),
 	}, nil
 }

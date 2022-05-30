@@ -1,5 +1,9 @@
 # options for analysis running
 run:
+  # revert to go1.17 while the linters are being updated to add support for the
+  # generics introduced in go1.18
+  go: '1.17'
+
   # default concurrency is a available CPU number
   concurrency: 4
 
