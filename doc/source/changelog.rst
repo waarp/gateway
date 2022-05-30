@@ -4,10 +4,15 @@ Historique des versions
 =======================
 
 * :release:`0.5.2 <>`
+* :bug:`330` Correction de l'option ``-c --config`` de la commande ``partner add``
+  pour qu'elle ait le même comportement que sur les autres commandes similaires.
+  L'option peut maintenant être répétée pour chaque paramètre supplémentaire,
+  comme mentionné dans :doc:`la documentation<reference/cli/client/partner/add>`
+  de la commande.
 * :bug:`315` Les erreurs survenant lors de l'initialisation du transfert sont
-   maintenant correctement gérées. Précédemment, la mauvaise gestion de ces
-   erreur pouvait conduire un transfert à se retrouver dans le mauvais statut
-   lorsqu'une erreur se produisait.
+  maintenant correctement gérées. Précédemment, la mauvaise gestion de ces
+  erreur pouvait conduire un transfert à se retrouver dans le mauvais statut
+  lorsqu'une erreur se produisait.
 * :bug:`328` Correction d'une erreur pouvant causer des collisions d'identifiants
   de transfert lorsque l'incrément de la base de données est réinitialisé. La
   *gateway* génère dorénavant un identifiant de transfert unique (le

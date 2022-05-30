@@ -114,7 +114,8 @@ func TestAddPartner(t *testing.T) {
 			Convey("Given valid flags", func() {
 				args := []string{
 					"--name", "server_name", "--protocol", testProto1,
-					"--address", "localhost:1",
+					"--address", "localhost:1", "--config", "key1:val1",
+					"--config", "key2:val2",
 				}
 
 				Convey("When executing the command", func() {
@@ -135,7 +136,7 @@ func TestAddPartner(t *testing.T) {
 							ID:          1,
 							Name:        "server_name",
 							Protocol:    testProto1,
-							ProtoConfig: json.RawMessage(`{}`),
+							ProtoConfig: json.RawMessage(`{"key1":"val1","key2":"val2"}`),
 							Address:     "localhost:1",
 						}
 						So(partners, ShouldContain, exp)
@@ -164,7 +165,7 @@ func TestAddPartner(t *testing.T) {
 			Convey("Given an invalid configuration", func() {
 				args := []string{
 					"--name", "server_name", "--protocol", testProtoErr,
-					"--config", `{"key":"val"}`, "--address", "localhost:1",
+					"--config", `key:val`, "--address", "localhost:1",
 				}
 
 				Convey("When executing the command", func() {
@@ -183,7 +184,7 @@ func TestAddPartner(t *testing.T) {
 			Convey("Given an invalid address", func() {
 				args := []string{
 					"--name", "server_name", "--protocol", testProtoErr,
-					"--config", `{"key":"val"}`, "--address", "invalid_address",
+					"--config", `key:val`, "--address", "invalid_address",
 				}
 
 				Convey("When executing the command", func() {
