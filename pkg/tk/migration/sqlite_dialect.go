@@ -4,7 +4,7 @@ import (
 	"fmt"
 
 	// Register the SQLite driver.
-	_ "github.com/mattn/go-sqlite3"
+	_ "modernc.org/sqlite"
 )
 
 // SQLite is the constant name of the SQLite dialect translator.
@@ -97,6 +97,7 @@ func (s *sqliteActions) AddRow(table string, values Cells) error {
 }
 
 func (s *sqliteActions) AddColumn(table, column string, dataType sqlType,
-	constraints ...Constraint) error {
+	constraints ...Constraint,
+) error {
 	return s.standardSQL.addColumn(s.trad, table, column, dataType, constraints)
 }

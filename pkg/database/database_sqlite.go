@@ -1,6 +1,7 @@
 package database
 
 import (
+	"fmt"
 	"time"
 
 	"xorm.io/xorm"
@@ -22,6 +23,10 @@ func sqliteInit(db *xorm.Engine) error {
 	db.SetMaxOpenConns(1)
 	db.SetMaxIdleConns(1)
 	db.DatabaseTZ = time.UTC
+
+	if _, err := db.Exec("PRAGMA busy_timeout = 10000"); err != nil {
+		return fmt.Errorf("failed to set busy timeout: %w", err)
+	}
 
 	return nil
 }

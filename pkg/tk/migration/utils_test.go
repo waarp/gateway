@@ -11,8 +11,8 @@ import (
 	"github.com/go-sql-driver/mysql"
 	"github.com/jackc/pgconn"
 	"github.com/jackc/pgerrcode"
-	"github.com/mattn/go-sqlite3"
 	. "github.com/smartystreets/goconvey/convey"
+	"modernc.org/sqlite"
 )
 
 //nolint:gochecknoinits // init is used to ease the tests
@@ -50,9 +50,9 @@ func (v *testInterface) Scan(i interface{}) error {
 }
 
 func isTableNotFound(err error) bool {
-	var sqlErr sqlite3.Error
+	var sqlErr *sqlite.Error
 	if errors.As(err, &sqlErr) {
-		return strings.HasPrefix(sqlErr.Error(), "no such table:")
+		return strings.Contains(sqlErr.Error(), "no such table:")
 	}
 
 	var pgErr *pgconn.PgError
@@ -69,9 +69,9 @@ func isTableNotFound(err error) bool {
 }
 
 func isColumnNotFound(err error) bool {
-	var sqlErr1 sqlite3.Error
+	var sqlErr1 *sqlite.Error
 	if errors.As(err, &sqlErr1) {
-		return strings.HasPrefix(sqlErr1.Error(), "no such column:")
+		return strings.Contains(sqlErr1.Error(), "no such column:")
 	}
 
 	var sqlErr2 sqliteError
@@ -95,7 +95,7 @@ func isColumnNotFound(err error) bool {
 func isColumnAlreadyExist(err error) bool {
 	So(err, ShouldNotBeNil)
 
-	var sqlErr sqlite3.Error
+	var sqlErr *sqlite.Error
 	if errors.As(err, &sqlErr) {
 		return strings.Contains(sqlErr.Error(), "duplicate column name:")
 	}

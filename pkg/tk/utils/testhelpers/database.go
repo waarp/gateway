@@ -18,7 +18,7 @@ func GetTestSqliteDBNoReset(c convey.C) (*sql.DB, string) {
 	c.So(f.Close(), convey.ShouldBeNil)
 	c.So(os.Remove(f.Name()), convey.ShouldBeNil)
 
-	db, err := sql.Open("sqlite3", fmt.Sprintf("file:%s?mode=rwc&cache=shared", f.Name()))
+	db, err := sql.Open("sqlite", fmt.Sprintf("file:%s?mode=rwc&cache=shared", f.Name()))
 	c.So(err, convey.ShouldBeNil)
 
 	return db, f.Name()
