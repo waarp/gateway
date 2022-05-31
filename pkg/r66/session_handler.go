@@ -3,6 +3,7 @@ package r66
 import (
 	"fmt"
 	"path"
+	"strings"
 	"time"
 
 	"code.waarp.fr/lib/r66"
@@ -138,15 +139,15 @@ func (s *sessionHandler) getTransfer(req *r66.Request, rule *model.Rule) (*model
 		IsServer:         true,
 		AgentID:          s.agent.ID,
 		AccountID:        s.account.ID,
-		LocalPath:        path.Base(req.Filepath),
+		LocalPath:        strings.TrimPrefix(req.Filepath, "/"),
 		RemotePath:       path.Base(req.Filepath),
 		Start:            time.Now(),
 		Status:           types.StatusPlanned,
 	}
 
-	trans, err := pipeline.GetOldTransfer(s.db, s.logger, trans)
-	if err != nil {
-		return nil, internal.ToR66Error(err)
+	trans, tErr := pipeline.GetOldTransfer(s.db, s.logger, trans)
+	if tErr != nil {
+		return nil, internal.ToR66Error(tErr)
 	}
 
 	return trans, nil

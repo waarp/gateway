@@ -14,6 +14,7 @@ type InTransfer struct {
 	Account string    `json:"account"`
 	IsSend  *bool     `json:"isSend"`
 	File    string    `json:"file"`
+	Output  *string   `json:"output"`
 	Start   time.Time `json:"start"`
 
 	// Deprecated fields

@@ -7,6 +7,7 @@ import (
 	"path"
 	"path/filepath"
 	"strconv"
+	"strings"
 	"time"
 
 	"github.com/gorilla/mux"
@@ -29,15 +30,21 @@ func transToDB(trans *api.InTransfer, db *database.DB, logger *log.Logger) (*mod
 	}
 
 	file := trans.File
-	if file == "" {
-		if trans.SourcePath != "" {
-			logger.Warning("JSON field 'sourcePath' is deprecated, use 'file' instead")
+	out := str(trans.Output)
 
-			file = utils.DenormalizePath(trans.SourcePath)
-		} else if trans.DestPath != "" {
-			logger.Warning("JSON field 'destPath' is deprecated, use 'file' instead")
+	if file == "" && trans.SourcePath != "" {
+		logger.Warning("JSON field 'sourcePath' is deprecated, use 'file' instead")
 
-			file = utils.DenormalizePath(trans.DestPath)
+		file = utils.DenormalizePath(trans.SourcePath)
+	}
+
+	if out == "" {
+		if trans.DestPath != "" {
+			logger.Warning("JSON field 'destPath' is deprecated, use  'output' instead")
+
+			out = utils.DenormalizePath(trans.DestPath)
+		} else {
+			out = filepath.Base(file)
 		}
 	}
 
@@ -51,13 +58,21 @@ func transToDB(trans *api.InTransfer, db *database.DB, logger *log.Logger) (*mod
 		}
 	}
 
+	locPath := file
+	remPath := strings.TrimPrefix(out, "/")
+
+	if !*trans.IsSend {
+		locPath = out
+		remPath = strings.TrimPrefix(file, "/")
+	}
+
 	return &model.Transfer{
 		RuleID:     ruleID,
 		IsServer:   false,
 		AgentID:    agentID,
 		AccountID:  accountID,
-		LocalPath:  file,
-		RemotePath: file,
+		LocalPath:  locPath,
+		RemotePath: remPath,
 		Filesize:   model.UnknownSize,
 		Start:      start,
 	}, nil

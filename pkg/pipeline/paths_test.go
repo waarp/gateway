@@ -116,7 +116,7 @@ func TestPathBuilder(t *testing.T) {
 
 					Convey("When building the filepath", func() {
 						pip := &Pipeline{TransCtx: transCtx}
-						pip.makeFilePaths()
+						pip.setFilePaths()
 
 						Convey("Then it should have built the expected tmp path", func() {
 							So(transCtx.Transfer.LocalPath, ShouldEqual, tc.expTmp)
@@ -175,7 +175,7 @@ func TestPathBuilder(t *testing.T) {
 
 					Convey("When building the filepath", func() {
 						pip := &Pipeline{TransCtx: transCtx}
-						pip.makeFilePaths()
+						pip.setFilePaths()
 
 						Convey("Then it should have built the expected out path", func() {
 							So(transCtx.Transfer.LocalPath, ShouldEqual, tc.expFinal)

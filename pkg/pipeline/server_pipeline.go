@@ -46,16 +46,31 @@ func GetOldTransfer(db *database.DB, logger *log.Logger, trans *model.Transfer,
 // server transfer.
 func NewServerPipeline(db *database.DB, trans *model.Transfer,
 ) (*Pipeline, *types.TransferError) {
+	pip, err := newServerPipeline(db, trans)
+	if err != nil && TestPipelineEnd != nil {
+		TestPipelineEnd(true)
+	}
+
+	return pip, err
+}
+
+func newServerPipeline(db *database.DB, trans *model.Transfer,
+) (*Pipeline, *types.TransferError) {
 	logger := log.NewLogger(fmt.Sprintf("Pipeline %d (server)", trans.ID))
 
-	pip, cols, tErr := newServerPipeline(db, trans, logger)
-	if tErr != nil {
+	transCtx, err := model.GetTransferContext(db, logger, trans)
+	if err != nil {
+		return nil, err
+	}
+
+	pipeline, cols, pErr := newPipeline(db, logger, transCtx)
+	if pErr != nil {
 		if trans.ID == 0 {
-			return nil, tErr
+			return nil, pErr
 		}
 
 		trans.Status = types.StatusError
-		trans.Error = *tErr
+		trans.Error = *pErr
 
 		cols = append(cols, "status", "error_code", "error_details")
 
@@ -63,7 +78,7 @@ func NewServerPipeline(db *database.DB, trans *model.Transfer,
 			logger.Errorf("Failed to update the transfer error: %s", err)
 		}
 
-		return nil, tErr
+		return nil, pErr
 	}
 
 	if trans.ID == 0 {
@@ -78,20 +93,5 @@ func NewServerPipeline(db *database.DB, trans *model.Transfer,
 		return nil, errDatabase
 	}
 
-	return pip, nil
-}
-
-func newServerPipeline(db *database.DB, trans *model.Transfer, logger *log.Logger,
-) (*Pipeline, []string, *types.TransferError) {
-	transCtx, err := model.GetTransferContext(db, logger, trans)
-	if err != nil {
-		return nil, nil, err
-	}
-
-	pipeline, cols, pErr := newPipeline(db, logger, transCtx)
-	if pErr != nil {
-		return nil, cols, pErr
-	}
-
-	return pipeline, cols, nil
+	return pipeline, nil
 }

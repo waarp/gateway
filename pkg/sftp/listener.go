@@ -6,6 +6,8 @@ import (
 	"io"
 	"net"
 	"path"
+	"path/filepath"
+	"strings"
 	"sync"
 	"time"
 
@@ -206,13 +208,20 @@ func (l *sshListener) makeFileReader(endSession func(context.Context), acc *mode
 			return nil, sftp.ErrSSHFxNoSuchFile
 		}
 
+		locPath, err := filepath.Rel(rule.Path, strings.TrimPrefix(r.Filepath, "/"))
+		if err != nil {
+			l.Logger.Errorf("Failed to parse file path: %v", err)
+
+			return nil, errFilepathParsing
+		}
+
 		// Create Transfer
 		trans := &model.Transfer{
 			RuleID:     rule.ID,
 			IsServer:   true,
 			AgentID:    l.Agent.ID,
 			AccountID:  acc.ID,
-			LocalPath:  path.Base(r.Filepath),
+			LocalPath:  locPath,
 			RemotePath: path.Base(r.Filepath),
 			Filesize:   model.UnknownSize,
 			Start:      time.Now(),
@@ -249,13 +258,20 @@ func (l *sshListener) makeFileWriter(endSession func(context.Context), acc *mode
 			return nil, sftp.ErrSSHFxPermissionDenied
 		}
 
+		locPath, err := filepath.Rel(rule.Path, strings.TrimPrefix(r.Filepath, "/"))
+		if err != nil {
+			l.Logger.Errorf("Failed to parse file path: %v", err)
+
+			return nil, errFilepathParsing
+		}
+
 		// Create Transfer
 		trans := &model.Transfer{
 			RuleID:     rule.ID,
 			IsServer:   true,
 			AgentID:    l.Agent.ID,
 			AccountID:  acc.ID,
-			LocalPath:  path.Base(r.Filepath),
+			LocalPath:  locPath,
 			RemotePath: path.Base(r.Filepath),
 			Filesize:   model.UnknownSize,
 			Start:      time.Now(),

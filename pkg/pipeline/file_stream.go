@@ -284,11 +284,20 @@ func (f *fileStream) move() *types.TransferError {
 		return errStateMachine
 	}
 
+	moveErr := types.NewTransferError(types.TeFinalization, "failed to move temp file")
+
 	if f.TransCtx.Rule.IsSend {
 		return nil
 	}
 
-	file := strings.TrimSuffix(filepath.Base(f.TransCtx.Transfer.LocalPath), ".part")
+	file, err := filepath.Rel(makeLocalDir(f.TransCtx), f.TransCtx.Transfer.LocalPath)
+	if err != nil {
+		f.handleError(types.TeInternal, "could not split the filename from the file path", err.Error())
+
+		return moveErr
+	}
+
+	file = strings.TrimSuffix(file, ".part")
 
 	var dest string
 	if f.TransCtx.Transfer.IsServer {
@@ -303,8 +312,6 @@ func (f *fileStream) move() *types.TransferError {
 	if f.TransCtx.Transfer.LocalPath == dest {
 		return nil
 	}
-
-	moveErr := types.NewTransferError(types.TeFinalization, "failed to move temp file")
 
 	if err := createDir(dest); err != nil {
 		f.handleError(types.TeFinalization, "Failed to create destination directory",

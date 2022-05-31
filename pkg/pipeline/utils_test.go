@@ -200,17 +200,17 @@ func initFilestream(ctx *testContext, trans *model.Transfer) *fileStream {
 	pip, err := NewClientPipeline(ctx.db, trans)
 	So(err, ShouldBeNil)
 
-	So(pip.pip.machine.Transition(statePreTasks), ShouldBeNil)
-	So(pip.pip.machine.Transition(statePreTasksDone), ShouldBeNil)
+	So(pip.Pip.machine.Transition(statePreTasks), ShouldBeNil)
+	So(pip.Pip.machine.Transition(statePreTasksDone), ShouldBeNil)
 
-	stream, err := newFileStream(pip.pip, time.Nanosecond, false)
+	stream, err := newFileStream(pip.Pip, time.Nanosecond, false)
 	So(err, ShouldBeNil)
 	Reset(func() { _ = stream.file.Close() })
 
-	if pip.pip.TransCtx.Rule.IsSend {
-		So(pip.pip.machine.Transition(stateReading), ShouldBeNil)
+	if pip.Pip.TransCtx.Rule.IsSend {
+		So(pip.Pip.machine.Transition(stateReading), ShouldBeNil)
 	} else {
-		So(pip.pip.machine.Transition(stateWriting), ShouldBeNil)
+		So(pip.Pip.machine.Transition(stateWriting), ShouldBeNil)
 	}
 
 	return stream
@@ -220,7 +220,7 @@ func newTestPipeline(db *database.DB, trans *model.Transfer) *Pipeline {
 	pip, err := NewClientPipeline(db, trans)
 	So(err, ShouldBeNil)
 
-	return pip.pip
+	return pip.Pip
 }
 
 var (
