@@ -5,73 +5,211 @@ import (
 	"crypto/x509"
 	"testing"
 
+	"code.bcarlin.xyz/go/logging"
 	"code.waarp.fr/lib/r66"
 	. "github.com/smartystreets/goconvey/convey"
 
+	"code.waarp.fr/apps/gateway/gateway/pkg/database"
 	"code.waarp.fr/apps/gateway/gateway/pkg/model"
 	"code.waarp.fr/apps/gateway/gateway/pkg/model/config"
+	"code.waarp.fr/apps/gateway/gateway/pkg/model/types"
+	"code.waarp.fr/apps/gateway/gateway/pkg/pipeline"
 	"code.waarp.fr/apps/gateway/gateway/pkg/pipeline/pipelinetest"
 	"code.waarp.fr/apps/gateway/gateway/pkg/tk/utils/testhelpers"
 )
 
 //nolint:gochecknoglobals // this variable is only used for tests
-var servConfTLS = &config.R66ProtoConfig{ServerLogin: "r66_login", ServerPassword: "sesame", IsTLS: true}
-
-// var partConfTLS = &config.R66ProtoConfig{ServerLogin: "r66_login", ServerPassword: "sesame", IsTLS: true}
+var (
+	servConfTLS = &config.R66ProtoConfig{ServerLogin: "r66_login", ServerPassword: "sesame", IsTLS: true}
+	partConfTLS = &config.R66ProtoConfig{ServerLogin: "r66_login", ServerPassword: "sesame", IsTLS: true}
+)
 
 func TestTLS(t *testing.T) {
 	Convey("Given a TLS R66 server", t, func(c C) {
+		errInvalidCert := &r66.Error{
+			Code:   r66.BadAuthent,
+			Detail: "invalid certificate: x509: certificate signed by unknown authority",
+		}
+
 		ctx := pipelinetest.InitServerPush(c, "r66", NewService, servConfTLS)
-		addCerts(c, ctx)
+		ctx.AddCryptos(c, cert(ctx.Server, "server_cert",
+			testhelpers.LocalhostCert, testhelpers.LocalhostKey))
 		ctx.StartService(c)
 
-		Convey("When connecting to the server", func() {
-			err := tlsConnect(ctx, true)
+		Convey("When connecting to the server", func(c C) {
+			ctx.AddCryptos(c, cert(ctx.LocAccount, "loc_acc_cert", testhelpers.ClientFooCert, ""))
+			err := tlsConnect(ctx, testhelpers.ClientFooCert, testhelpers.ClientFooKey)
 
-			Convey("Then it should not return an error", func() {
+			Convey("Then it should not return an error", func(c C) {
 				So(err, ShouldBeNil)
 			})
 		})
 
-		Convey("Given that the client provides a bad certificate", func() {
-			err := tlsConnect(ctx, false)
+		Convey("Given that the client provides a bad certificate", func(c C) {
+			err := tlsConnect(ctx, testhelpers.ClientFooCert2, testhelpers.ClientFooKey2)
 
-			Convey("Then it should return an error", func() {
-				So(err, ShouldBeError, "remote error: tls: bad certificate")
+			FocusConvey("Then it should return an error", func(c C) {
+				So(err, ShouldBeError, errInvalidCert)
+			})
+		})
+
+		Convey("Given that the client provides the legacy certificate", func(c C) {
+			Convey("Given that the legacy certificate is allowed", func(c C) {
+				model.IsLegacyR66CertificateAllowed = true
+				defer func() { model.IsLegacyR66CertificateAllowed = false }()
+
+				ctx.AddCryptos(c, cert(ctx.LocAccount, "loc_acc_cert", testhelpers.LegacyR66Cert, ""))
+
+				err := tlsConnect(ctx, testhelpers.LegacyR66Cert, testhelpers.LegacyR66Key)
+
+				Convey("Then it should not return an error", func(c C) {
+					So(err, ShouldBeNil)
+				})
+			})
+
+			Convey("Given that the legacy certificate was NOT configured", func(c C) {
+				model.IsLegacyR66CertificateAllowed = true
+				defer func() { model.IsLegacyR66CertificateAllowed = false }()
+
+				err := tlsConnect(ctx, testhelpers.LegacyR66Cert, testhelpers.LegacyR66Key)
+
+				Convey("Then it should return an error", func(c C) {
+					r66Err := &r66.Error{}
+					So(err, testhelpers.ShouldBeErrorType, &r66Err)
+					So(r66Err.Code, ShouldEqual, r66.BadAuthent)
+				})
+			})
+
+			Convey("Given that the legacy certificate is NOT allowed", func(c C) {
+				err := tlsConnect(ctx, testhelpers.LegacyR66Cert, testhelpers.LegacyR66Key)
+
+				Convey("Then it should return an error", func(c C) {
+					r66Err := &r66.Error{}
+					So(err, testhelpers.ShouldBeErrorType, &r66Err)
+					So(r66Err.Code, ShouldEqual, r66.BadAuthent)
+				})
+			})
+		})
+	})
+
+	Convey("Given a TLS R66 client", t, func(c C) {
+		ctx := pipelinetest.InitClientPush(c, "r66", partConfTLS)
+		getClient := func() *client {
+			pip, err := pipeline.NewClientPipeline(ctx.DB, ctx.ClientTrans)
+			c.So(err, ShouldBeNil)
+
+			cli, err := newClient(pip.Pip)
+			So(err, ShouldBeError)
+
+			return cli
+		}
+
+		Convey("When connecting to the server", func(c C) {
+			ctx.AddCryptos(c, cert(ctx.Partner, "partner_cert",
+				testhelpers.LocalhostCert, ""))
+			tlsServer(ctx, testhelpers.LocalhostCert, testhelpers.LocalhostKey)
+
+			Convey("Then it should not return an error", func(c C) {
+				So(getClient().connect(), ShouldBeNil)
+			})
+		})
+
+		Convey("Given that the server provides a bad certificate", func(c C) {
+			ctx.AddCryptos(c, cert(ctx.Partner, "partner_cert",
+				testhelpers.LocalhostCert, ""))
+			tlsServer(ctx, testhelpers.OtherLocalhostCert,
+				testhelpers.OtherLocalhostKey)
+
+			Convey("Then it should return an error", func(c C) {
+				So(getClient().connect(), ShouldBeError, types.NewTransferError(
+					types.TeConnection, "failed to connect to remote host"))
+			})
+		})
+
+		Convey("Given that the client provides the legacy certificate", func(c C) {
+			Convey("Given that the legacy certificate is allowed", func(c C) {
+				model.IsLegacyR66CertificateAllowed = true
+				defer func() { model.IsLegacyR66CertificateAllowed = false }()
+
+				ctx.AddCryptos(c, cert(ctx.Partner, "partner_cert", testhelpers.LegacyR66Cert, ""))
+				tlsServer(ctx, testhelpers.LegacyR66Cert, testhelpers.LegacyR66Key)
+
+				Convey("Then it should not return an error", func(c C) {
+					So(getClient().connect(), ShouldBeNil)
+				})
+			})
+
+			Convey("Given that the legacy certificate was NOT configured", func(c C) {
+				model.IsLegacyR66CertificateAllowed = true
+				defer func() { model.IsLegacyR66CertificateAllowed = false }()
+
+				tlsServer(ctx, testhelpers.LegacyR66Cert, testhelpers.LegacyR66Key)
+
+				Convey("Then it should return an error", func(c C) {
+					So(getClient().connect(), ShouldBeError, types.NewTransferError(
+						types.TeConnection, "failed to connect to remote host"))
+				})
+			})
+
+			Convey("Given that the legacy certificate is NOT allowed", func(c C) {
+				tlsServer(ctx, testhelpers.LegacyR66Cert, testhelpers.LegacyR66Key)
+
+				Convey("Then it should return an error", func(c C) {
+					So(getClient().connect(), ShouldBeError, types.NewTransferError(
+						types.TeConnection, "failed to connect to remote host"))
+				})
 			})
 		})
 	})
 }
 
-func addCerts(c C, ctx *pipelinetest.ServerContext) {
-	servCert := model.Crypto{
-		OwnerType:   ctx.Server.TableName(),
-		OwnerID:     ctx.Server.ID,
-		Name:        "loc_agent_cert",
-		PrivateKey:  testhelpers.LocalhostKey,
-		Certificate: testhelpers.LocalhostCert,
-	}
-	locAccCert := model.Crypto{
-		OwnerType:   ctx.LocAccount.TableName(),
-		OwnerID:     ctx.LocAccount.ID,
-		Name:        "loc_acc_cert",
-		Certificate: testhelpers.ClientFooCert,
-	}
-	ctx.AddCryptos(c, servCert, locAccCert)
+type cryptoOwner interface {
+	database.Table
+	database.Identifier
 }
 
-func tlsConnect(ctx *pipelinetest.ServerContext, validCert bool) error {
-	var (
-		cert tls.Certificate
-		err  error
-	)
+func cert(owner cryptoOwner, name, cert, key string) model.Crypto {
+	return model.Crypto{
+		OwnerType:   owner.TableName(),
+		OwnerID:     owner.GetID(),
+		Name:        name,
+		PrivateKey:  types.CypherText(key),
+		Certificate: cert,
+	}
+}
 
-	if validCert {
-		cert, err = tls.X509KeyPair([]byte(testhelpers.ClientFooCert), []byte(testhelpers.ClientFooKey))
-	} else {
-		cert, err = tls.X509KeyPair([]byte(testhelpers.ClientBarCert), []byte(testhelpers.ClientBarKey))
+func tlsServer(ctx *pipelinetest.ClientContext, cert, key string) {
+	certificate, err := tls.X509KeyPair([]byte(cert), []byte(key))
+	So(err, ShouldBeNil)
+
+	pool := x509.NewCertPool()
+
+	So(pool.AppendCertsFromPEM([]byte(testhelpers.ClientFooCert)), ShouldBeTrue)
+
+	conf := &tls.Config{
+		MinVersion:   tls.VersionTLS12,
+		Certificates: []tls.Certificate{certificate},
+		RootCAs:      pool,
 	}
 
+	serv := r66.Server{
+		Login:    partConfTLS.ServerLogin,
+		Password: []byte(partConfTLS.ServerPassword),
+		Handler: authentFunc(func(auth *r66.Authent) (r66.SessionHandler, error) {
+			return nil, &r66.Error{Code: r66.BadAuthent, Detail: "bad authentication"}
+		}),
+		Logger: ctx.Logger.AsStdLog(logging.DEBUG),
+	}
+
+	go serv.ListenAndServeTLS(ctx.Partner.Address, conf)
+}
+
+type authentFunc func(*r66.Authent) (r66.SessionHandler, error)
+
+func (a authentFunc) ValidAuth(auth *r66.Authent) (r66.SessionHandler, error) { return a(auth) }
+
+func tlsConnect(ctx *pipelinetest.ServerContext, cert, key string) error {
+	certificate, err := tls.X509KeyPair([]byte(cert), []byte(key))
 	So(err, ShouldBeNil)
 
 	pool := x509.NewCertPool()
@@ -79,7 +217,8 @@ func tlsConnect(ctx *pipelinetest.ServerContext, validCert bool) error {
 	So(pool.AppendCertsFromPEM([]byte(testhelpers.LocalhostCert)), ShouldBeTrue)
 
 	conf := &tls.Config{
-		Certificates: []tls.Certificate{cert},
+		MinVersion:   tls.VersionTLS12,
+		Certificates: []tls.Certificate{certificate},
 		RootCAs:      pool,
 	}
 

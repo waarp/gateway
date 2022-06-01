@@ -1,3 +1,5 @@
+.. _ref-proto-r66:
+
 ===
 R66
 ===
@@ -27,3 +29,23 @@ Les fonctionnalités R66 suivantes ne sont **pas** implémentées pour l'instant
 - Blocage de nouvelles requêtes entrantes
 - Extinction de serveur à distance
 - Les transferts en mode *passthrough*
+
+Compatibilité avec Waarp-R66
+----------------------------
+
+De base, *Waarp-R66* est livré avec un certificat TLS généré par Waarp. Bien
+que *Waarp-R66* permette son utilisation, ce certificat n'est pas accepté par la
+*Gateway* pour de multiples raisons (nom de domaine incorrect, date d'expiration...).
+Cependant, afin de permettre une meilleur compatibilité, et étant donné que
+le remplacement de ce certificat dans *Waarp-R66* serait compliqué, une exception
+a été ajoutée dans la *Gateway* pour que ce certificat soit accepté.
+
+Par défaut, cette exception est désactivée. Pour l'activer, la variable
+d'environnement `WAARP_GATEWAY_ALLOW_LEGACY_CERT=1` doit être fixée au démarrage
+de la *Gateway*. Une fois cela fait, le certificat R66 *legacy* peut être
+utilisé comme n'importe quel autre certificat auto-signé.
+
+.. warning:: Cette option est fournie pour permettre une meilleure compatibilité
+   entre la *gateway* et *Waarp-R66*. Il est cependant fortement conseillé de ne
+   pas l'activer si cela est possible car elle introduit une potentielle faille
+   de sécurité dans les transferts R66-TLS.

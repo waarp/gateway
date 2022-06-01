@@ -6,6 +6,7 @@ import (
 	. "github.com/smartystreets/goconvey/convey"
 
 	"code.waarp.fr/apps/gateway/gateway/pkg/database"
+	"code.waarp.fr/apps/gateway/gateway/pkg/model/config"
 	"code.waarp.fr/apps/gateway/gateway/pkg/tk/utils/testhelpers"
 )
 
@@ -150,8 +151,71 @@ func TestCryptoBeforeWrite(t *testing.T) {
 				Convey("Given that the certificate is not valid for the host", func() {
 					parentAgent.Address = "not_localhost:1"
 					So(db.Update(parentAgent).Cols("address").Run(), ShouldBeNil)
-					shouldFailWith("the certificate host is incorrect", database.NewValidationError(
-						"the certificate is not valid for host 'not_localhost'"))
+					shouldFailWith("the certificate host is incorrect",
+						database.NewValidationError("certificate is invalid: x509: "+
+							"certificate is valid for localhost, not not_localhost"))
+				})
+
+				Convey("Given the legacy R66 certificate", func() {
+					const protoR66 = "r66"
+
+					newCert.PrivateKey = testhelpers.LegacyR66Key
+					newCert.Certificate = testhelpers.LegacyR66Cert
+
+					Convey("Given that the legacy certificate is allowed", func() {
+						IsLegacyR66CertificateAllowed = true
+						defer func() { IsLegacyR66CertificateAllowed = false }()
+
+						Convey("Given a non-r66 owner", func() {
+							err := newCert.BeforeWrite(db)
+
+							Convey("Then it should return an error saying that "+
+								"the certificate is invalid", func() {
+								So(err, ShouldNotBeNil)
+								So(err.Error(), ShouldContainSubstring, "certificate"+
+									" is invalid: x509: certificate has expired or"+
+									" is not yet valid:")
+							})
+						})
+
+						Convey("Given an R66 owner", func() {
+							config.ProtoConfigs[protoR66] = func() config.ProtoConfig {
+								return new(testhelpers.TestProtoConfig)
+							}
+							defer delete(config.ProtoConfigs, protoR66)
+
+							parentAgent.Protocol = protoR66
+							So(db.Update(parentAgent).Cols("protocol").Run(), ShouldBeNil)
+
+							err := newCert.BeforeWrite(db)
+
+							Convey("Then it should NOT return an error", func() {
+								So(err, ShouldBeNil)
+							})
+						})
+					})
+
+					Convey("Given that the legacy certificate is NOT allowed", func() {
+						Convey("Given an R66 owner", func() {
+							config.ProtoConfigs[protoR66] = func() config.ProtoConfig {
+								return new(testhelpers.TestProtoConfig)
+							}
+							defer delete(config.ProtoConfigs, protoR66)
+
+							parentAgent.Protocol = protoR66
+							So(db.Update(parentAgent).Cols("protocol").Run(), ShouldBeNil)
+
+							err := newCert.BeforeWrite(db)
+
+							Convey("Then it should return an error saying that "+
+								"the certificate is invalid", func() {
+								So(err, ShouldNotBeNil)
+								So(err.Error(), ShouldContainSubstring, "certificate"+
+									" is invalid: x509: certificate has expired or"+
+									" is not yet valid:")
+							})
+						})
+					})
 				})
 			})
 		})

@@ -6,6 +6,7 @@ import (
 	"crypto/x509"
 	"fmt"
 
+	"code.waarp.fr/apps/gateway/gateway/pkg/model"
 	"code.waarp.fr/apps/gateway/gateway/pkg/pipeline"
 	"code.waarp.fr/apps/gateway/gateway/pkg/utils/compatibility"
 )
@@ -25,6 +26,27 @@ func MakeClientTLSConfig(pip *pipeline.Pipeline) (*tls.Config, error) {
 		}
 	}
 
+	conf := &tls.Config{
+		Certificates: tlsCerts,
+		MinVersion:   tls.VersionTLS12,
+	}
+
+	if model.IsLegacyR66CertificateAllowed {
+		conf.InsecureSkipVerify = true
+		conf.VerifyConnection = func(state tls.ConnectionState) error {
+			//nolint:errcheck //never returns an error
+			_ = compatibility.LogSha1(pip.Logger)(state)
+
+			//nolint:wrapcheck //error is returned as-is for better readability
+			return pip.TransCtx.RemoteAgentCryptos.CheckServerAuthent(state.ServerName,
+				state.PeerCertificates)
+		}
+
+		return conf, nil
+	} else {
+		conf.VerifyConnection = compatibility.LogSha1(pip.Logger)
+	}
+
 	var caPool *x509.CertPool
 	for _, cert := range pip.TransCtx.RemoteAgentCryptos {
 		if caPool == nil {
@@ -34,10 +56,7 @@ func MakeClientTLSConfig(pip *pipeline.Pipeline) (*tls.Config, error) {
 		caPool.AppendCertsFromPEM([]byte(cert.Certificate))
 	}
 
-	return &tls.Config{
-		Certificates:     tlsCerts,
-		MinVersion:       tls.VersionTLS12,
-		RootCAs:          caPool,
-		VerifyConnection: compatibility.LogSha1(pip.Logger),
-	}, nil
+	conf.RootCAs = caPool
+
+	return conf, nil
 }
