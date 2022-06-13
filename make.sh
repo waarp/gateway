@@ -87,12 +87,12 @@ t_generate() {
 t_build() {
   mkdir -p build
 
-  CGO_ENABLED=1 go build -ldflags " \
+  CGO_ENABLED=0 go build -ldflags " \
     -X code.waarp.fr/apps/gateway/gateway/pkg/version.Date=$(date -u --iso-8601=seconds) \
     -X code.waarp.fr/apps/gateway/gateway/pkg/version.Num=$(git describe --tags --dirty) \
     -X code.waarp.fr/apps/gateway/gateway/pkg/version.Commit=$(git rev-parse --short HEAD)" \
     -o "build/waarp-gateway" ./cmd/waarp-gateway
-  CGO_ENABLED=1 go build -ldflags " \
+  CGO_ENABLED=0 go build -ldflags " \
     -X code.waarp.fr/apps/gateway/gateway/pkg/version.Date=$(date -u --iso-8601=seconds) \
     -X code.waarp.fr/apps/gateway/gateway/pkg/version.Num=$(git describe --tags --dirty) \
     -X code.waarp.fr/apps/gateway/gateway/pkg/version.Commit=$(git rev-parse --short HEAD)" \
@@ -106,18 +106,16 @@ build_static_binaries() {
 
   # TODO: Run tests
 
-  CGO_ENABLED=1 go build -ldflags "-s -w -extldflags '-fno-PIC -static' \
+  CGO_ENABLED=0 go build -ldflags "-s -w \
     -X code.waarp.fr/apps/gateway/gateway/pkg/version.Date=$(date -u --iso-8601=seconds) \
     -X code.waarp.fr/apps/gateway/gateway/pkg/version.Num=$(git describe --tags --dirty) \
     -X code.waarp.fr/apps/gateway/gateway/pkg/version.Commit=$(git rev-parse --short HEAD)" \
-    -buildmode pie \
     -tags 'osusergo netgo static_build sqlite_omit_load_extension' \
     -o "build/waarp-gateway_${GOOS}_${GOARCH}" ./cmd/waarp-gateway
-  CGO_ENABLED=1 go build -ldflags "-s -w -extldflags '-fno-PIC -static' \
+  CGO_ENABLED=0 go build -ldflags "-s -w \
     -X code.waarp.fr/apps/gateway/gateway/pkg/version.Date=$(date -u --iso-8601=seconds) \
     -X code.waarp.fr/apps/gateway/gateway/pkg/version.Num=$(git describe --tags --dirty) \
     -X code.waarp.fr/apps/gateway/gateway/pkg/version.Commit=$(git rev-parse --short HEAD)" \
-    -buildmode pie \
     -tags 'osusergo netgo static_build sqlite_omit_load_extension' \
     -o "build/waarp-gatewayd_${GOOS}_${GOARCH}" ./cmd/waarp-gatewayd
 
@@ -165,16 +163,13 @@ t_build_dist() {
 This procedure will build static stripped binaries for Linux (64 bits)
 and Windows (64 bits).
 
-Warning:
-  It needs a gcc compiler for Windows (in Archlinux, the package mingw-w64-gcc).
-
 EOW
   
   mkdir -p build
 
   GOOS=linux GOARCH=amd64 build_static_binaries
   #GOOS=linux GOARCH=386 build_static_binaries
-  GOOS=windows GOARCH=amd64 CC="x86_64-w64-mingw32-gcc" build_static_binaries
+  GOOS=windows GOARCH=amd64 build_static_binaries
 }
 
 t_package() {

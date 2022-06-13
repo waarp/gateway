@@ -9,7 +9,7 @@ import (
 	// Register the SQL drivers.
 	"github.com/go-sql-driver/mysql"
 	_ "github.com/jackc/pgx/v4/stdlib"
-	_ "github.com/mattn/go-sqlite3"
+	_ "modernc.org/sqlite"
 
 	"code.waarp.fr/apps/gateway/gateway/pkg/conf"
 	"code.waarp.fr/apps/gateway/gateway/pkg/tk/migration"
@@ -17,7 +17,7 @@ import (
 
 const (
 	// SqliteDriver is the name of the SQLite database driver.
-	SqliteDriver = "sqlite3"
+	SqliteDriver = "sqlite"
 
 	// PostgresDriver is the name of the PostgreSQL database driver.
 	PostgresDriver = "pgx"
@@ -61,8 +61,7 @@ func SqliteDSN() string {
 		pass = fmt.Sprintf("&_auth_pass=%s", config.Password)
 	}
 
-	return fmt.Sprintf("file:%s?mode=rwc&_busy_timeout=10000%s%s",
-		config.Address, user, pass)
+	return fmt.Sprintf("file:%s?mode=rwc%s%s", config.Address, user, pass)
 }
 
 // PostgresDSN takes a database configuration and returns the corresponding

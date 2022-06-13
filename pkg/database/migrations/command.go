@@ -119,6 +119,8 @@ func Execute(config *conf.DatabaseConfig, version string, from int, out io.Write
 		return fmt.Errorf("failed to connect to database: %w", err)
 	}
 
+	db.SetMaxOpenConns(1)
+
 	defer func() { _ = db.Close() }() //nolint:errcheck // cannot handle the error
 
 	return doMigration(db, version, config.Type, from, out)
