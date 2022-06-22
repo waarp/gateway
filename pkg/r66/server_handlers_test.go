@@ -292,8 +292,7 @@ func TestUpdateTransferInfo(t *testing.T) {
 				}
 				So(hand.UpdateTransferInfo(info), ShouldBeNil)
 
-				var check model.Transfer
-				So(db.Get(&check, "id=?", trans.ID).Run(), ShouldBeNil)
+				check := pip.TransCtx.Transfer
 
 				Convey("Then it should have updated the transfer's filename", func() {
 					So(path.Base(check.RemotePath), ShouldEqual, "new.file")

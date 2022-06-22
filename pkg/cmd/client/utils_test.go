@@ -3,15 +3,13 @@ package wg
 import (
 	"errors"
 	"io"
-	"io/ioutil"
 	"net/http"
 	"os"
 	"strings"
 
+	"code.waarp.fr/lib/log"
 	. "github.com/smartystreets/goconvey/convey"
 	"golang.org/x/crypto/bcrypt"
-
-	"code.waarp.fr/lib/log"
 
 	"code.waarp.fr/apps/gateway/gateway/pkg/admin"
 	"code.waarp.fr/apps/gateway/gateway/pkg/database"
@@ -50,7 +48,7 @@ func hash(pwd string) string {
 }
 
 func writeFile(content string) *os.File {
-	file, err := ioutil.TempFile("", "*")
+	file, err := os.CreateTemp("", "*")
 	So(err, ShouldBeNil)
 	Reset(func() {
 		_ = file.Close()

@@ -4,7 +4,6 @@ import (
 	"context"
 	"encoding/json"
 	"io"
-	"io/ioutil"
 	"os"
 	"path/filepath"
 	"time"
@@ -181,20 +180,24 @@ func mkSendTransfer(ctx *testContext, filename string) *model.Transfer {
 	}
 	So(ctx.db.Insert(trans).Run(), ShouldBeNil)
 
-	So(ioutil.WriteFile(filepath.Join(ctx.root, ctx.send.LocalDir, filename),
+	So(os.WriteFile(filepath.Join(ctx.root, ctx.send.LocalDir, filename),
 		[]byte("new pipeline content"), 0o700), ShouldBeNil)
 
 	return trans
 }
 
+const testTransferUpdateInterval = time.Microsecond
+
 func initFilestream(ctx *testContext, trans *model.Transfer) *fileStream {
 	pip, err := NewClientPipeline(ctx.db, trans)
 	So(err, ShouldBeNil)
 
+	pip.Pip.updTicker.Reset(testTransferUpdateInterval)
 	So(pip.Pip.machine.Transition(statePreTasks), ShouldBeNil)
 	So(pip.Pip.machine.Transition(statePreTasksDone), ShouldBeNil)
+	So(pip.Pip.machine.Transition(stateDataStart), ShouldBeNil)
 
-	stream, err := newFileStream(pip.Pip, time.Nanosecond, false)
+	stream, err := newFileStream(pip.Pip, false)
 	So(err, ShouldBeNil)
 	Reset(func() { _ = stream.file.Close() })
 
@@ -212,6 +215,7 @@ func newTestPipeline(c C, db *database.DB, trans *model.Transfer) *Pipeline {
 
 	pip, err := NewClientPipeline(db, trans)
 	So(err, ShouldBeNil)
+	pip.Pip.updTicker.Reset(testTransferUpdateInterval)
 
 	return pip.Pip
 }
@@ -263,7 +267,7 @@ func (t *testProtoClient) EndPreTasks() *types.TransferError {
 }
 
 func (t *testProtoClient) Data(s DataStream) *types.TransferError {
-	if _, err := io.Copy(ioutil.Discard, s); err != nil {
+	if _, err := io.Copy(io.Discard, s); err != nil {
 		return errData
 	}
 

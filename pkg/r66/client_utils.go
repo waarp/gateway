@@ -99,7 +99,7 @@ func (c *client) request() *types.TransferError {
 	if c.pip.TransCtx.Transfer.Step <= types.StepData && blockRest != 0 {
 		// round progress to the beginning of the block
 		c.pip.TransCtx.Transfer.Progress -= blockRest
-		if err := c.pip.UpdateTrans("progression"); err != nil {
+		if err := c.pip.UpdateTrans(); err != nil {
 			return err
 		}
 	}
@@ -159,7 +159,7 @@ func (c *client) checkReqResp(req, resp *r66.Request) *types.TransferError {
 	} else {
 		c.pip.TransCtx.Transfer.Filesize = resp.FileSize
 
-		if err := c.pip.UpdateTrans("filesize"); err != nil {
+		if err := c.pip.UpdateTrans(); err != nil {
 			return err
 		}
 	}
@@ -198,7 +198,7 @@ func (c *client) checkReqResp(req, resp *r66.Request) *types.TransferError {
 		progress := uint64(resp.Rank) * uint64(resp.Block)
 		if progress < c.pip.TransCtx.Transfer.Progress {
 			c.pip.TransCtx.Transfer.Progress = progress
-			if err := c.pip.UpdateTrans("progression"); err != nil {
+			if err := c.pip.UpdateTrans(); err != nil {
 				return err
 			}
 		}

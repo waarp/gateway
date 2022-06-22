@@ -5,7 +5,7 @@ package pipelinetest
 import (
 	"context"
 	"fmt"
-	"io/ioutil"
+	"os"
 	"path"
 	"path/filepath"
 	"time"
@@ -252,7 +252,7 @@ func (s *SelfContext) resetTransfer(c convey.C) {
 		Run(), convey.ShouldBeNil)
 
 	s.ClientTrans.Status = types.StatusPlanned
-	c.So(s.DB.Update(s.ClientTrans).Cols("status").Run(), convey.ShouldBeNil)
+	c.So(s.DB.Update(s.ClientTrans).Run(), convey.ShouldBeNil)
 }
 
 // TestRetry can be called to test a transfer retry.
@@ -344,7 +344,7 @@ func (s *SelfContext) CheckDestFile(c convey.C) {
 				s.getClientRemoteDir(), s.remFileName)
 		}
 
-		content, err := ioutil.ReadFile(filepath.Clean(fullPath))
+		content, err := os.ReadFile(filepath.Clean(fullPath))
 
 		c.So(err, convey.ShouldBeNil)
 		c.So(len(content), convey.ShouldEqual, TestFileSize)
@@ -353,11 +353,12 @@ func (s *SelfContext) CheckDestFile(c convey.C) {
 	})
 }
 
-//nolint:dupl // factorizing would hurt readability
 // CheckClientTransferError takes asserts that the client transfer should have
 // failed like the given expected one. The expected entry must specify the step,
 // filesize (for the receiver), progress, task. The rest of the transfer entry's
 // attribute will be deduced automatically.
+//
+//nolint:dupl // factorizing would hurt readability
 func (s *SelfContext) CheckClientTransferError(c convey.C, errCode types.TransferErrorCode,
 	errMsg string, steps ...types.TransferStep,
 ) {
@@ -393,11 +394,12 @@ func (s *SelfContext) CheckClientTransferError(c convey.C, errCode types.Transfe
 	})
 }
 
-//nolint:dupl // factorizing would hurt readability
 // CheckServerTransferError takes asserts that the server transfer should have
 // failed like the given expected one. The expected entry must specify the step,
 // filesize (for the receiver), progress, task. The rest of the transfer entry's
 // attribute will be deduced automatically.
+//
+//nolint:dupl // factorizing would hurt readability
 func (s *SelfContext) CheckServerTransferError(c convey.C, errCode types.TransferErrorCode,
 	errMsg string, steps ...types.TransferStep,
 ) {

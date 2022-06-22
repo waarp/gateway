@@ -2,8 +2,6 @@ package sftp
 
 import (
 	"encoding/json"
-	"io"
-	"io/ioutil"
 	"os"
 	"path/filepath"
 	"testing"
@@ -28,9 +26,9 @@ func TestFileReader(t *testing.T) {
 		rulePath := filepath.Join(root, "test", "out")
 		So(os.MkdirAll(rulePath, 0o700), ShouldBeNil)
 
-		file := filepath.Join(rulePath, "file_read.src")
+		filePath := filepath.Join(rulePath, "file_read.src")
 		content := []byte("File reader test file content")
-		So(ioutil.WriteFile(file, content, 0o600), ShouldBeNil)
+		So(os.WriteFile(filePath, content, 0o600), ShouldBeNil)
 
 		Convey("Given a database with a rule, a localAgent and a localAccount", func(dbc C) {
 			db := database.TestDatabase(dbc)
@@ -80,19 +78,24 @@ func TestFileReader(t *testing.T) {
 					Convey("When calling the handler", func() {
 						f, err := handler.Fileread(request)
 						So(err, ShouldBeNil)
-						//nolint:forcetypeassert //no need, the type assertion will always succeed
-						Reset(func() { _ = f.(io.Closer).Close() })
+
+						file, ok := f.(*serverPipeline)
+						So(ok, ShouldBeTrue)
+
+						defer file.Close()
 
 						Convey("Then a transfer should be present in db", func() {
 							trans := &model.Transfer{}
 							So(db.Get(trans, "rule_id=? AND is_server=? AND agent_id=? AND account_id=?",
 								rule.ID, true, agent.ID, account.ID).Run(), ShouldBeNil)
+						})
 
-							Convey("With a valid file and status", func() {
-								So(trans.LocalPath, ShouldEqual, filepath.Join(
-									root, rule.LocalDir, "file_read.src"))
-								So(trans.Status, ShouldEqual, types.StatusRunning)
-							})
+						Convey("Then the transfer should have a valid file and status", func() {
+							trans := file.pipeline.TransCtx.Transfer
+
+							So(trans.LocalPath, ShouldEqual, filepath.Join(
+								root, rule.LocalDir, "file_read.src"))
+							So(trans.Status, ShouldEqual, types.StatusRunning)
 						})
 					})
 				})
@@ -181,19 +184,24 @@ func TestFileWriter(t *testing.T) {
 					Convey("When calling the handler", func() {
 						f, err := handler.Filewrite(request)
 						So(err, ShouldBeNil)
-						//nolint:forcetypeassert //no need, the type assertion will always succeed
-						Reset(func() { _ = f.(io.Closer).Close() })
+
+						file, ok := f.(*serverPipeline)
+						So(ok, ShouldBeTrue)
+
+						defer file.Close()
 
 						Convey("Then a transfer should be present in db", func() {
-							trans := &model.Transfer{}
-							So(db.Get(trans, "rule_id=? AND is_server=? AND agent_id=? AND account_id=?",
+							var trans model.Transfer
+							So(db.Get(&trans, "rule_id=? AND is_server=? AND agent_id=? AND account_id=?",
 								rule.ID, true, agent.ID, account.ID).Run(), ShouldBeNil)
+						})
 
-							Convey("With a valid file and status", func() {
-								So(trans.LocalPath, ShouldEqual, filepath.Join(
-									root, agent.TmpReceiveDir, "file.test.part"))
-								So(trans.Status, ShouldEqual, types.StatusRunning)
-							})
+						Convey("Then the transfer should have a valid file and status", func() {
+							trans := file.pipeline.TransCtx.Transfer
+
+							So(trans.LocalPath, ShouldEqual, filepath.Join(
+								root, agent.TmpReceiveDir, "file.test.part"))
+							So(trans.Status, ShouldEqual, types.StatusRunning)
 						})
 					})
 				})

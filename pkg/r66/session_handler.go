@@ -51,20 +51,14 @@ func (s *sessionHandler) ValidRequest(req *r66.Request) (r66.TransferHandler, er
 		return nil, err
 	}
 
-	if progErr := s.setProgress(req, trans); progErr != nil {
-		return nil, progErr
-	}
+	s.setProgress(req, trans)
 
 	pip, pErr := pipeline.NewServerPipeline(s.db, trans)
 	if pErr != nil {
 		return nil, internal.ToR66Error(pErr)
 	}
 
-	if err := s.getSize(req, rule, trans); err != nil {
-		pip.SetError(err)
-
-		return nil, internal.ToR66Error(err)
-	}
+	s.getSize(req, rule, trans)
 
 	if err := internal.UpdateTransferInfo(req.Infos, pip); err != nil {
 		pip.SetError(err)
@@ -162,51 +156,28 @@ func (s *sessionHandler) getTransfer(req *r66.Request, rule *model.Rule) (*model
 	return trans, nil
 }
 
-func (s *sessionHandler) getSize(req *r66.Request, rule *model.Rule, trans *model.Transfer) *types.TransferError {
+func (s *sessionHandler) getSize(req *r66.Request, rule *model.Rule,
+	trans *model.Transfer,
+) {
 	if rule.IsSend {
 		req.FileSize = trans.Filesize
-
-		return nil
+	} else if req.FileSize >= 0 {
+		trans.Filesize = req.FileSize
 	}
-
-	if req.FileSize < 0 {
-		return nil
-	}
-
-	trans.Filesize = req.FileSize
-	if err := s.db.Update(trans).Cols("filesize").Run(); err != nil {
-		s.logger.Error("Failed to set file size: %s", err)
-
-		return types.NewTransferError(types.TeInternal, "database error")
-	}
-
-	return nil
 }
 
-func (s *sessionHandler) setProgress(req *r66.Request, trans *model.Transfer) *r66.Error {
+func (s *sessionHandler) setProgress(req *r66.Request, trans *model.Transfer) {
 	if trans.Step > types.StepData {
-		return nil
+		return
 	}
 
 	prog := uint64(req.Rank) * uint64(req.Block)
 	if trans.Progress <= prog {
 		req.Rank = uint32(trans.Progress / uint64(req.Block))
-
-		return nil
+		trans.Progress -= trans.Progress % uint64(req.Block)
+	} else {
+		trans.Progress = prog
 	}
-
-	if prog == trans.Progress {
-		return nil
-	}
-
-	trans.Progress = prog
-	if err := s.db.Update(trans).Cols("progression").Run(); err != nil {
-		s.logger.Error("Failed to update R66 transfer progress: %s", err)
-
-		return internal.NewR66Error(r66.Internal, "database error")
-	}
-
-	return nil
 }
 
 func (s *sessionHandler) GetTransferInfo(id int64, isClient bool) (*r66.TransferInfo, error) {
