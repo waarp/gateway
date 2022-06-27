@@ -10,6 +10,7 @@ import (
 	"code.waarp.fr/apps/gateway/gateway/pkg/conf"
 	"code.waarp.fr/apps/gateway/gateway/pkg/pipeline"
 	"code.waarp.fr/apps/gateway/gateway/pkg/pipeline/pipelinetest"
+	"code.waarp.fr/apps/gateway/gateway/pkg/r66/internal"
 )
 
 func TestAddressIndirection(t *testing.T) {
@@ -25,6 +26,7 @@ func TestAddressIndirection(t *testing.T) {
 		So(ctx.DB.Update(ctx.Server).Cols("address").Run(), ShouldBeNil)
 
 		ctx.StartService(c)
+		clientConns = internal.NewConnPool()
 
 		Convey("Given a new r66 transfer", func(c C) {
 			Convey("When connecting to the server", func(c C) {

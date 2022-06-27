@@ -19,12 +19,6 @@ var (
 	errStateMachine = types.NewTransferError(types.TeInternal, "internal transfer error")
 )
 
-//nolint:gochecknoglobals // global var is used by design
-// TestPipelineEnd is a function, which (if not nil) is called when a pipeline
-// has reached its end. Should only be used for test purposes to signal when a
-// transfer has truly ended.
-var TestPipelineEnd func(isServer bool)
-
 // Pipeline is the structure regrouping all elements of the transfer Pipeline
 // which are not protocol-dependent, such as task execution.
 //
@@ -55,7 +49,6 @@ func newPipeline(db *database.DB, logger *log.Logger, transCtx *model.TransferCo
 		Logger:   logger,
 		TransCtx: transCtx,
 		machine:  pipelineSateMachine.New(),
-		Stream:   nil,
 		runner:   tasks.NewTaskRunner(db, logger, transCtx),
 	}
 
@@ -127,7 +120,7 @@ func (p *Pipeline) init() (err *types.TransferError) {
 // UpdateTrans updates the given columns of the pipeline's transfer.
 func (p *Pipeline) UpdateTrans(cols ...string) *types.TransferError {
 	if err := p.DB.Update(p.TransCtx.Transfer).Cols(cols...).Run(); err != nil {
-		p.handleError(types.TeInternal, fmt.Sprintf("Failed to update transfer %s",
+		p.handleError(types.TeInternal, fmt.Sprintf("Failed to update transfer columns %s",
 			strings.Join(cols, ", ")), "database error")
 
 		return types.NewTransferError(types.TeInternal, "database error")
@@ -142,6 +135,8 @@ func (p *Pipeline) UpdateTrans(cols ...string) *types.TransferError {
 //
 // When resuming a transfer, tasks already successfully executed will be skipped.
 func (p *Pipeline) PreTasks() *types.TransferError {
+	defer Tester.preTasksDone(p.TransCtx.Transfer)
+
 	if err := p.machine.Transition(statePreTasks); err != nil {
 		p.handleStateErr("PreTasks", p.machine.Current())
 
@@ -179,6 +174,24 @@ func (p *Pipeline) PreTasks() *types.TransferError {
 	}
 
 	return nil
+}
+
+// SetProgress sets the transfer progress to the given value. Can only be called
+// before StartData.
+func (p *Pipeline) SetProgress(offset uint64) *types.TransferError {
+	if curr := p.machine.Current(); curr != stateInit && curr != statePreTasksDone {
+		p.handleStateErr("SetProgress", curr)
+
+		return errStateMachine
+	}
+
+	if p.TransCtx.Transfer.Progress == offset {
+		return nil
+	}
+
+	p.TransCtx.Transfer.Progress = offset
+
+	return p.UpdateTrans("progression")
 }
 
 // StartData marks the beginning of the data transfer. It opens the pipeline's
@@ -227,7 +240,8 @@ func (p *Pipeline) StartData() (TransferStream, *types.TransferError) {
 	var tErr *types.TransferError
 
 	p.Stream, tErr = newFileStream(p, time.Second, isResume)
-	if err != nil {
+	if tErr != nil {
+		doTrantition()
 		p.handleError(tErr.Code, "Failed to create file stream", tErr.Details)
 
 		return nil, tErr
@@ -245,6 +259,8 @@ func (p *Pipeline) EndData() *types.TransferError {
 
 		return errStateMachine
 	}
+
+	Tester.dataDone(p.TransCtx.Transfer)
 
 	if err := p.Stream.close(); err != nil {
 		return err
@@ -277,6 +293,8 @@ func (p *Pipeline) EndData() *types.TransferError {
 //
 // When resuming a transfer, tasks already successfully executed will be skipped.
 func (p *Pipeline) PostTasks() *types.TransferError {
+	defer Tester.postTasksDone(p.TransCtx.Transfer)
+
 	if err := p.machine.Transition(statePostTasks); err != nil {
 		p.handleStateErr("PostTasks", p.machine.Current())
 
@@ -368,6 +386,7 @@ func (p *Pipeline) errorTasks() {
 	oldTask := p.TransCtx.Transfer.TaskNumber
 
 	defer func() {
+		Tester.errTasksDone(p.TransCtx.Transfer)
 		p.TransCtx.Transfer.Step = oldStep
 		p.TransCtx.Transfer.TaskNumber = oldTask
 
@@ -395,7 +414,7 @@ func (p *Pipeline) errDo(code types.TransferErrorCode, msg, cause string) {
 	p.runner.Stop()
 
 	go func() {
-		p.TransCtx.Transfer.Error = *types.NewTransferError(code, fmt.Sprintf("%s: %s", msg, cause))
+		p.TransCtx.Transfer.Error = *types.NewTransferError(code, fullMsg)
 		if dbErr := p.DB.Update(p.TransCtx.Transfer).Cols("progress", "error_code",
 			"error_details").Run(); dbErr != nil {
 			p.Logger.Errorf("Failed to update transfer error: %s", dbErr)
@@ -540,7 +559,5 @@ func (p *Pipeline) done() {
 		TransferInCount.Sub()
 	}
 
-	if TestPipelineEnd != nil {
-		TestPipelineEnd(p.TransCtx.Transfer.IsServer)
-	}
+	Tester.done(p.TransCtx.Transfer.IsServer)
 }

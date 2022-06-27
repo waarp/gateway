@@ -192,7 +192,7 @@ func (s *sessionHandler) setProgress(req *r66.Request, trans *model.Transfer) *r
 
 	trans.Progress = prog
 	if err := s.db.Update(trans).Cols("progression").Run(); err != nil {
-		s.logger.Errorf("Failed to update transfer progress: %s", err)
+		s.logger.Errorf("Failed to update R66 transfer progress: %s", err)
 
 		return internal.NewR66Error(r66.Internal, "database error")
 	}

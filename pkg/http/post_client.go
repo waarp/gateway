@@ -2,6 +2,7 @@ package http
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"io"
 	"mime"
@@ -206,8 +207,8 @@ func (p *postClient) Data(stream pipeline.DataStream) *types.TransferError {
 	if err != nil {
 		p.pip.Logger.Errorf("Failed to write to remote HTTP file: %s", err)
 		select {
-		case err := <-p.reqErr:
-			tErr := types.NewTransferError(types.TeDataTransfer, "HTTP transfer failed", err)
+		case reqErr := <-p.reqErr:
+			tErr := types.NewTransferError(types.TeDataTransfer, "HTTP transfer failed", reqErr)
 			p.SendError(tErr)
 
 			return tErr
@@ -223,8 +224,12 @@ func (p *postClient) Data(stream pipeline.DataStream) *types.TransferError {
 			return types.NewTransferError(types.TeDataTransfer,
 				"failed to write to remote HTTP file")
 		default:
-			tErr := types.NewTransferError(types.TeDataTransfer,
-				"failed to write to remote HTTP file")
+			var tErr *types.TransferError
+			if !errors.As(err, &tErr) {
+				tErr = types.NewTransferError(types.TeDataTransfer,
+					"failed to write to remote HTTP file")
+			}
+
 			p.SendError(tErr)
 
 			return tErr

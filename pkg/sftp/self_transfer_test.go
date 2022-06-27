@@ -6,6 +6,7 @@ import (
 	. "github.com/smartystreets/goconvey/convey"
 
 	"code.waarp.fr/apps/gateway/gateway/pkg/model/types"
+	"code.waarp.fr/apps/gateway/gateway/pkg/pipeline"
 	"code.waarp.fr/apps/gateway/gateway/pkg/pipeline/pipelinetest"
 )
 
@@ -103,6 +104,122 @@ func TestPushServerPreError(t *testing.T) {
 					types.TeExternalOperation,
 					"Pre-tasks failed: Task TASKERR @ PUSH PRE[1]: task failed",
 					types.StepPreTasks)
+			})
+		})
+	})
+}
+
+func TestSelfPushClientDataFail(t *testing.T) {
+	Convey("Given a new r66 push transfer", t, func(c C) {
+		ctx := pipelinetest.InitSelfPushTransfer(c, "sftp", NewService, nil, nil)
+		ctx.AddCryptos(c, makeCerts(ctx)...)
+		ctx.StartService(c)
+
+		Convey("Given an error during the data transfer", func(c C) {
+			ctx.AddClientDataError(c)
+			ctx.RunTransfer(c, true)
+
+			Convey("Then it should have executed all the tasks in order", func(c C) {
+				ctx.ServerShouldHavePreTasked(c)
+				ctx.ClientShouldHavePreTasked(c)
+				ctx.ClientShouldHaveErrorTasked(c)
+				ctx.ServerShouldHaveErrorTasked(c)
+
+				ctx.CheckClientTransferError(c,
+					pipeline.ErrTestFail.Code,
+					"test error: "+pipeline.ErrTestFail.Details,
+					types.StepData)
+				ctx.CheckServerTransferError(c,
+					types.TeConnectionReset,
+					"Error on remote partner: session closed unexpectedly",
+					types.StepData)
+			})
+		})
+	})
+}
+
+func TestSelfPushServerDataFail(t *testing.T) {
+	Convey("Given a new r66 push transfer", t, func(c C) {
+		ctx := pipelinetest.InitSelfPushTransfer(c, "sftp", NewService, nil, nil)
+		ctx.AddCryptos(c, makeCerts(ctx)...)
+		ctx.StartService(c)
+
+		Convey("Given an error during the data transfer", func(c C) {
+			ctx.AddServerDataError(c)
+			ctx.RunTransfer(c, true)
+
+			Convey("Then it should have executed all the tasks in order", func(c C) {
+				ctx.ServerShouldHavePreTasked(c)
+				ctx.ClientShouldHavePreTasked(c)
+				ctx.ClientShouldHaveErrorTasked(c)
+				ctx.ServerShouldHaveErrorTasked(c)
+
+				ctx.CheckClientTransferError(c,
+					pipeline.ErrTestFail.Code,
+					"Error on remote partner: "+pipeline.ErrTestFail.Details,
+					types.StepData)
+				ctx.CheckServerTransferError(c,
+					pipeline.ErrTestFail.Code,
+					"test error: "+pipeline.ErrTestFail.Details,
+					types.StepData)
+			})
+		})
+	})
+}
+
+func TestSelfPullClientDataFail(t *testing.T) {
+	Convey("Given a new r66 push transfer", t, func(c C) {
+		ctx := pipelinetest.InitSelfPullTransfer(c, "sftp", NewService, nil, nil)
+		ctx.AddCryptos(c, makeCerts(ctx)...)
+		ctx.StartService(c)
+
+		Convey("Given an error during the data transfer", func(c C) {
+			ctx.AddClientDataError(c)
+			ctx.RunTransfer(c, true)
+
+			Convey("Then it should have executed all the tasks in order", func(c C) {
+				ctx.ServerShouldHavePreTasked(c)
+				ctx.ClientShouldHavePreTasked(c)
+				ctx.ClientShouldHaveErrorTasked(c)
+				ctx.ServerShouldHaveErrorTasked(c)
+
+				ctx.CheckClientTransferError(c,
+					pipeline.ErrTestFail.Code,
+					"test error: "+pipeline.ErrTestFail.Details,
+					types.StepData)
+				ctx.CheckServerTransferError(c,
+					types.TeConnectionReset,
+					"Error on remote partner: session closed unexpectedly",
+					types.StepData)
+			})
+		})
+	})
+}
+
+func TestSelfPullServerDataFail(t *testing.T) {
+	Convey("Given a new r66 push transfer", t, func(c C) {
+		ctx := pipelinetest.InitSelfPullTransfer(c, "sftp", NewService, nil, nil)
+		ctx.AddCryptos(c, makeCerts(ctx)...)
+		ctx.StartService(c)
+
+		Convey("Given an error during the data transfer", func(c C) {
+			ctx.AddServerDataError(c)
+			ctx.RunTransfer(c, true)
+
+			Convey("Then it should have executed all the tasks in order", func(c C) {
+				ctx.ServerShouldHavePreTasked(c)
+				ctx.ClientShouldHavePreTasked(c)
+				ctx.ClientShouldHaveErrorTasked(c)
+				ctx.ServerShouldHaveErrorTasked(c)
+
+				ctx.CheckClientTransferError(c,
+					pipeline.ErrTestFail.Code,
+					"Error on remote partner: "+pipeline.ErrTestFail.Details,
+					types.StepData)
+				ctx.CheckServerTransferError(c,
+					pipeline.ErrTestFail.Code,
+					"test error: "+pipeline.ErrTestFail.Details,
+					types.StepData)
 			})
 		})
 	})

@@ -26,7 +26,8 @@ type ClientPipeline struct {
 
 // NewClientPipeline initializes and returns a new ClientPipeline for the given
 // transfer.
-func NewClientPipeline(db *database.DB, trans *model.Transfer) (*ClientPipeline, *types.TransferError) {
+func NewClientPipeline(db *database.DB, trans *model.Transfer,
+) (*ClientPipeline, *types.TransferError) {
 	logger := log.NewLogger(fmt.Sprintf("Pipeline %d (client)", trans.ID))
 
 	transCtx, err := model.GetTransferContext(db, logger, trans)
@@ -61,7 +62,8 @@ func NewClientPipeline(db *database.DB, trans *model.Transfer) (*ClientPipeline,
 	return cli, nil
 }
 
-func newClientPipeline(db *database.DB, logger *log.Logger, transCtx *model.TransferContext,
+func newClientPipeline(db *database.DB, logger *log.Logger,
+	transCtx *model.TransferContext,
 ) (*ClientPipeline, []string, *types.TransferError) {
 	proto := transCtx.RemoteAgent.Protocol
 
@@ -188,6 +190,8 @@ func (c *ClientPipeline) Run() *types.TransferError {
 	// DATA
 	file, fErr := c.Pip.StartData()
 	if fErr != nil {
+		c.client.SendError(fErr)
+
 		return fErr
 	}
 

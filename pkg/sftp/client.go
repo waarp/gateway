@@ -6,6 +6,7 @@ package sftp
 import (
 	"encoding/json"
 	"io"
+	"os"
 	"strings"
 
 	"github.com/pkg/sftp"
@@ -63,15 +64,8 @@ func newClient(pip *pipeline.Pipeline) (*client, *types.TransferError) {
 	}, nil
 }
 
-func (c *client) Request() (tErr *types.TransferError) {
-	defer func() {
-		if tErr != nil {
-			if cErr := c.EndTransfer(); cErr != nil {
-				c.pip.Logger.Warningf("Failed to end SFTP transfer: %v", cErr)
-			}
-		}
-	}()
-
+//nolint:funlen //splitting would add complexity
+func (c *client) Request() *types.TransferError {
 	addr := c.pip.TransCtx.RemoteAgent.Address
 
 	var err error
@@ -103,19 +97,47 @@ func (c *client) Request() (tErr *types.TransferError) {
 	filepath := strings.TrimPrefix(c.pip.TransCtx.Transfer.RemotePath, "/")
 
 	if c.pip.TransCtx.Rule.IsSend {
-		c.remoteFile, err = c.sftpSession.Create(filepath)
-		if err != nil {
-			c.pip.Logger.Errorf("Failed to create remote file: %s", err)
-
-			return c.fromSFTPErr(err, types.TeUnknownRemote)
-		}
+		return c.send(filepath)
 	} else {
-		c.remoteFile, err = c.sftpSession.Open(filepath)
-		if err != nil {
-			c.pip.Logger.Errorf("Failed to open remote file: %s", err)
+		return c.receive(filepath)
+	}
+}
 
-			return c.fromSFTPErr(err, types.TeUnknownRemote)
+func (c *client) send(filepath string) *types.TransferError {
+	if c.pip.TransCtx.Transfer.Progress > 0 {
+		var prog uint64 = 0
+
+		if stat, statErr := c.sftpSession.Stat(filepath); statErr != nil {
+			c.pip.Logger.Warningf("Failed to retrieve the remote file's size: %s", statErr)
+		} else {
+			prog = uint64(stat.Size())
 		}
+
+		if err := c.pip.SetProgress(prog); err != nil {
+			return err
+		}
+	}
+
+	var err error
+
+	c.remoteFile, err = c.sftpSession.OpenFile(filepath, os.O_WRONLY|os.O_CREATE|os.O_TRUNC)
+	if err != nil {
+		c.pip.Logger.Errorf("Failed to create remote file: %s", err)
+
+		return c.fromSFTPErr(err, types.TeUnknownRemote)
+	}
+
+	return nil
+}
+
+func (c *client) receive(filepath string) *types.TransferError {
+	var err error
+
+	c.remoteFile, err = c.sftpSession.Open(filepath)
+	if err != nil {
+		c.pip.Logger.Errorf("Failed to open remote file: %s", err)
+
+		return c.fromSFTPErr(err, types.TeUnknownRemote)
 	}
 
 	return nil

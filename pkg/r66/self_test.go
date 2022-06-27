@@ -8,7 +8,9 @@ import (
 	"code.waarp.fr/apps/gateway/gateway/pkg/model"
 	"code.waarp.fr/apps/gateway/gateway/pkg/model/config"
 	"code.waarp.fr/apps/gateway/gateway/pkg/model/types"
+	"code.waarp.fr/apps/gateway/gateway/pkg/pipeline"
 	"code.waarp.fr/apps/gateway/gateway/pkg/pipeline/pipelinetest"
+	"code.waarp.fr/apps/gateway/gateway/pkg/r66/internal"
 )
 
 //nolint:gochecknoglobals // these are test variables
@@ -23,6 +25,9 @@ func TestSelfPushOK(t *testing.T) {
 		ctx.StartService(c)
 
 		Convey("When executing the transfer", func(c C) {
+			clientConns = internal.NewConnPool()
+			Reset(clientConns.ForceClose)
+
 			ctx.RunTransfer(c, false)
 
 			Convey("Then it should have executed all the tasks in order", func(c C) {
@@ -43,6 +48,9 @@ func TestSelfPullOK(t *testing.T) {
 		ctx.StartService(c)
 
 		Convey("When executing the transfer", func(c C) {
+			clientConns = internal.NewConnPool()
+			Reset(clientConns.ForceClose)
+
 			ctx.RunTransfer(c, false)
 
 			Convey("Then it should have executed all the tasks in order", func(c C) {
@@ -63,6 +71,9 @@ func TestSelfPushClientPreTasksFail(t *testing.T) {
 		ctx.StartService(c)
 
 		Convey("Given that an error occurs in client pre-tasks", func(c C) {
+			clientConns = internal.NewConnPool()
+			Reset(clientConns.ForceClose)
+
 			ctx.AddClientPreTaskError(c)
 			ctx.RunTransfer(c, true)
 
@@ -96,6 +107,9 @@ func TestSelfPushServerPreTasksFail(t *testing.T) {
 		ctx.StartService(c)
 
 		Convey("Given an error during the server's pre-tasks", func(c C) {
+			clientConns = internal.NewConnPool()
+			Reset(clientConns.ForceClose)
+
 			ctx.AddServerPreTaskError(c)
 			ctx.RunTransfer(c, true)
 
@@ -129,6 +143,9 @@ func TestSelfPullClientPreTasksFail(t *testing.T) {
 		ctx.StartService(c)
 
 		Convey("Given that an error occurs in client pre-tasks", func(c C) {
+			clientConns = internal.NewConnPool()
+			Reset(clientConns.ForceClose)
+
 			ctx.AddClientPreTaskError(c)
 			ctx.RunTransfer(c, true)
 
@@ -162,6 +179,9 @@ func TestSelfPullServerPreTasksFail(t *testing.T) {
 		ctx.StartService(c)
 
 		Convey("Given an error during the server's pre-tasks", func(c C) {
+			clientConns = internal.NewConnPool()
+			Reset(clientConns.ForceClose)
+
 			ctx.AddServerPreTaskError(c)
 			ctx.RunTransfer(c, true)
 
@@ -189,12 +209,147 @@ func TestSelfPullServerPreTasksFail(t *testing.T) {
 	})
 }
 
+func TestSelfPushClientDataFail(t *testing.T) {
+	Convey("Given a new r66 push transfer", t, func(c C) {
+		ctx := pipelinetest.InitSelfPushTransfer(c, "r66", NewService, partConf, servConf)
+		ctx.StartService(c)
+
+		Convey("Given an error during the data transfer", func(c C) {
+			clientConns = internal.NewConnPool()
+			Reset(clientConns.ForceClose)
+
+			ctx.AddClientDataError(c)
+			ctx.RunTransfer(c, true)
+
+			Convey("Then it should have executed all the tasks in order", func(c C) {
+				ctx.ServerShouldHavePreTasked(c)
+				ctx.ClientShouldHavePreTasked(c)
+				ctx.ClientShouldHaveErrorTasked(c)
+				ctx.ServerShouldHaveErrorTasked(c)
+
+				ctx.CheckClientTransferError(c,
+					pipeline.ErrTestFail.Code,
+					"test error: "+pipeline.ErrTestFail.Details,
+					types.StepData)
+				ctx.CheckServerTransferError(c,
+					pipeline.ErrTestFail.Code,
+					"Error on remote partner: "+pipeline.ErrTestFail.Details,
+					types.StepData)
+
+				ctx.TestRetry(c)
+			})
+		})
+	})
+}
+
+func TestSelfPushServerDataFail(t *testing.T) {
+	Convey("Given a new r66 push transfer", t, func(c C) {
+		ctx := pipelinetest.InitSelfPushTransfer(c, "r66", NewService, partConf, servConf)
+		ctx.StartService(c)
+
+		Convey("Given an error during the data transfer", func(c C) {
+			clientConns = internal.NewConnPool()
+			Reset(clientConns.ForceClose)
+
+			ctx.AddServerDataError(c)
+			ctx.RunTransfer(c, true)
+
+			Convey("Then it should have executed all the tasks in order", func(c C) {
+				ctx.ServerShouldHavePreTasked(c)
+				ctx.ClientShouldHavePreTasked(c)
+				ctx.ClientShouldHaveErrorTasked(c)
+				ctx.ServerShouldHaveErrorTasked(c)
+
+				ctx.CheckClientTransferError(c,
+					pipeline.ErrTestFail.Code,
+					"Error on remote partner: "+pipeline.ErrTestFail.Details,
+					types.StepData)
+				ctx.CheckServerTransferError(c,
+					pipeline.ErrTestFail.Code,
+					"test error: "+pipeline.ErrTestFail.Details,
+					types.StepData)
+
+				ctx.TestRetry(c)
+			})
+		})
+	})
+}
+
+func TestSelfPullClientDataFail(t *testing.T) {
+	Convey("Given a new r66 push transfer", t, func(c C) {
+		ctx := pipelinetest.InitSelfPullTransfer(c, "r66", NewService, partConf, servConf)
+		ctx.StartService(c)
+
+		Convey("Given an error during the data transfer", func(c C) {
+			clientConns = internal.NewConnPool()
+			Reset(clientConns.ForceClose)
+
+			ctx.AddClientDataError(c)
+			ctx.RunTransfer(c, true)
+
+			Convey("Then it should have executed all the tasks in order", func(c C) {
+				ctx.ServerShouldHavePreTasked(c)
+				ctx.ClientShouldHavePreTasked(c)
+				ctx.ClientShouldHaveErrorTasked(c)
+				ctx.ServerShouldHaveErrorTasked(c)
+
+				ctx.CheckClientTransferError(c,
+					pipeline.ErrTestFail.Code,
+					"test error: "+pipeline.ErrTestFail.Details,
+					types.StepData)
+				ctx.CheckServerTransferError(c,
+					pipeline.ErrTestFail.Code,
+					"Error on remote partner: "+pipeline.ErrTestFail.Details,
+					types.StepData)
+
+				ctx.TestRetry(c)
+			})
+		})
+	})
+}
+
+func TestSelfPullServerDataFail(t *testing.T) {
+	Convey("Given a new r66 push transfer", t, func(c C) {
+		ctx := pipelinetest.InitSelfPullTransfer(c, "r66", NewService, partConf, servConf)
+		ctx.StartService(c)
+
+		Convey("Given an error during the data transfer", func(c C) {
+			clientConns = internal.NewConnPool()
+			Reset(clientConns.ForceClose)
+
+			ctx.AddServerDataError(c)
+			ctx.RunTransfer(c, true)
+
+			Convey("Then it should have executed all the tasks in order", func(c C) {
+				ctx.ServerShouldHavePreTasked(c)
+				ctx.ClientShouldHavePreTasked(c)
+				ctx.ClientShouldHaveErrorTasked(c)
+				ctx.ServerShouldHaveErrorTasked(c)
+
+				ctx.CheckClientTransferError(c,
+					pipeline.ErrTestFail.Code,
+					"Error on remote partner: "+pipeline.ErrTestFail.Details,
+					types.StepData)
+				ctx.CheckServerTransferError(c,
+					pipeline.ErrTestFail.Code,
+					"test error: "+pipeline.ErrTestFail.Details,
+					types.StepData)
+
+				ctx.TestRetry(c)
+			})
+		})
+	})
+}
+
 func TestSelfPushClientPostTasksFail(t *testing.T) {
 	Convey("Given a new r66 push transfer", t, func(c C) {
 		ctx := pipelinetest.InitSelfPushTransfer(c, "r66", NewService, partConf, servConf)
 		ctx.StartService(c)
 
 		Convey("Given an error during the client's post-tasks", func(c C) {
+			clientConns = internal.NewConnPool()
+			Reset(clientConns.ForceClose)
+
 			ctx.AddClientPostTaskError(c)
 			ctx.RunTransfer(c, true)
 
@@ -227,6 +382,9 @@ func TestSelfPushServerPostTasksFail(t *testing.T) {
 		ctx.StartService(c)
 
 		Convey("Given an error during the server's post-tasks", func(c C) {
+			clientConns = internal.NewConnPool()
+			Reset(clientConns.ForceClose)
+
 			ctx.AddServerPostTaskError(c)
 			ctx.RunTransfer(c, true)
 
@@ -262,6 +420,9 @@ func TestSelfPullClientPostTasksFail(t *testing.T) {
 		ctx.StartService(c)
 
 		Convey("Given an error during the client's post-tasks", func(c C) {
+			clientConns = internal.NewConnPool()
+			Reset(clientConns.ForceClose)
+
 			ctx.AddClientPostTaskError(c)
 			ctx.RunTransfer(c, true)
 
@@ -295,6 +456,9 @@ func TestSelfPullServerPostTasksFail(t *testing.T) {
 		ctx.StartService(c)
 
 		Convey("Given an error during the server's post-tasks", func(c C) {
+			clientConns = internal.NewConnPool()
+			Reset(clientConns.ForceClose)
+
 			ctx.AddServerPostTaskError(c)
 			ctx.RunTransfer(c, true)
 

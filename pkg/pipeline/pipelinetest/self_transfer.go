@@ -4,6 +4,7 @@ package pipelinetest
 
 import (
 	"context"
+	"fmt"
 	"io/ioutil"
 	"path"
 	"path/filepath"
@@ -12,6 +13,7 @@ import (
 	"github.com/smartystreets/goconvey/convey"
 
 	"code.waarp.fr/apps/gateway/gateway/pkg/conf"
+	"code.waarp.fr/apps/gateway/gateway/pkg/log"
 	"code.waarp.fr/apps/gateway/gateway/pkg/model"
 	"code.waarp.fr/apps/gateway/gateway/pkg/model/config"
 	"code.waarp.fr/apps/gateway/gateway/pkg/model/types"
@@ -136,7 +138,8 @@ func (s *SelfContext) addPullTransfer(c convey.C) {
 // StartService starts the service associated with the test server defined in
 // the SelfContext.
 func (s *SelfContext) StartService(c convey.C) {
-	s.service = s.constr(s.DB, s.Server, s.Logger)
+	logger := log.NewLogger(fmt.Sprintf("test_%s_server", s.Server.Protocol))
+	s.service = s.constr(s.DB, s.Server, logger)
 	c.So(s.service.Start(), convey.ShouldBeNil)
 	c.Reset(func() {
 		ctx, cancel := context.WithTimeout(context.Background(), time.Second)
@@ -207,6 +210,25 @@ func (s *SelfContext) AddServerPostTaskError(c convey.C) {
 	c.So(s.DB.Insert(s.fail).Run(), convey.ShouldBeNil)
 }
 
+// DataErrorOffset defines the offset at which simulated data errors should occur.
+const DataErrorOffset = uint64(TestFileSize / 2)
+
+func (s *SelfContext) AddClientDataError(_ convey.C) {
+	if s.ClientRule.IsSend {
+		pipeline.Tester.AddErrorAt(pipeline.DataRead, DataErrorOffset)
+	} else {
+		pipeline.Tester.AddErrorAt(pipeline.DataWrite, DataErrorOffset)
+	}
+}
+
+func (s *SelfContext) AddServerDataError(_ convey.C) {
+	if s.ClientRule.IsSend {
+		pipeline.Tester.AddErrorAt(pipeline.DataWrite, DataErrorOffset)
+	} else {
+		pipeline.Tester.AddErrorAt(pipeline.DataRead, DataErrorOffset)
+	}
+}
+
 // RunTransfer executes the test self-transfer in its entirety.
 func (s *SelfContext) RunTransfer(c convey.C, willFail bool) {
 	pip, err := pipeline.NewClientPipeline(s.DB, s.ClientTrans)
@@ -216,19 +238,19 @@ func (s *SelfContext) RunTransfer(c convey.C, willFail bool) {
 		convey.So(tErr, convey.ShouldBeNil)
 	}
 
-	s.TasksChecker.WaitClientDone()
-	s.TasksChecker.WaitServerDone()
+	pipeline.Tester.WaitClientDone()
+	pipeline.Tester.WaitServerDone()
 	s.waitForListDeletion()
 }
 
 func (s *SelfContext) resetTransfer(c convey.C) {
+	pipeline.Tester.Retry()
+
 	c.So(s.DB.DeleteAll(&model.Task{}).Where("type=?", taskstest.TaskErr).
 		Run(), convey.ShouldBeNil)
 
 	s.ClientTrans.Status = types.StatusPlanned
 	c.So(s.DB.Update(s.ClientTrans).Cols("status").Run(), convey.ShouldBeNil)
-
-	s.TasksChecker.Retry()
 }
 
 // TestRetry can be called to test a transfer retry.
@@ -294,9 +316,13 @@ func (s *SelfContext) CheckServerTransferOK(c convey.C) {
 // finished correctly.
 func (s *SelfContext) CheckEndTransferOK(c convey.C) {
 	c.Convey("Then the transfers should be over", func(c convey.C) {
+		var trans model.Transfers
+		c.So(s.DB.Select(&trans).Run(), convey.ShouldBeNil)
+		c.So(trans, convey.ShouldBeEmpty)
+
 		var results model.HistoryEntries
 		c.So(s.DB.Select(&results).OrderBy("id", true).Run(), convey.ShouldBeNil)
-		c.So(len(results), convey.ShouldEqual, 2) //nolint:gomnd // necessary here
+		c.So(results, convey.ShouldHaveLength, 2) //nolint:gomnd // necessary here
 
 		s.checkClientTransferOK(c, s.transData, &results[0])
 		s.checkServerTransferOK(c, &results[1])
@@ -332,9 +358,7 @@ func (s *SelfContext) CheckDestFile(c convey.C) {
 func (s *SelfContext) CheckClientTransferError(c convey.C, errCode types.TransferErrorCode,
 	errMsg string, steps ...types.TransferStep,
 ) {
-	var actual model.Transfer
-
-	c.So(s.DB.Get(&actual, "id=?", s.ClientTrans.ID).Run(), convey.ShouldBeNil)
+	actual := s.getTransfer(c, s.ClientTrans.ID)
 
 	var stepsStr []string
 	for _, s := range steps {
@@ -342,7 +366,7 @@ func (s *SelfContext) CheckClientTransferError(c convey.C, errCode types.Transfe
 	}
 
 	c.Convey("Then there should be a client-side transfer in error", func(c convey.C) {
-		c.So(actual.ID, convey.ShouldEqual, 1)
+		c.So(actual.ID, convey.ShouldEqual, s.ClientTrans.ID)
 		c.So(actual.RemoteTransferID, convey.ShouldNotBeBlank)
 		c.So(actual.Owner, convey.ShouldEqual, conf.GlobalConfig.GatewayName)
 		c.So(actual.IsServer, convey.ShouldBeFalse)
@@ -374,9 +398,8 @@ func (s *SelfContext) CheckClientTransferError(c convey.C, errCode types.Transfe
 func (s *SelfContext) CheckServerTransferError(c convey.C, errCode types.TransferErrorCode,
 	errMsg string, steps ...types.TransferStep,
 ) {
-	var actual model.Transfer
-
-	c.So(s.DB.Get(&actual, "id=?", s.ClientTrans.ID+1).Run(), convey.ShouldBeNil)
+	id := s.ClientTrans.ID + 1
+	actual := s.getTransfer(c, id)
 
 	var stepsStr []string
 	for _, s := range steps {
@@ -384,8 +407,7 @@ func (s *SelfContext) CheckServerTransferError(c convey.C, errCode types.Transfe
 	}
 
 	c.Convey("Then there should be a server-side transfer in error", func(c convey.C) {
-		c.So(actual.ID, convey.ShouldEqual, 2) //nolint:gomnd // necessary here
-
+		c.So(actual.ID, convey.ShouldEqual, id)
 		c.So(actual.Owner, convey.ShouldEqual, conf.GlobalConfig.GatewayName)
 		c.So(actual.IsServer, convey.ShouldBeTrue)
 		c.So(actual.Status, convey.ShouldEqual, types.StatusError)
@@ -410,6 +432,23 @@ func (s *SelfContext) CheckServerTransferError(c convey.C, errCode types.Transfe
 			c.So(actual.TaskNumber, convey.ShouldEqual, 0)
 		}
 	})
+}
+
+func (s *SelfContext) getTransfer(c convey.C, id uint64) *model.Transfer {
+	var transfers model.Transfers
+
+	c.So(s.DB.Select(&transfers).Run(), convey.ShouldBeNil)
+	c.So(transfers, convey.ShouldNotBeEmpty)
+
+	for i := range transfers {
+		if transfers[i].ID == id {
+			return &transfers[i]
+		}
+	}
+
+	c.So(transfers, convey.ShouldBeEmpty)
+
+	return nil
 }
 
 func (s *SelfContext) waitForListDeletion() {

@@ -7,6 +7,7 @@ import (
 
 	"code.waarp.fr/apps/gateway/gateway/pkg/log"
 	"code.waarp.fr/apps/gateway/gateway/pkg/model/types"
+	"code.waarp.fr/apps/gateway/gateway/pkg/pipeline"
 	"code.waarp.fr/apps/gateway/gateway/pkg/pipeline/pipelinetest"
 )
 
@@ -319,6 +320,120 @@ func TestSelfPullClientPreTasksFail(t *testing.T) {
 					types.TeExternalOperation,
 					"Pre-tasks failed: Task TASKERR @ PULL PRE[1]: task failed",
 					types.StepPreTasks)
+			})
+		})
+	})
+}
+
+func TestSelfPushClientDataFail(t *testing.T) {
+	Convey("Given a new HTTP push transfer", t, func(c C) {
+		ctx := pipelinetest.InitSelfPushTransfer(c, "http", NewService, nil, nil)
+		ctx.StartService(c)
+
+		Convey("Given an error during the data transfer", func(c C) {
+			ctx.AddClientDataError(c)
+			ctx.RunTransfer(c, true)
+
+			Convey("Then it should have executed all the tasks in order", func(c C) {
+				ctx.ServerShouldHavePreTasked(c)
+				ctx.ClientShouldHavePreTasked(c)
+				ctx.ClientShouldHaveErrorTasked(c)
+				ctx.ServerShouldHaveErrorTasked(c)
+
+				ctx.CheckClientTransferError(c,
+					pipeline.ErrTestFail.Code,
+					"test error: "+pipeline.ErrTestFail.Details,
+					types.StepData)
+				ctx.CheckServerTransferError(c,
+					pipeline.ErrTestFail.Code,
+					"Error on remote partner: "+pipeline.ErrTestFail.Details,
+					types.StepData)
+
+				ctx.TestRetry(c)
+			})
+		})
+	})
+}
+
+func TestSelfPushServerDataFail(t *testing.T) {
+	Convey("Given a new HTTP push transfer", t, func(c C) {
+		ctx := pipelinetest.InitSelfPushTransfer(c, "http", NewService, nil, nil)
+		ctx.StartService(c)
+
+		Convey("Given an error during the data transfer", func(c C) {
+			ctx.AddServerDataError(c)
+			ctx.RunTransfer(c, true)
+
+			Convey("Then it should have executed all the tasks in order", func(c C) {
+				ctx.ServerShouldHavePreTasked(c)
+				ctx.ClientShouldHavePreTasked(c)
+				ctx.ClientShouldHaveErrorTasked(c)
+				ctx.ServerShouldHaveErrorTasked(c)
+
+				ctx.CheckClientTransferError(c,
+					pipeline.ErrTestFail.Code,
+					"Error on remote partner: "+pipeline.ErrTestFail.Details,
+					types.StepData)
+				ctx.CheckServerTransferError(c,
+					pipeline.ErrTestFail.Code,
+					"test error: "+pipeline.ErrTestFail.Details,
+					types.StepData)
+
+				ctx.TestRetry(c)
+			})
+		})
+	})
+}
+
+// Same as TestSelfPullClientPreTasksFail.
+func TestSelfPullClientDataFail(t *testing.T) {
+	Convey("Given a new HTTP push transfer", t, func(c C) {
+		ctx := pipelinetest.InitSelfPullTransfer(c, "http", NewService, nil, nil)
+		ctx.StartService(c)
+
+		Convey("Given an error during the data transfer", func(c C) {
+			ctx.AddClientDataError(c)
+			ctx.RunTransfer(c, true)
+
+			Convey("Then it should have executed all the tasks in order", func(c C) {
+				ctx.ServerShouldHavePreTasked(c)
+				ctx.ClientShouldHavePreTasked(c)
+				ctx.ClientShouldHaveErrorTasked(c)
+
+				ctx.CheckClientTransferError(c,
+					pipeline.ErrTestFail.Code,
+					"test error: "+pipeline.ErrTestFail.Details,
+					types.StepData)
+			})
+		})
+	})
+}
+
+func TestSelfPullServerDataFail(t *testing.T) {
+	Convey("Given a new HTTP push transfer", t, func(c C) {
+		ctx := pipelinetest.InitSelfPullTransfer(c, "http", NewService, nil, nil)
+		ctx.StartService(c)
+
+		Convey("Given an error during the data transfer", func(c C) {
+			ctx.AddServerDataError(c)
+			ctx.RunTransfer(c, true)
+
+			Convey("Then it should have executed all the tasks in order", func(c C) {
+				ctx.ServerShouldHavePreTasked(c)
+				ctx.ClientShouldHavePreTasked(c)
+				ctx.ClientShouldHaveErrorTasked(c)
+				ctx.ServerShouldHaveErrorTasked(c)
+
+				ctx.CheckClientTransferError(c,
+					pipeline.ErrTestFail.Code,
+					"Error on remote partner: "+pipeline.ErrTestFail.Details,
+					types.StepData)
+				ctx.CheckServerTransferError(c,
+					pipeline.ErrTestFail.Code,
+					"test error: "+pipeline.ErrTestFail.Details,
+					types.StepData)
+
+				ctx.TestRetry(c)
 			})
 		})
 	})

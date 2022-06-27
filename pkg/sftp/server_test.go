@@ -153,7 +153,7 @@ func TestSSHServerInterruption(t *testing.T) {
 		test := pipelinetest.InitServerPush(c, "sftp", NewService, nil)
 		test.AddCryptos(c, makeServerKey(test.Server))
 
-		serv := newService(test.DB, test.Server, test.Logger)
+		serv := newService(test.DB, test.Server, log.NewLogger("ssh_test_server"))
 		c.So(serv.Start(), ShouldBeNil)
 
 		Convey("Given a dummy SFTP client", func() {

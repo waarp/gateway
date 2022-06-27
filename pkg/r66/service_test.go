@@ -16,6 +16,7 @@ import (
 	"code.waarp.fr/apps/gateway/gateway/pkg/log"
 	"code.waarp.fr/apps/gateway/gateway/pkg/model"
 	"code.waarp.fr/apps/gateway/gateway/pkg/model/types"
+	"code.waarp.fr/apps/gateway/gateway/pkg/pipeline"
 	"code.waarp.fr/apps/gateway/gateway/pkg/pipeline/pipelinetest"
 	"code.waarp.fr/apps/gateway/gateway/pkg/tk/utils/testhelpers"
 )
@@ -125,7 +126,7 @@ func TestServiceStop(t *testing.T) {
 }
 
 func TestR66ServerInterruption(t *testing.T) {
-	Convey("Given an SFTP server ready for push transfers", t, func(c C) {
+	Convey("Given an R66 server ready for push transfers", t, func(c C) {
 		test := pipelinetest.InitServerPush(c, "r66", NewService, servConf)
 
 		serv := newService(test.DB, test.Server, log.NewLogger("server"))
@@ -148,9 +149,18 @@ func TestR66ServerInterruption(t *testing.T) {
 				_, err := ses.Request(req)
 				So(err, ShouldBeNil)
 
+				So(ses.SendUpdateRequest(&r66.UpdateInfo{
+					Filename: req.Filepath,
+					FileSize: req.FileSize,
+					FileInfo: &r66.TransferData{
+						UserContent: "",
+						SystemData:  r66.SystemData{},
+					},
+				}), ShouldBeNil)
+
 				Convey("When the server shuts down", func(c C) {
 					go func() {
-						test.TasksChecker.WaitServerPreTasks()
+						pipeline.Tester.WaitServerPreTasks()
 
 						ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 						defer cancel()
@@ -180,7 +190,7 @@ func TestR66ServerInterruption(t *testing.T) {
 
 					Convey("Then the transfer should have been interrupted", func(c C) {
 						test.ServerShouldHavePreTasked(c)
-						test.TasksChecker.WaitServerDone()
+						pipeline.Tester.WaitServerDone()
 
 						var transfers model.Transfers
 						So(test.DB.Select(&transfers).Run(), ShouldBeNil)

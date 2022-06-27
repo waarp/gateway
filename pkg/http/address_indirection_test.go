@@ -16,7 +16,6 @@ func TestAddressIndirection(t *testing.T) {
 	Convey("Given a HTTP service with an indirect address", t, func(c C) {
 		Convey("Given a new POST HTTP transfer", func(c C) {
 			ctx := pipelinetest.InitSelfPushTransfer(c, "http", NewService, nil, nil)
-			defer func() { pipeline.TestPipelineEnd = nil }()
 
 			realAddr := ctx.Server.Address
 			conf.InitTestOverrides(c)
@@ -47,7 +46,6 @@ func TestAddressIndirection(t *testing.T) {
 
 		Convey("Given a new GET HTTP transfer", func(c C) {
 			ctx := pipelinetest.InitSelfPullTransfer(c, "http", NewService, nil, nil)
-			defer func() { pipeline.TestPipelineEnd = nil }()
 
 			realAddr := ctx.Server.Address
 			conf.InitTestOverrides(c)

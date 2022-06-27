@@ -2,7 +2,7 @@ module code.waarp.fr/apps/gateway/gateway
 
 require (
 	code.bcarlin.xyz/go/logging v0.1.0
-	code.waarp.fr/lib/r66 v0.1.3
+	code.waarp.fr/lib/r66 v0.1.5
 	github.com/bwmarrin/snowflake v0.3.0
 	github.com/go-sql-driver/mysql v1.5.0
 	github.com/gorilla/mux v1.7.3
