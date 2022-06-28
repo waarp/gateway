@@ -16,6 +16,7 @@ import (
 	"code.waarp.fr/apps/gateway/gateway/pkg/log"
 	"code.waarp.fr/apps/gateway/gateway/pkg/model"
 	"code.waarp.fr/apps/gateway/gateway/pkg/model/types"
+	"code.waarp.fr/apps/gateway/gateway/pkg/pipeline"
 	"code.waarp.fr/apps/gateway/gateway/pkg/pipeline/pipelinetest"
 	"code.waarp.fr/apps/gateway/gateway/pkg/tk/utils/testhelpers"
 )
@@ -98,10 +99,10 @@ func TestServerInterruption(t *testing.T) {
 				stop := make(chan error, 1)
 
 				Convey("When the server shuts down", func() {
-					defer test.TasksChecker.WaitServerDone()
+					defer pipeline.Tester.WaitServerDone()
 
 					go func() {
-						test.TasksChecker.WaitServerPreTasks()
+						pipeline.Tester.WaitServerPreTasks()
 
 						ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 						defer cancel()

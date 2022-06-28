@@ -4,6 +4,18 @@ Historique des versions
 =======================
 
 * :release:`0.5.2 <>`
+* :bug:`319` Lorsqu'un protocole n'intègre pas de mécanisme pour négocier une
+  reprise de transfert, alors le transfert de données est repris depuis le début.
+  Cela permet d'éviter que dans certains cas, le fichier envoyé soit incomplet
+  après une reprise de transfert.
+* :bug:`` Correction d'un bug pouvant causer un deadlock lorsqu'une erreur se
+  produit durant un transfert R66.
+* :bug:`315` Lorsqu'un transfert est interrompu durant l'envoi de données, et que
+  le transfert est redémarré, l'envoi de données reprendra depuis le début du
+  fichier, à moins que le protocole de transfert intègre un mécanisme permettant
+  une négociation sur l'endroit d'où reprendre le transfert (comme c'est le cas
+  pour R66 par exemple). Cela permet d'éviter qu'un fichier soit potentiellement
+  envoyé avec des parties manquantes.
 * :bug:`329` Correction de l'impossibilité pour la *gateway* de se connecter via
   R66-TLS à un agent *Waarp-R66*. Une exception a été ajoutée pour le certificat
   de *Waarp-R66* afin que celui-ci soit accepté par la *gateway* (voir

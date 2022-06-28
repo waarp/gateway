@@ -34,7 +34,7 @@ func TestNewFileStream(t *testing.T) {
 			So(ctx.db.Insert(trans).Run(), ShouldBeNil)
 
 			So(ioutil.WriteFile(trans.LocalPath, []byte("Hello World"), 0o700), ShouldBeNil)
-			pip := newTestPipeline(ctx.db, trans)
+			pip := newTestPipeline(c, ctx.db, trans)
 
 			So(pip.machine.Transition(statePreTasks), ShouldBeNil)
 			So(pip.machine.Transition(statePreTasksDone), ShouldBeNil)

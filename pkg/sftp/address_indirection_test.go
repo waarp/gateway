@@ -16,7 +16,6 @@ func TestAddressIndirection(t *testing.T) {
 
 	Convey("Given a SFTP service with an indirect address", t, func(c C) {
 		ctx := pipelinetest.InitSelfPushTransfer(c, "sftp", NewService, nil, nil)
-		defer func() { pipeline.TestPipelineEnd = nil }()
 
 		realAddr := ctx.Server.Address
 		conf.InitTestOverrides(c)

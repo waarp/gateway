@@ -1,6 +1,7 @@
 package pipeline
 
 import (
+	"context"
 	"encoding/json"
 	"io"
 	"io/ioutil"
@@ -17,7 +18,6 @@ import (
 	"code.waarp.fr/apps/gateway/gateway/pkg/model"
 	"code.waarp.fr/apps/gateway/gateway/pkg/model/config"
 	"code.waarp.fr/apps/gateway/gateway/pkg/model/types"
-	"code.waarp.fr/apps/gateway/gateway/pkg/tasks/taskstest"
 	"code.waarp.fr/apps/gateway/gateway/pkg/tk/utils/testhelpers"
 )
 
@@ -43,14 +43,8 @@ func init() {
 	config.ProtoConfigs[testProtocol] = func() config.ProtoConfig {
 		return new(testhelpers.TestProtoConfig)
 	}
-}
 
-func initTaskChecker() *taskstest.TaskChecker {
-	taskChecker := taskstest.InitTaskChecker()
-	model.ValidTasks[taskstest.TaskOK] = &taskstest.TestTask{TaskChecker: taskChecker}
-	model.ValidTasks[taskstest.TaskErr] = &taskstest.TestTaskError{TaskChecker: taskChecker}
-
-	return taskChecker
+	model.ValidTasks[TaskWait] = &taskWait{}
 }
 
 func hash(pwd string) string {
@@ -216,7 +210,9 @@ func initFilestream(ctx *testContext, trans *model.Transfer) *fileStream {
 	return stream
 }
 
-func newTestPipeline(db *database.DB, trans *model.Transfer) *Pipeline {
+func newTestPipeline(c C, db *database.DB, trans *model.Transfer) *Pipeline {
+	InitTester(c)
+
 	pip, err := NewClientPipeline(db, trans)
 	So(err, ShouldBeNil)
 
@@ -307,4 +303,21 @@ func (t *testProtoClient) EndTransfer() *types.TransferError {
 
 func (t *testProtoClient) SendError(err *types.TransferError) {
 	errChan <- err
+}
+
+const TaskWait = "TaskWait"
+
+//nolint:gochecknoglobals //this is only used for tests
+var taskChan = make(chan bool)
+
+type taskWait struct{}
+
+// Run executes the dummy task, which will always succeed.
+func (t *taskWait) Run(context.Context, map[string]string, *database.DB,
+	*model.TransferContext,
+) (string, error) {
+	<-taskChan
+	time.Sleep(100 * time.Millisecond)
+
+	return "", nil
 }

@@ -4,12 +4,15 @@ import (
 	"crypto/tls"
 	"fmt"
 	"sync"
+	"time"
 
 	"code.bcarlin.xyz/go/logging"
 	"code.waarp.fr/lib/r66"
 
 	"code.waarp.fr/apps/gateway/gateway/pkg/log"
 )
+
+const ConnectionGracePeriod = 5 * time.Second
 
 type connInfo struct {
 	conn *r66.Client // the connection
@@ -18,13 +21,14 @@ type connInfo struct {
 
 // ConnPool is a pool of r66 client connections used for multiplexing.
 type ConnPool struct {
-	m   map[string]*connInfo
-	mux sync.Mutex
+	m      map[string]*connInfo
+	mux    sync.Mutex
+	closed chan bool
 }
 
 // NewConnPool initiates and returns a new ConnPool instance.
 func NewConnPool() *ConnPool {
-	return &ConnPool{m: map[string]*connInfo{}}
+	return &ConnPool{m: map[string]*connInfo{}, closed: make(chan bool)}
 }
 
 // Exists returns whether a connection to the given address exists in the pool.
@@ -85,9 +89,39 @@ func (c *ConnPool) Done(addr string) {
 	}
 
 	if info.num <= 1 {
-		info.conn.Close()
-		delete(c.m, addr)
+		go c.waitClose(addr)
 	} else {
 		info.num--
 	}
+}
+
+func (c *ConnPool) waitClose(addr string) {
+	timer := time.NewTimer(ConnectionGracePeriod)
+	select {
+	case <-timer.C:
+	case <-c.closed:
+	}
+
+	c.mux.Lock()
+	defer c.mux.Unlock()
+
+	info, ok := c.m[addr]
+	if !ok || info.num > 0 {
+		return
+	}
+
+	info.conn.Close()
+	delete(c.m, addr)
+}
+
+func (c *ConnPool) ForceClose() {
+	c.mux.Lock()
+	defer c.mux.Unlock()
+
+	for addr, info := range c.m {
+		info.conn.Close()
+		delete(c.m, addr)
+	}
+
+	close(c.closed)
 }

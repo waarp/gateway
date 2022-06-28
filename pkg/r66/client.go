@@ -118,8 +118,10 @@ func (c *client) EndPreTasks() *types.TransferError {
 
 // Data copies data between the given data stream and the remote partner.
 func (c *client) Data(dataStream pipeline.DataStream) *types.TransferError {
+	stream := &clientStream{stream: dataStream}
+
 	if c.pip.TransCtx.Rule.IsSend {
-		_, err := c.ses.Send(dataStream, c.makeHash)
+		_, err := c.ses.Send(stream, c.makeHash)
 		if err != nil {
 			c.pip.Logger.Errorf("Failed to send transfer file: %s", err)
 
@@ -129,7 +131,7 @@ func (c *client) Data(dataStream pipeline.DataStream) *types.TransferError {
 		return nil
 	}
 
-	eot, err := c.ses.Recv(dataStream)
+	eot, err := c.ses.Recv(stream)
 	if err != nil {
 		c.pip.Logger.Errorf("Failed to receive transfer file: %s", err)
 

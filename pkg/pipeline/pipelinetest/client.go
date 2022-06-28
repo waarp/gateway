@@ -188,7 +188,7 @@ func (cc *ClientContext) RunTransfer(c convey.C) {
 	c.So(err, convey.ShouldBeNil)
 
 	convey.So(pip.Run(), convey.ShouldBeNil)
-	cc.TasksChecker.WaitClientDone()
+	pipeline.Tester.WaitClientDone()
 
 	ok := pipeline.ClientTransfers.Exists(cc.ClientTrans.ID)
 	c.So(ok, convey.ShouldBeFalse)

@@ -26,16 +26,15 @@ const (
 	TestPassword = "sesame"
 )
 
-type serviceConstructor func(db *database.DB, agent *model.LocalAgent, logger *log.Logger) service.ProtoService
+type serviceConstructor func(db *database.DB, agent *model.LocalAgent,
+	logger *log.Logger) service.ProtoService
 
 // TestFileSize defines the size of the file used for transfer tests.
 const TestFileSize int64 = 1000000 // 1MB
 
 type testData struct {
-	Logger       *log.Logger
-	DB           *database.DB
-	Paths        *conf.PathsConfig
-	TasksChecker *taskstest.TaskChecker
+	DB    *database.DB
+	Paths *conf.PathsConfig
 }
 
 func hash(pwd string) string {
@@ -62,27 +61,16 @@ func AddSourceFile(c convey.C, dir, file string) []byte {
 }
 
 func initTestData(c convey.C) *testData {
-	logger := log.NewLogger("test_logger")
 	db := database.TestDatabase(c, "ERROR")
 	home := testhelpers.TempDir(c, "transfer_test")
 	paths := makePaths(c, home)
 	conf.GlobalConfig.Paths = *paths
-	tasksChecker := taskstest.InitTaskChecker()
-	model.ValidTasks[taskstest.TaskOK] = &taskstest.TestTask{TaskChecker: tasksChecker}
-	model.ValidTasks[taskstest.TaskErr] = &taskstest.TestTaskError{TaskChecker: tasksChecker}
-	pipeline.TestPipelineEnd = func(isServer bool) {
-		if isServer {
-			tasksChecker.ServerDone()
-		} else {
-			tasksChecker.ClientDone()
-		}
-	}
+
+	pipeline.InitTester(c)
 
 	return &testData{
-		Logger:       logger,
-		DB:           db,
-		Paths:        paths,
-		TasksChecker: tasksChecker,
+		DB:    db,
+		Paths: paths,
 	}
 }
 
@@ -128,25 +116,25 @@ func makeRuleTasks(c convey.C, db *database.DB, rule *model.Rule) {
 }
 
 func (t *testData) ClientShouldHavePreTasked(c convey.C) {
-	c.So(t.TasksChecker.ClientPreTaskNB() != 0, convey.ShouldBeTrue)
+	c.So(pipeline.Tester.CliPre != 0, convey.ShouldBeTrue)
 }
 
 func (t *testData) ServerShouldHavePreTasked(c convey.C) {
-	c.So(t.TasksChecker.ServerPreTaskNB() != 0, convey.ShouldBeTrue)
+	c.So(pipeline.Tester.ServPre != 0, convey.ShouldBeTrue)
 }
 
 func (t *testData) ClientShouldHavePostTasked(c convey.C) {
-	c.So(t.TasksChecker.ClientPostTaskNB() != 0, convey.ShouldBeTrue)
+	c.So(pipeline.Tester.CliPost != 0, convey.ShouldBeTrue)
 }
 
 func (t *testData) ServerShouldHavePostTasked(c convey.C) {
-	c.So(t.TasksChecker.ServerPostTaskNB() != 0, convey.ShouldBeTrue)
+	c.So(pipeline.Tester.ServPost != 0, convey.ShouldBeTrue)
 }
 
 func (t *testData) ClientShouldHaveErrorTasked(c convey.C) {
-	c.So(t.TasksChecker.ClientErrTaskNB() != 0, convey.ShouldBeTrue)
+	c.So(pipeline.Tester.CliErr != 0, convey.ShouldBeTrue)
 }
 
 func (t *testData) ServerShouldHaveErrorTasked(c convey.C) {
-	c.So(t.TasksChecker.ServerErrTaskNB() != 0, convey.ShouldBeTrue)
+	c.So(pipeline.Tester.ServErr != 0, convey.ShouldBeTrue)
 }

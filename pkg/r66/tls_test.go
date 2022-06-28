@@ -10,6 +10,7 @@ import (
 	. "github.com/smartystreets/goconvey/convey"
 
 	"code.waarp.fr/apps/gateway/gateway/pkg/database"
+	"code.waarp.fr/apps/gateway/gateway/pkg/log"
 	"code.waarp.fr/apps/gateway/gateway/pkg/model"
 	"code.waarp.fr/apps/gateway/gateway/pkg/model/config"
 	"code.waarp.fr/apps/gateway/gateway/pkg/model/types"
@@ -198,7 +199,7 @@ func tlsServer(ctx *pipelinetest.ClientContext, cert, key string) {
 		Handler: authentFunc(func(auth *r66.Authent) (r66.SessionHandler, error) {
 			return nil, &r66.Error{Code: r66.BadAuthent, Detail: "bad authentication"}
 		}),
-		Logger: ctx.Logger.AsStdLog(logging.DEBUG),
+		Logger: log.NewLogger("http_trace").AsStdLog(logging.DEBUG),
 	}
 
 	go serv.ListenAndServeTLS(ctx.Partner.Address, conf)

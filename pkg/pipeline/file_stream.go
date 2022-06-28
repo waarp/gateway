@@ -78,6 +78,17 @@ func (f *fileStream) updateProgress() *types.TransferError {
 	default:
 	}
 
+	stage := DataWrite
+	if f.TransCtx.Rule.IsSend {
+		stage = DataRead
+	}
+
+	if testErr := Tester.getError(stage, f.progress); testErr != nil {
+		f.handleError(testErr.Code, "test error", testErr.Details)
+
+		return testErr
+	}
+
 	return nil
 }
 
@@ -236,6 +247,8 @@ func (f *fileStream) handleError(code types.TransferErrorCode, msg, cause string
 
 				return
 			}
+
+			f.done()
 		}()
 	})
 }

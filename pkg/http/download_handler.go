@@ -2,6 +2,7 @@ package http
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"io"
 	"net/http"
@@ -72,7 +73,8 @@ func (d *downloadHandler) Cancel(ctx context.Context) error {
 }
 
 func runDownload(r *http.Request, w http.ResponseWriter, running *service.TransferMap,
-	pip *pipeline.Pipeline) {
+	pip *pipeline.Pipeline,
+) {
 	down := &downloadHandler{
 		pip:  pip,
 		req:  r,
@@ -157,8 +159,12 @@ func (d *downloadHandler) run() {
 	d.makeHeaders()
 
 	if _, err := io.Copy(d.resp, file); err != nil {
-		cErr := types.NewTransferError(types.TeDataTransfer, "failed to copy data")
-		d.handleLateError(cErr)
+		var tErr *types.TransferError
+		if !errors.As(err, &tErr) {
+			tErr = types.NewTransferError(types.TeDataTransfer, "failed to copy data")
+		}
+
+		d.handleLateError(tErr)
 
 		return
 	}

@@ -46,17 +46,12 @@ func GetOldTransfer(db *database.DB, logger *log.Logger, trans *model.Transfer,
 // server transfer.
 func NewServerPipeline(db *database.DB, trans *model.Transfer,
 ) (*Pipeline, *types.TransferError) {
-	pip, err := newServerPipeline(db, trans)
-	if err != nil && TestPipelineEnd != nil {
-		TestPipelineEnd(true)
-	}
-
-	return pip, err
+	return newServerPipeline(db, trans)
 }
 
 func newServerPipeline(db *database.DB, trans *model.Transfer,
 ) (*Pipeline, *types.TransferError) {
-	logger := log.NewLogger(fmt.Sprintf("Pipeline %d (server)", trans.ID))
+	logger := log.NewLogger(fmt.Sprintf("Transfer of file %s (server)", trans.RemotePath))
 
 	transCtx, err := model.GetTransferContext(db, logger, trans)
 	if err != nil {
@@ -87,6 +82,8 @@ func newServerPipeline(db *database.DB, trans *model.Transfer,
 
 			return nil, errDatabase
 		}
+
+		pipeline.Logger = log.NewLogger(fmt.Sprintf("Pipeline %d (server)", trans.ID))
 	} else if err := db.Update(trans).Cols(cols...).Run(); err != nil {
 		logger.Errorf("Failed to update the transfer details: %s", err)
 

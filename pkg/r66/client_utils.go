@@ -193,7 +193,7 @@ func (c *client) checkReqResp(req, resp *r66.Request) *types.TransferError {
 		progress := uint64(resp.Rank) * uint64(resp.Block)
 		if progress < c.pip.TransCtx.Transfer.Progress {
 			c.pip.TransCtx.Transfer.Progress = progress
-			if err := c.pip.UpdateTrans("progress"); err != nil {
+			if err := c.pip.UpdateTrans("progression"); err != nil {
 				return err
 			}
 		}
