@@ -13,11 +13,12 @@ import (
 	"syscall"
 	"time"
 
+	"code.waarp.fr/lib/log"
+
 	"code.waarp.fr/apps/gateway/gateway/pkg/admin"
 	"code.waarp.fr/apps/gateway/gateway/pkg/conf"
 	"code.waarp.fr/apps/gateway/gateway/pkg/controller"
 	"code.waarp.fr/apps/gateway/gateway/pkg/database"
-	"code.waarp.fr/apps/gateway/gateway/pkg/log"
 	"code.waarp.fr/apps/gateway/gateway/pkg/model"
 	"code.waarp.fr/apps/gateway/gateway/pkg/tk/service"
 )
@@ -41,7 +42,7 @@ type WG struct {
 // NewWG creates a new application.
 func NewWG() *WG {
 	return &WG{
-		Logger: log.NewLogger("Waarp-Gateway"),
+		Logger: conf.GetLogger("Waarp-Gateway"),
 	}
 }
 
@@ -121,11 +122,11 @@ func (wg *WG) startServices() error {
 	}
 
 	for i := range servers {
-		l := log.NewLogger(servers[i].Name)
+		l := conf.GetLogger(servers[i].Name)
 
 		constr, ok := ServiceConstructors[servers[i].Protocol]
 		if !ok {
-			wg.Logger.Warningf("Unknown protocol '%s' for server %s",
+			wg.Logger.Warning("Unknown protocol '%s' for server %s",
 				servers[i].Protocol, servers[i].Name)
 
 			continue
@@ -137,7 +138,7 @@ func (wg *WG) startServices() error {
 
 	for _, serv := range wg.ProtoServices {
 		if err := serv.Start(); err != nil {
-			wg.Logger.Errorf("Error starting service: %s", err)
+			wg.Logger.Error("Error starting service: %s", err)
 		}
 	}
 
@@ -161,7 +162,7 @@ func (wg *WG) stopServices() {
 			defer w.Done()
 
 			if err := s.Stop(ctx); err != nil {
-				wg.Logger.Warningf("an error occurred while stopping the service: %v", err)
+				wg.Logger.Warning("an error occurred while stopping the service: %v", err)
 			}
 		}(wgService)
 	}
@@ -169,15 +170,15 @@ func (wg *WG) stopServices() {
 	w.Wait()
 
 	if err := wg.controller.Stop(ctx); err != nil {
-		wg.Logger.Warningf("an error occurred while stopping the controller service: %v", err)
+		wg.Logger.Warning("an error occurred while stopping the controller service: %v", err)
 	}
 
 	if err := wg.adminService.Stop(ctx); err != nil {
-		wg.Logger.Warningf("an error occurred while stopping the admin service: %v", err)
+		wg.Logger.Warning("an error occurred while stopping the admin service: %v", err)
 	}
 
 	if err := wg.dbService.Stop(ctx); err != nil {
-		wg.Logger.Warningf("an error occurred while stopping the database service: %v", err)
+		wg.Logger.Warning("an error occurred while stopping the database service: %v", err)
 	}
 }
 
@@ -185,13 +186,13 @@ func (wg *WG) stopServices() {
 func (wg *WG) Start() error {
 	gwName := conf.GlobalConfig.GatewayName
 
-	wg.Infof("Waarp Gateway '%s' is starting", gwName)
+	wg.Info("Waarp Gateway '%s' is starting", gwName)
 
 	if err := wg.startServices(); err != nil {
 		return err
 	}
 
-	wg.Infof("Waarp Gateway '%s' has started", gwName)
+	wg.Info("Waarp Gateway '%s' has started", gwName)
 
 	c := make(chan os.Signal, 1)
 	signal.Notify(c, syscall.SIGTERM, syscall.SIGQUIT, syscall.SIGINT)

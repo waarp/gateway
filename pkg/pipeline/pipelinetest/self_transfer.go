@@ -13,7 +13,6 @@ import (
 	"github.com/smartystreets/goconvey/convey"
 
 	"code.waarp.fr/apps/gateway/gateway/pkg/conf"
-	"code.waarp.fr/apps/gateway/gateway/pkg/log"
 	"code.waarp.fr/apps/gateway/gateway/pkg/model"
 	"code.waarp.fr/apps/gateway/gateway/pkg/model/config"
 	"code.waarp.fr/apps/gateway/gateway/pkg/model/types"
@@ -141,7 +140,7 @@ func (s *SelfContext) addPullTransfer(c convey.C) {
 // StartService starts the service associated with the test server defined in
 // the SelfContext.
 func (s *SelfContext) StartService(c convey.C) {
-	logger := log.NewLogger(fmt.Sprintf("test_%s_server", s.Server.Protocol))
+	logger := testhelpers.TestLogger(c, fmt.Sprintf("test_%s_server", s.Server.Protocol))
 	s.service = s.constr(s.DB, s.Server, logger)
 	c.So(s.service.Start(), convey.ShouldBeNil)
 	c.Reset(func() {

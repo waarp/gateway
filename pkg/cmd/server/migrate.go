@@ -6,11 +6,11 @@ import (
 	"io/ioutil"
 	"os"
 
+	"code.waarp.fr/lib/log"
 	"github.com/jessevdk/go-flags"
 
 	"code.waarp.fr/apps/gateway/gateway/pkg/conf"
 	"code.waarp.fr/apps/gateway/gateway/pkg/database/migrations"
-	"code.waarp.fr/apps/gateway/gateway/pkg/log"
 )
 
 //nolint:lll // tags can be long for flags
@@ -48,7 +48,7 @@ func (cmd *MigrateCommand) Execute([]string) error {
 		//nolint:gosec //close must be deferred here
 		defer func() {
 			if err := file.Close(); err != nil {
-				logger.Warningf("Error while closing the script output file: %s", err)
+				logger.Warning("Error while closing the script output file: %s", err)
 			}
 		}()
 
@@ -68,11 +68,13 @@ func (cmd *MigrateCommand) getMigrationConf() (*conf.ServerConfig, *log.Logger, 
 		return nil, nil, fmt.Errorf("cannot load server config: %w", err)
 	}
 
-	if err := log.InitBackend(config.Log.Level, config.Log.LogTo, ""); err != nil {
-		return nil, nil, fmt.Errorf("cannot initialize log backend: %w", err)
+	back, err2 := conf.NewLogBackend(config.Log.Level, config.Log.LogTo,
+		config.Log.SyslogFacility, "waarp-gateway")
+	if err2 != nil {
+		return nil, nil, fmt.Errorf("cannot initialize log backend: %w", err2)
 	}
 
 	config.Log = makeLogConf(cmd.Verbose)
 
-	return config, log.NewLogger("Migration"), nil
+	return config, back.NewLogger("Migration"), nil
 }

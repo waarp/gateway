@@ -5,12 +5,11 @@ import (
 	"crypto/x509"
 	"testing"
 
-	"code.bcarlin.xyz/go/logging"
+	"code.waarp.fr/lib/log"
 	"code.waarp.fr/lib/r66"
 	. "github.com/smartystreets/goconvey/convey"
 
 	"code.waarp.fr/apps/gateway/gateway/pkg/database"
-	"code.waarp.fr/apps/gateway/gateway/pkg/log"
 	"code.waarp.fr/apps/gateway/gateway/pkg/model"
 	"code.waarp.fr/apps/gateway/gateway/pkg/model/config"
 	"code.waarp.fr/apps/gateway/gateway/pkg/model/types"
@@ -108,7 +107,7 @@ func TestTLS(t *testing.T) {
 		Convey("When connecting to the server", func(c C) {
 			ctx.AddCryptos(c, cert(ctx.Partner, "partner_cert",
 				testhelpers.LocalhostCert, ""))
-			tlsServer(ctx, testhelpers.LocalhostCert, testhelpers.LocalhostKey)
+			tlsServer(c, ctx, testhelpers.LocalhostCert, testhelpers.LocalhostKey)
 
 			Convey("Then it should not return an error", func(c C) {
 				So(getClient().connect(), ShouldBeNil)
@@ -118,7 +117,7 @@ func TestTLS(t *testing.T) {
 		Convey("Given that the server provides a bad certificate", func(c C) {
 			ctx.AddCryptos(c, cert(ctx.Partner, "partner_cert",
 				testhelpers.LocalhostCert, ""))
-			tlsServer(ctx, testhelpers.OtherLocalhostCert,
+			tlsServer(c, ctx, testhelpers.OtherLocalhostCert,
 				testhelpers.OtherLocalhostKey)
 
 			Convey("Then it should return an error", func(c C) {
@@ -133,7 +132,7 @@ func TestTLS(t *testing.T) {
 				defer func() { model.IsLegacyR66CertificateAllowed = false }()
 
 				ctx.AddCryptos(c, cert(ctx.Partner, "partner_cert", testhelpers.LegacyR66Cert, ""))
-				tlsServer(ctx, testhelpers.LegacyR66Cert, testhelpers.LegacyR66Key)
+				tlsServer(c, ctx, testhelpers.LegacyR66Cert, testhelpers.LegacyR66Key)
 
 				Convey("Then it should not return an error", func(c C) {
 					So(getClient().connect(), ShouldBeNil)
@@ -144,7 +143,7 @@ func TestTLS(t *testing.T) {
 				model.IsLegacyR66CertificateAllowed = true
 				defer func() { model.IsLegacyR66CertificateAllowed = false }()
 
-				tlsServer(ctx, testhelpers.LegacyR66Cert, testhelpers.LegacyR66Key)
+				tlsServer(c, ctx, testhelpers.LegacyR66Cert, testhelpers.LegacyR66Key)
 
 				Convey("Then it should return an error", func(c C) {
 					So(getClient().connect(), ShouldBeError, types.NewTransferError(
@@ -153,7 +152,7 @@ func TestTLS(t *testing.T) {
 			})
 
 			Convey("Given that the legacy certificate is NOT allowed", func(c C) {
-				tlsServer(ctx, testhelpers.LegacyR66Cert, testhelpers.LegacyR66Key)
+				tlsServer(c, ctx, testhelpers.LegacyR66Cert, testhelpers.LegacyR66Key)
 
 				Convey("Then it should return an error", func(c C) {
 					So(getClient().connect(), ShouldBeError, types.NewTransferError(
@@ -179,7 +178,7 @@ func cert(owner cryptoOwner, name, cert, key string) model.Crypto {
 	}
 }
 
-func tlsServer(ctx *pipelinetest.ClientContext, cert, key string) {
+func tlsServer(c C, ctx *pipelinetest.ClientContext, cert, key string) {
 	certificate, err := tls.X509KeyPair([]byte(cert), []byte(key))
 	So(err, ShouldBeNil)
 
@@ -199,7 +198,7 @@ func tlsServer(ctx *pipelinetest.ClientContext, cert, key string) {
 		Handler: authentFunc(func(auth *r66.Authent) (r66.SessionHandler, error) {
 			return nil, &r66.Error{Code: r66.BadAuthent, Detail: "bad authentication"}
 		}),
-		Logger: log.NewLogger("http_trace").AsStdLog(logging.DEBUG),
+		Logger: testhelpers.TestLogger(c, "http_trace").AsStdLogger(log.LevelTrace),
 	}
 
 	go serv.ListenAndServeTLS(ctx.Partner.Address, conf)

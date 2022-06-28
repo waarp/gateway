@@ -28,7 +28,7 @@ func TestHistoryTableName(t *testing.T) {
 
 func TestHistoryBeforeWrite(t *testing.T) {
 	Convey("Given a database", t, func(c C) {
-		db := database.TestDatabase(c, "ERROR")
+		db := database.TestDatabase(c)
 
 		Convey("Given a new history entry", func() {
 			hist := &HistoryEntry{
@@ -175,7 +175,7 @@ func testTransferStatus(tc statusTestCase, target database.WriteHook, db *databa
 
 func TestTransferHistoryRestart(t *testing.T) {
 	Convey("Given a database", t, func(c C) {
-		db := database.TestDatabase(c, "ERROR")
+		db := database.TestDatabase(c)
 
 		rule := &Rule{Name: "rule", IsSend: true}
 		So(db.Insert(rule).Run(), ShouldBeNil)

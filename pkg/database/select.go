@@ -120,7 +120,7 @@ func (s *SelectQuery) Run() Error {
 	defer logSQL(query, logger)
 
 	if err := query.Find(s.bean); err != nil {
-		logger.Errorf("Failed to retrieve the %s entries: %s", s.bean.Elem(), err)
+		logger.Error("Failed to retrieve the %s entries: %s", s.bean.Elem(), err)
 
 		return NewInternalError(err)
 	}

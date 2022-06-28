@@ -4,8 +4,10 @@ import (
 	"context"
 	"fmt"
 
+	"code.waarp.fr/lib/log"
+
+	"code.waarp.fr/apps/gateway/gateway/pkg/conf"
 	"code.waarp.fr/apps/gateway/gateway/pkg/database"
-	"code.waarp.fr/apps/gateway/gateway/pkg/log"
 	"code.waarp.fr/apps/gateway/gateway/pkg/model"
 	"code.waarp.fr/apps/gateway/gateway/pkg/model/types"
 	"code.waarp.fr/apps/gateway/gateway/pkg/tk/service"
@@ -28,7 +30,7 @@ type ClientPipeline struct {
 // transfer.
 func NewClientPipeline(db *database.DB, trans *model.Transfer,
 ) (*ClientPipeline, *types.TransferError) {
-	logger := log.NewLogger(fmt.Sprintf("Pipeline %d (client)", trans.ID))
+	logger := conf.GetLogger(fmt.Sprintf("Pipeline %d (client)", trans.ID))
 
 	transCtx, err := model.GetTransferContext(db, logger, trans)
 	if err != nil {
@@ -43,14 +45,14 @@ func NewClientPipeline(db *database.DB, trans *model.Transfer,
 		cols = append(cols, "status", "error_code", "error_details")
 
 		if dbErr := db.Update(transCtx.Transfer).Cols(cols...).Run(); dbErr != nil {
-			logger.Errorf("Failed to update the transfer error: %s", dbErr)
+			logger.Error("Failed to update the transfer error: %s", dbErr)
 		}
 
 		return nil, tErr
 	}
 
 	if dbErr := db.Update(transCtx.Transfer).Cols(cols...).Run(); dbErr != nil {
-		logger.Errorf("Failed to update the transfer details: %s", dbErr)
+		logger.Error("Failed to update the transfer details: %s", dbErr)
 
 		return nil, errDatabase
 	}
@@ -69,7 +71,7 @@ func newClientPipeline(db *database.DB, logger *log.Logger,
 
 	constr, ok := ClientConstructors[proto]
 	if !ok {
-		logger.Errorf("No client found for protocol %s", proto)
+		logger.Error("No client found for protocol %s", proto)
 
 		return nil, nil, types.NewTransferError(types.TeInternal,
 			fmt.Sprintf("no client found for protocol %s", proto))
@@ -82,7 +84,7 @@ func newClientPipeline(db *database.DB, logger *log.Logger,
 
 	client, err := constr(pipeline)
 	if err != nil {
-		logger.Errorf("Failed to instantiate the %s transfer client: %s", proto, err)
+		logger.Error("Failed to instantiate the %s transfer client: %s", proto, err)
 
 		return nil, cols, err
 	}
@@ -190,7 +192,7 @@ func (c *ClientPipeline) Run() *types.TransferError {
 	// DATA
 	file, fErr := c.Pip.StartData()
 	if fErr != nil {
-		c.client.SendError(fErr)
+		c.Client.SendError(fErr)
 
 		return fErr
 	}

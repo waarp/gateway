@@ -58,7 +58,7 @@ func (u *User) Init(db database.Access) database.Error {
 
 	hash, err := utils.HashPassword(database.BcryptRounds, "admin_password")
 	if err != nil {
-		db.GetLogger().Errorf("Failed to hash the user password: %s", err)
+		db.GetLogger().Error("Failed to hash the user password: %s", err)
 
 		return database.NewInternalError(err)
 	}

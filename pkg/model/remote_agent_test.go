@@ -26,7 +26,7 @@ func TestRemoteAgentTableName(t *testing.T) {
 
 func TestRemoteAgentBeforeDelete(t *testing.T) {
 	Convey("Given a database", t, func(c C) {
-		db := database.TestDatabase(c, "ERROR")
+		db := database.TestDatabase(c)
 
 		Convey("Given a remote agent entry", func() {
 			ag := RemoteAgent{
@@ -126,7 +126,7 @@ func TestRemoteAgentBeforeDelete(t *testing.T) {
 
 func TestRemoteAgentValidate(t *testing.T) {
 	Convey("Given a database", t, func(c C) {
-		db := database.TestDatabase(c, "ERROR")
+		db := database.TestDatabase(c)
 
 		Convey("Given the database contains 1 remote agent", func() {
 			oldAgent := RemoteAgent{

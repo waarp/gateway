@@ -6,12 +6,12 @@ import (
 	"os"
 	"path/filepath"
 
+	"code.waarp.fr/lib/log"
 	"github.com/smartystreets/goconvey/convey"
 	"golang.org/x/crypto/bcrypt"
 
 	"code.waarp.fr/apps/gateway/gateway/pkg/conf"
 	"code.waarp.fr/apps/gateway/gateway/pkg/database"
-	"code.waarp.fr/apps/gateway/gateway/pkg/log"
 	"code.waarp.fr/apps/gateway/gateway/pkg/model"
 	"code.waarp.fr/apps/gateway/gateway/pkg/pipeline"
 	"code.waarp.fr/apps/gateway/gateway/pkg/tasks/taskstest"
@@ -61,7 +61,7 @@ func AddSourceFile(c convey.C, dir, file string) []byte {
 }
 
 func initTestData(c convey.C) *testData {
-	db := database.TestDatabase(c, "ERROR")
+	db := database.TestDatabase(c)
 	home := testhelpers.TempDir(c, "transfer_test")
 	paths := makePaths(c, home)
 	conf.GlobalConfig.Paths = *paths

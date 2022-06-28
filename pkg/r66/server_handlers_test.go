@@ -14,7 +14,6 @@ import (
 
 	"code.waarp.fr/apps/gateway/gateway/pkg/conf"
 	"code.waarp.fr/apps/gateway/gateway/pkg/database"
-	"code.waarp.fr/apps/gateway/gateway/pkg/log"
 	"code.waarp.fr/apps/gateway/gateway/pkg/model"
 	"code.waarp.fr/apps/gateway/gateway/pkg/model/types"
 	"code.waarp.fr/apps/gateway/gateway/pkg/pipeline"
@@ -23,16 +22,10 @@ import (
 	"code.waarp.fr/apps/gateway/gateway/pkg/tk/utils/testhelpers"
 )
 
-//nolint:gochecknoinits // init is used by design
-func init() {
-	_ = log.InitBackend("DEBUG", "stdout", "")
-}
-
 func TestValidAuth(t *testing.T) {
-	logger := log.NewLogger("test_valid_auth")
-
 	Convey("Given an R66 authentication handler", t, func(c C) {
-		db := database.TestDatabase(c, "ERROR")
+		logger := testhelpers.TestLogger(c, "test_valid_auth")
+		db := database.TestDatabase(c)
 		r66Server := &model.LocalAgent{
 			Name:        "r66 server",
 			Protocol:    "r66",
@@ -107,10 +100,9 @@ func TestValidAuth(t *testing.T) {
 }
 
 func TestValidRequest(t *testing.T) {
-	logger := log.NewLogger("test_valid_request")
-
 	Convey("Given an R66 session handler", t, func(c C) {
-		db := database.TestDatabase(c, "ERROR")
+		logger := testhelpers.TestLogger(c, "test_valid_request")
+		db := database.TestDatabase(c)
 		root := testhelpers.TempDir(c, "r66_valid_request")
 
 		rule := &model.Rule{
@@ -235,10 +227,9 @@ func TestValidRequest(t *testing.T) {
 }
 
 func TestUpdateTransferInfo(t *testing.T) {
-	logger := log.NewLogger("test_valid_request")
-
 	Convey("Given an R66 transfer handler", t, func(c C) {
-		db := database.TestDatabase(c, "ERROR")
+		logger := testhelpers.TestLogger(c, "test_valid_request")
+		db := database.TestDatabase(c)
 		root := testhelpers.TempDir(c, "r66_update_info")
 		conf.GlobalConfig.Paths = conf.PathsConfig{
 			GatewayHome: root,

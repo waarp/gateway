@@ -55,26 +55,26 @@ func initTables(db *Standalone, withInit bool) error {
 	return db.Transaction(func(ses *Session) Error {
 		for _, tbl := range tables {
 			if ok, err := ses.session.IsTableExist(tbl.TableName()); err != nil {
-				db.logger.Criticalf("Failed to retrieve database table list: %s", err)
+				db.logger.Critical("Failed to retrieve database table list: %s", err)
 
 				return NewInternalError(err)
 			} else if !ok {
 				if err := ses.session.Table(tbl.TableName()).CreateTable(tbl); err != nil {
-					db.logger.Criticalf("Failed to create the '%s' database table: %s",
+					db.logger.Critical("Failed to create the '%s' database table: %s",
 						tbl.TableName(), err)
 
 					return NewInternalError(err)
 				}
 
 				if err := ses.session.Table(tbl.TableName()).CreateUniques(tbl); err != nil {
-					db.logger.Criticalf("Failed to create the '%s' table uniques: %s",
+					db.logger.Critical("Failed to create the '%s' table uniques: %s",
 						tbl.TableName(), err)
 
 					return NewInternalError(err)
 				}
 
 				if err := ses.session.Table(tbl.TableName()).CreateIndexes(tbl); err != nil {
-					db.logger.Criticalf("Failed to create the '%s' table indexes: %s",
+					db.logger.Critical("Failed to create the '%s' table indexes: %s",
 						tbl.TableName(), err)
 
 					return NewInternalError(err)

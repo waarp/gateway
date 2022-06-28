@@ -1,9 +1,10 @@
 package backup
 
 import (
+	"code.waarp.fr/lib/log"
+
 	"code.waarp.fr/apps/gateway/gateway/pkg/backup/file"
 	"code.waarp.fr/apps/gateway/gateway/pkg/database"
-	"code.waarp.fr/apps/gateway/gateway/pkg/log"
 	"code.waarp.fr/apps/gateway/gateway/pkg/model"
 )
 
@@ -26,7 +27,7 @@ func exportRemotes(logger *log.Logger, db database.ReadAccess) ([]file.RemoteAge
 			return nil, err
 		}
 
-		logger.Infof("Export remote partner %s\n", src.Name)
+		logger.Info("Export remote partner %s\n", src.Name)
 
 		agent := file.RemoteAgent{
 			Name:          src.Name,
@@ -43,7 +44,8 @@ func exportRemotes(logger *log.Logger, db database.ReadAccess) ([]file.RemoteAge
 }
 
 func exportRemoteAccounts(logger *log.Logger, db database.ReadAccess,
-	agentID uint64) ([]file.RemoteAccount, error) {
+	agentID uint64,
+) ([]file.RemoteAccount, error) {
 	var dbAccounts model.RemoteAccounts
 	if err := db.Select(&dbAccounts).Where("remote_agent_id=?", agentID).Run(); err != nil {
 		return nil, err
@@ -57,7 +59,7 @@ func exportRemoteAccounts(logger *log.Logger, db database.ReadAccess,
 			return nil, err
 		}
 
-		logger.Infof("Export remote account %s\n", src.Login)
+		logger.Info("Export remote account %s\n", src.Login)
 
 		account := file.RemoteAccount{
 			Login:    src.Login,

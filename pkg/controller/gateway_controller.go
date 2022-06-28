@@ -4,9 +4,10 @@ import (
 	"sync"
 	"time"
 
+	"code.waarp.fr/lib/log"
+
 	"code.waarp.fr/apps/gateway/gateway/pkg/conf"
 	"code.waarp.fr/apps/gateway/gateway/pkg/database"
-	"code.waarp.fr/apps/gateway/gateway/pkg/log"
 	"code.waarp.fr/apps/gateway/gateway/pkg/model"
 	"code.waarp.fr/apps/gateway/gateway/pkg/model/types"
 	"code.waarp.fr/apps/gateway/gateway/pkg/pipeline"
@@ -43,7 +44,7 @@ func (c *GatewayController) Run(wg *sync.WaitGroup) {
 
 		go func() {
 			if err := pip.Run(); err != nil {
-				c.logger.Errorf("Transfer n°%d failed: %v", trans.ID, err)
+				c.logger.Error("Transfer n°%d failed: %v", trans.ID, err)
 			}
 
 			wg.Done()
@@ -65,7 +66,7 @@ func (c *GatewayController) checkIsDBDown() bool {
 	query := c.DB.UpdateAll(&model.Transfer{}, database.UpdVals{"status": types.StatusInterrupted},
 		"owner=? AND status=?", conf.GlobalConfig.GatewayName, types.StatusRunning)
 	if err := query.Run(); err != nil {
-		c.logger.Errorf("Failed to access database: %s", err.Error())
+		c.logger.Error("Failed to access database: %s", err.Error())
 
 		return true
 	}
@@ -90,7 +91,7 @@ func (c *GatewayController) retrieveTransfers() (model.Transfers, error) {
 				Format(time.RFC3339Nano)).Limit(lim, 0)
 
 		if err := query.Run(); err != nil {
-			// c.logger.Errorf("Failed to access database: %s", err.Error())
+			// c.logger.Error("Failed to access database: %s", err.Error())
 
 			return err
 		}

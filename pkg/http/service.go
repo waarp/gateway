@@ -10,10 +10,9 @@ import (
 	"fmt"
 	"net/http"
 
-	"code.bcarlin.xyz/go/logging"
+	"code.waarp.fr/lib/log"
 
 	"code.waarp.fr/apps/gateway/gateway/pkg/database"
-	"code.waarp.fr/apps/gateway/gateway/pkg/log"
 	"code.waarp.fr/apps/gateway/gateway/pkg/model"
 	"code.waarp.fr/apps/gateway/gateway/pkg/model/config"
 	"code.waarp.fr/apps/gateway/gateway/pkg/tk/service"
@@ -34,6 +33,10 @@ type httpService struct {
 
 // NewService initializes and returns a new HTTP service.
 func NewService(db *database.DB, agent *model.LocalAgent, logger *log.Logger) service.ProtoService {
+	return newService(db, agent, logger)
+}
+
+func newService(db *database.DB, agent *model.LocalAgent, logger *log.Logger) *httpService {
 	return &httpService{
 		logger:  logger,
 		db:      db,
@@ -47,7 +50,7 @@ func (h *httpService) Start() error {
 	h.logger.Info("Starting HTTP service...")
 
 	if state, _ := h.state.Get(); state != service.Offline && state != service.Error {
-		h.logger.Infof("Cannot start because the server is already running.")
+		h.logger.Info("Cannot start because the server is already running.")
 
 		return nil
 	}
@@ -55,7 +58,7 @@ func (h *httpService) Start() error {
 	h.state.Set(service.Starting, "")
 
 	if err := json.Unmarshal(h.agent.ProtoConfig, &h.conf); err != nil {
-		h.logger.Errorf("Failed to parse server configuration: %s", err)
+		h.logger.Error("Failed to parse server configuration: %s", err)
 		h.state.Set(service.Error, "failed to parse server configuration")
 
 		return fmt.Errorf("failed to parse server configuration: %w", err)
@@ -76,7 +79,7 @@ func (h *httpService) Start() error {
 		Addr:      h.agent.Address,
 		Handler:   h.makeHandler(),
 		TLSConfig: tlsConf,
-		ErrorLog:  h.logger.AsStdLog(logging.ERROR),
+		ErrorLog:  h.logger.AsStdLogger(log.LevelError),
 	}
 
 	if err := h.listen(); err != nil {
@@ -85,7 +88,7 @@ func (h *httpService) Start() error {
 		return err
 	}
 
-	h.logger.Infof("HTTP server started at: %s", h.agent.Address)
+	h.logger.Info("HTTP server started at: %s", h.agent.Address)
 	h.state.Set(service.Running, "")
 
 	h.shutdown = make(chan struct{})
@@ -103,7 +106,7 @@ func (h *httpService) Stop(ctx context.Context) error {
 	close(h.shutdown)
 
 	if err := h.stop(ctx); err != nil {
-		h.logger.Warningf("Forcing service shutdown...")
+		h.logger.Warning("Forcing service shutdown...")
 		_ = h.serv.Close() //nolint:errcheck //error is irrelevant at this point
 		h.state.Set(service.Error, err.Error())
 
@@ -122,7 +125,7 @@ func (h *httpService) stop(ctx context.Context) error {
 	h.logger.Debug("Interrupting transfers...")
 
 	if err := h.running.InterruptAll(ctx); err != nil {
-		h.logger.Warningf("Failed to interrupt R66 transfers: %s", err)
+		h.logger.Warning("Failed to interrupt R66 transfers: %s", err)
 
 		return fmt.Errorf("could not halt the service gracefully: %w", err)
 	}
@@ -130,7 +133,7 @@ func (h *httpService) stop(ctx context.Context) error {
 	h.logger.Debug("Closing listener...")
 
 	if err := h.serv.Shutdown(ctx); err != nil {
-		h.logger.Warningf("Error while closing HTTP listener: %s", err)
+		h.logger.Warning("Error while closing HTTP listener: %s", err)
 
 		return fmt.Errorf("failed to stop the HTTP listener: %w", err)
 	}

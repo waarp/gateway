@@ -11,14 +11,9 @@ import (
 
 	"code.waarp.fr/apps/gateway/gateway/pkg/conf"
 	"code.waarp.fr/apps/gateway/gateway/pkg/database"
-	"code.waarp.fr/apps/gateway/gateway/pkg/log"
 	"code.waarp.fr/apps/gateway/gateway/pkg/tk/service"
+	"code.waarp.fr/apps/gateway/gateway/pkg/tk/utils/testhelpers"
 )
-
-//nolint:gochecknoinits // init is used by design
-func init() {
-	_ = log.InitBackend("DEBUG", "stdout", "")
-}
 
 func TestStart(t *testing.T) {
 	Convey("Given an admin service", t, func() {
@@ -153,15 +148,14 @@ func TestStop(t *testing.T) {
 }
 
 func TestAuthentication(t *testing.T) {
-	authLogger := log.NewLogger("rest_auth_test")
-
 	handler := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		w.WriteHeader(http.StatusOK)
 	})
 
 	Convey("Given an authentication handler", t, func(c C) {
-		db := database.TestDatabase(c, "ERROR")
-		auth := authentication(authLogger, db).Middleware(handler)
+		logger := testhelpers.TestLogger(c, "rest_auth_test")
+		db := database.TestDatabase(c)
+		auth := authentication(logger, db).Middleware(handler)
 
 		Convey("Given an incoming request", func() {
 			w := httptest.NewRecorder()

@@ -30,7 +30,7 @@ func TestGetLocalAccount(t *testing.T) {
 		command := &LocAccGet{}
 
 		Convey("Given a gateway with 1 local account", func(c C) {
-			db := database.TestDatabase(c, "ERROR")
+			db := database.TestDatabase(c)
 			gw := httptest.NewServer(testHandler(db))
 			var err error
 			addr, err = url.Parse("http://admin:admin_password@" + gw.Listener.Addr().String())
@@ -127,7 +127,7 @@ func TestAddLocalAccount(t *testing.T) {
 		command := &LocAccAdd{}
 
 		Convey("Given a gateway", func(c C) {
-			db := database.TestDatabase(c, "ERROR")
+			db := database.TestDatabase(c)
 			gw := httptest.NewServer(testHandler(db))
 			var err error
 			addr, err = url.Parse("http://admin:admin_password@" + gw.Listener.Addr().String())
@@ -196,7 +196,7 @@ func TestDeleteLocalAccount(t *testing.T) {
 		command := &LocAccDelete{}
 
 		Convey("Given a gateway with 1 local account", func(c C) {
-			db := database.TestDatabase(c, "ERROR")
+			db := database.TestDatabase(c)
 			gw := httptest.NewServer(testHandler(db))
 			var err error
 			addr, err = url.Parse("http://admin:admin_password@" + gw.Listener.Addr().String())
@@ -290,7 +290,7 @@ func TestUpdateLocalAccount(t *testing.T) {
 		command := &LocAccUpdate{}
 
 		Convey("Given a gateway with 1 local account", func(c C) {
-			db := database.TestDatabase(c, "ERROR")
+			db := database.TestDatabase(c)
 			gw := httptest.NewServer(testHandler(db))
 			var err error
 			addr, err = url.Parse("http://admin:admin_password@" + gw.Listener.Addr().String())
@@ -394,7 +394,7 @@ func TestListLocalAccount(t *testing.T) {
 		command := &LocAccList{}
 
 		Convey("Given a gateway with 2 local accounts", func(c C) {
-			db := database.TestDatabase(c, "ERROR")
+			db := database.TestDatabase(c)
 			gw := httptest.NewServer(testHandler(db))
 			var err error
 			addr, err = url.Parse("http://admin:admin_password@" + gw.Listener.Addr().String())
@@ -542,7 +542,7 @@ func TestAuthorizeLocalAccount(t *testing.T) {
 		command := &LocAccAuthorize{}
 
 		Convey("Given a gateway with 1 local account and 1 rule", func(c C) {
-			db := database.TestDatabase(c, "ERROR")
+			db := database.TestDatabase(c)
 			gw := httptest.NewServer(testHandler(db))
 			var err error
 			addr, err = url.Parse("http://admin:admin_password@" + gw.Listener.Addr().String())
@@ -672,7 +672,7 @@ func TestRevokeLocalAccount(t *testing.T) {
 		command := &LocAccRevoke{}
 
 		Convey("Given a gateway with 1 local account and 1 rule", func(c C) {
-			db := database.TestDatabase(c, "ERROR")
+			db := database.TestDatabase(c)
 			gw := httptest.NewServer(testHandler(db))
 			var err error
 			addr, err = url.Parse("http://admin:admin_password@" + gw.Listener.Addr().String())

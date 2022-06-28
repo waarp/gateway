@@ -6,8 +6,6 @@ import (
 	"os"
 	"strconv"
 
-	"code.bcarlin.xyz/go/logging"
-
 	"code.waarp.fr/apps/gateway/gateway/pkg/conf"
 	"code.waarp.fr/apps/gateway/gateway/pkg/tk/config"
 )
@@ -117,7 +115,7 @@ func setIntFromEnv(envKey string, target *int) error {
 }
 
 func handleConfigFile() *conf.ServerConfig {
-	logger := logging.GetLogger("entrypoint")
+	logger := getLogger()
 	serverConf := &conf.ServerConfig{}
 
 	confFile := defaultConfigFile
@@ -125,17 +123,17 @@ func handleConfigFile() *conf.ServerConfig {
 
 	parser, err := config.NewParser(serverConf)
 	if err != nil {
-		logger.Criticalf("Cannot initialize the configuration parser: %v\n", err)
+		logger.Critical("Cannot initialize the configuration parser: %v\n", err)
 		os.Exit(ExitBadConfFile)
 	}
 
 	if pathExists(confFile) {
-		logger.Infof("Reading configuration file %q", confFile)
+		logger.Info("Reading configuration file %q", confFile)
 
 		// load configuration
 		err = parser.ParseFile(confFile)
 		if err != nil {
-			logger.Criticalf("Cannot parse the configuration file: %v\n", err)
+			logger.Critical("Cannot parse the configuration file: %v\n", err)
 			os.Exit(ExitBadConfFile)
 		}
 	}
@@ -145,11 +143,11 @@ func handleConfigFile() *conf.ServerConfig {
 	updateConfig(serverConf)
 
 	// write config
-	logger.Infof("Writing configuration file %q", confFile)
+	logger.Info("Writing configuration file %q", confFile)
 
 	err = parser.WriteFile(confFile)
 	if err != nil {
-		logger.Criticalf("Cannot write the configuration file: %v", err)
+		logger.Critical("Cannot write the configuration file: %v", err)
 		os.Exit(ExitBadConfFile)
 	}
 

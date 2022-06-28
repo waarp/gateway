@@ -35,7 +35,7 @@ func (c *CountQuery) Run() (uint64, Error) {
 	logSQL(query, logger)
 
 	if err != nil {
-		logger.Errorf("Failed to insert the new %s entry: %s", c.bean.Appellation(), err)
+		logger.Error("Failed to insert the new %s entry: %s", c.bean.Appellation(), err)
 
 		return 0, NewInternalError(err)
 	}

@@ -13,8 +13,8 @@ import (
 
 	. "code.waarp.fr/apps/gateway/gateway/pkg/admin/rest/api"
 	"code.waarp.fr/apps/gateway/gateway/pkg/database"
-	"code.waarp.fr/apps/gateway/gateway/pkg/log"
 	"code.waarp.fr/apps/gateway/gateway/pkg/model"
+	"code.waarp.fr/apps/gateway/gateway/pkg/tk/utils/testhelpers"
 )
 
 func remoteAccountsURI(agent, login string) string {
@@ -22,10 +22,9 @@ func remoteAccountsURI(agent, login string) string {
 }
 
 func TestGetRemoteAccount(t *testing.T) {
-	logger := log.NewLogger("rest_account_get_test")
-
 	Convey("Given the account get handler", t, func(c C) {
-		db := database.TestDatabase(c, "ERROR")
+		logger := testhelpers.TestLogger(c, "rest_account_get_test")
+		db := database.TestDatabase(c)
 		handler := getRemoteAccount(logger, db)
 		w := httptest.NewRecorder()
 
@@ -114,8 +113,6 @@ func TestGetRemoteAccount(t *testing.T) {
 }
 
 func TestListRemoteAccounts(t *testing.T) {
-	logger := log.NewLogger("rest_account_list_test")
-
 	check := func(w *httptest.ResponseRecorder, expected map[string][]OutAccount) {
 		Convey("Then it should reply 'OK'", func() {
 			So(w.Code, ShouldEqual, http.StatusOK)
@@ -137,7 +134,8 @@ func TestListRemoteAccounts(t *testing.T) {
 	}
 
 	Convey("Given the remote account listing handler", t, func(c C) {
-		db := database.TestDatabase(c, "ERROR")
+		logger := testhelpers.TestLogger(c, "rest_account_list_test")
+		db := database.TestDatabase(c)
 		handler := listRemoteAccounts(logger, db)
 		w := httptest.NewRecorder()
 		expected := map[string][]OutAccount{}
@@ -276,10 +274,9 @@ func TestListRemoteAccounts(t *testing.T) {
 }
 
 func TestCreateRemoteAccount(t *testing.T) {
-	logger := log.NewLogger("rest_account_create_logger")
-
 	Convey("Given the account creation handler", t, func(c C) {
-		db := database.TestDatabase(c, "ERROR")
+		logger := testhelpers.TestLogger(c, "rest_account_create_logger")
+		db := database.TestDatabase(c)
 		handler := addRemoteAccount(logger, db)
 		w := httptest.NewRecorder()
 
@@ -369,10 +366,9 @@ func TestCreateRemoteAccount(t *testing.T) {
 }
 
 func TestDeleteRemoteAccount(t *testing.T) {
-	logger := log.NewLogger("rest_account_delete_test")
-
 	Convey("Given the account deletion handler", t, func(c C) {
-		db := database.TestDatabase(c, "ERROR")
+		logger := testhelpers.TestLogger(c, "rest_account_delete_test")
+		db := database.TestDatabase(c)
 		handler := deleteRemoteAccount(logger, db)
 		w := httptest.NewRecorder()
 
@@ -458,10 +454,9 @@ func TestDeleteRemoteAccount(t *testing.T) {
 }
 
 func TestUpdateRemoteAccount(t *testing.T) {
-	logger := log.NewLogger("rest_account_update_logger")
-
 	Convey("Given the account updating handler", t, func(c C) {
-		db := database.TestDatabase(c, "ERROR")
+		logger := testhelpers.TestLogger(c, "rest_account_update_logger")
+		db := database.TestDatabase(c)
 		handler := updateRemoteAccount(logger, db)
 		w := httptest.NewRecorder()
 
@@ -594,10 +589,9 @@ func TestUpdateRemoteAccount(t *testing.T) {
 }
 
 func TestReplaceRemoteAccount(t *testing.T) {
-	logger := log.NewLogger("rest_account_update_logger")
-
 	Convey("Given the account updating handler", t, func(c C) {
-		db := database.TestDatabase(c, "ERROR")
+		logger := testhelpers.TestLogger(c, "rest_account_update_logger")
+		db := database.TestDatabase(c)
 		handler := replaceRemoteAccount(logger, db)
 		w := httptest.NewRecorder()
 

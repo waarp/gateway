@@ -10,23 +10,18 @@ import (
 
 	. "github.com/smartystreets/goconvey/convey"
 
-	"code.waarp.fr/apps/gateway/gateway/pkg/log"
 	"code.waarp.fr/apps/gateway/gateway/pkg/model/types"
+	"code.waarp.fr/apps/gateway/gateway/pkg/tk/utils/testhelpers"
 )
 
-//nolint:gochecknoinits // init is used by design
-func init() {
-	_ = log.InitBackend("DEBUG", "stdout", "")
-}
-
 func TestCheckHash(t *testing.T) {
-	logger := log.NewLogger("test_check_hash")
-
 	path := filepath.Join(os.TempDir(), "test_check_hash_file")
 	content := []byte("test CheckHash file content")
 	expHash, _ := hex.DecodeString("cddfc994ff46f856395a6a387f722429bff47751cf0fd6924e80445e5c035672")
 
-	Convey("Given a file", t, func() {
+	Convey("Given a file", t, func(c C) {
+		logger := testhelpers.TestLogger(c, "test_check_hash")
+
 		So(ioutil.WriteFile(path, content, 0o600), ShouldBeNil)
 		defer os.Remove(path)
 

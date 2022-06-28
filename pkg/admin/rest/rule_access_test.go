@@ -10,15 +10,14 @@ import (
 	. "github.com/smartystreets/goconvey/convey"
 
 	"code.waarp.fr/apps/gateway/gateway/pkg/database"
-	"code.waarp.fr/apps/gateway/gateway/pkg/log"
 	"code.waarp.fr/apps/gateway/gateway/pkg/model"
+	"code.waarp.fr/apps/gateway/gateway/pkg/tk/utils/testhelpers"
 )
 
 func TestAuthorizeRule(t *testing.T) {
-	logger := log.NewLogger("rest_auth_rule_logger")
-
 	Convey("Given a database with 1 rule", t, func(c C) {
-		db := database.TestDatabase(c, "ERROR")
+		logger := testhelpers.TestLogger(c, "rest_auth_rule_logger")
+		db := database.TestDatabase(c)
 		rule := &model.Rule{
 			Name:   "rule",
 			IsSend: true,
@@ -143,10 +142,9 @@ func TestAuthorizeRule(t *testing.T) {
 }
 
 func TestRevokeRule(t *testing.T) {
-	logger := log.NewLogger("rest_revoke_rule_logger")
-
 	Convey("Given a database with 1 rule", t, func(c C) {
-		db := database.TestDatabase(c, "ERROR")
+		logger := testhelpers.TestLogger(c, "rest_revoke_rule_logger")
+		db := database.TestDatabase(c)
 		rule := &model.Rule{
 			Name:   "rule",
 			IsSend: true,
@@ -277,10 +275,9 @@ func TestRevokeRule(t *testing.T) {
 }
 
 func TestRuleAllowAll(t *testing.T) {
-	logger := log.NewLogger("rest_revoke_rule_logger")
-
 	Convey("Given a database with a rule", t, func(c C) {
-		db := database.TestDatabase(c, "ERROR")
+		logger := testhelpers.TestLogger(c, "rest_allow_all_rule_logger")
+		db := database.TestDatabase(c)
 		rule := &model.Rule{
 			Name:   "rule",
 			IsSend: true,

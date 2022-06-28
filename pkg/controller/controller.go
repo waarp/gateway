@@ -8,8 +8,9 @@ import (
 	"sync"
 	"time"
 
+	"code.waarp.fr/lib/log"
+
 	"code.waarp.fr/apps/gateway/gateway/pkg/conf"
-	"code.waarp.fr/apps/gateway/gateway/pkg/log"
 	"code.waarp.fr/apps/gateway/gateway/pkg/pipeline"
 	"code.waarp.fr/apps/gateway/gateway/pkg/tk/service"
 )
@@ -51,7 +52,7 @@ func (c *Controller) listen() {
 
 // Start starts the transfer controller service.
 func (c *Controller) Start() error {
-	c.logger = log.NewLogger(service.ControllerServiceName)
+	c.logger = conf.GetLogger(service.ControllerServiceName)
 
 	config := &conf.GlobalConfig.Controller
 	pipeline.TransferInCount.SetLimit(config.MaxTransfersIn)

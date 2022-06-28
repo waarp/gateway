@@ -26,7 +26,7 @@ func TestCryptoTableName(t *testing.T) {
 
 func TestCryptoBeforeWrite(t *testing.T) {
 	Convey("Given a database", t, func(c C) {
-		db := database.TestDatabase(c, "ERROR")
+		db := database.TestDatabase(c)
 
 		Convey("Given the database contains 1 local agent", func() {
 			parentAgent := &LocalAgent{

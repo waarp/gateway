@@ -17,18 +17,17 @@ import (
 
 	. "code.waarp.fr/apps/gateway/gateway/pkg/admin/rest/api"
 	"code.waarp.fr/apps/gateway/gateway/pkg/database"
-	"code.waarp.fr/apps/gateway/gateway/pkg/log"
 	"code.waarp.fr/apps/gateway/gateway/pkg/model"
 	"code.waarp.fr/apps/gateway/gateway/pkg/model/types"
+	"code.waarp.fr/apps/gateway/gateway/pkg/tk/utils/testhelpers"
 )
 
 const historyURI = "http://localhost:8080/api/history"
 
 func TestGetHistory(t *testing.T) {
-	logger := log.NewLogger("rest_history_get_test")
-
 	Convey("Testing the transfer history get handler", t, func(c C) {
-		db := database.TestDatabase(c, "ERROR")
+		logger := testhelpers.TestLogger(c, "rest_history_get_test")
+		db := database.TestDatabase(c)
 		handler := getHistory(logger, db)
 		w := httptest.NewRecorder()
 
@@ -102,10 +101,9 @@ func TestGetHistory(t *testing.T) {
 
 //nolint:maintidx //FIXME factorize the function if possible to improve maintainability
 func TestListHistory(t *testing.T) {
-	logger := log.NewLogger("rest_history_get_test")
-
 	Convey("Testing the transfer history list handler", t, func(c C) {
-		db := database.TestDatabase(c, "ERROR")
+		logger := testhelpers.TestLogger(c, "rest_history_get_test")
+		db := database.TestDatabase(c)
 		handler := listHistory(logger, db)
 		w := httptest.NewRecorder()
 
@@ -388,10 +386,9 @@ func TestListHistory(t *testing.T) {
 }
 
 func TestRestartTransfer(t *testing.T) {
-	logger := log.NewLogger("rest_history_restart_test")
-
 	Convey("Testing the transfer restart handler", t, func(c C) {
-		db := database.TestDatabase(c, "ERROR")
+		logger := testhelpers.TestLogger(c, "rest_history_restart_test")
+		db := database.TestDatabase(c)
 		handler := retryTransfer(logger, db)
 		w := httptest.NewRecorder()
 

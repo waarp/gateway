@@ -13,7 +13,7 @@ import (
 
 func TestExportLocalAgents(t *testing.T) {
 	Convey("Given a database", t, func(c C) {
-		db := database.TestDatabase(c, "ERROR")
+		db := database.TestDatabase(c)
 		owner := conf.GlobalConfig.GatewayName
 
 		Convey("Given the database contains locals agents with accounts", func() {
@@ -73,7 +73,7 @@ func TestExportLocalAgents(t *testing.T) {
 
 			Convey("Given an empty database", func() {
 				Convey("When calling the exportLocal function", func() {
-					res, err := exportLocals(discard, db)
+					res, err := exportLocals(discard(), db)
 
 					Convey("Then it should return no error", func() {
 						So(err, ShouldBeNil)
@@ -143,7 +143,7 @@ func TestExportLocalAgents(t *testing.T) {
 
 func TestExportLocalAccounts(t *testing.T) {
 	Convey("Given a database", t, func(c C) {
-		db := database.TestDatabase(c, "ERROR")
+		db := database.TestDatabase(c)
 
 		Convey("Given the dabase contains a local agent with accounts", func() {
 			agent := &model.LocalAgent{
@@ -177,7 +177,7 @@ func TestExportLocalAccounts(t *testing.T) {
 
 			Convey("Given an empty database", func() {
 				Convey("When calling the exportLocalAccounts function", func() {
-					res, err := exportLocalAccounts(discard, db, agent.ID)
+					res, err := exportLocalAccounts(discard(), db, agent.ID)
 
 					Convey("Then it should return no error", func() {
 						So(err, ShouldBeNil)

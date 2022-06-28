@@ -10,9 +10,9 @@ import (
 
 	"code.waarp.fr/apps/gateway/gateway/pkg/conf"
 	"code.waarp.fr/apps/gateway/gateway/pkg/database"
-	"code.waarp.fr/apps/gateway/gateway/pkg/log"
 	"code.waarp.fr/apps/gateway/gateway/pkg/model/types"
 	"code.waarp.fr/apps/gateway/gateway/pkg/tk/utils"
+	"code.waarp.fr/apps/gateway/gateway/pkg/tk/utils/testhelpers"
 )
 
 func TestTransferTableName(t *testing.T) {
@@ -31,7 +31,7 @@ func TestTransferTableName(t *testing.T) {
 
 func TestTransferBeforeWrite(t *testing.T) {
 	Convey("Given a database", t, func(c C) {
-		db := database.TestDatabase(c, "ERROR")
+		db := database.TestDatabase(c)
 
 		Convey("Given the database contains a valid remote agent", func() {
 			server := LocalAgent{
@@ -228,10 +228,9 @@ func TestTransferBeforeWrite(t *testing.T) {
 }
 
 func TestTransferToHistory(t *testing.T) {
-	logger := log.NewLogger("test_to_history")
-
 	Convey("Given a database", t, func(c C) {
-		db := database.TestDatabase(c, "ERROR")
+		logger := testhelpers.TestLogger(c, "test_to_history")
+		db := database.TestDatabase(c)
 
 		remote := RemoteAgent{
 			Name:        "remote",
@@ -270,7 +269,7 @@ func TestTransferToHistory(t *testing.T) {
 			}
 			So(db.Insert(&trans).Run(), ShouldBeNil)
 
-			Convey("When calling the `ToHistory` method", func() {
+			Convey("When calling the `ToHistory` method", func(c C) {
 				trans.Status = types.StatusDone
 				end := time.Date(2022, 1, 1, 1, 0, 0, 0, time.Local)
 				So(trans.ToHistory(db, logger, end), ShouldBeNil)

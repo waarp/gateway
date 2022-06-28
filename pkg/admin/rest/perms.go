@@ -3,12 +3,12 @@ package rest
 import (
 	"net/http"
 
+	"code.waarp.fr/lib/log"
 	"github.com/gorilla/mux"
 
 	"code.waarp.fr/apps/gateway/gateway/pkg/admin/rest/api"
 	"code.waarp.fr/apps/gateway/gateway/pkg/conf"
 	"code.waarp.fr/apps/gateway/gateway/pkg/database"
-	"code.waarp.fr/apps/gateway/gateway/pkg/log"
 	"code.waarp.fr/apps/gateway/gateway/pkg/model"
 )
 
@@ -160,14 +160,14 @@ func makeHandlerFactory(logger *log.Logger, db *database.DB, router *mux.Router)
 			var user model.User
 			if err := db.Get(&user, "username=? AND owner=?", login, conf.GlobalConfig.GatewayName).
 				Run(); err != nil {
-				logger.Errorf("Database error: %s", err)
+				logger.Error("Database error: %s", err)
 				http.Error(w, "internal database error", http.StatusInternalServerError)
 
 				return
 			}
 
 			if perm&user.Permissions != perm {
-				logger.Warningf("User '%s' tried method '%s' on '%s' without sufficient privileges",
+				logger.Warning("User '%s' tried method '%s' on '%s' without sufficient privileges",
 					login, r.Method, r.URL)
 				http.Error(w, "you do not have sufficient privileges to perform this action",
 					http.StatusForbidden)

@@ -38,7 +38,7 @@ func (d *DeleteAllQuery) Run() Error {
 		logSQL(query, logger)
 
 		if err != nil {
-			logger.Errorf("Failed to delete the %s entries: %s", d.bean.Appellation(), err)
+			logger.Error("Failed to delete the %s entries: %s", d.bean.Appellation(), err)
 
 			return NewInternalError(err)
 		}
@@ -55,7 +55,7 @@ func (d *DeleteAllQuery) Run() Error {
 	logSQL(query, logger)
 
 	if err != nil {
-		logger.Errorf("Failed to delete the %s entries: %s", d.bean.Appellation(), err)
+		logger.Error("Failed to delete the %s entries: %s", d.bean.Appellation(), err)
 
 		return NewInternalError(err)
 	}

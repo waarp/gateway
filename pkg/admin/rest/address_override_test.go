@@ -10,13 +10,12 @@ import (
 	. "github.com/smartystreets/goconvey/convey"
 
 	"code.waarp.fr/apps/gateway/gateway/pkg/conf"
-	"code.waarp.fr/apps/gateway/gateway/pkg/log"
+	"code.waarp.fr/apps/gateway/gateway/pkg/tk/utils/testhelpers"
 )
 
 func TestListAddressOverride(t *testing.T) {
-	logger := log.NewLogger("rest_addr_ovrd_list_test")
-
-	Convey("Given the address override list handler", t, func() {
+	Convey("Given the address override list handler", t, func(c C) {
+		logger := testhelpers.TestLogger(c, "rest_addr_ovrd_list_test")
 		handler := listAddressOverrides(logger)
 		w := httptest.NewRecorder()
 
@@ -52,9 +51,8 @@ func TestListAddressOverride(t *testing.T) {
 }
 
 func TestAddAddressOverride(t *testing.T) {
-	logger := log.NewLogger("rest_addr_ovrd_add_test")
-
-	Convey("Given the address override add handler", t, func() {
+	Convey("Given the address override add handler", t, func(c C) {
+		logger := testhelpers.TestLogger(c, "rest_addr_ovrd_add_test")
 		handler := addAddressOverride(logger)
 		w := httptest.NewRecorder()
 
@@ -87,9 +85,8 @@ func TestAddAddressOverride(t *testing.T) {
 }
 
 func TestDeleteAddressOverride(t *testing.T) {
-	logger := log.NewLogger("rest_addr_ovrd_delete_test")
-
-	Convey("Given the address override delete handler", t, func() {
+	Convey("Given the address override delete handler", t, func(c C) {
+		logger := testhelpers.TestLogger(c, "rest_addr_ovrd_delete_test")
 		handler := deleteAddressOverride(logger)
 		w := httptest.NewRecorder()
 

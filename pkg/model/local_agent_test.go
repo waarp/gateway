@@ -26,7 +26,7 @@ func TestLocalAgentTableName(t *testing.T) {
 
 func TestLocalAgentBeforeDelete(t *testing.T) {
 	Convey("Given a database", t, func(c C) {
-		db := database.TestDatabase(c, "ERROR")
+		db := database.TestDatabase(c)
 
 		Convey("Given a local agent entry", func() {
 			ag := LocalAgent{
@@ -120,7 +120,7 @@ func TestLocalAgentBeforeDelete(t *testing.T) {
 
 func TestLocalAgentBeforeWrite(t *testing.T) {
 	Convey("Given a database", t, func(c C) {
-		db := database.TestDatabase(c, "ERROR")
+		db := database.TestDatabase(c)
 
 		Convey("Given the database contains 1 local agent", func() {
 			oldAgent := LocalAgent{

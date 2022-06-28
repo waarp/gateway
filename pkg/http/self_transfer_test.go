@@ -5,16 +5,10 @@ import (
 
 	. "github.com/smartystreets/goconvey/convey"
 
-	"code.waarp.fr/apps/gateway/gateway/pkg/log"
 	"code.waarp.fr/apps/gateway/gateway/pkg/model/types"
 	"code.waarp.fr/apps/gateway/gateway/pkg/pipeline"
 	"code.waarp.fr/apps/gateway/gateway/pkg/pipeline/pipelinetest"
 )
-
-//nolint:gochecknoinits // init is used by design
-func init() {
-	_ = log.InitBackend("DEBUG", "stdout", "")
-}
 
 func TestSelfPushOK(t *testing.T) {
 	Convey("Given a new HTTP push transfer", t, func(c C) {

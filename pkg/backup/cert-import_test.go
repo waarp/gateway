@@ -13,7 +13,7 @@ import (
 
 func TestImportCerts(t *testing.T) {
 	Convey("Given a database", t, func(c C) {
-		db := database.TestDatabase(c, "ERROR")
+		db := database.TestDatabase(c)
 
 		Convey("Given a database with some Cryptos", func() {
 			agent := &model.LocalAgent{
@@ -49,7 +49,7 @@ func TestImportCerts(t *testing.T) {
 
 				Convey("When calling the importCerts with the new "+
 					"Cryptos on the existing agent", func() {
-					err := importCerts(discard, db, Certificates,
+					err := importCerts(discard(), db, Certificates,
 						model.TableLocAgents, agent.ID)
 
 					Convey("Then it should return no error", func() {
@@ -83,7 +83,7 @@ func TestImportCerts(t *testing.T) {
 
 				Convey("When calling the importCerts with the new "+
 					"Cryptos on the existing agent", func() {
-					err := importCerts(discard, db, Certificates,
+					err := importCerts(discard(), db, Certificates,
 						model.TableLocAgents, agent2.ID)
 
 					Convey("Then it should return no error", func() {

@@ -14,17 +14,16 @@ import (
 	. "code.waarp.fr/apps/gateway/gateway/pkg/admin/rest/api"
 	"code.waarp.fr/apps/gateway/gateway/pkg/conf"
 	"code.waarp.fr/apps/gateway/gateway/pkg/database"
-	"code.waarp.fr/apps/gateway/gateway/pkg/log"
 	"code.waarp.fr/apps/gateway/gateway/pkg/model"
+	"code.waarp.fr/apps/gateway/gateway/pkg/tk/utils/testhelpers"
 )
 
 const usersURI = "http://localhost:8080/api/users/"
 
 func TestGetUser(t *testing.T) {
-	logger := log.NewLogger("rest_user_get_test")
-
 	Convey("Given the user get handler", t, func(c C) {
-		db := database.TestDatabase(c, "ERROR")
+		logger := testhelpers.TestLogger(c, "rest_user_get_test")
+		db := database.TestDatabase(c)
 		handler := getUser(logger, db)
 		w := httptest.NewRecorder()
 
@@ -94,8 +93,6 @@ func TestGetUser(t *testing.T) {
 }
 
 func TestListUsers(t *testing.T) {
-	logger := log.NewLogger("rest_user_list_test")
-
 	check := func(w *httptest.ResponseRecorder, expected map[string][]OutUser) {
 		Convey("Then the response body should contain an array "+
 			"of the requested users in JSON format", func() {
@@ -118,7 +115,8 @@ func TestListUsers(t *testing.T) {
 	}
 
 	Convey("Given the user listing handler", t, func(c C) {
-		db := database.TestDatabase(c, "ERROR")
+		logger := testhelpers.TestLogger(c, "rest_user_list_test")
+		db := database.TestDatabase(c)
 		handler := listUsers(logger, db)
 		w := httptest.NewRecorder()
 		expected := map[string][]OutUser{}
@@ -213,10 +211,9 @@ func TestListUsers(t *testing.T) {
 }
 
 func TestCreateUser(t *testing.T) {
-	logger := log.NewLogger("rest_user_create_logger")
-
 	Convey("Given the user creation handler", t, func(c C) {
-		db := database.TestDatabase(c, "ERROR")
+		logger := testhelpers.TestLogger(c, "rest_user_create_logger")
+		db := database.TestDatabase(c)
 		handler := addUser(logger, db)
 		w := httptest.NewRecorder()
 
@@ -296,10 +293,9 @@ func TestCreateUser(t *testing.T) {
 }
 
 func TestDeleteUser(t *testing.T) {
-	logger := log.NewLogger("rest_user_delete_test")
-
 	Convey("Given the user deletion handler", t, func(c C) {
-		db := database.TestDatabase(c, "ERROR")
+		logger := testhelpers.TestLogger(c, "rest_user_delete_test")
+		db := database.TestDatabase(c)
 		handler := deleteUser(logger, db)
 		w := httptest.NewRecorder()
 
@@ -401,10 +397,9 @@ func TestDeleteUser(t *testing.T) {
 }
 
 func TestUpdateUser(t *testing.T) {
-	logger := log.NewLogger("rest_user_update_logger")
-
 	Convey("Given the user updating handler", t, func(c C) {
-		db := database.TestDatabase(c, "ERROR")
+		logger := testhelpers.TestLogger(c, "rest_user_update_logger")
+		db := database.TestDatabase(c)
 		handler := updateUser(logger, db)
 		w := httptest.NewRecorder()
 
@@ -619,10 +614,9 @@ func TestUpdateUser(t *testing.T) {
 }
 
 func TestReplaceUser(t *testing.T) {
-	logger := log.NewLogger("rest_user_replace")
-
 	Convey("Given the user replacing handler", t, func(c C) {
-		db := database.TestDatabase(c, "ERROR")
+		logger := testhelpers.TestLogger(c, "rest_user_replace")
+		db := database.TestDatabase(c)
 		handler := replaceUser(logger, db)
 		w := httptest.NewRecorder()
 

@@ -1,10 +1,11 @@
 package backup
 
 import (
+	"code.waarp.fr/lib/log"
+
 	"code.waarp.fr/apps/gateway/gateway/pkg/backup/file"
 	"code.waarp.fr/apps/gateway/gateway/pkg/conf"
 	"code.waarp.fr/apps/gateway/gateway/pkg/database"
-	"code.waarp.fr/apps/gateway/gateway/pkg/log"
 	"code.waarp.fr/apps/gateway/gateway/pkg/model"
 	"code.waarp.fr/apps/gateway/gateway/pkg/tk/utils"
 )
@@ -31,7 +32,7 @@ func exportLocals(logger *log.Logger, db database.ReadAccess) ([]file.LocalAgent
 			return nil, err
 		}
 
-		logger.Infof("Export local server %s\n", src.Name)
+		logger.Info("Export local server %s\n", src.Name)
 
 		res[i] = file.LocalAgent{
 			Name:          src.Name,
@@ -55,7 +56,8 @@ func exportLocals(logger *log.Logger, db database.ReadAccess) ([]file.LocalAgent
 }
 
 func exportLocalAccounts(logger *log.Logger, db database.ReadAccess,
-	agentID uint64) ([]file.LocalAccount, error) {
+	agentID uint64,
+) ([]file.LocalAccount, error) {
 	var dbAccounts model.LocalAccounts
 	if err := db.Select(&dbAccounts).Where("local_agent_id=?", agentID).Run(); err != nil {
 		return nil, err
@@ -69,7 +71,7 @@ func exportLocalAccounts(logger *log.Logger, db database.ReadAccess,
 			return nil, err
 		}
 
-		logger.Infof("Export local account %s\n", src.Login)
+		logger.Info("Export local account %s\n", src.Login)
 
 		res[i] = file.LocalAccount{
 			Login:        src.Login,

@@ -1,7 +1,7 @@
 module code.waarp.fr/apps/gateway/gateway
 
 require (
-	code.bcarlin.xyz/go/logging v0.1.0
+	code.waarp.fr/lib/log v1.1.0
 	code.waarp.fr/lib/r66 v0.1.5
 	github.com/bwmarrin/snowflake v0.3.0
 	github.com/go-sql-driver/mysql v1.5.0
@@ -25,6 +25,7 @@ require (
 )
 
 require (
+	code.bcarlin.xyz/go/logging v0.4.1-0.20220603090802-1ad2b38afe01 // indirect
 	github.com/golang/snappy v0.0.0-20180518054509-2e65f85255db // indirect
 	github.com/google/uuid v1.3.0 // indirect
 	github.com/gopherjs/gopherjs v0.0.0-20181017120253-0766667cb4d1 // indirect
@@ -45,7 +46,6 @@ require (
 	github.com/syndtr/goleveldb v1.0.0 // indirect
 	golang.org/x/sys v0.0.0-20211007075335-d3039528d8ac // indirect
 	golang.org/x/text v0.3.3 // indirect
-	golang.org/x/tools v0.0.0-20201124115921-2c860bdd6e78 // indirect
 	golang.org/x/xerrors v0.0.0-20200804184101-5ec99f83aff1 // indirect
 	lukechampine.com/uint128 v1.1.1 // indirect
 	modernc.org/cc/v3 v3.36.0 // indirect

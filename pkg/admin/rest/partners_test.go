@@ -12,15 +12,13 @@ import (
 
 	. "code.waarp.fr/apps/gateway/gateway/pkg/admin/rest/api"
 	"code.waarp.fr/apps/gateway/gateway/pkg/database"
-	"code.waarp.fr/apps/gateway/gateway/pkg/log"
 	"code.waarp.fr/apps/gateway/gateway/pkg/model"
+	"code.waarp.fr/apps/gateway/gateway/pkg/tk/utils/testhelpers"
 )
 
 const testPartnersURI = "http://localhost:8080/api/partners/"
 
 func TestListPartners(t *testing.T) {
-	logger := log.NewLogger("rest_partners_list_test")
-
 	check := func(w *httptest.ResponseRecorder, expected map[string][]OutPartner) {
 		Convey("Then it should reply 'OK'", func() {
 			So(w.Code, ShouldEqual, http.StatusOK)
@@ -43,7 +41,8 @@ func TestListPartners(t *testing.T) {
 	}
 
 	Convey("Given the partners listing handler", t, func(c C) {
-		db := database.TestDatabase(c, "ERROR")
+		logger := testhelpers.TestLogger(c, "rest_partners_list_test")
+		db := database.TestDatabase(c)
 		handler := listPartners(logger, db)
 		w := httptest.NewRecorder()
 		expected := map[string][]OutPartner{}
@@ -144,10 +143,9 @@ func TestListPartners(t *testing.T) {
 }
 
 func TestGetPartner(t *testing.T) {
-	logger := log.NewLogger("rest_partner_get_test")
-
 	Convey("Given the partner get handler", t, func(c C) {
-		db := database.TestDatabase(c, "ERROR")
+		logger := testhelpers.TestLogger(c, "rest_partner_get_test")
+		db := database.TestDatabase(c)
 		handler := getPartner(logger, db)
 		w := httptest.NewRecorder()
 
@@ -205,10 +203,9 @@ func TestGetPartner(t *testing.T) {
 }
 
 func TestCreatePartner(t *testing.T) {
-	logger := log.NewLogger("rest_partner_create_logger")
-
 	Convey("Given the partner creation handler", t, func(c C) {
-		db := database.TestDatabase(c, "ERROR")
+		logger := testhelpers.TestLogger(c, "rest_partner_create_logger")
+		db := database.TestDatabase(c)
 		handler := addPartner(logger, db)
 		w := httptest.NewRecorder()
 
@@ -281,10 +278,9 @@ func TestCreatePartner(t *testing.T) {
 }
 
 func TestDeletePartner(t *testing.T) {
-	logger := log.NewLogger("rest_partner_delete_test")
-
 	Convey("Given the partner deletion handler", t, func(c C) {
-		db := database.TestDatabase(c, "ERROR")
+		logger := testhelpers.TestLogger(c, "rest_partner_delete_test")
+		db := database.TestDatabase(c)
 		handler := deletePartner(logger, db)
 		w := httptest.NewRecorder()
 
@@ -339,10 +335,9 @@ func TestDeletePartner(t *testing.T) {
 }
 
 func TestUpdatePartner(t *testing.T) {
-	logger := log.NewLogger("rest_partner_update_logger")
-
 	Convey("Given the agent updating handler", t, func(c C) {
-		db := database.TestDatabase(c, "ERROR")
+		logger := testhelpers.TestLogger(c, "rest_partner_update_logger")
+		db := database.TestDatabase(c)
 		handler := updatePartner(logger, db)
 		w := httptest.NewRecorder()
 
@@ -436,10 +431,9 @@ func TestUpdatePartner(t *testing.T) {
 }
 
 func TestReplacePartner(t *testing.T) {
-	logger := log.NewLogger("rest_partner_update_logger")
-
 	Convey("Given the agent updating handler", t, func(c C) {
-		db := database.TestDatabase(c, "ERROR")
+		logger := testhelpers.TestLogger(c, "rest_partner_update_logger")
+		db := database.TestDatabase(c)
 		handler := replacePartner(logger, db)
 		w := httptest.NewRecorder()
 

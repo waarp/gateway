@@ -26,7 +26,7 @@ func TestUsersTableName(t *testing.T) {
 
 func TestUsersBeforeWrite(t *testing.T) {
 	Convey("Given a database", t, func(c C) {
-		db := database.TestDatabase(c, "ERROR")
+		db := database.TestDatabase(c)
 
 		Convey("Given the database contains 1 user", func() {
 			existing := &User{
@@ -85,7 +85,7 @@ func TestUsersBeforeWrite(t *testing.T) {
 
 func TestUsersBeforeDelete(t *testing.T) {
 	Convey("Given a database", t, func(c C) {
-		db := database.TestDatabase(c, "ERROR")
+		db := database.TestDatabase(c)
 		owner := conf.GlobalConfig.GatewayName
 
 		Convey("Given the database contains 1 user for this gateway", func() {
@@ -165,7 +165,7 @@ func TestUserInit(t *testing.T) {
 		init := (&User{}).Init
 
 		Convey("Given a database with no admins", func() {
-			db := database.TestDatabaseNoInit(c, "ERROR")
+			db := database.TestDatabaseNoInit(c)
 
 			// Add a user from another gateway
 			owner := conf.GlobalConfig.GatewayName
@@ -195,7 +195,7 @@ func TestUserInit(t *testing.T) {
 		})
 
 		Convey("Given an database with an admin", func() {
-			db := database.TestDatabaseNoInit(c, "ERROR")
+			db := database.TestDatabaseNoInit(c)
 
 			// Add another admin
 			other := &User{

@@ -168,7 +168,7 @@ func (d *downloadHandler) run() {
 	}
 
 	if err := d.req.Body.Close(); err != nil {
-		d.pip.Logger.Warningf("Error while closing request body: %v", err)
+		d.pip.Logger.Warning("Error while closing request body: %v", err)
 	}
 
 	if dErr := d.pip.EndData(); d.handleLateError(dErr) {

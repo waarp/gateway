@@ -10,8 +10,8 @@ import (
 	"io"
 
 	"code.waarp.fr/apps/gateway/gateway/pkg/backup/file"
+	"code.waarp.fr/apps/gateway/gateway/pkg/conf"
 	"code.waarp.fr/apps/gateway/gateway/pkg/database"
-	"code.waarp.fr/apps/gateway/gateway/pkg/log"
 	"code.waarp.fr/apps/gateway/gateway/pkg/tk/utils"
 )
 
@@ -26,7 +26,7 @@ var errDry = database.NewValidationError("dry run")
 // local servers and accounts, 'partners' for remote partners and accounts, or
 // 'all' for all data.
 func ImportData(db *database.DB, r io.Reader, targets []string, dry bool) error {
-	logger := log.NewLogger("import")
+	logger := conf.GetLogger("import")
 
 	data := &file.Data{}
 

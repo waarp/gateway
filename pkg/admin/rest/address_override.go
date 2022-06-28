@@ -3,10 +3,10 @@ package rest
 import (
 	"net/http"
 
+	"code.waarp.fr/lib/log"
 	"github.com/gorilla/mux"
 
 	"code.waarp.fr/apps/gateway/gateway/pkg/conf"
-	"code.waarp.fr/apps/gateway/gateway/pkg/log"
 )
 
 type addr struct{ target, real string }

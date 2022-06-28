@@ -19,18 +19,17 @@ import (
 	. "code.waarp.fr/apps/gateway/gateway/pkg/admin/rest/api"
 	"code.waarp.fr/apps/gateway/gateway/pkg/conf"
 	"code.waarp.fr/apps/gateway/gateway/pkg/database"
-	"code.waarp.fr/apps/gateway/gateway/pkg/log"
 	"code.waarp.fr/apps/gateway/gateway/pkg/model"
 	"code.waarp.fr/apps/gateway/gateway/pkg/model/types"
+	"code.waarp.fr/apps/gateway/gateway/pkg/tk/utils/testhelpers"
 )
 
 const transferURI = "http://localhost:8080/api/transfers"
 
 func TestAddTransfer(t *testing.T) {
-	logger := log.NewLogger("rest_transfer_add_test")
-
 	Convey("Testing the transfer add handler", t, func(c C) {
-		db := database.TestDatabase(c, "ERROR")
+		logger := testhelpers.TestLogger(c, "rest_transfer_add_test")
+		db := database.TestDatabase(c)
 		handler := addTransfer(logger, db)
 		w := httptest.NewRecorder()
 
@@ -216,10 +215,9 @@ func TestAddTransfer(t *testing.T) {
 }
 
 func TestGetTransfer(t *testing.T) {
-	logger := log.NewLogger("rest_transfer_get_test")
-
 	Convey("Testing the transfer get handler", t, func(c C) {
-		db := database.TestDatabase(c, "ERROR")
+		logger := testhelpers.TestLogger(c, "rest_transfer_get_test")
+		db := database.TestDatabase(c)
 		handler := getTransfer(logger, db)
 		w := httptest.NewRecorder()
 
@@ -316,10 +314,9 @@ func TestGetTransfer(t *testing.T) {
 }
 
 func TestListTransfer(t *testing.T) {
-	logger := log.NewLogger("rest_transfer_list_test")
-
 	Convey("Testing the transfer list handler", t, func(c C) {
-		db := database.TestDatabase(c, "ERROR")
+		logger := testhelpers.TestLogger(c, "rest_transfer_list_test")
+		db := database.TestDatabase(c)
 		handler := listTransfers(logger, db)
 		w := httptest.NewRecorder()
 
@@ -532,10 +529,9 @@ func TestListTransfer(t *testing.T) {
 }
 
 func TestResumeTransfer(t *testing.T) {
-	logger := log.NewLogger("rest_transfer_resume_test")
-
 	Convey("Testing the transfer resume handler", t, func(c C) {
-		db := database.TestDatabase(c, "ERROR")
+		logger := testhelpers.TestLogger(c, "rest_transfer_resume_test")
+		db := database.TestDatabase(c)
 		handler := resumeTransfer(logger, db)
 		w := httptest.NewRecorder()
 
@@ -622,10 +618,9 @@ func TestResumeTransfer(t *testing.T) {
 }
 
 func TestPauseTransfer(t *testing.T) {
-	logger := log.NewLogger("rest_transfer_pause_test")
-
 	Convey("Testing the transfer pause handler", t, func(c C) {
-		db := database.TestDatabase(c, "ERROR")
+		logger := testhelpers.TestLogger(c, "rest_transfer_pause_test")
+		db := database.TestDatabase(c)
 		handler := pauseTransfer(nil)(logger, db)
 		w := httptest.NewRecorder()
 
@@ -710,10 +705,9 @@ func TestPauseTransfer(t *testing.T) {
 }
 
 func TestCancelTransfer(t *testing.T) {
-	logger := log.NewLogger("rest_transfer_cancel_test")
-
 	Convey("Testing the transfer resume handler", t, func(c C) {
-		db := database.TestDatabase(c, "ERROR")
+		logger := testhelpers.TestLogger(c, "rest_transfer_cancel_test")
+		db := database.TestDatabase(c)
 		handler := cancelTransfer(nil)(logger, db)
 		w := httptest.NewRecorder()
 

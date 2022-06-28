@@ -13,7 +13,6 @@ import (
 
 	"code.waarp.fr/apps/gateway/gateway/pkg/conf"
 	"code.waarp.fr/apps/gateway/gateway/pkg/database"
-	"code.waarp.fr/apps/gateway/gateway/pkg/log"
 	"code.waarp.fr/apps/gateway/gateway/pkg/model"
 	"code.waarp.fr/apps/gateway/gateway/pkg/model/types"
 	"code.waarp.fr/apps/gateway/gateway/pkg/tk/service"
@@ -22,7 +21,8 @@ import (
 
 func TestControllerListen(t *testing.T) {
 	Convey("Given a database", t, func(c C) {
-		db := database.TestDatabase(c, "ERROR")
+		logger := testhelpers.TestLogger(c, "test_controller")
+		db := database.TestDatabase(c)
 
 		remote := &model.RemoteAgent{
 			Name:     "test remote",
@@ -54,7 +54,7 @@ func TestControllerListen(t *testing.T) {
 			cont := &Controller{
 				Action: gwController.Run,
 				ticker: time.NewTicker(time.Millisecond),
-				logger: log.NewLogger("test_controller"),
+				logger: logger,
 				wg:     new(sync.WaitGroup),
 				ctx:    context.Background(),
 			}

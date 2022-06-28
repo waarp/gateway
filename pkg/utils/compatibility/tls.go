@@ -7,14 +7,16 @@ import (
 	"crypto/x509"
 	"os"
 
-	"code.waarp.fr/apps/gateway/gateway/pkg/log"
+	"code.waarp.fr/lib/log"
+
+	"code.waarp.fr/apps/gateway/gateway/pkg/conf"
 	"code.waarp.fr/apps/gateway/gateway/pkg/tk/utils"
 )
 
 //nolint:gochecknoinits //must use init here
 func init() {
 	if err := os.Setenv("GODEBUG", "x509sha1=1"); err != nil {
-		log.NewLogger("TLS").Warningf("Failed to set the SHA1 environment variable, "+
+		conf.GetLogger("TLS").Warning("Failed to set the SHA1 environment variable, "+
 			"SHA1 signed certificates will not be accepted: %s", err)
 	}
 }
@@ -37,7 +39,7 @@ func LogSha1(logger *log.Logger) func(tls.ConnectionState) error {
 					name = cert.DNSNames[0]
 				}
 
-				logger.Warningf("The certificate of partner '%s' is signed using "+
+				logger.Warning("The certificate of partner '%s' is signed using "+
 					"SHA-1 which is deprecated. All SHA-1 based signature "+
 					"algorithms will be disallowed out shortly.", name)
 			default:

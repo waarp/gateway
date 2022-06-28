@@ -13,7 +13,6 @@ import (
 
 	"code.waarp.fr/apps/gateway/gateway/pkg/database"
 	"code.waarp.fr/apps/gateway/gateway/pkg/http/httpconst"
-	"code.waarp.fr/apps/gateway/gateway/pkg/log"
 	"code.waarp.fr/apps/gateway/gateway/pkg/model"
 	"code.waarp.fr/apps/gateway/gateway/pkg/model/types"
 	"code.waarp.fr/apps/gateway/gateway/pkg/pipeline"
@@ -22,10 +21,9 @@ import (
 )
 
 func TestServiceStart(t *testing.T) {
-	logger := log.NewLogger("test_http_start")
-
 	Convey("Given an HTTP service", t, func(c C) {
-		db := database.TestDatabase(c, "ERROR")
+		logger := testhelpers.TestLogger(c, "test_http_start")
+		db := database.TestDatabase(c)
 		server := &model.LocalAgent{
 			Name:        "http_server",
 			Protocol:    "http",
@@ -47,10 +45,9 @@ func TestServiceStart(t *testing.T) {
 }
 
 func TestServiceStop(t *testing.T) {
-	logger := log.NewLogger("test_http_stop")
-
 	Convey("Given a running HTTP service", t, func(c C) {
-		db := database.TestDatabase(c, "ERROR")
+		logger := testhelpers.TestLogger(c, "test_http_stop")
+		db := database.TestDatabase(c)
 		server := &model.LocalAgent{
 			Name:        "http_server",
 			Protocol:    "http",
@@ -77,9 +74,9 @@ func TestServiceStop(t *testing.T) {
 func TestServerInterruption(t *testing.T) {
 	Convey("Given an SFTP server ready for push transfers", t, func(c C) {
 		test := pipelinetest.InitServerPush(c, "http", NewService, nil)
+		logger := testhelpers.TestLogger(c, "http_server")
 
-		//nolint:forcetypeassert //no need, the type assertion will always succeed
-		serv := NewService(test.DB, test.Server, log.NewLogger("server")).(*httpService)
+		serv := newService(test.DB, test.Server, logger)
 		c.So(serv.Start(), ShouldBeNil)
 
 		Convey("Given a dummy HTTP client", func() {

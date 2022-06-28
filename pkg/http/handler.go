@@ -7,9 +7,10 @@ import (
 	"strings"
 	"time"
 
+	"code.waarp.fr/lib/log"
+
 	"code.waarp.fr/apps/gateway/gateway/pkg/database"
 	"code.waarp.fr/apps/gateway/gateway/pkg/http/httpconst"
-	"code.waarp.fr/apps/gateway/gateway/pkg/log"
 	"code.waarp.fr/apps/gateway/gateway/pkg/model"
 	"code.waarp.fr/apps/gateway/gateway/pkg/model/types"
 	"code.waarp.fr/apps/gateway/gateway/pkg/pipeline"
@@ -54,7 +55,7 @@ func (h *httpHandler) getRuleFromName(name string, isSend bool) bool {
 			return false
 		}
 
-		h.logger.Errorf("Failed to retrieve transfer rule: %s", err)
+		h.logger.Error("Failed to retrieve transfer rule: %s", err)
 		h.sendError(http.StatusInternalServerError, types.TeInternal, "failed to retrieve transfer rule")
 
 		return false
@@ -66,7 +67,7 @@ func (h *httpHandler) getRuleFromName(name string, isSend bool) bool {
 func (h *httpHandler) checkRulePermission() bool {
 	isAuthorized, err := h.rule.IsAuthorized(h.db, h.account)
 	if err != nil {
-		h.logger.Errorf("Failed to retrieve rule permissions: %s", err)
+		h.logger.Error("Failed to retrieve rule permissions: %s", err)
 		h.sendError(http.StatusInternalServerError, types.TeInternal, "failed to check rule permissions")
 
 		return false
@@ -76,7 +77,7 @@ func (h *httpHandler) checkRulePermission() bool {
 		return true
 	}
 
-	h.logger.Warningf("Account %s is not allowed to use %s rule %s", h.account.Login,
+	h.logger.Warning("Account %s is not allowed to use %s rule %s", h.account.Login,
 		h.rule.Direction(), h.rule.Name)
 	h.sendError(http.StatusForbidden, types.TeForbidden, "you do not have permission to use this rule")
 
@@ -87,7 +88,7 @@ func (h *httpHandler) getSizeProgress(trans *model.Transfer) bool {
 	if h.rule.IsSend {
 		progress, err := getRange(h.req)
 		if err != nil {
-			h.logger.Errorf("Failed to parse transfer file attributes: %s", err)
+			h.logger.Error("Failed to parse transfer file attributes: %s", err)
 			h.sendError(http.StatusRequestedRangeNotSatisfiable, types.TeInternal, err.Error())
 
 			return false
@@ -99,7 +100,7 @@ func (h *httpHandler) getSizeProgress(trans *model.Transfer) bool {
 	} else {
 		progress, filesize, err := getContentRange(h.req.Header)
 		if err != nil {
-			h.logger.Errorf("Failed to parse transfer file attributes: %s", err)
+			h.logger.Error("Failed to parse transfer file attributes: %s", err)
 			h.sendError(http.StatusBadRequest, types.TeInternal, err.Error())
 
 			return false
@@ -233,7 +234,7 @@ func (h *httpHandler) handle(isSend bool) {
 		op = "Download"
 	}
 
-	h.logger.Debugf("%s of file %s requested by %s using rule %s, transfer "+
+	h.logger.Debug("%s of file %s requested by %s using rule %s, transfer "+
 		"was given ID n°%d", op, path.Base(h.req.URL.Path), h.account.Login,
 		h.rule.Name, trans.ID)
 
@@ -250,7 +251,7 @@ func (h *httpHandler) handle(isSend bool) {
 		runUpload(h.req, h.resp, h.running, pip)
 	}
 
-	h.logger.Debugf("File transfer done")
+	h.logger.Debug("File transfer done")
 }
 
 func (h *httpHandler) sendError(status int, code types.TransferErrorCode, msg string) {

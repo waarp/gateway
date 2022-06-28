@@ -13,7 +13,6 @@ import (
 	"strings"
 	"sync"
 
-	"code.bcarlin.xyz/go/logging"
 	"github.com/smartystreets/goconvey/convey"
 	"golang.org/x/crypto/bcrypt"
 	"xorm.io/xorm"
@@ -21,7 +20,6 @@ import (
 
 	"code.waarp.fr/apps/gateway/gateway/pkg/conf"
 	"code.waarp.fr/apps/gateway/gateway/pkg/database/migrations"
-	"code.waarp.fr/apps/gateway/gateway/pkg/log"
 	"code.waarp.fr/apps/gateway/gateway/pkg/tk/migration"
 	"code.waarp.fr/apps/gateway/gateway/pkg/tk/utils/testhelpers"
 )
@@ -132,8 +130,8 @@ func resetDB(db *DB) {
 // TestDatabase returns a testing SQLite database stored in memory for testing
 // purposes. The function must be called within a convey context.
 // The database will log messages at the level given.
-func TestDatabase(c convey.C, logLevel string) *DB {
-	db := initTestDatabase(c, logLevel)
+func TestDatabase(c convey.C) *DB {
+	db := initTestDatabase(c)
 
 	c.So(db.Start(), convey.ShouldBeNil)
 	c.Reset(func() { resetDB(db) })
@@ -141,8 +139,8 @@ func TestDatabase(c convey.C, logLevel string) *DB {
 	return db
 }
 
-func TestDatabaseNoInit(c convey.C, logLevel string) *DB {
-	db := initTestDatabase(c, logLevel)
+func TestDatabaseNoInit(c convey.C) *DB {
+	db := initTestDatabase(c)
 
 	c.So(db.start(false), convey.ShouldBeNil)
 	c.Reset(func() { resetDB(db) })
@@ -150,21 +148,13 @@ func TestDatabaseNoInit(c convey.C, logLevel string) *DB {
 	return db
 }
 
-func initTestDatabase(c convey.C, logLevel string) *DB {
+func initTestDatabase(c convey.C) *DB {
 	BcryptRounds = bcrypt.MinCost
 
 	initTestDBConf()
-
-	level, err := logging.LevelByName(logLevel)
-	c.So(err, convey.ShouldBeNil)
-
-	logger := logging.NewLogger("Test Database")
-	logger.SetBackend(logging.NewStdoutBackend())
-	logger.SetLevel(level)
-
 	testGCM()
 
-	db := &DB{logger: &log.Logger{Logger: logger}}
+	db := &DB{logger: testhelpers.TestLogger(c, "test_database")}
 
 	if os.Getenv(testDBMechanism) == "migration" {
 		startViaMigration(c)

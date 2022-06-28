@@ -13,7 +13,6 @@ import (
 
 	"code.waarp.fr/apps/gateway/gateway/pkg/conf"
 	"code.waarp.fr/apps/gateway/gateway/pkg/database"
-	"code.waarp.fr/apps/gateway/gateway/pkg/log"
 	"code.waarp.fr/apps/gateway/gateway/pkg/model"
 	"code.waarp.fr/apps/gateway/gateway/pkg/model/config"
 	"code.waarp.fr/apps/gateway/gateway/pkg/model/types"
@@ -22,9 +21,8 @@ import (
 )
 
 func TestFileReader(t *testing.T) {
-	logger := log.NewLogger("test_file_reader")
-
 	Convey("Given a file", t, func(c C) {
+		logger := testhelpers.TestLogger(c, "test_file_reader")
 		root := testhelpers.TempDir(c, "file_reader_test_root")
 
 		rulePath := filepath.Join(root, "test", "out")
@@ -35,7 +33,7 @@ func TestFileReader(t *testing.T) {
 		So(ioutil.WriteFile(file, content, 0o600), ShouldBeNil)
 
 		Convey("Given a database with a rule, a localAgent and a localAccount", func(dbc C) {
-			db := database.TestDatabase(dbc, "ERROR")
+			db := database.TestDatabase(dbc)
 
 			rule := &model.Rule{
 				Name:     "test",
@@ -132,13 +130,12 @@ func TestFileReader(t *testing.T) {
 }
 
 func TestFileWriter(t *testing.T) {
-	logger := log.NewLogger("test_file_writer")
-
 	Convey("Given a file", t, func(c C) {
+		logger := testhelpers.TestLogger(c, "test_file_writer")
 		root := testhelpers.TempDir(c, "file_writer_test_root")
 
-		Convey("Given a database with a rule and a localAgent", func(dbc C) {
-			db := database.TestDatabase(dbc, "ERROR")
+		Convey("Given a database with a rule and a localAgent", func(c C) {
+			db := database.TestDatabase(c)
 
 			rule := &model.Rule{
 				Name:   "test_rule",

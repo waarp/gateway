@@ -25,7 +25,7 @@ func TestRuleAccessTableName(t *testing.T) {
 
 func TestIsRuleAuthorized(t *testing.T) {
 	Convey("Given a database", t, func(c C) {
-		db := database.TestDatabase(c, "ERROR")
+		db := database.TestDatabase(c)
 
 		Convey("Given a rule entry", func() {
 			r := Rule{
@@ -98,7 +98,7 @@ func TestIsRuleAuthorized(t *testing.T) {
 
 func TestRuleAccessBeforeWrite(t *testing.T) {
 	Convey("Given a database", t, func(c C) {
-		db := database.TestDatabase(c, "ERROR")
+		db := database.TestDatabase(c)
 
 		Convey("Given a rule entry", func() {
 			r := &Rule{

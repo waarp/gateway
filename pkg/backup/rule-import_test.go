@@ -14,7 +14,7 @@ import (
 //nolint:maintidx //FIXME factorize the function if possible to improve maintainability
 func TestImportRules(t *testing.T) {
 	Convey("Given a database", t, func(c C) {
-		db := database.TestDatabase(c, "ERROR")
+		db := database.TestDatabase(c)
 
 		Convey("Given a database with some Rules", func() {
 			insert := &model.Rule{
@@ -118,7 +118,7 @@ func TestImportRules(t *testing.T) {
 				Rules := []file.Rule{Rule1}
 
 				Convey("When calling importRules with the new Rules", func() {
-					err := importRules(discard, db, Rules)
+					err := importRules(discard(), db, Rules)
 
 					Convey("Then it should return no error", func() {
 						So(err, ShouldBeNil)
@@ -193,7 +193,7 @@ func TestImportRules(t *testing.T) {
 				Rules := []file.Rule{Rule1}
 
 				Convey("When calling importRules with the new Rules", func() {
-					err := importRules(discard, db, Rules)
+					err := importRules(discard(), db, Rules)
 
 					Convey("Then it should return no error", func() {
 						So(err, ShouldBeNil)
@@ -246,7 +246,7 @@ func TestImportRules(t *testing.T) {
 				Rules := []file.Rule{Rule1}
 
 				Convey("When calling importRules with the new rule", func() {
-					err := importRules(discard, db, Rules)
+					err := importRules(discard(), db, Rules)
 
 					Convey("Then it should return no error", func() {
 						So(err, ShouldBeNil)
@@ -291,7 +291,7 @@ func TestImportRules(t *testing.T) {
 
 func TestImportRuleAccess(t *testing.T) {
 	Convey("Given a database", t, func(c C) {
-		db := database.TestDatabase(c, "ERROR")
+		db := database.TestDatabase(c)
 
 		Convey("Given a database with some Rules", func() {
 			insert := &model.Rule{
@@ -433,7 +433,7 @@ func TestImportRuleAccess(t *testing.T) {
 
 func TestImportTasks(t *testing.T) {
 	Convey("Given a database", t, func(c C) {
-		db := database.TestDatabase(c, "ERROR")
+		db := database.TestDatabase(c)
 
 		Convey("Given a database with some Rules", func() {
 			insert := &model.Rule{
@@ -501,7 +501,7 @@ func TestImportTasks(t *testing.T) {
 				}
 
 				Convey("When calling importTasks on pre tasks", func() {
-					err := importRuleTasks(discard, db, tasks, insert.ID, model.ChainPre)
+					err := importRuleTasks(discard(), db, tasks, insert.ID, model.ChainPre)
 
 					Convey("Then it should return no error", func() {
 						So(err, ShouldBeNil)
@@ -523,7 +523,7 @@ func TestImportTasks(t *testing.T) {
 				})
 
 				Convey("When calling importTasks on post tasks", func() {
-					err := importRuleTasks(discard, db, tasks, insert.ID, model.ChainPost)
+					err := importRuleTasks(discard(), db, tasks, insert.ID, model.ChainPost)
 
 					Convey("Then it should return no error", func() {
 						So(err, ShouldBeNil)
@@ -545,7 +545,7 @@ func TestImportTasks(t *testing.T) {
 				})
 
 				Convey("When calling importTasks on error tasks", func() {
-					err := importRuleTasks(discard, db, tasks, insert.ID, model.ChainError)
+					err := importRuleTasks(discard(), db, tasks, insert.ID, model.ChainError)
 
 					Convey("Then it should return no error", func() {
 						So(err, ShouldBeNil)

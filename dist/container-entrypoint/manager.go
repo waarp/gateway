@@ -16,8 +16,6 @@ import (
 	"strings"
 	"time"
 
-	"code.bcarlin.xyz/go/logging"
-
 	"code.waarp.fr/apps/gateway/gateway/pkg/conf"
 )
 
@@ -92,7 +90,7 @@ var (
 )
 
 func importConfFromManager(serverConf *conf.ServerConfig, managerURL string) error {
-	logger := logging.GetLogger(loggerName)
+	logger := getLogger()
 
 	logger.Info("Synchronizing Waarp Gateway with Waarp Manager")
 
@@ -108,7 +106,7 @@ func importConfFromManager(serverConf *conf.ServerConfig, managerURL string) err
 		return err
 	}
 
-	logger.Infof("Getting the configuration file from the zip package")
+	logger.Info("Getting the configuration file from the zip package")
 
 	buf, err := getConfFileFromZipContent(zipFileContent, serverConf.GatewayName)
 	if err != nil {
@@ -125,7 +123,7 @@ func importConfFromManager(serverConf *conf.ServerConfig, managerURL string) err
 }
 
 func verifyCertificates(serverConf *conf.ServerConfig) error {
-	logger := logging.GetLogger(loggerName)
+	logger := getLogger()
 
 	logger.Info("Verifying the certificates for the admin interface")
 
@@ -175,7 +173,7 @@ func downloadConf(confURL string) ([]byte, error) {
 
 	defer func() {
 		if err2 := resp.Body.Close(); err2 != nil {
-			logging.GetLogger(loggerName).Warningf(
+			getLogger().Warning(
 				"This error occurred while closing the HTTP request: %v", err2)
 		}
 	}()
@@ -217,7 +215,7 @@ func getConfFileFromZipContent(zipContent []byte, gatewayName string) (*bytes.Bu
 
 	defer func() {
 		if err2 := confReader.Close(); err2 != nil {
-			logging.GetLogger(loggerName).Warningf(
+			getLogger().Warning(
 				"This error occurred while reading the configuration package: %v", err2)
 		}
 	}()
@@ -232,11 +230,11 @@ func getConfFileFromZipContent(zipContent []byte, gatewayName string) (*bytes.Bu
 }
 
 func importConf(r io.Reader) error {
-	logger := logging.GetLogger(loggerName)
+	logger := getLogger()
 
 	cmdArgs := []string{"import", "--config", defaultConfigFile}
 
-	logger.Debugf("Command used to import the configuration: %s %s",
+	logger.Debug("Command used to import the configuration: %s %s",
 		gatewaydBin, strings.Join(cmdArgs, " "))
 
 	cmd := exec.Command(gatewaydBin, cmdArgs...)
@@ -244,7 +242,7 @@ func importConf(r io.Reader) error {
 
 	out, err := cmd.CombinedOutput()
 	if err != nil {
-		logger.Infof("Import command output: %s", out)
+		logger.Info("Import command output: %s", out)
 
 		return fmt.Errorf("configuration import failed: %w", err)
 	}
@@ -597,7 +595,7 @@ func addConfigFlow(client *httpClient, reqURL *url.URL, partner *gwPartner, orig
 }
 
 func registerGatewayInManager(partner *gwPartner, managerURL string) error {
-	logger := logging.GetLogger(loggerName)
+	logger := getLogger()
 
 	parsedURL, err := url.Parse(managerURL)
 	if err != nil {

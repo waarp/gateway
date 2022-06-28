@@ -13,7 +13,7 @@ import (
 
 func TestExportRules(t *testing.T) {
 	Convey("Given a database", t, func(c C) {
-		db := database.TestDatabase(c, "ERROR")
+		db := database.TestDatabase(c)
 
 		Convey("Given the database contains 3 rules", func() {
 			rule1 := &model.Rule{
@@ -38,7 +38,7 @@ func TestExportRules(t *testing.T) {
 			So(db.Insert(rule1b).Run(), ShouldBeNil)
 
 			Convey("When calling the exportRule function", func() {
-				res, err := exportRules(discard, db)
+				res, err := exportRules(discard(), db)
 
 				Convey("Then it should return no error", func() {
 					So(err, ShouldBeNil)
@@ -54,7 +54,7 @@ func TestExportRules(t *testing.T) {
 
 func TestExportRuleAccesses(t *testing.T) {
 	Convey("Given a database", t, func(c C) {
-		db := database.TestDatabase(c, "ERROR")
+		db := database.TestDatabase(c)
 
 		Convey("Given a rules with accesses", func() {
 			agent := &model.RemoteAgent{
@@ -147,7 +147,7 @@ func TestExportRuleAccesses(t *testing.T) {
 
 func TestExportRuleTasks(t *testing.T) {
 	Convey("Given a database", t, func(c C) {
-		db := database.TestDatabase(c, "ERROR")
+		db := database.TestDatabase(c)
 
 		Convey("Given rules with tasks", func() {
 			rule1 := &model.Rule{

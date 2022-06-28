@@ -16,18 +16,17 @@ import (
 
 	. "code.waarp.fr/apps/gateway/gateway/pkg/admin/rest/api"
 	"code.waarp.fr/apps/gateway/gateway/pkg/database"
-	"code.waarp.fr/apps/gateway/gateway/pkg/log"
 	"code.waarp.fr/apps/gateway/gateway/pkg/model"
 	"code.waarp.fr/apps/gateway/gateway/pkg/tk/utils"
+	"code.waarp.fr/apps/gateway/gateway/pkg/tk/utils/testhelpers"
 )
 
 const ruleURI = "http://remotehost:8080/api/rules/"
 
 func TestCreateRule(t *testing.T) {
-	logger := log.NewLogger("rest_rule_create_logger")
-
 	Convey("Given the rule creation handler", t, func(c C) {
-		db := database.TestDatabase(c, "ERROR")
+		logger := testhelpers.TestLogger(c, "rest_rule_create_logger")
+		db := database.TestDatabase(c)
 		handler := addRule(logger, db)
 		w := httptest.NewRecorder()
 
@@ -127,10 +126,9 @@ func TestCreateRule(t *testing.T) {
 }
 
 func TestGetRule(t *testing.T) {
-	logger := log.NewLogger("rest_rule_get_test")
-
 	Convey("Given the rule get handler", t, func(c C) {
-		db := database.TestDatabase(c, "ERROR")
+		logger := testhelpers.TestLogger(c, "rest_rule_get_test")
+		db := database.TestDatabase(c)
 		handler := getRule(logger, db)
 		w := httptest.NewRecorder()
 
@@ -384,10 +382,9 @@ func TestGetRule(t *testing.T) {
 }
 
 func TestListRules(t *testing.T) {
-	logger := log.NewLogger("rest_rules_list_test")
-
 	Convey("Testing the transfer list handler", t, func(c C) {
-		db := database.TestDatabase(c, "ERROR")
+		logger := testhelpers.TestLogger(c, "rest_rules_list_test")
+		db := database.TestDatabase(c)
 		handler := listRules(logger, db)
 		w := httptest.NewRecorder()
 
@@ -443,10 +440,9 @@ func TestListRules(t *testing.T) {
 }
 
 func TestDeleteRule(t *testing.T) {
-	logger := log.NewLogger("rest_rule_delete_test")
-
 	Convey("Given the rules deletion handler", t, func(c C) {
-		db := database.TestDatabase(c, "ERROR")
+		logger := testhelpers.TestLogger(c, "rest_rule_delete_test")
+		db := database.TestDatabase(c)
 		handler := deleteRule(logger, db)
 		w := httptest.NewRecorder()
 
@@ -506,10 +502,9 @@ func TestDeleteRule(t *testing.T) {
 }
 
 func TestUpdateRule(t *testing.T) {
-	logger := log.NewLogger("rest_rule_update_logger")
-
 	Convey("Given the rule updating handler", t, func(c C) {
-		db := database.TestDatabase(c, "ERROR")
+		logger := testhelpers.TestLogger(c, "rest_rule_update_logger")
+		db := database.TestDatabase(c)
 		handler := updateRule(logger, db)
 		w := httptest.NewRecorder()
 
@@ -803,10 +798,9 @@ func getFromDb(db *database.DB, name string, isSend bool) (*model.Rule, error) {
 }
 
 func TestReplaceRule(t *testing.T) {
-	logger := log.NewLogger("rest_rule_replace")
-
 	Convey("Given the rule updating handler", t, func(c C) {
-		db := database.TestDatabase(c, "ERROR")
+		logger := testhelpers.TestLogger(c, "rest_rule_replace")
+		db := database.TestDatabase(c)
 		handler := replaceRule(logger, db)
 		w := httptest.NewRecorder()
 

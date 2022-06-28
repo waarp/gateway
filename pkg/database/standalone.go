@@ -1,10 +1,10 @@
 package database
 
 import (
+	"code.waarp.fr/lib/log"
 	"xorm.io/xorm"
 
 	"code.waarp.fr/apps/gateway/gateway/pkg/conf"
-	"code.waarp.fr/apps/gateway/gateway/pkg/log"
 )
 
 // Standalone is a struct used to execute standalone commands on the database.
@@ -31,14 +31,14 @@ func (s *Standalone) Transaction(f TransactionFunc) Error {
 	ses := s.newSession()
 
 	if err := ses.session.Begin(); err != nil {
-		s.logger.Errorf("Failed to start transaction: %s", err)
+		s.logger.Error("Failed to start transaction: %s", err)
 
 		return NewInternalError(err)
 	}
 
 	if conf.GlobalConfig.Database.Type == SQLite {
 		if _, err := ses.session.Exec("ROLLBACK; BEGIN IMMEDIATE"); err != nil {
-			s.logger.Errorf("Failed to start immediate transaction: %s", err)
+			s.logger.Error("Failed to start immediate transaction: %s", err)
 
 			return &InternalError{msg: "failed to start transaction", cause: err}
 		}
@@ -46,29 +46,29 @@ func (s *Standalone) Transaction(f TransactionFunc) Error {
 
 	defer func() {
 		if err := ses.session.Close(); err != nil {
-			s.logger.Warningf("an error occurred while closing the Session: %v", err)
+			s.logger.Warning("an error occurred while closing the session: %v", err)
 		}
 	}()
 
-	s.logger.Debug("[SQL] Beginning transaction")
+	s.logger.Trace("[SQL] Beginning transaction")
 
 	if err := f(ses); err != nil {
-		s.logger.Error("Transaction failed, changes have been rolled back")
+		s.logger.Trace("Transaction failed, changes have been rolled back")
 
 		if err := ses.session.Rollback(); err != nil {
-			s.logger.Warningf("an error occurred during the session rollback: %v", err)
+			s.logger.Warning("an error occurred while rolling back the transaction: %v", err)
 		}
 
 		return err
 	}
 
 	if err := ses.session.Commit(); err != nil {
-		s.logger.Errorf("Failed to commit changes: %s", err)
+		s.logger.Error("Failed to commit changes: %s", err)
 
 		return NewInternalError(err)
 	}
 
-	s.logger.Debug("[SQL] Transaction succeeded, changes have been committed")
+	s.logger.Trace("[SQL] Transaction succeeded, changes have been committed")
 
 	return nil
 }

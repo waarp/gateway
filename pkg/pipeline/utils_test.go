@@ -14,7 +14,6 @@ import (
 
 	"code.waarp.fr/apps/gateway/gateway/pkg/conf"
 	"code.waarp.fr/apps/gateway/gateway/pkg/database"
-	"code.waarp.fr/apps/gateway/gateway/pkg/log"
 	"code.waarp.fr/apps/gateway/gateway/pkg/model"
 	"code.waarp.fr/apps/gateway/gateway/pkg/model/config"
 	"code.waarp.fr/apps/gateway/gateway/pkg/model/types"
@@ -38,8 +37,6 @@ const testProtocol = "test_proto"
 
 //nolint:gochecknoinits // init is used by design
 func init() {
-	_ = log.InitBackend("DEBUG", "stdout", "")
-
 	config.ProtoConfigs[testProtocol] = func() config.ProtoConfig {
 		return new(testhelpers.TestProtoConfig)
 	}
@@ -77,7 +74,7 @@ func waitEndTransfer(pip *Pipeline) {
 
 func initTestDB(c C) *testContext {
 	root := testhelpers.TempDir(c, "new_transfer_stream")
-	db := database.TestDatabase(c, "ERROR")
+	db := database.TestDatabase(c)
 
 	conf.GlobalConfig.Paths = conf.PathsConfig{
 		GatewayHome:   root,

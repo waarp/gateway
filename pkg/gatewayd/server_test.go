@@ -12,7 +12,6 @@ import (
 
 	"code.waarp.fr/apps/gateway/gateway/pkg/conf"
 	"code.waarp.fr/apps/gateway/gateway/pkg/database"
-	"code.waarp.fr/apps/gateway/gateway/pkg/log"
 	"code.waarp.fr/apps/gateway/gateway/pkg/model"
 	"code.waarp.fr/apps/gateway/gateway/pkg/tk/service"
 	"code.waarp.fr/apps/gateway/gateway/pkg/tk/utils/testhelpers"
@@ -21,7 +20,7 @@ import (
 func testSetup(c C) (*WG, *model.LocalAgent, *model.LocalAgent) {
 	So(os.Setenv("GATEWAY_TEST_DB", database.SQLite), ShouldBeNil)
 
-	db := database.TestDatabase(c, "ERROR")
+	db := database.TestDatabase(c)
 	addServ := func(name string) *model.LocalAgent {
 		s := &model.LocalAgent{
 			Name:        name,
@@ -56,7 +55,7 @@ func testSetup(c C) (*WG, *model.LocalAgent, *model.LocalAgent) {
 		Delay: time.Minute,
 	}
 
-	return &WG{Logger: log.NewLogger("wg")}, s1, s2
+	return &WG{Logger: testhelpers.TestLogger(c, "test_wg")}, s1, s2
 }
 
 func checkState(wg *WG, code service.StateCode, s1, s2 *model.LocalAgent) {

@@ -10,7 +10,8 @@ import (
 	"path/filepath"
 	"time"
 
-	"code.waarp.fr/apps/gateway/gateway/pkg/log"
+	"code.waarp.fr/lib/log"
+
 	"code.waarp.fr/apps/gateway/gateway/pkg/tk/config"
 )
 
@@ -166,11 +167,12 @@ func loadServerConfig(userConfig string) (*ServerConfig, string, error) {
 		return nil, "", err
 	}
 
-	if err := log.InitBackend(c.Log.Level, c.Log.LogTo, c.Log.SyslogFacility); err != nil {
+	if err := initBackend(c.Log.Level, c.Log.LogTo, c.Log.SyslogFacility,
+		"waarp-gateway"); err != nil {
 		return nil, "", fmt.Errorf("failed to initialize log backend: %w", err)
 	}
 
-	logger := log.NewLogger("Config file")
+	logger := GetLogger("Config file")
 	if err := normalizePaths(c, logger); err != nil {
 		return nil, "", err
 	}

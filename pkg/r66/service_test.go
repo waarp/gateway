@@ -8,12 +8,11 @@ import (
 	"testing"
 	"time"
 
-	"code.bcarlin.xyz/go/logging"
+	"code.waarp.fr/lib/log"
 	"code.waarp.fr/lib/r66"
 	. "github.com/smartystreets/goconvey/convey"
 
 	"code.waarp.fr/apps/gateway/gateway/pkg/database"
-	"code.waarp.fr/apps/gateway/gateway/pkg/log"
 	"code.waarp.fr/apps/gateway/gateway/pkg/model"
 	"code.waarp.fr/apps/gateway/gateway/pkg/model/types"
 	"code.waarp.fr/apps/gateway/gateway/pkg/pipeline"
@@ -22,10 +21,8 @@ import (
 )
 
 func TestServiceStart(t *testing.T) {
-	logger := log.NewLogger("test_r66_start")
-
 	Convey("Given an R66 service", t, func(c C) {
-		db := database.TestDatabase(c, "ERROR")
+		db := database.TestDatabase(c)
 		server := &model.LocalAgent{
 			Name:        "r66_server",
 			Protocol:    "r66",
@@ -34,6 +31,7 @@ func TestServiceStart(t *testing.T) {
 		}
 		So(db.Insert(server).Run(), ShouldBeNil)
 
+		logger := testhelpers.TestLogger(c, "test_r66_start")
 		serv := NewService(db, server, logger)
 
 		Convey("When calling the 'Start' function", func() {
@@ -46,7 +44,7 @@ func TestServiceStart(t *testing.T) {
 	})
 
 	Convey("Given an R66-TLS service", t, func(c C) {
-		db := database.TestDatabase(c, "ERROR")
+		db := database.TestDatabase(c)
 		server := &model.LocalAgent{
 			Name:        "r66_server",
 			Protocol:    "r66",
@@ -63,6 +61,7 @@ func TestServiceStart(t *testing.T) {
 		}
 		So(db.Insert(cert).Run(), ShouldBeNil)
 
+		logger := testhelpers.TestLogger(c, "test_r66_start")
 		serv := NewService(db, server, logger)
 
 		Convey("When calling the 'Start' function", func() {
@@ -75,7 +74,7 @@ func TestServiceStart(t *testing.T) {
 	})
 
 	Convey("Given an R66-TLS service with no certificate", t, func(c C) {
-		db := database.TestDatabase(c, "ERROR")
+		db := database.TestDatabase(c)
 		server := &model.LocalAgent{
 			Name:        "r66_server",
 			Protocol:    "r66",
@@ -84,6 +83,7 @@ func TestServiceStart(t *testing.T) {
 		}
 		So(db.Insert(server).Run(), ShouldBeNil)
 
+		logger := testhelpers.TestLogger(c, "test_r66_start")
 		serv := NewService(db, server, logger)
 
 		Convey("When calling the 'Start' function", func() {
@@ -98,10 +98,8 @@ func TestServiceStart(t *testing.T) {
 }
 
 func TestServiceStop(t *testing.T) {
-	logger := log.NewLogger("test_r66_stop")
-
 	Convey("Given a running R66 service", t, func(c C) {
-		db := database.TestDatabase(c, "ERROR")
+		db := database.TestDatabase(c)
 		server := &model.LocalAgent{
 			Name:        "r66_server",
 			Protocol:    "r66",
@@ -110,6 +108,7 @@ func TestServiceStop(t *testing.T) {
 		}
 		So(db.Insert(server).Run(), ShouldBeNil)
 
+		logger := testhelpers.TestLogger(c, "test_r66_start")
 		serv := NewService(db, server, logger)
 		So(serv.Start(), ShouldBeNil)
 
@@ -129,11 +128,12 @@ func TestR66ServerInterruption(t *testing.T) {
 	Convey("Given an R66 server ready for push transfers", t, func(c C) {
 		test := pipelinetest.InitServerPush(c, "r66", NewService, servConf)
 
-		serv := newService(test.DB, test.Server, log.NewLogger("server"))
+		logger := testhelpers.TestLogger(c, "test_r66_start")
+		serv := newService(test.DB, test.Server, logger)
 		c.So(serv.Start(), ShouldBeNil)
 
-		Convey("Given a dummy R66 client", func() {
-			ses := makeDummyClient(test)
+		Convey("Given a dummy R66 client", func(c C) {
+			ses := makeDummyClient(c, test)
 
 			Convey("Given that a push transfer started", func() {
 				req := &r66.Request{
@@ -206,9 +206,9 @@ func TestR66ServerInterruption(t *testing.T) {
 	})
 }
 
-func makeDummyClient(test *pipelinetest.ServerContext) *r66.Session {
-	logger := log.NewLogger("client")
-	cli, err := r66.Dial(test.Server.Address, logger.AsStdLog(logging.DEBUG))
+func makeDummyClient(c C, test *pipelinetest.ServerContext) *r66.Session {
+	logger := testhelpers.TestLogger(c, "r66_dummy_client")
+	cli, err := r66.Dial(test.Server.Address, logger.AsStdLogger(log.LevelTrace))
 	So(err, ShouldBeNil)
 
 	ses, err := cli.NewSession()

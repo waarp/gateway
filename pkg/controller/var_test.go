@@ -1,7 +1,6 @@
 package controller
 
 import (
-	"code.waarp.fr/apps/gateway/gateway/pkg/log"
 	"code.waarp.fr/apps/gateway/gateway/pkg/model/config"
 	"code.waarp.fr/apps/gateway/gateway/pkg/model/types"
 	"code.waarp.fr/apps/gateway/gateway/pkg/pipeline"
@@ -12,8 +11,6 @@ const testProtocol = "test_proto"
 
 //nolint:gochecknoinits // init is used to ease the tests
 func init() {
-	_ = log.InitBackend("DEBUG", "stdout", "")
-
 	config.ProtoConfigs[testProtocol] = func() config.ProtoConfig {
 		return new(testhelpers.TestProtoConfig)
 	}

@@ -12,7 +12,7 @@ import (
 
 	. "github.com/smartystreets/goconvey/convey"
 
-	"code.waarp.fr/apps/gateway/gateway/pkg/log"
+	"code.waarp.fr/lib/log"
 )
 
 func initLogger() (*log.Logger, io.Reader, func()) {
@@ -23,12 +23,14 @@ func initLogger() (*log.Logger, io.Reader, func()) {
 	os.Stdout = w
 
 	Reset(func() { os.Stdout = stdout })
-	So(log.InitBackend("WARNING", "stdout", ""), ShouldBeNil)
+
+	back, err := log.NewBackend(log.LevelWarning, "stdout", "", "")
+	So(err, ShouldBeNil)
 
 	once := sync.Once{}
 	done := func() { once.Do(func() { So(w.Close(), ShouldBeNil) }) }
 
-	return log.NewLogger("test_log_sha1"), r, done
+	return back.NewLogger("test_log_sha1"), r, done
 }
 
 const sha1Key = `-----BEGIN RSA PRIVATE KEY-----

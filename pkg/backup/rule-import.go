@@ -3,9 +3,10 @@ package backup
 import (
 	"strings"
 
+	"code.waarp.fr/lib/log"
+
 	"code.waarp.fr/apps/gateway/gateway/pkg/backup/file"
 	"code.waarp.fr/apps/gateway/gateway/pkg/database"
-	"code.waarp.fr/apps/gateway/gateway/pkg/log"
 	"code.waarp.fr/apps/gateway/gateway/pkg/model"
 )
 
@@ -38,10 +39,10 @@ func importRules(logger *log.Logger, db database.Access, list []file.Rule) datab
 
 		// Create/Update
 		if exists {
-			logger.Infof("Update rule %s\n", rule.Name)
+			logger.Info("Update rule %s\n", rule.Name)
 			err = db.Update(&rule).Run()
 		} else {
-			logger.Infof("Create rule %s\n", rule.Name)
+			logger.Info("Create rule %s\n", rule.Name)
 			err = db.Insert(&rule).Run()
 		}
 
@@ -140,7 +141,8 @@ func importRuleAccesses(db database.Access, list []string, ruleID uint64) databa
 
 //nolint:dupl // duplicated sections are about two different types.
 func createRemoteAccess(db database.ReadAccess, arr []string,
-	ruleID uint64) (*model.RuleAccess, database.Error) {
+	ruleID uint64,
+) (*model.RuleAccess, database.Error) {
 	var agent model.RemoteAgent
 	if err := db.Get(&agent, "name=?", arr[1]).Run(); err != nil {
 		return nil, err
@@ -171,7 +173,8 @@ func createRemoteAccess(db database.ReadAccess, arr []string,
 
 //nolint:dupl // duplicated sections are about two different types.
 func createLocalAccess(db database.ReadAccess, arr []string,
-	ruleID uint64) (*model.RuleAccess, database.Error) {
+	ruleID uint64,
+) (*model.RuleAccess, database.Error) {
 	var agent model.LocalAgent
 	if err := db.Get(&agent, "name=?", arr[1]).Run(); err != nil {
 		return nil, err
@@ -200,7 +203,8 @@ func createLocalAccess(db database.ReadAccess, arr []string,
 }
 
 func importRuleTasks(logger *log.Logger, db database.Access, list []file.Task,
-	ruleID uint64, chain model.Chain) database.Error {
+	ruleID uint64, chain model.Chain,
+) database.Error {
 	if list == nil {
 		return nil
 	}
@@ -219,7 +223,7 @@ func importRuleTasks(logger *log.Logger, db database.Access, list []file.Task,
 		task.Args = src.Args
 
 		// Create/Update
-		logger.Infof("Create task type %s at chain %s rank %d\n", task.Type, chain, i)
+		logger.Info("Create task type %s at chain %s rank %d\n", task.Type, chain, i)
 
 		if err := db.Insert(&task).Run(); err != nil {
 			return err

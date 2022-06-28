@@ -2,14 +2,7 @@ package database
 
 import (
 	"github.com/smartystreets/goconvey/convey"
-
-	"code.waarp.fr/apps/gateway/gateway/pkg/log"
 )
-
-//nolint:gochecknoinits // init is used by design
-func init() {
-	_ = log.InitBackend("DEBUG", "stdout", "")
-}
 
 type testValid struct {
 	ID     uint64 `xorm:"pk 'id'"`
