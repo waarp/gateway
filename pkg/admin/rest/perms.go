@@ -178,7 +178,9 @@ func makeHandlerFactory(logger *log.Logger, db *database.DB, router *mux.Router)
 			handle(logger, db).ServeHTTP(w, r)
 		}
 
-		router.HandleFunc(path, auth).Methods(methods...)
+		for _, method := range methods {
+			router.HandleFunc(path, auth).Methods(method).Name(method + " " + path)
+		}
 	}
 }
 
