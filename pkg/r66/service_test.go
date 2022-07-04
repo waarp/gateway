@@ -138,7 +138,7 @@ func TestR66ServerInterruption(t *testing.T) {
 			Convey("Given that a push transfer started", func() {
 				req := &r66.Request{
 					ID:       1,
-					Filepath: "/test_in_shutdown.dst",
+					Filepath: "test_in_shutdown.dst",
 					FileSize: 100,
 					Rule:     test.ServerRule.Name,
 					IsRecv:   false,

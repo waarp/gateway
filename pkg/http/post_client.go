@@ -201,7 +201,7 @@ func (p *postClient) Request() *types.TransferError {
 	case <-ready:
 		return nil
 	case err := <-p.reqErr:
-		return types.NewTransferError(types.TeConnection, "HTTP request failed: %s", err)
+		return types.NewTransferError(types.TeConnection, "HTTP request failed: %v", err)
 	case resp := <-p.resp:
 		defer resp.Body.Close() //nolint:errcheck // error is irrelevant at this point
 

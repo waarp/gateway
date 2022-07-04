@@ -28,19 +28,29 @@ func (*TransferInfo) Appellation() string {
 
 // BeforeWrite checks if the TransferInfo entry is valid for insertion in the database.
 func (t *TransferInfo) BeforeWrite(db database.ReadAccess) database.Error {
-	n, err := db.Count(&Transfer{}).Where("id=?", t.TransferID).Run()
-	if err != nil {
-		return database.NewValidationError("failed to retrieve transfer list: %s", err)
-	} else if n == 0 {
+	var (
+		n   uint64
+		err error
+	)
+
+	if t.IsHistory {
+		n, err = db.Count(&HistoryEntry{}).Where("id=?", t.TransferID).Run()
+	} else {
+		n, err = db.Count(&Transfer{}).Where("id=?", t.TransferID).Run()
+	}
+
+	if n == 0 {
 		return database.NewValidationError("no transfer %d found", t.TransferID)
 	}
 
-	n, err = db.Count(&TransferInfo{}).Where("transfer_id=? AND name=?", t.TransferID, t.Name).Run()
 	if err != nil {
-		return database.NewValidationError("failed to retrieve info list: %s", err)
+		return database.NewValidationError("failed to retrieve transfer list: %s", err)
 	}
 
-	if n > 0 {
+	if n, err = db.Count(&TransferInfo{}).Where("transfer_id=? AND name=?",
+		t.TransferID, t.Name).Run(); err != nil {
+		return database.NewValidationError("failed to retrieve info list: %s", err)
+	} else if n > 0 {
 		return database.NewValidationError("transfer %d already has a property '%s'",
 			t.TransferID, t.Name)
 	}
