@@ -126,6 +126,14 @@ func resetDB(db *DB) {
 	}
 }
 
+// UnstartedTestDatabase returns an unstarted test database. Starting and
+// stopping the service is thus the caller's responsibility.
+func UnstartedTestDatabase(c convey.C) *DB {
+	db := initTestDatabase(c)
+
+	return db
+}
+
 // TestDatabase returns a testing SQLite database stored in memory for testing
 // purposes. The function must be called within a convey context.
 // The database will log messages at the level given.
