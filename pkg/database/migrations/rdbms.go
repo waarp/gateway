@@ -4,6 +4,7 @@ import (
 	"crypto/tls"
 	"fmt"
 	"net"
+	"net/url"
 	"strings"
 
 	// Register the SQL drivers.
@@ -50,18 +51,17 @@ var rdbms = map[string]dbInfo{
 // SqliteDSN takes a database configuration and returns the corresponding
 // SQLite DSN necessary to connect to the database.
 func SqliteDSN() string {
-	config := &conf.GlobalConfig.Database
+	config := conf.GlobalConfig.Database
+	values := url.Values{}
 
-	var user, pass string
-	if config.User != "" {
-		user = fmt.Sprintf("&_auth_user=%s", config.User)
-	}
+	values.Set("mode", "rwc")
+	values.Set("_txlock", "immediate")
+	values.Add("_pragma", "busy_timeout=5000")
+	values.Add("_pragma", "foreign_keys=ON")
+	values.Add("_pragma", "journal_mode=WAL")
+	values.Add("_pragma", "synchronous=NORMAL")
 
-	if config.Password != "" {
-		pass = fmt.Sprintf("&_auth_pass=%s", config.Password)
-	}
-
-	return fmt.Sprintf("file:%s?mode=rwc%s%s", config.Address, user, pass)
+	return fmt.Sprintf("%s?%s", config.Address, values.Encode())
 }
 
 // PostgresDSN takes a database configuration and returns the corresponding

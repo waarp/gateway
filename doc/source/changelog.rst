@@ -3,7 +3,7 @@
 Historique des versions
 =======================
 
-* :release:`0.5.2 <>`
+* :release:`0.5.2 <2022-06-30>`
 * :bug:`319` Lorsqu'un protocole n'intègre pas de mécanisme pour négocier une
   reprise de transfert, alors le transfert de données est repris depuis le début.
   Cela permet d'éviter que dans certains cas, le fichier envoyé soit incomplet
