@@ -58,6 +58,9 @@ func testMigrations(eng *migration.Engine, dbType string) {
 
 	// 0.5.2
 	testVer0_5_2FillRemoteTransferID(eng)
+
+	// 0.6.0
+	testVer0_6_0AddTransferInfoIsHistory(eng)
 }
 
 func TestSQLiteMigrations(t *testing.T) {

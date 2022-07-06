@@ -91,13 +91,23 @@ func (c *client) BeginPreTasks() *types.TransferError { return nil }
 // EndPreTasks sends/receives updated transfer info to/from the remote partner.
 func (c *client) EndPreTasks() *types.TransferError {
 	if c.pip.TransCtx.Rule.IsSend {
-		info := &r66.UpdateInfo{
+		outInfo := &r66.UpdateInfo{
 			Filename: strings.TrimPrefix(c.pip.TransCtx.Transfer.RemotePath, "/"),
 			FileSize: c.pip.TransCtx.Transfer.Filesize,
 			FileInfo: &r66.TransferData{},
 		}
 
-		if err := c.ses.SendUpdateRequest(info); err != nil {
+		if err := internal.MakeTransferInfo(c.pip, outInfo.FileInfo); err != nil {
+			return err
+		}
+
+		/*
+			if err := internal.MakeFileInfo(c.pip, &outInfo.FileInfo.SystemData); err != nil {
+				return err
+			}
+		*/
+
+		if err := c.ses.SendUpdateRequest(outInfo); err != nil {
 			c.pip.Logger.Errorf("Failed to send transfer info: %s", err)
 
 			return internal.FromR66Error(err, c.pip)
@@ -106,14 +116,14 @@ func (c *client) EndPreTasks() *types.TransferError {
 		return nil
 	}
 
-	info, err := c.ses.RecvUpdateRequest()
+	inInfo, err := c.ses.RecvUpdateRequest()
 	if err != nil {
 		c.pip.Logger.Errorf("Failed to receive transfer info: %s", err)
 
 		return internal.FromR66Error(err, c.pip)
 	}
 
-	return internal.UpdateInfo(info, c.pip)
+	return internal.UpdateFileInfo(inInfo, c.pip)
 }
 
 // Data copies data between the given data stream and the remote partner.

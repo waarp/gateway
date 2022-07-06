@@ -3,6 +3,13 @@
 Historique des versions
 =======================
 
+* :release:`0.6.0 <>`
+* :feature:`250` Ajout du support des *transfers info* à la gateway. Les
+  *transfer info* sont une liste de paires clé-valeur définies par l'utilisateur
+  à la création du transfert, et qui seront envoyées par le client en même temps
+  que la requête, pour les protocoles le permettant, à savoir R66 et HTTP pour
+  l'instant.
+
 * :release:`0.5.2 <2022-06-30>`
 * :bug:`319` Lorsqu'un protocole n'intègre pas de mécanisme pour négocier une
   reprise de transfert, alors le transfert de données est repris depuis le début.

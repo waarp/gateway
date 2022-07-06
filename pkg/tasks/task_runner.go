@@ -187,10 +187,13 @@ func (r *Runner) setup(t *model.Task) (map[string]string, error) {
 	return args, nil
 }
 
-// replace replace all the context variables (#varname#) in the tasks arguments
+// replaces all the context variables (#varname#) in the tasks arguments
 // by their context value.
 func (r *Runner) replace(t *model.Task) ([]byte, error) {
 	res := t.Args
+	replacers := getReplacers()
+	replacers.addInfo(r.transCtx)
+
 	for key, f := range replacers {
 		if bytes.Contains(res, []byte(key)) {
 			r, err := f(r)

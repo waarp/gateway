@@ -22,6 +22,8 @@ func TestSelfPushOK(t *testing.T) {
 		ctx.StartService(c)
 
 		Convey("When executing the transfer", func(c C) {
+			// ctx.AddFileInfo(c, "fi_name", "fi value")
+			ctx.AddTransferInfo(c, "ti_name", "ti value")
 			ctx.RunTransfer(c, false)
 
 			Convey("Then it should have executed all the tasks in order", func(c C) {
@@ -42,6 +44,8 @@ func TestSelfPullOK(t *testing.T) {
 		ctx.StartService(c)
 
 		Convey("When executing the transfer", func(c C) {
+			// ctx.AddFileInfo(c, "fi_name", "fi value")
+			ctx.AddTransferInfo(c, "ti_name", "ti value")
 			ctx.RunTransfer(c, false)
 
 			Convey("Then it should have executed all the tasks in order", func(c C) {

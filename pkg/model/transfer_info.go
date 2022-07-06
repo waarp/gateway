@@ -11,6 +11,7 @@ func init() {
 // protocol-specific information attached to a transfer.
 type TransferInfo struct {
 	TransferID uint64 `xorm:"notnull unique(infoName) 'transfer_id'"`
+	IsHistory  bool   `xorm:"notnull 'is_history'"`
 	Name       string `xorm:"notnull unique(infoName) 'name'"`
 	Value      string `xorm:"notnull 'value'"`
 }
@@ -26,25 +27,43 @@ func (*TransferInfo) Appellation() string {
 }
 
 // BeforeWrite checks if the TransferInfo entry is valid for insertion in the database.
-func (e *TransferInfo) BeforeWrite(db database.ReadAccess) database.Error {
-	n, err := db.Count(&Transfer{}).Where("id=?", e.TransferID).Run()
+func (t *TransferInfo) BeforeWrite(db database.ReadAccess) database.Error {
+	var (
+		n   uint64
+		err error
+	)
+
+	if t.IsHistory {
+		n, err = db.Count(&HistoryEntry{}).Where("id=?", t.TransferID).Run()
+	} else {
+		n, err = db.Count(&Transfer{}).Where("id=?", t.TransferID).Run()
+	}
+
+	if n == 0 {
+		return database.NewValidationError("no transfer %d found", t.TransferID)
+	}
+
 	if err != nil {
 		return database.NewValidationError("failed to retrieve transfer list: %s", err)
 	}
 
-	if n > 0 {
-		return database.NewValidationError("no transfer %d found", e.TransferID)
-	}
-
-	n, err = db.Count(&TransferInfo{}).Where("transfer_id=? AND name=?", e.TransferID, e.Name).Run()
-	if err != nil {
+	if n, err = db.Count(&TransferInfo{}).Where("transfer_id=? AND name=?",
+		t.TransferID, t.Name).Run(); err != nil {
 		return database.NewValidationError("failed to retrieve info list: %s", err)
-	}
-
-	if n > 0 {
+	} else if n > 0 {
 		return database.NewValidationError("transfer %d already has a property '%s'",
-			e.TransferID, e.Name)
+			t.TransferID, t.Name)
 	}
 
 	return nil
+}
+
+// ToMap converts and returns the TransferInfoList into an equivalent map.
+func (t TransferInfoList) ToMap() map[string]string {
+	infoMap := map[string]string{}
+	for _, info := range t {
+		infoMap[info.Name] = info.Value
+	}
+
+	return infoMap
 }

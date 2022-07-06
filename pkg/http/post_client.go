@@ -113,6 +113,14 @@ func (p *postClient) setRequestHeaders(req *http.Request) *types.TransferError {
 	req.Header.Set(httpconst.RuleName, p.pip.TransCtx.Rule.Name)
 	makeContentRange(req.Header, p.pip.TransCtx.Transfer)
 
+	if err := makeTransferInfo(req.Header, p.pip); err != nil {
+		return err
+	}
+
+	// if err := makeFileInfo(req.Header, p.pip); err != nil {
+	//	return err
+	// }
+
 	req.Trailer = make(http.Header)
 	req.Trailer.Set(httpconst.TransferStatus, "")
 	req.Trailer.Set(httpconst.ErrorCode, "")
@@ -193,7 +201,7 @@ func (p *postClient) Request() *types.TransferError {
 	case <-ready:
 		return nil
 	case err := <-p.reqErr:
-		return types.NewTransferError(types.TeConnection, "HTTP request failed: %s", err)
+		return types.NewTransferError(types.TeConnection, "HTTP request failed: %v", err)
 	case resp := <-p.resp:
 		defer resp.Body.Close() //nolint:errcheck // error is irrelevant at this point
 

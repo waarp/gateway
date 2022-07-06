@@ -158,7 +158,13 @@ func (t *serverTransfer) updTransInfo(info *r66.UpdateInfo) error {
 		return err
 	}
 
-	err := internal.UpdateInfo(info, t.pip)
+	if !t.pip.TransCtx.Rule.IsSend {
+		if err := internal.UpdateFileInfo(info, t.pip); err != nil {
+			return checkAfter(t.store, err)
+		}
+	}
+
+	err := internal.UpdateTransferInfo(info.FileInfo.UserContent, t.pip)
 
 	return checkAfter(t.store, err)
 }
@@ -178,7 +184,11 @@ func (t *serverTransfer) runPreTask() (*r66.UpdateInfo, error) {
 			FileSize: t.pip.TransCtx.Transfer.Filesize,
 			FileInfo: &r66.TransferData{},
 		}
-	}
+
+		// if err := internal.MakeFileInfo(t.pip, &info.FileInfo.SystemData); err != nil {
+		// 	return nil, checkAfter(t.store, pErr)
+		// }
+	} //nolint:wsl //left that code here in case it is needed later
 
 	return info, checkAfter(t.store, pErr)
 }

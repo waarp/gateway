@@ -44,14 +44,17 @@ func initClient(c convey.C, proto string, partConf config.ProtoConfig) *ClientCo
 			Partner:    partner,
 			RemAccount: remAcc,
 		},
-		transData:     &transData{},
+		transData: &transData{
+			transferInfo: map[string]interface{}{},
+			// fileInfo:     map[string]interface{}{},
+		},
 		protoFeatures: &feat,
 	}
 }
 
 // InitClientPush creates a database and fills it with all the elements necessary
 // for a push client transfer test of the given protocol. It then returns all these
-// element inside a ClientContext.
+// elements inside a ClientContext.
 func InitClientPush(c convey.C, proto string, partConf config.ProtoConfig) *ClientContext {
 	ctx := initClient(c, proto, partConf)
 	ctx.ClientRule = makeClientPush(c, ctx.DB, proto)
@@ -200,5 +203,5 @@ func (cc *ClientContext) CheckTransferOK(c convey.C) {
 	var actual model.HistoryEntry
 
 	c.So(cc.DB.Get(&actual, "id=?", cc.ClientTrans.ID).Run(), convey.ShouldBeNil)
-	cc.checkClientTransferOK(c, cc.transData, &actual)
+	cc.checkClientTransferOK(c, cc.transData, cc.DB, &actual)
 }

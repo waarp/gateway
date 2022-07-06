@@ -52,6 +52,12 @@ du transfert. Cela est notamment utilisé par le client de la *gateway* dans cer
 cas pour déterminer où un transfert doit être repris (à noter que si le serveur ne
 supporte pas la fonctionnalité, le client reprendra le transfert du début).
 
+HTTP supporte également l'envoi d':term:`infos de transfert` via l'entête spécial
+``Waarp-Transfer-Info``. Chaque paire doit être présentée sous la forme d'une liste
+de ``<clé>=<valeur>`` avec ``<clé>`` le nom de la clé, et ``<valeur>`` la valeur
+encodée en JSON. Les paires doivent soit être séparées par une virgule. Alternativement,
+l'entête peut également être répété pour chaque paire.
+
 **Fin de transfert**
 
 Lorsque le transfert se termine (que ce soit normalement ou bien à cause d'une

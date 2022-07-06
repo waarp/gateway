@@ -24,3 +24,19 @@ const (
 	// error message, if an error occurred.
 	ErrorMessage = "Waarp-Error-Message"
 )
+
+const (
+	// TransferInfo defines the name of the header containing all the transfer
+	// info. The information should be presented as a list of key:value pairs.
+	// A transfer info can only be transmitted by the client to the server, never
+	// the other way around.
+	TransferInfo = "Waarp-Transfer-Info"
+
+	/*
+		// FileInfo defines the name of the header containing all the file
+		// info. The information should be presented as a list of key:value pairs.
+		// A file info can only be transmitted by the sender to the receiver, never
+		// the other way around.
+		FileInfo = "Waarp-File-Info"
+	*/
+)

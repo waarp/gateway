@@ -1,6 +1,7 @@
 package tasks
 
 import (
+	"encoding/json"
 	"errors"
 	"fmt"
 	"path"
@@ -14,104 +15,128 @@ var errNotImplemented = errors.New("key word not implemented")
 
 type replacer func(*Runner) (string, error)
 
-//nolint:gochecknoglobals // can hardly be otherwise, or it should be designed another way
-var replacers = map[string]replacer{
-	"#TRUEFULLPATH#": func(r *Runner) (string, error) {
-		return r.transCtx.Transfer.LocalPath, nil
-	},
-	"#TRUEFILENAME#": func(r *Runner) (string, error) {
-		return path.Base(r.transCtx.Transfer.LocalPath), nil
-	},
-	"#ORIGINALFULLPATH#": func(r *Runner) (string, error) {
-		if r.transCtx.Rule.IsSend {
-			return utils.ToOSPath(r.transCtx.Transfer.LocalPath), nil
-		}
+type replacersMap map[string]replacer
 
-		return r.transCtx.Transfer.RemotePath, nil
-	},
-	"#ORIGINALFILENAME#": func(r *Runner) (string, error) {
-		if r.transCtx.Rule.IsSend {
+//nolint:funlen //cannot split function without adding complexity and hurting readability
+func getReplacers() replacersMap {
+	return replacersMap{
+		"#TRUEFULLPATH#": func(r *Runner) (string, error) {
+			return r.transCtx.Transfer.LocalPath, nil
+		},
+		"#TRUEFILENAME#": func(r *Runner) (string, error) {
 			return path.Base(r.transCtx.Transfer.LocalPath), nil
-		}
+		},
+		"#ORIGINALFULLPATH#": func(r *Runner) (string, error) {
+			if r.transCtx.Rule.IsSend {
+				return utils.ToOSPath(r.transCtx.Transfer.LocalPath), nil
+			}
 
-		return path.Base(r.transCtx.Transfer.RemotePath), nil
-	},
-	"#FILESIZE#": func(r *Runner) (string, error) {
-		return fmt.Sprint(r.transCtx.Transfer.Filesize), nil
-	},
-	"#INPATH#": func(r *Runner) (string, error) {
-		return utils.GetPath(r.transCtx.Paths.DefaultInDir,
-			utils.Branch(r.transCtx.Paths.GatewayHome)), nil
-	},
-	"#OUTPATH#": func(r *Runner) (string, error) {
-		return utils.GetPath(r.transCtx.Paths.DefaultOutDir,
-			utils.Branch(r.transCtx.Paths.GatewayHome)), nil
-	},
-	"#WORKPATH#": func(r *Runner) (string, error) {
-		return utils.GetPath("", utils.Leaf(r.transCtx.Paths.DefaultTmpDir),
-			utils.Branch(r.transCtx.Paths.GatewayHome)), nil
-	},
-	"#ARCHPATH#": notImplemented("#ARCHPATH#"),
-	"#HOMEPATH#": func(r *Runner) (string, error) {
-		return r.transCtx.Paths.GatewayHome, nil
-	},
-	"#RULE#": func(r *Runner) (string, error) {
-		return r.transCtx.Rule.Name, nil
-	},
-	"#DATE#": func(r *Runner) (string, error) {
-		t := time.Now()
+			return r.transCtx.Transfer.RemotePath, nil
+		},
+		"#ORIGINALFILENAME#": func(r *Runner) (string, error) {
+			if r.transCtx.Rule.IsSend {
+				return path.Base(r.transCtx.Transfer.LocalPath), nil
+			}
 
-		return t.Format("20060102"), nil
-	},
-	"#HOUR#": func(r *Runner) (string, error) {
-		t := time.Now()
+			return path.Base(r.transCtx.Transfer.RemotePath), nil
+		},
+		"#FILESIZE#": func(r *Runner) (string, error) {
+			return fmt.Sprint(r.transCtx.Transfer.Filesize), nil
+		},
+		"#INPATH#": func(r *Runner) (string, error) {
+			return utils.GetPath(r.transCtx.Paths.DefaultInDir,
+				utils.Branch(r.transCtx.Paths.GatewayHome)), nil
+		},
+		"#OUTPATH#": func(r *Runner) (string, error) {
+			return utils.GetPath(r.transCtx.Paths.DefaultOutDir,
+				utils.Branch(r.transCtx.Paths.GatewayHome)), nil
+		},
+		"#WORKPATH#": func(r *Runner) (string, error) {
+			return utils.GetPath("", utils.Leaf(r.transCtx.Paths.DefaultTmpDir),
+				utils.Branch(r.transCtx.Paths.GatewayHome)), nil
+		},
+		"#ARCHPATH#": notImplemented("#ARCHPATH#"),
+		"#HOMEPATH#": func(r *Runner) (string, error) {
+			return r.transCtx.Paths.GatewayHome, nil
+		},
+		"#RULE#": func(r *Runner) (string, error) {
+			return r.transCtx.Rule.Name, nil
+		},
+		"#DATE#": func(r *Runner) (string, error) {
+			t := time.Now()
 
-		return t.Format("030405"), nil
-	},
-	"#REMOTEHOST#":   getRemote,
-	"#REMOTEHOSTIP#": notImplemented("#REMOTEHOSTIP#"),
-	"#LOCALHOST#":    getLocal,
-	"#LOCALHOSTIP#":  notImplemented("#LOCALHOSTIP#"),
-	"#TRANFERID#": func(r *Runner) (string, error) {
-		return fmt.Sprint(r.transCtx.Transfer.ID), nil
-	},
-	"#REQUESTERHOST#": func(r *Runner) (string, error) {
-		client, err := getClient(r)
+			return t.Format("20060102"), nil
+		},
+		"#HOUR#": func(r *Runner) (string, error) {
+			t := time.Now()
 
-		return client, err
-	},
-	"#REQUESTEDHOST#": func(r *Runner) (string, error) {
-		server, err := getServer(r)
+			return t.Format("030405"), nil
+		},
+		"#REMOTEHOST#":   getRemote,
+		"#REMOTEHOSTIP#": notImplemented("#REMOTEHOSTIP#"),
+		"#LOCALHOST#":    getLocal,
+		"#LOCALHOSTIP#":  notImplemented("#LOCALHOSTIP#"),
+		"#TRANFERID#": func(r *Runner) (string, error) {
+			return fmt.Sprint(r.transCtx.Transfer.ID), nil
+		},
+		"#REQUESTERHOST#": func(r *Runner) (string, error) {
+			client, err := getClient(r)
 
-		return server, err
-	},
-	"#FULLTRANFERID#": func(r *Runner) (string, error) {
-		// DEPRECATED
-		client, err := getClient(r)
+			return client, err
+		},
+		"#REQUESTEDHOST#": func(r *Runner) (string, error) {
+			server, err := getServer(r)
+
+			return server, err
+		},
+		"#FULLTRANFERID#": func(r *Runner) (string, error) {
+			// DEPRECATED
+			client, err := getClient(r)
+			if err != nil {
+				return "", nil
+			}
+
+			server, err := getServer(r)
+			if err != nil {
+				return "", nil
+			}
+
+			return fmt.Sprintf("%d_%s_%s", r.transCtx.Transfer.ID, client, server), nil
+		},
+		"#RANKTRANSFER#": notImplemented("#RANKTRANSFER#"),
+		"#BLOCKSIZE#":    notImplemented("#BLOCKSIZE#"),
+		"#ERRORMSG#": func(r *Runner) (string, error) {
+			return r.transCtx.Transfer.Error.Details, nil
+		},
+		"#ERRORCODE#": func(r *Runner) (string, error) {
+			return string(r.transCtx.Transfer.Error.Code.R66Code()), nil
+		},
+		"#ERRORSTRCODE#": func(r *Runner) (string, error) {
+			return r.transCtx.Transfer.Error.Details, nil
+		},
+		"#NOWAIT#":    notImplemented("#NOWAIT#"),
+		"#LOCALEXEC#": notImplemented("#LOCALEXEC#"),
+	}
+}
+
+func replaceInfo(val interface{}) replacer {
+	return func(*Runner) (string, error) {
+		jVal, err := json.Marshal(val)
 		if err != nil {
-			return "", nil
+			return "", fmt.Errorf("failed to marshal JSON value: %w", err)
 		}
 
-		server, err := getServer(r)
-		if err != nil {
-			return "", nil
-		}
+		return string(jVal), nil
+	}
+}
 
-		return fmt.Sprintf("%d_%s_%s", r.transCtx.Transfer.ID, client, server), nil
-	},
-	"#RANKTRANSFER#": notImplemented("#RANKTRANSFER#"),
-	"#BLOCKSIZE#":    notImplemented("#BLOCKSIZE#"),
-	"#ERRORMSG#": func(r *Runner) (string, error) {
-		return r.transCtx.Transfer.Error.Details, nil
-	},
-	"#ERRORCODE#": func(r *Runner) (string, error) {
-		return string(r.transCtx.Transfer.Error.Code.R66Code()), nil
-	},
-	"#ERRORSTRCODE#": func(r *Runner) (string, error) {
-		return r.transCtx.Transfer.Error.Details, nil
-	},
-	"#NOWAIT#":    notImplemented("#NOWAIT#"),
-	"#LOCALEXEC#": notImplemented("#LOCALEXEC#"),
+func (r replacersMap) addInfo(c *model.TransferContext) {
+	// for name, val := range c.FileInfo {
+	// 	r[fmt.Sprintf("#FI_%s#", name)] = replaceInfo(val)
+	// }
+	for name, val := range c.TransInfo {
+		r[fmt.Sprintf("#TI_%s#", name)] = replaceInfo(val)
+	}
 }
 
 func notImplemented(word string) func(*Runner) (string, error) {

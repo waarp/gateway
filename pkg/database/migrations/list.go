@@ -106,8 +106,12 @@ var Migrations = []migration.Migration{
 		Description: "Fill the remote_transfer_id column where it is empty",
 		Script:      ver0_5_2FillRemoteTransferID{},
 	},
-	{ // #21
+	{ // #22
 		Description: "Bump the database version to 0.5.2",
 		Script:      bumpVersion{from: "0.5.1", to: "0.5.2"},
+	},
+	{ // #23
+		Description: "Add a 'is_history' column to the transfer info table",
+		Script:      ver0_6_0AddTransferInfoIsHistory{},
 	},
 }

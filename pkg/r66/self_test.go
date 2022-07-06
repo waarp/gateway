@@ -28,6 +28,9 @@ func TestSelfPushOK(t *testing.T) {
 			clientConns = internal.NewConnPool()
 			Reset(clientConns.ForceClose)
 
+			// ctx.AddFileInfo(c, internal.FollowID, float64(123))
+			ctx.AddTransferInfo(c, internal.UserContent, "foobar")
+
 			ctx.RunTransfer(c, false)
 
 			Convey("Then it should have executed all the tasks in order", func(c C) {
@@ -50,6 +53,9 @@ func TestSelfPullOK(t *testing.T) {
 		Convey("When executing the transfer", func(c C) {
 			clientConns = internal.NewConnPool()
 			Reset(clientConns.ForceClose)
+
+			// ctx.AddFileInfo(c, internal.FollowID, float64(123))
+			ctx.AddTransferInfo(c, internal.UserContent, "foobar")
 
 			ctx.RunTransfer(c, false)
 

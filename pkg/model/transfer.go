@@ -1,6 +1,7 @@
 package model
 
 import (
+	"encoding/json"
 	"fmt"
 	"path/filepath"
 	"strings"
@@ -67,22 +68,51 @@ func (t *Transfer) GetID() uint64 {
 	return t.ID
 }
 
-// SetTransferInfo replaces all the TransferInfo in the database of the given transfer
-// by those given in the map parameter.
-func (t *Transfer) SetTransferInfo(db database.Access, info map[string]interface{}) error {
-	if err := db.DeleteAll(&TransferInfo{TransferID: t.ID}).Run(); err != nil {
-		return err
-	}
-
-	for name, val := range info {
-		i := &TransferInfo{TransferID: t.ID, Name: name, Value: fmt.Sprint(val)}
-		if err := db.Insert(i).Run(); err != nil {
+// SetTransferInfo replaces all the TransferInfo in the database of the given
+// transfer by those given in the map parameter.
+func (t *Transfer) SetTransferInfo(db *database.DB, info map[string]interface{}) database.Error {
+	return db.Transaction(func(ses *database.Session) database.Error {
+		if err := ses.DeleteAll(&TransferInfo{}).Where("transfer_id=?", t.ID).Run(); err != nil {
 			return err
 		}
-	}
+		for name, val := range info {
+			str, err := json.Marshal(val)
+			if err != nil {
+				return database.NewValidationError("invalid transfer info value '%v': %s", val, err)
+			}
 
-	return nil
+			i := &TransferInfo{TransferID: t.ID, Name: name, Value: string(str)}
+			if err := ses.Insert(i).Run(); err != nil {
+				return err
+			}
+		}
+
+		return nil
+	})
 }
+
+/*
+// SetFileInfo replaces all the FileInfo in the database of the given transfer
+// by those given in the map parameter.
+func (t *Transfer) SetFileInfo(db *database.DB, info map[string]interface{}) database.Error {
+	return db.Transaction(func(ses *database.Session) database.Error {
+		if err := ses.DeleteAll(&FileInfo{}).Where("transfer_id=?", t.ID).Run(); err != nil {
+			return err
+		}
+		for name, val := range info {
+			str, err := json.Marshal(val)
+			if err != nil {
+				return database.NewValidationError("invalid file info value '%v': %s", val, err)
+			}
+			i := &FileInfo{TransferID: t.ID, Name: name, Value: string(str)}
+			if err := ses.Insert(i).Run(); err != nil {
+				return err
+			}
+		}
+		return nil
+	})
+}
+*/
 
 func (t *Transfer) checkRemoteTransferID(db database.ReadAccess) database.Error {
 	n1, err := db.Count(t).Where("id<>? AND is_server=? AND remote_transfer_id=?"+
@@ -338,6 +368,21 @@ func (t *Transfer) ToHistory(db *database.DB, logger *log.Logger, end time.Time)
 			return err
 		}
 
+		if err := ses.UpdateAll(&TransferInfo{}, database.UpdVals{"is_history": true},
+			"transfer_id=?", t.ID).Run(); err != nil {
+			logger.Errorf("Failed to update transfer info status: %s", err)
+
+			return err
+		}
+
+		/*
+			if err := ses.UpdateAll(&FileInfo{}, database.UpdVals{"is_history": true},
+				"transfer_id=?", t.ID).Run(); err != nil {
+				logger.Errorf("Failed to update file info status: %s", err)
+				return err
+			}
+		*/
+
 		hist, err := t.makeHistoryEntry(ses, end)
 		if err != nil {
 			logger.Errorf("Failed to convert transfer to history: %s", err)
@@ -355,21 +400,46 @@ func (t *Transfer) ToHistory(db *database.DB, logger *log.Logger, end time.Time)
 	})
 }
 
-// GetTransferInfo returns the list of the transfer's TransferInfo as a map[string]string.
-func (t *Transfer) GetTransferInfo(db database.ReadAccess, tID uint64) (map[string]string, error) {
+// GetTransferInfo returns the list of the transfer's TransferInfo as a map of interfaces.
+func (t *Transfer) GetTransferInfo(db database.ReadAccess) (map[string]interface{}, database.Error) {
 	var infoList TransferInfoList
-	if err := db.Select(&infoList).Where("transfer_id=?", tID).Run(); err != nil {
+	if err := db.Select(&infoList).Where("transfer_id=?", t.ID).Run(); err != nil {
 		return nil, err
 	}
 
-	infoMap := make(map[string]string, len(infoList))
+	infoMap := map[string]interface{}{}
 
-	for i := range infoList {
-		infoMap[infoList[i].Name] = infoList[i].Value
+	for _, info := range infoList {
+		var val interface{}
+		if err := json.Unmarshal([]byte(info.Value), &val); err != nil {
+			return nil, database.NewValidationError("invalid transfer info value '%s': %s", info.Value, err)
+		}
+
+		infoMap[info.Name] = val
 	}
 
 	return infoMap, nil
 }
+
+/*
+// GetFileInfo returns the list of the transfer's FileInfo as a map of interfaces.
+func (t *Transfer) GetFileInfo(db database.ReadAccess) (map[string]interface{}, database.Error) {
+	var infoList FileInfoList
+	if err := db.Select(&infoList).Where("transfer_id=?", t.ID).Run(); err != nil {
+		return nil, err
+	}
+	infoMap := map[string]interface{}{}
+	for _, info := range infoList {
+		var val interface{}
+		if err := json.Unmarshal([]byte(info.Value), &val); err != nil {
+			return nil, database.NewValidationError("invalid transfer info value '%s': %s", info.Value, err)
+		}
+		infoMap[info.Name] = val
+	}
+
+	return infoMap, nil
+}
+*/
 
 func (t *Transfer) TransferID() (int64, error) {
 	id, err := snowflake.ParseString(t.RemoteTransferID)

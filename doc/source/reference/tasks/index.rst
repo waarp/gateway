@@ -74,6 +74,15 @@ Marqueur               Signification
 ``#ERRORCODE#``        Code d'erreur (dans les traitements d'erreur)
 ====================== =============
 
+En plus de ces marqueurs standards, il est également possible de référencer les
+:term:`infos de transfert` dans la définition d'un traitement. Pour ce faire,
+le marqueur à utiliser est le suivant:
+
+``#TI_<nom_de_clé>#`` où ``<nom_de_clé>`` est remplacée par le nom de la clé souhaitée.
+
+À l'exécution, ce marqueur sera alors substitué par la valeur associée à la clé
+renseignée.
+
 .. ``#ARCHPATH#``
    ``#REMOTEHOSTIP#``
    ``#LOCALIP#`` 

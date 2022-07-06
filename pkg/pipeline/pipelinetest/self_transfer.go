@@ -57,7 +57,10 @@ func initSelfTransfer(c convey.C, proto string, constr serviceConstructor,
 			Server:     server,
 			LocAccount: locAcc,
 		},
-		transData:     &transData{},
+		transData: &transData{
+			transferInfo: map[string]interface{}{},
+			// fileInfo:     map[string]interface{}{},
+		},
 		protoFeatures: &feat,
 		constr:        constr,
 	}
@@ -275,7 +278,7 @@ func (s *SelfContext) CheckClientTransferOK(c convey.C) {
 	var actual model.HistoryEntry
 
 	c.So(s.DB.Get(&actual, "id=?", s.ClientTrans.ID).Run(), convey.ShouldBeNil)
-	s.checkClientTransferOK(c, s.transData, &actual)
+	s.checkClientTransferOK(c, s.transData, s.DB, &actual)
 }
 
 func (s *SelfContext) getClientRemoteDir() string {
@@ -300,7 +303,8 @@ func (s *SelfContext) checkServerTransferOK(c convey.C, actual *model.HistoryEnt
 	progress := uint64(len(s.fileContent))
 	filename := path.Join(s.getClientRemoteDir(), s.transData.remFileName)
 
-	s.serverData.checkServerTransferOK(c, remoteID, filename, progress, s.DB, actual)
+	s.serverData.checkServerTransferOK(c, remoteID, filename, progress, s.DB,
+		actual, s.transData)
 }
 
 // CheckServerTransferOK checks if the server transfer history entry has
@@ -324,7 +328,7 @@ func (s *SelfContext) CheckEndTransferOK(c convey.C) {
 		c.So(s.DB.Select(&results).OrderBy("id", true).Run(), convey.ShouldBeNil)
 		c.So(results, convey.ShouldHaveLength, 2) //nolint:gomnd // necessary here
 
-		s.checkClientTransferOK(c, s.transData, &results[0])
+		s.checkClientTransferOK(c, s.transData, s.DB, &results[0])
 		s.checkServerTransferOK(c, &results[1])
 	})
 
@@ -472,3 +476,16 @@ func (s *SelfContext) waitForListDeletion() {
 		}
 	}
 }
+
+func (s *SelfContext) AddTransferInfo(c convey.C, name string, val interface{}) {
+	s.transferInfo[name] = val
+	c.So(s.ClientTrans.SetTransferInfo(s.DB, s.transferInfo), convey.ShouldBeNil)
+}
+
+/*
+func (s *SelfContext) AddFileInfo(c convey.C, name string, val interface{}) {
+	c.So(s.ClientRule.IsSend, convey.ShouldBeTrue)
+	s.fileInfo[name] = val
+	c.So(s.ClientTrans.SetFileInfo(s.DB, s.fileInfo), convey.ShouldBeNil)
+}
+*/

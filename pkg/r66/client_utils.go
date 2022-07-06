@@ -109,6 +109,11 @@ func (c *client) request() *types.TransferError {
 		return types.NewTransferError(types.TeInternal, err.Error())
 	}
 
+	userContent, tErr := internal.MakeUserContent(c.pip)
+	if tErr != nil {
+		return tErr
+	}
+
 	req := &r66.Request{
 		ID:       transID,
 		Filepath: c.pip.TransCtx.Transfer.RemotePath,
@@ -117,7 +122,7 @@ func (c *client) request() *types.TransferError {
 		Block:    c.conf.BlockSize,
 		Rank:     uint32(blockNB),
 		IsMD5:    c.conf.CheckBlockHash,
-		Infos:    "",
+		Infos:    userContent,
 	}
 
 	if c.pip.TransCtx.Rule.IsSend {

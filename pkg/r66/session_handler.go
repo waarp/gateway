@@ -61,7 +61,11 @@ func (s *sessionHandler) ValidRequest(req *r66.Request) (r66.TransferHandler, er
 		return nil, internal.ToR66Error(err)
 	}
 
-	// TODO: add transfer info to DB
+	if err := internal.UpdateTransferInfo(req.Infos, pip); err != nil {
+		pip.SetError(err)
+
+		return nil, internal.ToR66Error(err)
+	}
 
 	r66Pip := &serverTransfer{
 		r66Conf: s.r66Conf,

@@ -59,3 +59,13 @@ Glossaire
       Le contrôleur est le service en charge du lancement des transferts programmés.
       Il s'agit d'un service qui interroge la base de données à intervalles
       réguliers pour récupérer les transferts dont la date de début est arrivée.
+
+   infos de transfert
+   (*transfer info*)
+      Une liste de paires clé-valeur définies par l'utilisateur à la création d'un
+      transfert. Ces informations sont donc spécifiques à un transfert donné, et
+      peuvent par la suite être utilisées dans traitements (pré/post) définis par
+      la règle de transfert. Lors du transfert, ces informations sont communiquées
+      en même temps que la requête de transfert. Par conséquent, ces informations
+      voyagent toujours dans le sens de la connexion (depuis le client vers le
+      serveur) et jamais dans l'autre sens.
