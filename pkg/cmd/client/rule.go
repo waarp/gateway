@@ -13,15 +13,6 @@ import (
 	"code.waarp.fr/apps/gateway/gateway/pkg/admin/rest/api"
 )
 
-type ruleCommand struct {
-	Get    ruleGet      `command:"get" description:"Retrieve a rule's information"`
-	Add    ruleAdd      `command:"add" description:"Add a new rule"`
-	Delete ruleDelete   `command:"delete" description:"Delete a rule"`
-	List   ruleList     `command:"list" description:"List the known rules"`
-	Update ruleUpdate   `command:"update" description:"Update an existing rule"`
-	Allow  ruleAllowAll `command:"allow" description:"Remove all usage restriction on a rule"`
-}
-
 func checkRuleDir(direction string) error {
 	if direction != directionSend && direction != directionRecv {
 		return fmt.Errorf("invalid rule direction '%s': %w", direction, errBadArgs)
@@ -134,14 +125,14 @@ func parseTasks(rule *api.UptRule, pre, post, errs []string) error {
 // ######################## GET ##########################
 
 //nolint:lll // struct tags for command line arguments can be long
-type ruleGet struct {
+type RuleGet struct {
 	Args struct {
 		Name      string `required:"yes" positional-arg-name:"name" description:"The rule's name"`
 		Direction string `required:"yes" positional-arg-name:"direction" description:"The rule's direction" choice:"send" choice:"receive"`
 	} `positional-args:"yes"`
 }
 
-func (r *ruleGet) Execute([]string) error {
+func (r *RuleGet) Execute([]string) error {
 	if err := checkRuleDir(r.Args.Direction); err != nil {
 		return err
 	}
@@ -161,7 +152,7 @@ func (r *ruleGet) Execute([]string) error {
 // ######################## ADD ##########################
 
 //nolint:lll // struct tags for command line arguments can be long
-type ruleAdd struct {
+type RuleAdd struct {
 	Name          string   `required:"true" short:"n" long:"name" description:"The rule's name"`
 	Comment       *string  `short:"c" long:"comment" description:"A short comment describing the rule"`
 	Direction     string   `required:"true" short:"d" long:"direction" description:"The direction of the file transfer" choice:"send" choice:"receive"`
@@ -179,7 +170,7 @@ type ruleAdd struct {
 	WorkPath *string `short:"w" long:"work_path" description:"[DEPRECATED] The path to write the received file"`   // Deprecated: replaced by TmpReceiveDir
 }
 
-func (r *ruleAdd) Execute([]string) error {
+func (r *RuleAdd) Execute([]string) error {
 	isSend := r.Direction == directionSend
 	rule := &api.InRule{
 		UptRule: &api.UptRule{
@@ -232,14 +223,14 @@ func (r *ruleAdd) Execute([]string) error {
 // ######################## DELETE ##########################
 
 //nolint:lll // struct tags for command line arguments can be long
-type ruleDelete struct {
+type RuleDelete struct {
 	Args struct {
 		Name      string `required:"yes" positional-arg-name:"name" description:"The rule's name"`
 		Direction string `required:"yes" positional-arg-name:"direction" description:"The rule's direction"  choice:"send" choice:"receive"`
 	} `positional-args:"yes"`
 }
 
-func (r *ruleDelete) Execute([]string) error {
+func (r *RuleDelete) Execute([]string) error {
 	if err := checkRuleDir(r.Args.Direction); err != nil {
 		return err
 	}
@@ -258,15 +249,15 @@ func (r *ruleDelete) Execute([]string) error {
 // ######################## LIST ##########################
 
 //nolint:lll // struct tags for command line arguments can be long
-type ruleList struct {
-	listOptions
+type RuleList struct {
+	ListOptions
 	SortBy string `short:"s" long:"sort" description:"Attribute used to sort the returned entries" choice:"name+" choice:"name-" default:"name+"`
 }
 
-func (r *ruleList) Execute([]string) error {
+func (r *RuleList) Execute([]string) error {
 	addr.Path = "/api/rules"
 
-	listURL(&r.listOptions, r.SortBy)
+	listURL(&r.ListOptions, r.SortBy)
 
 	body := map[string][]api.OutRule{}
 	if err := list(&body); err != nil {
@@ -292,7 +283,7 @@ func (r *ruleList) Execute([]string) error {
 // ######################## UPDATE ##########################
 
 //nolint:lll // struct tags for command line arguments can be long
-type ruleUpdate struct {
+type RuleUpdate struct {
 	Args struct {
 		Name      string `required:"yes" positional-arg-name:"name" description:"The server's name"`
 		Direction string `required:"yes" positional-arg-name:"direction" description:"The rule's direction" choice:"send" choice:"receive"`
@@ -313,7 +304,7 @@ type ruleUpdate struct {
 	WorkPath *string `short:"w" long:"work_path" description:"[DEPRECATED] The path to write the received file"`   // Deprecated: replaced by TmpReceiveDir
 }
 
-func (r *ruleUpdate) Execute([]string) error {
+func (r *RuleUpdate) Execute([]string) error {
 	if err := checkRuleDir(r.Args.Direction); err != nil {
 		return err
 	}
@@ -371,14 +362,14 @@ func (r *ruleUpdate) Execute([]string) error {
 // ######################## RESTRICT ##########################
 
 //nolint:lll // struct tags for command line arguments can be long
-type ruleAllowAll struct {
+type RuleAllowAll struct {
 	Args struct {
 		Name      string `required:"yes" positional-arg-name:"name" description:"The rule's name"`
 		Direction string `required:"yes" positional-arg-name:"direction" description:"The rule's direction" choice:"send" choice:"receive"`
 	} `positional-args:"yes"`
 }
 
-func (r *ruleAllowAll) Execute([]string) error {
+func (r *RuleAllowAll) Execute([]string) error {
 	if err := checkRuleDir(r.Args.Direction); err != nil {
 		return err
 	}

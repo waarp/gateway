@@ -7,15 +7,15 @@ import (
 	"strings"
 )
 
-//nolint:lll //flags are long and can't be split
-type addrOpt struct {
-	Address  gwAddr `short:"a" long:"address" required:"true" description:"The address of the gateway" env:"WAARP_GATEWAY_ADDRESS"`
-	Insecure bool   `short:"i" long:"insecure" description:"Skip certificate verification" env:"WAARP_GATEWAY_INSECURE"`
-}
+//nolint:gochecknoglobals //global vars are required here
+var (
+	addr     *url.URL
+	insecure bool
+)
 
-type gwAddr struct{}
+type AddrOpt struct{}
 
-func (*gwAddr) UnmarshalFlag(value string) error {
+func (*AddrOpt) UnmarshalFlag(value string) error {
 	if value == "" {
 		return fmt.Errorf("the address flags '-a' is missing") //nolint:goerr113 // too specific base error
 	}
@@ -55,29 +55,8 @@ func (*gwAddr) UnmarshalFlag(value string) error {
 	return nil
 }
 
-type listOptions struct {
-	Limit  int `short:"l" long:"limit" description:"Max number of returned entries" default:"20"`
-	Offset int `short:"o" long:"offset" description:"Index of the first returned entry" default:"0"`
-}
+type InsecureOpt func()
 
-func agentListURL(path string, s *listOptions, sort string, protos []string) {
-	addr.Path = path
-	query := url.Values{}
-	query.Set("limit", fmt.Sprint(s.Limit))
-	query.Set("offset", fmt.Sprint(s.Offset))
-	query.Set("sort", sort)
-
-	for _, proto := range protos {
-		query.Add("protocol", proto)
-	}
-
-	addr.RawQuery = query.Encode()
-}
-
-func listURL(s *listOptions, sort string) {
-	query := url.Values{}
-	query.Set("limit", fmt.Sprint(s.Limit))
-	query.Set("offset", fmt.Sprint(s.Offset))
-	query.Set("sort", sort)
-	addr.RawQuery = query.Encode()
+func SetInsecureFlag() {
+	insecure = true
 }

@@ -45,7 +45,7 @@ func TestRequestStatus(t *testing.T) {
 
 	Convey("Testing the 'status' command", t, func() {
 		out = testFile()
-		s := statusCommand{}
+		s := Status{}
 
 		Convey("Given a running gateway", func(c C) {
 			db := database.TestDatabase(c, "ERROR")

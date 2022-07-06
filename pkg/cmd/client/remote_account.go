@@ -6,37 +6,27 @@ import (
 	"code.waarp.fr/apps/gateway/gateway/pkg/admin/rest/api"
 )
 
-//nolint:lll // struct tags for command line arguments can be long
-type remoteAccountCommand struct {
-	Args struct {
-		Partner string `required:"yes" positional-arg-name:"partner" description:"The partner's name"`
-	} `positional-args:"yes"`
-	Get       remAccGet       `command:"get" description:"Retrieve a remote account's information"`
-	Add       remAccAdd       `command:"add" description:"Add a new remote account"`
-	Delete    remAccDelete    `command:"delete" description:"Delete a remote account"`
-	Update    remAccUpdate    `command:"update" description:"Update an existing remote account"`
-	List      remAccList      `command:"list" description:"List the known remote accounts"`
-	Authorize remAccAuthorize `command:"authorize" description:"Give an account permission to use a rule"`
-	Revoke    remAccRevoke    `command:"revoke" description:"Revoke an account's permission to use a rule"`
-	Cert      struct {
-		Args struct {
-			Account string `required:"yes" positional-arg-name:"account" description:"The account's name"`
-		} `positional-args:"yes"`
-		certificateCommand
-	} `command:"cert" description:"Manage an account's certificates"`
+//nolint:gochecknoglobals //a global var is required here
+var RemoteAccount string
+
+type RemAccArg struct{}
+
+func (*RemAccArg) UnmarshalFlag(value string) error {
+	RemoteAccount = value
+
+	return nil
 }
 
 // ######################## GET ##########################
 
-type remAccGet struct {
+type RemAccGet struct {
 	Args struct {
 		Login string `required:"yes" positional-arg-name:"login" description:"The account's login"`
 	} `positional-args:"yes"`
 }
 
-func (r *remAccGet) Execute([]string) error {
-	partner := commandLine.Account.Remote.Args.Partner
-	addr.Path = fmt.Sprintf("/api/partners/%s/accounts/%s", partner, r.Args.Login)
+func (r *RemAccGet) Execute([]string) error {
+	addr.Path = fmt.Sprintf("/api/partners/%s/accounts/%s", Partner, r.Args.Login)
 
 	account := &api.OutAccount{}
 	if err := get(account); err != nil {
@@ -50,18 +40,17 @@ func (r *remAccGet) Execute([]string) error {
 
 // ######################## ADD ##########################
 
-type remAccAdd struct {
+type RemAccAdd struct {
 	Login    string `required:"true" short:"l" long:"login" description:"The account's login"`
 	Password string `required:"true" short:"p" long:"password" description:"The account's password"`
 }
 
-func (r *remAccAdd) Execute([]string) error {
+func (r *RemAccAdd) Execute([]string) error {
 	account := api.InAccount{
 		Login:    &r.Login,
 		Password: &r.Password,
 	}
-	partner := commandLine.Account.Remote.Args.Partner
-	addr.Path = fmt.Sprintf("/api/partners/%s/accounts", partner)
+	addr.Path = fmt.Sprintf("/api/partners/%s/accounts", Partner)
 
 	if err := add(account); err != nil {
 		return err
@@ -74,15 +63,14 @@ func (r *remAccAdd) Execute([]string) error {
 
 // ######################## DELETE ##########################
 
-type remAccDelete struct {
+type RemAccDelete struct {
 	Args struct {
 		Login string `required:"yes" positional-arg-name:"login" description:"The account's login"`
 	} `positional-args:"yes"`
 }
 
-func (r *remAccDelete) Execute([]string) error {
-	partner := commandLine.Account.Remote.Args.Partner
-	addr.Path = fmt.Sprintf("/api/partners/%s/accounts/%s", partner, r.Args.Login)
+func (r *RemAccDelete) Execute([]string) error {
+	addr.Path = fmt.Sprintf("/api/partners/%s/accounts/%s", Partner, r.Args.Login)
 
 	if err := remove(); err != nil {
 		return err
@@ -95,7 +83,7 @@ func (r *remAccDelete) Execute([]string) error {
 
 // ######################## UPDATE ##########################
 
-type remAccUpdate struct {
+type RemAccUpdate struct {
 	Args struct {
 		Login string `required:"yes" positional-arg-name:"login" description:"The account's login"`
 	} `positional-args:"yes"`
@@ -104,14 +92,13 @@ type remAccUpdate struct {
 }
 
 //nolint:dupl // FIXME too hard to refactor?
-func (r *remAccUpdate) Execute([]string) error {
+func (r *RemAccUpdate) Execute([]string) error {
 	account := &api.InAccount{
 		Login:    r.Login,
 		Password: r.Password,
 	}
 
-	partner := commandLine.Account.Remote.Args.Partner
-	addr.Path = fmt.Sprintf("/api/partners/%s/accounts/%s", partner, r.Args.Login)
+	addr.Path = fmt.Sprintf("/api/partners/%s/accounts/%s", Partner, r.Args.Login)
 
 	if err := update(account); err != nil {
 		return err
@@ -131,17 +118,16 @@ func (r *remAccUpdate) Execute([]string) error {
 // ######################## LIST ##########################
 
 //nolint:lll // struct tags for command line arguments can be long
-type remAccList struct {
-	listOptions
+type RemAccList struct {
+	ListOptions
 	SortBy string `short:"s" long:"sort" description:"Attribute used to sort the returned entries" choice:"login+" choice:"login-" default:"login+"`
 }
 
 //nolint:dupl // FIXME too hard to refactor?
-func (r *remAccList) Execute([]string) error {
-	partner := commandLine.Account.Remote.Args.Partner
-	addr.Path = fmt.Sprintf("/api/partners/%s/accounts", partner)
+func (r *RemAccList) Execute([]string) error {
+	addr.Path = fmt.Sprintf("/api/partners/%s/accounts", Partner)
 
-	listURL(&r.listOptions, r.SortBy)
+	listURL(&r.ListOptions, r.SortBy)
 
 	body := map[string][]api.OutAccount{}
 	if err := list(&body); err != nil {
@@ -153,14 +139,14 @@ func (r *remAccList) Execute([]string) error {
 	w := getColorable() //nolint:ifshort // decrease readability
 
 	if len(accounts) > 0 {
-		fmt.Fprintln(w, bold("Accounts of partner '"+partner+"':"))
+		fmt.Fprintln(w, bold("Accounts of partner '"+Partner+"':"))
 
 		for _, a := range accounts {
 			account := a
 			displayAccount(w, &account)
 		}
 	} else {
-		fmt.Fprintln(w, "Partner", bold(partner), "has no accounts.")
+		fmt.Fprintln(w, "Partner", bold(Partner), "has no accounts.")
 	}
 
 	return nil
@@ -168,7 +154,7 @@ func (r *remAccList) Execute([]string) error {
 
 // ######################## AUTHORIZE ##########################
 
-type remAccAuthorize struct {
+type RemAccAuthorize struct {
 	Args struct {
 		Login     string `required:"yes" positional-arg-name:"login" description:"The account's login"`
 		Rule      string `required:"yes" positional-arg-name:"rule" description:"The rule's name"`
@@ -176,9 +162,8 @@ type remAccAuthorize struct {
 	} `positional-args:"yes"`
 }
 
-func (r *remAccAuthorize) Execute([]string) error {
-	partner := commandLine.Account.Remote.Args.Partner
-	addr.Path = fmt.Sprintf("/api/partners/%s/accounts/%s/authorize/%s/%s", partner,
+func (r *RemAccAuthorize) Execute([]string) error {
+	addr.Path = fmt.Sprintf("/api/partners/%s/accounts/%s/authorize/%s/%s", Partner,
 		r.Args.Login, r.Args.Rule, r.Args.Direction)
 
 	return authorize("remote account", r.Args.Login, r.Args.Rule, r.Args.Direction)
@@ -186,7 +171,7 @@ func (r *remAccAuthorize) Execute([]string) error {
 
 // ######################## REVOKE ##########################
 
-type remAccRevoke struct {
+type RemAccRevoke struct {
 	Args struct {
 		Login     string `required:"yes" positional-arg-name:"login" description:"The account's login"`
 		Rule      string `required:"yes" positional-arg-name:"rule" description:"The rule's name"`
@@ -194,9 +179,8 @@ type remAccRevoke struct {
 	} `positional-args:"yes"`
 }
 
-func (r *remAccRevoke) Execute([]string) error {
-	partner := commandLine.Account.Remote.Args.Partner
-	addr.Path = fmt.Sprintf("/api/partners/%s/accounts/%s/revoke/%s/%s", partner,
+func (r *RemAccRevoke) Execute([]string) error {
+	addr.Path = fmt.Sprintf("/api/partners/%s/accounts/%s/revoke/%s/%s", Partner,
 		r.Args.Login, r.Args.Rule, r.Args.Direction)
 
 	return revoke("remote account", r.Args.Login, r.Args.Rule, r.Args.Direction)

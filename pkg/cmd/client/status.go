@@ -11,8 +11,8 @@ import (
 	"code.waarp.fr/apps/gateway/gateway/pkg/tk/service"
 )
 
-// statusCommand regroups all the Options of the 'status' command.
-type statusCommand struct{}
+// Status regroups all the options of the 'status' command.
+type Status struct{}
 
 // showStatus writes the status of the gateway services in the given
 // writer with colors, using ANSI coloration codes.
@@ -55,7 +55,7 @@ func showStatus(statuses api.Statuses, w io.Writer) {
 // Execute executes the 'status' command. The command flags are stored in
 // the 's' parameter, while the program arguments are stored in the 'args'
 // parameter.
-func (s *statusCommand) Execute([]string) error {
+func (s Status) Execute([]string) error {
 	addr.Path = "/api/status"
 
 	ctx, cancel := context.WithTimeout(context.Background(), httpTimeout)

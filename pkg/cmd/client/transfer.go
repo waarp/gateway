@@ -12,15 +12,6 @@ import (
 	"code.waarp.fr/apps/gateway/gateway/pkg/model/types"
 )
 
-type transferCommand struct {
-	Add    transferAdd    `command:"add" description:"Add a new transfer to be executed"`
-	Get    transferGet    `command:"get" description:"Consult a transfer"`
-	List   transferList   `command:"list" description:"List the transfers"`
-	Pause  transferPause  `command:"pause" description:"Pause a running transfer"`
-	Resume transferResume `command:"resume" description:"Resume a paused transfer"`
-	Cancel transferCancel `command:"cancel" description:"Cancel a transfer"`
-}
-
 func coloredStatus(status types.TransferStatus) string {
 	text := func() string {
 		switch status {
@@ -92,7 +83,7 @@ func displayTransfer(w io.Writer, trans *api.OutTransfer) {
 // ######################## ADD ##########################
 
 //nolint:lll // struct tags can be long for command line args
-type transferAdd struct {
+type TransferAdd struct {
 	File    string  `required:"yes" short:"f" long:"file" description:"The file to transfer"`
 	Out     *string `short:"o" long:"out" description:"The destination of the file"`
 	Way     string  `required:"yes" short:"w" long:"way" description:"The direction of the transfer" choice:"send" choice:"receive"`
@@ -104,7 +95,7 @@ type transferAdd struct {
 	Name *string `short:"n" long:"name" description:"[DEPRECATED] The name of the file after the transfer"` // Deprecated: the source name is used instead
 }
 
-func (t *transferAdd) Execute([]string) (err error) {
+func (t *TransferAdd) Execute([]string) error {
 	trans := api.InTransfer{
 		Partner: t.Partner,
 		Account: t.Account,
@@ -123,8 +114,8 @@ func (t *transferAdd) Execute([]string) (err error) {
 	}
 
 	if t.Date != "" {
-		trans.Start, err = time.Parse(time.RFC3339Nano, t.Date)
-		if err != nil {
+		var err error
+		if trans.Start, err = time.Parse(time.RFC3339Nano, t.Date); err != nil {
 			return fmt.Errorf("'%s' is not a valid date: %w", t.Date, errInvalidDate)
 		}
 	}
@@ -142,13 +133,13 @@ func (t *transferAdd) Execute([]string) (err error) {
 
 // ######################## GET ##########################
 
-type transferGet struct {
+type TransferGet struct {
 	Args struct {
 		ID uint64 `required:"yes" positional-arg-name:"id" description:"The transfer's ID"`
 	} `positional-args:"yes"`
 }
 
-func (t *transferGet) Execute([]string) error {
+func (t *TransferGet) Execute([]string) error {
 	addr.Path = fmt.Sprintf("/api/transfers/%d", t.Args.ID)
 
 	trans := &api.OutTransfer{}
@@ -164,15 +155,15 @@ func (t *transferGet) Execute([]string) error {
 // ######################## LIST ##########################
 
 //nolint:lll // struct tags can be long for command line args
-type transferList struct {
-	listOptions
+type TransferList struct {
+	ListOptions
 	SortBy   string   `short:"s" long:"sort" description:"Attribute used to sort the returned entries" choice:"start+" choice:"start-" choice:"id+" choice:"id-" choice:"rule+" choice:"rule-" default:"start+"`
 	Rules    []string `short:"r" long:"rule" description:"Filter the transfers based on the name of the transfer rule used. Can be repeated multiple times to filter multiple rules."`
 	Statuses []string `short:"t" long:"status" description:"Filter the transfers based on the transfer's status. Can be repeated multiple times to filter multiple statuses." choice:"PLANNED" choice:"RUNNING" choice:"INTERRUPTED" choice:"PAUSED"`
 	Start    string   `short:"d" long:"date" description:"Filter the transfers which started after a given date. Date must be in ISO 8601 format."`
 }
 
-func (t *transferList) listURL() error {
+func (t *TransferList) listURL() error {
 	addr.Path = "/api/transfers"
 	query := url.Values{}
 	query.Set("limit", fmt.Sprint(t.Limit))
@@ -203,7 +194,7 @@ func (t *transferList) listURL() error {
 }
 
 //nolint:dupl // duplicated code is about two different types
-func (t *transferList) Execute([]string) error {
+func (t *TransferList) Execute([]string) error {
 	if err := t.listURL(); err != nil {
 		return err
 	}
@@ -231,13 +222,13 @@ func (t *transferList) Execute([]string) error {
 
 // ######################## PAUSE ##########################
 
-type transferPause struct {
+type TransferPause struct {
 	Args struct {
 		ID uint64 `required:"yes" positional-arg-name:"id" description:"The transfer's ID"`
 	} `positional-args:"yes"`
 }
 
-func (t *transferPause) Execute([]string) error {
+func (t *TransferPause) Execute([]string) error {
 	id := fmt.Sprint(t.Args.ID)
 	addr.Path = fmt.Sprintf("/api/transfers/%d/pause", t.Args.ID)
 
@@ -272,14 +263,14 @@ func (t *transferPause) Execute([]string) error {
 
 // ######################## RESUME ##########################
 
-type transferResume struct {
+type TransferResume struct {
 	Args struct {
 		ID uint64 `required:"yes" positional-arg-name:"id" description:"The transfer's ID"`
 	} `positional-args:"yes"`
 }
 
 //nolint:dupl // hard to factorize
-func (t *transferResume) Execute([]string) error {
+func (t *TransferResume) Execute([]string) error {
 	id := fmt.Sprint(t.Args.ID)
 	addr.Path = fmt.Sprintf("/api/transfers/%d/resume", t.Args.ID)
 
@@ -313,14 +304,14 @@ func (t *transferResume) Execute([]string) error {
 
 // ######################## CANCEL ##########################
 
-type transferCancel struct {
+type TransferCancel struct {
 	Args struct {
 		ID uint64 `required:"yes" positional-arg-name:"id" description:"The transfer's ID"`
 	} `positional-args:"yes"`
 }
 
 //nolint:dupl // hard to factorize
-func (t *transferCancel) Execute([]string) error {
+func (t *TransferCancel) Execute([]string) error {
 	id := fmt.Sprint(t.Args.ID)
 	addr.Path = fmt.Sprintf("/api/transfers/%d/cancel", t.Args.ID)
 

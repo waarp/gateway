@@ -7,14 +7,6 @@ import (
 	"code.waarp.fr/apps/gateway/gateway/pkg/admin/rest/api"
 )
 
-type userCommand struct {
-	Get    userGet    `command:"get" description:"Retrieve a user's information"`
-	Add    userAdd    `command:"add" description:"Add a new user"`
-	Delete userDelete `command:"delete" description:"Delete a user"`
-	Update userUpdate `command:"update" description:"Update an existing user"`
-	List   userList   `command:"list" description:"List the known users"`
-}
-
 func displayUser(w io.Writer, user *api.OutUser) {
 	fmt.Fprintln(w, bold("● User", user.Username))
 	fmt.Fprintln(w, orange("    Permissions:"))
@@ -27,13 +19,13 @@ func displayUser(w io.Writer, user *api.OutUser) {
 
 // ######################## ADD ##########################
 
-type userAdd struct {
+type UserAdd struct {
 	Username string `required:"true" short:"u" long:"username" description:"The user's name"`
 	Password string `required:"true" short:"p" long:"password" description:"The user's password"`
 	Perms    string `required:"true" short:"r" long:"rights" description:"The user's rights in chmod symbolic format"`
 }
 
-func (u *userAdd) Execute([]string) error {
+func (u *UserAdd) Execute([]string) error {
 	perms, err := parsePerms(u.Perms)
 	if err != nil {
 		return err
@@ -57,13 +49,13 @@ func (u *userAdd) Execute([]string) error {
 
 // ######################## GET ##########################
 
-type userGet struct {
+type UserGet struct {
 	Args struct {
 		Username string `required:"yes" positional-arg-name:"username" description:"The user's name"`
 	} `positional-args:"yes"`
 }
 
-func (u *userGet) Execute([]string) error {
+func (u *UserGet) Execute([]string) error {
 	addr.Path = "/api/users/" + u.Args.Username
 
 	user := &api.OutUser{}
@@ -78,7 +70,7 @@ func (u *userGet) Execute([]string) error {
 
 // ######################## UPDATE ##########################
 
-type userUpdate struct {
+type UserUpdate struct {
 	Args struct {
 		Username string `required:"yes" positional-arg-name:"username" description:"The old username"`
 	} `positional-args:"yes"`
@@ -87,7 +79,7 @@ type userUpdate struct {
 	Perms    *string `short:"r" long:"rights" description:"The user's rights in chmod symbolic format"`
 }
 
-func (u *userUpdate) Execute([]string) error {
+func (u *UserUpdate) Execute([]string) error {
 	var perms *api.Perms
 
 	if u.Perms != nil {
@@ -122,13 +114,13 @@ func (u *userUpdate) Execute([]string) error {
 
 // ######################## DELETE ##########################
 
-type userDelete struct {
+type UserDelete struct {
 	Args struct {
 		Username string `required:"yes" positional-arg-name:"username" description:"The old username"`
 	} `positional-args:"yes"`
 }
 
-func (u *userDelete) Execute([]string) error {
+func (u *UserDelete) Execute([]string) error {
 	addr.Path = "/api/users/" + u.Args.Username
 
 	if err := remove(); err != nil {
@@ -143,15 +135,15 @@ func (u *userDelete) Execute([]string) error {
 // ######################## LIST ##########################
 
 //nolint:lll // tags can be long for flags
-type userList struct {
-	listOptions
+type UserList struct {
+	ListOptions
 	SortBy string `short:"s" long:"sort" description:"Attribute used to sort the returned entries" choice:"username+" choice:"username-" default:"username+"`
 }
 
-func (u *userList) Execute([]string) error {
+func (u *UserList) Execute([]string) error {
 	addr.Path = "/api/users"
 
-	listURL(&u.listOptions, u.SortBy)
+	listURL(&u.ListOptions, u.SortBy)
 
 	body := map[string][]api.OutUser{}
 	if err := list(&body); err != nil {

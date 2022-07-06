@@ -27,7 +27,7 @@ func accInfoString(a *api.OutAccount) string {
 func TestGetLocalAccount(t *testing.T) {
 	Convey("Testing the local account 'get' command", t, func() {
 		out = testFile()
-		command := &locAccGet{}
+		command := &LocAccGet{}
 
 		Convey("Given a gateway with 1 local account", func(c C) {
 			db := database.TestDatabase(c, "ERROR")
@@ -42,7 +42,7 @@ func TestGetLocalAccount(t *testing.T) {
 				Address:  "localhost:1",
 			}
 			So(db.Insert(server).Run(), ShouldBeNil)
-			commandLine.Account.Local.Args.Server = server.Name
+			Server = server.Name
 
 			account := &model.LocalAccount{
 				Login:        "toto",
@@ -104,7 +104,7 @@ func TestGetLocalAccount(t *testing.T) {
 			})
 
 			Convey("Given an invalid server name", func() {
-				commandLine.Account.Local.Args.Server = "toto"
+				Server = "toto"
 				args := []string{account.Login}
 
 				Convey("When executing the command", func() {
@@ -124,7 +124,7 @@ func TestGetLocalAccount(t *testing.T) {
 func TestAddLocalAccount(t *testing.T) {
 	Convey("Testing the local account 'add' command", t, func() {
 		out = testFile()
-		command := &locAccAdd{}
+		command := &LocAccAdd{}
 
 		Convey("Given a gateway", func(c C) {
 			db := database.TestDatabase(c, "ERROR")
@@ -139,7 +139,7 @@ func TestAddLocalAccount(t *testing.T) {
 				Address:  "localhost:1",
 			}
 			So(db.Insert(server).Run(), ShouldBeNil)
-			commandLine.Account.Local.Args.Server = server.Name
+			Server = server.Name
 
 			Convey("Given valid flags", func() {
 				args := []string{"-l", "toto", "-p", "sesame"}
@@ -174,7 +174,7 @@ func TestAddLocalAccount(t *testing.T) {
 
 			Convey("Given an invalid server name", func() {
 				args := []string{"-l", "toto", "-p", "sesame"}
-				commandLine.Account.Local.Args.Server = "toto"
+				Server = "toto"
 
 				Convey("When executing the command", func() {
 					params, err := flags.ParseArgs(command, args)
@@ -193,7 +193,7 @@ func TestAddLocalAccount(t *testing.T) {
 func TestDeleteLocalAccount(t *testing.T) {
 	Convey("Testing the local account 'delete' command", t, func() {
 		out = testFile()
-		command := &locAccDelete{}
+		command := &LocAccDelete{}
 
 		Convey("Given a gateway with 1 local account", func(c C) {
 			db := database.TestDatabase(c, "ERROR")
@@ -208,7 +208,7 @@ func TestDeleteLocalAccount(t *testing.T) {
 				Address:  "localhost:1",
 			}
 			So(db.Insert(server).Run(), ShouldBeNil)
-			commandLine.Account.Local.Args.Server = server.Name
+			Server = server.Name
 
 			account := &model.LocalAccount{
 				LocalAgentID: server.ID,
@@ -262,7 +262,7 @@ func TestDeleteLocalAccount(t *testing.T) {
 
 			Convey("Given an invalid server name", func() {
 				args := []string{account.Login}
-				commandLine.Account.Local.Args.Server = "toto"
+				Server = "toto"
 
 				Convey("When executing the command", func() {
 					params, err := flags.ParseArgs(command, args)
@@ -287,7 +287,7 @@ func TestDeleteLocalAccount(t *testing.T) {
 func TestUpdateLocalAccount(t *testing.T) {
 	Convey("Testing the local account 'update' command", t, func() {
 		out = testFile()
-		command := &locAccUpdate{}
+		command := &LocAccUpdate{}
 
 		Convey("Given a gateway with 1 local account", func(c C) {
 			db := database.TestDatabase(c, "ERROR")
@@ -302,7 +302,7 @@ func TestUpdateLocalAccount(t *testing.T) {
 				Address:  "localhost:1",
 			}
 			So(db.Insert(server).Run(), ShouldBeNil)
-			commandLine.Account.Local.Args.Server = server.Name
+			Server = server.Name
 
 			account := &model.LocalAccount{
 				LocalAgentID: server.ID,
@@ -366,7 +366,7 @@ func TestUpdateLocalAccount(t *testing.T) {
 
 			Convey("Given an invalid server name", func() {
 				args := []string{"-l", "new_login", "-p", "new_password", account.Login}
-				commandLine.Account.Local.Args.Server = "toto"
+				Server = "toto"
 
 				Convey("When executing the command", func() {
 					params, err := flags.ParseArgs(command, args)
@@ -391,7 +391,7 @@ func TestUpdateLocalAccount(t *testing.T) {
 func TestListLocalAccount(t *testing.T) {
 	Convey("Testing the local account 'list' command", t, func() {
 		out = testFile()
-		command := &locAccList{}
+		command := &LocAccList{}
 
 		Convey("Given a gateway with 2 local accounts", func(c C) {
 			db := database.TestDatabase(c, "ERROR")
@@ -407,7 +407,7 @@ func TestListLocalAccount(t *testing.T) {
 				Address:     "localhost:1",
 			}
 			So(db.Insert(server1).Run(), ShouldBeNil)
-			commandLine.Account.Local.Args.Server = server1.Name
+			Server = server1.Name
 
 			server2 := &model.LocalAgent{
 				Name:        "server2",
@@ -459,7 +459,7 @@ func TestListLocalAccount(t *testing.T) {
 
 			Convey("Given a different server name", func() {
 				args := []string{}
-				commandLine.Account.Local.Args.Server = server2.Name
+				Server = server2.Name
 
 				Convey("When executing the command", func() {
 					params, err := flags.ParseArgs(command, args)
@@ -475,7 +475,7 @@ func TestListLocalAccount(t *testing.T) {
 
 			Convey("Given an invalid server name", func() {
 				args := []string{}
-				commandLine.Account.Local.Args.Server = "toto"
+				Server = "toto"
 
 				Convey("When executing the command", func() {
 					params, err := flags.ParseArgs(command, args)
@@ -539,7 +539,7 @@ func TestListLocalAccount(t *testing.T) {
 func TestAuthorizeLocalAccount(t *testing.T) {
 	Convey("Testing the local account 'authorize' command", t, func() {
 		out = testFile()
-		command := &locAccAuthorize{}
+		command := &LocAccAuthorize{}
 
 		Convey("Given a gateway with 1 local account and 1 rule", func(c C) {
 			db := database.TestDatabase(c, "ERROR")
@@ -571,7 +571,7 @@ func TestAuthorizeLocalAccount(t *testing.T) {
 			So(db.Insert(rule).Run(), ShouldBeNil)
 
 			Convey("Given a valid partner, account & rule names", func() {
-				commandLine.Account.Local.Args.Server = server.Name
+				Server = server.Name
 				args := []string{account.Login, rule.Name, direction(rule)}
 
 				Convey("When executing the command", func() {
@@ -601,7 +601,7 @@ func TestAuthorizeLocalAccount(t *testing.T) {
 			})
 
 			Convey("Given an invalid server name", func() {
-				commandLine.Account.Local.Args.Server = "toto"
+				Server = "toto"
 				args := []string{account.Login, rule.Name, direction(rule)}
 
 				Convey("When executing the command", func() {
@@ -622,7 +622,7 @@ func TestAuthorizeLocalAccount(t *testing.T) {
 			})
 
 			Convey("Given an invalid rule name", func() {
-				commandLine.Account.Local.Args.Server = server.Name
+				Server = server.Name
 				args := []string{account.Login, "toto", direction(rule)}
 
 				Convey("When executing the command", func() {
@@ -643,7 +643,7 @@ func TestAuthorizeLocalAccount(t *testing.T) {
 			})
 
 			Convey("Given an invalid account name", func() {
-				commandLine.Account.Local.Args.Server = server.Name
+				Server = server.Name
 				args := []string{"tata", rule.Name, direction(rule)}
 
 				Convey("When executing the command", func() {
@@ -669,7 +669,7 @@ func TestAuthorizeLocalAccount(t *testing.T) {
 func TestRevokeLocalAccount(t *testing.T) {
 	Convey("Testing the local account 'revoke' command", t, func() {
 		out = testFile()
-		command := &locAccRevoke{}
+		command := &LocAccRevoke{}
 
 		Convey("Given a gateway with 1 local account and 1 rule", func(c C) {
 			db := database.TestDatabase(c, "ERROR")
@@ -708,7 +708,7 @@ func TestRevokeLocalAccount(t *testing.T) {
 			So(db.Insert(access).Run(), ShouldBeNil)
 
 			Convey("Given a valid partner & rule names", func() {
-				commandLine.Account.Local.Args.Server = server.Name
+				Server = server.Name
 				args := []string{account.Login, rule.Name, direction(rule)}
 
 				Convey("When executing the command", func() {
@@ -732,7 +732,7 @@ func TestRevokeLocalAccount(t *testing.T) {
 			})
 
 			Convey("Given an invalid server name", func() {
-				commandLine.Account.Local.Args.Server = "toto"
+				Server = "toto"
 				args := []string{account.Login, rule.Name, direction(rule)}
 
 				Convey("When executing the command", func() {
@@ -753,7 +753,7 @@ func TestRevokeLocalAccount(t *testing.T) {
 			})
 
 			Convey("Given an invalid rule name", func() {
-				commandLine.Account.Local.Args.Server = server.Name
+				Server = server.Name
 				args := []string{account.Login, "toto", direction(rule)}
 
 				Convey("When executing the command", func() {
@@ -774,7 +774,7 @@ func TestRevokeLocalAccount(t *testing.T) {
 			})
 
 			Convey("Given an invalid account name", func() {
-				commandLine.Account.Local.Args.Server = server.Name
+				Server = server.Name
 				args := []string{"tata", rule.Name, direction(rule)}
 
 				Convey("When executing the command", func() {

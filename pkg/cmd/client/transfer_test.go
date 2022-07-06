@@ -102,7 +102,7 @@ func TestDisplayTransfer(t *testing.T) {
 func TestAddTransfer(t *testing.T) {
 	Convey("Testing the partner 'add' command", t, func() {
 		out = testFile()
-		command := &transferAdd{}
+		command := &TransferAdd{}
 
 		Convey("Given a database", func(c C) {
 			db := database.TestDatabase(c, "ERROR")
@@ -255,7 +255,7 @@ func TestAddTransfer(t *testing.T) {
 func TestGetTransfer(t *testing.T) {
 	Convey("Testing the partner 'get' command", t, func() {
 		out = testFile()
-		command := &transferGet{}
+		command := &TransferGet{}
 
 		Convey("Given a database", func(c C) {
 			db := database.TestDatabase(c, "ERROR")
@@ -337,7 +337,7 @@ func TestGetTransfer(t *testing.T) {
 func TestListTransfer(t *testing.T) {
 	Convey("Testing the transfer 'list' command", t, func() {
 		out = testFile()
-		command := &transferList{}
+		command := &TransferList{}
 
 		Convey("Given a database", func(c C) {
 			db := database.TestDatabase(c, "ERROR")
@@ -599,7 +599,7 @@ func TestListTransfer(t *testing.T) {
 func TestPauseTransfer(t *testing.T) {
 	Convey("Testing the transfer 'pause' command", t, func() {
 		out = testFile()
-		command := &transferPause{}
+		command := &TransferPause{}
 
 		Convey("Given a database", func(c C) {
 			db := database.TestDatabase(c, "ERROR")
@@ -690,7 +690,7 @@ func TestPauseTransfer(t *testing.T) {
 func TestResumeTransfer(t *testing.T) {
 	Convey("Testing the transfer 'resume' command", t, func() {
 		out = testFile()
-		command := &transferResume{}
+		command := &TransferResume{}
 
 		Convey("Given a database", func(cx C) {
 			db := database.TestDatabase(cx, "ERROR")
@@ -780,7 +780,7 @@ func TestResumeTransfer(t *testing.T) {
 func TestCancelTransfer(t *testing.T) {
 	Convey("Testing the transfer 'cancel' command", t, func() {
 		out = testFile()
-		command := &transferCancel{}
+		command := &TransferCancel{}
 
 		Convey("Given a database", func(c C) {
 			db := database.TestDatabase(c, "ERROR")

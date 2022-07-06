@@ -29,7 +29,7 @@ func userInfoString(u *api.OutUser) string {
 func TestGetUser(t *testing.T) {
 	Convey("Testing the user 'get' command", t, func() {
 		out = testFile()
-		command := &userGet{}
+		command := &UserGet{}
 
 		Convey("Given a gateway with 1 user", func(c C) {
 			db := database.TestDatabase(c, "ERROR")
@@ -84,7 +84,7 @@ func TestGetUser(t *testing.T) {
 func TestAddUser(t *testing.T) {
 	Convey("Testing the user 'add' command", t, func() {
 		out = testFile()
-		command := &userAdd{}
+		command := &UserAdd{}
 
 		Convey("Given a gateway", func(c C) {
 			db := database.TestDatabase(c, "ERROR")
@@ -132,7 +132,7 @@ func TestAddUser(t *testing.T) {
 func TestDeleteUser(t *testing.T) {
 	Convey("Testing the user 'delete' command", t, func() {
 		out = testFile()
-		command := &userDelete{}
+		command := &UserDelete{}
 
 		Convey("Given a gateway with 1 user", func(c C) {
 			db := database.TestDatabase(c, "ERROR")
@@ -194,7 +194,7 @@ func TestDeleteUser(t *testing.T) {
 func TestUpdateUser(t *testing.T) {
 	Convey("Testing the user 'delete' command", t, func() {
 		out = testFile()
-		command := &userUpdate{}
+		command := &UserUpdate{}
 
 		Convey("Given a gateway with 1 user", func(c C) {
 			db := database.TestDatabase(c, "ERROR")
@@ -278,7 +278,7 @@ func TestUpdateUser(t *testing.T) {
 func TestListUser(t *testing.T) {
 	Convey("Testing the user 'list' command", t, func() {
 		out = testFile()
-		command := &userList{}
+		command := &UserList{}
 
 		Convey("Given a gateway with 2 users", func(c C) {
 			db := database.TestDatabase(c, "ERROR")

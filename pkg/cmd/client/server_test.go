@@ -36,7 +36,7 @@ func serverInfoString(s *api.OutServer) string {
 func TestGetServer(t *testing.T) {
 	Convey("Testing the server 'get' command", t, func() {
 		out = testFile()
-		command := &serverGet{}
+		command := &ServerGet{}
 
 		Convey("Given a gateway with 1 local server", func(c C) {
 			db := database.TestDatabase(c, "ERROR")
@@ -113,7 +113,7 @@ func TestGetServer(t *testing.T) {
 func TestAddServer(t *testing.T) {
 	Convey("Testing the server 'add' command", t, func() {
 		out = testFile()
-		command := &serverAdd{}
+		command := &ServerAdd{}
 
 		Convey("Given a gateway", func(c C) {
 			db := database.TestDatabase(c, "ERROR")
@@ -274,7 +274,7 @@ func TestAddServer(t *testing.T) {
 func TestListServers(t *testing.T) {
 	Convey("Testing the server 'list' command", t, func() {
 		out = testFile()
-		command := &serverList{}
+		command := &ServerList{}
 
 		Convey("Given a gateway with 2 local servers", func(c C) {
 			db := database.TestDatabase(c, "ERROR")
@@ -391,7 +391,7 @@ func TestListServers(t *testing.T) {
 func TestDeleteServer(t *testing.T) {
 	Convey("Testing the server 'delete' command", t, func() {
 		out = testFile()
-		command := &serverDelete{}
+		command := &ServerDelete{}
 
 		Convey("Given a gateway with 1 local server", func(c C) {
 			db := database.TestDatabase(c, "ERROR")
@@ -455,7 +455,7 @@ func TestDeleteServer(t *testing.T) {
 func TestUpdateServer(t *testing.T) {
 	Convey("Testing the server 'delete' command", t, func() {
 		out = testFile()
-		command := &serverUpdate{}
+		command := &ServerUpdate{}
 
 		Convey("Given a gateway with 1 local server", func(c C) {
 			db := database.TestDatabase(c, "ERROR")
@@ -612,7 +612,7 @@ func TestUpdateServer(t *testing.T) {
 func TestAuthorizeServer(t *testing.T) {
 	Convey("Testing the server 'authorize' command", t, func() {
 		out = testFile()
-		command := &serverAuthorize{}
+		command := &ServerAuthorize{}
 
 		Convey("Given a gateway with 1 local server and 1 rule", func(c C) {
 			db := database.TestDatabase(c, "ERROR")
@@ -711,7 +711,7 @@ func TestAuthorizeServer(t *testing.T) {
 func TestRevokeServer(t *testing.T) {
 	Convey("Testing the server 'revoke' command", t, func() {
 		out = testFile()
-		command := &serverRevoke{}
+		command := &ServerRevoke{}
 
 		Convey("Given a gateway with 1 distant server and 1 rule", func(c C) {
 			db := database.TestDatabase(c, "ERROR")

@@ -7,6 +7,7 @@ import (
 	"io"
 	"io/ioutil"
 	"net/http"
+	"net/url"
 	"reflect"
 	"strings"
 
@@ -122,4 +123,31 @@ func dirToBoolPtr(dir string) *bool {
 	default:
 		return nil
 	}
+}
+
+type ListOptions struct {
+	Limit  int `short:"l" long:"limit" description:"Max number of returned entries" default:"20"`
+	Offset int `short:"o" long:"offset" description:"Index of the first returned entry" default:"0"`
+}
+
+func agentListURL(path string, s *ListOptions, sort string, protos []string) {
+	addr.Path = path
+	query := url.Values{}
+	query.Set("limit", fmt.Sprint(s.Limit))
+	query.Set("offset", fmt.Sprint(s.Offset))
+	query.Set("sort", sort)
+
+	for _, proto := range protos {
+		query.Add("protocol", proto)
+	}
+
+	addr.RawQuery = query.Encode()
+}
+
+func listURL(s *ListOptions, sort string) {
+	query := url.Values{}
+	query.Set("limit", fmt.Sprint(s.Limit))
+	query.Set("offset", fmt.Sprint(s.Offset))
+	query.Set("sort", sort)
+	addr.RawQuery = query.Encode()
 }

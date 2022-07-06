@@ -8,23 +8,15 @@ import (
 	"code.waarp.fr/apps/gateway/gateway/pkg/admin/rest/api"
 )
 
-type localAccountCommand struct {
-	Args struct {
-		Server string `required:"yes" positional-arg-name:"server" description:"The server's name"`
-	} `positional-args:"yes"`
-	Get       locAccGet       `command:"get" description:"Retrieve a local account's information"`
-	Add       locAccAdd       `command:"add" description:"Add a new local account"`
-	Delete    locAccDelete    `command:"delete" description:"Delete a local account"`
-	Update    locAccUpdate    `command:"update" description:"Update an existing account"`
-	List      locAccList      `command:"list" description:"List the known local accounts"`
-	Authorize locAccAuthorize `command:"authorize" description:"Give an account permission to use a rule"`
-	Revoke    locAccRevoke    `command:"revoke" description:"Revoke an account's permission to use a rule"`
-	Cert      struct {
-		Args struct {
-			Account string `required:"yes" positional-arg-name:"account" description:"The account's name"`
-		} `positional-args:"yes"`
-		certificateCommand
-	} `command:"cert" description:"Manage an account's certificates"`
+//nolint:gochecknoglobals //a global var is required here
+var LocalAccount string
+
+type LocAccArg struct{}
+
+func (*LocAccArg) UnmarshalFlag(value string) error {
+	LocalAccount = value
+
+	return nil
 }
 
 func displayAccount(w io.Writer, account *api.OutAccount) {
@@ -39,18 +31,17 @@ func displayAccount(w io.Writer, account *api.OutAccount) {
 
 // ######################## ADD ##########################
 
-type locAccAdd struct {
+type LocAccAdd struct {
 	Login    string `required:"yes" short:"l" long:"login" description:"The account's login"`
 	Password string `required:"yes" short:"p" long:"password" description:"The account's password"`
 }
 
-func (l *locAccAdd) Execute([]string) error {
+func (l *LocAccAdd) Execute([]string) error {
 	account := &api.InAccount{
 		Login:    &l.Login,
 		Password: &l.Password,
 	}
-	server := commandLine.Account.Local.Args.Server
-	addr.Path = fmt.Sprintf("/api/servers/%s/accounts", server)
+	addr.Path = fmt.Sprintf("/api/servers/%s/accounts", Server)
 
 	if err := add(account); err != nil {
 		return err
@@ -63,15 +54,14 @@ func (l *locAccAdd) Execute([]string) error {
 
 // ######################## GET ##########################
 
-type locAccGet struct {
+type LocAccGet struct {
 	Args struct {
 		Login string `required:"yes" positional-arg-name:"login" description:"The account's login"`
 	} `positional-args:"yes"`
 }
 
-func (l *locAccGet) Execute([]string) error {
-	server := commandLine.Account.Local.Args.Server
-	addr.Path = fmt.Sprintf("/api/servers/%s/accounts/%s", server, l.Args.Login)
+func (l *LocAccGet) Execute([]string) error {
+	addr.Path = fmt.Sprintf("/api/servers/%s/accounts/%s", Server, l.Args.Login)
 
 	account := &api.OutAccount{}
 	if err := get(account); err != nil {
@@ -85,7 +75,7 @@ func (l *locAccGet) Execute([]string) error {
 
 // ######################## UPDATE ##########################
 
-type locAccUpdate struct {
+type LocAccUpdate struct {
 	Args struct {
 		Login string `required:"yes" positional-arg-name:"login" description:"The account's login"`
 	} `positional-args:"yes"`
@@ -94,14 +84,13 @@ type locAccUpdate struct {
 }
 
 //nolint:dupl // FIXME too hard to refactor?
-func (l *locAccUpdate) Execute([]string) error {
+func (l *LocAccUpdate) Execute([]string) error {
 	account := &api.InAccount{
 		Login:    l.Login,
 		Password: l.Password,
 	}
 
-	server := commandLine.Account.Local.Args.Server
-	addr.Path = fmt.Sprintf("/api/servers/%s/accounts/%s", server, l.Args.Login)
+	addr.Path = fmt.Sprintf("/api/servers/%s/accounts/%s", Server, l.Args.Login)
 
 	if err := update(account); err != nil {
 		return err
@@ -119,15 +108,14 @@ func (l *locAccUpdate) Execute([]string) error {
 
 // ######################## DELETE ##########################
 
-type locAccDelete struct {
+type LocAccDelete struct {
 	Args struct {
 		Login string `required:"yes" positional-arg-name:"login" description:"The account's login"`
 	} `positional-args:"yes"`
 }
 
-func (l *locAccDelete) Execute([]string) error {
-	server := commandLine.Account.Local.Args.Server
-	addr.Path = fmt.Sprintf("/api/servers/%s/accounts/%s", server, l.Args.Login)
+func (l *LocAccDelete) Execute([]string) error {
+	addr.Path = fmt.Sprintf("/api/servers/%s/accounts/%s", Server, l.Args.Login)
 
 	if err := remove(); err != nil {
 		return err
@@ -141,17 +129,16 @@ func (l *locAccDelete) Execute([]string) error {
 // ######################## LIST ##########################
 
 //nolint:lll // struct tags for command line arguments can be long
-type locAccList struct {
-	listOptions
+type LocAccList struct {
+	ListOptions
 	SortBy string `short:"s" long:"sort" description:"Attribute used to sort the returned entries" choice:"login+" choice:"login-" default:"login+"`
 }
 
 //nolint:dupl // FIXME too hard to refactor?
-func (l *locAccList) Execute([]string) error {
-	server := commandLine.Account.Local.Args.Server
-	addr.Path = fmt.Sprintf("/api/servers/%s/accounts", server)
+func (l *LocAccList) Execute([]string) error {
+	addr.Path = fmt.Sprintf("/api/servers/%s/accounts", Server)
 
-	listURL(&l.listOptions, l.SortBy)
+	listURL(&l.ListOptions, l.SortBy)
 
 	body := map[string][]api.OutAccount{}
 	if err := list(&body); err != nil {
@@ -163,13 +150,13 @@ func (l *locAccList) Execute([]string) error {
 	w := getColorable() //nolint:ifshort // decrease readability
 
 	if len(accounts) > 0 {
-		fmt.Fprintln(w, bold("Accounts of server '"+server+"':"))
+		fmt.Fprintln(w, bold("Accounts of server '"+Server+"':"))
 
 		for i := range accounts {
 			displayAccount(w, &accounts[i])
 		}
 	} else {
-		fmt.Fprintln(w, "Server", bold(server), "has no accounts.")
+		fmt.Fprintln(w, "Server", bold(Server), "has no accounts.")
 	}
 
 	return nil
@@ -177,7 +164,7 @@ func (l *locAccList) Execute([]string) error {
 
 // ######################## AUTHORIZE ##########################
 
-type locAccAuthorize struct {
+type LocAccAuthorize struct {
 	Args struct {
 		Login     string `required:"yes" positional-arg-name:"login" description:"The account's login"`
 		Rule      string `required:"yes" positional-arg-name:"rule" description:"The rule's name"`
@@ -185,9 +172,8 @@ type locAccAuthorize struct {
 	} `positional-args:"yes"`
 }
 
-func (l *locAccAuthorize) Execute([]string) error {
-	server := commandLine.Account.Local.Args.Server
-	addr.Path = fmt.Sprintf("/api/servers/%s/accounts/%s/authorize/%s/%s", server,
+func (l *LocAccAuthorize) Execute([]string) error {
+	addr.Path = fmt.Sprintf("/api/servers/%s/accounts/%s/authorize/%s/%s", Server,
 		l.Args.Login, l.Args.Rule, l.Args.Direction)
 
 	return authorize("local account", l.Args.Login, l.Args.Rule, l.Args.Direction)
@@ -195,7 +181,7 @@ func (l *locAccAuthorize) Execute([]string) error {
 
 // ######################## REVOKE ##########################
 
-type locAccRevoke struct {
+type LocAccRevoke struct {
 	Args struct {
 		Login     string `required:"yes" positional-arg-name:"login" description:"The account's login"`
 		Rule      string `required:"yes" positional-arg-name:"rule" description:"The rule's name"`
@@ -203,9 +189,8 @@ type locAccRevoke struct {
 	} `positional-args:"yes"`
 }
 
-func (l *locAccRevoke) Execute([]string) error {
-	server := commandLine.Account.Local.Args.Server
-	addr.Path = fmt.Sprintf("/api/servers/%s/accounts/%s/revoke/%s/%s", server,
+func (l *LocAccRevoke) Execute([]string) error {
+	addr.Path = fmt.Sprintf("/api/servers/%s/accounts/%s/revoke/%s/%s", Server,
 		l.Args.Login, l.Args.Rule, l.Args.Direction)
 
 	return revoke("local account", l.Args.Login, l.Args.Rule, l.Args.Direction)

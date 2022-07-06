@@ -10,20 +10,15 @@ import (
 	"code.waarp.fr/apps/gateway/gateway/pkg/admin/rest/api"
 )
 
-type partnerCommand struct {
-	Get       partnerGet       `command:"get" description:"Retrieve a partner's information"`
-	Add       partnerAdd       `command:"add" description:"Add a new partner"`
-	List      partnerList      `command:"list" description:"List the known partners"`
-	Delete    partnerDelete    `command:"delete" description:"Delete a partner"`
-	Update    partnerUpdate    `command:"update" description:"Update an existing partner"`
-	Authorize partnerAuthorize `command:"authorize" description:"Give a partner permission to use a rule"`
-	Revoke    partnerRevoke    `command:"revoke" description:"Revoke a partner's permission to use a rule"`
-	Cert      struct {
-		Args struct {
-			Partner string `required:"yes" positional-arg-name:"partner" description:"The partner's name"`
-		} `positional-args:"yes"`
-		certificateCommand
-	} `command:"cert" description:"Manage an partner's certificates"`
+//nolint:gochecknoglobals //a global var is required here
+var Partner string
+
+type PartnerArg struct{}
+
+func (*PartnerArg) UnmarshalFlag(value string) error {
+	Partner = value
+
+	return nil
 }
 
 func displayPartner(w io.Writer, partner *api.OutPartner) {
@@ -42,14 +37,14 @@ func displayPartner(w io.Writer, partner *api.OutPartner) {
 // ######################## ADD ##########################
 
 //nolint:lll // struct tags for command line arguments can be long
-type partnerAdd struct {
+type PartnerAdd struct {
 	Name        string             `required:"yes" short:"n" long:"name" description:"The partner's name"`
 	Protocol    string             `required:"yes" short:"p" long:"protocol" description:"The partner's protocol"`
 	Address     string             `required:"yes" short:"a" long:"address" description:"The partner's [address:port]"`
 	ProtoConfig map[string]confVal `short:"c" long:"config" description:"The partner's configuration, in key:val format. Can be repeated."`
 }
 
-func (p *partnerAdd) Execute([]string) error {
+func (p *PartnerAdd) Execute([]string) error {
 	conf, err := json.Marshal(p.ProtoConfig)
 	if err != nil {
 		return fmt.Errorf("invalid config: %w", err)
@@ -75,14 +70,14 @@ func (p *partnerAdd) Execute([]string) error {
 // ######################## LIST ##########################
 
 //nolint:lll // struct tags for command line arguments can be long
-type partnerList struct {
-	listOptions
+type PartnerList struct {
+	ListOptions
 	SortBy    string   `short:"s" long:"sort" description:"Attribute used to sort the returned entries" choice:"name+" choice:"name-" choice:"protocol+" choice:"protocol-" default:"name+"`
 	Protocols []string `short:"p" long:"protocol" description:"Filter the agents based on the protocol they use. Can be repeated multiple times to filter multiple protocols."`
 }
 
-func (p *partnerList) Execute([]string) error {
-	agentListURL("/api/partners", &p.listOptions, p.SortBy, p.Protocols)
+func (p *PartnerList) Execute([]string) error {
+	agentListURL("/api/partners", &p.ListOptions, p.SortBy, p.Protocols)
 
 	body := map[string][]api.OutPartner{}
 	if err := list(&body); err != nil {
@@ -106,13 +101,13 @@ func (p *partnerList) Execute([]string) error {
 
 // ######################## GET ##########################
 
-type partnerGet struct {
+type PartnerGet struct {
 	Args struct {
 		Name string `required:"yes" positional-arg-name:"name" description:"The partner's name"`
 	} `positional-args:"yes"`
 }
 
-func (p *partnerGet) Execute([]string) error {
+func (p *PartnerGet) Execute([]string) error {
 	addr.Path = path.Join("/api/partners", p.Args.Name)
 
 	partner := &api.OutPartner{}
@@ -127,13 +122,13 @@ func (p *partnerGet) Execute([]string) error {
 
 // ######################## DELETE ##########################
 
-type partnerDelete struct {
+type PartnerDelete struct {
 	Args struct {
 		Name string `required:"yes" positional-arg-name:"name" description:"The partner's name"`
 	} `positional-args:"yes"`
 }
 
-func (p *partnerDelete) Execute([]string) error {
+func (p *PartnerDelete) Execute([]string) error {
 	addr.Path = path.Join("/api/partners", p.Args.Name)
 
 	if err := remove(); err != nil {
@@ -148,7 +143,7 @@ func (p *partnerDelete) Execute([]string) error {
 // ######################## UPDATE ##########################
 
 //nolint:lll // struct tags for command line arguments can be long
-type partnerUpdate struct {
+type PartnerUpdate struct {
 	Args struct {
 		Name string `required:"yes" positional-arg-name:"name" description:"The partner's name"`
 	} `positional-args:"yes"`
@@ -158,7 +153,7 @@ type partnerUpdate struct {
 	ProtoConfig map[string]confVal `short:"c" long:"config" description:"The partner's configuration, in key:val format. Can be repeated."`
 }
 
-func (p *partnerUpdate) Execute([]string) error {
+func (p *PartnerUpdate) Execute([]string) error {
 	conf, err := json.Marshal(p.ProtoConfig)
 	if err != nil {
 		return fmt.Errorf("invalid config: %w", err)
@@ -190,7 +185,7 @@ func (p *partnerUpdate) Execute([]string) error {
 // ######################## AUTHORIZE ##########################
 
 //nolint:lll // struct tags for command line arguments can be long
-type partnerAuthorize struct {
+type PartnerAuthorize struct {
 	Args struct {
 		Partner   string `required:"yes" positional-arg-name:"partner" description:"The partner's name"`
 		Rule      string `required:"yes" positional-arg-name:"rule" description:"The rule's name"`
@@ -198,7 +193,7 @@ type partnerAuthorize struct {
 	} `positional-args:"yes"`
 }
 
-func (p *partnerAuthorize) Execute([]string) error {
+func (p *PartnerAuthorize) Execute([]string) error {
 	addr.Path = fmt.Sprintf("/api/partners/%s/authorize/%s/%s", p.Args.Partner,
 		p.Args.Rule, p.Args.Direction)
 
@@ -207,7 +202,7 @@ func (p *partnerAuthorize) Execute([]string) error {
 
 // ######################## REVOKE ##########################
 
-type partnerRevoke struct {
+type PartnerRevoke struct {
 	Args struct {
 		Partner   string `required:"yes" positional-arg-name:"partner" description:"The partner's name"`
 		Rule      string `required:"yes" positional-arg-name:"rule" description:"The rule's name"`
@@ -215,7 +210,7 @@ type partnerRevoke struct {
 	} `positional-args:"yes"`
 }
 
-func (p *partnerRevoke) Execute([]string) error {
+func (p *PartnerRevoke) Execute([]string) error {
 	addr.Path = fmt.Sprintf("/api/partners/%s/revoke/%s/%s", p.Args.Partner,
 		p.Args.Rule, p.Args.Direction)
 

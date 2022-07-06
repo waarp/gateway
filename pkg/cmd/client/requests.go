@@ -8,18 +8,19 @@ import (
 	"fmt"
 	"io"
 	"net/http"
+	"net/url"
 	"time"
 )
 
 const httpTimeout = 5 * time.Second
 
-func getHTTPClient() *http.Client {
+func getHTTPClient(insecure bool) *http.Client {
 	//nolint:forcetypeassert //type assertion will always succeed
 	customTransport := http.DefaultTransport.(*http.Transport).Clone()
 
 	//nolint:gosec // needed to pass the option given by the user
 	customTransport.TLSClientConfig = &tls.Config{
-		InsecureSkipVerify: commandLine.addrOpt.Insecure,
+		InsecureSkipVerify: insecure,
 		MinVersion:         tls.VersionTLS12,
 	}
 
@@ -27,6 +28,12 @@ func getHTTPClient() *http.Client {
 }
 
 func sendRequest(ctx context.Context, object interface{}, method string) (*http.Response, error) {
+	return SendRequest(ctx, object, method, addr, insecure)
+}
+
+func SendRequest(ctx context.Context, object interface{}, method string,
+	addr *url.URL, insecure bool,
+) (*http.Response, error) {
 	var body io.Reader
 
 	if object != nil {
@@ -48,7 +55,7 @@ func sendRequest(ctx context.Context, object interface{}, method string) (*http.
 
 	req.SetBasicAuth(user, passwd)
 
-	resp, err := getHTTPClient().Do(req)
+	resp, err := getHTTPClient(insecure).Do(req)
 	if err != nil {
 		return nil, fmt.Errorf("an error occurred while sending the HTTP request: %w", err)
 	}
