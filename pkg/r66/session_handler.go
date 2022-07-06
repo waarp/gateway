@@ -225,7 +225,7 @@ func (s *sessionHandler) GetTransferInfo(id int64, isClient bool) (*r66.Transfer
 	if database.IsNotFound(err) {
 		return s.getInfoFromHistory(id)
 	} else if err != nil {
-		s.logger.Errorf("Failed to retrieve transfer entry: %s", err)
+		s.logger.Error("Failed to retrieve transfer entry: %v", err)
 
 		return nil, &r66.Error{Code: r66.Internal, Detail: "database error"}
 	}
@@ -242,7 +242,7 @@ func (s *sessionHandler) getInfoFromTransfer(remoteID int64, trans *model.Transf
 
 	var protoConf config.R66ProtoConfig
 	if err := json.Unmarshal(ctx.LocalAgent.ProtoConfig, &protoConf); err != nil {
-		s.logger.Errorf("Failed to parse server configuration: %s", err)
+		s.logger.Error("Failed to parse server configuration: %v", err)
 
 		return nil, &r66.Error{Code: r66.Internal, Detail: "failed to parse server configuration"}
 	}
@@ -254,7 +254,7 @@ func (s *sessionHandler) getInfoFromTransfer(remoteID int64, trans *model.Transf
 
 	file, fErr := filepath.Rel(s.makeDir(ctx.Rule), trans.LocalPath)
 	if fErr != nil {
-		s.logger.Errorf("Failed to build file path: %s", err)
+		s.logger.Error("Failed to build file path: %v", err)
 
 		return nil, &r66.Error{Code: r66.Internal, Detail: "failed to build file path"}
 	}
@@ -281,7 +281,7 @@ func (s *sessionHandler) getInfoFromHistory(transID int64) (*r66.TransferInfo, e
 	if database.IsNotFound(dbErr) {
 		return nil, &r66.Error{Code: r66.IncorrectCommand, Detail: "transfer not found"}
 	} else if dbErr != nil {
-		s.logger.Errorf("Failed to retrieve history entry: %s", dbErr)
+		s.logger.Error("Failed to retrieve history entry: %v", dbErr)
 
 		return nil, &r66.Error{Code: r66.Internal, Detail: "database error"}
 	}
@@ -321,13 +321,13 @@ func (s *sessionHandler) GetFileInfo(ruleName, pat string) ([]r66.FileInfo, erro
 	if err := s.db.Get(&rule, "name=? AND send=?", ruleName, true).Run(); database.IsNotFound(err) {
 		return nil, &r66.Error{Code: r66.IncorrectCommand, Detail: "rule not found"}
 	} else if err != nil {
-		s.logger.Errorf("Failed to retrieve rule: %s", err)
+		s.logger.Error("Failed to retrieve rule: %v", err)
 
 		return nil, &r66.Error{Code: r66.Internal, Detail: "database error"}
 	}
 
 	if ok, err := rule.IsAuthorized(s.db, s.account); err != nil {
-		s.logger.Errorf("Failed to check rule permissions: %s", err)
+		s.logger.Error("Failed to check rule permissions: %v", err)
 
 		return nil, &r66.Error{Code: r66.Internal, Detail: "database error"}
 	} else if !ok {
@@ -346,7 +346,7 @@ func (s *sessionHandler) GetFileInfo(ruleName, pat string) ([]r66.FileInfo, erro
 func (s *sessionHandler) listDirFiles(root, pattern string) ([]r66.FileInfo, error) {
 	matches, err := filepath.Glob(filepath.Join(root, pattern))
 	if err != nil {
-		s.logger.Errorf("Failed to retrieve matching files: %s", err)
+		s.logger.Error("Failed to retrieve matching files: %v", err)
 
 		return nil, &r66.Error{Code: r66.IncorrectCommand, Detail: "incorrect file pattern"}
 	}
@@ -360,14 +360,14 @@ func (s *sessionHandler) listDirFiles(root, pattern string) ([]r66.FileInfo, err
 	for _, match := range matches {
 		file, err := os.Stat(match)
 		if err != nil {
-			s.logger.Errorf("Failed to retrieve file '%s' info: %s", match, err)
+			s.logger.Error("Failed to retrieve file '%s' info: %v", match, err)
 
 			continue
 		}
 
 		fp, err := filepath.Rel(root, match)
 		if err != nil {
-			s.logger.Errorf("Failed to split path '%s': %s", match, err)
+			s.logger.Error("Failed to split path '%s': %v", match, err)
 
 			continue
 		}
@@ -395,7 +395,7 @@ func (s *sessionHandler) listDirFiles(root, pattern string) ([]r66.FileInfo, err
 func (s *sessionHandler) listSubFiles(full, dir string) []r66.FileInfo {
 	entries, err := os.ReadDir(full)
 	if err != nil {
-		s.logger.Errorf("Failed to open sub-directory '%s': %s", full, err)
+		s.logger.Error("Failed to open sub-directory '%s': %v", full, err)
 
 		return nil
 	}
@@ -405,7 +405,7 @@ func (s *sessionHandler) listSubFiles(full, dir string) []r66.FileInfo {
 	for _, entry := range entries {
 		file, err := entry.Info()
 		if err != nil {
-			s.logger.Errorf("Failed to retrieve info of file '%s': %s", entry.Name(), err)
+			s.logger.Error("Failed to retrieve info of file '%s': %v", entry.Name(), err)
 
 			continue
 		}

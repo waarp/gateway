@@ -12,22 +12,17 @@ import (
 
 	"code.waarp.fr/apps/gateway/gateway/pkg/conf"
 	"code.waarp.fr/apps/gateway/gateway/pkg/database"
-	"code.waarp.fr/apps/gateway/gateway/pkg/log"
 	"code.waarp.fr/apps/gateway/gateway/pkg/model"
 	"code.waarp.fr/apps/gateway/gateway/pkg/model/config"
 	"code.waarp.fr/apps/gateway/gateway/pkg/model/types"
 	"code.waarp.fr/apps/gateway/gateway/pkg/tk/utils/testhelpers"
 )
 
-//nolint:gochecknoinits // init is used by design
-func init() {
-	_ = log.InitBackend("DEBUG", "stdout", "")
-}
-
 func TestGetFileInfo(t *testing.T) {
 	Convey("Given an R66 server", t, func(c C) {
+		logger := testhelpers.TestLogger(c, "test_r66_file_info")
 		root := testhelpers.TempDir(c, "r66_get_file_info")
-		db := database.TestDatabase(c, "ERROR")
+		db := database.TestDatabase(c)
 		conf.GlobalConfig.Paths.GatewayHome = root
 
 		protoConf, err := json.Marshal(config.R66ProtoConfig{
@@ -63,7 +58,7 @@ func TestGetFileInfo(t *testing.T) {
 			authHandler: &authHandler{
 				Service: &Service{
 					db:     db,
-					logger: log.NewLogger("r66"),
+					logger: logger,
 					agent:  agent,
 				},
 			},
@@ -155,8 +150,9 @@ func TestGetFileInfo(t *testing.T) {
 
 func TestGetTransferInfo(t *testing.T) {
 	Convey("Given an R66 server", t, func(c C) {
-		root := testhelpers.TempDir(c, "r66_get_file_info")
-		db := database.TestDatabase(c, "ERROR")
+		logger := testhelpers.TestLogger(c, "test_r66_transfer_info")
+		root := testhelpers.TempDir(c, "r66_get_transfer_info")
+		db := database.TestDatabase(c)
 		conf.GlobalConfig.Paths.GatewayHome = root
 
 		protoConfig := config.R66ProtoConfig{
@@ -195,7 +191,7 @@ func TestGetTransferInfo(t *testing.T) {
 			authHandler: &authHandler{
 				Service: &Service{
 					db:     db,
-					logger: log.NewLogger("r66"),
+					logger: logger,
 					agent:  agent,
 				},
 			},

@@ -4,9 +4,9 @@ import (
 	"encoding/json"
 	"path"
 
+	"code.waarp.fr/lib/log"
 	"code.waarp.fr/lib/r66"
 
-	"code.waarp.fr/apps/gateway/gateway/pkg/log"
 	"code.waarp.fr/apps/gateway/gateway/pkg/model"
 	"code.waarp.fr/apps/gateway/gateway/pkg/model/types"
 	"code.waarp.fr/apps/gateway/gateway/pkg/pipeline"
@@ -76,7 +76,7 @@ func UpdateTransferInfo(userContent string, pip *pipeline.Pipeline) *types.Trans
 
 	if uContent := []byte(userContent); json.Valid(uContent) {
 		if err := json.Unmarshal(uContent, &pip.TransCtx.TransInfo); err != nil {
-			pip.Logger.Errorf("Failed to unmarshall transfer info: %s", err)
+			pip.Logger.Error("Failed to unmarshall transfer info: %s", err)
 
 			return types.NewTransferError(types.TeInternal, "failed to parse transfer info")
 		}
@@ -85,7 +85,7 @@ func UpdateTransferInfo(userContent string, pip *pipeline.Pipeline) *types.Trans
 	}
 
 	if err := pip.TransCtx.Transfer.SetTransferInfo(pip.DB, pip.TransCtx.TransInfo); err != nil {
-		pip.Logger.Errorf("Failed to update transfer info: %s", err)
+		pip.Logger.Error("Failed to update transfer info: %s", err)
 
 		return types.NewTransferError(types.TeInternal, "database error")
 	}
@@ -122,7 +122,7 @@ func MakeTransferInfo(logger *log.Logger, transCtx *model.TransferContext,
 
 	if follow, ok := transCtx.TransInfo[FollowID]; ok {
 		if fID, ok = follow.(float64); !ok {
-			logger.Errorf("Invalid type '%T' for R66 follow ID", follow)
+			logger.Error("Invalid type '%T' for R66 follow ID", follow)
 
 			return types.NewTransferError(types.TeInternal, "failed to make file info")
 		}
@@ -146,14 +146,14 @@ func MakeUserContent(logger *log.Logger, transInfo map[string]interface{}) (stri
 
 	if cont, ok := transInfo[UserContent]; ok {
 		if userContent, ok = cont.(string); !ok {
-			logger.Errorf("Invalid type '%T' for R66 user content", cont)
+			logger.Error("Invalid type '%T' for R66 user content", cont)
 
 			return "", types.NewTransferError(types.TeInternal, "failed to make transfer info")
 		}
 	} else {
 		cont, err := json.Marshal(transInfo)
 		if err != nil {
-			logger.Errorf("Failed to marshal transfer info: %s", err)
+			logger.Error("Failed to marshal transfer info: %s", err)
 
 			return "", types.NewTransferError(types.TeInternal, "failed to make transfer info")
 		}

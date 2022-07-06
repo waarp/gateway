@@ -35,7 +35,8 @@ func TestAddressIndirection(t *testing.T) {
 
 				So(cli.Request(), ShouldBeNil)
 				defer func() {
-					_ = cli.Cancel()
+					So(cli.Cancel(), ShouldBeNil)
+					pipeline.Tester.WaitServerDone()
 				}()
 
 				Convey("Then it should have connected to the server", func() {
@@ -64,7 +65,10 @@ func TestAddressIndirection(t *testing.T) {
 				cli := newClient(pip.Pipeline(), nil).(*getClient)
 
 				So(cli.Request(), ShouldBeNil)
-				defer cli.SendError(nil)
+				defer func() {
+					cli.SendError(nil)
+					pipeline.Tester.WaitServerDone()
+				}()
 
 				Convey("Then it should have connected to the server", func() {
 					So(cli.resp.Request.URL.Host, ShouldEqual, realAddr)

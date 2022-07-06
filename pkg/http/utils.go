@@ -222,7 +222,7 @@ func setInfo(pip *pipeline.Pipeline, headers http.Header, key string,
 	for _, text := range headers.Values(key) {
 		subStr := strings.SplitN(text, "=", 2) //nolint:gomnd //necessary here
 		if len(subStr) < 2 {                   //nolint:gomnd //necessary here
-			pip.Logger.Errorf("Invalid transfer info header format '%s'", text)
+			pip.Logger.Error("Invalid transfer info header format '%s'", text)
 
 			return types.NewTransferError(types.TeUnimplemented, "invalid transfer info header")
 		}
@@ -232,7 +232,7 @@ func setInfo(pip *pipeline.Pipeline, headers http.Header, key string,
 
 		var value interface{}
 		if err := json.Unmarshal([]byte(strVal), &value); err != nil {
-			pip.Logger.Errorf("Failed to unmarshall transfer info value '%s': %s", strVal, err)
+			pip.Logger.Error("Failed to unmarshall transfer info value '%s': %s", strVal, err)
 
 			return types.NewTransferError(types.TeInternal, "failed to parse transfer info value")
 		}
@@ -241,7 +241,7 @@ func setInfo(pip *pipeline.Pipeline, headers http.Header, key string,
 	}
 
 	if err := set(pip.DB, info); err != nil {
-		pip.Logger.Errorf("Failed to set transfer info: %s", err)
+		pip.Logger.Error("Failed to set transfer info: %s", err)
 		pip.SetError(types.NewTransferError(types.TeInternal, "failed to set transfer info"))
 
 		return types.NewTransferError(types.TeInternal, "database error")
@@ -256,7 +256,7 @@ func makeInfo(headers http.Header, pip *pipeline.Pipeline, key string,
 	for name, val := range info {
 		jVal, err := json.Marshal(val)
 		if err != nil {
-			pip.Logger.Errorf("Failed to encode transfer info '%s': %s", name, err)
+			pip.Logger.Error("Failed to encode transfer info '%s': %s", name, err)
 
 			return types.NewTransferError(types.TeInternal, "failed to encode transfer info")
 		}
