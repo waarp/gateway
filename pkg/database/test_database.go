@@ -8,6 +8,7 @@ import (
 	"database/sql"
 	"fmt"
 	"io/ioutil"
+	"net/url"
 	"os"
 	"strings"
 	"sync"
@@ -33,9 +34,22 @@ const (
 
 var errSimulated = fmt.Errorf("simulated database error")
 
+func testDSN() string {
+	config := conf.GlobalConfig.Database
+	values := url.Values{}
+
+	values.Set("mode", "memory")
+	values.Set("_txlock", "immediate")
+	values.Add("_pragma", "busy_timeout=5000")
+	values.Add("_pragma", "foreign_keys=ON")
+	values.Add("_pragma", "journal_mode=WAL")
+	values.Add("_pragma", "synchronous=NORMAL")
+
+	return fmt.Sprintf("%s?%s", config.Address, values.Encode())
+}
+
 func testinfo() (string, string, func(*xorm.Engine) error) {
-	return "sqlite", fmt.Sprintf("file:%s?mode=memory&_busy_timeout=10000&cachee=shared",
-		conf.GlobalConfig.Database.Address), sqliteInit
+	return "sqlite", testDSN(), sqliteInit
 }
 
 func testGCM() {

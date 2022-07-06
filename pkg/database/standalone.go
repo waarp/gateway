@@ -20,26 +20,14 @@ func (s *Standalone) newSession() *Session {
 	}
 }
 
+// TransactionFunc is the type representing a function meant to be executed inside
+// a transaction using the Standalone.Transaction method.
+type TransactionFunc func(*Session) Error
+
 // Transaction executes all the commands in the given function as a transaction.
-// The transaction will be then be roll-backed or committed, depending whether
+// The transaction will be then be roll-backed or committed, depending on whether
 // the function returned an error or not.
-func (s *Standalone) Transaction(f func(*Session) Error) Error {
-	return s.transaction(false, f)
-}
-
-// WriteTransaction executes all the commands in the given function as a transaction.
-// The difference between this function and Transaction is that, on an SQLite
-// database, this function will open an EXCLUSIVE transaction instead of a normal
-// one, preventing other connections from opening new transactions while this one
-// is active.
-//
-// Generally, if your transaction function calls Session.SelectForUpdate, you
-// should execute the transaction using this method instead of Transaction.
-func (s *Standalone) WriteTransaction(f func(*Session) Error) Error {
-	return s.transaction(true, f)
-}
-
-func (s *Standalone) transaction(isWrite bool, f func(*Session) Error) Error {
+func (s *Standalone) Transaction(f TransactionFunc) Error {
 	ses := s.newSession()
 
 	if err := ses.session.Begin(); err != nil {
@@ -48,7 +36,7 @@ func (s *Standalone) transaction(isWrite bool, f func(*Session) Error) Error {
 		return NewInternalError(err)
 	}
 
-	if isWrite && conf.GlobalConfig.Database.Type == SQLite {
+	if conf.GlobalConfig.Database.Type == SQLite {
 		if _, err := ses.session.Exec("ROLLBACK; BEGIN IMMEDIATE"); err != nil {
 			s.logger.Errorf("Failed to start immediate transaction: %s", err)
 
@@ -58,7 +46,7 @@ func (s *Standalone) transaction(isWrite bool, f func(*Session) Error) Error {
 
 	defer func() {
 		if err := ses.session.Close(); err != nil {
-			s.logger.Warningf("an error occurred while closing the session: %v", err)
+			s.logger.Warningf("an error occurred while closing the Session: %v", err)
 		}
 	}()
 
@@ -68,7 +56,7 @@ func (s *Standalone) transaction(isWrite bool, f func(*Session) Error) Error {
 		s.logger.Error("Transaction failed, changes have been rolled back")
 
 		if err := ses.session.Rollback(); err != nil {
-			s.logger.Warningf("an error occurred while rollbacking the session: %v", err)
+			s.logger.Warningf("an error occurred during the session rollback: %v", err)
 		}
 
 		return err
@@ -164,7 +152,8 @@ func (s *Standalone) Update(bean UpdateBean) *UpdateQuery {
 //
 // The request can then be executed using the UpdateAllQuery.Run method.
 func (s *Standalone) UpdateAll(bean UpdateAllBean, vals UpdVals, sql string,
-	args ...interface{}) *UpdateAllQuery {
+	args ...interface{},
+) *UpdateAllQuery {
 	return &UpdateAllQuery{db: s, bean: bean, vals: vals, conds: sql, args: args}
 }
 

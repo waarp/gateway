@@ -19,8 +19,6 @@ func init() {
 }
 
 func sqliteInit(db *xorm.Engine) error {
-	db.SetMaxOpenConns(1)
-	db.SetMaxIdleConns(1)
 	db.DatabaseTZ = time.UTC
 
 	return nil
