@@ -1,15 +1,20 @@
 package r66
 
 import (
+	"encoding/json"
 	"fmt"
+	"os"
 	"path"
+	"path/filepath"
 	"strings"
 	"time"
 
 	"code.waarp.fr/lib/r66"
 
+	"code.waarp.fr/apps/gateway/gateway/pkg/conf"
 	"code.waarp.fr/apps/gateway/gateway/pkg/database"
 	"code.waarp.fr/apps/gateway/gateway/pkg/model"
+	"code.waarp.fr/apps/gateway/gateway/pkg/model/config"
 	"code.waarp.fr/apps/gateway/gateway/pkg/model/types"
 	"code.waarp.fr/apps/gateway/gateway/pkg/pipeline"
 	"code.waarp.fr/apps/gateway/gateway/pkg/r66/internal"
@@ -202,4 +207,236 @@ func (s *sessionHandler) setProgress(req *r66.Request, trans *model.Transfer) *r
 	}
 
 	return nil
+}
+
+func (s *sessionHandler) GetTransferInfo(id int64, isClient bool) (*r66.TransferInfo, error) {
+	if isClient {
+		return nil, &r66.Error{
+			Code:   r66.IncorrectCommand,
+			Detail: "requesting info on client transfers is forbidden",
+		}
+	}
+
+	remoteID := fmt.Sprint(id)
+	trans := model.Transfer{}
+
+	err := s.db.Get(&trans, "remote_transfer_id=? AND is_server=? AND account_id=?",
+		remoteID, true, s.account.ID).Run()
+	if database.IsNotFound(err) {
+		return s.getInfoFromHistory(id)
+	} else if err != nil {
+		s.logger.Errorf("Failed to retrieve transfer entry: %s", err)
+
+		return nil, &r66.Error{Code: r66.Internal, Detail: "database error"}
+	}
+
+	return s.getInfoFromTransfer(id, &trans)
+}
+
+func (s *sessionHandler) getInfoFromTransfer(remoteID int64, trans *model.Transfer,
+) (*r66.TransferInfo, error) {
+	ctx, err := model.GetTransferContext(s.db, s.logger, trans)
+	if err != nil {
+		return nil, internal.ToR66Error(err)
+	}
+
+	var protoConf config.R66ProtoConfig
+	if err := json.Unmarshal(ctx.LocalAgent.ProtoConfig, &protoConf); err != nil {
+		s.logger.Errorf("Failed to parse server configuration: %s", err)
+
+		return nil, &r66.Error{Code: r66.Internal, Detail: "failed to parse server configuration"}
+	}
+
+	userContent, err := internal.MakeUserContent(s.logger, ctx.TransInfo)
+	if err != nil {
+		return nil, internal.ToR66Error(err)
+	}
+
+	file, fErr := filepath.Rel(s.makeDir(ctx.Rule), trans.LocalPath)
+	if fErr != nil {
+		s.logger.Errorf("Failed to build file path: %s", err)
+
+		return nil, &r66.Error{Code: r66.Internal, Detail: "failed to build file path"}
+	}
+
+	return &r66.TransferInfo{
+		ID:        remoteID,
+		Client:    ctx.LocalAccount.Login,
+		Server:    ctx.LocalAgent.Name,
+		File:      filepath.ToSlash(file),
+		Rule:      ctx.Rule.Name,
+		IsRecv:    ctx.Rule.IsSend,
+		IsMd5:     protoConf.CheckBlockHash,
+		BlockSize: protoConf.BlockSize,
+		Info:      userContent,
+		Start:     trans.Start,
+	}, nil
+}
+
+func (s *sessionHandler) getInfoFromHistory(transID int64) (*r66.TransferInfo, error) {
+	var hist model.HistoryEntry
+
+	dbErr := s.db.Get(&hist, "remote_transfer_id=? AND is_server=? AND account=?",
+		fmt.Sprint(transID), true, s.account.Login).Run()
+	if database.IsNotFound(dbErr) {
+		return nil, &r66.Error{Code: r66.IncorrectCommand, Detail: "transfer not found"}
+	} else if dbErr != nil {
+		s.logger.Errorf("Failed to retrieve history entry: %s", dbErr)
+
+		return nil, &r66.Error{Code: r66.Internal, Detail: "database error"}
+	}
+
+	transInfo, dbErr := hist.GetTransferInfo(s.db)
+	if dbErr != nil {
+		return nil, &r66.Error{Code: r66.Internal, Detail: "database error"}
+	}
+
+	userContent, err := internal.MakeUserContent(s.logger, transInfo)
+	if err != nil {
+		return nil, internal.ToR66Error(err)
+	}
+
+	mode := r66.ModeSend
+	if hist.IsSend {
+		mode = r66.ModeRecv
+	}
+
+	return &r66.TransferInfo{
+		ID:        transID,
+		Client:    hist.Account,
+		Server:    hist.Agent,
+		File:      filepath.Base(hist.LocalPath),
+		Rule:      hist.Rule,
+		RuleMode:  uint32(mode), // FIXME once issue #284 is implemented
+		BlockSize: 0,            // FIXME once issue #284 is implemented
+		Info:      userContent,
+		Start:     hist.Start,
+		Stop:      hist.Stop,
+	}, nil
+}
+
+func (s *sessionHandler) GetFileInfo(ruleName, pat string) ([]r66.FileInfo, error) {
+	var rule model.Rule
+
+	if err := s.db.Get(&rule, "name=? AND send=?", ruleName, true).Run(); database.IsNotFound(err) {
+		return nil, &r66.Error{Code: r66.IncorrectCommand, Detail: "rule not found"}
+	} else if err != nil {
+		s.logger.Errorf("Failed to retrieve rule: %s", err)
+
+		return nil, &r66.Error{Code: r66.Internal, Detail: "database error"}
+	}
+
+	if ok, err := rule.IsAuthorized(s.db, s.account); err != nil {
+		s.logger.Errorf("Failed to check rule permissions: %s", err)
+
+		return nil, &r66.Error{Code: r66.Internal, Detail: "database error"}
+	} else if !ok {
+		return nil, &r66.Error{
+			Code:   r66.IncorrectCommand,
+			Detail: "you do not have the rights to use this transfer rule",
+		}
+	}
+
+	pattern := filepath.FromSlash(pat)
+	dir := s.makeDir(&rule)
+
+	return s.listDirFiles(dir, pattern)
+}
+
+func (s *sessionHandler) listDirFiles(root, pattern string) ([]r66.FileInfo, error) {
+	matches, err := filepath.Glob(filepath.Join(root, pattern))
+	if err != nil {
+		s.logger.Errorf("Failed to retrieve matching files: %s", err)
+
+		return nil, &r66.Error{Code: r66.IncorrectCommand, Detail: "incorrect file pattern"}
+	}
+
+	if len(matches) == 0 {
+		return nil, &r66.Error{Code: r66.FileNotFound, Detail: "no files found for the given pattern"}
+	}
+
+	var infos []r66.FileInfo
+
+	for _, match := range matches {
+		file, err := os.Stat(match)
+		if err != nil {
+			s.logger.Errorf("Failed to retrieve file '%s' info: %s", match, err)
+
+			continue
+		}
+
+		fp, err := filepath.Rel(root, match)
+		if err != nil {
+			s.logger.Errorf("Failed to split path '%s': %s", match, err)
+
+			continue
+		}
+
+		fp = filepath.ToSlash(fp)
+
+		if file.IsDir() {
+			infos = append(infos, s.listSubFiles(match, fp)...)
+
+			continue
+		}
+
+		infos = append(infos, r66.FileInfo{
+			Name:       fp,
+			Size:       file.Size(),
+			LastModify: file.ModTime(),
+			Type:       "File",
+			Permission: file.Mode().Perm().String(),
+		})
+	}
+
+	return infos, nil
+}
+
+func (s *sessionHandler) listSubFiles(full, dir string) []r66.FileInfo {
+	entries, err := os.ReadDir(full)
+	if err != nil {
+		s.logger.Errorf("Failed to open sub-directory '%s': %s", full, err)
+
+		return nil
+	}
+
+	infos := make([]r66.FileInfo, 0, len(entries))
+
+	for _, entry := range entries {
+		file, err := entry.Info()
+		if err != nil {
+			s.logger.Errorf("Failed to retrieve info of file '%s': %s", entry.Name(), err)
+
+			continue
+		}
+
+		fileType := "File"
+		if file.IsDir() {
+			fileType = "Directory"
+		}
+
+		infos = append(infos, r66.FileInfo{
+			Name:       path.Join(dir, file.Name()),
+			Size:       file.Size(),
+			LastModify: file.ModTime(),
+			Type:       fileType,
+			Permission: file.Mode().Perm().String(),
+		})
+	}
+
+	return infos
+}
+
+func (s *sessionHandler) makeDir(rule *model.Rule) string {
+	servDir := s.agent.ReceiveDir
+	defDir := conf.GlobalConfig.Paths.DefaultInDir
+
+	if rule.IsSend {
+		servDir = s.agent.SendDir
+		defDir = conf.GlobalConfig.Paths.DefaultOutDir
+	}
+
+	return utils.GetPath("", utils.Leaf(rule.LocalDir), utils.Leaf(servDir),
+		utils.Branch(s.agent.RootDir), utils.Leaf(defDir),
+		utils.Branch(conf.GlobalConfig.Paths.GatewayHome))
 }

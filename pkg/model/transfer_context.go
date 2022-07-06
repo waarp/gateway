@@ -78,6 +78,13 @@ func GetTransferContext(db *database.DB, logger *log.Logger, trans *Transfer,
 		return nil, errDatabase
 	}
 
+	var err error
+	if transCtx.TransInfo, err = transCtx.Transfer.GetTransferInfo(db); err != nil {
+		logger.Errorf("Failed to retrieve the transfer info: %s", err)
+
+		return nil, errDatabase
+	}
+
 	return makeAgentContext(db, logger, transCtx)
 }
 
@@ -90,6 +97,7 @@ func makeAgentContext(db *database.DB, logger *log.Logger, transCtx *TransferCon
 	return makeRemoteAgentContext(db, logger, transCtx)
 }
 
+//nolint:dupl //factorizing would add complexity
 func makeLocalAgentContext(db *database.DB, logger *log.Logger, transCtx *TransferContext,
 ) (*TransferContext, *types.TransferError) {
 	if err := db.Get(transCtx.LocalAgent, "id=?", transCtx.Transfer.AgentID).Run(); err != nil {
@@ -120,6 +128,7 @@ func makeLocalAgentContext(db *database.DB, logger *log.Logger, transCtx *Transf
 	return transCtx, nil
 }
 
+//nolint:dupl //factorizing would add complexity
 func makeRemoteAgentContext(db *database.DB, logger *log.Logger, transCtx *TransferContext,
 ) (*TransferContext, *types.TransferError) {
 	if err := db.Get(transCtx.RemoteAgent, "id=?", transCtx.Transfer.AgentID).Run(); err != nil {
@@ -143,12 +152,6 @@ func makeRemoteAgentContext(db *database.DB, logger *log.Logger, transCtx *Trans
 
 	if transCtx.RemoteAccountCryptos, err = transCtx.RemoteAccount.GetCryptos(db); err != nil {
 		logger.Errorf("Failed to retrieve remote account certificates: %s", err)
-
-		return nil, errDatabase
-	}
-
-	if transCtx.TransInfo, err = transCtx.Transfer.GetTransferInfo(db); err != nil {
-		logger.Errorf("Failed to retrieve the transfer info: %s", err)
 
 		return nil, errDatabase
 	}
