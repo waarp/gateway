@@ -190,12 +190,8 @@ func (s *serverPipeline) init() error {
 // ReadAt reads the requested part of the transfer file.
 func (s *serverPipeline) ReadAt(p []byte, off int64) (int, error) {
 	select {
-	case iErr, ok := <-s.storage.Wait():
-		if ok {
-			return 0, iErr
-		}
-
-		return 0, errInvalidHandle
+	case <-s.storage.Wait():
+		return 0, toSFTPErr(s.storage.Get())
 	default:
 	}
 
@@ -216,12 +212,8 @@ func (s *serverPipeline) ReadAt(p []byte, off int64) (int, error) {
 // WriteAt writes the given data to the transfer file.
 func (s *serverPipeline) WriteAt(p []byte, off int64) (int, error) {
 	select {
-	case iErr, ok := <-s.storage.Wait():
-		if ok {
-			return 0, iErr
-		}
-
-		return 0, errInvalidHandle
+	case <-s.storage.Wait():
+		return 0, toSFTPErr(s.storage.Get())
 	default:
 	}
 
