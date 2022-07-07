@@ -22,6 +22,7 @@ type OutHistory struct {
 	Rule           string                  `json:"rule"`
 	Start          time.Time               `json:"start"`
 	Stop           *time.Time              `json:"stop,omitempty"`
+	TransferInfo   map[string]any          `json:"transferInfo,omitempty"`
 	Status         types.TransferStatus    `json:"status"`
 	ErrorCode      types.TransferErrorCode `json:"errorCode,omitempty"`
 	ErrorMsg       string                  `json:"errorMsg,omitempty"`

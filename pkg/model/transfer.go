@@ -1,7 +1,6 @@
 package model
 
 import (
-	"encoding/json"
 	"fmt"
 	"path/filepath"
 	"strings"
@@ -71,24 +70,7 @@ func (t *Transfer) GetID() uint64 {
 // SetTransferInfo replaces all the TransferInfo in the database of the given
 // transfer by those given in the map parameter.
 func (t *Transfer) SetTransferInfo(db *database.DB, info map[string]interface{}) database.Error {
-	return db.Transaction(func(ses *database.Session) database.Error {
-		if err := ses.DeleteAll(&TransferInfo{}).Where("transfer_id=?", t.ID).Run(); err != nil {
-			return err
-		}
-		for name, val := range info {
-			str, err := json.Marshal(val)
-			if err != nil {
-				return database.NewValidationError("invalid transfer info value '%v': %s", val, err)
-			}
-
-			i := &TransferInfo{TransferID: t.ID, Name: name, Value: string(str)}
-			if err := ses.Insert(i).Run(); err != nil {
-				return err
-			}
-		}
-
-		return nil
-	})
+	return setTransferInfo(db, info, t.ID, false)
 }
 
 /*

@@ -72,6 +72,8 @@ Filtrer l'historique
    :resjsonarr number taskNumber: Le numéro du dernier traitement exécuté
    :resjsonarr string errorCode: Le code d'erreur du transfert (si une erreur s'est produite)
    :resjsonarr string errorMsg: Le message d'erreur du transfert (si une erreur s'est produite)
+   :resjsonarr object transferInfo: Des informations de transfert personnalisées sous
+     la forme d'une liste de pairs clé:valeur, c'est-à-dire sous forme d'un objet JSON.
 
 
    |
@@ -102,7 +104,8 @@ Filtrer l'historique
              "remotePath": "/chemin/distant/fichier1",
              "start": "2019-01-01T01:00:00+02:00",
              "stop": "2019-01-01T02:00:00+02:00",
-             "status": "DONE"
+             "status": "DONE",
+             "transferInfo": { "key1": "val1", "key2": 2, "key3": true }
            },{
              "id": 2,
              "rule": "règle_sftp",

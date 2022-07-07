@@ -20,6 +20,8 @@ Programmer un transfert
    :reqjson string file: Le chemin du fichier à transférer
    :reqjson string output: Le chemin de destination du fichier
    :reqjson date start: La date de début du transfert (en format ISO 8601)
+   :reqjson object transferInfo: Des informations de transfert personnalisées sous
+     la forme d'une liste de pairs clé:valeur, c'est-à-dire sous forme d'un objet JSON.
 
    :statuscode 202: Le transfert a été lancé avec succès
    :statuscode 400: Un ou plusieurs des paramètres du transfert sont invalides
@@ -46,7 +48,8 @@ Programmer un transfert
            "partner": "waarp_sftp",
            "file": "chemin/du/fichier",
            "output": "destination/du/fichier",
-           "start": "2019-01-01T02:00:00+02:00"
+           "start": "2019-01-01T02:00:00+02:00",
+           "transferInfo": { "key1": "val1", "key2": 2, "key3": true }
          }
 
    **Exemple de réponse**

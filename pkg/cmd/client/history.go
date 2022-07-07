@@ -8,12 +8,14 @@ import (
 	"net/url"
 	"path"
 	"path/filepath"
+	"sort"
 	"time"
 
 	"code.waarp.fr/apps/gateway/gateway/pkg/admin/rest/api"
 	"code.waarp.fr/apps/gateway/gateway/pkg/model/types"
 )
 
+//nolint:funlen //splitting would add complexity
 func displayHistory(w io.Writer, hist *api.OutHistory) {
 	role := roleClient
 
@@ -72,6 +74,22 @@ func displayHistory(w io.Writer, hist *api.OutHistory) {
 			fmt.Fprintln(w, orange("    Progress:       "), hist.Progress)
 		case types.StepPreTasks, types.StepPostTasks:
 			fmt.Fprintln(w, orange("    Failed task:    "), hist.TaskNumber)
+		}
+	}
+
+	if len(hist.TransferInfo) > 0 {
+		fmt.Fprintln(w, orange("    Transfer info:"))
+
+		info := make([]string, 0, len(hist.TransferInfo))
+
+		for key, val := range hist.TransferInfo {
+			info = append(info, fmt.Sprint("      - ", key, ": ", val))
+		}
+
+		sort.Strings(info)
+
+		for i := range info {
+			fmt.Fprintln(w, info[i])
 		}
 	}
 }

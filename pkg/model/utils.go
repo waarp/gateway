@@ -107,6 +107,36 @@ func getTransferInfo(db database.ReadAccess, id uint64) (map[string]interface{},
 	return infoMap, nil
 }
 
+// SetTransferInfo replaces all the TransferInfo in the database of the given
+// transfer by those given in the map parameter.
+func setTransferInfo(db *database.DB, info map[string]interface{}, transID uint64,
+	isHistory bool,
+) database.Error {
+	return db.Transaction(func(ses *database.Session) database.Error {
+		if err := ses.DeleteAll(&TransferInfo{}).Where("transfer_id=?", transID).Run(); err != nil {
+			return err
+		}
+		for name, val := range info {
+			str, err := json.Marshal(val)
+			if err != nil {
+				return database.NewValidationError("invalid transfer info value '%v': %s", val, err)
+			}
+
+			i := &TransferInfo{
+				TransferID: transID,
+				IsHistory:  isHistory,
+				Name:       name,
+				Value:      string(str),
+			}
+			if err := ses.Insert(i).Run(); err != nil {
+				return err
+			}
+		}
+
+		return nil
+	})
+}
+
 func makeIDGenerator() (*snowflake.Node, error) {
 	var nodeID, mod, machineID big.Int
 
