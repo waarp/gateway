@@ -32,7 +32,7 @@ func TestGetUser(t *testing.T) {
 		command := &UserGet{}
 
 		Convey("Given a gateway with 1 user", func(c C) {
-			db := database.TestDatabase(c, "ERROR")
+			db := database.TestDatabase(c)
 			gw := httptest.NewServer(testHandler(db))
 			var err error
 			addr, err = url.Parse("http://admin:admin_password@" + gw.Listener.Addr().String())
@@ -87,7 +87,7 @@ func TestAddUser(t *testing.T) {
 		command := &UserAdd{}
 
 		Convey("Given a gateway", func(c C) {
-			db := database.TestDatabase(c, "ERROR")
+			db := database.TestDatabase(c)
 			gw := httptest.NewServer(testHandler(db))
 			var err error
 			addr, err = url.Parse("http://admin:admin_password@" + gw.Listener.Addr().String())
@@ -135,7 +135,7 @@ func TestDeleteUser(t *testing.T) {
 		command := &UserDelete{}
 
 		Convey("Given a gateway with 1 user", func(c C) {
-			db := database.TestDatabase(c, "ERROR")
+			db := database.TestDatabase(c)
 			gw := httptest.NewServer(testHandler(db))
 			var err error
 			addr, err = url.Parse("http://admin:admin_password@" + gw.Listener.Addr().String())
@@ -197,7 +197,7 @@ func TestUpdateUser(t *testing.T) {
 		command := &UserUpdate{}
 
 		Convey("Given a gateway with 1 user", func(c C) {
-			db := database.TestDatabase(c, "ERROR")
+			db := database.TestDatabase(c)
 			gw := httptest.NewServer(testHandler(db))
 			var err error
 			addr, err = url.Parse("http://admin:admin_password@" + gw.Listener.Addr().String())
@@ -281,7 +281,7 @@ func TestListUser(t *testing.T) {
 		command := &UserList{}
 
 		Convey("Given a gateway with 2 users", func(c C) {
-			db := database.TestDatabase(c, "ERROR")
+			db := database.TestDatabase(c)
 			gw := httptest.NewServer(testHandler(db))
 			So(db.DeleteAll(&model.User{}).Where("username='admin'").Run(), ShouldBeNil)
 

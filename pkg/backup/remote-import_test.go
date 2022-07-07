@@ -13,7 +13,7 @@ import (
 
 func TestImportRemoteAgents(t *testing.T) {
 	Convey("Given a database", t, func(c C) {
-		db := database.TestDatabase(c, "ERROR")
+		db := database.TestDatabase(c)
 
 		Convey("Given a database with some remote agent", func() {
 			agent := &model.RemoteAgent{
@@ -42,7 +42,7 @@ func TestImportRemoteAgents(t *testing.T) {
 				agents := []RemoteAgent{agent1}
 
 				Convey("When calling the importRemotes method", func() {
-					err := importRemoteAgents(discard, db, agents)
+					err := importRemoteAgents(discard(), db, agents)
 
 					Convey("Then it should return no error", func() {
 						So(err, ShouldBeNil)
@@ -91,7 +91,7 @@ func TestImportRemoteAgents(t *testing.T) {
 			agents := []RemoteAgent{agent1}
 
 			Convey("When calling the importRemotes method", func() {
-				err := importRemoteAgents(discard, db, agents)
+				err := importRemoteAgents(discard(), db, agents)
 
 				Convey("Then it should return no error", func() {
 					So(err, ShouldBeNil)
@@ -127,7 +127,7 @@ func TestImportRemoteAgents(t *testing.T) {
 
 func TestImportRemoteAccounts(t *testing.T) {
 	Convey("Given a database", t, func(c C) {
-		db := database.TestDatabase(c, "ERROR")
+		db := database.TestDatabase(c)
 
 		Convey("Given a database with some a remote agent and some remote accounts", func() {
 			agent := &model.RemoteAgent{
@@ -158,7 +158,7 @@ func TestImportRemoteAccounts(t *testing.T) {
 				}
 
 				Convey("When calling the importRemoteAccounts method", func() {
-					err := importRemoteAccounts(discard, db, accounts, agent.ID)
+					err := importRemoteAccounts(discard(), db, accounts, agent.ID)
 
 					Convey("Then it should return no error", func() {
 						So(err, ShouldBeNil)
@@ -217,7 +217,7 @@ func TestImportRemoteAccounts(t *testing.T) {
 				accounts := []RemoteAccount{account1}
 
 				Convey("When calling the importRemoteAccounts method", func() {
-					err := importRemoteAccounts(discard, db, accounts, agent.ID)
+					err := importRemoteAccounts(discard(), db, accounts, agent.ID)
 
 					Convey("Then it should return no error", func() {
 						So(err, ShouldBeNil)
@@ -271,7 +271,7 @@ func TestImportRemoteAccounts(t *testing.T) {
 				accounts := []RemoteAccount{account1}
 
 				Convey("When calling the importRemoteAccounts method", func() {
-					err := importRemoteAccounts(discard, db, accounts, agent.ID)
+					err := importRemoteAccounts(discard(), db, accounts, agent.ID)
 
 					Convey("Then it should return no error", func() {
 						So(err, ShouldBeNil)

@@ -30,7 +30,7 @@ func newHTTPClient(pip *pipeline.Pipeline) (pipeline.Client, *types.TransferErro
 func newHTTPSClient(pip *pipeline.Pipeline) (pipeline.Client, *types.TransferError) {
 	tlsConf, err := makeTLSConf(pip)
 	if err != nil {
-		pip.Logger.Errorf("failed to make TLS configuration: %s", err)
+		pip.Logger.Error("failed to make TLS configuration: %s", err)
 
 		return nil, types.NewTransferError(types.TeInternal, "failed to make TLS configuration")
 	}

@@ -10,8 +10,9 @@ import (
 	"os"
 	"sync"
 
+	"code.waarp.fr/lib/log"
+
 	"code.waarp.fr/apps/gateway/gateway/pkg/database"
-	"code.waarp.fr/apps/gateway/gateway/pkg/log"
 	"code.waarp.fr/apps/gateway/gateway/pkg/model"
 	"code.waarp.fr/apps/gateway/gateway/pkg/model/types"
 )
@@ -105,7 +106,7 @@ func (r *Runner) runTask(task model.Task, taskInfo string, isErrTasks bool) *typ
 		r.transCtx.Transfer.Error = *types.NewTransferError(types.TeWarning, errMsg)
 
 		if dbErr := r.db.Update(r.transCtx.Transfer).Cols("error_code", "error_details").Run(); dbErr != nil {
-			r.logger.Errorf("Failed to update task status: %s", dbErr)
+			r.logger.Error("Failed to update task status: %s", dbErr)
 
 			if !isErrTasks {
 				return types.NewTransferError(types.TeInternal, "database error")
@@ -113,7 +114,7 @@ func (r *Runner) runTask(task model.Task, taskInfo string, isErrTasks bool) *typ
 		}
 	} else {
 		if msg != "" {
-			r.logger.Debugf("%s: %s", taskInfo, msg)
+			r.logger.Debug("%s: %s", taskInfo, msg)
 		} else {
 			r.logger.Debug(taskInfo)
 		}
@@ -134,7 +135,7 @@ func (r *Runner) updateProgress(isErrTasks bool) *types.TransferError {
 	}
 
 	if dbErr := query.Run(); dbErr != nil {
-		r.logger.Errorf("Failed to update task number: %s", dbErr)
+		r.logger.Error("Failed to update task number: %s", dbErr)
 
 		if !isErrTasks {
 			return types.NewTransferError(types.TeInternal, "database error")
@@ -221,7 +222,7 @@ func (r *Runner) getFilesize() int64 {
 
 	info, err := os.Stat(r.transCtx.Transfer.LocalPath)
 	if err != nil {
-		r.logger.Warningf("Failed to retrieve file size: %s", err)
+		r.logger.Warning("Failed to retrieve file size: %s", err)
 
 		return -1
 	}

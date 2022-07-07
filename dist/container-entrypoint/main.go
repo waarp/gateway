@@ -12,8 +12,6 @@ import (
 	"sync"
 	"time"
 
-	"code.bcarlin.xyz/go/logging"
-
 	"code.waarp.fr/apps/gateway/gateway/pkg/conf"
 )
 
@@ -41,7 +39,7 @@ var (
 )
 
 func main() {
-	logger := logging.GetLogger("entrypoint")
+	logger := getLogger()
 
 	// handleConfigFile exits in case of error
 	serverConf := handleConfigFile()
@@ -51,7 +49,7 @@ func main() {
 
 	// out, err := cmd.CombinedOutput()
 	// if err != nil {
-	// 	logger.Criticalf("Cannot run database migrations: %v. Command output: %s", err, out)
+	// 	logger.Critical("Cannot run database migrations: %v. Command output: %s", err, out)
 	// 	os.Exit(ExitDBMigrateError)
 	// }
 
@@ -61,7 +59,7 @@ func main() {
 
 	if managerURL != "" {
 		if err := verifyCertificates(serverConf); err != nil {
-			logger.Criticalf("there is an issue with the certificates: %v", err)
+			logger.Critical("there is an issue with the certificates: %v", err)
 			os.Exit(ExitCannotCreateCerts)
 		}
 
@@ -69,9 +67,9 @@ func main() {
 			if errors.Is(err, errConfURLNotFound) {
 				retryConfDownload = true
 
-				logger.Infof("This Gateway has not been found in Manager. We will try to register it")
+				logger.Info("This Gateway has not been found in Manager. We will try to register it")
 			} else {
-				logger.Criticalf("Cannot synchronize the gateway with Manager: %v", err)
+				logger.Critical("Cannot synchronize the gateway with Manager: %v", err)
 				os.Exit(ExitManagerConfError)
 			}
 		}
@@ -82,7 +80,7 @@ func main() {
 }
 
 func startGatewayServer(serverConf *conf.ServerConfig, managerURL string, retryConfDownload bool) {
-	logger := logging.GetLogger("entrypoint")
+	logger := getLogger()
 
 	var wg sync.WaitGroup
 
@@ -104,14 +102,14 @@ func startGatewayServer(serverConf *conf.ServerConfig, managerURL string, retryC
 
 		err2 := initializeGatewayInManager(serverConf, managerURL)
 		if err2 != nil {
-			logger.Criticalf("cannot register this Gateway in manager: %v", err2)
+			logger.Critical("cannot register this Gateway in manager: %v", err2)
 			os.Exit(ExitManagerConfError)
 		}
 
-		logger.Infof("The Gateway has been added to Manager. Trying to download conf again")
+		logger.Info("The Gateway has been added to Manager. Trying to download conf again")
 
 		if err := importConfFromManager(serverConf, managerURL); err != nil {
-			logger.Criticalf("Cannot synchronize the gateway with Manager: %v", err)
+			logger.Critical("Cannot synchronize the gateway with Manager: %v", err)
 			os.Exit(ExitManagerConfError)
 		}
 
@@ -122,7 +120,7 @@ func startGatewayServer(serverConf *conf.ServerConfig, managerURL string, retryC
 }
 
 func startGatewayProccess(restart <-chan struct{}) error {
-	logger := logging.GetLogger(loggerName)
+	logger := getLogger()
 
 	cmdArgs := []string{"server", "--config", defaultConfigFile}
 	if nodeID := os.Getenv("WAARP_GATEWAY_NODE_ID"); nodeID != "" {
@@ -130,7 +128,7 @@ func startGatewayProccess(restart <-chan struct{}) error {
 	}
 
 	logger.Info("Starting Waarp Gateway...")
-	logger.Debugf("Command used to start Waarp Gateway: %s %s",
+	logger.Debug("Command used to start Waarp Gateway: %s %s",
 		gatewaydBin, strings.Join(cmdArgs, " "))
 
 	for {
@@ -142,7 +140,7 @@ func startGatewayProccess(restart <-chan struct{}) error {
 
 		go func() {
 			if err := cmd.Run(); err != nil {
-				logger.Errorf("Waarp Gateway exited abnormally: %v", err)
+				logger.Error("Waarp Gateway exited abnormally: %v", err)
 			}
 		}()
 

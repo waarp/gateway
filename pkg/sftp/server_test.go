@@ -14,10 +14,10 @@ import (
 
 	"code.waarp.fr/apps/gateway/gateway/pkg/conf"
 	"code.waarp.fr/apps/gateway/gateway/pkg/database"
-	"code.waarp.fr/apps/gateway/gateway/pkg/log"
 	"code.waarp.fr/apps/gateway/gateway/pkg/model"
 	"code.waarp.fr/apps/gateway/gateway/pkg/model/types"
 	"code.waarp.fr/apps/gateway/gateway/pkg/pipeline/pipelinetest"
+	"code.waarp.fr/apps/gateway/gateway/pkg/tk/utils/testhelpers"
 )
 
 func getTestPort() string {
@@ -31,8 +31,9 @@ func getTestPort() string {
 }
 
 func TestServerStop(t *testing.T) {
-	Convey("Given a running SFTP server service", t, func(dbc C) {
-		db := database.TestDatabase(dbc, "ERROR")
+	Convey("Given a running SFTP server service", t, func(c C) {
+		logger := testhelpers.TestLogger(c, "test_sftp_server_stop")
+		db := database.TestDatabase(c)
 		port := getTestPort()
 
 		agent := &model.LocalAgent{
@@ -50,7 +51,7 @@ func TestServerStop(t *testing.T) {
 		}
 		So(db.Insert(hostKey).Run(), ShouldBeNil)
 
-		server := NewService(db, agent, log.NewLogger("test_sftp_server"))
+		server := NewService(db, agent, logger)
 		So(server.Start(), ShouldBeNil)
 
 		Convey("When stopping the service", func() {
@@ -71,8 +72,9 @@ func TestServerStop(t *testing.T) {
 }
 
 func TestServerStart(t *testing.T) {
-	Convey("Given an SFTP server service", t, func(dbc C) {
-		db := database.TestDatabase(dbc, "ERROR")
+	Convey("Given an SFTP server service", t, func(c C) {
+		logger := testhelpers.TestLogger(c, "test_sftp_server_start")
+		db := database.TestDatabase(c)
 		port := getTestPort()
 		root, err := filepath.Abs("server_start_root")
 		So(err, ShouldBeNil)
@@ -93,7 +95,7 @@ func TestServerStart(t *testing.T) {
 		}
 		So(db.Insert(hostKey).Run(), ShouldBeNil)
 
-		sftpServer := newService(db, agent, log.NewLogger("test_sftp_server"))
+		sftpServer := newService(db, agent, logger)
 
 		Convey("Given that the configuration is valid", func() {
 			Convey("When starting the server", func() {
@@ -153,7 +155,7 @@ func TestSSHServerInterruption(t *testing.T) {
 		test := pipelinetest.InitServerPush(c, "sftp", NewService, nil)
 		test.AddCryptos(c, makeServerKey(test.Server))
 
-		serv := newService(test.DB, test.Server, log.NewLogger("ssh_test_server"))
+		serv := newService(test.DB, test.Server, testhelpers.TestLogger(c, "ssh_test_server"))
 		c.So(serv.Start(), ShouldBeNil)
 
 		Convey("Given a dummy SFTP client", func() {

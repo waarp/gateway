@@ -13,7 +13,6 @@ import (
 
 	"code.waarp.fr/apps/gateway/gateway/pkg/conf"
 	"code.waarp.fr/apps/gateway/gateway/pkg/database"
-	"code.waarp.fr/apps/gateway/gateway/pkg/log"
 	"code.waarp.fr/apps/gateway/gateway/pkg/model"
 	"code.waarp.fr/apps/gateway/gateway/pkg/model/types"
 	"code.waarp.fr/apps/gateway/gateway/pkg/tk/service"
@@ -22,7 +21,8 @@ import (
 
 func TestControllerListen(t *testing.T) {
 	Convey("Given a database", t, func(c C) {
-		db := database.TestDatabase(c, "ERROR")
+		logger := testhelpers.TestLogger(c, "test_controller")
+		db := database.TestDatabase(c)
 
 		remote := &model.RemoteAgent{
 			Name:     "test remote",
@@ -49,10 +49,12 @@ func TestControllerListen(t *testing.T) {
 		So(db.Insert(rule).Run(), ShouldBeNil)
 
 		Convey("Given a controller", func() {
+			conf.GlobalConfig.Paths = conf.PathsConfig{GatewayHome: tmpDir}
+			gwController := GatewayController{DB: db}
 			cont := &Controller{
-				DB:     db,
-				ticker: time.NewTicker(time.Second),
-				logger: log.NewLogger("test_controller"),
+				Action: gwController.Run,
+				ticker: time.NewTicker(time.Millisecond),
+				logger: logger,
 				wg:     new(sync.WaitGroup),
 				ctx:    context.Background(),
 			}
@@ -76,7 +78,7 @@ func TestControllerListen(t *testing.T) {
 				So(db.Insert(trans).Run(), ShouldBeNil)
 
 				Convey("When the controller starts new transfers", func() {
-					cont.startNewTransfers()
+					cont.Action(cont.wg)
 					Reset(func() {
 						_ = os.RemoveAll("tmp")
 						_ = os.RemoveAll(rule.Path)
@@ -102,13 +104,13 @@ func TestControllerListen(t *testing.T) {
 
 				Convey("When the transfer lasts longer than a controller tick", func() {
 					Convey("When the controller starts new transfers several times", func() {
-						cont.startNewTransfers()
+						cont.Action(cont.wg)
 						time.Sleep(10 * time.Millisecond)
 
-						cont.startNewTransfers()
+						cont.Action(cont.wg)
 						time.Sleep(10 * time.Millisecond)
 
-						cont.startNewTransfers()
+						cont.Action(cont.wg)
 
 						cont.wg.Wait()
 
@@ -137,18 +139,18 @@ func TestControllerListen(t *testing.T) {
 					Status:     types.StatusRunning,
 					Owner:      conf.GlobalConfig.GatewayName,
 				}
-				So(cont.DB.Insert(trans).Run(), ShouldBeNil)
+				So(gwController.DB.Insert(trans).Run(), ShouldBeNil)
 
 				Convey("Given that the database stops responding", func() {
-					cont.DB.State().Set(service.Error, "test error")
-					cont.wasDown = true
+					gwController.DB.State().Set(service.Error, "test error")
+					gwController.wasDown = true
 
 					Convey("When the database comes back online", func() {
-						cont.DB.State().Set(service.Running, "")
+						gwController.DB.State().Set(service.Running, "")
 
 						Convey("When the controller starts new transfers again", func() {
-							cont.startNewTransfers()
-							So(cont.wasDown, ShouldBeFalse)
+							cont.Action(cont.wg)
+							So(gwController.wasDown, ShouldBeFalse)
 
 							Convey("Then the running entry should now be "+
 								"interrupted", func() {

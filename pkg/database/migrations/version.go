@@ -5,7 +5,10 @@ import (
 	"errors"
 	"fmt"
 
-	"code.waarp.fr/apps/gateway/gateway/pkg/tk/migration"
+	"code.waarp.fr/lib/log"
+	"code.waarp.fr/lib/migration"
+	"github.com/smartystreets/goconvey/convey"
+
 	"code.waarp.fr/apps/gateway/gateway/pkg/version"
 )
 
@@ -16,7 +19,7 @@ var errUnsuportedDB = errors.New("unsupported database")
 type bumpVersion struct{ from, to string }
 
 func (b bumpVersion) Up(db migration.Actions) error {
-	if err := db.Exec("UPDATE version SET current='%s'", b.to); err != nil {
+	if err := db.Exec("UPDATE version SET current=?", b.to); err != nil {
 		return fmt.Errorf("cannot set data model version: %w", err)
 	}
 
@@ -24,7 +27,7 @@ func (b bumpVersion) Up(db migration.Actions) error {
 }
 
 func (b bumpVersion) Down(db migration.Actions) error {
-	if err := db.Exec("UPDATE version SET current='%s'", b.from); err != nil {
+	if err := db.Exec("UPDATE version SET current=?", b.from); err != nil {
 		return fmt.Errorf("cannot set data model version: %w", err)
 	}
 
@@ -75,6 +78,16 @@ func checkVersionTableExist(db *sql.DB, dialect string) (bool, error) {
 
 // BumpToCurrent returns a migration script to bump the database version to the
 // current program version. Use only for testing.
-func BumpToCurrent() []migration.Migration {
-	return []migration.Migration{{Script: bumpVersion{to: version.Num}}}
+func BumpToCurrent(c convey.C, db *sql.DB, logger *log.Logger, dialect string) {
+	engine, err := migration.NewEngine(db, dialect, logger, nil)
+	c.So(err, convey.ShouldBeNil)
+
+	toApply := makeMigration(Migrations)
+	toApply = append(toApply, migration.Script{
+		Description: fmt.Sprintf("Bump database version to %s", version.Num),
+		Up:          bumpVersion{to: version.Num}.Up,
+		Down:        nil,
+	})
+
+	c.So(engine.Upgrade(toApply), convey.ShouldBeNil)
 }

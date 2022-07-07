@@ -9,16 +9,13 @@ import (
 
 	"code.waarp.fr/apps/gateway/gateway/pkg/conf"
 	"code.waarp.fr/apps/gateway/gateway/pkg/database"
-	"code.waarp.fr/apps/gateway/gateway/pkg/log"
 	"code.waarp.fr/apps/gateway/gateway/pkg/model"
 	"code.waarp.fr/apps/gateway/gateway/pkg/tk/utils/testhelpers"
 )
 
 func TestPathBuilder(t *testing.T) {
-	logger := log.NewLogger("test_path_builder")
-
 	Convey("Given a Gateway configuration", t, func(c C) {
-		db := database.TestDatabase(c, "ERROR")
+		db := database.TestDatabase(c)
 		conf.GlobalConfig.Paths.GatewayHome = testhelpers.TempDir(c, "path_builder")
 		conf.GlobalConfig.Paths.DefaultInDir = "gwIn"
 		conf.GlobalConfig.Paths.DefaultOutDir = "gwOut"
@@ -75,6 +72,7 @@ func TestPathBuilder(t *testing.T) {
 
 			file := trans.LocalPath
 
+			logger := testhelpers.TestLogger(c, "test_pipeline_path")
 			transCtx, err := model.GetTransferContext(db, logger, trans)
 			So(err, ShouldBeNil)
 
@@ -139,6 +137,7 @@ func TestPathBuilder(t *testing.T) {
 
 			file := trans.LocalPath
 
+			logger := testhelpers.TestLogger(c, "test_pipeline_path")
 			transCtx, err := model.GetTransferContext(db, logger, trans)
 			So(err, ShouldBeNil)
 

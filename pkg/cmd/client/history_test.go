@@ -146,7 +146,7 @@ func TestGetHistory(t *testing.T) {
 		command := &HistoryGet{}
 
 		Convey("Given a database", func(c C) {
-			db := database.TestDatabase(c, "ERROR")
+			db := database.TestDatabase(c)
 			gw := httptest.NewServer(testHandler(db))
 			var err error
 			addr, err = url.Parse("http://admin:admin_password@" + gw.Listener.Addr().String())
@@ -212,7 +212,7 @@ func TestListHistory(t *testing.T) {
 		command := &HistoryList{}
 
 		Convey("Given a database", func(c C) {
-			db := database.TestDatabase(c, "ERROR")
+			db := database.TestDatabase(c)
 			gw := httptest.NewServer(testHandler(db))
 			var err error
 			addr, err = url.Parse("http://admin:admin_password@" + gw.Listener.Addr().String())
@@ -498,7 +498,7 @@ func TestRetryHistory(t *testing.T) {
 		command := &HistoryRetry{}
 
 		Convey("Given a database", func(c C) {
-			db := database.TestDatabase(c, "ERROR")
+			db := database.TestDatabase(c)
 			gw := httptest.NewServer(testHandler(db))
 			var err error
 			addr, err = url.Parse("http://admin:admin_password@" + gw.Listener.Addr().String())

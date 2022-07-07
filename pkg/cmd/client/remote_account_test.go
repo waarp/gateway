@@ -22,7 +22,7 @@ func TestGetRemoteAccount(t *testing.T) {
 		command := &RemAccGet{}
 
 		Convey("Given a gateway with 1 remote account", func(c C) {
-			db := database.TestDatabase(c, "ERROR")
+			db := database.TestDatabase(c)
 			gw := httptest.NewServer(testHandler(db))
 			var err error
 			addr, err = url.Parse("http://admin:admin_password@" + gw.Listener.Addr().String())
@@ -119,7 +119,7 @@ func TestAddRemoteAccount(t *testing.T) {
 		command := &RemAccAdd{}
 
 		Convey("Given a gateway", func(c C) {
-			db := database.TestDatabase(c, "ERROR")
+			db := database.TestDatabase(c)
 			gw := httptest.NewServer(testHandler(db))
 			var err error
 			addr, err = url.Parse("http://admin:admin_password@" + gw.Listener.Addr().String())
@@ -185,7 +185,7 @@ func TestDeleteRemoteAccount(t *testing.T) {
 		command := &RemAccDelete{}
 
 		Convey("Given a gateway with 1 remote account", func(c C) {
-			db := database.TestDatabase(c, "ERROR")
+			db := database.TestDatabase(c)
 			gw := httptest.NewServer(testHandler(db))
 			var err error
 			addr, err = url.Parse("http://admin:admin_password@" + gw.Listener.Addr().String())
@@ -279,7 +279,7 @@ func TestUpdateRemoteAccount(t *testing.T) {
 		command := &RemAccUpdate{}
 
 		Convey("Given a gateway with 1 remote account", func(c C) {
-			db := database.TestDatabase(c, "ERROR")
+			db := database.TestDatabase(c)
 			gw := httptest.NewServer(testHandler(db))
 			var err error
 			addr, err = url.Parse("http://admin:admin_password@" + gw.Listener.Addr().String())
@@ -380,7 +380,7 @@ func TestListRemoteAccount(t *testing.T) {
 		command := &RemAccList{}
 
 		Convey("Given a gateway with 2 remote accounts", func(c C) {
-			db := database.TestDatabase(c, "ERROR")
+			db := database.TestDatabase(c)
 			gw := httptest.NewServer(testHandler(db))
 			var err error
 			addr, err = url.Parse("http://admin:admin_password@" + gw.Listener.Addr().String())
@@ -528,7 +528,7 @@ func TestAuthorizeRemoteAccount(t *testing.T) {
 		command := &RemAccAuthorize{}
 
 		Convey("Given a gateway with 1 remote account and 1 rule", func(c C) {
-			db := database.TestDatabase(c, "ERROR")
+			db := database.TestDatabase(c)
 			gw := httptest.NewServer(testHandler(db))
 			var err error
 			addr, err = url.Parse("http://admin:admin_password@" + gw.Listener.Addr().String())
@@ -658,7 +658,7 @@ func TestRevokeRemoteAccount(t *testing.T) {
 		command := &RemAccRevoke{}
 
 		Convey("Given a gateway with 1 remote account and 1 rule", func(c C) {
-			db := database.TestDatabase(c, "ERROR")
+			db := database.TestDatabase(c)
 			gw := httptest.NewServer(testHandler(db))
 			var err error
 			addr, err = url.Parse("http://admin:admin_password@" + gw.Listener.Addr().String())

@@ -10,7 +10,6 @@ import (
 	"net/http/cookiejar"
 	"net/url"
 
-	"code.bcarlin.xyz/go/logging"
 	"golang.org/x/net/publicsuffix"
 )
 
@@ -42,7 +41,7 @@ func newClient() (*httpClient, error) {
 }
 
 func (h *httpClient) getJSON(address string, respObj interface{}) error {
-	logger := logging.GetLogger(loggerName)
+	logger := getLogger()
 
 	req, err := http.NewRequestWithContext(context.Background(),
 		http.MethodGet, address, nil)
@@ -57,7 +56,7 @@ func (h *httpClient) getJSON(address string, respObj interface{}) error {
 
 	defer func() {
 		if err2 := resp.Body.Close(); err2 != nil {
-			logger.Warningf("This error occurred while reading the response: %v", err2)
+			logger.Warning("This error occurred while reading the response: %v", err2)
 		}
 	}()
 
@@ -66,7 +65,7 @@ func (h *httpClient) getJSON(address string, respObj interface{}) error {
 		return fmt.Errorf("cannot read response from Manager: %w", err)
 	}
 
-	logger.Debugf("Running request %s %s -> [%d] %s",
+	logger.Debug("Running request %s %s -> [%d] %s",
 		http.MethodGet, address, resp.StatusCode, string(bodyContent))
 
 	if resp.StatusCode < 200 || resp.StatusCode > 299 {
@@ -91,7 +90,7 @@ func (h *httpClient) putJSON(address string, data, respObj interface{}) error {
 }
 
 func (h *httpClient) xxxJSON(method, address string, data, respObj interface{}) error {
-	logger := logging.GetLogger(loggerName)
+	logger := getLogger()
 
 	msgBytes, err := json.Marshal(data)
 	if err != nil {
@@ -113,7 +112,7 @@ func (h *httpClient) xxxJSON(method, address string, data, respObj interface{}) 
 
 	defer func() {
 		if err2 := resp.Body.Close(); err2 != nil {
-			logger.Warningf("This error occurred while reading the response: %v", err2)
+			logger.Warning("This error occurred while reading the response: %v", err2)
 		}
 	}()
 
@@ -122,7 +121,7 @@ func (h *httpClient) xxxJSON(method, address string, data, respObj interface{}) 
 		return fmt.Errorf("cannot read response from Manager: %w", err)
 	}
 
-	logger.Debugf("Running request %s %s -> [%d] %s",
+	logger.Debug("Running request %s %s -> [%d] %s",
 		method, address, resp.StatusCode, string(bodyContent))
 
 	if resp.StatusCode < 200 || resp.StatusCode > 299 {
@@ -139,7 +138,7 @@ func (h *httpClient) xxxJSON(method, address string, data, respObj interface{}) 
 }
 
 func (h *httpClient) postForm(address string, data url.Values) error {
-	logger := logging.GetLogger(loggerName)
+	logger := getLogger()
 
 	msgBytes := []byte(data.Encode())
 
@@ -158,7 +157,7 @@ func (h *httpClient) postForm(address string, data url.Values) error {
 
 	defer func() {
 		if err2 := resp.Body.Close(); err2 != nil {
-			logger.Warningf("This error occurred while reading the response: %v", err2)
+			logger.Warning("This error occurred while reading the response: %v", err2)
 		}
 	}()
 
@@ -167,7 +166,7 @@ func (h *httpClient) postForm(address string, data url.Values) error {
 		return fmt.Errorf("cannot read response from Manager: %w", err)
 	}
 
-	logger.Debugf("Call to %s -> [%d] %s",
+	logger.Debug("Call to %s -> [%d] %s",
 		address, resp.StatusCode, string(bodyContent))
 
 	if resp.StatusCode < 200 || resp.StatusCode > 299 {

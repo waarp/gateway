@@ -12,12 +12,10 @@ import (
 	"os"
 	"path/filepath"
 	"time"
-
-	"code.bcarlin.xyz/go/logging"
 )
 
 func generateCertificates(key, cert string) error {
-	logger := logging.GetLogger(loggerName)
+	logger := getLogger()
 
 	priv, err := ecdsa.GenerateKey(elliptic.P521(), rand.Reader)
 	if err != nil {
@@ -38,7 +36,7 @@ func generateCertificates(key, cert string) error {
 
 	defer func() {
 		if err2 := certFile.Close(); err2 != nil {
-			logger.Warningf("The following error occurred whie closing the certificate file: %v", err2)
+			logger.Warning("The following error occurred whie closing the certificate file: %v", err2)
 		}
 	}()
 
@@ -49,7 +47,7 @@ func generateCertificates(key, cert string) error {
 
 	defer func() {
 		if err2 := keyFile.Close(); err2 != nil {
-			logger.Warningf("The following error occurred while closing the key file: %v", err2)
+			logger.Warning("The following error occurred while closing the key file: %v", err2)
 		}
 	}()
 
@@ -91,17 +89,17 @@ func makeCertificateTemplate() x509.Certificate {
 }
 
 func certificatesExist(key, cert string) bool {
-	logger := logging.GetLogger("entrypoint")
+	logger := getLogger()
 
 	if !pathExists(key) {
-		logger.Infof("The TLS key %q for the administration interface does not exist",
+		logger.Info("The TLS key %q for the administration interface does not exist",
 			key)
 
 		return false
 	}
 
 	if !pathExists(cert) {
-		logger.Infof("The TLS certificate %q for the administration interface does not exist",
+		logger.Info("The TLS certificate %q for the administration interface does not exist",
 			cert)
 
 		return false
@@ -143,7 +141,7 @@ func pathExists(p string) bool {
 // }
 
 // func handleSSHKeys(partner *gwPartner) error {
-// 	logger := logging.GetLogger(loggerName)
+// 	logger := getLogger(loggerName)
 //
 // 	var err error
 //
@@ -158,7 +156,7 @@ func pathExists(p string) bool {
 // 			return nil
 // 		}
 //
-// 		logger.Infof("Loading the SSH keypair from %q and %q",
+// 		logger.Info("Loading the SSH keypair from %q and %q",
 // 			partner.SSHPrivateKeyPath, partner.SSHPublicKey)
 //
 // 		pubkeyBytes, err2 := ioutil.ReadFile(partner.SSHPublicKeyPath)

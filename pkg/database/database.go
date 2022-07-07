@@ -12,12 +12,12 @@ import (
 	"os"
 	"time"
 
+	"code.waarp.fr/lib/log"
 	"xorm.io/xorm"
-	log2 "xorm.io/xorm/log"
+	xlog "xorm.io/xorm/log"
 	"xorm.io/xorm/names"
 
 	"code.waarp.fr/apps/gateway/gateway/pkg/conf"
-	"code.waarp.fr/apps/gateway/gateway/pkg/log"
 	"code.waarp.fr/apps/gateway/gateway/pkg/tk/service"
 	"code.waarp.fr/apps/gateway/gateway/pkg/tk/utils"
 )
@@ -51,7 +51,7 @@ func (db *DB) loadAESKey() error {
 
 	filename := conf.GlobalConfig.Database.AESPassphrase
 	if _, err := os.Stat(utils.ToOSPath(filename)); os.IsNotExist(err) {
-		db.logger.Infof("Creating AES passphrase file at '%s'", filename)
+		db.logger.Info("Creating AES passphrase file at '%s'", filename)
 
 		key := make([]byte, aesKeySize)
 
@@ -107,19 +107,19 @@ var supportedRBMS = map[string]dbinfo{}
 func (db *DB) initEngine() (*xorm.Engine, error) {
 	driver, dsn, init, err := db.createConnectionInfo()
 	if err != nil {
-		db.logger.Criticalf("Database configuration invalid: %s", err)
+		db.logger.Critical("Database configuration invalid: %s", err)
 
 		return nil, err
 	}
 
 	engine, err := xorm.NewEngine(driver, dsn)
 	if err != nil {
-		db.logger.Criticalf("Failed to open database: %s", err)
+		db.logger.Critical("Failed to open database: %s", err)
 
 		return nil, fmt.Errorf("cannot initialize database access: %w", err)
 	}
 
-	engine.SetLogger(log2.DiscardLogger{})
+	engine.SetLogger(xlog.DiscardLogger{})
 	engine.SetMapper(names.GonicMapper{})
 
 	if err := init(engine); err != nil {
@@ -127,7 +127,7 @@ func (db *DB) initEngine() (*xorm.Engine, error) {
 	}
 
 	if err := engine.Ping(); err != nil {
-		db.logger.Errorf("Failed to access database: %s", err)
+		db.logger.Error("Failed to access database: %s", err)
 
 		return nil, fmt.Errorf("cannot access database: %w", err)
 	}
@@ -145,7 +145,7 @@ func (db *DB) Start() error {
 
 func (db *DB) start(withInit bool) error {
 	if db.logger == nil {
-		db.logger = log.NewLogger(service.DatabaseServiceName)
+		db.logger = conf.GetLogger(service.DatabaseServiceName)
 	}
 
 	db.logger.Info("Starting database service...")
@@ -160,7 +160,7 @@ func (db *DB) start(withInit bool) error {
 
 	if err := db.loadAESKey(); err != nil {
 		db.state.Set(service.Error, err.Error())
-		db.logger.Criticalf("Failed to load AES key: %s", err)
+		db.logger.Critical("Failed to load AES key: %s", err)
 
 		return err
 	}
@@ -179,7 +179,7 @@ func (db *DB) start(withInit bool) error {
 
 	if err1 := db.checkVersion(); err1 != nil {
 		if err2 := engine.Close(); err2 != nil {
-			db.logger.Warningf("an error occurred while closing the database: %v", err2)
+			db.logger.Warning("an error occurred while closing the database: %v", err2)
 		}
 
 		db.state.Set(service.Error, err1.Error())
@@ -189,11 +189,11 @@ func (db *DB) start(withInit bool) error {
 
 	if err1 := initTables(db.Standalone, withInit); err1 != nil {
 		if err2 := engine.Close(); err2 != nil {
-			db.logger.Warningf("an error occurred while closing the database: %v", err2)
+			db.logger.Warning("an error occurred while closing the database: %v", err2)
 		}
 
 		db.state.Set(service.Error, err1.Error())
-		db.logger.Errorf("Failed to create tables: %s", err1)
+		db.logger.Error("Failed to create tables: %s", err1)
 
 		return err1
 	}
@@ -221,7 +221,7 @@ func (db *DB) Stop(_ context.Context) error {
 	err := db.Standalone.engine.Close()
 	if err != nil {
 		db.state.Set(service.Error, err.Error())
-		db.logger.Infof("Error while closing the database: %s", err)
+		db.logger.Info("Error while closing the database: %s", err)
 
 		return fmt.Errorf("an error occurred while closing the database: %w", err)
 	}

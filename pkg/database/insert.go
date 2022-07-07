@@ -15,7 +15,7 @@ type InsertQuery struct {
 func (i *InsertQuery) run(s *Session) Error {
 	if hook, ok := i.bean.(WriteHook); ok {
 		if err := hook.BeforeWrite(s); err != nil {
-			s.logger.Errorf("%s entry INSERT validation failed: %s", i.bean.Appellation(), err)
+			s.logger.Error("%s entry INSERT validation failed: %s", i.bean.Appellation(), err)
 
 			return err
 		}
@@ -25,7 +25,7 @@ func (i *InsertQuery) run(s *Session) Error {
 	defer logSQL(query, s.logger)
 
 	if _, err := query.InsertOne(i.bean); err != nil {
-		s.logger.Errorf("Failed to insert the new %s entry: %s", i.bean.Appellation(), err)
+		s.logger.Error("Failed to insert the new %s entry: %s", i.bean.Appellation(), err)
 
 		return NewInternalError(err)
 	}

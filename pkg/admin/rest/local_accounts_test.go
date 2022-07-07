@@ -14,8 +14,8 @@ import (
 
 	. "code.waarp.fr/apps/gateway/gateway/pkg/admin/rest/api"
 	"code.waarp.fr/apps/gateway/gateway/pkg/database"
-	"code.waarp.fr/apps/gateway/gateway/pkg/log"
 	"code.waarp.fr/apps/gateway/gateway/pkg/model"
+	"code.waarp.fr/apps/gateway/gateway/pkg/tk/utils/testhelpers"
 )
 
 func localAccountsURI(agent, login string) string {
@@ -23,10 +23,9 @@ func localAccountsURI(agent, login string) string {
 }
 
 func TestGetLocalAccount(t *testing.T) {
-	logger := log.NewLogger("rest_account_get_test")
-
 	Convey("Given the account get handler", t, func(c C) {
-		db := database.TestDatabase(c, "ERROR")
+		logger := testhelpers.TestLogger(c, "rest_account_get_test")
+		db := database.TestDatabase(c)
 		handler := getLocalAccount(logger, db)
 		w := httptest.NewRecorder()
 
@@ -116,8 +115,6 @@ func TestGetLocalAccount(t *testing.T) {
 }
 
 func TestListLocalAccounts(t *testing.T) {
-	logger := log.NewLogger("rest_account_list_test")
-
 	check := func(w *httptest.ResponseRecorder, expected map[string][]OutAccount) {
 		Convey("Then it should reply 'OK'", func() {
 			So(w.Code, ShouldEqual, http.StatusOK)
@@ -139,7 +136,8 @@ func TestListLocalAccounts(t *testing.T) {
 	}
 
 	Convey("Given the local account listing handler", t, func(c C) {
-		db := database.TestDatabase(c, "ERROR")
+		logger := testhelpers.TestLogger(c, "rest_account_list_test")
+		db := database.TestDatabase(c)
 		handler := listLocalAccounts(logger, db)
 		w := httptest.NewRecorder()
 		expected := map[string][]OutAccount{}
@@ -280,10 +278,9 @@ func TestListLocalAccounts(t *testing.T) {
 }
 
 func TestCreateLocalAccount(t *testing.T) {
-	logger := log.NewLogger("rest_account_create_logger")
-
 	Convey("Given the account creation handler", t, func(c C) {
-		db := database.TestDatabase(c, "ERROR")
+		logger := testhelpers.TestLogger(c, "rest_account_create_logger")
+		db := database.TestDatabase(c)
 		handler := addLocalAccount(logger, db)
 		w := httptest.NewRecorder()
 
@@ -375,10 +372,9 @@ func TestCreateLocalAccount(t *testing.T) {
 }
 
 func TestDeleteLocalAccount(t *testing.T) {
-	logger := log.NewLogger("rest_account_delete_test")
-
 	Convey("Given the account deletion handler", t, func(c C) {
-		db := database.TestDatabase(c, "ERROR")
+		logger := testhelpers.TestLogger(c, "rest_account_delete_test")
+		db := database.TestDatabase(c)
 		handler := deleteLocalAccount(logger, db)
 		w := httptest.NewRecorder()
 
@@ -475,10 +471,9 @@ func TestDeleteLocalAccount(t *testing.T) {
 }
 
 func TestUpdateLocalAccount(t *testing.T) {
-	logger := log.NewLogger("rest_account_update_logger")
-
 	Convey("Given the account updating handler", t, func(c C) {
-		db := database.TestDatabase(c, "ERROR")
+		logger := testhelpers.TestLogger(c, "rest_account_update_logger")
+		db := database.TestDatabase(c)
 		handler := updateLocalAccount(logger, db)
 		w := httptest.NewRecorder()
 
@@ -605,10 +600,9 @@ func TestUpdateLocalAccount(t *testing.T) {
 }
 
 func TestReplaceLocalAccount(t *testing.T) {
-	logger := log.NewLogger("rest_account_update_logger")
-
 	Convey("Given the account updating handler", t, func(c C) {
-		db := database.TestDatabase(c, "ERROR")
+		logger := testhelpers.TestLogger(c, "rest_account_update_logger")
+		db := database.TestDatabase(c)
 		handler := replaceLocalAccount(logger, db)
 		w := httptest.NewRecorder()
 

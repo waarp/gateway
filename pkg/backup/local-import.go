@@ -3,12 +3,12 @@ package backup
 import (
 	"fmt"
 
+	"code.waarp.fr/lib/log"
 	"code.waarp.fr/lib/r66"
 
 	"code.waarp.fr/apps/gateway/gateway/pkg/backup/file"
 	"code.waarp.fr/apps/gateway/gateway/pkg/conf"
 	"code.waarp.fr/apps/gateway/gateway/pkg/database"
-	"code.waarp.fr/apps/gateway/gateway/pkg/log"
 	"code.waarp.fr/apps/gateway/gateway/pkg/model"
 	"code.waarp.fr/apps/gateway/gateway/pkg/tk/utils"
 )
@@ -45,10 +45,10 @@ func importLocalAgents(logger *log.Logger, db database.Access, list []file.Local
 
 		// Create/Update
 		if exists {
-			logger.Infof("Update local server %s\n", agent.Name)
+			logger.Info("Update local server %s\n", agent.Name)
 			err = db.Update(&agent).Run()
 		} else {
-			logger.Infof("Create local server %s\n", agent.Name)
+			logger.Info("Create local server %s\n", agent.Name)
 			err = db.Insert(&agent).Run()
 		}
 
@@ -70,7 +70,8 @@ func importLocalAgents(logger *log.Logger, db database.Access, list []file.Local
 }
 
 func checkLocalAgentDeprecatedFields(logger *log.Logger, agent *model.LocalAgent,
-	src *file.LocalAgent) {
+	src *file.LocalAgent,
+) {
 	if src.Root != "" {
 		logger.Warning("JSON field 'locals.Root' is deprecated, use 'rootDir' instead")
 
@@ -106,7 +107,8 @@ func checkLocalAgentDeprecatedFields(logger *log.Logger, agent *model.LocalAgent
 
 //nolint:dupl // duplicated code is about two different types
 func importLocalAccounts(logger *log.Logger, db database.Access,
-	list []file.LocalAccount, server *model.LocalAgent) database.Error {
+	list []file.LocalAccount, server *model.LocalAgent,
+) database.Error {
 	for _, src := range list {
 		// Create model with basic info to check existence
 		var account model.LocalAccount
@@ -139,10 +141,10 @@ func importLocalAccounts(logger *log.Logger, db database.Access,
 
 		// Create/Update
 		if exist {
-			logger.Infof("Update local account %s\n", account.Login)
+			logger.Info("Update local account %s\n", account.Login)
 			err = db.Update(&account).Run()
 		} else {
-			logger.Infof("Create local account %s\n", account.Login)
+			logger.Info("Create local account %s\n", account.Login)
 			err = db.Insert(&account).Run()
 		}
 

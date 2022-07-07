@@ -32,7 +32,7 @@ func TestGetPartner(t *testing.T) {
 		command := &PartnerGet{}
 
 		Convey("Given a gateway with 1 distant partner", func(c C) {
-			db := database.TestDatabase(c, "ERROR")
+			db := database.TestDatabase(c)
 			gw := httptest.NewServer(testHandler(db))
 			var err error
 			addr, err = url.Parse("http://admin:admin_password@" + gw.Listener.Addr().String())
@@ -105,7 +105,7 @@ func TestAddPartner(t *testing.T) {
 		command := &PartnerAdd{}
 
 		Convey("Given a gateway", func(c C) {
-			db := database.TestDatabase(c, "ERROR")
+			db := database.TestDatabase(c)
 			gw := httptest.NewServer(testHandler(db))
 			var err error
 			addr, err = url.Parse("http://admin:admin_password@" + gw.Listener.Addr().String())
@@ -207,7 +207,7 @@ func TestListPartners(t *testing.T) {
 		command := &PartnerList{}
 
 		Convey("Given a gateway with 2 distant partners", func(c C) {
-			db := database.TestDatabase(c, "ERROR")
+			db := database.TestDatabase(c)
 			gw := httptest.NewServer(testHandler(db))
 			var err error
 			addr, err = url.Parse("http://admin:admin_password@" + gw.Listener.Addr().String())
@@ -314,7 +314,7 @@ func TestDeletePartner(t *testing.T) {
 		command := &PartnerDelete{}
 
 		Convey("Given a gateway with 1 distant partner", func(c C) {
-			db := database.TestDatabase(c, "ERROR")
+			db := database.TestDatabase(c)
 			gw := httptest.NewServer(testHandler(db))
 			var err error
 			addr, err = url.Parse("http://admin:admin_password@" + gw.Listener.Addr().String())
@@ -377,7 +377,7 @@ func TestUpdatePartner(t *testing.T) {
 		command := &PartnerUpdate{}
 
 		Convey("Given a gateway with 1 distant partner", func(c C) {
-			db := database.TestDatabase(c, "ERROR")
+			db := database.TestDatabase(c)
 			gw := httptest.NewServer(testHandler(db))
 			var err error
 			addr, err = url.Parse("http://admin:admin_password@" + gw.Listener.Addr().String())
@@ -533,7 +533,7 @@ func TestAuthorizePartner(t *testing.T) {
 		command := &PartnerAuthorize{}
 
 		Convey("Given a gateway with 1 distant partner and 1 rule", func(c C) {
-			db := database.TestDatabase(c, "ERROR")
+			db := database.TestDatabase(c)
 			gw := httptest.NewServer(testHandler(db))
 			var err error
 			addr, err = url.Parse("http://admin:admin_password@" + gw.Listener.Addr().String())
@@ -631,7 +631,7 @@ func TestRevokePartner(t *testing.T) {
 		command := &PartnerRevoke{}
 
 		Convey("Given a gateway with 1 distant partner and 1 rule", func(c C) {
-			db := database.TestDatabase(c, "ERROR")
+			db := database.TestDatabase(c)
 			gw := httptest.NewServer(testHandler(db))
 			var err error
 			addr, err = url.Parse("http://admin:admin_password@" + gw.Listener.Addr().String())

@@ -23,7 +23,7 @@ func (h *httpService) makeTLSConf() (*tls.Config, error) {
 	var certs model.Cryptos
 	if err := h.db.Select(&certs).Where("owner_type=? AND owner_id=?", h.agent.TableName(),
 		h.agent.ID).Run(); err != nil {
-		h.logger.Errorf("Failed to retrieve server certificates: %s", err)
+		h.logger.Error("Failed to retrieve server certificates: %s", err)
 
 		return nil, fmt.Errorf("failed to retrieve server certificates: %w", err)
 	}
@@ -33,7 +33,7 @@ func (h *httpService) makeTLSConf() (*tls.Config, error) {
 	for _, c := range certs {
 		cert, err := tls.X509KeyPair([]byte(c.Certificate), []byte(c.PrivateKey))
 		if err != nil {
-			h.logger.Warningf("Failed to parse server certificate: %s", err)
+			h.logger.Warning("Failed to parse server certificate: %s", err)
 
 			continue
 		}
@@ -51,7 +51,7 @@ func (h *httpService) makeTLSConf() (*tls.Config, error) {
 	if err := h.db.Select(&clientCerts).Where("owner_type='local_accounts' AND "+
 		"owner_id IN (SELECT id FROM local_accounts WHERE local_agent_id=?)",
 		h.agent.ID).Run(); err != nil {
-		h.logger.Errorf("Failed to retrieve client certificates: %s", err)
+		h.logger.Error("Failed to retrieve client certificates: %s", err)
 
 		return nil, fmt.Errorf("failed to retrieve server certificates: %w", err)
 	}
@@ -79,14 +79,14 @@ func (h *httpService) makeTLSConf() (*tls.Config, error) {
 func (h *httpService) listen() error {
 	addr, err := conf.GetRealAddress(h.agent.Address)
 	if err != nil {
-		h.logger.Errorf("Failed to retrieve HTTP server address: %s", err)
+		h.logger.Error("Failed to retrieve HTTP server address: %s", err)
 
 		return fmt.Errorf("failed to retrieve HTTP server address: %w", err)
 	}
 
 	list, err := net.Listen("tcp", addr)
 	if err != nil {
-		h.logger.Errorf("Failed to start server listener: %s", err)
+		h.logger.Error("Failed to start server listener: %s", err)
 
 		return fmt.Errorf("failed to start server listener: %w", err)
 	}
@@ -100,7 +100,7 @@ func (h *httpService) listen() error {
 		}
 
 		if !errors.Is(err, http.ErrServerClosed) {
-			h.logger.Errorf("Unexpected error: %h", err)
+			h.logger.Error("Unexpected error: %h", err)
 			h.state.Set(service.Error, err.Error())
 		} else {
 			h.state.Set(service.Offline, "")
@@ -187,7 +187,7 @@ func (h *httpService) passwdAuth(w http.ResponseWriter, login, pswd string,
 	var acc model.LocalAccount
 	if err := h.db.Get(&acc, "login=? AND local_agent_id=?", login, h.agent.ID).Run(); err != nil {
 		if !database.IsNotFound(err) {
-			h.logger.Errorf("Failed to retrieve user credentials: %s", err)
+			h.logger.Error("Failed to retrieve user credentials: %s", err)
 			http.Error(w, "Failed to retrieve user credentials", http.StatusInternalServerError)
 
 			return nil, false
@@ -195,7 +195,7 @@ func (h *httpService) passwdAuth(w http.ResponseWriter, login, pswd string,
 	}
 
 	if err := bcrypt.CompareHashAndPassword([]byte(acc.PasswordHash), []byte(pswd)); err != nil {
-		h.logger.Warningf("Invalid credentials for user '%s'", login)
+		h.logger.Warning("Invalid credentials for user '%s'", login)
 		unauthorized(w, "the given credentials are invalid")
 
 		return nil, false
@@ -209,7 +209,7 @@ func (h *httpService) certAuth(w http.ResponseWriter, login string, certs []*x50
 	var acc model.LocalAccount
 	if err := h.db.Get(&acc, "login=? AND local_agent_id=?", login, h.agent.ID).Run(); err != nil {
 		if !database.IsNotFound(err) {
-			h.logger.Errorf("Failed to retrieve user credentials: %s", err)
+			h.logger.Error("Failed to retrieve user credentials: %s", err)
 			http.Error(w, "Failed to retrieve user credentials", http.StatusInternalServerError)
 
 			return nil, false
@@ -219,14 +219,14 @@ func (h *httpService) certAuth(w http.ResponseWriter, login string, certs []*x50
 	var cryptos model.Cryptos
 	if err := h.db.Select(&cryptos).Where("owner_type=? AND owner_id=?", acc.TableName(),
 		acc.ID).Run(); err != nil {
-		h.logger.Errorf("Failed to retrieve user crypto credentials: %s", err)
+		h.logger.Error("Failed to retrieve user crypto credentials: %s", err)
 		http.Error(w, "Failed to retrieve user credentials", http.StatusInternalServerError)
 
 		return nil, false
 	}
 
 	if len(cryptos) == 0 {
-		h.logger.Warningf("No certificates found for user '%s'", login)
+		h.logger.Warning("No certificates found for user '%s'", login)
 		unauthorized(w, "No certificates found for this user")
 
 		return nil, false
@@ -254,7 +254,7 @@ func (h *httpService) certAuth(w http.ResponseWriter, login string, certs []*x50
 	}
 
 	if _, err := certs[0].Verify(opt); err != nil {
-		h.logger.Warningf("Certificate is not valid for this user: %s", err)
+		h.logger.Warning("Certificate is not valid for this user: %s", err)
 		unauthorized(w, "Certificate is not valid for this user")
 
 		return nil, false

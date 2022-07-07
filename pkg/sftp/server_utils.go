@@ -4,17 +4,18 @@ import (
 	"bytes"
 	"fmt"
 
+	"code.waarp.fr/lib/log"
 	"golang.org/x/crypto/bcrypt"
 	"golang.org/x/crypto/ssh"
 
 	"code.waarp.fr/apps/gateway/gateway/pkg/database"
-	"code.waarp.fr/apps/gateway/gateway/pkg/log"
 	"code.waarp.fr/apps/gateway/gateway/pkg/model"
 	"code.waarp.fr/apps/gateway/gateway/pkg/model/config"
 )
 
 func makeServerConf(db *database.DB, protoConfig *config.SftpProtoConfig,
-	agent *model.LocalAgent) *ssh.ServerConfig {
+	agent *model.LocalAgent,
+) *ssh.ServerConfig {
 	return &ssh.ServerConfig{
 		Config: ssh.Config{
 			KeyExchanges: protoConfig.KeyExchanges,
@@ -74,7 +75,8 @@ func makeServerConf(db *database.DB, protoConfig *config.SftpProtoConfig,
 // parameters. By default, the server accepts both public key & password
 // authentication, with the former having priority over the later.
 func getSSHServerConfig(db *database.DB, hostkeys []model.Crypto, protoConfig *config.SftpProtoConfig,
-	agent *model.LocalAgent) (*ssh.ServerConfig, error) {
+	agent *model.LocalAgent,
+) (*ssh.ServerConfig, error) {
 	conf := makeServerConf(db, protoConfig, agent)
 
 	if len(hostkeys) == 0 {
@@ -107,7 +109,7 @@ func acceptRequests(in <-chan *ssh.Request, l *log.Logger) {
 		}
 
 		if err := req.Reply(ok, nil); err != nil {
-			l.Warningf("An error occurred while replying to a request: %v", err)
+			l.Warning("An error occurred while replying to a request: %v", err)
 		}
 	}
 }

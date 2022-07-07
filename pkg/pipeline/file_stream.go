@@ -214,7 +214,7 @@ func (f *fileStream) handleStateErr(fun string, currentState statemachine.State)
 func (f *fileStream) handleError(code types.TransferErrorCode, msg, cause string) {
 	f.errOnce.Do(func() {
 		if mErr := f.machine.Transition(stateError); mErr != nil {
-			f.Logger.Warningf("Failed to transition to state 'error': %v", mErr)
+			f.Logger.Warning("Failed to transition to state 'error': %v", mErr)
 		}
 
 		fullMsg := fmt.Sprintf("%s: %s", msg, cause)
@@ -224,7 +224,7 @@ func (f *fileStream) handleError(code types.TransferErrorCode, msg, cause string
 			f.ticker.Stop()
 
 			if err := f.file.Close(); err != nil {
-				f.Logger.Warningf("Failed to close transfer file: %s", err)
+				f.Logger.Warning("Failed to close transfer file: %s", err)
 			}
 
 			f.TransCtx.Transfer.Error = *types.NewTransferError(code, fmt.Sprintf("%s: %s", msg, cause))
@@ -232,14 +232,14 @@ func (f *fileStream) handleError(code types.TransferErrorCode, msg, cause string
 
 			if dbErr := f.DB.Update(f.TransCtx.Transfer).Cols("progress", "error_code",
 				"error_details").Run(); dbErr != nil {
-				f.Logger.Errorf("Failed to update transfer error: %s", dbErr)
+				f.Logger.Error("Failed to update transfer error: %s", dbErr)
 			}
 
 			f.errorTasks()
 
 			f.TransCtx.Transfer.Status = types.StatusError
 			if dbErr := f.DB.Update(f.TransCtx.Transfer).Cols("status").Run(); dbErr != nil {
-				f.Logger.Errorf("Failed to update transfer status to ERROR: %s", dbErr)
+				f.Logger.Error("Failed to update transfer status to ERROR: %s", dbErr)
 			}
 
 			if err := f.machine.Transition(stateInError); err != nil {
@@ -271,7 +271,7 @@ func (f *fileStream) close() *types.TransferError {
 	}
 
 	if fErr := f.file.Close(); fErr != nil {
-		f.Logger.Warningf("Failed to close file: %s", fErr)
+		f.Logger.Warning("Failed to close file: %s", fErr)
 	}
 
 	f.TransCtx.Transfer.Progress = atomic.LoadUint64(&f.progress)
@@ -353,12 +353,12 @@ func (f *fileStream) stop() {
 	f.ticker.Stop()
 
 	if fErr := f.file.Close(); fErr != nil {
-		f.Logger.Warningf("Failed to close file: %s", fErr)
+		f.Logger.Warning("Failed to close file: %s", fErr)
 	}
 
 	f.TransCtx.Transfer.Progress = atomic.LoadUint64(&f.progress)
 	if dbErr := f.DB.Update(f.TransCtx.Transfer).Cols("progression").Run(); dbErr != nil {
-		f.Logger.Errorf("Failed to update transfer progress at interruption: %s", dbErr)
+		f.Logger.Error("Failed to update transfer progress at interruption: %s", dbErr)
 
 		return
 	}

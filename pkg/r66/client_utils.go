@@ -17,20 +17,20 @@ var clientConns = internal.NewConnPool()
 var errConf = types.NewTransferError(types.TeUnimplemented, "client-server configuration mismatch")
 
 func (c *client) logErrConf(msg string) {
-	c.pip.Logger.Errorf("Client-server configuration mismatch: %s", msg)
+	c.pip.Logger.Error("Client-server configuration mismatch: %s", msg)
 }
 
 func (c *client) connect() *types.TransferError {
 	cli, err := clientConns.Add(c.pip.TransCtx.RemoteAgent.Address, c.tlsConfig, c.pip.Logger)
 	if err != nil {
-		c.pip.Logger.Errorf("Failed to connect to remote host: %s", err)
+		c.pip.Logger.Error("Failed to connect to remote host: %s", err)
 
 		return types.NewTransferError(types.TeConnection, "failed to connect to remote host")
 	}
 
 	c.ses, err = cli.NewSession()
 	if err != nil {
-		c.pip.Logger.Errorf("Failed to start R66 session: %s", err)
+		c.pip.Logger.Error("Failed to start R66 session: %s", err)
 
 		return types.NewTransferError(types.TeConnection, "failed to start R66 session")
 	}
@@ -51,7 +51,7 @@ func (c *client) authenticate() *types.TransferError {
 	auth, err := c.ses.Authent(c.pip.TransCtx.RemoteAccount.Login,
 		[]byte(c.pip.TransCtx.RemoteAccount.Password), conf)
 	if err != nil {
-		c.pip.Logger.Errorf("Client authentication failed: %s", err)
+		c.pip.Logger.Error("Client authentication failed: %s", err)
 
 		return types.NewTransferError(types.TeBadAuthentication, "client authentication failed")
 	}
@@ -60,13 +60,13 @@ func (c *client) authenticate() *types.TransferError {
 	pwdErr := bcrypt.CompareHashAndPassword(servHash, auth.Password)
 
 	if !loginOK {
-		c.pip.Logger.Errorf("Server authentication failed: wrong login '%s'", auth.Login)
+		c.pip.Logger.Error("Server authentication failed: wrong login '%s'", auth.Login)
 
 		return types.NewTransferError(types.TeBadAuthentication, "server authentication failed")
 	}
 
 	if pwdErr != nil {
-		c.pip.Logger.Errorf("Server authentication failed: %s", pwdErr)
+		c.pip.Logger.Error("Server authentication failed: %s", pwdErr)
 
 		return types.NewTransferError(types.TeBadAuthentication, "server authentication failed")
 	}
@@ -128,7 +128,7 @@ func (c *client) request() *types.TransferError {
 	if c.pip.TransCtx.Rule.IsSend {
 		info, statErr := os.Stat(c.pip.TransCtx.Transfer.LocalPath)
 		if statErr != nil {
-			c.pip.Logger.Errorf("Failed to retrieve file size: %s", statErr)
+			c.pip.Logger.Error("Failed to retrieve file size: %s", statErr)
 
 			return types.NewTransferError(types.TeInternal, "failed to retrieve file size")
 		}
@@ -141,7 +141,7 @@ func (c *client) request() *types.TransferError {
 
 	resp, err := c.ses.Request(req)
 	if err != nil {
-		c.pip.Logger.Errorf("Transfer request failed: %s", err)
+		c.pip.Logger.Error("Transfer request failed: %s", err)
 
 		return internal.FromR66Error(err, c.pip)
 	}

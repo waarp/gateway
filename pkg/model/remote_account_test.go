@@ -25,7 +25,7 @@ func TestRemoteAccountTableName(t *testing.T) {
 
 func TestRemoteAccountBeforeDelete(t *testing.T) {
 	Convey("Given a database", t, func(c C) {
-		db := database.TestDatabase(c, "ERROR")
+		db := database.TestDatabase(c)
 
 		Convey("Given a remote account entry", func() {
 			ag := RemoteAgent{
@@ -103,7 +103,7 @@ func TestRemoteAccountBeforeDelete(t *testing.T) {
 
 func TestRemoteAccountBeforeWrite(t *testing.T) {
 	Convey("Given a database", t, func(c C) {
-		db := database.TestDatabase(c, "ERROR")
+		db := database.TestDatabase(c)
 
 		Convey("Given the database contains 1 remote agent with 1 remote account", func() {
 			parentAgent := RemoteAgent{

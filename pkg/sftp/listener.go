@@ -11,11 +11,11 @@ import (
 	"sync"
 	"time"
 
+	"code.waarp.fr/lib/log"
 	"github.com/pkg/sftp"
 	"golang.org/x/crypto/ssh"
 
 	"code.waarp.fr/apps/gateway/gateway/pkg/database"
-	"code.waarp.fr/apps/gateway/gateway/pkg/log"
 	"code.waarp.fr/apps/gateway/gateway/pkg/model"
 	"code.waarp.fr/apps/gateway/gateway/pkg/model/config"
 	"code.waarp.fr/apps/gateway/gateway/pkg/model/types"
@@ -50,7 +50,7 @@ func (l *sshListener) listen() {
 					return
 
 				default:
-					l.Logger.Errorf("Failed to accept connection: %s", err)
+					l.Logger.Error("Failed to accept connection: %s", err)
 				}
 
 				continue
@@ -70,20 +70,20 @@ func (l *sshListener) handleConnection(nConn net.Conn) {
 
 		defer func() {
 			if err := nConn.Close(); err != nil {
-				l.Logger.Warningf("An error occurred while closing the TCP connection: %v", err)
+				l.Logger.Warning("An error occurred while closing the TCP connection: %v", err)
 			}
 		}()
 
 		servConn, channels, reqs, err := ssh.NewServerConn(nConn, l.SSHConf)
 		if err != nil {
-			l.Logger.Errorf("Failed to perform handshake: %s", err)
+			l.Logger.Error("Failed to perform handshake: %s", err)
 
 			return
 		}
 
 		defer func() {
 			if err := servConn.Close(); err != nil {
-				l.Logger.Warningf("An error occurred while closing the SFTP connection: %v", err)
+				l.Logger.Warning("An error occurred while closing the SFTP connection: %v", err)
 			}
 		}()
 
@@ -92,7 +92,7 @@ func (l *sshListener) handleConnection(nConn net.Conn) {
 		var acc model.LocalAccount
 		if err := l.DB.Get(&acc, "local_agent_id=? AND login=?", l.Agent.ID,
 			servConn.User()).Run(); err != nil {
-			l.Logger.Errorf("Failed to retrieve SFTP user: %s", err)
+			l.Logger.Error("Failed to retrieve SFTP user: %s", err)
 
 			return
 		}
@@ -112,7 +112,7 @@ func (l *sshListener) handleConnection(nConn net.Conn) {
 				select {
 				case <-l.shutdown:
 					if err := newChannel.Reject(ssh.ResourceShortage, "server shutting down"); err != nil {
-						l.Logger.Warningf("An error occurred while rejecting an SFTP channel: %v", err)
+						l.Logger.Warning("An error occurred while rejecting an SFTP channel: %v", err)
 					}
 
 				default:
@@ -133,7 +133,7 @@ func (l *sshListener) handleSession(acc *model.LocalAccount, newChannel ssh.NewC
 		l.Logger.Warning("Unknown channel type received")
 
 		if err := newChannel.Reject(ssh.UnknownChannelType, "unknown channel type"); err != nil {
-			l.Logger.Warningf("An error occurred while rejecting an SFTP channel: %v", err)
+			l.Logger.Warning("An error occurred while rejecting an SFTP channel: %v", err)
 		}
 
 		return
@@ -141,7 +141,7 @@ func (l *sshListener) handleSession(acc *model.LocalAccount, newChannel ssh.NewC
 
 	channel, requests, err := newChannel.Accept()
 	if err != nil {
-		l.Logger.Errorf("Failed to accept SFTP session: %s", err)
+		l.Logger.Error("Failed to accept SFTP session: %s", err)
 
 		return
 	}
@@ -163,22 +163,22 @@ func (l *sshListener) handleSession(acc *model.LocalAccount, newChannel ssh.NewC
 
 		if server != nil {
 			if err := server.Close(); err != nil {
-				l.Logger.Warningf("An error occurred while closing the SFTP session: %v", err)
+				l.Logger.Warning("An error occurred while closing the SFTP session: %v", err)
 			}
 		}
 
 		if err := channel.Close(); err != nil {
-			l.Logger.Warningf("An error occurred while closing the SFTP channel: %v", err)
+			l.Logger.Warning("An error occurred while closing the SFTP channel: %v", err)
 		}
 	}
 	server = sftp.NewRequestServer(channel, l.handlerMaker(endSession, acc))
 
 	if err := server.Serve(); err != nil {
-		l.Logger.Warningf("An error occurred while serving SFTP requests: %v", err)
+		l.Logger.Warning("An error occurred while serving SFTP requests: %v", err)
 	}
 
 	if err := server.Close(); err != nil {
-		l.Logger.Warningf("An error occurred while ending the SFTP session: %v", err)
+		l.Logger.Warning("An error occurred while ending the SFTP session: %v", err)
 	}
 }
 
@@ -210,7 +210,7 @@ func (l *sshListener) makeFileReader(endSession func(context.Context), acc *mode
 
 		locPath, err := filepath.Rel(rule.Path, strings.TrimPrefix(r.Filepath, "/"))
 		if err != nil {
-			l.Logger.Errorf("Failed to parse file path: %v", err)
+			l.Logger.Error("Failed to parse file path: %v", err)
 
 			return nil, errFilepathParsing
 		}
@@ -229,7 +229,7 @@ func (l *sshListener) makeFileReader(endSession func(context.Context), acc *mode
 			Step:       types.StepNone,
 		}
 
-		l.Logger.Infof("Download of file '%s' requested by '%s' using rule '%s'",
+		l.Logger.Info("Download of file '%s' requested by '%s' using rule '%s'",
 			trans.RemotePath, acc.Login, rule.Name)
 
 		pip, err := newServerPipeline(l.DB, l.Logger, trans, l.runningTransfers, endSession)
@@ -260,7 +260,7 @@ func (l *sshListener) makeFileWriter(endSession func(context.Context), acc *mode
 
 		locPath, err := filepath.Rel(rule.Path, strings.TrimPrefix(r.Filepath, "/"))
 		if err != nil {
-			l.Logger.Errorf("Failed to parse file path: %v", err)
+			l.Logger.Error("Failed to parse file path: %v", err)
 
 			return nil, errFilepathParsing
 		}
@@ -279,7 +279,7 @@ func (l *sshListener) makeFileWriter(endSession func(context.Context), acc *mode
 			Step:       types.StepNone,
 		}
 
-		l.Logger.Infof("Upload of file '%s' requested by '%s' using rule '%s'",
+		l.Logger.Info("Upload of file '%s' requested by '%s' using rule '%s'",
 			trans.RemotePath, acc.Login, rule.Name)
 
 		pip, err := newServerPipeline(l.DB, l.Logger, trans, l.runningTransfers, endSession)
@@ -299,11 +299,11 @@ func (l *sshListener) close(ctx context.Context) error {
 	close(l.shutdown)
 
 	if err := l.Listener.Close(); err != nil {
-		l.Logger.Warningf("An error occurred while closing the network connection: %v", err)
+		l.Logger.Warning("An error occurred while closing the network connection: %v", err)
 	}
 
 	if err := l.runningTransfers.InterruptAll(ctx); err != nil {
-		l.Logger.Errorf("Could not interrupt running transfers")
+		l.Logger.Error("Could not interrupt running transfers")
 
 		return fmt.Errorf("could not interrupt running transfers: %w", err)
 	}

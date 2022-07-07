@@ -34,7 +34,7 @@ func (u *UpdateAllQuery) Run() Error {
 	defer logSQL(ses, logger)
 
 	if _, err := ses.Exec(query); err != nil {
-		logger.Errorf("Failed to update the %s entries: %s", u.bean.Appellation(), err)
+		logger.Error("Failed to update the %s entries: %s", u.bean.Appellation(), err)
 
 		return NewInternalError(err)
 	}

@@ -3,8 +3,10 @@ package pipeline
 import (
 	"fmt"
 
+	"code.waarp.fr/lib/log"
+
+	"code.waarp.fr/apps/gateway/gateway/pkg/conf"
 	"code.waarp.fr/apps/gateway/gateway/pkg/database"
-	"code.waarp.fr/apps/gateway/gateway/pkg/log"
 	"code.waarp.fr/apps/gateway/gateway/pkg/model"
 	"code.waarp.fr/apps/gateway/gateway/pkg/model/types"
 )
@@ -34,7 +36,7 @@ func GetOldTransfer(db *database.DB, logger *log.Logger, trans *model.Transfer,
 	}
 
 	if !database.IsNotFound(err) {
-		logger.Errorf("Failed to retrieve old server transfer: %s", err)
+		logger.Error("Failed to retrieve old server transfer: %s", err)
 
 		return nil, errDatabase
 	}
@@ -51,14 +53,14 @@ func NewServerPipeline(db *database.DB, trans *model.Transfer,
 
 func newServerPipeline(db *database.DB, trans *model.Transfer,
 ) (*Pipeline, *types.TransferError) {
-	logger := log.NewLogger(fmt.Sprintf("Transfer of file %s (server)", trans.RemotePath))
+	logger := conf.GetLogger(fmt.Sprintf("Pipeline %d (server)", trans.ID))
 
 	transCtx, err := model.GetTransferContext(db, logger, trans)
 	if err != nil {
 		return nil, err
 	}
 
-	pipeline, cols, pErr := newPipeline(db, logger, transCtx)
+	pipeline, cols, pErr := NewPipeline(db, logger, transCtx)
 	if pErr != nil {
 		if trans.ID == 0 {
 			return nil, pErr
@@ -70,7 +72,7 @@ func newServerPipeline(db *database.DB, trans *model.Transfer,
 		cols = append(cols, "status", "error_code", "error_details")
 
 		if err := db.Update(trans).Cols(cols...).Run(); err != nil {
-			logger.Errorf("Failed to update the transfer error: %s", err)
+			logger.Error("Failed to update the transfer error: %s", err)
 		}
 
 		return nil, pErr
@@ -78,14 +80,14 @@ func newServerPipeline(db *database.DB, trans *model.Transfer,
 
 	if trans.ID == 0 {
 		if err := db.Insert(trans).Run(); err != nil {
-			logger.Errorf("failed to insert the new transfer entry: %s", err)
+			logger.Error("failed to insert the new transfer entry: %s", err)
 
 			return nil, errDatabase
 		}
 
-		pipeline.Logger = log.NewLogger(fmt.Sprintf("Pipeline %d (server)", trans.ID))
+		pipeline.Logger = conf.GetLogger(fmt.Sprintf("Pipeline %d (server)", trans.ID))
 	} else if err := db.Update(trans).Cols(cols...).Run(); err != nil {
-		logger.Errorf("Failed to update the transfer details: %s", err)
+		logger.Error("Failed to update the transfer details: %s", err)
 
 		return nil, errDatabase
 	}

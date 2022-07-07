@@ -143,7 +143,7 @@ func TestGetRule(t *testing.T) {
 		command := &RuleGet{}
 
 		Convey("Given a gateway with 1 rule", func(c C) {
-			db := database.TestDatabase(c, "ERROR")
+			db := database.TestDatabase(c)
 			gw := httptest.NewServer(testHandler(db))
 			var err error
 			addr, err = url.Parse("http://admin:admin_password@" + gw.Listener.Addr().String())
@@ -199,7 +199,7 @@ func TestAddRule(t *testing.T) {
 		command := &RuleAdd{}
 
 		Convey("Given a gateway with 1 rule", func(c C) {
-			db := database.TestDatabase(c, "ERROR")
+			db := database.TestDatabase(c)
 			gw := httptest.NewServer(testHandler(db))
 			var err error
 			addr, err = url.Parse("http://admin:admin_password@" + gw.Listener.Addr().String())
@@ -377,7 +377,7 @@ func TestDeleteRule(t *testing.T) {
 		command := &RuleDelete{}
 
 		Convey("Given a gateway with 1 rule", func(c C) {
-			db := database.TestDatabase(c, "ERROR")
+			db := database.TestDatabase(c)
 			gw := httptest.NewServer(testHandler(db))
 			var err error
 			addr, err = url.Parse("http://admin:admin_password@" + gw.Listener.Addr().String())
@@ -440,7 +440,7 @@ func TestListRules(t *testing.T) {
 		command := &RuleList{}
 
 		Convey("Given a gateway with 2 rules", func(c C) {
-			db := database.TestDatabase(c, "ERROR")
+			db := database.TestDatabase(c)
 			gw := httptest.NewServer(testHandler(db))
 			var err error
 			addr, err = url.Parse("http://admin:admin_password@" + gw.Listener.Addr().String())
@@ -542,7 +542,7 @@ func TestRuleAllowAll(t *testing.T) {
 		command := &RuleAllowAll{}
 
 		Convey("Given a database with a rule", func(c C) {
-			db := database.TestDatabase(c, "ERROR")
+			db := database.TestDatabase(c)
 			gw := httptest.NewServer(testHandler(db))
 			var err error
 			addr, err = url.Parse("http://admin:admin_password@" + gw.Listener.Addr().String())

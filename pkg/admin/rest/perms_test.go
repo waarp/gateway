@@ -5,13 +5,14 @@ import (
 	"net/http/httptest"
 	"testing"
 
+	"code.waarp.fr/lib/log"
 	"github.com/gorilla/mux"
 	. "github.com/smartystreets/goconvey/convey"
 
 	"code.waarp.fr/apps/gateway/gateway/pkg/admin/rest/api"
 	"code.waarp.fr/apps/gateway/gateway/pkg/database"
-	"code.waarp.fr/apps/gateway/gateway/pkg/log"
 	"code.waarp.fr/apps/gateway/gateway/pkg/model"
+	"code.waarp.fr/apps/gateway/gateway/pkg/tk/utils/testhelpers"
 )
 
 func TestMaskToPerm(t *testing.T) {
@@ -102,10 +103,9 @@ func TestPermsToMask(t *testing.T) {
 }
 
 func TestPermMiddleware(t *testing.T) {
-	logger := log.NewLogger("test_perm_middleware")
-
 	Convey("Given a database with 2 users", t, func(c C) {
-		db := database.TestDatabase(c, "ERROR")
+		logger := testhelpers.TestLogger(c, "test_perm_middleware")
+		db := database.TestDatabase(c)
 
 		success := model.User{
 			Username:     "success",

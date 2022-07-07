@@ -7,11 +7,11 @@ import (
 	"strings"
 	"time"
 
+	"code.waarp.fr/lib/log"
 	"github.com/bwmarrin/snowflake"
 
 	"code.waarp.fr/apps/gateway/gateway/pkg/conf"
 	"code.waarp.fr/apps/gateway/gateway/pkg/database"
-	"code.waarp.fr/apps/gateway/gateway/pkg/log"
 	"code.waarp.fr/apps/gateway/gateway/pkg/model/types"
 	"code.waarp.fr/apps/gateway/gateway/pkg/tk/utils"
 )
@@ -363,14 +363,14 @@ func (t *Transfer) makeHistoryEntry(db database.ReadAccess, stop time.Time) (*Hi
 func (t *Transfer) ToHistory(db *database.DB, logger *log.Logger, end time.Time) database.Error {
 	return db.Transaction(func(ses *database.Session) database.Error {
 		if err := ses.Delete(t).Run(); err != nil {
-			logger.Errorf("Failed to delete transfer for archival: %s", err)
+			logger.Error("Failed to delete transfer for archival: %v", err)
 
 			return err
 		}
 
 		if err := ses.UpdateAll(&TransferInfo{}, database.UpdVals{"is_history": true},
 			"transfer_id=?", t.ID).Run(); err != nil {
-			logger.Errorf("Failed to update transfer info status: %s", err)
+			logger.Error("Failed to update transfer info status: %v", err)
 
 			return err
 		}
@@ -385,13 +385,13 @@ func (t *Transfer) ToHistory(db *database.DB, logger *log.Logger, end time.Time)
 
 		hist, err := t.makeHistoryEntry(ses, end)
 		if err != nil {
-			logger.Errorf("Failed to convert transfer to history: %s", err)
+			logger.Error("Failed to convert transfer to history: %v", err)
 
 			return err
 		}
 
 		if err := ses.Insert(hist).Run(); err != nil {
-			logger.Errorf("Failed to create new history entry: %s", err)
+			logger.Error("Failed to create new history entry: %v", err)
 
 			return err
 		}

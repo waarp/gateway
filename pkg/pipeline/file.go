@@ -23,14 +23,14 @@ func (f *fileStream) getFile() (*os.File, *types.TransferError) {
 	if f.TransCtx.Rule.IsSend {
 		file, err := os.OpenFile(trans.LocalPath, os.O_RDONLY, 0o600)
 		if err != nil {
-			f.Logger.Errorf("Failed to open source file: %s", err)
+			f.Logger.Error("Failed to open source file: %s", err)
 
 			return nil, fileErrToTransferErr(err)
 		}
 
 		if trans.Progress != 0 {
 			if _, err := file.Seek(int64(trans.Progress), io.SeekStart); err != nil {
-				f.Logger.Errorf("Failed to seek inside file: %s", err)
+				f.Logger.Error("Failed to seek inside file: %s", err)
 
 				return nil, types.NewTransferError(types.TeForbidden, err.Error())
 			}
@@ -40,21 +40,21 @@ func (f *fileStream) getFile() (*os.File, *types.TransferError) {
 	}
 
 	if err := createDir(trans.LocalPath); err != nil {
-		f.Logger.Errorf("Failed to create temp directory: %s", err)
+		f.Logger.Error("Failed to create temp directory: %s", err)
 
 		return nil, err
 	}
 
 	file, err := os.OpenFile(trans.LocalPath, os.O_RDWR|os.O_CREATE, 0o600)
 	if err != nil {
-		f.Logger.Errorf("Failed to create destination file (%s): %s", trans.LocalPath, err)
+		f.Logger.Error("Failed to create destination file (%s): %s", trans.LocalPath, err)
 
 		return nil, fileErrToTransferErr(err)
 	}
 
 	if trans.Progress != 0 {
 		if _, err := file.Seek(int64(trans.Progress), io.SeekStart); err != nil {
-			f.Logger.Errorf("Failed to seek inside file: %s", err)
+			f.Logger.Error("Failed to seek inside file: %s", err)
 
 			return nil, fileErrToTransferErr(err)
 		}
@@ -134,18 +134,18 @@ func (p *Pipeline) checkFileExist() *types.TransferError {
 	info, err := os.Stat(trans.LocalPath)
 	if err != nil {
 		if os.IsNotExist(err) {
-			p.Logger.Errorf("Failed to open transfer file %s: file does not exist", trans.LocalPath)
+			p.Logger.Error("Failed to open transfer file %s: file does not exist", trans.LocalPath)
 
 			return types.NewTransferError(types.TeFileNotFound, "file does not exist")
 		}
 
 		if os.IsPermission(err) {
-			p.Logger.Errorf("Failed to open transfer file %s: permission denied", trans.LocalPath)
+			p.Logger.Error("Failed to open transfer file %s: permission denied", trans.LocalPath)
 
 			return types.NewTransferError(types.TeForbidden, "permission to open file denied")
 		}
 
-		p.Logger.Errorf("Failed to open transfer file %s: %s", trans.LocalPath, err)
+		p.Logger.Error("Failed to open transfer file %s: %s", trans.LocalPath, err)
 
 		return types.NewTransferError(types.TeUnknown, fmt.Sprintf("unknown file error: %s", err))
 	}

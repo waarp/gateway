@@ -70,7 +70,7 @@ func TestTransferValidate(t *testing.T) {
 
 func TestTransferRun(t *testing.T) {
 	Convey("Given a coherent database", t, func(c C) {
-		db := database.TestDatabase(c, "ERROR")
+		db := database.TestDatabase(c)
 
 		rule := &model.Rule{
 			Name:   "transfer rule",

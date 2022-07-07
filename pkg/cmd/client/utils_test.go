@@ -8,18 +8,15 @@ import (
 	"os"
 	"strings"
 
-	"code.bcarlin.xyz/go/logging"
 	. "github.com/smartystreets/goconvey/convey"
 	"golang.org/x/crypto/bcrypt"
 
+	"code.waarp.fr/lib/log"
+
 	"code.waarp.fr/apps/gateway/gateway/pkg/admin"
 	"code.waarp.fr/apps/gateway/gateway/pkg/database"
-	"code.waarp.fr/apps/gateway/gateway/pkg/log"
 	"code.waarp.fr/apps/gateway/gateway/pkg/model/config"
 )
-
-//nolint:gochecknoglobals // global var is used by design
-var discard *log.Logger
 
 const (
 	testProto1   = "cli_proto_1"
@@ -29,17 +26,20 @@ const (
 
 //nolint:gochecknoinits // init is used by design
 func init() {
-	_ = log.InitBackend("CRITICAL", "stdout", "")
-	discard = log.NewLogger("test_client")
-	discard.SetBackend(&logging.NoopBackend{})
-
 	config.ProtoConfigs[testProto1] = func() config.ProtoConfig { return new(TestProtoConfig) }
 	config.ProtoConfigs[testProto2] = func() config.ProtoConfig { return new(TestProtoConfig) }
 	config.ProtoConfigs[testProtoErr] = func() config.ProtoConfig { return new(TestProtoConfigFail) }
 }
 
+func discard() *log.Logger {
+	back, err := log.NewBackend(log.LevelTrace, log.Discard, "", "")
+	So(err, ShouldBeNil)
+
+	return back.NewLogger("discard")
+}
+
 func testHandler(db *database.DB) http.Handler {
-	return admin.MakeHandler(discard, db, nil, nil)
+	return admin.MakeHandler(discard(), db, nil, nil)
 }
 
 func hash(pwd string) string {

@@ -1,9 +1,10 @@
 package backup
 
 import (
+	"code.waarp.fr/lib/log"
+
 	"code.waarp.fr/apps/gateway/gateway/pkg/backup/file"
 	"code.waarp.fr/apps/gateway/gateway/pkg/database"
-	"code.waarp.fr/apps/gateway/gateway/pkg/log"
 	"code.waarp.fr/apps/gateway/gateway/pkg/model"
 	"code.waarp.fr/apps/gateway/gateway/pkg/model/types"
 )
@@ -31,10 +32,10 @@ func importRemoteAgents(logger *log.Logger, db database.Access, list []file.Remo
 
 		// Create/Update
 		if exists {
-			logger.Infof("Update remote partner %s\n", agent.Name)
+			logger.Info("Update remote partner %s\n", agent.Name)
 			err = db.Update(&agent).Run()
 		} else {
-			logger.Infof("Create remote partner %s\n", agent.Name)
+			logger.Info("Create remote partner %s\n", agent.Name)
 			err = db.Insert(&agent).Run()
 		}
 
@@ -57,7 +58,8 @@ func importRemoteAgents(logger *log.Logger, db database.Access, list []file.Remo
 
 //nolint:dupl // duplicated code is about two different types
 func importRemoteAccounts(logger *log.Logger, db database.Access,
-	list []file.RemoteAccount, ownerID uint64) database.Error {
+	list []file.RemoteAccount, ownerID uint64,
+) database.Error {
 	for _, src := range list {
 		// Create model with basic info to check existence
 		var account model.RemoteAccount
@@ -79,10 +81,10 @@ func importRemoteAccounts(logger *log.Logger, db database.Access,
 
 		// Create/Update
 		if exist {
-			logger.Infof("Update remote account %s\n", account.Login)
+			logger.Info("Update remote account %s\n", account.Login)
 			err = db.Update(&account).Run()
 		} else {
-			logger.Infof("Create remote account %s\n", account.Login)
+			logger.Info("Create remote account %s\n", account.Login)
 			err = db.Insert(&account).Run()
 		}
 

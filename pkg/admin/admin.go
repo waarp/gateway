@@ -10,11 +10,10 @@ import (
 	"net"
 	"net/http"
 
-	"code.bcarlin.xyz/go/logging"
+	"code.waarp.fr/lib/log"
 
 	"code.waarp.fr/apps/gateway/gateway/pkg/conf"
 	"code.waarp.fr/apps/gateway/gateway/pkg/database"
-	"code.waarp.fr/apps/gateway/gateway/pkg/log"
 	"code.waarp.fr/apps/gateway/gateway/pkg/tk/service"
 )
 
@@ -31,7 +30,7 @@ type Server struct {
 
 // listen starts the HTTP server listener on the configured port.
 func listen(s *Server) {
-	s.logger.Infof("Listening at address %s", s.server.Addr)
+	s.logger.Info("Listening at address %s", s.server.Addr)
 
 	go func() {
 		s.state.Set(service.Running, "")
@@ -45,7 +44,7 @@ func listen(s *Server) {
 		}
 
 		if !errors.Is(err, http.ErrServerClosed) {
-			s.logger.Errorf("Unexpected error: %s", err)
+			s.logger.Error("Unexpected error: %s", err)
 			s.state.Set(service.Error, err.Error())
 		} else {
 			s.state.Set(service.Offline, "")
@@ -110,7 +109,7 @@ func initServer(serv *Server) error {
 		Addr:      addr,
 		TLSConfig: tlsConfig,
 		Handler:   handler,
-		ErrorLog:  serv.logger.AsStdLog(logging.ERROR),
+		ErrorLog:  serv.logger.AsStdLogger(log.LevelError),
 	}
 
 	return nil
@@ -119,12 +118,12 @@ func initServer(serv *Server) error {
 // Start launches the administration service. If the service cannot be launched,
 // the function returns an error.
 func (s *Server) Start() error {
-	s.logger = log.NewLogger(service.AdminServiceName)
+	s.logger = conf.GetLogger(service.AdminServiceName)
 
 	s.logger.Info("Startup command received...")
 
 	if state, _ := s.state.Get(); state != service.Offline && state != service.Error {
-		s.logger.Infof("Cannot start because the server is already running.")
+		s.logger.Info("Cannot start because the server is already running.")
 
 		return nil
 	}
@@ -132,7 +131,7 @@ func (s *Server) Start() error {
 	s.state.Set(service.Starting, "")
 
 	if err := initServer(s); err != nil {
-		s.logger.Errorf("Failed to start: %s", err)
+		s.logger.Error("Failed to start: %s", err)
 		s.state.Set(service.Error, err.Error())
 
 		return err
@@ -163,7 +162,7 @@ func (s *Server) Stop(ctx context.Context) error {
 	if err == nil {
 		s.logger.Info("Shutdown complete")
 	} else {
-		s.logger.Warningf("Failed to shutdown gracefully : %s", err)
+		s.logger.Warning("Failed to shutdown gracefully : %s", err)
 		err = s.server.Close()
 		s.logger.Warning("The server was forcefully stopped")
 	}

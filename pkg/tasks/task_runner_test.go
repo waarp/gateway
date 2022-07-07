@@ -12,17 +12,11 @@ import (
 
 	"code.waarp.fr/apps/gateway/gateway/pkg/conf"
 	"code.waarp.fr/apps/gateway/gateway/pkg/database"
-	"code.waarp.fr/apps/gateway/gateway/pkg/log"
 	"code.waarp.fr/apps/gateway/gateway/pkg/model"
 	"code.waarp.fr/apps/gateway/gateway/pkg/model/types"
 	"code.waarp.fr/apps/gateway/gateway/pkg/tk/utils"
 	"code.waarp.fr/apps/gateway/gateway/pkg/tk/utils/testhelpers"
 )
-
-//nolint:gochecknoinits // designed this way
-func init() {
-	_ = log.InitBackend("DEBUG", "stdout", "")
-}
 
 func TestSetup(t *testing.T) {
 	Convey("Given a Task with some replacement variables", t, func(c C) {
@@ -43,7 +37,7 @@ func TestSetup(t *testing.T) {
 		}
 
 		Convey("Given a Runner", func(c C) {
-			db := database.TestDatabase(c, "ERROR")
+			db := database.TestDatabase(c)
 
 			agent := &model.RemoteAgent{
 				Name:     "partner",
@@ -281,10 +275,9 @@ func TestSetup(t *testing.T) {
 }
 
 func TestRunTasks(t *testing.T) {
-	logger := log.NewLogger("test_run_tasks")
-
 	Convey("Given a processor", t, func(c C) {
-		db := database.TestDatabase(c, "ERROR")
+		logger := testhelpers.TestLogger(c, "test_run_tasks")
+		db := database.TestDatabase(c)
 
 		rule := &model.Rule{Name: "rule", IsSend: false, Path: "path"}
 		So(db.Insert(rule).Run(), ShouldBeNil)

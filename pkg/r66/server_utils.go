@@ -17,7 +17,7 @@ func (t *serverTransfer) checkSize() *types.TransferError {
 
 	stat, err := os.Stat(t.pip.TransCtx.Transfer.LocalPath)
 	if err != nil {
-		t.pip.Logger.Errorf("Failed to retrieve file info: %s", err)
+		t.pip.Logger.Error("Failed to retrieve file info: %s", err)
 
 		return types.NewTransferError(types.TeInternal, "failed to retrieve file info")
 	}
@@ -45,7 +45,7 @@ func (t *serverTransfer) checkHash(exp []byte) *types.TransferError {
 	}
 
 	if !bytes.Equal(hash, exp) {
-		t.pip.Logger.Errorf("File hash verification failed: hashes do not match")
+		t.pip.Logger.Error("File hash verification failed: hashes do not match")
 
 		return types.NewTransferError(types.TeIntegrity, "file hash does not match expected value")
 	}

@@ -39,7 +39,7 @@ func NewClient(pip *pipeline.Pipeline) (pipeline.Client, *types.TransferError) {
 func newClient(pip *pipeline.Pipeline) (*client, *types.TransferError) {
 	var protoConfig config.R66ProtoConfig
 	if err := json.Unmarshal(pip.TransCtx.RemoteAgent.ProtoConfig, &protoConfig); err != nil {
-		pip.Logger.Errorf("Failed to parse R66 partner proto config: %s", err)
+		pip.Logger.Error("Failed to parse R66 partner proto config: %v", err)
 
 		return nil, types.NewTransferError(types.TeInternal, "failed to parse R66 partner proto config")
 	}
@@ -51,7 +51,7 @@ func newClient(pip *pipeline.Pipeline) (*client, *types.TransferError) {
 
 		tlsConf, err = internal.MakeClientTLSConfig(pip)
 		if err != nil {
-			pip.Logger.Errorf("Failed to parse R66 TLS config: %s", err)
+			pip.Logger.Error("Failed to parse R66 TLS config: %v", err)
 
 			return nil, types.NewTransferError(types.TeInternal, "invalid R66 TLS config")
 		}
@@ -109,7 +109,7 @@ func (c *client) EndPreTasks() *types.TransferError {
 		*/
 
 		if err := c.ses.SendUpdateRequest(outInfo); err != nil {
-			c.pip.Logger.Errorf("Failed to send transfer info: %s", err)
+			c.pip.Logger.Error("Failed to send transfer info: %v", err)
 
 			return internal.FromR66Error(err, c.pip)
 		}
@@ -119,7 +119,7 @@ func (c *client) EndPreTasks() *types.TransferError {
 
 	inInfo, err := c.ses.RecvUpdateRequest()
 	if err != nil {
-		c.pip.Logger.Errorf("Failed to receive transfer info: %s", err)
+		c.pip.Logger.Error("Failed to receive transfer info: %v", err)
 
 		return internal.FromR66Error(err, c.pip)
 	}
@@ -134,7 +134,7 @@ func (c *client) Data(dataStream pipeline.DataStream) *types.TransferError {
 	if c.pip.TransCtx.Rule.IsSend {
 		_, err := c.ses.Send(stream, c.makeHash)
 		if err != nil {
-			c.pip.Logger.Errorf("Failed to send transfer file: %s", err)
+			c.pip.Logger.Error("Failed to send transfer file: %v", err)
 
 			return internal.FromR66Error(err, c.pip)
 		}
@@ -144,7 +144,7 @@ func (c *client) Data(dataStream pipeline.DataStream) *types.TransferError {
 
 	eot, err := c.ses.Recv(stream)
 	if err != nil {
-		c.pip.Logger.Errorf("Failed to receive transfer file: %s", err)
+		c.pip.Logger.Error("Failed to receive transfer file: %v", err)
 
 		return internal.FromR66Error(err, c.pip)
 	}
@@ -159,7 +159,7 @@ func (c *client) Data(dataStream pipeline.DataStream) *types.TransferError {
 	}
 
 	if !bytes.Equal(eot.Hash, hash) {
-		c.pip.Logger.Errorf("File hash does not match expected value")
+		c.pip.Logger.Error("File hash does not match expected value")
 
 		return types.NewTransferError(types.TeIntegrity, "invalid file hash")
 	}
@@ -180,7 +180,7 @@ func (c *client) EndTransfer() *types.TransferError {
 	c.pip.Logger.Debug("Ending transfert with remote partner")
 
 	if err := c.ses.EndRequest(); err != nil {
-		c.pip.Logger.Errorf("Failed to end transfer request: %s", err)
+		c.pip.Logger.Error("Failed to end transfer request: %v", err)
 
 		return internal.FromR66Error(err, c.pip)
 	}
@@ -191,7 +191,7 @@ func (c *client) EndTransfer() *types.TransferError {
 // SendError sends the given error to the remote partner and then closes the
 // session.
 func (c *client) SendError(err *types.TransferError) {
-	c.pip.Logger.Debugf("Sending error '%s' to remote partner", err)
+	c.pip.Logger.Debug("Sending error '%v' to remote partner", err)
 
 	defer c.cancel()
 	defer clientConns.Done(c.pip.TransCtx.RemoteAgent.Address)
@@ -203,7 +203,7 @@ func (c *client) SendError(err *types.TransferError) {
 	defer c.ses.Close()
 
 	if sErr := c.ses.SendError(internal.ToR66Error(err)); sErr != nil {
-		c.pip.Logger.Errorf("Failed to send error to remote partner: %s", sErr)
+		c.pip.Logger.Error("Failed to send error to remote partner: %v", sErr)
 	}
 }
 
@@ -222,7 +222,7 @@ func (c *client) Pause() *types.TransferError {
 	defer c.ses.Close()
 
 	if err := c.ses.Stop(); err != nil {
-		c.pip.Logger.Warningf("Failed send pause signal to remote host: %s", err)
+		c.pip.Logger.Warning("Failed send pause signal to remote host: %v", err)
 
 		return internal.FromR66Error(err, c.pip)
 	}
@@ -245,7 +245,7 @@ func (c *client) Cancel(context.Context) *types.TransferError {
 	defer c.ses.Close()
 
 	if err := c.ses.Cancel(); err != nil {
-		c.pip.Logger.Warningf("Failed send cancel signal to remote host: %s", err)
+		c.pip.Logger.Warning("Failed send cancel signal to remote host: %v", err)
 
 		return internal.FromR66Error(err, c.pip)
 	}

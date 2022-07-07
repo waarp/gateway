@@ -39,7 +39,7 @@ func TestGetServer(t *testing.T) {
 		command := &ServerGet{}
 
 		Convey("Given a gateway with 1 local server", func(c C) {
-			db := database.TestDatabase(c, "ERROR")
+			db := database.TestDatabase(c)
 			gw := httptest.NewServer(testHandler(db))
 			var err error
 			addr, err = url.Parse("http://admin:admin_password@" + gw.Listener.Addr().String())
@@ -116,7 +116,7 @@ func TestAddServer(t *testing.T) {
 		command := &ServerAdd{}
 
 		Convey("Given a gateway", func(c C) {
-			db := database.TestDatabase(c, "ERROR")
+			db := database.TestDatabase(c)
 			gw := httptest.NewServer(testHandler(db))
 			var err error
 			addr, err = url.Parse("http://admin:admin_password@" + gw.Listener.Addr().String())
@@ -277,7 +277,7 @@ func TestListServers(t *testing.T) {
 		command := &ServerList{}
 
 		Convey("Given a gateway with 2 local servers", func(c C) {
-			db := database.TestDatabase(c, "ERROR")
+			db := database.TestDatabase(c)
 			gw := httptest.NewServer(testHandler(db))
 			var err error
 			addr, err = url.Parse("http://admin:admin_password@" + gw.Listener.Addr().String())
@@ -394,7 +394,7 @@ func TestDeleteServer(t *testing.T) {
 		command := &ServerDelete{}
 
 		Convey("Given a gateway with 1 local server", func(c C) {
-			db := database.TestDatabase(c, "ERROR")
+			db := database.TestDatabase(c)
 			gw := httptest.NewServer(testHandler(db))
 			var err error
 			addr, err = url.Parse("http://admin:admin_password@" + gw.Listener.Addr().String())
@@ -458,7 +458,7 @@ func TestUpdateServer(t *testing.T) {
 		command := &ServerUpdate{}
 
 		Convey("Given a gateway with 1 local server", func(c C) {
-			db := database.TestDatabase(c, "ERROR")
+			db := database.TestDatabase(c)
 			gw := httptest.NewServer(testHandler(db))
 			var err error
 			addr, err = url.Parse("http://admin:admin_password@" + gw.Listener.Addr().String())
@@ -615,7 +615,7 @@ func TestAuthorizeServer(t *testing.T) {
 		command := &ServerAuthorize{}
 
 		Convey("Given a gateway with 1 local server and 1 rule", func(c C) {
-			db := database.TestDatabase(c, "ERROR")
+			db := database.TestDatabase(c)
 			gw := httptest.NewServer(testHandler(db))
 			var err error
 			addr, err = url.Parse("http://admin:admin_password@" + gw.Listener.Addr().String())
@@ -714,7 +714,7 @@ func TestRevokeServer(t *testing.T) {
 		command := &ServerRevoke{}
 
 		Convey("Given a gateway with 1 distant server and 1 rule", func(c C) {
-			db := database.TestDatabase(c, "ERROR")
+			db := database.TestDatabase(c)
 			gw := httptest.NewServer(testHandler(db))
 			var err error
 			addr, err = url.Parse("http://admin:admin_password@" + gw.Listener.Addr().String())

@@ -41,7 +41,7 @@ func (p *postClient) checkResume(url string) *types.TransferError {
 
 	req, err := http.NewRequestWithContext(ctx, http.MethodHead, url, nil)
 	if err != nil {
-		p.pip.Logger.Errorf("Failed to make head HTTP request: %s", err)
+		p.pip.Logger.Error("Failed to make head HTTP request: %s", err)
 
 		return types.NewTransferError(types.TeInternal, "failed to make head HTTP request")
 	}
@@ -51,7 +51,7 @@ func (p *postClient) checkResume(url string) *types.TransferError {
 
 	resp, err := http.DefaultClient.Do(req)
 	if err != nil {
-		p.pip.Logger.Errorf("HTTP Head request failed: %s", err)
+		p.pip.Logger.Error("HTTP Head request failed: %s", err)
 
 		return types.NewTransferError(types.TeInternal, "Head HTTP request failed")
 	}
@@ -66,12 +66,12 @@ func (p *postClient) checkResume(url string) *types.TransferError {
 	case http.StatusNoContent:
 		prog, _, err = getContentRange(resp.Header)
 		if err != nil {
-			p.pip.Logger.Errorf("Failed to parse response Content-Range: %s", err)
+			p.pip.Logger.Error("Failed to parse response Content-Range: %s", err)
 
 			return types.NewTransferError(types.TeInternal, err.Error())
 		}
 	default:
-		p.pip.Logger.Errorf("HTTP Head replied with %s", resp.Status)
+		p.pip.Logger.Error("HTTP Head replied with %s", resp.Status)
 
 		return getRemoteError(resp.Header, resp.Body)
 	}
@@ -90,7 +90,7 @@ func (p *postClient) updateTransForResume(prog uint64) *types.TransferError {
 		}
 
 		if err := p.pip.UpdateTrans(cols...); err != nil {
-			p.pip.Logger.Errorf("Failed to parse response Content-Range: %s", err)
+			p.pip.Logger.Error("Failed to parse response Content-Range: %s", err)
 
 			return types.NewTransferError(types.TeInternal, "database error")
 		}
@@ -128,7 +128,7 @@ func (p *postClient) setRequestHeaders(req *http.Request) *types.TransferError {
 
 	fileInfo, err := os.Stat(p.pip.TransCtx.Transfer.LocalPath)
 	if err != nil {
-		p.pip.Logger.Errorf("Failed to retrieve local file size: %s", err)
+		p.pip.Logger.Error("Failed to retrieve local file size: %s", err)
 
 		return types.NewTransferError(types.TeInternal,
 			"failed to retrieve local file size: %s")
@@ -157,7 +157,7 @@ func (p *postClient) prepareRequest(ready chan struct{}) *types.TransferError {
 
 	req, err := http.NewRequestWithContext(context.Background(), http.MethodPost, url, body)
 	if err != nil {
-		p.pip.Logger.Errorf("Failed to make HTTP request: %s", err)
+		p.pip.Logger.Error("Failed to make HTTP request: %s", err)
 
 		return types.NewTransferError(types.TeInternal, "failed to make HTTP request")
 	}
@@ -190,7 +190,7 @@ func (p *postClient) Request() *types.TransferError {
 
 		resp, err := client.Do(p.req) //nolint:bodyclose //body is closed in another function
 		if err != nil {
-			p.pip.Logger.Errorf("HTTP transfer failed: %s", err)
+			p.pip.Logger.Error("HTTP transfer failed: %s", err)
 			p.reqErr <- err
 		} else {
 			p.resp <- resp
@@ -213,7 +213,7 @@ func (p *postClient) Request() *types.TransferError {
 func (p *postClient) Data(stream pipeline.DataStream) *types.TransferError {
 	_, err := io.Copy(p.writer, stream)
 	if err != nil {
-		p.pip.Logger.Errorf("Failed to write to remote HTTP file: %s", err)
+		p.pip.Logger.Error("Failed to write to remote HTTP file: %s", err)
 		select {
 		case reqErr := <-p.reqErr:
 			tErr := types.NewTransferError(types.TeDataTransfer, "HTTP transfer failed", reqErr)
@@ -222,7 +222,7 @@ func (p *postClient) Data(stream pipeline.DataStream) *types.TransferError {
 			return tErr
 		case resp := <-p.resp:
 			if cErr := resp.Body.Close(); cErr != nil {
-				p.pip.Logger.Warningf("Error while closing response body: %v", cErr)
+				p.pip.Logger.Warning("Error while closing response body: %v", cErr)
 			}
 
 			if resp.StatusCode != http.StatusCreated {
@@ -251,7 +251,7 @@ func (p *postClient) EndTransfer() *types.TransferError {
 	p.req.Trailer.Set(httpconst.TransferStatus, string(types.StatusDone))
 
 	if err := p.writer.Close(); err != nil {
-		p.pip.Logger.Warningf("Error while closing file pipe writer: %v", err)
+		p.pip.Logger.Warning("Error while closing file pipe writer: %v", err)
 	}
 
 	select {
@@ -259,7 +259,7 @@ func (p *postClient) EndTransfer() *types.TransferError {
 		return types.NewTransferError(types.TeUnknownRemote, "HTTP request failed", err)
 	case resp := <-p.resp:
 		if err := resp.Body.Close(); err != nil {
-			p.pip.Logger.Warningf("Error while closing response body: %v", err)
+			p.pip.Logger.Warning("Error while closing response body: %v", err)
 		}
 
 		if resp.StatusCode != http.StatusCreated {

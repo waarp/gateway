@@ -3,8 +3,9 @@ package gatewayd
 import (
 	"context"
 
+	"code.waarp.fr/lib/log"
+
 	"code.waarp.fr/apps/gateway/gateway/pkg/database"
-	"code.waarp.fr/apps/gateway/gateway/pkg/log"
 	"code.waarp.fr/apps/gateway/gateway/pkg/model"
 	"code.waarp.fr/apps/gateway/gateway/pkg/model/config"
 	"code.waarp.fr/apps/gateway/gateway/pkg/tk/service"
@@ -15,8 +16,6 @@ const testProtocol = "test_proto"
 
 //nolint:gochecknoinits // init is used by design
 func init() {
-	_ = log.InitBackend("INFO", "stdout", "")
-
 	config.ProtoConfigs[testProtocol] = func() config.ProtoConfig {
 		return new(testhelpers.TestProtoConfig)
 	}

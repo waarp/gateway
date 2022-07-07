@@ -5,10 +5,10 @@ import (
 	"regexp"
 	"strings"
 
+	"code.waarp.fr/lib/log"
 	"xorm.io/builder"
 	"xorm.io/xorm"
 
-	"code.waarp.fr/apps/gateway/gateway/pkg/log"
 	"code.waarp.fr/apps/gateway/gateway/pkg/tk/service"
 	vers "code.waarp.fr/apps/gateway/gateway/pkg/version"
 )
@@ -25,7 +25,7 @@ func (db *DB) checkVersion() error {
 
 	ok, err := db.engine.IsTableExist(dbVer.TableName())
 	if err != nil {
-		db.logger.Errorf("Failed to query database version table: %v", err)
+		db.logger.Error("Failed to query database version table: %v", err)
 
 		return NewInternalError(err)
 	}
@@ -35,13 +35,13 @@ func (db *DB) checkVersion() error {
 	}
 
 	if err := db.Get(dbVer, "").Run(); err != nil {
-		db.logger.Errorf("Failed to retrieve database version: %v", err)
+		db.logger.Error("Failed to retrieve database version: %v", err)
 
 		return err
 	}
 
 	if dbVer.Current != vers.Num {
-		db.logger.Criticalf("Mismatch between database (%s) and program (%s) versions.",
+		db.logger.Critical("Mismatch between database (%s) and program (%s) versions.",
 			dbVer.Current, vers.Num)
 
 		return errBadVersion
@@ -55,13 +55,13 @@ func checkExists(db Access, bean exister) Error {
 
 	exist, err := db.getUnderlying().NoAutoCondition().ID(bean.GetID()).Exist(bean)
 	if err != nil {
-		logger.Errorf("Failed to check if the %s exists: %s", bean.Appellation(), err)
+		logger.Error("Failed to check if the %s exists: %s", bean.Appellation(), err)
 
 		return NewInternalError(err)
 	}
 
 	if !exist {
-		logger.Debugf("No %s found with ID %d", bean.Appellation(), bean.GetID())
+		logger.Debug("No %s found with ID %d", bean.Appellation(), bean.GetID())
 
 		return NewNotFoundError(bean)
 	}
@@ -73,7 +73,7 @@ func checkExists(db Access, bean exister) Error {
 func logSQL(query *xorm.Session, logger *log.Logger) {
 	sql, args := query.LastSQL()
 	if len(args) == 0 {
-		logger.Debugf("[SQL] %s", sql)
+		logger.Trace("[SQL] %s", sql)
 
 		return
 	}
@@ -91,7 +91,7 @@ func logSQL(query *xorm.Session, logger *log.Logger) {
 
 	sqlMsg, err := builder.ConvertToBoundSQL(sql, args)
 	if err == nil {
-		logger.Debugf("[SQL] %s", sqlMsg)
+		logger.Trace("[SQL] %s", sqlMsg)
 
 		return
 	}
@@ -101,7 +101,7 @@ func logSQL(query *xorm.Session, logger *log.Logger) {
 // If an error occurs while contacting the database, that error is returned.
 func ping(state *service.State, ses *xorm.Session, logger *log.Logger) Error {
 	if err := ses.Ping(); err != nil {
-		logger.Criticalf("Could not reach database: %s", err.Error())
+		logger.Critical("Could not reach database: %s", err.Error())
 		state.Set(service.Error, err.Error())
 
 		return NewInternalError(err)

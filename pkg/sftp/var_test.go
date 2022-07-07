@@ -3,14 +3,7 @@ package sftp
 import (
 	"github.com/smartystreets/goconvey/convey"
 	"golang.org/x/crypto/bcrypt"
-
-	"code.waarp.fr/apps/gateway/gateway/pkg/log"
 )
-
-//nolint:gochecknoinits // it is used by design
-func init() {
-	_ = log.InitBackend("DEBUG", "stdout", "")
-}
 
 func hash(pwd string) string {
 	h, err := bcrypt.GenerateFromPassword([]byte(pwd), bcrypt.MinCost)

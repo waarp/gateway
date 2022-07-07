@@ -4,7 +4,6 @@ import (
 	"github.com/smartystreets/goconvey/convey"
 	"golang.org/x/crypto/bcrypt"
 
-	"code.waarp.fr/apps/gateway/gateway/pkg/log"
 	"code.waarp.fr/apps/gateway/gateway/pkg/model/config"
 )
 
@@ -17,8 +16,6 @@ const (
 func init() {
 	config.ProtoConfigs[testProto1] = func() config.ProtoConfig { return new(TestProtoConfig) }
 	config.ProtoConfigs[testProto2] = func() config.ProtoConfig { return new(TestProtoConfig) }
-
-	_ = log.InitBackend("DEBUG", "stdout", "")
 }
 
 type TestProtoConfig struct {

@@ -29,7 +29,7 @@ func (g *GetQuery) Run() Error {
 	logSQL(query, logger)
 
 	if err != nil {
-		logger.Errorf("Failed to retrieve the %s entry: %s", g.bean.Appellation(), err)
+		logger.Error("Failed to retrieve the %s entry: %s", g.bean.Appellation(), err)
 
 		return NewInternalError(err)
 	}
@@ -37,10 +37,10 @@ func (g *GetQuery) Run() Error {
 	if !exist {
 		where, err := builder.ConvertToBoundSQL(g.sql, g.args)
 		if err != nil {
-			logger.Warningf("an error occurred while preparing the query: %v", err)
+			logger.Warning("an error occurred while preparing the query: %v", err)
 		}
 
-		logger.Debugf("No %s found with conditions '%s'", g.bean.Appellation(), where)
+		logger.Debug("No %s found with conditions '%s'", g.bean.Appellation(), where)
 
 		return NewNotFoundError(g.bean)
 	}

@@ -44,7 +44,7 @@ func NewClient(pip *pipeline.Pipeline) (pipeline.Client, *types.TransferError) {
 func newClient(pip *pipeline.Pipeline) (*client, *types.TransferError) {
 	var protoConf config.SftpProtoConfig
 	if err := json.Unmarshal(pip.TransCtx.RemoteAgent.ProtoConfig, &protoConf); err != nil {
-		pip.Logger.Errorf("Failed to parse SFTP partner protocol configuration: %s", err)
+		pip.Logger.Error("Failed to parse SFTP partner protocol configuration: %s", err)
 
 		return nil, types.NewTransferError(types.TeInternal,
 			"failed to parse SFTP partner protocol configuration")
@@ -52,7 +52,7 @@ func newClient(pip *pipeline.Pipeline) (*client, *types.TransferError) {
 
 	sshConf, err := getSSHClientConfig(pip.TransCtx, &protoConf)
 	if err != nil {
-		pip.Logger.Errorf("Failed to make SFTP client configuration: %s", err)
+		pip.Logger.Error("Failed to make SFTP client configuration: %s", err)
 
 		return nil, types.NewTransferError(types.TeInternal, "failed to make SFTP configuration")
 	}
@@ -72,7 +72,7 @@ func (c *client) Request() *types.TransferError {
 
 	c.sshSession, err = ssh.Dial("tcp", addr, c.sshConf)
 	if err != nil {
-		c.pip.Logger.Errorf("Failed to connect to SFTP host: %s", err)
+		c.pip.Logger.Error("Failed to connect to SFTP host: %s", err)
 
 		return c.fromSFTPErr(err, types.TeConnection)
 	}
@@ -89,7 +89,7 @@ func (c *client) Request() *types.TransferError {
 
 	c.sftpSession, err = sftp.NewClient(c.sshSession, opts...)
 	if err != nil {
-		c.pip.Logger.Errorf("Failed to start SFTP session: %s", err)
+		c.pip.Logger.Error("Failed to start SFTP session: %s", err)
 
 		return c.fromSFTPErr(err, types.TeUnknownRemote)
 	}
@@ -108,7 +108,7 @@ func (c *client) send(filepath string) *types.TransferError {
 		var prog uint64 = 0
 
 		if stat, statErr := c.sftpSession.Stat(filepath); statErr != nil {
-			c.pip.Logger.Warningf("Failed to retrieve the remote file's size: %s", statErr)
+			c.pip.Logger.Warning("Failed to retrieve the remote file's size: %s", statErr)
 		} else {
 			prog = uint64(stat.Size())
 		}
@@ -122,7 +122,7 @@ func (c *client) send(filepath string) *types.TransferError {
 
 	c.remoteFile, err = c.sftpSession.OpenFile(filepath, os.O_WRONLY|os.O_CREATE|os.O_TRUNC)
 	if err != nil {
-		c.pip.Logger.Errorf("Failed to create remote file: %s", err)
+		c.pip.Logger.Error("Failed to create remote file: %s", err)
 
 		return c.fromSFTPErr(err, types.TeUnknownRemote)
 	}
@@ -135,7 +135,7 @@ func (c *client) receive(filepath string) *types.TransferError {
 
 	c.remoteFile, err = c.sftpSession.Open(filepath)
 	if err != nil {
-		c.pip.Logger.Errorf("Failed to open remote file: %s", err)
+		c.pip.Logger.Error("Failed to open remote file: %s", err)
 
 		return c.fromSFTPErr(err, types.TeUnknownRemote)
 	}
@@ -148,7 +148,7 @@ func (c *client) Data(data pipeline.DataStream) *types.TransferError {
 	if c.pip.TransCtx.Transfer.Progress != 0 {
 		_, err := c.remoteFile.Seek(int64(c.pip.TransCtx.Transfer.Progress), io.SeekStart)
 		if err != nil {
-			c.pip.Logger.Errorf("Failed to seek into remote SFTP file: %s", err)
+			c.pip.Logger.Error("Failed to seek into remote SFTP file: %s", err)
 
 			return c.fromSFTPErr(err, types.TeUnknownRemote)
 		}
@@ -157,14 +157,14 @@ func (c *client) Data(data pipeline.DataStream) *types.TransferError {
 	if c.pip.TransCtx.Rule.IsSend {
 		_, err := c.remoteFile.ReadFrom(data)
 		if err != nil {
-			c.pip.Logger.Errorf("Failed to write to remote SFTP file: %s", err)
+			c.pip.Logger.Error("Failed to write to remote SFTP file: %s", err)
 
 			return c.fromSFTPErr(err, types.TeDataTransfer)
 		}
 	} else {
 		_, err := c.remoteFile.WriteTo(data)
 		if err != nil {
-			c.pip.Logger.Errorf("Failed to read from remote SFTP file: %s", err)
+			c.pip.Logger.Error("Failed to read from remote SFTP file: %s", err)
 
 			return c.fromSFTPErr(err, types.TeDataTransfer)
 		}
@@ -176,10 +176,10 @@ func (c *client) Data(data pipeline.DataStream) *types.TransferError {
 func (c *client) EndTransfer() (tErr *types.TransferError) {
 	if c.remoteFile != nil {
 		if err := c.remoteFile.Close(); err != nil {
-			c.pip.Logger.Errorf("Failed to close remote SFTP file: %s", err)
+			c.pip.Logger.Error("Failed to close remote SFTP file: %s", err)
 
 			if cErr := c.sftpSession.Close(); cErr != nil {
-				c.pip.Logger.Warningf("An error occurred while closing the SFTP session: %v", cErr)
+				c.pip.Logger.Warning("An error occurred while closing the SFTP session: %v", cErr)
 			}
 
 			tErr = c.fromSFTPErr(err, types.TeFinalization)
@@ -188,7 +188,7 @@ func (c *client) EndTransfer() (tErr *types.TransferError) {
 
 	if c.sftpSession != nil {
 		if err := c.sftpSession.Close(); err != nil {
-			c.pip.Logger.Errorf("Failed to close SFTP session: %s", err)
+			c.pip.Logger.Error("Failed to close SFTP session: %s", err)
 
 			if tErr == nil {
 				tErr = c.fromSFTPErr(err, types.TeFinalization)
@@ -198,7 +198,7 @@ func (c *client) EndTransfer() (tErr *types.TransferError) {
 
 	if c.sshSession != nil {
 		if err := c.sshSession.Close(); err != nil {
-			c.pip.Logger.Errorf("Failed to close SSH session: %s", err)
+			c.pip.Logger.Error("Failed to close SSH session: %s", err)
 
 			if tErr == nil {
 				tErr = c.fromSFTPErr(err, types.TeFinalization)
@@ -212,7 +212,7 @@ func (c *client) EndTransfer() (tErr *types.TransferError) {
 func (c *client) SendError(*types.TransferError) {
 	if c.sshSession != nil {
 		if err := c.sshSession.Close(); err != nil {
-			c.pip.Logger.Warningf("An error occurred while closing the SSH session: %v", err)
+			c.pip.Logger.Warning("An error occurred while closing the SSH session: %v", err)
 		}
 	}
 }

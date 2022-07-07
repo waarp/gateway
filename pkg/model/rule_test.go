@@ -25,7 +25,7 @@ func TestRuleTableName(t *testing.T) {
 
 func TestRuleBeforeWrite(t *testing.T) {
 	Convey("Given a database", t, func(c C) {
-		db := database.TestDatabase(c, "ERROR")
+		db := database.TestDatabase(c)
 
 		Convey("Given a rule entry", func() {
 			old := Rule{
@@ -118,7 +118,7 @@ func TestRuleBeforeWrite(t *testing.T) {
 
 func TestRuleBeforeDelete(t *testing.T) {
 	Convey("Given a database", t, func(c C) {
-		db := database.TestDatabase(c, "ERROR")
+		db := database.TestDatabase(c)
 
 		Convey("Given a rule with some tasks and permissions", func() {
 			rule := Rule{

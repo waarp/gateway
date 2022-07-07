@@ -48,7 +48,7 @@ func TestRequestStatus(t *testing.T) {
 		s := Status{}
 
 		Convey("Given a running gateway", func(c C) {
-			db := database.TestDatabase(c, "ERROR")
+			db := database.TestDatabase(c)
 			core := map[string]service.Service{
 				"Core Service 1": &emptyService{state: &offlineState},
 				"Core Service 2": &emptyService{state: &runningState},
@@ -65,7 +65,7 @@ func TestRequestStatus(t *testing.T) {
 				"Proto Service 5": &emptyService{state: &errorState},
 				"Proto Service 6": &emptyService{state: &runningState},
 			}
-			gw := httptest.NewServer(admin.MakeHandler(discard, db, core, proto))
+			gw := httptest.NewServer(admin.MakeHandler(discard(), db, core, proto))
 
 			Convey("When executing the command", func() {
 				var err error

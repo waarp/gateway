@@ -3,17 +3,18 @@ package rest
 import (
 	"net/http"
 
+	"code.waarp.fr/lib/log"
 	"github.com/gorilla/mux"
 
 	"code.waarp.fr/apps/gateway/gateway/pkg/admin/rest/api"
 	"code.waarp.fr/apps/gateway/gateway/pkg/database"
-	"code.waarp.fr/apps/gateway/gateway/pkg/log"
 	"code.waarp.fr/apps/gateway/gateway/pkg/model"
 )
 
 //nolint:dupl // duplicated code is about a different type
 func getRemAcc(r *http.Request, db *database.DB) (*model.RemoteAgent,
-	*model.RemoteAccount, error) {
+	*model.RemoteAccount, error,
+) {
 	parent, err := getPart(r, db)
 	if err != nil {
 		return nil, nil, err

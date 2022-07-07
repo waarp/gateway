@@ -34,7 +34,7 @@ func (e *ExportCommand) Execute([]string) error {
 		//nolint:gosec //close must be deferred here
 		defer func() {
 			if err := f.Close(); err != nil {
-				logger.Warningf("Error while closing the destination file: %s", err)
+				logger.Warning("Error while closing the destination file: %s", err)
 			}
 		}()
 	}

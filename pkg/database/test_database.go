@@ -13,7 +13,6 @@ import (
 	"strings"
 	"sync"
 
-	"code.bcarlin.xyz/go/logging"
 	"github.com/smartystreets/goconvey/convey"
 	"golang.org/x/crypto/bcrypt"
 	"xorm.io/xorm"
@@ -21,8 +20,6 @@ import (
 
 	"code.waarp.fr/apps/gateway/gateway/pkg/conf"
 	"code.waarp.fr/apps/gateway/gateway/pkg/database/migrations"
-	"code.waarp.fr/apps/gateway/gateway/pkg/log"
-	"code.waarp.fr/apps/gateway/gateway/pkg/tk/migration"
 	"code.waarp.fr/apps/gateway/gateway/pkg/tk/utils/testhelpers"
 )
 
@@ -129,11 +126,19 @@ func resetDB(db *DB) {
 	}
 }
 
+// UnstartedTestDatabase returns an unstarted test database. Starting and
+// stopping the service is thus the caller's responsibility.
+func UnstartedTestDatabase(c convey.C) *DB {
+	db := initTestDatabase(c)
+
+	return db
+}
+
 // TestDatabase returns a testing SQLite database stored in memory for testing
 // purposes. The function must be called within a convey context.
 // The database will log messages at the level given.
-func TestDatabase(c convey.C, logLevel string) *DB {
-	db := initTestDatabase(c, logLevel)
+func TestDatabase(c convey.C) *DB {
+	db := initTestDatabase(c)
 
 	c.So(db.Start(), convey.ShouldBeNil)
 	c.Reset(func() { resetDB(db) })
@@ -141,8 +146,8 @@ func TestDatabase(c convey.C, logLevel string) *DB {
 	return db
 }
 
-func TestDatabaseNoInit(c convey.C, logLevel string) *DB {
-	db := initTestDatabase(c, logLevel)
+func TestDatabaseNoInit(c convey.C) *DB {
+	db := initTestDatabase(c)
 
 	c.So(db.start(false), convey.ShouldBeNil)
 	c.Reset(func() { resetDB(db) })
@@ -150,21 +155,13 @@ func TestDatabaseNoInit(c convey.C, logLevel string) *DB {
 	return db
 }
 
-func initTestDatabase(c convey.C, logLevel string) *DB {
+func initTestDatabase(c convey.C) *DB {
 	BcryptRounds = bcrypt.MinCost
 
 	initTestDBConf()
-
-	level, err := logging.LevelByName(logLevel)
-	c.So(err, convey.ShouldBeNil)
-
-	logger := logging.NewLogger("Test Database")
-	logger.SetBackend(logging.NewStdoutBackend())
-	logger.SetLevel(level)
-
 	testGCM()
 
-	db := &DB{logger: &log.Logger{Logger: logger}}
+	db := &DB{logger: testhelpers.TestLogger(c, "test_database")}
 
 	if os.Getenv(testDBMechanism) == "migration" {
 		startViaMigration(c)
@@ -184,13 +181,13 @@ func startViaMigration(c convey.C) {
 	switch config.Database.Type {
 	case PostgreSQL:
 		sqlDB = testhelpers.GetTestPostgreDBNoReset(c)
-		dialect = migration.PostgreSQL
+		dialect = migrations.PostgreSQL
 
 		_, err := sqlDB.Exec(migrations.PostgresCreationScript)
 		c.So(err, convey.ShouldBeNil)
 	case MySQL:
 		sqlDB = testhelpers.GetTestMySQLDBNoReset(c)
-		dialect = migration.MySQL
+		dialect = migrations.MySQL
 
 		script := strings.Split(migrations.MysqlCreationScript, ";\n")
 		for _, cmd := range script {
@@ -201,7 +198,7 @@ func startViaMigration(c convey.C) {
 		var addr string
 		sqlDB, addr = testhelpers.GetTestSqliteDBNoReset(c)
 
-		dialect = migration.SQLite
+		dialect = migrations.SQLite
 		config.Database.Address = addr
 
 		_, err := sqlDB.Exec(migrations.SqliteCreationScript)
@@ -210,11 +207,8 @@ func startViaMigration(c convey.C) {
 		panic(fmt.Sprintf("Unknown database type '%s'\n", config.Database.Type))
 	}
 
-	migrEngine, err := migration.NewEngine(sqlDB, dialect, nil)
-	c.So(err, convey.ShouldBeNil)
-
-	c.So(migrEngine.Upgrade(migrations.Migrations), convey.ShouldBeNil)
-	c.So(migrEngine.Upgrade(migrations.BumpToCurrent()), convey.ShouldBeNil)
+	logger := testhelpers.TestLogger(c, "migration_engine")
+	migrations.BumpToCurrent(c, sqlDB, logger, dialect)
 	c.So(sqlDB.Close(), convey.ShouldBeNil)
 }
 

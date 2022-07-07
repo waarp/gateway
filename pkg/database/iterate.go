@@ -116,7 +116,7 @@ func (i *IterateQuery) Run() (*Iterator, Error) {
 	logSQL(query, logger)
 
 	if err != nil {
-		logger.Errorf("Failed to retrieve the %s entries: %s", i.bean.Appellation(), err)
+		logger.Error("Failed to retrieve the %s entries: %s", i.bean.Appellation(), err)
 
 		return nil, NewInternalError(err)
 	}

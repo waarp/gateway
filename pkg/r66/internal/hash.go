@@ -7,7 +7,8 @@ import (
 	"os"
 	"path/filepath"
 
-	"code.waarp.fr/apps/gateway/gateway/pkg/log"
+	"code.waarp.fr/lib/log"
+
 	"code.waarp.fr/apps/gateway/gateway/pkg/model/types"
 )
 
@@ -17,7 +18,7 @@ func MakeHash(ctx context.Context, logger *log.Logger, path string) ([]byte, *ty
 
 	file, err := os.OpenFile(filepath.Clean(path), os.O_RDONLY, 0o600)
 	if err != nil {
-		logger.Errorf("Failed to open file for hash calculation: %s", err)
+		logger.Error("Failed to open file for hash calculation: %s", err)
 
 		return nil, types.NewTransferError(types.TeInternal, "failed to open file")
 	}
@@ -29,7 +30,7 @@ func MakeHash(ctx context.Context, logger *log.Logger, path string) ([]byte, *ty
 
 		_, err = io.Copy(hasher, file)
 		if err != nil {
-			logger.Errorf("Failed to read file content to hash: %s", err)
+			logger.Error("Failed to read file content to hash: %s", err)
 			errorChan <- types.NewTransferError(types.TeInternal, "failed to read file")
 		}
 	}()
@@ -44,7 +45,7 @@ func MakeHash(ctx context.Context, logger *log.Logger, path string) ([]byte, *ty
 		}
 
 		if fErr := file.Close(); fErr != nil {
-			logger.Warningf("Failed to close file: %s", fErr)
+			logger.Warning("Failed to close file: %s", fErr)
 		}
 
 		return hasher.Sum(nil), nil

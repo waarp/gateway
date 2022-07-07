@@ -6,8 +6,8 @@ import (
 	"io"
 
 	"code.waarp.fr/apps/gateway/gateway/pkg/backup/file"
+	"code.waarp.fr/apps/gateway/gateway/pkg/conf"
 	"code.waarp.fr/apps/gateway/gateway/pkg/database"
-	"code.waarp.fr/apps/gateway/gateway/pkg/log"
 	"code.waarp.fr/apps/gateway/gateway/pkg/tk/utils"
 )
 
@@ -18,7 +18,7 @@ import (
 // local servers and accounts, 'partners' for remote partners and accounts, or
 // 'all' for all data.
 func ExportData(db database.ReadAccess, w io.Writer, targets []string) error {
-	logger := log.NewLogger("export")
+	logger := conf.GetLogger("export")
 
 	var err error
 

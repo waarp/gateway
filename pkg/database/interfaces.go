@@ -3,9 +3,8 @@ package database
 import (
 	"fmt"
 
+	"code.waarp.fr/lib/log"
 	"xorm.io/xorm"
-
-	"code.waarp.fr/apps/gateway/gateway/pkg/log"
 )
 
 // ReadAccess is the interface listing all the read operations possible on the

@@ -11,8 +11,8 @@ import (
 	"code.waarp.fr/lib/r66"
 	"github.com/smartystreets/goconvey/convey"
 
+	"code.waarp.fr/apps/gateway/gateway/pkg/conf"
 	"code.waarp.fr/apps/gateway/gateway/pkg/database"
-	"code.waarp.fr/apps/gateway/gateway/pkg/log"
 	"code.waarp.fr/apps/gateway/gateway/pkg/model"
 	"code.waarp.fr/apps/gateway/gateway/pkg/model/config"
 	"code.waarp.fr/apps/gateway/gateway/pkg/tk/service"
@@ -162,7 +162,7 @@ func (s *ServerContext) AddCryptos(c convey.C, certs ...model.Crypto) {
 
 // StartService starts the service associated with the server defined in ServerContext.
 func (s *ServerContext) StartService(c convey.C) service.Service {
-	logger := log.NewLogger(fmt.Sprintf("test_%s_server", s.Server.Protocol))
+	logger := conf.GetLogger(fmt.Sprintf("test_%s_server", s.Server.Protocol))
 	serv := s.constr(s.DB, s.Server, logger)
 	c.So(serv.Start(), convey.ShouldBeNil)
 	c.Reset(func() {

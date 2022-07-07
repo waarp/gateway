@@ -14,15 +14,13 @@ import (
 	. "code.waarp.fr/apps/gateway/gateway/pkg/admin/rest/api"
 	"code.waarp.fr/apps/gateway/gateway/pkg/conf"
 	"code.waarp.fr/apps/gateway/gateway/pkg/database"
-	"code.waarp.fr/apps/gateway/gateway/pkg/log"
 	"code.waarp.fr/apps/gateway/gateway/pkg/model"
+	"code.waarp.fr/apps/gateway/gateway/pkg/tk/utils/testhelpers"
 )
 
 const testServersURI = "http://localhost:8080/api/servers/"
 
 func TestListServers(t *testing.T) {
-	logger := log.NewLogger("rest_server_list_test")
-
 	check := func(w *httptest.ResponseRecorder, expected map[string][]OutServer) {
 		Convey("Then the response body should contain an array "+
 			"of the requested agents in JSON format", func() {
@@ -45,7 +43,8 @@ func TestListServers(t *testing.T) {
 	}
 
 	Convey("Given the servers listing handler", t, func(c C) {
-		db := database.TestDatabase(c, "ERROR")
+		logger := testhelpers.TestLogger(c, "rest_server_list_test")
+		db := database.TestDatabase(c)
 		handler := listServers(logger, db)
 		w := httptest.NewRecorder()
 		expected := map[string][]OutServer{}
@@ -167,10 +166,9 @@ func TestListServers(t *testing.T) {
 }
 
 func TestGetServer(t *testing.T) {
-	logger := log.NewLogger("rest_server_get_test")
-
 	Convey("Given the server get handler", t, func(c C) {
-		db := database.TestDatabase(c, "ERROR")
+		logger := testhelpers.TestLogger(c, "rest_server_get_test")
+		db := database.TestDatabase(c)
 		handler := getServer(logger, db)
 		w := httptest.NewRecorder()
 
@@ -243,10 +241,9 @@ func TestGetServer(t *testing.T) {
 }
 
 func TestCreateServer(t *testing.T) {
-	logger := log.NewLogger("rest_server_create_logger")
-
 	Convey("Given the server creation handler", t, func(c C) {
-		db := database.TestDatabase(c, "ERROR")
+		logger := testhelpers.TestLogger(c, "rest_server_create_logger")
+		db := database.TestDatabase(c)
 		handler := addServer(logger, db)
 		w := httptest.NewRecorder()
 
@@ -327,10 +324,9 @@ func TestCreateServer(t *testing.T) {
 }
 
 func TestDeleteServer(t *testing.T) {
-	logger := log.NewLogger("rest_server_delete_test")
-
 	Convey("Given the server deletion handler", t, func(c C) {
-		db := database.TestDatabase(c, "ERROR")
+		logger := testhelpers.TestLogger(c, "rest_server_delete_test")
+		db := database.TestDatabase(c)
 		handler := deleteServer(logger, db)
 		w := httptest.NewRecorder()
 
@@ -386,10 +382,9 @@ func TestDeleteServer(t *testing.T) {
 }
 
 func TestUpdateServer(t *testing.T) {
-	logger := log.NewLogger("rest_server_update_logger")
-
 	Convey("Given the agent updating handler", t, func(c C) {
-		db := database.TestDatabase(c, "ERROR")
+		logger := testhelpers.TestLogger(c, "rest_server_update_logger")
+		db := database.TestDatabase(c)
 		handler := updateServer(logger, db)
 		w := httptest.NewRecorder()
 
@@ -488,10 +483,9 @@ func TestUpdateServer(t *testing.T) {
 }
 
 func TestReplaceServer(t *testing.T) {
-	logger := log.NewLogger("rest_agent_update_logger")
-
 	Convey("Given the agent updating handler", t, func(c C) {
-		db := database.TestDatabase(c, "ERROR")
+		logger := testhelpers.TestLogger(c, "rest_agent_update_logger")
+		db := database.TestDatabase(c)
 		handler := replaceServer(logger, db)
 		w := httptest.NewRecorder()
 

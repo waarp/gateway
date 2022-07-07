@@ -10,8 +10,9 @@ import (
 	"path"
 	"strconv"
 
+	"code.waarp.fr/lib/log"
+
 	"code.waarp.fr/apps/gateway/gateway/pkg/database"
-	"code.waarp.fr/apps/gateway/gateway/pkg/log"
 	"code.waarp.fr/apps/gateway/gateway/pkg/model/types"
 	"code.waarp.fr/apps/gateway/gateway/pkg/tk/utils"
 )
@@ -31,7 +32,8 @@ type order struct {
 type orders map[string]order
 
 func parseSelectQuery(r *http.Request, db *database.DB, validOrders orders,
-	elem database.SelectBean) (*database.SelectQuery, error) {
+	elem database.SelectBean,
+) (*database.SelectQuery, error) {
 	query := db.Select(elem)
 
 	var err error
@@ -107,7 +109,7 @@ func handleError(w http.ResponseWriter, logger *log.Logger, err error) bool {
 		return true
 	}
 
-	logger.Errorf("Unexpected error: %s", err)
+	logger.Error("Unexpected error: %s", err)
 	http.Error(w, err.Error(), http.StatusInternalServerError)
 
 	return true

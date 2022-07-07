@@ -10,8 +10,8 @@ import (
 	. "github.com/smartystreets/goconvey/convey"
 
 	"code.waarp.fr/apps/gateway/gateway/pkg/admin/rest/api"
-	"code.waarp.fr/apps/gateway/gateway/pkg/log"
 	"code.waarp.fr/apps/gateway/gateway/pkg/tk/service"
+	"code.waarp.fr/apps/gateway/gateway/pkg/tk/utils/testhelpers"
 )
 
 type testService struct {
@@ -24,8 +24,6 @@ func (t *testService) State() *service.State               { return &t.state }
 func (*testService) ManageTransfers() *service.TransferMap { return service.NewTransferMap() }
 
 func TestStatus(t *testing.T) {
-	statusLogger := log.NewLogger("rest_status_test")
-
 	core := map[string]service.Service{
 		"Core Running Service": &testService{state: service.State{}},
 		"Core Offline Service": &testService{state: service.State{}},
@@ -53,8 +51,9 @@ func TestStatus(t *testing.T) {
 		"Proto Running Service": {State: service.Running.Name()},
 	}
 
-	Convey("Given the REST status handler", t, func() {
-		handler := getStatus(statusLogger, core, proto)
+	Convey("Given the REST status handler", t, func(c C) {
+		logger := testhelpers.TestLogger(c, "rest_status_test")
+		handler := getStatus(logger, core, proto)
 
 		Convey("Given a status request", func() {
 			w := httptest.NewRecorder()

@@ -13,7 +13,7 @@ import (
 
 func TestExportCertificates(t *testing.T) {
 	Convey("Given a database", t, func(c C) {
-		db := database.TestDatabase(c, "ERROR")
+		db := database.TestDatabase(c)
 
 		Convey("Given the database contains 1 local agent with a certificate", func() {
 			agent := &model.LocalAgent{
@@ -35,7 +35,7 @@ func TestExportCertificates(t *testing.T) {
 
 			Convey("Given an new Transaction", func() {
 				Convey("When calling exportCertificates with the correct argument", func() {
-					res, err := exportCertificates(discard, db, model.TableLocAgents, agent.ID)
+					res, err := exportCertificates(discard(), db, model.TableLocAgents, agent.ID)
 
 					Convey("Then it should return no error", func() {
 						So(err, ShouldBeNil)
@@ -56,7 +56,7 @@ func TestExportCertificates(t *testing.T) {
 				})
 
 				Convey("When calling exportCertificates with incorrect argument", func() {
-					res, err := exportCertificates(discard, db, model.TableLocAgents, agent.ID+1)
+					res, err := exportCertificates(discard(), db, model.TableLocAgents, agent.ID+1)
 
 					Convey("Then it should return no error", func() {
 						So(err, ShouldBeNil)
@@ -93,7 +93,7 @@ func TestExportCertificates(t *testing.T) {
 				So(db.Insert(cert2).Run(), ShouldBeNil)
 
 				Convey("When calling exportCertificates with the correct argument", func() {
-					res, err := exportCertificates(discard, db, model.TableLocAccounts, account.ID)
+					res, err := exportCertificates(discard(), db, model.TableLocAccounts, account.ID)
 
 					Convey("Then it should return no error", func() {
 						So(err, ShouldBeNil)

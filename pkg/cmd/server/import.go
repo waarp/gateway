@@ -5,10 +5,11 @@ import (
 	"fmt"
 	"os"
 
+	"code.waarp.fr/lib/log"
+
 	"code.waarp.fr/apps/gateway/gateway/pkg/backup"
 	"code.waarp.fr/apps/gateway/gateway/pkg/conf"
 	"code.waarp.fr/apps/gateway/gateway/pkg/database"
-	"code.waarp.fr/apps/gateway/gateway/pkg/log"
 )
 
 func makeLogConf(verbose []bool) conf.LogConfig {
@@ -35,7 +36,9 @@ func initImportExport(configFile string, verbose []bool) (*database.DB, *log.Log
 
 	config.Log = makeLogConf(verbose)
 
-	if err2 := log.InitBackend(config.Log.Level, config.Log.LogTo, ""); err2 != nil {
+	back, err2 := conf.NewLogBackend(config.Log.Level, config.Log.LogTo,
+		config.Log.SyslogFacility, "waarp-gateway")
+	if err2 != nil {
 		return nil, nil, fmt.Errorf("cannot initialize log backend: %w", err2)
 	}
 
@@ -47,7 +50,7 @@ func initImportExport(configFile string, verbose []bool) (*database.DB, *log.Log
 		return nil, nil, fmt.Errorf("cannot start database: %w", err)
 	}
 
-	return db, log.NewLogger("Import/Export"), nil
+	return db, back.NewLogger("Import/Export"), nil
 }
 
 //nolint:lll // tags can be long for flags
@@ -77,7 +80,7 @@ func (i *ImportCommand) Execute([]string) error {
 		//nolint:gosec //close must be deferred here
 		defer func() {
 			if err := f.Close(); err != nil {
-				logger.Warningf("Error while closing the source file: %s", err)
+				logger.Warning("Error while closing the source file: %s", err)
 			}
 		}()
 	}

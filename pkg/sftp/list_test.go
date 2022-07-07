@@ -17,7 +17,6 @@ import (
 
 	"code.waarp.fr/apps/gateway/gateway/pkg/conf"
 	"code.waarp.fr/apps/gateway/gateway/pkg/database"
-	"code.waarp.fr/apps/gateway/gateway/pkg/log"
 	"code.waarp.fr/apps/gateway/gateway/pkg/model"
 	"code.waarp.fr/apps/gateway/gateway/pkg/model/config"
 	"code.waarp.fr/apps/gateway/gateway/pkg/tk/service"
@@ -26,14 +25,12 @@ import (
 
 //nolint:maintidx //FIXME factorize the function if possible to improve maintainability
 func TestSFTPList(t *testing.T) {
-	logger := log.NewLogger("test_sftp_list_server")
-
 	Convey("Given a SFTP server", t, func(c C) {
 		root := testhelpers.TempDir(c, "test_list_root")
-		db := database.TestDatabase(c, "ERROR")
+		db := database.TestDatabase(c)
 		conf.GlobalConfig.Paths.GatewayHome = root
 
-		Convey("Given an SFTP server", func() {
+		Convey("Given an SFTP server", func(c C) {
 			listener, err := net.Listen("tcp", "localhost:0")
 			So(err, ShouldBeNil)
 			addr := listener.Addr().String()
@@ -72,6 +69,8 @@ func TestSFTPList(t *testing.T) {
 
 			serverConfig, err := getSSHServerConfig(db, []model.Crypto{hostKey}, &protoConfig, agent)
 			So(err, ShouldBeNil)
+
+			logger := testhelpers.TestLogger(c, "test_sftp_list")
 
 			sshList := &sshListener{
 				DB:               db,

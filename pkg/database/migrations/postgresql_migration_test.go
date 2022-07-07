@@ -1,5 +1,4 @@
 //go:build test_db_postgresql
-// +build test_db_postgresql
 
 package migrations
 
@@ -9,28 +8,30 @@ import (
 	"github.com/smartystreets/goconvey/convey"
 	. "github.com/smartystreets/goconvey/convey"
 
-	"code.waarp.fr/apps/gateway/gateway/pkg/tk/migration"
+	"code.waarp.fr/lib/migration"
+
 	"code.waarp.fr/apps/gateway/gateway/pkg/tk/utils/testhelpers"
 )
 
-func getPostgreEngine(c convey.C) *migration.Engine {
+func getPostgreEngine(c convey.C) *testEngine {
+	logger := testhelpers.TestLogger(c, "test_postgre_engine")
 	db := testhelpers.GetTestPostgreDB(c)
 
 	_, err := db.Exec(PostgresCreationScript)
 	So(err, ShouldBeNil)
 
-	eng, err := migration.NewEngine(db, migration.PostgreSQL, nil)
+	eng, err := migration.NewEngine(db, migration.PostgreSQL, logger, nil)
 	So(err, ShouldBeNil)
 
-	return eng
+	return &testEngine{Engine: eng, DB: db}
 }
 
 func TestPostgreSQLCreationScript(t *testing.T) {
 	Convey("Given a PostgreSQL database", t, func(c C) {
 		db := testhelpers.GetTestPostgreDB(c)
 
-		Convey("Given the script to initialize version 0.0.0 of the database", func() {
-			Convey("When executing the script", func() {
+		Convey("Given the change to initialize version 0.0.0 of the database", func() {
+			Convey("When executing the change", func() {
 				_, err := db.Exec(PostgresCreationScript)
 
 				Convey("Then it should not return an error", func() {

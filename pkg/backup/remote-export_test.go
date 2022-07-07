@@ -13,7 +13,7 @@ import (
 
 func TestExportRemoteAgents(t *testing.T) {
 	Convey("Given a database", t, func(c C) {
-		db := database.TestDatabase(c, "ERROR")
+		db := database.TestDatabase(c)
 
 		Convey("Given the database contains remotes agents with accounts", func() {
 			agent1 := &model.RemoteAgent{
@@ -60,7 +60,7 @@ func TestExportRemoteAgents(t *testing.T) {
 			So(db.Insert(account2b).Run(), ShouldBeNil)
 
 			Convey("When calling the exportRemote function", func() {
-				res, err := exportRemotes(discard, db)
+				res, err := exportRemotes(discard(), db)
 
 				Convey("Then it should return no error", func() {
 					So(err, ShouldBeNil)
@@ -122,7 +122,7 @@ func TestExportRemoteAgents(t *testing.T) {
 
 func TestExportRemoteAccounts(t *testing.T) {
 	Convey("Given a database", t, func(c C) {
-		db := database.TestDatabase(c, "ERROR")
+		db := database.TestDatabase(c)
 
 		Convey("Given the database contains a remote agent with accounts", func() {
 			pwd1 := "pwd"
@@ -158,7 +158,7 @@ func TestExportRemoteAccounts(t *testing.T) {
 			So(db.Insert(cert).Run(), ShouldBeNil)
 
 			Convey("When calling the exportRemoteAccounts function", func() {
-				res, err := exportRemoteAccounts(discard, db, agent.ID)
+				res, err := exportRemoteAccounts(discard(), db, agent.ID)
 
 				Convey("Then it should return no error", func() {
 					So(err, ShouldBeNil)

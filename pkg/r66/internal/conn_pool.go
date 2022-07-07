@@ -6,10 +6,8 @@ import (
 	"sync"
 	"time"
 
-	"code.bcarlin.xyz/go/logging"
+	"code.waarp.fr/lib/log"
 	"code.waarp.fr/lib/r66"
-
-	"code.waarp.fr/apps/gateway/gateway/pkg/log"
 )
 
 const ConnectionGracePeriod = 5 * time.Second
@@ -61,9 +59,9 @@ func (c *ConnPool) Add(addr string, tlsConf *tls.Config, logger *log.Logger) (*r
 	var cli *r66.Client
 
 	if tlsConf == nil {
-		cli, err = r66.Dial(addr, logger.AsStdLog(logging.DEBUG))
+		cli, err = r66.Dial(addr, logger.AsStdLogger(log.LevelTrace))
 	} else {
-		cli, err = r66.DialTLS(addr, tlsConf, logger.AsStdLog(logging.DEBUG))
+		cli, err = r66.DialTLS(addr, tlsConf, logger.AsStdLogger(log.LevelTrace))
 	}
 
 	if err != nil {
