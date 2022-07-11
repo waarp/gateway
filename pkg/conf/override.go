@@ -76,7 +76,7 @@ func (o *configOverride) writeTo(w io.Writer) error {
 	return nil
 }
 
-func createOverride(configFile, nodeID string) error {
+func CreateOverride(configFile, nodeID string) error {
 	if nodeID == "" {
 		return nil
 	}
@@ -96,7 +96,7 @@ func createOverride(configFile, nodeID string) error {
 	return nil
 }
 
-func loadOverride(configPath, nodeID string) (*configOverride, error) {
+func LoadOverride(configPath, nodeID string) (*configOverride, error) {
 	overrideFile := filepath.Join(filepath.Dir(configPath), nodeID+".ini")
 	o := newOverride(overrideFile)
 
@@ -112,7 +112,7 @@ func loadOverride(configPath, nodeID string) (*configOverride, error) {
 	return o, o.parse()
 }
 
-func updateOverride(configFile, nodeID string) error {
+func UpdateOverride(configFile, nodeID string) error {
 	if nodeID == "" {
 		return nil
 	}

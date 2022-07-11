@@ -242,7 +242,7 @@ func LoadGatewayConfig(configFile, nodeID string) error {
 	}
 
 	if nodeID != "" {
-		LocalOverrides, err = loadOverride(configPath, nodeID)
+		LocalOverrides, err = LoadOverride(configPath, nodeID)
 		if err != nil {
 			return err
 		}
@@ -261,7 +261,7 @@ func UpdateGatewayConfig(configFile, nodeID string) error {
 		return err
 	}
 
-	return updateOverride(configFile, nodeID)
+	return UpdateOverride(configFile, nodeID)
 }
 
 // CreateGatewayConfig creates a new configuration file at the given location,
@@ -271,5 +271,5 @@ func CreateGatewayConfig(configFile, nodeID string) error {
 		return err
 	}
 
-	return createOverride(configFile, nodeID)
+	return CreateOverride(configFile, nodeID)
 }
