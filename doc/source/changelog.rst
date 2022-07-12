@@ -4,6 +4,9 @@ Historique des versions
 =======================
 
 * :release:`0.6.0 <>`
+* :bug:`-` Correction d'une erreur *'account not found'* pouvant survenir lors
+  d'un import de configuration si la base de données est partagée entre plusieurs
+  agents.
 * :bug:`-` Correction d'un *panic* qui pouvait survenir lorsqu'une commande du
   CLI était exécutée avec l'option `-i, --insecure`.
 * :feature:`256` Ajout du listing de fichiers et de la requête de métadonnées de

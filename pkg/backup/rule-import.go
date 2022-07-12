@@ -6,6 +6,7 @@ import (
 	"code.waarp.fr/lib/log"
 
 	"code.waarp.fr/apps/gateway/gateway/pkg/backup/file"
+	"code.waarp.fr/apps/gateway/gateway/pkg/conf"
 	"code.waarp.fr/apps/gateway/gateway/pkg/database"
 	"code.waarp.fr/apps/gateway/gateway/pkg/model"
 )
@@ -176,7 +177,8 @@ func createLocalAccess(db database.ReadAccess, arr []string,
 	ruleID uint64,
 ) (*model.RuleAccess, database.Error) {
 	var agent model.LocalAgent
-	if err := db.Get(&agent, "name=?", arr[1]).Run(); err != nil {
+	if err := db.Get(&agent, "owner=? AND name=?", conf.GlobalConfig.GatewayName,
+		arr[1]).Run(); err != nil {
 		return nil, err
 	}
 
