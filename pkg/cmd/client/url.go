@@ -55,8 +55,8 @@ func (*AddrOpt) UnmarshalFlag(value string) error {
 	return nil
 }
 
-type InsecureOpt func()
+type InsecureOpt func(string)
 
-func SetInsecureFlag() {
-	insecure = true
+func SetInsecureFlag(value string) {
+	insecure = strings.TrimSpace(value) != ""
 }
