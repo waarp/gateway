@@ -167,7 +167,7 @@ func loadServerConfig(userConfig string) (*ServerConfig, string, error) {
 		return nil, "", err
 	}
 
-	if err := initBackend(c.Log.Level, c.Log.LogTo, c.Log.SyslogFacility,
+	if err := InitBackend(c.Log.Level, c.Log.LogTo, c.Log.SyslogFacility,
 		"waarp-gateway"); err != nil {
 		return nil, "", fmt.Errorf("failed to initialize log backend: %w", err)
 	}
