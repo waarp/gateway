@@ -34,6 +34,9 @@ type LocalAgent struct {
 	// The protocol used by the agent.
 	Protocol string `xorm:"notnull 'protocol'"`
 
+	// Whether the server is enabled at startup or not.
+	Enabled bool `xorm:"NOTNULL BOOL DEFAULT(true) 'enabled'"`
+
 	// The root directory of the agent.
 	RootDir string `xorm:"notnull 'root_dir'"`
 

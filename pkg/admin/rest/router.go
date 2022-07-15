@@ -32,12 +32,14 @@ const (
 	HistoryPath   = "/api/history/{history}"
 	HistRetryPath = "/api/history/{history}/retry"
 
-	ServersPath     = "/api/servers"
-	ServerPath      = "/api/servers/{server}"
-	ServerCertsPath = "/api/servers/{server}/certificates"
-	ServerCertPath  = "/api/servers/{server}/certificates/{certificate}"
-	ServerAuthPath  = "/api/servers/{server}/authorize/{rule}/{direction:send|receive}"
-	ServerRevPath   = "/api/servers/{server}/revoke/{rule}/{direction:send|receive}"
+	ServersPath       = "/api/servers"
+	ServerPath        = "/api/servers/{server}"
+	ServerPathEnable  = "/api/servers/{server}/enable"
+	ServerPathDisable = "/api/servers/{server}/disable"
+	ServerCertsPath   = "/api/servers/{server}/certificates"
+	ServerCertPath    = "/api/servers/{server}/certificates/{certificate}"
+	ServerAuthPath    = "/api/servers/{server}/authorize/{rule}/{direction:send|receive}"
+	ServerRevPath     = "/api/servers/{server}/revoke/{rule}/{direction:send|receive}"
 
 	LocAccountsPath = "/api/servers/{server}/accounts"
 	LocAccountPath  = "/api/servers/{server}/accounts/{local_account}"
@@ -68,6 +70,7 @@ const (
 // All routes can be retrieved and modified from the router using their name.
 // Routes are named by concatenating their method (in all caps), followed by a
 // space, followed by their full path.
+//
 //nolint:funlen // hard to shorten
 func MakeRESTHandler(logger *log.Logger, db *database.DB, router *mux.Router,
 	coreServices map[string]service.Service, protoServices map[string]service.ProtoService,
@@ -116,6 +119,8 @@ func MakeRESTHandler(logger *log.Logger, db *database.DB, router *mux.Router,
 	mkHandler(ServerPath, deleteServer, model.PermServersDelete, http.MethodDelete)
 	mkHandler(ServerPath, updateServer, model.PermServersWrite, http.MethodPatch)
 	mkHandler(ServerPath, replaceServer, model.PermServersWrite, http.MethodPut)
+	mkHandler(ServerPathEnable, enableServer, model.PermServersWrite, http.MethodPut)
+	mkHandler(ServerPathDisable, disableServer, model.PermServersWrite, http.MethodPut)
 	mkHandler(ServerCertsPath, listServerCerts, model.PermServersRead, http.MethodGet)
 	mkHandler(ServerCertsPath, addServerCert, model.PermServersWrite, http.MethodPost)
 	mkHandler(ServerCertPath, getServerCert, model.PermServersRead, http.MethodGet)

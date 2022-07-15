@@ -16,6 +16,8 @@ Une fois démarré, chaque serveur sera considéré comme un service de la gatew
    get
    update
    delete
+   enable
+   disable
    authorize
    revoke
    cert/index

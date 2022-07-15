@@ -2,6 +2,7 @@ package wg
 
 import (
 	"encoding/json"
+	"net/http"
 	"net/http/httptest"
 	"net/url"
 	"strings"
@@ -802,6 +803,64 @@ func TestRevokeServer(t *testing.T) {
 						So(db.Select(&accesses).Run(), ShouldBeNil)
 						So(accesses, ShouldContain, *access)
 					})
+				})
+			})
+		})
+	})
+}
+
+func TestEnableDisableServer(t *testing.T) {
+	const (
+		locAgentName = "test_server"
+		enablePath   = "/api/servers/" + locAgentName + "/enable"
+		disablePath  = "/api/servers/" + locAgentName + "/disable"
+	)
+
+	Convey(`Given the server "enable" command`, t, func() {
+		out = testFile()
+		command := &ServerEnable{}
+
+		expected := &expectedRequest{
+			method: http.MethodPut,
+			path:   enablePath,
+		}
+
+		result := &expectedResponse{status: http.StatusAccepted}
+
+		Convey("Given a dummy gateway REST interface", func() {
+			testServer(expected, result)
+
+			Convey("When executing the command", func() {
+				So(executeCommand(command, locAgentName), ShouldBeNil)
+
+				Convey("Then it should display a message saying the server was enabled", func() {
+					So(getOutput(), ShouldEqual, "The server "+locAgentName+
+						" was successfully enabled.\n")
+				})
+			})
+		})
+	})
+
+	Convey(`Given the server "disable" command`, t, func() {
+		out = testFile()
+		command := &ServerDisable{}
+
+		expected := &expectedRequest{
+			method: http.MethodPut,
+			path:   disablePath,
+		}
+
+		result := &expectedResponse{status: http.StatusAccepted}
+
+		Convey("Given a dummy gateway REST interface", func() {
+			testServer(expected, result)
+
+			Convey("When executing the command", func() {
+				So(executeCommand(command, locAgentName), ShouldBeNil)
+
+				Convey("Then it should display a message saying the server was disabled", func() {
+					So(getOutput(), ShouldEqual, "The server "+locAgentName+
+						" was successfully disabled.\n")
 				})
 			})
 		})

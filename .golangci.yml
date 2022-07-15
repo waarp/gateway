@@ -719,6 +719,7 @@ issues:
         - gocyclo
         - gosec
         - varnamelen
+        - bodyclose
 
     # Allow dot import aliases in test files.
     - path: _test\.go

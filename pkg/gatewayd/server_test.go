@@ -27,6 +27,7 @@ func testSetup(c C) (*WG, *model.LocalAgent, *model.LocalAgent) {
 			Protocol:    testProtocol,
 			ProtoConfig: json.RawMessage("{}"),
 			Address:     fmt.Sprintf("localhost:%d", testhelpers.GetFreePort(c)),
+			Enabled:     true,
 		}
 		So(db.Insert(s).Run(), ShouldBeNil)
 

@@ -3,6 +3,14 @@
 Historique des versions
 =======================
 
+* :feature:`336` Ajout de la possibilité d'activer et désactiver les serveurs
+  locaux. Par défaut, les nouveaux serveurs créés sont actifs. Il est désormais
+  possible de désactiver un serveur, via :doc:`l'interface REST<reference/cli/client/partner/add>`
+  ou via le :doc:`client en ligne de commande<reference/cli/client/server/disable>`.
+  Contrairement aux serveurs activés, un serveur désactivé ne sera pas démarré
+  automatiquement au lancement de la *gateway*. À noter que désactiver un serveur
+  n'arrête pas immédiatement celui-ci. Le serveur restera actif jusqu'à l'arrêt
+  de la *gateway* ou du serveur en question.
 * :feature:`287` Séparation de R66 et R66-TLS en 2 protocoles distincts. La
   distinction entre les deux se fait désormais via le nom du protocole au lieu
   de la protoConfig. L'option ``isTLS`` de la protoConfig R66 existe toujours
