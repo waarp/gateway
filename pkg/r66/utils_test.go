@@ -14,8 +14,8 @@ import (
 
 //nolint:gochecknoglobals // these are test variables
 var (
-	servConf = &config.R66ProtoConfig{ServerLogin: "r66_login", ServerPassword: "sesame"}
-	partConf = &config.R66ProtoConfig{ServerLogin: "r66_login", ServerPassword: "sesame"}
+	servConf = &config.R66ServerProtoConfig{ServerLogin: "r66_login", ServerPassword: "sesame"}
+	partConf = &config.R66PartnerProtoConfig{ServerLogin: "r66_login", ServerPassword: "sesame"}
 )
 
 func resetConnPool() {

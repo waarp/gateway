@@ -28,7 +28,7 @@ func TestGetFileInfo(t *testing.T) {
 		db := database.TestDatabase(c)
 		conf.GlobalConfig.Paths.GatewayHome = root
 
-		protoConf, err := json.Marshal(config.R66ProtoConfig{
+		protoConf, err := json.Marshal(config.R66ServerProtoConfig{
 			ServerLogin: "r66_server", ServerPassword: "foobar",
 		})
 		So(err, ShouldBeNil)
@@ -157,7 +157,7 @@ func TestGetTransferInfo(t *testing.T) {
 		db := database.TestDatabase(c)
 		conf.GlobalConfig.Paths.GatewayHome = root
 
-		protoConfig := config.R66ProtoConfig{
+		protoConfig := config.R66ServerProtoConfig{
 			ServerLogin: "r66_server", ServerPassword: "foobar",
 		}
 

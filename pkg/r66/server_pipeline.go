@@ -92,7 +92,7 @@ func (s *serverStream) WriteAt(p []byte, off int64) (int, error) {
 }
 
 type serverTransfer struct {
-	r66Conf *config.R66ProtoConfig
+	r66Conf *config.R66ServerProtoConfig
 	conf    *r66.Authent
 	pip     *pipeline.Pipeline
 	store   *utils.ErrorStorage

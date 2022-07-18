@@ -32,7 +32,7 @@ type ClientContext struct {
 	protoFeatures *features
 }
 
-func initClient(c convey.C, proto string, partConf config.ProtoConfig) *ClientContext {
+func initClient(c convey.C, proto string, partConf config.PartnerProtoConfig) *ClientContext {
 	feat, ok := protocols[proto]
 	c.So(ok, convey.ShouldBeTrue)
 	t := initTestData(c)
@@ -56,7 +56,8 @@ func initClient(c convey.C, proto string, partConf config.ProtoConfig) *ClientCo
 // InitClientPush creates a database and fills it with all the elements necessary
 // for a push client transfer test of the given protocol. It then returns all these
 // elements inside a ClientContext.
-func InitClientPush(c convey.C, proto string, partConf config.ProtoConfig) *ClientContext {
+func InitClientPush(c convey.C, proto string, partConf config.PartnerProtoConfig,
+) *ClientContext {
 	ctx := initClient(c, proto, partConf)
 	ctx.ClientRule = makeClientPush(c, ctx.DB, proto)
 	ctx.addPushTransfer(c)
@@ -67,7 +68,8 @@ func InitClientPush(c convey.C, proto string, partConf config.ProtoConfig) *Clie
 // InitClientPull creates a database and fills it with all the elements necessary
 // for a pull client transfer test of the given protocol. It then returns all these
 // element inside a ClientContext.
-func InitClientPull(c convey.C, proto string, cont []byte, partConf config.ProtoConfig) *ClientContext {
+func InitClientPull(c convey.C, proto string, cont []byte, partConf config.PartnerProtoConfig,
+) *ClientContext {
 	ctx := initClient(c, proto, partConf)
 	ctx.ClientRule = makeClientPull(c, ctx.DB, proto)
 	ctx.addPullTransfer(c, cont)
@@ -120,7 +122,7 @@ func makeClientPull(c convey.C, db *database.DB, proto string) *model.Rule {
 }
 
 func makeClientConf(c convey.C, db *database.DB, port uint16, proto string,
-	partConf config.ProtoConfig,
+	partConf config.PartnerProtoConfig,
 ) (*model.RemoteAgent, *model.RemoteAccount) {
 	jsonPartConf := json.RawMessage(`{}`)
 

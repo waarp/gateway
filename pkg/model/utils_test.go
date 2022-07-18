@@ -13,11 +13,16 @@ const testProtocol = "test_proto"
 
 var testLocalPath = "file:/test/local/file"
 
+//nolint:gochecknoglobals // global var is simpler here
+var testConfigMaker = &config.ConfigMaker{
+	Server:  func() config.ServerProtoConfig { return new(testhelpers.TestProtoConfig) },
+	Partner: func() config.PartnerProtoConfig { return new(testhelpers.TestProtoConfig) },
+	Client:  func() config.ClientProtoConfig { return new(testhelpers.TestProtoConfig) },
+}
+
 //nolint:gochecknoinits // init is used to ease the tests
 func init() {
-	config.ProtoConfigs[testProtocol] = func() config.ProtoConfig {
-		return new(testhelpers.TestProtoConfig)
-	}
+	config.ProtoConfigs[testProtocol] = testConfigMaker
 }
 
 func hash(pwd string) string {

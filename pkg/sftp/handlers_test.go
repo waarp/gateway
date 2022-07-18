@@ -57,7 +57,7 @@ func TestFileReader(t *testing.T) {
 			}
 			So(db.Insert(account).Run(), ShouldBeNil)
 
-			serverConf := config.SftpProtoConfig{}
+			var serverConf config.SftpServerProtoConfig
 			So(json.Unmarshal(agent.ProtoConfig, &serverConf), ShouldBeNil)
 
 			Convey("Given the FileReader", func() {
@@ -164,7 +164,7 @@ func TestFileWriter(t *testing.T) {
 			}
 			So(db.Insert(account).Run(), ShouldBeNil)
 
-			serverConf := config.SftpProtoConfig{}
+			var serverConf config.SftpServerProtoConfig
 			So(json.Unmarshal(agent.ProtoConfig, &serverConf), ShouldBeNil)
 
 			Convey("Given the Filewriter", func() {

@@ -30,7 +30,7 @@ type httpService struct {
 	agentID int64
 	state   state.State
 
-	conf    config.HTTPProtoConfig
+	conf    config.HTTPServerProtoConfig
 	serv    *http.Server
 	tracer  func() pipeline.Trace
 	running *service.TransferMap

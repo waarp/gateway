@@ -23,7 +23,7 @@ func init() {
 type client struct {
 	pip *pipeline.Pipeline
 
-	conf      config.R66ProtoConfig
+	conf      config.R66PartnerProtoConfig
 	tlsConfig *tls.Config
 
 	ctx    context.Context //nolint:containedctx //FIXME move the context to a function parameter
@@ -37,7 +37,7 @@ func NewClient(pip *pipeline.Pipeline) (pipeline.Client, *types.TransferError) {
 }
 
 func newClient(pip *pipeline.Pipeline) (*client, *types.TransferError) {
-	var protoConfig config.R66ProtoConfig
+	var protoConfig config.R66PartnerProtoConfig
 	if err := json.Unmarshal(pip.TransCtx.RemoteAgent.ProtoConfig, &protoConfig); err != nil {
 		pip.Logger.Error("Failed to parse R66 partner proto config: %v", err)
 

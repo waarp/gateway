@@ -6,7 +6,11 @@ import (
 
 //nolint:gochecknoinits // init is used by design
 func init() {
-	ProtoConfigs["sftp"] = func() ProtoConfig { return new(SftpProtoConfig) }
+	ProtoConfigs["sftp"] = &ConfigMaker{
+		Server:  func() ServerProtoConfig { return new(SftpServerProtoConfig) },
+		Partner: func() PartnerProtoConfig { return new(SftpPartnerProtoConfig) },
+		Client:  func() ClientProtoConfig { return new(SftpClientProtoConfig) },
+	}
 }
 
 //nolint:gochecknoglobals // global var is used by design
@@ -40,29 +44,20 @@ var (
 	}
 )
 
-// SftpProtoConfig represents the configuration of an SFTP agent.
-type SftpProtoConfig struct {
-	KeyExchanges                 []string `json:"keyExchanges,omitempty"`
-	Ciphers                      []string `json:"ciphers,omitempty"`
-	MACs                         []string `json:"macs,omitempty"`
-	DisableClientConcurrentReads bool     `json:"disableClientConcurrentReads,omitempty"`
-	UseStat                      bool     `json:"useStat,omitempty"`
-}
-
-func (c *SftpProtoConfig) valid(forServer bool) error {
-	for _, kex := range c.KeyExchanges {
+func checkSFTPAlgos(keyExchanges, ciphers, macs []string, forServer bool) error {
+	for _, kex := range keyExchanges {
 		if !SFTPValidKeyExchanges.isAlgoValid(kex, forServer) {
 			return fmt.Errorf("unknown key exchange algorithm %q: %w", kex, errInvalidProtoConfig)
 		}
 	}
 
-	for _, ciph := range c.Ciphers {
+	for _, ciph := range ciphers {
 		if !SFTPValidCiphers.isAlgoValid(ciph, forServer) {
 			return fmt.Errorf("unknown cipher algorithm %q: %w", ciph, errInvalidProtoConfig)
 		}
 	}
 
-	for _, mac := range c.MACs {
+	for _, mac := range macs {
 		if !SFTPValidMACs.isAlgoValid(mac, forServer) {
 			return fmt.Errorf("unknown MAC algorithm %q: %w", mac, errInvalidProtoConfig)
 		}
@@ -71,12 +66,37 @@ func (c *SftpProtoConfig) valid(forServer bool) error {
 	return nil
 }
 
-// ValidPartner checks if the configuration is valid for an SFTP partner.
-func (c *SftpProtoConfig) ValidPartner() error {
-	return c.valid(false)
+// SftpServerProtoConfig represents the configuration of a local SFTP server.
+type SftpServerProtoConfig struct {
+	KeyExchanges []string `json:"keyExchanges,omitempty"`
+	Ciphers      []string `json:"ciphers,omitempty"`
+	MACs         []string `json:"macs,omitempty"`
 }
 
-// ValidServer checks if the configuration is valid for a local SFTP server.
-func (c *SftpProtoConfig) ValidServer() error {
-	return c.valid(true)
+func (s *SftpServerProtoConfig) ValidServer() error {
+	return checkSFTPAlgos(s.KeyExchanges, s.Ciphers, s.MACs, true)
+}
+
+// SftpPartnerProtoConfig represents the configuration of a remote SFTP partner.
+type SftpPartnerProtoConfig struct {
+	KeyExchanges                 []string `json:"keyExchanges,omitempty"`
+	Ciphers                      []string `json:"ciphers,omitempty"`
+	MACs                         []string `json:"macs,omitempty"`
+	DisableClientConcurrentReads bool     `json:"disableClientConcurrentReads,omitempty"`
+	UseStat                      bool     `json:"useStat,omitempty"`
+}
+
+func (s *SftpPartnerProtoConfig) ValidPartner() error {
+	return checkSFTPAlgos(s.KeyExchanges, s.Ciphers, s.MACs, false)
+}
+
+// SftpClientProtoConfig represents the configuration of a local SFTP client.
+type SftpClientProtoConfig struct {
+	KeyExchanges []string `json:"keyExchanges,omitempty"`
+	Ciphers      []string `json:"ciphers,omitempty"`
+	MACs         []string `json:"macs,omitempty"`
+}
+
+func (s *SftpClientProtoConfig) ValidClient() error {
+	return checkSFTPAlgos(s.KeyExchanges, s.Ciphers, s.MACs, false)
 }

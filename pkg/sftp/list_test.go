@@ -46,7 +46,7 @@ func TestSFTPList(t *testing.T) {
 			}
 			So(db.Insert(agent).Run(), ShouldBeNil)
 
-			protoConfig := config.SftpProtoConfig{}
+			var protoConfig config.SftpServerProtoConfig
 			So(json.Unmarshal(agent.ProtoConfig, &protoConfig), ShouldBeNil)
 
 			toto := &model.LocalAccount{

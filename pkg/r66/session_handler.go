@@ -211,7 +211,7 @@ func (s *sessionHandler) getInfoFromTransfer(remoteID int64, trans *model.Transf
 		return nil, internal.ToR66Error(err)
 	}
 
-	var protoConf config.R66ProtoConfig
+	var protoConf config.R66ServerProtoConfig
 	if err := json.Unmarshal(ctx.LocalAgent.ProtoConfig, &protoConf); err != nil {
 		s.logger.Error("Failed to parse server configuration: %v", err)
 

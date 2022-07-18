@@ -691,9 +691,9 @@ linters-settings:
     # `golangci-lint`.
     allow-assign-and-anything: false
     allow-assign-and-call: true
-    allow-cuddle-declarations: false
+    allow-cuddle-declarations: true
     allow-multiline-assign: true
-    allow-separated-leading-comment: false
+    allow-separated-leading-comment: true
     allow-trailing-comment: true
     force-case-trailing-whitespace: 0
     force-err-cuddling: true
@@ -775,6 +775,13 @@ issues:
     - linters:
         - staticcheck
       text: "SA9003:"
+
+    # Exclude goconst issues for column names. Just because different tables
+    # use identical column names doesn't mean we should replace all of them by
+    # a single constant (in fact, it's probably a bad idea).
+    - linters:
+        - goconst
+      text: "=?`"
 
     # Exclude perfsprint issues asking for string concatenation, because,
     # apparently, the option to disable the check does not work. While string

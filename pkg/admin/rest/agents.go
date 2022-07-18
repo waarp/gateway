@@ -96,7 +96,7 @@ func restPartnerToDB(restPartner *api.InPartner) *model.RemoteAgent {
 // equivalent.
 func DBServerToREST(db database.ReadAccess, dbServer *model.LocalAgent) (*api.OutServer, error) {
 	if dbServer.Protocol == config.ProtocolR66TLS {
-		var r66Conf *config.R66ProtoConfig
+		var r66Conf *config.R66ServerProtoConfig
 		if json.Unmarshal(dbServer.ProtoConfig, r66Conf) == nil && r66Conf.IsTLS != nil {
 			// To preserve backwards compatibility, when `ìsTLS` is defined, we
 			// change the protocol back to config.ProtocolR66, like it was before the addition
@@ -148,7 +148,7 @@ func DBServersToREST(db database.ReadAccess, dbServers []*model.LocalAgent) ([]*
 // equivalent.
 func DBPartnerToREST(db database.ReadAccess, ag *model.RemoteAgent) (*api.OutPartner, error) {
 	if ag.Protocol == config.ProtocolR66TLS {
-		var r66Conf *config.R66ProtoConfig
+		var r66Conf *config.R66PartnerProtoConfig
 		if json.Unmarshal(ag.ProtoConfig, r66Conf) == nil && r66Conf.IsTLS != nil {
 			// To preserve backwards compatibility, when `ìsTLS` is defined, we
 			// change the protocol back to config.ProtocolR66, like it was before the addition

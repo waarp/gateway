@@ -45,7 +45,7 @@ func newService(db *database.DB, logger *log.Logger) *Service {
 func (s *Service) start(agent *model.LocalAgent) error {
 	s.agentID = agent.ID
 
-	var protoConfig config.SftpProtoConfig
+	var protoConfig config.SftpServerProtoConfig
 	if err := json.Unmarshal(agent.ProtoConfig, &protoConfig); err != nil {
 		return fmt.Errorf("cannot parse the protocol configuration of this agent: %w", err)
 	}

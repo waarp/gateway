@@ -41,7 +41,7 @@ type Service struct {
 	state   state.State
 	tracer  func() pipeline.Trace
 
-	r66Conf  *config.R66ProtoConfig
+	r66Conf  *config.R66ServerProtoConfig
 	list     net.Listener
 	server   *r66.Server
 	shutdown chan struct{}
@@ -105,7 +105,7 @@ func (s *Service) Start(agent *model.LocalAgent) error {
 	s.logger.Info("Starting R66 server '%s'...", agent.Name)
 	s.state.Set(state.Starting, "")
 
-	s.r66Conf = &config.R66ProtoConfig{}
+	s.r66Conf = &config.R66ServerProtoConfig{}
 	if err := json.Unmarshal(agent.ProtoConfig, s.r66Conf); err != nil {
 		s.logger.Error("Failed to parse server the R66 proto config: %s", err)
 		err1 := fmt.Errorf("failed to parse the R66 proto config: %w", err)

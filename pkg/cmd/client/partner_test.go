@@ -48,8 +48,10 @@ func TestGetPartner(t *testing.T) {
 
 			send := &model.Rule{Name: "send_rule", IsSend: true, Path: "send_path"}
 			So(db.Insert(send).Run(), ShouldBeNil)
+
 			receive := &model.Rule{Name: "receive", IsSend: false, Path: "rcv_path"}
 			So(db.Insert(receive).Run(), ShouldBeNil)
+
 			sendAll := &model.Rule{Name: "send_all", IsSend: true, Path: "send_all_path"}
 			So(db.Insert(sendAll).Run(), ShouldBeNil)
 
@@ -57,6 +59,7 @@ func TestGetPartner(t *testing.T) {
 				RuleID: send.ID, RemoteAgentID: utils.NewNullInt64(partner.ID),
 			}
 			So(db.Insert(sAccess).Run(), ShouldBeNil)
+
 			rAccess := &model.RuleAccess{
 				RuleID: receive.ID, RemoteAgentID: utils.NewNullInt64(partner.ID),
 			}
@@ -160,7 +163,7 @@ func TestAddPartner(t *testing.T) {
 
 					Convey("Then it should return an error", func() {
 						So(err, ShouldBeError)
-						So(err.Error(), ShouldContainSubstring, "unknown protocol 'invalid'")
+						So(err.Error(), ShouldContainSubstring, `unknown protocol "invalid"`)
 					})
 				})
 			})
@@ -178,8 +181,8 @@ func TestAddPartner(t *testing.T) {
 
 					Convey("Then it should return an error", func() {
 						So(err, ShouldBeError)
-						So(err.Error(), ShouldContainSubstring, `failed to parse protocol `+
-							`configuration: json: unknown field "key"`)
+						So(err.Error(), ShouldContainSubstring, "failed to parse the "+
+							`partner protocol configuration: json: unknown field "key"`)
 					})
 				})
 			})
@@ -442,7 +445,7 @@ func TestUpdatePartner(t *testing.T) {
 
 					Convey("Then it should return an error", func() {
 						So(err, ShouldBeError)
-						So(err.Error(), ShouldContainSubstring, "unknown protocol 'invalid'")
+						So(err.Error(), ShouldContainSubstring, `unknown protocol "invalid"`)
 					})
 
 					Convey("Then the partner should stay unchanged", func() {
@@ -467,8 +470,8 @@ func TestUpdatePartner(t *testing.T) {
 
 					Convey("Then it should return an error", func() {
 						So(err, ShouldBeError)
-						So(err.Error(), ShouldContainSubstring, `failed to parse protocol `+
-							`configuration: json: unknown field "key"`)
+						So(err.Error(), ShouldContainSubstring, "failed to parse the "+
+							`partner protocol configuration: json: unknown field "key"`)
 					})
 
 					Convey("Then the partner should stay unchanged", func() {

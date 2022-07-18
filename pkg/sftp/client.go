@@ -26,7 +26,7 @@ func init() {
 type client struct {
 	pip *pipeline.Pipeline
 
-	protoConf   *config.SftpProtoConfig
+	protoConf   *config.SftpPartnerProtoConfig
 	sshConf     *ssh.ClientConfig
 	sshSession  *ssh.Client
 	sftpSession *sftp.Client
@@ -41,7 +41,7 @@ func NewClient(pip *pipeline.Pipeline) (pipeline.Client, *types.TransferError) {
 }
 
 func newClient(pip *pipeline.Pipeline) (*client, *types.TransferError) {
-	var protoConf config.SftpProtoConfig
+	var protoConf config.SftpPartnerProtoConfig
 	if err := json.Unmarshal(pip.TransCtx.RemoteAgent.ProtoConfig, &protoConf); err != nil {
 		pip.Logger.Error("Failed to parse SFTP partner protocol configuration: %s", err)
 

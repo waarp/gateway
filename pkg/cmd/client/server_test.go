@@ -68,8 +68,10 @@ func TestGetServer(t *testing.T) {
 
 			send := &model.Rule{Name: "send", IsSend: true, Path: "send_path"}
 			So(db.Insert(send).Run(), ShouldBeNil)
+
 			receive := &model.Rule{Name: "receive", IsSend: false, Path: "rcv_path"}
 			So(db.Insert(receive).Run(), ShouldBeNil)
+
 			sendAll := &model.Rule{Name: "send_all", IsSend: true, Path: "send_all_path"}
 			So(db.Insert(sendAll).Run(), ShouldBeNil)
 
@@ -77,6 +79,7 @@ func TestGetServer(t *testing.T) {
 				RuleID: send.ID, LocalAgentID: utils.NewNullInt64(server.ID),
 			}
 			So(db.Insert(sAccess).Run(), ShouldBeNil)
+
 			rAccess := &model.RuleAccess{
 				RuleID: receive.ID, LocalAgentID: utils.NewNullInt64(server.ID),
 			}
@@ -190,7 +193,7 @@ func TestAddServer(t *testing.T) {
 
 					Convey("Then it should return an error", func() {
 						So(err, ShouldBeError)
-						So(err.Error(), ShouldContainSubstring, "unknown protocol 'invalid'")
+						So(err.Error(), ShouldContainSubstring, `unknown protocol "invalid"`)
 					})
 				})
 			})
@@ -209,8 +212,8 @@ func TestAddServer(t *testing.T) {
 
 					Convey("Then it should return an error", func() {
 						So(err, ShouldBeError)
-						So(err.Error(), ShouldContainSubstring, `failed to parse protocol `+
-							`configuration: json: unknown field "key"`)
+						So(err.Error(), ShouldContainSubstring, `failed to parse the `+
+							`server protocol configuration: json: unknown field "key"`)
 					})
 				})
 			})
@@ -257,12 +260,13 @@ func TestAddServer(t *testing.T) {
 						So(db.Select(&servers).Run(), ShouldBeNil)
 						So(len(servers), ShouldEqual, 1)
 
-						var r66Conf config.R66ProtoConfig
+						var r66Conf config.R66ServerProtoConfig
 						So(json.Unmarshal(servers[0].ProtoConfig, &r66Conf), ShouldBeNil)
 						pwd, err := utils.AESDecrypt(database.GCM, r66Conf.ServerPassword)
 						So(err, ShouldBeNil)
 
 						So(pwd, ShouldEqual, "sesame")
+
 						r66Conf.ServerPassword = "sesame"
 						servers[0].ProtoConfig, err = json.Marshal(r66Conf)
 						So(err, ShouldBeNil)
@@ -539,7 +543,7 @@ func TestUpdateServer(t *testing.T) {
 
 					Convey("Then it should return an error", func() {
 						So(err, ShouldBeError)
-						So(err.Error(), ShouldContainSubstring, "unknown protocol 'invalid'")
+						So(err.Error(), ShouldContainSubstring, `unknown protocol "invalid"`)
 					})
 
 					Convey("Then the server should stay unchanged", func() {
@@ -564,8 +568,8 @@ func TestUpdateServer(t *testing.T) {
 
 					Convey("Then it should return an error", func() {
 						So(err, ShouldBeError)
-						So(err.Error(), ShouldContainSubstring, "failed to parse protocol "+
-							`configuration: json: unknown field "key"`)
+						So(err.Error(), ShouldContainSubstring, "failed to parse the "+
+							`server protocol configuration: json: unknown field "key"`)
 					})
 
 					Convey("Then the server should stay unchanged", func() {

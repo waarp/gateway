@@ -3,23 +3,26 @@ package config
 import (
 	"fmt"
 
+	"code.waarp.fr/lib/r66"
+	"golang.org/x/crypto/bcrypt"
+
 	"code.waarp.fr/apps/gateway/gateway/pkg/database"
 	"code.waarp.fr/apps/gateway/gateway/pkg/tk/utils"
 )
 
-const ProtocolR66 = "r66"
+const ProtocolR66TLS = "r66-tls"
 
 //nolint:gochecknoinits // init is used by design
 func init() {
-	ProtoConfigs[ProtocolR66] = &ConfigMaker{
-		Server:  func() ServerProtoConfig { return new(R66ServerProtoConfig) },
-		Partner: func() PartnerProtoConfig { return new(R66PartnerProtoConfig) },
-		Client:  func() ClientProtoConfig { return new(R66ClientProtoConfig) },
+	ProtoConfigs[ProtocolR66TLS] = &ConfigMaker{
+		Server:  func() ServerProtoConfig { return new(R66TLSServerProtoConfig) },
+		Partner: func() PartnerProtoConfig { return new(R66TLSPartnerProtoConfig) },
+		Client:  func() ClientProtoConfig { return new(R66TLSClientProtoConfig) },
 	}
 }
 
-// R66ServerProtoConfig represents the configuration of a local R66 server.
-type R66ServerProtoConfig struct {
+// R66TLSServerProtoConfig represents the configuration of a local R66-TLS server.
+type R66TLSServerProtoConfig struct {
 	// The block size for transfers. Optional, 65536 by default.
 	BlockSize uint32 `json:"blockSize,omitempty"`
 
@@ -29,10 +32,6 @@ type R66ServerProtoConfig struct {
 	// The server's password for server authentication.
 	ServerPassword string `json:"serverPassword,omitempty"`
 
-	// Specifies whether the partner uses TLS or not. Useless for servers.
-	//nolint:tagliatelle // FIXME cannot be changed for compatibility reasons
-	IsTLS *bool `json:"isTLS,omitempty"`
-
 	// If true, the final hash verification will be disabled.
 	NoFinalHash bool `json:"noFinalHash,omitempty"`
 
@@ -40,8 +39,7 @@ type R66ServerProtoConfig struct {
 	CheckBlockHash bool `json:"checkBlockHash,omitempty"`
 }
 
-// ValidServer checks if the configuration is valid for a R66 server.
-func (c *R66ServerProtoConfig) ValidServer() error {
+func (c *R66TLSServerProtoConfig) ValidServer() error {
 	if c.BlockSize == 0 {
 		c.BlockSize = 65536
 	}
@@ -60,8 +58,8 @@ func (c *R66ServerProtoConfig) ValidServer() error {
 	return nil
 }
 
-// R66PartnerProtoConfig represents the configuration of a remote R66 partner.
-type R66PartnerProtoConfig struct {
+// R66TLSPartnerProtoConfig represents the configuration of a remote R66-TLS partner.
+type R66TLSPartnerProtoConfig struct {
 	// The block size for transfers. Optional, 65536 by default.
 	BlockSize uint32 `json:"blockSize,omitempty"`
 
@@ -71,11 +69,6 @@ type R66PartnerProtoConfig struct {
 	// The server's password for server authentication.
 	ServerPassword string `json:"serverPassword,omitempty"`
 
-	// Specifies whether the partner uses TLS or not. Useless for servers.
-	// Deprecated: use the r66-tls protocol instead.
-	//nolint:tagliatelle // FIXME cannot be changed for compatibility reasons
-	IsTLS *bool `json:"isTLS,omitempty"`
-
 	// If true, the final hash verification will be disabled.
 	NoFinalHash bool `json:"noFinalHash,omitempty"`
 
@@ -83,10 +76,8 @@ type R66PartnerProtoConfig struct {
 	CheckBlockHash bool `json:"checkBlockHash,omitempty"`
 }
 
-// ValidPartner checks if the configuration is valid for a R66 partner.
-//
-//nolint:dupl //t's better to keep the TLS & non-TLS config separated, as they will probably differ in the future
-func (c *R66PartnerProtoConfig) ValidPartner() error {
+//nolint:dupl //it's better to keep the TLS & non-TLS config separated, as they will probably differ in the future
+func (c *R66TLSPartnerProtoConfig) ValidPartner() error {
 	if c.BlockSize == 0 {
 		c.BlockSize = 65536
 	}
@@ -95,13 +86,13 @@ func (c *R66PartnerProtoConfig) ValidPartner() error {
 		return fmt.Errorf("missing partner password: %w", errInvalidProtoConfig)
 	}
 
-	if utils.IsHash(c.ServerPassword) {
+	if _, err := bcrypt.Cost([]byte(c.ServerPassword)); err == nil {
 		return nil // password already hashed
 	}
 
-	pwd := utils.R66Hash(c.ServerPassword)
+	pwd := r66.CryptPass([]byte(c.ServerPassword))
 
-	hashed, err := utils.HashPassword(database.BcryptRounds, pwd)
+	hashed, err := utils.HashPassword(database.BcryptRounds, string(pwd))
 	if err != nil {
 		return fmt.Errorf("failed to hash server password: %w", err)
 	}
@@ -111,14 +102,10 @@ func (c *R66PartnerProtoConfig) ValidPartner() error {
 	return nil
 }
 
-// R66ClientProtoConfig represents the configuration of a local R66 client.
-type R66ClientProtoConfig struct {
+// R66TLSClientProtoConfig represents the configuration of a local R66-TLS client.
+type R66TLSClientProtoConfig struct {
 	// The block size for transfers. Optional, 65536 by default.
 	BlockSize uint32 `json:"blockSize,omitempty"`
-
-	// Specifies whether the partner uses TLS or not. Useless for servers.
-	//nolint:tagliatelle // FIXME cannot be changed for compatibility reasons
-	IsTLS *bool `json:"isTLS,omitempty"`
 
 	// If true, the final hash verification will be disabled.
 	NoFinalHash bool `json:"noFinalHash,omitempty"`
@@ -127,8 +114,7 @@ type R66ClientProtoConfig struct {
 	CheckBlockHash bool `json:"checkBlockHash,omitempty"`
 }
 
-// ValidClient checks if the configuration is valid for an R66 client.
-func (c *R66ClientProtoConfig) ValidClient() error {
+func (c *R66TLSClientProtoConfig) ValidClient() error {
 	if c.BlockSize == 0 {
 		c.BlockSize = 65536
 	}

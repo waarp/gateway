@@ -38,7 +38,7 @@ type SelfContext struct {
 }
 
 func initSelfTransfer(c convey.C, protocol string, constr serviceConstructor,
-	partConf, servConf config.ProtoConfig,
+	partConf config.PartnerProtoConfig, servConf config.ServerProtoConfig,
 ) *SelfContext {
 	feat, ok := protocols[protocol]
 	c.So(ok, convey.ShouldBeTrue)
@@ -70,7 +70,7 @@ func initSelfTransfer(c convey.C, protocol string, constr serviceConstructor,
 // necessary for a push self-transfer test of the given protocol. It then returns
 // all these element inside a SelfContext.
 func InitSelfPushTransfer(c convey.C, protocol string, constr serviceConstructor,
-	partConf, servConf config.ProtoConfig,
+	partConf config.PartnerProtoConfig, servConf config.ServerProtoConfig,
 ) *SelfContext {
 	ctx := initSelfTransfer(c, protocol, constr, partConf, servConf)
 	ctx.ClientRule = makeClientPush(c, ctx.DB, protocol)
@@ -84,7 +84,7 @@ func InitSelfPushTransfer(c convey.C, protocol string, constr serviceConstructor
 // necessary for a pull self-transfer test of the given protocol. It then returns
 // all these element inside a SelfContext.
 func InitSelfPullTransfer(c convey.C, protocol string, constr serviceConstructor,
-	partConf, servConf config.ProtoConfig,
+	partConf config.PartnerProtoConfig, servConf config.ServerProtoConfig,
 ) *SelfContext {
 	ctx := initSelfTransfer(c, protocol, constr, partConf, servConf)
 	ctx.ClientRule = makeClientPull(c, ctx.DB, protocol)

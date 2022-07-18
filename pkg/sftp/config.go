@@ -41,7 +41,8 @@ func makeFixedHostKeys(keys []ssh.PublicKey) ssh.HostKeyCallback {
 	return hk.check
 }
 
-func getSSHClientConfig(info *model.TransferContext, protoConfig *config.SftpProtoConfig) (*ssh.ClientConfig, error) {
+func getSSHClientConfig(info *model.TransferContext, protoConfig *config.SftpPartnerProtoConfig,
+) (*ssh.ClientConfig, error) {
 	var (
 		hostKeys []ssh.PublicKey
 		algos    []string

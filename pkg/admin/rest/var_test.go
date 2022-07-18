@@ -31,8 +31,17 @@ const (
 
 //nolint:gochecknoinits // init is used by design
 func init() {
-	config.ProtoConfigs[testProto1] = func() config.ProtoConfig { return new(testProtoConfig) }
-	config.ProtoConfigs[testProto2] = func() config.ProtoConfig { return new(testProtoConfig) }
+	config.ProtoConfigs[testProto1] = &config.ConfigMaker{
+		Server:  func() config.ServerProtoConfig { return new(testProtoConfig) },
+		Partner: func() config.PartnerProtoConfig { return new(testProtoConfig) },
+		Client:  func() config.ClientProtoConfig { return new(testProtoConfig) },
+	}
+	config.ProtoConfigs[testProto2] = &config.ConfigMaker{
+		Server:  func() config.ServerProtoConfig { return new(testProtoConfig) },
+		Partner: func() config.PartnerProtoConfig { return new(testProtoConfig) },
+		Client:  func() config.ClientProtoConfig { return new(testProtoConfig) },
+	}
+
 	constructors.ServiceConstructors[testProto1] = newTestServer
 }
 
@@ -42,6 +51,7 @@ type testProtoConfig struct {
 
 func (*testProtoConfig) ValidServer() error  { return nil }
 func (*testProtoConfig) ValidPartner() error { return nil }
+func (*testProtoConfig) ValidClient() error  { return nil }
 
 func hash(pwd string) string {
 	h, err := bcrypt.GenerateFromPassword([]byte(pwd), bcrypt.MinCost)

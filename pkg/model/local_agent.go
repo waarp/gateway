@@ -39,12 +39,12 @@ func (l *LocalAgent) GetID() int64      { return l.ID }
 
 //nolint:dupl // factorizing would add complexity
 func (l *LocalAgent) validateProtoConfig() error {
-	protoConf, err := config.GetProtoConfig(l.Protocol, l.ProtoConfig)
+	protoConf, err := config.ParseServerConfig(l.Protocol, l.ProtoConfig)
 	if err != nil {
 		return fmt.Errorf("cannot parse protocol config for server %q: %w", l.Name, err)
 	}
 
-	if r66Conf, ok := protoConf.(*config.R66ProtoConfig); ok && r66Conf.IsTLS != nil && *r66Conf.IsTLS {
+	if r66Conf, ok := protoConf.(*config.R66ServerProtoConfig); ok && r66Conf.IsTLS != nil && *r66Conf.IsTLS {
 		l.Protocol = config.ProtocolR66TLS
 	}
 

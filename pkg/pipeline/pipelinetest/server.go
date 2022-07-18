@@ -40,7 +40,7 @@ type testService interface {
 }
 
 func initServer(c convey.C, protocol string, constr serviceConstructor,
-	servConf config.ProtoConfig,
+	servConf config.ServerProtoConfig,
 ) *ServerContext {
 	t := initTestData(c)
 	port := testhelpers.GetFreePort(c)
@@ -64,7 +64,7 @@ func (s *ServerContext) Filename() string { return s.filename }
 // for a server push transfer test of the given protocol. It then returns all these
 // element inside a ServerContext.
 func InitServerPush(c convey.C, protocol string, constr serviceConstructor,
-	servConf config.ProtoConfig,
+	servConf config.ServerProtoConfig,
 ) *ServerContext {
 	ctx := initServer(c, protocol, constr, servConf)
 	ctx.ServerRule = makeServerPush(c, ctx.DB)
@@ -76,7 +76,7 @@ func InitServerPush(c convey.C, protocol string, constr serviceConstructor,
 // for a server pull transfer test of the given protocol. It then returns all these
 // element inside a ServerContext.
 func InitServerPull(c convey.C, protocol string, constr serviceConstructor,
-	servConf config.ProtoConfig,
+	servConf config.ServerProtoConfig,
 ) *ServerContext {
 	ctx := initServer(c, protocol, constr, servConf)
 	ctx.ServerRule = makeServerPull(c, ctx.DB)
@@ -112,7 +112,7 @@ func makeServerPull(c convey.C, db *database.DB) *model.Rule {
 }
 
 func makeServerConf(c convey.C, data *testData, port uint16, protocol string,
-	servConf config.ProtoConfig,
+	servConf config.ServerProtoConfig,
 ) (ag *model.LocalAgent, acc *model.LocalAccount) {
 	jsonServConf := json.RawMessage(`{}`)
 

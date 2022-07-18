@@ -11,6 +11,7 @@ const (
 	TableLocAgents      = "local_agents"
 	TableRemAccounts    = "remote_accounts"
 	TableRemAgents      = "remote_agents"
+	TableClients        = "clients"
 	TableRules          = "rules"
 	TableRuleAccesses   = "rule_access"
 	TableTasks          = "tasks"

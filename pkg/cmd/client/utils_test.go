@@ -42,9 +42,22 @@ var (
 
 //nolint:gochecknoinits // init is used by design
 func init() {
-	config.ProtoConfigs[testProto1] = func() config.ProtoConfig { return new(TestProtoConfig) }
-	config.ProtoConfigs[testProto2] = func() config.ProtoConfig { return new(TestProtoConfig) }
-	config.ProtoConfigs[testProtoErr] = func() config.ProtoConfig { return new(TestProtoConfigFail) }
+	config.ProtoConfigs[testProto1] = &config.ConfigMaker{
+		Server:  func() config.ServerProtoConfig { return new(TestProtoConfig) },
+		Partner: func() config.PartnerProtoConfig { return new(TestProtoConfig) },
+		Client:  func() config.ClientProtoConfig { return new(TestProtoConfig) },
+	}
+	config.ProtoConfigs[testProto2] = &config.ConfigMaker{
+		Server:  func() config.ServerProtoConfig { return new(TestProtoConfig) },
+		Partner: func() config.PartnerProtoConfig { return new(TestProtoConfig) },
+		Client:  func() config.ClientProtoConfig { return new(TestProtoConfig) },
+	}
+	config.ProtoConfigs[testProtoErr] = &config.ConfigMaker{
+		Server:  func() config.ServerProtoConfig { return new(TestProtoConfigFail) },
+		Partner: func() config.PartnerProtoConfig { return new(TestProtoConfigFail) },
+		Client:  func() config.ClientProtoConfig { return new(TestProtoConfigFail) },
+	}
+
 	constructors.ServiceConstructors[testProto1] = newTestServer
 }
 
@@ -97,6 +110,7 @@ type TestProtoConfig map[string]interface{}
 
 func (*TestProtoConfig) ValidServer() error  { return nil }
 func (*TestProtoConfig) ValidPartner() error { return nil }
+func (*TestProtoConfig) ValidClient() error  { return nil }
 
 type TestProtoConfigFail struct{}
 
@@ -108,6 +122,11 @@ func (*TestProtoConfigFail) ValidServer() error {
 func (*TestProtoConfigFail) ValidPartner() error {
 	//nolint:goerr113 // base case for a test
 	return errors.New("partner config validation failed")
+}
+
+func (*TestProtoConfigFail) ValidClient() error {
+	//nolint:goerr113 // base case for a test
+	return errors.New("client config validation failed")
 }
 
 func testFile() io.Writer {

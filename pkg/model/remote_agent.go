@@ -30,12 +30,12 @@ func (r *RemoteAgent) GetID() int64      { return r.ID }
 
 //nolint:dupl // factorizing would add complexity
 func (r *RemoteAgent) validateProtoConfig() error {
-	conf, err := config.GetProtoConfig(r.Protocol, r.ProtoConfig)
+	conf, err := config.ParsePartnerConfig(r.Protocol, r.ProtoConfig)
 	if err != nil {
 		return fmt.Errorf("cannot parse protocol configuration for server %q: %w", r.Name, err)
 	}
 
-	if r66Conf, ok := conf.(*config.R66ProtoConfig); ok && r66Conf.IsTLS != nil && *r66Conf.IsTLS {
+	if r66Conf, ok := conf.(*config.R66PartnerProtoConfig); ok && r66Conf.IsTLS != nil && *r66Conf.IsTLS {
 		r.Protocol = config.ProtocolR66TLS
 	}
 
