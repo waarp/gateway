@@ -16,14 +16,13 @@ import (
 
 type GatewayController struct {
 	DB      *database.DB
-	logger  *log.Logger
 	wasDown bool
 }
 
 // Run checks the database for new planned transfers and starts
 // them, as long as there are available transfer slots.
-func (c *GatewayController) Run(wg *sync.WaitGroup) {
-	if c.checkIsDBDown() {
+func (c *GatewayController) Run(wg *sync.WaitGroup, logger log.Logger) {
+	if c.checkIsDBDown(logger) {
 		return
 	}
 
@@ -44,7 +43,7 @@ func (c *GatewayController) Run(wg *sync.WaitGroup) {
 
 		go func() {
 			if err := pip.Run(); err != nil {
-				c.logger.Error("Transfer n°%d failed: %v", trans.ID, err)
+				logger.Error("Transfer n°%d failed: %v", trans.ID, err)
 			}
 
 			wg.Done()
@@ -52,7 +51,7 @@ func (c *GatewayController) Run(wg *sync.WaitGroup) {
 	}
 }
 
-func (c *GatewayController) checkIsDBDown() bool {
+func (c *GatewayController) checkIsDBDown(logger log.Logger) bool {
 	if st, _ := c.DB.State().Get(); st != service.Running {
 		c.wasDown = true
 
@@ -66,7 +65,7 @@ func (c *GatewayController) checkIsDBDown() bool {
 	query := c.DB.UpdateAll(&model.Transfer{}, database.UpdVals{"status": types.StatusInterrupted},
 		"owner=? AND status=?", conf.GlobalConfig.GatewayName, types.StatusRunning)
 	if err := query.Run(); err != nil {
-		c.logger.Error("Failed to access database: %s", err.Error())
+		logger.Error("Failed to access database: %s", err.Error())
 
 		return true
 	}

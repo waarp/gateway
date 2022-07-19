@@ -78,7 +78,7 @@ func TestControllerListen(t *testing.T) {
 				So(db.Insert(trans).Run(), ShouldBeNil)
 
 				Convey("When the controller starts new transfers", func() {
-					cont.Action(cont.wg)
+					cont.Action(cont.wg, *cont.logger)
 					Reset(func() {
 						_ = os.RemoveAll("tmp")
 						_ = os.RemoveAll(rule.Path)
@@ -104,13 +104,13 @@ func TestControllerListen(t *testing.T) {
 
 				Convey("When the transfer lasts longer than a controller tick", func() {
 					Convey("When the controller starts new transfers several times", func() {
-						cont.Action(cont.wg)
+						cont.Action(cont.wg, *cont.logger)
 						time.Sleep(10 * time.Millisecond)
 
-						cont.Action(cont.wg)
+						cont.Action(cont.wg, *cont.logger)
 						time.Sleep(10 * time.Millisecond)
 
-						cont.Action(cont.wg)
+						cont.Action(cont.wg, *cont.logger)
 
 						cont.wg.Wait()
 
@@ -149,7 +149,7 @@ func TestControllerListen(t *testing.T) {
 						gwController.DB.State().Set(service.Running, "")
 
 						Convey("When the controller starts new transfers again", func() {
-							cont.Action(cont.wg)
+							cont.Action(cont.wg, *cont.logger)
 							So(gwController.wasDown, ShouldBeFalse)
 
 							Convey("Then the running entry should now be "+
