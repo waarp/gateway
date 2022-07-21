@@ -236,7 +236,7 @@ func TestGetTransfer(t *testing.T) {
 			}
 			So(db.Insert(account).Run(), ShouldBeNil)
 
-			push := &model.Rule{Name: "push", IsSend: false, Path: "/push"}
+			push := &model.Rule{Name: "push", IsSend: true, Path: "/push"}
 			So(db.Insert(push).Run(), ShouldBeNil)
 
 			// add a transfer from another gateway

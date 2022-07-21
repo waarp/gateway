@@ -68,13 +68,45 @@ func transferInfoString(t *api.OutTransfer) string {
 }
 
 func TestDisplayTransfer(t *testing.T) {
-	Convey("Given a transfer entry", t, func() {
+	Convey("Given a send transfer entry", t, func() {
 		out = testFile()
 
 		trans := &api.OutTransfer{
 			ID:             1,
 			RemoteID:       "1234",
 			Rule:           "rule",
+			IsSend:         true,
+			Requester:      "requester",
+			Requested:      "requested",
+			LocalFilepath:  "/local/path",
+			RemoteFilepath: "/remote/path",
+			Start:          time.Now(),
+			Status:         types.StatusPlanned,
+			Step:           types.StepData.String(),
+			Filesize:       98765,
+			Progress:       1,
+			TaskNumber:     2,
+			ErrorCode:      types.TeForbidden.String(),
+			ErrorMsg:       "custom error message",
+		}
+		Convey("When calling the `displayTransfer` function", func() {
+			w := getColorable()
+			displayTransfer(w, trans)
+
+			Convey("Then it should display the transfer's info correctly", func() {
+				So(getOutput(), ShouldEqual, transferInfoString(trans))
+			})
+		})
+	})
+
+	Convey("Given a send transfer entry", t, func() {
+		out = testFile()
+
+		trans := &api.OutTransfer{
+			ID:             1,
+			RemoteID:       "1234",
+			Rule:           "rule",
+			IsSend:         false,
 			Requester:      "requester",
 			Requested:      "requested",
 			LocalFilepath:  "/local/path",
