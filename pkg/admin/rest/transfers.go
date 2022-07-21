@@ -98,6 +98,7 @@ func FromTransfer(db *database.DB, trans *model.Transfer) (*api.OutTransfer, err
 		RemoteID:       trans.RemoteTransferID,
 		Rule:           rule.Name,
 		IsServer:       trans.IsServer,
+		IsSend:         rule.IsSend,
 		Requested:      requested,
 		Requester:      requester,
 		Protocol:       proto,
