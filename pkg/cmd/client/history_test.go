@@ -5,6 +5,8 @@ import (
 	"fmt"
 	"net/http/httptest"
 	"net/url"
+	"sort"
+	"strings"
 	"testing"
 	"time"
 
@@ -73,6 +75,21 @@ func historyInfoString(h *api.OutHistory) string {
 		}
 	}
 
+	if len(h.TransferInfo) != 0 {
+		rv += "    Transfer info:\n"
+
+		info := make([]string, 0, len(h.TransferInfo))
+
+		for key, val := range h.TransferInfo {
+			info = append(info, fmt.Sprint("      - ", key, ": ", val))
+		}
+
+		sort.Strings(info)
+
+		rv += strings.Join(info, "\n")
+		rv += "\n"
+	}
+
 	return rv
 }
 
@@ -98,6 +115,7 @@ func TestDisplayHistory(t *testing.T) {
 			TaskNumber:     2,
 			ErrorMsg:       "error message",
 			ErrorCode:      types.TeUnknown,
+			TransferInfo:   map[string]any{"key1": "val1", "key2": 2, "key3": true},
 		}
 		Convey("When calling the `displayHistory` function", func() {
 			w := getColorable()
@@ -181,7 +199,7 @@ func TestGetHistory(t *testing.T) {
 						So(command.Execute(params), ShouldBeNil)
 
 						Convey("Then it should display the entry's info", func() {
-							hist := rest.FromHistory(h)
+							hist, _ := rest.FromHistory(db, h)
 							So(getOutput(), ShouldEqual, historyInfoString(hist))
 						})
 					})
@@ -284,10 +302,14 @@ func TestListHistory(t *testing.T) {
 				So(db.Insert(h3).Run(), ShouldBeNil)
 				So(db.Insert(h4).Run(), ShouldBeNil)
 
-				hist1 := rest.FromHistory(h1)
-				hist2 := rest.FromHistory(h2)
-				hist3 := rest.FromHistory(h3)
-				hist4 := rest.FromHistory(h4)
+				hist1, err := rest.FromHistory(db, h1)
+				So(err, ShouldBeNil)
+				hist2, err := rest.FromHistory(db, h2)
+				So(err, ShouldBeNil)
+				hist3, err := rest.FromHistory(db, h3)
+				So(err, ShouldBeNil)
+				hist4, err := rest.FromHistory(db, h4)
+				So(err, ShouldBeNil)
 
 				Convey("Given a no filters", func() {
 					args := []string{}

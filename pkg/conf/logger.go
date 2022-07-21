@@ -54,7 +54,7 @@ func NewLogBackend(level, logTo, facility, tag string) (*log.Backend, error) {
 	return backend, nil
 }
 
-func initBackend(level, logTo, facility, tag string) error {
+func InitBackend(level, logTo, facility, tag string) error {
 	backend, err := NewLogBackend(level, logTo, facility, tag)
 	if err != nil {
 		return err

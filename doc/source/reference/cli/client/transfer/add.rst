@@ -48,6 +48,12 @@ Programme un nouveau transfert avec les attributs ci-dessous.
    Le nom du fichier après le transfer. Par défaut, le nom d'origine est
    utilisé.
 
+.. option:: -i <KEY:VAL>, --info=<KEY:VAL>
+
+   Une liste d'informations personnalisées à attacher au transfert. Les informations
+   prennent la forme d'une liste de paires clé:valeur. Répéter l'option pour ajouter
+   des paires supplémentaires.
+
 |
 
 **Exemple**

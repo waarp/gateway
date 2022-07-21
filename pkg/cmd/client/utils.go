@@ -151,3 +151,23 @@ func listURL(s *ListOptions, sort string) {
 	query.Set("sort", sort)
 	addr.RawQuery = query.Encode()
 }
+
+func stringMapToAnyMap(input map[string]string) (map[string]any, error) {
+	output := map[string]any{}
+
+	for key, strVal := range input {
+		if !json.Valid([]byte(strVal)) {
+			strVal = fmt.Sprintf(`"%s"`, strVal)
+		}
+
+		var val any
+
+		if err := json.Unmarshal([]byte(strVal), &val); err != nil {
+			return nil, fmt.Errorf("cannot parse value '%s': %w", strVal, err)
+		}
+
+		output[key] = val
+	}
+
+	return output, nil
+}

@@ -6,6 +6,7 @@ import (
 	"io"
 	"net/http"
 	"net/url"
+	"sort"
 	"time"
 
 	"code.waarp.fr/apps/gateway/gateway/pkg/admin/rest/api"
@@ -78,31 +79,54 @@ func displayTransfer(w io.Writer, trans *api.OutTransfer) {
 	if trans.ErrorMsg != "" {
 		fmt.Fprintln(w, orange("    Error message:  "), trans.ErrorMsg)
 	}
+
+	if len(trans.TransferInfo) > 0 {
+		fmt.Fprintln(w, orange("    Transfer info:"))
+
+		info := make([]string, 0, len(trans.TransferInfo))
+
+		for key, val := range trans.TransferInfo {
+			info = append(info, fmt.Sprint("      - ", key, ": ", val))
+		}
+
+		sort.Strings(info)
+
+		for i := range info {
+			fmt.Fprintln(w, info[i])
+		}
+	}
 }
 
 // ######################## ADD ##########################
 
 //nolint:lll // struct tags can be long for command line args
 type TransferAdd struct {
-	File    string  `required:"yes" short:"f" long:"file" description:"The file to transfer"`
-	Out     *string `short:"o" long:"out" description:"The destination of the file"`
-	Way     string  `required:"yes" short:"w" long:"way" description:"The direction of the transfer" choice:"send" choice:"receive"`
-	Partner string  `required:"yes" short:"p" long:"partner" description:"The partner with which the transfer is performed"`
-	Account string  `required:"yes" short:"l" long:"login" description:"The login of the account used to connect on the partner"`
-	Rule    string  `required:"yes" short:"r" long:"rule" description:"The rule to use for the transfer"`
-	Date    string  `short:"d" long:"date" description:"The starting date (in ISO 8601 format) of the transfer"`
+	File         string            `required:"yes" short:"f" long:"file" description:"The file to transfer"`
+	Out          *string           `short:"o" long:"out" description:"The destination of the file"`
+	Way          string            `required:"yes" short:"w" long:"way" description:"The direction of the transfer" choice:"send" choice:"receive"`
+	Partner      string            `required:"yes" short:"p" long:"partner" description:"The partner with which the transfer is performed"`
+	Account      string            `required:"yes" short:"l" long:"login" description:"The login of the account used to connect on the partner"`
+	Rule         string            `required:"yes" short:"r" long:"rule" description:"The rule to use for the transfer"`
+	Date         string            `short:"d" long:"date" description:"The starting date (in ISO 8601 format) of the transfer"`
+	TransferInfo map[string]string `short:"i" long:"info" description:"Custom information about the transfer, in key:val format. Can be repeated."`
 
 	Name *string `short:"n" long:"name" description:"[DEPRECATED] The name of the file after the transfer"` // Deprecated: the source name is used instead
 }
 
 func (t *TransferAdd) Execute([]string) error {
+	info, err := stringMapToAnyMap(t.TransferInfo)
+	if err != nil {
+		return err
+	}
+
 	trans := api.InTransfer{
-		Partner: t.Partner,
-		Account: t.Account,
-		IsSend:  dirToBoolPtr(t.Way),
-		File:    t.File,
-		Output:  t.Out,
-		Rule:    t.Rule,
+		Partner:      t.Partner,
+		Account:      t.Account,
+		IsSend:       dirToBoolPtr(t.Way),
+		File:         t.File,
+		Output:       t.Out,
+		Rule:         t.Rule,
+		TransferInfo: info,
 	}
 
 	if t.Name != nil {

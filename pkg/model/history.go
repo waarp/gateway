@@ -177,3 +177,9 @@ func (h *HistoryEntry) Restart(db database.Access, date time.Time) (*Transfer, d
 func (h *HistoryEntry) GetTransferInfo(db database.ReadAccess) (map[string]interface{}, database.Error) {
 	return getTransferInfo(db, h.ID)
 }
+
+// SetTransferInfo replaces all the TransferInfo in the database of the given
+// history entry by those given in the map parameter.
+func (h *HistoryEntry) SetTransferInfo(db *database.DB, info map[string]interface{}) database.Error {
+	return setTransferInfo(db, info, h.ID, true)
+}

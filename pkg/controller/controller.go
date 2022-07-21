@@ -18,7 +18,7 @@ import (
 // Controller is the service responsible for checking the database for new
 // transfers at regular intervals, and starting those new transfers.
 type Controller struct {
-	Action func(*sync.WaitGroup)
+	Action func(*sync.WaitGroup, log.Logger)
 
 	ticker *time.Ticker
 	logger *log.Logger
@@ -44,7 +44,7 @@ func (c *Controller) listen() {
 
 				return
 			case <-c.ticker.C:
-				c.Action(c.wg)
+				c.Action(c.wg, *c.logger)
 			}
 		}
 	}()

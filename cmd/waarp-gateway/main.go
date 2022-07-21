@@ -153,7 +153,7 @@ func main() {
 	}
 
 	if err := wg.Main(parser, os.Args[1:]); err != nil {
-		fmt.Fprintln(os.Stderr, err)
+		// fmt.Fprintln(os.Stderr, err)
 		os.Exit(1)
 	}
 }

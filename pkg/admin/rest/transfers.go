@@ -93,6 +93,11 @@ func FromTransfer(db *database.DB, trans *model.Transfer) (*api.OutTransfer, err
 		src = filepath.Base(trans.LocalPath)
 	}
 
+	info, iErr := trans.GetTransferInfo(db)
+	if iErr != nil {
+		return nil, iErr
+	}
+
 	return &api.OutTransfer{
 		ID:             trans.ID,
 		RemoteID:       trans.RemoteTransferID,
@@ -102,9 +107,6 @@ func FromTransfer(db *database.DB, trans *model.Transfer) (*api.OutTransfer, err
 		Requested:      requested,
 		Requester:      requester,
 		Protocol:       proto,
-		TrueFilepath:   trans.LocalPath,
-		SourcePath:     src,
-		DestPath:       dst,
 		LocalFilepath:  trans.LocalPath,
 		RemoteFilepath: trans.RemotePath,
 		Filesize:       trans.Filesize,
@@ -115,6 +117,11 @@ func FromTransfer(db *database.DB, trans *model.Transfer) (*api.OutTransfer, err
 		TaskNumber:     trans.TaskNumber,
 		ErrorCode:      trans.Error.Code.String(),
 		ErrorMsg:       trans.Error.Details,
+		TransferInfo:   info,
+		TrueFilepath:   trans.LocalPath,
+		SourcePath:     src,
+		DestPath:       dst,
+		StartDate:      trans.Start.Local(),
 	}, nil
 }
 
@@ -172,6 +179,10 @@ func addTransfer(logger *log.Logger, db *database.DB) http.HandlerFunc {
 		}
 
 		if err := db.Insert(trans).Run(); handleError(w, logger, err) {
+			return
+		}
+
+		if err := trans.SetTransferInfo(db, jsonTrans.TransferInfo); handleError(w, logger, err) {
 			return
 		}
 

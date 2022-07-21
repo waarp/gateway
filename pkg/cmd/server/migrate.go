@@ -75,7 +75,7 @@ func (cmd *MigrateCommand) getMigrationConf() (*conf.ServerConfig, *log.Logger, 
 		return nil, nil, fmt.Errorf("cannot initialize log backend: %w", err2)
 	}
 
-	config.Log = makeLogConf(cmd.Verbose)
+	config.Log = MakeLogConf(cmd.Verbose)
 
 	return config, back.NewLogger("Migration"), nil
 }

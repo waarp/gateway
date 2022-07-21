@@ -12,7 +12,7 @@ import (
 	"code.waarp.fr/apps/gateway/gateway/pkg/database"
 )
 
-func makeLogConf(verbose []bool) conf.LogConfig {
+func MakeLogConf(verbose []bool) conf.LogConfig {
 	logConf := conf.LogConfig{LogTo: "/dev/null", Level: "ERROR"}
 
 	switch len(verbose) {
@@ -34,7 +34,7 @@ func initImportExport(configFile string, verbose []bool) (*database.DB, *log.Log
 		return nil, nil, fmt.Errorf("cannot load server config: %w", err)
 	}
 
-	config.Log = makeLogConf(verbose)
+	config.Log = MakeLogConf(verbose)
 
 	back, err2 := conf.NewLogBackend(config.Log.Level, config.Log.LogTo,
 		config.Log.SyslogFacility, "waarp-gateway")
@@ -70,8 +70,15 @@ func (i *ImportCommand) Execute([]string) error {
 
 	defer func() { _ = db.Stop(context.Background()) }() //nolint:errcheck // cannot handle the error
 
+	return i.Run(db, logger)
+}
+
+func (i *ImportCommand) Run(db *database.DB, logger *log.Logger) error {
 	f := os.Stdin
+
 	if i.File != "" {
+		var err error
+
 		f, err = os.Open(i.File)
 		if err != nil {
 			return fmt.Errorf("failed to open file: %w", err)

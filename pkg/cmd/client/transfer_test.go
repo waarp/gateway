@@ -6,6 +6,8 @@ import (
 	"net/http/httptest"
 	"net/url"
 	"path/filepath"
+	"sort"
+	"strings"
 	"testing"
 	"time"
 
@@ -64,6 +66,21 @@ func transferInfoString(t *api.OutTransfer) string {
 		rv += "    Error message:   " + t.ErrorMsg + "\n"
 	}
 
+	if len(t.TransferInfo) != 0 {
+		rv += "    Transfer info:\n"
+
+		info := make([]string, 0, len(t.TransferInfo))
+
+		for key, val := range t.TransferInfo {
+			info = append(info, fmt.Sprint("      - ", key, ": ", val))
+		}
+
+		sort.Strings(info)
+
+		rv += strings.Join(info, "\n")
+		rv += "\n"
+	}
+
 	return rv
 }
 
@@ -119,6 +136,7 @@ func TestDisplayTransfer(t *testing.T) {
 			TaskNumber:     2,
 			ErrorCode:      types.TeForbidden.String(),
 			ErrorMsg:       "custom error message",
+			TransferInfo:   map[string]any{"key1": "val1", "key2": 2, "key3": true},
 		}
 		Convey("When calling the `displayTransfer` function", func() {
 			w := getColorable()
@@ -170,6 +188,7 @@ func TestAddTransfer(t *testing.T) {
 					"--way", rule.Direction(), "--rule", rule.Name,
 					"--file", "src_dir/test_file", "--out", "dst_dir/test_file",
 					"--date", "2020-01-01T01:00:00+00:00",
+					"--info", `key1:val1`, "--info", "key2:2", "--info", "key3:true",
 				}
 
 				Convey("When executing the command", func() {
@@ -203,6 +222,12 @@ func TestAddTransfer(t *testing.T) {
 						So(transfers[0].Progress, ShouldEqual, 0)
 						So(transfers[0].TaskNumber, ShouldEqual, 0)
 						So(transfers[0].Error, ShouldBeZeroValue)
+
+						info, err := transfers[0].GetTransferInfo(db)
+						So(err, ShouldBeNil)
+						So(info, ShouldResemble, map[string]any{
+							"key1": "val1", "key2": float64(2), "key3": true,
+						})
 					})
 				})
 			})

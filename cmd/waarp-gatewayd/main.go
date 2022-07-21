@@ -27,7 +27,7 @@ func main() {
 	}
 
 	if err := wgd.Main(parser, os.Args[1:]); err != nil {
-		fmt.Fprintln(os.Stderr, err)
+		// fmt.Fprintln(os.Stderr, err)
 		os.Exit(1)
 	}
 }

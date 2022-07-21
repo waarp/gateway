@@ -5,7 +5,10 @@ import (
 	"fmt"
 	"os"
 
+	"code.waarp.fr/lib/log"
+
 	"code.waarp.fr/apps/gateway/gateway/pkg/backup"
+	"code.waarp.fr/apps/gateway/gateway/pkg/database"
 )
 
 //nolint:lll // tags can be long for flags
@@ -24,8 +27,15 @@ func (e *ExportCommand) Execute([]string) error {
 
 	defer func() { _ = db.Stop(context.Background()) }() //nolint:errcheck // cannot handle the error
 
+	return e.Run(db, logger)
+}
+
+func (e *ExportCommand) Run(db *database.DB, logger *log.Logger) error {
 	f := os.Stdout
+
 	if e.File != "" {
+		var err error
+
 		f, err = os.OpenFile(e.File, os.O_WRONLY|os.O_CREATE|os.O_TRUNC, 0o600)
 		if err != nil {
 			return fmt.Errorf("failed to open the output file: %w", err)

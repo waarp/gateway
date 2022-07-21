@@ -521,7 +521,7 @@ linters-settings:
     # Enable to ensure that nolint directives are all used. Default is true.
     allow-unused: true
     # Disable to ensure that nolint directives don't have a leading space. Default is true.
-    allow-leading-space: false
+    allow-leading-space: true
     # Exclude following linters from requiring an explanation.  Default is [].
     allow-no-explanation: []
     # Enable to require an explanation of nonzero length after each nolint directive. Default is false.
@@ -691,6 +691,7 @@ linters:
     - exhaustruct #non-nullable attributes don't need to be explicitly declared
     - nonamedreturns #named return variables are sometimes ok
     - execinquery #raises lots of false-positives, might re-enable once fixed
+    - nosnakecase #raises errors on imported variables (which we have no control on), might re-enable once fixed
   #presets:
   #  - bugs
   #  - unused

@@ -164,6 +164,10 @@ func (t *serverTransfer) updTransInfo(info *r66.UpdateInfo) error {
 		}
 	}
 
+	if fID := info.FileInfo.SystemData.FollowID; fID != 0 {
+		t.pip.TransCtx.TransInfo[internal.FollowID] = fID
+	}
+
 	err := internal.UpdateTransferInfo(info.FileInfo.UserContent, t.pip)
 
 	return checkAfter(t.store, err)

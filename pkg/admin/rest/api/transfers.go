@@ -9,14 +9,14 @@ import (
 // InTransfer is the JSON representation of a transfer in requests made to
 // the REST interface.
 type InTransfer struct {
-	Rule         string                 `json:"rule"`
-	Partner      string                 `json:"partner"`
-	Account      string                 `json:"account"`
-	IsSend       *bool                  `json:"isSend"`
-	File         string                 `json:"file"`
-	Output       *string                `json:"output"`
-	Start        time.Time              `json:"start,omitempty"`
-	TransferInfo map[string]interface{} `json:"transferInfo,omitempty"`
+	Rule         string         `json:"rule"`
+	Partner      string         `json:"partner"`
+	Account      string         `json:"account"`
+	IsSend       *bool          `json:"isSend"`
+	File         string         `json:"file"`
+	Output       *string        `json:"output"`
+	Start        time.Time      `json:"start,omitempty"`
+	TransferInfo map[string]any `json:"transferInfo,omitempty"`
 	// FileInfo     map[string]interface{} `json:"fileInfo,omitempty"`
 
 	// Deprecated fields
@@ -28,25 +28,25 @@ type InTransfer struct {
 // OutTransfer is the JSON representation of a transfer in responses sent by
 // the REST interface.
 type OutTransfer struct {
-	ID             uint64                 `json:"id"`
-	RemoteID       string                 `json:"remoteID,omitempty"` //nolint:tagliatelle // FIXME too late to change that
-	Rule           string                 `json:"rule"`
-	IsServer       bool                   `json:"isServer"`
-	IsSend         bool                   `json:"isSend"`
-	Requested      string                 `json:"requested"`
-	Requester      string                 `json:"requester"`
-	Protocol       string                 `json:"protocol"`
-	LocalFilepath  string                 `json:"localFilepath"`
-	RemoteFilepath string                 `json:"remoteFilepath"`
-	Filesize       int64                  `json:"filesize"`
-	Start          time.Time              `json:"start"`
-	Status         types.TransferStatus   `json:"status"`
-	Step           string                 `json:"step,omitempty"`
-	Progress       uint64                 `json:"progress,omitempty"`
-	TaskNumber     uint64                 `json:"taskNumber,omitempty"`
-	ErrorCode      string                 `json:"errorCode,omitempty"`
-	ErrorMsg       string                 `json:"errorMsg,omitempty"`
-	TransferInfo   map[string]interface{} `json:"transferInfo,omitempty"`
+	ID             uint64               `json:"id"`
+	RemoteID       string               `json:"remoteID,omitempty"` //nolint:tagliatelle // FIXME too late to change that
+	Rule           string               `json:"rule"`
+	IsServer       bool                 `json:"isServer"`
+	IsSend         bool                 `json:"isSend"`
+	Requested      string               `json:"requested"`
+	Requester      string               `json:"requester"`
+	Protocol       string               `json:"protocol"`
+	LocalFilepath  string               `json:"localFilepath"`
+	RemoteFilepath string               `json:"remoteFilepath"`
+	Filesize       int64                `json:"filesize"`
+	Start          time.Time            `json:"start"`
+	Status         types.TransferStatus `json:"status"`
+	Step           string               `json:"step,omitempty"`
+	Progress       uint64               `json:"progress,omitempty"`
+	TaskNumber     uint64               `json:"taskNumber,omitempty"`
+	ErrorCode      string               `json:"errorCode,omitempty"`
+	ErrorMsg       string               `json:"errorMsg,omitempty"`
+	TransferInfo   map[string]any       `json:"transferInfo,omitempty"`
 	// FileInfo     map[string]interface{} `json:"fileInfo,omitempty"`
 
 	// Deprecated fields

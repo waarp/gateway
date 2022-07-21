@@ -34,6 +34,8 @@ Consulter une entrée de l'historique
    :resjson number taskNumber: Le numéro du dernier traitement exécuté
    :resjson string errorCode: Le code d'erreur du transfert (si une erreur s'est produite)
    :resjson string errorMsg: Le message d'erreur du transfert (si une erreur s'est produite)
+   :resjson object transferInfo: Des informations de transfert personnalisées sous
+     la forme d'une liste de pairs clé:valeur, c'est-à-dire sous forme d'un objet JSON.
 
 
    **Exemple de requête**
@@ -64,4 +66,5 @@ Consulter une entrée de l'historique
            "start": "2019-01-01T01:00:00+02:00",
            "stop": "2019-01-01T02:00:00+02:00",
            "status": "DONE",
+           "transferInfo": { "key1": "val1", "key2": 2, "key3": true }
          }

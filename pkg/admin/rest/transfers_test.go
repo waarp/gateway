@@ -59,7 +59,8 @@ func TestAddTransfer(t *testing.T) {
 					"isSend": true,
 					"file": "src_dir/test.file",
 					"output": "/dst_dir/test.file",
-					"start": "2023-01-01T01:00:00+00:00"
+					"start": "2023-01-01T01:00:00+00:00",
+					"transferInfo": { "key1":"val1", "key2": 2, "key3": true }
 				}`)
 
 				Convey("When calling the handler", func() {
@@ -104,6 +105,12 @@ func TestAddTransfer(t *testing.T) {
 						So(transfers[0].Progress, ShouldEqual, 0)
 						So(transfers[0].TaskNumber, ShouldEqual, 0)
 						So(transfers[0].Error, ShouldBeZeroValue)
+
+						info, err := transfers[0].GetTransferInfo(db)
+						So(err, ShouldBeNil)
+						So(info, ShouldResemble, map[string]any{
+							"key1": "val1", "key2": float64(2), "key3": true,
+						})
 					})
 				})
 			})
@@ -262,6 +269,9 @@ func TestGetTransfer(t *testing.T) {
 				Start:      time.Date(2021, 1, 1, 1, 0, 0, 0, time.Local),
 			}
 			So(db.Insert(trans).Run(), ShouldBeNil)
+
+			infos := map[string]any{"key1": "val1", "key2": 2}
+			So(trans.SetTransferInfo(db, infos), ShouldBeNil)
 
 			Convey("Given a request with the valid transfer ID parameter", func() {
 				id := strconv.FormatUint(trans.ID, 10)

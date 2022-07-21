@@ -34,6 +34,8 @@ Consulter un transfert
    :resjson number taskNumber: Le numéro du traitement en cours d'exécution
    :resjson string errorCode: Le code d'erreur du transfert (si une erreur s'est produite)
    :resjson string errorMsg: Le message d'erreur du transfert (si une erreur s'est produite)
+   :resjson object transferInfo: Des informations de transfert personnalisées sous
+     la forme d'une liste de pairs clé:valeur, c'est-à-dire sous forme d'un objet JSON.
 
 
    |
@@ -66,4 +68,5 @@ Consulter un transfert
            "status": "RUNNING",
            "step": "DATA",
            "progress": 123456,
+           "transferInfo": { "key1": "val1", "key2": 2, "key3": true }
          }

@@ -64,6 +64,8 @@ Lister les transferts
    :resjsonarr number taskNumber: Le numéro du traitement en cours d'exécution
    :resjsonarr string errorCode: Le code d'erreur du transfert (si une erreur s'est produite)
    :resjsonarr string errorMsg: Le message d'erreur du transfert (si une erreur s'est produite)
+   :resjsonarr object transferInfo: Des informations de transfert personnalisées sous
+     la forme d'une liste de pairs clé:valeur, c'est-à-dire sous forme d'un objet JSON.
 
 
    |
@@ -97,6 +99,7 @@ Lister les transferts
              "status": "RUNNING",
              "step": "DATA",
              "progress": 123456,
+             "transferInfo": { "key1": "val1", "key2": 2, "key3": true }
            },{
              "id": 2,
              "isServer": true,
