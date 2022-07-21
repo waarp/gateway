@@ -99,7 +99,7 @@ func TestDisplayTransfer(t *testing.T) {
 		})
 	})
 
-	Convey("Given a send transfer entry", t, func() {
+	Convey("Given a receive transfer entry", t, func() {
 		out = testFile()
 
 		trans := &api.OutTransfer{
