@@ -3,6 +3,7 @@ package tasks
 import (
 	"context"
 	"fmt"
+	"path/filepath"
 
 	"code.waarp.fr/apps/gateway/gateway/pkg/database"
 	"code.waarp.fr/apps/gateway/gateway/pkg/model"
@@ -42,7 +43,8 @@ func (t *TransferTask) Validate(args map[string]string) error {
 }
 
 func getTransferInfo(db *database.DB, args map[string]string) (file string,
-	ruleID, agentID, accountID uint64, infoErr error) {
+	ruleID, agentID, accountID uint64, isSend bool, infoErr error,
+) {
 	fileName, fileOK := args["file"]
 	if !fileOK || fileName == "" {
 		infoErr = fmt.Errorf("missing transfer file: %w", errBadTaskArguments)
@@ -99,15 +101,24 @@ func getTransferInfo(db *database.DB, args map[string]string) (file string,
 		return
 	}
 
-	return fileName, rule.ID, agent.ID, acc.ID, nil
+	return fileName, rule.ID, agent.ID, acc.ID, rule.IsSend, nil
 }
 
 // Run executes the task by scheduling a new transfer with the given parameters.
 func (t *TransferTask) Run(_ context.Context, args map[string]string,
-	db *database.DB, _ *model.TransferContext) (string, error) {
-	file, ruleID, agentID, accID, err := getTransferInfo(db, args)
+	db *database.DB, _ *model.TransferContext,
+) (string, error) {
+	file, ruleID, agentID, accID, isSend, err := getTransferInfo(db, args)
 	if err != nil {
 		return err.Error(), err
+	}
+
+	localPath := filepath.Base(file)
+	remotePath := file
+
+	if isSend {
+		localPath = file
+		remotePath = filepath.Base(file)
 	}
 
 	trans := &model.Transfer{
@@ -115,8 +126,8 @@ func (t *TransferTask) Run(_ context.Context, args map[string]string,
 		IsServer:   false,
 		AgentID:    agentID,
 		AccountID:  accID,
-		LocalPath:  file,
-		RemotePath: file,
+		LocalPath:  localPath,
+		RemotePath: remotePath,
 	}
 
 	if err := db.Insert(trans).Run(); err != nil {

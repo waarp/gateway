@@ -10,6 +10,7 @@ import (
 
 	"code.waarp.fr/apps/gateway/gateway/pkg/database"
 	"code.waarp.fr/apps/gateway/gateway/pkg/model"
+	"code.waarp.fr/apps/gateway/gateway/pkg/tk/utils"
 )
 
 func TestTransferValidate(t *testing.T) {
@@ -72,12 +73,19 @@ func TestTransferRun(t *testing.T) {
 	Convey("Given a coherent database", t, func(c C) {
 		db := database.TestDatabase(c)
 
-		rule := &model.Rule{
+		push := &model.Rule{
 			Name:   "transfer rule",
 			IsSend: true,
 			Path:   "rule/path",
 		}
-		So(db.Insert(rule).Run(), ShouldBeNil)
+		So(db.Insert(push).Run(), ShouldBeNil)
+
+		pull := &model.Rule{
+			Name:   "transfer rule",
+			IsSend: false,
+			Path:   "rule/path",
+		}
+		So(db.Insert(pull).Run(), ShouldBeNil)
 
 		partner := &model.RemoteAgent{
 			Name:        "test partner",
@@ -94,13 +102,13 @@ func TestTransferRun(t *testing.T) {
 		}
 		So(db.Insert(account).Run(), ShouldBeNil)
 
-		Convey("Given a 'TRANSFER' task", func() {
+		Convey("Given a send 'TRANSFER' task", func() {
 			trans := &TransferTask{}
 			args := map[string]string{
 				"file": "/test/file",
 				"to":   partner.Name,
 				"as":   account.Login,
-				"rule": rule.Name,
+				"rule": push.Name,
 			}
 
 			Convey("Given that the parameters are valid", func() {
@@ -112,6 +120,14 @@ func TestTransferRun(t *testing.T) {
 
 						Convey("Then the log message should be empty", func() {
 							So(msg, ShouldBeEmpty)
+
+							Convey("Then the database should contain the transfer", func() {
+								t := model.Transfer{}
+								So(db.Get(&t, "is_server=? AND agent_id=? AND account_id=? AND rule_id=?",
+									false, partner.ID, account.ID, push.ID).Run(), ShouldBeNil)
+								So(t.LocalPath, ShouldResemble, utils.ToOSPath("/test/file"))
+								So(t.RemotePath, ShouldResemble, "file")
+							})
 						})
 					})
 				})
@@ -131,6 +147,95 @@ func TestTransferRun(t *testing.T) {
 							So(msg, ShouldEqual, fmt.Sprintf(
 								"failed to retrieve partner '%s': partner not found",
 								args["to"]))
+						})
+					})
+				})
+			})
+
+			Convey("Given that the account does not exist", func() {
+				args["as"] = "toto"
+
+				Convey("When running the task", func() {
+					msg, err := trans.Run(context.Background(), args, db, nil)
+
+					Convey("Then it should return an error", func() {
+						So(err, ShouldNotBeNil)
+
+						Convey("Then the log message should say that the 'as' "+
+							"parameter is invalid", func() {
+							So(msg, ShouldEqual, fmt.Sprintf(
+								"failed to retrieve account '%s': remote account not found",
+								args["as"]))
+						})
+					})
+				})
+			})
+
+			Convey("Given that the rule does not exist", func() {
+				args["rule"] = "toto"
+
+				Convey("When running the task", func() {
+					msg, err := trans.Run(context.Background(), args, db, nil)
+
+					Convey("Then it should return an error", func() {
+						So(err, ShouldNotBeNil)
+
+						Convey("Then the log message should say that the 'rule' "+
+							"parameter is invalid", func() {
+							So(msg, ShouldEqual, fmt.Sprintf(
+								"failed to retrieve rule '%s': rule not found",
+								args["rule"]))
+						})
+					})
+				})
+			})
+		})
+
+		Convey("Given a receive 'TRANSFER' task", func() {
+			trans := &TransferTask{}
+			args := map[string]string{
+				"file": "/test/file",
+				"from": partner.Name,
+				"as":   account.Login,
+				"rule": pull.Name,
+			}
+
+			Convey("Given that the parameters are valid", func() {
+				Convey("When running the task", func() {
+					msg, err := trans.Run(context.Background(), args, db, nil)
+
+					Convey("Then it should NOT return an error", func() {
+						So(err, ShouldBeNil)
+
+						Convey("Then the log message should be empty", func() {
+							So(msg, ShouldBeEmpty)
+
+							Convey("Then the database should contain the transfer", func() {
+								t := model.Transfer{}
+								So(db.Get(&t, "is_server=? AND agent_id=? AND account_id=? AND rule_id=?",
+									false, partner.ID, account.ID, pull.ID).Run(), ShouldBeNil)
+								So(t.LocalPath, ShouldResemble, "file")
+								So(t.RemotePath, ShouldResemble, utils.ToOSPath("/test/file"))
+							})
+						})
+					})
+				})
+			})
+
+			Convey("Given that the partner does not exist", func() {
+				args["from"] = "toto"
+
+				Convey("When running the task", func() {
+					msg, err := trans.Run(context.Background(), args, db, nil)
+
+					Convey("Then it should return an error", func() {
+						So(err, ShouldNotBeNil)
+
+						Convey("Then the log message should say that the 'to' "+
+							"parameter is invalid", func() {
+							So(msg, ShouldEqual, fmt.Sprintf(
+								"failed to retrieve partner '%s': partner not found",
+								args["from"]))
 						})
 					})
 				})
