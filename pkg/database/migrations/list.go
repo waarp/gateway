@@ -120,9 +120,15 @@ var Migrations = []change{
 	{ // #22
 		Description: "Bump the database version to 0.5.2",
 		Script:      bumpVersion{from: "0.5.1", to: "0.5.2"},
+		VersionTag:  "0.5.2",
 	},
 	{ // #23
 		Description: "Add a 'is_history' column to the transfer info table",
 		Script:      ver0_6_0AddTransferInfoIsHistory{},
+	},
+	{ // #24
+		Description: "Bump the database version to 0.6.0",
+		Script:      bumpVersion{from: "0.5.2", to: "0.6.0"},
+		VersionTag:  "0.6.0",
 	},
 }

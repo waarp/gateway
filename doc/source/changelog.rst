@@ -3,7 +3,12 @@
 Historique des versions
 =======================
 
-* :release:`0.6.0 <>`
+* :release:`0.6.0 <2022-07-22>`
+* :bug:`337` La tâche *TRANSFER* n'utilise plus la même arborescence en local et
+  en distant lors de la programmation d'un transferts. Cela pouvait causer des
+  problèmes lorsque les deux arborescences n'étaient pas similaires.
+* :bug:`338` Le sens de transfert renvoyé par l'API REST est désormais correct
+  (précédemment, tous les transferts étaient marqués comme étant en réception).
 * :bug:`-` Correction d'une erreur *'account not found'* pouvant survenir lors
   d'un import de configuration si la base de données est partagée entre plusieurs
   agents.

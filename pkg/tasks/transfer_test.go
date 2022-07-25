@@ -215,7 +215,7 @@ func TestTransferRun(t *testing.T) {
 								So(db.Get(&t, "is_server=? AND agent_id=? AND account_id=? AND rule_id=?",
 									false, partner.ID, account.ID, pull.ID).Run(), ShouldBeNil)
 								So(t.LocalPath, ShouldResemble, "file")
-								So(t.RemotePath, ShouldResemble, utils.ToOSPath("/test/file"))
+								So(t.RemotePath, ShouldResemble, "/test/file")
 							})
 						})
 					})
