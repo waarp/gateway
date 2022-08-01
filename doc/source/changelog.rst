@@ -3,6 +3,8 @@
 Historique des versions
 =======================
 
+* :bug:`340` Correction d'une erreur causant l'échec des migrations de base de 
+  données due à une mauvaise prise en compte du fichier de configuration.
 * :bug:`341` La commande de listing des partneraires liste correctement les 
   partenaires au lieu des serveur locaux.
 * :release:`0.6.0 <2022-07-22>`
