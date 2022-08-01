@@ -3,6 +3,8 @@
 Historique des versions
 =======================
 
+* :bug:`341` La commande de listing des partneraires liste correctement les 
+  partenaires au lieu des serveur locaux.
 * :release:`0.6.0 <2022-07-22>`
 * :bug:`337` La tâche *TRANSFER* n'utilise plus la même arborescence en local et
   en distant lors de la programmation d'un transferts. Cela pouvait causer des
