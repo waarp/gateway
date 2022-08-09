@@ -37,7 +37,7 @@ type commands struct {
 	Partner struct {
 		Add  wg.PartnerAdd       `command:"add" description:"Add a new partner"`
 		Get  wg.PartnerGet       `command:"get" description:"Retrieve a partner's information"`
-		List wg.ServerList       `command:"list" description:"List the known partners"`
+		List wg.PartnerList      `command:"list" description:"List the known partners"`
 		Upd  wg.PartnerUpdate    `command:"update" description:"Update a partner"`
 		Del  wg.PartnerDelete    `command:"delete" description:"Delete a partner"`
 		Auth wg.PartnerAuthorize `command:"authorize" description:"Authorize a partner to use a rule"`
