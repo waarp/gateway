@@ -3,7 +3,6 @@ package wgd
 import (
 	"fmt"
 	"io"
-	"io/ioutil"
 	"os"
 
 	"code.waarp.fr/lib/log"
@@ -36,7 +35,7 @@ func (cmd *MigrateCommand) Execute([]string) error {
 
 	var out io.Writer
 	if cmd.DryRun {
-		out = ioutil.Discard
+		out = io.Discard
 	}
 
 	if cmd.ExtractToFile != "" {
