@@ -3,7 +3,6 @@ package wgd
 import (
 	"fmt"
 	"io"
-	"io/ioutil"
 	"os"
 
 	"code.waarp.fr/lib/log"
@@ -29,14 +28,14 @@ type MigrateCommand struct {
 }
 
 func (cmd *MigrateCommand) Execute([]string) error {
-	config, logger, err := cmd.getMigrationConf()
+	config, logger, err := initMigration(string(cmd.ConfigFile), cmd.Verbose)
 	if err != nil {
 		return err
 	}
 
 	var out io.Writer
 	if cmd.DryRun {
-		out = ioutil.Discard
+		out = io.Discard
 	}
 
 	if cmd.ExtractToFile != "" {
@@ -63,11 +62,13 @@ func (cmd *MigrateCommand) Execute([]string) error {
 	return nil
 }
 
-func (cmd *MigrateCommand) getMigrationConf() (*conf.ServerConfig, *log.Logger, error) {
-	config, err := conf.ParseServerConfig(string(cmd.ConfigFile))
+func initMigration(configFile string, verbose []bool) (*conf.ServerConfig, *log.Logger, error) {
+	config, err := conf.ParseServerConfig(configFile)
 	if err != nil {
 		return nil, nil, fmt.Errorf("cannot load server config: %w", err)
 	}
+
+	config.Log = MakeLogConf(verbose)
 
 	back, err2 := conf.NewLogBackend(config.Log.Level, config.Log.LogTo,
 		config.Log.SyslogFacility, "waarp-gateway")
@@ -75,7 +76,7 @@ func (cmd *MigrateCommand) getMigrationConf() (*conf.ServerConfig, *log.Logger, 
 		return nil, nil, fmt.Errorf("cannot initialize log backend: %w", err2)
 	}
 
-	config.Log = MakeLogConf(cmd.Verbose)
+	conf.GlobalConfig = *config
 
 	return config, back.NewLogger("Migration"), nil
 }
