@@ -3,10 +3,12 @@
 Historique des versions
 =======================
 
+* :release:`0.6.1 <2022-08-18>`
 * :bug:`340` Correction d'une erreur causant l'échec des migrations de base de 
   données due à une mauvaise prise en compte du fichier de configuration.
 * :bug:`341` La commande de listing des partneraires liste correctement les 
   partenaires au lieu des serveur locaux.
+
 * :release:`0.6.0 <2022-07-22>`
 * :bug:`337` La tâche *TRANSFER* n'utilise plus la même arborescence en local et
   en distant lors de la programmation d'un transferts. Cela pouvait causer des
