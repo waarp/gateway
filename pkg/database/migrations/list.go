@@ -20,6 +20,7 @@ type change struct {
 // Migrations should be declared here in chronological order. This means that
 // new migrations should ALWAYS be added at the end of the list so that the order
 // never changes.
+//
 //nolint:gochecknoglobals // global var is used by design
 var Migrations = []change{
 	{ // #0
@@ -129,6 +130,11 @@ var Migrations = []change{
 	{ // #24
 		Description: "Bump the database version to 0.6.0",
 		Script:      bumpVersion{from: "0.5.2", to: "0.6.0"},
+		VersionTag:  "0.6.0",
+	},
+	{ // #25
+		Description: "Bump the database version to 0.6.1",
+		Script:      bumpVersion{from: "0.6.0", to: "0.6.1"},
 		VersionTag:  "0.6.0",
 	},
 }
