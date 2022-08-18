@@ -44,12 +44,16 @@ contents:
     dst: "/etc/waarp-gateway/gatewayd.ini"
     type: config
 
-empty_folders:
-- /var/lib/waarp-gateway/in
-- /var/lib/waarp-gateway/out
-- /var/lib/waarp-gateway/work
-- /var/lib/waarp-gateway/db
-- /var/log/waarp-gateway
+  - dst: /var/lib/waarp-gateway/in
+    type: dir
+  - dst: /var/lib/waarp-gateway/out
+    type: dir
+  - dst: /var/lib/waarp-gateway/work
+    type: dir
+  - dst: /var/lib/waarp-gateway/db
+    type: dir
+  - dst: /var/log/waarp-gateway
+    type: dir
 
 scripts:
   preinstall: dist/preinst.sh
