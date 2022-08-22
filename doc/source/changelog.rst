@@ -3,6 +3,9 @@
 Historique des versions
 =======================
 
+* :bug:`343` il était impossible de migrer la base de données vers la version
+  0.6.1.
+
 * :release:`0.6.1 <2022-08-18>`
 * :bug:`340` Correction d'une erreur causant l'échec des migrations de base de 
   données due à une mauvaise prise en compte du fichier de configuration.
