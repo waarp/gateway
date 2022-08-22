@@ -3,6 +3,7 @@
 Historique des versions
 =======================
 
+* :release:`0.6.2 <2022-08-22>`
 * :bug:`343` il était impossible de migrer la base de données vers la version
   0.6.1.
 
