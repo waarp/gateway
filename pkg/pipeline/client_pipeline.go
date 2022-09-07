@@ -16,6 +16,7 @@ import (
 // ClientTransfers is a synchronized map containing the pipelines of all currently
 // running client transfers. It can be used to interrupt transfers using the various
 // functions exposed by the TransferInterrupter interface.
+//
 //nolint:gochecknoglobals // global var is necessary so that transfers can be managed from admin
 var ClientTransfers = service.NewTransferMap()
 
@@ -234,7 +235,9 @@ func (c *ClientPipeline) Pause(ctx context.Context) error {
 			defer close(done)
 
 			if pa, ok := c.Client.(PauseHandler); ok {
-				_ = pa.Pause() //nolint:errcheck // error is irrelevant at this point
+				if err := pa.Pause(); err != nil {
+					c.Pip.Logger.Warning("Failed to pause remote transfer: %v", err)
+				}
 			} else {
 				c.Client.SendError(types.NewTransferError(types.TeStopped,
 					"transfer paused by user"))
@@ -282,7 +285,9 @@ func (c *ClientPipeline) Cancel(ctx context.Context) (err error) {
 			defer close(done)
 
 			if ca, ok := c.Client.(CancelHandler); ok {
-				_ = ca.Cancel() //nolint:errcheck // error is irrelevant at this point
+				if err := ca.Cancel(); err != nil {
+					c.Pip.Logger.Warning("Failed to cancel remote transfer: %v", err)
+				}
 			} else {
 				c.Client.SendError(types.NewTransferError(types.TeCanceled,
 					"transfer canceled by user"))

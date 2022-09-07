@@ -235,15 +235,8 @@ func listTransfers(logger *log.Logger, db *database.DB) http.HandlerFunc {
 func pauseTransfer(protoServices map[string]service.ProtoService) handler {
 	return func(logger *log.Logger, db *database.DB) http.HandlerFunc {
 		return func(w http.ResponseWriter, r *http.Request) {
-			trans, err := getTrans(r, db)
-			if handleError(w, logger, err) {
-				return
-			}
-
-			if trans.Status != types.StatusPlanned && trans.Status != types.StatusRunning {
-				err := badRequest("cannot pause an already interrupted transfer")
-				handleError(w, logger, err)
-
+			trans, tErr := getTrans(r, db)
+			if handleError(w, logger, tErr) {
 				return
 			}
 
@@ -263,12 +256,19 @@ func pauseTransfer(protoServices map[string]service.ProtoService) handler {
 					return
 				}
 
-				ctx, cancel := context.WithTimeout(context.Background(), time.Second)
+				ctx, cancel := context.WithTimeout(r.Context(), time.Second)
 				defer cancel()
 
 				ok, err := pips.Pause(ctx, trans.ID)
-				if !ok || err != nil {
-					handleError(w, logger, internal("failed to pause transfer"))
+				if !ok {
+					handleError(w, logger, internal("could not find a "+
+						"corresponding pipeline for transfer %d", trans.ID))
+
+					return
+				}
+
+				if err != nil {
+					handleError(w, logger, err)
 
 					return
 				}
@@ -277,8 +277,8 @@ func pauseTransfer(protoServices map[string]service.ProtoService) handler {
 
 				return
 			default:
-				err := badRequest("cannot pause an already interrupted transfer")
-				handleError(w, logger, err)
+				handleError(w, logger, badRequest("cannot pause an already "+
+					"interrupted transfer"))
 
 				return
 			}
@@ -289,8 +289,8 @@ func pauseTransfer(protoServices map[string]service.ProtoService) handler {
 func cancelTransfer(protoServices map[string]service.ProtoService) handler {
 	return func(logger *log.Logger, db *database.DB) http.HandlerFunc {
 		return func(w http.ResponseWriter, r *http.Request) {
-			trans, err := getTrans(r, db)
-			if handleError(w, logger, err) {
+			trans, tErr := getTrans(r, db)
+			if handleError(w, logger, tErr) {
 				return
 			}
 
@@ -300,12 +300,22 @@ func cancelTransfer(protoServices map[string]service.ProtoService) handler {
 					return
 				}
 
-				ctx, cancel := context.WithTimeout(context.Background(), time.Second)
+				ctx, cancel := context.WithTimeout(r.Context(), time.Second)
 				defer cancel()
 
 				ok, err := pips.Cancel(ctx, trans.ID)
-				if !ok || err != nil {
-					handleError(w, logger, internal("failed to pause transfer"))
+				if !ok {
+					logger.Warning("Could not find a corresponding pipeline "+
+						"for transfer %d", trans.ID)
+
+					trans.Status = types.StatusCancelled
+					if err := trans.ToHistory(db, logger, time.Time{}); handleError(w, logger, err) {
+						return
+					}
+				}
+
+				if err != nil {
+					handleError(w, logger, err)
 
 					return
 				}
