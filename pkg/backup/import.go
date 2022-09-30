@@ -8,7 +8,6 @@ import (
 	"errors"
 	"fmt"
 	"io"
-	"os"
 
 	"code.waarp.fr/apps/gateway/gateway/pkg/backup/file"
 	"code.waarp.fr/apps/gateway/gateway/pkg/conf"
@@ -35,7 +34,7 @@ const (
 // The reset parameter states whether the database should be reset before
 // importing. A value of 1 means 'reset', a value of 2 means
 // 'reset with no confirmation prompt', and any other value means 'no reset'.
-func ImportData(db *database.DB, r io.Reader, targets []string, dry bool, reset int8) error {
+func ImportData(db *database.DB, r io.Reader, targets []string, dry, reset bool) error {
 	logger := conf.GetLogger("import")
 	data := &file.Data{}
 
@@ -43,37 +42,19 @@ func ImportData(db *database.DB, r io.Reader, targets []string, dry bool, reset 
 		return fmt.Errorf("cannot read data: %w", err)
 	}
 
-	if reset == 1 {
-		var yes string
-
-		fmt.Fprintln(os.Stdout, "You are about to reset the database prior to the import.")
-		fmt.Fprintln(os.Stdout, "This operation cannot be undone. Do you wish to proceed anyway ?")
-		fmt.Fprintln(os.Stdout)
-		fmt.Fprint(os.Stdout, "(Type 'YES' in all caps to proceed): ")
-		fmt.Fscanf(os.Stdin, "%s", &yes) //nolint:gosec //error is handled bellow
-
-		if yes != "YES" {
-			fmt.Fprintln(os.Stderr, "Import aborted.")
-
-			return nil
-		}
-	}
-
-	isReset := reset == ImportReset || reset == ImportForceReset
-
 	transErr := db.Transaction(func(ses *database.Session) database.Error {
 		if utils.ContainsStrings(targets, "partners", "all") {
-			if err := importRemoteAgents(logger, ses, data.Remotes, isReset); err != nil {
+			if err := importRemoteAgents(logger, ses, data.Remotes, reset); err != nil {
 				return err
 			}
 		}
 		if utils.ContainsStrings(targets, "servers", "all") {
-			if err := importLocalAgents(logger, ses, data.Locals, isReset); err != nil {
+			if err := importLocalAgents(logger, ses, data.Locals, reset); err != nil {
 				return err
 			}
 		}
 		if utils.ContainsStrings(targets, "rules", "all") {
-			if err := importRules(logger, ses, data.Rules, isReset); err != nil {
+			if err := importRules(logger, ses, data.Rules, reset); err != nil {
 				return err
 			}
 		}
