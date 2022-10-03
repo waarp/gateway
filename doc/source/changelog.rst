@@ -3,6 +3,11 @@
 Historique des versions
 =======================
 
+* :feature:`225` Ajout d'une option 'TLSPassphrase' à la section 'Admin' du
+  fichier de configuration. Cela permet de renseigner le mot de passe de la
+  clé privé (passphrase) du serveur d'administration si celle-ci est chiffrée.
+  Il est donc désormais possible d'utiliser une clé privée chiffrée pour le
+  certificat TLS du serveur d'administration.
 * :feature:`285` Ajout d'une option ``-r, --reset-before-import`` à la commande
   d'import. Quand présente, cette option indique à la *gateway* que la base de
   données doit être vidée avant d'effectuer l'import. Ainsi, tous les éléments

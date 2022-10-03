@@ -5,17 +5,24 @@ package admin
 import (
 	"context"
 	"crypto/tls"
+	"encoding/pem"
 	"errors"
 	"fmt"
 	"net"
 	"net/http"
+	"os"
+	"path/filepath"
+	"time"
 
 	"code.waarp.fr/lib/log"
+	"go.step.sm/crypto/pemutil"
 
 	"code.waarp.fr/apps/gateway/gateway/pkg/conf"
 	"code.waarp.fr/apps/gateway/gateway/pkg/database"
 	"code.waarp.fr/apps/gateway/gateway/pkg/tk/service"
 )
+
+var ErrMissingKeyFile = errors.New("missing certificate private key")
 
 // Server is the administration service.
 type Server struct {
@@ -73,6 +80,65 @@ func checkAddress() (string, error) {
 	return "", fmt.Errorf("canot open listener: %w", err)
 }
 
+func (s *Server) makeTLSConfig() (*tls.Config, error) {
+	certFile := conf.GlobalConfig.Admin.TLSCert
+	keyFile := conf.GlobalConfig.Admin.TLSKey
+	passphrase := conf.GlobalConfig.Admin.TLSPassphrase
+
+	if keyFile == "" {
+		return nil, ErrMissingKeyFile
+	}
+
+	tlsConfig := &tls.Config{
+		MinVersion: tls.VersionTLS12,
+	}
+
+	if passphrase == "" {
+		cert, err := tls.LoadX509KeyPair(certFile, keyFile)
+		if err != nil {
+			return nil, fmt.Errorf("could not parse TLS certificate: %w", err)
+		}
+
+		tlsConfig.Certificates = []tls.Certificate{cert}
+
+		return tlsConfig, nil
+	}
+
+	keyCryptPEM, err := os.ReadFile(filepath.Clean(keyFile))
+	if err != nil {
+		return nil, fmt.Errorf("failed to read key file: %w", err)
+	}
+
+	keyBlock, _ := pem.Decode(keyCryptPEM)
+	if keyBlock == nil {
+		//nolint:goerr113 //this is a base error
+		return nil, fmt.Errorf("key file does not contain a valid PEM block")
+	}
+
+	keyDER, err := pemutil.DecryptPEMBlock(keyBlock, []byte(passphrase))
+	if err != nil {
+		return nil, fmt.Errorf("failed to decrypt private key: %w", err)
+	}
+
+	keyBlock.Bytes = keyDER
+	keyBlock.Headers = nil
+	keyPEM := pem.EncodeToMemory(keyBlock)
+
+	certPEM, err := os.ReadFile(filepath.Clean(certFile))
+	if err != nil {
+		return nil, fmt.Errorf("failed to read certificate file: %w", err)
+	}
+
+	cert, err := tls.X509KeyPair(certPEM, keyPEM)
+	if err != nil {
+		return nil, fmt.Errorf("could not parse TLS certificate: %w", err)
+	}
+
+	tlsConfig.Certificates = []tls.Certificate{cert}
+
+	return tlsConfig, nil
+}
+
 // initServer initializes the HTTP server instance using the parameters defined
 // in the Admin configuration.
 // If the configuration is invalid, this function returns an error.
@@ -83,20 +149,15 @@ func initServer(serv *Server) error {
 		return err
 	}
 
-	// Load TLS configuration
-	config := &conf.GlobalConfig.Admin
-
 	var tlsConfig *tls.Config
 
-	if config.TLSCert != "" && config.TLSKey != "" {
-		cert, err := tls.LoadX509KeyPair(config.TLSCert, config.TLSKey)
+	if conf.GlobalConfig.Admin.TLSCert != "" {
+		// Load TLS configuration
+		tlsConfig, err = serv.makeTLSConfig()
 		if err != nil {
-			return fmt.Errorf("could not load REST certificate: %w", err)
-		}
+			serv.logger.Error("Failed to make TLS configuration: %s", err)
 
-		tlsConfig = &tls.Config{
-			MinVersion:   tls.VersionTLS12,
-			Certificates: []tls.Certificate{cert},
+			return err
 		}
 	} else {
 		serv.logger.Info("No TLS certificate configured, using plain HTTP.")
@@ -106,10 +167,11 @@ func initServer(serv *Server) error {
 
 	// Create http.Server instance
 	serv.server = http.Server{
-		Addr:      addr,
-		TLSConfig: tlsConfig,
-		Handler:   handler,
-		ErrorLog:  serv.logger.AsStdLogger(log.LevelError),
+		Addr:              addr,
+		TLSConfig:         tlsConfig,
+		Handler:           handler,
+		ErrorLog:          serv.logger.AsStdLogger(log.LevelError),
+		ReadHeaderTimeout: time.Second,
 	}
 
 	return nil

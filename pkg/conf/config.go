@@ -17,10 +17,12 @@ import (
 
 // GlobalConfig is a global instance of ServerConfig containing the
 // configuration of the gateway instance.
+//
 //nolint:gochecknoglobals //global var is needed here for simplicity
 var GlobalConfig ServerConfig
 
 // ServerConfig holds the server configuration options
+//
 //nolint:lll // cannot split struct tags
 type ServerConfig struct {
 	GatewayName string `ini-name:"GatewayName" default:"waarp-gateway" description:"The name given to identify this gateway instance. If the the database is shared between multiple gateways, this name MUST be unique across these gateways."`
@@ -33,6 +35,7 @@ type ServerConfig struct {
 }
 
 // PathsConfig holds the server paths.
+//
 //nolint:lll // cannot split struct tags
 type PathsConfig struct {
 	GatewayHome   string `ini-name:"GatewayHome" description:"The root directory of the gateway. By default, it is the working directory of the process."`
@@ -47,6 +50,7 @@ type PathsConfig struct {
 }
 
 // LogConfig holds the server logging options.
+//
 //nolint:lll // cannot split struct tags
 type LogConfig struct {
 	Level          string `ini-name:"Level" default:"INFO" description:"All messages with a severity above this level will be logged. Possible values are DEBUG, INFO, WARNING, ERROR and CRITICAL."`
@@ -55,15 +59,18 @@ type LogConfig struct {
 }
 
 // AdminConfig holds the server administration options.
+//
 //nolint:lll // cannot split struct tags
 type AdminConfig struct {
-	Host    string `ini-name:"Host" default:"localhost" description:"The address used by the admin interface."`
-	Port    uint16 `ini-name:"Port" default:"8080" description:"The port used by the admin interface. If the port is 0, a free port will automatically be chosen."`
-	TLSCert string `ini-name:"TLSCert" description:"Path of the TLS certificate for the admin interface."`
-	TLSKey  string `ini-name:"TLSKey" description:"Path of the key of the TLS certificate."`
+	Host          string `ini-name:"Host" default:"localhost" description:"The address used by the admin interface."`
+	Port          uint16 `ini-name:"Port" default:"8080" description:"The port used by the admin interface. If the port is 0, a free port will automatically be chosen."`
+	TLSCert       string `ini-name:"TLSCert" description:"Path of the TLS certificate for the admin interface."`
+	TLSKey        string `ini-name:"TLSKey" description:"Path of the key of the TLS certificate."`
+	TLSPassphrase string `ini-name:"TLSPassphrase" description:""`
 }
 
 // DatabaseConfig holds the server database options.
+//
 //nolint:lll // cannot split struct tags
 type DatabaseConfig struct {
 	Type          string `ini-name:"Type" default:"sqlite" description:"Name of the RDBMS used for the gateway database. Possible values: sqlite, mysql, postgresql"`
@@ -77,6 +84,7 @@ type DatabaseConfig struct {
 }
 
 // ControllerConfig holds the transfer controller options.
+//
 //nolint:lll // cannot split struct tags
 type ControllerConfig struct {
 	Delay           time.Duration `ini-name:"Delay" default:"5s" description:"The frequency at which the database will be probed for new transfers"`
