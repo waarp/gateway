@@ -11,14 +11,39 @@ import (
 	"code.waarp.fr/apps/gateway/gateway/pkg/model"
 )
 
-func importRules(logger *log.Logger, db database.Access, list []file.Rule) database.Error {
-	for i := range list {
-		src := &list[i]
+func resetRules(logger *log.Logger, db database.Access) database.Error {
+	var rules model.Rules
+	if err := db.Select(&rules).Run(); err != nil {
+		logger.Error("Failed to retrieve the existing rules: %v", err)
 
-		//  Create model with basic info to check existence
+		return err
+	}
+
+	for i := range rules {
+		rule := &rules[i]
+		if err := db.Delete(rule).Run(); err != nil {
+			logger.Error("Failed to delete the existing rules: %v", err)
+
+			return err
+		}
+	}
+
+	return nil
+}
+
+func importRules(logger *log.Logger, db database.Access, list []file.Rule,
+	reset bool,
+) database.Error {
+	if reset {
+		if err := resetRules(logger, db); err != nil {
+			return err
+		}
+	}
+
+	for i := range list {
 		var rule model.Rule
 
-		// Check if rule exists
+		src := &list[i]
 		exists := true
 
 		err := db.Get(&rule, "name=? AND send=?", src.Name, src.IsSend).Run()
@@ -28,7 +53,6 @@ func importRules(logger *log.Logger, db database.Access, list []file.Rule) datab
 			return err
 		}
 
-		// Populate
 		rule.Name = src.Name
 		rule.IsSend = src.IsSend
 		rule.Path = src.Path
@@ -38,7 +62,6 @@ func importRules(logger *log.Logger, db database.Access, list []file.Rule) datab
 
 		importRuleCheckDeprecated(logger, src, &rule)
 
-		// Create/Update
 		if exists {
 			logger.Info("Update rule %s\n", rule.Name)
 			err = db.Update(&rule).Run()

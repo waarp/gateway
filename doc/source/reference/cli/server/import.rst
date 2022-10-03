@@ -52,6 +52,21 @@ Cette commande accepte les options suivantes :
    * ``users``: Identifiants des utilisateurs *gateway* servant à l'administration.
    * ``all``: Toutes les données contenues dans le fichier.
 
+.. option:: --reset-before-import, -r
+
+   Réinitialise la base de données avant l'import. Les tables concernées par
+   l'import seront vidées avant l'import. Un message de confirmation s'affichera
+   avant d'effectuer la réinitialisation.
+
+   ATTENTION: Cette option est incompatible avec l'import de données depuis la
+   sortie standard. Il vous faudra soit importer les données depuis un fichier,
+   soit utiliser l'option ``--force-reset-before-import`` décrite ci-dessous.
+
+.. option:: --force-reset-before-import
+
+   Similaire à ``--reset-before-import, -r`` ci-dessus mais sans le message de
+   confirmation. Utile pour les scripts.
+
 .. option:: --dry-run, -d
 
    Simule l'import sans modifier aucune donnée.

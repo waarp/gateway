@@ -38,8 +38,15 @@ func TestImportLocalAgents(t *testing.T) {
 
 			So(db.Insert(agent).Run(), ShouldBeNil)
 
+			other := &model.LocalAgent{
+				Name:     "other",
+				Protocol: testProtocol,
+				Address:  "localhost:8888",
+			}
+			So(db.Insert(other).Run(), ShouldBeNil)
+
 			Convey("Given a list of new agents", func() {
-				agent1 := LocalAgent{
+				newServer := LocalAgent{
 					Name:          "foo",
 					Protocol:      testProtocol,
 					Configuration: json.RawMessage(`{}`),
@@ -54,41 +61,67 @@ func TestImportLocalAgents(t *testing.T) {
 						},
 					},
 				}
-				agents := []LocalAgent{agent1}
+				newServers := []LocalAgent{newServer}
 
-				Convey("Given an empty database", func() {
-					Convey("When calling the importLocals method", func() {
-						err := importLocalAgents(discard(), db, agents)
+				Convey("When calling the importLocals method", func() {
+					err := importLocalAgents(discard(), db, newServers, false)
+					So(err, ShouldBeNil)
 
-						Convey("Then it should return no error", func() {
-							So(err, ShouldBeNil)
+					var dbAgents model.LocalAgents
+					So(db.Select(&dbAgents).Where("owner=?", conf.GlobalConfig.GatewayName).
+						OrderBy("id", true).Run(),
+						ShouldBeNil)
+					So(dbAgents, ShouldHaveLength, 3)
+
+					Convey("Then the new agent should have been imported", func() {
+						dbAgent := dbAgents[2]
+
+						So(dbAgent.Name, ShouldEqual, newServer.Name)
+						So(dbAgent.Protocol, ShouldEqual, newServer.Protocol)
+						So(dbAgent.ProtoConfig, ShouldResemble,
+							newServer.Configuration)
+
+						Convey("Then the local accounts should have been imported", func() {
+							var accounts model.LocalAccounts
+							So(db.Select(&accounts).Where("local_agent_id=?",
+								dbAgent.ID).Run(), ShouldBeNil)
+							So(accounts, ShouldHaveLength, 2)
+
+							So(accounts[0].Login, ShouldEqual, newServer.Accounts[0].Login)
+							So(accounts[1].Login, ShouldEqual, newServer.Accounts[1].Login)
 						})
-						Convey("Then the database should contains the local agents", func() {
-							var dbAgent model.LocalAgent
-							So(db.Get(&dbAgent, "name=? AND owner=?", agent1.Name,
-								conf.GlobalConfig.GatewayName).Run(), ShouldBeNil)
+					})
 
-							Convey("Then the data shuld correspond to the "+
-								"one imported", func() {
-								So(dbAgent.Name, ShouldEqual, agent1.Name)
-								So(dbAgent.Protocol, ShouldEqual, agent1.Protocol)
-								So(dbAgent.ProtoConfig, ShouldResemble,
-									agent1.Configuration)
+					Convey("Then the other local agents should be unchanged", func() {
+						So(dbAgents[0], ShouldResemble, *agent)
+						So(dbAgents[1], ShouldResemble, *other)
+					})
+				})
 
-								var accounts model.LocalAccounts
-								So(db.Select(&accounts).Where("local_agent_id=?",
-									dbAgent.ID).Run(), ShouldBeNil)
+				Convey("When calling the importLocals method with reset ON", func() {
+					err := importLocalAgents(discard(), db, newServers, true)
+					So(err, ShouldBeNil)
 
-								So(len(accounts), ShouldEqual, 2)
-							})
-						})
+					var dbAgents model.LocalAgents
+					So(db.Select(&dbAgents).Where("owner=?", conf.GlobalConfig.GatewayName).
+						OrderBy("id", true).Run(),
+						ShouldBeNil)
+					So(dbAgents, ShouldHaveLength, 1)
+
+					Convey("Then only the imported agent should be left", func() {
+						dbAgent := dbAgents[0]
+
+						So(dbAgent.Name, ShouldEqual, newServer.Name)
+						So(dbAgent.Protocol, ShouldEqual, newServer.Protocol)
+						So(dbAgent.ProtoConfig, ShouldResemble,
+							newServer.Configuration)
 					})
 				})
 			})
 
 			Convey("Given a list of fully updated agents", func() {
 				agent1 := LocalAgent{
-					Name:          "server",
+					Name:          agent.Name,
 					Protocol:      testProtocol,
 					Configuration: json.RawMessage(`{}`),
 					Address:       "localhost:6666",
@@ -109,15 +142,21 @@ func TestImportLocalAgents(t *testing.T) {
 				agents := []LocalAgent{agent1}
 
 				Convey("When calling the importLocals method", func() {
-					err := importLocalAgents(discard(), db, agents)
+					var accs model.LocalAccounts
+					So(db.Select(&accs).Run(), ShouldBeNil)
+
+					err := importLocalAgents(discard(), db, agents, false)
 
 					Convey("Then it should return no error", func() {
 						So(err, ShouldBeNil)
 					})
-					Convey("Then the database should contains the local agents", func() {
-						var dbAgent model.LocalAgent
-						So(db.Get(&dbAgent, "name=? AND owner=?", agent1.Name,
-							conf.GlobalConfig.GatewayName).Run(), ShouldBeNil)
+
+					Convey("Then the database should contain the local agents", func() {
+						var dbAgents model.LocalAgents
+						So(db.Select(&dbAgents).OrderBy("id", true).Run(), ShouldBeNil)
+						So(dbAgents, ShouldHaveLength, 3)
+
+						dbAgent := dbAgents[1]
 
 						Convey("Then the data should correspond to the "+
 							"one imported", func() {
@@ -137,6 +176,10 @@ func TestImportLocalAgents(t *testing.T) {
 								model.TableLocAgents, dbAgent.ID).Run(), ShouldBeNil)
 
 							So(len(accounts), ShouldEqual, 1)
+						})
+
+						Convey("Then the other agents should be unchanged", func() {
+							So(dbAgents[2], ShouldResemble, *other)
 						})
 					})
 				})

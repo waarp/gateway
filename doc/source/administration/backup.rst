@@ -24,7 +24,7 @@ Les options suivantes sont requises pour que la commande puisse s'exécuter :
   de connexion à la base de données).
 - ``-f``: le nom du fichier vers lequel les données seront exportées (par défaut
   le fichier sera nommé ``waarp-gateway-export.json``).
-- ``-t``: les éléments à exporter, l'option peut être répétée pour exporter plusieurs 
+- ``-t``: les éléments à exporter, l'option peut être répétée pour exporter plusieurs
   éléments. Les valeurs acceptées sont ``rules``, ``servers``, ``partners``
   ou ``all``.
 
@@ -47,16 +47,21 @@ La commande requiert les options suivantes :
 - ``-c``: le fichier de configuration de la *gateway* (contient les informations
   de connexion à la base de données).
 - ``-s``: le fichier source de l'import.
-- ``-t``: les éléments à importer. L'option peut être répétée pour importer plusieurs 
+- ``-t``: les éléments à importer. L'option peut être répétée pour importer plusieurs
   éléments, les valeurs acceptées sont ``rules``, ``servers``, ``partners``
   ou ``all``.
+- ``-r``: les tables de la base de données seront vidées avant d'importer les
+  nouveaux éléments depuis le fichier (seules les tables concernées par l'import
+  seront vidées). Pour les scripts, l'option ``force-reset-before-import`` est
+  disponible afin d'outrepasser le message de confirmation.
 
-Par exemple, la commande suivante importe les serveurs et les partenaires depuis
-le fichier ``gateway_backup.json`` et les insère dans la base de données :
+Par exemple, la commande suivante purge les serveurs et les partenaires de la base,
+puis importe les nouveaux serveurs et les partenaires depuis le fichier
+``gateway_backup.json`` et les insère dans la base de données :
 
 .. code-block:: shell
 
-   waarp-gatewayd import -c 'waarp-gateway.ini' -s 'gateway_backup.json' -t 'servers' -t 'partners'
+   waarp-gatewayd import -r -c 'waarp-gateway.ini' -s 'gateway_backup.json' -t 'servers' -t 'partners'
 
 
 La commande ``import`` inclue également une option ``-d`` ou ``--dry-run``
