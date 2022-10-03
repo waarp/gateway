@@ -45,6 +45,13 @@ func ExportData(db database.ReadAccess, w io.Writer, targets []string) error {
 		}
 	}
 
+	if utils.ContainsStrings(targets, "users", "all") {
+		data.Users, err = exportUsers(logger, db)
+		if err != nil {
+			return err
+		}
+	}
+
 	encoder := json.NewEncoder(w)
 	encoder.SetIndent("", "  ")
 

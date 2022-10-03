@@ -3,6 +3,14 @@
 Historique des versions
 =======================
 
+* :release:`0.7.0 <>`
+* :feature:`224` Ajout des utilisateurs *gateway* au fichier d'import/export.
+  Il est désormais possible d'exporter et importer les utilisateurs *gateway*
+  servant à l'administration. Par conséquent, l'option ``-t --target`` des
+  commandes :ref:`reference-cmd-waarp-gatewayd-import` et
+  :ref:`reference-cmd-waarp-gatewayd-export` accepte
+  désormais la valeur ``users``.
+
 * :release:`0.6.2 <2022-08-22>`
 * :bug:`343` il était impossible de migrer la base de données vers la version
   0.6.1.

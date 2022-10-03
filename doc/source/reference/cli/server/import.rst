@@ -35,7 +35,7 @@ Cette commande accepte les options suivantes :
 
    Indique le chemin vers le fichier JSON contenant les données à importer.
 
-.. option:: -t [rules|servers|partners|all], --target [rules|servers|partners|all]
+.. option:: -t [rules|servers|partners|users|all], --target [rules|servers|partners|users|all]
 
    :Défaut: ``all``
 
@@ -49,6 +49,7 @@ Cette commande accepte les options suivantes :
      certificats associés.
    * ``partners``: Définitions de partenaires distants, incluant les comptes
      locaux et certificats associés.
+   * ``users``: Identifiants des utilisateurs *gateway* servant à l'administration.
    * ``all``: Toutes les données contenues dans le fichier.
 
 .. option:: --dry-run, -d

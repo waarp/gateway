@@ -9,6 +9,7 @@ type Data struct {
 	Locals  []LocalAgent  `json:"locals"`
 	Remotes []RemoteAgent `json:"remotes"`
 	Rules   []Rule        `json:"rules"`
+	Users   []User        `json:"users"`
 }
 
 // LocalAgent is the JSON struct representing a local server along with its
@@ -89,4 +90,23 @@ type Rule struct {
 type Task struct {
 	Type string          `json:"type"`
 	Args json.RawMessage `json:"args"`
+}
+
+// User is the JSON struct representing a gateway user.
+type User struct {
+	Username     string      `json:"username"`
+	Password     string      `json:"password,omitempty"`
+	PasswordHash string      `json:"passwordHash,omitempty"`
+	Permissions  Permissions `json:"permissions"`
+}
+
+// Permissions if the JSON struct representing a gateway user's permissions.
+// Each attribute represents a permission target, and its value defines the read,
+// write & deletion permissions for that target in a chmod-like ('rwd') format.
+type Permissions struct {
+	Transfers string `json:"transfers"`
+	Servers   string `json:"servers"`
+	Partners  string `json:"partners"`
+	Rules     string `json:"rules"`
+	Users     string `json:"users"`
 }
