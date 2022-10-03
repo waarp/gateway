@@ -3,6 +3,11 @@
 Historique des versions
 =======================
 
+* :feature:`345` Les erreurs pouvant survenir lors de l'interruption ou
+  l'annulation d'un transfert sont dorénavant correctement loggées. Par ailleurs,
+  il est désormais possible d'annuler un transfert en cours, et ce, même si la
+  *pipeline* responsable de son exécution ne peut être trouvée. En cas de problème,
+  cela devrait permettre d'éviter que des transferts restent bloqués indéfiniment.
 * :feature:`225` Ajout d'une option 'TLSPassphrase' à la section 'Admin' du
   fichier de configuration. Cela permet de renseigner le mot de passe de la
   clé privé (passphrase) du serveur d'administration si celle-ci est chiffrée.
@@ -22,14 +27,14 @@ Historique des versions
   désormais la valeur ``users``.
 
 * :release:`0.6.2 <2022-08-22>`
-* :bug:`343` il était impossible de migrer la base de données vers la version
+* :bug:`343` Il était impossible de migrer la base de données vers la version
   0.6.1.
 
 * :release:`0.6.1 <2022-08-18>`
 * :bug:`340` Correction d'une erreur causant l'échec des migrations de base de
   données due à une mauvaise prise en compte du fichier de configuration.
-* :bug:`341` La commande de listing des partneraires liste correctement les
-  partenaires au lieu des serveur locaux.
+* :bug:`341` La commande de listing des partenaires liste correctement les
+  partenaires au lieu des serveurs locaux.
 
 * :release:`0.6.0 <2022-07-22>`
 * :bug:`337` La tâche *TRANSFER* n'utilise plus la même arborescence en local et
