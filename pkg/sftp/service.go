@@ -83,7 +83,9 @@ func (s *Service) start() error {
 		runningTransfers: service.NewTransferMap(),
 		shutdown:         make(chan struct{}),
 	}
-	s.listener.listen()
+
+	s.listener.handlerMaker = s.listener.makeHandlers
+	go s.listener.listen()
 
 	return nil
 }

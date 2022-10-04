@@ -1,7 +1,7 @@
 module code.waarp.fr/apps/gateway/gateway
 
 require (
-	code.waarp.fr/lib/log v1.1.0
+	code.waarp.fr/lib/log v1.2.0
 	code.waarp.fr/lib/migration v1.1.1
 	code.waarp.fr/lib/r66 v0.1.5
 	github.com/bwmarrin/snowflake v0.3.0

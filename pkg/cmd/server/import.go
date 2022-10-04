@@ -45,6 +45,10 @@ func initImportExport(configFile string, verbose []bool) (*database.DB, *log.Log
 		return nil, nil, fmt.Errorf("cannot initialize log backend: %w", err2)
 	}
 
+	back.SetFormatter(func(record *log.Record) string {
+		return fmt.Sprintf("[%-8s] %s", record.Level, record.Message)
+	})
+
 	conf.GlobalConfig = *config
 	db := &database.DB{}
 
@@ -123,7 +127,7 @@ func (i *ImportCommand) Run(db *database.DB, logger *log.Logger) error {
 		return fmt.Errorf("error at import: %w", err)
 	}
 
-	logger.Info("Import successful.")
+	fmt.Fprintln(os.Stderr, "Import successful.")
 
 	return nil
 }
