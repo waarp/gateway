@@ -3,10 +3,9 @@ package database
 import (
 	"fmt"
 
-	"xorm.io/xorm/schemas"
-
 	"code.waarp.fr/lib/log"
 	"xorm.io/xorm"
+	"xorm.io/xorm/schemas"
 
 	"code.waarp.fr/apps/gateway/gateway/pkg/conf"
 )

@@ -8,4 +8,5 @@ Serveur ``waarp-gatewayd``
    server
    import
    export
+   purge
    version

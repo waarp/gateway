@@ -10,3 +10,4 @@ Ce guide regroupe plusieurs rubriques expliquant comment utiliser la *gateway*.
    usage
    service
    backup
+   purge

@@ -3,6 +3,10 @@
 Historique des versions
 =======================
 
+* :feature:`187` Ajout d'une commande de purge d'historique à l'exécutable
+  ``waarp-gatewayd`` (voir la
+  :ref:`documentation de la commande<reference-cmd-waarp-gatewayd-purge>` pour
+  plus de détails).
 * :feature:`336` Ajout de la possibilité d'activer et désactiver les serveurs
   locaux. Par défaut, les nouveaux serveurs créés sont actifs. Il est désormais
   possible de désactiver un serveur, via :doc:`l'interface REST<reference/cli/client/partner/add>`
