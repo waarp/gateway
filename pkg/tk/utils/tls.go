@@ -45,7 +45,7 @@ func ParsePEMCertChain(pemCert string) ([]*x509.Certificate, error) {
 }
 
 // CheckCertChain takes a certification chain, in the form of a slice of
-// x509.Certificate (with the leaf first) and and verifies if the chain is valid.
+// x509.Certificate (with the leaf first) and verifies if the chain is valid.
 // An optional hostname can also be given to check if the certificate covers
 // that domain.
 func CheckCertChain(certChain []*x509.Certificate, isServer bool,
@@ -55,33 +55,23 @@ func CheckCertChain(certChain []*x509.Certificate, isServer bool,
 		return errVerifyEmptyCertChain
 	}
 
-	options := x509.VerifyOptions{Intermediates: x509.NewCertPool(), DNSName: host}
+	options := x509.VerifyOptions{
+		Roots:         x509.NewCertPool(),
+		Intermediates: x509.NewCertPool(),
+		DNSName:       host,
+	}
+
 	if isServer {
 		options.KeyUsages = []x509.ExtKeyUsage{x509.ExtKeyUsageServerAuth}
 	} else {
 		options.KeyUsages = []x509.ExtKeyUsage{x509.ExtKeyUsageClientAuth}
 	}
 
-	roots, err := x509.SystemCertPool()
-	if err != nil || roots == nil {
-		roots = x509.NewCertPool()
-	}
-
 	for i := 1; i < len(certChain)-1; i++ {
-		if certChain[i].Issuer.CommonName == certChain[i].Subject.CommonName {
-			roots.AddCert(certChain[i])
-		} else {
-			options.Intermediates.AddCert(certChain[i])
-		}
+		options.Intermediates.AddCert(certChain[i])
 	}
 
-	if certChain[0].Issuer.CommonName == certChain[0].Subject.CommonName {
-		roots.AddCert(certChain[0])
-	}
-
-	if len(roots.Subjects()) > 0 {
-		options.Roots = roots
-	}
+	options.Roots.AddCert(certChain[len(certChain)-1])
 
 	if _, err := certChain[0].Verify(options); err != nil {
 		return fmt.Errorf("certificate is invalid: %w", err)

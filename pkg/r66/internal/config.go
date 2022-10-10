@@ -8,6 +8,7 @@ import (
 
 	"code.waarp.fr/apps/gateway/gateway/pkg/model"
 	"code.waarp.fr/apps/gateway/gateway/pkg/pipeline"
+	"code.waarp.fr/apps/gateway/gateway/pkg/tk/utils"
 	"code.waarp.fr/apps/gateway/gateway/pkg/utils/compatibility"
 )
 
@@ -47,13 +48,18 @@ func MakeClientTLSConfig(pip *pipeline.Pipeline) (*tls.Config, error) {
 		conf.VerifyConnection = compatibility.LogSha1(pip.Logger)
 	}
 
-	var caPool *x509.CertPool
+	caPool, err := x509.SystemCertPool()
+	if err != nil {
+		caPool = x509.NewCertPool()
+	}
+
 	for _, cert := range pip.TransCtx.RemoteAgentCryptos {
-		if caPool == nil {
-			caPool = x509.NewCertPool()
+		certChain, parseErr := utils.ParsePEMCertChain(cert.Certificate)
+		if parseErr != nil {
+			return nil, fmt.Errorf("failed to parse the certification chain: %w", parseErr)
 		}
 
-		caPool.AppendCertsFromPEM([]byte(cert.Certificate))
+		caPool.AddCert(certChain[0])
 	}
 
 	conf.RootCAs = caPool

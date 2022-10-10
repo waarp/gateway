@@ -3,6 +3,9 @@
 Historique des versions
 =======================
 
+* :bug:`346` Correction d'un bug causant l'échec de la validation des chaînes de
+  certification comprenant plus de un certificat lors de leur insertion en base
+  de données.
 * :feature:`187` Ajout d'une commande de purge d'historique à l'exécutable
   ``waarp-gatewayd`` (voir la
   :ref:`documentation de la commande<reference-cmd-waarp-gatewayd-purge>` pour
