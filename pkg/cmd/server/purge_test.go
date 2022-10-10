@@ -27,8 +27,22 @@ func TestPurgeCommand(t *testing.T) {
 	Convey("Given a database with some transfers", t, func(c C) {
 		db := database.TestDatabase(c)
 
-		So(db.Insert(&model.HistoryEntry{
+		t0 := &model.HistoryEntry{
 			ID:               1,
+			RemoteTransferID: "000",
+			Rule:             "foobar",
+			Account:          "foo",
+			Agent:            "bar",
+			Protocol:         "test_proto",
+			LocalPath:        "/loc_path",
+			RemotePath:       "/rem_path",
+			Start:            time.Date(2021, 1, 1, 1, 0, 0, 0, time.UTC),
+			Status:           types.StatusCancelled,
+		}
+		So(db.Insert(t0).Run(), ShouldBeNil)
+
+		t2 := &model.HistoryEntry{
+			ID:               2,
 			RemoteTransferID: "123",
 			Rule:             "foobar",
 			Account:          "foo",
@@ -39,10 +53,11 @@ func TestPurgeCommand(t *testing.T) {
 			Start:            time.Date(2022, 1, 1, 1, 0, 0, 0, time.UTC),
 			Stop:             time.Date(2022, 1, 1, 2, 0, 0, 0, time.UTC),
 			Status:           types.StatusDone,
-		}).Run(), ShouldBeNil)
+		}
+		So(db.Insert(t2).Run(), ShouldBeNil)
 
-		So(db.Insert(&model.HistoryEntry{
-			ID:               2,
+		t3 := &model.HistoryEntry{
+			ID:               3,
 			RemoteTransferID: "456",
 			Rule:             "foobar",
 			Account:          "foo",
@@ -50,10 +65,11 @@ func TestPurgeCommand(t *testing.T) {
 			Protocol:         "test_proto",
 			LocalPath:        "/loc_path",
 			RemotePath:       "/rem_path",
-			Start:            time.Date(2022, 1, 1, 1, 0, 0, 0, time.UTC),
-			Stop:             time.Date(2022, 1, 1, 2, 0, 0, 0, time.UTC),
+			Start:            time.Date(2022, 1, 1, 3, 0, 0, 0, time.UTC),
+			Stop:             time.Date(2022, 1, 1, 4, 0, 0, 0, time.UTC),
 			Status:           types.StatusDone,
-		}).Run(), ShouldBeNil)
+		}
+		So(db.Insert(t3).Run(), ShouldBeNil)
 
 		command := &PurgeCommand{}
 		out := &strings.Builder{}
@@ -61,10 +77,10 @@ func TestPurgeCommand(t *testing.T) {
 		Convey("When purging the history", func() {
 			Convey("When confirming the purge", func() {
 				in := strings.NewReader("YES")
-				So(command.run(db, in, out), ShouldBeNil)
+				So(command.run(db, time.Now(), in, out), ShouldBeNil)
 
 				Convey("Then it should say that the history was purged", func() {
-					So(out.String(), ShouldEqual, "You are about to purge 2 history entries.\n"+
+					So(out.String(), ShouldEqual, "You are about to purge 3 history entries.\n"+
 						"This operation cannot be undone. Do you wish to proceed anyway ?\n"+
 						"\n"+
 						"(Type 'YES' in all caps to proceed): \n"+
@@ -81,10 +97,10 @@ func TestPurgeCommand(t *testing.T) {
 
 			Convey("When aborting the purge", func() {
 				in := strings.NewReader("NO")
-				So(command.run(db, in, out), ShouldBeNil)
+				So(command.run(db, time.Now(), in, out), ShouldBeNil)
 
 				Convey("Then it should say that the history was NOT purged", func() {
-					So(out.String(), ShouldEqual, "You are about to purge 2 history entries.\n"+
+					So(out.String(), ShouldEqual, "You are about to purge 3 history entries.\n"+
 						"This operation cannot be undone. Do you wish to proceed anyway ?\n"+
 						"\n"+
 						"(Type 'YES' in all caps to proceed): \n"+
@@ -95,7 +111,54 @@ func TestPurgeCommand(t *testing.T) {
 				Convey("Then it should NOT have purged the history", func() {
 					var history model.HistoryEntries
 					So(db.Select(&history).Run(), ShouldBeNil)
-					So(history, ShouldHaveLength, 2)
+					So(history, ShouldHaveLength, 3)
+				})
+			})
+		})
+
+		Convey("When purging the history with a time limit", func() {
+			in := strings.NewReader("YES")
+
+			Convey("When purging the history with a date limit", func() {
+				command.OlderThan = t2.Stop.Local().Format(untilFormat)
+				So(command.run(db, time.Now(), in, out), ShouldBeNil)
+
+				Convey("Then it should say that the history was purged", func() {
+					So(out.String(), ShouldEqual, "You are about to purge 2 history entries.\n"+
+						"This operation cannot be undone. Do you wish to proceed anyway ?\n"+
+						"\n"+
+						"(Type 'YES' in all caps to proceed): \n"+
+						"\n"+
+						"The transfer history has been purged successfully.\n")
+				})
+
+				Convey("Then it should have purged the selected history entries", func() {
+					var history model.HistoryEntries
+					So(db.Select(&history).Run(), ShouldBeNil)
+					So(history, ShouldHaveLength, 1)
+					So(history[0].ID, ShouldEqual, t3.ID)
+				})
+			})
+
+			Convey("When purging the history with a duration limit", func() {
+				now := t2.Stop.Local().AddDate(1, 4, 17)
+				command.OlderThan = "1year4months2weeks3days"
+				So(command.run(db, now, in, out), ShouldBeNil)
+
+				Convey("Then it should say that the history was purged", func() {
+					So(out.String(), ShouldEqual, "You are about to purge 2 history entries.\n"+
+						"This operation cannot be undone. Do you wish to proceed anyway ?\n"+
+						"\n"+
+						"(Type 'YES' in all caps to proceed): \n"+
+						"\n"+
+						"The transfer history has been purged successfully.\n")
+				})
+
+				Convey("Then it should have purged the selected history entries", func() {
+					var history model.HistoryEntries
+					So(db.Select(&history).Run(), ShouldBeNil)
+					So(history, ShouldHaveLength, 1)
+					So(history[0].ID, ShouldEqual, t3.ID)
 				})
 			})
 		})
@@ -144,11 +207,11 @@ func TestPurgeCommand(t *testing.T) {
 
 			Convey("Given that the transfers table is empty", func() {
 				So(db.DeleteAll(&model.Transfer{}).Run(), ShouldBeNil)
-				So(command.run(db, in, out), ShouldBeNil)
+				So(command.run(db, time.Now(), in, out), ShouldBeNil)
 
 				Convey("Then it should say that the database was purged and the"+
 					"increment was reset", func() {
-					So(out.String(), ShouldEqual, "You are about to purge 2 history entries.\n"+
+					So(out.String(), ShouldEqual, "You are about to purge 3 history entries.\n"+
 						"This operation cannot be undone. Do you wish to proceed anyway ?\n"+
 						"\n"+
 						"(Type 'YES' in all caps to proceed): \n"+
@@ -180,12 +243,12 @@ func TestPurgeCommand(t *testing.T) {
 			})
 
 			Convey("Given that the transfers table is NOT empty", func() {
-				So(command.run(db, in, out), ShouldBeError, ErrTransfersNotEmpty)
+				So(command.run(db, time.Now(), in, out), ShouldBeError, ErrResetTransfersNotEmpty)
 
 				Convey("Then it should NOT have purged the history", func() {
 					var history model.HistoryEntries
 					So(db.Select(&history).Run(), ShouldBeNil)
-					So(history, ShouldHaveLength, 2)
+					So(history, ShouldHaveLength, 3)
 				})
 
 				Convey("Then it should NOT have reset the transfer increment", func() {

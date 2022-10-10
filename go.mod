@@ -9,6 +9,7 @@ require (
 	github.com/gorilla/mux v1.7.3
 	github.com/jackc/pgx/v4 v4.16.1
 	github.com/jessevdk/go-flags v1.5.0
+	github.com/karrick/tparse/v2 v2.8.2
 	github.com/mattn/go-colorable v0.1.6
 	github.com/mattn/go-oci8 v0.0.2
 	github.com/pkg/sftp v1.13.4

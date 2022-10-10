@@ -28,6 +28,31 @@ Cette commande accepte les options suivantes :
    * :file:`/etc/waarp-gateway/gatewayd.ini` (Linux)
    * :file:`%ProgramData%\\gatewayd.ini` (Windows)
 
+.. _reference-cmd-waarp-gatewayd-purge-older-than:
+
+.. option:: --older-than, -o
+
+   Limite la purge aux transferts plus anciens que le temps donné. Peut
+   être soit une date, auquel cas, seuls les transferts antérieurs à cette date
+   seront supprimés; soit une durée, auquel cas, seuls les transferts plus anciens
+   que cette durée seront supprimés.
+
+   La date doit être au format `aaaa/MM/dd hh:mm:ss` (exemple: `2022/10/25 08:00:00`).
+
+   La durée est une succession arbitraire de valeurs de temps (exemple: `1y3mo2d`
+   pour 1 an, 3 mois et 2 jours). Les unités de temps suivantes sont acceptées:
+
+   * *Nanosecondes*: ns
+   * *Microsecondes*: us, µs (U+00B5), μs (U+03BC)
+   * *Millisecondes*: ms
+   * *Secondes*: s, sec, second, seconds
+   * *Minutes*: m, min, minute, minutes
+   * *Heures*: h, hr, hour, hours
+   * *Jours*: d, day, days
+   * *Semaines*: w, wk, week, weeks
+   * *Mois*: mo, mon, month, months
+   * *Années*: y, yr, year, years
+
 .. option:: --reset, -r
 
    Si cette option est présente, en plus de purger d'historique, la commande
