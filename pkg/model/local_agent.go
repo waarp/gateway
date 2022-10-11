@@ -21,7 +21,6 @@ func init() {
 // The struct contains the information needed by external agents to connect to
 // the server.
 type LocalAgent struct {
-
 	// The agent's database ID.
 	ID uint64 `xorm:"pk autoincr <- 'id'"`
 
@@ -69,10 +68,15 @@ func (l *LocalAgent) GetID() uint64 {
 	return l.ID
 }
 
+//nolint:dupl // factorizing would add complexity
 func (l *LocalAgent) validateProtoConfig() error {
 	protoConf, err := config.GetProtoConfig(l.Protocol, l.ProtoConfig)
 	if err != nil {
 		return fmt.Errorf("cannot parse protocol config for server %q: %w", l.Name, err)
+	}
+
+	if r66Conf, ok := protoConf.(*config.R66ProtoConfig); ok && r66Conf.IsTLS != nil && *r66Conf.IsTLS {
+		l.Protocol = config.ProtocolR66TLS
 	}
 
 	if err2 := protoConf.ValidServer(); err2 != nil {
@@ -161,6 +165,7 @@ func (l *LocalAgent) BeforeWrite(db database.ReadAccess) database.Error {
 
 // BeforeDelete is called before deleting the account from the database. Its
 // role is to delete all the certificates tied to the account.
+//
 //nolint:dupl // to many differences
 func (l *LocalAgent) BeforeDelete(db database.Access) database.Error {
 	n, err := db.Count(&Transfer{}).Where("is_server=? AND agent_id=?", true, l.ID).Run()

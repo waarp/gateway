@@ -138,7 +138,7 @@ func makeServerConf(c convey.C, db *database.DB, port uint16, home, proto string
 	c.So(os.MkdirAll(filepath.Join(root, server.TmpReceiveDir), 0o700), convey.ShouldBeNil)
 
 	pswd := TestPassword
-	if proto == "r66" {
+	if proto == config.ProtocolR66 || proto == config.ProtocolR66TLS {
 		pswd = string(r66.CryptPass([]byte(pswd)))
 	}
 

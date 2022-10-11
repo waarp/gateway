@@ -17,7 +17,8 @@ import (
 
 //nolint:gochecknoinits // init is used by design
 func init() {
-	pipeline.ClientConstructors["r66"] = NewClient
+	pipeline.ClientConstructors[ProtocolR66] = NewClient
+	pipeline.ClientConstructors[ProtocolR66TLS] = NewClient
 }
 
 type client struct {
@@ -46,7 +47,7 @@ func newClient(pip *pipeline.Pipeline) (*client, *types.TransferError) {
 
 	var tlsConf *tls.Config
 
-	if protoConfig.IsTLS {
+	if pip.TransCtx.RemoteAgent.Protocol == ProtocolR66TLS {
 		var err error
 
 		tlsConf, err = internal.MakeClientTLSConfig(pip)

@@ -22,7 +22,12 @@ import (
 	"code.waarp.fr/apps/gateway/gateway/pkg/utils/compatibility"
 )
 
-var errNoCertificates = errors.New("no certificates found")
+const (
+	ProtocolR66    = config.ProtocolR66
+	ProtocolR66TLS = config.ProtocolR66TLS
+)
+
+var errNoCertificates = errors.New("the R66-TLS server is missing a certificate")
 
 // Service represents a r66 service, which encompasses a r66 server usable for
 // transfers.
@@ -137,17 +142,6 @@ func (s *Service) Start() error {
 }
 
 func (s *Service) listen() error {
-	var tlsConf *tls.Config
-
-	if s.r66Conf.IsTLS {
-		var err error
-		if tlsConf, err = s.makeTLSConf(); err != nil {
-			s.logger.Error("Failed to parse server TLS config: %s", err)
-
-			return fmt.Errorf("failed to make the server TLS config: %w", err)
-		}
-	}
-
 	addr, err := conf.GetRealAddress(s.agent.Address)
 	if err != nil {
 		s.logger.Error("Failed to parse server TLS config: %s", err)
@@ -155,7 +149,15 @@ func (s *Service) listen() error {
 		return fmt.Errorf("failed to indirect the server address: %w", err)
 	}
 
-	if s.r66Conf.IsTLS {
+	if s.agent.Protocol == ProtocolR66TLS {
+		tlsConf, err2 := s.makeTLSConf()
+		if err2 != nil {
+			s.logger.Error("Failed to parse server TLS config: %s", err2)
+			s.state.Set(service.Error, "failed to parse server TLS config")
+
+			return err2
+		}
+
 		s.list, err = tls.Listen("tcp", addr, tlsConf)
 	} else {
 		s.list, err = net.Listen("tcp", addr)

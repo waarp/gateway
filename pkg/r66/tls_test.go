@@ -11,17 +11,10 @@ import (
 
 	"code.waarp.fr/apps/gateway/gateway/pkg/database"
 	"code.waarp.fr/apps/gateway/gateway/pkg/model"
-	"code.waarp.fr/apps/gateway/gateway/pkg/model/config"
 	"code.waarp.fr/apps/gateway/gateway/pkg/model/types"
 	"code.waarp.fr/apps/gateway/gateway/pkg/pipeline"
 	"code.waarp.fr/apps/gateway/gateway/pkg/pipeline/pipelinetest"
 	"code.waarp.fr/apps/gateway/gateway/pkg/tk/utils/testhelpers"
-)
-
-//nolint:gochecknoglobals // this variable is only used for tests
-var (
-	servConfTLS = &config.R66ProtoConfig{ServerLogin: "r66_login", ServerPassword: "sesame", IsTLS: true}
-	partConfTLS = &config.R66ProtoConfig{ServerLogin: "r66_login", ServerPassword: "sesame", IsTLS: true}
 )
 
 func TestTLS(t *testing.T) {
@@ -31,7 +24,7 @@ func TestTLS(t *testing.T) {
 			Detail: "invalid certificate: x509: certificate signed by unknown authority",
 		}
 
-		ctx := pipelinetest.InitServerPush(c, "r66", NewService, servConfTLS)
+		ctx := pipelinetest.InitServerPush(c, ProtocolR66TLS, NewService, servConf)
 		ctx.AddCryptos(c, cert(ctx.Server, "server_cert",
 			testhelpers.LocalhostCert, testhelpers.LocalhostKey))
 		ctx.StartService(c)
@@ -93,7 +86,7 @@ func TestTLS(t *testing.T) {
 	})
 
 	Convey("Given a TLS R66 client", t, func(c C) {
-		ctx := pipelinetest.InitClientPush(c, "r66", partConfTLS)
+		ctx := pipelinetest.InitClientPush(c, ProtocolR66TLS, partConf)
 		getClient := func() *client {
 			pip, err := pipeline.NewClientPipeline(ctx.DB, ctx.ClientTrans)
 			c.So(err, ShouldBeNil)
@@ -193,8 +186,8 @@ func tlsServer(c C, ctx *pipelinetest.ClientContext, cert, key string) {
 	}
 
 	serv := r66.Server{
-		Login:    partConfTLS.ServerLogin,
-		Password: []byte(partConfTLS.ServerPassword),
+		Login:    partConf.ServerLogin,
+		Password: []byte(partConf.ServerPassword),
 		Handler: authentFunc(func(auth *r66.Authent) (r66.SessionHandler, error) {
 			return nil, &r66.Error{Code: r66.BadAuthent, Detail: "bad authentication"}
 		}),

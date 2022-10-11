@@ -3,48 +3,29 @@
 Configuration R66
 #################
 
-La structure de l'objet JSON de configuration du protocole R66 pour un client est 
+La structure de l'objet JSON de configuration du protocole pour un agent R66 est
 la suivante :
 
-* **serverLogin** (*string*) - Le login du partenaire R66.
-* **ServerPassword** (*string*) - Le mot de passe du partenaire R66.
-* **IsTLS** (*boolean*) - *Optionnel* Si le partenaire utilise TLS. Par défaut faux.
-* **BlockSize** (*number*) - *Optionnel* La taille (en octets) d'un bloc de données R66. 
-  Par défaut 65536.
-* **NoFinalHash** (*boolean*) - *Optionnel* Si un contrôle de hash est demandé après le
-  transfert d'un fichier. Par défaut faux.
-* **CheckBlockHash** (*boolean*) - *Optionnel* Si un contrôle de hash est demandé 
-  sur chaque bloc du fichier transféré. Par défaut faux.
-
-**Exemple**
-
-.. code-block:: json
-
-   {
-     "blockSize": 1234,
-     "serverLogin": "test",
-     "serverPassword": "password",
-   }
-
-La structure de l'objet JSON de configuration du protocole R66 pour un serveur est 
-la suivante :
-
-* **ServerPassword** (*string*) - Le mot de passe du server R66.
-
-* **IsTLS** (*boolean*) - *Optionnel* Si le server utilise TLS. Par défaut faux.
-
-* **BlockSize** (*number*) - *Optionnel* La taille (en octets) maximum d'un bloc de 
+* **serverLogin** (*string*) - Le login de l'agent R66.
+* **serverPassword** (*string*) - Le mot de passe de l'agent R66.
+* **isTLS** (*boolean*) - **DÉPRÉCIÉ: utilisez plutôt le protocole r66-tls**
+  Spécifie si le serveur/partenaire utilise TLS.
+* **blockSize** (*number*) - *Optionnel* La taille (en octets) d'un bloc de
   données R66. Par défaut 65536.
-
-* **NoFinalHash** (*boolean*) - *Optionnel* Si le serveur contrôle le hash du fichier 
-  après le transfert. Par défaut faux.
+* **noFinalHash** (*boolean*) - *Optionnel (valable uniquement pour les serveurs locaux)*
+  Si contrôle de hash de fin de transfert doit être désactivé. Par défaut faux.
+* **checkBlockHash** (*boolean*) - *Optionnel (valable uniquement pour les serveurs locaux)*
+  Si un contrôle de hash est demandé sur chaque bloc du fichier transféré. Par
+  défaut faux.
 
 **Exemple**
 
 .. code-block:: json
 
    {
-     "blockSize": 1234,
-     "serverPassword": "password",
-     "noFilalHash": true,
+     "blockSize": 65536,
+     "serverLogin": "foobar",
+     "serverPassword": "sesame",
+     "noFinalHash": false,
+     "checkBlockHash": true
    }

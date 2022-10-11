@@ -4,14 +4,14 @@
 R66
 ===
 
-L'implémentation de R66 dans la *Gateway*, bien que permettant de faire du MFT,
-n'est pas complète. Un certain nombre de fonctionnalité du protocole ne sont pas
-implémentées dans la *Gateway*.
+L'implémentation de R66 et R66-TLS dans la *Gateway*, bien que permettant de
+faire du MFT, n'est pas complète. Un certain nombre de fonctionnalité du
+protocole ne sont pas implémentées dans la *Gateway*.
 
 Voici les fonctionnalités qui ont déjà été implémentées dans la *Gateway* :
 
-- Transfert de données en clair
-- Transfert de données sécurisé via TLS
+- Transfert de données en clair (```r66```)
+- Transfert de données sécurisé via TLS (``r66-tls``)
 - Spécification de la règle de transfert
 - Vérification du hash du fichier à la fin du transfert (**Attention**: seul
   l'algorithme SHA-256 est supporté pour l'instant)

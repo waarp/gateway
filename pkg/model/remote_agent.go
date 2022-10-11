@@ -18,7 +18,6 @@ func init() {
 // communicate and make transfers. The struct contains the information needed by
 // the gateway to connect to the server.
 type RemoteAgent struct {
-
 	// The agent's database ID.
 	ID uint64 `xorm:"pk autoincr <- 'id'"`
 
@@ -50,10 +49,15 @@ func (r *RemoteAgent) GetID() uint64 {
 	return r.ID
 }
 
+//nolint:dupl // factorizing would add complexity
 func (r *RemoteAgent) validateProtoConfig() error {
 	conf, err := config.GetProtoConfig(r.Protocol, r.ProtoConfig)
 	if err != nil {
 		return fmt.Errorf("cannot parse protocol configuration for server %q: %w", r.Name, err)
+	}
+
+	if r66Conf, ok := conf.(*config.R66ProtoConfig); ok && r66Conf.IsTLS != nil && *r66Conf.IsTLS {
+		r.Protocol = config.ProtocolR66TLS
 	}
 
 	if err2 := conf.ValidPartner(); err2 != nil {
@@ -104,7 +108,8 @@ func (r *RemoteAgent) BeforeWrite(db database.ReadAccess) database.Error {
 
 // BeforeDelete is called before deleting the account from the database. Its
 // role is to delete all the certificates tied to the account.
-//nolint:dupl // too many differences to factorize esily into a function
+//
+//nolint:dupl // too many differences to factorize easily into a function
 func (r *RemoteAgent) BeforeDelete(db database.Access) database.Error {
 	n, err := db.Count(&Transfer{}).Where("is_server=? AND agent_id=?", false, r.ID).Run()
 	if err != nil {

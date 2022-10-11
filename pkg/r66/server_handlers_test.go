@@ -1,7 +1,6 @@
 package r66
 
 import (
-	"io/ioutil"
 	"os"
 	"path"
 	"path/filepath"
@@ -28,7 +27,7 @@ func TestValidAuth(t *testing.T) {
 		db := database.TestDatabase(c)
 		r66Server := &model.LocalAgent{
 			Name:        "r66 server",
-			Protocol:    "r66",
+			Protocol:    ProtocolR66,
 			ProtoConfig: []byte(`{"blockSize":512,"serverPassword":"c2VzYW1l"}`),
 			Address:     "localhost:6666",
 		}
@@ -115,7 +114,7 @@ func TestValidRequest(t *testing.T) {
 
 		server := &model.LocalAgent{
 			Name:        "r66 server",
-			Protocol:    "r66",
+			Protocol:    ProtocolR66,
 			ProtoConfig: []byte(`{"blockSize":512,"serverPassword":"c2VzYW1l"}`),
 			Address:     "localhost:6666",
 			RootDir:     filepath.Join(root, "server_root"),
@@ -242,7 +241,7 @@ func TestUpdateTransferInfo(t *testing.T) {
 
 		server := &model.LocalAgent{
 			Name:        "r66 server",
-			Protocol:    "r66",
+			Protocol:    ProtocolR66,
 			ProtoConfig: []byte(`{"blockSize":512,"serverPassword":"c2VzYW1l"}`),
 			Address:     "localhost:6666",
 			RootDir:     "server_root",
@@ -321,7 +320,7 @@ func TestUpdateTransferInfo(t *testing.T) {
 
 			dir := filepath.Join(root, server.RootDir, send.LocalDir)
 			So(os.MkdirAll(dir, 0o700), ShouldBeNil)
-			So(ioutil.WriteFile(filepath.Join(dir, "new.file"), []byte("file content"), 0o600), ShouldBeNil)
+			So(os.WriteFile(filepath.Join(dir, "new.file"), []byte("file content"), 0o600), ShouldBeNil)
 
 			pip, err := pipeline.NewServerPipeline(db, trans)
 			So(err, ShouldBeNil)

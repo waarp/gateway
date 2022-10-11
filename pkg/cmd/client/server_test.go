@@ -219,7 +219,7 @@ func TestAddServer(t *testing.T) {
 
 			Convey("Given a new R66 server", func() {
 				args := []string{
-					"--name", "r66_server", "--protocol", "r66",
+					"--name", "r66_server", "--protocol", config.ProtocolR66,
 					"--root-dir", "root_dir", "--receive-dir", "rcv_dir",
 					"--send-dir", "snd_dir", "--tmp-dir", "tmp_dir",
 					"--address", "localhost:1", "--config", "blockSize:256",
@@ -256,7 +256,7 @@ func TestAddServer(t *testing.T) {
 							Owner:         conf.GlobalConfig.GatewayName,
 							Name:          "r66_server",
 							Address:       "localhost:1",
-							Protocol:      "r66",
+							Protocol:      config.ProtocolR66,
 							RootDir:       "root_dir",
 							ReceiveDir:    "rcv_dir",
 							SendDir:       "snd_dir",
