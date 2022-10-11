@@ -2,7 +2,6 @@ package pipeline
 
 import (
 	"fmt"
-	"io/ioutil"
 	"os"
 	"path/filepath"
 	"strings"
@@ -33,14 +32,14 @@ func TestNewFileStream(t *testing.T) {
 			trans.RuleID = ctx.send.ID
 			So(ctx.db.Insert(trans).Run(), ShouldBeNil)
 
-			So(ioutil.WriteFile(trans.LocalPath, []byte("Hello World"), 0o700), ShouldBeNil)
+			So(os.WriteFile(trans.LocalPath, []byte("Hello World"), 0o700), ShouldBeNil)
 			pip := newTestPipeline(c, ctx.db, trans)
 
 			So(pip.machine.Transition(statePreTasks), ShouldBeNil)
 			So(pip.machine.Transition(statePreTasksDone), ShouldBeNil)
 
 			Convey("When creating a new transfer stream", func(c C) {
-				stream, err := newFileStream(pip, time.Hour, false)
+				stream, err := newFileStream(pip, false)
 				So(err, ShouldBeNil)
 				Reset(func() { _ = stream.file.Close() })
 
@@ -58,7 +57,7 @@ func TestNewFileStream(t *testing.T) {
 				So(os.Remove(trans.LocalPath), ShouldBeNil)
 
 				Convey("When creating a new transfer stream", func(c C) {
-					_, err := newFileStream(pip, time.Hour, false)
+					_, err := newFileStream(pip, false)
 
 					Convey("Then it should return an error", func(c C) {
 						So(err, ShouldBeError, types.NewTransferError(
@@ -79,7 +78,7 @@ func TestNewFileStream(t *testing.T) {
 			So(pip.Pip.machine.Transition(statePreTasksDone), ShouldBeNil)
 
 			Convey("When creating a new transfer stream", func(c C) {
-				stream, err := newFileStream(pip.Pip, time.Hour, false)
+				stream, err := newFileStream(pip.Pip, false)
 				So(err, ShouldBeNil)
 				Reset(func() { _ = stream.file.Close() })
 
@@ -112,7 +111,7 @@ func TestStreamRead(t *testing.T) {
 
 		Convey("Given a file stream for this transfer", func(c C) {
 			content := []byte("read file content")
-			So(ioutil.WriteFile(trans.LocalPath, content, 0o600), ShouldBeNil)
+			So(os.WriteFile(trans.LocalPath, content, 0o600), ShouldBeNil)
 			stream := initFilestream(ctx, trans)
 
 			Convey("When reading from the stream", func(c C) {
@@ -125,7 +124,7 @@ func TestStreamRead(t *testing.T) {
 				})
 
 				Convey("Then the transfer progression should have been updated", func(c C) {
-					So(stream.progress, ShouldEqual, len(b))
+					So(stream.TransCtx.Transfer.Progress, ShouldEqual, len(b))
 				})
 
 				Convey("Then the array should contain the file content", func(c C) {
@@ -152,11 +151,11 @@ func TestStreamRead(t *testing.T) {
 
 			Convey("Given that database error occurs", func(c C) {
 				database.SimulateError(c, ctx.db)
-				time.Sleep(time.Microsecond) // just to be sure the ticker had the time to tick at least once
+				time.Sleep(testTransferUpdateInterval) // just to be sure the ticker had the time to tick at least once
 
 				b := make([]byte, 4)
 				_, err := stream.Read(b)
-				So(err, ShouldBeError, "TransferError(TeInternal): database error")
+				So(err, ShouldBeError, errDatabase)
 
 				Convey("Then it should have called the error-tasks", func(c C) {
 					waitEndTransfer(stream.Pipeline)
@@ -187,7 +186,7 @@ func TestStreamReadAt(t *testing.T) {
 
 		Convey("Given a file stream for this transfer", func(c C) {
 			content := []byte("read file content")
-			So(ioutil.WriteFile(trans.LocalPath, content, 0o600), ShouldBeNil)
+			So(os.WriteFile(trans.LocalPath, content, 0o600), ShouldBeNil)
 			stream := initFilestream(ctx, trans)
 
 			Convey("When reading from the stream with an offset", func(c C) {
@@ -201,7 +200,7 @@ func TestStreamReadAt(t *testing.T) {
 				})
 
 				Convey("Then the transfer progression should have been updated", func(c C) {
-					So(stream.progress, ShouldEqual, len(b))
+					So(stream.TransCtx.Transfer.Progress, ShouldEqual, len(b))
 				})
 
 				Convey("Then the array should contain the file content starting from the offset", func(c C) {
@@ -228,7 +227,7 @@ func TestStreamReadAt(t *testing.T) {
 
 			Convey("Given that an error occurs while updating the progress", func(c C) {
 				database.SimulateError(c, ctx.db)
-				time.Sleep(time.Microsecond) // just to be sure the ticker had the time to tick
+				time.Sleep(testTransferUpdateInterval) // just to be sure the ticker had the time to tick
 
 				b := make([]byte, 4)
 				_, err := stream.ReadAt(b, 0)
@@ -274,11 +273,11 @@ func TestStreamWrite(t *testing.T) {
 				})
 
 				Convey("Then the transfer progression should have been updated", func(c C) {
-					So(stream.progress, ShouldEqual, len(b))
+					So(stream.TransCtx.Transfer.Progress, ShouldEqual, len(b))
 				})
 
 				Convey("Then the file should contain the array content", func(c C) {
-					content, err := ioutil.ReadFile(trans.LocalPath)
+					content, err := os.ReadFile(trans.LocalPath)
 					So(err, ShouldBeNil)
 
 					So(string(content), ShouldEqual, string(b))
@@ -304,7 +303,7 @@ func TestStreamWrite(t *testing.T) {
 
 			Convey("Given that an error occurs while updating the progress", func(c C) {
 				database.SimulateError(c, ctx.db)
-				time.Sleep(time.Microsecond) // just to be sure the ticker had the time to tick
+				time.Sleep(testTransferUpdateInterval) // just to be sure the ticker had the time to tick
 
 				b := make([]byte, 4)
 				_, err := stream.Write(b)
@@ -351,11 +350,11 @@ func TestStreamWriteAt(t *testing.T) {
 				})
 
 				Convey("Then the transfer progression should have been updated", func(c C) {
-					So(stream.progress, ShouldEqual, len(b))
+					So(stream.TransCtx.Transfer.Progress, ShouldEqual, len(b))
 				})
 
 				Convey("Then the file should contain the array content with an offset", func(c C) {
-					content, err := ioutil.ReadFile(trans.LocalPath)
+					content, err := os.ReadFile(trans.LocalPath)
 					So(err, ShouldBeNil)
 
 					So(string(content), ShouldEqual, strings.Repeat("\000", off)+string(b))
@@ -381,7 +380,7 @@ func TestStreamWriteAt(t *testing.T) {
 
 			Convey("Given that an error occurs while updating the progress", func(c C) {
 				database.SimulateError(c, ctx.db)
-				time.Sleep(time.Microsecond) // just to be sure the ticker had the time to tick
+				time.Sleep(testTransferUpdateInterval) // just to be sure the ticker had the time to tick
 
 				b := make([]byte, 4)
 				_, err := stream.WriteAt(b, 0)
@@ -416,7 +415,6 @@ func TestStreamClose(t *testing.T) {
 
 		Convey("Given a file stream for this transfer", func(c C) {
 			stream := initFilestream(ctx, trans)
-			stream.progress = 10
 			So(stream.machine.Transition(stateDataEnd), ShouldBeNil)
 
 			Convey("When closing the stream", func(c C) {
@@ -430,6 +428,7 @@ func TestStreamClose(t *testing.T) {
 
 			Convey("Given that an error occurs while updating the progress", func(c C) {
 				database.SimulateError(c, ctx.db)
+				time.Sleep(testTransferUpdateInterval)
 				So(stream.close(), ShouldBeError, "TransferError(TeInternal): database error")
 
 				Convey("Then it should have called the error-tasks", func(c C) {
@@ -483,6 +482,7 @@ func TestStreamMove(t *testing.T) {
 
 			Convey("Given that a database error occurs", func(c C) {
 				database.SimulateError(c, ctx.db)
+				time.Sleep(testTransferUpdateInterval)
 
 				Convey("When moving the file", func(c C) {
 					So(stream.move(), ShouldBeError, "TransferError(TeInternal): "+
@@ -510,7 +510,7 @@ func TestStreamMove(t *testing.T) {
 		So(ctx.db.Insert(trans).Run(), ShouldBeNil)
 
 		path := filepath.Join(ctx.root, conf.GlobalConfig.Paths.DefaultOutDir, "file")
-		So(ioutil.WriteFile(path, []byte("file content"), 0o700), ShouldBeNil)
+		So(os.WriteFile(path, []byte("file content"), 0o700), ShouldBeNil)
 		Reset(func() { _ = os.Remove(path) })
 
 		Convey("Given a closed file stream for this transfer", func(c C) {

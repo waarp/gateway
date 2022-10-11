@@ -105,15 +105,13 @@ func (c *client) Request() *types.TransferError {
 
 func (c *client) send(filepath string) *types.TransferError {
 	if c.pip.TransCtx.Transfer.Progress > 0 {
-		var prog uint64 = 0
-
 		if stat, statErr := c.sftpSession.Stat(filepath); statErr != nil {
 			c.pip.Logger.Warning("Failed to retrieve the remote file's size: %s", statErr)
 		} else {
-			prog = uint64(stat.Size())
+			c.pip.TransCtx.Transfer.Progress = uint64(stat.Size())
 		}
 
-		if err := c.pip.SetProgress(prog); err != nil {
+		if err := c.pip.UpdateTrans(); err != nil {
 			return err
 		}
 	}

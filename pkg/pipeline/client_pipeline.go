@@ -38,21 +38,19 @@ func NewClientPipeline(db *database.DB, trans *model.Transfer,
 		return nil, err
 	}
 
-	cli, cols, tErr := newClientPipeline(db, logger, transCtx)
+	cli, tErr := newClientPipeline(db, logger, transCtx)
 	if tErr != nil {
 		trans.Status = types.StatusError
 		trans.Error = *tErr
 
-		cols = append(cols, "status", "error_code", "error_details")
-
-		if dbErr := db.Update(transCtx.Transfer).Cols(cols...).Run(); dbErr != nil {
+		if dbErr := db.Update(transCtx.Transfer).Run(); dbErr != nil {
 			logger.Error("Failed to update the transfer error: %s", dbErr)
 		}
 
 		return nil, tErr
 	}
 
-	if dbErr := db.Update(transCtx.Transfer).Cols(cols...).Run(); dbErr != nil {
+	if dbErr := cli.Pip.UpdateTrans(); dbErr != nil {
 		logger.Error("Failed to update the transfer details: %s", dbErr)
 
 		return nil, errDatabase
@@ -67,27 +65,27 @@ func NewClientPipeline(db *database.DB, trans *model.Transfer,
 
 func newClientPipeline(db *database.DB, logger *log.Logger,
 	transCtx *model.TransferContext,
-) (*ClientPipeline, []string, *types.TransferError) {
+) (*ClientPipeline, *types.TransferError) {
 	proto := transCtx.RemoteAgent.Protocol
 
 	constr, ok := ClientConstructors[proto]
 	if !ok {
 		logger.Error("No client found for protocol %s", proto)
 
-		return nil, nil, types.NewTransferError(types.TeInternal,
+		return nil, types.NewTransferError(types.TeInternal,
 			fmt.Sprintf("no client found for protocol %s", proto))
 	}
 
-	pipeline, cols, pErr := NewPipeline(db, logger, transCtx)
+	pipeline, pErr := newPipeline(db, logger, transCtx)
 	if pErr != nil {
-		return nil, cols, pErr
+		return nil, pErr
 	}
 
 	client, err := constr(pipeline)
 	if err != nil {
 		logger.Error("Failed to instantiate the %s transfer client: %s", proto, err)
 
-		return nil, cols, err
+		return nil, err
 	}
 
 	c := &ClientPipeline{
@@ -97,7 +95,7 @@ func newClientPipeline(db *database.DB, logger *log.Logger,
 
 	ClientTransfers.Add(transCtx.Transfer.ID, c)
 
-	return c, cols, nil
+	return c, nil
 }
 
 //nolint:dupl // factorizing would hurt readability

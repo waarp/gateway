@@ -29,8 +29,6 @@ func UpdateFileInfo(info *r66.UpdateInfo, pip *pipeline.Pipeline) *types.Transfe
 		return nil // cannot update file info after data transfer started
 	}
 
-	var cols []string
-
 	if info.Filename != "" {
 		pip.TransCtx.Transfer.LocalPath = utils.ToOSPath(info.Filename)
 		pip.TransCtx.Transfer.RemotePath = path.Base(info.Filename)
@@ -38,20 +36,14 @@ func UpdateFileInfo(info *r66.UpdateInfo, pip *pipeline.Pipeline) *types.Transfe
 		if err := pip.RebuildFilepaths(); err != nil {
 			return err
 		}
-
-		cols = append(cols, "local_path", "remote_path")
 	}
 
 	if info.FileSize >= 0 {
 		pip.TransCtx.Transfer.Filesize = info.FileSize
-
-		cols = append(cols, "filesize")
 	}
 
-	if len(cols) > 0 {
-		if err := pip.UpdateTrans(cols...); err != nil {
-			return err
-		}
+	if err := pip.UpdateTrans(); err != nil {
+		return err
 	}
 
 	/*

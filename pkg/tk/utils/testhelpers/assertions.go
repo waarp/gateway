@@ -28,32 +28,6 @@ func ShouldBeOneOf(actual interface{}, expected ...interface{}) string {
 	return res
 }
 
-func ShouldBeErrorValue(actual interface{}, expected ...interface{}) string {
-	if n := len(expected); n != 1 {
-		return fmt.Sprintf("This assertion requires exactly 1 comparison value "+
-			"(you provided %d).", n)
-	}
-
-	err, ok1 := actual.(error)
-	if !ok1 || err == nil {
-		return fmt.Sprintf("Expected a non-nil error value (but was '%v' instead)!",
-			reflect.TypeOf(actual))
-	}
-
-	target, ok2 := expected[0].(error)
-	if !ok2 || target == nil {
-		return fmt.Sprintf("The target argument to this assertion must be a "+
-			"non-nil error value (you provided: '%v').", expected[0])
-	}
-
-	if !errors.Is(err, target) {
-		return fmt.Sprintf("Error '%v' does not match the expected target '%v'",
-			err, target)
-	}
-
-	return ""
-}
-
 func ShouldBeErrorType(actual interface{}, expected ...interface{}) string {
 	if n := len(expected); n != 1 {
 		return fmt.Sprintf("This assertion requires exactly 1 comparison value "+

@@ -60,7 +60,7 @@ func newServerPipeline(db *database.DB, trans *model.Transfer,
 		return nil, err
 	}
 
-	pipeline, cols, pErr := NewPipeline(db, logger, transCtx)
+	pipeline, pErr := newPipeline(db, logger, transCtx)
 	if pErr != nil {
 		if trans.ID == 0 {
 			return nil, pErr
@@ -69,9 +69,7 @@ func newServerPipeline(db *database.DB, trans *model.Transfer,
 		trans.Status = types.StatusError
 		trans.Error = *pErr
 
-		cols = append(cols, "status", "error_code", "error_details")
-
-		if err := db.Update(trans).Cols(cols...).Run(); err != nil {
+		if err := db.Update(trans).Run(); err != nil {
 			logger.Error("Failed to update the transfer error: %s", err)
 		}
 
@@ -86,7 +84,7 @@ func newServerPipeline(db *database.DB, trans *model.Transfer,
 		}
 
 		pipeline.Logger = conf.GetLogger(fmt.Sprintf("Pipeline %d (server)", trans.ID))
-	} else if err := db.Update(trans).Cols(cols...).Run(); err != nil {
+	} else if err := pipeline.UpdateTrans(); err != nil {
 		logger.Error("Failed to update the transfer details: %s", err)
 
 		return nil, errDatabase

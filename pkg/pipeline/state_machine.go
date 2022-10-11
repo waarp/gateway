@@ -8,6 +8,7 @@ const (
 	stateInError       statemachine.State = "in error"
 	statePreTasks      statemachine.State = "pre-tasks"
 	statePreTasksDone  statemachine.State = "pre-tasks done"
+	stateDataStart     statemachine.State = "data start"
 	stateReading       statemachine.State = "reading"
 	stateWriting       statemachine.State = "writing"
 	stateDataEnd       statemachine.State = "data end"
@@ -20,13 +21,15 @@ const (
 
 // pipelineSateMachine defines the different states and transitions of the
 // pipeline's state machine.
+//
 //nolint:gochecknoglobals // global var is used by design
 var pipelineSateMachine = statemachine.MachineModel{
 	Initial: stateInit,
 	StateMap: statemachine.StateMap{
 		stateInit:          statemachine.CanTransitionTo(statePreTasks, stateError),
 		statePreTasks:      statemachine.CanTransitionTo(statePreTasksDone, stateError),
-		statePreTasksDone:  statemachine.CanTransitionTo(stateReading, stateWriting, stateError),
+		statePreTasksDone:  statemachine.CanTransitionTo(stateDataStart, stateError),
+		stateDataStart:     statemachine.CanTransitionTo(stateReading, stateWriting, stateError),
 		stateReading:       statemachine.CanTransitionTo(stateDataEnd, stateError),
 		stateWriting:       statemachine.CanTransitionTo(stateDataEnd, stateError),
 		stateDataEnd:       statemachine.CanTransitionTo(stateDataEndDone, stateError),

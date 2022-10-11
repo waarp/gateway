@@ -6,6 +6,7 @@ import (
 	"path"
 	"path/filepath"
 	"testing"
+	"time"
 
 	. "github.com/smartystreets/goconvey/convey"
 
@@ -181,6 +182,7 @@ func TestPipelinePreTasks(t *testing.T) {
 
 		Convey("Given that a database error occurs", func(c C) {
 			database.SimulateError(c, ctx.db)
+			time.Sleep(testTransferUpdateInterval)
 
 			Convey("When calling the pre-tasks", func(c C) {
 				So(pip.PreTasks(), ShouldBeError, errDatabase)
@@ -273,6 +275,7 @@ func TestPipelineStartData(t *testing.T) {
 
 		Convey("Given that a database error occurs", func(c C) {
 			database.SimulateError(c, ctx.db)
+			time.Sleep(testTransferUpdateInterval)
 
 			Convey("When starting the data transfer", func(c C) {
 				_, err := pip.StartData()
@@ -327,6 +330,7 @@ func TestPipelineEndData(t *testing.T) {
 			So(err, ShouldBeNil)
 
 			database.SimulateError(c, ctx.db)
+			time.Sleep(testTransferUpdateInterval)
 			So(pip.EndData(), ShouldBeError, errDatabase)
 
 			Convey("Then the transfer should end in error", func(c C) {
@@ -362,6 +366,7 @@ func TestPipelinePostTasks(t *testing.T) {
 
 		So(pip.machine.Transition(statePreTasks), ShouldBeNil)
 		So(pip.machine.Transition(statePreTasksDone), ShouldBeNil)
+		So(pip.machine.Transition(stateDataStart), ShouldBeNil)
 		So(pip.machine.Transition(stateWriting), ShouldBeNil)
 		So(pip.machine.Transition(stateDataEnd), ShouldBeNil)
 		So(pip.machine.Transition(stateDataEndDone), ShouldBeNil)
@@ -393,6 +398,7 @@ func TestPipelinePostTasks(t *testing.T) {
 
 		Convey("Given that a database error occurs", func(c C) {
 			database.SimulateError(c, ctx.db)
+			time.Sleep(testTransferUpdateInterval)
 
 			Convey("When calling the post-tasks", func(c C) {
 				So(pip.PostTasks(), ShouldBeError, errDatabase)
