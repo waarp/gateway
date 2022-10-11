@@ -14,6 +14,8 @@ Consulter un serveur
    :resjson string name: Le nom du serveur
    :resjson string protocol: Le protocole utilisé par le serveur
    :resjson string address: L'adresse du serveur (en format [adresse:port])
+   :resjson bool enabled: Indique si le serveur est activé ou non au démarrage
+      de la *gateway*.
    :resjson string root: La racine du serveur. Peut être relatif (à la racine
       de la *gateway*) ou absolu (OBSOLÈTE: remplacé par 'rootDir').
    :resjson string inDir: Le dossier de réception du serveur. Peut être

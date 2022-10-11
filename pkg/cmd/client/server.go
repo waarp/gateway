@@ -31,7 +31,14 @@ func displayServer(w io.Writer, server *api.OutServer) {
 	send := strings.Join(server.AuthorizedRules.Sending, ", ")
 	recv := strings.Join(server.AuthorizedRules.Reception, ", ")
 
-	fmt.Fprintln(w, orange(bold("● Server", server.Name)))
+	status := green("Enabled")
+	if !server.Enabled {
+		status = red("Disabled")
+	}
+
+	status = orange("[") + status + orange("]")
+
+	fmt.Fprintln(w, orange("● Server", bold(`"`+server.Name+`"`)), status)
 	fmt.Fprintln(w, orange("    Protocol:              "), server.Protocol)
 	fmt.Fprintln(w, orange("    Address:               "), server.Address)
 	fmt.Fprintln(w, orange("    Root directory:        "), server.RootDir)
@@ -40,8 +47,8 @@ func displayServer(w io.Writer, server *api.OutServer) {
 	fmt.Fprintln(w, orange("    Temp receive directory:"), server.TmpReceiveDir)
 	fmt.Fprintln(w, orange("    Configuration:         "), string(server.ProtoConfig))
 	fmt.Fprintln(w, orange("    Authorized rules"))
-	fmt.Fprintln(w, bold("    ├─Sending:  "), send)
-	fmt.Fprintln(w, bold("    └─Reception:"), recv)
+	fmt.Fprintln(w, orange("    ├─Sending:             "), send)
+	fmt.Fprintln(w, orange("    └─Reception:           "), recv)
 }
 
 // ######################## GET ##########################

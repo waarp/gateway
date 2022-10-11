@@ -21,7 +21,12 @@ import (
 )
 
 func serverInfoString(s *api.OutServer) string {
-	return "● Server " + s.Name + "\n" +
+	status := "Enabled"
+	if !s.Enabled {
+		status = "Disabled"
+	}
+
+	return `● Server "` + s.Name + `" [` + status + "]\n" +
 		"    Protocol:               " + s.Protocol + "\n" +
 		"    Address:                " + s.Address + "\n" +
 		"    Root directory:         " + s.RootDir + "\n" +
@@ -30,8 +35,8 @@ func serverInfoString(s *api.OutServer) string {
 		"    Temp receive directory: " + s.TmpReceiveDir + "\n" +
 		"    Configuration:          " + string(s.ProtoConfig) + "\n" +
 		"    Authorized rules\n" +
-		"    ├─Sending:   " + strings.Join(s.AuthorizedRules.Sending, ", ") + "\n" +
-		"    └─Reception: " + strings.Join(s.AuthorizedRules.Reception, ", ") + "\n"
+		"    ├─Sending:              " + strings.Join(s.AuthorizedRules.Sending, ", ") + "\n" +
+		"    └─Reception:            " + strings.Join(s.AuthorizedRules.Reception, ", ") + "\n"
 }
 
 func TestGetServer(t *testing.T) {

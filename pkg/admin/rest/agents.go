@@ -98,6 +98,7 @@ func FromLocalAgent(ag *model.LocalAgent, rules *api.AuthorizedRules) *api.OutSe
 		Name:            ag.Name,
 		Protocol:        ag.Protocol,
 		Address:         ag.Address,
+		Enabled:         ag.Enabled,
 		Root:            utils.NormalizePath(ag.RootDir),
 		RootDir:         ag.RootDir,
 		InDir:           utils.NormalizePath(ag.ReceiveDir),

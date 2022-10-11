@@ -27,7 +27,7 @@ type commands struct {
 		Auth    wg.ServerAuthorize `command:"authorize" description:"Authorize a server to use a rule"`
 		Rev     wg.ServerRevoke    `command:"revoke" description:"Revoke a server's permission to use a rule"`
 		Enable  wg.ServerEnable    `command:"enable" description:"Enable a server at launch"`
-		Disable wg.ServerEnable    `command:"disable" description:"Disable a server at launch"`
+		Disable wg.ServerDisable   `command:"disable" description:"Disable a server at launch"`
 		Cert    struct {
 			Args struct {
 				Server wg.ServerArg `required:"yes" positional-arg-name:"server" description:"The server's name"`
