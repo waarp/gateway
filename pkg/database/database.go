@@ -8,7 +8,6 @@ import (
 	"crypto/rand"
 	"errors"
 	"fmt"
-	"io/ioutil"
 	"os"
 	"time"
 
@@ -60,12 +59,12 @@ func (db *DB) loadAESKey() error {
 			return fmt.Errorf("cannot generate AES key: %w", err)
 		}
 
-		if err := ioutil.WriteFile(utils.ToOSPath(filename), key, 0o600); err != nil {
+		if err := os.WriteFile(utils.ToOSPath(filename), key, 0o600); err != nil {
 			return fmt.Errorf("cannot write AES key to file %q: %w", filename, err)
 		}
 	}
 
-	key, err := ioutil.ReadFile(utils.ToOSPath(filename))
+	key, err := os.ReadFile(utils.ToOSPath(filename))
 	if err != nil {
 		return fmt.Errorf("cannot read AES key from file %q: %w", filename, err)
 	}

@@ -2,7 +2,6 @@ package pipelinetest
 
 import (
 	"crypto/rand"
-	"io/ioutil"
 	"os"
 	"path/filepath"
 
@@ -54,7 +53,7 @@ func AddSourceFile(c convey.C, dir, file string) []byte {
 	c.So(err, convey.ShouldBeNil)
 
 	path := filepath.Join(dir, file)
-	c.So(ioutil.WriteFile(path, cont, 0o600), convey.ShouldBeNil)
+	c.So(os.WriteFile(path, cont, 0o600), convey.ShouldBeNil)
 
 	return cont
 }

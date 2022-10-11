@@ -4,7 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
-	"io/ioutil"
+	"io"
 	"net/http"
 	"testing"
 	"time"
@@ -116,7 +116,7 @@ func TestServerInterruption(t *testing.T) {
 
 					So(resp.StatusCode, ShouldEqual, http.StatusServiceUnavailable)
 					So(resp.Header.Get(httpconst.TransferStatus), ShouldEqual, types.StatusInterrupted)
-					body, err := ioutil.ReadAll(resp.Body)
+					body, err := io.ReadAll(resp.Body)
 					So(err, ShouldBeNil)
 					So(string(body), ShouldResemble, "transfer interrupted by a server shutdown")
 
