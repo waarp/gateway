@@ -18,6 +18,13 @@ import (
 	"code.waarp.fr/apps/gateway/gateway/pkg/model"
 )
 
+const (
+	ServerRestartRequiredMsg = "A restart is required when changing a server's " +
+		"name, protocol or address for the changes to be effective."
+	ServerCertRestartRequiredMsg = "A restart is required when changing a server's " +
+		"certificates for the changes to be effective."
+)
+
 func getServ(r *http.Request, db *database.DB) (*model.LocalAgent, error) {
 	serverName, ok := mux.Vars(r)["server"]
 	if !ok {
@@ -140,6 +147,10 @@ func updateServer(logger *log.Logger, db *database.DB) http.HandlerFunc {
 
 		w.Header().Set("Location", locationUpdate(r.URL, agent.Name))
 		w.WriteHeader(http.StatusCreated)
+
+		if jServ.Name != nil || jServ.Protocol != nil || jServ.Address != nil {
+			fmt.Fprint(w, ServerRestartRequiredMsg)
+		}
 	}
 }
 
@@ -164,6 +175,10 @@ func replaceServer(logger *log.Logger, db *database.DB) http.HandlerFunc {
 
 		w.Header().Set("Location", locationUpdate(r.URL, agent.Name))
 		w.WriteHeader(http.StatusCreated)
+
+		if jServ.Name != nil || jServ.Protocol != nil || jServ.Address != nil {
+			fmt.Fprint(w, ServerRestartRequiredMsg)
+		}
 	}
 }
 
@@ -226,7 +241,11 @@ func addServerCert(logger *log.Logger, db *database.DB) http.HandlerFunc {
 		}
 
 		err = createCrypto(w, r, db, ag.TableName(), ag.ID)
-		handleError(w, logger, err)
+		if handleError(w, logger, err) {
+			return
+		}
+
+		fmt.Fprint(w, ServerCertRestartRequiredMsg)
 	}
 }
 
@@ -250,7 +269,11 @@ func deleteServerCert(logger *log.Logger, db *database.DB) http.HandlerFunc {
 		}
 
 		err = deleteCrypto(w, r, db, ag.TableName(), ag.ID)
-		handleError(w, logger, err)
+		if handleError(w, logger, err) {
+			return
+		}
+
+		fmt.Fprint(w, ServerCertRestartRequiredMsg)
 	}
 }
 
@@ -262,7 +285,11 @@ func updateServerCert(logger *log.Logger, db *database.DB) http.HandlerFunc {
 		}
 
 		err = updateCrypto(w, r, db, ag.TableName(), ag.ID)
-		handleError(w, logger, err)
+		if handleError(w, logger, err) {
+			return
+		}
+
+		fmt.Fprint(w, ServerCertRestartRequiredMsg)
 	}
 }
 
@@ -274,7 +301,11 @@ func replaceServerCert(logger *log.Logger, db *database.DB) http.HandlerFunc {
 		}
 
 		err = replaceCrypto(w, r, db, ag.TableName(), ag.ID)
-		handleError(w, logger, err)
+		if handleError(w, logger, err) {
+			return
+		}
+
+		fmt.Fprint(w, ServerCertRestartRequiredMsg)
 	}
 }
 

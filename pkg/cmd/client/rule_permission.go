@@ -25,7 +25,7 @@ func authorize(targetType, target, rule, direction string) error {
 
 	switch resp.StatusCode {
 	case http.StatusOK:
-		if msg := getResponseMessage(resp).Error(); msg != "" {
+		if msg := getResponseErrorMessage(resp).Error(); msg != "" {
 			fmt.Fprintln(w, msg)
 		}
 
@@ -36,10 +36,10 @@ func authorize(targetType, target, rule, direction string) error {
 		return nil
 
 	case http.StatusNotFound:
-		return getResponseMessage(resp)
+		return getResponseErrorMessage(resp)
 
 	default:
-		return fmt.Errorf("unexpected error: %w", getResponseMessage(resp))
+		return fmt.Errorf("unexpected error: %w", getResponseErrorMessage(resp))
 	}
 }
 
@@ -65,16 +65,16 @@ func revoke(targetType, target, rule, direction string) error {
 			"is no longer allowed to use the", direction, "rule", bold(rule),
 			"for transfers.")
 
-		if msg := getResponseMessage(resp).Error(); msg != "" {
+		if msg := getResponseErrorMessage(resp).Error(); msg != "" {
 			fmt.Fprintln(w, msg)
 		}
 
 		return nil
 
 	case http.StatusNotFound:
-		return getResponseMessage(resp)
+		return getResponseErrorMessage(resp)
 
 	default:
-		return fmt.Errorf("unexpected error: %w", getResponseMessage(resp))
+		return fmt.Errorf("unexpected error: %w", getResponseErrorMessage(resp))
 	}
 }

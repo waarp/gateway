@@ -494,8 +494,8 @@ func TestUpdateServer(t *testing.T) {
 					So(command.Execute(params), ShouldBeNil)
 
 					Convey("Then is should display a message saying the server was updated", func() {
-						So(getOutput(), ShouldEqual, "The server new_server "+
-							"was successfully updated.\n")
+						So(getOutput(), ShouldEqual, rest.ServerRestartRequiredMsg+
+							"\nThe server new_server was successfully updated.\n")
 					})
 
 					Convey("Then the server should have been updated", func() {

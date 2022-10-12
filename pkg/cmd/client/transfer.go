@@ -275,13 +275,13 @@ func (t *TransferPause) Execute([]string) error {
 		return nil
 
 	case http.StatusNotFound:
-		return getResponseMessage(resp)
+		return getResponseErrorMessage(resp)
 
 	case http.StatusBadRequest:
-		return getResponseMessage(resp)
+		return getResponseErrorMessage(resp)
 
 	default:
-		return fmt.Errorf("unexpected error (%s): %w", resp.Status, getResponseMessage(resp))
+		return fmt.Errorf("unexpected error (%s): %w", resp.Status, getResponseErrorMessage(resp))
 	}
 }
 
@@ -316,13 +316,13 @@ func (t *TransferResume) Execute([]string) error {
 		return nil
 
 	case http.StatusNotFound:
-		return getResponseMessage(resp)
+		return getResponseErrorMessage(resp)
 
 	case http.StatusBadRequest:
-		return getResponseMessage(resp)
+		return getResponseErrorMessage(resp)
 
 	default:
-		return fmt.Errorf("unexpected error (%s): %w", resp.Status, getResponseMessage(resp))
+		return fmt.Errorf("unexpected error (%s): %w", resp.Status, getResponseErrorMessage(resp))
 	}
 }
 
@@ -358,12 +358,12 @@ func (t *TransferCancel) Execute([]string) error {
 		return nil
 
 	case http.StatusNotFound:
-		return getResponseMessage(resp)
+		return getResponseErrorMessage(resp)
 
 	case http.StatusBadRequest:
-		return getResponseMessage(resp)
+		return getResponseErrorMessage(resp)
 
 	default:
-		return fmt.Errorf("unexpected error (%s): %w", resp.Status, getResponseMessage(resp))
+		return fmt.Errorf("unexpected error (%s): %w", resp.Status, getResponseErrorMessage(resp))
 	}
 }

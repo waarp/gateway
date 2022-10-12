@@ -5,7 +5,6 @@ import (
 	"errors"
 	"fmt"
 	"io"
-	"io/ioutil"
 	"net/http"
 	"net/url"
 	"reflect"
@@ -26,7 +25,7 @@ const (
 )
 
 func unmarshalBody(body io.Reader, object interface{}) error {
-	b, err := ioutil.ReadAll(body)
+	b, err := io.ReadAll(body)
 	if err != nil {
 		return fmt.Errorf("failed to read response body: %w", err)
 	}
@@ -38,10 +37,26 @@ func unmarshalBody(body io.Reader, object interface{}) error {
 	return nil
 }
 
-func getResponseMessage(resp *http.Response) error {
-	body, _ := ioutil.ReadAll(resp.Body)
+func getResponseErrorMessage(resp *http.Response) error {
+	body, err := io.ReadAll(resp.Body)
+	if err != nil {
+		return fmt.Errorf("failed to read the response body: %w", err)
+	}
 
 	return errors.New(strings.TrimSpace(string(body))) //nolint:goerr113 // too specific
+}
+
+func displayResponseMessage(resp *http.Response) error {
+	cont, err := io.ReadAll(resp.Body)
+	if err != nil {
+		return fmt.Errorf("failed to read the response body: %w", err)
+	}
+
+	if len(cont) > 0 {
+		fmt.Fprintln(getColorable(), string(cont))
+	}
+
+	return nil
 }
 
 func isNotUpdate(obj interface{}) bool {

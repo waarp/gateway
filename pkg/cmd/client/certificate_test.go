@@ -553,8 +553,8 @@ func TestAddCertificate(t *testing.T) {
 							So(command.Execute(params), ShouldBeNil)
 
 							Convey("Then is should display a message saying the cert was added", func() {
-								So(getOutput(), ShouldEqual, "The certificate "+command.Name+
-									" was successfully added.\n")
+								So(getOutput(), ShouldEqual, rest.ServerCertRestartRequiredMsg+
+									"\nThe certificate "+command.Name+" was successfully added.\n")
 							})
 
 							Convey("Then the new cert should have been added", func() {
@@ -1908,8 +1908,8 @@ func TestUpdateCertificate(t *testing.T) {
 
 							Convey("Then is should display a message saying "+
 								"the cert was added", func() {
-								So(getOutput(), ShouldEqual, "The certificate "+
-									cert.Name+" was successfully updated.\n")
+								So(getOutput(), ShouldEqual, rest.ServerCertRestartRequiredMsg+
+									"\nThe certificate "+cert.Name+" was successfully updated.\n")
 							})
 
 							Convey("Then the cert should have been updated", func() {

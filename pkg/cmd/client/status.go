@@ -81,6 +81,6 @@ func (s Status) Execute([]string) error {
 		return nil
 
 	default:
-		return fmt.Errorf("unexpected error (%s): %w", resp.Status, getResponseMessage(resp))
+		return fmt.Errorf("unexpected error (%s): %w", resp.Status, getResponseErrorMessage(resp))
 	}
 }

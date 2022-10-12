@@ -420,7 +420,7 @@ func TestUpdateServer(t *testing.T) {
 					handler.ServeHTTP(w, r)
 
 					Convey("Then the response body should be empty", func() {
-						So(w.Body.String(), ShouldBeEmpty)
+						So(w.Body.String(), ShouldEqual, ServerRestartRequiredMsg)
 					})
 
 					Convey("Then it should reply 'Created'", func() {
@@ -524,7 +524,7 @@ func TestReplaceServer(t *testing.T) {
 					handler.ServeHTTP(w, r)
 
 					Convey("Then the response body should be empty", func() {
-						So(w.Body.String(), ShouldBeEmpty)
+						So(w.Body.String(), ShouldEqual, ServerRestartRequiredMsg)
 					})
 
 					Convey("Then it should reply 'Created'", func() {

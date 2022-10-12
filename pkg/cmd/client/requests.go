@@ -75,13 +75,13 @@ func add(object interface{}) error {
 
 	switch resp.StatusCode {
 	case http.StatusCreated:
-		return nil
+		return displayResponseMessage(resp)
 	case http.StatusBadRequest:
-		return getResponseMessage(resp)
+		return getResponseErrorMessage(resp)
 	case http.StatusNotFound:
-		return getResponseMessage(resp)
+		return getResponseErrorMessage(resp)
 	default:
-		return fmt.Errorf("unexpected error (%s): %w", resp.Status, getResponseMessage(resp))
+		return fmt.Errorf("unexpected error (%s): %w", resp.Status, getResponseErrorMessage(resp))
 	}
 }
 
@@ -99,11 +99,11 @@ func list(target interface{}) error {
 	case http.StatusOK:
 		return unmarshalBody(resp.Body, target)
 	case http.StatusBadRequest:
-		return getResponseMessage(resp)
+		return getResponseErrorMessage(resp)
 	case http.StatusNotFound:
-		return getResponseMessage(resp)
+		return getResponseErrorMessage(resp)
 	default:
-		return fmt.Errorf("unexpected error (%s): %w", resp.Status, getResponseMessage(resp))
+		return fmt.Errorf("unexpected error (%s): %w", resp.Status, getResponseErrorMessage(resp))
 	}
 }
 
@@ -121,9 +121,9 @@ func get(target interface{}) error {
 	case http.StatusOK:
 		return unmarshalBody(resp.Body, target)
 	case http.StatusNotFound:
-		return getResponseMessage(resp)
+		return getResponseErrorMessage(resp)
 	default:
-		return fmt.Errorf("unexpected error: %w", getResponseMessage(resp))
+		return fmt.Errorf("unexpected error: %w", getResponseErrorMessage(resp))
 	}
 }
 
@@ -143,14 +143,14 @@ func update(object interface{}) error {
 
 	switch resp.StatusCode {
 	case http.StatusCreated:
-		return nil
+		return displayResponseMessage(resp)
 	case http.StatusBadRequest:
-		return getResponseMessage(resp)
+		return getResponseErrorMessage(resp)
 	case http.StatusNotFound:
-		return getResponseMessage(resp)
+		return getResponseErrorMessage(resp)
 	default:
 		return fmt.Errorf("unexpected error (%v): %w", resp.StatusCode,
-			getResponseMessage(resp))
+			getResponseErrorMessage(resp))
 	}
 }
 
@@ -166,11 +166,11 @@ func remove() error {
 
 	switch resp.StatusCode {
 	case http.StatusNoContent:
-		return nil
+		return displayResponseMessage(resp)
 	case http.StatusNotFound:
-		return getResponseMessage(resp)
+		return getResponseErrorMessage(resp)
 	default:
-		return fmt.Errorf("unexpected error: %w", getResponseMessage(resp))
+		return fmt.Errorf("unexpected error: %w", getResponseErrorMessage(resp))
 	}
 }
 
@@ -188,10 +188,10 @@ func exec(path string) error {
 
 	switch resp.StatusCode {
 	case http.StatusAccepted:
-		return nil
+		return displayResponseMessage(resp)
 	case http.StatusNotFound:
-		return getResponseMessage(resp)
+		return getResponseErrorMessage(resp)
 	default:
-		return fmt.Errorf("unexpected error: %w", getResponseMessage(resp))
+		return fmt.Errorf("unexpected error: %w", getResponseErrorMessage(resp))
 	}
 }
