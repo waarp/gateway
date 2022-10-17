@@ -8,6 +8,7 @@ import (
 
 	"code.waarp.fr/apps/gateway/gateway/pkg/model/types"
 	"code.waarp.fr/apps/gateway/gateway/pkg/pipeline"
+	"code.waarp.fr/apps/gateway/gateway/pkg/tk/utils"
 	"code.waarp.fr/apps/gateway/gateway/pkg/utils/compatibility"
 )
 
@@ -61,10 +62,12 @@ func makeTLSConf(pip *pipeline.Pipeline) (*tls.Config, error) {
 	}
 
 	for _, ca := range pip.TransCtx.RemoteAgentCryptos {
-		if !rootCAs.AppendCertsFromPEM([]byte(ca.Certificate)) {
-			//nolint:wrapcheck,goerr113 // this is a base error
-			return nil, fmt.Errorf("failed to add certificate %s to cert pool", ca.Name)
+		certChain, parseErr := utils.ParsePEMCertChain(ca.Certificate)
+		if parseErr != nil {
+			return nil, fmt.Errorf("failed to parse the certificate chain: %w", parseErr)
 		}
+
+		rootCAs.AddCert(certChain[0])
 	}
 
 	var certs []tls.Certificate
