@@ -6,6 +6,7 @@ import (
 
 // InServer is the JSON representation of a local agent in requests
 // made to the REST interface.
+//
 //nolint:lll // JSON tags can be long
 type InServer struct {
 	Name          *string         `json:"name,omitempty"`
@@ -26,10 +27,12 @@ type InServer struct {
 
 // OutServer is the JSON representation of a local server in responses sent by
 // the REST interface.
+//
 //nolint:lll // JSON tags can be long
 type OutServer struct {
 	Name            string          `json:"name"`
 	Protocol        string          `json:"protocol"`
+	Enabled         bool            `json:"enabled"`
 	Address         string          `json:"address"`
 	RootDir         string          `json:"rootDir,omitempty"`
 	ReceiveDir      string          `json:"receiveDir,omitempty"`

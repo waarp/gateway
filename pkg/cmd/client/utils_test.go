@@ -8,6 +8,7 @@ import (
 	"strings"
 
 	"code.waarp.fr/lib/log"
+	"github.com/jessevdk/go-flags"
 	. "github.com/smartystreets/goconvey/convey"
 	"golang.org/x/crypto/bcrypt"
 
@@ -87,4 +88,11 @@ func getOutput() string {
 	So(ok, ShouldBeTrue)
 
 	return str.String()
+}
+
+func executeCommand(command flags.Commander, args ...string) error {
+	params, err := flags.ParseArgs(command, args)
+	So(err, ShouldBeNil)
+
+	return command.Execute(params) //nolint:wrapcheck //no need to wrap here
 }

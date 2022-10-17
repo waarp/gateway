@@ -102,7 +102,7 @@ func TestListServers(t *testing.T) {
 			So(db.Insert(&a5).Run(), ShouldBeNil)
 			conf.GlobalConfig.GatewayName = owner
 
-			Convey("Given a request with with no parameters", func() {
+			Convey("Given a request with no parameters", func() {
 				r, err := http.NewRequest(http.MethodGet, "", nil)
 				So(err, ShouldBeNil)
 
@@ -585,4 +585,48 @@ func TestReplaceServer(t *testing.T) {
 			})
 		})
 	})
+}
+
+func TestEnableDisableServer(t *testing.T) {
+	testEnableDisableServer := func(expectedEnabled bool) {
+		path, name := ServerPathDisable, "disable"
+		if expectedEnabled {
+			path, name = ServerPathEnable, "enable"
+		}
+
+		Convey("Given the agent "+name+" handler", t, func(c C) {
+			logger := testhelpers.TestLogger(c, "rest_agent_"+name+"_logger")
+			db := database.TestDatabase(c)
+			host := testAdminServer(logger, db)
+
+			Convey("Given a database with a "+name+"d agent", func() {
+				agent := model.LocalAgent{
+					Name:     "agent",
+					Protocol: testProto1,
+					Enabled:  !expectedEnabled,
+					Address:  "localhost:1",
+				}
+				So(db.Insert(&agent).Run(), ShouldBeNil)
+
+				path = strings.ReplaceAll(path, "{server}", agent.Name)
+
+				Convey("When sending a request to the handler", func() {
+					resp := methodTestRequest(host, path)
+
+					Convey("Then it should reply 'ACCEPTED'", func() {
+						So(resp.StatusCode, ShouldEqual, http.StatusAccepted)
+
+						Convey("Then it should have "+name+"d the sever", func() {
+							var check model.LocalAgent
+							So(db.Get(&check, "id=?", agent.ID).Run(), ShouldBeNil)
+							So(check.Enabled, ShouldEqual, expectedEnabled)
+						})
+					})
+				})
+			})
+		})
+	}
+
+	testEnableDisableServer(true)
+	testEnableDisableServer(false)
 }

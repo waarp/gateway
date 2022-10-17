@@ -28,6 +28,8 @@ Lister les serveurs
    :resjsonarr string name: Le nom du serveur
    :resjsonarr string protocol: Le protocole utilisé par le serveur
    :resjsonarr string address: L'adresse du serveur (en format [adresse:port])
+   :resjsonarr bool enabled: Indique si le serveur est activé ou non au démarrage
+      de la *gateway*.
    :resjsonarr string root: La racine du serveur. Peut être relatif (à la racine
       de la *gateway*) ou absolu (OBSOLÈTE: remplacé par 'rootDir').
    :resjsonarr string inDir: Le dossier de réception du serveur. Peut être

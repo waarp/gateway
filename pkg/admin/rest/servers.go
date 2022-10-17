@@ -100,8 +100,11 @@ func addServer(logger *log.Logger, db *database.DB) http.HandlerFunc {
 			return
 		}
 
-		agent := servToDB(&serv, 0, logger)
-		if err := db.Insert(agent).Run(); handleError(w, logger, err) {
+		var agent model.LocalAgent
+
+		servToDB(logger, &serv, &agent)
+
+		if err := db.Insert(&agent).Run(); handleError(w, logger, err) {
 			return
 		}
 
@@ -113,22 +116,23 @@ func addServer(logger *log.Logger, db *database.DB) http.HandlerFunc {
 //nolint:dupl // duplicated code is about a different type
 func updateServer(logger *log.Logger, db *database.DB) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		old, err := getServ(r, db)
+		agent, err := getServ(r, db)
 		if handleError(w, logger, err) {
 			return
 		}
 
-		jServ := newInServer(old)
-		if err := readJSON(r, jServ); handleError(w, logger, err) {
+		var serv api.InServer
+		if err := readJSON(r, &serv); handleError(w, logger, err) {
 			return
 		}
 
-		serv := servToDB(jServ, old.ID, logger)
-		if err := db.Update(serv).Run(); handleError(w, logger, err) {
+		servToDB(logger, &serv, agent)
+
+		if err := db.Update(agent).Run(); handleError(w, logger, err) {
 			return
 		}
 
-		w.Header().Set("Location", locationUpdate(r.URL, serv.Name))
+		w.Header().Set("Location", locationUpdate(r.URL, agent.Name))
 		w.WriteHeader(http.StatusCreated)
 	}
 }
@@ -140,17 +144,19 @@ func replaceServer(logger *log.Logger, db *database.DB) http.HandlerFunc {
 			return
 		}
 
-		var jServ api.InServer
-		if err := readJSON(r, &jServ); handleError(w, logger, err) {
+		var serv api.InServer
+		if err := readJSON(r, &serv); handleError(w, logger, err) {
 			return
 		}
 
-		serv := servToDB(&jServ, old.ID, logger)
-		if err := db.Update(serv).Run(); handleError(w, logger, err) {
+		agent := &model.LocalAgent{ID: old.ID}
+		servToDB(logger, &serv, agent)
+
+		if err := db.Update(agent).Run(); handleError(w, logger, err) {
 			return
 		}
 
-		w.Header().Set("Location", locationUpdate(r.URL, serv.Name))
+		w.Header().Set("Location", locationUpdate(r.URL, agent.Name))
 		w.WriteHeader(http.StatusCreated)
 	}
 }
@@ -263,5 +269,36 @@ func replaceServerCert(logger *log.Logger, db *database.DB) http.HandlerFunc {
 
 		err = replaceCrypto(w, r, db, ag.TableName(), ag.ID)
 		handleError(w, logger, err)
+	}
+}
+
+func enableServer(logger *log.Logger, db *database.DB) http.HandlerFunc {
+	return enableDisableServer(logger, db, true)
+}
+
+func disableServer(logger *log.Logger, db *database.DB) http.HandlerFunc {
+	return enableDisableServer(logger, db, false)
+}
+
+func enableDisableServer(logger *log.Logger, db *database.DB, enable bool) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		ag, err := getServ(r, db)
+		if handleError(w, logger, err) {
+			return
+		}
+
+		if ag.Enabled == enable {
+			w.WriteHeader(http.StatusAccepted)
+
+			return // nothing to do
+		}
+
+		ag.Enabled = enable
+
+		if handleError(w, logger, db.Update(ag).Cols("enabled").Run()) {
+			return
+		}
+
+		w.WriteHeader(http.StatusAccepted)
 	}
 }

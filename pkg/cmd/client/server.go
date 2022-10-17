@@ -1,14 +1,20 @@
 package wg
 
 import (
+	"context"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"io"
+	"net/http"
 	"path"
 	"strings"
 
+	"code.waarp.fr/apps/gateway/gateway/pkg/admin/rest"
 	"code.waarp.fr/apps/gateway/gateway/pkg/admin/rest/api"
 )
+
+var ErrMissingServerName = errors.New("the 'server' name argument is missing")
 
 //nolint:gochecknoglobals //a global var is required here
 var Server string
@@ -25,7 +31,14 @@ func displayServer(w io.Writer, server *api.OutServer) {
 	send := strings.Join(server.AuthorizedRules.Sending, ", ")
 	recv := strings.Join(server.AuthorizedRules.Reception, ", ")
 
-	fmt.Fprintln(w, orange(bold("● Server", server.Name)))
+	status := green("Enabled")
+	if !server.Enabled {
+		status = red("Disabled")
+	}
+
+	status = orange("[") + status + orange("]")
+
+	fmt.Fprintln(w, orange("● Server", bold(`"`+server.Name+`"`)), status)
 	fmt.Fprintln(w, orange("    Protocol:              "), server.Protocol)
 	fmt.Fprintln(w, orange("    Address:               "), server.Address)
 	fmt.Fprintln(w, orange("    Root directory:        "), server.RootDir)
@@ -34,8 +47,8 @@ func displayServer(w io.Writer, server *api.OutServer) {
 	fmt.Fprintln(w, orange("    Temp receive directory:"), server.TmpReceiveDir)
 	fmt.Fprintln(w, orange("    Configuration:         "), string(server.ProtoConfig))
 	fmt.Fprintln(w, orange("    Authorized rules"))
-	fmt.Fprintln(w, bold("    ├─Sending:  "), send)
-	fmt.Fprintln(w, bold("    └─Reception:"), recv)
+	fmt.Fprintln(w, orange("    ├─Sending:             "), send)
+	fmt.Fprintln(w, orange("    └─Reception:           "), recv)
 }
 
 // ######################## GET ##########################
@@ -308,3 +321,55 @@ func (s *ServerRevoke) Execute([]string) error {
 
 	return revoke("server", s.Args.Server, s.Args.Rule, s.Args.Direction)
 }
+
+// ######################## ENABLE/DISABLE ##########################
+
+type serverEnableDisable struct {
+	Args struct {
+		Server string `required:"yes" positional-arg-name:"server" description:"The server's name"`
+	} `positional-args:"yes"`
+}
+
+func (s *serverEnableDisable) run(isEnable bool) error {
+	server := s.Args.Server
+	if server == "" {
+		return ErrMissingServerName
+	}
+
+	handlerPath, status := rest.ServerPathEnable, "enabled"
+	if !isEnable {
+		handlerPath, status = rest.ServerPathDisable, "disabled"
+	}
+
+	addr.Path = strings.ReplaceAll(handlerPath, "{server}", server)
+
+	ctx, cancel := context.WithTimeout(context.Background(), httpTimeout)
+	defer cancel()
+
+	resp, err := sendRequest(ctx, nil, http.MethodPut)
+	if err != nil {
+		return err
+	}
+	defer resp.Body.Close() //nolint:errcheck // response should not have a body
+
+	w := getColorable()
+
+	switch resp.StatusCode {
+	case http.StatusAccepted:
+		fmt.Fprintln(w, "The server", server, "was successfully", status+".")
+
+		return nil
+	case http.StatusNotFound:
+		return getResponseMessage(resp)
+	default:
+		return fmt.Errorf("unexpected error (%s): %w", resp.Status, getResponseMessage(resp))
+	}
+}
+
+type (
+	ServerEnable  struct{ serverEnableDisable }
+	ServerDisable struct{ serverEnableDisable }
+)
+
+func (s *ServerEnable) Execute([]string) error  { return s.run(true) }
+func (s *ServerDisable) Execute([]string) error { return s.run(false) }

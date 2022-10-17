@@ -13,6 +13,8 @@ Le point d'accès pour gérer les différents serveurs locaux de la gateway est
    update
    replace
    delete
+   enable
+   disable
    authorize
    revoke
    certificates/index

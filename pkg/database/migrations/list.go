@@ -142,4 +142,8 @@ var Migrations = []change{
 		Script:      bumpVersion{from: "0.6.1", to: "0.6.2"},
 		VersionTag:  "0.6.2",
 	},
+	{ // #26
+		Description: `Add an "enabled" column to the local agents table`,
+		Script:      ver0_7_0AddLocalAgentEnabledColumn{},
+	},
 }

@@ -122,23 +122,24 @@ func (wg *WG) startServices() error {
 	}
 
 	for i := range servers {
-		l := conf.GetLogger(servers[i].Name)
+		server := &servers[i]
+		l := conf.GetLogger(server.Name)
 
-		constr, ok := ServiceConstructors[servers[i].Protocol]
+		constr, ok := ServiceConstructors[server.Protocol]
 		if !ok {
 			wg.Logger.Warning("Unknown protocol '%s' for server %s",
-				servers[i].Protocol, servers[i].Name)
+				server.Protocol, server.Name)
 
 			continue
 		}
 
-		serv := constr(wg.dbService, &servers[i], l)
-		wg.ProtoServices[servers[i].Name] = serv
-	}
+		protoService := constr(wg.dbService, server, l)
+		wg.ProtoServices[server.Name] = protoService
 
-	for _, serv := range wg.ProtoServices {
-		if err := serv.Start(); err != nil {
-			wg.Logger.Error("Error starting service: %s", err)
+		if server.Enabled {
+			if err := protoService.Start(); err != nil {
+				wg.Logger.Error("Error starting '%s' service: %v", server.Name, err)
+			}
 		}
 	}
 

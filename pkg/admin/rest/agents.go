@@ -8,76 +8,56 @@ import (
 	"code.waarp.fr/lib/log"
 
 	"code.waarp.fr/apps/gateway/gateway/pkg/admin/rest/api"
-	"code.waarp.fr/apps/gateway/gateway/pkg/conf"
 	"code.waarp.fr/apps/gateway/gateway/pkg/database"
 	"code.waarp.fr/apps/gateway/gateway/pkg/model"
 	"code.waarp.fr/apps/gateway/gateway/pkg/model/config"
 	"code.waarp.fr/apps/gateway/gateway/pkg/tk/utils"
 )
 
-func newInServer(old *model.LocalAgent) *api.InServer {
-	return &api.InServer{
-		Name:          &old.Name,
-		Protocol:      &old.Protocol,
-		Address:       &old.Address,
-		RootDir:       &old.RootDir,
-		ReceiveDir:    &old.ReceiveDir,
-		SendDir:       &old.SendDir,
-		TmpReceiveDir: &old.TmpReceiveDir,
-		ProtoConfig:   old.ProtoConfig,
-	}
-}
-
 // servToDB transforms the JSON local agent into its database equivalent.
-func servToDB(serv *api.InServer, serverID uint64, logger *log.Logger) *model.LocalAgent {
-	root := str(serv.RootDir)
-	sndDir := str(serv.SendDir)
-	rcvDir := str(serv.ReceiveDir)
-	tmpDir := str(serv.TmpReceiveDir)
+func servToDB(logger *log.Logger, input *api.InServer, output *model.LocalAgent) {
+	setIfDefined(input.Name, &output.Name)
+	setIfDefined(input.Protocol, &output.Protocol)
+	setIfDefined(input.Address, &output.Address)
+	setIfDefined(input.RootDir, &output.RootDir)
+	setIfDefined(input.SendDir, &output.SendDir)
+	setIfDefined(input.ReceiveDir, &output.ReceiveDir)
+	setIfDefined(input.TmpReceiveDir, &output.TmpReceiveDir)
 
-	if serv.Root != nil {
+	if len(input.ProtoConfig) != 0 {
+		output.ProtoConfig = input.ProtoConfig
+	}
+
+	if input.Root != nil {
 		logger.Warning("JSON field 'root' is deprecated, use 'rootDir' instead")
 
-		if root == "" {
-			root = utils.DenormalizePath(str(serv.Root))
+		if output.RootDir == "" {
+			output.RootDir = utils.DenormalizePath(str(input.Root))
 		}
 	}
 
-	if serv.InDir != nil {
+	if input.InDir != nil {
 		logger.Warning("JSON field 'inDir' is deprecated, use 'receiveDir' instead")
 
-		if rcvDir == "" {
-			rcvDir = utils.DenormalizePath(str(serv.InDir))
+		if output.ReceiveDir == "" {
+			output.ReceiveDir = utils.DenormalizePath(str(input.InDir))
 		}
 	}
 
-	if serv.OutDir != nil {
+	if input.OutDir != nil {
 		logger.Warning("JSON field 'outDir' is deprecated, use 'sendDir' instead")
 
-		if sndDir == "" {
-			sndDir = utils.DenormalizePath(str(serv.OutDir))
+		if output.SendDir == "" {
+			output.SendDir = utils.DenormalizePath(str(input.OutDir))
 		}
 	}
 
-	if serv.WorkDir != nil {
+	if input.WorkDir != nil {
 		logger.Warning("JSON field 'workDir' is deprecated, use 'tmpLocalRcvDir' instead")
 
-		if tmpDir == "" {
-			tmpDir = utils.DenormalizePath(str(serv.WorkDir))
+		if output.TmpReceiveDir == "" {
+			output.TmpReceiveDir = utils.DenormalizePath(str(input.WorkDir))
 		}
-	}
-
-	return &model.LocalAgent{
-		ID:            serverID,
-		Owner:         conf.GlobalConfig.GatewayName,
-		Name:          str(serv.Name),
-		Address:       str(serv.Address),
-		RootDir:       root,
-		ReceiveDir:    rcvDir,
-		SendDir:       sndDir,
-		TmpReceiveDir: tmpDir,
-		Protocol:      str(serv.Protocol),
-		ProtoConfig:   serv.ProtoConfig,
 	}
 }
 
@@ -118,6 +98,7 @@ func FromLocalAgent(ag *model.LocalAgent, rules *api.AuthorizedRules) *api.OutSe
 		Name:            ag.Name,
 		Protocol:        ag.Protocol,
 		Address:         ag.Address,
+		Enabled:         ag.Enabled,
 		Root:            utils.NormalizePath(ag.RootDir),
 		RootDir:         ag.RootDir,
 		InDir:           utils.NormalizePath(ag.ReceiveDir),

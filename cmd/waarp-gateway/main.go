@@ -19,14 +19,16 @@ type commands struct {
 	Status wg.Status `command:"status" description:"Show the status of the gateway services"`
 
 	Server struct {
-		Add  wg.ServerAdd       `command:"add" description:"Add a new server"`
-		Get  wg.ServerGet       `command:"get" description:"Retrieve a server's information"`
-		List wg.ServerList      `command:"list" description:"List the known servers"`
-		Upd  wg.ServerUpdate    `command:"update" description:"Update a server"`
-		Del  wg.ServerDelete    `command:"delete" description:"Delete a server"`
-		Auth wg.ServerAuthorize `command:"authorize" description:"Authorize a server to use a rule"`
-		Rev  wg.ServerRevoke    `command:"revoke" description:"Revoke a server's permission to use a rule"`
-		Cert struct {
+		Add     wg.ServerAdd       `command:"add" description:"Add a new server"`
+		Get     wg.ServerGet       `command:"get" description:"Retrieve a server's information"`
+		List    wg.ServerList      `command:"list" description:"List the known servers"`
+		Upd     wg.ServerUpdate    `command:"update" description:"Update a server"`
+		Del     wg.ServerDelete    `command:"delete" description:"Delete a server"`
+		Auth    wg.ServerAuthorize `command:"authorize" description:"Authorize a server to use a rule"`
+		Rev     wg.ServerRevoke    `command:"revoke" description:"Revoke a server's permission to use a rule"`
+		Enable  wg.ServerEnable    `command:"enable" description:"Enable a server at launch"`
+		Disable wg.ServerDisable   `command:"disable" description:"Disable a server at launch"`
+		Cert    struct {
 			Args struct {
 				Server wg.ServerArg `required:"yes" positional-arg-name:"server" description:"The server's name"`
 			} `positional-args:"yes"`
