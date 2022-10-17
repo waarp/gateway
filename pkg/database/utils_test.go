@@ -5,7 +5,7 @@ import (
 )
 
 type testValid struct {
-	ID     uint64 `xorm:"pk 'id'"`
+	ID     uint64 `xorm:"pk autoincr 'id'"`
 	String string `xorm:"notnull 'string'"`
 	Hooks  string `xorm:"-"`
 }

@@ -1,7 +1,5 @@
 code.bcarlin.xyz/go/logging v0.4.1-0.20220603090802-1ad2b38afe01 h1:FsXEBLTQvpmc5FisRCt14wWZW8cAc5PDPWFjxMDnUB0=
 code.bcarlin.xyz/go/logging v0.4.1-0.20220603090802-1ad2b38afe01/go.mod h1:eI6Lx+k576W8M5vl9b0QksJtYskQZNUG1ojwIXP6/Cg=
-code.waarp.fr/lib/log v1.1.0 h1:EbXl1/i82LAMGE+48WdJSarGFTdWWoUrpsQA0Yiur64=
-code.waarp.fr/lib/log v1.1.0/go.mod h1:qntTO07EAP1NIGo09Xe4BMuqKBbjb/L2uRTP3V1nYEE=
 code.waarp.fr/lib/log v1.2.0 h1:FvbVnporxqV4xyJhJQt+bKv+zFBvxOb9VfeM1ThIZAI=
 code.waarp.fr/lib/log v1.2.0/go.mod h1:qntTO07EAP1NIGo09Xe4BMuqKBbjb/L2uRTP3V1nYEE=
 code.waarp.fr/lib/migration v1.1.1 h1:X+At4UehS30enW+NzomOAwWp5ginf4L8DYey7Pdjuso=
@@ -107,6 +105,8 @@ github.com/json-iterator/go v1.1.11 h1:uVUAXhF2To8cbw/3xN3pxj6kk7TYKs98NIrTqPlMW
 github.com/json-iterator/go v1.1.11/go.mod h1:KdQUCv79m/52Kvf8AW2vK1V8akMuk1QjK/uOdHXbAo4=
 github.com/jtolds/gls v4.20.0+incompatible h1:xdiiI2gbIgH/gLH7ADydsJ1uDOEzR8yvV7C0MuV77Wo=
 github.com/jtolds/gls v4.20.0+incompatible/go.mod h1:QJZ7F/aHp+rZTRtaJ1ow/lLfFfVYBRgL+9YlvaHOwJU=
+github.com/karrick/tparse/v2 v2.8.2 h1:NhvrrB7nXYa0VLn0JKn9L3oG/GZN+LB/+g5QfWE30rU=
+github.com/karrick/tparse/v2 v2.8.2/go.mod h1:OzmKMqNal7LYYHaO/Ie1f/wXmLWAaGKwJmxUFNQCVxg=
 github.com/kballard/go-shellquote v0.0.0-20180428030007-95032a82bc51 h1:Z9n2FFNUXsshfwJMBgNA0RU6/i7WVaAegv3PtuIHPMs=
 github.com/kballard/go-shellquote v0.0.0-20180428030007-95032a82bc51/go.mod h1:CzGEWj7cYgsdH8dAjBGEr58BoE7ScuLd+fwFZ44+/x8=
 github.com/kisielk/gotool v1.0.0/go.mod h1:XhKaO+MFFWcvkIS/tQcRk01m1F5IRFswLeQ+oQHNcck=
