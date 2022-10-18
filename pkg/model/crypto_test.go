@@ -1,12 +1,14 @@
 package model
 
 import (
+	"database/sql"
 	"testing"
 
 	. "github.com/smartystreets/goconvey/convey"
 
 	"code.waarp.fr/apps/gateway/gateway/pkg/database"
 	"code.waarp.fr/apps/gateway/gateway/pkg/model/config"
+	"code.waarp.fr/apps/gateway/gateway/pkg/tk/utils"
 	"code.waarp.fr/apps/gateway/gateway/pkg/tk/utils/testhelpers"
 )
 
@@ -39,11 +41,10 @@ func TestCryptoBeforeWrite(t *testing.T) {
 
 			Convey("Given new credentials", func() {
 				newCert := &Crypto{
-					OwnerType:   TableLocAgents,
-					OwnerID:     parentAgent.ID,
-					Name:        "cert",
-					PrivateKey:  testhelpers.LocalhostKey,
-					Certificate: testhelpers.LocalhostCert,
+					LocalAgentID: utils.NewNullInt64(parentAgent.ID),
+					Name:         "cert",
+					PrivateKey:   testhelpers.LocalhostKey,
+					Certificate:  testhelpers.LocalhostCert,
 				}
 
 				shouldFailWith := func(errDesc string, expErr error) {
@@ -66,16 +67,16 @@ func TestCryptoBeforeWrite(t *testing.T) {
 					})
 				})
 
-				Convey("Given that the new credentials are missing an owner type", func() {
-					newCert.OwnerType = ""
+				Convey("Given that the new credentials are missing an owner", func() {
+					newCert.LocalAgentID = sql.NullInt64{}
 					shouldFailWith("the owner type is missing", database.NewValidationError(
-						"the credentials' owner type is missing"))
+						"the crypto credential is missing an owner"))
 				})
 
-				Convey("Given that the new credentials are missing an owner ID", func() {
-					newCert.OwnerID = 0
+				Convey("Given that the new credentials has multiple owners", func() {
+					newCert.RemoteAgentID = utils.NewNullInt64(1)
 					shouldFailWith("the owner ID is missing", database.NewValidationError(
-						"the credentials' owner ID is missing"))
+						"the crypto credential cannot have multiple targets"))
 				})
 
 				Convey("Given that the new credentials are missing a name", func() {
@@ -90,30 +91,23 @@ func TestCryptoBeforeWrite(t *testing.T) {
 						"the server is missing a private key"))
 				})
 
-				Convey("Given that the new credentials have an invalid owner type", func() {
-					newCert.OwnerType = "incorrect"
-					shouldFailWith("the owner type is invalid", database.NewValidationError(
-						"the credentials' owner type must be one of %s", validOwnerTypes))
-				})
-
 				Convey("Given that the new credentials have an invalid owner ID", func() {
-					newCert.OwnerID = 1000
+					newCert.LocalAgentID = utils.NewNullInt64(1000)
 					shouldFailWith("the owner ID is invalid", database.NewValidationError(
 						"no server found with ID '1000'"))
 				})
 
 				Convey("Given that the new credentials' name is already taken", func() {
 					otherCert := &Crypto{
-						OwnerType:   TableLocAgents,
-						OwnerID:     parentAgent.ID,
-						Name:        "other",
-						PrivateKey:  testhelpers.OtherLocalhostKey,
-						Certificate: testhelpers.OtherLocalhostCert,
+						LocalAgentID: utils.NewNullInt64(parentAgent.ID),
+						Name:         "other",
+						PrivateKey:   testhelpers.OtherLocalhostKey,
+						Certificate:  testhelpers.OtherLocalhostCert,
 					}
 					So(db.Insert(otherCert).Run(), ShouldBeNil)
 					newCert.Name = otherCert.Name
 					shouldFailWith("the name is taken", database.NewValidationError(
-						"credentials with the same name '%s' already exist",
+						"crypto credentials with the same name '%s' already exist",
 						newCert.Name))
 				})
 
@@ -128,16 +122,12 @@ func TestCryptoBeforeWrite(t *testing.T) {
 					So(db.Insert(otherAgent).Run(), ShouldBeNil)
 
 					otherCert := &Crypto{
-						OwnerType:   TableLocAgents,
-						OwnerID:     parentAgent.ID,
-						Name:        "other",
-						PrivateKey:  testhelpers.OtherLocalhostKey,
-						Certificate: testhelpers.OtherLocalhostCert,
+						LocalAgentID: utils.NewNullInt64(otherAgent.ID),
+						Name:         newCert.Name,
+						PrivateKey:   testhelpers.OtherLocalhostKey,
+						Certificate:  testhelpers.OtherLocalhostCert,
 					}
 					So(db.Insert(otherCert).Run(), ShouldBeNil)
-
-					newCert.Name = otherCert.Name
-					newCert.OwnerID = otherAgent.ID
 
 					Convey("When calling the 'BeforeWrite' function", func() {
 						err := newCert.BeforeWrite(db)

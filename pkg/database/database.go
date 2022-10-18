@@ -13,7 +13,6 @@ import (
 
 	"code.waarp.fr/lib/log"
 	"xorm.io/xorm"
-	xLog "xorm.io/xorm/log"
 	xNames "xorm.io/xorm/names"
 
 	"code.waarp.fr/apps/gateway/gateway/pkg/conf"
@@ -119,7 +118,7 @@ func (db *DB) initEngine() (*xorm.Engine, error) {
 		return nil, fmt.Errorf("cannot initialize database access: %w", err)
 	}
 
-	engine.SetLogger(xLog.DiscardLogger{})
+	db.setLogger(engine)
 	engine.SetMapper(xNames.GonicMapper{})
 
 	if err := init(engine); err != nil {

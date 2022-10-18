@@ -8,126 +8,145 @@ import (
 	"code.waarp.fr/lib/log"
 
 	"code.waarp.fr/apps/gateway/gateway/pkg/admin/rest/api"
+	"code.waarp.fr/apps/gateway/gateway/pkg/conf"
 	"code.waarp.fr/apps/gateway/gateway/pkg/database"
 	"code.waarp.fr/apps/gateway/gateway/pkg/model"
 	"code.waarp.fr/apps/gateway/gateway/pkg/model/config"
 	"code.waarp.fr/apps/gateway/gateway/pkg/tk/utils"
 )
 
-// servToDB transforms the JSON local agent into its database equivalent.
-func servToDB(logger *log.Logger, input *api.InServer, output *model.LocalAgent) {
-	setIfDefined(input.Name, &output.Name)
-	setIfDefined(input.Protocol, &output.Protocol)
-	setIfDefined(input.Address, &output.Address)
-	setIfDefined(input.RootDir, &output.RootDir)
-	setIfDefined(input.SendDir, &output.SendDir)
-	setIfDefined(input.ReceiveDir, &output.ReceiveDir)
-	setIfDefined(input.TmpReceiveDir, &output.TmpReceiveDir)
-
-	if len(input.ProtoConfig) != 0 {
-		output.ProtoConfig = input.ProtoConfig
+func dbServerToRESTInput(dbServer *model.LocalAgent) *api.InServer {
+	return &api.InServer{
+		Name:          &dbServer.Name,
+		Protocol:      &dbServer.Protocol,
+		Address:       &dbServer.Address,
+		RootDir:       &dbServer.RootDir,
+		ReceiveDir:    &dbServer.ReceiveDir,
+		SendDir:       &dbServer.SendDir,
+		TmpReceiveDir: &dbServer.TmpReceiveDir,
+		ProtoConfig:   dbServer.ProtoConfig,
 	}
+}
 
-	if input.Root != nil {
+// restServerToDB transforms the JSON local agent into its database equivalent.
+func restServerToDB(restServer *api.InServer, logger *log.Logger,
+) *model.LocalAgent {
+	root := str(restServer.RootDir)
+	sndDir := str(restServer.SendDir)
+	rcvDir := str(restServer.ReceiveDir)
+	tmpDir := str(restServer.TmpReceiveDir)
+
+	if root == "" && restServer.Root != nil {
 		logger.Warning("JSON field 'root' is deprecated, use 'rootDir' instead")
 
-		if output.RootDir == "" {
-			output.RootDir = utils.DenormalizePath(str(input.Root))
-		}
+		root = utils.DenormalizePath(str(restServer.Root))
 	}
 
-	if input.InDir != nil {
+	if rcvDir == "" && restServer.InDir != nil {
 		logger.Warning("JSON field 'inDir' is deprecated, use 'receiveDir' instead")
 
-		if output.ReceiveDir == "" {
-			output.ReceiveDir = utils.DenormalizePath(str(input.InDir))
-		}
+		rcvDir = utils.DenormalizePath(str(restServer.InDir))
 	}
 
-	if input.OutDir != nil {
+	if sndDir == "" && restServer.OutDir != nil {
 		logger.Warning("JSON field 'outDir' is deprecated, use 'sendDir' instead")
 
-		if output.SendDir == "" {
-			output.SendDir = utils.DenormalizePath(str(input.OutDir))
-		}
+		sndDir = utils.DenormalizePath(str(restServer.OutDir))
 	}
 
-	if input.WorkDir != nil {
+	if tmpDir == "" && restServer.WorkDir != nil {
 		logger.Warning("JSON field 'workDir' is deprecated, use 'tmpLocalRcvDir' instead")
 
-		if output.TmpReceiveDir == "" {
-			output.TmpReceiveDir = utils.DenormalizePath(str(input.WorkDir))
-		}
+		tmpDir = utils.DenormalizePath(str(restServer.WorkDir))
+	}
+
+	return &model.LocalAgent{
+		Owner:         conf.GlobalConfig.GatewayName,
+		Name:          str(restServer.Name),
+		Address:       str(restServer.Address),
+		RootDir:       root,
+		ReceiveDir:    rcvDir,
+		SendDir:       sndDir,
+		TmpReceiveDir: tmpDir,
+		Protocol:      str(restServer.Protocol),
+		ProtoConfig:   restServer.ProtoConfig,
 	}
 }
 
-func newInPartner(old *model.RemoteAgent) *api.InPartner {
+func dbPartnerToRESTInput(dbPartner *model.RemoteAgent) *api.InPartner {
 	return &api.InPartner{
-		Name:        &old.Name,
-		Protocol:    &old.Protocol,
-		Address:     &old.Address,
-		ProtoConfig: old.ProtoConfig,
+		Name:        &dbPartner.Name,
+		Protocol:    &dbPartner.Protocol,
+		Address:     &dbPartner.Address,
+		ProtoConfig: dbPartner.ProtoConfig,
 	}
 }
 
-// partToDB transforms the JSON remote agent into its database equivalent.
-func partToDB(part *api.InPartner, id uint64) *model.RemoteAgent {
+// restPartnerToDB transforms the JSON remote agent into its database equivalent.
+func restPartnerToDB(restPartner *api.InPartner) *model.RemoteAgent {
 	return &model.RemoteAgent{
-		ID:          id,
-		Name:        str(part.Name),
-		Protocol:    str(part.Protocol),
-		Address:     str(part.Address),
-		ProtoConfig: part.ProtoConfig,
+		Name:        str(restPartner.Name),
+		Protocol:    str(restPartner.Protocol),
+		Address:     str(restPartner.Address),
+		ProtoConfig: restPartner.ProtoConfig,
 	}
 }
 
-// FromLocalAgent transforms the given database local agent into its JSON
+// DBServerToREST transforms the given database local agent into its JSON
 // equivalent.
-func FromLocalAgent(ag *model.LocalAgent, rules *api.AuthorizedRules) *api.OutServer {
-	if ag.Protocol == config.ProtocolR66TLS {
+func DBServerToREST(db database.ReadAccess, dbServer *model.LocalAgent) (*api.OutServer, error) {
+	if dbServer.Protocol == config.ProtocolR66TLS {
 		var r66Conf *config.R66ProtoConfig
-		if json.Unmarshal(ag.ProtoConfig, r66Conf) == nil && r66Conf.IsTLS != nil {
+		if json.Unmarshal(dbServer.ProtoConfig, r66Conf) == nil && r66Conf.IsTLS != nil {
 			// To preserve backwards compatibility, when `ìsTLS` is defined, we
 			// change the protocol back to config.ProtocolR66, like it was before the addition
 			// of the config.ProtocolR66TLS protocol.
-			ag.Protocol = config.ProtocolR66
+			dbServer.Protocol = config.ProtocolR66
 		}
+	}
+
+	authorizedRules, err := getAuthorizedRules(db, dbServer)
+	if err != nil {
+		return nil, err
 	}
 
 	return &api.OutServer{
-		Name:            ag.Name,
-		Protocol:        ag.Protocol,
-		Address:         ag.Address,
-		Enabled:         ag.Enabled,
-		Root:            utils.NormalizePath(ag.RootDir),
-		RootDir:         ag.RootDir,
-		InDir:           utils.NormalizePath(ag.ReceiveDir),
-		OutDir:          utils.NormalizePath(ag.SendDir),
-		WorkDir:         utils.NormalizePath(ag.TmpReceiveDir),
-		SendDir:         ag.SendDir,
-		ReceiveDir:      ag.ReceiveDir,
-		TmpReceiveDir:   ag.TmpReceiveDir,
-		ProtoConfig:     ag.ProtoConfig,
-		AuthorizedRules: *rules,
-	}
+		Name:            dbServer.Name,
+		Enabled:         dbServer.Enabled,
+		Protocol:        dbServer.Protocol,
+		Address:         dbServer.Address,
+		RootDir:         dbServer.RootDir,
+		SendDir:         dbServer.SendDir,
+		ReceiveDir:      dbServer.ReceiveDir,
+		TmpReceiveDir:   dbServer.TmpReceiveDir,
+		ProtoConfig:     dbServer.ProtoConfig,
+		AuthorizedRules: authorizedRules,
+
+		Root:    utils.NormalizePath(dbServer.RootDir),
+		InDir:   utils.NormalizePath(dbServer.ReceiveDir),
+		OutDir:  utils.NormalizePath(dbServer.SendDir),
+		WorkDir: utils.NormalizePath(dbServer.TmpReceiveDir),
+	}, nil
 }
 
-// FromLocalAgents transforms the given list of database local agents into
+// DBServersToREST transforms the given list of database local agents into
 // its JSON equivalent.
-func FromLocalAgents(ags []model.LocalAgent, rules []api.AuthorizedRules) []api.OutServer {
-	agents := make([]api.OutServer, len(ags))
+func DBServersToREST(db database.ReadAccess, dbServers []*model.LocalAgent) ([]*api.OutServer, error) {
+	restServers := make([]*api.OutServer, len(dbServers))
 
-	for i := range ags {
-		agent := &ags[i]
-		agents[i] = *FromLocalAgent(agent, &rules[i])
+	for i, dbServer := range dbServers {
+		var err error
+		if restServers[i], err = DBServerToREST(db, dbServer); err != nil {
+			return nil, err
+		}
 	}
 
-	return agents
+	return restServers, nil
 }
 
-// FromRemoteAgent transforms the given database remote agent into its JSON
+// DBPartnerToREST transforms the given database remote agent into its JSON
 // equivalent.
-func FromRemoteAgent(ag *model.RemoteAgent, rules *api.AuthorizedRules) *api.OutPartner {
+func DBPartnerToREST(db database.ReadAccess, ag *model.RemoteAgent) (*api.OutPartner, error) {
 	if ag.Protocol == config.ProtocolR66TLS {
 		var r66Conf *config.R66ProtoConfig
 		if json.Unmarshal(ag.ProtoConfig, r66Conf) == nil && r66Conf.IsTLS != nil {
@@ -136,6 +155,11 @@ func FromRemoteAgent(ag *model.RemoteAgent, rules *api.AuthorizedRules) *api.Out
 			// of the config.ProtocolR66TLS protocol.
 			ag.Protocol = config.ProtocolR66
 		}
+	}
+
+	authorizedRules, err := getAuthorizedRules(db, ag)
+	if err != nil {
+		return nil, err
 	}
 
 	return &api.OutPartner{
@@ -143,21 +167,22 @@ func FromRemoteAgent(ag *model.RemoteAgent, rules *api.AuthorizedRules) *api.Out
 		Protocol:        ag.Protocol,
 		Address:         ag.Address,
 		ProtoConfig:     ag.ProtoConfig,
-		AuthorizedRules: rules,
-	}
+		AuthorizedRules: authorizedRules,
+	}, nil
 }
 
-// FromRemoteAgents transforms the given list of database remote agents into
+// DBPartnersToREST transforms the given list of database remote agents into
 // its JSON equivalent.
-func FromRemoteAgents(ags []model.RemoteAgent, rules []api.AuthorizedRules) []api.OutPartner {
-	agents := make([]api.OutPartner, len(ags))
+func DBPartnersToREST(db database.ReadAccess, dbPartners []*model.RemoteAgent) ([]*api.OutPartner, error) {
+	restPartners := make([]*api.OutPartner, len(dbPartners))
 
-	for i := range ags {
-		agent := &ags[i]
-		agents[i] = *FromRemoteAgent(agent, &rules[i])
+	for i, dbPartner := range dbPartners {
+		var err error
+		if restPartners[i], err = DBPartnerToREST(db, dbPartner); err != nil {
+		}
 	}
 
-	return agents
+	return restPartners, nil
 }
 
 func parseProtoParam(r *http.Request, query *database.SelectQuery) error {

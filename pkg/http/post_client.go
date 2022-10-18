@@ -58,7 +58,7 @@ func (p *postClient) checkResume(url string) *types.TransferError {
 
 	defer resp.Body.Close() //nolint:errcheck // this error is irrelevant
 
-	var prog uint64
+	var prog int64
 
 	switch resp.StatusCode {
 	case http.StatusMethodNotAllowed:
@@ -79,7 +79,7 @@ func (p *postClient) checkResume(url string) *types.TransferError {
 	return p.updateTransForResume(prog)
 }
 
-func (p *postClient) updateTransForResume(prog uint64) *types.TransferError {
+func (p *postClient) updateTransForResume(prog int64) *types.TransferError {
 	if prog != p.pip.TransCtx.Transfer.Progress {
 		p.pip.TransCtx.Transfer.Progress = prog
 		if p.pip.TransCtx.Transfer.Step > types.StepData {

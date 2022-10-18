@@ -56,7 +56,7 @@ func TestGetUser(t *testing.T) {
 
 					Convey("Then the body should contain the requested partner "+
 						"in JSON format", func() {
-						exp, err := json.Marshal(FromUser(expected))
+						exp, err := json.Marshal(DBUserToREST(expected))
 
 						So(err, ShouldBeNil)
 						So(w.Body.String(), ShouldResemble, string(exp)+"\n")
@@ -145,10 +145,10 @@ func TestListUsers(t *testing.T) {
 			So(db.Insert(u4).Run(), ShouldBeNil)
 			So(db.DeleteAll(&model.User{}).Where("username='admin'").Run(), ShouldBeNil)
 
-			user1 := *FromUser(u1)
-			user2 := *FromUser(u2)
-			user3 := *FromUser(u3)
-			user4 := *FromUser(u4)
+			user1 := *DBUserToREST(u1)
+			user2 := *DBUserToREST(u2)
+			user3 := *DBUserToREST(u3)
+			user4 := *DBUserToREST(u4)
 
 			owner := conf.GlobalConfig.GatewayName
 			conf.GlobalConfig.GatewayName = "foobar"
@@ -159,7 +159,7 @@ func TestListUsers(t *testing.T) {
 			So(db.Insert(u5).Run(), ShouldBeNil)
 			conf.GlobalConfig.GatewayName = owner
 
-			Convey("Given a request with with no parameters", func() {
+			Convey("Given a request with no parameters", func() {
 				r, err := http.NewRequest(http.MethodGet, "", nil)
 				So(err, ShouldBeNil)
 
@@ -218,11 +218,11 @@ func TestCreateUser(t *testing.T) {
 		w := httptest.NewRecorder()
 
 		Convey("Given a database with 1 user", func() {
-			existing := model.User{
+			existing := &model.User{
 				Username:     "old",
 				PasswordHash: hash("old_password"),
 			}
-			So(db.Insert(&existing).Run(), ShouldBeNil)
+			So(db.Insert(existing).Run(), ShouldBeNil)
 			So(db.DeleteAll(&model.User{}).Where("username='admin'").Run(), ShouldBeNil)
 
 			Convey("Given a new user to insert in the database", func() {
@@ -267,7 +267,7 @@ func TestCreateUser(t *testing.T) {
 
 							So(bcrypt.CompareHashAndPassword([]byte(users[1].PasswordHash),
 								[]byte("sesame")), ShouldBeNil)
-							So(users[1], ShouldResemble, model.User{
+							So(users[1], ShouldResemble, &model.User{
 								ID:           3,
 								Owner:        conf.GlobalConfig.GatewayName,
 								Username:     "toto",
@@ -300,16 +300,16 @@ func TestDeleteUser(t *testing.T) {
 		w := httptest.NewRecorder()
 
 		Convey("Given a database with 2 users", func() {
-			existing := model.User{
+			existing := &model.User{
 				Username:     "existing",
 				PasswordHash: hash("existing"),
 			}
-			other := model.User{
+			other := &model.User{
 				Username:     "other",
 				PasswordHash: hash("other_password"),
 			}
-			So(db.Insert(&existing).Run(), ShouldBeNil)
-			So(db.Insert(&other).Run(), ShouldBeNil)
+			So(db.Insert(existing).Run(), ShouldBeNil)
+			So(db.Insert(other).Run(), ShouldBeNil)
 			So(db.DeleteAll(&model.User{}).Where("username='admin'").Run(), ShouldBeNil)
 
 			Convey("Given a request with the valid username parameter", func() {
@@ -353,7 +353,7 @@ func TestDeleteUser(t *testing.T) {
 						})
 
 						Convey("Then the body should contain the error message", func() {
-							So(w.Body.String(), ShouldResemble, "user cannot delete self\n")
+							So(w.Body.String(), ShouldResemble, "a user cannot delete themself\n")
 						})
 
 						Convey("Then the users should still exist in the database", func() {
@@ -404,7 +404,7 @@ func TestUpdateUser(t *testing.T) {
 		w := httptest.NewRecorder()
 
 		Convey("Given a database with 2 users", func() {
-			old := model.User{
+			old := &model.User{
 				Username:     "old",
 				PasswordHash: hash("old_password"),
 				Permissions: model.PermTransfersRead | model.PermTransfersWrite |
@@ -413,13 +413,13 @@ func TestUpdateUser(t *testing.T) {
 					model.PermRulesRead | model.PermRulesWrite |
 					model.PermUsersRead,
 			}
-			other := model.User{
+			other := &model.User{
 				Username:     "other",
 				PasswordHash: hash("other_password"),
 				Permissions:  model.PermAll,
 			}
-			So(db.Insert(&old).Run(), ShouldBeNil)
-			So(db.Insert(&other).Run(), ShouldBeNil)
+			So(db.Insert(old).Run(), ShouldBeNil)
+			So(db.Insert(other).Run(), ShouldBeNil)
 			So(db.DeleteAll(&model.User{}).Where("username='admin'").Run(), ShouldBeNil)
 
 			Convey("Given new values to update the user with", func() {
@@ -464,7 +464,7 @@ func TestUpdateUser(t *testing.T) {
 
 							So(bcrypt.CompareHashAndPassword([]byte(users[0].PasswordHash),
 								[]byte("sesame")), ShouldBeNil)
-							So(users[0], ShouldResemble, model.User{
+							So(users[0], ShouldResemble, &model.User{
 								ID:           2,
 								Owner:        conf.GlobalConfig.GatewayName,
 								Username:     "toto",
@@ -547,7 +547,7 @@ func TestUpdateUser(t *testing.T) {
 								[]byte("old_password")), ShouldBeNil)
 							So(model.MaskToPerms(users[0].Permissions), ShouldResemble,
 								model.MaskToPerms(old.Permissions))
-							So(users[0], ShouldResemble, model.User{
+							So(users[0], ShouldResemble, &model.User{
 								ID:           2,
 								Owner:        conf.GlobalConfig.GatewayName,
 								Username:     "upd_user",
@@ -598,7 +598,7 @@ func TestUpdateUser(t *testing.T) {
 
 							So(bcrypt.CompareHashAndPassword([]byte(users[0].PasswordHash),
 								[]byte("upd_password")), ShouldBeNil)
-							So(users[0], ShouldResemble, model.User{
+							So(users[0], ShouldResemble, &model.User{
 								ID:           2,
 								Owner:        conf.GlobalConfig.GatewayName,
 								Username:     "old",
@@ -621,16 +621,16 @@ func TestReplaceUser(t *testing.T) {
 		w := httptest.NewRecorder()
 
 		Convey("Given a database with 2 users", func() {
-			old := model.User{
+			old := &model.User{
 				Username:     "old",
 				PasswordHash: hash("old"),
 			}
-			other := model.User{
+			other := &model.User{
 				Username:     "other",
 				PasswordHash: hash("other"),
 			}
-			So(db.Insert(&old).Run(), ShouldBeNil)
-			So(db.Insert(&other).Run(), ShouldBeNil)
+			So(db.Insert(old).Run(), ShouldBeNil)
+			So(db.Insert(other).Run(), ShouldBeNil)
 			So(db.DeleteAll(&model.User{}).Where("username='admin'").Run(), ShouldBeNil)
 
 			Convey("Given new values to update the user with", func() {
@@ -668,7 +668,7 @@ func TestReplaceUser(t *testing.T) {
 
 							So(bcrypt.CompareHashAndPassword([]byte(users[0].PasswordHash),
 								[]byte("upd_password")), ShouldBeNil)
-							So(users[0], ShouldResemble, model.User{
+							So(users[0], ShouldResemble, &model.User{
 								ID:           2,
 								Owner:        conf.GlobalConfig.GatewayName,
 								Username:     "upd_user",

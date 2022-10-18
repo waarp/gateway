@@ -19,15 +19,13 @@ func exportLocals(logger *log.Logger, db database.ReadAccess) ([]file.LocalAgent
 
 	res := make([]file.LocalAgent, len(dbLocals))
 
-	for i := range dbLocals {
-		src := &dbLocals[i]
-
+	for i, src := range dbLocals {
 		accounts, err := exportLocalAccounts(logger, db, src.ID)
 		if err != nil {
 			return nil, err
 		}
 
-		certificates, err := exportCertificates(logger, db, model.TableLocAgents, src.ID)
+		certificates, err := exportCertificates(logger, db, src)
 		if err != nil {
 			return nil, err
 		}
@@ -56,7 +54,7 @@ func exportLocals(logger *log.Logger, db database.ReadAccess) ([]file.LocalAgent
 }
 
 func exportLocalAccounts(logger *log.Logger, db database.ReadAccess,
-	agentID uint64,
+	agentID int64,
 ) ([]file.LocalAccount, error) {
 	var dbAccounts model.LocalAccounts
 	if err := db.Select(&dbAccounts).Where("local_agent_id=?", agentID).Run(); err != nil {
@@ -66,7 +64,7 @@ func exportLocalAccounts(logger *log.Logger, db database.ReadAccess,
 	res := make([]file.LocalAccount, len(dbAccounts))
 
 	for i, src := range dbAccounts {
-		certificates, err := exportCertificates(logger, db, model.TableLocAccounts, src.ID)
+		certificates, err := exportCertificates(logger, db, src)
 		if err != nil {
 			return nil, err
 		}

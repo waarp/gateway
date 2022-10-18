@@ -36,7 +36,7 @@ var errNoCertificates = errors.New("the R66-TLS server is missing a certificate"
 type Service struct {
 	db      *database.DB
 	logger  *log.Logger
-	agentID uint64
+	agentID int64
 	state   state.State
 
 	r66Conf  *config.R66ProtoConfig
@@ -63,7 +63,7 @@ func newService(db *database.DB, logger *log.Logger) *Service {
 func (s *Service) makeTLSConf(agent *model.LocalAgent) (*tls.Config, error) {
 	certs, err := agent.GetCryptos(s.db)
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("failed to retrieve the server's certificates: %w", err)
 	}
 
 	if len(certs) == 0 {

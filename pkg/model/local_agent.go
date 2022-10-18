@@ -22,38 +22,38 @@ func init() {
 // the server.
 type LocalAgent struct {
 	// The agent's database ID.
-	ID uint64 `xorm:"pk autoincr <- 'id'"`
+	ID int64 `xorm:"PK AUTOINCR <- 'id'"`
 
 	// The agent's owner (i.e. the name of the gateway instance to which the
 	// agent belongs to).
-	Owner string `xorm:"unique(loc_ag) notnull 'owner'"`
+	Owner string `xorm:"VARCHAR(100) UNIQUE(loc_ag) NOTNULL DEFAULT('waarp-gateway') 'owner'"`
 
 	// The agent's display name.
-	Name string `xorm:"unique(loc_ag) notnull 'name'"`
+	Name string `xorm:"VARCHAR(100) UNIQUE(loc_ag) NOTNULL DEFAULT('') 'name'"`
 
 	// The protocol used by the agent.
-	Protocol string `xorm:"notnull 'protocol'"`
+	Protocol string `xorm:"VARCHAR(50) NOTNULL DEFAULT('') 'protocol'"`
 
 	// Whether the server is enabled at startup or not.
-	Enabled bool `xorm:"NOTNULL BOOL DEFAULT(true) 'enabled'"`
+	Enabled bool `xorm:"BOOL NOTNULL DEFAULT(true) 'enabled'"`
 
 	// The root directory of the agent.
-	RootDir string `xorm:"notnull 'root_dir'"`
+	RootDir string `xorm:"TEXT NOTNULL DEFAULT('') 'root_dir'"`
 
 	// The server's directory for received files.
-	ReceiveDir string `xorm:"notnull 'receive_dir'"`
+	ReceiveDir string `xorm:"TEXT NOTNULL DEFAULT('') 'receive_dir'"`
 
 	// The server's directory for files to be sent.
-	SendDir string `xorm:"notnull 'send_dir'"`
+	SendDir string `xorm:"TEXT NOTNULL DEFAULT('') 'send_dir'"`
 
 	// The server's temporary directory for partially received files.
-	TmpReceiveDir string `xorm:"notnull 'tmp_receive_dir'"`
+	TmpReceiveDir string `xorm:"TEXT NOTNULL DEFAULT('') 'tmp_receive_dir'"`
 
 	// The agent's configuration in raw JSON format.
-	ProtoConfig json.RawMessage `xorm:"notnull 'proto_config'"`
+	ProtoConfig json.RawMessage `xorm:"TEXT NOTNULL DEFAULT('{}') 'proto_config'"`
 
 	// The agent's address (including the port)
-	Address string `xorm:"notnull 'address'"`
+	Address string `xorm:"VARCHAR(260) NOTNULL 'address'"`
 }
 
 // TableName returns the local agents table name.
@@ -67,7 +67,7 @@ func (*LocalAgent) Appellation() string {
 }
 
 // GetID returns the agent's ID.
-func (l *LocalAgent) GetID() uint64 {
+func (l *LocalAgent) GetID() int64 {
 	return l.ID
 }
 
@@ -167,43 +167,30 @@ func (l *LocalAgent) BeforeWrite(db database.ReadAccess) database.Error {
 }
 
 // BeforeDelete is called before deleting the account from the database. Its
-// role is to delete all the certificates tied to the account.
-//
-//nolint:dupl // to many differences
+// role is to check whether the server is still used in any ongoing transfer.
 func (l *LocalAgent) BeforeDelete(db database.Access) database.Error {
-	n, err := db.Count(&Transfer{}).Where("is_server=? AND agent_id=?", true, l.ID).Run()
-	if err != nil {
+	if n, err := db.Count(&Transfer{}).Where(`local_account_id IN (SELECT id
+		FROM local_accounts WHERE local_agent_id=?)`, l.ID).Run(); err != nil {
 		return err
-	}
-
-	if n > 0 {
-		return database.NewValidationError("this server is currently being used in " +
-			"one or more running transfers and thus cannot be deleted, cancel " +
+	} else if n > 0 {
+		return database.NewValidationError("this server is currently being used " +
+			"in one or more running transfers and thus cannot be deleted, cancel " +
 			"these transfers or wait for them to finish")
 	}
 
-	certQuery := db.DeleteAll(&Crypto{}).Where(
-		"(owner_type=? AND owner_id=?) OR (owner_type=? AND owner_id IN "+
-			"(SELECT id FROM "+TableLocAccounts+" WHERE local_agent_id=?))",
-		TableLocAgents, l.ID, TableLocAccounts, l.ID)
-	if err := certQuery.Run(); err != nil {
-		return err
-	}
-
-	accessQuery := db.DeleteAll(&RuleAccess{}).Where(
-		"(object_type=? AND object_id=?) OR (object_type=? AND object_id IN "+
-			"(SELECT id FROM "+TableLocAccounts+" WHERE local_agent_id=?))",
-		TableLocAgents, l.ID, TableLocAccounts, l.ID)
-	if err := accessQuery.Run(); err != nil {
-		return err
-	}
-
-	accountQuery := db.DeleteAll(&LocalAccount{}).Where("local_agent_id=?", l.ID)
-
-	return accountQuery.Run()
+	return nil
 }
 
 // GetCryptos fetch in the database then return the associated Cryptos if they exist.
-func (l *LocalAgent) GetCryptos(db database.ReadAccess) ([]Crypto, database.Error) {
-	return GetCryptos(db, l)
+func (l *LocalAgent) GetCryptos(db database.ReadAccess) ([]*Crypto, error) {
+	return getCryptos(db, l)
+}
+
+func (l *LocalAgent) SetCryptoOwner(c *Crypto)             { c.LocalAgentID = utils.NewNullInt64(l.ID) }
+func (l *LocalAgent) GenCryptoSelectCond() (string, int64) { return "local_agent_id=?", l.ID }
+func (l *LocalAgent) SetAccessTarget(a *RuleAccess)        { a.LocalAgentID = utils.NewNullInt64(l.ID) }
+func (l *LocalAgent) GenAccessSelectCond() (string, int64) { return "local_agent_id=?", l.ID }
+
+func (l *LocalAgent) GetAuthorizedRules(db database.ReadAccess) ([]*Rule, error) {
+	return getAuthorizedRules(db, "local_agent_id", l.ID)
 }

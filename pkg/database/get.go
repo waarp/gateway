@@ -1,6 +1,8 @@
 package database
 
 import (
+	"strings"
+
 	"xorm.io/builder"
 )
 
@@ -15,19 +17,32 @@ type GetQuery struct {
 	db   Access
 	bean GetBean
 
-	sql  string
-	args []interface{}
+	conds []*condition
+}
+
+func (g *GetQuery) And(sql string, args ...any) *GetQuery {
+	g.conds = append(g.conds, &condition{sql: sql, args: args})
+
+	return g
 }
 
 // Run executes the 'GET' query.
 func (g *GetQuery) Run() Error {
 	logger := g.db.GetLogger()
+	query := g.db.getUnderlying().NoAutoCondition().Table(g.bean.TableName())
 
-	query := g.db.getUnderlying().NoAutoCondition().Table(g.bean.TableName()).
-		Where(g.sql, g.args...)
+	condsStr := make([]string, len(g.conds))
+
+	for i, cond := range g.conds {
+		query.And(cond.sql, cond.args...)
+
+		var err error
+		if condsStr[i], err = builder.ConvertToBoundSQL(cond.sql, cond.args); err != nil {
+			logger.Debug("Failed to serialize the SQL condition: %v", err)
+		}
+	}
+
 	exist, err := query.Get(g.bean)
-	logSQL(query, logger)
-
 	if err != nil {
 		logger.Error("Failed to retrieve the %s entry: %s", g.bean.Appellation(), err)
 
@@ -35,12 +50,9 @@ func (g *GetQuery) Run() Error {
 	}
 
 	if !exist {
-		where, err := builder.ConvertToBoundSQL(g.sql, g.args)
-		if err != nil {
-			logger.Warning("an error occurred while preparing the query: %v", err)
-		}
+		where := strings.Join(condsStr, " AND ")
 
-		logger.Debug("No %s found with conditions '%s'", g.bean.Appellation(), where)
+		logger.Debug("No %s found with conditions (%s)", g.bean.Appellation(), where)
 
 		return NewNotFoundError(g.bean)
 	}

@@ -17,6 +17,7 @@ import (
 	"code.waarp.fr/apps/gateway/gateway/pkg/model/types"
 	"code.waarp.fr/apps/gateway/gateway/pkg/pipeline"
 	"code.waarp.fr/apps/gateway/gateway/pkg/pipeline/pipelinetest"
+	"code.waarp.fr/apps/gateway/gateway/pkg/tk/utils"
 	"code.waarp.fr/apps/gateway/gateway/pkg/tk/utils/testhelpers"
 )
 
@@ -53,11 +54,10 @@ func TestServiceStart(t *testing.T) {
 		}
 		So(db.Insert(server).Run(), ShouldBeNil)
 		cert := &model.Crypto{
-			OwnerType:   server.TableName(),
-			OwnerID:     server.ID,
-			Name:        "r66_cert",
-			PrivateKey:  testhelpers.LocalhostKey,
-			Certificate: testhelpers.LocalhostCert,
+			LocalAgentID: utils.NewNullInt64(server.ID),
+			Name:         "r66_cert",
+			PrivateKey:   testhelpers.LocalhostKey,
+			Certificate:  testhelpers.LocalhostCert,
 		}
 		So(db.Insert(cert).Run(), ShouldBeNil)
 

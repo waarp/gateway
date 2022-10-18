@@ -19,6 +19,7 @@ import (
 	"code.waarp.fr/apps/gateway/gateway/pkg/gatewayd/service"
 	"code.waarp.fr/apps/gateway/gateway/pkg/model"
 	"code.waarp.fr/apps/gateway/gateway/pkg/model/config"
+	"code.waarp.fr/apps/gateway/gateway/pkg/tk/utils"
 	"code.waarp.fr/apps/gateway/gateway/pkg/tk/utils/testhelpers"
 )
 
@@ -58,15 +59,15 @@ func TestSFTPList(t *testing.T) {
 			}
 			So(db.Insert(tata).Run(), ShouldBeNil)
 
-			hostKey := model.Crypto{
-				OwnerType:  agent.TableName(),
-				OwnerID:    agent.ID,
-				Name:       "test_sftp_server_key",
-				PrivateKey: rsaPK,
+			hostKey := &model.Crypto{
+				LocalAgentID: utils.NewNullInt64(agent.ID),
+				Name:         "test_sftp_server_key",
+				PrivateKey:   rsaPK,
 			}
-			So(db.Insert(&hostKey).Run(), ShouldBeNil)
+			So(db.Insert(hostKey).Run(), ShouldBeNil)
 
-			serverConfig, err := getSSHServerConfig(db, []model.Crypto{hostKey}, &protoConfig, agent)
+			serverConfig, err := getSSHServerConfig(db, []*model.Crypto{hostKey},
+				&protoConfig, agent)
 			So(err, ShouldBeNil)
 
 			logger := testhelpers.TestLogger(c, "test_sftp_list")
@@ -134,19 +135,16 @@ func TestSFTPList(t *testing.T) {
 				So(db.Insert(recv2).Run(), ShouldBeNil)
 
 				totoAccess := &model.RuleAccess{
-					RuleID:     send1.ID,
-					ObjectID:   toto.ID,
-					ObjectType: toto.TableName(),
+					RuleID:         send1.ID,
+					LocalAccountID: utils.NewNullInt64(toto.ID),
 				}
 				tataAccess := &model.RuleAccess{
-					RuleID:     send2.ID,
-					ObjectID:   tata.ID,
-					ObjectType: toto.TableName(),
+					RuleID:         send2.ID,
+					LocalAccountID: utils.NewNullInt64(tata.ID),
 				}
 				serverAccess := &model.RuleAccess{
-					RuleID:     send3.ID,
-					ObjectID:   agent.ID,
-					ObjectType: agent.TableName(),
+					RuleID:       send3.ID,
+					LocalAgentID: utils.NewNullInt64(agent.ID),
 				}
 				So(db.Insert(totoAccess).Run(), ShouldBeNil)
 				So(db.Insert(tataAccess).Run(), ShouldBeNil)

@@ -13,8 +13,8 @@ import (
 	"code.waarp.fr/apps/gateway/gateway/pkg/tk/utils"
 )
 
-// ruleToDB transforms the JSON transfer rule into its database equivalent.
-func ruleToDB(rule *api.InRule, ruleID uint64, logger *log.Logger) (*model.Rule, error) {
+// restRuleToDB transforms the JSON transfer rule into its database equivalent.
+func restRuleToDB(rule *api.InRule, logger *log.Logger) (*model.Rule, error) {
 	if rule.IsSend == nil {
 		return nil, badRequest("missing rule direction")
 	}
@@ -52,7 +52,6 @@ func ruleToDB(rule *api.InRule, ruleID uint64, logger *log.Logger) (*model.Rule,
 	}
 
 	return &model.Rule{
-		ID:             ruleID,
 		Name:           str(rule.Name),
 		Comment:        str(rule.Comment),
 		IsSend:         *rule.IsSend,
@@ -63,7 +62,7 @@ func ruleToDB(rule *api.InRule, ruleID uint64, logger *log.Logger) (*model.Rule,
 	}, nil
 }
 
-func newInRule(old *model.Rule) *api.InRule {
+func dbRuleToRESTInput(old *model.Rule) *api.InRule {
 	return &api.InRule{
 		UptRule: &api.UptRule{
 			Name:           &old.Name,
@@ -77,60 +76,56 @@ func newInRule(old *model.Rule) *api.InRule {
 	}
 }
 
-// FromRule transforms the given database transfer rule into its JSON equivalent.
-func FromRule(db *database.DB, r *model.Rule) (*api.OutRule, error) {
-	access, err := makeRuleAccess(db, r)
+// DBRuleToREST transforms the given database transfer rule into its JSON equivalent.
+func DBRuleToREST(db *database.DB, dbRule *model.Rule) (*api.OutRule, error) {
+	access, err := makeRuleAccess(db, dbRule)
 	if err != nil {
 		return nil, err
 	}
 
-	in := utils.NormalizePath(r.LocalDir)
-	out := utils.NormalizePath(r.RemoteDir)
+	in := utils.NormalizePath(dbRule.LocalDir)
+	out := utils.NormalizePath(dbRule.RemoteDir)
 
-	if r.IsSend {
-		in = utils.NormalizePath(r.RemoteDir)
-		out = utils.NormalizePath(r.LocalDir)
+	if dbRule.IsSend {
+		in = utils.NormalizePath(dbRule.RemoteDir)
+		out = utils.NormalizePath(dbRule.LocalDir)
 	}
 
-	work := utils.NormalizePath(r.TmpLocalRcvDir)
+	work := utils.NormalizePath(dbRule.TmpLocalRcvDir)
 
 	rule := &api.OutRule{
-		Name:           r.Name,
-		Comment:        r.Comment,
-		IsSend:         r.IsSend,
-		Path:           r.Path,
+		Name:           dbRule.Name,
+		Comment:        dbRule.Comment,
+		IsSend:         dbRule.IsSend,
+		Path:           dbRule.Path,
 		InPath:         in,
 		OutPath:        out,
 		WorkPath:       work,
-		LocalDir:       r.LocalDir,
-		RemoteDir:      r.RemoteDir,
-		TmpLocalRcvDir: r.TmpLocalRcvDir,
+		LocalDir:       dbRule.LocalDir,
+		RemoteDir:      dbRule.RemoteDir,
+		TmpLocalRcvDir: dbRule.TmpLocalRcvDir,
 		Authorized:     access,
 	}
-	if err := doListTasks(db, rule, r.ID); err != nil {
+	if err := doListTasks(db, rule, dbRule.ID); err != nil {
 		return nil, err
 	}
 
 	return rule, nil
 }
 
-// FromRules transforms the given list of database transfer rules into its JSON
+// DBRulesToREST transforms the given list of database transfer rules into its JSON
 // equivalent.
-func FromRules(db *database.DB, rs []model.Rule) ([]api.OutRule, error) {
-	rules := make([]api.OutRule, len(rs))
+func DBRulesToREST(db *database.DB, dbRules []*model.Rule) ([]*api.OutRule, error) {
+	restRules := make([]*api.OutRule, len(dbRules))
 
-	for i, r := range rs {
-		rule := r
-
-		res, err := FromRule(db, &rule)
-		if err != nil {
+	for i, dbRule := range dbRules {
+		var err error
+		if restRules[i], err = DBRuleToREST(db, dbRule); err != nil {
 			return nil, err
 		}
-
-		rules[i] = *res
 	}
 
-	return rules, nil
+	return restRules, nil
 }
 
 func ruleDirection(rule *model.Rule) string {
@@ -141,22 +136,22 @@ func ruleDirection(rule *model.Rule) string {
 	return "receive"
 }
 
-func getRl(r *http.Request, db *database.DB) (*model.Rule, error) {
+func retrieveDBRule(r *http.Request, db *database.DB) (*model.Rule, error) {
 	ruleName, ok := mux.Vars(r)["rule"]
 	if !ok {
 		return nil, notFound("missing rule name")
 	}
 
-	ruleDirection, ok := mux.Vars(r)["direction"]
+	direction, ok := mux.Vars(r)["direction"]
 	if !ok {
 		return nil, notFound("missing rule direction")
 	}
 
 	var rule model.Rule
 	if err := db.Get(&rule, "name=? AND send=?", ruleName,
-		ruleDirection == "send").Run(); err != nil {
+		direction == "send").Run(); err != nil {
 		if database.IsNotFound(err) {
-			return nil, notFound("%s rule '%s' not found", ruleDirection, ruleName)
+			return nil, notFound("%s rule '%s' not found", direction, ruleName)
 		}
 
 		return nil, err
@@ -167,46 +162,45 @@ func getRl(r *http.Request, db *database.DB) (*model.Rule, error) {
 
 func addRule(logger *log.Logger, db *database.DB) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		var jsonRule api.InRule
-		if err := readJSON(r, &jsonRule); handleError(w, logger, err) {
+		var restRule api.InRule
+		if err := readJSON(r, &restRule); handleError(w, logger, err) {
 			return
 		}
 
-		rule, err := ruleToDB(&jsonRule, 0, logger)
-		if handleError(w, logger, err) {
+		dbRule, convErr := restRuleToDB(&restRule, logger)
+		if handleError(w, logger, convErr) {
 			return
 		}
 
-		err = db.Transaction(func(ses *database.Session) database.Error {
-			if err := ses.Insert(rule).Run(); err != nil {
+		transErr := db.Transaction(func(ses *database.Session) database.Error {
+			if err := ses.Insert(dbRule).Run(); err != nil {
 				return err
 			}
 
-			return doTaskUpdate(ses, jsonRule.UptRule, rule.ID, true)
+			return doTaskUpdate(ses, restRule.UptRule, dbRule.ID, true)
 		})
-		if handleError(w, logger, err) {
+		if handleError(w, logger, transErr) {
 			return
 		}
 
-		w.Header().Set("Location", location(r.URL, rule.Name))
+		w.Header().Set("Location", location(r.URL, dbRule.Name))
 		w.WriteHeader(http.StatusCreated)
 	}
 }
 
 func getRule(logger *log.Logger, db *database.DB) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		result, err := getRl(r, db)
-		if handleError(w, logger, err) {
+		dbRule, getErr := retrieveDBRule(r, db)
+		if handleError(w, logger, getErr) {
 			return
 		}
 
-		rule, err := FromRule(db, result)
-		if handleError(w, logger, err) {
+		restRule, convErr := DBRuleToREST(db, dbRule)
+		if handleError(w, logger, convErr) {
 			return
 		}
 
-		err = writeJSON(w, rule)
-		handleError(w, logger, err)
+		handleError(w, logger, writeJSON(w, restRule))
 	}
 }
 
@@ -218,10 +212,10 @@ func listRules(logger *log.Logger, db *database.DB) http.HandlerFunc {
 	}
 
 	return func(w http.ResponseWriter, r *http.Request) {
-		var rules model.Rules
+		var dbRules model.Rules
 
-		query, err := parseSelectQuery(r, db, validSorting, &rules)
-		if handleError(w, logger, err) {
+		query, queryErr := parseSelectQuery(r, db, validSorting, &dbRules)
+		if handleError(w, logger, queryErr) {
 			return
 		}
 
@@ -229,91 +223,94 @@ func listRules(logger *log.Logger, db *database.DB) http.HandlerFunc {
 			return
 		}
 
-		jRules, err := FromRules(db, rules)
-		if handleError(w, logger, err) {
+		restRules, convErr := DBRulesToREST(db, dbRules)
+		if handleError(w, logger, convErr) {
 			return
 		}
 
-		resp := map[string][]api.OutRule{"rules": jRules}
-		err = writeJSON(w, resp)
-		handleError(w, logger, err)
+		response := map[string][]*api.OutRule{"rules": restRules}
+		handleError(w, logger, writeJSON(w, response))
 	}
 }
 
 func updateRule(logger *log.Logger, db *database.DB) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		old, err := getRl(r, db)
-		if handleError(w, logger, err) {
+		oldRule, getErr := retrieveDBRule(r, db)
+		if handleError(w, logger, getErr) {
 			return
 		}
 
-		jRule := newInRule(old)
-		if err2 := readJSON(r, jRule); handleError(w, logger, err2) {
+		restRule := dbRuleToRESTInput(oldRule)
+		if err := readJSON(r, restRule); handleError(w, logger, err) {
 			return
 		}
 
-		rule, err := ruleToDB(jRule, old.ID, logger)
-		if handleError(w, logger, err) {
+		dbRule, convErr := restRuleToDB(restRule, logger)
+		if handleError(w, logger, convErr) {
 			return
 		}
 
-		err = db.Transaction(func(ses *database.Session) database.Error {
-			if err := ses.Update(rule).Run(); err != nil {
+		dbRule.ID = oldRule.ID
+
+		transErr := db.Transaction(func(ses *database.Session) database.Error {
+			if err := ses.Update(dbRule).Run(); err != nil {
 				return err
 			}
 
-			return doTaskUpdate(ses, jRule.UptRule, old.ID, false)
+			return doTaskUpdate(ses, restRule.UptRule, oldRule.ID, false)
 		})
-		if handleError(w, logger, err) {
+		if handleError(w, logger, transErr) {
 			return
 		}
 
-		w.Header().Set("Location", locationUpdate(r.URL, str(jRule.Name)))
+		w.Header().Set("Location", locationUpdate(r.URL, dbRule.Name))
 		w.WriteHeader(http.StatusCreated)
 	}
 }
 
 func replaceRule(logger *log.Logger, db *database.DB) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		old, err := getRl(r, db)
-		if handleError(w, logger, err) {
+		oldRule, getErr := retrieveDBRule(r, db)
+		if handleError(w, logger, getErr) {
 			return
 		}
 
-		jRule := &api.InRule{IsSend: &old.IsSend, UptRule: &api.UptRule{}}
-		if err2 := readJSON(r, jRule.UptRule); handleError(w, logger, err2) {
+		restRule := &api.InRule{IsSend: &oldRule.IsSend, UptRule: &api.UptRule{}}
+		if err2 := readJSON(r, restRule.UptRule); handleError(w, logger, err2) {
 			return
 		}
 
-		rule, err := ruleToDB(jRule, old.ID, logger)
-		if handleError(w, logger, err) {
+		dbRule, convErr := restRuleToDB(restRule, logger)
+		if handleError(w, logger, convErr) {
 			return
 		}
 
-		err = db.Transaction(func(ses *database.Session) database.Error {
-			if err := ses.Update(rule).Run(); handleError(w, logger, err) {
+		dbRule.ID = oldRule.ID
+
+		transErr := db.Transaction(func(ses *database.Session) database.Error {
+			if err := ses.Update(dbRule).Run(); handleError(w, logger, err) {
 				return err
 			}
 
-			return doTaskUpdate(ses, jRule.UptRule, old.ID, true)
+			return doTaskUpdate(ses, restRule.UptRule, oldRule.ID, true)
 		})
-		if handleError(w, logger, err) {
+		if handleError(w, logger, transErr) {
 			return
 		}
 
-		w.Header().Set("Location", locationUpdate(r.URL, str(jRule.Name)))
+		w.Header().Set("Location", locationUpdate(r.URL, str(restRule.Name)))
 		w.WriteHeader(http.StatusCreated)
 	}
 }
 
 func deleteRule(logger *log.Logger, db *database.DB) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		rule, err := getRl(r, db)
-		if handleError(w, logger, err) {
+		dbRule, getRule := retrieveDBRule(r, db)
+		if handleError(w, logger, getRule) {
 			return
 		}
 
-		if err := db.Delete(rule).Run(); handleError(w, logger, err) {
+		if err := db.Delete(dbRule).Run(); handleError(w, logger, err) {
 			return
 		}
 
@@ -323,17 +320,17 @@ func deleteRule(logger *log.Logger, db *database.DB) http.HandlerFunc {
 
 func allowAllRule(logger *log.Logger, db *database.DB) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		rule, err := getRl(r, db)
-		if handleError(w, logger, err) {
+		dbRule, getErr := retrieveDBRule(r, db)
+		if handleError(w, logger, getErr) {
 			return
 		}
 
-		err = db.DeleteAll(&model.RuleAccess{}).Where("rule_id=?", rule.ID).Run()
-		if handleError(w, logger, err) {
+		if err := db.DeleteAll(&model.RuleAccess{}).Where("rule_id=?", dbRule.ID).
+			Run(); handleError(w, logger, err) {
 			return
 		}
 
 		fmt.Fprintf(w, "Usage of the %s rule '%s' is now unrestricted.",
-			ruleDirection(rule), rule.Name)
+			ruleDirection(dbRule), dbRule.Name)
 	}
 }

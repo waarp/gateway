@@ -7,6 +7,7 @@ import (
 	. "github.com/smartystreets/goconvey/convey"
 
 	"code.waarp.fr/apps/gateway/gateway/pkg/database"
+	"code.waarp.fr/apps/gateway/gateway/pkg/tk/utils"
 	"code.waarp.fr/apps/gateway/gateway/pkg/tk/utils/testhelpers"
 )
 
@@ -41,22 +42,31 @@ func TestLocalAccountBeforeDelete(t *testing.T) {
 			So(db.Insert(&acc).Run(), ShouldBeNil)
 
 			cert := Crypto{
-				OwnerType:   TableLocAccounts,
-				OwnerID:     acc.ID,
-				Name:        "test cert",
-				Certificate: testhelpers.ClientFooCert,
+				LocalAccountID: utils.NewNullInt64(acc.ID),
+				Name:           "test cert",
+				Certificate:    testhelpers.ClientFooCert,
 			}
 			So(db.Insert(&cert).Run(), ShouldBeNil)
 
 			rule := Rule{Name: "rule", IsSend: true, Path: "path"}
 			So(db.Insert(&rule).Run(), ShouldBeNil)
 
-			access := RuleAccess{RuleID: rule.ID, ObjectType: acc.TableName(), ObjectID: acc.ID}
+			access := RuleAccess{RuleID: rule.ID, LocalAccountID: utils.NewNullInt64(acc.ID)}
 			So(db.Insert(&access).Run(), ShouldBeNil)
 
 			Convey("Given that the account is unused", func() {
 				Convey("When calling the `BeforeDelete` hook", func() {
 					So(acc.BeforeDelete(db), ShouldBeNil)
+				})
+
+				Convey("When deleting the account", func() {
+					So(db.Delete(&acc).Run(), ShouldBeNil)
+
+					Convey("Then the agent's accounts should have been deleted", func() {
+						var accounts LocalAccounts
+						So(db.Select(&accounts).Run(), ShouldBeNil)
+						So(accounts, ShouldBeEmpty)
+					})
 
 					Convey("Then the account's certificates should have been deleted", func() {
 						var certs Cryptos
@@ -74,12 +84,10 @@ func TestLocalAccountBeforeDelete(t *testing.T) {
 
 			Convey("Given that the account is used in a transfer", func() {
 				trans := &Transfer{
-					RuleID:     rule.ID,
-					IsServer:   true,
-					AgentID:    ag.ID,
-					AccountID:  acc.ID,
-					LocalPath:  "file.loc",
-					RemotePath: "file.rem",
+					RuleID:         rule.ID,
+					LocalAccountID: utils.NewNullInt64(acc.ID),
+					LocalPath:      "file.loc",
+					RemotePath:     "file.rem",
 				}
 				So(db.Insert(trans).Run(), ShouldBeNil)
 
@@ -90,7 +98,7 @@ func TestLocalAccountBeforeDelete(t *testing.T) {
 						So(err, ShouldBeError, database.NewValidationError(
 							"this account is currently being used in one or more "+
 								"running transfers and thus cannot be deleted, "+
-								"cancel the transfers or wait for them to finish"))
+								"cancel these transfers or wait for them to finish"))
 					})
 				})
 			})

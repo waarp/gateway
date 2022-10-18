@@ -213,7 +213,7 @@ func TestUserInit(t *testing.T) {
 					So(db.Select(&users).Where("owner=?", conf.GlobalConfig.GatewayName).Run(), ShouldBeNil)
 					So(users, ShouldHaveLength, 1)
 
-					So(users[0], ShouldResemble, *other)
+					So(users[0], ShouldResemble, other)
 				})
 			})
 		})

@@ -74,8 +74,7 @@ func (a *authHandler) certAuth(auth *r66.Authent) (*model.LocalAccount, *r66.Err
 	}
 
 	var cryptos model.Cryptos
-	if err := a.db.Select(&cryptos).Where("owner_type=? AND owner_id=?",
-		acc.TableName(), acc.ID).Run(); err != nil {
+	if err := a.db.Select(&cryptos).Where("local_account_id=?", acc.ID).Run(); err != nil {
 		a.logger.Error("Failed to retrieve client certificates: %s", err)
 
 		return nil, internal.NewR66Error(r66.Internal, "database error")

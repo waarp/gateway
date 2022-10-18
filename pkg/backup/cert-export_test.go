@@ -8,6 +8,7 @@ import (
 
 	"code.waarp.fr/apps/gateway/gateway/pkg/database"
 	"code.waarp.fr/apps/gateway/gateway/pkg/model"
+	"code.waarp.fr/apps/gateway/gateway/pkg/tk/utils"
 	"code.waarp.fr/apps/gateway/gateway/pkg/tk/utils/testhelpers"
 )
 
@@ -25,17 +26,16 @@ func TestExportCertificates(t *testing.T) {
 			So(db.Insert(agent).Run(), ShouldBeNil)
 
 			cert := &model.Crypto{
-				Name:        "test_cert",
-				OwnerType:   model.TableLocAgents,
-				OwnerID:     agent.ID,
-				Certificate: testhelpers.OtherLocalhostCert,
-				PrivateKey:  testhelpers.OtherLocalhostKey,
+				Name:         "test_cert",
+				LocalAgentID: utils.NewNullInt64(agent.ID),
+				Certificate:  testhelpers.OtherLocalhostCert,
+				PrivateKey:   testhelpers.OtherLocalhostKey,
 			}
 			So(db.Insert(cert).Run(), ShouldBeNil)
 
 			Convey("Given an new Transaction", func() {
 				Convey("When calling exportCertificates with the correct argument", func() {
-					res, err := exportCertificates(discard(), db, model.TableLocAgents, agent.ID)
+					res, err := exportCertificates(discard(), db, agent)
 
 					Convey("Then it should return no error", func() {
 						So(err, ShouldBeNil)
@@ -56,7 +56,8 @@ func TestExportCertificates(t *testing.T) {
 				})
 
 				Convey("When calling exportCertificates with incorrect argument", func() {
-					res, err := exportCertificates(discard(), db, model.TableLocAgents, agent.ID+1)
+					agent.ID++
+					res, err := exportCertificates(discard(), db, agent)
 
 					Convey("Then it should return no error", func() {
 						So(err, ShouldBeNil)
@@ -77,23 +78,21 @@ func TestExportCertificates(t *testing.T) {
 				So(db.Insert(account).Run(), ShouldBeNil)
 
 				cert1 := &model.Crypto{
-					Name:        "cert1",
-					OwnerType:   model.TableLocAccounts,
-					OwnerID:     account.ID,
-					Certificate: testhelpers.ClientFooCert,
+					Name:           "cert1",
+					LocalAccountID: utils.NewNullInt64(account.ID),
+					Certificate:    testhelpers.ClientFooCert,
 				}
 				So(db.Insert(cert1).Run(), ShouldBeNil)
 
 				cert2 := &model.Crypto{
-					Name:        "cert2",
-					OwnerType:   model.TableLocAccounts,
-					OwnerID:     account.ID,
-					Certificate: testhelpers.ClientFooCert2,
+					Name:           "cert2",
+					LocalAccountID: utils.NewNullInt64(account.ID),
+					Certificate:    testhelpers.ClientFooCert2,
 				}
 				So(db.Insert(cert2).Run(), ShouldBeNil)
 
 				Convey("When calling exportCertificates with the correct argument", func() {
-					res, err := exportCertificates(discard(), db, model.TableLocAccounts, account.ID)
+					res, err := exportCertificates(discard(), db, account)
 
 					Convey("Then it should return no error", func() {
 						So(err, ShouldBeNil)

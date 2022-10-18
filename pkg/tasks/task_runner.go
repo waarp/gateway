@@ -60,14 +60,14 @@ func (r *Runner) ErrorTasks() *types.TransferError {
 	return r.runTasks(r.transCtx.ErrTasks, true)
 }
 
-func (r *Runner) runTask(task model.Task, taskInfo string, isErrTasks bool) *types.TransferError {
+func (r *Runner) runTask(task *model.Task, taskInfo string, isErrTasks bool) *types.TransferError {
 	runner, ok := model.ValidTasks[task.Type]
 	if !ok {
 		return types.NewTransferError(types.TeExternalOperation, fmt.Sprintf(
 			"%s: unknown task", taskInfo))
 	}
 
-	args, err := r.setup(&task)
+	args, err := r.setup(task)
 	if err != nil {
 		logMsg := fmt.Sprintf("%s: %s", taskInfo, err.Error())
 		r.logger.Error(logMsg)
@@ -147,11 +147,11 @@ func (r *Runner) updateProgress(isErrTasks bool) *types.TransferError {
 
 // runTasks executes sequentially the list of tasks given according to the
 // Runner context.
-func (r *Runner) runTasks(tasks []model.Task, isErrTasks bool) *types.TransferError {
+func (r *Runner) runTasks(tasks []*model.Task, isErrTasks bool) *types.TransferError {
 	r.lock.Add(1)
 	defer r.lock.Done()
 
-	for i := r.transCtx.Transfer.TaskNumber; i < uint64(len(tasks)); i++ {
+	for i := r.transCtx.Transfer.TaskNumber; i < int16(len(tasks)); i++ {
 		task := tasks[i]
 		taskInfo := fmt.Sprintf("Task %s @ %s %s[%v]", task.Type, r.transCtx.Rule.Name,
 			task.Chain, task.Rank)

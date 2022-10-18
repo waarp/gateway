@@ -3,11 +3,13 @@ package model
 import (
 	"context"
 	"encoding/json"
+	"fmt"
 
 	"code.waarp.fr/apps/gateway/gateway/pkg/database"
 )
 
 // ValidTasks is a list of all the tasks known by the gateway.
+//
 //nolint:gochecknoglobals // global var is used by design
 var ValidTasks = map[string]TaskRunner{}
 
@@ -38,18 +40,17 @@ const (
 	ChainPre Chain = "PRE"
 	// ChainPost is the chain for post transfer tasks.
 	ChainPost Chain = "POST"
-
 	// ChainError is the chain for error transfer tasks.
 	ChainError Chain = "ERROR"
 )
 
 // Task represents one record of the 'tasks' table.
 type Task struct {
-	RuleID uint64          `xorm:"notnull 'rule_id'"`
-	Chain  Chain           `xorm:"notnull 'chain'"`
-	Rank   uint32          `xorm:"notnull 'rank'"`
-	Type   string          `xorm:"notnull 'type'"`
-	Args   json.RawMessage `xorm:"notnull 'args'"`
+	RuleID int64           `xorm:"BIGINT NOTNULL 'rule_id'"` // foreign key (rules.id)
+	Chain  Chain           `xorm:"VARCHAR(10) NOTNULL 'chain'"`
+	Rank   int16           `xorm:"SMALLINT NOTNULL 'rank'"`
+	Type   string          `xorm:"VARCHAR(50) NOTNULL 'type'"`
+	Args   json.RawMessage `xorm:"TEXT NOTNULL DEFAULT('{}') 'args'"`
 }
 
 // TableName returns the name of the tasks table.
@@ -114,4 +115,10 @@ func (t *Task) BeforeWrite(db database.ReadAccess) database.Error {
 	}
 
 	return nil
+}
+
+func (*Task) MakeExtraConstraints(db *database.Executor) database.Error {
+	return redefineColumn(db, TableTasks, "rule_id", fmt.Sprintf(
+		`BIGINT NOT NULL REFERENCES %s ON UPDATE RESTRICT ON DELETE CASCADE`,
+		TableRules))
 }

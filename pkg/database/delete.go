@@ -26,8 +26,6 @@ func (d *DeleteQuery) run(s *Session) Error {
 	query := s.session.NoAutoCondition().Table(d.bean.TableName()).
 		ID(d.bean.GetID())
 
-	defer logSQL(query, s.logger)
-
 	if _, err := query.Delete(d.bean); err != nil {
 		s.logger.Error("Failed to delete the %s entry: %s", d.bean.Appellation(), err)
 

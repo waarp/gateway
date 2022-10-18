@@ -9,7 +9,7 @@ import (
 // OutHistory is the JSON representation of a history entry in responses sent by
 // the REST interface.
 type OutHistory struct {
-	ID             uint64                  `json:"id"`
+	ID             int64                   `json:"id"`
 	RemoteID       string                  `json:"remoteID,omitempty"` //nolint:tagliatelle,lll // FIXME too late to change that
 	IsServer       bool                    `json:"isServer"`
 	IsSend         bool                    `json:"isSend"`
@@ -27,8 +27,8 @@ type OutHistory struct {
 	ErrorCode      types.TransferErrorCode `json:"errorCode,omitempty"`
 	ErrorMsg       string                  `json:"errorMsg,omitempty"`
 	Step           types.TransferStep      `json:"step,omitempty"`
-	Progress       uint64                  `json:"progress,omitempty"`
-	TaskNumber     uint64                  `json:"taskNumber,omitempty"`
+	Progress       int64                   `json:"progress,omitempty"`
+	TaskNumber     int16                   `json:"taskNumber,omitempty"`
 
 	// Deprecated fields
 	SourceFilename string `json:"sourceFilename"` // Deprecated: replaced by LocalFilepath & RemoteFilepath

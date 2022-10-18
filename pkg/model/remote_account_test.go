@@ -6,6 +6,7 @@ import (
 	. "github.com/smartystreets/goconvey/convey"
 
 	"code.waarp.fr/apps/gateway/gateway/pkg/database"
+	"code.waarp.fr/apps/gateway/gateway/pkg/tk/utils"
 	"code.waarp.fr/apps/gateway/gateway/pkg/tk/utils/testhelpers"
 )
 
@@ -39,25 +40,32 @@ func TestRemoteAccountBeforeDelete(t *testing.T) {
 			So(db.Insert(&acc).Run(), ShouldBeNil)
 
 			cert := Crypto{
-				OwnerType:   TableRemAccounts,
-				OwnerID:     acc.ID,
-				Name:        "test cert",
-				PrivateKey:  testhelpers.ClientFooKey,
-				Certificate: testhelpers.ClientFooCert,
+				RemoteAccountID: utils.NewNullInt64(acc.ID),
+				Name:            "test cert",
+				PrivateKey:      testhelpers.ClientFooKey,
+				Certificate:     testhelpers.ClientFooCert,
 			}
 			So(db.Insert(&cert).Run(), ShouldBeNil)
 
 			rule := Rule{Name: "rule", IsSend: true, Path: "path"}
 			So(db.Insert(&rule).Run(), ShouldBeNil)
 
-			access := RuleAccess{RuleID: rule.ID, ObjectType: TableRemAccounts, ObjectID: acc.ID}
+			access := RuleAccess{RuleID: rule.ID, RemoteAccountID: utils.NewNullInt64(acc.ID)}
 			So(db.Insert(&access).Run(), ShouldBeNil)
 
 			Convey("Given that the account is unused", func() {
 				Convey("When calling the `BeforeDelete` hook", func() {
-					So(db.Transaction(func(ses *database.Session) database.Error {
-						return acc.BeforeDelete(ses)
-					}), ShouldBeNil)
+					So(acc.BeforeDelete(db), ShouldBeNil)
+				})
+
+				Convey("When deleting the account", func() {
+					So(db.Delete(&acc).Run(), ShouldBeNil)
+
+					Convey("Then the account should have been deleted", func() {
+						var accounts RemoteAccounts
+						So(db.Select(&accounts).Run(), ShouldBeNil)
+						So(accounts, ShouldBeEmpty)
+					})
 
 					Convey("Then the account's certificates should have been deleted", func() {
 						var certs Cryptos
@@ -75,25 +83,21 @@ func TestRemoteAccountBeforeDelete(t *testing.T) {
 
 			Convey("Given that the account is used in a transfer", func() {
 				trans := Transfer{
-					RuleID:     rule.ID,
-					IsServer:   false,
-					AgentID:    ag.ID,
-					AccountID:  acc.ID,
-					LocalPath:  "file.loc",
-					RemotePath: "file.rem",
+					RuleID:          rule.ID,
+					RemoteAccountID: utils.NewNullInt64(acc.ID),
+					LocalPath:       "file.loc",
+					RemotePath:      "file.rem",
 				}
 				So(db.Insert(&trans).Run(), ShouldBeNil)
 
 				Convey("When calling the `BeforeDelete` hook", func() {
-					err := db.Transaction(func(ses *database.Session) database.Error {
-						return acc.BeforeDelete(ses)
-					})
+					err := acc.BeforeDelete(db)
 
 					Convey("Then it should say that the account is being used", func() {
 						So(err, ShouldBeError, database.NewValidationError(
-							"this account is currently being used in a running "+
-								"transfer and cannot be deleted, cancel "+
-								"the transfer or wait for it to finish"))
+							"this account is currently being used in one or more "+
+								"running transfers and thus cannot be deleted, "+
+								"cancel these transfers or wait for them to finish"))
 					})
 				})
 			})

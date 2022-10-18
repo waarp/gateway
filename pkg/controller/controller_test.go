@@ -15,6 +15,7 @@ import (
 	"code.waarp.fr/apps/gateway/gateway/pkg/gatewayd/service/state"
 	"code.waarp.fr/apps/gateway/gateway/pkg/model"
 	"code.waarp.fr/apps/gateway/gateway/pkg/model/types"
+	"code.waarp.fr/apps/gateway/gateway/pkg/tk/utils"
 	"code.waarp.fr/apps/gateway/gateway/pkg/tk/utils/testhelpers"
 )
 
@@ -64,15 +65,13 @@ func TestControllerListen(t *testing.T) {
 				So(err, ShouldBeNil)
 
 				trans := &model.Transfer{
-					RuleID:     rule.ID,
-					IsServer:   false,
-					AgentID:    remote.ID,
-					AccountID:  account.ID,
-					LocalPath:  path1,
-					RemotePath: "/file_1",
-					Start:      time.Date(2022, 1, 1, 1, 0, 0, 0, time.UTC),
-					Status:     types.StatusPlanned,
-					Owner:      conf.GlobalConfig.GatewayName,
+					RuleID:          rule.ID,
+					RemoteAccountID: utils.NewNullInt64(account.ID),
+					LocalPath:       path1,
+					RemotePath:      "/file_1",
+					Start:           time.Date(2022, 1, 1, 1, 0, 0, 0, time.UTC),
+					Status:          types.StatusPlanned,
+					Owner:           conf.GlobalConfig.GatewayName,
 				}
 				So(db.Insert(trans).Run(), ShouldBeNil)
 
@@ -88,15 +87,15 @@ func TestControllerListen(t *testing.T) {
 
 						Convey("Then it should have retrieved the planned "+
 							"transfer entry", func() {
-							var trans model.Transfers
-							So(db.Select(&trans).Run(), ShouldBeNil)
-							So(trans, ShouldBeEmpty)
+							var transfers model.Transfers
+							So(db.Select(&transfers).Run(), ShouldBeNil)
+							So(transfers, ShouldBeEmpty)
 						})
 
 						Convey("Then it should have created the new history entries", func() {
-							var hist model.HistoryEntries
-							So(db.Select(&hist).Run(), ShouldBeNil)
-							So(hist, ShouldNotBeEmpty)
+							var historyEntries model.HistoryEntries
+							So(db.Select(&historyEntries).Run(), ShouldBeNil)
+							So(historyEntries, ShouldNotBeEmpty)
 						})
 					})
 				})
@@ -114,9 +113,9 @@ func TestControllerListen(t *testing.T) {
 						cont.wg.Wait()
 
 						Convey("Then the transfer has only been started once", func() {
-							var hist model.HistoryEntries
-							So(db.Select(&hist).Run(), ShouldBeNil)
-							So(hist, ShouldHaveLength, 1)
+							var historyEntries model.HistoryEntries
+							So(db.Select(&historyEntries).Run(), ShouldBeNil)
+							So(historyEntries, ShouldHaveLength, 1)
 						})
 					})
 				})
@@ -128,15 +127,13 @@ func TestControllerListen(t *testing.T) {
 				So(err, ShouldBeNil)
 
 				trans := &model.Transfer{
-					RuleID:     rule.ID,
-					IsServer:   false,
-					AgentID:    remote.ID,
-					AccountID:  account.ID,
-					LocalPath:  path2,
-					RemotePath: "/file_2",
-					Start:      time.Date(2022, 1, 1, 1, 0, 0, 0, time.UTC),
-					Status:     types.StatusRunning,
-					Owner:      conf.GlobalConfig.GatewayName,
+					RuleID:          rule.ID,
+					RemoteAccountID: utils.NewNullInt64(account.ID),
+					LocalPath:       path2,
+					RemotePath:      "/file_2",
+					Start:           time.Date(2022, 1, 1, 1, 0, 0, 0, time.UTC),
+					Status:          types.StatusRunning,
+					Owner:           conf.GlobalConfig.GatewayName,
 				}
 				So(gwController.DB.Insert(trans).Run(), ShouldBeNil)
 

@@ -19,6 +19,7 @@ import (
 	"code.waarp.fr/apps/gateway/gateway/pkg/database"
 	"code.waarp.fr/apps/gateway/gateway/pkg/model"
 	"code.waarp.fr/apps/gateway/gateway/pkg/model/types"
+	"code.waarp.fr/apps/gateway/gateway/pkg/tk/utils"
 )
 
 func historyInfoString(h *api.OutHistory) string {
@@ -585,13 +586,11 @@ func TestRetryHistory(t *testing.T) {
 						Convey("Then the transfer should have been added", func() {
 							var trans model.Transfers
 							So(db.Select(&trans).Run(), ShouldBeNil)
-							So(trans[0], ShouldResemble, model.Transfer{
+							So(trans[0], ShouldResemble, &model.Transfer{
 								ID:               1,
 								RemoteTransferID: trans[0].RemoteTransferID,
 								RuleID:           r.ID,
-								IsServer:         false,
-								AgentID:          part.ID,
-								AccountID:        acc.ID,
+								RemoteAccountID:  utils.NewNullInt64(acc.ID),
 								LocalPath:        "path.loc",
 								RemotePath:       "path.rem",
 								Start:            time.Date(2030, 1, 1, 1, 0, 0, 123000, time.Local),

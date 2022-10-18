@@ -9,7 +9,6 @@ import (
 	"code.waarp.fr/lib/r66"
 	. "github.com/smartystreets/goconvey/convey"
 
-	"code.waarp.fr/apps/gateway/gateway/pkg/database"
 	"code.waarp.fr/apps/gateway/gateway/pkg/model"
 	"code.waarp.fr/apps/gateway/gateway/pkg/model/types"
 	"code.waarp.fr/apps/gateway/gateway/pkg/pipeline"
@@ -156,19 +155,16 @@ func TestTLS(t *testing.T) {
 	})
 }
 
-type cryptoOwner interface {
-	database.Table
-	database.Identifier
-}
-
-func cert(owner cryptoOwner, name, cert, key string) model.Crypto {
-	return model.Crypto{
-		OwnerType:   owner.TableName(),
-		OwnerID:     owner.GetID(),
+func cert(owner model.CryptoOwner, name, cert, key string) model.Crypto {
+	c := model.Crypto{
 		Name:        name,
 		PrivateKey:  types.CypherText(key),
 		Certificate: cert,
 	}
+
+	owner.SetCryptoOwner(&c)
+
+	return c
 }
 
 func tlsServer(c C, ctx *pipelinetest.ClientContext, cert, key string) {

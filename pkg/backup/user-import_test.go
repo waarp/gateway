@@ -54,8 +54,8 @@ func TestImportUsers(t *testing.T) {
 					So(db.Select(&dbUsers).OrderBy("id", true).Run(), ShouldBeNil)
 					So(dbUsers, ShouldHaveLength, 3)
 
-					So(dbUsers[0], ShouldResemble, *dbUser1a)
-					So(dbUsers[1], ShouldResemble, *dbUser1b)
+					So(dbUsers[0], ShouldResemble, dbUser1a)
+					So(dbUsers[1], ShouldResemble, dbUser1b)
 
 					So(dbUsers[2].Username, ShouldEqual, user.Username)
 					shouldBeHashOf(dbUsers[2].PasswordHash, user.Password)
@@ -80,7 +80,7 @@ func TestImportUsers(t *testing.T) {
 					So(db.Select(&dbUsers).OrderBy("id", true).Run(), ShouldBeNil)
 					So(dbUsers, ShouldHaveLength, 2)
 
-					So(dbUsers[1], ShouldResemble, *dbUser1b)
+					So(dbUsers[1], ShouldResemble, dbUser1b)
 
 					So(dbUsers[0].Username, ShouldEqual, dbUser1a.Username)
 					shouldBeHashOf(dbUsers[0].PasswordHash, user.Password)

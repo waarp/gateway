@@ -40,12 +40,10 @@ func (u *UpdateQuery) run(s *Session) Error {
 		query = query.Cols(u.cols...)
 	}
 
-	defer logSQL(query, s.logger)
+	if _, err := query.Update(u.bean); err != nil {
+		s.logger.Error("Failed to update the %s entry: %s", u.bean.Appellation(), err)
 
-	if _, err1 := query.Update(u.bean); err1 != nil {
-		s.logger.Error("Failed to update the %s entry: %s", u.bean.Appellation(), err1)
-
-		return NewInternalError(err1)
+		return NewInternalError(err)
 	}
 
 	return nil

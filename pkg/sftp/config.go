@@ -47,9 +47,8 @@ func getSSHClientConfig(info *model.TransferContext, protoConfig *config.SftpPro
 		algos    []string
 	)
 
-	for _, c := range info.RemoteAgentCryptos {
-		//nolint:dogsled // this is caused by the design of a third party library
-		key, _, _, _, err := ssh.ParseAuthorizedKey([]byte(c.SSHPublicKey))
+	for _, crypto := range info.RemoteAgentCryptos {
+		key, err := utils.ParseSSHAuthorizedKey(crypto.SSHPublicKey)
 		if err != nil {
 			return nil, fmt.Errorf("cannot parse server key: %w", err)
 		}
@@ -75,8 +74,8 @@ func getSSHClientConfig(info *model.TransferContext, protoConfig *config.SftpPro
 
 	var signers []ssh.Signer
 
-	for _, c := range info.RemoteAccountCryptos {
-		signer, err := ssh.ParsePrivateKey([]byte(c.PrivateKey))
+	for _, crypto := range info.RemoteAccountCryptos {
+		signer, err := ssh.ParsePrivateKey([]byte(crypto.PrivateKey))
 		if err != nil {
 			continue
 		}

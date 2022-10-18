@@ -19,7 +19,7 @@ import (
 const testPartnersURI = "http://localhost:8080/api/partners/"
 
 func TestListPartners(t *testing.T) {
-	check := func(w *httptest.ResponseRecorder, expected map[string][]OutPartner) {
+	check := func(w *httptest.ResponseRecorder, expected map[string][]*OutPartner) {
 		Convey("Then it should reply 'OK'", func() {
 			So(w.Code, ShouldEqual, http.StatusOK)
 		})
@@ -45,7 +45,7 @@ func TestListPartners(t *testing.T) {
 		db := database.TestDatabase(c)
 		handler := listPartners(logger, db)
 		w := httptest.NewRecorder()
-		expected := map[string][]OutPartner{}
+		expected := map[string][]*OutPartner{}
 
 		Convey("Given a database with 4 partners", func() {
 			a1 := &model.RemoteAgent{
@@ -74,19 +74,23 @@ func TestListPartners(t *testing.T) {
 			So(db.Insert(a3).Run(), ShouldBeNil)
 			So(db.Insert(a4).Run(), ShouldBeNil)
 
-			agent1 := *FromRemoteAgent(a1, &AuthorizedRules{})
-			agent2 := *FromRemoteAgent(a2, &AuthorizedRules{})
-			agent3 := *FromRemoteAgent(a3, &AuthorizedRules{})
-			agent4 := *FromRemoteAgent(a4, &AuthorizedRules{})
+			agent1, err := DBPartnerToREST(db, a1)
+			So(err, ShouldBeNil)
+			agent2, err := DBPartnerToREST(db, a2)
+			So(err, ShouldBeNil)
+			agent3, err := DBPartnerToREST(db, a3)
+			So(err, ShouldBeNil)
+			agent4, err := DBPartnerToREST(db, a4)
+			So(err, ShouldBeNil)
 
-			Convey("Given a request with with no parameters", func() {
+			Convey("Given a request with no parameters", func() {
 				r, err := http.NewRequest(http.MethodGet, "", nil)
 				So(err, ShouldBeNil)
 
 				Convey("When sending the request to the handler", func() {
 					handler.ServeHTTP(w, r)
 
-					expected["partners"] = []OutPartner{agent1, agent2, agent3, agent4}
+					expected["partners"] = []*OutPartner{agent1, agent2, agent3, agent4}
 					check(w, expected)
 				})
 			})
@@ -98,7 +102,7 @@ func TestListPartners(t *testing.T) {
 				Convey("When sending the request to the handler", func() {
 					handler.ServeHTTP(w, r)
 
-					expected["partners"] = []OutPartner{agent1}
+					expected["partners"] = []*OutPartner{agent1}
 					check(w, expected)
 				})
 			})
@@ -110,7 +114,7 @@ func TestListPartners(t *testing.T) {
 				Convey("When sending the request to the handler", func() {
 					handler.ServeHTTP(w, r)
 
-					expected["partners"] = []OutPartner{agent2, agent3, agent4}
+					expected["partners"] = []*OutPartner{agent2, agent3, agent4}
 					check(w, expected)
 				})
 			})
@@ -122,7 +126,7 @@ func TestListPartners(t *testing.T) {
 				Convey("When sending the request to the handler", func() {
 					handler.ServeHTTP(w, r)
 
-					expected["partners"] = []OutPartner{agent4, agent3, agent2, agent1}
+					expected["partners"] = []*OutPartner{agent4, agent3, agent2, agent1}
 					check(w, expected)
 				})
 			})
@@ -134,7 +138,7 @@ func TestListPartners(t *testing.T) {
 				Convey("When sending the request to the handler", func() {
 					handler.ServeHTTP(w, r)
 
-					expected["partners"] = []OutPartner{agent1, agent2, agent3}
+					expected["partners"] = []*OutPartner{agent1, agent2, agent3}
 					check(w, expected)
 				})
 			})
@@ -177,9 +181,12 @@ func TestGetPartner(t *testing.T) {
 
 					Convey("Then the body should contain the requested partner "+
 						"in JSON format", func() {
-						exp, err := json.Marshal(FromRemoteAgent(existing, &AuthorizedRules{}))
-
+						expected, err := DBPartnerToREST(db, existing)
 						So(err, ShouldBeNil)
+
+						exp, err := json.Marshal(expected)
+						So(err, ShouldBeNil)
+
 						So(w.Body.String(), ShouldResemble, string(exp)+"\n")
 					})
 				})
@@ -253,7 +260,7 @@ func TestCreatePartner(t *testing.T) {
 							So(db.Select(&ags).Run(), ShouldBeNil)
 							So(len(ags), ShouldEqual, 2)
 
-							So(ags[1], ShouldResemble, model.RemoteAgent{
+							So(ags[1], ShouldResemble, &model.RemoteAgent{
 								ID:          2,
 								Name:        "new_partner",
 								Protocol:    testProto1,
@@ -268,7 +275,7 @@ func TestCreatePartner(t *testing.T) {
 							So(db.Select(&ags).Run(), ShouldBeNil)
 							So(len(ags), ShouldEqual, 2)
 
-							So(ags[0], ShouldResemble, *existing)
+							So(ags[0], ShouldResemble, existing)
 						})
 					})
 				})
@@ -382,7 +389,7 @@ func TestUpdatePartner(t *testing.T) {
 						})
 
 						Convey("Then the agent should have been updated", func() {
-							exp := model.RemoteAgent{
+							exp := &model.RemoteAgent{
 								ID:          old.ID,
 								Name:        "update",
 								Protocol:    testProto1,
@@ -421,7 +428,7 @@ func TestUpdatePartner(t *testing.T) {
 							So(db.Select(&ags).Run(), ShouldBeNil)
 							So(len(ags), ShouldEqual, 1)
 
-							So(ags[0], ShouldResemble, *old)
+							So(ags[0], ShouldResemble, old)
 						})
 					})
 				})
@@ -478,7 +485,7 @@ func TestReplacePartner(t *testing.T) {
 						})
 
 						Convey("Then the agent should have been updated", func() {
-							exp := model.RemoteAgent{
+							exp := &model.RemoteAgent{
 								ID:          old.ID,
 								Name:        "update",
 								Protocol:    testProto2,
@@ -517,7 +524,7 @@ func TestReplacePartner(t *testing.T) {
 							So(db.Select(&ags).Run(), ShouldBeNil)
 							So(len(ags), ShouldEqual, 1)
 
-							So(ags[0], ShouldResemble, *old)
+							So(ags[0], ShouldResemble, old)
 						})
 					})
 				})

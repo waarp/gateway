@@ -64,7 +64,7 @@ func TestRequestStatus(t *testing.T) {
 				"Core Service 5": &dummyService{&errorState},
 				"Core Service 6": &dummyService{&runningState},
 			}
-			protoServices := map[uint64]proto.Service{
+			protoServices := map[int64]proto.Service{
 				addServ("Proto Service 1").ID: &dummyServer{&dummyService{&offlineState}},
 				addServ("Proto Service 2").ID: &dummyServer{&dummyService{&runningState}},
 				addServ("Proto Service 3").ID: &dummyServer{&dummyService{&offlineState}},

@@ -147,9 +147,10 @@ func notImplemented(word string) func(*Runner) (string, error) {
 
 //nolint:dupl //factorising would add complexity
 func getLocal(r *Runner) (string, error) {
-	if r.transCtx.Transfer.IsServer {
+	if r.transCtx.Transfer.IsServer() {
 		var agent model.LocalAgent
-		if err := r.db.Get(&agent, "id=?", r.transCtx.Transfer.AgentID).Run(); err != nil {
+		if err := r.db.Get(&agent, "id=(SELECT local_agent_id FROM local_accounts WHERE id=?)",
+			r.transCtx.Transfer.LocalAccountID).Run(); err != nil {
 			return "", err
 		}
 
@@ -157,7 +158,7 @@ func getLocal(r *Runner) (string, error) {
 	}
 
 	var account model.RemoteAccount
-	if err := r.db.Get(&account, "id=?", r.transCtx.Transfer.AccountID).Run(); err != nil {
+	if err := r.db.Get(&account, "id=?", r.transCtx.Transfer.RemoteAccountID).Run(); err != nil {
 		return "", err
 	}
 
@@ -166,9 +167,9 @@ func getLocal(r *Runner) (string, error) {
 
 //nolint:dupl //factorising would add complexity
 func getRemote(r *Runner) (string, error) {
-	if r.transCtx.Transfer.IsServer {
+	if r.transCtx.Transfer.IsServer() {
 		var account model.LocalAccount
-		if err := r.db.Get(&account, "id=?", r.transCtx.Transfer.AccountID).Run(); err != nil {
+		if err := r.db.Get(&account, "id=?", r.transCtx.Transfer.LocalAccountID).Run(); err != nil {
 			return "", err
 		}
 
@@ -176,7 +177,8 @@ func getRemote(r *Runner) (string, error) {
 	}
 
 	var agent model.RemoteAgent
-	if err := r.db.Get(&agent, "id=?", r.transCtx.Transfer.AgentID).Run(); err != nil {
+	if err := r.db.Get(&agent, "id=(SELECT remote_agent_id FROM remote_accounts WHERE id=?)",
+		r.transCtx.Transfer.RemoteAccountID).Run(); err != nil {
 		return "", err
 	}
 
@@ -185,9 +187,9 @@ func getRemote(r *Runner) (string, error) {
 
 //nolint:dupl //factorising would add complexity
 func getClient(r *Runner) (string, error) {
-	if r.transCtx.Transfer.IsServer {
+	if r.transCtx.Transfer.IsServer() {
 		var account model.LocalAccount
-		if err := r.db.Get(&account, "id=?", r.transCtx.Transfer.AccountID).Run(); err != nil {
+		if err := r.db.Get(&account, "id=?", r.transCtx.Transfer.LocalAccountID).Run(); err != nil {
 			return "", err
 		}
 
@@ -195,7 +197,7 @@ func getClient(r *Runner) (string, error) {
 	}
 
 	var account model.RemoteAccount
-	if err := r.db.Get(&account, "id=?", r.transCtx.Transfer.AccountID).Run(); err != nil {
+	if err := r.db.Get(&account, "id=?", r.transCtx.Transfer.RemoteAccountID).Run(); err != nil {
 		return "", err
 	}
 
@@ -204,9 +206,10 @@ func getClient(r *Runner) (string, error) {
 
 //nolint:dupl //factorising would add complexity
 func getServer(r *Runner) (string, error) {
-	if r.transCtx.Transfer.IsServer {
+	if r.transCtx.Transfer.IsServer() {
 		var agent model.LocalAgent
-		if err := r.db.Get(&agent, "id=?", r.transCtx.Transfer.AgentID).Run(); err != nil {
+		if err := r.db.Get(&agent, "id=(SELECT local_agent_id FROM local_accounts WHERE id=?)",
+			r.transCtx.Transfer.LocalAccountID).Run(); err != nil {
 			return "", err
 		}
 
@@ -214,7 +217,8 @@ func getServer(r *Runner) (string, error) {
 	}
 
 	var agent model.RemoteAgent
-	if err := r.db.Get(&agent, "id=?", r.transCtx.Transfer.AgentID).Run(); err != nil {
+	if err := r.db.Get(&agent, "id=(SELECT remote_agent_id FROM remote_accounts WHERE id=?)",
+		r.transCtx.Transfer.RemoteAccountID).Run(); err != nil {
 		return "", err
 	}
 

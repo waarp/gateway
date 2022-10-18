@@ -1,6 +1,7 @@
 package model
 
 import (
+	"database/sql"
 	"encoding/json"
 	"fmt"
 	"testing"
@@ -59,9 +60,7 @@ func TestTransferBeforeWrite(t *testing.T) {
 				trans := Transfer{
 					RemoteTransferID: "1",
 					RuleID:           rule.ID,
-					IsServer:         true,
-					AgentID:          server.ID,
-					AccountID:        account.ID,
+					LocalAccountID:   utils.NewNullInt64(account.ID),
 					LocalPath:        "/local/path",
 					RemotePath:       "/remote/path",
 					Start:            time.Now(),
@@ -107,16 +106,16 @@ func TestTransferBeforeWrite(t *testing.T) {
 						"the transfer's rule ID cannot be empty"))
 				})
 
-				Convey("Given that the remote ID is missing", func() {
-					trans.AgentID = 0
+				Convey("Given that the account ID is missing", func() {
+					trans.LocalAccountID = sql.NullInt64{}
 					shouldFailWith("the remote ID is missing", database.NewValidationError(
-						"the transfer's remote ID cannot be empty"))
+						"the transfer is missing an account ID"))
 				})
 
-				Convey("Given that the account ID is missing", func() {
-					trans.AccountID = 0
+				Convey("Given that the transfer has both account IDs", func() {
+					trans.RemoteAccountID = utils.NewNullInt64(1)
 					shouldFailWith("the account ID is missing", database.NewValidationError(
-						"the transfer's account ID cannot be empty"))
+						"the transfer cannot have both a local and remote account ID"))
 				})
 
 				Convey("Given that the local filepath is missing", func() {
@@ -131,27 +130,18 @@ func TestTransferBeforeWrite(t *testing.T) {
 						"the rule %d does not exist", trans.RuleID))
 				})
 
-				Convey("Given that the agent id is invalid", func() {
-					trans.AgentID = 1000
-					shouldFailWith("the server does not exist", database.NewValidationError(
-						"the server %d does not exist", trans.AgentID))
-				})
-
 				Convey("Given that the account id is invalid", func() {
-					trans.AccountID = 1000
-					shouldFailWith("the account does not exist", database.NewValidationError(
-						"the server %d does not have an account %d", trans.AgentID,
-						trans.AccountID))
+					trans.LocalAccountID = utils.NewNullInt64(1000)
+					shouldFailWith("the local account does not exist", database.NewValidationError(
+						"the local account %d does not exist", trans.LocalAccountID.Int64))
 				})
 
 				Convey("Given that an transfer with the same remoteID already exist", func() {
 					t2 := &Transfer{
 						Owner:            conf.GlobalConfig.GatewayName,
 						RemoteTransferID: trans.RemoteTransferID,
-						IsServer:         trans.IsServer,
 						RuleID:           rule.ID,
-						AgentID:          trans.AgentID,
-						AccountID:        trans.AccountID,
+						LocalAccountID:   utils.NewNullInt64(account.ID),
 						LocalPath:        "/local/path",
 						RemotePath:       "/remote/path",
 						Filesize:         -1,
@@ -185,30 +175,6 @@ func TestTransferBeforeWrite(t *testing.T) {
 
 					shouldFailWith("the remoteID is already taken", database.NewValidationError(
 						"a transfer from the same account with the same remote ID already exists"))
-				})
-
-				Convey("Given that the account id does not belong to the agent", func() {
-					server2 := LocalAgent{
-						Name:        "remote2",
-						Protocol:    testProtocol,
-						ProtoConfig: json.RawMessage(`{}`),
-						Address:     "localhost:2022",
-					}
-					So(db.Insert(&server2).Run(), ShouldBeNil)
-
-					account2 := LocalAccount{
-						LocalAgentID: server2.ID,
-						Login:        "titi",
-						PasswordHash: hash("sesame"),
-					}
-					So(db.Insert(&account2).Run(), ShouldBeNil)
-
-					trans.AgentID = server.ID
-					trans.AccountID = account2.ID
-
-					shouldFailWith("the account does not exist", database.NewValidationError(
-						"the server %d does not have an account %d", trans.AgentID,
-						trans.AccountID))
 				})
 
 				statusTestCases := []statusTestCase{
@@ -256,16 +222,14 @@ func TestTransferToHistory(t *testing.T) {
 
 		Convey("Given a transfer entry", func() {
 			trans := Transfer{
-				ID:         1,
-				RuleID:     rule.ID,
-				IsServer:   false,
-				AgentID:    remote.ID,
-				AccountID:  account.ID,
-				LocalPath:  "/test/local/path",
-				RemotePath: "/test/remote/path",
-				Start:      time.Date(2021, 1, 1, 1, 0, 0, 0, time.Local),
-				Status:     types.StatusPlanned,
-				Owner:      conf.GlobalConfig.GatewayName,
+				ID:              1,
+				RuleID:          rule.ID,
+				RemoteAccountID: utils.NewNullInt64(account.ID),
+				LocalPath:       "/test/local/path",
+				RemotePath:      "/test/remote/path",
+				Start:           time.Date(2021, 1, 1, 1, 0, 0, 0, time.Local),
+				Status:          types.StatusPlanned,
+				Owner:           conf.GlobalConfig.GatewayName,
 			}
 			So(db.Insert(&trans).Run(), ShouldBeNil)
 

@@ -11,6 +11,7 @@ import (
 
 	"code.waarp.fr/apps/gateway/gateway/pkg/database"
 	"code.waarp.fr/apps/gateway/gateway/pkg/model"
+	"code.waarp.fr/apps/gateway/gateway/pkg/tk/utils"
 	"code.waarp.fr/apps/gateway/gateway/pkg/tk/utils/testhelpers"
 )
 
@@ -34,7 +35,7 @@ func TestAuthorizeRule(t *testing.T) {
 			"direction": ruleDirection(rule),
 		}
 
-		test := func(handler http.Handler, expectedResult model.RuleAccess) {
+		test := func(handler http.Handler, expectedResult *model.RuleAccess) {
 			Convey("When sending the request to the handler", func() {
 				r = mux.SetURLVars(r, vals)
 				handler.ServeHTTP(w, r)
@@ -54,6 +55,7 @@ func TestAuthorizeRule(t *testing.T) {
 					var res model.RuleAccesses
 					So(db.Select(&res).Run(), ShouldBeNil)
 					So(len(res), ShouldEqual, 1)
+
 					So(res[0], ShouldResemble, expectedResult)
 				})
 			})
@@ -67,10 +69,9 @@ func TestAuthorizeRule(t *testing.T) {
 			}
 			So(db.Insert(server).Run(), ShouldBeNil)
 
-			exp := model.RuleAccess{
-				RuleID:     rule.ID,
-				ObjectID:   server.ID,
-				ObjectType: server.TableName(),
+			exp := &model.RuleAccess{
+				RuleID:       rule.ID,
+				LocalAgentID: utils.NewNullInt64(server.ID),
 			}
 
 			handler := authorizeServer(logger, db)
@@ -86,10 +87,9 @@ func TestAuthorizeRule(t *testing.T) {
 				}
 				So(db.Insert(account).Run(), ShouldBeNil)
 
-				exp := model.RuleAccess{
-					RuleID:     rule.ID,
-					ObjectID:   account.ID,
-					ObjectType: account.TableName(),
+				exp := &model.RuleAccess{
+					RuleID:         rule.ID,
+					LocalAccountID: utils.NewNullInt64(account.ID),
 				}
 
 				handler := authorizeLocalAccount(logger, db)
@@ -107,10 +107,9 @@ func TestAuthorizeRule(t *testing.T) {
 			}
 			So(db.Insert(partner).Run(), ShouldBeNil)
 
-			exp := model.RuleAccess{
-				RuleID:     rule.ID,
-				ObjectID:   partner.ID,
-				ObjectType: partner.TableName(),
+			exp := &model.RuleAccess{
+				RuleID:        rule.ID,
+				RemoteAgentID: utils.NewNullInt64(partner.ID),
 			}
 
 			handler := authorizePartner(logger, db)
@@ -126,10 +125,9 @@ func TestAuthorizeRule(t *testing.T) {
 				}
 				So(db.Insert(account).Run(), ShouldBeNil)
 
-				exp := model.RuleAccess{
-					RuleID:     rule.ID,
-					ObjectID:   account.ID,
-					ObjectType: account.TableName(),
+				exp := &model.RuleAccess{
+					RuleID:          rule.ID,
+					RemoteAccountID: utils.NewNullInt64(account.ID),
 				}
 
 				handler := authorizeRemoteAccount(logger, db)
@@ -195,9 +193,8 @@ func TestRevokeRule(t *testing.T) {
 
 			Convey("Given a server access", func() {
 				access := &model.RuleAccess{
-					RuleID:     rule.ID,
-					ObjectID:   server.ID,
-					ObjectType: server.TableName(),
+					RuleID:       rule.ID,
+					LocalAgentID: utils.NewNullInt64(server.ID),
 				}
 				So(db.Insert(access).Run(), ShouldBeNil)
 
@@ -214,9 +211,8 @@ func TestRevokeRule(t *testing.T) {
 				So(db.Insert(account).Run(), ShouldBeNil)
 
 				access := &model.RuleAccess{
-					RuleID:     rule.ID,
-					ObjectID:   account.ID,
-					ObjectType: account.TableName(),
+					RuleID:         rule.ID,
+					LocalAccountID: utils.NewNullInt64(account.ID),
 				}
 				So(db.Insert(access).Run(), ShouldBeNil)
 
@@ -239,9 +235,8 @@ func TestRevokeRule(t *testing.T) {
 
 			Convey("Given a partner access", func() {
 				access := &model.RuleAccess{
-					RuleID:     rule.ID,
-					ObjectID:   partner.ID,
-					ObjectType: partner.TableName(),
+					RuleID:        rule.ID,
+					RemoteAgentID: utils.NewNullInt64(partner.ID),
 				}
 				So(db.Insert(access).Run(), ShouldBeNil)
 
@@ -259,9 +254,8 @@ func TestRevokeRule(t *testing.T) {
 				So(db.Insert(account).Run(), ShouldBeNil)
 
 				access := &model.RuleAccess{
-					RuleID:     rule.ID,
-					ObjectID:   account.ID,
-					ObjectType: account.TableName(),
+					RuleID:          rule.ID,
+					RemoteAccountID: utils.NewNullInt64(account.ID),
 				}
 				So(db.Insert(access).Run(), ShouldBeNil)
 
@@ -315,24 +309,20 @@ func TestRuleAllowAll(t *testing.T) {
 			So(db.Insert(ra).Run(), ShouldBeNil)
 
 			sAcc := &model.RuleAccess{
-				RuleID:     rule.ID,
-				ObjectID:   s.ID,
-				ObjectType: s.TableName(),
+				RuleID:       rule.ID,
+				LocalAgentID: utils.NewNullInt64(s.ID),
 			}
 			pAcc := &model.RuleAccess{
-				RuleID:     rule.ID,
-				ObjectID:   p.ID,
-				ObjectType: p.TableName(),
+				RuleID:        rule.ID,
+				RemoteAgentID: utils.NewNullInt64(p.ID),
 			}
 			laAcc := &model.RuleAccess{
-				RuleID:     rule.ID,
-				ObjectID:   la.ID,
-				ObjectType: la.TableName(),
+				RuleID:         rule.ID,
+				LocalAccountID: utils.NewNullInt64(la.ID),
 			}
 			raAcc := &model.RuleAccess{
-				RuleID:     rule.ID,
-				ObjectID:   ra.ID,
-				ObjectType: ra.TableName(),
+				RuleID:          rule.ID,
+				RemoteAccountID: utils.NewNullInt64(ra.ID),
 			}
 			So(db.Insert(sAcc).Run(), ShouldBeNil)
 			So(db.Insert(pAcc).Run(), ShouldBeNil)

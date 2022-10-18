@@ -110,7 +110,7 @@ func (s *Standalone) Select(bean SelectBean) *SelectQuery {
 // The request can then be executed using the GetQuery.Run method. The bean
 // parameter will be filled with the values retrieved from the database.
 func (s *Standalone) Get(bean GetBean, where string, args ...interface{}) *GetQuery {
-	return &GetQuery{db: s, bean: bean, sql: where, args: args}
+	return &GetQuery{db: s, bean: bean, conds: []*condition{{sql: where, args: args}}}
 }
 
 // Count starts building a SQL 'SELECT COUNT' query to count specific entries
@@ -171,10 +171,19 @@ func (s *Standalone) Delete(bean DeleteBean) *DeleteQuery {
 //
 // Be aware, since DeleteAll deletes multiple entries with only one SQL
 // command, the model's `BeforeDelete` function will not be called when using
-// this method. Thus DeleteAll should exclusively be used on models with
-// with no DeletionHook.
+// this method. Thus, DeleteAll should exclusively be used on models with
+// no DeletionHook.
 //
 // The request can then be executed using the DeleteAllQuery.Run method.
 func (s *Standalone) DeleteAll(bean DeleteAllBean) *DeleteAllQuery {
 	return &DeleteAllQuery{db: s, bean: bean}
+}
+
+// Exec executes the given custom SQL query, and returns any error encountered.
+// The query uses the '?' character as a placeholder for arguments.
+//
+// Be aware that, since this method bypasses the data models, all the models'
+// hooks will be skipped. Thus, this method should be used with extreme caution.
+func (s *Standalone) Exec(query string, args ...interface{}) Error {
+	return exec(s.engine.NewSession(), s.logger, query, args...)
 }

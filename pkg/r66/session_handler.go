@@ -139,9 +139,7 @@ func (s *sessionHandler) getTransfer(req *r66.Request, rule *model.Rule) (*model
 	trans := &model.Transfer{
 		RemoteTransferID: fmt.Sprint(req.ID),
 		RuleID:           rule.ID,
-		IsServer:         true,
-		AgentID:          s.agentID,
-		AccountID:        s.account.ID,
+		LocalAccountID:   utils.NewNullInt64(s.account.ID),
 		LocalPath:        strings.TrimPrefix(req.Filepath, "/"),
 		RemotePath:       path.Base(req.Filepath),
 		Start:            time.Now(),
@@ -171,10 +169,10 @@ func (s *sessionHandler) setProgress(req *r66.Request, trans *model.Transfer) {
 		return
 	}
 
-	prog := uint64(req.Rank) * uint64(req.Block)
+	prog := int64(req.Rank) * int64(req.Block)
 	if trans.Progress <= prog {
-		req.Rank = uint32(trans.Progress / uint64(req.Block))
-		trans.Progress -= trans.Progress % uint64(req.Block)
+		req.Rank = uint32(trans.Progress / int64(req.Block))
+		trans.Progress -= trans.Progress % int64(req.Block)
 	} else {
 		trans.Progress = prog
 	}
@@ -191,8 +189,8 @@ func (s *sessionHandler) GetTransferInfo(id int64, isClient bool) (*r66.Transfer
 	remoteID := fmt.Sprint(id)
 	trans := model.Transfer{}
 
-	if err := s.db.Get(&trans, "remote_transfer_id=? AND is_server=? AND account_id=?",
-		remoteID, true, s.account.ID).Run(); database.IsNotFound(err) {
+	if err := s.db.Get(&trans, "remote_transfer_id=? AND local_account_id=?",
+		remoteID, s.account.ID).Run(); database.IsNotFound(err) {
 		return s.getInfoFromHistory(id)
 	} else if err != nil {
 		s.logger.Error("Failed to retrieve transfer entry: %v", err)

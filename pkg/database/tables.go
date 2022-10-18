@@ -1,13 +1,19 @@
 package database
 
-import "sync"
+import (
+	"database/sql"
+	"fmt"
+
+	"code.waarp.fr/lib/log"
+	"xorm.io/xorm"
+
+	"code.waarp.fr/apps/gateway/gateway/pkg/conf"
+)
 
 //nolint:gochecknoglobals // global var is used by design
 var (
 	// Tables lists the schema of all database tables.
 	tables []Table
-
-	tableLock sync.Mutex
 
 	// BcryptRounds defines the number of rounds taken by bcrypt to hash passwords
 	// in the database.
@@ -16,17 +22,11 @@ var (
 
 // AddTable adds the given model to the pool of database tables.
 func AddTable(t Table) {
-	tableLock.Lock()
-	defer tableLock.Unlock()
-
 	tables = append(tables, t)
 }
 
 // UpdateTable adds the given model to the pool of database tables.
 func UpdateTable(t Table) {
-	tableLock.Lock()
-	defer tableLock.Unlock()
-
 	for i, e := range tables {
 		if e.TableName() == t.TableName() {
 			tables[i] = t
@@ -45,6 +45,32 @@ type initialiser interface {
 	Init(Access) Error
 }
 
+type Executor struct {
+	Dialect string
+	Logger  *log.Logger
+	ses     *xorm.Session
+}
+
+func (e *Executor) Exec(query string, args ...interface{}) (sql.Result, error) {
+	elems := append([]interface{}{query}, args...)
+
+	if res, err := e.ses.Exec(elems...); err != nil {
+		return nil, fmt.Errorf("command failed: %w", err)
+	} else {
+		return res, nil
+	}
+}
+
+func (e *Executor) Query(query string, args ...interface{}) ([]map[string]interface{}, error) {
+	elems := append([]interface{}{query}, args...)
+
+	if res, err := e.ses.QueryInterface(elems...); err != nil {
+		return nil, fmt.Errorf("query failed: %w", err)
+	} else {
+		return res, nil
+	}
+}
+
 // initTables creates the database tables if they don't exist and fills them
 // with the default entries.
 func initTables(db *Standalone, withInit bool) error {
@@ -60,6 +86,13 @@ func initTables(db *Standalone, withInit bool) error {
 						tbl.TableName(), err)
 
 					return NewInternalError(err)
+				}
+
+				if fker, ok := tbl.(ExtraConstraintsMaker); ok {
+					exe := &Executor{conf.GlobalConfig.Database.Type, ses.logger, ses.session}
+					if err := fker.MakeExtraConstraints(exe); err != nil {
+						return err
+					}
 				}
 
 				if err := ses.session.Table(tbl.TableName()).CreateUniques(tbl); err != nil {

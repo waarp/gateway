@@ -7,6 +7,7 @@ import (
 	. "github.com/smartystreets/goconvey/convey"
 
 	"code.waarp.fr/apps/gateway/gateway/pkg/database"
+	"code.waarp.fr/apps/gateway/gateway/pkg/tk/utils"
 	"code.waarp.fr/apps/gateway/gateway/pkg/tk/utils/testhelpers"
 )
 
@@ -43,38 +44,44 @@ func TestRemoteAgentBeforeDelete(t *testing.T) {
 			So(db.Insert(&rule).Run(), ShouldBeNil)
 
 			agAccess := RuleAccess{
-				RuleID: rule.ID, ObjectID: ag.ID,
-				ObjectType: TableRemAgents,
+				RuleID:        rule.ID,
+				RemoteAgentID: utils.NewNullInt64(ag.ID),
 			}
 			So(db.Insert(&agAccess).Run(), ShouldBeNil)
 			accAccess := RuleAccess{
-				RuleID: rule.ID, ObjectID: acc.ID,
-				ObjectType: TableRemAccounts,
+				RuleID:          rule.ID,
+				RemoteAccountID: utils.NewNullInt64(acc.ID),
 			}
 			So(db.Insert(&accAccess).Run(), ShouldBeNil)
 
 			certAg := Crypto{
-				OwnerType:   TableRemAgents,
-				OwnerID:     ag.ID,
-				Name:        "test agent cert",
-				Certificate: testhelpers.LocalhostCert,
+				RemoteAgentID: utils.NewNullInt64(ag.ID),
+				Name:          "test agent cert",
+				Certificate:   testhelpers.LocalhostCert,
 			}
 			So(db.Insert(&certAg).Run(), ShouldBeNil)
 
 			certAcc := Crypto{
-				OwnerType:   TableRemAccounts,
-				OwnerID:     acc.ID,
-				Name:        "test account cert",
-				PrivateKey:  testhelpers.ClientFooKey,
-				Certificate: testhelpers.ClientFooCert,
+				RemoteAccountID: utils.NewNullInt64(acc.ID),
+				Name:            "test account cert",
+				PrivateKey:      testhelpers.ClientFooKey,
+				Certificate:     testhelpers.ClientFooCert,
 			}
 			So(db.Insert(&certAcc).Run(), ShouldBeNil)
 
 			Convey("Given that the agent is unused", func() {
 				Convey("When calling the `BeforeDelete` hook", func() {
-					So(db.Transaction(func(ses *database.Session) database.Error {
-						return ag.BeforeDelete(ses)
-					}), ShouldBeNil)
+					So(ag.BeforeDelete(db), ShouldBeNil)
+				})
+
+				Convey("When deleting the agent", func() {
+					So(db.Delete(&ag).Run(), ShouldBeNil)
+
+					Convey("Then the agent should have been deleted", func() {
+						var agents RemoteAgents
+						So(db.Select(&agents).Run(), ShouldBeNil)
+						So(agents, ShouldBeEmpty)
+					})
 
 					Convey("Then the agent's accounts should have been deleted", func() {
 						var accounts RemoteAccounts
@@ -98,19 +105,15 @@ func TestRemoteAgentBeforeDelete(t *testing.T) {
 
 			Convey("Given that the agent is used in a transfer", func() {
 				trans := &Transfer{
-					RuleID:     rule.ID,
-					IsServer:   false,
-					AgentID:    ag.ID,
-					AccountID:  acc.ID,
-					LocalPath:  "file.loc",
-					RemotePath: "file.rem",
+					RuleID:          rule.ID,
+					RemoteAccountID: utils.NewNullInt64(acc.ID),
+					LocalPath:       "file.loc",
+					RemotePath:      "file.rem",
 				}
 				So(db.Insert(trans).Run(), ShouldBeNil)
 
 				Convey("When calling the `BeforeDelete` hook", func() {
-					err := db.Transaction(func(ses *database.Session) database.Error {
-						return ag.BeforeDelete(ses)
-					})
+					err := ag.BeforeDelete(db)
 
 					Convey("Then it should say that the agent is being used", func() {
 						So(err, ShouldBeError, database.NewValidationError(

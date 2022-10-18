@@ -8,6 +8,7 @@ import (
 	"code.waarp.fr/apps/gateway/gateway/pkg/conf"
 	"code.waarp.fr/apps/gateway/gateway/pkg/database"
 	"code.waarp.fr/apps/gateway/gateway/pkg/model"
+	"code.waarp.fr/apps/gateway/gateway/pkg/tk/utils"
 	"code.waarp.fr/apps/gateway/gateway/pkg/tk/utils/testhelpers"
 )
 
@@ -42,11 +43,10 @@ func TestExportLocalAgents(t *testing.T) {
 			So(db.Insert(account1a).Run(), ShouldBeNil)
 
 			cert := &model.Crypto{
-				Name:        "test_cert",
-				OwnerType:   model.TableLocAgents,
-				OwnerID:     agent1.ID,
-				Certificate: testhelpers.LocalhostCert,
-				PrivateKey:  testhelpers.LocalhostKey,
+				Name:         "test_cert",
+				LocalAgentID: utils.NewNullInt64(agent1.ID),
+				Certificate:  testhelpers.LocalhostCert,
+				PrivateKey:   testhelpers.LocalhostKey,
 			}
 			So(db.Insert(cert).Run(), ShouldBeNil)
 
@@ -168,10 +168,9 @@ func TestExportLocalAccounts(t *testing.T) {
 			So(db.Insert(account2).Run(), ShouldBeNil)
 
 			cert := &model.Crypto{
-				Name:        "test_cert",
-				OwnerType:   model.TableLocAccounts,
-				OwnerID:     account2.ID,
-				Certificate: testhelpers.ClientFooCert,
+				Name:           "test_cert",
+				LocalAccountID: utils.NewNullInt64(account2.ID),
+				Certificate:    testhelpers.ClientFooCert,
 			}
 			So(db.Insert(cert).Run(), ShouldBeNil)
 

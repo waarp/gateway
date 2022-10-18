@@ -13,9 +13,9 @@ type IterateBean interface {
 	Table
 }
 
-type cond struct {
+type condition struct {
 	sql  string
-	args []interface{}
+	args []any
 }
 
 // IterateQuery is the type representing a SQL SELECT statement. The returned
@@ -25,7 +25,7 @@ type IterateQuery struct {
 	bean IterateBean
 
 	lim, off int
-	conds    []cond
+	conds    []*condition
 	distinct []string
 	order    string
 	asc      bool
@@ -38,7 +38,7 @@ type IterateQuery struct {
 // If the function is called multiple times, all the conditions will be chained
 // using the 'AND' operator.
 func (i *IterateQuery) Where(sql string, args ...interface{}) *IterateQuery {
-	i.conds = append(i.conds, cond{sql: sql, args: args})
+	i.conds = append(i.conds, &condition{sql: sql, args: args})
 
 	return i
 }
@@ -52,7 +52,7 @@ func (i *IterateQuery) In(col string, vals ...interface{}) *IterateQuery {
 		return i
 	}
 
-	i.conds = append(i.conds, cond{sql: sql.String(), args: sql.args})
+	i.conds = append(i.conds, &condition{sql: sql.String(), args: sql.args})
 
 	return i
 }
@@ -92,8 +92,8 @@ func (i *IterateQuery) Run() (*Iterator, Error) {
 	logger := i.db.GetLogger()
 	query := i.db.getUnderlying().NoAutoCondition().Table(i.bean.TableName())
 
-	for j := range i.conds {
-		query.Where(builder.Expr(i.conds[j].sql, i.conds[j].args...))
+	for _, cond := range i.conds {
+		query.And(cond.sql, cond.args...)
 	}
 
 	if i.lim != 0 || i.off != 0 {
@@ -113,8 +113,6 @@ func (i *IterateQuery) Run() (*Iterator, Error) {
 	}
 
 	rows, err := query.Rows(i.bean)
-	logSQL(query, logger)
-
 	if err != nil {
 		logger.Error("Failed to retrieve the %s entries: %s", i.bean.Appellation(), err)
 

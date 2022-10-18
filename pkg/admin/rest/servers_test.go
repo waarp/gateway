@@ -23,7 +23,7 @@ import (
 const testServersURI = "http://localhost:8080/api/servers/"
 
 func TestListServers(t *testing.T) {
-	check := func(w *httptest.ResponseRecorder, expected map[string][]OutServer) {
+	check := func(w *httptest.ResponseRecorder, expected map[string][]*OutServer) {
 		Convey("Then the response body should contain an array "+
 			"of the requested agents in JSON format", func() {
 			exp, err := json.Marshal(expected)
@@ -49,31 +49,31 @@ func TestListServers(t *testing.T) {
 		db := database.TestDatabase(c)
 		handler := listServers(logger, db)
 		w := httptest.NewRecorder()
-		expected := map[string][]OutServer{}
+		expected := map[string][]*OutServer{}
 
 		Convey("Given a database with 4 servers", func() {
-			a1 := model.LocalAgent{
+			a1 := &model.LocalAgent{
 				Name:        "server1",
 				Protocol:    testProto1,
 				RootDir:     "/root1",
 				ProtoConfig: json.RawMessage(`{}`),
 				Address:     "localhost:1",
 			}
-			a2 := model.LocalAgent{
+			a2 := &model.LocalAgent{
 				Name:        "server2",
 				Protocol:    testProto1,
 				RootDir:     "/root2",
 				ProtoConfig: json.RawMessage(`{}`),
 				Address:     "localhost:2",
 			}
-			a3 := model.LocalAgent{
+			a3 := &model.LocalAgent{
 				Name:        "server3",
 				Protocol:    testProto1,
 				RootDir:     "/root3",
 				ProtoConfig: json.RawMessage(`{}`),
 				Address:     "localhost:3",
 			}
-			a4 := model.LocalAgent{
+			a4 := &model.LocalAgent{
 				Name:        "server4",
 				Protocol:    testProto2,
 				RootDir:     "/root4",
@@ -81,15 +81,19 @@ func TestListServers(t *testing.T) {
 				Address:     "localhost:4",
 			}
 
-			So(db.Insert(&a1).Run(), ShouldBeNil)
-			So(db.Insert(&a2).Run(), ShouldBeNil)
-			So(db.Insert(&a3).Run(), ShouldBeNil)
-			So(db.Insert(&a4).Run(), ShouldBeNil)
+			So(db.Insert(a1).Run(), ShouldBeNil)
+			So(db.Insert(a2).Run(), ShouldBeNil)
+			So(db.Insert(a3).Run(), ShouldBeNil)
+			So(db.Insert(a4).Run(), ShouldBeNil)
 
-			agent1 := *FromLocalAgent(&a1, &AuthorizedRules{})
-			agent2 := *FromLocalAgent(&a2, &AuthorizedRules{})
-			agent3 := *FromLocalAgent(&a3, &AuthorizedRules{})
-			agent4 := *FromLocalAgent(&a4, &AuthorizedRules{})
+			agent1, err := DBServerToREST(db, a1)
+			So(err, ShouldBeNil)
+			agent2, err := DBServerToREST(db, a2)
+			So(err, ShouldBeNil)
+			agent3, err := DBServerToREST(db, a3)
+			So(err, ShouldBeNil)
+			agent4, err := DBServerToREST(db, a4)
+			So(err, ShouldBeNil)
 
 			// add a server from another gateway
 			owner := conf.GlobalConfig.GatewayName
@@ -111,7 +115,7 @@ func TestListServers(t *testing.T) {
 				Convey("When sending the request to the handler", func() {
 					handler.ServeHTTP(w, r)
 
-					expected["servers"] = []OutServer{agent1, agent2, agent3, agent4}
+					expected["servers"] = []*OutServer{agent1, agent2, agent3, agent4}
 					check(w, expected)
 				})
 			})
@@ -123,7 +127,7 @@ func TestListServers(t *testing.T) {
 				Convey("When sending the request to the handler", func() {
 					handler.ServeHTTP(w, r)
 
-					expected["servers"] = []OutServer{agent1}
+					expected["servers"] = []*OutServer{agent1}
 					check(w, expected)
 				})
 			})
@@ -135,7 +139,7 @@ func TestListServers(t *testing.T) {
 				Convey("When sending the request to the handler", func() {
 					handler.ServeHTTP(w, r)
 
-					expected["servers"] = []OutServer{agent2, agent3, agent4}
+					expected["servers"] = []*OutServer{agent2, agent3, agent4}
 					check(w, expected)
 				})
 			})
@@ -147,7 +151,7 @@ func TestListServers(t *testing.T) {
 				Convey("When sending the request to the handler", func() {
 					handler.ServeHTTP(w, r)
 
-					expected["servers"] = []OutServer{agent4, agent3, agent2, agent1}
+					expected["servers"] = []*OutServer{agent4, agent3, agent2, agent1}
 					check(w, expected)
 				})
 			})
@@ -159,7 +163,7 @@ func TestListServers(t *testing.T) {
 				Convey("When sending the request to the handler", func() {
 					handler.ServeHTTP(w, r)
 
-					expected["servers"] = []OutServer{agent1, agent2, agent3}
+					expected["servers"] = []*OutServer{agent1, agent2, agent3}
 					check(w, expected)
 				})
 			})
@@ -178,24 +182,24 @@ func TestGetServer(t *testing.T) {
 			// add a server from another gateway
 			owner := conf.GlobalConfig.GatewayName
 			conf.GlobalConfig.GatewayName = "foobar"
-			other := model.LocalAgent{
+			other := &model.LocalAgent{
 				Name:        "existing",
 				Protocol:    testProto1,
 				RootDir:     "/root1",
 				ProtoConfig: json.RawMessage(`{}`),
 				Address:     "localhost:10",
 			}
-			So(db.Insert(&other).Run(), ShouldBeNil)
+			So(db.Insert(other).Run(), ShouldBeNil)
 			conf.GlobalConfig.GatewayName = owner
 
-			existing := model.LocalAgent{
+			existing := &model.LocalAgent{
 				Name:        other.Name,
 				Protocol:    testProto1,
 				RootDir:     "/root",
 				ProtoConfig: json.RawMessage(`{}`),
 				Address:     "localhost:1",
 			}
-			So(db.Insert(&existing).Run(), ShouldBeNil)
+			So(db.Insert(existing).Run(), ShouldBeNil)
 
 			Convey("Given a request with the valid server name parameter", func() {
 				r, err := http.NewRequest(http.MethodGet, "", nil)
@@ -217,9 +221,12 @@ func TestGetServer(t *testing.T) {
 
 					Convey("Then the body should contain the requested server "+
 						"in JSON format", func() {
-						exp, err := json.Marshal(FromLocalAgent(&existing, &AuthorizedRules{}))
-
+						expected, err := DBServerToREST(db, existing)
 						So(err, ShouldBeNil)
+
+						exp, err := json.Marshal(expected)
+						So(err, ShouldBeNil)
+
 						So(w.Body.String(), ShouldResemble, string(exp)+"\n")
 					})
 				})
@@ -250,14 +257,14 @@ func TestCreateServer(t *testing.T) {
 		w := httptest.NewRecorder()
 
 		Convey("Given a database with 1 server", func() {
-			existing := model.LocalAgent{
+			existing := &model.LocalAgent{
 				Name:        "existing",
 				Protocol:    testProto1,
 				RootDir:     "/root",
 				ProtoConfig: json.RawMessage(`{}`),
 				Address:     "localhost:1",
 			}
-			So(db.Insert(&existing).Run(), ShouldBeNil)
+			So(db.Insert(existing).Run(), ShouldBeNil)
 
 			Convey("Given a new server to insert in the database", func() {
 				body := strings.NewReader(`{
@@ -292,7 +299,11 @@ func TestCreateServer(t *testing.T) {
 
 						Convey("Then the new server should be inserted in "+
 							"the database", func() {
-							exp := model.LocalAgent{
+							var res model.LocalAgents
+							So(db.Select(&res).Run(), ShouldBeNil)
+							So(len(res), ShouldEqual, 2)
+
+							So(res[1], ShouldResemble, &model.LocalAgent{
 								ID:            2,
 								Owner:         conf.GlobalConfig.GatewayName,
 								Name:          "new_server",
@@ -303,11 +314,7 @@ func TestCreateServer(t *testing.T) {
 								SendDir:       filepath.FromSlash("out"),
 								TmpReceiveDir: filepath.FromSlash("tmp"),
 								ProtoConfig:   json.RawMessage("{}"),
-							}
-							var res model.LocalAgents
-							So(db.Select(&res).Run(), ShouldBeNil)
-							So(len(res), ShouldEqual, 2)
-							So(res[1], ShouldResemble, exp)
+							})
 						})
 
 						Convey("Then the existing server should still be "+
@@ -391,7 +398,7 @@ func TestUpdateServer(t *testing.T) {
 		w := httptest.NewRecorder()
 
 		Convey("Given a database with 1 agent", func() {
-			old := model.LocalAgent{
+			old := &model.LocalAgent{
 				Name:          "old",
 				Protocol:      testProto1,
 				Address:       "localhost:1",
@@ -401,7 +408,7 @@ func TestUpdateServer(t *testing.T) {
 				TmpReceiveDir: "/old/tmp",
 				ProtoConfig:   json.RawMessage(`{}`),
 			}
-			So(db.Insert(&old).Run(), ShouldBeNil)
+			So(db.Insert(old).Run(), ShouldBeNil)
 
 			Convey("Given new values to update the agent with", func() {
 				body := strings.NewReader(`{
@@ -434,7 +441,11 @@ func TestUpdateServer(t *testing.T) {
 					})
 
 					Convey("Then the agent should have been updated", func() {
-						exp := model.LocalAgent{
+						var res model.LocalAgents
+						So(db.Select(&res).Run(), ShouldBeNil)
+						So(len(res), ShouldEqual, 1)
+
+						So(res[0], ShouldResemble, &model.LocalAgent{
 							ID:         old.ID,
 							Owner:      conf.GlobalConfig.GatewayName,
 							Name:       "update",
@@ -446,13 +457,7 @@ func TestUpdateServer(t *testing.T) {
 							SendDir:       filepath.FromSlash("out"),
 							TmpReceiveDir: filepath.FromSlash("/old/tmp"),
 							ProtoConfig:   json.RawMessage(`{}`),
-						}
-
-						var res model.LocalAgents
-						So(db.Select(&res).Run(), ShouldBeNil)
-						So(len(res), ShouldEqual, 1)
-
-						So(res[0], ShouldResemble, exp)
+						})
 					})
 				})
 
@@ -492,7 +497,7 @@ func TestReplaceServer(t *testing.T) {
 		w := httptest.NewRecorder()
 
 		Convey("Given a database with 1 agent", func() {
-			old := model.LocalAgent{
+			old := &model.LocalAgent{
 				Name:          "old",
 				Protocol:      testProto1,
 				Address:       "localhost:1",
@@ -502,7 +507,7 @@ func TestReplaceServer(t *testing.T) {
 				TmpReceiveDir: "/old/tmp",
 				ProtoConfig:   json.RawMessage(`{}`),
 			}
-			So(db.Insert(&old).Run(), ShouldBeNil)
+			So(db.Insert(old).Run(), ShouldBeNil)
 
 			Convey("Given new values to update the agent with", func() {
 				body := strings.NewReader(`{
@@ -538,7 +543,11 @@ func TestReplaceServer(t *testing.T) {
 					})
 
 					Convey("Then the agent should have been updated", func() {
-						exp := model.LocalAgent{
+						var res model.LocalAgents
+						So(db.Select(&res).Run(), ShouldBeNil)
+						So(len(res), ShouldEqual, 1)
+
+						So(res[0], ShouldResemble, &model.LocalAgent{
 							ID:         old.ID,
 							Owner:      conf.GlobalConfig.GatewayName,
 							Name:       "update",
@@ -550,13 +559,7 @@ func TestReplaceServer(t *testing.T) {
 							SendDir:       filepath.FromSlash("out"),
 							TmpReceiveDir: filepath.FromSlash("tmp"), // idem
 							ProtoConfig:   json.RawMessage(`{}`),
-						}
-
-						var res model.LocalAgents
-						So(db.Select(&res).Run(), ShouldBeNil)
-						So(len(res), ShouldEqual, 1)
-
-						So(res[0], ShouldResemble, exp)
+						})
 					})
 				})
 
@@ -637,7 +640,7 @@ func TestStartServer(t *testing.T) {
 	Convey("Given the server start handler", t, func(c C) {
 		logger := testhelpers.TestLogger(c, "rest_agent_update_logger")
 		db := database.TestDatabase(c)
-		protoServices := map[uint64]proto.Service{}
+		protoServices := map[int64]proto.Service{}
 		handle := startServer(protoServices)(logger, db)
 		w := httptest.NewRecorder()
 
@@ -688,7 +691,7 @@ func TestStopServer(t *testing.T) {
 	Convey("Given the server stop handler", t, func(c C) {
 		logger := testhelpers.TestLogger(c, "rest_agent_update_logger")
 		db := database.TestDatabase(c)
-		protoServices := map[uint64]proto.Service{}
+		protoServices := map[int64]proto.Service{}
 		handle := stopServer(protoServices)(logger, db)
 		w := httptest.NewRecorder()
 
@@ -744,7 +747,7 @@ func TestRestartServer(t *testing.T) {
 	Convey("Given the server stop handler", t, func(c C) {
 		logger := testhelpers.TestLogger(c, "rest_agent_update_logger")
 		db := database.TestDatabase(c)
-		protoServices := map[uint64]proto.Service{}
+		protoServices := map[int64]proto.Service{}
 		handle := restartServer(protoServices)(logger, db)
 		w := httptest.NewRecorder()
 

@@ -18,8 +18,7 @@ func importRemoteAgents(logger *log.Logger, db database.Access,
 			return err
 		}
 
-		for i := range partners {
-			partner := &partners[i]
+		for _, partner := range partners {
 			if err := db.Delete(partner).Run(); err != nil {
 				return err
 			}
@@ -59,12 +58,11 @@ func importRemoteAgents(logger *log.Logger, db database.Access,
 			return err
 		}
 
-		if err := importCerts(logger, db, src.Certs, model.TableRemAgents,
-			agent.ID); err != nil {
+		if err := importCerts(logger, db, src.Certs, &agent); err != nil {
 			return err
 		}
 
-		if err := importRemoteAccounts(logger, db, src.Accounts, agent.ID); err != nil {
+		if err := importRemoteAccounts(logger, db, src.Accounts, &agent); err != nil {
 			return err
 		}
 	}
@@ -74,7 +72,7 @@ func importRemoteAgents(logger *log.Logger, db database.Access,
 
 //nolint:dupl // duplicated code is about two different types
 func importRemoteAccounts(logger *log.Logger, db database.Access,
-	list []file.RemoteAccount, ownerID uint64,
+	list []file.RemoteAccount, partner *model.RemoteAgent,
 ) database.Error {
 	for _, src := range list {
 		// Create model with basic info to check existence
@@ -82,13 +80,13 @@ func importRemoteAccounts(logger *log.Logger, db database.Access,
 
 		// Check if account exists
 		exist, err := accountExists(db, &account, "remote_agent_id=? AND login=?",
-			ownerID, src.Login)
+			partner.ID, src.Login)
 		if err != nil {
 			return err
 		}
 
 		// Populate
-		account.RemoteAgentID = ownerID
+		account.RemoteAgentID = partner.ID
 		account.Login = src.Login
 
 		if src.Password != "" {
@@ -108,8 +106,7 @@ func importRemoteAccounts(logger *log.Logger, db database.Access,
 			return err
 		}
 
-		if err := importCerts(logger, db, src.Certs, model.TableRemAccounts,
-			account.ID); err != nil {
+		if err := importCerts(logger, db, src.Certs, &account); err != nil {
 			return err
 		}
 	}

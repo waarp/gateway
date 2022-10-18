@@ -10,6 +10,7 @@ import (
 	"code.waarp.fr/apps/gateway/gateway/pkg/conf"
 	"code.waarp.fr/apps/gateway/gateway/pkg/database"
 	"code.waarp.fr/apps/gateway/gateway/pkg/model"
+	"code.waarp.fr/apps/gateway/gateway/pkg/tk/utils"
 	"code.waarp.fr/apps/gateway/gateway/pkg/tk/utils/testhelpers"
 )
 
@@ -61,12 +62,10 @@ func TestPathBuilder(t *testing.T) {
 
 		Convey("Given an incoming transfer", func(c C) {
 			trans := &model.Transfer{
-				RuleID:     recv.ID,
-				IsServer:   true,
-				AgentID:    server.ID,
-				AccountID:  acc.ID,
-				LocalPath:  "file.loc",
-				RemotePath: "file.rem",
+				RuleID:         recv.ID,
+				LocalAccountID: utils.NewNullInt64(acc.ID),
+				LocalPath:      "file.loc",
+				RemotePath:     "file.rem",
 			}
 			So(db.Insert(trans).Run(), ShouldBeNil)
 
@@ -126,12 +125,10 @@ func TestPathBuilder(t *testing.T) {
 
 		Convey("Given an outgoing transfer", func(c C) {
 			trans := &model.Transfer{
-				RuleID:     send.ID,
-				IsServer:   true,
-				AgentID:    server.ID,
-				AccountID:  acc.ID,
-				LocalPath:  "file.loc",
-				RemotePath: "file.rem",
+				RuleID:         send.ID,
+				LocalAccountID: utils.NewNullInt64(acc.ID),
+				LocalPath:      "file.loc",
+				RemotePath:     "file.rem",
 			}
 			So(db.Insert(trans).Run(), ShouldBeNil)
 

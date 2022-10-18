@@ -195,7 +195,7 @@ func TestPipelinePreTasks(t *testing.T) {
 		})
 
 		Convey("Given that on of the tasks fails", func(c C) {
-			pip.TransCtx.PreTasks = append(pip.TransCtx.PreTasks, model.Task{
+			pip.TransCtx.PreTasks = append(pip.TransCtx.PreTasks, &model.Task{
 				RuleID: ctx.recv.ID,
 				Chain:  model.ChainPre,
 				Rank:   1,
@@ -411,7 +411,7 @@ func TestPipelinePostTasks(t *testing.T) {
 		})
 
 		Convey("Given that on of the tasks fails", func(c C) {
-			pip.TransCtx.PostTasks = append(pip.TransCtx.PostTasks, model.Task{
+			pip.TransCtx.PostTasks = append(pip.TransCtx.PostTasks, &model.Task{
 				RuleID: ctx.recv.ID,
 				Chain:  model.ChainPost,
 				Rank:   1,

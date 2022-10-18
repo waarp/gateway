@@ -15,6 +15,7 @@ import (
 	"code.waarp.fr/apps/gateway/gateway/pkg/admin/rest/api"
 	"code.waarp.fr/apps/gateway/gateway/pkg/database"
 	"code.waarp.fr/apps/gateway/gateway/pkg/model"
+	"code.waarp.fr/apps/gateway/gateway/pkg/tk/utils"
 )
 
 func accInfoString(a *api.OutAccount) string {
@@ -59,13 +60,11 @@ func TestGetLocalAccount(t *testing.T) {
 			So(db.Insert(sendAll).Run(), ShouldBeNil)
 
 			sAccess := &model.RuleAccess{
-				RuleID:     send.ID,
-				ObjectType: account.TableName(), ObjectID: account.ID,
+				RuleID: send.ID, LocalAccountID: utils.NewNullInt64(account.ID),
 			}
 			So(db.Insert(sAccess).Run(), ShouldBeNil)
 			rAccess := &model.RuleAccess{
-				RuleID:     receive.ID,
-				ObjectType: account.TableName(), ObjectID: account.ID,
+				RuleID: receive.ID, LocalAccountID: utils.NewNullInt64(account.ID),
 			}
 			So(db.Insert(rAccess).Run(), ShouldBeNil)
 
@@ -78,11 +77,14 @@ func TestGetLocalAccount(t *testing.T) {
 					So(command.Execute(params), ShouldBeNil)
 
 					Convey("Then it should display the account's info", func() {
-						rules := &api.AuthorizedRules{
-							Sending:   []string{send.Name, sendAll.Name},
-							Reception: []string{receive.Name},
+						a := &api.OutAccount{
+							Login: account.Login,
+							AuthorizedRules: &api.AuthorizedRules{
+								Sending:   []string{send.Name, sendAll.Name},
+								Reception: []string{receive.Name},
+							},
 						}
-						a := rest.FromLocalAccount(account, rules)
+
 						So(getOutput(), ShouldEqual, accInfoString(a))
 					})
 				})
@@ -161,13 +163,12 @@ func TestAddLocalAccount(t *testing.T) {
 
 						So(bcrypt.CompareHashAndPassword([]byte(accounts[0].PasswordHash),
 							[]byte(command.Password)), ShouldBeNil)
-						exp := model.LocalAccount{
+						So(accounts, ShouldContain, &model.LocalAccount{
 							ID:           1,
 							LocalAgentID: server.ID,
 							Login:        command.Login,
 							PasswordHash: accounts[0].PasswordHash,
-						}
-						So(accounts, ShouldContain, exp)
+						})
 					})
 				})
 			})
@@ -255,7 +256,7 @@ func TestDeleteLocalAccount(t *testing.T) {
 					Convey("Then the account should still exist", func() {
 						var accounts model.LocalAccounts
 						So(db.Select(&accounts).Run(), ShouldBeNil)
-						So(accounts, ShouldContain, *account)
+						So(accounts, ShouldContain, account)
 					})
 				})
 			})
@@ -276,7 +277,7 @@ func TestDeleteLocalAccount(t *testing.T) {
 					Convey("Then the account should still exist", func() {
 						var accounts model.LocalAccounts
 						So(db.Select(&accounts).Run(), ShouldBeNil)
-						So(accounts, ShouldContain, *account)
+						So(accounts, ShouldContain, account)
 					})
 				})
 			})
@@ -304,15 +305,15 @@ func TestUpdateLocalAccount(t *testing.T) {
 			So(db.Insert(server).Run(), ShouldBeNil)
 			Server = server.Name
 
-			account := &model.LocalAccount{
+			originalAccount := &model.LocalAccount{
 				LocalAgentID: server.ID,
 				Login:        "toto",
 				PasswordHash: hash("sesame"),
 			}
-			So(db.Insert(account).Run(), ShouldBeNil)
+			So(db.Insert(originalAccount).Run(), ShouldBeNil)
 
 			Convey("Given all valid flags", func() {
-				args := []string{"-l", "new_login", "-p", "new_password", account.Login}
+				args := []string{"-l", "new_login", "-p", "new_password", originalAccount.Login}
 
 				Convey("When executing the command", func() {
 					params, err := flags.ParseArgs(command, args)
@@ -332,13 +333,12 @@ func TestUpdateLocalAccount(t *testing.T) {
 
 						So(bcrypt.CompareHashAndPassword([]byte(accounts[0].PasswordHash),
 							[]byte("new_password")), ShouldBeNil)
-						exp := model.LocalAccount{
-							ID:           account.ID,
-							LocalAgentID: account.LocalAgentID,
+						So(accounts, ShouldContain, &model.LocalAccount{
+							ID:           originalAccount.ID,
+							LocalAgentID: originalAccount.LocalAgentID,
 							Login:        "new_login",
 							PasswordHash: accounts[0].PasswordHash,
-						}
-						So(accounts, ShouldContain, exp)
+						})
 					})
 				})
 			})
@@ -359,13 +359,13 @@ func TestUpdateLocalAccount(t *testing.T) {
 					Convey("Then the account should stay unchanged", func() {
 						var accounts model.LocalAccounts
 						So(db.Select(&accounts).Run(), ShouldBeNil)
-						So(accounts, ShouldContain, *account)
+						So(accounts, ShouldContain, originalAccount)
 					})
 				})
 			})
 
 			Convey("Given an invalid server name", func() {
-				args := []string{"-l", "new_login", "-p", "new_password", account.Login}
+				args := []string{"-l", "new_login", "-p", "new_password", originalAccount.Login}
 				Server = "toto"
 
 				Convey("When executing the command", func() {
@@ -380,7 +380,7 @@ func TestUpdateLocalAccount(t *testing.T) {
 					Convey("Then the account should stay unchanged", func() {
 						var accounts model.LocalAccounts
 						So(db.Select(&accounts).Run(), ShouldBeNil)
-						So(accounts, ShouldContain, *account)
+						So(accounts, ShouldContain, originalAccount)
 					})
 				})
 			})
@@ -438,9 +438,12 @@ func TestListLocalAccount(t *testing.T) {
 			}
 			So(db.Insert(account3).Run(), ShouldBeNil)
 
-			a1 := rest.FromLocalAccount(account1, &api.AuthorizedRules{})
-			a2 := rest.FromLocalAccount(account2, &api.AuthorizedRules{})
-			a3 := rest.FromLocalAccount(account3, &api.AuthorizedRules{})
+			a1, err := rest.DBLocalAccountToREST(db, account1)
+			So(err, ShouldBeNil)
+			a2, err := rest.DBLocalAccountToREST(db, account2)
+			So(err, ShouldBeNil)
+			a3, err := rest.DBLocalAccountToREST(db, account3)
+			So(err, ShouldBeNil)
 
 			Convey("Given no parameters", func() {
 				args := []string{}
@@ -590,12 +593,10 @@ func TestAuthorizeLocalAccount(t *testing.T) {
 						var accesses model.RuleAccesses
 						So(db.Select(&accesses).Run(), ShouldBeNil)
 
-						exp := model.RuleAccess{
-							RuleID:     rule.ID,
-							ObjectID:   account.ID,
-							ObjectType: account.TableName(),
-						}
-						So(accesses, ShouldContain, exp)
+						So(accesses, ShouldContain, &model.RuleAccess{
+							RuleID:         rule.ID,
+							LocalAccountID: utils.NewNullInt64(account.ID),
+						})
 					})
 				})
 			})
@@ -701,9 +702,8 @@ func TestRevokeLocalAccount(t *testing.T) {
 			So(db.Insert(rule).Run(), ShouldBeNil)
 
 			access := &model.RuleAccess{
-				RuleID:     rule.ID,
-				ObjectID:   account.ID,
-				ObjectType: account.TableName(),
+				RuleID:         rule.ID,
+				LocalAccountID: utils.NewNullInt64(account.ID),
 			}
 			So(db.Insert(access).Run(), ShouldBeNil)
 
@@ -747,7 +747,7 @@ func TestRevokeLocalAccount(t *testing.T) {
 					Convey("Then the permission should NOT have been removed", func() {
 						var accesses model.RuleAccesses
 						So(db.Select(&accesses).Run(), ShouldBeNil)
-						So(accesses, ShouldContain, *access)
+						So(accesses, ShouldContain, access)
 					})
 				})
 			})
@@ -768,7 +768,7 @@ func TestRevokeLocalAccount(t *testing.T) {
 					Convey("Then the permission should NOT have been removed", func() {
 						var accesses model.RuleAccesses
 						So(db.Select(&accesses).Run(), ShouldBeNil)
-						So(accesses, ShouldContain, *access)
+						So(accesses, ShouldContain, access)
 					})
 				})
 			})
@@ -789,7 +789,7 @@ func TestRevokeLocalAccount(t *testing.T) {
 					Convey("Then the permission should NOT have been removed", func() {
 						var accesses model.RuleAccesses
 						So(db.Select(&accesses).Run(), ShouldBeNil)
-						So(accesses, ShouldContain, *access)
+						So(accesses, ShouldContain, access)
 					})
 				})
 			})

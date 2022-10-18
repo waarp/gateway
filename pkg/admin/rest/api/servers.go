@@ -30,16 +30,16 @@ type InServer struct {
 //
 //nolint:lll // JSON tags can be long
 type OutServer struct {
-	Name            string          `json:"name"`
-	Protocol        string          `json:"protocol"`
-	Enabled         bool            `json:"enabled"`
-	Address         string          `json:"address"`
-	RootDir         string          `json:"rootDir,omitempty"`
-	ReceiveDir      string          `json:"receiveDir,omitempty"`
-	SendDir         string          `json:"sendDir,omitempty"`
-	TmpReceiveDir   string          `json:"tmpReceiveDir,omitempty"`
-	ProtoConfig     json.RawMessage `json:"protoConfig"`
-	AuthorizedRules AuthorizedRules `json:"authorizedRules"`
+	Name            string           `json:"name"`
+	Protocol        string           `json:"protocol"`
+	Enabled         bool             `json:"enabled"`
+	Address         string           `json:"address"`
+	RootDir         string           `json:"rootDir,omitempty"`
+	ReceiveDir      string           `json:"receiveDir,omitempty"`
+	SendDir         string           `json:"sendDir,omitempty"`
+	TmpReceiveDir   string           `json:"tmpReceiveDir,omitempty"`
+	ProtoConfig     json.RawMessage  `json:"protoConfig"`
+	AuthorizedRules *AuthorizedRules `json:"authorizedRules"`
 
 	// Deprecated fields
 	Root    string `json:"root,omitempty"`    // Deprecated: replaced by RootDir

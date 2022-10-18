@@ -97,7 +97,7 @@ func makeRange(req *http.Request, trans *model.Transfer) {
 	req.Header.Set("Range", head)
 }
 
-func getRange(req *http.Request) (progress uint64, err error) {
+func getRange(req *http.Request) (progress int64, err error) {
 	progress = 0
 
 	head := req.Header.Get("Range")
@@ -115,7 +115,7 @@ func getRange(req *http.Request) (progress uint64, err error) {
 		return
 	}
 
-	progress, err = strconv.ParseUint(matches[0][1], crBase, crBitSize)
+	progress, err = strconv.ParseInt(matches[0][1], crBase, crBitSize)
 	if err != nil {
 		err = &contentRangeError{fmt.Sprintf("invalid range-start value '%s'", head)}
 
@@ -134,7 +134,7 @@ func makeContentRange(headers http.Header, trans *model.Transfer) {
 	headers.Set("Content-Range", head)
 }
 
-func getContentRange(headers http.Header) (progress uint64, filesize int64, err error) {
+func getContentRange(headers http.Header) (progress, filesize int64, err error) {
 	progress = 0
 	filesize = model.UnknownSize
 
@@ -155,7 +155,7 @@ func getContentRange(headers http.Header) (progress uint64, filesize int64, err 
 	if contRange := matches[0][1]; contRange != "*" {
 		startEnd := strings.Split(contRange, "-")
 
-		progress, err = strconv.ParseUint(startEnd[0], crBase, crBitSize)
+		progress, err = strconv.ParseInt(startEnd[0], crBase, crBitSize)
 		if err != nil {
 			err = &contentRangeError{fmt.Sprintf("invalid range-start value '%s'", matches[0][1])}
 

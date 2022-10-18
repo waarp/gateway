@@ -22,7 +22,7 @@ func exportRemotes(logger *log.Logger, db database.ReadAccess) ([]file.RemoteAge
 			return nil, err
 		}
 
-		certificates, err := exportCertificates(logger, db, model.TableRemAgents, src.ID)
+		certificates, err := exportCertificates(logger, db, src)
 		if err != nil {
 			return nil, err
 		}
@@ -44,7 +44,7 @@ func exportRemotes(logger *log.Logger, db database.ReadAccess) ([]file.RemoteAge
 }
 
 func exportRemoteAccounts(logger *log.Logger, db database.ReadAccess,
-	agentID uint64,
+	agentID int64,
 ) ([]file.RemoteAccount, error) {
 	var dbAccounts model.RemoteAccounts
 	if err := db.Select(&dbAccounts).Where("remote_agent_id=?", agentID).Run(); err != nil {
@@ -54,7 +54,7 @@ func exportRemoteAccounts(logger *log.Logger, db database.ReadAccess,
 	res := make([]file.RemoteAccount, len(dbAccounts))
 
 	for i, src := range dbAccounts {
-		certificates, err := exportCertificates(logger, db, model.TableRemAccounts, src.ID)
+		certificates, err := exportCertificates(logger, db, src)
 		if err != nil {
 			return nil, err
 		}

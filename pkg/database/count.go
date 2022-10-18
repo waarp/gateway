@@ -7,7 +7,7 @@ type CountQuery struct {
 	db   Access
 	bean IterateBean
 
-	conds []cond
+	conds []condition
 }
 
 // Where adds a 'WHERE' clause to the 'COUNT' query with the given conditions
@@ -17,7 +17,7 @@ type CountQuery struct {
 // If the function is called multiple times, all the conditions will be chained
 // using the 'AND' operator.
 func (c *CountQuery) Where(sql string, args ...interface{}) *CountQuery {
-	c.conds = append(c.conds, cond{sql: sql, args: args})
+	c.conds = append(c.conds, condition{sql: sql, args: args})
 
 	return c
 }
@@ -32,8 +32,6 @@ func (c *CountQuery) Run() (uint64, Error) {
 	}
 
 	n, err := query.Count(c.bean)
-	logSQL(query, logger)
-
 	if err != nil {
 		logger.Error("Failed to insert the new %s entry: %s", c.bean.Appellation(), err)
 

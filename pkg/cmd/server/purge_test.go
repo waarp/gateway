@@ -11,6 +11,7 @@ import (
 	"code.waarp.fr/apps/gateway/gateway/pkg/model"
 	"code.waarp.fr/apps/gateway/gateway/pkg/model/config"
 	"code.waarp.fr/apps/gateway/gateway/pkg/model/types"
+	"code.waarp.fr/apps/gateway/gateway/pkg/tk/utils"
 	"code.waarp.fr/apps/gateway/gateway/pkg/tk/utils/testhelpers"
 )
 
@@ -185,10 +186,8 @@ func TestPurgeCommand(t *testing.T) {
 
 			So(db.Insert(&model.Transfer{
 				RemoteTransferID: "789",
-				IsServer:         true,
 				RuleID:           rule.ID,
-				AgentID:          server.ID,
-				AccountID:        account.ID,
+				LocalAccountID:   utils.NewNullInt64(account.ID),
 				LocalPath:        "/loc/path",
 				RemotePath:       "/rem/path",
 				Start:            time.Date(2022, 1, 1, 1, 0, 0, 0, time.UTC),
@@ -196,10 +195,8 @@ func TestPurgeCommand(t *testing.T) {
 
 			So(db.Insert(&model.Transfer{
 				RemoteTransferID: "147",
-				IsServer:         true,
 				RuleID:           rule.ID,
-				AgentID:          server.ID,
-				AccountID:        account.ID,
+				LocalAccountID:   utils.NewNullInt64(account.ID),
 				LocalPath:        "/loc/path",
 				RemotePath:       "/rem/path",
 				Start:            time.Date(2022, 1, 1, 1, 0, 0, 0, time.UTC),
@@ -229,10 +226,8 @@ func TestPurgeCommand(t *testing.T) {
 				Convey("Then it should have reset the transfer increment", func() {
 					newTrans := &model.Transfer{
 						RemoteTransferID: "258",
-						IsServer:         true,
 						RuleID:           rule.ID,
-						AgentID:          server.ID,
-						AccountID:        account.ID,
+						LocalAccountID:   utils.NewNullInt64(account.ID),
 						LocalPath:        "/loc/path",
 						RemotePath:       "/rem/path",
 						Start:            time.Date(2022, 1, 1, 1, 0, 0, 0, time.UTC),
@@ -254,10 +249,8 @@ func TestPurgeCommand(t *testing.T) {
 				Convey("Then it should NOT have reset the transfer increment", func() {
 					newTrans := &model.Transfer{
 						RemoteTransferID: "258",
-						IsServer:         true,
 						RuleID:           rule.ID,
-						AgentID:          server.ID,
-						AccountID:        account.ID,
+						LocalAccountID:   utils.NewNullInt64(account.ID),
 						LocalPath:        "/loc/path",
 						RemotePath:       "/rem/path",
 						Start:            time.Date(2022, 1, 1, 1, 0, 0, 0, time.UTC),

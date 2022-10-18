@@ -77,7 +77,7 @@ const (
 //
 //nolint:funlen // hard to shorten
 func MakeRESTHandler(logger *log.Logger, db *database.DB, router *mux.Router,
-	coreServices map[string]service.Service, protoServices map[uint64]proto.Service,
+	coreServices map[string]service.Service, protoServices map[int64]proto.Service,
 ) {
 	router.StrictSlash(true)
 

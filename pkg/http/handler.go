@@ -15,6 +15,7 @@ import (
 	"code.waarp.fr/apps/gateway/gateway/pkg/model"
 	"code.waarp.fr/apps/gateway/gateway/pkg/model/types"
 	"code.waarp.fr/apps/gateway/gateway/pkg/pipeline"
+	"code.waarp.fr/apps/gateway/gateway/pkg/tk/utils"
 )
 
 type httpHandler struct {
@@ -146,10 +147,8 @@ func (h *httpHandler) getTransfer(isSend bool) (*model.Transfer, bool) {
 
 	trans := &model.Transfer{
 		RemoteTransferID: remoteID,
-		IsServer:         true,
 		RuleID:           h.rule.ID,
-		AgentID:          h.agent.ID,
-		AccountID:        h.account.ID,
+		LocalAccountID:   utils.NewNullInt64(h.account.ID),
 		LocalPath:        strings.TrimPrefix(h.req.URL.Path, "/"),
 		RemotePath:       path.Base(h.req.URL.Path),
 		Filesize:         model.UnknownSize,
@@ -186,8 +185,8 @@ func (h *httpHandler) handleHead() {
 
 	var trans model.Transfer
 
-	if err := h.db.Get(&trans, "is_server=? AND remote_transfer_id=? AND account_id=?",
-		true, remoteID, h.account.ID).Run(); err != nil {
+	if err := h.db.Get(&trans, "remote_transfer_id=? AND local_account_id=?",
+		remoteID, h.account.ID).Run(); err != nil {
 		if !database.IsNotFound(err) {
 			h.sendError(http.StatusBadRequest, types.TeInternal, "unknown transfer ID")
 

@@ -19,6 +19,7 @@ import (
 	"code.waarp.fr/apps/gateway/gateway/pkg/model/types"
 	"code.waarp.fr/apps/gateway/gateway/pkg/pipeline"
 	"code.waarp.fr/apps/gateway/gateway/pkg/tasks/taskstest"
+	"code.waarp.fr/apps/gateway/gateway/pkg/tk/utils"
 	"code.waarp.fr/apps/gateway/gateway/pkg/tk/utils/testhelpers"
 )
 
@@ -99,13 +100,11 @@ func (s *SelfContext) addPushTransfer(c convey.C) {
 	s.fileContent = AddSourceFile(c, testDir, "self_transfer_push")
 
 	trans := &model.Transfer{
-		RuleID:     s.ClientRule.ID,
-		IsServer:   false,
-		AgentID:    s.Partner.ID,
-		AccountID:  s.RemAccount.ID,
-		LocalPath:  "loc_sub_dir/self_transfer_push",
-		RemotePath: "rem_sub_dir/self_transfer_push",
-		Start:      time.Now(),
+		RuleID:          s.ClientRule.ID,
+		RemoteAccountID: utils.NewNullInt64(s.RemAccount.ID),
+		LocalPath:       "loc_sub_dir/self_transfer_push",
+		RemotePath:      "rem_sub_dir/self_transfer_push",
+		Start:           time.Now(),
 	}
 	c.So(s.DB.Insert(trans).Run(), convey.ShouldBeNil)
 
@@ -121,14 +120,12 @@ func (s *SelfContext) addPullTransfer(c convey.C) {
 	s.fileContent = AddSourceFile(c, testDir, "self_transfer_pull")
 
 	trans := &model.Transfer{
-		RuleID:     s.ClientRule.ID,
-		IsServer:   false,
-		AgentID:    s.Partner.ID,
-		AccountID:  s.RemAccount.ID,
-		LocalPath:  "loc_sub_dir/self_transfer_pull",
-		RemotePath: "rem_sub_dir/self_transfer_pull",
-		Filesize:   model.UnknownSize,
-		Start:      time.Now(),
+		RuleID:          s.ClientRule.ID,
+		RemoteAccountID: utils.NewNullInt64(s.RemAccount.ID),
+		LocalPath:       "loc_sub_dir/self_transfer_pull",
+		RemotePath:      "rem_sub_dir/self_transfer_pull",
+		Filesize:        model.UnknownSize,
+		Start:           time.Now(),
 	}
 	c.So(s.DB.Insert(trans).Run(), convey.ShouldBeNil)
 
@@ -213,7 +210,7 @@ func (s *SelfContext) AddServerPostTaskError(c convey.C) {
 }
 
 // DataErrorOffset defines the offset at which simulated data errors should occur.
-const DataErrorOffset = uint64(TestFileSize / 2)
+const DataErrorOffset = TestFileSize / 2
 
 func (s *SelfContext) AddClientDataError(_ convey.C) {
 	if s.ClientRule.IsSend {
@@ -299,7 +296,7 @@ func (s *SelfContext) checkServerTransferOK(c convey.C, actual *model.HistoryEnt
 		remoteID = actual.RemoteTransferID
 	}
 
-	progress := uint64(len(s.fileContent))
+	progress := int64(len(s.fileContent))
 	filename := path.Join(s.getClientRemoteDir(), s.transData.remFileName)
 
 	s.serverData.checkServerTransferOK(c, remoteID, filename, progress, s.DB,
@@ -327,8 +324,8 @@ func (s *SelfContext) CheckEndTransferOK(c convey.C) {
 		c.So(s.DB.Select(&results).OrderBy("id", true).Run(), convey.ShouldBeNil)
 		c.So(results, convey.ShouldHaveLength, 2) //nolint:gomnd // necessary here
 
-		s.checkClientTransferOK(c, s.transData, s.DB, &results[0])
-		s.checkServerTransferOK(c, &results[1])
+		s.checkClientTransferOK(c, s.transData, s.DB, results[0])
+		s.checkServerTransferOK(c, results[1])
 	})
 
 	s.CheckDestFile(c)
@@ -373,11 +370,9 @@ func (s *SelfContext) CheckClientTransferError(c convey.C, errCode types.Transfe
 		c.So(actual.ID, convey.ShouldEqual, s.ClientTrans.ID)
 		c.So(actual.RemoteTransferID, convey.ShouldNotBeBlank)
 		c.So(actual.Owner, convey.ShouldEqual, conf.GlobalConfig.GatewayName)
-		c.So(actual.IsServer, convey.ShouldBeFalse)
 		c.So(actual.Status, convey.ShouldEqual, types.StatusError)
 		c.So(actual.RuleID, convey.ShouldEqual, s.ClientRule.ID)
-		c.So(actual.AccountID, convey.ShouldEqual, s.RemAccount.ID)
-		c.So(actual.AgentID, convey.ShouldEqual, s.Partner.ID)
+		c.So(actual.RemoteAccountID.Int64, convey.ShouldEqual, s.RemAccount.ID)
 		c.So(actual.Status, convey.ShouldEqual, types.StatusError)
 
 		err := types.TransferError{Code: errCode, Details: errMsg}
@@ -414,11 +409,9 @@ func (s *SelfContext) CheckServerTransferError(c convey.C, errCode types.Transfe
 	c.Convey("Then there should be a server-side transfer in error", func(c convey.C) {
 		c.So(actual.ID, convey.ShouldEqual, id)
 		c.So(actual.Owner, convey.ShouldEqual, conf.GlobalConfig.GatewayName)
-		c.So(actual.IsServer, convey.ShouldBeTrue)
 		c.So(actual.Status, convey.ShouldEqual, types.StatusError)
 		c.So(actual.RuleID, convey.ShouldEqual, s.ServerRule.ID)
-		c.So(actual.AccountID, convey.ShouldEqual, s.LocAccount.ID)
-		c.So(actual.AgentID, convey.ShouldEqual, s.Server.ID)
+		c.So(actual.LocalAccountID.Int64, convey.ShouldEqual, s.LocAccount.ID)
 		c.So(actual.Status, convey.ShouldEqual, types.StatusError)
 
 		err := types.TransferError{Code: errCode, Details: errMsg}
@@ -439,7 +432,7 @@ func (s *SelfContext) CheckServerTransferError(c convey.C, errCode types.Transfe
 	})
 }
 
-func (s *SelfContext) getTransfer(c convey.C, id uint64) *model.Transfer {
+func (s *SelfContext) getTransfer(c convey.C, id int64) *model.Transfer {
 	var transfers model.Transfers
 
 	c.So(s.DB.Select(&transfers).Run(), convey.ShouldBeNil)
@@ -447,7 +440,7 @@ func (s *SelfContext) getTransfer(c convey.C, id uint64) *model.Transfer {
 
 	for i := range transfers {
 		if transfers[i].ID == id {
-			return &transfers[i]
+			return transfers[i]
 		}
 	}
 

@@ -7,7 +7,6 @@ import (
 	"crypto/rand"
 	"database/sql"
 	"fmt"
-	"io/ioutil"
 	"net/url"
 	"os"
 	"strings"
@@ -24,7 +23,6 @@ import (
 )
 
 const (
-	memoryDBType    = "test_db"
 	testDBEnv       = "GATEWAY_TEST_DB"
 	testDBMechanism = "GATEWAY_TEST_DB_MECHANISM"
 )
@@ -67,7 +65,7 @@ func testGCM() {
 }
 
 func tempFilename() string {
-	f, err := ioutil.TempFile(os.TempDir(), "test_database_*.db")
+	f, err := os.CreateTemp("", "test_database_*.db")
 	convey.So(err, convey.ShouldBeNil)
 	convey.So(f.Close(), convey.ShouldBeNil)
 	convey.So(os.Remove(f.Name()), convey.ShouldBeNil)
@@ -97,11 +95,11 @@ func initTestDBConf() {
 		config.Type = SQLite
 		config.Address = tempFilename()
 	case "":
-		supportedRBMS[memoryDBType] = testinfo
-		config.Type = memoryDBType
+		supportedRBMS[SQLite] = testinfo
+		config.Type = SQLite
 		config.Address = tempFilename()
 	default:
-		panic(fmt.Sprintf("Unknown database type '%s'\n", memoryDBType))
+		panic(fmt.Sprintf("Unknown database type '%s'\n", dbType))
 	}
 }
 
@@ -115,7 +113,7 @@ func resetDB(db *DB) {
 		}
 
 		convey.So(db.engine.Close(), convey.ShouldBeNil)
-	case memoryDBType, SQLite:
+	case SQLite:
 		convey.So(db.engine.Close(), convey.ShouldBeNil)
 
 		if _, err := os.Stat(config.Address); err == nil {
@@ -194,7 +192,7 @@ func startViaMigration(c convey.C) {
 			_, err := sqlDB.Exec(cmd)
 			c.So(err, convey.ShouldBeNil)
 		}
-	case SQLite, memoryDBType:
+	case SQLite:
 		var addr string
 		sqlDB, addr = testhelpers.GetTestSqliteDBNoReset(c)
 

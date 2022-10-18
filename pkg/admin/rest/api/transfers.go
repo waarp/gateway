@@ -28,7 +28,7 @@ type InTransfer struct {
 // OutTransfer is the JSON representation of a transfer in responses sent by
 // the REST interface.
 type OutTransfer struct {
-	ID             uint64               `json:"id"`
+	ID             int64                `json:"id"`
 	RemoteID       string               `json:"remoteID,omitempty"` //nolint:tagliatelle // FIXME too late to change that
 	Rule           string               `json:"rule"`
 	IsServer       bool                 `json:"isServer"`
@@ -42,8 +42,8 @@ type OutTransfer struct {
 	Start          time.Time            `json:"start"`
 	Status         types.TransferStatus `json:"status"`
 	Step           string               `json:"step,omitempty"`
-	Progress       uint64               `json:"progress,omitempty"`
-	TaskNumber     uint64               `json:"taskNumber,omitempty"`
+	Progress       int64                `json:"progress,omitempty"`
+	TaskNumber     int16                `json:"taskNumber,omitempty"`
 	ErrorCode      string               `json:"errorCode,omitempty"`
 	ErrorMsg       string               `json:"errorMsg,omitempty"`
 	TransferInfo   map[string]any       `json:"transferInfo,omitempty"`

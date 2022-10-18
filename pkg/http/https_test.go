@@ -18,6 +18,7 @@ import (
 	"code.waarp.fr/apps/gateway/gateway/pkg/model"
 	"code.waarp.fr/apps/gateway/gateway/pkg/model/config"
 	"code.waarp.fr/apps/gateway/gateway/pkg/pipeline/pipelinetest"
+	"code.waarp.fr/apps/gateway/gateway/pkg/tk/utils"
 	"code.waarp.fr/apps/gateway/gateway/pkg/tk/utils/testhelpers"
 )
 
@@ -52,10 +53,9 @@ func TestHTTPSClient(t *testing.T) {
 			ctx.Partner.Address = addr
 			So(ctx.DB.Update(ctx.Partner).Cols("address").Run(), ShouldBeNil)
 			cert := model.Crypto{
-				OwnerType:   ctx.Partner.TableName(),
-				OwnerID:     ctx.Partner.ID,
-				Name:        "partner_cert",
-				Certificate: testhelpers.LocalhostCert,
+				RemoteAgentID: utils.NewNullInt64(ctx.Partner.ID),
+				Name:          "partner_cert",
+				Certificate:   testhelpers.LocalhostCert,
 			}
 			ctx.AddCryptos(c, cert)
 
@@ -77,10 +77,9 @@ func TestHTTPSClient(t *testing.T) {
 			ctx.Partner.Address = addr
 			So(ctx.DB.Update(ctx.Partner).Cols("address").Run(), ShouldBeNil)
 			cert := model.Crypto{
-				OwnerType:   ctx.Partner.TableName(),
-				OwnerID:     ctx.Partner.ID,
-				Name:        "partner_cert",
-				Certificate: testhelpers.LocalhostCert,
+				RemoteAgentID: utils.NewNullInt64(ctx.Partner.ID),
+				Name:          "partner_cert",
+				Certificate:   testhelpers.LocalhostCert,
 			}
 			ctx.AddCryptos(c, cert)
 
@@ -102,17 +101,15 @@ func TestHTTPSServer(t *testing.T) {
 	Convey("Given a HTTPS server for push transfers", t, func(c C) {
 		ctx := pipelinetest.InitServerPush(c, "https", NewService, &config.HTTPProtoConfig{})
 		serverCert := model.Crypto{
-			OwnerType:   ctx.Server.TableName(),
-			OwnerID:     ctx.Server.ID,
-			Name:        "server_cert",
-			PrivateKey:  testhelpers.LocalhostKey,
-			Certificate: testhelpers.LocalhostCert,
+			LocalAgentID: utils.NewNullInt64(ctx.Server.ID),
+			Name:         "server_cert",
+			PrivateKey:   testhelpers.LocalhostKey,
+			Certificate:  testhelpers.LocalhostCert,
 		}
 		clientCert := model.Crypto{
-			OwnerType:   ctx.LocAccount.TableName(),
-			OwnerID:     ctx.LocAccount.ID,
-			Name:        "client_cert",
-			Certificate: testhelpers.ClientFooCert,
+			LocalAccountID: utils.NewNullInt64(ctx.LocAccount.ID),
+			Name:           "client_cert",
+			Certificate:    testhelpers.ClientFooCert,
 		}
 		ctx.AddCryptos(c, serverCert, clientCert)
 

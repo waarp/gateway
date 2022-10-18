@@ -14,16 +14,13 @@ import (
 )
 
 // cryptoToModel transforms the JSON secure credentials into its database equivalent.
-func cryptoToModel(a *api.InCrypto, id uint64, ownerType string, ownerID uint64) *model.Crypto {
-	return &model.Crypto{
-		ID:           id,
-		OwnerType:    ownerType,
-		OwnerID:      ownerID,
-		Name:         str(a.Name),
-		PrivateKey:   types.CypherText(str(a.PrivateKey)),
-		SSHPublicKey: str(a.PublicKey),
-		Certificate:  str(a.Certificate),
-	}
+func cryptoToModel(a *api.InCrypto, c *model.Crypto) *model.Crypto {
+	c.Name = str(a.Name)
+	c.PrivateKey = types.CypherText(str(a.PrivateKey))
+	c.SSHPublicKey = str(a.PublicKey)
+	c.Certificate = str(a.Certificate)
+
+	return c
 }
 
 func inCryptoFromModel(c *model.Crypto) *api.InCrypto {
@@ -47,24 +44,25 @@ func FromCrypto(a *model.Crypto) *api.OutCrypto {
 
 // FromCryptos transforms the given list of database secure credentials into its JSON
 // equivalent.
-func FromCryptos(cryptos []model.Crypto) []api.OutCrypto {
-	outAuths := make([]api.OutCrypto, len(cryptos))
-	for i := range cryptos {
-		outAuths[i] = *FromCrypto(&cryptos[i])
+func FromCryptos(dbCryptos []*model.Crypto) []*api.OutCrypto {
+	outAuths := make([]*api.OutCrypto, len(dbCryptos))
+	for i, dbCrypto := range dbCryptos {
+		outAuths[i] = FromCrypto(dbCrypto)
 	}
 
 	return outAuths
 }
 
-func retrieveCrypto(r *http.Request, db *database.DB, ownerType string, ownerID uint64) (*model.Crypto, error) {
+func retrieveCrypto(r *http.Request, db *database.DB, owner model.CryptoOwner,
+) (*model.Crypto, error) {
 	cryptName, ok := mux.Vars(r)["certificate"]
 	if !ok {
 		return nil, notFound("missing certificate name")
 	}
 
 	var crypto model.Crypto
-	if err := db.Get(&crypto, "name=? AND owner_type=? AND owner_id=?", cryptName,
-		ownerType, ownerID).Run(); err != nil {
+	if err := db.Get(&crypto, "name=?", cryptName).And(owner.GenCryptoSelectCond()).
+		Run(); err != nil {
 		if database.IsNotFound(err) {
 			return nil, notFound("certificate '%s' not found", cryptName)
 		}
@@ -76,9 +74,9 @@ func retrieveCrypto(r *http.Request, db *database.DB, ownerType string, ownerID 
 }
 
 func getCrypto(w http.ResponseWriter, r *http.Request, db *database.DB,
-	ownerType string, ownerID uint64,
+	owner model.CryptoOwner,
 ) error {
-	result, err := retrieveCrypto(r, db, ownerType, ownerID)
+	result, err := retrieveCrypto(r, db, owner)
 	if err != nil {
 		return err
 	}
@@ -87,23 +85,24 @@ func getCrypto(w http.ResponseWriter, r *http.Request, db *database.DB,
 }
 
 func createCrypto(w http.ResponseWriter, r *http.Request, db *database.DB,
-	ownerType string, ownerID uint64,
+	owner model.CryptoOwner,
 ) error {
 	var inCrypto api.InCrypto
 	if err := readJSON(r, &inCrypto); err != nil {
 		return err
 	}
 
-	crypto := cryptoToModel(&inCrypto, 0, ownerType, ownerID)
-	warn := compatibility.CheckSHA1(crypto.Certificate)
+	dbCrypto := cryptoToModel(&inCrypto, &model.Crypto{})
+	owner.SetCryptoOwner(dbCrypto)
 
-	if err := db.Insert(crypto).Run(); err != nil {
+	if err := db.Insert(dbCrypto).Run(); err != nil {
 		return err
 	}
 
-	w.Header().Set("Location", location(r.URL, crypto.Name))
+	w.Header().Set("Location", location(r.URL, dbCrypto.Name))
 	w.WriteHeader(http.StatusCreated)
 
+	warn := compatibility.CheckSHA1(dbCrypto.Certificate)
 	if warn != "" {
 		fmt.Fprint(w, warn)
 	}
@@ -112,7 +111,7 @@ func createCrypto(w http.ResponseWriter, r *http.Request, db *database.DB,
 }
 
 func listCryptos(w http.ResponseWriter, r *http.Request, db *database.DB,
-	ownerType string, ownerID uint64,
+	owner model.CryptoOwner,
 ) error {
 	validSorting := orders{
 		"default": order{col: "name", asc: true},
@@ -127,21 +126,21 @@ func listCryptos(w http.ResponseWriter, r *http.Request, db *database.DB,
 		return err
 	}
 
-	query.Where("owner_type=? AND owner_id=?", ownerType, ownerID)
+	query.Where(owner.GenCryptoSelectCond())
 
 	if err := query.Run(); err != nil {
 		return err
 	}
 
-	resp := map[string][]api.OutCrypto{"certificates": FromCryptos(results)}
+	resp := map[string][]*api.OutCrypto{"certificates": FromCryptos(results)}
 
 	return writeJSON(w, resp)
 }
 
 func deleteCrypto(w http.ResponseWriter, r *http.Request, db *database.DB,
-	ownerType string, ownerID uint64,
+	owner model.CryptoOwner,
 ) error {
-	crypto, err := retrieveCrypto(r, db, ownerType, ownerID)
+	crypto, err := retrieveCrypto(r, db, owner)
 	if err != nil {
 		return err
 	}
@@ -156,9 +155,9 @@ func deleteCrypto(w http.ResponseWriter, r *http.Request, db *database.DB,
 }
 
 func replaceCrypto(w http.ResponseWriter, r *http.Request, db *database.DB,
-	ownerType string, ownerID uint64,
+	owner model.CryptoOwner,
 ) error {
-	old, err := retrieveCrypto(r, db, ownerType, ownerID)
+	old, err := retrieveCrypto(r, db, owner)
 	if err != nil {
 		return err
 	}
@@ -168,9 +167,7 @@ func replaceCrypto(w http.ResponseWriter, r *http.Request, db *database.DB,
 		return err
 	}
 
-	crypto := cryptoToModel(&inAuth, old.ID, ownerType, ownerID)
-	warn := compatibility.CheckSHA1(crypto.Certificate)
-
+	crypto := cryptoToModel(&inAuth, old)
 	if err := db.Update(crypto).Run(); err != nil {
 		return err
 	}
@@ -178,6 +175,7 @@ func replaceCrypto(w http.ResponseWriter, r *http.Request, db *database.DB,
 	w.Header().Set("Location", locationUpdate(r.URL, crypto.Name))
 	w.WriteHeader(http.StatusCreated)
 
+	warn := compatibility.CheckSHA1(crypto.Certificate)
 	if warn != "" {
 		fmt.Fprint(w, warn)
 	}
@@ -186,9 +184,9 @@ func replaceCrypto(w http.ResponseWriter, r *http.Request, db *database.DB,
 }
 
 func updateCrypto(w http.ResponseWriter, r *http.Request, db *database.DB,
-	ownerType string, ownerID uint64,
+	owner model.CryptoOwner,
 ) error {
-	old, err := retrieveCrypto(r, db, ownerType, ownerID)
+	old, err := retrieveCrypto(r, db, owner)
 	if err != nil {
 		return err
 	}
@@ -198,9 +196,7 @@ func updateCrypto(w http.ResponseWriter, r *http.Request, db *database.DB,
 		return err
 	}
 
-	crypto := cryptoToModel(inAuth, old.ID, ownerType, ownerID)
-	warn := compatibility.CheckSHA1(crypto.Certificate)
-
+	crypto := cryptoToModel(inAuth, old)
 	if err := db.Update(crypto).Run(); err != nil {
 		return err
 	}
@@ -208,6 +204,7 @@ func updateCrypto(w http.ResponseWriter, r *http.Request, db *database.DB,
 	w.Header().Set("Location", locationUpdate(r.URL, crypto.Name))
 	w.WriteHeader(http.StatusCreated)
 
+	warn := compatibility.CheckSHA1(crypto.Certificate)
 	if warn != "" {
 		fmt.Fprint(w, warn)
 	}

@@ -1,12 +1,12 @@
 package model
 
 import (
-	"fmt"
 	"testing"
 
 	. "github.com/smartystreets/goconvey/convey"
 
 	"code.waarp.fr/apps/gateway/gateway/pkg/database"
+	"code.waarp.fr/apps/gateway/gateway/pkg/tk/utils"
 )
 
 func TestRuleAccessTableName(t *testing.T) {
@@ -65,18 +65,15 @@ func TestIsRuleAuthorized(t *testing.T) {
 
 			Convey("Given a local_agent authorized for the rule", func() {
 				lAccess := RuleAccess{
-					RuleID:     r.ID,
-					ObjectType: TableLocAgents,
-					ObjectID:   lAgent.ID,
+					RuleID:       r.ID,
+					LocalAgentID: utils.NewNullInt64(lAgent.ID),
 				}
 				So(db.Insert(&lAccess).Run(), ShouldBeNil)
 
 				Convey("Given a non authorized transfer", func() {
 					t := &Transfer{
-						IsServer:  false,
-						RuleID:    r.ID,
-						AgentID:   rAgent.ID,
-						AccountID: rAccount.ID,
+						RuleID:          r.ID,
+						RemoteAccountID: utils.NewNullInt64(rAccount.ID),
 					}
 
 					Convey("When calling the `IsRuleAuthorized` method", func() {
@@ -136,9 +133,25 @@ func TestRuleAccessBeforeWrite(t *testing.T) {
 			}
 			So(db.Insert(&lAccount).Run(), ShouldBeNil)
 
+			Convey("Given a valid rule and target", func() {
+				ra := &RuleAccess{
+					RuleID:       r.ID,
+					LocalAgentID: utils.NewNullInt64(lAgent.ID),
+				}
+
+				Convey("When calling the `BeforeWrite` method", func() {
+					err := ra.BeforeWrite(db)
+
+					Convey("Then it should return NO error", func() {
+						So(err, ShouldBeNil)
+					})
+				})
+			})
+
 			Convey("Given a RuleAccess with an invalid RuleID", func() {
 				ra := &RuleAccess{
-					RuleID: 1000,
+					RuleID:       1000,
+					LocalAgentID: utils.NewNullInt64(lAgent.ID),
 				}
 
 				Convey("When calling the `BeforeWrite` method", func() {
@@ -151,72 +164,37 @@ func TestRuleAccessBeforeWrite(t *testing.T) {
 				})
 			})
 
-			Convey("Given a RuleAccess with an invalid ObjectType", func() {
+			Convey("Given a RuleAccess with no target", func() {
 				ra := &RuleAccess{
-					RuleID:     r.ID,
-					ObjectType: "dummy",
+					RuleID: r.ID,
 				}
 
 				Convey("When calling the `BeforeWrite` method", func() {
 					err := ra.BeforeWrite(db)
 
-					Convey("Then the error should say 'No rule found'", func() {
+					Convey("Then the error should say that the access has no target", func() {
 						So(err, ShouldBeError, database.NewValidationError(
-							"the rule_access's object type must be one of %s",
-							validOwnerTypes))
+							"the rule access is missing a target"))
 					})
 				})
 			})
 
-			for _, objType := range []string{
-				TableLocAgents, TableLocAccounts,
-				TableRemAgents, TableRemAccounts,
-			} {
-				Convey(fmt.Sprintf("Given a RuleAccess with an invalid %s ID", objType), func() {
-					ra := &RuleAccess{
-						RuleID:     r.ID,
-						ObjectType: objType,
-						ObjectID:   1000,
-					}
+			Convey("Given a RuleAccess with multiple targets", func() {
+				ra := &RuleAccess{
+					RuleID:        r.ID,
+					LocalAgentID:  utils.NewNullInt64(lAgent.ID),
+					RemoteAgentID: utils.NewNullInt64(rAgent.ID),
+				}
 
-					Convey("When calling the `BeforeWrite` method", func() {
-						err := ra.BeforeWrite(db)
+				Convey("When calling the `BeforeWrite` method", func() {
+					err := ra.BeforeWrite(db)
 
-						Convey("Then the error should say 'No rule found'", func() {
-							So(err, ShouldBeError, database.NewValidationError(
-								"no %s found with ID %d", ra.ObjectType, ra.ObjectID))
-						})
+					Convey("Then the error should say that the access cannot have multiple targets", func() {
+						So(err, ShouldBeError, database.NewValidationError(
+							"the rule access cannot have multiple targets"))
 					})
 				})
-
-				Convey(fmt.Sprintf("Given a RuleAccess with an valid %s ID", objType), func() {
-					id := uint64(0)
-					switch objType {
-					case TableLocAgents:
-						id = lAgent.ID
-					case TableLocAccounts:
-						id = lAccount.ID
-					case TableRemAgents:
-						id = rAgent.ID
-					case TableRemAccounts:
-						id = rAccount.ID
-					}
-
-					ra := &RuleAccess{
-						RuleID:     r.ID,
-						ObjectType: objType,
-						ObjectID:   id,
-					}
-
-					Convey("When calling the `BeforeWrite` method", func() {
-						err := ra.BeforeWrite(db)
-
-						Convey("Then it should NOT return an error", func() {
-							So(err, ShouldBeNil)
-						})
-					})
-				})
-			}
+			})
 		})
 	})
 }

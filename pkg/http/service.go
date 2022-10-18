@@ -26,7 +26,7 @@ const readHeaderTimeout = 10 * time.Second
 type httpService struct {
 	logger  *log.Logger
 	db      *database.DB
-	agentID uint64
+	agentID int64
 	state   state.State
 
 	conf    config.HTTPProtoConfig

@@ -1,6 +1,9 @@
 package model
 
 import (
+	"database/sql"
+	"fmt"
+
 	"code.waarp.fr/apps/gateway/gateway/pkg/database"
 )
 
@@ -9,11 +12,30 @@ func init() {
 	database.AddTable(&RuleAccess{})
 }
 
-// RuleAccess represents a authorized access to a rule.
+// AccessTarget is the interface implemented by all valid RuleAccess target types.
+// Valid owner types are LocalAgent, RemoteAgent, LocalAccount & RemoteAccount.
+type AccessTarget interface {
+	// SetAccessTarget sets the target AccessTarget as target of the given RuleAccess
+	// instance (by setting the corresponding foreign key to its own ID).
+	SetAccessTarget(*RuleAccess)
+
+	// GenAccessSelectCond returns the name of the RuleAccess column associated
+	// with the target type.
+	GenAccessSelectCond() (string, int64)
+
+	GetAuthorizedRules(db database.ReadAccess) ([]*Rule, error)
+}
+
+// RuleAccess links an owner to a rule it is allowed to use.
+//
+//nolint:lll //sql tags can be long
 type RuleAccess struct {
-	RuleID     uint64 `xorm:"notnull unique(perm) 'rule_id'"`
-	ObjectID   uint64 `xorm:"notnull unique(perm) 'object_id'"`
-	ObjectType string `xorm:"notnull unique(perm) 'object_type'"`
+	// foreign key (rules.id)
+	RuleID          int64         `xorm:"BIGINT NOTNULL UNIQUE(locAg) UNIQUE(remAg) UNIQUE(locAcc) UNIQUE(remAcc) 'rule_id'"`
+	LocalAgentID    sql.NullInt64 `xorm:"BIGINT UNIQUE(locAg) 'local_agent_id'"`     // foreign key (local_agents.id)
+	RemoteAgentID   sql.NullInt64 `xorm:"BIGINT UNIQUE(remAg) 'remote_agent_id'"`    // foreign key (remote_agents.id)
+	LocalAccountID  sql.NullInt64 `xorm:"BIGINT UNIQUE(locAcc) 'local_account_id'"`  // foreign key (local_accounts.id)
+	RemoteAccountID sql.NullInt64 `xorm:"BIGINT UNIQUE(remAcc) 'remote_account_id'"` // foreign key (remote_accounts.id)
 }
 
 // TableName returns the rule access table name.
@@ -36,37 +58,43 @@ func (r *RuleAccess) BeforeWrite(db database.ReadAccess) database.Error {
 		return database.NewValidationError("no rule found with ID %d", r.RuleID)
 	}
 
-	var (
-		count uint64
-		err   database.Error
-	)
+	if sum := boolToInt(r.LocalAgentID.Valid) + boolToInt(r.RemoteAgentID.Valid) +
+		boolToInt(r.LocalAccountID.Valid) + boolToInt(r.RemoteAccountID.Valid); sum == 0 {
+		return database.NewValidationError("the rule access is missing a target")
+	} else if sum > 1 {
+		return database.NewValidationError("the rule access cannot have multiple targets")
+	}
 
-	switch r.ObjectType {
-	case TableLocAgents:
-		count, err = db.Count(&LocalAgent{}).Where("id=?", r.ObjectID).Run()
-	case TableRemAgents:
-		count, err = db.Count(&RemoteAgent{}).Where("id=?", r.ObjectID).Run()
-	case TableLocAccounts:
-		count, err = db.Count(&LocalAccount{}).Where("id=?", r.ObjectID).Run()
-	case TableRemAccounts:
-		count, err = db.Count(&RemoteAccount{}).Where("id=?", r.ObjectID).Run()
+	var target interface {
+		database.UpdateBean
+		AccessTarget
+	}
+
+	switch {
+	case r.LocalAgentID.Valid:
+		target = &LocalAgent{ID: r.LocalAgentID.Int64}
+	case r.RemoteAgentID.Valid:
+		target = &RemoteAgent{ID: r.RemoteAgentID.Int64}
+	case r.LocalAccountID.Valid:
+		target = &LocalAccount{ID: r.LocalAccountID.Int64}
+	case r.RemoteAccountID.Valid:
+		target = &RemoteAccount{ID: r.RemoteAccountID.Int64}
 	default:
-		return database.NewValidationError("the rule_access's object type must be one of %s",
-			validOwnerTypes)
+		return database.NewValidationError("the rule access is missing a target") // impossible
 	}
 
-	if err != nil {
+	if n, err := db.Count(target).Where("id=?", target.GetID()).Run(); err != nil {
 		return err
-	} else if count == 0 {
-		return database.NewValidationError("no %s found with ID %v", r.ObjectType, r.ObjectID)
+	} else if n == 0 {
+		return database.NewValidationError("no %s found with ID %v", target.Appellation(),
+			target.GetID())
 	}
 
-	count, err = db.Count(r).Where("rule_id=? AND object_type=? AND object_id=?",
-		r.RuleID, r.ObjectType, r.ObjectID).Run()
-	if err != nil {
+	if n, err := db.Count(r).Where("rule_id=?", r.RuleID).Where(
+		target.GenAccessSelectCond()).Run(); err != nil {
 		return err
-	} else if count > 0 {
-		return database.NewValidationError("the agent has already been granted access " +
+	} else if n > 0 {
+		return database.NewValidationError("the target has already been granted access " +
 			"to this rule")
 	}
 
@@ -83,17 +111,16 @@ func IsRuleAuthorized(db database.ReadAccess, t *Transfer) (bool, database.Error
 		return true, nil
 	}
 
-	agent := TableRemAgents
-	account := TableRemAccounts
-
-	if t.IsServer {
-		agent = TableLocAgents
-		account = TableLocAccounts
+	if t.IsServer() {
+		n, err = db.Count(&RuleAccess{}).Where(`rule_id=? AND (local_account_id=? OR
+			local_agent_id = (SELECT local_agent_id FROM local_accounts WHERE id=?) )`,
+			t.RuleID, t.LocalAccountID, t.LocalAccountID).Run()
+	} else {
+		n, err = db.Count(&RuleAccess{}).Where(`rule_id=? AND (remote_account_id=? OR
+			remote_agent_id = (SELECT remote_agent_id FROM remote_accounts WHERE id=?) )`,
+			t.RuleID, t.RemoteAccountID, t.RemoteAccountID).Run()
 	}
 
-	n, err = db.Count(&RuleAccess{}).Where("rule_id=? AND "+
-		"((object_type=? AND object_id=?) OR (object_type=? and object_id=?))",
-		t.RuleID, agent, t.AgentID, account, t.AccountID).Run()
 	if err != nil {
 		return false, err
 	} else if n < 1 {
@@ -101,4 +128,47 @@ func IsRuleAuthorized(db database.ReadAccess, t *Transfer) (bool, database.Error
 	}
 
 	return true, nil
+}
+
+func (*RuleAccess) MakeExtraConstraints(db *database.Executor) database.Error {
+	// add a foreign key to 'rule_id'
+	if err := redefineColumn(db, TableRuleAccesses, "rule_id", fmt.Sprintf(
+		`BIGINT NOT NULL REFERENCES %s ON UPDATE RESTRICT ON DELETE CASCADE`,
+		TableRules)); err != nil {
+		return err
+	}
+
+	// add a foreign key to 'local_agent_id'
+	if err := redefineColumn(db, TableRuleAccesses, "local_agent_id", fmt.Sprintf(
+		`BIGINT REFERENCES %s ON UPDATE RESTRICT ON DELETE CASCADE`,
+		TableLocAgents)); err != nil {
+		return err
+	}
+
+	// add a foreign key to 'remote_agent_id'
+	if err := redefineColumn(db, TableRuleAccesses, "remote_agent_id", fmt.Sprintf(
+		`BIGINT REFERENCES %s ON UPDATE RESTRICT ON DELETE CASCADE`,
+		TableRemAgents)); err != nil {
+		return err
+	}
+
+	// add a foreign key to 'local_account_id'
+	if err := redefineColumn(db, TableRuleAccesses, "local_account_id", fmt.Sprintf(
+		`BIGINT REFERENCES %s ON UPDATE RESTRICT ON DELETE CASCADE`,
+		TableLocAccounts)); err != nil {
+		return err
+	}
+
+	// add a foreign key to 'remote_account_id'
+	if err := redefineColumn(db, TableRuleAccesses, "remote_account_id", fmt.Sprintf(
+		`BIGINT REFERENCES %s ON UPDATE RESTRICT ON DELETE CASCADE`,
+		TableRemAccounts)); err != nil {
+		return err
+	}
+
+	// add a constraint to enforce that one (and ONLY ONE) of 'local_agent_id',
+	// 'remote_agent_id', 'local_account_id' and 'remote_account_id' must be defined
+	return addTableConstraint(db, TableRuleAccesses,
+		`CHECK ( (local_agent_id IS NOT NULL) + (remote_agent_id IS NOT NULL) + `+
+			`(local_account_id IS NOT NULL) + (remote_account_id IS NOT NULL) = 1 )`)
 }

@@ -28,12 +28,12 @@ func (c *GatewayController) Run(wg *sync.WaitGroup, logger log.Logger) {
 
 	plannedTrans, err := c.retrieveTransfers()
 	if err != nil {
+		logger.Error("Failed to retrieve the transfers to run: %v", err)
+
 		return
 	}
 
-	for i := range plannedTrans {
-		trans := &plannedTrans[i]
-
+	for _, trans := range plannedTrans {
 		pip, err := pipeline.NewClientPipeline(c.DB, trans)
 		if err != nil {
 			continue
@@ -41,13 +41,13 @@ func (c *GatewayController) Run(wg *sync.WaitGroup, logger log.Logger) {
 
 		wg.Add(1)
 
-		go func() {
+		go func(t *model.Transfer) {
 			if err := pip.Run(); err != nil {
-				logger.Error("Transfer n°%d failed: %v", trans.ID, err)
+				logger.Error("Transfer n°%d failed: %v", t.ID, err)
 			}
 
 			wg.Done()
-		}()
+		}(trans)
 	}
 }
 
@@ -85,8 +85,8 @@ func (c *GatewayController) retrieveTransfers() (model.Transfers, error) {
 		}
 
 		query := ses.SelectForUpdate(&transfers).Where("owner=? AND status=? AND "+
-			"is_server=? AND start<?", conf.GlobalConfig.GatewayName,
-			types.StatusPlanned, false, time.Now().UTC().Truncate(time.Microsecond).
+			"remote_account_id IS NOT NULL AND start<?", conf.GlobalConfig.GatewayName,
+			types.StatusPlanned, time.Now().UTC().Truncate(time.Microsecond).
 				Format(time.RFC3339Nano)).Limit(lim, 0)
 
 		if err := query.Run(); err != nil {
@@ -95,9 +95,9 @@ func (c *GatewayController) retrieveTransfers() (model.Transfers, error) {
 			return err
 		}
 
-		for i := range transfers {
-			transfers[i].Status = types.StatusRunning
-			if err := ses.Update(&transfers[i]).Cols("status").Run(); err != nil {
+		for _, trans := range transfers {
+			trans.Status = types.StatusRunning
+			if err := ses.Update(trans).Cols("status").Run(); err != nil {
 				return err
 			}
 		}

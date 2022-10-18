@@ -38,19 +38,19 @@ func TestGetLocalAccount(t *testing.T) {
 			}
 			So(db.Insert(parent).Run(), ShouldBeNil)
 
-			expected := &model.LocalAccount{
+			existing := &model.LocalAccount{
 				Login:        "existing",
 				LocalAgentID: parent.ID,
 				PasswordHash: hash("existing"),
 			}
-			So(db.Insert(expected).Run(), ShouldBeNil)
+			So(db.Insert(existing).Run(), ShouldBeNil)
 
 			Convey("Given a request with a valid account login parameter", func() {
 				r, err := http.NewRequest(http.MethodGet, "", nil)
 				So(err, ShouldBeNil)
 				r = mux.SetURLVars(r, map[string]string{
 					"server":        parent.Name,
-					"local_account": expected.Login,
+					"local_account": existing.Login,
 				})
 
 				Convey("When sending the request to the handler", func() {
@@ -69,9 +69,12 @@ func TestGetLocalAccount(t *testing.T) {
 
 					Convey("Then the body should contain the requested server "+
 						"in JSON format", func() {
-						exp, err := json.Marshal(FromLocalAccount(expected, &AuthorizedRules{}))
-
+						expected, err := DBLocalAccountToREST(db, existing)
 						So(err, ShouldBeNil)
+
+						exp, err := json.Marshal(expected)
+						So(err, ShouldBeNil)
+
 						So(w.Body.String(), ShouldResemble, string(exp)+"\n")
 					})
 				})
@@ -99,7 +102,7 @@ func TestGetLocalAccount(t *testing.T) {
 				So(err, ShouldBeNil)
 				r = mux.SetURLVars(r, map[string]string{
 					"server":        "toto",
-					"local_account": expected.Login,
+					"local_account": existing.Login,
 				})
 
 				Convey("When sending the request to the handler", func() {
@@ -115,7 +118,7 @@ func TestGetLocalAccount(t *testing.T) {
 }
 
 func TestListLocalAccounts(t *testing.T) {
-	check := func(w *httptest.ResponseRecorder, expected map[string][]OutAccount) {
+	check := func(w *httptest.ResponseRecorder, expected map[string][]*OutAccount) {
 		Convey("Then it should reply 'OK'", func() {
 			So(w.Code, ShouldEqual, http.StatusOK)
 		})
@@ -140,7 +143,7 @@ func TestListLocalAccounts(t *testing.T) {
 		db := database.TestDatabase(c)
 		handler := listLocalAccounts(logger, db)
 		w := httptest.NewRecorder()
-		expected := map[string][]OutAccount{}
+		expected := map[string][]*OutAccount{}
 
 		Convey("Given a database with 4 local accounts", func() {
 			p1 := &model.LocalAgent{
@@ -184,10 +187,14 @@ func TestListLocalAccounts(t *testing.T) {
 			So(db.Insert(a3).Run(), ShouldBeNil)
 			So(db.Insert(a4).Run(), ShouldBeNil)
 
-			account1 := *FromLocalAccount(a1, &AuthorizedRules{})
-			account2 := *FromLocalAccount(a2, &AuthorizedRules{})
-			account3 := *FromLocalAccount(a3, &AuthorizedRules{})
-			account4 := *FromLocalAccount(a4, &AuthorizedRules{})
+			account1, err := DBLocalAccountToREST(db, a1)
+			So(err, ShouldBeNil)
+			account2, err := DBLocalAccountToREST(db, a2)
+			So(err, ShouldBeNil)
+			account3, err := DBLocalAccountToREST(db, a3)
+			So(err, ShouldBeNil)
+			account4, err := DBLocalAccountToREST(db, a4)
+			So(err, ShouldBeNil)
 
 			Convey("Given a request with no parameters", func() {
 				r, err := http.NewRequest(http.MethodGet, "", nil)
@@ -196,9 +203,8 @@ func TestListLocalAccounts(t *testing.T) {
 
 				Convey("When sending the request to the handler", func() {
 					handler.ServeHTTP(w, r)
-					expected["localAccounts"] = []OutAccount{
-						account1, account2,
-						account4,
+					expected["localAccounts"] = []*OutAccount{
+						account1, account2, account4,
 					}
 
 					check(w, expected)
@@ -212,7 +218,7 @@ func TestListLocalAccounts(t *testing.T) {
 
 				Convey("When sending the request to the handler", func() {
 					handler.ServeHTTP(w, r)
-					expected["localAccounts"] = []OutAccount{account3}
+					expected["localAccounts"] = []*OutAccount{account3}
 
 					check(w, expected)
 				})
@@ -239,7 +245,7 @@ func TestListLocalAccounts(t *testing.T) {
 
 				Convey("When sending the request to the handler", func() {
 					handler.ServeHTTP(w, r)
-					expected["localAccounts"] = []OutAccount{account1}
+					expected["localAccounts"] = []*OutAccount{account1}
 
 					check(w, expected)
 				})
@@ -252,7 +258,7 @@ func TestListLocalAccounts(t *testing.T) {
 
 				Convey("When sending the request to the handler", func() {
 					handler.ServeHTTP(w, r)
-					expected["localAccounts"] = []OutAccount{account2, account4}
+					expected["localAccounts"] = []*OutAccount{account2, account4}
 
 					check(w, expected)
 				})
@@ -265,9 +271,8 @@ func TestListLocalAccounts(t *testing.T) {
 
 				Convey("When sending the request to the handler", func() {
 					handler.ServeHTTP(w, r)
-					expected["localAccounts"] = []OutAccount{
-						account4, account2,
-						account1,
+					expected["localAccounts"] = []*OutAccount{
+						account4, account2, account1,
 					}
 
 					check(w, expected)
@@ -331,7 +336,7 @@ func TestCreateLocalAccount(t *testing.T) {
 
 							So(bcrypt.CompareHashAndPassword([]byte(accs[0].PasswordHash),
 								[]byte("new_password")), ShouldBeNil)
-							So(accs[0], ShouldResemble, model.LocalAccount{
+							So(accs[0], ShouldResemble, &model.LocalAccount{
 								ID:           1,
 								LocalAgentID: parent.ID,
 								Login:        "new_account",
@@ -531,7 +536,7 @@ func TestUpdateLocalAccount(t *testing.T) {
 
 						So(bcrypt.CompareHashAndPassword([]byte(accounts[0].PasswordHash),
 							[]byte("upd_password")), ShouldBeNil)
-						So(accounts[0], ShouldResemble, model.LocalAccount{
+						So(accounts[0], ShouldResemble, &model.LocalAccount{
 							ID:           old.ID,
 							LocalAgentID: parent.ID,
 							Login:        "old",
@@ -564,7 +569,7 @@ func TestUpdateLocalAccount(t *testing.T) {
 					Convey("Then the old account should still exist", func() {
 						var accounts model.LocalAccounts
 						So(db.Select(&accounts).Run(), ShouldBeNil)
-						So(*old, ShouldBeIn, accounts)
+						So(old, ShouldBeIn, accounts)
 					})
 				})
 
@@ -591,7 +596,7 @@ func TestUpdateLocalAccount(t *testing.T) {
 					Convey("Then the old account should still exist", func() {
 						var accounts model.LocalAccounts
 						So(db.Select(&accounts).Run(), ShouldBeNil)
-						So(*old, ShouldBeIn, accounts)
+						So(old, ShouldBeIn, accounts)
 					})
 				})
 			})
@@ -661,7 +666,7 @@ func TestReplaceLocalAccount(t *testing.T) {
 
 						So(bcrypt.CompareHashAndPassword([]byte(accounts[0].PasswordHash),
 							[]byte("upd_password")), ShouldBeNil)
-						So(accounts[0], ShouldResemble, model.LocalAccount{
+						So(accounts[0], ShouldResemble, &model.LocalAccount{
 							ID:           old.ID,
 							LocalAgentID: parent.ID,
 							Login:        "upd_login",
@@ -694,7 +699,7 @@ func TestReplaceLocalAccount(t *testing.T) {
 					Convey("Then the old account should still exist", func() {
 						var accounts model.LocalAccounts
 						So(db.Select(&accounts).Run(), ShouldBeNil)
-						So(*old, ShouldBeIn, accounts)
+						So(old, ShouldBeIn, accounts)
 					})
 				})
 
@@ -722,7 +727,7 @@ func TestReplaceLocalAccount(t *testing.T) {
 					Convey("Then the old account should still exist", func() {
 						var accounts model.LocalAccounts
 						So(db.Select(&accounts).Run(), ShouldBeNil)
-						So(*old, ShouldBeIn, accounts)
+						So(old, ShouldBeIn, accounts)
 					})
 				})
 			})

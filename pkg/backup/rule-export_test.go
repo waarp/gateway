@@ -9,6 +9,7 @@ import (
 
 	"code.waarp.fr/apps/gateway/gateway/pkg/database"
 	"code.waarp.fr/apps/gateway/gateway/pkg/model"
+	"code.waarp.fr/apps/gateway/gateway/pkg/tk/utils"
 )
 
 func TestExportRules(t *testing.T) {
@@ -86,9 +87,8 @@ func TestExportRuleAccesses(t *testing.T) {
 			So(db.Insert(rule1).Run(), ShouldBeNil)
 
 			access1 := &model.RuleAccess{
-				RuleID:     rule1.ID,
-				ObjectType: model.TableRemAgents,
-				ObjectID:   agent.ID,
+				RuleID:        rule1.ID,
+				RemoteAgentID: utils.NewNullInt64(agent.ID),
 			}
 			So(db.Insert(access1).Run(), ShouldBeNil)
 
@@ -100,16 +100,14 @@ func TestExportRuleAccesses(t *testing.T) {
 			So(db.Insert(rule2).Run(), ShouldBeNil)
 
 			access2 := &model.RuleAccess{
-				RuleID:     rule2.ID,
-				ObjectType: model.TableRemAccounts,
-				ObjectID:   account1.ID,
+				RuleID:          rule2.ID,
+				RemoteAccountID: utils.NewNullInt64(account1.ID),
 			}
 			So(db.Insert(access2).Run(), ShouldBeNil)
 
 			access3 := &model.RuleAccess{
-				RuleID:     rule2.ID,
-				ObjectType: model.TableRemAccounts,
-				ObjectID:   account2.ID,
+				RuleID:          rule2.ID,
+				RemoteAccountID: utils.NewNullInt64(account2.ID),
 			}
 			So(db.Insert(access3).Run(), ShouldBeNil)
 

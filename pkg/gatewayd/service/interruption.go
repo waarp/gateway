@@ -28,19 +28,19 @@ type TransferInterrupter interface {
 // The ClientTransfers map contains all the currently running client pipeline.
 // For server pipelines, each server should maintain a TransferMap of its own.
 type TransferMap struct {
-	m      map[uint64]TransferInterrupter
+	m      map[int64]TransferInterrupter
 	mut    sync.Mutex
 	closed bool
 }
 
 // NewTransferMap initializes and returns a new TransferMap instance.
 func NewTransferMap() *TransferMap {
-	return &TransferMap{m: make(map[uint64]TransferInterrupter)}
+	return &TransferMap{m: make(map[int64]TransferInterrupter)}
 }
 
 // Add adds the given pipeline (TransferInterrupter), along with its transfer ID
 // to the map.
-func (t *TransferMap) Add(id uint64, ti TransferInterrupter) {
+func (t *TransferMap) Add(id int64, ti TransferInterrupter) {
 	t.mut.Lock()
 	defer t.mut.Unlock()
 
@@ -50,7 +50,7 @@ func (t *TransferMap) Add(id uint64, ti TransferInterrupter) {
 // Pause pauses the transfer the given transfer ID if it exists in the map. If
 // the ID cannot be found, the returned boolean will be false. If the
 // transfer could not be paused, an error is returned.
-func (t *TransferMap) Pause(ctx context.Context, id uint64) (bool, error) {
+func (t *TransferMap) Pause(ctx context.Context, id int64) (bool, error) {
 	t.mut.Lock()
 	defer t.mut.Unlock()
 
@@ -69,7 +69,7 @@ func (t *TransferMap) Pause(ctx context.Context, id uint64) (bool, error) {
 // Interrupt interrupts the transfer the given transfer ID if it exists in the
 // map. If the ID cannot be found, the returned boolean will be false. If the
 // transfer could not be interrupted, an error is returned.
-func (t *TransferMap) Interrupt(ctx context.Context, id uint64) (bool, error) {
+func (t *TransferMap) Interrupt(ctx context.Context, id int64) (bool, error) {
 	t.mut.Lock()
 	defer t.mut.Unlock()
 
@@ -88,7 +88,7 @@ func (t *TransferMap) Interrupt(ctx context.Context, id uint64) (bool, error) {
 // Cancel cancels the transfer the given transfer ID if it exists in the map.
 // If the ID cannot be found, the returned boolean will be false. If the
 // transfer could not be canceled, an error is returned.
-func (t *TransferMap) Cancel(ctx context.Context, id uint64) (bool, error) {
+func (t *TransferMap) Cancel(ctx context.Context, id int64) (bool, error) {
 	t.mut.Lock()
 	defer t.mut.Unlock()
 
@@ -105,7 +105,7 @@ func (t *TransferMap) Cancel(ctx context.Context, id uint64) (bool, error) {
 }
 
 // Exists returns whether the given ID exists in the map.
-func (t *TransferMap) Exists(id uint64) bool {
+func (t *TransferMap) Exists(id int64) bool {
 	t.mut.Lock()
 	defer t.mut.Unlock()
 
@@ -115,7 +115,7 @@ func (t *TransferMap) Exists(id uint64) bool {
 }
 
 // Delete removed the given transfer ID and it's associated pipeline from the map.
-func (t *TransferMap) Delete(id uint64) {
+func (t *TransferMap) Delete(id int64) {
 	t.mut.Lock()
 	defer t.mut.Unlock()
 	delete(t.m, id)

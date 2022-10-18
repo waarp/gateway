@@ -7,6 +7,7 @@ import (
 	. "github.com/smartystreets/goconvey/convey"
 
 	"code.waarp.fr/apps/gateway/gateway/pkg/database"
+	"code.waarp.fr/apps/gateway/gateway/pkg/tk/utils"
 )
 
 func TestRuleTableName(t *testing.T) {
@@ -142,9 +143,9 @@ func TestRuleBeforeDelete(t *testing.T) {
 			account := LocalAccount{LocalAgentID: server.ID, Login: "toto", PasswordHash: hash("sesame")}
 			So(db.Insert(&account).Run(), ShouldBeNil)
 
-			a1 := RuleAccess{RuleID: rule.ID, ObjectID: server.ID, ObjectType: server.TableName()}
+			a1 := RuleAccess{RuleID: rule.ID, LocalAgentID: utils.NewNullInt64(server.ID)}
 			So(db.Insert(&a1).Run(), ShouldBeNil)
-			a2 := RuleAccess{RuleID: rule.ID, ObjectID: account.ID, ObjectType: account.TableName()}
+			a2 := RuleAccess{RuleID: rule.ID, LocalAccountID: utils.NewNullInt64(account.ID)}
 			So(db.Insert(&a2).Run(), ShouldBeNil)
 
 			Convey("Given that the rule is unused", func() {
@@ -161,12 +162,10 @@ func TestRuleBeforeDelete(t *testing.T) {
 
 			Convey("Given that the rule is used by a transfer", func() {
 				trans := Transfer{
-					RuleID:     rule.ID,
-					IsServer:   true,
-					AgentID:    server.ID,
-					AccountID:  account.ID,
-					LocalPath:  "file.loc",
-					RemotePath: "file.rem",
+					RuleID:         rule.ID,
+					LocalAccountID: utils.NewNullInt64(account.ID),
+					LocalPath:      "file.loc",
+					RemotePath:     "file.rem",
 				}
 				So(db.Insert(&trans).Run(), ShouldBeNil)
 

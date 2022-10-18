@@ -14,6 +14,7 @@ import (
 	"code.waarp.fr/apps/gateway/gateway/pkg/admin/rest/api"
 	"code.waarp.fr/apps/gateway/gateway/pkg/database"
 	"code.waarp.fr/apps/gateway/gateway/pkg/model"
+	"code.waarp.fr/apps/gateway/gateway/pkg/tk/utils"
 )
 
 func partnerInfoString(p *api.OutPartner) string {
@@ -53,13 +54,11 @@ func TestGetPartner(t *testing.T) {
 			So(db.Insert(sendAll).Run(), ShouldBeNil)
 
 			sAccess := &model.RuleAccess{
-				RuleID:     send.ID,
-				ObjectType: partner.TableName(), ObjectID: partner.ID,
+				RuleID: send.ID, RemoteAgentID: utils.NewNullInt64(partner.ID),
 			}
 			So(db.Insert(sAccess).Run(), ShouldBeNil)
 			rAccess := &model.RuleAccess{
-				RuleID:     receive.ID,
-				ObjectType: partner.TableName(), ObjectID: partner.ID,
+				RuleID: receive.ID, RemoteAgentID: utils.NewNullInt64(partner.ID),
 			}
 			So(db.Insert(rAccess).Run(), ShouldBeNil)
 
@@ -72,11 +71,16 @@ func TestGetPartner(t *testing.T) {
 					So(command.Execute(params), ShouldBeNil)
 
 					Convey("Then it should display the partner's info", func() {
-						rules := &api.AuthorizedRules{
-							Sending:   []string{send.Name, sendAll.Name},
-							Reception: []string{receive.Name},
+						p := &api.OutPartner{
+							Name:        partner.Name,
+							Protocol:    partner.Protocol,
+							Address:     partner.Address,
+							ProtoConfig: partner.ProtoConfig,
+							AuthorizedRules: &api.AuthorizedRules{
+								Sending:   []string{send.Name, sendAll.Name},
+								Reception: []string{receive.Name},
+							},
 						}
-						p := rest.FromRemoteAgent(partner, rules)
 						So(getOutput(), ShouldEqual, partnerInfoString(p))
 					})
 				})
@@ -132,14 +136,13 @@ func TestAddPartner(t *testing.T) {
 						var partners model.RemoteAgents
 						So(db.Select(&partners).Run(), ShouldBeNil)
 
-						exp := model.RemoteAgent{
+						So(partners, ShouldContain, &model.RemoteAgent{
 							ID:          1,
 							Name:        "server_name",
 							Protocol:    testProto1,
 							ProtoConfig: json.RawMessage(`{"key1":"val1","key2":"val2"}`),
 							Address:     "localhost:1",
-						}
-						So(partners, ShouldContain, exp)
+						})
 					})
 				})
 			})
@@ -227,8 +230,10 @@ func TestListPartners(t *testing.T) {
 			}
 			So(db.Insert(partner2).Run(), ShouldBeNil)
 
-			p1 := rest.FromRemoteAgent(partner1, &api.AuthorizedRules{})
-			p2 := rest.FromRemoteAgent(partner2, &api.AuthorizedRules{})
+			p1, err := rest.DBPartnerToREST(db, partner1)
+			So(err, ShouldBeNil)
+			p2, err := rest.DBPartnerToREST(db, partner2)
+			So(err, ShouldBeNil)
 
 			Convey("Given no parameters", func() {
 				var args []string
@@ -363,7 +368,7 @@ func TestDeletePartner(t *testing.T) {
 					Convey("Then the partner should still exist", func() {
 						var partners model.RemoteAgents
 						So(db.Select(&partners).Run(), ShouldBeNil)
-						So(partners, ShouldContain, *partner)
+						So(partners, ShouldContain, partner)
 					})
 				})
 			})
@@ -383,16 +388,16 @@ func TestUpdatePartner(t *testing.T) {
 			addr, err = url.Parse("http://admin:admin_password@" + gw.Listener.Addr().String())
 			So(err, ShouldBeNil)
 
-			partner := &model.RemoteAgent{
+			originalPartner := &model.RemoteAgent{
 				Name:     "partner",
 				Protocol: testProto1,
 				Address:  "localhost:1",
 			}
-			So(db.Insert(partner).Run(), ShouldBeNil)
+			So(db.Insert(originalPartner).Run(), ShouldBeNil)
 
 			Convey("Given all valid flags", func() {
 				args := []string{
-					partner.Name,
+					originalPartner.Name,
 					"--name", "new_partner", "--protocol", testProto2,
 					"--address", "localhost:1",
 				}
@@ -412,21 +417,20 @@ func TestUpdatePartner(t *testing.T) {
 						var partners model.RemoteAgents
 						So(db.Select(&partners).Run(), ShouldBeNil)
 
-						exp := model.RemoteAgent{
-							ID:          partner.ID,
+						So(partners, ShouldContain, &model.RemoteAgent{
+							ID:          originalPartner.ID,
 							Name:        "new_partner",
 							Protocol:    testProto2,
 							Address:     "localhost:1",
 							ProtoConfig: json.RawMessage(`{}`),
-						}
-						So(partners, ShouldContain, exp)
+						})
 					})
 				})
 			})
 
 			Convey("Given an invalid protocol", func() {
 				args := []string{
-					partner.Name,
+					originalPartner.Name,
 					"--name", "new_partner", "--protocol", "invalid",
 					"--address", "localhost:1",
 				}
@@ -444,14 +448,14 @@ func TestUpdatePartner(t *testing.T) {
 					Convey("Then the partner should stay unchanged", func() {
 						var partners model.RemoteAgents
 						So(db.Select(&partners).Run(), ShouldBeNil)
-						So(partners, ShouldContain, *partner)
+						So(partners, ShouldContain, originalPartner)
 					})
 				})
 			})
 
 			Convey("Given an invalid configuration", func() {
 				args := []string{
-					partner.Name,
+					originalPartner.Name,
 					"--name", "new_partner", "--protocol", testProtoErr,
 					"--config", `key:val`, "--address", "localhost:1",
 				}
@@ -470,14 +474,14 @@ func TestUpdatePartner(t *testing.T) {
 					Convey("Then the partner should stay unchanged", func() {
 						var partners model.RemoteAgents
 						So(db.Select(&partners).Run(), ShouldBeNil)
-						So(partners, ShouldContain, *partner)
+						So(partners, ShouldContain, originalPartner)
 					})
 				})
 			})
 
 			Convey("Given an invalid address", func() {
 				args := []string{
-					partner.Name,
+					originalPartner.Name,
 					"--name", "new_partner", "--protocol", testProtoErr,
 					"--address", "invalid_address",
 				}
@@ -495,7 +499,7 @@ func TestUpdatePartner(t *testing.T) {
 					Convey("Then the partner should stay unchanged", func() {
 						var partners model.RemoteAgents
 						So(db.Select(&partners).Run(), ShouldBeNil)
-						So(partners, ShouldContain, *partner)
+						So(partners, ShouldContain, originalPartner)
 					})
 				})
 			})
@@ -519,7 +523,7 @@ func TestUpdatePartner(t *testing.T) {
 					Convey("Then the partner should stay unchanged", func() {
 						var partners model.RemoteAgents
 						So(db.Select(&partners).Run(), ShouldBeNil)
-						So(partners, ShouldContain, *partner)
+						So(partners, ShouldContain, originalPartner)
 					})
 				})
 			})
@@ -572,12 +576,10 @@ func TestAuthorizePartner(t *testing.T) {
 						var accesses model.RuleAccesses
 						So(db.Select(&accesses).Run(), ShouldBeNil)
 
-						exp := model.RuleAccess{
-							RuleID:     rule.ID,
-							ObjectID:   partner.ID,
-							ObjectType: partner.TableName(),
-						}
-						So(accesses, ShouldContain, exp)
+						So(accesses, ShouldContain, &model.RuleAccess{
+							RuleID:        rule.ID,
+							RemoteAgentID: utils.NewNullInt64(partner.ID),
+						})
 					})
 				})
 			})
@@ -653,9 +655,8 @@ func TestRevokePartner(t *testing.T) {
 			So(db.Insert(rule).Run(), ShouldBeNil)
 
 			access := &model.RuleAccess{
-				RuleID:     rule.ID,
-				ObjectID:   partner.ID,
-				ObjectType: partner.TableName(),
+				RuleID:        rule.ID,
+				RemoteAgentID: utils.NewNullInt64(partner.ID),
 			}
 			So(db.Insert(access).Run(), ShouldBeNil)
 
@@ -697,7 +698,7 @@ func TestRevokePartner(t *testing.T) {
 					Convey("Then the permission should NOT have been removed", func() {
 						var accesses model.RuleAccesses
 						So(db.Select(&accesses).Run(), ShouldBeNil)
-						So(accesses, ShouldContain, *access)
+						So(accesses, ShouldContain, access)
 					})
 				})
 			})
@@ -717,7 +718,7 @@ func TestRevokePartner(t *testing.T) {
 					Convey("Then the permission should NOT have been removed", func() {
 						var accesses model.RuleAccesses
 						So(db.Select(&accesses).Run(), ShouldBeNil)
-						So(accesses, ShouldContain, *access)
+						So(accesses, ShouldContain, access)
 					})
 				})
 			})

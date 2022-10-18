@@ -26,7 +26,7 @@ const (
 		"certificates for the changes to be effective."
 )
 
-func getServ(r *http.Request, db *database.DB) (*model.LocalAgent, error) {
+func getDBServer(r *http.Request, db *database.DB) (*model.LocalAgent, error) {
 	serverName, ok := mux.Vars(r)["server"]
 	if !ok {
 		return nil, notFound("missing server name")
@@ -47,18 +47,17 @@ func getServ(r *http.Request, db *database.DB) (*model.LocalAgent, error) {
 
 func getServer(logger *log.Logger, db *database.DB) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		result, err := getServ(r, db)
-		if handleError(w, logger, err) {
+		dbServer, getErr := getDBServer(r, db)
+		if handleError(w, logger, getErr) {
 			return
 		}
 
-		rules, err := getAuthorizedRules(db, result.TableName(), result.ID)
-		if handleError(w, logger, err) {
+		restServer, convErr := DBServerToREST(db, dbServer)
+		if handleError(w, logger, convErr) {
 			return
 		}
 
-		err = writeJSON(w, FromLocalAgent(result, rules))
-		handleError(w, logger, err)
+		handleError(w, logger, writeJSON(w, restServer))
 	}
 }
 
@@ -70,19 +69,18 @@ func listServers(logger *log.Logger, db *database.DB) http.HandlerFunc {
 		"name+":   order{"name", true},
 		"name-":   order{"name", false},
 	}
-	typ := (&model.LocalAgent{}).TableName()
 
 	return func(w http.ResponseWriter, r *http.Request) {
-		var servers model.LocalAgents
+		var dbServers model.LocalAgents
 
-		query, err := parseSelectQuery(r, db, validSorting, &servers)
-		if handleError(w, logger, err) {
+		query, parseErr := parseSelectQuery(r, db, validSorting, &dbServers)
+		if handleError(w, logger, parseErr) {
 			return
 		}
 
 		query.Where("owner=?", conf.GlobalConfig.GatewayName)
 
-		if err2 := parseProtoParam(r, query); handleError(w, logger, err2) {
+		if err := parseProtoParam(r, query); handleError(w, logger, err) {
 			return
 		}
 
@@ -90,66 +88,56 @@ func listServers(logger *log.Logger, db *database.DB) http.HandlerFunc {
 			return
 		}
 
-		ids := make([]uint64, len(servers))
-		for i := range servers {
-			ids[i] = servers[i].ID
-		}
-
-		rules, err := getAuthorizedRuleList(db, typ, ids)
-		if handleError(w, logger, err) {
+		restServers, convErr := DBServersToREST(db, dbServers)
+		if handleError(w, logger, convErr) {
 			return
 		}
 
-		resp := map[string][]api.OutServer{"servers": FromLocalAgents(servers, rules)}
-		err = writeJSON(w, resp)
-		handleError(w, logger, err)
+		response := map[string][]*api.OutServer{"servers": restServers}
+		handleError(w, logger, writeJSON(w, response))
 	}
 }
 
-//nolint:dupl // duplicated code is about a different type
 func addServer(logger *log.Logger, db *database.DB) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		var serv api.InServer
-		if err := readJSON(r, &serv); handleError(w, logger, err) {
+		var restServer api.InServer
+		if err := readJSON(r, &restServer); handleError(w, logger, err) {
 			return
 		}
 
-		var agent model.LocalAgent
-
-		servToDB(logger, &serv, &agent)
-
-		if err := db.Insert(&agent).Run(); handleError(w, logger, err) {
+		dbServer := restServerToDB(&restServer, logger)
+		if err := db.Insert(dbServer).Run(); handleError(w, logger, err) {
 			return
 		}
 
-		w.Header().Set("Location", location(r.URL, agent.Name))
+		w.Header().Set("Location", location(r.URL, dbServer.Name))
 		w.WriteHeader(http.StatusCreated)
 	}
 }
 
-//nolint:dupl // duplicated code is about a different type
 func updateServer(logger *log.Logger, db *database.DB) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		agent, err := getServ(r, db)
-		if handleError(w, logger, err) {
+		oldServer, getErr := getDBServer(r, db)
+		if handleError(w, logger, getErr) {
 			return
 		}
 
-		var jServ api.InServer
-		if err := readJSON(r, &jServ); handleError(w, logger, err) {
+		restServer := dbServerToRESTInput(oldServer)
+		if err := readJSON(r, restServer); handleError(w, logger, err) {
 			return
 		}
 
-		servToDB(logger, &jServ, agent)
+		dbServer := restServerToDB(restServer, logger)
+		dbServer.ID = oldServer.ID
 
-		if err := db.Update(agent).Run(); handleError(w, logger, err) {
+		if err := db.Update(dbServer).Run(); handleError(w, logger, err) {
 			return
 		}
 
-		w.Header().Set("Location", locationUpdate(r.URL, agent.Name))
+		w.Header().Set("Location", locationUpdate(r.URL, dbServer.Name))
 		w.WriteHeader(http.StatusCreated)
 
-		if jServ.Name != nil || jServ.Protocol != nil || jServ.Address != nil {
+		if restServer.Name != nil || restServer.Protocol != nil || restServer.Address != nil {
 			fmt.Fprint(w, ServerRestartRequiredMsg)
 		}
 	}
@@ -157,27 +145,27 @@ func updateServer(logger *log.Logger, db *database.DB) http.HandlerFunc {
 
 func replaceServer(logger *log.Logger, db *database.DB) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		old, err := getServ(r, db)
-		if handleError(w, logger, err) {
+		oldServer, getErr := getDBServer(r, db)
+		if handleError(w, logger, getErr) {
 			return
 		}
 
-		var jServ api.InServer
-		if err := readJSON(r, &jServ); handleError(w, logger, err) {
+		var restServer api.InServer
+		if err := readJSON(r, &restServer); handleError(w, logger, err) {
 			return
 		}
 
-		agent := &model.LocalAgent{ID: old.ID}
-		servToDB(logger, &jServ, agent)
+		dbServer := restServerToDB(&restServer, logger)
+		dbServer.ID = oldServer.ID
 
-		if err := db.Update(agent).Run(); handleError(w, logger, err) {
+		if err := db.Update(dbServer).Run(); handleError(w, logger, err) {
 			return
 		}
 
-		w.Header().Set("Location", locationUpdate(r.URL, agent.Name))
+		w.Header().Set("Location", locationUpdate(r.URL, dbServer.Name))
 		w.WriteHeader(http.StatusCreated)
 
-		if jServ.Name != nil || jServ.Protocol != nil || jServ.Address != nil {
+		if restServer.Name != nil || restServer.Protocol != nil || restServer.Address != nil {
 			fmt.Fprint(w, ServerRestartRequiredMsg)
 		}
 	}
@@ -185,12 +173,12 @@ func replaceServer(logger *log.Logger, db *database.DB) http.HandlerFunc {
 
 func deleteServer(logger *log.Logger, db *database.DB) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		ag, err := getServ(r, db)
-		if handleError(w, logger, err) {
+		dbServer, getErr := getDBServer(r, db)
+		if handleError(w, logger, getErr) {
 			return
 		}
 
-		if err := db.Delete(ag).Run(); handleError(w, logger, err) {
+		if err := db.Delete(dbServer).Run(); handleError(w, logger, err) {
 			return
 		}
 
@@ -200,49 +188,45 @@ func deleteServer(logger *log.Logger, db *database.DB) http.HandlerFunc {
 
 func authorizeServer(logger *log.Logger, db *database.DB) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		ag, err := getServ(r, db)
-		if handleError(w, logger, err) {
+		dbServer, getErr := getDBServer(r, db)
+		if handleError(w, logger, getErr) {
 			return
 		}
 
-		err = authorizeRule(w, r, db, ag.TableName(), ag.ID)
-		handleError(w, logger, err)
+		handleError(w, logger, authorizeRule(w, r, db, dbServer))
 	}
 }
 
 func revokeServer(logger *log.Logger, db *database.DB) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		ag, err := getServ(r, db)
-		if handleError(w, logger, err) {
+		dbServer, getErr := getDBServer(r, db)
+		if handleError(w, logger, getErr) {
 			return
 		}
 
-		err = revokeRule(w, r, db, ag.TableName(), ag.ID)
-		handleError(w, logger, err)
+		handleError(w, logger, revokeRule(w, r, db, dbServer))
 	}
 }
 
 func getServerCert(logger *log.Logger, db *database.DB) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		ag, err := getServ(r, db)
-		if handleError(w, logger, err) {
+		dbServer, getErr := getDBServer(r, db)
+		if handleError(w, logger, getErr) {
 			return
 		}
 
-		err = getCrypto(w, r, db, ag.TableName(), ag.ID)
-		handleError(w, logger, err)
+		handleError(w, logger, getCrypto(w, r, db, dbServer))
 	}
 }
 
 func addServerCert(logger *log.Logger, db *database.DB) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		ag, err := getServ(r, db)
-		if handleError(w, logger, err) {
+		dbServer, getErr := getDBServer(r, db)
+		if handleError(w, logger, getErr) {
 			return
 		}
 
-		err = createCrypto(w, r, db, ag.TableName(), ag.ID)
-		if handleError(w, logger, err) {
+		if handleError(w, logger, createCrypto(w, r, db, dbServer)) {
 			return
 		}
 
@@ -252,25 +236,23 @@ func addServerCert(logger *log.Logger, db *database.DB) http.HandlerFunc {
 
 func listServerCerts(logger *log.Logger, db *database.DB) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		ag, err := getServ(r, db)
-		if handleError(w, logger, err) {
+		dbServer, getErr := getDBServer(r, db)
+		if handleError(w, logger, getErr) {
 			return
 		}
 
-		err = listCryptos(w, r, db, ag.TableName(), ag.ID)
-		handleError(w, logger, err)
+		handleError(w, logger, listCryptos(w, r, db, dbServer))
 	}
 }
 
 func deleteServerCert(logger *log.Logger, db *database.DB) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		ag, err := getServ(r, db)
-		if handleError(w, logger, err) {
+		dbServer, getErr := getDBServer(r, db)
+		if handleError(w, logger, getErr) {
 			return
 		}
 
-		err = deleteCrypto(w, r, db, ag.TableName(), ag.ID)
-		if handleError(w, logger, err) {
+		if handleError(w, logger, deleteCrypto(w, r, db, dbServer)) {
 			return
 		}
 
@@ -280,13 +262,12 @@ func deleteServerCert(logger *log.Logger, db *database.DB) http.HandlerFunc {
 
 func updateServerCert(logger *log.Logger, db *database.DB) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		ag, err := getServ(r, db)
-		if handleError(w, logger, err) {
+		dbServer, getErr := getDBServer(r, db)
+		if handleError(w, logger, getErr) {
 			return
 		}
 
-		err = updateCrypto(w, r, db, ag.TableName(), ag.ID)
-		if handleError(w, logger, err) {
+		if handleError(w, logger, updateCrypto(w, r, db, dbServer)) {
 			return
 		}
 
@@ -296,13 +277,12 @@ func updateServerCert(logger *log.Logger, db *database.DB) http.HandlerFunc {
 
 func replaceServerCert(logger *log.Logger, db *database.DB) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		ag, err := getServ(r, db)
-		if handleError(w, logger, err) {
+		dbServer, getErr := getDBServer(r, db)
+		if handleError(w, logger, getErr) {
 			return
 		}
 
-		err = replaceCrypto(w, r, db, ag.TableName(), ag.ID)
-		if handleError(w, logger, err) {
+		if handleError(w, logger, replaceCrypto(w, r, db, dbServer)) {
 			return
 		}
 
@@ -320,20 +300,20 @@ func disableServer(logger *log.Logger, db *database.DB) http.HandlerFunc {
 
 func enableDisableServer(logger *log.Logger, db *database.DB, enable bool) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		ag, err := getServ(r, db)
-		if handleError(w, logger, err) {
+		dbServer, getErr := getDBServer(r, db)
+		if handleError(w, logger, getErr) {
 			return
 		}
 
-		if ag.Enabled == enable {
+		if dbServer.Enabled == enable {
 			w.WriteHeader(http.StatusAccepted)
 
 			return // nothing to do
 		}
 
-		ag.Enabled = enable
+		dbServer.Enabled = enable
 
-		if handleError(w, logger, db.Update(ag).Cols("enabled").Run()) {
+		if handleError(w, logger, db.Update(dbServer).Cols("enabled").Run()) {
 			return
 		}
 
@@ -341,12 +321,12 @@ func enableDisableServer(logger *log.Logger, db *database.DB, enable bool) http.
 	}
 }
 
-func getProtoService(r *http.Request, protoServices map[uint64]proto.Service,
+func getProtoService(r *http.Request, protoServices map[int64]proto.Service,
 	db *database.DB,
 ) (*model.LocalAgent, proto.Service, error) {
-	dbServer, err := getServ(r, db)
-	if err != nil {
-		return nil, nil, err
+	dbServer, getErr := getDBServer(r, db)
+	if getErr != nil {
+		return nil, nil, getErr
 	}
 
 	service, ok := protoServices[dbServer.ID]
@@ -370,7 +350,7 @@ func haltServer(r *http.Request, serv proto.Service) error {
 	return nil
 }
 
-func stopServer(protoServices map[uint64]proto.Service) handler {
+func stopServer(protoServices map[int64]proto.Service) handler {
 	return func(logger *log.Logger, db *database.DB) http.HandlerFunc {
 		return func(w http.ResponseWriter, r *http.Request) {
 			dbServer, service, err := getProtoService(r, protoServices, db)
@@ -396,11 +376,11 @@ func stopServer(protoServices map[uint64]proto.Service) handler {
 
 var errConstructorNotFound = errors.New("could not instantiate the service: protocol not found")
 
-func startServer(protoServices map[uint64]proto.Service) handler {
+func startServer(protoServices map[int64]proto.Service) handler {
 	return func(logger *log.Logger, db *database.DB) http.HandlerFunc {
 		return func(w http.ResponseWriter, r *http.Request) {
-			dbServer, err := getServ(r, db)
-			if handleError(w, logger, err) {
+			dbServer, getErr := getDBServer(r, db)
+			if handleError(w, logger, getErr) {
 				return
 			}
 
@@ -434,11 +414,11 @@ func startServer(protoServices map[uint64]proto.Service) handler {
 	}
 }
 
-func restartServer(protoServices map[uint64]proto.Service) handler {
+func restartServer(protoServices map[int64]proto.Service) handler {
 	return func(logger *log.Logger, db *database.DB) http.HandlerFunc {
 		return func(w http.ResponseWriter, r *http.Request) {
-			dbServer, service, err := getProtoService(r, protoServices, db)
-			if handleError(w, logger, err) {
+			dbServer, service, getErr := getProtoService(r, protoServices, db)
+			if handleError(w, logger, getErr) {
 				return
 			}
 

@@ -1,6 +1,7 @@
 package database
 
 import (
+	"fmt"
 	"time"
 
 	"xorm.io/xorm"
@@ -20,6 +21,10 @@ func init() {
 
 func sqliteInit(db *xorm.Engine) error {
 	db.DatabaseTZ = time.UTC
+
+	if _, err := db.Exec("PRAGMA foreign_keys=ON"); err != nil {
+		return fmt.Errorf("failed to activate SQLite foreign keys: %w", err)
+	}
 
 	return nil
 }

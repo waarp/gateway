@@ -9,6 +9,7 @@ import (
 	"code.waarp.fr/apps/gateway/gateway/pkg/backup/file"
 	"code.waarp.fr/apps/gateway/gateway/pkg/database"
 	"code.waarp.fr/apps/gateway/gateway/pkg/model"
+	"code.waarp.fr/apps/gateway/gateway/pkg/tk/utils"
 )
 
 //nolint:maintidx //FIXME factorize the function if possible to improve maintainability
@@ -154,7 +155,7 @@ func TestImportRules(t *testing.T) {
 					})
 
 					Convey("Then the other rules should be unchanged", func() {
-						So(dbRules[0], ShouldResemble, *existing)
+						So(dbRules[0], ShouldResemble, existing)
 					})
 				})
 
@@ -366,17 +367,14 @@ func TestImportRuleAccess(t *testing.T) {
 							for i := 0; i < len(dbAccesses); i++ {
 								acc := dbAccesses[i]
 								switch {
-								case acc.ObjectType == model.TableLocAgents &&
-									acc.ObjectID == agent.ID:
+								case acc.LocalAgentID.Int64 == agent.ID:
 									Convey("Then access for agent is found", func() {
 									})
-								case acc.ObjectType == model.TableLocAccounts &&
-									acc.ObjectID == account1.ID:
-									Convey("Then access for accunt1 is found", func() {
+								case acc.LocalAccountID.Int64 == account1.ID:
+									Convey("Then access for account1 is found", func() {
 									})
-								case acc.ObjectType == model.TableLocAccounts &&
-									acc.ObjectID == account2.ID:
-									Convey("Then access for accunt2 is found", func() {
+								case acc.LocalAccountID.Int64 == account2.ID:
+									Convey("Then access for account2 is found", func() {
 									})
 								default:
 									Convey("Then they should be no "+
@@ -392,9 +390,8 @@ func TestImportRuleAccess(t *testing.T) {
 
 			Convey("Given a Rule with 1 access", func() {
 				acc1 := &model.RuleAccess{
-					RuleID:     insert.ID,
-					ObjectType: model.TableLocAgents,
-					ObjectID:   agent.ID,
+					RuleID:       insert.ID,
+					LocalAgentID: utils.NewNullInt64(agent.ID),
 				}
 				So(db.Insert(acc1).Run(), ShouldBeNil)
 
@@ -422,16 +419,13 @@ func TestImportRuleAccess(t *testing.T) {
 								for i := 0; i < len(dbAccesses); i++ {
 									acc := dbAccesses[i]
 									switch {
-									case acc.ObjectType == model.TableLocAgents &&
-										acc.ObjectID == agent.ID:
+									case acc.LocalAgentID.Int64 == agent.ID:
 										Convey("Then access for agent is found", func() {
 										})
-									case acc.ObjectType == model.TableLocAccounts &&
-										acc.ObjectID == account1.ID:
+									case acc.LocalAccountID.Int64 == account1.ID:
 										Convey("Then access for account1 is found", func() {
 										})
-									case acc.ObjectType == model.TableLocAccounts &&
-										acc.ObjectID == account2.ID:
+									case acc.LocalAccountID.Int64 == account2.ID:
 										Convey("Then access for account2 is found", func() {
 										})
 									default:

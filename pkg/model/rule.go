@@ -14,31 +14,30 @@ func init() {
 
 // Rule represents a transfer rule.
 type Rule struct {
-
 	// The Rule's ID
-	ID uint64 `xorm:"pk autoincr <- 'id'"`
+	ID int64 `xorm:"BIGINT PK AUTOINCR <- 'id'"`
 
 	// The rule's name
-	Name string `xorm:"unique(dir) notnull 'name'"`
+	Name string `xorm:"VARCHAR(100) UNIQUE(dir) NOTNULL 'name'"`
 
 	// The rule's comment
-	Comment string `xorm:"notnull 'comment'"`
+	Comment string `xorm:"TEXT NOTNULL DEFAULT('') 'comment'"`
 
 	// The rule's direction (pull/push)
-	IsSend bool `xorm:"unique(dir) unique(path) notnull 'send'"`
+	IsSend bool `xorm:"BOOL UNIQUE(dir) UNIQUE(path) NOTNULL 'send'"`
 
 	// The path used to differentiate the rule when the protocol does not allow it.
-	// This path is always an absolute path.
-	Path string `xorm:"unique(path) notnull 'path'"`
+	// This path is always an absolute path (must start with a slash).
+	Path string `xorm:"VARCHAR(255) UNIQUE(path) NOTNULL 'path'"`
 
 	// The local directory for all file transfers using this rule.
-	LocalDir string `xorm:"notnull 'local_dir'"`
+	LocalDir string `xorm:"TEXT NOTNULL DEFAULT('') 'local_dir'"`
 
 	// The remote directory for all file transfers using this rule.
-	RemoteDir string `xorm:"notnull 'remote_dir'"`
+	RemoteDir string `xorm:"TEXT NOTNULL DEFAULT('') 'remote_dir'"`
 
 	// The temporary directory for running incoming transfer files.
-	TmpLocalRcvDir string `xorm:"notnull 'tmp_local_receive_dir'"`
+	TmpLocalRcvDir string `xorm:"TEXT NOTNULL DEFAULT('') 'tmp_local_receive_dir'"`
 }
 
 // TableName returns the remote accounts table name.
@@ -52,7 +51,7 @@ func (*Rule) Appellation() string {
 }
 
 // GetID returns the rule's ID.
-func (r *Rule) GetID() uint64 {
+func (r *Rule) GetID() int64 {
 	return r.ID
 }
 
@@ -148,27 +147,14 @@ func (r *Rule) Direction() string {
 }
 
 // BeforeDelete is called before deleting the rule from the database. Its
-// role is to delete all the RuleAccess entries attached to this rule.
+// role is to check whether the rule is still used in any ongoing transfer.
 func (r *Rule) BeforeDelete(db database.Access) database.Error {
-	n, err := db.Count(&Transfer{}).Where("rule_id=?", r.ID).Run()
-	if err != nil {
+	if n, err := db.Count(&Transfer{}).Where("rule_id=?", r.ID).Run(); err != nil {
 		return err
-	}
-
-	if n > 0 {
+	} else if n > 0 {
 		return database.NewValidationError("this rule is currently being used in a " +
 			"running transfer and cannot be deleted, cancel the transfer or wait " +
 			"for it to finish")
-	}
-
-	err = db.DeleteAll(&RuleAccess{}).Where("rule_id=?", r.ID).Run()
-	if err != nil {
-		return err
-	}
-
-	err = db.DeleteAll(&Task{}).Where("rule_id=?", r.ID).Run()
-	if err != nil {
-		return err
 	}
 
 	return nil
@@ -190,19 +176,15 @@ func (r *Rule) IsAuthorized(db database.Access, target database.IterateBean) (bo
 	var query *database.CountQuery
 	switch object := target.(type) {
 	case *LocalAgent:
-		query = db.Count(&perms).Where("rule_id=? AND (object_type=? AND object_id=?)",
-			r.ID, object.TableName(), object.ID)
+		query = db.Count(&perms).Where("rule_id=? AND local_agent_id=?", r.ID, object.ID)
 	case *RemoteAgent:
-		query = db.Count(&perms).Where("rule_id=? AND (object_type=? AND object_id=?)",
-			r.ID, object.TableName(), object.ID)
+		query = db.Count(&perms).Where("rule_id=? AND remote_agent_id=?", r.ID, object.ID)
 	case *LocalAccount:
-		query = db.Count(&perms).Where("rule_id=? AND ((object_type=? AND object_id=?) "+
-			"OR (object_type=? AND object_id=?))", r.ID, object.TableName(), object.ID,
-			TableLocAgents, object.LocalAgentID)
+		query = db.Count(&perms).Where("rule_id=? AND ( local_account_id=? OR "+
+			"local_agent_id=? )", r.ID, object.ID, object.LocalAgentID)
 	case *RemoteAccount:
-		query = db.Count(&perms).Where("rule_id=? AND ((object_type=? AND object_id=?) "+
-			"OR (object_type=? AND object_id=?))", r.ID, object.TableName(), object.ID,
-			TableRemAgents, object.RemoteAgentID)
+		query = db.Count(&perms).Where("rule_id=? AND ( remote_account_id=? OR "+
+			"remote_agent_id=?", r.ID, object.ID, object.RemoteAgentID)
 	default:
 		return false, database.NewValidationError("%T is not a valid target model for RuleAccess", target)
 	}

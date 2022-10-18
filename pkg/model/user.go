@@ -17,20 +17,20 @@ func init() {
 // to manage the gateway via its administration interface.
 type User struct {
 	// The user's database ID
-	ID uint64 `xorm:"pk autoincr <- 'id'"`
+	ID int64 `xorm:"BIGINT PK AUTOINCR <- 'id'"`
 
 	// The user's owner (i.e. the name of the gateway instance to which the
-	// agent belongs to.
-	Owner string `xorm:"unique(name) notnull 'owner'"`
+	// agent belongs to).
+	Owner string `xorm:"VARCHAR(100) UNIQUE(name) NOTNULL 'owner'"`
 
 	// The user's login
-	Username string `xorm:"unique(name) notnull 'username'"`
+	Username string `xorm:"VARCHAR(100) UNIQUE(name) NOTNULL 'username'"`
 
 	// The user's password
-	PasswordHash string `xorm:"text notnull default('') 'password_hash'"`
+	PasswordHash string `xorm:"TEXT NOTNULL 'password_hash'"`
 
 	// The users permissions for reading and writing the database.
-	Permissions PermsMask `xorm:"notnull binary(4) 'permissions'"`
+	Permissions PermsMask `xorm:"BINARY(4) NOTNULL 'permissions'"`
 }
 
 // TableName returns the users table name.
@@ -44,7 +44,7 @@ func (*User) Appellation() string {
 }
 
 // GetID returns the user's ID.
-func (u *User) GetID() uint64 {
+func (u *User) GetID() int64 {
 	return u.ID
 }
 

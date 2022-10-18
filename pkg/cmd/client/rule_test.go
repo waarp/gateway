@@ -53,7 +53,7 @@ func ruleInfoString(r *api.OutRule) string {
 	locAcc := strings.Join(la, ", ")
 	remAcc := strings.Join(ra, ", ")
 
-	taskStr := func(tasks []api.Task) string {
+	taskStr := func(tasks []*api.Task) string {
 		str := ""
 
 		for i, t := range tasks {
@@ -104,21 +104,21 @@ func TestDisplayRule(t *testing.T) {
 				LocalAccounts:  map[string][]string{"server3": {"account1", "account2"}},
 				RemoteAccounts: map[string][]string{"partner3": {"account3", "account4"}},
 			},
-			PreTasks: []api.Task{{
+			PreTasks: []*api.Task{{
 				Type: "COPY",
 				Args: json.RawMessage(`{"path":"/path/to/copy"}`),
 			}, {
 				Type: "EXEC",
 				Args: json.RawMessage(`{"path":"/path/to/script","args":"{}","delay":"0"}`),
 			}},
-			PostTasks: []api.Task{{
+			PostTasks: []*api.Task{{
 				Type: "DELETE",
 				Args: json.RawMessage("{}"),
 			}, {
 				Type: "TRANSFER",
 				Args: json.RawMessage(`{"file":"/path/to/file","to":"server","as":"account","rule":"rule"}`),
 			}},
-			ErrorTasks: []api.Task{{
+			ErrorTasks: []*api.Task{{
 				Type: "MOVE",
 				Args: json.RawMessage(`{"path":"/path/to/move"}`),
 			}, {
@@ -169,7 +169,7 @@ func TestGetRule(t *testing.T) {
 					So(command.Execute(params), ShouldBeNil)
 
 					Convey("Then it should display the rule's info", func() {
-						r, err := rest.FromRule(db, rule)
+						r, err := rest.DBRuleToREST(db, rule)
 						So(err, ShouldBeNil)
 						So(getOutput(), ShouldEqual, ruleInfoString(r))
 					})
@@ -243,7 +243,7 @@ func TestAddRule(t *testing.T) {
 						So(db.Select(&rules).Where("id=?", 2).Run(), ShouldBeNil)
 						So(rules, ShouldNotBeEmpty)
 
-						rule := model.Rule{
+						expected := &model.Rule{
 							ID:             2,
 							Name:           "new_rule",
 							Comment:        "new_rule comment",
@@ -253,51 +253,51 @@ func TestAddRule(t *testing.T) {
 							RemoteDir:      "new/rule/remote",
 							TmpLocalRcvDir: utils.ToOSPath("new_rule/tmp"),
 						}
-						So(rules[0], ShouldResemble, rule)
+						So(rules[0], ShouldResemble, expected)
 
 						Convey("Then the rule's tasks should have been added", func() {
 							var tasks model.Tasks
 							So(db.Select(&tasks).Run(), ShouldBeNil)
 
-							pre0 := model.Task{
-								RuleID: rule.ID,
+							pre0 := &model.Task{
+								RuleID: expected.ID,
 								Chain:  model.ChainPre,
 								Rank:   0,
 								Type:   "COPY",
 								Args:   json.RawMessage(`{"path":"/path/to/copy"}`),
 							}
-							pre1 := model.Task{
-								RuleID: rule.ID,
+							pre1 := &model.Task{
+								RuleID: expected.ID,
 								Chain:  model.ChainPre,
 								Rank:   1,
 								Type:   "EXEC",
 								Args: json.RawMessage(
 									`{"path":"/path/to/script","args":"{}","delay":"0"}`),
 							}
-							post0 := model.Task{
-								RuleID: rule.ID,
+							post0 := &model.Task{
+								RuleID: expected.ID,
 								Chain:  model.ChainPost,
 								Rank:   0,
 								Type:   "DELETE",
 								Args:   json.RawMessage(`{}`),
 							}
-							post1 := model.Task{
-								RuleID: rule.ID,
+							post1 := &model.Task{
+								RuleID: expected.ID,
 								Chain:  model.ChainPost,
 								Rank:   1,
 								Type:   "TRANSFER",
 								Args: json.RawMessage(`{"file":"/path/to/file",` +
 									`"to":"server","as":"account","rule":"rule"}`),
 							}
-							err0 := model.Task{
-								RuleID: rule.ID,
+							err0 := &model.Task{
+								RuleID: expected.ID,
 								Chain:  model.ChainError,
 								Rank:   0,
 								Type:   "MOVE",
 								Args:   json.RawMessage(`{"path":"/path/to/move"}`),
 							}
-							err1 := model.Task{
-								RuleID: rule.ID,
+							err1 := &model.Task{
+								RuleID: expected.ID,
 								Chain:  model.ChainError,
 								Rank:   1,
 								Type:   "RENAME",
@@ -336,12 +336,12 @@ func TestAddRule(t *testing.T) {
 						So(db.Select(&rules).Run(), ShouldBeNil)
 						So(rules, ShouldHaveLength, 1)
 
-						So(rules[0], ShouldResemble, *existing)
+						So(rules[0], ShouldResemble, existing)
 					})
 				})
 			})
 
-			Convey("Given that that one of the task's JSON is invalid", func() {
+			Convey("Given that one of the task's JSON is invalid", func() {
 				args := []string{
 					"--name", "new_rule", "--comment", "new_rule comment",
 					"--direction", "receive", "--path", "new/rule/path",
@@ -363,7 +363,7 @@ func TestAddRule(t *testing.T) {
 						So(db.Select(&rules).Run(), ShouldBeNil)
 						So(rules, ShouldHaveLength, 1)
 
-						So(rules[0], ShouldResemble, *existing)
+						So(rules[0], ShouldResemble, existing)
 					})
 				})
 			})
@@ -426,7 +426,7 @@ func TestDeleteRule(t *testing.T) {
 					Convey("Then the rule should still exist", func() {
 						var rules model.Rules
 						So(db.Select(&rules).Run(), ShouldBeNil)
-						So(rules, ShouldContain, *rule)
+						So(rules, ShouldContain, rule)
 					})
 				})
 			})
@@ -468,9 +468,9 @@ func TestListRules(t *testing.T) {
 			}
 			So(db.Insert(send).Run(), ShouldBeNil)
 
-			rcv, err := rest.FromRule(db, receive)
+			rcv, err := rest.DBRuleToREST(db, receive)
 			So(err, ShouldBeNil)
-			snd, err := rest.FromRule(db, send)
+			snd, err := rest.DBRuleToREST(db, send)
 			So(err, ShouldBeNil)
 
 			Convey("Given no parameters", func() {
@@ -585,24 +585,20 @@ func TestRuleAllowAll(t *testing.T) {
 				So(db.Insert(ra).Run(), ShouldBeNil)
 
 				sAcc := &model.RuleAccess{
-					RuleID:     rule.ID,
-					ObjectID:   s.ID,
-					ObjectType: s.TableName(),
+					RuleID:       rule.ID,
+					LocalAgentID: utils.NewNullInt64(s.ID),
 				}
 				pAcc := &model.RuleAccess{
-					RuleID:     rule.ID,
-					ObjectID:   p.ID,
-					ObjectType: p.TableName(),
+					RuleID:        rule.ID,
+					RemoteAgentID: utils.NewNullInt64(p.ID),
 				}
 				laAcc := &model.RuleAccess{
-					RuleID:     rule.ID,
-					ObjectID:   la.ID,
-					ObjectType: la.TableName(),
+					RuleID:         rule.ID,
+					LocalAccountID: utils.NewNullInt64(la.ID),
 				}
 				raAcc := &model.RuleAccess{
-					RuleID:     rule.ID,
-					ObjectID:   ra.ID,
-					ObjectType: ra.TableName(),
+					RuleID:          rule.ID,
+					RemoteAccountID: utils.NewNullInt64(ra.ID),
 				}
 				So(db.Insert(sAcc).Run(), ShouldBeNil)
 				So(db.Insert(pAcc).Run(), ShouldBeNil)

@@ -22,7 +22,6 @@ func (i *InsertQuery) run(s *Session) Error {
 	}
 
 	query := s.session.Table(i.bean.TableName())
-	defer logSQL(query, s.logger)
 
 	if _, err := query.InsertOne(i.bean); err != nil {
 		s.logger.Error("Failed to insert the new %s entry: %s", i.bean.Appellation(), err)

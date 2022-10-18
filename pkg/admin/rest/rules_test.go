@@ -81,7 +81,7 @@ func TestCreateRule(t *testing.T) {
 							So(db.Select(&rules).Run(), ShouldBeNil)
 							So(len(rules), ShouldEqual, 2)
 
-							exp := model.Rule{
+							So(rules[1], ShouldResemble, &model.Rule{
 								ID:             2,
 								Name:           "new_name",
 								Comment:        "new comment",
@@ -90,8 +90,7 @@ func TestCreateRule(t *testing.T) {
 								LocalDir:       filepath.FromSlash("/local/dir"),
 								RemoteDir:      "/remote/dir",
 								TmpLocalRcvDir: filepath.FromSlash("/local/tmp"),
-							}
-							So(rules[1], ShouldResemble, exp)
+							})
 						})
 
 						Convey("Then the new tasks should be inserted "+
@@ -100,14 +99,13 @@ func TestCreateRule(t *testing.T) {
 							So(db.Select(&tasks).Run(), ShouldBeNil)
 							So(len(tasks), ShouldEqual, 1)
 
-							exp := model.Task{
+							So(tasks[0], ShouldResemble, &model.Task{
 								RuleID: 2,
 								Chain:  model.ChainPre,
 								Rank:   0,
 								Type:   "DELETE",
 								Args:   json.RawMessage(`{}`),
-							}
-							So(tasks[0], ShouldResemble, exp)
+							})
 						})
 
 						Convey("Then the existing rule should still be "+
@@ -116,7 +114,7 @@ func TestCreateRule(t *testing.T) {
 							So(db.Select(&rules).Run(), ShouldBeNil)
 							So(len(rules), ShouldEqual, 2)
 
-							So(rules[0], ShouldResemble, *existing)
+							So(rules[0], ShouldResemble, existing)
 						})
 					})
 				})
@@ -173,7 +171,7 @@ func TestGetRule(t *testing.T) {
 
 					Convey("Then the body should contain the requested rule "+
 						"in JSON format", func() {
-						r, err := FromRule(db, recv)
+						r, err := DBRuleToREST(db, recv)
 						So(err, ShouldBeNil)
 						exp, err := json.Marshal(r)
 						So(err, ShouldBeNil)
@@ -207,7 +205,7 @@ func TestGetRule(t *testing.T) {
 
 					Convey("Then the body should contain the requested rule "+
 						"in JSON format", func() {
-						r, err := FromRule(db, send)
+						r, err := DBRuleToREST(db, send)
 						So(err, ShouldBeNil)
 						exp, err := json.Marshal(r)
 						So(err, ShouldBeNil)
@@ -307,39 +305,32 @@ func TestGetRule(t *testing.T) {
 
 				Convey("Given some authorizations on those agents", func() {
 					authServ1 := &model.RuleAccess{
-						RuleID:     send.ID,
-						ObjectID:   serv1.ID,
-						ObjectType: serv1.TableName(),
+						RuleID:       send.ID,
+						LocalAgentID: utils.NewNullInt64(serv1.ID),
 					}
 					authServ1Acc1 := &model.RuleAccess{
-						RuleID:     send.ID,
-						ObjectID:   serv1acc1.ID,
-						ObjectType: serv1acc1.TableName(),
+						RuleID:         send.ID,
+						LocalAccountID: utils.NewNullInt64(serv1acc1.ID),
 					}
 					authServ1Acc2 := &model.RuleAccess{
-						RuleID:     send.ID,
-						ObjectID:   serv1acc2.ID,
-						ObjectType: serv1acc2.TableName(),
+						RuleID:         send.ID,
+						LocalAccountID: utils.NewNullInt64(serv1acc2.ID),
 					}
 					authServ2Acc1 := &model.RuleAccess{
-						RuleID:     send.ID,
-						ObjectID:   serv2acc1.ID,
-						ObjectType: serv2acc1.TableName(),
+						RuleID:         send.ID,
+						LocalAccountID: utils.NewNullInt64(serv2acc1.ID),
 					}
 					authPart1 := &model.RuleAccess{
-						RuleID:     send.ID,
-						ObjectID:   part1.ID,
-						ObjectType: part1.TableName(),
+						RuleID:        send.ID,
+						RemoteAgentID: utils.NewNullInt64(part1.ID),
 					}
 					authPart1Acc1 := &model.RuleAccess{
-						RuleID:     send.ID,
-						ObjectID:   part1acc1.ID,
-						ObjectType: part1acc1.TableName(),
+						RuleID:          send.ID,
+						RemoteAccountID: utils.NewNullInt64(part1acc1.ID),
 					}
 					authPart2Acc1 := &model.RuleAccess{
-						RuleID:     send.ID,
-						ObjectID:   part2acc1.ID,
-						ObjectType: part2acc1.TableName(),
+						RuleID:          send.ID,
+						RemoteAccountID: utils.NewNullInt64(part2acc1.ID),
 					}
 					So(db.Insert(authServ1).Run(), ShouldBeNil)
 					So(db.Insert(authServ1Acc1).Run(), ShouldBeNil)
@@ -405,9 +396,9 @@ func TestListRules(t *testing.T) {
 			}
 			So(db.Insert(r2).Run(), ShouldBeNil)
 
-			rule1, err := FromRule(db, r1)
+			rule1, err := DBRuleToREST(db, r1)
 			So(err, ShouldBeNil)
-			rule2, err := FromRule(db, r2)
+			rule2, err := DBRuleToREST(db, r2)
 			So(err, ShouldBeNil)
 
 			Convey("Given a valid request", func() {
@@ -601,7 +592,7 @@ func TestUpdateRule(t *testing.T) {
 							So(db.Select(&results).OrderBy("id", true).Run(), ShouldBeNil)
 							So(len(results), ShouldEqual, 3)
 
-							expected := model.Rule{
+							So(results[0], ShouldResemble, &model.Rule{
 								ID:             old.ID,
 								Name:           "update_name",
 								Path:           old.Path,
@@ -609,24 +600,22 @@ func TestUpdateRule(t *testing.T) {
 								RemoteDir:      old.RemoteDir,
 								TmpLocalRcvDir: filepath.FromSlash("/local/update/work"),
 								IsSend:         true,
-							}
-							So(results[0], ShouldResemble, expected)
+							})
 
 							Convey("Then the tasks should have changed", func() {
 								var tasks model.Tasks
 								So(db.Select(&tasks).Run(), ShouldBeNil)
 								So(len(tasks), ShouldEqual, 3)
 
-								So(tasks[0], ShouldResemble, *pTask)
-								So(tasks[1], ShouldResemble, *eTask)
-								newPoTask := model.Task{
+								So(tasks[0], ShouldResemble, pTask)
+								So(tasks[1], ShouldResemble, eTask)
+								So(tasks[2], ShouldResemble, &model.Task{
 									RuleID: 1,
 									Chain:  model.ChainPost,
 									Rank:   0,
 									Type:   "MOVE",
-									Args:   json.RawMessage(`{"path": "/move/path"}`),
-								}
-								So(tasks[2], ShouldResemble, newPoTask)
+									Args:   json.RawMessage(`{"path":"/move/path"}`),
+								})
 							})
 						})
 					})
@@ -657,7 +646,7 @@ func TestUpdateRule(t *testing.T) {
 							var rules model.Rules
 							So(db.Select(&rules).Run(), ShouldBeNil)
 							So(rules, ShouldHaveLength, 3)
-							So(rules[0], ShouldResemble, *old)
+							So(rules[0], ShouldResemble, old)
 						})
 					})
 				})
@@ -679,21 +668,21 @@ func TestUpdateRule(t *testing.T) {
 						}, {
 							TmpLocalRcvDir: strPtr("/update/tmp"),
 						}, {
-							PreTasks: []Task{
+							PreTasks: []*Task{
 								{
 									Type: "DELETE",
 									Args: []byte("{}"),
 								},
 							},
 						}, {
-							PostTasks: []Task{
+							PostTasks: []*Task{
 								{
 									Type: "DELETE",
 									Args: []byte("{}"),
 								},
 							},
 						}, {
-							ErrorTasks: []Task{
+							ErrorTasks: []*Task{
 								{
 									Type: "DELETE",
 									Args: []byte("{}"),
@@ -864,26 +853,24 @@ func TestReplaceRule(t *testing.T) {
 							So(db.Select(&results).Run(), ShouldBeNil)
 							So(len(results), ShouldEqual, 1)
 
-							expected := model.Rule{
+							So(results[0], ShouldResemble, &model.Rule{
 								ID:     old.ID,
 								Name:   "update_name",
 								Path:   "update/path",
 								IsSend: old.IsSend,
-							}
-							So(results[0], ShouldResemble, expected)
+							})
 
 							Convey("Then the tasks should have been changed", func() {
-								exp := model.Task{
+								var tasks model.Tasks
+								So(db.Select(&tasks).Run(), ShouldBeNil)
+								So(len(tasks), ShouldEqual, 1)
+								So(tasks[0], ShouldResemble, &model.Task{
 									RuleID: old.ID,
 									Chain:  model.ChainPost,
 									Rank:   0,
 									Type:   "MOVE",
-									Args:   json.RawMessage(`{"path": "/move/path"}`),
-								}
-								var tasks model.Tasks
-								So(db.Select(&tasks).Run(), ShouldBeNil)
-								So(len(tasks), ShouldEqual, 1)
-								So(tasks[0], ShouldResemble, exp)
+									Args:   json.RawMessage(`{"path":"/move/path"}`),
+								})
 							})
 						})
 					})
@@ -914,7 +901,7 @@ func TestReplaceRule(t *testing.T) {
 							var rules model.Rules
 							So(db.Select(&rules).Run(), ShouldBeNil)
 							So(rules, ShouldNotBeEmpty)
-							So(rules[0], ShouldResemble, *old)
+							So(rules[0], ShouldResemble, old)
 						})
 					})
 				})

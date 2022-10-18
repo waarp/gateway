@@ -14,6 +14,7 @@ import (
 	"code.waarp.fr/apps/gateway/gateway/pkg/database"
 	"code.waarp.fr/apps/gateway/gateway/pkg/model"
 	"code.waarp.fr/apps/gateway/gateway/pkg/model/types"
+	"code.waarp.fr/apps/gateway/gateway/pkg/tk/utils"
 )
 
 func TestGetRemoteAccount(t *testing.T) {
@@ -51,13 +52,11 @@ func TestGetRemoteAccount(t *testing.T) {
 			So(db.Insert(sendAll).Run(), ShouldBeNil)
 
 			sAccess := &model.RuleAccess{
-				RuleID:     send.ID,
-				ObjectType: account.TableName(), ObjectID: account.ID,
+				RuleID: send.ID, RemoteAccountID: utils.NewNullInt64(account.ID),
 			}
 			So(db.Insert(sAccess).Run(), ShouldBeNil)
 			rAccess := &model.RuleAccess{
-				RuleID:     receive.ID,
-				ObjectType: account.TableName(), ObjectID: account.ID,
+				RuleID: receive.ID, RemoteAccountID: utils.NewNullInt64(account.ID),
 			}
 			So(db.Insert(rAccess).Run(), ShouldBeNil)
 
@@ -70,11 +69,13 @@ func TestGetRemoteAccount(t *testing.T) {
 					So(command.Execute(params), ShouldBeNil)
 
 					Convey("Then it should display the account's info", func() {
-						rules := &api.AuthorizedRules{
-							Sending:   []string{send.Name, sendAll.Name},
-							Reception: []string{receive.Name},
+						a := &api.OutAccount{
+							Login: account.Login,
+							AuthorizedRules: &api.AuthorizedRules{
+								Sending:   []string{send.Name, sendAll.Name},
+								Reception: []string{receive.Name},
+							},
 						}
-						a := rest.FromRemoteAccount(account, rules)
 						So(getOutput(), ShouldEqual, accInfoString(a))
 					})
 				})
@@ -151,7 +152,7 @@ func TestAddRemoteAccount(t *testing.T) {
 						So(db.Select(&accounts).Run(), ShouldBeNil)
 						So(accounts, ShouldNotBeEmpty)
 
-						So(accounts, ShouldContain, model.RemoteAccount{
+						So(accounts, ShouldContain, &model.RemoteAccount{
 							ID:            1,
 							RemoteAgentID: partner.ID,
 							Login:         command.Login,
@@ -244,7 +245,7 @@ func TestDeleteRemoteAccount(t *testing.T) {
 					Convey("Then the account should still exist", func() {
 						var accounts model.RemoteAccounts
 						So(db.Select(&accounts).Run(), ShouldBeNil)
-						So(accounts, ShouldContain, *account)
+						So(accounts, ShouldContain, account)
 					})
 				})
 			})
@@ -265,7 +266,7 @@ func TestDeleteRemoteAccount(t *testing.T) {
 					Convey("Then the account should still exist", func() {
 						var accounts model.RemoteAccounts
 						So(db.Select(&accounts).Run(), ShouldBeNil)
-						So(accounts, ShouldContain, *account)
+						So(accounts, ShouldContain, account)
 					})
 				})
 			})
@@ -294,15 +295,15 @@ func TestUpdateRemoteAccount(t *testing.T) {
 			So(db.Insert(partner).Run(), ShouldBeNil)
 			Partner = partner.Name
 
-			account := &model.RemoteAccount{
+			originalAccount := &model.RemoteAccount{
 				RemoteAgentID: partner.ID,
 				Login:         "toto",
 				Password:      "sesame",
 			}
-			So(db.Insert(account).Run(), ShouldBeNil)
+			So(db.Insert(originalAccount).Run(), ShouldBeNil)
 
 			Convey("Given all valid flags", func() {
-				args := []string{"-l", "new_login", "-p", "new_password", account.Login}
+				args := []string{"-l", "new_login", "-p", "new_password", originalAccount.Login}
 
 				Convey("When executing the command", func() {
 					params, err := flags.ParseArgs(command, args)
@@ -319,9 +320,10 @@ func TestUpdateRemoteAccount(t *testing.T) {
 						var accounts model.RemoteAccounts
 						So(db.Select(&accounts).Run(), ShouldBeNil)
 						So(accounts, ShouldNotBeEmpty)
-						So(accounts[0], ShouldResemble, model.RemoteAccount{
-							ID:            account.ID,
-							RemoteAgentID: account.RemoteAgentID,
+
+						So(accounts, ShouldContain, &model.RemoteAccount{
+							ID:            originalAccount.ID,
+							RemoteAgentID: originalAccount.RemoteAgentID,
 							Login:         *command.Login,
 							Password:      types.CypherText(*command.Password),
 						})
@@ -345,13 +347,13 @@ func TestUpdateRemoteAccount(t *testing.T) {
 					Convey("Then the account should stay unchanged", func() {
 						var accounts model.RemoteAccounts
 						So(db.Select(&accounts).Run(), ShouldBeNil)
-						So(accounts, ShouldContain, *account)
+						So(accounts, ShouldContain, originalAccount)
 					})
 				})
 			})
 
 			Convey("Given an invalid partner name", func() {
-				args := []string{"-l", "new_login", "-p", "new_password", account.Login}
+				args := []string{"-l", "new_login", "-p", "new_password", originalAccount.Login}
 				Partner = "toto"
 
 				Convey("When executing the command", func() {
@@ -366,7 +368,7 @@ func TestUpdateRemoteAccount(t *testing.T) {
 					Convey("Then the account should stay unchanged", func() {
 						var accounts model.RemoteAccounts
 						So(db.Select(&accounts).Run(), ShouldBeNil)
-						So(accounts, ShouldContain, *account)
+						So(accounts, ShouldContain, originalAccount)
 					})
 				})
 			})
@@ -424,9 +426,12 @@ func TestListRemoteAccount(t *testing.T) {
 			}
 			So(db.Insert(account3).Run(), ShouldBeNil)
 
-			a1 := rest.FromRemoteAccount(account1, &api.AuthorizedRules{})
-			a2 := rest.FromRemoteAccount(account2, &api.AuthorizedRules{})
-			a3 := rest.FromRemoteAccount(account3, &api.AuthorizedRules{})
+			a1, err := rest.DBRemoteAccountToREST(db, account1)
+			So(err, ShouldBeNil)
+			a2, err := rest.DBRemoteAccountToREST(db, account2)
+			So(err, ShouldBeNil)
+			a3, err := rest.DBRemoteAccountToREST(db, account3)
+			So(err, ShouldBeNil)
 
 			Convey("Given no parameters", func() {
 				args := []string{}
@@ -576,12 +581,10 @@ func TestAuthorizeRemoteAccount(t *testing.T) {
 						var accesses model.RuleAccesses
 						So(db.Select(&accesses).Run(), ShouldBeNil)
 
-						access := model.RuleAccess{
-							RuleID:     rule.ID,
-							ObjectID:   account.ID,
-							ObjectType: account.TableName(),
-						}
-						So(accesses, ShouldContain, access)
+						So(accesses, ShouldContain, &model.RuleAccess{
+							RuleID:          rule.ID,
+							RemoteAccountID: utils.NewNullInt64(account.ID),
+						})
 					})
 				})
 			})
@@ -687,9 +690,8 @@ func TestRevokeRemoteAccount(t *testing.T) {
 			So(db.Insert(rule).Run(), ShouldBeNil)
 
 			access := &model.RuleAccess{
-				RuleID:     rule.ID,
-				ObjectID:   account.ID,
-				ObjectType: account.TableName(),
+				RuleID:          rule.ID,
+				RemoteAccountID: utils.NewNullInt64(account.ID),
 			}
 			So(db.Insert(access).Run(), ShouldBeNil)
 
@@ -733,7 +735,7 @@ func TestRevokeRemoteAccount(t *testing.T) {
 					Convey("Then the permission should NOT have been removed", func() {
 						var accesses model.RuleAccesses
 						So(db.Select(&accesses).Run(), ShouldBeNil)
-						So(accesses, ShouldContain, *access)
+						So(accesses, ShouldContain, access)
 					})
 				})
 			})
@@ -754,7 +756,7 @@ func TestRevokeRemoteAccount(t *testing.T) {
 					Convey("Then the permission should NOT have been removed", func() {
 						var accesses model.RuleAccesses
 						So(db.Select(&accesses).Run(), ShouldBeNil)
-						So(accesses, ShouldContain, *access)
+						So(accesses, ShouldContain, access)
 					})
 				})
 			})
@@ -775,7 +777,7 @@ func TestRevokeRemoteAccount(t *testing.T) {
 					Convey("Then the permission should NOT have been added", func() {
 						var accesses model.RuleAccesses
 						So(db.Select(&accesses).Run(), ShouldBeNil)
-						So(accesses, ShouldContain, *access)
+						So(accesses, ShouldContain, access)
 					})
 				})
 			})

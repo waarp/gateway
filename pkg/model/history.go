@@ -1,6 +1,7 @@
 package model
 
 import (
+	"database/sql"
 	"path"
 	"time"
 
@@ -17,24 +18,24 @@ func init() {
 
 // HistoryEntry represents one record of the 'transfers_history' table.
 type HistoryEntry struct {
-	ID               uint64               `xorm:"pk 'id'"`
-	Owner            string               `xorm:"notnull 'owner'"`
-	RemoteTransferID string               `xorm:"'remote_transfer_id'"`
-	IsServer         bool                 `xorm:"notnull 'is_server'"`
-	IsSend           bool                 `xorm:"notnull 'is_send'"`
-	Rule             string               `xorm:"notnull 'rule'"`
-	Account          string               `xorm:"notnull 'account'"`
-	Agent            string               `xorm:"notnull 'agent'"`
-	Protocol         string               `xorm:"notnull 'protocol'"`
-	LocalPath        string               `xorm:"notnull 'local_path'"`
-	RemotePath       string               `xorm:"notnull 'remote_path'"`
-	Filesize         int64                `xorm:"bigint notnull default(-1) 'filesize'"`
-	Start            time.Time            `xorm:"notnull timestampz 'start'"`
-	Stop             time.Time            `xorm:"timestampz 'stop'"`
-	Status           types.TransferStatus `xorm:"notnull varchar(50) 'status'"`
-	Step             types.TransferStep   `xorm:"notnull varchar(50) 'step'"`
-	Progress         uint64               `xorm:"notnull 'progression'"`
-	TaskNumber       uint64               `xorm:"notnull 'task_number'"`
+	ID               int64                `xorm:"BIGINT PK 'id'"`
+	Owner            string               `xorm:"VARCHAR(100) NOTNULL 'owner'"`
+	RemoteTransferID string               `xorm:"VARCHAR(100) NOTNULL DEFAULT('') 'remote_transfer_id'"`
+	IsServer         bool                 `xorm:"BOOL NOTNULL 'is_server'"`
+	IsSend           bool                 `xorm:"BOOL NOTNULL 'is_send'"`
+	Rule             string               `xorm:"VARCHAR(100) NOTNULL 'rule'"`
+	Account          string               `xorm:"VARCHAR(100) NOTNULL 'account'"`
+	Agent            string               `xorm:"VARCHAR(100) NOTNULL 'agent'"`
+	Protocol         string               `xorm:"VARCHAR(50) NOTNULL 'protocol'"`
+	LocalPath        string               `xorm:"TEXT NOTNULL 'local_path'"`
+	RemotePath       string               `xorm:"TEXT NOTNULL 'remote_path'"`
+	Filesize         int64                `xorm:"BIGINT NOTNULL DEFAULT(-1) 'filesize'"`
+	Start            time.Time            `xorm:"TIMESTAMPZ UTC NOTNULL 'start'"`
+	Stop             time.Time            `xorm:"TIMESTAMPZ UTC 'stop'"`
+	Status           types.TransferStatus `xorm:"VARCHAR(50) NOTNULL 'status'"`
+	Step             types.TransferStep   `xorm:"VARCHAR(50) NOTNULL 'step'"`
+	Progress         int64                `xorm:"BIGINT NOTNULL DEFAULT(0) 'progression'"`
+	TaskNumber       int16                `xorm:"SMALLINT NOTNULL DEFAULT(0) 'task_number'"`
 	Error            types.TransferError  `xorm:"extends"`
 }
 
@@ -49,12 +50,13 @@ func (*HistoryEntry) Appellation() string {
 }
 
 // GetID returns the transfer's ID.
-func (h *HistoryEntry) GetID() uint64 {
+func (h *HistoryEntry) GetID() int64 {
 	return h.ID
 }
 
 // BeforeWrite checks if the new `HistoryEntry` entry is valid and can be
 // inserted in the database.
+//
 //nolint:funlen,gocyclo,cyclop // validation can be long...
 func (h *HistoryEntry) BeforeWrite(db database.ReadAccess) database.Error {
 	h.Owner = conf.GlobalConfig.GatewayName
@@ -129,7 +131,15 @@ func (h *HistoryEntry) Restart(db database.Access, date time.Time) (*Transfer, d
 		return nil, err
 	}
 
-	var agentID, accountID uint64
+	trans := &Transfer{
+		RuleID:     rule.ID,
+		LocalPath:  path.Base(h.LocalPath),
+		RemotePath: path.Base(h.RemotePath),
+		Start:      date,
+		Status:     types.StatusPlanned,
+		Step:       types.StepNone,
+		Owner:      h.Owner,
+	}
 
 	if h.IsServer {
 		agent := &LocalAgent{}
@@ -143,34 +153,23 @@ func (h *HistoryEntry) Restart(db database.Access, date time.Time) (*Transfer, d
 			return nil, err
 		}
 
-		agentID = agent.ID
-		accountID = account.ID
+		trans.LocalAccountID = sql.NullInt64{Valid: true, Int64: account.ID}
 	} else {
 		agent := &RemoteAgent{}
 		if err := db.Get(agent, "name=?", h.Agent).Run(); err != nil {
 			return nil, err
 		}
+
 		account := &RemoteAccount{}
 		if err := db.Get(account, "remote_agent_id=? AND login=?", agent.ID, h.Account).
 			Run(); err != nil {
 			return nil, err
 		}
-		agentID = agent.ID
-		accountID = account.ID
+
+		trans.RemoteAccountID = sql.NullInt64{Valid: true, Int64: account.ID}
 	}
 
-	return &Transfer{
-		RuleID:     rule.ID,
-		IsServer:   h.IsServer,
-		AgentID:    agentID,
-		AccountID:  accountID,
-		LocalPath:  path.Base(h.LocalPath),
-		RemotePath: path.Base(h.RemotePath),
-		Start:      date,
-		Status:     types.StatusPlanned,
-		Step:       types.StepNone,
-		Owner:      h.Owner,
-	}, nil
+	return trans, nil
 }
 
 // GetTransferInfo returns the list of the transfer's TransferInfo as a map of interfaces.

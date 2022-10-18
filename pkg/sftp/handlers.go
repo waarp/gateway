@@ -215,15 +215,13 @@ func (l *sshListener) getRulesPaths(ag *model.LocalAgent, acc *model.LocalAccoun
 		(
 			(id IN 
 				(SELECT DISTINCT rule_id FROM `+model.TableRuleAccesses+` WHERE
-					(object_id=? AND object_type=?) OR
-					(object_id=? AND object_type=?)
+					(local_account_id=? OR local_agent_id=?)
 				)
 			)
 			OR 
 			( (SELECT COUNT(*) FROM `+model.TableRuleAccesses+` WHERE rule_id = id) = 0 )
 		)`,
-		dir+"%", acc.ID, model.TableLocAccounts, ag.ID, model.TableLocAgents).
-		OrderBy("path", true)
+		dir+"%", acc.ID, ag.ID).OrderBy("path", true)
 
 	if err := query.Run(); err != nil {
 		l.Logger.Error("Failed to retrieve rule list: %s", err)

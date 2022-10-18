@@ -79,7 +79,7 @@ func GetTransferContext(db *database.DB, logger *log.Logger, trans *Transfer,
 		return nil, errDatabase
 	}
 
-	var err error
+	var err database.Error
 	if transCtx.TransInfo, err = transCtx.Transfer.GetTransferInfo(db); err != nil {
 		logger.Error("Failed to retrieve the transfer info: %v", err)
 
@@ -91,7 +91,7 @@ func GetTransferContext(db *database.DB, logger *log.Logger, trans *Transfer,
 
 func makeAgentContext(db *database.DB, logger *log.Logger, transCtx *TransferContext,
 ) (*TransferContext, *types.TransferError) {
-	if transCtx.Transfer.IsServer {
+	if transCtx.Transfer.IsServer() {
 		return makeLocalAgentContext(db, logger, transCtx)
 	}
 
@@ -101,27 +101,27 @@ func makeAgentContext(db *database.DB, logger *log.Logger, transCtx *TransferCon
 //nolint:dupl //factorizing would add complexity
 func makeLocalAgentContext(db *database.DB, logger *log.Logger, transCtx *TransferContext,
 ) (*TransferContext, *types.TransferError) {
-	if err := db.Get(transCtx.LocalAgent, "id=?", transCtx.Transfer.AgentID).Run(); err != nil {
-		logger.Error("Failed to retrieve transfer server: %v", err)
+	if err := db.Get(transCtx.LocalAccount, "id=?", transCtx.Transfer.LocalAccountID).Run(); err != nil {
+		logger.Error("Failed to retrieve transfer local account: %s", err)
 
 		return nil, errDatabase
 	}
 
-	var err database.Error
-	if transCtx.LocalAgentCryptos, err = transCtx.LocalAgent.GetCryptos(db); err != nil {
-		logger.Error("Failed to retrieve server certificates: %v", err)
+	if err := db.Get(transCtx.LocalAgent, "id=?", transCtx.LocalAccount.LocalAgentID).Run(); err != nil {
+		logger.Error("Failed to retrieve transfer server: %s", err)
 
 		return nil, errDatabase
 	}
 
-	if err = db.Get(transCtx.LocalAccount, "id=?", transCtx.Transfer.AccountID).Run(); err != nil {
-		logger.Error("Failed to retrieve transfer local account: %v", err)
-
-		return nil, errDatabase
-	}
-
+	var err error
 	if transCtx.LocalAccountCryptos, err = transCtx.LocalAccount.GetCryptos(db); err != nil {
-		logger.Error("Failed to retrieve local account certificates: %v", err)
+		logger.Error("Failed to retrieve local account certificates: %s", err)
+
+		return nil, errDatabase
+	}
+
+	if transCtx.LocalAgentCryptos, err = transCtx.LocalAgent.GetCryptos(db); err != nil {
+		logger.Error("Failed to retrieve server certificates: %s", err)
 
 		return nil, errDatabase
 	}
@@ -132,27 +132,27 @@ func makeLocalAgentContext(db *database.DB, logger *log.Logger, transCtx *Transf
 //nolint:dupl //factorizing would add complexity
 func makeRemoteAgentContext(db *database.DB, logger *log.Logger, transCtx *TransferContext,
 ) (*TransferContext, *types.TransferError) {
-	if err := db.Get(transCtx.RemoteAgent, "id=?", transCtx.Transfer.AgentID).Run(); err != nil {
-		logger.Error("Failed to retrieve transfer partner: %v", err)
+	if err := db.Get(transCtx.RemoteAccount, "id=?", transCtx.Transfer.RemoteAccountID).Run(); err != nil {
+		logger.Error("Failed to retrieve transfer remote account: %s", err)
 
 		return nil, errDatabase
 	}
 
-	var err database.Error
-	if transCtx.RemoteAgentCryptos, err = transCtx.RemoteAgent.GetCryptos(db); err != nil {
-		logger.Error("Failed to retrieve partner certificates: %v", err)
+	if err := db.Get(transCtx.RemoteAgent, "id=?", transCtx.RemoteAccount.RemoteAgentID).Run(); err != nil {
+		logger.Error("Failed to retrieve transfer partner: %s", err)
 
 		return nil, errDatabase
 	}
 
-	if err = db.Get(transCtx.RemoteAccount, "id=?", transCtx.Transfer.AccountID).Run(); err != nil {
-		logger.Error("Failed to retrieve transfer remote account: %v", err)
-
-		return nil, errDatabase
-	}
-
+	var err error
 	if transCtx.RemoteAccountCryptos, err = transCtx.RemoteAccount.GetCryptos(db); err != nil {
-		logger.Error("Failed to retrieve remote account certificates: %v", err)
+		logger.Error("Failed to retrieve remote account certificates: %s", err)
+
+		return nil, errDatabase
+	}
+
+	if transCtx.RemoteAgentCryptos, err = transCtx.RemoteAgent.GetCryptos(db); err != nil {
+		logger.Error("Failed to retrieve partner certificates: %s", err)
 
 		return nil, errDatabase
 	}

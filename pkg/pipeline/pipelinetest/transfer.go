@@ -43,11 +43,11 @@ func (d *clientData) checkClientTransferOK(c convey.C, data *transData,
 			Status:           types.StatusDone,
 			Step:             types.StepNone,
 			Error:            types.TransferError{},
-			Progress:         uint64(len(data.fileContent)),
+			Progress:         int64(len(data.fileContent)),
 			TaskNumber:       0,
 		}
 		c.So(*actual, convey.ShouldResemble, *expected)
-		checkTransferInfo(c, db, actual.ID, data)
+		checkHistoryInfo(c, db, actual.ID, data)
 		/* if !d.ClientRule.IsSend {
 			checkFileInfo(c, db, actual.ID, data)
 		} */
@@ -55,7 +55,7 @@ func (d *clientData) checkClientTransferOK(c convey.C, data *transData,
 }
 
 func (d *serverData) checkServerTransferOK(c convey.C, remoteTransferID, filename string,
-	progress uint64, db *database.DB, actual *model.HistoryEntry, data *transData,
+	progress int64, db *database.DB, actual *model.HistoryEntry, data *transData,
 ) {
 	c.Convey("Then there should be a server-side history entry", func(c convey.C) {
 		expected := &model.HistoryEntry{
@@ -81,21 +81,22 @@ func (d *serverData) checkServerTransferOK(c convey.C, remoteTransferID, filenam
 		}
 
 		c.So(*actual, convey.ShouldResemble, *expected)
-		checkTransferInfo(c, db, actual.ID, data)
+		checkHistoryInfo(c, db, actual.ID, data)
 		/* if !d.ServerRule.IsSend {
 			checkFileInfo(c, db, actual.ID, data)
 		} */
 	})
 }
 
-func checkTransferInfo(c convey.C, db *database.DB, transID uint64, data *transData) {
+func checkHistoryInfo(c convey.C, db *database.DB, transID int64, data *transData) {
 	if data == nil {
 		return
 	}
 
 	var infoList model.TransferInfoList
 
-	c.So(db.Select(&infoList).Where("transfer_id=?", transID).Run(), convey.ShouldBeNil)
+	c.So(db.Select(&infoList).Run(), convey.ShouldBeNil)
+	c.So(db.Select(&infoList).Where("history_id=?", transID).Run(), convey.ShouldBeNil)
 
 	actualInfo := map[string]interface{}{}
 
