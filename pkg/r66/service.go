@@ -56,7 +56,6 @@ func newService(db *database.DB, logger *log.Logger) *Service {
 	return &Service{
 		db:               db,
 		logger:           logger,
-		shutdown:         make(chan struct{}),
 		runningTransfers: service.NewTransferMap(),
 	}
 }
@@ -95,6 +94,12 @@ func (s *Service) makeTLSConf(agent *model.LocalAgent) (*tls.Config, error) {
 
 // Start launches a r66 service with an integrated r66 server.
 func (s *Service) Start(agent *model.LocalAgent) error {
+	if code, _ := s.state.Get(); code != state.Offline && code != state.Error {
+		s.logger.Notice("Cannot start the server because it is already running.")
+
+		return nil
+	}
+
 	s.agentID = agent.ID
 
 	s.logger.Info("Starting R66 server '%s'...", agent.Name)
@@ -136,6 +141,8 @@ func (s *Service) Start(agent *model.LocalAgent) error {
 
 		return err
 	}
+
+	s.shutdown = make(chan struct{})
 
 	s.state.Set(state.Running, "")
 	s.logger.Info("R66 server started at %s", agent.Address)
@@ -189,20 +196,16 @@ func (s *Service) listen(agent *model.LocalAgent) error {
 
 // Stop shuts down the r66 server and stops the service.
 func (s *Service) Stop(ctx context.Context) error {
-	s.logger.Info("Shutting down R66 server")
-
 	if code, _ := s.State().Get(); code == state.Error || code == state.Offline {
-		s.logger.Info("Server is already offline, nothing to do")
+		s.logger.Notice("Server is already offline, nothing to do")
 
 		return nil
 	}
 
+	s.logger.Info("Shutting down R66 server")
+
 	s.state.Set(state.ShuttingDown, "")
 	defer s.state.Set(state.Offline, "")
-
-	if s.shutdown == nil {
-		s.shutdown = make(chan struct{})
-	}
 
 	close(s.shutdown)
 

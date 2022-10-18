@@ -50,13 +50,13 @@ func newService(db *database.DB, logger *log.Logger) *httpService {
 }
 
 func (h *httpService) Start(agent *model.LocalAgent) (err error) {
-	h.agentID = agent.ID
-
 	if code, _ := h.state.Get(); code != state.Offline && code != state.Error {
-		h.logger.Info("Cannot start the server because it is already running.")
+		h.logger.Notice("Cannot start the server because it is already running.")
 
 		return nil
 	}
+
+	h.agentID = agent.ID
 
 	defer func() {
 		if err != nil {
@@ -105,6 +105,8 @@ func (h *httpService) Start(agent *model.LocalAgent) (err error) {
 
 func (h *httpService) Stop(ctx context.Context) error {
 	if st, _ := h.state.Get(); st != state.Running {
+		h.logger.Notice("Server is already offline, nothing to do")
+
 		return nil
 	}
 

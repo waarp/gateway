@@ -15,6 +15,7 @@ import (
 	"code.waarp.fr/apps/gateway/gateway/pkg/database"
 	"code.waarp.fr/apps/gateway/gateway/pkg/gatewayd/service/constructors"
 	"code.waarp.fr/apps/gateway/gateway/pkg/gatewayd/service/proto"
+	"code.waarp.fr/apps/gateway/gateway/pkg/gatewayd/service/state"
 	"code.waarp.fr/apps/gateway/gateway/pkg/model"
 )
 
@@ -134,12 +135,12 @@ func updateServer(logger *log.Logger, db *database.DB) http.HandlerFunc {
 			return
 		}
 
-		var serv api.InServer
-		if err := readJSON(r, &serv); handleError(w, logger, err) {
+		var jServ api.InServer
+		if err := readJSON(r, &jServ); handleError(w, logger, err) {
 			return
 		}
 
-		servToDB(logger, &serv, agent)
+		servToDB(logger, &jServ, agent)
 
 		if err := db.Update(agent).Run(); handleError(w, logger, err) {
 			return
@@ -161,13 +162,13 @@ func replaceServer(logger *log.Logger, db *database.DB) http.HandlerFunc {
 			return
 		}
 
-		var serv api.InServer
-		if err := readJSON(r, &serv); handleError(w, logger, err) {
+		var jServ api.InServer
+		if err := readJSON(r, &jServ); handleError(w, logger, err) {
 			return
 		}
 
 		agent := &model.LocalAgent{ID: old.ID}
-		servToDB(logger, &serv, agent)
+		servToDB(logger, &jServ, agent)
 
 		if err := db.Update(agent).Run(); handleError(w, logger, err) {
 			return
@@ -343,17 +344,17 @@ func enableDisableServer(logger *log.Logger, db *database.DB, enable bool) http.
 func getProtoService(r *http.Request, protoServices map[uint64]proto.Service,
 	db *database.DB,
 ) (*model.LocalAgent, proto.Service, error) {
-	ag, err := getServ(r, db)
+	dbServer, err := getServ(r, db)
 	if err != nil {
 		return nil, nil, err
 	}
 
-	serv, ok := protoServices[ag.ID]
+	service, ok := protoServices[dbServer.ID]
 	if !ok {
 		return nil, nil, errServiceNotFound
 	}
 
-	return ag, serv, nil
+	return dbServer, service, nil
 }
 
 func haltServer(r *http.Request, serv proto.Service) error {
@@ -372,12 +373,19 @@ func haltServer(r *http.Request, serv proto.Service) error {
 func stopServer(protoServices map[uint64]proto.Service) handler {
 	return func(logger *log.Logger, db *database.DB) http.HandlerFunc {
 		return func(w http.ResponseWriter, r *http.Request) {
-			_, serv, err := getProtoService(r, protoServices, db)
+			dbServer, service, err := getProtoService(r, protoServices, db)
 			if handleError(w, logger, err) {
 				return
 			}
 
-			if err := haltServer(r, serv); handleError(w, logger, err) {
+			if code, _ := service.State().Get(); code == state.Offline || code == state.Error {
+				w.WriteHeader(http.StatusBadRequest)
+				fmt.Fprintf(w, "Cannot stop server %q, it isn't running.", dbServer.Name)
+
+				return
+			}
+
+			if err := haltServer(r, service); handleError(w, logger, err) {
 				return
 			}
 
@@ -391,26 +399,33 @@ var errConstructorNotFound = errors.New("could not instantiate the service: prot
 func startServer(protoServices map[uint64]proto.Service) handler {
 	return func(logger *log.Logger, db *database.DB) http.HandlerFunc {
 		return func(w http.ResponseWriter, r *http.Request) {
-			ag, err := getServ(r, db)
+			dbServer, err := getServ(r, db)
 			if handleError(w, logger, err) {
 				return
 			}
 
-			serv, ok := protoServices[ag.ID]
+			service, ok := protoServices[dbServer.ID]
 			if !ok {
-				constr, ok := constructors.ServiceConstructors[ag.Protocol]
+				constr, ok := constructors.ServiceConstructors[dbServer.Protocol]
 				if !ok {
 					handleError(w, logger, errConstructorNotFound)
 
 					return
 				}
 
-				servLogger := conf.GetLogger(ag.Name)
-				serv = constr(db, servLogger)
-				protoServices[ag.ID] = serv
+				servLogger := conf.GetLogger(dbServer.Name)
+				service = constr(db, servLogger)
+				protoServices[dbServer.ID] = service
 			}
 
-			if err := serv.Start(ag); handleError(w, logger, err) {
+			if code, _ := service.State().Get(); code == state.Running {
+				w.WriteHeader(http.StatusBadRequest)
+				fmt.Fprintf(w, "Cannot start server %q, it is already running.", dbServer.Name)
+
+				return
+			}
+
+			if err := service.Start(dbServer); handleError(w, logger, err) {
 				return
 			}
 
@@ -422,16 +437,16 @@ func startServer(protoServices map[uint64]proto.Service) handler {
 func restartServer(protoServices map[uint64]proto.Service) handler {
 	return func(logger *log.Logger, db *database.DB) http.HandlerFunc {
 		return func(w http.ResponseWriter, r *http.Request) {
-			ag, serv, err := getProtoService(r, protoServices, db)
+			dbServer, service, err := getProtoService(r, protoServices, db)
 			if handleError(w, logger, err) {
 				return
 			}
 
-			if err := haltServer(r, serv); handleError(w, logger, err) {
+			if err := haltServer(r, service); handleError(w, logger, err) {
 				return
 			}
 
-			if err := serv.Start(ag); handleError(w, logger, err) {
+			if err := service.Start(dbServer); handleError(w, logger, err) {
 				return
 			}
 

@@ -95,6 +95,12 @@ func (s *Service) start(agent *model.LocalAgent) error {
 
 // Start starts the SFTP service.
 func (s *Service) Start(agent *model.LocalAgent) error {
+	if code, _ := s.state.Get(); code != state.Offline && code != state.Error {
+		s.logger.Notice("Cannot start the server because it is already running.")
+
+		return nil
+	}
+
 	s.logger.Info("Starting SFTP server...")
 	s.state.Set(state.Starting, "")
 
@@ -113,13 +119,13 @@ func (s *Service) Start(agent *model.LocalAgent) error {
 
 // Stop stops the SFTP service.
 func (s *Service) Stop(ctx context.Context) error {
-	s.logger.Info("Shutting down SFTP server")
-
 	if code, _ := s.State().Get(); code == state.Error || code == state.Offline {
 		s.logger.Info("Server is already offline, nothing to do")
 
 		return nil
 	}
+
+	s.logger.Info("Shutting down SFTP server")
 
 	s.state.Set(state.ShuttingDown, "")
 	defer s.state.Set(state.Offline, "")

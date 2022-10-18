@@ -878,7 +878,7 @@ func TestEnableDisableServer(t *testing.T) {
 func TestStartServer(t *testing.T) {
 	Convey("Testing the server 'start' command", t, func() {
 		out = testFile()
-		command := &serverStart{}
+		command := &ServerStart{}
 
 		Convey("Given a gateway with 1 local server", func(c C) {
 			db := database.TestDatabase(c)
@@ -942,7 +942,7 @@ func TestStartServer(t *testing.T) {
 func TestStopServer(t *testing.T) {
 	Convey("Testing the server 'stop' command", t, func() {
 		out = testFile()
-		command := &serverStop{}
+		command := &ServerStop{}
 
 		Convey("Given a gateway with 1 local server", func(c C) {
 			db := database.TestDatabase(c)
@@ -1010,7 +1010,7 @@ func TestStopServer(t *testing.T) {
 func TestRestartServer(t *testing.T) {
 	Convey("Testing the server 'restart' command", t, func() {
 		out = testFile()
-		command := &serverRestart{}
+		command := &ServerRestart{}
 
 		Convey("Given a gateway with 1 local server", func(c C) {
 			db := database.TestDatabase(c)
