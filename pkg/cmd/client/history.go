@@ -257,10 +257,10 @@ func (h *HistoryRetry) Execute([]string) error {
 
 		return nil
 	case http.StatusBadRequest:
-		return getResponseMessage(resp)
+		return getResponseErrorMessage(resp)
 	case http.StatusNotFound:
-		return getResponseMessage(resp)
+		return getResponseErrorMessage(resp)
 	default:
-		return fmt.Errorf("unexpected error (%s): %w", resp.Status, getResponseMessage(resp))
+		return fmt.Errorf("unexpected error (%s): %w", resp.Status, getResponseErrorMessage(resp))
 	}
 }

@@ -3,7 +3,6 @@ package sftp
 import (
 	"errors"
 	"io"
-	"io/ioutil"
 	"os"
 	"path"
 	"strings"
@@ -26,32 +25,38 @@ func makeFileCmder() internal.CmdFunc {
 	}
 }
 
-func (l *sshListener) makeFileLister(acc *model.LocalAccount) internal.FileListerAtFunc {
+func (l *sshListener) makeFileLister(ag *model.LocalAgent, acc *model.LocalAccount,
+) internal.FileListerAtFunc {
 	return func(r *sftp.Request) (sftp.ListerAt, error) {
 		switch r.Method {
 		case "Stat":
-			return l.statAt(r, acc), nil
+			return l.statAt(r, ag, acc), nil
 		case "List":
-			return l.listAt(r, acc), nil
+			return l.listAt(r, ag, acc), nil
 		default:
 			return nil, sftp.ErrSSHFxOpUnsupported
 		}
 	}
 }
 
-func (l *sshListener) listAt(r *sftp.Request, acc *model.LocalAccount) internal.ListerAtFunc {
+func (l *sshListener) listAt(r *sftp.Request, locAgent *model.LocalAgent,
+	acc *model.LocalAccount,
+) internal.ListerAtFunc {
 	return func(fileInfos []os.FileInfo, offset int64) (int, error) {
 		l.Logger.Debug("Received 'List' request on %s", r.Filepath)
 
-		var infos []os.FileInfo
+		var (
+			entries []os.DirEntry
+			infos   []os.FileInfo
+		)
 
-		realDir, err := l.getRealPath(acc, r.Filepath)
+		realDir, err := l.getRealPath(locAgent, acc, r.Filepath)
 		if err != nil {
 			return 0, toSFTPErr(err)
 		}
 
 		if realDir != "" {
-			infos, err = ioutil.ReadDir(realDir)
+			entries, err = os.ReadDir(realDir)
 			if err != nil {
 				if os.IsNotExist(err) {
 					return 0, sftp.ErrSSHFxNoSuchFile
@@ -61,11 +66,23 @@ func (l *sshListener) listAt(r *sftp.Request, acc *model.LocalAccount) internal.
 
 				return 0, errFileSystem
 			}
+
+			for _, entry := range entries {
+				info, err := entry.Info()
+				if err != nil {
+					l.Logger.Error("Failed to retrieve the file info: %v", err)
+
+					return 0, errFileSystem
+				}
+
+				infos = append(infos, info)
+			}
 		} else {
-			rulesPaths, err := l.getRulesPaths(acc, r.Filepath)
+			rulesPaths, err := l.getRulesPaths(locAgent, acc, r.Filepath)
 			if err != nil {
 				return 0, toSFTPErr(err)
 			}
+
 			for i := range rulesPaths {
 				infos = append(infos, &internal.DirInfo{Dir: rulesPaths[i]})
 			}
@@ -84,13 +101,15 @@ func (l *sshListener) listAt(r *sftp.Request, acc *model.LocalAccount) internal.
 	}
 }
 
-func (l *sshListener) statAt(r *sftp.Request, acc *model.LocalAccount) internal.ListerAtFunc {
-	return func(fileInfos []os.FileInfo, _ int64) (int, error) {
+func (l *sshListener) statAt(r *sftp.Request, ag *model.LocalAgent,
+	acc *model.LocalAccount,
+) internal.ListerAtFunc {
+	return func(fileInfos []os.FileInfo, offset int64) (int, error) {
 		l.Logger.Debug("Received 'Stat' request on %s", r.Filepath)
 
 		var infos os.FileInfo
 
-		realDir, err := l.getRealPath(acc, r.Filepath)
+		realDir, err := l.getRealPath(ag, acc, r.Filepath)
 		if err != nil {
 			return 0, toSFTPErr(err)
 		}
@@ -122,7 +141,9 @@ func (l *sshListener) statAt(r *sftp.Request, acc *model.LocalAccount) internal.
 	}
 }
 
-func (l *sshListener) getRealPath(acc *model.LocalAccount, dir string) (string, error) {
+func (l *sshListener) getRealPath(ag *model.LocalAgent, acc *model.LocalAccount,
+	dir string,
+) (string, error) {
 	dir = strings.TrimPrefix(dir, "/")
 
 	rule, err := l.getClosestRule(acc, dir, true)
@@ -137,8 +158,8 @@ func (l *sshListener) getRealPath(acc *model.LocalAccount, dir string) (string, 
 	confPaths := &conf.GlobalConfig.Paths
 	rest := strings.TrimPrefix(dir, rule.Path)
 	rest = strings.TrimPrefix(rest, "/")
-	realDir := utils.GetPath(rest, leaf(rule.LocalDir), leaf(l.Agent.SendDir),
-		branch(l.Agent.RootDir), leaf(confPaths.DefaultOutDir),
+	realDir := utils.GetPath(rest, leaf(rule.LocalDir), leaf(ag.SendDir),
+		branch(ag.RootDir), leaf(confPaths.DefaultOutDir),
 		branch(confPaths.GatewayHome))
 
 	return realDir, nil
@@ -182,7 +203,9 @@ func (l *sshListener) getClosestRule(acc *model.LocalAccount, rulePath string,
 	return &rule, nil
 }
 
-func (l *sshListener) getRulesPaths(acc *model.LocalAccount, dir string) ([]string, error) {
+func (l *sshListener) getRulesPaths(ag *model.LocalAgent, acc *model.LocalAccount,
+	dir string,
+) ([]string, error) {
 	dir = strings.TrimPrefix(path.Clean(dir), "/")
 
 	var rules model.Rules
@@ -199,7 +222,7 @@ func (l *sshListener) getRulesPaths(acc *model.LocalAccount, dir string) ([]stri
 			OR 
 			( (SELECT COUNT(*) FROM `+model.TableRuleAccesses+` WHERE rule_id = id) = 0 )
 		)`,
-		dir+"%", acc.ID, model.TableLocAccounts, l.Agent.ID, model.TableLocAgents).
+		dir+"%", acc.ID, model.TableLocAccounts, ag.ID, model.TableLocAgents).
 		OrderBy("path", true)
 
 	if err := query.Run(); err != nil {

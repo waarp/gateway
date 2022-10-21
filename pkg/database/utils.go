@@ -9,7 +9,7 @@ import (
 	"xorm.io/builder"
 	"xorm.io/xorm"
 
-	"code.waarp.fr/apps/gateway/gateway/pkg/tk/service"
+	"code.waarp.fr/apps/gateway/gateway/pkg/gatewayd/service/state"
 	vers "code.waarp.fr/apps/gateway/gateway/pkg/version"
 )
 
@@ -99,15 +99,15 @@ func logSQL(query *xorm.Session, logger *log.Logger) {
 
 // ping checks if the database is reachable and updates the service state accordingly.
 // If an error occurs while contacting the database, that error is returned.
-func ping(state *service.State, ses *xorm.Session, logger *log.Logger) Error {
+func ping(dbState *state.State, ses *xorm.Session, logger *log.Logger) Error {
 	if err := ses.Ping(); err != nil {
 		logger.Critical("Could not reach database: %s", err.Error())
-		state.Set(service.Error, err.Error())
+		dbState.Set(state.Error, err.Error())
 
 		return NewInternalError(err)
 	}
 
-	state.Set(service.Running, "")
+	dbState.Set(state.Running, "")
 
 	return nil
 }

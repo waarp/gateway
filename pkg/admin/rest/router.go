@@ -7,8 +7,9 @@ import (
 	"github.com/gorilla/mux"
 
 	"code.waarp.fr/apps/gateway/gateway/pkg/database"
+	"code.waarp.fr/apps/gateway/gateway/pkg/gatewayd/service"
+	"code.waarp.fr/apps/gateway/gateway/pkg/gatewayd/service/proto"
 	"code.waarp.fr/apps/gateway/gateway/pkg/model"
-	"code.waarp.fr/apps/gateway/gateway/pkg/tk/service"
 )
 
 // The definitions of all the REST entry points paths.
@@ -36,6 +37,9 @@ const (
 	ServerPath        = "/api/servers/{server}"
 	ServerPathEnable  = "/api/servers/{server}/enable"
 	ServerPathDisable = "/api/servers/{server}/disable"
+	ServerStartPath   = "/api/servers/{server}/start"
+	ServerStopPath    = "/api/servers/{server}/stop"
+	ServerRestartPath = "/api/servers/{server}/restart"
 	ServerCertsPath   = "/api/servers/{server}/certificates"
 	ServerCertPath    = "/api/servers/{server}/certificates/{certificate}"
 	ServerAuthPath    = "/api/servers/{server}/authorize/{rule}/{direction:send|receive}"
@@ -73,12 +77,12 @@ const (
 //
 //nolint:funlen // hard to shorten
 func MakeRESTHandler(logger *log.Logger, db *database.DB, router *mux.Router,
-	coreServices map[string]service.Service, protoServices map[string]service.ProtoService,
+	coreServices map[string]service.Service, protoServices map[uint64]proto.Service,
 ) {
 	router.StrictSlash(true)
 
 	router.Name("GET " + StatusPath).Path(StatusPath).Methods(http.MethodGet).
-		Handler(getStatus(logger, coreServices, protoServices))
+		Handler(getStatus(logger, db, coreServices, protoServices))
 
 	mkHandler := makeHandlerFactory(logger, db, router)
 
@@ -129,6 +133,9 @@ func MakeRESTHandler(logger *log.Logger, db *database.DB, router *mux.Router,
 	mkHandler(ServerCertPath, replaceServerCert, model.PermServersWrite, http.MethodPut)
 	mkHandler(ServerAuthPath, authorizeServer, model.PermRulesWrite, http.MethodPut)
 	mkHandler(ServerRevPath, revokeServer, model.PermRulesWrite, http.MethodPut)
+	mkHandler(ServerStartPath, startServer(protoServices), model.PermServersWrite, http.MethodPut)
+	mkHandler(ServerStopPath, stopServer(protoServices), model.PermServersWrite, http.MethodPut)
+	mkHandler(ServerRestartPath, restartServer(protoServices), model.PermServersWrite, http.MethodPut)
 
 	// Local accounts
 	mkHandler(LocAccountsPath, listLocalAccounts, model.PermServersRead, http.MethodGet)

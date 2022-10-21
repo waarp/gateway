@@ -8,10 +8,10 @@ import (
 	"net/http"
 	"sync"
 
+	"code.waarp.fr/apps/gateway/gateway/pkg/gatewayd/service"
 	"code.waarp.fr/apps/gateway/gateway/pkg/http/httpconst"
 	"code.waarp.fr/apps/gateway/gateway/pkg/model/types"
 	"code.waarp.fr/apps/gateway/gateway/pkg/pipeline"
-	"code.waarp.fr/apps/gateway/gateway/pkg/tk/service"
 )
 
 var errReadClosed = errors.New("read of closed body")

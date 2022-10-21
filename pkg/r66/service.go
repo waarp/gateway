@@ -15,9 +15,11 @@ import (
 
 	"code.waarp.fr/apps/gateway/gateway/pkg/conf"
 	"code.waarp.fr/apps/gateway/gateway/pkg/database"
+	"code.waarp.fr/apps/gateway/gateway/pkg/gatewayd/service"
+	"code.waarp.fr/apps/gateway/gateway/pkg/gatewayd/service/proto"
+	"code.waarp.fr/apps/gateway/gateway/pkg/gatewayd/service/state"
 	"code.waarp.fr/apps/gateway/gateway/pkg/model"
 	"code.waarp.fr/apps/gateway/gateway/pkg/model/config"
-	"code.waarp.fr/apps/gateway/gateway/pkg/tk/service"
 	"code.waarp.fr/apps/gateway/gateway/pkg/tk/utils"
 	"code.waarp.fr/apps/gateway/gateway/pkg/utils/compatibility"
 )
@@ -32,10 +34,10 @@ var errNoCertificates = errors.New("the R66-TLS server is missing a certificate"
 // Service represents a r66 service, which encompasses a r66 server usable for
 // transfers.
 type Service struct {
-	db     *database.DB
-	logger *log.Logger
-	agent  *model.LocalAgent
-	state  *service.State
+	db      *database.DB
+	logger  *log.Logger
+	agentID uint64
+	state   state.State
 
 	r66Conf  *config.R66ProtoConfig
 	list     net.Listener
@@ -46,23 +48,20 @@ type Service struct {
 }
 
 // NewService returns a new R66 service instance with the given attributes.
-func NewService(db *database.DB, agent *model.LocalAgent, logger *log.Logger) service.ProtoService {
-	return newService(db, agent, logger)
+func NewService(db *database.DB, logger *log.Logger) proto.Service {
+	return newService(db, logger)
 }
 
-func newService(db *database.DB, agent *model.LocalAgent, logger *log.Logger) *Service {
+func newService(db *database.DB, logger *log.Logger) *Service {
 	return &Service{
 		db:               db,
-		agent:            agent,
 		logger:           logger,
-		state:            &service.State{},
-		shutdown:         make(chan struct{}),
 		runningTransfers: service.NewTransferMap(),
 	}
 }
 
-func (s *Service) makeTLSConf() (*tls.Config, error) {
-	certs, err := s.agent.GetCryptos(s.db)
+func (s *Service) makeTLSConf(agent *model.LocalAgent) (*tls.Config, error) {
+	certs, err := agent.GetCryptos(s.db)
 	if err != nil {
 		return nil, err
 	}
@@ -94,15 +93,23 @@ func (s *Service) makeTLSConf() (*tls.Config, error) {
 }
 
 // Start launches a r66 service with an integrated r66 server.
-func (s *Service) Start() error {
-	s.logger.Info("Starting R66 server '%s'...", s.agent.Name)
-	s.state.Set(service.Starting, "")
+func (s *Service) Start(agent *model.LocalAgent) error {
+	if code, _ := s.state.Get(); code != state.Offline && code != state.Error {
+		s.logger.Notice("Cannot start the server because it is already running.")
+
+		return nil
+	}
+
+	s.agentID = agent.ID
+
+	s.logger.Info("Starting R66 server '%s'...", agent.Name)
+	s.state.Set(state.Starting, "")
 
 	s.r66Conf = &config.R66ProtoConfig{}
-	if err := json.Unmarshal(s.agent.ProtoConfig, s.r66Conf); err != nil {
-		s.logger.Error("Failed to parse server ProtoConfig: %s", err)
-		err1 := fmt.Errorf("failed to parse ProtoConfig: %w", err)
-		s.state.Set(service.Error, err1.Error())
+	if err := json.Unmarshal(agent.ProtoConfig, s.r66Conf); err != nil {
+		s.logger.Error("Failed to parse server the R66 proto config: %s", err)
+		err1 := fmt.Errorf("failed to parse the R66 proto config: %w", err)
+		s.state.Set(state.Error, err1.Error())
 
 		return err1
 	}
@@ -111,7 +118,7 @@ func (s *Service) Start() error {
 	if err != nil {
 		s.logger.Error("Failed to decrypt server password: %s", err)
 		dErr := fmt.Errorf("failed to decrypt server password: %w", err)
-		s.state.Set(service.Error, dErr.Error())
+		s.state.Set(state.Error, dErr.Error())
 
 		return dErr
 	}
@@ -129,31 +136,33 @@ func (s *Service) Start() error {
 		Handler: &authHandler{Service: s},
 	}
 
-	if err := s.listen(); err != nil {
-		s.state.Set(service.Error, err.Error())
+	if err := s.listen(agent); err != nil {
+		s.state.Set(state.Error, err.Error())
 
 		return err
 	}
 
-	s.state.Set(service.Running, "")
-	s.logger.Info("R66 server started at %s", s.agent.Address)
+	s.shutdown = make(chan struct{})
+
+	s.state.Set(state.Running, "")
+	s.logger.Info("R66 server started at %s", agent.Address)
 
 	return nil
 }
 
-func (s *Service) listen() error {
-	addr, err := conf.GetRealAddress(s.agent.Address)
+func (s *Service) listen(agent *model.LocalAgent) error {
+	addr, err := conf.GetRealAddress(agent.Address)
 	if err != nil {
 		s.logger.Error("Failed to parse server TLS config: %s", err)
 
 		return fmt.Errorf("failed to indirect the server address: %w", err)
 	}
 
-	if s.agent.Protocol == ProtocolR66TLS {
-		tlsConf, err2 := s.makeTLSConf()
+	if agent.Protocol == ProtocolR66TLS {
+		tlsConf, err2 := s.makeTLSConf(agent)
 		if err2 != nil {
 			s.logger.Error("Failed to parse server TLS config: %s", err2)
-			s.state.Set(service.Error, "failed to parse server TLS config")
+			s.state.Set(state.Error, "failed to parse server TLS config")
 
 			return err2
 		}
@@ -177,7 +186,7 @@ func (s *Service) listen() error {
 
 			default:
 				s.logger.Error("Server stopped unexpectedly: %s", err)
-				s.state.Set(service.Error, fmt.Sprintf("server stopped unexpectedly: %s", err))
+				s.state.Set(state.Error, fmt.Sprintf("server stopped unexpectedly: %s", err))
 			}
 		}
 	}()
@@ -187,20 +196,16 @@ func (s *Service) listen() error {
 
 // Stop shuts down the r66 server and stops the service.
 func (s *Service) Stop(ctx context.Context) error {
-	s.logger.Info("Shutting down R66 server")
-
-	if code, _ := s.State().Get(); code == service.Error || code == service.Offline {
-		s.logger.Info("Server is already offline, nothing to do")
+	if code, _ := s.State().Get(); code == state.Error || code == state.Offline {
+		s.logger.Notice("Server is already offline, nothing to do")
 
 		return nil
 	}
 
-	s.state.Set(service.ShuttingDown, "")
-	defer s.state.Set(service.Offline, "")
+	s.logger.Info("Shutting down R66 server")
 
-	if s.shutdown == nil {
-		s.shutdown = make(chan struct{})
-	}
+	s.state.Set(state.ShuttingDown, "")
+	defer s.state.Set(state.Offline, "")
 
 	close(s.shutdown)
 
@@ -222,14 +227,8 @@ func (s *Service) Stop(ctx context.Context) error {
 }
 
 // State returns the r66 service's state.
-func (s *Service) State() *service.State {
-	if s.server == nil {
-		if code, _ := s.state.Get(); code == service.Running {
-			s.state.Set(service.Offline, "")
-		}
-	}
-
-	return s.state
+func (s *Service) State() *state.State {
+	return &s.state
 }
 
 // ManageTransfers returns a map of the transfers currently running on the server.

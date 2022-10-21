@@ -13,12 +13,12 @@ import (
 	"github.com/smartystreets/goconvey/convey"
 
 	"code.waarp.fr/apps/gateway/gateway/pkg/conf"
+	"code.waarp.fr/apps/gateway/gateway/pkg/gatewayd/service/proto"
 	"code.waarp.fr/apps/gateway/gateway/pkg/model"
 	"code.waarp.fr/apps/gateway/gateway/pkg/model/config"
 	"code.waarp.fr/apps/gateway/gateway/pkg/model/types"
 	"code.waarp.fr/apps/gateway/gateway/pkg/pipeline"
 	"code.waarp.fr/apps/gateway/gateway/pkg/tasks/taskstest"
-	"code.waarp.fr/apps/gateway/gateway/pkg/tk/service"
 	"code.waarp.fr/apps/gateway/gateway/pkg/tk/utils/testhelpers"
 )
 
@@ -31,20 +31,20 @@ type SelfContext struct {
 	*transData
 
 	constr        serviceConstructor
-	service       service.ProtoService
+	service       proto.Service
 	fail          *model.Task
 	protoFeatures *features
 }
 
-func initSelfTransfer(c convey.C, proto string, constr serviceConstructor,
+func initSelfTransfer(c convey.C, protocol string, constr serviceConstructor,
 	partConf, servConf config.ProtoConfig,
 ) *SelfContext {
-	feat, ok := protocols[proto]
+	feat, ok := protocols[protocol]
 	c.So(ok, convey.ShouldBeTrue)
 	t := initTestData(c)
 	port := testhelpers.GetFreePort(c)
-	partner, remAcc := makeClientConf(c, t.DB, port, proto, partConf)
-	server, locAcc := makeServerConf(c, t.DB, port, t.Paths.GatewayHome, proto, servConf)
+	partner, remAcc := makeClientConf(c, t.DB, port, protocol, partConf)
+	server, locAcc := makeServerConf(c, t.DB, port, t.Paths.GatewayHome, protocol, servConf)
 
 	return &SelfContext{
 		testData: t,
@@ -68,11 +68,11 @@ func initSelfTransfer(c convey.C, proto string, constr serviceConstructor,
 // InitSelfPushTransfer creates a database and fills it with all the elements
 // necessary for a push self-transfer test of the given protocol. It then returns
 // all these element inside a SelfContext.
-func InitSelfPushTransfer(c convey.C, proto string, constr serviceConstructor,
+func InitSelfPushTransfer(c convey.C, protocol string, constr serviceConstructor,
 	partConf, servConf config.ProtoConfig,
 ) *SelfContext {
-	ctx := initSelfTransfer(c, proto, constr, partConf, servConf)
-	ctx.ClientRule = makeClientPush(c, ctx.DB, proto)
+	ctx := initSelfTransfer(c, protocol, constr, partConf, servConf)
+	ctx.ClientRule = makeClientPush(c, ctx.DB, protocol)
 	ctx.ServerRule = makeServerPush(c, ctx.DB)
 	ctx.addPushTransfer(c)
 
@@ -82,11 +82,11 @@ func InitSelfPushTransfer(c convey.C, proto string, constr serviceConstructor,
 // InitSelfPullTransfer creates a database and fills it with all the elements
 // necessary for a pull self-transfer test of the given protocol. It then returns
 // all these element inside a SelfContext.
-func InitSelfPullTransfer(c convey.C, proto string, constr serviceConstructor,
+func InitSelfPullTransfer(c convey.C, protocol string, constr serviceConstructor,
 	partConf, servConf config.ProtoConfig,
 ) *SelfContext {
-	ctx := initSelfTransfer(c, proto, constr, partConf, servConf)
-	ctx.ClientRule = makeClientPull(c, ctx.DB, proto)
+	ctx := initSelfTransfer(c, protocol, constr, partConf, servConf)
+	ctx.ClientRule = makeClientPull(c, ctx.DB, protocol)
 	ctx.ServerRule = makeServerPull(c, ctx.DB)
 	ctx.addPullTransfer(c)
 
@@ -141,8 +141,8 @@ func (s *SelfContext) addPullTransfer(c convey.C) {
 // the SelfContext.
 func (s *SelfContext) StartService(c convey.C) {
 	logger := testhelpers.TestLogger(c, fmt.Sprintf("test_%s_server", s.Server.Protocol))
-	s.service = s.constr(s.DB, s.Server, logger)
-	c.So(s.service.Start(), convey.ShouldBeNil)
+	s.service = s.constr(s.DB, logger)
+	c.So(s.service.Start(s.Server), convey.ShouldBeNil)
 	c.Reset(func() {
 		ctx, cancel := context.WithTimeout(context.Background(), time.Second)
 		defer cancel()
@@ -151,7 +151,7 @@ func (s *SelfContext) StartService(c convey.C) {
 }
 
 // Service returns the context's service.
-func (s *SelfContext) Service() service.ProtoService { return s.service }
+func (s *SelfContext) Service() proto.Service { return s.service }
 
 // AddCryptos adds the given cryptos to the test database.
 func (s *SelfContext) AddCryptos(c convey.C, certs ...model.Crypto) {

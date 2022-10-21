@@ -12,7 +12,9 @@ import (
 
 	"code.waarp.fr/apps/gateway/gateway/pkg/conf"
 	"code.waarp.fr/apps/gateway/gateway/pkg/database"
-	"code.waarp.fr/apps/gateway/gateway/pkg/tk/service"
+	"code.waarp.fr/apps/gateway/gateway/pkg/gatewayd/service"
+	"code.waarp.fr/apps/gateway/gateway/pkg/gatewayd/service/proto"
+	"code.waarp.fr/apps/gateway/gateway/pkg/gatewayd/service/state"
 	"code.waarp.fr/apps/gateway/gateway/pkg/tk/utils/testhelpers"
 )
 
@@ -32,7 +34,7 @@ func TestStart(t *testing.T) {
 		}
 		server := &Server{
 			CoreServices:  map[string]service.Service{},
-			ProtoServices: map[string]service.ProtoService{},
+			ProtoServices: map[uint64]proto.Service{},
 		}
 		Reset(func() { _ = server.server.Close() })
 
@@ -47,7 +49,7 @@ func TestStart(t *testing.T) {
 				Convey("Then the service should be running", func() {
 					code, reason := server.State().Get()
 
-					So(code, ShouldEqual, service.Running)
+					So(code, ShouldEqual, state.Running)
 					So(reason, ShouldBeEmpty)
 				})
 
@@ -57,7 +59,7 @@ func TestStart(t *testing.T) {
 					Convey("Then the service should still be running", func() {
 						code, reason := server.State().Get()
 
-						So(code, ShouldEqual, service.Running)
+						So(code, ShouldEqual, state.Running)
 						So(reason, ShouldBeEmpty)
 					})
 				})
@@ -80,7 +82,7 @@ func TestStart(t *testing.T) {
 			Convey("Then the service should be running", func() {
 				code, reason := server.State().Get()
 
-				So(code, ShouldEqual, service.Running)
+				So(code, ShouldEqual, state.Running)
 				So(reason, ShouldBeEmpty)
 			})
 		})
@@ -90,7 +92,7 @@ func TestStart(t *testing.T) {
 			conf.GlobalConfig.Admin.Port = 0
 			rest := &Server{
 				CoreServices:  map[string]service.Service{},
-				ProtoServices: map[string]service.ProtoService{},
+				ProtoServices: map[uint64]proto.Service{},
 			}
 
 			Convey("When starting the service", func() {
@@ -109,7 +111,7 @@ func TestStart(t *testing.T) {
 			conf.GlobalConfig.Admin.TLSKey = "not_a_key"
 			rest := &Server{
 				CoreServices:  map[string]service.Service{},
-				ProtoServices: map[string]service.ProtoService{},
+				ProtoServices: map[uint64]proto.Service{},
 			}
 
 			Convey("When starting the service", func() {
@@ -128,7 +130,7 @@ func TestStop(t *testing.T) {
 		conf.GlobalConfig.Admin = conf.AdminConfig{Host: "localhost"}
 		rest := &Server{
 			CoreServices:  map[string]service.Service{},
-			ProtoServices: map[string]service.ProtoService{},
+			ProtoServices: map[uint64]proto.Service{},
 		}
 
 		err := rest.Start()

@@ -14,6 +14,8 @@ import (
 	. "code.waarp.fr/apps/gateway/gateway/pkg/admin/rest/api"
 	"code.waarp.fr/apps/gateway/gateway/pkg/conf"
 	"code.waarp.fr/apps/gateway/gateway/pkg/database"
+	"code.waarp.fr/apps/gateway/gateway/pkg/gatewayd/service/proto"
+	"code.waarp.fr/apps/gateway/gateway/pkg/gatewayd/service/state"
 	"code.waarp.fr/apps/gateway/gateway/pkg/model"
 	"code.waarp.fr/apps/gateway/gateway/pkg/tk/utils/testhelpers"
 )
@@ -418,7 +420,7 @@ func TestUpdateServer(t *testing.T) {
 					handler.ServeHTTP(w, r)
 
 					Convey("Then the response body should be empty", func() {
-						So(w.Body.String(), ShouldBeEmpty)
+						So(w.Body.String(), ShouldEqual, ServerRestartRequiredMsg)
 					})
 
 					Convey("Then it should reply 'Created'", func() {
@@ -522,7 +524,7 @@ func TestReplaceServer(t *testing.T) {
 					handler.ServeHTTP(w, r)
 
 					Convey("Then the response body should be empty", func() {
-						So(w.Body.String(), ShouldBeEmpty)
+						So(w.Body.String(), ShouldEqual, ServerRestartRequiredMsg)
 					})
 
 					Convey("Then it should reply 'Created'", func() {
@@ -629,4 +631,172 @@ func TestEnableDisableServer(t *testing.T) {
 
 	testEnableDisableServer(true)
 	testEnableDisableServer(false)
+}
+
+func TestStartServer(t *testing.T) {
+	Convey("Given the server start handler", t, func(c C) {
+		logger := testhelpers.TestLogger(c, "rest_agent_update_logger")
+		db := database.TestDatabase(c)
+		protoServices := map[uint64]proto.Service{}
+		handle := startServer(protoServices)(logger, db)
+		w := httptest.NewRecorder()
+
+		Convey("Given a database with 1 agent", func() {
+			agent := model.LocalAgent{
+				Name:        "local server",
+				Protocol:    testProto1,
+				Address:     "localhost:1",
+				ProtoConfig: json.RawMessage(`{}`),
+			}
+			So(db.Insert(&agent).Run(), ShouldBeNil)
+
+			Convey("Given a valid name parameter", func() {
+				r := httptest.NewRequest(http.MethodPatch, ServerStartPath, nil)
+				r = mux.SetURLVars(r, map[string]string{"server": agent.Name})
+
+				handle.ServeHTTP(w, r)
+
+				Convey("Then it should have replied with a 202 code", func() {
+					So(w.Body.String(), ShouldBeEmpty)
+					So(w.Code, ShouldEqual, http.StatusAccepted)
+				})
+
+				Convey("Then it should have started the service", func() {
+					So(protoServices, ShouldContainKey, agent.ID)
+
+					code, _ := protoServices[agent.ID].State().Get()
+					So(code, ShouldEqual, state.Running)
+				})
+			})
+
+			Convey("Given an incorrect name parameter", func() {
+				r := httptest.NewRequest(http.MethodPatch, ServerStartPath, nil)
+				r = mux.SetURLVars(r, map[string]string{"server": "toto"})
+
+				handle.ServeHTTP(w, r)
+
+				Convey("Then it should have replied with a 404 code", func() {
+					So(w.Code, ShouldEqual, http.StatusNotFound)
+					So(w.Body.String(), ShouldEqual, "server 'toto' not found\n")
+				})
+			})
+		})
+	})
+}
+
+func TestStopServer(t *testing.T) {
+	Convey("Given the server stop handler", t, func(c C) {
+		logger := testhelpers.TestLogger(c, "rest_agent_update_logger")
+		db := database.TestDatabase(c)
+		protoServices := map[uint64]proto.Service{}
+		handle := stopServer(protoServices)(logger, db)
+		w := httptest.NewRecorder()
+
+		Convey("Given a database with 1 agent", func() {
+			agent := model.LocalAgent{
+				Name:        "local server",
+				Protocol:    testProto1,
+				Address:     "localhost:1",
+				ProtoConfig: json.RawMessage(`{}`),
+			}
+			So(db.Insert(&agent).Run(), ShouldBeNil)
+
+			serv := &testServer{}
+			So(serv.Start(&agent), ShouldBeNil)
+
+			protoServices[agent.ID] = serv
+
+			Convey("Given a valid name parameter", func() {
+				r := httptest.NewRequest(http.MethodPatch, ServerStopPath, nil)
+				r = mux.SetURLVars(r, map[string]string{"server": agent.Name})
+
+				handle.ServeHTTP(w, r)
+
+				Convey("Then it should have replied with a 202 code", func() {
+					So(w.Body.String(), ShouldBeEmpty)
+					So(w.Code, ShouldEqual, http.StatusAccepted)
+				})
+
+				Convey("Then it should have stopped the service", func() {
+					So(protoServices, ShouldContainKey, agent.ID)
+
+					code, _ := protoServices[agent.ID].State().Get()
+					So(code, ShouldEqual, state.Offline)
+				})
+			})
+
+			Convey("Given an incorrect name parameter", func() {
+				r := httptest.NewRequest(http.MethodPatch, ServerStopPath, nil)
+				r = mux.SetURLVars(r, map[string]string{"server": "toto"})
+
+				handle.ServeHTTP(w, r)
+
+				Convey("Then it should have replied with a 404 code", func() {
+					So(w.Code, ShouldEqual, http.StatusNotFound)
+					So(w.Body.String(), ShouldEqual, "server 'toto' not found\n")
+				})
+			})
+		})
+	})
+}
+
+func TestRestartServer(t *testing.T) {
+	Convey("Given the server stop handler", t, func(c C) {
+		logger := testhelpers.TestLogger(c, "rest_agent_update_logger")
+		db := database.TestDatabase(c)
+		protoServices := map[uint64]proto.Service{}
+		handle := restartServer(protoServices)(logger, db)
+		w := httptest.NewRecorder()
+
+		Convey("Given a database with 1 agent", func() {
+			agent := model.LocalAgent{
+				Name:        "local server",
+				Protocol:    testProto1,
+				Address:     "localhost:1",
+				ProtoConfig: json.RawMessage(`{}`),
+			}
+			So(db.Insert(&agent).Run(), ShouldBeNil)
+
+			serv := &testServer{}
+			So(serv.Start(&agent), ShouldBeNil)
+
+			protoServices[agent.ID] = serv
+			agent.Name = "restarted local server"
+
+			So(db.Update(&agent).Run(), ShouldBeNil)
+
+			Convey("Given a valid name parameter", func() {
+				r := httptest.NewRequest(http.MethodPatch, ServerRestartPath, nil)
+				r = mux.SetURLVars(r, map[string]string{"server": agent.Name})
+
+				handle.ServeHTTP(w, r)
+
+				Convey("Then it should have replied with a 202 code", func() {
+					So(w.Body.String(), ShouldBeEmpty)
+					So(w.Code, ShouldEqual, http.StatusAccepted)
+				})
+
+				Convey("Then it should have restarted the service", func() {
+					So(protoServices, ShouldContainKey, agent.ID)
+
+					code, _ := protoServices[agent.ID].State().Get()
+					So(code, ShouldEqual, state.Running)
+
+					So(serv.name, ShouldEqual, "restarted local server")
+				})
+			})
+
+			Convey("Given an incorrect name parameter", func() {
+				r := httptest.NewRequest(http.MethodPatch, ServerRestartPath, nil)
+				r = mux.SetURLVars(r, map[string]string{"server": "toto"})
+
+				handle.ServeHTTP(w, r)
+
+				Convey("Then it should have replied with a 404 code", func() {
+					So(w.Code, ShouldEqual, http.StatusNotFound)
+					So(w.Body.String(), ShouldEqual, "server 'toto' not found\n")
+				})
+			})
+		})
+	})
 }

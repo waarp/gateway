@@ -360,9 +360,10 @@ func (s *serverEnableDisable) run(isEnable bool) error {
 
 		return nil
 	case http.StatusNotFound:
-		return getResponseMessage(resp)
+		return getResponseErrorMessage(resp)
 	default:
-		return fmt.Errorf("unexpected error (%s): %w", resp.Status, getResponseMessage(resp))
+		return fmt.Errorf("unexpected error (%s): %w", resp.Status,
+			getResponseErrorMessage(resp))
 	}
 }
 
@@ -373,3 +374,53 @@ type (
 
 func (s *ServerEnable) Execute([]string) error  { return s.run(true) }
 func (s *ServerDisable) Execute([]string) error { return s.run(false) }
+
+// ######################## START/STOP ############################
+
+type ServerStart struct {
+	Args struct {
+		Name string `required:"yes" positional-arg-name:"name" description:"The server's name"`
+	} `positional-args:"yes"`
+}
+
+func (s *ServerStart) Execute([]string) error {
+	if err := exec(fmt.Sprintf("/api/servers/%s/start", s.Args.Name)); err != nil {
+		return err
+	}
+
+	fmt.Fprintln(getColorable(), "The server", bold(s.Args.Name), "was successfully started.")
+
+	return nil
+}
+
+type ServerStop struct {
+	Args struct {
+		Name string `required:"yes" positional-arg-name:"name" description:"The server's name"`
+	} `positional-args:"yes"`
+}
+
+func (s *ServerStop) Execute([]string) error {
+	if err := exec(fmt.Sprintf("/api/servers/%s/stop", s.Args.Name)); err != nil {
+		return err
+	}
+
+	fmt.Fprintln(getColorable(), "The server", bold(s.Args.Name), "was successfully stopped.")
+
+	return nil
+}
+
+type ServerRestart struct {
+	Args struct {
+		Name string `required:"yes" positional-arg-name:"name" description:"The server's name"`
+	} `positional-args:"yes"`
+}
+
+func (s *ServerRestart) Execute([]string) error {
+	if err := exec(fmt.Sprintf("/api/servers/%s/restart", s.Args.Name)); err != nil {
+		return err
+	}
+
+	fmt.Fprintln(getColorable(), "The server", bold(s.Args.Name), "was successfully restarted.")
+
+	return nil
+}

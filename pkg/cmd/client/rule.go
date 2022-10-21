@@ -397,9 +397,9 @@ func (r *RuleAllowAll) Execute([]string) error {
 		return nil
 
 	case http.StatusNotFound:
-		return getResponseMessage(resp)
+		return getResponseErrorMessage(resp)
 
 	default:
-		return fmt.Errorf("unexpected error: %w", getResponseMessage(resp))
+		return fmt.Errorf("unexpected error: %w", getResponseErrorMessage(resp))
 	}
 }

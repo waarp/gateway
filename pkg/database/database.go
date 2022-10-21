@@ -8,17 +8,17 @@ import (
 	"crypto/rand"
 	"errors"
 	"fmt"
-	"io/ioutil"
 	"os"
 	"time"
 
 	"code.waarp.fr/lib/log"
 	"xorm.io/xorm"
-	xlog "xorm.io/xorm/log"
-	"xorm.io/xorm/names"
+	xLog "xorm.io/xorm/log"
+	xNames "xorm.io/xorm/names"
 
 	"code.waarp.fr/apps/gateway/gateway/pkg/conf"
-	"code.waarp.fr/apps/gateway/gateway/pkg/tk/service"
+	"code.waarp.fr/apps/gateway/gateway/pkg/gatewayd/service/names"
+	"code.waarp.fr/apps/gateway/gateway/pkg/gatewayd/service/state"
 	"code.waarp.fr/apps/gateway/gateway/pkg/tk/utils"
 )
 
@@ -38,7 +38,7 @@ type DB struct {
 	// The service Logger
 	logger *log.Logger
 	// The state of the database service
-	state service.State
+	state state.State
 
 	// The database accessor.
 	*Standalone
@@ -59,12 +59,12 @@ func (db *DB) loadAESKey() error {
 			return fmt.Errorf("cannot generate AES key: %w", err)
 		}
 
-		if err := ioutil.WriteFile(utils.ToOSPath(filename), key, 0o600); err != nil {
+		if err := os.WriteFile(utils.ToOSPath(filename), key, 0o600); err != nil {
 			return fmt.Errorf("cannot write AES key to file %q: %w", filename, err)
 		}
 	}
 
-	key, err := ioutil.ReadFile(utils.ToOSPath(filename))
+	key, err := os.ReadFile(utils.ToOSPath(filename))
 	if err != nil {
 		return fmt.Errorf("cannot read AES key from file %q: %w", filename, err)
 	}
@@ -119,8 +119,8 @@ func (db *DB) initEngine() (*xorm.Engine, error) {
 		return nil, fmt.Errorf("cannot initialize database access: %w", err)
 	}
 
-	engine.SetLogger(xlog.DiscardLogger{})
-	engine.SetMapper(names.GonicMapper{})
+	engine.SetLogger(xLog.DiscardLogger{})
+	engine.SetMapper(xNames.GonicMapper{})
 
 	if err := init(engine); err != nil {
 		return nil, err
@@ -145,21 +145,21 @@ func (db *DB) Start() error {
 
 func (db *DB) start(withInit bool) error {
 	if db.logger == nil {
-		db.logger = conf.GetLogger(service.DatabaseServiceName)
+		db.logger = conf.GetLogger(names.DatabaseServiceName)
 	}
 
 	db.logger.Info("Starting database service...")
 
-	if code, _ := db.state.Get(); code != service.Offline && code != service.Error {
+	if code, _ := db.state.Get(); code != state.Offline && code != state.Error {
 		db.logger.Info("Service is already running")
 
 		return nil
 	}
 
-	db.state.Set(service.Starting, "")
+	db.state.Set(state.Starting, "")
 
 	if err := db.loadAESKey(); err != nil {
-		db.state.Set(service.Error, err.Error())
+		db.state.Set(state.Error, err.Error())
 		db.logger.Critical("Failed to load AES key: %s", err)
 
 		return err
@@ -167,7 +167,7 @@ func (db *DB) start(withInit bool) error {
 
 	engine, err := db.initEngine()
 	if err != nil {
-		db.state.Set(service.Error, err.Error())
+		db.state.Set(state.Error, err.Error())
 
 		return err
 	}
@@ -182,7 +182,7 @@ func (db *DB) start(withInit bool) error {
 			db.logger.Warning("an error occurred while closing the database: %v", err2)
 		}
 
-		db.state.Set(service.Error, err1.Error())
+		db.state.Set(state.Error, err1.Error())
 
 		return err1
 	}
@@ -192,14 +192,14 @@ func (db *DB) start(withInit bool) error {
 			db.logger.Warning("an error occurred while closing the database: %v", err2)
 		}
 
-		db.state.Set(service.Error, err1.Error())
+		db.state.Set(state.Error, err1.Error())
 		db.logger.Error("Failed to create tables: %s", err1)
 
 		return err1
 	}
 
 	db.logger.Info("Startup successful")
-	db.state.Set(service.Running, "")
+	db.state.Set(state.Running, "")
 
 	return nil
 }
@@ -210,23 +210,23 @@ func (db *DB) start(withInit bool) error {
 func (db *DB) Stop(_ context.Context) error {
 	db.logger.Info("Shutting down...")
 
-	if code, _ := db.state.Get(); code != service.Running {
+	if code, _ := db.state.Get(); code != state.Running {
 		db.logger.Info("Service is already offline")
 
 		return nil
 	}
 
-	db.state.Set(service.ShuttingDown, "")
+	db.state.Set(state.ShuttingDown, "")
 
 	err := db.Standalone.engine.Close()
 	if err != nil {
-		db.state.Set(service.Error, err.Error())
+		db.state.Set(state.Error, err.Error())
 		db.logger.Info("Error while closing the database: %s", err)
 
 		return fmt.Errorf("an error occurred while closing the database: %w", err)
 	}
 
-	db.state.Set(service.Offline, "")
+	db.state.Set(state.Offline, "")
 	db.logger.Info("Shutdown complete")
 	db.Standalone.engine = nil
 
@@ -234,7 +234,7 @@ func (db *DB) Stop(_ context.Context) error {
 }
 
 // State returns the state of the database service.
-func (db *DB) State() *service.State {
+func (db *DB) State() *state.State {
 	ctx, cancel := context.WithTimeout(context.Background(), time.Second)
 	defer cancel()
 

@@ -32,10 +32,10 @@ func TestServiceStart(t *testing.T) {
 		So(db.Insert(server).Run(), ShouldBeNil)
 
 		logger := testhelpers.TestLogger(c, "test_r66_start")
-		serv := NewService(db, server, logger)
+		serv := NewService(db, logger)
 
 		Convey("When calling the 'Start' function", func() {
-			err := serv.Start()
+			err := serv.Start(server)
 
 			Convey("Then it should not return an error", func() {
 				So(err, ShouldBeNil)
@@ -62,10 +62,10 @@ func TestServiceStart(t *testing.T) {
 		So(db.Insert(cert).Run(), ShouldBeNil)
 
 		logger := testhelpers.TestLogger(c, "test_r66_start")
-		serv := NewService(db, server, logger)
+		serv := NewService(db, logger)
 
 		Convey("When calling the 'Start' function", func() {
-			err := serv.Start()
+			err := serv.Start(server)
 
 			Convey("Then it should not return an error", func() {
 				So(err, ShouldBeNil)
@@ -84,10 +84,10 @@ func TestServiceStart(t *testing.T) {
 		So(db.Insert(server).Run(), ShouldBeNil)
 
 		logger := testhelpers.TestLogger(c, "test_r66_start")
-		serv := NewService(db, server, logger)
+		serv := NewService(db, logger)
 
 		Convey("When calling the 'Start' function", func() {
-			err := serv.Start()
+			err := serv.Start(server)
 
 			Convey("Then it should return an error", func() {
 				So(err, ShouldBeError, errNoCertificates)
@@ -108,8 +108,8 @@ func TestServiceStop(t *testing.T) {
 		So(db.Insert(server).Run(), ShouldBeNil)
 
 		logger := testhelpers.TestLogger(c, "test_r66_start")
-		serv := NewService(db, server, logger)
-		So(serv.Start(), ShouldBeNil)
+		serv := NewService(db, logger)
+		So(serv.Start(server), ShouldBeNil)
 
 		Convey("When calling the 'Stop' function", func() {
 			ctx, cancel := context.WithTimeout(context.Background(), time.Second)
@@ -128,8 +128,8 @@ func TestR66ServerInterruption(t *testing.T) {
 		test := pipelinetest.InitServerPush(c, ProtocolR66, NewService, servConf)
 
 		logger := testhelpers.TestLogger(c, "test_r66_start")
-		serv := newService(test.DB, test.Server, logger)
-		c.So(serv.Start(), ShouldBeNil)
+		serv := newService(test.DB, logger)
+		c.So(serv.Start(test.Server), ShouldBeNil)
 
 		Convey("Given a dummy R66 client", func(c C) {
 			ses := makeDummyClient(c, test)

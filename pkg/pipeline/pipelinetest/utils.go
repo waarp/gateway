@@ -2,7 +2,6 @@ package pipelinetest
 
 import (
 	"crypto/rand"
-	"io/ioutil"
 	"os"
 	"path/filepath"
 
@@ -12,10 +11,10 @@ import (
 
 	"code.waarp.fr/apps/gateway/gateway/pkg/conf"
 	"code.waarp.fr/apps/gateway/gateway/pkg/database"
+	"code.waarp.fr/apps/gateway/gateway/pkg/gatewayd/service/proto"
 	"code.waarp.fr/apps/gateway/gateway/pkg/model"
 	"code.waarp.fr/apps/gateway/gateway/pkg/pipeline"
 	"code.waarp.fr/apps/gateway/gateway/pkg/tasks/taskstest"
-	"code.waarp.fr/apps/gateway/gateway/pkg/tk/service"
 	"code.waarp.fr/apps/gateway/gateway/pkg/tk/utils/testhelpers"
 )
 
@@ -26,8 +25,7 @@ const (
 	TestPassword = "sesame"
 )
 
-type serviceConstructor func(db *database.DB, agent *model.LocalAgent,
-	logger *log.Logger) service.ProtoService
+type serviceConstructor func(db *database.DB, logger *log.Logger) proto.Service
 
 // TestFileSize defines the size of the file used for transfer tests.
 const TestFileSize int64 = 1000000 // 1MB
@@ -55,7 +53,7 @@ func AddSourceFile(c convey.C, dir, file string) []byte {
 	c.So(err, convey.ShouldBeNil)
 
 	path := filepath.Join(dir, file)
-	c.So(ioutil.WriteFile(path, cont, 0o600), convey.ShouldBeNil)
+	c.So(os.WriteFile(path, cont, 0o600), convey.ShouldBeNil)
 
 	return cont
 }

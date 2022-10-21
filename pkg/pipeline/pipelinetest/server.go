@@ -13,9 +13,9 @@ import (
 
 	"code.waarp.fr/apps/gateway/gateway/pkg/conf"
 	"code.waarp.fr/apps/gateway/gateway/pkg/database"
+	"code.waarp.fr/apps/gateway/gateway/pkg/gatewayd/service/proto"
 	"code.waarp.fr/apps/gateway/gateway/pkg/model"
 	"code.waarp.fr/apps/gateway/gateway/pkg/model/config"
-	"code.waarp.fr/apps/gateway/gateway/pkg/tk/service"
 	"code.waarp.fr/apps/gateway/gateway/pkg/tk/utils"
 	"code.waarp.fr/apps/gateway/gateway/pkg/tk/utils/testhelpers"
 )
@@ -35,12 +35,12 @@ type serverData struct {
 	ServerRule *model.Rule
 }
 
-func initServer(c convey.C, proto string, constr serviceConstructor,
+func initServer(c convey.C, protocol string, constr serviceConstructor,
 	servConf config.ProtoConfig,
 ) *ServerContext {
 	t := initTestData(c)
 	port := testhelpers.GetFreePort(c)
-	server, locAcc := makeServerConf(c, t.DB, port, t.Paths.GatewayHome, proto, servConf)
+	server, locAcc := makeServerConf(c, t.DB, port, t.Paths.GatewayHome, protocol, servConf)
 
 	return &ServerContext{
 		testData: t,
@@ -59,10 +59,10 @@ func (s *ServerContext) Filename() string { return s.filename }
 // InitServerPush creates a database and fills it with all the elements necessary
 // for a server push transfer test of the given protocol. It then returns all these
 // element inside a ServerContext.
-func InitServerPush(c convey.C, proto string, constr serviceConstructor,
+func InitServerPush(c convey.C, protocol string, constr serviceConstructor,
 	servConf config.ProtoConfig,
 ) *ServerContext {
-	ctx := initServer(c, proto, constr, servConf)
+	ctx := initServer(c, protocol, constr, servConf)
 	ctx.ServerRule = makeServerPush(c, ctx.DB)
 
 	return ctx
@@ -71,10 +71,10 @@ func InitServerPush(c convey.C, proto string, constr serviceConstructor,
 // InitServerPull creates a database and fills it with all the elements necessary
 // for a server pull transfer test of the given protocol. It then returns all these
 // element inside a ServerContext.
-func InitServerPull(c convey.C, proto string, constr serviceConstructor,
+func InitServerPull(c convey.C, protocol string, constr serviceConstructor,
 	servConf config.ProtoConfig,
 ) *ServerContext {
-	ctx := initServer(c, proto, constr, servConf)
+	ctx := initServer(c, protocol, constr, servConf)
 	ctx.ServerRule = makeServerPull(c, ctx.DB)
 
 	return ctx
@@ -107,7 +107,7 @@ func makeServerPull(c convey.C, db *database.DB) *model.Rule {
 	return rule
 }
 
-func makeServerConf(c convey.C, db *database.DB, port uint16, home, proto string,
+func makeServerConf(c convey.C, db *database.DB, port uint16, home, protocol string,
 	servConf config.ProtoConfig,
 ) (ag *model.LocalAgent, acc *model.LocalAccount) {
 	jsonServConf := json.RawMessage(`{}`)
@@ -118,12 +118,12 @@ func makeServerConf(c convey.C, db *database.DB, port uint16, home, proto string
 		c.So(err, convey.ShouldBeNil)
 	}
 
-	root := filepath.Join(home, proto+"_server_root")
+	root := filepath.Join(home, protocol+"_server_root")
 	c.So(os.MkdirAll(root, 0o700), convey.ShouldBeNil)
 
 	server := &model.LocalAgent{
 		Name:          "server",
-		Protocol:      proto,
+		Protocol:      protocol,
 		RootDir:       utils.ToOSPath(root),
 		ProtoConfig:   jsonServConf,
 		Address:       fmt.Sprintf("127.0.0.1:%d", port),
@@ -138,7 +138,7 @@ func makeServerConf(c convey.C, db *database.DB, port uint16, home, proto string
 	c.So(os.MkdirAll(filepath.Join(root, server.TmpReceiveDir), 0o700), convey.ShouldBeNil)
 
 	pswd := TestPassword
-	if proto == config.ProtocolR66 || proto == config.ProtocolR66TLS {
+	if protocol == config.ProtocolR66 || protocol == config.ProtocolR66TLS {
 		pswd = string(r66.CryptPass([]byte(pswd)))
 	}
 
@@ -161,10 +161,10 @@ func (s *ServerContext) AddCryptos(c convey.C, certs ...model.Crypto) {
 }
 
 // StartService starts the service associated with the server defined in ServerContext.
-func (s *ServerContext) StartService(c convey.C) service.Service {
+func (s *ServerContext) StartService(c convey.C) proto.Service {
 	logger := conf.GetLogger(fmt.Sprintf("test_%s_server", s.Server.Protocol))
-	serv := s.constr(s.DB, s.Server, logger)
-	c.So(serv.Start(), convey.ShouldBeNil)
+	serv := s.constr(s.DB, logger)
+	c.So(serv.Start(s.Server), convey.ShouldBeNil)
 	c.Reset(func() {
 		ctx, cancel := context.WithTimeout(context.Background(), time.Second)
 		defer cancel()

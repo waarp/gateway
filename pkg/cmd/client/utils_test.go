@@ -1,6 +1,7 @@
 package wg
 
 import (
+	"context"
 	"errors"
 	"io"
 	"net/http"
@@ -14,6 +15,11 @@ import (
 
 	"code.waarp.fr/apps/gateway/gateway/pkg/admin"
 	"code.waarp.fr/apps/gateway/gateway/pkg/database"
+	"code.waarp.fr/apps/gateway/gateway/pkg/gatewayd/service"
+	"code.waarp.fr/apps/gateway/gateway/pkg/gatewayd/service/constructors"
+	"code.waarp.fr/apps/gateway/gateway/pkg/gatewayd/service/proto"
+	"code.waarp.fr/apps/gateway/gateway/pkg/gatewayd/service/state"
+	"code.waarp.fr/apps/gateway/gateway/pkg/model"
 	"code.waarp.fr/apps/gateway/gateway/pkg/model/config"
 )
 
@@ -28,6 +34,7 @@ func init() {
 	config.ProtoConfigs[testProto1] = func() config.ProtoConfig { return new(TestProtoConfig) }
 	config.ProtoConfigs[testProto2] = func() config.ProtoConfig { return new(TestProtoConfig) }
 	config.ProtoConfigs[testProtoErr] = func() config.ProtoConfig { return new(TestProtoConfigFail) }
+	constructors.ServiceConstructors[testProto1] = newTestServer
 }
 
 func discard() *log.Logger {
@@ -95,4 +102,26 @@ func executeCommand(command flags.Commander, args ...string) error {
 	So(err, ShouldBeNil)
 
 	return command.Execute(params) //nolint:wrapcheck //no need to wrap here
+}
+
+type testLocalServer struct {
+	name  string
+	state state.State
+}
+
+func newTestServer(*database.DB, *log.Logger) proto.Service    { return &testLocalServer{} }
+func (t *testLocalServer) State() *state.State                 { return &t.state }
+func (*testLocalServer) ManageTransfers() *service.TransferMap { return service.NewTransferMap() }
+
+func (t *testLocalServer) Start(a *model.LocalAgent) error {
+	t.name = a.Name
+	t.state.Set(state.Running, "")
+
+	return nil
+}
+
+func (t *testLocalServer) Stop(context.Context) error {
+	t.state.Set(state.Offline, "")
+
+	return nil
 }

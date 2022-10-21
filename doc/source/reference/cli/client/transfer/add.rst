@@ -38,7 +38,7 @@ Programme un nouveau transfert avec les attributs ci-dessous.
 
 .. option:: -d <DATE>, --date=<DATE>
 
-   La date de début du transfer en format ISO 8601. Par défaut, le transfert
+   La date de début du transfert en format ISO 8601. Par défaut, le transfert
    débutera immédiatement.
 
 .. option:: -n <FILENAME>, --name=<FILENAME>

@@ -13,10 +13,10 @@ import (
 
 	"code.waarp.fr/apps/gateway/gateway/pkg/conf"
 	"code.waarp.fr/apps/gateway/gateway/pkg/database"
+	"code.waarp.fr/apps/gateway/gateway/pkg/gatewayd/service"
 	"code.waarp.fr/apps/gateway/gateway/pkg/model"
 	"code.waarp.fr/apps/gateway/gateway/pkg/model/types"
 	"code.waarp.fr/apps/gateway/gateway/pkg/pipeline"
-	"code.waarp.fr/apps/gateway/gateway/pkg/tk/service"
 	"code.waarp.fr/apps/gateway/gateway/pkg/tk/utils"
 	"code.waarp.fr/apps/gateway/gateway/pkg/tk/utils/testhelpers"
 )
@@ -41,9 +41,9 @@ func TestValidAuth(t *testing.T) {
 		So(db.Insert(toto).Run(), ShouldBeNil)
 
 		handler := &authHandler{Service: &Service{
-			db:     db,
-			logger: logger,
-			agent:  r66Server,
+			db:      db,
+			logger:  logger,
+			agentID: r66Server.ID,
 		}}
 
 		Convey("Given an authentication packet", func() {
@@ -132,7 +132,7 @@ func TestValidRequest(t *testing.T) {
 			authHandler: &authHandler{Service: &Service{
 				db:               db,
 				logger:           logger,
-				agent:            server,
+				agentID:          server.ID,
 				runningTransfers: service.NewTransferMap(),
 			}},
 			account: account,
@@ -273,9 +273,9 @@ func TestUpdateTransferInfo(t *testing.T) {
 			hand := transferHandler{
 				sessionHandler: &sessionHandler{
 					authHandler: &authHandler{Service: &Service{
-						db:     db,
-						logger: logger,
-						agent:  server,
+						db:      db,
+						logger:  logger,
+						agentID: server.ID,
 					}},
 				},
 				trans: &serverTransfer{
@@ -327,9 +327,9 @@ func TestUpdateTransferInfo(t *testing.T) {
 			hand := transferHandler{
 				sessionHandler: &sessionHandler{
 					authHandler: &authHandler{Service: &Service{
-						db:     db,
-						logger: logger,
-						agent:  server,
+						db:      db,
+						logger:  logger,
+						agentID: server.ID,
 					}},
 				},
 				trans: &serverTransfer{

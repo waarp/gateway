@@ -1,7 +1,11 @@
 package rest
 
 import (
+	"context"
+	"errors"
+	"fmt"
 	"net/http"
+	"time"
 
 	"code.waarp.fr/lib/log"
 	"github.com/gorilla/mux"
@@ -9,7 +13,17 @@ import (
 	"code.waarp.fr/apps/gateway/gateway/pkg/admin/rest/api"
 	"code.waarp.fr/apps/gateway/gateway/pkg/conf"
 	"code.waarp.fr/apps/gateway/gateway/pkg/database"
+	"code.waarp.fr/apps/gateway/gateway/pkg/gatewayd/service/constructors"
+	"code.waarp.fr/apps/gateway/gateway/pkg/gatewayd/service/proto"
+	"code.waarp.fr/apps/gateway/gateway/pkg/gatewayd/service/state"
 	"code.waarp.fr/apps/gateway/gateway/pkg/model"
+)
+
+const (
+	ServerRestartRequiredMsg = "A restart is required when changing a server's " +
+		"name, protocol or address for the changes to be effective."
+	ServerCertRestartRequiredMsg = "A restart is required when changing a server's " +
+		"certificates for the changes to be effective."
 )
 
 func getServ(r *http.Request, db *database.DB) (*model.LocalAgent, error) {
@@ -121,12 +135,12 @@ func updateServer(logger *log.Logger, db *database.DB) http.HandlerFunc {
 			return
 		}
 
-		var serv api.InServer
-		if err := readJSON(r, &serv); handleError(w, logger, err) {
+		var jServ api.InServer
+		if err := readJSON(r, &jServ); handleError(w, logger, err) {
 			return
 		}
 
-		servToDB(logger, &serv, agent)
+		servToDB(logger, &jServ, agent)
 
 		if err := db.Update(agent).Run(); handleError(w, logger, err) {
 			return
@@ -134,6 +148,10 @@ func updateServer(logger *log.Logger, db *database.DB) http.HandlerFunc {
 
 		w.Header().Set("Location", locationUpdate(r.URL, agent.Name))
 		w.WriteHeader(http.StatusCreated)
+
+		if jServ.Name != nil || jServ.Protocol != nil || jServ.Address != nil {
+			fmt.Fprint(w, ServerRestartRequiredMsg)
+		}
 	}
 }
 
@@ -144,13 +162,13 @@ func replaceServer(logger *log.Logger, db *database.DB) http.HandlerFunc {
 			return
 		}
 
-		var serv api.InServer
-		if err := readJSON(r, &serv); handleError(w, logger, err) {
+		var jServ api.InServer
+		if err := readJSON(r, &jServ); handleError(w, logger, err) {
 			return
 		}
 
 		agent := &model.LocalAgent{ID: old.ID}
-		servToDB(logger, &serv, agent)
+		servToDB(logger, &jServ, agent)
 
 		if err := db.Update(agent).Run(); handleError(w, logger, err) {
 			return
@@ -158,6 +176,10 @@ func replaceServer(logger *log.Logger, db *database.DB) http.HandlerFunc {
 
 		w.Header().Set("Location", locationUpdate(r.URL, agent.Name))
 		w.WriteHeader(http.StatusCreated)
+
+		if jServ.Name != nil || jServ.Protocol != nil || jServ.Address != nil {
+			fmt.Fprint(w, ServerRestartRequiredMsg)
+		}
 	}
 }
 
@@ -220,7 +242,11 @@ func addServerCert(logger *log.Logger, db *database.DB) http.HandlerFunc {
 		}
 
 		err = createCrypto(w, r, db, ag.TableName(), ag.ID)
-		handleError(w, logger, err)
+		if handleError(w, logger, err) {
+			return
+		}
+
+		fmt.Fprint(w, ServerCertRestartRequiredMsg)
 	}
 }
 
@@ -244,7 +270,11 @@ func deleteServerCert(logger *log.Logger, db *database.DB) http.HandlerFunc {
 		}
 
 		err = deleteCrypto(w, r, db, ag.TableName(), ag.ID)
-		handleError(w, logger, err)
+		if handleError(w, logger, err) {
+			return
+		}
+
+		fmt.Fprint(w, ServerCertRestartRequiredMsg)
 	}
 }
 
@@ -256,7 +286,11 @@ func updateServerCert(logger *log.Logger, db *database.DB) http.HandlerFunc {
 		}
 
 		err = updateCrypto(w, r, db, ag.TableName(), ag.ID)
-		handleError(w, logger, err)
+		if handleError(w, logger, err) {
+			return
+		}
+
+		fmt.Fprint(w, ServerCertRestartRequiredMsg)
 	}
 }
 
@@ -268,7 +302,11 @@ func replaceServerCert(logger *log.Logger, db *database.DB) http.HandlerFunc {
 		}
 
 		err = replaceCrypto(w, r, db, ag.TableName(), ag.ID)
-		handleError(w, logger, err)
+		if handleError(w, logger, err) {
+			return
+		}
+
+		fmt.Fprint(w, ServerCertRestartRequiredMsg)
 	}
 }
 
@@ -300,5 +338,119 @@ func enableDisableServer(logger *log.Logger, db *database.DB, enable bool) http.
 		}
 
 		w.WriteHeader(http.StatusAccepted)
+	}
+}
+
+func getProtoService(r *http.Request, protoServices map[uint64]proto.Service,
+	db *database.DB,
+) (*model.LocalAgent, proto.Service, error) {
+	dbServer, err := getServ(r, db)
+	if err != nil {
+		return nil, nil, err
+	}
+
+	service, ok := protoServices[dbServer.ID]
+	if !ok {
+		return nil, nil, errServiceNotFound
+	}
+
+	return dbServer, service, nil
+}
+
+func haltServer(r *http.Request, serv proto.Service) error {
+	const haltTimeout = 10 * time.Second
+
+	ctx, cancel := context.WithTimeout(r.Context(), haltTimeout)
+	defer cancel()
+
+	if err := serv.Stop(ctx); err != nil {
+		return fmt.Errorf("failed to stop service: %w", err)
+	}
+
+	return nil
+}
+
+func stopServer(protoServices map[uint64]proto.Service) handler {
+	return func(logger *log.Logger, db *database.DB) http.HandlerFunc {
+		return func(w http.ResponseWriter, r *http.Request) {
+			dbServer, service, err := getProtoService(r, protoServices, db)
+			if handleError(w, logger, err) {
+				return
+			}
+
+			if code, _ := service.State().Get(); code == state.Offline || code == state.Error {
+				w.WriteHeader(http.StatusBadRequest)
+				fmt.Fprintf(w, "Cannot stop server %q, it isn't running.", dbServer.Name)
+
+				return
+			}
+
+			if err := haltServer(r, service); handleError(w, logger, err) {
+				return
+			}
+
+			w.WriteHeader(http.StatusAccepted)
+		}
+	}
+}
+
+var errConstructorNotFound = errors.New("could not instantiate the service: protocol not found")
+
+func startServer(protoServices map[uint64]proto.Service) handler {
+	return func(logger *log.Logger, db *database.DB) http.HandlerFunc {
+		return func(w http.ResponseWriter, r *http.Request) {
+			dbServer, err := getServ(r, db)
+			if handleError(w, logger, err) {
+				return
+			}
+
+			service, ok := protoServices[dbServer.ID]
+			if !ok {
+				constr, ok := constructors.ServiceConstructors[dbServer.Protocol]
+				if !ok {
+					handleError(w, logger, errConstructorNotFound)
+
+					return
+				}
+
+				servLogger := conf.GetLogger(dbServer.Name)
+				service = constr(db, servLogger)
+				protoServices[dbServer.ID] = service
+			}
+
+			if code, _ := service.State().Get(); code == state.Running {
+				w.WriteHeader(http.StatusBadRequest)
+				fmt.Fprintf(w, "Cannot start server %q, it is already running.", dbServer.Name)
+
+				return
+			}
+
+			if err := service.Start(dbServer); handleError(w, logger, err) {
+				return
+			}
+
+			w.WriteHeader(http.StatusAccepted)
+		}
+	}
+}
+
+func restartServer(protoServices map[uint64]proto.Service) handler {
+	return func(logger *log.Logger, db *database.DB) http.HandlerFunc {
+		return func(w http.ResponseWriter, r *http.Request) {
+			dbServer, service, err := getProtoService(r, protoServices, db)
+			if handleError(w, logger, err) {
+				return
+			}
+
+			if err := haltServer(r, service); handleError(w, logger, err) {
+				return
+			}
+
+			if err := service.Start(dbServer); handleError(w, logger, err) {
+				return
+			}
+
+			w.WriteHeader(http.StatusAccepted)
+		}
 	}
 }

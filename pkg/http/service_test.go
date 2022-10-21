@@ -4,7 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
-	"io/ioutil"
+	"io"
 	"net/http"
 	"testing"
 	"time"
@@ -32,10 +32,10 @@ func TestServiceStart(t *testing.T) {
 		}
 		So(db.Insert(server).Run(), ShouldBeNil)
 
-		serv := NewService(db, server, logger)
+		serv := NewService(db, logger)
 
 		Convey("When calling the 'Start' function", func() {
-			err := serv.Start()
+			err := serv.Start(server)
 
 			Convey("Then it should not return an error", func() {
 				So(err, ShouldBeNil)
@@ -56,8 +56,8 @@ func TestServiceStop(t *testing.T) {
 		}
 		So(db.Insert(server).Run(), ShouldBeNil)
 
-		serv := NewService(db, server, logger)
-		So(serv.Start(), ShouldBeNil)
+		serv := NewService(db, logger)
+		So(serv.Start(server), ShouldBeNil)
 
 		Convey("When calling the 'Stop' function", func() {
 			ctx, cancel := context.WithTimeout(context.Background(), time.Second)
@@ -76,8 +76,8 @@ func TestServerInterruption(t *testing.T) {
 		test := pipelinetest.InitServerPush(c, "http", NewService, nil)
 		logger := testhelpers.TestLogger(c, "http_server")
 
-		serv := newService(test.DB, test.Server, logger)
-		c.So(serv.Start(), ShouldBeNil)
+		serv := newService(test.DB, logger)
+		c.So(serv.Start(test.Server), ShouldBeNil)
 
 		Convey("Given a dummy HTTP client", func() {
 			cli := http.DefaultClient
@@ -116,7 +116,7 @@ func TestServerInterruption(t *testing.T) {
 
 					So(resp.StatusCode, ShouldEqual, http.StatusServiceUnavailable)
 					So(resp.Header.Get(httpconst.TransferStatus), ShouldEqual, types.StatusInterrupted)
-					body, err := ioutil.ReadAll(resp.Body)
+					body, err := io.ReadAll(resp.Body)
 					So(err, ShouldBeNil)
 					So(string(body), ShouldResemble, "transfer interrupted by a server shutdown")
 

@@ -17,25 +17,23 @@ import (
 	"golang.org/x/crypto/ssh"
 
 	"code.waarp.fr/apps/gateway/gateway/pkg/database"
+	"code.waarp.fr/apps/gateway/gateway/pkg/gatewayd/service"
 	"code.waarp.fr/apps/gateway/gateway/pkg/model"
-	"code.waarp.fr/apps/gateway/gateway/pkg/model/config"
 	"code.waarp.fr/apps/gateway/gateway/pkg/model/types"
 	"code.waarp.fr/apps/gateway/gateway/pkg/sftp/internal"
-	"code.waarp.fr/apps/gateway/gateway/pkg/tk/service"
 )
 
 type sshListener struct {
-	DB          *database.DB
-	Logger      *log.Logger
-	Agent       *model.LocalAgent
-	ProtoConfig *config.SftpProtoConfig
-	SSHConf     *ssh.ServerConfig
-	Listener    net.Listener
+	DB       *database.DB
+	Logger   *log.Logger
+	AgentID  uint64
+	SSHConf  *ssh.ServerConfig
+	Listener net.Listener
 
 	connWg   sync.WaitGroup
 	shutdown chan struct{}
 
-	handlerMaker     func(func(context.Context), *model.LocalAccount) sftp.Handlers
+	handlerMaker     func(func(context.Context), *model.LocalAgent, *model.LocalAccount) sftp.Handlers
 	runningTransfers *service.TransferMap
 }
 
@@ -76,8 +74,15 @@ func (l *sshListener) handleConnection(nConn net.Conn) {
 
 	go ssh.DiscardRequests(reqs)
 
+	var agent model.LocalAgent
+	if err := l.DB.Get(&agent, "id=?", l.AgentID).Run(); err != nil {
+		l.Logger.Error("Failed to retrieve SFTP agent: %s", err)
+
+		return
+	}
+
 	var acc model.LocalAccount
-	if err := l.DB.Get(&acc, "local_agent_id=? AND login=?", l.Agent.ID,
+	if err := l.DB.Get(&acc, "local_agent_id=? AND login=?", agent.ID,
 		servConn.User()).Run(); err != nil {
 		l.Logger.Error("Failed to retrieve SFTP user: %s", err)
 
@@ -105,14 +110,14 @@ func (l *sshListener) handleConnection(nConn net.Conn) {
 			default:
 				sesWg.Add(1)
 
-				go l.handleSession(sesWg, &acc, newChannel)
+				go l.handleSession(sesWg, &agent, &acc, newChannel)
 			}
 		}
 	}
 }
 
-func (l *sshListener) handleSession(sesWg *sync.WaitGroup, acc *model.LocalAccount,
-	newChannel ssh.NewChannel,
+func (l *sshListener) handleSession(sesWg *sync.WaitGroup, agent *model.LocalAgent,
+	acc *model.LocalAccount, newChannel ssh.NewChannel,
 ) {
 	defer sesWg.Done()
 
@@ -158,7 +163,7 @@ func (l *sshListener) handleSession(sesWg *sync.WaitGroup, acc *model.LocalAccou
 			l.Logger.Warning("An error occurred while closing the SFTP channel: %v", err)
 		}
 	}
-	server = sftp.NewRequestServer(channel, l.handlerMaker(endSession, acc))
+	server = sftp.NewRequestServer(channel, l.handlerMaker(endSession, agent, acc))
 
 	if err := server.Serve(); err != nil && !errors.Is(err, io.EOF) {
 		l.Logger.Warning("An error occurred while serving SFTP requests: %v", err)
@@ -169,12 +174,14 @@ func (l *sshListener) handleSession(sesWg *sync.WaitGroup, acc *model.LocalAccou
 	}
 }
 
-func (l *sshListener) makeHandlers(endSession func(context.Context), acc *model.LocalAccount) sftp.Handlers {
+func (l *sshListener) makeHandlers(endSession func(context.Context), ag *model.LocalAgent,
+	acc *model.LocalAccount,
+) sftp.Handlers {
 	return sftp.Handlers{
 		FileGet:  l.makeFileReader(endSession, acc),
 		FilePut:  l.makeFileWriter(endSession, acc),
 		FileCmd:  makeFileCmder(),
-		FileList: l.makeFileLister(acc),
+		FileList: l.makeFileLister(ag, acc),
 	}
 }
 
@@ -206,7 +213,7 @@ func (l *sshListener) makeFileReader(endSession func(context.Context), acc *mode
 		trans := &model.Transfer{
 			RuleID:     rule.ID,
 			IsServer:   true,
-			AgentID:    l.Agent.ID,
+			AgentID:    l.AgentID,
 			AccountID:  acc.ID,
 			LocalPath:  locPath,
 			RemotePath: path.Base(r.Filepath),
@@ -256,7 +263,7 @@ func (l *sshListener) makeFileWriter(endSession func(context.Context), acc *mode
 		trans := &model.Transfer{
 			RuleID:     rule.ID,
 			IsServer:   true,
-			AgentID:    l.Agent.ID,
+			AgentID:    l.AgentID,
 			AccountID:  acc.ID,
 			LocalPath:  locPath,
 			RemotePath: path.Base(r.Filepath),

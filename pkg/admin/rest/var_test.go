@@ -13,8 +13,10 @@ import (
 	"golang.org/x/crypto/bcrypt"
 
 	"code.waarp.fr/apps/gateway/gateway/pkg/database"
+	"code.waarp.fr/apps/gateway/gateway/pkg/gatewayd/service"
+	"code.waarp.fr/apps/gateway/gateway/pkg/gatewayd/service/constructors"
+	"code.waarp.fr/apps/gateway/gateway/pkg/gatewayd/service/proto"
 	"code.waarp.fr/apps/gateway/gateway/pkg/model/config"
-	"code.waarp.fr/apps/gateway/gateway/pkg/tk/service"
 )
 
 const (
@@ -24,16 +26,17 @@ const (
 
 //nolint:gochecknoinits // init is used by design
 func init() {
-	config.ProtoConfigs[testProto1] = func() config.ProtoConfig { return new(TestProtoConfig) }
-	config.ProtoConfigs[testProto2] = func() config.ProtoConfig { return new(TestProtoConfig) }
+	config.ProtoConfigs[testProto1] = func() config.ProtoConfig { return new(testProtoConfig) }
+	config.ProtoConfigs[testProto2] = func() config.ProtoConfig { return new(testProtoConfig) }
+	constructors.ServiceConstructors[testProto1] = newTestServer
 }
 
-type TestProtoConfig struct {
+type testProtoConfig struct {
 	Key string `json:"key,omitempty"`
 }
 
-func (*TestProtoConfig) ValidServer() error  { return nil }
-func (*TestProtoConfig) ValidPartner() error { return nil }
+func (*testProtoConfig) ValidServer() error  { return nil }
+func (*testProtoConfig) ValidPartner() error { return nil }
 
 func hash(pwd string) string {
 	h, err := bcrypt.GenerateFromPassword([]byte(pwd), bcrypt.MinCost)
@@ -48,7 +51,7 @@ func testAdminServer(logger *log.Logger, db *database.DB) string {
 
 func testAdminServerWithServices(logger *log.Logger, db *database.DB,
 	testCoreServices map[string]service.Service,
-	testProtoServices map[string]service.ProtoService,
+	testProtoServices map[uint64]proto.Service,
 ) string {
 	router := mux.NewRouter()
 	MakeRESTHandler(logger, db, router, testCoreServices, testProtoServices)

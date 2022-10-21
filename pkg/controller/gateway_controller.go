@@ -8,10 +8,10 @@ import (
 
 	"code.waarp.fr/apps/gateway/gateway/pkg/conf"
 	"code.waarp.fr/apps/gateway/gateway/pkg/database"
+	"code.waarp.fr/apps/gateway/gateway/pkg/gatewayd/service/state"
 	"code.waarp.fr/apps/gateway/gateway/pkg/model"
 	"code.waarp.fr/apps/gateway/gateway/pkg/model/types"
 	"code.waarp.fr/apps/gateway/gateway/pkg/pipeline"
-	"code.waarp.fr/apps/gateway/gateway/pkg/tk/service"
 )
 
 type GatewayController struct {
@@ -52,7 +52,7 @@ func (c *GatewayController) Run(wg *sync.WaitGroup, logger log.Logger) {
 }
 
 func (c *GatewayController) checkIsDBDown(logger log.Logger) bool {
-	if st, _ := c.DB.State().Get(); st != service.Running {
+	if st, _ := c.DB.State().Get(); st != state.Running {
 		c.wasDown = true
 
 		return true

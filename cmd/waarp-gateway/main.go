@@ -28,6 +28,9 @@ type commands struct {
 		Rev     wg.ServerRevoke    `command:"revoke" description:"Revoke a server's permission to use a rule"`
 		Enable  wg.ServerEnable    `command:"enable" description:"Enable a server at launch"`
 		Disable wg.ServerDisable   `command:"disable" description:"Disable a server at launch"`
+		Start   wg.ServerStart     `command:"start" description:"Start an offline server"`
+		Stop    wg.ServerStop      `command:"stop" description:"Stop a running server"`
+		Restart wg.ServerRestart   `command:"restart" description:"Stop and restart a running server"`
 		Cert    struct {
 			Args struct {
 				Server wg.ServerArg `required:"yes" positional-arg-name:"server" description:"The server's name"`

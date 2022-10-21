@@ -20,4 +20,7 @@ Une fois démarré, chaque serveur sera considéré comme un service de la gatew
    disable
    authorize
    revoke
+   start
+   stop
+   restart
    cert/index

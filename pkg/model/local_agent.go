@@ -7,8 +7,8 @@ import (
 
 	"code.waarp.fr/apps/gateway/gateway/pkg/conf"
 	"code.waarp.fr/apps/gateway/gateway/pkg/database"
+	"code.waarp.fr/apps/gateway/gateway/pkg/gatewayd/service/names"
 	"code.waarp.fr/apps/gateway/gateway/pkg/model/config"
-	"code.waarp.fr/apps/gateway/gateway/pkg/tk/service"
 	"code.waarp.fr/apps/gateway/gateway/pkg/tk/utils"
 )
 
@@ -135,7 +135,7 @@ func (l *LocalAgent) BeforeWrite(db database.ReadAccess) database.Error {
 		return database.NewValidationError("the agent's name cannot be empty")
 	}
 
-	if service.IsReservedServiceName(l.Name) {
+	if names.IsReservedServiceName(l.Name) {
 		return database.NewValidationError("%s is a reserved server name", l.Name)
 	}
 

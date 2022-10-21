@@ -8,12 +8,13 @@ import (
 
 	"code.waarp.fr/apps/gateway/gateway/pkg/admin/rest"
 	"code.waarp.fr/apps/gateway/gateway/pkg/database"
-	"code.waarp.fr/apps/gateway/gateway/pkg/tk/service"
+	"code.waarp.fr/apps/gateway/gateway/pkg/gatewayd/service"
+	"code.waarp.fr/apps/gateway/gateway/pkg/gatewayd/service/proto"
 )
 
 // MakeHandler returns the router for the REST & Admin http interface.
 func MakeHandler(logger *log.Logger, db *database.DB, coreServices map[string]service.Service,
-	protoServices map[string]service.ProtoService,
+	protoServices map[uint64]proto.Service,
 ) http.Handler {
 	// REST handler
 	adminHandler := mux.NewRouter()

@@ -2,7 +2,6 @@ package controller
 
 import (
 	"context"
-	"io/ioutil"
 	"os"
 	"path/filepath"
 	"sync"
@@ -13,9 +12,9 @@ import (
 
 	"code.waarp.fr/apps/gateway/gateway/pkg/conf"
 	"code.waarp.fr/apps/gateway/gateway/pkg/database"
+	"code.waarp.fr/apps/gateway/gateway/pkg/gatewayd/service/state"
 	"code.waarp.fr/apps/gateway/gateway/pkg/model"
 	"code.waarp.fr/apps/gateway/gateway/pkg/model/types"
-	"code.waarp.fr/apps/gateway/gateway/pkg/tk/service"
 	"code.waarp.fr/apps/gateway/gateway/pkg/tk/utils/testhelpers"
 )
 
@@ -61,7 +60,7 @@ func TestControllerListen(t *testing.T) {
 
 			Convey("Given a planned transfer", func() {
 				path1 := filepath.Join(tmpDir, "file_1")
-				err := ioutil.WriteFile(path1, []byte("hello world"), 0o644)
+				err := os.WriteFile(path1, []byte("hello world"), 0o644)
 				So(err, ShouldBeNil)
 
 				trans := &model.Transfer{
@@ -125,7 +124,7 @@ func TestControllerListen(t *testing.T) {
 
 			Convey("Given a running transfer", func() {
 				path2 := filepath.Join(tmpDir, "file_2")
-				err := ioutil.WriteFile(path2, []byte("hello world"), 0o644)
+				err := os.WriteFile(path2, []byte("hello world"), 0o644)
 				So(err, ShouldBeNil)
 
 				trans := &model.Transfer{
@@ -142,11 +141,11 @@ func TestControllerListen(t *testing.T) {
 				So(gwController.DB.Insert(trans).Run(), ShouldBeNil)
 
 				Convey("Given that the database stops responding", func() {
-					gwController.DB.State().Set(service.Error, "test error")
+					gwController.DB.State().Set(state.Error, "test error")
 					gwController.wasDown = true
 
 					Convey("When the database comes back online", func() {
-						gwController.DB.State().Set(service.Running, "")
+						gwController.DB.State().Set(state.Running, "")
 
 						Convey("When the controller starts new transfers again", func() {
 							cont.Action(cont.wg, *cont.logger)
