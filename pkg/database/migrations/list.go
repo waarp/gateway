@@ -146,4 +146,52 @@ var Migrations = []change{
 		Description: `Add an "enabled" column to the local agents table`,
 		Script:      ver0_7_0AddLocalAgentEnabledColumn{},
 	},
+	{ // #27
+		Description: "Revamp the 'users' table",
+		Script:      ver0_7_0RevampUsersTable{},
+	},
+	{ // #28
+		Description: "Revamp the 'local_agents' table",
+		Script:      ver0_7_0RevampLocalAgentsTable{},
+	},
+	{ // #29
+		Description: "Revamp the 'remote_agents' table",
+		Script:      ver0_7_0RevampRemoteAgentsTable{},
+	},
+	{ // #30
+		Description: "Revamp the 'local_accounts' table",
+		Script:      ver0_7_0RevampLocalAccountsTable{},
+	},
+	{ // #31
+		Description: "Revamp the 'remote_accounts' table",
+		Script:      ver0_7_0RevampRemoteAccountsTable{},
+	},
+	{ // #32
+		Description: "Revamp the 'rules' table",
+		Script:      ver0_7_0RevampRulesTable{},
+	},
+	{ // #33
+		Description: "Revamp the 'tasks' table",
+		Script:      ver0_7_0RevampTasksTable{},
+	},
+	{ // #34
+		Description: "Revamp the 'transfer_history' table",
+		Script:      ver0_7_0RevampHistoryTable{},
+	},
+	{ // #35
+		Description: "Revamp the 'transfers' table",
+		Script:      ver0_7_0RevampTransfersTable{},
+	},
+	{ // #36
+		Description: "Revamp the 'transfer_info' table",
+		Script:      ver0_7_0RevampTransferInfoTable{},
+	},
+	{ // #37
+		Description: "Revamp the 'crypto' table",
+		Script:      ver0_7_0RevampCryptoTable{},
+	},
+	{ // #38
+		Description: "Revamp the 'rule_access' table",
+		Script:      ver0_7_0RevampRuleAccessTable{},
+	},
 }

@@ -160,7 +160,7 @@ func (s *Session) ResetIncrement(bean IterateBean) Error {
 	case schemas.SQLITE:
 		_, err = s.session.Exec("DELETE FROM sqlite_sequence WHERE name=?", bean.TableName())
 	case schemas.POSTGRES:
-		_, err = s.session.Exec("ALTER SEQUENCE " + bean.TableName() + "_id_seq RESTART WITH 1")
+		_, err = s.session.Exec("TRUNCATE " + bean.TableName() + " RESTART IDENTITY CASCADE")
 	case schemas.MYSQL:
 		_, err = s.session.Exec("ALTER TABLE " + bean.TableName() + " AUTO_INCREMENT = 1")
 	default:

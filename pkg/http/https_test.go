@@ -5,7 +5,6 @@ import (
 	"crypto/x509"
 	"fmt"
 	"io"
-	"io/ioutil"
 	"net/http"
 	"net/http/httptest"
 	"strings"
@@ -30,7 +29,7 @@ func TestHTTPSClient(t *testing.T) {
 			case http.MethodGet:
 				_, _ = io.Copy(w, src)
 			case http.MethodPost:
-				_, _ = ioutil.ReadAll(r.Body)
+				_, _ = io.ReadAll(r.Body)
 				_ = r.Body.Close()
 				w.WriteHeader(http.StatusCreated)
 			default:
@@ -178,7 +177,7 @@ func TestHTTPSServer(t *testing.T) {
 
 				defer resp.Body.Close()
 
-				body, err := ioutil.ReadAll(resp.Body)
+				body, err := io.ReadAll(resp.Body)
 				So(err, ShouldBeNil)
 
 				code := resp.StatusCode

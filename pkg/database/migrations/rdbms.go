@@ -117,6 +117,7 @@ func MysqlDSN() string {
 	dsn.DBName = config.Name
 	dsn.User = config.User
 	dsn.Passwd = config.Password
+	dsn.ParseTime = true
 
 	if config.TLSCert != "" && config.TLSKey != "" {
 		cert, _ := tls.LoadX509KeyPair(config.TLSCert, config.TLSKey) //nolint:errcheck // nothing to handle the errors

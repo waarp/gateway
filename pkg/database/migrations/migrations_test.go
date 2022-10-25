@@ -27,4 +27,16 @@ func testMigrations(eng *testEngine, dbType string) {
 
 	// 0.7.0
 	testVer0_7_0AddLocalAgentEnabled(eng)
+	testVer0_7_0RevampUsersTable(eng, dbType)
+	testVer0_7_0RevampLocalAgentTable(eng)
+	testVer0_7_0RevampRemoteAgentTable(eng)
+	testVer0_7_0RevampLocalAccountsTable(eng, dbType)
+	testVer0_7_0RevampRemoteAccountsTable(eng, dbType)
+	testVer0_7_0RevampRulesTable(eng)
+	testVer0_7_0RevampTasksTable(eng, dbType)
+	testVer0_7_0RevampHistoryTable(eng)
+	testVer0_7_0RevampTransfersTable(eng)
+	testVer0_7_0RevampTransferInfoTable(eng)
+	testVer0_7_0RevampCryptoTable(eng)
+	testVer0_7_0RevampRuleAccessTable(eng)
 }

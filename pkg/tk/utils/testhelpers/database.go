@@ -3,7 +3,6 @@ package testhelpers
 import (
 	"database/sql"
 	"fmt"
-	"io/ioutil"
 	"os"
 
 	"github.com/go-sql-driver/mysql"
@@ -13,7 +12,7 @@ import (
 // GetTestSqliteDBNoReset returns a *sql.DB pointing to a test SQLite database.
 // The database will not be automatically reset at the end of the test.
 func GetTestSqliteDBNoReset(c convey.C) (*sql.DB, string) {
-	f, err := ioutil.TempFile(os.TempDir(), "test_migration_database_*.db")
+	f, err := os.CreateTemp(os.TempDir(), "test_migration_database_*.db")
 	c.So(err, convey.ShouldBeNil)
 	c.So(f.Close(), convey.ShouldBeNil)
 	c.So(os.Remove(f.Name()), convey.ShouldBeNil)

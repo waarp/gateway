@@ -1,7 +1,7 @@
 package pipeline
 
 import (
-	"io/ioutil"
+	"os"
 	"path/filepath"
 	"testing"
 	"time"
@@ -22,7 +22,7 @@ func TestClientPipelineRun(t *testing.T) {
 
 		Convey("Given a client push transfer", func() {
 			file := "client_pipeline_push"
-			So(ioutil.WriteFile(filepath.Join(conf.GlobalConfig.Paths.GatewayHome,
+			So(os.WriteFile(filepath.Join(conf.GlobalConfig.Paths.GatewayHome,
 				ctx.send.LocalDir, file), content, 0o600), ShouldBeNil)
 
 			trans := &model.Transfer{
