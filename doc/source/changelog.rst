@@ -3,6 +3,9 @@
 Historique des versions
 =======================
 
+* :bug:`350` Correction d'une erreur du client R66 causant la réutilisation par
+  celui-ci d'anciennes connexions déjà fermées en place et lieu de l'ouverture
+  de nouvelles connexions, causant par conséquent l'échec du transfert.
 * :feature:`255` Ajout de *handlers* REST permettant l'arrêt et le redémarrage
   des :term:`serveur locaux<serveur>` à chaud. Des sous-commandes ``start``,
   ``stop`` et ``restart`` ont en conséquence été ajoutées à la commande ``server``
