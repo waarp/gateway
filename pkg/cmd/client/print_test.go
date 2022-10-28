@@ -5,18 +5,13 @@ import (
 	"strings"
 )
 
-type printLine struct {
-	title string
-	val   any
-}
-
-type printBuilder struct {
+type stringBuilder struct {
 	indent  string
 	builder strings.Builder
 }
 
-func newPrintBuilder(indent, header string) *printBuilder {
-	p := &printBuilder{indent: indent}
+func newStringBuilder(indent, header string) *stringBuilder {
+	p := &stringBuilder{indent: indent}
 
 	p.builder.WriteString(header)
 	p.builder.WriteRune('\n')
@@ -24,19 +19,19 @@ func newPrintBuilder(indent, header string) *printBuilder {
 	return p
 }
 
-func (p *printBuilder) addJustTitl(title string) {
+func (p *stringBuilder) addJustTitl(title string) {
 	p.builder.WriteString(p.indent)
 	p.builder.WriteString(title)
 	p.builder.WriteRune('\n')
 }
 
-func (p *printBuilder) addTitlCond(title string, cond bool) {
+func (p *stringBuilder) addTitlCond(title string, cond bool) {
 	if cond {
 		p.addJustTitl(title)
 	}
 }
 
-func (p *printBuilder) addLineFull(title string, val any) {
+func (p *stringBuilder) addLineFull(title string, val any) {
 	p.builder.WriteString(p.indent)
 	p.builder.WriteString(title)
 	p.builder.WriteRune(' ')
@@ -44,13 +39,13 @@ func (p *printBuilder) addLineFull(title string, val any) {
 	p.builder.WriteRune('\n')
 }
 
-func (p *printBuilder) addLineCond(title string, val any, cond bool) {
+func (p *stringBuilder) addLineCond(title string, val any, cond bool) {
 	if cond {
 		p.addLineFull(title, val)
 	}
 }
 
-func (p *printBuilder) addWithDefV(title string, val any, cond bool, defaultVal any) {
+func (p *stringBuilder) addWithDefV(title string, val any, cond bool, defaultVal any) {
 	if cond {
 		p.addLineFull(title, val)
 	} else {
@@ -58,4 +53,4 @@ func (p *printBuilder) addWithDefV(title string, val any, cond bool, defaultVal 
 	}
 }
 
-func (p *printBuilder) string() string { return p.builder.String() }
+func (p *stringBuilder) string() string { return p.builder.String() }

@@ -50,45 +50,29 @@ func displayTransfer(w io.Writer, trans *api.OutTransfer) {
 		dir = directionSend
 	}
 
-	size := sizeUnknown
-	if trans.Filesize >= 0 {
-		size = fmt.Sprint(trans.Filesize)
-	}
-
-	stop := "N/A"
+	stop := NotApplicable
 	if trans.Stop != nil {
 		stop = trans.Stop.Local().String()
 	}
 
-	fmt.Fprintln(w, bold("● Transfer", trans.ID, "("+dir+" as "+role+")"), coloredStatus(trans.Status))
-	fmt.Fprintln(w, orange("    Remote ID:        "), trans.RemoteID)
-	fmt.Fprintln(w, orange("    Protocol:         "), trans.Protocol)
-	fmt.Fprintln(w, orange("    Rule:             "), trans.Rule)
-	fmt.Fprintln(w, orange("    Requester:        "), trans.Requester)
-	fmt.Fprintln(w, orange("    Requested:        "), trans.Requested)
-	fmt.Fprintln(w, orange("    Local filepath:   "), trans.LocalFilepath)
-	fmt.Fprintln(w, orange("    Remote filepath:  "), trans.RemoteFilepath)
-	fmt.Fprintln(w, orange("    File size:        "), size)
-	fmt.Fprintln(w, orange("    Start date:       "), trans.Start.Local())
-	fmt.Fprintln(w, orange("    End date:         "), stop)
+	fmt.Fprintln(w, bold("● Transfer", trans.ID, "("+dir+" as "+role+")"),
+		coloredStatus(trans.Status))
 
-	if trans.Step != types.StepNone.String() {
-		fmt.Fprintln(w, orange("    Step:             "), trans.Step)
-	}
-
-	fmt.Fprintln(w, orange("    Bytes transferred:"), trans.Progress)
-
-	if trans.TaskNumber != 0 {
-		fmt.Fprintln(w, orange("    Tasks executed:   "), trans.TaskNumber)
-	}
-
-	if trans.ErrorCode != types.TeOk.String() {
-		fmt.Fprintln(w, orange("    Error code:       "), trans.ErrorCode)
-	}
-
-	if trans.ErrorMsg != "" {
-		fmt.Fprintln(w, orange("    Error message:    "), trans.ErrorMsg)
-	}
+	writeLine(w, orange("    Remote ID:        "), trans.RemoteID)
+	writeLine(w, orange("    Protocol:         "), trans.Protocol)
+	writeLine(w, orange("    Rule:             "), trans.Rule)
+	writeLine(w, orange("    Requester:        "), trans.Requester)
+	writeLine(w, orange("    Requested:        "), trans.Requested)
+	writeLine(w, orange("    Local filepath:   "), trans.LocalFilepath)
+	writeLine(w, orange("    Remote filepath:  "), trans.RemoteFilepath)
+	writeDefV(w, orange("    File size:        "), trans.Filesize, trans.Filesize >= 0, sizeUnknown)
+	writeLine(w, orange("    Start date:       "), trans.Start.Local())
+	writeLine(w, orange("    End date:         "), stop)
+	writeCond(w, orange("    Step:             "), trans.Step, trans.Step != types.StepNone.String())
+	writeLine(w, orange("    Bytes transferred:"), trans.Progress)
+	writeCond(w, orange("    Tasks executed:   "), trans.TaskNumber, trans.TaskNumber != 0)
+	writeCond(w, orange("    Error code:       "), trans.ErrorCode, trans.ErrorCode != types.TeOk.String())
+	writeCond(w, orange("    Error message:    "), trans.ErrorMsg, trans.ErrorMsg != "")
 
 	if len(trans.TransferInfo) > 0 {
 		fmt.Fprintln(w, orange("    Transfer values:"))

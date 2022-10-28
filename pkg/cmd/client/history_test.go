@@ -43,7 +43,7 @@ func historyInfoString(h *api.OutHistory) string {
 		rv += "    Remote ID:       " + h.RemoteID + "\n"
 	}
 
-	stop := "N/A"
+	stop := NotApplicable
 	if h.Stop != nil {
 		stop = h.Stop.Local().Format(time.RFC3339Nano)
 	}

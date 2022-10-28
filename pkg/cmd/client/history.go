@@ -18,25 +18,21 @@ import (
 //nolint:funlen //splitting would add complexity
 func displayHistory(w io.Writer, hist *api.OutHistory) {
 	role := roleClient
-
 	if hist.IsServer {
 		role = roleServer
 	}
 
 	way := directionRecv
-
 	if hist.IsSend {
 		way = directionSend
 	}
 
 	size := sizeUnknown
-
 	if hist.Filesize >= 0 {
 		size = fmt.Sprint(hist.Filesize)
 	}
 
-	stop := "N/A"
-
+	stop := NotApplicable
 	if hist.Stop != nil {
 		stop = hist.Stop.Local().Format(time.RFC3339Nano)
 	}

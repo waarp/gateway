@@ -33,12 +33,12 @@ func transferInfoString(t *api.OutTransfer) string {
 		direction = directionSend
 	}
 
-	stop := "N/A"
+	stop := NotApplicable
 	if t.Stop != nil {
 		stop = t.Stop.Local().String()
 	}
 
-	builder := newPrintBuilder("    ", fmt.Sprintf("● Transfer %d (%s as %s) [%s]",
+	builder := newStringBuilder("    ", fmt.Sprintf("● Transfer %d (%s as %s) [%s]",
 		t.ID, direction, gwRole, t.Status))
 
 	builder.addLineFull("Remote ID:        ", t.RemoteID)
