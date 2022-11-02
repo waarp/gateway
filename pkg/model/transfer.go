@@ -32,13 +32,15 @@ func init() {
 }
 
 // Transfer represents one record of the 'transfers' table.
+//
+//nolint:lll //SQL tags are long, nothing we can do about it
 type Transfer struct {
 	ID               int64                `xorm:"BIGINT PK AUTOINCR <- 'id'"`
 	Owner            string               `xorm:"VARCHAR(100) NOTNULL 'owner'"`
-	RemoteTransferID string               `xorm:"VARCHAR(100) NOTNULL 'remote_transfer_id'"`
-	RuleID           int64                `xorm:"BIGINT NOTNULL 'rule_id'"`   // foreign key (rules.id)
-	LocalAccountID   sql.NullInt64        `xorm:"BIGINT 'local_account_id'"`  // foreign_key (local_accounts.id)
-	RemoteAccountID  sql.NullInt64        `xorm:"BIGINT 'remote_account_id'"` // foreign_key (remote_accounts.id)
+	RemoteTransferID string               `xorm:"VARCHAR(100) NOTNULL UNIQUE(remID) UNIQUE(locID) 'remote_transfer_id'"`
+	RuleID           int64                `xorm:"BIGINT NOTNULL 'rule_id'"`                 // foreign key (rules.id)
+	LocalAccountID   sql.NullInt64        `xorm:"BIGINT UNIQUE(locID) 'local_account_id'"`  // foreign_key (local_accounts.id)
+	RemoteAccountID  sql.NullInt64        `xorm:"BIGINT UNIQUE(remID) 'remote_account_id'"` // foreign_key (remote_accounts.id)
 	LocalPath        string               `xorm:"TEXT NOTNULL 'local_path'"`
 	RemotePath       string               `xorm:"TEXT NOTNULL 'remote_path'"`
 	Filesize         int64                `xorm:"BIGINT NOTNULL DEFAULT(-1) 'filesize'"`
@@ -51,24 +53,16 @@ type Transfer struct {
 }
 
 // TableName returns the name of the transfers table.
-func (*Transfer) TableName() string {
-	return TableTransfers
-}
+func (*Transfer) TableName() string { return TableTransfers }
 
 // Appellation returns the name of 1 element of the transfers table.
-func (*Transfer) Appellation() string {
-	return "transfer"
-}
+func (*Transfer) Appellation() string { return "transfer" }
 
 // GetID returns the transfer's ID.
-func (t *Transfer) GetID() int64 {
-	return t.ID
-}
+func (t *Transfer) GetID() int64 { return t.ID }
 
 // IsServer returns the transfer is a server transfer (from the gateway's perspective).
-func (t *Transfer) IsServer() bool {
-	return t.LocalAccountID.Valid
-}
+func (t *Transfer) IsServer() bool { return t.LocalAccountID.Valid }
 
 // SetTransferInfo replaces all the TransferInfo in the database of the given
 // transfer by those given in the map parameter.

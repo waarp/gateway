@@ -15,12 +15,12 @@ import (
 type HistoryEntry struct {
 	ID               int64                `xorm:"BIGINT PK 'id'"`
 	Owner            string               `xorm:"VARCHAR(100) NOTNULL 'owner'"`
-	RemoteTransferID string               `xorm:"VARCHAR(100) NOTNULL 'remote_transfer_id'"`
-	IsServer         bool                 `xorm:"BOOL NOTNULL 'is_server'"`
+	RemoteTransferID string               `xorm:"VARCHAR(100) NOTNULL UNIQUE(rtID) 'remote_transfer_id'"`
+	IsServer         bool                 `xorm:"BOOL NOTNULL UNIQUE(rtID) 'is_server'"`
 	IsSend           bool                 `xorm:"BOOL NOTNULL 'is_send'"`
 	Rule             string               `xorm:"VARCHAR(100) NOTNULL 'rule'"`
-	Account          string               `xorm:"VARCHAR(100) NOTNULL 'account'"`
-	Agent            string               `xorm:"VARCHAR(100) NOTNULL 'agent'"`
+	Account          string               `xorm:"VARCHAR(100) NOTNULL UNIQUE(rtID) 'account'"`
+	Agent            string               `xorm:"VARCHAR(100) NOTNULL UNIQUE(rtID) 'agent'"`
 	Protocol         string               `xorm:"VARCHAR(50) NOTNULL 'protocol'"`
 	LocalPath        string               `xorm:"TEXT NOTNULL 'local_path'"`
 	RemotePath       string               `xorm:"TEXT NOTNULL 'remote_path'"`
@@ -35,19 +35,13 @@ type HistoryEntry struct {
 }
 
 // TableName returns the name of the transfer history table.
-func (*HistoryEntry) TableName() string {
-	return TableHistory
-}
+func (*HistoryEntry) TableName() string { return TableHistory }
 
 // Appellation returns the name of 1 element of the transfer history table.
-func (*HistoryEntry) Appellation() string {
-	return "history entry"
-}
+func (*HistoryEntry) Appellation() string { return "history entry" }
 
 // GetID returns the transfer's ID.
-func (h *HistoryEntry) GetID() int64 {
-	return h.ID
-}
+func (h *HistoryEntry) GetID() int64 { return h.ID }
 
 // BeforeWrite checks if the new `HistoryEntry` entry is valid and can be
 // inserted in the database.
@@ -105,14 +99,14 @@ func (h *HistoryEntry) BeforeWrite(db database.ReadAccess) database.Error {
 		return database.NewValidationError("'%s' is not a valid transfer history status", h.Status)
 	}
 
-	if h.RemoteTransferID != "" {
-		if n, err := db.Count(&HistoryEntry{}).Where("remote_transfer_id=? AND agent=? AND account=?",
-			h.RemoteTransferID, h.Agent, h.Account).Run(); err != nil {
-			return err
-		} else if n != 0 {
-			return database.NewValidationError("a history entry from the same " +
-				"partner with the same remote ID already exist")
-		}
+	if n, err := db.Count(&HistoryEntry{}).Where("remote_transfer_id=? AND "+
+		"is_server=? AND agent=? AND account=?", h.RemoteTransferID, h.IsServer,
+		h.Agent, h.Account).Run(); err != nil {
+		return err
+	} else if n != 0 {
+		return database.NewValidationError("a history entry from the same "+
+			"requester %q to the same agent %q with the same remote ID %q "+
+			"already exist", h.Account, h.Agent, h.RemoteTransferID)
 	}
 
 	return nil

@@ -624,6 +624,7 @@ func (ver0_7_0RevampHistoryTable) Up(db migration.Actions) error {
 		migration.Col("task_number", migration.SmallInt, migration.NotNull, migration.Default(0)),
 		migration.Col("error_code", migration.Varchar(50), migration.NotNull, migration.Default("TeOk")),
 		migration.Col("error_details", migration.Text, migration.NotNull, migration.Default("")),
+		migration.MultiUnique("remote_transfer_id", "is_server", "account", "agent"),
 	); err != nil {
 		return fmt.Errorf("failed to create the new transfer_history table: %w", err)
 	}
@@ -752,6 +753,8 @@ func (ver0_7_0RevampTransfersTable) Up(db migration.Actions) error {
 		migration.Col("task_number", migration.SmallInt, migration.NotNull, migration.Default(0)),
 		migration.Col("error_code", migration.Varchar(50), migration.NotNull, migration.Default("TeOk")),
 		migration.Col("error_details", migration.Text, migration.NotNull, migration.Default("")),
+		migration.MultiUnique("remote_transfer_id", "local_account_id"),
+		migration.MultiUnique("remote_transfer_id", "remote_account_id"),
 		migration.Check(utils.CheckOnlyOneNotNull(db.GetDialect(), "local_account_id", "remote_account_id")),
 	); err != nil {
 		return fmt.Errorf("failed to create the new transfers table: %w", err)
