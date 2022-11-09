@@ -1,46 +1,15 @@
 package internal
 
-import (
-	"context"
-	"encoding/hex"
-	"io/ioutil"
-	"os"
-	"path/filepath"
-	"testing"
+import "code.waarp.fr/lib/r66"
 
-	. "github.com/smartystreets/goconvey/convey"
+type testAuthHandler func(*r66.Authent) (r66.SessionHandler, error)
 
-	"code.waarp.fr/apps/gateway/gateway/pkg/model/types"
-	"code.waarp.fr/apps/gateway/gateway/pkg/tk/utils/testhelpers"
-)
+func (t testAuthHandler) ValidAuth(auth *r66.Authent) (r66.SessionHandler, error) {
+	return t(auth)
+}
 
-func TestCheckHash(t *testing.T) {
-	path := filepath.Join(os.TempDir(), "test_check_hash_file")
-	content := []byte("test CheckHash file content")
-	expHash, _ := hex.DecodeString("cddfc994ff46f856395a6a387f722429bff47751cf0fd6924e80445e5c035672")
+type testSessionHandler func(*r66.Request) (r66.TransferHandler, error)
 
-	Convey("Given a file", t, func(c C) {
-		logger := testhelpers.TestLogger(c, "test_check_hash")
-
-		So(ioutil.WriteFile(path, content, 0o600), ShouldBeNil)
-		defer os.Remove(path)
-
-		Convey("When calling the `checkHash` function with the correct hash", func() {
-			hash, err := MakeHash(context.Background(), logger, path)
-			So(err, ShouldBeNil)
-
-			Convey("Then it should return the expected hash", func() {
-				So(hash, ShouldResemble, expHash)
-			})
-		})
-
-		Convey("When calling the `checkHash` function with an invalid path", func() {
-			path := "not a path"
-			_, err := MakeHash(context.Background(), logger, path)
-
-			Convey("Then it should return an error", func() {
-				So(err, ShouldBeError, types.NewTransferError(types.TeInternal, "failed to open file"))
-			})
-		})
-	})
+func (t testSessionHandler) ValidRequest(request *r66.Request) (r66.TransferHandler, error) {
+	return t(request)
 }

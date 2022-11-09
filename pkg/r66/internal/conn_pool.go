@@ -10,7 +10,7 @@ import (
 	"code.waarp.fr/lib/r66"
 )
 
-const ConnectionGracePeriod = 5 * time.Second
+const DefaultConnectionGracePeriod = 5 * time.Second
 
 type connInfo struct {
 	conn *r66.Client // the connection
@@ -19,14 +19,19 @@ type connInfo struct {
 
 // ConnPool is a pool of r66 client connections used for multiplexing.
 type ConnPool struct {
-	m      map[string]*connInfo
-	mux    sync.Mutex
-	closed chan bool
+	m               map[string]*connInfo
+	mux             sync.Mutex
+	closed          chan bool
+	connGracePeriod time.Duration
 }
 
 // NewConnPool initiates and returns a new ConnPool instance.
 func NewConnPool() *ConnPool {
-	return &ConnPool{m: map[string]*connInfo{}, closed: make(chan bool)}
+	return &ConnPool{
+		m:               map[string]*connInfo{},
+		closed:          make(chan bool),
+		connGracePeriod: DefaultConnectionGracePeriod,
+	}
 }
 
 // Exists returns whether a connection to the given address exists in the pool.
@@ -86,15 +91,14 @@ func (c *ConnPool) Done(addr string) {
 		return
 	}
 
-	if info.num <= 1 {
+	info.num--
+	if info.num <= 0 {
 		go c.waitClose(addr)
-	} else {
-		info.num--
 	}
 }
 
 func (c *ConnPool) waitClose(addr string) {
-	timer := time.NewTimer(ConnectionGracePeriod)
+	timer := time.NewTimer(c.connGracePeriod)
 	select {
 	case <-timer.C:
 	case <-c.closed:
