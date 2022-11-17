@@ -2,10 +2,8 @@ package model
 
 import (
 	"database/sql"
-	"fmt"
 
 	"code.waarp.fr/apps/gateway/gateway/pkg/database"
-	"code.waarp.fr/apps/gateway/gateway/pkg/tk/utils"
 )
 
 // AccessTarget is the interface implemented by all valid RuleAccess target types.
@@ -26,23 +24,18 @@ type AccessTarget interface {
 //
 //nolint:lll //sql tags can be long
 type RuleAccess struct {
-	// foreign key (rules.id)
-	RuleID          int64         `xorm:"BIGINT NOTNULL UNIQUE(locAg) UNIQUE(remAg) UNIQUE(locAcc) UNIQUE(remAcc) 'rule_id'"`
-	LocalAgentID    sql.NullInt64 `xorm:"BIGINT UNIQUE(locAg) 'local_agent_id'"`     // foreign key (local_agents.id)
-	RemoteAgentID   sql.NullInt64 `xorm:"BIGINT UNIQUE(remAg) 'remote_agent_id'"`    // foreign key (remote_agents.id)
-	LocalAccountID  sql.NullInt64 `xorm:"BIGINT UNIQUE(locAcc) 'local_account_id'"`  // foreign key (local_accounts.id)
-	RemoteAccountID sql.NullInt64 `xorm:"BIGINT UNIQUE(remAcc) 'remote_account_id'"` // foreign key (remote_accounts.id)
+	RuleID int64 `xorm:"rule_id"` // The ID of the rule this permission applies to.
+
+	// The ID of the target to which this permission applies. Only one can be
+	// valid at a time.
+	LocalAgentID    sql.NullInt64 `xorm:"local_agent_id"`
+	RemoteAgentID   sql.NullInt64 `xorm:"remote_agent_id"`
+	LocalAccountID  sql.NullInt64 `xorm:"local_account_id"`
+	RemoteAccountID sql.NullInt64 `xorm:"remote_account_id"`
 }
 
-// TableName returns the rule access table name.
-func (*RuleAccess) TableName() string {
-	return TableRuleAccesses
-}
-
-// Appellation returns the name of 1 element of the rule access table.
-func (*RuleAccess) Appellation() string {
-	return "rule permission"
-}
+func (*RuleAccess) TableName() string   { return TableRuleAccesses }
+func (*RuleAccess) Appellation() string { return "rule permission" }
 
 // BeforeWrite is called before inserting a new `RuleAccess` entry in the
 // database. It checks whether the new entry is valid or not.
@@ -124,46 +117,4 @@ func IsRuleAuthorized(db database.ReadAccess, t *Transfer) (bool, database.Error
 	}
 
 	return true, nil
-}
-
-func (*RuleAccess) MakeExtraConstraints(db *database.Executor) database.Error {
-	// add a foreign key to 'rule_id'
-	if err := redefineColumn(db, TableRuleAccesses, "rule_id", fmt.Sprintf(
-		`BIGINT NOT NULL REFERENCES %s(id) ON UPDATE RESTRICT ON DELETE CASCADE`,
-		TableRules)); err != nil {
-		return err
-	}
-
-	// add a foreign key to 'local_agent_id'
-	if err := redefineColumn(db, TableRuleAccesses, "local_agent_id", fmt.Sprintf(
-		`BIGINT REFERENCES %s(id) ON UPDATE RESTRICT ON DELETE CASCADE`,
-		TableLocAgents)); err != nil {
-		return err
-	}
-
-	// add a foreign key to 'remote_agent_id'
-	if err := redefineColumn(db, TableRuleAccesses, "remote_agent_id", fmt.Sprintf(
-		`BIGINT REFERENCES %s(id) ON UPDATE RESTRICT ON DELETE CASCADE`,
-		TableRemAgents)); err != nil {
-		return err
-	}
-
-	// add a foreign key to 'local_account_id'
-	if err := redefineColumn(db, TableRuleAccesses, "local_account_id", fmt.Sprintf(
-		`BIGINT REFERENCES %s(id) ON UPDATE RESTRICT ON DELETE CASCADE`,
-		TableLocAccounts)); err != nil {
-		return err
-	}
-
-	// add a foreign key to 'remote_account_id'
-	if err := redefineColumn(db, TableRuleAccesses, "remote_account_id", fmt.Sprintf(
-		`BIGINT REFERENCES %s(id) ON UPDATE RESTRICT ON DELETE CASCADE`,
-		TableRemAccounts)); err != nil {
-		return err
-	}
-
-	// add a constraint to enforce that one (and ONLY ONE) of 'local_agent_id',
-	// 'remote_agent_id', 'local_account_id' and 'remote_account_id' must be defined
-	return addTableConstraint(db, TableRuleAccesses, utils.CheckOnlyOneNotNull(db.Dialect,
-		"local_agent_id", "remote_agent_id", "local_account_id", "remote_account_id"))
 }

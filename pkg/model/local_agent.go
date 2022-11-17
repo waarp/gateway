@@ -16,55 +16,26 @@ import (
 // The struct contains the information needed by external agents to connect to
 // the server.
 type LocalAgent struct {
-	// The agent's database ID.
-	ID int64 `xorm:"PK AUTOINCR <- 'id'"`
+	ID    int64  `xorm:"<- id AUTOINCR"` // The agent's database ID.
+	Owner string `xorm:"owner"`          // The agent's owner (the gateway to which it belongs)
 
-	// The agent's owner (i.e. the name of the gateway instance to which the
-	// agent belongs to).
-	Owner string `xorm:"VARCHAR(100) UNIQUE(loc_ag) NOTNULL 'owner'"`
+	Name     string `xorm:"name"`     // The server's name.
+	Address  string `xorm:"address"`  // The agent's address (including the port)
+	Protocol string `xorm:"protocol"` // The server's protocol.
+	Enabled  bool   `xorm:"enabled"`  // Whether the server is enabled at startup or not.
 
-	// The agent's display name.
-	Name string `xorm:"VARCHAR(100) UNIQUE(loc_ag) NOTNULL 'name'"`
+	RootDir       string `xorm:"root_dir"`        // The root directory of the agent.
+	ReceiveDir    string `xorm:"receive_dir"`     // The server's directory for received files.
+	SendDir       string `xorm:"send_dir"`        // The server's directory for files to be sent.
+	TmpReceiveDir string `xorm:"tmp_receive_dir"` // The server's temporary directory for partially received files.
 
-	// The protocol used by the agent.
-	Protocol string `xorm:"VARCHAR(50) NOTNULL 'protocol'"`
-
-	// Whether the server is enabled at startup or not.
-	Enabled bool `xorm:"BOOL NOTNULL DEFAULT(true) 'enabled'"`
-
-	// The root directory of the agent.
-	RootDir string `xorm:"TEXT NOTNULL DEFAULT('') 'root_dir'"`
-
-	// The server's directory for received files.
-	ReceiveDir string `xorm:"TEXT NOTNULL DEFAULT('') 'receive_dir'"`
-
-	// The server's directory for files to be sent.
-	SendDir string `xorm:"TEXT NOTNULL DEFAULT('') 'send_dir'"`
-
-	// The server's temporary directory for partially received files.
-	TmpReceiveDir string `xorm:"TEXT NOTNULL DEFAULT('') 'tmp_receive_dir'"`
-
-	// The agent's configuration in raw JSON format.
-	ProtoConfig json.RawMessage `xorm:"TEXT NOTNULL DEFAULT('{}') 'proto_config'"`
-
-	// The agent's address (including the port)
-	Address string `xorm:"VARCHAR(260) NOTNULL 'address'"`
+	// The server's protocol configuration in raw JSON format.
+	ProtoConfig json.RawMessage `xorm:"proto_config"`
 }
 
-// TableName returns the local agents table name.
-func (*LocalAgent) TableName() string {
-	return TableLocAgents
-}
-
-// Appellation returns the name of 1 element of the local agents table.
-func (*LocalAgent) Appellation() string {
-	return "server"
-}
-
-// GetID returns the agent's ID.
-func (l *LocalAgent) GetID() int64 {
-	return l.ID
-}
+func (*LocalAgent) TableName() string   { return TableLocAgents }
+func (*LocalAgent) Appellation() string { return "server" }
+func (l *LocalAgent) GetID() int64      { return l.ID }
 
 //nolint:dupl // factorizing would add complexity
 func (l *LocalAgent) validateProtoConfig() error {

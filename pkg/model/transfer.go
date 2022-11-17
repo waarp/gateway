@@ -35,31 +35,26 @@ func init() {
 //
 //nolint:lll //SQL tags are long, nothing we can do about it
 type Transfer struct {
-	ID               int64                `xorm:"BIGINT PK AUTOINCR <- 'id'"`
-	Owner            string               `xorm:"VARCHAR(100) NOTNULL 'owner'"`
-	RemoteTransferID string               `xorm:"VARCHAR(100) NOTNULL UNIQUE(remID) UNIQUE(locID) 'remote_transfer_id'"`
-	RuleID           int64                `xorm:"BIGINT NOTNULL 'rule_id'"`                 // foreign key (rules.id)
-	LocalAccountID   sql.NullInt64        `xorm:"BIGINT UNIQUE(locID) 'local_account_id'"`  // foreign_key (local_accounts.id)
-	RemoteAccountID  sql.NullInt64        `xorm:"BIGINT UNIQUE(remID) 'remote_account_id'"` // foreign_key (remote_accounts.id)
-	LocalPath        string               `xorm:"TEXT NOTNULL 'local_path'"`
-	RemotePath       string               `xorm:"TEXT NOTNULL 'remote_path'"`
-	Filesize         int64                `xorm:"BIGINT NOTNULL DEFAULT(-1) 'filesize'"`
-	Start            time.Time            `xorm:"DATETIME(6) UTC NOTNULL DEFAULT(CURRENT_TIMESTAMP) 'start'"`
-	Status           types.TransferStatus `xorm:"VARCHAR(50) NOTNULL DEFAULT('PLANNED') 'status'"`
-	Step             types.TransferStep   `xorm:"VARCHAR(50) NOTNULL DEFAULT('StepNone') 'step'"`
-	Progress         int64                `xorm:"BIGINT NOTNULL DEFAULT(0) 'progress'"`
-	TaskNumber       int16                `xorm:"SMALLINT NOTNULL DEFAULT(0) 'task_number'"`
-	Error            types.TransferError  `xorm:"extends"`
+	ID               int64                `xorm:"<- id AUTOINCR"`
+	Owner            string               `xorm:"owner"`
+	RemoteTransferID string               `xorm:"remote_transfer_id"`
+	RuleID           int64                `xorm:"rule_id"`
+	LocalAccountID   sql.NullInt64        `xorm:"local_account_id"`
+	RemoteAccountID  sql.NullInt64        `xorm:"remote_account_id"`
+	LocalPath        string               `xorm:"local_path"`
+	RemotePath       string               `xorm:"remote_path"`
+	Filesize         int64                `xorm:"filesize"`
+	Start            time.Time            `xorm:"start DATETIME(6) UTC"`
+	Status           types.TransferStatus `xorm:"status"`
+	Step             types.TransferStep   `xorm:"step"`
+	Progress         int64                `xorm:"progress"`
+	TaskNumber       int16                `xorm:"task_number"`
+	Error            types.TransferError  `xorm:"EXTENDS"`
 }
 
-// TableName returns the name of the transfers table.
-func (*Transfer) TableName() string { return TableTransfers }
-
-// Appellation returns the name of 1 element of the transfers table.
+func (*Transfer) TableName() string   { return TableTransfers }
 func (*Transfer) Appellation() string { return "transfer" }
-
-// GetID returns the transfer's ID.
-func (t *Transfer) GetID() int64 { return t.ID }
+func (t *Transfer) GetID() int64      { return t.ID }
 
 // IsServer returns the transfer is a server transfer (from the gateway's perspective).
 func (t *Transfer) IsServer() bool { return t.LocalAccountID.Valid }
@@ -371,32 +366,4 @@ func (t *Transfer) TransferID() (int64, error) {
 	}
 
 	return id.Int64(), nil
-}
-
-func (*Transfer) MakeExtraConstraints(db *database.Executor) database.Error {
-	// add a not null foreign key to 'rule_id'
-	if err := redefineColumn(db, TableTransfers, "rule_id", fmt.Sprintf(
-		`BIGINT NOT NULL REFERENCES %s(id) ON UPDATE RESTRICT ON DELETE RESTRICT`,
-		TableRules)); err != nil {
-		return err
-	}
-
-	// add a foreign key to 'local_account_id'
-	if err := redefineColumn(db, TableTransfers, "local_account_id", fmt.Sprintf(
-		`BIGINT REFERENCES %s(id) ON UPDATE RESTRICT ON DELETE RESTRICT`,
-		TableLocAccounts)); err != nil {
-		return err
-	}
-
-	// add a foreign key to 'remote_account_id'
-	if err := redefineColumn(db, TableTransfers, "remote_account_id", fmt.Sprintf(
-		`BIGINT REFERENCES %s(id) ON UPDATE RESTRICT ON DELETE RESTRICT`,
-		TableRemAccounts)); err != nil {
-		return err
-	}
-
-	// add a constraint to enforce that one (and only one) of 'local_account_id'
-	// and 'remote_account_id' must be defined
-	return addTableConstraint(db, TableTransfers, utils.CheckOnlyOneNotNull(
-		db.Dialect, "local_account_id", "remote_account_id"))
 }

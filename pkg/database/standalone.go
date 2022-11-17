@@ -1,6 +1,8 @@
 package database
 
 import (
+	"fmt"
+
 	"code.waarp.fr/lib/log"
 	"xorm.io/xorm"
 
@@ -186,4 +188,19 @@ func (s *Standalone) DeleteAll(bean DeleteAllBean) *DeleteAllQuery {
 // hooks will be skipped. Thus, this method should be used with extreme caution.
 func (s *Standalone) Exec(query string, args ...interface{}) Error {
 	return exec(s.engine.NewSession(), s.logger, query, args...)
+}
+
+// GenericSelect executes the given custom SQL query, and returns the result as
+// a slice of map[string]any, with each map representing a row of the query
+// result.
+//
+// Be aware that, since this method bypasses the data models, all the models'
+// hooks will be skipped. Thus, this method should be used with extreme caution.
+func (s *Standalone) GenericSelect(sql string, args ...any) ([]map[string]any, error) {
+	res, err := s.engine.QueryInterface(append([]any{sql}, args...)...)
+	if err != nil {
+		return nil, fmt.Errorf("SQL SELECT failed: %w", err)
+	}
+
+	return res, nil
 }

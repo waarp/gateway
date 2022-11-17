@@ -614,7 +614,7 @@ func TestUpdateRule(t *testing.T) {
 									Chain:  model.ChainPost,
 									Rank:   0,
 									Type:   "MOVE",
-									Args:   json.RawMessage(`{"path":"/move/path"}`),
+									Args:   json.RawMessage(`{"path": "/move/path"}`),
 								})
 							})
 						})
@@ -869,7 +869,7 @@ func TestReplaceRule(t *testing.T) {
 									Chain:  model.ChainPost,
 									Rank:   0,
 									Type:   "MOVE",
-									Args:   json.RawMessage(`{"path":"/move/path"}`),
+									Args:   json.RawMessage(`{"path": "/move/path"}`),
 								})
 							})
 						})

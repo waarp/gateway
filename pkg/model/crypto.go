@@ -2,7 +2,6 @@ package model
 
 import (
 	"database/sql"
-	"fmt"
 	"net"
 	"strings"
 
@@ -30,42 +29,23 @@ type CryptoOwner interface {
 // channels. This includes both TLS and SSH tunnels. These credentials can be
 // attached to both local/remote agents & local/remote accounts.
 type Crypto struct {
-	// The credentials' database ID.
-	ID int64 `xorm:"PK AUTOINCR <- 'id'"`
+	ID   int64  `xorm:"<- id AUTOINCR"` // The credentials' database ID.
+	Name string `xorm:"name"`           // The credentials' display name.
 
 	// The id of the object these credentials are linked to.
-	LocalAgentID    sql.NullInt64 `xorm:"BIGINT UNIQUE(locAg) 'local_agent_id'"`     // foreign key (local_agents.id)
-	RemoteAgentID   sql.NullInt64 `xorm:"BIGINT UNIQUE(remAg) 'remote_agent_id'"`    // foreign key (remote_agents.id)
-	LocalAccountID  sql.NullInt64 `xorm:"BIGINT UNIQUE(locAcc) 'local_account_id'"`  // foreign key (local_accounts.id)
-	RemoteAccountID sql.NullInt64 `xorm:"BIGINT UNIQUE(remAcc) 'remote_account_id'"` // foreign key (remote_accounts.id)
+	LocalAgentID    sql.NullInt64 `xorm:"local_agent_id"`
+	RemoteAgentID   sql.NullInt64 `xorm:"remote_agent_id"`
+	LocalAccountID  sql.NullInt64 `xorm:"local_account_id"`
+	RemoteAccountID sql.NullInt64 `xorm:"remote_account_id"`
 
-	// The credentials' display name.
-	Name string `xorm:"VARCHAR(100) UNIQUE(locAg) UNIQUE(remAg) UNIQUE(locAcc) UNIQUE(remAcc) NOTNULL 'name'"`
-
-	// A PEM encoded TLS private key.
-	PrivateKey types.CypherText `xorm:"TEXT NOTNULL DEFAULT('') 'private_key'"`
-
-	// A PEM encoded TLS certificate.
-	Certificate string `xorm:"TEXT NOTNULL DEFAULT('') 'certificate'"`
-
-	// An SSH public key in authorized_keys format.
-	SSHPublicKey string `xorm:"TEXT NOTNULL DEFAULT('') 'ssh_public_key'"`
+	PrivateKey   types.CypherText `xorm:"private_key"`    // A PEM encoded TLS private key.
+	Certificate  string           `xorm:"certificate"`    // A PEM encoded TLS certificate.
+	SSHPublicKey string           `xorm:"ssh_public_key"` // An SSH public key in authorized_keys format.
 }
 
-// TableName returns the name of the certificates table.
-func (*Crypto) TableName() string {
-	return TableCrypto
-}
-
-// Appellation returns the name of 1 element of the certificates table.
-func (*Crypto) Appellation() string {
-	return "crypto credentials"
-}
-
-// GetID returns the certificate's ID.
-func (c *Crypto) GetID() int64 {
-	return c.ID
-}
+func (*Crypto) TableName() string   { return TableCrypto }
+func (*Crypto) Appellation() string { return "crypto credentials" }
+func (c *Crypto) GetID() int64      { return c.ID }
 
 // BeforeWrite checks if the new `Crypto` entry is valid and can be inserted
 // in the database.
@@ -255,39 +235,4 @@ func (c *Crypto) validateContent(host, proto string, isServer bool) database.Err
 	}
 
 	return nil
-}
-
-func (*Crypto) MakeExtraConstraints(db *database.Executor) database.Error {
-	// add a foreign key to 'local_agent_id'
-	if err := redefineColumn(db, TableCrypto, "local_agent_id", fmt.Sprintf(
-		`BIGINT REFERENCES %s(id) ON UPDATE RESTRICT ON DELETE CASCADE`,
-		TableLocAgents)); err != nil {
-		return err
-	}
-
-	// add a foreign key to 'remote_agent_id'
-	if err := redefineColumn(db, TableCrypto, "remote_agent_id", fmt.Sprintf(
-		`BIGINT REFERENCES %s(id) ON UPDATE RESTRICT ON DELETE CASCADE`,
-		TableRemAgents)); err != nil {
-		return err
-	}
-
-	// add a foreign key to 'local_account_id'
-	if err := redefineColumn(db, TableCrypto, "local_account_id", fmt.Sprintf(
-		`BIGINT REFERENCES %s(id) ON UPDATE RESTRICT ON DELETE CASCADE`,
-		TableLocAccounts)); err != nil {
-		return err
-	}
-
-	// add a foreign key to 'remote_account_id'
-	if err := redefineColumn(db, TableCrypto, "remote_account_id", fmt.Sprintf(
-		`BIGINT REFERENCES %s(id) ON UPDATE RESTRICT ON DELETE CASCADE`,
-		TableRemAccounts)); err != nil {
-		return err
-	}
-
-	// add a constraint to enforce that one (and ONLY ONE) of 'local_agent_id',
-	// 'remote_agent_id', 'local_account_id' and 'remote_account_id' must be defined
-	return addTableConstraint(db, TableCrypto, utils.CheckOnlyOneNotNull(db.Dialect,
-		"local_agent_id", "remote_agent_id", "local_account_id", "remote_account_id"))
 }

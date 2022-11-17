@@ -677,7 +677,7 @@ func testDatabase(db *DB) {
 		&testDeleteFail{}), ShouldBeNil)
 	Reset(func() {
 		So(db.engine.DropTables(&testValid{}, &testValid2{}, &testWriteFail{},
-			&testDeleteFail{}, &version{}), ShouldBeNil)
+			&testDeleteFail{}), ShouldBeNil)
 	})
 
 	testSelectForUpdate(db)
@@ -714,7 +714,7 @@ func TestSqlite(t *testing.T) {
 		}
 	}()
 
-	if err := db.Start(); err != nil {
+	if err := db.start(false); err != nil {
 		t.Fatal(err)
 	}
 

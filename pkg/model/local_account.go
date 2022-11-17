@@ -1,8 +1,6 @@
 package model
 
 import (
-	"fmt"
-
 	"golang.org/x/crypto/bcrypt"
 
 	"code.waarp.fr/apps/gateway/gateway/pkg/database"
@@ -12,33 +10,16 @@ import (
 // LocalAccount represents an account on a local agent. It is used by remote
 // partners to authenticate on the gateway for transfers.
 type LocalAccount struct {
-	// The account's database ID.
-	ID int64 `xorm:"BIGINT PK AUTOINCR <- 'id'"`
+	ID           int64 `xorm:"<- id AUTOINCR"` // The account's database ID.
+	LocalAgentID int64 `xorm:"local_agent_id"` // The ID of the LocalAgent this account is attached to.
 
-	// The ID of the `LocalAgent` this account is attached to.
-	LocalAgentID int64 `xorm:"BIGINT UNIQUE(loc_ac) NOTNULL 'local_agent_id'"` // foreign key (local_agents.id)
-
-	// The account's login.
-	Login string `xorm:"VARCHAR(100) UNIQUE(loc_ac) NOTNULL 'login'"`
-
-	// A bcrypt hash of the account's password.
-	PasswordHash string `xorm:"TEXT NOTNULL DEFAULT('') 'password_hash'"`
+	Login        string `xorm:"login"`         // The account's login.
+	PasswordHash string `xorm:"password_hash"` // A bcrypt hash of the account's password.
 }
 
-// TableName returns the local accounts table name.
-func (*LocalAccount) TableName() string {
-	return TableLocAccounts
-}
-
-// Appellation returns the name of 1 element of the local accounts table.
-func (*LocalAccount) Appellation() string {
-	return "local account"
-}
-
-// GetID returns the account's ID.
-func (l *LocalAccount) GetID() int64 {
-	return l.ID
-}
+func (*LocalAccount) TableName() string   { return TableLocAccounts }
+func (*LocalAccount) Appellation() string { return "local account" }
+func (l *LocalAccount) GetID() int64      { return l.ID }
 
 // GetCryptos fetch in the database then return the associated Cryptos if they exist.
 func (l *LocalAccount) GetCryptos(db *database.DB) ([]*Crypto, error) {
@@ -97,12 +78,6 @@ func (l *LocalAccount) BeforeDelete(db database.Access) database.Error {
 	}
 
 	return nil
-}
-
-func (*LocalAccount) MakeExtraConstraints(db *database.Executor) database.Error {
-	// add a foreign key to 'local_agent_id'
-	return redefineColumn(db, TableLocAccounts, "local_agent_id", fmt.Sprintf(
-		`BIGINT NOT NULL REFERENCES %s(id) ON UPDATE RESTRICT ON DELETE CASCADE`, TableLocAgents))
 }
 
 //nolint:goconst //different columns having the same name does not warrant making that name a constant

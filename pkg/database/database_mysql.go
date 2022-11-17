@@ -1,8 +1,6 @@
 package database
 
 import (
-	"xorm.io/xorm"
-
 	"code.waarp.fr/apps/gateway/gateway/pkg/database/migrations"
 )
 
@@ -16,8 +14,9 @@ func init() {
 	supportedRBMS[MySQL] = mysqlinfo
 }
 
-func mysqlInit(*xorm.Engine) error { return nil }
-
-func mysqlinfo() (string, string, func(*xorm.Engine) error) {
-	return migrations.MysqlDriver, migrations.MysqlDSN(), mysqlInit
+func mysqlinfo() *dbInfo {
+	return &dbInfo{
+		driver: migrations.MysqlDriver,
+		dsn:    migrations.MysqlDSN(),
+	}
 }

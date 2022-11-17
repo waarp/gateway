@@ -9,46 +9,23 @@ import (
 
 // Rule represents a transfer rule.
 type Rule struct {
-	// The Rule's ID
-	ID int64 `xorm:"BIGINT PK AUTOINCR <- 'id'"`
+	ID int64 `xorm:"<- id AUTOINCR"` // The Rule's ID
 
-	// The rule's name
-	Name string `xorm:"VARCHAR(100) UNIQUE(dir) NOTNULL 'name'"`
-
-	// The rule's comment
-	Comment string `xorm:"TEXT NOTNULL DEFAULT('') 'comment'"`
-
-	// The rule's direction (pull/push)
-	IsSend bool `xorm:"BOOL UNIQUE(dir) UNIQUE(path) NOTNULL 'is_send'"`
+	Name    string `xorm:"name"`    // The rule's name
+	IsSend  bool   `xorm:"is_send"` // The rule's direction (pull/push)
+	Comment string `xorm:"comment"` // An optional comment on the rule.
 
 	// The path used to differentiate the rule when the protocol does not allow it.
-	// This path is always an absolute path (must start with a slash).
-	Path string `xorm:"VARCHAR(255) UNIQUE(path) NOTNULL 'path'"`
+	Path string `xorm:"path"`
 
-	// The local directory for all file transfers using this rule.
-	LocalDir string `xorm:"TEXT NOTNULL DEFAULT('') 'local_dir'"`
-
-	// The remote directory for all file transfers using this rule.
-	RemoteDir string `xorm:"TEXT NOTNULL DEFAULT('') 'remote_dir'"`
-
-	// The temporary directory for running incoming transfer files.
-	TmpLocalRcvDir string `xorm:"TEXT NOTNULL DEFAULT('') 'tmp_local_receive_dir'"`
+	LocalDir       string `xorm:"local_dir"`             // The local directory for transfers.
+	RemoteDir      string `xorm:"remote_dir"`            // The remote directory for transfers.
+	TmpLocalRcvDir string `xorm:"tmp_local_receive_dir"` // The local temporary directory for transfers.
 }
 
-// TableName returns the remote accounts table name.
-func (*Rule) TableName() string {
-	return TableRules
-}
-
-// Appellation returns the name of 1 element of the rules table.
-func (*Rule) Appellation() string {
-	return "rule"
-}
-
-// GetID returns the rule's ID.
-func (r *Rule) GetID() int64 {
-	return r.ID
-}
+func (*Rule) TableName() string   { return TableRules }
+func (*Rule) Appellation() string { return "rule" }
+func (r *Rule) GetID() int64      { return r.ID }
 
 func (r *Rule) normalizePaths() {
 	r.Path = path.Clean(r.Path)

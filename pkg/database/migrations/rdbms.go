@@ -59,13 +59,13 @@ func SqliteDSN() string {
 	values := url.Values{}
 
 	values.Set("mode", "rwc")
-	values.Set("_txlock", "immediate")
-	values.Add("_pragma", "busy_timeout=5000")
-	values.Add("_pragma", "foreign_keys=ON")
-	values.Add("_pragma", "journal_mode=WAL")
-	values.Add("_pragma", "synchronous=NORMAL")
+	values.Set("_txlock", "exclusive")
+	values.Add("_pragma", "busy_timeout(5000)")
+	values.Add("_pragma", "foreign_keys(ON)")
+	values.Add("_pragma", "journal_mode(WAL)")
+	values.Add("_pragma", "synchronous(NORMAL)")
 
-	return fmt.Sprintf("%s?%s", config.Address, values.Encode())
+	return fmt.Sprintf("file:%s?%s", config.Address, values.Encode())
 }
 
 // PostgresDSN takes a database configuration and returns the corresponding

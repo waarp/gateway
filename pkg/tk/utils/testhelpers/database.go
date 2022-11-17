@@ -25,9 +25,12 @@ func GetTestSqliteDBNoReset(c convey.C) (*sql.DB, string) {
 
 // GetTestSqliteDB returns a *sql.DB pointing to a test SQLite database.
 func GetTestSqliteDB(c convey.C) *sql.DB {
-	db, _ := GetTestSqliteDBNoReset(c)
+	db, file := GetTestSqliteDBNoReset(c)
 
-	c.Reset(func() { c.So(db.Close(), convey.ShouldBeNil) })
+	c.Reset(func() {
+		c.So(db.Close(), convey.ShouldBeNil)
+		c.So(os.Remove(file), convey.ShouldBeNil)
+	})
 
 	return db
 }

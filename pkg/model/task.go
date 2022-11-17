@@ -3,7 +3,6 @@ package model
 import (
 	"context"
 	"encoding/json"
-	"fmt"
 
 	"code.waarp.fr/apps/gateway/gateway/pkg/database"
 )
@@ -31,32 +30,22 @@ type TaskRunner interface {
 type Chain string
 
 const (
-	// ChainPre is the chain for pre transfer tasks.
-	ChainPre Chain = "PRE"
-	// ChainPost is the chain for post transfer tasks.
-	ChainPost Chain = "POST"
-	// ChainError is the chain for error transfer tasks.
-	ChainError Chain = "ERROR"
+	ChainPre   Chain = "PRE"   // ChainPre is the chain for pre transfer tasks.
+	ChainPost  Chain = "POST"  // ChainPost is the chain for post transfer tasks.
+	ChainError Chain = "ERROR" // ChainError is the chain for error transfer tasks.
 )
 
 // Task represents one record of the 'tasks' table.
 type Task struct {
-	RuleID int64           `xorm:"BIGINT NOTNULL UNIQUE(taskNb) 'rule_id'"` // foreign key (rules.id)
-	Chain  Chain           `xorm:"VARCHAR(10) NOTNULL UNIQUE(taskNb) 'chain'"`
-	Rank   int16           `xorm:"SMALLINT NOTNULL UNIQUE(taskNb) 'rank'"`
-	Type   string          `xorm:"VARCHAR(50) NOTNULL 'type'"`
-	Args   json.RawMessage `xorm:"TEXT NOTNULL DEFAULT('{}') 'args'"`
+	RuleID int64           `xorm:"rule_id"` // The ID of the rule this tasks belongs to.
+	Chain  Chain           `xorm:"chain"`   // The chain this task belongs to (ChainPre, ChainPost or ChainError)
+	Rank   int16           `xorm:"rank"`    // The task's index in the chain.
+	Type   string          `xorm:"type"`    // The type of task.
+	Args   json.RawMessage `xorm:"args"`    // The task's arguments as a raw JSON object.
 }
 
-// TableName returns the name of the tasks table.
-func (*Task) TableName() string {
-	return TableTasks
-}
-
-// Appellation returns the name of 1 element of the tasks table.
-func (*Task) Appellation() string {
-	return "task"
-}
+func (*Task) TableName() string   { return TableTasks }
+func (*Task) Appellation() string { return "task" }
 
 func (t *Task) validateTasks() database.Error {
 	if t.Chain != ChainPre && t.Chain != ChainPost && t.Chain != ChainError {
@@ -110,16 +99,4 @@ func (t *Task) BeforeWrite(db database.ReadAccess) database.Error {
 	}
 
 	return nil
-}
-
-func (*Task) MakeExtraConstraints(db *database.Executor) database.Error {
-	if err := redefineColumn(db, TableTasks, "rule_id", fmt.Sprintf(
-		`BIGINT NOT NULL REFERENCES %s(id) ON UPDATE RESTRICT ON DELETE CASCADE`,
-		TableRules)); err != nil {
-		return err
-	}
-
-	return addTableConstraint(db, TableTasks, fmt.Sprintf(
-		`chain = '%s' OR chain = '%s' OR chain = '%s'`,
-		ChainPre, ChainPost, ChainError))
 }

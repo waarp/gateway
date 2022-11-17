@@ -55,6 +55,8 @@ func testVer0_7_0RevampUsersTable(eng *testEngine, dialect string) {
 			So(err, ShouldBeNil)
 
 			Convey("Then it should have changed the columns", func() {
+				doesIndexExist(eng.DB, dialect, "users", "unique_username")
+
 				row := eng.DB.QueryRow(`SELECT id,owner,username,password_hash,
        				permissions FROM users`)
 				So(err, ShouldBeNil)

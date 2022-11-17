@@ -67,7 +67,7 @@ func (v ver0_7_0RevampUsersTable) Up(db migration.Actions) error {
 		migration.Col("username", migration.Varchar(100), migration.NotNull),
 		migration.Col("password_hash", migration.Text, migration.NotNull, migration.Default("")),
 		migration.Col("permissions", migration.BigInt, migration.NotNull, migration.Default(0)),
-		migration.MultiUnique("owner", "username"),
+		migration.MultiUnique("unique_username", "owner", "username"),
 	); err != nil {
 		return fmt.Errorf("failed to create the new users table: %w", err)
 	}
@@ -151,7 +151,7 @@ func (v ver0_7_0RevampUsersTable) Down(db migration.Actions) error {
 		migration.Col("username", migration.Varchar(255), migration.NotNull),
 		migration.Col("password_hash", migration.Text, migration.NotNull),
 		migration.Col("permissions", migration.Binary(4), migration.NotNull),
-		migration.MultiUnique("owner", "username"),
+		migration.MultiUnique("UQE_users_name", "owner", "username"),
 	); err != nil {
 		return fmt.Errorf("failed to create the new users table: %w", err)
 	}
@@ -196,7 +196,7 @@ func (ver0_7_0RevampLocalAgentsTable) Up(db migration.Actions) error {
 		migration.Col("send_dir", migration.Text, migration.NotNull, migration.Default("")),
 		migration.Col("tmp_receive_dir", migration.Text, migration.NotNull, migration.Default("")),
 		migration.Col("proto_config", migration.Text, migration.NotNull, migration.Default("{}")),
-		migration.MultiUnique("owner", "name"),
+		migration.MultiUnique("unique_local_agent_name", "owner", "name"),
 	); err != nil {
 		return fmt.Errorf("failed to create the new local_agents table: %w", err)
 	}
@@ -237,7 +237,7 @@ func (ver0_7_0RevampLocalAgentsTable) Down(db migration.Actions) error {
 		migration.Col("tmp_receive_dir", migration.Varchar(255), migration.NotNull),
 		migration.Col("proto_config", migration.Blob, migration.NotNull),
 		migration.Col("address", migration.Varchar(255), migration.NotNull),
-		migration.MultiUnique("owner", "name"),
+		migration.MultiUnique("UQE_local_agents_loc_ag", "owner", "name"),
 	); err != nil {
 		return fmt.Errorf("failed to recreate the old local_agents table: %w", err)
 	}
@@ -346,7 +346,7 @@ func (ver0_7_0RevampLocalAccountsTable) Up(db migration.Actions) error {
 			OnUpdate(migration.Restrict).OnDelete(migration.Cascade)),
 		migration.Col("login", migration.Varchar(100), migration.NotNull),
 		migration.Col("password_hash", migration.Text, migration.NotNull, migration.Default("")),
-		migration.MultiUnique("local_agent_id", "login"),
+		migration.MultiUnique("unique_local_account_login", "local_agent_id", "login"),
 	); err != nil {
 		return fmt.Errorf("failed to create the new local_accounts table: %w", err)
 	}
@@ -375,7 +375,7 @@ func (ver0_7_0RevampLocalAccountsTable) Down(db migration.Actions) error {
 		migration.Col("local_agent_id", migration.BigInt, migration.NotNull),
 		migration.Col("login", migration.Varchar(255), migration.NotNull),
 		migration.Col("password_hash", migration.Text),
-		migration.MultiUnique("local_agent_id", "login"),
+		migration.MultiUnique("uqe_local_accounts_new_loc_ac", "local_agent_id", "login"),
 	); err != nil {
 		return fmt.Errorf("failed to create the new local_accounts table: %w", err)
 	}
@@ -408,7 +408,7 @@ func (ver0_7_0RevampRemoteAccountsTable) Up(db migration.Actions) error {
 				OnDelete(migration.Cascade)),
 		migration.Col("login", migration.Varchar(100), migration.NotNull),
 		migration.Col("password", migration.Text, migration.NotNull, migration.Default("")),
-		migration.MultiUnique("remote_agent_id", "login"),
+		migration.MultiUnique("unique_remote_account_login", "remote_agent_id", "login"),
 	); err != nil {
 		return fmt.Errorf("failed to create the new remote_accounts table: %w", err)
 	}
@@ -437,7 +437,7 @@ func (ver0_7_0RevampRemoteAccountsTable) Down(db migration.Actions) error {
 		migration.Col("remote_agent_id", migration.BigInt, migration.NotNull),
 		migration.Col("login", migration.Varchar(255), migration.NotNull),
 		migration.Col("password", migration.Text),
-		migration.MultiUnique("remote_agent_id", "login"),
+		migration.MultiUnique("UQE_remote_accounts_old_rem_ac", "remote_agent_id", "login"),
 	); err != nil {
 		return fmt.Errorf("failed to create the new remote_accounts table: %w", err)
 	}
@@ -471,8 +471,8 @@ func (ver0_7_0RevampRulesTable) Up(db migration.Actions) error {
 		migration.Col("local_dir", migration.Text, migration.NotNull, migration.Default("")),
 		migration.Col("remote_dir", migration.Text, migration.NotNull, migration.Default("")),
 		migration.Col("tmp_local_receive_dir", migration.Text, migration.NotNull, migration.Default("")),
-		migration.MultiUnique("name", "is_send"),
-		migration.MultiUnique("path", "is_send"),
+		migration.MultiUnique("unique_rule_name", "is_send", "name"),
+		migration.MultiUnique("unique_rule_path", "is_send", "path"),
 	); err != nil {
 		return fmt.Errorf("failed to create the new rules table: %w", err)
 	}
@@ -505,8 +505,8 @@ func (ver0_7_0RevampRulesTable) Down(db migration.Actions) error {
 		migration.Col("local_dir", migration.Varchar(255), migration.NotNull),
 		migration.Col("remote_dir", migration.Varchar(255), migration.NotNull),
 		migration.Col("tmp_local_receive_dir", migration.Varchar(255), migration.NotNull),
-		migration.MultiUnique("name", "send"),
-		migration.MultiUnique("path", "send"),
+		migration.MultiUnique("UQE_rules_dir", "name", "send"),
+		migration.MultiUnique("UQE_rules_path", "path", "send"),
 	); err != nil {
 		return fmt.Errorf("failed to create the new remote_accounts table: %w", err)
 	}
@@ -540,7 +540,7 @@ func (ver0_7_0RevampTasksTable) Up(db migration.Actions) error {
 		migration.Col("type", migration.Varchar(50), migration.NotNull),
 		migration.Col("args", migration.Text, migration.NotNull, migration.Default("{}")),
 		migration.Check("chain = 'PRE' OR chain = 'POST' OR chain = 'ERROR'"),
-		migration.MultiUnique("rule_id", "chain", "rank"),
+		migration.MultiUnique("unique_task_nb", "rule_id", "chain", "rank"),
 	); err != nil {
 		return fmt.Errorf("failed to create the new tasks table: %w", err)
 	}
@@ -624,7 +624,8 @@ func (ver0_7_0RevampHistoryTable) Up(db migration.Actions) error {
 		migration.Col("task_number", migration.SmallInt, migration.NotNull, migration.Default(0)),
 		migration.Col("error_code", migration.Varchar(50), migration.NotNull, migration.Default("TeOk")),
 		migration.Col("error_details", migration.Text, migration.NotNull, migration.Default("")),
-		migration.MultiUnique("remote_transfer_id", "is_server", "account", "agent"),
+		migration.MultiUnique("unique_history_id", "remote_transfer_id",
+			"is_server", "account", "agent"),
 	); err != nil {
 		return fmt.Errorf("failed to create the new transfer_history table: %w", err)
 	}
@@ -635,8 +636,7 @@ func (ver0_7_0RevampHistoryTable) Up(db migration.Actions) error {
 		}
 	}
 
-	start := "start" //nolint:goconst //other instances are about different matters
-	stop := "stop"
+	start, stop := "start", "stop" //nolint:goconst //other instances are about different matters
 
 	if db.GetDialect() == MySQL || db.GetDialect() == SQLite {
 		start = "REPLACE(REPLACE(start, 'T', ' '), 'Z', '')"
@@ -753,8 +753,8 @@ func (ver0_7_0RevampTransfersTable) Up(db migration.Actions) error {
 		migration.Col("task_number", migration.SmallInt, migration.NotNull, migration.Default(0)),
 		migration.Col("error_code", migration.Varchar(50), migration.NotNull, migration.Default("TeOk")),
 		migration.Col("error_details", migration.Text, migration.NotNull, migration.Default("")),
-		migration.MultiUnique("remote_transfer_id", "local_account_id"),
-		migration.MultiUnique("remote_transfer_id", "remote_account_id"),
+		migration.MultiUnique("unique_transfer_local_account", "remote_transfer_id", "local_account_id"),
+		migration.MultiUnique("unique_transfer_remote_account", "remote_transfer_id", "remote_account_id"),
 		migration.Check(utils.CheckOnlyOneNotNull(db.GetDialect(), "local_account_id", "remote_account_id")),
 	); err != nil {
 		return fmt.Errorf("failed to create the new transfers table: %w", err)
@@ -870,8 +870,8 @@ func (ver0_7_0RevampTransferInfoTable) Up(db migration.Actions) error {
 			OnUpdate(migration.Restrict).OnDelete(migration.Cascade)),
 		migration.Col("name", migration.Varchar(100), migration.NotNull),
 		migration.Col("value", migration.Text, migration.NotNull, migration.Default("null")),
-		migration.MultiUnique("transfer_id", "name"),
-		migration.MultiUnique("history_id", "name"),
+		migration.MultiUnique("unique_transfer_info_tran", "transfer_id", "name"),
+		migration.MultiUnique("unique_transfer_info_hist", "history_id", "name"),
 		migration.Check(utils.CheckOnlyOneNotNull(db.GetDialect(), "transfer_id", "history_id")),
 	); err != nil {
 		return fmt.Errorf("failed to create the new transfer_info table: %w", err)
@@ -903,7 +903,7 @@ func (ver0_7_0RevampTransferInfoTable) Down(db migration.Actions) error {
 		migration.Col("is_history", migration.Boolean, migration.NotNull),
 		migration.Col("name", migration.Varchar(255), migration.NotNull),
 		migration.Col("value", migration.Text, migration.NotNull),
-		migration.MultiUnique("transfer_id", "name"),
+		migration.MultiUnique("UQE_transfer_info_old_infoName", "transfer_id", "name"),
 	); err != nil {
 		return fmt.Errorf("failed to create the new transfer_info table: %w", err)
 	}
@@ -945,10 +945,10 @@ func (ver0_7_0RevampCryptoTable) Up(db migration.Actions) error {
 		migration.Col("private_key", migration.Text, migration.NotNull, migration.Default("")),
 		migration.Col("certificate", migration.Text, migration.NotNull, migration.Default("")),
 		migration.Col("ssh_public_key", migration.Text, migration.NotNull, migration.Default("")),
-		migration.MultiUnique("name", "local_agent_id"),
-		migration.MultiUnique("name", "remote_agent_id"),
-		migration.MultiUnique("name", "local_account_id"),
-		migration.MultiUnique("name", "remote_account_id"),
+		migration.MultiUnique("unique_crypto_credentials_loc_agent", "local_agent_id", "name"),
+		migration.MultiUnique("unique_crypto_credentials_rem_agent", "remote_agent_id", "name"),
+		migration.MultiUnique("unique_crypto_credentials_loc_account", "local_account_id", "name"),
+		migration.MultiUnique("unique_crypto_credentials_rem_account", "remote_account_id", "name"),
 		migration.Check(utils.CheckOnlyOneNotNull(db.GetDialect(), "local_agent_id",
 			"remote_agent_id", "local_account_id", "remote_account_id")),
 	); err != nil {
@@ -987,7 +987,7 @@ func (ver0_7_0RevampCryptoTable) Down(db migration.Actions) error {
 		migration.Col("private_key", migration.Text),
 		migration.Col("certificate", migration.Text),
 		migration.Col("ssh_public_key", migration.Text),
-		migration.MultiUnique("name", "owner_type", "owner_id"),
+		migration.MultiUnique("UQE_crypto_credentials_old_cert", "name", "owner_type", "owner_id"),
 	); err != nil {
 		return fmt.Errorf("failed to create the new crypto_credentials table: %w", err)
 	}
@@ -1032,10 +1032,10 @@ func (ver0_7_0RevampRuleAccessTable) Up(db migration.Actions) error {
 			OnUpdate(migration.Restrict).OnDelete(migration.Cascade)),
 		migration.Col("remote_account_id", migration.BigInt, migration.ForeignKey("remote_accounts", "id").
 			OnUpdate(migration.Restrict).OnDelete(migration.Cascade)),
-		migration.MultiUnique("rule_id", "local_agent_id"),
-		migration.MultiUnique("rule_id", "remote_agent_id"),
-		migration.MultiUnique("rule_id", "local_account_id"),
-		migration.MultiUnique("rule_id", "remote_account_id"),
+		migration.MultiUnique("unique_rule_access_loc_agent", "rule_id", "local_agent_id"),
+		migration.MultiUnique("unique_rule_access_rem_agent", "rule_id", "remote_agent_id"),
+		migration.MultiUnique("unique_rule_access_loc_account", "rule_id", "local_account_id"),
+		migration.MultiUnique("unique_rule_access_rem_account", "rule_id", "remote_account_id"),
 		migration.Check(utils.CheckOnlyOneNotNull(db.GetDialect(), "local_agent_id",
 			"remote_agent_id", "local_account_id", "remote_account_id")),
 	); err != nil {
@@ -1069,7 +1069,7 @@ func (ver0_7_0RevampRuleAccessTable) Down(db migration.Actions) error {
 		migration.Col("rule_id", migration.BigInt, migration.NotNull),
 		migration.Col("object_type", migration.Varchar(255), migration.NotNull),
 		migration.Col("object_id", migration.BigInt, migration.NotNull),
-		migration.MultiUnique("rule_id", "object_type", "object_id"),
+		migration.MultiUnique("UQE_rule_access_old_perm", "rule_id", "object_type", "object_id"),
 	); err != nil {
 		return fmt.Errorf("failed to create the new rule_access table: %w", err)
 	}

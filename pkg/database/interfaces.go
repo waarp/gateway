@@ -127,16 +127,6 @@ type Table interface {
 	Appellation() string
 }
 
-// ExtraConstraintsMaker is an interface which can be implemented by models which
-// need extra constraints not handled by Xorm (like foreign keys, or CHECK).
-// These models can implement a MakeExtraConstraints which will be run just after
-// the table creation (but before the table indexes are created). These new
-// constraints can be added using the given Executor parameter. When this function
-// is called, the table should ALWAYS be assumed to be empty.
-type ExtraConstraintsMaker interface {
-	MakeExtraConstraints(db *Executor) Error
-}
-
 // Identifier is an interface which adds a function which returns the entry's
 // ID number. Models must implement this interface in order to be updated.
 type Identifier interface {

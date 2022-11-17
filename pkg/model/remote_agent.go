@@ -14,36 +14,19 @@ import (
 // communicate and make transfers. The struct contains the information needed by
 // the gateway to connect to the server.
 type RemoteAgent struct {
-	// The agent's database ID.
-	ID int64 `xorm:"BIGINT PK AUTOINCR <- 'id'"`
+	ID int64 `xorm:"<- id AUTOINCR"` // The partner's database ID.
 
-	// The agent's display name.
-	Name string `xorm:"VARCHAR(100) UNIQUE NOTNULL 'name'"`
+	Name     string `xorm:"name"`     // The partner's display name.
+	Protocol string `xorm:"protocol"` // The partner's protocol.
+	Address  string `xorm:"address"`  // The partner's address (including the port)
 
-	// The protocol used by the agent.
-	Protocol string `xorm:"VARCHAR(50) NOTNULL 'protocol'"`
-
-	// The agent's configuration in raw JSON format.
-	ProtoConfig json.RawMessage `xorm:"TEXT NOTNULL DEFAULT('{}') 'proto_config'"`
-
-	// The agent's address (including the port)
-	Address string `xorm:"VARCHAR(260) NOTNULL 'address'"`
+	// The partner's protocol configuration in raw JSON format.
+	ProtoConfig json.RawMessage `xorm:"proto_config"`
 }
 
-// TableName returns the remote agents table name.
-func (*RemoteAgent) TableName() string {
-	return TableRemAgents
-}
-
-// Appellation returns the name of 1 element of the remote agents table.
-func (*RemoteAgent) Appellation() string {
-	return "partner"
-}
-
-// GetID returns the agent's ID.
-func (r *RemoteAgent) GetID() int64 {
-	return r.ID
-}
+func (*RemoteAgent) TableName() string   { return TableRemAgents }
+func (*RemoteAgent) Appellation() string { return "partner" }
+func (r *RemoteAgent) GetID() int64      { return r.ID }
 
 //nolint:dupl // factorizing would add complexity
 func (r *RemoteAgent) validateProtoConfig() error {

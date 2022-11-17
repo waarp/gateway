@@ -1,6 +1,9 @@
 package migrations
 
 func testMigrations(eng *testEngine, dbType string) {
+	// 0.4.0
+	testVer0_4_0InitDatabase(eng, dbType)
+
 	// 0.4.2
 	testVer0_4_2RemoveHistoryRemoteIDUnique(eng, dbType)
 

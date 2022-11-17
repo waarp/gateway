@@ -13,35 +13,30 @@ import (
 
 // HistoryEntry represents one record of the 'transfers_history' table.
 type HistoryEntry struct {
-	ID               int64                `xorm:"BIGINT PK 'id'"`
-	Owner            string               `xorm:"VARCHAR(100) NOTNULL 'owner'"`
-	RemoteTransferID string               `xorm:"VARCHAR(100) NOTNULL UNIQUE(rtID) 'remote_transfer_id'"`
-	IsServer         bool                 `xorm:"BOOL NOTNULL UNIQUE(rtID) 'is_server'"`
-	IsSend           bool                 `xorm:"BOOL NOTNULL 'is_send'"`
-	Rule             string               `xorm:"VARCHAR(100) NOTNULL 'rule'"`
-	Account          string               `xorm:"VARCHAR(100) NOTNULL UNIQUE(rtID) 'account'"`
-	Agent            string               `xorm:"VARCHAR(100) NOTNULL UNIQUE(rtID) 'agent'"`
-	Protocol         string               `xorm:"VARCHAR(50) NOTNULL 'protocol'"`
-	LocalPath        string               `xorm:"TEXT NOTNULL 'local_path'"`
-	RemotePath       string               `xorm:"TEXT NOTNULL 'remote_path'"`
-	Filesize         int64                `xorm:"BIGINT NOTNULL DEFAULT(-1) 'filesize'"`
-	Start            time.Time            `xorm:"DATETIME(6) UTC NOTNULL 'start'"`
-	Stop             time.Time            `xorm:"DATETIME(6) UTC 'stop'"`
-	Status           types.TransferStatus `xorm:"VARCHAR(50) NOTNULL 'status'"`
-	Step             types.TransferStep   `xorm:"VARCHAR(50) NOTNULL 'step'"`
-	Progress         int64                `xorm:"BIGINT NOTNULL DEFAULT(0) 'progress'"`
-	TaskNumber       int16                `xorm:"SMALLINT NOTNULL DEFAULT(0) 'task_number'"`
-	Error            types.TransferError  `xorm:"extends"`
+	ID               int64                `xorm:"id"`
+	Owner            string               `xorm:"owner"`
+	RemoteTransferID string               `xorm:"remote_transfer_id"`
+	IsServer         bool                 `xorm:"is_server"`
+	IsSend           bool                 `xorm:"is_send"`
+	Rule             string               `xorm:"rule"`
+	Account          string               `xorm:"account"`
+	Agent            string               `xorm:"agent"`
+	Protocol         string               `xorm:"protocol"`
+	LocalPath        string               `xorm:"local_path"`
+	RemotePath       string               `xorm:"remote_path"`
+	Filesize         int64                `xorm:"filesize"`
+	Start            time.Time            `xorm:"start DATETIME(6) UTC"`
+	Stop             time.Time            `xorm:"stop DATETIME(6) UTC"`
+	Status           types.TransferStatus `xorm:"status"`
+	Step             types.TransferStep   `xorm:"step"`
+	Progress         int64                `xorm:"progress"`
+	TaskNumber       int16                `xorm:"task_number"`
+	Error            types.TransferError  `xorm:"EXTENDS"`
 }
 
-// TableName returns the name of the transfer history table.
-func (*HistoryEntry) TableName() string { return TableHistory }
-
-// Appellation returns the name of 1 element of the transfer history table.
+func (*HistoryEntry) TableName() string   { return TableHistory }
 func (*HistoryEntry) Appellation() string { return "history entry" }
-
-// GetID returns the transfer's ID.
-func (h *HistoryEntry) GetID() int64 { return h.ID }
+func (h *HistoryEntry) GetID() int64      { return h.ID }
 
 // BeforeWrite checks if the new `HistoryEntry` entry is valid and can be
 // inserted in the database.

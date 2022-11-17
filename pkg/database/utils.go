@@ -53,7 +53,8 @@ func (db *DB) checkVersion() error {
 func checkExists(db Access, bean exister) Error {
 	logger := db.GetLogger()
 
-	exist, err := db.getUnderlying().NoAutoCondition().ID(bean.GetID()).Exist(bean)
+	exist, err := db.getUnderlying().NoAutoCondition().
+		Where("id=?", bean.GetID()).Exist(bean)
 	if err != nil {
 		logger.Error("Failed to check if the %s exists: %s", bean.Appellation(), err)
 

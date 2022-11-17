@@ -1,8 +1,6 @@
 package database
 
 import (
-	"xorm.io/xorm"
-
 	"code.waarp.fr/apps/gateway/gateway/pkg/database/migrations"
 )
 
@@ -16,8 +14,9 @@ func init() {
 	supportedRBMS[SQLite] = sqliteinfo
 }
 
-func sqliteInit(*xorm.Engine) error { return nil }
-
-func sqliteinfo() (string, string, func(*xorm.Engine) error) {
-	return migrations.SqliteDriver, migrations.SqliteDSN(), sqliteInit
+func sqliteinfo() *dbInfo {
+	return &dbInfo{
+		driver: migrations.SqliteDriver,
+		dsn:    migrations.SqliteDSN(),
+	}
 }

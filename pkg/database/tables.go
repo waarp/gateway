@@ -8,6 +8,8 @@ import (
 	"xorm.io/xorm"
 
 	"code.waarp.fr/apps/gateway/gateway/pkg/conf"
+	"code.waarp.fr/apps/gateway/gateway/pkg/database/migrations"
+	vers "code.waarp.fr/apps/gateway/gateway/pkg/version"
 )
 
 //nolint:gochecknoglobals // global var is used by design
@@ -58,74 +60,47 @@ func (e *Executor) Query(query string, args ...interface{}) ([]map[string]interf
 	}
 }
 
-// initTables creates the database tables if they don't exist and fills them
-// with the default entries.
-func initTables(db *Standalone, withInit bool) error {
-	addedTables := make([]Table, 0, len(tables))
+// initDatabase initializes the database and then updates it to the latest version.
+func initDatabase(db *Standalone) error {
+	sqlDB := db.engine.DB().DB
+	dialect := conf.GlobalConfig.Database.Type
+	logger := db.logger
 
-	if err := db.Transaction(func(ses *Session) Error {
-		return initTablesFunc(ses, withInit, addedTables)
-	}); err != nil {
-		// MySQL commits after each CREATE TABLE, thus, if an error occurs during
-		// the database initialisation, we must drop all the tables which were
-		// added before that error to mirror the effect of a rollback.
-		if conf.GlobalConfig.Database.Type == MySQL {
-			names := make([]interface{}, len(addedTables))
-			for i := range addedTables {
-				names[len(addedTables)-1-i] = addedTables[i].TableName()
+	dbExist, existErr := db.engine.IsTableExist(&version{})
+	if existErr != nil {
+		logger.Critical("Failed to probe the database table list: %v", existErr)
+
+		return fmt.Errorf("failed to probe the database table list: %w", existErr)
+	}
+
+	if !dbExist {
+		if err2 := migrations.DoMigration(sqlDB, logger, vers.Num, dialect, nil); err2 != nil {
+			logger.Critical("Database initialization failed: %v", err2)
+
+			return fmt.Errorf("database initialization failed: %w", err2)
+		}
+	}
+
+	if err := db.Transaction(initTables); err != nil {
+		if !dbExist {
+			if err2 := migrations.DoMigration(sqlDB, logger, migrations.VersionNone,
+				dialect, nil); err2 != nil {
+				logger.Warning("Failed to restore the pristine database: %v", err2)
 			}
-
-			_ = db.engine.DropTables(names...) //nolint:errcheck //this error is irrelevant
 		}
 
-		return err
+		return fmt.Errorf("failed to initialize tables: %w", err)
 	}
 
 	return nil
 }
 
-// initTables creates the database tables if they don't exist and fills them
-// with the default entries.
-func initTablesFunc(ses *Session, withInit bool, addedTables []Table) Error {
+func initTables(ses *Session) Error {
 	for _, tbl := range tables {
-		if ok, err := ses.session.IsTableExist(tbl.TableName()); err != nil {
-			ses.logger.Critical("Failed to retrieve database table list: %s", err)
-
-			return NewInternalError(err)
-		} else if !ok {
-			if err := ses.session.Table(tbl.TableName()).CreateTable(tbl); err != nil {
-				ses.logger.Critical("Failed to create the '%s' database table: %s",
-					tbl.TableName(), err)
-
-				return NewInternalError(err)
-			}
-
-			addedTables = append(addedTables, tbl)
-
-			if fker, ok := tbl.(ExtraConstraintsMaker); ok {
-				exe := &Executor{conf.GlobalConfig.Database.Type, ses.logger, ses.session}
-				if err := fker.MakeExtraConstraints(exe); err != nil {
-					return err
-				}
-			}
-
-			if err := ses.session.Table(tbl.TableName()).CreateUniques(tbl); err != nil {
-				ses.logger.Critical("Failed to create the '%s' table uniques: %s",
-					tbl.TableName(), err)
-
-				return NewInternalError(err)
-			}
-
-			if err := ses.session.Table(tbl.TableName()).CreateIndexes(tbl); err != nil {
-				ses.logger.Critical("Failed to create the '%s' table indexes: %s",
-					tbl.TableName(), err)
-
-				return NewInternalError(err)
-			}
-		}
-
-		if init, ok := tbl.(initialiser); ok && withInit {
+		if init, ok := tbl.(initialiser); ok {
 			if err := init.Init(ses); err != nil {
+				ses.logger.Error("failed to initialize table %q: %v", tbl.TableName(), err)
+
 				return err
 			}
 		}

@@ -5,16 +5,14 @@ import (
 	"crypto/aes"
 	"crypto/cipher"
 	"crypto/rand"
-	"database/sql"
 	"fmt"
 	"net/url"
 	"os"
-	"strings"
 	"sync"
 
+	"github.com/google/uuid"
 	"github.com/smartystreets/goconvey/convey"
 	"golang.org/x/crypto/bcrypt"
-	"xorm.io/xorm"
 	"xorm.io/xorm/contexts"
 
 	"code.waarp.fr/apps/gateway/gateway/pkg/conf"
@@ -23,28 +21,26 @@ import (
 )
 
 const (
-	testDBEnv       = "GATEWAY_TEST_DB"
-	testDBMechanism = "GATEWAY_TEST_DB_MECHANISM"
+	TestDBEnv = "GATEWAY_TEST_DB"
 )
 
 var errSimulated = fmt.Errorf("simulated database error")
 
-func testDSN() string {
+func memDBInfo() *dbInfo {
 	config := conf.GlobalConfig.Database
 	values := url.Values{}
 
 	values.Set("mode", "memory")
-	values.Set("_txlock", "immediate")
-	values.Add("_pragma", "busy_timeout=5000")
-	values.Add("_pragma", "foreign_keys=ON")
-	values.Add("_pragma", "journal_mode=WAL")
-	values.Add("_pragma", "synchronous=NORMAL")
+	values.Set("cache", "shared")
+	values.Add("_pragma", "busy_timeout(5000)")
+	values.Add("_pragma", "foreign_keys(ON)")
+	values.Add("_pragma", "journal_mode(OFF)")
+	values.Add("_pragma", "synchronous(OFF)")
 
-	return fmt.Sprintf("%s?%s", config.Address, values.Encode())
-}
-
-func testinfo() (string, string, func(*xorm.Engine) error) {
-	return "sqlite", testDSN(), sqliteInit
+	return &dbInfo{
+		driver: migrations.SqliteDriver,
+		dsn:    fmt.Sprintf("file:%s?%s", config.Address, values.Encode()),
+	}
 }
 
 func testGCM() {
@@ -78,7 +74,7 @@ func initTestDBConf() {
 	conf.GlobalConfig.GatewayName = "test_gateway"
 	conf.GlobalConfig.NodeID = "test_node"
 	config := &conf.GlobalConfig.Database
-	dbType := os.Getenv(testDBEnv)
+	dbType := os.Getenv(TestDBEnv)
 
 	switch dbType {
 	case PostgreSQL:
@@ -95,9 +91,9 @@ func initTestDBConf() {
 		config.Type = SQLite
 		config.Address = tempFilename()
 	case "":
-		supportedRBMS[SQLite] = testinfo
+		supportedRBMS[SQLite] = memDBInfo
 		config.Type = SQLite
-		config.Address = tempFilename()
+		config.Address = uuid.New().String()
 	default:
 		panic(fmt.Sprintf("Unknown database type '%s'\n", dbType))
 	}
@@ -125,19 +121,11 @@ func resetDB(db *DB) {
 		convey.So(db.engine.Close(), convey.ShouldBeNil)
 
 		if _, err := os.Stat(config.Address); err == nil {
-			convey.So(os.Remove(config.Address), convey.ShouldBeNil)
+			// convey.So(os.Remove(config.Address), convey.ShouldBeNil)
 		}
 	default:
 		panic(fmt.Sprintf("Unknown database type '%s'\n", config.Type))
 	}
-}
-
-// UnstartedTestDatabase returns an unstarted test database. Starting and
-// stopping the service is thus the caller's responsibility.
-func UnstartedTestDatabase(c convey.C) *DB {
-	db := initTestDatabase(c)
-
-	return db
 }
 
 // TestDatabase returns a testing SQLite database stored in memory for testing
@@ -152,15 +140,6 @@ func TestDatabase(c convey.C) *DB {
 	return db
 }
 
-func TestDatabaseNoInit(c convey.C) *DB {
-	db := initTestDatabase(c)
-
-	c.So(db.start(false), convey.ShouldBeNil)
-	c.Reset(func() { resetDB(db) })
-
-	return db
-}
-
 func initTestDatabase(c convey.C) *DB {
 	BcryptRounds = bcrypt.MinCost
 
@@ -169,53 +148,7 @@ func initTestDatabase(c convey.C) *DB {
 
 	db := &DB{logger: testhelpers.TestLogger(c, "test_database")}
 
-	if os.Getenv(testDBMechanism) == "migration" {
-		startViaMigration(c)
-	}
-
 	return db
-}
-
-func startViaMigration(c convey.C) {
-	config := &conf.GlobalConfig
-
-	var (
-		sqlDB   *sql.DB
-		dialect string
-	)
-
-	switch config.Database.Type {
-	case PostgreSQL:
-		sqlDB = testhelpers.GetTestPostgreDBNoReset(c)
-		dialect = migrations.PostgreSQL
-
-		_, err := sqlDB.Exec(migrations.PostgresCreationScript)
-		c.So(err, convey.ShouldBeNil)
-	case MySQL:
-		sqlDB = testhelpers.GetTestMySQLDBNoReset(c)
-		dialect = migrations.MySQL
-
-		script := strings.Split(migrations.MysqlCreationScript, ";\n")
-		for _, cmd := range script {
-			_, err := sqlDB.Exec(cmd)
-			c.So(err, convey.ShouldBeNil)
-		}
-	case SQLite:
-		var addr string
-		sqlDB, addr = testhelpers.GetTestSqliteDBNoReset(c)
-
-		dialect = migrations.SQLite
-		config.Database.Address = addr
-
-		_, err := sqlDB.Exec(migrations.SqliteCreationScript)
-		c.So(err, convey.ShouldBeNil)
-	default:
-		panic(fmt.Sprintf("Unknown database type '%s'\n", config.Database.Type))
-	}
-
-	logger := testhelpers.TestLogger(c, "migration_engine")
-	migrations.BumpToCurrent(c, sqlDB, logger, dialect)
-	c.So(sqlDB.Close(), convey.ShouldBeNil)
 }
 
 type errHook struct{ once sync.Once }

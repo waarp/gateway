@@ -274,8 +274,8 @@ func FromR66Code(c rune) TransferErrorCode {
 //
 // It is safe to use with errors.Is() and errors.As().
 type TransferError struct {
-	Code    TransferErrorCode `xorm:"VARCHAR(50) NOTNULL DEFAULT('TeOk') 'error_code'"`
-	Details string            `xorm:"TEXT NOTNULL DEFAULT('') 'error_details'"`
+	Code    TransferErrorCode `xorm:"error_code"`
+	Details string            `xorm:"error_details"`
 }
 
 // NewTransferError creates a new transfer error with the given error code and

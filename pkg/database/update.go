@@ -33,7 +33,8 @@ func (u *UpdateQuery) run(s *Session) Error {
 		}
 	}
 
-	query := s.session.NoAutoCondition().Table(u.bean.TableName()).ID(u.bean.GetID())
+	query := s.session.NoAutoCondition().Table(u.bean.TableName()).
+		Where("id=?", u.bean.GetID())
 	if len(u.cols) == 0 {
 		query = query.AllCols()
 	} else {
