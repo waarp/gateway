@@ -66,4 +66,5 @@ const (
 	SetDefault = migration.SetDefault
 )
 
-var CheckOnlyOneNotNull = utils.CheckOnlyOneNotNull
+//nolint:gochecknoglobals //a global var is necessary here to make a function alias
+var checkOnlyOneNotNull = utils.CheckOnlyOneNotNull

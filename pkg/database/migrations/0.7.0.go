@@ -658,7 +658,7 @@ func (ver0_7_0RevampTransfersTable) Up(db Actions) error {
 		DropColumn{Name: "is_server"},
 		AddCheck{
 			Name: "transfer_check_requester",
-			Expr: CheckOnlyOneNotNull("local_account_id", "remote_account_id"),
+			Expr: checkOnlyOneNotNull("local_account_id", "remote_account_id"),
 		},
 	); err != nil {
 		return fmt.Errorf("failed to alter the transfers table: %w", err)
@@ -770,7 +770,7 @@ func (ver0_7_0RevampTransferInfoTable) Up(db Actions) error {
 		},
 		AddCheck{
 			Name: "transfer_info_check_owner",
-			Expr: CheckOnlyOneNotNull("transfer_id", "history_id"),
+			Expr: checkOnlyOneNotNull("transfer_id", "history_id"),
 		},
 	); err != nil {
 		return fmt.Errorf("failed to alter the transfer_info table: %w", err)
@@ -879,7 +879,7 @@ func (ver0_7_0RevampCryptoTable) Up(db Actions) error {
 		DropColumn{Name: "owner_id"},
 		AddCheck{
 			Name: "crypto_check_owner",
-			Expr: CheckOnlyOneNotNull("local_agent_id", "remote_agent_id",
+			Expr: checkOnlyOneNotNull("local_agent_id", "remote_agent_id",
 				"local_account_id", "remote_account_id"),
 		},
 	); err != nil {
@@ -997,7 +997,7 @@ func (ver0_7_0RevampRuleAccessTable) Up(db Actions) error {
 		DropColumn{Name: "object_type"},
 		AddCheck{
 			Name: "rule_access_target_check",
-			Expr: CheckOnlyOneNotNull("local_agent_id", "remote_agent_id",
+			Expr: checkOnlyOneNotNull("local_agent_id", "remote_agent_id",
 				"local_account_id", "remote_account_id"),
 		},
 	); err != nil {
