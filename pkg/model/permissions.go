@@ -9,11 +9,11 @@ import (
 
 // PermsMask is a bitmask specifying which actions the user is allowed to
 // perform on the database.
-type PermsMask uint32
+type PermsMask int32
 
 // Masks for user permissions.
 const (
-	PermTransfersRead PermsMask = 1 << (32 - 1 - iota)
+	PermTransfersRead PermsMask = 1 << iota
 	PermTransfersWrite
 	permTransferDelete // placeholder, transfers CANNOT be deleted by users
 	PermServersRead
@@ -32,7 +32,7 @@ const (
 	PermAdminWrite
 	PermAdminDelete
 
-	PermAll = math.MaxUint32 &^ permTransferDelete
+	PermAll = math.MaxInt32 &^ permTransferDelete
 )
 
 // Permissions is a structured representation of a PermMask which regroups
@@ -54,7 +54,7 @@ func maskToStr(m PermsMask, s int) string {
 	buf := make([]byte, len(permString))
 
 	for i, c := range permString {
-		if m&(1<<uint(32-1-s-i)) != 0 {
+		if m&(1<<uint(s+i)) != 0 {
 			buf[i] = byte(c)
 		} else {
 			buf[i] = '-'
@@ -96,7 +96,7 @@ func permToMask(mask *PermsMask, perm string, off int) database.Error {
 		switch char := rune(perm[o]); char {
 		case '-':
 		case expected:
-			*mask |= 1 << (32 - 1 - off - o)
+			*mask |= 1 << (off + o)
 		default:
 			return invalid("invalid permission mode '%c' (expected '%c' or '-')", char, expected)
 		}

@@ -17,23 +17,11 @@ func NewNullInt64(i int64) sql.NullInt64 {
 // CheckOnlyOneNotNull generates an SQL CHECK constraint for the given dialect
 // stating that 1, and only 1 of the given column must be defined (i.e. that
 // all but one of the column must be null).
-//
-// Valid dialects are sqlite, mysql & postgresql. Other dialects will return an
-// empty string.
-func CheckOnlyOneNotNull(dialect string, cols ...string) string {
+func CheckOnlyOneNotNull(cols ...string) string {
 	isNulls := make([]string, len(cols))
 
-	switch dialect {
-	case "postgresql":
-		for i := range cols {
-			isNulls[i] = fmt.Sprintf("(CASE WHEN %s IS NOT NULL THEN 1 ELSE 0 END)", cols[i])
-		}
-	case "sqlite", "mysql":
-		for i := range cols {
-			isNulls[i] = fmt.Sprintf("(%s IS NOT NULL)", cols[i])
-		}
-	default:
-		return ""
+	for i := range cols {
+		isNulls[i] = fmt.Sprintf("(CASE WHEN %s IS NOT NULL THEN 1 ELSE 0 END)", cols[i])
 	}
 
 	sum := strings.Join(isNulls, " + ")
