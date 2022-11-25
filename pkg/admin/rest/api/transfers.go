@@ -43,7 +43,7 @@ type OutTransfer struct {
 	Status         types.TransferStatus `json:"status"`
 	Step           string               `json:"step,omitempty"`
 	Progress       int64                `json:"progress,omitempty"`
-	TaskNumber     int16                `json:"taskNumber,omitempty"`
+	TaskNumber     int8                 `json:"taskNumber,omitempty"`
 	ErrorCode      string               `json:"errorCode,omitempty"`
 	ErrorMsg       string               `json:"errorMsg,omitempty"`
 	TransferInfo   map[string]any       `json:"transferInfo,omitempty"`

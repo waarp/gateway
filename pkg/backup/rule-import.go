@@ -245,7 +245,7 @@ func importRuleTasks(logger *log.Logger, db database.Access, list []file.Task,
 		// Populate
 		task.RuleID = ruleID
 		task.Chain = chain
-		task.Rank = int16(i)
+		task.Rank = int8(i)
 		task.Type = src.Type
 		task.Args = src.Args
 

@@ -151,7 +151,7 @@ func (r *Runner) runTasks(tasks []*model.Task, isErrTasks bool) *types.TransferE
 	r.lock.Add(1)
 	defer r.lock.Done()
 
-	for i := r.transCtx.Transfer.TaskNumber; i < int16(len(tasks)); i++ {
+	for i := r.transCtx.Transfer.TaskNumber; i < int8(len(tasks)); i++ {
 		task := tasks[i]
 		taskInfo := fmt.Sprintf("Task %s @ %s %s[%v]", task.Type, r.transCtx.Rule.Name,
 			task.Chain, task.Rank)

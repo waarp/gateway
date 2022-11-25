@@ -48,7 +48,7 @@ type Transfer struct {
 	Status           types.TransferStatus `xorm:"status"`
 	Step             types.TransferStep   `xorm:"step"`
 	Progress         int64                `xorm:"progress"`
-	TaskNumber       int16                `xorm:"task_number"`
+	TaskNumber       int8                 `xorm:"task_number"`
 	Error            types.TransferError  `xorm:"EXTENDS"`
 }
 

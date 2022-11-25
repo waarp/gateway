@@ -102,7 +102,7 @@ func doTaskUpdate(ses *database.Session, rule *api.UptRule, ruleID int64,
 		task := taskToDB(t)
 		task.RuleID = ruleID
 		task.Chain = model.ChainPre
-		task.Rank = int16(rank)
+		task.Rank = int8(rank)
 
 		if err := ses.Insert(task).Run(); err != nil {
 			return err
@@ -113,7 +113,7 @@ func doTaskUpdate(ses *database.Session, rule *api.UptRule, ruleID int64,
 		task := taskToDB(t)
 		task.RuleID = ruleID
 		task.Chain = model.ChainPost
-		task.Rank = int16(rank)
+		task.Rank = int8(rank)
 
 		if err := ses.Insert(task).Run(); err != nil {
 			return err
@@ -124,7 +124,7 @@ func doTaskUpdate(ses *database.Session, rule *api.UptRule, ruleID int64,
 		task := taskToDB(t)
 		task.RuleID = ruleID
 		task.Chain = model.ChainError
-		task.Rank = int16(rank)
+		task.Rank = int8(rank)
 
 		if err := ses.Insert(task).Run(); err != nil {
 			return err

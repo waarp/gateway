@@ -39,7 +39,7 @@ const (
 type Task struct {
 	RuleID int64           `xorm:"rule_id"` // The ID of the rule this tasks belongs to.
 	Chain  Chain           `xorm:"chain"`   // The chain this task belongs to (ChainPre, ChainPost or ChainError)
-	Rank   int16           `xorm:"rank"`    // The task's index in the chain.
+	Rank   int8            `xorm:"rank"`    // The task's index in the chain.
 	Type   string          `xorm:"type"`    // The type of task.
 	Args   json.RawMessage `xorm:"args"`    // The task's arguments as a raw JSON object.
 }

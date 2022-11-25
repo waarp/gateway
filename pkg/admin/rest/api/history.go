@@ -28,7 +28,7 @@ type OutHistory struct {
 	ErrorMsg       string                  `json:"errorMsg,omitempty"`
 	Step           types.TransferStep      `json:"step,omitempty"`
 	Progress       int64                   `json:"progress,omitempty"`
-	TaskNumber     int16                   `json:"taskNumber,omitempty"`
+	TaskNumber     int8                    `json:"taskNumber,omitempty"`
 
 	// Deprecated fields
 	SourceFilename string `json:"sourceFilename"` // Deprecated: replaced by LocalFilepath & RemoteFilepath
