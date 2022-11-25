@@ -5,12 +5,8 @@ import (
 	"errors"
 	"fmt"
 
-	"code.waarp.fr/lib/migration"
-
 	"code.waarp.fr/apps/gateway/gateway/pkg/version"
 )
-
-var errUnsuportedDB = errors.New("unsupported database")
 
 const VersionNone = "none"
 
@@ -32,8 +28,8 @@ var versionsMap = map[string]int{
 	version.Num: len(Migrations) - 1,
 }
 
-func setDBVersion(to string) func(migration.Actions) error {
-	return func(db migration.Actions) error {
+func setDBVersion(to string) func(Actions) error {
+	return func(db Actions) error {
 		if err := db.Exec("UPDATE version SET current=?", to); err != nil {
 			return fmt.Errorf("cannot set data model version: %w", err)
 		}
@@ -46,14 +42,14 @@ func checkVersionTableExist(db *sql.DB, dialect string) (bool, error) {
 	var row *sql.Row
 
 	switch dialect {
-	case migration.SQLite:
+	case SQLite:
 		row = db.QueryRow("SELECT name FROM sqlite_master WHERE type='table' AND name='version'")
-	case migration.PostgreSQL:
+	case PostgreSQL:
 		row = db.QueryRow("SELECT tablename FROM pg_tables WHERE tablename='version'")
-	case migration.MySQL:
-		row = db.QueryRow("SHOW TABLES LIKE 'version')")
+	case MySQL:
+		row = db.QueryRow("SHOW TABLES LIKE 'version'")
 	default:
-		return false, fmt.Errorf("unknown SQL dialect %s: %w", dialect, errUnsuportedDB)
+		return false, fmt.Errorf("%w: %q", ErrUnknownDialect, dialect)
 	}
 
 	var name any

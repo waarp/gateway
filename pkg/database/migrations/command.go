@@ -122,7 +122,7 @@ func Execute(config *conf.DatabaseConfig, logger *log.Logger, targetVersion stri
 ) error {
 	dbInfo, ok := rdbms[config.Type]
 	if !ok {
-		return fmt.Errorf("unknown RDBMS %s: %w", config.Type, errUnsuportedDB)
+		return errUnknownDialect(config.Type)
 	}
 
 	db, err := sql.Open(dbInfo.driver, dbInfo.makeDSN())

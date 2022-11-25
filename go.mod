@@ -2,22 +2,21 @@ module code.waarp.fr/apps/gateway/gateway
 
 require (
 	code.waarp.fr/lib/log v1.2.0
-	code.waarp.fr/lib/migration v1.3.3-0.20221115181416-026c41f5c9df
+	code.waarp.fr/lib/migration v0.3.1-0.20221124164054-10f2120cf223
 	code.waarp.fr/lib/r66 v0.1.5
 	github.com/bwmarrin/snowflake v0.3.0
 	github.com/go-sql-driver/mysql v1.6.0
+	github.com/google/uuid v1.3.0
 	github.com/gorilla/mux v1.7.3
 	github.com/jackc/pgx/v4 v4.16.1
 	github.com/jessevdk/go-flags v1.5.0
 	github.com/karrick/tparse/v2 v2.8.2
 	github.com/mattn/go-colorable v0.1.6
-	github.com/mattn/go-oci8 v0.0.2
 	github.com/pkg/sftp v1.13.4
 	github.com/smartystreets/assertions v1.2.0
 	github.com/smartystreets/goconvey v1.7.2
 	go.step.sm/crypto v0.19.0
 	golang.org/x/crypto v0.1.0
-	golang.org/x/mod v0.6.0
 	golang.org/x/net v0.1.0
 	golang.org/x/term v0.1.0
 	modernc.org/sqlite v1.19.4
@@ -27,10 +26,10 @@ require (
 
 require (
 	code.bcarlin.xyz/go/logging v0.4.1-0.20220603090802-1ad2b38afe01 // indirect
+	code.waarp.fr/lib/Sqlite3CreateTableParser v0.0.0-20221122183218-24f478e49362 // indirect
 	filippo.io/edwards25519 v1.0.0-rc.1 // indirect
 	github.com/goccy/go-json v0.8.1 // indirect
 	github.com/golang/snappy v0.0.4 // indirect
-	github.com/google/uuid v1.3.0 // indirect
 	github.com/gopherjs/gopherjs v0.0.0-20181017120253-0766667cb4d1 // indirect
 	github.com/jackc/chunkreader/v2 v2.0.1 // indirect
 	github.com/jackc/pgconn v1.12.1 // indirect
@@ -49,6 +48,7 @@ require (
 	github.com/pkg/errors v0.9.1 // indirect
 	github.com/remyoudompheng/bigfft v0.0.0-20200410134404-eec4a21b6bb0 // indirect
 	github.com/syndtr/goleveldb v1.0.0 // indirect
+	golang.org/x/mod v0.6.0 // indirect
 	golang.org/x/sys v0.1.0 // indirect
 	golang.org/x/text v0.4.0 // indirect
 	golang.org/x/tools v0.2.0 // indirect

@@ -1,27 +1,29 @@
 package migrations
 
 import (
+	"database/sql"
 	"encoding/binary"
+	"errors"
 	"fmt"
-
-	"code.waarp.fr/lib/migration"
+	"math/bits"
 
 	"code.waarp.fr/apps/gateway/gateway/pkg/tk/utils"
 )
 
 type ver0_7_0AddLocalAgentEnabledColumn struct{}
 
-func (ver0_7_0AddLocalAgentEnabledColumn) Up(db migration.Actions) error {
-	if err := db.AddColumn("local_agents", "enabled", migration.Boolean,
-		migration.NotNull, migration.Default(true)); err != nil {
+func (ver0_7_0AddLocalAgentEnabledColumn) Up(db Actions) error {
+	if err := db.AlterTable("local_agents",
+		AddColumn{Name: "enabled", Type: Boolean{}, NotNull: true, Default: true},
+	); err != nil {
 		return fmt.Errorf("failed to add the local agent 'enabled' column: %w", err)
 	}
 
 	return nil
 }
 
-func (ver0_7_0AddLocalAgentEnabledColumn) Down(db migration.Actions) error {
-	if err := db.DropColumn("local_agents", "enabled"); err != nil {
+func (ver0_7_0AddLocalAgentEnabledColumn) Down(db Actions) error {
+	if err := db.AlterTable("local_agents", DropColumn{Name: "enabled"}); err != nil {
 		return fmt.Errorf("failed to drop the local agent 'enabled' column: %w", err)
 	}
 
@@ -30,151 +32,101 @@ func (ver0_7_0AddLocalAgentEnabledColumn) Down(db migration.Actions) error {
 
 type ver0_7_0RevampUsersTable struct{}
 
-func (ver0_7_0RevampUsersTable) getUpUsersList(db migration.Actions,
-) ([]struct{ id, perms int64 }, error) {
-	rows, err := db.Query(`SELECT id, permissions FROM users`)
-	if err != nil || rows.Err() != nil {
-		return nil, fmt.Errorf("failed to retrieve the user table content: %w", err)
+func (ver0_7_0RevampUsersTable) Up(db Actions) error {
+	if err := db.DropIndex(quote(db, "UQE_users_name"), "users"); err != nil {
+		return fmt.Errorf("failed to drop the user index: %w", err)
 	}
 
-	defer rows.Close() //nolint:errcheck //error is irrelevant here
+	if err := db.AlterTable("users",
+		RenameColumn{OldName: "permissions", NewName: "bytes_permissions"},
+		AlterColumn{Name: "id", Type: BigInt{}, NotNull: true, Default: AutoIncr{}},
+		AlterColumn{Name: "owner", Type: Varchar(100), NotNull: true},
+		AlterColumn{Name: "username", Type: Varchar(100), NotNull: true},
+		AddColumn{Name: "int_permissions", Type: Integer{}, NotNull: true, Default: 0},
+		AddUnique{Name: "unique_user", Cols: []string{"owner", "username"}},
+	); err != nil {
+		return fmt.Errorf("failed to alter the users table: %w", err)
+	}
 
-	var users []struct{ id, perms int64 }
-
-	for rows.Next() {
+	for i := 0; true; i++ {
 		var (
 			id        int64
 			permBytes []byte
 		)
 
-		if err := rows.Scan(&id, &permBytes); err != nil {
-			return nil, fmt.Errorf("failed to parse user values: %w", err)
+		row := db.QueryRow(`SELECT id, bytes_permissions FROM users 
+								ORDER BY id LIMIT 1 OFFSET ?`, i)
+		if err := row.Scan(&id, &permBytes); errors.Is(err, sql.ErrNoRows) {
+			break
+		} else if err != nil {
+			return fmt.Errorf("failed to parse the user permissions: %w", err)
 		}
 
-		perms := int64(binary.LittleEndian.Uint32(permBytes))
+		permUint := bits.Reverse32(binary.LittleEndian.Uint32(permBytes))
 
-		users = append(users, struct{ id, perms int64 }{id: id, perms: perms})
-	}
-
-	return users, nil
-}
-
-func (v ver0_7_0RevampUsersTable) Up(db migration.Actions) error {
-	//nolint:gomnd //magic numbers are required here for variable length types
-	if err := db.CreateTable("users_new",
-		migration.Col("id", migration.BigInt, migration.PrimaryKey, migration.AutoIncr),
-		migration.Col("owner", migration.Varchar(100), migration.NotNull),
-		migration.Col("username", migration.Varchar(100), migration.NotNull),
-		migration.Col("password_hash", migration.Text, migration.NotNull, migration.Default("")),
-		migration.Col("permissions", migration.BigInt, migration.NotNull, migration.Default(0)),
-		migration.MultiUnique("unique_username", "owner", "username"),
-	); err != nil {
-		return fmt.Errorf("failed to create the new users table: %w", err)
-	}
-
-	if err := db.Exec(`INSERT INTO users_new (id, owner, username, password_hash)
-		SELECT id, owner, username, password_hash FROM users`); err != nil {
-		return fmt.Errorf("failed to copy the content of the users table: %w", err)
-	}
-
-	users, err := v.getUpUsersList(db)
-	if err != nil {
-		return err
-	}
-
-	for i := range users {
-		if err := db.Exec(`UPDATE users_new SET permissions=? WHERE id=?`,
-			users[i].perms, users[i].id); err != nil {
+		if err := db.Exec("UPDATE users SET int_permissions=? WHERE id=?",
+			int32(permUint), id); err != nil {
 			return fmt.Errorf("failed to update the user permissions: %w", err)
 		}
 	}
 
-	if err := db.DropTable("users"); err != nil {
-		return fmt.Errorf("failed to drop the users table: %w", err)
-	}
-
-	if err := db.RenameTable("users_new", "users"); err != nil {
-		return fmt.Errorf("failed to rename the users table: %w", err)
+	if err := db.AlterTable("users",
+		DropColumn{Name: "bytes_permissions"},
+		RenameColumn{OldName: "int_permissions", NewName: "permissions"},
+	); err != nil {
+		return fmt.Errorf("failed to alter the users table: %w", err)
 	}
 
 	return nil
 }
 
-func (ver0_7_0RevampUsersTable) getDownUsersList(db migration.Actions) (users []struct {
-	id                int64
-	owner, name, hash string
-	permMask          []byte
-}, _ error,
-) {
-	rows, err := db.Query(`SELECT id, owner, username, password_hash, permissions FROM users`)
-	if err != nil || rows.Err() != nil {
-		return nil, fmt.Errorf("failed to retrieve the user table content: %w", err)
+func (ver0_7_0RevampUsersTable) Down(db Actions) error {
+	if err := db.AlterTable("users",
+		RenameColumn{OldName: "permissions", NewName: "int_permissions"},
+		DropConstraint{Name: "unique_user"},
+		AlterColumn{Name: "id", Type: UnsignedBigInt{}, NotNull: true, Default: AutoIncr{}},
+		AlterColumn{Name: "owner", Type: Varchar(255), NotNull: true},
+		AlterColumn{Name: "username", Type: Varchar(255), NotNull: true},
+		AddColumn{Name: "bytes_permissions", Type: Binary(4)},
+	); err != nil {
+		return fmt.Errorf("failed to restore the users table: %w", err)
 	}
 
-	defer rows.Close() //nolint:errcheck //error is irrelevant here
-
-	for rows.Next() {
+	for {
 		var (
-			id, perms         int64
-			owner, name, hash string
+			id      int64
+			permInt int32
 		)
 
-		if err := rows.Scan(&id, &owner, &name, &hash, &perms); err != nil {
-			return nil, fmt.Errorf("failed to parse user values: %w", err)
+		row := db.QueryRow(`SELECT id, int_permissions FROM users 
+                           		WHERE bytes_permissions IS NULL`)
+		if err := row.Scan(&id, &permInt); errors.Is(err, sql.ErrNoRows) {
+			break
+		} else if err != nil {
+			return fmt.Errorf("failed to parse the user permissions: %w", err)
 		}
 
-		const permSize = 4
-		permMask := make([]byte, permSize)
-		binary.LittleEndian.PutUint32(permMask, uint32(perms))
+		permBytes := make([]byte, 4)
+		binary.LittleEndian.PutUint32(permBytes, bits.Reverse32(uint32(permInt)))
 
-		users = append(users, struct {
-			id                int64
-			owner, name, hash string
-			permMask          []byte
-		}{
-			id:       id,
-			owner:    owner,
-			name:     name,
-			hash:     hash,
-			permMask: permMask,
-		})
-	}
-
-	return users, nil
-}
-
-func (v ver0_7_0RevampUsersTable) Down(db migration.Actions) error {
-	//nolint:gomnd //magic numbers are required here for variable length types
-	if err := db.CreateTable("users_old",
-		migration.Col("id", migration.BigInt, migration.PrimaryKey, migration.AutoIncr),
-		migration.Col("owner", migration.Varchar(255), migration.NotNull),
-		migration.Col("username", migration.Varchar(255), migration.NotNull),
-		migration.Col("password_hash", migration.Text, migration.NotNull),
-		migration.Col("permissions", migration.Binary(4), migration.NotNull),
-		migration.MultiUnique("UQE_users_name", "owner", "username"),
-	); err != nil {
-		return fmt.Errorf("failed to create the new users table: %w", err)
-	}
-
-	users, err := v.getDownUsersList(db)
-	if err != nil {
-		return err
-	}
-
-	for i := range users {
-		if err := db.Exec(`INSERT INTO users_old (id, owner, username, password_hash,
-			permissions) VALUES (?,?,?,?,?)`, users[i].id, users[i].owner,
-			users[i].name, users[i].hash, users[i].permMask); err != nil {
+		if err := db.Exec("UPDATE users SET bytes_permissions=? WHERE id=?",
+			permBytes, id); err != nil {
 			return fmt.Errorf("failed to update the user permissions: %w", err)
 		}
 	}
 
-	if err := db.DropTable("users"); err != nil {
-		return fmt.Errorf("failed to drop the users table: %w", err)
+	if err := db.AlterTable("users",
+		DropColumn{Name: "int_permissions"},
+		AlterColumn{Name: "bytes_permissions", NewName: "permissions", Type: Binary(4), NotNull: true},
+	); err != nil {
+		return fmt.Errorf("failed to alter the users table: %w", err)
 	}
 
-	if err := db.RenameTable("users_old", "users"); err != nil {
-		return fmt.Errorf("failed to rename the users table: %w", err)
+	if err := db.CreateIndex(&Index{
+		Name: quote(db, "UQE_users_name"), Unique: true,
+		On: "users", Cols: []string{"owner", "username"},
+	}); err != nil {
+		return fmt.Errorf("failed to restore the user index: %w", err)
 	}
 
 	return nil
@@ -182,84 +134,80 @@ func (v ver0_7_0RevampUsersTable) Down(db migration.Actions) error {
 
 type ver0_7_0RevampLocalAgentsTable struct{}
 
-func (ver0_7_0RevampLocalAgentsTable) Up(db migration.Actions) error {
-	//nolint:gomnd //magic numbers are required here for variable length types
-	if err := db.CreateTable("local_agents_new",
-		migration.Col("id", migration.BigInt, migration.PrimaryKey, migration.AutoIncr),
-		migration.Col("owner", migration.Varchar(100), migration.NotNull),
-		migration.Col("name", migration.Varchar(100), migration.NotNull),
-		migration.Col("protocol", migration.Varchar(50), migration.NotNull),
-		migration.Col("enabled", migration.Boolean, migration.NotNull, migration.Default(true)),
-		migration.Col("address", migration.Varchar(260), migration.NotNull),
-		migration.Col("root_dir", migration.Text, migration.NotNull, migration.Default("")),
-		migration.Col("receive_dir", migration.Text, migration.NotNull, migration.Default("")),
-		migration.Col("send_dir", migration.Text, migration.NotNull, migration.Default("")),
-		migration.Col("tmp_receive_dir", migration.Text, migration.NotNull, migration.Default("")),
-		migration.Col("proto_config", migration.Text, migration.NotNull, migration.Default("{}")),
-		migration.MultiUnique("unique_local_agent_name", "owner", "name"),
+func (ver0_7_0RevampLocalAgentsTable) Up(db Actions) error {
+	if err := db.DropIndex(quote(db, "UQE_local_agents_loc_ag"), "local_agents"); err != nil {
+		return fmt.Errorf("failed to drop the old local_agent index: %w", err)
+	}
+
+	if err := db.AlterTable("local_agents",
+		RenameColumn{OldName: "proto_config", NewName: "blob_proto_config"},
+		AlterColumn{Name: "id", Type: BigInt{}, NotNull: true, Default: AutoIncr{}},
+		AlterColumn{Name: "owner", Type: Varchar(100), NotNull: true},
+		AlterColumn{Name: "name", Type: Varchar(100), NotNull: true},
+		AlterColumn{Name: "protocol", Type: Varchar(50), NotNull: true},
+		AlterColumn{Name: "root_dir", Type: Text{}, NotNull: true, Default: ""},
+		AlterColumn{Name: "receive_dir", Type: Text{}, NotNull: true, Default: ""},
+		AlterColumn{Name: "send_dir", Type: Text{}, NotNull: true, Default: ""},
+		AlterColumn{Name: "tmp_receive_dir", Type: Text{}, NotNull: true, Default: ""},
+		AddColumn{Name: "text_proto_config", Type: Text{}, NotNull: true, Default: "{}"},
+		AddUnique{Name: "unique_local_agent", Cols: []string{"owner", "name"}},
 	); err != nil {
-		return fmt.Errorf("failed to create the new local_agents table: %w", err)
+		return fmt.Errorf("failed to alter the local_agents table: %w", err)
 	}
 
-	protoConf := "proto_config" //nolint:goconst //adding a constant here would be a bad idea
-	if db.GetDialect() == PostgreSQL {
-		protoConf = "ENCODE(proto_config, 'escape')"
+	protoConfQuery := utils.If(db.GetDialect() == PostgreSQL,
+		"UPDATE local_agents SET text_proto_config=ENCODE(blob_proto_config, 'escape')",
+		"UPDATE local_agents SET text_proto_config=blob_proto_config")
+	if err := db.Exec(protoConfQuery); err != nil {
+		return fmt.Errorf("failed to update the proto_config: %w", err)
 	}
 
-	if err := db.Exec(`INSERT INTO local_agents_new (id, owner, name, protocol, 
-		address, root_dir, receive_dir, send_dir, tmp_receive_dir, proto_config)
-		SELECT id, owner, name, protocol, address, root_dir, receive_dir, 
-		send_dir, tmp_receive_dir, ` + protoConf + ` FROM local_agents`); err != nil {
-		return fmt.Errorf("failed to copy the content of the local_agents table: %w", err)
-	}
-
-	if err := db.DropTable("local_agents"); err != nil {
-		return fmt.Errorf("failed to drop the local_agents table: %w", err)
-	}
-
-	if err := db.RenameTable("local_agents_new", "local_agents"); err != nil {
-		return fmt.Errorf("failed to rename the local_agents table: %w", err)
+	if err := db.AlterTable("local_agents",
+		DropColumn{Name: "blob_proto_config"},
+		RenameColumn{OldName: "text_proto_config", NewName: "proto_config"},
+	); err != nil {
+		return fmt.Errorf("failed to alter the local_agents table: %w", err)
 	}
 
 	return nil
 }
 
-func (ver0_7_0RevampLocalAgentsTable) Down(db migration.Actions) error {
-	//nolint:gomnd //magic numbers are required here for variable length types
-	if err := db.CreateTable("local_agents_old",
-		migration.Col("id", migration.BigInt, migration.PrimaryKey, migration.AutoIncr),
-		migration.Col("owner", migration.Varchar(255), migration.NotNull),
-		migration.Col("name", migration.Varchar(255), migration.NotNull),
-		migration.Col("protocol", migration.Varchar(255), migration.NotNull),
-		migration.Col("root_dir", migration.Varchar(255), migration.NotNull),
-		migration.Col("receive_dir", migration.Varchar(255), migration.NotNull),
-		migration.Col("send_dir", migration.Varchar(255), migration.NotNull),
-		migration.Col("tmp_receive_dir", migration.Varchar(255), migration.NotNull),
-		migration.Col("proto_config", migration.Blob, migration.NotNull),
-		migration.Col("address", migration.Varchar(255), migration.NotNull),
-		migration.MultiUnique("UQE_local_agents_loc_ag", "owner", "name"),
+func (ver0_7_0RevampLocalAgentsTable) Down(db Actions) error {
+	if err := db.AlterTable("local_agents",
+		DropConstraint{Name: "unique_local_agent"},
+		RenameColumn{OldName: "proto_config", NewName: "text_proto_config"},
+		AlterColumn{Name: "id", Type: UnsignedBigInt{}, NotNull: true, Default: AutoIncr{}},
+		AlterColumn{Name: "owner", Type: Varchar(255), NotNull: true},
+		AlterColumn{Name: "name", Type: Varchar(255), NotNull: true},
+		AlterColumn{Name: "protocol", Type: Varchar(255), NotNull: true},
+		AlterColumn{Name: "root_dir", Type: Varchar(255), NotNull: true},
+		AlterColumn{Name: "receive_dir", Type: Varchar(255), NotNull: true},
+		AlterColumn{Name: "send_dir", Type: Varchar(255), NotNull: true},
+		AlterColumn{Name: "tmp_receive_dir", Type: Varchar(255), NotNull: true},
+		AddColumn{Name: "blob_proto_config", Type: Blob{} /*NotNull: true*/},
 	); err != nil {
-		return fmt.Errorf("failed to recreate the old local_agents table: %w", err)
+		return fmt.Errorf("failed to alter the local_agents table: %w", err)
 	}
 
-	protoConf := "proto_config" //nolint:goconst //adding a constant here would be a bad idea
-	if db.GetDialect() == PostgreSQL {
-		protoConf = "DECODE(proto_config, 'escape')"
+	protoConfQuery := utils.If(db.GetDialect() == PostgreSQL,
+		"UPDATE local_agents SET blob_proto_config=DECODE(text_proto_config, 'escape')",
+		"UPDATE local_agents SET blob_proto_config=text_proto_config")
+	if err := db.Exec(protoConfQuery); err != nil {
+		return fmt.Errorf("failed to update the proto_config: %w", err)
 	}
 
-	if err := db.Exec(`INSERT INTO local_agents_old (id, owner, name, protocol, 
-		address, root_dir, receive_dir, send_dir, tmp_receive_dir, proto_config)
-		SELECT id, owner, name, protocol, address, root_dir, receive_dir, 
-		send_dir, tmp_receive_dir, ` + protoConf + ` FROM local_agents`); err != nil {
-		return fmt.Errorf("failed to copy the content of the local_agents table: %w", err)
+	if err := db.AlterTable("local_agents",
+		DropColumn{Name: "text_proto_config"},
+		AlterColumn{Name: "blob_proto_config", NewName: "proto_config", Type: Blob{}, NotNull: true},
+	); err != nil {
+		return fmt.Errorf("failed to alter the local_agents table: %w", err)
 	}
 
-	if err := db.DropTable("local_agents"); err != nil {
-		return fmt.Errorf("failed to drop the local_agents table: %w", err)
-	}
-
-	if err := db.RenameTable("local_agents_old", "local_agents"); err != nil {
-		return fmt.Errorf("failed to rename the local_agents table: %w", err)
+	if err := db.CreateIndex(&Index{
+		Name: quote(db, "UQE_local_agents_loc_ag"), Unique: true,
+		On: "local_agents", Cols: []string{"owner", "name"},
+	}); err != nil {
+		return fmt.Errorf("failed to restore the old local_agent index: %w", err)
 	}
 
 	return nil
@@ -267,69 +215,73 @@ func (ver0_7_0RevampLocalAgentsTable) Down(db migration.Actions) error {
 
 type ver0_7_0RevampRemoteAgentsTable struct{}
 
-func (ver0_7_0RevampRemoteAgentsTable) Up(db migration.Actions) error {
-	//nolint:gomnd //magic numbers are required here for variable length types
-	if err := db.CreateTable("remote_agents_new",
-		migration.Col("id", migration.BigInt, migration.PrimaryKey, migration.AutoIncr),
-		migration.Col("name", migration.Varchar(100), migration.NotNull, migration.Unique),
-		migration.Col("protocol", migration.Varchar(50), migration.NotNull),
-		migration.Col("address", migration.Varchar(260), migration.NotNull),
-		migration.Col("proto_config", migration.Text, migration.NotNull, migration.Default("{}")),
+func (ver0_7_0RevampRemoteAgentsTable) Up(db Actions) error {
+	if err := db.DropIndex(quote(db, "UQE_remote_agents_name"), "remote_agents"); err != nil {
+		return fmt.Errorf("failed to drop the old remote_agent index: %w", err)
+	}
+
+	if err := db.AlterTable("remote_agents",
+		RenameColumn{OldName: "proto_config", NewName: "blob_proto_config"},
+		AlterColumn{Name: "id", Type: BigInt{}, NotNull: true, Default: AutoIncr{}},
+		AlterColumn{Name: "name", Type: Varchar(100), NotNull: true},
+		AlterColumn{Name: "protocol", Type: Varchar(50), NotNull: true},
+		AddColumn{Name: "text_proto_config", Type: Text{}, NotNull: true, Default: "{}"},
+		AddUnique{Name: "unique_remote_agent", Cols: []string{"name"}},
 	); err != nil {
-		return fmt.Errorf("failed to create the new remote_agents table: %w", err)
+		return fmt.Errorf("failed to alter the remote_agents table: %w", err)
 	}
 
-	protoConf := "proto_config" //nolint:goconst //adding a constant here would be a bad idea
-	if db.GetDialect() == PostgreSQL {
-		protoConf = "ENCODE(proto_config, 'escape')"
+	protoConfQuery := utils.If(db.GetDialect() == PostgreSQL,
+		"UPDATE remote_agents SET text_proto_config=ENCODE(blob_proto_config, 'escape')",
+		"UPDATE remote_agents SET text_proto_config=blob_proto_config")
+	if err := db.Exec(protoConfQuery); err != nil {
+		return fmt.Errorf("failed to update the proto_config: %w", err)
 	}
 
-	if err := db.Exec(`INSERT INTO remote_agents_new (id, name, protocol, address, 
-		proto_config) SELECT id, name, protocol, address, ` + protoConf +
-		` FROM remote_agents`); err != nil {
-		return fmt.Errorf("failed to copy the content of the remote_agents table: %w", err)
-	}
-
-	if err := db.DropTable("remote_agents"); err != nil {
-		return fmt.Errorf("failed to drop the remote_agents table: %w", err)
-	}
-
-	if err := db.RenameTable("remote_agents_new", "remote_agents"); err != nil {
-		return fmt.Errorf("failed to rename the remote_agents table: %w", err)
+	if err := db.AlterTable("remote_agents",
+		DropColumn{Name: "blob_proto_config"},
+		RenameColumn{OldName: "text_proto_config", NewName: "proto_config"},
+	); err != nil {
+		return fmt.Errorf("failed to alter the remote_agents table: %w", err)
 	}
 
 	return nil
 }
 
-func (ver0_7_0RevampRemoteAgentsTable) Down(db migration.Actions) error {
-	//nolint:gomnd //magic numbers are required here for variable length types
-	if err := db.CreateTable("remote_agents_old",
-		migration.Col("id", migration.BigInt, migration.PrimaryKey, migration.AutoIncr),
-		migration.Col("name", migration.Varchar(255), migration.NotNull, migration.Unique),
-		migration.Col("protocol", migration.Varchar(255), migration.NotNull),
-		migration.Col("proto_config", migration.Blob, migration.NotNull),
-		migration.Col("address", migration.Varchar(255), migration.NotNull),
+func (ver0_7_0RevampRemoteAgentsTable) Down(db Actions) error {
+	if err := db.AlterTable("remote_agents",
+		DropConstraint{Name: "unique_remote_agent"},
+		RenameColumn{OldName: "proto_config", NewName: "text_proto_config"},
+		AlterColumn{Name: "id", Type: UnsignedBigInt{}, NotNull: true, Default: AutoIncr{}},
+		AlterColumn{Name: "name", Type: Varchar(255), NotNull: true},
+		AlterColumn{Name: "protocol", Type: Varchar(255), NotNull: true},
+		AddColumn{Name: "blob_proto_config", Type: Blob{} /*NotNull: true*/},
 	); err != nil {
 		return fmt.Errorf("failed to recreate the old remote_agents table: %w", err)
 	}
 
-	protoConf := "proto_config" //nolint:goconst //adding a constant here would be a bad idea
-	if db.GetDialect() == PostgreSQL {
-		protoConf = "DECODE(proto_config, 'escape')"
+	protoConfQuery := utils.If(db.GetDialect() == PostgreSQL,
+		"UPDATE remote_agents SET blob_proto_config=DECODE(text_proto_config, 'escape')",
+		"UPDATE remote_agents SET blob_proto_config=text_proto_config")
+	if err := db.Exec(protoConfQuery); err != nil {
+		return fmt.Errorf("failed to update the proto_config: %w", err)
 	}
 
-	if err := db.Exec(`INSERT INTO remote_agents_old (id, name, protocol, address, 
-		proto_config) SELECT id, name, protocol, address, ` + protoConf +
-		` FROM remote_agents`); err != nil {
-		return fmt.Errorf("failed to copy the content of the remote_agents table: %w", err)
+	if err := db.AlterTable("remote_agents",
+		DropColumn{Name: "text_proto_config"},
+		AlterColumn{
+			Name: "blob_proto_config", NewName: "proto_config",
+			Type: Blob{}, NotNull: true,
+		},
+	); err != nil {
+		return fmt.Errorf("failed to alter the remote_agents table: %w", err)
 	}
 
-	if err := db.DropTable("remote_agents"); err != nil {
-		return fmt.Errorf("failed to drop the remote_agents table: %w", err)
-	}
-
-	if err := db.RenameTable("remote_agents_old", "remote_agents"); err != nil {
-		return fmt.Errorf("failed to rename the remote_agents table: %w", err)
+	if err := db.CreateIndex(&Index{
+		Name: quote(db, "UQE_remote_agents_name"), Unique: true,
+		On: "remote_agents", Cols: []string{"name"},
+	}); err != nil {
+		return fmt.Errorf("failed to restore the old remote_agent index: %w", err)
 	}
 
 	return nil
@@ -337,60 +289,46 @@ func (ver0_7_0RevampRemoteAgentsTable) Down(db migration.Actions) error {
 
 type ver0_7_0RevampLocalAccountsTable struct{}
 
-//nolint:dupl //factorizing would greatly hurt readability
-func (ver0_7_0RevampLocalAccountsTable) Up(db migration.Actions) error {
-	//nolint:gomnd //magic numbers are required here for variable length types
-	if err := db.CreateTable("local_accounts_new",
-		migration.Col("id", migration.BigInt, migration.PrimaryKey, migration.AutoIncr),
-		migration.Col("local_agent_id", migration.BigInt, migration.NotNull, migration.ForeignKey("local_agents", "id").
-			OnUpdate(migration.Restrict).OnDelete(migration.Cascade)),
-		migration.Col("login", migration.Varchar(100), migration.NotNull),
-		migration.Col("password_hash", migration.Text, migration.NotNull, migration.Default("")),
-		migration.MultiUnique("unique_local_account_login", "local_agent_id", "login"),
+func (ver0_7_0RevampLocalAccountsTable) Up(db Actions) error {
+	if err := db.DropIndex(quote(db, "UQE_local_accounts_loc_ac"), "local_accounts"); err != nil {
+		return fmt.Errorf("failed to drop the old local_account index: %w", err)
+	}
+
+	if err := db.AlterTable("local_accounts",
+		AlterColumn{Name: "id", Type: BigInt{}, NotNull: true, Default: AutoIncr{}},
+		AlterColumn{Name: "local_agent_id", Type: BigInt{}, NotNull: true},
+		AlterColumn{Name: "login", Type: Varchar(100), NotNull: true},
+		AlterColumn{Name: "password_hash", Type: Text{}, NotNull: true, Default: ""},
+		AddForeignKey{
+			Name: "local_accounts_agent_fkey", Cols: []string{"local_agent_id"},
+			RefTbl: "local_agents", RefCols: []string{"id"},
+			OnUpdate: Restrict, OnDelete: Cascade,
+		},
+		AddUnique{Name: "unique_local_account", Cols: []string{"local_agent_id", "login"}},
 	); err != nil {
-		return fmt.Errorf("failed to create the new local_accounts table: %w", err)
-	}
-
-	if err := db.Exec(`INSERT INTO local_accounts_new (id, local_agent_id, login, password_hash) 
-		SELECT id, local_agent_id, login, password_hash FROM local_accounts`); err != nil {
-		return fmt.Errorf("failed to copy the content of the local_accounts table: %w", err)
-	}
-
-	if err := db.DropTable("local_accounts"); err != nil {
-		return fmt.Errorf("failed to drop the local_accounts table: %w", err)
-	}
-
-	if err := db.RenameTable("local_accounts_new", "local_accounts"); err != nil {
-		return fmt.Errorf("failed to rename the local_accounts table: %w", err)
+		return fmt.Errorf("failed to alter the local_accounts table: %w", err)
 	}
 
 	return nil
 }
 
-//nolint:dupl //factorizing would greatly hurt readability
-func (ver0_7_0RevampLocalAccountsTable) Down(db migration.Actions) error {
-	//nolint:gomnd //magic numbers are required here for variable length types
-	if err := db.CreateTable("local_accounts_old",
-		migration.Col("id", migration.BigInt, migration.PrimaryKey, migration.AutoIncr),
-		migration.Col("local_agent_id", migration.BigInt, migration.NotNull),
-		migration.Col("login", migration.Varchar(255), migration.NotNull),
-		migration.Col("password_hash", migration.Text),
-		migration.MultiUnique("uqe_local_accounts_new_loc_ac", "local_agent_id", "login"),
+func (ver0_7_0RevampLocalAccountsTable) Down(db Actions) error {
+	if err := db.AlterTable("local_accounts",
+		DropConstraint{Name: "local_accounts_agent_fkey"},
+		DropConstraint{Name: "unique_local_account"},
+		AlterColumn{Name: "id", Type: UnsignedBigInt{}, NotNull: true, Default: AutoIncr{}},
+		AlterColumn{Name: "local_agent_id", Type: UnsignedBigInt{}, NotNull: true},
+		AlterColumn{Name: "login", Type: Varchar(255), NotNull: true},
+		AlterColumn{Name: "password_hash", Type: Text{}},
 	); err != nil {
-		return fmt.Errorf("failed to create the new local_accounts table: %w", err)
+		return fmt.Errorf("failed to alter the local_accounts table: %w", err)
 	}
 
-	if err := db.Exec(`INSERT INTO local_accounts_old (id, local_agent_id, login, password_hash) 
-		SELECT id, local_agent_id, login, password_hash FROM local_accounts`); err != nil {
-		return fmt.Errorf("failed to copy the content of the local_accounts table: %w", err)
-	}
-
-	if err := db.DropTable("local_accounts"); err != nil {
-		return fmt.Errorf("failed to drop the local_accounts table: %w", err)
-	}
-
-	if err := db.RenameTable("local_accounts_old", "local_accounts"); err != nil {
-		return fmt.Errorf("failed to rename the local_accounts table: %w", err)
+	if err := db.CreateIndex(&Index{
+		Name: quote(db, "UQE_local_accounts_loc_ac"), Unique: true,
+		On: "local_accounts", Cols: []string{"local_agent_id", "login"},
+	}); err != nil {
+		return fmt.Errorf("failed to restore the old local_account index: %w", err)
 	}
 
 	return nil
@@ -398,61 +336,46 @@ func (ver0_7_0RevampLocalAccountsTable) Down(db migration.Actions) error {
 
 type ver0_7_0RevampRemoteAccountsTable struct{}
 
-//nolint:dupl //factorizing would greatly hurt readability
-func (ver0_7_0RevampRemoteAccountsTable) Up(db migration.Actions) error {
-	//nolint:gomnd //magic numbers are required here for variable length types
-	if err := db.CreateTable("remote_accounts_new",
-		migration.Col("id", migration.BigInt, migration.PrimaryKey, migration.AutoIncr),
-		migration.Col("remote_agent_id", migration.BigInt, migration.NotNull,
-			migration.ForeignKey("remote_agents", "id").OnUpdate(migration.Restrict).
-				OnDelete(migration.Cascade)),
-		migration.Col("login", migration.Varchar(100), migration.NotNull),
-		migration.Col("password", migration.Text, migration.NotNull, migration.Default("")),
-		migration.MultiUnique("unique_remote_account_login", "remote_agent_id", "login"),
+func (ver0_7_0RevampRemoteAccountsTable) Up(db Actions) error {
+	if err := db.DropIndex(quote(db, "UQE_remote_accounts_rem_ac"), "remote_accounts"); err != nil {
+		return fmt.Errorf("failed to drop the old remote_account index: %w", err)
+	}
+
+	if err := db.AlterTable("remote_accounts",
+		AlterColumn{Name: "id", Type: BigInt{}, NotNull: true, Default: AutoIncr{}},
+		AlterColumn{Name: "remote_agent_id", Type: BigInt{}, NotNull: true},
+		AlterColumn{Name: "login", Type: Varchar(100), NotNull: true},
+		AlterColumn{Name: "password", Type: Text{}, NotNull: true, Default: ""},
+		AddForeignKey{
+			Name: "remote_accounts_agent_fkey", Cols: []string{"remote_agent_id"},
+			RefTbl: "remote_agents", RefCols: []string{"id"},
+			OnUpdate: Restrict, OnDelete: Cascade,
+		},
+		AddUnique{Name: "unique_remote_account", Cols: []string{"remote_agent_id", "login"}},
 	); err != nil {
-		return fmt.Errorf("failed to create the new remote_accounts table: %w", err)
-	}
-
-	if err := db.Exec(`INSERT INTO remote_accounts_new (id, remote_agent_id, login, password) 
-		SELECT id, remote_agent_id, login, password FROM remote_accounts`); err != nil {
-		return fmt.Errorf("failed to copy the content of the remote_accounts table: %w", err)
-	}
-
-	if err := db.DropTable("remote_accounts"); err != nil {
-		return fmt.Errorf("failed to drop the remote_accounts table: %w", err)
-	}
-
-	if err := db.RenameTable("remote_accounts_new", "remote_accounts"); err != nil {
-		return fmt.Errorf("failed to rename the remote_accounts table: %w", err)
+		return fmt.Errorf("failed to alter the remote_accounts table: %w", err)
 	}
 
 	return nil
 }
 
-//nolint:dupl //factorizing would greatly hurt readability
-func (ver0_7_0RevampRemoteAccountsTable) Down(db migration.Actions) error {
-	//nolint:gomnd //magic numbers are required here for variable length types
-	if err := db.CreateTable("remote_accounts_old",
-		migration.Col("id", migration.BigInt, migration.PrimaryKey, migration.AutoIncr),
-		migration.Col("remote_agent_id", migration.BigInt, migration.NotNull),
-		migration.Col("login", migration.Varchar(255), migration.NotNull),
-		migration.Col("password", migration.Text),
-		migration.MultiUnique("UQE_remote_accounts_old_rem_ac", "remote_agent_id", "login"),
+func (ver0_7_0RevampRemoteAccountsTable) Down(db Actions) error {
+	if err := db.AlterTable("remote_accounts",
+		DropConstraint{Name: "remote_accounts_agent_fkey"},
+		DropConstraint{Name: "unique_remote_account"},
+		AlterColumn{Name: "id", Type: UnsignedBigInt{}, NotNull: true, Default: AutoIncr{}},
+		AlterColumn{Name: "remote_agent_id", Type: UnsignedBigInt{}, NotNull: true},
+		AlterColumn{Name: "login", Type: Varchar(255), NotNull: true},
+		AlterColumn{Name: "password", Type: Text{}},
 	); err != nil {
-		return fmt.Errorf("failed to create the new remote_accounts table: %w", err)
+		return fmt.Errorf("failed to alter the remote_accounts table: %w", err)
 	}
 
-	if err := db.Exec(`INSERT INTO remote_accounts_old (id, remote_agent_id, login, password) 
-		SELECT id, remote_agent_id, login, password FROM remote_accounts`); err != nil {
-		return fmt.Errorf("failed to copy the content of the remote_accounts table: %w", err)
-	}
-
-	if err := db.DropTable("remote_accounts"); err != nil {
-		return fmt.Errorf("failed to drop the remote_accounts table: %w", err)
-	}
-
-	if err := db.RenameTable("remote_accounts_old", "remote_accounts"); err != nil {
-		return fmt.Errorf("failed to rename the remote_accounts table: %w", err)
+	if err := db.CreateIndex(&Index{
+		Name: quote(db, "UQE_remote_accounts_rem_ac"), Unique: true,
+		On: "remote_accounts", Cols: []string{"remote_agent_id", "login"},
+	}); err != nil {
+		return fmt.Errorf("failed to restore the old remote_account index: %w", err)
 	}
 
 	return nil
@@ -460,69 +383,61 @@ func (ver0_7_0RevampRemoteAccountsTable) Down(db migration.Actions) error {
 
 type ver0_7_0RevampRulesTable struct{}
 
-func (ver0_7_0RevampRulesTable) Up(db migration.Actions) error {
-	//nolint:gomnd //magic numbers are required here for variable length types
-	if err := db.CreateTable("rules_new",
-		migration.Col("id", migration.BigInt, migration.PrimaryKey, migration.AutoIncr),
-		migration.Col("name", migration.Varchar(100), migration.NotNull),
-		migration.Col("is_send", migration.Boolean, migration.NotNull),
-		migration.Col("comment", migration.Text, migration.NotNull, migration.Default("")),
-		migration.Col("path", migration.Varchar(255), migration.NotNull),
-		migration.Col("local_dir", migration.Text, migration.NotNull, migration.Default("")),
-		migration.Col("remote_dir", migration.Text, migration.NotNull, migration.Default("")),
-		migration.Col("tmp_local_receive_dir", migration.Text, migration.NotNull, migration.Default("")),
-		migration.MultiUnique("unique_rule_name", "is_send", "name"),
-		migration.MultiUnique("unique_rule_path", "is_send", "path"),
+func (ver0_7_0RevampRulesTable) Up(db Actions) error {
+	if err := db.DropIndex(quote(db, "UQE_rules_dir"), "rules"); err != nil {
+		return fmt.Errorf("failed to drop the old rule name index: %w", err)
+	}
+
+	if err := db.DropIndex(quote(db, "UQE_rules_path"), "rules"); err != nil {
+		return fmt.Errorf("failed to drop the old rule path index: %w", err)
+	}
+
+	if err := db.AlterTable("rules",
+		RenameColumn{OldName: "send", NewName: "is_send"},
+		AlterColumn{Name: "id", Type: BigInt{}, NotNull: true, Default: AutoIncr{}},
+		AlterColumn{Name: "name", Type: Varchar(100), NotNull: true},
+		AlterColumn{Name: "comment", Type: Text{}, NotNull: true, Default: ""},
+		AlterColumn{Name: "path", Type: Varchar(100), NotNull: true},
+		AlterColumn{Name: "local_dir", Type: Text{}, NotNull: true, Default: ""},
+		AlterColumn{Name: "remote_dir", Type: Text{}, NotNull: true, Default: ""},
+		AlterColumn{Name: "tmp_local_receive_dir", Type: Text{}, NotNull: true, Default: ""},
+		AddUnique{Name: "unique_rule_name", Cols: []string{"is_send", "name"}},
+		AddUnique{Name: "unique_rule_path", Cols: []string{"is_send", "path"}},
 	); err != nil {
-		return fmt.Errorf("failed to create the new rules table: %w", err)
-	}
-
-	if err := db.Exec(`INSERT INTO rules_new (id, name, is_send, comment, path,
-		local_dir, remote_dir, tmp_local_receive_dir) SELECT id, name, send, 
-		comment, path, local_dir, remote_dir, tmp_local_receive_dir FROM rules`); err != nil {
-		return fmt.Errorf("failed to copy the content of the rules table: %w", err)
-	}
-
-	if err := db.DropTable("rules"); err != nil {
-		return fmt.Errorf("failed to drop the rules table: %w", err)
-	}
-
-	if err := db.RenameTable("rules_new", "rules"); err != nil {
-		return fmt.Errorf("failed to rename the rules table: %w", err)
+		return fmt.Errorf("failed to alter the rules table: %w", err)
 	}
 
 	return nil
 }
 
-func (ver0_7_0RevampRulesTable) Down(db migration.Actions) error {
-	//nolint:gomnd //magic numbers are required here for variable length types
-	if err := db.CreateTable("rules_old",
-		migration.Col("id", migration.BigInt, migration.PrimaryKey, migration.AutoIncr),
-		migration.Col("name", migration.Varchar(255), migration.NotNull),
-		migration.Col("comment", migration.Varchar(255), migration.NotNull),
-		migration.Col("send", migration.Boolean, migration.NotNull),
-		migration.Col("path", migration.Varchar(255), migration.NotNull),
-		migration.Col("local_dir", migration.Varchar(255), migration.NotNull),
-		migration.Col("remote_dir", migration.Varchar(255), migration.NotNull),
-		migration.Col("tmp_local_receive_dir", migration.Varchar(255), migration.NotNull),
-		migration.MultiUnique("UQE_rules_dir", "name", "send"),
-		migration.MultiUnique("UQE_rules_path", "path", "send"),
+func (ver0_7_0RevampRulesTable) Down(db Actions) error {
+	if err := db.AlterTable("rules",
+		DropConstraint{Name: "unique_rule_name"},
+		DropConstraint{Name: "unique_rule_path"},
+		RenameColumn{OldName: "is_send", NewName: "send"},
+		AlterColumn{Name: "id", Type: UnsignedBigInt{}, NotNull: true, Default: AutoIncr{}},
+		AlterColumn{Name: "name", Type: Varchar(255), NotNull: true},
+		AlterColumn{Name: "comment", Type: Varchar(255), NotNull: true},
+		AlterColumn{Name: "path", Type: Varchar(255), NotNull: true},
+		AlterColumn{Name: "local_dir", Type: Varchar(255), NotNull: true},
+		AlterColumn{Name: "remote_dir", Type: Varchar(255), NotNull: true},
+		AlterColumn{Name: "tmp_local_receive_dir", Type: Text{}, NotNull: true},
 	); err != nil {
 		return fmt.Errorf("failed to create the new remote_accounts table: %w", err)
 	}
 
-	if err := db.Exec(`INSERT INTO rules_old (id, name, send, comment, path,
-		local_dir, remote_dir, tmp_local_receive_dir) SELECT id, name, is_send, 
-		comment, path, local_dir, remote_dir, tmp_local_receive_dir FROM rules`); err != nil {
-		return fmt.Errorf("failed to copy the content of the rules table: %w", err)
+	if err := db.CreateIndex(&Index{
+		Name: quote(db, "UQE_rules_dir"), Unique: true,
+		On: "rules", Cols: []string{"send", "name"},
+	}); err != nil {
+		return fmt.Errorf("failed to restore the old rule name index: %w", err)
 	}
 
-	if err := db.DropTable("rules"); err != nil {
-		return fmt.Errorf("failed to drop the rules table: %w", err)
-	}
-
-	if err := db.RenameTable("rules_old", "rules"); err != nil {
-		return fmt.Errorf("failed to rename the rules table: %w", err)
+	if err := db.CreateIndex(&Index{
+		Name: quote(db, "UQE_rules_path"), Unique: true,
+		On: "rules", Cols: []string{"send", "path"},
+	}); err != nil {
+		return fmt.Errorf("failed to restore the old rule path index: %w", err)
 	}
 
 	return nil
@@ -530,70 +445,68 @@ func (ver0_7_0RevampRulesTable) Down(db migration.Actions) error {
 
 type ver0_7_0RevampTasksTable struct{}
 
-func (ver0_7_0RevampTasksTable) Up(db migration.Actions) error {
-	//nolint:gomnd //magic numbers are required here for variable length types
-	if err := db.CreateTable("tasks_new",
-		migration.Col("rule_id", migration.BigInt, migration.NotNull, migration.ForeignKey("rules", "id").
-			OnUpdate(migration.Restrict).OnDelete(migration.Cascade)),
-		migration.Col("chain", migration.Varchar(10), migration.NotNull),
-		migration.Col("rank", migration.SmallInt, migration.NotNull),
-		migration.Col("type", migration.Varchar(50), migration.NotNull),
-		migration.Col("args", migration.Text, migration.NotNull, migration.Default("{}")),
-		migration.Check("chain = 'PRE' OR chain = 'POST' OR chain = 'ERROR'"),
-		migration.MultiUnique("unique_task_nb", "rule_id", "chain", "rank"),
+func (ver0_7_0RevampTasksTable) Up(db Actions) error {
+	if err := db.AlterTable("tasks",
+		RenameColumn{OldName: "args", NewName: "blob_args"},
+		AlterColumn{Name: "rule_id", Type: BigInt{}, NotNull: true},
+		AlterColumn{Name: "chain", Type: Varchar(10), NotNull: true},
+		AlterColumn{Name: "rank", Type: TinyInt{}, NotNull: true},
+		AlterColumn{Name: "type", Type: Varchar(50), NotNull: true},
+		AddColumn{Name: "text_args", Type: Text{}, NotNull: true, Default: "{}"},
+		AddForeignKey{
+			Name: "tasks_rule_id_fkey", Cols: []string{"rule_id"},
+			RefTbl: "rules", RefCols: []string{"id"},
+			OnUpdate: Restrict, OnDelete: Cascade,
+		},
+		AddCheck{Name: "task_rank_check", Expr: "rank >= 0"},
+		AddCheck{Name: "task_chain_check", Expr: "chain = 'PRE' OR chain = 'POST' OR chain = 'ERROR'"},
+		AddUnique{Name: "unique_task_nb", Cols: []string{"rule_id", "chain", "rank"}},
 	); err != nil {
-		return fmt.Errorf("failed to create the new tasks table: %w", err)
+		return fmt.Errorf("failed to alter the tasks table: %w", err)
 	}
 
-	args := "args"
-	if db.GetDialect() == PostgreSQL {
-		args = "ENCODE(args, 'escape')"
+	argsQuery := utils.If(db.GetDialect() == PostgreSQL,
+		"UPDATE tasks SET text_args=ENCODE(blob_args, 'escape')",
+		"UPDATE tasks SET text_args=blob_args")
+	if err := db.Exec(argsQuery); err != nil {
+		return fmt.Errorf("failed to update the task arguments: %w", err)
 	}
 
-	if err := db.Exec(`INSERT INTO tasks_new (rule_id, chain, rank, type, args) 
-		SELECT rule_id, chain, rank, type, ` + args + ` FROM tasks`); err != nil {
-		return fmt.Errorf("failed to copy the content of the tasks table: %w", err)
-	}
-
-	if err := db.DropTable("tasks"); err != nil {
-		return fmt.Errorf("failed to drop the tasks table: %w", err)
-	}
-
-	if err := db.RenameTable("tasks_new", "tasks"); err != nil {
-		return fmt.Errorf("failed to rename the tasks table: %w", err)
+	if err := db.AlterTable("tasks",
+		DropColumn{Name: "blob_args"},
+		RenameColumn{OldName: "text_args", NewName: "args"},
+	); err != nil {
+		return fmt.Errorf("failed to alter the tasks table: %w", err)
 	}
 
 	return nil
 }
 
-func (ver0_7_0RevampTasksTable) Down(db migration.Actions) error {
-	//nolint:gomnd //magic numbers are required here for variable length types
-	if err := db.CreateTable("tasks_old",
-		migration.Col("rule_id", migration.BigInt, migration.NotNull),
-		migration.Col("chain", migration.Varchar(255), migration.NotNull),
-		migration.Col("rank", migration.Integer, migration.NotNull),
-		migration.Col("type", migration.Varchar(255), migration.NotNull),
-		migration.Col("args", migration.Blob, migration.NotNull),
+func (ver0_7_0RevampTasksTable) Down(db Actions) error {
+	if err := db.AlterTable("tasks",
+		RenameColumn{OldName: "args", NewName: "text_args"},
+		DropConstraint{Name: "tasks_rule_id_fkey"},
+		AlterColumn{Name: "rule_id", Type: UnsignedBigInt{}, NotNull: true},
+		AlterColumn{Name: "chain", Type: Varchar(255), NotNull: true},
+		AlterColumn{Name: "rank", Type: Integer{}, NotNull: true},
+		AlterColumn{Name: "type", Type: Varchar(255), NotNull: true},
+		AddColumn{Name: "blob_args", Type: Blob{} /*NotNull: true*/},
 	); err != nil {
-		return fmt.Errorf("failed to create the new tasks table: %w", err)
+		return fmt.Errorf("failed to alter the tasks table: %w", err)
 	}
 
-	args := "args"
-	if db.GetDialect() == PostgreSQL {
-		args = "DECODE(args, 'escape')"
+	argsQuery := utils.If(db.GetDialect() == PostgreSQL,
+		"UPDATE tasks SET blob_args=DECODE(text_args, 'escape')",
+		"UPDATE tasks SET blob_args=text_args")
+	if err := db.Exec(argsQuery); err != nil {
+		return fmt.Errorf("failed to update the task arguments: %w", err)
 	}
 
-	if err := db.Exec(`INSERT INTO tasks_old (rule_id, chain, rank, type, args) 
-		SELECT rule_id, chain, rank, type, ` + args + ` FROM tasks`); err != nil {
-		return fmt.Errorf("failed to copy the content of the tasks table: %w", err)
-	}
-
-	if err := db.DropTable("tasks"); err != nil {
-		return fmt.Errorf("failed to drop the tasks table: %w", err)
-	}
-
-	if err := db.RenameTable("tasks_old", "tasks"); err != nil {
-		return fmt.Errorf("failed to rename the tasks table: %w", err)
+	if err := db.AlterTable("tasks",
+		DropColumn{Name: "text_args"},
+		AlterColumn{Name: "blob_args", NewName: "args", Type: Blob{}, NotNull: true},
+	); err != nil {
+		return fmt.Errorf("failed to alter the tasks table: %w", err)
 	}
 
 	return nil
@@ -601,129 +514,80 @@ func (ver0_7_0RevampTasksTable) Down(db migration.Actions) error {
 
 type ver0_7_0RevampHistoryTable struct{}
 
-func (ver0_7_0RevampHistoryTable) Up(db migration.Actions) error {
-	//nolint:gomnd //magic numbers are required here for variable length types
-	if err := db.CreateTable("transfer_history_new",
-		migration.Col("id", migration.BigInt, migration.PrimaryKey),
-		migration.Col("owner", migration.Varchar(100), migration.NotNull),
-		migration.Col("remote_transfer_id", migration.Varchar(100), migration.NotNull),
-		migration.Col("is_server", migration.Boolean, migration.NotNull),
-		migration.Col("is_send", migration.Boolean, migration.NotNull),
-		migration.Col("rule", migration.Varchar(100), migration.NotNull),
-		migration.Col("account", migration.Varchar(100), migration.NotNull),
-		migration.Col("agent", migration.Varchar(100), migration.NotNull),
-		migration.Col("protocol", migration.Varchar(50), migration.NotNull),
-		migration.Col("local_path", migration.Text, migration.NotNull),
-		migration.Col("remote_path", migration.Text, migration.NotNull),
-		migration.Col("filesize", migration.BigInt, migration.NotNull, migration.Default(-1)),
-		migration.Col("start", migration.DateTime, migration.NotNull),
-		migration.Col("stop", migration.DateTime),
-		migration.Col("status", migration.Varchar(50), migration.NotNull),
-		migration.Col("step", migration.Varchar(50), migration.NotNull),
-		migration.Col("progress", migration.BigInt, migration.NotNull, migration.Default(0)),
-		migration.Col("task_number", migration.SmallInt, migration.NotNull, migration.Default(0)),
-		migration.Col("error_code", migration.Varchar(50), migration.NotNull, migration.Default("TeOk")),
-		migration.Col("error_details", migration.Text, migration.NotNull, migration.Default("")),
-		migration.MultiUnique("unique_history_id", "remote_transfer_id",
-			"is_server", "account", "agent"),
-	); err != nil {
-		return fmt.Errorf("failed to create the new transfer_history table: %w", err)
-	}
-
-	if db.GetDialect() == PostgreSQL {
+func (ver0_7_0RevampHistoryTable) Up(db Actions) error {
+	if db.GetDialect() == PostgreSQL { // set the db time zone to UTC
 		if err := db.Exec("SET TimeZone = 'UTC'"); err != nil {
 			return fmt.Errorf("failed to set the PostgreSQL time zone: %w", err)
 		}
+	} else if db.GetDialect() == MySQL { // convert timestamps from the ISO-8601 to the SQL format
+		if err := db.Exec(`UPDATE transfer_history SET
+			start = REPLACE(REPLACE(start, 'T', ' '), 'Z', ''),
+			stop = REPLACE(REPLACE(stop, 'T', ' '), 'Z', '')`); err != nil {
+			return fmt.Errorf("failed to format the MySQL timestamps: %w", err)
+		}
 	}
 
-	start, stop := "start", "stop" //nolint:goconst //other instances are about different matters
-
-	if db.GetDialect() == MySQL || db.GetDialect() == SQLite {
-		start = "REPLACE(REPLACE(start, 'T', ' '), 'Z', '')"
-		stop = "REPLACE(REPLACE(stop, 'T', ' '), 'Z', '')"
-	}
-
-	if err := db.Exec(`INSERT INTO transfer_history_new (id, owner, is_server,
-		is_send, remote_transfer_id, rule, account, agent, protocol, local_path,
-		remote_path, filesize, start, stop, status, step, progress, task_number,
-		error_code, error_details) SELECT id, owner, is_server,	is_send, remote_transfer_id,
-		rule, account, agent, protocol, local_path,	remote_path, filesize, ` +
-		start + `, ` + stop + `, status, step, progression, task_number, error_code,
-		error_details FROM transfer_history`); err != nil {
-		return fmt.Errorf("failed to copy the content of the transfer_history table: %w", err)
-	}
-
-	if err := db.DropTable("transfer_history"); err != nil {
-		return fmt.Errorf("failed to drop the transfer_history table: %w", err)
-	}
-
-	if err := db.RenameTable("transfer_history_new", "transfer_history"); err != nil {
-		return fmt.Errorf("failed to rename the transfer_history table: %w", err)
+	if err := db.AlterTable("transfer_history",
+		AlterColumn{Name: "id", Type: BigInt{}, NotNull: true},
+		AlterColumn{Name: "owner", Type: Varchar(100), NotNull: true},
+		AlterColumn{Name: "remote_transfer_id", Type: Varchar(100), NotNull: true},
+		AlterColumn{Name: "rule", Type: Varchar(100), NotNull: true},
+		AlterColumn{Name: "account", Type: Varchar(100), NotNull: true},
+		AlterColumn{Name: "agent", Type: Varchar(100), NotNull: true},
+		AlterColumn{Name: "protocol", Type: Varchar(50), NotNull: true},
+		AlterColumn{Name: "local_path", Type: Text{}, NotNull: true},
+		AlterColumn{Name: "remote_path", Type: Text{}, NotNull: true},
+		AlterColumn{Name: "start", Type: DateTime{}, NotNull: true},
+		AlterColumn{Name: "stop", Type: DateTime{}},
+		AlterColumn{Name: "progression", NewName: "progress", Type: BigInt{}, NotNull: true, Default: 0},
+		AlterColumn{Name: "task_number", Type: TinyInt{}, NotNull: true, Default: 0},
+		AlterColumn{Name: "error_code", Type: Varchar(50), NotNull: true, Default: "TeOk"},
+		AlterColumn{Name: "error_details", Type: Text{}, NotNull: true, Default: ""},
+		AddUnique{Name: "unique_history", Cols: []string{
+			"remote_transfer_id",
+			"is_server", "account", "agent",
+		}},
+	); err != nil {
+		return fmt.Errorf("failed to alter the transfer_history table: %w", err)
 	}
 
 	return nil
 }
 
-//nolint:funlen //splitting hurts readability
-func (ver0_7_0RevampHistoryTable) Down(db migration.Actions) error {
-	//nolint:gomnd //magic numbers are required here for variable length types
-	if err := db.CreateTable("transfer_history_old",
-		migration.Col("id", migration.BigInt, migration.PrimaryKey),
-		migration.Col("owner", migration.Varchar(255), migration.NotNull),
-		migration.Col("remote_transfer_id", migration.Varchar(255), migration.NotNull),
-		migration.Col("is_server", migration.Boolean, migration.NotNull),
-		migration.Col("is_send", migration.Boolean, migration.NotNull),
-		migration.Col("rule", migration.Varchar(255), migration.NotNull),
-		migration.Col("account", migration.Varchar(255), migration.NotNull),
-		migration.Col("agent", migration.Varchar(255), migration.NotNull),
-		migration.Col("protocol", migration.Varchar(255), migration.NotNull),
-		migration.Col("local_path", migration.Varchar(255), migration.NotNull),
-		migration.Col("remote_path", migration.Varchar(255), migration.NotNull),
-		migration.Col("filesize", migration.BigInt, migration.NotNull, migration.Default(-1)),
-		migration.Col("start", migration.Timestampz, migration.NotNull),
-		migration.Col("stop", migration.Timestampz),
-		migration.Col("status", migration.Varchar(50), migration.NotNull),
-		migration.Col("step", migration.Varchar(50), migration.NotNull),
-		migration.Col("progression", migration.BigInt, migration.NotNull),
-		migration.Col("task_number", migration.BigInt, migration.NotNull),
-		migration.Col("error_code", migration.Varchar(50), migration.NotNull),
-		migration.Col("error_details", migration.Varchar(255), migration.NotNull),
-	); err != nil {
-		return fmt.Errorf("failed to create the new transfer_history table: %w", err)
-	}
-
-	if db.GetDialect() == PostgreSQL {
+func (ver0_7_0RevampHistoryTable) Down(db Actions) error {
+	if db.GetDialect() == PostgreSQL { // set the db time zone to UTC
 		if err := db.Exec("SET TimeZone = 'UTC'"); err != nil {
 			return fmt.Errorf("failed to set the PostgreSQL time zone: %w", err)
 		}
 	}
 
-	start, stop := "start", "stop"
-
-	if db.GetDialect() == MySQL {
-		start = "CONCAT(REPLACE(start, ' ', 'T'), 'Z')"
-		stop = "CONCAT(REPLACE(stop, ' ', 'T'), 'Z')"
-	} else if db.GetDialect() == SQLite {
-		start = "REPLACE(start, ' ', 'T') || 'Z'"
-		stop = "REPLACE(stop, ' ', 'T') || 'Z'"
+	if err := db.AlterTable("transfer_history",
+		DropConstraint{Name: "unique_history"},
+		AlterColumn{Name: "id", Type: UnsignedBigInt{}, NotNull: true},
+		AlterColumn{Name: "owner", Type: Varchar(255), NotNull: true},
+		AlterColumn{Name: "remote_transfer_id", Type: Varchar(255), NotNull: true},
+		AlterColumn{Name: "rule", Type: Varchar(255), NotNull: true},
+		AlterColumn{Name: "account", Type: Varchar(255), NotNull: true},
+		AlterColumn{Name: "agent", Type: Varchar(255), NotNull: true},
+		AlterColumn{Name: "protocol", Type: Varchar(255), NotNull: true},
+		AlterColumn{Name: "local_path", Type: Varchar(255), NotNull: true},
+		AlterColumn{Name: "remote_path", Type: Varchar(255), NotNull: true},
+		AlterColumn{Name: "start", Type: DateTimeOffset{}, NotNull: true},
+		AlterColumn{Name: "stop", Type: DateTimeOffset{}},
+		AlterColumn{Name: "progress", NewName: "progression", Type: UnsignedBigInt{}, NotNull: true},
+		AlterColumn{Name: "task_number", Type: UnsignedBigInt{}, NotNull: true},
+		AlterColumn{Name: "error_code", Type: Varchar(50), NotNull: true},
+		AlterColumn{Name: "error_details", Type: Varchar(255), NotNull: true},
+	); err != nil {
+		return fmt.Errorf("failed to alter the transfer_history table: %w", err)
 	}
 
-	if err := db.Exec(`INSERT INTO transfer_history_old (id, owner, is_server,
-		is_send, remote_transfer_id, rule, account, agent, protocol, local_path,
-		remote_path, filesize, start, stop, status, step, progression, task_number,
-		error_code, error_details) SELECT id, owner, is_server,	is_send, remote_transfer_id,
-		rule, account, agent, protocol, local_path,	remote_path, filesize, ` +
-		start + `, ` + stop + `, status, step, progress, task_number, error_code,
-		error_details FROM transfer_history`); err != nil {
-		return fmt.Errorf("failed to copy the content of the transfer_history table: %w", err)
-	}
-
-	if err := db.DropTable("transfer_history"); err != nil {
-		return fmt.Errorf("failed to drop the transfer_history table: %w", err)
-	}
-
-	if err := db.RenameTable("transfer_history_old", "transfer_history"); err != nil {
-		return fmt.Errorf("failed to rename the transfer_history table: %w", err)
+	if db.GetDialect() == MySQL { // reconvert timestamps to the ISO-8601 from the SQL format
+		if err := db.Exec(`UPDATE transfer_history SET
+			start = CONCAT(REPLACE(start, ' ', 'T'), 'Z'),
+			stop = CONCAT(REPLACE(stop, ' ', 'T'), 'Z')`); err != nil {
+			return fmt.Errorf("failed to format the MySQL timestamps: %w", err)
+		}
 	}
 
 	return nil
@@ -731,129 +595,139 @@ func (ver0_7_0RevampHistoryTable) Down(db migration.Actions) error {
 
 type ver0_7_0RevampTransfersTable struct{}
 
-func (ver0_7_0RevampTransfersTable) Up(db migration.Actions) error {
-	//nolint:gomnd //magic numbers are required here for variable length types
-	if err := db.CreateTable("transfers_new",
-		migration.Col("id", migration.BigInt, migration.PrimaryKey, migration.AutoIncr),
-		migration.Col("owner", migration.Varchar(100), migration.NotNull),
-		migration.Col("remote_transfer_id", migration.Varchar(100), migration.NotNull, migration.Default("")),
-		migration.Col("rule_id", migration.BigInt, migration.NotNull, migration.ForeignKey("rules", "id").
-			OnUpdate(migration.Restrict).OnDelete(migration.Restrict)),
-		migration.Col("local_account_id", migration.BigInt, migration.ForeignKey("local_accounts", "id").
-			OnUpdate(migration.Restrict).OnDelete(migration.Restrict)),
-		migration.Col("remote_account_id", migration.BigInt, migration.ForeignKey("remote_accounts", "id").
-			OnUpdate(migration.Restrict).OnDelete(migration.Restrict)),
-		migration.Col("local_path", migration.Text, migration.NotNull),
-		migration.Col("remote_path", migration.Text, migration.NotNull),
-		migration.Col("filesize", migration.BigInt, migration.NotNull, migration.Default(-1)),
-		migration.Col("start", migration.DateTime, migration.NotNull, migration.Default(migration.CurrentTimestamp)),
-		migration.Col("status", migration.Varchar(50), migration.NotNull, migration.Default("PLANNED")),
-		migration.Col("step", migration.Varchar(50), migration.NotNull, migration.Default("StepNone")),
-		migration.Col("progress", migration.BigInt, migration.NotNull, migration.Default(0)),
-		migration.Col("task_number", migration.SmallInt, migration.NotNull, migration.Default(0)),
-		migration.Col("error_code", migration.Varchar(50), migration.NotNull, migration.Default("TeOk")),
-		migration.Col("error_details", migration.Text, migration.NotNull, migration.Default("")),
-		migration.MultiUnique("unique_transfer_local_account", "remote_transfer_id", "local_account_id"),
-		migration.MultiUnique("unique_transfer_remote_account", "remote_transfer_id", "remote_account_id"),
-		migration.Check(utils.CheckOnlyOneNotNull(db.GetDialect(), "local_account_id", "remote_account_id")),
-	); err != nil {
-		return fmt.Errorf("failed to create the new transfers table: %w", err)
-	}
-
-	if db.GetDialect() == PostgreSQL {
+func (ver0_7_0RevampTransfersTable) Up(db Actions) error {
+	if db.GetDialect() == PostgreSQL { // set the db time zone to UTC
 		if err := db.Exec("SET TimeZone = 'UTC'"); err != nil {
 			return fmt.Errorf("failed to set the PostgreSQL time zone: %w", err)
 		}
+	} else if db.GetDialect() == MySQL { // convert timestamps from the ISO-8601 to the SQL format
+		if err := db.Exec(`UPDATE transfers SET
+			start = REPLACE(REPLACE(start, 'T', ' '), 'Z', '')`); err != nil {
+			return fmt.Errorf("failed to format the MySQL timestamps: %w", err)
+		}
 	}
 
-	start := "start"
-
-	if db.GetDialect() == MySQL || db.GetDialect() == SQLite {
-		start = "REPLACE(REPLACE(start, 'T', ' '), 'Z', '')"
+	if err := db.AlterTable("transfers",
+		DropColumn{Name: "agent_id"},
+		AlterColumn{Name: "id", Type: BigInt{}, NotNull: true, Default: AutoIncr{}},
+		AlterColumn{Name: "owner", Type: Varchar(100), NotNull: true},
+		AlterColumn{Name: "remote_transfer_id", Type: Varchar(100), NotNull: true},
+		AlterColumn{Name: "rule_id", Type: BigInt{}, NotNull: true},
+		AlterColumn{Name: "local_path", Type: Text{}, NotNull: true},
+		AlterColumn{Name: "remote_path", Type: Text{}, NotNull: true},
+		AlterColumn{Name: "start", Type: DateTime{}, NotNull: true, Default: CurrentTimestamp{}},
+		AlterColumn{Name: "status", Type: Varchar(50), NotNull: true, Default: "PLANNED"},
+		AlterColumn{Name: "step", Type: Varchar(50), NotNull: true, Default: "StepNone"},
+		AlterColumn{Name: "progression", NewName: "progress", Type: BigInt{}, NotNull: true, Default: 0},
+		AlterColumn{Name: "task_number", Type: TinyInt{}, NotNull: true, Default: 0},
+		AlterColumn{Name: "error_code", Type: Varchar(50), NotNull: true, Default: "TeOk"},
+		AlterColumn{Name: "error_details", Type: Text{}, NotNull: true, Default: ""},
+		AddColumn{Name: "local_account_id", Type: BigInt{}},
+		AddColumn{Name: "remote_account_id", Type: BigInt{}},
+		AddUnique{Name: "unique_transfer_local", Cols: []string{"remote_transfer_id", "local_account_id"}},
+		AddUnique{Name: "unique_transfer_remote", Cols: []string{"remote_transfer_id", "remote_account_id"}},
+		AddForeignKey{
+			Name: "transfers_rule_id_fkey", Cols: []string{"rule_id"},
+			RefTbl: "rules", RefCols: []string{"id"},
+			OnUpdate: Restrict, OnDelete: Restrict,
+		},
+		AddForeignKey{
+			Name: "transfers_local_account_id_fkey", Cols: []string{"local_account_id"},
+			RefTbl: "local_accounts", RefCols: []string{"id"},
+			OnUpdate: Restrict, OnDelete: Restrict,
+		},
+		AddForeignKey{
+			Name: "transfers_remote_account_id_fkey", Cols: []string{"remote_account_id"},
+			RefTbl: "remote_accounts", RefCols: []string{"id"},
+			OnUpdate: Restrict, OnDelete: Restrict,
+		},
+	); err != nil {
+		return fmt.Errorf("failed to alter the transfers table: %w", err)
 	}
 
-	if err := db.Exec(`INSERT INTO transfers_new (id, owner, remote_transfer_id,
-		rule_id, local_account_id, remote_account_id, local_path, remote_path, 
-		filesize, start, status, step, progress, task_number, error_code, 
-		error_details) SELECT id, owner, remote_transfer_id, rule_id, 
-		(CASE WHEN is_server THEN account_id END),
-		(CASE WHEN NOT is_server THEN account_id END), 
-		local_path, remote_path, filesize, ` + start + `, status, step,	progression, 
-		task_number, error_code, error_details FROM transfers`); err != nil {
-		return fmt.Errorf("failed to copy the content of the transfers table: %w", err)
+	if err := db.Exec(`UPDATE transfers SET local_account_id=account_id WHERE is_server`); err != nil {
+		return fmt.Errorf("failed to update the local account ids: %w", err)
 	}
 
-	if err := db.DropTable("transfers"); err != nil {
-		return fmt.Errorf("failed to drop the transfers table: %w", err)
+	if err := db.Exec(`UPDATE transfers SET remote_account_id=account_id WHERE NOT is_server`); err != nil {
+		return fmt.Errorf("failed to update the local account ids: %w", err)
 	}
 
-	if err := db.RenameTable("transfers_new", "transfers"); err != nil {
-		return fmt.Errorf("failed to rename the transfers table: %w", err)
+	if err := db.AlterTable("transfers",
+		DropColumn{Name: "account_id"},
+		DropColumn{Name: "is_server"},
+		AddCheck{
+			Name: "transfer_check_requester",
+			Expr: CheckOnlyOneNotNull("local_account_id", "remote_account_id"),
+		},
+	); err != nil {
+		return fmt.Errorf("failed to alter the transfers table: %w", err)
 	}
 
 	return nil
 }
 
-//nolint:funlen //splitting hurts readability
-func (ver0_7_0RevampTransfersTable) Down(db migration.Actions) error {
-	//nolint:gomnd //magic numbers are required here for variable length types
-	if err := db.CreateTable("transfers_old",
-		migration.Col("id", migration.BigInt, migration.PrimaryKey, migration.AutoIncr),
-		migration.Col("owner", migration.Varchar(255), migration.NotNull),
-		migration.Col("remote_transfer_id", migration.Varchar(255), migration.NotNull),
-		migration.Col("rule_id", migration.BigInt, migration.NotNull),
-		migration.Col("is_server", migration.Boolean, migration.NotNull),
-		migration.Col("agent_id", migration.BigInt, migration.NotNull),
-		migration.Col("account_id", migration.BigInt, migration.NotNull),
-		migration.Col("local_path", migration.Varchar(255), migration.NotNull),
-		migration.Col("remote_path", migration.Varchar(255), migration.NotNull),
-		migration.Col("filesize", migration.BigInt, migration.NotNull, migration.Default(-1)),
-		migration.Col("start", migration.Timestampz, migration.NotNull),
-		migration.Col("status", migration.Varchar(255), migration.NotNull),
-		migration.Col("step", migration.Varchar(50), migration.NotNull),
-		migration.Col("progression", migration.BigInt, migration.NotNull),
-		migration.Col("task_number", migration.BigInt, migration.NotNull),
-		migration.Col("error_code", migration.Varchar(50), migration.NotNull),
-		migration.Col("error_details", migration.Varchar(255), migration.NotNull),
-	); err != nil {
-		return fmt.Errorf("failed to create the new transfers table: %w", err)
-	}
-
-	if db.GetDialect() == PostgreSQL {
+func (ver0_7_0RevampTransfersTable) Down(db Actions) error {
+	if db.GetDialect() == PostgreSQL { // set the db time zone to UTC
 		if err := db.Exec("SET TimeZone = 'UTC'"); err != nil {
 			return fmt.Errorf("failed to set the PostgreSQL time zone: %w", err)
 		}
 	}
 
-	start := "start"
-
-	if db.GetDialect() == MySQL {
-		start = "CONCAT(REPLACE(start, ' ', 'T'), 'Z')"
-	} else if db.GetDialect() == SQLite {
-		start = "REPLACE(start, ' ', 'T') || 'Z'"
+	if err := db.AlterTable("transfers",
+		DropConstraint{Name: "unique_transfer_local"},
+		DropConstraint{Name: "unique_transfer_remote"},
+		DropConstraint{Name: "transfer_check_requester"},
+		DropConstraint{Name: "transfers_rule_id_fkey"},
+		DropConstraint{Name: "transfers_local_account_id_fkey"},
+		DropConstraint{Name: "transfers_remote_account_id_fkey"},
+		AlterColumn{Name: "id", Type: UnsignedBigInt{}, NotNull: true, Default: AutoIncr{}},
+		AlterColumn{Name: "owner", Type: Varchar(255), NotNull: true},
+		AlterColumn{Name: "remote_transfer_id", Type: Varchar(255), NotNull: true},
+		AlterColumn{Name: "rule_id", Type: UnsignedBigInt{}, NotNull: true},
+		AlterColumn{Name: "local_path", Type: Varchar(255), NotNull: true},
+		AlterColumn{Name: "remote_path", Type: Varchar(255), NotNull: true},
+		AlterColumn{Name: "start", Type: DateTimeOffset{}, NotNull: true},
+		AlterColumn{Name: "status", Type: Varchar(255), NotNull: true},
+		AlterColumn{Name: "step", Type: Varchar(50), NotNull: true},
+		AlterColumn{Name: "progress", NewName: "progression", Type: UnsignedBigInt{}, NotNull: true},
+		AlterColumn{Name: "task_number", Type: UnsignedBigInt{}, NotNull: true},
+		AlterColumn{Name: "error_code", Type: Varchar(50), NotNull: true},
+		AlterColumn{Name: "error_details", Type: Varchar(255), NotNull: true},
+		AddColumn{Name: "is_server", Type: Boolean{} /*NotNull: true*/},
+		AddColumn{Name: "agent_id", Type: UnsignedBigInt{} /*NotNull: true*/},
+		AddColumn{Name: "account_id", Type: UnsignedBigInt{} /*NotNull: true*/},
+	); err != nil {
+		return fmt.Errorf("failed to alter the transfers table: %w", err)
 	}
 
-	if err := db.Exec(`INSERT INTO transfers_old (id, owner, remote_transfer_id,
-		rule_id, is_server, agent_id, account_id, local_path, remote_path, filesize,
-		start, status, step, progression, task_number, error_code, error_details)
-		SELECT id, owner, remote_transfer_id, rule_id, 
-		(CASE WHEN local_account_id IS NULL THEN FALSE ELSE TRUE END),
-		(CASE WHEN local_account_id IS NOT NULL 
-			THEN (SELECT local_agent_id FROM local_accounts WHERE id=local_account_id)
-			ELSE (SELECT remote_agent_id FROM remote_accounts WHERE id=remote_account_id) 
-		END), 
-		(CASE WHEN local_account_id IS NULL THEN remote_account_id ELSE local_account_id END),
-		local_path, remote_path, filesize, ` + start + `, status, step, progress, 
-		task_number, error_code, error_details FROM transfers`); err != nil {
-		return fmt.Errorf("failed to copy the content of the transfers table: %w", err)
+	if db.GetDialect() == MySQL { // reconvert timestamps to the ISO-8601 from the SQL format
+		if err := db.Exec(`UPDATE transfers SET
+			start = CONCAT(REPLACE(start, ' ', 'T'), 'Z')`); err != nil {
+			return fmt.Errorf("failed to format the MySQL timestamps: %w", err)
+		}
 	}
 
-	if err := db.DropTable("transfers"); err != nil {
-		return fmt.Errorf("failed to drop the transfers table: %w", err)
+	if err := db.Exec(`UPDATE transfers SET is_server=true, account_id=local_account_id, 
+			    agent_id=(SELECT local_agent_id FROM local_accounts WHERE id=local_account_id)
+            WHERE local_account_id IS NOT NULL`); err != nil {
+		return fmt.Errorf("failed to update the local account ids: %w", err)
 	}
 
-	if err := db.RenameTable("transfers_old", "transfers"); err != nil {
-		return fmt.Errorf("failed to rename the transfers table: %w", err)
+	if err := db.Exec(`UPDATE transfers SET is_server=false, account_id=remote_account_id,
+            	agent_id=(SELECT remote_agent_id FROM remote_accounts WHERE id=remote_account_id)
+            WHERE remote_account_id IS NOT NULL`); err != nil {
+		return fmt.Errorf("failed to update the remote account ids: %w", err)
+	}
+
+	if err := db.AlterTable("transfers",
+		DropColumn{Name: "local_account_id"},
+		DropColumn{Name: "remote_account_id"},
+		AlterColumn{Name: "is_server", Type: Boolean{}, NotNull: true},
+		AlterColumn{Name: "agent_id", Type: BigInt{}, NotNull: true},
+		AlterColumn{Name: "account_id", Type: BigInt{}, NotNull: true},
+	); err != nil {
+		return fmt.Errorf("failed to alter the transfers table: %w", err)
 	}
 
 	return nil
@@ -861,67 +735,86 @@ func (ver0_7_0RevampTransfersTable) Down(db migration.Actions) error {
 
 type ver0_7_0RevampTransferInfoTable struct{}
 
-func (ver0_7_0RevampTransferInfoTable) Up(db migration.Actions) error {
-	//nolint:gomnd //magic numbers are required here for variable length types
-	if err := db.CreateTable("transfer_info_new",
-		migration.Col("transfer_id", migration.BigInt, migration.ForeignKey("transfers", "id").
-			OnUpdate(migration.Restrict).OnDelete(migration.Cascade)),
-		migration.Col("history_id", migration.BigInt, migration.ForeignKey("transfer_history", "id").
-			OnUpdate(migration.Restrict).OnDelete(migration.Cascade)),
-		migration.Col("name", migration.Varchar(100), migration.NotNull),
-		migration.Col("value", migration.Text, migration.NotNull, migration.Default("null")),
-		migration.MultiUnique("unique_transfer_info_tran", "transfer_id", "name"),
-		migration.MultiUnique("unique_transfer_info_hist", "history_id", "name"),
-		migration.Check(utils.CheckOnlyOneNotNull(db.GetDialect(), "transfer_id", "history_id")),
+func (ver0_7_0RevampTransferInfoTable) Up(db Actions) error {
+	if err := db.DropIndex(quote(db, "UQE_transfer_info_infoName"), "transfer_info"); err != nil {
+		return fmt.Errorf("failed to drop the old transfer_info index: %w", err)
+	}
+
+	if err := db.AlterTable("transfer_info",
+		AddColumn{Name: "history_id", Type: BigInt{}},
+		AlterColumn{Name: "transfer_id", Type: BigInt{}},
+		AlterColumn{Name: "name", Type: Varchar(100), NotNull: true},
+		AlterColumn{Name: "value", Type: Text{}, NotNull: true, Default: "null"},
+		AddUnique{Name: "unique_transfer_info", Cols: []string{"transfer_id", "name"}},
+		AddUnique{Name: "unique_history_info", Cols: []string{"history_id", "name"}},
 	); err != nil {
-		return fmt.Errorf("failed to create the new transfer_info table: %w", err)
+		return fmt.Errorf("failed to alter the transfer_info table: %w", err)
 	}
 
-	if err := db.Exec(`INSERT INTO transfer_info_new (transfer_id, history_id,
-		name, value) SELECT 
-		(CASE WHEN NOT is_history THEN transfer_id END), 
-		(CASE WHEN is_history THEN transfer_id END), 
-		name, value FROM transfer_info`); err != nil {
-		return fmt.Errorf("failed to copy the content of the transfer_info table: %w", err)
+	if err := db.Exec(`UPDATE transfer_info SET history_id=transfer_id, transfer_id=null
+		WHERE is_history=true`); err != nil {
+		return fmt.Errorf("failed to update the transfer info table: %w", err)
 	}
 
-	if err := db.DropTable("transfer_info"); err != nil {
-		return fmt.Errorf("failed to drop the transfer_info table: %w", err)
-	}
-
-	if err := db.RenameTable("transfer_info_new", "transfer_info"); err != nil {
-		return fmt.Errorf("failed to rename the transfer_info table: %w", err)
+	if err := db.AlterTable("transfer_info",
+		DropColumn{Name: "is_history"},
+		AddForeignKey{
+			Name: "info_transfer_fkey", Cols: []string{"transfer_id"},
+			RefTbl: "transfers", RefCols: []string{"id"},
+			OnUpdate: Restrict, OnDelete: Cascade,
+		},
+		AddForeignKey{
+			Name: "info_history_fkey", Cols: []string{"history_id"},
+			RefTbl: "transfer_history", RefCols: []string{"id"},
+			OnUpdate: Restrict, OnDelete: Cascade,
+		},
+		AddCheck{
+			Name: "transfer_info_check_owner",
+			Expr: CheckOnlyOneNotNull("transfer_id", "history_id"),
+		},
+	); err != nil {
+		return fmt.Errorf("failed to alter the transfer_info table: %w", err)
 	}
 
 	return nil
 }
 
-func (ver0_7_0RevampTransferInfoTable) Down(db migration.Actions) error {
-	//nolint:gomnd //magic numbers are required here for variable length types
-	if err := db.CreateTable("transfer_info_old",
-		migration.Col("transfer_id", migration.BigInt, migration.NotNull),
-		migration.Col("is_history", migration.Boolean, migration.NotNull),
-		migration.Col("name", migration.Varchar(255), migration.NotNull),
-		migration.Col("value", migration.Text, migration.NotNull),
-		migration.MultiUnique("UQE_transfer_info_old_infoName", "transfer_id", "name"),
+func (ver0_7_0RevampTransferInfoTable) Down(db Actions) error {
+	if err := db.AlterTable("transfer_info",
+		DropConstraint{Name: "info_transfer_fkey"},
+		DropConstraint{Name: "info_history_fkey"},
+		DropConstraint{Name: "unique_transfer_info"},
+		DropConstraint{Name: "unique_history_info"},
+		DropConstraint{Name: "transfer_info_check_owner"},
+		AddColumn{Name: "is_history", Type: Boolean{}, NotNull: true, Default: true},
+		AlterColumn{Name: "name", Type: Varchar(255), NotNull: true},
+		AlterColumn{Name: "value", Type: Varchar(255), NotNull: true},
 	); err != nil {
-		return fmt.Errorf("failed to create the new transfer_info table: %w", err)
+		return fmt.Errorf("failed to alter the transfer_info table: %w", err)
 	}
 
-	if err := db.Exec(`INSERT INTO transfer_info_old (transfer_id, is_history,
-		name, value) SELECT 
-		(CASE WHEN transfer_id IS NULL THEN history_id ELSE transfer_id END), 
-		(CASE WHEN transfer_id IS NULL THEN true ELSE false END), 
-		name, value FROM transfer_info`); err != nil {
-		return fmt.Errorf("failed to copy the content of the transfer_info table: %w", err)
+	if err := db.Exec(`UPDATE transfer_info	SET transfer_id=history_id
+		WHERE history_id IS NOT NULL`); err != nil {
+		return fmt.Errorf("failed to update the transfer info table: %w", err)
 	}
 
-	if err := db.DropTable("transfer_info"); err != nil {
-		return fmt.Errorf("failed to drop the transfer_info table: %w", err)
+	if err := db.Exec(`UPDATE transfer_info	SET is_history=false
+		WHERE history_id IS NULL`); err != nil {
+		return fmt.Errorf("failed to update the transfer info table: %w", err)
 	}
 
-	if err := db.RenameTable("transfer_info_old", "transfer_info"); err != nil {
-		return fmt.Errorf("failed to rename the transfer_info table: %w", err)
+	if err := db.AlterTable("transfer_info",
+		DropColumn{Name: "history_id"},
+		AlterColumn{Name: "transfer_id", Type: UnsignedBigInt{}, NotNull: true},
+	); err != nil {
+		return fmt.Errorf("failed to alter the transfer_info table: %w", err)
+	}
+
+	if err := db.CreateIndex(&Index{
+		Name: quote(db, "UQE_transfer_info_infoName"), Unique: true,
+		On: "transfer_info", Cols: []string{"transfer_id", "name"},
+	}); err != nil {
+		return fmt.Errorf("failed to restore the old transfer_info index: %w", err)
 	}
 
 	return nil
@@ -929,89 +822,121 @@ func (ver0_7_0RevampTransferInfoTable) Down(db migration.Actions) error {
 
 type ver0_7_0RevampCryptoTable struct{}
 
-func (ver0_7_0RevampCryptoTable) Up(db migration.Actions) error {
-	//nolint:gomnd //magic numbers are required here for variable length types
-	if err := db.CreateTable("crypto_credentials_new",
-		migration.Col("id", migration.BigInt, migration.PrimaryKey, migration.AutoIncr),
-		migration.Col("name", migration.Varchar(100), migration.NotNull),
-		migration.Col("local_agent_id", migration.BigInt, migration.ForeignKey("local_agents", "id").
-			OnUpdate(migration.Restrict).OnDelete(migration.Cascade)),
-		migration.Col("remote_agent_id", migration.BigInt, migration.ForeignKey("remote_agents", "id").
-			OnUpdate(migration.Restrict).OnDelete(migration.Cascade)),
-		migration.Col("local_account_id", migration.BigInt, migration.ForeignKey("local_accounts", "id").
-			OnUpdate(migration.Restrict).OnDelete(migration.Cascade)),
-		migration.Col("remote_account_id", migration.BigInt, migration.ForeignKey("remote_accounts", "id").
-			OnUpdate(migration.Restrict).OnDelete(migration.Cascade)),
-		migration.Col("private_key", migration.Text, migration.NotNull, migration.Default("")),
-		migration.Col("certificate", migration.Text, migration.NotNull, migration.Default("")),
-		migration.Col("ssh_public_key", migration.Text, migration.NotNull, migration.Default("")),
-		migration.MultiUnique("unique_crypto_credentials_loc_agent", "local_agent_id", "name"),
-		migration.MultiUnique("unique_crypto_credentials_rem_agent", "remote_agent_id", "name"),
-		migration.MultiUnique("unique_crypto_credentials_loc_account", "local_account_id", "name"),
-		migration.MultiUnique("unique_crypto_credentials_rem_account", "remote_account_id", "name"),
-		migration.Check(utils.CheckOnlyOneNotNull(db.GetDialect(), "local_agent_id",
-			"remote_agent_id", "local_account_id", "remote_account_id")),
+func (ver0_7_0RevampCryptoTable) Up(db Actions) error {
+	if err := db.DropIndex(quote(db, "UQE_crypto_credentials_cert"),
+		"crypto_credentials"); err != nil {
+		return fmt.Errorf("failed to drop the old crypto_credentials index: %w", err)
+	}
+
+	if err := db.AlterTable("crypto_credentials",
+		AlterColumn{Name: "id", Type: BigInt{}, NotNull: true, Default: AutoIncr{}},
+		AlterColumn{Name: "name", Type: Varchar(100), NotNull: true},
+		AlterColumn{Name: "private_key", Type: Text{}, NotNull: true, Default: ""},
+		AlterColumn{Name: "certificate", Type: Text{}, NotNull: true, Default: ""},
+		AlterColumn{Name: "ssh_public_key", Type: Text{}, NotNull: true, Default: ""},
+		AddColumn{Name: "local_agent_id", Type: BigInt{}},
+		AddColumn{Name: "remote_agent_id", Type: BigInt{}},
+		AddColumn{Name: "local_account_id", Type: BigInt{}},
+		AddColumn{Name: "remote_account_id", Type: BigInt{}},
+		AddUnique{Name: "unique_crypto_loc_agent", Cols: []string{"local_agent_id", "name"}},
+		AddUnique{Name: "unique_crypto_rem_agent", Cols: []string{"remote_agent_id", "name"}},
+		AddUnique{Name: "unique_crypto_loc_account", Cols: []string{"local_account_id", "name"}},
+		AddUnique{Name: "unique_crypto_rem_account", Cols: []string{"remote_account_id", "name"}},
+		AddForeignKey{
+			Name: "crypto_local_agent_fkey", Cols: []string{"local_agent_id"},
+			RefTbl: "local_agents", RefCols: []string{"id"},
+			OnUpdate: Restrict, OnDelete: Cascade,
+		},
+		AddForeignKey{
+			Name: "crypto_remote_agent_fkey", Cols: []string{"remote_agent_id"},
+			RefTbl: "remote_agents", RefCols: []string{"id"},
+			OnUpdate: Restrict, OnDelete: Cascade,
+		},
+		AddForeignKey{
+			Name: "crypto_local_account_fkey", Cols: []string{"local_account_id"},
+			RefTbl: "local_accounts", RefCols: []string{"id"},
+			OnUpdate: Restrict, OnDelete: Cascade,
+		},
+		AddForeignKey{
+			Name: "crypto_remote_account_fkey", Cols: []string{"remote_account_id"},
+			RefTbl: "remote_accounts", RefCols: []string{"id"},
+			OnUpdate: Restrict, OnDelete: Cascade,
+		},
 	); err != nil {
-		return fmt.Errorf("failed to create the new crypto_credentials table: %w", err)
+		return fmt.Errorf("failed to alter the crypto_credentials table: %w", err)
 	}
 
-	if err := db.Exec(`INSERT INTO crypto_credentials_new (id, name, local_agent_id, 
-		remote_agent_id, local_account_id, remote_account_id, private_key, 
-		certificate, ssh_public_key) SELECT id, name,
-		(CASE WHEN owner_type='local_agents' THEN owner_id END),
-		(CASE WHEN owner_type='remote_agents' THEN owner_id END),
-		(CASE WHEN owner_type='local_accounts' THEN owner_id END),
-		(CASE WHEN owner_type='remote_accounts' THEN owner_id END),
-		private_key, certificate, ssh_public_key FROM crypto_credentials`); err != nil {
-		return fmt.Errorf("failed to copy the content of the crypto_credentials table: %w", err)
+	if err := db.Exec(`UPDATE crypto_credentials SET
+		local_agent_id=(CASE WHEN owner_type='local_agents' THEN owner_id END),
+		remote_agent_id=(CASE WHEN owner_type='remote_agents' THEN owner_id END),
+		local_account_id=(CASE WHEN owner_type='local_accounts' THEN owner_id END),
+		remote_account_id=(CASE WHEN owner_type='remote_accounts' THEN owner_id END)`); err != nil {
+		return fmt.Errorf("failed to update the crypto_credentials table: %w", err)
 	}
 
-	if err := db.DropTable("crypto_credentials"); err != nil {
-		return fmt.Errorf("failed to drop the crypto_credentials table: %w", err)
-	}
-
-	if err := db.RenameTable("crypto_credentials_new", "crypto_credentials"); err != nil {
-		return fmt.Errorf("failed to rename the crypto_credentials table: %w", err)
+	if err := db.AlterTable("crypto_credentials",
+		DropColumn{Name: "owner_type"},
+		DropColumn{Name: "owner_id"},
+		AddCheck{
+			Name: "crypto_check_owner",
+			Expr: CheckOnlyOneNotNull("local_agent_id", "remote_agent_id",
+				"local_account_id", "remote_account_id"),
+		},
+	); err != nil {
+		return fmt.Errorf("failed to alter the crypto_credentials table: %w", err)
 	}
 
 	return nil
 }
 
-func (ver0_7_0RevampCryptoTable) Down(db migration.Actions) error {
-	//nolint:gomnd //magic numbers are required here for variable length types
-	if err := db.CreateTable("crypto_credentials_old",
-		migration.Col("id", migration.BigInt, migration.PrimaryKey, migration.AutoIncr),
-		migration.Col("name", migration.Varchar(100), migration.NotNull),
-		migration.Col("owner_type", migration.Varchar(255), migration.NotNull),
-		migration.Col("owner_id", migration.BigInt, migration.NotNull),
-		migration.Col("private_key", migration.Text),
-		migration.Col("certificate", migration.Text),
-		migration.Col("ssh_public_key", migration.Text),
-		migration.MultiUnique("UQE_crypto_credentials_old_cert", "name", "owner_type", "owner_id"),
+func (ver0_7_0RevampCryptoTable) Down(db Actions) error {
+	if err := db.AlterTable("crypto_credentials",
+		DropConstraint{Name: "crypto_local_agent_fkey"},
+		DropConstraint{Name: "crypto_remote_agent_fkey"},
+		DropConstraint{Name: "crypto_local_account_fkey"},
+		DropConstraint{Name: "crypto_remote_account_fkey"},
+		DropConstraint{Name: "unique_crypto_loc_agent"},
+		DropConstraint{Name: "unique_crypto_rem_agent"},
+		DropConstraint{Name: "unique_crypto_loc_account"},
+		DropConstraint{Name: "unique_crypto_rem_account"},
+		DropConstraint{Name: "crypto_check_owner"},
+		AlterColumn{Name: "id", Type: UnsignedBigInt{}, NotNull: true, Default: AutoIncr{}},
+		AlterColumn{Name: "name", Type: Varchar(255), NotNull: true},
+		AlterColumn{Name: "private_key", Type: Text{}},
+		AlterColumn{Name: "certificate", Type: Text{}},
+		AlterColumn{Name: "ssh_public_key", Type: Text{}},
+		AddColumn{Name: "owner_type", Type: Varchar(255) /*NotNull: true*/},
+		AddColumn{Name: "owner_id", Type: UnsignedBigInt{} /*NotNull: true*/},
 	); err != nil {
-		return fmt.Errorf("failed to create the new crypto_credentials table: %w", err)
+		return fmt.Errorf("failed to alter the crypto_credentials table: %w", err)
 	}
 
-	if err := db.Exec(`INSERT INTO crypto_credentials_old (id, name, owner_type,
-		owner_id, private_key, certificate, ssh_public_key) SELECT id, name,
-		(CASE WHEN local_agent_id IS NOT NULL THEN 'local_agents'
-			  WHEN remote_agent_id IS NOT NULL THEN 'remote_agents'
-			  WHEN local_account_id IS NOT NULL THEN 'local_accounts'
-			  WHEN remote_account_id IS NOT NULL THEN 'remote_accounts' END),
-		(CASE WHEN local_agent_id IS NOT NULL THEN local_agent_id
-			  WHEN remote_agent_id IS NOT NULL THEN remote_agent_id
-			  WHEN local_account_id IS NOT NULL THEN local_account_id
-			  WHEN remote_account_id IS NOT NULL THEN remote_account_id END),
-		private_key, certificate, ssh_public_key FROM crypto_credentials`); err != nil {
+	if err := db.Exec(`UPDATE crypto_credentials SET
+		owner_type=(CASE WHEN local_agent_id IS NOT NULL THEN 'local_agents'
+						 WHEN remote_agent_id IS NOT NULL THEN 'remote_agents'
+						 WHEN local_account_id IS NOT NULL THEN 'local_accounts'
+						 WHEN remote_account_id IS NOT NULL THEN 'remote_accounts' END),
+		owner_id=COALESCE(local_agent_id, remote_agent_id, local_account_id, remote_account_id)`,
+	); err != nil {
 		return fmt.Errorf("failed to copy the content of the crypto_credentials table: %w", err)
 	}
 
-	if err := db.DropTable("crypto_credentials"); err != nil {
-		return fmt.Errorf("failed to drop the crypto_credentials table: %w", err)
+	if err := db.AlterTable("crypto_credentials",
+		DropColumn{Name: "local_agent_id"},
+		DropColumn{Name: "remote_agent_id"},
+		DropColumn{Name: "local_account_id"},
+		DropColumn{Name: "remote_account_id"},
+		AlterColumn{Name: "owner_type", Type: Varchar(255), NotNull: true},
+		AlterColumn{Name: "owner_id", Type: UnsignedBigInt{}, NotNull: true},
+	); err != nil {
+		return fmt.Errorf("failed to alter the crypto_credentials table: %w", err)
 	}
 
-	if err := db.RenameTable("crypto_credentials_old", "crypto_credentials"); err != nil {
-		return fmt.Errorf("failed to rename the crypto_credentials table: %w", err)
+	if err := db.CreateIndex(&Index{
+		Name: quote(db, "UQE_crypto_credentials_cert"), Unique: true,
+		On: "crypto_credentials", Cols: []string{"name", "owner_type", "owner_id"},
+	}); err != nil {
+		return fmt.Errorf("failed to restore the old crypto_credentials index: %w", err)
 	}
 
 	return nil
@@ -1019,81 +944,114 @@ func (ver0_7_0RevampCryptoTable) Down(db migration.Actions) error {
 
 type ver0_7_0RevampRuleAccessTable struct{}
 
-func (ver0_7_0RevampRuleAccessTable) Up(db migration.Actions) error {
-	//nolint:gomnd //magic numbers are required here for variable length types
-	if err := db.CreateTable("rule_access_new",
-		migration.Col("rule_id", migration.BigInt, migration.NotNull, migration.ForeignKey("rules", "id").
-			OnUpdate(migration.Restrict).OnDelete(migration.Cascade)),
-		migration.Col("local_agent_id", migration.BigInt, migration.ForeignKey("local_agents", "id").
-			OnUpdate(migration.Restrict).OnDelete(migration.Cascade)),
-		migration.Col("remote_agent_id", migration.BigInt, migration.ForeignKey("remote_agents", "id").
-			OnUpdate(migration.Restrict).OnDelete(migration.Cascade)),
-		migration.Col("local_account_id", migration.BigInt, migration.ForeignKey("local_accounts", "id").
-			OnUpdate(migration.Restrict).OnDelete(migration.Cascade)),
-		migration.Col("remote_account_id", migration.BigInt, migration.ForeignKey("remote_accounts", "id").
-			OnUpdate(migration.Restrict).OnDelete(migration.Cascade)),
-		migration.MultiUnique("unique_rule_access_loc_agent", "rule_id", "local_agent_id"),
-		migration.MultiUnique("unique_rule_access_rem_agent", "rule_id", "remote_agent_id"),
-		migration.MultiUnique("unique_rule_access_loc_account", "rule_id", "local_account_id"),
-		migration.MultiUnique("unique_rule_access_rem_account", "rule_id", "remote_account_id"),
-		migration.Check(utils.CheckOnlyOneNotNull(db.GetDialect(), "local_agent_id",
-			"remote_agent_id", "local_account_id", "remote_account_id")),
-	); err != nil {
-		return fmt.Errorf("failed to create the new rule_access table: %w", err)
+func (ver0_7_0RevampRuleAccessTable) Up(db Actions) error {
+	if err := db.DropIndex(quote(db, "UQE_rule_access_perm"), "rule_access"); err != nil {
+		return fmt.Errorf("failed to drop the old rule_access index: %w", err)
 	}
 
-	if err := db.Exec(`INSERT INTO rule_access_new (rule_id, local_agent_id, 
-		remote_agent_id, local_account_id, remote_account_id) SELECT rule_id,
-		(CASE WHEN object_type='local_agents' THEN object_id END),
-		(CASE WHEN object_type='remote_agents' THEN object_id END),
-		(CASE WHEN object_type='local_accounts' THEN object_id END),
-		(CASE WHEN object_type='remote_accounts' THEN object_id END)
-		FROM rule_access`); err != nil {
+	if err := db.AlterTable("rule_access",
+		AlterColumn{Name: "rule_id", Type: BigInt{}, NotNull: true},
+		AddColumn{Name: "local_agent_id", Type: BigInt{}},
+		AddColumn{Name: "remote_agent_id", Type: BigInt{}},
+		AddColumn{Name: "local_account_id", Type: BigInt{}},
+		AddColumn{Name: "remote_account_id", Type: BigInt{}},
+		AddUnique{Name: "unique_access_loc_agent", Cols: []string{"rule_id", "local_agent_id"}},
+		AddUnique{Name: "unique_access_rem_agent", Cols: []string{"rule_id", "remote_agent_id"}},
+		AddUnique{Name: "unique_access_loc_account", Cols: []string{"rule_id", "local_account_id"}},
+		AddUnique{Name: "unique_access_rem_account", Cols: []string{"rule_id", "remote_account_id"}},
+		AddForeignKey{
+			Name: "access_rule_id_fkey", Cols: []string{"rule_id"},
+			RefTbl: "rules", RefCols: []string{"id"}, OnUpdate: Restrict, OnDelete: Cascade,
+		},
+		AddForeignKey{
+			Name: "access_local_agent_id_fkey", Cols: []string{"local_agent_id"},
+			RefTbl: "local_agents", RefCols: []string{"id"}, OnUpdate: Restrict, OnDelete: Cascade,
+		},
+		AddForeignKey{
+			Name: "access_remote_agent_id_fkey", Cols: []string{"remote_agent_id"},
+			RefTbl: "remote_agents", RefCols: []string{"id"}, OnUpdate: Restrict, OnDelete: Cascade,
+		},
+		AddForeignKey{
+			Name: "access_local_account_id_fkey", Cols: []string{"local_account_id"},
+			RefTbl: "local_accounts", RefCols: []string{"id"}, OnUpdate: Restrict, OnDelete: Cascade,
+		},
+		AddForeignKey{
+			Name: "access_remote_account_id_fkey", Cols: []string{"remote_account_id"},
+			RefTbl: "remote_accounts", RefCols: []string{"id"}, OnUpdate: Restrict, OnDelete: Cascade,
+		},
+	); err != nil {
+		return fmt.Errorf("failed to alter the rule_access table: %w", err)
+	}
+
+	if err := db.Exec(`UPDATE rule_access SET
+		local_agent_id=(CASE WHEN object_type='local_agents' THEN object_id END),
+		remote_agent_id=(CASE WHEN object_type='remote_agents' THEN object_id END),
+		local_account_id=(CASE WHEN object_type='local_accounts' THEN object_id END),
+		remote_account_id=(CASE WHEN object_type='remote_accounts' THEN object_id END)`,
+	); err != nil {
 		return fmt.Errorf("failed to copy the content of the rule_access table: %w", err)
 	}
 
-	if err := db.DropTable("rule_access"); err != nil {
-		return fmt.Errorf("failed to drop the rule_access table: %w", err)
-	}
-
-	if err := db.RenameTable("rule_access_new", "rule_access"); err != nil {
-		return fmt.Errorf("failed to rename the rule_access table: %w", err)
+	if err := db.AlterTable("rule_access",
+		DropColumn{Name: "object_id"},
+		DropColumn{Name: "object_type"},
+		AddCheck{
+			Name: "rule_access_target_check",
+			Expr: CheckOnlyOneNotNull("local_agent_id", "remote_agent_id",
+				"local_account_id", "remote_account_id"),
+		},
+	); err != nil {
+		return fmt.Errorf("failed to alter the rule_access table: %w", err)
 	}
 
 	return nil
 }
 
-func (ver0_7_0RevampRuleAccessTable) Down(db migration.Actions) error {
-	//nolint:gomnd //magic numbers are required here for variable length types
-	if err := db.CreateTable("rule_access_old",
-		migration.Col("rule_id", migration.BigInt, migration.NotNull),
-		migration.Col("object_type", migration.Varchar(255), migration.NotNull),
-		migration.Col("object_id", migration.BigInt, migration.NotNull),
-		migration.MultiUnique("UQE_rule_access_old_perm", "rule_id", "object_type", "object_id"),
+func (ver0_7_0RevampRuleAccessTable) Down(db Actions) error {
+	if err := db.AlterTable("rule_access",
+		DropConstraint{Name: "access_rule_id_fkey"},
+		DropConstraint{Name: "access_local_agent_id_fkey"},
+		DropConstraint{Name: "access_remote_agent_id_fkey"},
+		DropConstraint{Name: "access_local_account_id_fkey"},
+		DropConstraint{Name: "access_remote_account_id_fkey"},
+		DropConstraint{Name: "unique_access_loc_agent"},
+		DropConstraint{Name: "unique_access_rem_agent"},
+		DropConstraint{Name: "unique_access_loc_account"},
+		DropConstraint{Name: "unique_access_rem_account"},
+		DropConstraint{Name: "rule_access_target_check"},
+		AlterColumn{Name: "rule_id", Type: UnsignedBigInt{}, NotNull: true},
+		AddColumn{Name: "object_type", Type: Varchar(255) /*NotNull: true*/},
+		AddColumn{Name: "object_id", Type: UnsignedBigInt{} /*NotNull: true*/},
 	); err != nil {
 		return fmt.Errorf("failed to create the new rule_access table: %w", err)
 	}
 
-	if err := db.Exec(`INSERT INTO rule_access_old (rule_id, object_type, 
-		object_id) SELECT rule_id,
-		(CASE WHEN local_agent_id IS NOT NULL THEN 'local_agents'
-			  WHEN remote_agent_id IS NOT NULL THEN 'remote_agents'
-			  WHEN local_account_id IS NOT NULL THEN 'local_accounts'
-			  WHEN remote_account_id IS NOT NULL THEN 'remote_accounts' END),
-		(CASE WHEN local_agent_id IS NOT NULL THEN local_agent_id
-			  WHEN remote_agent_id IS NOT NULL THEN remote_agent_id
-			  WHEN local_account_id IS NOT NULL THEN local_account_id
-			  WHEN remote_account_id IS NOT NULL THEN remote_account_id END)
-		FROM rule_access`); err != nil {
+	if err := db.Exec(`UPDATE rule_access SET
+		object_type=(CASE WHEN local_agent_id IS NOT NULL THEN 'local_agents'
+						  WHEN remote_agent_id IS NOT NULL THEN 'remote_agents'
+						  WHEN local_account_id IS NOT NULL THEN 'local_accounts'
+						  WHEN remote_account_id IS NOT NULL THEN 'remote_accounts' END),
+		object_id=(COALESCE(local_agent_id, remote_agent_id, local_account_id, remote_account_id))`,
+	); err != nil {
 		return fmt.Errorf("failed to copy the content of the rule_access table: %w", err)
 	}
 
-	if err := db.DropTable("rule_access"); err != nil {
-		return fmt.Errorf("failed to drop the rule_access table: %w", err)
+	if err := db.AlterTable("rule_access",
+		DropColumn{Name: "local_agent_id"},
+		DropColumn{Name: "remote_agent_id"},
+		DropColumn{Name: "local_account_id"},
+		DropColumn{Name: "remote_account_id"},
+		AlterColumn{Name: "object_type", Type: Varchar(255), NotNull: true},
+		AlterColumn{Name: "object_id", Type: UnsignedBigInt{}, NotNull: true},
+	); err != nil {
+		return fmt.Errorf("failed to create the new rule_access table: %w", err)
 	}
 
-	if err := db.RenameTable("rule_access_old", "rule_access"); err != nil {
-		return fmt.Errorf("failed to rename the rule_access table: %w", err)
+	if err := db.CreateIndex(&Index{
+		Name: quote(db, "UQE_rule_access_perm"), Unique: true,
+		On: "rule_access", Cols: []string{"rule_id", "object_type", "object_id"},
+	}); err != nil {
+		return fmt.Errorf("failed to drop the old rule_access index: %w", err)
 	}
 
 	return nil

@@ -3,16 +3,14 @@ package migrations
 import (
 	"fmt"
 	"strings"
-
-	"code.waarp.fr/lib/migration"
 )
 
 type ver0_4_0InitDatabase struct{}
 
-func (ver0_4_0InitDatabase) Up(db migration.Actions) error {
+func (ver0_4_0InitDatabase) Up(db Actions) error {
 	var initScript string
 
-	switch db.GetDialect() {
+	switch dial := db.GetDialect(); dial {
 	case SQLite:
 		initScript = strings.TrimSpace(SqliteCreationScript)
 	case PostgreSQL:
@@ -20,7 +18,7 @@ func (ver0_4_0InitDatabase) Up(db migration.Actions) error {
 	case MySQL:
 		initScript = strings.TrimSpace(MysqlCreationScript)
 	default:
-		return fmt.Errorf("unknown dialect engine %T: %w", db, errUnsuportedDB)
+		return errUnknownDialect(dial)
 	}
 
 	for _, statement := range strings.Split(initScript, ";\n") {
@@ -32,7 +30,7 @@ func (ver0_4_0InitDatabase) Up(db migration.Actions) error {
 	return nil
 }
 
-func (v ver0_4_0InitDatabase) Down(db migration.Actions) error {
+func (ver0_4_0InitDatabase) Down(db Actions) error {
 	for _, table := range initTableList() {
 		if err := db.DropTable(table); err != nil {
 			return fmt.Errorf("failed to drop table %q: %w", table, err)

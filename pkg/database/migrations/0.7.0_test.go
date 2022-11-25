@@ -2,10 +2,11 @@ package migrations
 
 import (
 	"database/sql"
+	"encoding/binary"
 	"fmt"
+	"math/bits"
 	"time"
 
-	"code.waarp.fr/lib/migration"
 	. "github.com/smartystreets/goconvey/convey"
 )
 
@@ -38,15 +39,21 @@ func testVer0_7_0RevampUsersTable(eng *testEngine, dialect string) {
 	Convey("Given the 0.7.0 'users' table revamp", func() {
 		setupDatabaseUpTo(eng, ver0_7_0RevampUsersTable{})
 
-		if dialect == migration.PostgreSQL {
+		const permBefore uint32 = 0xA0000003
+		permAfter := bits.Reverse32(permBefore)
+		mask := make([]byte, 4)
+
+		binary.LittleEndian.PutUint32(mask, permBefore)
+
+		if dialect == PostgreSQL {
 			_, err := eng.DB.Exec(`INSERT INTO users(id,owner,username,
             	password_hash,permissions) VALUES (1,'waarp_gw','toto',
-				'pswd_hash',$1)`, []byte{0x0A, 0x00, 0x00, 0x00})
+				'pswd_hash',$1)`, mask)
 			So(err, ShouldBeNil)
 		} else {
 			_, err := eng.DB.Exec(`INSERT INTO users(id,owner,username,
 				password_hash,permissions) VALUES (1,'waarp_gw','toto',
-				'pswd_hash',?)`, []byte{0x0A, 0x00, 0x00, 0x00})
+				'pswd_hash',?)`, mask)
 			So(err, ShouldBeNil)
 		}
 
@@ -61,8 +68,11 @@ func testVer0_7_0RevampUsersTable(eng *testEngine, dialect string) {
        				permissions FROM users`)
 				So(err, ShouldBeNil)
 
-				var id, perm int64
-				var owner, name, hash string
+				var (
+					id                int64
+					perm              int32
+					owner, name, hash string
+				)
 
 				So(row.Scan(&id, &owner, &name, &hash, &perm), ShouldBeNil)
 
@@ -70,7 +80,7 @@ func testVer0_7_0RevampUsersTable(eng *testEngine, dialect string) {
 				So(owner, ShouldEqual, "waarp_gw")
 				So(name, ShouldEqual, "toto")
 				So(hash, ShouldEqual, "pswd_hash")
-				So(perm, ShouldEqual, 10)
+				So(fmt.Sprintf("%#b", uint32(perm)), ShouldEqual, fmt.Sprintf("%#b", permAfter))
 			})
 
 			Convey("When reversing the migration", func() {
@@ -92,7 +102,7 @@ func testVer0_7_0RevampUsersTable(eng *testEngine, dialect string) {
 					So(owner, ShouldEqual, "waarp_gw")
 					So(name, ShouldEqual, "toto")
 					So(hash, ShouldEqual, "pswd_hash")
-					So(perm, ShouldResemble, []byte{0x0A, 0x00, 0x00, 0x00})
+					So(perm, ShouldResemble, mask)
 				})
 			})
 		})
@@ -104,9 +114,9 @@ func testVer0_7_0RevampLocalAgentTable(eng *testEngine) {
 		setupDatabaseUpTo(eng, ver0_7_0RevampLocalAgentsTable{})
 
 		_, err := eng.DB.Exec(`INSERT INTO local_agents(id,owner,name,protocol,
-			address,root_dir,receive_dir,send_dir,tmp_receive_dir,proto_config) 
+			address,root_dir,receive_dir,send_dir,tmp_receive_dir,proto_config)
 			VALUES (1,'waarp_gw','sftp_serv','sftp','localhost:2222','root',
-			        'rcv','snd','tmp','{}')`)
+			        'rcv','snd','tmp','{"key":"val"}')`)
 		So(err, ShouldBeNil)
 
 		Convey("When applying the migration", func() {
@@ -133,7 +143,7 @@ func testVer0_7_0RevampLocalAgentTable(eng *testEngine) {
 				So(recv, ShouldEqual, "rcv")
 				So(send, ShouldEqual, "snd")
 				So(tmp, ShouldEqual, "tmp")
-				So(conf, ShouldEqual, "{}")
+				So(conf, ShouldEqual, `{"key":"val"}`)
 			})
 
 			Convey("When reversing the migration", func() {
@@ -161,7 +171,7 @@ func testVer0_7_0RevampLocalAgentTable(eng *testEngine) {
 					So(recv, ShouldEqual, "rcv")
 					So(send, ShouldEqual, "snd")
 					So(tmp, ShouldEqual, "tmp")
-					So(conf, ShouldResemble, []byte("{}"))
+					So(conf, ShouldResemble, []byte(`{"key":"val"}`))
 				})
 			})
 		})
@@ -228,12 +238,12 @@ func testVer0_7_0RevampLocalAccountsTable(eng *testEngine, dialect string) {
 		setupDatabaseUpTo(eng, ver0_7_0RevampLocalAccountsTable{})
 
 		_, err := eng.DB.Exec(`INSERT INTO local_agents(id,owner,name,protocol,
-			address,root_dir,receive_dir,send_dir,tmp_receive_dir,proto_config) 
+			address,root_dir,receive_dir,send_dir,tmp_receive_dir,proto_config)
 			VALUES (1,'waarp_gw','sftp_serv','sftp','localhost:2222','root',
 			        'rcv','snd','tmp','{}')`)
 		So(err, ShouldBeNil)
 
-		if dialect == migration.PostgreSQL {
+		if dialect == PostgreSQL {
 			_, err = eng.DB.Exec(`INSERT INTO local_accounts(id,local_agent_id,
 				login,password_hash) VALUES (1,1,'toto',$1)`, []byte("pswdhash"))
 		} else {
@@ -295,7 +305,7 @@ func testVer0_7_0RevampRemoteAccountsTable(eng *testEngine, dialect string) {
         	proto_config) VALUES (1,'sftp_part','sftp','localhost:2222','{}')`)
 		So(err, ShouldBeNil)
 
-		if dialect == migration.PostgreSQL {
+		if dialect == PostgreSQL {
 			_, err = eng.DB.Exec(`INSERT INTO remote_accounts(id,remote_agent_id,
 				login,password) VALUES (1,1,'toto',$1)`, []byte("pswd"))
 		} else {
@@ -423,11 +433,11 @@ func testVer0_7_0RevampTasksTable(eng *testEngine, dialect string) {
             'this is a comment','/push','locDir','remDir','tmpDir')`)
 		So(err, ShouldBeNil)
 
-		if dialect == migration.PostgreSQL {
-			_, err = eng.DB.Exec(`INSERT INTO tasks(rule_id,chain,rank,type,args) 
+		if dialect == PostgreSQL {
+			_, err = eng.DB.Exec(`INSERT INTO tasks(rule_id,chain,rank,type,args)
 				VALUES (1,'POST',0,'DELETE',$1)`, []byte("{}"))
 		} else {
-			_, err = eng.DB.Exec(`INSERT INTO tasks(rule_id,chain,rank,type,args) 
+			_, err = eng.DB.Exec(`INSERT INTO tasks(rule_id,chain,rank,type,args)
 				VALUES (1,'POST',0,'DELETE',?)`, []byte("{}"))
 		}
 
@@ -489,7 +499,7 @@ func testVer0_7_0RevampHistoryTable(eng *testEngine) {
             remote_path,filesize,start,stop,status,step,progression,task_number,
             error_code,error_details) VALUES (1,'waarp_gw',FALSE,TRUE,'abc','push',
             'toto','sftp_part','sftp','/loc/path','/rem/path',123,'2021-01-01T01:00:00.123456Z',
-            '2021-01-01T02:00:00.123456Z','CANCELLED','StepData',111,0,'TeDataTransfer',
+            '2021-01-01T02:00:00.123456Z','CANCELLED','StepData',111,12,'TeDataTransfer',
             'this is an error message')`)
 		So(err, ShouldBeNil)
 
@@ -536,7 +546,7 @@ func testVer0_7_0RevampHistoryTable(eng *testEngine) {
 				So(stat, ShouldEqual, "CANCELLED") //nolint:misspell //must be kept for retro-compatibility
 				So(step, ShouldEqual, "StepData")
 				So(prog, ShouldEqual, 111)
-				So(taskNb, ShouldEqual, 0)
+				So(taskNb, ShouldEqual, 12)
 				So(eCode, ShouldEqual, "TeDataTransfer")
 				So(eDet, ShouldEqual, "this is an error message")
 			})
@@ -590,7 +600,7 @@ func testVer0_7_0RevampHistoryTable(eng *testEngine) {
 					So(stat, ShouldEqual, "CANCELLED") //nolint:misspell //must be kept for retro-compatibility
 					So(step, ShouldEqual, "StepData")
 					So(prog, ShouldEqual, 111)
-					So(taskNb, ShouldEqual, 0)
+					So(taskNb, ShouldEqual, 12)
 					So(eCode, ShouldEqual, "TeDataTransfer")
 					So(eDet, ShouldEqual, "this is an error message")
 				})
@@ -611,12 +621,12 @@ func testVer0_7_0RevampTransfersTable(eng *testEngine) {
 
 		// ### Local ###
 		_, err = eng.DB.Exec(`INSERT INTO local_agents(id,owner,name,protocol,
-			address,root_dir,receive_dir,send_dir,tmp_receive_dir,proto_config) 
+			address,root_dir,receive_dir,send_dir,tmp_receive_dir,proto_config)
 			VALUES (10,'waarp_gw','sftp_serv','sftp','localhost:2222','root',
 			        'rcv','snd','tmp','{}')`)
 		So(err, ShouldBeNil)
 
-		_, err = eng.DB.Exec(`INSERT INTO local_accounts(id,local_agent_id,login) 
+		_, err = eng.DB.Exec(`INSERT INTO local_accounts(id,local_agent_id,login)
 			VALUES (100,10,'toto')`)
 		So(err, ShouldBeNil)
 
@@ -633,7 +643,7 @@ func testVer0_7_0RevampTransfersTable(eng *testEngine) {
         	proto_config) VALUES (20,'sftp_part','sftp','localhost:3333','{}')`)
 		So(err, ShouldBeNil)
 
-		_, err = eng.DB.Exec(`INSERT INTO remote_accounts(id,remote_agent_id,login) 
+		_, err = eng.DB.Exec(`INSERT INTO remote_accounts(id,remote_agent_id,login)
 			VALUES (200,20,'toto')`)
 		So(err, ShouldBeNil)
 
@@ -793,12 +803,12 @@ func testVer0_7_0RevampTransferInfoTable(eng *testEngine) {
 		So(err, ShouldBeNil)
 
 		_, err = eng.DB.Exec(`INSERT INTO local_agents(id,owner,name,protocol,
-			address,root_dir,receive_dir,send_dir,tmp_receive_dir,proto_config) 
+			address,root_dir,receive_dir,send_dir,tmp_receive_dir,proto_config)
 			VALUES (10,'waarp_gw','sftp_serv','sftp','localhost:2222','root',
 			        'rcv','snd','tmp','{}')`)
 		So(err, ShouldBeNil)
 
-		_, err = eng.DB.Exec(`INSERT INTO local_accounts(id,local_agent_id,login) 
+		_, err = eng.DB.Exec(`INSERT INTO local_accounts(id,local_agent_id,login)
 			VALUES (100,10,'toto')`)
 		So(err, ShouldBeNil)
 
@@ -864,6 +874,30 @@ func testVer0_7_0RevampTransferInfoTable(eng *testEngine) {
 				So(err, ShouldBeNil)
 
 				Convey("Then it should have reverted the column changes", func() {
+					rows, err := eng.DB.Query(`SELECT transfer_id,is_history,name,value
+					FROM transfer_info`)
+					So(err, ShouldBeNil)
+					So(rows.Err(), ShouldBeNil)
+
+					defer rows.Close()
+
+					for rows.Next() {
+						var tID int64
+						var isHist bool
+						var name, value string
+
+						So(rows.Scan(&tID, &isHist, &name, &value), ShouldBeNil)
+
+						if !isHist {
+							So(tID, ShouldEqual, 1000)
+							So(name, ShouldEqual, "t_info")
+							So(value, ShouldEqual, `"t_value"`)
+						} else {
+							So(tID, ShouldEqual, 2000)
+							So(name, ShouldEqual, "h_info")
+							So(value, ShouldEqual, `"h_value"`)
+						}
+					}
 				})
 			})
 		})
@@ -876,13 +910,13 @@ func testVer0_7_0RevampCryptoTable(eng *testEngine) {
 
 		// ### Local agent ###
 		_, err := eng.DB.Exec(`INSERT INTO local_agents(id,owner,name,protocol,
-			address,root_dir,receive_dir,send_dir,tmp_receive_dir,proto_config) 
+			address,root_dir,receive_dir,send_dir,tmp_receive_dir,proto_config)
 			VALUES (10,'waarp_gw','sftp_serv','sftp','localhost:2222','root',
 			        'rcv','snd','tmp','{}')`)
 		So(err, ShouldBeNil)
 
 		// ### Local account ###
-		_, err = eng.DB.Exec(`INSERT INTO local_accounts(id,local_agent_id,login) 
+		_, err = eng.DB.Exec(`INSERT INTO local_accounts(id,local_agent_id,login)
 			VALUES (100,10,'toto')`)
 		So(err, ShouldBeNil)
 
@@ -892,7 +926,7 @@ func testVer0_7_0RevampCryptoTable(eng *testEngine) {
 		So(err, ShouldBeNil)
 
 		// ### Remote account ###
-		_, err = eng.DB.Exec(`INSERT INTO remote_accounts(id,remote_agent_id,login) 
+		_, err = eng.DB.Exec(`INSERT INTO remote_accounts(id,remote_agent_id,login)
 			VALUES (200,20,'toto')`)
 		So(err, ShouldBeNil)
 
@@ -1058,13 +1092,13 @@ func testVer0_7_0RevampRuleAccessTable(eng *testEngine) {
 
 		// ### Local agent ###
 		_, err = eng.DB.Exec(`INSERT INTO local_agents(id,owner,name,protocol,
-			address,root_dir,receive_dir,send_dir,tmp_receive_dir,proto_config) 
+			address,root_dir,receive_dir,send_dir,tmp_receive_dir,proto_config)
 			VALUES (10,'waarp_gw','sftp_serv','sftp','localhost:2222','root',
 			        'rcv','snd','tmp','{}')`)
 		So(err, ShouldBeNil)
 
 		// ### Local account ###
-		_, err = eng.DB.Exec(`INSERT INTO local_accounts(id,local_agent_id,login) 
+		_, err = eng.DB.Exec(`INSERT INTO local_accounts(id,local_agent_id,login)
 			VALUES (100,10,'toto')`)
 		So(err, ShouldBeNil)
 
@@ -1074,24 +1108,24 @@ func testVer0_7_0RevampRuleAccessTable(eng *testEngine) {
 		So(err, ShouldBeNil)
 
 		// ### Remote account ###
-		_, err = eng.DB.Exec(`INSERT INTO remote_accounts(id,remote_agent_id,login) 
+		_, err = eng.DB.Exec(`INSERT INTO remote_accounts(id,remote_agent_id,login)
 			VALUES (200,20,'toto')`)
 		So(err, ShouldBeNil)
 
 		// ##### Accesses #####
-		_, err = eng.DB.Exec(`INSERT INTO rule_access(rule_id,object_type,object_id) 
+		_, err = eng.DB.Exec(`INSERT INTO rule_access(rule_id,object_type,object_id)
 			VALUES (1,'local_agents',10)`)
 		So(err, ShouldBeNil)
 
-		_, err = eng.DB.Exec(`INSERT INTO rule_access(rule_id,object_type,object_id) 
+		_, err = eng.DB.Exec(`INSERT INTO rule_access(rule_id,object_type,object_id)
 			VALUES (1,'local_accounts',100)`)
 		So(err, ShouldBeNil)
 
-		_, err = eng.DB.Exec(`INSERT INTO rule_access(rule_id,object_type,object_id) 
+		_, err = eng.DB.Exec(`INSERT INTO rule_access(rule_id,object_type,object_id)
 			VALUES (1,'remote_agents',20)`)
 		So(err, ShouldBeNil)
 
-		_, err = eng.DB.Exec(`INSERT INTO rule_access(rule_id,object_type,object_id) 
+		_, err = eng.DB.Exec(`INSERT INTO rule_access(rule_id,object_type,object_id)
 			VALUES (1,'remote_accounts',200)`)
 		So(err, ShouldBeNil)
 
