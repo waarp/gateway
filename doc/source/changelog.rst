@@ -3,6 +3,20 @@
 Historique des versions
 =======================
 
+* :feature:`351` Ajout des algorithmes suivants à la liste des algorithmes supportés
+  par le client et le serveur SFTP de *Waarp-Gateway*:
+
+  - [*Key exchange*] ``diffie-hellman-group-exchange-sha256`` (uniquement côté client)
+  - [*Cipher*] ``arcfour256``
+  - [*Cipher*] ``arcfour128``
+  - [*Cipher*] ``arcfour``
+  - [*Cipher*] ``aes128-cbc``
+  - [*Cipher*] ``3des-cbc``
+  |
+
+  Par ailleurs, tous les algorithmes SSH basés sur SHA-1 sont désormais dépréciés
+  (voir la page sur :ref:`la configuration SFTP<proto-config-sftp>` pour la liste
+  complète).
 * :feature:`276` Ajout d'un *handler* REST et d'une commande terminal
   ``transfer cancel-all`` permettant d'annuler plusieurs transferts d'un coup
   en fonction de leur statut. La documentation de la commande peut être consultée

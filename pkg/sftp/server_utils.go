@@ -19,7 +19,7 @@ import (
 func makeServerConf(db *database.DB, protoConfig *config.SftpProtoConfig,
 	agent *model.LocalAgent,
 ) *ssh.ServerConfig {
-	return &ssh.ServerConfig{
+	conf := &ssh.ServerConfig{
 		Config: ssh.Config{
 			KeyExchanges: protoConfig.KeyExchanges,
 			Ciphers:      protoConfig.Ciphers,
@@ -71,6 +71,24 @@ func makeServerConf(db *database.DB, protoConfig *config.SftpProtoConfig,
 
 			return &ssh.Permissions{}, nil
 		},
+	}
+
+	setServerDefaultAlgos(conf)
+
+	return conf
+}
+
+func setServerDefaultAlgos(conf *ssh.ServerConfig) {
+	if len(conf.KeyExchanges) == 0 {
+		conf.KeyExchanges = config.SFTPValidKeyExchanges.ServerDefaults()
+	}
+
+	if len(conf.Ciphers) == 0 {
+		conf.Ciphers = config.SFTPValidCiphers.ServerDefaults()
+	}
+
+	if len(conf.MACs) == 0 {
+		conf.MACs = config.SFTPValidMACs.ServerDefaults()
 	}
 }
 
