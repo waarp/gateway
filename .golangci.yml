@@ -720,6 +720,7 @@ issues:
         - gosec
         - varnamelen
         - bodyclose
+        - noctx
 
     # Allow dot import aliases in test files.
     - path: _test\.go

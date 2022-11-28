@@ -253,7 +253,8 @@ func TestCreateServer(t *testing.T) {
 	Convey("Given the server creation handler", t, func(c C) {
 		logger := testhelpers.TestLogger(c, "rest_server_create_logger")
 		db := database.TestDatabase(c)
-		handler := addServer(logger, db)
+		protoServices := map[int64]proto.Service{}
+		handler := addServer(protoServices)(logger, db)
 		w := httptest.NewRecorder()
 
 		Convey("Given a database with 1 server", func() {
@@ -317,6 +318,10 @@ func TestCreateServer(t *testing.T) {
 							})
 						})
 
+						Convey("Then it should have added the server to the service list", func() {
+							So(protoServices, ShouldContainKey, int64(2))
+						})
+
 						Convey("Then the existing server should still be "+
 							"present as well", func() {
 							var rules model.LocalAgents
@@ -336,7 +341,8 @@ func TestDeleteServer(t *testing.T) {
 	Convey("Given the server deletion handler", t, func(c C) {
 		logger := testhelpers.TestLogger(c, "rest_server_delete_test")
 		db := database.TestDatabase(c)
-		handler := deleteServer(logger, db)
+		protoServices := map[int64]proto.Service{}
+		handler := deleteServer(protoServices)(logger, db)
 		w := httptest.NewRecorder()
 
 		Convey("Given a database with 1 server", func() {
@@ -348,6 +354,9 @@ func TestDeleteServer(t *testing.T) {
 				Address:     "localhost:1",
 			}
 			So(db.Insert(&existing).Run(), ShouldBeNil)
+
+			protoService := &testServer{}
+			protoServices[existing.ID] = protoService
 
 			Convey("Given a request with the valid agent name parameter", func() {
 				r, err := http.NewRequest(http.MethodDelete, testServersURI+existing.Name, nil)
@@ -370,6 +379,10 @@ func TestDeleteServer(t *testing.T) {
 						So(db.Select(&agents).Run(), ShouldBeNil)
 						So(agents, ShouldBeEmpty)
 					})
+
+					Convey("Then it should have removed the service from the list", func() {
+						So(protoServices, ShouldNotContainKey, existing.ID)
+					})
 				})
 			})
 
@@ -384,6 +397,22 @@ func TestDeleteServer(t *testing.T) {
 					Convey("Then it should reply with a 'Not Found' error", func() {
 						So(w.Code, ShouldEqual, http.StatusNotFound)
 					})
+				})
+			})
+
+			Convey("Given that the service is running", func() {
+				So(protoService.Start(&existing), ShouldBeNil)
+
+				r, err := http.NewRequest(http.MethodDelete, testServersURI+existing.Name, nil)
+				So(err, ShouldBeNil)
+				r = mux.SetURLVars(r, map[string]string{"server": existing.Name})
+
+				handler.ServeHTTP(w, r)
+
+				Convey("Then it should reply with a 'Bad Request' error", func() {
+					So(w.Code, ShouldEqual, http.StatusBadRequest)
+					So(w.Body.String(), ShouldEqual, "cannot delete an active server, "+
+						"it must be shut down first\n")
 				})
 			})
 		})

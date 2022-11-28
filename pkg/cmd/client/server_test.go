@@ -21,6 +21,7 @@ import (
 	"code.waarp.fr/apps/gateway/gateway/pkg/model"
 	"code.waarp.fr/apps/gateway/gateway/pkg/model/config"
 	"code.waarp.fr/apps/gateway/gateway/pkg/tk/utils"
+	"code.waarp.fr/apps/gateway/gateway/pkg/tk/utils/testhelpers"
 )
 
 func serverInfoString(s *api.OutServer) string {
@@ -423,6 +424,9 @@ func TestDeleteServer(t *testing.T) {
 				Address:     "localhost:1",
 			}
 			So(db.Insert(server).Run(), ShouldBeNil)
+
+			logger := testhelpers.TestLogger(c, server.Name)
+			testProtoServices[server.ID] = newTestServer(db, logger)
 
 			Convey("Given a valid server name", func() {
 				args := []string{server.Name}

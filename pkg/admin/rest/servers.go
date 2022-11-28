@@ -98,20 +98,27 @@ func listServers(logger *log.Logger, db *database.DB) http.HandlerFunc {
 	}
 }
 
-func addServer(logger *log.Logger, db *database.DB) http.HandlerFunc {
-	return func(w http.ResponseWriter, r *http.Request) {
-		var restServer api.InServer
-		if err := readJSON(r, &restServer); handleError(w, logger, err) {
-			return
-		}
+func addServer(protoServices map[int64]proto.Service) handler {
+	return func(logger *log.Logger, db *database.DB) http.HandlerFunc {
+		return func(w http.ResponseWriter, r *http.Request) {
+			var restServer api.InServer
+			if err := readJSON(r, &restServer); handleError(w, logger, err) {
+				return
+			}
 
-		dbServer := restServerToDB(&restServer, logger)
-		if err := db.Insert(dbServer).Run(); handleError(w, logger, err) {
-			return
-		}
+			dbServer := restServerToDB(&restServer, logger)
+			if err := db.Insert(dbServer).Run(); handleError(w, logger, err) {
+				return
+			}
 
-		w.Header().Set("Location", location(r.URL, dbServer.Name))
-		w.WriteHeader(http.StatusCreated)
+			constr := constructors.ServiceConstructors[dbServer.Protocol]
+			serverLog := conf.GetLogger(dbServer.Name)
+
+			protoServices[dbServer.ID] = constr(db, serverLog)
+
+			w.Header().Set("Location", location(r.URL, dbServer.Name))
+			w.WriteHeader(http.StatusCreated)
+		}
 	}
 }
 
@@ -171,18 +178,31 @@ func replaceServer(logger *log.Logger, db *database.DB) http.HandlerFunc {
 	}
 }
 
-func deleteServer(logger *log.Logger, db *database.DB) http.HandlerFunc {
-	return func(w http.ResponseWriter, r *http.Request) {
-		dbServer, getErr := getDBServer(r, db)
-		if handleError(w, logger, getErr) {
-			return
-		}
+func deleteServer(protoServices map[int64]proto.Service) handler {
+	return func(logger *log.Logger, db *database.DB) http.HandlerFunc {
+		return func(w http.ResponseWriter, r *http.Request) {
+			dbServer, service, err := getProtoService(r, protoServices, db)
+			if handleError(w, logger, err) {
+				return
+			}
 
-		if err := db.Delete(dbServer).Run(); handleError(w, logger, err) {
-			return
-		}
+			switch code, _ := service.State().Get(); code {
+			case state.Error, state.Offline:
+			default:
+				handleError(w, logger, badRequest("cannot delete an active server, "+
+					"it must be shut down first"))
 
-		w.WriteHeader(http.StatusNoContent)
+				return
+			}
+
+			delete(protoServices, dbServer.ID)
+
+			if err := db.Delete(dbServer).Run(); handleError(w, logger, err) {
+				return
+			}
+
+			w.WriteHeader(http.StatusNoContent)
+		}
 	}
 }
 
