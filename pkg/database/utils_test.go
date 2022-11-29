@@ -5,14 +5,14 @@ import (
 )
 
 type testValid struct {
-	ID     uint64 `xorm:"pk autoincr 'id'"`
+	ID     int64  `xorm:"pk autoincr 'id'"`
 	String string `xorm:"notnull 'string'"`
 	Hooks  string `xorm:"-"`
 }
 
 func (*testValid) TableName() string   { return "test_valid" }
 func (*testValid) Appellation() string { return "test struct" }
-func (t *testValid) GetID() uint64     { return t.ID }
+func (t *testValid) GetID() int64      { return t.ID }
 
 func (t *testValid) BeforeWrite(ReadAccess) Error {
 	t.Hooks = "write hook"
@@ -32,14 +32,14 @@ func (*validList) TableName() string { return "test_valid" }
 func (*validList) Elem() string      { return "test struct" }
 
 type testValid2 struct {
-	ID     uint64 `xorm:"pk 'id'"`
+	ID     int64  `xorm:"pk 'id'"`
 	String string `xorm:"notnull 'string'"`
 	Hooks  string `xorm:"-"`
 }
 
 func (*testValid2) TableName() string   { return "test_valid_2" }
 func (*testValid2) Appellation() string { return "test valid 2" }
-func (t *testValid2) GetID() uint64     { return t.ID }
+func (t *testValid2) GetID() int64      { return t.ID }
 
 func (t *testValid2) BeforeWrite(ReadAccess) Error {
 	t.Hooks = "write hook"
@@ -54,13 +54,13 @@ func (t *testValid2) BeforeDelete(Access) Error {
 }
 
 type testWriteFail struct {
-	ID    uint64 `xorm:"pk 'id'"`
+	ID    int64  `xorm:"pk 'id'"`
 	Hooks string `xorm:"-"`
 }
 
 func (*testWriteFail) TableName() string   { return "test_write_fail" }
 func (*testWriteFail) Appellation() string { return "test write fail" }
-func (t *testWriteFail) GetID() uint64     { return t.ID }
+func (t *testWriteFail) GetID() int64      { return t.ID }
 
 func (t *testWriteFail) BeforeWrite(ReadAccess) Error {
 	t.Hooks = "write hook"
@@ -69,13 +69,13 @@ func (t *testWriteFail) BeforeWrite(ReadAccess) Error {
 }
 
 type testDeleteFail struct {
-	ID    uint64 `xorm:"pk 'id'"`
+	ID    int64  `xorm:"pk 'id'"`
 	Hooks string `xorm:"-"`
 }
 
 func (*testDeleteFail) TableName() string   { return "test_delete_fail" }
 func (*testDeleteFail) Appellation() string { return "test delete fail" }
-func (t *testDeleteFail) GetID() uint64     { return t.ID }
+func (t *testDeleteFail) GetID() int64      { return t.ID }
 
 func (t *testDeleteFail) BeforeWrite(ReadAccess) Error {
 	t.Hooks = "write hook"

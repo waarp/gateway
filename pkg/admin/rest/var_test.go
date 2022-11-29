@@ -51,7 +51,7 @@ func testAdminServer(logger *log.Logger, db *database.DB) string {
 
 func testAdminServerWithServices(logger *log.Logger, db *database.DB,
 	testCoreServices map[string]service.Service,
-	testProtoServices map[uint64]proto.Service,
+	testProtoServices map[int64]proto.Service,
 ) string {
 	router := mux.NewRouter()
 	MakeRESTHandler(logger, db, router, testCoreServices, testProtoServices)

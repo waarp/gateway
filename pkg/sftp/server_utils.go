@@ -13,6 +13,7 @@ import (
 	"code.waarp.fr/apps/gateway/gateway/pkg/database"
 	"code.waarp.fr/apps/gateway/gateway/pkg/model"
 	"code.waarp.fr/apps/gateway/gateway/pkg/model/config"
+	"code.waarp.fr/apps/gateway/gateway/pkg/tk/utils"
 )
 
 func makeServerConf(db *database.DB, protoConfig *config.SftpProtoConfig,
@@ -41,7 +42,7 @@ func makeServerConf(db *database.DB, protoConfig *config.SftpProtoConfig,
 			}
 
 			for _, cert := range certs {
-				publicKey, _, _, _, err := ssh.ParseAuthorizedKey([]byte(cert.SSHPublicKey))
+				publicKey, err := utils.ParseSSHAuthorizedKey(cert.SSHPublicKey)
 				if err != nil {
 					return nil, fmt.Errorf("failed to parse public key: %w", err)
 				}
@@ -75,8 +76,8 @@ func makeServerConf(db *database.DB, protoConfig *config.SftpProtoConfig,
 
 // getSSHServerConfig builds and returns an ssh.ServerConfig from the given
 // parameters. By default, the server accepts both public key & password
-// authentication, with the former having priority over the later.
-func getSSHServerConfig(db *database.DB, hostkeys []model.Crypto, protoConfig *config.SftpProtoConfig,
+// authentication, with the former having priority over the latter.
+func getSSHServerConfig(db *database.DB, hostkeys []*model.Crypto, protoConfig *config.SftpProtoConfig,
 	agent *model.LocalAgent,
 ) (*ssh.ServerConfig, error) {
 	conf := makeServerConf(db, protoConfig, agent)
@@ -86,8 +87,8 @@ func getSSHServerConfig(db *database.DB, hostkeys []model.Crypto, protoConfig *c
 			agent.Name, errSSHNoKey)
 	}
 
-	for _, cert := range hostkeys {
-		privateKey, err := ssh.ParsePrivateKey([]byte(cert.PrivateKey))
+	for _, hostkey := range hostkeys {
+		privateKey, err := ssh.ParsePrivateKey([]byte(hostkey.PrivateKey))
 		if err != nil {
 			return nil, fmt.Errorf("failed to parse SSH hostkey: %w", err)
 		}

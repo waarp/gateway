@@ -75,7 +75,7 @@ func TestStatus(t *testing.T) {
 		off := addServ("Proto Offline Service")
 		err := addServ("Proto Error Service")
 
-		protoServices := map[uint64]proto.Service{
+		protoServices := map[int64]proto.Service{
 			run.ID: &testServer{state: state.State{}},
 			off.ID: &testServer{state: state.State{}},
 			err.ID: &testServer{state: state.State{}},

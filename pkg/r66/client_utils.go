@@ -93,8 +93,8 @@ func (c *client) authenticate() *types.TransferError {
 }
 
 func (c *client) request() *types.TransferError {
-	blockNB := c.pip.TransCtx.Transfer.Progress / uint64(c.conf.BlockSize)
-	blockRest := c.pip.TransCtx.Transfer.Progress % uint64(c.conf.BlockSize)
+	blockNB := c.pip.TransCtx.Transfer.Progress / int64(c.conf.BlockSize)
+	blockRest := c.pip.TransCtx.Transfer.Progress % int64(c.conf.BlockSize)
 
 	if c.pip.TransCtx.Transfer.Step <= types.StepData && blockRest != 0 {
 		// round progress to the beginning of the block
@@ -195,7 +195,7 @@ func (c *client) checkReqResp(req, resp *r66.Request) *types.TransferError {
 	}
 
 	if resp.Rank != req.Rank {
-		progress := uint64(resp.Rank) * uint64(resp.Block)
+		progress := int64(resp.Rank) * int64(resp.Block)
 		if progress < c.pip.TransCtx.Transfer.Progress {
 			c.pip.TransCtx.Transfer.Progress = progress
 			if err := c.pip.UpdateTrans(); err != nil {

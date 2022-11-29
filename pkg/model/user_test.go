@@ -165,7 +165,8 @@ func TestUserInit(t *testing.T) {
 		init := (&User{}).Init
 
 		Convey("Given a database with no admins", func() {
-			db := database.TestDatabaseNoInit(c)
+			db := database.TestDatabase(c)
+			So(db.DeleteAll(&User{}).Run(), ShouldBeNil)
 
 			// Add a user from another gateway
 			owner := conf.GlobalConfig.GatewayName
@@ -195,7 +196,8 @@ func TestUserInit(t *testing.T) {
 		})
 
 		Convey("Given an database with an admin", func() {
-			db := database.TestDatabaseNoInit(c)
+			db := database.TestDatabase(c)
+			So(db.DeleteAll(&User{}).Run(), ShouldBeNil)
 
 			// Add another admin
 			other := &User{
@@ -213,7 +215,7 @@ func TestUserInit(t *testing.T) {
 					So(db.Select(&users).Where("owner=?", conf.GlobalConfig.GatewayName).Run(), ShouldBeNil)
 					So(users, ShouldHaveLength, 1)
 
-					So(users[0], ShouldResemble, *other)
+					So(users[0], ShouldResemble, other)
 				})
 			})
 		})

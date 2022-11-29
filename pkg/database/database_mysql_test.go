@@ -23,7 +23,7 @@ func TestMySQL(t *testing.T) {
 	conf.GlobalConfig.Database.AESPassphrase = filepath.Join(os.TempDir(), "mysql_test_passphrase.aes")
 
 	db := &DB{}
-	if err := db.Start(); err != nil {
+	if err := db.start(false); err != nil {
 		t.Fatal(err)
 	}
 

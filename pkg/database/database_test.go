@@ -51,7 +51,8 @@ func testSelectForUpdate(db *DB) {
 			go trans2(ready)
 			<-ready
 
-			err2 := ses.UpdateAll(&testValid{}, UpdVals{"string": "new_str2"}, "string=?", "str2").Run()
+			err2 := ses.Exec("UPDATE test_valid SET string=? WHERE string=?",
+				"new_str2", "str2")
 			So(err2, ShouldBeNil)
 
 			return nil
@@ -474,50 +475,6 @@ func testUpdate(db *DB) {
 	})
 }
 
-func testUpdateAll(db *DB) {
-	bean1 := testValid{ID: 1, String: "str1"}
-	bean2 := testValid{ID: 2, String: "str2"}
-	bean3 := testValid{ID: 3, String: "str2"}
-	bean4 := testValid{ID: 4, String: "str3"}
-	bean5 := testValid{ID: 5, String: "str3"}
-
-	runTests := func(db Access) {
-		Convey("With a condition", func() {
-			So(db.UpdateAll(&testValid{}, UpdVals{"string": "upd"}, "id>2").Run(),
-				ShouldBeNil)
-
-			Convey("Then the corresponding entries should have been updated", func() {
-				var beans []testValid
-				So(db.getUnderlying().Find(&beans), ShouldBeNil)
-				So(beans, ShouldHaveLength, 5)
-
-				for _, bean := range beans {
-					if bean.ID > 2 {
-						So(bean.String, ShouldEqual, "upd")
-					}
-				}
-			})
-		})
-	}
-
-	Convey("When calling the 'UpdateAll' method", func() {
-		_, err := db.engine.Insert(&bean1, &bean2, &bean3, &bean4, &bean5)
-		So(err, ShouldBeNil)
-
-		Convey("As a standalone query", func() {
-			runTests(db)
-		})
-
-		Convey("Inside a transaction", func() {
-			ses := db.newSession()
-			So(ses.session.Begin(), ShouldBeNil)
-			Reset(func() { _ = ses.session.Close() })
-
-			runTests(ses)
-		})
-	})
-}
-
 func testDelete(db *DB) {
 	toDelete1 := testValid{ID: 1, String: "delete1"}
 	toDelete2 := testValid{ID: 2, String: "delete2"}
@@ -720,7 +677,7 @@ func testDatabase(db *DB) {
 		&testDeleteFail{}), ShouldBeNil)
 	Reset(func() {
 		So(db.engine.DropTables(&testValid{}, &testValid2{}, &testWriteFail{},
-			&testDeleteFail{}, &version{}), ShouldBeNil)
+			&testDeleteFail{}), ShouldBeNil)
 	})
 
 	testSelectForUpdate(db)
@@ -729,7 +686,6 @@ func testDatabase(db *DB) {
 	testGet(db)
 	testInsert(db)
 	testUpdate(db)
-	testUpdateAll(db)
 	testDelete(db)
 	testDeleteAll(db)
 	testTransaction(db)
@@ -758,7 +714,7 @@ func TestSqlite(t *testing.T) {
 		}
 	}()
 
-	if err := db.Start(); err != nil {
+	if err := db.start(false); err != nil {
 		t.Fatal(err)
 	}
 

@@ -1,6 +1,8 @@
 package database
 
 import (
+	"fmt"
+
 	"code.waarp.fr/lib/log"
 	"xorm.io/xorm"
 
@@ -110,7 +112,7 @@ func (s *Standalone) Select(bean SelectBean) *SelectQuery {
 // The request can then be executed using the GetQuery.Run method. The bean
 // parameter will be filled with the values retrieved from the database.
 func (s *Standalone) Get(bean GetBean, where string, args ...interface{}) *GetQuery {
-	return &GetQuery{db: s, bean: bean, sql: where, args: args}
+	return &GetQuery{db: s, bean: bean, conds: []*condition{{sql: where, args: args}}}
 }
 
 // Count starts building a SQL 'SELECT COUNT' query to count specific entries
@@ -140,23 +142,6 @@ func (s *Standalone) Update(bean UpdateBean) *UpdateQuery {
 	return &UpdateQuery{db: s, bean: bean}
 }
 
-// UpdateAll starts building an SQL 'UPDATE' query to update multiple entries
-// in the database. The columns to update, and their values are specified
-// using the UpdVals parameter. The entries to update can be filtered using
-// the sql & args parameters, with a syntax similar to the IterateQuery.Where
-// method.
-//
-// Be aware that, since this method updates multiple rows at once, the entries'
-// WriteHook will NOT be executed. Thus, this method should be used with
-// extreme caution.
-//
-// The request can then be executed using the UpdateAllQuery.Run method.
-func (s *Standalone) UpdateAll(bean UpdateAllBean, vals UpdVals, sql string,
-	args ...interface{},
-) *UpdateAllQuery {
-	return &UpdateAllQuery{db: s, bean: bean, vals: vals, conds: sql, args: args}
-}
-
 // Delete starts building a SQL 'DELETE' query to delete a single entry of
 // the given model from the database, using the entry's ID as parameter.
 //
@@ -171,10 +156,34 @@ func (s *Standalone) Delete(bean DeleteBean) *DeleteQuery {
 //
 // Be aware, since DeleteAll deletes multiple entries with only one SQL
 // command, the model's `BeforeDelete` function will not be called when using
-// this method. Thus DeleteAll should exclusively be used on models with
-// with no DeletionHook.
+// this method. Thus, DeleteAll should exclusively be used on models with
+// no DeletionHook.
 //
 // The request can then be executed using the DeleteAllQuery.Run method.
 func (s *Standalone) DeleteAll(bean DeleteAllBean) *DeleteAllQuery {
 	return &DeleteAllQuery{db: s, bean: bean}
+}
+
+// Exec executes the given custom SQL query, and returns any error encountered.
+// The query uses the '?' character as a placeholder for arguments.
+//
+// Be aware that, since this method bypasses the data models, all the models'
+// hooks will be skipped. Thus, this method should be used with extreme caution.
+func (s *Standalone) Exec(query string, args ...interface{}) Error {
+	return exec(s.engine.NewSession(), s.logger, query, args...)
+}
+
+// GenericSelect executes the given custom SQL query, and returns the result as
+// a slice of map[string]any, with each map representing a row of the query
+// result.
+//
+// Be aware that, since this method bypasses the data models, all the models'
+// hooks will be skipped. Thus, this method should be used with extreme caution.
+func (s *Standalone) GenericSelect(sql string, args ...any) ([]map[string]any, error) {
+	res, err := s.engine.QueryInterface(append([]any{sql}, args...)...)
+	if err != nil {
+		return nil, fmt.Errorf("SQL SELECT failed: %w", err)
+	}
+
+	return res, nil
 }

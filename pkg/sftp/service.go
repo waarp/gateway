@@ -20,7 +20,7 @@ import (
 // Service represents an instance of SFTP server.
 type Service struct {
 	db      *database.DB
-	agentID uint64
+	agentID int64
 	logger  *log.Logger
 
 	state            state.State
@@ -53,7 +53,7 @@ func (s *Service) start(agent *model.LocalAgent) error {
 	if err != nil {
 		s.logger.Error("Failed to retrieve the server host keys: %s", err)
 
-		return err
+		return fmt.Errorf("failed to retrieve the server host keys: %w", err)
 	}
 
 	sshConf, err1 := getSSHServerConfig(s.db, hostKeys, &protoConfig, agent)

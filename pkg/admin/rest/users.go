@@ -14,15 +14,15 @@ import (
 	"code.waarp.fr/apps/gateway/gateway/pkg/tk/utils"
 )
 
-func newInUser(old *model.User) *api.InUser {
+func dbUserToRESTInput(old *model.User) *api.InUser {
 	return &api.InUser{
 		Username: &old.Username,
 		Password: strPtr(old.PasswordHash),
 	}
 }
 
-// userToDB transforms the JSON user into its database equivalent.
-func userToDB(user *api.InUser, old *model.User) (*model.User, error) {
+// restUserToDB transforms the JSON user into its database equivalent.
+func restUserToDB(user *api.InUser, old *model.User) (*model.User, error) {
 	mask, err := permsToMask(old.Permissions, user.Perms)
 	if err != nil {
 		return nil, err
@@ -42,24 +42,26 @@ func userToDB(user *api.InUser, old *model.User) (*model.User, error) {
 	}, nil
 }
 
-// FromUser transforms the given database user into its JSON equivalent.
-func FromUser(user *model.User) *api.OutUser {
+// DBUserToREST transforms the given database user into its JSON equivalent.
+func DBUserToREST(dbUser *model.User) *api.OutUser {
 	return &api.OutUser{
-		Username: user.Username,
-		Perms:    *maskToPerms(user.Permissions),
+		Username: dbUser.Username,
+		Perms:    *maskToPerms(dbUser.Permissions),
 	}
 }
 
-func writeUsers(users model.Users, w http.ResponseWriter) error {
-	jUsers := make([]api.OutUser, len(users))
-	for i := range users {
-		jUsers[i] = *FromUser(&users[i])
+// DBUsersToREST transforms the given database users into their JSON equivalents.
+func DBUsersToREST(dbUsers []*model.User) []*api.OutUser {
+	restUsers := make([]*api.OutUser, len(dbUsers))
+
+	for i, dbUser := range dbUsers {
+		restUsers[i] = DBUserToREST(dbUser)
 	}
 
-	return writeJSON(w, map[string][]api.OutUser{"users": jUsers})
+	return restUsers
 }
 
-func getUsr(r *http.Request, db *database.DB) (*model.User, error) {
+func retrieveDBUser(r *http.Request, db *database.DB) (*model.User, error) {
 	username, ok := mux.Vars(r)["user"]
 	if !ok {
 		return nil, notFound("missing username")
@@ -80,12 +82,13 @@ func getUsr(r *http.Request, db *database.DB) (*model.User, error) {
 
 func getUser(logger *log.Logger, db *database.DB) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		result, err := getUsr(r, db)
-		if handleError(w, logger, err) {
+		dbUser, getErr := retrieveDBUser(r, db)
+		if handleError(w, logger, getErr) {
 			return
 		}
 
-		handleError(w, logger, writeJSON(w, FromUser(result)))
+		restUser := DBUserToREST(dbUser)
+		handleError(w, logger, writeJSON(w, restUser))
 	}
 }
 
@@ -97,10 +100,10 @@ func listUsers(logger *log.Logger, db *database.DB) http.HandlerFunc {
 	}
 
 	return func(w http.ResponseWriter, r *http.Request) {
-		var users model.Users
-		query, err := parseSelectQuery(r, db, validSorting, &users)
+		var dbUsers model.Users
 
-		if handleError(w, logger, err) {
+		query, queryErr := parseSelectQuery(r, db, validSorting, &dbUsers)
+		if handleError(w, logger, queryErr) {
 			return
 		}
 
@@ -109,98 +112,103 @@ func listUsers(logger *log.Logger, db *database.DB) http.HandlerFunc {
 			return
 		}
 
-		handleError(w, logger, writeUsers(users, w))
+		restUsers := DBUsersToREST(dbUsers)
+		response := map[string][]*api.OutUser{"users": restUsers}
+
+		handleError(w, logger, writeJSON(w, response))
 	}
 }
 
 func addUser(logger *log.Logger, db *database.DB) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		var jsonUser api.InUser
-		if err := readJSON(r, &jsonUser); handleError(w, logger, err) {
+		var restUser api.InUser
+		if err := readJSON(r, &restUser); handleError(w, logger, err) {
 			return
 		}
 
-		user, err := userToDB(&jsonUser, &model.User{})
+		dbUser, err := restUserToDB(&restUser, &model.User{})
 		if handleError(w, logger, err) {
 			return
 		}
 
-		if err := db.Insert(user).Run(); handleError(w, logger, err) {
+		if err := db.Insert(dbUser).Run(); handleError(w, logger, err) {
 			return
 		}
 
-		w.Header().Set("Location", location(r.URL, user.Username))
+		w.Header().Set("Location", location(r.URL, dbUser.Username))
 		w.WriteHeader(http.StatusCreated)
 	}
 }
 
 func updateUser(logger *log.Logger, db *database.DB) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		old, err := getUsr(r, db)
-		if handleError(w, logger, err) {
+		oldUser, getErr := retrieveDBUser(r, db)
+		if handleError(w, logger, getErr) {
 			return
 		}
 
-		jUser := newInUser(old)
-		if err2 := readJSON(r, jUser); handleError(w, logger, err2) {
+		restUser := dbUserToRESTInput(oldUser)
+		if err := readJSON(r, restUser); handleError(w, logger, err) {
 			return
 		}
 
-		user, err := userToDB(jUser, old)
-		if handleError(w, logger, err) {
+		dbUser, convErr := restUserToDB(restUser, oldUser)
+		if handleError(w, logger, convErr) {
 			return
 		}
 
-		if err := db.Update(user).Run(); handleError(w, logger, err) {
+		dbUser.ID = oldUser.ID
+		if err := db.Update(dbUser).Run(); handleError(w, logger, err) {
 			return
 		}
 
-		w.Header().Set("Location", locationUpdate(r.URL, str(jUser.Username)))
+		w.Header().Set("Location", locationUpdate(r.URL, str(restUser.Username)))
 		w.WriteHeader(http.StatusCreated)
 	}
 }
 
 func replaceUser(logger *log.Logger, db *database.DB) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		old, err := getUsr(r, db)
-		if handleError(w, logger, err) {
+		oldUser, getErr := retrieveDBUser(r, db)
+		if handleError(w, logger, getErr) {
 			return
 		}
 
-		var jUser api.InUser
-		if err2 := readJSON(r, &jUser); handleError(w, logger, err2) {
+		var restUser api.InUser
+		if err := readJSON(r, &restUser); handleError(w, logger, err) {
 			return
 		}
 
-		user, err := userToDB(&jUser, old)
-		if handleError(w, logger, err) {
+		dbUser, convErr := restUserToDB(&restUser, oldUser)
+		if handleError(w, logger, convErr) {
 			return
 		}
 
-		if err := db.Update(user).Run(); handleError(w, logger, err) {
+		dbUser.ID = oldUser.ID
+		if err := db.Update(dbUser).Run(); handleError(w, logger, err) {
 			return
 		}
 
-		w.Header().Set("Location", locationUpdate(r.URL, str(jUser.Username)))
+		w.Header().Set("Location", locationUpdate(r.URL, str(restUser.Username)))
 		w.WriteHeader(http.StatusCreated)
 	}
 }
 
 func deleteUser(logger *log.Logger, db *database.DB) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		user, err := getUsr(r, db)
-		if handleError(w, logger, err) {
+		dbUser, getErr := retrieveDBUser(r, db)
+		if handleError(w, logger, getErr) {
 			return
 		}
 
 		login, _, _ := r.BasicAuth()
-		if user.Username == login {
-			handleError(w, logger, &forbidden{"user cannot delete self"})
+		if dbUser.Username == login {
+			handleError(w, logger, &forbidden{"a user cannot delete themself"})
 
 			return
 		}
 
-		if err := db.Delete(user).Run(); handleError(w, logger, err) {
+		if err := db.Delete(dbUser).Run(); handleError(w, logger, err) {
 			return
 		}
 

@@ -72,7 +72,7 @@ func (g *getClient) Request() *types.TransferError {
 }
 
 func (g *getClient) getSizeProgress() *types.TransferError {
-	cols := []string{"progression"}
+	cols := []string{"progress"}
 	trans := g.pip.TransCtx.Transfer
 
 	progress, filesize, err := getContentRange(g.resp.Header)

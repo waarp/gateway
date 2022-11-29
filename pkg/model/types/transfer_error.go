@@ -7,6 +7,7 @@ import (
 )
 
 // TransferErrorCode is a closed list of the defined error codes
+//
 //go:generate stringer -type TransferErrorCode
 type TransferErrorCode uint8
 
@@ -173,6 +174,7 @@ func (tec TransferErrorCode) ToDB() ([]byte, error) {
 }
 
 // R66Code returns the error code as a single character usable by R66.
+//
 //nolint:funlen,cyclop // cannot be shorten without adding complexity
 func (tec TransferErrorCode) R66Code() rune {
 	switch tec {
@@ -220,6 +222,7 @@ func (tec TransferErrorCode) R66Code() rune {
 }
 
 // FromR66Code returns the TransferError equivalent to the given R66 error code.
+//
 //nolint:funlen,cyclop // cannot be shorten without adding complexity
 func FromR66Code(c rune) TransferErrorCode {
 	switch c {
@@ -271,8 +274,8 @@ func FromR66Code(c rune) TransferErrorCode {
 //
 // It is safe to use with errors.Is() and errors.As().
 type TransferError struct {
-	Code    TransferErrorCode `xorm:"notnull varchar(50) 'error_code'"`
-	Details string            `xorm:"notnull 'error_details'"`
+	Code    TransferErrorCode `xorm:"error_code"`
+	Details string            `xorm:"error_details"`
 }
 
 // NewTransferError creates a new transfer error with the given error code and

@@ -20,9 +20,8 @@ import (
 var errNoValidCert = errors.New("could not find a valid certificate for HTTP server")
 
 func (h *httpService) makeTLSConf(agent *model.LocalAgent) (*tls.Config, error) {
-	var certs model.Cryptos
-	if err := h.db.Select(&certs).Where("owner_type=? AND owner_id=?", agent.TableName(),
-		agent.ID).Run(); err != nil {
+	var cryptos model.Cryptos
+	if err := h.db.Select(&cryptos).Where("local_agent_id=?", agent.ID).Run(); err != nil {
 		h.logger.Error("Failed to retrieve server certificates: %s", err)
 
 		return nil, fmt.Errorf("failed to retrieve server certificates: %w", err)
@@ -30,8 +29,8 @@ func (h *httpService) makeTLSConf(agent *model.LocalAgent) (*tls.Config, error) 
 
 	var tlsCerts []tls.Certificate
 
-	for _, c := range certs {
-		cert, err := tls.X509KeyPair([]byte(c.Certificate), []byte(c.PrivateKey))
+	for _, crypto := range cryptos {
+		cert, err := tls.X509KeyPair([]byte(crypto.Certificate), []byte(crypto.PrivateKey))
 		if err != nil {
 			h.logger.Warning("Failed to parse server certificate: %s", err)
 
@@ -47,29 +46,10 @@ func (h *httpService) makeTLSConf(agent *model.LocalAgent) (*tls.Config, error) 
 		return nil, errNoValidCert
 	}
 
-	var clientCerts model.Cryptos
-	if err := h.db.Select(&clientCerts).Where("owner_type='local_accounts' AND "+
-		"owner_id IN (SELECT id FROM local_accounts WHERE local_agent_id=?)",
-		agent.ID).Run(); err != nil {
-		h.logger.Error("Failed to retrieve client certificates: %s", err)
-
-		return nil, fmt.Errorf("failed to retrieve server certificates: %w", err)
-	}
-
-	clientCAs, err := x509.SystemCertPool()
-	if err != nil {
-		clientCAs = x509.NewCertPool()
-	}
-
-	for _, ce := range clientCerts {
-		clientCAs.AppendCertsFromPEM([]byte(ce.Certificate))
-	}
-
 	tlsConfig := &tls.Config{
 		MinVersion:       tls.VersionTLS12,
 		Certificates:     tlsCerts,
 		ClientAuth:       tls.RequestClientCert, // client certs are manually verified
-		ClientCAs:        clientCAs,
 		VerifyConnection: compatibility.LogSha1(h.logger),
 	}
 
@@ -140,6 +120,7 @@ func (h *httpService) makeHandler() http.HandlerFunc {
 			resp:    w,
 		}
 
+		//nolint:contextcheck //context is already passed in the request itself
 		switch r.Method {
 		case http.MethodPost:
 			handler.handle(false)
@@ -229,8 +210,7 @@ func (h *httpService) certAuth(w http.ResponseWriter, login string, certs []*x50
 	}
 
 	var cryptos model.Cryptos
-	if err := h.db.Select(&cryptos).Where("owner_type=? AND owner_id=?", acc.TableName(),
-		acc.ID).Run(); err != nil {
+	if err := h.db.Select(&cryptos).Where("local_account_id=?", acc.ID).Run(); err != nil {
 		h.logger.Error("Failed to retrieve user crypto credentials: %s", err)
 		http.Error(w, "Failed to retrieve user credentials", http.StatusInternalServerError)
 

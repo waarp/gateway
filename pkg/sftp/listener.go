@@ -21,12 +21,13 @@ import (
 	"code.waarp.fr/apps/gateway/gateway/pkg/model"
 	"code.waarp.fr/apps/gateway/gateway/pkg/model/types"
 	"code.waarp.fr/apps/gateway/gateway/pkg/sftp/internal"
+	"code.waarp.fr/apps/gateway/gateway/pkg/tk/utils"
 )
 
 type sshListener struct {
 	DB       *database.DB
 	Logger   *log.Logger
-	AgentID  uint64
+	AgentID  int64
 	SSHConf  *ssh.ServerConfig
 	Listener net.Listener
 
@@ -211,16 +212,14 @@ func (l *sshListener) makeFileReader(endSession func(context.Context), acc *mode
 
 		// Create Transfer
 		trans := &model.Transfer{
-			RuleID:     rule.ID,
-			IsServer:   true,
-			AgentID:    l.AgentID,
-			AccountID:  acc.ID,
-			LocalPath:  locPath,
-			RemotePath: path.Base(r.Filepath),
-			Filesize:   model.UnknownSize,
-			Start:      time.Now(),
-			Status:     types.StatusRunning,
-			Step:       types.StepNone,
+			RuleID:         rule.ID,
+			LocalAccountID: utils.NewNullInt64(acc.ID),
+			LocalPath:      locPath,
+			RemotePath:     path.Base(r.Filepath),
+			Filesize:       model.UnknownSize,
+			Start:          time.Now(),
+			Status:         types.StatusRunning,
+			Step:           types.StepNone,
 		}
 
 		l.Logger.Info("Download of file '%s' requested by '%s' using rule '%s'",
@@ -261,16 +260,14 @@ func (l *sshListener) makeFileWriter(endSession func(context.Context), acc *mode
 
 		// Create Transfer
 		trans := &model.Transfer{
-			RuleID:     rule.ID,
-			IsServer:   true,
-			AgentID:    l.AgentID,
-			AccountID:  acc.ID,
-			LocalPath:  locPath,
-			RemotePath: path.Base(r.Filepath),
-			Filesize:   model.UnknownSize,
-			Start:      time.Now(),
-			Status:     types.StatusRunning,
-			Step:       types.StepNone,
+			RuleID:         rule.ID,
+			LocalAccountID: utils.NewNullInt64(acc.ID),
+			LocalPath:      locPath,
+			RemotePath:     path.Base(r.Filepath),
+			Filesize:       model.UnknownSize,
+			Start:          time.Now(),
+			Status:         types.StatusRunning,
+			Step:           types.StepNone,
 		}
 
 		l.Logger.Info("Upload of file '%s' requested by '%s' using rule '%s'",

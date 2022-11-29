@@ -8,12 +8,10 @@ import (
 	"code.waarp.fr/apps/gateway/gateway/pkg/model"
 )
 
-func exportCertificates(logger *log.Logger, db database.ReadAccess, ownerType string,
-	ownerID uint64,
+func exportCertificates(logger *log.Logger, db database.ReadAccess, owner model.CryptoOwner,
 ) ([]file.Certificate, error) {
 	var dbCerts model.Cryptos
-	if err := db.Select(&dbCerts).Where("owner_type=? AND owner_id=?", ownerType,
-		ownerID).Run(); err != nil {
+	if err := db.Select(&dbCerts).Where(owner.GenCryptoSelectCond()).Run(); err != nil {
 		return nil, err
 	}
 

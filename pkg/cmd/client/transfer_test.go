@@ -20,6 +20,7 @@ import (
 	"code.waarp.fr/apps/gateway/gateway/pkg/database"
 	"code.waarp.fr/apps/gateway/gateway/pkg/model"
 	"code.waarp.fr/apps/gateway/gateway/pkg/model/types"
+	"code.waarp.fr/apps/gateway/gateway/pkg/tk/utils"
 )
 
 func transferInfoString(t *api.OutTransfer) string {
@@ -208,10 +209,8 @@ func TestAddTransfer(t *testing.T) {
 
 						So(transfers[0].ID, ShouldEqual, 1)
 						So(transfers[0].RemoteTransferID, ShouldNotBeBlank)
-						So(transfers[0].IsServer, ShouldBeFalse)
 						So(transfers[0].RuleID, ShouldEqual, rule.ID)
-						So(transfers[0].AgentID, ShouldEqual, partner.ID)
-						So(transfers[0].AccountID, ShouldEqual, account.ID)
+						So(transfers[0].RemoteAccountID.Int64, ShouldEqual, account.ID)
 						So(transfers[0].LocalPath, ShouldEqual, filepath.Join("dst_dir", "test_file"))
 						So(transfers[0].RemotePath, ShouldEqual, "src_dir/test_file")
 						So(transfers[0].Filesize, ShouldEqual, model.UnknownSize)
@@ -345,13 +344,12 @@ func TestGetTransfer(t *testing.T) {
 				So(db.Insert(r).Run(), ShouldBeNil)
 
 				trans := &model.Transfer{
-					RuleID:     r.ID,
-					AgentID:    p.ID,
-					AccountID:  a.ID,
-					LocalPath:  "/local/path",
-					RemotePath: "/remote/path",
-					Start:      time.Date(2021, 1, 1, 1, 0, 0, 123000, time.Local),
-					Status:     types.StatusPlanned,
+					RuleID:          r.ID,
+					RemoteAccountID: utils.NewNullInt64(a.ID),
+					LocalPath:       "/local/path",
+					RemotePath:      "/remote/path",
+					Start:           time.Date(2021, 1, 1, 1, 0, 0, 123000, time.Local),
+					Status:          types.StatusPlanned,
 				}
 				So(db.Insert(trans).Run(), ShouldBeNil)
 				id := fmt.Sprint(trans.ID)
@@ -464,44 +462,40 @@ func TestListTransfer(t *testing.T) {
 
 			Convey("Given 4 valid transfers", func() {
 				trans1 := &model.Transfer{
-					RuleID:     r1.ID,
-					AgentID:    p1.ID,
-					AccountID:  a1.ID,
-					LocalPath:  "/local/path1",
-					RemotePath: "/remote/path1",
-					Step:       types.StepNone,
-					Status:     types.StatusPlanned,
-					Start:      time.Date(2019, 1, 1, 1, 0, 0, 0, time.Local),
+					RuleID:          r1.ID,
+					RemoteAccountID: utils.NewNullInt64(a1.ID),
+					LocalPath:       "/local/path1",
+					RemotePath:      "/remote/path1",
+					Step:            types.StepNone,
+					Status:          types.StatusPlanned,
+					Start:           time.Date(2019, 1, 1, 1, 0, 0, 0, time.Local),
 				}
 				trans2 := &model.Transfer{
-					RuleID:     r2.ID,
-					AgentID:    p2.ID,
-					AccountID:  a2.ID,
-					LocalPath:  "/local/path2",
-					RemotePath: "/remote/path2",
-					Step:       types.StepSetup,
-					Status:     types.StatusRunning,
-					Start:      time.Date(2019, 1, 1, 2, 0, 0, 0, time.Local),
+					RuleID:          r2.ID,
+					RemoteAccountID: utils.NewNullInt64(a2.ID),
+					LocalPath:       "/local/path2",
+					RemotePath:      "/remote/path2",
+					Step:            types.StepSetup,
+					Status:          types.StatusRunning,
+					Start:           time.Date(2019, 1, 1, 2, 0, 0, 0, time.Local),
 				}
 				trans3 := &model.Transfer{
-					RuleID:     r3.ID,
-					AgentID:    p3.ID,
-					AccountID:  a3.ID,
-					LocalPath:  "/local/path3",
-					RemotePath: "/remote/path3",
-					Step:       types.StepData,
-					Status:     types.StatusError,
-					Start:      time.Date(2019, 1, 1, 3, 0, 0, 0, time.Local),
+					RuleID:          r3.ID,
+					RemoteAccountID: utils.NewNullInt64(a3.ID),
+					LocalPath:       "/local/path3",
+					RemotePath:      "/remote/path3",
+					Step:            types.StepData,
+					Status:          types.StatusError,
+					Start:           time.Date(2019, 1, 1, 3, 0, 0, 0, time.Local),
 				}
 				trans4 := &model.Transfer{
-					RuleID:     r4.ID,
-					AgentID:    p4.ID,
-					AccountID:  a4.ID,
-					LocalPath:  "/local/path4",
-					RemotePath: "/remote/path4",
-					Step:       types.StepFinalization,
-					Status:     types.StatusPlanned,
-					Start:      time.Date(2019, 1, 1, 4, 0, 0, 0, time.Local),
+					RuleID:          r4.ID,
+					RemoteAccountID: utils.NewNullInt64(a4.ID),
+					LocalPath:       "/local/path4",
+					RemotePath:      "/remote/path4",
+					Step:            types.StepFinalization,
+					Status:          types.StatusPlanned,
+					Start:           time.Date(2019, 1, 1, 4, 0, 0, 0, time.Local),
 				}
 				So(db.Insert(trans1).Run(), ShouldBeNil)
 				So(db.Insert(trans2).Run(), ShouldBeNil)
@@ -689,15 +683,13 @@ func TestPauseTransfer(t *testing.T) {
 				So(db.Insert(rule).Run(), ShouldBeNil)
 
 				trans := &model.Transfer{
-					IsServer:   false,
-					RuleID:     rule.ID,
-					AccountID:  account.ID,
-					AgentID:    part.ID,
-					LocalPath:  "/local/path",
-					RemotePath: "/remote/path",
-					Start:      time.Date(2021, 1, 1, 1, 0, 0, 123000, time.Local),
-					Status:     types.StatusPlanned,
-					Owner:      conf.GlobalConfig.GatewayName,
+					RuleID:          rule.ID,
+					RemoteAccountID: utils.NewNullInt64(account.ID),
+					LocalPath:       "/local/path",
+					RemotePath:      "/remote/path",
+					Start:           time.Date(2021, 1, 1, 1, 0, 0, 123000, time.Local),
+					Status:          types.StatusPlanned,
+					Owner:           conf.GlobalConfig.GatewayName,
 				}
 				So(db.Insert(trans).Run(), ShouldBeNil)
 				id := fmt.Sprint(trans.ID)
@@ -721,7 +713,7 @@ func TestPauseTransfer(t *testing.T) {
 
 							var transfers model.Transfers
 							So(db.Select(&transfers).Run(), ShouldBeNil)
-							So(transfers, ShouldContain, *trans)
+							So(transfers, ShouldContain, trans)
 						})
 					})
 				})
@@ -780,15 +772,13 @@ func TestResumeTransfer(t *testing.T) {
 				So(db.Insert(r).Run(), ShouldBeNil)
 
 				trans := &model.Transfer{
-					IsServer:   false,
-					RuleID:     r.ID,
-					AccountID:  account.ID,
-					AgentID:    partner.ID,
-					LocalPath:  "/local/path",
-					RemotePath: "/remote/path",
-					Start:      time.Date(2021, 1, 1, 1, 0, 0, 123000, time.Local),
-					Status:     types.StatusPaused,
-					Owner:      conf.GlobalConfig.GatewayName,
+					RuleID:          r.ID,
+					RemoteAccountID: utils.NewNullInt64(account.ID),
+					LocalPath:       "/local/path",
+					RemotePath:      "/remote/path",
+					Start:           time.Date(2021, 1, 1, 1, 0, 0, 123000, time.Local),
+					Status:          types.StatusPaused,
+					Owner:           conf.GlobalConfig.GatewayName,
 				}
 				So(db.Insert(trans).Run(), ShouldBeNil)
 				id := fmt.Sprint(trans.ID)
@@ -811,7 +801,7 @@ func TestResumeTransfer(t *testing.T) {
 
 							var transfers model.Transfers
 							So(db.Select(&transfers).Run(), ShouldBeNil)
-							So(transfers, ShouldContain, *trans)
+							So(transfers, ShouldContain, trans)
 						})
 					})
 				})
@@ -870,15 +860,13 @@ func TestCancelTransfer(t *testing.T) {
 				So(db.Insert(rule).Run(), ShouldBeNil)
 
 				trans := &model.Transfer{
-					IsServer:   false,
-					RuleID:     rule.ID,
-					AccountID:  account.ID,
-					AgentID:    partner.ID,
-					LocalPath:  "/local/path",
-					RemotePath: "/remote/path",
-					Start:      time.Date(2021, 1, 1, 1, 0, 0, 123000, time.Local),
-					Status:     types.StatusPlanned,
-					Owner:      conf.GlobalConfig.GatewayName,
+					RuleID:          rule.ID,
+					RemoteAccountID: utils.NewNullInt64(account.ID),
+					LocalPath:       "/local/path",
+					RemotePath:      "/remote/path",
+					Start:           time.Date(2021, 1, 1, 1, 0, 0, 123000, time.Local),
+					Status:          types.StatusPlanned,
+					Owner:           conf.GlobalConfig.GatewayName,
 				}
 				So(db.Insert(trans).Run(), ShouldBeNil)
 				id := fmt.Sprint(trans.ID)
@@ -901,11 +889,11 @@ func TestCancelTransfer(t *testing.T) {
 							So(db.Select(&history).Run(), ShouldBeNil)
 							So(history, ShouldNotBeEmpty)
 
-							hist := model.HistoryEntry{
+							So(history, ShouldContain, &model.HistoryEntry{
 								ID:               trans.ID,
 								RemoteTransferID: trans.RemoteTransferID,
 								Owner:            trans.Owner,
-								IsServer:         trans.IsServer,
+								IsServer:         trans.IsServer(),
 								IsSend:           rule.IsSend,
 								Account:          account.Login,
 								Agent:            partner.Name,
@@ -920,8 +908,7 @@ func TestCancelTransfer(t *testing.T) {
 								Step:             trans.Step,
 								Progress:         0,
 								TaskNumber:       0,
-							}
-							So(history, ShouldContain, hist)
+							})
 						})
 					})
 				})

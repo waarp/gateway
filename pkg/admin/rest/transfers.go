@@ -23,58 +23,56 @@ import (
 )
 
 // transToDB transforms the JSON transfer into its database equivalent.
-func transToDB(trans *api.InTransfer, db *database.DB, logger *log.Logger) (*model.Transfer, error) {
-	ruleID, accountID, agentID, err := getTransIDs(db, trans)
+func transToDB(jTrans *api.InTransfer, db *database.DB, logger *log.Logger) (*model.Transfer, error) {
+	ruleID, accountID, err := getTransIDs(db, jTrans)
 	if err != nil {
 		return nil, err
 	}
 
-	file := trans.File
-	out := str(trans.Output)
+	file := jTrans.File
+	out := str(jTrans.Output)
 
-	if file == "" && trans.SourcePath != "" {
+	if file == "" && jTrans.SourcePath != "" {
 		logger.Warning("JSON field 'sourcePath' is deprecated, use 'file' instead")
 
-		file = utils.DenormalizePath(trans.SourcePath)
+		file = utils.DenormalizePath(jTrans.SourcePath)
 	}
 
 	if out == "" {
-		if trans.DestPath != "" {
+		if jTrans.DestPath != "" {
 			logger.Warning("JSON field 'destPath' is deprecated, use  'output' instead")
 
-			out = utils.DenormalizePath(trans.DestPath)
+			out = utils.DenormalizePath(jTrans.DestPath)
 		} else {
 			out = filepath.Base(file)
 		}
 	}
 
-	start := trans.Start
+	start := jTrans.Start
 
-	if !trans.StartDate.IsZero() {
+	if !jTrans.StartDate.IsZero() {
 		logger.Warning("JSON field 'startDate' is deprecated, use 'start' instead")
 
 		if start.IsZero() {
-			start = trans.StartDate
+			start = jTrans.StartDate
 		}
 	}
 
 	locPath := file
 	remPath := strings.TrimPrefix(out, "/")
 
-	if !*trans.IsSend {
+	if !*jTrans.IsSend {
 		locPath = out
 		remPath = strings.TrimPrefix(file, "/")
 	}
 
 	return &model.Transfer{
-		RuleID:     ruleID,
-		IsServer:   false,
-		AgentID:    agentID,
-		AccountID:  accountID,
-		LocalPath:  locPath,
-		RemotePath: remPath,
-		Filesize:   model.UnknownSize,
-		Start:      start,
+		RuleID:          ruleID,
+		RemoteAccountID: utils.NewNullInt64(accountID),
+		LocalPath:       locPath,
+		RemotePath:      remPath,
+		Filesize:        model.UnknownSize,
+		Start:           start,
 	}, nil
 }
 
@@ -102,7 +100,7 @@ func FromTransfer(db *database.DB, trans *model.Transfer) (*api.OutTransfer, err
 		ID:             trans.ID,
 		RemoteID:       trans.RemoteTransferID,
 		Rule:           rule.Name,
-		IsServer:       trans.IsServer,
+		IsServer:       trans.IsServer(),
 		IsSend:         rule.IsSend,
 		Requested:      requested,
 		Requester:      requester,
@@ -127,18 +125,16 @@ func FromTransfer(db *database.DB, trans *model.Transfer) (*api.OutTransfer, err
 
 // FromTransfers transforms the given list of database transfers into its
 // JSON equivalent.
-func FromTransfers(db *database.DB, models []model.Transfer) ([]api.OutTransfer, error) {
-	jsonArray := make([]api.OutTransfer, len(models))
+func FromTransfers(db *database.DB, models []*model.Transfer) ([]*api.OutTransfer, error) {
+	jsonArray := make([]*api.OutTransfer, len(models))
 
-	for i := range models {
-		trans := &models[i]
-
+	for i, trans := range models {
 		jsonObj, err := FromTransfer(db, trans)
 		if err != nil {
 			return nil, err
 		}
 
-		jsonArray[i] = *jsonObj
+		jsonArray[i] = jsonObj
 	}
 
 	return jsonArray, nil
@@ -227,12 +223,12 @@ func listTransfers(logger *log.Logger, db *database.DB) http.HandlerFunc {
 			return
 		}
 
-		resp := map[string][]api.OutTransfer{"transfers": json}
+		resp := map[string][]*api.OutTransfer{"transfers": json}
 		handleError(w, logger, writeJSON(w, resp))
 	}
 }
 
-func pauseTransfer(protoServices map[uint64]proto.Service) handler {
+func pauseTransfer(protoServices map[int64]proto.Service) handler {
 	return func(logger *log.Logger, db *database.DB) http.HandlerFunc {
 		return func(w http.ResponseWriter, r *http.Request) {
 			trans, tErr := getTrans(r, db)
@@ -251,7 +247,7 @@ func pauseTransfer(protoServices map[uint64]proto.Service) handler {
 
 				return
 			case types.StatusRunning:
-				pips, err := getPipelineMap(protoServices, trans)
+				pips, err := getPipelineMap(db, protoServices, trans)
 				if handleError(w, logger, err) {
 					return
 				}
@@ -286,7 +282,7 @@ func pauseTransfer(protoServices map[uint64]proto.Service) handler {
 	}
 }
 
-func cancelTransfer(protoServices map[uint64]proto.Service) handler {
+func cancelTransfer(protoServices map[int64]proto.Service) handler {
 	return func(logger *log.Logger, db *database.DB) http.HandlerFunc {
 		return func(w http.ResponseWriter, r *http.Request) {
 			trans, tErr := getTrans(r, db)
@@ -295,7 +291,7 @@ func cancelTransfer(protoServices map[uint64]proto.Service) handler {
 			}
 
 			if trans.Status == types.StatusRunning {
-				pips, err := getPipelineMap(protoServices, trans)
+				pips, err := getPipelineMap(db, protoServices, trans)
 				if handleError(w, logger, err) {
 					return
 				}
@@ -340,7 +336,7 @@ func resumeTransfer(logger *log.Logger, db *database.DB) http.HandlerFunc {
 			return
 		}
 
-		if check.IsServer {
+		if check.IsServer() {
 			handleError(w, logger, badRequest("only the client can restart a transfer"))
 
 			return

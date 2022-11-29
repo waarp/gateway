@@ -2,11 +2,11 @@ package migrations
 
 import (
 	"database/sql"
+	"errors"
 	"fmt"
 
-	. "github.com/smartystreets/goconvey/convey"
-
 	"code.waarp.fr/lib/migration"
+	. "github.com/smartystreets/goconvey/convey"
 )
 
 func setupDatabaseUpTo(eng *testEngine, target script) {
@@ -79,7 +79,6 @@ func tableShouldNotHaveColumns(db *sql.DB, table string, cols ...string) {
 	}
 }
 
-/*
 func doesTableExist(db *sql.DB, dbType, table string) bool {
 	var (
 		row  *sql.Row
@@ -108,4 +107,3 @@ func doesTableExist(db *sql.DB, dbType, table string) bool {
 
 	return true
 }
-*/

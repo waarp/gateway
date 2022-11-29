@@ -58,7 +58,7 @@ func TestGetUser(t *testing.T) {
 					So(command.Execute(params), ShouldBeNil)
 
 					Convey("Then it should display the user's info", func() {
-						u := rest.FromUser(user)
+						u := rest.DBUserToREST(user)
 						So(getOutput(), ShouldEqual, userInfoString(u))
 					})
 				})
@@ -113,15 +113,14 @@ func TestAddUser(t *testing.T) {
 
 						So(bcrypt.CompareHashAndPassword([]byte(users[1].PasswordHash),
 							[]byte("password")), ShouldBeNil)
-						exp := model.User{
+						So(users, ShouldContain, &model.User{
 							Owner:        conf.GlobalConfig.GatewayName,
 							ID:           2,
 							Username:     "user",
 							PasswordHash: users[1].PasswordHash,
 							Permissions: model.PermTransfersRead |
 								model.PermServersRead | model.PermPartnersRead,
-						}
-						So(users[1], ShouldResemble, exp)
+						})
 					})
 				})
 			})
@@ -183,7 +182,7 @@ func TestDeleteUser(t *testing.T) {
 					Convey("Then the partner should still exist", func() {
 						var users model.Users
 						So(db.Select(&users).Run(), ShouldBeNil)
-						So(users, ShouldContain, *user)
+						So(users, ShouldContain, user)
 					})
 				})
 			})
@@ -203,7 +202,7 @@ func TestUpdateUser(t *testing.T) {
 			addr, err = url.Parse("http://admin:admin_password@" + gw.Listener.Addr().String())
 			So(err, ShouldBeNil)
 
-			user := &model.User{
+			originalUser := &model.User{
 				Username:     "user",
 				PasswordHash: hash("password"),
 				Permissions: model.PermTransfersRead |
@@ -212,11 +211,11 @@ func TestUpdateUser(t *testing.T) {
 					model.PermRulesRead |
 					model.PermUsersRead,
 			}
-			So(db.Insert(user).Run(), ShouldBeNil)
+			So(db.Insert(originalUser).Run(), ShouldBeNil)
 
 			Convey("Given all valid flags", func() {
 				args := []string{
-					user.Username, "-u", "new_user",
+					originalUser.Username, "-u", "new_user",
 					"-p", "new_password", "-r", "T+w,S-rw,P=wd,R+w-r,U=w",
 				}
 
@@ -237,17 +236,16 @@ func TestUpdateUser(t *testing.T) {
 
 						So(bcrypt.CompareHashAndPassword([]byte(users[1].PasswordHash),
 							[]byte("new_password")), ShouldBeNil)
-						exp := model.User{
+						So(users, ShouldContain, &model.User{
 							Owner:        conf.GlobalConfig.GatewayName,
-							ID:           user.ID,
+							ID:           originalUser.ID,
 							Username:     "new_user",
 							PasswordHash: users[1].PasswordHash,
 							Permissions: model.PermTransfersRead | model.PermTransfersWrite |
 								model.PermPartnersWrite | model.PermPartnersDelete |
 								model.PermRulesWrite |
 								model.PermUsersWrite,
-						}
-						So(users, ShouldContain, exp)
+						})
 					})
 				})
 			})
@@ -267,7 +265,7 @@ func TestUpdateUser(t *testing.T) {
 					Convey("Then the partner should stay unchanged", func() {
 						var users model.Users
 						So(db.Select(&users).Run(), ShouldBeNil)
-						So(users, ShouldContain, *user)
+						So(users, ShouldContain, originalUser)
 					})
 				})
 			})
@@ -301,8 +299,8 @@ func TestListUser(t *testing.T) {
 			}
 			So(db.Insert(user2).Run(), ShouldBeNil)
 
-			u1 := rest.FromUser(user1)
-			u2 := rest.FromUser(user2)
+			u1 := rest.DBUserToREST(user1)
+			u2 := rest.DBUserToREST(user2)
 
 			Convey("Given no parameters", func() {
 				args := []string{}

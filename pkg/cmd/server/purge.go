@@ -28,6 +28,8 @@ type PurgeCommand struct {
 	Reset      bool   `short:"r" long:"reset" description:"Reset the transfer ID auto-increment after the purge (NOTE: cannot be used in combination with -o)."`
 	OlderThan  string `short:"o" long:"older-than" description:"Limit the purge to transfers older than the given time (can be either a date or a duration)."`
 	Verbose    []bool `short:"v" long:"verbose" description:"Show verbose debug information. Can be repeated to increase verbosity"`
+
+	olderThan time.Time
 }
 
 func (p *PurgeCommand) Execute([]string) error {
@@ -56,9 +58,9 @@ func (p *PurgeCommand) run(db *database.DB, now time.Time, in io.Reader,
 	if err := db.Transaction(func(ses *database.Session) database.Error {
 		delQuery := ses.DeleteAll(&model.HistoryEntry{})
 
-		if p.OlderThan != "" {
-			delQuery.Where("stop <= ? OR (stop IS NULL AND start <= ?)", p.OlderThan,
-				p.OlderThan)
+		if !p.olderThan.IsZero() {
+			delQuery.Where("stop <= ? OR (stop IS NULL AND start <= ?)", p.olderThan,
+				p.olderThan)
 		}
 
 		if err := delQuery.Run(); err != nil {
@@ -111,7 +113,7 @@ func (p *PurgeCommand) checkArguments(db database.ReadAccess, now time.Time) err
 			}
 		}
 
-		p.OlderThan = date.UTC().Truncate(time.Microsecond).Format(time.RFC3339Nano)
+		p.olderThan = date.UTC()
 	}
 
 	return nil
@@ -122,9 +124,9 @@ func (p *PurgeCommand) userConfirm(db database.ReadAccess, in io.Reader,
 ) (bool, error) {
 	countQuery := db.Count(&model.HistoryEntry{})
 
-	if p.OlderThan != "" {
-		countQuery.Where("stop <= ? OR (stop IS NULL AND start <= ?)", p.OlderThan,
-			p.OlderThan)
+	if !p.olderThan.IsZero() {
+		countQuery.Where("stop <= ? OR (stop IS NULL AND start <= ?)", p.olderThan,
+			p.olderThan)
 	}
 
 	nHist, err := countQuery.Run()

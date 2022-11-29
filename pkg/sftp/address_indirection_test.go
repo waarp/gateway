@@ -9,6 +9,7 @@ import (
 	"code.waarp.fr/apps/gateway/gateway/pkg/model"
 	"code.waarp.fr/apps/gateway/gateway/pkg/pipeline"
 	"code.waarp.fr/apps/gateway/gateway/pkg/pipeline/pipelinetest"
+	"code.waarp.fr/apps/gateway/gateway/pkg/tk/utils"
 )
 
 func TestAddressIndirection(t *testing.T) {
@@ -25,16 +26,14 @@ func TestAddressIndirection(t *testing.T) {
 		So(ctx.DB.Update(ctx.Server).Cols("address").Run(), ShouldBeNil)
 
 		serverHostkey := model.Crypto{
-			OwnerType:  ctx.Server.TableName(),
-			OwnerID:    ctx.Server.ID,
-			Name:       "sftp_hostkey",
-			PrivateKey: rsaPK,
+			LocalAgentID: utils.NewNullInt64(ctx.Server.ID),
+			Name:         "sftp_hostkey",
+			PrivateKey:   rsaPK,
 		}
 		partnerHostkey := model.Crypto{
-			OwnerType:    ctx.Partner.TableName(),
-			OwnerID:      ctx.Partner.ID,
-			Name:         "sftp_hostkey",
-			SSHPublicKey: rsaPBK,
+			RemoteAgentID: utils.NewNullInt64(ctx.Partner.ID),
+			Name:          "sftp_hostkey",
+			SSHPublicKey:  rsaPBK,
 		}
 		ctx.AddCryptos(c, serverHostkey, partnerHostkey)
 

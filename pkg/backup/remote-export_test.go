@@ -8,6 +8,7 @@ import (
 	"code.waarp.fr/apps/gateway/gateway/pkg/database"
 	"code.waarp.fr/apps/gateway/gateway/pkg/model"
 	"code.waarp.fr/apps/gateway/gateway/pkg/model/types"
+	"code.waarp.fr/apps/gateway/gateway/pkg/tk/utils"
 	"code.waarp.fr/apps/gateway/gateway/pkg/tk/utils/testhelpers"
 )
 
@@ -31,10 +32,9 @@ func TestExportRemoteAgents(t *testing.T) {
 			So(db.Insert(account1a).Run(), ShouldBeNil)
 
 			cert := &model.Crypto{
-				Name:        "test_cert",
-				OwnerType:   model.TableRemAgents,
-				OwnerID:     agent1.ID,
-				Certificate: testhelpers.LocalhostCert,
+				Name:          "test_cert",
+				RemoteAgentID: utils.NewNullInt64(agent1.ID),
+				Certificate:   testhelpers.LocalhostCert,
 			}
 			So(db.Insert(cert).Run(), ShouldBeNil)
 
@@ -149,11 +149,10 @@ func TestExportRemoteAccounts(t *testing.T) {
 			So(db.Insert(account2).Run(), ShouldBeNil)
 
 			cert := &model.Crypto{
-				Name:        "test_cert",
-				OwnerType:   model.TableRemAccounts,
-				OwnerID:     account2.ID,
-				Certificate: testhelpers.ClientFooCert,
-				PrivateKey:  testhelpers.ClientFooKey,
+				Name:            "test_cert",
+				RemoteAccountID: utils.NewNullInt64(account2.ID),
+				Certificate:     testhelpers.ClientFooCert,
+				PrivateKey:      testhelpers.ClientFooKey,
 			}
 			So(db.Insert(cert).Run(), ShouldBeNil)
 

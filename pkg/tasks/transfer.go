@@ -2,6 +2,7 @@ package tasks
 
 import (
 	"context"
+	"database/sql"
 	"fmt"
 	"path/filepath"
 
@@ -43,7 +44,7 @@ func (t *TransferTask) Validate(args map[string]string) error {
 }
 
 func getTransferInfo(db *database.DB, args map[string]string) (file string,
-	ruleID, agentID, accountID uint64, isSend bool, infoErr error,
+	ruleID, accountID int64, isSend bool, infoErr error,
 ) {
 	fileName, fileOK := args["file"]
 	if !fileOK || fileName == "" {
@@ -74,7 +75,7 @@ func getTransferInfo(db *database.DB, args map[string]string) (file string,
 	}
 
 	rule := &model.Rule{}
-	if err := db.Get(rule, "name=? AND send=?", ruleName, args["to"] != "").Run(); err != nil {
+	if err := db.Get(rule, "name=? AND is_send=?", ruleName, args["to"] != "").Run(); err != nil {
 		infoErr = fmt.Errorf("failed to retrieve rule '%s': %w", ruleName, err)
 
 		return
@@ -101,14 +102,14 @@ func getTransferInfo(db *database.DB, args map[string]string) (file string,
 		return
 	}
 
-	return fileName, rule.ID, agent.ID, acc.ID, rule.IsSend, nil
+	return fileName, rule.ID, acc.ID, rule.IsSend, nil
 }
 
 // Run executes the task by scheduling a new transfer with the given parameters.
 func (t *TransferTask) Run(_ context.Context, args map[string]string,
 	db *database.DB, _ *model.TransferContext,
 ) (string, error) {
-	file, ruleID, agentID, accID, isSend, err := getTransferInfo(db, args)
+	file, ruleID, accID, isSend, err := getTransferInfo(db, args)
 	if err != nil {
 		return err.Error(), err
 	}
@@ -122,12 +123,10 @@ func (t *TransferTask) Run(_ context.Context, args map[string]string,
 	}
 
 	trans := &model.Transfer{
-		RuleID:     ruleID,
-		IsServer:   false,
-		AgentID:    agentID,
-		AccountID:  accID,
-		LocalPath:  localPath,
-		RemotePath: remotePath,
+		RuleID:          ruleID,
+		RemoteAccountID: sql.NullInt64{Int64: accID, Valid: true},
+		LocalPath:       localPath,
+		RemotePath:      remotePath,
 	}
 
 	if err := db.Insert(trans).Run(); err != nil {

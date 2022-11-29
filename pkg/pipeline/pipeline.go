@@ -529,11 +529,11 @@ func (p *Pipeline) done(state statemachine.State) {
 		p.Logger.Warning("Failed to transition to '%s' state: %v", state, mErr)
 	}
 
-	if !p.TransCtx.Transfer.IsServer {
+	if !p.TransCtx.Transfer.IsServer() {
 		TransferOutCount.Sub()
 	} else {
 		TransferInCount.Sub()
 	}
 
-	Tester.done(p.TransCtx.Transfer.IsServer)
+	Tester.done(p.TransCtx.Transfer.IsServer())
 }

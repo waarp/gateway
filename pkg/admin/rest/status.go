@@ -14,7 +14,7 @@ import (
 
 // getStatus is called when an HTTP request is received on the StatusURI path.
 func getStatus(logger *log.Logger, db *database.DB, core map[string]service.Service,
-	protoServices map[uint64]proto.Service,
+	protoServices map[int64]proto.Service,
 ) http.HandlerFunc {
 	return func(w http.ResponseWriter, _ *http.Request) {
 		statuses := make(api.Statuses)

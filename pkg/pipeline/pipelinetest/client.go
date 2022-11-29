@@ -13,6 +13,7 @@ import (
 	"code.waarp.fr/apps/gateway/gateway/pkg/model"
 	"code.waarp.fr/apps/gateway/gateway/pkg/model/config"
 	"code.waarp.fr/apps/gateway/gateway/pkg/pipeline"
+	"code.waarp.fr/apps/gateway/gateway/pkg/tk/utils"
 	"code.waarp.fr/apps/gateway/gateway/pkg/tk/utils/testhelpers"
 )
 
@@ -153,13 +154,11 @@ func (cc *ClientContext) addPushTransfer(c convey.C) {
 	cc.fileContent = AddSourceFile(c, testDir, "self_transfer_push")
 
 	trans := &model.Transfer{
-		RuleID:     cc.ClientRule.ID,
-		IsServer:   false,
-		AgentID:    cc.Partner.ID,
-		AccountID:  cc.RemAccount.ID,
-		LocalPath:  "self_transfer_push",
-		RemotePath: "self_transfer_push",
-		Start:      time.Now(),
+		RuleID:          cc.ClientRule.ID,
+		RemoteAccountID: utils.NewNullInt64(cc.RemAccount.ID),
+		LocalPath:       "self_transfer_push",
+		RemotePath:      "self_transfer_push",
+		Start:           time.Now(),
 	}
 	c.So(cc.DB.Insert(trans).Run(), convey.ShouldBeNil)
 
@@ -171,14 +170,12 @@ func (cc *ClientContext) addPullTransfer(c convey.C, cont []byte) {
 	cc.fileContent = cont
 
 	trans := &model.Transfer{
-		RuleID:     cc.ClientRule.ID,
-		IsServer:   false,
-		AgentID:    cc.Partner.ID,
-		AccountID:  cc.RemAccount.ID,
-		LocalPath:  "self_transfer_pull",
-		RemotePath: "self_transfer_pull",
-		Filesize:   model.UnknownSize,
-		Start:      time.Now(),
+		RuleID:          cc.ClientRule.ID,
+		RemoteAccountID: utils.NewNullInt64(cc.RemAccount.ID),
+		LocalPath:       "self_transfer_pull",
+		RemotePath:      "self_transfer_pull",
+		Filesize:        model.UnknownSize,
+		Start:           time.Now(),
 	}
 	c.So(cc.DB.Insert(trans).Run(), convey.ShouldBeNil)
 

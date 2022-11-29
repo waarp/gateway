@@ -8,6 +8,7 @@ import (
 	. "code.waarp.fr/apps/gateway/gateway/pkg/backup/file"
 	"code.waarp.fr/apps/gateway/gateway/pkg/database"
 	"code.waarp.fr/apps/gateway/gateway/pkg/model"
+	"code.waarp.fr/apps/gateway/gateway/pkg/tk/utils"
 	"code.waarp.fr/apps/gateway/gateway/pkg/tk/utils/testhelpers"
 )
 
@@ -31,11 +32,10 @@ func TestImportCerts(t *testing.T) {
 			So(db.Insert(agent2).Run(), ShouldBeNil)
 
 			cert2 := &model.Crypto{
-				Name:        "foo",
-				OwnerType:   model.TableLocAgents,
-				OwnerID:     agent2.ID,
-				PrivateKey:  testhelpers.OtherLocalhostKey,
-				Certificate: testhelpers.OtherLocalhostCert,
+				Name:         "foo",
+				LocalAgentID: utils.NewNullInt64(agent2.ID),
+				PrivateKey:   testhelpers.OtherLocalhostKey,
+				Certificate:  testhelpers.OtherLocalhostCert,
 			}
 			So(db.Insert(cert2).Run(), ShouldBeNil)
 
@@ -49,8 +49,7 @@ func TestImportCerts(t *testing.T) {
 
 				Convey("When calling the importCerts with the new "+
 					"Cryptos on the existing agent", func() {
-					err := importCerts(discard(), db, Certificates,
-						model.TableLocAgents, agent.ID)
+					err := importCerts(discard(), db, Certificates, agent)
 
 					Convey("Then it should return no error", func() {
 						So(err, ShouldBeNil)
@@ -58,8 +57,8 @@ func TestImportCerts(t *testing.T) {
 
 					Convey("Then the agent should have 1 Cryptos", func() {
 						var dbCerts model.Cryptos
-						So(db.Select(&dbCerts).Where("owner_type=? AND owner_id=?",
-							model.TableLocAgents, agent.ID).Run(), ShouldBeNil)
+						So(db.Select(&dbCerts).Where("local_agent_id=?",
+							agent.ID).Run(), ShouldBeNil)
 						So(len(dbCerts), ShouldEqual, 1)
 
 						Convey("Then the Certificate should correspond "+
@@ -83,8 +82,7 @@ func TestImportCerts(t *testing.T) {
 
 				Convey("When calling the importCerts with the new "+
 					"Cryptos on the existing agent", func() {
-					err := importCerts(discard(), db, Certificates,
-						model.TableLocAgents, agent2.ID)
+					err := importCerts(discard(), db, Certificates, agent2)
 
 					Convey("Then it should return no error", func() {
 						So(err, ShouldBeNil)
@@ -92,8 +90,8 @@ func TestImportCerts(t *testing.T) {
 
 					Convey("Then the agent should have 1 Cryptos", func() {
 						var dbCerts model.Cryptos
-						So(db.Select(&dbCerts).Where("owner_type=? AND owner_id=?",
-							model.TableLocAgents, agent2.ID).Run(), ShouldBeNil)
+						So(db.Select(&dbCerts).Where("local_agent_id=?",
+							agent2.ID).Run(), ShouldBeNil)
 						So(len(dbCerts), ShouldEqual, 1)
 
 						Convey("Then the Certificate should correspond "+

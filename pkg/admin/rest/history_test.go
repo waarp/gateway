@@ -3,12 +3,11 @@ package rest
 import (
 	"encoding/json"
 	"fmt"
-	"io/ioutil"
+	"io"
 	"net/http"
 	"net/http/httptest"
 	"net/url"
 	"path"
-	"strconv"
 	"testing"
 	"time"
 
@@ -52,7 +51,7 @@ func TestGetHistory(t *testing.T) {
 			infos := map[string]any{"key1": "val1", "key2": 2}
 			So(h.SetTransferInfo(db, infos), ShouldBeNil)
 
-			id := strconv.FormatUint(h.ID, 10)
+			id := fmt.Sprint(h.ID)
 
 			Convey("Given a request with the valid transfer history ID parameter", func() {
 				uri := path.Join(historyURI, id)
@@ -300,7 +299,7 @@ func TestListHistory(t *testing.T) {
 			})
 
 			Convey("Given a request with 1 valid 'start' parameter", func() {
-				date := h3.Start.Format(time.RFC3339Nano)
+				date := time.Date(2019, 1, 1, 2, 30, 0, 0, time.Local).Format(time.RFC3339)
 				req, err := http.NewRequest(http.MethodGet,
 					fmt.Sprintf("?start=%s", url.QueryEscape(date)), nil)
 				So(err, ShouldBeNil)
@@ -323,7 +322,7 @@ func TestListHistory(t *testing.T) {
 			})
 
 			Convey("Given a request with 1 valid 'stop' parameter", func() {
-				date := h2.Stop.Format(time.RFC3339Nano)
+				date := time.Date(2019, 1, 1, 4, 30, 0, 0, time.Local).Format(time.RFC3339)
 				req, err := http.NewRequest(http.MethodGet,
 					fmt.Sprintf("?stop=%s", url.QueryEscape(date)), nil)
 				So(err, ShouldBeNil)
@@ -346,11 +345,11 @@ func TestListHistory(t *testing.T) {
 			})
 
 			Convey("Given a request with 1 valid 'stop' and 1 valid 'start' parameter", func() {
-				start := h2.Start.Add(-time.Minute)
-				stop := h3.Stop.Add(time.Minute)
+				start := time.Date(2019, 1, 1, 1, 30, 0, 0, time.Local).Format(time.RFC3339)
+				stop := time.Date(2019, 1, 1, 5, 30, 0, 0, time.Local).Format(time.RFC3339)
 				req, err := http.NewRequest(http.MethodGet,
-					fmt.Sprintf("?start=%s&stop=%s", url.QueryEscape(start.Format(time.RFC3339Nano)),
-						url.QueryEscape(stop.Format(time.RFC3339Nano))), nil)
+					fmt.Sprintf("?start=%s&stop=%s", url.QueryEscape(start),
+						url.QueryEscape(stop)), nil)
 				So(err, ShouldBeNil)
 
 				Convey("When sending the request to the handler", func() {
@@ -436,7 +435,7 @@ func TestRestartTransfer(t *testing.T) {
 			}
 			So(db.Insert(h).Run(), ShouldBeNil)
 
-			id := strconv.FormatUint(h.ID, 10)
+			id := fmt.Sprint(h.ID)
 
 			Convey("Given a request with the valid transfer history ID parameter", func() {
 				dateStr := url.QueryEscape(h.Start.Format(time.RFC3339Nano))
@@ -456,7 +455,7 @@ func TestRestartTransfer(t *testing.T) {
 					})
 
 					Convey("Then the response body should be empty", func() {
-						body, err := ioutil.ReadAll(res.Body)
+						body, err := io.ReadAll(res.Body)
 						So(err, ShouldBeNil)
 						So(string(body), ShouldBeBlank)
 					})
@@ -476,9 +475,7 @@ func TestRestartTransfer(t *testing.T) {
 						So(transfers[0].ID, ShouldEqual, 1)
 						So(transfers[0].RemoteTransferID, ShouldNotEqual, h.RemoteTransferID)
 						So(transfers[0].RuleID, ShouldEqual, rule.ID)
-						So(transfers[0].IsServer, ShouldEqual, false)
-						So(transfers[0].AgentID, ShouldEqual, partner.ID)
-						So(transfers[0].AccountID, ShouldEqual, account.ID)
+						So(transfers[0].RemoteAccountID.Int64, ShouldEqual, account.ID)
 						So(transfers[0].LocalPath, ShouldEqual, path.Base(h.LocalPath))
 						So(transfers[0].RemotePath, ShouldEqual, path.Base(h.RemotePath))
 						So(transfers[0].Start, ShouldEqual, h.Start)

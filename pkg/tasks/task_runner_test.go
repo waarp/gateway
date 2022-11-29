@@ -69,10 +69,8 @@ func TestSetup(t *testing.T) {
 						LocalDir: "/local/dir",
 					},
 					Transfer: &model.Transfer{
-						ID:        1234,
-						IsServer:  false,
-						AgentID:   agent.ID,
-						AccountID: account.ID,
+						ID:              1234,
+						RemoteAccountID: utils.NewNullInt64(account.ID),
 						Error: types.TransferError{
 							Details: `", "bad":1`,
 						},
@@ -297,12 +295,10 @@ func TestRunTasks(t *testing.T) {
 		So(db.Insert(account).Run(), ShouldBeNil)
 
 		trans := &model.Transfer{
-			RuleID:     rule.ID,
-			IsServer:   false,
-			AgentID:    agent.ID,
-			AccountID:  account.ID,
-			LocalPath:  "/local/file",
-			RemotePath: "/remote/file",
+			RuleID:          rule.ID,
+			RemoteAccountID: utils.NewNullInt64(account.ID),
+			LocalPath:       "/local/file",
+			RemotePath:      "/remote/file",
 		}
 		So(db.Insert(trans).Run(), ShouldBeNil)
 
@@ -319,7 +315,7 @@ func TestRunTasks(t *testing.T) {
 		Convey("Given a list of tasks", func() {
 			Convey("Given that all the tasks succeed", func() {
 				dummyTaskCheck = make(chan string, 3)
-				tasks := []model.Task{
+				tasks := []*model.Task{
 					{
 						RuleID: rule.ID,
 						Chain:  model.ChainPre,
@@ -351,7 +347,7 @@ func TestRunTasks(t *testing.T) {
 
 			Convey("Given that one task is in warning", func() {
 				dummyTaskCheck = make(chan string, 3)
-				tasks := []model.Task{
+				tasks := []*model.Task{
 					{
 						RuleID: rule.ID,
 						Chain:  model.ChainPre,
@@ -389,7 +385,7 @@ func TestRunTasks(t *testing.T) {
 			Convey("Given that one of the tasks fails", func() {
 				dummyTaskCheck = make(chan string, 3)
 
-				tasks := []model.Task{
+				tasks := []*model.Task{
 					{
 						RuleID: rule.ID,
 						Chain:  model.ChainPre,
@@ -427,7 +423,7 @@ func TestRunTasks(t *testing.T) {
 			Convey("Given that one of the tasks is invalid", func() {
 				dummyTaskCheck = make(chan string, 1)
 
-				tasks := []model.Task{{
+				tasks := []*model.Task{{
 					RuleID: rule.ID,
 					Chain:  model.ChainPre,
 					Rank:   0,
@@ -443,7 +439,7 @@ func TestRunTasks(t *testing.T) {
 			Convey("Given an unknown type of task", func() {
 				dummyTaskCheck = make(chan string, 1)
 
-				tasks := []model.Task{{
+				tasks := []*model.Task{{
 					RuleID: rule.ID,
 					Chain:  model.ChainPre,
 					Rank:   0,

@@ -1,6 +1,7 @@
 package model
 
 import (
+	"database/sql"
 	"net"
 	"strings"
 
@@ -12,58 +13,39 @@ import (
 	"code.waarp.fr/apps/gateway/gateway/pkg/tk/utils"
 )
 
-//nolint:gochecknoinits // init is used by design
-func init() {
-	database.AddTable(&Crypto{})
-}
+// CryptoOwner is the interface implemented by all valid Crypto owner types.
+// Valid owner types are LocalAgent, RemoteAgent, LocalAccount & RemoteAccount.
+type CryptoOwner interface {
+	// SetCryptoOwner sets the target CryptoOwner as owner of the given Crypto
+	// instance (by setting the corresponding foreign key to its own ID).
+	SetCryptoOwner(*Crypto)
 
-//nolint:gochecknoglobals // globals are used by design
-var validOwnerTypes = []string{
-	TableLocAgents, TableRemAgents, TableLocAccounts,
-	TableRemAccounts,
+	// GenCryptoSelectCond the SQL "WHERE" condition for selecting the Crypto
+	// entries belonging to this owner.
+	GenCryptoSelectCond() (string, int64)
 }
 
 // Crypto represents credentials used to establish secure (encrypted) transfer
 // channels. This includes both TLS and SSH tunnels. These credentials can be
 // attached to both local/remote agents & local/remote accounts.
 type Crypto struct {
-	// The credentials' database ID.
-	ID uint64 `xorm:"pk autoincr <- 'id'"`
-
-	// The table name of object the credentials are linked to. Valid tables
-	// include: local_agent, remote_agent, local_account or remote_account.
-	OwnerType string `xorm:"unique(cert) notnull 'owner_type'"`
+	ID   int64  `xorm:"<- id AUTOINCR"` // The credentials' database ID.
+	Name string `xorm:"name"`           // The credentials' display name.
 
 	// The id of the object these credentials are linked to.
-	OwnerID uint64 `xorm:"unique(cert) notnull 'owner_id'"`
+	LocalAgentID    sql.NullInt64 `xorm:"local_agent_id"`
+	RemoteAgentID   sql.NullInt64 `xorm:"remote_agent_id"`
+	LocalAccountID  sql.NullInt64 `xorm:"local_account_id"`
+	RemoteAccountID sql.NullInt64 `xorm:"remote_account_id"`
 
-	// The credentials' display name.
-	Name string `xorm:"unique(cert) notnull 'name'"`
-
-	// A PEM encoded TLS private key.
-	PrivateKey types.CypherText `xorm:"text 'private_key'"`
-
-	// A PEM encoded TLS certificate.
-	Certificate string `xorm:"text 'certificate'"`
-
-	// An SSH public key in authorized_keys format.
-	SSHPublicKey string `xorm:"text 'ssh_public_key'"`
+	PrivateKey   types.CypherText `xorm:"private_key"`    // A PEM encoded TLS private key.
+	Certificate  string           `xorm:"certificate"`    // A PEM encoded TLS certificate.
+	SSHPublicKey string           `xorm:"ssh_public_key"` // An SSH public key in authorized_keys format.
 }
 
-// TableName returns the name of the certificates table.
-func (*Crypto) TableName() string {
-	return TableCrypto
-}
-
-// Appellation returns the name of 1 element of the certificates table.
-func (*Crypto) Appellation() string {
-	return "crypto credentials"
-}
-
-// GetID returns the certificate's ID.
-func (c *Crypto) GetID() uint64 {
-	return c.ID
-}
+func (*Crypto) TableName() string   { return TableCrypto }
+func (*Crypto) Appellation() string { return "crypto credentials" }
+func (c *Crypto) GetID() int64      { return c.ID }
 
 // BeforeWrite checks if the new `Crypto` entry is valid and can be inserted
 // in the database.
@@ -74,51 +56,54 @@ func (c *Crypto) BeforeWrite(db database.ReadAccess) database.Error {
 		return newErr("the credentials' name cannot be empty")
 	}
 
-	if c.OwnerType == "" {
-		return newErr("the credentials' owner type is missing")
-	}
-
-	if c.OwnerID == 0 {
-		return newErr("the credentials' owner ID is missing")
-	}
-
 	if c.Certificate != "" && c.SSHPublicKey != "" {
 		return newErr("secure credentials should not contain both " +
 			"a certificate and an SSH public key (both cannot be used at the same time)")
 	}
 
-	n, err := db.Count(c).Where("id<>? AND owner_type=? AND owner_id=? AND name=?",
-		c.ID, c.OwnerType, c.OwnerID, c.Name).Run()
-	if err != nil {
-		return err
-	} else if n > 0 {
-		return newErr("credentials with the same name '%s' already exist", c.Name)
+	if sum := boolToInt(c.LocalAgentID.Valid) + boolToInt(c.RemoteAgentID.Valid) +
+		boolToInt(c.LocalAccountID.Valid) + boolToInt(c.RemoteAccountID.Valid); sum == 0 {
+		return database.NewValidationError("the crypto credential is missing an owner")
+	} else if sum > 1 {
+		return database.NewValidationError("the crypto credential cannot have multiple targets")
 	}
 
-	var parent database.GetBean
+	var owner interface {
+		database.UpdateBean
+		CryptoOwner
+	}
 
-	switch c.OwnerType {
-	case TableLocAgents:
-		parent = &LocalAgent{}
-	case TableRemAgents:
-		parent = &RemoteAgent{}
-	case TableLocAccounts:
-		parent = &LocalAccount{}
-	case TableRemAccounts:
-		parent = &RemoteAccount{}
+	switch {
+	case c.LocalAgentID.Valid:
+		owner = &LocalAgent{ID: c.LocalAgentID.Int64}
+	case c.RemoteAgentID.Valid:
+		owner = &RemoteAgent{ID: c.RemoteAgentID.Int64}
+	case c.LocalAccountID.Valid:
+		owner = &LocalAccount{ID: c.LocalAccountID.Int64}
+	case c.RemoteAccountID.Valid:
+		owner = &RemoteAccount{ID: c.RemoteAccountID.Int64}
 	default:
-		return newErr("the credentials' owner type must be one of %s", validOwnerTypes)
+		return database.NewValidationError("the rule access is missing a target") // impossible
 	}
 
-	if err := db.Get(parent, "id=?", c.OwnerID).Run(); err != nil {
+	if err := db.Get(owner, "id=?", owner.GetID()).Run(); err != nil {
 		if database.IsNotFound(err) {
-			return newErr("no %s found with ID '%v'", parent.Appellation(), c.OwnerID)
+			return database.NewValidationError("no %s found with ID '%v'",
+				owner.Appellation(), owner.GetID())
 		}
 
 		return err
 	}
 
-	return c.checkContent(db, parent)
+	if n, err := db.Count(c).Where("id<>? AND name=?", c.ID, c.Name).Where(
+		owner.GenCryptoSelectCond()).Run(); err != nil {
+		return err
+	} else if n > 0 {
+		return database.NewValidationError("crypto credentials with the same "+
+			"name '%s' already exist", c.Name)
+	}
+
+	return c.checkContent(db, owner)
 }
 
 func (c *Crypto) checkContentLocal(parent database.GetBean) database.Error {
@@ -243,8 +228,7 @@ func (c *Crypto) validateContent(host, proto string, isServer bool) database.Err
 	}
 
 	if c.SSHPublicKey != "" {
-		//nolint:dogsled // it is caused by the design of a third party library...
-		if _, _, _, _, err := ssh.ParseAuthorizedKey([]byte(c.SSHPublicKey)); err != nil {
+		if _, err := utils.ParseSSHAuthorizedKey(c.SSHPublicKey); err != nil {
 			return newErr("failed to parse SSH public key: %s",
 				strings.TrimPrefix(err.Error(), "ssh: "))
 		}

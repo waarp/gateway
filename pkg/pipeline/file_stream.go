@@ -56,7 +56,7 @@ func (f *fileStream) updateTrans() *types.TransferError {
 }
 
 func (f *fileStream) updateProgress(n int) *types.TransferError {
-	atomic.AddUint64(&f.TransCtx.Transfer.Progress, uint64(n))
+	atomic.AddInt64(&f.TransCtx.Transfer.Progress, int64(n))
 
 	return f.updateTrans()
 }
@@ -232,7 +232,7 @@ func (f *fileStream) move() *types.TransferError {
 	file = strings.TrimSuffix(file, ".part")
 
 	var dest string
-	if f.TransCtx.Transfer.IsServer {
+	if f.TransCtx.Transfer.IsServer() {
 		dest = utils.GetPath(file, leaf(f.TransCtx.Rule.LocalDir),
 			leaf(f.TransCtx.LocalAgent.ReceiveDir), branch(f.TransCtx.LocalAgent.RootDir),
 			leaf(f.TransCtx.Paths.DefaultInDir), branch(f.TransCtx.Paths.GatewayHome))

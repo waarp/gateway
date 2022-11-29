@@ -10,6 +10,7 @@ import (
 	"code.waarp.fr/apps/gateway/gateway/pkg/conf"
 	"code.waarp.fr/apps/gateway/gateway/pkg/database"
 	"code.waarp.fr/apps/gateway/gateway/pkg/model/types"
+	"code.waarp.fr/apps/gateway/gateway/pkg/tk/utils"
 )
 
 func TestHistoryTableName(t *testing.T) {
@@ -198,7 +199,7 @@ func TestTransferHistoryRestart(t *testing.T) {
 			history := &HistoryEntry{
 				ID:               1,
 				Owner:            conf.GlobalConfig.GatewayName,
-				RemoteTransferID: "2",
+				RemoteTransferID: "12345",
 				IsServer:         false,
 				IsSend:           rule.IsSend,
 				Account:          account.Login,
@@ -222,21 +223,21 @@ func TestTransferHistoryRestart(t *testing.T) {
 				So(err, ShouldBeNil)
 
 				Convey("Then it should return a new transfer instance", func() {
-					So(trans.ID, ShouldEqual, 0)
-					So(trans.RemoteTransferID, ShouldBeBlank)
-					So(trans.RuleID, ShouldEqual, rule.ID)
-					So(trans.IsServer, ShouldEqual, false)
-					So(trans.AgentID, ShouldEqual, agent.ID)
-					So(trans.AccountID, ShouldEqual, account.ID)
-					So(trans.LocalPath, ShouldEqual, "file.loc")
-					So(trans.RemotePath, ShouldEqual, "file.rem")
-					So(trans.Start, ShouldEqual, date)
-					So(trans.Step, ShouldEqual, types.StepNone)
-					So(trans.Status, ShouldEqual, types.StatusPlanned)
-					So(trans.Owner, ShouldEqual, conf.GlobalConfig.GatewayName)
-					So(trans.Progress, ShouldEqual, 0)
-					So(trans.TaskNumber, ShouldEqual, 0)
-					So(trans.Error, ShouldBeZeroValue)
+					So(trans, ShouldResemble, &Transfer{
+						ID:               0,
+						RemoteTransferID: "",
+						RuleID:           rule.ID,
+						RemoteAccountID:  utils.NewNullInt64(account.ID),
+						LocalPath:        "file.loc",
+						RemotePath:       "file.rem",
+						Start:            date,
+						Step:             types.StepNone,
+						Status:           types.StatusPlanned,
+						Owner:            conf.GlobalConfig.GatewayName,
+						Progress:         0,
+						TaskNumber:       0,
+						Error:            types.TransferError{},
+					})
 				})
 			})
 		})
@@ -283,21 +284,21 @@ func TestTransferHistoryRestart(t *testing.T) {
 				So(err, ShouldBeNil)
 
 				Convey("Then it should return a new transfer instance", func() {
-					So(trans.ID, ShouldEqual, 0)
-					So(trans.RemoteTransferID, ShouldBeBlank)
-					So(trans.RuleID, ShouldEqual, rule.ID)
-					So(trans.IsServer, ShouldEqual, true)
-					So(trans.AgentID, ShouldEqual, agent.ID)
-					So(trans.AccountID, ShouldEqual, account.ID)
-					So(trans.LocalPath, ShouldEqual, "file.loc")
-					So(trans.RemotePath, ShouldEqual, "file.rem")
-					So(trans.Start, ShouldEqual, date)
-					So(trans.Step, ShouldEqual, types.StepNone)
-					So(trans.Status, ShouldEqual, types.StatusPlanned)
-					So(trans.Owner, ShouldEqual, conf.GlobalConfig.GatewayName)
-					So(trans.Progress, ShouldEqual, 0)
-					So(trans.TaskNumber, ShouldEqual, 0)
-					So(trans.Error, ShouldBeZeroValue)
+					So(trans, ShouldResemble, &Transfer{
+						ID:               0,
+						RemoteTransferID: "",
+						RuleID:           rule.ID,
+						LocalAccountID:   utils.NewNullInt64(account.ID),
+						LocalPath:        "file.loc",
+						RemotePath:       "file.rem",
+						Start:            date,
+						Step:             types.StepNone,
+						Status:           types.StatusPlanned,
+						Owner:            conf.GlobalConfig.GatewayName,
+						Progress:         0,
+						TaskNumber:       0,
+						Error:            types.TransferError{},
+					})
 				})
 			})
 		})

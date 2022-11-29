@@ -64,7 +64,7 @@ func (s *Session) SelectForUpdate(bean SelectBean) *SelectQuery {
 // The request can then be executed using the GetQuery.Run method. The bean
 // parameter will be filled with the values retrieved from the database.
 func (s *Session) Get(bean GetBean, where string, args ...interface{}) *GetQuery {
-	return &GetQuery{db: s, bean: bean, sql: where, args: args}
+	return &GetQuery{db: s, bean: bean, conds: []*condition{{sql: where, args: args}}}
 }
 
 // Count starts building a SQL 'SELECT COUNT' query to count specific entries
@@ -94,23 +94,6 @@ func (s *Session) Update(bean UpdateBean) *UpdateQuery {
 	return &UpdateQuery{db: s, bean: bean}
 }
 
-// UpdateAll starts building an SQL 'UPDATE' query to update multiple entries
-// in the database. The columns to update, and their values are specified
-// using the UpdVals parameter. The entries to update can be filtered using
-// the sql & args parameters, with a syntax similar to the IterateQuery.Where
-// method.
-//
-// Be aware that, since this method updates multiple rows at once, the entries'
-// WriteHook will NOT be executed. Thus, this method should be used with
-// extreme caution.
-//
-// The request can then be executed using the UpdateAllQuery.Run method.
-func (s *Session) UpdateAll(bean UpdateAllBean, vals UpdVals, where string,
-	args ...interface{},
-) *UpdateAllQuery {
-	return &UpdateAllQuery{db: s, bean: bean, vals: vals, conds: where, args: args}
-}
-
 // Delete starts building a SQL 'DELETE' query to delete a single entry of
 // the given model from the database, using the entry's ID as parameter.
 //
@@ -125,12 +108,21 @@ func (s *Session) Delete(bean DeleteBean) *DeleteQuery {
 //
 // Be aware, since DeleteAll deletes multiple entries with only one SQL
 // command, the model's `BeforeDelete` function will not be called when using
-// this method. Thus DeleteAll should exclusively be used on models with
-// no DeletionHook.
+// this method. Thus DeleteAll should exclusively be used on models with no
+// DeletionHook.
 //
 // The request can then be executed using the DeleteAllQuery.Run method.
 func (s *Session) DeleteAll(bean DeleteAllBean) *DeleteAllQuery {
 	return &DeleteAllQuery{db: s, bean: bean}
+}
+
+// Exec executes the given custom SQL query, and returns any error encountered.
+// The query uses the '?' character as a placeholder for arguments.
+//
+// Be aware that, since this method bypasses the data models, all the models'
+// hooks will be skipped. Thus, this method should be used with extreme caution.
+func (s *Session) Exec(query string, args ...interface{}) Error {
+	return exec(s.session, s.logger, query, args...)
 }
 
 // ResetIncrement resets the auto-increment on the given model's ID primary key.
@@ -151,7 +143,7 @@ func (s *Session) ResetIncrement(bean IterateBean) Error {
 	case schemas.SQLITE:
 		_, err = s.session.Exec("DELETE FROM sqlite_sequence WHERE name=?", bean.TableName())
 	case schemas.POSTGRES:
-		_, err = s.session.Exec("ALTER SEQUENCE " + bean.TableName() + "_id_seq RESTART WITH 1")
+		_, err = s.session.Exec("TRUNCATE " + bean.TableName() + " RESTART IDENTITY CASCADE")
 	case schemas.MYSQL:
 		_, err = s.session.Exec("ALTER TABLE " + bean.TableName() + " AUTO_INCREMENT = 1")
 	default:

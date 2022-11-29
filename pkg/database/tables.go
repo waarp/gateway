@@ -1,13 +1,21 @@
 package database
 
-import "sync"
+import (
+	"database/sql"
+	"fmt"
+
+	"code.waarp.fr/lib/log"
+	"xorm.io/xorm"
+
+	"code.waarp.fr/apps/gateway/gateway/pkg/conf"
+	"code.waarp.fr/apps/gateway/gateway/pkg/database/migrations"
+	vers "code.waarp.fr/apps/gateway/gateway/pkg/version"
+)
 
 //nolint:gochecknoglobals // global var is used by design
 var (
 	// Tables lists the schema of all database tables.
 	tables []Table
-
-	tableLock sync.Mutex
 
 	// BcryptRounds defines the number of rounds taken by bcrypt to hash passwords
 	// in the database.
@@ -16,25 +24,6 @@ var (
 
 // AddTable adds the given model to the pool of database tables.
 func AddTable(t Table) {
-	tableLock.Lock()
-	defer tableLock.Unlock()
-
-	tables = append(tables, t)
-}
-
-// UpdateTable adds the given model to the pool of database tables.
-func UpdateTable(t Table) {
-	tableLock.Lock()
-	defer tableLock.Unlock()
-
-	for i, e := range tables {
-		if e.TableName() == t.TableName() {
-			tables[i] = t
-
-			return
-		}
-	}
-
 	tables = append(tables, t)
 }
 
@@ -45,45 +34,77 @@ type initialiser interface {
 	Init(Access) Error
 }
 
-// initTables creates the database tables if they don't exist and fills them
-// with the default entries.
-func initTables(db *Standalone, withInit bool) error {
-	return db.Transaction(func(ses *Session) Error {
-		for _, tbl := range tables {
-			if ok, err := ses.session.IsTableExist(tbl.TableName()); err != nil {
-				db.logger.Critical("Failed to retrieve database table list: %s", err)
+type Executor struct {
+	Dialect string
+	Logger  *log.Logger
+	ses     *xorm.Session
+}
 
-				return NewInternalError(err)
-			} else if !ok {
-				if err := ses.session.Table(tbl.TableName()).CreateTable(tbl); err != nil {
-					db.logger.Critical("Failed to create the '%s' database table: %s",
-						tbl.TableName(), err)
+func (e *Executor) Exec(query string, args ...interface{}) (sql.Result, error) {
+	elems := append([]interface{}{query}, args...)
 
-					return NewInternalError(err)
-				}
+	if res, err := e.ses.Exec(elems...); err != nil {
+		return nil, fmt.Errorf("command failed: %w", err)
+	} else {
+		return res, nil
+	}
+}
 
-				if err := ses.session.Table(tbl.TableName()).CreateUniques(tbl); err != nil {
-					db.logger.Critical("Failed to create the '%s' table uniques: %s",
-						tbl.TableName(), err)
+func (e *Executor) Query(query string, args ...interface{}) ([]map[string]interface{}, error) {
+	elems := append([]interface{}{query}, args...)
 
-					return NewInternalError(err)
-				}
+	if res, err := e.ses.QueryInterface(elems...); err != nil {
+		return nil, fmt.Errorf("query failed: %w", err)
+	} else {
+		return res, nil
+	}
+}
 
-				if err := ses.session.Table(tbl.TableName()).CreateIndexes(tbl); err != nil {
-					db.logger.Critical("Failed to create the '%s' table indexes: %s",
-						tbl.TableName(), err)
+// initDatabase initializes the database and then updates it to the latest version.
+func initDatabase(db *Standalone) error {
+	sqlDB := db.engine.DB().DB
+	dialect := conf.GlobalConfig.Database.Type
+	logger := db.logger
 
-					return NewInternalError(err)
-				}
-			}
+	dbExist, existErr := db.engine.IsTableExist(&version{})
+	if existErr != nil {
+		logger.Critical("Failed to probe the database table list: %v", existErr)
 
-			if init, ok := tbl.(initialiser); ok && withInit {
-				if err := init.Init(ses); err != nil {
-					return err
-				}
+		return fmt.Errorf("failed to probe the database table list: %w", existErr)
+	}
+
+	if !dbExist {
+		if err2 := migrations.DoMigration(sqlDB, logger, vers.Num, dialect, nil); err2 != nil {
+			logger.Critical("Database initialization failed: %v", err2)
+
+			return fmt.Errorf("database initialization failed: %w", err2)
+		}
+	}
+
+	if err := db.Transaction(initTables); err != nil {
+		if !dbExist {
+			if err2 := migrations.DoMigration(sqlDB, logger, migrations.VersionNone,
+				dialect, nil); err2 != nil {
+				logger.Warning("Failed to restore the pristine database: %v", err2)
 			}
 		}
 
-		return nil
-	})
+		return fmt.Errorf("failed to initialize tables: %w", err)
+	}
+
+	return nil
+}
+
+func initTables(ses *Session) Error {
+	for _, tbl := range tables {
+		if init, ok := tbl.(initialiser); ok {
+			if err := init.Init(ses); err != nil {
+				ses.logger.Error("failed to initialize table %q: %v", tbl.TableName(), err)
+
+				return err
+			}
+		}
+	}
+
+	return nil
 }

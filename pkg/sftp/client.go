@@ -108,7 +108,7 @@ func (c *client) send(filepath string) *types.TransferError {
 		if stat, statErr := c.sftpSession.Stat(filepath); statErr != nil {
 			c.pip.Logger.Warning("Failed to retrieve the remote file's size: %s", statErr)
 		} else {
-			c.pip.TransCtx.Transfer.Progress = uint64(stat.Size())
+			c.pip.TransCtx.Transfer.Progress = stat.Size()
 		}
 
 		if err := c.pip.UpdateTrans(); err != nil {
@@ -144,7 +144,7 @@ func (c *client) receive(filepath string) *types.TransferError {
 // Data copies the content of the source file into the destination file.
 func (c *client) Data(data pipeline.DataStream) *types.TransferError {
 	if c.pip.TransCtx.Transfer.Progress != 0 {
-		_, err := c.remoteFile.Seek(int64(c.pip.TransCtx.Transfer.Progress), io.SeekStart)
+		_, err := c.remoteFile.Seek(c.pip.TransCtx.Transfer.Progress, io.SeekStart)
 		if err != nil {
 			c.pip.Logger.Error("Failed to seek into remote SFTP file: %s", err)
 

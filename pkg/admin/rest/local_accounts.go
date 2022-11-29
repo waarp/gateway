@@ -12,8 +12,10 @@ import (
 )
 
 //nolint:dupl // duplicated code is about a different type
-func getLocAcc(r *http.Request, db *database.DB) (*model.LocalAgent, *model.LocalAccount, error) {
-	parent, err := getServ(r, db)
+func getDBLocalAccount(r *http.Request, db *database.DB) (*model.LocalAgent,
+	*model.LocalAccount, error,
+) {
+	parent, err := getDBServer(r, db)
 	if err != nil {
 		return nil, nil, err
 	}
@@ -23,8 +25,8 @@ func getLocAcc(r *http.Request, db *database.DB) (*model.LocalAgent, *model.Loca
 		return parent, nil, notFound("missing account login")
 	}
 
-	var account model.LocalAccount
-	if err := db.Get(&account, "login=? AND local_agent_id=?", login, parent.ID).
+	var dbAccount model.LocalAccount
+	if err := db.Get(&dbAccount, "login=? AND local_agent_id=?", login, parent.ID).
 		Run(); err != nil {
 		if database.IsNotFound(err) {
 			return parent, nil, notFound("no account '%s' found for server %s",
@@ -34,23 +36,22 @@ func getLocAcc(r *http.Request, db *database.DB) (*model.LocalAgent, *model.Loca
 		return parent, nil, err
 	}
 
-	return parent, &account, nil
+	return parent, &dbAccount, nil
 }
 
 func getLocalAccount(logger *log.Logger, db *database.DB) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		_, result, err := getLocAcc(r, db)
+		_, dbAccount, err := getDBLocalAccount(r, db)
 		if handleError(w, logger, err) {
 			return
 		}
 
-		rules, err := getAuthorizedRules(db, result.TableName(), result.ID)
+		restAccount, err := DBLocalAccountToREST(db, dbAccount)
 		if handleError(w, logger, err) {
 			return
 		}
 
-		err = writeJSON(w, FromLocalAccount(result, rules))
-		handleError(w, logger, err)
+		handleError(w, logger, writeJSON(w, restAccount))
 	}
 }
 
@@ -61,18 +62,17 @@ func listLocalAccounts(logger *log.Logger, db *database.DB) http.HandlerFunc {
 		"login+":  order{"login", true},
 		"login-":  order{"login", false},
 	}
-	typ := (&model.LocalAccount{}).TableName()
 
 	return func(w http.ResponseWriter, r *http.Request) {
-		var accounts model.LocalAccounts
-
-		query, err := parseSelectQuery(r, db, validSorting, &accounts)
-		if handleError(w, logger, err) {
+		parent, getErr := getDBServer(r, db)
+		if handleError(w, logger, getErr) {
 			return
 		}
 
-		parent, err := getServ(r, db)
-		if handleError(w, logger, err) {
+		var dbAccounts model.LocalAccounts
+
+		query, getErr := parseSelectQuery(r, db, validSorting, &dbAccounts)
+		if handleError(w, logger, getErr) {
 			return
 		}
 
@@ -82,111 +82,104 @@ func listLocalAccounts(logger *log.Logger, db *database.DB) http.HandlerFunc {
 			return
 		}
 
-		ids := make([]uint64, len(accounts))
-		for i := range accounts {
-			ids[i] = accounts[i].ID
-		}
-
-		rules, err := getAuthorizedRuleList(db, typ, ids)
-		if handleError(w, logger, err) {
+		restAccounts, getErr := DBLocalAccountsToRest(db, dbAccounts)
+		if handleError(w, logger, getErr) {
 			return
 		}
 
-		resp := map[string][]api.OutAccount{"localAccounts": FromLocalAccounts(accounts, rules)}
-		err = writeJSON(w, resp)
-		handleError(w, logger, err)
+		response := map[string][]*api.OutAccount{"localAccounts": restAccounts}
+		handleError(w, logger, writeJSON(w, response))
 	}
 }
 
 func addLocalAccount(logger *log.Logger, db *database.DB) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		parent, err := getServ(r, db)
-		if handleError(w, logger, err) {
+		parent, getErr := getDBServer(r, db)
+		if handleError(w, logger, getErr) {
 			return
 		}
 
-		var jAcc api.InAccount
-
-		if err2 := readJSON(r, &jAcc); handleError(w, logger, err2) {
+		var restAccount api.InAccount
+		if err := readJSON(r, &restAccount); handleError(w, logger, err) {
 			return
 		}
 
-		account, err := accToLocal(&jAcc, parent, 0)
-		if handleError(w, logger, err) {
+		dbAccount, convErr := restLocalAccountToDB(&restAccount, parent)
+		if handleError(w, logger, convErr) {
 			return
 		}
 
-		if err := db.Insert(account).Run(); handleError(w, logger, err) {
+		if err := db.Insert(dbAccount).Run(); handleError(w, logger, err) {
 			return
 		}
 
-		w.Header().Set("Location", location(r.URL, account.Login))
+		w.Header().Set("Location", location(r.URL, dbAccount.Login))
 		w.WriteHeader(http.StatusCreated)
 	}
 }
 
 func updateLocalAccount(logger *log.Logger, db *database.DB) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		parent, old, err := getLocAcc(r, db)
-		if handleError(w, logger, err) {
+		parent, oldAccount, getErr := getDBLocalAccount(r, db)
+		if handleError(w, logger, getErr) {
 			return
 		}
 
-		jAcc := newInLocAccount(old)
-
-		if err2 := readJSON(r, jAcc); handleError(w, logger, err2) {
+		restAccount := dbLocalAccountToRESTInput(oldAccount)
+		if err := readJSON(r, restAccount); handleError(w, logger, err) {
 			return
 		}
 
-		acc, err := accToLocal(jAcc, parent, old.ID)
-		if handleError(w, logger, err) {
+		dbAccount, convErr := restLocalAccountToDB(restAccount, parent)
+		if handleError(w, logger, convErr) {
 			return
 		}
 
-		if err := db.Update(acc).Run(); handleError(w, logger, err) {
+		dbAccount.ID = oldAccount.ID
+		if err := db.Update(dbAccount).Run(); handleError(w, logger, err) {
 			return
 		}
 
-		w.Header().Set("Location", locationUpdate(r.URL, acc.Login))
+		w.Header().Set("Location", locationUpdate(r.URL, dbAccount.Login))
 		w.WriteHeader(http.StatusCreated)
 	}
 }
 
 func replaceLocalAccount(logger *log.Logger, db *database.DB) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		parent, old, err := getLocAcc(r, db)
-		if handleError(w, logger, err) {
+		parent, oldAccount, getErr := getDBLocalAccount(r, db)
+		if handleError(w, logger, getErr) {
 			return
 		}
 
-		var jAcc api.InAccount
-
-		if err2 := readJSON(r, &jAcc); handleError(w, logger, err2) {
+		var restAccount api.InAccount
+		if err := readJSON(r, &restAccount); handleError(w, logger, err) {
 			return
 		}
 
-		acc, err := accToLocal(&jAcc, parent, old.ID)
-		if handleError(w, logger, err) {
+		dbAccount, convErr := restLocalAccountToDB(&restAccount, parent)
+		if handleError(w, logger, convErr) {
 			return
 		}
 
-		if err := db.Update(acc).Run(); handleError(w, logger, err) {
+		dbAccount.ID = oldAccount.ID
+		if err := db.Update(dbAccount).Run(); handleError(w, logger, err) {
 			return
 		}
 
-		w.Header().Set("Location", locationUpdate(r.URL, acc.Login))
+		w.Header().Set("Location", locationUpdate(r.URL, dbAccount.Login))
 		w.WriteHeader(http.StatusCreated)
 	}
 }
 
 func deleteLocalAccount(logger *log.Logger, db *database.DB) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		_, acc, err := getLocAcc(r, db)
-		if handleError(w, logger, err) {
+		_, dbAccount, getErr := getDBLocalAccount(r, db)
+		if handleError(w, logger, getErr) {
 			return
 		}
 
-		if err := db.Delete(acc).Run(); handleError(w, logger, err) {
+		if err := db.Delete(dbAccount).Run(); handleError(w, logger, err) {
 			return
 		}
 
@@ -196,96 +189,88 @@ func deleteLocalAccount(logger *log.Logger, db *database.DB) http.HandlerFunc {
 
 func authorizeLocalAccount(logger *log.Logger, db *database.DB) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		_, acc, err := getLocAcc(r, db)
-		if handleError(w, logger, err) {
+		_, dbAccount, getErr := getDBLocalAccount(r, db)
+		if handleError(w, logger, getErr) {
 			return
 		}
 
-		err = authorizeRule(w, r, db, acc.TableName(), acc.ID)
-		handleError(w, logger, err)
+		handleError(w, logger, authorizeRule(w, r, db, dbAccount))
 	}
 }
 
 func revokeLocalAccount(logger *log.Logger, db *database.DB) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		_, acc, err := getLocAcc(r, db)
-		if handleError(w, logger, err) {
+		_, dbAccount, getErr := getDBLocalAccount(r, db)
+		if handleError(w, logger, getErr) {
 			return
 		}
 
-		err = revokeRule(w, r, db, acc.TableName(), acc.ID)
-		handleError(w, logger, err)
+		handleError(w, logger, revokeRule(w, r, db, dbAccount))
 	}
 }
 
 func getLocAccountCert(logger *log.Logger, db *database.DB) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		_, acc, err := getLocAcc(r, db)
-		if handleError(w, logger, err) {
+		_, dbAccount, getErr := getDBLocalAccount(r, db)
+		if handleError(w, logger, getErr) {
 			return
 		}
 
-		err = getCrypto(w, r, db, acc.TableName(), acc.ID)
-		handleError(w, logger, err)
+		handleError(w, logger, getCrypto(w, r, db, dbAccount))
 	}
 }
 
 func addLocAccountCert(logger *log.Logger, db *database.DB) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		_, acc, err := getLocAcc(r, db)
-		if handleError(w, logger, err) {
+		_, dbAccount, getErr := getDBLocalAccount(r, db)
+		if handleError(w, logger, getErr) {
 			return
 		}
 
-		err = createCrypto(w, r, db, acc.TableName(), acc.ID)
-		handleError(w, logger, err)
+		handleError(w, logger, createCrypto(w, r, db, dbAccount))
 	}
 }
 
 func listLocAccountCerts(logger *log.Logger, db *database.DB) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		_, acc, err := getLocAcc(r, db)
-		if handleError(w, logger, err) {
+		_, dbAccount, getErr := getDBLocalAccount(r, db)
+		if handleError(w, logger, getErr) {
 			return
 		}
 
-		err = listCryptos(w, r, db, acc.TableName(), acc.ID)
-		handleError(w, logger, err)
+		handleError(w, logger, listCryptos(w, r, db, dbAccount))
 	}
 }
 
 func deleteLocAccountCert(logger *log.Logger, db *database.DB) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		_, acc, err := getLocAcc(r, db)
-		if handleError(w, logger, err) {
+		_, dbAccount, getErr := getDBLocalAccount(r, db)
+		if handleError(w, logger, getErr) {
 			return
 		}
 
-		err = deleteCrypto(w, r, db, acc.TableName(), acc.ID)
-		handleError(w, logger, err)
+		handleError(w, logger, deleteCrypto(w, r, db, dbAccount))
 	}
 }
 
 func updateLocAccountCert(logger *log.Logger, db *database.DB) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		_, acc, err := getLocAcc(r, db)
-		if handleError(w, logger, err) {
+		_, dbAccount, getErr := getDBLocalAccount(r, db)
+		if handleError(w, logger, getErr) {
 			return
 		}
 
-		err = updateCrypto(w, r, db, acc.TableName(), acc.ID)
-		handleError(w, logger, err)
+		handleError(w, logger, updateCrypto(w, r, db, dbAccount))
 	}
 }
 
 func replaceLocAccountCert(logger *log.Logger, db *database.DB) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		_, acc, err := getLocAcc(r, db)
-		if handleError(w, logger, err) {
+		_, dbAccount, getErr := getDBLocalAccount(r, db)
+		if handleError(w, logger, getErr) {
 			return
 		}
 
-		err = replaceCrypto(w, r, db, acc.TableName(), acc.ID)
-		handleError(w, logger, err)
+		handleError(w, logger, replaceCrypto(w, r, db, dbAccount))
 	}
 }

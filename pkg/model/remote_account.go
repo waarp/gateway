@@ -3,47 +3,26 @@ package model
 import (
 	"code.waarp.fr/apps/gateway/gateway/pkg/database"
 	"code.waarp.fr/apps/gateway/gateway/pkg/model/types"
+	"code.waarp.fr/apps/gateway/gateway/pkg/tk/utils"
 )
-
-//nolint:gochecknoinits // init is used by design
-func init() {
-	database.AddTable(&RemoteAccount{})
-}
 
 // RemoteAccount represents an account on a remote agent. It is used by the
 // gateway to authenticate on distant servers for transfers.
 type RemoteAccount struct {
+	ID            int64 `xorm:"<- id AUTOINCR"`  // The account's database ID
+	RemoteAgentID int64 `xorm:"remote_agent_id"` // The ID of the RemoteAgent this account is attached to
 
-	// The account's database ID
-	ID uint64 `xorm:"pk autoincr <- 'id'"`
-
-	// The ID of the `RemoteAgent` this account is attached to
-	RemoteAgentID uint64 `xorm:"unique(rem_ac) notnull 'remote_agent_id'"`
-
-	// The account's login
-	Login string `xorm:"unique(rem_ac) notnull 'login'"`
-
-	// The account's password
-	Password types.CypherText `xorm:"text 'password'"`
+	Login    string           `xorm:"login"`    // The account's login
+	Password types.CypherText `xorm:"password"` // The account's password
 }
 
-// TableName returns the remote accounts table name.
-func (*RemoteAccount) TableName() string {
-	return TableRemAccounts
-}
-
-// Appellation returns the name of 1 element of the remote accounts table.
-func (*RemoteAccount) Appellation() string {
-	return "remote account"
-}
-
-// GetID returns the account's ID.
-func (r *RemoteAccount) GetID() uint64 {
-	return r.ID
-}
+func (*RemoteAccount) TableName() string   { return TableRemAccounts }
+func (*RemoteAccount) Appellation() string { return "remote account" }
+func (r *RemoteAccount) GetID() int64      { return r.ID }
 
 // BeforeWrite checks if the new `RemoteAccount` entry is valid and can be
 // inserted in the database.
+//
 //nolint:dupl // too many differences to be factorized easily
 func (r *RemoteAccount) BeforeWrite(db database.ReadAccess) database.Error {
 	if r.RemoteAgentID == 0 {
@@ -75,33 +54,30 @@ func (r *RemoteAccount) BeforeWrite(db database.ReadAccess) database.Error {
 }
 
 // BeforeDelete is called before deleting the account from the database. Its
-// role is to delete all the certificates tied to the account.
-//nolint:dupl // too many differences to be factorized easily
+// role is to check whether the account is still used in any ongoing transfer.
 func (r *RemoteAccount) BeforeDelete(db database.Access) database.Error {
-	n, err := db.Count(&Transfer{}).Where("is_server=? AND account_id=?", false, r.ID).Run()
-	if err != nil {
+	if n, err := db.Count(&Transfer{}).Where("remote_account_id=?", r.ID).Run(); err != nil {
 		return err
+	} else if n > 0 {
+		return database.NewValidationError("this account is currently being used " +
+			"in one or more running transfers and thus cannot be deleted, cancel " +
+			"these transfers or wait for them to finish")
 	}
 
-	if n > 0 {
-		return database.NewValidationError("this account is currently being used in a " +
-			"running transfer and cannot be deleted, cancel the transfer or wait " +
-			"for it to finish")
-	}
-
-	certQuery := db.DeleteAll(&Crypto{}).Where(
-		"owner_type=? AND owner_id=?", TableRemAccounts, r.ID)
-	if err := certQuery.Run(); err != nil {
-		return err
-	}
-
-	accessQuery := db.DeleteAll(&RuleAccess{}).Where(
-		"object_type=? AND object_id=?", TableRemAccounts, r.ID)
-
-	return accessQuery.Run()
+	return nil
 }
 
 // GetCryptos fetch in the database then return the associated Cryptos if they exist.
-func (r *RemoteAccount) GetCryptos(db database.ReadAccess) ([]Crypto, database.Error) {
-	return GetCryptos(db, r)
+func (r *RemoteAccount) GetCryptos(db database.ReadAccess) ([]*Crypto, error) {
+	return getCryptos(db, r)
+}
+
+//nolint:goconst //different columns having the same name does not warrant making that name a constant
+func (r *RemoteAccount) GenCryptoSelectCond() (string, int64) { return "remote_account_id=?", r.ID }
+func (r *RemoteAccount) SetCryptoOwner(c *Crypto)             { c.RemoteAccountID = utils.NewNullInt64(r.ID) }
+func (r *RemoteAccount) GenAccessSelectCond() (string, int64) { return "remote_account_id=?", r.ID }
+func (r *RemoteAccount) SetAccessTarget(a *RuleAccess)        { a.RemoteAccountID = utils.NewNullInt64(r.ID) }
+
+func (r *RemoteAccount) GetAuthorizedRules(db database.ReadAccess) ([]*Rule, error) {
+	return getAuthorizedRules(db, "remote_account_id", r.ID)
 }

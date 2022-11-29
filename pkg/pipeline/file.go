@@ -29,7 +29,7 @@ func (f *fileStream) getFile() (*os.File, *types.TransferError) {
 		}
 
 		if trans.Progress != 0 {
-			if _, err := file.Seek(int64(trans.Progress), io.SeekStart); err != nil {
+			if _, err := file.Seek(trans.Progress, io.SeekStart); err != nil {
 				f.Logger.Error("Failed to seek inside file: %s", err)
 
 				return nil, types.NewTransferError(types.TeForbidden, err.Error())
@@ -53,7 +53,7 @@ func (f *fileStream) getFile() (*os.File, *types.TransferError) {
 	}
 
 	if trans.Progress != 0 {
-		if _, err := file.Seek(int64(trans.Progress), io.SeekStart); err != nil {
+		if _, err := file.Seek(trans.Progress, io.SeekStart); err != nil {
 			f.Logger.Error("Failed to seek inside file: %s", err)
 
 			return nil, fileErrToTransferErr(err)
@@ -77,13 +77,13 @@ func createDir(file string) *types.TransferError {
 // setFilePaths builds the transfer's local & remote paths according to the
 // transfer's context. For the local path, the building process is as follow:
 //
-//   GatewayHome                                                                      ↑
-//       ├─────────────────────────────────────────────────────┐                 Less priority
-//   Server root*                                     Default in/out/tmp dir
-//       ├───────────────────────────┐                                           More priority
-//   Rule local path       Server in/out/tmp dir*                                     ↓
+//	 GatewayHome                                                                      ↑
+//	     ├─────────────────────────────────────────────────────┐                 Less priority
+//	 Server root*                                     Default in/out/tmp dir
+//	     ├───────────────────────────┐                                           More priority
+//	 Rule local path       Server in/out/tmp dir*                                     ↓
 //
-//  *only applicable in server transfers
+//	*only applicable in server transfers
 //
 // For remote paths, only the rule's remote dir is added (if defined) before the
 // file name.
@@ -102,19 +102,19 @@ func (p *Pipeline) setFilePaths() {
 func makeLocalDir(transCtx *model.TransferContext) string {
 	switch {
 	// Partner client <- GW server
-	case transCtx.Transfer.IsServer && transCtx.Rule.IsSend:
+	case transCtx.Transfer.IsServer() && transCtx.Rule.IsSend:
 		return utils.GetPath("", leaf(transCtx.Rule.LocalDir),
 			leaf(transCtx.LocalAgent.SendDir), branch(transCtx.LocalAgent.RootDir),
 			leaf(transCtx.Paths.DefaultOutDir), branch(transCtx.Paths.GatewayHome))
 	// Partner client -> GW server
-	case transCtx.Transfer.IsServer && !transCtx.Rule.IsSend:
+	case transCtx.Transfer.IsServer() && !transCtx.Rule.IsSend:
 		return utils.GetPath("", leaf(transCtx.Rule.TmpLocalRcvDir),
 			leaf(transCtx.Rule.LocalDir), leaf(transCtx.LocalAgent.TmpReceiveDir),
 			leaf(transCtx.LocalAgent.ReceiveDir), branch(transCtx.LocalAgent.RootDir),
 			leaf(transCtx.Paths.DefaultTmpDir), leaf(transCtx.Paths.DefaultInDir),
 			branch(transCtx.Paths.GatewayHome))
 	// GW client -> Partner server
-	case !transCtx.Transfer.IsServer && transCtx.Rule.IsSend:
+	case !transCtx.Transfer.IsServer() && transCtx.Rule.IsSend:
 		return utils.GetPath("", leaf(transCtx.Rule.LocalDir),
 			leaf(transCtx.Paths.DefaultOutDir), branch(transCtx.Paths.GatewayHome))
 	// GW client <- Partner server

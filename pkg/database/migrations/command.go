@@ -8,106 +8,93 @@ import (
 
 	"code.waarp.fr/lib/log"
 	"code.waarp.fr/lib/migration"
-	"golang.org/x/mod/semver"
 
 	"code.waarp.fr/apps/gateway/gateway/pkg/conf"
-	vers "code.waarp.fr/apps/gateway/gateway/pkg/version"
+	"code.waarp.fr/apps/gateway/gateway/pkg/version"
 )
 
 const windowsRuntime = "windows"
 
 var errInvalidVersion = errors.New("invalid database version")
 
-func getTarget(version string) (index int, err error) {
-	switch version {
-	case "latest-testing":
-		Migrations = append(Migrations, change{
-			Description: fmt.Sprintf("Bump the database version to %s", vers.Num),
-			Script:      bumpVersion{to: vers.Num},
-		})
-
-		return len(Migrations), nil
-	case "latest":
-		return len(Migrations), nil
-	default:
+func getTargetIndex(target string) (int, error) {
+	index, ok := versionsMap[target]
+	if !ok {
+		return -1, fmt.Errorf("the target database version (%s) is unknown: %w",
+			target, errInvalidVersion)
 	}
 
-	if !semver.IsValid("v" + version) {
-		return -1, fmt.Errorf("bad target version %q: %w", version, errInvalidVersion)
-	}
-
-	for i, m := range Migrations {
-		if m.VersionTag == version {
-			return i + 1, nil
-		}
-	}
-
-	return -1, fmt.Errorf("bad target version %q: %w", version, errInvalidVersion)
+	return index, nil
 }
 
-func getStart(db *sql.DB, dialect string, from int) (index int, err error) {
-	if from > 0 && from < len(Migrations) {
-		return from, nil
-	}
-
+func getCurrentIndex(db *sql.DB, dialect string) (int, error) {
 	ok, err := checkVersionTableExist(db, dialect)
 	if err != nil {
-		return -1, fmt.Errorf("failed to check the database version table: %w", err)
+		return 0, fmt.Errorf("failed to check the database version table: %w", err)
 	}
 
 	if !ok { // if version table does not exist, start migrations from the beginning
-		return 0, nil
+		return -1, nil
 	}
 
 	row := db.QueryRow("SELECT current FROM version")
 
 	var current string
 	if err := row.Scan(&current); err != nil {
-		return -1, fmt.Errorf("cannot scan database results: %w", err)
+		return 0, fmt.Errorf("cannot scan database results: %w", err)
 	}
 
-	for i, m := range Migrations {
-		if m.VersionTag == current {
-			return i + 1, nil
-		}
+	index, ok := versionsMap[current]
+	if !ok {
+		return 0, fmt.Errorf("the current database version (%s) is unknown: %w",
+			current, errInvalidVersion)
 	}
 
-	return -1, fmt.Errorf("the current database version (%s) is unknown: %w", current, errInvalidVersion)
+	return index, nil
 }
 
-func doMigration(db *sql.DB, logger *log.Logger, version, dialect string,
-	from int, out io.Writer,
+func DoMigration(db *sql.DB, logger *log.Logger, targetVersion, dialect string, out io.Writer,
 ) error {
-	start, err := getStart(db, dialect, from)
+	start, err := getCurrentIndex(db, dialect)
 	if err != nil {
 		return err
 	}
 
-	target, err := getTarget(version)
+	target, err := getTargetIndex(targetVersion)
 	if err != nil {
 		return err
 	}
 
-	if target == start {
+	if target == start && targetVersion == version.Num {
 		return nil // nothing to do
 	}
+
+	versionBump := []migration.Script{{
+		Description: fmt.Sprintf("Bump database version to %s", targetVersion),
+		Up:          setDBVersion(targetVersion),
+		Down:        setDBVersion(targetVersion),
+	}}
 
 	engine, err := migration.NewEngine(db, dialect, logger, out)
 	if err != nil {
 		return fmt.Errorf("cannot initialize migration engine: %w", err)
 	}
 
-	if target > start {
-		toApply := Migrations[start:target]
-		if err := engine.Upgrade(makeMigration(toApply)); err != nil {
+	if target >= start {
+		toApply := makeMigration(Migrations[start+1 : target+1])
+		toApply = append(toApply, versionBump...)
+
+		if err := engine.Upgrade(toApply); err != nil {
 			return fmt.Errorf("cannot upgrade database: %w", err)
 		}
 
 		return nil
 	}
 
-	toApply := Migrations[target:start]
-	if err := engine.Downgrade(makeMigration(toApply)); err != nil {
+	toApply := makeMigration(Migrations[target+1 : start+1])
+	toApply = append(versionBump, toApply...)
+
+	if err := engine.Downgrade(toApply); err != nil {
 		return fmt.Errorf("cannot downgrade database: %w", err)
 	}
 
@@ -130,12 +117,12 @@ func makeMigration(toApply []change) []migration.Script {
 
 // Execute migrates the database given in the configuration from its current
 // version to the one given as parameter.
-func Execute(config *conf.DatabaseConfig, logger *log.Logger, version string,
-	from int, out io.Writer,
+func Execute(config *conf.DatabaseConfig, logger *log.Logger, targetVersion string,
+	out io.Writer,
 ) error {
 	dbInfo, ok := rdbms[config.Type]
 	if !ok {
-		return fmt.Errorf("unknown RDBMS %s: %w", config.Type, errUnsuportedDB)
+		return errUnknownDialect(config.Type)
 	}
 
 	db, err := sql.Open(dbInfo.driver, dbInfo.makeDSN())
@@ -147,5 +134,5 @@ func Execute(config *conf.DatabaseConfig, logger *log.Logger, version string,
 
 	defer func() { _ = db.Close() }() //nolint:errcheck // cannot handle the error
 
-	return doMigration(db, logger, version, config.Type, from, out)
+	return DoMigration(db, logger, targetVersion, config.Type, out)
 }

@@ -14,6 +14,7 @@ import (
 	"code.waarp.fr/apps/gateway/gateway/pkg/database"
 	"code.waarp.fr/apps/gateway/gateway/pkg/model"
 	"code.waarp.fr/apps/gateway/gateway/pkg/model/types"
+	"code.waarp.fr/apps/gateway/gateway/pkg/tk/utils"
 )
 
 func TestNewFileStream(t *testing.T) {
@@ -21,11 +22,9 @@ func TestNewFileStream(t *testing.T) {
 		ctx := initTestDB(c)
 
 		trans := &model.Transfer{
-			IsServer:   false,
-			AgentID:    ctx.partner.ID,
-			AccountID:  ctx.remoteAccount.ID,
-			LocalPath:  filepath.Join(ctx.root, "file"),
-			RemotePath: "/remote/file",
+			RemoteAccountID: utils.NewNullInt64(ctx.remoteAccount.ID),
+			LocalPath:       filepath.Join(ctx.root, "file"),
+			RemotePath:      "/remote/file",
 		}
 
 		Convey("Given a new send transfer", func(c C) {
@@ -100,12 +99,10 @@ func TestStreamRead(t *testing.T) {
 		ctx := initTestDB(c)
 
 		trans := &model.Transfer{
-			IsServer:   false,
-			AgentID:    ctx.partner.ID,
-			AccountID:  ctx.remoteAccount.ID,
-			LocalPath:  filepath.Join(ctx.root, "file"),
-			RemotePath: "/remote/file",
-			RuleID:     ctx.send.ID,
+			RemoteAccountID: utils.NewNullInt64(ctx.remoteAccount.ID),
+			LocalPath:       filepath.Join(ctx.root, "file"),
+			RemotePath:      "/remote/file",
+			RuleID:          ctx.send.ID,
 		}
 		So(ctx.db.Insert(trans).Run(), ShouldBeNil)
 
@@ -175,12 +172,10 @@ func TestStreamReadAt(t *testing.T) {
 		ctx := initTestDB(c)
 
 		trans := &model.Transfer{
-			IsServer:   false,
-			AgentID:    ctx.partner.ID,
-			AccountID:  ctx.remoteAccount.ID,
-			LocalPath:  filepath.Join(ctx.root, "file"),
-			RemotePath: "/remote/file",
-			RuleID:     ctx.send.ID,
+			RemoteAccountID: utils.NewNullInt64(ctx.remoteAccount.ID),
+			LocalPath:       filepath.Join(ctx.root, "file"),
+			RemotePath:      "/remote/file",
+			RuleID:          ctx.send.ID,
 		}
 		So(ctx.db.Insert(trans).Run(), ShouldBeNil)
 
@@ -251,12 +246,10 @@ func TestStreamWrite(t *testing.T) {
 		ctx := initTestDB(c)
 
 		trans := &model.Transfer{
-			IsServer:   false,
-			AgentID:    ctx.partner.ID,
-			AccountID:  ctx.remoteAccount.ID,
-			LocalPath:  filepath.Join(ctx.root, "file"),
-			RemotePath: "/remote/file",
-			RuleID:     ctx.recv.ID,
+			RemoteAccountID: utils.NewNullInt64(ctx.remoteAccount.ID),
+			LocalPath:       filepath.Join(ctx.root, "file"),
+			RemotePath:      "/remote/file",
+			RuleID:          ctx.recv.ID,
 		}
 		So(ctx.db.Insert(trans).Run(), ShouldBeNil)
 
@@ -327,12 +320,10 @@ func TestStreamWriteAt(t *testing.T) {
 		ctx := initTestDB(c)
 
 		trans := &model.Transfer{
-			IsServer:   false,
-			AgentID:    ctx.partner.ID,
-			AccountID:  ctx.remoteAccount.ID,
-			LocalPath:  filepath.Join(ctx.root, "file"),
-			RemotePath: "/remote/file",
-			RuleID:     ctx.recv.ID,
+			RemoteAccountID: utils.NewNullInt64(ctx.remoteAccount.ID),
+			LocalPath:       filepath.Join(ctx.root, "file"),
+			RemotePath:      "/remote/file",
+			RuleID:          ctx.recv.ID,
 		}
 		So(ctx.db.Insert(trans).Run(), ShouldBeNil)
 
@@ -404,12 +395,10 @@ func TestStreamClose(t *testing.T) {
 		ctx := initTestDB(c)
 
 		trans := &model.Transfer{
-			IsServer:   false,
-			AgentID:    ctx.partner.ID,
-			AccountID:  ctx.remoteAccount.ID,
-			LocalPath:  filepath.Join(ctx.root, "file"),
-			RemotePath: "/remote/file",
-			RuleID:     ctx.recv.ID,
+			RemoteAccountID: utils.NewNullInt64(ctx.remoteAccount.ID),
+			LocalPath:       filepath.Join(ctx.root, "file"),
+			RemotePath:      "/remote/file",
+			RuleID:          ctx.recv.ID,
 		}
 		So(ctx.db.Insert(trans).Run(), ShouldBeNil)
 
@@ -444,12 +433,10 @@ func TestStreamMove(t *testing.T) {
 		ctx := initTestDB(c)
 
 		trans := &model.Transfer{
-			IsServer:   false,
-			AgentID:    ctx.partner.ID,
-			AccountID:  ctx.remoteAccount.ID,
-			LocalPath:  filepath.Join(ctx.root, ctx.recv.TmpLocalRcvDir, "file"),
-			RemotePath: "/remote/file",
-			RuleID:     ctx.recv.ID,
+			RemoteAccountID: utils.NewNullInt64(ctx.remoteAccount.ID),
+			LocalPath:       filepath.Join(ctx.root, ctx.recv.TmpLocalRcvDir, "file"),
+			RemotePath:      "/remote/file",
+			RuleID:          ctx.recv.ID,
 		}
 		So(ctx.db.Insert(trans).Run(), ShouldBeNil)
 
@@ -500,12 +487,10 @@ func TestStreamMove(t *testing.T) {
 		ctx := initTestDB(c)
 
 		trans := &model.Transfer{
-			IsServer:   false,
-			AgentID:    ctx.partner.ID,
-			AccountID:  ctx.remoteAccount.ID,
-			LocalPath:  filepath.Join(ctx.root, conf.GlobalConfig.Paths.DefaultOutDir, "file"),
-			RemotePath: "/remote/file",
-			RuleID:     ctx.send.ID,
+			RemoteAccountID: utils.NewNullInt64(ctx.remoteAccount.ID),
+			LocalPath:       filepath.Join(ctx.root, conf.GlobalConfig.Paths.DefaultOutDir, "file"),
+			RemotePath:      "/remote/file",
+			RuleID:          ctx.send.ID,
 		}
 		So(ctx.db.Insert(trans).Run(), ShouldBeNil)
 

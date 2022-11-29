@@ -13,6 +13,7 @@ import (
 	"code.waarp.fr/apps/gateway/gateway/pkg/admin/rest/api"
 	"code.waarp.fr/apps/gateway/gateway/pkg/database"
 	"code.waarp.fr/apps/gateway/gateway/pkg/model"
+	"code.waarp.fr/apps/gateway/gateway/pkg/tk/utils"
 	"code.waarp.fr/apps/gateway/gateway/pkg/tk/utils/testhelpers"
 )
 
@@ -54,10 +55,9 @@ func TestGetCertificate(t *testing.T) {
 
 				Convey("Given a partner certificate", func() {
 					cert := &model.Crypto{
-						OwnerType:   partner.TableName(),
-						OwnerID:     partner.ID,
-						Name:        "partner_cert",
-						Certificate: testhelpers.LocalhostCert,
+						RemoteAgentID: utils.NewNullInt64(partner.ID),
+						Name:          "partner_cert",
+						Certificate:   testhelpers.LocalhostCert,
 					}
 					So(db.Insert(cert).Run(), ShouldBeNil)
 
@@ -116,11 +116,10 @@ func TestGetCertificate(t *testing.T) {
 					}
 					So(db.Insert(account).Run(), ShouldBeNil)
 					cert := &model.Crypto{
-						OwnerType:   account.TableName(),
-						OwnerID:     account.ID,
-						Name:        "account_cert",
-						PrivateKey:  testhelpers.ClientFooKey,
-						Certificate: testhelpers.ClientFooCert,
+						RemoteAccountID: utils.NewNullInt64(account.ID),
+						Name:            "account_cert",
+						PrivateKey:      testhelpers.ClientFooKey,
+						Certificate:     testhelpers.ClientFooCert,
 					}
 					So(db.Insert(cert).Run(), ShouldBeNil)
 
@@ -201,11 +200,10 @@ func TestGetCertificate(t *testing.T) {
 
 				Convey("Given a server certificate", func() {
 					cert := &model.Crypto{
-						OwnerType:   server.TableName(),
-						OwnerID:     server.ID,
-						Name:        "server_cert",
-						PrivateKey:  testhelpers.LocalhostKey,
-						Certificate: testhelpers.LocalhostCert,
+						LocalAgentID: utils.NewNullInt64(server.ID),
+						Name:         "server_cert",
+						PrivateKey:   testhelpers.LocalhostKey,
+						Certificate:  testhelpers.LocalhostCert,
 					}
 					So(db.Insert(cert).Run(), ShouldBeNil)
 
@@ -264,10 +262,9 @@ func TestGetCertificate(t *testing.T) {
 					}
 					So(db.Insert(account).Run(), ShouldBeNil)
 					cert := &model.Crypto{
-						OwnerType:   account.TableName(),
-						OwnerID:     account.ID,
-						Name:        "account_cert",
-						Certificate: testhelpers.ClientFooCert,
+						LocalAccountID: utils.NewNullInt64(account.ID),
+						Name:           "account_cert",
+						Certificate:    testhelpers.ClientFooCert,
 					}
 					So(db.Insert(cert).Run(), ShouldBeNil)
 
@@ -390,14 +387,12 @@ func TestAddCertificate(t *testing.T) {
 								var certs model.Cryptos
 								So(db.Select(&certs).Run(), ShouldBeNil)
 
-								exp := model.Crypto{
-									ID:          1,
-									OwnerType:   partner.TableName(),
-									OwnerID:     partner.ID,
-									Name:        "partner_cert",
-									Certificate: testhelpers.LocalhostCert,
-								}
-								So(certs, ShouldContain, exp)
+								So(certs, ShouldContain, &model.Crypto{
+									ID:            1,
+									RemoteAgentID: utils.NewNullInt64(partner.ID),
+									Name:          "partner_cert",
+									Certificate:   testhelpers.LocalhostCert,
+								})
 							})
 						})
 					})
@@ -461,15 +456,13 @@ func TestAddCertificate(t *testing.T) {
 									So(db.Select(&certs).Run(), ShouldBeNil)
 									So(certs, ShouldNotBeEmpty)
 
-									exp := model.Crypto{
-										ID:          1,
-										OwnerType:   account.TableName(),
-										OwnerID:     account.ID,
-										Name:        "account_cert",
-										PrivateKey:  testhelpers.ClientFooKey,
-										Certificate: testhelpers.ClientFooCert,
-									}
-									So(certs, ShouldContain, exp)
+									So(certs, ShouldContain, &model.Crypto{
+										ID:              1,
+										RemoteAccountID: utils.NewNullInt64(account.ID),
+										Name:            "account_cert",
+										PrivateKey:      testhelpers.ClientFooKey,
+										Certificate:     testhelpers.ClientFooCert,
+									})
 								})
 							})
 						})
@@ -562,15 +555,13 @@ func TestAddCertificate(t *testing.T) {
 								So(db.Select(&certs).Run(), ShouldBeNil)
 								So(certs, ShouldNotBeEmpty)
 
-								exp := model.Crypto{
-									ID:          1,
-									OwnerType:   server.TableName(),
-									OwnerID:     server.ID,
-									Name:        "server_cert",
-									PrivateKey:  testhelpers.LocalhostKey,
-									Certificate: testhelpers.LocalhostCert,
-								}
-								So(certs, ShouldContain, exp)
+								So(certs, ShouldContain, &model.Crypto{
+									ID:           1,
+									LocalAgentID: utils.NewNullInt64(server.ID),
+									Name:         "server_cert",
+									PrivateKey:   testhelpers.LocalhostKey,
+									Certificate:  testhelpers.LocalhostCert,
+								})
 							})
 						})
 					})
@@ -633,14 +624,12 @@ func TestAddCertificate(t *testing.T) {
 									So(db.Select(&certs).Run(), ShouldBeNil)
 									So(certs, ShouldNotBeEmpty)
 
-									exp := model.Crypto{
-										ID:          1,
-										OwnerType:   account.TableName(),
-										OwnerID:     account.ID,
-										Name:        "account_cert",
-										Certificate: testhelpers.ClientFooCert,
-									}
-									So(certs, ShouldContain, exp)
+									So(certs, ShouldContain, &model.Crypto{
+										ID:             1,
+										LocalAccountID: utils.NewNullInt64(account.ID),
+										Name:           "account_cert",
+										Certificate:    testhelpers.ClientFooCert,
+									})
 								})
 							})
 						})
@@ -728,10 +717,9 @@ func TestDeleteCertificate(t *testing.T) {
 
 				Convey("Given a partner certificate", func() {
 					cert := &model.Crypto{
-						OwnerType:   partner.TableName(),
-						OwnerID:     partner.ID,
-						Name:        "partner_cert",
-						Certificate: testhelpers.LocalhostCert,
+						RemoteAgentID: utils.NewNullInt64(partner.ID),
+						Name:          "partner_cert",
+						Certificate:   testhelpers.LocalhostCert,
 					}
 					So(db.Insert(cert).Run(), ShouldBeNil)
 
@@ -774,7 +762,7 @@ func TestDeleteCertificate(t *testing.T) {
 								var certs model.Cryptos
 								So(db.Select(&certs).Run(), ShouldBeNil)
 								So(certs, ShouldNotBeEmpty)
-								So(certs, ShouldContain, *cert)
+								So(certs, ShouldContain, cert)
 							})
 						})
 					})
@@ -796,7 +784,7 @@ func TestDeleteCertificate(t *testing.T) {
 								var certs model.Cryptos
 								So(db.Select(&certs).Run(), ShouldBeNil)
 								So(certs, ShouldNotBeEmpty)
-								So(certs, ShouldContain, *cert)
+								So(certs, ShouldContain, cert)
 							})
 						})
 					})
@@ -811,11 +799,10 @@ func TestDeleteCertificate(t *testing.T) {
 					So(db.Insert(account).Run(), ShouldBeNil)
 
 					cert := &model.Crypto{
-						OwnerType:   account.TableName(),
-						OwnerID:     account.ID,
-						Name:        "account_cert",
-						PrivateKey:  testhelpers.ClientFooKey,
-						Certificate: testhelpers.ClientFooCert,
+						RemoteAccountID: utils.NewNullInt64(account.ID),
+						Name:            "account_cert",
+						PrivateKey:      testhelpers.ClientFooKey,
+						Certificate:     testhelpers.ClientFooCert,
 					}
 					So(db.Insert(cert).Run(), ShouldBeNil)
 
@@ -860,7 +847,7 @@ func TestDeleteCertificate(t *testing.T) {
 								var certs model.Cryptos
 								So(db.Select(&certs).Run(), ShouldBeNil)
 								So(certs, ShouldNotBeEmpty)
-								So(certs, ShouldContain, *cert)
+								So(certs, ShouldContain, cert)
 							})
 						})
 					})
@@ -883,7 +870,7 @@ func TestDeleteCertificate(t *testing.T) {
 								var certs model.Cryptos
 								So(db.Select(&certs).Run(), ShouldBeNil)
 								So(certs, ShouldNotBeEmpty)
-								So(certs, ShouldContain, *cert)
+								So(certs, ShouldContain, cert)
 							})
 						})
 					})
@@ -906,7 +893,7 @@ func TestDeleteCertificate(t *testing.T) {
 								var certs model.Cryptos
 								So(db.Select(&certs).Run(), ShouldBeNil)
 								So(certs, ShouldNotBeEmpty)
-								So(certs, ShouldContain, *cert)
+								So(certs, ShouldContain, cert)
 							})
 						})
 					})
@@ -924,11 +911,10 @@ func TestDeleteCertificate(t *testing.T) {
 
 				Convey("Given a server certificate", func() {
 					cert := &model.Crypto{
-						OwnerType:   server.TableName(),
-						OwnerID:     server.ID,
-						Name:        "server_cert",
-						PrivateKey:  testhelpers.LocalhostKey,
-						Certificate: testhelpers.LocalhostCert,
+						LocalAgentID: utils.NewNullInt64(server.ID),
+						Name:         "server_cert",
+						PrivateKey:   testhelpers.LocalhostKey,
+						Certificate:  testhelpers.LocalhostCert,
 					}
 					So(db.Insert(cert).Run(), ShouldBeNil)
 
@@ -971,7 +957,7 @@ func TestDeleteCertificate(t *testing.T) {
 								var certs model.Cryptos
 								So(db.Select(&certs).Run(), ShouldBeNil)
 								So(certs, ShouldNotBeEmpty)
-								So(certs, ShouldContain, *cert)
+								So(certs, ShouldContain, cert)
 							})
 						})
 					})
@@ -993,7 +979,7 @@ func TestDeleteCertificate(t *testing.T) {
 								var certs model.Cryptos
 								So(db.Select(&certs).Run(), ShouldBeNil)
 								So(certs, ShouldNotBeEmpty)
-								So(certs, ShouldContain, *cert)
+								So(certs, ShouldContain, cert)
 							})
 						})
 					})
@@ -1008,10 +994,9 @@ func TestDeleteCertificate(t *testing.T) {
 					So(db.Insert(account).Run(), ShouldBeNil)
 
 					cert := &model.Crypto{
-						OwnerType:   account.TableName(),
-						OwnerID:     account.ID,
-						Name:        "account_cert",
-						Certificate: testhelpers.ClientFooCert,
+						LocalAccountID: utils.NewNullInt64(account.ID),
+						Name:           "account_cert",
+						Certificate:    testhelpers.ClientFooCert,
 					}
 					So(db.Insert(cert).Run(), ShouldBeNil)
 
@@ -1056,7 +1041,7 @@ func TestDeleteCertificate(t *testing.T) {
 								var certs model.Cryptos
 								So(db.Select(&certs).Run(), ShouldBeNil)
 								So(certs, ShouldNotBeEmpty)
-								So(certs, ShouldContain, *cert)
+								So(certs, ShouldContain, cert)
 							})
 						})
 					})
@@ -1079,7 +1064,7 @@ func TestDeleteCertificate(t *testing.T) {
 								var certs model.Cryptos
 								So(db.Select(&certs).Run(), ShouldBeNil)
 								So(certs, ShouldNotBeEmpty)
-								So(certs, ShouldContain, *cert)
+								So(certs, ShouldContain, cert)
 							})
 						})
 					})
@@ -1102,7 +1087,7 @@ func TestDeleteCertificate(t *testing.T) {
 								var certs model.Cryptos
 								So(db.Select(&certs).Run(), ShouldBeNil)
 								So(certs, ShouldNotBeEmpty)
-								So(certs, ShouldContain, *cert)
+								So(certs, ShouldContain, cert)
 							})
 						})
 					})
@@ -1137,17 +1122,15 @@ func TestListCertificate(t *testing.T) {
 
 				Convey("Given a partner certificate", func() {
 					cert1 := &model.Crypto{
-						OwnerType:   partner.TableName(),
-						OwnerID:     partner.ID,
-						Name:        "partner_cert_1",
-						Certificate: testhelpers.LocalhostCert,
+						RemoteAgentID: utils.NewNullInt64(partner.ID),
+						Name:          "partner_cert_1",
+						Certificate:   testhelpers.LocalhostCert,
 					}
 					So(db.Insert(cert1).Run(), ShouldBeNil)
 					cert2 := &model.Crypto{
-						OwnerType:   partner.TableName(),
-						OwnerID:     partner.ID,
-						Name:        "partner_cert_2",
-						Certificate: testhelpers.OtherLocalhostCert,
+						RemoteAgentID: utils.NewNullInt64(partner.ID),
+						Name:          "partner_cert_2",
+						Certificate:   testhelpers.OtherLocalhostCert,
 					}
 					So(db.Insert(cert2).Run(), ShouldBeNil)
 
@@ -1243,20 +1226,18 @@ func TestListCertificate(t *testing.T) {
 					So(db.Insert(account).Run(), ShouldBeNil)
 
 					cert1 := &model.Crypto{
-						OwnerType:   account.TableName(),
-						OwnerID:     account.ID,
-						Name:        "account_cert_1",
-						PrivateKey:  testhelpers.ClientFooKey,
-						Certificate: testhelpers.ClientFooCert,
+						RemoteAccountID: utils.NewNullInt64(account.ID),
+						Name:            "account_cert_1",
+						PrivateKey:      testhelpers.ClientFooKey,
+						Certificate:     testhelpers.ClientFooCert,
 					}
 					So(db.Insert(cert1).Run(), ShouldBeNil)
 
 					cert2 := &model.Crypto{
-						OwnerType:   account.TableName(),
-						OwnerID:     account.ID,
-						Name:        "account_cert_2",
-						PrivateKey:  testhelpers.ClientFooKey2,
-						Certificate: testhelpers.ClientFooCert2,
+						RemoteAccountID: utils.NewNullInt64(account.ID),
+						Name:            "account_cert_2",
+						PrivateKey:      testhelpers.ClientFooKey2,
+						Certificate:     testhelpers.ClientFooCert2,
 					}
 					So(db.Insert(cert2).Run(), ShouldBeNil)
 
@@ -1376,20 +1357,18 @@ func TestListCertificate(t *testing.T) {
 
 				Convey("Given a server certificate", func() {
 					cert1 := &model.Crypto{
-						OwnerType:   server.TableName(),
-						OwnerID:     server.ID,
-						Name:        "server_cert_1",
-						PrivateKey:  testhelpers.LocalhostKey,
-						Certificate: testhelpers.LocalhostCert,
+						LocalAgentID: utils.NewNullInt64(server.ID),
+						Name:         "server_cert_1",
+						PrivateKey:   testhelpers.LocalhostKey,
+						Certificate:  testhelpers.LocalhostCert,
 					}
 					So(db.Insert(cert1).Run(), ShouldBeNil)
 
 					cert2 := &model.Crypto{
-						OwnerType:   server.TableName(),
-						OwnerID:     server.ID,
-						Name:        "server_cert_2",
-						PrivateKey:  testhelpers.OtherLocalhostKey,
-						Certificate: testhelpers.OtherLocalhostCert,
+						LocalAgentID: utils.NewNullInt64(server.ID),
+						Name:         "server_cert_2",
+						PrivateKey:   testhelpers.OtherLocalhostKey,
+						Certificate:  testhelpers.OtherLocalhostCert,
 					}
 					So(db.Insert(cert2).Run(), ShouldBeNil)
 
@@ -1485,18 +1464,16 @@ func TestListCertificate(t *testing.T) {
 					So(db.Insert(account).Run(), ShouldBeNil)
 
 					cert1 := &model.Crypto{
-						OwnerType:   account.TableName(),
-						OwnerID:     account.ID,
-						Name:        "account_cert_1",
-						Certificate: testhelpers.ClientFooCert,
+						LocalAccountID: utils.NewNullInt64(account.ID),
+						Name:           "account_cert_1",
+						Certificate:    testhelpers.ClientFooCert,
 					}
 					So(db.Insert(cert1).Run(), ShouldBeNil)
 
 					cert2 := &model.Crypto{
-						OwnerType:   account.TableName(),
-						OwnerID:     account.ID,
-						Name:        "account_cert_2",
-						Certificate: testhelpers.ClientFooCert2,
+						LocalAccountID: utils.NewNullInt64(account.ID),
+						Name:           "account_cert_2",
+						Certificate:    testhelpers.ClientFooCert2,
 					}
 					So(db.Insert(cert2).Run(), ShouldBeNil)
 
@@ -1637,19 +1614,18 @@ func TestUpdateCertificate(t *testing.T) {
 				So(db.Insert(partner).Run(), ShouldBeNil)
 
 				Convey("When updating the certificate", func() {
-					cert := &model.Crypto{
-						OwnerType:   partner.TableName(),
-						OwnerID:     partner.ID,
-						Name:        "partner_cert",
-						Certificate: testhelpers.LocalhostCert,
+					originalCert := &model.Crypto{
+						RemoteAgentID: utils.NewNullInt64(partner.ID),
+						Name:          "partner_cert",
+						Certificate:   testhelpers.LocalhostCert,
 					}
-					So(db.Insert(cert).Run(), ShouldBeNil)
+					So(db.Insert(originalCert).Run(), ShouldBeNil)
 
 					Convey("Given valid partner, certificate & flags", func() {
 						Partner = partner.Name
 						args := []string{
 							"-c", sCrt.Name(),
-							cert.Name,
+							originalCert.Name,
 						}
 
 						Convey("When executing the command", func() {
@@ -1660,21 +1636,20 @@ func TestUpdateCertificate(t *testing.T) {
 							Convey("Then is should display a message saying the "+
 								"cert was added", func() {
 								So(getOutput(), ShouldEqual, "The certificate "+
-									cert.Name+" was successfully updated.\n")
+									originalCert.Name+" was successfully updated.\n")
 							})
 
 							Convey("Then the cert should have been updated", func() {
-								check := model.Crypto{
-									ID:          cert.ID,
-									OwnerType:   partner.TableName(),
-									OwnerID:     partner.ID,
-									Name:        "partner_cert",
-									Certificate: testhelpers.LocalhostCert,
-								}
 								var certs model.Cryptos
 								So(db.Select(&certs).Run(), ShouldBeNil)
 								So(certs, ShouldNotBeEmpty)
-								So(certs, ShouldContain, check)
+
+								So(certs, ShouldContain, &model.Crypto{
+									ID:            originalCert.ID,
+									RemoteAgentID: utils.NewNullInt64(partner.ID),
+									Name:          "partner_cert",
+									Certificate:   testhelpers.LocalhostCert,
+								})
 							})
 						})
 					})
@@ -1685,7 +1660,7 @@ func TestUpdateCertificate(t *testing.T) {
 							"-n", "partner_cert",
 							"-p", sPk.Name(),
 							"-c", sCrt.Name(),
-							cert.Name,
+							originalCert.Name,
 						}
 
 						Convey("When executing the command", func() {
@@ -1701,7 +1676,7 @@ func TestUpdateCertificate(t *testing.T) {
 								var certs model.Cryptos
 								So(db.Select(&certs).Run(), ShouldBeNil)
 								So(certs, ShouldNotBeEmpty)
-								So(certs, ShouldContain, *cert)
+								So(certs, ShouldContain, originalCert)
 							})
 						})
 					})
@@ -1728,7 +1703,7 @@ func TestUpdateCertificate(t *testing.T) {
 								var certs model.Cryptos
 								So(db.Select(&certs).Run(), ShouldBeNil)
 								So(certs, ShouldNotBeEmpty)
-								So(certs, ShouldContain, *cert)
+								So(certs, ShouldContain, originalCert)
 							})
 						})
 					})
@@ -1743,14 +1718,13 @@ func TestUpdateCertificate(t *testing.T) {
 					So(db.Insert(account).Run(), ShouldBeNil)
 
 					Convey("When updating the certificate", func() {
-						cert := &model.Crypto{
-							OwnerType:   account.TableName(),
-							OwnerID:     account.ID,
-							Name:        "account_cert",
-							PrivateKey:  testhelpers.ClientFooKey,
-							Certificate: testhelpers.ClientFooCert,
+						originalCert := &model.Crypto{
+							RemoteAccountID: utils.NewNullInt64(account.ID),
+							Name:            "account_cert",
+							PrivateKey:      testhelpers.ClientFooKey,
+							Certificate:     testhelpers.ClientFooCert,
 						}
-						So(db.Insert(cert).Run(), ShouldBeNil)
+						So(db.Insert(originalCert).Run(), ShouldBeNil)
 
 						Convey("Given valid account, partner & flags", func() {
 							Partner = partner.Name
@@ -1758,7 +1732,7 @@ func TestUpdateCertificate(t *testing.T) {
 							args := []string{
 								"-p", cPk.Name(),
 								"-c", cCrt.Name(),
-								cert.Name,
+								originalCert.Name,
 							}
 
 							Convey("When executing the command", func() {
@@ -1769,22 +1743,21 @@ func TestUpdateCertificate(t *testing.T) {
 								Convey("Then is should display a message saying "+
 									"the cert was added", func() {
 									So(getOutput(), ShouldEqual, "The certificate "+
-										cert.Name+" was successfully updated.\n")
+										originalCert.Name+" was successfully updated.\n")
 								})
 
 								Convey("Then the cert should have been updated", func() {
-									check := model.Crypto{
-										ID:          cert.ID,
-										OwnerType:   account.TableName(),
-										OwnerID:     account.ID,
-										Name:        "account_cert",
-										PrivateKey:  testhelpers.ClientFooKey,
-										Certificate: testhelpers.ClientFooCert,
-									}
 									var certs model.Cryptos
 									So(db.Select(&certs).Run(), ShouldBeNil)
 									So(certs, ShouldNotBeEmpty)
-									So(certs, ShouldContain, check)
+
+									So(certs, ShouldContain, &model.Crypto{
+										ID:              originalCert.ID,
+										RemoteAccountID: utils.NewNullInt64(account.ID),
+										Name:            "account_cert",
+										PrivateKey:      testhelpers.ClientFooKey,
+										Certificate:     testhelpers.ClientFooCert,
+									})
 								})
 							})
 						})
@@ -1795,7 +1768,7 @@ func TestUpdateCertificate(t *testing.T) {
 							args := []string{
 								"-p", cPk.Name(),
 								"-c", cCrt.Name(),
-								cert.Name,
+								originalCert.Name,
 							}
 
 							Convey("When executing the command", func() {
@@ -1811,7 +1784,7 @@ func TestUpdateCertificate(t *testing.T) {
 									var certs model.Cryptos
 									So(db.Select(&certs).Run(), ShouldBeNil)
 									So(certs, ShouldNotBeEmpty)
-									So(certs, ShouldContain, *cert)
+									So(certs, ShouldContain, originalCert)
 								})
 							})
 						})
@@ -1822,7 +1795,7 @@ func TestUpdateCertificate(t *testing.T) {
 							args := []string{
 								"-p", cPk.Name(),
 								"-c", cCrt.Name(),
-								cert.Name,
+								originalCert.Name,
 							}
 
 							Convey("When executing the command", func() {
@@ -1839,7 +1812,7 @@ func TestUpdateCertificate(t *testing.T) {
 									var certs model.Cryptos
 									So(db.Select(&certs).Run(), ShouldBeNil)
 									So(certs, ShouldNotBeEmpty)
-									So(certs, ShouldContain, *cert)
+									So(certs, ShouldContain, originalCert)
 								})
 							})
 						})
@@ -1866,7 +1839,7 @@ func TestUpdateCertificate(t *testing.T) {
 									var certs model.Cryptos
 									So(db.Select(&certs).Run(), ShouldBeNil)
 									So(certs, ShouldNotBeEmpty)
-									So(certs, ShouldContain, *cert)
+									So(certs, ShouldContain, originalCert)
 								})
 							})
 						})
@@ -1884,21 +1857,20 @@ func TestUpdateCertificate(t *testing.T) {
 				So(db.Insert(server).Run(), ShouldBeNil)
 
 				Convey("When updating the certificate", func() {
-					cert := &model.Crypto{
-						OwnerType:   server.TableName(),
-						OwnerID:     server.ID,
-						Name:        "server_cert",
-						PrivateKey:  testhelpers.LocalhostKey,
-						Certificate: testhelpers.LocalhostCert,
+					originalCert := &model.Crypto{
+						LocalAgentID: utils.NewNullInt64(server.ID),
+						Name:         "server_cert",
+						PrivateKey:   testhelpers.LocalhostKey,
+						Certificate:  testhelpers.LocalhostCert,
 					}
-					So(db.Insert(cert).Run(), ShouldBeNil)
+					So(db.Insert(originalCert).Run(), ShouldBeNil)
 
 					Convey("Given valid server, certificate & flags", func() {
 						Server = server.Name
 						args := []string{
 							"-p", sPk.Name(),
 							"-c", sCrt.Name(),
-							cert.Name,
+							originalCert.Name,
 						}
 
 						Convey("When executing the command", func() {
@@ -1909,22 +1881,21 @@ func TestUpdateCertificate(t *testing.T) {
 							Convey("Then is should display a message saying "+
 								"the cert was added", func() {
 								So(getOutput(), ShouldEqual, rest.ServerCertRestartRequiredMsg+
-									"\nThe certificate "+cert.Name+" was successfully updated.\n")
+									"\nThe certificate "+originalCert.Name+" was successfully updated.\n")
 							})
 
 							Convey("Then the cert should have been updated", func() {
-								check := model.Crypto{
-									ID:          cert.ID,
-									OwnerType:   server.TableName(),
-									OwnerID:     server.ID,
-									Name:        "server_cert",
-									PrivateKey:  testhelpers.LocalhostKey,
-									Certificate: testhelpers.LocalhostCert,
-								}
 								var certs model.Cryptos
 								So(db.Select(&certs).Run(), ShouldBeNil)
 								So(certs, ShouldNotBeEmpty)
-								So(certs, ShouldContain, check)
+
+								So(certs, ShouldContain, &model.Crypto{
+									ID:           originalCert.ID,
+									LocalAgentID: utils.NewNullInt64(server.ID),
+									Name:         "server_cert",
+									PrivateKey:   testhelpers.LocalhostKey,
+									Certificate:  testhelpers.LocalhostCert,
+								})
 							})
 						})
 					})
@@ -1934,7 +1905,7 @@ func TestUpdateCertificate(t *testing.T) {
 						args := []string{
 							"-p", sPk.Name(),
 							"-c", sCrt.Name(),
-							cert.Name,
+							originalCert.Name,
 						}
 
 						Convey("When executing the command", func() {
@@ -1950,7 +1921,7 @@ func TestUpdateCertificate(t *testing.T) {
 								var certs model.Cryptos
 								So(db.Select(&certs).Run(), ShouldBeNil)
 								So(certs, ShouldNotBeEmpty)
-								So(certs, ShouldContain, *cert)
+								So(certs, ShouldContain, originalCert)
 							})
 						})
 					})
@@ -1976,7 +1947,7 @@ func TestUpdateCertificate(t *testing.T) {
 								var certs model.Cryptos
 								So(db.Select(&certs).Run(), ShouldBeNil)
 								So(certs, ShouldNotBeEmpty)
-								So(certs, ShouldContain, *cert)
+								So(certs, ShouldContain, originalCert)
 							})
 						})
 					})
@@ -1991,20 +1962,19 @@ func TestUpdateCertificate(t *testing.T) {
 					So(db.Insert(account).Run(), ShouldBeNil)
 
 					Convey("When updating the certificate", func() {
-						cert := &model.Crypto{
-							OwnerType:   account.TableName(),
-							OwnerID:     account.ID,
-							Name:        "account_cert",
-							Certificate: testhelpers.ClientFooCert,
+						originalCert := &model.Crypto{
+							LocalAccountID: utils.NewNullInt64(account.ID),
+							Name:           "account_cert",
+							Certificate:    testhelpers.ClientFooCert,
 						}
-						So(db.Insert(cert).Run(), ShouldBeNil)
+						So(db.Insert(originalCert).Run(), ShouldBeNil)
 
 						Convey("Given valid account, server & flags", func() {
 							Server = server.Name
 							LocalAccount = account.Login
 							args := []string{
 								"-c", cCrt.Name(),
-								cert.Name,
+								originalCert.Name,
 							}
 
 							Convey("When executing the command", func() {
@@ -2015,21 +1985,20 @@ func TestUpdateCertificate(t *testing.T) {
 								Convey("Then is should display a message saying "+
 									"the cert was added", func() {
 									So(getOutput(), ShouldEqual, "The certificate "+
-										cert.Name+" was successfully updated.\n")
+										originalCert.Name+" was successfully updated.\n")
 								})
 
 								Convey("Then the cert should have been updated", func() {
-									check := model.Crypto{
-										ID:          cert.ID,
-										OwnerType:   account.TableName(),
-										OwnerID:     account.ID,
-										Name:        "account_cert",
-										Certificate: testhelpers.ClientFooCert,
-									}
 									var certs model.Cryptos
 									So(db.Select(&certs).Run(), ShouldBeNil)
 									So(certs, ShouldNotBeEmpty)
-									So(certs, ShouldContain, check)
+
+									So(certs, ShouldContain, &model.Crypto{
+										ID:             originalCert.ID,
+										LocalAccountID: utils.NewNullInt64(account.ID),
+										Name:           "account_cert",
+										Certificate:    testhelpers.ClientFooCert,
+									})
 								})
 							})
 						})
@@ -2040,7 +2009,7 @@ func TestUpdateCertificate(t *testing.T) {
 							args := []string{
 								"-p", cPk.Name(),
 								"-c", cCrt.Name(),
-								cert.Name,
+								originalCert.Name,
 							}
 
 							Convey("When executing the command", func() {
@@ -2056,7 +2025,7 @@ func TestUpdateCertificate(t *testing.T) {
 									var certs model.Cryptos
 									So(db.Select(&certs).Run(), ShouldBeNil)
 									So(certs, ShouldNotBeEmpty)
-									So(certs, ShouldContain, *cert)
+									So(certs, ShouldContain, originalCert)
 								})
 							})
 						})
@@ -2067,7 +2036,7 @@ func TestUpdateCertificate(t *testing.T) {
 							args := []string{
 								"-p", cPk.Name(),
 								"-c", cCrt.Name(),
-								cert.Name,
+								originalCert.Name,
 							}
 
 							Convey("When executing the command", func() {
@@ -2084,7 +2053,7 @@ func TestUpdateCertificate(t *testing.T) {
 									var certs model.Cryptos
 									So(db.Select(&certs).Run(), ShouldBeNil)
 									So(certs, ShouldNotBeEmpty)
-									So(certs, ShouldContain, *cert)
+									So(certs, ShouldContain, originalCert)
 								})
 							})
 						})
@@ -2111,7 +2080,7 @@ func TestUpdateCertificate(t *testing.T) {
 									var certs model.Cryptos
 									So(db.Select(&certs).Run(), ShouldBeNil)
 									So(certs, ShouldNotBeEmpty)
-									So(certs, ShouldContain, *cert)
+									So(certs, ShouldContain, originalCert)
 								})
 							})
 						})

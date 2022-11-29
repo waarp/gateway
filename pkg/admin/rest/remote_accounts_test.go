@@ -36,19 +36,19 @@ func TestGetRemoteAccount(t *testing.T) {
 			}
 			So(db.Insert(parent).Run(), ShouldBeNil)
 
-			expected := &model.RemoteAccount{
+			existing := &model.RemoteAccount{
 				Login:         "existing",
 				RemoteAgentID: parent.ID,
 				Password:      "existing",
 			}
-			So(db.Insert(expected).Run(), ShouldBeNil)
+			So(db.Insert(existing).Run(), ShouldBeNil)
 
 			Convey("Given a request with the valid account login parameter", func() {
 				r, err := http.NewRequest(http.MethodGet, "", nil)
 				So(err, ShouldBeNil)
 				r = mux.SetURLVars(r, map[string]string{
 					"partner":        parent.Name,
-					"remote_account": expected.Login,
+					"remote_account": existing.Login,
 				})
 
 				Convey("When sending the request to the handler", func() {
@@ -67,9 +67,12 @@ func TestGetRemoteAccount(t *testing.T) {
 
 					Convey("Then the body should contain the requested partner "+
 						"in JSON format", func() {
-						exp, err := json.Marshal(FromRemoteAccount(expected, &AuthorizedRules{}))
-
+						expected, err := DBRemoteAccountToREST(db, existing)
 						So(err, ShouldBeNil)
+
+						exp, err := json.Marshal(expected)
+						So(err, ShouldBeNil)
+
 						So(w.Body.String(), ShouldResemble, string(exp)+"\n")
 					})
 				})
@@ -97,7 +100,7 @@ func TestGetRemoteAccount(t *testing.T) {
 				So(err, ShouldBeNil)
 				r = mux.SetURLVars(r, map[string]string{
 					"partner":        "toto",
-					"remote_account": expected.Login,
+					"remote_account": existing.Login,
 				})
 
 				Convey("When sending the request to the handler", func() {
@@ -113,7 +116,7 @@ func TestGetRemoteAccount(t *testing.T) {
 }
 
 func TestListRemoteAccounts(t *testing.T) {
-	check := func(w *httptest.ResponseRecorder, expected map[string][]OutAccount) {
+	check := func(w *httptest.ResponseRecorder, expected map[string][]*OutAccount) {
 		Convey("Then it should reply 'OK'", func() {
 			So(w.Code, ShouldEqual, http.StatusOK)
 		})
@@ -138,7 +141,7 @@ func TestListRemoteAccounts(t *testing.T) {
 		db := database.TestDatabase(c)
 		handler := listRemoteAccounts(logger, db)
 		w := httptest.NewRecorder()
-		expected := map[string][]OutAccount{}
+		expected := map[string][]*OutAccount{}
 
 		Convey("Given a database with 4 remote accounts", func() {
 			p1 := &model.RemoteAgent{
@@ -180,10 +183,14 @@ func TestListRemoteAccounts(t *testing.T) {
 			So(db.Insert(a3).Run(), ShouldBeNil)
 			So(db.Insert(a4).Run(), ShouldBeNil)
 
-			account1 := *FromRemoteAccount(a1, &AuthorizedRules{})
-			account2 := *FromRemoteAccount(a2, &AuthorizedRules{})
-			account3 := *FromRemoteAccount(a3, &AuthorizedRules{})
-			account4 := *FromRemoteAccount(a4, &AuthorizedRules{})
+			account1, err := DBRemoteAccountToREST(db, a1)
+			So(err, ShouldBeNil)
+			account2, err := DBRemoteAccountToREST(db, a2)
+			So(err, ShouldBeNil)
+			account3, err := DBRemoteAccountToREST(db, a3)
+			So(err, ShouldBeNil)
+			account4, err := DBRemoteAccountToREST(db, a4)
+			So(err, ShouldBeNil)
 
 			Convey("Given a request with no parameters", func() {
 				r, err := http.NewRequest(http.MethodGet, "", nil)
@@ -192,9 +199,8 @@ func TestListRemoteAccounts(t *testing.T) {
 
 				Convey("When sending the request to the handler", func() {
 					handler.ServeHTTP(w, r)
-					expected["remoteAccounts"] = []OutAccount{
-						account1, account2,
-						account4,
+					expected["remoteAccounts"] = []*OutAccount{
+						account1, account2, account4,
 					}
 
 					check(w, expected)
@@ -208,7 +214,7 @@ func TestListRemoteAccounts(t *testing.T) {
 
 				Convey("When sending the request to the handler", func() {
 					handler.ServeHTTP(w, r)
-					expected["remoteAccounts"] = []OutAccount{account3}
+					expected["remoteAccounts"] = []*OutAccount{account3}
 
 					check(w, expected)
 				})
@@ -235,7 +241,7 @@ func TestListRemoteAccounts(t *testing.T) {
 
 				Convey("When sending the request to the handler", func() {
 					handler.ServeHTTP(w, r)
-					expected["remoteAccounts"] = []OutAccount{account1}
+					expected["remoteAccounts"] = []*OutAccount{account1}
 
 					check(w, expected)
 				})
@@ -248,7 +254,7 @@ func TestListRemoteAccounts(t *testing.T) {
 
 				Convey("When sending the request to the handler", func() {
 					handler.ServeHTTP(w, r)
-					expected["remoteAccounts"] = []OutAccount{account2, account4}
+					expected["remoteAccounts"] = []*OutAccount{account2, account4}
 
 					check(w, expected)
 				})
@@ -261,9 +267,8 @@ func TestListRemoteAccounts(t *testing.T) {
 
 				Convey("When sending the request to the handler", func() {
 					handler.ServeHTTP(w, r)
-					expected["remoteAccounts"] = []OutAccount{
-						account4, account2,
-						account1,
+					expected["remoteAccounts"] = []*OutAccount{
+						account4, account2, account1,
 					}
 
 					check(w, expected)
@@ -325,7 +330,7 @@ func TestCreateRemoteAccount(t *testing.T) {
 							So(db.Select(&accs).Run(), ShouldBeNil)
 							So(len(accs), ShouldEqual, 1)
 
-							So(accs[0], ShouldResemble, model.RemoteAccount{
+							So(accs[0], ShouldResemble, &model.RemoteAccount{
 								ID:            1,
 								RemoteAgentID: parent.ID,
 								Login:         "new_account",
@@ -513,7 +518,7 @@ func TestUpdateRemoteAccount(t *testing.T) {
 							So(db.Select(&res).Run(), ShouldBeNil)
 							So(len(res), ShouldEqual, 1)
 
-							So(res[0], ShouldResemble, model.RemoteAccount{
+							So(res[0], ShouldResemble, &model.RemoteAccount{
 								ID:            old.ID,
 								RemoteAgentID: parent.ID,
 								Login:         "old",
@@ -549,7 +554,7 @@ func TestUpdateRemoteAccount(t *testing.T) {
 							var accs model.RemoteAccounts
 							So(db.Select(&accs).Run(), ShouldBeNil)
 							So(accs, ShouldNotBeEmpty)
-							So(accs[0], ShouldResemble, *old)
+							So(accs[0], ShouldResemble, old)
 						})
 					})
 				})
@@ -579,7 +584,7 @@ func TestUpdateRemoteAccount(t *testing.T) {
 							var accs model.RemoteAccounts
 							So(db.Select(&accs).Run(), ShouldBeNil)
 							So(accs, ShouldNotBeEmpty)
-							So(accs[0], ShouldResemble, *old)
+							So(accs[0], ShouldResemble, old)
 						})
 					})
 				})
@@ -648,7 +653,7 @@ func TestReplaceRemoteAccount(t *testing.T) {
 							So(db.Select(&res).Run(), ShouldBeNil)
 							So(len(res), ShouldEqual, 1)
 
-							So(res[0], ShouldResemble, model.RemoteAccount{
+							So(res[0], ShouldResemble, &model.RemoteAccount{
 								ID:            old.ID,
 								RemoteAgentID: parent.ID,
 								Login:         "upd_login",
@@ -684,7 +689,7 @@ func TestReplaceRemoteAccount(t *testing.T) {
 							var accs model.RemoteAccounts
 							So(db.Select(&accs).Run(), ShouldBeNil)
 							So(accs, ShouldNotBeEmpty)
-							So(accs[0], ShouldResemble, *old)
+							So(accs[0], ShouldResemble, old)
 						})
 					})
 				})
@@ -714,7 +719,7 @@ func TestReplaceRemoteAccount(t *testing.T) {
 							var accs model.RemoteAccounts
 							So(db.Select(&accs).Run(), ShouldBeNil)
 							So(accs, ShouldNotBeEmpty)
-							So(accs[0], ShouldResemble, *old)
+							So(accs[0], ShouldResemble, old)
 						})
 					})
 				})

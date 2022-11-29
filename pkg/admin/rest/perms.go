@@ -17,99 +17,82 @@ func invalidMode(mode string) error {
 }
 
 //nolint:gomnd // too specific
-func permToMask(old *model.PermsMask, perm string, off int) error {
-	if len(perm) == 0 {
+func alterPerm(old, perm string) (string, error) {
+	res := &[3]byte{}
+	if len(old) == 3 {
+		res = (*[3]byte)([]byte(old))
+	}
+
+	set := func(i int, val byte) { res[i] = val }
+	unset := func(i int, _ byte) { res[i] = '-' }
+
+	do := set
+
+	for i := range perm {
+		switch b := perm[i]; b {
+		case '+':
+			do = set
+		case '=':
+			res = &[3]byte{'-', '-', '-'}
+			do = set
+		case '-':
+			do = unset
+		case 'r':
+			do(0, 'r')
+		case 'w':
+			do(1, 'w')
+		case 'd':
+			do(2, 'd')
+		default:
+			return "", invalidMode(perm)
+		}
+	}
+
+	return string(res[:]), nil
+}
+
+func alterPerms(old *model.Permissions, perms *api.Perms) error {
+	if perms == nil {
 		return nil
 	}
 
-	var process func(int)
+	var err error
 
-	ops := map[rune]func(){
-		'=': func() {
-			*old &^= 0b111 << (32 - 1 - off - 2)
-			process = func(o int) {
-				*old |= 1 << (32 - 1 - off - o)
-			}
-		},
-		'+': func() {
-			process = func(o int) {
-				*old |= 1 << (32 - 1 - off - o)
-			}
-		},
-		'-': func() {
-			process = func(o int) {
-				*old &^= 1 << (32 - 1 - off - o)
-			}
-		},
-	}
-	modes := map[byte]func(){
-		'r': func() {
-			process(0)
-		},
-		'w': func() {
-			process(1)
-		},
-		'd': func() {
-			process(2)
-		},
+	if old.Transfers, err = alterPerm(old.Transfers, perms.Transfers); err != nil {
+		return err
 	}
 
-	for i := range perm {
-		if procOp, ok := ops[rune(perm[i])]; ok {
-			procOp()
+	if old.Servers, err = alterPerm(old.Servers, perms.Servers); err != nil {
+		return err
+	}
 
-			continue
-		}
+	if old.Partners, err = alterPerm(old.Partners, perms.Partners); err != nil {
+		return err
+	}
 
-		if process == nil {
-			*old &^= 0b111 << (32 - 1 - off - 2)
-			process = func(o int) {
-				*old |= 1 << (32 - 1 - off - o)
-			}
-		}
+	if old.Rules, err = alterPerm(old.Rules, perms.Rules); err != nil {
+		return err
+	}
 
-		if procMode, ok := modes[perm[i]]; ok {
-			procMode()
+	if old.Users, err = alterPerm(old.Users, perms.Users); err != nil {
+		return err
+	}
 
-			continue
-		}
-
-		return invalidMode(perm)
+	if old.Administration, err = alterPerm(old.Administration, perms.Administration); err != nil {
+		return err
 	}
 
 	return nil
 }
 
 func permsToMask(old model.PermsMask, perms *api.Perms) (model.PermsMask, error) {
-	if perms == nil {
-		return old, nil
-	}
+	oldPerms := model.MaskToPerms(old)
 
-	if err := permToMask(&old, perms.Transfers, 0); err != nil {
+	if err := alterPerms(oldPerms, perms); err != nil {
 		return 0, err
 	}
 
-	if err := permToMask(&old, perms.Servers, 3); err != nil { //nolint:gomnd // too specific
-		return 0, err
-	}
-
-	if err := permToMask(&old, perms.Partners, 6); err != nil { //nolint:gomnd // too specific
-		return 0, err
-	}
-
-	if err := permToMask(&old, perms.Rules, 9); err != nil { //nolint:gomnd // too specific
-		return 0, err
-	}
-
-	if err := permToMask(&old, perms.Users, 12); err != nil { //nolint:gomnd // too specific
-		return 0, err
-	}
-
-	if err := permToMask(&old, perms.Administration, 15); err != nil { //nolint:gomnd // too specific
-		return 0, err
-	}
-
-	return old, nil
+	return model.PermsToMask(oldPerms)
 }
 
 func maskToPerms(m model.PermsMask) *api.Perms {

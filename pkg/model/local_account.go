@@ -4,51 +4,31 @@ import (
 	"golang.org/x/crypto/bcrypt"
 
 	"code.waarp.fr/apps/gateway/gateway/pkg/database"
+	"code.waarp.fr/apps/gateway/gateway/pkg/tk/utils"
 )
-
-//nolint:gochecknoinits // init is used by design
-func init() {
-	database.AddTable(&LocalAccount{})
-}
 
 // LocalAccount represents an account on a local agent. It is used by remote
 // partners to authenticate on the gateway for transfers.
 type LocalAccount struct {
-	// The account's database ID
-	ID uint64 `xorm:"pk autoincr <- 'id'"`
+	ID           int64 `xorm:"<- id AUTOINCR"` // The account's database ID.
+	LocalAgentID int64 `xorm:"local_agent_id"` // The ID of the LocalAgent this account is attached to.
 
-	// The ID of the `LocalAgent` this account is attached to
-	LocalAgentID uint64 `xorm:"unique(loc_ac) notnull 'local_agent_id'"`
-
-	// The account's login
-	Login string `xorm:"unique(loc_ac) notnull 'login'"`
-
-	// A bcrypt hash of the account's password
-	PasswordHash string `xorm:"text 'password_hash'"`
+	Login        string `xorm:"login"`         // The account's login.
+	PasswordHash string `xorm:"password_hash"` // A bcrypt hash of the account's password.
 }
 
-// TableName returns the local accounts table name.
-func (*LocalAccount) TableName() string {
-	return TableLocAccounts
-}
-
-// Appellation returns the name of 1 element of the local accounts table.
-func (*LocalAccount) Appellation() string {
-	return "local account"
-}
-
-// GetID returns the account's ID.
-func (l *LocalAccount) GetID() uint64 {
-	return l.ID
-}
+func (*LocalAccount) TableName() string   { return TableLocAccounts }
+func (*LocalAccount) Appellation() string { return "local account" }
+func (l *LocalAccount) GetID() int64      { return l.ID }
 
 // GetCryptos fetch in the database then return the associated Cryptos if they exist.
-func (l *LocalAccount) GetCryptos(db *database.DB) ([]Crypto, database.Error) {
-	return GetCryptos(db, l)
+func (l *LocalAccount) GetCryptos(db *database.DB) ([]*Crypto, error) {
+	return getCryptos(db, l)
 }
 
 // BeforeWrite checks if the new `LocalAccount` entry is valid and can be
 // inserted in the database.
+//
 //nolint:dupl // too many differences
 func (l *LocalAccount) BeforeWrite(db database.ReadAccess) database.Error {
 	if l.LocalAgentID == 0 {
@@ -87,29 +67,26 @@ func (l *LocalAccount) BeforeWrite(db database.ReadAccess) database.Error {
 }
 
 // BeforeDelete is called before deleting the account from the database. Its
-// role is to delete all the certificates tied to the account.
-//nolint:dupl // to many differences
+// role is to check whether the account is still used in any ongoing transfer.
 func (l *LocalAccount) BeforeDelete(db database.Access) database.Error {
-	n, err := db.Count(&Transfer{}).Where("is_server=? AND account_id=?",
-		true, l.ID).Run()
-	if err != nil {
+	if n, err := db.Count(&Transfer{}).Where("local_account_id=?", l.ID).Run(); err != nil {
 		return err
+	} else if n > 0 {
+		return database.NewValidationError("this account is currently being used " +
+			"in one or more running transfers and thus cannot be deleted, cancel " +
+			"these transfers or wait for them to finish")
 	}
 
-	if n > 0 {
-		return database.NewValidationError("this account is currently being used in one " +
-			"or more running transfers and thus cannot be deleted, cancel " +
-			"the transfers or wait for them to finish")
-	}
+	return nil
+}
 
-	certQuery := db.DeleteAll(&Crypto{}).Where("owner_type=? AND owner_id=?",
-		TableLocAccounts, l.ID)
-	if err := certQuery.Run(); err != nil {
-		return err
-	}
+//nolint:goconst //different columns having the same name does not warrant making that name a constant
+func (l *LocalAccount) GenCryptoSelectCond() (string, int64) { return "local_account_id=?", l.ID }
+func (l *LocalAccount) SetCryptoOwner(c *Crypto)             { c.LocalAccountID = utils.NewNullInt64(l.ID) }
+func (l *LocalAccount) GenAccessSelectCond() (string, int64) { return "local_account_id=?", l.ID }
 
-	accessQuery := db.DeleteAll(&RuleAccess{}).Where(
-		"object_type=? AND object_id=?", TableLocAccounts, l.ID)
+func (l *LocalAccount) SetAccessTarget(a *RuleAccess) { a.LocalAccountID = utils.NewNullInt64(l.ID) }
 
-	return accessQuery.Run()
+func (l *LocalAccount) GetAuthorizedRules(db database.ReadAccess) ([]*Rule, error) {
+	return getAuthorizedRules(db, "local_account_id", l.ID)
 }

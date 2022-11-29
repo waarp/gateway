@@ -103,7 +103,7 @@ func TestTransferRun(t *testing.T) {
 		So(db.Insert(account).Run(), ShouldBeNil)
 
 		Convey("Given a send 'TRANSFER' task", func() {
-			trans := &TransferTask{}
+			runner := &TransferTask{}
 			args := map[string]string{
 				"file": "/test/file",
 				"to":   partner.Name,
@@ -113,7 +113,7 @@ func TestTransferRun(t *testing.T) {
 
 			Convey("Given that the parameters are valid", func() {
 				Convey("When running the task", func() {
-					msg, err := trans.Run(context.Background(), args, db, nil)
+					msg, err := runner.Run(context.Background(), args, db, nil)
 
 					Convey("Then it should NOT return an error", func() {
 						So(err, ShouldBeNil)
@@ -122,11 +122,14 @@ func TestTransferRun(t *testing.T) {
 							So(msg, ShouldBeEmpty)
 
 							Convey("Then the database should contain the transfer", func() {
-								t := model.Transfer{}
-								So(db.Get(&t, "is_server=? AND agent_id=? AND account_id=? AND rule_id=?",
-									false, partner.ID, account.ID, push.ID).Run(), ShouldBeNil)
-								So(t.LocalPath, ShouldResemble, utils.ToOSPath("/test/file"))
-								So(t.RemotePath, ShouldResemble, "file")
+								var transfers model.Transfers
+								So(db.Select(&transfers).Run(), ShouldBeNil)
+								So(transfers, ShouldHaveLength, 1)
+
+								So(transfers[0].RemoteAccountID.Int64, ShouldEqual, account.ID)
+								So(transfers[0].RuleID, ShouldEqual, push.ID)
+								So(transfers[0].LocalPath, ShouldResemble, utils.ToOSPath("/test/file"))
+								So(transfers[0].RemotePath, ShouldResemble, "file")
 							})
 						})
 					})
@@ -137,7 +140,7 @@ func TestTransferRun(t *testing.T) {
 				args["to"] = "toto"
 
 				Convey("When running the task", func() {
-					msg, err := trans.Run(context.Background(), args, db, nil)
+					msg, err := runner.Run(context.Background(), args, db, nil)
 
 					Convey("Then it should return an error", func() {
 						So(err, ShouldNotBeNil)
@@ -156,7 +159,7 @@ func TestTransferRun(t *testing.T) {
 				args["as"] = "toto"
 
 				Convey("When running the task", func() {
-					msg, err := trans.Run(context.Background(), args, db, nil)
+					msg, err := runner.Run(context.Background(), args, db, nil)
 
 					Convey("Then it should return an error", func() {
 						So(err, ShouldNotBeNil)
@@ -175,7 +178,7 @@ func TestTransferRun(t *testing.T) {
 				args["rule"] = "toto"
 
 				Convey("When running the task", func() {
-					msg, err := trans.Run(context.Background(), args, db, nil)
+					msg, err := runner.Run(context.Background(), args, db, nil)
 
 					Convey("Then it should return an error", func() {
 						So(err, ShouldNotBeNil)
@@ -211,11 +214,14 @@ func TestTransferRun(t *testing.T) {
 							So(msg, ShouldBeEmpty)
 
 							Convey("Then the database should contain the transfer", func() {
-								t := model.Transfer{}
-								So(db.Get(&t, "is_server=? AND agent_id=? AND account_id=? AND rule_id=?",
-									false, partner.ID, account.ID, pull.ID).Run(), ShouldBeNil)
-								So(t.LocalPath, ShouldResemble, "file")
-								So(t.RemotePath, ShouldResemble, "/test/file")
+								var transfers model.Transfers
+								So(db.Select(&transfers).Run(), ShouldBeNil)
+								So(transfers, ShouldHaveLength, 1)
+
+								So(transfers[0].RemoteAccountID.Int64, ShouldResemble, account.ID)
+								So(transfers[0].RuleID, ShouldResemble, pull.ID)
+								So(transfers[0].LocalPath, ShouldResemble, "file")
+								So(transfers[0].RemotePath, ShouldResemble, "/test/file")
 							})
 						})
 					})

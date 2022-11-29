@@ -13,7 +13,6 @@ import (
 
 	"code.waarp.fr/lib/log"
 	"xorm.io/xorm"
-	xLog "xorm.io/xorm/log"
 	xNames "xorm.io/xorm/names"
 
 	"code.waarp.fr/apps/gateway/gateway/pkg/conf"
@@ -86,45 +85,39 @@ func (db *DB) loadAESKey() error {
 // to open a connection to the database, along with the driver and an optional
 // initialisation function. The DSN varies depending on the options given
 // in the database configuration.
-func (db *DB) createConnectionInfo() (string, string, func(*xorm.Engine) error, error) {
+func (db *DB) createConnectionInfo() (*dbInfo, error) {
 	rdbms := conf.GlobalConfig.Database.Type
 
-	info, ok := supportedRBMS[rdbms]
+	makeConnInfo, ok := supportedRBMS[rdbms]
 	if !ok {
-		return "", "", nil, fmt.Errorf("unknown database type '%s': %w", rdbms, errUnsuportedDB)
+		return nil, fmt.Errorf("unknown database type '%s': %w", rdbms, errUnsuportedDB)
 	}
 
-	driver, dsn, f := info()
-
-	return driver, dsn, f, nil
+	return makeConnInfo(), nil
 }
 
-type dbinfo func() (string, string, func(*xorm.Engine) error)
+type dbInfo struct{ driver, dsn string }
 
 //nolint:gochecknoglobals // global var is used by design
-var supportedRBMS = map[string]dbinfo{}
+var supportedRBMS = map[string]func() *dbInfo{}
 
 func (db *DB) initEngine() (*xorm.Engine, error) {
-	driver, dsn, init, err := db.createConnectionInfo()
+	connInfo, err := db.createConnectionInfo()
 	if err != nil {
 		db.logger.Critical("Database configuration invalid: %s", err)
 
 		return nil, err
 	}
 
-	engine, err := xorm.NewEngine(driver, dsn)
+	engine, err := xorm.NewEngine(connInfo.driver, connInfo.dsn)
 	if err != nil {
 		db.logger.Critical("Failed to open database: %s", err)
 
 		return nil, fmt.Errorf("cannot initialize database access: %w", err)
 	}
 
-	engine.SetLogger(xLog.DiscardLogger{})
+	db.setLogger(engine)
 	engine.SetMapper(xNames.GonicMapper{})
-
-	if err := init(engine); err != nil {
-		return nil, err
-	}
 
 	if err := engine.Ping(); err != nil {
 		db.logger.Error("Failed to access database: %s", err)
@@ -187,15 +180,16 @@ func (db *DB) start(withInit bool) error {
 		return err1
 	}
 
-	if err1 := initTables(db.Standalone, withInit); err1 != nil {
-		if err2 := engine.Close(); err2 != nil {
-			db.logger.Warning("an error occurred while closing the database: %v", err2)
+	if withInit {
+		if err1 := initDatabase(db.Standalone); err1 != nil {
+			if err2 := engine.Close(); err2 != nil {
+				db.logger.Warning("an error occurred while closing the database: %v", err2)
+			}
+
+			db.state.Set(state.Error, err1.Error())
+
+			return err1
 		}
-
-		db.state.Set(state.Error, err1.Error())
-		db.logger.Error("Failed to create tables: %s", err1)
-
-		return err1
 	}
 
 	db.logger.Info("Startup successful")

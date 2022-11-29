@@ -1,6 +1,7 @@
 package model
 
 import (
+	"database/sql"
 	"path"
 	"time"
 
@@ -10,51 +11,36 @@ import (
 	"code.waarp.fr/apps/gateway/gateway/pkg/model/types"
 )
 
-//nolint:gochecknoinits // init is used by design
-func init() {
-	database.AddTable(&HistoryEntry{})
-}
-
 // HistoryEntry represents one record of the 'transfers_history' table.
 type HistoryEntry struct {
-	ID               uint64               `xorm:"pk 'id'"`
-	Owner            string               `xorm:"notnull 'owner'"`
-	RemoteTransferID string               `xorm:"'remote_transfer_id'"`
-	IsServer         bool                 `xorm:"notnull 'is_server'"`
-	IsSend           bool                 `xorm:"notnull 'is_send'"`
-	Rule             string               `xorm:"notnull 'rule'"`
-	Account          string               `xorm:"notnull 'account'"`
-	Agent            string               `xorm:"notnull 'agent'"`
-	Protocol         string               `xorm:"notnull 'protocol'"`
-	LocalPath        string               `xorm:"notnull 'local_path'"`
-	RemotePath       string               `xorm:"notnull 'remote_path'"`
-	Filesize         int64                `xorm:"bigint notnull default(-1) 'filesize'"`
-	Start            time.Time            `xorm:"notnull timestampz 'start'"`
-	Stop             time.Time            `xorm:"timestampz 'stop'"`
-	Status           types.TransferStatus `xorm:"notnull varchar(50) 'status'"`
-	Step             types.TransferStep   `xorm:"notnull varchar(50) 'step'"`
-	Progress         uint64               `xorm:"notnull 'progression'"`
-	TaskNumber       uint64               `xorm:"notnull 'task_number'"`
-	Error            types.TransferError  `xorm:"extends"`
+	ID               int64                `xorm:"id"`
+	Owner            string               `xorm:"owner"`
+	RemoteTransferID string               `xorm:"remote_transfer_id"`
+	IsServer         bool                 `xorm:"is_server"`
+	IsSend           bool                 `xorm:"is_send"`
+	Rule             string               `xorm:"rule"`
+	Account          string               `xorm:"account"`
+	Agent            string               `xorm:"agent"`
+	Protocol         string               `xorm:"protocol"`
+	LocalPath        string               `xorm:"local_path"`
+	RemotePath       string               `xorm:"remote_path"`
+	Filesize         int64                `xorm:"filesize"`
+	Start            time.Time            `xorm:"start DATETIME(6) UTC"`
+	Stop             time.Time            `xorm:"stop DATETIME(6) UTC"`
+	Status           types.TransferStatus `xorm:"status"`
+	Step             types.TransferStep   `xorm:"step"`
+	Progress         int64                `xorm:"progress"`
+	TaskNumber       int8                 `xorm:"task_number"`
+	Error            types.TransferError  `xorm:"EXTENDS"`
 }
 
-// TableName returns the name of the transfer history table.
-func (*HistoryEntry) TableName() string {
-	return TableHistory
-}
-
-// Appellation returns the name of 1 element of the transfer history table.
-func (*HistoryEntry) Appellation() string {
-	return "history entry"
-}
-
-// GetID returns the transfer's ID.
-func (h *HistoryEntry) GetID() uint64 {
-	return h.ID
-}
+func (*HistoryEntry) TableName() string   { return TableHistory }
+func (*HistoryEntry) Appellation() string { return "history entry" }
+func (h *HistoryEntry) GetID() int64      { return h.ID }
 
 // BeforeWrite checks if the new `HistoryEntry` entry is valid and can be
 // inserted in the database.
+//
 //nolint:funlen,gocyclo,cyclop // validation can be long...
 func (h *HistoryEntry) BeforeWrite(db database.ReadAccess) database.Error {
 	h.Owner = conf.GlobalConfig.GatewayName
@@ -108,14 +94,14 @@ func (h *HistoryEntry) BeforeWrite(db database.ReadAccess) database.Error {
 		return database.NewValidationError("'%s' is not a valid transfer history status", h.Status)
 	}
 
-	if h.RemoteTransferID != "" {
-		if n, err := db.Count(&HistoryEntry{}).Where("remote_transfer_id=? AND agent=? AND account=?",
-			h.RemoteTransferID, h.Agent, h.Account).Run(); err != nil {
-			return err
-		} else if n != 0 {
-			return database.NewValidationError("a history entry from the same " +
-				"partner with the same remote ID already exist")
-		}
+	if n, err := db.Count(&HistoryEntry{}).Where("remote_transfer_id=? AND "+
+		"is_server=? AND agent=? AND account=?", h.RemoteTransferID, h.IsServer,
+		h.Agent, h.Account).Run(); err != nil {
+		return err
+	} else if n != 0 {
+		return database.NewValidationError("a history entry from the same "+
+			"requester %q to the same agent %q with the same remote ID %q "+
+			"already exist", h.Account, h.Agent, h.RemoteTransferID)
 	}
 
 	return nil
@@ -125,11 +111,19 @@ func (h *HistoryEntry) BeforeWrite(db database.ReadAccess) database.Error {
 // to be executed.
 func (h *HistoryEntry) Restart(db database.Access, date time.Time) (*Transfer, database.Error) {
 	rule := &Rule{}
-	if err := db.Get(rule, "name=? AND send=?", h.Rule, h.IsSend).Run(); err != nil {
+	if err := db.Get(rule, "name=? AND is_send=?", h.Rule, h.IsSend).Run(); err != nil {
 		return nil, err
 	}
 
-	var agentID, accountID uint64
+	trans := &Transfer{
+		RuleID:     rule.ID,
+		LocalPath:  path.Base(h.LocalPath),
+		RemotePath: path.Base(h.RemotePath),
+		Start:      date,
+		Status:     types.StatusPlanned,
+		Step:       types.StepNone,
+		Owner:      h.Owner,
+	}
 
 	if h.IsServer {
 		agent := &LocalAgent{}
@@ -143,34 +137,23 @@ func (h *HistoryEntry) Restart(db database.Access, date time.Time) (*Transfer, d
 			return nil, err
 		}
 
-		agentID = agent.ID
-		accountID = account.ID
+		trans.LocalAccountID = sql.NullInt64{Valid: true, Int64: account.ID}
 	} else {
 		agent := &RemoteAgent{}
 		if err := db.Get(agent, "name=?", h.Agent).Run(); err != nil {
 			return nil, err
 		}
+
 		account := &RemoteAccount{}
 		if err := db.Get(account, "remote_agent_id=? AND login=?", agent.ID, h.Account).
 			Run(); err != nil {
 			return nil, err
 		}
-		agentID = agent.ID
-		accountID = account.ID
+
+		trans.RemoteAccountID = sql.NullInt64{Valid: true, Int64: account.ID}
 	}
 
-	return &Transfer{
-		RuleID:     rule.ID,
-		IsServer:   h.IsServer,
-		AgentID:    agentID,
-		AccountID:  accountID,
-		LocalPath:  path.Base(h.LocalPath),
-		RemotePath: path.Base(h.RemotePath),
-		Start:      date,
-		Status:     types.StatusPlanned,
-		Step:       types.StepNone,
-		Owner:      h.Owner,
-	}, nil
+	return trans, nil
 }
 
 // GetTransferInfo returns the list of the transfer's TransferInfo as a map of interfaces.

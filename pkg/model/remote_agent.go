@@ -7,47 +7,26 @@ import (
 
 	"code.waarp.fr/apps/gateway/gateway/pkg/database"
 	"code.waarp.fr/apps/gateway/gateway/pkg/model/config"
+	"code.waarp.fr/apps/gateway/gateway/pkg/tk/utils"
 )
-
-//nolint:gochecknoinits // init is used by design
-func init() {
-	database.AddTable(&RemoteAgent{})
-}
 
 // RemoteAgent represents a distant server instance with which the gateway can
 // communicate and make transfers. The struct contains the information needed by
 // the gateway to connect to the server.
 type RemoteAgent struct {
-	// The agent's database ID.
-	ID uint64 `xorm:"pk autoincr <- 'id'"`
+	ID int64 `xorm:"<- id AUTOINCR"` // The partner's database ID.
 
-	// The agent's display name.
-	Name string `xorm:"unique notnull 'name'"`
+	Name     string `xorm:"name"`     // The partner's display name.
+	Protocol string `xorm:"protocol"` // The partner's protocol.
+	Address  string `xorm:"address"`  // The partner's address (including the port)
 
-	// The protocol used by the agent.
-	Protocol string `xorm:"notnull 'protocol'"`
-
-	// The agent's configuration in raw JSON format.
-	ProtoConfig json.RawMessage `xorm:"notnull 'proto_config'"`
-
-	// The agent's address (including the port)
-	Address string `xorm:"notnull 'address'"`
+	// The partner's protocol configuration in raw JSON format.
+	ProtoConfig json.RawMessage `xorm:"proto_config"`
 }
 
-// TableName returns the remote agents table name.
-func (*RemoteAgent) TableName() string {
-	return TableRemAgents
-}
-
-// Appellation returns the name of 1 element of the remote agents table.
-func (*RemoteAgent) Appellation() string {
-	return "partner"
-}
-
-// GetID returns the agent's ID.
-func (r *RemoteAgent) GetID() uint64 {
-	return r.ID
-}
+func (*RemoteAgent) TableName() string   { return TableRemAgents }
+func (*RemoteAgent) Appellation() string { return "partner" }
+func (r *RemoteAgent) GetID() int64      { return r.ID }
 
 //nolint:dupl // factorizing would add complexity
 func (r *RemoteAgent) validateProtoConfig() error {
@@ -107,43 +86,30 @@ func (r *RemoteAgent) BeforeWrite(db database.ReadAccess) database.Error {
 }
 
 // BeforeDelete is called before deleting the account from the database. Its
-// role is to delete all the certificates tied to the account.
-//
-//nolint:dupl // too many differences to factorize easily into a function
+// role is to check whether the partner is still used in any ongoing transfer.
 func (r *RemoteAgent) BeforeDelete(db database.Access) database.Error {
-	n, err := db.Count(&Transfer{}).Where("is_server=? AND agent_id=?", false, r.ID).Run()
-	if err != nil {
+	if n, err := db.Count(&Transfer{}).Where(`remote_account_id IN (SELECT id 
+		FROM remote_accounts WHERE remote_agent_id=?)`, r.ID).Run(); err != nil {
 		return err
+	} else if n > 0 {
+		return database.NewValidationError("this partner is currently being used " +
+			"in one or more running transfers and thus cannot be deleted, cancel " +
+			"these transfers or wait for them to finish")
 	}
 
-	if n > 0 {
-		return database.NewValidationError("this partner is currently being used in one " +
-			"or more running transfers and thus cannot be deleted, cancel these " +
-			"transfers or wait for them to finish")
-	}
-
-	certQuery := db.DeleteAll(&Crypto{}).Where(
-		"(owner_type=? AND owner_id=?) OR (owner_type=? AND owner_id IN "+
-			"(SELECT id FROM "+TableRemAccounts+" WHERE remote_agent_id=?))",
-		TableRemAgents, r.ID, TableRemAccounts, r.ID)
-	if err := certQuery.Run(); err != nil {
-		return err
-	}
-
-	accessQuery := db.DeleteAll(&RuleAccess{}).Where(
-		" (object_type=? AND object_id=?) OR (object_type=? AND object_id IN "+
-			"(SELECT id FROM "+TableRemAccounts+" WHERE remote_agent_id=?))",
-		TableRemAgents, r.ID, TableRemAccounts, r.ID)
-	if err := accessQuery.Run(); err != nil {
-		return err
-	}
-
-	accountQuery := db.DeleteAll(&RemoteAccount{}).Where("remote_agent_id=?", r.ID)
-
-	return accountQuery.Run()
+	return nil
 }
 
 // GetCryptos returns a list of all the partner's certificates.
-func (r *RemoteAgent) GetCryptos(db database.ReadAccess) ([]Crypto, database.Error) {
-	return GetCryptos(db, r)
+func (r *RemoteAgent) GetCryptos(db database.ReadAccess) ([]*Crypto, error) {
+	return getCryptos(db, r)
+}
+
+func (r *RemoteAgent) SetCryptoOwner(c *Crypto)             { c.RemoteAgentID = utils.NewNullInt64(r.ID) }
+func (r *RemoteAgent) GenCryptoSelectCond() (string, int64) { return "remote_agent_id=?", r.ID }
+func (r *RemoteAgent) SetAccessTarget(a *RuleAccess)        { a.RemoteAgentID = utils.NewNullInt64(r.ID) }
+func (r *RemoteAgent) GenAccessSelectCond() (string, int64) { return "remote_agent_id=?", r.ID }
+
+func (r *RemoteAgent) GetAuthorizedRules(db database.ReadAccess) ([]*Rule, error) {
+	return getAuthorizedRules(db, "remote_agent_id", r.ID)
 }

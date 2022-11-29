@@ -17,6 +17,7 @@ import (
 	"code.waarp.fr/apps/gateway/gateway/pkg/model"
 	"code.waarp.fr/apps/gateway/gateway/pkg/model/types"
 	"code.waarp.fr/apps/gateway/gateway/pkg/pipeline/pipelinetest"
+	"code.waarp.fr/apps/gateway/gateway/pkg/tk/utils"
 	"code.waarp.fr/apps/gateway/gateway/pkg/tk/utils/testhelpers"
 )
 
@@ -44,10 +45,9 @@ func TestServerStop(t *testing.T) {
 		So(db.Insert(agent).Run(), ShouldBeNil)
 
 		hostKey := &model.Crypto{
-			OwnerType:  agent.TableName(),
-			OwnerID:    agent.ID,
-			Name:       "test_sftp_server_key",
-			PrivateKey: rsaPK,
+			LocalAgentID: utils.NewNullInt64(agent.ID),
+			Name:         "test_sftp_server_key",
+			PrivateKey:   rsaPK,
 		}
 		So(db.Insert(hostKey).Run(), ShouldBeNil)
 
@@ -88,10 +88,9 @@ func TestServerStart(t *testing.T) {
 		So(db.Insert(agent).Run(), ShouldBeNil)
 
 		hostKey := &model.Crypto{
-			OwnerType:  agent.TableName(),
-			OwnerID:    agent.ID,
-			Name:       "test_sftp_server_key",
-			PrivateKey: rsaPK,
+			LocalAgentID: utils.NewNullInt64(agent.ID),
+			Name:         "test_sftp_server_key",
+			PrivateKey:   rsaPK,
 		}
 		So(db.Insert(hostKey).Run(), ShouldBeNil)
 
@@ -187,13 +186,11 @@ func TestSSHServerInterruption(t *testing.T) {
 						So(test.DB.Select(&transfers).Run(), ShouldBeNil)
 						So(transfers, ShouldNotBeEmpty)
 
-						trans := model.Transfer{
+						expected := &model.Transfer{
 							ID:               transfers[0].ID,
 							RemoteTransferID: transfers[0].RemoteTransferID,
 							Start:            transfers[0].Start,
-							IsServer:         true,
-							AccountID:        test.LocAccount.ID,
-							AgentID:          test.Server.ID,
+							LocalAccountID:   utils.NewNullInt64(test.LocAccount.ID),
 							LocalPath: filepath.Join(test.Server.RootDir,
 								test.ServerRule.TmpLocalRcvDir, "test_in_shutdown.dst.part"),
 							RemotePath: "/test_in_shutdown.dst",
@@ -204,9 +201,9 @@ func TestSSHServerInterruption(t *testing.T) {
 							Owner:      conf.GlobalConfig.GatewayName,
 							Progress:   3,
 						}
-						So(transfers[0], ShouldResemble, trans)
+						So(transfers[0], ShouldResemble, expected)
 
-						ok := serv.listener.runningTransfers.Exists(trans.ID)
+						ok := serv.listener.runningTransfers.Exists(expected.ID)
 						So(ok, ShouldBeFalse)
 					})
 				})

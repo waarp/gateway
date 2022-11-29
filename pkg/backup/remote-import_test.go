@@ -77,8 +77,8 @@ func TestImportRemoteAgents(t *testing.T) {
 					})
 
 					Convey("Then the other agents should be unchanged", func() {
-						So(dbAgents[0], ShouldResemble, *agent)
-						So(dbAgents[1], ShouldResemble, *other)
+						So(dbAgents[0], ShouldResemble, agent)
+						So(dbAgents[1], ShouldResemble, other)
 					})
 				})
 
@@ -147,8 +147,8 @@ func TestImportRemoteAgents(t *testing.T) {
 						So(len(accounts), ShouldEqual, 1)
 
 						var cryptos model.Cryptos
-						So(db.Select(&cryptos).Where("owner_type=? AND owner_id=?",
-							model.TableRemAgents, dbAgent.ID).Run(), ShouldBeNil)
+						So(db.Select(&cryptos).Where("remote_agent_id=?",
+							dbAgent.ID).Run(), ShouldBeNil)
 
 						So(len(accounts), ShouldEqual, 1)
 					})
@@ -191,7 +191,7 @@ func TestImportRemoteAccounts(t *testing.T) {
 				}
 
 				Convey("When calling the importRemoteAccounts method", func() {
-					err := importRemoteAccounts(discard(), db, accounts, agent.ID)
+					err := importRemoteAccounts(discard(), db, accounts, agent)
 
 					Convey("Then it should return no error", func() {
 						So(err, ShouldBeNil)
@@ -221,7 +221,7 @@ func TestImportRemoteAccounts(t *testing.T) {
 									})
 								case accounts[i].Login == dbAccount.Login:
 									Convey("Then dbAccount is found", func() {
-										So(accounts[i], ShouldResemble, *dbAccount)
+										So(accounts[i], ShouldResemble, dbAccount)
 									})
 								default:
 									Convey("Then they should be no "+
@@ -250,7 +250,7 @@ func TestImportRemoteAccounts(t *testing.T) {
 				accounts := []RemoteAccount{account1}
 
 				Convey("When calling the importRemoteAccounts method", func() {
-					err := importRemoteAccounts(discard(), db, accounts, agent.ID)
+					err := importRemoteAccounts(discard(), db, accounts, agent)
 
 					Convey("Then it should return no error", func() {
 						So(err, ShouldBeNil)
@@ -271,10 +271,8 @@ func TestImportRemoteAccounts(t *testing.T) {
 										So(accounts[i].Password, ShouldNotResemble,
 											dbAccount.Password)
 										var cryptos model.Cryptos
-										So(db.Select(&cryptos).Where(
-											"owner_type=? AND owner_id=?",
-											model.TableRemAccounts, dbAccount.ID).
-											Run(), ShouldBeNil)
+										So(db.Select(&cryptos).Where("remote_account_id=?",
+											dbAccount.ID).Run(), ShouldBeNil)
 
 										So(len(accounts), ShouldEqual, 1)
 									})
@@ -304,7 +302,7 @@ func TestImportRemoteAccounts(t *testing.T) {
 				accounts := []RemoteAccount{account1}
 
 				Convey("When calling the importRemoteAccounts method", func() {
-					err := importRemoteAccounts(discard(), db, accounts, agent.ID)
+					err := importRemoteAccounts(discard(), db, accounts, agent)
 
 					Convey("Then it should return no error", func() {
 						So(err, ShouldBeNil)
@@ -325,10 +323,8 @@ func TestImportRemoteAccounts(t *testing.T) {
 										So(accounts[i].Password, ShouldResemble,
 											dbAccount.Password)
 										var cryptos model.Cryptos
-										So(db.Select(&cryptos).Where(
-											"owner_type=? AND owner_id=?",
-											model.TableRemAccounts, dbAccount.ID).
-											Run(), ShouldBeNil)
+										So(db.Select(&cryptos).Where("remote_account_id=?",
+											dbAccount.ID).Run(), ShouldBeNil)
 
 										So(len(accounts), ShouldEqual, 1)
 									})

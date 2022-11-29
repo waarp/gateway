@@ -93,8 +93,8 @@ func TestImportLocalAgents(t *testing.T) {
 					})
 
 					Convey("Then the other local agents should be unchanged", func() {
-						So(dbAgents[0], ShouldResemble, *agent)
-						So(dbAgents[1], ShouldResemble, *other)
+						So(dbAgents[0], ShouldResemble, agent)
+						So(dbAgents[1], ShouldResemble, other)
 					})
 				})
 
@@ -172,14 +172,14 @@ func TestImportLocalAgents(t *testing.T) {
 							So(len(accounts), ShouldEqual, 1)
 
 							var cryptos model.Cryptos
-							So(db.Select(&cryptos).Where("owner_type=? AND owner_id=?",
-								model.TableLocAgents, dbAgent.ID).Run(), ShouldBeNil)
+							So(db.Select(&cryptos).Where("local_agent_id=?",
+								dbAgent.ID).Run(), ShouldBeNil)
 
 							So(len(accounts), ShouldEqual, 1)
 						})
 
 						Convey("Then the other agents should be unchanged", func() {
-							So(dbAgents[2], ShouldResemble, *other)
+							So(dbAgents[2], ShouldResemble, other)
 						})
 					})
 				})
@@ -302,10 +302,8 @@ func TestImportLocalAccounts(t *testing.T) {
 										So(accounts[i].PasswordHash, ShouldNotResemble,
 											dbAccount.PasswordHash)
 										var cryptos model.Cryptos
-										So(db.Select(&cryptos).Where(
-											"owner_type=? AND owner_id=?",
-											model.TableLocAccounts, dbAccount.ID).
-											Run(), ShouldBeNil)
+										So(db.Select(&cryptos).Where("local_account_id=?",
+											dbAccount.ID).Run(), ShouldBeNil)
 
 										So(len(accounts), ShouldEqual, 1)
 									})
@@ -355,10 +353,8 @@ func TestImportLocalAccounts(t *testing.T) {
 										So(accounts[i].PasswordHash, ShouldResemble,
 											dbAccount.PasswordHash)
 										var cryptos model.Cryptos
-										So(db.Select(&cryptos).Where(
-											"owner_type=? AND owner_id=?",
-											model.TableLocAccounts, dbAccount.ID).
-											Run(), ShouldBeNil)
+										So(db.Select(&cryptos).Where("local_account_id=?",
+											dbAccount.ID).Run(), ShouldBeNil)
 
 										So(len(accounts), ShouldEqual, 1)
 									})

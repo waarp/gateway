@@ -10,7 +10,7 @@ import (
 )
 
 func importCerts(logger *log.Logger, db database.Access, list []file.Certificate,
-	ownerType string, ownerID uint64,
+	owner model.CryptoOwner,
 ) database.Error {
 	for _, src := range list {
 		// Create model with basic info to check existence
@@ -18,9 +18,8 @@ func importCerts(logger *log.Logger, db database.Access, list []file.Certificate
 
 		// Check if crypto exists
 		exist := true
-		err := db.Get(&crypto, "owner_type=? AND owner_id=? AND name=?", ownerType,
-			ownerID, src.Name).Run()
 
+		err := db.Get(&crypto, "name=?", src.Name).And(owner.GenCryptoSelectCond()).Run()
 		if database.IsNotFound(err) {
 			exist = false
 		} else if err != nil {
@@ -28,8 +27,7 @@ func importCerts(logger *log.Logger, db database.Access, list []file.Certificate
 		}
 
 		// Populate
-		crypto.OwnerType = ownerType
-		crypto.OwnerID = ownerID
+		owner.SetCryptoOwner(&crypto)
 		crypto.Name = src.Name
 		crypto.PrivateKey = types.CypherText(src.PrivateKey)
 		crypto.SSHPublicKey = src.PublicKey

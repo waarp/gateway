@@ -21,7 +21,7 @@ type SelectQuery struct {
 	bean SelectBean
 
 	lim, off int
-	conds    []cond
+	conds    []*condition
 	distinct []string
 	order    string
 	asc      bool
@@ -35,7 +35,7 @@ type SelectQuery struct {
 // If the function is called multiple times, all the conditions will be chained
 // using the 'AND' operator.
 func (s *SelectQuery) Where(sql string, args ...interface{}) *SelectQuery {
-	s.conds = append(s.conds, cond{sql: sql, args: args})
+	s.conds = append(s.conds, &condition{sql: sql, args: args})
 
 	return s
 }
@@ -53,7 +53,7 @@ func (s *SelectQuery) In(col string, vals ...interface{}) *SelectQuery {
 		return s
 	}
 
-	s.conds = append(s.conds, cond{sql: sql.String(), args: sql.args})
+	s.conds = append(s.conds, &condition{sql: sql.String(), args: sql.args})
 
 	return s
 }
@@ -93,8 +93,8 @@ func (s *SelectQuery) Run() Error {
 	logger := s.db.GetLogger()
 	query := s.db.getUnderlying().NoAutoCondition().Table(s.bean.TableName())
 
-	for i := range s.conds {
-		query.And(s.conds[i].sql, s.conds[i].args...)
+	for _, cond := range s.conds {
+		query.And(cond.sql, cond.args...)
 	}
 
 	if s.lim != 0 || s.off != 0 {
@@ -116,8 +116,6 @@ func (s *SelectQuery) Run() Error {
 	if s.forUpd {
 		query.ForUpdate()
 	}
-
-	defer logSQL(query, logger)
 
 	if err := query.Find(s.bean); err != nil {
 		logger.Error("Failed to retrieve the %s entries: %s", s.bean.Elem(), err)

@@ -7,54 +7,25 @@ import (
 	"code.waarp.fr/apps/gateway/gateway/pkg/tk/utils"
 )
 
-//nolint:gochecknoinits // init is used by design
-func init() {
-	database.AddTable(&Rule{})
-}
-
 // Rule represents a transfer rule.
 type Rule struct {
+	ID int64 `xorm:"<- id AUTOINCR"` // The Rule's ID
 
-	// The Rule's ID
-	ID uint64 `xorm:"pk autoincr <- 'id'"`
-
-	// The rule's name
-	Name string `xorm:"unique(dir) notnull 'name'"`
-
-	// The rule's comment
-	Comment string `xorm:"notnull 'comment'"`
-
-	// The rule's direction (pull/push)
-	IsSend bool `xorm:"unique(dir) unique(path) notnull 'send'"`
+	Name    string `xorm:"name"`    // The rule's name
+	IsSend  bool   `xorm:"is_send"` // The rule's direction (pull/push)
+	Comment string `xorm:"comment"` // An optional comment on the rule.
 
 	// The path used to differentiate the rule when the protocol does not allow it.
-	// This path is always an absolute path.
-	Path string `xorm:"unique(path) notnull 'path'"`
+	Path string `xorm:"path"`
 
-	// The local directory for all file transfers using this rule.
-	LocalDir string `xorm:"notnull 'local_dir'"`
-
-	// The remote directory for all file transfers using this rule.
-	RemoteDir string `xorm:"notnull 'remote_dir'"`
-
-	// The temporary directory for running incoming transfer files.
-	TmpLocalRcvDir string `xorm:"notnull 'tmp_local_receive_dir'"`
+	LocalDir       string `xorm:"local_dir"`             // The local directory for transfers.
+	RemoteDir      string `xorm:"remote_dir"`            // The remote directory for transfers.
+	TmpLocalRcvDir string `xorm:"tmp_local_receive_dir"` // The local temporary directory for transfers.
 }
 
-// TableName returns the remote accounts table name.
-func (*Rule) TableName() string {
-	return TableRules
-}
-
-// Appellation returns the name of 1 element of the rules table.
-func (*Rule) Appellation() string {
-	return "rule"
-}
-
-// GetID returns the rule's ID.
-func (r *Rule) GetID() uint64 {
-	return r.ID
-}
+func (*Rule) TableName() string   { return TableRules }
+func (*Rule) Appellation() string { return "rule" }
+func (r *Rule) GetID() int64      { return r.ID }
 
 func (r *Rule) normalizePaths() {
 	r.Path = path.Clean(r.Path)
@@ -99,7 +70,7 @@ func (r *Rule) checkAncestor(db database.ReadAccess, rulePath string) database.E
 }
 
 func (r *Rule) checkPath(db database.ReadAccess) database.Error {
-	if n, err := db.Count(r).Where("id<>? AND path=? AND send=?", r.ID, r.Path,
+	if n, err := db.Count(r).Where("id<>? AND path=? AND is_send=?", r.ID, r.Path,
 		r.IsSend).Run(); err != nil {
 		return err
 	} else if n > 0 {
@@ -124,7 +95,7 @@ func (r *Rule) BeforeWrite(db database.ReadAccess) database.Error {
 		return database.NewValidationError("the rule's name cannot be empty")
 	}
 
-	n, err := db.Count(r).Where("id<>? AND name=? AND send=?", r.ID,
+	n, err := db.Count(r).Where("id<>? AND name=? AND is_send=?", r.ID,
 		r.Name, r.IsSend).Run()
 	if err != nil {
 		return err
@@ -148,27 +119,14 @@ func (r *Rule) Direction() string {
 }
 
 // BeforeDelete is called before deleting the rule from the database. Its
-// role is to delete all the RuleAccess entries attached to this rule.
+// role is to check whether the rule is still used in any ongoing transfer.
 func (r *Rule) BeforeDelete(db database.Access) database.Error {
-	n, err := db.Count(&Transfer{}).Where("rule_id=?", r.ID).Run()
-	if err != nil {
+	if n, err := db.Count(&Transfer{}).Where("rule_id=?", r.ID).Run(); err != nil {
 		return err
-	}
-
-	if n > 0 {
+	} else if n > 0 {
 		return database.NewValidationError("this rule is currently being used in a " +
 			"running transfer and cannot be deleted, cancel the transfer or wait " +
 			"for it to finish")
-	}
-
-	err = db.DeleteAll(&RuleAccess{}).Where("rule_id=?", r.ID).Run()
-	if err != nil {
-		return err
-	}
-
-	err = db.DeleteAll(&Task{}).Where("rule_id=?", r.ID).Run()
-	if err != nil {
-		return err
 	}
 
 	return nil
@@ -190,19 +148,15 @@ func (r *Rule) IsAuthorized(db database.Access, target database.IterateBean) (bo
 	var query *database.CountQuery
 	switch object := target.(type) {
 	case *LocalAgent:
-		query = db.Count(&perms).Where("rule_id=? AND (object_type=? AND object_id=?)",
-			r.ID, object.TableName(), object.ID)
+		query = db.Count(&perms).Where("rule_id=? AND local_agent_id=?", r.ID, object.ID)
 	case *RemoteAgent:
-		query = db.Count(&perms).Where("rule_id=? AND (object_type=? AND object_id=?)",
-			r.ID, object.TableName(), object.ID)
+		query = db.Count(&perms).Where("rule_id=? AND remote_agent_id=?", r.ID, object.ID)
 	case *LocalAccount:
-		query = db.Count(&perms).Where("rule_id=? AND ((object_type=? AND object_id=?) "+
-			"OR (object_type=? AND object_id=?))", r.ID, object.TableName(), object.ID,
-			TableLocAgents, object.LocalAgentID)
+		query = db.Count(&perms).Where("rule_id=? AND ( local_account_id=? OR "+
+			"local_agent_id=? )", r.ID, object.ID, object.LocalAgentID)
 	case *RemoteAccount:
-		query = db.Count(&perms).Where("rule_id=? AND ((object_type=? AND object_id=?) "+
-			"OR (object_type=? AND object_id=?))", r.ID, object.TableName(), object.ID,
-			TableRemAgents, object.RemoteAgentID)
+		query = db.Count(&perms).Where("rule_id=? AND ( remote_account_id=? OR "+
+			"remote_agent_id=?", r.ID, object.ID, object.RemoteAgentID)
 	default:
 		return false, database.NewValidationError("%T is not a valid target model for RuleAccess", target)
 	}

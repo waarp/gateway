@@ -61,8 +61,8 @@ func makeTLSConf(pip *pipeline.Pipeline) (*tls.Config, error) {
 		rootCAs = x509.NewCertPool()
 	}
 
-	for _, ca := range pip.TransCtx.RemoteAgentCryptos {
-		certChain, parseErr := utils.ParsePEMCertChain(ca.Certificate)
+	for _, crypto := range pip.TransCtx.RemoteAgentCryptos {
+		certChain, parseErr := utils.ParsePEMCertChain(crypto.Certificate)
 		if parseErr != nil {
 			return nil, fmt.Errorf("failed to parse the certificate chain: %w", parseErr)
 		}
@@ -70,26 +70,14 @@ func makeTLSConf(pip *pipeline.Pipeline) (*tls.Config, error) {
 		rootCAs.AddCert(certChain[0])
 	}
 
-	var certs []tls.Certificate
-
-	for _, ce := range pip.TransCtx.RemoteAccountCryptos {
-		cert, err := tls.X509KeyPair([]byte(ce.Certificate), []byte(ce.PrivateKey))
-		if err != nil {
-			return nil, fmt.Errorf("failed to parse client certificate %s: %w", ce.Name, err)
-		}
-
-		certs = append(certs, cert)
-	}
-
 	tlsConf := &tls.Config{
 		MinVersion:       tls.VersionTLS12,
 		RootCAs:          rootCAs,
-		Certificates:     certs,
 		VerifyConnection: compatibility.LogSha1(pip.Logger),
 	}
 
-	for _, c := range pip.TransCtx.RemoteAccountCryptos {
-		cert, err := tls.X509KeyPair([]byte(c.Certificate), []byte(c.PrivateKey))
+	for _, crypto := range pip.TransCtx.RemoteAccountCryptos {
+		cert, err := tls.X509KeyPair([]byte(crypto.Certificate), []byte(crypto.PrivateKey))
 		if err != nil {
 			return nil, fmt.Errorf("failed to parse TLS certificate: %w", err)
 		}

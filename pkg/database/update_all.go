@@ -1,6 +1,8 @@
 package database
 
-import "xorm.io/builder"
+import (
+	"xorm.io/builder"
+)
 
 // UpdateAllBean is the interface that a model must implement in order to be
 // updatable via the Access.Update query builder.
@@ -30,8 +32,6 @@ func (u *UpdateAllQuery) Run() Error {
 	ses := u.db.getUnderlying().NoAutoCondition()
 	query := builder.Update(builder.Eq(u.vals)).From(u.bean.TableName()).
 		Where(builder.Expr(u.conds, u.args...))
-
-	defer logSQL(ses, logger)
 
 	if _, err := ses.Exec(query); err != nil {
 		logger.Error("Failed to update the %s entries: %s", u.bean.Appellation(), err)

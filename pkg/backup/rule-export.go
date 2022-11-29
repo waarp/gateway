@@ -59,7 +59,7 @@ func exportRules(logger *log.Logger, db database.ReadAccess) ([]file.Rule, error
 	return res, nil
 }
 
-func exportRuleAccesses(db database.ReadAccess, ruleID uint64) ([]string, error) {
+func exportRuleAccesses(db database.ReadAccess, ruleID int64) ([]string, error) {
 	var dbAccs model.RuleAccesses
 	if err := db.Select(&dbAccs).Where("rule_id=?", ruleID).Run(); err != nil {
 		return nil, err
@@ -68,18 +68,18 @@ func exportRuleAccesses(db database.ReadAccess, ruleID uint64) ([]string, error)
 	res := make([]string, len(dbAccs))
 
 	for i, src := range dbAccs {
-		switch src.ObjectType {
-		case model.TableRemAgents:
+		switch {
+		case src.RemoteAgentID.Valid:
 			var agent model.RemoteAgent
-			if err := db.Get(&agent, "id=?", src.ObjectID).Run(); err != nil {
+			if err := db.Get(&agent, "id=?", src.RemoteAgentID.Int64).Run(); err != nil {
 				return nil, err
 			}
 
 			res[i] = fmt.Sprintf("remote::%s", agent.Name)
 
-		case model.TableRemAccounts:
+		case src.RemoteAccountID.Valid:
 			var account model.RemoteAccount
-			if err := db.Get(&account, "id=?", src.ObjectID).Run(); err != nil {
+			if err := db.Get(&account, "id=?", src.RemoteAccountID.Int64).Run(); err != nil {
 				return nil, err
 			}
 
@@ -90,17 +90,17 @@ func exportRuleAccesses(db database.ReadAccess, ruleID uint64) ([]string, error)
 
 			res[i] = fmt.Sprintf("remote::%s::%s", agent.Name, account.Login)
 
-		case model.TableLocAgents:
+		case src.LocalAgentID.Valid:
 			var agent model.LocalAgent
-			if err := db.Get(&agent, "id=?", src.ObjectID).Run(); err != nil {
+			if err := db.Get(&agent, "id=?", src.LocalAgentID.Int64).Run(); err != nil {
 				return nil, err
 			}
 
 			res[i] = fmt.Sprintf("local::%s", agent.Name)
 
-		case model.TableLocAccounts:
+		case src.LocalAccountID.Valid:
 			var account model.LocalAccount
-			if err := db.Get(&account, "id=?", src.ObjectID).Run(); err != nil {
+			if err := db.Get(&account, "id=?", src.LocalAccountID.Int64).Run(); err != nil {
 				return nil, err
 			}
 
@@ -113,14 +113,14 @@ func exportRuleAccesses(db database.ReadAccess, ruleID uint64) ([]string, error)
 
 		default:
 			//nolint:goerr113 // too specific for a base error
-			return nil, fmt.Errorf("unknown rule access target '%s'", src.ObjectType)
+			return nil, fmt.Errorf("rule access is missing a target")
 		}
 	}
 
 	return res, nil
 }
 
-func exportRuleTasks(db database.ReadAccess, ruleID uint64, chain string) ([]file.Task, error) {
+func exportRuleTasks(db database.ReadAccess, ruleID int64, chain string) ([]file.Task, error) {
 	var dbTasks model.Tasks
 	if err := db.Select(&dbTasks).Where("rule_id=? AND chain=?", ruleID, chain).
 		OrderBy("rank", true).Run(); err != nil {

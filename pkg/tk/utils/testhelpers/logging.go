@@ -11,3 +11,10 @@ func TestLogger(c convey.C, name string) *log.Logger {
 
 	return back.NewLogger(name)
 }
+
+func TestLoggerWithLevel(c convey.C, name string, level log.Level) *log.Logger {
+	back, err := log.NewBackend(level, log.Stdout, "", "")
+	c.So(err, convey.ShouldBeNil)
+
+	return back.NewLogger(name)
+}

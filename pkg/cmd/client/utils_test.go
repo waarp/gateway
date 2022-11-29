@@ -29,6 +29,12 @@ const (
 	testProtoErr = "cli_proto_err"
 )
 
+//nolint:gochecknoglobals //global vars are necessary here
+var (
+	testCoreServices  = map[string]service.Service{}
+	testProtoServices = map[int64]proto.Service{}
+)
+
 //nolint:gochecknoinits // init is used by design
 func init() {
 	config.ProtoConfigs[testProto1] = func() config.ProtoConfig { return new(TestProtoConfig) }
@@ -45,7 +51,7 @@ func discard() *log.Logger {
 }
 
 func testHandler(db *database.DB) http.Handler {
-	return admin.MakeHandler(discard(), db, nil, nil)
+	return admin.MakeHandler(discard(), db, testCoreServices, testProtoServices)
 }
 
 func hash(pwd string) string {

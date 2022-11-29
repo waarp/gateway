@@ -1,8 +1,12 @@
 package migrations
 
-import "fmt"
+import (
+	"errors"
+	"fmt"
+)
 
-func errUnknownEngine(dial string) error {
-	//nolint:goerr113 //this is a base error
-	return fmt.Errorf("unknown migration dialect engine '%s'", dial)
+var ErrUnknownDialect = errors.New("unknown SQL dialect")
+
+func errUnknownDialect(dial string) error {
+	return fmt.Errorf("%w: %q", ErrUnknownDialect, dial)
 }

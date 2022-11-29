@@ -16,16 +16,10 @@ import (
 	"code.waarp.fr/apps/gateway/gateway/pkg/tk/utils"
 )
 
-type agent interface {
-	database.Table
-	database.Identifier
-}
-
-// GetCryptos fetch from the database then return the associated Cryptos if they exist.
-func GetCryptos(db database.ReadAccess, agent agent) ([]Crypto, database.Error) {
+// getCryptos fetch from the database then return the associated Cryptos if they exist.
+func getCryptos(db database.ReadAccess, owner CryptoOwner) (Cryptos, error) {
 	var certs Cryptos
-	query := db.Select(&certs).Where("owner_type=? AND owner_id=?",
-		agent.TableName(), agent.GetID())
+	query := db.Select(&certs).Where(owner.GenCryptoSelectCond())
 
 	if err := query.Run(); err != nil {
 		return nil, err
@@ -33,6 +27,22 @@ func GetCryptos(db database.ReadAccess, agent agent) ([]Crypto, database.Error) 
 
 	// TODO: get only validate certificates
 	return certs, nil
+}
+
+func getAuthorizedRules(db database.ReadAccess, ownerCol string, ownerID int64,
+) (Rules, error) {
+	tbl := TableRuleAccesses
+
+	var rules Rules
+	if err := db.Select(&rules).Where(
+		"(id IN (SELECT DISTINCT rule_id FROM "+tbl+" WHERE "+ownerCol+"=?))"+
+			" OR "+
+			"(SELECT COUNT(*) FROM "+tbl+" WHERE rule_id = id) = 0",
+		ownerID).Run(); err != nil {
+		return nil, fmt.Errorf("failed to retrieve the authorized rules: %w", err)
+	}
+
+	return rules, nil
 }
 
 // CheckClientAuthent checks whether the given certificate chain is valid as a
@@ -87,7 +97,7 @@ func (c *Cryptos) checkAuthent(name string, certs []*x509.Certificate,
 	return nil
 }
 
-func getTransferInfo(db database.ReadAccess, id uint64) (map[string]interface{}, database.Error) {
+func getTransferInfo(db database.ReadAccess, id int64) (map[string]interface{}, database.Error) {
 	var infoList TransferInfoList
 	if err := db.Select(&infoList).Where("transfer_id=?", id).Run(); err != nil {
 		return nil, err
@@ -109,7 +119,7 @@ func getTransferInfo(db database.ReadAccess, id uint64) (map[string]interface{},
 
 // SetTransferInfo replaces all the TransferInfo in the database of the given
 // transfer by those given in the map parameter.
-func setTransferInfo(db *database.DB, info map[string]interface{}, transID uint64,
+func setTransferInfo(db *database.DB, info map[string]interface{}, transID int64,
 	isHistory bool,
 ) database.Error {
 	return db.Transaction(func(ses *database.Session) database.Error {
@@ -123,11 +133,16 @@ func setTransferInfo(db *database.DB, info map[string]interface{}, transID uint6
 			}
 
 			i := &TransferInfo{
-				TransferID: transID,
-				IsHistory:  isHistory,
-				Name:       name,
-				Value:      string(str),
+				Name:  name,
+				Value: string(str),
 			}
+
+			if isHistory {
+				i.HistoryID = utils.NewNullInt64(transID)
+			} else {
+				i.TransferID = utils.NewNullInt64(transID)
+			}
+
 			if err := ses.Insert(i).Run(); err != nil {
 				return err
 			}
@@ -186,4 +201,12 @@ func isLegacyR66Cert(cert *x509.Certificate) bool {
 	}
 
 	return false
+}
+
+func boolToInt(b bool) int {
+	if b {
+		return 1
+	}
+
+	return 0
 }

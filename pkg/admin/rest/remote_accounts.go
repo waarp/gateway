@@ -12,10 +12,10 @@ import (
 )
 
 //nolint:dupl // duplicated code is about a different type
-func getRemAcc(r *http.Request, db *database.DB) (*model.RemoteAgent,
+func getDBRemoteAccount(r *http.Request, db *database.DB) (*model.RemoteAgent,
 	*model.RemoteAccount, error,
 ) {
-	parent, err := getPart(r, db)
+	parent, err := retrievePartner(r, db)
 	if err != nil {
 		return nil, nil, err
 	}
@@ -25,8 +25,8 @@ func getRemAcc(r *http.Request, db *database.DB) (*model.RemoteAgent,
 		return parent, nil, notFound("missing partner name")
 	}
 
-	var account model.RemoteAccount
-	if err := db.Get(&account, "login=? AND remote_agent_id=?", login, parent.ID).
+	var dbAccount model.RemoteAccount
+	if err := db.Get(&dbAccount, "login=? AND remote_agent_id=?", login, parent.ID).
 		Run(); err != nil {
 		if database.IsNotFound(err) {
 			return parent, nil, notFound("no account '%s' found for partner %s",
@@ -36,7 +36,7 @@ func getRemAcc(r *http.Request, db *database.DB) (*model.RemoteAgent,
 		return parent, nil, err
 	}
 
-	return parent, &account, nil
+	return parent, &dbAccount, nil
 }
 
 //nolint:dupl // duplicated code is about a different type
@@ -46,18 +46,17 @@ func listRemoteAccounts(logger *log.Logger, db *database.DB) http.HandlerFunc {
 		"login+":  order{"login", true},
 		"login-":  order{"login", false},
 	}
-	typ := (&model.RemoteAccount{}).TableName()
 
 	return func(w http.ResponseWriter, r *http.Request) {
-		var accounts model.RemoteAccounts
-
-		query, err := parseSelectQuery(r, db, validSorting, &accounts)
-		if handleError(w, logger, err) {
+		parent, getErr := retrievePartner(r, db)
+		if handleError(w, logger, getErr) {
 			return
 		}
 
-		parent, err := getPart(r, db)
-		if handleError(w, logger, err) {
+		var dbAccounts model.RemoteAccounts
+
+		query, parseErr := parseSelectQuery(r, db, validSorting, &dbAccounts)
+		if handleError(w, logger, parseErr) {
 			return
 		}
 
@@ -67,108 +66,105 @@ func listRemoteAccounts(logger *log.Logger, db *database.DB) http.HandlerFunc {
 			return
 		}
 
-		ids := make([]uint64, len(accounts))
-		for i := range accounts {
-			ids[i] = accounts[i].ID
-		}
-
-		rules, err := getAuthorizedRuleList(db, typ, ids)
-		if handleError(w, logger, err) {
+		restAccounts, convErr := DBRemoteAccountsToREST(db, dbAccounts)
+		if handleError(w, logger, convErr) {
 			return
 		}
 
-		resp := map[string][]api.OutAccount{"remoteAccounts": FromRemoteAccounts(accounts, rules)}
-		err = writeJSON(w, resp)
-		handleError(w, logger, err)
+		response := map[string][]*api.OutAccount{"remoteAccounts": restAccounts}
+		handleError(w, logger, writeJSON(w, response))
 	}
 }
 
 func getRemoteAccount(logger *log.Logger, db *database.DB) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		_, result, err := getRemAcc(r, db)
-		if handleError(w, logger, err) {
+		_, dbAccount, getErr := getDBRemoteAccount(r, db)
+		if handleError(w, logger, getErr) {
 			return
 		}
 
-		rules, err := getAuthorizedRules(db, result.TableName(), result.ID)
-		if handleError(w, logger, err) {
+		restAccount, convErr := DBRemoteAccountToREST(db, dbAccount)
+		if handleError(w, logger, convErr) {
 			return
 		}
 
-		err = writeJSON(w, FromRemoteAccount(result, rules))
-		handleError(w, logger, err)
+		handleError(w, logger, writeJSON(w, restAccount))
 	}
 }
 
 func updateRemoteAccount(logger *log.Logger, db *database.DB) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		parent, old, err := getRemAcc(r, db)
-		if handleError(w, logger, err) {
+		parent, oldAccount, getErr := getDBRemoteAccount(r, db)
+		if handleError(w, logger, getErr) {
 			return
 		}
 
-		jAccount := newInRemAccount(old)
-		if err := readJSON(r, jAccount); handleError(w, logger, err) {
+		restAccount := dbRemoteAccountToRESTInput(oldAccount)
+		if err := readJSON(r, restAccount); handleError(w, logger, err) {
 			return
 		}
 
-		account := accToRemote(jAccount, parent, old.ID)
-		if err := db.Update(account).Run(); handleError(w, logger, err) {
+		dbAccount := restRemoteAccountToDB(restAccount, parent)
+		dbAccount.ID = oldAccount.ID
+
+		if err := db.Update(dbAccount).Run(); handleError(w, logger, err) {
 			return
 		}
 
-		w.Header().Set("Location", locationUpdate(r.URL, account.Login))
+		w.Header().Set("Location", locationUpdate(r.URL, dbAccount.Login))
 		w.WriteHeader(http.StatusCreated)
 	}
 }
 
 func replaceRemoteAccount(logger *log.Logger, db *database.DB) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		parent, old, err := getRemAcc(r, db)
-		if handleError(w, logger, err) {
+		parent, oldAccount, getErr := getDBRemoteAccount(r, db)
+		if handleError(w, logger, getErr) {
 			return
 		}
 
-		var jAccount api.InAccount
-		if err := readJSON(r, &jAccount); handleError(w, logger, err) {
+		var restAccount api.InAccount
+		if err := readJSON(r, &restAccount); handleError(w, logger, err) {
 			return
 		}
 
-		account := accToRemote(&jAccount, parent, old.ID)
-		if err := db.Update(account).Run(); handleError(w, logger, err) {
+		dbAccount := restRemoteAccountToDB(&restAccount, parent)
+		dbAccount.ID = oldAccount.ID
+
+		if err := db.Update(dbAccount).Run(); handleError(w, logger, err) {
 			return
 		}
 
-		w.Header().Set("Location", locationUpdate(r.URL, account.Login))
+		w.Header().Set("Location", locationUpdate(r.URL, dbAccount.Login))
 		w.WriteHeader(http.StatusCreated)
 	}
 }
 
 func addRemoteAccount(logger *log.Logger, db *database.DB) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		parent, err := getPart(r, db)
-		if handleError(w, logger, err) {
+		parent, getErr := retrievePartner(r, db)
+		if handleError(w, logger, getErr) {
 			return
 		}
 
-		var jsonAccount api.InAccount
-		if err := readJSON(r, &jsonAccount); handleError(w, logger, err) {
+		var restAccount api.InAccount
+		if err := readJSON(r, &restAccount); handleError(w, logger, err) {
 			return
 		}
 
-		account := accToRemote(&jsonAccount, parent, 0)
-		if err := db.Insert(account).Run(); handleError(w, logger, err) {
+		dbAccount := restRemoteAccountToDB(&restAccount, parent)
+		if err := db.Insert(dbAccount).Run(); handleError(w, logger, err) {
 			return
 		}
 
-		w.Header().Set("Location", location(r.URL, account.Login))
+		w.Header().Set("Location", location(r.URL, dbAccount.Login))
 		w.WriteHeader(http.StatusCreated)
 	}
 }
 
 func deleteRemoteAccount(logger *log.Logger, db *database.DB) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		_, acc, err := getRemAcc(r, db)
+		_, acc, err := getDBRemoteAccount(r, db)
 		if handleError(w, logger, err) {
 			return
 		}
@@ -183,96 +179,88 @@ func deleteRemoteAccount(logger *log.Logger, db *database.DB) http.HandlerFunc {
 
 func authorizeRemoteAccount(logger *log.Logger, db *database.DB) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		_, acc, err := getRemAcc(r, db)
-		if handleError(w, logger, err) {
+		_, dbAccount, getErr := getDBRemoteAccount(r, db)
+		if handleError(w, logger, getErr) {
 			return
 		}
 
-		err = authorizeRule(w, r, db, acc.TableName(), acc.ID)
-		handleError(w, logger, err)
+		handleError(w, logger, authorizeRule(w, r, db, dbAccount))
 	}
 }
 
 func revokeRemoteAccount(logger *log.Logger, db *database.DB) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		_, acc, err := getRemAcc(r, db)
-		if handleError(w, logger, err) {
+		_, dbAccount, getErr := getDBRemoteAccount(r, db)
+		if handleError(w, logger, getErr) {
 			return
 		}
 
-		err = revokeRule(w, r, db, acc.TableName(), acc.ID)
-		handleError(w, logger, err)
+		handleError(w, logger, revokeRule(w, r, db, dbAccount))
 	}
 }
 
 func getRemAccountCert(logger *log.Logger, db *database.DB) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		_, acc, err := getRemAcc(r, db)
-		if handleError(w, logger, err) {
+		_, dbAccount, getErr := getDBRemoteAccount(r, db)
+		if handleError(w, logger, getErr) {
 			return
 		}
 
-		err = getCrypto(w, r, db, acc.TableName(), acc.ID)
-		handleError(w, logger, err)
+		handleError(w, logger, getCrypto(w, r, db, dbAccount))
 	}
 }
 
 func addRemAccountCert(logger *log.Logger, db *database.DB) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		_, acc, err := getRemAcc(r, db)
-		if handleError(w, logger, err) {
+		_, dbAccount, getErr := getDBRemoteAccount(r, db)
+		if handleError(w, logger, getErr) {
 			return
 		}
 
-		err = createCrypto(w, r, db, acc.TableName(), acc.ID)
-		handleError(w, logger, err)
+		handleError(w, logger, createCrypto(w, r, db, dbAccount))
 	}
 }
 
 func listRemAccountCerts(logger *log.Logger, db *database.DB) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		_, acc, err := getRemAcc(r, db)
-		if handleError(w, logger, err) {
+		_, dbAccount, getErr := getDBRemoteAccount(r, db)
+		if handleError(w, logger, getErr) {
 			return
 		}
 
-		err = listCryptos(w, r, db, acc.TableName(), acc.ID)
-		handleError(w, logger, err)
+		handleError(w, logger, listCryptos(w, r, db, dbAccount))
 	}
 }
 
 func deleteRemAccountCert(logger *log.Logger, db *database.DB) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		_, acc, err := getRemAcc(r, db)
-		if handleError(w, logger, err) {
+		_, dbAccount, getErr := getDBRemoteAccount(r, db)
+		if handleError(w, logger, getErr) {
 			return
 		}
 
-		err = deleteCrypto(w, r, db, acc.TableName(), acc.ID)
-		handleError(w, logger, err)
+		handleError(w, logger, deleteCrypto(w, r, db, dbAccount))
 	}
 }
 
 func updateRemAccountCert(logger *log.Logger, db *database.DB) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		_, acc, err := getRemAcc(r, db)
-		if handleError(w, logger, err) {
+		_, dbAccount, getErr := getDBRemoteAccount(r, db)
+		if handleError(w, logger, getErr) {
 			return
 		}
 
-		err = updateCrypto(w, r, db, acc.TableName(), acc.ID)
-		handleError(w, logger, err)
+		handleError(w, logger, updateCrypto(w, r, db, dbAccount))
 	}
 }
 
 func replaceRemAccountCert(logger *log.Logger, db *database.DB) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		_, acc, err := getRemAcc(r, db)
-		if handleError(w, logger, err) {
+		_, dbAccount, getErr := getDBRemoteAccount(r, db)
+		if handleError(w, logger, getErr) {
 			return
 		}
 
-		err = replaceCrypto(w, r, db, acc.TableName(), acc.ID)
-		handleError(w, logger, err)
+		handleError(w, logger, replaceCrypto(w, r, db, dbAccount))
 	}
 }

@@ -17,6 +17,7 @@ var ErrTestFail = types.NewTransferError(types.TeInternal, "this is an intended 
 
 // Tester is a tracer to verify if a transfer is executed as it should. Can be
 // initialized with the InitTester function. USE ONLY FOR TESTS.
+//
 //nolint:gochecknoglobals //only used for tests
 var Tester *tester
 
@@ -31,12 +32,12 @@ const (
 
 type tester struct {
 	errOn    errOn
-	atOffset uint64
+	atOffset int64
 
 	CliPre, ServPre,
 	CliData, ServData,
 	CliPost, ServPost,
-	CliErr, ServErr uint64
+	CliErr, ServErr int32
 	CliDone, ServDone chan bool
 }
 
@@ -50,7 +51,7 @@ func InitTester(c convey.C) {
 }
 
 // AddErrorAt adds a simulated error on the given stage at the given offset.
-func (t *tester) AddErrorAt(on errOn, at uint64) {
+func (t *tester) AddErrorAt(on errOn, at int64) {
 	t.errOn = on
 	t.atOffset = at
 }
@@ -84,7 +85,7 @@ func (t *tester) Retry() {
 	t.ServDone = make(chan bool)
 }
 
-func (t *tester) getError(curStage errOn, curOffset uint64) *types.TransferError {
+func (t *tester) getError(curStage errOn, curOffset int64) *types.TransferError {
 	if t == nil {
 		return nil
 	}
@@ -110,10 +111,10 @@ func (t *tester) preTasksDone(trans *model.Transfer) {
 		return
 	}
 
-	if trans.IsServer {
-		atomic.AddUint64(&t.ServPre, trans.TaskNumber)
+	if trans.IsServer() {
+		atomic.AddInt32(&t.ServPre, int32(trans.TaskNumber))
 	} else {
-		atomic.AddUint64(&t.CliPre, trans.TaskNumber)
+		atomic.AddInt32(&t.CliPre, int32(trans.TaskNumber))
 	}
 }
 
@@ -122,10 +123,10 @@ func (t *tester) dataDone(trans *model.Transfer) {
 		return
 	}
 
-	if trans.IsServer {
-		atomic.CompareAndSwapUint64(&t.ServData, 0, 1)
+	if trans.IsServer() {
+		atomic.CompareAndSwapInt32(&t.ServData, 0, 1)
 	} else {
-		atomic.CompareAndSwapUint64(&t.CliData, 0, 1)
+		atomic.CompareAndSwapInt32(&t.CliData, 0, 1)
 	}
 }
 
@@ -134,10 +135,10 @@ func (t *tester) postTasksDone(trans *model.Transfer) {
 		return
 	}
 
-	if trans.IsServer {
-		atomic.AddUint64(&t.ServPost, trans.TaskNumber)
+	if trans.IsServer() {
+		atomic.AddInt32(&t.ServPost, int32(trans.TaskNumber))
 	} else {
-		atomic.AddUint64(&t.CliPost, trans.TaskNumber)
+		atomic.AddInt32(&t.CliPost, int32(trans.TaskNumber))
 	}
 }
 
@@ -146,10 +147,10 @@ func (t *tester) errTasksDone(trans *model.Transfer) {
 		return
 	}
 
-	if trans.IsServer {
-		atomic.AddUint64(&t.ServErr, trans.TaskNumber)
+	if trans.IsServer() {
+		atomic.AddInt32(&t.ServErr, int32(trans.TaskNumber))
 	} else {
-		atomic.AddUint64(&t.CliErr, trans.TaskNumber)
+		atomic.AddInt32(&t.CliErr, int32(trans.TaskNumber))
 	}
 }
 
@@ -165,7 +166,7 @@ func (t *tester) done(isServer bool) {
 	}
 }
 
-func (t *tester) waitDone(stage *uint64) {
+func (t *tester) waitDone(stage *int32) {
 	const checkInterval = 10 * time.Millisecond
 
 	timer := time.NewTimer(TransferTimeout)
@@ -176,7 +177,7 @@ func (t *tester) waitDone(stage *uint64) {
 		case <-timer.C:
 			panic("timeout waiting for client transfer end")
 		case <-ticker.C:
-			if atomic.LoadUint64(stage) != 0 {
+			if atomic.LoadInt32(stage) != 0 {
 				return
 			}
 		}

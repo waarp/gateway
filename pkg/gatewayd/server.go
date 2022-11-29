@@ -38,7 +38,7 @@ type WG struct {
 	dbService     *database.DB
 	adminService  *admin.Server
 	controller    *controller.Controller
-	ProtoServices map[uint64]proto.Service
+	ProtoServices map[int64]proto.Service
 }
 
 // NewWG creates a new application.
@@ -80,7 +80,7 @@ func (wg *WG) makeDirs() error {
 
 func (wg *WG) initServices() {
 	core := make(map[string]service.Service)
-	wg.ProtoServices = make(map[uint64]proto.Service)
+	wg.ProtoServices = make(map[int64]proto.Service)
 
 	wg.dbService = &database.DB{}
 	wg.adminService = &admin.Server{
@@ -123,8 +123,7 @@ func (wg *WG) startServices() error {
 		return err
 	}
 
-	for i := range servers {
-		server := &servers[i]
+	for _, server := range servers {
 		l := conf.GetLogger(server.Name)
 
 		constr, ok := constructors.ServiceConstructors[server.Protocol]

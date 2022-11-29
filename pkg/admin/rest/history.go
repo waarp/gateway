@@ -66,19 +66,19 @@ func FromHistory(db *database.DB, hist *model.HistoryEntry) (*api.OutHistory, er
 
 // FromHistories transforms the given list of database history entries into its
 // JSON equivalent.
-func FromHistories(db *database.DB, hs []model.HistoryEntry) ([]api.OutHistory, error) {
-	hist := make([]api.OutHistory, len(hs))
+func FromHistories(db *database.DB, hs []*model.HistoryEntry) ([]*api.OutHistory, error) {
+	outHist := make([]*api.OutHistory, len(hs))
 
 	for i := range hs {
-		jHist, err := FromHistory(db, &hs[i])
+		jHist, err := FromHistory(db, hs[i])
 		if err != nil {
 			return nil, err
 		}
 
-		hist[i] = *jHist
+		outHist[i] = jHist
 	}
 
-	return hist, nil
+	return outHist, nil
 }
 
 //nolint:dupl // duplicated code is about a different type
@@ -139,8 +139,7 @@ func parseHistoryCond(r *http.Request, query *database.SelectQuery) error {
 			return badRequest("'%s' is not a valid date", starts[0])
 		}
 
-		query.Where("start >= ?", start.UTC().Truncate(time.Microsecond).
-			Format(time.RFC3339Nano))
+		query.Where("start >= ?", start.UTC())
 	}
 
 	stops := r.Form["stop"]
@@ -150,8 +149,7 @@ func parseHistoryCond(r *http.Request, query *database.SelectQuery) error {
 			return badRequest("'%s' is not a valid date", stops[0])
 		}
 
-		query.Where("stop <= ?", stop.UTC().Truncate(time.Microsecond).
-			Format(time.RFC3339Nano))
+		query.Where("stop <= ?", stop.UTC())
 	}
 
 	return nil
@@ -213,7 +211,7 @@ func listHistory(logger *log.Logger, db *database.DB) http.HandlerFunc {
 			return
 		}
 
-		resp := map[string][]api.OutHistory{"history": hist}
+		resp := map[string][]*api.OutHistory{"history": hist}
 		err = writeJSON(w, resp)
 		handleError(w, logger, err)
 	}

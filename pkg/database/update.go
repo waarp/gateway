@@ -33,19 +33,19 @@ func (u *UpdateQuery) run(s *Session) Error {
 		}
 	}
 
-	query := s.session.NoAutoCondition().Table(u.bean.TableName()).ID(u.bean.GetID())
+	query := s.session.NoAutoCondition().Table(u.bean.TableName()).
+		Where("id=?", u.bean.GetID())
 	if len(u.cols) == 0 {
 		query = query.AllCols()
 	} else {
 		query = query.Cols(u.cols...)
 	}
 
-	defer logSQL(query, s.logger)
+	if _, err := query.Update(u.bean); err != nil {
+		s.logger.Error("Failed to update the %s entry n°%d: %s",
+			u.bean.Appellation(), u.bean.GetID(), err)
 
-	if _, err1 := query.Update(u.bean); err1 != nil {
-		s.logger.Error("Failed to update the %s entry: %s", u.bean.Appellation(), err1)
-
-		return NewInternalError(err1)
+		return NewInternalError(err)
 	}
 
 	return nil

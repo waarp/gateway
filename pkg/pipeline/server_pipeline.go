@@ -24,8 +24,8 @@ func GetOldTransfer(db *database.DB, logger *log.Logger, trans *model.Transfer,
 
 	var oldTrans model.Transfer
 
-	err := db.Get(&oldTrans, "is_server=? AND remote_transfer_id=? AND account_id=?",
-		true, trans.RemoteTransferID, trans.AccountID).Run()
+	err := db.Get(&oldTrans, "remote_transfer_id=? AND local_account_id=?",
+		trans.RemoteTransferID, trans.LocalAccountID.Int64).Run()
 	if err == nil {
 		if oldTrans.Status == types.StatusRunning {
 			return nil, types.NewTransferError(types.TeForbidden,
@@ -83,7 +83,7 @@ func newServerPipeline(db *database.DB, trans *model.Transfer,
 			return nil, errDatabase
 		}
 
-		pipeline.Logger = conf.GetLogger(fmt.Sprintf("Pipeline %d (server)", trans.ID))
+		*logger = *conf.GetLogger(fmt.Sprintf("Pipeline %d (server)", trans.ID))
 	} else if err := pipeline.UpdateTrans(); err != nil {
 		logger.Error("Failed to update the transfer details: %s", err)
 

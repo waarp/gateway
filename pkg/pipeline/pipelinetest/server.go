@@ -183,6 +183,6 @@ func (s *ServerContext) CheckTransferOK(c convey.C) {
 	c.So(s.DB.Get(&actual, "id=?", 1).Run(), convey.ShouldBeNil)
 
 	remoteID := actual.RemoteTransferID
-	progress := uint64(TestFileSize)
+	progress := TestFileSize
 	s.checkServerTransferOK(c, remoteID, s.filename, progress, s.DB, &actual, nil)
 }

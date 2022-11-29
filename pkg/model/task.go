@@ -8,6 +8,7 @@ import (
 )
 
 // ValidTasks is a list of all the tasks known by the gateway.
+//
 //nolint:gochecknoglobals // global var is used by design
 var ValidTasks = map[string]TaskRunner{}
 
@@ -25,42 +26,26 @@ type TaskRunner interface {
 	Run(context.Context, map[string]string, *database.DB, *TransferContext) (string, error)
 }
 
-//nolint:gochecknoinits // init is used by design
-func init() {
-	database.AddTable(&Task{})
-}
-
 // Chain represents the valid chains for a task entry.
 type Chain string
 
 const (
-	// ChainPre is the chain for pre transfer tasks.
-	ChainPre Chain = "PRE"
-	// ChainPost is the chain for post transfer tasks.
-	ChainPost Chain = "POST"
-
-	// ChainError is the chain for error transfer tasks.
-	ChainError Chain = "ERROR"
+	ChainPre   Chain = "PRE"   // ChainPre is the chain for pre transfer tasks.
+	ChainPost  Chain = "POST"  // ChainPost is the chain for post transfer tasks.
+	ChainError Chain = "ERROR" // ChainError is the chain for error transfer tasks.
 )
 
 // Task represents one record of the 'tasks' table.
 type Task struct {
-	RuleID uint64          `xorm:"notnull 'rule_id'"`
-	Chain  Chain           `xorm:"notnull 'chain'"`
-	Rank   uint32          `xorm:"notnull 'rank'"`
-	Type   string          `xorm:"notnull 'type'"`
-	Args   json.RawMessage `xorm:"notnull 'args'"`
+	RuleID int64           `xorm:"rule_id"` // The ID of the rule this tasks belongs to.
+	Chain  Chain           `xorm:"chain"`   // The chain this task belongs to (ChainPre, ChainPost or ChainError)
+	Rank   int8            `xorm:"rank"`    // The task's index in the chain.
+	Type   string          `xorm:"type"`    // The type of task.
+	Args   json.RawMessage `xorm:"args"`    // The task's arguments as a raw JSON object.
 }
 
-// TableName returns the name of the tasks table.
-func (*Task) TableName() string {
-	return TableTasks
-}
-
-// Appellation returns the name of 1 element of the tasks table.
-func (*Task) Appellation() string {
-	return "task"
-}
+func (*Task) TableName() string   { return TableTasks }
+func (*Task) Appellation() string { return "task" }
 
 func (t *Task) validateTasks() database.Error {
 	if t.Chain != ChainPre && t.Chain != ChainPost && t.Chain != ChainError {

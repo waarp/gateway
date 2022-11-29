@@ -33,7 +33,7 @@ func (c *CypherText) FromDB(bytes []byte) error {
 // AES, and returns the result as a slice of byte.
 func (c *CypherText) ToDB() ([]byte, error) {
 	if *c == "" {
-		return nil, nil
+		return []byte(""), nil
 	}
 
 	cypher, err := utils.AESCrypt(database.GCM, string(*c))

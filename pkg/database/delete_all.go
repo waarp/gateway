@@ -1,7 +1,5 @@
 package database
 
-import "xorm.io/builder"
-
 // DeleteAllBean is the interface that a model must implement in order to be
 // deletable via the Delete query builder.
 type DeleteAllBean interface {
@@ -13,7 +11,7 @@ type DeleteAllQuery struct {
 	db   Access
 	bean DeleteAllBean
 
-	conds []cond
+	conds []*condition
 }
 
 // Where adds a 'WHERE' clause to the 'DELETE' query with the given conditions
@@ -23,7 +21,7 @@ type DeleteAllQuery struct {
 // If the function is called multiple times, all the conditions will be chained
 // using the 'AND' operator.
 func (d *DeleteAllQuery) Where(sql string, args ...interface{}) *DeleteAllQuery {
-	d.conds = append(d.conds, cond{sql: sql, args: args})
+	d.conds = append(d.conds, &condition{sql: sql, args: args})
 
 	return d
 }
@@ -34,10 +32,7 @@ func (d *DeleteAllQuery) Run() Error {
 	query := d.db.getUnderlying().NoAutoCondition()
 
 	if len(d.conds) == 0 {
-		_, err := query.Exec("DELETE FROM " + d.bean.TableName())
-		logSQL(query, logger)
-
-		if err != nil {
+		if _, err := query.Exec("DELETE FROM " + d.bean.TableName()); err != nil {
 			logger.Error("Failed to delete the %s entries: %s", d.bean.Appellation(), err)
 
 			return NewInternalError(err)
@@ -46,15 +41,11 @@ func (d *DeleteAllQuery) Run() Error {
 		return nil
 	}
 
-	for i := range d.conds {
-		query.Where(builder.Expr(d.conds[i].sql, d.conds[i].args...))
+	for _, cond := range d.conds {
+		query.And(cond.sql, cond.args...)
 	}
 
-	_, err := query.Table(d.bean.TableName()).Delete(d.bean)
-
-	logSQL(query, logger)
-
-	if err != nil {
+	if _, err := query.Table(d.bean.TableName()).Delete(d.bean); err != nil {
 		logger.Error("Failed to delete the %s entries: %s", d.bean.Appellation(), err)
 
 		return NewInternalError(err)

@@ -11,7 +11,7 @@ import (
 	"code.waarp.fr/apps/gateway/gateway/pkg/model"
 )
 
-func getPart(r *http.Request, db *database.DB) (*model.RemoteAgent, error) {
+func retrievePartner(r *http.Request, db *database.DB) (*model.RemoteAgent, error) {
 	agentName, ok := mux.Vars(r)["partner"]
 	if !ok {
 		return nil, notFound("missing partner name")
@@ -29,20 +29,19 @@ func getPart(r *http.Request, db *database.DB) (*model.RemoteAgent, error) {
 	return &partner, nil
 }
 
-//nolint:dupl // duplicated code is about a different type
 func addPartner(logger *log.Logger, db *database.DB) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		var part api.InPartner
-		if err := readJSON(r, &part); handleError(w, logger, err) {
+		var restPartner api.InPartner
+		if err := readJSON(r, &restPartner); handleError(w, logger, err) {
 			return
 		}
 
-		partner := partToDB(&part, 0)
-		if err := db.Insert(partner).Run(); handleError(w, logger, err) {
+		dbPartner := restPartnerToDB(&restPartner)
+		if err := db.Insert(dbPartner).Run(); handleError(w, logger, err) {
 			return
 		}
 
-		w.Header().Set("Location", location(r.URL, partner.Name))
+		w.Header().Set("Location", location(r.URL, dbPartner.Name))
 		w.WriteHeader(http.StatusCreated)
 	}
 }
@@ -55,17 +54,16 @@ func listPartners(logger *log.Logger, db *database.DB) http.HandlerFunc {
 		"name+":   order{"name", true},
 		"name-":   order{"name", false},
 	}
-	typ := (&model.RemoteAgent{}).TableName()
 
 	return func(w http.ResponseWriter, r *http.Request) {
-		var partners model.RemoteAgents
-		query, err := parseSelectQuery(r, db, validSorting, &partners)
+		var dbPartners model.RemoteAgents
+		query, parseErr := parseSelectQuery(r, db, validSorting, &dbPartners)
 
-		if handleError(w, logger, err) {
+		if handleError(w, logger, parseErr) {
 			return
 		}
 
-		if err2 := parseProtoParam(r, query); handleError(w, logger, err2) {
+		if err := parseProtoParam(r, query); handleError(w, logger, err) {
 			return
 		}
 
@@ -73,47 +71,40 @@ func listPartners(logger *log.Logger, db *database.DB) http.HandlerFunc {
 			return
 		}
 
-		ids := make([]uint64, len(partners))
-		for i := range partners {
-			ids[i] = partners[i].ID
-		}
-
-		rules, err := getAuthorizedRuleList(db, typ, ids)
-		if handleError(w, logger, err) {
+		restPartners, convErr := DBPartnersToREST(db, dbPartners)
+		if handleError(w, logger, convErr) {
 			return
 		}
 
-		resp := map[string][]api.OutPartner{"partners": FromRemoteAgents(partners, rules)}
-		err = writeJSON(w, resp)
-		handleError(w, logger, err)
+		response := map[string][]*api.OutPartner{"partners": restPartners}
+		handleError(w, logger, writeJSON(w, response))
 	}
 }
 
 func getPartner(logger *log.Logger, db *database.DB) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		result, err := getPart(r, db)
+		dbPartner, err := retrievePartner(r, db)
 		if handleError(w, logger, err) {
 			return
 		}
 
-		rules, err := getAuthorizedRules(db, result.TableName(), result.ID)
+		restPartner, err := DBPartnerToREST(db, dbPartner)
 		if handleError(w, logger, err) {
 			return
 		}
 
-		err = writeJSON(w, FromRemoteAgent(result, rules))
-		handleError(w, logger, err)
+		handleError(w, logger, writeJSON(w, restPartner))
 	}
 }
 
 func deletePartner(logger *log.Logger, db *database.DB) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		partner, err := getPart(r, db)
+		dbPartner, err := retrievePartner(r, db)
 		if handleError(w, logger, err) {
 			return
 		}
 
-		if err := db.Delete(partner).Run(); handleError(w, logger, err) {
+		if err := db.Delete(dbPartner).Run(); handleError(w, logger, err) {
 			return
 		}
 
@@ -121,143 +112,138 @@ func deletePartner(logger *log.Logger, db *database.DB) http.HandlerFunc {
 	}
 }
 
-//nolint:dupl // duplicated code is about a different type
 func updatePartner(logger *log.Logger, db *database.DB) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		old, err := getPart(r, db)
+		oldPartner, err := retrievePartner(r, db)
 		if handleError(w, logger, err) {
 			return
 		}
 
-		jPart := newInPartner(old)
-		if err := readJSON(r, jPart); handleError(w, logger, err) {
+		restPartner := dbPartnerToRESTInput(oldPartner)
+		if err := readJSON(r, restPartner); handleError(w, logger, err) {
 			return
 		}
 
-		partner := partToDB(jPart, old.ID)
-		if err := db.Update(partner).Run(); handleError(w, logger, err) {
+		dbPartner := restPartnerToDB(restPartner)
+		dbPartner.ID = oldPartner.ID
+
+		if err := db.Update(dbPartner).Run(); handleError(w, logger, err) {
 			return
 		}
 
-		w.Header().Set("Location", locationUpdate(r.URL, partner.Name))
+		w.Header().Set("Location", locationUpdate(r.URL, dbPartner.Name))
 		w.WriteHeader(http.StatusCreated)
 	}
 }
 
 func replacePartner(logger *log.Logger, db *database.DB) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		old, err := getPart(r, db)
+		oldPartner, err := retrievePartner(r, db)
 		if handleError(w, logger, err) {
 			return
 		}
 
-		var jPart api.InPartner
-		if err := readJSON(r, &jPart); handleError(w, logger, err) {
+		var restPartner api.InPartner
+		if err := readJSON(r, &restPartner); handleError(w, logger, err) {
 			return
 		}
 
-		partner := partToDB(&jPart, old.ID)
-		if err := db.Update(partner).Run(); handleError(w, logger, err) {
+		dbPartner := restPartnerToDB(&restPartner)
+		dbPartner.ID = oldPartner.ID
+
+		if err := db.Update(dbPartner).Run(); handleError(w, logger, err) {
 			return
 		}
 
-		w.Header().Set("Location", locationUpdate(r.URL, partner.Name))
+		w.Header().Set("Location", locationUpdate(r.URL, dbPartner.Name))
 		w.WriteHeader(http.StatusCreated)
 	}
 }
 
 func authorizePartner(logger *log.Logger, db *database.DB) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		ag, err := getPart(r, db)
+		dbPartner, err := retrievePartner(r, db)
 		if handleError(w, logger, err) {
 			return
 		}
 
-		err = authorizeRule(w, r, db, ag.TableName(), ag.ID)
-		handleError(w, logger, err)
+		handleError(w, logger, authorizeRule(w, r, db, dbPartner))
 	}
 }
 
 func revokePartner(logger *log.Logger, db *database.DB) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		ag, err := getPart(r, db)
+		dbPartner, err := retrievePartner(r, db)
 		if handleError(w, logger, err) {
 			return
 		}
 
-		err = revokeRule(w, r, db, ag.TableName(), ag.ID)
-		handleError(w, logger, err)
+		handleError(w, logger, revokeRule(w, r, db, dbPartner))
 	}
 }
 
 func getPartnerCert(logger *log.Logger, db *database.DB) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		ag, err := getPart(r, db)
+		dbPartner, err := retrievePartner(r, db)
 		if handleError(w, logger, err) {
 			return
 		}
 
-		err = getCrypto(w, r, db, ag.TableName(), ag.ID)
-		handleError(w, logger, err)
+		handleError(w, logger, getCrypto(w, r, db, dbPartner))
 	}
 }
 
 func addPartnerCert(logger *log.Logger, db *database.DB) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		ag, err := getPart(r, db)
+		dbPartner, err := retrievePartner(r, db)
 		if handleError(w, logger, err) {
 			return
 		}
 
-		err = createCrypto(w, r, db, ag.TableName(), ag.ID)
-		handleError(w, logger, err)
+		handleError(w, logger, createCrypto(w, r, db, dbPartner))
 	}
 }
 
 func listPartnerCerts(logger *log.Logger, db *database.DB) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		ag, err := getPart(r, db)
+		dbPartner, err := retrievePartner(r, db)
 		if handleError(w, logger, err) {
 			return
 		}
 
-		err = listCryptos(w, r, db, ag.TableName(), ag.ID)
-		handleError(w, logger, err)
+		handleError(w, logger, listCryptos(w, r, db, dbPartner))
 	}
 }
 
 func deletePartnerCert(logger *log.Logger, db *database.DB) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		ag, err := getPart(r, db)
+		dbPartner, err := retrievePartner(r, db)
 		if handleError(w, logger, err) {
 			return
 		}
 
-		err = deleteCrypto(w, r, db, ag.TableName(), ag.ID)
-		handleError(w, logger, err)
+		handleError(w, logger, deleteCrypto(w, r, db, dbPartner))
 	}
 }
 
 func updatePartnerCert(logger *log.Logger, db *database.DB) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		ag, err := getPart(r, db)
+		dbPartner, err := retrievePartner(r, db)
 		if handleError(w, logger, err) {
 			return
 		}
 
-		err = updateCrypto(w, r, db, ag.TableName(), ag.ID)
-		handleError(w, logger, err)
+		handleError(w, logger, updateCrypto(w, r, db, dbPartner))
 	}
 }
 
 func replacePartnerCert(logger *log.Logger, db *database.DB) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		ag, err := getPart(r, db)
+		dbPartner, err := retrievePartner(r, db)
 		if handleError(w, logger, err) {
 			return
 		}
 
-		err = replaceCrypto(w, r, db, ag.TableName(), ag.ID)
-		handleError(w, logger, err)
+		handleError(w, logger, replaceCrypto(w, r, db, dbPartner))
 	}
 }

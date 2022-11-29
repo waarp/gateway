@@ -78,19 +78,6 @@ type Access interface {
 	// The request can then be executed using the UpdateQuery.Run method.
 	Update(UpdateBean) *UpdateQuery
 
-	// UpdateAll starts building an SQL 'UPDATE' query to update multiple entries
-	// in the database. The columns to update, and their values are specified
-	// using the UpdVals parameter. The entries to update can be filtered using
-	// the sql & args parameters, with a syntax similar to the IterateQuery.Where
-	// method.
-	//
-	// Be aware that, since this method updates multiple rows at once, the entries'
-	// WriteHook will NOT be executed. Thus, this method should be used with
-	// extreme caution.
-	//
-	// The request can then be executed using the UpdateAllQuery.Run method.
-	UpdateAll(UpdateAllBean, UpdVals, string, ...interface{}) *UpdateAllQuery
-
 	// Delete starts building a SQL 'DELETE' query to delete a single entry of
 	// the given model from the database, using the entry's ID as parameter.
 	//
@@ -103,11 +90,18 @@ type Access interface {
 	//
 	// Be aware, since DeleteAll deletes multiple entries with only one SQL
 	// command, the model's `BeforeDelete` function will not be called when using
-	// this method. Thus DeleteAll should exclusively be used on models with
-	// with no DeletionHook.
+	// this method. Thus, DeleteAll should exclusively be used on models with
+	// no DeletionHook.
 	//
 	// The request can then be executed using the DeleteAllQuery.Run method.
 	DeleteAll(DeleteAllBean) *DeleteAllQuery
+
+	// Exec executes the given custom SQL query, and returns any error encountered.
+	// The query uses the '?' character as a placeholder for arguments.
+	//
+	// Be aware that, since this method bypasses the data models, all the models'
+	// hooks will be skipped. Thus, this method should be used with extreme caution.
+	Exec(string, ...interface{}) Error
 }
 
 // DeletionHook is an interface which adds a function which will be run before
@@ -136,7 +130,7 @@ type Table interface {
 // Identifier is an interface which adds a function which returns the entry's
 // ID number. Models must implement this interface in order to be updated.
 type Identifier interface {
-	GetID() uint64
+	GetID() int64
 }
 
 // Iterator is the object returned when sending a 'SELECT' query to the database.

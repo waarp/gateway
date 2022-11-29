@@ -31,7 +31,7 @@ var ErrMissingKeyFile = errors.New("missing certificate private key")
 type Server struct {
 	DB            *database.DB
 	CoreServices  map[string]service.Service
-	ProtoServices map[uint64]proto.Service
+	ProtoServices map[int64]proto.Service
 
 	logger *log.Logger
 	state  state.State

@@ -24,7 +24,7 @@ func checkRuleDir(direction string) error {
 func displayTasks(w io.Writer, rule *api.OutRule) {
 	chains := []struct {
 		name  string
-		tasks []api.Task
+		tasks []*api.Task
 	}{
 		{"Pre tasks", rule.PreTasks},
 		{"Post tasks", rule.PostTasks},

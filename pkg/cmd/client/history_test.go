@@ -19,6 +19,7 @@ import (
 	"code.waarp.fr/apps/gateway/gateway/pkg/database"
 	"code.waarp.fr/apps/gateway/gateway/pkg/model"
 	"code.waarp.fr/apps/gateway/gateway/pkg/model/types"
+	"code.waarp.fr/apps/gateway/gateway/pkg/tk/utils"
 )
 
 func historyInfoString(h *api.OutHistory) string {
@@ -375,7 +376,8 @@ func TestListHistory(t *testing.T) {
 				})
 
 				Convey("Given a start parameter", func() {
-					args := []string{"--start=" + h3.Start.Format(time.RFC3339Nano)}
+					start := time.Date(2019, 1, 1, 2, 30, 0, 0, time.Local)
+					args := []string{"--start", start.Format(time.RFC3339)}
 
 					Convey("When executing the command", func() {
 						params, err := flags.ParseArgs(command, args)
@@ -391,7 +393,8 @@ func TestListHistory(t *testing.T) {
 				})
 
 				Convey("Given a stop parameter", func() {
-					args := []string{"--stop=" + h2.Stop.Format(time.RFC3339Nano)}
+					stop := time.Date(2019, 1, 1, 2, 30, 0, 0, time.Local)
+					args := []string{"--stop", stop.Format(time.RFC3339)}
 
 					Convey("When executing the command", func() {
 						params, err := flags.ParseArgs(command, args)
@@ -585,13 +588,11 @@ func TestRetryHistory(t *testing.T) {
 						Convey("Then the transfer should have been added", func() {
 							var trans model.Transfers
 							So(db.Select(&trans).Run(), ShouldBeNil)
-							So(trans[0], ShouldResemble, model.Transfer{
+							So(trans[0], ShouldResemble, &model.Transfer{
 								ID:               1,
 								RemoteTransferID: trans[0].RemoteTransferID,
 								RuleID:           r.ID,
-								IsServer:         false,
-								AgentID:          part.ID,
-								AccountID:        acc.ID,
+								RemoteAccountID:  utils.NewNullInt64(acc.ID),
 								LocalPath:        "path.loc",
 								RemotePath:       "path.rem",
 								Start:            time.Date(2030, 1, 1, 1, 0, 0, 123000, time.Local),

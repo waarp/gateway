@@ -85,16 +85,16 @@ func TestFileReader(t *testing.T) {
 
 						Convey("Then a transfer should be present in db", func() {
 							trans := &model.Transfer{}
-							So(db.Get(trans, "rule_id=? AND is_server=? AND agent_id=? AND account_id=?",
-								rule.ID, true, agent.ID, account.ID).Run(), ShouldBeNil)
-						})
+							So(db.Get(trans, "rule_id=? AND local_account_id=?",
+								rule.ID, account.ID).Run(), ShouldBeNil)
 
-						Convey("Then the transfer should have a valid file and status", func() {
-							trans := file.pipeline.TransCtx.Transfer
+							Convey("Then the transfer should have a valid file and status", func() {
+								trans := file.pipeline.TransCtx.Transfer
 
-							So(trans.LocalPath, ShouldEqual, filepath.Join(
-								root, rule.LocalDir, "file_read.src"))
-							So(trans.Status, ShouldEqual, types.StatusRunning)
+								So(trans.LocalPath, ShouldEqual, filepath.Join(
+									root, rule.LocalDir, "file_read.src"))
+								So(trans.Status, ShouldEqual, types.StatusRunning)
+							})
 						})
 					})
 				})
@@ -189,17 +189,17 @@ func TestFileWriter(t *testing.T) {
 						defer file.Close()
 
 						Convey("Then a transfer should be present in db", func() {
-							var trans model.Transfer
-							So(db.Get(&trans, "rule_id=? AND is_server=? AND agent_id=? AND account_id=?",
-								rule.ID, true, agent.ID, account.ID).Run(), ShouldBeNil)
-						})
+							trans := &model.Transfer{}
+							So(db.Get(trans, "rule_id=? AND local_account_id=?",
+								rule.ID, account.ID).Run(), ShouldBeNil)
 
-						Convey("Then the transfer should have a valid file and status", func() {
-							trans := file.pipeline.TransCtx.Transfer
+							Convey("Then the transfer should have a valid file and status", func() {
+								trans := file.pipeline.TransCtx.Transfer
 
-							So(trans.LocalPath, ShouldEqual, filepath.Join(
-								root, agent.TmpReceiveDir, "file.test.part"))
-							So(trans.Status, ShouldEqual, types.StatusRunning)
+								So(trans.LocalPath, ShouldEqual, filepath.Join(
+									root, agent.TmpReceiveDir, "file.test.part"))
+								So(trans.Status, ShouldEqual, types.StatusRunning)
+							})
 						})
 					})
 				})

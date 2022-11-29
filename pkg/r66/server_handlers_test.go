@@ -174,9 +174,7 @@ func TestValidRequest(t *testing.T) {
 
 					Convey("Then it should have created a transfer", func() {
 						So(handler.trans.pip.TransCtx.Transfer.RuleID, ShouldEqual, rule.ID)
-						So(handler.trans.pip.TransCtx.Transfer.IsServer, ShouldBeTrue)
-						So(handler.trans.pip.TransCtx.Transfer.AgentID, ShouldEqual, server.ID)
-						So(handler.trans.pip.TransCtx.Transfer.AccountID, ShouldEqual, account.ID)
+						So(handler.trans.pip.TransCtx.Transfer.LocalAccountID.Int64, ShouldEqual, account.ID)
 						So(handler.trans.pip.TransCtx.Transfer.LocalPath, ShouldEqual, filepath.Join(
 							server.RootDir, rule.TmpLocalRcvDir, path.Base(packet.Filepath)))
 						So(handler.trans.pip.TransCtx.Transfer.RemotePath, ShouldEqual, "/"+path.Base(packet.Filepath))
@@ -259,9 +257,7 @@ func TestUpdateTransferInfo(t *testing.T) {
 			trans := &model.Transfer{
 				RemoteTransferID: "1",
 				RuleID:           recv.ID,
-				IsServer:         true,
-				AgentID:          server.ID,
-				AccountID:        account.ID,
+				LocalAccountID:   utils.NewNullInt64(account.ID),
 				LocalPath:        "old.file",
 				RemotePath:       "old.file",
 			}
@@ -309,9 +305,7 @@ func TestUpdateTransferInfo(t *testing.T) {
 			trans := &model.Transfer{
 				RemoteTransferID: "1",
 				RuleID:           send.ID,
-				IsServer:         true,
-				AgentID:          server.ID,
-				AccountID:        account.ID,
+				LocalAccountID:   utils.NewNullInt64(account.ID),
 				LocalPath:        "new.file",
 				RemotePath:       "new.file",
 			}

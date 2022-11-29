@@ -8,7 +8,6 @@ import (
 	"net/url"
 	"path"
 	"path/filepath"
-	"strconv"
 	"strings"
 	"testing"
 	"time"
@@ -21,6 +20,7 @@ import (
 	"code.waarp.fr/apps/gateway/gateway/pkg/database"
 	"code.waarp.fr/apps/gateway/gateway/pkg/model"
 	"code.waarp.fr/apps/gateway/gateway/pkg/model/types"
+	"code.waarp.fr/apps/gateway/gateway/pkg/tk/utils"
 	"code.waarp.fr/apps/gateway/gateway/pkg/tk/utils/testhelpers"
 )
 
@@ -91,10 +91,8 @@ func TestAddTransfer(t *testing.T) {
 
 						So(transfers[0].ID, ShouldEqual, 1)
 						So(transfers[0].RemoteTransferID, ShouldNotBeBlank)
-						So(transfers[0].IsServer, ShouldBeFalse)
 						So(transfers[0].RuleID, ShouldEqual, push.ID)
-						So(transfers[0].AgentID, ShouldEqual, partner.ID)
-						So(transfers[0].AccountID, ShouldEqual, account.ID)
+						So(transfers[0].RemoteAccountID.Int64, ShouldEqual, account.ID)
 						So(transfers[0].LocalPath, ShouldEqual, filepath.Join("src_dir", "test.file"))
 						So(transfers[0].RemotePath, ShouldEqual, "dst_dir/test.file")
 						So(transfers[0].Filesize, ShouldEqual, model.UnknownSize)
@@ -250,23 +248,21 @@ func TestGetTransfer(t *testing.T) {
 			owner := conf.GlobalConfig.GatewayName
 			conf.GlobalConfig.GatewayName = "foobar"
 			other := &model.Transfer{
-				RuleID:     push.ID,
-				AgentID:    partner.ID,
-				AccountID:  account.ID,
-				LocalPath:  "/local/file1.test",
-				RemotePath: "/remote/file1.test",
-				Start:      time.Date(2021, 1, 1, 1, 0, 0, 0, time.Local),
+				RuleID:          push.ID,
+				RemoteAccountID: utils.NewNullInt64(account.ID),
+				LocalPath:       "/local/file1.test",
+				RemotePath:      "/remote/file1.test",
+				Start:           time.Date(2021, 1, 1, 1, 0, 0, 0, time.Local),
 			}
 			So(db.Insert(other).Run(), ShouldBeNil)
 			conf.GlobalConfig.GatewayName = owner
 
 			trans := &model.Transfer{
-				RuleID:     push.ID,
-				AgentID:    partner.ID,
-				AccountID:  account.ID,
-				LocalPath:  "/local/file2.test",
-				RemotePath: "/remote/file2.test",
-				Start:      time.Date(2021, 1, 1, 1, 0, 0, 0, time.Local),
+				RuleID:          push.ID,
+				RemoteAccountID: utils.NewNullInt64(account.ID),
+				LocalPath:       "/local/file2.test",
+				RemotePath:      "/remote/file2.test",
+				Start:           time.Date(2021, 1, 1, 1, 0, 0, 0, time.Local),
 			}
 			So(db.Insert(trans).Run(), ShouldBeNil)
 
@@ -274,7 +270,7 @@ func TestGetTransfer(t *testing.T) {
 			So(trans.SetTransferInfo(db, infos), ShouldBeNil)
 
 			Convey("Given a request with the valid transfer ID parameter", func() {
-				id := strconv.FormatUint(trans.ID, 10)
+				id := fmt.Sprint(trans.ID)
 				uri := path.Join(transferURI, id)
 				req, err := http.NewRequest(http.MethodGet, uri, nil)
 				So(err, ShouldBeNil)
@@ -368,40 +364,37 @@ func TestListTransfer(t *testing.T) {
 			So(db.Insert(r2).Run(), ShouldBeNil)
 
 			t1 := &model.Transfer{
-				RuleID:     r1.ID,
-				AgentID:    p1.ID,
-				AccountID:  a1.ID,
-				LocalPath:  "/local/file1.test",
-				RemotePath: "/remote/file1.test",
-				Progress:   1,
-				TaskNumber: 2,
-				Start:      time.Date(2021, 1, 1, 1, 0, 0, 123000, time.Local),
-				Step:       types.StepPreTasks,
-				Status:     types.StatusPlanned,
+				RuleID:          r1.ID,
+				RemoteAccountID: utils.NewNullInt64(a1.ID),
+				LocalPath:       "/local/file1.test",
+				RemotePath:      "/remote/file1.test",
+				Progress:        1,
+				TaskNumber:      2,
+				Start:           time.Date(2021, 1, 1, 1, 0, 0, 123000, time.Local),
+				Step:            types.StepPreTasks,
+				Status:          types.StatusPlanned,
 			}
 			So(db.Insert(t1).Run(), ShouldBeNil)
 
 			t2 := &model.Transfer{
-				RuleID:     r2.ID,
-				AgentID:    p2.ID,
-				AccountID:  a2.ID,
-				LocalPath:  "/local/file2.test",
-				RemotePath: "/remote/file2.test",
-				Start:      time.Date(2021, 1, 1, 2, 0, 0, 234000, time.Local),
-				Step:       types.StepPostTasks,
-				Status:     types.StatusError,
+				RuleID:          r2.ID,
+				RemoteAccountID: utils.NewNullInt64(a2.ID),
+				LocalPath:       "/local/file2.test",
+				RemotePath:      "/remote/file2.test",
+				Start:           time.Date(2021, 1, 1, 2, 0, 0, 234000, time.Local),
+				Step:            types.StepPostTasks,
+				Status:          types.StatusError,
 			}
 			So(db.Insert(t2).Run(), ShouldBeNil)
 
 			t3 := &model.Transfer{
-				RuleID:     r2.ID,
-				AgentID:    p1.ID,
-				AccountID:  a1.ID,
-				LocalPath:  "/local/file3.test",
-				RemotePath: "/remote/file3.test",
-				Start:      time.Date(2021, 1, 1, 3, 0, 0, 345000, time.Local),
-				Step:       types.StepData,
-				Status:     types.StatusPaused,
+				RuleID:          r2.ID,
+				RemoteAccountID: utils.NewNullInt64(a1.ID),
+				LocalPath:       "/local/file3.test",
+				RemotePath:      "/remote/file3.test",
+				Start:           time.Date(2021, 1, 1, 3, 0, 0, 345000, time.Local),
+				Step:            types.StepData,
+				Status:          types.StatusPaused,
 			}
 			So(db.Insert(t3).Run(), ShouldBeNil)
 
@@ -419,12 +412,11 @@ func TestListTransfer(t *testing.T) {
 			owner := conf.GlobalConfig.GatewayName
 			conf.GlobalConfig.GatewayName = "foobar"
 			other := &model.Transfer{
-				RuleID:     r1.ID,
-				AgentID:    p1.ID,
-				AccountID:  a1.ID,
-				LocalPath:  "/local/file4.test",
-				RemotePath: "/remote/file4.test",
-				Start:      time.Date(2021, 1, 1, 1, 0, 0, 0, time.Local),
+				RuleID:          r1.ID,
+				RemoteAccountID: utils.NewNullInt64(a1.ID),
+				LocalPath:       "/local/file4.test",
+				RemotePath:      "/remote/file4.test",
+				Start:           time.Date(2021, 1, 1, 1, 0, 0, 0, time.Local),
 			}
 			So(db.Insert(other).Run(), ShouldBeNil)
 			conf.GlobalConfig.GatewayName = owner
@@ -508,9 +500,9 @@ func TestListTransfer(t *testing.T) {
 			})
 
 			Convey("Given a request with a valid 'start' parameter", func() {
-				date := t3.Start
+				date := time.Date(2021, 1, 1, 2, 30, 0, 0, time.Local).Format(time.RFC3339)
 				req, err := http.NewRequest(http.MethodGet,
-					fmt.Sprintf("?start=%s", url.QueryEscape(date.Format(time.RFC3339Nano))), nil)
+					fmt.Sprintf("?start=%s", url.QueryEscape(date)), nil)
 				So(err, ShouldBeNil)
 
 				Convey("When sending the request to the handler", func() {
@@ -564,14 +556,13 @@ func TestResumeTransfer(t *testing.T) {
 			So(db.Insert(rule).Run(), ShouldBeNil)
 
 			trans := &model.Transfer{
-				RuleID:     rule.ID,
-				AgentID:    partner.ID,
-				AccountID:  account.ID,
-				LocalPath:  "file.loc",
-				RemotePath: "file.rem",
-				Start:      time.Date(2020, 1, 1, 1, 0, 0, 0, time.Local),
-				Status:     types.StatusError,
-				Step:       types.StepData,
+				RuleID:          rule.ID,
+				RemoteAccountID: utils.NewNullInt64(account.ID),
+				LocalPath:       "file.loc",
+				RemotePath:      "file.rem",
+				Start:           time.Date(2020, 1, 1, 1, 0, 0, 0, time.Local),
+				Status:          types.StatusError,
+				Step:            types.StepData,
 				Error: types.TransferError{
 					Code:    types.TeDataTransfer,
 					Details: "transfer failed",
@@ -582,7 +573,7 @@ func TestResumeTransfer(t *testing.T) {
 			So(db.Insert(trans).Run(), ShouldBeNil)
 
 			Convey("Given a request with the valid transfer ID parameter", func() {
-				id := strconv.FormatUint(trans.ID, 10)
+				id := fmt.Sprint(trans.ID)
 				req, err := http.NewRequest(http.MethodPut, "", nil)
 				So(err, ShouldBeNil)
 				req = mux.SetURLVars(req, map[string]string{"transfer": id})
@@ -599,13 +590,16 @@ func TestResumeTransfer(t *testing.T) {
 					})
 
 					Convey("Then the transfer should have been reprogrammed", func() {
-						exp := model.Transfer{
+						var transfers model.Transfers
+						So(db.Select(&transfers).Run(), ShouldBeNil)
+						So(transfers, ShouldNotBeEmpty)
+
+						So(transfers[0], ShouldResemble, &model.Transfer{
 							ID:               trans.ID,
 							Owner:            conf.GlobalConfig.GatewayName,
 							RemoteTransferID: trans.RemoteTransferID,
 							RuleID:           rule.ID,
-							AgentID:          partner.ID,
-							AccountID:        account.ID,
+							RemoteAccountID:  utils.NewNullInt64(account.ID),
 							LocalPath:        "file.loc",
 							RemotePath:       "file.rem",
 							Start:            trans.Start.Local(),
@@ -614,12 +608,7 @@ func TestResumeTransfer(t *testing.T) {
 							Error:            types.TransferError{},
 							Progress:         10,
 							TaskNumber:       0,
-						}
-
-						var transfers model.Transfers
-						So(db.Select(&transfers).Run(), ShouldBeNil)
-						So(transfers, ShouldNotBeEmpty)
-						So(transfers[0], ShouldResemble, exp)
+						})
 					})
 				})
 			})
@@ -654,22 +643,21 @@ func TestPauseTransfer(t *testing.T) {
 			So(db.Insert(rule).Run(), ShouldBeNil)
 
 			trans := &model.Transfer{
-				RuleID:     rule.ID,
-				AgentID:    partner.ID,
-				AccountID:  account.ID,
-				LocalPath:  "file.loc",
-				RemotePath: "file.rem",
-				Start:      time.Date(2020, 1, 2, 3, 4, 5, 678000, time.Local),
-				Status:     types.StatusPlanned,
-				Step:       types.StepData,
-				Error:      types.TransferError{},
-				Progress:   10,
-				TaskNumber: 0,
+				RuleID:          rule.ID,
+				RemoteAccountID: utils.NewNullInt64(account.ID),
+				LocalPath:       "file.loc",
+				RemotePath:      "file.rem",
+				Start:           time.Date(2020, 1, 2, 3, 4, 5, 678000, time.Local),
+				Status:          types.StatusPlanned,
+				Step:            types.StepData,
+				Error:           types.TransferError{},
+				Progress:        10,
+				TaskNumber:      0,
 			}
 			So(db.Insert(trans).Run(), ShouldBeNil)
 
 			Convey("Given a request with the valid transfer ID parameter", func() {
-				id := strconv.FormatUint(trans.ID, 10)
+				id := fmt.Sprint(trans.ID)
 				req, err := http.NewRequest(http.MethodPut, "", nil)
 				So(err, ShouldBeNil)
 				req = mux.SetURLVars(req, map[string]string{"transfer": id})
@@ -686,13 +674,16 @@ func TestPauseTransfer(t *testing.T) {
 					})
 
 					Convey("Then the transfer should have been paused", func() {
-						exp := model.Transfer{
+						var transfers model.Transfers
+						So(db.Select(&transfers).Run(), ShouldBeNil)
+						So(transfers, ShouldNotBeEmpty)
+
+						So(transfers[0], ShouldResemble, &model.Transfer{
 							ID:               trans.ID,
 							RemoteTransferID: trans.RemoteTransferID,
 							Owner:            conf.GlobalConfig.GatewayName,
 							RuleID:           rule.ID,
-							AgentID:          partner.ID,
-							AccountID:        account.ID,
+							RemoteAccountID:  utils.NewNullInt64(account.ID),
 							LocalPath:        "file.loc",
 							RemotePath:       "file.rem",
 							Start:            trans.Start.Local(),
@@ -701,12 +692,7 @@ func TestPauseTransfer(t *testing.T) {
 							Error:            types.TransferError{},
 							Progress:         10,
 							TaskNumber:       0,
-						}
-
-						var transfers model.Transfers
-						So(db.Select(&transfers).Run(), ShouldBeNil)
-						So(transfers, ShouldNotBeEmpty)
-						So(transfers[0], ShouldResemble, exp)
+						})
 					})
 				})
 			})
@@ -741,22 +727,21 @@ func TestCancelTransfer(t *testing.T) {
 			So(db.Insert(rule).Run(), ShouldBeNil)
 
 			trans := &model.Transfer{
-				RuleID:     rule.ID,
-				AgentID:    partner.ID,
-				AccountID:  account.ID,
-				LocalPath:  "file.loc",
-				RemotePath: "file.rem",
-				Start:      time.Date(2030, 1, 1, 1, 0, 0, 0, time.Local),
-				Status:     types.StatusError,
-				Step:       types.StepNone,
-				Error:      types.TransferError{Code: types.TeUnknown, Details: "this is an error"},
-				Progress:   0,
-				TaskNumber: 0,
+				RuleID:          rule.ID,
+				RemoteAccountID: utils.NewNullInt64(account.ID),
+				LocalPath:       "file.loc",
+				RemotePath:      "file.rem",
+				Start:           time.Date(2030, 1, 1, 1, 0, 0, 0, time.Local),
+				Status:          types.StatusError,
+				Step:            types.StepNone,
+				Error:           types.TransferError{Code: types.TeUnknown, Details: "this is an error"},
+				Progress:        0,
+				TaskNumber:      0,
 			}
 			So(db.Insert(trans).Run(), ShouldBeNil)
 
 			Convey("Given a request with the valid transfer ID parameter", func() {
-				id := strconv.FormatUint(trans.ID, 10)
+				id := fmt.Sprint(trans.ID)
 				req, err := http.NewRequest(http.MethodPut, "", nil)
 				So(err, ShouldBeNil)
 				req = mux.SetURLVars(req, map[string]string{"transfer": id})
@@ -773,11 +758,15 @@ func TestCancelTransfer(t *testing.T) {
 					})
 
 					Convey("Then the transfer should have been canceled", func() {
-						exp := model.HistoryEntry{
+						var hist model.HistoryEntries
+						So(db.Select(&hist).Run(), ShouldBeNil)
+						So(hist, ShouldNotBeEmpty)
+
+						So(hist[0], ShouldResemble, &model.HistoryEntry{
 							ID:               trans.ID,
 							Owner:            conf.GlobalConfig.GatewayName,
 							RemoteTransferID: trans.RemoteTransferID,
-							IsServer:         trans.IsServer,
+							IsServer:         trans.IsServer(),
 							IsSend:           rule.IsSend,
 							Account:          account.Login,
 							Agent:            partner.Name,
@@ -792,12 +781,7 @@ func TestCancelTransfer(t *testing.T) {
 							Step:             trans.Step,
 							Progress:         trans.Progress,
 							TaskNumber:       trans.TaskNumber,
-						}
-
-						var hist model.HistoryEntries
-						So(db.Select(&hist).Run(), ShouldBeNil)
-						So(hist, ShouldNotBeEmpty)
-						So(hist[0], ShouldResemble, exp)
+						})
 					})
 				})
 			})

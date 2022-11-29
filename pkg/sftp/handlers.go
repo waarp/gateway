@@ -174,14 +174,14 @@ func (l *sshListener) getClosestRule(acc *model.LocalAccount, rulePath string,
 	}
 
 	var rule model.Rule
-	if err := l.DB.Get(&rule, "path=? AND send=?", rulePath, isSendPriority).Run(); err != nil {
+	if err := l.DB.Get(&rule, "path=? AND is_send=?", rulePath, isSendPriority).Run(); err != nil {
 		if !database.IsNotFound(err) {
 			l.Logger.Error("Failed to retrieve rule: %s", err)
 
 			return nil, errDatabase
 		}
 
-		if err := l.DB.Get(&rule, "path=? AND send=?", rulePath, !isSendPriority).Run(); err != nil {
+		if err := l.DB.Get(&rule, "path=? AND is_send=?", rulePath, !isSendPriority).Run(); err != nil {
 			if database.IsNotFound(err) {
 				return l.getClosestRule(acc, path.Dir(rulePath), isSendPriority)
 			}
@@ -215,15 +215,13 @@ func (l *sshListener) getRulesPaths(ag *model.LocalAgent, acc *model.LocalAccoun
 		(
 			(id IN 
 				(SELECT DISTINCT rule_id FROM `+model.TableRuleAccesses+` WHERE
-					(object_id=? AND object_type=?) OR
-					(object_id=? AND object_type=?)
+					(local_account_id=? OR local_agent_id=?)
 				)
 			)
 			OR 
 			( (SELECT COUNT(*) FROM `+model.TableRuleAccesses+` WHERE rule_id = id) = 0 )
 		)`,
-		dir+"%", acc.ID, model.TableLocAccounts, ag.ID, model.TableLocAgents).
-		OrderBy("path", true)
+		dir+"%", acc.ID, ag.ID).OrderBy("path", true)
 
 	if err := query.Run(); err != nil {
 		l.Logger.Error("Failed to retrieve rule list: %s", err)

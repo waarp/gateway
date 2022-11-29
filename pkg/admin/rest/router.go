@@ -77,7 +77,7 @@ const (
 //
 //nolint:funlen // hard to shorten
 func MakeRESTHandler(logger *log.Logger, db *database.DB, router *mux.Router,
-	coreServices map[string]service.Service, protoServices map[uint64]proto.Service,
+	coreServices map[string]service.Service, protoServices map[int64]proto.Service,
 ) {
 	router.StrictSlash(true)
 
@@ -118,9 +118,9 @@ func MakeRESTHandler(logger *log.Logger, db *database.DB, router *mux.Router,
 
 	// Servers
 	mkHandler(ServersPath, listServers, model.PermServersRead, http.MethodGet)
-	mkHandler(ServersPath, addServer, model.PermServersWrite, http.MethodPost)
+	mkHandler(ServersPath, addServer(protoServices), model.PermServersWrite, http.MethodPost)
 	mkHandler(ServerPath, getServer, model.PermServersRead, http.MethodGet)
-	mkHandler(ServerPath, deleteServer, model.PermServersDelete, http.MethodDelete)
+	mkHandler(ServerPath, deleteServer(protoServices), model.PermServersDelete, http.MethodDelete)
 	mkHandler(ServerPath, updateServer, model.PermServersWrite, http.MethodPatch)
 	mkHandler(ServerPath, replaceServer, model.PermServersWrite, http.MethodPut)
 	mkHandler(ServerPathEnable, enableServer, model.PermServersWrite, http.MethodPut)

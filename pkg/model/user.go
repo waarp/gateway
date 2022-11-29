@@ -8,45 +8,22 @@ import (
 	"code.waarp.fr/apps/gateway/gateway/pkg/tk/utils"
 )
 
-//nolint:gochecknoinits // init is used by design
-func init() {
-	database.AddTable(&User{})
-}
-
 // User represents a human account on the gateway. These accounts allow users
 // to manage the gateway via its administration interface.
 type User struct {
-	// The user's database ID
-	ID uint64 `xorm:"pk autoincr <- 'id'"`
+	ID    int64  `xorm:"<- id AUTOINCR"` // The user's database ID.
+	Owner string `xorm:"owner"`          // The agent's owner (the gateway which runs it)
 
-	// The user's owner (i.e. the name of the gateway instance to which the
-	// agent belongs to.
-	Owner string `xorm:"unique(name) notnull 'owner'"`
-
-	// The user's login
-	Username string `xorm:"unique(name) notnull 'username'"`
-
-	// The user's password
-	PasswordHash string `xorm:"text notnull default('') 'password_hash'"`
+	Username     string `xorm:"username"`      // The user's login
+	PasswordHash string `xorm:"password_hash"` // A bcrypt hash of the user's password
 
 	// The users permissions for reading and writing the database.
-	Permissions PermsMask `xorm:"notnull binary(4) 'permissions'"`
+	Permissions PermsMask `xorm:"permissions"`
 }
 
-// TableName returns the users table name.
-func (u *User) TableName() string {
-	return TableUsers
-}
-
-// Appellation returns the name of 1 element of the users table.
-func (*User) Appellation() string {
-	return "user"
-}
-
-// GetID returns the user's ID.
-func (u *User) GetID() uint64 {
-	return u.ID
-}
+func (u *User) TableName() string { return TableUsers }
+func (*User) Appellation() string { return "user" }
+func (u *User) GetID() int64      { return u.ID }
 
 // Init inserts the default user in the database when the table is created.
 func (u *User) Init(db database.Access) database.Error {

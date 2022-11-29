@@ -12,64 +12,30 @@ import (
 	"code.waarp.fr/apps/gateway/gateway/pkg/tk/utils"
 )
 
-//nolint:gochecknoinits // init is used by design
-func init() {
-	database.AddTable(&LocalAgent{})
-}
-
 // LocalAgent represents a local server instance operated by the gateway itself.
 // The struct contains the information needed by external agents to connect to
 // the server.
 type LocalAgent struct {
-	// The agent's database ID.
-	ID uint64 `xorm:"pk autoincr <- 'id'"`
+	ID    int64  `xorm:"<- id AUTOINCR"` // The agent's database ID.
+	Owner string `xorm:"owner"`          // The agent's owner (the gateway to which it belongs)
 
-	// The agent's owner (i.e. the name of the gateway instance to which the
-	// agent belongs to).
-	Owner string `xorm:"unique(loc_ag) notnull 'owner'"`
+	Name     string `xorm:"name"`     // The server's name.
+	Address  string `xorm:"address"`  // The agent's address (including the port)
+	Protocol string `xorm:"protocol"` // The server's protocol.
+	Enabled  bool   `xorm:"enabled"`  // Whether the server is enabled at startup or not.
 
-	// The agent's display name.
-	Name string `xorm:"unique(loc_ag) notnull 'name'"`
+	RootDir       string `xorm:"root_dir"`        // The root directory of the agent.
+	ReceiveDir    string `xorm:"receive_dir"`     // The server's directory for received files.
+	SendDir       string `xorm:"send_dir"`        // The server's directory for files to be sent.
+	TmpReceiveDir string `xorm:"tmp_receive_dir"` // The server's temporary directory for partially received files.
 
-	// The protocol used by the agent.
-	Protocol string `xorm:"notnull 'protocol'"`
-
-	// Whether the server is enabled at startup or not.
-	Enabled bool `xorm:"NOTNULL BOOL DEFAULT(true) 'enabled'"`
-
-	// The root directory of the agent.
-	RootDir string `xorm:"notnull 'root_dir'"`
-
-	// The server's directory for received files.
-	ReceiveDir string `xorm:"notnull 'receive_dir'"`
-
-	// The server's directory for files to be sent.
-	SendDir string `xorm:"notnull 'send_dir'"`
-
-	// The server's temporary directory for partially received files.
-	TmpReceiveDir string `xorm:"notnull 'tmp_receive_dir'"`
-
-	// The agent's configuration in raw JSON format.
-	ProtoConfig json.RawMessage `xorm:"notnull 'proto_config'"`
-
-	// The agent's address (including the port)
-	Address string `xorm:"notnull 'address'"`
+	// The server's protocol configuration in raw JSON format.
+	ProtoConfig json.RawMessage `xorm:"proto_config"`
 }
 
-// TableName returns the local agents table name.
-func (*LocalAgent) TableName() string {
-	return TableLocAgents
-}
-
-// Appellation returns the name of 1 element of the local agents table.
-func (*LocalAgent) Appellation() string {
-	return "server"
-}
-
-// GetID returns the agent's ID.
-func (l *LocalAgent) GetID() uint64 {
-	return l.ID
-}
+func (*LocalAgent) TableName() string   { return TableLocAgents }
+func (*LocalAgent) Appellation() string { return "server" }
+func (l *LocalAgent) GetID() int64      { return l.ID }
 
 //nolint:dupl // factorizing would add complexity
 func (l *LocalAgent) validateProtoConfig() error {
@@ -167,43 +133,30 @@ func (l *LocalAgent) BeforeWrite(db database.ReadAccess) database.Error {
 }
 
 // BeforeDelete is called before deleting the account from the database. Its
-// role is to delete all the certificates tied to the account.
-//
-//nolint:dupl // to many differences
+// role is to check whether the server is still used in any ongoing transfer.
 func (l *LocalAgent) BeforeDelete(db database.Access) database.Error {
-	n, err := db.Count(&Transfer{}).Where("is_server=? AND agent_id=?", true, l.ID).Run()
-	if err != nil {
+	if n, err := db.Count(&Transfer{}).Where(`local_account_id IN (SELECT id
+		FROM local_accounts WHERE local_agent_id=?)`, l.ID).Run(); err != nil {
 		return err
-	}
-
-	if n > 0 {
-		return database.NewValidationError("this server is currently being used in " +
-			"one or more running transfers and thus cannot be deleted, cancel " +
+	} else if n > 0 {
+		return database.NewValidationError("this server is currently being used " +
+			"in one or more running transfers and thus cannot be deleted, cancel " +
 			"these transfers or wait for them to finish")
 	}
 
-	certQuery := db.DeleteAll(&Crypto{}).Where(
-		"(owner_type=? AND owner_id=?) OR (owner_type=? AND owner_id IN "+
-			"(SELECT id FROM "+TableLocAccounts+" WHERE local_agent_id=?))",
-		TableLocAgents, l.ID, TableLocAccounts, l.ID)
-	if err := certQuery.Run(); err != nil {
-		return err
-	}
-
-	accessQuery := db.DeleteAll(&RuleAccess{}).Where(
-		"(object_type=? AND object_id=?) OR (object_type=? AND object_id IN "+
-			"(SELECT id FROM "+TableLocAccounts+" WHERE local_agent_id=?))",
-		TableLocAgents, l.ID, TableLocAccounts, l.ID)
-	if err := accessQuery.Run(); err != nil {
-		return err
-	}
-
-	accountQuery := db.DeleteAll(&LocalAccount{}).Where("local_agent_id=?", l.ID)
-
-	return accountQuery.Run()
+	return nil
 }
 
 // GetCryptos fetch in the database then return the associated Cryptos if they exist.
-func (l *LocalAgent) GetCryptos(db database.ReadAccess) ([]Crypto, database.Error) {
-	return GetCryptos(db, l)
+func (l *LocalAgent) GetCryptos(db database.ReadAccess) ([]*Crypto, error) {
+	return getCryptos(db, l)
+}
+
+func (l *LocalAgent) SetCryptoOwner(c *Crypto)             { c.LocalAgentID = utils.NewNullInt64(l.ID) }
+func (l *LocalAgent) GenCryptoSelectCond() (string, int64) { return "local_agent_id=?", l.ID }
+func (l *LocalAgent) SetAccessTarget(a *RuleAccess)        { a.LocalAgentID = utils.NewNullInt64(l.ID) }
+func (l *LocalAgent) GenAccessSelectCond() (string, int64) { return "local_agent_id=?", l.ID }
+
+func (l *LocalAgent) GetAuthorizedRules(db database.ReadAccess) ([]*Rule, error) {
+	return getAuthorizedRules(db, "local_agent_id", l.ID)
 }

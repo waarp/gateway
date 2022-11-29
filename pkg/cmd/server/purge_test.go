@@ -11,6 +11,7 @@ import (
 	"code.waarp.fr/apps/gateway/gateway/pkg/model"
 	"code.waarp.fr/apps/gateway/gateway/pkg/model/config"
 	"code.waarp.fr/apps/gateway/gateway/pkg/model/types"
+	"code.waarp.fr/apps/gateway/gateway/pkg/tk/utils"
 	"code.waarp.fr/apps/gateway/gateway/pkg/tk/utils/testhelpers"
 )
 
@@ -120,7 +121,7 @@ func TestPurgeCommand(t *testing.T) {
 			in := strings.NewReader("YES")
 
 			Convey("When purging the history with a date limit", func() {
-				command.OlderThan = t2.Stop.Local().Format(untilFormat)
+				command.OlderThan = t2.Stop.Add(time.Second).Local().Format(untilFormat)
 				So(command.run(db, time.Now(), in, out), ShouldBeNil)
 
 				Convey("Then it should say that the history was purged", func() {
@@ -141,7 +142,7 @@ func TestPurgeCommand(t *testing.T) {
 			})
 
 			Convey("When purging the history with a duration limit", func() {
-				now := t2.Stop.Local().AddDate(1, 4, 17)
+				now := t2.Stop.Local().AddDate(1, 4, 17).Add(time.Second)
 				command.OlderThan = "1year4months2weeks3days"
 				So(command.run(db, now, in, out), ShouldBeNil)
 
@@ -185,10 +186,8 @@ func TestPurgeCommand(t *testing.T) {
 
 			So(db.Insert(&model.Transfer{
 				RemoteTransferID: "789",
-				IsServer:         true,
 				RuleID:           rule.ID,
-				AgentID:          server.ID,
-				AccountID:        account.ID,
+				LocalAccountID:   utils.NewNullInt64(account.ID),
 				LocalPath:        "/loc/path",
 				RemotePath:       "/rem/path",
 				Start:            time.Date(2022, 1, 1, 1, 0, 0, 0, time.UTC),
@@ -196,10 +195,8 @@ func TestPurgeCommand(t *testing.T) {
 
 			So(db.Insert(&model.Transfer{
 				RemoteTransferID: "147",
-				IsServer:         true,
 				RuleID:           rule.ID,
-				AgentID:          server.ID,
-				AccountID:        account.ID,
+				LocalAccountID:   utils.NewNullInt64(account.ID),
 				LocalPath:        "/loc/path",
 				RemotePath:       "/rem/path",
 				Start:            time.Date(2022, 1, 1, 1, 0, 0, 0, time.UTC),
@@ -229,10 +226,8 @@ func TestPurgeCommand(t *testing.T) {
 				Convey("Then it should have reset the transfer increment", func() {
 					newTrans := &model.Transfer{
 						RemoteTransferID: "258",
-						IsServer:         true,
 						RuleID:           rule.ID,
-						AgentID:          server.ID,
-						AccountID:        account.ID,
+						LocalAccountID:   utils.NewNullInt64(account.ID),
 						LocalPath:        "/loc/path",
 						RemotePath:       "/rem/path",
 						Start:            time.Date(2022, 1, 1, 1, 0, 0, 0, time.UTC),
@@ -254,10 +249,8 @@ func TestPurgeCommand(t *testing.T) {
 				Convey("Then it should NOT have reset the transfer increment", func() {
 					newTrans := &model.Transfer{
 						RemoteTransferID: "258",
-						IsServer:         true,
 						RuleID:           rule.ID,
-						AgentID:          server.ID,
-						AccountID:        account.ID,
+						LocalAccountID:   utils.NewNullInt64(account.ID),
 						LocalPath:        "/loc/path",
 						RemotePath:       "/rem/path",
 						Start:            time.Date(2022, 1, 1, 1, 0, 0, 0, time.UTC),

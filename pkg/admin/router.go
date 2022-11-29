@@ -14,7 +14,7 @@ import (
 
 // MakeHandler returns the router for the REST & Admin http interface.
 func MakeHandler(logger *log.Logger, db *database.DB, coreServices map[string]service.Service,
-	protoServices map[uint64]proto.Service,
+	protoServices map[int64]proto.Service,
 ) http.Handler {
 	// REST handler
 	adminHandler := mux.NewRouter()

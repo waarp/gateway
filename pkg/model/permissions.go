@@ -1,8 +1,6 @@
 package model
 
 import (
-	"database/sql/driver"
-	"encoding/binary"
 	"fmt"
 	"math"
 
@@ -11,11 +9,11 @@ import (
 
 // PermsMask is a bitmask specifying which actions the user is allowed to
 // perform on the database.
-type PermsMask uint32
+type PermsMask int32
 
 // Masks for user permissions.
 const (
-	PermTransfersRead PermsMask = 1 << (32 - 1 - iota)
+	PermTransfersRead PermsMask = 1 << iota
 	PermTransfersWrite
 	permTransferDelete // placeholder, transfers CANNOT be deleted by users
 	PermServersRead
@@ -34,51 +32,8 @@ const (
 	PermAdminWrite
 	PermAdminDelete
 
-	PermAll = math.MaxUint32 &^ permTransferDelete
+	PermAll = math.MaxInt32 &^ permTransferDelete
 )
-
-const permMaskSize = 4
-
-// FromDB implements xorm/core.Conversion. As XORM ignores standard converters
-// for non-struct types (Value() and Scan()), thus must be mapped to XORM own
-// conversion interface.
-func (p *PermsMask) FromDB(bytes []byte) error {
-	return p.Scan(bytes)
-}
-
-// ToDB implements xorm/core.Conversion. As XORM ignores standard converters
-// for non-struct types (Value() and Scan()), thus must be mapped to XORM own
-// conversion interface.
-func (p PermsMask) ToDB() ([]byte, error) {
-	v, err := p.Value()
-
-	//nolint:forcetypeassert //no need, the type assertion will always succeed
-	return v.([]byte), err
-}
-
-// Scan implements database/sql.Scanner. It takes a binary blob and returns
-// the matching PermsMask.
-func (p *PermsMask) Scan(src interface{}) error {
-	switch v := src.(type) {
-	case []byte:
-		*p = PermsMask(binary.LittleEndian.Uint32(v))
-
-		return nil
-	default:
-		//nolint:goerr113 // too specific to have a base error
-		return fmt.Errorf("cannot scan %+v of type %T into a PermMask", v, v)
-	}
-}
-
-// Value implements database/driver.Valuer. PermsMask is represented in the
-// database as a binary blob.
-func (p PermsMask) Value() (driver.Value, error) {
-	b := make([]byte, permMaskSize)
-
-	binary.LittleEndian.PutUint32(b, uint32(p))
-
-	return b, nil
-}
 
 // Permissions is a structured representation of a PermMask which regroups
 // permissions into categories depending on their target. Each attribute
@@ -99,7 +54,7 @@ func maskToStr(m PermsMask, s int) string {
 	buf := make([]byte, len(permString))
 
 	for i, c := range permString {
-		if m&(1<<uint(32-1-s-i)) != 0 {
+		if m&(1<<uint(s+i)) != 0 {
 			buf[i] = byte(c)
 		} else {
 			buf[i] = '-'
@@ -141,7 +96,7 @@ func permToMask(mask *PermsMask, perm string, off int) database.Error {
 		switch char := rune(perm[o]); char {
 		case '-':
 		case expected:
-			*mask |= 1 << (32 - 1 - off - o)
+			*mask |= 1 << (off + o)
 		default:
 			return invalid("invalid permission mode '%c' (expected '%c' or '-')", char, expected)
 		}

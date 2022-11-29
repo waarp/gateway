@@ -720,6 +720,7 @@ issues:
         - gosec
         - varnamelen
         - bodyclose
+        - noctx
 
     # Allow dot import aliases in test files.
     - path: _test\.go
@@ -753,6 +754,14 @@ issues:
     - linters:
       - tagliatelle
       text: "got 'macs' want 'maCs'"
+
+    # We disable some linters on migration files.
+    - path: pkg/database/migrations/+[0-9]\.+[+0-9]\.+[0-9]\.go
+      linters:
+        - funlen # splitting functions is not always possible (or desirable)
+        - dupl # some tables are similar, but factorizing their migrations is a bad idea
+        - gomnd # we use magic numbers for type sizes
+
 
   # Independently from option `exclude` we use default exclude patterns,
   # it can be disabled by this option. To list all

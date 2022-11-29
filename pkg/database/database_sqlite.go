@@ -1,10 +1,6 @@
 package database
 
 import (
-	"time"
-
-	"xorm.io/xorm"
-
 	"code.waarp.fr/apps/gateway/gateway/pkg/database/migrations"
 )
 
@@ -18,12 +14,9 @@ func init() {
 	supportedRBMS[SQLite] = sqliteinfo
 }
 
-func sqliteInit(db *xorm.Engine) error {
-	db.DatabaseTZ = time.UTC
-
-	return nil
-}
-
-func sqliteinfo() (string, string, func(*xorm.Engine) error) {
-	return migrations.SqliteDriver, migrations.SqliteDSN(), sqliteInit
+func sqliteinfo() *dbInfo {
+	return &dbInfo{
+		driver: migrations.SqliteDriver,
+		dsn:    migrations.SqliteDSN(),
+	}
 }

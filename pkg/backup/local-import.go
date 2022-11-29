@@ -25,8 +25,7 @@ func importLocalAgents(logger *log.Logger, db database.Access, list []file.Local
 			return err
 		}
 
-		for i := range servers {
-			server := &servers[i]
+		for _, server := range servers {
 			if err := db.Delete(server).Run(); err != nil {
 				return err
 			}
@@ -75,8 +74,7 @@ func importLocalAgents(logger *log.Logger, db database.Access, list []file.Local
 			return err
 		}
 
-		if err := importCerts(logger, db, src.Certs, model.TableLocAgents,
-			agent.ID); err != nil {
+		if err := importCerts(logger, db, src.Certs, &agent); err != nil {
 			return err
 		}
 
@@ -171,8 +169,7 @@ func importLocalAccounts(logger *log.Logger, db database.Access,
 			return err
 		}
 
-		if err := importCerts(logger, db, src.Certs, model.TableLocAccounts,
-			account.ID); err != nil {
+		if err := importCerts(logger, db, src.Certs, &account); err != nil {
 			return err
 		}
 	}

@@ -15,6 +15,7 @@ import (
 	"code.waarp.fr/apps/gateway/gateway/pkg/model"
 	"code.waarp.fr/apps/gateway/gateway/pkg/model/config"
 	"code.waarp.fr/apps/gateway/gateway/pkg/model/types"
+	"code.waarp.fr/apps/gateway/gateway/pkg/tk/utils"
 	"code.waarp.fr/apps/gateway/gateway/pkg/tk/utils/testhelpers"
 )
 
@@ -127,9 +128,8 @@ func TestGetFileInfo(t *testing.T) {
 				So(db.Insert(other).Run(), ShouldBeNil)
 
 				accs := &model.RuleAccess{
-					RuleID:     rule.ID,
-					ObjectID:   other.ID,
-					ObjectType: other.TableName(),
+					RuleID:         rule.ID,
+					LocalAccountID: utils.NewNullInt64(other.ID),
 				}
 				So(db.Insert(accs).Run(), ShouldBeNil)
 
@@ -201,10 +201,8 @@ func TestGetTransferInfo(t *testing.T) {
 		Convey("Given a transfer on the R66 server", func() {
 			trans := &model.Transfer{
 				RemoteTransferID: "123",
-				IsServer:         true,
 				RuleID:           rule.ID,
-				AgentID:          agent.ID,
-				AccountID:        account.ID,
+				LocalAccountID:   utils.NewNullInt64(account.ID),
 				LocalPath:        filepath.Join(root, agent.RootDir, rule.LocalDir, "file.ex"),
 				RemotePath:       "file.ex",
 				Filesize:         100,
@@ -217,8 +215,7 @@ func TestGetTransferInfo(t *testing.T) {
 			So(db.Insert(trans).Run(), ShouldBeNil)
 
 			tInfo := &model.TransferInfo{
-				TransferID: trans.ID,
-				IsHistory:  false,
+				TransferID: utils.NewNullInt64(trans.ID),
 				Name:       "key",
 				Value:      `"val"`,
 			}
