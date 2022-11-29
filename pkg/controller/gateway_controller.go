@@ -62,9 +62,9 @@ func (c *GatewayController) checkIsDBDown(logger log.Logger) bool {
 		return false
 	}
 
-	query := c.DB.UpdateAll(&model.Transfer{}, database.UpdVals{"status": types.StatusInterrupted},
-		"owner=? AND status=?", conf.GlobalConfig.GatewayName, types.StatusRunning)
-	if err := query.Run(); err != nil {
+	if err := c.DB.Exec("UPDATE transfers SET status=? WHERE owner=? AND status=?",
+		types.StatusInterrupted, conf.GlobalConfig.GatewayName, types.StatusRunning,
+	); err != nil {
 		logger.Error("Failed to access database: %s", err.Error())
 
 		return true

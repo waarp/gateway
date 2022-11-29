@@ -142,23 +142,6 @@ func (s *Standalone) Update(bean UpdateBean) *UpdateQuery {
 	return &UpdateQuery{db: s, bean: bean}
 }
 
-// UpdateAll starts building an SQL 'UPDATE' query to update multiple entries
-// in the database. The columns to update, and their values are specified
-// using the UpdVals parameter. The entries to update can be filtered using
-// the sql & args parameters, with a syntax similar to the IterateQuery.Where
-// method.
-//
-// Be aware that, since this method updates multiple rows at once, the entries'
-// WriteHook will NOT be executed. Thus, this method should be used with
-// extreme caution.
-//
-// The request can then be executed using the UpdateAllQuery.Run method.
-func (s *Standalone) UpdateAll(bean UpdateAllBean, vals UpdVals, sql string,
-	args ...interface{},
-) *UpdateAllQuery {
-	return &UpdateAllQuery{db: s, bean: bean, vals: vals, conds: sql, args: args}
-}
-
 // Delete starts building a SQL 'DELETE' query to delete a single entry of
 // the given model from the database, using the entry's ID as parameter.
 //
