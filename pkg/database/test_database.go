@@ -10,6 +10,7 @@ import (
 	"os"
 	"sync"
 
+	"code.waarp.fr/lib/log"
 	"github.com/google/uuid"
 	"github.com/smartystreets/goconvey/convey"
 	"golang.org/x/crypto/bcrypt"
@@ -146,7 +147,7 @@ func initTestDatabase(c convey.C) *DB {
 	initTestDBConf()
 	testGCM()
 
-	db := &DB{logger: testhelpers.TestLogger(c, "test_database")}
+	db := &DB{logger: testhelpers.TestLoggerWithLevel(c, "test_database", log.LevelWarning)}
 
 	return db
 }
