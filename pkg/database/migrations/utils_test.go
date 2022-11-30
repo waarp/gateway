@@ -6,7 +6,12 @@ import (
 	"fmt"
 
 	"code.waarp.fr/lib/migration"
+	"github.com/go-sql-driver/mysql"
+	"github.com/jackc/pgconn"
+	"github.com/jackc/pgerrcode"
 	. "github.com/smartystreets/goconvey/convey"
+	"modernc.org/sqlite"
+	sqliteLib "modernc.org/sqlite/lib"
 )
 
 func setupDatabaseUpTo(eng *testEngine, target script) {
@@ -77,6 +82,31 @@ func tableShouldNotHaveColumns(db *sql.DB, table string, cols ...string) {
 	for _, col := range cols {
 		So(names, ShouldNotContain, col)
 	}
+}
+
+func shouldBeUniqueViolationError(err error) {
+	var sqlErr *sqlite.Error
+	if errors.As(err, &sqlErr) {
+		So(sqlErr.Code(), ShouldEqual, sqliteLib.SQLITE_CONSTRAINT_UNIQUE)
+
+		return
+	}
+
+	var pgErr *pgconn.PgError
+	if errors.As(err, &pgErr) {
+		So(pgErr.Code, ShouldEqual, pgerrcode.UniqueViolation)
+
+		return
+	}
+
+	var myErr *mysql.MySQLError
+	if errors.As(err, &myErr) {
+		So(myErr.Number, ShouldEqual, 1062)
+
+		return
+	}
+
+	panic(fmt.Sprintf("unknown error type %T", err))
 }
 
 func doesTableExist(db *sql.DB, dbType, table string) bool {

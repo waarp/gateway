@@ -142,4 +142,8 @@ var Migrations = []change{
 		Description: "Revamp the 'rule_access' table",
 		Script:      ver0_7_0RevampRuleAccessTable{},
 	},
+	{ // #30
+		Description: "Add a unique constraint to the local agent 'address' column",
+		Script:      ver0_7_0AddLocalAgentsAddressUnique{},
+	},
 }

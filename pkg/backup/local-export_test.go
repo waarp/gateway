@@ -53,7 +53,7 @@ func TestExportLocalAgents(t *testing.T) {
 			agent2 := &model.LocalAgent{
 				Name:     "agent2",
 				Protocol: testProtocol,
-				Address:  "localhost:6666",
+				Address:  "localhost:7777",
 			}
 			So(db.Insert(agent2).Run(), ShouldBeNil)
 

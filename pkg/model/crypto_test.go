@@ -117,7 +117,7 @@ func TestCryptoBeforeWrite(t *testing.T) {
 						Owner:    "test_gateway",
 						Name:     "other",
 						Protocol: testProtocol,
-						Address:  "localhost:6666",
+						Address:  "localhost:7777",
 					}
 					So(db.Insert(otherAgent).Run(), ShouldBeNil)
 

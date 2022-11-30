@@ -3,6 +3,7 @@ package wg
 import (
 	"context"
 	"encoding/json"
+	"fmt"
 	"net/http/httptest"
 	"net/url"
 	"testing"
@@ -44,12 +45,14 @@ func TestRequestStatus(t *testing.T) {
 
 		Convey("Given a running gateway", func(c C) {
 			db := database.TestDatabase(c)
+			i := 0
 			addServ := func(name string) *model.LocalAgent {
+				i++
 				a := &model.LocalAgent{
 					Name:        name,
 					Protocol:    testProto1,
 					ProtoConfig: json.RawMessage("{}"),
-					Address:     "localhost:1234",
+					Address:     fmt.Sprintf("localhost:%d", i),
 				}
 				So(db.Insert(a).Run(), ShouldBeNil)
 

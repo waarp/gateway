@@ -50,7 +50,7 @@ func TestImportLocalAgents(t *testing.T) {
 					Name:          "foo",
 					Protocol:      testProtocol,
 					Configuration: json.RawMessage(`{}`),
-					Address:       "localhost:2022",
+					Address:       "localhost:1111",
 					Accounts: []LocalAccount{
 						{
 							Login:    "acc1",

@@ -11,7 +11,7 @@ import (
 )
 
 func testVer0_7_0AddLocalAgentEnabled(eng *testEngine) {
-	Convey("Given the 0.6.0 server 'enable' addition", func() {
+	Convey("Given the 0.7.0 server 'enable' addition", func() {
 		setupDatabaseUpTo(eng, ver0_7_0AddLocalAgentEnabledColumn{})
 		tableShouldNotHaveColumns(eng.DB, "local_agents", "enabled")
 
@@ -1218,6 +1218,36 @@ func testVer0_7_0RevampRuleAccessTable(eng *testEngine) {
 							panic(fmt.Sprintf("unknown rule access object type '%s'", oType))
 						}
 					}
+				})
+			})
+		})
+	})
+}
+
+func testVer0_7_0AddLocalAgentsAddressUnique(eng *testEngine) {
+	Convey("Given the 0.7.0 transfers 'address' unique addition", func() {
+		setupDatabaseUpTo(eng, ver0_7_0AddLocalAgentsAddressUnique{})
+
+		_, err := eng.DB.Exec(`INSERT INTO local_agents(id,owner,name,protocol,address) 
+			VALUES (10,'waarp_gw','sftp_serv','sftp','localhost:2222')`)
+		So(err, ShouldBeNil)
+
+		Convey("When applying the migration", func() {
+			So(eng.Upgrade(ver0_7_0AddLocalAgentsAddressUnique{}), ShouldBeNil)
+
+			Convey("Then it should have added the unique constraint", func() {
+				_, err := eng.DB.Exec(`INSERT INTO local_agents(id,owner,name,protocol,address) 
+					VALUES (11,'waarp_gw','sftp_serv_2','sftp','localhost:2222')`)
+				shouldBeUniqueViolationError(err)
+			})
+
+			Convey("When reversing the migration", func() {
+				So(eng.Downgrade(ver0_7_0AddLocalAgentsAddressUnique{}), ShouldBeNil)
+
+				Convey("Then it should have removed the unique constraint", func() {
+					_, err := eng.DB.Exec(`INSERT INTO local_agents(id,owner,name,protocol,address) 
+						VALUES (11,'waarp_gw','sftp_serv_2','sftp','localhost:2222')`)
+					So(err, ShouldBeNil)
 				})
 			})
 		})

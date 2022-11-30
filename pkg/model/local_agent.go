@@ -121,12 +121,20 @@ func (l *LocalAgent) BeforeWrite(db database.ReadAccess) database.Error {
 		return database.NewValidationError(err.Error())
 	}
 
-	n, err := db.Count(l).Where("id<>? AND owner=? AND name=?", l.ID, l.Owner, l.Name).Run()
-	if err != nil {
+	if n, err := db.Count(l).Where("id<>? AND owner=? AND name=?", l.ID, l.Owner,
+		l.Name).Run(); err != nil {
 		return err
 	} else if n > 0 {
 		return database.NewValidationError(
 			"a local agent with the same name '%s' already exist", l.Name)
+	}
+
+	if n, err := db.Count(l).Where("id<>? AND owner=? AND address=?", l.ID,
+		l.Owner, l.Address).Run(); err != nil {
+		return err
+	} else if n > 0 {
+		return database.NewValidationError(
+			"a local agent with the same address '%s' already exist", l.Address)
 	}
 
 	return nil

@@ -3,6 +3,7 @@ package rest
 import (
 	"context"
 	"encoding/json"
+	"fmt"
 	"net/http"
 	"net/http/httptest"
 	"testing"
@@ -50,12 +51,14 @@ func (t *testServer) Stop(context.Context) error {
 func TestStatus(t *testing.T) {
 	Convey("Given a gateway with some services", t, func(c C) {
 		db := database.TestDatabase(c)
+		i := 0
 		addServ := func(name string) *model.LocalAgent {
+			i++
 			a := &model.LocalAgent{
 				Name:        name,
 				Protocol:    testProto1,
 				ProtoConfig: json.RawMessage("{}"),
-				Address:     "localhost:1234",
+				Address:     fmt.Sprintf("localhost:%d", i),
 			}
 			So(db.Insert(a).Run(), ShouldBeNil)
 

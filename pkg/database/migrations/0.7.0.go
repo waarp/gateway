@@ -1056,3 +1056,25 @@ func (ver0_7_0RevampRuleAccessTable) Down(db Actions) error {
 
 	return nil
 }
+
+type ver0_7_0AddLocalAgentsAddressUnique struct{}
+
+func (ver0_7_0AddLocalAgentsAddressUnique) Up(db Actions) error {
+	if err := db.AlterTable("local_agents",
+		AddUnique{Name: "unique_server_addr", Cols: []string{"owner", "address"}},
+	); err != nil {
+		return fmt.Errorf("failed to add the local agent 'address' unique constraint: %w", err)
+	}
+
+	return nil
+}
+
+func (ver0_7_0AddLocalAgentsAddressUnique) Down(db Actions) error {
+	if err := db.AlterTable("local_agents",
+		DropConstraint{Name: "unique_server_addr"},
+	); err != nil {
+		return fmt.Errorf("failed to drop the local agent 'address' unique index: %w", err)
+	}
+
+	return nil
+}
