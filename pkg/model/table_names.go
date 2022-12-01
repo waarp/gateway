@@ -18,21 +18,11 @@ const (
 	TableTransferInfo = "transfer_info"
 	TableFileInfo     = "file_info"
 	TableUsers        = "users"
+
+	ViewNormalizedTransfers = "normalized_transfers"
 )
 
 //nolint:gochecknoinits // init is used by design
 func init() {
-	database.AddTable(&User{})
-	database.AddTable(&LocalAgent{})
-	database.AddTable(&LocalAccount{})
-	database.AddTable(&RemoteAgent{})
-	database.AddTable(&RemoteAccount{})
-	database.AddTable(&Crypto{})
-	database.AddTable(&Rule{})
-	database.AddTable(&Task{})
-	database.AddTable(&RuleAccess{})
-	database.AddTable(&Transfer{})
-	database.AddTable(&HistoryEntry{})
-	// database.AddTable(&FileInfo{})
-	database.AddTable(&TransferInfo{})
+	database.AddInit(&User{})
 }

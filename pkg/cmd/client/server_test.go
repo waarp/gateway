@@ -656,7 +656,7 @@ func TestAuthorizeServer(t *testing.T) {
 			So(db.Insert(rule).Run(), ShouldBeNil)
 
 			Convey("Given a valid server & rule names", func() {
-				args := []string{server.Name, rule.Name, direction(rule)}
+				args := []string{server.Name, rule.Name, getDirection(rule)}
 
 				Convey("When executing the command", func() {
 					params, err := flags.ParseArgs(command, args)
@@ -664,9 +664,9 @@ func TestAuthorizeServer(t *testing.T) {
 					So(command.Execute(params), ShouldBeNil)
 
 					Convey("Then is should display a message saying the server can use the rule", func() {
-						So(getOutput(), ShouldEqual, "Usage of the "+direction(rule)+
+						So(getOutput(), ShouldEqual, "Usage of the "+getDirection(rule)+
 							" rule '"+rule.Name+"' is now restricted.\nThe server "+
-							server.Name+" is now allowed to use the "+direction(rule)+
+							server.Name+" is now allowed to use the "+getDirection(rule)+
 							" rule "+rule.Name+" for transfers.\n")
 					})
 
@@ -683,7 +683,7 @@ func TestAuthorizeServer(t *testing.T) {
 			})
 
 			Convey("Given an invalid rule name", func() {
-				args := []string{server.Name, "toto", direction(rule)}
+				args := []string{server.Name, "toto", getDirection(rule)}
 
 				Convey("When executing the command", func() {
 					params, err := flags.ParseArgs(command, args)
@@ -703,7 +703,7 @@ func TestAuthorizeServer(t *testing.T) {
 			})
 
 			Convey("Given an invalid server name", func() {
-				args := []string{"toto", rule.Name, direction(rule)}
+				args := []string{"toto", rule.Name, getDirection(rule)}
 
 				Convey("When executing the command", func() {
 					params, err := flags.ParseArgs(command, args)
@@ -759,7 +759,7 @@ func TestRevokeServer(t *testing.T) {
 			So(db.Insert(access).Run(), ShouldBeNil)
 
 			Convey("Given a valid server & rule names", func() {
-				args := []string{server.Name, rule.Name, direction(rule)}
+				args := []string{server.Name, rule.Name, getDirection(rule)}
 
 				Convey("When executing the command", func() {
 					params, err := flags.ParseArgs(command, args)
@@ -768,8 +768,8 @@ func TestRevokeServer(t *testing.T) {
 
 					Convey("Then is should display a message saying the server cannot use the rule", func() {
 						So(getOutput(), ShouldEqual, "The server "+server.Name+
-							" is no longer allowed to use the "+direction(rule)+" rule "+
-							rule.Name+" for transfers.\nUsage of the "+direction(rule)+
+							" is no longer allowed to use the "+getDirection(rule)+" rule "+
+							rule.Name+" for transfers.\nUsage of the "+getDirection(rule)+
 							" rule '"+rule.Name+"' is now unrestricted.\n")
 					})
 
@@ -782,7 +782,7 @@ func TestRevokeServer(t *testing.T) {
 			})
 
 			Convey("Given an invalid rule name", func() {
-				args := []string{server.Name, "toto", direction(rule)}
+				args := []string{server.Name, "toto", getDirection(rule)}
 
 				Convey("When executing the command", func() {
 					params, err := flags.ParseArgs(command, args)
@@ -802,7 +802,7 @@ func TestRevokeServer(t *testing.T) {
 			})
 
 			Convey("Given an invalid server name", func() {
-				args := []string{"toto", rule.Name, direction(rule)}
+				args := []string{"toto", rule.Name, getDirection(rule)}
 
 				Convey("When executing the command", func() {
 					params, err := flags.ParseArgs(command, args)

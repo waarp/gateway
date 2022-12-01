@@ -47,19 +47,20 @@ Lister les transferts
      (``true``) ou en tant que client (``false``)
    :resjsonarr bool isSend: Indique si le transfert est un envoi (``true``) ou une
      réception (``false``)
-   :resjsonarr string rule: L'identifiant de la règle de transfert
+   :resjsonarr string rule: Le nom de la règle de transfert
    :resjsonarr string requester: Le nom du compte ayant demandé le transfert
    :resjsonarr string requested: Le nom du serveur/partenaire auquel le transfert a été demandé
    :resjsonarr string protocol: Le protocole utilisé pour effectuer le transfert
-   :resjsonarr string trueFilepath: Le chemin local complet du fichier (OBSOLÈTE: remplacé par 'localFilepath')
-   :resjsonarr string sourcePath: Le fichier source du transfer (OBSOLÈTE: remplacé par 'localFilepath' & 'remoteFilepath')
-   :resjsonarr string destPath: Le fichier destination du transfer (OBSOLÈTE: remplacé par 'localFilepath' & 'remoteFilepath')
    :resjsonarr string localFilepath: Le chemin du fichier sur le disque local
    :resjsonarr string remoteFilepath: Le chemin du fichier sur le partenaire distant
    :resjsonarr number filesize: La taille du fichier (-1 si inconnue)
    :resjsonarr date start: La date de début du transfert
-   :resjsonarr string status: Le statut actuel du transfert (*PLANNED*, *RUNNING*, *PAUSED*, *INTERRUPTED* ou *ERROR*)
-   :resjsonarr string step: L'étape actuelle du transfert (*NONE*, *PRE TASKS*, *DATA*, *POST TASKS*, *ERROR TASKS* ou *FINALIZATION*)
+   :resjsonarr date stop: La date de fin du transfert (si le transfert est terminé)
+   :resjsonarr string status: Le statut actuel du transfert (valeurs possibles:
+     *PLANNED*, *RUNNING*, *PAUSED*, *INTERRUPTED*, *ERROR*, *DONE* ou *CANCELLED*)
+   :resjsonarr string step: L'étape actuelle du transfert (valeurs possibles:
+     *StepNone*, *StepSetup*, *StepPreTasks*, *StepData*, *StepPostTasks*,
+     *StepErrorTasks* ou *StepFinalization*)
    :resjsonarr number progress: La progression (en octets) du transfert de données
    :resjsonarr number taskNumber: Le numéro du traitement en cours d'exécution
    :resjsonarr string errorCode: Le code d'erreur du transfert (si une erreur s'est produite)

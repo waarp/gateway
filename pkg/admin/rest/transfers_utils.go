@@ -5,11 +5,9 @@ import (
 	"fmt"
 	"net/http"
 	"strconv"
-	"strings"
 	"time"
 
 	"code.waarp.fr/apps/gateway/gateway/pkg/admin/rest/api"
-	"code.waarp.fr/apps/gateway/gateway/pkg/conf"
 	"code.waarp.fr/apps/gateway/gateway/pkg/database"
 	"code.waarp.fr/apps/gateway/gateway/pkg/gatewayd/service"
 	"code.waarp.fr/apps/gateway/gateway/pkg/gatewayd/service/proto"
@@ -54,58 +52,27 @@ func getTransIDs(db *database.DB, trans *api.InTransfer) (int64, int64, error) {
 	return rule.ID, account.ID, nil
 }
 
-// getTransNames returns (in this order) the transfer's rule, and the names of
-// the requester, the requested, and the protocol.
-func getTransNames(db *database.DB, trans *model.Transfer) (rule *model.Rule,
-	requester, requested, protocol string, err error,
-) {
-	rule = &model.Rule{}
-
-	if err := db.Get(rule, "id=?", trans.RuleID).Run(); err != nil {
-		return nil, "", "", "", err
-	}
-
-	if trans.IsServer() {
-		var acc model.LocalAccount
-		if err = db.Get(&acc, "id=?", trans.LocalAccountID).Run(); err != nil {
-			return
-		}
-
-		var ag model.LocalAgent
-		if err = db.Get(&ag, "id=?", acc.LocalAgentID).Run(); err != nil {
-			return
-		}
-
-		return rule, acc.Login, ag.Name, ag.Protocol, nil
-	}
-
-	var acc model.RemoteAccount
-	if err = db.Get(&acc, "id=?", trans.RemoteAccountID).Run(); err != nil {
-		return
-	}
-
-	var ag model.RemoteAgent
-	if err = db.Get(&ag, "id=?", acc.RemoteAgentID).Run(); err != nil {
-		return
-	}
-
-	return rule, acc.Login, ag.Name, ag.Protocol, nil
-}
-
 //nolint:funlen // FIXME should be refactored
 func parseTransferListQuery(r *http.Request, db *database.DB,
-	transfers *model.Transfers,
+	transfers *model.NormalizedTransfers,
 ) (*database.SelectQuery, error) {
-	query := db.Select(transfers).Where("owner=?", conf.GlobalConfig.GatewayName)
+	query := db.Select(transfers)
 
+	//nolint:dupl //kept separate for backwards compatibility
 	sorting := orders{
-		"default": order{col: "start", asc: true},
-		"id+":     order{col: "id", asc: true},
-		"id-":     order{col: "id", asc: false},
-		"status+": order{col: "status", asc: true},
-		"status-": order{col: "status", asc: false},
-		"start+":  order{col: "start", asc: true},
-		"start-":  order{col: "start", asc: false},
+		"default":    order{col: "start", asc: true},
+		"id+":        order{col: "id", asc: true},
+		"id-":        order{col: "id", asc: false},
+		"requested+": order{col: "agent", asc: true},
+		"requested-": order{col: "agent", asc: false},
+		"requester+": order{col: "account", asc: true},
+		"requester-": order{col: "account", asc: false},
+		"rule+":      order{col: "rule", asc: true},
+		"rule-":      order{col: "rule", asc: false},
+		"status+":    order{col: "status", asc: true},
+		"status-":    order{col: "status", asc: false},
+		"start+":     order{col: "start", asc: true},
+		"start-":     order{col: "start", asc: false},
 	}
 
 	if err := r.ParseForm(); err != nil {
@@ -134,13 +101,7 @@ func parseTransferListQuery(r *http.Request, db *database.DB,
 	query.Limit(limit, offset)
 
 	if rules, ok := r.Form["rule"]; ok {
-		args := make([]interface{}, len(rules))
-		for i := range rules {
-			args[i] = rules[i]
-		}
-
-		query.Where("rule_id IN (SELECT id FROM "+model.TableRules+" WHERE name IN (?"+
-			strings.Repeat(",?", len(rules)-1)+"))", args...)
+		query.In("rule", rules)
 	}
 
 	if statuses, ok := r.Form["status"]; ok {

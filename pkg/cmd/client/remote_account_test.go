@@ -563,7 +563,7 @@ func TestAuthorizeRemoteAccount(t *testing.T) {
 
 			Convey("Given a valid partner, account & rule names", func() {
 				Partner = partner.Name
-				args := []string{account.Login, rule.Name, direction(rule)}
+				args := []string{account.Login, rule.Name, getDirection(rule)}
 
 				Convey("When executing the command", func() {
 					params, err := flags.ParseArgs(command, args)
@@ -571,9 +571,9 @@ func TestAuthorizeRemoteAccount(t *testing.T) {
 					So(command.Execute(params), ShouldBeNil)
 
 					Convey("Then is should display a message saying the account can use the rule", func() {
-						So(getOutput(), ShouldEqual, "Usage of the "+direction(rule)+
+						So(getOutput(), ShouldEqual, "Usage of the "+getDirection(rule)+
 							" rule '"+rule.Name+"' is now restricted.\nThe remote account "+
-							account.Login+" is now allowed to use the "+direction(rule)+
+							account.Login+" is now allowed to use the "+getDirection(rule)+
 							" rule "+rule.Name+" for transfers.\n")
 					})
 
@@ -591,7 +591,7 @@ func TestAuthorizeRemoteAccount(t *testing.T) {
 
 			Convey("Given an invalid partner name", func() {
 				Partner = "toto"
-				args := []string{account.Login, rule.Name, direction(rule)}
+				args := []string{account.Login, rule.Name, getDirection(rule)}
 
 				Convey("When executing the command", func() {
 					params, err := flags.ParseArgs(command, args)
@@ -612,7 +612,7 @@ func TestAuthorizeRemoteAccount(t *testing.T) {
 
 			Convey("Given an invalid rule name", func() {
 				Partner = partner.Name
-				args := []string{account.Login, "toto", direction(rule)}
+				args := []string{account.Login, "toto", getDirection(rule)}
 
 				Convey("When executing the command", func() {
 					params, err := flags.ParseArgs(command, args)
@@ -633,7 +633,7 @@ func TestAuthorizeRemoteAccount(t *testing.T) {
 
 			Convey("Given an invalid account name", func() {
 				Partner = partner.Name
-				args := []string{"tata", rule.Name, direction(rule)}
+				args := []string{"tata", rule.Name, getDirection(rule)}
 
 				Convey("When executing the command", func() {
 					params, err := flags.ParseArgs(command, args)
@@ -697,7 +697,7 @@ func TestRevokeRemoteAccount(t *testing.T) {
 
 			Convey("Given a valid partner & rule names", func() {
 				Partner = partner.Name
-				args := []string{account.Login, rule.Name, direction(rule)}
+				args := []string{account.Login, rule.Name, getDirection(rule)}
 
 				Convey("When executing the command", func() {
 					params, err := flags.ParseArgs(command, args)
@@ -706,8 +706,8 @@ func TestRevokeRemoteAccount(t *testing.T) {
 
 					Convey("Then is should display a message saying the partner cannot use the rule", func() {
 						So(getOutput(), ShouldEqual, "The remote account "+account.Login+
-							" is no longer allowed to use the "+direction(rule)+" rule "+
-							rule.Name+" for transfers.\nUsage of the "+direction(rule)+
+							" is no longer allowed to use the "+getDirection(rule)+" rule "+
+							rule.Name+" for transfers.\nUsage of the "+getDirection(rule)+
 							" rule '"+rule.Name+"' is now unrestricted.\n")
 					})
 
@@ -721,7 +721,7 @@ func TestRevokeRemoteAccount(t *testing.T) {
 
 			Convey("Given an invalid partner name", func() {
 				Partner = "toto"
-				args := []string{account.Login, rule.Name, direction(rule)}
+				args := []string{account.Login, rule.Name, getDirection(rule)}
 
 				Convey("When executing the command", func() {
 					params, err := flags.ParseArgs(command, args)
@@ -742,7 +742,7 @@ func TestRevokeRemoteAccount(t *testing.T) {
 
 			Convey("Given an invalid rule name", func() {
 				Partner = partner.Name
-				args := []string{account.Login, "toto", direction(rule)}
+				args := []string{account.Login, "toto", getDirection(rule)}
 
 				Convey("When executing the command", func() {
 					params, err := flags.ParseArgs(command, args)
@@ -763,7 +763,7 @@ func TestRevokeRemoteAccount(t *testing.T) {
 
 			Convey("Given an invalid account name", func() {
 				Partner = partner.Name
-				args := []string{"tata", rule.Name, direction(rule)}
+				args := []string{"tata", rule.Name, getDirection(rule)}
 
 				Convey("When executing the command", func() {
 					params, err := flags.ParseArgs(command, args)

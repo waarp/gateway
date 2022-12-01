@@ -5,16 +5,15 @@ import (
 	"fmt"
 	"net/http/httptest"
 	"net/url"
+	"path"
 	"path/filepath"
 	"sort"
-	"strings"
 	"testing"
 	"time"
 
 	"github.com/jessevdk/go-flags"
 	. "github.com/smartystreets/goconvey/convey"
 
-	"code.waarp.fr/apps/gateway/gateway/pkg/admin/rest"
 	"code.waarp.fr/apps/gateway/gateway/pkg/admin/rest/api"
 	"code.waarp.fr/apps/gateway/gateway/pkg/conf"
 	"code.waarp.fr/apps/gateway/gateway/pkg/database"
@@ -24,65 +23,54 @@ import (
 )
 
 func transferInfoString(t *api.OutTransfer) string {
-	role := roleClient
+	gwRole := roleClient
 	if t.IsServer {
-		role = roleServer
+		gwRole = roleServer
 	}
 
-	size := sizeUnknown
-	if t.Filesize >= 0 {
-		size = fmt.Sprint(t.Filesize)
-	}
-
-	dir := directionRecv
-
+	direction := directionRecv
 	if t.IsSend {
-		dir = directionSend
+		direction = directionSend
 	}
 
-	rv := "● Transfer " + fmt.Sprint(t.ID) + " (" + dir + " as " + role + ") [" +
-		string(t.Status) + "]\n"
-
-	if t.RemoteID != "" {
-		rv += "    Remote ID:       " + t.RemoteID + "\n"
+	stop := NotApplicable
+	if t.Stop != nil {
+		stop = t.Stop.Local().String()
 	}
 
-	rv += "    Rule:            " + t.Rule + "\n" +
-		"    Protocol:        " + t.Protocol + "\n" +
-		"    Requester:       " + t.Requester + "\n" +
-		"    Requested:       " + t.Requested + "\n" +
-		"    Local filepath:  " + t.LocalFilepath + "\n" +
-		"    Remote filepath: " + t.RemoteFilepath + "\n" +
-		"    File size:       " + size + "\n" +
-		"    Start date:      " + t.Start.Local().Format(time.RFC3339Nano) + "\n" +
-		"    Step:            " + t.Step + "\n" +
-		"    Progress:        " + fmt.Sprint(t.Progress) + "\n" +
-		"    Task number:     " + fmt.Sprint(t.TaskNumber) + "\n"
+	builder := newStringBuilder("    ", fmt.Sprintf("● Transfer %d (%s as %s) [%s]",
+		t.ID, direction, gwRole, t.Status))
 
-	if t.ErrorCode != types.TeOk.String() {
-		rv += "    Error code:      " + t.ErrorCode + "\n"
+	builder.addLineFull("Remote ID:        ", t.RemoteID)
+	builder.addLineFull("Protocol:         ", t.Protocol)
+	builder.addLineFull("Rule:             ", t.Rule)
+	builder.addLineFull("Requester:        ", t.Requester)
+	builder.addLineFull("Requested:        ", t.Requested)
+	builder.addLineFull("Local filepath:   ", t.LocalFilepath)
+	builder.addLineFull("Remote filepath:  ", t.RemoteFilepath)
+	builder.addWithDefV("File size:        ", t.Filesize, t.Filesize >= 0, sizeUnknown)
+	builder.addLineFull("Start date:       ", t.Start.Local())
+	builder.addLineFull("End date:         ", stop)
+	builder.addLineCond("Step:             ", t.Step, t.Step != types.StepNone.String())
+	builder.addLineFull("Bytes transferred:", t.Progress)
+	builder.addLineCond("Tasks executed:   ", t.TaskNumber, t.TaskNumber > 0)
+	builder.addLineCond("Error code:       ", t.ErrorCode, t.ErrorCode != types.TeOk.String())
+	builder.addLineCond("Error message:    ", t.ErrorMsg, t.ErrorCode != types.TeOk.String())
+	builder.addTitlCond("Transfer values:", len(t.TransferInfo) > 0)
+
+	info := make([]string, 0, len(t.TransferInfo))
+
+	for key, val := range t.TransferInfo {
+		info = append(info, fmt.Sprint("  - ", key, ": ", val))
 	}
 
-	if t.ErrorMsg != "" {
-		rv += "    Error message:   " + t.ErrorMsg + "\n"
+	sort.Strings(info)
+
+	for i := range info {
+		builder.addJustTitl(info[i])
 	}
 
-	if len(t.TransferInfo) != 0 {
-		rv += "    Transfer info:\n"
-
-		info := make([]string, 0, len(t.TransferInfo))
-
-		for key, val := range t.TransferInfo {
-			info = append(info, fmt.Sprint("      - ", key, ": ", val))
-		}
-
-		sort.Strings(info)
-
-		rv += strings.Join(info, "\n")
-		rv += "\n"
-	}
-
-	return rv
+	return builder.string()
 }
 
 func TestDisplayTransfer(t *testing.T) {
@@ -92,13 +80,16 @@ func TestDisplayTransfer(t *testing.T) {
 		trans := &api.OutTransfer{
 			ID:             1,
 			RemoteID:       "1234",
+			Protocol:       "testProto",
 			Rule:           "rule",
+			IsServer:       false,
 			IsSend:         true,
 			Requester:      "requester",
 			Requested:      "requested",
 			LocalFilepath:  "/local/path",
 			RemoteFilepath: "/remote/path",
-			Start:          time.Now(),
+			Start:          time.Date(2021, 1, 1, 1, 0, 0, 0, time.UTC),
+			Stop:           timePtr(time.Date(2021, 1, 1, 2, 0, 0, 0, time.UTC)),
 			Status:         types.StatusPlanned,
 			Step:           types.StepData.String(),
 			Filesize:       98765,
@@ -106,6 +97,7 @@ func TestDisplayTransfer(t *testing.T) {
 			TaskNumber:     2,
 			ErrorCode:      types.TeForbidden.String(),
 			ErrorMsg:       "custom error message",
+			TransferInfo:   map[string]any{"key1": "val1", "key2": 2, "key3": true},
 		}
 		Convey("When calling the `displayTransfer` function", func() {
 			w := getColorable()
@@ -123,13 +115,16 @@ func TestDisplayTransfer(t *testing.T) {
 		trans := &api.OutTransfer{
 			ID:             1,
 			RemoteID:       "1234",
+			Protocol:       "testProto",
 			Rule:           "rule",
+			IsServer:       true,
 			IsSend:         false,
 			Requester:      "requester",
 			Requested:      "requested",
 			LocalFilepath:  "/local/path",
 			RemoteFilepath: "/remote/path",
-			Start:          time.Now(),
+			Start:          time.Date(2021, 1, 1, 1, 0, 0, 0, time.UTC),
+			Stop:           timePtr(time.Date(2021, 1, 1, 2, 0, 0, 0, time.UTC)),
 			Status:         types.StatusPlanned,
 			Step:           types.StepData.String(),
 			Filesize:       98765,
@@ -139,6 +134,7 @@ func TestDisplayTransfer(t *testing.T) {
 			ErrorMsg:       "custom error message",
 			TransferInfo:   map[string]any{"key1": "val1", "key2": 2, "key3": true},
 		}
+
 		Convey("When calling the `displayTransfer` function", func() {
 			w := getColorable()
 			displayTransfer(w, trans)
@@ -363,8 +359,7 @@ func TestGetTransfer(t *testing.T) {
 						So(command.Execute(params), ShouldBeNil)
 
 						Convey("Then it should display the transfer's info", func() {
-							jsonObj, err := rest.FromTransfer(db, trans)
-							So(err, ShouldBeNil)
+							jsonObj := fromTransfer(db, trans)
 							So(getOutput(), ShouldEqual, transferInfoString(jsonObj))
 						})
 					})
@@ -502,14 +497,10 @@ func TestListTransfer(t *testing.T) {
 				So(db.Insert(trans3).Run(), ShouldBeNil)
 				So(db.Insert(trans4).Run(), ShouldBeNil)
 
-				t1, err := rest.FromTransfer(db, trans1)
-				So(err, ShouldBeNil)
-				t2, err := rest.FromTransfer(db, trans2)
-				So(err, ShouldBeNil)
-				t3, err := rest.FromTransfer(db, trans3)
-				So(err, ShouldBeNil)
-				t4, err := rest.FromTransfer(db, trans4)
-				So(err, ShouldBeNil)
+				t1 := fromTransfer(db, trans1)
+				t2 := fromTransfer(db, trans2)
+				t3 := fromTransfer(db, trans3)
+				t4 := fromTransfer(db, trans4)
 
 				Convey("Given a no filters", func() {
 					args := []string{}
@@ -921,6 +912,106 @@ func TestCancelTransfer(t *testing.T) {
 
 						Convey("Then it should return an error", func() {
 							So(err, ShouldBeError)
+						})
+					})
+				})
+			})
+		})
+	})
+}
+
+func TestRetryTransfer(t *testing.T) {
+	Convey("Testing the transfer 'retry' command", t, func() {
+		out = testFile()
+		command := &TransferRetry{}
+
+		Convey("Given a database", func(c C) {
+			db := database.TestDatabase(c)
+			gw := httptest.NewServer(testHandler(db))
+			var err error
+			addr, err = url.Parse("http://admin:admin_password@" + gw.Listener.Addr().String())
+			So(err, ShouldBeNil)
+
+			Convey("Given a failed history entry", func() {
+				part := &model.RemoteAgent{
+					Name:        "partner",
+					Protocol:    testProto1,
+					ProtoConfig: json.RawMessage(`{}`),
+					Address:     "localhost:1",
+				}
+				So(db.Insert(part).Run(), ShouldBeNil)
+
+				acc := &model.RemoteAccount{
+					Login:         "login",
+					Password:      "password",
+					RemoteAgentID: part.ID,
+				}
+				So(db.Insert(acc).Run(), ShouldBeNil)
+
+				r := &model.Rule{
+					Name:   "rule",
+					IsSend: true,
+					Path:   "path",
+				}
+				So(db.Insert(r).Run(), ShouldBeNil)
+
+				hist := &model.HistoryEntry{
+					ID:               1,
+					RemoteTransferID: "1234",
+					IsServer:         false,
+					IsSend:           r.IsSend,
+					Rule:             r.Name,
+					Account:          acc.Login,
+					Agent:            part.Name,
+					Protocol:         part.Protocol,
+					LocalPath:        "/local/path.loc",
+					RemotePath:       "/remote/path.rem",
+					Start:            time.Date(2021, 1, 1, 1, 0, 0, 0, time.Local),
+					Stop:             time.Date(2021, 1, 1, 2, 0, 0, 0, time.Local),
+					Status:           types.StatusCancelled,
+				}
+				So(db.Insert(hist).Run(), ShouldBeNil)
+				id := fmt.Sprint(hist.ID)
+
+				Convey("Given a valid history entry ID and date", func() {
+					date := time.Date(2030, 1, 1, 1, 0, 0, 123000, time.UTC)
+					args := []string{id, "-d", date.Format(time.RFC3339Nano)}
+
+					Convey("When executing the command", func() {
+						params, err := flags.ParseArgs(command, args)
+						So(err, ShouldBeNil)
+						So(command.Execute(params), ShouldBeNil)
+
+						Convey("Then is should display a message saying the transfer was restarted", func() {
+							So(getOutput(), ShouldEqual, "The transfer will be "+
+								"retried under the ID: 1\n")
+						})
+
+						Convey("Then the transfer should have been added", func() {
+							var trans model.Transfers
+							So(db.Select(&trans).Run(), ShouldBeNil)
+							So(trans, ShouldHaveLength, 1)
+
+							So(trans[0].RuleID, ShouldEqual, r.ID)
+							So(trans[0].RemoteAccountID.Int64, ShouldEqual, acc.ID)
+							So(trans[0].LocalPath, ShouldEqual, path.Base(hist.LocalPath))
+							So(trans[0].RemotePath, ShouldEqual, path.Base(hist.RemotePath))
+							So(trans[0].Start, ShouldHappenWithin, time.Duration(0), date)
+							So(trans[0].Status, ShouldEqual, types.StatusPlanned)
+						})
+					})
+				})
+
+				Convey("Given an invalid entry ID", func() {
+					args := []string{"1000"}
+
+					Convey("When executing the command", func() {
+						params, err := flags.ParseArgs(command, args)
+						So(err, ShouldBeNil)
+						err = command.Execute(params)
+
+						Convey("Then it should return an error", func() {
+							So(err, ShouldBeError, "transfer 1000 not found")
 						})
 					})
 				})

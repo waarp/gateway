@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"crypto/x509"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"math"
 	"math/big"
@@ -15,6 +16,8 @@ import (
 	"code.waarp.fr/apps/gateway/gateway/pkg/database"
 	"code.waarp.fr/apps/gateway/gateway/pkg/tk/utils"
 )
+
+var errWriteOnView = errors.New("cannot insert/update on a view")
 
 // getCryptos fetch from the database then return the associated Cryptos if they exist.
 func getCryptos(db database.ReadAccess, owner CryptoOwner) (Cryptos, error) {
@@ -97,9 +100,17 @@ func (c *Cryptos) checkAuthent(name string, certs []*x509.Certificate,
 	return nil
 }
 
-func getTransferInfo(db database.ReadAccess, id int64) (map[string]interface{}, database.Error) {
+func getTransferInfo(db database.ReadAccess, id int64, isTransfer bool) (map[string]interface{}, database.Error) {
 	var infoList TransferInfoList
-	if err := db.Select(&infoList).Where("transfer_id=?", id).Run(); err != nil {
+
+	query := db.Select(&infoList)
+	if isTransfer {
+		query.Where("transfer_id=?", id)
+	} else {
+		query.Where("history_id=?", id)
+	}
+
+	if err := query.Run(); err != nil {
 		return nil, err
 	}
 

@@ -3,6 +3,7 @@ package rest
 import (
 	"encoding/json"
 	"fmt"
+	"io"
 	"net/http"
 	"net/http/httptest"
 	"net/url"
@@ -291,8 +292,7 @@ func TestGetTransfer(t *testing.T) {
 
 					Convey("Then the body should contain the requested transfer "+
 						"in JSON format", func() {
-						jsonObj, err := FromTransfer(db, trans)
-						So(err, ShouldBeNil)
+						jsonObj := fromTransfer(db, trans)
 						exp, err := json.Marshal(jsonObj)
 						So(err, ShouldBeNil)
 
@@ -401,12 +401,9 @@ func TestListTransfer(t *testing.T) {
 			t1.Step = types.StepFinalization
 			So(db.Update(t1).Run(), ShouldBeNil)
 
-			trans1, err := FromTransfer(db, t1)
-			So(err, ShouldBeNil)
-			trans2, err := FromTransfer(db, t2)
-			So(err, ShouldBeNil)
-			trans3, err := FromTransfer(db, t3)
-			So(err, ShouldBeNil)
+			trans1 := fromTransfer(db, t1)
+			trans2 := fromTransfer(db, t2)
+			trans3 := fromTransfer(db, t3)
 
 			// add a transfer from another gateway
 			owner := conf.GlobalConfig.GatewayName
@@ -782,6 +779,116 @@ func TestCancelTransfer(t *testing.T) {
 							Progress:         trans.Progress,
 							TaskNumber:       trans.TaskNumber,
 						})
+					})
+				})
+			})
+		})
+	})
+}
+
+func TestRestartTransfer(t *testing.T) {
+	Convey("Testing the transfer restart handler", t, func(c C) {
+		logger := testhelpers.TestLogger(c, "rest_history_restart_test")
+		db := database.TestDatabase(c)
+		handler := retryTransfer(logger, db)
+		w := httptest.NewRecorder()
+
+		Convey("Given a database with 1 transfer history", func() {
+			partner := &model.RemoteAgent{
+				Name:     "partner",
+				Protocol: testProto1,
+				Address:  "localhost:2022",
+			}
+			So(db.Insert(partner).Run(), ShouldBeNil)
+
+			account := &model.RemoteAccount{
+				RemoteAgentID: partner.ID,
+				Login:         "toto",
+				Password:      "titi",
+			}
+			So(db.Insert(account).Run(), ShouldBeNil)
+
+			rule := model.Rule{Name: "rule", IsSend: true, Path: "path"}
+			So(db.Insert(&rule).Run(), ShouldBeNil)
+
+			h := &model.HistoryEntry{
+				ID:               2,
+				RemoteTransferID: "1234",
+				IsServer:         false,
+				IsSend:           rule.IsSend,
+				Rule:             rule.Name,
+				Account:          account.Login,
+				Agent:            partner.Name,
+				Protocol:         testProto1,
+				LocalPath:        "/local/file.test",
+				RemotePath:       "/remote/file.test",
+				Start:            time.Date(2019, 1, 1, 0, 0, 0, 0, time.Local),
+				Stop:             time.Date(2019, 1, 1, 1, 0, 0, 0, time.Local),
+				Status:           types.StatusCancelled,
+			}
+			So(db.Insert(h).Run(), ShouldBeNil)
+
+			id := fmt.Sprint(h.ID)
+
+			Convey("Given a request with the valid transfer history ID parameter", func() {
+				dateStr := url.QueryEscape(h.Start.Format(time.RFC3339Nano))
+
+				uri := fmt.Sprintf("%s/%s/restart?date=%s", historyURI, id, dateStr)
+				req, err := http.NewRequest(http.MethodPut, uri, nil)
+				So(err, ShouldBeNil)
+				req = mux.SetURLVars(req, map[string]string{"transfer": id})
+
+				Convey("When sending the request to the handler", func() {
+					handler.ServeHTTP(w, req)
+					res := w.Result() //nolint:bodyclose // body is closed the line after !?
+					defer res.Body.Close()
+
+					Convey("Then it should reply 'CREATED'", func() {
+						So(res.StatusCode, ShouldEqual, http.StatusCreated)
+					})
+
+					Convey("Then the response body should be empty", func() {
+						body, err := io.ReadAll(res.Body)
+						So(err, ShouldBeNil)
+						So(string(body), ShouldBeBlank)
+					})
+
+					Convey("Then the 'Location' header should contain the URI "+
+						"of the new transfer", func() {
+						loc, err := res.Location()
+						So(err, ShouldBeNil)
+						So(loc.String(), ShouldStartWith, transferURI)
+					})
+
+					Convey("Then the transfer should have been reprogrammed", func() {
+						var transfers model.Transfers
+						So(db.Select(&transfers).Run(), ShouldBeNil)
+						So(transfers, ShouldNotBeEmpty)
+
+						So(transfers[0].ID, ShouldEqual, 1)
+						So(transfers[0].RemoteTransferID, ShouldNotEqual, h.RemoteTransferID)
+						So(transfers[0].RuleID, ShouldEqual, rule.ID)
+						So(transfers[0].RemoteAccountID.Int64, ShouldEqual, account.ID)
+						So(transfers[0].LocalPath, ShouldEqual, path.Base(h.LocalPath))
+						So(transfers[0].RemotePath, ShouldEqual, path.Base(h.RemotePath))
+						So(transfers[0].Start, ShouldEqual, h.Start)
+						So(transfers[0].Status, ShouldEqual, types.StatusPlanned)
+						So(transfers[0].Owner, ShouldEqual, h.Owner)
+					})
+				})
+			})
+
+			Convey("Given a request with a non-existing transfer history ID parameter", func() {
+				uri := path.Join(historyURI, "1000")
+				r, err := http.NewRequest(http.MethodGet, uri, nil)
+				So(err, ShouldBeNil)
+				r = mux.SetURLVars(r, map[string]string{"history": "1000"})
+
+				Convey("When sending the request to the handler", func() {
+					handler.ServeHTTP(w, r)
+
+					Convey("Then it should reply with a 'Not Found' error", func() {
+						So(w.Code, ShouldEqual, http.StatusNotFound)
 					})
 				})
 			})

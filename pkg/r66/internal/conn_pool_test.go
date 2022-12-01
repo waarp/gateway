@@ -62,7 +62,7 @@ func TestConnPool(t *testing.T) {
 				So(pool.Exists(addr), ShouldBeTrue)
 
 				pool.Done(addr)
-				time.Sleep(pool.connGracePeriod * 10)
+				time.Sleep(pool.connGracePeriod * 100)
 
 				Convey("Then it should have closed the connection", func() {
 					So(pool.Exists(addr), ShouldBeFalse)

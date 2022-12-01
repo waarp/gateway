@@ -18,25 +18,21 @@ import (
 //nolint:funlen //splitting would add complexity
 func displayHistory(w io.Writer, hist *api.OutHistory) {
 	role := roleClient
-
 	if hist.IsServer {
 		role = roleServer
 	}
 
 	way := directionRecv
-
 	if hist.IsSend {
 		way = directionSend
 	}
 
 	size := sizeUnknown
-
 	if hist.Filesize >= 0 {
 		size = fmt.Sprint(hist.Filesize)
 	}
 
-	stop := "N/A"
-
+	stop := NotApplicable
 	if hist.Stop != nil {
 		stop = hist.Stop.Local().Format(time.RFC3339Nano)
 	}
@@ -217,6 +213,7 @@ type HistoryRetry struct {
 	Date string `short:"d" long:"date" description:"Set the date at which the transfer should restart. Date must be in RFC3339 format."`
 }
 
+//nolint:dupl //must be kept separate for retro-compatibility
 func (h *HistoryRetry) Execute([]string) error {
 	addr.Path = fmt.Sprintf("/api/history/%d/retry", h.Args.ID)
 

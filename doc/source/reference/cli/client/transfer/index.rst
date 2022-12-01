@@ -13,3 +13,4 @@ Gestion des transfers
    pause
    resume
    cancel
+   retry

@@ -43,4 +43,5 @@ func testMigrations(eng *testEngine, dbType string) {
 	testVer0_7_0RevampCryptoTable(eng)
 	testVer0_7_0RevampRuleAccessTable(eng)
 	testVer0_7_0AddLocalAgentsAddressUnique(eng)
+	testVer0_7_0AddNormalizedTransfersView(eng)
 }

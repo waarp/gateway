@@ -2,12 +2,12 @@
 Retenter un transfer
 ====================
 
-.. program:: waarp-gateway history retry
+.. program:: waarp-gateway transfer retry
 
-.. describe:: waarp-gateway history retry <TRANS>
+.. describe:: waarp-gateway transfer retry <TRANS>
 
 Retente le transfert demandé. L'ID du transfert doit être fournit en
-argument de commande. Seuls les transferts ayant échoué peuvent être retentés.
+argument de commande. Seuls les transferts ayant terminé peuvent être retentés.
 
 .. option:: -d <DATE>, --date=<DATE>
 
@@ -22,4 +22,4 @@ argument de commande. Seuls les transferts ayant échoué peuvent être retenté
 
 .. code-block:: shell
 
-   waarp-gateway -a 'http://user:password@localhost:8080' history restart 1234
+   waarp-gateway http://user:password@localhost:8080 transfer restart 1234 -d 2021-01-01T01:00:00+02:00

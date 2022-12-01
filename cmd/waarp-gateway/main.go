@@ -110,13 +110,14 @@ type commands struct {
 		Pau  wg.TransferPause  `command:"pause" description:"Pause a running transfer"`
 		Res  wg.TransferResume `command:"resume" description:"Resume a paused transfer"`
 		Can  wg.TransferCancel `command:"cancel" description:"Cancel a transfer"`
+		Ret  wg.TransferRetry  `command:"retry" description:"Reprogram a canceled transfer"`
 	} `command:"transfer" description:"Manage the running transfers"`
 
 	History struct {
 		Get  wg.HistoryGet   `command:"get" description:"Consult a finished transfer"`
 		List wg.HistoryList  `command:"list" description:"List the finished transfers"`
 		Ret  wg.HistoryRetry `command:"retry" description:"Reprogram a canceled transfer"`
-	} `command:"history" description:"Manage the transfer history"`
+	} `command:"history" description:"Manage the transfer history [DEPRECATED: merged with the 'transfer' command] "`
 
 	User struct {
 		Add  wg.UserAdd    `command:"add" description:"Add a new user"`

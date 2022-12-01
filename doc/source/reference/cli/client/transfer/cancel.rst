@@ -6,8 +6,7 @@ Annuler un transfert
 
 .. describe:: waarp-gateway transfer cancel <TRANSFER_ID>
 
-Annule le transfert donné. Une fois annulé, le transfert est déplacé dans
-l'historique.
+Annule le transfert donné. Un transfert annulé est considéré comme terminé.
 
 |
 

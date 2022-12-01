@@ -4,9 +4,7 @@
 Gestion des transferts
 ######################
 
-Le point d'accès pour gérer les transferts en cours est ``/api/transfers``.
-
-Pour les transferts terminés, voir :ref:`REST_history`.
+Le point d'accès pour gérer tous les transferts en cours et terminés est ``/api/transfers``.
 
 .. toctree::
    :maxdepth: 1
@@ -17,3 +15,4 @@ Pour les transferts terminés, voir :ref:`REST_history`.
    pause
    resume
    cancel
+   retry

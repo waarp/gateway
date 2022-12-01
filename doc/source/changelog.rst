@@ -3,6 +3,12 @@
 Historique des versions
 =======================
 
+* :feature:`286` Unifications des *handlers* REST pour les transferts et pour
+  l'historique. Tous les transferts (qu'ils soient terminés ou non) sont désormais
+  accessibles via le *handler* de transferts. En conséquence, le *handler*
+  d'historique est dorénavant déprécié. De même, la commande ``history`` du CLI
+  a également été dépréciée, ses fonctions étant désormais assurées par la
+  commande ``transfer``.
 * :bug:`350` Correction d'une erreur du client R66 causant la réutilisation par
   celui-ci d'anciennes connexions déjà fermées en place et lieu de l'ouverture
   de nouvelles connexions, causant par conséquent l'échec du transfert.

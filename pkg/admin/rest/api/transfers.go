@@ -40,6 +40,7 @@ type OutTransfer struct {
 	RemoteFilepath string               `json:"remoteFilepath"`
 	Filesize       int64                `json:"filesize"`
 	Start          time.Time            `json:"start"`
+	Stop           *time.Time           `json:"stop,omitempty"`
 	Status         types.TransferStatus `json:"status"`
 	Step           string               `json:"step,omitempty"`
 	Progress       int64                `json:"progress,omitempty"`
