@@ -12,6 +12,7 @@ import (
 	"code.waarp.fr/apps/gateway/gateway/pkg/backup/file"
 	"code.waarp.fr/apps/gateway/gateway/pkg/conf"
 	"code.waarp.fr/apps/gateway/gateway/pkg/database"
+	"code.waarp.fr/apps/gateway/gateway/pkg/model"
 	"code.waarp.fr/apps/gateway/gateway/pkg/tk/utils"
 )
 
@@ -77,6 +78,55 @@ func ImportData(db *database.DB, r io.Reader, targets []string, dry, reset bool)
 		}
 
 		return fmt.Errorf("cannot import file: %w", transErr)
+	}
+
+	return nil
+}
+
+func ImportHistory(db *database.DB, r io.Reader, dry bool) error {
+	tErr := db.Transaction(func(ses *database.Session) database.Error {
+		if err := ses.DeleteAll(&model.HistoryEntry{}).Run(); err != nil {
+			return err
+		}
+
+		if err := ses.DeleteAll(&model.Transfer{}).Run(); err != nil {
+			return err
+		}
+
+		maxID, impErr := importHistory(ses, r)
+		if impErr != nil {
+			var dbErr database.Error
+			if errors.As(impErr, &dbErr) {
+				return dbErr
+			}
+
+			return database.NewInternalError(impErr)
+		}
+
+		// We advance the transfer ID auto-increment to the highest value imported
+		// to avoid ID conflicts with new future transfers.
+		// We don't advance the auto-increment when doing a dry run because it's
+		// useless, and it causes problems with MySQL because it auto-commits the
+		// transaction.
+		if !dry {
+			if err := ses.AdvanceIncrement(&model.Transfer{}, maxID); err != nil {
+				return err
+			}
+		}
+
+		if dry {
+			return errDry
+		}
+
+		return nil
+	})
+
+	if tErr != nil {
+		if dry && errors.Is(tErr, errDry) {
+			return nil
+		}
+
+		return fmt.Errorf("cannot import file: %w", tErr)
 	}
 
 	return nil

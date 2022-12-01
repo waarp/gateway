@@ -2,14 +2,19 @@
 // object used in backup files.
 package file
 
-import "encoding/json"
+import (
+	"encoding/json"
+	"time"
+
+	"code.waarp.fr/apps/gateway/gateway/pkg/model/types"
+)
 
 // Data is the top-level structure of the dump file.
 type Data struct {
-	Locals  []LocalAgent  `json:"locals"`
-	Remotes []RemoteAgent `json:"remotes"`
-	Rules   []Rule        `json:"rules"`
-	Users   []User        `json:"users"`
+	Locals  []LocalAgent  `json:"locals,omitempty"`
+	Remotes []RemoteAgent `json:"remotes,omitempty"`
+	Rules   []Rule        `json:"rules,omitempty"`
+	Users   []User        `json:"users,omitempty"`
 }
 
 // LocalAgent is the JSON struct representing a local server along with its
@@ -109,4 +114,28 @@ type Permissions struct {
 	Partners  string `json:"partners"`
 	Rules     string `json:"rules"`
 	Users     string `json:"users"`
+}
+
+// Transfer is the JSON struct representing a transfer history entry.
+type Transfer struct {
+	ID             int64                   `json:"id"`
+	RemoteID       string                  `json:"remoteId,omitempty"`
+	Rule           string                  `json:"rule"`
+	IsSend         bool                    `json:"isSend"`
+	IsServer       bool                    `json:"isServer"`
+	Requester      string                  `json:"requester"`
+	Requested      string                  `json:"requested"`
+	Protocol       string                  `json:"protocol"`
+	LocalFilepath  string                  `json:"localFilepath"`
+	RemoteFilepath string                  `json:"remoteFilepath"`
+	Filesize       int64                   `json:"filesize"`
+	Start          time.Time               `json:"start"`
+	Stop           time.Time               `json:"stop,omitempty"`
+	Status         types.TransferStatus    `json:"status"`
+	Step           types.TransferStep      `json:"step,omitempty"`
+	Progress       int64                   `json:"progress,omitempty"`
+	TaskNumber     int8                    `json:"taskNumber,omitempty"`
+	ErrorCode      types.TransferErrorCode `json:"errorCode,omitempty"`
+	ErrorMsg       string                  `json:"errorMsg,omitempty"`
+	TransferInfo   map[string]any          `json:"transferInfo,omitempty"`
 }

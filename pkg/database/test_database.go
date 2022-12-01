@@ -35,7 +35,7 @@ func memDBInfo() *dbInfo {
 	values.Set("cache", "shared")
 	values.Add("_pragma", "busy_timeout(5000)")
 	values.Add("_pragma", "foreign_keys(ON)")
-	values.Add("_pragma", "journal_mode(OFF)")
+	values.Add("_pragma", "journal_mode(MEMORY)")
 	values.Add("_pragma", "synchronous(OFF)")
 
 	return &dbInfo{

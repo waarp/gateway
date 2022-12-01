@@ -6,6 +6,7 @@ import (
 	"os"
 	"path/filepath"
 	"testing"
+	"time"
 
 	. "github.com/smartystreets/goconvey/convey"
 
@@ -175,7 +176,7 @@ func testIterate(db *DB) {
 			&bean3, &bean4, &bean5)
 		So(err, ShouldBeNil)
 
-		Convey("As a standalone query", func() {
+		Convey("As a Standalone query", func() {
 			runTests(db)
 		})
 
@@ -290,7 +291,7 @@ func testSelect(db *DB) {
 			&bean3, &bean4, &bean5)
 		So(err, ShouldBeNil)
 
-		Convey("As a standalone query", func() {
+		Convey("As a Standalone query", func() {
 			runTests(db)
 		})
 
@@ -349,7 +350,7 @@ func testInsert(db *DB) {
 		_, err := db.engine.InsertOne(&existing)
 		So(err, ShouldBeNil)
 
-		Convey("As a standalone query", func() {
+		Convey("As a Standalone query", func() {
 			runTests(db)
 		})
 
@@ -391,7 +392,7 @@ func testGet(db *DB) {
 		_, err := db.engine.Insert(&toGet, &other)
 		So(err, ShouldBeNil)
 
-		Convey("As a standalone query", func() {
+		Convey("As a Standalone query", func() {
 			runTests(db)
 		})
 
@@ -461,7 +462,7 @@ func testUpdate(db *DB) {
 		_, err := db.engine.Insert(&toUpdate, &other)
 		So(err, ShouldBeNil)
 
-		Convey("As a standalone query", func() {
+		Convey("As a Standalone query", func() {
 			runTests(db)
 		})
 
@@ -535,7 +536,7 @@ func testDelete(db *DB) {
 		_, err := db.engine.Insert(&toDelete1, &toDelete2, &toDeleteFail)
 		So(err, ShouldBeNil)
 
-		Convey("As a standalone query", func() {
+		Convey("As a Standalone query", func() {
 			runTests(db)
 		})
 
@@ -571,7 +572,7 @@ func testDeleteAll(db *DB) {
 		_, err := db.engine.Insert(&toDelete1, &toDelete2, &toDelete3, &toDelete4)
 		So(err, ShouldBeNil)
 
-		Convey("As a standalone query", func() {
+		Convey("As a Standalone query", func() {
 			runTests(db)
 		})
 
@@ -740,7 +741,14 @@ func TestDatabaseStartWithNoPassPhraseFile(t *testing.T) {
 
 		Convey("When the database service is started", func() {
 			So(db.Start(), ShouldBeNil)
-			Reset(func() { _ = os.Remove(conf.GlobalConfig.Database.AESPassphrase) })
+			Reset(func() {
+				ctx, cancel := context.WithTimeout(context.Background(), time.Second)
+				defer cancel()
+
+				So(db.Stop(ctx), ShouldBeNil)
+				So(os.Remove(conf.GlobalConfig.Database.Address), ShouldBeNil)
+				So(os.Remove(conf.GlobalConfig.Database.AESPassphrase), ShouldBeNil)
+			})
 
 			Convey("Then there is a new passphrase file", func() {
 				stats, err := os.Stat(conf.GlobalConfig.Database.AESPassphrase)
@@ -765,8 +773,10 @@ func TestDatabaseStartVersionMismatch(t *testing.T) {
 	Convey("Given a test database", t, func() {
 		db := &DB{}
 		So(db.Start(), ShouldBeNil)
-		defer os.Remove(conf.GlobalConfig.Database.Address)
-		defer os.Remove(conf.GlobalConfig.Database.AESPassphrase)
+		Reset(func() {
+			_ = os.Remove(conf.GlobalConfig.Database.Address)
+			_ = os.Remove(conf.GlobalConfig.Database.AESPassphrase)
+		})
 
 		Convey("Given that the database version does not match the program", func() {
 			ver := &version{Current: "0.0.0"}

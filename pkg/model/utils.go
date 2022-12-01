@@ -100,17 +100,10 @@ func (c *Cryptos) checkAuthent(name string, certs []*x509.Certificate,
 	return nil
 }
 
-func getTransferInfo(db database.ReadAccess, id int64, isTransfer bool) (map[string]interface{}, database.Error) {
+func getTransferInfo(db database.ReadAccess, owner transferInfoOwner,
+) (map[string]any, database.Error) {
 	var infoList TransferInfoList
-
-	query := db.Select(&infoList)
-	if isTransfer {
-		query.Where("transfer_id=?", id)
-	} else {
-		query.Where("history_id=?", id)
-	}
-
-	if err := query.Run(); err != nil {
+	if err := db.Select(&infoList).Where(owner.getTransInfoCondition()).Run(); err != nil {
 		return nil, err
 	}
 
@@ -128,39 +121,44 @@ func getTransferInfo(db database.ReadAccess, id int64, isTransfer bool) (map[str
 	return infoMap, nil
 }
 
-// SetTransferInfo replaces all the TransferInfo in the database of the given
-// transfer by those given in the map parameter.
-func setTransferInfo(db *database.DB, info map[string]interface{}, transID int64,
-	isHistory bool,
+func setTransferInfo(access database.Access, owner transferInfoOwner,
+	info map[string]any,
 ) database.Error {
-	return db.Transaction(func(ses *database.Session) database.Error {
-		if err := ses.DeleteAll(&TransferInfo{}).Where("transfer_id=?", transID).Run(); err != nil {
+	switch db := access.(type) {
+	case *database.DB:
+		return db.Transaction(func(ses *database.Session) database.Error {
+			return doSetTransferInfo(ses, owner, info)
+		})
+	case *database.Session:
+		return doSetTransferInfo(db, owner, info)
+	default:
+		panic(fmt.Sprintf("unknown database access type %T", access))
+	}
+}
+
+func doSetTransferInfo(ses *database.Session, owner transferInfoOwner,
+	info map[string]any,
+) database.Error {
+	if err := ses.DeleteAll(&TransferInfo{}).Where(owner.getTransInfoCondition()).
+		Run(); err != nil {
+		return err
+	}
+
+	for name, val := range info {
+		str, err := json.Marshal(val)
+		if err != nil {
+			return database.NewValidationError("invalid transfer info value '%v': %s", val, err)
+		}
+
+		i := &TransferInfo{Name: name, Value: string(str)}
+		owner.setTransInfoOwner(i)
+
+		if err := ses.Insert(i).Run(); err != nil {
 			return err
 		}
-		for name, val := range info {
-			str, err := json.Marshal(val)
-			if err != nil {
-				return database.NewValidationError("invalid transfer info value '%v': %s", val, err)
-			}
+	}
 
-			i := &TransferInfo{
-				Name:  name,
-				Value: string(str),
-			}
-
-			if isHistory {
-				i.HistoryID = utils.NewNullInt64(transID)
-			} else {
-				i.TransferID = utils.NewNullInt64(transID)
-			}
-
-			if err := ses.Insert(i).Run(); err != nil {
-				return err
-			}
-		}
-
-		return nil
-	})
+	return nil
 }
 
 func makeIDGenerator() (*snowflake.Node, error) {

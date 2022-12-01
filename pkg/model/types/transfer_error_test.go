@@ -24,7 +24,7 @@ func TestTransferErrorCode(t *testing.T) {
 			So(err, ShouldBeNil)
 
 			Convey("Then its value is a string representation", func() {
-				So(ec, ShouldEqual, TeOk)
+				So(ec, ShouldEqual, TeUnknown)
 			})
 		})
 	})
@@ -49,13 +49,13 @@ func TestTransferErrorCode(t *testing.T) {
 			So(v, ShouldResemble, []byte(`"TeOk"`))
 		})
 
-		Convey("Unmarshaling from JSON should have no effect", func() {
+		Convey("Unmarshaling from JSON should return the corresponding value", func() {
 			var ec TransferErrorCode
 
 			err := json.Unmarshal([]byte(`"TeUnknown"`), &ec)
 			So(err, ShouldBeNil)
 
-			So(ec, ShouldEqual, TeOk)
+			So(ec, ShouldEqual, TeUnknown)
 		})
 	})
 	Convey("Testing database serialization/deserialization", t, func() {

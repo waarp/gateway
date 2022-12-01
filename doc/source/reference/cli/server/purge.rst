@@ -61,6 +61,13 @@ Cette commande accepte les options suivantes :
    .. warning:: Cette option ne peut être utilisée que si la table des transferts
       en cours est vide. Dans le cas contraire, la commande échouera.
 
+.. option:: --export-to, -e
+
+   Cette option permet de fournir le chemin d'un fichier dans lequel les transferts
+   purgés seront sauvegardés. Cette option permet donc de générer un *dump* des
+   transferts purgés. Ce dump peut ensuite être restauré via la commande
+   :ref:`reference-cmd-waarp-gatewayd-restore-history` si nécessaire.
+
 .. option:: --verbose, -v
 
    Active l'écriture des logs sur la sortie d'erreur.

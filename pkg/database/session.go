@@ -1,6 +1,7 @@
 package database
 
 import (
+	"database/sql"
 	"fmt"
 
 	"code.waarp.fr/lib/log"
@@ -158,6 +159,65 @@ func (s *Session) ResetIncrement(bean IterateBean) Error {
 
 	if err != nil {
 		s.logger.Error("Failed to reset the auto-increment on table '%s': %s",
+			bean.TableName(), err)
+
+		return NewInternalError(err)
+	}
+
+	return nil
+}
+
+// AdvanceIncrement advances the auto-increment on the given model's ID primary
+// key to the given value.
+func (s *Session) AdvanceIncrement(bean Table, value int64) Error {
+	var maxID sql.NullInt64
+
+	row := s.session.Tx().QueryRow("SELECT MAX(id) AS maxID FROM " + bean.TableName())
+
+	if err := row.Scan(&maxID); err != nil {
+		s.logger.Error("Failed to query table '%s': %s", bean.TableName(), err)
+
+		return NewInternalError(err)
+	}
+
+	if maxID.Valid && maxID.Int64 > value {
+		return NewValidationError("cannot advance the auto-increment of table "+
+			bean.TableName()+" to a value (%d) lower than the current max value "+
+			"(%d) of the column", value, maxID)
+	}
+
+	var err error
+
+	switch dbType := s.session.Engine().Dialect().URI().DBType; dbType {
+	case schemas.SQLITE:
+		if _, delErr := s.session.Exec("DELETE FROM sqlite_sequence WHERE name=?",
+			bean.TableName()); delErr != nil {
+			s.logger.Error("Failed to delete the SQLite auto-increment on table %q: %v",
+				bean.TableName(), err)
+
+			return NewInternalError(err)
+		}
+
+		_, err = s.session.Exec("INSERT INTO sqlite_sequence(seq,name) VALUES (?,?)",
+			value, bean.TableName())
+	case schemas.POSTGRES:
+		_, err = s.session.Exec("SELECT setval(pg_get_serial_sequence(?, 'id'), ?)",
+			bean.TableName(), value)
+	case schemas.MYSQL:
+		_, err = s.session.Exec("ALTER TABLE " + bean.TableName() + " AUTO_INCREMENT = " +
+			fmt.Sprint(value+1))
+	default:
+		s.logger.Error("%s databases do not support resetting an auto-increment",
+			conf.GlobalConfig.Database.Type)
+
+		return &InternalError{
+			msg:   fmt.Sprintf("unsupported database: %s", dbType),
+			cause: errUnsupportedDB,
+		}
+	}
+
+	if err != nil {
+		s.logger.Error("Failed to advance the auto-increment on table %q: %v",
 			bean.TableName(), err)
 
 		return NewInternalError(err)
