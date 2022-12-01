@@ -82,8 +82,8 @@ func TestExportHistory(t *testing.T) {
     "localFilepath": "/path/local/1",
     "remoteFilepath": "/path/remote/1",
     "filesize": 1234,
-    "start": "2021-01-01T01:00:00.123456+01:00",
-    "stop": "2021-01-01T02:00:00.123456+01:00",
+    "start": "`+hist1.Start.Local().Format(time.RFC3339Nano)+`",
+    "stop": "`+hist1.Stop.Local().Format(time.RFC3339Nano)+`",
     "status": "DONE",
     "progress": 321,
     "taskNumber": 10,
@@ -103,8 +103,8 @@ func TestExportHistory(t *testing.T) {
     "localFilepath": "/path/local/2",
     "remoteFilepath": "/path/remote/2",
     "filesize": 5678,
-    "start": "2022-01-01T01:00:00.123456+01:00",
-    "stop": "2022-01-01T02:00:00.123456+01:00",
+    "start": "`+hist2.Start.Local().Format(time.RFC3339Nano)+`",
+    "stop": "`+hist2.Stop.Local().Format(time.RFC3339Nano)+`",
     "status": "CANCELLED",
     "step": "StepData",
     "progress": 987,
@@ -127,7 +127,7 @@ func TestExportHistory(t *testing.T) {
 
 		Convey("When exporting the history with a time", func() {
 			buf := &bytes.Buffer{}
-			So(ExportHistory(db, buf, time.Date(2021, 6, 1, 0, 0, 0, 0, time.Local)), ShouldBeNil)
+			So(ExportHistory(db, buf, time.Date(2021, 6, 1, 0, 0, 0, 0, time.UTC)), ShouldBeNil)
 
 			Convey("Then it should have written the JSON to the output", func() {
 				So(buf.String(), ShouldEqual, `[
@@ -143,8 +143,8 @@ func TestExportHistory(t *testing.T) {
     "localFilepath": "/path/local/1",
     "remoteFilepath": "/path/remote/1",
     "filesize": 1234,
-    "start": "2021-01-01T01:00:00.123456+01:00",
-    "stop": "2021-01-01T02:00:00.123456+01:00",
+    "start": "`+hist1.Start.Local().Format(time.RFC3339Nano)+`",
+    "stop": "`+hist1.Stop.Local().Format(time.RFC3339Nano)+`",
     "status": "DONE",
     "progress": 321,
     "taskNumber": 10,
