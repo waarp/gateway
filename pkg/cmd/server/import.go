@@ -63,7 +63,7 @@ func initImportExport(configFile string, verbose []bool) (*database.DB, *log.Log
 //nolint:lll // tags can be long for flags
 type ImportCommand struct {
 	ConfigFile string   `short:"c" long:"config" description:"The configuration file to use."`
-	File       string   `short:"s" long:"source" description:"The data file to import.. If none is given, the content will be read from the standard output."`
+	File       string   `short:"s" long:"source" description:"The data file to import. If none is given, the content will be read from the standard output."`
 	Target     []string `short:"t" long:"target" default:"all" choice:"rules" choice:"servers" choice:"partners" choice:"all" description:"Limit the import to a subset of data. Can be repeated to import multiple subsets."`
 	Dry        bool     `short:"d" long:"dry-run" description:"Do not make any changes, but simulate the import of the file."`
 	Verbose    []bool   `short:"v" long:"verbose" description:"Show verbose debug information. Can be repeated to increase verbosity."`
@@ -135,7 +135,7 @@ func (i *ImportCommand) Run(db *database.DB, logger *log.Logger) error {
 //nolint:lll // tags can be long for flags
 type RestoreHistCommand struct {
 	ConfigFile string `short:"c" long:"config" description:"The configuration file to use"`
-	File       string `short:"s" long:"source" description:"The data file to import. If none is given, the content will be read from the standard output"`
+	File       string `short:"s" long:"source" required:"yes" description:"The data file to import."`
 	Dry        bool   `short:"d" long:"dry-run" description:"Do not make any changes, but simulate the import of the file"`
 	Verbose    []bool `short:"v" long:"verbose" description:"Show verbose debug information. Can be repeated to increase verbosity"`
 }
@@ -164,15 +164,12 @@ func (r *RestoreHistCommand) Execute([]string) error {
 
 	defer func() { _ = db.Stop(context.Background()) }() //nolint:errcheck // cannot handle the error
 
-	f := os.Stdin
-	if r.File != "" {
-		f, err = os.Open(r.File)
-		if err != nil {
-			return fmt.Errorf("failed to open file: %w", err)
-		}
-
-		defer func() { _ = f.Close() }() //nolint:errcheck,gosec // Close() must be deferred
+	f, err := os.Open(r.File)
+	if err != nil {
+		return fmt.Errorf("failed to open file: %w", err)
 	}
+
+	defer func() { _ = f.Close() }() //nolint:errcheck,gosec // Close() must be deferred
 
 	if err := backup.ImportHistory(db, f, r.Dry); err != nil {
 		return fmt.Errorf("error at restore: %w", err)
