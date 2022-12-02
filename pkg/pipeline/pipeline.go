@@ -391,11 +391,7 @@ func (p *Pipeline) errDo(code types.TransferErrorCode, msg, cause string) {
 	fullMsg := fmt.Sprintf("%s: %s", msg, cause)
 
 	p.Logger.Error(fullMsg)
-	p.runner.Stop()
-
-	if p.Stream != nil {
-		p.Stream.stop()
-	}
+	p.stop()
 
 	go func() {
 		p.TransCtx.Transfer.Error = *types.NewTransferError(code, fullMsg)
@@ -430,7 +426,6 @@ func (p *Pipeline) SetError(err *types.TransferError) {
 			p.Logger.Warning("Failed to transition to 'error' state: %v", mErr)
 		}
 
-		p.stop()
 		p.errDo(err.Code, "Error on remote partner", err.Details)
 	})
 }

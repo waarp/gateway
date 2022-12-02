@@ -198,6 +198,8 @@ func initFilestream(ctx *testContext, trans *model.Transfer) *fileStream {
 	So(err, ShouldBeNil)
 	Reset(func() { _ = stream.file.Close() })
 
+	pip.Pip.Stream = stream
+
 	if pip.Pip.TransCtx.Rule.IsSend {
 		So(pip.Pip.machine.Transition(stateReading), ShouldBeNil)
 	} else {

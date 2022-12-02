@@ -1,6 +1,7 @@
 package pipeline
 
 import (
+	"sync"
 	"sync/atomic"
 	"time"
 
@@ -10,7 +11,7 @@ import (
 	"code.waarp.fr/apps/gateway/gateway/pkg/model/types"
 )
 
-const TransferTimeout = 5 * time.Second
+const TransferTimeout = 10 * time.Second
 
 // ErrTestFail is the error returned by the pipeline when TestFailAt is set.
 var ErrTestFail = types.NewTransferError(types.TeInternal, "this is an intended test error")
@@ -33,6 +34,7 @@ const (
 type tester struct {
 	errOn    errOn
 	atOffset int64
+	errOnce  sync.Once
 
 	CliPre, ServPre,
 	CliData, ServData,
@@ -80,6 +82,7 @@ func (t *tester) Retry() {
 
 	t.errOn = noError
 	t.atOffset = 0
+	t.errOnce = sync.Once{}
 
 	t.CliDone = make(chan bool)
 	t.ServDone = make(chan bool)
@@ -91,7 +94,13 @@ func (t *tester) getError(curStage errOn, curOffset int64) *types.TransferError 
 	}
 
 	if curStage == t.errOn && curOffset >= t.atOffset {
-		return ErrTestFail
+		var err *types.TransferError
+
+		t.errOnce.Do(func() {
+			err = ErrTestFail
+		})
+
+		return err
 	}
 
 	if (t.errOn == DataRead && curStage == DataWrite) ||
