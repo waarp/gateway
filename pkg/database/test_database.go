@@ -89,10 +89,10 @@ func initTestDBConf() {
 		config.User = "root"
 		config.Name = "waarp_gateway_test"
 		config.Address = "localhost:3306"
-	case "":
+	case SQLite:
 		config.Type = SQLite
 		config.Address = tempFilename()
-	case TestMemoryDB:
+	case "":
 		supportedRBMS[SQLite] = memDBInfo
 		config.Type = SQLite
 		config.Address = uuid.New().String()

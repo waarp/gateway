@@ -7,37 +7,54 @@ L'objet JSON de configuration du protocole SFTP est identique pour les serveurs
 et les partenaires. Les options disponibles sont les suivantes :
 
 * **keyExchanges** (*array of string*) - *Optionnel* Liste des algorithmes d'échange de clé
-  autorisés sur le serveur. Les algorithmes supportés sont :
+  autorisés sur le serveur. Les algorithmes supportés sont (par ordre de préférence) :
 
-   - ``diffie-hellman-group1-sha1``
-   - ``diffie-hellman-group14-sha1``
-   - ``ecdh-sha2-nistp256``
-   - ``ecdh-sha2-nistp384``
-   - ``ecdh-sha2-nistp521``
-   - ``curve25519-sha256@libssh.org``
+  - ``curve25519-sha256@libssh.org``:
+  - ``ecdh-sha2-nistp256``:
+  - ``ecdh-sha2-nistp384``
+  - ``ecdh-sha2-nistp521``
+  - ``diffie-hellman-group-exchange-sha256`` (*Uniquement supporté par le client*)
+  - ``diffie-hellman-group1-sha1`` [Déprécié]
+  - ``diffie-hellman-group14-sha1`` [Déprécié]
 
-   Par défaut, tous les algorithmes sont autorisés.
+  |
 
 * **ciphers** (*array of string*) - *Optionnel* Liste des algorithmes de cryptage symétrique 
-  de données autorisés sur le serveur. Les algorithmes supportés sont :
+  de données autorisés sur le serveur. Les algorithmes supportés sont (par ordre de
+  préférence) :
 
-   - ``aes128-gcm@openssh.com``
-   - ``aes128-ctr``
-   - ``aes192-ctr``
-   - ``aes256-ctr``
-   - ``chacha20-poly1305@openssh.com``
+  - ``aes128-gcm@openssh.com``
+  - ``chacha20-poly1305@openssh.com``
+  - ``aes128-ctr``
+  - ``aes192-ctr``
+  - ``aes256-ctr``
 
-   Par défaut, tous les algorithmes sont autorisés.
+  |
+
+  Les algorithmes suivants sont également supportés mais ne sont pas activés
+  par défaut :
+
+  - ``arcfour256``
+  - ``arcfour128``
+  - ``arcfour``
+  - ``aes128-cbc``
+  - ``3des-cbc``
+
+  |
 
 * **macs** (*array of string*) -  *Optionnel* Liste des algorithmes d'authentification de message 
-  (MAC) autorisés sur le serveur. Les algorithmes supportés sont :
+  (MAC) autorisés sur le serveur. Les algorithmes supportés sont (par ordre de préférence) :
 
-   - ``hmac-sha2-256-etm@openssh.com``
-   - ``hmac-sha2-256``
-   - ``hmac-sha1``
-   - ``hmac-sha1-96``
+  - ``hmac-sha2-256-etm@openssh.com``
+  - ``hmac-sha2-256``
+  - ``hmac-sha1`` [Déprécié]
+  - ``hmac-sha1-96`` [Déprécié]
 
-   Par défaut, tous les algorithmes sont autorisés.
+  |
+
+  Par défaut, tous les algorithmes sont autorisés.
+
+  |
 
 * **useStat** (*boolean*) - *Optionnel* Lorsque la *gateway* récupère un fichier
   depuis un serveur SFTP distant, le SFTP client de la *gateway* envoie une
@@ -48,6 +65,8 @@ et les partenaires. Les options disponibles sont les suivantes :
 
   **Note:** Cette option n'a aucun effet si l'option ``disableClientConcurrentReads``
   décrite ci-dessous est également activée.
+
+  |
 
 * **disableClientConcurrentReads** (*boolean*) - *Optionnel* Par défaut, lorsque
   la *gateway* récupère un fichier depuis un serveur SFTP distant, le fichier est
@@ -63,6 +82,8 @@ et les partenaires. Les options disponibles sont les suivantes :
   les performances du transfert.
 
   **Note:** Activer cette option rend l'option ``useStat`` décrite ci-dessus ineffective.
+
+|
 
 **Exemple**
 

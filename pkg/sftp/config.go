@@ -91,5 +91,21 @@ func getSSHClientConfig(info *model.TransferContext, protoConfig *config.SftpPro
 		conf.Auth = append(conf.Auth, ssh.Password(string(info.RemoteAccount.Password)))
 	}
 
+	setDefaultClientAlgos(conf)
+
 	return conf, nil
+}
+
+func setDefaultClientAlgos(conf *ssh.ClientConfig) {
+	if len(conf.KeyExchanges) == 0 {
+		conf.KeyExchanges = config.SFTPValidKeyExchanges.ClientDefaults()
+	}
+
+	if len(conf.Ciphers) == 0 {
+		conf.Ciphers = config.SFTPValidCiphers.ClientDefaults()
+	}
+
+	if len(conf.MACs) == 0 {
+		conf.MACs = config.SFTPValidMACs.ClientDefaults()
+	}
 }

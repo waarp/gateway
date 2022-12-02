@@ -137,7 +137,7 @@ func (s *SelfContext) addPullTransfer(c convey.C) {
 // StartService starts the service associated with the test server defined in
 // the SelfContext.
 func (s *SelfContext) StartService(c convey.C) {
-	logger := testhelpers.TestLogger(c, fmt.Sprintf("test_%s_server", s.Server.Protocol))
+	logger := conf.GetLogger(fmt.Sprintf("test_%s_server", s.Server.Protocol))
 	s.service = s.constr(s.DB, logger)
 	c.So(s.service.Start(s.Server), convey.ShouldBeNil)
 	c.Reset(func() {

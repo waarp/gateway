@@ -2,6 +2,7 @@ package pipelinetest
 
 import (
 	"crypto/rand"
+	"fmt"
 	"os"
 	"path/filepath"
 
@@ -24,6 +25,13 @@ const (
 	TestLogin    = "foo"
 	TestPassword = "sesame"
 )
+
+//nolint:gochecknoinits //init is required here
+func init() {
+	if err := conf.InitBackend("TRACE", "stdout", "", ""); err != nil {
+		panic(fmt.Sprintf("failed to initialize the log backend: %v", err))
+	}
+}
 
 type serviceConstructor func(db *database.DB, logger *log.Logger) proto.Service
 

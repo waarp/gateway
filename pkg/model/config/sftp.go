@@ -11,26 +11,32 @@ func init() {
 
 //nolint:gochecknoglobals // global var is used by design
 var (
-	validKeyExchange = map[string]interface{}{
-		"diffie-hellman-group1-sha1":   nil,
-		"diffie-hellman-group14-sha1":  nil,
-		"ecdh-sha2-nistp256":           nil,
-		"ecdh-sha2-nistp384":           nil,
-		"ecdh-sha2-nistp521":           nil,
-		"curve25519-sha256@libssh.org": nil,
+	SFTPValidKeyExchanges = Algos{
+		{Name: "curve25519-sha256@libssh.org", ValidFor: Both},
+		{Name: "ecdh-sha2-nistp256", ValidFor: Both},
+		{Name: "ecdh-sha2-nistp384", ValidFor: Both},
+		{Name: "ecdh-sha2-nistp521", ValidFor: Both},
+		{Name: "diffie-hellman-group-exchange-sha256", ValidFor: OnlyClient},
+		{Name: "diffie-hellman-group1-sha1", ValidFor: Both},  // Deprecated: uses SHA-1.
+		{Name: "diffie-hellman-group14-sha1", ValidFor: Both}, // Deprecated: uses SHA-1.
 	}
-	validCipher = map[string]interface{}{
-		"aes128-gcm@openssh.com":        nil,
-		"aes128-ctr":                    nil,
-		"aes192-ctr":                    nil,
-		"aes256-ctr":                    nil,
-		"chacha20-poly1305@openssh.com": nil,
+	SFTPValidCiphers = Algos{
+		{Name: "aes128-gcm@openssh.com", ValidFor: Both},
+		{Name: "chacha20-poly1305@openssh.com", ValidFor: Both},
+		{Name: "aes128-ctr", ValidFor: Both},
+		{Name: "aes192-ctr", ValidFor: Both},
+		{Name: "aes256-ctr", ValidFor: Both},
+		{Name: "arcfour256", ValidFor: Both, DisabledByDefault: true},
+		{Name: "arcfour128", ValidFor: Both, DisabledByDefault: true},
+		{Name: "arcfour", ValidFor: Both, DisabledByDefault: true},
+		{Name: "aes128-cbc", ValidFor: Both, DisabledByDefault: true},
+		{Name: "3des-cbc", ValidFor: Both, DisabledByDefault: true},
 	}
-	validMACs = map[string]interface{}{
-		"hmac-sha2-256-etm@openssh.com": nil,
-		"hmac-sha2-256":                 nil,
-		"hmac-sha1":                     nil,
-		"hmac-sha1-96":                  nil,
+	SFTPValidMACs = Algos{
+		{Name: "hmac-sha2-256-etm@openssh.com", ValidFor: Both},
+		{Name: "hmac-sha2-256", ValidFor: Both},
+		{Name: "hmac-sha1", ValidFor: Both},    // Deprecated: uses SHA-1.
+		{Name: "hmac-sha1-96", ValidFor: Both}, // Deprecated: uses SHA-1.
 	}
 )
 
@@ -43,22 +49,22 @@ type SftpProtoConfig struct {
 	UseStat                      bool     `json:"useStat,omitempty"`
 }
 
-func (c SftpProtoConfig) valid() error {
-	for _, k := range c.KeyExchanges {
-		if _, ok := validKeyExchange[k]; !ok {
-			return fmt.Errorf("unknown key exchange algorithm '%s': %w", k, errInvalidProtoConfig)
+func (c *SftpProtoConfig) valid(forServer bool) error {
+	for _, kex := range c.KeyExchanges {
+		if !SFTPValidKeyExchanges.isAlgoValid(kex, forServer) {
+			return fmt.Errorf("unknown key exchange algorithm %q: %w", kex, errInvalidProtoConfig)
 		}
 	}
 
-	for _, c := range c.Ciphers {
-		if _, ok := validCipher[c]; !ok {
-			return fmt.Errorf("unknown cipher algorithm '%s': %w", c, errInvalidProtoConfig)
+	for _, ciph := range c.Ciphers {
+		if !SFTPValidCiphers.isAlgoValid(ciph, forServer) {
+			return fmt.Errorf("unknown cipher algorithm %q: %w", ciph, errInvalidProtoConfig)
 		}
 	}
 
-	for _, m := range c.MACs {
-		if _, ok := validMACs[m]; !ok {
-			return fmt.Errorf("unknown MAC algorithm '%s': %w", m, errInvalidProtoConfig)
+	for _, mac := range c.MACs {
+		if !SFTPValidMACs.isAlgoValid(mac, forServer) {
+			return fmt.Errorf("unknown MAC algorithm %q: %w", mac, errInvalidProtoConfig)
 		}
 	}
 
@@ -67,10 +73,10 @@ func (c SftpProtoConfig) valid() error {
 
 // ValidPartner checks if the configuration is valid for an SFTP partner.
 func (c *SftpProtoConfig) ValidPartner() error {
-	return c.valid()
+	return c.valid(false)
 }
 
 // ValidServer checks if the configuration is valid for a local SFTP server.
 func (c *SftpProtoConfig) ValidServer() error {
-	return c.valid()
+	return c.valid(true)
 }

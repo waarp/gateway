@@ -93,6 +93,16 @@ func newClientPipeline(db *database.DB, logger *log.Logger,
 		Client: client,
 	}
 
+	if transCtx.Rule.IsSend {
+		logger.Info("Starting upload of file %q to %q as %q using rule %q",
+			transCtx.Transfer.LocalPath, transCtx.RemoteAgent.Name,
+			transCtx.RemoteAccount.Login, transCtx.Rule.Name)
+	} else {
+		logger.Info("Starting download of file %q from %q as %q using rule %q",
+			transCtx.Transfer.LocalPath, transCtx.RemoteAgent.Name,
+			transCtx.RemoteAccount.Login, transCtx.Rule.Name)
+	}
+
 	ClientTransfers.Add(transCtx.Transfer.ID, c)
 
 	return c, nil
