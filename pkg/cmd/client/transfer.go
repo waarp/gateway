@@ -10,6 +10,7 @@ import (
 	"sort"
 	"time"
 
+	"code.waarp.fr/apps/gateway/gateway/pkg/admin/rest"
 	"code.waarp.fr/apps/gateway/gateway/pkg/admin/rest/api"
 	"code.waarp.fr/apps/gateway/gateway/pkg/model/types"
 )
@@ -138,7 +139,7 @@ func (t *TransferAdd) Execute([]string) error {
 		}
 	}
 
-	addr.Path = "/api/transfers"
+	addr.Path = rest.TransfersPath
 
 	if err := add(trans); err != nil {
 		return err
@@ -182,7 +183,7 @@ type TransferList struct {
 }
 
 func (t *TransferList) listURL() error {
-	addr.Path = "/api/transfers"
+	addr.Path = rest.TransfersPath
 	query := url.Values{}
 	query.Set("limit", fmt.Sprint(t.Limit))
 	query.Set("offset", fmt.Sprint(t.Offset))
@@ -417,6 +418,42 @@ func (t *TransferRetry) Execute([]string) error {
 		return getResponseErrorMessage(resp)
 	case http.StatusNotFound:
 		return getResponseErrorMessage(resp)
+	default:
+		return fmt.Errorf("unexpected error (%s): %w", resp.Status,
+			getResponseErrorMessage(resp))
+	}
+}
+
+//nolint:lll // struct tags can be long for command line args
+type TransferCancelAll struct {
+	Target string `required:"yes" short:"t" long:"target" description:"The status of the transfers to cancel" choice:"planned" choice:"running" choice:"paused" choice:"interrupted" choice:"error" choice:"all"`
+}
+
+func (t *TransferCancelAll) Execute([]string) error {
+	addr.Path = rest.TransfersPath
+	query := url.Values{}
+	query.Set("target", t.Target)
+	addr.RawQuery = query.Encode()
+
+	ctx, cancel := context.WithTimeout(context.Background(), httpTimeout)
+	defer cancel()
+
+	resp, err := sendRequest(ctx, nil, http.MethodDelete)
+	if err != nil {
+		return err
+	}
+	defer resp.Body.Close() //nolint:errcheck // error is irrelevant
+
+	w := getColorable()
+
+	switch resp.StatusCode {
+	case http.StatusAccepted:
+		fmt.Fprintln(w, "The transfers were successfully canceled.")
+
+		return nil
+	case http.StatusBadRequest:
+		return getResponseErrorMessage(resp)
+
 	default:
 		return fmt.Errorf("unexpected error (%s): %w", resp.Status,
 			getResponseErrorMessage(resp))

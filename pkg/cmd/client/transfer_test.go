@@ -17,6 +17,7 @@ import (
 	"code.waarp.fr/apps/gateway/gateway/pkg/admin/rest/api"
 	"code.waarp.fr/apps/gateway/gateway/pkg/conf"
 	"code.waarp.fr/apps/gateway/gateway/pkg/database"
+	"code.waarp.fr/apps/gateway/gateway/pkg/gatewayd/service/proto"
 	"code.waarp.fr/apps/gateway/gateway/pkg/model"
 	"code.waarp.fr/apps/gateway/gateway/pkg/model/types"
 	"code.waarp.fr/apps/gateway/gateway/pkg/tk/utils"
@@ -1013,6 +1014,150 @@ func TestRetryTransfer(t *testing.T) {
 						Convey("Then it should return an error", func() {
 							So(err, ShouldBeError, "transfer 1000 not found")
 						})
+					})
+				})
+			})
+		})
+	})
+}
+
+func TestCancelAllTransfers(t *testing.T) {
+	Convey("Testing the transfer 'cancel' command", t, func() {
+		out = testFile()
+		command := &TransferCancelAll{}
+
+		Convey("Given a database", func(c C) {
+			var transRun testInterrupter
+			serv := newTestProtoService(&transRun)
+			protoServs := map[int64]proto.Service{1: serv}
+
+			db := database.TestDatabase(c)
+			gw := httptest.NewServer(testHandlerProto(db, protoServs))
+			var err error
+			addr, err = url.Parse("http://admin:admin_password@" + gw.Listener.Addr().String())
+			So(err, ShouldBeNil)
+
+			partner := &model.RemoteAgent{
+				Name:        "test_server",
+				Protocol:    testProto1,
+				Address:     "localhost:1",
+				ProtoConfig: json.RawMessage(`{}`),
+			}
+			So(db.Insert(partner).Run(), ShouldBeNil)
+
+			account := &model.RemoteAccount{
+				RemoteAgentID: partner.ID,
+				Login:         "toto",
+				Password:      "titi",
+			}
+			So(db.Insert(account).Run(), ShouldBeNil)
+
+			rule := &model.Rule{Name: "test_rule", IsSend: false, Path: "path"}
+			So(db.Insert(rule).Run(), ShouldBeNil)
+
+			transPlan := &model.Transfer{
+				RuleID:          rule.ID,
+				RemoteAccountID: utils.NewNullInt64(account.ID),
+				LocalPath:       "file.loc",
+				RemotePath:      "file.rem",
+				Start:           time.Date(2030, 1, 1, 1, 0, 0, 0, time.Local),
+				Status:          types.StatusPlanned,
+				Step:            types.StepNone,
+				Error:           types.TransferError{},
+				Progress:        0,
+				TaskNumber:      0,
+			}
+			So(db.Insert(transPlan).Run(), ShouldBeNil)
+
+			transErr := &model.Transfer{
+				RuleID:          rule.ID,
+				RemoteAccountID: utils.NewNullInt64(account.ID),
+				LocalPath:       "file.loc",
+				RemotePath:      "file.rem",
+				Start:           time.Date(2030, 1, 1, 1, 0, 0, 0, time.Local),
+				Status:          types.StatusError,
+				Step:            types.StepData,
+				Error:           types.TransferError{Code: types.TeDataTransfer, Details: "error msg"},
+				Progress:        0,
+				TaskNumber:      0,
+			}
+			So(db.Insert(transErr).Run(), ShouldBeNil)
+
+			Convey("Given a target parameter of 'planned'", func() {
+				args := []string{"-t", "planned"}
+
+				Convey("When executing the command", func() {
+					params, err := flags.ParseArgs(command, args)
+					So(err, ShouldBeNil)
+					So(command.Execute(params), ShouldBeNil)
+
+					Convey("Then it should say that the transfers were canceled", func() {
+						So(getOutput(), ShouldEqual, "The transfers were "+
+							"successfully canceled.\n")
+					})
+
+					Convey("Then the planned transfer should have been canceled", func() {
+						exp := &model.HistoryEntry{
+							ID:               transPlan.ID,
+							Owner:            conf.GlobalConfig.GatewayName,
+							RemoteTransferID: transPlan.RemoteTransferID,
+							IsServer:         false,
+							IsSend:           false,
+							Account:          account.Login,
+							Agent:            partner.Name,
+							Protocol:         testProto1,
+							LocalPath:        "file.loc",
+							RemotePath:       "file.rem",
+							Rule:             rule.Name,
+							Start:            time.Date(2030, 1, 1, 1, 0, 0, 0, time.Local),
+							Stop:             time.Time{},
+							Status:           types.StatusCancelled,
+							Error:            types.TransferError{},
+							Step:             types.StepNone,
+							Progress:         0,
+							TaskNumber:       0,
+						}
+
+						var hist model.HistoryEntries
+						So(db.Select(&hist).Run(), ShouldBeNil)
+						So(hist, ShouldNotBeEmpty)
+						So(hist[0], ShouldResemble, exp)
+					})
+
+					Convey("Then the other non-planned transfers should be unaffected", func() {
+						var trans model.Transfers
+						So(db.Select(&trans).Run(), ShouldBeNil)
+						So(trans, ShouldHaveLength, 1)
+						So(trans[0], ShouldResemble, transErr)
+
+						So(transRun, ShouldEqual, none)
+					})
+				})
+			})
+
+			Convey("Given a target parameter of 'running'", func() {
+				args := []string{"-t", "running"}
+
+				Convey("When executing the command", func() {
+					params, err := flags.ParseArgs(command, args)
+					So(err, ShouldBeNil)
+					So(command.Execute(params), ShouldBeNil)
+
+					Convey("Then it should say that the transfers were canceled", func() {
+						So(getOutput(), ShouldEqual, "The transfers were "+
+							"successfully canceled.\n")
+					})
+
+					Convey("Then the running transfer should have been canceled", func() {
+						So(transRun, ShouldEqual, canceled)
+					})
+
+					Convey("Then the other non-running transfers should be unaffected", func() {
+						var trans model.Transfers
+						So(db.Select(&trans).Run(), ShouldBeNil)
+						So(trans, ShouldHaveLength, 2)
+						So(trans[0], ShouldResemble, transPlan)
+						So(trans[1], ShouldResemble, transErr)
 					})
 				})
 			})

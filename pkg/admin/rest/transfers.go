@@ -328,7 +328,7 @@ func cancelTransfer(protoServices map[int64]proto.Service) handler {
 						"for transfer %d", trans.ID)
 
 					trans.Status = types.StatusCancelled
-					if err := trans.ToHistory(db, logger, time.Time{}); handleError(w, logger, err) {
+					if err := trans.MoveToHistory(db, logger, time.Time{}); handleError(w, logger, err) {
 						return
 					}
 				}
@@ -340,7 +340,7 @@ func cancelTransfer(protoServices map[int64]proto.Service) handler {
 				}
 			} else {
 				trans.Status = types.StatusCancelled
-				if err := trans.ToHistory(db, logger, time.Time{}); handleError(w, logger, err) {
+				if err := trans.MoveToHistory(db, logger, time.Time{}); handleError(w, logger, err) {
 					return
 				}
 			}
@@ -434,5 +434,115 @@ func retryTransfer(logger *log.Logger, db *database.DB) http.HandlerFunc {
 		r.URL.Path = "/api/transfers"
 		w.Header().Set("Location", location(r.URL, fmt.Sprint(trans.ID)))
 		w.WriteHeader(http.StatusCreated)
+	}
+}
+
+func cancelDBTransfer(db *database.DB, logger *log.Logger, w http.ResponseWriter,
+	status ...types.TransferStatus,
+) bool {
+	statuses := make([]interface{}, len(status))
+
+	for i := range status {
+		statuses[i] = status[i]
+	}
+
+	rows, err := db.Iterate(&model.Transfer{}).In("status", statuses...).Run()
+	if handleError(w, logger, err) {
+		return false
+	}
+
+	defer rows.Close()
+
+	tErr := db.Transaction(func(ses *database.Session) database.Error {
+		for rows.Next() {
+			var trans model.Transfer
+			if err := rows.Scan(&trans); err != nil {
+				logger.Error("Failed to parse transfer entry: %s", err)
+
+				return database.NewInternalError(err)
+			}
+
+			trans.Status = types.StatusCancelled
+
+			if err := trans.CopyToHistory(ses, logger, time.Time{}); err != nil {
+				return err
+			}
+		}
+
+		if err := ses.DeleteAll(&model.Transfer{}).In("status", statuses...).Run(); err != nil {
+			return err
+		}
+
+		return nil
+	})
+
+	return !handleError(w, logger, tErr)
+}
+
+func cancelRunningTransfers(protoServices map[int64]proto.Service,
+	logger *log.Logger, r *http.Request, w http.ResponseWriter,
+) bool {
+	const cancelTimeout = 2 * time.Second
+
+	ctx, cancel := context.WithTimeout(r.Context(), cancelTimeout)
+	defer cancel()
+
+	for _, serv := range protoServices {
+		if err := serv.ManageTransfers().CancelAll(ctx); handleError(
+			w, logger, err) {
+			return false
+		}
+	}
+
+	return true
+}
+
+//nolint:gocognit //there is no way to further simplify this function
+func cancelTransfers(protoServices map[int64]proto.Service) handler {
+	return func(logger *log.Logger, db *database.DB) http.HandlerFunc {
+		return func(w http.ResponseWriter, r *http.Request) {
+			switch target := r.FormValue("target"); target {
+			case "":
+				handleError(w, logger, badRequest("missing 'target' parameter"))
+
+				return
+			case "error":
+				if !cancelDBTransfer(db, logger, w, types.StatusError) {
+					return
+				}
+			case "planned":
+				if !cancelDBTransfer(db, logger, w, types.StatusPlanned) {
+					return
+				}
+			case "paused":
+				if !cancelDBTransfer(db, logger, w, types.StatusPaused) {
+					return
+				}
+			case "interrupted":
+				if !cancelDBTransfer(db, logger, w, types.StatusInterrupted) {
+					return
+				}
+			case "running":
+				if !cancelRunningTransfers(protoServices, logger, r, w) {
+					return
+				}
+			case "all":
+				if !cancelDBTransfer(db, logger, w, types.StatusError, types.StatusPlanned,
+					types.StatusPaused, types.StatusInterrupted) {
+					return
+				}
+
+				if !cancelRunningTransfers(protoServices, logger, r, w) {
+					return
+				}
+			default:
+				handleError(w, logger, badRequest("unknown cancel target '%s'", target))
+
+				return
+			}
+
+			w.WriteHeader(http.StatusAccepted)
+			fmt.Fprint(w, "Transfers canceled successfully")
+		}
 	}
 }

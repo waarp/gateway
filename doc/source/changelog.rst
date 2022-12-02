@@ -3,6 +3,10 @@
 Historique des versions
 =======================
 
+* :feature:`276` Ajout d'un *handler* REST et d'une commande terminal
+  ``transfer cancel-all`` permettant d'annuler plusieurs transferts d'un coup
+  en fonction de leur statut. La documentation de la commande peut être consultée
+  :any:`ici <reference/cli/client/transfer/cancel-all>`.
 * :feature:`74` Ajout de la commande :ref:`reference-cmd-waarp-gatewayd-restore-history`
   permettant d'importer un dump de l'historique de transfert depuis un fichier JSON.
   Ce dump peut être créé via la nouvelle option ``-e, --export-to`` de la commande

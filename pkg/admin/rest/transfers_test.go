@@ -19,6 +19,7 @@ import (
 	. "code.waarp.fr/apps/gateway/gateway/pkg/admin/rest/api"
 	"code.waarp.fr/apps/gateway/gateway/pkg/conf"
 	"code.waarp.fr/apps/gateway/gateway/pkg/database"
+	"code.waarp.fr/apps/gateway/gateway/pkg/gatewayd/service/proto"
 	"code.waarp.fr/apps/gateway/gateway/pkg/model"
 	"code.waarp.fr/apps/gateway/gateway/pkg/model/types"
 	"code.waarp.fr/apps/gateway/gateway/pkg/tk/utils"
@@ -889,6 +890,149 @@ func TestRestartTransfer(t *testing.T) {
 
 					Convey("Then it should reply with a 'Not Found' error", func() {
 						So(w.Code, ShouldEqual, http.StatusNotFound)
+					})
+				})
+			})
+		})
+	})
+}
+
+func TestCancelTransfers(t *testing.T) {
+	Convey("Testing the transfers multi cancel handler", t, func(c C) {
+		logger := testhelpers.TestLogger(c, "rest_transfers_cancel_test")
+		db := database.TestDatabase(c)
+		var transRun testInterrupter
+		serv := newTestProtoService(&transRun)
+		protoServs := map[int64]proto.Service{1: serv}
+		handler := cancelTransfers(protoServs)(logger, db)
+		w := httptest.NewRecorder()
+
+		Convey("Given a database with 1 planned & 1 error transfer", func() {
+			partner := &model.RemoteAgent{
+				Name:        "test_server",
+				Protocol:    testProto1,
+				Address:     "localhost:1",
+				ProtoConfig: json.RawMessage(`{}`),
+			}
+			So(db.Insert(partner).Run(), ShouldBeNil)
+
+			account := &model.RemoteAccount{
+				RemoteAgentID: partner.ID,
+				Login:         "toto",
+				Password:      "titi",
+			}
+			So(db.Insert(account).Run(), ShouldBeNil)
+
+			rule := &model.Rule{Name: "test_rule", IsSend: false, Path: "path"}
+			So(db.Insert(rule).Run(), ShouldBeNil)
+
+			transPlan := &model.Transfer{
+				RuleID:          rule.ID,
+				RemoteAccountID: utils.NewNullInt64(account.ID),
+				LocalPath:       "file.loc",
+				RemotePath:      "file.rem",
+				Start:           time.Date(2030, 1, 1, 1, 0, 0, 0, time.Local),
+				Status:          types.StatusPlanned,
+				Step:            types.StepNone,
+				Error:           types.TransferError{},
+				Progress:        0,
+				TaskNumber:      0,
+			}
+			So(db.Insert(transPlan).Run(), ShouldBeNil)
+
+			transErr := &model.Transfer{
+				RuleID:          rule.ID,
+				RemoteAccountID: utils.NewNullInt64(account.ID),
+				LocalPath:       "file.loc",
+				RemotePath:      "file.rem",
+				Start:           time.Date(2030, 1, 1, 1, 0, 0, 0, time.Local),
+				Status:          types.StatusError,
+				Step:            types.StepData,
+				Error:           types.TransferError{Code: types.TeDataTransfer, Details: "error msg"},
+				Progress:        0,
+				TaskNumber:      0,
+			}
+			So(db.Insert(transErr).Run(), ShouldBeNil)
+
+			Convey("Given a request with the 'planned' target", func() {
+				req, err := http.NewRequest(http.MethodDelete, "?target=planned", nil)
+				So(err, ShouldBeNil)
+
+				Convey("When sending the request to the handler", func() {
+					handler.ServeHTTP(w, req)
+
+					Convey("Then the response body should be empty", func() {
+						So(w.Body.String(), ShouldEqual, "Transfers canceled successfully")
+					})
+
+					Convey("Then it should reply 'Accepted'", func() {
+						So(w.Code, ShouldEqual, http.StatusAccepted)
+					})
+
+					Convey("Then the planned transfer should have been canceled", func() {
+						exp := &model.HistoryEntry{
+							ID:               transPlan.ID,
+							Owner:            conf.GlobalConfig.GatewayName,
+							RemoteTransferID: transPlan.RemoteTransferID,
+							IsServer:         false,
+							IsSend:           false,
+							Account:          account.Login,
+							Agent:            partner.Name,
+							Protocol:         testProto1,
+							LocalPath:        "file.loc",
+							RemotePath:       "file.rem",
+							Rule:             rule.Name,
+							Start:            time.Date(2030, 1, 1, 1, 0, 0, 0, time.Local),
+							Stop:             time.Time{},
+							Status:           types.StatusCancelled,
+							Error:            types.TransferError{},
+							Step:             types.StepNone,
+							Progress:         0,
+							TaskNumber:       0,
+						}
+
+						var hist model.HistoryEntries
+						So(db.Select(&hist).Run(), ShouldBeNil)
+						So(hist, ShouldNotBeEmpty)
+						So(hist[0], ShouldResemble, exp)
+					})
+
+					Convey("Then the other non-planned transfers should be unaffected", func() {
+						var trans model.Transfers
+						So(db.Select(&trans).Run(), ShouldBeNil)
+						So(trans, ShouldHaveLength, 1)
+						So(trans[0], ShouldResemble, transErr)
+
+						So(transRun, ShouldEqual, none)
+					})
+				})
+			})
+
+			Convey("Given a request with the 'running' target", func() {
+				req, err := http.NewRequest(http.MethodDelete, "?target=running", nil)
+				So(err, ShouldBeNil)
+
+				Convey("When sending the request to the handler", func() {
+					handler.ServeHTTP(w, req)
+
+					Convey("Then the response body should be empty", func() {
+						So(w.Body.String(), ShouldEqual, "Transfers canceled successfully")
+					})
+
+					Convey("Then it should reply 'Accepted'", func() {
+						So(w.Code, ShouldEqual, http.StatusAccepted)
+					})
+
+					Convey("Then the running transfer should have been canceled", func() {
+						So(transRun, ShouldEqual, canceled)
+					})
+
+					Convey("Then the other non-running transfers should be unaffected", func() {
+						var trans model.Transfers
+						So(db.Select(&trans).Run(), ShouldBeNil)
+						So(trans, ShouldHaveLength, 2)
+						So(trans[0], ShouldResemble, transPlan)
+						So(trans[1], ShouldResemble, transErr)
 					})
 				})
 			})

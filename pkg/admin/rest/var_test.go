@@ -17,6 +17,7 @@ import (
 	"code.waarp.fr/apps/gateway/gateway/pkg/gatewayd/service"
 	"code.waarp.fr/apps/gateway/gateway/pkg/gatewayd/service/constructors"
 	"code.waarp.fr/apps/gateway/gateway/pkg/gatewayd/service/proto"
+	"code.waarp.fr/apps/gateway/gateway/pkg/gatewayd/service/state"
 	"code.waarp.fr/apps/gateway/gateway/pkg/model"
 	"code.waarp.fr/apps/gateway/gateway/pkg/model/config"
 )
@@ -95,3 +96,55 @@ func fromTransfer(db *database.DB, trans *model.Transfer) *api.OutTransfer {
 
 	return jTrans
 }
+
+type testInterrupter int
+
+const (
+	none testInterrupter = iota
+	paused
+	interrupted
+	canceled
+)
+
+func (t *testInterrupter) Pause(context.Context) error {
+	*t = paused
+
+	return nil
+}
+
+func (t *testInterrupter) Interrupt(context.Context) error {
+	*t = interrupted
+
+	return nil
+}
+
+func (t *testInterrupter) Cancel(context.Context) error {
+	*t = canceled
+
+	return nil
+}
+
+type testProtoService struct {
+	m  *service.TransferMap
+	st *state.State
+}
+
+func newTestProtoService(trans ...*testInterrupter) *testProtoService {
+	serv := &testProtoService{
+		m:  service.NewTransferMap(),
+		st: &state.State{},
+	}
+
+	for i, t := range trans {
+		serv.m.Add(int64(i), t)
+	}
+
+	serv.st.Set(state.Running, "")
+
+	return serv
+}
+
+func (t *testProtoService) Start(*model.LocalAgent) error         { return nil }
+func (t *testProtoService) Stop(context.Context) error            { return nil }
+func (t *testProtoService) State() *state.State                   { return t.st }
+func (t *testProtoService) ManageTransfers() *service.TransferMap { return t.m }

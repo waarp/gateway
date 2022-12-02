@@ -270,38 +270,46 @@ func (t *Transfer) makeHistoryEntry(db database.ReadAccess, stop time.Time) (*Hi
 	return &hist, nil
 }
 
-// ToHistory removes the transfer entry from the database, converts it into a
+func (t *Transfer) CopyToHistory(db database.Access, logger *log.Logger, end time.Time) database.Error {
+	hist, err := t.makeHistoryEntry(db, end)
+	if err != nil {
+		logger.Error("Failed to convert transfer to history: %s", err)
+
+		return err
+	}
+
+	if err := db.Insert(hist).Run(); err != nil {
+		logger.Error("Failed to create new history entry: %s", err)
+
+		return err
+	}
+
+	if err := db.Exec(`UPDATE transfer_info SET history_id=transfer_id, 
+			transfer_id=null WHERE transfer_id=?`, t.ID); err != nil {
+		logger.Error("Failed to update transfer info target: %s", err)
+
+		return err
+	}
+
+	/*
+		if err := ses.Exec(`UPDATE file_info SET history_id=transfer_id, transfer_id=null`); err != nil {
+			logger.Errorf("Failed to update file info target: %s", err)
+
+			return err
+		}
+	*/
+
+	return nil
+}
+
+// MoveToHistory removes the transfer entry from the database, converts it into a
 // history entry, and inserts the new history entry in the database.
 // If any of these steps fails, the changes are reverted and an error is returned.
-func (t *Transfer) ToHistory(db *database.DB, logger *log.Logger, end time.Time) database.Error {
+func (t *Transfer) MoveToHistory(db *database.DB, logger *log.Logger, end time.Time) database.Error {
 	return db.Transaction(func(ses *database.Session) database.Error {
-		hist, err := t.makeHistoryEntry(ses, end)
-		if err != nil {
-			logger.Error("Failed to convert transfer to history: %v", err)
-
+		if err := t.CopyToHistory(ses, logger, end); err != nil {
 			return err
 		}
-
-		if err := ses.Insert(hist).Run(); err != nil {
-			logger.Error("Failed to create new history entry: %v", err)
-
-			return err
-		}
-
-		if err := ses.Exec(`UPDATE transfer_info SET history_id=transfer_id, 
-			transfer_id=null WHERE transfer_id=?`, t.ID); err != nil {
-			logger.Error("Failed to update transfer info target: %s", err)
-
-			return err
-		}
-
-		/*
-			if err := ses.Exec(`UPDATE file_info SET history_id=transfer_id, transfer_id=null`); err != nil {
-				logger.Errorf("Failed to update file info target: %s", err)
-
-				return err
-			}
-		*/
 
 		if err := ses.Delete(t).Run(); err != nil {
 			logger.Error("Failed to delete transfer for archival: %s", err)

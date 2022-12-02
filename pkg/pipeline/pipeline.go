@@ -344,7 +344,7 @@ func (p *Pipeline) EndTransfer() *types.TransferError {
 		p.TransCtx.Transfer.Step = types.StepNone
 		p.TransCtx.Transfer.TaskNumber = 0
 
-		if err := p.TransCtx.Transfer.ToHistory(p.DB, p.Logger, time.Now()); err != nil {
+		if err := p.TransCtx.Transfer.MoveToHistory(p.DB, p.Logger, time.Now()); err != nil {
 			if mErr := p.machine.Transition(stateError); mErr != nil {
 				p.Logger.Warning("Failed to transition to 'error' state: %v", mErr)
 			}
@@ -485,7 +485,7 @@ func (p *Pipeline) Cancel(handles ...func()) {
 		p.stop()
 
 		p.TransCtx.Transfer.Status = types.StatusCancelled
-		if err := p.TransCtx.Transfer.ToHistory(p.DB, p.Logger, time.Now()); err != nil {
+		if err := p.TransCtx.Transfer.MoveToHistory(p.DB, p.Logger, time.Now()); err != nil {
 			p.Logger.Error("Failed to move canceled transfer to history: %s", err)
 		}
 
