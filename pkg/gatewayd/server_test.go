@@ -3,7 +3,6 @@ package gatewayd
 import (
 	"encoding/json"
 	"fmt"
-	"os"
 	"path/filepath"
 	"testing"
 	"time"
@@ -18,8 +17,6 @@ import (
 )
 
 func testSetup(c C) (*WG, *model.LocalAgent, *model.LocalAgent) {
-	So(os.Setenv("GATEWAY_TEST_DB", database.SQLite), ShouldBeNil)
-
 	db := database.TestDatabase(c)
 	addServ := func(name string) *model.LocalAgent {
 		s := &model.LocalAgent{

@@ -22,7 +22,8 @@ import (
 )
 
 const (
-	TestDBEnv = "GATEWAY_TEST_DB"
+	TestDBEnv    = "GATEWAY_TEST_DB"
+	TestMemoryDB = "memory"
 )
 
 var errSimulated = fmt.Errorf("simulated database error")
@@ -88,10 +89,10 @@ func initTestDBConf() {
 		config.User = "root"
 		config.Name = "waarp_gateway_test"
 		config.Address = "localhost:3306"
-	case SQLite:
+	case "":
 		config.Type = SQLite
 		config.Address = tempFilename()
-	case "":
+	case TestMemoryDB:
 		supportedRBMS[SQLite] = memDBInfo
 		config.Type = SQLite
 		config.Address = uuid.New().String()
@@ -122,7 +123,7 @@ func resetDB(db *DB) {
 		convey.So(db.engine.Close(), convey.ShouldBeNil)
 
 		if _, err := os.Stat(config.Address); err == nil {
-			// convey.So(os.Remove(config.Address), convey.ShouldBeNil)
+			convey.So(os.Remove(config.Address), convey.ShouldBeNil)
 		}
 	default:
 		panic(fmt.Sprintf("Unknown database type '%s'\n", config.Type))
