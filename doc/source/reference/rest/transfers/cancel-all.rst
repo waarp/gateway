@@ -9,8 +9,13 @@ Annuler plusieurs transferts
    :reqheader Authorization: Les identifiants de l'utilisateur
 
    :param target: Filtre les transferts à annuler suivant leur statut.
-      Valeurs possibles : ``planned``, ``running``, ``error``, et ``all``.
+      Valeurs possibles : ``planned``, ``running``, ``paused``, ``interrupted``,
+      ``error``, et ``all``.
    :type sort: string
+
+   :statuscode 202: Les transferts ont été annulés avec succès
+   :statuscode 400: Un ou plusieurs des paramètres de la requête sont invalides
+   :statuscode 401: Authentification d'utilisateur invalide
 
    |
 

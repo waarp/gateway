@@ -7,7 +7,7 @@ Annuler plusieurs transferts
 .. describe:: waarp-gateway transfer cancel-all
 
 Annule tous les transferts (non-terminés) ayant le statut renseigné en option.
-Ces transferts seront annulés, puis déplacé dans l'historique de transfert.
+Ces transferts seront annulés, puis déplacés dans l'historique de transfert.
 
 .. option:: -t <TARGET>, --target <TARGET>
 
@@ -16,6 +16,8 @@ Ces transferts seront annulés, puis déplacé dans l'historique de transfert.
 
    - annuler les transferts non-démarrés (``planned``)
    - annuler les transferts en cours (``running``)
+   - annuler les transferts en pause (``paused``)
+   - annuler les transferts interrompus (``interrupted``)
    - annuler les transferts en erreur (``error``)
    - annuler tous les transferts non-terminés (``all``)
 |

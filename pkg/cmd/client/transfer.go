@@ -426,7 +426,7 @@ func (t *TransferRetry) Execute([]string) error {
 
 //nolint:lll // struct tags can be long for command line args
 type TransferCancelAll struct {
-	Target string `required:"yes" short:"t" long:"target" description:"The status of the transfers to cancel" choice:"planned" choice:"running" choice:"error" choice:"all"`
+	Target string `required:"yes" short:"t" long:"target" description:"The status of the transfers to cancel" choice:"planned" choice:"running" choice:"paused" choice:"interrupted" choice:"error" choice:"all"`
 }
 
 func (t *TransferCancelAll) Execute([]string) error {

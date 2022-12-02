@@ -497,6 +497,7 @@ func cancelRunningTransfers(protoServices map[int64]proto.Service,
 	return true
 }
 
+//nolint:gocognit //there is no way to further simplify this function
 func cancelTransfers(protoServices map[int64]proto.Service) handler {
 	return func(logger *log.Logger, db *database.DB) http.HandlerFunc {
 		return func(w http.ResponseWriter, r *http.Request) {
@@ -513,12 +514,21 @@ func cancelTransfers(protoServices map[int64]proto.Service) handler {
 				if !cancelDBTransfer(db, logger, w, types.StatusPlanned) {
 					return
 				}
+			case "paused":
+				if !cancelDBTransfer(db, logger, w, types.StatusPaused) {
+					return
+				}
+			case "interrupted":
+				if !cancelDBTransfer(db, logger, w, types.StatusInterrupted) {
+					return
+				}
 			case "running":
 				if !cancelRunningTransfers(protoServices, logger, r, w) {
 					return
 				}
 			case "all":
-				if !cancelDBTransfer(db, logger, w, types.StatusError, types.StatusPlanned) {
+				if !cancelDBTransfer(db, logger, w, types.StatusError, types.StatusPlanned,
+					types.StatusPaused, types.StatusInterrupted) {
 					return
 				}
 
