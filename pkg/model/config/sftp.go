@@ -17,6 +17,7 @@ var (
 		{Name: "ecdh-sha2-nistp384", ValidFor: Both},
 		{Name: "ecdh-sha2-nistp521", ValidFor: Both},
 		{Name: "diffie-hellman-group-exchange-sha256", ValidFor: OnlyClient},
+		{Name: "diffie-hellman-group1-sha1", ValidFor: Both},  // Deprecated: uses SHA-1.
 		{Name: "diffie-hellman-group14-sha1", ValidFor: Both}, // Deprecated: uses SHA-1.
 	}
 	SFTPValidCiphers = Algos{

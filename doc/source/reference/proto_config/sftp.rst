@@ -7,19 +7,21 @@ L'objet JSON de configuration du protocole SFTP est identique pour les serveurs
 et les partenaires. Les options disponibles sont les suivantes :
 
 * **keyExchanges** (*array of string*) - *Optionnel* Liste des algorithmes d'échange de clé
-  autorisés sur le serveur. Par défaut, les algorithmes suivants sont acceptés :
+  autorisés sur le serveur. Les algorithmes supportés sont (par ordre de préférence) :
 
   - ``curve25519-sha256@libssh.org``:
   - ``ecdh-sha2-nistp256``:
   - ``ecdh-sha2-nistp384``
   - ``ecdh-sha2-nistp521``
   - ``diffie-hellman-group-exchange-sha256`` (*Uniquement supporté par le client*)
+  - ``diffie-hellman-group1-sha1`` [Déprécié]
   - ``diffie-hellman-group14-sha1`` [Déprécié]
 
   |
 
 * **ciphers** (*array of string*) - *Optionnel* Liste des algorithmes de cryptage symétrique 
-  de données autorisés sur le serveur. Les algorithmes supportés sont :
+  de données autorisés sur le serveur. Les algorithmes supportés sont (par ordre de
+  préférence) :
 
   - ``aes128-gcm@openssh.com``
   - ``chacha20-poly1305@openssh.com``
@@ -29,7 +31,8 @@ et les partenaires. Les options disponibles sont les suivantes :
 
   |
 
-  Les algorithmes suivants sont également supportés, mais pas activés par défaut :
+  Les algorithmes suivants sont également supportés mais ne sont pas activés
+  par défaut :
 
   - ``arcfour256``
   - ``arcfour128``
@@ -40,7 +43,7 @@ et les partenaires. Les options disponibles sont les suivantes :
   |
 
 * **macs** (*array of string*) -  *Optionnel* Liste des algorithmes d'authentification de message 
-  (MAC) autorisés sur le serveur. Les algorithmes supportés sont :
+  (MAC) autorisés sur le serveur. Les algorithmes supportés sont (par ordre de préférence) :
 
   - ``hmac-sha2-256-etm@openssh.com``
   - ``hmac-sha2-256``
