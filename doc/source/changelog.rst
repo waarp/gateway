@@ -3,6 +3,7 @@
 Historique des versions
 =======================
 
+* :release:`0.7.0 <2022-12-05>`
 * :feature:`351` Ajout des algorithmes suivants à la liste des algorithmes supportés
   par le client et le serveur SFTP de *Waarp-Gateway*:
 
