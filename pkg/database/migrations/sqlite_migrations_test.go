@@ -16,7 +16,7 @@ type testEngine struct {
 	DB *sql.DB
 }
 
-func (t *testEngine) makeMigration(scripts []script) migration.Migration {
+func (t *testEngine) makeMigration(scripts []Script) migration.Migration {
 	mig := make(migration.Migration, len(scripts))
 
 	for i := range scripts {
@@ -30,13 +30,13 @@ func (t *testEngine) makeMigration(scripts []script) migration.Migration {
 	return mig
 }
 
-func (t *testEngine) Upgrade(scripts ...script) error {
+func (t *testEngine) Upgrade(scripts ...Script) error {
 	toApply := t.makeMigration(scripts)
 
 	return t.Engine.Upgrade(toApply) //nolint:wrapcheck //this is just for tests
 }
 
-func (t *testEngine) Downgrade(scripts ...script) error {
+func (t *testEngine) Downgrade(scripts ...Script) error {
 	toApply := t.makeMigration(scripts)
 
 	return t.Engine.Downgrade(toApply) //nolint:wrapcheck //this is just for tests
