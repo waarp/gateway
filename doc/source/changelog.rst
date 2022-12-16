@@ -3,7 +3,15 @@
 Historique des versions
 =======================
 
-* :fix:`353` Correction d'un bug permettant (lorsque la base de données est partagée)
+* :bug:`355` Correction de 2 bugs du moteur de migration de base de donnée:
+
+  * Le premier est exclusif aux bases de données SQLite, et causait la suppression
+    de tout le contenu des tables enfants lorsque leur table parente était
+    modifiée durant une migration (comme c'était le cas pour la version 0.7.0).
+  * Le deuxième bug faisait s'exécuter les migrations dans le mauvais ordre lors
+    d'un *downgrade* de la base de données, ce qui causait l'échec systématique
+    ce celui-ci.
+* :bug:`353` Correction d'un bug permettant (lorsque la base de données est partagée)
   à l'interface REST d'une instance de *Waarp-Gateway* de récupérer des entrées
   d'historique ne lui appartenant pas.
 
@@ -17,7 +25,6 @@ Historique des versions
   - [*Cipher*] ``arcfour``
   - [*Cipher*] ``aes128-cbc``
   - [*Cipher*] ``3des-cbc``
-  |
 
   Par ailleurs, tous les algorithmes SSH basés sur SHA-1 sont désormais dépréciés
   (voir la page sur :ref:`la configuration SFTP<proto-config-sftp>` pour la liste
