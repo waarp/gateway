@@ -3,6 +3,10 @@
 Historique des versions
 =======================
 
+* :fix:`353` Correction d'un bug permettant (lorsque la base de données est partagée)
+  à l'interface REST d'une instance de *Waarp-Gateway* de récupérer des entrées
+  d'historique ne lui appartenant pas.
+
 * :release:`0.7.0 <2022-12-05>`
 * :feature:`351` Ajout des algorithmes suivants à la liste des algorithmes supportés
   par le client et le serveur SFTP de *Waarp-Gateway*:

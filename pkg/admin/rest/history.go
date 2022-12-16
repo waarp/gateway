@@ -12,6 +12,7 @@ import (
 	"github.com/gorilla/mux"
 
 	"code.waarp.fr/apps/gateway/gateway/pkg/admin/rest/api"
+	"code.waarp.fr/apps/gateway/gateway/pkg/conf"
 	"code.waarp.fr/apps/gateway/gateway/pkg/database"
 	"code.waarp.fr/apps/gateway/gateway/pkg/model"
 	"code.waarp.fr/apps/gateway/gateway/pkg/model/config"
@@ -91,7 +92,7 @@ func getHist(r *http.Request, db *database.DB) (*model.HistoryEntry, error) {
 	}
 
 	var history model.HistoryEntry
-	if err := db.Get(&history, "id=?", id).Run(); err != nil {
+	if err := db.Get(&history, "id=? AND owner=?", id, conf.GlobalConfig.GatewayName).Run(); err != nil {
 		if database.IsNotFound(err) {
 			return nil, notFound("transfer %v not found", id)
 		}

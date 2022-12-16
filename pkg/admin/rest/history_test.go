@@ -15,6 +15,7 @@ import (
 	. "github.com/smartystreets/goconvey/convey"
 
 	. "code.waarp.fr/apps/gateway/gateway/pkg/admin/rest/api"
+	"code.waarp.fr/apps/gateway/gateway/pkg/conf"
 	"code.waarp.fr/apps/gateway/gateway/pkg/database"
 	"code.waarp.fr/apps/gateway/gateway/pkg/model"
 	"code.waarp.fr/apps/gateway/gateway/pkg/model/types"
@@ -96,6 +97,50 @@ func TestGetHistory(t *testing.T) {
 
 					Convey("Then it should reply with a 'Not Found' error", func() {
 						So(w.Code, ShouldEqual, http.StatusNotFound)
+					})
+				})
+			})
+
+			Convey("Given a database with an unown 1 transfer history ", func() {
+				gwname := conf.GlobalConfig.GatewayName
+				conf.GlobalConfig.GatewayName = "other"
+
+				h2 := &model.HistoryEntry{
+					ID:               2,
+					RemoteTransferID: "1235",
+					IsServer:         true,
+					IsSend:           false,
+					Rule:             "rule",
+					Account:          "acc",
+					Agent:            "server",
+					Protocol:         "sftp",
+					LocalPath:        "/local/file.test",
+					RemotePath:       "/remote/file.test",
+					Start:            time.Date(2021, 1, 2, 3, 4, 5, 678000, time.Local),
+					Stop:             time.Date(2021, 2, 3, 4, 5, 6, 789000, time.Local),
+					Status:           "DONE",
+				}
+				So(db.Insert(h2).Run(), ShouldBeNil)
+
+				infos := map[string]any{"key1": "val1", "key2": 2}
+				So(h.SetTransferInfo(db, infos), ShouldBeNil)
+
+				conf.GlobalConfig.GatewayName = gwname
+
+				id2 := fmt.Sprint(h2.ID)
+
+				Convey("Given a request with the unown transfer history ID parameter", func() {
+					uri := path.Join(historyURI, id2)
+					req, err := http.NewRequest(http.MethodGet, uri, nil)
+					So(err, ShouldBeNil)
+					req = mux.SetURLVars(req, map[string]string{"history": id2})
+
+					Convey("When sending the request to the handler", func() {
+						handler.ServeHTTP(w, req)
+
+						Convey("Then it should reply with a 'Not Found' error", func() {
+							So(w.Code, ShouldEqual, http.StatusNotFound)
+						})
 					})
 				})
 			})
