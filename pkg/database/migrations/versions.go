@@ -24,6 +24,7 @@ var VersionsMap = map[string]int{
 	"0.6.1": 16,
 	"0.6.2": 16,
 	"0.7.0": 31,
+	"0.7.1": 31,
 
 	VersionNone: -1,
 	version.Num: len(Migrations) - 1,
