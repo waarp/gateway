@@ -6,14 +6,14 @@ import (
 	"code.waarp.fr/lib/migration"
 )
 
-type script interface {
+type Script interface {
 	Up(db migration.Actions) error
 	Down(db migration.Actions) error
 }
 
-type change struct {
+type Change struct {
 	Description string
-	Script      script
+	Script      Script
 }
 
 // Migrations should be declared here in chronological order. This means that
@@ -21,7 +21,7 @@ type change struct {
 // never changes.
 //
 //nolint:gochecknoglobals // global var is used by design
-var Migrations = []change{
+var Migrations = []Change{
 	{ // #0
 		Description: "Initialize the database",
 		Script:      ver0_4_0InitDatabase{},

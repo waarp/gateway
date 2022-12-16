@@ -18,7 +18,7 @@ const windowsRuntime = "windows"
 var errInvalidVersion = errors.New("invalid database version")
 
 func getTargetIndex(target string) (int, error) {
-	index, ok := versionsMap[target]
+	index, ok := VersionsMap[target]
 	if !ok {
 		return -1, fmt.Errorf("the target database version (%s) is unknown: %w",
 			target, errInvalidVersion)
@@ -44,7 +44,7 @@ func getCurrentIndex(db *sql.DB, dialect string) (int, error) {
 		return 0, fmt.Errorf("cannot scan database results: %w", err)
 	}
 
-	index, ok := versionsMap[current]
+	index, ok := VersionsMap[current]
 	if !ok {
 		return 0, fmt.Errorf("the current database version (%s) is unknown: %w",
 			current, errInvalidVersion)
@@ -101,7 +101,7 @@ func DoMigration(db *sql.DB, logger *log.Logger, targetVersion, dialect string, 
 	return nil
 }
 
-func makeMigration(toApply []change) []migration.Script {
+func makeMigration(toApply []Change) []migration.Script {
 	migrations := make([]migration.Script, len(toApply))
 
 	for i := range toApply {

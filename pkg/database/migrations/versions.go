@@ -11,7 +11,7 @@ import (
 const VersionNone = "none"
 
 //nolint:gochecknoglobals,gomnd //a global var with magic numbers is required here
-var versionsMap = map[string]int{
+var VersionsMap = map[string]int{
 	"0.4.0": 0,
 	"0.4.1": 0,
 	"0.4.2": 1,

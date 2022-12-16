@@ -14,7 +14,7 @@ import (
 	sqliteLib "modernc.org/sqlite/lib"
 )
 
-func setupDatabaseUpTo(eng *testEngine, target script) {
+func setupDatabaseUpTo(eng *testEngine, target Script) {
 	index := -1
 
 	for i, mig := range Migrations {
