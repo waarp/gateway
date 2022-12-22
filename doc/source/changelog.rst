@@ -3,6 +3,7 @@
 Historique des versions
 =======================
 
+* :release:`0.7.1 <2022-12-19>`
 * :bug:`355` Correction de 2 bugs du moteur de migration de base de donnée:
 
   * Le premier est exclusif aux bases de données SQLite, et causait la suppression
