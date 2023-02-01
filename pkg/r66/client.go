@@ -5,7 +5,6 @@ import (
 	"context"
 	"crypto/tls"
 	"encoding/json"
-	"strings"
 
 	"code.waarp.fr/lib/r66"
 
@@ -93,7 +92,7 @@ func (c *client) BeginPreTasks() *types.TransferError { return nil }
 func (c *client) EndPreTasks() *types.TransferError {
 	if c.pip.TransCtx.Rule.IsSend {
 		outInfo := &r66.UpdateInfo{
-			Filename: strings.TrimPrefix(c.pip.TransCtx.Transfer.RemotePath, "/"),
+			Filename: c.pip.TransCtx.Transfer.RemotePath,
 			FileSize: c.pip.TransCtx.Transfer.Filesize,
 			FileInfo: &r66.TransferData{},
 		}

@@ -97,6 +97,10 @@ func TestTransferBeforeWrite(t *testing.T) {
 						Convey("Then the local path should be in the OS's format", func() {
 							So(trans.LocalPath, ShouldEqual, utils.ToOSPath("/local/path"))
 						})
+
+						Convey("Then the remote path should be a standard URL", func() {
+							So(trans.RemotePath, ShouldEqual, "/remote/path")
+						})
 					})
 				})
 

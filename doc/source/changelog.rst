@@ -3,6 +3,20 @@
 Historique des versions
 =======================
 
+* :bug:`358` Les clients SFTP et R66 ne forcent plus les chemins de fichiers à
+  être relatifs. Il est donc désormais possible pour ces clients de requérir
+  des chemins absolus et relatifs. Conséquemment, les chemins distants
+  (*remote filepath*) calculés lors des transferts peuvent désormais être
+  absolus ou relatifs (précédemment, ils étaient forcés à être absolus).
+
+  Á noter que, pour des raisons de sécurité, seuls les clients sont affectés par
+  ce changement. Les serveurs de la *gateway* (quelque soit leur protocole)
+  n'acceptent pas les chemins absolus (ces derniers sont considérés comme étant
+  relatifs à la racine du serveur).
+* :bug:`359` Correction d'un bug du CLI qui causait un crash des commandes
+  ``rule list`` et ``rule get`` lorsque la règle à afficher dépassait un certain
+  nombre de traitements.
+
 * :release:`0.7.1 <2022-12-19>`
 * :bug:`355` Correction de 2 bugs du moteur de migration de base de donnée:
 

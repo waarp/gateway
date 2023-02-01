@@ -193,7 +193,7 @@ func TestSSHServerInterruption(t *testing.T) {
 							LocalAccountID:   utils.NewNullInt64(test.LocAccount.ID),
 							LocalPath: filepath.Join(test.Server.RootDir,
 								test.ServerRule.TmpLocalRcvDir, "test_in_shutdown.dst.part"),
-							RemotePath: "/test_in_shutdown.dst",
+							RemotePath: "test_in_shutdown.dst",
 							Filesize:   model.UnknownSize,
 							RuleID:     test.ServerRule.ID,
 							Status:     types.StatusInterrupted,

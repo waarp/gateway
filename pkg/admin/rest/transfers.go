@@ -7,7 +7,6 @@ import (
 	"path"
 	"path/filepath"
 	"strconv"
-	"strings"
 	"time"
 
 	"code.waarp.fr/lib/log"
@@ -59,11 +58,11 @@ func restTransferToDB(jTrans *api.InTransfer, db *database.DB, logger *log.Logge
 	}
 
 	locPath := file
-	remPath := strings.TrimPrefix(out, "/")
+	remPath := out
 
 	if !*jTrans.IsSend {
 		locPath = out
-		remPath = strings.TrimPrefix(file, "/")
+		remPath = file
 	}
 
 	return &model.Transfer{

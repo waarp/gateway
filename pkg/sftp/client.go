@@ -7,7 +7,6 @@ import (
 	"encoding/json"
 	"io"
 	"os"
-	"strings"
 
 	"github.com/pkg/sftp"
 	"golang.org/x/crypto/ssh"
@@ -94,7 +93,7 @@ func (c *client) Request() *types.TransferError {
 		return c.fromSFTPErr(err, types.TeUnknownRemote)
 	}
 
-	filepath := strings.TrimPrefix(c.pip.TransCtx.Transfer.RemotePath, "/")
+	filepath := c.pip.TransCtx.Transfer.RemotePath
 
 	if c.pip.TransCtx.Rule.IsSend {
 		return c.send(filepath)

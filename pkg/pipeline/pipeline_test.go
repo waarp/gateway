@@ -40,7 +40,7 @@ func TestNewClientPipeline(t *testing.T) {
 
 					Convey("Then the transfer's paths should have been initiated", func(c C) {
 						So(trans.LocalPath, ShouldEqual, file)
-						So(trans.RemotePath, ShouldEqual, path.Join("/",
+						So(trans.RemotePath, ShouldEqual, path.Join(
 							ctx.send.RemoteDir, "file"))
 					})
 				})
@@ -107,7 +107,7 @@ func TestNewClientPipeline(t *testing.T) {
 					Convey("Then the transfer's paths should have been initiated", func(c C) {
 						So(trans.LocalPath, ShouldEqual, filepath.Join(
 							ctx.root, ctx.recv.TmpLocalRcvDir, filename))
-						So(trans.RemotePath, ShouldEqual, path.Join("/",
+						So(trans.RemotePath, ShouldEqual, path.Join(
 							ctx.recv.RemoteDir, filename))
 					})
 				})
