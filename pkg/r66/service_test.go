@@ -103,7 +103,7 @@ func TestServiceStop(t *testing.T) {
 			Name:        "r66_server",
 			Protocol:    ProtocolR66,
 			ProtoConfig: json.RawMessage(`{"blockSize":512,"serverPassword":"c2VzYW1l"}`),
-			Address:     "localhost:8067",
+			Address:     "localhost:0",
 		}
 		So(db.Insert(server).Run(), ShouldBeNil)
 

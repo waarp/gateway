@@ -88,12 +88,10 @@ func createDir(file string) *types.TransferError {
 // For remote paths, only the rule's remote dir is added (if defined) before the
 // file name.
 func (p *Pipeline) setFilePaths() {
-	if !path.IsAbs(p.TransCtx.Transfer.RemotePath) {
-		p.TransCtx.Transfer.RemotePath = path.Join("/", p.TransCtx.Rule.RemoteDir,
-			p.TransCtx.Transfer.RemotePath)
-	}
-
 	if !filepath.IsAbs(p.TransCtx.Transfer.LocalPath) {
+		p.TransCtx.Transfer.RemotePath = path.Join(p.TransCtx.Rule.RemoteDir,
+			p.TransCtx.Transfer.RemotePath)
+
 		p.TransCtx.Transfer.LocalPath = filepath.Join(makeLocalDir(p.TransCtx),
 			p.TransCtx.Transfer.LocalPath)
 	}

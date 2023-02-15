@@ -71,7 +71,7 @@ func (d *serverData) checkServerTransferOK(c convey.C, remoteTransferID, filenam
 			Start:            actual.Start,
 			Stop:             actual.Stop,
 			LocalPath:        filepath.Join(d.Server.RootDir, d.ServerRule.LocalDir, filename),
-			RemotePath:       "/" + filepath.Base(filename),
+			RemotePath:       filepath.Base(filename),
 			Filesize:         TestFileSize,
 			Status:           types.StatusDone,
 			Step:             types.StepNone,

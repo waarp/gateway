@@ -177,7 +177,7 @@ func TestValidRequest(t *testing.T) {
 						So(handler.trans.pip.TransCtx.Transfer.LocalAccountID.Int64, ShouldEqual, account.ID)
 						So(handler.trans.pip.TransCtx.Transfer.LocalPath, ShouldEqual, filepath.Join(
 							server.RootDir, rule.TmpLocalRcvDir, path.Base(packet.Filepath)))
-						So(handler.trans.pip.TransCtx.Transfer.RemotePath, ShouldEqual, "/"+path.Base(packet.Filepath))
+						So(handler.trans.pip.TransCtx.Transfer.RemotePath, ShouldEqual, path.Base(packet.Filepath))
 						So(handler.trans.pip.TransCtx.Transfer.Start, ShouldHappenOnOrBefore, time.Now())
 						So(handler.trans.pip.TransCtx.Transfer.Step, ShouldEqual, types.StepSetup)
 						So(handler.trans.pip.TransCtx.Transfer.Status, ShouldEqual, types.StatusRunning)
