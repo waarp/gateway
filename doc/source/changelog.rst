@@ -3,6 +3,7 @@
 Historique des versions
 =======================
 
+* :release:`0.7.2 <2023-02-15>`
 * :bug:`358` Les clients SFTP et R66 ne forcent plus les chemins de fichiers à
   être relatifs. Il est donc désormais possible pour ces clients de requérir
   des chemins absolus et relatifs. Conséquemment, les chemins distants
