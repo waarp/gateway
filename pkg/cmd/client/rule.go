@@ -31,12 +31,12 @@ func displayTasks(w io.Writer, rule *api.OutRule) {
 		{"Error tasks", rule.ErrorTasks},
 	}
 
-	for i := range chains {
-		fmt.Fprintln(w, orange("    "+chains[i].name+":"))
+	for _, chain := range chains {
+		fmt.Fprintln(w, orange("    "+chain.name+":"))
 
-		for i, t := range chains[i].tasks {
+		for i, t := range chain.tasks {
 			prefix := "    ├─Command"
-			if i == len(chains[i].tasks)-1 {
+			if i == len(chain.tasks)-1 {
 				prefix = "    └─Command"
 			}
 

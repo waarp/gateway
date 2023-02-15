@@ -110,6 +110,12 @@ func TestDisplayRule(t *testing.T) {
 			}, {
 				Type: "EXEC",
 				Args: json.RawMessage(`{"path":"/path/to/script","args":"{}","delay":"0"}`),
+			}, {
+				Type: "COPYRENAME",
+				Args: json.RawMessage(`{"path":"/path/to/copy-rename"}`),
+			}, {
+				Type: "NOOP",
+				Args: json.RawMessage(`{}`),
 			}},
 			PostTasks: []*api.Task{{
 				Type: "DELETE",
