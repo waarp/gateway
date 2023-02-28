@@ -119,7 +119,7 @@ func makeLocalDir(transCtx *model.TransferContext) string {
 	default:
 		return utils.GetPath("", leaf(transCtx.Rule.TmpLocalRcvDir),
 			leaf(transCtx.Rule.LocalDir), leaf(transCtx.Paths.DefaultTmpDir),
-			leaf(transCtx.Paths.DefaultOutDir), branch(transCtx.Paths.GatewayHome))
+			leaf(transCtx.Paths.DefaultInDir), branch(transCtx.Paths.GatewayHome))
 	}
 }
 

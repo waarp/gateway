@@ -3,6 +3,13 @@
 Historique des versions
 =======================
 
+* :bug:`361` Les mots clés ``#INPATH#``, ``#OUTPATH#`` et ``#WORKPATH#`` prennent
+  dorénavant bien compte des chemins spécifiés dans les règles et les serveurs
+  (précédemment, seuls les dossiers spécifiés dans le fichier de configuration
+  étaient pris en compte).
+
+  *Uniquement sous Windows*: Les mots clés ``#TRUEFILENAME#`` et ``#ORIGINALFILENAME#``
+  ont été corrigés pour qu'ils renvoient correctement un nom de fichier, comme sous Unix.
 * :bug:`363` L'argument "version" de la commande ``waarp-gatewayd migrate`` a
   dorénavant bien une valeur par défaut. Précédemment, omettre cet argument levait
   une erreur. Maintenant, en l'absence de l'argument "version", la commande
