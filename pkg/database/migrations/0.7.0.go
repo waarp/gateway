@@ -341,6 +341,10 @@ func (ver0_7_0RevampRemoteAccountsTable) Up(db Actions) error {
 		return fmt.Errorf("failed to drop the old remote_account index: %w", err)
 	}
 
+	if err := db.Exec(`UPDATE remote_accounts SET password='' WHERE password IS NULL`); err != nil {
+		return fmt.Errorf("failed to update the remote_accounts passwords: %w", err)
+	}
+
 	if err := db.AlterTable("remote_accounts",
 		AlterColumn{Name: "id", Type: BigInt{}, NotNull: true, Default: AutoIncr{}},
 		AlterColumn{Name: "remote_agent_id", Type: BigInt{}, NotNull: true},
@@ -369,6 +373,10 @@ func (ver0_7_0RevampRemoteAccountsTable) Down(db Actions) error {
 		AlterColumn{Name: "password", Type: Text{}},
 	); err != nil {
 		return fmt.Errorf("failed to alter the remote_accounts table: %w", err)
+	}
+
+	if err := db.Exec(`UPDATE remote_accounts SET password=NULL WHERE password=''`); err != nil {
+		return fmt.Errorf("failed to update the remote_accounts passwords: %w", err)
 	}
 
 	if err := db.CreateIndex(&Index{
@@ -828,6 +836,10 @@ func (ver0_7_0RevampCryptoTable) Up(db Actions) error {
 		return fmt.Errorf("failed to drop the old crypto_credentials index: %w", err)
 	}
 
+	if err := db.Exec(`UPDATE crypto_credentials SET private_key='' WHERE private_key IS NULL`); err != nil {
+		return fmt.Errorf("failed to update the crypto_credentials private keys: %w", err)
+	}
+
 	if err := db.AlterTable("crypto_credentials",
 		AlterColumn{Name: "id", Type: BigInt{}, NotNull: true, Default: AutoIncr{}},
 		AlterColumn{Name: "name", Type: Varchar(100), NotNull: true},
@@ -909,6 +921,10 @@ func (ver0_7_0RevampCryptoTable) Down(db Actions) error {
 		AddColumn{Name: "owner_id", Type: UnsignedBigInt{} /*NotNull: true*/},
 	); err != nil {
 		return fmt.Errorf("failed to alter the crypto_credentials table: %w", err)
+	}
+
+	if err := db.Exec(`UPDATE crypto_credentials SET private_key=NULL WHERE private_key=''`); err != nil {
+		return fmt.Errorf("failed to update the crypto_credentials private keys: %w", err)
 	}
 
 	if err := db.Exec(`UPDATE crypto_credentials SET

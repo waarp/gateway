@@ -297,62 +297,87 @@ func testVer0_7_0RevampLocalAccountsTable(eng *testEngine, dialect string) {
 	})
 }
 
-func testVer0_7_0RevampRemoteAccountsTable(eng *testEngine, dialect string) {
+func testVer0_7_0RevampRemoteAccountsTable(eng *testEngine) {
+	mig := ver0_7_0RevampRemoteAccountsTable{}
+
 	Convey("Given the 0.7.0 'remote_accounts' table revamp", func() {
-		setupDatabaseUpTo(eng, ver0_7_0RevampRemoteAccountsTable{})
+		setupDatabaseUpTo(eng, mig)
 
 		_, err := eng.DB.Exec(`INSERT INTO remote_agents(id,name,protocol,address,
         	proto_config) VALUES (1,'sftp_part','sftp','localhost:2222','{}')`)
 		So(err, ShouldBeNil)
 
-		if dialect == PostgreSQL {
-			_, err = eng.DB.Exec(`INSERT INTO remote_accounts(id,remote_agent_id,
-				login,password) VALUES (1,1,'toto',$1)`, []byte("pswd"))
-		} else {
-			_, err = eng.DB.Exec(`INSERT INTO remote_accounts(id,remote_agent_id,
-				login,password) VALUES (1,1,'toto',?)`, []byte("pswd"))
-		}
+		_, err = eng.DB.Exec(`INSERT INTO 
+    			remote_accounts(id,remote_agent_id,login,password) 
+				VALUES (1,1,'toto','pswd'), 
+				       (2,1,'titi',NULL)`)
 
 		So(err, ShouldBeNil)
 
 		Convey("When applying the migration", func() {
-			err := eng.Upgrade(ver0_7_0RevampRemoteAccountsTable{})
-			So(err, ShouldBeNil)
+			So(eng.Upgrade(mig), ShouldBeNil)
 
 			Convey("Then it should have changed the columns", func() {
-				row := eng.DB.QueryRow(`SELECT id,remote_agent_id,login,
+				rows, err := eng.DB.Query(`SELECT id,remote_agent_id,login,
        				password FROM remote_accounts`)
 				So(err, ShouldBeNil)
+				defer func() { So(rows.Close(), ShouldBeNil) }()
+				defer func() { So(rows.Err(), ShouldBeNil) }()
 
 				var id, agID int64
 				var login, pwd string
 
-				So(row.Scan(&id, &agID, &login, &pwd), ShouldBeNil)
+				So(rows.Next(), ShouldBeTrue)
+				So(rows.Scan(&id, &agID, &login, &pwd), ShouldBeNil)
 
 				So(id, ShouldEqual, 1)
 				So(agID, ShouldEqual, 1)
 				So(login, ShouldEqual, "toto")
 				So(pwd, ShouldEqual, "pswd")
+
+				So(rows.Next(), ShouldBeTrue)
+				So(rows.Scan(&id, &agID, &login, &pwd), ShouldBeNil)
+
+				So(id, ShouldEqual, 2)
+				So(agID, ShouldEqual, 1)
+				So(login, ShouldEqual, "titi")
+				So(pwd, ShouldEqual, "")
+
+				So(rows.Next(), ShouldBeFalse)
 			})
 
 			Convey("When reversing the migration", func() {
-				err := eng.Downgrade(ver0_7_0RevampRemoteAccountsTable{})
-				So(err, ShouldBeNil)
+				So(eng.Downgrade(mig), ShouldBeNil)
 
 				Convey("Then it should have reverted the column changes", func() {
-					row := eng.DB.QueryRow(`SELECT id,remote_agent_id,login,
+					rows, err := eng.DB.Query(`SELECT id,remote_agent_id,login,
        					password FROM remote_accounts`)
 					So(err, ShouldBeNil)
+					defer func() { So(rows.Close(), ShouldBeNil) }()
+					defer func() { So(rows.Err(), ShouldBeNil) }()
 
 					var id, agID int64
-					var login, hash string
+					var login string
+					var pwd sql.NullString
 
-					So(row.Scan(&id, &agID, &login, &hash), ShouldBeNil)
+					So(rows.Next(), ShouldBeTrue)
+					So(rows.Scan(&id, &agID, &login, &pwd), ShouldBeNil)
 
 					So(id, ShouldEqual, 1)
 					So(agID, ShouldEqual, 1)
 					So(login, ShouldEqual, "toto")
-					So(hash, ShouldEqual, "pswd")
+					So(pwd.Valid, ShouldBeTrue)
+					So(pwd.String, ShouldEqual, "pswd")
+
+					So(rows.Next(), ShouldBeTrue)
+					So(rows.Scan(&id, &agID, &login, &pwd), ShouldBeNil)
+
+					So(id, ShouldEqual, 2)
+					So(agID, ShouldEqual, 1)
+					So(login, ShouldEqual, "titi")
+					So(pwd.Valid, ShouldBeFalse)
+
+					So(rows.Next(), ShouldBeFalse)
 				})
 			})
 		})
@@ -948,7 +973,7 @@ func testVer0_7_0RevampCryptoTable(eng *testEngine) {
 
 		_, err = eng.DB.Exec(`INSERT INTO crypto_credentials(id,name,owner_type,
             owner_id,private_key,certificate,ssh_public_key) VALUES (2200,
-            'rac_cert','remote_accounts',200,'pk4','cert4','pbk4')`)
+            'rac_cert','remote_accounts',200,NULL,'cert4','pbk4')`)
 		So(err, ShouldBeNil)
 
 		Convey("When applying the migration", func() {
@@ -1012,7 +1037,7 @@ func testVer0_7_0RevampCryptoTable(eng *testEngine) {
 						So(lacID.Int64, ShouldEqual, 0)
 						So(ragID.Int64, ShouldEqual, 0)
 						So(racID.Int64, ShouldEqual, 200)
-						So(pk, ShouldEqual, "pk4")
+						So(pk, ShouldEqual, "")
 						So(cert, ShouldEqual, "cert4")
 						So(pbk, ShouldEqual, "pbk4")
 					default:
@@ -1035,8 +1060,9 @@ func testVer0_7_0RevampCryptoTable(eng *testEngine) {
 
 					for rows.Next() {
 						var (
-							id, oID                    int64
-							name, oType, pk, cert, pbk string
+							id, oID                int64
+							name, oType, cert, pbk string
+							pk                     sql.NullString
 						)
 
 						So(rows.Scan(&id, &name, &oType, &oID, &pk, &cert, &pbk), ShouldBeNil)
@@ -1046,28 +1072,31 @@ func testVer0_7_0RevampCryptoTable(eng *testEngine) {
 							So(id, ShouldEqual, 1010)
 							So(name, ShouldEqual, "lag_cert")
 							So(oID, ShouldEqual, 10)
-							So(pk, ShouldEqual, "pk1")
+							So(pk.Valid, ShouldBeTrue)
+							So(pk.String, ShouldEqual, "pk1")
 							So(cert, ShouldEqual, "cert1")
 							So(pbk, ShouldEqual, "pbk1")
 						case "local_accounts":
 							So(id, ShouldEqual, 1100)
 							So(name, ShouldEqual, "lac_cert")
 							So(oID, ShouldEqual, 100)
-							So(pk, ShouldEqual, "pk2")
+							So(pk.Valid, ShouldBeTrue)
+							So(pk.String, ShouldEqual, "pk2")
 							So(cert, ShouldEqual, "cert2")
 							So(pbk, ShouldEqual, "pbk2")
 						case "remote_agents":
 							So(id, ShouldEqual, 2020)
 							So(name, ShouldEqual, "rag_cert")
 							So(oID, ShouldEqual, 20)
-							So(pk, ShouldEqual, "pk3")
+							So(pk.Valid, ShouldBeTrue)
+							So(pk.String, ShouldEqual, "pk3")
 							So(cert, ShouldEqual, "cert3")
 							So(pbk, ShouldEqual, "pbk3")
 						case "remote_accounts":
 							So(id, ShouldEqual, 2200)
 							So(name, ShouldEqual, "rac_cert")
 							So(oID, ShouldEqual, 200)
-							So(pk, ShouldEqual, "pk4")
+							So(pk.Valid, ShouldBeFalse)
 							So(cert, ShouldEqual, "cert4")
 							So(pbk, ShouldEqual, "pbk4")
 						default:
