@@ -3,6 +3,11 @@
 Historique des versions
 =======================
 
+* :bug:`363` L'argument "version" de la commande ``waarp-gatewayd migrate`` a
+  dorénavant bien une valeur par défaut. Précédemment, omettre cet argument levait
+  une erreur. Maintenant, en l'absence de l'argument "version", la commande
+  effectuera bien une migration vers la dernière version connue, comme il était
+  prévu à l'origine.
 * :bug:`362` Correction d'une erreur dans le script de migration de la version
   0.7.0 qui empêchait la migration de s'effectuer à cause de la violation d'une
   contrainte *NOT NULL* sur les tables ``remote_accounts`` et ``crypto_credentials``.

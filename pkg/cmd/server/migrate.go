@@ -10,6 +10,7 @@ import (
 
 	"code.waarp.fr/apps/gateway/gateway/pkg/conf"
 	"code.waarp.fr/apps/gateway/gateway/pkg/database/migrations"
+	"code.waarp.fr/apps/gateway/gateway/pkg/version"
 )
 
 //nolint:lll // tags can be long for flags
@@ -24,6 +25,10 @@ type MigrateCommand struct {
 }
 
 func (cmd *MigrateCommand) Execute([]string) error {
+	if cmd.Args.Version == "" {
+		cmd.Args.Version = version.Num
+	}
+
 	config, logger, err := initMigration(string(cmd.ConfigFile), cmd.Verbose)
 	if err != nil {
 		return err
