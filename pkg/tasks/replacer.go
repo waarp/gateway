@@ -5,6 +5,7 @@ import (
 	"errors"
 	"fmt"
 	"path"
+	"path/filepath"
 	"time"
 
 	"code.waarp.fr/apps/gateway/gateway/pkg/model"
@@ -24,7 +25,7 @@ func getReplacers() replacersMap {
 			return r.transCtx.Transfer.LocalPath, nil
 		},
 		"#TRUEFILENAME#": func(r *Runner) (string, error) {
-			return path.Base(r.transCtx.Transfer.LocalPath), nil
+			return filepath.Base(r.transCtx.Transfer.LocalPath), nil
 		},
 		"#ORIGINALFULLPATH#": func(r *Runner) (string, error) {
 			if r.transCtx.Rule.IsSend {
@@ -35,7 +36,7 @@ func getReplacers() replacersMap {
 		},
 		"#ORIGINALFILENAME#": func(r *Runner) (string, error) {
 			if r.transCtx.Rule.IsSend {
-				return path.Base(r.transCtx.Transfer.LocalPath), nil
+				return filepath.Base(r.transCtx.Transfer.LocalPath), nil
 			}
 
 			return path.Base(r.transCtx.Transfer.RemotePath), nil
@@ -44,16 +45,13 @@ func getReplacers() replacersMap {
 			return fmt.Sprint(r.transCtx.Transfer.Filesize), nil
 		},
 		"#INPATH#": func(r *Runner) (string, error) {
-			return utils.GetPath(r.transCtx.Paths.DefaultInDir,
-				utils.Branch(r.transCtx.Paths.GatewayHome)), nil
+			return makeInDir(r.transCtx), nil
 		},
 		"#OUTPATH#": func(r *Runner) (string, error) {
-			return utils.GetPath(r.transCtx.Paths.DefaultOutDir,
-				utils.Branch(r.transCtx.Paths.GatewayHome)), nil
+			return makeOutDir(r.transCtx), nil
 		},
 		"#WORKPATH#": func(r *Runner) (string, error) {
-			return utils.GetPath("", utils.Leaf(r.transCtx.Paths.DefaultTmpDir),
-				utils.Branch(r.transCtx.Paths.GatewayHome)), nil
+			return makeTmpDir(r.transCtx), nil
 		},
 		"#ARCHPATH#": notImplemented("#ARCHPATH#"),
 		"#HOMEPATH#": func(r *Runner) (string, error) {

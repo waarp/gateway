@@ -53,30 +53,32 @@ func TestSetup(t *testing.T) {
 			}
 			So(db.Insert(account).Run(), ShouldBeNil)
 
-			r := &Runner{
-				db: db,
-				transCtx: &model.TransferContext{
-					Paths: &conf.PathsConfig{
-						GatewayHome:   root,
-						DefaultInDir:  "in_dir",
-						DefaultOutDir: "out_dir",
-						DefaultTmpDir: filepath.Join(rootAlt, "tmp_dir"),
-					},
-					Rule: &model.Rule{
-						Name:     "rulename",
-						IsSend:   true,
-						Path:     "path/to/test",
-						LocalDir: "/local/dir",
-					},
-					Transfer: &model.Transfer{
-						ID:              1234,
-						RemoteAccountID: utils.NewNullInt64(account.ID),
-						Error: types.TransferError{
-							Details: `", "bad":1`,
-						},
-					},
+			transCtx := &model.TransferContext{}
+			transCtx.Paths = &conf.PathsConfig{
+				GatewayHome:   root,
+				DefaultInDir:  "in_dir",
+				DefaultOutDir: "out_dir",
+				DefaultTmpDir: filepath.Join(rootAlt, "tmp_dir"),
+			}
+			transCtx.Rule = &model.Rule{
+				Name:           "rulename",
+				IsSend:         true,
+				Path:           "path/to/test",
+				LocalDir:       "local/dir",
+				RemoteDir:      "remote/dir",
+				TmpLocalRcvDir: "local/tmp",
+			}
+			transCtx.Transfer = &model.Transfer{
+				ID:              1234,
+				RemoteAccountID: utils.NewNullInt64(account.ID),
+				LocalPath:       filepath.Join(root, transCtx.Rule.LocalDir, "file.test"),
+				Error: types.TransferError{
+					Code:    types.TeConnection,
+					Details: `error message`,
 				},
 			}
+
+			r := &Runner{db: db, transCtx: transCtx}
 
 			Convey("When calling the `setup` function", func() {
 				res, err := r.setup(task)
@@ -245,7 +247,7 @@ func TestSetup(t *testing.T) {
 						So(ok, ShouldBeTrue)
 
 						Convey("Then res[inPath] should contain the resolved variable", func() {
-							So(val, ShouldEqual, filepath.Join(root, r.transCtx.Paths.DefaultInDir))
+							So(val, ShouldEqual, r.transCtx.Rule.RemoteDir)
 						})
 					})
 
@@ -254,7 +256,7 @@ func TestSetup(t *testing.T) {
 						So(ok, ShouldBeTrue)
 
 						Convey("Then res[outPath] should contain the resolved variable", func() {
-							So(val, ShouldEqual, filepath.Join(root, r.transCtx.Paths.DefaultOutDir))
+							So(val, ShouldEqual, filepath.Join(root, r.transCtx.Rule.LocalDir))
 						})
 					})
 
@@ -263,7 +265,7 @@ func TestSetup(t *testing.T) {
 						So(ok, ShouldBeTrue)
 
 						Convey("Then res[workPath] should contain the resolved variable", func() {
-							So(val, ShouldEqual, r.transCtx.Paths.DefaultTmpDir)
+							So(val, ShouldEqual, filepath.Join(root, r.transCtx.Rule.TmpLocalRcvDir))
 						})
 					})
 				})
