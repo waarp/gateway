@@ -3,6 +3,10 @@
 Historique des versions
 =======================
 
+* :bug:`362` Correction d'une erreur dans le script de migration de la version
+  0.7.0 qui empêchait la migration de s'effectuer à cause de la violation d'une
+  contrainte *NOT NULL* sur les tables ``remote_accounts`` et ``crypto_credentials``.
+
 * :release:`0.7.2 <2023-02-15>`
 * :bug:`358` Les clients SFTP et R66 ne forcent plus les chemins de fichiers à
   être relatifs. Il est donc désormais possible pour ces clients de requérir

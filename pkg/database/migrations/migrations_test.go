@@ -34,7 +34,7 @@ func testMigrations(eng *testEngine, dbType string) {
 	testVer0_7_0RevampLocalAgentTable(eng)
 	testVer0_7_0RevampRemoteAgentTable(eng)
 	testVer0_7_0RevampLocalAccountsTable(eng, dbType)
-	testVer0_7_0RevampRemoteAccountsTable(eng, dbType)
+	testVer0_7_0RevampRemoteAccountsTable(eng)
 	testVer0_7_0RevampRulesTable(eng)
 	testVer0_7_0RevampTasksTable(eng, dbType)
 	testVer0_7_0RevampHistoryTable(eng)
