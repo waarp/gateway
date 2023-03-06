@@ -2,7 +2,6 @@ package model
 
 import (
 	"database/sql"
-	"encoding/json"
 	"fmt"
 	"testing"
 	"time"
@@ -34,9 +33,9 @@ func TestTransferBeforeWrite(t *testing.T) {
 	Convey("Given a database", t, func(c C) {
 		db := database.TestDatabase(c)
 
-		Convey("Given the database contains a valid remote agent", func() {
+		Convey("Given the database contains a valid local agent", func() {
 			server := LocalAgent{
-				Name:     "remote",
+				Name:     "server",
 				Protocol: testProtocol,
 				Address:  "localhost:2022",
 			}
@@ -82,10 +81,6 @@ func TestTransferBeforeWrite(t *testing.T) {
 				Convey("Given that the new transfer is valid", func() {
 					Convey("When calling the 'BeforeWrite' function", func() {
 						So(trans.BeforeWrite(db), ShouldBeNil)
-
-						Convey("Then the remote ID should have been initialized", func() {
-							So(trans.RemoteTransferID, ShouldNotBeBlank)
-						})
 
 						Convey("Then the transfer status should be 'planned'", func() {
 							So(trans.Status, ShouldEqual, "PLANNED")
@@ -200,11 +195,13 @@ func TestTransferToHistory(t *testing.T) {
 		logger := testhelpers.TestLogger(c, "test_to_history")
 		db := database.TestDatabase(c)
 
+		cli := Client{Name: "client", Protocol: testProtocol}
+		So(db.Insert(&cli).Run(), ShouldBeNil)
+
 		remote := RemoteAgent{
-			Name:        "remote",
-			Protocol:    testProtocol,
-			ProtoConfig: json.RawMessage(`{}`),
-			Address:     "localhost:2022",
+			Name:     "remote",
+			Protocol: cli.Protocol,
+			Address:  "localhost:2022",
 		}
 		So(db.Insert(&remote).Run(), ShouldBeNil)
 
@@ -226,6 +223,7 @@ func TestTransferToHistory(t *testing.T) {
 			trans := Transfer{
 				ID:              1,
 				RuleID:          rule.ID,
+				ClientID:        utils.NewNullInt64(cli.ID),
 				RemoteAccountID: utils.NewNullInt64(account.ID),
 				SrcFilename:     "file",
 				LocalPath:       mkURL(testLocalPath),
@@ -253,7 +251,8 @@ func TestTransferToHistory(t *testing.T) {
 						IsSend:           true,
 						Account:          account.Login,
 						Agent:            remote.Name,
-						Protocol:         remote.Protocol,
+						Client:           cli.Name,
+						Protocol:         cli.Protocol,
 						SrcFilename:      trans.SrcFilename,
 						LocalPath:        trans.LocalPath,
 						RemotePath:       trans.RemotePath,

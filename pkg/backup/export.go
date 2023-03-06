@@ -31,6 +31,13 @@ func ExportData(db database.ReadAccess, w io.Writer, targets []string) error {
 		}
 	}
 
+	if utils.ContainsStrings(targets, "clients", "all") {
+		data.Clients, err = exportClients(logger, db)
+		if err != nil {
+			return err
+		}
+	}
+
 	if utils.ContainsStrings(targets, "partners", "all") {
 		data.Remotes, err = exportRemotes(logger, db)
 		if err != nil {

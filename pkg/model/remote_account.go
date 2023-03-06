@@ -1,6 +1,8 @@
 package model
 
 import (
+	"fmt"
+
 	"code.waarp.fr/apps/gateway/gateway/pkg/database"
 	"code.waarp.fr/apps/gateway/gateway/pkg/model/types"
 	"code.waarp.fr/apps/gateway/gateway/pkg/tk/utils"
@@ -79,5 +81,14 @@ func (r *RemoteAccount) GenAccessSelectCond() (string, int64) { return "remote_a
 func (r *RemoteAccount) SetAccessTarget(a *RuleAccess)        { a.RemoteAccountID = utils.NewNullInt64(r.ID) }
 
 func (r *RemoteAccount) GetAuthorizedRules(db database.ReadAccess) ([]*Rule, error) {
-	return getAuthorizedRules(db, "remote_account_id", r.ID)
+	var rules Rules
+	if err := db.Select(&rules).Where(fmt.Sprintf(
+		`id IN (SELECT DISTINCT rule_id FROM %s WHERE remote_agent_id=? OR 
+			remote_account_id=?)
+		  OR (SELECT COUNT(*) FROM %s WHERE rule_id = id) = 0`,
+		TableRuleAccesses, TableRuleAccesses), r.RemoteAgentID, r.ID).Run(); err != nil {
+		return nil, fmt.Errorf("failed to retrieve the authorized rules: %w", err)
+	}
+
+	return rules, nil
 }

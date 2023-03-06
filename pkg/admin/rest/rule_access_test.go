@@ -1,7 +1,6 @@
 package rest
 
 import (
-	"encoding/json"
 	"net/http"
 	"net/http/httptest"
 	"testing"
@@ -225,10 +224,9 @@ func TestRevokeRule(t *testing.T) {
 
 		Convey("Given a partner", func() {
 			partner := &model.RemoteAgent{
-				Name:        "partner",
-				Protocol:    testProto1,
-				ProtoConfig: json.RawMessage(`{}`),
-				Address:     "localhost:1",
+				Name:     "partner",
+				Protocol: testProto1,
+				Address:  "localhost:1",
 			}
 			So(db.Insert(partner).Run(), ShouldBeNil)
 			vals["partner"] = partner.Name
@@ -281,16 +279,14 @@ func TestRuleAllowAll(t *testing.T) {
 
 		Convey("Given multiple accesses to that rule", func() {
 			s := &model.LocalAgent{
-				Name:        "server",
-				Protocol:    testProto1,
-				ProtoConfig: json.RawMessage(`{}`),
-				Address:     "localhost:1",
+				Name:     "server",
+				Protocol: testProto1,
+				Address:  "localhost:1",
 			}
 			p := &model.RemoteAgent{
-				Name:        "partner",
-				Protocol:    testProto1,
-				ProtoConfig: json.RawMessage(`{}`),
-				Address:     "localhost:1",
+				Name:     "partner",
+				Protocol: testProto1,
+				Address:  "localhost:1",
 			}
 			So(db.Insert(p).Run(), ShouldBeNil)
 			So(db.Insert(s).Run(), ShouldBeNil)
@@ -305,6 +301,7 @@ func TestRuleAllowAll(t *testing.T) {
 				Login:         "tata",
 				Password:      "sesame",
 			}
+
 			So(db.Insert(la).Run(), ShouldBeNil)
 			So(db.Insert(ra).Run(), ShouldBeNil)
 
@@ -324,6 +321,7 @@ func TestRuleAllowAll(t *testing.T) {
 				RuleID:          rule.ID,
 				RemoteAccountID: utils.NewNullInt64(ra.ID),
 			}
+
 			So(db.Insert(sAcc).Run(), ShouldBeNil)
 			So(db.Insert(pAcc).Run(), ShouldBeNil)
 			So(db.Insert(laAcc).Run(), ShouldBeNil)
@@ -336,6 +334,7 @@ func TestRuleAllowAll(t *testing.T) {
 					w := httptest.NewRecorder()
 					r, err := http.NewRequest(http.MethodPut, "", nil)
 					So(err, ShouldBeNil)
+
 					r = mux.SetURLVars(r, map[string]string{
 						"rule":      rule.Name,
 						"direction": ruleDirection(rule),

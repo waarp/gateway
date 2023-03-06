@@ -63,13 +63,18 @@ func ruleInfoString(r *api.OutRule) string {
 				prefix = "    └─Command "
 			}
 
-			str += prefix + t.Type + " with args: " + string(t.Args) + "\n"
+			args, err := json.Marshal(t.Args)
+			if err != nil {
+				args = []byte("<error while serializing the configuration>")
+			}
+
+			str += prefix + t.Type + " with args: " + string(args) + "\n"
 		}
 
 		return str
 	}
 
-	rv := "● Rule " + r.Name + " (" + way + ")\n" +
+	rv := "● Rule \"" + r.Name + "\" (" + way + ")\n" +
 		"    Comment:                " + r.Comment + "\n" +
 		"    Path:                   " + r.Path + "\n" +
 		"    Local directory:        " + r.LocalDir + "\n" +
@@ -112,30 +117,30 @@ func TestDisplayRule(t *testing.T) {
 			},
 			PreTasks: []*api.Task{{
 				Type: "COPY",
-				Args: json.RawMessage(`{"path":"/path/to/copy"}`),
+				Args: map[string]string{"path": "/path/to/copy"},
 			}, {
 				Type: "EXEC",
-				Args: json.RawMessage(`{"path":"/path/to/script","args":"{}","delay":"0"}`),
+				Args: map[string]string{"path": "/path/to/script", "args": "{}", "delay": "0"},
 			}, {
 				Type: "COPYRENAME",
-				Args: json.RawMessage(`{"path":"/path/to/copy-rename"}`),
+				Args: map[string]string{"path": "/path/to/copy-rename"},
 			}, {
 				Type: "NOOP",
-				Args: json.RawMessage(`{}`),
+				Args: map[string]string{},
 			}},
 			PostTasks: []*api.Task{{
 				Type: "DELETE",
-				Args: json.RawMessage("{}"),
+				Args: map[string]string{},
 			}, {
 				Type: "TRANSFER",
-				Args: json.RawMessage(`{"file":"/path/to/file","to":"server","as":"account","rule":"rule"}`),
+				Args: map[string]string{"file": "/path/to/file", "to": "server", "as": "account", "rule": "rule"},
 			}},
 			ErrorTasks: []*api.Task{{
 				Type: "MOVE",
-				Args: json.RawMessage(`{"path":"/path/to/move"}`),
+				Args: map[string]string{"path": "/path/to/move"},
 			}, {
 				Type: "RENAME",
-				Args: json.RawMessage(`{"path":"/path/to/rename"}`),
+				Args: map[string]string{"path": "/path/to/rename"},
 			}},
 		}
 
@@ -282,44 +287,48 @@ func TestAddRule(t *testing.T) {
 								Chain:  model.ChainPre,
 								Rank:   0,
 								Type:   "COPY",
-								Args:   json.RawMessage(`{"path":"/path/to/copy"}`),
+								Args:   map[string]string{"path": "/path/to/copy"},
 							}
 							pre1 := &model.Task{
 								RuleID: expected.ID,
 								Chain:  model.ChainPre,
 								Rank:   1,
 								Type:   "EXEC",
-								Args: json.RawMessage(
-									`{"path":"/path/to/script","args":"{}","delay":"0"}`),
+								Args: map[string]string{
+									"path": "/path/to/script",
+									"args": "{}", "delay": "0",
+								},
 							}
 							post0 := &model.Task{
 								RuleID: expected.ID,
 								Chain:  model.ChainPost,
 								Rank:   0,
 								Type:   "DELETE",
-								Args:   json.RawMessage(`{}`),
+								Args:   map[string]string{},
 							}
 							post1 := &model.Task{
 								RuleID: expected.ID,
 								Chain:  model.ChainPost,
 								Rank:   1,
 								Type:   "TRANSFER",
-								Args: json.RawMessage(`{"file":"/path/to/file",` +
-									`"to":"server","as":"account","rule":"rule"}`),
+								Args: map[string]string{
+									"file": "/path/to/file", "to": "server",
+									"as": "account", "rule": "rule",
+								},
 							}
 							err0 := &model.Task{
 								RuleID: expected.ID,
 								Chain:  model.ChainError,
 								Rank:   0,
 								Type:   "MOVE",
-								Args:   json.RawMessage(`{"path":"/path/to/move"}`),
+								Args:   map[string]string{"path": "/path/to/move"},
 							}
 							err1 := &model.Task{
 								RuleID: expected.ID,
 								Chain:  model.ChainError,
 								Rank:   1,
 								Type:   "RENAME",
-								Args:   json.RawMessage(`{"path":"/path/to/rename"}`),
+								Args:   map[string]string{"path": "/path/to/rename"},
 							}
 
 							So(tasks, ShouldContain, pre0)
@@ -483,7 +492,7 @@ func TestUpdateRule(t *testing.T) {
 								ShouldBeNil)
 							So(errTasks, ShouldResemble, model.Tasks{{
 								RuleID: rule.ID, Chain: model.ChainError,
-								Rank: 0, Type: "DELETE", Args: json.RawMessage(`{}`),
+								Rank: 0, Type: "DELETE", Args: map[string]string{},
 							}})
 						})
 					})
@@ -687,16 +696,14 @@ func TestRuleAllowAll(t *testing.T) {
 
 			Convey("Given multiple accesses to that rule", func() {
 				s := &model.LocalAgent{
-					Name:        "server",
-					Protocol:    testProto1,
-					ProtoConfig: json.RawMessage(`{}`),
-					Address:     "localhost:1",
+					Name:     "server",
+					Protocol: testProto1,
+					Address:  "localhost:1",
 				}
 				p := &model.RemoteAgent{
-					Name:        "partner",
-					Protocol:    testProto1,
-					ProtoConfig: json.RawMessage(`{}`),
-					Address:     "localhost:2",
+					Name:     "partner",
+					Protocol: testProto1,
+					Address:  "localhost:2",
 				}
 				So(db.Insert(p).Run(), ShouldBeNil)
 				So(db.Insert(s).Run(), ShouldBeNil)

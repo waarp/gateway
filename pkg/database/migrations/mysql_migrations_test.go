@@ -23,6 +23,8 @@ func getMySQLEngine(c C) *testEngine {
 }
 
 func TestMySQLMigrations(t *testing.T) {
+	t.Parallel()
+
 	Convey("Given an un-migrated MySQL database engine", t, func(c C) {
 		testMigrations(getMySQLEngine(c), migration.MySQL)
 	})

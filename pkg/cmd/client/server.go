@@ -7,11 +7,13 @@ import (
 	"fmt"
 	"io"
 	"net/http"
+	"os"
 	"path"
 	"strings"
 
 	"code.waarp.fr/apps/gateway/gateway/pkg/admin/rest"
 	"code.waarp.fr/apps/gateway/gateway/pkg/admin/rest/api"
+	"code.waarp.fr/apps/gateway/gateway/pkg/tk/utils"
 )
 
 var ErrMissingServerName = errors.New("the 'server' name argument is missing")
@@ -36,16 +38,19 @@ func displayServer(w io.Writer, server *api.OutServer) {
 		status = red("Disabled")
 	}
 
-	status = orange("[") + status + orange("]")
+	protoConfig, err := json.Marshal(server.ProtoConfig)
+	if err != nil {
+		protoConfig = []byte(red("<error while serializing the configuration>"))
+	}
 
-	fmt.Fprintln(w, orange("● Server", bold(`"`+server.Name+`"`)), status)
+	fmt.Fprintln(w, boldOrange("● Server %q", server.Name), fmt.Sprintf("[%s]", status))
 	fmt.Fprintln(w, orange("    Protocol:              "), server.Protocol)
 	fmt.Fprintln(w, orange("    Address:               "), server.Address)
 	fmt.Fprintln(w, orange("    Root directory:        "), server.RootDir)
 	fmt.Fprintln(w, orange("    Receive directory:     "), server.ReceiveDir)
 	fmt.Fprintln(w, orange("    Send directory:        "), server.SendDir)
 	fmt.Fprintln(w, orange("    Temp receive directory:"), server.TmpReceiveDir)
-	fmt.Fprintln(w, orange("    Configuration:         "), string(server.ProtoConfig))
+	fmt.Fprintln(w, orange("    Configuration:         "), string(protoConfig))
 	fmt.Fprintln(w, orange("    Authorized rules"))
 	fmt.Fprintln(w, orange("    ├─Sending:             "), send)
 	fmt.Fprintln(w, orange("    └─Reception:           "), recv)
@@ -93,11 +98,6 @@ type ServerAdd struct {
 }
 
 func (s *ServerAdd) Execute([]string) error {
-	conf, err := json.Marshal(s.ProtoConfig)
-	if err != nil {
-		return fmt.Errorf("invalid config: %w", err)
-	}
-
 	server := &api.InServer{
 		Name:          &s.Name,
 		Protocol:      &s.Protocol,
@@ -106,7 +106,10 @@ func (s *ServerAdd) Execute([]string) error {
 		ReceiveDir:    s.ReceiveDir,
 		SendDir:       s.SendDir,
 		TmpReceiveDir: s.TempRcvDir,
-		ProtoConfig:   conf,
+	}
+
+	if err := utils.JSONConvert(s.ProtoConfig, &server.ProtoConfig); err != nil {
+		return fmt.Errorf("invalid config: %w", err)
 	}
 
 	if s.Root != nil {
@@ -226,11 +229,6 @@ type ServerUpdate struct {
 }
 
 func (s *ServerUpdate) Execute([]string) error {
-	conf, err := json.Marshal(s.ProtoConfig)
-	if err != nil {
-		return fmt.Errorf("invalid config: %w", err)
-	}
-
 	server := &api.InServer{
 		Name:          s.Name,
 		Protocol:      s.Protocol,
@@ -239,7 +237,10 @@ func (s *ServerUpdate) Execute([]string) error {
 		ReceiveDir:    s.ReceiveDir,
 		SendDir:       s.SendDir,
 		TmpReceiveDir: s.TempRcvDir,
-		ProtoConfig:   conf,
+	}
+
+	if err := utils.JSONConvert(s.ProtoConfig, &server.ProtoConfig); err != nil {
+		return fmt.Errorf("invalid config: %w", err)
 	}
 
 	if s.Root != nil {
@@ -301,7 +302,7 @@ func (s *ServerAuthorize) Execute([]string) error {
 	addr.Path = fmt.Sprintf("/api/servers/%s/authorize/%s/%s", s.Args.Server,
 		s.Args.Rule, s.Args.Direction)
 
-	return authorize("server", s.Args.Server, s.Args.Rule, s.Args.Direction)
+	return authorize(out, "server", s.Args.Server, s.Args.Rule, s.Args.Direction)
 }
 
 // ######################## REVOKE ##########################
@@ -319,7 +320,7 @@ func (s *ServerRevoke) Execute([]string) error {
 	addr.Path = fmt.Sprintf("/api/servers/%s/revoke/%s/%s", s.Args.Server,
 		s.Args.Rule, s.Args.Direction)
 
-	return revoke("server", s.Args.Server, s.Args.Rule, s.Args.Direction)
+	return revoke(out, "server", s.Args.Server, s.Args.Rule, s.Args.Direction)
 }
 
 // ######################## ENABLE/DISABLE ##########################
@@ -330,7 +331,7 @@ type serverEnableDisable struct {
 	} `positional-args:"yes"`
 }
 
-func (s *serverEnableDisable) run(isEnable bool) error {
+func (s *serverEnableDisable) run(w io.Writer, isEnable bool) error {
 	server := s.Args.Server
 	if server == "" {
 		return ErrMissingServerName
@@ -352,8 +353,6 @@ func (s *serverEnableDisable) run(isEnable bool) error {
 	}
 	defer resp.Body.Close() //nolint:errcheck // response should not have a body
 
-	w := getColorable()
-
 	switch resp.StatusCode {
 	case http.StatusAccepted:
 		fmt.Fprintln(w, "The server", server, "was successfully", status+".")
@@ -372,8 +371,10 @@ type (
 	ServerDisable struct{ serverEnableDisable }
 )
 
-func (s *ServerEnable) Execute([]string) error  { return s.run(true) }
-func (s *ServerDisable) Execute([]string) error { return s.run(false) }
+func (s *ServerEnable) Execute([]string) error     { return s.execute(os.Stdout) }
+func (s *ServerEnable) execute(w io.Writer) error  { return s.run(w, true) }
+func (s *ServerDisable) Execute([]string) error    { return s.execute(os.Stdout) }
+func (s *ServerDisable) execute(w io.Writer) error { return s.run(w, false) }
 
 // ######################## START/STOP ############################
 

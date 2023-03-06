@@ -35,6 +35,8 @@ const (
 // The reset parameter states whether the database should be reset before
 // importing. A value of 1 means 'reset', a value of 2 means
 // 'reset with no confirmation prompt', and any other value means 'no reset'.
+//
+//nolint:gocognit //function cannot realistically be split
 func ImportData(db *database.DB, r io.Reader, targets []string, dry, reset bool) error {
 	logger := conf.GetLogger("import")
 	data := &file.Data{}
@@ -43,24 +45,32 @@ func ImportData(db *database.DB, r io.Reader, targets []string, dry, reset bool)
 		return fmt.Errorf("cannot read data: %w", err)
 	}
 
-	transErr := db.Transaction(func(ses *database.Session) database.Error {
+	if err := db.Transaction(func(ses *database.Session) database.Error {
+		if utils.ContainsStrings(targets, "clients", "all") {
+			if err := importClients(logger, ses, data.Clients, reset); err != nil {
+				return err
+			}
+		}
+
 		if utils.ContainsStrings(targets, "partners", "all") {
 			if err := importRemoteAgents(logger, ses, data.Remotes, reset); err != nil {
 				return err
 			}
 		}
+
 		if utils.ContainsStrings(targets, "servers", "all") {
 			if err := importLocalAgents(logger, ses, data.Locals, reset); err != nil {
 				return err
 			}
 		}
+
 		if utils.ContainsStrings(targets, "rules", "all") {
 			if err := importRules(logger, ses, data.Rules, reset); err != nil {
 				return err
 			}
 		}
 		if utils.ContainsStrings(targets, "users", "all") {
-			if err := importUsers(logger, ses, data.Users); err != nil {
+			if err := importUsers(logger, ses, data.Users, reset); err != nil {
 				return err
 			}
 		}
@@ -70,14 +80,12 @@ func ImportData(db *database.DB, r io.Reader, targets []string, dry, reset bool)
 		}
 
 		return nil
-	})
-
-	if transErr != nil {
-		if dry && errors.Is(transErr, errDry) {
+	}); err != nil {
+		if dry && errors.Is(err, errDry) {
 			return nil
 		}
 
-		return fmt.Errorf("cannot import file: %w", transErr)
+		return fmt.Errorf("cannot import file: %w", err)
 	}
 
 	return nil

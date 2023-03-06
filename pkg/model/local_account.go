@@ -1,6 +1,8 @@
 package model
 
 import (
+	"fmt"
+
 	"code.waarp.fr/apps/gateway/gateway/pkg/database"
 	"code.waarp.fr/apps/gateway/gateway/pkg/tk/utils"
 )
@@ -87,5 +89,14 @@ func (l *LocalAccount) GenAccessSelectCond() (string, int64) { return "local_acc
 func (l *LocalAccount) SetAccessTarget(a *RuleAccess) { a.LocalAccountID = utils.NewNullInt64(l.ID) }
 
 func (l *LocalAccount) GetAuthorizedRules(db database.ReadAccess) ([]*Rule, error) {
-	return getAuthorizedRules(db, "local_account_id", l.ID)
+	var rules Rules
+	if err := db.Select(&rules).Where(fmt.Sprintf(
+		`id IN (SELECT DISTINCT rule_id FROM %s WHERE local_agent_id=? OR 
+			local_account_id=?)
+		  OR (SELECT COUNT(*) FROM %s WHERE rule_id = id) = 0`,
+		TableRuleAccesses, TableRuleAccesses), l.LocalAgentID, l.ID).Run(); err != nil {
+		return nil, fmt.Errorf("failed to retrieve the authorized rules: %w", err)
+	}
+
+	return rules, nil
 }

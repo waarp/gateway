@@ -8,7 +8,9 @@ Status des services
 
 Affiche le status des différents services de la gateway. Cela inclus les services
 nécessaires au fonctionnement de la gateway, ainsi que tous les serveurs locaux
-rattachés à celle-ci.
+et des clients rattachés à celle-ci.
+
+La commande affiche également la version de la gateway et la date locale.
 
 |
 

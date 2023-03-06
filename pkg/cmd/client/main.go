@@ -10,6 +10,8 @@ import (
 	"github.com/jessevdk/go-flags"
 )
 
+// TODO: should be replaced by function parameters
+//
 //nolint:gochecknoglobals // global var is used by design
 var (
 	in  io.Reader = os.Stdin

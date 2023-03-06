@@ -725,6 +725,7 @@ linters:
     - nonamedreturns #named return variables are sometimes ok
     - execinquery #raises lots of false-positives, might re-enable once fixed
     - nosnakecase #raises errors on imported variables (which we have no control on), might re-enable once fixed
+    - tagalign #sorting tags does not always result in better readability
   #presets:
   #  - bugs
   #  - unused
@@ -755,6 +756,7 @@ issues:
         - bodyclose
         - noctx
         - gochecknoglobals
+        - gochecknoinits
         - wrapcheck
         - forcetypeassert
 
@@ -806,7 +808,12 @@ issues:
       - tagliatelle
       text: "got 'macs' want 'maCs'"
 
-    # We disable some linters on migration files.
+    # errcheck on deferred sql.Rows.Close, since errors are checked with rows.Err
+    - linters:
+        - errcheck
+      source: "defer rows.Close()"
+
+        # We disable some linters on migration files.
     - path: pkg/database/migrations/+[0-9]\.+[+0-9]\.+[0-9]\.go
       linters:
         - funlen # splitting functions is not always possible (or desirable)

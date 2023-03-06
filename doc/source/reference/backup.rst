@@ -13,6 +13,8 @@ stockées dans un fichier en format JSON. Ce JSON a la forme suivante :
 
   * **name** (*string*) - Le nom du serveur.
   * **protocol** (*string*) - Le protocole du serveur.
+  * **disabled** (*bool*) - Indique si le serveur doit être démarré automatiquement
+    au lancement de la gateway.
   * **root** (*string*) - Le dossier racine du serveur.
   * **workDir** (*string*) - Le dossier temporaire du serveur.
   * **configuration** (*object*) - La :any:`configuration protocolaire
@@ -42,7 +44,6 @@ stockées dans un fichier en format JSON. Ce JSON a la forme suivante :
       * **publicKey** (*string*) - La clé publique SSH du compte (*hostkey*) en
         format *authorized_key* (mutuellement exclusif avec `certificate`)
 
-
 * **remotes** (*array*) - La liste des :term:`partenaires<partenaire>` de
   transfert de la gateway.
 
@@ -71,6 +72,16 @@ stockées dans un fichier en format JSON. Ce JSON a la forme suivante :
       * **certificat** (*string*) - La chaîne de certification du compte en
         format PEM.
 
+* **clients** (*array*) - La liste des :term:`clients<clients>` de transfert de
+  la gateway.
+
+  * **name** (*string*) - Le nom du client.
+  * **protocol** (*string*) - Le protocole du client.
+  * **disabled** (*bool*) - Indique si le client doit être démarré automatiquement
+    au lancement de la gateway.
+  * **localAddress** (*string*) - L'adresse locale du client.
+  * **protoConfig** (*object*) - La :any:`configuration protocolaire
+    <reference-proto-config>` du client.
 
 * **rules** (*array*) - La liste des règles de transfert de la gateway.
 
@@ -115,6 +126,38 @@ stockées dans un fichier en format JSON. Ce JSON a la forme suivante :
     * **args** (*object*) - Les arguments du traitement. Variable suivant le
       type de traitement (cf. :any:`traitements <reference-tasks>`).
 
+.. note:: Les éléments suivants du fichier d'import sont dépréciés, et seront
+   prochainement retirés. En conséquence, ils ne devraient donc plus être
+   utilisés si possible.
+
+* **remotes** (*array*) - La liste des :term:`partenaires<partenaire>` de
+  transfert de la gateway. [**OBSOLÈTE**] Remplacé par ``clients.partners``.
+
+  * **name** (*string*) - Le nom du partenaire.
+  * **protocol** (*string*) - Le protocole du partenaire.
+  * **configuration** (*object*) - La :any:`configuration protocolaire
+    <reference-proto-config>` du serveur.
+  * **certificates** (*array*) - La liste des :term:`certificats
+    <certificat>` du partenaire.
+
+    * **name** (*string*) - Le nom du certificat.
+    * **Certificat** (*string*) - La chaîne de certification du partenaire en
+      format PEM (mutuellement exclusif avec `public_key`).
+    * **publicKey** (*string*) - La clé publique SSH du partenaire (*hostkey*) en
+      format *authorized_key* (mutuellement exclusif avec `certificate`)
+
+  * **accounts** (*array*) - La liste des comptes rattaché au partenaire.
+
+    * **login** (*string*) - Le login du compte.
+    * **password** (*string*) - Le mot de passe du compte.
+    * **certificates** (*array*) - La liste des :term:`certificats<certificat>`
+      du compte.
+
+      * **name** (*string*) - Le nom du certificat.
+      * **privateKey** (*string*) - La clé privée du compte en format PEM.
+      * **certificat** (*string*) - La chaîne de certification du compte en
+        format PEM.
+
 
 **Exemple**
 
@@ -124,51 +167,43 @@ stockées dans un fichier en format JSON. Ce JSON a la forme suivante :
      "locals": [{
        "name": "serveur_sftp",
        "protocol": "sftp",
+       "disabled": false,
+       "address": "0.0.0.0:2222"
        "root": "/sftp",
        "workDir": "/sftp/tmp",
-       "configuration": {
-         "address": "localhost",
-         "port": 8022
-       },
        "accounts": [{
          "login": "toto",
          "password": "sésame",
          "certs": [{
-           "name": "cert_toto",
-           "publicKey": "<clé publique>",
-           "privateKey": "<clé privée>",
-           "certificate": "<certificat>"
+           "name": "toto_ssh_pbk",
+           "publicKey": "<clé publique SSH>",
          }]
        }],
        "certs": [{
-         "name": "cert_serveur_sftp",
-         "publicKey": "<clé publique>",
-         "privateKey": "<clé privée>",
-         "certificate": "<certificat>"
+         "name": "server_sftp_hostkey",
+         "privateKey": "<clé privée SSH>",
        }]
      }],
-     "remotes": [{
-       "name": "openssh",
+     "clients": [{
+       "name": "sftp_client",
        "protocol": "sftp",
-       "configuration": {
-         "address": "localhost",
-         "port": 22
-       },
-       "accounts": [{
-         "login": "titi",
-         "password": "sésame",
+       "disabled": false,
+       "localAddress": "0.0.0.0:2223",
+       "partners": [{
+         "name": "openssh",
+         "address": "10.0.0.0:22"
+         "accounts": [{
+           "login": "titi",
+           "password": "sésame",
+           "certs": [{
+             "name": "titi_ssh_pk",
+             "privateKey": "<clé privée SSH>",
+           }]
+         }],
          "certs": [{
-           "name": "cert_titi",
-           "publicKey": "<clé publique>",
-           "privateKey": "<clé privée>",
-           "certificate": "<certificat>"
+           "name": "openssh_hostkey",
+           "publicKey": "<clé publique SSH>",
          }]
-       }],
-       "certs": [{
-         "name": "cert_openssh",
-         "publicKey": "<clé publique>",
-         "privateKey": "<clé privée>",
-         "certificate": "<certificat>"
        }]
      }],
      "rules": [{

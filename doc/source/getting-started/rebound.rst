@@ -50,7 +50,7 @@ avec la commande suivante :
 
    $ waarp-gateway rule update "sftp_recv" "receive" \
       --post '{"type": "MOVERENAME", "args": {"path":"#OUTPATH#/#ORIGINALFILENAME#"}}' \
-      --post '{"type": "TRANSFER", "args":{"file": "#OUTPATH#/#ORIGINALFILENAME#", "to":"r66_server", "as":"gw_r66user", "rule":"default"}}'
+      --post '{"type": "TRANSFER", "args":{"file": "#OUTPATH#/#ORIGINALFILENAME#", "using":"r66_client" "to":"r66_server", "as":"gw_r66user", "rule":"default"}}'
    The rule sftp_recv was successfully updated.
 
 

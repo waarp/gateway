@@ -22,6 +22,7 @@ const resumeTimeout = 3 * time.Second
 type postClient struct {
 	pip       *pipeline.Pipeline
 	transport *http.Transport
+	isHTTPS   bool
 
 	writer *io.PipeWriter
 	req    *http.Request
@@ -104,6 +105,7 @@ func (p *postClient) setRequestHeaders(req *http.Request) *types.TransferError {
 	}
 
 	req.Header.Set("Content-Type", ct)
+	req.Header.Set("Transfer-Encoding", "chunked")
 	req.Header.Set("Expect", "100-continue")
 	req.Header.Set(httpconst.TransferID, p.pip.TransCtx.Transfer.RemoteTransferID)
 	req.Header.Set(httpconst.RuleName, p.pip.TransCtx.Rule.Name)
@@ -137,7 +139,7 @@ func (p *postClient) setRequestHeaders(req *http.Request) *types.TransferError {
 
 func (p *postClient) prepareRequest(ready chan struct{}) *types.TransferError {
 	scheme := "http://"
-	if p.transport.TLSClientConfig != nil {
+	if p.isHTTPS {
 		scheme = "https://"
 	}
 

@@ -53,6 +53,8 @@ func getSQLiteEngine(c C) *testEngine {
 }
 
 func TestSQLiteMigrations(t *testing.T) {
+	t.Parallel()
+
 	Convey("Given an un-migrated SQLite database engine", t, func(c C) {
 		testMigrations(getSQLiteEngine(c), migration.SQLite)
 	})

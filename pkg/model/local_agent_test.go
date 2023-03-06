@@ -1,7 +1,6 @@
 package model
 
 import (
-	"encoding/json"
 	"fmt"
 	"testing"
 
@@ -206,9 +205,9 @@ func TestLocalAgentBeforeWrite(t *testing.T) {
 				})
 
 				Convey("Given that the new agent's protocol configuration is not valid", func() {
-					newAgent.ProtoConfig = json.RawMessage("invalid")
+					newAgent.ProtoConfig = map[string]any{"": nil}
 
-					shouldFailWith("failed to parse the server protocol configuration")
+					shouldFailWith(`invalid proto config: json: unknown field ""`)
 				})
 			})
 		})

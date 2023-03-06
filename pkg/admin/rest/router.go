@@ -13,8 +13,11 @@ import (
 )
 
 // The definitions of all the REST entry points paths.
+//
+//nolint:lll //paths are long
 const (
-	StatusPath = "/api/status"
+	AboutPath  = "/api/about"
+	StatusPath = "/api/status" // Deprecated: replaced by AboutPath
 
 	UsersPath = "/api/users"
 	UserPath  = "/api/users/{user}"
@@ -67,6 +70,12 @@ const (
 	RemAccAuthPath  = "/api/partners/{partner}/accounts/{remote_account}/authorize/{rule}/{direction:send|receive}"
 	RemAccRevPath   = "/api/partners/{partner}/accounts/{remote_account}/revoke/{rule}/{direction:send|receive}"
 
+	ClientsPath       = "/api/clients"
+	ClientPath        = "/api/clients/{client}"
+	ClientStartPath   = "/api/clients/{client}/start"
+	ClientStopPath    = "/api/clients/{client}/stop"
+	ClientRestartPath = "/api/clients/{client}/restart"
+
 	OverrideSettingsAddressesPath = "/api/override/addresses"
 	OverrideSettingsAddressPath   = "/api/override/addresses/{address}"
 
@@ -81,12 +90,14 @@ const (
 //
 //nolint:funlen // hard to shorten
 func MakeRESTHandler(logger *log.Logger, db *database.DB, router *mux.Router,
-	coreServices map[string]service.Service, protoServices map[int64]proto.Service,
+	coreServices map[string]service.Service, protoServices map[string]proto.Service,
 ) {
 	router.StrictSlash(true)
 
 	router.Name("GET " + StatusPath).Path(StatusPath).Methods(http.MethodGet).
-		Handler(getStatus(logger, db, coreServices, protoServices))
+		Handler(getStatus(logger, coreServices, protoServices))
+	router.Name("GET " + AboutPath).Path(AboutPath).Methods(http.MethodGet).
+		Handler(makeAbout(logger, coreServices, protoServices))
 
 	mkHandler := makeHandlerFactory(logger, db, router)
 
@@ -127,8 +138,8 @@ func MakeRESTHandler(logger *log.Logger, db *database.DB, router *mux.Router,
 	mkHandler(ServersPath, addServer(protoServices), model.PermServersWrite, http.MethodPost)
 	mkHandler(ServerPath, getServer, model.PermServersRead, http.MethodGet)
 	mkHandler(ServerPath, deleteServer(protoServices), model.PermServersDelete, http.MethodDelete)
-	mkHandler(ServerPath, updateServer, model.PermServersWrite, http.MethodPatch)
-	mkHandler(ServerPath, replaceServer, model.PermServersWrite, http.MethodPut)
+	mkHandler(ServerPath, updateServer(protoServices), model.PermServersWrite, http.MethodPatch)
+	mkHandler(ServerPath, replaceServer(protoServices), model.PermServersWrite, http.MethodPut)
 	mkHandler(ServerPathEnable, enableServer, model.PermServersWrite, http.MethodPut)
 	mkHandler(ServerPathDisable, disableServer, model.PermServersWrite, http.MethodPut)
 	mkHandler(ServerCertsPath, listServerCerts, model.PermServersRead, http.MethodGet)
@@ -190,6 +201,17 @@ func MakeRESTHandler(logger *log.Logger, db *database.DB, router *mux.Router,
 	mkHandler(RemAccCertPath, replaceRemAccountCert, model.PermPartnersWrite, http.MethodPut)
 	mkHandler(RemAccAuthPath, authorizeRemoteAccount, model.PermRulesWrite, http.MethodPut)
 	mkHandler(RemAccRevPath, revokeRemoteAccount, model.PermRulesWrite, http.MethodPut)
+
+	// Clients
+	mkHandler(ClientsPath, createClient, model.PermServersWrite, http.MethodPost)
+	mkHandler(ClientsPath, listClients, model.PermServersRead, http.MethodGet)
+	mkHandler(ClientPath, getClient, model.PermServersRead, http.MethodGet)
+	mkHandler(ClientPath, updateClient, model.PermServersWrite, http.MethodPatch)
+	mkHandler(ClientPath, replaceClient, model.PermServersWrite, http.MethodPut)
+	mkHandler(ClientPath, deleteClient, model.PermServersWrite, http.MethodDelete)
+	mkHandler(ClientStartPath, startClient, model.PermServersWrite, http.MethodPut)
+	mkHandler(ClientStopPath, stopClient, model.PermServersWrite, http.MethodPut)
+	mkHandler(ClientRestartPath, restartClient, model.PermServersWrite, http.MethodPut)
 
 	// Settings override
 	mkHandler.noDB(OverrideSettingsAddressesPath, listAddressOverrides, model.PermAdminRead, http.MethodGet)

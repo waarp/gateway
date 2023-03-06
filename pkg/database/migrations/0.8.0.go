@@ -57,10 +57,6 @@ func (ver0_8_0AddTransferFilename) Down(db Actions) error {
 		return fmt.Errorf("failed to restore the transfers 'remote_path': %w", err)
 	}
 
-	if err := db.AlterTable("transfers", DropConstraint{Name: "transfers_filename_check"}); err != nil {
-		return fmt.Errorf("failed to drop the filename constraint: %w", err)
-	}
-
 	if err := db.AlterTable("transfers",
 		DropColumn{Name: "src_filename"},
 		DropColumn{Name: "dest_filename"},
@@ -108,10 +104,6 @@ func (ver0_8_0AddHistoryFilename) Down(db Actions) error {
     	(CASE WHEN src_filename='' THEN dest_filename ELSE src_filename END) 
 		WHERE is_server=true`); err != nil {
 		return fmt.Errorf("failed to restore the transfers 'remote_path': %w", err)
-	}
-
-	if err := db.AlterTable("transfer_history", DropConstraint{Name: "history_filename_check"}); err != nil {
-		return fmt.Errorf("failed to drop the filename constraint: %w", err)
 	}
 
 	if err := db.AlterTable("transfer_history",

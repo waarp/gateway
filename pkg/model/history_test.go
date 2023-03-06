@@ -194,6 +194,9 @@ func TestTransferHistoryRestart(t *testing.T) {
 		So(db.Insert(rule).Run(), ShouldBeNil)
 
 		Convey("Given a client history entry", func() {
+			cli := Client{Name: "client", Protocol: testProtocol}
+			So(db.Insert(&cli).Run(), ShouldBeNil)
+
 			agent := &RemoteAgent{
 				Name:     "partner",
 				Protocol: testProtocol,
@@ -214,6 +217,7 @@ func TestTransferHistoryRestart(t *testing.T) {
 				RemoteTransferID: "12345",
 				IsServer:         false,
 				IsSend:           rule.IsSend,
+				Client:           cli.Name,
 				Account:          account.Login,
 				Agent:            agent.Name,
 				Protocol:         agent.Protocol,
@@ -240,6 +244,7 @@ func TestTransferHistoryRestart(t *testing.T) {
 						ID:               0,
 						RemoteTransferID: "",
 						RuleID:           rule.ID,
+						ClientID:         utils.NewNullInt64(cli.ID),
 						RemoteAccountID:  utils.NewNullInt64(account.ID),
 						SrcFilename:      history.SrcFilename,
 						Start:            date,

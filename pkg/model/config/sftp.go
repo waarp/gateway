@@ -6,7 +6,7 @@ import (
 
 //nolint:gochecknoinits // init is used by design
 func init() {
-	ProtoConfigs["sftp"] = &ConfigMaker{
+	ProtoConfigs["sftp"] = &Constructor{
 		Server:  func() ServerProtoConfig { return new(SftpServerProtoConfig) },
 		Partner: func() PartnerProtoConfig { return new(SftpPartnerProtoConfig) },
 		Client:  func() ClientProtoConfig { return new(SftpClientProtoConfig) },

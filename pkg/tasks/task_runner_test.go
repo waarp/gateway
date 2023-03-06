@@ -2,7 +2,6 @@ package tasks
 
 import (
 	"context"
-	"encoding/json"
 	"fmt"
 	"path"
 	"testing"
@@ -28,23 +27,28 @@ func TestSetup(t *testing.T) {
 
 		task := &model.Task{
 			Type: "DUMMY",
-			Args: []byte(`{"rule":"#RULE#", "date":"#DATE#", "hour":"#HOUR#", 
-			"trueFullPath":"#TRUEFULLPATH#", "trueFilename":"#TRUEFILENAME#", 
-			"fullPath":"#ORIGINALFULLPATH#", "filename":"#ORIGINALFILENAME#", 
-			"remoteHost":"#REMOTEHOST#", "localHost":"#LOCALHOST#", 
-			"transferID":"#TRANSFERID#", "requesterHost":"#REQUESTERHOST#",
-			"requestedHost":"#REQUESTEDHOST#", "fullTransferID":"#FULLTRANSFERID#",
-			"errCode":"#ERRORCODE#", "errMsg":"#ERRORMSG#", "errStrCode":"#ERRORSTRCODE#",
-			"inPath":"#INPATH#", "outPath":"#OUTPATH#", "workPath":"#WORKPATH#",
-			"homePath":"#HOMEPATH#", "transferInfo": "#TI_foo#/#TI_id#"}`),
+			Args: map[string]string{
+				"rule": "#RULE#", "date": "#DATE#", "hour": "#HOUR#",
+				"trueFullPath": "#TRUEFULLPATH#", "trueFilename": "#TRUEFILENAME#",
+				"fullPath": "#ORIGINALFULLPATH#", "filename": "#ORIGINALFILENAME#",
+				"remoteHost": "#REMOTEHOST#", "localHost": "#LOCALHOST#",
+				"transferID": "#TRANSFERID#", "requesterHost": "#REQUESTERHOST#",
+				"requestedHost": "#REQUESTEDHOST#", "fullTransferID": "#FULLTRANSFERID#",
+				"errCode": "#ERRORCODE#", "errMsg": "#ERRORMSG#", "errStrCode": "#ERRORSTRCODE#",
+				"inPath": "#INPATH#", "outPath": "#OUTPATH#", "workPath": "#WORKPATH#",
+				"homePath": "#HOMEPATH#", "transferInfo": "#TI_foo#/#TI_id#",
+			},
 		}
 
 		Convey("Given a Runner", func(c C) {
 			db := database.TestDatabase(c)
 
+			client := &model.Client{Name: "cli", Protocol: testProtocol}
+			So(db.Insert(client).Run(), ShouldBeNil)
+
 			agent := &model.RemoteAgent{
 				Name:     "partner",
-				Protocol: testProtocol,
+				Protocol: client.Protocol,
 				Address:  "localhost:6622",
 			}
 			So(db.Insert(agent).Run(), ShouldBeNil)
@@ -305,9 +309,12 @@ func TestRunTasks(t *testing.T) {
 		rule := &model.Rule{Name: "rule", IsSend: false, Path: "path"}
 		So(db.Insert(rule).Run(), ShouldBeNil)
 
+		client := &model.Client{Name: "cli", Protocol: testProtocol}
+		So(db.Insert(client).Run(), ShouldBeNil)
+
 		agent := &model.RemoteAgent{
 			Name:     "agent",
-			Protocol: testProtocol,
+			Protocol: client.Protocol,
 			Address:  "localhost:6622",
 		}
 		So(db.Insert(agent).Run(), ShouldBeNil)
@@ -321,6 +328,7 @@ func TestRunTasks(t *testing.T) {
 
 		trans := &model.Transfer{
 			RuleID:          rule.ID,
+			ClientID:        utils.NewNullInt64(client.ID),
 			RemoteAccountID: utils.NewNullInt64(account.ID),
 			SrcFilename:     "/src/file",
 			DestFilename:    "/dst/file",
@@ -346,13 +354,13 @@ func TestRunTasks(t *testing.T) {
 						Chain:  model.ChainPre,
 						Rank:   0,
 						Type:   taskSuccess,
-						Args:   json.RawMessage(`{}`),
+						Args:   map[string]string{},
 					}, {
 						RuleID: rule.ID,
 						Chain:  model.ChainPre,
 						Rank:   1,
 						Type:   taskSuccess,
-						Args:   json.RawMessage(`{}`),
+						Args:   map[string]string{},
 					},
 				}
 
@@ -378,13 +386,13 @@ func TestRunTasks(t *testing.T) {
 						Chain:  model.ChainPre,
 						Rank:   0,
 						Type:   taskSuccess,
-						Args:   json.RawMessage(`{}`),
+						Args:   map[string]string{},
 					}, {
 						RuleID: rule.ID,
 						Chain:  model.ChainPre,
 						Rank:   1,
 						Type:   taskWarning,
-						Args:   json.RawMessage(`{}`),
+						Args:   map[string]string{},
 					},
 				}
 
@@ -416,19 +424,19 @@ func TestRunTasks(t *testing.T) {
 						Chain:  model.ChainPre,
 						Rank:   0,
 						Type:   taskSuccess,
-						Args:   json.RawMessage(`{}`),
+						Args:   map[string]string{},
 					}, {
 						RuleID: rule.ID,
 						Chain:  model.ChainPre,
 						Rank:   1,
 						Type:   taskFail,
-						Args:   json.RawMessage(`{}`),
+						Args:   map[string]string{},
 					}, {
 						RuleID: rule.ID,
 						Chain:  model.ChainPre,
 						Rank:   1,
 						Type:   taskSuccess,
-						Args:   json.RawMessage(`{}`),
+						Args:   map[string]string{},
 					},
 				}
 
@@ -453,7 +461,7 @@ func TestRunTasks(t *testing.T) {
 					Chain:  model.ChainPre,
 					Rank:   0,
 					Type:   taskSuccess,
-					Args:   []byte(`{`),
+					Args:   map[string]string{"": ""},
 				}}
 
 				Convey("Then running the tasks should return an error", func() {
@@ -469,7 +477,7 @@ func TestRunTasks(t *testing.T) {
 					Chain:  model.ChainPre,
 					Rank:   0,
 					Type:   "unknown",
-					Args:   json.RawMessage(`{}`),
+					Args:   map[string]string{},
 				}}
 
 				Convey("Then running the tasks should return an error", func() {

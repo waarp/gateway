@@ -57,4 +57,12 @@ func testMigrations(eng *testEngine, dbType string) {
 	// 0.9.0
 	testVer0_9_0AddCloudInstances(eng, dbType)
 	testVer0_9_0LocalPathToURL(eng)
+	testVer0_9_0FixLocalServerEnabled(eng, dbType)
+	testVer0_9_0AddClientsTable(eng, dbType)
+	testVer0_9_0AddRemoteAgentOwner(eng)
+	testVer0_9_0DuplicateRemoteAgents(eng, dbType)
+	testVer0_9_0RelinkTransfers(eng)
+	testVer0_9_0AddTransfersClientID(eng)
+	testVer0_9_0AddHistoryClient(eng)
+	testVer0_9_0AddNormalizedTransfersView(eng)
 }

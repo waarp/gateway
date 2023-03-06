@@ -18,12 +18,13 @@ import (
 	"code.waarp.fr/apps/gateway/gateway/pkg/gatewayd/service/proto"
 	"code.waarp.fr/apps/gateway/gateway/pkg/model"
 	"code.waarp.fr/apps/gateway/gateway/pkg/model/types"
+	"code.waarp.fr/apps/gateway/gateway/pkg/pipeline"
 	"code.waarp.fr/apps/gateway/gateway/pkg/tk/utils"
 )
 
 // restTransferToDB transforms the JSON transfer into its database equivalent.
 func restTransferToDB(jTrans *api.InTransfer, db *database.DB, logger *log.Logger) (*model.Transfer, error) {
-	ruleID, accountID, err := getTransIDs(db, jTrans)
+	rule, account, client, err := getTransInfo(db, jTrans)
 	if err != nil {
 		return nil, err
 	}
@@ -58,8 +59,9 @@ func restTransferToDB(jTrans *api.InTransfer, db *database.DB, logger *log.Logge
 	}
 
 	return &model.Transfer{
-		RuleID:          ruleID,
-		RemoteAccountID: utils.NewNullInt64(accountID),
+		RuleID:          rule.ID,
+		ClientID:        utils.NewNullInt64(client.ID),
+		RemoteAccountID: utils.NewNullInt64(account.ID),
 		SrcFilename:     srcFile,
 		DestFilename:    destFile,
 		Filesize:        model.UnknownSize,
@@ -244,7 +246,7 @@ func listTransfers(logger *log.Logger, db *database.DB) http.HandlerFunc {
 	}
 }
 
-func pauseTransfer(protoServices map[int64]proto.Service) handler {
+func pauseTransfer(protoServices map[string]proto.Service) handler {
 	return func(logger *log.Logger, db *database.DB) http.HandlerFunc {
 		return func(w http.ResponseWriter, r *http.Request) {
 			trans, tErr := getDBTrans(r, db)
@@ -298,7 +300,7 @@ func pauseTransfer(protoServices map[int64]proto.Service) handler {
 	}
 }
 
-func cancelTransfer(protoServices map[int64]proto.Service) handler {
+func cancelTransfer(protoServices map[string]proto.Service) handler {
 	return func(logger *log.Logger, db *database.DB) http.HandlerFunc {
 		return func(w http.ResponseWriter, r *http.Request) {
 			trans, tErr := getDBTrans(r, db)
@@ -471,7 +473,7 @@ func cancelDBTransfer(db *database.DB, logger *log.Logger, w http.ResponseWriter
 	return !handleError(w, logger, tErr)
 }
 
-func cancelRunningTransfers(protoServices map[int64]proto.Service,
+func cancelRunningTransfers(protoServices map[string]proto.Service,
 	logger *log.Logger, r *http.Request, w http.ResponseWriter,
 ) bool {
 	const cancelTimeout = 2 * time.Second
@@ -486,11 +488,18 @@ func cancelRunningTransfers(protoServices map[int64]proto.Service,
 		}
 	}
 
+	for _, cli := range pipeline.Clients {
+		if err := cli.ManageTransfers().CancelAll(ctx); handleError(
+			w, logger, err) {
+			return false
+		}
+	}
+
 	return true
 }
 
 //nolint:gocognit //there is no way to further simplify this function
-func cancelTransfers(protoServices map[int64]proto.Service) handler {
+func cancelTransfers(protoServices map[string]proto.Service) handler {
 	return func(logger *log.Logger, db *database.DB) http.HandlerFunc {
 		return func(w http.ResponseWriter, r *http.Request) {
 			switch target := r.FormValue("target"); target {

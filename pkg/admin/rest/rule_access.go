@@ -9,13 +9,13 @@ import (
 	"code.waarp.fr/apps/gateway/gateway/pkg/model"
 )
 
-func getAuthorizedRules(db database.ReadAccess, target model.AccessTarget) (*api.AuthorizedRules, error) {
+func getAuthorizedRules(db database.ReadAccess, target model.AccessTarget) (api.AuthorizedRules, error) {
 	rules, err := target.GetAuthorizedRules(db)
 	if err != nil {
-		return nil, internal("%v", err)
+		return api.AuthorizedRules{}, internal("%v", err)
 	}
 
-	authorized := &api.AuthorizedRules{}
+	authorized := api.AuthorizedRules{}
 
 	for _, rule := range rules {
 		if rule.IsSend { // if send == true
@@ -145,6 +145,7 @@ func convertAgentIDs(db *database.DB, isLocal bool, access map[int64][]string) (
 		if err := db.Select(&agents).In("id", ids).Run(); err != nil {
 			return nil, err
 		}
+
 		for _, agent := range agents {
 			names[agent.Name] = access[agent.ID]
 		}

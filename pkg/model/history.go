@@ -22,6 +22,7 @@ type HistoryEntry struct {
 	Rule             string               `xorm:"rule"`
 	Account          string               `xorm:"account"`
 	Agent            string               `xorm:"agent"`
+	Client           string               `xorm:"client"`
 	Protocol         string               `xorm:"protocol"`
 	SrcFilename      string               `xorm:"src_filename"`
 	DestFilename     string               `xorm:"dest_filename"`
@@ -117,6 +118,12 @@ func (h *HistoryEntry) BeforeWrite(db database.ReadAccess) database.Error {
 		return database.NewValidationError("'%s' is not a valid transfer history status", h.Status)
 	}
 
+	if !h.IsServer && h.Client == "" {
+		return database.NewValidationError("the transfer's client is missing")
+	} else if h.IsServer && h.Client != "" {
+		return database.NewValidationError("server transfers cannot have a client")
+	}
+
 	if n, err := db.Count(&HistoryEntry{}).Where("id=?", h.ID).Run(); err != nil {
 		return database.NewInternalError(err)
 	} else if n != 0 {
@@ -169,8 +176,13 @@ func (h *HistoryEntry) Restart(db database.Access, date time.Time) (*Transfer, d
 
 		trans.LocalAccountID = sql.NullInt64{Valid: true, Int64: account.ID}
 	} else {
+		client := &Client{}
+		if err := db.Get(client, "name=? AND owner=?", h.Client, h.Owner).Run(); err != nil {
+			return nil, err
+		}
+
 		agent := &RemoteAgent{}
-		if err := db.Get(agent, "name=?", h.Agent).Run(); err != nil {
+		if err := db.Get(agent, "name=? AND owner=?", h.Agent, h.Owner).Run(); err != nil {
 			return nil, err
 		}
 
@@ -180,7 +192,8 @@ func (h *HistoryEntry) Restart(db database.Access, date time.Time) (*Transfer, d
 			return nil, err
 		}
 
-		trans.RemoteAccountID = sql.NullInt64{Valid: true, Int64: account.ID}
+		trans.ClientID = utils.NewNullInt64(client.ID)
+		trans.RemoteAccountID = utils.NewNullInt64(account.ID)
 	}
 
 	return trans, nil

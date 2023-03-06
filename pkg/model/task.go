@@ -2,7 +2,6 @@ package model
 
 import (
 	"context"
-	"encoding/json"
 
 	"code.waarp.fr/lib/log"
 
@@ -25,7 +24,8 @@ type TaskValidator interface {
 // implement this interface in order for the tasks.Runner to be able to execute
 // them.
 type TaskRunner interface {
-	Run(context.Context, map[string]string, *database.DB, *log.Logger, *TransferContext) error
+	Run(ctx context.Context, args map[string]string, db *database.DB,
+		logger *log.Logger, transCtx *TransferContext) error
 }
 
 // Chain represents the valid chains for a task entry.
@@ -39,11 +39,11 @@ const (
 
 // Task represents one record of the 'tasks' table.
 type Task struct {
-	RuleID int64           `xorm:"rule_id"` // The ID of the rule this tasks belongs to.
-	Chain  Chain           `xorm:"chain"`   // The chain this task belongs to (ChainPre, ChainPost or ChainError)
-	Rank   int8            `xorm:"rank"`    // The task's index in the chain.
-	Type   string          `xorm:"type"`    // The type of task.
-	Args   json.RawMessage `xorm:"args"`    // The task's arguments as a raw JSON object.
+	RuleID int64             `xorm:"rule_id"` // The ID of the rule this tasks belongs to.
+	Chain  Chain             `xorm:"chain"`   // The chain this task belongs to (ChainPre, ChainPost or ChainError)
+	Rank   int8              `xorm:"rank"`    // The task's index in the chain.
+	Type   string            `xorm:"type"`    // The type of task.
+	Args   map[string]string `xorm:"args"`    // The task's arguments as a map.
 }
 
 func (*Task) TableName() string   { return TableTasks }
@@ -55,12 +55,7 @@ func (t *Task) validateTasks() database.Error {
 	}
 
 	if len(t.Args) == 0 {
-		t.Args = json.RawMessage(`{}`)
-	}
-
-	args := map[string]string{}
-	if err := json.Unmarshal(t.Args, &args); err != nil {
-		return database.NewValidationError("incorrect task format: %s", err)
+		t.Args = map[string]string{}
 	}
 
 	runner, ok := ValidTasks[t.Type]
@@ -69,7 +64,7 @@ func (t *Task) validateTasks() database.Error {
 	}
 
 	if validator, ok := runner.(TaskValidator); ok {
-		if err := validator.Validate(args); err != nil {
+		if err := validator.Validate(t.Args); err != nil {
 			return database.NewValidationError("invalid task: %s", err)
 		}
 	}

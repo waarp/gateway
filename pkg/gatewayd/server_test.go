@@ -1,7 +1,6 @@
 package gatewayd
 
 import (
-	"encoding/json"
 	"fmt"
 	"path"
 	"testing"
@@ -22,11 +21,9 @@ func testSetup(c C) (*WG, *model.LocalAgent, *model.LocalAgent) {
 	db := database.TestDatabase(c)
 	addServ := func(name string) *model.LocalAgent {
 		s := &model.LocalAgent{
-			Name:        name,
-			Protocol:    testProtocol,
-			ProtoConfig: json.RawMessage("{}"),
-			Address:     fmt.Sprintf("localhost:%d", testhelpers.GetFreePort(c)),
-			Enabled:     true,
+			Name:     name,
+			Protocol: testProtocol,
+			Address:  fmt.Sprintf("localhost:%d", testhelpers.GetFreePort(c)),
 		}
 		So(db.Insert(s).Run(), ShouldBeNil)
 
@@ -71,10 +68,10 @@ func checkState(wg *WG, code state.StateCode, s1, s2 *model.LocalAgent) {
 	So(adState, ShouldEqual, code)
 	So(contState, ShouldEqual, code)
 
-	serv1, ok := wg.ProtoServices[s1.ID]
+	serv1, ok := wg.ProtoServices[s1.Name]
 	So(ok, ShouldBeTrue)
 
-	serv2, ok := wg.ProtoServices[s2.ID]
+	serv2, ok := wg.ProtoServices[s2.Name]
 	So(ok, ShouldBeTrue)
 
 	s1State, _ := serv1.State().Get()

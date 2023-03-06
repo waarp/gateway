@@ -52,6 +52,7 @@ func importLocalAgents(logger *log.Logger, db database.Access, list []file.Local
 		agent.TmpReceiveDir = src.TmpReceiveDir
 		agent.Address = src.Address
 		agent.Protocol = src.Protocol
+		agent.Disabled = src.Disabled
 		agent.ProtoConfig = src.Configuration
 		agent.Owner = ""
 

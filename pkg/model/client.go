@@ -1,8 +1,6 @@
 package model
 
 import (
-	"database/sql"
-	"encoding/json"
 	"net"
 	"strings"
 
@@ -13,20 +11,29 @@ import (
 )
 
 type Client struct {
-	ID           uint64          `xorm:"BIGINT PK AUTOINCR <- 'id'"`
-	Owner        string          `xorm:"VARCHAR(100) UNIQUE(client) NOTNULL 'owner'"`
-	Name         string          `xorm:"VARCHAR(100) UNIQUE(client) NOTNULL 'name'"`
-	Protocol     string          `xorm:"VARCHAR(20) NOTNULL 'protocol'"`
-	LocalAddress sql.NullString  `xorm:"VARCHAR(255) 'local_address'"`
-	ProtoConfig  json.RawMessage `xorm:"TEXT NOTNULL DEFAULT('{}') 'proto_config'"`
+	ID    int64  `xorm:"<- id AUTOINCR"` // The client's database ID.
+	Owner string `xorm:"owner"`          // The client's owner (the gateway to which it belongs)
+
+	Name         string `xorm:"name"`          // The client's name.
+	Protocol     string `xorm:"protocol"`      // The client's protocol.
+	LocalAddress string `xorm:"local_address"` // The client's local address (optional).
+
+	// The client's protocol configuration as a map.
+	ProtoConfig map[string]any `xorm:"proto_config"`
+
+	Disabled bool // Should the client be launched at startup.
 }
 
-func (c *Client) GetID() uint64     { return c.ID }
+func (c *Client) GetID() int64      { return c.ID }
 func (*Client) TableName() string   { return TableClients }
 func (*Client) Appellation() string { return "client" }
 
 func (c *Client) BeforeWrite(db database.ReadAccess) database.Error {
 	c.Owner = conf.GlobalConfig.GatewayName
+
+	if c.Name == "" {
+		c.Name = c.Protocol
+	}
 
 	if strings.TrimSpace(c.Name) == "" {
 		return database.NewValidationError("the client's name cannot be empty")
@@ -35,24 +42,26 @@ func (c *Client) BeforeWrite(db database.ReadAccess) database.Error {
 	}
 
 	if strings.TrimSpace(c.Protocol) == "" {
-		return database.NewValidationError("the client's protocol cannot be empty")
+		return database.NewValidationError("the client's protocol is missing")
 	} else {
 		if _, ok := config.ProtoConfigs[c.Protocol]; !ok {
 			return database.NewValidationError("%q is not a protocol", c.Protocol)
 		}
 	}
 
-	if c.LocalAddress.Valid {
-		if _, err := net.LookupHost(c.LocalAddress.String); err != nil {
+	if c.LocalAddress != "" {
+		if _, err := net.ResolveTCPAddr("tcp", c.LocalAddress); err != nil {
 			return database.NewValidationError("%q is not a valid client address: %v",
-				c.LocalAddress.String, err)
+				c.LocalAddress, err)
 		}
 	}
 
-	if protoConf, parseErr := config.ParseClientConfig(c.Protocol, c.ProtoConfig); parseErr != nil {
-		return database.NewValidationError("%v", parseErr)
-	} else if validErr := protoConf.ValidClient(); validErr != nil {
-		return database.NewValidationError("client proto config validation failed: %v", validErr)
+	if c.ProtoConfig == nil {
+		c.ProtoConfig = map[string]any{}
+	}
+
+	if err := config.CheckClientConfig(c.Protocol, c.ProtoConfig); err != nil {
+		return database.NewValidationError(err.Error())
 	}
 
 	if n, err := db.Count(c).Where("id<>? AND owner=? AND name=?", c.ID, c.Owner,

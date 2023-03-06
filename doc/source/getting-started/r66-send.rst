@@ -11,8 +11,9 @@ Nous allons maintenant mettre en place le second transfert: l'envoi d'un
 fichier avec la Gateway vers un serveur R66. Nous allons pour cela utiliser un
 serveur R66 installé sur le serveur comme serveur de destination.
 
-Pour pouvoir envoyer des fichiers, nous allons devoir ajouter un partenaire SFTP
-à la Gateway, puis créer un utilisateur, et une règle de transfert.
+Pour pouvoir envoyer des fichiers, nous allons devoir ajouter un client R66
+à la Gateway, y attacher un partenaire, puis créer un utilisateur, et une règle
+de transfert.
 
 Configuration du serveur R66 local
 ==================================
@@ -78,12 +79,33 @@ C'est suffisant, on va maintenant pouvoir se connecter au serveur ``r66_server``
 sur le port ``6666``, avec l'utilisateur ``gw_r66user`` et le mot de passe
 ``gateway_password``.
 
+Création d'un client R66
+========================
+
+Pour pouvoir envoyer des fichiers en R66 avec la Gateway, nous allons commencer
+par ajouter un client R66 à la gateway :
+
+.. code-block:: shell-session
+
+   $ waarp-gateway client add --name "gw_r66_client" --protocol "r66"
+   The client r66_client was successfully added.
+
+Pour créer un client, nous devons, à minima, spécifier son nom et son protocole.
+Optionnellement, il est également possible de configurer certains paramètres du
+protocole via l'option ``--config``. Il est également possible d'attribuer une
+adresse locale au client.
+
+Une fois le client crée, nous devons le démarrer :
+
+.. code-block:: shell-session
+
+   $ waarp-gateway client start "gw_r66_client"
+   The client r66_client was successfully started.
 
 Création d'un partenaire R66
 ============================
 
-Pour pouvoir envoyer des fichiers en R66 avec la Gateway, nous allons commencer
-par ajouter un partenaire R66 :
+Une fois le client créé, nous allons ajouter le partenaire R66 :
 
 .. code-block:: shell-session
 
@@ -172,7 +194,7 @@ envoyons-le avec la gateway :
 
    # echo "hello world!" > /var/lib/waarp-gateway/out/a-envoyer.txt
 
-   $ transfer add --file "a-envoyer.txt" --way "send" --partner "r66_server" --login "gw_r66user" --rule "default"
+   $ transfer add --file "a-envoyer.txt" --way "send" --client "gw_r66_client" --partner "r66_server" --login "gw_r66user" --rule "default"
    The transfer of file a-envoyer.txt was successfully added.
 
 Après avoir établi une connexion avec la Gateway, nous avons déposé un fichier
@@ -183,13 +205,14 @@ transferts de la Gateway :
 
 .. code-block:: shell-session
 
-   $ waarp-gateway history list
+   $ waarp-gateway transfer list
    History:
    [...]
    * Transfer 2 (as client) [DONE]
        Way:             send
        Protocol:        r66
        Rule:            default
+       Client:          gw_r66_client
        Requester:       gw_r66user
        Requested:       r66_server
        Local filepath:  /etc/waarp-gateway/out/a-envoyer.txt

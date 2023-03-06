@@ -3,14 +3,21 @@ package internal
 import (
 	"crypto/tls"
 	"fmt"
+	"net"
 	"sync"
 	"time"
 
 	"code.waarp.fr/lib/log"
 	"code.waarp.fr/lib/r66"
+
+	"code.waarp.fr/apps/gateway/gateway/pkg/model"
+	"code.waarp.fr/apps/gateway/gateway/pkg/model/config"
 )
 
-const DefaultConnectionGracePeriod = 5 * time.Second
+const (
+	DefaultConnectionGracePeriod = 5 * time.Second
+	ClientDialTimeout            = 10 * time.Second
+)
 
 type connInfo struct {
 	conn *r66.Client // the connection
@@ -22,16 +29,30 @@ type ConnPool struct {
 	m               map[string]*connInfo
 	mux             sync.Mutex
 	closed          chan bool
+	dialer          *net.Dialer
 	connGracePeriod time.Duration
 }
 
 // NewConnPool initiates and returns a new ConnPool instance.
-func NewConnPool() *ConnPool {
-	return &ConnPool{
-		m:               map[string]*connInfo{},
+func NewConnPool(client *model.Client, clientConfig *config.R66ClientProtoConfig,
+) (*ConnPool, error) {
+	pool := &ConnPool{
+		m: map[string]*connInfo{},
+		dialer: &net.Dialer{
+			Timeout: ClientDialTimeout,
+		},
 		closed:          make(chan bool),
 		connGracePeriod: DefaultConnectionGracePeriod,
 	}
+
+	if client.LocalAddress != "" {
+		var err error
+		if pool.dialer.LocalAddr, err = net.ResolveTCPAddr("tcp", client.LocalAddress); err != nil {
+			return nil, fmt.Errorf("failed to parse the R66 client's local address: %w", err)
+		}
+	}
+
+	return pool, nil
 }
 
 // Exists returns whether a connection to the given address exists in the pool.
@@ -59,18 +80,24 @@ func (c *ConnPool) Add(addr string, tlsConf *tls.Config, logger *log.Logger) (*r
 		return info.conn, nil
 	}
 
-	var err error
-
-	var cli *r66.Client
+	var (
+		conn net.Conn
+		err  error
+	)
 
 	if tlsConf == nil {
-		cli, err = r66.Dial(addr, logger.AsStdLogger(log.LevelTrace))
+		conn, err = c.dialer.Dial("tcp", addr)
 	} else {
-		cli, err = r66.DialTLS(addr, tlsConf, logger.AsStdLogger(log.LevelTrace))
+		conn, err = tls.DialWithDialer(c.dialer, "tcp", addr, tlsConf)
 	}
 
 	if err != nil {
 		return nil, fmt.Errorf("failed to connect to remote host: %w", err)
+	}
+
+	cli, err := r66.NewClient(conn, logger.AsStdLogger(log.LevelTrace))
+	if err != nil {
+		return nil, fmt.Errorf("failed to initiate the R66 connection: %w", err)
 	}
 
 	c.m[addr] = &connInfo{conn: cli, num: 1}

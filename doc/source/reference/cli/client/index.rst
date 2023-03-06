@@ -16,6 +16,7 @@ Client ``waarp-gateway``
    status
    version
    user/index
+   client/index
    server/index
    account_local/index
    partner/index

@@ -27,6 +27,7 @@ import (
 	"code.waarp.fr/apps/gateway/gateway/pkg/gatewayd/service/state"
 	"code.waarp.fr/apps/gateway/gateway/pkg/model"
 	"code.waarp.fr/apps/gateway/gateway/pkg/model/types"
+	"code.waarp.fr/apps/gateway/gateway/pkg/pipeline"
 )
 
 const (
@@ -40,7 +41,7 @@ type WG struct {
 	dbService     *database.DB
 	adminService  *admin.Server
 	controller    *controller.Controller
-	ProtoServices map[int64]proto.Service
+	ProtoServices map[string]proto.Service
 }
 
 // NewWG creates a new application.
@@ -141,8 +142,8 @@ func (wg *WG) makeDirs() error {
 }
 
 func (wg *WG) initServices() {
-	core := make(map[string]service.Service)
-	wg.ProtoServices = make(map[int64]proto.Service)
+	core := map[string]service.Service{}
+	wg.ProtoServices = map[string]proto.Service{}
 
 	wg.dbService = &database.DB{}
 	wg.adminService = &admin.Server{
@@ -179,6 +180,18 @@ func (wg *WG) startServices() error {
 		return err
 	}
 
+	if err := wg.startServers(); err != nil {
+		return err
+	}
+
+	if err := wg.startClients(); err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func (wg *WG) startServers() error {
 	var servers model.LocalAgents
 	if err := wg.dbService.Select(&servers).Where("owner=?", conf.GlobalConfig.GatewayName).
 		Run(); err != nil {
@@ -197,11 +210,46 @@ func (wg *WG) startServices() error {
 		}
 
 		protoService := constr(wg.dbService, l)
-		wg.ProtoServices[server.ID] = protoService
+		wg.ProtoServices[server.Name] = protoService
 
-		if server.Enabled {
+		if !server.Disabled {
 			if err := protoService.Start(server); err != nil {
 				wg.Logger.Error("Error starting the %q service: %v", server.Name, err)
+			}
+		}
+	}
+
+	return nil
+}
+
+func (wg *WG) startClients() error {
+	var dbClients model.Clients
+	if err := wg.dbService.Select(&dbClients).Where("owner=?", conf.GlobalConfig.GatewayName).
+		Run(); err != nil {
+		return err
+	}
+
+	for _, dbClient := range dbClients {
+		constr, ok := constructors.ClientConstructors[dbClient.Protocol]
+		if !ok {
+			wg.Logger.Warning("Unknown protocol %q for client %s",
+				dbClient.Protocol, dbClient.Name)
+
+			continue
+		}
+
+		client, err := constr(dbClient)
+		if err != nil {
+			wg.Logger.Error("Error initiating the %q client: %v", dbClient.Name, err)
+
+			continue
+		}
+
+		pipeline.Clients[dbClient.Name] = client
+
+		if !dbClient.Disabled {
+			if err := client.Start(); err != nil {
+				wg.Logger.Error("Error starting the %q client: %v", dbClient.Name, err)
 			}
 		}
 	}

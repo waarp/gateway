@@ -2,7 +2,6 @@ package http
 
 import (
 	"context"
-	"encoding/json"
 	"fmt"
 	"io"
 	"net/http"
@@ -26,10 +25,9 @@ func TestServiceStart(t *testing.T) {
 		logger := testhelpers.TestLogger(c, "test_http_start")
 		db := database.TestDatabase(c)
 		server := &model.LocalAgent{
-			Name:        "http_server",
-			Protocol:    "http",
-			ProtoConfig: json.RawMessage(`{}`),
-			Address:     "localhost:0",
+			Name:     "http_server",
+			Protocol: "http",
+			Address:  "localhost:0",
 		}
 		So(db.Insert(server).Run(), ShouldBeNil)
 
@@ -50,10 +48,9 @@ func TestServiceStop(t *testing.T) {
 		logger := testhelpers.TestLogger(c, "test_http_stop")
 		db := database.TestDatabase(c)
 		server := &model.LocalAgent{
-			Name:        "http_server",
-			Protocol:    "http",
-			ProtoConfig: json.RawMessage(`{}`),
-			Address:     "localhost:0",
+			Name:     "http_server",
+			Protocol: "http",
+			Address:  "localhost:0",
 		}
 		So(db.Insert(server).Run(), ShouldBeNil)
 
@@ -75,7 +72,7 @@ func TestServiceStop(t *testing.T) {
 
 func TestServerInterruption(t *testing.T) {
 	Convey("Given an SFTP server ready for push transfers", t, func(c C) {
-		test := pipelinetest.InitServerPush(c, "http", NewService, nil)
+		test := pipelinetest.InitServerPush(c, "http", nil)
 		logger := testhelpers.TestLogger(c, "http_server")
 
 		serv := newService(test.DB, logger)

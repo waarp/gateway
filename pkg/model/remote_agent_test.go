@@ -1,7 +1,6 @@
 package model
 
 import (
-	"encoding/json"
 	"fmt"
 	"testing"
 
@@ -106,8 +105,12 @@ func TestRemoteAgentBeforeDelete(t *testing.T) {
 			})
 
 			Convey("Given that the agent is used in a transfer", func() {
+				cli := &Client{Protocol: ag.Protocol}
+				So(db.Insert(cli).Run(), ShouldBeNil)
+
 				trans := &Transfer{
 					RuleID:          rule.ID,
+					ClientID:        utils.NewNullInt64(cli.ID),
 					RemoteAccountID: utils.NewNullInt64(acc.ID),
 					SrcFilename:     "file",
 				}
@@ -207,9 +210,9 @@ func TestRemoteAgentValidate(t *testing.T) {
 				})
 
 				Convey("Given that the new agent's protocol configuration is not valid", func() {
-					newAgent.ProtoConfig = json.RawMessage("invalid")
+					newAgent.ProtoConfig = map[string]any{"": nil}
 
-					shouldFailWith("failed to parse the partner protocol configuration")
+					shouldFailWith(`invalid proto config: json: unknown field ""`)
 				})
 			})
 		})

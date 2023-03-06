@@ -10,6 +10,7 @@ import (
 // the REST interface.
 type InTransfer struct {
 	Rule         string         `json:"rule"`
+	Client       string         `json:"client,omitempty"`
 	Partner      string         `json:"partner"`
 	Account      string         `json:"account"`
 	IsSend       *bool          `json:"isSend"`
@@ -33,6 +34,7 @@ type OutTransfer struct {
 	Rule           string               `json:"rule"`
 	IsServer       bool                 `json:"isServer"`
 	IsSend         bool                 `json:"isSend"`
+	Client         string               `json:"client"`
 	Requested      string               `json:"requested"`
 	Requester      string               `json:"requester"`
 	Protocol       string               `json:"protocol"`

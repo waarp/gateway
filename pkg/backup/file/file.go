@@ -3,7 +3,6 @@
 package file
 
 import (
-	"encoding/json"
 	"time"
 
 	"code.waarp.fr/apps/gateway/gateway/pkg/model/types"
@@ -12,6 +11,7 @@ import (
 // Data is the top-level structure of the dump file.
 type Data struct {
 	Locals  []LocalAgent  `json:"locals,omitempty"`
+	Clients []Client      `json:"clients,omitempty"`
 	Remotes []RemoteAgent `json:"remotes,omitempty"`
 	Rules   []Rule        `json:"rules,omitempty"`
 	Users   []User        `json:"users,omitempty"`
@@ -20,16 +20,17 @@ type Data struct {
 // LocalAgent is the JSON struct representing a local server along with its
 // accounts.
 type LocalAgent struct {
-	Name          string          `json:"name"`
-	Protocol      string          `json:"protocol"`
-	RootDir       string          `json:"rootDir,omitempty"`
-	ReceiveDir    string          `json:"receiveDir,omitempty"`
-	SendDir       string          `json:"sendDir,omitempty"`
-	TmpReceiveDir string          `json:"tmpReceiveDir,omitempty"`
-	Address       string          `json:"address"`
-	Configuration json.RawMessage `json:"configuration"`
-	Accounts      []LocalAccount  `json:"accounts"`
-	Certs         []Certificate   `json:"certificates"` //nolint:tagliatelle // doesn't matter
+	Name          string         `json:"name"`
+	Protocol      string         `json:"protocol"`
+	Disabled      bool           `json:"disabled"`
+	RootDir       string         `json:"rootDir,omitempty"`
+	ReceiveDir    string         `json:"receiveDir,omitempty"`
+	SendDir       string         `json:"sendDir,omitempty"`
+	TmpReceiveDir string         `json:"tmpReceiveDir,omitempty"`
+	Address       string         `json:"address"`
+	Configuration map[string]any `json:"configuration"`
+	Accounts      []LocalAccount `json:"accounts"`
+	Certs         []Certificate  `json:"certificates"` //nolint:tagliatelle // doesn't matter
 
 	// Deprecated fields.
 	Root    string `json:"root,omitempty"`    // Deprecated: replaced by Root
@@ -46,13 +47,21 @@ type LocalAccount struct {
 	Certs        []Certificate `json:"certificates,omitempty"` //nolint:tagliatelle // doesn't matter
 }
 
+type Client struct {
+	Name         string         `json:"name"`
+	Protocol     string         `json:"protocol"`
+	Disabled     bool           `json:"disabled"`
+	LocalAddress string         `json:"localAddress,omitempty"`
+	ProtoConfig  map[string]any `json:"protoConfig"`
+}
+
 // RemoteAgent is the JSON struct representing a remote partner along with its
 // accounts.
 type RemoteAgent struct {
 	Name          string          `json:"name"`
 	Address       string          `json:"address"`
 	Protocol      string          `json:"protocol"`
-	Configuration json.RawMessage `json:"configuration"`
+	Configuration map[string]any  `json:"configuration"`
 	Accounts      []RemoteAccount `json:"accounts"`
 	Certs         []Certificate   `json:"certificates"` //nolint:tagliatelle // doesn't matter
 }
@@ -93,8 +102,8 @@ type Rule struct {
 
 // Task is the JSON struct representing a rule task.
 type Task struct {
-	Type string          `json:"type"`
-	Args json.RawMessage `json:"args"`
+	Type string            `json:"type"`
+	Args map[string]string `json:"args"`
 }
 
 // User is the JSON struct representing a gateway user.
@@ -123,6 +132,7 @@ type Transfer struct {
 	Rule           string                  `json:"rule"`
 	IsSend         bool                    `json:"isSend"`
 	IsServer       bool                    `json:"isServer"`
+	Client         string                  `json:"client,omitempty"`
 	Requester      string                  `json:"requester"`
 	Requested      string                  `json:"requested"`
 	Protocol       string                  `json:"protocol"`

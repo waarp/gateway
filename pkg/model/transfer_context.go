@@ -23,6 +23,8 @@ type TransferContext struct {
 	PostTasks Tasks
 	ErrTasks  Tasks
 
+	Client *Client
+
 	RemoteAgent        *RemoteAgent
 	RemoteAgentCryptos Cryptos
 
@@ -48,6 +50,7 @@ func GetTransferContext(db *database.DB, logger *log.Logger, trans *Transfer,
 		Transfer:      trans,
 		TransInfo:     map[string]interface{}{},
 		Paths:         &conf.GlobalConfig.Paths,
+		Client:        &Client{},
 		Rule:          &Rule{},
 		RemoteAgent:   &RemoteAgent{},
 		RemoteAccount: &RemoteAccount{},
@@ -143,6 +146,12 @@ func makeRemoteAgentContext(db *database.DB, logger *log.Logger, transCtx *Trans
 
 	if err := db.Get(transCtx.RemoteAgent, "id=?", transCtx.RemoteAccount.RemoteAgentID).Run(); err != nil {
 		logger.Error("Failed to retrieve transfer partner: %s", err)
+
+		return nil, errDatabase
+	}
+
+	if err := db.Get(transCtx.Client, "id=?", transCtx.Transfer.ClientID).Run(); err != nil {
+		logger.Error("Failed to retrieve the transfer client: %v", err)
 
 		return nil, errDatabase
 	}

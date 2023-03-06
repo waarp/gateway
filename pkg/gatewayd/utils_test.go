@@ -19,7 +19,7 @@ const testProtocol = "test_proto"
 
 //nolint:gochecknoinits // init is used by design
 func init() {
-	config.ProtoConfigs[testProtocol] = &config.ConfigMaker{
+	config.ProtoConfigs[testProtocol] = &config.Constructor{
 		Server:  func() config.ServerProtoConfig { return new(testhelpers.TestProtoConfig) },
 		Partner: func() config.PartnerProtoConfig { return new(testhelpers.TestProtoConfig) },
 		Client:  func() config.ClientProtoConfig { return new(testhelpers.TestProtoConfig) },

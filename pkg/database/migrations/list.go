@@ -178,4 +178,36 @@ var Migrations = []Change{
 		Description: `Converts all the transfers' local paths to URLs`,
 		Script:      ver0_9_0LocalPathToURL{},
 	},
+	{ // #39
+		Description: `Replaces the local agent "enabled" column by a "disabled" one`,
+		Script:      ver0_9_0FixLocalServerEnabled{},
+	},
+	{ // #40
+		Description: `Add a "clients" table and fill it with default clients`,
+		Script:      ver0_9_0AddClientsTable{},
+	},
+	{ // #41
+		Description: `Add an "owner" column to the "remote_agents" table`,
+		Script:      ver0_9_0AddRemoteAgentOwner{},
+	},
+	{ // #42
+		Description: "Duplicate all the partners and their children",
+		Script:      ver0_9_0DuplicateRemoteAgents{},
+	},
+	{ // #43
+		Description: "Relink the transfer agent IDs to the correct instances",
+		Script:      ver0_9_0RelinkTransfers{},
+	},
+	{ // #44
+		Description: `Add a "client_id" column to the "transfers" table`,
+		Script:      ver0_9_0AddTransferClientID{},
+	},
+	{ // #45
+		Description: "Add the 'client' column to the history",
+		Script:      ver0_9_0AddHistoryClient{},
+	},
+	{ // #46
+		Description: `Restore and modify the "normalized_transfers" view`,
+		Script:      ver0_9_0RestoreNormalizedTransfersView{},
+	},
 }

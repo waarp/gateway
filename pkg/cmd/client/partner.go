@@ -8,6 +8,7 @@ import (
 	"strings"
 
 	"code.waarp.fr/apps/gateway/gateway/pkg/admin/rest/api"
+	"code.waarp.fr/apps/gateway/gateway/pkg/tk/utils"
 )
 
 //nolint:gochecknoglobals //a global var is required here
@@ -25,10 +26,15 @@ func displayPartner(w io.Writer, partner *api.OutPartner) {
 	send := strings.Join(partner.AuthorizedRules.Sending, ", ")
 	recv := strings.Join(partner.AuthorizedRules.Reception, ", ")
 
-	fmt.Fprintln(w, orange(bold("● Partner", partner.Name)))
+	protoConfig, err := json.Marshal(partner.ProtoConfig)
+	if err != nil {
+		protoConfig = []byte(red("<error while serializing the configuration>"))
+	}
+
+	fmt.Fprintln(w, boldOrange("● Partner %q", partner.Name))
 	fmt.Fprintln(w, orange("    Protocol:     "), partner.Protocol)
 	fmt.Fprintln(w, orange("    Address:      "), partner.Address)
-	fmt.Fprintln(w, orange("    Configuration:"), string(partner.ProtoConfig))
+	fmt.Fprintln(w, orange("    Configuration:"), string(protoConfig))
 	fmt.Fprintln(w, orange("    Authorized rules"))
 	fmt.Fprintln(w, bold("    ├─Sending:  "), send)
 	fmt.Fprintln(w, bold("    └─Reception:"), recv)
@@ -45,17 +51,16 @@ type PartnerAdd struct {
 }
 
 func (p *PartnerAdd) Execute([]string) error {
-	conf, err := json.Marshal(p.ProtoConfig)
-	if err != nil {
+	partner := api.InPartner{
+		Name:     &p.Name,
+		Protocol: &p.Protocol,
+		Address:  &p.Address,
+	}
+
+	if err := utils.JSONConvert(p.ProtoConfig, &partner.ProtoConfig); err != nil {
 		return fmt.Errorf("invalid config: %w", err)
 	}
 
-	partner := api.InPartner{
-		Name:        &p.Name,
-		Protocol:    &p.Protocol,
-		Address:     &p.Address,
-		ProtoConfig: conf,
-	}
 	addr.Path = "/api/partners"
 
 	if err := add(partner); err != nil {
@@ -154,16 +159,14 @@ type PartnerUpdate struct {
 }
 
 func (p *PartnerUpdate) Execute([]string) error {
-	conf, err := json.Marshal(p.ProtoConfig)
-	if err != nil {
-		return fmt.Errorf("invalid config: %w", err)
+	partner := &api.InPartner{
+		Name:     p.Name,
+		Protocol: p.Protocol,
+		Address:  p.Address,
 	}
 
-	partner := &api.InPartner{
-		Name:        p.Name,
-		Protocol:    p.Protocol,
-		Address:     p.Address,
-		ProtoConfig: conf,
+	if err := utils.JSONConvert(p.ProtoConfig, &partner.ProtoConfig); err != nil {
+		return fmt.Errorf("invalid config: %w", err)
 	}
 
 	addr.Path = path.Join("/api/partners", p.Args.Name)
@@ -197,7 +200,7 @@ func (p *PartnerAuthorize) Execute([]string) error {
 	addr.Path = fmt.Sprintf("/api/partners/%s/authorize/%s/%s", p.Args.Partner,
 		p.Args.Rule, p.Args.Direction)
 
-	return authorize("partner", p.Args.Partner, p.Args.Rule, p.Args.Direction)
+	return authorize(out, "partner", p.Args.Partner, p.Args.Rule, p.Args.Direction)
 }
 
 // ######################## REVOKE ##########################
@@ -214,5 +217,5 @@ func (p *PartnerRevoke) Execute([]string) error {
 	addr.Path = fmt.Sprintf("/api/partners/%s/revoke/%s/%s", p.Args.Partner,
 		p.Args.Rule, p.Args.Direction)
 
-	return revoke("partner", p.Args.Partner, p.Args.Rule, p.Args.Direction)
+	return revoke(out, "partner", p.Args.Partner, p.Args.Rule, p.Args.Direction)
 }

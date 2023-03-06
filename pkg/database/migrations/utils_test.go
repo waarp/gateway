@@ -17,9 +17,10 @@ import (
 
 func setupDatabaseUpTo(eng *testEngine, target Script) {
 	index := -1
+	targetType := reflect.TypeOf(target)
 
 	for i, mig := range Migrations {
-		if mig.Script == target {
+		if reflect.TypeOf(mig.Script) == targetType {
 			index = i
 
 			break

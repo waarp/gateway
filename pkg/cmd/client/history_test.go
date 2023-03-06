@@ -1,7 +1,6 @@
 package wg
 
 import (
-	"encoding/json"
 	"fmt"
 	"net/http/httptest"
 	"net/url"
@@ -549,11 +548,13 @@ func TestRetryHistory(t *testing.T) {
 			So(err, ShouldBeNil)
 
 			Convey("Given a failed history entry", func() {
+				client := &model.Client{Name: "client", Protocol: testProto1}
+				So(db.Insert(client).Run(), ShouldBeNil)
+
 				part := &model.RemoteAgent{
-					Name:        "partner",
-					Protocol:    testProto1,
-					ProtoConfig: json.RawMessage(`{}`),
-					Address:     "localhost:1",
+					Name:     "partner",
+					Protocol: client.Protocol,
+					Address:  "localhost:1",
 				}
 				So(db.Insert(part).Run(), ShouldBeNil)
 
@@ -577,9 +578,10 @@ func TestRetryHistory(t *testing.T) {
 					IsServer:         false,
 					IsSend:           r.IsSend,
 					Rule:             r.Name,
+					Client:           client.Name,
 					Account:          acc.Login,
 					Agent:            part.Name,
-					Protocol:         part.Protocol,
+					Protocol:         client.Protocol,
 					SrcFilename:      "/source/file",
 					DestFilename:     "/dest/file",
 					LocalPath:        *mkURL("file:/local/path.loc"),
@@ -615,6 +617,7 @@ func TestRetryHistory(t *testing.T) {
 								ID:               1,
 								RemoteTransferID: trans[0].RemoteTransferID,
 								RuleID:           r.ID,
+								ClientID:         utils.NewNullInt64(client.ID),
 								RemoteAccountID:  utils.NewNullInt64(acc.ID),
 								SrcFilename:      hist.SrcFilename,
 								DestFilename:     hist.DestFilename,

@@ -8,23 +8,16 @@ import (
 
 	"code.waarp.fr/apps/gateway/gateway/pkg/conf"
 	"code.waarp.fr/apps/gateway/gateway/pkg/database"
-	"code.waarp.fr/apps/gateway/gateway/pkg/gatewayd/service"
+	"code.waarp.fr/apps/gateway/gateway/pkg/gatewayd/service/state"
 	"code.waarp.fr/apps/gateway/gateway/pkg/model"
 	"code.waarp.fr/apps/gateway/gateway/pkg/model/types"
 )
 
-// ClientTransfers is a synchronized map containing the pipelines of all currently
-// running client transfers. It can be used to interrupt transfers using the various
-// functions exposed by the TransferInterrupter interface.
-//
-//nolint:gochecknoglobals // global var is necessary so that transfers can be managed from admin
-var ClientTransfers = service.NewTransferMap()
-
-// ClientPipeline associates a Pipeline with a Client, allowing to run complete
+// ClientPipeline associates a Pipeline with a TransferClient, allowing to run complete
 // client transfers.
 type ClientPipeline struct {
 	Pip    *Pipeline
-	Client Client
+	Client TransferClient
 }
 
 // NewClientPipeline initializes and returns a new ClientPipeline for the given
@@ -66,14 +59,21 @@ func NewClientPipeline(db *database.DB, trans *model.Transfer,
 func newClientPipeline(db *database.DB, logger *log.Logger,
 	transCtx *model.TransferContext,
 ) (*ClientPipeline, *types.TransferError) {
-	proto := transCtx.RemoteAgent.Protocol
+	dbClient := transCtx.Client
 
-	constr, ok := ClientConstructors[proto]
+	client, ok := Clients[dbClient.Name]
 	if !ok {
-		logger.Error("No client found for protocol %s", proto)
+		logger.Error("No client %q found", dbClient.Name)
 
 		return nil, types.NewTransferError(types.TeInternal,
-			"no client found for protocol %q", proto)
+			fmt.Sprintf("no client %q found", dbClient.Name))
+	}
+
+	if code, _ := client.State().Get(); code != state.Running {
+		logger.Error("Client %q is not active, cannot initiate transfer", dbClient.Name)
+
+		return nil, types.NewTransferError(types.TeShuttingDown,
+			fmt.Sprintf("client %q is not active", dbClient.Name))
 	}
 
 	pipeline, pipErr := newPipeline(db, logger, transCtx)
@@ -83,16 +83,17 @@ func newClientPipeline(db *database.DB, logger *log.Logger,
 		return nil, pipErr
 	}
 
-	client, err := constr(pipeline)
+	transferClient, err := client.InitTransfer(pipeline)
 	if err != nil {
-		logger.Error("Failed to instantiate the %s transfer client: %s", proto, err)
+		logger.Error("Failed to instantiate the %q transfer client: %s",
+			dbClient.Name, err)
 
 		return nil, err
 	}
 
 	c := &ClientPipeline{
 		Pip:    pipeline,
-		Client: client,
+		Client: transferClient,
 	}
 
 	if transCtx.Rule.IsSend {
@@ -104,8 +105,6 @@ func newClientPipeline(db *database.DB, logger *log.Logger,
 			transCtx.Transfer.RemotePath, transCtx.RemoteAgent.Name,
 			transCtx.RemoteAccount.Login, transCtx.Rule.Name)
 	}
-
-	ClientTransfers.Add(transCtx.Transfer.ID, c)
 
 	return c, nil
 }
@@ -185,8 +184,6 @@ func (c *ClientPipeline) postTasks() *types.TransferError {
 // Run executes the full client transfer pipeline in order. If a transfer error
 // occurs, it will be handled internally.
 func (c *ClientPipeline) Run() *types.TransferError {
-	defer ClientTransfers.Delete(c.Pip.TransCtx.Transfer.ID)
-
 	// REQUEST
 	if err := c.Client.Request(); err != nil {
 		c.Pip.SetError(err)

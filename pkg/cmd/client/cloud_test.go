@@ -1,7 +1,6 @@
 package wg
 
 import (
-	"encoding/json"
 	"fmt"
 	"net/http"
 	"net/url"
@@ -28,22 +27,19 @@ func TestCloudGet(t *testing.T) {
 		w := &strings.Builder{}
 		command := &CloudGet{}
 
-		respBody, jsonErr := json.Marshal(map[string]any{
+		respBody := map[string]any{
 			"name":    cloudName,
 			"type":    cloudType,
 			"key":     cloudKey,
 			"options": map[string]string{opt1: key1, opt2: key2},
-		})
-		So(jsonErr, ShouldBeNil)
-
+		}
 		expRequest := &expectedRequest{
 			method: http.MethodGet,
 			path:   path,
 		}
-
 		expResponse := &expectedResponse{
 			status: http.StatusOK,
-			body:   string(respBody),
+			body:   respBody,
 		}
 
 		testServer(expRequest, expResponse)
@@ -91,21 +87,18 @@ func TestCloudAdd(t *testing.T) {
 		w := &strings.Builder{}
 		command := &CloudAdd{}
 
-		reqBody, jsonErr := json.Marshal(map[string]any{
+		reqBody := map[string]any{
 			"name":    cloudName,
 			"type":    cloudType,
 			"key":     cloudKey,
 			"secret":  cloudSecret,
 			"options": map[string]string{opt1: key1, opt2: key2},
-		})
-		So(jsonErr, ShouldBeNil)
-
+		}
 		expRequest := &expectedRequest{
 			method: http.MethodPost,
 			path:   path,
-			body:   string(reqBody),
+			body:   reqBody,
 		}
-
 		expResponse := &expectedResponse{
 			status:  http.StatusCreated,
 			headers: map[string][]string{"Location": {location}},
@@ -190,21 +183,18 @@ func TestCloudUpdate(t *testing.T) {
 		w := &strings.Builder{}
 		command := &CloudUpdate{}
 
-		reqBody, jsonErr := json.Marshal(map[string]any{
+		reqBody := map[string]any{
 			"name":    cloudName,
 			"type":    cloudType,
 			"key":     cloudKey,
 			"secret":  cloudSecret,
 			"options": map[string]string{opt1: key1, opt2: key2},
-		})
-		So(jsonErr, ShouldBeNil)
-
+		}
 		expRequest := &expectedRequest{
 			method: http.MethodPatch,
 			path:   path,
-			body:   string(reqBody),
+			body:   reqBody,
 		}
-
 		expResponse := &expectedResponse{
 			status:  http.StatusCreated,
 			headers: map[string][]string{"Location": {location}},
@@ -264,17 +254,15 @@ func TestCloudList(t *testing.T) {
 			},
 		}
 
-		respBody, jsonErr := json.Marshal(map[string][]map[string]any{
-			"clouds": {
+		respBody := map[string]any{
+			"clouds": []map[string]any{
 				{"name": cloud1, "type": cloud1Type},
 				{"name": cloud2, "type": cloud2Type},
 			},
-		})
-		So(jsonErr, ShouldBeNil)
-
+		}
 		expResponse := &expectedResponse{
 			status: http.StatusOK,
-			body:   string(respBody),
+			body:   respBody,
 		}
 
 		testServer(expRequest, expResponse)

@@ -11,11 +11,11 @@ import (
 )
 
 func TestAddressIndirection(t *testing.T) {
-	fakeAddr := "not_a_real_address:99999"
+	fakeAddr := "9.9.9.9:9999"
 
 	Convey("Given a HTTP service with an indirect address", t, func(c C) {
 		Convey("Given a new POST HTTP transfer", func(c C) {
-			ctx := pipelinetest.InitSelfPushTransfer(c, "http", NewService, nil, nil)
+			ctx := pipelinetest.InitSelfPushTransfer(c, "http", nil, nil, nil)
 			realAddr := ctx.Server.Address
 
 			conf.InitTestOverrides(c)
@@ -29,22 +29,23 @@ func TestAddressIndirection(t *testing.T) {
 				pip, err := pipeline.NewClientPipeline(ctx.DB, ctx.ClientTrans)
 				So(err, ShouldBeNil)
 
-				//nolint:forcetypeassert //no need, the type assertion will always succeed
-				cli := newClient(pip.Pipeline(), nil).(*postClient)
+				transClient, err := ctx.ProtoClient.InitTransfer(pip.Pipeline())
+				So(err, ShouldBeNil)
 
-				So(cli.Request(), ShouldBeNil)
-				Reset(func() {
-					So(cli.Cancel(), ShouldBeNil)
-				})
+				//nolint:forcetypeassert //no need, the type assertion will always succeed
+				transferClient := transClient.(*postClient)
+				So(transferClient.Request(), ShouldBeNil)
+
+				defer func() { So(transferClient.Cancel(), ShouldBeNil) }()
 
 				Convey("Then it should have connected to the server", func() {
-					So(cli.req.URL.Host, ShouldEqual, realAddr)
+					So(transferClient.req.URL.Host, ShouldEqual, realAddr)
 				})
 			})
 		})
 
 		Convey("Given a new GET HTTP transfer", func(c C) {
-			ctx := pipelinetest.InitSelfPullTransfer(c, "http", NewService, nil, nil)
+			ctx := pipelinetest.InitSelfPullTransfer(c, "http", nil, nil, nil)
 			realAddr := ctx.Server.Address
 
 			conf.InitTestOverrides(c)
@@ -58,14 +59,17 @@ func TestAddressIndirection(t *testing.T) {
 				pip, err := pipeline.NewClientPipeline(ctx.DB, ctx.ClientTrans)
 				So(err, ShouldBeNil)
 
-				//nolint:forcetypeassert //no need, the type assertion will always succeed
-				cli := newClient(pip.Pipeline(), nil).(*getClient)
-				So(cli.Request(), ShouldBeNil)
+				transClient, err := ctx.ProtoClient.InitTransfer(pip.Pipeline())
+				So(err, ShouldBeNil)
 
-				defer func() { cli.SendError(nil) }()
+				//nolint:forcetypeassert //no need, the type assertion will always succeed
+				transferClient := transClient.(*getClient)
+				So(transferClient.Request(), ShouldBeNil)
+
+				defer func() { transferClient.SendError(nil) }()
 
 				Convey("Then it should have connected to the server", func() {
-					So(cli.resp.Request.URL.Host, ShouldEqual, realAddr)
+					So(transferClient.resp.Request.URL.Host, ShouldEqual, realAddr)
 				})
 			})
 		})

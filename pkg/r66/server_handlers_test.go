@@ -14,6 +14,7 @@ import (
 	"code.waarp.fr/apps/gateway/gateway/pkg/fs/fstest"
 	"code.waarp.fr/apps/gateway/gateway/pkg/gatewayd/service"
 	"code.waarp.fr/apps/gateway/gateway/pkg/model"
+	"code.waarp.fr/apps/gateway/gateway/pkg/model/config"
 	"code.waarp.fr/apps/gateway/gateway/pkg/model/types"
 	"code.waarp.fr/apps/gateway/gateway/pkg/pipeline"
 	"code.waarp.fr/apps/gateway/gateway/pkg/tk/utils"
@@ -27,7 +28,7 @@ func TestValidAuth(t *testing.T) {
 		r66Server := &model.LocalAgent{
 			Name:        "r66 server",
 			Protocol:    ProtocolR66,
-			ProtoConfig: []byte(`{"blockSize":512,"serverPassword":"c2VzYW1l"}`),
+			ProtoConfig: map[string]any{"blockSize": 512, "serverPassword": "c2VzYW1l"},
 			Address:     "localhost:6666",
 		}
 		So(db.Insert(r66Server).Run(), ShouldBeNil)
@@ -43,6 +44,7 @@ func TestValidAuth(t *testing.T) {
 			db:      db,
 			logger:  logger,
 			agentID: r66Server.ID,
+			r66Conf: &config.R66ServerProtoConfig{},
 		}}
 
 		Convey("Given an authentication packet", func() {
@@ -94,7 +96,14 @@ func TestValidAuth(t *testing.T) {
 			Convey("Given an incorrect hash digest", func() {
 				packet.Digest = "SHA-512"
 
-				shouldFailWith("the digest is invalid", "U: unknown final hash digest")
+				Convey("When calling the `ValidAuth` function", func() {
+					_, err := handler.ValidAuth(packet)
+					So(err, ShouldBeNil)
+
+					Convey("Then it should return a valid digest", func() {
+						So(packet.Digest, ShouldEqual, "SHA-256")
+					})
+				})
 			})
 		})
 	})
@@ -119,7 +128,7 @@ func TestValidRequest(t *testing.T) {
 		server := &model.LocalAgent{
 			Name:        "r66 server",
 			Protocol:    ProtocolR66,
-			ProtoConfig: []byte(`{"blockSize":512,"serverPassword":"c2VzYW1l"}`),
+			ProtoConfig: map[string]any{"blockSize": 512, "serverPassword": "c2VzYW1l"},
 			Address:     "localhost:6666",
 			RootDir:     path.Join(root, "server_root"),
 		}
@@ -249,7 +258,7 @@ func TestUpdateTransferInfo(t *testing.T) {
 		server := &model.LocalAgent{
 			Name:        "r66 server",
 			Protocol:    ProtocolR66,
-			ProtoConfig: []byte(`{"blockSize":512,"serverPassword":"c2VzYW1l"}`),
+			ProtoConfig: map[string]any{"blockSize": 512, "serverPassword": "c2VzYW1l"},
 			Address:     "localhost:6666",
 			RootDir:     "server_root",
 		}

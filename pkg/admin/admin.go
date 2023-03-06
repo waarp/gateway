@@ -23,6 +23,7 @@ import (
 	"code.waarp.fr/apps/gateway/gateway/pkg/gatewayd/service/names"
 	"code.waarp.fr/apps/gateway/gateway/pkg/gatewayd/service/proto"
 	"code.waarp.fr/apps/gateway/gateway/pkg/gatewayd/service/state"
+	"code.waarp.fr/apps/gateway/gateway/pkg/tk/utils"
 )
 
 var ErrMissingKeyFile = errors.New("missing certificate private key")
@@ -31,7 +32,7 @@ var ErrMissingKeyFile = errors.New("missing certificate private key")
 type Server struct {
 	DB            *database.DB
 	CoreServices  map[string]service.Service
-	ProtoServices map[int64]proto.Service
+	ProtoServices map[string]proto.Service
 
 	logger *log.Logger
 	state  state.State
@@ -66,7 +67,7 @@ func listen(s *Server) {
 // valid address on which the server can listen.
 func checkAddress() (string, error) {
 	config := &conf.GlobalConfig.Admin
-	addr := net.JoinHostPort(config.Host, fmt.Sprint(config.Port))
+	addr := net.JoinHostPort(config.Host, utils.FormatUint(config.Port))
 
 	addr, err := conf.GetRealAddress(addr)
 	if err != nil {
@@ -115,7 +116,7 @@ func (s *Server) makeTLSConfig() (*tls.Config, error) {
 	keyBlock, _ := pem.Decode(keyCryptPEM)
 	if keyBlock == nil {
 		//nolint:goerr113 //this is a base error
-		return nil, fmt.Errorf("key file does not contain a valid PEM block")
+		return nil, errors.New("key file does not contain a valid PEM block")
 	}
 
 	keyDER, err := pemutil.DecryptPEMBlock(keyBlock, []byte(passphrase))
@@ -222,8 +223,8 @@ func (s *Server) Stop(ctx context.Context) error {
 	}
 
 	s.state.Set(state.ShuttingDown, "")
-	err := s.server.Shutdown(ctx)
 
+	err := s.server.Shutdown(ctx)
 	if err == nil {
 		s.logger.Info("Shutdown complete")
 	} else {

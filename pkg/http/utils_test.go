@@ -7,7 +7,19 @@ import (
 	. "github.com/smartystreets/goconvey/convey"
 
 	"code.waarp.fr/apps/gateway/gateway/pkg/model"
+	"code.waarp.fr/apps/gateway/gateway/pkg/pipeline/pipelinetest"
 )
+
+func init() {
+	pipelinetest.Protocols["http"] = pipelinetest.ProtoFeatures{
+		ClientConstr: NewHTTPClient, ServiceConstr: NewService,
+		TransID: true, RuleName: true, Size: true,
+	}
+	pipelinetest.Protocols["https"] = pipelinetest.ProtoFeatures{
+		ClientConstr: NewHTTPSClient, ServiceConstr: NewService,
+		TransID: true, RuleName: true, Size: true,
+	}
+}
 
 func TestGetContentRange(t *testing.T) {
 	Convey("Given the Content-Range parsing function", t, func() {

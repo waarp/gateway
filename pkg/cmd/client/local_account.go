@@ -23,7 +23,7 @@ func displayAccount(w io.Writer, account *api.OutAccount) {
 	send := strings.Join(account.AuthorizedRules.Sending, ", ")
 	recv := strings.Join(account.AuthorizedRules.Reception, ", ")
 
-	fmt.Fprintln(w, orange(bold("● Account", account.Login)))
+	fmt.Fprintln(w, boldOrange("● Account %q", account.Login))
 	fmt.Fprintln(w, orange("    Authorized rules"))
 	fmt.Fprintln(w, bold("    ├─  Sending:"), send)
 	fmt.Fprintln(w, bold("    └─Reception:"), recv)
@@ -176,7 +176,7 @@ func (l *LocAccAuthorize) Execute([]string) error {
 	addr.Path = fmt.Sprintf("/api/servers/%s/accounts/%s/authorize/%s/%s", Server,
 		l.Args.Login, l.Args.Rule, l.Args.Direction)
 
-	return authorize("local account", l.Args.Login, l.Args.Rule, l.Args.Direction)
+	return authorize(out, "local account", l.Args.Login, l.Args.Rule, l.Args.Direction)
 }
 
 // ######################## REVOKE ##########################
@@ -193,5 +193,5 @@ func (l *LocAccRevoke) Execute([]string) error {
 	addr.Path = fmt.Sprintf("/api/servers/%s/accounts/%s/revoke/%s/%s", Server,
 		l.Args.Login, l.Args.Rule, l.Args.Direction)
 
-	return revoke("local account", l.Args.Login, l.Args.Rule, l.Args.Direction)
+	return revoke(out, "local account", l.Args.Login, l.Args.Rule, l.Args.Direction)
 }

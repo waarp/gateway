@@ -2,7 +2,6 @@ package sftp
 
 import (
 	"context"
-	"encoding/json"
 	"fmt"
 	"net"
 
@@ -16,6 +15,7 @@ import (
 	"code.waarp.fr/apps/gateway/gateway/pkg/model"
 	"code.waarp.fr/apps/gateway/gateway/pkg/model/config"
 	"code.waarp.fr/apps/gateway/gateway/pkg/pipeline"
+	"code.waarp.fr/apps/gateway/gateway/pkg/tk/utils"
 )
 
 // Service represents an instance of SFTP server.
@@ -46,7 +46,7 @@ func (s *Service) start(agent *model.LocalAgent) error {
 	s.agentID = agent.ID
 
 	var protoConfig config.SftpServerProtoConfig
-	if err := json.Unmarshal(agent.ProtoConfig, &protoConfig); err != nil {
+	if err := utils.JSONConvert(agent.ProtoConfig, &protoConfig); err != nil {
 		return fmt.Errorf("cannot parse the protocol configuration of this agent: %w", err)
 	}
 

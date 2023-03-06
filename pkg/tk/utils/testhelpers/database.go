@@ -3,6 +3,7 @@ package testhelpers
 import (
 	"database/sql"
 	"fmt"
+	"net/url"
 	"os"
 
 	"github.com/go-sql-driver/mysql"
@@ -19,8 +20,19 @@ func GetTestSqliteDBNoReset(c convey.C) (*sql.DB, string) {
 	c.So(f.Close(), convey.ShouldBeNil)
 	c.So(os.Remove(f.Name()), convey.ShouldBeNil)
 
-	db, err := sql.Open("sqlite", fmt.Sprintf(
-		"file:%s?mode=rwc&cache=shared&_pragma=foreign_keys(ON)", f.Name()))
+	values := url.Values{}
+
+	values.Set("mode", "rwc")
+	values.Set("cache", "shared")
+	values.Set("_txlock", "exclusive")
+	values.Add("_pragma", "busy_timeout(5000)")
+	values.Add("_pragma", "foreign_keys(ON)")
+	values.Add("_pragma", "journal_mode(MEMORY)")
+	values.Add("_pragma", "synchronous(NORMAL)")
+
+	dsn := fmt.Sprintf("file:%s?%s", f.Name(), values.Encode())
+
+	db, err := sql.Open("sqlite", dsn)
 	c.So(err, convey.ShouldBeNil)
 
 	return db, f.Name()

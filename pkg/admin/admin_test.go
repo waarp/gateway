@@ -34,8 +34,9 @@ func TestStart(t *testing.T) {
 		}
 		server := &Server{
 			CoreServices:  map[string]service.Service{},
-			ProtoServices: map[int64]proto.Service{},
+			ProtoServices: map[string]proto.Service{},
 		}
+
 		Reset(func() { _ = server.server.Close() })
 
 		Convey("Given a correct configuration", func() {
@@ -92,7 +93,7 @@ func TestStart(t *testing.T) {
 			conf.GlobalConfig.Admin.Port = 0
 			rest := &Server{
 				CoreServices:  map[string]service.Service{},
-				ProtoServices: map[int64]proto.Service{},
+				ProtoServices: map[string]proto.Service{},
 			}
 
 			Convey("When starting the service", func() {
@@ -111,7 +112,7 @@ func TestStart(t *testing.T) {
 			conf.GlobalConfig.Admin.TLSKey = "not_a_key"
 			rest := &Server{
 				CoreServices:  map[string]service.Service{},
-				ProtoServices: map[int64]proto.Service{},
+				ProtoServices: map[string]proto.Service{},
 			}
 
 			Convey("When starting the service", func() {
@@ -130,7 +131,7 @@ func TestStop(t *testing.T) {
 		conf.GlobalConfig.Admin = conf.AdminConfig{Host: "localhost"}
 		rest := &Server{
 			CoreServices:  map[string]service.Service{},
-			ProtoServices: map[int64]proto.Service{},
+			ProtoServices: map[string]proto.Service{},
 		}
 
 		err := rest.Start()
@@ -154,6 +155,7 @@ func TestStop(t *testing.T) {
 
 				So(err, ShouldBeError)
 				So(response, ShouldBeNil)
+
 				if response != nil {
 					_ = response.Body.Close()
 				}

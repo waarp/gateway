@@ -12,7 +12,10 @@ import (
 	"time"
 )
 
-const httpTimeout = 5 * time.Second
+const (
+	httpTimeout = 5 * time.Second
+	jsonIndent  = "    "
+)
 
 func getHTTPClient(insecure bool) *http.Client {
 	//nolint:forcetypeassert //type assertion will always succeed
@@ -37,7 +40,7 @@ func SendRequest(ctx context.Context, object interface{}, method string,
 	var body io.Reader
 
 	if object != nil {
-		content, err := json.Marshal(object)
+		content, err := json.MarshalIndent(object, "", jsonIndent)
 		if err != nil {
 			return nil, fmt.Errorf("cannot parse the request body: %w", err)
 		}

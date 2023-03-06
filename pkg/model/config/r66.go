@@ -11,7 +11,7 @@ const ProtocolR66 = "r66"
 
 //nolint:gochecknoinits // init is used by design
 func init() {
-	ProtoConfigs[ProtocolR66] = &ConfigMaker{
+	ProtoConfigs[ProtocolR66] = &Constructor{
 		Server:  func() ServerProtoConfig { return new(R66ServerProtoConfig) },
 		Partner: func() PartnerProtoConfig { return new(R66PartnerProtoConfig) },
 		Client:  func() ClientProtoConfig { return new(R66ClientProtoConfig) },
@@ -30,6 +30,7 @@ type R66ServerProtoConfig struct {
 	ServerPassword string `json:"serverPassword,omitempty"`
 
 	// Specifies whether the partner uses TLS or not. Useless for servers.
+	// Deprecated: use the r66-tls protocol instead.
 	//nolint:tagliatelle // FIXME cannot be changed for compatibility reasons
 	IsTLS *bool `json:"isTLS,omitempty"`
 
@@ -77,15 +78,15 @@ type R66PartnerProtoConfig struct {
 	IsTLS *bool `json:"isTLS,omitempty"`
 
 	// If true, the final hash verification will be disabled.
-	NoFinalHash bool `json:"noFinalHash,omitempty"`
+	NoFinalHash *bool `json:"noFinalHash,omitempty"`
 
 	// If true, a hash check will be performed on each block during a transfer.
-	CheckBlockHash bool `json:"checkBlockHash,omitempty"`
+	CheckBlockHash *bool `json:"checkBlockHash,omitempty"`
 }
 
 // ValidPartner checks if the configuration is valid for a R66 partner.
 //
-//nolint:dupl //t's better to keep the TLS & non-TLS config separated, as they will probably differ in the future
+//nolint:dupl //It's better to keep the TLS & non-TLS config separated, as they will probably differ in the future
 func (c *R66PartnerProtoConfig) ValidPartner() error {
 	if c.BlockSize == 0 {
 		c.BlockSize = 65536
@@ -115,10 +116,6 @@ func (c *R66PartnerProtoConfig) ValidPartner() error {
 type R66ClientProtoConfig struct {
 	// The block size for transfers. Optional, 65536 by default.
 	BlockSize uint32 `json:"blockSize,omitempty"`
-
-	// Specifies whether the partner uses TLS or not. Useless for servers.
-	//nolint:tagliatelle // FIXME cannot be changed for compatibility reasons
-	IsTLS *bool `json:"isTLS,omitempty"`
 
 	// If true, the final hash verification will be disabled.
 	NoFinalHash bool `json:"noFinalHash,omitempty"`

@@ -170,8 +170,8 @@ func getHistory(logger *log.Logger, db *database.DB) http.HandlerFunc {
 	}
 }
 
+//nolint:dupl //kept separate for backwards compatibility
 func listHistory(logger *log.Logger, db *database.DB) http.HandlerFunc {
-	//nolint:dupl //kept separate for backwards compatibility
 	validSorting := orders{
 		"default":    order{col: "start", asc: true},
 		"id+":        order{col: "id", asc: true},

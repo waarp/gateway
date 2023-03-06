@@ -13,6 +13,7 @@ import (
 	"code.waarp.fr/apps/gateway/gateway/pkg/admin/rest"
 	"code.waarp.fr/apps/gateway/gateway/pkg/admin/rest/api"
 	"code.waarp.fr/apps/gateway/gateway/pkg/model/types"
+	"code.waarp.fr/apps/gateway/gateway/pkg/tk/utils"
 )
 
 func coloredStatus(status types.TransferStatus) string {
@@ -37,7 +38,7 @@ func coloredStatus(status types.TransferStatus) string {
 		}
 	}()
 
-	return bold("[") + text + bold("]")
+	return fmt.Sprintf("[%s]", text)
 }
 
 func displayTransferFile(w io.Writer, trans *api.OutTransfer) {
@@ -71,7 +72,7 @@ func displayTransfer(w io.Writer, trans *api.OutTransfer) {
 		stop = trans.Stop.Local().String()
 	}
 
-	fmt.Fprintln(w, bold("● Transfer", trans.ID, "("+dir+" as "+role+")"),
+	fmt.Fprintln(w, boldOrange("● Transfer %d (%s as %s)", trans.ID, dir, role),
 		coloredStatus(trans.Status))
 
 	writeLine(w, orange("    Remote ID:        "), trans.RemoteID)
@@ -80,6 +81,7 @@ func displayTransfer(w io.Writer, trans *api.OutTransfer) {
 	writeLine(w, orange("    Rule:             "), trans.Rule)
 	writeLine(w, orange("    Requested by:     "), trans.Requester)
 	writeLine(w, orange("    Requested to:     "), trans.Requested)
+	writeCond(w, orange("    With client:      "), trans.Client, !trans.IsServer)
 	writeCond(w, orange("    Full local path:  "), trans.LocalFilepath, trans.LocalFilepath != "")
 	writeCond(w, orange("    Full remote path: "), trans.RemoteFilepath, trans.RemoteFilepath != "")
 	writeDefV(w, orange("    File size:        "), trans.Filesize, trans.Filesize >= 0, sizeUnknown)
@@ -115,7 +117,8 @@ type TransferAdd struct {
 	File         string            `required:"yes" short:"f" long:"file" description:"The file to transfer"`
 	Out          string            `short:"o" long:"out" description:"The destination of the file"`
 	Way          string            `required:"yes" short:"w" long:"way" description:"The direction of the transfer" choice:"send" choice:"receive"`
-	Partner      string            `required:"yes" short:"p" long:"partner" description:"The partner with which the transfer is performed"`
+	Client       string            `short:"c" long:"client" description:"The client with which the transfer is performed"`
+	Partner      string            `required:"yes" short:"p" long:"partner" description:"The partner to which the transfer is requested"`
 	Account      string            `required:"yes" short:"l" long:"login" description:"The login of the account used to connect on the partner"`
 	Rule         string            `required:"yes" short:"r" long:"rule" description:"The rule to use for the transfer"`
 	Date         string            `short:"d" long:"date" description:"The starting date (in ISO 8601 format) of the transfer"`
@@ -131,6 +134,7 @@ func (t *TransferAdd) Execute([]string) error {
 	}
 
 	trans := api.InTransfer{
+		Client:       t.Client,
 		Partner:      t.Partner,
 		Account:      t.Account,
 		IsSend:       dirToBoolPtr(t.Way),
@@ -201,8 +205,8 @@ type TransferList struct {
 func (t *TransferList) listURL() error {
 	addr.Path = rest.TransfersPath
 	query := url.Values{}
-	query.Set("limit", fmt.Sprint(t.Limit))
-	query.Set("offset", fmt.Sprint(t.Offset))
+	query.Set("limit", utils.FormatUint(t.Limit))
+	query.Set("offset", utils.FormatUint(t.Offset))
 	query.Set("sort", t.SortBy)
 
 	for _, rule := range t.Rules {
@@ -264,7 +268,7 @@ type TransferPause struct {
 }
 
 func (t *TransferPause) Execute([]string) error {
-	id := fmt.Sprint(t.Args.ID)
+	id := utils.FormatUint(t.Args.ID)
 	addr.Path = fmt.Sprintf("/api/transfers/%d/pause", t.Args.ID)
 
 	ctx, cancel := context.WithTimeout(context.Background(), httpTimeout)
@@ -307,7 +311,7 @@ type TransferResume struct {
 
 //nolint:dupl // hard to factorize
 func (t *TransferResume) Execute([]string) error {
-	id := fmt.Sprint(t.Args.ID)
+	id := utils.FormatUint(t.Args.ID)
 	addr.Path = fmt.Sprintf("/api/transfers/%d/resume", t.Args.ID)
 
 	ctx, cancel := context.WithTimeout(context.Background(), httpTimeout)
@@ -348,7 +352,7 @@ type TransferCancel struct {
 
 //nolint:dupl // hard to factorize
 func (t *TransferCancel) Execute([]string) error {
-	id := fmt.Sprint(t.Args.ID)
+	id := utils.FormatUint(t.Args.ID)
 	addr.Path = fmt.Sprintf("/api/transfers/%d/cancel", t.Args.ID)
 
 	ctx, cancel := context.WithTimeout(context.Background(), httpTimeout)

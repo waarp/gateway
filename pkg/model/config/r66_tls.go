@@ -14,7 +14,7 @@ const ProtocolR66TLS = "r66-tls"
 
 //nolint:gochecknoinits // init is used by design
 func init() {
-	ProtoConfigs[ProtocolR66TLS] = &ConfigMaker{
+	ProtoConfigs[ProtocolR66TLS] = &Constructor{
 		Server:  func() ServerProtoConfig { return new(R66TLSServerProtoConfig) },
 		Partner: func() PartnerProtoConfig { return new(R66TLSPartnerProtoConfig) },
 		Client:  func() ClientProtoConfig { return new(R66TLSClientProtoConfig) },

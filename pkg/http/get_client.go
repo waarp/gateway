@@ -14,6 +14,7 @@ import (
 type getClient struct {
 	pip       *pipeline.Pipeline
 	transport *http.Transport
+	isHTTPS   bool
 
 	resp   *http.Response
 	ctx    context.Context //nolint:containedctx //FIXME move the context to a function parameter
@@ -24,7 +25,7 @@ func (g *getClient) Request() *types.TransferError {
 	g.ctx, g.cancel = context.WithCancel(context.Background())
 
 	scheme := "http://"
-	if g.transport.TLSClientConfig != nil {
+	if g.isHTTPS {
 		scheme = "https://"
 	}
 

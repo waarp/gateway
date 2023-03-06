@@ -144,12 +144,12 @@ func TestCryptoBeforeWrite(t *testing.T) {
 				})
 
 				Convey("Given that the certificate is not valid for the host", func() {
-					parentAgent.Address = "not_localhost:1"
+					parentAgent.Address = "1.1.1.1:1"
 					So(db.Update(parentAgent).Cols("address").Run(), ShouldBeNil)
 
 					shouldFailWith("the certificate host is incorrect",
 						database.NewValidationError("certificate is invalid: x509: "+
-							"certificate is valid for localhost, not not_localhost"))
+							"certificate is valid for 127.0.0.1, ::1, not 1.1.1.1"))
 				})
 
 				Convey("Given the legacy R66 certificate", func() {

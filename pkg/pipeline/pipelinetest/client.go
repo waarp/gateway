@@ -1,7 +1,6 @@
 package pipelinetest
 
 import (
-	"encoding/json"
 	"fmt"
 	"path"
 	"sync/atomic"
@@ -20,7 +19,10 @@ import (
 type clientData struct {
 	Partner    *model.RemoteAgent
 	RemAccount *model.RemoteAccount
+	Client     *model.Client
 	ClientRule *model.Rule
+
+	ProtoClient pipeline.Client
 }
 
 // ClientContext is a struct regrouping all the elements necessary for a
@@ -29,21 +31,33 @@ type ClientContext struct {
 	*testData
 	*clientData
 	*transData
-	protoFeatures *features
+	protoFeatures *ProtoFeatures
 }
 
-func initClient(c convey.C, proto string, partConf config.PartnerProtoConfig) *ClientContext {
-	feat, ok := protocols[proto]
+func initClient(c convey.C, proto string, clientConf config.ClientProtoConfig,
+	partConf config.PartnerProtoConfig,
+) *ClientContext {
+	feat, ok := Protocols[proto]
 	c.So(ok, convey.ShouldBeTrue)
 	t := initTestData(c)
 	port := testhelpers.GetFreePort(c)
-	partner, remAcc := makeClientConf(c, t.DB, port, proto, partConf)
+	cli, partner, remAcc := makeClientConf(c, t.DB, port, proto, clientConf, partConf)
+
+	constr := Protocols[proto].ClientConstr
+
+	client, err := constr(cli)
+	c.So(err, convey.ShouldBeNil)
+	c.So(client.Start(), convey.ShouldBeNil)
+
+	pipeline.Clients[cli.Name] = client
 
 	return &ClientContext{
 		testData: t,
 		clientData: &clientData{
-			Partner:    partner,
-			RemAccount: remAcc,
+			Partner:     partner,
+			RemAccount:  remAcc,
+			Client:      cli,
+			ProtoClient: client,
 		},
 		transData: &transData{
 			transferInfo: map[string]interface{}{},
@@ -56,9 +70,10 @@ func initClient(c convey.C, proto string, partConf config.PartnerProtoConfig) *C
 // InitClientPush creates a database and fills it with all the elements necessary
 // for a push client transfer test of the given protocol. It then returns all these
 // elements inside a ClientContext.
-func InitClientPush(c convey.C, proto string, partConf config.PartnerProtoConfig,
+func InitClientPush(c convey.C, proto string, clientConf config.ClientProtoConfig,
+	partConf config.PartnerProtoConfig,
 ) *ClientContext {
-	ctx := initClient(c, proto, partConf)
+	ctx := initClient(c, proto, clientConf, partConf)
 	ctx.ClientRule = makeClientPush(c, ctx.DB, proto)
 	ctx.addPushTransfer(c)
 
@@ -68,9 +83,10 @@ func InitClientPush(c convey.C, proto string, partConf config.PartnerProtoConfig
 // InitClientPull creates a database and fills it with all the elements necessary
 // for a pull client transfer test of the given protocol. It then returns all these
 // element inside a ClientContext.
-func InitClientPull(c convey.C, proto string, cont []byte, partConf config.PartnerProtoConfig,
+func InitClientPull(c convey.C, proto string, cont []byte, clientConf config.ClientProtoConfig,
+	partConf config.PartnerProtoConfig,
 ) *ClientContext {
-	ctx := initClient(c, proto, partConf)
+	ctx := initClient(c, proto, clientConf, partConf)
 	ctx.ClientRule = makeClientPull(c, ctx.DB, proto)
 	ctx.addPullTransfer(c, cont)
 
@@ -92,7 +108,7 @@ func makeClientPush(c convey.C, db *database.DB, proto string) *model.Rule {
 		RemoteDir: "cli_push_rem",
 	}
 
-	if !protocols[proto].ruleName {
+	if !Protocols[proto].RuleName {
 		rule.RemoteDir = path.Join("push", rule.RemoteDir)
 	}
 
@@ -111,7 +127,7 @@ func makeClientPull(c convey.C, db *database.DB, proto string) *model.Rule {
 		RemoteDir:      "cli_pull_rem",
 	}
 
-	if !protocols[proto].ruleName {
+	if !Protocols[proto].RuleName {
 		rule.RemoteDir = path.Join("pull", rule.RemoteDir)
 	}
 
@@ -122,15 +138,27 @@ func makeClientPull(c convey.C, db *database.DB, proto string) *model.Rule {
 }
 
 func makeClientConf(c convey.C, db *database.DB, port uint16, proto string,
-	partConf config.PartnerProtoConfig,
-) (*model.RemoteAgent, *model.RemoteAccount) {
-	jsonPartConf := json.RawMessage(`{}`)
+	clientConf config.ClientProtoConfig, partConf config.PartnerProtoConfig,
+) (*model.Client, *model.RemoteAgent, *model.RemoteAccount) {
+	jsonClientConf := map[string]any{}
+	jsonPartConf := map[string]any{}
 
-	if partConf != nil {
-		var err error
-		jsonPartConf, err = json.Marshal(partConf)
+	if clientConf != nil {
+		err := utils.JSONConvert(clientConf, &jsonClientConf)
 		c.So(err, convey.ShouldBeNil)
 	}
+
+	if partConf != nil {
+		err := utils.JSONConvert(partConf, &jsonPartConf)
+		c.So(err, convey.ShouldBeNil)
+	}
+
+	client := &model.Client{
+		Name:        "client",
+		Protocol:    proto,
+		ProtoConfig: jsonClientConf,
+	}
+	c.So(db.Insert(client).Run(), convey.ShouldBeNil)
 
 	partner := &model.RemoteAgent{
 		Name:        "partner",
@@ -147,7 +175,7 @@ func makeClientConf(c convey.C, db *database.DB, port uint16, proto string,
 	}
 	c.So(db.Insert(remAccount).Run(), convey.ShouldBeNil)
 
-	return partner, remAccount
+	return client, partner, remAccount
 }
 
 //nolint:dupl // factorizing would hurt readability
@@ -157,6 +185,7 @@ func (cc *ClientContext) addPushTransfer(c convey.C) {
 
 	trans := &model.Transfer{
 		RuleID:          cc.ClientRule.ID,
+		ClientID:        utils.NewNullInt64(cc.Client.ID),
 		RemoteAccountID: utils.NewNullInt64(cc.RemAccount.ID),
 		SrcFilename:     "self_transfer_push",
 		Start:           time.Now(),
@@ -172,6 +201,7 @@ func (cc *ClientContext) addPullTransfer(c convey.C, cont []byte) {
 
 	trans := &model.Transfer{
 		RuleID:          cc.ClientRule.ID,
+		ClientID:        utils.NewNullInt64(cc.Client.ID),
 		RemoteAccountID: utils.NewNullInt64(cc.RemAccount.ID),
 		SrcFilename:     "self_transfer_pull",
 		Filesize:        model.UnknownSize,
@@ -190,7 +220,7 @@ func (cc *ClientContext) RunTransfer(c convey.C) {
 
 	convey.So(pip.Run(), convey.ShouldBeNil)
 
-	ok := pipeline.ClientTransfers.Exists(cc.ClientTrans.ID)
+	ok := cc.ProtoClient.ManageTransfers().Exists(cc.ClientTrans.ID)
 	c.So(ok, convey.ShouldBeFalse)
 }
 

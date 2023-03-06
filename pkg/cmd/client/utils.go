@@ -14,7 +14,7 @@ import (
 	"code.waarp.fr/apps/gateway/gateway/pkg/tk/utils"
 )
 
-var errBadPerm = errors.New("permissions are insorrect")
+var errBadPerm = errors.New("permissions are incorrect")
 
 const (
 	roleClient    = "client"
@@ -151,15 +151,15 @@ func dirToBoolPtr(dir string) *bool {
 }
 
 type ListOptions struct {
-	Limit  int `short:"l" long:"limit" description:"Max number of returned entries" default:"20"`
-	Offset int `short:"o" long:"offset" description:"Index of the first returned entry" default:"0"`
+	Limit  uint `short:"l" long:"limit" description:"Max number of returned entries" default:"20"`
+	Offset uint `short:"o" long:"offset" description:"Index of the first returned entry" default:"0"`
 }
 
 func agentListURL(path string, s *ListOptions, sort string, protos []string) {
 	addr.Path = path
 	query := url.Values{}
-	query.Set("limit", utils.FormatInt(s.Limit))
-	query.Set("offset", utils.FormatInt(s.Offset))
+	query.Set("limit", utils.FormatUint(s.Limit))
+	query.Set("offset", utils.FormatUint(s.Offset))
 	query.Set("sort", sort)
 
 	for _, proto := range protos {
@@ -171,8 +171,8 @@ func agentListURL(path string, s *ListOptions, sort string, protos []string) {
 
 func listURL(s *ListOptions, sort string) {
 	query := url.Values{}
-	query.Set("limit", utils.FormatInt(s.Limit))
-	query.Set("offset", utils.FormatInt(s.Offset))
+	query.Set("limit", utils.FormatUint(s.Limit))
+	query.Set("offset", utils.FormatUint(s.Offset))
 	query.Set("sort", sort)
 	addr.RawQuery = query.Encode()
 }
@@ -203,4 +203,48 @@ func addIfNotZero(m map[string]any, key string, val any) {
 	}
 
 	m[key] = val
+}
+
+func displayProtoConfig(f *Formatter, mapConf map[string]any) {
+	if len(mapConf) == 0 {
+		f.Empty("Configuration:", "<empty>")
+
+		return
+	}
+
+	f.Title("Configuration:")
+	f.Indent()
+
+	defer f.UnIndent()
+
+	utils.OrderedIterate[any](mapConf, func(key string, val any) {
+		f.Value(key+":", val)
+	})
+}
+
+/* Keep for later
+func displayAuthorizedRules(f *Formatter, auth *api.AuthorizedRules) {
+	f.Title("Authorized rules:")
+	f.Indent()
+
+	defer f.UnIndent()
+
+	if len(auth.Sending) == 0 {
+		f.Empty("Send:   ", "<none>")
+	} else {
+		f.Value("Send:   ", strings.Join(auth.Sending, ", "))
+	}
+
+	if len(auth.Sending) == 0 {
+		f.Empty("Receive:", "<none>")
+	} else {
+		f.Value("Receive:", strings.Join(auth.Reception, ", "))
+	}
+}
+*/
+
+func optionalProperty(m map[string]any, key string, val any) {
+	if !reflect.ValueOf(val).IsZero() {
+		m[key] = val
+	}
 }

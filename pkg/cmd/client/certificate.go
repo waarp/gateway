@@ -13,7 +13,7 @@ import (
 )
 
 func displayCertificate(w io.Writer, cert *api.OutCrypto) {
-	fmt.Fprintln(w, orange(bold("● Certificate", cert.Name)))
+	fmt.Fprintln(w, orange(bold("● Certificate %s", cert.Name)))
 	fmt.Fprintln(w, orange("    Private key:"), cert.PrivateKey)
 	fmt.Fprintln(w, orange("    Public key: "), cert.PublicKey)
 	fmt.Fprintln(w, orange("    Content:    "), cert.Certificate)

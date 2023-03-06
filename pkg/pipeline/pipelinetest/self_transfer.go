@@ -4,7 +4,6 @@ package pipelinetest
 
 import (
 	"context"
-	"fmt"
 	"path"
 	"strings"
 	"time"
@@ -31,48 +30,60 @@ type SelfContext struct {
 	*serverData
 	*transData
 
-	constr        serviceConstructor
 	service       testService
 	fail          *model.Task
-	protoFeatures *features
+	protoFeatures *ProtoFeatures
 }
 
-func initSelfTransfer(c convey.C, protocol string, constr serviceConstructor,
+func initSelfTransfer(c convey.C, protocol string, clientConf config.ClientProtoConfig,
 	partConf config.PartnerProtoConfig, servConf config.ServerProtoConfig,
 ) *SelfContext {
-	feat, ok := protocols[protocol]
+	feat, ok := Protocols[protocol]
 	c.So(ok, convey.ShouldBeTrue)
 	t := initTestData(c)
 	port := testhelpers.GetFreePort(c)
-	partner, remAcc := makeClientConf(c, t.DB, port, protocol, partConf)
-	server, locAcc := makeServerConf(c, t, port, protocol, servConf)
+	cli, remAg, remAcc := makeClientConf(c, t.DB, port, protocol, clientConf, partConf)
+	locAg, locAcc := makeServerConf(c, t, port, protocol, servConf)
+
+	client, err := feat.ClientConstr(cli)
+	c.So(err, convey.ShouldBeNil)
+	c.So(client.Start(), convey.ShouldBeNil)
+
+	pipeline.Clients[cli.Name] = client
+
+	server := feat.ServiceConstr(t.DB, testhelpers.TestLogger(c, locAg.Name))
+
+	testServer, ok := server.(testService)
+	c.So(ok, convey.ShouldBeTrue)
 
 	return &SelfContext{
 		testData: t,
 		clientData: &clientData{
-			Partner:    partner,
-			RemAccount: remAcc,
+			Partner:     remAg,
+			RemAccount:  remAcc,
+			Client:      cli,
+			ProtoClient: client,
 		},
 		serverData: &serverData{
-			Server:     server,
+			Server:     locAg,
 			LocAccount: locAcc,
 		},
 		transData: &transData{
 			transferInfo: map[string]interface{}{},
 			// fileInfo:     map[string]interface{}{},
 		},
+		service:       testServer,
 		protoFeatures: &feat,
-		constr:        constr,
 	}
 }
 
 // InitSelfPushTransfer creates a database and fills it with all the elements
 // necessary for a push self-transfer test of the given protocol. It then returns
-// all these element inside a SelfContext.
-func InitSelfPushTransfer(c convey.C, protocol string, constr serviceConstructor,
+// all these elements inside a SelfContext.
+func InitSelfPushTransfer(c convey.C, protocol string, clientConf config.ClientProtoConfig,
 	partConf config.PartnerProtoConfig, servConf config.ServerProtoConfig,
 ) *SelfContext {
-	ctx := initSelfTransfer(c, protocol, constr, partConf, servConf)
+	ctx := initSelfTransfer(c, protocol, clientConf, partConf, servConf)
 	ctx.ClientRule = makeClientPush(c, ctx.DB, protocol)
 	ctx.ServerRule = makeServerPush(c, ctx.DB)
 	ctx.addPushTransfer(c)
@@ -82,11 +93,11 @@ func InitSelfPushTransfer(c convey.C, protocol string, constr serviceConstructor
 
 // InitSelfPullTransfer creates a database and fills it with all the elements
 // necessary for a pull self-transfer test of the given protocol. It then returns
-// all these element inside a SelfContext.
-func InitSelfPullTransfer(c convey.C, protocol string, constr serviceConstructor,
+// all these elements inside a SelfContext.
+func InitSelfPullTransfer(c convey.C, protocol string, clientConf config.ClientProtoConfig,
 	partConf config.PartnerProtoConfig, servConf config.ServerProtoConfig,
 ) *SelfContext {
-	ctx := initSelfTransfer(c, protocol, constr, partConf, servConf)
+	ctx := initSelfTransfer(c, protocol, clientConf, partConf, servConf)
 	ctx.ClientRule = makeClientPull(c, ctx.DB, protocol)
 	ctx.ServerRule = makeServerPull(c, ctx.DB)
 	ctx.addPullTransfer(c)
@@ -102,6 +113,7 @@ func (s *SelfContext) addPushTransfer(c convey.C) {
 
 	trans := &model.Transfer{
 		RuleID:          s.ClientRule.ID,
+		ClientID:        utils.NewNullInt64(s.Client.ID),
 		RemoteAccountID: utils.NewNullInt64(s.RemAccount.ID),
 		SrcFilename:     "sub_dir/self_transfer_push",
 		Start:           time.Now(),
@@ -119,6 +131,7 @@ func (s *SelfContext) addPullTransfer(c convey.C) {
 
 	trans := &model.Transfer{
 		RuleID:          s.ClientRule.ID,
+		ClientID:        utils.NewNullInt64(s.Client.ID),
 		RemoteAccountID: utils.NewNullInt64(s.RemAccount.ID),
 		SrcFilename:     "sub_dir/self_transfer_pull",
 		Filesize:        model.UnknownSize,
@@ -132,14 +145,6 @@ func (s *SelfContext) addPullTransfer(c convey.C) {
 // StartService starts the service associated with the test server defined in
 // the SelfContext.
 func (s *SelfContext) StartService(c convey.C) {
-	logger := conf.GetLogger(fmt.Sprintf("test_%s_server", s.Server.Protocol))
-	protoService := s.constr(s.DB, logger)
-
-	service, ok := protoService.(testService)
-	c.So(ok, convey.ShouldBeTrue)
-
-	s.service = service
-
 	c.So(s.service.Start(s.Server), convey.ShouldBeNil)
 	c.Reset(func() {
 		ctx, cancel := context.WithTimeout(context.Background(), time.Second)
@@ -286,7 +291,7 @@ func (s *SelfContext) CheckClientTransferOK(c convey.C) {
 func (s *SelfContext) getClientRemoteDir() string {
 	ruleDir := s.ClientRule.RemoteDir
 
-	if !s.protoFeatures.ruleName {
+	if !s.protoFeatures.RuleName {
 		ruleDir = strings.TrimPrefix(ruleDir, s.ServerRule.Path+"/")
 	}
 
@@ -295,7 +300,7 @@ func (s *SelfContext) getClientRemoteDir() string {
 
 func (s *SelfContext) checkServerTransferOK(c convey.C, actual *model.HistoryEntry) {
 	remoteID := s.transData.ClientTrans.RemoteTransferID
-	if !s.protoFeatures.transID {
+	if !s.protoFeatures.TransID {
 		remoteID = actual.RemoteTransferID
 	}
 
@@ -379,6 +384,7 @@ func (s *SelfContext) CheckClientTransferError(c convey.C, errCode types.Transfe
 		c.So(actual.Owner, convey.ShouldEqual, conf.GlobalConfig.GatewayName)
 		c.So(actual.Status, convey.ShouldEqual, types.StatusError)
 		c.So(actual.RuleID, convey.ShouldEqual, s.ClientRule.ID)
+		c.So(actual.ClientID.Int64, convey.ShouldEqual, s.Client.ID)
 		c.So(actual.RemoteAccountID.Int64, convey.ShouldEqual, s.RemAccount.ID)
 		c.So(actual.Status, convey.ShouldEqual, types.StatusError)
 
@@ -427,7 +433,7 @@ func (s *SelfContext) CheckServerTransferError(c convey.C, errCode types.Transfe
 		c.So(actual.Progress, convey.ShouldBeBetweenOrEqual, 0, TestFileSize)
 		c.So(actual.Step.String(), testhelpers.ShouldBeOneOf, stepsStr)
 
-		if s.protoFeatures.transID {
+		if s.protoFeatures.TransID {
 			c.So(actual.RemoteTransferID, convey.ShouldEqual, s.ClientTrans.RemoteTransferID)
 		}
 
@@ -468,7 +474,7 @@ func (s *SelfContext) waitForListDeletion() {
 		case <-timer.C:
 			panic("timeout waiting for transfers to be removed from running list")
 		default:
-			ok1 := pipeline.ClientTransfers.Exists(s.ClientTrans.ID)
+			ok1 := s.ProtoClient.ManageTransfers().Exists(s.ClientTrans.ID)
 			ok2 := s.service.ManageTransfers().Exists(s.ClientTrans.ID + 1)
 
 			if !ok1 && !ok2 {

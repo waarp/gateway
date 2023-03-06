@@ -12,17 +12,14 @@ import (
 	"code.waarp.fr/apps/gateway/gateway/pkg/tk/utils"
 )
 
-//nolint:gochecknoglobals // global variable is necessary to share connections between clients
-var clientConns = internal.NewConnPool()
-
 var errConf = types.NewTransferError(types.TeUnimplemented, "client-server configuration mismatch")
 
-func (c *client) logErrConf(msg string) {
+func (c *transferClient) logErrConf(msg string) {
 	c.pip.Logger.Error("Client-server configuration mismatch: %s", msg)
 }
 
-func (c *client) connect() *types.TransferError {
-	cli, err := clientConns.Add(c.pip.TransCtx.RemoteAgent.Address, c.tlsConfig, c.pip.Logger)
+func (c *transferClient) connect() *types.TransferError {
+	cli, err := c.conns.Add(c.pip.TransCtx.RemoteAgent.Address, c.tlsConfig, c.pip.Logger)
 	if err != nil {
 		c.pip.Logger.Error("Failed to connect to remote host: %s", err)
 
@@ -39,12 +36,12 @@ func (c *client) connect() *types.TransferError {
 	return nil
 }
 
-func (c *client) authenticate() *types.TransferError {
-	servHash := []byte(c.conf.ServerPassword)
+func (c *transferClient) authenticate() *types.TransferError {
+	servHash := []byte(c.serverPassword)
 
 	conf := &r66.Config{
 		FileSize:   true,
-		FinalHash:  !c.conf.NoFinalHash,
+		FinalHash:  !c.noFinalHash,
 		DigestAlgo: "SHA-256",
 		Proxified:  false,
 	}
@@ -57,7 +54,7 @@ func (c *client) authenticate() *types.TransferError {
 		return types.NewTransferError(types.TeBadAuthentication, "client authentication failed")
 	}
 
-	loginOK := utils.ConstantEqual(c.conf.ServerLogin, auth.Login)
+	loginOK := utils.ConstantEqual(c.serverLogin, auth.Login)
 	pwdErr := bcrypt.CompareHashAndPassword(servHash, auth.Password)
 
 	if !loginOK {
@@ -93,9 +90,9 @@ func (c *client) authenticate() *types.TransferError {
 	return nil
 }
 
-func (c *client) request() *types.TransferError {
-	blockNB := c.pip.TransCtx.Transfer.Progress / int64(c.conf.BlockSize)
-	blockRest := c.pip.TransCtx.Transfer.Progress % int64(c.conf.BlockSize)
+func (c *transferClient) request() *types.TransferError {
+	blockNB := c.pip.TransCtx.Transfer.Progress / int64(c.blockSize)
+	blockRest := c.pip.TransCtx.Transfer.Progress % int64(c.blockSize)
 
 	if c.pip.TransCtx.Transfer.Step <= types.StepData && blockRest != 0 {
 		// round progress to the beginning of the block
@@ -120,9 +117,9 @@ func (c *client) request() *types.TransferError {
 		Filepath: c.pip.TransCtx.Transfer.RemotePath,
 		FileSize: c.pip.TransCtx.Transfer.Filesize,
 		Rule:     c.pip.TransCtx.Rule.Name,
-		Block:    c.conf.BlockSize,
+		Block:    c.blockSize,
 		Rank:     uint32(blockNB),
-		IsMD5:    c.conf.CheckBlockHash,
+		IsMD5:    c.checkBlockHash,
 		Infos:    userContent,
 	}
 
@@ -150,7 +147,7 @@ func (c *client) request() *types.TransferError {
 	return c.checkReqResp(req, resp)
 }
 
-func (c *client) checkReqResp(req, resp *r66.Request) *types.TransferError {
+func (c *transferClient) checkReqResp(req, resp *r66.Request) *types.TransferError {
 	if c.pip.TransCtx.Rule.IsSend {
 		if resp.FileSize != req.FileSize {
 			c.logErrConf("different file size")
@@ -206,8 +203,8 @@ func (c *client) checkReqResp(req, resp *r66.Request) *types.TransferError {
 	return nil
 }
 
-func (c *client) makeHash() ([]byte, error) {
-	if c.conf.NoFinalHash {
+func (c *transferClient) makeHash() ([]byte, error) {
+	if c.noFinalHash {
 		return nil, nil
 	}
 

@@ -4,13 +4,15 @@ import (
 	"code.waarp.fr/lib/log"
 
 	"code.waarp.fr/apps/gateway/gateway/pkg/backup/file"
+	"code.waarp.fr/apps/gateway/gateway/pkg/conf"
 	"code.waarp.fr/apps/gateway/gateway/pkg/database"
 	"code.waarp.fr/apps/gateway/gateway/pkg/model"
 )
 
 func exportRemotes(logger *log.Logger, db database.ReadAccess) ([]file.RemoteAgent, error) {
 	var dbRemotes model.RemoteAgents
-	if err := db.Select(&dbRemotes).Run(); err != nil {
+	if err := db.Select(&dbRemotes).Where("owner=?", conf.GlobalConfig.GatewayName).
+		Run(); err != nil {
 		return nil, err
 	}
 

@@ -1,7 +1,6 @@
 package wg
 
 import (
-	"encoding/json"
 	"net/http/httptest"
 	"net/url"
 	"strings"
@@ -19,7 +18,7 @@ import (
 )
 
 func accInfoString(a *api.OutAccount) string {
-	return "● Account " + a.Login + "\n" +
+	return "● Account \"" + a.Login + "\"\n" +
 		"    Authorized rules\n" +
 		"    ├─  Sending: " + strings.Join(a.AuthorizedRules.Sending, ", ") + "\n" +
 		"    └─Reception: " + strings.Join(a.AuthorizedRules.Reception, ", ") + "\n"
@@ -54,8 +53,10 @@ func TestGetLocalAccount(t *testing.T) {
 
 			send := &model.Rule{Name: "send_rule", IsSend: true, Path: "send_path"}
 			So(db.Insert(send).Run(), ShouldBeNil)
+
 			receive := &model.Rule{Name: "recv_rule", IsSend: false, Path: "rcv_path"}
 			So(db.Insert(receive).Run(), ShouldBeNil)
+
 			sendAll := &model.Rule{Name: "send_all", IsSend: true, Path: "send_all_path"}
 			So(db.Insert(sendAll).Run(), ShouldBeNil)
 
@@ -63,6 +64,7 @@ func TestGetLocalAccount(t *testing.T) {
 				RuleID: send.ID, LocalAccountID: utils.NewNullInt64(account.ID),
 			}
 			So(db.Insert(sAccess).Run(), ShouldBeNil)
+
 			rAccess := &model.RuleAccess{
 				RuleID: receive.ID, LocalAccountID: utils.NewNullInt64(account.ID),
 			}
@@ -79,7 +81,7 @@ func TestGetLocalAccount(t *testing.T) {
 					Convey("Then it should display the account's info", func() {
 						a := &api.OutAccount{
 							Login: account.Login,
-							AuthorizedRules: &api.AuthorizedRules{
+							AuthorizedRules: api.AuthorizedRules{
 								Sending:   []string{send.Name, sendAll.Name},
 								Reception: []string{receive.Name},
 							},
@@ -401,19 +403,17 @@ func TestListLocalAccount(t *testing.T) {
 			So(err, ShouldBeNil)
 
 			server1 := &model.LocalAgent{
-				Name:        "server1",
-				Protocol:    testProto1,
-				ProtoConfig: json.RawMessage(`{}`),
-				Address:     "localhost:1",
+				Name:     "server1",
+				Protocol: testProto1,
+				Address:  "localhost:1",
 			}
 			So(db.Insert(server1).Run(), ShouldBeNil)
 			Server = server1.Name
 
 			server2 := &model.LocalAgent{
-				Name:        "server2",
-				Protocol:    testProto1,
-				ProtoConfig: json.RawMessage(`{}`),
-				Address:     "localhost:2",
+				Name:     "server2",
+				Protocol: testProto1,
+				Address:  "localhost:2",
 			}
 			So(db.Insert(server2).Run(), ShouldBeNil)
 
@@ -552,10 +552,9 @@ func TestAuthorizeLocalAccount(t *testing.T) {
 			So(err, ShouldBeNil)
 
 			server := &model.LocalAgent{
-				Name:        "server",
-				Protocol:    testProto1,
-				ProtoConfig: json.RawMessage(`{}`),
-				Address:     "localhost:1",
+				Name:     "server",
+				Protocol: testProto1,
+				Address:  "localhost:1",
 			}
 			So(db.Insert(server).Run(), ShouldBeNil)
 
@@ -680,10 +679,9 @@ func TestRevokeLocalAccount(t *testing.T) {
 			So(err, ShouldBeNil)
 
 			server := &model.LocalAgent{
-				Name:        "server",
-				Protocol:    testProto1,
-				ProtoConfig: json.RawMessage(`{}`),
-				Address:     "localhost:1",
+				Name:     "server",
+				Protocol: testProto1,
+				Address:  "localhost:1",
 			}
 			So(db.Insert(server).Run(), ShouldBeNil)
 

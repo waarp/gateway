@@ -17,7 +17,7 @@ import (
 )
 
 func userInfoString(u *api.OutUser) string {
-	return "● User " + u.Username + "\n" +
+	return "● User \"" + u.Username + "\"\n" +
 		"    Permissions:\n" +
 		"    ├─Transfers: " + u.Perms.Transfers + "\n" +
 		"    ├─Servers:   " + u.Perms.Servers + "\n" +

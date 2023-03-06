@@ -39,6 +39,19 @@ type commands struct {
 		} `command:"cert" description:"Manage an server's certificates"`
 	} `command:"server" description:"Manage the local servers"`
 
+	Client struct {
+		Add     wg.ClientAdd     `command:"add" description:"Add a new client"`
+		Get     wg.ClientGet     `command:"get" description:"Retrieve a client's information"`
+		List    wg.ClientList    `command:"list" description:"List the known client"`
+		Update  wg.ClientUpdate  `command:"update" description:"Update a client"`
+		Delete  wg.ClientDelete  `command:"delete" description:"Delete a client"`
+		Enable  wg.ClientEnable  `command:"enable" description:"Enable a client at launch"`
+		Disable wg.ClientDisable `command:"disable" description:"Disable a client at launch"`
+		Start   wg.ClientStart   `command:"start" description:"Start an offline client"`
+		Stop    wg.ClientStop    `command:"stop" description:"Stop a running client"`
+		Restart wg.ClientRestart `command:"restart" description:"Stop and restart a running client"`
+	} `command:"client" description:"Manage the gateway's local clients"`
+
 	Partner struct {
 		Add  wg.PartnerAdd       `command:"add" description:"Add a new partner"`
 		Get  wg.PartnerGet       `command:"get" description:"Retrieve a partner's information"`

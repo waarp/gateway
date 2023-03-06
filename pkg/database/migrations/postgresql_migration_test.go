@@ -24,6 +24,8 @@ func getPostgreEngine(c convey.C) *testEngine {
 }
 
 func TestPostgreSQLMigrations(t *testing.T) {
+	t.Parallel()
+
 	Convey("Given an un-migrated PostgreSQL database engine", t, func(c C) {
 		testMigrations(getPostgreEngine(c), migration.PostgreSQL)
 	})

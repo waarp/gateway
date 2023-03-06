@@ -5,7 +5,6 @@ package r66
 import (
 	"context"
 	"crypto/tls"
-	"encoding/json"
 	"errors"
 	"fmt"
 	"net"
@@ -106,7 +105,7 @@ func (s *Service) Start(agent *model.LocalAgent) error {
 	s.state.Set(state.Starting, "")
 
 	s.r66Conf = &config.R66ServerProtoConfig{}
-	if err := json.Unmarshal(agent.ProtoConfig, s.r66Conf); err != nil {
+	if err := utils.JSONConvert(agent.ProtoConfig, s.r66Conf); err != nil {
 		s.logger.Error("Failed to parse server the R66 proto config: %s", err)
 		err1 := fmt.Errorf("failed to parse the R66 proto config: %w", err)
 		s.state.Set(state.Error, err1.Error())

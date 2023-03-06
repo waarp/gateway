@@ -24,6 +24,7 @@ func jsonTransToDbHist(trans *file.Transfer) (*model.HistoryEntry, error) {
 		IsServer:         trans.IsServer,
 		IsSend:           trans.IsSend,
 		Rule:             trans.Rule,
+		Client:           trans.Client,
 		Account:          trans.Requester,
 		Agent:            trans.Requested,
 		Protocol:         trans.Protocol,

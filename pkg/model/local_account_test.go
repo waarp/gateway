@@ -1,7 +1,6 @@
 package model
 
 import (
-	"encoding/json"
 	"testing"
 
 	. "github.com/smartystreets/goconvey/convey"
@@ -31,10 +30,9 @@ func TestLocalAccountBeforeDelete(t *testing.T) {
 
 		Convey("Given a local account entry", func() {
 			ag := &LocalAgent{
-				Name:        "server",
-				Protocol:    testProtocol,
-				ProtoConfig: json.RawMessage(`{}`),
-				Address:     "localhost:1111",
+				Name:     "server",
+				Protocol: testProtocol,
+				Address:  "localhost:1111",
 			}
 			So(db.Insert(ag).Run(), ShouldBeNil)
 
@@ -111,11 +109,10 @@ func TestLocalAccountBeforeWrite(t *testing.T) {
 
 		Convey("Given the database contains 1 local agent with 1 local account", func() {
 			parentAgent := LocalAgent{
-				Owner:       "test_gateway",
-				Name:        "parent_agent",
-				Protocol:    testProtocol,
-				ProtoConfig: json.RawMessage(`{}`),
-				Address:     "localhost:2222",
+				Owner:    "test_gateway",
+				Name:     "parent_agent",
+				Protocol: testProtocol,
+				Address:  "localhost:2222",
 			}
 			So(db.Insert(&parentAgent).Run(), ShouldBeNil)
 
@@ -148,18 +145,21 @@ func TestLocalAccountBeforeWrite(t *testing.T) {
 
 				Convey("Given that the new account is missing an agent ID", func() {
 					newAccount.LocalAgentID = 0
+
 					shouldFailWith("the agent ID is missing", database.NewValidationError(
 						"the account's agentID cannot be empty"))
 				})
 
 				Convey("Given that the new account is missing a login", func() {
 					newAccount.Login = ""
+
 					shouldFailWith("the login is missing", database.NewValidationError(
 						"the account's login cannot be empty"))
 				})
 
 				Convey("Given that the new account has an invalid agent ID", func() {
 					newAccount.LocalAgentID = 1000
+
 					shouldFailWith("the agent ID is invalid", database.NewValidationError(
 						"no local agent found with the ID '%d'", newAccount.LocalAgentID))
 				})
@@ -181,11 +181,10 @@ func TestLocalAccountBeforeWrite(t *testing.T) {
 				Convey("Given that the new account's name is already taken but the"+
 					"parent agent is different", func() {
 					otherAgent := LocalAgent{
-						Owner:       "test_gateway",
-						Name:        "other",
-						Protocol:    testProtocol,
-						ProtoConfig: json.RawMessage(`{}`),
-						Address:     "localhost:2022",
+						Owner:    "test_gateway",
+						Name:     "other",
+						Protocol: testProtocol,
+						Address:  "localhost:2022",
 					}
 					So(db.Insert(&otherAgent).Run(), ShouldBeNil)
 

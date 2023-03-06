@@ -26,6 +26,7 @@ import (
 	"code.waarp.fr/apps/gateway/gateway/pkg/model"
 	"code.waarp.fr/apps/gateway/gateway/pkg/model/config"
 	"code.waarp.fr/apps/gateway/gateway/pkg/model/types"
+	"code.waarp.fr/apps/gateway/gateway/pkg/pipeline"
 )
 
 const (
@@ -37,22 +38,22 @@ const (
 //nolint:gochecknoglobals //global vars are necessary here
 var (
 	testCoreServices  = map[string]service.Service{}
-	testProtoServices = map[int64]proto.Service{}
+	testProtoServices = map[string]proto.Service{}
 )
 
 //nolint:gochecknoinits // init is used by design
 func init() {
-	config.ProtoConfigs[testProto1] = &config.ConfigMaker{
+	config.ProtoConfigs[testProto1] = &config.Constructor{
 		Server:  func() config.ServerProtoConfig { return new(TestProtoConfig) },
 		Partner: func() config.PartnerProtoConfig { return new(TestProtoConfig) },
 		Client:  func() config.ClientProtoConfig { return new(TestProtoConfig) },
 	}
-	config.ProtoConfigs[testProto2] = &config.ConfigMaker{
+	config.ProtoConfigs[testProto2] = &config.Constructor{
 		Server:  func() config.ServerProtoConfig { return new(TestProtoConfig) },
 		Partner: func() config.PartnerProtoConfig { return new(TestProtoConfig) },
 		Client:  func() config.ClientProtoConfig { return new(TestProtoConfig) },
 	}
-	config.ProtoConfigs[testProtoErr] = &config.ConfigMaker{
+	config.ProtoConfigs[testProtoErr] = &config.Constructor{
 		Server:  func() config.ServerProtoConfig { return new(TestProtoConfigFail) },
 		Partner: func() config.PartnerProtoConfig { return new(TestProtoConfigFail) },
 		Client:  func() config.ClientProtoConfig { return new(TestProtoConfigFail) },
@@ -72,7 +73,7 @@ func testHandler(db *database.DB) http.Handler {
 	return admin.MakeHandler(discard(), db, testCoreServices, testProtoServices)
 }
 
-func testHandlerProto(db *database.DB, s map[int64]proto.Service) http.Handler {
+func testHandlerProto(db *database.DB, s map[string]proto.Service) http.Handler {
 	return admin.MakeHandler(discard(), db, nil, s)
 }
 
@@ -112,27 +113,20 @@ func (*TestProtoConfig) ValidServer() error  { return nil }
 func (*TestProtoConfig) ValidPartner() error { return nil }
 func (*TestProtoConfig) ValidClient() error  { return nil }
 
+var errConfFail = errors.New("proto config validation failed")
+
 type TestProtoConfigFail struct{}
 
-func (*TestProtoConfigFail) ValidServer() error {
-	//nolint:goerr113 // base case for a test
-	return errors.New("server config validation failed")
-}
+func (*TestProtoConfigFail) ValidServer() error  { return errConfFail }
+func (*TestProtoConfigFail) ValidPartner() error { return errConfFail }
+func (*TestProtoConfigFail) ValidClient() error  { return errConfFail }
 
-func (*TestProtoConfigFail) ValidPartner() error {
-	//nolint:goerr113 // base case for a test
-	return errors.New("partner config validation failed")
-}
-
-func (*TestProtoConfigFail) ValidClient() error {
-	//nolint:goerr113 // base case for a test
-	return errors.New("client config validation failed")
-}
-
+// TODO: use executeCommand instead.
 func testFile() io.Writer {
 	return &strings.Builder{}
 }
 
+// TODO: use executeCommand instead.
 func getOutput() string {
 	str, ok := out.(*strings.Builder)
 	So(ok, ShouldBeTrue)
@@ -140,16 +134,18 @@ func getOutput() string {
 	return str.String()
 }
 
-func executeCommand(command flags.Commander, args ...string) error {
-	params, err := flags.ParseArgs(command, args)
+type commander interface{ execute(w io.Writer) error }
+
+func executeCommand(w *strings.Builder, command commander, args ...string) error {
+	_, err := flags.ParseArgs(command, args)
 	So(err, ShouldBeNil)
 
-	return command.Execute(params) //nolint:wrapcheck //no need to wrap here
+	return command.execute(w) //nolint:wrapcheck //no need to wrap here
 }
 
 type testLocalServer struct {
-	name  string
-	state state.State
+	stopped bool
+	state   state.State
 }
 
 func newTestServer(*database.DB, *log.Logger) proto.Service    { return &testLocalServer{} }
@@ -157,7 +153,6 @@ func (t *testLocalServer) State() *state.State                 { return &t.state
 func (*testLocalServer) ManageTransfers() *service.TransferMap { return service.NewTransferMap() }
 
 func (t *testLocalServer) Start(a *model.LocalAgent) error {
-	t.name = a.Name
 	t.state.Set(state.Running, "")
 
 	return nil
@@ -165,6 +160,7 @@ func (t *testLocalServer) Start(a *model.LocalAgent) error {
 
 func (t *testLocalServer) Stop(context.Context) error {
 	t.state.Set(state.Offline, "")
+	t.stopped = true
 
 	return nil
 }
@@ -209,13 +205,13 @@ func (t *testInterrupter) Cancel(context.Context) error {
 	return nil
 }
 
-type testProtoService struct {
+type testClientService struct {
 	m  *service.TransferMap
 	st *state.State
 }
 
-func newTestProtoService(trans ...*testInterrupter) *testProtoService {
-	serv := &testProtoService{
+func newTestClientService(trans ...*testInterrupter) *testClientService {
+	serv := &testClientService{
 		m:  service.NewTransferMap(),
 		st: &state.State{},
 	}
@@ -229,7 +225,10 @@ func newTestProtoService(trans ...*testInterrupter) *testProtoService {
 	return serv
 }
 
-func (t *testProtoService) Start(*model.LocalAgent) error         { return nil }
-func (t *testProtoService) Stop(context.Context) error            { return nil }
-func (t *testProtoService) State() *state.State                   { return t.st }
-func (t *testProtoService) ManageTransfers() *service.TransferMap { return t.m }
+func (t *testClientService) Start() error                          { return nil }
+func (t *testClientService) Stop(context.Context) error            { return nil }
+func (t *testClientService) State() *state.State                   { return t.st }
+func (t *testClientService) ManageTransfers() *service.TransferMap { return t.m }
+func (t *testClientService) InitTransfer(*pipeline.Pipeline) (pipeline.TransferClient, *types.TransferError) {
+	panic("test-only, should never be called")
+}

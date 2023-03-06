@@ -36,6 +36,7 @@ func TestImportUsers(t *testing.T) {
 			Permissions:  model.PermAll,
 		}
 		So(db.Insert(dbUser1b).Run(), ShouldBeNil)
+
 		conf.GlobalConfig.GatewayName = owner
 
 		Convey("Given a new user to import", func() {
@@ -48,7 +49,7 @@ func TestImportUsers(t *testing.T) {
 			users := []file.User{user}
 
 			Convey("When importing the users", func() {
-				So(importUsers(discard(), db, users), ShouldBeNil)
+				So(importUsers(discard(), db, users, false), ShouldBeNil)
 
 				Convey("Then it should have inserted the users in database", func() {
 					var dbUsers model.Users
@@ -75,7 +76,7 @@ func TestImportUsers(t *testing.T) {
 			users := []file.User{user}
 
 			Convey("When importing the users", func() {
-				So(importUsers(discard(), db, users), ShouldBeNil)
+				So(importUsers(discard(), db, users, false), ShouldBeNil)
 
 				Convey("Then it should have updated the users", func() {
 					var dbUsers model.Users

@@ -1,15 +1,13 @@
+//nolint:dupl //identical to https.go for now, keep separate for future-proofing
 package config
 
 //nolint:gochecknoinits // init is used by design
 func init() {
-	constr := &ConfigMaker{
+	ProtoConfigs["http"] = &Constructor{
 		Server:  func() ServerProtoConfig { return new(HTTPServerProtoConfig) },
 		Partner: func() PartnerProtoConfig { return new(HTTPPartnerProtoConfig) },
 		Client:  func() ClientProtoConfig { return new(HTTPClientProtoConfig) },
 	}
-
-	ProtoConfigs["http"] = constr
-	ProtoConfigs["https"] = constr
 }
 
 // HTTPServerProtoConfig represents the configuration of a local HTTP server.

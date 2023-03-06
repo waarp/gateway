@@ -40,7 +40,12 @@ func displayTasks(w io.Writer, rule *api.OutRule) {
 				prefix = "    └─Command"
 			}
 
-			fmt.Fprintln(w, bold(prefix), t.Type, bold("with args:"), string(t.Args))
+			args, err := json.Marshal(t.Args)
+			if err != nil {
+				args = []byte(red("<error while serializing the configuration>"))
+			}
+
+			fmt.Fprintln(w, bold(prefix), t.Type, bold("with args:"), string(args))
 		}
 	}
 }
@@ -77,7 +82,7 @@ func displayRule(w io.Writer, rule *api.OutRule) {
 		remAcc = strings.Join(ra, ", ")
 	}
 
-	fmt.Fprintln(w, orange(bold("● Rule", rule.Name, "("+way+")")))
+	fmt.Fprintln(w, boldOrange("● Rule %q (%s)", rule.Name, way))
 	fmt.Fprintln(w, orange("    Comment:               "), rule.Comment)
 	fmt.Fprintln(w, orange("    Path:                  "), rule.Path)
 	fmt.Fprintln(w, orange("    Local directory:       "), rule.LocalDir)

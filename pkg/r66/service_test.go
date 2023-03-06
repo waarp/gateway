@@ -2,7 +2,6 @@ package r66
 
 import (
 	"context"
-	"encoding/json"
 	"errors"
 	"net"
 	"testing"
@@ -27,7 +26,7 @@ func TestServiceStart(t *testing.T) {
 		server := &model.LocalAgent{
 			Name:        "r66_server",
 			Protocol:    ProtocolR66,
-			ProtoConfig: json.RawMessage(`{"blockSize":512,"serverPassword":"c2VzYW1l"}`),
+			ProtoConfig: map[string]any{"blockSize": 512, "serverPassword": "c2VzYW1l"},
 			Address:     testhelpers.GetLocalAddress(c),
 		}
 		So(db.Insert(server).Run(), ShouldBeNil)
@@ -49,7 +48,7 @@ func TestServiceStart(t *testing.T) {
 		server := &model.LocalAgent{
 			Name:        "r66_server",
 			Protocol:    ProtocolR66,
-			ProtoConfig: json.RawMessage(`{"blockSize":512,"serverPassword":"c2VzYW1l","isTLS":true}`),
+			ProtoConfig: map[string]any{"blockSize": 512, "serverPassword": "c2VzYW1l", "isTLS": true},
 			Address:     testhelpers.GetLocalAddress(c),
 		}
 		So(db.Insert(server).Run(), ShouldBeNil)
@@ -78,7 +77,7 @@ func TestServiceStart(t *testing.T) {
 		server := &model.LocalAgent{
 			Name:        "r66_server",
 			Protocol:    ProtocolR66,
-			ProtoConfig: json.RawMessage(`{"blockSize":512,"serverPassword":"c2VzYW1l","isTLS":true}`),
+			ProtoConfig: map[string]any{"blockSize": 512, "serverPassword": "c2VzYW1l", "isTLS": true},
 			Address:     testhelpers.GetLocalAddress(c),
 		}
 		So(db.Insert(server).Run(), ShouldBeNil)
@@ -102,7 +101,7 @@ func TestServiceStop(t *testing.T) {
 		server := &model.LocalAgent{
 			Name:        "r66_server",
 			Protocol:    ProtocolR66,
-			ProtoConfig: json.RawMessage(`{"blockSize":512,"serverPassword":"c2VzYW1l"}`),
+			ProtoConfig: map[string]any{"blockSize": 512, "serverPassword": "c2VzYW1l"},
 			Address:     "localhost:0",
 		}
 		So(db.Insert(server).Run(), ShouldBeNil)
@@ -126,7 +125,7 @@ func TestServiceStop(t *testing.T) {
 
 func TestR66ServerInterruption(t *testing.T) {
 	Convey("Given an R66 server ready for push transfers", t, func(c C) {
-		test := pipelinetest.InitServerPush(c, ProtocolR66, NewService, servConf)
+		test := pipelinetest.InitServerPush(c, ProtocolR66, servConf)
 
 		logger := testhelpers.TestLogger(c, "test_r66_start")
 		serv := newService(test.DB, logger)

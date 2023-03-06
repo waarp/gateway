@@ -34,7 +34,7 @@ func TestImportRemoteAgents(t *testing.T) {
 				newPartner := RemoteAgent{
 					Name:          "foo",
 					Protocol:      testProtocol,
-					Configuration: []byte(`{}`),
+					Configuration: map[string]any{},
 					Address:       "localhost:2022",
 					Accounts: []RemoteAccount{
 						{
@@ -106,7 +106,7 @@ func TestImportRemoteAgents(t *testing.T) {
 			agent1 := RemoteAgent{
 				Name:          "agent1",
 				Protocol:      testProtocol,
-				Configuration: []byte(`{}`),
+				Configuration: map[string]any{},
 				Address:       "localhost:6666",
 				Accounts: []RemoteAccount{
 					{
@@ -130,8 +130,11 @@ func TestImportRemoteAgents(t *testing.T) {
 					So(err, ShouldBeNil)
 				})
 				Convey("Then the database should contains the remote agents", func() {
-					var dbAgent model.RemoteAgent
-					So(db.Get(&dbAgent, "name=?", agent1.Name).Run(), ShouldBeNil)
+					var dbAgents model.RemoteAgents
+					So(db.Select(&dbAgents).Run(), ShouldBeNil)
+					So(dbAgents, ShouldHaveLength, 1)
+
+					dbAgent := dbAgents[0]
 
 					Convey("Then the data should correspond to the "+
 						"one imported", func() {

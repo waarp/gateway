@@ -115,9 +115,9 @@ func TestServerStart(t *testing.T) {
 
 		Convey("Given that the server address is indirect", func(c C) {
 			conf.InitTestOverrides(c)
-			So(conf.AddIndirection("indirect.ex:99999", "127.0.0.1:"+port), ShouldBeNil)
+			So(conf.AddIndirection("9.9.9.9:9999", "127.0.0.1:"+port), ShouldBeNil)
 
-			agent.Address = "indirect.ex:99999"
+			agent.Address = "9.9.9.9:9999"
 			So(db.Update(agent).Cols("address").Run(), ShouldBeNil)
 
 			Convey("When starting the server", func() {
@@ -153,7 +153,7 @@ func TestServerStart(t *testing.T) {
 
 func TestSSHServerInterruption(t *testing.T) {
 	Convey("Given an SFTP server ready for push transfers", t, func(c C) {
-		test := pipelinetest.InitServerPush(c, "sftp", NewService, nil)
+		test := pipelinetest.InitServerPush(c, "sftp", nil)
 		test.AddCryptos(c, makeServerKey(test.Server))
 
 		serv := newService(test.DB, testhelpers.TestLogger(c, "ssh_test_server"))

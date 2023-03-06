@@ -3,10 +3,10 @@
 package config
 
 import (
-	"bytes"
-	"encoding/json"
 	"errors"
 	"fmt"
+
+	"code.waarp.fr/apps/gateway/gateway/pkg/tk/utils"
 )
 
 var (
@@ -18,7 +18,7 @@ var (
 // struct constructor.
 //
 //nolint:gochecknoglobals // global var is used by design
-var ProtoConfigs = map[string]*ConfigMaker{}
+var ProtoConfigs = map[string]*Constructor{}
 
 func IsValidProtocol(proto string) bool {
 	_, ok := ProtoConfigs[proto]
@@ -26,7 +26,7 @@ func IsValidProtocol(proto string) bool {
 	return ok
 }
 
-type ConfigMaker struct {
+type Constructor struct {
 	Server  func() ServerProtoConfig
 	Partner func() PartnerProtoConfig
 	Client  func() ClientProtoConfig
@@ -38,56 +38,62 @@ type (
 	ClientProtoConfig  interface{ ValidClient() error }
 )
 
-func initParser(proto string, rawConf json.RawMessage) (*json.Decoder, *ConfigMaker, error) {
+func CheckServerConfig(proto string, mapConf map[string]any) error {
 	constr, ok := ProtoConfigs[proto]
 	if !ok {
-		return nil, nil, fmt.Errorf("%w %q", errUnknownProtocol, proto)
+		return fmt.Errorf("%w %q", errUnknownProtocol, proto)
 	}
 
-	dec := json.NewDecoder(bytes.NewReader(rawConf))
-	dec.DisallowUnknownFields()
+	structConf := constr.Server()
+	if err := utils.JSONConvert(mapConf, structConf); err != nil {
+		return fmt.Errorf("invalid proto config: %w", err)
+	}
 
-	return dec, constr, nil
+	//nolint:wrapcheck //wrapping this error would add nothing
+	if err := structConf.ValidServer(); err != nil {
+		return err
+	}
+
+	//nolint:wrapcheck //no need to wrap, this should never return an error anyway
+	return utils.JSONConvert(structConf, &mapConf)
 }
 
-func ParseServerConfig(proto string, rawConf json.RawMessage) (ServerProtoConfig, error) {
-	dec, constr, initErr := initParser(proto, rawConf)
-	if initErr != nil {
-		return nil, initErr
+func CheckPartnerConfig(proto string, mapConf map[string]any) error {
+	constr, ok := ProtoConfigs[proto]
+	if !ok {
+		return fmt.Errorf("%w %q", errUnknownProtocol, proto)
 	}
 
-	conf := constr.Server()
-	if err := dec.Decode(conf); err != nil {
-		return nil, fmt.Errorf("failed to parse the server protocol configuration: %w", err)
+	structConf := constr.Partner()
+	if err := utils.JSONConvert(mapConf, structConf); err != nil {
+		return fmt.Errorf("invalid proto config: %w", err)
 	}
 
-	return conf, nil
+	//nolint:wrapcheck //wrapping this error would add nothing
+	if err := structConf.ValidPartner(); err != nil {
+		return err
+	}
+
+	//nolint:wrapcheck //no need to wrap, this should never return an error anyway
+	return utils.JSONConvert(structConf, &mapConf)
 }
 
-func ParsePartnerConfig(proto string, rawConf json.RawMessage) (PartnerProtoConfig, error) {
-	dec, constr, initErr := initParser(proto, rawConf)
-	if initErr != nil {
-		return nil, initErr
+func CheckClientConfig(proto string, mapConf map[string]any) error {
+	constr, ok := ProtoConfigs[proto]
+	if !ok {
+		return fmt.Errorf("%w %q", errUnknownProtocol, proto)
 	}
 
-	conf := constr.Partner()
-	if err := dec.Decode(conf); err != nil {
-		return nil, fmt.Errorf("failed to parse the partner protocol configuration: %w", err)
+	structConf := constr.Client()
+	if err := utils.JSONConvert(mapConf, structConf); err != nil {
+		return fmt.Errorf("invalid proto config: %w", err)
 	}
 
-	return conf, nil
-}
-
-func ParseClientConfig(proto string, rawConf json.RawMessage) (ClientProtoConfig, error) {
-	dec, constr, initErr := initParser(proto, rawConf)
-	if initErr != nil {
-		return nil, initErr
+	//nolint:wrapcheck //wrapping this error would add nothing
+	if err := structConf.ValidClient(); err != nil {
+		return err
 	}
 
-	conf := constr.Client()
-	if err := dec.Decode(conf); err != nil {
-		return nil, fmt.Errorf("failed to parse the client protocol configuration: %w", err)
-	}
-
-	return conf, nil
+	//nolint:wrapcheck //no need to wrap, this should never return an error anyway
+	return utils.JSONConvert(structConf, &mapConf)
 }

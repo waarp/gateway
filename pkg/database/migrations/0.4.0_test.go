@@ -18,7 +18,8 @@ func testVer0_4_0InitDatabase(eng *testEngine, dialect string) {
 			row = eng.DB.QueryRow(`SELECT tablename FROM pg_tables 
                  WHERE schemaname=current_schema()`)
 		case MySQL:
-			row = eng.DB.QueryRow(`SHOW TABLES`)
+			row = eng.DB.QueryRow(`SELECT table_name FROM information_schema.tables
+        		WHERE table_schema = DATABASE()`)
 		}
 
 		var name string

@@ -9,12 +9,15 @@ import (
 	"code.waarp.fr/apps/gateway/gateway/pkg/tk/utils/testhelpers"
 )
 
-const testProtocol = "test_proto"
+const (
+	testProtocol        = "test_proto"
+	testProtocolInvalid = "test_proto_invalid"
+)
 
 var testLocalPath = "file:/test/local/file"
 
 //nolint:gochecknoglobals // global var is simpler here
-var testConfigMaker = &config.ConfigMaker{
+var testConfigMaker = &config.Constructor{
 	Server:  func() config.ServerProtoConfig { return new(testhelpers.TestProtoConfig) },
 	Partner: func() config.PartnerProtoConfig { return new(testhelpers.TestProtoConfig) },
 	Client:  func() config.ClientProtoConfig { return new(testhelpers.TestProtoConfig) },
@@ -23,6 +26,11 @@ var testConfigMaker = &config.ConfigMaker{
 //nolint:gochecknoinits // init is used to ease the tests
 func init() {
 	config.ProtoConfigs[testProtocol] = testConfigMaker
+	config.ProtoConfigs[testProtocolInvalid] = &config.Constructor{
+		Server:  func() config.ServerProtoConfig { return new(testhelpers.TestProtoConfigFail) },
+		Partner: func() config.PartnerProtoConfig { return new(testhelpers.TestProtoConfigFail) },
+		Client:  func() config.ClientProtoConfig { return new(testhelpers.TestProtoConfigFail) },
+	}
 }
 
 func hash(pwd string) string {
