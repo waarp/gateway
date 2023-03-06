@@ -3,6 +3,7 @@
 Historique des versions
 =======================
 
+* :release:`0.7.3 <2023-03-06>`
 * :bug:`361` Les mots clés ``#INPATH#``, ``#OUTPATH#`` et ``#WORKPATH#`` prennent
   dorénavant bien compte des chemins spécifiés dans les règles et les serveurs
   (précédemment, seuls les dossiers spécifiés dans le fichier de configuration
