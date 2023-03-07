@@ -15,6 +15,7 @@ import (
 
 // LocalOverrides is a global instance of configOverride containing the local
 // configuration overrides defined for this particular gateway node.
+//
 //nolint:gochecknoglobals //global var is required here for simplicity
 var LocalOverrides *configOverride
 

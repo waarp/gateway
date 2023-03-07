@@ -4,9 +4,8 @@ import (
 	"path/filepath"
 	"runtime"
 
-	. "github.com/smartystreets/goconvey/convey"
-
 	"code.waarp.fr/lib/migration"
+	. "github.com/smartystreets/goconvey/convey"
 )
 
 func testVer0_5_0RemoveRulePathSlash(eng *testEngine, dialect string) {

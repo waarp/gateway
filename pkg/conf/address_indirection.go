@@ -19,9 +19,9 @@ var (
 // address separated by a '->'. The option name must be repeated for each indirection.
 // This means that the indirections should have the following format:
 //
-//    IndirectAddress = localhost -> 127.0.0.1
-//    IndirectAddress = example.com -> 8.8.8.8:80
-//    IndirectAddress = 192.168.1.1 -> [::1]:8080
+//	IndirectAddress = localhost -> 127.0.0.1
+//	IndirectAddress = example.com -> 8.8.8.8:80
+//	IndirectAddress = 192.168.1.1 -> [::1]:8080
 //
 // Do note that, although not mandatory, IPv6 addresses should be surrounded with
 // [brackets] to avoid confusion when adding a port number at the end.

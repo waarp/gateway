@@ -11,6 +11,8 @@ Historique des versions
 
   Par commodité, pour les installations existantes, un client par défaut sera
   créé pour chaque protocole en utilisation lors de la migration de la gateway.
+* :bug:`-` Les dossiers par défaut (spécifiés dans le fichier de configuration)
+  créés par la gateway ont désormais les permission *740* au lieu de *744*.
 * :bug:`-` Dans le cas où la base de données de la gateway est partagée, les
   partenaires de transfert ne sont désormais plus communs à toutes les instances
   utilisant la base. Dans les faits, chaque instance de gateway possède donc

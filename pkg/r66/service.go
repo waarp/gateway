@@ -217,7 +217,11 @@ func (s *Service) Stop(ctx context.Context) error {
 	s.logger.Debug("Closing listener...")
 
 	if err := s.server.Shutdown(ctx); err != nil {
-		s.logger.Warning("Failed to properly shutdown R66 server")
+		s.logger.Warning("Failed to properly shutdown R66 server: %v", err)
+	}
+
+	if err := s.list.Close(); err != nil {
+		s.logger.Warning("Error while closing the listener: %v", err)
 	}
 
 	s.logger.Info("R66 server shutdown successful")

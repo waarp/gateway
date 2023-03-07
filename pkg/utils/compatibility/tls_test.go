@@ -10,9 +10,8 @@ import (
 	"sync"
 	"testing"
 
-	. "github.com/smartystreets/goconvey/convey"
-
 	"code.waarp.fr/lib/log"
+	. "github.com/smartystreets/goconvey/convey"
 )
 
 func initLogger() (*log.Logger, io.Reader, func()) {

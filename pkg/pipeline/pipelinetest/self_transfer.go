@@ -40,24 +40,36 @@ func initSelfTransfer(c convey.C, protocol string, clientConf config.ClientProto
 ) *SelfContext {
 	feat, ok := Protocols[protocol]
 	c.So(ok, convey.ShouldBeTrue)
-	t := initTestData(c)
+	test := initTestData(c)
 	port := testhelpers.GetFreePort(c)
-	cli, remAg, remAcc := makeClientConf(c, t.DB, port, protocol, clientConf, partConf)
-	locAg, locAcc := makeServerConf(c, t, port, protocol, servConf)
+	cli, remAg, remAcc := makeClientConf(c, test.DB, port, protocol, clientConf, partConf)
+	locAg, locAcc := makeServerConf(c, test, port, protocol, servConf)
 
 	client, err := feat.ClientConstr(cli)
 	c.So(err, convey.ShouldBeNil)
 	c.So(client.Start(), convey.ShouldBeNil)
-
 	pipeline.Clients[cli.Name] = client
 
-	server := feat.ServiceConstr(t.DB, testhelpers.TestLogger(c, locAg.Name))
+	c.Reset(func() {
+		delete(pipeline.Clients, cli.Name)
+
+		//nolint:gomnd //this is just for tests
+		ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+		defer cancel()
+
+		if err := client.Stop(ctx); err != nil {
+			testhelpers.TestLogger(c, cli.Name).Warning(
+				"Error while stopping client: %v", err)
+		}
+	})
+
+	server := feat.ServiceConstr(test.DB, testhelpers.TestLogger(c, locAg.Name))
 
 	testServer, ok := server.(testService)
 	c.So(ok, convey.ShouldBeTrue)
 
 	return &SelfContext{
-		testData: t,
+		testData: test,
 		clientData: &clientData{
 			Partner:     remAg,
 			RemAccount:  remAcc,
