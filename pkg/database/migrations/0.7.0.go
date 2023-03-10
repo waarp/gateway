@@ -748,6 +748,11 @@ func (ver0_7_0RevampTransferInfoTable) Up(db Actions) error {
 		return fmt.Errorf("failed to drop the old transfer_info index: %w", err)
 	}
 
+	if err := db.Exec(`DELETE FROM transfer_info WHERE is_history=true AND
+		transfer_id NOT IN (SELECT id FROM transfer_history)`); err != nil {
+		return fmt.Errorf("failed to delete the orphaned transfer info entries: %w", err)
+	}
+
 	if err := db.AlterTable("transfer_info",
 		AddColumn{Name: "history_id", Type: BigInt{}},
 		AlterColumn{Name: "transfer_id", Type: BigInt{}},
