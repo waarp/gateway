@@ -10,7 +10,6 @@ import (
 	"code.waarp.fr/lib/migration"
 
 	"code.waarp.fr/apps/gateway/gateway/pkg/conf"
-	"code.waarp.fr/apps/gateway/gateway/pkg/version"
 )
 
 const windowsRuntime = "windows"
@@ -63,10 +62,6 @@ func DoMigration(db *sql.DB, logger *log.Logger, targetVersion, dialect string, 
 	target, err := getTargetIndex(targetVersion)
 	if err != nil {
 		return err
-	}
-
-	if target == start && targetVersion == version.Num {
-		return nil // nothing to do
 	}
 
 	versionBump := []migration.Script{{
