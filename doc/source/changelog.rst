@@ -3,6 +3,8 @@
 Historique des versions
 =======================
 
+* :bug:`697` Les mots clés ``#INPATH#`` et ``#OUTPATH#`` ne concernent que les chemins locaux.
+  Les chemins distant peuvent être récupéré à partir du mot clef ``#ORIGINALFULLPATH#``.
 * :bug:`365` Correction d'une erreur de la migration 0.7.0 causée par un bug de
   la commande de purge d'historique. Avant la version 0.7.0, la commande de purge
   ne supprimait pas les transfer info liées aux entrées d'historique purgées.

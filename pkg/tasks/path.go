@@ -5,11 +5,8 @@ import (
 	"code.waarp.fr/apps/gateway/gateway/pkg/tk/utils"
 )
 
+//nolint:dupl // factorizing would add complexity
 func makeOutDir(transCtx *model.TransferContext) string {
-	if !transCtx.Rule.IsSend {
-		return transCtx.Rule.RemoteDir
-	}
-
 	if transCtx.Transfer.IsServer() {
 		return utils.GetPath("",
 			utils.Leaf(transCtx.Rule.LocalDir),
@@ -25,11 +22,8 @@ func makeOutDir(transCtx *model.TransferContext) string {
 	}
 }
 
+//nolint:dupl // factorizing would add complexity
 func makeInDir(transCtx *model.TransferContext) string {
-	if transCtx.Rule.IsSend {
-		return transCtx.Rule.RemoteDir
-	}
-
 	if transCtx.Transfer.IsServer() {
 		return utils.GetPath("",
 			utils.Leaf(transCtx.Rule.LocalDir),
