@@ -13,6 +13,12 @@ func TestDoMigration(t *testing.T) {
 	Convey("Given an test database", t, func(c C) {
 		logger := testhelpers.TestLogger(c, "test_do_migration")
 		db := getSQLiteEngine(c).DB
+		var curr string
+
+		So(DoMigration(db, logger, "0.4.0", migration.SQLite, nil), ShouldBeNil)
+
+		So(db.QueryRow(`SELECT current FROM version`).Scan(&curr), ShouldBeNil)
+		So(curr, ShouldEqual, "0.4.0")
 
 		Convey("When migrating up to a version", func() {
 			err := DoMigration(db, logger, "0.4.2", migration.SQLite, nil)
@@ -23,11 +29,7 @@ func TestDoMigration(t *testing.T) {
 				So(doesIndexExist(db, SQLite, "transfer_history",
 					"UQE_transfer_history_histRemID"), ShouldBeFalse)
 
-				row := db.QueryRow(`SELECT current FROM version`)
-
-				var curr string
-				So(row.Scan(&curr), ShouldBeNil)
-
+				So(db.QueryRow(`SELECT current FROM version`).Scan(&curr), ShouldBeNil)
 				So(curr, ShouldEqual, "0.4.2")
 
 				Convey("When migrating down to a version", func() {
@@ -39,14 +41,23 @@ func TestDoMigration(t *testing.T) {
 						So(doesIndexExist(db, SQLite, "transfer_history",
 							"UQE_transfer_history_histRemID"), ShouldBeTrue)
 
-						row := db.QueryRow(`SELECT current FROM version`)
-
-						var curr string
-						So(row.Scan(&curr), ShouldBeNil)
-
+						So(db.QueryRow(`SELECT current FROM version`).Scan(&curr), ShouldBeNil)
 						So(curr, ShouldEqual, "0.4.0")
 					})
 				})
+			})
+		})
+
+		Convey("When migrating between versions with the same index", func() {
+			const testTarget = "test_target"
+
+			VersionsMap[testTarget] = VersionsMap["0.4.0"]
+
+			So(DoMigration(db, logger, testTarget, migration.SQLite, nil), ShouldBeNil)
+
+			Convey("Then it should have changed the database version", func() {
+				So(db.QueryRow(`SELECT current FROM version`).Scan(&curr), ShouldBeNil)
+				So(curr, ShouldEqual, testTarget)
 			})
 		})
 	})

@@ -3,6 +3,10 @@
 Historique des versions
 =======================
 
+* :bug:`366` Correction d'une erreur empêchant la migration depuis une version
+  d'application 0.7.X vers une autre version 0.7.X. La version de la base de
+  données n'était pas changée, rendant donc la migration ineffective.
+
 * :release:`0.7.3 <2023-03-06>`
 * :bug:`361` Les mots clés ``#INPATH#``, ``#OUTPATH#`` et ``#WORKPATH#`` prennent
   dorénavant bien compte des chemins spécifiés dans les règles et les serveurs
