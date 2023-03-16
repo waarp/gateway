@@ -247,7 +247,7 @@ func TestSetup(t *testing.T) {
 						So(ok, ShouldBeTrue)
 
 						Convey("Then res[inPath] should contain the resolved variable", func() {
-							So(val, ShouldEqual, r.transCtx.Rule.RemoteDir)
+							So(val, ShouldEqual, filepath.Join(root, r.transCtx.Rule.LocalDir))
 						})
 					})
 
