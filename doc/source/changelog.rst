@@ -3,6 +3,12 @@
 Historique des versions
 =======================
 
+* :bug:`365` Correction d'une erreur de la migration 0.7.0 causée par un bug de
+  la commande de purge d'historique. Avant la version 0.7.0, la commande de purge
+  ne supprimait pas les transfer info liées aux entrées d'historique purgées.
+  Par conséquent, il était impossible de migrer vers les version 0.7.X si une
+  purge de l'historique avait été effectuée précédemment, et que n'importe
+  laquelle des entrées purgée avait des transfer info attachées.
 * :bug:`366` Correction d'une erreur empêchant la migration depuis une version
   d'application 0.7.X vers une autre version 0.7.X. La version de la base de
   données n'était pas changée, rendant donc la migration ineffective.

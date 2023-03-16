@@ -855,11 +855,9 @@ func testVer0_7_0RevampTransferInfoTable(eng *testEngine) {
 		So(err, ShouldBeNil)
 
 		_, err = eng.DB.Exec(`INSERT INTO transfer_info(transfer_id,is_history,
-        	name,value) VALUES (1000,false,'t_info','"t_value"')`)
-		So(err, ShouldBeNil)
-
-		_, err = eng.DB.Exec(`INSERT INTO transfer_info(transfer_id,is_history,
-        	name,value) VALUES (2000,true,'h_info','"h_value"')`)
+        	name,value) VALUES (1000,false,'1_t_info','"t_value"'),
+        	                   (2000,true, '2_h_info','"h_value"'),
+        	                   (3000,true, '3_h_info_orphan','true')`) // orphaned entry
 		So(err, ShouldBeNil)
 
 		Convey("When applying the migration", func() {
@@ -868,30 +866,33 @@ func testVer0_7_0RevampTransferInfoTable(eng *testEngine) {
 
 			Convey("Then it should have changed the columns", func() {
 				rows, err := eng.DB.Query(`SELECT transfer_id,history_id,name,value
-					FROM transfer_info`)
+					FROM transfer_info ORDER BY name`)
 				So(err, ShouldBeNil)
-				So(rows.Err(), ShouldBeNil)
-
 				defer rows.Close()
 
-				for rows.Next() {
-					var tID, hID sql.NullInt64
-					var name, value string
+				var (
+					tID, hID    sql.NullInt64
+					name, value string
+				)
 
-					So(rows.Scan(&tID, &hID, &name, &value), ShouldBeNil)
+				So(rows.Next(), ShouldBeTrue)
+				So(rows.Scan(&tID, &hID, &name, &value), ShouldBeNil)
 
-					if tID.Valid {
-						So(tID.Int64, ShouldEqual, 1000)
-						So(hID.Int64, ShouldEqual, 0)
-						So(name, ShouldEqual, "t_info")
-						So(value, ShouldEqual, `"t_value"`)
-					} else {
-						So(tID.Int64, ShouldEqual, 0)
-						So(hID.Int64, ShouldEqual, 2000)
-						So(name, ShouldEqual, "h_info")
-						So(value, ShouldEqual, `"h_value"`)
-					}
-				}
+				So(tID.Int64, ShouldEqual, 1000)
+				So(hID.Valid, ShouldBeFalse)
+				So(name, ShouldEqual, "1_t_info")
+				So(value, ShouldEqual, `"t_value"`)
+
+				So(rows.Next(), ShouldBeTrue)
+				So(rows.Scan(&tID, &hID, &name, &value), ShouldBeNil)
+
+				So(tID.Valid, ShouldBeFalse)
+				So(hID.Int64, ShouldEqual, 2000)
+				So(name, ShouldEqual, "2_h_info")
+				So(value, ShouldEqual, `"h_value"`)
+
+				So(rows.Next(), ShouldBeFalse)
+				So(rows.Err(), ShouldBeNil)
 			})
 
 			Convey("When reversing the migration", func() {
@@ -900,29 +901,32 @@ func testVer0_7_0RevampTransferInfoTable(eng *testEngine) {
 
 				Convey("Then it should have reverted the column changes", func() {
 					rows, err := eng.DB.Query(`SELECT transfer_id,is_history,name,value
-					FROM transfer_info`)
+					FROM transfer_info ORDER BY transfer_id`)
 					So(err, ShouldBeNil)
-					So(rows.Err(), ShouldBeNil)
-
 					defer rows.Close()
 
-					for rows.Next() {
-						var tID int64
-						var isHist bool
-						var name, value string
+					var (
+						tID         int64
+						isHist      bool
+						name, value string
+					)
 
-						So(rows.Scan(&tID, &isHist, &name, &value), ShouldBeNil)
+					So(rows.Next(), ShouldBeTrue)
+					So(rows.Scan(&tID, &isHist, &name, &value), ShouldBeNil)
 
-						if !isHist {
-							So(tID, ShouldEqual, 1000)
-							So(name, ShouldEqual, "t_info")
-							So(value, ShouldEqual, `"t_value"`)
-						} else {
-							So(tID, ShouldEqual, 2000)
-							So(name, ShouldEqual, "h_info")
-							So(value, ShouldEqual, `"h_value"`)
-						}
-					}
+					So(tID, ShouldEqual, 1000)
+					So(name, ShouldEqual, "1_t_info")
+					So(value, ShouldEqual, `"t_value"`)
+
+					So(rows.Next(), ShouldBeTrue)
+					So(rows.Scan(&tID, &isHist, &name, &value), ShouldBeNil)
+
+					So(tID, ShouldEqual, 2000)
+					So(name, ShouldEqual, "2_h_info")
+					So(value, ShouldEqual, `"h_value"`)
+
+					So(rows.Next(), ShouldBeFalse)
+					So(rows.Err(), ShouldBeNil)
 				})
 			})
 		})
