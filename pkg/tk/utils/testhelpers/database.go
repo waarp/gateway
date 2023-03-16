@@ -7,7 +7,7 @@ import (
 	"os"
 
 	"github.com/go-sql-driver/mysql"
-	_ "github.com/jackc/pgx/v4/stdlib"
+	_ "github.com/jackc/pgx/v5/stdlib"
 	"github.com/smartystreets/goconvey/convey"
 	_ "modernc.org/sqlite"
 )

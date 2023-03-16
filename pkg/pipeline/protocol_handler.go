@@ -33,8 +33,12 @@ type Client interface {
 // TransferClient is the interface defining a protocol client. All protocol clients
 // (SFTP, R66, HTTP, etc) must implement this interface in order to be usable by
 // the transfer pipeline.
-// The client must also provide a constructor and add it to the Clients
-// map.
+// The client must also provide a constructor and add it to the Clients map.
+//
+// Important note: To avoid sending its own errors back to the server, The
+// ClientPipeline will NOT call EndTransfer after an error produced by the
+// TransferClient itself. Thus, it is the TransferClient's responsibility to
+// notify the server when an error occurs locally on the client's side.
 type TransferClient interface {
 	// Request opens a connection to the transfer partner and then sends a
 	// transfer request to the remote.

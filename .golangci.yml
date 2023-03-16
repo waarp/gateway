@@ -594,7 +594,7 @@ linters-settings:
 
   tagalign:
     align: false # Toggled off for now, might enable if tags become too hard to read.
-    sort: true
+    sort: false
     order:
       - required
       - positional-arg-name
@@ -762,6 +762,7 @@ issues:
         - gochecknoinits
         - wrapcheck
         - forcetypeassert
+        - maintidx
 
     # Allow dot import aliases in test files.
     - path: _test\.go

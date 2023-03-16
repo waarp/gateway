@@ -83,7 +83,7 @@ func TestTransferBeforeWrite(t *testing.T) {
 						So(trans.BeforeWrite(db), ShouldBeNil)
 
 						Convey("Then the transfer status should be 'planned'", func() {
-							So(trans.Status, ShouldEqual, "PLANNED")
+							So(trans.Status, ShouldEqual, types.StatusPlanned)
 						})
 
 						Convey("Then the transfer owner should be 'test_gateway'", func() {

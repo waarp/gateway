@@ -103,6 +103,7 @@ func (c *client) InitTransfer(pip *pipeline.Pipeline) (pipeline.TransferClient, 
 }
 
 func (c *client) Start() error {
+	c.conns.Reset()
 	c.state.Set(state.Running, "")
 
 	return nil
@@ -143,11 +144,17 @@ type transferClient struct {
 
 // Request opens a connection to the remote partner, creates a new authenticated
 // session, and sends the transfer request.
-func (c *transferClient) Request() *types.TransferError {
+func (c *transferClient) Request() (tErr *types.TransferError) {
 	// CONNECTION
 	if err := c.connect(); err != nil {
 		return err
 	}
+
+	defer func() {
+		if tErr != nil {
+			c.SendError(tErr)
+		}
+	}()
 
 	// AUTHENTICATION
 	if err := c.authenticate(); err != nil {
@@ -162,7 +169,13 @@ func (c *transferClient) Request() *types.TransferError {
 func (c *transferClient) BeginPreTasks() *types.TransferError { return nil }
 
 // EndPreTasks sends/receives updated transfer info to/from the remote partner.
-func (c *transferClient) EndPreTasks() *types.TransferError {
+func (c *transferClient) EndPreTasks() (tErr *types.TransferError) {
+	defer func() {
+		if tErr != nil {
+			c.SendError(tErr)
+		}
+	}()
+
 	if c.pip.TransCtx.Rule.IsSend {
 		outInfo := &r66.UpdateInfo{
 			Filename: c.pip.TransCtx.Transfer.RemotePath,
@@ -207,6 +220,7 @@ func (c *transferClient) Data(dataStream pipeline.DataStream) *types.TransferErr
 	if c.pip.TransCtx.Rule.IsSend {
 		_, err := c.ses.Send(stream, c.makeHash)
 		if err != nil {
+			c.ses = nil
 			c.pip.Logger.Error("Failed to send transfer file: %v", err)
 
 			return internal.FromR66Error(err, c.pip)
@@ -217,6 +231,7 @@ func (c *transferClient) Data(dataStream pipeline.DataStream) *types.TransferErr
 
 	eot, err := c.ses.Recv(stream)
 	if err != nil {
+		c.ses = nil
 		c.pip.Logger.Error("Failed to receive transfer file: %v", err)
 
 		return internal.FromR66Error(err, c.pip)
@@ -229,13 +244,18 @@ func (c *transferClient) Data(dataStream pipeline.DataStream) *types.TransferErr
 	hash, hErr := internal.MakeHash(c.ctx, c.pip.TransCtx.FS, c.pip.Logger,
 		&c.pip.TransCtx.Transfer.LocalPath)
 	if hErr != nil {
+		c.SendError(hErr)
+
 		return hErr
 	}
 
 	if !bytes.Equal(eot.Hash, hash) {
 		c.pip.Logger.Error("File hash does not match expected value")
 
-		return types.NewTransferError(types.TeIntegrity, "invalid file hash")
+		tErr := types.NewTransferError(types.TeIntegrity, "invalid file hash")
+		c.SendError(tErr)
+
+		return tErr
 	}
 
 	return nil

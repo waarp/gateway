@@ -37,7 +37,7 @@ func newAllSuccess() *allSuccess {
 func (a *allSuccess) Start() error        { return nil }
 func (a *allSuccess) State() *state.State { return &a.state }
 
-func (a *allSuccess) ManageTransfers() *service.TransferMap { return &service.TransferMap{} }
+func (a *allSuccess) ManageTransfers() *service.TransferMap { return service.NewTransferMap() }
 func (a *allSuccess) InitTransfer(*pipeline.Pipeline) (pipeline.TransferClient, *types.TransferError) {
 	return a, nil
 }

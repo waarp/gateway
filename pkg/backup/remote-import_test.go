@@ -215,12 +215,12 @@ func TestImportRemoteAccounts(t *testing.T) {
 								case accounts[i].Login == account1.Login:
 									Convey("Then account1 is found", func() {
 										So(accounts[i].Login, ShouldResemble, account1.Login)
-										So(accounts[i].Password, ShouldEqual, account1.Password)
+										So(string(accounts[i].Password), ShouldEqual, account1.Password)
 									})
 								case accounts[i].Login == account2.Login:
 									Convey("Then account2 is found", func() {
 										So(accounts[i].Login, ShouldResemble, account2.Login)
-										So(accounts[i].Password, ShouldEqual, account2.Password)
+										So(string(accounts[i].Password), ShouldEqual, account2.Password)
 									})
 								case accounts[i].Login == dbAccount.Login:
 									Convey("Then dbAccount is found", func() {

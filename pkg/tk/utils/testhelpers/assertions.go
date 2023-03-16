@@ -6,7 +6,7 @@ import (
 	"reflect"
 	"strings"
 
-	"github.com/smartystreets/assertions"
+	"github.com/smarty/assertions"
 )
 
 // ShouldBeOneOf receives at least 2 parameters. The first is a proposed member

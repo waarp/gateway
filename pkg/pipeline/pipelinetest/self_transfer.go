@@ -8,11 +8,11 @@ import (
 	"strings"
 	"time"
 
+	"code.waarp.fr/lib/log"
 	"github.com/smartystreets/goconvey/convey"
 
 	"code.waarp.fr/apps/gateway/gateway/pkg/conf"
 	"code.waarp.fr/apps/gateway/gateway/pkg/fs"
-	"code.waarp.fr/apps/gateway/gateway/pkg/gatewayd/service/proto"
 	"code.waarp.fr/apps/gateway/gateway/pkg/model"
 	"code.waarp.fr/apps/gateway/gateway/pkg/model/config"
 	"code.waarp.fr/apps/gateway/gateway/pkg/model/types"
@@ -30,7 +30,8 @@ type SelfContext struct {
 	*serverData
 	*transData
 
-	service       testService
+	ServerService testService
+	ClientService pipeline.Client
 	fail          *model.Task
 	protoFeatures *ProtoFeatures
 }
@@ -38,8 +39,9 @@ type SelfContext struct {
 func initSelfTransfer(c convey.C, protocol string, clientConf config.ClientProtoConfig,
 	partConf config.PartnerProtoConfig, servConf config.ServerProtoConfig,
 ) *SelfContext {
-	feat, ok := Protocols[protocol]
-	c.So(ok, convey.ShouldBeTrue)
+	feat, protoExists := Protocols[protocol]
+	c.So(protoExists, convey.ShouldBeTrue)
+
 	test := initTestData(c)
 	port := testhelpers.GetFreePort(c)
 	cli, remAg, remAcc := makeClientConf(c, test.DB, port, protocol, clientConf, partConf)
@@ -63,7 +65,8 @@ func initSelfTransfer(c convey.C, protocol string, clientConf config.ClientProto
 		}
 	})
 
-	server := feat.ServiceConstr(test.DB, testhelpers.TestLogger(c, locAg.Name))
+	server := feat.ServiceConstr(test.DB, testhelpers.TestLoggerWithLevel(
+		c, locAg.Name, log.LevelTrace))
 
 	testServer, ok := server.(testService)
 	c.So(ok, convey.ShouldBeTrue)
@@ -84,7 +87,8 @@ func initSelfTransfer(c convey.C, protocol string, clientConf config.ClientProto
 			transferInfo: map[string]interface{}{},
 			// fileInfo:     map[string]interface{}{},
 		},
-		service:       testServer,
+		ServerService: testServer,
+		ClientService: client,
 		protoFeatures: &feat,
 	}
 }
@@ -157,16 +161,13 @@ func (s *SelfContext) addPullTransfer(c convey.C) {
 // StartService starts the service associated with the test server defined in
 // the SelfContext.
 func (s *SelfContext) StartService(c convey.C) {
-	c.So(s.service.Start(s.Server), convey.ShouldBeNil)
+	c.So(s.ServerService.Start(s.Server), convey.ShouldBeNil)
 	c.Reset(func() {
 		ctx, cancel := context.WithTimeout(context.Background(), time.Second)
 		defer cancel()
-		c.So(s.service.Stop(ctx), convey.ShouldBeNil)
+		c.So(s.ServerService.Stop(ctx), convey.ShouldBeNil)
 	})
 }
-
-// Service returns the context's service.
-func (s *SelfContext) Service() proto.Service { return s.service }
 
 // AddCryptos adds the given cryptos to the test database.
 func (s *SelfContext) AddCryptos(c convey.C, certs ...model.Crypto) {
@@ -259,7 +260,7 @@ func (s *SelfContext) RunTransfer(c convey.C, willFail bool) {
 
 func (s *SelfContext) setTrace(pip *pipeline.Pipeline) {
 	s.setClientTrace(pip)
-	s.service.SetTracer(s.makeServerTracer(s.ServerRule.IsSend))
+	s.ServerService.SetTracer(s.makeServerTracer(s.ServerRule.IsSend))
 }
 
 func (s *SelfContext) resetTransfer(c convey.C) {
@@ -487,7 +488,7 @@ func (s *SelfContext) waitForListDeletion() {
 			panic("timeout waiting for transfers to be removed from running list")
 		default:
 			ok1 := s.ProtoClient.ManageTransfers().Exists(s.ClientTrans.ID)
-			ok2 := s.service.ManageTransfers().Exists(s.ClientTrans.ID + 1)
+			ok2 := s.ServerService.ManageTransfers().Exists(s.ClientTrans.ID + 1)
 
 			if !ok1 && !ok2 {
 				return

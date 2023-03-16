@@ -109,6 +109,7 @@ func (p *postClient) setRequestHeaders(req *http.Request) *types.TransferError {
 	req.Header.Set("Expect", "100-continue")
 	req.Header.Set(httpconst.TransferID, p.pip.TransCtx.Transfer.RemoteTransferID)
 	req.Header.Set(httpconst.RuleName, p.pip.TransCtx.Rule.Name)
+	req.Header.Set("Waarp-File-Size", utils.FormatInt(p.pip.TransCtx.Transfer.Filesize))
 	makeContentRange(req.Header, p.pip.TransCtx.Transfer)
 
 	if err := makeTransferInfo(req.Header, p.pip); err != nil {
@@ -208,7 +209,13 @@ func (p *postClient) Request() *types.TransferError {
 	}
 }
 
-func (p *postClient) Data(stream pipeline.DataStream) *types.TransferError {
+func (p *postClient) Data(stream pipeline.DataStream) (transErr *types.TransferError) {
+	defer func() {
+		if transErr != nil {
+			p.SendError(transErr)
+		}
+	}()
+
 	_, err := io.Copy(p.writer, stream)
 	if err != nil {
 		p.pip.Logger.Error("Failed to write to remote HTTP file: %s", err)
@@ -245,7 +252,13 @@ func (p *postClient) Data(stream pipeline.DataStream) *types.TransferError {
 	return nil
 }
 
-func (p *postClient) EndTransfer() *types.TransferError {
+func (p *postClient) EndTransfer() (tErr *types.TransferError) {
+	defer func() {
+		if tErr != nil {
+			p.SendError(tErr)
+		}
+	}()
+
 	p.req.Trailer.Set(httpconst.TransferStatus, string(types.StatusDone))
 
 	if err := p.writer.Close(); err != nil {

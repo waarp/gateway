@@ -2,6 +2,7 @@ package internal
 
 import (
 	"crypto/tls"
+	"errors"
 	"fmt"
 	"net"
 	"sync"
@@ -19,6 +20,8 @@ const (
 	ClientDialTimeout            = 10 * time.Second
 )
 
+var ErrConnectionPoolClosed = errors.New("connection pool is closing")
+
 type connInfo struct {
 	conn *r66.Client // the connection
 	num  uint64      // the number of sessions open on the connection
@@ -34,7 +37,7 @@ type ConnPool struct {
 }
 
 // NewConnPool initiates and returns a new ConnPool instance.
-func NewConnPool(client *model.Client, clientConfig *config.R66ClientProtoConfig,
+func NewConnPool(client *model.Client, _ *config.R66ClientProtoConfig,
 ) (*ConnPool, error) {
 	pool := &ConnPool{
 		m: map[string]*connInfo{},
@@ -72,6 +75,12 @@ func (c *ConnPool) Exists(addr string) bool {
 func (c *ConnPool) Add(addr string, tlsConf *tls.Config, logger *log.Logger) (*r66.Client, error) {
 	c.mux.Lock()
 	defer c.mux.Unlock()
+
+	select {
+	case <-c.closed:
+		return nil, ErrConnectionPoolClosed
+	default:
+	}
 
 	info, ok := c.m[addr]
 	if ok {
@@ -153,4 +162,11 @@ func (c *ConnPool) ForceClose() {
 	}
 
 	close(c.closed)
+}
+
+func (c *ConnPool) Reset() {
+	c.mux.Lock()
+	defer c.mux.Unlock()
+
+	c.closed = make(chan bool)
 }

@@ -92,7 +92,7 @@ func TestCloudAdd(t *testing.T) {
 			"type":    cloudType,
 			"key":     cloudKey,
 			"secret":  cloudSecret,
-			"options": map[string]string{opt1: key1, opt2: key2},
+			"options": map[string]any{opt1: key1, opt2: key2},
 		}
 		expRequest := &expectedRequest{
 			method: http.MethodPost,
@@ -188,7 +188,7 @@ func TestCloudUpdate(t *testing.T) {
 			"type":    cloudType,
 			"key":     cloudKey,
 			"secret":  cloudSecret,
-			"options": map[string]string{opt1: key1, opt2: key2},
+			"options": map[string]any{opt1: key1, opt2: key2},
 		}
 		expRequest := &expectedRequest{
 			method: http.MethodPatch,

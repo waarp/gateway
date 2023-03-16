@@ -175,7 +175,7 @@ func (t *Transfer) checkMandatoryValues(rule *Rule) database.Error {
 // BeforeWrite checks if the new `Transfer` entry is valid and can be
 // inserted in the database.
 //
-//nolint:funlen //no easy way to split
+//nolint:funlen //no easy way to split the function
 func (t *Transfer) BeforeWrite(db database.ReadAccess) database.Error {
 	t.Owner = conf.GlobalConfig.GatewayName
 

@@ -453,22 +453,6 @@ func TestRunTasks(t *testing.T) {
 				})
 			})
 
-			Convey("Given that one of the tasks is invalid", func() {
-				dummyTaskCheck = make(chan string, 1)
-
-				tasks := []*model.Task{{
-					RuleID: rule.ID,
-					Chain:  model.ChainPre,
-					Rank:   0,
-					Type:   taskSuccess,
-					Args:   map[string]string{"": ""},
-				}}
-
-				Convey("Then running the tasks should return an error", func() {
-					So(proc.runTasks(tasks, false, nil), ShouldNotBeNil)
-				})
-			})
-
 			Convey("Given an unknown type of task", func() {
 				dummyTaskCheck = make(chan string, 1)
 

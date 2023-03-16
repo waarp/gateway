@@ -10,7 +10,7 @@ import (
 	"code.waarp.fr/lib/migration"
 	// Register the SQL drivers.
 	"github.com/go-sql-driver/mysql"
-	_ "github.com/jackc/pgx/v4/stdlib"
+	_ "github.com/jackc/pgx/v5/stdlib"
 	_ "modernc.org/sqlite"
 
 	"code.waarp.fr/apps/gateway/gateway/pkg/conf"

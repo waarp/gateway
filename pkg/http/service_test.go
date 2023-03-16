@@ -130,7 +130,9 @@ func TestServerInterruption(t *testing.T) {
 					defer resp.Body.Close()
 
 					So(resp.StatusCode, ShouldEqual, http.StatusServiceUnavailable)
-					So(resp.Header.Get(httpconst.TransferStatus), ShouldEqual, types.StatusInterrupted)
+					So(resp.Header.Get(httpconst.TransferStatus), ShouldEqual,
+						string(types.StatusInterrupted))
+
 					body, err := io.ReadAll(resp.Body)
 					So(err, ShouldBeNil)
 					So(string(body), ShouldResemble, "transfer interrupted by a server shutdown")

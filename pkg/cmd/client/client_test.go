@@ -32,7 +32,7 @@ func TestDisplayClient(t *testing.T) {
 				So(w.String(), ShouldResemble, `── Client "test_client"
    ├─ Protocol: test_protocol
    ├─ Local address: client.test.address:port
-   ╰─ Configuration:
+   ╰─ Configuration
       ├─ key1: val1
       ├─ key2: 2
       ├─ key3: true
@@ -169,12 +169,12 @@ func TestClientList(t *testing.T) {
 ╭─ Client "cli1"
 │  ├─ Protocol: proto1
 │  ├─ Local address: addr1
-│  ╰─ Configuration:
+│  ╰─ Configuration
 │     ╰─ key1: val1
 ╰─ Client "cli2"
    ├─ Protocol: proto2
    ├─ Local address: addr2
-   ╰─ Configuration:
+   ╰─ Configuration
       ╰─ key2: val2
 `)
 				})
@@ -220,7 +220,7 @@ func TestClientGet(t *testing.T) {
 					So(w.String(), ShouldEqual, `── Client "test_client"
    ├─ Protocol: proto
    ├─ Local address: addr
-   ╰─ Configuration:
+   ╰─ Configuration
       ╰─ key: val
 `)
 				})

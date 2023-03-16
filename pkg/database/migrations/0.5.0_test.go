@@ -101,6 +101,7 @@ func testVer0_5_0CheckRulePathAncestor(eng *testEngine, dialect string) {
 			if dialect == migration.PostgreSQL {
 				query = `UPDATE rules SET path=$1 WHERE name=$2`
 			}
+
 			_, err := eng.DB.Exec(query, "dir", "recv")
 			So(err, ShouldBeNil)
 

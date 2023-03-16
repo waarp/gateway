@@ -207,18 +207,18 @@ func addIfNotZero(m map[string]any, key string, val any) {
 
 func displayProtoConfig(f *Formatter, mapConf map[string]any) {
 	if len(mapConf) == 0 {
-		f.Empty("Configuration:", "<empty>")
+		f.Empty("Configuration", "<empty>")
 
 		return
 	}
 
-	f.Title("Configuration:")
+	f.Title("Configuration")
 	f.Indent()
 
 	defer f.UnIndent()
 
 	utils.OrderedIterate[any](mapConf, func(key string, val any) {
-		f.Value(key+":", val)
+		f.Value(key, val)
 	})
 }
 

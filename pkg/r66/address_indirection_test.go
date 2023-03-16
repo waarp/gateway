@@ -44,7 +44,7 @@ func TestAddressIndirection(t *testing.T) {
 					cont, cancel := context.WithTimeout(context.Background(), time.Second)
 					defer cancel()
 
-					_ = ctx.Service().Stop(cont)
+					_ = ctx.ServerService.Stop(cont)
 				}()
 
 				Convey("Then it should have connected to the server", func() {

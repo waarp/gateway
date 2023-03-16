@@ -22,12 +22,12 @@ func displayClient(f *Formatter, client *api.OutClient) {
 
 	defer f.UnIndent()
 
-	f.Value("Protocol:", client.Protocol)
+	f.Value("Protocol", client.Protocol)
 
 	if client.LocalAddress == "" {
-		f.Empty("Local address:", "<unspecified>")
+		f.Empty("Local address", "<unspecified>")
 	} else {
-		f.Value("Local address:", client.LocalAddress)
+		f.Value("Local address", client.LocalAddress)
 	}
 
 	displayProtoConfig(f, client.ProtoConfig)

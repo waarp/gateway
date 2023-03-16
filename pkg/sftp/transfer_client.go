@@ -218,10 +218,16 @@ func (c *transferClient) startSFTPSession() *types.TransferError {
 	return nil
 }
 
-func (c *transferClient) Request() *types.TransferError {
+func (c *transferClient) Request() (tErr *types.TransferError) {
 	if err := c.openSSHConn(); err != nil {
 		return err
 	}
+
+	defer func() {
+		if tErr != nil {
+			c.SendError(tErr)
+		}
+	}()
 
 	if err := c.startSFTPSession(); err != nil {
 		return err
@@ -273,7 +279,13 @@ func (c *transferClient) requestReceive(filepath string) *types.TransferError {
 }
 
 // Data copies the content of the source file into the destination file.
-func (c *transferClient) Data(data pipeline.DataStream) *types.TransferError {
+func (c *transferClient) Data(data pipeline.DataStream) (tErr *types.TransferError) {
+	defer func() {
+		if tErr != nil {
+			c.SendError(tErr)
+		}
+	}()
+
 	if c.pip.TransCtx.Transfer.Progress != 0 {
 		_, err := c.sftpFile.Seek(c.pip.TransCtx.Transfer.Progress, io.SeekStart)
 		if err != nil {

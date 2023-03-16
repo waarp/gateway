@@ -18,6 +18,8 @@ import (
 type ClientPipeline struct {
 	Pip    *Pipeline
 	Client TransferClient
+
+	done func() // remove the transfer from the Client's transfer map
 }
 
 // NewClientPipeline initializes and returns a new ClientPipeline for the given
@@ -94,7 +96,10 @@ func newClientPipeline(db *database.DB, logger *log.Logger,
 	c := &ClientPipeline{
 		Pip:    pipeline,
 		Client: transferClient,
+		done:   func() { client.ManageTransfers().Delete(transCtx.Transfer.ID) },
 	}
+
+	client.ManageTransfers().Add(transCtx.Transfer.ID, c)
 
 	if transCtx.Rule.IsSend {
 		logger.Info("Starting upload of file %q to %q as %q using rule %q",
@@ -125,8 +130,6 @@ func (c *ClientPipeline) preTasks() *types.TransferError {
 
 	// Extended pre-task handling
 	if err := pt.BeginPreTasks(); err != nil {
-		c.Pip.SetError(err)
-
 		return err
 	}
 
@@ -137,8 +140,6 @@ func (c *ClientPipeline) preTasks() *types.TransferError {
 	}
 
 	if err := pt.EndPreTasks(); err != nil {
-		c.Pip.SetError(err)
-
 		return err
 	}
 
@@ -161,8 +162,6 @@ func (c *ClientPipeline) postTasks() *types.TransferError {
 
 	// Extended post-task handling
 	if err := pt.BeginPostTasks(); err != nil {
-		c.Pip.SetError(err)
-
 		return err
 	}
 
@@ -173,8 +172,6 @@ func (c *ClientPipeline) postTasks() *types.TransferError {
 	}
 
 	if err := pt.EndPostTasks(); err != nil {
-		c.Pip.SetError(err)
-
 		return err
 	}
 
@@ -184,10 +181,11 @@ func (c *ClientPipeline) postTasks() *types.TransferError {
 // Run executes the full client transfer pipeline in order. If a transfer error
 // occurs, it will be handled internally.
 func (c *ClientPipeline) Run() *types.TransferError {
+	defer c.done()
+
 	// REQUEST
 	if err := c.Client.Request(); err != nil {
 		c.Pip.SetError(err)
-		c.Client.SendError(err)
 
 		return err
 	}
@@ -207,7 +205,6 @@ func (c *ClientPipeline) Run() *types.TransferError {
 
 	if err := c.Client.Data(file); err != nil {
 		c.Pip.SetError(err)
-		c.Client.SendError(err)
 
 		return err
 	}

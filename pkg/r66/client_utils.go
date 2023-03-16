@@ -36,7 +36,7 @@ func (c *transferClient) connect() *types.TransferError {
 	return nil
 }
 
-func (c *transferClient) authenticate() *types.TransferError {
+func (c *transferClient) authenticate() (tErr *types.TransferError) {
 	servHash := []byte(c.serverPassword)
 
 	conf := &r66.Config{
@@ -49,6 +49,7 @@ func (c *transferClient) authenticate() *types.TransferError {
 	auth, err := c.ses.Authent(c.pip.TransCtx.RemoteAccount.Login,
 		[]byte(c.pip.TransCtx.RemoteAccount.Password), conf)
 	if err != nil {
+		c.ses = nil
 		c.pip.Logger.Error("Client authentication failed: %s", err)
 
 		return types.NewTransferError(types.TeBadAuthentication, "client authentication failed")
@@ -139,6 +140,7 @@ func (c *transferClient) request() *types.TransferError {
 
 	resp, err := c.ses.Request(req)
 	if err != nil {
+		c.ses = nil
 		c.pip.Logger.Error("Transfer request failed: %s", err)
 
 		return internal.FromR66Error(err, c.pip)

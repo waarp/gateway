@@ -160,6 +160,7 @@ func TestLogSha1(t *testing.T) {
 
 				Convey("Then it should have logged the deprecation of SHA1", func() {
 					done()
+
 					bytes, err := io.ReadAll(reader)
 					So(err, ShouldBeNil)
 

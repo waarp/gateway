@@ -1,14 +1,25 @@
 package r66
 
 import (
+	"context"
 	"testing"
+	"time"
 
 	. "github.com/smartystreets/goconvey/convey"
 
 	"code.waarp.fr/apps/gateway/gateway/pkg/model/types"
+	"code.waarp.fr/apps/gateway/gateway/pkg/pipeline"
 	"code.waarp.fr/apps/gateway/gateway/pkg/pipeline/pipelinetest"
 	"code.waarp.fr/apps/gateway/gateway/pkg/r66/internal"
 )
+
+func resetClient(client pipeline.Client) {
+	ctx, cancel := context.WithTimeout(context.Background(), time.Second)
+	defer cancel()
+
+	So(client.Stop(ctx), ShouldBeNil)
+	So(client.Start(), ShouldBeNil)
+}
 
 func TestSelfPushOK(t *testing.T) {
 	Convey("Given a new r66 push transfer", t, func(c C) {
@@ -80,6 +91,7 @@ func TestSelfPushClientPreTasksFail(t *testing.T) {
 					"Error on remote partner: pre-tasks failed",
 					types.StepPreTasks)
 
+				resetClient(ctx.ClientService)
 				ctx.TestRetry(c,
 					ctx.ServerShouldHavePostTasked,
 					ctx.ClientShouldHavePostTasked,
@@ -112,6 +124,7 @@ func TestSelfPushServerPreTasksFail(t *testing.T) {
 					"Pre-tasks failed: Task TASKERR @ PUSH PRE[1]: task failed",
 					types.StepPreTasks)
 
+				resetClient(ctx.ClientService)
 				ctx.TestRetry(c,
 					ctx.ClientShouldHavePreTasked,
 					ctx.ServerShouldHavePostTasked,
@@ -146,6 +159,7 @@ func TestSelfPullClientPreTasksFail(t *testing.T) {
 					"Error on remote partner: pre-tasks failed",
 					types.StepData)
 
+				resetClient(ctx.ClientService)
 				ctx.TestRetry(c,
 					ctx.ClientShouldHavePostTasked,
 					ctx.ServerShouldHavePostTasked,
@@ -178,6 +192,7 @@ func TestSelfPullServerPreTasksFail(t *testing.T) {
 					"Pre-tasks failed: Task TASKERR @ PULL PRE[1]: task failed",
 					types.StepPreTasks)
 
+				resetClient(ctx.ClientService)
 				ctx.TestRetry(c,
 					ctx.ClientShouldHavePreTasked,
 					ctx.ClientShouldHavePostTasked,
@@ -212,6 +227,7 @@ func TestSelfPushClientDataFail(t *testing.T) {
 					"Error on remote partner: "+pipelinetest.ErrTestError.Details,
 					types.StepData)
 
+				resetClient(ctx.ClientService)
 				ctx.TestRetry(c)
 			})
 		})
@@ -242,6 +258,7 @@ func TestSelfPushServerDataFail(t *testing.T) {
 					"test error: "+pipelinetest.ErrTestError.Details,
 					types.StepData)
 
+				resetClient(ctx.ClientService)
 				ctx.TestRetry(c)
 			})
 		})
@@ -272,6 +289,7 @@ func TestSelfPullClientDataFail(t *testing.T) {
 					"Error on remote partner: "+pipelinetest.ErrTestError.Details,
 					types.StepData)
 
+				resetClient(ctx.ClientService)
 				ctx.TestRetry(c)
 			})
 		})
@@ -302,6 +320,7 @@ func TestSelfPullServerDataFail(t *testing.T) {
 					"test error: "+pipelinetest.ErrTestError.Details,
 					types.StepData)
 
+				resetClient(ctx.ClientService)
 				ctx.TestRetry(c)
 			})
 		})
@@ -334,6 +353,7 @@ func TestSelfPushClientPostTasksFail(t *testing.T) {
 					"Error on remote partner: post-tasks failed",
 					types.StepPostTasks)
 
+				resetClient(ctx.ClientService)
 				ctx.TestRetry(c)
 			})
 		})
@@ -365,6 +385,7 @@ func TestSelfPushServerPostTasksFail(t *testing.T) {
 					"Post-tasks failed: Task TASKERR @ PUSH POST[1]: task failed",
 					types.StepPostTasks)
 
+				resetClient(ctx.ClientService)
 				ctx.TestRetry(c,
 					ctx.ClientShouldHavePostTasked,
 				)
@@ -398,6 +419,7 @@ func TestSelfPullClientPostTasksFail(t *testing.T) {
 					"Error on remote partner: post-tasks failed",
 					types.StepData)
 
+				resetClient(ctx.ClientService)
 				ctx.TestRetry(c,
 					ctx.ServerShouldHavePostTasked,
 				)
@@ -432,6 +454,7 @@ func TestSelfPullServerPostTasksFail(t *testing.T) {
 					"Post-tasks failed: Task TASKERR @ PULL POST[1]: task failed",
 					types.StepPostTasks)
 
+				resetClient(ctx.ClientService)
 				ctx.TestRetry(c)
 			})
 		})
