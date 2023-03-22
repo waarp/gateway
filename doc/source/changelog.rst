@@ -3,6 +3,10 @@
 Historique des versions
 =======================
 
+* :bug:`370` Ajout de la migration manquante du :ref:`ticket 287<287>` qui faisait
+  que tous les serveurs et partenaires R66-TLS créés avant la migration en 0.7.0
+  utilisaient R66 en clair au lieu d'utiliser TLS.
+
 * :release:`0.7.4 <2023-03-17>`
 * :bug:`697` Les mots clés ``#INPATH#`` et ``#OUTPATH#`` ne concernent que les chemins locaux.
   Les chemins distant peuvent être récupéré à partir du mot clef ``#ORIGINALFULLPATH#``.
@@ -111,7 +115,7 @@ Historique des versions
   automatiquement au lancement de la *gateway*. À noter que désactiver un serveur
   n'arrête pas immédiatement celui-ci. Le serveur restera actif jusqu'à l'arrêt
   de la *gateway* ou du serveur en question.
-* :feature:`287` Séparation de R66 et R66-TLS en 2 protocoles distincts. La
+* :feature:`287` _`287` Séparation de R66 et R66-TLS en 2 protocoles distincts. La
   distinction entre les deux se fait désormais via le nom du protocole au lieu
   de la protoConfig. L'option ``isTLS`` de la protoConfig R66 existe toujours
   mais est dorénavant dépréciée.
