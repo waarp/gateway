@@ -32,9 +32,9 @@ type UptRule struct {
 	LocalDir       *string `json:"localDir,omitempty"`
 	RemoteDir      *string `json:"remoteDir,omitempty"`
 	TmpLocalRcvDir *string `json:"tmpLocalRcvDir,omitempty"`
-	PreTasks       []*Task `json:"preTasks,omitempty"`
-	PostTasks      []*Task `json:"postTasks,omitempty"`
-	ErrorTasks     []*Task `json:"errorTasks,omitempty"`
+	PreTasks       []*Task `json:"preTasks"`
+	PostTasks      []*Task `json:"postTasks"`
+	ErrorTasks     []*Task `json:"errorTasks"`
 
 	// Deprecated fields
 	InPath   *string `json:"inPath,omitempty"`   // Deprecated: replaced by LocalDir & RemoteDir
