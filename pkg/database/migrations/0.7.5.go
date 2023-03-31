@@ -56,15 +56,15 @@ func (v ver0_7_5SplitR66TLS) Up(db Actions) error {
 		}
 
 		for _, agent := range r66Agents {
-			if hasTLS, ok1 := agent.conf["isTLS"]; ok1 {
-				if isTLS, ok2 := hasTLS.(bool); ok2 && isTLS {
+			if anyIsTLS, hasTLS := agent.conf["isTLS"]; hasTLS {
+				if isTLS, isBool := anyIsTLS.(bool); isBool && isTLS {
 					agent.proto = "r66-tls"
-				}
-			}
 
-			if err := db.Exec(`UPDATE `+tbl+` SET protocol=? WHERE id=?`,
-				agent.proto, agent.id); err != nil {
-				return fmt.Errorf("failed to update the %s's protocol information: %w", tbl, err)
+					if err := db.Exec(`UPDATE `+tbl+` SET protocol=? WHERE id=?`,
+						agent.proto, agent.id); err != nil {
+						return fmt.Errorf("failed to update the %s's protocol information: %w", tbl, err)
+					}
+				}
 			}
 		}
 	}
@@ -73,6 +73,29 @@ func (v ver0_7_5SplitR66TLS) Up(db Actions) error {
 }
 
 func (v ver0_7_5SplitR66TLS) Down(db Actions) error {
+	for _, tbl := range []string{"local_agents", "remote_agents"} {
+		r66Agents, getErr := v.getR66AgentsList(db, tbl)
+		if getErr != nil {
+			return getErr
+		}
+
+		for _, agent := range r66Agents {
+			if _, hasTLS := agent.conf["isTLS"]; !hasTLS {
+				agent.conf["isTLS"] = agent.proto == "r66-tls"
+
+				conf, err := json.Marshal(agent.conf)
+				if err != nil {
+					return fmt.Errorf("failed to marshal the r66 proto config: %w", err)
+				}
+
+				if err := db.Exec(`UPDATE `+tbl+` SET proto_config=? WHERE id=?`,
+					string(conf), agent.id); err != nil {
+					return fmt.Errorf("failed to update the %s's r66 proto config: %w", tbl, err)
+				}
+			}
+		}
+	}
+
 	if err := db.Exec(`UPDATE local_agents SET protocol='r66' WHERE protocol='r66-tls'`); err != nil {
 		return fmt.Errorf("failed to update the local agent's protocol information: %w", err)
 	}

@@ -1,6 +1,8 @@
 package migrations
 
-import . "github.com/smartystreets/goconvey/convey"
+import (
+	. "github.com/smartystreets/goconvey/convey"
+)
 
 func testVer0_7_5SplitR66TLS(eng *testEngine) {
 	Convey("Given the 0.7.5 R66 agents split", func() {
@@ -27,59 +29,47 @@ func testVer0_7_5SplitR66TLS(eng *testEngine) {
 			Convey("Then it should have split the R66 agents", func() {
 				rows, err := eng.DB.Query(`
 					SELECT id,protocol,proto_config FROM local_agents UNION ALL 
-					SELECT id,protocol,proto_config FROM remote_agents`)
+					SELECT id,protocol,proto_config FROM remote_agents ORDER BY id`)
 				So(err, ShouldBeNil)
 
 				defer rows.Close()
 
-				for rows.Next() {
-					var (
-						id          int64
-						proto, conf string
-					)
+				nextRowShouldBe(rows, 1, "r66-tls", `{"isTLS":true}`)
+				nextRowShouldBe(rows, 2, "r66", `{"isTLS":false}`)
+				nextRowShouldBe(rows, 3, "r66-tls", `{"isTLS":true}`)
+				nextRowShouldBe(rows, 4, "r66", `{"isTLS":false}`)
 
-					So(rows.Scan(&id, &proto, &conf), ShouldBeNil)
-
-					if id == 1 || id == 3 {
-						So(conf, ShouldEqual, `{"isTLS":true}`)
-						So(proto, ShouldEqual, "r66-tls")
-					} else {
-						So(conf, ShouldEqual, `{"isTLS":false}`)
-						So(proto, ShouldEqual, "r66")
-					}
-				}
-
+				So(rows.Next(), ShouldBeFalse)
 				So(rows.Err(), ShouldBeNil)
 			})
 
 			Convey("When reverting the migration", func() {
+				// Adding new R66-TLS agents without "isTLS" to test if these
+				// cases are handled properly when migrating down.
+				_, err := eng.DB.Exec(
+					`INSERT INTO remote_agents(id,name,protocol,address,proto_config) 
+						VALUES (5,'new_waarp_r66-tls','r66-tls','localhost:5','{}'),
+						       (6,'new_waarp_r66','r66','localhost:6','{}')`)
+				So(err, ShouldBeNil)
+
 				So(eng.Downgrade(mig), ShouldBeNil)
 
 				Convey("Then it should have restored the R66 agents", func() {
 					rows, err := eng.DB.Query(`
 					SELECT id,protocol,proto_config FROM local_agents UNION ALL 
-					SELECT id,protocol,proto_config FROM remote_agents`)
+					SELECT id,protocol,proto_config FROM remote_agents ORDER BY id`)
 					So(err, ShouldBeNil)
 
 					defer rows.Close()
 
-					for rows.Next() {
-						var (
-							id          int64
-							proto, conf string
-						)
+					nextRowShouldBe(rows, 1, "r66", `{"isTLS":true}`)
+					nextRowShouldBe(rows, 2, "r66", `{"isTLS":false}`)
+					nextRowShouldBe(rows, 3, "r66", `{"isTLS":true}`)
+					nextRowShouldBe(rows, 4, "r66", `{"isTLS":false}`)
+					nextRowShouldBe(rows, 5, "r66", `{"isTLS":true}`)
+					nextRowShouldBe(rows, 6, "r66", `{"isTLS":false}`)
 
-						So(rows.Scan(&id, &proto, &conf), ShouldBeNil)
-						So(id, ShouldBeBetweenOrEqual, 1, 4)
-						So(proto, ShouldEqual, "r66")
-
-						if id == 1 || id == 3 {
-							So(conf, ShouldEqual, `{"isTLS":true}`)
-						} else {
-							So(conf, ShouldEqual, `{"isTLS":false}`)
-						}
-					}
-
+					So(rows.Next(), ShouldBeFalse)
 					So(rows.Err(), ShouldBeNil)
 				})
 			})
