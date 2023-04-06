@@ -33,7 +33,8 @@ func (*copyTask) Validate(args map[string]string) error {
 
 // Run copies the current file to the destination.
 func (*copyTask) Run(_ context.Context, args map[string]string, _ *database.DB,
-	transCtx *model.TransferContext) (string, error) {
+	transCtx *model.TransferContext,
+) (string, error) {
 	newDir := args["path"]
 
 	source := transCtx.Transfer.LocalPath
@@ -49,6 +50,11 @@ func (*copyTask) Run(_ context.Context, args map[string]string, _ *database.DB,
 func doCopy(dest, source string) error {
 	trueSource := utils.ToOSPath(source)
 	trueDest := utils.ToOSPath(dest)
+
+	if trueSource == trueDest {
+		// If source == destination, this is a self-copy, so we do nothing.
+		return nil
+	}
 
 	err := os.MkdirAll(filepath.Dir(trueDest), 0o700)
 	if err != nil {
