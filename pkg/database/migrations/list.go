@@ -146,8 +146,12 @@ var Migrations = []Change{
 		Description: "Add a unique constraint to the local agent 'address' column",
 		Script:      ver0_7_0AddLocalAgentsAddressUnique{},
 	},
-	{ // 31
+	{ // #31
 		Description: "Add a normalized transfer view which combines transfers & history",
 		Script:      ver0_7_0AddNormalizedTransfersView{},
+	},
+	{ // #32
+		Description: "Split the R66 protocol into R66 (plain) & R66-TLS",
+		Script:      ver0_7_5SplitR66TLS{},
 	},
 }
