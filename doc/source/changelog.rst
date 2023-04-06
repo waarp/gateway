@@ -3,12 +3,17 @@
 Historique des versions
 =======================
 
+* :bug:`371` La commande ``rule update`` du client terminal vide correctement
+  les chaînes de traitement (pre, post et err) lorsqu'une valeur vide ("") leur
+  est attribuée. Précédemment, il n'était pas possible de vider une chaîne de
+  traitement existante, attribuer une valeur vide à une chaîne de traitement
+  laissait celle-ci inchangée.
 * :bug:`370` Ajout de la migration manquante du :ref:`ticket 287<287>` qui faisait
   que tous les serveurs et partenaires R66-TLS créés avant la migration en 0.7.0
   utilisaient R66 en clair au lieu d'utiliser TLS.
 
 * :release:`0.7.4 <2023-03-17>`
-* :bug:`697` Les mots clés ``#INPATH#`` et ``#OUTPATH#`` ne concernent que les chemins locaux.
+* :bug:`367` Les mots clés ``#INPATH#`` et ``#OUTPATH#`` ne concernent que les chemins locaux.
   Les chemins distant peuvent être récupéré à partir du mot clef ``#ORIGINALFULLPATH#``.
 * :bug:`365` Correction d'une erreur de la migration 0.7.0 causée par un bug de
   la commande de purge d'historique. Avant la version 0.7.0, la commande de purge

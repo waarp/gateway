@@ -15,6 +15,7 @@ import (
 	"code.waarp.fr/apps/gateway/gateway/pkg/admin/rest/api"
 	"code.waarp.fr/apps/gateway/gateway/pkg/database"
 	"code.waarp.fr/apps/gateway/gateway/pkg/model"
+	"code.waarp.fr/apps/gateway/gateway/pkg/tasks/taskstest"
 	"code.waarp.fr/apps/gateway/gateway/pkg/tk/utils"
 )
 
@@ -370,6 +371,107 @@ func TestAddRule(t *testing.T) {
 						So(rules, ShouldHaveLength, 1)
 
 						So(rules[0], ShouldResemble, existing)
+					})
+				})
+			})
+		})
+	})
+}
+
+func TestUpdateRule(t *testing.T) {
+	Convey("Testing the rule 'update' command", t, func() {
+		out = testFile()
+		command := &RuleUpdate{}
+
+		Convey("Given a gateway with 1 rule", func(c C) {
+			db := database.TestDatabase(c)
+			gw := httptest.NewServer(testHandler(db))
+			var err error
+			addr, err = url.Parse("http://admin:admin_password@" + gw.Listener.Addr().String())
+			So(err, ShouldBeNil)
+
+			rule := &model.Rule{
+				Name:    "existing rule",
+				Comment: "comment about existing rule",
+				IsSend:  false,
+				Path:    "/existing",
+			}
+			So(db.Insert(rule).Run(), ShouldBeNil)
+
+			pre1 := &model.Task{RuleID: rule.ID, Chain: model.ChainPre, Rank: 0, Type: taskstest.TaskOK}
+			pre2 := &model.Task{RuleID: rule.ID, Chain: model.ChainPre, Rank: 1, Type: taskstest.TaskOK}
+			post1 := &model.Task{RuleID: rule.ID, Chain: model.ChainPost, Rank: 0, Type: taskstest.TaskOK}
+			post2 := &model.Task{RuleID: rule.ID, Chain: model.ChainPost, Rank: 1, Type: taskstest.TaskOK}
+			err1 := &model.Task{RuleID: rule.ID, Chain: model.ChainError, Rank: 0, Type: taskstest.TaskOK}
+			err2 := &model.Task{RuleID: rule.ID, Chain: model.ChainError, Rank: 1, Type: taskstest.TaskOK}
+
+			So(db.Insert(pre1).Run(), ShouldBeNil)
+			So(db.Insert(pre2).Run(), ShouldBeNil)
+			So(db.Insert(post1).Run(), ShouldBeNil)
+			So(db.Insert(post2).Run(), ShouldBeNil)
+			So(db.Insert(err1).Run(), ShouldBeNil)
+			So(db.Insert(err2).Run(), ShouldBeNil)
+
+			Convey("Given valid parameters", func() {
+				args := []string{
+					rule.Name, rule.Direction(),
+					"--name", "new_rule", "--comment", "new_rule comment",
+					"--path", "new/rule/path",
+					"--local-dir", "new/rule/local",
+					"--remote-dir", "new/rule/remote",
+					"--tmp-dir", "new_rule/tmp",
+					"--post", ``,
+					"--err", `{"type":"DELETE", "args":{}}`,
+				}
+
+				Convey("When executing the command", func() {
+					params, err := flags.ParseArgs(command, args)
+					So(err, ShouldBeNil)
+					So(command.Execute(params), ShouldBeNil)
+
+					Convey("Then is should display a message saying the rule was updated", func() {
+						So(getOutput(), ShouldEqual, "The rule "+*command.Name+
+							" was successfully updated.\n")
+					})
+
+					Convey("Then the rule should have been updated", func() {
+						var rules model.Rules
+						So(db.Select(&rules).Run(), ShouldBeNil)
+						So(rules, ShouldHaveLength, 1)
+
+						expected := &model.Rule{
+							ID:             rule.ID,
+							Name:           *command.Name,
+							Comment:        *command.Comment,
+							IsSend:         rule.IsSend,
+							Path:           *command.Path,
+							LocalDir:       utils.ToOSPath(*command.LocalDir),
+							RemoteDir:      *command.RemoteDir,
+							TmpLocalRcvDir: utils.ToOSPath(*command.TmpReceiveDir),
+						}
+						So(rules[0], ShouldResemble, expected)
+
+						Convey("Then the rule's tasks should have been updated", func() {
+							var preTasks, postTasks, errTasks model.Tasks
+
+							So(db.Select(&preTasks).Where("rule_id=? AND chain=?",
+								rule.ID, model.ChainPre).OrderBy("rank", true).Run(),
+								ShouldBeNil)
+							So(preTasks, ShouldResemble, model.Tasks{pre1, pre2})
+
+							So(db.Select(&postTasks).Where("rule_id=? AND chain=?",
+								rule.ID, model.ChainPost).OrderBy("rank", true).Run(),
+								ShouldBeNil)
+							So(postTasks, ShouldBeEmpty)
+
+							So(db.Select(&errTasks).Where("rule_id=? AND chain=?",
+								rule.ID, model.ChainError).OrderBy("rank", true).Run(),
+								ShouldBeNil)
+							So(errTasks, ShouldResemble, model.Tasks{{
+								RuleID: rule.ID, Chain: model.ChainError,
+								Rank: 0, Type: "DELETE", Args: json.RawMessage(`{}`),
+							}})
+						})
 					})
 				})
 			})
