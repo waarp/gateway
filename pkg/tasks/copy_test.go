@@ -2,7 +2,6 @@ package tasks
 
 import (
 	"context"
-	"io/ioutil"
 	"os"
 	"path/filepath"
 	"testing"
@@ -58,7 +57,7 @@ func TestCopyTaskRun(t *testing.T) {
 			LocalPath: utils.ToOSPath(srcFile),
 		}}
 
-		So(ioutil.WriteFile(srcFile, []byte("Hello World"), 0o700), ShouldBeNil)
+		So(os.WriteFile(srcFile, []byte("Hello World"), 0o700), ShouldBeNil)
 		args := map[string]string{}
 
 		Convey("Given that the file does NOT exist", func() {
@@ -73,6 +72,24 @@ func TestCopyTaskRun(t *testing.T) {
 
 				Convey("Then error should say `no such file`", func() {
 					So(err, ShouldBeError, &fileNotFoundError{"open source file", srcFile})
+				})
+			})
+		})
+
+		Convey("Given that the file is copied on itself", func() {
+			args["path"] = root
+
+			Convey("When calling the run method", func() {
+				_, err := task.Run(context.Background(), args, nil, transCtx)
+
+				Convey("Then it should NOT return an error", func() {
+					So(err, ShouldBeNil)
+
+					Convey("Then the file should NOT be empty", func() {
+						info, err := os.Stat(srcFile)
+						So(err, ShouldBeNil)
+						So(info.Size(), ShouldNotEqual, 0)
+					})
 				})
 			})
 		})
@@ -96,7 +113,7 @@ func TestCopyTaskRun(t *testing.T) {
 			})
 
 			Convey("Given the target CANNOT be created", func() {
-				So(ioutil.WriteFile(filepath.Join(root, "subdir"),
+				So(os.WriteFile(filepath.Join(root, "subdir"),
 					[]byte("hello"), 0o600), ShouldBeNil)
 
 				Convey("When the task is run", func() {

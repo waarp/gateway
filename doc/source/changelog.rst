@@ -3,6 +3,10 @@
 Historique des versions
 =======================
 
+* :bug:`372` Correction d'un bug des tâches ``COPY`` et ``COPYRENAME`` qui
+  causait la suppression du contenu du fichier source lorsque celui-ci était
+  copié sur lui-même. Dorénavant, copier un fichier sur lui-même n'a plus aucun
+  effet.
 * :bug:`371` La commande ``rule update`` du client terminal vide correctement
   les chaînes de traitement (pre, post et err) lorsqu'une valeur vide ("") leur
   est attribuée. Précédemment, il n'était pas possible de vider une chaîne de
