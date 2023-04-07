@@ -3,6 +3,7 @@
 Historique des versions
 =======================
 
+* :release:`0.7.5 <2023-04-07>`
 * :bug:`372` Correction d'un bug des tâches ``COPY`` et ``COPYRENAME`` qui
   causait la suppression du contenu du fichier source lorsque celui-ci était
   copié sur lui-même. Dorénavant, copier un fichier sur lui-même n'a plus aucun
