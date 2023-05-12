@@ -385,7 +385,7 @@ func (r *RuleAllowAll) Execute([]string) error {
 		return err
 	}
 
-	defer resp.Body.Close() //nolint:errcheck // nothing to handle the error
+	defer resp.Body.Close() //nolint:errcheck,gosec // error is irrelevant
 
 	w := getColorable()
 

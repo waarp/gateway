@@ -5,8 +5,6 @@ import (
 
 	"code.waarp.fr/lib/log"
 	"xorm.io/xorm"
-
-	"code.waarp.fr/apps/gateway/gateway/pkg/conf"
 )
 
 // Standalone is a struct used to execute standalone commands on the database.
@@ -38,21 +36,11 @@ func (s *Standalone) Transaction(f TransactionFunc) Error {
 		return NewInternalError(err)
 	}
 
-	if conf.GlobalConfig.Database.Type == SQLite {
-		if _, err := ses.session.Exec("ROLLBACK; BEGIN IMMEDIATE"); err != nil {
-			s.logger.Error("Failed to start immediate transaction: %s", err)
-
-			return &InternalError{msg: "failed to start transaction", cause: err}
-		}
-	}
-
 	defer func() {
 		if err := ses.session.Close(); err != nil {
 			s.logger.Warning("an error occurred while closing the session: %v", err)
 		}
 	}()
-
-	s.logger.Trace("[SQL] Beginning transaction")
 
 	if err := f(ses); err != nil {
 		s.logger.Trace("Transaction failed, changes have been rolled back")
@@ -69,8 +57,6 @@ func (s *Standalone) Transaction(f TransactionFunc) Error {
 
 		return NewInternalError(err)
 	}
-
-	s.logger.Trace("[SQL] Transaction succeeded, changes have been committed")
 
 	return nil
 }

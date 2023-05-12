@@ -8,6 +8,7 @@ import (
 	"fmt"
 	"net/url"
 	"os"
+	"path/filepath"
 	"sync"
 
 	"code.waarp.fr/lib/log"
@@ -34,14 +35,16 @@ func memDBInfo() *dbInfo {
 
 	values.Set("mode", "memory")
 	values.Set("cache", "shared")
-	values.Add("_pragma", "busy_timeout(5000)")
+	values.Set("_txlock", "immediate")
+	values.Add("_pragma", "busy_timeout(10000)")
 	values.Add("_pragma", "foreign_keys(ON)")
 	values.Add("_pragma", "journal_mode(MEMORY)")
 	values.Add("_pragma", "synchronous(OFF)")
 
 	return &dbInfo{
-		driver: migrations.SqliteDriver,
-		dsn:    fmt.Sprintf("file:%s?%s", config.Address, values.Encode()),
+		driver:    migrations.SqliteDriver,
+		dsn:       fmt.Sprintf("file:%s?%s", config.Address, values.Encode()),
+		connLimit: 1,
 	}
 }
 
@@ -92,7 +95,7 @@ func initTestDBConf() {
 	case SQLite:
 		config.Type = SQLite
 		config.Address = tempFilename()
-	case "":
+	case TestMemoryDB, "":
 		supportedRBMS[SQLite] = memDBInfo
 		config.Type = SQLite
 		config.Address = uuid.New().String()
@@ -138,6 +141,7 @@ func TestDatabase(c convey.C) *DB {
 
 	c.So(db.Start(), convey.ShouldBeNil)
 	c.Reset(func() { resetDB(db) })
+	db.logger.Notice("%s database started", conf.GlobalConfig.Database.Type)
 
 	return db
 }
@@ -148,7 +152,12 @@ func initTestDatabase(c convey.C) *DB {
 	initTestDBConf()
 	testGCM()
 
-	db := &DB{logger: testhelpers.TestLoggerWithLevel(c, "test_database", log.LevelWarning)}
+	dbname := conf.GlobalConfig.Database.Name
+	if dbname == "" {
+		dbname = filepath.Base(conf.GlobalConfig.Database.Address)
+	}
+
+	db := &DB{logger: testhelpers.TestLoggerWithLevel(c, dbname, log.LevelNotice)}
 
 	return db
 }

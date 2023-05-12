@@ -240,7 +240,7 @@ func (h *httpHandler) handle(isSend bool) {
 		return
 	}
 
-	h.logger.Debug("%s of file %s requested by %s using rule %s, transfer "+
+	h.logger.Info("%s of file %s requested by %s using rule %s, transfer "+
 		"was given ID n°%d", op, path.Base(h.req.URL.Path), h.account.Login,
 		h.rule.Name, trans.ID)
 
@@ -249,8 +249,6 @@ func (h *httpHandler) handle(isSend bool) {
 	} else {
 		runUpload(h.req, h.resp, h.running, pip)
 	}
-
-	h.logger.Debug("File transfer done")
 }
 
 func (h *httpHandler) sendError(status int, code types.TransferErrorCode, msg string) {

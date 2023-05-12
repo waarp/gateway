@@ -96,7 +96,10 @@ func (db *DB) createConnectionInfo() (*dbInfo, error) {
 	return makeConnInfo(), nil
 }
 
-type dbInfo struct{ driver, dsn string }
+type dbInfo struct {
+	driver, dsn string
+	connLimit   int
+}
 
 //nolint:gochecknoglobals // global var is used by design
 var supportedRBMS = map[string]func() *dbInfo{}
@@ -123,6 +126,10 @@ func (db *DB) initEngine() (*xorm.Engine, error) {
 		db.logger.Error("Failed to access database: %s", err)
 
 		return nil, fmt.Errorf("cannot access database: %w", err)
+	}
+
+	if connInfo.connLimit > 0 {
+		engine.SetMaxOpenConns(connInfo.connLimit)
 	}
 
 	return engine, nil

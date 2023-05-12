@@ -42,13 +42,8 @@ func dbHistToFileTrans(hist *model.HistoryEntry, db database.ReadAccess) (*file.
 	}, nil
 }
 
-func encodeHistEntry(db database.ReadAccess, rows *database.Iterator, w io.Writer) error {
-	var hist model.HistoryEntry
-	if err := rows.Scan(&hist); err != nil {
-		return fmt.Errorf("failed to parse history entry: %w", err)
-	}
-
-	trans, err := dbHistToFileTrans(&hist, db)
+func encodeHistEntry(db database.ReadAccess, hist *model.HistoryEntry, w io.Writer) error {
+	trans, err := dbHistToFileTrans(hist, db)
 	if err != nil {
 		return err
 	}
@@ -71,40 +66,39 @@ func encodeHistEntry(db database.ReadAccess, rows *database.Iterator, w io.Write
 }
 
 func ExportHistory(db database.Access, w io.Writer, olderThan time.Time) error {
-	query := db.Iterate(&model.HistoryEntry{})
+	const sliceSize = 20
 
-	if !olderThan.IsZero() {
-		query.Where("start <= ?", olderThan.UTC().Truncate(time.Microsecond).
-			Format(time.RFC3339Nano))
-	}
+	for i := 0; ; i += sliceSize {
+		var transfers model.HistoryEntries
+		query := db.Select(&transfers).OrderBy("id", true).Limit(sliceSize, i)
 
-	rows, err := query.Run()
-	if err != nil {
-		return err
-	}
+		if !olderThan.IsZero() {
+			query.Where("start <= ?", olderThan.UTC().Truncate(time.Microsecond).
+				Format(time.RFC3339Nano))
+		}
 
-	defer rows.Close()
-	defer fmt.Fprintln(w, "\n]")
-
-	fmt.Fprintln(w, "[")
-
-	if !rows.Next() {
-		return nil
-	}
-
-	fmt.Fprint(w, "  ")
-
-	if err := encodeHistEntry(db, rows, w); err != nil {
-		return err
-	}
-
-	for rows.Next() {
-		fmt.Fprint(w, ",\n  ")
-
-		if err := encodeHistEntry(db, rows, w); err != nil {
+		if err := query.Run(); err != nil {
 			return err
 		}
-	}
 
-	return nil
+		if len(transfers) == 0 {
+			return nil
+		}
+
+		fmt.Fprintln(w, "[")
+
+		defer fmt.Fprintln(w, "\n]")
+
+		for i, hist := range transfers {
+			if i == 0 {
+				fmt.Fprint(w, "  ")
+			} else {
+				fmt.Fprint(w, ",\n  ")
+			}
+
+			if err := encodeHistEntry(db, hist, w); err != nil {
+				return err
+			}
+		}
+	}
 }

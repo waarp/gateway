@@ -9,11 +9,18 @@ import (
 	"time"
 
 	. "github.com/smartystreets/goconvey/convey"
+	"xorm.io/xorm/schemas"
 
 	"code.waarp.fr/apps/gateway/gateway/pkg/conf"
 )
 
 func testSelectForUpdate(db *DB) {
+	if db.engine.Dialect().URI().DBType == schemas.SQLITE {
+		// SQLite does not support SELECT FOR UPDATE, it behaves just like a
+		// regular SELECT. So we skip the test.
+		return
+	}
+
 	bean1 := testValid{ID: 1, String: "str1"}
 	bean2 := testValid{ID: 2, String: "str2"}
 	bean3 := testValid{ID: 3, String: "str2"}
@@ -23,20 +30,17 @@ func testSelectForUpdate(db *DB) {
 	Reset(func() { So(db2.engine.Close(), ShouldBeNil) })
 
 	transRes := make(chan Error, 1)
-	trans2 := func(ready chan<- bool) {
-		close(ready)
-		transRes <- db2.Transaction(func(ses *Session) Error {
-			var beans validList
-			if err := ses.SelectForUpdate(&beans).Where("string=? AND id<>0", "str2").Run(); err != nil {
-				return err
-			}
+	trans2 := func(ses *Session) Error {
+		var beans validList
+		if err := ses.Select(&beans).Where("string='str2'").Run(); err != nil {
+			return err
+		}
 
-			if len(beans) != 0 {
-				return NewValidationError("%+v should be empty", beans)
-			}
+		if len(beans) != 0 {
+			return NewValidationError("%+v should be empty", beans)
+		}
 
-			return nil
-		})
+		return nil
 	}
 
 	Convey("When executing a 'SELECT FOR UPDATE' query", func() {
@@ -45,15 +49,14 @@ func testSelectForUpdate(db *DB) {
 
 		tErr1 := db.Transaction(func(ses *Session) Error {
 			var beans validList
-			err := ses.SelectForUpdate(&beans).Where("string=?", "str2").Run()
+			err := ses.SelectForUpdate(&beans).Where("string='str2'").Run()
 			So(err, ShouldBeNil)
 
-			ready := make(chan bool)
-			go trans2(ready)
-			<-ready
+			go func() { transRes <- db2.Transaction(trans2) }()
+			time.Sleep(time.Second)
 
-			err2 := ses.Exec("UPDATE test_valid SET string=? WHERE string=?",
-				"new_str2", "str2")
+			err2 := ses.Exec(`UPDATE test_valid SET string='new_str2' 
+				WHERE string='str2'`)
 			So(err2, ShouldBeNil)
 
 			return nil
