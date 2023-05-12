@@ -4,7 +4,6 @@ import (
 	"context"
 	"database/sql"
 	"fmt"
-	"path/filepath"
 
 	"code.waarp.fr/lib/log"
 
@@ -52,7 +51,7 @@ func getTransferInfo(db *database.DB, args map[string]string) (file string,
 	if !fileOK || fileName == "" {
 		infoErr = fmt.Errorf("missing transfer file: %w", errBadTaskArguments)
 
-		return
+		return "", 0, 0, false, infoErr
 	}
 
 	agentName, agentOK := args["to"]
@@ -61,47 +60,47 @@ func getTransferInfo(db *database.DB, args map[string]string) (file string,
 		if !agentOK || agentName == "" {
 			infoErr = fmt.Errorf("a missing transfer remote partner: %w", errBadTaskArguments)
 
-			return
+			return "", 0, 0, false, infoErr
 		}
 	} else if from, ok := args["from"]; ok && from != "" {
 		infoErr = fmt.Errorf("cannot have both 'to' and 'from': %w", errBadTaskArguments)
 
-		return
+		return "", 0, 0, false, infoErr
 	}
 
 	ruleName, ruleOK := args["rule"]
 	if !ruleOK || ruleName == "" {
 		infoErr = fmt.Errorf("missing transfer rule: %w", errBadTaskArguments)
 
-		return
+		return "", 0, 0, false, infoErr
 	}
 
 	rule := &model.Rule{}
 	if err := db.Get(rule, "name=? AND is_send=?", ruleName, args["to"] != "").Run(); err != nil {
 		infoErr = fmt.Errorf("failed to retrieve rule '%s': %w", ruleName, err)
 
-		return
+		return "", 0, 0, false, infoErr
 	}
 
 	agent := &model.RemoteAgent{}
 	if err := db.Get(agent, "name=?", agentName).Run(); err != nil {
 		infoErr = fmt.Errorf("failed to retrieve partner '%s': %w", agentName, err)
 
-		return
+		return "", 0, 0, false, infoErr
 	}
 
 	accName, accOK := args["as"]
 	if !accOK || accName == "" {
 		infoErr = fmt.Errorf("missing transfer account: %w", errBadTaskArguments)
 
-		return
+		return "", 0, 0, false, infoErr
 	}
 
 	acc := &model.RemoteAccount{}
 	if err := db.Get(acc, "remote_agent_id=? AND login=?", agent.ID, accName).Run(); err != nil {
 		infoErr = fmt.Errorf("failed to retrieve account '%s': %w", accName, err)
 
-		return
+		return "", 0, 0, false, infoErr
 	}
 
 	return fileName, rule.ID, acc.ID, rule.IsSend, nil
@@ -116,19 +115,10 @@ func (t *TransferTask) Run(_ context.Context, args map[string]string,
 		return err
 	}
 
-	localPath := filepath.Base(file)
-	remotePath := file
-
-	if isSend {
-		localPath = file
-		remotePath = filepath.Base(file)
-	}
-
 	trans := &model.Transfer{
 		RuleID:          ruleID,
 		RemoteAccountID: sql.NullInt64{Int64: accID, Valid: true},
-		LocalPath:       localPath,
-		RemotePath:      remotePath,
+		SrcFilename:     file,
 	}
 
 	if err := db.Insert(trans).Run(); err != nil {

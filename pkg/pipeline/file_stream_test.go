@@ -10,7 +10,6 @@ import (
 
 	. "github.com/smartystreets/goconvey/convey"
 
-	"code.waarp.fr/apps/gateway/gateway/pkg/conf"
 	"code.waarp.fr/apps/gateway/gateway/pkg/database"
 	"code.waarp.fr/apps/gateway/gateway/pkg/model"
 	"code.waarp.fr/apps/gateway/gateway/pkg/model/types"
@@ -23,15 +22,17 @@ func TestNewFileStream(t *testing.T) {
 
 		trans := &model.Transfer{
 			RemoteAccountID: utils.NewNullInt64(ctx.remoteAccount.ID),
-			LocalPath:       filepath.Join(ctx.root, "file"),
-			RemotePath:      "/remote/file",
 		}
 
 		Convey("Given a new send transfer", func(c C) {
 			trans.RuleID = ctx.send.ID
+			trans.SrcFilename = "file"
+
 			So(ctx.db.Insert(trans).Run(), ShouldBeNil)
 
-			So(os.WriteFile(trans.LocalPath, []byte("Hello World"), 0o700), ShouldBeNil)
+			localPath := filepath.Join(ctx.root, ctx.send.LocalDir, trans.SrcFilename)
+			So(os.WriteFile(localPath, []byte("Hello World"), 0o700), ShouldBeNil)
+
 			pip := newTestPipeline(c, ctx.db, trans)
 
 			So(pip.machine.Transition(statePreTasks), ShouldBeNil)
@@ -68,6 +69,8 @@ func TestNewFileStream(t *testing.T) {
 
 		Convey("Given a new receive transfer", func(c C) {
 			trans.RuleID = ctx.recv.ID
+			trans.SrcFilename = "file"
+
 			So(ctx.db.Insert(trans).Run(), ShouldBeNil)
 
 			pip, err := NewClientPipeline(ctx.db, trans)
@@ -100,15 +103,16 @@ func TestStreamRead(t *testing.T) {
 
 		trans := &model.Transfer{
 			RemoteAccountID: utils.NewNullInt64(ctx.remoteAccount.ID),
-			LocalPath:       filepath.Join(ctx.root, "file"),
-			RemotePath:      "/remote/file",
 			RuleID:          ctx.send.ID,
+			SrcFilename:     "file",
 		}
 		So(ctx.db.Insert(trans).Run(), ShouldBeNil)
 
 		Convey("Given a file stream for this transfer", func(c C) {
 			content := []byte("read file content")
-			So(os.WriteFile(trans.LocalPath, content, 0o600), ShouldBeNil)
+			localPath := filepath.Join(ctx.root, ctx.send.LocalDir, trans.SrcFilename)
+
+			So(os.WriteFile(localPath, content, 0o600), ShouldBeNil)
 			stream := initFilestream(ctx, trans)
 
 			Convey("When reading from the stream", func(c C) {
@@ -173,15 +177,16 @@ func TestStreamReadAt(t *testing.T) {
 
 		trans := &model.Transfer{
 			RemoteAccountID: utils.NewNullInt64(ctx.remoteAccount.ID),
-			LocalPath:       filepath.Join(ctx.root, "file"),
-			RemotePath:      "/remote/file",
 			RuleID:          ctx.send.ID,
+			SrcFilename:     "file",
 		}
 		So(ctx.db.Insert(trans).Run(), ShouldBeNil)
 
 		Convey("Given a file stream for this transfer", func(c C) {
 			content := []byte("read file content")
-			So(os.WriteFile(trans.LocalPath, content, 0o600), ShouldBeNil)
+			localPath := filepath.Join(ctx.root, ctx.send.LocalDir, trans.SrcFilename)
+
+			So(os.WriteFile(localPath, content, 0o600), ShouldBeNil)
 			stream := initFilestream(ctx, trans)
 
 			Convey("When reading from the stream with an offset", func(c C) {
@@ -247,9 +252,8 @@ func TestStreamWrite(t *testing.T) {
 
 		trans := &model.Transfer{
 			RemoteAccountID: utils.NewNullInt64(ctx.remoteAccount.ID),
-			LocalPath:       filepath.Join(ctx.root, "file"),
-			RemotePath:      "/remote/file",
 			RuleID:          ctx.recv.ID,
+			SrcFilename:     "file",
 		}
 		So(ctx.db.Insert(trans).Run(), ShouldBeNil)
 
@@ -321,9 +325,8 @@ func TestStreamWriteAt(t *testing.T) {
 
 		trans := &model.Transfer{
 			RemoteAccountID: utils.NewNullInt64(ctx.remoteAccount.ID),
-			LocalPath:       filepath.Join(ctx.root, "file"),
-			RemotePath:      "/remote/file",
 			RuleID:          ctx.recv.ID,
+			SrcFilename:     "file",
 		}
 		So(ctx.db.Insert(trans).Run(), ShouldBeNil)
 
@@ -396,9 +399,8 @@ func TestStreamClose(t *testing.T) {
 
 		trans := &model.Transfer{
 			RemoteAccountID: utils.NewNullInt64(ctx.remoteAccount.ID),
-			LocalPath:       filepath.Join(ctx.root, "file"),
-			RemotePath:      "/remote/file",
 			RuleID:          ctx.recv.ID,
+			SrcFilename:     "file",
 		}
 		So(ctx.db.Insert(trans).Run(), ShouldBeNil)
 
@@ -434,9 +436,8 @@ func TestStreamMove(t *testing.T) {
 
 		trans := &model.Transfer{
 			RemoteAccountID: utils.NewNullInt64(ctx.remoteAccount.ID),
-			LocalPath:       filepath.Join(ctx.root, ctx.recv.TmpLocalRcvDir, "file"),
-			RemotePath:      "/remote/file",
 			RuleID:          ctx.recv.ID,
+			SrcFilename:     "file",
 		}
 		So(ctx.db.Insert(trans).Run(), ShouldBeNil)
 
@@ -488,13 +489,12 @@ func TestStreamMove(t *testing.T) {
 
 		trans := &model.Transfer{
 			RemoteAccountID: utils.NewNullInt64(ctx.remoteAccount.ID),
-			LocalPath:       filepath.Join(ctx.root, conf.GlobalConfig.Paths.DefaultOutDir, "file"),
-			RemotePath:      "/remote/file",
-			RuleID:          ctx.send.ID,
+			RuleID:          ctx.recv.ID,
+			SrcFilename:     "file",
 		}
 		So(ctx.db.Insert(trans).Run(), ShouldBeNil)
 
-		path := filepath.Join(ctx.root, conf.GlobalConfig.Paths.DefaultOutDir, "file")
+		path := filepath.Join(ctx.root, ctx.recv.LocalDir, "file")
 		So(os.WriteFile(path, []byte("file content"), 0o700), ShouldBeNil)
 		Reset(func() { _ = os.Remove(path) })
 

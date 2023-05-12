@@ -140,10 +140,14 @@ func (s *sessionHandler) getTransfer(req *r66.Request, rule *model.Rule) (*model
 		RemoteTransferID: fmt.Sprint(req.ID),
 		RuleID:           rule.ID,
 		LocalAccountID:   utils.NewNullInt64(s.account.ID),
-		LocalPath:        strings.TrimPrefix(req.Filepath, "/"),
-		RemotePath:       path.Base(req.Filepath),
 		Start:            time.Now(),
 		Status:           types.StatusPlanned,
+	}
+
+	if rule.IsSend {
+		trans.SrcFilename = strings.TrimPrefix(req.Filepath, "/")
+	} else {
+		trans.DestFilename = strings.TrimPrefix(req.Filepath, "/")
 	}
 
 	trans, tErr := pipeline.GetOldTransfer(s.db, s.logger, trans)
@@ -220,23 +224,11 @@ func (s *sessionHandler) getInfoFromTransfer(remoteID int64, trans *model.Transf
 		return nil, internal.ToR66Error(err)
 	}
 
-	dir, dirErr := s.makeDir(ctx.Rule)
-	if dirErr != nil {
-		return nil, dirErr
-	}
-
-	file, fErr := filepath.Rel(dir, trans.LocalPath)
-	if fErr != nil {
-		s.logger.Error("Failed to build file path: %v", err)
-
-		return nil, &r66.Error{Code: r66.Internal, Detail: "failed to build file path"}
-	}
-
 	return &r66.TransferInfo{
 		ID:        remoteID,
 		Client:    ctx.LocalAccount.Login,
 		Server:    ctx.LocalAgent.Name,
-		File:      filepath.ToSlash(file),
+		File:      trans.SrcFilename,
 		Rule:      ctx.Rule.Name,
 		IsRecv:    ctx.Rule.IsSend,
 		IsMd5:     protoConf.CheckBlockHash,
@@ -278,7 +270,7 @@ func (s *sessionHandler) getInfoFromHistory(transID int64) (*r66.TransferInfo, e
 		ID:        transID,
 		Client:    hist.Account,
 		Server:    hist.Agent,
-		File:      filepath.Base(hist.LocalPath),
+		File:      hist.SrcFilename,
 		Rule:      hist.Rule,
 		RuleMode:  uint32(mode), // FIXME once issue #284 is implemented
 		BlockSize: 0,            // FIXME once issue #284 is implemented

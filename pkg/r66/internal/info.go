@@ -2,7 +2,7 @@ package internal
 
 import (
 	"encoding/json"
-	"path"
+	"strings"
 
 	"code.waarp.fr/lib/log"
 	"code.waarp.fr/lib/r66"
@@ -10,7 +10,6 @@ import (
 	"code.waarp.fr/apps/gateway/gateway/pkg/model"
 	"code.waarp.fr/apps/gateway/gateway/pkg/model/types"
 	"code.waarp.fr/apps/gateway/gateway/pkg/pipeline"
-	"code.waarp.fr/apps/gateway/gateway/pkg/tk/utils"
 )
 
 const (
@@ -30,10 +29,8 @@ func UpdateFileInfo(info *r66.UpdateInfo, pip *pipeline.Pipeline) *types.Transfe
 	}
 
 	if info.Filename != "" {
-		pip.TransCtx.Transfer.LocalPath = utils.ToOSPath(info.Filename)
-		pip.TransCtx.Transfer.RemotePath = path.Base(info.Filename)
-
-		if err := pip.RebuildFilepaths(); err != nil {
+		newFile := strings.TrimPrefix(info.Filename, "/")
+		if err := pip.RebuildFilepaths(newFile); err != nil {
 			return err
 		}
 	}

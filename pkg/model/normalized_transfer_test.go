@@ -34,14 +34,12 @@ func TestNormalizedTransferCreateView(t *testing.T) {
 		trans1 := &Transfer{
 			RuleID:         push.ID,
 			LocalAccountID: utils.NewNullInt64(locAcc.ID),
-			LocalPath:      "lFile1",
-			RemotePath:     "rFile1",
+			SrcFilename:    "file1",
 		}
 		trans2 := &Transfer{
 			RuleID:          pull.ID,
 			RemoteAccountID: utils.NewNullInt64(remAcc.ID),
-			LocalPath:       "lFile2",
-			RemotePath:      "rFile2",
+			SrcFilename:     "file2",
 		}
 		hist := &HistoryEntry{
 			ID:               3,
@@ -52,8 +50,8 @@ func TestNormalizedTransferCreateView(t *testing.T) {
 			Account:          "tutu",
 			Agent:            "server",
 			Protocol:         testProtocol,
-			LocalPath:        "lFile3",
-			RemotePath:       "rFile3",
+			DestFilename:     "file3",
+			LocalPath:        "/local/file3",
 			Filesize:         1234,
 			Start:            time.Date(2021, 1, 1, 1, 0, 0, 0, time.UTC),
 			Stop:             time.Date(2021, 1, 1, 2, 0, 0, 0, time.UTC),

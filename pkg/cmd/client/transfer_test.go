@@ -5,8 +5,6 @@ import (
 	"fmt"
 	"net/http/httptest"
 	"net/url"
-	"path"
-	"path/filepath"
 	"sort"
 	"testing"
 	"time"
@@ -44,11 +42,17 @@ func transferInfoString(t *api.OutTransfer) string {
 
 	builder.addLineFull("Remote ID:        ", t.RemoteID)
 	builder.addLineFull("Protocol:         ", t.Protocol)
+	builder.addLineCond("File pulled:      ", t.SrcFilename, t.IsServer && t.IsSend)
+	builder.addLineCond("File pushed:      ", t.DestFilename, t.IsServer && !t.IsSend)
+	builder.addLineCond("File to send:     ", t.SrcFilename, !t.IsServer && t.IsSend)
+	builder.addLineCond("File deposited as:", t.DestFilename, !t.IsServer && t.IsSend && t.DestFilename != "")
+	builder.addLineCond("File to retrieve: ", t.SrcFilename, !t.IsServer && !t.IsSend)
+	builder.addLineCond("File saved as:    ", t.DestFilename, !t.IsServer && !t.IsSend && t.DestFilename != "")
 	builder.addLineFull("Rule:             ", t.Rule)
-	builder.addLineFull("Requester:        ", t.Requester)
-	builder.addLineFull("Requested:        ", t.Requested)
-	builder.addLineFull("Local filepath:   ", t.LocalFilepath)
-	builder.addLineFull("Remote filepath:  ", t.RemoteFilepath)
+	builder.addLineFull("Requested by:     ", t.Requester)
+	builder.addLineFull("Requested to:     ", t.Requested)
+	builder.addLineCond("Full local path:  ", t.LocalFilepath, t.LocalFilepath != "")
+	builder.addLineCond("Full remote path: ", t.RemoteFilepath, t.RemoteFilepath != "")
 	builder.addWithDefV("File size:        ", t.Filesize, t.Filesize >= 0, sizeUnknown)
 	builder.addLineFull("Start date:       ", t.Start.Local())
 	builder.addLineFull("End date:         ", stop)
@@ -208,8 +212,8 @@ func TestAddTransfer(t *testing.T) {
 						So(transfers[0].RemoteTransferID, ShouldNotBeBlank)
 						So(transfers[0].RuleID, ShouldEqual, rule.ID)
 						So(transfers[0].RemoteAccountID.Int64, ShouldEqual, account.ID)
-						So(transfers[0].LocalPath, ShouldEqual, filepath.Join("dst_dir", "test_file"))
-						So(transfers[0].RemotePath, ShouldEqual, "src_dir/test_file")
+						So(transfers[0].SrcFilename, ShouldEqual, command.File)
+						So(transfers[0].DestFilename, ShouldEqual, command.Out)
 						So(transfers[0].Filesize, ShouldEqual, model.UnknownSize)
 						So(transfers[0].Start, ShouldEqual, time.Date(2020, 1, 1, 1, 0, 0, 0, time.UTC))
 						So(transfers[0].Step, ShouldEqual, types.StepNone)
@@ -343,8 +347,7 @@ func TestGetTransfer(t *testing.T) {
 				trans := &model.Transfer{
 					RuleID:          r.ID,
 					RemoteAccountID: utils.NewNullInt64(a.ID),
-					LocalPath:       "/local/path",
-					RemotePath:      "/remote/path",
+					SrcFilename:     "file",
 					Start:           time.Date(2021, 1, 1, 1, 0, 0, 123000, time.Local),
 					Status:          types.StatusPlanned,
 				}
@@ -460,8 +463,7 @@ func TestListTransfer(t *testing.T) {
 				trans1 := &model.Transfer{
 					RuleID:          r1.ID,
 					RemoteAccountID: utils.NewNullInt64(a1.ID),
-					LocalPath:       "/local/path1",
-					RemotePath:      "/remote/path1",
+					SrcFilename:     "file1",
 					Step:            types.StepNone,
 					Status:          types.StatusPlanned,
 					Start:           time.Date(2019, 1, 1, 1, 0, 0, 0, time.Local),
@@ -469,8 +471,7 @@ func TestListTransfer(t *testing.T) {
 				trans2 := &model.Transfer{
 					RuleID:          r2.ID,
 					RemoteAccountID: utils.NewNullInt64(a2.ID),
-					LocalPath:       "/local/path2",
-					RemotePath:      "/remote/path2",
+					SrcFilename:     "file2",
 					Step:            types.StepSetup,
 					Status:          types.StatusRunning,
 					Start:           time.Date(2019, 1, 1, 2, 0, 0, 0, time.Local),
@@ -478,8 +479,7 @@ func TestListTransfer(t *testing.T) {
 				trans3 := &model.Transfer{
 					RuleID:          r3.ID,
 					RemoteAccountID: utils.NewNullInt64(a3.ID),
-					LocalPath:       "/local/path3",
-					RemotePath:      "/remote/path3",
+					SrcFilename:     "file3",
 					Step:            types.StepData,
 					Status:          types.StatusError,
 					Start:           time.Date(2019, 1, 1, 3, 0, 0, 0, time.Local),
@@ -487,8 +487,7 @@ func TestListTransfer(t *testing.T) {
 				trans4 := &model.Transfer{
 					RuleID:          r4.ID,
 					RemoteAccountID: utils.NewNullInt64(a4.ID),
-					LocalPath:       "/local/path4",
-					RemotePath:      "/remote/path4",
+					SrcFilename:     "file4",
 					Step:            types.StepFinalization,
 					Status:          types.StatusPlanned,
 					Start:           time.Date(2019, 1, 1, 4, 0, 0, 0, time.Local),
@@ -677,8 +676,8 @@ func TestPauseTransfer(t *testing.T) {
 				trans := &model.Transfer{
 					RuleID:          rule.ID,
 					RemoteAccountID: utils.NewNullInt64(account.ID),
-					LocalPath:       "/local/path",
-					RemotePath:      "/remote/path",
+					SrcFilename:     "/source/file",
+					DestFilename:    "/dest/file",
 					Start:           time.Date(2021, 1, 1, 1, 0, 0, 123000, time.Local),
 					Status:          types.StatusPlanned,
 					Owner:           conf.GlobalConfig.GatewayName,
@@ -766,8 +765,8 @@ func TestResumeTransfer(t *testing.T) {
 				trans := &model.Transfer{
 					RuleID:          r.ID,
 					RemoteAccountID: utils.NewNullInt64(account.ID),
-					LocalPath:       "/local/path",
-					RemotePath:      "/remote/path",
+					SrcFilename:     "/source/file",
+					DestFilename:    "/dest/file",
 					Start:           time.Date(2021, 1, 1, 1, 0, 0, 123000, time.Local),
 					Status:          types.StatusPaused,
 					Owner:           conf.GlobalConfig.GatewayName,
@@ -854,8 +853,8 @@ func TestCancelTransfer(t *testing.T) {
 				trans := &model.Transfer{
 					RuleID:          rule.ID,
 					RemoteAccountID: utils.NewNullInt64(account.ID),
-					LocalPath:       "/local/path",
-					RemotePath:      "/remote/path",
+					SrcFilename:     "/source/file",
+					DestFilename:    "/dest/file",
 					Start:           time.Date(2021, 1, 1, 1, 0, 0, 123000, time.Local),
 					Status:          types.StatusPlanned,
 					Owner:           conf.GlobalConfig.GatewayName,
@@ -881,7 +880,7 @@ func TestCancelTransfer(t *testing.T) {
 							So(db.Select(&history).Run(), ShouldBeNil)
 							So(history, ShouldNotBeEmpty)
 
-							So(history, ShouldContain, &model.HistoryEntry{
+							So(history[0], ShouldResemble, &model.HistoryEntry{
 								ID:               trans.ID,
 								RemoteTransferID: trans.RemoteTransferID,
 								Owner:            trans.Owner,
@@ -890,6 +889,8 @@ func TestCancelTransfer(t *testing.T) {
 								Account:          account.Login,
 								Agent:            partner.Name,
 								Protocol:         partner.Protocol,
+								SrcFilename:      trans.SrcFilename,
+								DestFilename:     trans.DestFilename,
 								LocalPath:        trans.LocalPath,
 								RemotePath:       trans.RemotePath,
 								Rule:             rule.Name,
@@ -965,8 +966,8 @@ func TestRetryTransfer(t *testing.T) {
 					Account:          acc.Login,
 					Agent:            part.Name,
 					Protocol:         part.Protocol,
-					LocalPath:        "/local/path.loc",
-					RemotePath:       "/remote/path.rem",
+					SrcFilename:      "/source/file",
+					DestFilename:     "/dest/file",
 					Start:            time.Date(2021, 1, 1, 1, 0, 0, 0, time.Local),
 					Stop:             time.Date(2021, 1, 1, 2, 0, 0, 0, time.Local),
 					Status:           types.StatusCancelled,
@@ -995,8 +996,8 @@ func TestRetryTransfer(t *testing.T) {
 
 							So(trans[0].RuleID, ShouldEqual, r.ID)
 							So(trans[0].RemoteAccountID.Int64, ShouldEqual, acc.ID)
-							So(trans[0].LocalPath, ShouldEqual, path.Base(hist.LocalPath))
-							So(trans[0].RemotePath, ShouldEqual, path.Base(hist.RemotePath))
+							So(trans[0].SrcFilename, ShouldEqual, hist.SrcFilename)
+							So(trans[0].DestFilename, ShouldEqual, hist.DestFilename)
 							So(trans[0].Start, ShouldHappenWithin, time.Duration(0), date)
 							So(trans[0].Status, ShouldEqual, types.StatusPlanned)
 						})
@@ -1058,8 +1059,8 @@ func TestCancelAllTransfers(t *testing.T) {
 			transPlan := &model.Transfer{
 				RuleID:          rule.ID,
 				RemoteAccountID: utils.NewNullInt64(account.ID),
-				LocalPath:       "file.loc",
-				RemotePath:      "file.rem",
+				SrcFilename:     "/source/file",
+				DestFilename:    "/dest/file",
 				Start:           time.Date(2030, 1, 1, 1, 0, 0, 0, time.Local),
 				Status:          types.StatusPlanned,
 				Step:            types.StepNone,
@@ -1072,8 +1073,8 @@ func TestCancelAllTransfers(t *testing.T) {
 			transErr := &model.Transfer{
 				RuleID:          rule.ID,
 				RemoteAccountID: utils.NewNullInt64(account.ID),
-				LocalPath:       "file.loc",
-				RemotePath:      "file.rem",
+				SrcFilename:     "/source/file",
+				DestFilename:    "/dest/file",
 				Start:           time.Date(2030, 1, 1, 1, 0, 0, 0, time.Local),
 				Status:          types.StatusError,
 				Step:            types.StepData,
@@ -1101,15 +1102,17 @@ func TestCancelAllTransfers(t *testing.T) {
 							ID:               transPlan.ID,
 							Owner:            conf.GlobalConfig.GatewayName,
 							RemoteTransferID: transPlan.RemoteTransferID,
-							IsServer:         false,
-							IsSend:           false,
+							IsServer:         transPlan.IsServer(),
+							IsSend:           rule.IsSend,
 							Account:          account.Login,
 							Agent:            partner.Name,
-							Protocol:         testProto1,
-							LocalPath:        "file.loc",
-							RemotePath:       "file.rem",
+							Protocol:         partner.Protocol,
+							SrcFilename:      transPlan.SrcFilename,
+							DestFilename:     transPlan.DestFilename,
+							LocalPath:        transPlan.LocalPath,
+							RemotePath:       transPlan.RemotePath,
 							Rule:             rule.Name,
-							Start:            time.Date(2030, 1, 1, 1, 0, 0, 0, time.Local),
+							Start:            transPlan.Start.Local(),
 							Stop:             time.Time{},
 							Status:           types.StatusCancelled,
 							Error:            types.TransferError{},

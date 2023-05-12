@@ -5,8 +5,6 @@ import (
 	"fmt"
 	"io"
 	"os"
-	"path/filepath"
-	"strings"
 	"sync/atomic"
 
 	"code.waarp.fr/apps/gateway/gateway/pkg/model/types"
@@ -222,22 +220,18 @@ func (f *fileStream) move() *types.TransferError {
 		return nil
 	}
 
-	file, err := filepath.Rel(makeLocalDir(f.TransCtx), f.TransCtx.Transfer.LocalPath)
-	if err != nil {
-		f.handleError(types.TeInternal, "could not split the filename from the file path", err.Error())
-
-		return moveErr
+	destFilename := f.TransCtx.Transfer.DestFilename
+	if destFilename == "" {
+		destFilename = f.TransCtx.Transfer.SrcFilename
 	}
-
-	file = strings.TrimSuffix(file, ".part")
 
 	var dest string
 	if f.TransCtx.Transfer.IsServer() {
-		dest = utils.GetPath(file, leaf(f.TransCtx.Rule.LocalDir),
+		dest = utils.GetPath(destFilename, leaf(f.TransCtx.Rule.LocalDir),
 			leaf(f.TransCtx.LocalAgent.ReceiveDir), branch(f.TransCtx.LocalAgent.RootDir),
 			leaf(f.TransCtx.Paths.DefaultInDir), branch(f.TransCtx.Paths.GatewayHome))
 	} else {
-		dest = utils.GetPath(file, leaf(f.TransCtx.Rule.LocalDir),
+		dest = utils.GetPath(destFilename, leaf(f.TransCtx.Rule.LocalDir),
 			leaf(f.TransCtx.Paths.DefaultInDir), branch(f.TransCtx.Paths.GatewayHome))
 	}
 

@@ -154,4 +154,20 @@ var Migrations = []Change{
 		Description: "Split the R66 protocol into R66 (plain) & R66-TLS",
 		Script:      ver0_7_5SplitR66TLS{},
 	},
+	{ // #33
+		Description: "Drop the normalized transfer view",
+		Script:      ver0_8_0DropNormalizedTransfersView{},
+	},
+	{ // #34
+		Description: `Add a "filename" column to the transfers table`,
+		Script:      ver0_8_0AddTransferFilename{},
+	},
+	{ // #35
+		Description: `Add a "filename" column to the history table`,
+		Script:      ver0_8_0AddHistoryFilename{},
+	},
+	{ // #36
+		Description: "Restore and update the normalized transfer view with the new filename",
+		Script:      ver0_8_0UpdateNormalizedTransfersView{},
+	},
 }

@@ -61,8 +61,9 @@ func TestTransferBeforeWrite(t *testing.T) {
 					RemoteTransferID: "1",
 					RuleID:           rule.ID,
 					LocalAccountID:   utils.NewNullInt64(account.ID),
-					LocalPath:        "/local/path",
-					RemotePath:       "/remote/path",
+					SrcFilename:      "file",
+					LocalPath:        testLocalPath,
+					RemotePath:       "/remote/file",
 					Start:            time.Now(),
 					Status:           types.StatusPlanned,
 					Owner:            conf.GlobalConfig.GatewayName,
@@ -93,14 +94,6 @@ func TestTransferBeforeWrite(t *testing.T) {
 						Convey("Then the transfer owner should be 'test_gateway'", func() {
 							So(trans.Owner, ShouldEqual, "test_gateway")
 						})
-
-						Convey("Then the local path should be in the OS's format", func() {
-							So(trans.LocalPath, ShouldEqual, utils.ToOSPath("/local/path"))
-						})
-
-						Convey("Then the remote path should be a standard URL", func() {
-							So(trans.RemotePath, ShouldEqual, "/remote/path")
-						})
 					})
 				})
 
@@ -122,10 +115,10 @@ func TestTransferBeforeWrite(t *testing.T) {
 						"the transfer cannot have both a local and remote account ID"))
 				})
 
-				Convey("Given that the local filepath is missing", func() {
-					trans.LocalPath = ""
-					shouldFailWith("the local filepath is missing", database.NewValidationError(
-						"the local filepath is missing"))
+				Convey("Given that the filename is missing", func() {
+					trans.SrcFilename = ""
+					shouldFailWith("the source file is missing", database.NewValidationError(
+						"the source file is missing"))
 				})
 
 				Convey("Given that the rule id is invalid", func() {
@@ -146,8 +139,7 @@ func TestTransferBeforeWrite(t *testing.T) {
 						RemoteTransferID: trans.RemoteTransferID,
 						RuleID:           rule.ID,
 						LocalAccountID:   utils.NewNullInt64(account.ID),
-						LocalPath:        "/local/path",
-						RemotePath:       "/remote/path",
+						SrcFilename:      "file",
 						Filesize:         -1,
 						Start:            time.Date(2021, 1, 1, 1, 0, 0, 0, time.UTC),
 						Status:           types.StatusRunning,
@@ -165,11 +157,13 @@ func TestTransferBeforeWrite(t *testing.T) {
 						RemoteTransferID: trans.RemoteTransferID,
 						Protocol:         testProtocol,
 						IsServer:         true,
+						IsSend:           rule.IsSend,
 						Rule:             rule.Name,
 						Agent:            server.Name,
 						Account:          account.Login,
-						LocalPath:        "/local/path",
-						RemotePath:       "/remote/path",
+						SrcFilename:      "file",
+						LocalPath:        "/local/file",
+						RemotePath:       "remote/file",
 						Filesize:         100,
 						Start:            time.Date(2021, 1, 1, 1, 0, 0, 0, time.UTC),
 						Stop:             time.Date(2021, 1, 2, 1, 0, 0, 0, time.UTC),
@@ -229,8 +223,9 @@ func TestTransferToHistory(t *testing.T) {
 				ID:              1,
 				RuleID:          rule.ID,
 				RemoteAccountID: utils.NewNullInt64(account.ID),
-				LocalPath:       "/test/local/path",
-				RemotePath:      "/test/remote/path",
+				SrcFilename:     "file",
+				LocalPath:       testLocalPath,
+				RemotePath:      "/test/remote/file",
 				Start:           time.Date(2021, 1, 1, 1, 0, 0, 0, time.Local),
 				Status:          types.StatusPlanned,
 				Owner:           conf.GlobalConfig.GatewayName,
@@ -255,6 +250,7 @@ func TestTransferToHistory(t *testing.T) {
 						Account:          account.Login,
 						Agent:            remote.Name,
 						Protocol:         remote.Protocol,
+						SrcFilename:      trans.SrcFilename,
 						LocalPath:        trans.LocalPath,
 						RemotePath:       trans.RemotePath,
 						Rule:             rule.Name,

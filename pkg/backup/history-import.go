@@ -22,6 +22,8 @@ func jsonTransToDbHist(trans *file.Transfer) *model.HistoryEntry {
 		Account:          trans.Requester,
 		Agent:            trans.Requested,
 		Protocol:         trans.Protocol,
+		SrcFilename:      trans.SrcFilename,
+		DestFilename:     trans.DestFilename,
 		LocalPath:        trans.LocalFilepath,
 		RemotePath:       trans.RemoteFilepath,
 		Filesize:         trans.Filesize,

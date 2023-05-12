@@ -435,6 +435,9 @@ linters-settings:
       # specify an error message to output when a blacklisted package is used
       - github.com/sirupsen/logrus: "logging is allowed only by logutils.Log"
 
+  gosmopolitan:
+    allow-time-local: true
+
   ifshort:
     # Maximum length of variable declaration measured in number of lines, after which linter won't suggest using short syntax.
     # Has higher priority than max-decl-chars.
@@ -567,6 +570,17 @@ linters-settings:
     initialisms: [ "ACL", "API", "ASCII", "CPU", "CSS", "DNS", "EOF", "GUID", "HTML", "HTTP", "HTTPS", "ID", "IP", "JSON", "PEM", "QPS", "RAM", "RPC", "SLA", "SMTP", "SQL", "SSH", "TCP", "TLS", "TTL", "UDP", "UI", "GID", "UID", "UUID", "URI", "URL", "UTF8", "VM", "XML", "XMPP", "XSRF", "XSS" ]
     # https://staticcheck.io/docs/options#http_status_code_whitelist
     http-status-code-whitelist: [ "200", "400", "404", "500" ]
+
+  tagalign:
+    align: false # Toggled off for now, might enable if tags become too hard to read.
+    sort: true
+    order:
+      - required
+      - positional-arg-name
+      - short
+      - long
+      - description
+      - choice
 
   tagliatelle:
     # check the struck tag name case
@@ -721,6 +735,7 @@ issues:
         - varnamelen
         - bodyclose
         - noctx
+        - gochecknoglobals
 
     # Allow dot import aliases in test files.
     - path: _test\.go

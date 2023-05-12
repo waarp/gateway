@@ -4,7 +4,6 @@ import (
 	"context"
 	"errors"
 	"io"
-	"strings"
 
 	"code.waarp.fr/lib/r66"
 	r66utils "code.waarp.fr/lib/r66/utils"
@@ -184,7 +183,7 @@ func (t *serverTransfer) runPreTask() (*r66.UpdateInfo, error) {
 
 	if t.pip.TransCtx.Rule.IsSend {
 		info = &r66.UpdateInfo{
-			Filename: strings.TrimPrefix(t.pip.TransCtx.Transfer.RemotePath, "/"),
+			Filename: t.pip.TransCtx.Transfer.SrcFilename,
 			FileSize: t.pip.TransCtx.Transfer.Filesize,
 			FileInfo: &r66.TransferData{},
 		}

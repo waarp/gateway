@@ -40,8 +40,9 @@ func TestHistoryBeforeWrite(t *testing.T) {
 				IsSend:           true,
 				Agent:            "from",
 				Account:          "to",
-				LocalPath:        "test/local/path",
-				RemotePath:       "test/remote/path",
+				SrcFilename:      "file",
+				LocalPath:        testLocalPath,
+				RemotePath:       "test/remote/file",
 				Start:            time.Now(),
 				Stop:             time.Now(),
 				Protocol:         testProtocol,
@@ -94,6 +95,7 @@ func TestHistoryBeforeWrite(t *testing.T) {
 			})
 
 			Convey("Given that the remote path is missing", func() {
+				hist.IsServer = false
 				hist.RemotePath = ""
 				shouldFailWith("the remote filename is missing", database.NewValidationError(
 					"the remote filepath cannot be empty"))
@@ -205,8 +207,9 @@ func TestTransferHistoryRestart(t *testing.T) {
 				Account:          account.Login,
 				Agent:            agent.Name,
 				Protocol:         agent.Protocol,
-				LocalPath:        "file.loc",
-				RemotePath:       "file.rem",
+				SrcFilename:      "file",
+				LocalPath:        "/loc/file",
+				RemotePath:       "/rem/file",
 				Rule:             rule.Name,
 				Start:            time.Date(2020, 0, 0, 0, 0, 0, 0, time.Local),
 				Stop:             time.Date(2020, 0, 0, 0, 0, 0, 0, time.Local),
@@ -228,8 +231,7 @@ func TestTransferHistoryRestart(t *testing.T) {
 						RemoteTransferID: "",
 						RuleID:           rule.ID,
 						RemoteAccountID:  utils.NewNullInt64(account.ID),
-						LocalPath:        "file.loc",
-						RemotePath:       "file.rem",
+						SrcFilename:      history.SrcFilename,
 						Start:            date,
 						Step:             types.StepNone,
 						Status:           types.StatusPlanned,
@@ -266,8 +268,9 @@ func TestTransferHistoryRestart(t *testing.T) {
 				Account:          account.Login,
 				Agent:            agent.Name,
 				Protocol:         agent.Protocol,
-				LocalPath:        "file.loc",
-				RemotePath:       "file.rem",
+				SrcFilename:      "file",
+				LocalPath:        "/local/file",
+				RemotePath:       "/remote/file",
 				Rule:             rule.Name,
 				Start:            time.Date(2020, 0, 0, 0, 0, 0, 0, time.Local),
 				Stop:             time.Date(2020, 0, 0, 0, 0, 0, 0, time.Local),
@@ -289,8 +292,7 @@ func TestTransferHistoryRestart(t *testing.T) {
 						RemoteTransferID: "",
 						RuleID:           rule.ID,
 						LocalAccountID:   utils.NewNullInt64(account.ID),
-						LocalPath:        "file.loc",
-						RemotePath:       "file.rem",
+						SrcFilename:      history.SrcFilename,
 						Start:            date,
 						Step:             types.StepNone,
 						Status:           types.StatusPlanned,

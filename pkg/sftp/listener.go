@@ -6,8 +6,6 @@ import (
 	"fmt"
 	"io"
 	"net"
-	"path"
-	"path/filepath"
 	"strings"
 	"sync"
 	"time"
@@ -203,19 +201,15 @@ func (l *sshListener) makeFileReader(endSession func(context.Context), acc *mode
 			return nil, sftp.ErrSSHFxNoSuchFile
 		}
 
-		locPath, err := filepath.Rel(rule.Path, strings.TrimPrefix(r.Filepath, "/"))
-		if err != nil {
-			l.Logger.Error("Failed to parse file path: %v", err)
-
-			return nil, errFilepathParsing
-		}
+		filePath := strings.TrimPrefix(r.Filepath, "/")
+		filePath = strings.TrimPrefix(filePath, rule.Path)
+		filePath = strings.TrimPrefix(filePath, "/")
 
 		// Create Transfer
 		trans := &model.Transfer{
 			RuleID:         rule.ID,
 			LocalAccountID: utils.NewNullInt64(acc.ID),
-			LocalPath:      locPath,
-			RemotePath:     path.Base(r.Filepath),
+			SrcFilename:    filePath,
 			Filesize:       model.UnknownSize,
 			Start:          time.Now(),
 			Status:         types.StatusRunning,
@@ -223,7 +217,7 @@ func (l *sshListener) makeFileReader(endSession func(context.Context), acc *mode
 		}
 
 		l.Logger.Info("Download of file '%s' requested by '%s' using rule '%s'",
-			trans.RemotePath, acc.Login, rule.Name)
+			filePath, acc.Login, rule.Name)
 
 		pip, err := newServerPipeline(l.DB, l.Logger, trans, l.runningTransfers, endSession)
 		if err != nil {
@@ -251,19 +245,15 @@ func (l *sshListener) makeFileWriter(endSession func(context.Context), acc *mode
 			return nil, sftp.ErrSSHFxPermissionDenied
 		}
 
-		locPath, err := filepath.Rel(rule.Path, strings.TrimPrefix(r.Filepath, "/"))
-		if err != nil {
-			l.Logger.Error("Failed to parse file path: %v", err)
-
-			return nil, errFilepathParsing
-		}
+		filePath := strings.TrimPrefix(r.Filepath, "/")
+		filePath = strings.TrimPrefix(filePath, rule.Path)
+		filePath = strings.TrimPrefix(filePath, "/")
 
 		// Create Transfer
 		trans := &model.Transfer{
 			RuleID:         rule.ID,
 			LocalAccountID: utils.NewNullInt64(acc.ID),
-			LocalPath:      locPath,
-			RemotePath:     path.Base(r.Filepath),
+			DestFilename:   filePath,
 			Filesize:       model.UnknownSize,
 			Start:          time.Now(),
 			Status:         types.StatusRunning,
@@ -271,7 +261,7 @@ func (l *sshListener) makeFileWriter(endSession func(context.Context), acc *mode
 		}
 
 		l.Logger.Info("Upload of file '%s' requested by '%s' using rule '%s'",
-			trans.RemotePath, acc.Login, rule.Name)
+			filePath, acc.Login, rule.Name)
 
 		pip, err := newServerPipeline(l.DB, l.Logger, trans, l.runningTransfers, endSession)
 		if err != nil {

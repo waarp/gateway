@@ -488,8 +488,22 @@ func (p *Pipeline) Cancel(handles ...func()) {
 // RebuildFilepaths rebuilds the transfer's local and remote paths, just like it
 // is done at the beginning of the transfer. This is useful if the file's name
 // has changed during the transfer.
-func (p *Pipeline) RebuildFilepaths() *types.TransferError {
-	p.setFilePaths()
+func (p *Pipeline) RebuildFilepaths(newFile string) *types.TransferError {
+	var srcFile, dstFile string
+
+	switch {
+	case !p.TransCtx.Transfer.IsServer():
+		srcFile, dstFile = newFile, newFile
+	case p.TransCtx.Rule.IsSend:
+		srcFile = newFile
+	default:
+		dstFile = newFile
+	}
+
+	p.TransCtx.Transfer.LocalPath = ""
+	p.TransCtx.Transfer.RemotePath = ""
+
+	p.setCustomFilePaths(srcFile, dstFile)
 
 	if err := p.UpdateTrans(); err != nil {
 		p.handleError(types.TeInternal, "Failed to update the transfer file paths",

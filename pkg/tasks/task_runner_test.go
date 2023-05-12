@@ -299,8 +299,8 @@ func TestRunTasks(t *testing.T) {
 		trans := &model.Transfer{
 			RuleID:          rule.ID,
 			RemoteAccountID: utils.NewNullInt64(account.ID),
-			LocalPath:       "/local/file",
-			RemotePath:      "/remote/file",
+			SrcFilename:     "/src/file",
+			DestFilename:    "/dst/file",
 		}
 		So(db.Insert(trans).Run(), ShouldBeNil)
 

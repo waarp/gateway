@@ -2,7 +2,6 @@ package controller
 
 import (
 	"context"
-	"os"
 	"path/filepath"
 	"sync"
 	"testing"
@@ -40,16 +39,15 @@ func TestControllerListen(t *testing.T) {
 
 		tmpDir := testhelpers.TempDir(c, "controller-listen")
 
-		rule := &model.Rule{
-			Name:     "test rule",
-			Path:     "test_rule",
-			IsSend:   true,
-			LocalDir: tmpDir,
-		}
+		rule := &model.Rule{Name: "test rule", IsSend: true}
 		So(db.Insert(rule).Run(), ShouldBeNil)
 
 		Convey("Given a controller", func() {
-			conf.GlobalConfig.Paths = conf.PathsConfig{GatewayHome: tmpDir}
+			conf.GlobalConfig.Paths = conf.PathsConfig{
+				GatewayHome: tmpDir, DefaultInDir: "in",
+				DefaultOutDir: "out", DefaultTmpDir: "tmp",
+			}
+
 			gwController := GatewayController{DB: db}
 			cont := &Controller{
 				Action: gwController.Run,
@@ -59,16 +57,14 @@ func TestControllerListen(t *testing.T) {
 				ctx:    context.Background(),
 			}
 
-			Convey("Given a planned transfer", func() {
-				path1 := filepath.Join(tmpDir, "file_1")
-				err := os.WriteFile(path1, []byte("hello world"), 0o644)
-				So(err, ShouldBeNil)
+			Convey("Given a planned transfer", func(c C) {
+				path1 := filepath.Join(tmpDir, "out", "file_1")
+				testhelpers.WriteFile(c, path1, "hello world")
 
 				trans := &model.Transfer{
 					RuleID:          rule.ID,
 					RemoteAccountID: utils.NewNullInt64(account.ID),
-					LocalPath:       path1,
-					RemotePath:      "/file_1",
+					SrcFilename:     "file_1",
 					Start:           time.Date(2022, 1, 1, 1, 0, 0, 0, time.UTC),
 					Status:          types.StatusPlanned,
 					Owner:           conf.GlobalConfig.GatewayName,
@@ -77,10 +73,6 @@ func TestControllerListen(t *testing.T) {
 
 				Convey("When the controller starts new transfers", func() {
 					cont.Action(cont.wg, *cont.logger)
-					Reset(func() {
-						_ = os.RemoveAll("tmp")
-						_ = os.RemoveAll(rule.Path)
-					})
 
 					Convey("After waiting enough time", func() {
 						cont.wg.Wait()
@@ -121,16 +113,14 @@ func TestControllerListen(t *testing.T) {
 				})
 			})
 
-			Convey("Given a running transfer", func() {
-				path2 := filepath.Join(tmpDir, "file_2")
-				err := os.WriteFile(path2, []byte("hello world"), 0o644)
-				So(err, ShouldBeNil)
+			Convey("Given a running transfer", func(c C) {
+				path2 := filepath.Join(tmpDir, "out", "file_2")
+				testhelpers.WriteFile(c, path2, "hello world")
 
 				trans := &model.Transfer{
 					RuleID:          rule.ID,
 					RemoteAccountID: utils.NewNullInt64(account.ID),
-					LocalPath:       path2,
-					RemotePath:      "/file_2",
+					SrcFilename:     "file2",
 					Start:           time.Date(2022, 1, 1, 1, 0, 0, 0, time.UTC),
 					Status:          types.StatusRunning,
 					Owner:           conf.GlobalConfig.GatewayName,

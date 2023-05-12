@@ -40,6 +40,21 @@ func coloredStatus(status types.TransferStatus) string {
 	return bold("[") + text + bold("]")
 }
 
+func displayTransferFile(w io.Writer, trans *api.OutTransfer) {
+	switch {
+	case trans.IsServer && trans.IsSend: // <- Server
+		writeLine(w, orange("    File pulled:      "), trans.SrcFilename)
+	case trans.IsServer && !trans.IsSend: // -> Server
+		writeLine(w, orange("    File pushed:      "), trans.DestFilename)
+	case !trans.IsServer && trans.IsSend: // Client ->
+		writeLine(w, orange("    File to send:     "), trans.SrcFilename)
+		writeCond(w, orange("    File deposited as:"), trans.DestFilename, trans.DestFilename != "")
+	case !trans.IsServer && !trans.IsSend: // Client <-
+		writeLine(w, orange("    File to retrieve: "), trans.SrcFilename)
+		writeCond(w, orange("    File saved as:    "), trans.DestFilename, trans.DestFilename != "")
+	}
+}
+
 func displayTransfer(w io.Writer, trans *api.OutTransfer) {
 	role := roleClient
 	if trans.IsServer {
@@ -61,11 +76,12 @@ func displayTransfer(w io.Writer, trans *api.OutTransfer) {
 
 	writeLine(w, orange("    Remote ID:        "), trans.RemoteID)
 	writeLine(w, orange("    Protocol:         "), trans.Protocol)
+	displayTransferFile(w, trans)
 	writeLine(w, orange("    Rule:             "), trans.Rule)
-	writeLine(w, orange("    Requester:        "), trans.Requester)
-	writeLine(w, orange("    Requested:        "), trans.Requested)
-	writeLine(w, orange("    Local filepath:   "), trans.LocalFilepath)
-	writeLine(w, orange("    Remote filepath:  "), trans.RemoteFilepath)
+	writeLine(w, orange("    Requested by:     "), trans.Requester)
+	writeLine(w, orange("    Requested to:     "), trans.Requested)
+	writeCond(w, orange("    Full local path:  "), trans.LocalFilepath, trans.LocalFilepath != "")
+	writeCond(w, orange("    Full remote path: "), trans.RemoteFilepath, trans.RemoteFilepath != "")
 	writeDefV(w, orange("    File size:        "), trans.Filesize, trans.Filesize >= 0, sizeUnknown)
 	writeLine(w, orange("    Start date:       "), trans.Start.Local())
 	writeLine(w, orange("    End date:         "), stop)
@@ -97,7 +113,7 @@ func displayTransfer(w io.Writer, trans *api.OutTransfer) {
 //nolint:lll // struct tags can be long for command line args
 type TransferAdd struct {
 	File         string            `required:"yes" short:"f" long:"file" description:"The file to transfer"`
-	Out          *string           `short:"o" long:"out" description:"The destination of the file"`
+	Out          string            `short:"o" long:"out" description:"The destination of the file"`
 	Way          string            `required:"yes" short:"w" long:"way" description:"The direction of the transfer" choice:"send" choice:"receive"`
 	Partner      string            `required:"yes" short:"p" long:"partner" description:"The partner with which the transfer is performed"`
 	Account      string            `required:"yes" short:"l" long:"login" description:"The login of the account used to connect on the partner"`
@@ -258,7 +274,8 @@ func (t *TransferPause) Execute([]string) error {
 	if err != nil {
 		return err
 	}
-	defer resp.Body.Close() //nolint:errcheck // no logger to handle the error
+
+	defer resp.Body.Close() //nolint:errcheck,gosec // error is irrelevant
 
 	w := getColorable()
 
@@ -300,7 +317,7 @@ func (t *TransferResume) Execute([]string) error {
 	if err != nil {
 		return err
 	}
-	defer resp.Body.Close() //nolint:errcheck // nothing to handle the error
+	defer resp.Body.Close() //nolint:errcheck,gosec // error is irrelevant
 
 	w := getColorable()
 
@@ -342,7 +359,7 @@ func (t *TransferCancel) Execute([]string) error {
 		return err
 	}
 
-	defer resp.Body.Close() //nolint:errcheck // nothing to handle the error
+	defer resp.Body.Close() //nolint:errcheck,gosec // error is irrelevant
 
 	w := getColorable()
 
@@ -399,7 +416,7 @@ func (t *TransferRetry) Execute([]string) error {
 	if err != nil {
 		return err
 	}
-	defer resp.Body.Close() //nolint:errcheck // nothing to handle the error
+	defer resp.Body.Close() //nolint:errcheck,gosec // error is irrelevant
 
 	w := getColorable()
 
@@ -442,7 +459,7 @@ func (t *TransferCancelAll) Execute([]string) error {
 	if err != nil {
 		return err
 	}
-	defer resp.Body.Close() //nolint:errcheck // error is irrelevant
+	defer resp.Body.Close() //nolint:errcheck,gosec // error is irrelevant
 
 	w := getColorable()
 

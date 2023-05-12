@@ -2,7 +2,6 @@ package model
 
 import (
 	"database/sql"
-	"path"
 	"time"
 
 	"code.waarp.fr/apps/gateway/gateway/pkg/conf"
@@ -23,6 +22,8 @@ type HistoryEntry struct {
 	Account          string               `xorm:"account"`
 	Agent            string               `xorm:"agent"`
 	Protocol         string               `xorm:"protocol"`
+	SrcFilename      string               `xorm:"src_filename"`
+	DestFilename     string               `xorm:"dest_filename"`
 	LocalPath        string               `xorm:"local_path"`
 	RemotePath       string               `xorm:"remote_path"`
 	Filesize         int64                `xorm:"filesize"`
@@ -78,11 +79,19 @@ func (h *HistoryEntry) BeforeWrite(db database.ReadAccess) database.Error {
 		return database.NewValidationError("the transfer's agent cannot be empty")
 	}
 
-	if h.LocalPath == "" {
+	if h.IsSend {
+		if h.SrcFilename == "" {
+			return database.NewValidationError("the source file is missing")
+		}
+	} else if h.IsServer && h.DestFilename == "" {
+		return database.NewValidationError("the destination file is missing")
+	}
+
+	if h.RemotePath != "" && h.LocalPath == "" {
 		return database.NewValidationError("the local filepath cannot be empty")
 	}
 
-	if h.RemotePath == "" {
+	if !h.IsServer && h.LocalPath != "" && h.RemotePath == "" {
 		return database.NewValidationError("the remote filepath cannot be empty")
 	}
 
@@ -131,13 +140,13 @@ func (h *HistoryEntry) Restart(db database.Access, date time.Time) (*Transfer, d
 	}
 
 	trans := &Transfer{
-		RuleID:     rule.ID,
-		LocalPath:  path.Base(h.LocalPath),
-		RemotePath: path.Base(h.RemotePath),
-		Start:      date,
-		Status:     types.StatusPlanned,
-		Step:       types.StepNone,
-		Owner:      h.Owner,
+		RuleID:       rule.ID,
+		SrcFilename:  h.SrcFilename,
+		DestFilename: h.DestFilename,
+		Start:        date,
+		Status:       types.StatusPlanned,
+		Step:         types.StepNone,
+		Owner:        h.Owner,
 	}
 
 	if h.IsServer {

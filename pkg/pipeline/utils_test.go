@@ -157,8 +157,7 @@ func mkRecvTransfer(ctx *testContext, filename string) *model.Transfer {
 
 	trans := &model.Transfer{
 		RemoteAccountID: utils.NewNullInt64(ctx.remoteAccount.ID),
-		LocalPath:       filename,
-		RemotePath:      filename,
+		SrcFilename:     filename,
 		RuleID:          ctx.recv.ID,
 	}
 	So(ctx.db.Insert(trans).Run(), ShouldBeNil)
@@ -174,8 +173,7 @@ func mkSendTransfer(ctx *testContext, filename string) *model.Transfer {
 
 	trans := &model.Transfer{
 		RemoteAccountID: utils.NewNullInt64(ctx.remoteAccount.ID),
-		LocalPath:       filename,
-		RemotePath:      filename,
+		SrcFilename:     filename,
 		RuleID:          ctx.send.ID,
 	}
 	So(ctx.db.Insert(trans).Run(), ShouldBeNil)

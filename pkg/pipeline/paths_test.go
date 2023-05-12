@@ -64,12 +64,11 @@ func TestPathBuilder(t *testing.T) {
 			trans := &model.Transfer{
 				RuleID:         recv.ID,
 				LocalAccountID: utils.NewNullInt64(acc.ID),
-				LocalPath:      "file.loc",
-				RemotePath:     "file.rem",
+				DestFilename:   "file.txt",
 			}
 			So(db.Insert(trans).Run(), ShouldBeNil)
 
-			file := trans.LocalPath
+			file := trans.DestFilename
 
 			logger := testhelpers.TestLogger(c, "test_pipeline_path")
 			transCtx, err := model.GetTransferContext(db, logger, trans)
@@ -127,12 +126,11 @@ func TestPathBuilder(t *testing.T) {
 			trans := &model.Transfer{
 				RuleID:         send.ID,
 				LocalAccountID: utils.NewNullInt64(acc.ID),
-				LocalPath:      "file.loc",
-				RemotePath:     "file.rem",
+				SrcFilename:    "file.txt",
 			}
 			So(db.Insert(trans).Run(), ShouldBeNil)
 
-			file := trans.LocalPath
+			file := trans.SrcFilename
 
 			logger := testhelpers.TestLogger(c, "test_pipeline_path")
 			transCtx, err := model.GetTransferContext(db, logger, trans)
