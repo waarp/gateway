@@ -15,6 +15,16 @@ import (
 func leaf(s string) utils.Leaf     { return utils.Leaf(s) }
 func branch(s string) utils.Branch { return utils.Branch(s) }
 
+// getFilesize returns the size of the given file. If the file does not exist or
+// cannot be accessed, it returns the UnknownSize value (-1).
+func getFilesize(file string) int64 {
+	if info, err := os.Stat(file); err != nil {
+		return model.UnknownSize
+	} else {
+		return info.Size()
+	}
+}
+
 // GetFile opens/creates (depending on the transfer's direction) the file pointed
 // by the transfer's local path and returns it as a *os.File.
 func (f *fileStream) getFile() (*os.File, *types.TransferError) {
@@ -27,6 +37,15 @@ func (f *fileStream) getFile() (*os.File, *types.TransferError) {
 
 			return nil, fileErrToTransferErr(err)
 		}
+
+		stat, err := file.Stat()
+		if err != nil {
+			f.Logger.Error("Failed to retrieve the file's info: %s", err)
+
+			return nil, fileErrToTransferErr(err)
+		}
+
+		trans.Filesize = stat.Size()
 
 		if trans.Progress != 0 {
 			if _, err := file.Seek(trans.Progress, io.SeekStart); err != nil {

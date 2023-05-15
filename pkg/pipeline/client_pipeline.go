@@ -76,10 +76,7 @@ func newClientPipeline(db *database.DB, logger *log.Logger,
 			fmt.Sprintf("no client found for protocol %s", proto))
 	}
 
-	pipeline, pErr := newPipeline(db, logger, transCtx)
-	if pErr != nil {
-		return nil, pErr
-	}
+	pipeline := newPipeline(db, logger, transCtx)
 
 	client, err := constr(pipeline)
 	if err != nil {

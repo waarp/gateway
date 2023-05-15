@@ -25,7 +25,6 @@ type downloadHandler struct {
 func (d *downloadHandler) Pause(ctx context.Context) error {
 	d.reply.Do(func() {
 		d.pip.Pause()
-		_ = d.req.Body.Close() //nolint:errcheck // error is irrelevant at this point
 		d.resp.Header().Set(httpconst.TransferStatus, string(types.StatusPaused))
 		d.resp.WriteHeader(http.StatusServiceUnavailable)
 		fmt.Fprintf(d.resp, "transfer paused by user")
@@ -42,7 +41,6 @@ func (d *downloadHandler) Pause(ctx context.Context) error {
 func (d *downloadHandler) Interrupt(ctx context.Context) error {
 	d.reply.Do(func() {
 		d.pip.Interrupt()
-		_ = d.req.Body.Close() //nolint:errcheck // error is irrelevant at this point
 		d.resp.Header().Set(httpconst.TransferStatus, string(types.StatusInterrupted))
 		d.resp.WriteHeader(http.StatusServiceUnavailable)
 		fmt.Fprintf(d.resp, "transfer interrupted by a server shutdown")
@@ -59,7 +57,6 @@ func (d *downloadHandler) Interrupt(ctx context.Context) error {
 func (d *downloadHandler) Cancel(ctx context.Context) error {
 	d.reply.Do(func() {
 		d.pip.Cancel()
-		_ = d.req.Body.Close() //nolint:errcheck // error is irrelevant at this point
 		d.resp.Header().Set(httpconst.TransferStatus, string(types.StatusCancelled))
 		d.resp.WriteHeader(http.StatusServiceUnavailable)
 		fmt.Fprintf(d.resp, "transfer canceled by user")
@@ -165,10 +162,6 @@ func (d *downloadHandler) run() {
 		d.handleLateError(tErr)
 
 		return
-	}
-
-	if err := d.req.Body.Close(); err != nil {
-		d.pip.Logger.Warning("Error while closing request body: %v", err)
 	}
 
 	if dErr := d.pip.EndData(); d.handleLateError(dErr) {
