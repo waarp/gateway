@@ -3,6 +3,12 @@
 Historique des versions
 =======================
 
+* :bug:`376` Correction d'un bug du client R66 de la gateway qui empêchait
+  celui-ci récupérer un fichier depuis un agent *Waarp-R66* pour cause de
+  "mauvais chemin de fichier".
+
+  Correction également d'un bug de compatibilité avec les agents *Waarp-R66*
+  qui pouvait causer un crash de la gateway dans certaines circonstances.
 * :feature:`374` Ajout de 2 colonnes ``src_filename`` et ``dest_filename`` aux
   tables des transferts et d'historique. Ces colonnes contiennent respectivement
   (lorsque c'est pertinent) le nom de fichier source, et le nom de fichier

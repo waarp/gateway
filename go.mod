@@ -3,7 +3,7 @@ module code.waarp.fr/apps/gateway/gateway
 require (
 	code.waarp.fr/lib/log v1.2.0
 	code.waarp.fr/lib/migration v0.4.0
-	code.waarp.fr/lib/r66 v0.1.5
+	code.waarp.fr/lib/r66 v0.1.6
 	github.com/bwmarrin/snowflake v0.3.0
 	github.com/go-sql-driver/mysql v1.7.0
 	github.com/google/uuid v1.3.0

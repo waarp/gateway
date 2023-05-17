@@ -2,6 +2,7 @@ package r66
 
 import (
 	"os"
+	"path"
 
 	"code.waarp.fr/lib/r66"
 	"golang.org/x/crypto/bcrypt"
@@ -164,8 +165,8 @@ func (c *client) checkReqResp(req, resp *r66.Request) *types.TransferError {
 		}
 	}
 
-	if resp.Filepath != req.Filepath {
-		c.logErrConf("different file path")
+	if path.Base(resp.Filepath) != path.Base(req.Filepath) {
+		c.logErrConf("different filename")
 
 		return errConf
 	}
