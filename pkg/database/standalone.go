@@ -2,6 +2,8 @@ package database
 
 import (
 	"fmt"
+	"runtime/debug"
+	"time"
 
 	"code.waarp.fr/lib/log"
 	"xorm.io/xorm"
@@ -20,6 +22,11 @@ func (s *Standalone) newSession() *Session {
 	}
 }
 
+// If a transaction takes more than this amount of time, print a warning message
+// with a stack trace (for debugging purposes), because transactions should not
+// take that long.
+const warnDuration = 10 * time.Second
+
 // TransactionFunc is the type representing a function meant to be executed inside
 // a transaction using the Standalone.Transaction method.
 type TransactionFunc func(*Session) Error
@@ -36,9 +43,25 @@ func (s *Standalone) Transaction(f TransactionFunc) Error {
 		return NewInternalError(err)
 	}
 
+	done := make(chan bool)
+
 	defer func() {
 		if err := ses.session.Close(); err != nil {
 			s.logger.Warning("an error occurred while closing the session: %v", err)
+		}
+
+		close(done)
+	}()
+
+	go func() {
+		timer := time.NewTimer(warnDuration)
+		defer timer.Stop()
+
+		select {
+		case <-timer.C:
+			s.logger.Warning("transaction is taking an unusually long time, "+
+				"printing stack for debugging purposes:\n%s", debug.Stack())
+		case <-done:
 		}
 	}()
 
