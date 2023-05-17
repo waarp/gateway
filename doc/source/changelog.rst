@@ -3,6 +3,10 @@
 Historique des versions
 =======================
 
+* :feature:`375` Il est désormais possible de commencer un transfert d'envoi
+  même si le fichier à envoyer n'existe pas encore, tant que celui-ci est créé
+  avant le début de la phase d'envoi des données. Typiquement, cela permet de
+  démarrer un transfert où le fichier est créé via les pré-tâches.
 * :feat:`-` Les logs des tâches (notamment des tâche *exec*) ont été améliorés.
   Dans le cas des tâches exec, la sortie standard du programme externe est
   désormais récupérée et écrite dans les logs de la gateway (au niveau *DEBUG*).
