@@ -3,6 +3,24 @@
 Historique des versions
 =======================
 
+* :feature:`374` Ajout de 2 colonnes ``src_filename`` et ``dest_filename`` aux
+  tables des transferts et d'historique. Ces colonnes contiennent respectivement
+  (lorsque c'est pertinent) le nom de fichier source, et le nom de fichier
+  destination du transfert. Contrairement aux colonnes ``local_path`` et
+  ``remote_path`` déjà existante, le contenu de ces 2 nouvelles colonnes ne
+  change jamais, même lorsque le nom du fichier est modifié durant le transfert.
+  Par conséquent, les nom de fichiers ``src_filename`` et ``dest_filename``
+  contiennent toujours le nom de fichier tel qu'il a été donné dans la requête
+  originale.
+
+  L'ajout de ces 2 nouvelles colonnes a également permis de corriger 2 bugs
+  existants de la *gateway*:
+
+  1) Les transferts créés avec un chemin de fichier absolus déposaient le fichier
+     au mauvais endroit,
+  2) Si le nom du fichier changeait durant le transfert, et que le transfert en
+     question était ensuite reprogrammé (via la commande ``waarp-gateway transfer retry``),
+     le transfert échouait systématiquement avec une erreur "file not found".
 * :feature:`375` Il est désormais possible de commencer un transfert d'envoi
   même si le fichier à envoyer n'existe pas encore, tant que celui-ci est créé
   avant le début de la phase d'envoi des données. Typiquement, cela permet de

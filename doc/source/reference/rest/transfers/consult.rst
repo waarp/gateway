@@ -21,6 +21,8 @@ Consulter un transfert
    :resjson string requester: Le nom du compte ayant demandé le transfert
    :resjson string requested: Le nom du serveur/partenaire auquel le transfert a été demandé
    :resjson string protocol: Le protocole utilisé pour effectuer le transfert
+   :resjson string srcFilename: Le nom du fichier source.
+   :resjson string destFilename: Le nom du fichier destination.
    :resjson string localFilepath: Le chemin du fichier sur le disque local
    :resjson string remoteFilepath: Le chemin du fichier sur le partenaire distant
    :resjson number filesize: La taille du fichier (-1 si inconnue)
