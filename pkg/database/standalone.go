@@ -3,6 +3,7 @@ package database
 import (
 	"fmt"
 	"runtime/debug"
+	"sync"
 	"time"
 
 	"code.waarp.fr/lib/log"
@@ -11,8 +12,9 @@ import (
 
 // Standalone is a struct used to execute standalone commands on the database.
 type Standalone struct {
-	engine *xorm.Engine
-	logger *log.Logger
+	engine   *xorm.Engine
+	logger   *log.Logger
+	sessions sync.WaitGroup
 }
 
 func (s *Standalone) newSession() *Session {
@@ -42,6 +44,9 @@ func (s *Standalone) Transaction(f TransactionFunc) Error {
 
 		return NewInternalError(err)
 	}
+
+	s.sessions.Add(1)
+	defer s.sessions.Done()
 
 	done := make(chan bool)
 

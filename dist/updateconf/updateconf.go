@@ -10,13 +10,11 @@ import (
 	"os/exec"
 	"path/filepath"
 	"strings"
-	"time"
 )
 
 const (
 	minArgs       = 2
 	exitErrorCode = 2
-	execTimeout   = 2 * time.Second
 )
 
 var (
@@ -24,12 +22,15 @@ var (
 	errNoConfDir    = errors.New("configuration directory not found or invalid")
 )
 
-//nolint:forbidigo // this is allowed in the main function
+//nolint:forbidigo //this is allowed in the main function
 func main() {
 	if len(os.Args) < minArgs {
 		fmt.Printf("updateconf needs at least 1 parameter")
 		os.Exit(exitErrorCode)
 	}
+
+	fmt.Println("Start of updateconf")
+	defer fmt.Println("End of process updateconf")
 
 	archFile := os.Args[1]
 	instance := getConfFilename(archFile)
@@ -44,7 +45,7 @@ func main() {
 	if err := importConf(&archReader.Reader, instance); err != nil {
 		fmt.Printf("Cannot import configuration: %s\n", err.Error())
 
-		_ = archReader.Close() //nolint: errcheck // ignore error
+		_ = archReader.Close() //nolint:errcheck //ignore error
 
 		os.Exit(exitErrorCode)
 	}
@@ -53,10 +54,10 @@ func main() {
 	if err := moveToConf(&archReader.Reader, "get-file.list"); err != nil {
 		fmt.Printf("Cannot write configuration file: %s\n", err.Error())
 
-		_ = archReader.Close() //nolint: errcheck // ignore error
+		_ = archReader.Close() //nolint:errcheck //ignore error
 	}
 
-	_ = archReader.Close() //nolint: errcheck // ignore error
+	_ = archReader.Close() //nolint:errcheck //ignore error
 }
 
 func getConfFilename(archfile string) string {
@@ -91,7 +92,7 @@ func importConf(arch *zip.Reader, file string) error {
 		return err
 	}
 
-	defer func() { _ = rc.Close() }() //nolint: errcheck // no need to check error
+	defer func() { _ = rc.Close() }() //nolint:errcheck //no need to check error
 
 	err = execImport(rc)
 	if err != nil {
@@ -117,32 +118,15 @@ func getFileFromArch(arch *zip.Reader, file string) (io.ReadCloser, error) {
 }
 
 func execImport(confReader io.Reader) error {
-	ctx, cancel := context.WithTimeout(context.Background(), execTimeout)
-	defer cancel()
-
-	cmd := exec.CommandContext(ctx, "waarp-gatewayd", "import", "-v")
-
-	writer, err := cmd.StdinPipe()
-	if err != nil {
-		return fmt.Errorf("cannot open subprocess stdin: %w", err)
-	}
-
-	go func() {
-		defer writer.Close() //nolint:errcheck // nothing to handle the error
-
-		_, err = io.Copy(writer, confReader)
-		if err != nil {
-			//nolint:forbidigo // with this design, this is sadly the only way to handle the error
-			fmt.Printf("cannot import configuration: %s\n", err.Error())
-		}
-	}()
+	cmd := exec.CommandContext(context.Background(), "waarp-gatewayd", "import", "-v")
+	cmd.Stdin = confReader
 
 	out, err := cmd.CombinedOutput()
 	if err != nil {
 		return fmt.Errorf("cannot read subprocess output: %w", err)
 	}
 
-	fmt.Print(string(out)) //nolint:forbidigo // output must be written for the Gateway uses it
+	fmt.Print(string(out)) //nolint:forbidigo //output must be written for the Gateway uses it
 
 	return nil
 }

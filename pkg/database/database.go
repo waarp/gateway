@@ -208,7 +208,7 @@ func (db *DB) start(withInit bool) error {
 // Stop shuts down the database service. If an error occurred during the shutdown,
 // an error is returned.
 // If the service is not running, this function does nothing.
-func (db *DB) Stop(_ context.Context) error {
+func (db *DB) Stop(ctx context.Context) error {
 	db.logger.Info("Shutting down...")
 
 	if code, _ := db.state.Get(); code != state.Running {
@@ -225,6 +225,19 @@ func (db *DB) Stop(_ context.Context) error {
 		db.logger.Info("Error while closing the database: %s", err)
 
 		return fmt.Errorf("an error occurred while closing the database: %w", err)
+	}
+
+	select {
+	case <-ctx.Done():
+		db.logger.Warning("Failed to close the pending transactions")
+		db.logger.Warning("Force closing the database")
+	case <-func() chan bool {
+		done := make(chan bool)
+		db.sessions.Wait()
+		close(done)
+
+		return done
+	}():
 	}
 
 	db.state.Set(state.Offline, "")
