@@ -1,6 +1,7 @@
 package tasks
 
 import (
+	"bufio"
 	"bytes"
 	"context"
 	"errors"
@@ -8,6 +9,8 @@ import (
 	"os/exec"
 	"strconv"
 	"time"
+
+	"code.waarp.fr/lib/log"
 
 	"code.waarp.fr/apps/gateway/gateway/pkg/database"
 	"code.waarp.fr/apps/gateway/gateway/pkg/model"
@@ -32,14 +35,26 @@ func (e *execTask) Validate(params map[string]string) error {
 
 // Run executes the task by executing the external program with the given parameters.
 func (e *execTask) Run(parent context.Context, params map[string]string,
-	_ *database.DB, _ *model.TransferContext) (string, error) {
-	_, cmdErr := runExec(parent, params, false)
+	_ *database.DB, logger *log.Logger, _ *model.TransferContext,
+) error {
+	output, cmdErr := runExec(parent, params)
+	if cmdErr != nil {
+		return cmdErr
+	}
 
-	return "", cmdErr
+	scanner := bufio.NewScanner(output)
+	for scanner.Scan() {
+		logger.Debug(scanner.Text())
+	}
+
+	logger.Debug("Done executing command %s %s", params["path"], params["args"])
+
+	return nil
 }
 
 func parseExecArgs(params map[string]string) (path, args string,
-	delay time.Duration, err error) {
+	delay time.Duration, err error,
+) {
 	var ok bool
 	if path, ok = params["path"]; !ok || path == "" {
 		err = fmt.Errorf("missing program path: %w", errBadTaskArguments)
@@ -79,7 +94,7 @@ func parseExecArgs(params map[string]string) (path, args string,
 	return path, args, delay, nil
 }
 
-func runExec(parent context.Context, params map[string]string, withOutput bool) (*bytes.Buffer, error) {
+func runExec(parent context.Context, params map[string]string) (*bytes.Buffer, error) {
 	var (
 		cancel context.CancelFunc
 		output bytes.Buffer
@@ -98,10 +113,7 @@ func runExec(parent context.Context, params map[string]string, withOutput bool) 
 	}
 
 	cmd := getCommand(script, args)
-
-	if withOutput {
-		cmd.Stdout = &output
-	}
+	cmd.Stdout = &output
 
 	if startErr := cmd.Start(); startErr != nil {
 		return nil, fmt.Errorf("failed to start external program: %w", startErr)

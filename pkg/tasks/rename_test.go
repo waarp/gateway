@@ -2,7 +2,7 @@ package tasks
 
 import (
 	"context"
-	"io/ioutil"
+	"os"
 	"path/filepath"
 	"testing"
 
@@ -49,13 +49,14 @@ func TestRenameTaskValidate(t *testing.T) {
 
 func TestRenameTaskRun(t *testing.T) {
 	Convey("Given a Runner for a sending Transfer", t, func(c C) {
+		logger := testhelpers.TestLogger(c, "task_rename")
 		root := testhelpers.TempDir(c, "task_rename")
 		task := &renameTask{}
 
 		srcPath := filepath.Join(root, "rename.src")
-		So(ioutil.WriteFile(srcPath, []byte("Hello World"), 0o700), ShouldBeNil)
+		So(os.WriteFile(srcPath, []byte("Hello World"), 0o700), ShouldBeNil)
 		dstPath := filepath.Join(root, "rename.dst")
-		So(ioutil.WriteFile(dstPath, []byte("Goodbye World"), 0o700), ShouldBeNil)
+		So(os.WriteFile(dstPath, []byte("Goodbye World"), 0o700), ShouldBeNil)
 
 		transCtx := &model.TransferContext{
 			Rule: &model.Rule{
@@ -71,7 +72,7 @@ func TestRenameTaskRun(t *testing.T) {
 			args := map[string]string{"path": dstPath}
 
 			Convey("When calling the `run` method", func() {
-				_, err := task.Run(context.Background(), args, nil, transCtx)
+				err := task.Run(context.Background(), args, nil, logger, transCtx)
 
 				Convey("Then it should NOT return an error", func() {
 					So(err, ShouldBeNil)
@@ -91,7 +92,7 @@ func TestRenameTaskRun(t *testing.T) {
 			args := map[string]string{"path": filepath.Join(root, "dummy")}
 
 			Convey("When calling the `run` method", func() {
-				_, err := task.Run(context.Background(), args, nil, transCtx)
+				err := task.Run(context.Background(), args, nil, logger, transCtx)
 
 				Convey("Then it should return an error", func() {
 					So(err, ShouldBeError, &fileNotFoundError{"change transfer target file to", args["path"]})

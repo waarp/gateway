@@ -2,7 +2,7 @@ package tasks
 
 import (
 	"context"
-	"io/ioutil"
+	"os"
 	"path/filepath"
 	"testing"
 
@@ -83,6 +83,7 @@ func TestExecOutputValidate(t *testing.T) {
 
 func TestExecOutputRun(t *testing.T) {
 	Convey("Given an 'EXECOUTPUT' task", t, func(c C) {
+		logger := testhelpers.TestLogger(c, "task_execoutput")
 		root := testhelpers.TempDir(c, "task_execoutput")
 		scriptFile := filepath.Join(root, execOutputScriptFile)
 
@@ -100,11 +101,11 @@ func TestExecOutputRun(t *testing.T) {
 			}
 
 			Convey("Given that the command succeeds", func() {
-				err := ioutil.WriteFile(scriptFile, []byte(scriptExecOK), 0o700)
+				err := os.WriteFile(scriptFile, []byte(scriptExecOK), 0o700)
 				So(err, ShouldBeNil)
 
 				Convey("When running the task", func() {
-					_, err := exec.Run(context.Background(), args, nil, transCtx)
+					err := exec.Run(context.Background(), args, nil, logger, transCtx)
 
 					Convey("Then it should NOT return an error", func() {
 						So(err, ShouldBeNil)
@@ -113,11 +114,11 @@ func TestExecOutputRun(t *testing.T) {
 			})
 
 			Convey("Given that the command sends a warning", func() {
-				err := ioutil.WriteFile(scriptFile, []byte(scriptExecWarn), 0o700)
+				err := os.WriteFile(scriptFile, []byte(scriptExecWarn), 0o700)
 				So(err, ShouldBeNil)
 
 				Convey("When running the task", func() {
-					_, err := exec.Run(context.Background(), args, nil, transCtx)
+					err := exec.Run(context.Background(), args, nil, logger, transCtx)
 
 					Convey("Then it should return a 'warning' error", func() {
 						So(err, ShouldHaveSameTypeAs, &warningError{})
@@ -126,11 +127,11 @@ func TestExecOutputRun(t *testing.T) {
 			})
 
 			Convey("Given that the command fails", func() {
-				So(ioutil.WriteFile(scriptFile, []byte(scriptExecOutputFail),
+				So(os.WriteFile(scriptFile, []byte(scriptExecOutputFail),
 					0o700), ShouldBeNil)
 
 				Convey("When running the task", func() {
-					_, err := exec.Run(context.Background(), args, nil, transCtx)
+					err := exec.Run(context.Background(), args, nil, logger, transCtx)
 
 					Convey("Then it should return an error", func() {
 						So(err, ShouldBeError)
@@ -144,13 +145,13 @@ func TestExecOutputRun(t *testing.T) {
 			})
 
 			Convey("Given that the command delay expires", func() {
-				err := ioutil.WriteFile(scriptFile, []byte(scriptExecInfinite), 0o700)
+				err := os.WriteFile(scriptFile, []byte(scriptExecInfinite), 0o700)
 				So(err, ShouldBeNil)
 
 				args["delay"] = "100"
 
 				Convey("When running the task", func() {
-					_, err := exec.Run(context.Background(), args, nil, transCtx)
+					err := exec.Run(context.Background(), args, nil, logger, transCtx)
 
 					Convey("Then it should return an error", func() {
 						So(err, ShouldBeError, errCommandTimeout)

@@ -6,6 +6,8 @@ import (
 	"fmt"
 	"path/filepath"
 
+	"code.waarp.fr/lib/log"
+
 	"code.waarp.fr/apps/gateway/gateway/pkg/database"
 	"code.waarp.fr/apps/gateway/gateway/pkg/model"
 )
@@ -107,11 +109,11 @@ func getTransferInfo(db *database.DB, args map[string]string) (file string,
 
 // Run executes the task by scheduling a new transfer with the given parameters.
 func (t *TransferTask) Run(_ context.Context, args map[string]string,
-	db *database.DB, _ *model.TransferContext,
-) (string, error) {
+	db *database.DB, logger *log.Logger, _ *model.TransferContext,
+) error {
 	file, ruleID, accID, isSend, err := getTransferInfo(db, args)
 	if err != nil {
-		return err.Error(), err
+		return err
 	}
 
 	localPath := filepath.Base(file)
@@ -130,8 +132,16 @@ func (t *TransferTask) Run(_ context.Context, args map[string]string,
 	}
 
 	if err := db.Insert(trans).Run(); err != nil {
-		return fmt.Sprintf("cannot create transfer of file '%s': %s", file, err), err
+		return err
 	}
 
-	return "", nil
+	recipient := fmt.Sprintf("from %q", args["from"])
+	if isSend {
+		recipient = fmt.Sprintf("to %q", args["to"])
+	}
+
+	logger.Debug("Programmed new transfer n°%d of file %q, %s as %q using rule %q",
+		trans.ID, file, recipient, args["as"], args["rule"])
+
+	return nil
 }

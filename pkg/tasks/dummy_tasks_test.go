@@ -7,6 +7,8 @@ import (
 	"errors"
 	"time"
 
+	"code.waarp.fr/lib/log"
+
 	"code.waarp.fr/apps/gateway/gateway/pkg/database"
 	"code.waarp.fr/apps/gateway/gateway/pkg/model"
 )
@@ -38,10 +40,11 @@ func (t *testTaskSuccess) Validate(map[string]string) error {
 }
 
 func (t *testTaskSuccess) Run(context.Context, map[string]string, *database.DB,
-	*model.TransferContext) (string, error) {
+	*log.Logger, *model.TransferContext,
+) error {
 	dummyTaskCheck <- "SUCCESS"
 
-	return "", nil
+	return nil
 }
 
 type testTaskWarning struct{}
@@ -51,10 +54,11 @@ func (t *testTaskWarning) Validate(map[string]string) error {
 }
 
 func (t *testTaskWarning) Run(context.Context, map[string]string, *database.DB,
-	*model.TransferContext) (string, error) {
+	*log.Logger, *model.TransferContext,
+) error {
 	dummyTaskCheck <- "WARNING"
 
-	return "warning message", &warningError{"warning message"}
+	return &warningError{"warning message"}
 }
 
 type testTaskFail struct{}
@@ -63,10 +67,12 @@ func (t *testTaskFail) Validate(map[string]string) error {
 	return nil
 }
 
-func (t *testTaskFail) Run(context.Context, map[string]string, *database.DB, *model.TransferContext) (string, error) {
+func (t *testTaskFail) Run(context.Context, map[string]string, *database.DB,
+	*log.Logger, *model.TransferContext,
+) error {
 	dummyTaskCheck <- "FAILURE"
 
-	return "task failed", errTaskFailed
+	return errTaskFailed
 }
 
 type testTaskLong struct{}
@@ -75,10 +81,12 @@ func (t *testTaskLong) Validate(map[string]string) error {
 	return nil
 }
 
-func (t *testTaskLong) Run(context.Context, map[string]string, *database.DB, *model.TransferContext) (string, error) {
+func (t *testTaskLong) Run(context.Context, map[string]string, *database.DB,
+	*log.Logger, *model.TransferContext,
+) error {
 	dummyTaskCheck <- "LONG"
 
 	time.Sleep(time.Minute)
 
-	return "task failed", errTaskFailed
+	return errTaskFailed
 }

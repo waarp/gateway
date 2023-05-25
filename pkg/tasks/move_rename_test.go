@@ -2,7 +2,6 @@ package tasks
 
 import (
 	"context"
-	"io/ioutil"
 	"os"
 	"path"
 	"path/filepath"
@@ -51,10 +50,11 @@ func TestMoveRenameTaskValidate(t *testing.T) {
 
 func TestMoveRenameTaskRun(t *testing.T) {
 	Convey("Given a Runner for a sending transfer", t, func(c C) {
+		logger := testhelpers.TestLogger(c, "task_moverename")
 		root := testhelpers.TempDir(c, "task_move")
 		task := &moveRenameTask{}
 		srcPath := filepath.Join(root, "move_rename.src")
-		So(ioutil.WriteFile(srcPath, []byte("Hello World"), 0o700), ShouldBeNil)
+		So(os.WriteFile(srcPath, []byte("Hello World"), 0o700), ShouldBeNil)
 
 		transCtx := &model.TransferContext{
 			Rule: &model.Rule{
@@ -73,7 +73,7 @@ func TestMoveRenameTaskRun(t *testing.T) {
 
 			Convey("Given that the file exists", func() {
 				Convey("When calling the `Run` method", func() {
-					_, err := task.Run(context.Background(), args, nil, transCtx)
+					err := task.Run(context.Background(), args, nil, logger, transCtx)
 
 					Convey("Then it should NOT return an error", func() {
 						So(err, ShouldBeNil)
@@ -99,7 +99,7 @@ func TestMoveRenameTaskRun(t *testing.T) {
 				So(os.Remove(srcPath), ShouldBeNil)
 
 				Convey("When calling the 'Run' method", func() {
-					_, err := task.Run(context.Background(), args, nil, transCtx)
+					err := task.Run(context.Background(), args, nil, logger, transCtx)
 
 					Convey("Then it should return an error", func() {
 						So(err, ShouldNotBeNil)

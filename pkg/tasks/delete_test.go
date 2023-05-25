@@ -2,7 +2,6 @@ package tasks
 
 import (
 	"context"
-	"io/ioutil"
 	"os"
 	"path/filepath"
 	"testing"
@@ -31,6 +30,7 @@ func TestDeleteTaskValidate(t *testing.T) {
 
 func TestDeleteTaskRun(t *testing.T) {
 	Convey("Given a processor for a sending transfer", t, func(c C) {
+		logger := testhelpers.TestLogger(c, "task_delete")
 		root := testhelpers.TempDir(c, "task_delete")
 		task := &deleteTask{}
 		srcFile := filepath.Join(root, "test.src")
@@ -39,12 +39,12 @@ func TestDeleteTaskRun(t *testing.T) {
 			LocalPath: utils.ToOSPath(srcFile),
 		}}
 
-		So(ioutil.WriteFile(srcFile, []byte("Hello World"), 0o700), ShouldBeNil)
+		So(os.WriteFile(srcFile, []byte("Hello World"), 0o700), ShouldBeNil)
 		args := map[string]string{}
 
 		Convey("Given that the file exists", func() {
 			Convey("When calling the run method", func() {
-				_, err := task.Run(context.Background(), args, nil, transCtx)
+				err := task.Run(context.Background(), args, nil, logger, transCtx)
 
 				Convey("Then it should NOT return an error", func() {
 					So(err, ShouldBeNil)
@@ -61,7 +61,7 @@ func TestDeleteTaskRun(t *testing.T) {
 			So(os.Remove(srcFile), ShouldBeNil)
 
 			Convey("When calling the run method", func() {
-				_, err := task.Run(context.Background(), args, nil, transCtx)
+				err := task.Run(context.Background(), args, nil, logger, transCtx)
 
 				Convey("Then it should return an error", func() {
 					So(err, ShouldNotBeNil)

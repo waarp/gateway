@@ -4,6 +4,8 @@ import (
 	"context"
 	"os"
 
+	"code.waarp.fr/lib/log"
+
 	"code.waarp.fr/apps/gateway/gateway/pkg/database"
 	"code.waarp.fr/apps/gateway/gateway/pkg/model"
 	"code.waarp.fr/apps/gateway/gateway/pkg/tk/utils"
@@ -24,11 +26,14 @@ func (*deleteTask) Validate(map[string]string) error {
 
 // Run deletes the current file from the system.
 func (*deleteTask) Run(_ context.Context, _ map[string]string, _ *database.DB,
-	transCtx *model.TransferContext) (string, error) {
+	logger *log.Logger, transCtx *model.TransferContext,
+) error {
 	truePath := utils.ToOSPath(transCtx.Transfer.LocalPath)
 	if err := os.Remove(truePath); err != nil {
-		return "", normalizeFileError("delete file", err)
+		return normalizeFileError("delete file", err)
 	}
 
-	return "", nil
+	logger.Debug("Deleted file %q", truePath)
+
+	return nil
 }

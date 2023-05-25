@@ -49,6 +49,7 @@ func TestCopyTaskValidate(t *testing.T) {
 
 func TestCopyTaskRun(t *testing.T) {
 	Convey("Given a Runner for the 'COPY' task", t, func(c C) {
+		logger := testhelpers.TestLogger(c, "task_copy")
 		root := testhelpers.TempDir(c, "task_copy")
 		task := &copyTask{}
 		srcFile := filepath.Join(root, "test.src")
@@ -64,7 +65,7 @@ func TestCopyTaskRun(t *testing.T) {
 			So(os.Remove(srcFile), ShouldBeNil)
 
 			Convey("When calling the run method", func() {
-				_, err := task.Run(context.Background(), args, nil, transCtx)
+				err := task.Run(context.Background(), args, nil, logger, transCtx)
 
 				Convey("Then it should return an error", func() {
 					So(err, ShouldNotBeNil)
@@ -80,7 +81,7 @@ func TestCopyTaskRun(t *testing.T) {
 			args["path"] = root
 
 			Convey("When calling the run method", func() {
-				_, err := task.Run(context.Background(), args, nil, transCtx)
+				err := task.Run(context.Background(), args, nil, logger, transCtx)
 
 				Convey("Then it should NOT return an error", func() {
 					So(err, ShouldBeNil)
@@ -99,7 +100,7 @@ func TestCopyTaskRun(t *testing.T) {
 
 			Convey("Given the target can be created", func() {
 				Convey("When the task is run", func() {
-					_, err := task.Run(context.Background(), args, nil, transCtx)
+					err := task.Run(context.Background(), args, nil, logger, transCtx)
 
 					Convey("Then it should return no error", func() {
 						So(err, ShouldBeNil)
@@ -117,7 +118,7 @@ func TestCopyTaskRun(t *testing.T) {
 					[]byte("hello"), 0o600), ShouldBeNil)
 
 				Convey("When the task is run", func() {
-					_, err := task.Run(context.Background(), args, nil, transCtx)
+					err := task.Run(context.Background(), args, nil, logger, transCtx)
 
 					Convey("Then it should return an error", func() {
 						So(err, ShouldBeError)

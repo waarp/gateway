@@ -4,6 +4,8 @@ import (
 	"context"
 	"encoding/json"
 
+	"code.waarp.fr/lib/log"
+
 	"code.waarp.fr/apps/gateway/gateway/pkg/database"
 )
 
@@ -23,7 +25,7 @@ type TaskValidator interface {
 // implement this interface in order for the tasks.Runner to be able to execute
 // them.
 type TaskRunner interface {
-	Run(context.Context, map[string]string, *database.DB, *TransferContext) (string, error)
+	Run(context.Context, map[string]string, *database.DB, *log.Logger, *TransferContext) error
 }
 
 // Chain represents the valid chains for a task entry.

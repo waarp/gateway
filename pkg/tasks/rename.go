@@ -7,6 +7,8 @@ import (
 	"path"
 	"path/filepath"
 
+	"code.waarp.fr/lib/log"
+
 	"code.waarp.fr/apps/gateway/gateway/pkg/database"
 	"code.waarp.fr/apps/gateway/gateway/pkg/model"
 	"code.waarp.fr/apps/gateway/gateway/pkg/tk/utils"
@@ -32,16 +34,19 @@ func (*renameTask) Validate(args map[string]string) error {
 
 // Run executes the task by renaming the transfer file.
 func (*renameTask) Run(_ context.Context, args map[string]string, _ *database.DB,
-	transCtx *model.TransferContext) (string, error) {
+	logger *log.Logger, transCtx *model.TransferContext,
+) error {
 	newPath := args["path"]
 
 	if _, err := os.Stat(utils.ToOSPath(newPath)); err != nil {
-		return "", normalizeFileError("change transfer target file to", err)
+		return normalizeFileError("change transfer target file to", err)
 	}
 
 	transCtx.Transfer.LocalPath = utils.ToOSPath(newPath)
 	transCtx.Transfer.RemotePath = path.Join(path.Dir(transCtx.Transfer.RemotePath),
 		filepath.Base(transCtx.Transfer.LocalPath))
 
-	return "", nil
+	logger.Debug("Changed target file to %q", newPath)
+
+	return nil
 }
