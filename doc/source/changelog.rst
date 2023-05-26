@@ -3,6 +3,19 @@
 Historique des versions
 =======================
 
+* :feat:`-` Les logs des tâches (notamment des tâche *exec*) ont été améliorés.
+  Dans le cas des tâches exec, la sortie standard du programme externe est
+  désormais récupérée et écrite dans les logs de la gateway (au niveau *DEBUG*).
+* :bug:`377` Suppression de la limite de temps de 2 secondes imposée par le
+  script *updateconf* pour réaliser un import de configuration. Cette limite de
+  temps causait l'échec de l'import lorsque celui-ci prenait plus de 2 secondes
+  à se compléter.
+
+  Par ailleurs, la commande d'import a été optimisée pour réduire la durée pendant
+  laquelle la transaction avec la base de données est active. Cela permet d'éviter
+  les conflits entre transactions qui peuvent se produire lorsqu'une transaction
+  reste ouverte trop longtemps.
+
 * :release:`0.7.5 <2023-04-07>`
 * :bug:`372` Correction d'un bug des tâches ``COPY`` et ``COPYRENAME`` qui
   causait la suppression du contenu du fichier source lorsque celui-ci était

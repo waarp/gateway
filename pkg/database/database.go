@@ -219,8 +219,7 @@ func (db *DB) Stop(ctx context.Context) error {
 
 	db.state.Set(state.ShuttingDown, "")
 
-	err := db.Standalone.engine.Close()
-	if err != nil {
+	if err := db.Standalone.engine.Close(); err != nil {
 		db.state.Set(state.Error, err.Error())
 		db.logger.Info("Error while closing the database: %s", err)
 
@@ -233,7 +232,16 @@ func (db *DB) Stop(ctx context.Context) error {
 		db.logger.Warning("Force closing the database")
 	case <-func() chan bool {
 		done := make(chan bool)
-		db.sessions.Wait()
+
+		db.sessions.Range(func(_, ses any) bool {
+			//nolint:forcetypeassert //type assert will always succeed
+			if err := ses.(*Session).session.Close(); err != nil {
+				db.logger.Warning("Failed to close session: %v", err)
+			}
+
+			return true
+		})
+
 		close(done)
 
 		return done

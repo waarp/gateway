@@ -14,11 +14,12 @@ import (
 type Standalone struct {
 	engine   *xorm.Engine
 	logger   *log.Logger
-	sessions sync.WaitGroup
+	sessions sync.Map
 }
 
 func (s *Standalone) newSession() *Session {
 	return &Session{
+		id:      time.Now().UnixNano(),
 		session: s.engine.NewSession(),
 		logger:  s.logger,
 	}
@@ -36,7 +37,7 @@ type TransactionFunc func(*Session) Error
 // Transaction executes all the commands in the given function as a transaction.
 // The transaction will be then be roll-backed or committed, depending on whether
 // the function returned an error or not.
-func (s *Standalone) Transaction(f TransactionFunc) Error {
+func (s *Standalone) Transaction(fun TransactionFunc) Error {
 	ses := s.newSession()
 
 	if err := ses.session.Begin(); err != nil {
@@ -45,8 +46,8 @@ func (s *Standalone) Transaction(f TransactionFunc) Error {
 		return NewInternalError(err)
 	}
 
-	s.sessions.Add(1)
-	defer s.sessions.Done()
+	s.sessions.Store(ses.id, ses)
+	defer s.sessions.Delete(ses.id)
 
 	done := make(chan bool)
 
@@ -70,7 +71,7 @@ func (s *Standalone) Transaction(f TransactionFunc) Error {
 		}
 	}()
 
-	if err := f(ses); err != nil {
+	if err := fun(ses); err != nil {
 		s.logger.Trace("Transaction failed, changes have been rolled back")
 
 		if err := ses.session.Rollback(); err != nil {

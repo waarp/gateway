@@ -42,6 +42,8 @@ func (t *TestTask) Run(context.Context, map[string]string, *database.DB, *log.Lo
 type TestTaskError struct{}
 
 // Run executes the dummy task, which will always return an error.
-func (t *TestTaskError) Run(context.Context, map[string]string, *database.DB, *log.Logger, *model.TransferContext) error {
+func (t *TestTaskError) Run(context.Context, map[string]string, *database.DB,
+	*log.Logger, *model.TransferContext,
+) error {
 	return ErrTaskFailed
 }

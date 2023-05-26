@@ -40,9 +40,10 @@ func TestImportUsers(t *testing.T) {
 
 		Convey("Given a new user to import", func() {
 			user := file.User{
-				Username:    "user2",
-				Password:    "password2",
-				Permissions: file.Permissions{Servers: "-w-"},
+				Username:     "user2",
+				Password:     "password2",
+				PasswordHash: hash("password2"),
+				Permissions:  file.Permissions{Servers: "-w-"},
 			}
 			users := []file.User{user}
 
@@ -66,9 +67,10 @@ func TestImportUsers(t *testing.T) {
 
 		Convey("Given an existing user to import", func() {
 			user := file.User{
-				Username:    dbUser1a.Username,
-				Password:    "password2",
-				Permissions: file.Permissions{Servers: "-w-"},
+				Username:     dbUser1a.Username,
+				Password:     "password2",
+				PasswordHash: hash("password2"),
+				Permissions:  file.Permissions{Servers: "-w-"},
 			}
 			users := []file.User{user}
 

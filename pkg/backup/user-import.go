@@ -9,7 +9,6 @@ import (
 	"code.waarp.fr/apps/gateway/gateway/pkg/conf"
 	"code.waarp.fr/apps/gateway/gateway/pkg/database"
 	"code.waarp.fr/apps/gateway/gateway/pkg/model"
-	"code.waarp.fr/apps/gateway/gateway/pkg/tk/utils"
 )
 
 func importUsers(logger *log.Logger, db database.Access, users []file.User) database.Error {
@@ -31,14 +30,9 @@ func importUsers(logger *log.Logger, db database.Access, users []file.User) data
 		}
 
 		dbUser.Username = user.Username
-		dbUser.PasswordHash = user.PasswordHash
 
-		if user.PasswordHash == "" {
-			var err error
-			if dbUser.PasswordHash, err = utils.HashPassword(database.BcryptRounds,
-				user.Password); err != nil {
-				return database.NewInternalError(fmt.Errorf("failed to hash account password: %w", err))
-			}
+		if user.PasswordHash != "" {
+			dbUser.PasswordHash = user.PasswordHash
 		}
 
 		var err database.Error

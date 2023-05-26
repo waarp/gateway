@@ -30,7 +30,6 @@ func main() {
 	}
 
 	fmt.Println("Start of updateconf")
-	defer fmt.Println("End of process updateconf")
 
 	archFile := os.Args[1]
 	instance := getConfFilename(archFile)
@@ -58,6 +57,8 @@ func main() {
 	}
 
 	_ = archReader.Close() //nolint:errcheck //ignore error
+
+	fmt.Println("End of process updateconf")
 }
 
 func getConfFilename(archfile string) string {

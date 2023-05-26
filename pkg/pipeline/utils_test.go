@@ -220,6 +220,7 @@ func newTestPipeline(c C, db *database.DB, trans *model.Transfer) *Pipeline {
 	return pip.Pip
 }
 
+//nolint:gochecknoglobals //this is necessary for testing
 var (
 	errRequest = types.NewTransferError(types.TeConnection, "request failed")
 	errPre     = types.NewTransferError(types.TeExternalOperation, "remote pre-tasks failed")
