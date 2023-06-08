@@ -14,7 +14,7 @@ type InTransfer struct {
 	Account      string         `json:"account"`
 	IsSend       *bool          `json:"isSend"`
 	File         string         `json:"file"`
-	Output       *string        `json:"output"`
+	Output       string         `json:"output"`
 	Start        time.Time      `json:"start,omitempty"`
 	TransferInfo map[string]any `json:"transferInfo,omitempty"`
 	// FileInfo     map[string]interface{} `json:"fileInfo,omitempty"`
@@ -36,8 +36,10 @@ type OutTransfer struct {
 	Requested      string               `json:"requested"`
 	Requester      string               `json:"requester"`
 	Protocol       string               `json:"protocol"`
-	LocalFilepath  string               `json:"localFilepath"`
-	RemoteFilepath string               `json:"remoteFilepath"`
+	SrcFilename    string               `json:"srcFilename"`
+	DestFilename   string               `json:"destFilename"`
+	LocalFilepath  string               `json:"localFilepath,omitempty"`
+	RemoteFilepath string               `json:"remoteFilepath,omitempty"`
 	Filesize       int64                `json:"filesize"`
 	Start          time.Time            `json:"start"`
 	Stop           *time.Time           `json:"stop,omitempty"`

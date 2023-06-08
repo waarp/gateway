@@ -28,22 +28,22 @@ func restTransferToDB(jTrans *api.InTransfer, db *database.DB, logger *log.Logge
 		return nil, err
 	}
 
-	file := jTrans.File
-	out := str(jTrans.Output)
+	srcFile := jTrans.File
+	destFile := jTrans.Output
 
-	if file == "" && jTrans.SourcePath != "" {
+	if srcFile == "" && jTrans.SourcePath != "" {
 		logger.Warning("JSON field 'sourcePath' is deprecated, use 'file' instead")
 
-		file = utils.DenormalizePath(jTrans.SourcePath)
+		srcFile = utils.DenormalizePath(jTrans.SourcePath)
 	}
 
-	if out == "" {
+	if destFile == "" {
 		if jTrans.DestPath != "" {
 			logger.Warning("JSON field 'destPath' is deprecated, use  'output' instead")
 
-			out = utils.DenormalizePath(jTrans.DestPath)
+			destFile = utils.DenormalizePath(jTrans.DestPath)
 		} else {
-			out = filepath.Base(file)
+			destFile = filepath.Base(srcFile)
 		}
 	}
 
@@ -57,19 +57,11 @@ func restTransferToDB(jTrans *api.InTransfer, db *database.DB, logger *log.Logge
 		}
 	}
 
-	locPath := file
-	remPath := out
-
-	if !*jTrans.IsSend {
-		locPath = out
-		remPath = file
-	}
-
 	return &model.Transfer{
 		RuleID:          ruleID,
 		RemoteAccountID: utils.NewNullInt64(accountID),
-		LocalPath:       locPath,
-		RemotePath:      remPath,
+		SrcFilename:     srcFile,
+		DestFilename:    destFile,
 		Filesize:        model.UnknownSize,
 		Start:           start,
 	}, nil
@@ -104,6 +96,8 @@ func DBTransferToREST(db *database.DB, trans *model.NormalizedTransferView) (*ap
 		Requested:      trans.Agent,
 		Requester:      trans.Account,
 		Protocol:       trans.Protocol,
+		SrcFilename:    trans.SrcFilename,
+		DestFilename:   trans.DestFilename,
 		LocalFilepath:  trans.LocalPath,
 		RemoteFilepath: trans.RemotePath,
 		Filesize:       trans.Filesize,

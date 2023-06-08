@@ -51,6 +51,8 @@ Lister les transferts
    :resjsonarr string requester: Le nom du compte ayant demandé le transfert
    :resjsonarr string requested: Le nom du serveur/partenaire auquel le transfert a été demandé
    :resjsonarr string protocol: Le protocole utilisé pour effectuer le transfert
+   :resjsonarr string srcFilename: Le nom du fichier source.
+   :resjsonarr string destFilename: Le nom du fichier destination.
    :resjsonarr string localFilepath: Le chemin du fichier sur le disque local
    :resjsonarr string remoteFilepath: Le chemin du fichier sur le partenaire distant
    :resjsonarr number filesize: La taille du fichier (-1 si inconnue)

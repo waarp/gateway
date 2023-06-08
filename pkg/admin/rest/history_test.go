@@ -41,6 +41,8 @@ func TestGetHistory(t *testing.T) {
 				Account:          "acc",
 				Agent:            "server",
 				Protocol:         "sftp",
+				SrcFilename:      "file.test",
+				DestFilename:     "file.test",
 				LocalPath:        "/local/file.test",
 				RemotePath:       "/remote/file.test",
 				Start:            time.Date(2021, 1, 2, 3, 4, 5, 678000, time.Local),
@@ -114,6 +116,8 @@ func TestGetHistory(t *testing.T) {
 					Account:          "acc",
 					Agent:            "server",
 					Protocol:         "sftp",
+					SrcFilename:      "/source/file.test",
+					DestFilename:     "/dest/file.test",
 					LocalPath:        "/local/file.test",
 					RemotePath:       "/remote/file.test",
 					Start:            time.Date(2021, 1, 2, 3, 4, 5, 678000, time.Local),
@@ -171,6 +175,8 @@ func TestListHistory(t *testing.T) {
 				Start:            time.Date(2019, 1, 1, 1, 0, 0, 1000, time.Local),
 				Stop:             time.Date(2019, 1, 1, 3, 0, 0, 1000, time.Local),
 				Status:           types.StatusDone,
+				SrcFilename:      "/source/file1.test",
+				DestFilename:     "/dest/file1.test",
 				LocalPath:        "/local/file1.test",
 				RemotePath:       "/remote/file1.test",
 			}
@@ -188,6 +194,8 @@ func TestListHistory(t *testing.T) {
 				Start:            time.Date(2019, 1, 1, 2, 0, 0, 2000, time.Local),
 				Stop:             time.Date(2019, 1, 1, 4, 0, 0, 2000, time.Local),
 				Status:           types.StatusCancelled,
+				SrcFilename:      "/source/file2.test",
+				DestFilename:     "/dest/file2.test",
 				LocalPath:        "/local/file2.test",
 				RemotePath:       "/remote/file2.test",
 			}
@@ -205,6 +213,8 @@ func TestListHistory(t *testing.T) {
 				Start:            time.Date(2019, 1, 1, 3, 0, 0, 3000, time.Local),
 				Stop:             time.Date(2019, 1, 1, 5, 0, 0, 3000, time.Local),
 				Status:           types.StatusCancelled,
+				SrcFilename:      "/source/file3.test",
+				DestFilename:     "/dest/file3.test",
 				LocalPath:        "/local/file3.test",
 				RemotePath:       "/remote/file3.test",
 			}
@@ -222,6 +232,8 @@ func TestListHistory(t *testing.T) {
 				Start:            time.Date(2019, 1, 1, 4, 0, 0, 4000, time.Local),
 				Stop:             time.Date(2019, 1, 1, 6, 0, 0, 4000, time.Local),
 				Status:           types.StatusDone,
+				SrcFilename:      "/source/file4.test",
+				DestFilename:     "/dest/file4.test",
 				LocalPath:        "/local/file4.test",
 				RemotePath:       "/remote/file4.test",
 			}
@@ -472,6 +484,8 @@ func TestRestartHistory(t *testing.T) {
 				Account:          account.Login,
 				Agent:            partner.Name,
 				Protocol:         testProto1,
+				SrcFilename:      "/source/file1.test",
+				DestFilename:     "/dest/file1.test",
 				LocalPath:        "/local/file.test",
 				RemotePath:       "/remote/file.test",
 				Start:            time.Date(2019, 1, 1, 0, 0, 0, 0, time.Local),
@@ -521,8 +535,8 @@ func TestRestartHistory(t *testing.T) {
 						So(transfers[0].RemoteTransferID, ShouldNotEqual, h.RemoteTransferID)
 						So(transfers[0].RuleID, ShouldEqual, rule.ID)
 						So(transfers[0].RemoteAccountID.Int64, ShouldEqual, account.ID)
-						So(transfers[0].LocalPath, ShouldEqual, path.Base(h.LocalPath))
-						So(transfers[0].RemotePath, ShouldEqual, path.Base(h.RemotePath))
+						So(transfers[0].SrcFilename, ShouldEqual, h.SrcFilename)
+						So(transfers[0].DestFilename, ShouldEqual, h.DestFilename)
 						So(transfers[0].Start, ShouldEqual, h.Start)
 						So(transfers[0].Status, ShouldEqual, types.StatusPlanned)
 						So(transfers[0].Owner, ShouldEqual, h.Owner)

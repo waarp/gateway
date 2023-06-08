@@ -188,8 +188,8 @@ func TestPurgeCommand(t *testing.T) {
 				RemoteTransferID: "789",
 				RuleID:           rule.ID,
 				LocalAccountID:   utils.NewNullInt64(account.ID),
-				LocalPath:        "/loc/path",
-				RemotePath:       "/rem/path",
+				SrcFilename:      "/src/path",
+				DestFilename:     "/dst/path",
 				Start:            time.Date(2022, 1, 1, 1, 0, 0, 0, time.UTC),
 			}).Run(), ShouldBeNil)
 
@@ -197,8 +197,8 @@ func TestPurgeCommand(t *testing.T) {
 				RemoteTransferID: "147",
 				RuleID:           rule.ID,
 				LocalAccountID:   utils.NewNullInt64(account.ID),
-				LocalPath:        "/loc/path",
-				RemotePath:       "/rem/path",
+				SrcFilename:      "/src/path",
+				DestFilename:     "/dst/path",
 				Start:            time.Date(2022, 1, 1, 1, 0, 0, 0, time.UTC),
 			}).Run(), ShouldBeNil)
 
@@ -228,8 +228,8 @@ func TestPurgeCommand(t *testing.T) {
 						RemoteTransferID: "258",
 						RuleID:           rule.ID,
 						LocalAccountID:   utils.NewNullInt64(account.ID),
-						LocalPath:        "/loc/path",
-						RemotePath:       "/rem/path",
+						SrcFilename:      "/src/path",
+						DestFilename:     "/dst/path",
 						Start:            time.Date(2022, 1, 1, 1, 0, 0, 0, time.UTC),
 					}
 					So(db.Insert(newTrans).Run(), ShouldBeNil)
@@ -251,8 +251,8 @@ func TestPurgeCommand(t *testing.T) {
 						RemoteTransferID: "258",
 						RuleID:           rule.ID,
 						LocalAccountID:   utils.NewNullInt64(account.ID),
-						LocalPath:        "/loc/path",
-						RemotePath:       "/rem/path",
+						SrcFilename:      "/src/path",
+						DestFilename:     "/dst/path",
 						Start:            time.Date(2022, 1, 1, 1, 0, 0, 0, time.UTC),
 					}
 					So(db.Insert(newTrans).Run(), ShouldBeNil)

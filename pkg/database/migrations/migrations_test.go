@@ -47,4 +47,10 @@ func testMigrations(eng *testEngine, dbType string) {
 
 	// 0.7.5
 	testVer0_7_5SplitR66TLS(eng)
+
+	// 0.8.8
+	testVer0_8_0DropNormalizedTransfersView(eng)
+	testVer0_8_0AddTransferFilename(eng)
+	testVer0_8_0AddHistoryFilename(eng)
+	testVer0_8_0UpdateNormalizedTransfersView(eng)
 }

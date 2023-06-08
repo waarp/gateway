@@ -2,7 +2,6 @@ package r66
 
 import (
 	"os"
-	"path"
 	"path/filepath"
 	"testing"
 	"time"
@@ -145,7 +144,7 @@ func TestValidRequest(t *testing.T) {
 		Convey("Given a request packet", func() {
 			packet := &r66.Request{
 				ID:       1,
-				Filepath: "/file",
+				Filepath: "file.ex",
 				FileSize: 4,
 				Rule:     rule.Name,
 				IsRecv:   false,
@@ -175,9 +174,7 @@ func TestValidRequest(t *testing.T) {
 					Convey("Then it should have created a transfer", func() {
 						So(handler.trans.pip.TransCtx.Transfer.RuleID, ShouldEqual, rule.ID)
 						So(handler.trans.pip.TransCtx.Transfer.LocalAccountID.Int64, ShouldEqual, account.ID)
-						So(handler.trans.pip.TransCtx.Transfer.LocalPath, ShouldEqual, filepath.Join(
-							server.RootDir, rule.TmpLocalRcvDir, path.Base(packet.Filepath)))
-						So(handler.trans.pip.TransCtx.Transfer.RemotePath, ShouldEqual, path.Base(packet.Filepath))
+						So(handler.trans.pip.TransCtx.Transfer.DestFilename, ShouldEqual, packet.Filepath)
 						So(handler.trans.pip.TransCtx.Transfer.Start, ShouldHappenOnOrBefore, time.Now())
 						So(handler.trans.pip.TransCtx.Transfer.Step, ShouldEqual, types.StepSetup)
 						So(handler.trans.pip.TransCtx.Transfer.Status, ShouldEqual, types.StatusRunning)
@@ -232,9 +229,9 @@ func TestUpdateTransferInfo(t *testing.T) {
 			GatewayHome: root,
 		}
 
-		send := &model.Rule{Name: "send", IsSend: true, Path: "/send", LocalDir: "send_dir"}
+		send := &model.Rule{Name: "send", IsSend: true, LocalDir: "send_dir"}
 		So(db.Insert(send).Run(), ShouldBeNil)
-		recv := &model.Rule{Name: "recv", IsSend: false, Path: "/recv", LocalDir: "recv_dir"}
+		recv := &model.Rule{Name: "recv", IsSend: false, LocalDir: "recv_dir", TmpLocalRcvDir: "recv_tmp"}
 		So(db.Insert(recv).Run(), ShouldBeNil)
 
 		server := &model.LocalAgent{
@@ -258,8 +255,7 @@ func TestUpdateTransferInfo(t *testing.T) {
 				RemoteTransferID: "1",
 				RuleID:           recv.ID,
 				LocalAccountID:   utils.NewNullInt64(account.ID),
-				LocalPath:        "old.file",
-				RemotePath:       "old.file",
+				DestFilename:     "old.file",
 			}
 			So(db.Insert(trans).Run(), ShouldBeNil)
 
@@ -291,8 +287,8 @@ func TestUpdateTransferInfo(t *testing.T) {
 				check := pip.TransCtx.Transfer
 
 				Convey("Then it should have updated the transfer's filename", func() {
-					So(path.Base(check.RemotePath), ShouldEqual, "new.file")
-					So(filepath.Base(check.LocalPath), ShouldEqual, "new.file")
+					So(check.LocalPath, ShouldEqual, filepath.Join(root,
+						server.RootDir, recv.TmpLocalRcvDir, info.Filename))
 				})
 
 				Convey("Then it should have updated the transfer's file size", func() {
@@ -306,8 +302,7 @@ func TestUpdateTransferInfo(t *testing.T) {
 				RemoteTransferID: "1",
 				RuleID:           send.ID,
 				LocalAccountID:   utils.NewNullInt64(account.ID),
-				LocalPath:        "new.file",
-				RemotePath:       "new.file",
+				SrcFilename:      "new.file",
 			}
 			So(db.Insert(trans).Run(), ShouldBeNil)
 
@@ -320,11 +315,13 @@ func TestUpdateTransferInfo(t *testing.T) {
 
 			hand := transferHandler{
 				sessionHandler: &sessionHandler{
-					authHandler: &authHandler{Service: &Service{
-						db:      db,
-						logger:  logger,
-						agentID: server.ID,
-					}},
+					authHandler: &authHandler{
+						Service: &Service{
+							db:      db,
+							logger:  logger,
+							agentID: server.ID,
+						},
+					},
 				},
 				trans: &serverTransfer{
 					pip:   pip,

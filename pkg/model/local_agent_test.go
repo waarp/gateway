@@ -101,8 +101,7 @@ func TestLocalAgentBeforeDelete(t *testing.T) {
 				trans := Transfer{
 					RuleID:         rule.ID,
 					LocalAccountID: utils.NewNullInt64(acc.ID),
-					LocalPath:      "file.loc",
-					RemotePath:     "file.rem",
+					DestFilename:   "file",
 				}
 				So(db.Insert(&trans).Run(), ShouldBeNil)
 

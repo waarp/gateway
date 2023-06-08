@@ -126,8 +126,10 @@ type Transfer struct {
 	Requester      string                  `json:"requester"`
 	Requested      string                  `json:"requested"`
 	Protocol       string                  `json:"protocol"`
-	LocalFilepath  string                  `json:"localFilepath"`
-	RemoteFilepath string                  `json:"remoteFilepath"`
+	SrcFilename    string                  `json:"srcFilename,omitempty"`
+	DestFilename   string                  `json:"destFilename,omitempty"`
+	LocalFilepath  string                  `json:"localFilepath,omitempty"`
+	RemoteFilepath string                  `json:"remoteFilepath,omitempty"`
 	Filesize       int64                   `json:"filesize"`
 	Start          time.Time               `json:"start"`
 	Stop           time.Time               `json:"stop,omitempty"`

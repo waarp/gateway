@@ -149,11 +149,15 @@ func (h *httpHandler) getTransfer(isSend bool) (*model.Transfer, bool) {
 		RemoteTransferID: remoteID,
 		RuleID:           h.rule.ID,
 		LocalAccountID:   utils.NewNullInt64(h.account.ID),
-		LocalPath:        strings.TrimPrefix(h.req.URL.Path, "/"),
-		RemotePath:       path.Base(h.req.URL.Path),
 		Filesize:         model.UnknownSize,
 		Start:            time.Now(),
 		Status:           types.StatusPlanned,
+	}
+
+	if h.rule.IsSend {
+		trans.SrcFilename = strings.TrimPrefix(h.req.URL.Path, "/")
+	} else {
+		trans.DestFilename = strings.TrimPrefix(h.req.URL.Path, "/")
 	}
 
 	var tErr *types.TransferError

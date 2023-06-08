@@ -164,8 +164,7 @@ func TestRuleBeforeDelete(t *testing.T) {
 				trans := Transfer{
 					RuleID:         rule.ID,
 					LocalAccountID: utils.NewNullInt64(account.ID),
-					LocalPath:      "file.loc",
-					RemotePath:     "file.rem",
+					SrcFilename:    "file",
 				}
 				So(db.Insert(&trans).Run(), ShouldBeNil)
 

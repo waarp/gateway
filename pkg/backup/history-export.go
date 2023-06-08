@@ -27,6 +27,8 @@ func dbHistToFileTrans(hist *model.HistoryEntry, db database.ReadAccess) (*file.
 		Requester:      hist.Account,
 		Requested:      hist.Agent,
 		Protocol:       hist.Protocol,
+		SrcFilename:    hist.SrcFilename,
+		DestFilename:   hist.DestFilename,
 		LocalFilepath:  hist.LocalPath,
 		RemoteFilepath: hist.RemotePath,
 		Filesize:       hist.Filesize,

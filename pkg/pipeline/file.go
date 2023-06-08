@@ -94,7 +94,7 @@ func createDir(file string) *types.TransferError {
 }
 
 // setFilePaths builds the transfer's local & remote paths according to the
-// transfer's context. For the local path, the building process is as follow:
+// transfer's context. For the local path, the building process is as follows:
 //
 //	 GatewayHome                                                                      ↑
 //	     ├─────────────────────────────────────────────────────┐                 Less priority
@@ -107,36 +107,53 @@ func createDir(file string) *types.TransferError {
 // For remote paths, only the rule's remote dir is added (if defined) before the
 // file name.
 func (p *Pipeline) setFilePaths() {
-	if !filepath.IsAbs(p.TransCtx.Transfer.LocalPath) {
-		p.TransCtx.Transfer.RemotePath = path.Join(p.TransCtx.Rule.RemoteDir,
-			p.TransCtx.Transfer.RemotePath)
+	srcFilename := p.TransCtx.Transfer.SrcFilename
+	destFilename := p.TransCtx.Transfer.DestFilename
 
-		p.TransCtx.Transfer.LocalPath = filepath.Join(makeLocalDir(p.TransCtx),
-			p.TransCtx.Transfer.LocalPath)
+	if destFilename == "" {
+		destFilename = p.TransCtx.Transfer.SrcFilename
+	}
+
+	p.setCustomFilePaths(srcFilename, destFilename)
+}
+
+func (p *Pipeline) setCustomFilePaths(srcFilename, destFilename string) {
+	if !p.TransCtx.Transfer.IsServer() && p.TransCtx.Transfer.RemotePath == "" {
+		if p.TransCtx.Rule.IsSend {
+			p.TransCtx.Transfer.RemotePath = path.Join(p.TransCtx.Rule.RemoteDir, destFilename)
+		} else {
+			p.TransCtx.Transfer.RemotePath = path.Join(p.TransCtx.Rule.RemoteDir, srcFilename)
+		}
+	}
+
+	if p.TransCtx.Transfer.LocalPath == "" {
+		p.TransCtx.Transfer.LocalPath = makeLocalPath(p.TransCtx, srcFilename, destFilename)
 	}
 }
 
-func makeLocalDir(transCtx *model.TransferContext) string {
+func makeLocalPath(transCtx *model.TransferContext, srcFilename,
+	destFilename string,
+) string {
 	switch {
 	// Partner client <- GW server
 	case transCtx.Transfer.IsServer() && transCtx.Rule.IsSend:
-		return utils.GetPath("", leaf(transCtx.Rule.LocalDir),
+		return utils.GetPath(srcFilename, leaf(transCtx.Rule.LocalDir),
 			leaf(transCtx.LocalAgent.SendDir), branch(transCtx.LocalAgent.RootDir),
 			leaf(transCtx.Paths.DefaultOutDir), branch(transCtx.Paths.GatewayHome))
 	// Partner client -> GW server
 	case transCtx.Transfer.IsServer() && !transCtx.Rule.IsSend:
-		return utils.GetPath("", leaf(transCtx.Rule.TmpLocalRcvDir),
+		return utils.GetPath(destFilename, leaf(transCtx.Rule.TmpLocalRcvDir),
 			leaf(transCtx.Rule.LocalDir), leaf(transCtx.LocalAgent.TmpReceiveDir),
 			leaf(transCtx.LocalAgent.ReceiveDir), branch(transCtx.LocalAgent.RootDir),
 			leaf(transCtx.Paths.DefaultTmpDir), leaf(transCtx.Paths.DefaultInDir),
 			branch(transCtx.Paths.GatewayHome))
 	// GW client -> Partner server
 	case !transCtx.Transfer.IsServer() && transCtx.Rule.IsSend:
-		return utils.GetPath("", leaf(transCtx.Rule.LocalDir),
+		return utils.GetPath(srcFilename, leaf(transCtx.Rule.LocalDir),
 			leaf(transCtx.Paths.DefaultOutDir), branch(transCtx.Paths.GatewayHome))
 	// GW client <- Partner server
 	default:
-		return utils.GetPath("", leaf(transCtx.Rule.TmpLocalRcvDir),
+		return utils.GetPath(destFilename, leaf(transCtx.Rule.TmpLocalRcvDir),
 			leaf(transCtx.Rule.LocalDir), leaf(transCtx.Paths.DefaultTmpDir),
 			leaf(transCtx.Paths.DefaultInDir), branch(transCtx.Paths.GatewayHome))
 	}

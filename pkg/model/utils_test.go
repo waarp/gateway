@@ -1,6 +1,8 @@
 package model
 
 import (
+	"runtime"
+
 	"github.com/smartystreets/goconvey/convey"
 	"golang.org/x/crypto/bcrypt"
 
@@ -10,10 +12,16 @@ import (
 
 const testProtocol = "test_proto"
 
+var testLocalPath = "/test/local/file"
+
 //nolint:gochecknoinits // init is used to ease the tests
 func init() {
 	config.ProtoConfigs[testProtocol] = func() config.ProtoConfig {
 		return new(testhelpers.TestProtoConfig)
+	}
+
+	if runtime.GOOS == "windows" {
+		testLocalPath = `C:\test\local\file`
 	}
 }
 

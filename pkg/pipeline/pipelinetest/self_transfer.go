@@ -8,6 +8,7 @@ import (
 	"os"
 	"path"
 	"path/filepath"
+	"strings"
 	"time"
 
 	"github.com/smartystreets/goconvey/convey"
@@ -96,42 +97,36 @@ func InitSelfPullTransfer(c convey.C, protocol string, constr serviceConstructor
 
 //nolint:dupl // factorizing would hurt readability
 func (s *SelfContext) addPushTransfer(c convey.C) {
-	testDir := filepath.Join(s.Paths.GatewayHome, s.ClientRule.LocalDir, "loc_sub_dir")
+	testDir := filepath.Join(s.Paths.GatewayHome, s.ClientRule.LocalDir, "sub_dir")
 	s.fileContent = AddSourceFile(c, testDir, "self_transfer_push")
 
 	trans := &model.Transfer{
 		RuleID:          s.ClientRule.ID,
 		RemoteAccountID: utils.NewNullInt64(s.RemAccount.ID),
-		LocalPath:       "loc_sub_dir/self_transfer_push",
-		RemotePath:      "rem_sub_dir/self_transfer_push",
+		SrcFilename:     "sub_dir/self_transfer_push",
 		Start:           time.Now(),
 	}
 	c.So(s.DB.Insert(trans).Run(), convey.ShouldBeNil)
 
 	s.ClientTrans = trans
-	// s.locFileName = trans.LocalPath
-	s.remFileName = trans.RemotePath
 }
 
 //nolint:dupl // factorizing would hurt readability
 func (s *SelfContext) addPullTransfer(c convey.C) {
 	testDir := filepath.Join(s.Server.RootDir, s.ServerRule.LocalDir,
-		s.getClientRemoteDir(), "rem_sub_dir")
+		s.getClientRemoteDir(), "sub_dir")
 	s.fileContent = AddSourceFile(c, testDir, "self_transfer_pull")
 
 	trans := &model.Transfer{
 		RuleID:          s.ClientRule.ID,
 		RemoteAccountID: utils.NewNullInt64(s.RemAccount.ID),
-		LocalPath:       "loc_sub_dir/self_transfer_pull",
-		RemotePath:      "rem_sub_dir/self_transfer_pull",
+		SrcFilename:     "sub_dir/self_transfer_pull",
 		Filesize:        model.UnknownSize,
 		Start:           time.Now(),
 	}
 	c.So(s.DB.Insert(trans).Run(), convey.ShouldBeNil)
 
 	s.ClientTrans = trans
-	// s.locFileName = trans.LocalPath
-	s.remFileName = trans.RemotePath
 }
 
 // StartService starts the service associated with the test server defined in
@@ -281,10 +276,7 @@ func (s *SelfContext) getClientRemoteDir() string {
 	ruleDir := s.ClientRule.RemoteDir
 
 	if !s.protoFeatures.ruleName {
-		var err error
-
-		ruleDir, err = filepath.Rel(s.ServerRule.Path, ruleDir)
-		convey.So(err, convey.ShouldBeNil)
+		ruleDir = strings.TrimPrefix(ruleDir, s.ServerRule.Path+"/")
 	}
 
 	return ruleDir
@@ -297,7 +289,7 @@ func (s *SelfContext) checkServerTransferOK(c convey.C, actual *model.HistoryEnt
 	}
 
 	progress := int64(len(s.fileContent))
-	filename := path.Join(s.getClientRemoteDir(), s.transData.remFileName)
+	filename := path.Join(s.getClientRemoteDir(), s.ClientTrans.SrcFilename)
 
 	s.serverData.checkServerTransferOK(c, remoteID, filename, progress, s.DB,
 		actual, s.transData)
@@ -338,7 +330,7 @@ func (s *SelfContext) CheckDestFile(c convey.C) {
 		fullPath := s.ClientTrans.LocalPath
 		if s.ClientRule.IsSend {
 			fullPath = filepath.Join(s.Server.RootDir, s.ServerRule.LocalDir,
-				s.getClientRemoteDir(), s.remFileName)
+				s.getClientRemoteDir(), s.ClientTrans.SrcFilename)
 		}
 
 		content, err := os.ReadFile(filepath.Clean(fullPath))

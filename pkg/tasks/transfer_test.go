@@ -10,7 +10,6 @@ import (
 
 	"code.waarp.fr/apps/gateway/gateway/pkg/database"
 	"code.waarp.fr/apps/gateway/gateway/pkg/model"
-	"code.waarp.fr/apps/gateway/gateway/pkg/tk/utils"
 	"code.waarp.fr/apps/gateway/gateway/pkg/tk/utils/testhelpers"
 )
 
@@ -127,8 +126,7 @@ func TestTransferRun(t *testing.T) {
 
 							So(transfers[0].RemoteAccountID.Int64, ShouldEqual, account.ID)
 							So(transfers[0].RuleID, ShouldEqual, push.ID)
-							So(transfers[0].LocalPath, ShouldResemble, utils.ToOSPath("/test/file"))
-							So(transfers[0].RemotePath, ShouldResemble, "file")
+							So(transfers[0].SrcFilename, ShouldResemble, "/test/file")
 						})
 					})
 				})
@@ -200,8 +198,7 @@ func TestTransferRun(t *testing.T) {
 
 							So(transfers[0].RemoteAccountID.Int64, ShouldResemble, account.ID)
 							So(transfers[0].RuleID, ShouldResemble, pull.ID)
-							So(transfers[0].LocalPath, ShouldResemble, "file")
-							So(transfers[0].RemotePath, ShouldResemble, "/test/file")
+							So(transfers[0].SrcFilename, ShouldResemble, "/test/file")
 						})
 					})
 				})

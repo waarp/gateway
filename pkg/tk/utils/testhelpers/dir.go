@@ -3,8 +3,8 @@
 package testhelpers
 
 import (
-	"io/ioutil"
 	"os"
+	"path/filepath"
 
 	"github.com/smartystreets/goconvey/convey"
 )
@@ -18,7 +18,7 @@ import (
 // - any error will mark the test as failed
 // - It will panic if it is not called from within a convey context.
 func TempDir(c convey.C, name string) string {
-	path, err := ioutil.TempDir("", "gateway-test."+name+".*")
+	path, err := os.MkdirTemp("", "gateway-test."+name+".*")
 	c.So(err, convey.ShouldBeNil)
 	c.Reset(func() {
 		c.So(os.RemoveAll(path), convey.ShouldBeNil)
@@ -38,7 +38,7 @@ func TempDir(c convey.C, name string) string {
 // - any error will mark the test as failed
 // - It will panic if it is not called from within a convey context.
 func TempFile(c convey.C, pattern string) string {
-	file, err := ioutil.TempFile("", pattern)
+	file, err := os.CreateTemp("", pattern)
 	c.So(err, convey.ShouldBeNil)
 	c.Reset(func() {
 		c.So(os.RemoveAll(file.Name()), convey.ShouldBeNil)
@@ -46,4 +46,12 @@ func TempFile(c convey.C, pattern string) string {
 	c.So(file.Close(), convey.ShouldBeNil)
 
 	return file.Name()
+}
+
+// WriteFile writes the given string to the file at the given path. If the path's
+// directories don't exist, they will be created.
+func WriteFile(c convey.C, path, content string) {
+	dir := filepath.Dir(path)
+	c.So(os.MkdirAll(dir, 0o700), convey.ShouldBeNil)
+	c.So(os.WriteFile(path, []byte(content), 0o600), convey.ShouldBeNil)
 }

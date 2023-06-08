@@ -156,8 +156,7 @@ func (cc *ClientContext) addPushTransfer(c convey.C) {
 	trans := &model.Transfer{
 		RuleID:          cc.ClientRule.ID,
 		RemoteAccountID: utils.NewNullInt64(cc.RemAccount.ID),
-		LocalPath:       "self_transfer_push",
-		RemotePath:      "self_transfer_push",
+		SrcFilename:     "self_transfer_push",
 		Start:           time.Now(),
 	}
 	c.So(cc.DB.Insert(trans).Run(), convey.ShouldBeNil)
@@ -172,8 +171,7 @@ func (cc *ClientContext) addPullTransfer(c convey.C, cont []byte) {
 	trans := &model.Transfer{
 		RuleID:          cc.ClientRule.ID,
 		RemoteAccountID: utils.NewNullInt64(cc.RemAccount.ID),
-		LocalPath:       "self_transfer_pull",
-		RemotePath:      "self_transfer_pull",
+		SrcFilename:     "self_transfer_pull",
 		Filesize:        model.UnknownSize,
 		Start:           time.Now(),
 	}

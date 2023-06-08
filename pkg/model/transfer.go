@@ -3,7 +3,7 @@ package model
 import (
 	"database/sql"
 	"fmt"
-	"path/filepath"
+	"path"
 	"strings"
 	"time"
 
@@ -41,6 +41,8 @@ type Transfer struct {
 	RuleID           int64                `xorm:"rule_id"`
 	LocalAccountID   sql.NullInt64        `xorm:"local_account_id"`
 	RemoteAccountID  sql.NullInt64        `xorm:"remote_account_id"`
+	SrcFilename      string               `xorm:"src_filename"`
+	DestFilename     string               `xorm:"dest_filename"`
 	LocalPath        string               `xorm:"local_path"`
 	RemotePath       string               `xorm:"remote_path"`
 	Filesize         int64                `xorm:"filesize"`
@@ -105,17 +107,33 @@ func (t *Transfer) checkRemoteTransferID(db database.ReadAccess) database.Error 
 	return nil
 }
 
-func (t *Transfer) checkMandatoryValues() database.Error {
-	if t.RuleID == 0 {
-		return database.NewValidationError("the transfer's rule ID cannot be empty")
+func (t *Transfer) checkMandatoryValues(rule *Rule) database.Error {
+	if t.IsServer() {
+		if rule.IsSend {
+			if t.SrcFilename == "" {
+				return database.NewValidationError("the source file is missing")
+			}
+
+			// For server transfers, we force the filepath to be relative for
+			// security reasons.
+			t.SrcFilename = path.Clean("./" + t.SrcFilename)
+			t.RemotePath, t.DestFilename = "", ""
+		} else {
+			if t.DestFilename == "" {
+				return database.NewValidationError("the destination file is missing")
+			}
+
+			// For server transfers, we force the filepath to be relative for
+			// security reasons.
+			t.DestFilename = path.Clean("./" + t.DestFilename)
+			t.RemotePath, t.SrcFilename = "", ""
+		}
+	} else if t.SrcFilename == "" {
+		return database.NewValidationError("the source file is missing")
 	}
 
-	if t.LocalPath == "" || t.LocalPath == "/" || t.LocalPath == "." {
-		return database.NewValidationError("the local filepath is missing")
-	}
-
-	if t.RemotePath == "" || t.RemotePath == "/" || t.RemotePath == "." {
-		t.RemotePath = filepath.Base(t.LocalPath)
+	if t.RemotePath != "" && t.LocalPath == "" {
+		return database.NewValidationError("the local path is missing")
 	}
 
 	if t.Start.IsZero() {
@@ -154,7 +172,20 @@ func (t *Transfer) checkMandatoryValues() database.Error {
 func (t *Transfer) BeforeWrite(db database.ReadAccess) database.Error {
 	t.Owner = conf.GlobalConfig.GatewayName
 
-	if err := t.checkMandatoryValues(); err != nil {
+	if t.RuleID == 0 {
+		return database.NewValidationError("the transfer's rule ID cannot be empty")
+	}
+
+	var rule Rule
+	if err := db.Get(&rule, "id=?", t.RuleID).Run(); err != nil {
+		if database.IsNotFound(err) {
+			return database.NewValidationError("the rule %d does not exist", t.RuleID)
+		}
+
+		return err
+	}
+
+	if err := t.checkMandatoryValues(&rule); err != nil {
 		return err
 	}
 
@@ -188,12 +219,6 @@ func (t *Transfer) BeforeWrite(db database.ReadAccess) database.Error {
 		return err
 	} else if !auth {
 		return database.NewValidationError("Rule %d is not authorized for this transfer", t.RuleID)
-	}
-
-	if n, err := db.Count(&Rule{}).Where("id=?", t.RuleID).Run(); err != nil {
-		return err
-	} else if n == 0 {
-		return database.NewValidationError("the rule %d does not exist", t.RuleID)
 	}
 
 	return t.checkRemoteTransferID(db)
@@ -254,6 +279,8 @@ func (t *Transfer) makeHistoryEntry(db database.ReadAccess, stop time.Time) (*Hi
 		Account:          accountLogin,
 		Agent:            agentName,
 		Protocol:         protocol,
+		SrcFilename:      t.SrcFilename,
+		DestFilename:     t.DestFilename,
 		LocalPath:        t.LocalPath,
 		RemotePath:       t.RemotePath,
 		Filesize:         t.Filesize,

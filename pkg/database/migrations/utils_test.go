@@ -4,6 +4,7 @@ import (
 	"database/sql"
 	"errors"
 	"fmt"
+	"reflect"
 
 	"code.waarp.fr/lib/migration"
 	"github.com/go-sql-driver/mysql"
@@ -136,4 +137,33 @@ func doesTableExist(db *sql.DB, dbType, table string) bool {
 	}
 
 	return true
+}
+
+func queryAndParse[T any](db *sql.DB, result *[]T, query string, args ...any) {
+	rows, err := db.Query(query, args...)
+	So(err, ShouldBeNil)
+
+	defer rows.Close()
+
+	typ := reflect.TypeOf(*new(T))
+	isStruct := typ.Kind() == reflect.Struct
+
+	for rows.Next() {
+		row := new(T)
+
+		if !isStruct {
+			So(rows.Scan(row), ShouldBeNil)
+		} else {
+			cols := make([]any, typ.NumField())
+			for i := range cols {
+				cols[i] = reflect.ValueOf(row).Elem().Field(i).Addr().Interface()
+			}
+
+			So(rows.Scan(cols...), ShouldBeNil)
+		}
+
+		*result = append(*result, *row)
+	}
+
+	So(rows.Err(), ShouldBeNil)
 }
