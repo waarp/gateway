@@ -126,12 +126,14 @@ func getRange(req *http.Request) (progress int64, err error) {
 }
 
 func makeContentRange(headers http.Header, trans *model.Transfer) {
-	head := fmt.Sprintf("bytes */%d", trans.Filesize)
-	if trans.Progress != 0 {
-		head = fmt.Sprintf("bytes %d-%d/%d", trans.Progress, trans.Filesize, trans.Filesize)
+	if sizeUnknown := trans.Filesize < 0; sizeUnknown {
+		headers.Set("Content-Range", "bytes */*")
+
+		return
 	}
 
-	headers.Set("Content-Range", head)
+	headers.Set("Content-Range", fmt.Sprintf("bytes %d-%d/%d", trans.Progress,
+		trans.Filesize, trans.Filesize))
 }
 
 func getContentRange(headers http.Header) (progress, filesize int64, err error) {
@@ -140,7 +142,7 @@ func getContentRange(headers http.Header) (progress, filesize int64, err error) 
 
 	head := headers.Get("Content-Range")
 	if head == "" {
-		return // no content-range to parse
+		return progress, filesize, nil // no content-range to parse
 	}
 
 	reg := regexp.MustCompile(`^bytes (\d+-\d+|\*)/(\d+|\*)$`)
@@ -149,7 +151,7 @@ func getContentRange(headers http.Header) (progress, filesize int64, err error) 
 	if matches == nil {
 		err = &contentRangeError{fmt.Sprintf("malformed header value '%s'", head)}
 
-		return
+		return 0, 0, err
 	}
 
 	if contRange := matches[0][1]; contRange != "*" {
@@ -159,7 +161,7 @@ func getContentRange(headers http.Header) (progress, filesize int64, err error) 
 		if err != nil {
 			err = &contentRangeError{fmt.Sprintf("invalid range-start value '%s'", matches[0][1])}
 
-			return
+			return 0, 0, err
 		}
 	}
 

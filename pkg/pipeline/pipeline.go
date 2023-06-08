@@ -43,8 +43,7 @@ type Pipeline struct {
 	runner *tasks.Runner
 }
 
-func newPipeline(db *database.DB, logger *log.Logger, transCtx *model.TransferContext,
-) (*Pipeline, *types.TransferError) {
+func newPipeline(db *database.DB, logger *log.Logger, transCtx *model.TransferContext) *Pipeline {
 	pipeline := &Pipeline{
 		DB:        db,
 		Logger:    logger,
@@ -57,9 +56,7 @@ func newPipeline(db *database.DB, logger *log.Logger, transCtx *model.TransferCo
 	pipeline.setFilePaths()
 
 	if transCtx.Rule.IsSend {
-		if err := pipeline.checkFileExist(); err != nil {
-			return nil, err
-		}
+		transCtx.Transfer.Filesize = getFilesize(transCtx.Transfer.LocalPath)
 	}
 
 	if transCtx.Transfer.Status != types.StatusRunning {
@@ -78,7 +75,7 @@ func newPipeline(db *database.DB, logger *log.Logger, transCtx *model.TransferCo
 		transCtx.Transfer.Error.Details = ""
 	}
 
-	return pipeline, nil
+	return pipeline
 }
 
 func (p *Pipeline) init() (err *types.TransferError) {

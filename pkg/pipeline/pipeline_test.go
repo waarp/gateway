@@ -42,6 +42,7 @@ func TestNewClientPipeline(t *testing.T) {
 						So(trans.LocalPath, ShouldEqual, file)
 						So(trans.RemotePath, ShouldEqual, path.Join(
 							ctx.send.RemoteDir, "file"))
+						So(trans.Filesize, ShouldEqual, len(testTransferFileContent))
 					})
 				})
 			})
@@ -52,9 +53,8 @@ func TestNewClientPipeline(t *testing.T) {
 				Convey("When initiating a new pipeline for this transfer", func(c C) {
 					_, err := NewClientPipeline(ctx.db, trans)
 
-					Convey("Then it should return an error", func(c C) {
-						So(err, ShouldBeError, types.NewTransferError(
-							types.TeFileNotFound, "file does not exist"))
+					Convey("Then it should NOT return an error", func(c C) {
+						So(err, ShouldBeNil)
 					})
 				})
 			})

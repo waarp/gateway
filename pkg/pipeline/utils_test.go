@@ -166,6 +166,8 @@ func mkRecvTransfer(ctx *testContext, filename string) *model.Transfer {
 	return trans
 }
 
+const testTransferFileContent = "new pipeline content"
+
 func mkSendTransfer(ctx *testContext, filename string) *model.Transfer {
 	So(os.MkdirAll(filepath.Join(ctx.root, ctx.send.LocalDir), 0o700), ShouldBeNil)
 	So(os.MkdirAll(filepath.Join(ctx.root, ctx.send.TmpLocalRcvDir), 0o700), ShouldBeNil)
@@ -179,7 +181,7 @@ func mkSendTransfer(ctx *testContext, filename string) *model.Transfer {
 	So(ctx.db.Insert(trans).Run(), ShouldBeNil)
 
 	So(os.WriteFile(filepath.Join(ctx.root, ctx.send.LocalDir, filename),
-		[]byte("new pipeline content"), 0o700), ShouldBeNil)
+		[]byte(testTransferFileContent), 0o700), ShouldBeNil)
 
 	return trans
 }
@@ -220,7 +222,7 @@ func newTestPipeline(c C, db *database.DB, trans *model.Transfer) *Pipeline {
 	return pip.Pip
 }
 
-//nolint:gochecknoglobals //this is necessary for testing
+//nolint:gochecknoglobals //this is just for tests
 var (
 	errRequest = types.NewTransferError(types.TeConnection, "request failed")
 	errPre     = types.NewTransferError(types.TeExternalOperation, "remote pre-tasks failed")
