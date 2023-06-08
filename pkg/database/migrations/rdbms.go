@@ -59,8 +59,8 @@ func SqliteDSN() string {
 	values := url.Values{}
 
 	values.Set("mode", "rwc")
-	values.Set("_txlock", "exclusive")
-	values.Add("_pragma", "busy_timeout(5000)")
+	values.Set("_txlock", "immediate")
+	values.Add("_pragma", "busy_timeout(10000)")
 	values.Add("_pragma", "foreign_keys(ON)")
 	values.Add("_pragma", "journal_mode(WAL)")
 	values.Add("_pragma", "synchronous(NORMAL)")

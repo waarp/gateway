@@ -4,6 +4,8 @@ import (
 	"context"
 	"fmt"
 
+	"code.waarp.fr/lib/log"
+
 	"code.waarp.fr/apps/gateway/gateway/pkg/database"
 	"code.waarp.fr/apps/gateway/gateway/pkg/model"
 )
@@ -27,14 +29,17 @@ func (*copyRenameTask) Validate(args map[string]string) error {
 }
 
 // Run copies the current file to the destination.
-func (*copyRenameTask) Run(_ context.Context, args map[string]string, _ *database.DB,
-	transCtx *model.TransferContext) (string, error) {
+func (*copyRenameTask) Run(_ context.Context, args map[string]string,
+	_ *database.DB, logger *log.Logger, transCtx *model.TransferContext,
+) error {
 	dstPath := args["path"]
 	srcPath := transCtx.Transfer.LocalPath
 
 	if err := doCopy(dstPath, srcPath); err != nil {
-		return err.Error(), err
+		return err
 	}
 
-	return "", nil
+	logger.Debug("Copied file %q to %q", srcPath, dstPath)
+
+	return nil
 }

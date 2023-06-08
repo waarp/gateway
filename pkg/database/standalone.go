@@ -2,25 +2,33 @@ package database
 
 import (
 	"fmt"
+	"runtime/debug"
+	"sync"
+	"time"
 
 	"code.waarp.fr/lib/log"
 	"xorm.io/xorm"
-
-	"code.waarp.fr/apps/gateway/gateway/pkg/conf"
 )
 
 // Standalone is a struct used to execute standalone commands on the database.
 type Standalone struct {
-	engine *xorm.Engine
-	logger *log.Logger
+	engine   *xorm.Engine
+	logger   *log.Logger
+	sessions sync.Map
 }
 
 func (s *Standalone) newSession() *Session {
 	return &Session{
+		id:      time.Now().UnixNano(),
 		session: s.engine.NewSession(),
 		logger:  s.logger,
 	}
 }
+
+// If a transaction takes more than this amount of time, print a warning message
+// with a stack trace (for debugging purposes), because transactions should not
+// take that long.
+const warnDuration = 10 * time.Second
 
 // TransactionFunc is the type representing a function meant to be executed inside
 // a transaction using the Standalone.Transaction method.
@@ -29,7 +37,7 @@ type TransactionFunc func(*Session) Error
 // Transaction executes all the commands in the given function as a transaction.
 // The transaction will be then be roll-backed or committed, depending on whether
 // the function returned an error or not.
-func (s *Standalone) Transaction(f TransactionFunc) Error {
+func (s *Standalone) Transaction(fun TransactionFunc) Error {
 	ses := s.newSession()
 
 	if err := ses.session.Begin(); err != nil {
@@ -38,23 +46,32 @@ func (s *Standalone) Transaction(f TransactionFunc) Error {
 		return NewInternalError(err)
 	}
 
-	if conf.GlobalConfig.Database.Type == SQLite {
-		if _, err := ses.session.Exec("ROLLBACK; BEGIN IMMEDIATE"); err != nil {
-			s.logger.Error("Failed to start immediate transaction: %s", err)
+	s.sessions.Store(ses.id, ses)
+	defer s.sessions.Delete(ses.id)
 
-			return &InternalError{msg: "failed to start transaction", cause: err}
-		}
-	}
+	done := make(chan bool)
 
 	defer func() {
 		if err := ses.session.Close(); err != nil {
 			s.logger.Warning("an error occurred while closing the session: %v", err)
 		}
+
+		close(done)
 	}()
 
-	s.logger.Trace("[SQL] Beginning transaction")
+	go func() {
+		timer := time.NewTimer(warnDuration)
+		defer timer.Stop()
 
-	if err := f(ses); err != nil {
+		select {
+		case <-timer.C:
+			s.logger.Warning("transaction is taking an unusually long time, "+
+				"printing stack for debugging purposes:\n%s", debug.Stack())
+		case <-done:
+		}
+	}()
+
+	if err := fun(ses); err != nil {
 		s.logger.Trace("Transaction failed, changes have been rolled back")
 
 		if err := ses.session.Rollback(); err != nil {
@@ -69,8 +86,6 @@ func (s *Standalone) Transaction(f TransactionFunc) Error {
 
 		return NewInternalError(err)
 	}
-
-	s.logger.Trace("[SQL] Transaction succeeded, changes have been committed")
 
 	return nil
 }

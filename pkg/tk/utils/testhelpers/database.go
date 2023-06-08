@@ -6,7 +6,9 @@ import (
 	"os"
 
 	"github.com/go-sql-driver/mysql"
+	_ "github.com/jackc/pgx/v4/stdlib"
 	"github.com/smartystreets/goconvey/convey"
+	_ "modernc.org/sqlite"
 )
 
 // GetTestSqliteDBNoReset returns a *sql.DB pointing to a test SQLite database.

@@ -8,6 +8,7 @@ import (
 	"path/filepath"
 	"time"
 
+	"code.waarp.fr/lib/log"
 	. "github.com/smartystreets/goconvey/convey"
 	"golang.org/x/crypto/bcrypt"
 
@@ -219,6 +220,7 @@ func newTestPipeline(c C, db *database.DB, trans *model.Transfer) *Pipeline {
 	return pip.Pip
 }
 
+//nolint:gochecknoglobals //this is necessary for testing
 var (
 	errRequest = types.NewTransferError(types.TeConnection, "request failed")
 	errPre     = types.NewTransferError(types.TeExternalOperation, "remote pre-tasks failed")
@@ -313,11 +315,9 @@ var taskChan = make(chan bool)
 type taskWait struct{}
 
 // Run executes the dummy task, which will always succeed.
-func (t *taskWait) Run(context.Context, map[string]string, *database.DB,
-	*model.TransferContext,
-) (string, error) {
+func (t *taskWait) Run(context.Context, map[string]string, *database.DB, *log.Logger, *model.TransferContext) error {
 	<-taskChan
 	time.Sleep(100 * time.Millisecond)
 
-	return "", nil
+	return nil
 }

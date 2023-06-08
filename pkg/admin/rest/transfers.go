@@ -445,26 +445,25 @@ func cancelDBTransfer(db *database.DB, logger *log.Logger, w http.ResponseWriter
 		statuses[i] = status[i]
 	}
 
-	rows, err := db.Iterate(&model.Transfer{}).In("status", statuses...).Run()
-	if handleError(w, logger, err) {
-		return false
-	}
-
-	defer rows.Close()
-
 	tErr := db.Transaction(func(ses *database.Session) database.Error {
-		for rows.Next() {
-			var trans model.Transfer
-			if err := rows.Scan(&trans); err != nil {
-				logger.Error("Failed to parse transfer entry: %s", err)
+		for i := 0; ; i += 20 {
+			var transfers model.Transfers
+			if err := ses.Select(&transfers).Limit(0, i).Run(); err != nil {
+				logger.Error("Failed to retrieve ")
 
-				return database.NewInternalError(err)
+				return err
 			}
 
-			trans.Status = types.StatusCancelled
+			if len(transfers) == 0 {
+				break
+			}
 
-			if err := trans.CopyToHistory(ses, logger, time.Time{}); err != nil {
-				return err
+			for _, trans := range transfers {
+				trans.Status = types.StatusCancelled
+
+				if err := trans.CopyToHistory(ses, logger, time.Time{}); err != nil {
+					return err
+				}
 			}
 		}
 

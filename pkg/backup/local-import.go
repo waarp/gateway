@@ -1,16 +1,12 @@
 package backup
 
 import (
-	"fmt"
-
 	"code.waarp.fr/lib/log"
-	"code.waarp.fr/lib/r66"
 
 	"code.waarp.fr/apps/gateway/gateway/pkg/backup/file"
 	"code.waarp.fr/apps/gateway/gateway/pkg/conf"
 	"code.waarp.fr/apps/gateway/gateway/pkg/database"
 	"code.waarp.fr/apps/gateway/gateway/pkg/model"
-	"code.waarp.fr/apps/gateway/gateway/pkg/model/config"
 	"code.waarp.fr/apps/gateway/gateway/pkg/tk/utils"
 )
 
@@ -143,17 +139,6 @@ func importLocalAccounts(logger *log.Logger, db database.Access,
 
 		if src.PasswordHash != "" {
 			account.PasswordHash = src.PasswordHash
-		} else if src.Password != "" {
-			pswd := src.Password
-			if server.Protocol == config.ProtocolR66 || server.Protocol == config.ProtocolR66TLS {
-				// Unlike other protocols, when authenticating, an R66 client sends a
-				// hash instead of a password, so we replace the password with its hash.
-				pswd = string(r66.CryptPass([]byte(pswd)))
-			}
-			var err error
-			if account.PasswordHash, err = utils.HashPassword(database.BcryptRounds, pswd); err != nil {
-				return database.NewInternalError(fmt.Errorf("failed to hash account password: %w", err))
-			}
 		}
 
 		// Create/Update

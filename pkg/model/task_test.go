@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"testing"
 
+	"code.waarp.fr/lib/log"
 	. "github.com/smartystreets/goconvey/convey"
 
 	"code.waarp.fr/apps/gateway/gateway/pkg/database"
@@ -27,8 +28,10 @@ func (t *testTaskSuccess) Validate(map[string]string) error {
 	return nil
 }
 
-func (t *testTaskSuccess) Run(context.Context, map[string]string, *database.DB, *TransferContext) (string, error) {
-	return "", nil
+func (t *testTaskSuccess) Run(context.Context, map[string]string, *database.DB,
+	*log.Logger, *TransferContext,
+) error {
+	return nil
 }
 
 type testTaskFail struct{}
@@ -37,8 +40,10 @@ func (t *testTaskFail) Validate(map[string]string) error {
 	return errValid
 }
 
-func (t *testTaskFail) Run(context.Context, map[string]string, *database.DB, *TransferContext) (string, error) {
-	return "", errExec
+func (t *testTaskFail) Run(context.Context, map[string]string, *database.DB,
+	*log.Logger, *TransferContext,
+) error {
+	return errExec
 }
 
 func TestTaskTableName(t *testing.T) {

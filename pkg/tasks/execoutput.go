@@ -1,10 +1,13 @@
 package tasks
 
 import (
+	"bufio"
 	"context"
 	"fmt"
 	"path"
 	"strings"
+
+	"code.waarp.fr/lib/log"
 
 	"code.waarp.fr/apps/gateway/gateway/pkg/database"
 	"code.waarp.fr/apps/gateway/gateway/pkg/model"
@@ -42,8 +45,9 @@ func getNewFileName(output string) string {
 
 // Run executes the task by executing an external program with the given parameters.
 func (e *execOutputTask) Run(parent context.Context, params map[string]string,
-	_ *database.DB, transCtx *model.TransferContext) (string, error) {
-	output, cmdErr := runExec(parent, params, true)
+	_ *database.DB, logger *log.Logger, transCtx *model.TransferContext,
+) error {
+	output, cmdErr := runExec(parent, params)
 	msg := ""
 
 	if output != nil {
@@ -57,8 +61,15 @@ func (e *execOutputTask) Run(parent context.Context, params map[string]string,
 				transCtx.Transfer.RemotePath), path.Base(transCtx.Transfer.LocalPath))
 		}
 
-		return "", cmdErr
+		return cmdErr
 	}
 
-	return msg, nil
+	scanner := bufio.NewScanner(output)
+	for scanner.Scan() {
+		logger.Debug(scanner.Text())
+	}
+
+	logger.Debug("Done executing command %s %s", params["path"], params["args"])
+
+	return nil
 }

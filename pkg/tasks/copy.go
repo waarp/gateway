@@ -5,8 +5,9 @@ import (
 	"fmt"
 	"io"
 	"os"
-	"path"
 	"path/filepath"
+
+	"code.waarp.fr/lib/log"
 
 	"code.waarp.fr/apps/gateway/gateway/pkg/database"
 	"code.waarp.fr/apps/gateway/gateway/pkg/model"
@@ -33,18 +34,20 @@ func (*copyTask) Validate(args map[string]string) error {
 
 // Run copies the current file to the destination.
 func (*copyTask) Run(_ context.Context, args map[string]string, _ *database.DB,
-	transCtx *model.TransferContext,
-) (string, error) {
+	logger *log.Logger, transCtx *model.TransferContext,
+) error {
 	newDir := args["path"]
 
 	source := transCtx.Transfer.LocalPath
-	dest := path.Join(newDir, filepath.Base(source))
+	dest := filepath.Join(newDir, filepath.Base(source))
 
 	if err := doCopy(dest, source); err != nil {
-		return err.Error(), err
+		return err
 	}
 
-	return "", nil
+	logger.Debug("Copied file %q to %q", source, dest)
+
+	return nil
 }
 
 func doCopy(dest, source string) error {

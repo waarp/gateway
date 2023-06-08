@@ -209,12 +209,14 @@ func TestImportLocalAccounts(t *testing.T) {
 
 			Convey("Given a list of new accounts", func() {
 				account1 := LocalAccount{
-					Login:    "toto",
-					Password: "pwd",
+					Login:        "toto",
+					Password:     "pwd",
+					PasswordHash: hash("pwd"),
 				}
 				account2 := LocalAccount{
-					Login:    "tata",
-					Password: "pwd",
+					Login:        "tata",
+					Password:     "pwd",
+					PasswordHash: hash("pwd"),
 				}
 				accounts := []LocalAccount{
 					account1, account2,
@@ -269,8 +271,9 @@ func TestImportLocalAccounts(t *testing.T) {
 
 			Convey("Given a list of fully updated agents", func() {
 				account1 := LocalAccount{
-					Login:    "foo",
-					Password: "notbar",
+					Login:        "foo",
+					Password:     "notbar",
+					PasswordHash: hash("notbar"),
 					Certs: []Certificate{
 						{
 							Name:        "cert",

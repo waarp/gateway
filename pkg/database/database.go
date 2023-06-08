@@ -96,7 +96,10 @@ func (db *DB) createConnectionInfo() (*dbInfo, error) {
 	return makeConnInfo(), nil
 }
 
-type dbInfo struct{ driver, dsn string }
+type dbInfo struct {
+	driver, dsn string
+	connLimit   int
+}
 
 //nolint:gochecknoglobals // global var is used by design
 var supportedRBMS = map[string]func() *dbInfo{}
@@ -123,6 +126,10 @@ func (db *DB) initEngine() (*xorm.Engine, error) {
 		db.logger.Error("Failed to access database: %s", err)
 
 		return nil, fmt.Errorf("cannot access database: %w", err)
+	}
+
+	if connInfo.connLimit > 0 {
+		engine.SetMaxOpenConns(connInfo.connLimit)
 	}
 
 	return engine, nil
@@ -201,7 +208,7 @@ func (db *DB) start(withInit bool) error {
 // Stop shuts down the database service. If an error occurred during the shutdown,
 // an error is returned.
 // If the service is not running, this function does nothing.
-func (db *DB) Stop(_ context.Context) error {
+func (db *DB) Stop(ctx context.Context) error {
 	db.logger.Info("Shutting down...")
 
 	if code, _ := db.state.Get(); code != state.Running {
@@ -212,12 +219,33 @@ func (db *DB) Stop(_ context.Context) error {
 
 	db.state.Set(state.ShuttingDown, "")
 
-	err := db.Standalone.engine.Close()
-	if err != nil {
+	if err := db.Standalone.engine.Close(); err != nil {
 		db.state.Set(state.Error, err.Error())
 		db.logger.Info("Error while closing the database: %s", err)
 
 		return fmt.Errorf("an error occurred while closing the database: %w", err)
+	}
+
+	select {
+	case <-ctx.Done():
+		db.logger.Warning("Failed to close the pending transactions")
+		db.logger.Warning("Force closing the database")
+	case <-func() chan bool {
+		done := make(chan bool)
+
+		db.sessions.Range(func(_, ses any) bool {
+			//nolint:forcetypeassert //type assert will always succeed
+			if err := ses.(*Session).session.Close(); err != nil {
+				db.logger.Warning("Failed to close session: %v", err)
+			}
+
+			return true
+		})
+
+		close(done)
+
+		return done
+	}():
 	}
 
 	db.state.Set(state.Offline, "")

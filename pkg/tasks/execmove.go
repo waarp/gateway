@@ -7,6 +7,8 @@ import (
 	"os"
 	"path"
 
+	"code.waarp.fr/lib/log"
+
 	"code.waarp.fr/apps/gateway/gateway/pkg/database"
 	"code.waarp.fr/apps/gateway/gateway/pkg/model"
 	"code.waarp.fr/apps/gateway/gateway/pkg/tk/utils"
@@ -32,10 +34,11 @@ func (e *execMoveTask) Validate(params map[string]string) error {
 
 // Run executes the task by executing an external program with the given parameters.
 func (e *execMoveTask) Run(parent context.Context, params map[string]string,
-	_ *database.DB, transCtx *model.TransferContext) (string, error) {
-	output, cmdErr := runExec(parent, params, true)
+	_ *database.DB, logger *log.Logger, transCtx *model.TransferContext,
+) error {
+	output, cmdErr := runExec(parent, params)
 	if cmdErr != nil {
-		return "", cmdErr
+		return cmdErr
 	}
 
 	var newPath string
@@ -43,15 +46,18 @@ func (e *execMoveTask) Run(parent context.Context, params map[string]string,
 	scanner := bufio.NewScanner(output)
 	for scanner.Scan() {
 		newPath = scanner.Text()
+		logger.Debug(newPath)
 	}
 
 	if _, err := os.Stat(newPath); err != nil {
-		return "", fmt.Errorf("could not find moved file: %w", err)
+		return fmt.Errorf("could not find moved file: %w", err)
 	}
 
 	transCtx.Transfer.LocalPath = utils.ToOSPath(newPath)
 	transCtx.Transfer.RemotePath = path.Join(path.Dir(transCtx.Transfer.RemotePath),
 		path.Base(transCtx.Transfer.LocalPath))
 
-	return "", nil
+	logger.Debug("Done executing command %s %s", params["path"], params["args"])
+
+	return nil
 }

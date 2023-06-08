@@ -34,7 +34,7 @@ func resetVars() {
 //nolint:maintidx //FIXME factorize the function if possible to improve maintainability
 func TestGetCertificate(t *testing.T) {
 	Convey("Testing the certificate 'get' command", t, func() {
-		Reset(resetVars)
+		resetVars()
 		out = testFile()
 		command := &CertGet{}
 
@@ -341,7 +341,7 @@ func TestGetCertificate(t *testing.T) {
 //nolint:maintidx //FIXME factorize the function if possible to improve maintainability
 func TestAddCertificate(t *testing.T) {
 	Convey("Testing the cert 'add' command", t, func(c C) {
-		Reset(resetVars)
+		resetVars()
 		out = testFile()
 		command := &CertAdd{}
 
@@ -695,7 +695,7 @@ func TestAddCertificate(t *testing.T) {
 //nolint:maintidx //FIXME factorize the function if possible to improve maintainability
 func TestDeleteCertificate(t *testing.T) {
 	Convey("Testing the certificate 'delete' command", t, func() {
-		Reset(resetVars)
+		resetVars()
 		out = testFile()
 		command := &CertDelete{}
 
@@ -1100,7 +1100,7 @@ func TestDeleteCertificate(t *testing.T) {
 //nolint:maintidx //FIXME factorize the function if possible to improve maintainability
 func TestListCertificate(t *testing.T) {
 	Convey("Testing the certificate 'list' command", t, func() {
-		Reset(resetVars)
+		resetVars()
 		out = testFile()
 		command := &CertList{}
 
@@ -1588,7 +1588,7 @@ func TestListCertificate(t *testing.T) {
 //nolint:maintidx //FIXME factorize the function if possible to improve maintainability
 func TestUpdateCertificate(t *testing.T) {
 	Convey("Testing the certificate 'update' command", t, func() {
-		Reset(resetVars)
+		resetVars()
 		out = testFile()
 		command := &CertUpdate{}
 

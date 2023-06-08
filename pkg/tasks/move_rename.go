@@ -6,6 +6,8 @@ import (
 	"path"
 	"path/filepath"
 
+	"code.waarp.fr/lib/log"
+
 	"code.waarp.fr/apps/gateway/gateway/pkg/database"
 	"code.waarp.fr/apps/gateway/gateway/pkg/model"
 	"code.waarp.fr/apps/gateway/gateway/pkg/tk/utils"
@@ -32,18 +34,21 @@ func (*moveRenameTask) Validate(args map[string]string) error {
 
 // Run move and rename the current file to the destination and
 // modify the transfer model to reflect the file change.
-func (*moveRenameTask) Run(_ context.Context, args map[string]string, _ *database.DB,
-	transCtx *model.TransferContext) (string, error) {
+func (*moveRenameTask) Run(_ context.Context, args map[string]string,
+	_ *database.DB, logger *log.Logger, transCtx *model.TransferContext,
+) error {
 	newPath := args["path"]
 	oldPath := transCtx.Transfer.LocalPath
 
 	if err := MoveFile(oldPath, newPath); err != nil {
-		return err.Error(), err
+		return err
 	}
 
 	transCtx.Transfer.LocalPath = utils.ToOSPath(newPath)
 	transCtx.Transfer.RemotePath = path.Join(path.Dir(transCtx.Transfer.RemotePath),
 		filepath.Base(transCtx.Transfer.LocalPath))
 
-	return "", nil
+	logger.Debug("Moved file %q to %q", oldPath, newPath)
+
+	return nil
 }

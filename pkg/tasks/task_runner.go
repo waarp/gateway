@@ -84,11 +84,10 @@ func (r *Runner) runTask(task *model.Task, taskInfo string, isErrTasks bool) *ty
 		}
 	}
 
-	var msg string
 	if isErrTasks {
-		msg, err = runner.Run(context.Background(), args, r.db, r.transCtx)
+		err = runner.Run(context.Background(), args, r.db, r.logger, r.transCtx)
 	} else {
-		msg, err = runner.Run(r.ctx, args, r.db, r.transCtx)
+		err = runner.Run(r.ctx, args, r.db, r.logger, r.transCtx)
 	}
 
 	if err != nil {
@@ -113,11 +112,7 @@ func (r *Runner) runTask(task *model.Task, taskInfo string, isErrTasks bool) *ty
 			}
 		}
 	} else {
-		if msg != "" {
-			r.logger.Debug("%s: %s", taskInfo, msg)
-		} else {
-			r.logger.Debug(taskInfo)
-		}
+		r.logger.Debug(taskInfo)
 	}
 
 	return r.updateProgress(isErrTasks)

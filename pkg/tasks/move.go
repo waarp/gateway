@@ -5,8 +5,9 @@ import (
 	"errors"
 	"fmt"
 	"os"
-	"path"
 	"path/filepath"
+
+	"code.waarp.fr/lib/log"
 
 	"code.waarp.fr/apps/gateway/gateway/pkg/database"
 	"code.waarp.fr/apps/gateway/gateway/pkg/model"
@@ -69,17 +70,20 @@ func (*moveTask) Validate(args map[string]string) error {
 
 // Run executes the task by moving the file in the requested directory.
 func (*moveTask) Run(_ context.Context, args map[string]string, _ *database.DB,
-	transCtx *model.TransferContext) (string, error) {
+	logger *log.Logger, transCtx *model.TransferContext,
+) error {
 	newDir := args["path"]
 
 	source := transCtx.Transfer.LocalPath
-	dest := path.Join(utils.ToOSPath(newDir), filepath.Base(source))
+	dest := filepath.Join(utils.ToOSPath(newDir), filepath.Base(source))
 
 	if err := MoveFile(source, dest); err != nil {
-		return err.Error(), err
+		return err
 	}
 
 	transCtx.Transfer.LocalPath = utils.ToOSPath(dest)
 
-	return "", nil
+	logger.Debug("Moved file %q to %q", source, dest)
+
+	return nil
 }

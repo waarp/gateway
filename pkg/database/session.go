@@ -14,6 +14,7 @@ import (
 // Session is a struct used to perform transactions on the database. A session
 // can be performed using the Standalone.Transaction method.
 type Session struct {
+	id      int64
 	session *xorm.Session
 	logger  *log.Logger
 }
