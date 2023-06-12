@@ -29,7 +29,10 @@ func UpdateFileInfo(info *r66.UpdateInfo, pip *pipeline.Pipeline) *types.Transfe
 	}
 
 	if info.Filename != "" {
-		newFile := strings.TrimPrefix(info.Filename, "/")
+		newFile := strings.TrimLeft(info.Filename, "/")
+		newFile = strings.TrimPrefix(newFile, pip.TransCtx.Rule.RemoteDir)
+		newFile = strings.TrimLeft(newFile, "/")
+
 		if err := pip.RebuildFilepaths(newFile); err != nil {
 			return err
 		}

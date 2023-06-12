@@ -10,8 +10,8 @@ code.waarp.fr/lib/migration v0.3.1-0.20221215182244-7175653958f7 h1:QsrzE9ERbMMe
 code.waarp.fr/lib/migration v0.3.1-0.20221215182244-7175653958f7/go.mod h1:iEXFVqvPTTXv6XC32SDI3jmcGUAEuXdAHsfcYmsfqtc=
 code.waarp.fr/lib/migration v0.4.0 h1:IyczzHRFY9wcp7XO8/cJ2tNKwJYAIi86dn7Rie9IxBk=
 code.waarp.fr/lib/migration v0.4.0/go.mod h1:iEXFVqvPTTXv6XC32SDI3jmcGUAEuXdAHsfcYmsfqtc=
-code.waarp.fr/lib/r66 v0.1.5 h1:8LtNqXhDb2CHFbEfOlbpJVnNTsU7VXGwxcgGgpYuNy4=
-code.waarp.fr/lib/r66 v0.1.5/go.mod h1:avEs87Jd9UV9z+t0lAKWazVTH/6lF1OaukIfQEpJ+XE=
+code.waarp.fr/lib/r66 v0.1.6 h1:mPFU0c12vIQRzuv+rxtniiHYy5+tt/E02NOY3vNscNA=
+code.waarp.fr/lib/r66 v0.1.6/go.mod h1:avEs87Jd9UV9z+t0lAKWazVTH/6lF1OaukIfQEpJ+XE=
 filippo.io/edwards25519 v1.0.0-rc.1 h1:m0VOOB23frXZvAOK44usCgLWvtsxIoMCTBGJZlpmGfU=
 filippo.io/edwards25519 v1.0.0-rc.1/go.mod h1:N1IkdkCkiLB6tki+MYJoSx2JTY9NUlxZE7eHn5EwJns=
 gitea.com/xorm/sqlfiddle v0.0.0-20180821085327-62ce714f951a h1:lSA0F4e9A2NcQSqGqTOXqu2aRi/XEQxDCBwM8yJtE6s=
