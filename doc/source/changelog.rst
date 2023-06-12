@@ -3,6 +3,7 @@
 Historique des versions
 =======================
 
+* :release:`0.8.0 <2023-06-12>`
 * :bug:`376` Correction d'un bug du client R66 de la gateway qui empêchait
   celui-ci récupérer un fichier depuis un agent *Waarp-R66* pour cause de
   "mauvais chemin de fichier".
