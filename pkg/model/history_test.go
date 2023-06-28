@@ -41,7 +41,7 @@ func TestHistoryBeforeWrite(t *testing.T) {
 				Agent:            "from",
 				Account:          "to",
 				SrcFilename:      "file",
-				LocalPath:        testLocalPath,
+				LocalPath:        *mkURL(testLocalPath),
 				RemotePath:       "test/remote/file",
 				Start:            time.Now(),
 				Stop:             time.Now(),
@@ -72,24 +72,28 @@ func TestHistoryBeforeWrite(t *testing.T) {
 
 			Convey("Given that the rule name is missing", func() {
 				hist.Rule = ""
+
 				shouldFailWith("the rule is missing", database.NewValidationError(
 					"the transfer's rule cannot be empty"))
 			})
 
 			Convey("Given that the account is missing", func() {
 				hist.Account = ""
+
 				shouldFailWith("source is missing", database.NewValidationError(
 					"the transfer's account cannot be empty"))
 			})
 
 			Convey("Given that the agent is missing", func() {
 				hist.Agent = ""
+
 				shouldFailWith("the destination is missing", database.NewValidationError(
 					"the transfer's agent cannot be empty"))
 			})
 
 			Convey("Given that the local path is missing", func() {
-				hist.LocalPath = ""
+				hist.LocalPath = types.URL{}
+
 				shouldFailWith("the local filename is missing", database.NewValidationError(
 					"the local filepath cannot be empty"))
 			})
@@ -97,24 +101,28 @@ func TestHistoryBeforeWrite(t *testing.T) {
 			Convey("Given that the remote path is missing", func() {
 				hist.IsServer = false
 				hist.RemotePath = ""
+
 				shouldFailWith("the remote filename is missing", database.NewValidationError(
 					"the remote filepath cannot be empty"))
 			})
 
 			Convey("Given that the protocol is invalid", func() {
 				hist.Protocol = "invalid"
+
 				shouldFailWith("the protocol is missing", database.NewValidationError(
 					"'invalid' is not a valid protocol"))
 			})
 
 			Convey("Given that the starting date is missing", func() {
 				hist.Start = time.Time{}
+
 				shouldFailWith("the start date is missing", database.NewValidationError(
 					"the transfer's start date cannot be empty"))
 			})
 
 			Convey("Given that the end date is before the start date", func() {
 				hist.Stop = hist.Start.AddDate(0, 0, -1)
+
 				shouldFailWith("the end date is anterior", database.NewValidationError(
 					"the transfer's end date cannot be anterior to the start date"))
 			})
@@ -146,10 +154,12 @@ type statusTestCase struct {
 func testTransferStatus(tc statusTestCase, target database.WriteHook, db *database.DB) {
 	Convey(fmt.Sprintf("Given the status is set to '%s'", tc.status), func() {
 		var typeName string
+
 		if t, ok := target.(*HistoryEntry); ok {
 			t.Status = tc.status
 			typeName = "transfer history"
 		}
+
 		if t, ok := target.(*Transfer); ok {
 			t.Status = tc.status
 			typeName = "transfer"
@@ -208,7 +218,7 @@ func TestTransferHistoryRestart(t *testing.T) {
 				Agent:            agent.Name,
 				Protocol:         agent.Protocol,
 				SrcFilename:      "file",
-				LocalPath:        "/loc/file",
+				LocalPath:        *mkURL("file:/loc/file"),
 				RemotePath:       "/rem/file",
 				Rule:             rule.Name,
 				Start:            time.Date(2020, 0, 0, 0, 0, 0, 0, time.Local),
@@ -269,7 +279,7 @@ func TestTransferHistoryRestart(t *testing.T) {
 				Agent:            agent.Name,
 				Protocol:         agent.Protocol,
 				SrcFilename:      "file",
-				LocalPath:        "/local/file",
+				LocalPath:        *mkURL("file:/local/file"),
 				RemotePath:       "/remote/file",
 				Rule:             rule.Name,
 				Start:            time.Date(2020, 0, 0, 0, 0, 0, 0, time.Local),

@@ -4,7 +4,9 @@ import (
 	"errors"
 	"fmt"
 	"net/http"
+	"runtime"
 	"strconv"
+	"strings"
 	"time"
 
 	"code.waarp.fr/apps/gateway/gateway/pkg/admin/rest/api"
@@ -12,8 +14,24 @@ import (
 	"code.waarp.fr/apps/gateway/gateway/pkg/gatewayd/service"
 	"code.waarp.fr/apps/gateway/gateway/pkg/gatewayd/service/proto"
 	"code.waarp.fr/apps/gateway/gateway/pkg/model"
+	"code.waarp.fr/apps/gateway/gateway/pkg/model/types"
 	"code.waarp.fr/apps/gateway/gateway/pkg/pipeline"
 )
+
+func pathString(src *types.URL) string {
+	url := *src
+
+	if url.Scheme == "file" {
+		path := url.Path
+		if runtime.GOOS == "windows" {
+			path = strings.TrimLeft(path, "/")
+		}
+
+		return path
+	}
+
+	return url.String()
+}
 
 func getTransIDs(db *database.DB, trans *api.InTransfer) (int64, int64, error) {
 	if trans.IsSend == nil {

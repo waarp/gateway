@@ -4,7 +4,6 @@ import (
 	"encoding/json"
 	"fmt"
 	"path"
-	"path/filepath"
 	"time"
 
 	"github.com/smartystreets/goconvey/convey"
@@ -150,8 +149,8 @@ func makeClientConf(c convey.C, db *database.DB, port uint16, proto string,
 
 //nolint:dupl // factorizing would hurt readability
 func (cc *ClientContext) addPushTransfer(c convey.C) {
-	testDir := filepath.Join(cc.Paths.GatewayHome, cc.ClientRule.LocalDir)
-	cc.fileContent = AddSourceFile(c, testDir, "self_transfer_push")
+	testFile := mkURL(cc.Paths.GatewayHome, cc.ClientRule.LocalDir, "self_transfer_push")
+	cc.fileContent = AddSourceFile(c, testFile)
 
 	trans := &model.Transfer{
 		RuleID:          cc.ClientRule.ID,

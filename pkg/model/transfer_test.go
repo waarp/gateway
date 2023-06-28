@@ -62,7 +62,7 @@ func TestTransferBeforeWrite(t *testing.T) {
 					RuleID:           rule.ID,
 					LocalAccountID:   utils.NewNullInt64(account.ID),
 					SrcFilename:      "file",
-					LocalPath:        testLocalPath,
+					LocalPath:        *mkURL(testLocalPath),
 					RemotePath:       "/remote/file",
 					Start:            time.Now(),
 					Status:           types.StatusPlanned,
@@ -99,24 +99,28 @@ func TestTransferBeforeWrite(t *testing.T) {
 
 				Convey("Given that the rule ID is missing", func() {
 					trans.RuleID = 0
+
 					shouldFailWith("the rule ID is missing", database.NewValidationError(
 						"the transfer's rule ID cannot be empty"))
 				})
 
 				Convey("Given that the account ID is missing", func() {
 					trans.LocalAccountID = sql.NullInt64{}
+
 					shouldFailWith("the remote ID is missing", database.NewValidationError(
 						"the transfer is missing an account ID"))
 				})
 
 				Convey("Given that the transfer has both account IDs", func() {
 					trans.RemoteAccountID = utils.NewNullInt64(1)
+
 					shouldFailWith("the account ID is missing", database.NewValidationError(
 						"the transfer cannot have both a local and remote account ID"))
 				})
 
 				Convey("Given that the filename is missing", func() {
 					trans.SrcFilename = ""
+
 					shouldFailWith("the source file is missing", database.NewValidationError(
 						"the source file is missing"))
 				})
@@ -162,7 +166,7 @@ func TestTransferBeforeWrite(t *testing.T) {
 						Agent:            server.Name,
 						Account:          account.Login,
 						SrcFilename:      "file",
-						LocalPath:        "/local/file",
+						LocalPath:        *mkURL("file:/local/file"),
 						RemotePath:       "remote/file",
 						Filesize:         100,
 						Start:            time.Date(2021, 1, 1, 1, 0, 0, 0, time.UTC),
@@ -224,7 +228,7 @@ func TestTransferToHistory(t *testing.T) {
 				RuleID:          rule.ID,
 				RemoteAccountID: utils.NewNullInt64(account.ID),
 				SrcFilename:     "file",
-				LocalPath:       testLocalPath,
+				LocalPath:       *mkURL(testLocalPath),
 				RemotePath:      "/test/remote/file",
 				Start:           time.Date(2021, 1, 1, 1, 0, 0, 0, time.Local),
 				Status:          types.StatusPlanned,
@@ -238,7 +242,7 @@ func TestTransferToHistory(t *testing.T) {
 				So(trans.MoveToHistory(db, logger, end), ShouldBeNil)
 
 				Convey("Then it should have inserted an equivalent `HistoryEntry` entry", func() {
-					var hist HistoryEntry
+					hist := HistoryEntry{}
 					So(db.Get(&hist, "id=?", trans.ID).Run(), ShouldBeNil)
 
 					expected := HistoryEntry{
@@ -264,6 +268,7 @@ func TestTransferToHistory(t *testing.T) {
 
 				Convey("Then it should have removed the old transfer entry", func() {
 					var results Transfers
+
 					So(db.Select(&results).Run(), ShouldBeNil)
 					So(results, ShouldBeEmpty)
 				})
@@ -273,6 +278,7 @@ func TestTransferToHistory(t *testing.T) {
 				status          types.TransferStatus
 				expectedSuccess bool
 			}
+
 			statusesTestCases := []statusTestCase{
 				{types.StatusPlanned, false},
 				{types.StatusRunning, false},
@@ -288,7 +294,8 @@ func TestTransferToHistory(t *testing.T) {
 
 					Convey("When calling the `MoveToHistory` method", func() {
 						err := trans.MoveToHistory(db, logger, time.Now())
-						var hist HistoryEntries
+
+						hist := HistoryEntries{}
 						So(db.Select(&hist).Run(), ShouldBeNil)
 
 						if tc.expectedSuccess {

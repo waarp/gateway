@@ -8,6 +8,7 @@ import (
 
 	"code.waarp.fr/apps/gateway/gateway/pkg/database"
 	"code.waarp.fr/apps/gateway/gateway/pkg/model"
+	"code.waarp.fr/apps/gateway/gateway/pkg/model/types"
 )
 
 // copyRenameTask is a task which allow to copy the current file
@@ -32,14 +33,19 @@ func (*copyRenameTask) Validate(args map[string]string) error {
 func (*copyRenameTask) Run(_ context.Context, args map[string]string,
 	_ *database.DB, logger *log.Logger, transCtx *model.TransferContext,
 ) error {
-	dstPath := args["path"]
-	srcPath := transCtx.Transfer.LocalPath
+	srcPath := &transCtx.Transfer.LocalPath
+	dst := args["path"]
 
-	if err := doCopy(dstPath, srcPath); err != nil {
+	dstPath, err := types.ParseURL(dst)
+	if err != nil {
+		return fmt.Errorf("failed to parse the copy destination path %q: %w", dst, err)
+	}
+
+	if err := doCopy(srcPath, dstPath); err != nil {
 		return err
 	}
 
-	logger.Debug("Copied file %q to %q", srcPath, dstPath)
+	logger.Debug("Copied file %q to %q", srcPath, dst)
 
 	return nil
 }

@@ -4,8 +4,6 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
-	"os"
-	"path/filepath"
 	"time"
 
 	"github.com/smartystreets/goconvey/convey"
@@ -15,6 +13,7 @@ import (
 	"code.waarp.fr/apps/gateway/gateway/pkg/gatewayd/service/proto"
 	"code.waarp.fr/apps/gateway/gateway/pkg/model"
 	"code.waarp.fr/apps/gateway/gateway/pkg/model/config"
+	"code.waarp.fr/apps/gateway/gateway/pkg/pipeline/fs"
 	"code.waarp.fr/apps/gateway/gateway/pkg/tk/utils"
 	"code.waarp.fr/apps/gateway/gateway/pkg/tk/utils/testhelpers"
 )
@@ -39,7 +38,7 @@ func initServer(c convey.C, protocol string, constr serviceConstructor,
 ) *ServerContext {
 	t := initTestData(c)
 	port := testhelpers.GetFreePort(c)
-	server, locAcc := makeServerConf(c, t.DB, port, t.Paths.GatewayHome, protocol, servConf)
+	server, locAcc := makeServerConf(c, t, port, protocol, servConf)
 
 	return &ServerContext{
 		testData: t,
@@ -106,7 +105,7 @@ func makeServerPull(c convey.C, db *database.DB) *model.Rule {
 	return rule
 }
 
-func makeServerConf(c convey.C, db *database.DB, port uint16, home, protocol string,
+func makeServerConf(c convey.C, data *testData, port uint16, protocol string,
 	servConf config.ProtoConfig,
 ) (ag *model.LocalAgent, acc *model.LocalAccount) {
 	jsonServConf := json.RawMessage(`{}`)
@@ -117,13 +116,14 @@ func makeServerConf(c convey.C, db *database.DB, port uint16, home, protocol str
 		c.So(err, convey.ShouldBeNil)
 	}
 
-	root := filepath.Join(home, protocol+"_server_root")
-	c.So(os.MkdirAll(root, 0o700), convey.ShouldBeNil)
+	rootDir := protocol + "_server_root"
+	rootPath := mkURL(data.Paths.GatewayHome, rootDir)
+	c.So(fs.MkdirAll(rootPath), convey.ShouldBeNil)
 
 	server := &model.LocalAgent{
 		Name:          "server",
 		Protocol:      protocol,
-		RootDir:       utils.ToOSPath(root),
+		RootDir:       rootDir,
 		ProtoConfig:   jsonServConf,
 		Address:       fmt.Sprintf("127.0.0.1:%d", port),
 		ReceiveDir:    "receive",
@@ -131,10 +131,10 @@ func makeServerConf(c convey.C, db *database.DB, port uint16, home, protocol str
 		TmpReceiveDir: "tmp",
 	}
 
-	c.So(db.Insert(server).Run(), convey.ShouldBeNil)
-	c.So(os.MkdirAll(filepath.Join(root, server.ReceiveDir), 0o700), convey.ShouldBeNil)
-	c.So(os.MkdirAll(filepath.Join(root, server.SendDir), 0o700), convey.ShouldBeNil)
-	c.So(os.MkdirAll(filepath.Join(root, server.TmpReceiveDir), 0o700), convey.ShouldBeNil)
+	c.So(data.DB.Insert(server).Run(), convey.ShouldBeNil)
+	c.So(fs.MkdirAll(rootPath.JoinPath(server.ReceiveDir)), convey.ShouldBeNil)
+	c.So(fs.MkdirAll(rootPath.JoinPath(server.SendDir)), convey.ShouldBeNil)
+	c.So(fs.MkdirAll(rootPath.JoinPath(server.TmpReceiveDir)), convey.ShouldBeNil)
 
 	pswd := TestPassword
 	if protocol == config.ProtocolR66 || protocol == config.ProtocolR66TLS {
@@ -147,7 +147,7 @@ func makeServerConf(c convey.C, db *database.DB, port uint16, home, protocol str
 		PasswordHash: hash(pswd),
 	}
 
-	c.So(db.Insert(locAccount).Run(), convey.ShouldBeNil)
+	c.So(data.DB.Insert(locAccount).Run(), convey.ShouldBeNil)
 
 	return server, locAccount
 }
@@ -183,5 +183,5 @@ func (s *ServerContext) CheckTransferOK(c convey.C) {
 
 	remoteID := actual.RemoteTransferID
 	progress := TestFileSize
-	s.checkServerTransferOK(c, remoteID, s.filename, progress, s.DB, &actual, nil)
+	s.checkServerTransferOK(c, remoteID, s.filename, progress, s.testData, &actual, nil)
 }

@@ -7,7 +7,6 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
-	"os"
 	"sync"
 
 	"code.waarp.fr/lib/log"
@@ -15,6 +14,7 @@ import (
 	"code.waarp.fr/apps/gateway/gateway/pkg/database"
 	"code.waarp.fr/apps/gateway/gateway/pkg/model"
 	"code.waarp.fr/apps/gateway/gateway/pkg/model/types"
+	"code.waarp.fr/apps/gateway/gateway/pkg/pipeline/fs"
 )
 
 // Runner provides a way to execute tasks given a transfer context (rule, transfer).
@@ -63,8 +63,8 @@ func (r *Runner) ErrorTasks() *types.TransferError {
 func (r *Runner) runTask(task *model.Task, taskInfo string, isErrTasks bool) *types.TransferError {
 	runner, ok := model.ValidTasks[task.Type]
 	if !ok {
-		return types.NewTransferError(types.TeExternalOperation, fmt.Sprintf(
-			"%s: unknown task", taskInfo))
+		return types.NewTransferError(types.TeExternalOperation,
+			"%s: unknown task", taskInfo)
 	}
 
 	args, err := r.setup(task)
@@ -215,7 +215,7 @@ func (r *Runner) getFilesize() int64 {
 		return -1
 	}
 
-	info, err := os.Stat(r.transCtx.Transfer.LocalPath)
+	info, err := fs.Stat(&r.transCtx.Transfer.LocalPath)
 	if err != nil {
 		r.logger.Warning("Failed to retrieve file size: %s", err)
 

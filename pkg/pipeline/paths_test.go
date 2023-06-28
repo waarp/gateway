@@ -2,7 +2,7 @@ package pipeline
 
 import (
 	"fmt"
-	"path/filepath"
+	"path"
 	"testing"
 
 	. "github.com/smartystreets/goconvey/convey"
@@ -17,7 +17,8 @@ import (
 func TestPathBuilder(t *testing.T) {
 	Convey("Given a Gateway configuration", t, func(c C) {
 		db := database.TestDatabase(c)
-		conf.GlobalConfig.Paths.GatewayHome = testhelpers.TempDir(c, "path_builder")
+
+		conf.GlobalConfig.Paths.GatewayHome = "mem:/path_builder"
 		conf.GlobalConfig.Paths.DefaultInDir = "gwIn"
 		conf.GlobalConfig.Paths.DefaultOutDir = "gwOut"
 		conf.GlobalConfig.Paths.DefaultTmpDir = "gwTmp"
@@ -78,16 +79,17 @@ func TestPathBuilder(t *testing.T) {
 				serRoot, ruleLoc, ruleTmp string
 				expTmp                    string
 			}
+
 			gwRoot := conf.GlobalConfig.Paths.GatewayHome
 			testCases := []testCase{
-				{"", "", "", filepath.Join(gwRoot, "gwTmp", file)},
-				{"serRoot", "", "", filepath.Join(gwRoot, "serRoot", "serTmp", file)},
-				{"", "recvLoc", "", filepath.Join(gwRoot, "recvLoc", file)},
-				{"", "", "recvTmp", filepath.Join(gwRoot, "recvTmp", file)},
-				{"serRoot", "recvLoc", "", filepath.Join(gwRoot, "serRoot", "recvLoc", file)},
-				{"serRoot", "", "recvTmp", filepath.Join(gwRoot, "serRoot", "recvTmp", file)},
-				{"", "recvLoc", "recvTmp", filepath.Join(gwRoot, "recvTmp", file)},
-				{"serRoot", "recvLoc", "recvTmp", filepath.Join(gwRoot, "serRoot", "recvTmp", file)},
+				{"", "", "", path.Join(gwRoot, "gwTmp", file)},
+				{"serRoot", "", "", path.Join(gwRoot, "serRoot", "serTmp", file)},
+				{"", "recvLoc", "", path.Join(gwRoot, "recvLoc", file)},
+				{"", "", "recvTmp", path.Join(gwRoot, "recvTmp", file)},
+				{"serRoot", "recvLoc", "", path.Join(gwRoot, "serRoot", "recvLoc", file)},
+				{"serRoot", "", "recvTmp", path.Join(gwRoot, "serRoot", "recvTmp", file)},
+				{"", "recvLoc", "recvTmp", path.Join(gwRoot, "recvTmp", file)},
+				{"serRoot", "recvLoc", "recvTmp", path.Join(gwRoot, "serRoot", "recvTmp", file)},
 			}
 
 			for _, tc := range testCases {
@@ -115,7 +117,7 @@ func TestPathBuilder(t *testing.T) {
 						pip.setFilePaths()
 
 						Convey("Then it should have built the expected tmp path", func() {
-							So(transCtx.Transfer.LocalPath, ShouldEqual, tc.expTmp)
+							So(transCtx.Transfer.LocalPath.String(), ShouldEqual, tc.expTmp)
 						})
 					})
 				})
@@ -140,12 +142,13 @@ func TestPathBuilder(t *testing.T) {
 				serRoot, ruleLoc string
 				expFinal         string
 			}
+
 			gwRoot := conf.GlobalConfig.Paths.GatewayHome
 			testCases := []testCase{
-				{"", "", filepath.Join(gwRoot, "gwOut", file)},
-				{"serRoot", "", filepath.Join(gwRoot, "serRoot", "serOut", file)},
-				{"", "sendLoc", filepath.Join(gwRoot, "sendLoc", file)},
-				{"serRoot", "sendLoc", filepath.Join(gwRoot, "serRoot", "sendLoc", file)},
+				{"", "", path.Join(gwRoot, "gwOut", file)},
+				{"serRoot", "", path.Join(gwRoot, "serRoot", "serOut", file)},
+				{"", "sendLoc", path.Join(gwRoot, "sendLoc", file)},
+				{"serRoot", "sendLoc", path.Join(gwRoot, "serRoot", "sendLoc", file)},
 			}
 
 			for _, tc := range testCases {
@@ -172,7 +175,7 @@ func TestPathBuilder(t *testing.T) {
 						pip.setFilePaths()
 
 						Convey("Then it should have built the expected out path", func() {
-							So(transCtx.Transfer.LocalPath, ShouldEqual, tc.expFinal)
+							So(transCtx.Transfer.LocalPath.String(), ShouldEqual, tc.expFinal)
 						})
 					})
 				})

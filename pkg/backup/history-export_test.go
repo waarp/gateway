@@ -26,7 +26,7 @@ func TestExportHistory(t *testing.T) {
 			Agent:            "agent1",
 			Protocol:         testProtocol,
 			DestFilename:     "file1",
-			LocalPath:        "/path/local/file1",
+			LocalPath:        *mkURL("file:/path/local/file1"),
 			Filesize:         1234,
 			Start:            time.Date(2021, 1, 1, 1, 0, 0, 123456000, time.Local),
 			Stop:             time.Date(2021, 1, 1, 2, 0, 0, 123456000, time.Local),
@@ -49,7 +49,7 @@ func TestExportHistory(t *testing.T) {
 			Protocol:         testProtocol,
 			SrcFilename:      "src_file2",
 			DestFilename:     "dest_file2",
-			LocalPath:        "/path/local/src_file2",
+			LocalPath:        *mkURL("file:/path/local/src_file2"),
 			RemotePath:       "/path/remote/dest_file2",
 			Filesize:         5678,
 			Start:            time.Date(2022, 1, 1, 1, 0, 0, 123456000, time.Local),
@@ -82,7 +82,7 @@ func TestExportHistory(t *testing.T) {
     "requested": "agent1",
     "protocol": "test_proto",
     "destFilename": "file1",
-    "localFilepath": "/path/local/file1",
+    "localFilepath": "file:/path/local/file1",
     "filesize": 1234,
     "start": "`+hist1.Start.Local().Format(time.RFC3339Nano)+`",
     "stop": "`+hist1.Stop.Local().Format(time.RFC3339Nano)+`",
@@ -104,7 +104,7 @@ func TestExportHistory(t *testing.T) {
     "protocol": "test_proto",
     "srcFilename": "src_file2",
     "destFilename": "dest_file2",
-    "localFilepath": "/path/local/src_file2",
+    "localFilepath": "file:/path/local/src_file2",
     "remoteFilepath": "/path/remote/dest_file2",
     "filesize": 5678,
     "start": "`+hist2.Start.Local().Format(time.RFC3339Nano)+`",
@@ -122,6 +122,7 @@ func TestExportHistory(t *testing.T) {
 
 			Convey("Then the database entries should be unchanged", func() {
 				var hist model.HistoryEntries
+
 				So(db.Select(&hist).OrderBy("id", true).Run(), ShouldBeNil)
 				So(hist, ShouldHaveLength, 2)
 				So(hist[0], ShouldResemble, hist1)
@@ -145,7 +146,7 @@ func TestExportHistory(t *testing.T) {
     "requested": "agent1",
     "protocol": "test_proto",
     "destFilename": "file1",
-    "localFilepath": "/path/local/file1",
+    "localFilepath": "file:/path/local/file1",
     "filesize": 1234,
     "start": "`+hist1.Start.Local().Format(time.RFC3339Nano)+`",
     "stop": "`+hist1.Stop.Local().Format(time.RFC3339Nano)+`",

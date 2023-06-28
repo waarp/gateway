@@ -13,6 +13,7 @@ import (
 	"code.waarp.fr/apps/gateway/gateway/pkg/conf"
 	"code.waarp.fr/apps/gateway/gateway/pkg/database"
 	"code.waarp.fr/apps/gateway/gateway/pkg/model/types"
+	"code.waarp.fr/apps/gateway/gateway/pkg/pipeline/fs"
 	"code.waarp.fr/apps/gateway/gateway/pkg/tk/utils"
 )
 
@@ -43,7 +44,7 @@ type Transfer struct {
 	RemoteAccountID  sql.NullInt64        `xorm:"remote_account_id"`
 	SrcFilename      string               `xorm:"src_filename"`
 	DestFilename     string               `xorm:"dest_filename"`
-	LocalPath        string               `xorm:"local_path"`
+	LocalPath        types.URL            `xorm:"local_path"`
 	RemotePath       string               `xorm:"remote_path"`
 	Filesize         int64                `xorm:"filesize"`
 	Start            time.Time            `xorm:"start DATETIME(6) UTC"`
@@ -132,8 +133,12 @@ func (t *Transfer) checkMandatoryValues(rule *Rule) database.Error {
 		return database.NewValidationError("the source file is missing")
 	}
 
-	if t.RemotePath != "" && t.LocalPath == "" {
+	if t.RemotePath != "" && t.LocalPath.Path == "" {
 		return database.NewValidationError("the local path is missing")
+	}
+
+	if t.LocalPath.Path != "" && !fs.DoesFileSystemExist(t.LocalPath.Scheme) {
+		return database.NewValidationError("unknown local path scheme %q", t.LocalPath.Scheme)
 	}
 
 	if t.Start.IsZero() {
@@ -161,7 +166,6 @@ func (t *Transfer) checkMandatoryValues(rule *Rule) database.Error {
 		return database.NewValidationError("'%s' is not a valid transfer error code", t.Error.Code)
 	}
 
-	t.LocalPath = utils.ToOSPath(t.LocalPath)
 	t.RemotePath = utils.ToStandardPath(t.RemotePath)
 
 	return nil

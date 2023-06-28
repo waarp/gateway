@@ -1,12 +1,14 @@
 package tasks
 
 import (
+	"net/url"
+
 	"code.waarp.fr/apps/gateway/gateway/pkg/model"
 	"code.waarp.fr/apps/gateway/gateway/pkg/tk/utils"
 )
 
 //nolint:dupl // factorizing would add complexity
-func makeOutDir(transCtx *model.TransferContext) string {
+func makeOutDir(transCtx *model.TransferContext) (*url.URL, error) {
 	if transCtx.Transfer.IsServer() {
 		return utils.GetPath("",
 			utils.Leaf(transCtx.Rule.LocalDir),
@@ -23,7 +25,7 @@ func makeOutDir(transCtx *model.TransferContext) string {
 }
 
 //nolint:dupl // factorizing would add complexity
-func makeInDir(transCtx *model.TransferContext) string {
+func makeInDir(transCtx *model.TransferContext) (*url.URL, error) {
 	if transCtx.Transfer.IsServer() {
 		return utils.GetPath("",
 			utils.Leaf(transCtx.Rule.LocalDir),
@@ -39,7 +41,7 @@ func makeInDir(transCtx *model.TransferContext) string {
 	}
 }
 
-func makeTmpDir(transCtx *model.TransferContext) string {
+func makeTmpDir(transCtx *model.TransferContext) (*url.URL, error) {
 	if transCtx.Transfer.IsServer() {
 		return utils.GetPath("",
 			utils.Leaf(transCtx.Rule.TmpLocalRcvDir),

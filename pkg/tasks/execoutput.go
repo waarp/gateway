@@ -11,7 +11,7 @@ import (
 
 	"code.waarp.fr/apps/gateway/gateway/pkg/database"
 	"code.waarp.fr/apps/gateway/gateway/pkg/model"
-	"code.waarp.fr/apps/gateway/gateway/pkg/tk/utils"
+	"code.waarp.fr/apps/gateway/gateway/pkg/model/types"
 )
 
 // execOutputTask is a task which executes an external program which moves the
@@ -56,9 +56,14 @@ func (e *execOutputTask) Run(parent context.Context, params map[string]string,
 
 	if cmdErr != nil {
 		if newPath := getNewFileName(msg); newPath != "" {
-			transCtx.Transfer.LocalPath = utils.ToOSPath(newPath)
-			transCtx.Transfer.RemotePath = utils.ToStandardPath(path.Dir(
-				transCtx.Transfer.RemotePath), path.Base(transCtx.Transfer.LocalPath))
+			newURL, err := types.ParseURL(newPath)
+			if err != nil {
+				return fmt.Errorf("failed to parse the new file path %q: %w", newPath, err)
+			}
+
+			transCtx.Transfer.LocalPath = *newURL
+			transCtx.Transfer.RemotePath = path.Join(path.Dir(
+				transCtx.Transfer.RemotePath), path.Base(newURL.Path))
 		}
 
 		return cmdErr

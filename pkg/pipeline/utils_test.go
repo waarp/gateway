@@ -3,9 +3,9 @@ package pipeline
 import (
 	"context"
 	"encoding/json"
+	"errors"
 	"io"
-	"os"
-	"path/filepath"
+	"path"
 	"time"
 
 	"code.waarp.fr/lib/log"
@@ -17,6 +17,8 @@ import (
 	"code.waarp.fr/apps/gateway/gateway/pkg/model"
 	"code.waarp.fr/apps/gateway/gateway/pkg/model/config"
 	"code.waarp.fr/apps/gateway/gateway/pkg/model/types"
+	"code.waarp.fr/apps/gateway/gateway/pkg/pipeline/fs"
+	"code.waarp.fr/apps/gateway/gateway/pkg/pipeline/fs/fstest"
 	"code.waarp.fr/apps/gateway/gateway/pkg/tk/utils"
 	"code.waarp.fr/apps/gateway/gateway/pkg/tk/utils/testhelpers"
 )
@@ -43,6 +45,15 @@ func init() {
 	}
 
 	model.ValidTasks[TaskWait] = &taskWait{}
+}
+
+func mkURL(elem ...string) *types.URL {
+	full := path.Join(elem...)
+
+	url, err := types.ParseURL(full)
+	So(err, ShouldBeNil)
+
+	return url
 }
 
 func hash(pwd string) string {
@@ -74,18 +85,23 @@ func waitEndTransfer(pip *Pipeline) {
 }
 
 func initTestDB(c C) *testContext {
-	root := testhelpers.TempDir(c, "new_transfer_stream")
 	db := database.TestDatabase(c)
+	fstest.InitMemFS(c)
 
-	conf.GlobalConfig.Paths = conf.PathsConfig{
+	root := "mem:/new_transfer_stream"
+	rootPath := mkURL(root)
+
+	paths := conf.PathsConfig{
 		GatewayHome:   root,
 		DefaultInDir:  "in",
 		DefaultOutDir: "out",
 		DefaultTmpDir: "work",
 	}
-	So(os.Mkdir(filepath.Join(root, conf.GlobalConfig.Paths.DefaultInDir), 0o700), ShouldBeNil)
-	So(os.Mkdir(filepath.Join(root, conf.GlobalConfig.Paths.DefaultOutDir), 0o700), ShouldBeNil)
-	So(os.Mkdir(filepath.Join(root, conf.GlobalConfig.Paths.DefaultTmpDir), 0o700), ShouldBeNil)
+	conf.GlobalConfig.Paths = paths
+
+	So(fs.MkdirAll(rootPath.JoinPath(paths.DefaultInDir)), ShouldBeNil)
+	So(fs.MkdirAll(rootPath.JoinPath(paths.DefaultOutDir)), ShouldBeNil)
+	So(fs.MkdirAll(rootPath.JoinPath(paths.DefaultTmpDir)), ShouldBeNil)
 
 	send := &model.Rule{
 		Name:      "send",
@@ -105,9 +121,9 @@ func initTestDB(c C) *testContext {
 	c.So(db.Insert(recv).Run(), ShouldBeNil)
 	c.So(db.Insert(send).Run(), ShouldBeNil)
 
-	So(os.Mkdir(filepath.Join(root, send.LocalDir), 0o700), ShouldBeNil)
-	So(os.Mkdir(filepath.Join(root, recv.LocalDir), 0o700), ShouldBeNil)
-	So(os.Mkdir(filepath.Join(root, recv.TmpLocalRcvDir), 0o700), ShouldBeNil)
+	So(fs.MkdirAll(rootPath.JoinPath(send.LocalDir)), ShouldBeNil)
+	So(fs.MkdirAll(rootPath.JoinPath(recv.LocalDir)), ShouldBeNil)
+	So(fs.MkdirAll(rootPath.JoinPath(recv.TmpLocalRcvDir)), ShouldBeNil)
 
 	server := &model.LocalAgent{
 		Name:        "server",
@@ -152,8 +168,8 @@ func initTestDB(c C) *testContext {
 }
 
 func mkRecvTransfer(ctx *testContext, filename string) *model.Transfer {
-	So(os.MkdirAll(filepath.Join(ctx.root, ctx.send.LocalDir), 0o700), ShouldBeNil)
-	So(os.MkdirAll(filepath.Join(ctx.root, ctx.send.TmpLocalRcvDir), 0o700), ShouldBeNil)
+	So(fs.MkdirAll(mkURL(ctx.root, ctx.send.LocalDir)), ShouldBeNil)
+	So(fs.MkdirAll(mkURL(ctx.root, ctx.send.TmpLocalRcvDir)), ShouldBeNil)
 
 	trans := &model.Transfer{
 		RemoteAccountID: utils.NewNullInt64(ctx.remoteAccount.ID),
@@ -168,8 +184,8 @@ func mkRecvTransfer(ctx *testContext, filename string) *model.Transfer {
 const testTransferFileContent = "new pipeline content"
 
 func mkSendTransfer(ctx *testContext, filename string) *model.Transfer {
-	So(os.MkdirAll(filepath.Join(ctx.root, ctx.send.LocalDir), 0o700), ShouldBeNil)
-	So(os.MkdirAll(filepath.Join(ctx.root, ctx.send.TmpLocalRcvDir), 0o700), ShouldBeNil)
+	So(fs.MkdirAll(mkURL(ctx.root, ctx.send.LocalDir)), ShouldBeNil)
+	So(fs.MkdirAll(mkURL(ctx.root, ctx.send.TmpLocalRcvDir)), ShouldBeNil)
 
 	trans := &model.Transfer{
 		RemoteAccountID: utils.NewNullInt64(ctx.remoteAccount.ID),
@@ -178,15 +194,54 @@ func mkSendTransfer(ctx *testContext, filename string) *model.Transfer {
 	}
 	So(ctx.db.Insert(trans).Run(), ShouldBeNil)
 
-	So(os.WriteFile(filepath.Join(ctx.root, ctx.send.LocalDir, filename),
-		[]byte(testTransferFileContent), 0o700), ShouldBeNil)
+	So(fs.WriteFullFile(mkURL(ctx.root, ctx.send.LocalDir, filename),
+		[]byte(testTransferFileContent)), ShouldBeNil)
 
 	return trans
 }
 
 const testTransferUpdateInterval = time.Microsecond
 
-func initFilestream(ctx *testContext, trans *model.Transfer) *fileStream {
+var errFileTest = errors.New("intended file error")
+
+type testFile struct {
+	fs.File
+	err error
+}
+
+func (t *testFile) Read(p []byte) (n int, err error) {
+	if t.err != nil {
+		return 0, t.err
+	}
+
+	return t.File.Read(p)
+}
+
+func (t *testFile) Write(p []byte) (n int, err error) {
+	if t.err != nil {
+		return 0, t.err
+	}
+
+	return fs.WriteFile(t.File, p)
+}
+
+func (t *testFile) ReadAt(p []byte, off int64) (n int, err error) {
+	if t.err != nil {
+		return 0, t.err
+	}
+
+	return fs.ReadAtFile(t.File, p, off)
+}
+
+func (t *testFile) WriteAt(p []byte, off int64) (n int, err error) {
+	if t.err != nil {
+		return 0, t.err
+	}
+
+	return fs.WriteAtFile(t.File, p, off)
+}
+
+func initFilestream(ctx *testContext, trans *model.Transfer) *FileStream {
 	pip, err := NewClientPipeline(ctx.db, trans)
 	So(err, ShouldBeNil)
 
@@ -206,6 +261,8 @@ func initFilestream(ctx *testContext, trans *model.Transfer) *fileStream {
 	} else {
 		So(pip.Pip.machine.Transition(stateWriting), ShouldBeNil)
 	}
+
+	stream.file = &testFile{File: stream.file}
 
 	return stream
 }

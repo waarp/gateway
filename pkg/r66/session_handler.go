@@ -3,9 +3,7 @@ package r66
 import (
 	"encoding/json"
 	"fmt"
-	"os"
 	"path"
-	"path/filepath"
 	"strings"
 	"time"
 
@@ -17,6 +15,7 @@ import (
 	"code.waarp.fr/apps/gateway/gateway/pkg/model/config"
 	"code.waarp.fr/apps/gateway/gateway/pkg/model/types"
 	"code.waarp.fr/apps/gateway/gateway/pkg/pipeline"
+	"code.waarp.fr/apps/gateway/gateway/pkg/pipeline/fs"
 	"code.waarp.fr/apps/gateway/gateway/pkg/r66/internal"
 	"code.waarp.fr/apps/gateway/gateway/pkg/tk/utils"
 )
@@ -137,7 +136,7 @@ func (s *sessionHandler) getRule(ruleName string, isSend bool) (*model.Rule, *r6
 
 func (s *sessionHandler) getTransfer(req *r66.Request, rule *model.Rule) (*model.Transfer, *r66.Error) {
 	trans := &model.Transfer{
-		RemoteTransferID: fmt.Sprint(req.ID),
+		RemoteTransferID: utils.FormatInt(req.ID),
 		RuleID:           rule.ID,
 		LocalAccountID:   utils.NewNullInt64(s.account.ID),
 		Start:            time.Now(),
@@ -169,10 +168,6 @@ func (s *sessionHandler) getSize(req *r66.Request, rule *model.Rule,
 }
 
 func (s *sessionHandler) setProgress(req *r66.Request, trans *model.Transfer) {
-	if trans.Step > types.StepData {
-		return
-	}
-
 	prog := int64(req.Rank) * int64(req.Block)
 	if trans.Progress <= prog {
 		req.Rank = uint32(trans.Progress / int64(req.Block))
@@ -190,7 +185,7 @@ func (s *sessionHandler) GetTransferInfo(id int64, isClient bool) (*r66.Transfer
 		}
 	}
 
-	remoteID := fmt.Sprint(id)
+	remoteID := utils.FormatInt(id)
 	trans := model.Transfer{}
 
 	if err := s.db.Get(&trans, "remote_transfer_id=? AND local_account_id=?",
@@ -242,7 +237,7 @@ func (s *sessionHandler) getInfoFromHistory(transID int64) (*r66.TransferInfo, e
 	var hist model.HistoryEntry
 
 	dbErr := s.db.Get(&hist, "remote_transfer_id=? AND is_server=? AND account=?",
-		fmt.Sprint(transID), true, s.account.Login).Run()
+		utils.FormatInt(transID), true, s.account.Login).Run()
 	if database.IsNotFound(dbErr) {
 		return nil, &r66.Error{Code: r66.IncorrectCommand, Detail: "transfer not found"}
 	} else if dbErr != nil {
@@ -302,7 +297,7 @@ func (s *sessionHandler) GetFileInfo(ruleName, pat string) ([]r66.FileInfo, erro
 		}
 	}
 
-	pattern := filepath.FromSlash(pat)
+	pattern := utils.ToStandardPath(pat)
 
 	dir, err := s.makeDir(&rule)
 	if err != nil {
@@ -312,10 +307,10 @@ func (s *sessionHandler) GetFileInfo(ruleName, pat string) ([]r66.FileInfo, erro
 	return s.listDirFiles(dir, pattern)
 }
 
-func (s *sessionHandler) listDirFiles(root, pattern string) ([]r66.FileInfo, error) {
-	matches, err := filepath.Glob(filepath.Join(root, pattern))
-	if err != nil {
-		s.logger.Error("Failed to retrieve matching files: %v", err)
+func (s *sessionHandler) listDirFiles(root *types.URL, pattern string) ([]r66.FileInfo, error) {
+	matches, globErr := fs.Glob(root.JoinPath(pattern))
+	if globErr != nil {
+		s.logger.Error("Failed to retrieve matching files: %v", globErr)
 
 		return nil, &r66.Error{Code: r66.IncorrectCommand, Detail: "incorrect file pattern"}
 	}
@@ -327,33 +322,18 @@ func (s *sessionHandler) listDirFiles(root, pattern string) ([]r66.FileInfo, err
 	var infos []r66.FileInfo
 
 	for _, match := range matches {
-		file, err := os.Stat(match)
-		if err != nil {
-			s.logger.Error("Failed to retrieve file '%s' info: %v", match, err)
-
-			continue
-		}
-
-		fp, err := filepath.Rel(root, match)
-		if err != nil {
-			s.logger.Error("Failed to split path '%s': %v", match, err)
-
-			continue
-		}
-
-		fp = filepath.ToSlash(fp)
-
-		if file.IsDir() {
-			infos = append(infos, s.listSubFiles(match, fp)...)
+		file, statErr := fs.Stat(match)
+		if statErr != nil {
+			s.logger.Error("Failed to retrieve file %q info: %v", match, statErr)
 
 			continue
 		}
 
 		infos = append(infos, r66.FileInfo{
-			Name:       fp,
+			Name:       strings.TrimLeft(strings.TrimPrefix(match.Path, root.Path), "/"),
 			Size:       file.Size(),
 			LastModify: file.ModTime(),
-			Type:       "File",
+			Type:       fileMode(file),
 			Permission: file.Mode().Perm().String(),
 		})
 	}
@@ -361,45 +341,10 @@ func (s *sessionHandler) listDirFiles(root, pattern string) ([]r66.FileInfo, err
 	return infos, nil
 }
 
-func (s *sessionHandler) listSubFiles(full, dir string) []r66.FileInfo {
-	entries, err := os.ReadDir(full)
-	if err != nil {
-		s.logger.Error("Failed to open sub-directory '%s': %v", full, err)
-
-		return nil
-	}
-
-	infos := make([]r66.FileInfo, 0, len(entries))
-
-	for _, entry := range entries {
-		file, err := entry.Info()
-		if err != nil {
-			s.logger.Error("Failed to retrieve info of file '%s': %v", entry.Name(), err)
-
-			continue
-		}
-
-		fileType := "File"
-		if file.IsDir() {
-			fileType = "Directory"
-		}
-
-		infos = append(infos, r66.FileInfo{
-			Name:       path.Join(dir, file.Name()),
-			Size:       file.Size(),
-			LastModify: file.ModTime(),
-			Type:       fileType,
-			Permission: file.Mode().Perm().String(),
-		})
-	}
-
-	return infos
-}
-
-func (s *sessionHandler) makeDir(rule *model.Rule) (string, error) {
+func (s *sessionHandler) makeDir(rule *model.Rule) (*types.URL, error) {
 	var agent model.LocalAgent
 	if err := s.db.Get(&agent, "id=?", s.agentID).Run(); err != nil {
-		return "", fmt.Errorf("failed to retrieve the server info: %w", err)
+		return nil, fmt.Errorf("failed to retrieve the server info: %w", err)
 	}
 
 	servDir := agent.ReceiveDir
@@ -410,7 +355,9 @@ func (s *sessionHandler) makeDir(rule *model.Rule) (string, error) {
 		defDir = conf.GlobalConfig.Paths.DefaultOutDir
 	}
 
-	return utils.GetPath("", utils.Leaf(rule.LocalDir), utils.Leaf(servDir),
+	dir, err := utils.GetPath("", utils.Leaf(rule.LocalDir), utils.Leaf(servDir),
 		utils.Branch(agent.RootDir), utils.Leaf(defDir),
-		utils.Branch(conf.GlobalConfig.Paths.GatewayHome)), nil
+		utils.Branch(conf.GlobalConfig.Paths.GatewayHome))
+
+	return (*types.URL)(dir), err
 }

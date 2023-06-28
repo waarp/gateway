@@ -78,7 +78,7 @@ func TestImportHistory(t *testing.T) {
 			Agent:            "agent1",
 			Protocol:         testProtocol,
 			DestFilename:     "file1",
-			LocalPath:        "/path/local/file1",
+			LocalPath:        *mkURL("file:/path/local/file1"),
 			Filesize:         1234,
 			Start:            time.Date(2021, 1, 1, 1, 0, 0, 123456000, time.UTC).Local(),
 			Stop:             time.Date(2021, 1, 1, 2, 0, 0, 123456000, time.UTC).Local(),
@@ -100,7 +100,7 @@ func TestImportHistory(t *testing.T) {
 			Protocol:         testProtocol,
 			SrcFilename:      "src_file2",
 			DestFilename:     "dest_file2",
-			LocalPath:        "/path/local/src_file2",
+			LocalPath:        *mkURL("file:/path/local/src_file2"),
 			RemotePath:       "/path/remote/dest_file2",
 			Filesize:         5678,
 			Start:            time.Date(2022, 1, 1, 1, 0, 0, 123456000, time.UTC).Local(),
@@ -125,7 +125,7 @@ func TestImportHistory(t *testing.T) {
 			Agent:            "agent3",
 			Protocol:         testProtocol,
 			SrcFilename:      "file3",
-			LocalPath:        "/path/local/file3",
+			LocalPath:        *mkURL("file:/path/local/file3"),
 			Filesize:         9876,
 			Start:            time.Date(2020, 1, 1, 1, 0, 0, 123456000, time.Local),
 			Stop:             time.Date(2020, 1, 1, 2, 0, 0, 123456000, time.Local),
@@ -142,6 +142,7 @@ func TestImportHistory(t *testing.T) {
 
 			Convey("Then it should have imported the history entries", func() {
 				var hist model.HistoryEntries
+
 				So(db.Select(&hist).OrderBy("id", true).Run(), ShouldBeNil)
 				So(hist, ShouldHaveLength, 2)
 				So(hist[0], ShouldResemble, expected1)
@@ -179,6 +180,7 @@ func TestImportHistory(t *testing.T) {
 
 			Convey("Then it should NOT have imported the history entries", func() {
 				var hist model.HistoryEntries
+
 				So(db.Select(&hist).OrderBy("id", true).Run(), ShouldBeNil)
 				So(hist, ShouldHaveLength, 1)
 				So(hist[0], ShouldResemble, hist3)

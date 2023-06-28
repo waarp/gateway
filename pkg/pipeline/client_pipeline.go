@@ -73,10 +73,15 @@ func newClientPipeline(db *database.DB, logger *log.Logger,
 		logger.Error("No client found for protocol %s", proto)
 
 		return nil, types.NewTransferError(types.TeInternal,
-			fmt.Sprintf("no client found for protocol %s", proto))
+			"no client found for protocol %q", proto)
 	}
 
-	pipeline := newPipeline(db, logger, transCtx)
+	pipeline, pipErr := newPipeline(db, logger, transCtx)
+	if pipErr != nil {
+		logger.Error("Failed to initialize the client transfer pipeline: %v", pipErr)
+
+		return nil, pipErr
+	}
 
 	client, err := constr(pipeline)
 	if err != nil {
@@ -92,11 +97,11 @@ func newClientPipeline(db *database.DB, logger *log.Logger,
 
 	if transCtx.Rule.IsSend {
 		logger.Info("Starting upload of file %q to %q as %q using rule %q",
-			transCtx.Transfer.LocalPath, transCtx.RemoteAgent.Name,
+			&transCtx.Transfer.LocalPath, transCtx.RemoteAgent.Name,
 			transCtx.RemoteAccount.Login, transCtx.Rule.Name)
 	} else {
 		logger.Info("Starting download of file %q from %q as %q using rule %q",
-			transCtx.Transfer.LocalPath, transCtx.RemoteAgent.Name,
+			transCtx.Transfer.RemotePath, transCtx.RemoteAgent.Name,
 			transCtx.RemoteAccount.Login, transCtx.Rule.Name)
 	}
 

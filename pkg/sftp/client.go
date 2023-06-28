@@ -6,7 +6,6 @@ package sftp
 import (
 	"encoding/json"
 	"io"
-	"os"
 
 	"github.com/pkg/sftp"
 	"golang.org/x/crypto/ssh"
@@ -14,6 +13,7 @@ import (
 	"code.waarp.fr/apps/gateway/gateway/pkg/model/config"
 	"code.waarp.fr/apps/gateway/gateway/pkg/model/types"
 	"code.waarp.fr/apps/gateway/gateway/pkg/pipeline"
+	"code.waarp.fr/apps/gateway/gateway/pkg/pipeline/fs/flags"
 )
 
 //nolint:gochecknoinits // designed to use inits
@@ -117,7 +117,7 @@ func (c *client) send(filepath string) *types.TransferError {
 
 	var err error
 
-	c.remoteFile, err = c.sftpSession.OpenFile(filepath, os.O_WRONLY|os.O_CREATE|os.O_TRUNC)
+	c.remoteFile, err = c.sftpSession.OpenFile(filepath, flags.WriteOnly|flags.Create|flags.Truncate)
 	if err != nil {
 		c.pip.Logger.Error("Failed to create remote file: %s", err)
 

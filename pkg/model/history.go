@@ -8,6 +8,7 @@ import (
 	"code.waarp.fr/apps/gateway/gateway/pkg/database"
 	"code.waarp.fr/apps/gateway/gateway/pkg/model/config"
 	"code.waarp.fr/apps/gateway/gateway/pkg/model/types"
+	"code.waarp.fr/apps/gateway/gateway/pkg/pipeline/fs"
 	"code.waarp.fr/apps/gateway/gateway/pkg/tk/utils"
 )
 
@@ -24,7 +25,7 @@ type HistoryEntry struct {
 	Protocol         string               `xorm:"protocol"`
 	SrcFilename      string               `xorm:"src_filename"`
 	DestFilename     string               `xorm:"dest_filename"`
-	LocalPath        string               `xorm:"local_path"`
+	LocalPath        types.URL            `xorm:"local_path"`
 	RemotePath       string               `xorm:"remote_path"`
 	Filesize         int64                `xorm:"filesize"`
 	Start            time.Time            `xorm:"start DATETIME(6) UTC"`
@@ -51,7 +52,7 @@ func (h *HistoryEntry) setTransInfoOwner(info *TransferInfo) {
 // BeforeWrite checks if the new `HistoryEntry` entry is valid and can be
 // inserted in the database.
 //
-//nolint:funlen,gocyclo,cyclop // validation can be long...
+//nolint:funlen,gocyclo,cyclop,gocognit // validation can be long...
 func (h *HistoryEntry) BeforeWrite(db database.ReadAccess) database.Error {
 	h.Owner = conf.GlobalConfig.GatewayName
 
@@ -87,12 +88,16 @@ func (h *HistoryEntry) BeforeWrite(db database.ReadAccess) database.Error {
 		return database.NewValidationError("the destination file is missing")
 	}
 
-	if h.RemotePath != "" && h.LocalPath == "" {
+	if h.RemotePath != "" && h.LocalPath.Path == "" {
 		return database.NewValidationError("the local filepath cannot be empty")
 	}
 
-	if !h.IsServer && h.LocalPath != "" && h.RemotePath == "" {
+	if !h.IsServer && h.LocalPath.Path != "" && h.RemotePath == "" {
 		return database.NewValidationError("the remote filepath cannot be empty")
+	}
+
+	if h.LocalPath.Path != "" && !fs.DoesFileSystemExist(h.LocalPath.Scheme) {
+		return database.NewValidationError("unknown local path scheme %q", h.LocalPath.Scheme)
 	}
 
 	if h.Start.IsZero() {
@@ -123,9 +128,9 @@ func (h *HistoryEntry) BeforeWrite(db database.ReadAccess) database.Error {
 		h.Agent, h.Account).Run(); err != nil {
 		return err
 	} else if n != 0 {
-		return database.NewValidationError("a history entry from the same "+
-			"requester %q to the same agent %q with the same remote ID %q "+
-			"already exist", h.Account, h.Agent, h.RemoteTransferID)
+		return database.NewValidationError("a history entry from the same requester "+
+			"%q to the same agent %q with the same remote ID %q already exist",
+			h.Account, h.Agent, h.RemoteTransferID)
 	}
 
 	return nil

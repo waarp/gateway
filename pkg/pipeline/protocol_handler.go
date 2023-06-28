@@ -8,15 +8,18 @@
 package pipeline
 
 import (
+	"io"
+
 	"code.waarp.fr/apps/gateway/gateway/pkg/model/types"
 )
 
-//nolint:gochecknoglobals // global var is used by design
 // ClientConstructors is a map containing constructors for the various clients
 // supported by the gateway. It associates each protocol with the constructor for
 // its client. In order for the gateway to be able to execute a transfer in a
 // given protocol as a client, the constructor for the protocol's client must
 // be added to this map.
+//
+//nolint:gochecknoglobals // global var is used by design
 var ClientConstructors = map[string]ClientConstructor{}
 
 // ClientConstructor is the type defining the signature which all clients
@@ -35,7 +38,7 @@ type Client interface {
 
 	// Data is the method which transfers the file content between the given
 	// DataStream and the remote.
-	Data(DataStream) *types.TransferError
+	Data(file DataStream) *types.TransferError
 
 	// EndTransfer informs the partner of the transfer's end, and then closes
 	// the connection.
@@ -43,7 +46,7 @@ type Client interface {
 
 	// SendError sends the given error to the remote partner, and then closes
 	// the connection.
-	SendError(*types.TransferError)
+	SendError(tErr *types.TransferError)
 }
 
 // Server is the interface exposing the various handler functions which servers
@@ -102,4 +105,13 @@ type PauseHandler interface {
 type CancelHandler interface {
 	// Cancel informs the partner that the transfer has been canceled.
 	Cancel() *types.TransferError
+}
+
+// DataStream is an interface regrouping the common functions used for reading
+// and writing data.
+type DataStream interface {
+	io.Reader
+	io.Writer
+	io.ReaderAt
+	io.WriterAt
 }

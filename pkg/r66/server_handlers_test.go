@@ -1,14 +1,12 @@
 package r66
 
 import (
-	"os"
-	"path/filepath"
+	"path"
 	"testing"
 	"time"
 
 	"code.waarp.fr/lib/r66"
 	. "github.com/smartystreets/goconvey/convey"
-	"golang.org/x/crypto/bcrypt"
 
 	"code.waarp.fr/apps/gateway/gateway/pkg/conf"
 	"code.waarp.fr/apps/gateway/gateway/pkg/database"
@@ -16,6 +14,8 @@ import (
 	"code.waarp.fr/apps/gateway/gateway/pkg/model"
 	"code.waarp.fr/apps/gateway/gateway/pkg/model/types"
 	"code.waarp.fr/apps/gateway/gateway/pkg/pipeline"
+	"code.waarp.fr/apps/gateway/gateway/pkg/pipeline/fs"
+	"code.waarp.fr/apps/gateway/gateway/pkg/pipeline/fs/fstest"
 	"code.waarp.fr/apps/gateway/gateway/pkg/tk/utils"
 	"code.waarp.fr/apps/gateway/gateway/pkg/tk/utils/testhelpers"
 )
@@ -81,16 +81,19 @@ func TestValidAuth(t *testing.T) {
 
 			Convey("Given an incorrect login", func() {
 				packet.Login = "tata"
+
 				shouldFailWith("the credentials are incorrect", "A: incorrect credentials")
 			})
 
 			Convey("Given an incorrect password", func() {
 				packet.Password = []byte("not sesame")
+
 				shouldFailWith("the credentials are incorrect", "A: incorrect credentials")
 			})
 
 			Convey("Given an incorrect hash digest", func() {
 				packet.Digest = "SHA-512"
+
 				shouldFailWith("the digest is invalid", "U: unknown final hash digest")
 			})
 		})
@@ -99,9 +102,11 @@ func TestValidAuth(t *testing.T) {
 
 func TestValidRequest(t *testing.T) {
 	Convey("Given an R66 session handler", t, func(c C) {
+		fstest.InitMemFS(c)
+
 		logger := testhelpers.TestLogger(c, "test_valid_request")
 		db := database.TestDatabase(c)
-		root := testhelpers.TempDir(c, "r66_valid_request")
+		root := "mem:/r66_valid_request"
 
 		rule := &model.Rule{
 			Name:           "rule",
@@ -116,7 +121,7 @@ func TestValidRequest(t *testing.T) {
 			Protocol:    ProtocolR66,
 			ProtoConfig: []byte(`{"blockSize":512,"serverPassword":"c2VzYW1l"}`),
 			Address:     "localhost:6666",
-			RootDir:     filepath.Join(root, "server_root"),
+			RootDir:     path.Join(root, "server_root"),
 		}
 		So(db.Insert(server).Run(), ShouldBeNil)
 
@@ -168,6 +173,7 @@ func TestValidRequest(t *testing.T) {
 				Convey("When calling the `ValidRequest` function", func() {
 					t, err := ses.ValidRequest(packet)
 					So(err, ShouldBeNil)
+
 					handler, ok := t.(*transferHandler)
 					So(ok, ShouldBeTrue)
 
@@ -196,6 +202,7 @@ func TestValidRequest(t *testing.T) {
 
 					Convey("Then it should return NO error", func() {
 						So(err, ShouldBeNil)
+
 						_, ok := t.(*transferHandler)
 						So(ok, ShouldBeTrue)
 					})
@@ -204,16 +211,19 @@ func TestValidRequest(t *testing.T) {
 
 			Convey("Given that the filename is missing", func() {
 				packet.Filepath = ""
+
 				shouldFailWith("the filename is missing", "n: missing filepath")
 			})
 
 			Convey("Given that the rule name is invalid", func() {
 				packet.Rule = "tata"
+
 				shouldFailWith("the rule could not be found", "n: rule does not exist")
 			})
 
 			Convey("Given that the block size is missing", func() {
 				packet.Block = 0
+
 				shouldFailWith("the block size is missing", "n: missing block size")
 			})
 		})
@@ -222,15 +232,17 @@ func TestValidRequest(t *testing.T) {
 
 func TestUpdateTransferInfo(t *testing.T) {
 	Convey("Given an R66 transfer handler", t, func(c C) {
+		fstest.InitMemFS(c)
 		logger := testhelpers.TestLogger(c, "test_valid_request")
 		db := database.TestDatabase(c)
-		root := testhelpers.TempDir(c, "r66_update_info")
+		root := "mem:/r66_update_info"
 		conf.GlobalConfig.Paths = conf.PathsConfig{
 			GatewayHome: root,
 		}
 
 		send := &model.Rule{Name: "send", IsSend: true, LocalDir: "send_dir"}
 		So(db.Insert(send).Run(), ShouldBeNil)
+
 		recv := &model.Rule{Name: "recv", IsSend: false, LocalDir: "recv_dir", TmpLocalRcvDir: "recv_tmp"}
 		So(db.Insert(recv).Run(), ShouldBeNil)
 
@@ -287,8 +299,8 @@ func TestUpdateTransferInfo(t *testing.T) {
 				check := pip.TransCtx.Transfer
 
 				Convey("Then it should have updated the transfer's filename", func() {
-					So(check.LocalPath, ShouldEqual, filepath.Join(root,
-						server.RootDir, recv.TmpLocalRcvDir, info.Filename))
+					So(check.LocalPath.String(), ShouldEqual, mkURL(root,
+						server.RootDir, recv.TmpLocalRcvDir, info.Filename).String())
 				})
 
 				Convey("Then it should have updated the transfer's file size", func() {
@@ -306,9 +318,9 @@ func TestUpdateTransferInfo(t *testing.T) {
 			}
 			So(db.Insert(trans).Run(), ShouldBeNil)
 
-			dir := filepath.Join(root, server.RootDir, send.LocalDir)
-			So(os.MkdirAll(dir, 0o700), ShouldBeNil)
-			So(os.WriteFile(filepath.Join(dir, "new.file"), []byte("file content"), 0o600), ShouldBeNil)
+			dir := mkURL(root, server.RootDir, send.LocalDir)
+			So(fs.MkdirAll(dir), ShouldBeNil)
+			So(fs.WriteFullFile(dir.JoinPath("new.file"), []byte("file content")), ShouldBeNil)
 
 			pip, err := pipeline.NewServerPipeline(db, trans)
 			So(err, ShouldBeNil)
@@ -343,12 +355,4 @@ func TestUpdateTransferInfo(t *testing.T) {
 			})
 		})
 	})
-}
-
-func hash(pwd string) string {
-	crypt := r66.CryptPass([]byte(pwd))
-	h, err := bcrypt.GenerateFromPassword(crypt, bcrypt.MinCost)
-	So(err, ShouldBeNil)
-
-	return string(h)
 }

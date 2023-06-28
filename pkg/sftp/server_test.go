@@ -5,7 +5,6 @@ import (
 	"fmt"
 	"net"
 	"path"
-	"path/filepath"
 	"testing"
 	"time"
 
@@ -16,6 +15,7 @@ import (
 	"code.waarp.fr/apps/gateway/gateway/pkg/database"
 	"code.waarp.fr/apps/gateway/gateway/pkg/model"
 	"code.waarp.fr/apps/gateway/gateway/pkg/model/types"
+	"code.waarp.fr/apps/gateway/gateway/pkg/pipeline/fs/fstest"
 	"code.waarp.fr/apps/gateway/gateway/pkg/pipeline/pipelinetest"
 	"code.waarp.fr/apps/gateway/gateway/pkg/tk/utils"
 	"code.waarp.fr/apps/gateway/gateway/pkg/tk/utils/testhelpers"
@@ -57,6 +57,7 @@ func TestServerStop(t *testing.T) {
 		Convey("When stopping the service", func() {
 			ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 			defer cancel()
+
 			err := server.Stop(ctx)
 
 			Convey("Then it should NOT return an error", func() {
@@ -73,11 +74,11 @@ func TestServerStop(t *testing.T) {
 
 func TestServerStart(t *testing.T) {
 	Convey("Given an SFTP server service", t, func(c C) {
+		fstest.InitMemFS(c)
 		logger := testhelpers.TestLogger(c, "test_sftp_server_start")
 		db := database.TestDatabase(c)
 		port := getTestPort()
-		root, err := filepath.Abs("server_start_root")
-		So(err, ShouldBeNil)
+		root := "mem:/server_start_root"
 
 		agent := &model.LocalAgent{
 			Name:     "test_sftp_server",
@@ -115,6 +116,7 @@ func TestServerStart(t *testing.T) {
 		Convey("Given that the server address is indirect", func(c C) {
 			conf.InitTestOverrides(c)
 			So(conf.AddIndirection("indirect.ex:99999", "127.0.0.1:"+port), ShouldBeNil)
+
 			agent.Address = "indirect.ex:99999"
 			So(db.Update(agent).Cols("address").Run(), ShouldBeNil)
 
@@ -172,17 +174,22 @@ func TestSSHServerInterruption(t *testing.T) {
 					res := make(chan error, 1)
 					go func() {
 						time.Sleep(100 * time.Millisecond)
+
 						_, err = dst.Write([]byte("456"))
 						res <- err
 					}()
+
 					ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+
 					defer cancel()
+
 					So(serv.Stop(ctx), ShouldBeNil)
 					So(<-res, ShouldBeError, `sftp: "TransferError(TeShuttingDown):`+
 						` service is shutting down" (SSH_FX_FAILURE)`)
 
 					Convey("Then the transfer should have been interrupted", func() {
 						var transfers model.Transfers
+
 						So(test.DB.Select(&transfers).Run(), ShouldBeNil)
 						So(transfers, ShouldNotBeEmpty)
 
@@ -191,7 +198,7 @@ func TestSSHServerInterruption(t *testing.T) {
 							RemoteTransferID: transfers[0].RemoteTransferID,
 							Start:            transfers[0].Start,
 							LocalAccountID:   utils.NewNullInt64(test.LocAccount.ID),
-							LocalPath: filepath.Join(test.Server.RootDir,
+							LocalPath: *mkURL(test.Paths.GatewayHome, test.Server.RootDir,
 								test.ServerRule.TmpLocalRcvDir, "test_in_shutdown.dst.part"),
 							DestFilename: "test_in_shutdown.dst",
 							Filesize:     model.UnknownSize,

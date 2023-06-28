@@ -47,7 +47,7 @@ func checkAfter(store *utils.ErrorStorage, tErr *types.TransferError) error {
 }
 
 type serverStream struct {
-	file  pipeline.TransferStream
+	file  *pipeline.FileStream
 	store *utils.ErrorStorage
 }
 
@@ -57,7 +57,6 @@ func (s *serverStream) ReadAt(p []byte, off int64) (int, error) {
 	}
 
 	n, err := s.file.ReadAt(p, off)
-
 	if err == nil {
 		return n, nil
 	}
@@ -80,7 +79,6 @@ func (s *serverStream) WriteAt(p []byte, off int64) (int, error) {
 	}
 
 	n, err := s.file.WriteAt(p, off)
-
 	if err == nil {
 		return n, nil
 	}

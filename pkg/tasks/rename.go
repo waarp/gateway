@@ -3,15 +3,14 @@ package tasks
 import (
 	"context"
 	"fmt"
-	"os"
 	"path"
-	"path/filepath"
 
 	"code.waarp.fr/lib/log"
 
 	"code.waarp.fr/apps/gateway/gateway/pkg/database"
 	"code.waarp.fr/apps/gateway/gateway/pkg/model"
-	"code.waarp.fr/apps/gateway/gateway/pkg/tk/utils"
+	"code.waarp.fr/apps/gateway/gateway/pkg/model/types"
+	"code.waarp.fr/apps/gateway/gateway/pkg/pipeline/fs"
 )
 
 // renameTask is a task which rename the target of the transfer
@@ -38,13 +37,18 @@ func (*renameTask) Run(_ context.Context, args map[string]string, _ *database.DB
 ) error {
 	newPath := args["path"]
 
-	if _, err := os.Stat(utils.ToOSPath(newPath)); err != nil {
-		return normalizeFileError("change transfer target file to", err)
+	newURL, err := types.ParseURL(newPath)
+	if err != nil {
+		return fmt.Errorf("failed to parse the new target path %q: %w", newPath, err)
 	}
 
-	transCtx.Transfer.LocalPath = utils.ToOSPath(newPath)
+	if _, err := fs.Stat(newURL); err != nil {
+		return fmt.Errorf("failed to change transfer target file: %w", err)
+	}
+
+	transCtx.Transfer.LocalPath = *newURL
 	transCtx.Transfer.RemotePath = path.Join(path.Dir(transCtx.Transfer.RemotePath),
-		filepath.Base(transCtx.Transfer.LocalPath))
+		path.Base(newURL.Path))
 
 	logger.Debug("Changed target file to %q", newPath)
 

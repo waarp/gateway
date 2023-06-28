@@ -34,7 +34,7 @@ type Pipeline struct {
 	DB       *database.DB
 	TransCtx *model.TransferContext
 	Logger   *log.Logger
-	Stream   TransferStream
+	Stream   *FileStream
 
 	machine   *statemachine.Machine
 	updTicker *time.Ticker
@@ -43,7 +43,8 @@ type Pipeline struct {
 	runner *tasks.Runner
 }
 
-func newPipeline(db *database.DB, logger *log.Logger, transCtx *model.TransferContext) *Pipeline {
+func newPipeline(db *database.DB, logger *log.Logger, transCtx *model.TransferContext,
+) (*Pipeline, *types.TransferError) {
 	pipeline := &Pipeline{
 		DB:        db,
 		Logger:    logger,
@@ -53,10 +54,13 @@ func newPipeline(db *database.DB, logger *log.Logger, transCtx *model.TransferCo
 		runner:    tasks.NewTaskRunner(db, logger, transCtx),
 	}
 
-	pipeline.setFilePaths()
+	if err := pipeline.setFilePaths(); err != nil {
+		return nil, types.NewTransferError(types.TeInternal,
+			"failed to build the file paths: %v", err)
+	}
 
 	if transCtx.Rule.IsSend {
-		transCtx.Transfer.Filesize = getFilesize(transCtx.Transfer.LocalPath)
+		transCtx.Transfer.Filesize = getFilesize(&transCtx.Transfer.LocalPath)
 	}
 
 	if transCtx.Transfer.Status != types.StatusRunning {
@@ -75,7 +79,7 @@ func newPipeline(db *database.DB, logger *log.Logger, transCtx *model.TransferCo
 		transCtx.Transfer.Error.Details = ""
 	}
 
-	return pipeline
+	return pipeline, nil
 }
 
 func (p *Pipeline) init() (err *types.TransferError) {
@@ -182,7 +186,7 @@ func (p *Pipeline) PreTasks() *types.TransferError {
 // StartData marks the beginning of the data transfer. It opens the pipeline's
 // TransferStream and returns it. In the case of a retry, the data transfer will
 // resume at the offset indicated by the Transfer.Progress field.
-func (p *Pipeline) StartData() (TransferStream, *types.TransferError) {
+func (p *Pipeline) StartData() (*FileStream, *types.TransferError) {
 	if err := p.machine.Transition(stateDataStart); err != nil {
 		p.handleStateErr("StartData", p.machine.Current())
 
@@ -204,18 +208,8 @@ func (p *Pipeline) StartData() (TransferStream, *types.TransferError) {
 		return nil
 	}
 
-	if p.TransCtx.Transfer.Step > types.StepData {
-		p.Stream = newVoidStream(p)
-
-		if err := transitionData(); err != nil {
-			return nil, err
-		}
-
-		return p.Stream, nil
-	}
-
 	isResume := false
-	if p.TransCtx.Transfer.Step == types.StepData {
+	if p.TransCtx.Transfer.Step >= types.StepData {
 		isResume = true
 	} else {
 		p.TransCtx.Transfer.Step = types.StepData
@@ -263,7 +257,7 @@ func (p *Pipeline) EndData() *types.TransferError {
 	}
 
 	if p.TransCtx.Transfer.Filesize < 0 {
-		if err := p.checkFileExist(); err != nil {
+		if err := p.Stream.checkFileExist(); err != nil {
 			p.handleError(err.Code, "Error during final file check", err.Details)
 
 			return err
@@ -347,6 +341,7 @@ func (p *Pipeline) EndTransfer() *types.TransferError {
 			}
 
 			p.errDo(types.TeInternal, "Failed to archive transfer", err.Error())
+
 			sErr = errDatabase
 
 			return
@@ -500,10 +495,12 @@ func (p *Pipeline) RebuildFilepaths(newFile string) *types.TransferError {
 		dstFile = newFile
 	}
 
-	p.TransCtx.Transfer.LocalPath = ""
+	p.TransCtx.Transfer.LocalPath = types.URL{}
 	p.TransCtx.Transfer.RemotePath = ""
 
-	p.setCustomFilePaths(srcFile, dstFile)
+	if err := p.setCustomFilePaths(srcFile, dstFile); err != nil {
+		return types.NewTransferError(types.TeDataTransfer, "failed to rebuild the paths")
+	}
 
 	if err := p.UpdateTrans(); err != nil {
 		p.handleError(types.TeInternal, "Failed to update the transfer file paths",

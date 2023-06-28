@@ -20,7 +20,7 @@ import (
 // interruption.
 type serverPipeline struct {
 	pipeline *pipeline.Pipeline
-	file     pipeline.TransferStream
+	file     *pipeline.FileStream
 
 	transList  *service.TransferMap
 	storage    *utils.ErrorStorage
@@ -181,6 +181,7 @@ func (s *serverPipeline) init() error {
 		if tErr != nil {
 			return tErr
 		}
+
 		s.file = file
 
 		return nil

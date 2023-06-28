@@ -3,8 +3,7 @@ package pipelinetest
 import (
 	"crypto/rand"
 	"fmt"
-	"os"
-	"path/filepath"
+	"path"
 
 	"code.waarp.fr/lib/log"
 	"github.com/smartystreets/goconvey/convey"
@@ -14,9 +13,11 @@ import (
 	"code.waarp.fr/apps/gateway/gateway/pkg/database"
 	"code.waarp.fr/apps/gateway/gateway/pkg/gatewayd/service/proto"
 	"code.waarp.fr/apps/gateway/gateway/pkg/model"
+	"code.waarp.fr/apps/gateway/gateway/pkg/model/types"
 	"code.waarp.fr/apps/gateway/gateway/pkg/pipeline"
+	"code.waarp.fr/apps/gateway/gateway/pkg/pipeline/fs"
+	"code.waarp.fr/apps/gateway/gateway/pkg/pipeline/fs/fstest"
 	"code.waarp.fr/apps/gateway/gateway/pkg/tasks/taskstest"
-	"code.waarp.fr/apps/gateway/gateway/pkg/tk/utils/testhelpers"
 )
 
 // TestLogin and TestPassword are the credentials used for authentication
@@ -50,26 +51,49 @@ func hash(pwd string) string {
 	return string(h)
 }
 
+func mkURL(elem ...string) *types.URL {
+	full := path.Join(elem...)
+
+	url, err := types.ParseURL(full)
+	convey.So(err, convey.ShouldBeNil)
+
+	return url
+}
+
 // AddSourceFile creates a file under the given directory with the given name,
 // fills it with random data, and then returns said data.
-func AddSourceFile(c convey.C, dir, file string) []byte {
-	c.So(os.MkdirAll(dir, 0o700), convey.ShouldBeNil)
+func AddSourceFile(c convey.C, file *types.URL) []byte {
+	c.So(fs.MkdirAll(file.Dir()), convey.ShouldBeNil)
 
 	cont := make([]byte, TestFileSize)
 
 	_, err := rand.Read(cont)
 	c.So(err, convey.ShouldBeNil)
 
-	path := filepath.Join(dir, file)
-	c.So(os.WriteFile(path, cont, 0o600), convey.ShouldBeNil)
+	c.So(fs.WriteFullFile(file, cont), convey.ShouldBeNil)
 
 	return cont
 }
 
 func initTestData(c convey.C) *testData {
 	db := database.TestDatabase(c)
-	home := testhelpers.TempDir(c, "transfer_test")
-	paths := makePaths(c, home)
+	fstest.InitMemFS(c)
+
+	home := "mem:/gw_home"
+	homePath := mkURL(home)
+
+	paths := &conf.PathsConfig{
+		GatewayHome:   home,
+		DefaultInDir:  "in",
+		DefaultOutDir: "out",
+		DefaultTmpDir: "tmp",
+	}
+
+	c.So(fs.MkdirAll(homePath), convey.ShouldBeNil)
+	c.So(fs.MkdirAll(homePath.JoinPath(paths.DefaultInDir)), convey.ShouldBeNil)
+	c.So(fs.MkdirAll(homePath.JoinPath(paths.DefaultOutDir)), convey.ShouldBeNil)
+	c.So(fs.MkdirAll(homePath.JoinPath(paths.DefaultTmpDir)), convey.ShouldBeNil)
+
 	conf.GlobalConfig.Paths = *paths
 
 	pipeline.InitTester(c)
@@ -78,21 +102,6 @@ func initTestData(c convey.C) *testData {
 		DB:    db,
 		Paths: paths,
 	}
-}
-
-func makePaths(c convey.C, home string) *conf.PathsConfig {
-	paths := &conf.PathsConfig{
-		GatewayHome:   home,
-		DefaultInDir:  "in",
-		DefaultOutDir: "out",
-		DefaultTmpDir: "tmp",
-	}
-
-	c.So(os.MkdirAll(filepath.Join(home, paths.DefaultInDir), 0o700), convey.ShouldBeNil)
-	c.So(os.MkdirAll(filepath.Join(home, paths.DefaultOutDir), 0o700), convey.ShouldBeNil)
-	c.So(os.MkdirAll(filepath.Join(home, paths.DefaultTmpDir), 0o700), convey.ShouldBeNil)
-
-	return paths
 }
 
 func makeRuleTasks(c convey.C, db *database.DB, rule *model.Rule) {

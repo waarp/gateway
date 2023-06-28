@@ -2,8 +2,8 @@ package sftp
 
 import (
 	"errors"
+	"fmt"
 	"io"
-	"os"
 	"path"
 	"strings"
 
@@ -12,6 +12,8 @@ import (
 	"code.waarp.fr/apps/gateway/gateway/pkg/conf"
 	"code.waarp.fr/apps/gateway/gateway/pkg/database"
 	"code.waarp.fr/apps/gateway/gateway/pkg/model"
+	"code.waarp.fr/apps/gateway/gateway/pkg/model/types"
+	"code.waarp.fr/apps/gateway/gateway/pkg/pipeline/fs"
 	"code.waarp.fr/apps/gateway/gateway/pkg/sftp/internal"
 	"code.waarp.fr/apps/gateway/gateway/pkg/tk/utils"
 )
@@ -42,12 +44,12 @@ func (l *sshListener) makeFileLister(ag *model.LocalAgent, acc *model.LocalAccou
 func (l *sshListener) listAt(r *sftp.Request, locAgent *model.LocalAgent,
 	acc *model.LocalAccount,
 ) internal.ListerAtFunc {
-	return func(fileInfos []os.FileInfo, offset int64) (int, error) {
+	return func(fileInfos []fs.FileInfo, offset int64) (int, error) {
 		l.Logger.Debug("Received 'List' request on %s", r.Filepath)
 
 		var (
-			entries []os.DirEntry
-			infos   []os.FileInfo
+			entries []fs.DirEntry
+			infos   []fs.FileInfo
 		)
 
 		realDir, err := l.getRealPath(locAgent, acc, r.Filepath)
@@ -55,10 +57,10 @@ func (l *sshListener) listAt(r *sftp.Request, locAgent *model.LocalAgent,
 			return 0, toSFTPErr(err)
 		}
 
-		if realDir != "" {
-			entries, err = os.ReadDir(realDir)
+		if realDir != nil {
+			entries, err = fs.ReadDir(realDir)
 			if err != nil {
-				if os.IsNotExist(err) {
+				if fs.IsNotExist(err) {
 					return 0, sftp.ErrSSHFxNoSuchFile
 				}
 
@@ -104,20 +106,20 @@ func (l *sshListener) listAt(r *sftp.Request, locAgent *model.LocalAgent,
 func (l *sshListener) statAt(r *sftp.Request, ag *model.LocalAgent,
 	acc *model.LocalAccount,
 ) internal.ListerAtFunc {
-	return func(fileInfos []os.FileInfo, offset int64) (int, error) {
+	return func(fileInfos []fs.FileInfo, offset int64) (int, error) {
 		l.Logger.Debug("Received 'Stat' request on %s", r.Filepath)
 
-		var infos os.FileInfo
+		var infos fs.FileInfo
 
 		realDir, err := l.getRealPath(ag, acc, r.Filepath)
 		if err != nil {
 			return 0, toSFTPErr(err)
 		}
 
-		if realDir != "" {
-			infos, err = os.Stat(realDir)
+		if realDir != nil {
+			infos, err = fs.Stat(realDir)
 			if err != nil {
-				if os.IsNotExist(err) {
+				if fs.IsNotExist(err) {
 					return 0, sftp.ErrSSHFxNoSuchFile
 				}
 
@@ -132,10 +134,11 @@ func (l *sshListener) statAt(r *sftp.Request, ag *model.LocalAgent,
 			} else if n == 0 {
 				return 0, sftp.ErrSSHFxNoSuchFile
 			}
+
 			infos = &internal.DirInfo{Dir: path.Base(r.Filepath)}
 		}
 
-		copy(fileInfos, []os.FileInfo{infos})
+		copy(fileInfos, []fs.FileInfo{infos})
 
 		return 1, io.EOF
 	}
@@ -143,26 +146,30 @@ func (l *sshListener) statAt(r *sftp.Request, ag *model.LocalAgent,
 
 func (l *sshListener) getRealPath(ag *model.LocalAgent, acc *model.LocalAccount,
 	dir string,
-) (string, error) {
+) (*types.URL, error) {
 	dir = strings.TrimPrefix(dir, "/")
 
 	rule, err := l.getClosestRule(acc, dir, true)
 	if errors.Is(err, sftp.ErrSSHFxNoSuchFile) {
-		return "", nil
+		return nil, nil //nolint:nilnil //returning nil here makes more sense than using a sentinel error
 	}
 
 	if err != nil {
-		return "", err
+		return nil, err
 	}
 
 	confPaths := &conf.GlobalConfig.Paths
 	rest := strings.TrimPrefix(dir, rule.Path)
 	rest = strings.TrimPrefix(rest, "/")
-	realDir := utils.GetPath(rest, leaf(rule.LocalDir), leaf(ag.SendDir),
+
+	realDir, dirErr := utils.GetPath(rest, leaf(rule.LocalDir), leaf(ag.SendDir),
 		branch(ag.RootDir), leaf(confPaths.DefaultOutDir),
 		branch(confPaths.GatewayHome))
+	if dirErr != nil {
+		return nil, fmt.Errorf("failed to build the path: %w", dirErr)
+	}
 
-	return realDir, nil
+	return (*types.URL)(realDir), nil
 }
 
 func (l *sshListener) getClosestRule(acc *model.LocalAccount, rulePath string,

@@ -4,7 +4,6 @@ import (
 	"encoding/json"
 	"net/http"
 	"net/http/httptest"
-	"path/filepath"
 	"strings"
 	"testing"
 
@@ -106,6 +105,7 @@ func TestListServers(t *testing.T) {
 				Address:     "localhost:5",
 			}
 			So(db.Insert(&a5).Run(), ShouldBeNil)
+
 			conf.GlobalConfig.GatewayName = owner
 
 			Convey("Given a request with no parameters", func() {
@@ -190,6 +190,7 @@ func TestGetServer(t *testing.T) {
 				Address:     "localhost:10",
 			}
 			So(db.Insert(other).Run(), ShouldBeNil)
+
 			conf.GlobalConfig.GatewayName = owner
 
 			existing := &model.LocalAgent{
@@ -204,6 +205,7 @@ func TestGetServer(t *testing.T) {
 			Convey("Given a request with the valid server name parameter", func() {
 				r, err := http.NewRequest(http.MethodGet, "", nil)
 				So(err, ShouldBeNil)
+
 				r = mux.SetURLVars(r, map[string]string{"server": existing.Name})
 
 				Convey("When sending the request to the handler", func() {
@@ -235,6 +237,7 @@ func TestGetServer(t *testing.T) {
 			Convey("Given a request with a non-existing server name parameter", func() {
 				r, err := http.NewRequest(http.MethodGet, "", nil)
 				So(err, ShouldBeNil)
+
 				r = mux.SetURLVars(r, map[string]string{"server": "toto"})
 
 				Convey("When sending the request to the handler", func() {
@@ -301,19 +304,19 @@ func TestCreateServer(t *testing.T) {
 						Convey("Then the new server should be inserted in "+
 							"the database", func() {
 							var res model.LocalAgents
+
 							So(db.Select(&res).Run(), ShouldBeNil)
 							So(len(res), ShouldEqual, 2)
-
 							So(res[1], ShouldResemble, &model.LocalAgent{
 								ID:            2,
 								Owner:         conf.GlobalConfig.GatewayName,
 								Name:          "new_server",
 								Protocol:      testProto1,
 								Address:       "localhost:2",
-								RootDir:       filepath.FromSlash("/new_root"),
-								ReceiveDir:    filepath.FromSlash("in"),
-								SendDir:       filepath.FromSlash("out"),
-								TmpReceiveDir: filepath.FromSlash("tmp"),
+								RootDir:       "/new_root",
+								ReceiveDir:    "in",
+								SendDir:       "out",
+								TmpReceiveDir: "tmp",
 								ProtoConfig:   json.RawMessage("{}"),
 							})
 						})
@@ -325,9 +328,9 @@ func TestCreateServer(t *testing.T) {
 						Convey("Then the existing server should still be "+
 							"present as well", func() {
 							var rules model.LocalAgents
+
 							So(db.Select(&rules).Run(), ShouldBeNil)
 							So(len(rules), ShouldEqual, 2)
-
 							So(rules[0], ShouldResemble, existing)
 						})
 					})
@@ -361,6 +364,7 @@ func TestDeleteServer(t *testing.T) {
 			Convey("Given a request with the valid agent name parameter", func() {
 				r, err := http.NewRequest(http.MethodDelete, testServersURI+existing.Name, nil)
 				So(err, ShouldBeNil)
+
 				r = mux.SetURLVars(r, map[string]string{"server": existing.Name})
 
 				Convey("When sending the request to the handler", func() {
@@ -376,6 +380,7 @@ func TestDeleteServer(t *testing.T) {
 
 					Convey("Then the agent should no longer be present in the database", func() {
 						var agents model.LocalAgents
+
 						So(db.Select(&agents).Run(), ShouldBeNil)
 						So(agents, ShouldBeEmpty)
 					})
@@ -389,6 +394,7 @@ func TestDeleteServer(t *testing.T) {
 			Convey("Given a request with a non-existing agent name parameter", func() {
 				r, err := http.NewRequest(http.MethodDelete, "", nil)
 				So(err, ShouldBeNil)
+
 				r = mux.SetURLVars(r, map[string]string{"server": "toto"})
 
 				Convey("When sending the request to the handler", func() {
@@ -405,8 +411,8 @@ func TestDeleteServer(t *testing.T) {
 
 				r, err := http.NewRequest(http.MethodDelete, testServersURI+existing.Name, nil)
 				So(err, ShouldBeNil)
-				r = mux.SetURLVars(r, map[string]string{"server": existing.Name})
 
+				r = mux.SetURLVars(r, map[string]string{"server": existing.Name})
 				handler.ServeHTTP(w, r)
 
 				Convey("Then it should reply with a 'Bad Request' error", func() {
@@ -451,8 +457,8 @@ func TestUpdateServer(t *testing.T) {
 				Convey("Given a valid name parameter", func() {
 					r, err := http.NewRequest(http.MethodPatch, testServersURI+old.Name, body)
 					So(err, ShouldBeNil)
-					r = mux.SetURLVars(r, map[string]string{"server": old.Name})
 
+					r = mux.SetURLVars(r, map[string]string{"server": old.Name})
 					handler.ServeHTTP(w, r)
 
 					Convey("Then the response body should be empty", func() {
@@ -471,20 +477,20 @@ func TestUpdateServer(t *testing.T) {
 
 					Convey("Then the agent should have been updated", func() {
 						var res model.LocalAgents
+
 						So(db.Select(&res).Run(), ShouldBeNil)
 						So(len(res), ShouldEqual, 1)
-
 						So(res[0], ShouldResemble, &model.LocalAgent{
 							ID:         old.ID,
 							Owner:      conf.GlobalConfig.GatewayName,
 							Name:       "update",
 							Protocol:   testProto1,
 							Address:    "localhost:2",
-							RootDir:    filepath.FromSlash("/upt/root"),
-							ReceiveDir: filepath.FromSlash("/upt/in"),
+							RootDir:    "/upt/root",
+							ReceiveDir: "/upt/in",
 							// sub-dirs cannot be empty if root isn't empty, so OutDir is reset to default
-							SendDir:       filepath.FromSlash("out"),
-							TmpReceiveDir: filepath.FromSlash("/old/tmp"),
+							SendDir:       "out",
+							TmpReceiveDir: "/old/tmp",
 							ProtoConfig:   json.RawMessage(`{}`),
 						})
 					})
@@ -493,6 +499,7 @@ func TestUpdateServer(t *testing.T) {
 				Convey("Given an invalid agent name", func() {
 					r, err := http.NewRequest(http.MethodPatch, testServersURI+"toto", body)
 					So(err, ShouldBeNil)
+
 					r = mux.SetURLVars(r, map[string]string{"server": "toto"})
 
 					handler.ServeHTTP(w, r)
@@ -508,6 +515,7 @@ func TestUpdateServer(t *testing.T) {
 
 					Convey("Then the old agent should still exist", func() {
 						var agents model.LocalAgents
+
 						So(db.Select(&agents).Run(), ShouldBeNil)
 						So(agents, ShouldHaveLength, 1)
 						So(agents[0], ShouldResemble, old)
@@ -553,8 +561,8 @@ func TestReplaceServer(t *testing.T) {
 					//nolint:noctx // this is a test
 					r, err := http.NewRequest(http.MethodPatch, testServersURI+old.Name, body)
 					So(err, ShouldBeNil)
-					r = mux.SetURLVars(r, map[string]string{"server": old.Name})
 
+					r = mux.SetURLVars(r, map[string]string{"server": old.Name})
 					handler.ServeHTTP(w, r)
 
 					Convey("Then the response body should be empty", func() {
@@ -573,6 +581,7 @@ func TestReplaceServer(t *testing.T) {
 
 					Convey("Then the agent should have been updated", func() {
 						var res model.LocalAgents
+
 						So(db.Select(&res).Run(), ShouldBeNil)
 						So(len(res), ShouldEqual, 1)
 
@@ -582,11 +591,11 @@ func TestReplaceServer(t *testing.T) {
 							Name:       "update",
 							Protocol:   testProto2,
 							Address:    "localhost:2",
-							RootDir:    filepath.FromSlash("/upt/root"),
-							ReceiveDir: filepath.FromSlash("/upt/in"),
+							RootDir:    "/upt/root",
+							ReceiveDir: "/upt/in",
 							// sub-dirs cannot be empty if root isn't empty, so OutDir is reset to default
-							SendDir:       filepath.FromSlash("out"),
-							TmpReceiveDir: filepath.FromSlash("tmp"), // idem
+							SendDir:       "out",
+							TmpReceiveDir: "tmp", // idem
 							ProtoConfig:   json.RawMessage(`{}`),
 						})
 					})
@@ -596,8 +605,8 @@ func TestReplaceServer(t *testing.T) {
 					//nolint:noctx // this is a test
 					r, err := http.NewRequest(http.MethodPatch, testServersURI+"toto", body)
 					So(err, ShouldBeNil)
-					r = mux.SetURLVars(r, map[string]string{"server": "toto"})
 
+					r = mux.SetURLVars(r, map[string]string{"server": "toto"})
 					handler.ServeHTTP(w, r)
 
 					Convey("Then it should reply 'NotFound'", func() {
@@ -611,6 +620,7 @@ func TestReplaceServer(t *testing.T) {
 
 					Convey("Then the old agent should still exist", func() {
 						var res model.LocalAgents
+
 						So(db.Select(&res).Run(), ShouldBeNil)
 						So(len(res), ShouldEqual, 1)
 						So(res[0], ShouldResemble, old)
@@ -652,6 +662,7 @@ func TestEnableDisableServer(t *testing.T) {
 
 						Convey("Then it should have "+name+"d the sever", func() {
 							var check model.LocalAgent
+
 							So(db.Get(&check, "id=?", agent.ID).Run(), ShouldBeNil)
 							So(check.Enabled, ShouldEqual, expectedEnabled)
 						})

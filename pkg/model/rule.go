@@ -2,6 +2,7 @@ package model
 
 import (
 	"path"
+	"strings"
 
 	"code.waarp.fr/apps/gateway/gateway/pkg/database"
 	"code.waarp.fr/apps/gateway/gateway/pkg/tk/utils"
@@ -34,12 +35,12 @@ func (r *Rule) normalizePaths() {
 	} else {
 		r.Path = utils.ToStandardPath(r.Path)
 		if path.IsAbs(r.Path) {
-			r.Path = r.Path[1:]
+			r.Path = strings.TrimLeft(r.Path, "/")
 		}
 	}
 
 	if r.LocalDir != "" {
-		r.LocalDir = utils.ToOSPath(r.LocalDir)
+		r.LocalDir = utils.ToStandardPath(r.LocalDir)
 	}
 
 	if r.RemoteDir != "" {
@@ -47,7 +48,7 @@ func (r *Rule) normalizePaths() {
 	}
 
 	if r.TmpLocalRcvDir != "" {
-		r.TmpLocalRcvDir = utils.ToOSPath(r.TmpLocalRcvDir)
+		r.TmpLocalRcvDir = utils.ToStandardPath(r.TmpLocalRcvDir)
 	}
 }
 

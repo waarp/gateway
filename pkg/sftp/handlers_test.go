@@ -2,8 +2,6 @@ package sftp
 
 import (
 	"encoding/json"
-	"os"
-	"path/filepath"
 	"testing"
 
 	"github.com/pkg/sftp"
@@ -15,20 +13,24 @@ import (
 	"code.waarp.fr/apps/gateway/gateway/pkg/model"
 	"code.waarp.fr/apps/gateway/gateway/pkg/model/config"
 	"code.waarp.fr/apps/gateway/gateway/pkg/model/types"
+	"code.waarp.fr/apps/gateway/gateway/pkg/pipeline/fs"
+	"code.waarp.fr/apps/gateway/gateway/pkg/pipeline/fs/fstest"
 	"code.waarp.fr/apps/gateway/gateway/pkg/tk/utils/testhelpers"
 )
 
 func TestFileReader(t *testing.T) {
 	Convey("Given a file", t, func(c C) {
+		fstest.InitMemFS(c)
+
 		logger := testhelpers.TestLogger(c, "test_file_reader")
-		root := testhelpers.TempDir(c, "file_reader_test_root")
+		root := "mem:/file_reader_test_root"
 
-		rulePath := filepath.Join(root, "test", "out")
-		So(os.MkdirAll(rulePath, 0o700), ShouldBeNil)
+		rulePath := mkURL(root, "test", "out")
+		So(fs.MkdirAll(rulePath), ShouldBeNil)
 
-		filePath := filepath.Join(rulePath, "file_read.src")
+		filePath := rulePath.JoinPath("file_read.src")
 		content := []byte("File reader test file content")
-		So(os.WriteFile(filePath, content, 0o600), ShouldBeNil)
+		So(fs.WriteFullFile(filePath, content), ShouldBeNil)
 
 		Convey("Given a database with a rule, a localAgent and a localAccount", func(dbc C) {
 			db := database.TestDatabase(dbc)
@@ -56,7 +58,7 @@ func TestFileReader(t *testing.T) {
 			}
 			So(db.Insert(account).Run(), ShouldBeNil)
 
-			var serverConf config.SftpProtoConfig
+			serverConf := config.SftpProtoConfig{}
 			So(json.Unmarshal(agent.ProtoConfig, &serverConf), ShouldBeNil)
 
 			Convey("Given the FileReader", func() {
@@ -91,8 +93,8 @@ func TestFileReader(t *testing.T) {
 							Convey("Then the transfer should have a valid file and status", func() {
 								trans := file.pipeline.TransCtx.Transfer
 
-								So(trans.LocalPath, ShouldEqual, filepath.Join(
-									root, rule.LocalDir, "file_read.src"))
+								So(trans.LocalPath.String(), ShouldEqual, mkURL(
+									root, rule.LocalDir, "file_read.src").String())
 								So(trans.Status, ShouldEqual, types.StatusRunning)
 							})
 						})
@@ -133,8 +135,10 @@ func TestFileReader(t *testing.T) {
 
 func TestFileWriter(t *testing.T) {
 	Convey("Given a file", t, func(c C) {
+		fstest.InitMemFS(c)
+
 		logger := testhelpers.TestLogger(c, "test_file_writer")
-		root := testhelpers.TempDir(c, "file_writer_test_root")
+		root := "mem:/file_writer_test_root"
 
 		Convey("Given a database with a rule and a localAgent", func(c C) {
 			db := database.TestDatabase(c)
@@ -161,7 +165,7 @@ func TestFileWriter(t *testing.T) {
 			}
 			So(db.Insert(account).Run(), ShouldBeNil)
 
-			var serverConf config.SftpProtoConfig
+			serverConf := config.SftpProtoConfig{}
 			So(json.Unmarshal(agent.ProtoConfig, &serverConf), ShouldBeNil)
 
 			Convey("Given the Filewriter", func() {
@@ -196,8 +200,8 @@ func TestFileWriter(t *testing.T) {
 							Convey("Then the transfer should have a valid file and status", func() {
 								trans := file.pipeline.TransCtx.Transfer
 
-								So(trans.LocalPath, ShouldEqual, filepath.Join(
-									root, agent.TmpReceiveDir, "file.test.part"))
+								So(trans.LocalPath.String(), ShouldEqual, mkURL(
+									root, agent.TmpReceiveDir, "file.test.part").String())
 								So(trans.Status, ShouldEqual, types.StatusRunning)
 							})
 						})

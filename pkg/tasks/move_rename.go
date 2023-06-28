@@ -4,13 +4,12 @@ import (
 	"context"
 	"fmt"
 	"path"
-	"path/filepath"
 
 	"code.waarp.fr/lib/log"
 
 	"code.waarp.fr/apps/gateway/gateway/pkg/database"
 	"code.waarp.fr/apps/gateway/gateway/pkg/model"
-	"code.waarp.fr/apps/gateway/gateway/pkg/tk/utils"
+	"code.waarp.fr/apps/gateway/gateway/pkg/model/types"
 )
 
 // moveRenameTask is a task which move and rename the current file to a given
@@ -38,17 +37,23 @@ func (*moveRenameTask) Run(_ context.Context, args map[string]string,
 	_ *database.DB, logger *log.Logger, transCtx *model.TransferContext,
 ) error {
 	newPath := args["path"]
-	oldPath := transCtx.Transfer.LocalPath
+	source := &transCtx.Transfer.LocalPath
 
-	if err := MoveFile(oldPath, newPath); err != nil {
+	dest, dstErr := types.ParseURL(newPath)
+	if dstErr != nil {
+		return fmt.Errorf("failed to parse the MOVE destination path %q: %w", newPath, dstErr)
+	}
+
+	if err := MoveFile(source, dest); err != nil {
 		return err
 	}
 
-	transCtx.Transfer.LocalPath = utils.ToOSPath(newPath)
-	transCtx.Transfer.RemotePath = path.Join(path.Dir(transCtx.Transfer.RemotePath),
-		filepath.Base(transCtx.Transfer.LocalPath))
+	transCtx.Transfer.LocalPath = *dest
+	transCtx.Transfer.RemotePath = path.Join(
+		path.Dir(transCtx.Transfer.RemotePath),
+		path.Base(transCtx.Transfer.LocalPath.Path))
 
-	logger.Debug("Moved file %q to %q", oldPath, newPath)
+	logger.Debug("Moved file %q to %q", source, newPath)
 
 	return nil
 }

@@ -54,7 +54,6 @@ func (l *LocalAgent) validateProtoConfig() error {
 	}
 
 	l.ProtoConfig, err = json.Marshal(protoConf)
-
 	if err != nil {
 		return fmt.Errorf("cannot marshal the protocol config for server %q to JSON: %w",
 			l.Name, err)
@@ -69,24 +68,24 @@ func (l *LocalAgent) makePaths() {
 	}
 
 	if !isEmpty(l.RootDir) {
-		l.RootDir = utils.ToOSPath(l.RootDir)
+		l.RootDir = utils.ToStandardPath(l.RootDir)
 
 		if isEmpty(l.ReceiveDir) {
 			l.ReceiveDir = "in"
 		} else {
-			l.ReceiveDir = utils.ToOSPath(l.ReceiveDir)
+			l.ReceiveDir = utils.ToStandardPath(l.ReceiveDir)
 		}
 
 		if isEmpty(l.SendDir) {
 			l.SendDir = "out"
 		} else {
-			l.SendDir = utils.ToOSPath(l.SendDir)
+			l.SendDir = utils.ToStandardPath(l.SendDir)
 		}
 
 		if isEmpty(l.TmpReceiveDir) {
 			l.TmpReceiveDir = "tmp"
 		} else {
-			l.TmpReceiveDir = utils.ToOSPath(l.TmpReceiveDir)
+			l.TmpReceiveDir = utils.ToStandardPath(l.TmpReceiveDir)
 		}
 	}
 }

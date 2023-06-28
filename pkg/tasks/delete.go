@@ -2,13 +2,13 @@ package tasks
 
 import (
 	"context"
-	"os"
+	"fmt"
 
 	"code.waarp.fr/lib/log"
 
 	"code.waarp.fr/apps/gateway/gateway/pkg/database"
 	"code.waarp.fr/apps/gateway/gateway/pkg/model"
-	"code.waarp.fr/apps/gateway/gateway/pkg/tk/utils"
+	"code.waarp.fr/apps/gateway/gateway/pkg/pipeline/fs"
 )
 
 // deleteTask is a task which delete the current file from the system.
@@ -28,12 +28,13 @@ func (*deleteTask) Validate(map[string]string) error {
 func (*deleteTask) Run(_ context.Context, _ map[string]string, _ *database.DB,
 	logger *log.Logger, transCtx *model.TransferContext,
 ) error {
-	truePath := utils.ToOSPath(transCtx.Transfer.LocalPath)
-	if err := os.Remove(truePath); err != nil {
-		return normalizeFileError("delete file", err)
+	filepath := &transCtx.Transfer.LocalPath
+
+	if err := fs.Remove(filepath); err != nil {
+		return fmt.Errorf("failed to delete file: %w", err)
 	}
 
-	logger.Debug("Deleted file %q", truePath)
+	logger.Debug("Deleted file %q", filepath)
 
 	return nil
 }

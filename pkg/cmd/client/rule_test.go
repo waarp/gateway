@@ -138,6 +138,7 @@ func TestDisplayRule(t *testing.T) {
 				Args: json.RawMessage(`{"path":"/path/to/rename"}`),
 			}},
 		}
+
 		Convey("When calling the `displayRule` function", func() {
 			w := getColorable()
 			displayRule(w, rule)
@@ -157,7 +158,9 @@ func TestGetRule(t *testing.T) {
 		Convey("Given a gateway with 1 rule", func(c C) {
 			db := database.TestDatabase(c)
 			gw := httptest.NewServer(testHandler(db))
+
 			var err error
+
 			addr, err = url.Parse("http://admin:admin_password@" + gw.Listener.Addr().String())
 			So(err, ShouldBeNil)
 
@@ -213,7 +216,9 @@ func TestAddRule(t *testing.T) {
 		Convey("Given a gateway with 1 rule", func(c C) {
 			db := database.TestDatabase(c)
 			gw := httptest.NewServer(testHandler(db))
+
 			var err error
+
 			addr, err = url.Parse("http://admin:admin_password@" + gw.Listener.Addr().String())
 			So(err, ShouldBeNil)
 
@@ -231,7 +236,7 @@ func TestAddRule(t *testing.T) {
 					"--direction", "receive", "--path", "new/rule/path",
 					"--local-dir", "new/rule/local",
 					"--remote-dir", "new/rule/remote",
-					"--tmp-dir", "new_rule/tmp",
+					"--tmp-dir", "new/rule/tmp",
 					"--pre", `{"type":"COPY","args":{"path":"/path/to/copy"}}`,
 					"--pre", `{"type":"EXEC","args":{"path":"/path/to/script","args":"{}","delay":"0"}}`,
 					"--post", `{"type":"DELETE","args":{}}`,
@@ -252,6 +257,7 @@ func TestAddRule(t *testing.T) {
 
 					Convey("Then the new rule should have been added", func() {
 						var rules model.Rules
+
 						So(db.Select(&rules).Where("id=?", 2).Run(), ShouldBeNil)
 						So(rules, ShouldNotBeEmpty)
 
@@ -261,14 +267,14 @@ func TestAddRule(t *testing.T) {
 							Comment:        "new_rule comment",
 							IsSend:         false,
 							Path:           "new/rule/path",
-							LocalDir:       utils.ToOSPath("new/rule/local"),
+							LocalDir:       "new/rule/local",
 							RemoteDir:      "new/rule/remote",
-							TmpLocalRcvDir: utils.ToOSPath("new_rule/tmp"),
+							TmpLocalRcvDir: "new/rule/tmp",
 						}
 						So(rules[0], ShouldResemble, expected)
 
 						Convey("Then the rule's tasks should have been added", func() {
-							var tasks model.Tasks
+							tasks := model.Tasks{}
 							So(db.Select(&tasks).Run(), ShouldBeNil)
 
 							pre0 := &model.Task{
@@ -345,9 +351,9 @@ func TestAddRule(t *testing.T) {
 
 					Convey("Then the rule should NOT have been inserted", func() {
 						var rules model.Rules
+
 						So(db.Select(&rules).Run(), ShouldBeNil)
 						So(rules, ShouldHaveLength, 1)
-
 						So(rules[0], ShouldResemble, existing)
 					})
 				})
@@ -372,9 +378,9 @@ func TestAddRule(t *testing.T) {
 
 					Convey("Then the rule should NOT have been inserted", func() {
 						var rules model.Rules
+
 						So(db.Select(&rules).Run(), ShouldBeNil)
 						So(rules, ShouldHaveLength, 1)
-
 						So(rules[0], ShouldResemble, existing)
 					})
 				})
@@ -391,7 +397,9 @@ func TestUpdateRule(t *testing.T) {
 		Convey("Given a gateway with 1 rule", func(c C) {
 			db := database.TestDatabase(c)
 			gw := httptest.NewServer(testHandler(db))
+
 			var err error
+
 			addr, err = url.Parse("http://admin:admin_password@" + gw.Listener.Addr().String())
 			So(err, ShouldBeNil)
 
@@ -441,6 +449,7 @@ func TestUpdateRule(t *testing.T) {
 
 					Convey("Then the rule should have been updated", func() {
 						var rules model.Rules
+
 						So(db.Select(&rules).Run(), ShouldBeNil)
 						So(rules, ShouldHaveLength, 1)
 
@@ -450,9 +459,9 @@ func TestUpdateRule(t *testing.T) {
 							Comment:        *command.Comment,
 							IsSend:         rule.IsSend,
 							Path:           *command.Path,
-							LocalDir:       utils.ToOSPath(*command.LocalDir),
+							LocalDir:       *command.LocalDir,
 							RemoteDir:      *command.RemoteDir,
-							TmpLocalRcvDir: utils.ToOSPath(*command.TmpReceiveDir),
+							TmpLocalRcvDir: *command.TmpReceiveDir,
 						}
 						So(rules[0], ShouldResemble, expected)
 
@@ -492,7 +501,9 @@ func TestDeleteRule(t *testing.T) {
 		Convey("Given a gateway with 1 rule", func(c C) {
 			db := database.TestDatabase(c)
 			gw := httptest.NewServer(testHandler(db))
+
 			var err error
+
 			addr, err = url.Parse("http://admin:admin_password@" + gw.Listener.Addr().String())
 			So(err, ShouldBeNil)
 
@@ -518,6 +529,7 @@ func TestDeleteRule(t *testing.T) {
 
 					Convey("Then the rule should have been removed", func() {
 						var rules model.Rules
+
 						So(db.Select(&rules).Run(), ShouldBeNil)
 						So(rules, ShouldBeEmpty)
 					})
@@ -538,6 +550,7 @@ func TestDeleteRule(t *testing.T) {
 
 					Convey("Then the rule should still exist", func() {
 						var rules model.Rules
+
 						So(db.Select(&rules).Run(), ShouldBeNil)
 						So(rules, ShouldContain, rule)
 					})
@@ -555,7 +568,9 @@ func TestListRules(t *testing.T) {
 		Convey("Given a gateway with 2 rules", func(c C) {
 			db := database.TestDatabase(c)
 			gw := httptest.NewServer(testHandler(db))
+
 			var err error
+
 			addr, err = url.Parse("http://admin:admin_password@" + gw.Listener.Addr().String())
 			So(err, ShouldBeNil)
 
@@ -657,7 +672,9 @@ func TestRuleAllowAll(t *testing.T) {
 		Convey("Given a database with a rule", func(c C) {
 			db := database.TestDatabase(c)
 			gw := httptest.NewServer(testHandler(db))
+
 			var err error
+
 			addr, err = url.Parse("http://admin:admin_password@" + gw.Listener.Addr().String())
 			So(err, ShouldBeNil)
 
@@ -694,6 +711,7 @@ func TestRuleAllowAll(t *testing.T) {
 					Login:         "tata",
 					Password:      "password",
 				}
+
 				So(db.Insert(la).Run(), ShouldBeNil)
 				So(db.Insert(ra).Run(), ShouldBeNil)
 
@@ -713,6 +731,7 @@ func TestRuleAllowAll(t *testing.T) {
 					RuleID:          rule.ID,
 					RemoteAccountID: utils.NewNullInt64(ra.ID),
 				}
+
 				So(db.Insert(sAcc).Run(), ShouldBeNil)
 				So(db.Insert(pAcc).Run(), ShouldBeNil)
 				So(db.Insert(laAcc).Run(), ShouldBeNil)
@@ -733,6 +752,7 @@ func TestRuleAllowAll(t *testing.T) {
 
 						Convey("Then all accesses should have been removed from the database", func() {
 							var res model.RuleAccesses
+
 							So(db.Select(&res).Run(), ShouldBeNil)
 							So(res, ShouldBeEmpty)
 						})
@@ -753,6 +773,7 @@ func TestRuleAllowAll(t *testing.T) {
 
 						Convey("Then the accesses should still exist", func() {
 							var res model.RuleAccesses
+
 							So(db.Select(&res).Run(), ShouldBeNil)
 							So(len(res), ShouldEqual, 4)
 						})
@@ -774,6 +795,7 @@ func TestRuleAllowAll(t *testing.T) {
 
 						Convey("Then the accesses should still exist", func() {
 							var res model.RuleAccesses
+
 							So(db.Select(&res).Run(), ShouldBeNil)
 							So(len(res), ShouldEqual, 4)
 						})

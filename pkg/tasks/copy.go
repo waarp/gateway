@@ -4,14 +4,14 @@ import (
 	"context"
 	"fmt"
 	"io"
-	"os"
-	"path/filepath"
+	"path"
 
 	"code.waarp.fr/lib/log"
 
 	"code.waarp.fr/apps/gateway/gateway/pkg/database"
 	"code.waarp.fr/apps/gateway/gateway/pkg/model"
-	"code.waarp.fr/apps/gateway/gateway/pkg/tk/utils"
+	"code.waarp.fr/apps/gateway/gateway/pkg/model/types"
+	"code.waarp.fr/apps/gateway/gateway/pkg/pipeline/fs"
 )
 
 // copyTask is a task which allow to copy the current file
@@ -37,11 +37,16 @@ func (*copyTask) Run(_ context.Context, args map[string]string, _ *database.DB,
 	logger *log.Logger, transCtx *model.TransferContext,
 ) error {
 	newDir := args["path"]
+	source := &transCtx.Transfer.LocalPath
 
-	source := transCtx.Transfer.LocalPath
-	dest := filepath.Join(newDir, filepath.Base(source))
+	dest, err := types.ParseURL(newDir)
+	if err != nil {
+		return fmt.Errorf("failed to parse destination path %q: %w", newDir, err)
+	}
 
-	if err := doCopy(dest, source); err != nil {
+	dest = dest.JoinPath(path.Base(source.Path))
+
+	if err := doCopy(source, dest); err != nil {
 		return err
 	}
 
@@ -50,42 +55,41 @@ func (*copyTask) Run(_ context.Context, args map[string]string, _ *database.DB,
 	return nil
 }
 
-func doCopy(dest, source string) error {
-	trueSource := utils.ToOSPath(source)
-	trueDest := utils.ToOSPath(dest)
-
-	if trueSource == trueDest {
+// doCopy copies the file pointed by the given transfer to the given destination,
+// and then returns the filesystem on which the copy was made.
+func doCopy(source, dest *types.URL) error {
+	if dest.String() == source.String() {
 		// If source == destination, this is a self-copy, so we do nothing.
 		return nil
 	}
 
-	err := os.MkdirAll(filepath.Dir(trueDest), 0o700)
-	if err != nil {
-		return fmt.Errorf("cannot create destination directory %q: %w",
-			filepath.Dir(dest), err)
+	if err := fs.MkdirAll(dest.Dir()); err != nil {
+		return fmt.Errorf("cannot create destination directory %q: %w", dest.Dir(), err)
 	}
 
-	srcFile, err := os.Open(filepath.Clean(trueSource))
-	if err != nil {
-		return normalizeFileError("open source file", err)
+	srcFile, srcErr := fs.Open(source)
+	if srcErr != nil {
+		return fmt.Errorf("failed to open source file %q: %w", source, srcErr)
+	}
+	defer srcFile.Close() //nolint:errcheck // this should never return an error
+
+	dstFile, dstErr := fs.Create(dest)
+	if dstErr != nil {
+		return fmt.Errorf("failed to destination file %q: %w", dest, dstErr)
+	}
+	defer dstFile.Close() //nolint:errcheck // this error is checked elsewhere
+
+	dstFileWriter, canWrite := dstFile.(io.Writer)
+	if !canWrite {
+		return fmt.Errorf("%w: %s", fs.ErrNotImplemented, "WriteFile")
 	}
 
-	//nolint:errcheck,gosec // Close() must be deferred so the file is closed
-	// even in case of error or panic
-	defer func() { _ = srcFile.Close() }()
-
-	destFile, err := os.Create(filepath.Clean(trueDest))
-	if err != nil {
-		return normalizeFileError("create destination file", err)
+	if _, err := io.Copy(dstFileWriter, srcFile); err != nil {
+		return fmt.Errorf("failed to copy file %q to %q: %w", source, dest, err)
 	}
 
-	//nolint:errcheck,gosec // Close() must be deferred so the file is closed
-	// even in case of error or panic
-	defer func() { _ = destFile.Close() }()
-
-	_, err = io.Copy(destFile, srcFile)
-	if err != nil {
-		return fmt.Errorf("cannot write file to %q: %w", dest, err)
+	if err := dstFile.Close(); err != nil {
+		return fmt.Errorf("failed to write content to %q: %w", dest, err)
 	}
 
 	return nil

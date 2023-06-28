@@ -2,7 +2,6 @@ package controller
 
 import (
 	"context"
-	"path/filepath"
 	"sync"
 	"testing"
 	"time"
@@ -14,12 +13,15 @@ import (
 	"code.waarp.fr/apps/gateway/gateway/pkg/gatewayd/service/state"
 	"code.waarp.fr/apps/gateway/gateway/pkg/model"
 	"code.waarp.fr/apps/gateway/gateway/pkg/model/types"
+	"code.waarp.fr/apps/gateway/gateway/pkg/pipeline/fs"
+	"code.waarp.fr/apps/gateway/gateway/pkg/pipeline/fs/fstest"
 	"code.waarp.fr/apps/gateway/gateway/pkg/tk/utils"
 	"code.waarp.fr/apps/gateway/gateway/pkg/tk/utils/testhelpers"
 )
 
 func TestControllerListen(t *testing.T) {
 	Convey("Given a database", t, func(c C) {
+		fstest.InitMemFS(c)
 		logger := testhelpers.TestLogger(c, "test_controller")
 		db := database.TestDatabase(c)
 
@@ -37,14 +39,15 @@ func TestControllerListen(t *testing.T) {
 		}
 		So(db.Insert(account).Run(), ShouldBeNil)
 
-		tmpDir := testhelpers.TempDir(c, "controller-listen")
+		rootDir := "mem:/controller-listen"
+		rootPath := mkURL(rootDir)
 
 		rule := &model.Rule{Name: "test rule", IsSend: true}
 		So(db.Insert(rule).Run(), ShouldBeNil)
 
 		Convey("Given a controller", func() {
 			conf.GlobalConfig.Paths = conf.PathsConfig{
-				GatewayHome: tmpDir, DefaultInDir: "in",
+				GatewayHome: rootDir, DefaultInDir: "in",
 				DefaultOutDir: "out", DefaultTmpDir: "tmp",
 			}
 
@@ -58,8 +61,9 @@ func TestControllerListen(t *testing.T) {
 			}
 
 			Convey("Given a planned transfer", func(c C) {
-				path1 := filepath.Join(tmpDir, "out", "file_1")
-				testhelpers.WriteFile(c, path1, "hello world")
+				path1 := rootPath.JoinPath("out", "file_1")
+				So(fs.MkdirAll(path1.Dir()), ShouldBeNil)
+				So(fs.WriteFullFile(path1, []byte("hello world")), ShouldBeNil)
 
 				trans := &model.Transfer{
 					RuleID:          rule.ID,
@@ -80,12 +84,14 @@ func TestControllerListen(t *testing.T) {
 						Convey("Then it should have retrieved the planned "+
 							"transfer entry", func() {
 							var transfers model.Transfers
+
 							So(db.Select(&transfers).Run(), ShouldBeNil)
 							So(transfers, ShouldBeEmpty)
 						})
 
 						Convey("Then it should have created the new history entries", func() {
 							var historyEntries model.HistoryEntries
+
 							So(db.Select(&historyEntries).Run(), ShouldBeNil)
 							So(historyEntries, ShouldNotBeEmpty)
 						})
@@ -106,6 +112,7 @@ func TestControllerListen(t *testing.T) {
 
 						Convey("Then the transfer has only been started once", func() {
 							var historyEntries model.HistoryEntries
+
 							So(db.Select(&historyEntries).Run(), ShouldBeNil)
 							So(historyEntries, ShouldHaveLength, 1)
 						})
@@ -114,8 +121,9 @@ func TestControllerListen(t *testing.T) {
 			})
 
 			Convey("Given a running transfer", func(c C) {
-				path2 := filepath.Join(tmpDir, "out", "file_2")
-				testhelpers.WriteFile(c, path2, "hello world")
+				path2 := rootPath.JoinPath("out", "file_2")
+				So(fs.MkdirAll(path2.Dir()), ShouldBeNil)
+				So(fs.WriteFullFile(path2, []byte("hello world")), ShouldBeNil)
 
 				trans := &model.Transfer{
 					RuleID:          rule.ID,

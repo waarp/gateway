@@ -19,6 +19,7 @@ import (
 	"code.waarp.fr/apps/gateway/gateway/pkg/database"
 	"code.waarp.fr/apps/gateway/gateway/pkg/model"
 	"code.waarp.fr/apps/gateway/gateway/pkg/model/types"
+	"code.waarp.fr/apps/gateway/gateway/pkg/tk/utils"
 	"code.waarp.fr/apps/gateway/gateway/pkg/tk/utils/testhelpers"
 )
 
@@ -43,7 +44,7 @@ func TestGetHistory(t *testing.T) {
 				Protocol:         "sftp",
 				SrcFilename:      "file.test",
 				DestFilename:     "file.test",
-				LocalPath:        "/local/file.test",
+				LocalPath:        *mkURL("file:/local/file.test"),
 				RemotePath:       "/remote/file.test",
 				Start:            time.Date(2021, 1, 2, 3, 4, 5, 678000, time.Local),
 				Stop:             time.Date(2021, 2, 3, 4, 5, 6, 789000, time.Local),
@@ -54,12 +55,13 @@ func TestGetHistory(t *testing.T) {
 			infos := map[string]any{"key1": "val1", "key2": 2}
 			So(h.SetTransferInfo(db, infos), ShouldBeNil)
 
-			id := fmt.Sprint(h.ID)
+			id := utils.FormatInt(h.ID)
 
 			Convey("Given a request with the valid transfer history ID parameter", func() {
 				uri := path.Join(historyURI, id)
 				req, err := http.NewRequest(http.MethodGet, uri, nil)
 				So(err, ShouldBeNil)
+
 				req = mux.SetURLVars(req, map[string]string{"history": id})
 
 				Convey("When sending the request to the handler", func() {
@@ -92,6 +94,7 @@ func TestGetHistory(t *testing.T) {
 				uri := path.Join(historyURI, "1000")
 				r, err := http.NewRequest(http.MethodGet, uri, nil)
 				So(err, ShouldBeNil)
+
 				r = mux.SetURLVars(r, map[string]string{"history": "1000"})
 
 				Convey("When sending the request to the handler", func() {
@@ -118,7 +121,7 @@ func TestGetHistory(t *testing.T) {
 					Protocol:         "sftp",
 					SrcFilename:      "/source/file.test",
 					DestFilename:     "/dest/file.test",
-					LocalPath:        "/local/file.test",
+					LocalPath:        *mkURL("file:/local/file.test"),
 					RemotePath:       "/remote/file.test",
 					Start:            time.Date(2021, 1, 2, 3, 4, 5, 678000, time.Local),
 					Stop:             time.Date(2021, 2, 3, 4, 5, 6, 789000, time.Local),
@@ -131,12 +134,13 @@ func TestGetHistory(t *testing.T) {
 
 				conf.GlobalConfig.GatewayName = gwname
 
-				id2 := fmt.Sprint(h2.ID)
+				id2 := utils.FormatInt(h2.ID)
 
 				Convey("Given a request with the unown transfer history ID parameter", func() {
 					uri := path.Join(historyURI, id2)
 					req, err := http.NewRequest(http.MethodGet, uri, nil)
 					So(err, ShouldBeNil)
+
 					req = mux.SetURLVars(req, map[string]string{"history": id2})
 
 					Convey("When sending the request to the handler", func() {
@@ -177,7 +181,7 @@ func TestListHistory(t *testing.T) {
 				Status:           types.StatusDone,
 				SrcFilename:      "/source/file1.test",
 				DestFilename:     "/dest/file1.test",
-				LocalPath:        "/local/file1.test",
+				LocalPath:        *mkURL("file:/local/file1.test"),
 				RemotePath:       "/remote/file1.test",
 			}
 			So(db.Insert(h1).Run(), ShouldBeNil)
@@ -196,7 +200,7 @@ func TestListHistory(t *testing.T) {
 				Status:           types.StatusCancelled,
 				SrcFilename:      "/source/file2.test",
 				DestFilename:     "/dest/file2.test",
-				LocalPath:        "/local/file2.test",
+				LocalPath:        *mkURL("file:/local/file2.test"),
 				RemotePath:       "/remote/file2.test",
 			}
 			So(db.Insert(h2).Run(), ShouldBeNil)
@@ -215,7 +219,7 @@ func TestListHistory(t *testing.T) {
 				Status:           types.StatusCancelled,
 				SrcFilename:      "/source/file3.test",
 				DestFilename:     "/dest/file3.test",
-				LocalPath:        "/local/file3.test",
+				LocalPath:        *mkURL("/local/file3.test"),
 				RemotePath:       "/remote/file3.test",
 			}
 			So(db.Insert(h3).Run(), ShouldBeNil)
@@ -234,7 +238,7 @@ func TestListHistory(t *testing.T) {
 				Status:           types.StatusDone,
 				SrcFilename:      "/source/file4.test",
 				DestFilename:     "/dest/file4.test",
-				LocalPath:        "/local/file4.test",
+				LocalPath:        *mkURL("/local/file4.test"),
 				RemotePath:       "/remote/file4.test",
 			}
 			So(db.Insert(h4).Run(), ShouldBeNil)
@@ -427,7 +431,8 @@ func TestListHistory(t *testing.T) {
 			})
 
 			Convey("Given a request with 1 valid 'status' parameter", func() {
-				req, err := http.NewRequest(http.MethodGet, fmt.Sprintf("?status=%s", "DONE"), nil)
+				req, err := http.NewRequest(http.MethodGet, fmt.Sprintf("?status=%s",
+					types.StatusDone), nil)
 				So(err, ShouldBeNil)
 
 				Convey("When sending the request to the handler", func() {
@@ -486,7 +491,7 @@ func TestRestartHistory(t *testing.T) {
 				Protocol:         testProto1,
 				SrcFilename:      "/source/file1.test",
 				DestFilename:     "/dest/file1.test",
-				LocalPath:        "/local/file.test",
+				LocalPath:        *mkURL("file:/local/file.test"),
 				RemotePath:       "/remote/file.test",
 				Start:            time.Date(2019, 1, 1, 0, 0, 0, 0, time.Local),
 				Stop:             time.Date(2019, 1, 1, 1, 0, 0, 0, time.Local),
@@ -494,7 +499,7 @@ func TestRestartHistory(t *testing.T) {
 			}
 			So(db.Insert(h).Run(), ShouldBeNil)
 
-			id := fmt.Sprint(h.ID)
+			id := utils.FormatInt(h.ID)
 
 			Convey("Given a request with the valid transfer history ID parameter", func() {
 				dateStr := url.QueryEscape(h.Start.Format(time.RFC3339Nano))
@@ -502,11 +507,13 @@ func TestRestartHistory(t *testing.T) {
 				uri := fmt.Sprintf("%s/%s/restart?date=%s", historyURI, id, dateStr)
 				req, err := http.NewRequest(http.MethodPut, uri, nil)
 				So(err, ShouldBeNil)
+
 				req = mux.SetURLVars(req, map[string]string{"history": id})
 
 				Convey("When sending the request to the handler", func() {
 					handler.ServeHTTP(w, req)
 					res := w.Result() //nolint:bodyclose // body is closed the line after !?
+
 					defer res.Body.Close()
 
 					Convey("Then it should reply 'CREATED'", func() {
@@ -528,6 +535,7 @@ func TestRestartHistory(t *testing.T) {
 
 					Convey("Then the transfer should have been reprogrammed", func() {
 						var transfers model.Transfers
+
 						So(db.Select(&transfers).Run(), ShouldBeNil)
 						So(transfers, ShouldNotBeEmpty)
 
@@ -548,6 +556,7 @@ func TestRestartHistory(t *testing.T) {
 				uri := path.Join(historyURI, "1000")
 				r, err := http.NewRequest(http.MethodGet, uri, nil)
 				So(err, ShouldBeNil)
+
 				r = mux.SetURLVars(r, map[string]string{"history": "1000"})
 
 				Convey("When sending the request to the handler", func() {

@@ -1,8 +1,6 @@
 package pipeline
 
 import (
-	"os"
-	"path/filepath"
 	"testing"
 	"time"
 
@@ -11,6 +9,7 @@ import (
 	"code.waarp.fr/apps/gateway/gateway/pkg/conf"
 	"code.waarp.fr/apps/gateway/gateway/pkg/model"
 	"code.waarp.fr/apps/gateway/gateway/pkg/model/types"
+	"code.waarp.fr/apps/gateway/gateway/pkg/pipeline/fs"
 	"code.waarp.fr/apps/gateway/gateway/pkg/tk/utils"
 )
 
@@ -21,14 +20,15 @@ func TestClientPipelineRun(t *testing.T) {
 		ctx := initTestDB(c)
 
 		Convey("Given a client push transfer", func() {
-			file := "client_pipeline_push"
-			So(os.WriteFile(filepath.Join(conf.GlobalConfig.Paths.GatewayHome,
-				ctx.send.LocalDir, file), content, 0o600), ShouldBeNil)
+			filename := "client_pipeline_push"
+			filePath := mkURL(conf.GlobalConfig.Paths.GatewayHome,
+				ctx.send.LocalDir, filename)
+			So(fs.WriteFullFile(filePath, content), ShouldBeNil)
 
 			trans := &model.Transfer{
 				RuleID:          ctx.send.ID,
 				RemoteAccountID: utils.NewNullInt64(ctx.remoteAccount.ID),
-				SrcFilename:     file,
+				SrcFilename:     filename,
 				Start:           time.Date(2021, 1, 1, 1, 0, 0, 0, time.UTC),
 				Status:          types.StatusPlanned,
 			}
@@ -41,9 +41,9 @@ func TestClientPipelineRun(t *testing.T) {
 
 				Convey("Then the transfer should be in the history", func() {
 					var hist model.HistoryEntries
+
 					So(ctx.db.Select(&hist).Run(), ShouldBeNil)
 					So(hist, ShouldNotBeEmpty)
-
 					So(hist[0], ShouldResemble, &model.HistoryEntry{
 						ID:               trans.ID,
 						Owner:            conf.GlobalConfig.GatewayName,
