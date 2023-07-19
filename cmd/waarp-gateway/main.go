@@ -191,6 +191,14 @@ type commands struct {
 		} `command:"monitor" description:"Manage the SNMP monitors"`
 	} `command:"snmp" description:"Manage SNMP"`
 
+	Cloud struct {
+		Add  wg.CloudAdd    `command:"add" description:"Add a new cloud instance"`
+		Get  wg.CloudGet    `command:"get" description:"Retrieve a cloud instance's information"`
+		List wg.CloudList   `command:"list" description:"List the known cloud instances"`
+		Upd  wg.CloudUpdate `command:"update" description:"Update an existing cloud instance"`
+		Del  wg.CloudDelete `command:"delete" description:"Delete an cloud instance"`
+	} `command:"cloud" description:"Manage the gateway's cloud instances"`
+
 	Version wg.Version `command:"version" description:"Print the program version and exit"`
 }
 
