@@ -4,11 +4,7 @@ Supprimer une indirection d'adresse
 
 .. program:: waarp-gateway override address delete
 
-.. describe:: waarp-gateway override address delete <TARGET>
-
 Supprime l'indirection d'adresse sur l'adresse donnée (si elle existe).
-
-|
 
 **Exemple**
 

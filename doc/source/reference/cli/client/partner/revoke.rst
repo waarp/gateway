@@ -4,11 +4,7 @@ Interdire une règle sur un partenaire
 
 .. program:: waarp-gateway partner revoke
 
-.. describe:: waarp-gateway partner revoke <PARTNER> <RULE>
-
 Retire au partenaire fourni en argument la permission d'utiliser la règle donnée.
-
-|
 
 **Exemple**
 

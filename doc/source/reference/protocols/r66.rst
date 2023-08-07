@@ -4,11 +4,11 @@
 R66 & R66-TLS
 =============
 
-L'implémentation de R66 et R66-TLS dans la *Gateway*, bien que permettant de
+L'implémentation de R66 et R66-TLS dans Waarp Gateway, bien que permettant de
 faire du MFT, n'est pas complète. Un certain nombre de fonctionnalité du
-protocole ne sont pas implémentées dans la *Gateway*.
+protocole ne sont pas implémentées dans Waarp Gateway.
 
-Voici les fonctionnalités qui ont déjà été implémentées dans la *Gateway* :
+Voici les fonctionnalités qui ont déjà été implémentées dans Waarp Gateway :
 
 - Transfert de données en clair (```r66```)
 - Transfert de données sécurisé via TLS (``r66-tls``)
@@ -20,7 +20,9 @@ Voici les fonctionnalités qui ont déjà été implémentées dans la *Gateway*
 - Listing des fichiers (par règle)
 - Requête des méta-données d'un transfert existant
 
-.. warning:: La version 1.2 de TLS est requise au minimum pour effectuer des
+.. warning::
+
+   La version 1.2 de TLS est requise au minimum pour effectuer des
    transferts avec R66 avec TLS. Toutes les versions antérieures seront
    systématiquement refusées à la négociation.
 
@@ -35,19 +37,20 @@ Les fonctionnalités R66 suivantes ne sont **pas** implémentées pour l'instant
 Compatibilité avec Waarp-R66
 ----------------------------
 
-De base, *Waarp-R66* est livré avec un certificat TLS généré par Waarp. Bien
-que *Waarp-R66* permette son utilisation, ce certificat n'est pas accepté par la
-*Gateway* pour de multiples raisons (nom de domaine incorrect, date d'expiration...).
+De base, Waarp R66 est livré avec un certificat TLS généré par Waarp. Bien
+que Waarp R66 permette son utilisation, ce certificat n'est pas accepté par la
+Waarp Gateway pour de multiples raisons (nom de domaine incorrect, date d'expiration...).
 Cependant, afin de permettre une meilleur compatibilité, et étant donné que
-le remplacement de ce certificat dans *Waarp-R66* serait compliqué, une exception
-a été ajoutée dans la *Gateway* pour que ce certificat soit accepté.
+le remplacement de ce certificat dans Waarp R66 serait compliqué, une exception
+a été ajoutée dans Waarp Gateway pour que ce certificat soit accepté.
 
 Par défaut, cette exception est désactivée. Pour l'activer, la variable
-d'environnement `WAARP_GATEWAY_ALLOW_LEGACY_CERT=1` doit être fixée au démarrage
-de la *Gateway*. Une fois cela fait, le certificat R66 *legacy* peut être
-utilisé comme n'importe quel autre certificat auto-signé.
+d'environnement :envvar:`WAARP_GATEWAY_ALLOW_LEGACY_CERT=1` doit être fixée au
+démarrage de Waarp Gateway. Une fois cela fait, le certificat R66 *legacy* peut
+être utilisé comme n'importe quel autre certificat auto-signé.
 
-.. warning:: Cette option est fournie pour permettre une meilleure compatibilité
-   entre la *gateway* et *Waarp-R66*. Il est cependant fortement conseillé de ne
+.. warning::
+   Cette option est fournie pour permettre une meilleure compatibilité
+   entre Waarp Gateway et Waarp R66. Il est cependant fortement conseillé de ne
    pas l'activer si cela est possible car elle introduit une potentielle faille
    de sécurité dans les transferts R66-TLS.

@@ -23,8 +23,6 @@ Affiche une liste de tous les utilisateurs remplissant les critères ci-dessous.
 
    - par nom d'utilisateur (``username+`` & ``username-``)
 
-|
-
 **Exemple**
 
 .. code-block:: shell

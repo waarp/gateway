@@ -4,12 +4,8 @@
 
 .. program:: waarp-gateway account local cert delete
 
-.. describe:: waarp-gateway account local <SERVER> cert <LOGIN> delete <CERT>
-
 Supprime le certificat demandé. Les noms du serveur, du compte et du certificat
 doivent être spécifiés en arguments de programme.
-
-|
 
 **Exemple**
 

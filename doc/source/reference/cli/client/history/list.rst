@@ -4,8 +4,6 @@ Afficher l'historique
 
 .. program:: waarp-gateway history list
 
-.. describe:: waarp-gateway history list
-
 Affiche une liste des entrées d'historique remplissant les critères ci-dessous.
 
 .. option:: -l <LIMIT>, --limit=<LIMIT>
@@ -18,7 +16,7 @@ Affiche une liste des entrées d'historique remplissant les critères ci-dessous
 
 .. option:: -s <SORT>, --sort=<SORT>
 
-   L'ordre et l'attributs selon lesquels les entrées seront triées. Les choix
+   L'ordre et l'attribut selon lesquels les entrées seront triées. Les choix
    possibles sont:
 
    - tri par date (``start+`` & ``start-``)
@@ -61,15 +59,13 @@ Affiche une liste des entrées d'historique remplissant les critères ci-dessous
 
    Filtre les entrées ultérieures à la date renseignée avec ce paramètre.
    La date doit être renseignée en suivant le format standard ISO 8601 tel
-   qu'il est décrit dans la `RFC3339 <https://www.ietf.org/rfc/rfc3339.txt>`_.
+   qu'il est décrit dans la :rfc:`3339`.
 
 .. option:: -e <STOP>, --stop=<STOP>
 
    Filtre les entrées antérieures à la date renseignée avec ce paramètre.
    La date doit être renseignée en suivant le format standard ISO 8601 tel
-   qu'il est décrit dans la `RFC3339 <https://www.ietf.org/rfc/rfc3339.txt>`_.
-
-|
+   qu'il est décrit dans la :rfc:`3339`.
 
 **Exemple**
 

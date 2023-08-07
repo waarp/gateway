@@ -4,7 +4,7 @@ Réception d'un fichier en SFTP
 
 Nous allons maintenant mettre en place des transferts SFTP avec la Gateway.
 Pour ce faire, nous allons utiliser le serveur SSH local (OpenSSH) et le client
-``sftp`` pour envoyer des fichiers vers la Gateway et en recevoir.
+:program:`sftp` pour envoyer des fichiers vers la Gateway et en recevoir.
 
 Pour pouvoir recevoir des fichiers, nous allons devoir ajouter un serveur SFTP à
 la Gateway, puis créer un utilisateur, et une règle de transfert.
@@ -215,5 +215,5 @@ dossier par défaut du service qui est utilisé :
 
 .. seealso::
    
-   Plus d'informations sur la :ref:`gestion des dossiers <_gestion_dossiers>`.
+   Plus d'informations sur la :ref:`gestion des dossiers <gestion_dossiers>`.
 

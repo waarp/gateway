@@ -1,7 +1,7 @@
 Démarrer un serveur
 ===================
 
-.. http:delete:: /api/servers/(string:server_name)/start
+.. http:put:: /api/servers/(string:server_name)/start
 
    Démarre le serveur demandé.
 
@@ -12,17 +12,15 @@ Démarrer un serveur
    :statuscode 404: Le serveur demandé n'existe pas
 
 
-   |
-
    **Exemple de requête**
 
-      .. code-block:: http
+   .. code-block:: http
 
-         DELETE https://my_waarp_gateway.net/api/servers/sftp_server/start HTTP/1.1
-         Authorization: Basic QWxhZGRpbjpvcGVuIHNlc2FtZQ==
+      DELETE https://my_waarp_gateway.net/api/servers/sftp_server/start HTTP/1.1
+      Authorization: Basic QWxhZGRpbjpvcGVuIHNlc2FtZQ==
 
    **Exemple de réponse**
 
-      .. code-block:: http
+   .. code-block:: http
 
-         HTTP/1.1 202 ACCEPTED
+      HTTP/1.1 202 ACCEPTED

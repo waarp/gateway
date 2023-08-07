@@ -4,8 +4,6 @@
 
 .. program:: waarp-gateway partner cert update
 
-.. describe:: waarp-gateway partner cert <PARTNER> update <CERT>
-
 Remplace les attributs du certificat par ceux renseignés ci-dessous. Les
 attributs omis resteront inchangés.
 
@@ -17,14 +15,12 @@ attributs omis resteront inchangés.
 
    Le chemin vers le fichier contenant le certificat TLS du partenaire, avec
    la chaîne de certification complète en format PEM. Mutuellement exclusif avec
-   l'option `-b` (ou `--public_key`).
+   l'option ``-b`` (ou ``--public_key``).
 
 .. option:: -b <PUB_KEY>, --public_key=<PUB_KEY>
 
    Le chemin vers le fichier contenant la clé publique SSH du partenaire en format
-   *authorized_key*. Mutuellement exclusif avec l'option `-c` (ou `--certificate`).
-
-|
+   ``authorized_key``. Mutuellement exclusif avec l'option ``-c`` (ou ``--certificate``).
 
 **Exemple**
 

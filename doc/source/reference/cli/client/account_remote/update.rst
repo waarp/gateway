@@ -4,8 +4,6 @@ Modifier un compte distant
 
 .. program:: waarp-gateway account remote update
 
-.. describe:: waarp-gateway account remote <PARTNER> update <LOGIN>
-
 Remplace les informations du compte donné par celles fournies ci-dessous.
 
 .. option:: -l <LOGIN>, --login=<LOGIN>
@@ -15,8 +13,6 @@ Remplace les informations du compte donné par celles fournies ci-dessous.
 .. option:: -p <PASS>, --password=<PASS>
 
    Le mot de passe du compte.
-
-|
 
 **Exemple**
 

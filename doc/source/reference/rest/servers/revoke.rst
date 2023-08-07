@@ -19,13 +19,13 @@ Interdire à un serveur d'utiliser une règle
 
    **Exemple de requête**
 
-      .. code-block:: http
+   .. code-block:: http
 
-         DELETE https://my_waarp_gateway.net/api/servers/sftp_server/authorize/rule_1 HTTP/1.1
-         Authorization: Basic QWxhZGRpbjpvcGVuIHNlc2FtZQ==
+      DELETE https://my_waarp_gateway.net/api/servers/sftp_server/authorize/rule_1 HTTP/1.1
+      Authorization: Basic QWxhZGRpbjpvcGVuIHNlc2FtZQ==
 
    **Exemple de réponse**
 
-      .. code-block:: http
+   .. code-block:: http
 
-         HTTP/1.1 200 OK
+      HTTP/1.1 200 OK

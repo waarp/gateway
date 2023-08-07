@@ -6,8 +6,6 @@ Lister les serveurs
 
 .. program:: waarp-gateway server list
 
-.. describe:: waarp-gateway server list
-
 Affiche les informations des serveurs remplissant les critères ci-dessous.
 
 .. option:: -l <LIMIT>, --limit=<LIMIT>
@@ -29,7 +27,6 @@ Affiche les informations des serveurs remplissant les critères ci-dessous.
    Filtre uniquement les serveurs utilisant le protocole renseigné avec ce
    paramètre. Ce paramètre peut être répété plusieurs fois pour filtrer
    plusieurs protocoles en même temps.
-
 
 
 **Exemple**

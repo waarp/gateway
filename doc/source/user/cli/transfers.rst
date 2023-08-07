@@ -9,6 +9,7 @@ est disponible :any:`ici <reference-cli-client-transfers>`.
 Pour les transferts terminés, la commande est ``history``. La documentation de
 la commande est disponible :any:`ici <reference-cli-client-history>`.
 
+.. _user-add-transfer:
 
 Ajouter un transfert
 ====================
@@ -30,7 +31,7 @@ options de commande suivantes doivent être fournies:
 
 .. code-block:: shell
 
-   waarp-gateway 'https://admin@127.0.0.1:8080' transfer add -f 'exemple.txt' -w 'push' -p 'opensshd' -a 'toto' -r 'règle rebond'
+   waarp-gateway -a 'https://admin@127.0.0.1:8080' transfer add -f 'exemple.txt' -w 'push' -p 'opensshd' -a 'toto' -r 'règle rebond'
 
 Si les paramètres du transfert sont valides, le transfert sera programmé et
 l'identifiant attribué au transfert sera affiché dans la console.
@@ -46,7 +47,7 @@ l'identifiant du transfert.
 
 .. code-block:: shell
 
-   waarp-gateway 'https://admin@127.0.0.1:8080' transfer pause '1234'
+   waarp-gateway -a 'https://admin@127.0.0.1:8080' transfer pause '1234'
 
 Pour reprendre un transfert interrompu, la commande est ``transfer resume``, suivi
 de l'identifiant du transfert.
@@ -55,7 +56,7 @@ de l'identifiant du transfert.
 
 .. code-block:: shell
 
-   waarp-gateway 'https://admin@127.0.0.1:8080' transfer resume '1234'
+   waarp-gateway -a 'https://admin@127.0.0.1:8080' transfer resume '1234'
 
 
 Consulter les transferts
@@ -70,7 +71,7 @@ pour plus de détails, voir la :any:`reference
 
 .. code-block:: shell
 
-   waarp-gateway 'https://admin@127.0.0.1:8080' transfers list
+   waarp-gateway -a 'https://admin@127.0.0.1:8080' transfers list
 
 Pour les transferts terminés, la commande est ``history list``. La documentation
 de la commande est disponible :any:`ici <reference-cli-client-servers-list>`.
@@ -79,7 +80,7 @@ de la commande est disponible :any:`ici <reference-cli-client-servers-list>`.
 
 .. code-block:: shell
 
-   waarp-gateway 'https://admin@127.0.0.1:8080' history list
+   waarp-gateway -a 'https://admin@127.0.0.1:8080' history list
 
 Mettre un transfert en pause
 ============================
@@ -106,7 +107,7 @@ arrêté.
 
 .. code-block:: shell
 
-   waarp-gateway 'https://admin@127.0.0.1:8080' transfer resume '1234'
+   waarp-gateway -a 'https://admin@127.0.0.1:8080' transfer resume '1234'
 
 Annuler un transfert
 ====================
@@ -118,7 +119,7 @@ l'identifiant du transfert.
 
 .. code-block:: shell
 
-   waarp-gateway 'https://admin@127.0.0.1:8080' transfer cancel '1234'
+   waarp-gateway -a 'https://admin@127.0.0.1:8080' transfer cancel '1234'
 
 
 Reprogrammer un transfert
@@ -133,4 +134,4 @@ de l'identifiant du transfert. Le transfert recommencera depuis le début.
 
 .. code-block:: shell
 
-   waarp-gateway 'https://admin@127.0.0.1:8080' transfer retry '1234'
+   waarp-gateway -a 'https://admin@127.0.0.1:8080' transfer retry '1234'

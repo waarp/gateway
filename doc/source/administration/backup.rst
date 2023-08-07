@@ -3,8 +3,8 @@ Import/Export de base de données
 ################################
 
 Il est possible d'importer et exporter directement le contenu de la base de
-données de la *gateway* depuis/vers un fichier. Cela est utile lorsque plusieurs
-instances de *gateway* ont des éléments en communs (partenaires, règles...) afin
+données de Waarp Gateway depuis/vers un fichier. Cela est utile lorsque plusieurs
+instances de Waarp Gateway ont des éléments en communs (partenaires, règles...) afin
 d'éviter de devoir renseigner ces éléments plusieurs fois. Cela permet également
 faire une sauvegarde du contenu de la base.
 
@@ -14,13 +14,13 @@ est disponible :any:`ici <reference-backup-json>`.
 Export
 ======
 
-Pour exporter la configuration d'une *gateway* existante, la commande est
+Pour exporter la configuration d'une Waarp Gateway existante, la commande est
 ``waarp-gatewayd export``. Cette commande va récupérer les éléments demandés
-depuis la base de données de la *gateway*, puis va les écrire dans un fichier.
+depuis la base de données de Waarp Gateway, puis va les écrire dans un fichier.
 
 Les options suivantes sont requises pour que la commande puisse s'exécuter :
 
-- ``-c``: le fichier de configuration de la *gateway* (contient les informations
+- ``-c``: le fichier de configuration de Waarp Gateway (contient les informations
   de connexion à la base de données).
 - ``-f``: le nom du fichier vers lequel les données seront exportées (par défaut
   le fichier sera nommé ``waarp-gateway-export.json``).
@@ -29,7 +29,7 @@ Les options suivantes sont requises pour que la commande puisse s'exécuter :
   ou ``all``.
 
 Par exemple, la commande suivante exporte les serveurs et les partenaires de la
-*gateway* vers le fichier ``gateway_backup.json`` :
+Waarp Gateway vers le fichier ``gateway_backup.json`` :
 
 .. code-block:: shell
 
@@ -44,7 +44,7 @@ Cette commande va récupérer les éléments demandés dans le fichier donné, p
 les insérer dans la base de données de la Gateway.
 La commande requiert les options suivantes :
 
-- ``-c``: le fichier de configuration de la *gateway* (contient les informations
+- ``-c``: le fichier de configuration de Waarp Gateway (contient les informations
   de connexion à la base de données).
 - ``-s``: le fichier source de l'import.
 - ``-t``: les éléments à importer. L'option peut être répétée pour importer plusieurs

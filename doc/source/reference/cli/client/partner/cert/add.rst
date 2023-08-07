@@ -4,8 +4,6 @@
 
 .. program:: waarp-gateway partner cert add
 
-.. describe:: waarp-gateway partner cert <PARTNER> add
-
 Attache un nouveau certificat au partenaire donné à partir des informations renseignées.
 
 .. option:: -n <NAME>, --name=<NAME>
@@ -16,14 +14,13 @@ Attache un nouveau certificat au partenaire donné à partir des informations re
 
    Le chemin vers le fichier contenant le certificat TLS du partenaire, avec
    la chaîne de certification complète en format PEM. Mutuellement exclusif avec
-   l'option `-b` (ou `--public_key`).
+   l'option ``-b`` (ou ``--public_key``).
 
 .. option:: -b <PUB_KEY>, --public_key=<PUB_KEY>
 
-   Le chemin vers le fichier contenant la clé publique SSH du partenaire en format
-   *authorized_key*. Mutuellement exclusif avec l'option `-c` (ou `--certificate`).
-
-|
+   Le chemin vers le fichier contenant la clé publique SSH du partenaire en
+   format ``authorized_key``. Mutuellement exclusif avec l'option ``-c`` (ou
+   ``--certificate``).
 
 **Exemple**
 

@@ -4,8 +4,6 @@ Ajouter une règle
 
 .. program:: waarp-gateway rule add
 
-.. describe:: waarp-gateway rule add
-
 Ajoute une nouvelle règle avec les attributs fournis ci-dessous.
 
 .. option:: -n <NAME>, --name=<NAME>
@@ -35,7 +33,7 @@ Ajoute une nouvelle règle avec les attributs fournis ci-dessous.
    d'envoi, ce dossier est utilisé comme source des fichiers. Dans le cas d'une
    règle de réception, ce dossier est utilisé comme destination des fichiers.
    Peut être un chemin relatif ou absolu. Le format du chemin dépend de l'OS de
-   la *gateway*.
+   Waarp Gateway.
 
 .. option:: --remote-dir=<DIRECTORY>
 
@@ -49,27 +47,27 @@ Ajoute une nouvelle règle avec les attributs fournis ci-dessous.
 
    Le chemin du dossier local temporaire des fichiers an cours de réception.
    Par conséquent, ce dossier n'est utile que pour les règles de réception.
-   Le format du chemin dépend de l'OS de la *gateway*.
+   Le format du chemin dépend de l'OS de Waarp Gateway.
 
 .. option:: -r <TASK>, --pre=<TASK>
 
-   Un pré-traitement associé à la règle. Peut être répété plusieurs fois
-   pour ajouter plusieurs traitements. Ces traitements seront exécutés
-   avant chaque transfert dans l'ordre dans lequel ils ont été renseignés.
-   Les traitements doivent être renseignés sous la forme d'un objet JSON
-   avec 2 champs: le champ `type` et le champ `args`. Le premier est une
-   *string* contenant la commande a exécuter, le second est un objet JSON
-   contenant les arguments de la commande.
+   Un pré-traitement associé à la règle. Peut être répété plusieurs fois pour
+   ajouter plusieurs traitements. Ces traitements seront exécutés avant chaque
+   transfert dans l'ordre dans lequel ils ont été renseignés. Les traitements
+   doivent être renseignés sous la forme d'un objet JSON avec 2 champs: le champ
+   ``type`` et le champ ``args``. Le premier est une chaîne de caractères
+   contenant la commande a exécuter, le second est un objet JSON contenant les
+   arguments de la commande.
 
 .. option:: -s <TASK>, --post=<TASK>
 
-   Un post-traitement associé à la règle. Peut être répété plusieurs fois
-   pour ajouter plusieurs traitements. Ces traitements seront exécutés
-   après chaque transfert dans l'ordre dans lequel ils ont été renseignés.
-   Les traitements doivent être renseignés sous la forme d'un objet JSON
-   avec 2 champs: le champ `type` et le champ `args`. Le premier est une
-   *string* contenant la commande a exécuter, le second est un objet JSON
-   contenant les arguments de la commande.
+   Un post-traitement associé à la règle. Peut être répété plusieurs fois pour
+   ajouter plusieurs traitements. Ces traitements seront exécutés après chaque
+   transfert dans l'ordre dans lequel ils ont été renseignés. Les traitements
+   doivent être renseignés sous la forme d'un objet JSON avec 2 champs: le champ
+   ``type`` et le champ ``args``. Le premier est une chaîne de caractères
+   contenant la commande a exécuter, le second est un objet JSON contenant les
+   arguments de la commande.
 
 .. option:: -e <TASK>, --err=<TASK>
 
@@ -77,13 +75,15 @@ Ajoute une nouvelle règle avec les attributs fournis ci-dessous.
    fois pour ajouter plusieurs traitements. Ces traitements seront exécutés
    en cas d'erreur dans l'ordre dans lequel ils ont été renseignés.
    Les traitements doivent être renseignés sous la forme d'un objet JSON
-   avec 2 champs: le champ `type` et le champ `args`. Le premier est une
-   *string* contenant la commande a exécuter, le second est un objet JSON
+   avec 2 champs: le champ ``type`` et le champ ``args``. Le premier est une
+   chaîne de caractères contenant la commande a exécuter, le second est un objet JSON
    contenant les arguments de la commande.
 
 .. option:: -o <PATH>, --out_path=<PATH>
 
-   OBSOLÈTE: remplacé par les options ``--local-dir`` et ``--remote-dir``.
+   .. deprecated:: 0.5.0
+
+      Remplacé par les options ``--local-dir`` et ``--remote-dir``.
 
    Le chemin source des fichiers transférés. Lorsqu'un transfert est créé,
    le fichier sera cherché dans ce dossier. Ce chemin peut être laissé vide
@@ -91,7 +91,9 @@ Ajoute une nouvelle règle avec les attributs fournis ci-dessous.
 
 .. option:: -i <PATH>, --in_path=<PATH>
 
-   OBSOLÈTE: remplacé par les options ``--local-dir`` et ``--remote-dir``.
+   .. deprecated:: 0.5.0
+
+      Remplacé par les options ``--local-dir`` et ``--remote-dir``.
 
    Le chemin de destination des fichiers transférés. Une fois un transfert
    terminé, le fichier est déposé dans ce dossier. Ce chemin peut être
@@ -100,13 +102,13 @@ Ajoute une nouvelle règle avec les attributs fournis ci-dessous.
 
 .. option:: -w <PATH>, --work_path=<PATH>
 
-   OBSOLÈTE: remplacé par ``--tmp-dir``.
+   .. deprecated:: 0.5.0
+
+      Remplacé par ``--tmp-dir``.
 
    Le chemin du dossier local temporaire des fichiers an cours de réception.
    Ce chemin peut être laissé vide si l'on ne souhaite pas que la règle ait un
    dossier destination spécifique.
-
-|
 
 **Exemple**
 

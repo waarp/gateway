@@ -5,14 +5,14 @@ Fichier de configuration ``waarp-gatewayd.ini``
 
 
 .. module:: waarp-gatewayd.ini
-   :synopsis: fichier de configuration du démon waarp-gatewayd
+   :synopsis: fichier de configuration du démon :program:`waarp-gatewayd`
 
 Le fichier de configuration ``waarp-gatewayd.ini`` permet de contrôler et modifier
 le comportement du démon ``waarp-gatewayd``.
 
 .. confval:: GatewayName
 
-   Définit le nom de la *gateway*. Par défaut, le nom ``waarp-gateway`` est utilisé.
+   Définit le nom de Gateway. Par défaut, le nom ``waarp-gateway`` est utilisé.
    Il est cependant recommandé de donner un nom unique à chaque nouvelle instance
    pour éviter les confusions.
 
@@ -20,7 +20,8 @@ le comportement du démon ``waarp-gatewayd``.
    une même base de données. Dans ce cas, les instances seront des copies les unes
    des autres (elles auront la même configuration et le même historique).
 
-   .. warning:: Dans une configuration avec plusieurs instances identiques, il est
+   .. warning::
+      Dans une configuration avec plusieurs instances identiques, il est
       très fortement déconseillé de laisser la valeur par défaut de ``MaxTransfersOut``,
       et de fixer une limite au nombre de transferts client autorisés en parallèle
       pour une instance. En l'absence de limite, les transferts clients seront tous
@@ -30,54 +31,60 @@ le comportement du démon ``waarp-gatewayd``.
 Section ``[path]``
 ==================
 
-La section ``[path]`` contient les différents chemins de la gateway.
+La section ``[path]`` contient les différents chemins de Gateway.
 
 .. confval:: GatewayHome
 
-   Définit la racine de la *gateway*. Par défaut, il s'agit du *working directory*
-   depuis lequel la *gateway* a été lancée. Pour cette raison il est impératif de
-   changer cette valeur si la *gateway* n'est pas lancée depuis son dossier racine.
+   Définit la racine de Waarp Gateway. Par défaut, il s'agit du dossier
+   depuis lequel Waarp Gateway a été lancée. Pour cette raison il est impératif de
+   changer cette valeur si Waarp Gateway n'est pas lancée depuis son dossier racine.
 
 .. confval:: InDirectory
 
-   *[OBSOLÈTE]: remplacé par ``DefaultInDir``*
+   .. deprecated:: 0.4.0
+
+      Remplacé par ``DefaultInDir``
 
    Le dossier dans lequel sont déposés les fichiers reçus. Par défaut, la racine
-   de la *gateway* est utilisée à la place.
+   de Waarp Gateway est utilisée à la place.
 
 .. confval:: OutDirectory
 
-   *[OBSOLÈTE]: remplacé par ``DefaultOutDir``*
+   .. deprecated:: 0.4.0
+
+      Remplacé par ``DefaultOutDir``
 
    Le dossier dans lequel les fichiers à envoyer sont cherchés. Par défaut,
-   la racine de la *gateway* est utilisée à la place.
+   la racine de Waarp Gateway est utilisée à la place.
 
 .. confval:: WorkDirectory
 
-   *[OBSOLÈTE]: remplacé par ``DefaultTmpDir``*
+   .. deprecated:: 0.4.0 
+
+      Remplacé par ``DefaultTmpDir``
 
    Le dossier dans lequel les fichiers en cours de réception sont déposés avant
-   d'être déplacés dans le ``InDirectory``. Par défaut, la racine de la *gateway*
+   d'être déplacés dans le ``InDirectory``. Par défaut, la racine de Waarp Gateway
    est utilisée à la place.
 
 .. confval:: DefaultInDirectory
 
    Le dossier par défaut dans lequel sont déposés les fichiers reçus si le serveur
    et la règle concernés ne spécifient pas ce dossier de réception. Par défaut,
-   un dossier 'in' est créé à cet effet sous la racine de la *Gateway*.
+   un dossier 'in' est créé à cet effet sous la racine de Waarp Gateway.
 
 .. confval:: DefaultOutDirectory
 
    Le dossier par défaut depuis lequel sont récupérés les fichiers à envoyer si
    le serveur et la règle concernés ne spécifient pas ce dossier d'envoi. Par
-   défaut, un dossier 'out' est créé à cet effet sous la racine de la *Gateway*.
+   défaut, un dossier 'out' est créé à cet effet sous la racine de Waarp Gateway.
 
 .. confval:: DefaultTmpDirectory
 
    Le dossier par défaut dans lequel sont déposés les fichiers en cours de réception
    (avant dépôt dans le dossier de réception *in*) si le serveur et la règle
    concernés ne spécifient pas ce dossier temporaire. Par défaut, un dossier
-   'tmp' est créé à cet effet sous la racine de la *Gateway*.
+   :file:`tmp` est créé à cet effet sous la racine de Waarp Gateway.
 
 Section ``[log]``
 =================
@@ -112,8 +119,8 @@ Section ``[admin]``
 ===================
 
 La section ``[admin]`` regroupe toutes les options de configuration des
-interfaces d'administration de la gateway. Cela comprend l'interface d'admin
-et l'API REST.
+interfaces d'administration de Gateway. Cela comprend l'interface
+d'administration et l'API REST.
 
 .. confval:: Host
 
@@ -124,7 +131,7 @@ et l'API REST.
 
 .. confval:: Port
 
-   Le port sur lequel le serveur HTTP doit écouter. La valeur '0' est entrée,
+   Le port sur lequel le serveur HTTP doit écouter. La valeur ``0`` est entrée,
    un port libre sera arbitrairement choisit.
 
    Valeur par défaut : ``8080``
@@ -148,7 +155,7 @@ Section ``[database]``
 ======================
 
 La section ``[database]`` regroupe toutes les options de configuration de la
-base de données de la gateway.
+base de données de Gateway.
 
 .. confval:: Type
 
@@ -169,7 +176,7 @@ base de données de la gateway.
 
 .. confval:: User
 
-   Le nom d'utilisateur du SGBD utilisé par la gateway pour faire des requêtes.
+   Le nom d'utilisateur du SGBD utilisé par Gateway pour faire des requêtes.
 
 .. confval:: Password
 
@@ -199,7 +206,7 @@ Section ``[controller]``
 ========================
 
 La section ``[controller]`` regroupe toutes les options de configuration du
-:term:`contrôleur` de la *gateway*.
+:term:`contrôleur` de Waarp Gateway.
 
 .. confval:: Delay
 

@@ -4,11 +4,7 @@ Afficher un compte local
 
 .. program:: waarp-gateway account local get
 
-.. describe:: waarp-gateway account local <SERVER> get <LOGIN>
-
 Affiche les informations du compte donné en paramètre de commande.
-
-|
 
 **Exemple**
 

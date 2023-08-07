@@ -18,25 +18,23 @@ Ajouter un compte distant
    :resheader Location: Le chemin d'accès au nouveau compte créé
 
 
-   |
-
    **Exemple de requête**
 
-      .. code-block:: http
+   .. code-block:: http
 
-         POST https://my_waarp_gateway.net/api/partner/waarp_sftp/accounts HTTP/1.1
-         Authorization: Basic QWxhZGRpbjpvcGVuIHNlc2FtZQ==
-         Content-Type: application/json
-         Content-Length: 109
+      POST https://my_waarp_gateway.net/api/partner/waarp_sftp/accounts HTTP/1.1
+      Authorization: Basic QWxhZGRpbjpvcGVuIHNlc2FtZQ==
+      Content-Type: application/json
+      Content-Length: 109
 
-         {
-           "login": "titi",
-           "password": "titi"
-         }
+      {
+        "login": "titi",
+        "password": "titi"
+      }
 
    **Exemple de réponse**
 
-      .. code-block:: http
+   .. code-block:: http
 
-         HTTP/1.1 201 CREATED
-         Location: https://my_waarp_gateway.net/api/partners/waarp_sftp/accounts/titi
+      HTTP/1.1 201 CREATED
+      Location: https://my_waarp_gateway.net/api/partners/waarp_sftp/accounts/titi

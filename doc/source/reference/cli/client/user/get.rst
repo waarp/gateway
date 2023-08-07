@@ -4,11 +4,7 @@ Afficher un utilisateur
 
 .. program:: waarp-gateway user get
 
-.. describe:: waarp-gateway user get <USER>
-
 Affiche les informations de l'utilisateur donné en paramètre.
-
-|
 
 **Exemple**
 

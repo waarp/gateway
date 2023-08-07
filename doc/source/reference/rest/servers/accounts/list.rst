@@ -23,43 +23,41 @@ Lister les comptes locaux
    :resjsonarr array authMethods: La liste des valeurs utilisées par le client
       pour s'authentifier auprès de la gateway quand il se connecte à celle-ci.
    :resjsonarr object authorizedRules: Les règles que le compte est autorisé à
-         utiliser pour les transferts.
+      utiliser pour les transferts.
 
-         * **sending** (*array* of *string*) - Les règles d'envoi.
-         * **reception** (*array* of *string*) - Les règles de réception.
+      * ``sending`` (*array* of *string*) - Les règles d'envoi.
+      * ``reception`` (*array* of *string*) - Les règles de réception.
 
-
-   |
 
    **Exemple de requête**
 
-      .. code-block:: http
+   .. code-block:: http
 
-         GET https://my_waarp_gateway.net/api/servers/sftp_server/accounts?limit=10&sort=name- HTTP/1.1
-         Authorization: Basic QWxhZGRpbjpvcGVuIHNlc2FtZQ==
+      GET https://my_waarp_gateway.net/api/servers/sftp_server/accounts?limit=10&sort=name- HTTP/1.1
+      Authorization: Basic QWxhZGRpbjpvcGVuIHNlc2FtZQ==
 
    **Exemple de réponse**
 
-      .. code-block:: http
+   .. code-block:: http
 
-         HTTP/1.1 200 OK
-         Content-Type: application/json
-         Content-Length: 147
+      HTTP/1.1 200 OK
+      Content-Type: application/json
+      Content-Length: 147
 
-         {
-           "localAccounts": [{
-             "login": "tutu",
-             "authMethods": ["password"],
-             "authorizedRules": {
-               "sending": ["règle_envoi_1", "règle_envoi_2"],
-               "reception": ["règle_récep_1", "règle_récep_2"]
-             }
-           },{
-             "login": "toto",
-             "authMethods": ["password", "toto_public_key"],
-             "authorizedRules": {
-               "sending": ["règle_envoi_1", "règle_envoi_2"],
-               "reception": ["règle_récep_1", "règle_récep_2"]
-             }
-           }]
-         }
+      {
+        "localAccounts": [{
+          "login": "tutu",
+          "authMethods": ["password"],
+          "authorizedRules": {
+            "sending": ["règle_envoi_1", "règle_envoi_2"],
+            "reception": ["règle_récep_1", "règle_récep_2"]
+          }
+        },{
+          "login": "toto",
+          "authMethods": ["password", "toto_public_key"],
+          "authorizedRules": {
+            "sending": ["règle_envoi_1", "règle_envoi_2"],
+            "reception": ["règle_récep_1", "règle_récep_2"]
+          }
+        }]
+      }

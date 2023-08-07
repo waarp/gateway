@@ -4,11 +4,7 @@ Afficher un transfert
 
 .. program:: waarp-gateway transfer get
 
-.. describe:: waarp-gateway transfer get <TRANSFER_ID>
-
 Affiche les informations du transfert demandé.
-
-|
 
 **Exemple**
 

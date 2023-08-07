@@ -17,22 +17,20 @@ Consulter un compte local
    :resjson object authorizedRules: Les règles que le compte est autorisé à
       utiliser pour les transferts.
 
-      * **sending** (*array* of *string*) - Les règles d'envoi.
-      * **reception** (*array* of *string*) - Les règles de réception.
+      * ``sending`` (*array* of *string*) - Les règles d'envoi.
+      * ``reception`` (*array* of *string*) - Les règles de réception.
 
-
-   |
 
    **Exemple de requête**
 
-      .. code-block:: http
+   .. code-block:: http
 
-         GET https://my_waarp_gateway.net/api/servers/sftp_server/account/toto HTTP/1.1
-         Authorization: Basic QWxhZGRpbjpvcGVuIHNlc2FtZQ==
+      GET https://my_waarp_gateway.net/api/servers/sftp_server/account/toto HTTP/1.1
+      Authorization: Basic QWxhZGRpbjpvcGVuIHNlc2FtZQ==
 
    **Exemple de réponse**
 
-      .. code-block:: http
+   .. code-block:: http
 
          HTTP/1.1 200 OK
          Content-Type: application/json

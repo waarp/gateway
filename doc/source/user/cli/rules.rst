@@ -6,6 +6,7 @@ La commande de gestion des :term:`règles<règle>` de  transfert est ``rule``.
 Cette commande doit ensuite être suivie d'une action. La liste complète des
 actions est disponible :any:`ici <reference-cli-client-rules>`.
 
+.. _user-add-rule:
 
 Ajouter une règle
 =================
@@ -41,7 +42,7 @@ du fichier reçu vers le partenaire 'sshd'.
 
 .. code-block:: shell
 
-   waarp-gateway 'https://admin@127.0.0.1:8080' rule add -n 'rebond archive' -d 'RECEIVE' -p '/rebond' -s '{"type":"COPY","args":{"path": "/archive"}}' -s '{"type":"TRANSFER","args":{"file":"#TRUEFULLPATH#","to":"sshd","as":"toto","rule":"send"}}'
+   waarp-gateway -a 'https://admin@127.0.0.1:8080' rule add -n 'rebond archive' -d 'RECEIVE' -p '/rebond' -s '{"type":"COPY","args":{"path": "/archive"}}' -s '{"type":"TRANSFER","args":{"file":"#TRUEFULLPATH#","to":"sshd","as":"toto","rule":"send"}}'
 
 
 Modifier une règle
@@ -68,7 +69,7 @@ options pour faire une mise à jour partielle.
 Consulter les règles
 ====================
 
-Pour lister les règles connues de la *gateway*, la commande est ``rule list``.
+Pour lister les règles connues de Gateway, la commande est ``rule list``.
 Les options de commande permettent de filtrer les résultats selon divers critères,
 pour plus de détails, voir la :any:`documentation
 <reference-cli-client-rules-list>` de la commande ``list``.
@@ -77,7 +78,7 @@ pour plus de détails, voir la :any:`documentation
 
 .. code-block:: shell
 
-   waarp-gateway 'https://admin@127.0.0.1:8080' rule list
+   waarp-gateway -a 'https://admin@127.0.0.1:8080' rule list
 
 Pour consulter une règle en particulier, la commande est ``get`` suivie du nom
 de la règle.
@@ -86,7 +87,7 @@ de la règle.
 
 .. code-block:: shell
 
-   waarp-gateway 'https://admin@127.0.0.1:8080' rule get 'rebond archive'
+   waarp-gateway -a 'https://admin@127.0.0.1:8080' rule get 'rebond archive'
 
 
 Supprimer une règle
@@ -99,7 +100,7 @@ de la règle à supprimer.
 
 .. code-block:: shell
 
-   waarp-gateway 'https://admin@127.0.0.1:8080' rule delete 'rebond archive'
+   waarp-gateway -a 'https://admin@127.0.0.1:8080' rule delete 'rebond archive'
 
 
 Restreindre une règle
@@ -109,7 +110,7 @@ Par défaut, après ajout d'une règle, tous les serveurs, partenaires et compte
 (locaux et distants) peuvent utiliser cette règle. Il est cependant possible de
 restreindre l'utilisation d'une règle pour que seuls certains puissent l'utiliser.
 
-Chaque règle dispose d'une liste blanche, contenant la liste des différents agents
+Chaque règle dispose d'une liste d'autorisations, contenant la liste des différents agents
 autorisés à utiliser la règle en question. Si cette liste est vide, alors la règle
 est utilisable par tous.
 
@@ -125,7 +126,7 @@ est utilisable par tous.
    les partenaires et les comptes distants.
 
 
-Pour ajouter un agent à la liste blanche d'une règle, les commandes sont :
+Pour ajouter un agent à la liste d'autorisations d'une règle, les commandes sont :
 
 * ``server 'NOM' authorize 'RÈGLE'`` pour ajouter un serveur
 * ``partner 'NOM' authorize 'RÈGLE'`` pour ajouter un partenaire
@@ -136,29 +137,29 @@ Par exemple, la commande
 
 .. code-block:: shell
 
-   waarp-gateway 'https://admin@127.0.0.1:8080' server 'WAARP SFTP' authorize 'send'
+   waarp-gateway -a 'https://admin@127.0.0.1:8080' server 'WAARP SFTP' authorize 'send'
 
 ajoute le serveur 'WAARP SFTP' ajoute le serveur local 'WAARP SFTP' à la liste
-blanche de la règle 'send'.
+d'autorisations de la règle 'send'.
 
 
-Retirer un agent de la liste blanche se fait de manière similaire, la commande
+Retirer un agent de la liste d'autorisations se fait de manière similaire, la commande
 ``authorize`` doit juste être remplacée par la commande ``revoke``.
 
-Par exemple, pour retirer le serveur 'WAARP SFTP' de la liste blanche, la commande
+Par exemple, pour retirer le serveur 'WAARP SFTP' de la liste d'autorisations, la commande
 est :
 
 .. code-block:: shell
 
-   waarp-gateway 'https://admin@127.0.0.1:8080' server 'WAARP SFTP' revoke 'send'
+   waarp-gateway -a 'https://admin@127.0.0.1:8080' server 'WAARP SFTP' revoke 'send'
 
 
-Alternativement, il est possible d'effacer intégralement la liste blanche d'une
-règle via la commande ``rule allow`` suivie du nom de la règle.
+Alternativement, il est possible d'effacer intégralement la liste
+d'autorisations d'une règle via la commande ``rule allow`` suivie du nom de la règle.
 
-Par exemple, la commande suivante efface la liste blanche de la règle 'send',
+Par exemple, la commande suivante efface la liste d'autorisations de la règle 'send',
 rendant, de fait, la règle utilisable par tous :
 
 .. code-block:: shell
 
-   waarp-gateway 'https://admin@127.0.0.1:8080' rule allow 'send'
+   waarp-gateway -a 'https://admin@127.0.0.1:8080' rule allow 'send'

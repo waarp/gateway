@@ -4,8 +4,6 @@
 
 .. program:: waarp-gateway partner cert list
 
-.. describe:: waarp-gateway partner cert <PARTNER> list
-
 Affiche les informations des certificats du partenaire suivant les critères donnés.
 
 .. option:: -l <LIMIT>, --limit=<LIMIT>
@@ -20,8 +18,6 @@ Affiche les informations des certificats du partenaire suivant les critères don
 
    L'ordre et paramètre selon lequel les certificats seront triés. Les choix
    possibles sont: tri par nom (``name+`` & ``name-``).
-
-|
 
 **Exemple**
 

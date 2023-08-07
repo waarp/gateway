@@ -4,11 +4,7 @@ Redémarrer un serveur
 
 .. program:: waarp-gateway server restart
 
-.. describe:: waarp-gateway <ADDR> server restart <SERVER>
-
 Arrête et relance le serveur donné en paramètre.
-
-|
 
 **Exemple**
 

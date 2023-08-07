@@ -9,8 +9,9 @@
 ``waarp-gatewayd purge`` est la commande permettant de purger l'historique de
 transfert afin de libérer de l'espace disque sur la base de données.
 
-.. warning:: Évidemment, cette purge est irréversible, soyez donc prudent lorsque
-   vous l'utilisez. La commande vous demandera confirmation avant d'effectuer la
+.. warning::
+   Évidemment, cette purge est irréversible, soyez donc prudent lorsque vous
+   l'utilisez. La commande vous demandera confirmation avant d'effectuer la
    purge.
 
 Cette commande accepte les options suivantes :
@@ -37,9 +38,10 @@ Cette commande accepte les options suivantes :
    seront supprimés; soit une durée, auquel cas, seuls les transferts plus anciens
    que cette durée seront supprimés.
 
-   La date doit être au format `aaaa/MM/dd hh:mm:ss` (exemple: `2022/10/25 08:00:00`).
+   La date doit être au format ``aaaa/MM/dd hh:mm:ss`` (exemple: ``2022/10/25
+   08:00:00``).
 
-   La durée est une succession arbitraire de valeurs de temps (exemple: `1y3mo2d`
+   La durée est une succession arbitraire de valeurs de temps (exemple: ``1y3mo2d``
    pour 1 an, 3 mois et 2 jours). Les unités de temps suivantes sont acceptées:
 
    * *Nanosecondes*: ns
@@ -58,8 +60,11 @@ Cette commande accepte les options suivantes :
    Si cette option est présente, en plus de purger d'historique, la commande
    réinitialisera l'auto-incrément des identifiants locaux de transfert à zéro.
 
-   .. warning:: Cette option ne peut être utilisée que si la table des transferts
+   .. warning::
+      Cette option ne peut être utilisée que si la table des transferts
       en cours est vide. Dans le cas contraire, la commande échouera.
+
+.. _reference_history_dump_json:
 
 .. option:: --export-to, -e
 

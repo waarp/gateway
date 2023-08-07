@@ -4,12 +4,8 @@ Afficher une entrée d'historique
 
 .. program:: waarp-gateway history get
 
-.. describe:: waarp-gateway history get <TRANS>
-
 Affiche l'entrée d'historique demandée. L'ID se l'entrée doit être fournit en
 paramètre de commande.
-
-|
 
 **Exemple**
 

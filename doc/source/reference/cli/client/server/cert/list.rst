@@ -6,8 +6,6 @@
 
 .. program:: waarp-gateway server cert list
 
-.. describe:: waarp-gateway server cert <SERVER> list
-
 Affiche les informations des certificats du serveur suivant les critères donnés.
 
 .. option:: -l <LIMIT>, --limit=<LIMIT>
@@ -22,8 +20,6 @@ Affiche les informations des certificats du serveur suivant les critères donné
 
    L'ordre et paramètre selon lequel les certificats seront triés. Les choix
    possibles sont: tri par nom (``name+`` & ``name-``).
-
-|
 
 **Exemple**
 

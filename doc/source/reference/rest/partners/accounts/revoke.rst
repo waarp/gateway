@@ -17,17 +17,15 @@ Interdire à un compte d'utiliser une règle
    :statuscode 404: Le partenaire ou la règle demandée n'existe pas
 
 
-   |
-
    **Exemple de requête**
 
-      .. code-block:: http
+   .. code-block:: http
 
-         DELETE https://my_waarp_gateway.net/api/partners/waarp_sftp/authorize/rule_1 HTTP/1.1
-         Authorization: Basic QWxhZGRpbjpvcGVuIHNlc2FtZQ==
+      DELETE https://my_waarp_gateway.net/api/partners/waarp_sftp/authorize/rule_1 HTTP/1.1
+      Authorization: Basic QWxhZGRpbjpvcGVuIHNlc2FtZQ==
 
    **Exemple de réponse**
 
-      .. code-block:: http
+   .. code-block:: http
 
-         HTTP/1.1 200 OK
+      HTTP/1.1 200 OK

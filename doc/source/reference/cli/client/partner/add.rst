@@ -4,8 +4,6 @@ Ajouter un partenaire
 
 .. program:: waarp-gateway partner add
 
-.. describe:: waarp-gateway partner add
-
 Ajoute un nouveau partenaire avec les attributs renseignés.
 
 .. option:: -n <NAME>, --name=<NAME>
@@ -26,8 +24,6 @@ Ajoute un nouveau partenaire avec les attributs renseignés.
    configuration. Les options de la configuration varient en fonction du protocole
    utilisé (voir :ref:`configuration protocolaire <reference-proto-config>` pour
    plus de détails).
-
-|
 
 **Exemple**
 

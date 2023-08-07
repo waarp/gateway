@@ -31,6 +31,11 @@ est la suivante :
 Configuration serveur
 =====================
 
+.. deprecated:: 0.7.0
+
+   Utiliser le protocole ``r66-tls`` plutôt que l'option ``isTLS``, qui sera
+   supprimé lors d'une version future.
+
 La structure de l'objet JSON de configuration du protocole pour un serveur R66
 est la suivante :
 
@@ -61,6 +66,11 @@ est la suivante :
 
 Configuration partenaire
 ========================
+
+.. deprecated:: 0.7.0
+
+   Utiliser le protocole ``r66-tls`` plutôt que l'option ``isTLS``, qui sera
+   supprimé lors d'une version future.
 
 La structure de l'objet JSON de configuration du protocole pour un partenaire
 R66 est la suivante :

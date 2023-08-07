@@ -4,11 +4,7 @@ Supprimer un compte distant
 
 .. program:: waarp-gateway account remote delete
 
-.. describe:: waarp-gateway account remote <PARTNER> delete <LOGIN>
-
 Supprime le compte donné en paramètre de commande.
-
-|
 
 **Exemple**
 

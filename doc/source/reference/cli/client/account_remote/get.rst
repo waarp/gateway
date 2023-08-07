@@ -4,11 +4,7 @@ Afficher un compte distant
 
 .. program:: waarp-gateway account remote get
 
-.. describe:: waarp-gateway account remote <PARTNER> get <LOGIN>
-
 Affiche les informations du compte demandé en paramètre de commande.
-
-|
 
 **Exemple**
 

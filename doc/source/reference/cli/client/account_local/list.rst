@@ -6,8 +6,6 @@ Lister les comptes d'un serveur
 
 .. program:: waarp-gateway account local list
 
-.. describe:: waarp-gateway account local <SERVER> list
-
 Affiche une liste des comptes rattachés au serveur donné.
 
 .. option:: -l <LIMIT>, --limit=<LIMIT>
@@ -24,8 +22,6 @@ Affiche une liste des comptes rattachés au serveur donné.
    possibles sont:
 
    - tri par login (``login+`` & ``login-``)
-
-|
 
 **Exemple**
 

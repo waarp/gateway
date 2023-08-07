@@ -6,8 +6,6 @@ Lister les comptes d'un partenaire
 
 .. program:: waarp-gateway account remote list
 
-.. describe:: waarp-gateway account remote <PARTNER> list
-
 Affiche un liste des comptes rattachés au partenaire donné.
 
 .. option:: -l <LIMIT>, --limit=<LIMIT>

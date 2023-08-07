@@ -4,8 +4,6 @@ Ajouter un compte à un serveur
 
 .. program:: waarp-gateway account local add
 
-.. describe:: waarp-gateway account local <SERVER> add
-
 Attache un nouveau compte au serveur donné à partir des informations renseignées.
 
 .. option:: -l <LOGIN>, --login=<LOGIN>
@@ -15,8 +13,6 @@ Attache un nouveau compte au serveur donné à partir des informations renseign�
 .. option:: -p <PASS>, --password=<PASS>
 
    Le mot de passe du compte.
-
-|
 
 **Exemple**
 

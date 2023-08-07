@@ -4,8 +4,6 @@
 
 .. program:: waarp-gateway server cert update
 
-.. describe:: waarp-gateway server cert <SERVER> update <CERT>
-
 Change les attributs du certificat donné. Les noms du serveur et du certificat
 doivent être renseignés en arguments de programme. Les attributs omis resteront
 inchangés.
@@ -23,8 +21,6 @@ inchangés.
 
    Le chemin vers le fichier contenant la clé privée (TLS ou SSH) du serveur,
    en format PEM.
-
-|
 
 **Exemple**
 

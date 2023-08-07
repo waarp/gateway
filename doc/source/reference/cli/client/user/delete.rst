@@ -4,11 +4,7 @@ Supprimer un utilisateur
 
 .. program:: waarp-gateway user delete
 
-.. describe:: waarp-gateway user delete <USER>
-
 Supprime l'utilisateur donné en paramètre.
-
-|
 
 **Exemple**
 

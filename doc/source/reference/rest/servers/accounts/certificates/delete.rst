@@ -12,17 +12,15 @@
    :statuscode 404: Le partenaire, le compte ou le certificat demandés n'existent pas
 
 
-   |
-
    **Exemple de requête**
 
-      .. code-block:: http
+   .. code-block:: http
 
-         DELETE https://my_waarp_gateway.net/api/servers/gw_r66/accounts/toto/certificates/certificat_toto HTTP/1.1
-         Authorization: Basic QWxhZGRpbjpvcGVuIHNlc2FtZQ==
+      DELETE https://my_waarp_gateway.net/api/servers/gw_r66/accounts/toto/certificates/certificat_toto HTTP/1.1
+      Authorization: Basic QWxhZGRpbjpvcGVuIHNlc2FtZQ==
 
    **Exemple de réponse**
 
-      .. code-block:: http
+   .. code-block:: http
 
-         HTTP/1.1 204 NO CONTENT
+      HTTP/1.1 204 NO CONTENT

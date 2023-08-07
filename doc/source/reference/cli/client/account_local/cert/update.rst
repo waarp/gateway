@@ -4,8 +4,6 @@
 
 .. program:: waarp-gateway account local cert update
 
-.. describe:: waarp-gateway account local <SERVER> cert <LOGIN> update <CERT>
-
 Remplace les attributs du certificats par ceux renseignés ci-dessous.
 
 .. option:: -n <NAME>, --name=<NAME>
@@ -16,14 +14,13 @@ Remplace les attributs du certificats par ceux renseignés ci-dessous.
 
    Le chemin vers le fichier contenant le certificat TLS du client, avec
    la chaîne de certification complète en format PEM. Mutuellement exclusif avec
-   l'option `-b` (ou `--public_key`).
+   l'option ``-b`` (ou ``--public_key``).
 
 .. option:: -b <PUB_KEY>, --public_key=<PUB_KEY>
 
    Le chemin vers le fichier contenant la clé publique SSH du client en format
-   *authorized_key*. Mutuellement exclusif avec l'option `-c` (ou `--certificate`).
-
-|
+   ``authorized_key``. Mutuellement exclusif avec l'option ``-c`` (ou
+   ``--certificate``).
 
 **Exemple**
 

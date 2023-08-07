@@ -13,6 +13,7 @@
 # documentation root, use os.path.abspath to make it absolute, like shown here.
 #
 import os
+from datetime import date
 # import sys
 # sys.path.insert(0, os.path.abspath('.'))
 
@@ -20,7 +21,7 @@ import os
 # -- Project information -----------------------------------------------------
 
 project = 'Waarp Gateway'
-copyright = '2020, Waarp'
+copyright = str(date.today().year)+', Waarp'
 author = 'Waarp'
 
 # The short X.Y version
@@ -79,7 +80,7 @@ language = 'fr'
 exclude_patterns = []
 
 # The name of the Pygments (syntax highlighting) style to use.
-pygments_style = None
+#pygments_style = None
 
 
 # -- Options for HTML output -------------------------------------------------
@@ -191,7 +192,7 @@ epub_exclude_files = ['search.html']
 # -- Options for intersphinx extension ---------------------------------------
 
 # Example configuration for intersphinx: refer to the Python standard library.
-intersphinx_mapping = {'https://docs.python.org/': None}
+intersphinx_mapping = {"python": ('https://docs.python.org/', None)}
 
 # -- Options for todo extension ----------------------------------------------
 

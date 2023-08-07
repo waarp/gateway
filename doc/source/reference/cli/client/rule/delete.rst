@@ -4,11 +4,7 @@ Supprimer une règle
 
 .. program:: waarp-gateway rule delete
 
-.. describe:: waarp-gateway rule update <RULE>
-
 Supprime la règle donnée en paramètre.
-
-|
 
 **Exemple**
 

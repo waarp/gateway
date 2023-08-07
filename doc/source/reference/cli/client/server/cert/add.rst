@@ -4,8 +4,6 @@
 
 .. program:: waarp-gateway server cert add
 
-.. describe:: waarp-gateway server cert <SERVER> add
-
 Attache un nouveau certificat au serveur donné à partir des informations renseignées.
 
 .. option:: -n <NAME>, --name=<NAME>
@@ -21,8 +19,6 @@ Attache un nouveau certificat au serveur donné à partir des informations rense
 
    Le chemin vers le fichier contenant la clé privée (TLS ou SSH) du serveur,
    en format PEM.
-
-|
 
 **Exemple**
 

@@ -4,12 +4,8 @@
 
 .. program:: waarp-gateway account remote cert get
 
-.. describe:: waarp-gateway account remote <PARTNER> cert <LOGIN> get <CERT>
-
 Affiche les informations du certificat demandé. Les noms du partenaire, du compte
 et du certificat doivent être spécifiés en arguments de programme.
-
-|
 
 **Exemple**
 

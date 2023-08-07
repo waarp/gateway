@@ -9,7 +9,7 @@ différents agents de transfert :
 
 1. Un fichier va être envoyer à la Gateway en SFTP (utilisation de la première
    règle définie)
-2. Le fichier reçu est renvoyé avec R66 vers le serveur Waarp-R66 à l'aide de la
+2. Le fichier reçu est renvoyé avec R66 vers le serveur Waarp R66 à l'aide de la
    deuxième règle définie.
 
 Pour ce faire, nous allons modifier la première règle et ajouter un traitement
@@ -33,10 +33,11 @@ Les tâches sont définies au format JSON comme un objet avec deux propriétés�
 ``type``, pour indiquer le type de la tâche, et ``args``, pour fournir les
 arguments nécessaires à l'exécution de la tâche.
 
-Dans notre cas, la tâche :any:`reference-tasks-moverename` a besoin d'un argument ``path``,
-pour indiquer le nouveau chemin du fichier ; et la tâche :any:`reference-tasks-transfer` a
-besoin *a minima* des mêmes arguments que ceux à renseigner dans la commande de
-création d'un transfert, à savoir ``file``, ``to``, ``as`` et ``rule``.
+Dans notre cas, la tâche :any:`reference-tasks-moverename` a besoin d'un
+argument ``path``, pour indiquer le nouveau chemin du fichier ; et la tâche
+:any:`reference-tasks-transfer` a besoin *a minima* des mêmes arguments que ceux
+à renseigner dans la commande de création d'un transfert, à savoir ``file``,
+``to``, ``as`` et ``rule``.
 
 Nous allons également utiliser des substitution dans les différentes tâches.
 Celles-ci sont remplacées au moment de l'exécution de la tâche par des valeurs
@@ -60,8 +61,6 @@ avec la commande suivante :
    :any:`ici <reference-tasks>`.
 
    La liste des substitutions est consultable :any:`ici <reference-tasks-substitutions>`
-
-.. todo:: ajouter une page sur les substitutions
 
 
 Test de transfert

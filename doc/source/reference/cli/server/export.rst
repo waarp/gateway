@@ -8,7 +8,7 @@
 .. program:: waarp-gatewayd export
 
 ``waarp-gatewayd export`` est une commande qui permet de charger la
-configuration de la Gateway depuis un fichier JSON.
+configuration de Gateway depuis un fichier JSON.
 
 La structure et le contenu du fichier JSON est documenté :any:`ici
 <reference-backup-json>`. Le fichier généré peut être importé avec la commande
@@ -50,7 +50,7 @@ Cette commande accepte les options suivantes :
      certificats associés.
    * ``partners``: Définitions de partenaires distants, incluant les comptes
      locaux et certificats associés.
-   * ``users``: Identifiants des utilisateurs *gateway* servant à l'administration.
+   * ``users``: Identifiants des utilisateurs Waarp Gateway servant à l'administration.
    * ``all``: Toutes les données contenues dans le fichier.
 
 .. option:: --verbose, -v

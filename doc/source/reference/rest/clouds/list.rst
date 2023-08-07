@@ -12,7 +12,7 @@ Lister les instances cloud
    :param offset: Le numéro du premier résultat souhaité *(défaut: 0)*
    :type offset: int
    :param sort: Le paramètre selon lequel les utilisateurs seront triés *(défaut: name+)*
-   :type sort: [name+|name-|type+|type-]
+   :type sort: [name+\|name-\|type+\|type-]
 
    :statuscode 200: La liste a été renvoyée avec succès
    :statuscode 400: Requête invalide

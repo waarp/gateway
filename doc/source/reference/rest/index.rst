@@ -1,7 +1,10 @@
+.. _reference-rest-api:
+
+########
 API REST
 ########
 
-L'interface REST de la gateway peut être accédée à partir de la racine ``/api``
+L'interface REST de Gateway peut être accédée à partir de la racine ``/api``
 en interrogeant l'adresse d'administration donnée dans la configuration.
 
 .. note:: 

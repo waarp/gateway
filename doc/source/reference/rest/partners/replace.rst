@@ -21,27 +21,25 @@ Remplacer un partenaire
    :resheader Location: Le chemin d'accès au partenaire modifié
 
 
-   |
-
    **Exemple de requête**
 
-      .. code-block:: http
+   .. code-block:: http
 
-         PUT https://my_waarp_gateway.net/api/partners/waarp_sftp HTTP/1.1
-         Authorization: Basic QWxhZGRpbjpvcGVuIHNlc2FtZQ==
-         Content-Type: application/json
-         Content-Length: 148
+      PUT https://my_waarp_gateway.net/api/partners/waarp_sftp HTTP/1.1
+      Authorization: Basic QWxhZGRpbjpvcGVuIHNlc2FtZQ==
+      Content-Type: application/json
+      Content-Length: 148
 
-         {
-           "name": "waarp_sftp_new",
-           "protocol": "sftp",
-           "address": "waarp.org:2023",
-           "protoConfig": {}
-         }
+      {
+        "name": "waarp_sftp_new",
+        "protocol": "sftp",
+        "address": "waarp.org:2023",
+        "protoConfig": {}
+      }
 
    **Exemple de réponse**
 
-      .. code-block:: http
+   .. code-block:: http
 
-         HTTP/1.1 201 CREATED
-         Location: https://my_waarp_gateway.net/api/partners/waarp_sftp_new
+      HTTP/1.1 201 CREATED
+      Location: https://my_waarp_gateway.net/api/partners/waarp_sftp_new

@@ -10,10 +10,9 @@ Celle-ci peut être trouvée dans le fichier
 :file:`/etc/waarp-gateway/waarp-gateway.ini`.
 
 .. seealso::
+   La documentation complète du fichier de configuration est disponible
+   :any:`ici <configuration-file>`.
 
-
-La documentation complète du fichier de configuration est disponible
-:any:`ici <configuration-file>`.
 Après l'installation, la Gateway n'est pas démarrée. Lançons le service avec la
 commande :
 
@@ -37,8 +36,8 @@ Un autre moyen de savoir si le service est bien démarré est d'utiliser le clie
 en ligne de commande (nommé après "le client").
 
 Le serveur expose une API REST, et le client en ligne de commande
-:program:`waarp-gateway` est le moyen
-recommandé d'interagir avec le serveur pour le gérer et l'administrer.
+:program:`waarp-gateway` est le moyen recommandé d'interagir avec le serveur
+pour le gérer et l'administrer.
 
 Toutes les commandes du client acceptent l'adresse de l'interface REST du
 serveur comme premier argument.

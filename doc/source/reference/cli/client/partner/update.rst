@@ -4,8 +4,6 @@ Modifier un partenaire
 
 .. program:: waarp-gateway partner update
 
-.. describe:: waarp-gateway partner update <PARTNER>
-
 Remplace les attributs du partenaire donné par ceux fournis ci-dessous. Les
 attributs omis resteront inchangés.
 
@@ -19,7 +17,7 @@ attributs omis resteront inchangés.
 
 .. option:: -a <ADDRESS>, --address=<ADDRESS>
 
-   L'adresse du partenaire (au format [adresse:port]).
+   L'adresse du partenaire (au format ``adresse:port``).
 
 .. option:: -c <KEY:VAL>, --config=<KEY:VAL>
 
@@ -27,8 +25,6 @@ attributs omis resteront inchangés.
    configuration. Les options de la configuration varient en fonction du protocole
    utilisé (voir :ref:`configuration protocolaire <reference-proto-config>` pour
    plus de détails).
-
-|
 
 **Exemple**
 

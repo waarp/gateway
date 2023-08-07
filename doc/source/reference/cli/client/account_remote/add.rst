@@ -4,8 +4,6 @@ Ajouter un compte à un partenaire
 
 .. program:: waarp-gateway account remote add
 
-.. describe:: waarp-gateway account remote <PARTNER> add
-
 Ajoute un nouveau compte sur le partenaire donné avec les identifiants ci-dessous.
 
 .. option:: -l <LOGIN>, --login=<LOGIN>
@@ -15,8 +13,6 @@ Ajoute un nouveau compte sur le partenaire donné avec les identifiants ci-desso
 .. option:: -p <PASS>, --password=<PASS>
 
    Le mot de passe du compte.
-
-|
 
 **Exemple**
 

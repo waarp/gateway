@@ -3,7 +3,8 @@ Consulter un compte distant
 
 .. http:get:: /api/partners/(string:partner_name)/accounts/(string:login)
 
-   Renvoie le compte ayant le login ``login`` rattaché au partner ``partner_name``.
+   Renvoie le compte ayant le login ``login`` rattaché au partenaire
+   ``partner_name``.
 
    :reqheader Authorization: Les identifiants de l'utilisateur
 
@@ -23,24 +24,24 @@ Consulter un compte distant
 
    **Exemple de réponse**
 
-      .. code-block:: http
+   .. code-block:: http
 
-         GET https://my_waarp_gateway.net/api/partners/waarp_sftp/account/titi HTTP/1.1
-         Authorization: Basic QWxhZGRpbjpvcGVuIHNlc2FtZQ==
+      GET https://my_waarp_gateway.net/api/partners/waarp_sftp/account/titi HTTP/1.1
+      Authorization: Basic QWxhZGRpbjpvcGVuIHNlc2FtZQ==
 
    **Exemple de réponse**
 
-      .. code-block:: http
+   .. code-block:: http
 
-         HTTP/1.1 200 OK
-         Content-Type: application/json
-         Content-Length: 152
+      HTTP/1.1 200 OK
+      Content-Type: application/json
+      Content-Length: 152
 
-         {
-           "login": "titi",
-           "authMethods": ["titi_private_key", "password"],
-           "authorizedRules": {
-             "sending": ["règle_envoi_1", "règle_envoi_2"],
-             "reception": ["règle_récep_1", "règle_récep_2"]
-           }
-         }
+      {
+        "login": "titi",
+        "authMethods": ["titi_private_key", "password"],
+        "authorizedRules": {
+          "sending": ["règle_envoi_1", "règle_envoi_2"],
+          "reception": ["règle_récep_1", "règle_récep_2"]
+        }
+      }

@@ -18,25 +18,23 @@ Remplacer un compte distant
    :resheader Location: Le chemin d'accès au compte modifié
 
 
-   |
-
    **Exemple de requête**
 
-      .. code-block:: http
+   .. code-block:: http
 
-         PUT https://my_waarp_gateway.net/api/partners/waarp_sftp/accounts/titi HTTP/1.1
-         Authorization: Basic QWxhZGRpbjpvcGVuIHNlc2FtZQ==
-         Content-Type: application/json
-         Content-Length: 96
+      PUT https://my_waarp_gateway.net/api/partners/waarp_sftp/accounts/titi HTTP/1.1
+      Authorization: Basic QWxhZGRpbjpvcGVuIHNlc2FtZQ==
+      Content-Type: application/json
+      Content-Length: 96
 
-         {
-           "login": "titi_new",
-           "password": "titi_new"
-         }
+      {
+        "login": "titi_new",
+        "password": "titi_new"
+      }
 
    **Exemple de réponse**
 
-      .. code-block:: http
+   .. code-block:: http
 
-         HTTP/1.1 201 CREATED
-         Location: https://my_waarp_gateway.net/api/partners/waarp_sftp/accounts/titi_new
+      HTTP/1.1 201 CREATED
+      Location: https://my_waarp_gateway.net/api/partners/waarp_sftp/accounts/titi_new

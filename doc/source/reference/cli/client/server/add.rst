@@ -4,8 +4,6 @@ Ajouter un serveur
 
 .. program:: waarp-gateway server add
 
-.. describe:: waarp-gateway server add
-
 Ajoute un nouveau serveur de transfert à la gateway avec les attributs fournis.
 
 .. option:: -n <NAME>, --name=<NAME>
@@ -23,13 +21,13 @@ Ajoute un nouveau serveur de transfert à la gateway avec les attributs fournis.
 .. option:: --root-dir=<ROOT_DIR>
 
    Le dossier racine du serveur. Peut être un chemin relatif à la racine de la
-   *gateway*, ou bien absolu.
+   Waarp Gateway, ou bien absolu.
 
 .. option:: --receive-dir=<RECV_DIR>
 
    Le dossier de réception du serveur. Les fichiers reçus sur le serveur seront
    déposés dans ce dossier (sauf si la règle de transfert supplante ce dossier
-   avec son propre dossier local). Peut être un chemin relatif au *root-dir*
+   avec son propre dossier local). Peut être un chemin relatif au ``root-dir``
    du serveur, ou bien absolu.
 
 .. option:: --send-dir=<SEND_DIR>
@@ -37,7 +35,7 @@ Ajoute un nouveau serveur de transfert à la gateway avec les attributs fournis.
    Le dossier d'envoi du serveur. Les fichiers téléchargés depuis le serveur
    seront récupérés dans ce dossier (sauf si la règle de transfert supplante ce
    dossier avec son propre dossier local). Peut être un chemin relatif au
-   *root-dir* du serveur, ou bien absolu.
+   ``root-dir`` du serveur, ou bien absolu.
 
 .. option:: --tmp-dir=<TMP_DIR>
 
@@ -45,7 +43,7 @@ Ajoute un nouveau serveur de transfert à la gateway avec les attributs fournis.
    réception par le serveur seront écrits dans ce dossier pour la durée du
    transfert (sauf si la règle de transfert supplante ce dossier avec son propre
    dossier temporaire local) avant d'être déposés dans le dossier de réception
-   une fois le transfert terminé. Peut être un chemin relatif au *root-dir*
+   une fois le transfert terminé. Peut être un chemin relatif au ``root-dir``
    du serveur, ou bien absolu.
 
 .. option:: -c <KEY:VAL>, --config=<KEY:VAL>
@@ -57,30 +55,37 @@ Ajoute un nouveau serveur de transfert à la gateway avec les attributs fournis.
 
 .. option:: -r <ROOT>, --root=<ROOT>
 
-   OBSOLÈTE: remplacé par l'option ``--root-dir``.
+   .. deprecated:: 0.5.0
+
+      Remplacé par l'option ``--root-dir``.
 
    Le dossier racine du serveur. Peut être un chemin relatif ou absolu. Si
-   le chemin est relatif, il sera relatif à la racine de la *gateway* renseignée
+   le chemin est relatif, il sera relatif à la racine de Waarp Gateway renseignée
    dans le fichier de configuration.
 
 .. option:: -i <IN_DIR>, --in=<IN_DIR>
 
-   OBSOLÈTE: remplacé par l'option ``--receive-dir``.
+   .. deprecated:: 0.5.0
+
+      Remplacé par l'option ``--receive-dir``.
 
    Le dossier de réception du serveur. Peut être un chemin relatif ou absolu. Si
    le chemin est relatif, il sera relatif à la racine du serveur.
 
 .. option:: -o <OUT_DIR>, --out=<OUT_DIR>
 
-   OBSOLÈTE: remplacé par l'option ``--send-dir``.
+   .. deprecated:: 0.5.0
+
+      Remplacé par l'option ``--send-dir``.
 
    Le dossier d'envoi du serveur. Peut être un chemin relatif ou absolu. Si
    le chemin est relatif, il sera relatif à la racine du serveur.
 
 .. option:: -w <WORK_DIR>, --work=<WORK_DIR>
 
-   OBSOLÈTE: remplacé par l'option ``--tmp-dir``.
+   .. deprecated:: 0.5.0
 
+      Remplacé par l'option ``--tmp-dir``.
 
 
 **Exemple**

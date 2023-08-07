@@ -6,7 +6,7 @@ Autoriser un compte à utiliser une règle
 
 .. http:put:: /api/partners/(string:partner_name)/accounts/(string:login)/authorize/(string:rule)
 
-   Authorise le compte demandé à utiliser la règle donnée. Cette permission persistera,
+   Autorise le compte demandé à utiliser la règle donnée. Cette permission persistera,
    même si le partenaire parent se fait retirer le droit d'utilisation de la règle.
 
    :reqheader Authorization: Les identifiants de l'utilisateur
@@ -16,17 +16,15 @@ Autoriser un compte à utiliser une règle
    :statuscode 404: Le partenaire, le compte ou la règle demandés n'existent pas
 
 
-   |
-
    **Exemple de requête**
 
-      .. code-block:: http
+   .. code-block:: http
 
-         DELETE https://my_waarp_gateway.net/api/partners/waarp_sftp/accounts/titi/authorize/rule_1 HTTP/1.1
-         Authorization: Basic QWxhZGRpbjpvcGVuIHNlc2FtZQ==
+      GET https://my_waarp_gateway.net/api/partners/waarp_sftp/accounts/titi/authorize/rule_1 HTTP/1.1
+      Authorization: Basic QWxhZGRpbjpvcGVuIHNlc2FtZQ==
 
    **Exemple de réponse**
 
-      .. code-block:: http
+   .. code-block:: http
 
-         HTTP/1.1 200 OK
+      HTTP/1.1 200 OK

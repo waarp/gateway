@@ -49,7 +49,7 @@ Cette commande accepte les options suivantes :
      certificats associés.
    * ``partners``: Définitions de partenaires distants, incluant les comptes
      locaux et certificats associés.
-   * ``users``: Identifiants des utilisateurs *gateway* servant à l'administration.
+   * ``users``: Identifiants des utilisateurs Waarp Gateway servant à l'administration.
    * ``all``: Toutes les données contenues dans le fichier.
 
 .. option:: --reset-before-import, -r
@@ -60,7 +60,7 @@ Cette commande accepte les options suivantes :
 
    ATTENTION: Cette option est incompatible avec l'import de données depuis la
    sortie standard. Il vous faudra soit importer les données depuis un fichier,
-   soit utiliser l'option ``--force-reset-before-import`` décrite ci-dessous.
+   soit utiliser l'option :option:`--force-reset-before-import` décrite ci-dessous.
 
 .. option:: --force-reset-before-import
 

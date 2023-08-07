@@ -17,7 +17,7 @@ Consulter un client
    :resjson object protoConfig: La configuration du client encodé sous forme
       d'un objet JSON. Cet objet dépend du protocole.
    :resjson array partners: La liste des partenaires rattachés au client. Voir
-      :any:`partners/list` pour plus de détails sur la structure de cette liste.
+      :ref:`rest_partners_list` pour plus de détails sur la structure de cette liste.
 
 
    **Exemple de requête**

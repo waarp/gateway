@@ -4,8 +4,6 @@ Ajouter un transfert
 
 .. program:: waarp-gateway transfer add
 
-.. describe:: waarp-gateway transfer add
-
 Programme un nouveau transfert avec les attributs ci-dessous.
 
 .. option:: -f <FILENAME>, --file=<FILENAME>
@@ -13,7 +11,7 @@ Programme un nouveau transfert avec les attributs ci-dessous.
    Le chemin du fichier à transférer. Si le chemin est relatif, il sera relatif
    au dossier de la règle (ou du serveur en l'absence de dossier de règle).
 
-.. option:: -f <FILENAME>, --file=<FILENAME>
+.. option:: -o <FILENAME>, --out=<FILENAME>
 
    Le chemin de destination du fichier transféré. Si le chemin est relatif, il
    sera relatif au dossier de la règle (ou du serveur en l'absence de dossier
@@ -21,7 +19,7 @@ Programme un nouveau transfert avec les attributs ci-dessous.
 
 .. option:: -w <DIRECTION>, --way=<DIRECTION>
 
-   La direction du transfer. Peut être ``send`` ou ``receive``.
+   La direction du transfert. Peut être ``send`` ou ``receive``.
 
 .. option:: -c <CLIENT>, --client=<CLIENT>
 
@@ -35,7 +33,7 @@ Programme un nouveau transfert avec les attributs ci-dessous.
 
 .. option:: -l <LOGIN>, --login=<LOGIN>
 
-   Le nom du compte distant utilisé par la gateway pour d'identifier
+   Le nom du compte distant utilisé par Gateway pour d'identifier
    auprès du partenaire de transfert.
 
 .. option:: -r <RULE>, --rule=<RULE>
@@ -49,9 +47,11 @@ Programme un nouveau transfert avec les attributs ci-dessous.
 
 .. option:: -n <FILENAME>, --name=<FILENAME>
 
-   OBSOLÈTE: remplacé par `--out`.
+   .. deprecated:: 0.5.0
 
-   Le nom du fichier après le transfer. Par défaut, le nom d'origine est
+      Remplacé par `--out`.
+
+   Le nom du fichier après le transfert. Par défaut, le nom d'origine est
    utilisé.
 
 .. option:: -i <KEY:VAL>, --info=<KEY:VAL>
@@ -59,8 +59,6 @@ Programme un nouveau transfert avec les attributs ci-dessous.
    Une liste d'informations personnalisées à attacher au transfert. Les informations
    prennent la forme d'une liste de paires clé:valeur. Répéter l'option pour ajouter
    des paires supplémentaires.
-
-|
 
 **Exemple**
 

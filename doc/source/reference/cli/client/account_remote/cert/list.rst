@@ -4,8 +4,6 @@
 
 .. program:: waarp-gateway account remote cert list
 
-.. describe:: waarp-gateway account remote <PARTNER> cert <LOGIN> list
-
 Affiche les informations des certificats du compte suivant les critères donnés.
 
 .. option:: -l <LIMIT>, --limit=<LIMIT>
@@ -22,8 +20,6 @@ Affiche les informations des certificats du compte suivant les critères donnés
    possibles sont:
 
    - tri par nom (``name+`` & ``name-``)
-
-|
 
 **Exemple**
 

@@ -4,12 +4,8 @@ Lister les indirections d'adresse
 
 .. program:: waarp-gateway override address list
 
-.. describe:: waarp-gateway override address list
-
 Affiche une liste de toutes les indirections d'adresse existantes sur l'instance
-de *gateway* interrogée.
-
-|
+de Waarp Gateway interrogée.
 
 **Exemple**
 

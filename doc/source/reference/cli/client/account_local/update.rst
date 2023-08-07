@@ -4,8 +4,6 @@ Modifier un compte local
 
 .. program:: waarp-gateway account local update
 
-.. describe:: waarp-gateway account local <SERVER> update <LOGIN>
-
 Remplace les attributs du compte par ceux renseignés.
 
 .. option:: -l <LOGIN>, --login=<LOGIN>
@@ -16,8 +14,6 @@ Remplace les attributs du compte par ceux renseignés.
 .. option:: -p <PASS>, --password=<PASS>
 
    Change le mot de passe du compte.
-
-|
 
 **Exemple**
 

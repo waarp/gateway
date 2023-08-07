@@ -6,8 +6,6 @@ Lister les règles
 
 .. program:: waarp-gateway rule list
 
-.. describe:: waarp-gateway rule list
-
 Affiche une liste de toutes les règles remplissant les critères ci-dessous.
 
 .. option:: -l <LIMIT>, --limit=<LIMIT>
@@ -23,8 +21,6 @@ Affiche une liste de toutes les règles remplissant les critères ci-dessous.
    L'ordre et le paramètre de tri des règles. Les choix possibles sont :
 
    - tri par nom (``name+`` & ``name-``)
-
-|
 
 **Exemple**
 

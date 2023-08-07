@@ -4,11 +4,7 @@ Supprimer un partenaire
 
 .. program:: waarp-gateway partner delete
 
-.. describe:: waarp-gateway partner delete <PARTNER>
-
 Supprime le partenaire donné en paramètre.
-
-|
 
 **Exemple**
 

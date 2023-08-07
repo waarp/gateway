@@ -6,8 +6,6 @@ Lister les partenaires
 
 .. program:: waarp-gateway partner list
 
-.. describe:: waarp-gateway partner list
-
 Affiche une liste des partenaires remplissant les critères renseignés ci-dessous.
 
 .. option:: -l <LIMIT>, --limit=<LIMIT>
@@ -29,8 +27,6 @@ Affiche une liste des partenaires remplissant les critères renseignés ci-desso
    Filtre uniquement les partenaires utilisant le protocole renseigné avec ce
    paramètre. Le paramètre peut être répété plusieurs fois pour filtrer
    plusieurs protocoles en même temps.
-
-|
 
 **Exemple**
 

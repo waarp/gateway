@@ -3,6 +3,21 @@ Consulter un transfert
 
 .. http:get:: /api/transfers/(int:transfer_id)
 
+   .. deprecated:: 0.4.0
+
+      Les propriétés ``sourcePath`` et ``destPath`` de la réponse ont été
+      remplacées par les propriétés ``localFilepath`` et ``remoteFilepath``.
+
+   .. deprecated:: 0.4.0
+
+      La propriété ``trueFilepath`` de la réponse a été remplacée par la
+      propriété ``localFilepath``.
+
+   .. deprecated:: 0.5.0
+
+      La propriété ``startDate`` de la réponse a été remplacée par la propriété
+      ``start``.
+
    Renvoie les informations du transfert portant l'identifiant ``transfer_id``.
 
    :reqheader Authorization: Les identifiants de l'utilisateur
@@ -13,7 +28,7 @@ Consulter un transfert
 
    :resjson number id: L'identifiant local du transfert
    :resjson string remoteID: L'identifiant global du transfert
-   :resjson bool isServer: Indique si la *gateway* est agit en tant que serveur
+   :resjson bool isServer: Indique si Gateway est agit en tant que serveur
      (``true``) ou en tant que client (``false``)
    :resjson bool isSend: Indique si le transfert est un envoi (``true``) ou une
      réception (``false``)
@@ -29,10 +44,11 @@ Consulter un transfert
    :resjson date start: La date de début du transfert
    :resjson date stop: La date de fin du transfert (si le transfert est terminé)
    :resjson string status: Le statut actuel du transfert (valeurs possibles:
-     *PLANNED*, *RUNNING*, *PAUSED*, *INTERRUPTED*, *ERROR*, *DONE* ou *CANCELLED*)
+     ``PLANNED``, ``RUNNING``, ``PAUSED``, ``INTERRUPTED``, ``ERROR``, ``DONE``
+     ou ``CANCELLED``)
    :resjson string step: L'étape actuelle du transfert (valeurs possibles:
-     *StepNone*, *StepSetup*, *StepPreTasks*, *StepData*, *StepPostTasks*,
-     *StepErrorTasks* ou *StepFinalization*)
+     ``StepNone``, ``StepSetup``, ``StepPreTasks``, ``StepData``, ``StepPostTasks``,
+     ``StepErrorTasks`` ou ``StepFinalization``)
    :resjson number progress: La progression (en octets) du transfert de données
    :resjson number taskNumber: Le numéro du traitement en cours d'exécution
    :resjson string errorCode: Le code d'erreur du transfert (si une erreur s'est produite)
@@ -40,53 +56,47 @@ Consulter un transfert
    :resjson object transferInfo: Des informations de transfert personnalisées sous
      la forme d'une liste de pairs clé:valeur, c'est-à-dire sous forme d'un objet JSON.
 
-   :resjson string trueFilepath: Le chemin local complet du fichier (OBSOLÈTE:
-     remplacé par 'localFilepath')
-   :resjson string sourcePath: Le fichier source du transfer (OBSOLÈTE: remplacé
-     par 'localFilepath' & 'remoteFilepath')
-   :resjson string destPath: Le fichier destination du transfer (OBSOLÈTE:
-     remplacé par 'localFilepath' & 'remoteFilepath')
-   :resjson date startDate: La date de début du transfert (OBSOLÈTE: remplacé
-     par 'start')
-
-   |
+   :resjson string trueFilepath: *Déprécié*. Le chemin local complet du fichier 
+   :resjson string sourcePath: *Déprécié*. Le fichier source du transfer 
+   :resjson string destPath: *Déprécié*. Le fichier destination du transfer 
+   :resjson date startDate: *Déprécié*. La date de début du transfert 
 
    **Exemple de requête**
 
-      .. code-block:: http
+   .. code-block:: http
 
-         GET https://my_waarp_gateway.net/api/transfers/1 HTTP/1.1
-         Authorization: Basic QWxhZGRpbjpvcGVuIHNlc2FtZQ==
+      GET https://my_waarp_gateway.net/api/transfers/1 HTTP/1.1
+      Authorization: Basic QWxhZGRpbjpvcGVuIHNlc2FtZQ==
 
    **Exemple de réponse**
 
-      .. code-block:: http
+   .. code-block:: http
 
-         HTTP/1.1 200 OK
-         Content-Type: application/json
-         Content-Length: 290
+      HTTP/1.1 200 OK
+      Content-Type: application/json
+      Content-Length: 290
 
-         {
-           "id": 1,
-           "remoteID": "123456789"
-           "rule": "règle_1",
-           "isServer": true,
-           "isSend": false,
-           "requester": "toto",
-           "requested": "waarp_sftp",
-           "protocol": "sftp",
-           "localFilepath": "/chemin/local/fichier1",
-           "remoteFilepath": "/chemin/distant/fichier1",
-           "filesize": 1234,
-           "start": "2019-01-01T02:00:00+02:00",
-           "status": "ERROR",
-           "step": "DATA",
-           "errorCode": "TeDataTransfer",
-           "errorMsg": "error during data transfer",
-           "progress": 567,
-           "transferInfo": {
-             "key1": "val1",
-             "key2": 2,
-             "key3": true
-           }
-         }
+      {
+        "id": 1,
+        "remoteID": "123456789"
+        "rule": "règle_1",
+        "isServer": true,
+        "isSend": false,
+        "requester": "toto",
+        "requested": "waarp_sftp",
+        "protocol": "sftp",
+        "localFilepath": "/chemin/local/fichier1",
+        "remoteFilepath": "/chemin/distant/fichier1",
+        "filesize": 1234,
+        "start": "2019-01-01T02:00:00+02:00",
+        "status": "ERROR",
+        "step": "DATA",
+        "errorCode": "TeDataTransfer",
+        "errorMsg": "error during data transfer",
+        "progress": 567,
+        "transferInfo": {
+          "key1": "val1",
+          "key2": 2,
+          "key3": true
+        }
+      }
