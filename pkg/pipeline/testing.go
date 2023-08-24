@@ -106,9 +106,9 @@ func (t *tester) getError(curStage errOn, curOffset int64) *types.TransferError 
 	if (t.errOn == DataRead && curStage == DataWrite) ||
 		(t.errOn == DataWrite && curStage == DataRead) {
 		if curOffset >= t.atOffset {
-			const slowDuration = 100 * time.Millisecond
+			const slowDuration = 500 * time.Millisecond
 
-			<-time.NewTimer(slowDuration).C
+			<-time.After(slowDuration)
 		}
 	}
 

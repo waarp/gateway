@@ -577,6 +577,7 @@ func TestStreamSync(t *testing.T) {
 
 		stream := initFilestream(ctx, trans)
 		stream.updTicker.Reset(time.Hour)
+		So(stream.UpdateTrans(), ShouldBeNil)
 
 		select {
 		case <-stream.updTicker.C:
