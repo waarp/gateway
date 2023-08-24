@@ -204,6 +204,10 @@ func mkSendTransfer(ctx *testContext, filename string) *model.Transfer {
 
 const testTransferUpdateInterval = time.Microsecond
 
+func addFileError(stream *FileStream) {
+	stream.file = &testFile{File: stream.file, err: errFileTest}
+}
+
 var errFileTest = errors.New("intended file error")
 
 type testFile struct {
@@ -263,8 +267,6 @@ func initFilestream(ctx *testContext, trans *model.Transfer) *FileStream {
 	} else {
 		So(pip.Pip.machine.Transition(stateWriting), ShouldBeNil)
 	}
-
-	stream.file = &testFile{File: stream.file}
 
 	return stream
 }

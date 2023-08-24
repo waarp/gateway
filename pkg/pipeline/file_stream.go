@@ -158,6 +158,59 @@ func (f *FileStream) WriteAt(p []byte, off int64) (int, error) {
 	return n, errWrite
 }
 
+// Seek changes the file's current offset to the given one. Any subsequent call
+// to Read or Write will be made from that new offset. The transfer's progress
+// will also be changed to this new offset.
+func (f *FileStream) Seek(off int64, whence int) (int64, error) {
+	if curr := f.machine.Current(); curr != stateWriting && curr != stateReading {
+		f.handleStateErr("Seek", curr)
+
+		return 0, errStateMachine
+	}
+
+	newOff, seekErr := fs.SeekFile(f.file, off, whence)
+	if seekErr != nil {
+		f.handleError(types.TeInternal, "Failed to seek in file", seekErr.Error())
+
+		return 0, types.NewTransferError(types.TeInternal, "failed to seek in file")
+	}
+
+	f.TransCtx.Transfer.Progress = newOff
+
+	return newOff, f.UpdateTrans()
+}
+
+// Sync commits the current contents of the file to stable storage (if the
+// storage supports it). It also forces a database update, even if the update
+// timer has not ticked yet (it differs from Pipeline.UpdateTrans in that aspect).
+func (f *FileStream) Sync() error {
+	if curr := f.machine.Current(); curr != stateWriting && curr != stateReading {
+		f.handleStateErr("Seek", curr)
+
+		return errStateMachine
+	}
+
+	// If the fs supports it, we sync the file.
+	if err := fs.SyncFile(f.file); err != nil && !errors.Is(err, fs.ErrNotImplemented) {
+		f.handleError(types.TeInternal, "Failed to sync file", err.Error())
+
+		return types.NewTransferError(types.TeInternal, "failed to sync file")
+	}
+
+	// Reset the update timer since we force an update.
+	f.updTicker.Reset(TransferUpdateInterval)
+
+	// Force an immediate database update.
+	if dbErr := f.DB.Update(f.TransCtx.Transfer).Run(); dbErr != nil {
+		f.handleError(types.TeInternal, "Failed to update transfer",
+			dbErr.Error())
+
+		return errDatabase
+	}
+
+	return nil
+}
+
 func (f *FileStream) handleStateErr(fun string, currentState statemachine.State) {
 	f.handleError(types.TeInternal, "File stream state machine violation",
 		fmt.Sprintf("cannot call %s while in state %s", fun, currentState))
