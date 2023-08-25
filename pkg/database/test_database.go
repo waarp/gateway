@@ -97,7 +97,7 @@ func initTestDBConf() {
 		config.Type = SQLite
 		config.Address = tempFilename()
 	case TestMemoryDB, "":
-		supportedRBMS[SQLite] = memDBInfo
+		SupportedRBMS[SQLite] = memDBInfo
 		config.Type = SQLite
 		config.Address = uuid.New().String()
 	default:

@@ -88,7 +88,7 @@ func (db *DB) loadAESKey() error {
 func (db *DB) createConnectionInfo() (*DBInfo, error) {
 	rdbms := conf.GlobalConfig.Database.Type
 
-	makeConnInfo, ok := supportedRBMS[rdbms]
+	makeConnInfo, ok := SupportedRBMS[rdbms]
 	if !ok {
 		return nil, fmt.Errorf("unknown database type '%s': %w", rdbms, errUnsupportedDB)
 	}
@@ -102,11 +102,7 @@ type DBInfo struct {
 }
 
 //nolint:gochecknoglobals // global var is used by design
-var supportedRBMS = map[string]func() *DBInfo{}
-
-func AddRDBMS(rdbms string, makeConnInfo func() *DBInfo) {
-	supportedRBMS[rdbms] = makeConnInfo
-}
+var SupportedRBMS = map[string]func() *DBInfo{}
 
 func (db *DB) initEngine() (*xorm.Engine, error) {
 	connInfo, err := db.createConnectionInfo()
