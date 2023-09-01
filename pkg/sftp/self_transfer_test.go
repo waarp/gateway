@@ -6,7 +6,6 @@ import (
 	. "github.com/smartystreets/goconvey/convey"
 
 	"code.waarp.fr/apps/gateway/gateway/pkg/model/types"
-	"code.waarp.fr/apps/gateway/gateway/pkg/pipeline"
 	"code.waarp.fr/apps/gateway/gateway/pkg/pipeline/pipelinetest"
 )
 
@@ -126,8 +125,8 @@ func TestSelfPushClientDataFail(t *testing.T) {
 				ctx.ServerShouldHaveErrorTasked(c)
 
 				ctx.CheckClientTransferError(c,
-					pipeline.ErrTestFail.Code,
-					"test error: "+pipeline.ErrTestFail.Details,
+					pipelinetest.ErrTestError.Code,
+					"test error: "+pipelinetest.ErrTestError.Details,
 					types.StepData)
 				ctx.CheckServerTransferError(c,
 					types.TeConnectionReset,
@@ -155,12 +154,12 @@ func TestSelfPushServerDataFail(t *testing.T) {
 				ctx.ServerShouldHaveErrorTasked(c)
 
 				ctx.CheckClientTransferError(c,
-					pipeline.ErrTestFail.Code,
-					"Error on remote partner: "+pipeline.ErrTestFail.Details,
+					pipelinetest.ErrTestError.Code,
+					"Error on remote partner: "+pipelinetest.ErrTestError.Details,
 					types.StepData)
 				ctx.CheckServerTransferError(c,
-					pipeline.ErrTestFail.Code,
-					"test error: "+pipeline.ErrTestFail.Details,
+					pipelinetest.ErrTestError.Code,
+					"test error: "+pipelinetest.ErrTestError.Details,
 					types.StepData)
 			})
 		})
@@ -184,8 +183,8 @@ func TestSelfPullClientDataFail(t *testing.T) {
 				ctx.ServerShouldHaveErrorTasked(c)
 
 				ctx.CheckClientTransferError(c,
-					pipeline.ErrTestFail.Code,
-					"test error: "+pipeline.ErrTestFail.Details,
+					pipelinetest.ErrTestError.Code,
+					"test error: "+pipelinetest.ErrTestError.Details,
 					types.StepData)
 				ctx.CheckServerTransferError(c,
 					types.TeConnectionReset,
@@ -213,12 +212,12 @@ func TestSelfPullServerDataFail(t *testing.T) {
 				ctx.ServerShouldHaveErrorTasked(c)
 
 				ctx.CheckClientTransferError(c,
-					pipeline.ErrTestFail.Code,
-					"Error on remote partner: "+pipeline.ErrTestFail.Details,
+					pipelinetest.ErrTestError.Code,
+					"Error on remote partner: "+pipelinetest.ErrTestError.Details,
 					types.StepData)
 				ctx.CheckServerTransferError(c,
-					pipeline.ErrTestFail.Code,
-					"test error: "+pipeline.ErrTestFail.Details,
+					pipelinetest.ErrTestError.Code,
+					"test error: "+pipelinetest.ErrTestError.Details,
 					types.StepData)
 			})
 		})

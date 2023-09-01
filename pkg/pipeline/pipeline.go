@@ -36,12 +36,13 @@ type Pipeline struct {
 	TransCtx *model.TransferContext
 	Logger   *log.Logger
 	Stream   *FileStream
+	Trace    Trace
 
 	machine   *statemachine.Machine
 	updTicker *time.Ticker
 	errOnce   sync.Once
 
-	runner *tasks.Runner
+	Runner *tasks.Runner
 }
 
 func newPipeline(db *database.DB, logger *log.Logger, transCtx *model.TransferContext,
@@ -52,7 +53,7 @@ func newPipeline(db *database.DB, logger *log.Logger, transCtx *model.TransferCo
 		TransCtx:  transCtx,
 		machine:   pipelineSateMachine.New(),
 		updTicker: time.NewTicker(TransferUpdateInterval),
-		runner:    tasks.NewTaskRunner(db, logger, transCtx),
+		Runner:    tasks.NewTaskRunner(db, logger, transCtx),
 	}
 
 	if err := pipeline.setFilePaths(); err != nil {
@@ -133,17 +134,6 @@ func (p *Pipeline) doUpdateTrans(handleError func(types.TransferErrorCode,
 	default:
 	}
 
-	stage := DataWrite
-	if p.TransCtx.Rule.IsSend {
-		stage = DataRead
-	}
-
-	if testErr := Tester.getError(stage, p.TransCtx.Transfer.Progress); testErr != nil {
-		p.handleError(testErr.Code, "test error", testErr.Details)
-
-		return testErr
-	}
-
 	return nil
 }
 
@@ -154,8 +144,6 @@ func (p *Pipeline) doUpdateTrans(handleError func(types.TransferErrorCode,
 //
 //nolint:dupl // factorizing would add complexity
 func (p *Pipeline) PreTasks() *types.TransferError {
-	defer Tester.preTasksDone(p.TransCtx.Transfer)
-
 	if err := p.machine.Transition(statePreTasks); err != nil {
 		p.handleStateErr("PreTasks", p.machine.Current())
 
@@ -177,7 +165,7 @@ func (p *Pipeline) PreTasks() *types.TransferError {
 		return dbErr
 	}
 
-	if err := p.runner.PreTasks(); err != nil {
+	if err := p.Runner.PreTasks(p.Trace.OnPreTask); err != nil {
 		p.handleError(err.Code, "Pre-tasks failed", err.Details)
 
 		return types.NewTransferError(types.TeExternalOperation, "pre-tasks failed")
@@ -238,6 +226,12 @@ func (p *Pipeline) StartData() (*FileStream, *types.TransferError) {
 		return nil, tErr
 	}
 
+	if err := testError(p.Trace.OnDataStart); err != nil {
+		p.handleError(err.Code, "Test error on data init", err.Details)
+
+		return nil, err
+	}
+
 	if err := transitionData(); err != nil {
 		return nil, err
 	}
@@ -254,8 +248,6 @@ func (p *Pipeline) EndData() *types.TransferError {
 
 		return errStateMachine
 	}
-
-	Tester.dataDone(p.TransCtx.Transfer)
 
 	if err := p.Stream.close(); err != nil {
 		return err
@@ -289,8 +281,6 @@ func (p *Pipeline) EndData() *types.TransferError {
 //
 //nolint:dupl // factorizing would add complexity
 func (p *Pipeline) PostTasks() *types.TransferError {
-	defer Tester.postTasksDone(p.TransCtx.Transfer)
-
 	if err := p.machine.Transition(statePostTasks); err != nil {
 		p.handleStateErr("PostTasks", p.machine.Current())
 
@@ -312,7 +302,7 @@ func (p *Pipeline) PostTasks() *types.TransferError {
 		return dbErr
 	}
 
-	if err := p.runner.PostTasks(); err != nil {
+	if err := p.Runner.PostTasks(p.Trace.OnPostTask); err != nil {
 		p.handleError(err.Code, "Post-tasks failed", err.Details)
 
 		return types.NewTransferError(types.TeExternalOperation, "post-tasks failed")
@@ -336,10 +326,16 @@ func (p *Pipeline) EndTransfer() *types.TransferError {
 		return errStateMachine
 	}
 
+	if err := testError(p.Trace.OnFinalization); err != nil {
+		p.handleError(err.Code, "Test error on finalization", err.Details)
+
+		return err
+	}
+
 	var sErr *types.TransferError
 
 	p.errOnce.Do(func() {
-		p.runner.Stop()
+		p.Runner.Stop()
 		p.TransCtx.Transfer.Status = types.StatusDone
 		p.TransCtx.Transfer.Step = types.StepNone
 		p.TransCtx.Transfer.TaskNumber = 0
@@ -367,7 +363,6 @@ func (p *Pipeline) errorTasks() {
 	oldTask := p.TransCtx.Transfer.TaskNumber
 
 	defer func() {
-		Tester.errTasksDone(p.TransCtx.Transfer)
 		p.TransCtx.Transfer.Step = oldStep
 		p.TransCtx.Transfer.TaskNumber = oldTask
 
@@ -383,7 +378,7 @@ func (p *Pipeline) errorTasks() {
 		p.Logger.Error("Failed to update transfer step for error-tasks: %s", dbErr)
 	}
 
-	if err := p.runner.ErrorTasks(); err != nil {
+	if err := p.Runner.ErrorTasks(p.Trace.OnErrorTask); err != nil {
 		p.Logger.Error("Error-tasks failed: %s", err.Details)
 	}
 }
@@ -393,6 +388,10 @@ func (p *Pipeline) errDo(code types.TransferErrorCode, msg, cause string) {
 
 	p.Logger.Error(fullMsg)
 	p.stop()
+
+	if p.Trace.OnError != nil {
+		p.Trace.OnError(types.NewTransferError(code, "%s: %s", msg, cause))
+	}
 
 	go func() {
 		p.TransCtx.Transfer.Error = *types.NewTransferError(code, fullMsg)
@@ -434,7 +433,7 @@ func (p *Pipeline) SetError(err *types.TransferError) {
 func (p *Pipeline) stop() {
 	switch p.machine.Last() {
 	case statePreTasks, statePostTasks:
-		p.runner.Stop()
+		p.Runner.Stop()
 	case stateReading, stateWriting, stateDataEnd:
 		p.Stream.stop()
 	}
@@ -442,11 +441,19 @@ func (p *Pipeline) stop() {
 
 // Pause stops the pipeline and pauses the transfer.
 func (p *Pipeline) Pause(handles ...func()) {
+	if p.Trace.OnPause != nil {
+		p.Trace.OnPause()
+	}
+
 	p.halt("Transfer paused by user", types.StatusPaused, handles...)
 }
 
 // Interrupt stops the pipeline and interrupts the transfer.
 func (p *Pipeline) Interrupt(handles ...func()) {
+	if p.Trace.OnInterruption != nil {
+		p.Trace.OnInterruption()
+	}
+
 	p.halt("Transfer interrupted by a service shutdown", types.StatusInterrupted, handles...)
 }
 
@@ -471,6 +478,10 @@ func (p *Pipeline) Cancel(handles ...func()) {
 	p.errOnce.Do(func() {
 		if mErr := p.machine.Transition(stateError); mErr != nil {
 			p.Logger.Warning("Failed to transition to 'error' state: %v", mErr)
+		}
+
+		if p.Trace.OnCancel != nil {
+			p.Trace.OnCancel()
 		}
 
 		for _, handle := range handles {
@@ -547,5 +558,7 @@ func (p *Pipeline) done(state statemachine.State) {
 		TransferInCount.Sub()
 	}
 
-	Tester.done(p.TransCtx.Transfer.IsServer())
+	if p.Trace.OnTransferEnd != nil {
+		p.Trace.OnTransferEnd()
+	}
 }

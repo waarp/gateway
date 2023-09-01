@@ -30,6 +30,7 @@ type serverPipeline struct {
 // initPipeline initializes the pipeline.
 func initPipeline(db *database.DB, logger *log.Logger, trans *model.Transfer,
 	endSession func(context.Context), transList *service.TransferMap,
+	setTrace func() pipeline.Trace,
 ) (*serverPipeline, error) {
 	var tErr *types.TransferError
 
@@ -41,6 +42,10 @@ func initPipeline(db *database.DB, logger *log.Logger, trans *model.Transfer,
 	pip, tErr := pipeline.NewServerPipeline(db, trans)
 	if tErr != nil {
 		return nil, toSFTPErr(tErr)
+	}
+
+	if setTrace != nil {
+		pip.Trace = setTrace()
 	}
 
 	servPip := &serverPipeline{
@@ -59,8 +64,9 @@ func initPipeline(db *database.DB, logger *log.Logger, trans *model.Transfer,
 // pre-tasks, and returns the pipeline.
 func newServerPipeline(db *database.DB, logger *log.Logger, trans *model.Transfer,
 	transList *service.TransferMap, endSession func(context.Context),
+	setTrace func() pipeline.Trace,
 ) (*serverPipeline, error) {
-	servPip, err := initPipeline(db, logger, trans, endSession, transList)
+	servPip, err := initPipeline(db, logger, trans, endSession, transList, setTrace)
 	if err != nil {
 		return nil, err
 	}

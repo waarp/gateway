@@ -15,6 +15,7 @@ import (
 	"code.waarp.fr/apps/gateway/gateway/pkg/gatewayd/service/state"
 	"code.waarp.fr/apps/gateway/gateway/pkg/model"
 	"code.waarp.fr/apps/gateway/gateway/pkg/model/config"
+	"code.waarp.fr/apps/gateway/gateway/pkg/pipeline"
 )
 
 // Service represents an instance of SFTP server.
@@ -150,3 +151,5 @@ func (s *Service) State() *state.State {
 func (s *Service) ManageTransfers() *service.TransferMap {
 	return s.runningTransfers
 }
+
+func (s *Service) SetTracer(f func() pipeline.Trace) { s.listener.tracer = f }

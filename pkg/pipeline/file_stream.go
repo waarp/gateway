@@ -72,18 +72,26 @@ func (f *FileStream) Read(p []byte) (int, error) {
 		return n, uErr
 	}
 
-	if err == nil {
-		return n, nil
+	if err != nil {
+		if errors.Is(err, io.EOF) {
+			return n, io.EOF
+		}
+
+		f.handleError(types.TeDataTransfer, "Failed to read from the file stream",
+			err.Error())
+
+		return n, errRead
 	}
 
-	if errors.Is(err, io.EOF) {
-		return n, io.EOF
+	if f.Trace.OnRead != nil {
+		if testErr := wrapTestError(f.Trace.OnRead(f.TransCtx.Transfer.Progress)); testErr != nil {
+			f.handleError(testErr.Code, "test error", testErr.Details)
+
+			return n, testErr
+		}
 	}
 
-	f.handleError(types.TeDataTransfer, "Failed to read from the file stream",
-		err.Error())
-
-	return n, errRead
+	return n, nil
 }
 
 func (f *FileStream) Write(p []byte) (int, error) {
@@ -98,14 +106,22 @@ func (f *FileStream) Write(p []byte) (int, error) {
 		return n, uErr
 	}
 
-	if err == nil {
-		return n, nil
+	if err != nil {
+		f.handleError(types.TeDataTransfer, "Failed to write to the file stream",
+			err.Error())
+
+		return n, errWrite
 	}
 
-	f.handleError(types.TeDataTransfer, "Failed to write to the file stream",
-		err.Error())
+	if f.Trace.OnWrite != nil {
+		if testErr := wrapTestError(f.Trace.OnWrite(f.TransCtx.Transfer.Progress)); testErr != nil {
+			f.handleError(testErr.Code, "test error", testErr.Details)
 
-	return n, errWrite
+			return n, testErr
+		}
+	}
+
+	return n, nil
 }
 
 // ReadAt reads the stream, starting at the given offset.
@@ -121,18 +137,26 @@ func (f *FileStream) ReadAt(p []byte, off int64) (int, error) {
 		return n, uErr
 	}
 
-	if err == nil {
-		return n, nil
+	if err != nil {
+		if errors.Is(err, io.EOF) {
+			return n, io.EOF
+		}
+
+		f.handleError(types.TeDataTransfer, "Failed to readAt from the file stream",
+			err.Error())
+
+		return n, errRead
 	}
 
-	if errors.Is(err, io.EOF) {
-		return n, io.EOF
+	if f.Trace.OnRead != nil {
+		if testErr := wrapTestError(f.Trace.OnRead(off)); testErr != nil {
+			f.handleError(testErr.Code, "test error", testErr.Details)
+
+			return n, testErr
+		}
 	}
 
-	f.handleError(types.TeDataTransfer, "Failed to readAt from the file stream",
-		err.Error())
-
-	return n, errRead
+	return n, nil
 }
 
 // WriteAt writes the given bytes to the stream, starting at the given offset.
@@ -148,14 +172,22 @@ func (f *FileStream) WriteAt(p []byte, off int64) (int, error) {
 		return n, uErr
 	}
 
-	if err == nil {
-		return n, nil
+	if err != nil {
+		f.handleError(types.TeDataTransfer, "Failed to writeAt to the file stream",
+			err.Error())
+
+		return n, errWrite
 	}
 
-	f.handleError(types.TeDataTransfer, "Failed to writeAt to the file stream",
-		err.Error())
+	if f.Trace.OnWrite != nil {
+		if testErr := wrapTestError(f.Trace.OnWrite(off)); testErr != nil {
+			f.handleError(testErr.Code, "test error", testErr.Details)
 
-	return n, errWrite
+			return n, testErr
+		}
+	}
+
+	return n, nil
 }
 
 // Seek changes the file's current offset to the given one. Any subsequent call
@@ -177,7 +209,11 @@ func (f *FileStream) Seek(off int64, whence int) (int64, error) {
 
 	f.TransCtx.Transfer.Progress = newOff
 
-	return newOff, f.UpdateTrans()
+	if updErr := f.UpdateTrans(); updErr != nil {
+		return newOff, updErr
+	}
+
+	return newOff, nil
 }
 
 // Sync commits the current contents of the file to stable storage (if the
@@ -253,6 +289,12 @@ func (f *FileStream) close() *types.TransferError {
 
 	if dbErr := f.updateTrans(); dbErr != nil {
 		return dbErr
+	}
+
+	if err := testError(f.Trace.OnClose); err != nil {
+		f.handleError(types.TeInternal, "Failed to get final file info", err.Error())
+
+		return err
 	}
 
 	return nil
@@ -332,6 +374,12 @@ func (f *FileStream) move() *types.TransferError {
 
 	if dbErr := f.updateTrans(); dbErr != nil {
 		return dbErr
+	}
+
+	if err := testError(f.Trace.OnMove); err != nil {
+		f.handleError(types.TeInternal, "Failed to get final file info", err.Error())
+
+		return err
 	}
 
 	return nil

@@ -41,7 +41,7 @@ func TestNewFileStream(t *testing.T) {
 			So(pip.machine.Transition(statePreTasksDone), ShouldBeNil)
 
 			Convey("When creating a new transfer stream", func(c C) {
-				stream, err := newFileStream(pip, false)
+				stream, err := newFileStream(pip.Pipeline, false)
 				So(err, ShouldBeNil)
 				// Reset(func() { _ = stream.file.Close() })
 
@@ -62,7 +62,7 @@ func TestNewFileStream(t *testing.T) {
 				So(fs.Remove(ctx.fs, &trans.LocalPath), ShouldBeNil)
 
 				Convey("When creating a new transfer stream", func(c C) {
-					_, err := newFileStream(pip, false)
+					_, err := newFileStream(pip.Pipeline, false)
 
 					Convey("Then it should return an error", func(c C) {
 						So(err, ShouldBeError, types.NewTransferError(

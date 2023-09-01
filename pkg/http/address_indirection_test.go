@@ -16,10 +16,9 @@ func TestAddressIndirection(t *testing.T) {
 	Convey("Given a HTTP service with an indirect address", t, func(c C) {
 		Convey("Given a new POST HTTP transfer", func(c C) {
 			ctx := pipelinetest.InitSelfPushTransfer(c, "http", NewService, nil, nil)
-
 			realAddr := ctx.Server.Address
-			conf.InitTestOverrides(c)
 
+			conf.InitTestOverrides(c)
 			So(conf.AddIndirection(fakeAddr, realAddr), ShouldBeNil)
 			ctx.Server.Address = fakeAddr
 			So(ctx.DB.Update(ctx.Server).Cols("address").Run(), ShouldBeNil)
@@ -34,10 +33,9 @@ func TestAddressIndirection(t *testing.T) {
 				cli := newClient(pip.Pipeline(), nil).(*postClient)
 
 				So(cli.Request(), ShouldBeNil)
-				defer func() {
+				Reset(func() {
 					So(cli.Cancel(), ShouldBeNil)
-					pipeline.Tester.WaitServerDone()
-				}()
+				})
 
 				Convey("Then it should have connected to the server", func() {
 					So(cli.req.URL.Host, ShouldEqual, realAddr)
@@ -47,10 +45,9 @@ func TestAddressIndirection(t *testing.T) {
 
 		Convey("Given a new GET HTTP transfer", func(c C) {
 			ctx := pipelinetest.InitSelfPullTransfer(c, "http", NewService, nil, nil)
-
 			realAddr := ctx.Server.Address
-			conf.InitTestOverrides(c)
 
+			conf.InitTestOverrides(c)
 			So(conf.AddIndirection(fakeAddr, realAddr), ShouldBeNil)
 			ctx.Server.Address = fakeAddr
 			So(ctx.DB.Update(ctx.Server).Cols("address").Run(), ShouldBeNil)
@@ -63,12 +60,9 @@ func TestAddressIndirection(t *testing.T) {
 
 				//nolint:forcetypeassert //no need, the type assertion will always succeed
 				cli := newClient(pip.Pipeline(), nil).(*getClient)
-
 				So(cli.Request(), ShouldBeNil)
-				defer func() {
-					cli.SendError(nil)
-					pipeline.Tester.WaitServerDone()
-				}()
+
+				defer func() { cli.SendError(nil) }()
 
 				Convey("Then it should have connected to the server", func() {
 					So(cli.resp.Request.URL.Host, ShouldEqual, realAddr)

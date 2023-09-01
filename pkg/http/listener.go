@@ -114,6 +114,7 @@ func (h *httpService) makeHandler() http.HandlerFunc {
 			running: h.running,
 			agent:   &agent,
 			account: acc,
+			tracer:  h.tracer,
 			db:      h.db,
 			logger:  h.logger,
 			req:     r,

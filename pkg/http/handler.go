@@ -24,6 +24,7 @@ type httpHandler struct {
 	account *model.LocalAccount
 	rule    model.Rule
 
+	tracer func() pipeline.Trace
 	db     *database.DB
 	logger *log.Logger
 	req    *http.Request
@@ -242,6 +243,10 @@ func (h *httpHandler) handle(isSend bool) {
 		h.sendError(http.StatusInternalServerError, err.Code, err.Details)
 
 		return
+	}
+
+	if h.tracer != nil {
+		pip.Trace = h.tracer()
 	}
 
 	h.logger.Info("%s of file %s requested by %s using rule %s, transfer "+

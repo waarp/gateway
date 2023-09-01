@@ -19,6 +19,7 @@ import (
 	"code.waarp.fr/apps/gateway/gateway/pkg/gatewayd/service/state"
 	"code.waarp.fr/apps/gateway/gateway/pkg/model"
 	"code.waarp.fr/apps/gateway/gateway/pkg/model/config"
+	"code.waarp.fr/apps/gateway/gateway/pkg/pipeline"
 )
 
 const readHeaderTimeout = 10 * time.Second
@@ -31,6 +32,7 @@ type httpService struct {
 
 	conf    config.HTTPProtoConfig
 	serv    *http.Server
+	tracer  func() pipeline.Trace
 	running *service.TransferMap
 
 	shutdown chan struct{}
@@ -158,3 +160,5 @@ func (h *httpService) State() *state.State {
 func (h *httpService) ManageTransfers() *service.TransferMap {
 	return h.running
 }
+
+func (h *httpService) SetTracer(f func() pipeline.Trace) { h.tracer = f }

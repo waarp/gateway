@@ -1,14 +1,13 @@
 package pipeline
 
 import (
-	"context"
 	"encoding/json"
 	"errors"
 	"io"
 	"path"
+	"sync/atomic"
 	"time"
 
-	"code.waarp.fr/lib/log"
 	. "github.com/smartystreets/goconvey/convey"
 	"golang.org/x/crypto/bcrypt"
 
@@ -44,8 +43,6 @@ func init() {
 	config.ProtoConfigs[testProtocol] = func() config.ProtoConfig {
 		return new(testhelpers.TestProtoConfig)
 	}
-
-	model.ValidTasks[TaskWait] = &taskWait{}
 }
 
 func mkURL(elem ...string) *types.URL {
@@ -271,14 +268,37 @@ func initFilestream(ctx *testContext, trans *model.Transfer) *FileStream {
 	return stream
 }
 
-func newTestPipeline(c C, db *database.DB, trans *model.Transfer) *Pipeline {
-	InitTester(c)
+type testPipeline struct {
+	*Pipeline
+	preTasks,
+	postTasks,
+	errTasks uint32
+	transDone chan bool
+}
 
+func newTestPipeline(c C, db *database.DB, trans *model.Transfer) *testPipeline {
 	pip, err := NewClientPipeline(db, trans)
-	So(err, ShouldBeNil)
+	c.So(err, ShouldBeNil)
 	pip.Pip.updTicker.Reset(testTransferUpdateInterval)
 
-	return pip.Pip
+	testPip := &testPipeline{Pipeline: pip.Pip, transDone: make(chan bool)}
+
+	pip.Pip.Trace = Trace{
+		OnPreTask: func(rank int8) error {
+			atomic.AddUint32(&testPip.preTasks, 1)
+
+			return nil
+		},
+		OnPostTask: func(rank int8) error {
+			atomic.AddUint32(&testPip.postTasks, 1)
+
+			return nil
+		},
+		OnErrorTask:   func(rank int8) { atomic.AddUint32(&testPip.errTasks, 1) },
+		OnTransferEnd: func() { close(testPip.transDone) },
+	}
+
+	return testPip
 }
 
 //nolint:gochecknoglobals //this is just for tests
@@ -366,19 +386,4 @@ func (t *testProtoClient) EndTransfer() *types.TransferError {
 
 func (t *testProtoClient) SendError(err *types.TransferError) {
 	errChan <- err
-}
-
-const TaskWait = "TaskWait"
-
-//nolint:gochecknoglobals //this is only used for tests
-var taskChan = make(chan bool)
-
-type taskWait struct{}
-
-// Run executes the dummy task, which will always succeed.
-func (t *taskWait) Run(context.Context, map[string]string, *database.DB, *log.Logger, *model.TransferContext) error {
-	<-taskChan
-	time.Sleep(100 * time.Millisecond)
-
-	return nil
 }
