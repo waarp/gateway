@@ -12,10 +12,8 @@ import (
 
 	"code.waarp.fr/apps/gateway/gateway/pkg/conf"
 	"code.waarp.fr/apps/gateway/gateway/pkg/database"
-	"code.waarp.fr/apps/gateway/gateway/pkg/gatewayd/service"
-	"code.waarp.fr/apps/gateway/gateway/pkg/gatewayd/service/proto"
-	"code.waarp.fr/apps/gateway/gateway/pkg/gatewayd/service/state"
-	"code.waarp.fr/apps/gateway/gateway/pkg/tk/utils/testhelpers"
+	"code.waarp.fr/apps/gateway/gateway/pkg/utils"
+	"code.waarp.fr/apps/gateway/gateway/pkg/utils/testhelpers"
 )
 
 func TestStart(t *testing.T) {
@@ -32,11 +30,7 @@ func TestStart(t *testing.T) {
 			TLSCert: certFile,
 			TLSKey:  keyFile,
 		}
-		server := &Server{
-			CoreServices:  map[string]service.Service{},
-			ProtoServices: map[string]proto.Service{},
-		}
-
+		server := &Server{}
 		Reset(func() { _ = server.server.Close() })
 
 		Convey("Given a correct configuration", func() {
@@ -48,19 +42,19 @@ func TestStart(t *testing.T) {
 				})
 
 				Convey("Then the service should be running", func() {
-					code, reason := server.State().Get()
+					code, reason := server.State()
 
-					So(code, ShouldEqual, state.Running)
+					So(code, ShouldEqual, utils.StateRunning)
 					So(reason, ShouldBeEmpty)
 				})
 
 				Convey("When starting the service a second time", func() {
-					So(server.Start(), ShouldBeNil)
+					So(server.Start(), ShouldBeError, utils.ErrAlreadyRunning)
 
 					Convey("Then the service should still be running", func() {
-						code, reason := server.State().Get()
+						code, reason := server.State()
 
-						So(code, ShouldEqual, state.Running)
+						So(code, ShouldEqual, utils.StateRunning)
 						So(reason, ShouldBeEmpty)
 					})
 				})
@@ -81,9 +75,9 @@ func TestStart(t *testing.T) {
 			})
 
 			Convey("Then the service should be running", func() {
-				code, reason := server.State().Get()
+				code, reason := server.State()
 
-				So(code, ShouldEqual, state.Running)
+				So(code, ShouldEqual, utils.StateRunning)
 				So(reason, ShouldBeEmpty)
 			})
 		})
@@ -91,10 +85,7 @@ func TestStart(t *testing.T) {
 		Convey("Given an incorrect host", func() {
 			conf.GlobalConfig.Admin.Host = "invalid_host"
 			conf.GlobalConfig.Admin.Port = 0
-			rest := &Server{
-				CoreServices:  map[string]service.Service{},
-				ProtoServices: map[string]proto.Service{},
-			}
+			rest := &Server{}
 
 			Convey("When starting the service", func() {
 				err := rest.Start()
@@ -110,10 +101,7 @@ func TestStart(t *testing.T) {
 			conf.GlobalConfig.Admin.Port = 0
 			conf.GlobalConfig.Admin.TLSCert = "not_a_cert"
 			conf.GlobalConfig.Admin.TLSKey = "not_a_key"
-			rest := &Server{
-				CoreServices:  map[string]service.Service{},
-				ProtoServices: map[string]proto.Service{},
-			}
+			rest := &Server{}
 
 			Convey("When starting the service", func() {
 				err := rest.Start()
@@ -129,10 +117,7 @@ func TestStart(t *testing.T) {
 func TestStop(t *testing.T) {
 	Convey("Given a running REST service", t, func() {
 		conf.GlobalConfig.Admin = conf.AdminConfig{Host: "localhost"}
-		rest := &Server{
-			CoreServices:  map[string]service.Service{},
-			ProtoServices: map[string]proto.Service{},
-		}
+		rest := &Server{}
 
 		err := rest.Start()
 		So(err, ShouldBeNil)
@@ -141,13 +126,9 @@ func TestStop(t *testing.T) {
 			addr := rest.server.Addr
 
 			ctx, cancel := context.WithTimeout(context.Background(), time.Second*10)
-			err := rest.Stop(ctx)
+			So(rest.Stop(ctx), ShouldBeNil)
 
 			Reset(cancel)
-
-			Convey("Then it should return no error", func() {
-				So(err, ShouldBeNil)
-			})
 
 			Convey("Then the service should no longer respond to requests", func() {
 				client := new(http.Client)
@@ -162,13 +143,16 @@ func TestStop(t *testing.T) {
 			})
 
 			Convey("When the service is stopped a 2nd time", func() {
-				ctx, cancel := context.WithTimeout(context.Background(), time.Second*10)
-				err := rest.Stop(ctx)
+				ctx2, cancel2 := context.WithTimeout(context.Background(), time.Second*10)
+				So(rest.Stop(ctx2), ShouldBeError, utils.ErrNotRunning)
 
-				Reset(cancel)
+				Reset(cancel2)
 
 				Convey("Then it should not do anything", func() {
-					So(err, ShouldBeNil)
+					code, reason := rest.State()
+
+					So(code, ShouldEqual, utils.StateOffline)
+					So(reason, ShouldBeEmpty)
 				})
 			})
 		})

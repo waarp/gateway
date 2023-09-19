@@ -11,7 +11,7 @@ import (
 	"code.waarp.fr/apps/gateway/gateway/pkg/conf"
 	"code.waarp.fr/apps/gateway/gateway/pkg/database"
 	"code.waarp.fr/apps/gateway/gateway/pkg/model"
-	"code.waarp.fr/apps/gateway/gateway/pkg/tk/utils"
+	"code.waarp.fr/apps/gateway/gateway/pkg/utils"
 )
 
 func dbUserToRESTInput(old *model.User) *api.InUser {
@@ -61,6 +61,7 @@ func DBUsersToREST(dbUsers []*model.User) []*api.OutUser {
 	return restUsers
 }
 
+//nolint:dupl //duplicate is for a completely different type (servers), keep separate
 func retrieveDBUser(r *http.Request, db *database.DB) (*model.User, error) {
 	username, ok := mux.Vars(r)["user"]
 	if !ok {
@@ -74,7 +75,7 @@ func retrieveDBUser(r *http.Request, db *database.DB) (*model.User, error) {
 			return nil, notFound("user '%s' not found", username)
 		}
 
-		return nil, err
+		return nil, fmt.Errorf("failed to retrieve user %q: %w", username, err)
 	}
 
 	return &user, nil

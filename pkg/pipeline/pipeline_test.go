@@ -1,6 +1,7 @@
 package pipeline
 
 import (
+	"context"
 	"path"
 	"sync/atomic"
 	"testing"
@@ -13,12 +14,15 @@ import (
 	"code.waarp.fr/apps/gateway/gateway/pkg/model"
 	"code.waarp.fr/apps/gateway/gateway/pkg/model/types"
 	"code.waarp.fr/apps/gateway/gateway/pkg/tasks/taskstest"
-	"code.waarp.fr/apps/gateway/gateway/pkg/tk/utils"
+	"code.waarp.fr/apps/gateway/gateway/pkg/utils"
 )
 
 func TestNewClientPipeline(t *testing.T) {
-	TransferOutCount = &count{}
-	TransferInCount = &count{}
+	resetPip := func(pip *Pipeline) {
+		if pip != nil {
+			Reset(pip.doneOK)
+		}
+	}
 
 	Convey("Given a database", t, func(c C) {
 		ctx := initTestDB(c)
@@ -27,15 +31,19 @@ func TestNewClientPipeline(t *testing.T) {
 			trans := mkSendTransfer(ctx, "file")
 			file := mkURL(ctx.root, ctx.send.LocalDir, "file")
 
+			transCtx, err := model.GetTransferContext(ctx.db, ctx.logger, trans)
+			So(err, ShouldBeNil)
+
 			Convey("When initiating a new pipeline for this transfer", func(c C) {
-				pip, err := NewClientPipeline(ctx.db, trans)
+				pip, err := NewClientPipeline(ctx.db, ctx.logger, transCtx)
 				So(err, ShouldBeNil)
+				resetPip(pip)
 
 				Convey("Then it should create the corresponding pipeline", func(c C) {
 					So(pip, ShouldNotBeNil)
 
 					Convey("Then the pipeline's state machine should have been initiated", func(c C) {
-						So(pip.Pip.machine.Current(), ShouldEqual, stateInit)
+						So(pip.machine.Current(), ShouldEqual, stateInit)
 					})
 
 					Convey("Then the transfer's paths should have been initiated", func(c C) {
@@ -51,7 +59,8 @@ func TestNewClientPipeline(t *testing.T) {
 				So(fs.Remove(ctx.fs, file), ShouldBeNil)
 
 				Convey("When initiating a new pipeline for this transfer", func(c C) {
-					_, err := NewClientPipeline(ctx.db, trans)
+					pip, err := NewClientPipeline(ctx.db, ctx.logger, transCtx)
+					resetPip(pip)
 
 					Convey("Then it should NOT return an error", func(c C) {
 						So(err, ShouldBeNil)
@@ -60,30 +69,19 @@ func TestNewClientPipeline(t *testing.T) {
 			})
 
 			Convey("Given that the transfer limit has been reached", func(c C) {
-				TransferOutCount.SetLimit(1)
-				TransferOutCount.Add()
+				List.countClient++
+				List.SetLimits(NoLimit, 1)
+
 				Reset(func() {
-					TransferOutCount.Sub()
-					TransferOutCount.SetLimit(0)
+					List.countClient--
+					List.SetLimits(NoLimit, NoLimit)
 				})
 
 				Convey("When initiating a new pipeline for this transfer", func(c C) {
-					_, err := NewClientPipeline(ctx.db, trans)
+					_, err := NewClientPipeline(ctx.db, ctx.logger, transCtx)
 
 					Convey("Then it should return an error", func(c C) {
-						So(err, ShouldBeError, errLimitReached)
-					})
-				})
-			})
-
-			Convey("Given that a database error occurs", func(c C) {
-				database.SimulateError(c, ctx.db)
-
-				Convey("When initiating a new pipeline for this transfer", func(c C) {
-					_, err := NewClientPipeline(ctx.db, trans)
-
-					Convey("Then it should return an error", func(c C) {
-						So(err, ShouldBeError, errDatabase)
+						So(err, ShouldBeError, ErrLimitReached)
 					})
 				})
 			})
@@ -93,15 +91,19 @@ func TestNewClientPipeline(t *testing.T) {
 			filename := "file"
 			trans := mkRecvTransfer(ctx, filename)
 
+			transCtx, err := model.GetTransferContext(ctx.db, ctx.logger, trans)
+			So(err, ShouldBeNil)
+
 			Convey("When initiating a new pipeline for this transfer", func(c C) {
-				pip, err := NewClientPipeline(ctx.db, trans)
+				pip, err := NewClientPipeline(ctx.db, ctx.logger, transCtx)
 				So(err, ShouldBeNil)
+				resetPip(pip)
 
 				Convey("Then it should create the corresponding pipeline", func(c C) {
 					So(pip, ShouldNotBeNil)
 
 					Convey("Then the pipeline's state machine should have been initiated", func(c C) {
-						So(pip.Pip.machine.Current(), ShouldEqual, stateInit)
+						So(pip.machine.Current(), ShouldEqual, stateInit)
 					})
 
 					Convey("Then the transfer's paths should have been initiated", func(c C) {
@@ -114,18 +116,20 @@ func TestNewClientPipeline(t *testing.T) {
 			})
 
 			Convey("Given that the transfer limit has been reached", func(c C) {
-				TransferInCount.SetLimit(1)
-				TransferInCount.Add()
+				List.countServer++
+				List.SetLimits(1, NoLimit)
+
 				Reset(func() {
-					TransferInCount.Sub()
-					TransferInCount.SetLimit(0)
+					List.countServer--
+					List.SetLimits(NoLimit, NoLimit)
 				})
 
 				Convey("When initiating a new pipeline for this transfer", func(c C) {
-					_, err := NewClientPipeline(ctx.db, trans)
+					pip, err := NewClientPipeline(ctx.db, ctx.logger, transCtx)
+					resetPip(pip)
 
 					Convey("Then it should return an error", func(c C) {
-						So(err, ShouldBeError, errLimitReached)
+						So(err, ShouldBeError, ErrLimitReached)
 					})
 				})
 			})
@@ -185,7 +189,7 @@ func TestPipelinePreTasks(t *testing.T) {
 			time.Sleep(testTransferUpdateInterval)
 
 			Convey("When calling the pre-tasks", func(c C) {
-				So(pip.PreTasks(), ShouldBeError, errDatabase)
+				So(pip.PreTasks(), ShouldBeError, ErrDatabase)
 
 				Convey("Then the transfer should end in error", func(c C) {
 					utils.WaitChan(pip.transDone, time.Second)
@@ -278,7 +282,7 @@ func TestPipelineStartData(t *testing.T) {
 
 			Convey("When starting the data transfer", func(c C) {
 				_, err := pip.StartData()
-				So(err, ShouldBeError, errDatabase)
+				So(err, ShouldBeError, ErrDatabase)
 
 				Convey("Then the transfer should end in error", func(c C) {
 					utils.WaitChan(pip.transDone, time.Second)
@@ -330,7 +334,7 @@ func TestPipelineEndData(t *testing.T) {
 
 			database.SimulateError(c, ctx.db)
 			time.Sleep(testTransferUpdateInterval)
-			So(pip.EndData(), ShouldBeError, errDatabase)
+			So(pip.EndData(), ShouldBeError, ErrDatabase)
 
 			Convey("Then the transfer should end in error", func(c C) {
 				utils.WaitChan(pip.transDone, time.Second)
@@ -400,7 +404,7 @@ func TestPipelinePostTasks(t *testing.T) {
 			time.Sleep(testTransferUpdateInterval)
 
 			Convey("When calling the post-tasks", func(c C) {
-				So(pip.PostTasks(), ShouldBeError, errDatabase)
+				So(pip.PostTasks(), ShouldBeError, ErrDatabase)
 
 				Convey("Then the transfer should end in error", func(c C) {
 					utils.WaitChan(pip.transDone, time.Second)
@@ -660,7 +664,7 @@ func TestPipelinePause(t *testing.T) {
 		}}
 
 		Convey("Given an pre-transfer pause", func(c C) {
-			pip.Pause()
+			So(pip.Pause(context.Background()), ShouldBeNil)
 			utils.WaitChan(pip.transDone, time.Second)
 
 			Convey("Then it should NOT have called the error-tasks", func(c C) {
@@ -708,7 +712,7 @@ func TestPipelinePause(t *testing.T) {
 			go func() { taskErr <- pip.PreTasks() }()
 
 			<-taskChan
-			pip.Pause()
+			So(pip.Pause(context.Background()), ShouldBeNil)
 
 			utils.WaitChan(pip.transDone, time.Second)
 
@@ -736,7 +740,7 @@ func TestPipelinePause(t *testing.T) {
 			_, err := pip.StartData()
 			So(err, ShouldBeNil)
 
-			pip.Pause()
+			So(pip.Pause(context.Background()), ShouldBeNil)
 			utils.WaitChan(pip.transDone, time.Second)
 
 			Convey("Then it should NOT have called the error-tasks", func(c C) {
@@ -789,7 +793,7 @@ func TestPipelinePause(t *testing.T) {
 			go func() { taskErr <- pip.PostTasks() }()
 
 			<-taskChan
-			pip.Pause()
+			So(pip.Pause(context.Background()), ShouldBeNil)
 
 			utils.WaitChan(pip.transDone, time.Second)
 
@@ -818,7 +822,7 @@ func TestPipelinePause(t *testing.T) {
 			So(pip.EndData(), ShouldBeNil)
 			So(pip.PostTasks(), ShouldBeNil)
 
-			pip.Pause()
+			So(pip.Pause(context.Background()), ShouldBeNil)
 			utils.WaitChan(pip.transDone, time.Second)
 
 			Convey("Then it should NOT have called the error-tasks", func(c C) {
@@ -855,7 +859,7 @@ func TestPipelineCancel(t *testing.T) {
 		}}
 
 		Convey("Given an pre-transfer cancel", func(c C) {
-			pip.Cancel()
+			So(pip.Cancel(context.Background()), ShouldBeNil)
 			utils.WaitChan(pip.transDone, time.Second)
 
 			Convey("Then it should NOT have called the error-tasks", func(c C) {
@@ -903,7 +907,7 @@ func TestPipelineCancel(t *testing.T) {
 			go func() { taskErr <- pip.PreTasks() }()
 
 			<-taskChan
-			pip.Cancel()
+			So(pip.Cancel(context.Background()), ShouldBeNil)
 
 			utils.WaitChan(pip.transDone, time.Second)
 
@@ -931,7 +935,7 @@ func TestPipelineCancel(t *testing.T) {
 			_, err := pip.StartData()
 			So(err, ShouldBeNil)
 
-			pip.Cancel()
+			So(pip.Cancel(context.Background()), ShouldBeNil)
 			utils.WaitChan(pip.transDone, time.Second)
 
 			Convey("Then it should NOT have called the error-tasks", func(c C) {
@@ -984,7 +988,7 @@ func TestPipelineCancel(t *testing.T) {
 			go func() { taskErr <- pip.PostTasks() }()
 
 			<-taskChan
-			pip.Cancel()
+			So(pip.Cancel(context.Background()), ShouldBeNil)
 
 			utils.WaitChan(pip.transDone, time.Second)
 
@@ -1013,7 +1017,7 @@ func TestPipelineCancel(t *testing.T) {
 			So(pip.EndData(), ShouldBeNil)
 			So(pip.PostTasks(), ShouldBeNil)
 
-			pip.Cancel()
+			So(pip.Cancel(context.Background()), ShouldBeNil)
 			utils.WaitChan(pip.transDone, time.Second)
 
 			Convey("Then it should NOT have called the error-tasks", func(c C) {

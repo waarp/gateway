@@ -31,6 +31,23 @@ func setupDatabaseUpTo(eng *testEngine, target Script) {
 	So(eng.Engine.Upgrade(makeMigration(Migrations[:index])), ShouldBeNil)
 }
 
+func nextRowShouldBe(rows *sql.Rows, expectedVals ...any) {
+	vals := make([]any, len(expectedVals))
+	valsPtr := make([]any, len(expectedVals))
+
+	for i := range vals {
+		vals[i] = reflect.New(reflect.TypeOf(expectedVals[i])).Elem().Interface()
+		valsPtr[i] = &vals[i]
+	}
+
+	So(rows.Next(), ShouldBeTrue)
+	So(rows.Scan(valsPtr...), ShouldBeNil)
+
+	for i := range vals {
+		So(vals[i], ShouldEqual, expectedVals[i])
+	}
+}
+
 func doesIndexExist(db *sql.DB, dialect, table, index string) bool {
 	var (
 		rows *sql.Rows

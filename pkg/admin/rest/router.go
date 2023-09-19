@@ -7,8 +7,6 @@ import (
 	"github.com/gorilla/mux"
 
 	"code.waarp.fr/apps/gateway/gateway/pkg/database"
-	"code.waarp.fr/apps/gateway/gateway/pkg/gatewayd/service"
-	"code.waarp.fr/apps/gateway/gateway/pkg/gatewayd/service/proto"
 	"code.waarp.fr/apps/gateway/gateway/pkg/model"
 )
 
@@ -90,14 +88,13 @@ const (
 //
 //nolint:funlen // hard to shorten
 func MakeRESTHandler(logger *log.Logger, db *database.DB, router *mux.Router,
-	coreServices map[string]service.Service, protoServices map[string]proto.Service,
 ) {
 	router.StrictSlash(true)
 
 	router.Name("GET " + StatusPath).Path(StatusPath).Methods(http.MethodGet).
-		Handler(getStatus(logger, coreServices, protoServices))
+		Handler(getStatus(logger))
 	router.Name("GET " + AboutPath).Path(AboutPath).Methods(http.MethodGet).
-		Handler(makeAbout(logger, coreServices, protoServices))
+		Handler(makeAbout(logger))
 
 	mkHandler := makeHandlerFactory(logger, db, router)
 
@@ -121,11 +118,11 @@ func MakeRESTHandler(logger *log.Logger, db *database.DB, router *mux.Router,
 	// Transfers
 	mkHandler(TransfersPath, listTransfers, model.PermTransfersRead, http.MethodGet)
 	mkHandler(TransfersPath, addTransfer, model.PermTransfersWrite, http.MethodPost)
-	mkHandler(TransfersPath, cancelTransfers(protoServices), model.PermTransfersWrite, http.MethodDelete)
+	mkHandler(TransfersPath, cancelTransfers, model.PermTransfersWrite, http.MethodDelete)
 	mkHandler(TransferPath, getTransfer, model.PermTransfersRead, http.MethodGet)
-	mkHandler(TransPausePath, pauseTransfer(protoServices), model.PermTransfersWrite, http.MethodPut)
+	mkHandler(TransPausePath, pauseTransfer, model.PermTransfersWrite, http.MethodPut)
 	mkHandler(TransResumePath, resumeTransfer, model.PermTransfersWrite, http.MethodPut)
-	mkHandler(TransCancelPath, cancelTransfer(protoServices), model.PermTransfersWrite, http.MethodPut)
+	mkHandler(TransCancelPath, cancelTransfer, model.PermTransfersWrite, http.MethodPut)
 	mkHandler(TransRetryPath, retryTransfer, model.PermTransfersWrite, http.MethodPut)
 
 	// History
@@ -135,11 +132,11 @@ func MakeRESTHandler(logger *log.Logger, db *database.DB, router *mux.Router,
 
 	// Servers
 	mkHandler(ServersPath, listServers, model.PermServersRead, http.MethodGet)
-	mkHandler(ServersPath, addServer(protoServices), model.PermServersWrite, http.MethodPost)
+	mkHandler(ServersPath, addServer, model.PermServersWrite, http.MethodPost)
 	mkHandler(ServerPath, getServer, model.PermServersRead, http.MethodGet)
-	mkHandler(ServerPath, deleteServer(protoServices), model.PermServersDelete, http.MethodDelete)
-	mkHandler(ServerPath, updateServer(protoServices), model.PermServersWrite, http.MethodPatch)
-	mkHandler(ServerPath, replaceServer(protoServices), model.PermServersWrite, http.MethodPut)
+	mkHandler(ServerPath, deleteServer, model.PermServersDelete, http.MethodDelete)
+	mkHandler(ServerPath, updateServer, model.PermServersWrite, http.MethodPatch)
+	mkHandler(ServerPath, replaceServer, model.PermServersWrite, http.MethodPut)
 	mkHandler(ServerPathEnable, enableServer, model.PermServersWrite, http.MethodPut)
 	mkHandler(ServerPathDisable, disableServer, model.PermServersWrite, http.MethodPut)
 	mkHandler(ServerCertsPath, listServerCerts, model.PermServersRead, http.MethodGet)
@@ -150,9 +147,9 @@ func MakeRESTHandler(logger *log.Logger, db *database.DB, router *mux.Router,
 	mkHandler(ServerCertPath, replaceServerCert, model.PermServersWrite, http.MethodPut)
 	mkHandler(ServerAuthPath, authorizeServer, model.PermRulesWrite, http.MethodPut)
 	mkHandler(ServerRevPath, revokeServer, model.PermRulesWrite, http.MethodPut)
-	mkHandler(ServerStartPath, startServer(protoServices), model.PermServersWrite, http.MethodPut)
-	mkHandler(ServerStopPath, stopServer(protoServices), model.PermServersWrite, http.MethodPut)
-	mkHandler(ServerRestartPath, restartServer(protoServices), model.PermServersWrite, http.MethodPut)
+	mkHandler(ServerStartPath, startServer, model.PermServersWrite, http.MethodPut)
+	mkHandler(ServerStopPath, stopServer, model.PermServersWrite, http.MethodPut)
+	mkHandler(ServerRestartPath, restartServer, model.PermServersWrite, http.MethodPut)
 
 	// Local accounts
 	mkHandler(LocAccountsPath, listLocalAccounts, model.PermServersRead, http.MethodGet)

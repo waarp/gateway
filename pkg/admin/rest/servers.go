@@ -13,19 +13,15 @@ import (
 	"code.waarp.fr/apps/gateway/gateway/pkg/admin/rest/api"
 	"code.waarp.fr/apps/gateway/gateway/pkg/conf"
 	"code.waarp.fr/apps/gateway/gateway/pkg/database"
-	"code.waarp.fr/apps/gateway/gateway/pkg/gatewayd/service/constructors"
-	"code.waarp.fr/apps/gateway/gateway/pkg/gatewayd/service/proto"
-	"code.waarp.fr/apps/gateway/gateway/pkg/gatewayd/service/state"
+	"code.waarp.fr/apps/gateway/gateway/pkg/gatewayd/services"
 	"code.waarp.fr/apps/gateway/gateway/pkg/model"
+	"code.waarp.fr/apps/gateway/gateway/pkg/protocols"
+	"code.waarp.fr/apps/gateway/gateway/pkg/utils"
 )
 
-const (
-	ServerRestartRequiredMsg = "A restart is required when changing a server's " +
-		"name, protocol or address for the changes to be effective."
-	ServerCertRestartRequiredMsg = "A restart is required when changing a server's " +
-		"certificates for the changes to be effective."
-)
+const serviceShutdownTimeout = 5 * time.Second
 
+//nolint:dupl //duplicate is for a completely different type (users), keep separate
 func getDBServer(r *http.Request, db *database.DB) (*model.LocalAgent, error) {
 	serverName, ok := mux.Vars(r)["server"]
 	if !ok {
@@ -39,22 +35,10 @@ func getDBServer(r *http.Request, db *database.DB) (*model.LocalAgent, error) {
 			return nil, notFound("server '%s' not found", serverName)
 		}
 
-		return nil, err
+		return nil, fmt.Errorf("failed to retrieve server %q: %w", serverName, err)
 	}
 
 	return &serv, nil
-}
-
-func updateServiceName(oldName, newName string, m map[string]proto.Service) error {
-	service, ok := m[oldName]
-	if !ok {
-		return internal("service %q not found", oldName)
-	}
-
-	delete(m, oldName)
-	m[newName] = service
-
-	return nil
 }
 
 func getServer(logger *log.Logger, db *database.DB) http.HandlerFunc {
@@ -110,127 +94,151 @@ func listServers(logger *log.Logger, db *database.DB) http.HandlerFunc {
 	}
 }
 
-func addServer(protoServices map[string]proto.Service) handler {
-	return func(logger *log.Logger, db *database.DB) http.HandlerFunc {
-		return func(w http.ResponseWriter, r *http.Request) {
-			var restServer api.InServer
-			if err := readJSON(r, &restServer); handleError(w, logger, err) {
-				return
-			}
-
-			dbServer := restServerToDB(&restServer, logger)
-			if err := db.Insert(dbServer).Run(); handleError(w, logger, err) {
-				return
-			}
-
-			constr := constructors.ServiceConstructors[dbServer.Protocol]
-			serverLog := conf.GetLogger(dbServer.Name)
-
-			protoServices[dbServer.Name] = constr(db, serverLog)
-
-			w.Header().Set("Location", location(r.URL, dbServer.Name))
-			w.WriteHeader(http.StatusCreated)
+func addServer(logger *log.Logger, db *database.DB) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		var restServer api.InServer
+		if err := readJSON(r, &restServer); handleError(w, logger, err) {
+			return
 		}
+
+		dbServer := restServerToDB(&restServer, logger)
+		if err := db.Insert(dbServer).Run(); handleError(w, logger, err) {
+			return
+		}
+
+		module := protocols.Get(dbServer.Protocol)
+
+		server := module.NewServer(db, dbServer)
+		if err := server.Start(); handleError(w, logger, err) {
+			return
+		}
+
+		services.Servers[dbServer.Name] = server
+
+		w.Header().Set("Location", location(r.URL, dbServer.Name))
+		w.WriteHeader(http.StatusCreated)
 	}
 }
 
-func updateServer(protoServices map[string]proto.Service) handler {
-	return func(logger *log.Logger, db *database.DB) http.HandlerFunc {
-		return func(w http.ResponseWriter, r *http.Request) {
-			oldServer, getErr := getDBServer(r, db)
-			if handleError(w, logger, getErr) {
+func updateServer(logger *log.Logger, db *database.DB) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		oldServer, oldService, getErr := getServerService(r, db)
+		if handleError(w, logger, getErr) {
+			return
+		}
+
+		oldName := oldServer.Name
+		restServer := dbServerToRESTInput(oldServer)
+
+		if err := readJSON(r, restServer); handleError(w, logger, err) {
+			return
+		}
+
+		dbServer := restServerToDB(restServer, logger)
+		dbServer.ID = oldServer.ID
+
+		if err := db.Update(dbServer).Run(); handleError(w, logger, err) {
+			return
+		}
+
+		newService, err := makeServerService(db, dbServer)
+		if handleError(w, logger, err) {
+			return
+		}
+
+		if state, _ := oldService.State(); state == utils.StateRunning {
+			ctx, cancel := context.WithTimeout(r.Context(), serviceShutdownTimeout)
+			defer cancel()
+
+			if err := oldService.Stop(ctx); handleError(w, logger, err) {
 				return
 			}
 
-			oldName := oldServer.Name
-			restServer := dbServerToRESTInput(oldServer)
-
-			if err := readJSON(r, restServer); handleError(w, logger, err) {
+			if err := newService.Start(); handleError(w, logger, err) {
 				return
-			}
-
-			dbServer := restServerToDB(restServer, logger)
-			dbServer.ID = oldServer.ID
-
-			if err := db.Update(dbServer).Run(); handleError(w, logger, err) {
-				return
-			}
-
-			if err := updateServiceName(oldName, dbServer.Name,
-				protoServices); handleError(w, logger, err) {
-				return
-			}
-
-			w.Header().Set("Location", locationUpdate(r.URL, dbServer.Name))
-			w.WriteHeader(http.StatusCreated)
-
-			if restServer.Name != nil || restServer.Protocol != nil || restServer.Address != nil {
-				fmt.Fprint(w, ServerRestartRequiredMsg)
 			}
 		}
+
+		delete(services.Servers, oldName)
+		services.Servers[dbServer.Name] = newService
+
+		w.Header().Set("Location", locationUpdate(r.URL, dbServer.Name))
+		w.WriteHeader(http.StatusCreated)
 	}
 }
 
-func replaceServer(protoServices map[string]proto.Service) handler {
-	return func(logger *log.Logger, db *database.DB) http.HandlerFunc {
-		return func(w http.ResponseWriter, r *http.Request) {
-			oldServer, getErr := getDBServer(r, db)
-			if handleError(w, logger, getErr) {
+func replaceServer(logger *log.Logger, db *database.DB) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		oldServer, oldService, getErr := getServerService(r, db)
+		if handleError(w, logger, getErr) {
+			return
+		}
+
+		var restServer api.InServer
+		if err := readJSON(r, &restServer); handleError(w, logger, err) {
+			return
+		}
+
+		oldName := oldServer.Name
+		dbServer := restServerToDB(&restServer, logger)
+		dbServer.ID = oldServer.ID
+
+		if err := db.Update(dbServer).Run(); handleError(w, logger, err) {
+			return
+		}
+
+		newService, err := makeServerService(db, dbServer)
+		if handleError(w, logger, err) {
+			return
+		}
+
+		if state, _ := oldService.State(); state == utils.StateRunning {
+			ctx, cancel := context.WithTimeout(r.Context(), serviceShutdownTimeout)
+			defer cancel()
+
+			if err := oldService.Stop(ctx); handleError(w, logger, err) {
 				return
 			}
 
-			var restServer api.InServer
-			if err := readJSON(r, &restServer); handleError(w, logger, err) {
+			if err := newService.Start(); handleError(w, logger, err) {
 				return
-			}
-
-			dbServer := restServerToDB(&restServer, logger)
-			dbServer.ID = oldServer.ID
-
-			if err := db.Update(dbServer).Run(); handleError(w, logger, err) {
-				return
-			}
-
-			if err := updateServiceName(oldServer.Name, dbServer.Name,
-				protoServices); handleError(w, logger, err) {
-				return
-			}
-
-			w.Header().Set("Location", locationUpdate(r.URL, dbServer.Name))
-			w.WriteHeader(http.StatusCreated)
-
-			if restServer.Name != nil || restServer.Protocol != nil || restServer.Address != nil {
-				fmt.Fprint(w, ServerRestartRequiredMsg)
 			}
 		}
+
+		delete(services.Servers, oldName)
+		services.Servers[dbServer.Name] = newService
+
+		w.Header().Set("Location", locationUpdate(r.URL, dbServer.Name))
+		w.WriteHeader(http.StatusCreated)
 	}
 }
 
-func deleteServer(protoServices map[string]proto.Service) handler {
-	return func(logger *log.Logger, db *database.DB) http.HandlerFunc {
-		return func(w http.ResponseWriter, r *http.Request) {
-			dbServer, service, err := getProtoService(r, protoServices, db)
-			if handleError(w, logger, err) {
-				return
-			}
-
-			switch code, _ := service.State().Get(); code {
-			case state.Error, state.Offline:
-			default:
-				handleError(w, logger, badRequest("cannot delete an active server, "+
-					"it must be shut down first"))
-
-				return
-			}
-
-			delete(protoServices, dbServer.Name)
-
-			if err := db.Delete(dbServer).Run(); handleError(w, logger, err) {
-				return
-			}
-
-			w.WriteHeader(http.StatusNoContent)
+//nolint:dupl //duplicate is for clients, best keep separate
+func deleteServer(logger *log.Logger, db *database.DB) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		dbServer, service, err := getServerService(r, db)
+		if handleError(w, logger, err) {
+			return
 		}
+
+		switch code, _ := service.State(); code {
+		case utils.StateError, utils.StateOffline:
+		default:
+			ctx, cancel := context.WithTimeout(r.Context(), serviceShutdownTimeout)
+			defer cancel()
+
+			if err := service.Stop(ctx); handleError(w, logger, err) {
+				return
+			}
+		}
+
+		if err := db.Delete(dbServer).Run(); handleError(w, logger, err) {
+			return
+		}
+
+		delete(services.Servers, dbServer.Name)
+
+		w.WriteHeader(http.StatusNoContent)
 	}
 }
 
@@ -277,8 +285,6 @@ func addServerCert(logger *log.Logger, db *database.DB) http.HandlerFunc {
 		if handleError(w, logger, createCrypto(w, r, db, dbServer)) {
 			return
 		}
-
-		fmt.Fprint(w, ServerCertRestartRequiredMsg)
 	}
 }
 
@@ -303,8 +309,6 @@ func deleteServerCert(logger *log.Logger, db *database.DB) http.HandlerFunc {
 		if handleError(w, logger, deleteCrypto(w, r, db, dbServer)) {
 			return
 		}
-
-		fmt.Fprint(w, ServerCertRestartRequiredMsg)
 	}
 }
 
@@ -318,8 +322,6 @@ func updateServerCert(logger *log.Logger, db *database.DB) http.HandlerFunc {
 		if handleError(w, logger, updateCrypto(w, r, db, dbServer)) {
 			return
 		}
-
-		fmt.Fprint(w, ServerCertRestartRequiredMsg)
 	}
 }
 
@@ -333,8 +335,6 @@ func replaceServerCert(logger *log.Logger, db *database.DB) http.HandlerFunc {
 		if handleError(w, logger, replaceCrypto(w, r, db, dbServer)) {
 			return
 		}
-
-		fmt.Fprint(w, ServerCertRestartRequiredMsg)
 	}
 }
 
@@ -369,23 +369,24 @@ func enableDisableServer(logger *log.Logger, db *database.DB, disable bool) http
 	}
 }
 
-func getProtoService(r *http.Request, protoServices map[string]proto.Service,
-	db *database.DB,
-) (*model.LocalAgent, proto.Service, error) {
+var ErrServiceNotFound = errors.New("service not found")
+
+func getServerService(r *http.Request, db *database.DB,
+) (*model.LocalAgent, services.Server, error) {
 	dbServer, getErr := getDBServer(r, db)
 	if getErr != nil {
 		return nil, nil, getErr
 	}
 
-	service, ok := protoServices[dbServer.Name]
+	service, ok := services.Servers[dbServer.Name]
 	if !ok {
-		return nil, nil, errServiceNotFound
+		return nil, nil, fmt.Errorf("%w %q", ErrServiceNotFound, dbServer.Name)
 	}
 
 	return dbServer, service, nil
 }
 
-func haltService(r *http.Request, serv proto.Stopper) error {
+func haltService(r *http.Request, serv services.Service) error {
 	const haltTimeout = 10 * time.Second
 
 	ctx, cancel := context.WithTimeout(r.Context(), haltTimeout)
@@ -398,87 +399,92 @@ func haltService(r *http.Request, serv proto.Stopper) error {
 	return nil
 }
 
-func stopServer(protoServices map[string]proto.Service) handler {
-	return func(logger *log.Logger, db *database.DB) http.HandlerFunc {
-		return func(w http.ResponseWriter, r *http.Request) {
-			dbServer, service, err := getProtoService(r, protoServices, db)
+//nolint:dupl //duplicate is for clients, best keep separate
+func stopServer(logger *log.Logger, db *database.DB) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		dbServer, service, err := getServerService(r, db)
+		if handleError(w, logger, err) {
+			return
+		}
+
+		if code, _ := service.State(); code == utils.StateOffline || code == utils.StateError {
+			w.WriteHeader(http.StatusBadRequest)
+			fmt.Fprintf(w, "Cannot stop server %q, it isn't running.", dbServer.Name)
+
+			return
+		}
+
+		if err := haltService(r, service); handleError(w, logger, err) {
+			return
+		}
+
+		w.WriteHeader(http.StatusAccepted)
+	}
+}
+
+var errModuleNotFound = errors.New("could not instantiate the service: protocol not found")
+
+func makeServerService(db *database.DB, dbServer *model.LocalAgent) (services.Server, error) {
+	module := protocols.Get(dbServer.Protocol)
+	if module == nil {
+		return nil, errModuleNotFound
+	}
+
+	service := module.NewServer(db, dbServer)
+
+	return service, nil
+}
+
+//nolint:dupl //duplicate is for clients, best keep separate
+func startServer(logger *log.Logger, db *database.DB) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		dbServer, getErr := getDBServer(r, db)
+		if handleError(w, logger, getErr) {
+			return
+		}
+
+		service, ok := services.Servers[dbServer.Name]
+		if !ok {
+			var err error
+
+			service, err = makeServerService(db, dbServer)
 			if handleError(w, logger, err) {
 				return
 			}
 
-			if code, _ := service.State().Get(); code == state.Offline || code == state.Error {
-				w.WriteHeader(http.StatusBadRequest)
-				fmt.Fprintf(w, "Cannot stop server %q, it isn't running.", dbServer.Name)
-
-				return
-			}
-
-			if err := haltService(r, service); handleError(w, logger, err) {
-				return
-			}
-
-			w.WriteHeader(http.StatusAccepted)
+			services.Servers[dbServer.Name] = service
 		}
+
+		if code, _ := service.State(); code == utils.StateRunning {
+			w.WriteHeader(http.StatusBadRequest)
+			fmt.Fprintf(w, "Cannot start server %q, it is already running.", dbServer.Name)
+
+			return
+		}
+
+		if err := service.Start(); handleError(w, logger, err) {
+			return
+		}
+
+		w.WriteHeader(http.StatusAccepted)
 	}
 }
 
-var errConstructorNotFound = errors.New("could not instantiate the service: protocol not found")
-
-func startServer(protoServices map[string]proto.Service) handler {
-	return func(logger *log.Logger, db *database.DB) http.HandlerFunc {
-		return func(w http.ResponseWriter, r *http.Request) {
-			dbServer, getErr := getDBServer(r, db)
-			if handleError(w, logger, getErr) {
-				return
-			}
-
-			service, ok := protoServices[dbServer.Name]
-			if !ok {
-				constr, ok := constructors.ServiceConstructors[dbServer.Protocol]
-				if !ok {
-					handleError(w, logger, errConstructorNotFound)
-
-					return
-				}
-
-				servLogger := conf.GetLogger(dbServer.Name)
-				service = constr(db, servLogger)
-				protoServices[dbServer.Name] = service
-			}
-
-			if code, _ := service.State().Get(); code == state.Running {
-				w.WriteHeader(http.StatusBadRequest)
-				fmt.Fprintf(w, "Cannot start server %q, it is already running.", dbServer.Name)
-
-				return
-			}
-
-			if err := service.Start(dbServer); handleError(w, logger, err) {
-				return
-			}
-
-			w.WriteHeader(http.StatusAccepted)
+func restartServer(logger *log.Logger, db *database.DB) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		_, service, getErr := getServerService(r, db)
+		if handleError(w, logger, getErr) {
+			return
 		}
-	}
-}
 
-func restartServer(protoServices map[string]proto.Service) handler {
-	return func(logger *log.Logger, db *database.DB) http.HandlerFunc {
-		return func(w http.ResponseWriter, r *http.Request) {
-			dbServer, service, getErr := getProtoService(r, protoServices, db)
-			if handleError(w, logger, getErr) {
-				return
-			}
-
-			if err := haltService(r, service); handleError(w, logger, err) {
-				return
-			}
-
-			if err := service.Start(dbServer); handleError(w, logger, err) {
-				return
-			}
-
-			w.WriteHeader(http.StatusAccepted)
+		if err := haltService(r, service); handleError(w, logger, err) {
+			return
 		}
+
+		if err := service.Start(); handleError(w, logger, err) {
+			return
+		}
+
+		w.WriteHeader(http.StatusAccepted)
 	}
 }

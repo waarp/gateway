@@ -19,8 +19,8 @@ import (
 	"code.waarp.fr/apps/gateway/gateway/pkg/database"
 	"code.waarp.fr/apps/gateway/gateway/pkg/model"
 	"code.waarp.fr/apps/gateway/gateway/pkg/model/types"
-	"code.waarp.fr/apps/gateway/gateway/pkg/tk/utils"
-	"code.waarp.fr/apps/gateway/gateway/pkg/tk/utils/testhelpers"
+	"code.waarp.fr/apps/gateway/gateway/pkg/utils"
+	"code.waarp.fr/apps/gateway/gateway/pkg/utils/testhelpers"
 )
 
 const historyURI = "http://localhost:8080/api/history"
@@ -336,7 +336,7 @@ func TestListHistory(t *testing.T) {
 
 					Convey("Then the response body should contain "+
 						"a message stating the protocol is unknown", func() {
-						So(w.Body.String(), ShouldEqual, "'toto' is not a valid protocol\n")
+						So(w.Body.String(), ShouldEqual, "\"toto\" is not a valid protocol\n")
 					})
 				})
 			})

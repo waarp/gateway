@@ -1,5 +1,7 @@
 package database
 
+import "fmt"
+
 // UpdateBean is the interface that a model must implement in order to be
 // updatable via the Access.Update query builder.
 type UpdateBean interface {
@@ -24,16 +26,16 @@ func (u *UpdateQuery) Cols(columns ...string) *UpdateQuery {
 	return u
 }
 
-func (u *UpdateQuery) run(s *Session) Error {
+func (u *UpdateQuery) run(ses *Session) error {
 	if hook, ok := u.bean.(WriteHook); ok {
-		if err := hook.BeforeWrite(s); err != nil {
-			s.logger.Error("%s entry UPDATE validation failed: %s", u.bean.Appellation(), err)
+		if err := hook.BeforeWrite(ses); err != nil {
+			ses.logger.Error("%s entry UPDATE validation failed: %s", u.bean.Appellation(), err)
 
-			return err
+			return fmt.Errorf("%s entry UPDATE validation failed: %w", u.bean.Appellation(), err)
 		}
 	}
 
-	query := s.session.NoAutoCondition().Table(u.bean.TableName()).
+	query := ses.session.NoAutoCondition().Table(u.bean.TableName()).
 		Where("id=?", u.bean.GetID())
 	if len(u.cols) == 0 {
 		query = query.AllCols()
@@ -42,17 +44,25 @@ func (u *UpdateQuery) run(s *Session) Error {
 	}
 
 	if _, err := query.Update(u.bean); err != nil {
-		s.logger.Error("Failed to update the %s entry n°%d: %s",
+		ses.logger.Error("Failed to update the %s entry n°%d: %s",
 			u.bean.Appellation(), u.bean.GetID(), err)
 
 		return NewInternalError(err)
+	}
+
+	if callback, ok := u.bean.(WriteCallBack); ok {
+		if err := callback.AfterWrite(ses); err != nil {
+			ses.logger.Error("%s entry UPDATE callback failed: %s", u.bean.Appellation(), err)
+
+			return fmt.Errorf("%s entry UPDATE callback failed: %w", u.bean.Appellation(), err)
+		}
 	}
 
 	return nil
 }
 
 // Run executes the 'UPDATE' query.
-func (u *UpdateQuery) Run() Error {
+func (u *UpdateQuery) Run() error {
 	if err := checkExists(u.db, u.bean); err != nil {
 		return err
 	}

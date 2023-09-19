@@ -2,6 +2,7 @@ package database
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"os"
 	"path/filepath"
@@ -29,8 +30,8 @@ func testSelectForUpdate(db *DB) {
 	So(db2.Start(), ShouldBeNil)
 	Reset(func() { So(db2.engine.Close(), ShouldBeNil) })
 
-	transRes := make(chan Error, 1)
-	trans2 := func(ses *Session) Error {
+	transRes := make(chan error, 1)
+	trans2 := func(ses *Session) error {
 		var beans validList
 		if err := ses.Select(&beans).Where("string='str2'").Run(); err != nil {
 			return err
@@ -47,7 +48,7 @@ func testSelectForUpdate(db *DB) {
 		_, err := db.engine.Insert(&bean1, &bean2, &bean3)
 		So(err, ShouldBeNil)
 
-		tErr1 := db.Transaction(func(ses *Session) Error {
+		tErr1 := db.Transaction(func(ses *Session) error {
 			var beans validList
 			err := ses.SelectForUpdate(&beans).Where("string='str2'").Run()
 			So(err, ShouldBeNil)
@@ -63,6 +64,7 @@ func testSelectForUpdate(db *DB) {
 		})
 
 		So(tErr1, ShouldBeNil)
+
 		tErr2 := <-transRes
 		So(tErr2, ShouldBeNil)
 
@@ -94,6 +96,7 @@ func testIterate(db *DB) {
 					So(rows.Scan(&bean), ShouldBeNil)
 					So(bean, ShouldResemble, exp)
 				}
+
 				So(rows.Next(), ShouldBeFalse)
 			})
 		})
@@ -194,21 +197,18 @@ func testIterate(db *DB) {
 }
 
 func testSelect(db *DB) {
-	bean1 := testValid{ID: 1, String: "str1"}
-	bean2 := testValid{ID: 2, String: "str2"}
-	bean3 := testValid{ID: 3, String: "str2"}
-	bean4 := testValid{ID: 4, String: "str3"}
-	bean5 := testValid{ID: 5, String: "str1"}
+	bean1 := &testValid{ID: 1, String: "str1"}
+	bean2 := &testValid{ID: 2, String: "str2"}
+	bean3 := &testValid{ID: 3, String: "str2"}
+	bean4 := &testValid{ID: 4, String: "str3"}
+	bean5 := &testValid{ID: 5, String: "str1"}
 
-	shouldContain := func(query *SelectQuery, res *validList, exps ...testValid) {
+	shouldContain := func(query *SelectQuery, res *validList, exps ...*testValid) {
 		Convey("When executing the query", func() {
 			So(query.Run(), ShouldBeNil)
 
 			Convey("Then the result should contain the expected elements", func() {
-				So(res, ShouldHaveLength, len(exps))
-				for i, r := range *res {
-					So(r, ShouldResemble, exps[i])
-				}
+				So(res, ShouldResemble, exps)
 			})
 		})
 	}
@@ -284,8 +284,8 @@ func testSelect(db *DB) {
 
 		Convey("With a 'DISTINCT' clause", func() {
 			query.Distinct("string").OrderBy("string", true)
-			shouldContain(query, &res, testValid{String: bean1.String},
-				testValid{String: bean2.String}, testValid{String: bean4.String})
+			shouldContain(query, &res, &testValid{String: bean1.String},
+				&testValid{String: bean2.String}, &testValid{String: bean4.String})
 		})
 	}
 
@@ -320,6 +320,7 @@ func testInsert(db *DB) {
 				var actuals []testValid
 				So(db.getUnderlying().Find(&actuals), ShouldBeNil)
 				So(actuals, ShouldHaveLength, 2)
+
 				exp := testValid{ID: 2, String: "new"}
 				So(actuals, ShouldContain, exp)
 			})
@@ -422,8 +423,9 @@ func testUpdate(db *DB) {
 				var beans []testValid
 				So(db.getUnderlying().Find(&beans), ShouldBeNil)
 				So(beans, ShouldHaveLength, 2)
-				exp := testValid{ID: 1, String: "updated"}
 				So(beans, ShouldContain, other)
+
+				exp := testValid{ID: 1, String: "updated"}
 				So(beans, ShouldContain, exp)
 			})
 
@@ -450,8 +452,9 @@ func testUpdate(db *DB) {
 				var beans []testValid
 				So(db.getUnderlying().Find(&beans), ShouldBeNil)
 				So(beans, ShouldHaveLength, 2)
-				exp := testValid{ID: 1, String: "update"}
 				So(beans, ShouldContain, other)
+
+				exp := testValid{ID: 1, String: "update"}
 				So(beans, ShouldContain, exp)
 			})
 
@@ -596,7 +599,7 @@ func testTransaction(db *DB) {
 	}
 
 	Convey("Given a valid transaction", func() {
-		trans := func(ses *Session) Error {
+		trans := func(ses *Session) error {
 			return ses.Insert(&bean).Run()
 		}
 
@@ -612,10 +615,10 @@ func testTransaction(db *DB) {
 	})
 
 	Convey("Given an invalid transaction", func() {
-		trans := func(ses *Session) Error {
+		trans := func(ses *Session) error {
 			So(ses.Insert(&bean).Run(), ShouldBeNil)
 
-			return NewInternalError(fmt.Errorf("transaction failed")) //nolint:goerr113 // this is a test
+			return errors.New("transaction failed") //nolint:goerr113 // this is a test
 		}
 
 		Convey("When executing the transaction", func() {

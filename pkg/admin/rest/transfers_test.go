@@ -18,11 +18,10 @@ import (
 	. "code.waarp.fr/apps/gateway/gateway/pkg/admin/rest/api"
 	"code.waarp.fr/apps/gateway/gateway/pkg/conf"
 	"code.waarp.fr/apps/gateway/gateway/pkg/database"
-	"code.waarp.fr/apps/gateway/gateway/pkg/gatewayd/service/proto"
 	"code.waarp.fr/apps/gateway/gateway/pkg/model"
 	"code.waarp.fr/apps/gateway/gateway/pkg/model/types"
-	"code.waarp.fr/apps/gateway/gateway/pkg/tk/utils"
-	"code.waarp.fr/apps/gateway/gateway/pkg/tk/utils/testhelpers"
+	"code.waarp.fr/apps/gateway/gateway/pkg/utils"
+	"code.waarp.fr/apps/gateway/gateway/pkg/utils/testhelpers"
 )
 
 const transferURI = "http://localhost:8080/api/transfers"
@@ -718,7 +717,7 @@ func TestPauseTransfer(t *testing.T) {
 	Convey("Testing the transfer pause handler", t, func(c C) {
 		logger := testhelpers.TestLogger(c, "rest_transfer_pause_test")
 		db := database.TestDatabase(c)
-		handler := pauseTransfer(nil)(logger, db)
+		handler := pauseTransfer(logger, db)
 		w := httptest.NewRecorder()
 
 		Convey("Given a database with 1 planned transfer", func() {
@@ -807,7 +806,7 @@ func TestCancelTransfer(t *testing.T) {
 	Convey("Testing the transfer resume handler", t, func(c C) {
 		logger := testhelpers.TestLogger(c, "rest_transfer_cancel_test")
 		db := database.TestDatabase(c)
-		handler := cancelTransfer(nil)(logger, db)
+		handler := cancelTransfer(logger, db)
 		w := httptest.NewRecorder()
 
 		Convey("Given a database with 1 planned transfer", func() {
@@ -1021,8 +1020,7 @@ func TestCancelTransfers(t *testing.T) {
 	Convey("Testing the transfers multi cancel handler", t, func(c C) {
 		logger := testhelpers.TestLogger(c, "rest_transfers_cancel_test")
 		db := database.TestDatabase(c)
-		protoServs := map[string]proto.Service{}
-		handler := cancelTransfers(protoServs)(logger, db)
+		handler := cancelTransfers(logger, db)
 		w := httptest.NewRecorder()
 
 		Convey("Given a database with 1 planned & 1 error transfer", func() {

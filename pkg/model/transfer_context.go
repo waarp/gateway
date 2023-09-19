@@ -45,7 +45,7 @@ type TransferContext struct {
 // from the database, and returns it wrapped in a TransferInfo instance.
 // An error is returned a problem occurs while accessing the database.
 func GetTransferContext(db *database.DB, logger *log.Logger, trans *Transfer,
-) (*TransferContext, *types.TransferError) {
+) (*TransferContext, error) {
 	transCtx := &TransferContext{
 		Transfer:      trans,
 		TransInfo:     map[string]interface{}{},
@@ -85,7 +85,7 @@ func GetTransferContext(db *database.DB, logger *log.Logger, trans *Transfer,
 		return nil, errDatabase
 	}
 
-	var err database.Error
+	var err error
 	if transCtx.TransInfo, err = transCtx.Transfer.GetTransferInfo(db); err != nil {
 		logger.Error("Failed to retrieve the transfer info: %v", err)
 
@@ -96,7 +96,7 @@ func GetTransferContext(db *database.DB, logger *log.Logger, trans *Transfer,
 }
 
 func makeAgentContext(db *database.DB, logger *log.Logger, transCtx *TransferContext,
-) (*TransferContext, *types.TransferError) {
+) (*TransferContext, error) {
 	if transCtx.Transfer.IsServer() {
 		return makeLocalAgentContext(db, logger, transCtx)
 	}
@@ -106,7 +106,7 @@ func makeAgentContext(db *database.DB, logger *log.Logger, transCtx *TransferCon
 
 //nolint:dupl //factorizing would add complexity
 func makeLocalAgentContext(db *database.DB, logger *log.Logger, transCtx *TransferContext,
-) (*TransferContext, *types.TransferError) {
+) (*TransferContext, error) {
 	if err := db.Get(transCtx.LocalAccount, "id=?", transCtx.Transfer.LocalAccountID).Run(); err != nil {
 		logger.Error("Failed to retrieve transfer local account: %s", err)
 
@@ -137,7 +137,7 @@ func makeLocalAgentContext(db *database.DB, logger *log.Logger, transCtx *Transf
 
 //nolint:dupl //factorizing would add complexity
 func makeRemoteAgentContext(db *database.DB, logger *log.Logger, transCtx *TransferContext,
-) (*TransferContext, *types.TransferError) {
+) (*TransferContext, error) {
 	if err := db.Get(transCtx.RemoteAccount, "id=?", transCtx.Transfer.RemoteAccountID).Run(); err != nil {
 		logger.Error("Failed to retrieve transfer remote account: %s", err)
 

@@ -11,7 +11,7 @@ import (
 	"code.waarp.fr/apps/gateway/gateway/pkg/model/types"
 	"code.waarp.fr/apps/gateway/gateway/pkg/tasks"
 	"code.waarp.fr/apps/gateway/gateway/pkg/tk/statemachine"
-	"code.waarp.fr/apps/gateway/gateway/pkg/tk/utils"
+	"code.waarp.fr/apps/gateway/gateway/pkg/utils"
 )
 
 var (
@@ -35,8 +35,8 @@ func newFileStream(pipeline *Pipeline, isResume bool) (*FileStream, *types.Trans
 
 	if !isResume && !pipeline.TransCtx.Rule.IsSend {
 		pipeline.TransCtx.Transfer.LocalPath.Path += ".part"
-		if dbErr := pipeline.UpdateTrans(); dbErr != nil {
-			return nil, dbErr
+		if err := pipeline.updateTrans(); err != nil {
+			return nil, err
 		}
 	}
 
@@ -241,7 +241,7 @@ func (f *FileStream) Sync() error {
 		f.handleError(types.TeInternal, "Failed to update transfer",
 			dbErr.Error())
 
-		return errDatabase
+		return ErrDatabase
 	}
 
 	return nil

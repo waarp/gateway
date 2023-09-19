@@ -10,7 +10,7 @@ import (
 	"code.waarp.fr/apps/gateway/gateway/pkg/fs"
 	"code.waarp.fr/apps/gateway/gateway/pkg/model"
 	"code.waarp.fr/apps/gateway/gateway/pkg/model/types"
-	"code.waarp.fr/apps/gateway/gateway/pkg/tk/utils"
+	"code.waarp.fr/apps/gateway/gateway/pkg/utils"
 )
 
 type (
@@ -138,7 +138,7 @@ func (p *Pipeline) setCustomFilePaths(srcFilename, destFilename string) error {
 
 	if p.TransCtx.Transfer.LocalPath.String() == "" {
 		if u, err := makeLocalPath(p.TransCtx, srcFilename, destFilename); err != nil {
-			return err
+			return fmt.Errorf("failed to build local path: %w", err)
 		} else {
 			p.TransCtx.Transfer.LocalPath = types.URL(*u)
 		}
@@ -147,6 +147,7 @@ func (p *Pipeline) setCustomFilePaths(srcFilename, destFilename string) error {
 	return nil
 }
 
+//nolint:wrapcheck //wrapping is done by the caller function (just above)
 func makeLocalPath(transCtx *model.TransferContext, srcFilename,
 	destFilename string,
 ) (*url.URL, error) {

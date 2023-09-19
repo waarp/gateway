@@ -10,7 +10,7 @@ import (
 	"code.waarp.fr/apps/gateway/gateway/pkg/conf"
 	"code.waarp.fr/apps/gateway/gateway/pkg/database"
 	"code.waarp.fr/apps/gateway/gateway/pkg/model"
-	"code.waarp.fr/apps/gateway/gateway/pkg/tk/utils"
+	"code.waarp.fr/apps/gateway/gateway/pkg/utils"
 )
 
 // TransferTask is a task which schedules a new transfer.
@@ -153,14 +153,18 @@ func (t *TransferTask) Run(_ context.Context, args map[string]string,
 		SrcFilename:     file,
 	}
 
-	if err := db.Transaction(func(ses *database.Session) database.Error {
+	if err := db.Transaction(func(ses *database.Session) error {
 		if err := ses.Insert(trans).Run(); err != nil {
-			return err
+			return fmt.Errorf("failed to insert transfer: %w", err)
 		}
 
-		return trans.SetTransferInfo(ses, transferInfo)
+		if err := trans.SetTransferInfo(ses, transferInfo); err != nil {
+			return fmt.Errorf("failed to set transfer info: %w", err)
+		}
+
+		return nil
 	}); err != nil {
-		return err
+		return fmt.Errorf("failed to create transfer: %w", err)
 	}
 
 	recipient := fmt.Sprintf("from %q", args["from"])

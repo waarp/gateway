@@ -13,6 +13,7 @@ import (
 	"code.waarp.fr/apps/gateway/gateway/pkg/database"
 	"code.waarp.fr/apps/gateway/gateway/pkg/fs"
 	"code.waarp.fr/apps/gateway/gateway/pkg/fs/fstest"
+	"code.waarp.fr/apps/gateway/gateway/pkg/logging"
 	"code.waarp.fr/apps/gateway/gateway/pkg/model"
 	"code.waarp.fr/apps/gateway/gateway/pkg/model/types"
 	"code.waarp.fr/apps/gateway/gateway/pkg/pipeline"
@@ -28,7 +29,7 @@ const (
 
 //nolint:gochecknoinits //init is required here
 func init() {
-	if err := conf.InitBackend("TRACE", "stdout", "", ""); err != nil {
+	if err := logging.AddLogBackend("TRACE", "stdout", "", ""); err != nil {
 		panic(fmt.Sprintf("failed to initialize the log backend: %v", err))
 	}
 }

@@ -7,14 +7,20 @@ import (
 	"code.waarp.fr/apps/gateway/gateway/pkg/admin/rest/api"
 )
 
-func displayUser(w io.Writer, user *api.OutUser) {
-	fmt.Fprintln(w, bold("● User %q", user.Username))
-	fmt.Fprintln(w, orange("    Permissions:"))
-	fmt.Fprintln(w, bold("    ├─Transfers:"), user.Perms.Transfers)
-	fmt.Fprintln(w, bold("    ├─Servers:  "), user.Perms.Servers)
-	fmt.Fprintln(w, bold("    ├─Partners: "), user.Perms.Partners)
-	fmt.Fprintln(w, bold("    ├─Rules:    "), user.Perms.Rules)
-	fmt.Fprintln(w, bold("    └─Users:    "), user.Perms.Users)
+func DisplayUser(w io.Writer, user *api.OutUser) {
+	f := NewFormatter(w)
+	defer f.Render()
+
+	displayUser(f, user)
+}
+
+func displayUser(f *Formatter, user *api.OutUser) {
+	f.Title("User %q", user.Username)
+	f.Indent()
+
+	defer f.UnIndent()
+
+	displayPermissions(f, &user.Perms)
 }
 
 // ######################## ADD ##########################
@@ -25,7 +31,8 @@ type UserAdd struct {
 	Perms    string `required:"true" short:"r" long:"rights" description:"The user's rights in chmod symbolic format"`
 }
 
-func (u *UserAdd) Execute([]string) error {
+func (u *UserAdd) Execute([]string) error { return u.execute(stdOutput) }
+func (u *UserAdd) execute(w io.Writer) error {
 	perms, err := parsePerms(u.Perms)
 	if err != nil {
 		return err
@@ -38,11 +45,11 @@ func (u *UserAdd) Execute([]string) error {
 	}
 	addr.Path = "/api/users"
 
-	if err := add(newUser); err != nil {
+	if _, err := add(w, newUser); err != nil {
 		return err
 	}
 
-	fmt.Fprintln(getColorable(), "The user", bold(u.Username), "was successfully added.")
+	fmt.Fprintf(w, "The user %q was successfully added.\n", u.Username)
 
 	return nil
 }
@@ -55,7 +62,8 @@ type UserGet struct {
 	} `positional-args:"yes"`
 }
 
-func (u *UserGet) Execute([]string) error {
+func (u *UserGet) Execute([]string) error { return u.execute(stdOutput) }
+func (u *UserGet) execute(w io.Writer) error {
 	addr.Path = "/api/users/" + u.Args.Username
 
 	user := &api.OutUser{}
@@ -63,7 +71,7 @@ func (u *UserGet) Execute([]string) error {
 		return err
 	}
 
-	displayUser(getColorable(), user)
+	DisplayUser(w, user)
 
 	return nil
 }
@@ -79,7 +87,8 @@ type UserUpdate struct {
 	Perms    *string `short:"r" long:"rights" description:"The user's rights in chmod symbolic format"`
 }
 
-func (u *UserUpdate) Execute([]string) error {
+func (u *UserUpdate) Execute([]string) error { return u.execute(stdOutput) }
+func (u *UserUpdate) execute(w io.Writer) error {
 	var perms *api.Perms
 
 	if u.Perms != nil {
@@ -96,7 +105,7 @@ func (u *UserUpdate) Execute([]string) error {
 	}
 	addr.Path = "/api/users/" + u.Args.Username
 
-	if err := update(user); err != nil {
+	if err := update(w, user); err != nil {
 		return err
 	}
 
@@ -105,7 +114,7 @@ func (u *UserUpdate) Execute([]string) error {
 		username = *user.Username
 	}
 
-	fmt.Fprintln(getColorable(), "The user", bold(username), "was successfully updated.")
+	fmt.Fprintf(w, "The user %q was successfully updated.\n", username)
 
 	return nil
 }
@@ -118,14 +127,15 @@ type UserDelete struct {
 	} `positional-args:"yes"`
 }
 
-func (u *UserDelete) Execute([]string) error {
+func (u *UserDelete) Execute([]string) error { return u.execute(stdOutput) }
+func (u *UserDelete) execute(w io.Writer) error {
 	addr.Path = "/api/users/" + u.Args.Username
 
-	if err := remove(); err != nil {
+	if err := remove(w); err != nil {
 		return err
 	}
 
-	fmt.Fprintln(getColorable(), "The user", bold(u.Args.Username), "was successfully deleted.")
+	fmt.Fprintf(w, "The user %q was successfully deleted.\n", u.Args.Username)
 
 	return nil
 }
@@ -138,24 +148,27 @@ type UserList struct {
 	SortBy string `short:"s" long:"sort" description:"Attribute used to sort the returned entries" choice:"username+" choice:"username-" default:"username+"`
 }
 
-func (u *UserList) Execute([]string) error {
+func (u *UserList) Execute([]string) error { return u.execute(stdOutput) }
+
+//nolint:dupl //duplicate is for a completely different command
+func (u *UserList) execute(w io.Writer) error {
 	addr.Path = "/api/users"
 
 	listURL(&u.ListOptions, u.SortBy)
 
-	body := map[string][]api.OutUser{}
+	body := map[string][]*api.OutUser{}
 	if err := list(&body); err != nil {
 		return err
 	}
 
-	w := getColorable() //nolint:ifshort // false positive
-
 	if users := body["users"]; len(users) > 0 {
-		fmt.Fprintln(w, bold("Users:"))
+		f := NewFormatter(w)
+		defer f.Render()
 
-		for _, u := range users {
-			user := u
-			displayUser(w, &user)
+		f.MainTitle("Users:")
+
+		for _, user := range users {
+			displayUser(f, user)
 		}
 	} else {
 		fmt.Fprintln(w, "No users found.")

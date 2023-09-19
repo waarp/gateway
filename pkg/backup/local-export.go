@@ -1,20 +1,22 @@
 package backup
 
 import (
+	"fmt"
+
 	"code.waarp.fr/lib/log"
 
 	"code.waarp.fr/apps/gateway/gateway/pkg/backup/file"
 	"code.waarp.fr/apps/gateway/gateway/pkg/conf"
 	"code.waarp.fr/apps/gateway/gateway/pkg/database"
 	"code.waarp.fr/apps/gateway/gateway/pkg/model"
-	"code.waarp.fr/apps/gateway/gateway/pkg/tk/utils"
+	"code.waarp.fr/apps/gateway/gateway/pkg/utils"
 )
 
 func exportLocals(logger *log.Logger, db database.ReadAccess) ([]file.LocalAgent, error) {
 	var dbLocals model.LocalAgents
 	if err := db.Select(&dbLocals).Where("owner=?", conf.GlobalConfig.GatewayName).
 		Run(); err != nil {
-		return nil, err
+		return nil, fmt.Errorf("failed to retrieve partners: %w", err)
 	}
 
 	res := make([]file.LocalAgent, len(dbLocals))
@@ -59,7 +61,7 @@ func exportLocalAccounts(logger *log.Logger, db database.ReadAccess,
 ) ([]file.LocalAccount, error) {
 	var dbAccounts model.LocalAccounts
 	if err := db.Select(&dbAccounts).Where("local_agent_id=?", agentID).Run(); err != nil {
-		return nil, err
+		return nil, fmt.Errorf("failed to retrieve local accounts: %w", err)
 	}
 
 	res := make([]file.LocalAccount, len(dbAccounts))

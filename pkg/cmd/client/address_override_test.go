@@ -1,126 +1,116 @@
 package wg
 
 import (
-	"net/http/httptest"
-	"net/url"
+	"fmt"
+	"net/http"
 	"testing"
 
-	"github.com/jessevdk/go-flags"
-	. "github.com/smartystreets/goconvey/convey"
-
-	"code.waarp.fr/apps/gateway/gateway/pkg/admin"
-	"code.waarp.fr/apps/gateway/gateway/pkg/conf"
-	"code.waarp.fr/apps/gateway/gateway/pkg/database"
+	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
-func addrInfoString(target, redirect string) string {
-	return "● Address " + target + " redirects to " + redirect + "\n"
-}
+func TestAddressOverrideSet(t *testing.T) {
+	const (
+		path = "/api/override/addresses"
 
-func TestSetAddressOverride(t *testing.T) {
-	Convey("Testing the address override 'set' command", t, func() {
-		out = testFile()
+		target = "localhost"
+		redir  = "127.0.0.1"
+	)
+
+	t.Run(`Testing the address override "set" command`, func(t *testing.T) {
+		w := newTestOutput()
 		command := &OverrideAddressSet{}
 
-		Convey("Given a gateway", func(c C) {
-			db := database.TestDatabase(c)
-			gw := httptest.NewServer(admin.MakeHandler(discard(), db, nil, nil))
-			conf.InitTestOverrides(c)
+		expected := &expectedRequest{
+			method: http.MethodPost,
+			path:   path,
+			body:   map[string]any{target: redir},
+		}
 
-			var err error
-			addr, err = url.Parse("http://admin:admin_password@" + gw.Listener.Addr().String())
-			So(err, ShouldBeNil)
+		result := &expectedResponse{status: http.StatusCreated}
 
-			Convey("Given valid flags", func() {
-				args := []string{"-t", "localhost", "-r", "127.0.0.1"}
+		t.Run("Given dummy gateway REST interface", func(t *testing.T) {
+			testServer(t, expected, result)
 
-				Convey("When executing the command", func() {
-					params, err := flags.ParseArgs(command, args)
-					So(err, ShouldBeNil)
-					So(command.Execute(params), ShouldBeNil)
+			t.Run("When executing the command", func(t *testing.T) {
+				require.NoError(t, executeCommand(t, w, command, "-t", target, "-r", redir))
 
-					Convey("Then is should display a message saying the user was added", func() {
-						So(getOutput(), ShouldEqual, "The indirection for address "+
-							command.Target+" was successfully set.\n")
-					})
-
-					Convey("Then the new indirection should have been added", func() {
-						So(conf.GetIndirection("localhost"), ShouldEqual, "127.0.0.1")
-					})
-				})
+				assert.Equal(t,
+					fmt.Sprintf("The indirection for address %q was successfully set to %q.\n", target, redir),
+					w.String(),
+					"Then it should display a message saying the indirection was added")
 			})
 		})
 	})
 }
 
-func TestListAddressOverrides(t *testing.T) {
-	Convey("Testing the address override 'list' command", t, func() {
-		out = testFile()
+func TestAddressOverridesList(t *testing.T) {
+	const (
+		path = "/api/override/addresses"
+
+		target1 = "localhost"
+		redir1  = "127.0.0.1"
+		target2 = "waarp.fr"
+		redir2  = "1.2.3.4"
+	)
+
+	t.Run(`Testing the address override "list" command`, func(t *testing.T) {
+		w := newTestOutput()
 		command := &OverrideAddressList{}
 
-		Convey("Given a gateway", func(c C) {
-			db := database.TestDatabase(c)
-			gw := httptest.NewServer(admin.MakeHandler(discard(), db, nil, nil))
-			conf.InitTestOverrides(c)
-			So(conf.AddIndirection("localhost", "127.0.0.1"), ShouldBeNil)
-			So(conf.AddIndirection("waarp.fr", "1.2.3.4"), ShouldBeNil)
+		expected := &expectedRequest{
+			method: http.MethodGet,
+			path:   path,
+		}
 
-			var err error
-			addr, err = url.Parse("http://admin:admin_password@" + gw.Listener.Addr().String())
-			So(err, ShouldBeNil)
+		result := &expectedResponse{
+			status: http.StatusOK,
+			body:   map[string]any{target1: redir1, target2: redir2},
+		}
 
-			Convey("Given valid flags", func() {
-				args := []string{}
+		t.Run("Given dummy gateway REST interface", func(t *testing.T) {
+			testServer(t, expected, result)
 
-				Convey("When executing the command", func() {
-					params, err := flags.ParseArgs(command, args)
-					So(err, ShouldBeNil)
-					So(command.Execute(params), ShouldBeNil)
+			t.Run("When executing the command", func(t *testing.T) {
+				require.NoError(t, executeCommand(t, w, command))
 
-					Convey("Then is should display the indirection", func() {
-						So(getOutput(), ShouldContainSubstring, addrInfoString("localhost", "127.0.0.1"))
-						So(getOutput(), ShouldContainSubstring, addrInfoString("waarp.fr", "1.2.3.4"))
-					})
-				})
+				require.Equal(t, "Address indirections:\n"+
+					fmt.Sprintf("╭─ Address %q redirects to %q\n", target1, redir1)+
+					fmt.Sprintf("╰─ Address %q redirects to %q\n", target2, redir2),
+					w.String(),
+					"Then is should display the indirections")
 			})
 		})
 	})
 }
 
-func TestDeleteAddressOverride(t *testing.T) {
-	Convey("Testing the address override 'delete' command", t, func() {
-		out = testFile()
+func TestAddressOverrideDelete(t *testing.T) {
+	const (
+		target = "localhost"
+		path   = "/api/override/addresses/" + target
+	)
+
+	t.Run(`Testing the address override "delete" command`, func(t *testing.T) {
+		w := newTestOutput()
 		command := &OverrideAddressDelete{}
 
-		Convey("Given a gateway", func(c C) {
-			db := database.TestDatabase(c)
-			gw := httptest.NewServer(admin.MakeHandler(discard(), db, nil, nil))
-			conf.InitTestOverrides(c)
-			So(conf.AddIndirection("localhost", "127.0.0.1"), ShouldBeNil)
-			So(conf.AddIndirection("waarp.fr", "1.2.3.4"), ShouldBeNil)
+		expected := &expectedRequest{
+			method: http.MethodDelete,
+			path:   path,
+		}
 
-			var err error
-			addr, err = url.Parse("http://admin:admin_password@" + gw.Listener.Addr().String())
-			So(err, ShouldBeNil)
+		result := &expectedResponse{status: http.StatusNoContent}
 
-			Convey("Given valid flags", func() {
-				args := []string{"localhost"}
+		t.Run("Given dummy gateway REST interface", func(t *testing.T) {
+			testServer(t, expected, result)
 
-				Convey("When executing the command", func() {
-					params, err := flags.ParseArgs(command, args)
-					So(err, ShouldBeNil)
-					So(command.Execute(params), ShouldBeNil)
+			t.Run("When executing the command", func(t *testing.T) {
+				require.NoError(t, executeCommand(t, w, command, target))
 
-					Convey("Then is should display a message saying the user was deleted", func() {
-						So(getOutput(), ShouldEqual, "The indirection for address "+
-							command.Args.Target+" was successfully deleted.\n")
-					})
-
-					Convey("Then the new indirection should have been deleted", func() {
-						So(conf.GetIndirection("localhost"), ShouldBeBlank)
-						So(conf.GetIndirection("waarp.fr"), ShouldEqual, "1.2.3.4")
-					})
-				})
+				assert.Equal(t,
+					fmt.Sprintf("The indirection for address %q was successfully deleted.\n", target),
+					w.String(),
+					"Then is should display a message saying the indirection was deleted")
 			})
 		})
 	})

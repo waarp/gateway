@@ -2,16 +2,32 @@ package wg
 
 import (
 	"fmt"
+	"io"
 	"os"
 
+	"github.com/mattn/go-colorable"
 	"golang.org/x/term"
 )
 
-func isTerminal() bool {
-	fIn, ok1 := in.(*os.File)
-	fOut, ok2 := out.(*os.File)
+//nolint:gochecknoglobals //global vars are needed here
+var (
+	stdOutput io.Writer = os.Stdout
 
-	return ok1 && ok2 && term.IsTerminal(int(fIn.Fd())) && term.IsTerminal(int(fOut.Fd()))
+	stdinFd  = int(os.Stdin.Fd())
+	stdoutFd = int(os.Stdout.Fd())
+)
+
+const NoColors = "WAARP-NO-COLORS"
+
+//nolint:gochecknoinits //needed for global variables
+func init() {
+	if os.Getenv(NoColors) != "" {
+		stdOutput = colorable.NewNonColorable(stdOutput)
+	}
+}
+
+func isTerminal() bool {
+	return term.IsTerminal(stdinFd) && term.IsTerminal(stdoutFd)
 }
 
 func promptUser() (string, error) {
@@ -19,10 +35,10 @@ func promptUser() (string, error) {
 		return "", fmt.Errorf("the username is missing from the URL: %w", errBadArgs)
 	}
 
-	fmt.Fprintf(out, "Username: ")
+	fmt.Fprintf(stdOutput, "Username: ")
 
 	var user string
-	if _, err := fmt.Fscanln(in, &user); err != nil {
+	if _, err := fmt.Scanln(&user); err != nil {
 		return "", fmt.Errorf("cannot read username: %w", err)
 	}
 
@@ -34,25 +50,23 @@ func promptPassword() (string, error) {
 		return "", fmt.Errorf("the user password is missing from the URL: %w", errBadArgs)
 	}
 
-	fmt.Fprint(out, "Password: ")
+	fmt.Fprint(stdOutput, "Password: ")
 
-	st, err := term.MakeRaw(int(in.(*os.File).Fd()))
+	st, err := term.MakeRaw(stdinFd)
 	if err != nil {
 		return "", fmt.Errorf("cannot change terminal mode: %w", err)
 	}
 
-	//nolint:forcetypeassert //type assertion will always succeed here
-	defer func() { _ = term.Restore(int(in.(*os.File).Fd()), st) }() //nolint:errcheck // FIXME nothing to handle the error
+	defer term.Restore(stdinFd, st) //nolint:errcheck //error is irrelevant
 
-	//nolint:forcetypeassert //type assertion will always succeed here
-	terminal := term.NewTerminal(in.(*os.File), "")
+	terminal := term.NewTerminal(os.Stdin, "")
 
 	pwd, err := terminal.ReadPassword("")
 	if err != nil {
 		return "", fmt.Errorf("cannot read password: %w", err)
 	}
 
-	fmt.Fprintln(out)
+	fmt.Fprintln(stdOutput)
 
 	return pwd, nil
 }

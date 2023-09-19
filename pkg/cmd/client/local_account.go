@@ -3,7 +3,6 @@ package wg
 import (
 	"fmt"
 	"io"
-	"strings"
 
 	"code.waarp.fr/apps/gateway/gateway/pkg/admin/rest/api"
 )
@@ -19,14 +18,20 @@ func (*LocAccArg) UnmarshalFlag(value string) error {
 	return nil
 }
 
-func displayAccount(w io.Writer, account *api.OutAccount) {
-	send := strings.Join(account.AuthorizedRules.Sending, ", ")
-	recv := strings.Join(account.AuthorizedRules.Reception, ", ")
+func DisplayAccount(w io.Writer, account *api.OutAccount) {
+	f := NewFormatter(w)
+	defer f.Render()
 
-	fmt.Fprintln(w, boldOrange("● Account %q", account.Login))
-	fmt.Fprintln(w, orange("    Authorized rules"))
-	fmt.Fprintln(w, bold("    ├─  Sending:"), send)
-	fmt.Fprintln(w, bold("    └─Reception:"), recv)
+	displayAccount(f, account)
+}
+
+func displayAccount(f *Formatter, account *api.OutAccount) {
+	f.Title("Account %q", account.Login)
+	f.Indent()
+
+	defer f.UnIndent()
+
+	displayAuthorizedRules(f, account.AuthorizedRules)
 }
 
 // ######################## ADD ##########################
@@ -36,18 +41,19 @@ type LocAccAdd struct {
 	Password string `required:"yes" short:"p" long:"password" description:"The account's password"`
 }
 
-func (l *LocAccAdd) Execute([]string) error {
+func (l *LocAccAdd) Execute([]string) error { return l.execute(stdOutput) }
+func (l *LocAccAdd) execute(w io.Writer) error {
 	account := &api.InAccount{
 		Login:    &l.Login,
 		Password: &l.Password,
 	}
 	addr.Path = fmt.Sprintf("/api/servers/%s/accounts", Server)
 
-	if err := add(account); err != nil {
+	if _, err := add(w, account); err != nil {
 		return err
 	}
 
-	fmt.Fprintln(getColorable(), "The account", bold(l.Login), "was successfully added.")
+	fmt.Fprintf(w, "The account %q was successfully added.\n", l.Login)
 
 	return nil
 }
@@ -60,7 +66,8 @@ type LocAccGet struct {
 	} `positional-args:"yes"`
 }
 
-func (l *LocAccGet) Execute([]string) error {
+func (l *LocAccGet) Execute([]string) error { return l.execute(stdOutput) }
+func (l *LocAccGet) execute(w io.Writer) error {
 	addr.Path = fmt.Sprintf("/api/servers/%s/accounts/%s", Server, l.Args.Login)
 
 	account := &api.OutAccount{}
@@ -68,7 +75,7 @@ func (l *LocAccGet) Execute([]string) error {
 		return err
 	}
 
-	displayAccount(getColorable(), account)
+	DisplayAccount(w, account)
 
 	return nil
 }
@@ -77,14 +84,16 @@ func (l *LocAccGet) Execute([]string) error {
 
 type LocAccUpdate struct {
 	Args struct {
-		Login string `required:"yes" positional-arg-name:"login" description:"The account's login"`
+		Login string `required:"yes" positional-arg-name:"old-login" description:"The account's login"`
 	} `positional-args:"yes"`
-	Login    *string `short:"l" long:"name" description:"The account's login"`
+	Login    *string `short:"l" long:"login" description:"The account's login"`
 	Password *string `short:"p" long:"password" description:"The account's password"`
 }
 
-//nolint:dupl // FIXME too hard to refactor?
-func (l *LocAccUpdate) Execute([]string) error {
+func (l *LocAccUpdate) Execute([]string) error { return l.execute(stdOutput) }
+
+//nolint:dupl //duplicate is for a different command, better keep separate
+func (l *LocAccUpdate) execute(w io.Writer) error {
 	account := &api.InAccount{
 		Login:    l.Login,
 		Password: l.Password,
@@ -92,7 +101,7 @@ func (l *LocAccUpdate) Execute([]string) error {
 
 	addr.Path = fmt.Sprintf("/api/servers/%s/accounts/%s", Server, l.Args.Login)
 
-	if err := update(account); err != nil {
+	if err := update(w, account); err != nil {
 		return err
 	}
 
@@ -101,7 +110,7 @@ func (l *LocAccUpdate) Execute([]string) error {
 		login = *l.Login
 	}
 
-	fmt.Fprintln(getColorable(), "The account", bold(login), "was successfully updated.")
+	fmt.Fprintf(w, "The account %q was successfully updated.\n", login)
 
 	return nil
 }
@@ -114,14 +123,15 @@ type LocAccDelete struct {
 	} `positional-args:"yes"`
 }
 
-func (l *LocAccDelete) Execute([]string) error {
+func (l *LocAccDelete) Execute([]string) error { return l.execute(stdOutput) }
+func (l *LocAccDelete) execute(w io.Writer) error {
 	addr.Path = fmt.Sprintf("/api/servers/%s/accounts/%s", Server, l.Args.Login)
 
-	if err := remove(); err != nil {
+	if err := remove(w); err != nil {
 		return err
 	}
 
-	fmt.Fprintln(getColorable(), "The account", bold(l.Args.Login), "was successfully deleted.")
+	fmt.Fprintf(w, "The account %q was successfully deleted.\n", l.Args.Login)
 
 	return nil
 }
@@ -134,29 +144,30 @@ type LocAccList struct {
 	SortBy string `short:"s" long:"sort" description:"Attribute used to sort the returned entries" choice:"login+" choice:"login-" default:"login+"`
 }
 
-//nolint:dupl // FIXME too hard to refactor?
-func (l *LocAccList) Execute([]string) error {
+func (l *LocAccList) Execute([]string) error { return l.execute(stdOutput) }
+
+//nolint:dupl //duplicate is for a different command, better keep separate
+func (l *LocAccList) execute(w io.Writer) error {
 	addr.Path = fmt.Sprintf("/api/servers/%s/accounts", Server)
 
 	listURL(&l.ListOptions, l.SortBy)
 
-	body := map[string][]api.OutAccount{}
+	body := map[string][]*api.OutAccount{}
 	if err := list(&body); err != nil {
 		return err
 	}
 
-	accounts := body["localAccounts"]
+	if accounts := body["localAccounts"]; len(accounts) > 0 {
+		f := NewFormatter(w)
+		defer f.Render()
 
-	w := getColorable() //nolint:ifshort // decrease readability
+		f.MainTitle("Accounts of server %q:", Server)
 
-	if len(accounts) > 0 {
-		fmt.Fprintln(w, bold("Accounts of server '"+Server+"':"))
-
-		for i := range accounts {
-			displayAccount(w, &accounts[i])
+		for _, account := range accounts {
+			displayAccount(f, account)
 		}
 	} else {
-		fmt.Fprintln(w, "Server", bold(Server), "has no accounts.")
+		fmt.Fprintf(w, "Server %q has no accounts.\n", Server)
 	}
 
 	return nil
@@ -172,11 +183,12 @@ type LocAccAuthorize struct {
 	} `positional-args:"yes"`
 }
 
-func (l *LocAccAuthorize) Execute([]string) error {
+func (l *LocAccAuthorize) Execute([]string) error { return l.execute(stdOutput) }
+func (l *LocAccAuthorize) execute(w io.Writer) error {
 	addr.Path = fmt.Sprintf("/api/servers/%s/accounts/%s/authorize/%s/%s", Server,
 		l.Args.Login, l.Args.Rule, l.Args.Direction)
 
-	return authorize(out, "local account", l.Args.Login, l.Args.Rule, l.Args.Direction)
+	return authorize(w, "local account", l.Args.Login, l.Args.Rule, l.Args.Direction)
 }
 
 // ######################## REVOKE ##########################
@@ -189,9 +201,10 @@ type LocAccRevoke struct {
 	} `positional-args:"yes"`
 }
 
-func (l *LocAccRevoke) Execute([]string) error {
+func (l *LocAccRevoke) Execute([]string) error { return l.execute(stdOutput) }
+func (l *LocAccRevoke) execute(w io.Writer) error {
 	addr.Path = fmt.Sprintf("/api/servers/%s/accounts/%s/revoke/%s/%s", Server,
 		l.Args.Login, l.Args.Rule, l.Args.Direction)
 
-	return revoke(out, "local account", l.Args.Login, l.Args.Rule, l.Args.Direction)
+	return revoke(w, "local account", l.Args.Login, l.Args.Rule, l.Args.Direction)
 }

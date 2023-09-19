@@ -7,14 +7,6 @@ import (
 
 var ErrUnsupportedReset = errors.New("unsupported operation 'ResetIncrement'")
 
-// Error is the interface representing a database error. All database operations
-// must return an error of this type to ensure (via type-checking) that database
-// errors are correctly handled internally.
-type Error interface {
-	error
-	db()
-}
-
 // ValidationError is the error returned when the entry given for insertion is
 // not valid.
 type ValidationError struct {
@@ -24,8 +16,6 @@ type ValidationError struct {
 func (v *ValidationError) Error() string {
 	return v.msg
 }
-
-func (*ValidationError) db() {}
 
 // InternalError is the error encapsulating the database driver errors.
 type InternalError struct {
@@ -42,8 +32,6 @@ func (i *InternalError) Unwrap() error {
 	return i.cause
 }
 
-func (i *InternalError) db() {}
-
 // NotFoundError is the error returned when the requested element in a 'Get',
 // 'Update' or 'Delete' command could not be found.
 type NotFoundError struct{ msg string }
@@ -51,8 +39,6 @@ type NotFoundError struct{ msg string }
 func (n *NotFoundError) Error() string {
 	return n.msg
 }
-
-func (*NotFoundError) db() {}
 
 // IsNotFound returns whether the given error is of type NotFoundError.
 func IsNotFound(err error) bool {

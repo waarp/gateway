@@ -6,7 +6,7 @@ import (
 	"strings"
 
 	"code.waarp.fr/apps/gateway/gateway/pkg/conf"
-	"code.waarp.fr/apps/gateway/gateway/pkg/tk/utils"
+	"code.waarp.fr/apps/gateway/gateway/pkg/utils"
 )
 
 type ver0_9_0AddCloudInstances struct{}

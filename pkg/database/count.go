@@ -23,7 +23,7 @@ func (c *CountQuery) Where(sql string, args ...interface{}) *CountQuery {
 }
 
 // Run executes the 'COUNT' query and returns the count number.
-func (c *CountQuery) Run() (uint64, Error) {
+func (c *CountQuery) Run() (uint64, error) {
 	logger := c.db.GetLogger()
 	query := c.db.getUnderlying().NoAutoCondition()
 

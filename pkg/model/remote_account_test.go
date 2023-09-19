@@ -6,8 +6,8 @@ import (
 	. "github.com/smartystreets/goconvey/convey"
 
 	"code.waarp.fr/apps/gateway/gateway/pkg/database"
-	"code.waarp.fr/apps/gateway/gateway/pkg/tk/utils"
-	"code.waarp.fr/apps/gateway/gateway/pkg/tk/utils/testhelpers"
+	"code.waarp.fr/apps/gateway/gateway/pkg/utils"
+	"code.waarp.fr/apps/gateway/gateway/pkg/utils/testhelpers"
 )
 
 func TestRemoteAccountTableName(t *testing.T) {
@@ -136,7 +136,7 @@ func TestRemoteAccountBeforeWrite(t *testing.T) {
 
 				shouldFailWith := func(errDesc string, expErr error) {
 					Convey("When calling the 'BeforeWrite' function", func() {
-						err := db.Transaction(func(ses *database.Session) database.Error {
+						err := db.Transaction(func(ses *database.Session) error {
 							return newAccount.BeforeWrite(ses)
 						})
 
@@ -148,7 +148,7 @@ func TestRemoteAccountBeforeWrite(t *testing.T) {
 
 				Convey("Given that the new account is valid", func() {
 					Convey("When calling the 'BeforeWrite' function", func() {
-						err := db.Transaction(func(ses *database.Session) database.Error {
+						err := db.Transaction(func(ses *database.Session) error {
 							return newAccount.BeforeWrite(ses)
 						})
 
@@ -200,7 +200,7 @@ func TestRemoteAccountBeforeWrite(t *testing.T) {
 					newAccount.Login = oldAccount.Login
 
 					Convey("When calling the 'BeforeWrite' function", func() {
-						err := db.Transaction(func(ses *database.Session) database.Error {
+						err := db.Transaction(func(ses *database.Session) error {
 							return newAccount.BeforeWrite(ses)
 						})
 

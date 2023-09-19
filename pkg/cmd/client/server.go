@@ -2,18 +2,16 @@ package wg
 
 import (
 	"context"
-	"encoding/json"
 	"errors"
 	"fmt"
 	"io"
 	"net/http"
-	"os"
 	"path"
 	"strings"
 
 	"code.waarp.fr/apps/gateway/gateway/pkg/admin/rest"
 	"code.waarp.fr/apps/gateway/gateway/pkg/admin/rest/api"
-	"code.waarp.fr/apps/gateway/gateway/pkg/tk/utils"
+	"code.waarp.fr/apps/gateway/gateway/pkg/utils"
 )
 
 var ErrMissingServerName = errors.New("the 'server' name argument is missing")
@@ -29,31 +27,27 @@ func (*ServerArg) UnmarshalFlag(value string) error {
 	return nil
 }
 
-func displayServer(w io.Writer, server *api.OutServer) {
-	send := strings.Join(server.AuthorizedRules.Sending, ", ")
-	recv := strings.Join(server.AuthorizedRules.Reception, ", ")
+func DisplayServer(w io.Writer, server *api.OutServer) {
+	f := NewFormatter(w)
+	defer f.Render()
 
-	status := green("Enabled")
-	if !server.Enabled {
-		status = red("Disabled")
-	}
+	displayServer(f, server)
+}
 
-	protoConfig, err := json.Marshal(server.ProtoConfig)
-	if err != nil {
-		protoConfig = []byte(red("<error while serializing the configuration>"))
-	}
+func displayServer(f *Formatter, server *api.OutServer) {
+	f.Title("Server %q [%s]", server.Name, enabledStatus(server.Enabled))
+	f.Indent()
 
-	fmt.Fprintln(w, boldOrange("● Server %q", server.Name), fmt.Sprintf("[%s]", status))
-	fmt.Fprintln(w, orange("    Protocol:              "), server.Protocol)
-	fmt.Fprintln(w, orange("    Address:               "), server.Address)
-	fmt.Fprintln(w, orange("    Root directory:        "), server.RootDir)
-	fmt.Fprintln(w, orange("    Receive directory:     "), server.ReceiveDir)
-	fmt.Fprintln(w, orange("    Send directory:        "), server.SendDir)
-	fmt.Fprintln(w, orange("    Temp receive directory:"), server.TmpReceiveDir)
-	fmt.Fprintln(w, orange("    Configuration:         "), string(protoConfig))
-	fmt.Fprintln(w, orange("    Authorized rules"))
-	fmt.Fprintln(w, orange("    ├─Sending:             "), send)
-	fmt.Fprintln(w, orange("    └─Reception:           "), recv)
+	defer f.UnIndent()
+
+	f.Value("Protocol", server.Protocol)
+	f.Value("Address", server.Address)
+	f.ValueCond("Root directory", server.RootDir)
+	f.ValueCond("Receive directory", server.ReceiveDir)
+	f.ValueCond("Send directory", server.SendDir)
+	f.ValueCond("Temp receive directory", server.TmpReceiveDir)
+	displayProtoConfig(f, server.ProtoConfig)
+	displayAuthorizedRules(f, server.AuthorizedRules)
 }
 
 // ######################## GET ##########################
@@ -64,7 +58,8 @@ type ServerGet struct {
 	} `positional-args:"yes"`
 }
 
-func (s *ServerGet) Execute([]string) error {
+func (s *ServerGet) Execute([]string) error { return s.execute(stdOutput) }
+func (s *ServerGet) execute(w io.Writer) error {
 	addr.Path = path.Join("/api/servers", s.Args.Name)
 
 	server := &api.OutServer{}
@@ -72,7 +67,7 @@ func (s *ServerGet) Execute([]string) error {
 		return err
 	}
 
-	displayServer(getColorable(), server)
+	DisplayServer(w, server)
 
 	return nil
 }
@@ -97,7 +92,8 @@ type ServerAdd struct {
 	WorkDir *string `short:"w" long:"work" description:"[DEPRECATED] The server's work directory"`     // Deprecated: replaced by TempRcvDir
 }
 
-func (s *ServerAdd) Execute([]string) error {
+func (s *ServerAdd) Execute([]string) error { return s.execute(stdOutput) }
+func (s *ServerAdd) execute(w io.Writer) error {
 	server := &api.InServer{
 		Name:          &s.Name,
 		Protocol:      &s.Protocol,
@@ -113,28 +109,28 @@ func (s *ServerAdd) Execute([]string) error {
 	}
 
 	if s.Root != nil {
-		fmt.Fprintln(out, "[WARNING] The '-r' ('--root') option is deprecated. "+
+		fmt.Fprintln(w, "[WARNING] The '-r' ('--root') option is deprecated. "+
 			"Use '--root-dir' instead.")
 
 		server.Root = s.Root
 	}
 
 	if s.InDir != nil {
-		fmt.Fprintln(out, "[WARNING] The '-i' ('--in') option is deprecated. "+
+		fmt.Fprintln(w, "[WARNING] The '-i' ('--in') option is deprecated. "+
 			"Use '--receive-dir' instead.")
 
 		server.InDir = s.InDir
 	}
 
 	if s.OutDir != nil {
-		fmt.Fprintln(out, "[WARNING] The '-o' ('--out') option is deprecated. "+
+		fmt.Fprintln(w, "[WARNING] The '-o' ('--out') option is deprecated. "+
 			"Use '--send-dir' instead.")
 
 		server.OutDir = s.OutDir
 	}
 
 	if s.WorkDir != nil {
-		fmt.Fprintln(out, "[WARNING] The '-w' ('--work') option is deprecated. "+
+		fmt.Fprintln(w, "[WARNING] The '-w' ('--work') option is deprecated. "+
 			"Use '--tmp-dir' instead.")
 
 		server.WorkDir = s.WorkDir
@@ -142,11 +138,11 @@ func (s *ServerAdd) Execute([]string) error {
 
 	addr.Path = "/api/servers"
 
-	if err := add(server); err != nil {
+	if _, err := add(w, server); err != nil {
 		return err
 	}
 
-	fmt.Fprintln(getColorable(), "The server", bold(s.Name), "was successfully added.")
+	fmt.Fprintf(w, "The server %q was successfully added.\n", s.Name)
 
 	return nil
 }
@@ -159,14 +155,15 @@ type ServerDelete struct {
 	} `positional-args:"yes"`
 }
 
-func (s *ServerDelete) Execute([]string) error {
+func (s *ServerDelete) Execute([]string) error { return s.execute(stdOutput) }
+func (s *ServerDelete) execute(w io.Writer) error {
 	addr.Path = path.Join("/api/servers", s.Args.Name)
 
-	if err := remove(); err != nil {
+	if err := remove(w); err != nil {
 		return err
 	}
 
-	fmt.Fprintln(getColorable(), "The server", bold(s.Args.Name), "was successfully deleted.")
+	fmt.Fprintf(w, "The server %q was successfully deleted.\n", s.Args.Name)
 
 	return nil
 }
@@ -180,23 +177,25 @@ type ServerList struct {
 	Protocols []string `short:"p" long:"protocol" description:"Filter the agents based on the protocol they use. Can be repeated multiple times to filter multiple protocols."`
 }
 
-//nolint:dupl // hard to factorize
-func (s *ServerList) Execute([]string) error {
+func (s *ServerList) Execute([]string) error { return s.execute(stdOutput) }
+
+//nolint:dupl //duplicate is for a different type, best keep separate
+func (s *ServerList) execute(w io.Writer) error {
 	agentListURL("/api/servers", &s.ListOptions, s.SortBy, s.Protocols)
 
-	body := map[string][]api.OutServer{}
+	body := map[string][]*api.OutServer{}
 	if err := list(&body); err != nil {
 		return err
 	}
 
-	w := getColorable() //nolint:ifshort // decrease readability
-
 	if servers := body["servers"]; len(servers) > 0 {
-		fmt.Fprintln(w, bold("Servers:"))
+		f := NewFormatter(w)
+		defer f.Render()
 
-		for i := range servers {
-			server := servers[i]
-			displayServer(w, &server)
+		f.MainTitle("Servers:")
+
+		for _, server := range servers {
+			displayServer(f, server)
 		}
 	} else {
 		fmt.Fprintln(w, "No servers found.")
@@ -228,7 +227,8 @@ type ServerUpdate struct {
 	WorkDir *string `short:"w" long:"work" description:"[DEPRECATED] The server's work directory"`     // Deprecated: replaced by TempRcvDir
 }
 
-func (s *ServerUpdate) Execute([]string) error {
+func (s *ServerUpdate) Execute([]string) error { return s.execute(stdOutput) }
+func (s *ServerUpdate) execute(w io.Writer) error {
 	server := &api.InServer{
 		Name:          s.Name,
 		Protocol:      s.Protocol,
@@ -244,28 +244,28 @@ func (s *ServerUpdate) Execute([]string) error {
 	}
 
 	if s.Root != nil {
-		fmt.Fprintln(out, "[WARNING] The '-r' ('--root') option is deprecated. "+
+		fmt.Fprintln(w, "[WARNING] The '-r' ('--root') option is deprecated. "+
 			"Use '--root-dir' instead.")
 
 		server.Root = s.Root
 	}
 
 	if s.InDir != nil {
-		fmt.Fprintln(out, "[WARNING] The '-i' ('--in') option is deprecated. "+
+		fmt.Fprintln(w, "[WARNING] The '-i' ('--in') option is deprecated. "+
 			"Use '--receive-dir' instead.")
 
 		server.InDir = s.InDir
 	}
 
 	if s.OutDir != nil {
-		fmt.Fprintln(out, "[WARNING] The '-o' ('--out') option is deprecated. "+
+		fmt.Fprintln(w, "[WARNING] The '-o' ('--out') option is deprecated. "+
 			"Use '--send-dir' instead.")
 
 		server.OutDir = s.OutDir
 	}
 
 	if s.WorkDir != nil {
-		fmt.Fprintln(out, "[WARNING] The '-w' ('--work') option is deprecated. "+
+		fmt.Fprintln(w, "[WARNING] The '-w' ('--work') option is deprecated. "+
 			"Use '--tmp-dir' instead.")
 
 		server.WorkDir = s.WorkDir
@@ -273,7 +273,7 @@ func (s *ServerUpdate) Execute([]string) error {
 
 	addr.Path = path.Join("/api/servers", s.Args.Name)
 
-	if err := update(server); err != nil {
+	if err := update(w, server); err != nil {
 		return err
 	}
 
@@ -282,7 +282,7 @@ func (s *ServerUpdate) Execute([]string) error {
 		name = *server.Name
 	}
 
-	fmt.Fprintln(getColorable(), "The server", bold(name), "was successfully updated.")
+	fmt.Fprintf(w, "The server %q was successfully updated.\n", name)
 
 	return nil
 }
@@ -298,11 +298,12 @@ type ServerAuthorize struct {
 	} `positional-args:"yes"`
 }
 
-func (s *ServerAuthorize) Execute([]string) error {
+func (s *ServerAuthorize) Execute([]string) error { return s.execute(stdOutput) }
+func (s *ServerAuthorize) execute(w io.Writer) error {
 	addr.Path = fmt.Sprintf("/api/servers/%s/authorize/%s/%s", s.Args.Server,
 		s.Args.Rule, s.Args.Direction)
 
-	return authorize(out, "server", s.Args.Server, s.Args.Rule, s.Args.Direction)
+	return authorize(w, "server", s.Args.Server, s.Args.Rule, s.Args.Direction)
 }
 
 // ######################## REVOKE ##########################
@@ -316,11 +317,12 @@ type ServerRevoke struct {
 	} `positional-args:"yes"`
 }
 
-func (s *ServerRevoke) Execute([]string) error {
+func (s *ServerRevoke) Execute([]string) error { return s.execute(stdOutput) }
+func (s *ServerRevoke) execute(w io.Writer) error {
 	addr.Path = fmt.Sprintf("/api/servers/%s/revoke/%s/%s", s.Args.Server,
 		s.Args.Rule, s.Args.Direction)
 
-	return revoke(out, "server", s.Args.Server, s.Args.Rule, s.Args.Direction)
+	return revoke(w, "server", s.Args.Server, s.Args.Rule, s.Args.Direction)
 }
 
 // ######################## ENABLE/DISABLE ##########################
@@ -355,7 +357,7 @@ func (s *serverEnableDisable) run(w io.Writer, isEnable bool) error {
 
 	switch resp.StatusCode {
 	case http.StatusAccepted:
-		fmt.Fprintln(w, "The server", server, "was successfully", status+".")
+		fmt.Fprintf(w, "The server %q was successfully %s.\n", server, status)
 
 		return nil
 	case http.StatusNotFound:
@@ -371,9 +373,9 @@ type (
 	ServerDisable struct{ serverEnableDisable }
 )
 
-func (s *ServerEnable) Execute([]string) error     { return s.execute(os.Stdout) }
+func (s *ServerEnable) Execute([]string) error     { return s.execute(stdOutput) }
 func (s *ServerEnable) execute(w io.Writer) error  { return s.run(w, true) }
-func (s *ServerDisable) Execute([]string) error    { return s.execute(os.Stdout) }
+func (s *ServerDisable) Execute([]string) error    { return s.execute(stdOutput) }
 func (s *ServerDisable) execute(w io.Writer) error { return s.run(w, false) }
 
 // ######################## START/STOP ############################
@@ -384,12 +386,13 @@ type ServerStart struct {
 	} `positional-args:"yes"`
 }
 
-func (s *ServerStart) Execute([]string) error {
-	if err := exec(fmt.Sprintf("/api/servers/%s/start", s.Args.Name)); err != nil {
+func (s *ServerStart) Execute([]string) error { return s.execute(stdOutput) }
+func (s *ServerStart) execute(w io.Writer) error {
+	if err := exec(w, fmt.Sprintf("/api/servers/%s/start", s.Args.Name)); err != nil {
 		return err
 	}
 
-	fmt.Fprintln(getColorable(), "The server", bold(s.Args.Name), "was successfully started.")
+	fmt.Fprintf(w, "The server %q was successfully started.\n", s.Args.Name)
 
 	return nil
 }
@@ -400,12 +403,13 @@ type ServerStop struct {
 	} `positional-args:"yes"`
 }
 
-func (s *ServerStop) Execute([]string) error {
-	if err := exec(fmt.Sprintf("/api/servers/%s/stop", s.Args.Name)); err != nil {
+func (s *ServerStop) Execute([]string) error { return s.execute(stdOutput) }
+func (s *ServerStop) execute(w io.Writer) error {
+	if err := exec(w, fmt.Sprintf("/api/servers/%s/stop", s.Args.Name)); err != nil {
 		return err
 	}
 
-	fmt.Fprintln(getColorable(), "The server", bold(s.Args.Name), "was successfully stopped.")
+	fmt.Fprintf(w, "The server %q was successfully stopped.\n", s.Args.Name)
 
 	return nil
 }
@@ -416,12 +420,13 @@ type ServerRestart struct {
 	} `positional-args:"yes"`
 }
 
-func (s *ServerRestart) Execute([]string) error {
-	if err := exec(fmt.Sprintf("/api/servers/%s/restart", s.Args.Name)); err != nil {
+func (s *ServerRestart) Execute([]string) error { return s.execute(stdOutput) }
+func (s *ServerRestart) execute(w io.Writer) error {
+	if err := exec(w, fmt.Sprintf("/api/servers/%s/restart", s.Args.Name)); err != nil {
 		return err
 	}
 
-	fmt.Fprintln(getColorable(), "The server", bold(s.Args.Name), "was successfully restarted.")
+	fmt.Fprintf(w, "The server %q was successfully restarted.\n", s.Args.Name)
 
 	return nil
 }

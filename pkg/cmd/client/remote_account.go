@@ -2,6 +2,7 @@ package wg
 
 import (
 	"fmt"
+	"io"
 
 	"code.waarp.fr/apps/gateway/gateway/pkg/admin/rest/api"
 )
@@ -25,7 +26,8 @@ type RemAccGet struct {
 	} `positional-args:"yes"`
 }
 
-func (r *RemAccGet) Execute([]string) error {
+func (r *RemAccGet) Execute([]string) error { return r.execute(stdOutput) }
+func (r *RemAccGet) execute(w io.Writer) error {
 	addr.Path = fmt.Sprintf("/api/partners/%s/accounts/%s", Partner, r.Args.Login)
 
 	account := &api.OutAccount{}
@@ -33,7 +35,7 @@ func (r *RemAccGet) Execute([]string) error {
 		return err
 	}
 
-	displayAccount(getColorable(), account)
+	DisplayAccount(w, account)
 
 	return nil
 }
@@ -45,18 +47,19 @@ type RemAccAdd struct {
 	Password string `required:"true" short:"p" long:"password" description:"The account's password"`
 }
 
-func (r *RemAccAdd) Execute([]string) error {
+func (r *RemAccAdd) Execute([]string) error { return r.execute(stdOutput) }
+func (r *RemAccAdd) execute(w io.Writer) error {
 	account := api.InAccount{
 		Login:    &r.Login,
 		Password: &r.Password,
 	}
 	addr.Path = fmt.Sprintf("/api/partners/%s/accounts", Partner)
 
-	if err := add(account); err != nil {
+	if _, err := add(w, account); err != nil {
 		return err
 	}
 
-	fmt.Fprintln(getColorable(), "The account", bold(r.Login), "was successfully added.")
+	fmt.Fprintf(w, "The account %q was successfully added.\n", r.Login)
 
 	return nil
 }
@@ -69,14 +72,15 @@ type RemAccDelete struct {
 	} `positional-args:"yes"`
 }
 
-func (r *RemAccDelete) Execute([]string) error {
+func (r *RemAccDelete) Execute([]string) error { return r.execute(stdOutput) }
+func (r *RemAccDelete) execute(w io.Writer) error {
 	addr.Path = fmt.Sprintf("/api/partners/%s/accounts/%s", Partner, r.Args.Login)
 
-	if err := remove(); err != nil {
+	if err := remove(w); err != nil {
 		return err
 	}
 
-	fmt.Fprintln(getColorable(), "The account", bold(r.Args.Login), "was successfully deleted.")
+	fmt.Fprintf(w, "The account %q was successfully deleted.\n", r.Args.Login)
 
 	return nil
 }
@@ -85,14 +89,16 @@ func (r *RemAccDelete) Execute([]string) error {
 
 type RemAccUpdate struct {
 	Args struct {
-		Login string `required:"yes" positional-arg-name:"login" description:"The account's login"`
+		Login string `required:"yes" positional-arg-name:"old-login" description:"The account's login"`
 	} `positional-args:"yes"`
-	Login    *string `short:"l" long:"name" description:"The account's login"`
+	Login    *string `short:"l" long:"login" description:"The account's login"`
 	Password *string `short:"p" long:"password" description:"The account's password"`
 }
 
-//nolint:dupl // FIXME too hard to refactor?
-func (r *RemAccUpdate) Execute([]string) error {
+func (r *RemAccUpdate) Execute([]string) error { return r.execute(stdOutput) }
+
+//nolint:dupl //duplicate is for a different command, better keep separate
+func (r *RemAccUpdate) execute(w io.Writer) error {
 	account := &api.InAccount{
 		Login:    r.Login,
 		Password: r.Password,
@@ -100,17 +106,16 @@ func (r *RemAccUpdate) Execute([]string) error {
 
 	addr.Path = fmt.Sprintf("/api/partners/%s/accounts/%s", Partner, r.Args.Login)
 
-	if err := update(account); err != nil {
+	if err := update(w, account); err != nil {
 		return err
 	}
 
 	login := r.Args.Login
-
 	if account.Login != nil && *account.Login != "" {
 		login = *account.Login
 	}
 
-	fmt.Fprintln(getColorable(), "The account", bold(login), "was successfully updated.")
+	fmt.Fprintf(w, "The account %q was successfully updated.\n", login)
 
 	return nil
 }
@@ -123,30 +128,30 @@ type RemAccList struct {
 	SortBy string `short:"s" long:"sort" description:"Attribute used to sort the returned entries" choice:"login+" choice:"login-" default:"login+"`
 }
 
-//nolint:dupl // FIXME too hard to refactor?
-func (r *RemAccList) Execute([]string) error {
+func (r *RemAccList) Execute([]string) error { return r.execute(stdOutput) }
+
+//nolint:dupl //duplicate is for a different command, better keep separate
+func (r *RemAccList) execute(w io.Writer) error {
 	addr.Path = fmt.Sprintf("/api/partners/%s/accounts", Partner)
 
 	listURL(&r.ListOptions, r.SortBy)
 
-	body := map[string][]api.OutAccount{}
+	body := map[string][]*api.OutAccount{}
 	if err := list(&body); err != nil {
 		return err
 	}
 
-	accounts := body["remoteAccounts"]
+	if accounts := body["remoteAccounts"]; len(accounts) > 0 {
+		f := NewFormatter(w)
+		defer f.Render()
 
-	w := getColorable() //nolint:ifshort // decrease readability
+		f.MainTitle("Accounts of partner %q:", Partner)
 
-	if len(accounts) > 0 {
-		fmt.Fprintln(w, bold("Accounts of partner '"+Partner+"':"))
-
-		for _, a := range accounts {
-			account := a
-			displayAccount(w, &account)
+		for _, account := range accounts {
+			displayAccount(f, account)
 		}
 	} else {
-		fmt.Fprintln(w, "Partner", bold(Partner), "has no accounts.")
+		fmt.Fprintf(w, "Partner %q has no accounts.\n", Partner)
 	}
 
 	return nil
@@ -162,11 +167,12 @@ type RemAccAuthorize struct {
 	} `positional-args:"yes"`
 }
 
-func (r *RemAccAuthorize) Execute([]string) error {
+func (r *RemAccAuthorize) Execute([]string) error { return r.execute(stdOutput) }
+func (r *RemAccAuthorize) execute(w io.Writer) error {
 	addr.Path = fmt.Sprintf("/api/partners/%s/accounts/%s/authorize/%s/%s", Partner,
 		r.Args.Login, r.Args.Rule, r.Args.Direction)
 
-	return authorize(out, "remote account", r.Args.Login, r.Args.Rule, r.Args.Direction)
+	return authorize(w, "remote account", r.Args.Login, r.Args.Rule, r.Args.Direction)
 }
 
 // ######################## REVOKE ##########################
@@ -179,9 +185,10 @@ type RemAccRevoke struct {
 	} `positional-args:"yes"`
 }
 
-func (r *RemAccRevoke) Execute([]string) error {
+func (r *RemAccRevoke) Execute([]string) error { return r.execute(stdOutput) }
+func (r *RemAccRevoke) execute(w io.Writer) error {
 	addr.Path = fmt.Sprintf("/api/partners/%s/accounts/%s/revoke/%s/%s", Partner,
 		r.Args.Login, r.Args.Rule, r.Args.Direction)
 
-	return revoke(out, "remote account", r.Args.Login, r.Args.Rule, r.Args.Direction)
+	return revoke(w, "remote account", r.Args.Login, r.Args.Rule, r.Args.Direction)
 }

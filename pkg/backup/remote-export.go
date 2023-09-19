@@ -1,6 +1,8 @@
 package backup
 
 import (
+	"fmt"
+
 	"code.waarp.fr/lib/log"
 
 	"code.waarp.fr/apps/gateway/gateway/pkg/backup/file"
@@ -13,7 +15,7 @@ func exportRemotes(logger *log.Logger, db database.ReadAccess) ([]file.RemoteAge
 	var dbRemotes model.RemoteAgents
 	if err := db.Select(&dbRemotes).Where("owner=?", conf.GlobalConfig.GatewayName).
 		Run(); err != nil {
-		return nil, err
+		return nil, fmt.Errorf("failed to retrieve partners: %w", err)
 	}
 
 	res := make([]file.RemoteAgent, len(dbRemotes))
@@ -50,7 +52,7 @@ func exportRemoteAccounts(logger *log.Logger, db database.ReadAccess,
 ) ([]file.RemoteAccount, error) {
 	var dbAccounts model.RemoteAccounts
 	if err := db.Select(&dbAccounts).Where("remote_agent_id=?", agentID).Run(); err != nil {
-		return nil, err
+		return nil, fmt.Errorf("failed to retrieve remote accounts: %w", err)
 	}
 
 	res := make([]file.RemoteAccount, len(dbAccounts))

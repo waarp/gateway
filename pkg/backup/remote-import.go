@@ -1,6 +1,8 @@
 package backup
 
 import (
+	"fmt"
+
 	"code.waarp.fr/lib/log"
 
 	"code.waarp.fr/apps/gateway/gateway/pkg/backup/file"
@@ -13,16 +15,16 @@ import (
 //nolint:funlen //splitting would add complexity
 func importRemoteAgents(logger *log.Logger, db database.Access,
 	list []file.RemoteAgent, reset bool,
-) database.Error {
+) error {
 	if reset {
 		var partners model.RemoteAgents
 		if err := db.Select(&partners).Run(); err != nil {
-			return err
+			return fmt.Errorf("failed to retrieve existing partners: %w", err)
 		}
 
 		for _, partner := range partners {
 			if err := db.Delete(partner).Run(); err != nil {
-				return err
+				return fmt.Errorf("failed to delete partner %q: %w", partner.Name, err)
 			}
 		}
 	}
@@ -39,7 +41,7 @@ func importRemoteAgents(logger *log.Logger, db database.Access,
 		if database.IsNotFound(err) {
 			exists = false
 		} else if err != nil {
-			return err
+			return fmt.Errorf("failed to retrieve partner %q: %w", src.Name, err)
 		}
 
 		// Populate
@@ -58,7 +60,7 @@ func importRemoteAgents(logger *log.Logger, db database.Access,
 		}
 
 		if err != nil {
-			return err
+			return fmt.Errorf("failed to import partner %q: %w", agent.Name, err)
 		}
 
 		if err := importCerts(logger, db, src.Certs, &agent); err != nil {
@@ -76,7 +78,7 @@ func importRemoteAgents(logger *log.Logger, db database.Access,
 //nolint:dupl // duplicated code is about two different types
 func importRemoteAccounts(logger *log.Logger, db database.Access,
 	list []file.RemoteAccount, partner *model.RemoteAgent,
-) database.Error {
+) error {
 	for _, src := range list {
 		// Create model with basic info to check existence
 		var account model.RemoteAccount
@@ -106,7 +108,7 @@ func importRemoteAccounts(logger *log.Logger, db database.Access,
 		}
 
 		if err != nil {
-			return err
+			return fmt.Errorf("failed to import remote account %q: %w", account.Login, err)
 		}
 
 		if err := importCerts(logger, db, src.Certs, &account); err != nil {

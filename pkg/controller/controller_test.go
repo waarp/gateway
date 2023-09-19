@@ -12,12 +12,12 @@ import (
 	"code.waarp.fr/apps/gateway/gateway/pkg/database"
 	"code.waarp.fr/apps/gateway/gateway/pkg/fs"
 	"code.waarp.fr/apps/gateway/gateway/pkg/fs/fstest"
-	"code.waarp.fr/apps/gateway/gateway/pkg/gatewayd/service/state"
+	"code.waarp.fr/apps/gateway/gateway/pkg/gatewayd/services"
 	"code.waarp.fr/apps/gateway/gateway/pkg/model"
 	"code.waarp.fr/apps/gateway/gateway/pkg/model/types"
-	"code.waarp.fr/apps/gateway/gateway/pkg/pipeline"
-	"code.waarp.fr/apps/gateway/gateway/pkg/tk/utils"
-	"code.waarp.fr/apps/gateway/gateway/pkg/tk/utils/testhelpers"
+	"code.waarp.fr/apps/gateway/gateway/pkg/protocols/protocolstest"
+	"code.waarp.fr/apps/gateway/gateway/pkg/utils"
+	"code.waarp.fr/apps/gateway/gateway/pkg/utils/testhelpers"
 )
 
 func TestControllerListen(t *testing.T) {
@@ -29,7 +29,11 @@ func TestControllerListen(t *testing.T) {
 		client := &model.Client{Name: "client", Protocol: testProtocol}
 		So(db.Insert(client).Run(), ShouldBeNil)
 
-		pipeline.Clients[client.Name] = newAllSuccess()
+		cliService := &protocolstest.TestService{}
+		So(cliService.Start(), ShouldBeNil)
+
+		services.Clients[client.Name] = cliService
+		defer delete(services.Clients, client.Name)
 
 		remote := &model.RemoteAgent{
 			Name:     "test remote",
@@ -141,15 +145,12 @@ func TestControllerListen(t *testing.T) {
 					Status:          types.StatusRunning,
 					Owner:           conf.GlobalConfig.GatewayName,
 				}
-				So(gwController.DB.Insert(trans).Run(), ShouldBeNil)
+				So(db.Insert(trans).Run(), ShouldBeNil)
 
 				Convey("Given that the database stops responding", func() {
-					gwController.DB.State().Set(state.Error, "test error")
 					gwController.wasDown = true
 
 					Convey("When the database comes back online", func() {
-						gwController.DB.State().Set(state.Running, "")
-
 						Convey("When the controller starts new transfers again", func() {
 							cont.Action(cont.wg, *cont.logger)
 							So(gwController.wasDown, ShouldBeFalse)

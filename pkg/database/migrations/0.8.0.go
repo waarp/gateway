@@ -3,7 +3,7 @@ package migrations
 import (
 	"fmt"
 
-	"code.waarp.fr/apps/gateway/gateway/pkg/tk/utils"
+	"code.waarp.fr/apps/gateway/gateway/pkg/utils"
 )
 
 type ver0_8_0DropNormalizedTransfersView struct{}

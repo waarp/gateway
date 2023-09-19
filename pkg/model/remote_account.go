@@ -5,7 +5,7 @@ import (
 
 	"code.waarp.fr/apps/gateway/gateway/pkg/database"
 	"code.waarp.fr/apps/gateway/gateway/pkg/model/types"
-	"code.waarp.fr/apps/gateway/gateway/pkg/tk/utils"
+	"code.waarp.fr/apps/gateway/gateway/pkg/utils"
 )
 
 // RemoteAccount represents an account on a remote agent. It is used by the
@@ -26,7 +26,7 @@ func (r *RemoteAccount) GetID() int64      { return r.ID }
 // inserted in the database.
 //
 //nolint:dupl // too many differences to be factorized easily
-func (r *RemoteAccount) BeforeWrite(db database.ReadAccess) database.Error {
+func (r *RemoteAccount) BeforeWrite(db database.ReadAccess) error {
 	if r.RemoteAgentID == 0 {
 		return database.NewValidationError("the account's agentID cannot be empty")
 	}
@@ -35,18 +35,16 @@ func (r *RemoteAccount) BeforeWrite(db database.ReadAccess) database.Error {
 		return database.NewValidationError("the account's login cannot be empty")
 	}
 
-	n, err := db.Count(&RemoteAgent{}).Where("id=?", r.RemoteAgentID).Run()
-	if err != nil {
-		return err
+	if n, err := db.Count(&RemoteAgent{}).Where("id=?", r.RemoteAgentID).Run(); err != nil {
+		return fmt.Errorf("failed to check parent remote agent: %w", err)
 	} else if n == 0 {
 		return database.NewValidationError("no remote agent found with the ID '%v'",
 			r.RemoteAgentID)
 	}
 
-	n, err = db.Count(&RemoteAccount{}).Where("id<>? AND remote_agent_id=? AND login=?",
-		r.ID, r.RemoteAgentID, r.Login).Run()
-	if err != nil {
-		return err
+	if n, err := db.Count(&RemoteAccount{}).Where("id<>? AND remote_agent_id=? AND login=?",
+		r.ID, r.RemoteAgentID, r.Login).Run(); err != nil {
+		return fmt.Errorf("failed to check for duplicate remote accounts: %w", err)
 	} else if n > 0 {
 		return database.NewValidationError(
 			"a remote account with the same login '%s' already exist", r.Login)
@@ -57,9 +55,9 @@ func (r *RemoteAccount) BeforeWrite(db database.ReadAccess) database.Error {
 
 // BeforeDelete is called before deleting the account from the database. Its
 // role is to check whether the account is still used in any ongoing transfer.
-func (r *RemoteAccount) BeforeDelete(db database.Access) database.Error {
+func (r *RemoteAccount) BeforeDelete(db database.Access) error {
 	if n, err := db.Count(&Transfer{}).Where("remote_account_id=?", r.ID).Run(); err != nil {
-		return err
+		return fmt.Errorf("failed to check for ongoing transfers: %w", err)
 	} else if n > 0 {
 		return database.NewValidationError("this account is currently being used " +
 			"in one or more running transfers and thus cannot be deleted, cancel " +

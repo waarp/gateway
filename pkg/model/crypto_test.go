@@ -7,9 +7,8 @@ import (
 	. "github.com/smartystreets/goconvey/convey"
 
 	"code.waarp.fr/apps/gateway/gateway/pkg/database"
-	"code.waarp.fr/apps/gateway/gateway/pkg/model/config"
-	"code.waarp.fr/apps/gateway/gateway/pkg/tk/utils"
-	"code.waarp.fr/apps/gateway/gateway/pkg/tk/utils/testhelpers"
+	"code.waarp.fr/apps/gateway/gateway/pkg/utils"
+	"code.waarp.fr/apps/gateway/gateway/pkg/utils/testhelpers"
 )
 
 func TestCryptoTableName(t *testing.T) {
@@ -153,8 +152,6 @@ func TestCryptoBeforeWrite(t *testing.T) {
 				})
 
 				Convey("Given the legacy R66 certificate", func() {
-					const protoR66TLS = config.ProtocolR66TLS
-
 					newCert.PrivateKey = testhelpers.LegacyR66Key
 					newCert.Certificate = testhelpers.LegacyR66Cert
 
@@ -175,8 +172,9 @@ func TestCryptoBeforeWrite(t *testing.T) {
 						})
 
 						Convey("Given an R66 owner", func() {
-							config.ProtoConfigs[protoR66TLS] = testConfigMaker
-							defer delete(config.ProtoConfigs, protoR66TLS)
+							ConfigChecker.(testConfigChecker)[protoR66TLS] = nil
+
+							defer delete(ConfigChecker.(testConfigChecker), protoR66TLS)
 
 							parentAgent.Protocol = protoR66TLS
 							So(db.Update(parentAgent).Cols("protocol").Run(), ShouldBeNil)
@@ -191,8 +189,9 @@ func TestCryptoBeforeWrite(t *testing.T) {
 
 					Convey("Given that the legacy certificate is NOT allowed", func() {
 						Convey("Given an R66 owner", func() {
-							config.ProtoConfigs[protoR66TLS] = testConfigMaker
-							defer delete(config.ProtoConfigs, protoR66TLS)
+							ConfigChecker.(testConfigChecker)[protoR66TLS] = nil
+
+							defer delete(ConfigChecker.(testConfigChecker), protoR66TLS)
 
 							parentAgent.Protocol = protoR66TLS
 							So(db.Update(parentAgent).Cols("protocol").Run(), ShouldBeNil)

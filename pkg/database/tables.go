@@ -29,7 +29,7 @@ func AddInit(t Initialiser) { inits = append(inits, t) }
 // for the first time.
 type Initialiser interface {
 	Table
-	Init(Access) Error
+	Init(db Access) error
 }
 
 type Executor struct {
@@ -93,12 +93,12 @@ func initDatabase(db *Standalone) error {
 	return nil
 }
 
-func initTables(ses *Session) Error {
+func initTables(ses *Session) error {
 	for _, init := range inits {
 		if err := init.Init(ses); err != nil {
-			ses.logger.Error("failed to initialize table %q: %v", init.TableName(), err)
+			ses.logger.Error("Failed to initialize table %q: %v", init.TableName(), err)
 
-			return err
+			return fmt.Errorf("failed to initialize table %q: %w", init.TableName(), err)
 		}
 	}
 

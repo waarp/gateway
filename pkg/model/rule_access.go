@@ -2,6 +2,7 @@ package model
 
 import (
 	"database/sql"
+	"fmt"
 
 	"code.waarp.fr/apps/gateway/gateway/pkg/database"
 )
@@ -11,7 +12,7 @@ import (
 type AccessTarget interface {
 	// SetAccessTarget sets the target AccessTarget as target of the given RuleAccess
 	// instance (by setting the corresponding foreign key to its own ID).
-	SetAccessTarget(*RuleAccess)
+	SetAccessTarget(access *RuleAccess)
 
 	// GenAccessSelectCond returns the name of the RuleAccess column associated
 	// with the target type.
@@ -39,11 +40,10 @@ func (*RuleAccess) Appellation() string { return "rule permission" }
 
 // BeforeWrite is called before inserting a new `RuleAccess` entry in the
 // database. It checks whether the new entry is valid or not.
-func (r *RuleAccess) BeforeWrite(db database.ReadAccess) database.Error {
-	i, err1 := db.Count(&Rule{}).Where("id=?", r.RuleID).Run()
-	if err1 != nil {
-		return err1
-	} else if i < 1 {
+func (r *RuleAccess) BeforeWrite(db database.ReadAccess) error {
+	if n, err := db.Count(&Rule{}).Where("id=?", r.RuleID).Run(); err != nil {
+		return fmt.Errorf("failed to check access rule: %w", err)
+	} else if n < 1 {
 		return database.NewValidationError("no rule found with ID %d", r.RuleID)
 	}
 
@@ -73,7 +73,7 @@ func (r *RuleAccess) BeforeWrite(db database.ReadAccess) database.Error {
 	}
 
 	if n, err := db.Count(target).Where("id=?", target.GetID()).Run(); err != nil {
-		return err
+		return fmt.Errorf("failed to check access target: %w", err)
 	} else if n == 0 {
 		return database.NewValidationError("no %s found with ID %v", target.Appellation(),
 			target.GetID())
@@ -81,7 +81,7 @@ func (r *RuleAccess) BeforeWrite(db database.ReadAccess) database.Error {
 
 	if n, err := db.Count(r).Where("rule_id=?", r.RuleID).Where(
 		target.GenAccessSelectCond()).Run(); err != nil {
-		return err
+		return fmt.Errorf("failed to check for duplicate accesses: %w", err)
 	} else if n > 0 {
 		return database.NewValidationError("the target has already been granted access " +
 			"to this rule")
@@ -92,10 +92,10 @@ func (r *RuleAccess) BeforeWrite(db database.ReadAccess) database.Error {
 
 // IsRuleAuthorized verify if the rule requested by the transfer is authorized for
 // the requesting transfer.
-func IsRuleAuthorized(db database.ReadAccess, t *Transfer) (bool, database.Error) {
+func IsRuleAuthorized(db database.ReadAccess, t *Transfer) (bool, error) {
 	n, err := db.Count(&RuleAccess{}).Where("rule_id=?", t.RuleID).Run()
 	if err != nil {
-		return false, err
+		return false, fmt.Errorf("failed to count rule accesses: %w", err)
 	} else if n == 0 {
 		return true, nil
 	}
@@ -111,7 +111,7 @@ func IsRuleAuthorized(db database.ReadAccess, t *Transfer) (bool, database.Error
 	}
 
 	if err != nil {
-		return false, err
+		return false, fmt.Errorf("failed to count rule accesses: %w", err)
 	} else if n < 1 {
 		return false, nil
 	}

@@ -116,7 +116,7 @@ func TestUsersBeforeDelete(t *testing.T) {
 			So(db.DeleteAll(&User{}).Where("username=?", "admin").Run(), ShouldBeNil)
 
 			Convey("When calling BeforeDelete", func() {
-				err := db.Transaction(func(ses *database.Session) database.Error {
+				err := db.Transaction(func(ses *database.Session) error {
 					return mine.BeforeDelete(ses)
 				})
 
@@ -148,7 +148,7 @@ func TestUsersBeforeDelete(t *testing.T) {
 			So(db.DeleteAll(&User{}).Where("username='admin'").Run(), ShouldBeNil)
 
 			Convey("When calling BeforeDelete", func() {
-				err := db.Transaction(func(ses *database.Session) database.Error {
+				err := db.Transaction(func(ses *database.Session) error {
 					return mine.BeforeDelete(ses)
 				})
 
@@ -177,6 +177,7 @@ func TestUserInit(t *testing.T) {
 				Permissions:  PermAll,
 			}
 			So(db.Insert(other).Run(), ShouldBeNil)
+
 			conf.GlobalConfig.GatewayName = owner
 
 			Convey("When calling the user init function", func() {

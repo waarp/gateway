@@ -20,7 +20,7 @@ import (
 
 	"code.waarp.fr/apps/gateway/gateway/pkg/conf"
 	"code.waarp.fr/apps/gateway/gateway/pkg/database/migrations"
-	"code.waarp.fr/apps/gateway/gateway/pkg/tk/utils/testhelpers"
+	"code.waarp.fr/apps/gateway/gateway/pkg/utils/testhelpers"
 )
 
 const (
@@ -153,12 +153,15 @@ func initTestDatabase(c convey.C) *DB {
 	initTestDBConf()
 	testGCM()
 
+	dbtype := conf.GlobalConfig.Database.Type
+
 	dbname := conf.GlobalConfig.Database.Name
 	if dbname == "" {
 		dbname = filepath.Base(conf.GlobalConfig.Database.Address)
 	}
 
-	db := &DB{logger: testhelpers.TestLoggerWithLevel(c, dbname, log.LevelNotice)}
+	db := &DB{logger: testhelpers.TestLoggerWithLevel(c,
+		fmt.Sprintf("%s-database-%s", dbtype, dbname), log.LevelNotice)}
 
 	return db
 }

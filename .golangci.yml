@@ -1,11 +1,7 @@
 # options for analysis running
 run:
-  # revert to go1.17 while the linters are being updated to add support for the
-  # generics introduced in go1.18
-  go: '1.17'
-
   # default concurrency is a available CPU number
-  concurrency: 4
+  #concurrency: 4
 
   # timeout for analysis, e.g. 30s, 5m, default is 1m
   timeout: 1m
@@ -686,7 +682,8 @@ linters-settings:
       - .Wrap(
       - .Wrapf(
       - .WithMessage(
-      - code.waarp.fr/apps/gateway/gateway/pkg/tk/utils.GetPath(
+      - utils.RunWithCtx(
+      - utils.GetPath(
 
   wsl:
     # See https://github.com/bombsimon/wsl/blob/master/doc/configuration.md for
@@ -729,6 +726,7 @@ linters:
     - execinquery #raises lots of false-positives, might re-enable once fixed
     - nosnakecase #raises errors on imported variables (which we have no control on), might re-enable once fixed
     - tagalign #sorting tags does not always result in better readability
+    - containedctx #might re-enable once a better solution has been found
   #presets:
   #  - bugs
   #  - unused
@@ -823,6 +821,18 @@ issues:
         - funlen # splitting functions is not always possible (or desirable)
         - dupl # some tables are similar, but factorizing their migrations is a bad idea
         - gomnd # we use magic numbers for type sizes
+
+    # Hardcoded credentials are fine for testing.
+    - path: pkg/utils/testhelpers/certs.go
+      text: "G101:"
+      linters:
+        - gosec
+
+    # Unnecessary fmt.Sprintf are used in client test for better readability.
+    - path: pkg/cmd/client/\w+_test.go
+      text: "s1039:"
+      linters:
+        - gosimple
 
 
   # Independently from option `exclude` we use default exclude patterns,

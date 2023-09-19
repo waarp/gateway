@@ -20,14 +20,13 @@ import (
 	"code.waarp.fr/apps/gateway/gateway/pkg/controller"
 	"code.waarp.fr/apps/gateway/gateway/pkg/database"
 	"code.waarp.fr/apps/gateway/gateway/pkg/fs"
-	"code.waarp.fr/apps/gateway/gateway/pkg/gatewayd/service"
-	"code.waarp.fr/apps/gateway/gateway/pkg/gatewayd/service/constructors"
-	"code.waarp.fr/apps/gateway/gateway/pkg/gatewayd/service/names"
-	"code.waarp.fr/apps/gateway/gateway/pkg/gatewayd/service/proto"
-	"code.waarp.fr/apps/gateway/gateway/pkg/gatewayd/service/state"
+	"code.waarp.fr/apps/gateway/gateway/pkg/gatewayd/services"
+	"code.waarp.fr/apps/gateway/gateway/pkg/logging"
 	"code.waarp.fr/apps/gateway/gateway/pkg/model"
 	"code.waarp.fr/apps/gateway/gateway/pkg/model/types"
-	"code.waarp.fr/apps/gateway/gateway/pkg/pipeline"
+	"code.waarp.fr/apps/gateway/gateway/pkg/protocols"
+	"code.waarp.fr/apps/gateway/gateway/pkg/protocols/protocol"
+	"code.waarp.fr/apps/gateway/gateway/pkg/utils"
 )
 
 const (
@@ -38,16 +37,15 @@ const (
 type WG struct {
 	*log.Logger
 
-	dbService     *database.DB
-	adminService  *admin.Server
-	controller    *controller.Controller
-	ProtoServices map[string]proto.Service
+	dbService    *database.DB
+	adminService *admin.Server
+	controller   *controller.Controller
 }
 
 // NewWG creates a new application.
 func NewWG() *WG {
 	return &WG{
-		Logger: conf.GetLogger("Waarp-Gateway"),
+		Logger: logging.NewLogger("Waarp-Gateway"),
 	}
 }
 
@@ -142,23 +140,10 @@ func (wg *WG) makeDirs() error {
 }
 
 func (wg *WG) initServices() {
-	core := map[string]service.Service{}
-	wg.ProtoServices = map[string]proto.Service{}
-
 	wg.dbService = &database.DB{}
-	wg.adminService = &admin.Server{
-		DB:            wg.dbService,
-		CoreServices:  core,
-		ProtoServices: wg.ProtoServices,
-	}
+	wg.adminService = &admin.Server{DB: wg.dbService}
 	gwController := controller.GatewayController{DB: wg.dbService}
-	wg.controller = &controller.Controller{
-		Action: gwController.Run,
-	}
-
-	core[names.DatabaseServiceName] = wg.dbService
-	core[names.AdminServiceName] = wg.adminService
-	core[names.ControllerServiceName] = wg.controller
+	wg.controller = &controller.Controller{Action: gwController.Run}
 }
 
 func (wg *WG) startServices() error {
@@ -180,6 +165,10 @@ func (wg *WG) startServices() error {
 		return err
 	}
 
+	services.Core[database.ServiceName] = wg.dbService
+	services.Core[controller.ServiceName] = wg.controller
+	services.Core[admin.ServiceName] = wg.adminService
+
 	if err := wg.startServers(); err != nil {
 		return err
 	}
@@ -191,30 +180,28 @@ func (wg *WG) startServices() error {
 	return nil
 }
 
+//nolint:dupl //too many differences
 func (wg *WG) startServers() error {
 	var servers model.LocalAgents
 	if err := wg.dbService.Select(&servers).Where("owner=?", conf.GlobalConfig.GatewayName).
 		Run(); err != nil {
-		return err
+		return fmt.Errorf("failed to retrieve servers from the database: %w", err)
 	}
 
 	for _, server := range servers {
-		l := conf.GetLogger(server.Name)
-
-		constr, ok := constructors.ServiceConstructors[server.Protocol]
-		if !ok {
-			wg.Logger.Warning("Unknown protocol '%s' for server %s",
-				server.Protocol, server.Name)
+		module := protocols.Get(server.Protocol)
+		if module == nil {
+			wg.Logger.Error("Unknown protocol %q for server %q", server.Protocol, server.Name)
 
 			continue
 		}
 
-		protoService := constr(wg.dbService, l)
-		wg.ProtoServices[server.Name] = protoService
+		serverService := module.NewServer(wg.dbService, server)
+		services.Servers[server.Name] = serverService
 
 		if !server.Disabled {
-			if err := protoService.Start(server); err != nil {
-				wg.Logger.Error("Error starting the %q service: %v", server.Name, err)
+			if err := serverService.Start(); err != nil {
+				wg.Logger.Error("Error starting the %q server: %v", server.Name, err)
 			}
 		}
 	}
@@ -222,34 +209,28 @@ func (wg *WG) startServers() error {
 	return nil
 }
 
+//nolint:dupl //too many differences
 func (wg *WG) startClients() error {
 	var dbClients model.Clients
 	if err := wg.dbService.Select(&dbClients).Where("owner=?", conf.GlobalConfig.GatewayName).
 		Run(); err != nil {
-		return err
+		return fmt.Errorf("failed to retrieve clients from the database: %w", err)
 	}
 
-	for _, dbClient := range dbClients {
-		constr, ok := constructors.ClientConstructors[dbClient.Protocol]
-		if !ok {
-			wg.Logger.Warning("Unknown protocol %q for client %s",
-				dbClient.Protocol, dbClient.Name)
+	for _, client := range dbClients {
+		module := protocols.Get(client.Protocol)
+		if module == nil {
+			wg.Logger.Error("Unknown protocol %q for client %q", client.Protocol, client.Name)
 
 			continue
 		}
 
-		client, err := constr(dbClient)
-		if err != nil {
-			wg.Logger.Error("Error initiating the %q client: %v", dbClient.Name, err)
+		clientService := module.NewClient(wg.dbService, client)
+		services.Clients[client.Name] = clientService
 
-			continue
-		}
-
-		pipeline.Clients[dbClient.Name] = client
-
-		if !dbClient.Disabled {
-			if err := client.Start(); err != nil {
-				wg.Logger.Error("Error starting the %q client: %v", dbClient.Name, err)
+		if !client.Disabled {
+			if err := clientService.Start(); err != nil {
+				wg.Logger.Error("Error starting the %q client: %v", client.Name, err)
 			}
 		}
 	}
@@ -262,21 +243,30 @@ func (wg *WG) stopServices() {
 	defer cancel()
 
 	w := sync.WaitGroup{}
+	stop := func(name string, s protocol.Server) {
+		defer w.Done()
 
-	for _, wgService := range wg.ProtoServices {
-		if code, _ := wgService.State().Get(); code != state.Running && code != state.Starting {
+		if err := s.Stop(ctx); err != nil {
+			wg.Logger.Warning("an error occurred while stopping the %q service: %v", name, err)
+		}
+	}
+
+	for name, clientService := range services.Clients {
+		if code, _ := clientService.State(); code != utils.StateRunning {
 			continue
 		}
 
 		w.Add(1)
+		stop(name, clientService)
+	}
 
-		go func(s stopper) {
-			defer w.Done()
+	for name, serverService := range services.Servers {
+		if code, _ := serverService.State(); code != utils.StateRunning {
+			continue
+		}
 
-			if err := s.Stop(ctx); err != nil {
-				wg.Logger.Warning("an error occurred while stopping the service: %v", err)
-			}
-		}(wgService)
+		w.Add(1)
+		stop(name, serverService)
 	}
 
 	w.Wait()
@@ -319,11 +309,7 @@ mainloop:
 		}
 	}
 
-	wg.Info("Service is exiting...")
+	wg.Info("Server is exiting...")
 
 	return nil
-}
-
-type stopper interface {
-	Stop(ctx context.Context) error
 }

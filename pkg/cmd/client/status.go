@@ -5,52 +5,63 @@ import (
 	"fmt"
 	"io"
 	"net/http"
-	"os"
 	"sort"
-	"strings"
+
+	"github.com/jedib0t/go-pretty/v6/text"
 
 	"code.waarp.fr/apps/gateway/gateway/pkg/admin/rest/api"
-	"code.waarp.fr/apps/gateway/gateway/pkg/gatewayd/service/state"
+	"code.waarp.fr/apps/gateway/gateway/pkg/utils"
 )
 
-type services []api.Service
-
-func (s services) Len() int           { return len(s) }
-func (s services) Less(i, j int) bool { return s[i].Name < s[j].Name }
-func (s services) Swap(i, j int)      { s[i], s[j] = s[j], s[i] }
-
-// showStatus writes the status of the gateway services in the given
-// writer with colors, using ANSI coloration codes.
-func showStatus(w io.Writer, title string, services services) {
+//nolint:varnamelen //formatter name is kept short for readability
+func showStatus(f *Formatter, title string, services []*api.Service) {
 	if len(services) == 0 {
-		fmt.Fprintln(w, bold("%s:", title), grey("<none>"))
+		f.Title(title, "<none>")
 
 		return
 	}
 
-	fmt.Fprintln(w, bold("%s:", title))
+	var (
+		running = text.Colors{text.FgHiGreen}.Sprint("[ACTIVE] ")
+		inError = text.Colors{text.FgHiRed}.Sprint("[ERROR]  ")
+		offline = text.Colors{text.FgHiBlack}.Sprint("[OFFLINE]")
 
-	errors := &strings.Builder{}
-	actives := &strings.Builder{}
-	offlines := &strings.Builder{}
+		nameColor = text.Colors{text.Bold}
+	)
 
-	sort.Sort(services)
+	f.Title(title)
+	f.Indent()
+
+	defer f.UnIndent()
+
+	var errors, actives, offlines []*api.Service
+
+	sort.Slice(services, func(i, j int) bool {
+		return services[i].Name < services[j].Name
+	})
 
 	for _, service := range services {
 		switch service.State {
-		case state.Running.Name():
-			fmt.Fprintln(actives, green("[Active] "), bold(service.Name))
-		case state.Error.Name():
-			fmt.Fprintln(errors, red("[Error]  "), bold(service.Name), "("+
-				service.Reason+")")
+		case utils.StateRunning.String():
+			actives = append(actives, service)
+		case utils.StateError.String():
+			errors = append(errors, service)
 		default:
-			fmt.Fprintln(offlines, yellow("[Offline]"), bold(service.Name))
+			offlines = append(offlines, service)
 		}
 	}
 
-	fmt.Fprint(w, errors.String())
-	fmt.Fprint(w, actives.String())
-	fmt.Fprint(w, offlines.String())
+	for _, service := range errors {
+		f.Println("%s %s (%s)", inError, nameColor.Sprint(service.Name), service.Reason)
+	}
+
+	for _, service := range actives {
+		f.Println("%s %s", running, nameColor.Sprint(service.Name))
+	}
+
+	for _, service := range offlines {
+		f.Println("%s %s", offline, nameColor.Sprint(service.Name))
+	}
 }
 
 // Status regroups all the options of the 'status' command.
@@ -59,7 +70,7 @@ type Status struct{}
 // Execute executes the 'status' command. The command flags are stored in
 // the 's' parameter, while the program arguments are stored in the 'args'
 // parameter.
-func (s Status) Execute([]string) error { return s.execute(os.Stdout) }
+func (s Status) Execute([]string) error { return s.execute(stdOutput) }
 
 func (s Status) execute(w io.Writer) error {
 	addr.Path = "/api/about"
@@ -75,23 +86,21 @@ func (s Status) execute(w io.Writer) error {
 
 	switch resp.StatusCode {
 	case http.StatusOK:
-		body := map[string][]api.Service{}
+		body := map[string][]*api.Service{}
 		if err := unmarshalBody(resp.Body, &body); err != nil {
 			return err
 		}
 
-		w = makeColorable(w)
+		f := NewFormatter(w)
 
-		fmt.Fprintln(w, yellow("Server info:"), resp.Header.Get("Server"))
-		fmt.Fprintln(w, yellow("Local date:"), resp.Header.Get(api.DateHeader))
-		fmt.Fprintln(w)
+		defer f.Render()
 
-		showStatus(w, "Core services", body["coreServices"])
-		fmt.Fprintln(w)
-		showStatus(w, "Servers", body["servers"])
-		fmt.Fprintln(w)
-		showStatus(w, "Clients", body["clients"])
-		fmt.Fprintln(w)
+		f.Value("Server version", resp.Header.Get("Server"))
+		f.Value("Local date", resp.Header.Get(api.DateHeader))
+
+		showStatus(f, "Core services", body["coreServices"])
+		showStatus(f, "Servers", body["servers"])
+		showStatus(f, "Clients", body["clients"])
 
 		return nil
 

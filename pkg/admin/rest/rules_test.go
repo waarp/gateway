@@ -6,7 +6,6 @@ import (
 	"fmt"
 	"net/http"
 	"net/http/httptest"
-	"reflect"
 	"strings"
 	"testing"
 
@@ -16,8 +15,8 @@ import (
 	. "code.waarp.fr/apps/gateway/gateway/pkg/admin/rest/api"
 	"code.waarp.fr/apps/gateway/gateway/pkg/database"
 	"code.waarp.fr/apps/gateway/gateway/pkg/model"
-	"code.waarp.fr/apps/gateway/gateway/pkg/tk/utils"
-	"code.waarp.fr/apps/gateway/gateway/pkg/tk/utils/testhelpers"
+	"code.waarp.fr/apps/gateway/gateway/pkg/utils"
+	"code.waarp.fr/apps/gateway/gateway/pkg/utils/testhelpers"
 )
 
 const ruleURI = "http://remotehost:8080/api/rules/"
@@ -211,8 +210,7 @@ func TestGetRule(t *testing.T) {
 						exp, err := json.Marshal(r)
 						So(err, ShouldBeNil)
 
-						So(reflect.ValueOf(send).Elem().Type().Name(), ShouldEqual, "Rule")
-						So(reflect.ValueOf(send).Elem().FieldByName("Name").IsZero(), ShouldBeFalse)
+						So(send.Name, ShouldNotBeEmpty)
 						So(w.Body.String(), ShouldEqual, string(exp)+"\n")
 					})
 				})

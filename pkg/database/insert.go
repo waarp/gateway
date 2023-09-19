@@ -1,5 +1,7 @@
 package database
 
+import "fmt"
+
 // InsertBean is the interface that a model must implement in order to be
 // insertable via the Access.Insert query builder.
 type InsertBean interface {
@@ -12,12 +14,12 @@ type InsertQuery struct {
 	bean InsertBean
 }
 
-func (i *InsertQuery) run(s *Session) Error {
+func (i *InsertQuery) run(s *Session) error {
 	if hook, ok := i.bean.(WriteHook); ok {
 		if err := hook.BeforeWrite(s); err != nil {
 			s.logger.Error("%s entry INSERT validation failed: %s", i.bean.Appellation(), err)
 
-			return err
+			return fmt.Errorf("%s entry INSERT validation failed: %w", i.bean.Appellation(), err)
 		}
 	}
 
@@ -29,11 +31,19 @@ func (i *InsertQuery) run(s *Session) Error {
 		return NewInternalError(err)
 	}
 
+	if callBack, ok := i.bean.(WriteCallBack); ok {
+		if err := callBack.AfterWrite(s); err != nil {
+			s.logger.Error("%s entry INSERT callback failed: %s", i.bean.Appellation(), err)
+
+			return fmt.Errorf("%s entry INSERT callback failed: %w", i.bean.Appellation(), err)
+		}
+	}
+
 	return nil
 }
 
 // Run executes the 'INSERT' query.
-func (i *InsertQuery) Run() Error {
+func (i *InsertQuery) Run() error {
 	switch db := i.db.(type) {
 	case *Standalone:
 		return db.Transaction(i.run)

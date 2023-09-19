@@ -8,7 +8,7 @@ import (
 
 type transferInfoOwner interface {
 	getTransInfoCondition() (string, int64)
-	setTransInfoOwner(*TransferInfo)
+	setTransInfoOwner(info *TransferInfo)
 }
 
 // TransferInfo represents the transfer_info database table, which contains all the
@@ -27,7 +27,7 @@ func (*TransferInfo) Appellation() string { return "transfer info" }
 func (t *TransferInfo) IsHistory() bool   { return t.HistoryID.Valid }
 
 // BeforeWrite checks if the TransferInfo entry is valid for insertion in the database.
-func (t *TransferInfo) BeforeWrite(db database.ReadAccess) database.Error {
+func (t *TransferInfo) BeforeWrite(db database.ReadAccess) error {
 	var (
 		owner   database.IterateBean
 		transID int64

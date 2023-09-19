@@ -14,11 +14,10 @@ import (
 	"code.waarp.fr/apps/gateway/gateway/pkg/fs/fstest"
 	"code.waarp.fr/apps/gateway/gateway/pkg/model"
 	"code.waarp.fr/apps/gateway/gateway/pkg/model/types"
-	"code.waarp.fr/apps/gateway/gateway/pkg/tk/utils"
-	"code.waarp.fr/apps/gateway/gateway/pkg/tk/utils/testhelpers"
+	"code.waarp.fr/apps/gateway/gateway/pkg/utils"
+	"code.waarp.fr/apps/gateway/gateway/pkg/utils/testhelpers"
 )
 
-//nolint:maintidx //cannot split reasonably
 func TestSetup(t *testing.T) {
 	Convey("Given a Task with some replacement variables", t, func(c C) {
 		testFS := fstest.InitMemFS(c)
@@ -43,37 +42,44 @@ func TestSetup(t *testing.T) {
 		Convey("Given a Runner", func(c C) {
 			db := database.TestDatabase(c)
 
-			client := &model.Client{Name: "cli", Protocol: testProtocol}
-			So(db.Insert(client).Run(), ShouldBeNil)
+			const (
+				agentID    = 1
+				accountID  = 10
+				clientID   = 100
+				ruleID     = 1000
+				transferID = 1234
+			)
 
-			agent := &model.RemoteAgent{
-				Name:     "partner",
-				Protocol: client.Protocol,
-				Address:  "localhost:6622",
-			}
-			So(db.Insert(agent).Run(), ShouldBeNil)
-
-			account := &model.RemoteAccount{
-				RemoteAgentID: agent.ID,
-				Login:         "toto",
-				Password:      "sesame",
-			}
-			So(db.Insert(account).Run(), ShouldBeNil)
-
-			transCtx := &model.TransferContext{FS: testFS}
-			transCtx.Paths = &conf.PathsConfig{
-				GatewayHome:   root,
-				DefaultInDir:  "in_dir",
-				DefaultOutDir: "out_dir",
-				DefaultTmpDir: path.Join(rootAlt, "tmp_dir"),
-			}
-			transCtx.Rule = &model.Rule{
-				Name:           "rulename",
-				IsSend:         true,
-				Path:           "path/to/test",
-				LocalDir:       "local/dir",
-				RemoteDir:      "remote/dir",
-				TmpLocalRcvDir: "local/tmp",
+			transCtx := &model.TransferContext{
+				FS: testFS,
+				Paths: &conf.PathsConfig{
+					GatewayHome:   root,
+					DefaultInDir:  "in_dir",
+					DefaultOutDir: "out_dir",
+					DefaultTmpDir: path.Join(rootAlt, "tmp_dir"),
+				},
+				Client: &model.Client{ID: clientID, Name: "cli", Protocol: testProtocol},
+				RemoteAgent: &model.RemoteAgent{
+					ID:       agentID,
+					Name:     "partner",
+					Protocol: testProtocol,
+					Address:  "localhost:6622",
+				},
+				RemoteAccount: &model.RemoteAccount{
+					ID:            accountID,
+					RemoteAgentID: agentID,
+					Login:         "toto",
+					Password:      "sesame",
+				},
+				Rule: &model.Rule{
+					ID:             ruleID,
+					Name:           "rulename",
+					IsSend:         true,
+					Path:           "path/to/test",
+					LocalDir:       "local/dir",
+					RemoteDir:      "remote/dir",
+					TmpLocalRcvDir: "local/tmp",
+				},
 			}
 
 			filepath := types.URL{
@@ -83,8 +89,9 @@ func TestSetup(t *testing.T) {
 			}
 
 			transCtx.Transfer = &model.Transfer{
-				ID:              1234,
-				RemoteAccountID: utils.NewNullInt64(account.ID),
+				ID:              transferID,
+				RemoteAccountID: utils.NewNullInt64(accountID),
+				ClientID:        utils.NewNullInt64(clientID),
 				SrcFilename:     "src/file",
 				DestFilename:    "dst/file",
 				LocalPath:       filepath,
@@ -174,7 +181,7 @@ func TestSetup(t *testing.T) {
 						So(ok, ShouldBeTrue)
 
 						Convey("Then res[remoteHost] should contain the resolved variable", func() {
-							So(val, ShouldEqual, agent.Name)
+							So(val, ShouldEqual, transCtx.RemoteAgent.Name)
 						})
 					})
 
@@ -183,7 +190,7 @@ func TestSetup(t *testing.T) {
 						So(ok, ShouldBeTrue)
 
 						Convey("Then res[localHost] should contain the resolved variable", func() {
-							So(val, ShouldEqual, account.Login)
+							So(val, ShouldEqual, transCtx.RemoteAccount.Login)
 						})
 					})
 
@@ -201,7 +208,7 @@ func TestSetup(t *testing.T) {
 						So(ok, ShouldBeTrue)
 
 						Convey("Then res[requesterHost] should contain the resolved variable", func() {
-							So(val, ShouldEqual, account.Login)
+							So(val, ShouldEqual, transCtx.RemoteAccount.Login)
 						})
 					})
 
@@ -210,7 +217,7 @@ func TestSetup(t *testing.T) {
 						So(ok, ShouldBeTrue)
 
 						Convey("Then res[requestedHost] should contain the resolved variable", func() {
-							So(val, ShouldEqual, agent.Name)
+							So(val, ShouldEqual, transCtx.RemoteAgent.Name)
 						})
 					})
 
@@ -219,8 +226,8 @@ func TestSetup(t *testing.T) {
 						So(ok, ShouldBeTrue)
 
 						Convey("Then res[fullTransferID] should contain the resolved variable", func() {
-							So(val, ShouldEqual, fmt.Sprintf("%d_%s_%s",
-								r.transCtx.Transfer.ID, account.Login, agent.Name))
+							So(val, ShouldEqual, fmt.Sprintf("%d_%s_%s", transferID,
+								transCtx.RemoteAccount.Login, transCtx.RemoteAgent.Name))
 						})
 					})
 

@@ -5,7 +5,7 @@ import (
 	"fmt"
 
 	"code.waarp.fr/apps/gateway/gateway/pkg/database"
-	"code.waarp.fr/apps/gateway/gateway/pkg/tk/utils"
+	"code.waarp.fr/apps/gateway/gateway/pkg/utils"
 )
 
 // CypherText is a wrapper of string which add transparent encryption/decryption

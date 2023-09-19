@@ -7,8 +7,6 @@ import (
 	. "github.com/smartystreets/goconvey/convey"
 
 	"code.waarp.fr/apps/gateway/gateway/pkg/database"
-	"code.waarp.fr/apps/gateway/gateway/pkg/gatewayd/service/names"
-	"code.waarp.fr/apps/gateway/gateway/pkg/tk/utils/testhelpers"
 )
 
 func TestClientBeforeWrite(t *testing.T) {
@@ -40,15 +38,6 @@ func TestClientBeforeWrite(t *testing.T) {
 				})
 			})
 
-			Convey("Given that the client's name is reserved", func() {
-				client.Name = names.DatabaseServiceName
-
-				Convey("Then the 'BeforeWrite' method should return an error", func() {
-					So(client.BeforeWrite(db), ShouldBeError, fmt.Sprintf(
-						`%q is a reserved service name`, client.Name))
-				})
-			})
-
 			Convey("Given that the client's protocol is missing", func() {
 				client.Protocol = ""
 
@@ -75,21 +64,11 @@ func TestClientBeforeWrite(t *testing.T) {
 				})
 			})
 
-			Convey("Given that the client's proto config cannot be parsed", func() {
-				client.ProtoConfig = map[string]any{"": nil}
-
-				Convey("Then the 'BeforeWrite' method should return an error", func() {
-					So(client.BeforeWrite(db), ShouldBeError,
-						`invalid proto config: json: unknown field ""`)
-				})
-			})
-
 			Convey("Given that the client's proto config is invalid", func() {
 				client.Protocol = testProtocolInvalid
 
 				Convey("Then the 'BeforeWrite' method should return an error", func() {
-					So(client.BeforeWrite(db), ShouldBeError,
-						testhelpers.ErrClientValidationFailed)
+					So(client.BeforeWrite(db), ShouldBeError, errInvalidProtoConfig)
 				})
 			})
 

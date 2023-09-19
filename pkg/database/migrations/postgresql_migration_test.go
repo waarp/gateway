@@ -10,7 +10,7 @@ import (
 
 	"code.waarp.fr/lib/migration"
 
-	"code.waarp.fr/apps/gateway/gateway/pkg/tk/utils/testhelpers"
+	"code.waarp.fr/apps/gateway/gateway/pkg/utils/testhelpers"
 )
 
 func getPostgreEngine(c convey.C) *testEngine {

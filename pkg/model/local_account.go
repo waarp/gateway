@@ -4,7 +4,7 @@ import (
 	"fmt"
 
 	"code.waarp.fr/apps/gateway/gateway/pkg/database"
-	"code.waarp.fr/apps/gateway/gateway/pkg/tk/utils"
+	"code.waarp.fr/apps/gateway/gateway/pkg/utils"
 )
 
 // LocalAccount represents an account on a local agent. It is used by remote
@@ -30,7 +30,7 @@ func (l *LocalAccount) GetCryptos(db *database.DB) ([]*Crypto, error) {
 // inserted in the database.
 //
 //nolint:dupl // too many differences
-func (l *LocalAccount) BeforeWrite(db database.ReadAccess) database.Error {
+func (l *LocalAccount) BeforeWrite(db database.ReadAccess) error {
 	if l.LocalAgentID == 0 {
 		return database.NewValidationError("the account's agentID cannot be empty")
 	}
@@ -51,13 +51,12 @@ func (l *LocalAccount) BeforeWrite(db database.ReadAccess) database.Error {
 			return database.NewValidationError("no local agent found with the ID '%v'", l.LocalAgentID)
 		}
 
-		return err
+		return fmt.Errorf("failed to check parent local agent: %w", err)
 	}
 
-	n, err := db.Count(l).Where("id<>? AND local_agent_id=? AND login=?",
-		l.ID, l.LocalAgentID, l.Login).Run()
-	if err != nil {
-		return err
+	if n, err := db.Count(l).Where("id<>? AND local_agent_id=? AND login=?",
+		l.ID, l.LocalAgentID, l.Login).Run(); err != nil {
+		return fmt.Errorf("failed to check for duplicate local accounts: %w", err)
 	} else if n > 0 {
 		return database.NewValidationError("a local account with the same login '%s' "+
 			"already exist", l.Login)
@@ -68,9 +67,9 @@ func (l *LocalAccount) BeforeWrite(db database.ReadAccess) database.Error {
 
 // BeforeDelete is called before deleting the account from the database. Its
 // role is to check whether the account is still used in any ongoing transfer.
-func (l *LocalAccount) BeforeDelete(db database.Access) database.Error {
+func (l *LocalAccount) BeforeDelete(db database.Access) error {
 	if n, err := db.Count(&Transfer{}).Where("local_account_id=?", l.ID).Run(); err != nil {
-		return err
+		return fmt.Errorf("failed to check for ongoing transfers: %w", err)
 	} else if n > 0 {
 		//nolint:goconst //too specific
 		return database.NewValidationError("this account is currently being " +

@@ -3,6 +3,7 @@ package model
 import (
 	"context"
 	"errors"
+	"strings"
 	"testing"
 
 	"code.waarp.fr/lib/log"
@@ -125,8 +126,8 @@ func TestTaskBeforeInsert(t *testing.T) {
 
 					Convey("Then the error should say that the task already exist", func() {
 						So(err, ShouldBeError, database.NewValidationError(
-							"rule %d already has a task in %s at %d",
-							t2.RuleID, t2.Chain, t2.Rank))
+							"rule %d already has a %s-task at rank %d", t2.RuleID,
+							strings.ToLower(string(t2.Chain)), t2.Rank))
 					})
 				})
 			})

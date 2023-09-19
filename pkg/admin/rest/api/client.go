@@ -13,6 +13,7 @@ type InClient struct {
 // requests made to the gateway's REST server.
 type OutClient struct {
 	Name         string         `json:"name"`
+	Enabled      bool           `json:"enabled"`
 	Protocol     string         `json:"protocol"`
 	LocalAddress string         `json:"localAddress"`
 	ProtoConfig  map[string]any `json:"protoConfig"`

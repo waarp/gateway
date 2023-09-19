@@ -11,7 +11,7 @@ import (
 	"strings"
 
 	"code.waarp.fr/apps/gateway/gateway/pkg/admin/rest/api"
-	"code.waarp.fr/apps/gateway/gateway/pkg/tk/utils"
+	"code.waarp.fr/apps/gateway/gateway/pkg/utils"
 )
 
 var errBadPerm = errors.New("permissions are incorrect")
@@ -24,7 +24,7 @@ const (
 	sizeUnknown   = "unknown"
 )
 
-func unmarshalBody(body io.Reader, object interface{}) error {
+func unmarshalBody(body io.Reader, object any) error {
 	b, err := io.ReadAll(body)
 	if err != nil {
 		return fmt.Errorf("failed to read response body: %w", err)
@@ -46,20 +46,20 @@ func getResponseErrorMessage(resp *http.Response) error {
 	return errors.New(strings.TrimSpace(string(body))) //nolint:goerr113 // too specific
 }
 
-func displayResponseMessage(resp *http.Response) error {
+func displayResponseMessage(w io.Writer, resp *http.Response) error {
 	cont, err := io.ReadAll(resp.Body)
 	if err != nil {
 		return fmt.Errorf("failed to read the response body: %w", err)
 	}
 
 	if len(cont) > 0 {
-		fmt.Fprintln(getColorable(), string(cont))
+		fmt.Fprintln(w, string(cont))
 	}
 
 	return nil
 }
 
-func isNotUpdate(obj interface{}) bool {
+func isNotUpdate(obj any) bool {
 	value := reflect.ValueOf(obj)
 
 	switch value.Kind() {
@@ -196,52 +196,6 @@ func stringMapToAnyMap(input map[string]string) (map[string]any, error) {
 
 	return output, nil
 }
-
-func addIfNotZero(m map[string]any, key string, val any) {
-	if reflect.ValueOf(val).IsZero() {
-		return
-	}
-
-	m[key] = val
-}
-
-func displayProtoConfig(f *Formatter, mapConf map[string]any) {
-	if len(mapConf) == 0 {
-		f.Empty("Configuration", "<empty>")
-
-		return
-	}
-
-	f.Title("Configuration")
-	f.Indent()
-
-	defer f.UnIndent()
-
-	utils.OrderedIterate[any](mapConf, func(key string, val any) {
-		f.Value(key, val)
-	})
-}
-
-/* Keep for later
-func displayAuthorizedRules(f *Formatter, auth *api.AuthorizedRules) {
-	f.Title("Authorized rules:")
-	f.Indent()
-
-	defer f.UnIndent()
-
-	if len(auth.Sending) == 0 {
-		f.Empty("Send:   ", "<none>")
-	} else {
-		f.Value("Send:   ", strings.Join(auth.Sending, ", "))
-	}
-
-	if len(auth.Sending) == 0 {
-		f.Empty("Receive:", "<none>")
-	} else {
-		f.Value("Receive:", strings.Join(auth.Reception, ", "))
-	}
-}
-*/
 
 func optionalProperty(m map[string]any, key string, val any) {
 	if !reflect.ValueOf(val).IsZero() {

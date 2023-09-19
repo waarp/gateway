@@ -42,7 +42,7 @@ func TestCloudGet(t *testing.T) {
 			body:   respBody,
 		}
 
-		testServer(expRequest, expResponse)
+		testServer(t, expRequest, expResponse)
 
 		Convey("When the command is executed", func() {
 			_, err := flags.ParseArgs(command, []string{cloudName})
@@ -104,7 +104,7 @@ func TestCloudAdd(t *testing.T) {
 			headers: map[string][]string{"Location": {location}},
 		}
 
-		testServer(expRequest, expResponse)
+		testServer(t, expRequest, expResponse)
 
 		Convey("When the command is executed", func() {
 			_, err := flags.ParseArgs(command, []string{
@@ -146,7 +146,7 @@ func TestCloudDelete(t *testing.T) {
 
 		expResponse := &expectedResponse{status: http.StatusNoContent}
 
-		testServer(expRequest, expResponse)
+		testServer(t, expRequest, expResponse)
 
 		Convey("When the command is executed", func() {
 			_, err := flags.ParseArgs(command, []string{cloudName})
@@ -200,7 +200,7 @@ func TestCloudUpdate(t *testing.T) {
 			headers: map[string][]string{"Location": {location}},
 		}
 
-		testServer(expRequest, expResponse)
+		testServer(t, expRequest, expResponse)
 
 		Convey("When the command is executed", func() {
 			_, err := flags.ParseArgs(command, []string{
@@ -265,7 +265,7 @@ func TestCloudList(t *testing.T) {
 			body:   respBody,
 		}
 
-		testServer(expRequest, expResponse)
+		testServer(t, expRequest, expResponse)
 
 		Convey("When the command is executed", func() {
 			_, err := flags.ParseArgs(command, []string{
@@ -277,7 +277,7 @@ func TestCloudList(t *testing.T) {
 
 			SoMsg("Then it should not return an error",
 				command.execute(w), ShouldBeNil)
-			//nolint:gosimple //Sprintf is kept for better readability
+
 			SoMsg("Then it should display a list of the cloud instances",
 				w.String(),
 				ShouldEqual,

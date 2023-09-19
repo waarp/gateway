@@ -7,8 +7,8 @@ import (
 	. "github.com/smartystreets/goconvey/convey"
 
 	"code.waarp.fr/apps/gateway/gateway/pkg/database"
-	"code.waarp.fr/apps/gateway/gateway/pkg/tk/utils"
-	"code.waarp.fr/apps/gateway/gateway/pkg/tk/utils/testhelpers"
+	"code.waarp.fr/apps/gateway/gateway/pkg/utils"
+	"code.waarp.fr/apps/gateway/gateway/pkg/utils/testhelpers"
 )
 
 func TestRemoteAgentTableName(t *testing.T) {
@@ -154,7 +154,7 @@ func TestRemoteAgentValidate(t *testing.T) {
 					expErr := fmt.Sprintf(expMsg, args...)
 
 					Convey("When calling the 'BeforeWrite' function", func() {
-						err := db.Transaction(func(ses *database.Session) database.Error {
+						err := db.Transaction(func(ses *database.Session) error {
 							return newAgent.BeforeWrite(ses)
 						})
 
@@ -167,7 +167,7 @@ func TestRemoteAgentValidate(t *testing.T) {
 
 				Convey("Given that the new agent is valid", func() {
 					Convey("When calling the 'BeforeWrite' function", func() {
-						err := db.Transaction(func(ses *database.Session) database.Error {
+						err := db.Transaction(func(ses *database.Session) error {
 							return newAgent.BeforeWrite(ses)
 						})
 

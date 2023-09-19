@@ -1,365 +1,313 @@
 package wg
 
 import (
-	"net/http/httptest"
+	"fmt"
+	"net/http"
 	"net/url"
 	"testing"
 
-	"github.com/jessevdk/go-flags"
-	. "github.com/smartystreets/goconvey/convey"
-	"golang.org/x/crypto/bcrypt"
-
-	"code.waarp.fr/apps/gateway/gateway/pkg/admin/rest"
-	"code.waarp.fr/apps/gateway/gateway/pkg/admin/rest/api"
-	"code.waarp.fr/apps/gateway/gateway/pkg/conf"
-	"code.waarp.fr/apps/gateway/gateway/pkg/database"
-	"code.waarp.fr/apps/gateway/gateway/pkg/model"
+	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
-func userInfoString(u *api.OutUser) string {
-	return "● User \"" + u.Username + "\"\n" +
-		"    Permissions:\n" +
-		"    ├─Transfers: " + u.Perms.Transfers + "\n" +
-		"    ├─Servers:   " + u.Perms.Servers + "\n" +
-		"    ├─Partners:  " + u.Perms.Partners + "\n" +
-		"    ├─Rules:     " + u.Perms.Rules + "\n" +
-		"    └─Users:     " + u.Perms.Users + "\n"
-}
+func TestUserGet(t *testing.T) {
+	const (
+		username     = "foo"
+		permTrans    = "-r-"
+		permServers  = "-w-"
+		permPartners = "--d"
+		permRules    = "rw-"
+		permUsers    = "r-w"
+		permAdmin    = "-wd"
 
-func TestGetUser(t *testing.T) {
-	Convey("Testing the user 'get' command", t, func() {
-		out = testFile()
+		path = "/api/users/" + username
+	)
+
+	t.Run(`Testing the user "get" command`, func(t *testing.T) {
+		w := newTestOutput()
 		command := &UserGet{}
 
-		Convey("Given a gateway with 1 user", func(c C) {
-			db := database.TestDatabase(c)
-			gw := httptest.NewServer(testHandler(db))
-			var err error
-			addr, err = url.Parse("http://admin:admin_password@" + gw.Listener.Addr().String())
-			So(err, ShouldBeNil)
+		expected := &expectedRequest{
+			method: http.MethodGet,
+			path:   path,
+		}
 
-			user := &model.User{
-				Username:     "toto",
-				PasswordHash: hash("password"),
-				Permissions: model.PermTransfersRead |
-					model.PermServersRead |
-					model.PermPartnersRead |
-					model.PermRulesRead |
-					model.PermUsersRead,
-			}
-			So(db.Insert(user).Run(), ShouldBeNil)
+		result := &expectedResponse{
+			status: http.StatusOK,
+			body: map[string]any{
+				"username": username,
+				"perms": map[string]any{
+					"transfers":      permTrans,
+					"servers":        permServers,
+					"partners":       permPartners,
+					"rules":          permRules,
+					"users":          permUsers,
+					"administration": permAdmin,
+				},
+			},
+		}
 
-			Convey("Given a valid username", func() {
-				args := []string{user.Username}
+		t.Run("Given a dummy gateway REST interface", func(t *testing.T) {
+			testServer(t, expected, result)
 
-				Convey("When executing the command", func() {
-					params, err := flags.ParseArgs(command, args)
-					So(err, ShouldBeNil)
-					So(command.Execute(params), ShouldBeNil)
+			t.Run("When executing the command", func(t *testing.T) {
+				require.NoError(t, executeCommand(t, w, command, username),
+					"Then is should not return an error")
 
-					Convey("Then it should display the user's info", func() {
-						u := rest.DBUserToREST(user)
-						So(getOutput(), ShouldEqual, userInfoString(u))
-					})
-				})
-			})
-
-			Convey("Given an invalid username", func() {
-				args := []string{"tata"}
-
-				Convey("When executing the command", func() {
-					params, err := flags.ParseArgs(command, args)
-					So(err, ShouldBeNil)
-					err = command.Execute(params)
-
-					Convey("Then it should return an error", func() {
-						So(err, ShouldBeError, "user 'tata' not found")
-					})
-				})
+				assert.Equal(t,
+					fmt.Sprintf("── User %q\n", username)+
+						fmt.Sprintf("   ╰─ Permissions\n")+
+						fmt.Sprintf("      ├─ Transfers: %s\n", permTrans)+
+						fmt.Sprintf("      ├─ Servers: %s\n", permServers)+
+						fmt.Sprintf("      ├─ Partners: %s\n", permPartners)+
+						fmt.Sprintf("      ├─ Rules: %s\n", permRules)+
+						fmt.Sprintf("      ├─ Users: %s\n", permUsers)+
+						fmt.Sprintf("      ╰─ Administration: %s\n", permAdmin),
+					w.String(),
+					"Then it should display the user's info",
+				)
 			})
 		})
 	})
 }
 
-func TestAddUser(t *testing.T) {
-	Convey("Testing the user 'add' command", t, func() {
-		out = testFile()
+func TestUserAdd(t *testing.T) {
+	const (
+		username = "foo"
+		password = "sesame"
+
+		permsTrans    = "=r"
+		permsServers  = "=w"
+		permsPartners = "=d"
+		permsRules    = "=rw"
+		permsUsers    = "=rd"
+		permsAdmin    = "=wd"
+
+		permsFull = "T" + permsTrans + ",S" + permsServers +
+			",P" + permsPartners + ",R" + permsRules +
+			",U" + permsUsers + ",A" + permsAdmin
+
+		path     = "/api/users"
+		location = path + "/" + username
+	)
+
+	t.Run(`Testing the user "add" command`, func(t *testing.T) {
+		w := newTestOutput()
 		command := &UserAdd{}
 
-		Convey("Given a gateway", func(c C) {
-			db := database.TestDatabase(c)
-			gw := httptest.NewServer(testHandler(db))
-			var err error
-			addr, err = url.Parse("http://admin:admin_password@" + gw.Listener.Addr().String())
-			So(err, ShouldBeNil)
+		expected := &expectedRequest{
+			method: http.MethodPost,
+			path:   path,
+			body: map[string]any{
+				"username": username,
+				"password": password,
+				"perms": map[string]any{
+					"transfers":      permsTrans,
+					"servers":        permsServers,
+					"partners":       permsPartners,
+					"rules":          permsRules,
+					"users":          permsUsers,
+					"administration": permsAdmin,
+				},
+			},
+		}
 
-			Convey("Given valid flags", func() {
-				args := []string{"-u", "user", "-p", "password", "-r", "T=r,S=r,P=r"}
+		result := &expectedResponse{
+			status:  http.StatusCreated,
+			headers: http.Header{"Location": {location}},
+		}
 
-				Convey("When executing the command", func() {
-					params, err := flags.ParseArgs(command, args)
-					So(err, ShouldBeNil)
-					So(command.Execute(params), ShouldBeNil)
+		t.Run("Given a dummy gateway REST interface", func(t *testing.T) {
+			testServer(t, expected, result)
 
-					Convey("Then is should display a message saying the user was added", func() {
-						So(getOutput(), ShouldEqual, "The user "+command.Username+
-							" was successfully added.\n")
-					})
+			t.Run("When executing the command", func(t *testing.T) {
+				require.NoError(t, executeCommand(t, w, command,
+					"--username", username,
+					"--password", password,
+					"--rights", permsFull),
+					"Then is should not return an error",
+				)
 
-					Convey("Then the new partner should have been added", func() {
-						var users model.Users
-						So(db.Select(&users).Run(), ShouldBeNil)
-						So(len(users), ShouldEqual, 2)
-
-						So(bcrypt.CompareHashAndPassword([]byte(users[1].PasswordHash),
-							[]byte("password")), ShouldBeNil)
-						So(users, ShouldContain, &model.User{
-							Owner:        conf.GlobalConfig.GatewayName,
-							ID:           2,
-							Username:     "user",
-							PasswordHash: users[1].PasswordHash,
-							Permissions: model.PermTransfersRead |
-								model.PermServersRead | model.PermPartnersRead,
-						})
-					})
-				})
+				assert.Equal(t,
+					fmt.Sprintf("The user %q was successfully added.\n", username),
+					w.String(),
+					"Then it should display a message saying the user was added",
+				)
 			})
 		})
 	})
 }
 
-func TestDeleteUser(t *testing.T) {
-	Convey("Testing the user 'delete' command", t, func() {
-		out = testFile()
+func TestUserDelete(t *testing.T) {
+	const (
+		username = "foo"
+
+		path = "/api/users/" + username
+	)
+
+	t.Run(`Testing the user "delete" command`, func(t *testing.T) {
+		w := newTestOutput()
 		command := &UserDelete{}
 
-		Convey("Given a gateway with 1 user", func(c C) {
-			db := database.TestDatabase(c)
-			gw := httptest.NewServer(testHandler(db))
-			var err error
-			addr, err = url.Parse("http://admin:admin_password@" + gw.Listener.Addr().String())
-			So(err, ShouldBeNil)
+		expected := &expectedRequest{
+			method: http.MethodDelete,
+			path:   path,
+		}
 
-			user := &model.User{
-				Username:     "user",
-				PasswordHash: hash("password"),
-			}
-			So(db.Insert(user).Run(), ShouldBeNil)
+		result := &expectedResponse{status: http.StatusNoContent}
 
-			Convey("Given a valid username", func() {
-				args := []string{user.Username}
+		t.Run("Given a dummy gateway REST interface", func(t *testing.T) {
+			testServer(t, expected, result)
 
-				Convey("When executing the command", func() {
-					params, err := flags.ParseArgs(command, args)
-					So(err, ShouldBeNil)
-					So(command.Execute(params), ShouldBeNil)
+			t.Run("When executing the command", func(t *testing.T) {
+				require.NoError(t, executeCommand(t, w, command, username),
+					"Then is should not return an error")
 
-					Convey("Then is should display a message saying the user was deleted", func() {
-						So(getOutput(), ShouldEqual, "The user "+user.Username+
-							" was successfully deleted.\n")
-					})
-
-					Convey("Then the user should have been removed", func() {
-						var users model.Users
-						So(db.Select(&users).Run(), ShouldBeNil)
-						So(users, ShouldNotContain, *user)
-					})
-				})
-			})
-
-			Convey("Given an invalid username", func() {
-				args := []string{"toto"}
-
-				Convey("When executing the command", func() {
-					params, err := flags.ParseArgs(command, args)
-					So(err, ShouldBeNil)
-					err = command.Execute(params)
-
-					Convey("Then it should return an error", func() {
-						So(err, ShouldBeError, "user 'toto' not found")
-					})
-
-					Convey("Then the partner should still exist", func() {
-						var users model.Users
-						So(db.Select(&users).Run(), ShouldBeNil)
-						So(users, ShouldContain, user)
-					})
-				})
+				assert.Equal(t,
+					fmt.Sprintf("The user %q was successfully deleted.\n", username),
+					w.String(),
+					"Then it should display a message saying the user was deleted",
+				)
 			})
 		})
 	})
 }
 
-func TestUpdateUser(t *testing.T) {
-	Convey("Testing the user 'delete' command", t, func() {
-		out = testFile()
+func TestUserUpdate(t *testing.T) {
+	const (
+		oldName  = "foo"
+		username = "bar"
+		password = "sesame"
+
+		permsTrans    = "+r"
+		permsServers  = "-w"
+		permsPartners = "=d"
+		permsRules    = "=rw"
+		permsUsers    = "+rd"
+		permsAdmin    = "-wd"
+
+		permsFull = "T" + permsTrans + ",S" + permsServers +
+			",P" + permsPartners + ",R" + permsRules +
+			",U" + permsUsers + ",A" + permsAdmin
+
+		path     = "/api/users/" + oldName
+		location = "/api/users/" + username
+	)
+
+	t.Run(`Testing the user "delete" command`, func(t *testing.T) {
+		w := newTestOutput()
 		command := &UserUpdate{}
 
-		Convey("Given a gateway with 1 user", func(c C) {
-			db := database.TestDatabase(c)
-			gw := httptest.NewServer(testHandler(db))
-			var err error
-			addr, err = url.Parse("http://admin:admin_password@" + gw.Listener.Addr().String())
-			So(err, ShouldBeNil)
+		expected := &expectedRequest{
+			method: http.MethodPatch,
+			path:   path,
+			body: map[string]any{
+				"username": username,
+				"password": password,
+				"perms": map[string]any{
+					"transfers":      permsTrans,
+					"servers":        permsServers,
+					"partners":       permsPartners,
+					"rules":          permsRules,
+					"users":          permsUsers,
+					"administration": permsAdmin,
+				},
+			},
+		}
 
-			originalUser := &model.User{
-				Username:     "user",
-				PasswordHash: hash("password"),
-				Permissions: model.PermTransfersRead |
-					model.PermServersRead |
-					model.PermPartnersRead |
-					model.PermRulesRead |
-					model.PermUsersRead,
-			}
-			So(db.Insert(originalUser).Run(), ShouldBeNil)
+		result := &expectedResponse{
+			status:  http.StatusCreated,
+			headers: http.Header{"Location": {location}},
+		}
 
-			Convey("Given all valid flags", func() {
-				args := []string{
-					originalUser.Username, "-u", "new_user",
-					"-p", "new_password", "-r", "T+w,S-rw,P=wd,R+w-r,U=w",
-				}
+		t.Run("Given a dummy gateway REST interface", func(t *testing.T) {
+			testServer(t, expected, result)
 
-				Convey("When executing the command", func() {
-					params, err := flags.ParseArgs(command, args)
-					So(err, ShouldBeNil)
-					So(command.Execute(params), ShouldBeNil)
+			t.Run("When executing the command", func(t *testing.T) {
+				require.NoError(t, executeCommand(t, w, command,
+					"--username", username,
+					"--password", password,
+					"--rights", permsFull,
+					oldName),
+					"Then is should not return an error",
+				)
 
-					Convey("Then is should display a message saying the user was updated", func() {
-						So(getOutput(), ShouldEqual, "The user new_user "+
-							"was successfully updated.\n")
-					})
-
-					Convey("Then the new user should exist", func() {
-						var users model.Users
-						So(db.Select(&users).Run(), ShouldBeNil)
-						So(len(users), ShouldEqual, 2)
-
-						So(bcrypt.CompareHashAndPassword([]byte(users[1].PasswordHash),
-							[]byte("new_password")), ShouldBeNil)
-						So(users, ShouldContain, &model.User{
-							Owner:        conf.GlobalConfig.GatewayName,
-							ID:           originalUser.ID,
-							Username:     "new_user",
-							PasswordHash: users[1].PasswordHash,
-							Permissions: model.PermTransfersRead | model.PermTransfersWrite |
-								model.PermPartnersWrite | model.PermPartnersDelete |
-								model.PermRulesWrite |
-								model.PermUsersWrite,
-						})
-					})
-				})
-			})
-
-			Convey("Given an invalid username", func() {
-				args := []string{"toto", "-u", "new_user", "-p", "new_password"}
-
-				Convey("When executing the command", func() {
-					params, err := flags.ParseArgs(command, args)
-					So(err, ShouldBeNil)
-					err = command.Execute(params)
-
-					Convey("Then it should return an error", func() {
-						So(err, ShouldBeError, "user 'toto' not found")
-					})
-
-					Convey("Then the partner should stay unchanged", func() {
-						var users model.Users
-						So(db.Select(&users).Run(), ShouldBeNil)
-						So(users, ShouldContain, originalUser)
-					})
-				})
+				assert.Equal(t,
+					fmt.Sprintf("The user %q was successfully updated.\n", username),
+					w.String(),
+					"Then it should display a message saying the user was updated",
+				)
 			})
 		})
 	})
 }
 
-func TestListUser(t *testing.T) {
-	Convey("Testing the user 'list' command", t, func() {
-		out = testFile()
+func TestUserList(t *testing.T) {
+	const (
+		path = "/api/users"
+
+		sort   = "username+"
+		limit  = "10"
+		offset = "5"
+
+		user1 = "user1"
+		user2 = "user2"
+	)
+
+	t.Run(`Testing the user "list" command`, func(t *testing.T) {
+		w := newTestOutput()
 		command := &UserList{}
 
-		Convey("Given a gateway with 2 users", func(c C) {
-			db := database.TestDatabase(c)
-			gw := httptest.NewServer(testHandler(db))
-			So(db.DeleteAll(&model.User{}).Where("username='admin'").Run(), ShouldBeNil)
+		expected := &expectedRequest{
+			method: http.MethodGet,
+			path:   path,
+			values: url.Values{
+				"sort":   {sort},
+				"limit":  {limit},
+				"offset": {offset},
+			},
+		}
 
-			user1 := &model.User{
-				Username:     "user1",
-				PasswordHash: hash("password"),
-				Permissions:  model.PermUsersRead,
-			}
-			So(db.Insert(user1).Run(), ShouldBeNil)
-			var err error
-			addr, err = url.Parse("http://user1:password@" + gw.Listener.Addr().String())
-			So(err, ShouldBeNil)
+		result := &expectedResponse{
+			status: http.StatusOK,
+			body: map[string]any{
+				"users": []any{
+					map[string]any{"username": user1},
+					map[string]any{"username": user2},
+				},
+			},
+		}
 
-			user2 := &model.User{
-				Username:     "user2",
-				PasswordHash: hash("password"),
-			}
-			So(db.Insert(user2).Run(), ShouldBeNil)
+		t.Run("Given a dummy gateway REST interface", func(t *testing.T) {
+			testServer(t, expected, result)
 
-			u1 := rest.DBUserToREST(user1)
-			u2 := rest.DBUserToREST(user2)
+			t.Run("When executing the command", func(t *testing.T) {
+				require.NoError(t, executeCommand(t, w, command,
+					"--limit", limit, "--offset", offset, "--sort", sort,
+				),
+					"Then it should not return an error")
 
-			Convey("Given no parameters", func() {
-				args := []string{}
-
-				Convey("When executing the command", func() {
-					params, err := flags.ParseArgs(command, args)
-					So(err, ShouldBeNil)
-					So(command.Execute(params), ShouldBeNil)
-
-					Convey("Then it should display the users' info", func() {
-						So(getOutput(), ShouldEqual, "Users:\n"+
-							userInfoString(u1)+userInfoString(u2))
-					})
-				})
-			})
-
-			Convey("Given a 'limit' parameter of 1", func() {
-				args := []string{"-l", "1"}
-
-				Convey("When executing the command", func() {
-					params, err := flags.ParseArgs(command, args)
-					So(err, ShouldBeNil)
-					So(command.Execute(params), ShouldBeNil)
-
-					Convey("Then it should only display 1 user's info", func() {
-						So(getOutput(), ShouldEqual, "Users:\n"+
-							userInfoString(u1))
-					})
-				})
-			})
-
-			Convey("Given an 'offset' parameter of 1", func() {
-				args := []string{"-o", "1"}
-
-				Convey("When executing the command", func() {
-					params, err := flags.ParseArgs(command, args)
-					So(err, ShouldBeNil)
-					So(command.Execute(params), ShouldBeNil)
-
-					Convey("Then it should NOT display the 1st user's info", func() {
-						So(getOutput(), ShouldEqual, "Users:\n"+
-							userInfoString(u2))
-					})
-				})
-			})
-
-			Convey("Given a 'sort' parameter of 'username-'", func() {
-				args := []string{"-s", "username-"}
-
-				Convey("When executing the command", func() {
-					params, err := flags.ParseArgs(command, args)
-					So(err, ShouldBeNil)
-					So(command.Execute(params), ShouldBeNil)
-
-					Convey("Then it should the users' info in reverse", func() {
-						So(getOutput(), ShouldEqual, "Users:\n"+
-							userInfoString(u2)+userInfoString(u1))
-					})
-				})
+				assert.Equal(t,
+					"Users:\n"+
+						fmt.Sprintf("╭─ User %q\n", user1)+
+						fmt.Sprintf("│  ╰─ Permissions\n")+
+						fmt.Sprintf("│     ├─ Transfers: ---\n")+
+						fmt.Sprintf("│     ├─ Servers: ---\n")+
+						fmt.Sprintf("│     ├─ Partners: ---\n")+
+						fmt.Sprintf("│     ├─ Rules: ---\n")+
+						fmt.Sprintf("│     ├─ Users: ---\n")+
+						fmt.Sprintf("│     ╰─ Administration: ---\n")+
+						fmt.Sprintf("╰─ User %q\n", user2)+
+						fmt.Sprintf("   ╰─ Permissions\n")+
+						fmt.Sprintf("      ├─ Transfers: ---\n")+
+						fmt.Sprintf("      ├─ Servers: ---\n")+
+						fmt.Sprintf("      ├─ Partners: ---\n")+
+						fmt.Sprintf("      ├─ Rules: ---\n")+
+						fmt.Sprintf("      ├─ Users: ---\n")+
+						fmt.Sprintf("      ╰─ Administration: ---\n"),
+					w.String(),
+					"Then it should display the users",
+				)
 			})
 		})
 	})

@@ -2,14 +2,14 @@ package model
 
 import (
 	"database/sql"
+	"fmt"
 	"time"
 
 	"code.waarp.fr/apps/gateway/gateway/pkg/conf"
 	"code.waarp.fr/apps/gateway/gateway/pkg/database"
 	"code.waarp.fr/apps/gateway/gateway/pkg/fs/filesystems"
-	"code.waarp.fr/apps/gateway/gateway/pkg/model/config"
 	"code.waarp.fr/apps/gateway/gateway/pkg/model/types"
-	"code.waarp.fr/apps/gateway/gateway/pkg/tk/utils"
+	"code.waarp.fr/apps/gateway/gateway/pkg/utils"
 )
 
 // HistoryEntry represents one record of the 'transfers_history' table.
@@ -54,7 +54,7 @@ func (h *HistoryEntry) setTransInfoOwner(info *TransferInfo) {
 // inserted in the database.
 //
 //nolint:funlen,gocyclo,cyclop,gocognit // validation can be long...
-func (h *HistoryEntry) BeforeWrite(db database.ReadAccess) database.Error {
+func (h *HistoryEntry) BeforeWrite(db database.ReadAccess) error {
 	h.Owner = conf.GlobalConfig.GatewayName
 
 	if h.Owner == "" {
@@ -110,7 +110,7 @@ func (h *HistoryEntry) BeforeWrite(db database.ReadAccess) database.Error {
 			"to the start date")
 	}
 
-	if _, ok := config.ProtoConfigs[h.Protocol]; !ok {
+	if !ConfigChecker.IsValidProtocol(h.Protocol) {
 		return database.NewValidationError("'%s' is not a valid protocol", h.Protocol)
 	}
 
@@ -133,7 +133,7 @@ func (h *HistoryEntry) BeforeWrite(db database.ReadAccess) database.Error {
 	if n, err := db.Count(&HistoryEntry{}).Where("remote_transfer_id=? AND "+
 		"is_server=? AND agent=? AND account=?", h.RemoteTransferID, h.IsServer,
 		h.Agent, h.Account).Run(); err != nil {
-		return err
+		return fmt.Errorf("failed to check for duplicate history entries: %w", err)
 	} else if n != 0 {
 		//nolint:goconst //too specific
 		return database.NewValidationError("a history entry from the same "+
@@ -146,10 +146,10 @@ func (h *HistoryEntry) BeforeWrite(db database.ReadAccess) database.Error {
 
 // Restart takes a HistoryEntry entry and converts it to a Transfer entry ready
 // to be executed.
-func (h *HistoryEntry) Restart(db database.Access, date time.Time) (*Transfer, database.Error) {
+func (h *HistoryEntry) Restart(db database.Access, date time.Time) (*Transfer, error) {
 	rule := &Rule{}
 	if err := db.Get(rule, "name=? AND is_send=?", h.Rule, h.IsSend).Run(); err != nil {
-		return nil, err
+		return nil, fmt.Errorf("failed to retrieve transfer rule: %w", err)
 	}
 
 	trans := &Transfer{
@@ -165,31 +165,31 @@ func (h *HistoryEntry) Restart(db database.Access, date time.Time) (*Transfer, d
 	if h.IsServer {
 		agent := &LocalAgent{}
 		if err := db.Get(agent, "owner=? AND name=?", h.Owner, h.Agent).Run(); err != nil {
-			return nil, err
+			return nil, fmt.Errorf("failed to retrieve local agent: %w", err)
 		}
 
 		account := &LocalAccount{}
 		if err := db.Get(account, "local_agent_id=? AND login=?", agent.ID, h.Account).
 			Run(); err != nil {
-			return nil, err
+			return nil, fmt.Errorf("failed to retrieve local account: %w", err)
 		}
 
 		trans.LocalAccountID = sql.NullInt64{Valid: true, Int64: account.ID}
 	} else {
 		client := &Client{}
 		if err := db.Get(client, "name=? AND owner=?", h.Client, h.Owner).Run(); err != nil {
-			return nil, err
+			return nil, fmt.Errorf("failed to retrieve client: %w", err)
 		}
 
 		agent := &RemoteAgent{}
 		if err := db.Get(agent, "name=? AND owner=?", h.Agent, h.Owner).Run(); err != nil {
-			return nil, err
+			return nil, fmt.Errorf("failed to retrieve remote agent: %w", err)
 		}
 
 		account := &RemoteAccount{}
 		if err := db.Get(account, "remote_agent_id=? AND login=?", agent.ID, h.Account).
 			Run(); err != nil {
-			return nil, err
+			return nil, fmt.Errorf("failed to retrieve remote account: %w", err)
 		}
 
 		trans.ClientID = utils.NewNullInt64(client.ID)
@@ -200,12 +200,12 @@ func (h *HistoryEntry) Restart(db database.Access, date time.Time) (*Transfer, d
 }
 
 // GetTransferInfo returns the list of the transfer's TransferInfo as a map of interfaces.
-func (h *HistoryEntry) GetTransferInfo(db database.ReadAccess) (map[string]any, database.Error) {
+func (h *HistoryEntry) GetTransferInfo(db database.ReadAccess) (map[string]any, error) {
 	return getTransferInfo(db, h)
 }
 
 // SetTransferInfo replaces all the TransferInfo in the database of the given
 // history entry by those given in the map parameter.
-func (h *HistoryEntry) SetTransferInfo(db database.Access, info map[string]any) database.Error {
+func (h *HistoryEntry) SetTransferInfo(db database.Access, info map[string]any) error {
 	return setTransferInfo(db, h, info)
 }

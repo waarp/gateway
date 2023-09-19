@@ -1,6 +1,8 @@
 package backup
 
 import (
+	"errors"
+	"fmt"
 	"strings"
 
 	"code.waarp.fr/lib/log"
@@ -9,7 +11,7 @@ import (
 	"code.waarp.fr/apps/gateway/gateway/pkg/conf"
 	"code.waarp.fr/apps/gateway/gateway/pkg/database"
 	"code.waarp.fr/apps/gateway/gateway/pkg/model"
-	"code.waarp.fr/apps/gateway/gateway/pkg/tk/utils"
+	"code.waarp.fr/apps/gateway/gateway/pkg/utils"
 )
 
 type accessTarget interface {
@@ -17,19 +19,19 @@ type accessTarget interface {
 	database.Identifier
 }
 
-func resetRules(logger *log.Logger, db database.Access) database.Error {
+func resetRules(logger *log.Logger, db database.Access) error {
 	var rules model.Rules
 	if err := db.Select(&rules).Run(); err != nil {
 		logger.Error("Failed to retrieve the existing rules: %v", err)
 
-		return err
+		return fmt.Errorf("failed to retrieve the existing rules: %w", err)
 	}
 
 	for _, rule := range rules {
 		if err := db.Delete(rule).Run(); err != nil {
 			logger.Error("Failed to delete the existing rules: %v", err)
 
-			return err
+			return fmt.Errorf("failed to delete rule %q: %w", rule.Name, err)
 		}
 	}
 
@@ -38,7 +40,7 @@ func resetRules(logger *log.Logger, db database.Access) database.Error {
 
 func importRules(logger *log.Logger, db database.Access, list []file.Rule,
 	reset bool,
-) database.Error {
+) error {
 	if reset {
 		if err := resetRules(logger, db); err != nil {
 			return err
@@ -55,7 +57,7 @@ func importRules(logger *log.Logger, db database.Access, list []file.Rule,
 		if database.IsNotFound(err) {
 			exists = false
 		} else if err != nil {
-			return err
+			return fmt.Errorf("failed to retrieve rule %q: %w", src.Name, err)
 		}
 
 		rule.Name = src.Name
@@ -76,22 +78,22 @@ func importRules(logger *log.Logger, db database.Access, list []file.Rule,
 		}
 
 		if err != nil {
+			return fmt.Errorf("failed to import rule %q: %w", rule.Name, err)
+		}
+
+		if err = importRuleAccesses(db, src.Accesses, &rule); err != nil {
 			return err
 		}
 
-		if err = importRuleAccesses(db, src.Accesses, rule.ID); err != nil {
+		if err = importRuleTasks(logger, db, src.Pre, &rule, model.ChainPre); err != nil {
 			return err
 		}
 
-		if err = importRuleTasks(logger, db, src.Pre, rule.ID, model.ChainPre); err != nil {
+		if err = importRuleTasks(logger, db, src.Post, &rule, model.ChainPost); err != nil {
 			return err
 		}
 
-		if err = importRuleTasks(logger, db, src.Post, rule.ID, model.ChainPost); err != nil {
-			return err
-		}
-
-		if err = importRuleTasks(logger, db, src.Error, rule.ID, model.ChainError); err != nil {
+		if err = importRuleTasks(logger, db, src.Error, &rule, model.ChainError); err != nil {
 			return err
 		}
 	}
@@ -129,7 +131,9 @@ func importRuleCheckDeprecated(logger *log.Logger, src *file.Rule, rule *model.R
 	}
 }
 
-func importRuleAccesses(db database.Access, list []string, ruleID int64) database.Error {
+var ErrInvalidRuleAuthFormat = errors.New("invalid rule auth format")
+
+func importRuleAccesses(db database.Access, list []string, rule *model.Rule) error {
 	for _, src := range list {
 		arr := strings.Split(src, "::")
 		if len(arr) < 2 { //nolint:gomnd // no need for a constant, only used once
@@ -139,30 +143,29 @@ func importRuleAccesses(db database.Access, list []string, ruleID int64) databas
 		var (
 			access *model.RuleAccess
 			target accessTarget
-			err    database.Error
+			err    error
 		)
 
 		switch arr[0] {
 		case "remote":
-			access, target, err = createRemoteAccess(db, arr, ruleID)
+			access, target, err = createRemoteAccess(db, arr, rule.ID)
 		case "local":
-			access, target, err = createLocalAccess(db, arr, ruleID)
+			access, target, err = createLocalAccess(db, arr, rule.ID)
 		default:
-			err = database.NewValidationError("rule auth is not in a valid format")
+			err = ErrInvalidRuleAuthFormat
 		}
 
 		if err != nil {
 			return err
 		}
 		// If ruleAccess does not exist create
-		err = db.Get(access, "rule_id=?", access.RuleID).And(
-			target.GenAccessSelectCond()).Run()
-		if database.IsNotFound(err) {
+		if err = db.Get(access, "rule_id=?", access.RuleID).And(
+			target.GenAccessSelectCond()).Run(); database.IsNotFound(err) {
 			if err2 := db.Insert(access).Run(); err2 != nil {
-				return err2
+				return fmt.Errorf("failed to create rule access: %w", err2)
 			}
 		} else if err != nil {
-			return err
+			return fmt.Errorf("failed to retrieve rule access: %w", err)
 		}
 	}
 
@@ -172,10 +175,10 @@ func importRuleAccesses(db database.Access, list []string, ruleID int64) databas
 //nolint:dupl // duplicated sections are about two different types.
 func createRemoteAccess(db database.ReadAccess, arr []string,
 	ruleID int64,
-) (*model.RuleAccess, accessTarget, database.Error) {
+) (*model.RuleAccess, accessTarget, error) {
 	var agent model.RemoteAgent
 	if err := db.Get(&agent, "name=?", arr[1]).Run(); err != nil {
-		return nil, nil, err
+		return nil, nil, fmt.Errorf("failed to retrieve remote agent %q: %w", arr[1], err)
 	}
 
 	if len(arr) < 3 { //nolint:gomnd // no need for a constant, only used once
@@ -190,7 +193,7 @@ func createRemoteAccess(db database.ReadAccess, arr []string,
 	var account model.RemoteAccount
 	if err := db.Get(&account, "remote_agent_id=? AND login=?", agent.ID, arr[2]).
 		Run(); err != nil {
-		return nil, nil, err
+		return nil, nil, fmt.Errorf("failed to retrieve remote account %q: %w", arr[2], err)
 	}
 
 	return &model.RuleAccess{
@@ -199,14 +202,14 @@ func createRemoteAccess(db database.ReadAccess, arr []string,
 	}, &account, nil
 }
 
-//nolint:dupl // duplicated sections are about two different types.
+//nolint:dupl //duplicated sections are about two different types.
 func createLocalAccess(db database.ReadAccess, arr []string,
 	ruleID int64,
-) (*model.RuleAccess, accessTarget, database.Error) {
+) (*model.RuleAccess, accessTarget, error) {
 	var agent model.LocalAgent
 	if err := db.Get(&agent, "owner=? AND name=?", conf.GlobalConfig.GatewayName,
 		arr[1]).Run(); err != nil {
-		return nil, nil, err
+		return nil, nil, fmt.Errorf("failed to retrieve local agent %q: %w", arr[1], err)
 	}
 
 	if len(arr) < 3 { //nolint:gomnd // no need for a constant, only used once
@@ -220,7 +223,7 @@ func createLocalAccess(db database.ReadAccess, arr []string,
 	var account model.LocalAccount
 	if err := db.Get(&account, "local_agent_id=? AND login=?", agent.ID, arr[2]).
 		Run(); err != nil {
-		return nil, nil, err
+		return nil, nil, fmt.Errorf("failed to retrieve local account %q: %w", arr[2], err)
 	}
 
 	return &model.RuleAccess{
@@ -230,20 +233,20 @@ func createLocalAccess(db database.ReadAccess, arr []string,
 }
 
 func importRuleTasks(logger *log.Logger, db database.Access, list []file.Task,
-	ruleID int64, chain model.Chain,
-) database.Error {
+	rule *model.Rule, chain model.Chain,
+) error {
 	if list == nil {
 		return nil
 	}
 
 	var task model.Task
-	if err := db.DeleteAll(&task).Where("rule_id=? AND chain=?", ruleID, chain).Run(); err != nil {
-		return err
+	if err := db.DeleteAll(&task).Where("rule_id=? AND chain=?", rule.ID, chain).Run(); err != nil {
+		return fmt.Errorf("failed to purge %s-tasks of rule %q: %w", chain, rule.Name, err)
 	}
 
 	for i, src := range list {
 		// Populate
-		task.RuleID = ruleID
+		task.RuleID = rule.ID
 		task.Chain = chain
 		task.Rank = int8(i)
 		task.Type = src.Type
@@ -253,7 +256,7 @@ func importRuleTasks(logger *log.Logger, db database.Access, list []file.Task,
 		logger.Info("Create task type %s at chain %s rank %d\n", task.Type, chain, i)
 
 		if err := db.Insert(&task).Run(); err != nil {
-			return err
+			return fmt.Errorf("failed to insert task %q: %w", task.Type, err)
 		}
 	}
 

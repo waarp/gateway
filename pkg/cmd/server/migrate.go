@@ -10,6 +10,7 @@ import (
 
 	"code.waarp.fr/apps/gateway/gateway/pkg/conf"
 	"code.waarp.fr/apps/gateway/gateway/pkg/database/migrations"
+	"code.waarp.fr/apps/gateway/gateway/pkg/logging"
 	"code.waarp.fr/apps/gateway/gateway/pkg/version"
 )
 
@@ -70,7 +71,7 @@ func initMigration(configFile string, verbose []bool) (*conf.ServerConfig, *log.
 
 	config.Log = MakeLogConf(verbose)
 
-	back, err2 := conf.NewLogBackend(config.Log.Level, config.Log.LogTo,
+	back, err2 := logging.NewLogBackend(config.Log.Level, config.Log.LogTo,
 		config.Log.SyslogFacility, "waarp-gateway")
 	if err2 != nil {
 		return nil, nil, fmt.Errorf("cannot initialize log backend: %w", err2)

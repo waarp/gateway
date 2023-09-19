@@ -27,7 +27,7 @@ func (g *GetQuery) And(sql string, args ...any) *GetQuery {
 }
 
 // Run executes the 'GET' query.
-func (g *GetQuery) Run() Error {
+func (g *GetQuery) Run() error {
 	logger := g.db.GetLogger()
 	query := g.db.getUnderlying().NoAutoCondition().Table(g.bean.TableName())
 

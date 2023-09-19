@@ -14,7 +14,7 @@ import (
 
 	"code.waarp.fr/apps/gateway/gateway/pkg/database"
 	"code.waarp.fr/apps/gateway/gateway/pkg/model/types"
-	"code.waarp.fr/apps/gateway/gateway/pkg/tk/utils"
+	"code.waarp.fr/apps/gateway/gateway/pkg/utils"
 )
 
 //nolint:gochecknoglobals // global var is used by design
@@ -80,31 +80,37 @@ func handleError(w http.ResponseWriter, logger *log.Logger, err error) bool {
 		return false
 	}
 
-	var (
-		nf   *notFoundError
-		dbNF *database.NotFoundError
-	)
-
-	if errors.As(err, &nf) || errors.As(err, &dbNF) {
-		http.Error(w, err.Error(), http.StatusNotFound)
+	var nf *notFoundError
+	if errors.As(err, &nf) {
+		http.Error(w, nf.Error(), http.StatusNotFound)
 
 		return true
 	}
 
-	var (
-		br  *badRequestError
-		val *database.ValidationError
-	)
+	var dbNF *database.NotFoundError
+	if errors.As(err, &dbNF) {
+		http.Error(w, dbNF.Error(), http.StatusNotFound)
 
-	if errors.As(err, &br) || errors.As(err, &val) {
-		http.Error(w, err.Error(), http.StatusBadRequest)
+		return true
+	}
+
+	var br *badRequestError
+	if errors.As(err, &br) {
+		http.Error(w, br.Error(), http.StatusBadRequest)
+
+		return true
+	}
+
+	var val *database.ValidationError
+	if errors.As(err, &val) {
+		http.Error(w, val.Error(), http.StatusBadRequest)
 
 		return true
 	}
 
 	var fo *forbidden
 	if errors.As(err, &fo) {
-		http.Error(w, err.Error(), http.StatusForbidden)
+		http.Error(w, fo.Error(), http.StatusForbidden)
 
 		return true
 	}

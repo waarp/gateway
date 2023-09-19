@@ -1,35 +1,32 @@
 package model
 
 import (
+	"errors"
+	"fmt"
+
 	"github.com/smartystreets/goconvey/convey"
 	"golang.org/x/crypto/bcrypt"
 
-	"code.waarp.fr/apps/gateway/gateway/pkg/model/config"
 	"code.waarp.fr/apps/gateway/gateway/pkg/model/types"
-	"code.waarp.fr/apps/gateway/gateway/pkg/tk/utils/testhelpers"
 )
 
 const (
 	testProtocol        = "test_proto"
 	testProtocolInvalid = "test_proto_invalid"
+
+	testLocalPath = "file:/test/local/file"
 )
 
-var testLocalPath = "file:/test/local/file"
-
-//nolint:gochecknoglobals // global var is simpler here
-var testConfigMaker = &config.Constructor{
-	Server:  func() config.ServerProtoConfig { return new(testhelpers.TestProtoConfig) },
-	Partner: func() config.PartnerProtoConfig { return new(testhelpers.TestProtoConfig) },
-	Client:  func() config.ClientProtoConfig { return new(testhelpers.TestProtoConfig) },
-}
+var (
+	errInvalidProtoConfig = errors.New("invalid protocol configuration")
+	errUnknownProtocol    = errors.New("unknown protocol")
+)
 
 //nolint:gochecknoinits // init is used to ease the tests
 func init() {
-	config.ProtoConfigs[testProtocol] = testConfigMaker
-	config.ProtoConfigs[testProtocolInvalid] = &config.Constructor{
-		Server:  func() config.ServerProtoConfig { return new(testhelpers.TestProtoConfigFail) },
-		Partner: func() config.PartnerProtoConfig { return new(testhelpers.TestProtoConfigFail) },
-		Client:  func() config.ClientProtoConfig { return new(testhelpers.TestProtoConfigFail) },
+	ConfigChecker = testConfigChecker{
+		testProtocol:        nil,
+		testProtocolInvalid: errInvalidProtoConfig,
 	}
 }
 
@@ -45,4 +42,30 @@ func mkURL(str string) types.URL {
 	convey.So(err, convey.ShouldBeNil)
 
 	return *url
+}
+
+type testConfigChecker map[string]error
+
+func (t testConfigChecker) checkConfig(proto string) error {
+	if err, ok := t[proto]; ok {
+		return err
+	}
+
+	return fmt.Errorf("%w %q", errUnknownProtocol, proto)
+}
+
+func (t testConfigChecker) IsValidProtocol(proto string) bool {
+	return !errors.Is(t.checkConfig(proto), errUnknownProtocol)
+}
+
+func (t testConfigChecker) CheckServerConfig(proto string, _ map[string]any) error {
+	return t.checkConfig(proto)
+}
+
+func (t testConfigChecker) CheckClientConfig(proto string, _ map[string]any) error {
+	return t.checkConfig(proto)
+}
+
+func (t testConfigChecker) CheckPartnerConfig(proto string, _ map[string]any) error {
+	return t.checkConfig(proto)
 }

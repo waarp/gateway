@@ -1,22 +1,81 @@
 .. _proto-config-r66:
 
-Configuration R66
-#################
+Configuration R66 & R66-TLS
+###########################
 
-La structure de l'objet JSON de configuration du protocole pour un agent R66 est
-la suivante :
+Pour l'heure, les configurations protocolaire de R66 et R66-TLS sont identiques.
 
-* **serverLogin** (*string*) - Le login de l'agent R66.
-* **serverPassword** (*string*) - Le mot de passe de l'agent R66.
+Configuration client
+====================
+
+La structure de l'objet JSON de configuration du protocole pour un client R66
+est la suivante :
+
+* **blockSize** (*number*) - La taille (en octets) d'un bloc de données R66.
+  Par défaut la valeur `65536` est utilisée.
+* **noFinalHash** (*boolean*) - Désactive le contrôle de hash de fin de transfert.
+  Par défaut le contrôle est activé.
+* **checkBlockHash** (*boolean*) - Active le contrôle de hash sur chaque
+  bloc du fichier transféré. Par défaut ce contrôle est désactivé.
+
+**Exemple**
+
+.. code-block:: json
+
+   {
+     "blockSize": 65536,
+     "noFinalHash": false,
+     "checkBlockHash": true
+   }
+
+Configuration serveur
+=====================
+
+La structure de l'objet JSON de configuration du protocole pour un serveur R66
+est la suivante :
+
+* **serverLogin** (*string*) - Le login d'authentification du serveur R66.
+  Par défaut, le nom du serveur est utilisé à la place.
+* **serverPassword** (*string*) - **REQUIS** Le mot de passe de l'agent R66.
 * **isTLS** (*boolean*) - **DÉPRÉCIÉ: utilisez plutôt le protocole r66-tls**
-  Spécifie si le serveur/partenaire utilise TLS.
-* **blockSize** (*number*) - *Optionnel* La taille (en octets) d'un bloc de
-  données R66. Par défaut 65536.
-* **noFinalHash** (*boolean*) - *Optionnel (valable uniquement pour les serveurs locaux)*
-  Si contrôle de hash de fin de transfert doit être désactivé. Par défaut faux.
-* **checkBlockHash** (*boolean*) - *Optionnel (valable uniquement pour les serveurs locaux)*
-  Si un contrôle de hash est demandé sur chaque bloc du fichier transféré. Par
-  défaut faux.
+  Spécifie si le serveur utilise TLS. Par défaut, R66 clair est utilisé.
+* **blockSize** (*number*) - La taille (en octets) d'un bloc de données R66.
+  Par défaut la valeur `65536` est utilisée.
+* **noFinalHash** (*boolean*) - Désactive le contrôle de hash de fin de transfert.
+  Par défaut le contrôle est activé.
+* **checkBlockHash** (*boolean*) - Active le contrôle de hash sur chaque
+  bloc du fichier transféré. Par défaut ce contrôle est désactivé.
+
+**Exemple**
+
+.. code-block:: json
+
+   {
+     "blockSize": 65536,
+     "serverLogin": "foobar",
+     "serverPassword": "sesame",
+     "noFinalHash": false,
+     "checkBlockHash": true
+   }
+
+
+Configuration partenaire
+========================
+
+La structure de l'objet JSON de configuration du protocole pour un partenaire
+R66 est la suivante :
+
+* **serverLogin** (*string*) - Le login d'authentification attendu pour le
+  partenaire R66. Par défaut, le nom du partenaire est utilisé à la place.
+* **serverPassword** (*string*) - **REQUIS** Le mot de passe de l'agent R66.
+* **isTLS** (*boolean*) - **DÉPRÉCIÉ: utilisez plutôt le protocole r66-tls**
+  Spécifie si le serveur utilise TLS. Par défaut, R66 clair est utilisé.
+* **blockSize** (*number*) - La taille (en octets) d'un bloc de données R66.
+  Par défaut la valeur `65536` est utilisée.
+* **noFinalHash** (*boolean*) - Désactive le contrôle de hash de fin de transfert.
+  Par défaut le contrôle est activé.
+* **checkBlockHash** (*boolean*) - Active le contrôle de hash sur chaque
+  bloc du fichier transféré. Par défaut ce contrôle est désactivé.
 
 **Exemple**
 

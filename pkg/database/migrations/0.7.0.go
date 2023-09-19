@@ -7,7 +7,7 @@ import (
 	"fmt"
 	"math/bits"
 
-	"code.waarp.fr/apps/gateway/gateway/pkg/tk/utils"
+	"code.waarp.fr/apps/gateway/gateway/pkg/utils"
 )
 
 type ver0_7_0AddLocalAgentEnabledColumn struct{}

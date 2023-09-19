@@ -1,6 +1,8 @@
 package model
 
 import (
+	"fmt"
+
 	"code.waarp.fr/apps/gateway/gateway/pkg/conf"
 	"code.waarp.fr/apps/gateway/gateway/pkg/database"
 	"code.waarp.fr/apps/gateway/gateway/pkg/fs/filesystems"
@@ -21,7 +23,7 @@ func (c *CloudInstance) TableName() string   { return TableCloudInstances }
 func (c *CloudInstance) Appellation() string { return "cloud instance" }
 func (c *CloudInstance) GetID() int64        { return c.ID }
 
-func (c *CloudInstance) BeforeWrite(db database.ReadAccess) database.Error {
+func (c *CloudInstance) BeforeWrite(db database.ReadAccess) error {
 	c.Owner = conf.GlobalConfig.GatewayName
 
 	if c.Name == "" {
@@ -38,7 +40,7 @@ func (c *CloudInstance) BeforeWrite(db database.ReadAccess) database.Error {
 	}
 
 	if n, err := db.Count(c).Where("owner=? AND name=?", c.Owner, c.Name).Run(); err != nil {
-		return err
+		return fmt.Errorf("failed to check existing cloud instances: %w", err)
 	} else if n > 0 {
 		return database.NewValidationError("a cloud instance named %q already exist", c.Name)
 	}

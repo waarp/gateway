@@ -26,18 +26,15 @@ func authorize(w io.Writer, targetType, target, rule, direction string) error {
 
 	switch resp.StatusCode {
 	case http.StatusOK:
-		wCol := makeColorable(w)
-
 		if msg, err := io.ReadAll(resp.Body); err != nil {
-			fmt.Fprintln(wCol, text.FgRed.Sprintf(
+			fmt.Fprintln(asColorable(w), text.FgRed.Sprintf(
 				"<WARNING: error while reading the response body: %v>", err))
 		} else if len(msg) != 0 {
-			fmt.Fprintln(wCol, string(msg))
+			fmt.Fprintln(w, string(msg))
 		}
 
-		fmt.Fprintln(wCol, "The", targetType, bold(target),
-			"is now allowed to use the", direction, "rule", bold(rule),
-			"for transfers.")
+		fmt.Fprintf(w, "The %s %q is now allowed to use the %s rule %q for transfers.\n",
+			targetType, target, direction, rule)
 
 		return nil
 
@@ -45,7 +42,8 @@ func authorize(w io.Writer, targetType, target, rule, direction string) error {
 		return getResponseErrorMessage(resp)
 
 	default:
-		return fmt.Errorf("unexpected error: %w", getResponseErrorMessage(resp))
+		return fmt.Errorf("unexpected response (%s): %w", resp.Status,
+			getResponseErrorMessage(resp))
 	}
 }
 
@@ -57,22 +55,22 @@ func revoke(w io.Writer, targetType, target, rule, direction string) error {
 	ctx, cancel := context.WithTimeout(context.Background(), httpTimeout)
 	defer cancel()
 
-	resp, err := sendRequest(ctx, nil, http.MethodPut)
-	if err != nil {
-		return err
+	resp, reqErr := sendRequest(ctx, nil, http.MethodPut)
+	if reqErr != nil {
+		return reqErr
 	}
 	defer resp.Body.Close() //nolint:errcheck // nothing to handle the error
 
 	switch resp.StatusCode {
 	case http.StatusOK:
-		wCol := makeColorable(w)
+		fmt.Fprintf(w, "The %s %q is no longer allowed to use the %s rule %q for transfers.\n",
+			targetType, target, direction, rule)
 
-		fmt.Fprintln(wCol, "The", targetType, bold(target),
-			"is no longer allowed to use the", direction, "rule", bold(rule),
-			"for transfers.")
-
-		if msg := getResponseErrorMessage(resp).Error(); msg != "" {
-			fmt.Fprintln(wCol, msg)
+		if msg, err := io.ReadAll(resp.Body); err != nil {
+			fmt.Fprintln(asColorable(w), text.FgRed.Sprintf(
+				"<WARNING: error while reading the response body: %v>", err))
+		} else if len(msg) != 0 {
+			fmt.Fprintln(w, string(msg))
 		}
 
 		return nil
@@ -81,6 +79,7 @@ func revoke(w io.Writer, targetType, target, rule, direction string) error {
 		return getResponseErrorMessage(resp)
 
 	default:
-		return fmt.Errorf("unexpected error: %w", getResponseErrorMessage(resp))
+		return fmt.Errorf("unexpected response (%s): %w", resp.Status,
+			getResponseErrorMessage(resp))
 	}
 }

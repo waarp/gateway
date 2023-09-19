@@ -32,4 +32,4 @@ Enlever les restrictions d'une règle
 
       .. code-block:: http
 
-         HTTP/1.1 204 NO CONTENT
+         HTTP/1.1 200 OK

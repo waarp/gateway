@@ -10,10 +10,10 @@ import (
 	"io"
 
 	"code.waarp.fr/apps/gateway/gateway/pkg/backup/file"
-	"code.waarp.fr/apps/gateway/gateway/pkg/conf"
 	"code.waarp.fr/apps/gateway/gateway/pkg/database"
+	"code.waarp.fr/apps/gateway/gateway/pkg/logging"
 	"code.waarp.fr/apps/gateway/gateway/pkg/model"
-	"code.waarp.fr/apps/gateway/gateway/pkg/tk/utils"
+	"code.waarp.fr/apps/gateway/gateway/pkg/utils"
 )
 
 var errDry = database.NewValidationError("dry run")
@@ -38,14 +38,14 @@ const (
 //
 //nolint:gocognit //function cannot realistically be split
 func ImportData(db *database.DB, r io.Reader, targets []string, dry, reset bool) error {
-	logger := conf.GetLogger("import")
+	logger := logging.NewLogger("import")
 	data := &file.Data{}
 
 	if err := json.NewDecoder(r).Decode(data); err != nil {
 		return fmt.Errorf("cannot read data: %w", err)
 	}
 
-	if err := db.Transaction(func(ses *database.Session) database.Error {
+	if err := db.Transaction(func(ses *database.Session) error {
 		if utils.ContainsStrings(targets, "clients", "all") {
 			if err := importClients(logger, ses, data.Clients, reset); err != nil {
 				return err
@@ -92,23 +92,18 @@ func ImportData(db *database.DB, r io.Reader, targets []string, dry, reset bool)
 }
 
 func ImportHistory(db *database.DB, r io.Reader, dry bool) error {
-	tErr := db.Transaction(func(ses *database.Session) database.Error {
+	tErr := db.Transaction(func(ses *database.Session) error {
 		if err := ses.DeleteAll(&model.HistoryEntry{}).Run(); err != nil {
-			return err
+			return fmt.Errorf("failed to purge history table: %w", err)
 		}
 
 		if err := ses.DeleteAll(&model.Transfer{}).Run(); err != nil {
-			return err
+			return fmt.Errorf("failed to purge transfers table: %w", err)
 		}
 
 		maxID, impErr := importHistory(ses, r)
 		if impErr != nil {
-			var dbErr database.Error
-			if errors.As(impErr, &dbErr) {
-				return dbErr
-			}
-
-			return database.NewInternalError(impErr)
+			return impErr
 		}
 
 		// We advance the transfer ID auto-increment to the highest value imported
@@ -118,7 +113,7 @@ func ImportHistory(db *database.DB, r io.Reader, dry bool) error {
 		// transaction.
 		if !dry {
 			if err := ses.AdvanceIncrement(&model.Transfer{}, maxID); err != nil {
-				return err
+				return fmt.Errorf("cannot advance increment of transfers table: %w", err)
 			}
 		}
 

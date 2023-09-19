@@ -25,7 +25,7 @@ func (*FileInfo) Appellation() string {
 }
 
 // BeforeWrite checks if the FileInfo entry is valid for insertion in the database.
-func (t *FileInfo) BeforeWrite(db database.ReadAccess) database.Error {
+func (t *FileInfo) BeforeWrite(db database.ReadAccess) error {
 	n, err := db.Count(&Transfer{}).Where("id=?", t.TransferID).Run()
 	if err != nil {
 		return database.NewValidationError("failed to retrieve transfer list: %s", err)

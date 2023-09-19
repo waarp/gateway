@@ -14,17 +14,17 @@ func (*NormalizedTransferView) Appellation() string { return "normalized transfe
 func (n *NormalizedTransferView) GetID() int64      { return n.ID }
 
 // BeforeWrite always returns an error because writing is not allowed on views.
-func (n *NormalizedTransferView) BeforeWrite(database.ReadAccess) database.Error {
+func (n *NormalizedTransferView) BeforeWrite(database.ReadAccess) error {
 	return database.NewInternalError(errWriteOnView)
 }
 
 // BeforeDelete always returns an error because deleting is not allowed on views.
-func (n *NormalizedTransferView) BeforeDelete(database.Access) database.Error {
+func (n *NormalizedTransferView) BeforeDelete(database.Access) error {
 	return database.NewInternalError(errWriteOnView)
 }
 
 // GetTransferInfo returns the list of the transfer's TransferInfo as a map of interfaces.
-func (n *NormalizedTransferView) GetTransferInfo(db database.ReadAccess) (map[string]interface{}, database.Error) {
+func (n *NormalizedTransferView) GetTransferInfo(db database.ReadAccess) (map[string]interface{}, error) {
 	return getTransferInfo(db, n)
 }
 

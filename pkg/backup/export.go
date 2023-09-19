@@ -6,9 +6,9 @@ import (
 	"io"
 
 	"code.waarp.fr/apps/gateway/gateway/pkg/backup/file"
-	"code.waarp.fr/apps/gateway/gateway/pkg/conf"
 	"code.waarp.fr/apps/gateway/gateway/pkg/database"
-	"code.waarp.fr/apps/gateway/gateway/pkg/tk/utils"
+	"code.waarp.fr/apps/gateway/gateway/pkg/logging"
+	"code.waarp.fr/apps/gateway/gateway/pkg/utils"
 )
 
 // ExportData extracts from the database the subsets specified in targets,
@@ -18,7 +18,7 @@ import (
 // local servers and accounts, 'partners' for remote partners and accounts, or
 // 'all' for all data.
 func ExportData(db database.ReadAccess, w io.Writer, targets []string) error {
-	logger := conf.GetLogger("export")
+	logger := logging.NewLogger("export")
 
 	var err error
 

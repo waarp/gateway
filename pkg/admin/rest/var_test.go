@@ -15,12 +15,12 @@ import (
 
 	"code.waarp.fr/apps/gateway/gateway/pkg/admin/rest/api"
 	"code.waarp.fr/apps/gateway/gateway/pkg/database"
-	"code.waarp.fr/apps/gateway/gateway/pkg/gatewayd/service"
-	"code.waarp.fr/apps/gateway/gateway/pkg/gatewayd/service/constructors"
-	"code.waarp.fr/apps/gateway/gateway/pkg/gatewayd/service/proto"
+	"code.waarp.fr/apps/gateway/gateway/pkg/gatewayd/services"
 	"code.waarp.fr/apps/gateway/gateway/pkg/model"
-	"code.waarp.fr/apps/gateway/gateway/pkg/model/config"
 	"code.waarp.fr/apps/gateway/gateway/pkg/model/types"
+	"code.waarp.fr/apps/gateway/gateway/pkg/protocols"
+	"code.waarp.fr/apps/gateway/gateway/pkg/protocols/protocol"
+	"code.waarp.fr/apps/gateway/gateway/pkg/utils"
 )
 
 const (
@@ -30,19 +30,23 @@ const (
 
 //nolint:gochecknoinits // init is used by design
 func init() {
-	config.ProtoConfigs[testProto1] = &config.Constructor{
-		Server:  func() config.ServerProtoConfig { return new(testProtoConfig) },
-		Partner: func() config.PartnerProtoConfig { return new(testProtoConfig) },
-		Client:  func() config.ClientProtoConfig { return new(testProtoConfig) },
-	}
-	config.ProtoConfigs[testProto2] = &config.Constructor{
-		Server:  func() config.ServerProtoConfig { return new(testProtoConfig) },
-		Partner: func() config.PartnerProtoConfig { return new(testProtoConfig) },
-		Client:  func() config.ClientProtoConfig { return new(testProtoConfig) },
-	}
-
-	constructors.ServiceConstructors[testProto1] = newTestServer
+	protocols.Register(testProto1, &testModule{})
+	protocols.Register(testProto2, &testModule{})
 }
+
+func stateCode(service services.Service) utils.StateCode {
+	code, _ := service.State()
+
+	return code
+}
+
+type testModule struct{}
+
+func (t testModule) NewServer(*database.DB, *model.LocalAgent) protocol.Server { return &testService{} }
+func (t testModule) NewClient(*database.DB, *model.Client) protocol.Client     { return &testService{} }
+func (t testModule) MakeServerConfig() protocol.ServerConfig                   { return &testProtoConfig{} }
+func (t testModule) MakeClientConfig() protocol.ClientConfig                   { return &testProtoConfig{} }
+func (t testModule) MakePartnerConfig() protocol.PartnerConfig                 { return &testProtoConfig{} }
 
 type testProtoConfig struct {
 	Key string `json:"key,omitempty"`
@@ -69,15 +73,12 @@ func mkURL(elem ...string) *types.URL {
 }
 
 func testAdminServer(logger *log.Logger, db *database.DB) string {
-	return testAdminServerWithServices(logger, db, nil, nil)
+	return testAdminServerWithServices(logger, db)
 }
 
-func testAdminServerWithServices(logger *log.Logger, db *database.DB,
-	testCoreServices map[string]service.Service,
-	testProtoServices map[string]proto.Service,
-) string {
+func testAdminServerWithServices(logger *log.Logger, db *database.DB) string {
 	router := mux.NewRouter()
-	MakeRESTHandler(logger, db, router, testCoreServices, testProtoServices)
+	MakeRESTHandler(logger, db, router)
 
 	serv := httptest.NewServer(router)
 

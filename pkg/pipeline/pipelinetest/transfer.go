@@ -134,7 +134,7 @@ func checkFileInfo(c convey.C, db *database.DB, transID uint64, data *transData)
 		var val interface{}
 		c.So(json.Unmarshal([]byte(info.Value), &val), convey.ShouldBeNil)
 
-		actualInfo[info.Name] = val
+		actualInfo[info.String] = val
 	}
 
 	c.So(actualInfo, convey.ShouldResemble, data.fileInfo)

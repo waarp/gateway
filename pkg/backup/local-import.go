@@ -1,29 +1,31 @@
 package backup
 
 import (
+	"fmt"
+
 	"code.waarp.fr/lib/log"
 
 	"code.waarp.fr/apps/gateway/gateway/pkg/backup/file"
 	"code.waarp.fr/apps/gateway/gateway/pkg/conf"
 	"code.waarp.fr/apps/gateway/gateway/pkg/database"
 	"code.waarp.fr/apps/gateway/gateway/pkg/model"
-	"code.waarp.fr/apps/gateway/gateway/pkg/tk/utils"
+	"code.waarp.fr/apps/gateway/gateway/pkg/utils"
 )
 
 //nolint:funlen // splitting the function would add complexity
 func importLocalAgents(logger *log.Logger, db database.Access, list []file.LocalAgent,
 	reset bool,
-) database.Error {
+) error {
 	if reset {
 		var servers model.LocalAgents
 		if err := db.Select(&servers).Where("owner=?",
 			conf.GlobalConfig.GatewayName).Run(); err != nil {
-			return err
+			return fmt.Errorf("failed to retrieve existing servers: %w", err)
 		}
 
 		for _, server := range servers {
 			if err := db.Delete(server).Run(); err != nil {
-				return err
+				return fmt.Errorf("failed to delete server %q: %w", server.Name, err)
 			}
 		}
 	}
@@ -41,7 +43,7 @@ func importLocalAgents(logger *log.Logger, db database.Access, list []file.Local
 		if database.IsNotFound(err) {
 			exists = false
 		} else if err != nil {
-			return err
+			return fmt.Errorf("failed to retrieve server %q: %w", src.Name, err)
 		}
 
 		// Populate
@@ -68,7 +70,7 @@ func importLocalAgents(logger *log.Logger, db database.Access, list []file.Local
 		}
 
 		if err != nil {
-			return err
+			return fmt.Errorf("failed to import server %q: %w", agent.Name, err)
 		}
 
 		if err := importCerts(logger, db, src.Certs, &agent); err != nil {
@@ -122,7 +124,7 @@ func checkLocalAgentDeprecatedFields(logger *log.Logger, agent *model.LocalAgent
 //nolint:dupl // duplicated code is about two different types
 func importLocalAccounts(logger *log.Logger, db database.Access,
 	list []file.LocalAccount, server *model.LocalAgent,
-) database.Error {
+) error {
 	for _, src := range list {
 		// Create model with basic info to check existence
 		var account model.LocalAccount
@@ -152,7 +154,7 @@ func importLocalAccounts(logger *log.Logger, db database.Access,
 		}
 
 		if err != nil {
-			return err
+			return fmt.Errorf("failed to import local account %q: %w", account.Login, err)
 		}
 
 		if err := importCerts(logger, db, src.Certs, &account); err != nil {

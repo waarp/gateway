@@ -88,7 +88,7 @@ func (i *IterateQuery) Limit(limit, offset int) *IterateQuery {
 }
 
 // Run executes the 'SELECT' query.
-func (i *IterateQuery) Run() (*Iterator, Error) {
+func (i *IterateQuery) Run() (*Iterator, error) {
 	logger := i.db.GetLogger()
 	query := i.db.getUnderlying().NoAutoCondition().Table(i.bean.TableName())
 

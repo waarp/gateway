@@ -15,7 +15,7 @@ import (
 func dbHistToFileTrans(hist *model.HistoryEntry, db database.ReadAccess) (*file.Transfer, error) {
 	info, err := hist.GetTransferInfo(db)
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("failed to retrieve info of transfer %d: %w", hist.ID, err)
 	}
 
 	return &file.Transfer{
@@ -81,7 +81,7 @@ func ExportHistory(db database.Access, w io.Writer, olderThan time.Time) error {
 		}
 
 		if err := query.Run(); err != nil {
-			return err
+			return fmt.Errorf("failed to retrieve history entries: %w", err)
 		}
 
 		if len(transfers) == 0 {
