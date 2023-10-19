@@ -3,6 +3,8 @@
 Historique des versions
 =======================
 
+* :bug:`386` Les mots clés de tâche `#ORIGINALFILANAME#` et `#ORIGINALFULLPATH#`
+  ont été corrigés pour qu'ils renvoient correctement un nom de fichier.
 * :bug:`388` Si l'usage d'une règle est libre, le CLI le montrera désormais
   clairement au lieu d'afficher des listes vides.
 

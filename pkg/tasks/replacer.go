@@ -4,12 +4,10 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
-	"path"
 	"path/filepath"
 	"time"
 
 	"code.waarp.fr/apps/gateway/gateway/pkg/model"
-	"code.waarp.fr/apps/gateway/gateway/pkg/tk/utils"
 )
 
 var errNotImplemented = errors.New("key word not implemented")
@@ -29,17 +27,21 @@ func getReplacers() replacersMap {
 		},
 		"#ORIGINALFULLPATH#": func(r *Runner) (string, error) {
 			if r.transCtx.Rule.IsSend {
-				return utils.ToOSPath(r.transCtx.Transfer.LocalPath), nil
+				return r.transCtx.Transfer.LocalPath, nil
 			}
 
-			return r.transCtx.Transfer.RemotePath, nil
+			if !r.transCtx.Transfer.IsServer() {
+				return r.transCtx.Transfer.RemotePath, nil
+			}
+
+			return r.transCtx.Transfer.DestFilename, nil
 		},
 		"#ORIGINALFILENAME#": func(r *Runner) (string, error) {
-			if r.transCtx.Rule.IsSend {
-				return filepath.Base(r.transCtx.Transfer.LocalPath), nil
+			if r.transCtx.Transfer.IsServer() && !r.transCtx.Rule.IsSend {
+				return filepath.Base(r.transCtx.Transfer.DestFilename), nil
 			}
 
-			return path.Base(r.transCtx.Transfer.RemotePath), nil
+			return filepath.Base(r.transCtx.Transfer.SrcFilename), nil
 		},
 		"#FILESIZE#": func(r *Runner) (string, error) {
 			return fmt.Sprint(r.transCtx.Transfer.Filesize), nil
