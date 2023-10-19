@@ -3,8 +3,6 @@ package rest
 import (
 	"fmt"
 
-	"code.waarp.fr/lib/r66"
-
 	"code.waarp.fr/apps/gateway/gateway/pkg/admin/rest/api"
 	"code.waarp.fr/apps/gateway/gateway/pkg/database"
 	"code.waarp.fr/apps/gateway/gateway/pkg/model"
@@ -32,7 +30,7 @@ func restLocalAccountToDB(restAccount *api.InAccount, parent *model.LocalAgent,
 	if parent.Protocol == config.ProtocolR66 || parent.Protocol == config.ProtocolR66TLS {
 		// Unlike other protocols, when authenticating, an R66 client sends a
 		// hash instead of a password, so we replace the password with its hash.
-		restAccount.Password = strPtr(string(r66.CryptPass([]byte(str(restAccount.Password)))))
+		restAccount.Password = strPtr(utils.R66Hash(str(restAccount.Password)))
 	}
 
 	hash, err := utils.HashPassword(database.BcryptRounds, str(restAccount.Password))

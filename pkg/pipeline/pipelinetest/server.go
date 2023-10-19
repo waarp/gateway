@@ -8,7 +8,6 @@ import (
 	"path/filepath"
 	"time"
 
-	"code.waarp.fr/lib/r66"
 	"github.com/smartystreets/goconvey/convey"
 
 	"code.waarp.fr/apps/gateway/gateway/pkg/conf"
@@ -139,7 +138,7 @@ func makeServerConf(c convey.C, db *database.DB, port uint16, home, protocol str
 
 	pswd := TestPassword
 	if protocol == config.ProtocolR66 || protocol == config.ProtocolR66TLS {
-		pswd = string(r66.CryptPass([]byte(pswd)))
+		pswd = utils.R66Hash(pswd)
 	}
 
 	locAccount := &model.LocalAccount{

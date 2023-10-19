@@ -1,8 +1,6 @@
 package model
 
 import (
-	"golang.org/x/crypto/bcrypt"
-
 	"code.waarp.fr/apps/gateway/gateway/pkg/database"
 	"code.waarp.fr/apps/gateway/gateway/pkg/tk/utils"
 )
@@ -40,7 +38,7 @@ func (l *LocalAccount) BeforeWrite(db database.ReadAccess) database.Error {
 	}
 
 	if l.PasswordHash != "" {
-		if _, isHashed := bcrypt.Cost([]byte(l.PasswordHash)); isHashed != nil {
+		if !utils.IsHash(l.PasswordHash) {
 			return database.NewValidationError("the password is not hashed")
 		}
 	}
