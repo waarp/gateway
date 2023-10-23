@@ -6,6 +6,8 @@ import (
 
 	. "github.com/smartystreets/goconvey/convey"
 	"golang.org/x/crypto/bcrypt"
+
+	"code.waarp.fr/apps/gateway/gateway/pkg/tk/utils"
 )
 
 func shouldBeHashOf(hash, pswd string) {
@@ -31,7 +33,7 @@ func TestLocalAgentUnmarshalJSON(t *testing.T) {
 	Convey("Given a JSON local agent", t, func() {
 		input := []byte(`{
 			"name": "foo", 
-			"protocol": "http",
+			"protocol": "r66",
 			"address": "1.2.3.4:5",
 			"accounts": [{
 				"login": "foo1",
@@ -52,8 +54,8 @@ func TestLocalAgentUnmarshalJSON(t *testing.T) {
 				acc1 := &server.Accounts[0]
 				acc2 := &server.Accounts[1]
 
-				shouldBeHashOf(acc1.PasswordHash, acc1.Password)
-				shouldBeHashOf(acc2.PasswordHash, acc2.Password)
+				shouldBeHashOf(acc1.PasswordHash, utils.R66Hash("sesame1"))
+				shouldBeHashOf(acc2.PasswordHash, utils.R66Hash("sesame2"))
 			})
 		})
 	})
@@ -80,9 +82,37 @@ func TestRemoteAgentUnmarshalJSON(t *testing.T) {
 				So(json.Unmarshal(partner.Configuration, &conf), ShouldBeNil)
 
 				So(conf, ShouldContainKey, "serverPassword")
-				//nolint:forcetypeassert //this is a test
-				So(bcrypt.CompareHashAndPassword([]byte(conf["serverPassword"].(string)),
-					[]byte("bar")), ShouldBeNil)
+				//nolint:forcetypeassert //type assertion always succeeds
+				shouldBeHashOf(conf["serverPassword"].(string), utils.R66Hash("bar"))
+			})
+		})
+	})
+
+	Convey("Given a JSON R66 remote agent with hashed password", t, func() {
+		input := []byte(`{
+			"name": "foo", 
+			"protocol": "r66",
+			"address": "1.2.3.4:5",
+			"configuration": {
+				"serverLogin": "foo",
+				"serverPassword": "$2a$04$KgPxfeImO46ddWHq9En28eHRmBN3TjQvmzJ3QLiFpxV2jmIk.ZSl6"
+			}
+		}`)
+
+		Convey("When unmarshalling the JSON", func() {
+			var partner RemoteAgent
+			So(json.Unmarshal(input, &partner), ShouldBeNil)
+
+			Convey("Then it should NOT have changed the server's password", func() {
+				var conf map[string]any
+				So(json.Unmarshal(partner.Configuration, &conf), ShouldBeNil)
+
+				So(conf, ShouldContainKey, "serverPassword")
+
+				//nolint:forcetypeassert //type assertion always succeeds
+				hash := conf["serverPassword"].(string)
+				So(hash, ShouldEqual, "$2a$04$KgPxfeImO46ddWHq9En28eHRmBN3TjQvmzJ3QLiFpxV2jmIk.ZSl6")
+				shouldBeHashOf(hash, utils.R66Hash("bar"))
 			})
 		})
 	})

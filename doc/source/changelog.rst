@@ -3,6 +3,11 @@
 Historique des versions
 =======================
 
+* :bug:`385` Les mots de passes de partenaires R66 importés via la commande
+  d'import sont désormais hashés correctement. Depuis la version 0.8.0, les
+  partenaires R66 importés via cette commande avaient leurs mots de passe
+  hashés incorrectement, ce qui résultait en l'impossibilité pour ces derniers
+  de s'authentifier auprès de la *gateway*.
 * :bug:`386` Les mots clés de tâche `#ORIGINALFILANAME#` et `#ORIGINALFULLPATH#`
   ont été corrigés pour qu'ils renvoient correctement un nom de fichier.
 * :bug:`388` Si l'usage d'une règle est libre, le CLI le montrera désormais

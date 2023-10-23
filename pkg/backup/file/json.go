@@ -3,8 +3,6 @@ package file
 import (
 	"encoding/json"
 
-	"code.waarp.fr/lib/r66"
-
 	"code.waarp.fr/apps/gateway/gateway/pkg/tk/utils"
 )
 
@@ -51,7 +49,7 @@ func (l *LocalAgent) UnmarshalJSON(b []byte) error {
 
 		if acc.PasswordHash == "" && acc.Password != "" {
 			if l.Protocol == "r66" || l.Protocol == "r66-tls" {
-				acc.Password = string(r66.CryptPass([]byte(acc.Password)))
+				acc.Password = utils.R66Hash(acc.Password)
 			}
 
 			var err error
@@ -90,13 +88,18 @@ func (r *RemoteAgent) UnmarshalJSON(b []byte) error {
 		return nil
 	}
 
-	hash, err := utils.HashPassword(BcryptRounds, servPwd)
-	if err != nil {
-		return err
+	if !utils.IsHash(servPwd) {
+		servPwd = utils.R66Hash(servPwd)
+
+		hash, err := utils.HashPassword(BcryptRounds, servPwd)
+		if err != nil {
+			return err
+		}
+
+		confMap["serverPassword"] = hash
 	}
 
-	confMap["serverPassword"] = hash
-
+	var err error
 	r.Configuration, err = json.Marshal(confMap)
 
 	return err

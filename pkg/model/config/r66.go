@@ -3,9 +3,6 @@ package config
 import (
 	"fmt"
 
-	"code.waarp.fr/lib/r66"
-	"golang.org/x/crypto/bcrypt"
-
 	"code.waarp.fr/apps/gateway/gateway/pkg/database"
 	"code.waarp.fr/apps/gateway/gateway/pkg/tk/utils"
 )
@@ -58,13 +55,13 @@ func (c *R66ProtoConfig) ValidPartner() error {
 		return fmt.Errorf("missing partner password: %w", errInvalidProtoConfig)
 	}
 
-	if _, err := bcrypt.Cost([]byte(c.ServerPassword)); err == nil {
+	if utils.IsHash(c.ServerPassword) {
 		return nil // password already hashed
 	}
 
-	pwd := r66.CryptPass([]byte(c.ServerPassword))
+	pwd := utils.R66Hash(c.ServerPassword)
 
-	hashed, err := utils.HashPassword(database.BcryptRounds, string(pwd))
+	hashed, err := utils.HashPassword(database.BcryptRounds, pwd)
 	if err != nil {
 		return fmt.Errorf("failed to hash server password: %w", err)
 	}

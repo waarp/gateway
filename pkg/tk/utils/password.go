@@ -67,6 +67,13 @@ func AESDecrypt(gcm cipher.AEAD, cipherStr string) (string, error) {
 	return string(password), nil
 }
 
+// IsHash returns whether the given string is a bcrypt hash or not.
+func IsHash(password string) bool {
+	_, isHashed := bcrypt.Cost([]byte(password))
+
+	return isHashed == nil
+}
+
 // HashPassword takes a slice of bytes representing a password and returns it
 // hashed using the bcrypt hashing algorithm.
 //
@@ -78,7 +85,7 @@ func HashPassword(bcryptRounds int, password string) (string, error) {
 	}
 
 	// If password is already hashed, don't encrypt it again.
-	if _, isHashed := bcrypt.Cost([]byte(password)); isHashed == nil {
+	if IsHash(password) {
 		return password, nil
 	}
 
