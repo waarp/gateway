@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"path"
 	"path/filepath"
 	"testing"
 	"time"
@@ -71,7 +72,10 @@ func TestSetup(t *testing.T) {
 			transCtx.Transfer = &model.Transfer{
 				ID:              1234,
 				RemoteAccountID: utils.NewNullInt64(account.ID),
-				LocalPath:       filepath.Join(root, transCtx.Rule.LocalDir, "file.test"),
+				SrcFilename:     "src/file",
+				DestFilename:    "dst/file",
+				LocalPath:       filepath.Join(root, transCtx.Rule.LocalDir, "file.loc"),
+				RemotePath:      path.Join(transCtx.Rule.RemoteDir, "file.rem"),
 				Error: types.TransferError{
 					Code:    types.TeConnection,
 					Details: `error message`,
@@ -138,7 +142,7 @@ func TestSetup(t *testing.T) {
 						So(ok, ShouldBeTrue)
 
 						Convey("Then res[fullPath] should contain the resolved variable", func() {
-							So(val, ShouldEqual, utils.ToOSPath(r.transCtx.Transfer.LocalPath))
+							So(val, ShouldEqual, r.transCtx.Transfer.LocalPath)
 						})
 					})
 
@@ -147,7 +151,7 @@ func TestSetup(t *testing.T) {
 						So(ok, ShouldBeTrue)
 
 						Convey("Then res[filename] should contain the resolved variable", func() {
-							So(val, ShouldEqual, filepath.Base(r.transCtx.Transfer.LocalPath))
+							So(val, ShouldEqual, filepath.Base(transCtx.Transfer.SrcFilename))
 						})
 					})
 
