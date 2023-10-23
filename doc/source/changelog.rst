@@ -3,6 +3,9 @@
 Historique des versions
 =======================
 
+* :bug:`388` Si l'usage d'une règle est libre, le CLI le montrera désormais
+  clairement au lieu d'afficher des listes vides.
+
 * :release:`0.8.0 <2023-06-12>`
 * :bug:`376` Correction d'un bug du client R66 de la gateway qui empêchait
   celui-ci récupérer un fichier depuis un agent *Waarp-R66* pour cause de

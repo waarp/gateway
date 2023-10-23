@@ -77,12 +77,17 @@ func ruleInfoString(r *api.OutRule) string {
 		"    Temp receive directory: " + r.TmpLocalRcvDir + "\n" +
 		"    Pre tasks:\n" + taskStr(r.PreTasks) +
 		"    Post tasks:\n" + taskStr(r.PostTasks) +
-		"    Error tasks:\n" + taskStr(r.ErrorTasks) +
-		"    Authorized agents:\n" +
-		"    ├─Servers:          " + servers + "\n" +
-		"    ├─Partners:         " + partners + "\n" +
-		"    ├─Server accounts:  " + locAcc + "\n" +
-		"    └─Partner accounts: " + remAcc + "\n"
+		"    Error tasks:\n" + taskStr(r.ErrorTasks)
+
+	if servers+partners+locAcc+remAcc == "" {
+		rv += "    Authorized agents: <all>\n"
+	} else {
+		rv += "    Authorized agents:\n" +
+			"    ├─Servers:          " + servers + "\n" +
+			"    ├─Partners:         " + partners + "\n" +
+			"    ├─Server accounts:  " + locAcc + "\n" +
+			"    └─Partner accounts: " + remAcc + "\n"
+	}
 
 	return rv
 }

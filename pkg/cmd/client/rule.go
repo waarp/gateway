@@ -84,11 +84,17 @@ func displayRule(w io.Writer, rule *api.OutRule) {
 	fmt.Fprintln(w, orange("    Remote directory:      "), rule.RemoteDir)
 	fmt.Fprintln(w, orange("    Temp receive directory:"), rule.TmpLocalRcvDir)
 	displayTasks(w, rule)
-	fmt.Fprintln(w, orange("    Authorized agents:"))
-	fmt.Fprintln(w, bold("    ├─Servers:         "), servers)
-	fmt.Fprintln(w, bold("    ├─Partners:        "), partners)
-	fmt.Fprintln(w, bold("    ├─Server accounts: "), locAcc)
-	fmt.Fprintln(w, bold("    └─Partner accounts:"), remAcc)
+
+	// if all are empty => rule is unrestricted
+	if servers == "" && partners == "" && locAcc == "" && remAcc == "" {
+		fmt.Fprintln(w, orange("    Authorized agents:"), "<all>")
+	} else {
+		fmt.Fprintln(w, orange("    Authorized agents:"))
+		fmt.Fprintln(w, bold("    ├─Servers:         "), servers)
+		fmt.Fprintln(w, bold("    ├─Partners:        "), partners)
+		fmt.Fprintln(w, bold("    ├─Server accounts: "), locAcc)
+		fmt.Fprintln(w, bold("    └─Partner accounts:"), remAcc)
+	}
 }
 
 func parseTasks(rule *api.UptRule, pre, post, errs []string) error {
