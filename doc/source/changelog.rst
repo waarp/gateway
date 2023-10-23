@@ -3,6 +3,7 @@
 Historique des versions
 =======================
 
+* :release:`0.8.1 <2023-10-23>`
 * :bug:`385` Les mots de passes de partenaires R66 importés via la commande
   d'import sont désormais hashés correctement. Depuis la version 0.8.0, les
   partenaires R66 importés via cette commande avaient leurs mots de passe
