@@ -16,7 +16,7 @@ func exportLocals(logger *log.Logger, db database.ReadAccess) ([]file.LocalAgent
 	var dbLocals model.LocalAgents
 	if err := db.Select(&dbLocals).Where("owner=?", conf.GlobalConfig.GatewayName).
 		Run(); err != nil {
-		return nil, fmt.Errorf("failed to retrieve partners: %w", err)
+		return nil, fmt.Errorf("failed to retrieve servers: %w", err)
 	}
 
 	res := make([]file.LocalAgent, len(dbLocals))

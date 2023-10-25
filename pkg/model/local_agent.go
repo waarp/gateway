@@ -1,6 +1,7 @@
 package model
 
 import (
+	"errors"
 	"fmt"
 
 	"code.waarp.fr/apps/gateway/gateway/pkg/conf"
@@ -188,6 +189,28 @@ func (l *LocalAgent) AfterWrite(db database.Access) error {
 	if err := db.Insert(pswd).Run(); err != nil {
 		return fmt.Errorf("failed to insert server password: %w", err)
 	}
+
+	return l.AfterRead(db)
+}
+
+func (l *LocalAgent) AfterRead(database.ReadAccess) error {
+	if l.Protocol != protoR66 && l.Protocol != protoR66TLS {
+		return nil
+	}
+
+	servPwd, err := utils.GetAs[string](l.ProtoConfig, "serverPassword")
+	if errors.Is(err, utils.ErrKeyNotFound) {
+		return nil
+	} else if err != nil {
+		return fmt.Errorf("failed to retrieve the server password: %w", err)
+	}
+
+	clear, err := utils.AESDecrypt(database.GCM, servPwd)
+	if err != nil {
+		return fmt.Errorf("failed to decrypt the server password: %w", err)
+	}
+
+	l.ProtoConfig["serverPassword"] = clear
 
 	return nil
 }

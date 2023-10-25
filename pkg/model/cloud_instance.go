@@ -39,7 +39,8 @@ func (c *CloudInstance) BeforeWrite(db database.ReadAccess) error {
 		return database.NewValidationError("invalid cloud instance configuration: %v", err)
 	}
 
-	if n, err := db.Count(c).Where("owner=? AND name=?", c.Owner, c.Name).Run(); err != nil {
+	if n, err := db.Count(c).Where("id<>? AND owner=? AND name=?", c.ID, c.Owner,
+		c.Name).Run(); err != nil {
 		return fmt.Errorf("failed to check existing cloud instances: %w", err)
 	} else if n > 0 {
 		return database.NewValidationError("a cloud instance named %q already exist", c.Name)

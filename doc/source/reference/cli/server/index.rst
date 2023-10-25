@@ -10,4 +10,5 @@ Serveur ``waarp-gatewayd``
    export
    purge
    restore_history
+   change_aes
    version

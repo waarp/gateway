@@ -53,3 +53,9 @@ func (j *jsonBody) Read(p []byte) (int, error) {
 
 	return j.buf.Read(p)
 }
+
+func EmptyMap[K comparable, V any](m map[K]V) {
+	for key := range m {
+		delete(m, key)
+	}
+}

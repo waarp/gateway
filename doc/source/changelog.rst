@@ -3,6 +3,11 @@
 Historique des versions
 =======================
 
+* :feature:`389` Ajout de le commande ``waarp-gatewayd change-aes-passphrase``
+  permettant de changer la passphrase AES utilisée par la *gateway* pour chiffrer
+  les mots de passe distants en base de données (voir
+  :ref:`la documentation de la commande<reference-cmd-waarp-gatewayd-change-aes>`
+  pour plus de détails).
 * :feature:`289` Les certificats et les mots de passe sont remplacés par les
   plus génériques "méthodes d'authentification", permettant d'ajouter plus
   facilement de nouvelles formes d'authentification. Ajout également des
