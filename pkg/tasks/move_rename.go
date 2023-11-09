@@ -34,7 +34,7 @@ func (*moveRenameTask) Validate(args map[string]string) error {
 // Run move and rename the current file to the destination and
 // modify the transfer model to reflect the file change.
 func (*moveRenameTask) Run(_ context.Context, args map[string]string,
-	_ *database.DB, logger *log.Logger, transCtx *model.TransferContext,
+	db *database.DB, logger *log.Logger, transCtx *model.TransferContext,
 ) error {
 	newPath := args["path"]
 	source := &transCtx.Transfer.LocalPath
@@ -44,10 +44,12 @@ func (*moveRenameTask) Run(_ context.Context, args map[string]string,
 		return fmt.Errorf("failed to parse the MOVE destination path %q: %w", newPath, dstErr)
 	}
 
-	if err := MoveFile(source, dest); err != nil {
-		return err
+	newFS, movErr := MoveFile(db, transCtx.FS, source, dest)
+	if movErr != nil {
+		return movErr
 	}
 
+	transCtx.FS = newFS
 	transCtx.Transfer.LocalPath = *dest
 	transCtx.Transfer.RemotePath = path.Join(
 		path.Dir(transCtx.Transfer.RemotePath),

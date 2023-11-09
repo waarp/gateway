@@ -11,9 +11,9 @@ import (
 
 	"code.waarp.fr/apps/gateway/gateway/pkg/conf"
 	"code.waarp.fr/apps/gateway/gateway/pkg/database"
+	"code.waarp.fr/apps/gateway/gateway/pkg/fs/fstest"
 	"code.waarp.fr/apps/gateway/gateway/pkg/gatewayd/service/state"
 	"code.waarp.fr/apps/gateway/gateway/pkg/model"
-	"code.waarp.fr/apps/gateway/gateway/pkg/pipeline/fs/fstest"
 	"code.waarp.fr/apps/gateway/gateway/pkg/tk/utils/testhelpers"
 )
 
@@ -36,7 +36,7 @@ func testSetup(c C) (*WG, *model.LocalAgent, *model.LocalAgent) {
 	s1 := addServ("serv1")
 	s2 := addServ("serv2")
 
-	root := "mem:/start_services"
+	root := "memory:/start_services"
 	conf.GlobalConfig.Paths = conf.PathsConfig{
 		GatewayHome:   root,
 		DefaultInDir:  path.Join(root, "in"),

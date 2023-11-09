@@ -8,9 +8,9 @@ import (
 	"code.waarp.fr/lib/log"
 
 	"code.waarp.fr/apps/gateway/gateway/pkg/database"
+	"code.waarp.fr/apps/gateway/gateway/pkg/fs"
 	"code.waarp.fr/apps/gateway/gateway/pkg/model"
 	"code.waarp.fr/apps/gateway/gateway/pkg/model/types"
-	"code.waarp.fr/apps/gateway/gateway/pkg/pipeline/fs"
 )
 
 // renameTask is a task which rename the target of the transfer
@@ -32,7 +32,7 @@ func (*renameTask) Validate(args map[string]string) error {
 }
 
 // Run executes the task by renaming the transfer file.
-func (*renameTask) Run(_ context.Context, args map[string]string, _ *database.DB,
+func (*renameTask) Run(_ context.Context, args map[string]string, db *database.DB,
 	logger *log.Logger, transCtx *model.TransferContext,
 ) error {
 	newPath := args["path"]
@@ -42,10 +42,16 @@ func (*renameTask) Run(_ context.Context, args map[string]string, _ *database.DB
 		return fmt.Errorf("failed to parse the new target path %q: %w", newPath, err)
 	}
 
-	if _, err := fs.Stat(newURL); err != nil {
+	newFS, fsErr := fs.GetFileSystem(db, newURL)
+	if fsErr != nil {
+		return fmt.Errorf("failed to instantiate filesystem for new file %q: %w", newPath, fsErr)
+	}
+
+	if _, err := fs.Stat(transCtx.FS, newURL); err != nil {
 		return fmt.Errorf("failed to change transfer target file: %w", err)
 	}
 
+	transCtx.FS = newFS
 	transCtx.Transfer.LocalPath = *newURL
 	transCtx.Transfer.RemotePath = path.Join(path.Dir(transCtx.Transfer.RemotePath),
 		path.Base(newURL.Path))

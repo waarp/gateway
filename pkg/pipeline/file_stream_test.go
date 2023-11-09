@@ -9,9 +9,9 @@ import (
 	. "github.com/smartystreets/goconvey/convey"
 
 	"code.waarp.fr/apps/gateway/gateway/pkg/database"
+	"code.waarp.fr/apps/gateway/gateway/pkg/fs"
 	"code.waarp.fr/apps/gateway/gateway/pkg/model"
 	"code.waarp.fr/apps/gateway/gateway/pkg/model/types"
-	"code.waarp.fr/apps/gateway/gateway/pkg/pipeline/fs"
 	"code.waarp.fr/apps/gateway/gateway/pkg/tk/utils"
 )
 
@@ -30,7 +30,7 @@ func TestNewFileStream(t *testing.T) {
 			So(ctx.db.Insert(trans).Run(), ShouldBeNil)
 
 			localPath := mkURL(ctx.root, ctx.send.LocalDir, trans.SrcFilename)
-			So(fs.WriteFullFile(localPath, []byte("Hello World")), ShouldBeNil)
+			So(fs.WriteFullFile(ctx.fs, localPath, []byte("Hello World")), ShouldBeNil)
 
 			pip := newTestPipeline(c, ctx.db, trans)
 
@@ -56,7 +56,7 @@ func TestNewFileStream(t *testing.T) {
 			})
 
 			Convey("Given that the file does not exist", func(c C) {
-				So(fs.Remove(&trans.LocalPath), ShouldBeNil)
+				So(fs.Remove(ctx.fs, &trans.LocalPath), ShouldBeNil)
 
 				Convey("When creating a new transfer stream", func(c C) {
 					_, err := newFileStream(pip, false)
@@ -117,7 +117,7 @@ func TestStreamRead(t *testing.T) {
 			content := []byte("read file content")
 			localPath := mkURL(ctx.root, ctx.send.LocalDir, trans.SrcFilename)
 
-			So(fs.WriteFullFile(localPath, content), ShouldBeNil)
+			So(fs.WriteFullFile(ctx.fs, localPath, content), ShouldBeNil)
 
 			stream := initFilestream(ctx, trans)
 
@@ -192,7 +192,7 @@ func TestStreamReadAt(t *testing.T) {
 			content := []byte("read file content")
 			localPath := mkURL(ctx.root, ctx.send.LocalDir, trans.SrcFilename)
 
-			So(fs.WriteFullFile(localPath, content), ShouldBeNil)
+			So(fs.WriteFullFile(ctx.fs, localPath, content), ShouldBeNil)
 
 			stream := initFilestream(ctx, trans)
 
@@ -281,7 +281,7 @@ func TestStreamWrite(t *testing.T) {
 				})
 
 				Convey("Then the file should contain the array content", func(c C) {
-					content, err := fs.ReadFile(&trans.LocalPath)
+					content, err := fs.ReadFile(ctx.fs, &trans.LocalPath)
 					So(err, ShouldBeNil)
 
 					So(string(content), ShouldEqual, string(b))
@@ -355,7 +355,7 @@ func TestStreamWriteAt(t *testing.T) {
 				})
 
 				Convey("Then the file should contain the array content with an offset", func(c C) {
-					content, err := fs.ReadFile(&trans.LocalPath)
+					content, err := fs.ReadFile(ctx.fs, &trans.LocalPath)
 					So(err, ShouldBeNil)
 
 					So(string(content), ShouldEqual, strings.Repeat("\000", off)+string(b))
@@ -457,13 +457,13 @@ func TestStreamMove(t *testing.T) {
 
 				Convey("Then the underlying file should have been be moved", func(c C) {
 					file := mkURL(ctx.root, ctx.recv.LocalDir, "file")
-					_, err := fs.Stat(file)
+					_, err := fs.Stat(ctx.fs, file)
 					So(err, ShouldBeNil)
 				})
 			})
 
 			Convey("Given that the move fails", func(c C) {
-				So(fs.Remove(&stream.TransCtx.Transfer.LocalPath), ShouldBeNil)
+				So(fs.Remove(ctx.fs, &stream.TransCtx.Transfer.LocalPath), ShouldBeNil)
 
 				Convey("When moving the file", func(c C) {
 					So(stream.move(), ShouldBeError, "TransferError(TeFinalization): "+
@@ -501,7 +501,7 @@ func TestStreamMove(t *testing.T) {
 		So(ctx.db.Insert(trans).Run(), ShouldBeNil)
 
 		filepath := mkURL(ctx.root, ctx.recv.LocalDir, "file")
-		So(fs.WriteFullFile(filepath, []byte("file content")), ShouldBeNil)
+		So(fs.WriteFullFile(ctx.fs, filepath, []byte("file content")), ShouldBeNil)
 		// Reset(func() { _ = ctx.fs.Remove(path) })
 
 		Convey("Given a closed file stream for this transfer", func(c C) {

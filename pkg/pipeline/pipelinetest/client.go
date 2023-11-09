@@ -150,7 +150,7 @@ func makeClientConf(c convey.C, db *database.DB, port uint16, proto string,
 //nolint:dupl // factorizing would hurt readability
 func (cc *ClientContext) addPushTransfer(c convey.C) {
 	testFile := mkURL(cc.Paths.GatewayHome, cc.ClientRule.LocalDir, "self_transfer_push")
-	cc.fileContent = AddSourceFile(c, testFile)
+	cc.fileContent = AddSourceFile(c, cc.FS, testFile)
 
 	trans := &model.Transfer{
 		RuleID:          cc.ClientRule.ID,

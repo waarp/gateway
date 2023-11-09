@@ -10,18 +10,18 @@ import (
 
 	"code.waarp.fr/apps/gateway/gateway/pkg/conf"
 	"code.waarp.fr/apps/gateway/gateway/pkg/database"
+	"code.waarp.fr/apps/gateway/gateway/pkg/fs"
+	"code.waarp.fr/apps/gateway/gateway/pkg/fs/fstest"
 	"code.waarp.fr/apps/gateway/gateway/pkg/gatewayd/service/state"
 	"code.waarp.fr/apps/gateway/gateway/pkg/model"
 	"code.waarp.fr/apps/gateway/gateway/pkg/model/types"
-	"code.waarp.fr/apps/gateway/gateway/pkg/pipeline/fs"
-	"code.waarp.fr/apps/gateway/gateway/pkg/pipeline/fs/fstest"
 	"code.waarp.fr/apps/gateway/gateway/pkg/tk/utils"
 	"code.waarp.fr/apps/gateway/gateway/pkg/tk/utils/testhelpers"
 )
 
 func TestControllerListen(t *testing.T) {
 	Convey("Given a database", t, func(c C) {
-		fstest.InitMemFS(c)
+		testFS := fstest.InitMemFS(c)
 		logger := testhelpers.TestLogger(c, "test_controller")
 		db := database.TestDatabase(c)
 
@@ -39,7 +39,7 @@ func TestControllerListen(t *testing.T) {
 		}
 		So(db.Insert(account).Run(), ShouldBeNil)
 
-		rootDir := "mem:/controller-listen"
+		rootDir := "memory:/controller-listen"
 		rootPath := mkURL(rootDir)
 
 		rule := &model.Rule{Name: "test rule", IsSend: true}
@@ -62,8 +62,8 @@ func TestControllerListen(t *testing.T) {
 
 			Convey("Given a planned transfer", func(c C) {
 				path1 := rootPath.JoinPath("out", "file_1")
-				So(fs.MkdirAll(path1.Dir()), ShouldBeNil)
-				So(fs.WriteFullFile(path1, []byte("hello world")), ShouldBeNil)
+				So(fs.MkdirAll(testFS, path1.Dir()), ShouldBeNil)
+				So(fs.WriteFullFile(testFS, path1, []byte("hello world")), ShouldBeNil)
 
 				trans := &model.Transfer{
 					RuleID:          rule.ID,
@@ -122,8 +122,8 @@ func TestControllerListen(t *testing.T) {
 
 			Convey("Given a running transfer", func(c C) {
 				path2 := rootPath.JoinPath("out", "file_2")
-				So(fs.MkdirAll(path2.Dir()), ShouldBeNil)
-				So(fs.WriteFullFile(path2, []byte("hello world")), ShouldBeNil)
+				So(fs.MkdirAll(testFS, path2.Dir()), ShouldBeNil)
+				So(fs.WriteFullFile(testFS, path2, []byte("hello world")), ShouldBeNil)
 
 				trans := &model.Transfer{
 					RuleID:          rule.ID,

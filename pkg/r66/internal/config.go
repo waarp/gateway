@@ -39,8 +39,8 @@ func MakeClientTLSConfig(pip *pipeline.Pipeline) (*tls.Config, error) {
 			_ = compatibility.LogSha1(pip.Logger)(state)
 
 			//nolint:wrapcheck //error is returned as-is for better readability
-			return pip.TransCtx.RemoteAgentCryptos.CheckServerAuthent(state.ServerName,
-				state.PeerCertificates)
+			return model.CheckServerAuthent(&pip.TransCtx.RemoteAgentCryptos,
+				state.ServerName, state.PeerCertificates)
 		}
 
 		return conf, nil

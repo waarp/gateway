@@ -7,8 +7,8 @@ import (
 	"net/url"
 	"sync/atomic"
 
+	"code.waarp.fr/apps/gateway/gateway/pkg/fs"
 	"code.waarp.fr/apps/gateway/gateway/pkg/model/types"
-	"code.waarp.fr/apps/gateway/gateway/pkg/pipeline/fs"
 	"code.waarp.fr/apps/gateway/gateway/pkg/tasks"
 	"code.waarp.fr/apps/gateway/gateway/pkg/tk/statemachine"
 	"code.waarp.fr/apps/gateway/gateway/pkg/tk/utils"
@@ -208,6 +208,8 @@ func (f *FileStream) close() *types.TransferError {
 // move the file from the temporary work directory to its final destination
 // (if the file is the transfer's destination). The method returns an error if
 // the file cannot be moved.
+//
+//nolint:funlen //no easy way to split the function
 func (f *FileStream) move() *types.TransferError {
 	if curr := f.machine.Current(); curr != stateDataEnd {
 		f.handleStateErr("move", f.machine.Current())
@@ -250,20 +252,31 @@ func (f *FileStream) move() *types.TransferError {
 		return nil
 	}
 
-	if err := createDir(dest); err != nil {
+	dstFS, fsErr := fs.GetFileSystem(f.DB, dest)
+	if fsErr != nil {
+		f.handleError(types.TeFinalization, "Failed to instantiate destination file system",
+			fsErr.Error())
+
+		return moveErr
+	}
+
+	if err := createDir(dstFS, dest); err != nil {
 		f.handleError(types.TeFinalization, "Failed to create destination directory",
 			err.Error())
 
 		return moveErr
 	}
 
-	if err := tasks.MoveFile(&f.TransCtx.Transfer.LocalPath, dest); err != nil {
-		f.handleError(types.TeFinalization, "Failed to move temp file", err.Error())
+	newFS, movErr := tasks.MoveFile(f.DB, f.TransCtx.FS, &f.TransCtx.Transfer.LocalPath, dest)
+	if movErr != nil {
+		f.handleError(types.TeFinalization, "Failed to move temp file", movErr.Error())
 
 		return moveErr
 	}
 
+	f.TransCtx.FS = newFS
 	f.TransCtx.Transfer.LocalPath = *dest
+
 	if dbErr := f.updateTrans(); dbErr != nil {
 		return dbErr
 	}

@@ -7,9 +7,9 @@ import (
 
 	. "github.com/smartystreets/goconvey/convey"
 
+	"code.waarp.fr/apps/gateway/gateway/pkg/fs"
+	"code.waarp.fr/apps/gateway/gateway/pkg/fs/fstest"
 	"code.waarp.fr/apps/gateway/gateway/pkg/model/types"
-	"code.waarp.fr/apps/gateway/gateway/pkg/pipeline/fs"
-	"code.waarp.fr/apps/gateway/gateway/pkg/pipeline/fs/fstest"
 	"code.waarp.fr/apps/gateway/gateway/pkg/tk/utils/testhelpers"
 )
 
@@ -18,15 +18,14 @@ func TestCheckHash(t *testing.T) {
 	expHash, _ := hex.DecodeString("cddfc994ff46f856395a6a387f722429bff47751cf0fd6924e80445e5c035672")
 
 	Convey("Given a file", t, func(c C) {
-		fstest.InitMemFS(c)
-
-		path := mkURL("mem:/test_check_hash_file")
+		testFS := fstest.InitMemFS(c)
+		path := mkURL("memory:/test_check_hash_file")
 		logger := testhelpers.TestLogger(c, "test_check_hash")
 
-		So(fs.WriteFullFile(path, content), ShouldBeNil)
+		So(fs.WriteFullFile(testFS, path, content), ShouldBeNil)
 
 		Convey("When calling the `checkHash` function with the correct hash", func() {
-			hash, err := MakeHash(context.Background(), logger, path)
+			hash, err := MakeHash(context.Background(), testFS, logger, path)
 			So(err, ShouldBeNil)
 
 			Convey("Then it should return the expected hash", func() {
@@ -35,8 +34,8 @@ func TestCheckHash(t *testing.T) {
 		})
 
 		Convey("When calling the `checkHash` function with an invalid path", func() {
-			path := mkURL("mem:/not_a_path")
-			_, err := MakeHash(context.Background(), logger, path)
+			path := mkURL("memory:/not_a_path")
+			_, err := MakeHash(context.Background(), testFS, logger, path)
 
 			Convey("Then it should return an error", func() {
 				So(err, ShouldBeError, types.NewTransferError(types.TeInternal,

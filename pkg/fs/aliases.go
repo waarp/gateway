@@ -1,40 +1,6 @@
-// Package fs is the package used for managing transfer files in a file system
-// agnostic way.
 package fs
 
-import (
-	"errors"
-	"fmt"
-
-	"github.com/hack-pad/hackpadfs"
-
-	"code.waarp.fr/apps/gateway/gateway/pkg/model/types"
-)
-
-var ErrUnknownFileSystem = errors.New("unknown file system")
-
-// FileSystems contains a list of all the known file systems. The map associates
-// the file system's scheme with a function to instantiate the file system.
-//
-//nolint:gochecknoglobals //a global var is required here
-var FileSystems = map[string]FsMaker{
-	"file": NewLocalFS,
-}
-
-func getFileSystem(url *types.URL) (FS, error) {
-	mkfs := FileSystems[url.Scheme]
-	if mkfs == nil {
-		return nil, fmt.Errorf("%w %q", ErrUnknownFileSystem, url.Scheme)
-	}
-
-	return mkfs(url)
-}
-
-func DoesFileSystemExist(scheme string) bool {
-	return FileSystems[scheme] != nil
-}
-
-type FsMaker func(path *types.URL) (FS, error)
+import "github.com/hack-pad/hackpadfs"
 
 type (
 	FS         = hackpadfs.FS
@@ -79,6 +45,16 @@ const (
 	ModePerm = hackpadfs.ModePerm
 )
 
-func IsOnSameFS(path1, path2 *types.URL) bool {
-	return path1.Scheme == path2.Scheme && path1.Host == path2.Host
-}
+// Flags are bit-wise OR'd with each other in fs.OpenFile().
+// Exactly one of Read/Write flags must be specified, and any other flags can be OR'd together.
+const (
+	FlagROnly = hackpadfs.FlagReadOnly  // open the file read-only.
+	FlagWOnly = hackpadfs.FlagWriteOnly // open the file write-only.
+	FlagRW    = hackpadfs.FlagReadWrite // open the file read-write.
+
+	FlagAppend    = hackpadfs.FlagAppend    // append data to the file when writing.
+	FlagCreate    = hackpadfs.FlagCreate    // create a new file if none exists.
+	FlagExclusive = hackpadfs.FlagExclusive // used with Create, file must not exist.
+	FlagSync      = hackpadfs.FlagSync      // open for synchronous I/O.
+	FlagTruncate  = hackpadfs.FlagTruncate  // truncate regular writable file when opened.
+)

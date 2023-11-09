@@ -5,6 +5,7 @@ import (
 	"crypto/aes"
 	"crypto/cipher"
 	"crypto/rand"
+	"errors"
 	"fmt"
 	"net/url"
 	"os"
@@ -27,9 +28,9 @@ const (
 	TestMemoryDB = "memory"
 )
 
-var errSimulated = fmt.Errorf("simulated database error")
+var errSimulated = errors.New("simulated database error")
 
-func memDBInfo() *dbInfo {
+func memDBInfo() *DBInfo {
 	config := conf.GlobalConfig.Database
 	values := url.Values{}
 
@@ -41,10 +42,10 @@ func memDBInfo() *dbInfo {
 	values.Add("_pragma", "journal_mode(MEMORY)")
 	values.Add("_pragma", "synchronous(OFF)")
 
-	return &dbInfo{
-		driver:    migrations.SqliteDriver,
-		dsn:       fmt.Sprintf("file:%s?%s", config.Address, values.Encode()),
-		connLimit: 1,
+	return &DBInfo{
+		Driver:    migrations.SqliteDriver,
+		DSN:       fmt.Sprintf("file:%s?%s", config.Address, values.Encode()),
+		ConnLimit: 1,
 	}
 }
 

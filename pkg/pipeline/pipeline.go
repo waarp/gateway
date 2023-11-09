@@ -8,6 +8,7 @@ import (
 	"code.waarp.fr/lib/log"
 
 	"code.waarp.fr/apps/gateway/gateway/pkg/database"
+	"code.waarp.fr/apps/gateway/gateway/pkg/fs"
 	"code.waarp.fr/apps/gateway/gateway/pkg/model"
 	"code.waarp.fr/apps/gateway/gateway/pkg/model/types"
 	"code.waarp.fr/apps/gateway/gateway/pkg/tasks"
@@ -59,8 +60,16 @@ func newPipeline(db *database.DB, logger *log.Logger, transCtx *model.TransferCo
 			"failed to build the file paths: %v", err)
 	}
 
+	filesys, fsErr := fs.GetFileSystem(db, &transCtx.Transfer.LocalPath)
+	if fsErr != nil {
+		return nil, types.NewTransferError(types.TeInternal,
+			"failed to instantiate filesystem: %v", fsErr)
+	}
+
+	transCtx.FS = filesys
+
 	if transCtx.Rule.IsSend {
-		transCtx.Transfer.Filesize = getFilesize(&transCtx.Transfer.LocalPath)
+		transCtx.Transfer.Filesize = getFilesize(filesys, &transCtx.Transfer.LocalPath)
 	}
 
 	if transCtx.Transfer.Status != types.StatusRunning {

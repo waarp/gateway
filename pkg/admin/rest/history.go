@@ -25,11 +25,11 @@ func FromHistory(db *database.DB, hist *model.HistoryEntry) (*api.OutHistory, er
 	}
 
 	src := path.Base(hist.RemotePath)
-	dst := pathString(&hist.LocalPath)
+	dst := hist.LocalPath.OSPath()
 
 	if hist.IsSend {
 		dst = path.Base(hist.RemotePath)
-		src = pathString(&hist.LocalPath)
+		src = hist.LocalPath.OSPath()
 	}
 
 	info, err := hist.GetTransferInfo(db)
@@ -45,7 +45,7 @@ func FromHistory(db *database.DB, hist *model.HistoryEntry) (*api.OutHistory, er
 		Requester:      hist.Account,
 		Requested:      hist.Agent,
 		Protocol:       hist.Protocol,
-		LocalFilepath:  pathString(&hist.LocalPath),
+		LocalFilepath:  hist.LocalPath.OSPath(),
 		RemoteFilepath: hist.RemotePath,
 		Filesize:       hist.Filesize,
 		Rule:           hist.Rule,

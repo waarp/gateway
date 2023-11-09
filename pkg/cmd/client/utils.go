@@ -60,14 +60,24 @@ func displayResponseMessage(resp *http.Response) error {
 }
 
 func isNotUpdate(obj interface{}) bool {
-	val := reflect.ValueOf(obj).Elem()
-	for i := 0; i < val.NumField(); i++ {
-		if !val.Field(i).IsZero() {
-			return false
-		}
-	}
+	value := reflect.ValueOf(obj)
 
-	return true
+	switch value.Kind() {
+	case reflect.Pointer:
+		return isNotUpdate(value.Elem().Interface())
+	case reflect.Map:
+		return value.Len() == 0
+	case reflect.Struct:
+		for i := 0; i < value.NumField(); i++ {
+			if !value.Field(i).IsZero() {
+				return false
+			}
+		}
+
+		return true
+	default:
+		panic("JSON objects must be either a struct or a map (or a pointer to either)")
+	}
 }
 
 func getPermTarget(c rune, perm *api.Perms) *string {
@@ -148,8 +158,8 @@ type ListOptions struct {
 func agentListURL(path string, s *ListOptions, sort string, protos []string) {
 	addr.Path = path
 	query := url.Values{}
-	query.Set("limit", fmt.Sprint(s.Limit))
-	query.Set("offset", fmt.Sprint(s.Offset))
+	query.Set("limit", utils.FormatInt(s.Limit))
+	query.Set("offset", utils.FormatInt(s.Offset))
 	query.Set("sort", sort)
 
 	for _, proto := range protos {
@@ -161,8 +171,8 @@ func agentListURL(path string, s *ListOptions, sort string, protos []string) {
 
 func listURL(s *ListOptions, sort string) {
 	query := url.Values{}
-	query.Set("limit", fmt.Sprint(s.Limit))
-	query.Set("offset", fmt.Sprint(s.Offset))
+	query.Set("limit", utils.FormatInt(s.Limit))
+	query.Set("offset", utils.FormatInt(s.Offset))
 	query.Set("sort", sort)
 	addr.RawQuery = query.Encode()
 }
@@ -185,4 +195,12 @@ func stringMapToAnyMap(input map[string]string) (map[string]any, error) {
 	}
 
 	return output, nil
+}
+
+func addIfNotZero(m map[string]any, key string, val any) {
+	if reflect.ValueOf(val).IsZero() {
+		return
+	}
+
+	m[key] = val
 }

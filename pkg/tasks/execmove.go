@@ -9,9 +9,9 @@ import (
 	"code.waarp.fr/lib/log"
 
 	"code.waarp.fr/apps/gateway/gateway/pkg/database"
+	"code.waarp.fr/apps/gateway/gateway/pkg/fs"
 	"code.waarp.fr/apps/gateway/gateway/pkg/model"
 	"code.waarp.fr/apps/gateway/gateway/pkg/model/types"
-	"code.waarp.fr/apps/gateway/gateway/pkg/pipeline/fs"
 )
 
 // execMoveTask is a task which executes an external program which moves the
@@ -34,7 +34,7 @@ func (e *execMoveTask) Validate(params map[string]string) error {
 
 // Run executes the task by executing an external program with the given parameters.
 func (e *execMoveTask) Run(parent context.Context, params map[string]string,
-	_ *database.DB, logger *log.Logger, transCtx *model.TransferContext,
+	db *database.DB, logger *log.Logger, transCtx *model.TransferContext,
 ) error {
 	output, cmdErr := runExec(parent, params)
 	if cmdErr != nil {
@@ -54,10 +54,16 @@ func (e *execMoveTask) Run(parent context.Context, params map[string]string,
 		return fmt.Errorf("failed to parse the new file path %q: %w", newPath, err)
 	}
 
-	if _, err := fs.Stat(newURL); err != nil {
+	newFS, fsErr := fs.GetFileSystem(db, newURL)
+	if fsErr != nil {
+		return fmt.Errorf("failed to instantiate filesystem for new file %q: %w", newPath, fsErr)
+	}
+
+	if _, err := fs.Stat(newFS, newURL); err != nil {
 		return fmt.Errorf("could not find moved file %q: %w", newPath, err)
 	}
 
+	transCtx.FS = newFS
 	transCtx.Transfer.LocalPath = *newURL
 	transCtx.Transfer.RemotePath = path.Join(
 		path.Dir(transCtx.Transfer.RemotePath), path.Base(newURL.Path))

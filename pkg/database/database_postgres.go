@@ -14,9 +14,9 @@ func init() {
 	supportedRBMS[PostgreSQL] = postgresinfo
 }
 
-func postgresinfo() *dbInfo {
-	return &dbInfo{
-		driver: migrations.PostgresDriver,
-		dsn:    migrations.PostgresDSN(),
+func postgresinfo() *DBInfo {
+	return &DBInfo{
+		Driver: migrations.PostgresDriver,
+		DSN:    migrations.PostgresDSN(),
 	}
 }

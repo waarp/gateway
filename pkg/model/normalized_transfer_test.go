@@ -51,7 +51,7 @@ func TestNormalizedTransferCreateView(t *testing.T) {
 			Agent:            "server",
 			Protocol:         testProtocol,
 			DestFilename:     "file3",
-			LocalPath:        *mkURL("file:/local/file3"),
+			LocalPath:        mkURL("file:/local/file3"),
 			Filesize:         1234,
 			Start:            time.Date(2021, 1, 1, 1, 0, 0, 0, time.UTC),
 			Stop:             time.Date(2021, 1, 1, 2, 0, 0, 0, time.UTC),

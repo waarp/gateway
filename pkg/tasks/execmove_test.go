@@ -2,14 +2,16 @@ package tasks
 
 import (
 	"context"
+	"net/url"
 	"os"
+	"path"
 	"path/filepath"
 	"testing"
 
 	. "github.com/smartystreets/goconvey/convey"
 
+	"code.waarp.fr/apps/gateway/gateway/pkg/fs/fstest"
 	"code.waarp.fr/apps/gateway/gateway/pkg/model"
-	"code.waarp.fr/apps/gateway/gateway/pkg/pipeline/fs/fstest"
 	"code.waarp.fr/apps/gateway/gateway/pkg/tk/utils/testhelpers"
 )
 
@@ -85,7 +87,7 @@ func TestExecMoveValidate(t *testing.T) {
 func TestExecMoveRun(t *testing.T) {
 	Convey("Given an 'EXECMOVE' task", t, func(c C) {
 		logger := testhelpers.TestLogger(c, "task_execmove")
-		fstest.InitMemFS(c)
+		testFS := fstest.InitMemFS(c)
 		root := testhelpers.TempDir(c, "task_execmove")
 		scriptPath := filepath.Join(root, execMoveScriptFile)
 
@@ -93,6 +95,7 @@ func TestExecMoveRun(t *testing.T) {
 		transCtx := &model.TransferContext{
 			Rule:     &model.Rule{IsSend: false},
 			Transfer: &model.Transfer{},
+			FS:       testFS,
 		}
 
 		srcFile := filepath.Join(root, "test.src")
@@ -116,7 +119,12 @@ func TestExecMoveRun(t *testing.T) {
 					So(err, ShouldBeNil)
 
 					Convey("Then the transfer filepath should have changed", func() {
-						dstURL := makeURL(dstFile)
+						dstURL := url.URL{
+							Scheme:   "file",
+							OmitHost: true,
+							Path:     path.Join("/", filepath.ToSlash(dstFile)),
+						}
+
 						So(transCtx.Transfer.LocalPath.String(), ShouldEqual,
 							dstURL.String())
 					})

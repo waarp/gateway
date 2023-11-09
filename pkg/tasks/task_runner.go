@@ -12,9 +12,9 @@ import (
 	"code.waarp.fr/lib/log"
 
 	"code.waarp.fr/apps/gateway/gateway/pkg/database"
+	"code.waarp.fr/apps/gateway/gateway/pkg/fs"
 	"code.waarp.fr/apps/gateway/gateway/pkg/model"
 	"code.waarp.fr/apps/gateway/gateway/pkg/model/types"
-	"code.waarp.fr/apps/gateway/gateway/pkg/pipeline/fs"
 )
 
 // Runner provides a way to execute tasks given a transfer context (rule, transfer).
@@ -215,7 +215,7 @@ func (r *Runner) getFilesize() int64 {
 		return -1
 	}
 
-	info, err := fs.Stat(&r.transCtx.Transfer.LocalPath)
+	info, err := fs.Stat(r.transCtx.FS, &r.transCtx.Transfer.LocalPath)
 	if err != nil {
 		r.logger.Warning("Failed to retrieve file size: %s", err)
 

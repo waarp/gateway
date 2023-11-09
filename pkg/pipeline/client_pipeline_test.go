@@ -7,9 +7,9 @@ import (
 	. "github.com/smartystreets/goconvey/convey"
 
 	"code.waarp.fr/apps/gateway/gateway/pkg/conf"
+	"code.waarp.fr/apps/gateway/gateway/pkg/fs"
 	"code.waarp.fr/apps/gateway/gateway/pkg/model"
 	"code.waarp.fr/apps/gateway/gateway/pkg/model/types"
-	"code.waarp.fr/apps/gateway/gateway/pkg/pipeline/fs"
 	"code.waarp.fr/apps/gateway/gateway/pkg/tk/utils"
 )
 
@@ -23,7 +23,7 @@ func TestClientPipelineRun(t *testing.T) {
 			filename := "client_pipeline_push"
 			filePath := mkURL(conf.GlobalConfig.Paths.GatewayHome,
 				ctx.send.LocalDir, filename)
-			So(fs.WriteFullFile(filePath, content), ShouldBeNil)
+			So(fs.WriteFullFile(ctx.fs, filePath, content), ShouldBeNil)
 
 			trans := &model.Transfer{
 				RuleID:          ctx.send.ID,

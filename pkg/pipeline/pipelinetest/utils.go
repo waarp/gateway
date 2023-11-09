@@ -3,7 +3,6 @@ package pipelinetest
 import (
 	"crypto/rand"
 	"fmt"
-	"path"
 
 	"code.waarp.fr/lib/log"
 	"github.com/smartystreets/goconvey/convey"
@@ -11,12 +10,12 @@ import (
 
 	"code.waarp.fr/apps/gateway/gateway/pkg/conf"
 	"code.waarp.fr/apps/gateway/gateway/pkg/database"
+	"code.waarp.fr/apps/gateway/gateway/pkg/fs"
+	"code.waarp.fr/apps/gateway/gateway/pkg/fs/fstest"
 	"code.waarp.fr/apps/gateway/gateway/pkg/gatewayd/service/proto"
 	"code.waarp.fr/apps/gateway/gateway/pkg/model"
 	"code.waarp.fr/apps/gateway/gateway/pkg/model/types"
 	"code.waarp.fr/apps/gateway/gateway/pkg/pipeline"
-	"code.waarp.fr/apps/gateway/gateway/pkg/pipeline/fs"
-	"code.waarp.fr/apps/gateway/gateway/pkg/pipeline/fs/fstest"
 	"code.waarp.fr/apps/gateway/gateway/pkg/tasks/taskstest"
 )
 
@@ -41,6 +40,7 @@ const TestFileSize int64 = 1000000 // 1MB
 
 type testData struct {
 	DB    *database.DB
+	FS    fs.FS
 	Paths *conf.PathsConfig
 }
 
@@ -51,35 +51,33 @@ func hash(pwd string) string {
 	return string(h)
 }
 
-func mkURL(elem ...string) *types.URL {
-	full := path.Join(elem...)
-
-	url, err := types.ParseURL(full)
+func mkURL(base string, elem ...string) *types.URL {
+	url, err := types.ParseURL(base)
 	convey.So(err, convey.ShouldBeNil)
 
-	return url
+	return url.JoinPath(elem...)
 }
 
 // AddSourceFile creates a file under the given directory with the given name,
 // fills it with random data, and then returns said data.
-func AddSourceFile(c convey.C, file *types.URL) []byte {
-	c.So(fs.MkdirAll(file.Dir()), convey.ShouldBeNil)
+func AddSourceFile(c convey.C, filesys fs.FS, file *types.URL) []byte {
+	c.So(fs.MkdirAll(filesys, file.Dir()), convey.ShouldBeNil)
 
 	cont := make([]byte, TestFileSize)
 
 	_, err := rand.Read(cont)
 	c.So(err, convey.ShouldBeNil)
 
-	c.So(fs.WriteFullFile(file, cont), convey.ShouldBeNil)
+	c.So(fs.WriteFullFile(filesys, file, cont), convey.ShouldBeNil)
 
 	return cont
 }
 
 func initTestData(c convey.C) *testData {
 	db := database.TestDatabase(c)
-	fstest.InitMemFS(c)
+	testFS := fstest.InitMemFS(c)
 
-	home := "mem:/gw_home"
+	home := "memory:/gw_home"
 	homePath := mkURL(home)
 
 	paths := &conf.PathsConfig{
@@ -89,10 +87,10 @@ func initTestData(c convey.C) *testData {
 		DefaultTmpDir: "tmp",
 	}
 
-	c.So(fs.MkdirAll(homePath), convey.ShouldBeNil)
-	c.So(fs.MkdirAll(homePath.JoinPath(paths.DefaultInDir)), convey.ShouldBeNil)
-	c.So(fs.MkdirAll(homePath.JoinPath(paths.DefaultOutDir)), convey.ShouldBeNil)
-	c.So(fs.MkdirAll(homePath.JoinPath(paths.DefaultTmpDir)), convey.ShouldBeNil)
+	c.So(fs.MkdirAll(testFS, homePath), convey.ShouldBeNil)
+	c.So(fs.MkdirAll(testFS, homePath.JoinPath(paths.DefaultInDir)), convey.ShouldBeNil)
+	c.So(fs.MkdirAll(testFS, homePath.JoinPath(paths.DefaultOutDir)), convey.ShouldBeNil)
+	c.So(fs.MkdirAll(testFS, homePath.JoinPath(paths.DefaultTmpDir)), convey.ShouldBeNil)
 
 	conf.GlobalConfig.Paths = *paths
 
@@ -100,6 +98,7 @@ func initTestData(c convey.C) *testData {
 
 	return &testData{
 		DB:    db,
+		FS:    testFS,
 		Paths: paths,
 	}
 }

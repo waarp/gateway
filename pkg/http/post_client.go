@@ -10,10 +10,10 @@ import (
 	"path"
 	"time"
 
+	"code.waarp.fr/apps/gateway/gateway/pkg/fs"
 	"code.waarp.fr/apps/gateway/gateway/pkg/http/httpconst"
 	"code.waarp.fr/apps/gateway/gateway/pkg/model/types"
 	"code.waarp.fr/apps/gateway/gateway/pkg/pipeline"
-	"code.waarp.fr/apps/gateway/gateway/pkg/pipeline/fs"
 	"code.waarp.fr/apps/gateway/gateway/pkg/tk/utils"
 )
 
@@ -122,7 +122,7 @@ func (p *postClient) setRequestHeaders(req *http.Request) *types.TransferError {
 	req.Trailer.Set(httpconst.ErrorCode, "")
 	req.Trailer.Set(httpconst.ErrorMessage, "")
 
-	fileInfo, err := fs.Stat(&p.pip.TransCtx.Transfer.LocalPath)
+	fileInfo, err := fs.Stat(p.pip.TransCtx.FS, &p.pip.TransCtx.Transfer.LocalPath)
 	if err != nil {
 		p.pip.Logger.Error("Failed to retrieve local file size: %s", err)
 

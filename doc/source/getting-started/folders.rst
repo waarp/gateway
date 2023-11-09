@@ -56,6 +56,11 @@ de réception du serveur par son dossier d'envoi.
 Les transferts client fonctionne également de façon similaire, mais sans les
 dossiers spécifiques au serveur.
 
+À noter qu'il est également possible de remplacer les chemins par des URLs
+d'instances cloud. Cela permet de stocker les fichiers sur une machine différente
+de celle où est installée la gateway. Pour plus d'information sur ces URLs,
+voir la `section ci-dessous <#instances-cloud>`_.
+
 =======================
 Explications détaillées
 =======================
@@ -119,3 +124,56 @@ si la *gateway* agit comme client du transfert, ce chemin est alors relatif à
 la racine. En revanche, si la *gateway* est serveur du transfert, alors tout chemin
 relatif est considéré comme relatif à la racine du :term:`serveur local<server>`,
 s'il en a une, ou bien à la racine de la *gateway* s'il n'en a pas.
+
+---------------
+Instances cloud
+---------------
+
+Au lieu de stocker les fichiers de transfert sur le disque local de la machine
+sur laquelle est installée la gateway, il est possible, à la place, de les
+stocker sur une machine distante (en générale, une instance cloud).
+
+Pour cela, l'instance cloud doit préalablement avoir été renseignée dans la
+gateway (voir :ref:`la commande de gestion des instances clouds<reference-cli-cloud>`
+ou :ref:`le handler REST de gestion des instances cloud<reference-rest-cloud>`).
+Une fois l'instance cloud définie, il est possible de la référencer dans les
+divers chemin décrits ci-dessus.
+
+Ainsi, il est donc possible de définir une règle ayant comme dossier "local"
+un dossier se trouvant sur une instance cloud. De même, il est possible de
+définir un serveur ayant pour racine une instance cloud.
+
+Il est à noter cependant que, étant donné que les certains types d'instance
+cloud ne supportent pas toutes les actions requises par la gateway, certains
+type d'instances cloud ne peuvent pas être utilisé dans certains contexts. Voir
+la section :ref:`cloud <reference-cloud>` pour avoir plus de détails.
+
+Pour référencer une instance cloud, la syntaxe a utilisé est similaire à un URL,
+avec les spécificités suivantes :
+
+- D'abord, le schéma (*scheme*) de l'URL renseigne quel est le type de l'instance
+  cloud (par exemple "s3", "azure"...). Voir la
+- Ensuite, l'hôte (*host*) indique le nom de l'instance cloud en question. Ici,
+  le "nom" fait référence au nom qui a été donné à l'instance cloud lors de son
+  insertion dans la gateway (et non à un quelconque autre nom utilisé hors de
+  la gateway).
+- Enfin, le chemin (*path*) indique le chemin dans l'instance cloud.
+
+.. note:: Il est à noter que, étant donné que les instances cloud agissent
+   comme alternatives au disque de stockage local, l'envoi ou la réception d'un
+   fichier sur/depuis une instance cloud **n'est pas considéré comme un transfert**;
+   de la même manière que l'écriture ou la lecture d'un fichier sur le disque
+   local n'est pas considérée comme un transfert.
+
+**Exemples**
+
+Par exemple, si je souhaite accéder au fichier "baz" qui se trouve dans le
+dossier "foo/bar" de l'instance cloud S3 nommée "toto", l'URL à utiliser sera
+donc la suivante : ::
+
+   s3://toto/foo/bar/baz
+
+Si je souhaite accéder au dossier "gw/out" de l'instance cloud Azure nommée
+"titi", l'URL à utiliser sera la suivante : ::
+
+   azure://titi/gw/out

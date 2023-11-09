@@ -3,8 +3,8 @@ package pipeline
 import (
 	"errors"
 
+	"code.waarp.fr/apps/gateway/gateway/pkg/fs"
 	"code.waarp.fr/apps/gateway/gateway/pkg/model/types"
-	"code.waarp.fr/apps/gateway/gateway/pkg/pipeline/fs"
 )
 
 // fileErrToTransferErr takes an error returned by a file operation function

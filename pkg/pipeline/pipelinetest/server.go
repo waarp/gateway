@@ -10,10 +10,10 @@ import (
 
 	"code.waarp.fr/apps/gateway/gateway/pkg/conf"
 	"code.waarp.fr/apps/gateway/gateway/pkg/database"
+	"code.waarp.fr/apps/gateway/gateway/pkg/fs"
 	"code.waarp.fr/apps/gateway/gateway/pkg/gatewayd/service/proto"
 	"code.waarp.fr/apps/gateway/gateway/pkg/model"
 	"code.waarp.fr/apps/gateway/gateway/pkg/model/config"
-	"code.waarp.fr/apps/gateway/gateway/pkg/pipeline/fs"
 	"code.waarp.fr/apps/gateway/gateway/pkg/tk/utils"
 	"code.waarp.fr/apps/gateway/gateway/pkg/tk/utils/testhelpers"
 )
@@ -118,7 +118,7 @@ func makeServerConf(c convey.C, data *testData, port uint16, protocol string,
 
 	rootDir := protocol + "_server_root"
 	rootPath := mkURL(data.Paths.GatewayHome, rootDir)
-	c.So(fs.MkdirAll(rootPath), convey.ShouldBeNil)
+	c.So(fs.MkdirAll(data.FS, rootPath), convey.ShouldBeNil)
 
 	server := &model.LocalAgent{
 		Name:          "server",
@@ -132,9 +132,9 @@ func makeServerConf(c convey.C, data *testData, port uint16, protocol string,
 	}
 
 	c.So(data.DB.Insert(server).Run(), convey.ShouldBeNil)
-	c.So(fs.MkdirAll(rootPath.JoinPath(server.ReceiveDir)), convey.ShouldBeNil)
-	c.So(fs.MkdirAll(rootPath.JoinPath(server.SendDir)), convey.ShouldBeNil)
-	c.So(fs.MkdirAll(rootPath.JoinPath(server.TmpReceiveDir)), convey.ShouldBeNil)
+	c.So(fs.MkdirAll(data.FS, rootPath.JoinPath(server.ReceiveDir)), convey.ShouldBeNil)
+	c.So(fs.MkdirAll(data.FS, rootPath.JoinPath(server.SendDir)), convey.ShouldBeNil)
+	c.So(fs.MkdirAll(data.FS, rootPath.JoinPath(server.TmpReceiveDir)), convey.ShouldBeNil)
 
 	pswd := TestPassword
 	if protocol == config.ProtocolR66 || protocol == config.ProtocolR66TLS {

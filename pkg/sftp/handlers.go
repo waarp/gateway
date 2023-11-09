@@ -11,15 +11,19 @@ import (
 
 	"code.waarp.fr/apps/gateway/gateway/pkg/conf"
 	"code.waarp.fr/apps/gateway/gateway/pkg/database"
+	"code.waarp.fr/apps/gateway/gateway/pkg/fs"
 	"code.waarp.fr/apps/gateway/gateway/pkg/model"
 	"code.waarp.fr/apps/gateway/gateway/pkg/model/types"
-	"code.waarp.fr/apps/gateway/gateway/pkg/pipeline/fs"
 	"code.waarp.fr/apps/gateway/gateway/pkg/sftp/internal"
 	"code.waarp.fr/apps/gateway/gateway/pkg/tk/utils"
 )
 
-func leaf(str string) utils.Leaf     { return utils.Leaf(str) }
-func branch(str string) utils.Branch { return utils.Branch(str) }
+var ErrFileSystem = errors.New("file system error")
+
+type (
+	leaf   = utils.Leaf
+	branch = utils.Branch
+)
 
 func makeFileCmder() internal.CmdFunc {
 	return func(r *sftp.Request) error {
@@ -47,10 +51,7 @@ func (l *sshListener) listAt(r *sftp.Request, locAgent *model.LocalAgent,
 	return func(fileInfos []fs.FileInfo, offset int64) (int, error) {
 		l.Logger.Debug("Received 'List' request on %s", r.Filepath)
 
-		var (
-			entries []fs.DirEntry
-			infos   []fs.FileInfo
-		)
+		var infos []fs.FileInfo
 
 		realDir, err := l.getRealPath(locAgent, acc, r.Filepath)
 		if err != nil {
@@ -58,35 +59,18 @@ func (l *sshListener) listAt(r *sftp.Request, locAgent *model.LocalAgent,
 		}
 
 		if realDir != nil {
-			entries, err = fs.ReadDir(realDir)
-			if err != nil {
-				if fs.IsNotExist(err) {
-					return 0, sftp.ErrSSHFxNoSuchFile
-				}
-
-				l.Logger.Error("Failed to list directory: %s", err)
-
-				return 0, errFileSystem
-			}
-
-			for _, entry := range entries {
-				info, err := entry.Info()
-				if err != nil {
-					l.Logger.Error("Failed to retrieve the file info: %v", err)
-
-					return 0, errFileSystem
-				}
-
-				infos = append(infos, info)
+			var listErr error
+			if infos, listErr = l.listReadDir(realDir); listErr != nil {
+				return 0, toSFTPErr(listErr)
 			}
 		} else {
-			rulesPaths, err := l.getRulesPaths(locAgent, acc, r.Filepath)
-			if err != nil {
-				return 0, toSFTPErr(err)
+			rulesPaths, rulesErr := l.getRulesPaths(locAgent, acc, r.Filepath)
+			if rulesErr != nil {
+				return 0, toSFTPErr(rulesErr)
 			}
 
-			for i := range rulesPaths {
-				infos = append(infos, &internal.DirInfo{Dir: rulesPaths[i]})
+			for _, rulePath := range rulesPaths {
+				infos = append(infos, &internal.DirInfo{Dir: rulePath})
 			}
 		}
 
@@ -117,7 +101,12 @@ func (l *sshListener) statAt(r *sftp.Request, ag *model.LocalAgent,
 		}
 
 		if realDir != nil {
-			infos, err = fs.Stat(realDir)
+			filesys, fsErr := fs.GetFileSystem(l.DB, realDir)
+			if fsErr != nil {
+				return 0, ErrFileSystem
+			}
+
+			infos, err = fs.Stat(filesys, realDir)
 			if err != nil {
 				if fs.IsNotExist(err) {
 					return 0, sftp.ErrSSHFxNoSuchFile
@@ -142,6 +131,39 @@ func (l *sshListener) statAt(r *sftp.Request, ag *model.LocalAgent,
 
 		return 1, io.EOF
 	}
+}
+
+func (l *sshListener) listReadDir(realDir *types.URL) ([]fs.FileInfo, error) {
+	var infos []fs.FileInfo
+
+	filesys, fsErr := fs.GetFileSystem(l.DB, realDir)
+	if fsErr != nil {
+		return nil, ErrFileSystem
+	}
+
+	entries, readErr := fs.ReadDir(filesys, realDir)
+	if readErr != nil {
+		if fs.IsNotExist(readErr) {
+			return nil, sftp.ErrSSHFxNoSuchFile
+		}
+
+		l.Logger.Error("Failed to list directory: %s", readErr)
+
+		return nil, errFileSystem
+	}
+
+	for _, entry := range entries {
+		info, infoErr := entry.Info()
+		if infoErr != nil {
+			l.Logger.Error("Failed to retrieve the file info: %v", infoErr)
+
+			return nil, errFileSystem
+		}
+
+		infos = append(infos, info)
+	}
+
+	return infos, nil
 }
 
 func (l *sshListener) getRealPath(ag *model.LocalAgent, acc *model.LocalAccount,

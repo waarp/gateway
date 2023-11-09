@@ -30,8 +30,8 @@ func (*copyRenameTask) Validate(args map[string]string) error {
 }
 
 // Run copies the current file to the destination.
-func (*copyRenameTask) Run(_ context.Context, args map[string]string,
-	_ *database.DB, logger *log.Logger, transCtx *model.TransferContext,
+func (*copyRenameTask) Run(_ context.Context, args map[string]string, db *database.DB,
+	logger *log.Logger, transCtx *model.TransferContext,
 ) error {
 	srcPath := &transCtx.Transfer.LocalPath
 	dst := args["path"]
@@ -41,7 +41,7 @@ func (*copyRenameTask) Run(_ context.Context, args map[string]string,
 		return fmt.Errorf("failed to parse the copy destination path %q: %w", dst, err)
 	}
 
-	if err := doCopy(srcPath, dstPath); err != nil {
+	if err := makeCopy(db, transCtx, srcPath, dstPath); err != nil {
 		return err
 	}
 

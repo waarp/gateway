@@ -18,7 +18,7 @@ func TestPathBuilder(t *testing.T) {
 	Convey("Given a Gateway configuration", t, func(c C) {
 		db := database.TestDatabase(c)
 
-		conf.GlobalConfig.Paths.GatewayHome = "mem:/path_builder"
+		conf.GlobalConfig.Paths.GatewayHome = "memory:/path_builder"
 		conf.GlobalConfig.Paths.DefaultInDir = "gwIn"
 		conf.GlobalConfig.Paths.DefaultOutDir = "gwOut"
 		conf.GlobalConfig.Paths.DefaultTmpDir = "gwTmp"

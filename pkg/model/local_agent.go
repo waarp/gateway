@@ -68,24 +68,16 @@ func (l *LocalAgent) makePaths() {
 	}
 
 	if !isEmpty(l.RootDir) {
-		l.RootDir = utils.ToStandardPath(l.RootDir)
-
 		if isEmpty(l.ReceiveDir) {
 			l.ReceiveDir = "in"
-		} else {
-			l.ReceiveDir = utils.ToStandardPath(l.ReceiveDir)
 		}
 
 		if isEmpty(l.SendDir) {
 			l.SendDir = "out"
-		} else {
-			l.SendDir = utils.ToStandardPath(l.SendDir)
 		}
 
 		if isEmpty(l.TmpReceiveDir) {
 			l.TmpReceiveDir = "tmp"
-		} else {
-			l.TmpReceiveDir = utils.ToStandardPath(l.TmpReceiveDir)
 		}
 	}
 }
@@ -146,6 +138,7 @@ func (l *LocalAgent) BeforeDelete(db database.Access) database.Error {
 		FROM local_accounts WHERE local_agent_id=?)`, l.ID).Run(); err != nil {
 		return err
 	} else if n > 0 {
+		//nolint:goconst //too specific
 		return database.NewValidationError("this server is currently being used " +
 			"in one or more running transfers and thus cannot be deleted, cancel " +
 			"these transfers or wait for them to finish")

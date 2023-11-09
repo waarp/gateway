@@ -70,9 +70,10 @@ func (l *LocalAccount) BeforeDelete(db database.Access) database.Error {
 	if n, err := db.Count(&Transfer{}).Where("local_account_id=?", l.ID).Run(); err != nil {
 		return err
 	} else if n > 0 {
-		return database.NewValidationError("this account is currently being used " +
-			"in one or more running transfers and thus cannot be deleted, cancel " +
-			"these transfers or wait for them to finish")
+		//nolint:goconst //too specific
+		return database.NewValidationError("this account is currently being " +
+			"used in one or more running transfers and thus cannot be deleted, " +
+			"cancel these transfers or wait for them to finish")
 	}
 
 	return nil

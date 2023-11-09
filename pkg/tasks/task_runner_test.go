@@ -12,19 +12,18 @@ import (
 
 	"code.waarp.fr/apps/gateway/gateway/pkg/conf"
 	"code.waarp.fr/apps/gateway/gateway/pkg/database"
+	"code.waarp.fr/apps/gateway/gateway/pkg/fs/fstest"
 	"code.waarp.fr/apps/gateway/gateway/pkg/model"
 	"code.waarp.fr/apps/gateway/gateway/pkg/model/types"
-	"code.waarp.fr/apps/gateway/gateway/pkg/pipeline/fs/fstest"
 	"code.waarp.fr/apps/gateway/gateway/pkg/tk/utils"
 	"code.waarp.fr/apps/gateway/gateway/pkg/tk/utils/testhelpers"
 )
 
 func TestSetup(t *testing.T) {
 	Convey("Given a Task with some replacement variables", t, func(c C) {
-		fstest.InitMemFS(c)
-
-		root := "mem:/task_setup"
-		rootAlt := "mem:/task_setup_alt"
+		testFS := fstest.InitMemFS(c)
+		root := "memory:/task_setup"
+		rootAlt := "memory:/task_setup_alt"
 
 		task := &model.Task{
 			Type: "DUMMY",
@@ -56,7 +55,7 @@ func TestSetup(t *testing.T) {
 			}
 			So(db.Insert(account).Run(), ShouldBeNil)
 
-			transCtx := &model.TransferContext{}
+			transCtx := &model.TransferContext{FS: testFS}
 			transCtx.Paths = &conf.PathsConfig{
 				GatewayHome:   root,
 				DefaultInDir:  "in_dir",
@@ -72,7 +71,11 @@ func TestSetup(t *testing.T) {
 				TmpLocalRcvDir: "local/tmp",
 			}
 
-			filepath := makeURL(path.Join(root, transCtx.Rule.LocalDir, "file.test"))
+			filepath := types.URL{
+				Scheme:   fstest.MemScheme,
+				OmitHost: true,
+				Path:     path.Join(root, transCtx.Rule.LocalDir, "file.test"),
+			}
 
 			transCtx.Transfer = &model.Transfer{
 				ID:              1234,

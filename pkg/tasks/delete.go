@@ -7,8 +7,8 @@ import (
 	"code.waarp.fr/lib/log"
 
 	"code.waarp.fr/apps/gateway/gateway/pkg/database"
+	"code.waarp.fr/apps/gateway/gateway/pkg/fs"
 	"code.waarp.fr/apps/gateway/gateway/pkg/model"
-	"code.waarp.fr/apps/gateway/gateway/pkg/pipeline/fs"
 )
 
 // deleteTask is a task which delete the current file from the system.
@@ -30,7 +30,7 @@ func (*deleteTask) Run(_ context.Context, _ map[string]string, _ *database.DB,
 ) error {
 	filepath := &transCtx.Transfer.LocalPath
 
-	if err := fs.Remove(filepath); err != nil {
+	if err := fs.Remove(transCtx.FS, filepath); err != nil {
 		return fmt.Errorf("failed to delete file: %w", err)
 	}
 

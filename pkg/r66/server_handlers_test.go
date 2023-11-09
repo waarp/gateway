@@ -10,12 +10,12 @@ import (
 
 	"code.waarp.fr/apps/gateway/gateway/pkg/conf"
 	"code.waarp.fr/apps/gateway/gateway/pkg/database"
+	"code.waarp.fr/apps/gateway/gateway/pkg/fs"
+	"code.waarp.fr/apps/gateway/gateway/pkg/fs/fstest"
 	"code.waarp.fr/apps/gateway/gateway/pkg/gatewayd/service"
 	"code.waarp.fr/apps/gateway/gateway/pkg/model"
 	"code.waarp.fr/apps/gateway/gateway/pkg/model/types"
 	"code.waarp.fr/apps/gateway/gateway/pkg/pipeline"
-	"code.waarp.fr/apps/gateway/gateway/pkg/pipeline/fs"
-	"code.waarp.fr/apps/gateway/gateway/pkg/pipeline/fs/fstest"
 	"code.waarp.fr/apps/gateway/gateway/pkg/tk/utils"
 	"code.waarp.fr/apps/gateway/gateway/pkg/tk/utils/testhelpers"
 )
@@ -106,7 +106,7 @@ func TestValidRequest(t *testing.T) {
 
 		logger := testhelpers.TestLogger(c, "test_valid_request")
 		db := database.TestDatabase(c)
-		root := "mem:/r66_valid_request"
+		root := "memory:/r66_valid_request"
 
 		rule := &model.Rule{
 			Name:           "rule",
@@ -232,10 +232,10 @@ func TestValidRequest(t *testing.T) {
 
 func TestUpdateTransferInfo(t *testing.T) {
 	Convey("Given an R66 transfer handler", t, func(c C) {
-		fstest.InitMemFS(c)
+		testFS := fstest.InitMemFS(c)
 		logger := testhelpers.TestLogger(c, "test_valid_request")
 		db := database.TestDatabase(c)
-		root := "mem:/r66_update_info"
+		root := "memory:/r66_update_info"
 		conf.GlobalConfig.Paths = conf.PathsConfig{
 			GatewayHome: root,
 		}
@@ -319,8 +319,9 @@ func TestUpdateTransferInfo(t *testing.T) {
 			So(db.Insert(trans).Run(), ShouldBeNil)
 
 			dir := mkURL(root, server.RootDir, send.LocalDir)
-			So(fs.MkdirAll(dir), ShouldBeNil)
-			So(fs.WriteFullFile(dir.JoinPath("new.file"), []byte("file content")), ShouldBeNil)
+			So(fs.MkdirAll(testFS, dir), ShouldBeNil)
+			So(fs.WriteFullFile(testFS, dir.JoinPath("new.file"),
+				[]byte("file content")), ShouldBeNil)
 
 			pip, err := pipeline.NewServerPipeline(db, trans)
 			So(err, ShouldBeNil)

@@ -12,12 +12,12 @@ import (
 	"github.com/smartystreets/goconvey/convey"
 
 	"code.waarp.fr/apps/gateway/gateway/pkg/conf"
+	"code.waarp.fr/apps/gateway/gateway/pkg/fs"
 	"code.waarp.fr/apps/gateway/gateway/pkg/gatewayd/service/proto"
 	"code.waarp.fr/apps/gateway/gateway/pkg/model"
 	"code.waarp.fr/apps/gateway/gateway/pkg/model/config"
 	"code.waarp.fr/apps/gateway/gateway/pkg/model/types"
 	"code.waarp.fr/apps/gateway/gateway/pkg/pipeline"
-	"code.waarp.fr/apps/gateway/gateway/pkg/pipeline/fs"
 	"code.waarp.fr/apps/gateway/gateway/pkg/tasks/taskstest"
 	"code.waarp.fr/apps/gateway/gateway/pkg/tk/utils"
 	"code.waarp.fr/apps/gateway/gateway/pkg/tk/utils/testhelpers"
@@ -98,7 +98,7 @@ func InitSelfPullTransfer(c convey.C, protocol string, constr serviceConstructor
 func (s *SelfContext) addPushTransfer(c convey.C) {
 	filePath := mkURL(s.Paths.GatewayHome, s.ClientRule.LocalDir,
 		"sub_dir", "self_transfer_push")
-	s.fileContent = AddSourceFile(c, filePath)
+	s.fileContent = AddSourceFile(c, s.FS, filePath)
 
 	trans := &model.Transfer{
 		RuleID:          s.ClientRule.ID,
@@ -115,7 +115,7 @@ func (s *SelfContext) addPushTransfer(c convey.C) {
 func (s *SelfContext) addPullTransfer(c convey.C) {
 	filePath := mkURL(s.Paths.GatewayHome, s.Server.RootDir,
 		s.ServerRule.LocalDir, s.getClientRemoteDir(), "sub_dir", "self_transfer_pull")
-	s.fileContent = AddSourceFile(c, filePath)
+	s.fileContent = AddSourceFile(c, s.FS, filePath)
 
 	trans := &model.Transfer{
 		RuleID:          s.ClientRule.ID,
@@ -337,7 +337,7 @@ func (s *SelfContext) CheckDestFile(c convey.C) {
 			fullPath = mkURL(fullPathStr)
 		}
 
-		content, err := fs.ReadFile(fullPath)
+		content, err := fs.ReadFile(s.FS, fullPath)
 
 		c.So(err, convey.ShouldBeNil)
 		c.So(len(content), convey.ShouldEqual, TestFileSize)

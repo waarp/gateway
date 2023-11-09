@@ -6,9 +6,9 @@ import (
 
 	"code.waarp.fr/apps/gateway/gateway/pkg/conf"
 	"code.waarp.fr/apps/gateway/gateway/pkg/database"
+	"code.waarp.fr/apps/gateway/gateway/pkg/fs/filesystems"
 	"code.waarp.fr/apps/gateway/gateway/pkg/model/config"
 	"code.waarp.fr/apps/gateway/gateway/pkg/model/types"
-	"code.waarp.fr/apps/gateway/gateway/pkg/pipeline/fs"
 	"code.waarp.fr/apps/gateway/gateway/pkg/tk/utils"
 )
 
@@ -96,7 +96,7 @@ func (h *HistoryEntry) BeforeWrite(db database.ReadAccess) database.Error {
 		return database.NewValidationError("the remote filepath cannot be empty")
 	}
 
-	if h.LocalPath.Path != "" && !fs.DoesFileSystemExist(h.LocalPath.Scheme) {
+	if h.LocalPath.Path != "" && !filesystems.DoesFileSystemExist(h.LocalPath.Scheme) {
 		return database.NewValidationError("unknown local path scheme %q", h.LocalPath.Scheme)
 	}
 
@@ -128,9 +128,10 @@ func (h *HistoryEntry) BeforeWrite(db database.ReadAccess) database.Error {
 		h.Agent, h.Account).Run(); err != nil {
 		return err
 	} else if n != 0 {
-		return database.NewValidationError("a history entry from the same requester "+
-			"%q to the same agent %q with the same remote ID %q already exist",
-			h.Account, h.Agent, h.RemoteTransferID)
+		//nolint:goconst //too specific
+		return database.NewValidationError("a history entry from the same "+
+			"requester %q to the same agent %q with the same remote ID %q "+
+			"already exist", h.Account, h.Agent, h.RemoteTransferID)
 	}
 
 	return nil

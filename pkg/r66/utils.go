@@ -1,6 +1,6 @@
 package r66
 
-import "code.waarp.fr/apps/gateway/gateway/pkg/pipeline/fs"
+import "code.waarp.fr/apps/gateway/gateway/pkg/fs"
 
 func fileMode(file fs.FileInfo) string {
 	fileType := "File"

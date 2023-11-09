@@ -59,6 +59,8 @@ func (s *Standalone) Transaction(fun TransactionFunc) Error {
 		close(done)
 	}()
 
+	stack := debug.Stack()
+
 	go func() {
 		timer := time.NewTimer(warnDuration)
 		defer timer.Stop()
@@ -66,7 +68,7 @@ func (s *Standalone) Transaction(fun TransactionFunc) Error {
 		select {
 		case <-timer.C:
 			s.logger.Warning("transaction is taking an unusually long time, "+
-				"printing stack for debugging purposes:\n%s", debug.Stack())
+				"printing stack for debugging purposes:\n%s", stack)
 		case <-done:
 		}
 	}()

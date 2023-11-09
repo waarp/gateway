@@ -80,7 +80,7 @@ func (a *authHandler) certAuth(auth *r66.Authent) (*model.LocalAccount, *r66.Err
 		return nil, internal.NewR66Error(r66.Internal, "database error")
 	}
 
-	if err := cryptos.CheckClientAuthent(acc.Login, auth.TLS.PeerCertificates); err != nil {
+	if err := model.CheckClientAuthent(&cryptos, acc.Login, auth.TLS.PeerCertificates); err != nil {
 		a.logger.Warning(err.Error())
 
 		return nil, &r66.Error{Code: r66.BadAuthent, Detail: err.Error()}

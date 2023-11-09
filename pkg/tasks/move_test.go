@@ -7,8 +7,9 @@ import (
 
 	. "github.com/smartystreets/goconvey/convey"
 
+	"code.waarp.fr/apps/gateway/gateway/pkg/fs"
+	"code.waarp.fr/apps/gateway/gateway/pkg/fs/fstest"
 	"code.waarp.fr/apps/gateway/gateway/pkg/model"
-	"code.waarp.fr/apps/gateway/gateway/pkg/pipeline/fs"
 	"code.waarp.fr/apps/gateway/gateway/pkg/tk/utils/testhelpers"
 )
 
@@ -49,12 +50,14 @@ func TestMoveTaskValidate(t *testing.T) {
 func TestMoveTaskRun(t *testing.T) {
 	Convey("Given a Runner for a MOVE task", t, func(c C) {
 		logger := testhelpers.TestLogger(c, "task_move")
+		testFS := fstest.InitMemFS(c)
 		task := &moveTask{}
-		srcPath := makeURL("mem:/src_dir/move.file")
+
+		srcPath := makeURL("/src_dir/move.file")
 		filename := path.Base(srcPath.Path)
 
-		So(fs.MkdirAll(srcPath.Dir()), ShouldBeNil)
-		So(fs.WriteFullFile(&srcPath, []byte("Hello World")), ShouldBeNil)
+		So(fs.MkdirAll(testFS, srcPath.Dir()), ShouldBeNil)
+		So(fs.WriteFullFile(testFS, &srcPath, []byte("Hello World")), ShouldBeNil)
 
 		transCtx := &model.TransferContext{
 			Rule: &model.Rule{
@@ -64,12 +67,13 @@ func TestMoveTaskRun(t *testing.T) {
 				LocalPath:  srcPath,
 				RemotePath: "/remote/move.file",
 			},
+			FS: testFS,
 		}
 
 		args := map[string]string{}
 
 		Convey("Given that the path is valid", func() {
-			dirPath := makeURL("mem:/dst_dir/")
+			dirPath := makeURL("/dst_dir/")
 			args["path"] = dirPath.String()
 
 			Convey("Given that the file exists", func() {
@@ -78,7 +82,7 @@ func TestMoveTaskRun(t *testing.T) {
 					So(err, ShouldBeNil)
 
 					Convey("Then the destination file should exist", func() {
-						_, err := fs.Stat(dirPath.JoinPath(filename))
+						_, err := fs.Stat(testFS, dirPath.JoinPath(filename))
 						So(err, ShouldBeNil)
 					})
 
@@ -94,7 +98,7 @@ func TestMoveTaskRun(t *testing.T) {
 			})
 
 			Convey("Given that the file does NOT exist", func() {
-				So(fs.Remove(&srcPath), ShouldBeNil)
+				So(fs.Remove(testFS, &srcPath), ShouldBeNil)
 
 				Convey("When calling the 'Run' method", func() {
 					err := task.Run(context.Background(), args, nil, logger, transCtx)

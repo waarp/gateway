@@ -14,11 +14,11 @@ import (
 
 	"code.waarp.fr/apps/gateway/gateway/pkg/conf"
 	"code.waarp.fr/apps/gateway/gateway/pkg/database"
+	"code.waarp.fr/apps/gateway/gateway/pkg/fs"
+	"code.waarp.fr/apps/gateway/gateway/pkg/fs/fstest"
 	"code.waarp.fr/apps/gateway/gateway/pkg/model"
 	"code.waarp.fr/apps/gateway/gateway/pkg/model/config"
 	"code.waarp.fr/apps/gateway/gateway/pkg/model/types"
-	"code.waarp.fr/apps/gateway/gateway/pkg/pipeline/fs"
-	"code.waarp.fr/apps/gateway/gateway/pkg/pipeline/fs/fstest"
 	"code.waarp.fr/apps/gateway/gateway/pkg/tk/utils"
 	"code.waarp.fr/apps/gateway/gateway/pkg/tk/utils/testhelpers"
 )
@@ -26,6 +26,7 @@ import (
 type testContext struct {
 	root string
 	db   *database.DB
+	fs   fs.FS
 
 	partner       *model.RemoteAgent
 	remoteAccount *model.RemoteAccount
@@ -86,9 +87,9 @@ func waitEndTransfer(pip *Pipeline) {
 
 func initTestDB(c C) *testContext {
 	db := database.TestDatabase(c)
-	fstest.InitMemFS(c)
+	testFS := fstest.InitMemFS(c)
 
-	root := "mem:/new_transfer_stream"
+	root := "memory:/new_transfer_stream"
 	rootPath := mkURL(root)
 
 	paths := conf.PathsConfig{
@@ -99,9 +100,9 @@ func initTestDB(c C) *testContext {
 	}
 	conf.GlobalConfig.Paths = paths
 
-	So(fs.MkdirAll(rootPath.JoinPath(paths.DefaultInDir)), ShouldBeNil)
-	So(fs.MkdirAll(rootPath.JoinPath(paths.DefaultOutDir)), ShouldBeNil)
-	So(fs.MkdirAll(rootPath.JoinPath(paths.DefaultTmpDir)), ShouldBeNil)
+	So(fs.MkdirAll(testFS, rootPath.JoinPath(paths.DefaultInDir)), ShouldBeNil)
+	So(fs.MkdirAll(testFS, rootPath.JoinPath(paths.DefaultOutDir)), ShouldBeNil)
+	So(fs.MkdirAll(testFS, rootPath.JoinPath(paths.DefaultTmpDir)), ShouldBeNil)
 
 	send := &model.Rule{
 		Name:      "send",
@@ -121,9 +122,9 @@ func initTestDB(c C) *testContext {
 	c.So(db.Insert(recv).Run(), ShouldBeNil)
 	c.So(db.Insert(send).Run(), ShouldBeNil)
 
-	So(fs.MkdirAll(rootPath.JoinPath(send.LocalDir)), ShouldBeNil)
-	So(fs.MkdirAll(rootPath.JoinPath(recv.LocalDir)), ShouldBeNil)
-	So(fs.MkdirAll(rootPath.JoinPath(recv.TmpLocalRcvDir)), ShouldBeNil)
+	So(fs.MkdirAll(testFS, rootPath.JoinPath(send.LocalDir)), ShouldBeNil)
+	So(fs.MkdirAll(testFS, rootPath.JoinPath(recv.LocalDir)), ShouldBeNil)
+	So(fs.MkdirAll(testFS, rootPath.JoinPath(recv.TmpLocalRcvDir)), ShouldBeNil)
 
 	server := &model.LocalAgent{
 		Name:        "server",
@@ -158,6 +159,7 @@ func initTestDB(c C) *testContext {
 	return &testContext{
 		root:          root,
 		db:            db,
+		fs:            testFS,
 		partner:       partner,
 		remoteAccount: remAccount,
 		server:        server,
@@ -168,8 +170,8 @@ func initTestDB(c C) *testContext {
 }
 
 func mkRecvTransfer(ctx *testContext, filename string) *model.Transfer {
-	So(fs.MkdirAll(mkURL(ctx.root, ctx.send.LocalDir)), ShouldBeNil)
-	So(fs.MkdirAll(mkURL(ctx.root, ctx.send.TmpLocalRcvDir)), ShouldBeNil)
+	So(fs.MkdirAll(ctx.fs, mkURL(ctx.root, ctx.send.LocalDir)), ShouldBeNil)
+	So(fs.MkdirAll(ctx.fs, mkURL(ctx.root, ctx.send.TmpLocalRcvDir)), ShouldBeNil)
 
 	trans := &model.Transfer{
 		RemoteAccountID: utils.NewNullInt64(ctx.remoteAccount.ID),
@@ -184,8 +186,8 @@ func mkRecvTransfer(ctx *testContext, filename string) *model.Transfer {
 const testTransferFileContent = "new pipeline content"
 
 func mkSendTransfer(ctx *testContext, filename string) *model.Transfer {
-	So(fs.MkdirAll(mkURL(ctx.root, ctx.send.LocalDir)), ShouldBeNil)
-	So(fs.MkdirAll(mkURL(ctx.root, ctx.send.TmpLocalRcvDir)), ShouldBeNil)
+	So(fs.MkdirAll(ctx.fs, mkURL(ctx.root, ctx.send.LocalDir)), ShouldBeNil)
+	So(fs.MkdirAll(ctx.fs, mkURL(ctx.root, ctx.send.TmpLocalRcvDir)), ShouldBeNil)
 
 	trans := &model.Transfer{
 		RemoteAccountID: utils.NewNullInt64(ctx.remoteAccount.ID),
@@ -194,7 +196,7 @@ func mkSendTransfer(ctx *testContext, filename string) *model.Transfer {
 	}
 	So(ctx.db.Insert(trans).Run(), ShouldBeNil)
 
-	So(fs.WriteFullFile(mkURL(ctx.root, ctx.send.LocalDir, filename),
+	So(fs.WriteFullFile(ctx.fs, mkURL(ctx.root, ctx.send.LocalDir, filename),
 		[]byte(testTransferFileContent)), ShouldBeNil)
 
 	return trans

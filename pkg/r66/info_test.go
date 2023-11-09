@@ -10,20 +10,20 @@ import (
 
 	"code.waarp.fr/apps/gateway/gateway/pkg/conf"
 	"code.waarp.fr/apps/gateway/gateway/pkg/database"
+	"code.waarp.fr/apps/gateway/gateway/pkg/fs"
+	"code.waarp.fr/apps/gateway/gateway/pkg/fs/fstest"
 	"code.waarp.fr/apps/gateway/gateway/pkg/model"
 	"code.waarp.fr/apps/gateway/gateway/pkg/model/config"
 	"code.waarp.fr/apps/gateway/gateway/pkg/model/types"
-	"code.waarp.fr/apps/gateway/gateway/pkg/pipeline/fs"
-	"code.waarp.fr/apps/gateway/gateway/pkg/pipeline/fs/fstest"
 	"code.waarp.fr/apps/gateway/gateway/pkg/tk/utils"
 	"code.waarp.fr/apps/gateway/gateway/pkg/tk/utils/testhelpers"
 )
 
 func TestGetFileInfo(t *testing.T) {
 	Convey("Given an R66 server", t, func(c C) {
-		fstest.InitMemFS(c)
+		testFS := fstest.InitMemFS(c)
 		logger := testhelpers.TestLogger(c, "test_r66_file_info")
-		root := "mem:/r66_get_file_info"
+		root := "memory:/r66_get_file_info"
 		rootPath := mkURL(root)
 		db := database.TestDatabase(c)
 		conf.GlobalConfig.Paths.GatewayHome = root
@@ -79,13 +79,13 @@ func TestGetFileInfo(t *testing.T) {
 			tata := fooDir.JoinPath("tata")
 			tutu := barDir.JoinPath("tutu")
 
-			So(fs.MkdirAll(subDir), ShouldBeNil)
-			So(fs.MkdirAll(fooDir), ShouldBeNil)
-			So(fs.MkdirAll(barDir), ShouldBeNil)
-			So(fs.WriteFullFile(foobar, []byte("foobar")), ShouldBeNil)
-			So(fs.WriteFullFile(toto, []byte("toto")), ShouldBeNil)
-			So(fs.WriteFullFile(tata, []byte("tata")), ShouldBeNil)
-			So(fs.WriteFullFile(tutu, []byte("tutu")), ShouldBeNil)
+			So(fs.MkdirAll(testFS, subDir), ShouldBeNil)
+			So(fs.MkdirAll(testFS, fooDir), ShouldBeNil)
+			So(fs.MkdirAll(testFS, barDir), ShouldBeNil)
+			So(fs.WriteFullFile(testFS, foobar, []byte("foobar")), ShouldBeNil)
+			So(fs.WriteFullFile(testFS, toto, []byte("toto")), ShouldBeNil)
+			So(fs.WriteFullFile(testFS, tata, []byte("tata")), ShouldBeNil)
+			So(fs.WriteFullFile(testFS, tutu, []byte("tutu")), ShouldBeNil)
 
 			Convey("When calling the GetFileInfo function", func() {
 				infos, err := handle.GetFileInfo(rule.Name, "subDir/foo*")
@@ -153,7 +153,7 @@ func TestGetTransferInfo(t *testing.T) {
 	Convey("Given an R66 server", t, func(c C) {
 		fstest.InitMemFS(c)
 		logger := testhelpers.TestLogger(c, "test_r66_transfer_info")
-		root := "mem:/r66_get_transfer_info"
+		root := "memory:/r66_get_transfer_info"
 		db := database.TestDatabase(c)
 		conf.GlobalConfig.Paths.GatewayHome = root
 

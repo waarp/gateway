@@ -6,9 +6,9 @@ import (
 
 	. "github.com/smartystreets/goconvey/convey"
 
+	"code.waarp.fr/apps/gateway/gateway/pkg/fs"
+	"code.waarp.fr/apps/gateway/gateway/pkg/fs/fstest"
 	"code.waarp.fr/apps/gateway/gateway/pkg/model"
-	"code.waarp.fr/apps/gateway/gateway/pkg/pipeline/fs"
-	"code.waarp.fr/apps/gateway/gateway/pkg/pipeline/fs/fstest"
 	"code.waarp.fr/apps/gateway/gateway/pkg/tk/utils/testhelpers"
 )
 
@@ -48,14 +48,13 @@ func TestMoveRenameTaskValidate(t *testing.T) {
 
 func TestMoveRenameTaskRun(t *testing.T) {
 	Convey("Given a Runner for a sending transfer", t, func(c C) {
-		fstest.InitMemFS(c)
-
 		logger := testhelpers.TestLogger(c, "task_moverename")
+		testFS := fstest.InitMemFS(c)
 		task := &moveRenameTask{}
-		srcPath := makeURL("mem:/src_dir/move_rename.src")
+		srcPath := makeURL("/src_dir/move_rename.src")
 
-		So(fs.MkdirAll(srcPath.Dir()), ShouldBeNil)
-		So(fs.WriteFullFile(&srcPath, []byte("Hello World")), ShouldBeNil)
+		So(fs.MkdirAll(testFS, srcPath.Dir()), ShouldBeNil)
+		So(fs.WriteFullFile(testFS, &srcPath, []byte("Hello World")), ShouldBeNil)
 
 		transCtx := &model.TransferContext{
 			Rule: &model.Rule{
@@ -65,12 +64,13 @@ func TestMoveRenameTaskRun(t *testing.T) {
 				LocalPath:  srcPath,
 				RemotePath: "/remote/move_rename.src",
 			},
+			FS: testFS,
 		}
 
 		args := map[string]string{}
 
 		Convey("Given that the path is valid", func() {
-			dstPath := makeURL("mem:/dst_dir/move_rename.dst")
+			dstPath := makeURL("/dst_dir/move_rename.dst")
 			args["path"] = dstPath.String()
 
 			Convey("Given that the file exists", func() {
@@ -82,7 +82,7 @@ func TestMoveRenameTaskRun(t *testing.T) {
 					})
 
 					Convey("Then the destination file should exist", func() {
-						_, err := fs.Stat(&dstPath)
+						_, err := fs.Stat(testFS, &dstPath)
 						So(err, ShouldBeNil)
 					})
 
@@ -97,7 +97,7 @@ func TestMoveRenameTaskRun(t *testing.T) {
 			})
 
 			Convey("Given that the file does NOT exist", func() {
-				So(fs.Remove(&srcPath), ShouldBeNil)
+				So(fs.Remove(testFS, &srcPath), ShouldBeNil)
 
 				Convey("When calling the 'Run' method", func() {
 					err := task.Run(context.Background(), args, nil, logger, transCtx)

@@ -191,6 +191,7 @@ func (r *RuleAdd) Execute([]string) error {
 	}
 
 	if r.InPath != nil {
+		//nolint:goconst //too specific
 		fmt.Fprintln(out, "[WARNING] The '-i' ('--in_path') option is deprecated. "+
 			"Use '--local-dir' and '--remote-dir' instead.")
 
@@ -198,6 +199,7 @@ func (r *RuleAdd) Execute([]string) error {
 	}
 
 	if r.OutPath != nil {
+		//nolint:goconst //too specific
 		fmt.Fprintln(out, "[WARNING] The '-o' ('--out_path') option is deprecated. "+
 			"Use '--local-dir' and '--remote-dir' instead.")
 
@@ -205,6 +207,7 @@ func (r *RuleAdd) Execute([]string) error {
 	}
 
 	if r.WorkPath != nil {
+		//nolint:goconst //too specific
 		fmt.Fprintln(out, "[WARNING] The '-w' ('--work_path') option is deprecated. "+
 			"Use '--tmp-dir' instead.")
 

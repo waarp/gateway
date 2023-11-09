@@ -13,9 +13,9 @@ import (
 
 	"code.waarp.fr/apps/gateway/gateway/pkg/conf"
 	"code.waarp.fr/apps/gateway/gateway/pkg/database"
+	"code.waarp.fr/apps/gateway/gateway/pkg/fs/fstest"
 	"code.waarp.fr/apps/gateway/gateway/pkg/model"
 	"code.waarp.fr/apps/gateway/gateway/pkg/model/types"
-	"code.waarp.fr/apps/gateway/gateway/pkg/pipeline/fs/fstest"
 	"code.waarp.fr/apps/gateway/gateway/pkg/pipeline/pipelinetest"
 	"code.waarp.fr/apps/gateway/gateway/pkg/tk/utils"
 	"code.waarp.fr/apps/gateway/gateway/pkg/tk/utils/testhelpers"
@@ -78,7 +78,7 @@ func TestServerStart(t *testing.T) {
 		logger := testhelpers.TestLogger(c, "test_sftp_server_start")
 		db := database.TestDatabase(c)
 		port := getTestPort()
-		root := "mem:/server_start_root"
+		root := "memory:/server_start_root"
 
 		agent := &model.LocalAgent{
 			Name:     "test_sftp_server",

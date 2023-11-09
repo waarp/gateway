@@ -12,8 +12,8 @@ import (
 
 	"code.waarp.fr/apps/gateway/gateway/pkg/conf"
 	"code.waarp.fr/apps/gateway/gateway/pkg/database"
+	"code.waarp.fr/apps/gateway/gateway/pkg/fs/filesystems"
 	"code.waarp.fr/apps/gateway/gateway/pkg/model/types"
-	"code.waarp.fr/apps/gateway/gateway/pkg/pipeline/fs"
 	"code.waarp.fr/apps/gateway/gateway/pkg/tk/utils"
 )
 
@@ -137,7 +137,7 @@ func (t *Transfer) checkMandatoryValues(rule *Rule) database.Error {
 		return database.NewValidationError("the local path is missing")
 	}
 
-	if t.LocalPath.Path != "" && !fs.DoesFileSystemExist(t.LocalPath.Scheme) {
+	if t.LocalPath.Path != "" && !filesystems.DoesFileSystemExist(t.LocalPath.Scheme) {
 		return database.NewValidationError("unknown local path scheme %q", t.LocalPath.Scheme)
 	}
 

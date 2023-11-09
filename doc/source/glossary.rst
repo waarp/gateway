@@ -60,6 +60,12 @@ Glossaire
       Il s'agit d'un service qui interroge la base de données à intervalles
       réguliers pour récupérer les transferts dont la date de début est arrivée.
 
+   instance cloud
+   (*cloud* ou *cloud instance*)
+      Une instance cloud est un serveur distant pouvant agir en remplacement
+      du disque local, lorsqu'un utilisateur souhaite stocker les fichiers sur
+      une machine séparée de celle sur laquelle est installée la gateway.
+
    infos de transfert
    (*transfer info*)
       Une liste de paires clé-valeur définies par l'utilisateur à la création d'un

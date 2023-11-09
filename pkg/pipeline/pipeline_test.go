@@ -9,9 +9,9 @@ import (
 	. "github.com/smartystreets/goconvey/convey"
 
 	"code.waarp.fr/apps/gateway/gateway/pkg/database"
+	"code.waarp.fr/apps/gateway/gateway/pkg/fs"
 	"code.waarp.fr/apps/gateway/gateway/pkg/model"
 	"code.waarp.fr/apps/gateway/gateway/pkg/model/types"
-	"code.waarp.fr/apps/gateway/gateway/pkg/pipeline/fs"
 	"code.waarp.fr/apps/gateway/gateway/pkg/tasks/taskstest"
 )
 
@@ -47,7 +47,7 @@ func TestNewClientPipeline(t *testing.T) {
 			})
 
 			Convey("Given that the file cannot be found", func(c C) {
-				So(fs.Remove(file), ShouldBeNil)
+				So(fs.Remove(ctx.fs, file), ShouldBeNil)
 
 				Convey("When initiating a new pipeline for this transfer", func(c C) {
 					_, err := NewClientPipeline(ctx.db, trans)
@@ -247,7 +247,7 @@ func TestPipelineStartData(t *testing.T) {
 			Convey("Then it should have opened/created the file", func(c C) {
 				file := mkURL(ctx.root, pip.TransCtx.Rule.TmpLocalRcvDir,
 					filename+".part")
-				_, err := fs.Stat(file)
+				_, err := fs.Stat(ctx.fs, file)
 				So(err, ShouldBeNil)
 			})
 
@@ -312,7 +312,7 @@ func TestPipelineEndData(t *testing.T) {
 			So(pip.EndData(), ShouldBeNil)
 
 			Convey("Then it should have closed and moved the file", func(c C) {
-				_, err := fs.Stat(mkURL(ctx.root, pip.TransCtx.Rule.
+				_, err := fs.Stat(ctx.fs, mkURL(ctx.root, pip.TransCtx.Rule.
 					LocalDir, filename))
 				So(err, ShouldBeNil)
 			})

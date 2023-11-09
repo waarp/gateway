@@ -14,11 +14,11 @@ import (
 
 	"code.waarp.fr/apps/gateway/gateway/pkg/conf"
 	"code.waarp.fr/apps/gateway/gateway/pkg/database"
+	"code.waarp.fr/apps/gateway/gateway/pkg/fs"
+	"code.waarp.fr/apps/gateway/gateway/pkg/fs/fstest"
 	"code.waarp.fr/apps/gateway/gateway/pkg/gatewayd/service"
 	"code.waarp.fr/apps/gateway/gateway/pkg/model"
 	"code.waarp.fr/apps/gateway/gateway/pkg/model/config"
-	"code.waarp.fr/apps/gateway/gateway/pkg/pipeline/fs"
-	"code.waarp.fr/apps/gateway/gateway/pkg/pipeline/fs/fstest"
 	"code.waarp.fr/apps/gateway/gateway/pkg/tk/utils"
 	"code.waarp.fr/apps/gateway/gateway/pkg/tk/utils/testhelpers"
 )
@@ -26,9 +26,8 @@ import (
 //nolint:maintidx //FIXME factorize the function if possible to improve maintainability
 func TestSFTPList(t *testing.T) {
 	Convey("Given a SFTP server", t, func(c C) {
-		fstest.InitMemFS(c)
-
-		root := "mem:/test_list_root"
+		testFS := fstest.InitMemFS(c)
+		root := "memory:/test_list_root"
 		rootPath := mkURL(root)
 		db := database.TestDatabase(c)
 		conf.GlobalConfig.Paths.GatewayHome = root
@@ -199,10 +198,12 @@ func TestSFTPList(t *testing.T) {
 					})
 
 					Convey("When sending a List with a rule's path", func() {
-						So(fs.MkdirAll(rootPath.JoinPath("out")), ShouldBeNil)
-						So(fs.WriteFullFile(rootPath.JoinPath("out", "list_file1"),
+						So(fs.MkdirAll(testFS, rootPath.JoinPath("out")), ShouldBeNil)
+						So(fs.WriteFullFile(testFS,
+							rootPath.JoinPath("out", "list_file1"),
 							[]byte("Hello world")), ShouldBeNil)
-						So(fs.WriteFullFile(rootPath.JoinPath("out", "list_file2"),
+						So(fs.WriteFullFile(testFS,
+							rootPath.JoinPath("out", "list_file2"),
 							[]byte("Hello world")), ShouldBeNil)
 
 						list, err := client.ReadDir(send1.Path)
@@ -224,15 +225,16 @@ func TestSFTPList(t *testing.T) {
 					})
 
 					Convey("When sending a Stat to an existing file", func() {
-						So(fs.MkdirAll(rootPath.JoinPath("out", "sub")), ShouldBeNil)
-						So(fs.WriteFullFile(rootPath.JoinPath("out", "sub", "stat_file"),
+						So(fs.MkdirAll(testFS, rootPath.JoinPath("out", "sub")), ShouldBeNil)
+						So(fs.WriteFullFile(testFS,
+							rootPath.JoinPath("out", "sub", "stat_file"),
 							[]byte("Hello world")), ShouldBeNil)
 
 						info, err := client.Stat(path.Join(send1.Path, "sub", "stat_file"))
 						So(err, ShouldBeNil)
 
 						Convey("Then it should returns the file's info", func() {
-							exp, err := fs.Stat(rootPath.JoinPath("out", "sub", "stat_file"))
+							exp, err := fs.Stat(testFS, rootPath.JoinPath("out", "sub", "stat_file"))
 							So(err, ShouldBeNil)
 							So(info.Name(), ShouldEqual, exp.Name())
 							So(info.Size(), ShouldEqual, exp.Size())
@@ -253,13 +255,13 @@ func TestSFTPList(t *testing.T) {
 					})
 
 					Convey("When sending a Stat to a real sub-directory", func() {
-						So(fs.MkdirAll(rootPath.JoinPath("out", "sub")), ShouldBeNil)
+						So(fs.MkdirAll(testFS, rootPath.JoinPath("out", "sub")), ShouldBeNil)
 
 						info, err := client.Stat(path.Join(send1.Path, "sub"))
 						So(err, ShouldBeNil)
 
 						Convey("Then it should returns the directory's info", func() {
-							exp, err := fs.Stat(rootPath.JoinPath("out", "sub"))
+							exp, err := fs.Stat(testFS, rootPath.JoinPath("out", "sub"))
 							So(err, ShouldBeNil)
 							So(info.Name(), ShouldEqual, exp.Name())
 							So(info.Size(), ShouldEqual, exp.Size())

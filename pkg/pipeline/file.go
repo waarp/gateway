@@ -7,20 +7,21 @@ import (
 	"net/url"
 	"path"
 
+	"code.waarp.fr/apps/gateway/gateway/pkg/fs"
 	"code.waarp.fr/apps/gateway/gateway/pkg/model"
 	"code.waarp.fr/apps/gateway/gateway/pkg/model/types"
-	"code.waarp.fr/apps/gateway/gateway/pkg/pipeline/fs"
-	"code.waarp.fr/apps/gateway/gateway/pkg/pipeline/fs/flags"
 	"code.waarp.fr/apps/gateway/gateway/pkg/tk/utils"
 )
 
-func leaf(s string) utils.Leaf     { return utils.Leaf(s) }
-func branch(s string) utils.Branch { return utils.Branch(s) }
+type (
+	leaf   = utils.Leaf
+	branch = utils.Branch
+)
 
 // getFilesize returns the size of the given file. If the file does not exist or
 // cannot be accessed, it returns the UnknownSize value (-1).
-func getFilesize(file *types.URL) int64 {
-	if info, err := fs.Stat(file); err != nil {
+func getFilesize(filesys fs.FS, file *types.URL) int64 {
+	if info, err := fs.Stat(filesys, file); err != nil {
 		return model.UnknownSize
 	} else {
 		return info.Size()
@@ -32,8 +33,16 @@ func getFilesize(file *types.URL) int64 {
 func (f *FileStream) getFile() (fs.File, *types.TransferError) {
 	trans := f.TransCtx.Transfer
 
+	filesys, fsErr := fs.GetFileSystem(f.DB, &trans.LocalPath)
+	if fsErr != nil {
+		f.Logger.Error("Failed to instantiate file system: %v", fsErr)
+
+		return nil, types.NewTransferError(types.TeInternal,
+			"file system error: %v", fsErr)
+	}
+
 	if f.TransCtx.Rule.IsSend {
-		file, err := fs.Open(&trans.LocalPath)
+		file, err := filesys.Open(trans.LocalPath.FSPath())
 		if err != nil {
 			f.Logger.Error("Failed to open source file: %s", err)
 
@@ -60,13 +69,13 @@ func (f *FileStream) getFile() (fs.File, *types.TransferError) {
 		return file, nil
 	}
 
-	if err := createDir(&trans.LocalPath); err != nil {
+	if err := createDir(filesys, &trans.LocalPath); err != nil {
 		f.Logger.Error("Failed to create temp directory: %s", err)
 
 		return nil, err
 	}
 
-	file, fsErr := fs.OpenFile(&trans.LocalPath, flags.ReadWrite|flags.Create, 0o600)
+	file, fsErr := fs.OpenFile(filesys, &trans.LocalPath, fs.FlagRW|fs.FlagCreate, 0o600)
 	if fsErr != nil {
 		f.Logger.Error("Failed to create destination file %q: %s", &trans.LocalPath, fsErr)
 
@@ -86,8 +95,8 @@ func (f *FileStream) getFile() (fs.File, *types.TransferError) {
 
 // createDir takes a file path and creates all the file's parent directories if
 // they don't exist.
-func createDir(file *types.URL) *types.TransferError {
-	if err := fs.MkdirAll(file.Dir()); err != nil {
+func createDir(filesys fs.FS, file *types.URL) *types.TransferError {
+	if err := fs.MkdirAll(filesys, file.Dir()); err != nil {
 		return fileErrToTransferErr(err)
 	}
 
@@ -172,7 +181,7 @@ func makeLocalPath(transCtx *model.TransferContext, srcFilename,
 func (f *FileStream) checkFileExist() *types.TransferError {
 	trans := f.TransCtx.Transfer
 
-	info, err := fs.Stat(&trans.LocalPath)
+	info, err := fs.Stat(f.TransCtx.FS, &trans.LocalPath)
 	if err != nil {
 		if errors.Is(err, fs.ErrNotExist) {
 			f.Logger.Error("Failed to open transfer file %q: file does not exist", &trans.LocalPath)

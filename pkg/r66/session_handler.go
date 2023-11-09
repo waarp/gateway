@@ -11,11 +11,11 @@ import (
 
 	"code.waarp.fr/apps/gateway/gateway/pkg/conf"
 	"code.waarp.fr/apps/gateway/gateway/pkg/database"
+	"code.waarp.fr/apps/gateway/gateway/pkg/fs"
 	"code.waarp.fr/apps/gateway/gateway/pkg/model"
 	"code.waarp.fr/apps/gateway/gateway/pkg/model/config"
 	"code.waarp.fr/apps/gateway/gateway/pkg/model/types"
 	"code.waarp.fr/apps/gateway/gateway/pkg/pipeline"
-	"code.waarp.fr/apps/gateway/gateway/pkg/pipeline/fs"
 	"code.waarp.fr/apps/gateway/gateway/pkg/r66/internal"
 	"code.waarp.fr/apps/gateway/gateway/pkg/tk/utils"
 )
@@ -297,7 +297,7 @@ func (s *sessionHandler) GetFileInfo(ruleName, pat string) ([]r66.FileInfo, erro
 		}
 	}
 
-	pattern := utils.ToStandardPath(pat)
+	pattern := path.Clean(pat)
 
 	dir, err := s.makeDir(&rule)
 	if err != nil {
@@ -308,7 +308,14 @@ func (s *sessionHandler) GetFileInfo(ruleName, pat string) ([]r66.FileInfo, erro
 }
 
 func (s *sessionHandler) listDirFiles(root *types.URL, pattern string) ([]r66.FileInfo, error) {
-	matches, globErr := fs.Glob(root.JoinPath(pattern))
+	filesys, fsErr := fs.GetFileSystem(s.db, root)
+	if fsErr != nil {
+		s.logger.Error("Failed to instantiate the file system: %v", fsErr)
+
+		return nil, &r66.Error{Code: r66.Internal, Detail: "file system error"}
+	}
+
+	matches, globErr := fs.Glob(filesys, root.JoinPath(pattern))
 	if globErr != nil {
 		s.logger.Error("Failed to retrieve matching files: %v", globErr)
 
@@ -322,7 +329,7 @@ func (s *sessionHandler) listDirFiles(root *types.URL, pattern string) ([]r66.Fi
 	var infos []r66.FileInfo
 
 	for _, match := range matches {
-		file, statErr := fs.Stat(match)
+		file, statErr := fs.Stat(filesys, match)
 		if statErr != nil {
 			s.logger.Error("Failed to retrieve file %q info: %v", match, statErr)
 
@@ -355,9 +362,14 @@ func (s *sessionHandler) makeDir(rule *model.Rule) (*types.URL, error) {
 		defDir = conf.GlobalConfig.Paths.DefaultOutDir
 	}
 
-	dir, err := utils.GetPath("", utils.Leaf(rule.LocalDir), utils.Leaf(servDir),
-		utils.Branch(agent.RootDir), utils.Leaf(defDir),
-		utils.Branch(conf.GlobalConfig.Paths.GatewayHome))
+	type (
+		leaf   = utils.Leaf
+		branch = utils.Branch
+	)
+
+	dir, err := utils.GetPath("", leaf(rule.LocalDir), leaf(servDir),
+		branch(agent.RootDir), leaf(defDir),
+		branch(conf.GlobalConfig.Paths.GatewayHome))
 
 	return (*types.URL)(dir), err
 }

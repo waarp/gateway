@@ -9,9 +9,9 @@ import (
 	"code.waarp.fr/lib/log"
 
 	"code.waarp.fr/apps/gateway/gateway/pkg/database"
+	"code.waarp.fr/apps/gateway/gateway/pkg/fs"
 	"code.waarp.fr/apps/gateway/gateway/pkg/model"
 	"code.waarp.fr/apps/gateway/gateway/pkg/model/types"
-	"code.waarp.fr/apps/gateway/gateway/pkg/pipeline/fs"
 )
 
 // copyTask is a task which allow to copy the current file
@@ -33,7 +33,7 @@ func (*copyTask) Validate(args map[string]string) error {
 }
 
 // Run copies the current file to the destination.
-func (*copyTask) Run(_ context.Context, args map[string]string, _ *database.DB,
+func (*copyTask) Run(_ context.Context, args map[string]string, db *database.DB,
 	logger *log.Logger, transCtx *model.TransferContext,
 ) error {
 	newDir := args["path"]
@@ -46,7 +46,7 @@ func (*copyTask) Run(_ context.Context, args map[string]string, _ *database.DB,
 
 	dest = dest.JoinPath(path.Base(source.Path))
 
-	if err := doCopy(source, dest); err != nil {
+	if err := makeCopy(db, transCtx, source, dest); err != nil {
 		return err
 	}
 
@@ -55,27 +55,42 @@ func (*copyTask) Run(_ context.Context, args map[string]string, _ *database.DB,
 	return nil
 }
 
-// doCopy copies the file pointed by the given transfer to the given destination,
-// and then returns the filesystem on which the copy was made.
-func doCopy(source, dest *types.URL) error {
+func makeCopy(db *database.DB, transCtx *model.TransferContext, source, dest *types.URL) error {
 	if dest.String() == source.String() {
 		// If source == destination, this is a self-copy, so we do nothing.
 		return nil
 	}
 
-	if err := fs.MkdirAll(dest.Dir()); err != nil {
+	dstFS, fsErr2 := fs.GetFileSystem(db, dest)
+	if fsErr2 != nil {
+		return fmt.Errorf("failed to instantiate filesystem for destination %q: %w", dest, fsErr2)
+	}
+
+	if err := doCopy(transCtx.FS, dstFS, source, dest); err != nil {
+		return err
+	}
+
+	transCtx.FS = dstFS
+
+	return nil
+}
+
+// doCopy copies the file pointed by the given transfer to the given destination,
+// and then returns the filesystem on which the copy was made.
+func doCopy(srcFS, dstFS fs.FS, source, dest *types.URL) error {
+	if err := fs.MkdirAll(srcFS, dest.Dir()); err != nil {
 		return fmt.Errorf("cannot create destination directory %q: %w", dest.Dir(), err)
 	}
 
-	srcFile, srcErr := fs.Open(source)
+	srcFile, srcErr := fs.Open(srcFS, source)
 	if srcErr != nil {
 		return fmt.Errorf("failed to open source file %q: %w", source, srcErr)
 	}
 	defer srcFile.Close() //nolint:errcheck // this should never return an error
 
-	dstFile, dstErr := fs.Create(dest)
+	dstFile, dstErr := fs.Create(dstFS, dest)
 	if dstErr != nil {
-		return fmt.Errorf("failed to destination file %q: %w", dest, dstErr)
+		return fmt.Errorf("failed to create destination file %q: %w", dest, dstErr)
 	}
 	defer dstFile.Close() //nolint:errcheck // this error is checked elsewhere
 

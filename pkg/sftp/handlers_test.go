@@ -9,28 +9,27 @@ import (
 
 	"code.waarp.fr/apps/gateway/gateway/pkg/conf"
 	"code.waarp.fr/apps/gateway/gateway/pkg/database"
+	"code.waarp.fr/apps/gateway/gateway/pkg/fs"
+	"code.waarp.fr/apps/gateway/gateway/pkg/fs/fstest"
 	"code.waarp.fr/apps/gateway/gateway/pkg/gatewayd/service"
 	"code.waarp.fr/apps/gateway/gateway/pkg/model"
 	"code.waarp.fr/apps/gateway/gateway/pkg/model/config"
 	"code.waarp.fr/apps/gateway/gateway/pkg/model/types"
-	"code.waarp.fr/apps/gateway/gateway/pkg/pipeline/fs"
-	"code.waarp.fr/apps/gateway/gateway/pkg/pipeline/fs/fstest"
 	"code.waarp.fr/apps/gateway/gateway/pkg/tk/utils/testhelpers"
 )
 
 func TestFileReader(t *testing.T) {
 	Convey("Given a file", t, func(c C) {
-		fstest.InitMemFS(c)
-
 		logger := testhelpers.TestLogger(c, "test_file_reader")
-		root := "mem:/file_reader_test_root"
+		testFS := fstest.InitMemFS(c)
+		root := "memory:/file_reader_test_root"
 
 		rulePath := mkURL(root, "test", "out")
-		So(fs.MkdirAll(rulePath), ShouldBeNil)
+		So(fs.MkdirAll(testFS, rulePath), ShouldBeNil)
 
 		filePath := rulePath.JoinPath("file_read.src")
 		content := []byte("File reader test file content")
-		So(fs.WriteFullFile(filePath, content), ShouldBeNil)
+		So(fs.WriteFullFile(testFS, filePath, content), ShouldBeNil)
 
 		Convey("Given a database with a rule, a localAgent and a localAccount", func(dbc C) {
 			db := database.TestDatabase(dbc)
@@ -138,7 +137,7 @@ func TestFileWriter(t *testing.T) {
 		fstest.InitMemFS(c)
 
 		logger := testhelpers.TestLogger(c, "test_file_writer")
-		root := "mem:/file_writer_test_root"
+		root := "memory:/file_writer_test_root"
 
 		Convey("Given a database with a rule and a localAgent", func(c C) {
 			db := database.TestDatabase(c)

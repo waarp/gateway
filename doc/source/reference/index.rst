@@ -12,6 +12,7 @@ Référence
    protocols/index
    proto_config/index
    tasks/index
+   cloud/index
    errorcodes
    backup
 

@@ -8,15 +8,16 @@ import (
 
 	"code.waarp.fr/lib/log"
 
+	"code.waarp.fr/apps/gateway/gateway/pkg/fs"
 	"code.waarp.fr/apps/gateway/gateway/pkg/model/types"
-	"code.waarp.fr/apps/gateway/gateway/pkg/pipeline/fs"
 )
 
 // MakeHash takes a file path and returns the sha256 checksum of the file.
-func MakeHash(ctx context.Context, logger *log.Logger, path *types.URL) ([]byte, *types.TransferError) {
+func MakeHash(ctx context.Context, filesys fs.FS, logger *log.Logger, path *types.URL,
+) ([]byte, *types.TransferError) {
 	hasher := sha256.New()
 
-	file, err := fs.OpenFile(path, os.O_RDONLY, 0o600)
+	file, err := fs.OpenFile(filesys, path, os.O_RDONLY, 0o600)
 	if err != nil {
 		logger.Error("Failed to open file for hash calculation: %s", err)
 

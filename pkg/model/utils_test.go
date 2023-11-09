@@ -1,8 +1,6 @@
 package model
 
 import (
-	"path"
-
 	"github.com/smartystreets/goconvey/convey"
 	"golang.org/x/crypto/bcrypt"
 
@@ -29,11 +27,9 @@ func hash(pwd string) string {
 	return string(h)
 }
 
-func mkURL(elem ...string) *types.URL {
-	full := path.Join(elem...)
-
-	url, err := types.ParseURL(full)
+func mkURL(str string) types.URL {
+	url, err := types.ParseURL(str)
 	convey.So(err, convey.ShouldBeNil)
 
-	return url
+	return *url
 }

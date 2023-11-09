@@ -6,9 +6,9 @@ import (
 
 	. "github.com/smartystreets/goconvey/convey"
 
+	"code.waarp.fr/apps/gateway/gateway/pkg/fs"
+	"code.waarp.fr/apps/gateway/gateway/pkg/fs/fstest"
 	"code.waarp.fr/apps/gateway/gateway/pkg/model"
-	"code.waarp.fr/apps/gateway/gateway/pkg/pipeline/fs"
-	"code.waarp.fr/apps/gateway/gateway/pkg/pipeline/fs/fstest"
 	"code.waarp.fr/apps/gateway/gateway/pkg/tk/utils/testhelpers"
 )
 
@@ -48,22 +48,22 @@ func TestCopyRenameTaskValidate(t *testing.T) {
 
 func TestCopyRenameTaskRun(t *testing.T) {
 	Convey("Given a Runner for the 'COPYRENAME' task", t, func(c C) {
-		fstest.InitMemFS(c)
-
 		logger := testhelpers.TestLogger(c, "task_copyrename")
+		testFS := fstest.InitMemFS(c)
 		task := &copyRenameTask{}
-		srcPath := makeURL("mem:/test.src")
+		srcPath := makeURL("/test.src")
 
 		transCtx := &model.TransferContext{
 			Transfer: &model.Transfer{LocalPath: srcPath},
+			FS:       testFS,
 		}
 
-		So(fs.WriteFullFile(&srcPath, []byte("Hello World")), ShouldBeNil)
+		So(fs.WriteFullFile(testFS, &srcPath, []byte("Hello World")), ShouldBeNil)
 
 		args := map[string]string{}
 
 		Convey("Given a valid new path", func() {
-			dstPath := makeURL("mem:/test.copy")
+			dstPath := makeURL("/test.copy")
 			args["path"] = dstPath.String()
 
 			Convey("When the task is run", func() {
@@ -71,14 +71,14 @@ func TestCopyRenameTaskRun(t *testing.T) {
 				So(err, ShouldBeNil)
 
 				Convey("Then the destination file should exist", func() {
-					_, err := fs.Stat(&dstPath)
+					_, err := fs.Stat(testFS, &dstPath)
 					So(err, ShouldBeNil)
 				})
 			})
 		})
 
 		Convey("Given that the file does NOT exist", func() {
-			So(fs.Remove(&srcPath), ShouldBeNil)
+			So(fs.Remove(testFS, &srcPath), ShouldBeNil)
 
 			Convey("When calling the run method", func() {
 				err := task.Run(context.Background(), args, nil, logger, transCtx)
@@ -98,7 +98,7 @@ func TestCopyRenameTaskRun(t *testing.T) {
 				So(err, ShouldBeNil)
 
 				Convey("Then the file should NOT be empty", func() {
-					info, err := fs.Stat(&srcPath)
+					info, err := fs.Stat(testFS, &srcPath)
 					So(err, ShouldBeNil)
 					So(info.Size(), ShouldNotEqual, 0)
 				})
@@ -106,7 +106,7 @@ func TestCopyRenameTaskRun(t *testing.T) {
 		})
 
 		Convey("Given the target is a non-existing subdir", func() {
-			dstPath := makeURL("mem:/sub_dir/test.src.copy")
+			dstPath := makeURL("/sub_dir/test.src.copy")
 			args["path"] = dstPath.String()
 
 			Convey("Given the target can be created", func() {
@@ -115,7 +115,7 @@ func TestCopyRenameTaskRun(t *testing.T) {
 					So(err, ShouldBeNil)
 
 					Convey("Then the target file exists", func() {
-						_, err := fs.Stat(&dstPath)
+						_, err := fs.Stat(testFS, &dstPath)
 						So(err, ShouldBeNil)
 					})
 				})
@@ -123,14 +123,14 @@ func TestCopyRenameTaskRun(t *testing.T) {
 
 			Convey("Given the target CANNOT be created", func() {
 				dummyPath := dstPath.Dir()
-				So(fs.WriteFullFile(dummyPath, []byte("hello")), ShouldBeNil)
+				So(fs.WriteFullFile(testFS, dummyPath, []byte("hello")), ShouldBeNil)
 
 				Convey("When the task is run", func() {
 					err := task.Run(context.Background(), args, nil, logger, transCtx)
 					So(err, ShouldBeError)
 
 					Convey("Then the target file does not exist", func() {
-						_, err := fs.Stat(&dstPath)
+						_, err := fs.Stat(testFS, &dstPath)
 						So(fs.IsNotExist(err), ShouldBeTrue)
 					})
 				})

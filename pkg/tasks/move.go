@@ -2,16 +2,15 @@ package tasks
 
 import (
 	"context"
-	"errors"
 	"fmt"
 	"path"
 
 	"code.waarp.fr/lib/log"
 
 	"code.waarp.fr/apps/gateway/gateway/pkg/database"
+	"code.waarp.fr/apps/gateway/gateway/pkg/fs"
 	"code.waarp.fr/apps/gateway/gateway/pkg/model"
 	"code.waarp.fr/apps/gateway/gateway/pkg/model/types"
-	"code.waarp.fr/apps/gateway/gateway/pkg/pipeline/fs"
 )
 
 // moveTask is a task which moves the file without renaming it
@@ -24,12 +23,12 @@ func init() {
 }
 
 // Warning: both 'oldPath' and 'newPath' must be in denormalized format.
-func fallbackMove(source, dest *types.URL) error {
-	if err := doCopy(source, dest); err != nil {
+func fallbackMove(srcFS, dstFS fs.FS, source, dest *types.URL) error {
+	if err := doCopy(srcFS, dstFS, source, dest); err != nil {
 		return err
 	}
 
-	if err := fs.Remove(source); err != nil {
+	if err := fs.Remove(srcFS, source); err != nil {
 		return fmt.Errorf("failed to delete old file %q: %w", source, err)
 	}
 
@@ -37,32 +36,32 @@ func fallbackMove(source, dest *types.URL) error {
 }
 
 // MoveFile moves the given file to the given location. Works across partitions.
-func MoveFile(source, dest *types.URL) error {
+func MoveFile(db database.ReadAccess, srcFS fs.FS, source, dest *types.URL) (fs.FS, error) {
 	// If the source & destination are on different machines, we must use the
 	// fallback method of making a copy and then deleting the original.
 	if !fs.IsOnSameFS(source, dest) {
-		return fallbackMove(source, dest)
+		dstFS, fsErr2 := fs.GetFileSystem(db, dest)
+		if fsErr2 != nil {
+			return nil, fmt.Errorf("failed to instantiate filesystem for destination %q: %w", dest, fsErr2)
+		}
+
+		if err := fallbackMove(srcFS, dstFS, source, dest); err != nil {
+			return nil, err
+		}
+
+		return dstFS, nil
 	}
 
 	// At this point, we know that the source & dest are on the same filesystem.
-
-	if err := fs.MkdirAll(dest.Dir()); err != nil {
-		return fmt.Errorf("failed to create target directory: %w", err)
+	if err := fs.MkdirAll(srcFS, dest.Dir()); err != nil {
+		return nil, fmt.Errorf("failed to create target directory: %w", err)
 	}
 
-	if err := fs.Rename(source, dest); err != nil {
-		// Despite being on the same file system, if the source & dest are on
-		// different partitions, the rename will fail with a LinkError. In this
-		// case, we must fall back to a copy (like when the files were on
-		// different machines).
-		if errors.As(err, new(*fs.LinkError)) {
-			return fallbackMove(source, dest)
-		}
-
-		return fmt.Errorf("failed to rename file: %w", err)
+	if err := fs.Rename(srcFS, source, dest); err != nil {
+		return nil, fmt.Errorf("failed to rename file: %w", err)
 	}
 
-	return nil
+	return srcFS, nil
 }
 
 // Validate checks if the MOVE task has all the required arguments.
@@ -76,7 +75,7 @@ func (*moveTask) Validate(args map[string]string) error {
 }
 
 // Run executes the task by moving the file in the requested directory.
-func (*moveTask) Run(_ context.Context, args map[string]string, _ *database.DB,
+func (*moveTask) Run(_ context.Context, args map[string]string, db *database.DB,
 	logger *log.Logger, transCtx *model.TransferContext,
 ) error {
 	newDir := args["path"]
@@ -89,10 +88,12 @@ func (*moveTask) Run(_ context.Context, args map[string]string, _ *database.DB,
 
 	dest := dirPath.JoinPath(path.Base(source.Path))
 
-	if err := MoveFile(source, dest); err != nil {
-		return err
+	newFS, movErr := MoveFile(db, transCtx.FS, source, dest)
+	if movErr != nil {
+		return movErr
 	}
 
+	transCtx.FS = newFS
 	transCtx.Transfer.LocalPath = *dest
 
 	logger.Debug("Moved file %q to %q", source, dest)
