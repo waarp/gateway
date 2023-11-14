@@ -731,8 +731,6 @@ func TestSqlite(t *testing.T) {
 }
 
 func TestDatabaseStartWithNoPassPhraseFile(t *testing.T) {
-	GCM = nil
-
 	conf.GlobalConfig.Log.Level = "CRITICAL"
 	conf.GlobalConfig.Log.LogTo = "stdout"
 	conf.GlobalConfig.Database.Type = SQLite
@@ -743,6 +741,8 @@ func TestDatabaseStartWithNoPassPhraseFile(t *testing.T) {
 		db := &DB{}
 
 		Convey("When the database service is started", func() {
+			GCM = nil
+
 			So(db.Start(), ShouldBeNil)
 			Reset(func() {
 				ctx, cancel := context.WithTimeout(context.Background(), time.Second)

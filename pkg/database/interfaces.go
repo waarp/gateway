@@ -116,9 +116,9 @@ type WriteHook interface {
 	BeforeWrite(db ReadAccess) error
 }
 
-// WriteCallBack is an interface which adds a function which will be run after
+// WriteCallback is an interface which adds a function which will be run after
 // inserting or updating an entry.
-type WriteCallBack interface {
+type WriteCallback interface {
 	AfterWrite(db Access) error
 }
 
@@ -153,7 +153,9 @@ type Identifier interface {
 // Iterator instances MUST be closed once all the entries have been retrieved.
 type Iterator struct {
 	*xorm.Rows
-	db ReadAccess
+
+	db     ReadAccess
+	logger *log.Logger
 }
 
 // Scan parses the current line of the iterator, and fills the given model
@@ -166,6 +168,8 @@ func (i *Iterator) Scan(bean IterateBean) error {
 
 	if hook, ok := bean.(ReadCallback); ok {
 		if err := hook.AfterRead(i.db); err != nil {
+			i.logger.Error("%s entry GET callback failed: %s", bean.Appellation(), err)
+
 			return fmt.Errorf("%s entry ITERATE callback failed: %w", bean.Appellation(), err)
 		}
 	}

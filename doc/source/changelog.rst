@@ -3,6 +3,8 @@
 Historique des versions
 =======================
 
+* :bug:`391` Les mots de passe des serveurs locaux R66 sont maintenant bien
+  exportés en clair (comme le reste des mots de passe non-hashés).
 * :feature:`389` Ajout de le commande ``waarp-gatewayd change-aes-passphrase``
   permettant de changer la passphrase AES utilisée par la *gateway* pour chiffrer
   les mots de passe distants en base de données (voir

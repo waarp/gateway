@@ -21,7 +21,7 @@ func getCredentials(db database.ReadAccess, owner authentication.Owner,
 	authTypes ...string,
 ) (Credentials, error) {
 	var auths Credentials
-	query := db.Select(&auths).Where(owner.GetCredCond())
+	query := db.Select(&auths).Where(owner.GetCredCond()).OrderBy("id", true)
 
 	if len(authTypes) > 0 {
 		vals := make([]interface{}, len(authTypes))

@@ -113,7 +113,7 @@ func (r *RemoteAgent) Authenticate(db database.ReadAccess, authType string, valu
 //
 //nolint:dupl //duplicate is for LocalAgent, best keep separate
 func (r *RemoteAgent) AfterWrite(db database.Access) error {
-	if r.Protocol != protoR66 && r.Protocol != protoR66TLS {
+	if !isR66(r.Protocol) {
 		return nil
 	}
 

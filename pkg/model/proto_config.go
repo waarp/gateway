@@ -14,3 +14,5 @@ const (
 	protoR66    = "r66"
 	protoR66TLS = "r66-tls"
 )
+
+func isR66(proto string) bool { return proto == protoR66 || proto == protoR66TLS }

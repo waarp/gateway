@@ -159,7 +159,7 @@ func (l *LocalAgent) GetAuthorizedRules(db database.ReadAccess) ([]*Rule, error)
 //
 //nolint:dupl //duplicate is for RemoteAgent, best keep separate
 func (l *LocalAgent) AfterWrite(db database.Access) error {
-	if l.Protocol != protoR66 && l.Protocol != protoR66TLS {
+	if !isR66(l.Protocol) {
 		return nil
 	}
 
@@ -194,7 +194,7 @@ func (l *LocalAgent) AfterWrite(db database.Access) error {
 }
 
 func (l *LocalAgent) AfterRead(database.ReadAccess) error {
-	if l.Protocol != protoR66 && l.Protocol != protoR66TLS {
+	if !isR66(l.Protocol) {
 		return nil
 	}
 

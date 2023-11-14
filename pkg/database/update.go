@@ -50,7 +50,7 @@ func (u *UpdateQuery) run(ses *Session) error {
 		return NewInternalError(err)
 	}
 
-	if callback, ok := u.bean.(WriteCallBack); ok {
+	if callback, ok := u.bean.(WriteCallback); ok {
 		if err := callback.AfterWrite(ses); err != nil {
 			ses.logger.Error("%s entry UPDATE callback failed: %s", u.bean.Appellation(), err)
 
