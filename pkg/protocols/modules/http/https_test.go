@@ -44,7 +44,7 @@ func TestHTTPSClient(t *testing.T) {
 		serv.StartTLS()
 		Reset(serv.Close)
 
-		addr := strings.TrimLeft(serv.URL, "https://") //nolint:staticcheck // duplicate characters are expected here
+		addr := strings.TrimLeft(serv.URL, schemeHTTPS) //nolint:staticcheck // duplicate characters are expected here
 
 		Convey("Given a new HTTPS push transfer", func(c C) {
 			ctx := pipelinetest.InitClientPush(c, HTTPS, nil, nil)
@@ -125,7 +125,7 @@ func TestHTTPSServer(t *testing.T) {
 				Certificates: []tls.Certificate{cert},
 			}}
 			client := &http.Client{Transport: transport, Timeout: time.Second}
-			addr := "https://" + ctx.Server.Address + "/" + ctx.Filename()
+			addr := schemeHTTPS + ctx.Server.Address + "/" + ctx.Filename()
 
 			Convey("When executing the transfer", func(c C) {
 				file := testhelpers.NewTestReader(c)
@@ -162,7 +162,7 @@ func TestHTTPSServer(t *testing.T) {
 				Certificates: []tls.Certificate{cert},
 			}}
 			client := &http.Client{Transport: transport, Timeout: time.Hour}
-			addr := "https://" + ctx.Server.Address + "/" + ctx.Filename()
+			addr := schemeHTTPS + ctx.Server.Address + "/" + ctx.Filename()
 
 			Convey("When executing the transfer", func(c C) {
 				file := testhelpers.NewTestReader(c)

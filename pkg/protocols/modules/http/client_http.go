@@ -17,6 +17,8 @@ import (
 	"code.waarp.fr/apps/gateway/gateway/pkg/utils"
 )
 
+const schemeHTTP = "http://"
+
 var (
 	errPause    = types.NewTransferError(types.TeStopped, "transfer paused by remote host")
 	errShutdown = types.NewTransferError(types.TeShuttingDown, "remote host is shutting down")

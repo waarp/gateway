@@ -7,6 +7,7 @@ import (
 	"testing"
 
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 
 	"code.waarp.fr/apps/gateway/gateway/pkg/utils"
 )
@@ -58,7 +59,7 @@ func TestClientAdd(t *testing.T) {
 			testServer(t, expected, result)
 
 			t.Run("When executing the command", func(t *testing.T) {
-				assert.NoError(t, executeCommand(t, w, command,
+				require.NoError(t, executeCommand(t, w, command,
 					"--name", clientName,
 					"--protocol", clientProtocol,
 					"--local-address", clientAddress,
@@ -143,7 +144,7 @@ func TestClientList(t *testing.T) {
 			testServer(t, expected, result)
 
 			t.Run("When executing the command", func(t *testing.T) {
-				assert.NoError(t, executeCommand(t, w, command,
+				require.NoError(t, executeCommand(t, w, command,
 					"--limit", limit, "--offset", offset,
 					"--sort", sort, "--protocol", protocol,
 				),
@@ -211,7 +212,7 @@ func TestClientGet(t *testing.T) {
 			testServer(t, expected, result)
 
 			t.Run("When executing the command", func(t *testing.T) {
-				assert.NoError(t, executeCommand(t, w, command, clientName),
+				require.NoError(t, executeCommand(t, w, command, clientName),
 					"Then it should not return an error")
 
 				assert.Equal(t,
@@ -269,7 +270,7 @@ func TestClientUpdate(t *testing.T) {
 			testServer(t, expected, result)
 
 			t.Run("When executing the command", func(t *testing.T) {
-				assert.NoError(t, executeCommand(t, w, command, oldClientName,
+				require.NoError(t, executeCommand(t, w, command, oldClientName,
 					"--name", newClientName,
 					"--protocol", newClientProtocol,
 					"--local-address", newClientAddress,
@@ -311,7 +312,7 @@ func TestClientDelete(t *testing.T) {
 			testServer(t, expected, result)
 
 			t.Run("When executing the command", func(t *testing.T) {
-				assert.NoError(t, executeCommand(t, w, command, clientName),
+				require.NoError(t, executeCommand(t, w, command, clientName),
 					"Then it should not return an error")
 
 				assert.Equal(t,
@@ -345,7 +346,7 @@ func TestClientEnable(t *testing.T) {
 			testServer(t, expected, result)
 
 			t.Run("When executing the command", func(t *testing.T) {
-				assert.NoError(t, executeCommand(t, w, command, clientName),
+				require.NoError(t, executeCommand(t, w, command, clientName),
 					"Then it should not return an error")
 
 				assert.Equal(t,
@@ -379,7 +380,7 @@ func TestClientDisable(t *testing.T) {
 			testServer(t, expected, result)
 
 			t.Run("When executing the command", func(t *testing.T) {
-				assert.NoError(t, executeCommand(t, w, command, clientName),
+				require.NoError(t, executeCommand(t, w, command, clientName),
 					"Then it should not return an error")
 
 				assert.Equal(t,
@@ -413,7 +414,7 @@ func TestClientStart(t *testing.T) {
 			testServer(t, expected, result)
 
 			t.Run("When executing the command", func(t *testing.T) {
-				assert.NoError(t, executeCommand(t, w, command, clientName),
+				require.NoError(t, executeCommand(t, w, command, clientName),
 					"Then it should not return an error")
 
 				assert.Equal(t,
@@ -447,7 +448,7 @@ func TestClientStop(t *testing.T) {
 			testServer(t, expected, result)
 
 			t.Run("When executing the command", func(t *testing.T) {
-				assert.NoError(t, executeCommand(t, w, command, clientName),
+				require.NoError(t, executeCommand(t, w, command, clientName),
 					"Then it should not return an error")
 
 				assert.Equal(t,
@@ -481,7 +482,7 @@ func TestClientRestart(t *testing.T) {
 			testServer(t, expected, result)
 
 			t.Run("When executing the command", func(t *testing.T) {
-				assert.NoError(t, executeCommand(t, w, command, clientName),
+				require.NoError(t, executeCommand(t, w, command, clientName),
 					"Then it should not return an error")
 
 				assert.Equal(t,

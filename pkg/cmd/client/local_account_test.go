@@ -6,6 +6,7 @@ import (
 	"testing"
 
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
 func TestLocalAccountGet(t *testing.T) {
@@ -48,7 +49,7 @@ func TestLocalAccountGet(t *testing.T) {
 			testServer(t, expected, result)
 
 			t.Run("When executing the command", func(t *testing.T) {
-				assert.NoError(t, executeCommand(t, w, command, login),
+				require.NoError(t, executeCommand(t, w, command, login),
 					"Then it should not return an error")
 
 				assert.Equal(t,
@@ -100,7 +101,7 @@ func TestLocalAccountAdd(t *testing.T) {
 			testServer(t, expected, result)
 
 			t.Run("When executing the command", func(t *testing.T) {
-				assert.NoError(t, executeCommand(t, w, command,
+				require.NoError(t, executeCommand(t, w, command,
 					"--login", login,
 					"--password", password,
 				),
@@ -143,7 +144,7 @@ func TestLocalAccountDelete(t *testing.T) {
 			testServer(t, expected, result)
 
 			t.Run("When executing the command", func(t *testing.T) {
-				assert.NoError(t, executeCommand(t, w, command, login),
+				require.NoError(t, executeCommand(t, w, command, login),
 					"Then it should not return an error")
 
 				assert.Equal(t,
@@ -193,7 +194,7 @@ func TestLocalAccountUpdate(t *testing.T) {
 			testServer(t, expected, result)
 
 			t.Run("When executing the command", func(t *testing.T) {
-				assert.NoError(t, executeCommand(t, w, command,
+				require.NoError(t, executeCommand(t, w, command,
 					"--login", login,
 					"--password", password,
 					oldLogin,
@@ -255,7 +256,7 @@ func TestLocalAccountsList(t *testing.T) {
 			testServer(t, expected, result)
 
 			t.Run("When executing the command", func(t *testing.T) {
-				assert.NoError(t, executeCommand(t, w, command,
+				require.NoError(t, executeCommand(t, w, command,
 					"--limit", limit, "--offset", offset, "--sort", sort,
 				),
 					"Then it should not return an error",
@@ -308,7 +309,7 @@ func TestLocalAccountAuthorize(t *testing.T) {
 			testServer(t, expected, result)
 
 			t.Run("When executing the command", func(t *testing.T) {
-				assert.NoError(t, executeCommand(t, w, command, login, rule, way),
+				require.NoError(t, executeCommand(t, w, command, login, rule, way),
 					"Then it should not return an error")
 
 				assert.Equal(t,
@@ -352,7 +353,7 @@ func TestLocalAccountRevoke(t *testing.T) {
 			testServer(t, expected, result)
 
 			t.Run("When executing the command", func(t *testing.T) {
-				assert.NoError(t, executeCommand(t, w, command, login, rule, way),
+				require.NoError(t, executeCommand(t, w, command, login, rule, way),
 					"Then it should not return an error")
 
 				assert.Equal(t,

@@ -50,6 +50,26 @@ func displayServer(f *Formatter, server *api.OutServer) {
 	displayAuthorizedRules(f, server.AuthorizedRules)
 }
 
+func warnServerRootDeprecated(w io.Writer) {
+	fmt.Fprintln(w, "[WARNING] The '-r' ('--root') option is deprecated. "+
+		"Use '--root-dir' instead.")
+}
+
+func warnServerInDeprecated(w io.Writer) {
+	fmt.Fprintln(w, "[WARNING] The '-i' ('--in') option is deprecated. "+
+		"Use '--receive-dir' instead.")
+}
+
+func warnServerOutDeprecated(w io.Writer) {
+	fmt.Fprintln(w, "[WARNING] The '-o' ('--out') option is deprecated. "+
+		"Use '--send-dir' instead.")
+}
+
+func warnServerWorkDeprecated(w io.Writer) {
+	fmt.Fprintln(w, "[WARNING] The '-w' ('--work') option is deprecated. "+
+		"Use '--tmp-dir' instead.")
+}
+
 // ######################## GET ##########################
 
 type ServerGet struct {
@@ -109,29 +129,25 @@ func (s *ServerAdd) execute(w io.Writer) error {
 	}
 
 	if s.Root != nil {
-		fmt.Fprintln(w, "[WARNING] The '-r' ('--root') option is deprecated. "+
-			"Use '--root-dir' instead.")
+		warnServerRootDeprecated(w)
 
 		server.Root = s.Root
 	}
 
 	if s.InDir != nil {
-		fmt.Fprintln(w, "[WARNING] The '-i' ('--in') option is deprecated. "+
-			"Use '--receive-dir' instead.")
+		warnServerInDeprecated(w)
 
 		server.InDir = s.InDir
 	}
 
 	if s.OutDir != nil {
-		fmt.Fprintln(w, "[WARNING] The '-o' ('--out') option is deprecated. "+
-			"Use '--send-dir' instead.")
+		warnServerOutDeprecated(w)
 
 		server.OutDir = s.OutDir
 	}
 
 	if s.WorkDir != nil {
-		fmt.Fprintln(w, "[WARNING] The '-w' ('--work') option is deprecated. "+
-			"Use '--tmp-dir' instead.")
+		warnServerWorkDeprecated(w)
 
 		server.WorkDir = s.WorkDir
 	}
@@ -244,29 +260,25 @@ func (s *ServerUpdate) execute(w io.Writer) error {
 	}
 
 	if s.Root != nil {
-		fmt.Fprintln(w, "[WARNING] The '-r' ('--root') option is deprecated. "+
-			"Use '--root-dir' instead.")
+		warnServerRootDeprecated(w)
 
 		server.Root = s.Root
 	}
 
 	if s.InDir != nil {
-		fmt.Fprintln(w, "[WARNING] The '-i' ('--in') option is deprecated. "+
-			"Use '--receive-dir' instead.")
+		warnServerInDeprecated(w)
 
 		server.InDir = s.InDir
 	}
 
 	if s.OutDir != nil {
-		fmt.Fprintln(w, "[WARNING] The '-o' ('--out') option is deprecated. "+
-			"Use '--send-dir' instead.")
+		warnServerOutDeprecated(w)
 
 		server.OutDir = s.OutDir
 	}
 
 	if s.WorkDir != nil {
-		fmt.Fprintln(w, "[WARNING] The '-w' ('--work') option is deprecated. "+
-			"Use '--tmp-dir' instead.")
+		warnServerWorkDeprecated(w)
 
 		server.WorkDir = s.WorkDir
 	}

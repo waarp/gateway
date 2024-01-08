@@ -140,9 +140,9 @@ func (p *postClient) setRequestHeaders(req *http.Request) error {
 }
 
 func (p *postClient) prepareRequest(ready chan struct{}) error {
-	scheme := "http://"
+	scheme := schemeHTTP
 	if p.isHTTPS {
-		scheme = "https://"
+		scheme = schemeHTTPS
 	}
 
 	addr := p.pip.TransCtx.RemoteAgent.Address

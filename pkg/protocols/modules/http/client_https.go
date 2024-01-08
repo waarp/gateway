@@ -13,6 +13,8 @@ import (
 	"code.waarp.fr/apps/gateway/gateway/pkg/utils/compatibility"
 )
 
+const schemeHTTPS = "https://"
+
 type httpsClient struct {
 	*httpClient
 }

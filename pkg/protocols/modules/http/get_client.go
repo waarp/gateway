@@ -26,9 +26,9 @@ type getClient struct {
 func (g *getClient) Request() error {
 	g.ctx, g.cancel = context.WithCancel(context.Background())
 
-	scheme := "http://"
+	scheme := schemeHTTP
 	if g.isHTTPS {
-		scheme = "https://"
+		scheme = schemeHTTPS
 	}
 
 	addr := g.pip.TransCtx.RemoteAgent.Address

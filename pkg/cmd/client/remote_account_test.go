@@ -49,7 +49,7 @@ func TestRemoteAccountGet(t *testing.T) {
 			testServer(t, expected, result)
 
 			t.Run("When executing the command", func(t *testing.T) {
-				assert.NoError(t, executeCommand(t, w, command, login),
+				require.NoError(t, executeCommand(t, w, command, login),
 					"Then it should not return an error")
 
 				assert.Equal(t,
@@ -101,7 +101,7 @@ func TestRemoteAccountAdd(t *testing.T) {
 			testServer(t, expected, result)
 
 			t.Run("When executing the command", func(t *testing.T) {
-				assert.NoError(t, executeCommand(t, w, command,
+				require.NoError(t, executeCommand(t, w, command,
 					"--login", login,
 					"--password", password,
 				),
@@ -144,7 +144,7 @@ func TestRemoteAccountDelete(t *testing.T) {
 			testServer(t, expected, result)
 
 			t.Run("When executing the command", func(t *testing.T) {
-				assert.NoError(t, executeCommand(t, w, command, login),
+				require.NoError(t, executeCommand(t, w, command, login),
 					"Then it should not return an error")
 
 				assert.Equal(t,
@@ -194,7 +194,7 @@ func TestRemoteAccountUpdate(t *testing.T) {
 			testServer(t, expected, result)
 
 			t.Run("When executing the command", func(t *testing.T) {
-				assert.NoError(t, executeCommand(t, w, command,
+				require.NoError(t, executeCommand(t, w, command,
 					"--login", login,
 					"--password", password,
 					oldLogin,
@@ -256,7 +256,7 @@ func TestRemoteAccountList(t *testing.T) {
 			testServer(t, expected, result)
 
 			t.Run("When executing the command", func(t *testing.T) {
-				assert.NoError(t, executeCommand(t, w, command,
+				require.NoError(t, executeCommand(t, w, command,
 					"--limit", limit, "--offset", offset, "--sort", sort,
 				),
 					"Then it should not return an error",
@@ -354,7 +354,7 @@ func TestRemoteAccountRevoke(t *testing.T) {
 			testServer(t, expected, result)
 
 			t.Run("When executing the command", func(t *testing.T) {
-				assert.NoError(t, executeCommand(t, w, command, login, rule, way),
+				require.NoError(t, executeCommand(t, w, command, login, rule, way),
 					"Then it should not return an error")
 
 				assert.Equal(t,

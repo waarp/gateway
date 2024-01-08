@@ -7,6 +7,7 @@ import (
 	"testing"
 
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
 func TestPartnerGet(t *testing.T) {
@@ -53,7 +54,7 @@ func TestPartnerGet(t *testing.T) {
 			testServer(t, expected, result)
 
 			t.Run("When executing the command", func(t *testing.T) {
-				assert.NoError(t, executeCommand(t, w, command, partner),
+				require.NoError(t, executeCommand(t, w, command, partner),
 					"Then it should not return an error")
 
 				assert.Equal(t,
@@ -110,7 +111,7 @@ func TestPartnerAdd(t *testing.T) {
 			testServer(t, expected, result)
 
 			t.Run("When executing the command", func(t *testing.T) {
-				assert.NoError(t, executeCommand(t, w, command,
+				require.NoError(t, executeCommand(t, w, command,
 					"--name", partner, "--protocol", proto, "--address", addr,
 					"--config", key+":"+val),
 					"Then it should not return an error")
@@ -177,7 +178,7 @@ func TestPartnersList(t *testing.T) {
 			testServer(t, expected, result)
 
 			t.Run("When executing the command", func(t *testing.T) {
-				assert.NoError(t, executeCommand(t, w, command,
+				require.NoError(t, executeCommand(t, w, command,
 					"--sort", sort, "--limit", limit,
 					"--offset", offset, "--protocol", protocol),
 					"Then it should not return an error")
@@ -226,7 +227,7 @@ func TestPartnerDelete(t *testing.T) {
 			testServer(t, expected, result)
 
 			t.Run("When executing the command", func(t *testing.T) {
-				assert.NoError(t, executeCommand(t, w, command, partner),
+				require.NoError(t, executeCommand(t, w, command, partner),
 					"Then it should not return an error")
 
 				assert.Equal(t,
@@ -275,7 +276,7 @@ func TestPartnerUpdate(t *testing.T) {
 			testServer(t, expected, result)
 
 			t.Run("When executing the command", func(t *testing.T) {
-				assert.NoError(t, executeCommand(t, w, command,
+				require.NoError(t, executeCommand(t, w, command,
 					"--name", partner, "--protocol", proto, "--address", addr,
 					"--config", key+":"+val,
 					oldName),
@@ -315,7 +316,7 @@ func TestPartnerAuthorize(t *testing.T) {
 			testServer(t, expected, result)
 
 			t.Run("When executing the command", func(t *testing.T) {
-				assert.NoError(t, executeCommand(t, w, command, partner, rule, way),
+				require.NoError(t, executeCommand(t, w, command, partner, rule, way),
 					"Then it should not return an error")
 
 				assert.Equal(t,
@@ -353,7 +354,7 @@ func TestPartnerRevoke(t *testing.T) {
 			testServer(t, expected, result)
 
 			t.Run("When executing the command", func(t *testing.T) {
-				assert.NoError(t, executeCommand(t, w, command, partner, rule, way),
+				require.NoError(t, executeCommand(t, w, command, partner, rule, way),
 					"Then it should not return an error")
 
 				assert.Equal(t,

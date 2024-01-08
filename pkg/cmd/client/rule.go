@@ -53,6 +53,21 @@ func displayRule(f *Formatter, rule *api.OutRule) {
 	displayRuleAccess(f, rule.Authorized)
 }
 
+func warnRuleInPathDeprecated(w io.Writer) {
+	fmt.Fprintln(w, "[WARNING] The '-i' ('--in_path') option is deprecated. "+
+		"Use '--local-dir' and '--remote-dir' instead.")
+}
+
+func warnRuleOutPathDeprecated(w io.Writer) {
+	fmt.Fprintln(w, "[WARNING] The '-o' ('--out_path') option is deprecated. "+
+		"Use '--local-dir' and '--remote-dir' instead.")
+}
+
+func warnRuleWorkPathDeprecated(w io.Writer) {
+	fmt.Fprintln(w, "[WARNING] The '-w' ('--work_path') option is deprecated. "+
+		"Use '--tmp-dir' instead.")
+}
+
 func parseTasks(rule *api.UptRule, pre, post, errs []string) error {
 	if len(pre) > 0 {
 		preDecoder := json.NewDecoder(strings.NewReader("[" + strings.Join(pre, ",") + "]"))
@@ -149,22 +164,19 @@ func (r *RuleAdd) execute(w io.Writer) error {
 	}
 
 	if r.InPath != nil {
-		fmt.Fprintln(w, "[WARNING] The '-i' ('--in_path') option is deprecated. "+
-			"Use '--local-dir' and '--remote-dir' instead.")
+		warnRuleInPathDeprecated(w)
 
 		rule.InPath = r.InPath
 	}
 
 	if r.OutPath != nil {
-		fmt.Fprintln(w, "[WARNING] The '-o' ('--out_path') option is deprecated. "+
-			"Use '--local-dir' and '--remote-dir' instead.")
+		warnRuleOutPathDeprecated(w)
 
 		rule.OutPath = r.OutPath
 	}
 
 	if r.WorkPath != nil {
-		fmt.Fprintln(w, "[WARNING] The '-w' ('--work_path') option is deprecated. "+
-			"Use '--tmp-dir' instead.")
+		warnRuleWorkPathDeprecated(w)
 
 		rule.WorkPath = r.WorkPath
 	}
@@ -290,22 +302,19 @@ func (r *RuleUpdate) execute(w io.Writer) error {
 	}
 
 	if r.InPath != nil {
-		fmt.Fprintln(w, "[WARNING] The '-i' ('--in_path') option is deprecated. "+
-			"Use '--local-dir' and '--remote-dir' instead.")
+		warnRuleInPathDeprecated(w)
 
 		rule.InPath = r.InPath
 	}
 
 	if r.OutPath != nil {
-		fmt.Fprintln(w, "[WARNING] The '-o' ('--out_path') option is deprecated. "+
-			"Use '--local-dir' and '--remote-dir' instead.")
+		warnRuleOutPathDeprecated(w)
 
 		rule.OutPath = r.OutPath
 	}
 
 	if r.WorkPath != nil {
-		fmt.Fprintln(w, "[WARNING] The '-w' ('--work_path') option is deprecated. "+
-			"Use '--tmp-dir' instead.")
+		warnRuleWorkPathDeprecated(w)
 
 		rule.WorkPath = r.WorkPath
 	}

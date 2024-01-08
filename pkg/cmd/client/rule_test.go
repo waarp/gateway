@@ -7,6 +7,7 @@ import (
 	"testing"
 
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
 func TestRuleGet(t *testing.T) {
@@ -99,7 +100,7 @@ func TestRuleGet(t *testing.T) {
 			testServer(t, expected, result)
 
 			t.Run("When executing the command", func(t *testing.T) {
-				assert.NoError(t, executeCommand(t, w, command, rule, way),
+				require.NoError(t, executeCommand(t, w, command, rule, way),
 					"Then it should not return an error")
 
 				assert.Equal(t,
@@ -199,7 +200,7 @@ func TestRuleAdd(t *testing.T) {
 			testServer(t, expected, result)
 
 			t.Run("When executing the command", func(t *testing.T) {
-				assert.NoError(t, executeCommand(t, w, command,
+				require.NoError(t, executeCommand(t, w, command,
 					"--name", ruleName,
 					"--comment", ruleComment,
 					"--direction", way,
@@ -285,7 +286,7 @@ func TestRuleUpdate(t *testing.T) {
 			testServer(t, expected, result)
 
 			t.Run("When executing the command", func(t *testing.T) {
-				assert.NoError(t, executeCommand(t, w, command,
+				require.NoError(t, executeCommand(t, w, command,
 					"--name", ruleName,
 					"--comment", ruleComment,
 					"--path", rulePath,
@@ -334,7 +335,7 @@ func TestRuleDelete(t *testing.T) {
 			testServer(t, expected, result)
 
 			t.Run("When executing the command", func(t *testing.T) {
-				assert.NoError(t, executeCommand(t, w, command, ruleName, way),
+				require.NoError(t, executeCommand(t, w, command, ruleName, way),
 					"Then it should not return an error")
 
 				assert.Equal(t,
@@ -398,7 +399,7 @@ func TestRulesList(t *testing.T) {
 			testServer(t, expected, result)
 
 			t.Run("When executing the command", func(t *testing.T) {
-				assert.NoError(t, executeCommand(t, w, command,
+				require.NoError(t, executeCommand(t, w, command,
 					"--limit", limit, "--offset", offset, "--sort", sort,
 				),
 					"Then it should not return an error",
@@ -457,9 +458,8 @@ func TestRuleAllowAll(t *testing.T) {
 			testServer(t, expected, result)
 
 			t.Run("When executing the command", func(t *testing.T) {
-				assert.NoError(t, executeCommand(t, w, command, rule, way),
-					"Then it should not return an error",
-				)
+				require.NoError(t, executeCommand(t, w, command, rule, way),
+					"Then it should not return an error")
 			})
 
 			assert.Equal(t,

@@ -816,7 +816,7 @@ issues:
       source: "defer rows.Close()"
 
         # We disable some linters on migration files.
-    - path: pkg/database/migrations/+[0-9]\.+[+0-9]\.+[0-9]\.go
+    - path: pkg/database/migrations/[0-9]+\.[0-9]+\.[0-9]+\.go
       linters:
         - funlen # splitting functions is not always possible (or desirable)
         - dupl # some tables are similar, but factorizing their migrations is a bad idea

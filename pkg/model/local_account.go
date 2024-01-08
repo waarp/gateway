@@ -72,9 +72,9 @@ func (l *LocalAccount) BeforeDelete(db database.Access) error {
 		return fmt.Errorf("failed to check for ongoing transfers: %w", err)
 	} else if n > 0 {
 		//nolint:goconst //too specific
-		return database.NewValidationError("this account is currently being " +
-			"used in one or more running transfers and thus cannot be deleted, " +
-			"cancel these transfers or wait for them to finish")
+		return database.NewValidationError("this account is currently being used " +
+			"in one or more running transfers and thus cannot be deleted, cancel " +
+			"these transfers or wait for them to finish")
 	}
 
 	return nil

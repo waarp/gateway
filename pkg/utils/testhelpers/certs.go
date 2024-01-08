@@ -226,6 +226,7 @@ wvThKXCE78uQIzRIyp9X6W+enbMKesrtprpsZlBHU/lZ5m/bh3EXBuCFV1Q2rrVc
 5VAeza4keDveGJVWVTdTlw==
 -----END PRIVATE KEY-----`
 
+//nolint:gosec //this is only for testing
 const RSAPk = `-----BEGIN RSA PRIVATE KEY-----
 MIIG4wIBAAKCAYEA4W8VXnMoNzWzrhoCG81LgdxslSCgUVoWFDmhCbajEfHJG91j
 OnMtMqZW2eorOMvIKhoRPaUPINya22GJa2/Px547gp0swPQVYTDVMaf/QK+xkrwT
