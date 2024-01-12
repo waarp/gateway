@@ -6,9 +6,7 @@ import (
 	"code.waarp.fr/apps/gateway/gateway/pkg/utils"
 )
 
-type ver0_8_0DropNormalizedTransfersView struct{}
-
-func (ver0_8_0DropNormalizedTransfersView) Up(db Actions) error {
+func ver0_8_0DropNormalizedTransfersViewUp(db Actions) error {
 	if err := db.DropView("normalized_transfers"); err != nil {
 		return fmt.Errorf("failed to drop the normalized transfer view: %w", err)
 	}
@@ -16,13 +14,11 @@ func (ver0_8_0DropNormalizedTransfersView) Up(db Actions) error {
 	return nil
 }
 
-func (ver0_8_0DropNormalizedTransfersView) Down(db Actions) error {
-	return (&ver0_7_0AddNormalizedTransfersView{}).Up(db)
+func ver0_8_0DropNormalizedTransfersViewDown(db Actions) error {
+	return ver0_7_0AddNormalizedTransfersViewUp(db)
 }
 
-type ver0_8_0AddTransferFilename struct{}
-
-func (ver0_8_0AddTransferFilename) Up(db Actions) error {
+func ver0_8_0AddTransferFilenameUp(db Actions) error {
 	if err := db.AlterTable("transfers",
 		AddColumn{Name: "src_filename", Type: Text{}, NotNull: true, Default: ""},
 		AddColumn{Name: "dest_filename", Type: Text{}, NotNull: true, Default: ""},
@@ -50,7 +46,7 @@ func (ver0_8_0AddTransferFilename) Up(db Actions) error {
 	return nil
 }
 
-func (ver0_8_0AddTransferFilename) Down(db Actions) error {
+func ver0_8_0AddTransferFilenameDown(db Actions) error {
 	if err := db.Exec(`UPDATE transfers SET remote_path=
     	(CASE WHEN src_filename='' THEN dest_filename ELSE src_filename END) 
 		WHERE local_account_id IS NOT NULL`); err != nil {
@@ -69,9 +65,7 @@ func (ver0_8_0AddTransferFilename) Down(db Actions) error {
 	return nil
 }
 
-type ver0_8_0AddHistoryFilename struct{}
-
-func (ver0_8_0AddHistoryFilename) Up(db Actions) error {
+func ver0_8_0AddHistoryFilenameUp(db Actions) error {
 	if err := db.AlterTable("transfer_history",
 		AddColumn{Name: "src_filename", Type: Text{}, NotNull: true, Default: ""},
 		AddColumn{Name: "dest_filename", Type: Text{}, NotNull: true, Default: ""},
@@ -99,7 +93,7 @@ func (ver0_8_0AddHistoryFilename) Up(db Actions) error {
 	return nil
 }
 
-func (ver0_8_0AddHistoryFilename) Down(db Actions) error {
+func ver0_8_0AddHistoryFilenameDown(db Actions) error {
 	if err := db.Exec(`UPDATE transfer_history SET remote_path=
     	(CASE WHEN src_filename='' THEN dest_filename ELSE src_filename END) 
 		WHERE is_server=true`); err != nil {
@@ -118,9 +112,7 @@ func (ver0_8_0AddHistoryFilename) Down(db Actions) error {
 	return nil
 }
 
-type ver0_8_0UpdateNormalizedTransfersView struct{}
-
-func (ver0_8_0UpdateNormalizedTransfersView) Up(db Actions) error {
+func ver0_8_0UpdateNormalizedTransfersViewUp(db Actions) error {
 	transStop := utils.If(db.GetDialect() == PostgreSQL,
 		"null::timestamp", "null")
 
@@ -158,7 +150,7 @@ func (ver0_8_0UpdateNormalizedTransfersView) Up(db Actions) error {
 	return nil
 }
 
-func (ver0_8_0UpdateNormalizedTransfersView) Down(db Actions) error {
+func ver0_8_0UpdateNormalizedTransfersViewDown(db Actions) error {
 	if err := db.DropView("normalized_transfers"); err != nil {
 		return fmt.Errorf("failed to drop the normalized transfer view: %w", err)
 	}

@@ -88,7 +88,7 @@ func (c *transferClient) makePartnerHostKeys(cryptos model.Cryptos,
 
 		hostKeys = append(hostKeys, key)
 
-		if !utils.ContainsStrings(algos, key.Type()) {
+		if !utils.ContainsOneOfStrings(algos, key.Type()) {
 			algos = append(algos, key.Type())
 		}
 	}

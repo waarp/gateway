@@ -6,15 +6,9 @@ import (
 	"code.waarp.fr/lib/migration"
 )
 
-type Script interface {
-	Up(db migration.Actions) error
-	Down(db migration.Actions) error
-}
+type Change = migration.Script
 
-type Change struct {
-	Description string
-	Script      Script
-}
+func noop(migration.Actions) error { return nil }
 
 // Migrations should be declared here in chronological order. This means that
 // new migrations should ALWAYS be added at the end of the list so that the order
@@ -24,190 +18,242 @@ type Change struct {
 var Migrations = []Change{
 	{ // #0
 		Description: "Initialize the database",
-		Script:      ver0_4_0InitDatabase{},
+		Up:          ver0_4_0InitDatabaseUp,
+		Down:        ver0_4_0InitDatabaseDown,
 	},
 	{ // #1
 		Description: "Remove the UNIQUE constraint on the history table's remote ID",
-		Script:      ver0_4_2RemoveHistoryRemoteIDUnique{},
+		Up:          ver0_4_2RemoveHistoryRemoteIDUniqueUp,
+		Down:        ver0_4_2RemoveHistoryRemoteIDUniqueDown,
 	},
 	{ // #2
 		Description: "Remove the leading / from all rule paths",
-		Script:      ver0_5_0RemoveRulePathSlash{},
+		Up:          ver0_5_0RemoveRulePathSlashUp,
+		Down:        ver0_5_0RemoveRulePathSlashDown,
 	},
 	{ // #3
 		Description: "Check that no rule path is the parent of another",
-		Script:      ver0_5_0CheckRulePathParent{},
+		Up:          ver0_5_0CheckRulePathParentUp,
+		Down:        noop, // nothing to do
 	},
 	{ // #4
 		Description: "Change the new local agent paths to OS specific paths",
-		Script:      ver0_5_0LocalAgentDenormalizePaths{},
+		Up:          ver0_5_0LocalAgentDenormalizePathsUp,
+		Down:        ver0_5_0LocalAgentDenormalizePathsDown,
 	},
 	{ // #5
 		Description: "Replace the local agent path columns with new send/receive ones",
-		Script:      ver0_5_0LocalAgentsPathsRename{},
+		Up:          ver0_5_0LocalAgentsPathsRenameUp,
+		Down:        ver0_5_0LocalAgentsPathsRenameDown,
 	},
 	{ // #6
 		Description: "Disallow reserved names for local servers",
-		Script:      ver0_5_0LocalAgentsDisallowReservedNames{},
+		Up:          ver0_5_0LocalAgentsDisallowReservedNamesUp,
+		Down:        noop, // nothing to do
 	},
 	{ // #7
 		Description: "Add new path columns to the rule table",
-		Script:      ver0_5_0RulesPathsRename{},
+		Up:          ver0_5_0RulesPathsRenameUp,
+		Down:        ver0_5_0RulesPathsRenameDown,
 	},
 	{ // #8
 		Description: "Change the new rule paths to OS specific paths",
-		Script:      ver0_5_0RulePathChanges{},
+		Up:          ver0_5_0RulePathChangesUp,
+		Down:        ver0_5_0RulePathChangesDown,
 	},
 	{ // #9
 		Description: "Add a filesize to the transfers & history tables",
-		Script:      ver0_5_0AddFilesize{},
+		Up:          ver0_5_0AddFilesizeUp,
+		Down:        ver0_5_0AddFilesizeDown,
 	},
 	{ // #10
 		Description: "Replace the existing transfer path columns with new ones",
-		Script:      ver0_5_0TransferChangePaths{},
+		Up:          ver0_5_0TransferChangePathsUp,
+		Down:        ver0_5_0TransferChangePathsDown,
 	},
 	{ // #11
 		Description: "Change the transfer's local path to the OS specific format",
-		Script:      ver0_5_0TransferFormatLocalPath{},
+		Up:          ver0_5_0TransferFormatLocalPathUp,
+		Down:        ver0_5_0TransferFormatLocalPathDown,
 	},
 	{ // #12
 		Description: "Replace the existing history filename columns with new local/remote ones",
-		Script:      ver0_5_0HistoryPathsChange{},
+		Up:          ver0_5_0HistoryPathsChangeUp,
+		Down:        ver0_5_0HistoryPathsChangeDown,
 	},
 	{ // #13
 		Description: "Decode the (double) base64 encoded local agent password hashes",
-		Script:      ver0_5_0LocalAccountsPasswordDecode{},
+		Up:          ver0_5_0LocalAccountsPasswordDecodeUp,
+		Down:        ver0_5_0LocalAccountsPasswordDecodeDown,
 	},
 	{ // #14
 		Description: "Rename and change the type of the user 'password' column",
-		Script:      ver0_5_0UserPasswordChange{},
+		Up:          ver0_5_0UserPasswordChangeUp,
+		Down:        ver0_5_0UserPasswordChangeDown,
 	},
 	{ // #15
 		Description: "Fill the remote_transfer_id column where it is empty",
-		Script:      ver0_5_2FillRemoteTransferID{},
+		Up:          ver0_5_2FillRemoteTransferIDUp,
+		Down:        ver0_5_2FillRemoteTransferIDDown,
 	},
 	{ // #16
 		Description: "Add a 'is_history' column to the transfer info table",
-		Script:      ver0_6_0AddTransferInfoIsHistory{},
+		Up:          ver0_6_0AddTransferInfoIsHistoryUp,
+		Down:        ver0_6_0AddTransferInfoIsHistoryDown,
 	},
 	{ // #17
 		Description: `Add an "enabled" column to the local agents table`,
-		Script:      ver0_7_0AddLocalAgentEnabledColumn{},
+		Up:          ver0_7_0AddLocalAgentEnabledColumnUp,
+		Down:        ver0_7_0AddLocalAgentEnabledColumnDown,
 	},
 	{ // #18
 		Description: "Revamp the 'users' table",
-		Script:      ver0_7_0RevampUsersTable{},
+		Up:          ver0_7_0RevampUsersTableUp,
+		Down:        ver0_7_0RevampUsersTableDown,
 	},
 	{ // #19
 		Description: "Revamp the 'local_agents' table",
-		Script:      ver0_7_0RevampLocalAgentsTable{},
+		Up:          ver0_7_0RevampLocalAgentsTableUp,
+		Down:        ver0_7_0RevampLocalAgentsTableDown,
 	},
 	{ // #20
 		Description: "Revamp the 'remote_agents' table",
-		Script:      ver0_7_0RevampRemoteAgentsTable{},
+		Up:          ver0_7_0RevampRemoteAgentsTableUp,
+		Down:        ver0_7_0RevampRemoteAgentsTableDown,
 	},
 	{ // #21
 		Description: "Revamp the 'local_accounts' table",
-		Script:      ver0_7_0RevampLocalAccountsTable{},
+		Up:          ver0_7_0RevampLocalAccountsTableUp,
+		Down:        ver0_7_0RevampLocalAccountsTableDown,
 	},
 	{ // #22
 		Description: "Revamp the 'remote_accounts' table",
-		Script:      ver0_7_0RevampRemoteAccountsTable{},
+		Up:          ver0_7_0RevampRemoteAccountsTableUp,
+		Down:        ver0_7_0RevampRemoteAccountsTableDown,
 	},
 	{ // #23
 		Description: "Revamp the 'rules' table",
-		Script:      ver0_7_0RevampRulesTable{},
+		Up:          ver0_7_0RevampRulesTableUp,
+		Down:        ver0_7_0RevampRulesTableDown,
 	},
 	{ // #24
 		Description: "Revamp the 'tasks' table",
-		Script:      ver0_7_0RevampTasksTable{},
+		Up:          ver0_7_0RevampTasksTableUp,
+		Down:        ver0_7_0RevampTasksTableDown,
 	},
 	{ // #25
 		Description: "Revamp the 'transfer_history' table",
-		Script:      ver0_7_0RevampHistoryTable{},
+		Up:          ver0_7_0RevampHistoryTableUp,
+		Down:        ver0_7_0RevampHistoryTableDown,
 	},
 	{ // #26
 		Description: "Revamp the 'transfers' table",
-		Script:      ver0_7_0RevampTransfersTable{},
+		Up:          ver0_7_0RevampTransfersTableUp,
+		Down:        ver0_7_0RevampTransfersTableDown,
 	},
 	{ // #27
 		Description: "Revamp the 'transfer_info' table",
-		Script:      ver0_7_0RevampTransferInfoTable{},
+		Up:          ver0_7_0RevampTransferInfoTableUp,
+		Down:        ver0_7_0RevampTransferInfoTableDown,
 	},
 	{ // #28
 		Description: "Revamp the 'crypto' table",
-		Script:      ver0_7_0RevampCryptoTable{},
+		Up:          ver0_7_0RevampCryptoTableUp,
+		Down:        ver0_7_0RevampCryptoTableDown,
 	},
 	{ // #29
 		Description: "Revamp the 'rule_access' table",
-		Script:      ver0_7_0RevampRuleAccessTable{},
+		Up:          ver0_7_0RevampRuleAccessTableUp,
+		Down:        ver0_7_0RevampRuleAccessTableDown,
 	},
 	{ // #30
 		Description: "Add a unique constraint to the local agent 'address' column",
-		Script:      ver0_7_0AddLocalAgentsAddressUnique{},
+		Up:          ver0_7_0AddLocalAgentsAddressUniqueUp,
+		Down:        ver0_7_0AddLocalAgentsAddressUniqueDown,
 	},
 	{ // #31
 		Description: "Add a normalized transfer view which combines transfers & history",
-		Script:      ver0_7_0AddNormalizedTransfersView{},
+		Up:          ver0_7_0AddNormalizedTransfersViewUp,
+		Down:        ver0_7_0AddNormalizedTransfersViewDown,
 	},
 	{ // #32
 		Description: "Split the R66 protocol into R66 (plain) & R66-TLS",
-		Script:      ver0_7_5SplitR66TLS{},
+		Up:          ver0_7_5SplitR66TLSUp,
+		Down:        ver0_7_5SplitR66TLSDown,
 	},
+	// ######################### 0.7.1 #########################
+	// ######################### 0.7.2 #########################
+	// ######################### 0.7.3 #########################
+	// ######################### 0.7.4 #########################
+	// ######################### 0.7.5 #########################
 	{ // #33
 		Description: "Drop the normalized transfer view",
-		Script:      ver0_8_0DropNormalizedTransfersView{},
+		Up:          ver0_8_0DropNormalizedTransfersViewUp,
+		Down:        ver0_8_0DropNormalizedTransfersViewDown,
 	},
 	{ // #34
 		Description: `Add a "filename" column to the transfers table`,
-		Script:      ver0_8_0AddTransferFilename{},
+		Up:          ver0_8_0AddTransferFilenameUp,
+		Down:        ver0_8_0AddTransferFilenameDown,
 	},
 	{ // #35
 		Description: `Add a "filename" column to the history table`,
-		Script:      ver0_8_0AddHistoryFilename{},
+		Up:          ver0_8_0AddHistoryFilenameUp,
+		Down:        ver0_8_0AddHistoryFilenameDown,
 	},
 	{ // #36
 		Description: "Restore and update the normalized transfer view with the new filename",
-		Script:      ver0_8_0UpdateNormalizedTransfersView{},
+		Up:          ver0_8_0UpdateNormalizedTransfersViewUp,
+		Down:        ver0_8_0UpdateNormalizedTransfersViewDown,
 	},
 	{ // #37
 		Description: `Add a "cloud_instances" table`,
-		Script:      ver0_9_0AddCloudInstances{},
+		Up:          ver0_9_0AddCloudInstancesUp,
+		Down:        ver0_9_0AddCloudInstancesDown,
 	},
 	{ // #38
 		Description: `Converts all the transfers' local paths to URLs`,
-		Script:      ver0_9_0LocalPathToURL{},
+		Up:          ver0_9_0LocalPathToURLUp,
+		Down:        ver0_9_0LocalPathToURLDown,
 	},
 	{ // #39
 		Description: `Replaces the local agent "enabled" column by a "disabled" one`,
-		Script:      ver0_9_0FixLocalServerEnabled{},
+		Up:          ver0_9_0FixLocalServerEnabledUp,
+		Down:        ver0_9_0FixLocalServerEnabledDown,
 	},
 	{ // #40
 		Description: `Add a "clients" table and fill it with default clients`,
-		Script:      ver0_9_0AddClientsTable{},
+		Up:          ver0_9_0AddClientsTableUp,
+		Down:        ver0_9_0AddClientsTableDown,
 	},
 	{ // #41
 		Description: `Add an "owner" column to the "remote_agents" table`,
-		Script:      ver0_9_0AddRemoteAgentOwner{},
+		Up:          ver0_9_0AddRemoteAgentOwnerUp,
+		Down:        ver0_9_0AddRemoteAgentOwnerDown,
 	},
 	{ // #42
 		Description: "Duplicate all the partners and their children",
-		Script:      ver0_9_0DuplicateRemoteAgents{},
+		Up:          ver0_9_0DuplicateRemoteAgentsUp,
+		Down:        ver0_9_0DuplicateRemoteAgentsDown,
 	},
 	{ // #43
 		Description: "Relink the transfer agent IDs to the correct instances",
-		Script:      ver0_9_0RelinkTransfers{},
+		Up:          ver0_9_0RelinkTransfersUp,
+		Down:        ver0_9_0RelinkTransfersDown,
 	},
 	{ // #44
 		Description: `Add a "client_id" column to the "transfers" table`,
-		Script:      ver0_9_0AddTransferClientID{},
+		Up:          ver0_9_0AddTransferClientIDUp,
+		Down:        ver0_9_0AddTransferClientIDDown,
 	},
 	{ // #45
 		Description: "Add the 'client' column to the history",
-		Script:      ver0_9_0AddHistoryClient{},
+		Up:          ver0_9_0AddHistoryClientUp,
+		Down:        ver0_9_0AddHistoryClientDown,
 	},
 	{ // #46
 		Description: `Restore and modify the "normalized_transfers" view`,
-		Script:      ver0_9_0RestoreNormalizedTransfersView{},
+		Up:          ver0_9_0RestoreNormalizedTransfersViewUp,
+		Down:        ver0_9_0RestoreNormalizedTransfersViewDown,
 	},
 }

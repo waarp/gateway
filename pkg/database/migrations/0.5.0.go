@@ -8,9 +8,7 @@ import (
 	"runtime"
 )
 
-type ver0_5_0RemoveRulePathSlash struct{}
-
-func (ver0_5_0RemoveRulePathSlash) Up(db Actions) error {
+func ver0_5_0RemoveRulePathSlashUp(db Actions) error {
 	var err error
 
 	switch dial := db.GetDialect(); dial {
@@ -29,7 +27,7 @@ func (ver0_5_0RemoveRulePathSlash) Up(db Actions) error {
 	return nil
 }
 
-func (ver0_5_0RemoveRulePathSlash) Down(db Actions) error {
+func ver0_5_0RemoveRulePathSlashDown(db Actions) error {
 	var err error
 
 	switch dial := db.GetDialect(); dial {
@@ -48,9 +46,7 @@ func (ver0_5_0RemoveRulePathSlash) Down(db Actions) error {
 	return nil
 }
 
-type ver0_5_0CheckRulePathParent struct{}
-
-func (ver0_5_0CheckRulePathParent) Up(db Actions) error {
+func ver0_5_0CheckRulePathParentUp(db Actions) error {
 	var query string
 
 	switch dial := db.GetDialect(); dial {
@@ -84,13 +80,7 @@ func (ver0_5_0CheckRulePathParent) Up(db Actions) error {
 	return nil
 }
 
-func (ver0_5_0CheckRulePathParent) Down(Actions) error {
-	return nil // nothing to do
-}
-
-type ver0_5_0LocalAgentDenormalizePaths struct{}
-
-func (ver0_5_0LocalAgentDenormalizePaths) Up(db Actions) (err error) {
+func ver0_5_0LocalAgentDenormalizePathsUp(db Actions) (err error) {
 	if runtime.GOOS != windowsRuntime {
 		return nil // nothing to do
 	}
@@ -125,7 +115,7 @@ func (ver0_5_0LocalAgentDenormalizePaths) Up(db Actions) (err error) {
 	return nil
 }
 
-func (ver0_5_0LocalAgentDenormalizePaths) Down(db Actions) (err error) {
+func ver0_5_0LocalAgentDenormalizePathsDown(db Actions) (err error) {
 	if runtime.GOOS != windowsRuntime {
 		return nil // nothing to do
 	}
@@ -188,9 +178,7 @@ func (ver0_5_0LocalAgentDenormalizePaths) Down(db Actions) (err error) {
 	return nil
 }
 
-type ver0_5_0LocalAgentsPathsRename struct{}
-
-func (ver0_5_0LocalAgentsPathsRename) Up(db Actions) error {
+func ver0_5_0LocalAgentsPathsRenameUp(db Actions) error {
 	if err := db.AlterTable("local_agents",
 		RenameColumn{OldName: "root", NewName: "root_dir"},
 		RenameColumn{OldName: "in_dir", NewName: "receive_dir"},
@@ -203,7 +191,7 @@ func (ver0_5_0LocalAgentsPathsRename) Up(db Actions) error {
 	return nil
 }
 
-func (ver0_5_0LocalAgentsPathsRename) Down(db Actions) error {
+func ver0_5_0LocalAgentsPathsRenameDown(db Actions) error {
 	if err := db.AlterTable("local_agents",
 		RenameColumn{OldName: "root_dir", NewName: "root"},
 		RenameColumn{OldName: "receive_dir", NewName: "in_dir"},
@@ -216,9 +204,7 @@ func (ver0_5_0LocalAgentsPathsRename) Down(db Actions) error {
 	return nil
 }
 
-type ver0_5_0LocalAgentsDisallowReservedNames struct{}
-
-func (ver0_5_0LocalAgentsDisallowReservedNames) Up(db Actions) error {
+func ver0_5_0LocalAgentsDisallowReservedNamesUp(db Actions) error {
 	rows, err := db.Query(`SELECT name FROM local_agents`)
 	if err != nil {
 		return fmt.Errorf("failed to retrieve local servers list: %w", err)
@@ -238,7 +224,7 @@ func (ver0_5_0LocalAgentsDisallowReservedNames) Up(db Actions) error {
 
 		if name == "Database" || name == "Admin" || name == "Controller" {
 			//nolint:goerr113 //this is a base error
-			return fmt.Errorf("'%s' is a reserved service name, this server should be renamed",
+			return fmt.Errorf("%q is a reserved service name, this server should be renamed",
 				name)
 		}
 	}
@@ -246,13 +232,7 @@ func (ver0_5_0LocalAgentsDisallowReservedNames) Up(db Actions) error {
 	return nil
 }
 
-func (ver0_5_0LocalAgentsDisallowReservedNames) Down(Actions) error {
-	return nil // nothing to do
-}
-
-type ver0_5_0RulesPathsRename struct{}
-
-func (ver0_5_0RulesPathsRename) Up(db Actions) error {
+func ver0_5_0RulesPathsRenameUp(db Actions) error {
 	if err := db.AlterTable("rules",
 		RenameColumn{OldName: "in_path", NewName: "local_dir"},
 		RenameColumn{OldName: "out_path", NewName: "remote_dir"},
@@ -268,7 +248,7 @@ func (ver0_5_0RulesPathsRename) Up(db Actions) error {
 	return nil
 }
 
-func (ver0_5_0RulesPathsRename) Down(db Actions) error {
+func ver0_5_0RulesPathsRenameDown(db Actions) error {
 	if err := db.SwapColumns("rules", "local_dir", "remote_dir", "send=true"); err != nil {
 		return fmt.Errorf("failed to re-swap the rule path columns values: %w", err)
 	}
@@ -284,9 +264,7 @@ func (ver0_5_0RulesPathsRename) Down(db Actions) error {
 	return nil
 }
 
-type ver0_5_0RulePathChanges struct{}
-
-func (ver0_5_0RulePathChanges) Up(db Actions) (err error) {
+func ver0_5_0RulePathChangesUp(db Actions) (err error) {
 	if runtime.GOOS != windowsRuntime {
 		return nil // nothing to do
 	}
@@ -315,7 +293,7 @@ func (ver0_5_0RulePathChanges) Up(db Actions) (err error) {
 	return nil
 }
 
-func (ver0_5_0RulePathChanges) Down(db Actions) (err error) {
+func ver0_5_0RulePathChangesDown(db Actions) (err error) {
 	if runtime.GOOS != windowsRuntime {
 		return nil // nothing to do
 	}
@@ -365,9 +343,7 @@ func (ver0_5_0RulePathChanges) Down(db Actions) (err error) {
 	return nil
 }
 
-type ver0_5_0AddFilesize struct{}
-
-func (ver0_5_0AddFilesize) Up(db Actions) error {
+func ver0_5_0AddFilesizeUp(db Actions) error {
 	if err := db.AlterTable("transfers",
 		AddColumn{Name: "filesize", Type: BigInt{}, NotNull: true, Default: -1},
 	); err != nil {
@@ -383,7 +359,7 @@ func (ver0_5_0AddFilesize) Up(db Actions) error {
 	return nil
 }
 
-func (ver0_5_0AddFilesize) Down(db Actions) error {
+func ver0_5_0AddFilesizeDown(db Actions) error {
 	if err := db.AlterTable("transfers", DropColumn{Name: "filesize"}); err != nil {
 		return fmt.Errorf("failed to drop transfer 'filesize' column: %w", err)
 	}
@@ -395,9 +371,7 @@ func (ver0_5_0AddFilesize) Down(db Actions) error {
 	return nil
 }
 
-type ver0_5_0TransferChangePaths struct{}
-
-func (ver0_5_0TransferChangePaths) Up(db Actions) error {
+func ver0_5_0TransferChangePathsUp(db Actions) error {
 	if err := db.AlterTable("transfers",
 		RenameColumn{OldName: "true_filepath", NewName: "local_path"},
 		RenameColumn{OldName: "source_file", NewName: "remote_path"},
@@ -432,7 +406,7 @@ func (ver0_5_0TransferChangePaths) Up(db Actions) error {
 	return nil
 }
 
-func (ver0_5_0TransferChangePaths) Down(db Actions) error {
+func ver0_5_0TransferChangePathsDown(db Actions) error {
 	if err := db.AlterTable("transfers",
 		RenameColumn{OldName: "local_path", NewName: "true_filepath"},
 		RenameColumn{OldName: "remote_path", NewName: "source_file"},
@@ -477,9 +451,7 @@ func (ver0_5_0TransferChangePaths) Down(db Actions) error {
 	return nil
 }
 
-type ver0_5_0TransferFormatLocalPath struct{}
-
-func (ver0_5_0TransferFormatLocalPath) Up(db Actions) (err error) {
+func ver0_5_0TransferFormatLocalPathUp(db Actions) (err error) {
 	if runtime.GOOS != windowsRuntime {
 		return nil // nothing to do
 	}
@@ -505,7 +477,7 @@ func (ver0_5_0TransferFormatLocalPath) Up(db Actions) (err error) {
 	return nil
 }
 
-func (ver0_5_0TransferFormatLocalPath) Down(db Actions) (err error) {
+func ver0_5_0TransferFormatLocalPathDown(db Actions) (err error) {
 	if runtime.GOOS != windowsRuntime {
 		return nil // nothing to do
 	}
@@ -536,9 +508,7 @@ func (ver0_5_0TransferFormatLocalPath) Down(db Actions) (err error) {
 	return nil
 }
 
-type ver0_5_0HistoryPathsChange struct{}
-
-func (ver0_5_0HistoryPathsChange) Up(db Actions) error {
+func ver0_5_0HistoryPathsChangeUp(db Actions) error {
 	if err := db.AlterTable("transfer_history",
 		RenameColumn{OldName: "dest_filename", NewName: "local_path"},
 		RenameColumn{OldName: "source_filename", NewName: "remote_path"},
@@ -577,7 +547,7 @@ func (ver0_5_0HistoryPathsChange) Up(db Actions) error {
 	return nil
 }
 
-func (ver0_5_0HistoryPathsChange) Down(db Actions) (err error) {
+func ver0_5_0HistoryPathsChangeDown(db Actions) (err error) {
 	if runtime.GOOS == windowsRuntime {
 		switch dial := db.GetDialect(); dial {
 		case SQLite:
@@ -612,12 +582,10 @@ func (ver0_5_0HistoryPathsChange) Down(db Actions) (err error) {
 	return nil
 }
 
-type ver0_5_0LocalAccountsPasswordDecode struct{}
-
-func (ver0_5_0LocalAccountsPasswordDecode) Up(db Actions) error {
+func ver0_5_0LocalAccountsPasswordDecodeUp(db Actions) error {
 	for i := 0; true; i++ {
 		row := db.QueryRow(`SELECT id,password_hash FROM local_accounts 
-                        ORDER BY id LIMIT 1 OFFSET ?`, i)
+			ORDER BY id LIMIT 1 OFFSET ?`, i)
 
 		var (
 			id   int64
@@ -644,7 +612,7 @@ func (ver0_5_0LocalAccountsPasswordDecode) Up(db Actions) error {
 	return nil
 }
 
-func (ver0_5_0LocalAccountsPasswordDecode) Down(db Actions) error {
+func ver0_5_0LocalAccountsPasswordDecodeDown(db Actions) error {
 	for i := 0; true; i++ {
 		row := db.QueryRow(`SELECT id,password_hash FROM local_accounts
 			ORDER BY id LIMIT 1 OFFSET ?`, i)
@@ -669,9 +637,7 @@ func (ver0_5_0LocalAccountsPasswordDecode) Down(db Actions) error {
 	return nil
 }
 
-type ver0_5_0UserPasswordChange struct{}
-
-func (ver0_5_0UserPasswordChange) Up(db Actions) error {
+func ver0_5_0UserPasswordChangeUp(db Actions) error {
 	if err := db.AlterTable("users",
 		AddColumn{Name: "password_hash", Type: Text{}, NotNull: true, Default: ""},
 	); err != nil {
@@ -695,7 +661,7 @@ func (ver0_5_0UserPasswordChange) Up(db Actions) error {
 	return nil
 }
 
-func (ver0_5_0UserPasswordChange) Down(db Actions) (err error) {
+func ver0_5_0UserPasswordChangeDown(db Actions) (err error) {
 	if err := db.AlterTable("users",
 		AddColumn{Name: "password", Type: Blob{}, NotNull: true, Default: []byte{}},
 	); err != nil {

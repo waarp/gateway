@@ -1,27 +1,44 @@
 package utils
 
 import (
-	"sort"
 	"strconv"
 
 	"golang.org/x/exp/constraints"
 )
 
-// ContainsStrings returns whether the given slice contains one of the given
+// ContainsOneOfStrings returns whether the given slice contains one of the given
 // strings or not.
-func ContainsStrings(slice []string, strings ...string) bool {
-	n := len(slice)
-	foundIndex := sort.Search(n, func(i int) bool {
-		for _, s := range strings {
-			if slice[i] == s {
-				return true
-			}
+func ContainsOneOfStrings(slice []string, strings ...string) bool {
+	for _, str := range strings {
+		if ContainsString(slice, str) {
+			return true
 		}
+	}
 
-		return false
-	})
+	return false
+}
 
-	return foundIndex != n
+// ContainsAllStrings returns whether the given slice contains all the given
+// strings or not.
+func ContainsAllStrings(slice []string, strings ...string) bool {
+	for _, str := range strings {
+		if !ContainsString(slice, str) {
+			return false
+		}
+	}
+
+	return false
+}
+
+// ContainsString returns whether the given slice contains the given string or not.
+func ContainsString(slice []string, str string) bool {
+	for _, elem := range slice {
+		if elem == str {
+			return true
+		}
+	}
+
+	return false
 }
 
 // FormatInt formats an integer as a string. It is a shortcut for strconv.FormatInt

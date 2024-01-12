@@ -5,27 +5,24 @@ package migrations
 import (
 	"testing"
 
-	. "github.com/smartystreets/goconvey/convey"
-
 	"code.waarp.fr/lib/migration"
+	"github.com/stretchr/testify/require"
 
-	"code.waarp.fr/apps/gateway/gateway/pkg/utils/testhelpers"
+	"code.waarp.fr/apps/gateway/gateway/pkg/utils/gwtesting"
 )
 
-func getMySQLEngine(c C) *testEngine {
-	logger := testhelpers.TestLogger(c, "test_mysql_engine")
-	db := testhelpers.GetTestMySQLDB(c)
+func getMySQLEngine(tb testing.TB) *testEngine {
+	logger := gwtesting.Logger(tb)
+	db := gwtesting.MySQLDatabase(tb)
 
-	eng, err := migration.NewEngine(db, migration.MySQL, logger, nil)
-	So(err, ShouldBeNil)
+	eng, err := migration.NewEngine(db, MySQL, logger, nil)
+	require.NoError(tb, err)
 
-	return &testEngine{Engine: eng, DB: db}
+	return &testEngine{Engine: eng, DB: db, Dialect: MySQL}
 }
 
 func TestMySQLMigrations(t *testing.T) {
 	t.Parallel()
 
-	Convey("Given an un-migrated MySQL database engine", t, func(c C) {
-		testMigrations(getMySQLEngine(c), migration.MySQL)
-	})
+	testMigrations(t, getMySQLEngine(t))
 }

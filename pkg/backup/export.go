@@ -24,35 +24,35 @@ func ExportData(db database.ReadAccess, w io.Writer, targets []string) error {
 
 	data := &file.Data{}
 
-	if utils.ContainsStrings(targets, "servers", "all") {
+	if utils.ContainsOneOfStrings(targets, "servers", "all") {
 		data.Locals, err = exportLocals(logger, db)
 		if err != nil {
 			return err
 		}
 	}
 
-	if utils.ContainsStrings(targets, "clients", "all") {
+	if utils.ContainsOneOfStrings(targets, "clients", "all") {
 		data.Clients, err = exportClients(logger, db)
 		if err != nil {
 			return err
 		}
 	}
 
-	if utils.ContainsStrings(targets, "partners", "all") {
+	if utils.ContainsOneOfStrings(targets, "partners", "all") {
 		data.Remotes, err = exportRemotes(logger, db)
 		if err != nil {
 			return err
 		}
 	}
 
-	if utils.ContainsStrings(targets, "rules", "all") {
+	if utils.ContainsOneOfStrings(targets, "rules", "all") {
 		data.Rules, err = exportRules(logger, db)
 		if err != nil {
 			return err
 		}
 	}
 
-	if utils.ContainsStrings(targets, "users", "all") {
+	if utils.ContainsOneOfStrings(targets, "users", "all") {
 		data.Users, err = exportUsers(logger, db)
 		if err != nil {
 			return err

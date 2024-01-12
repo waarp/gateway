@@ -46,30 +46,30 @@ func ImportData(db *database.DB, r io.Reader, targets []string, dry, reset bool)
 	}
 
 	if err := db.Transaction(func(ses *database.Session) error {
-		if utils.ContainsStrings(targets, "clients", "all") {
+		if utils.ContainsOneOfStrings(targets, "clients", "all") {
 			if err := importClients(logger, ses, data.Clients, reset); err != nil {
 				return err
 			}
 		}
 
-		if utils.ContainsStrings(targets, "partners", "all") {
+		if utils.ContainsOneOfStrings(targets, "partners", "all") {
 			if err := importRemoteAgents(logger, ses, data.Remotes, reset); err != nil {
 				return err
 			}
 		}
 
-		if utils.ContainsStrings(targets, "servers", "all") {
+		if utils.ContainsOneOfStrings(targets, "servers", "all") {
 			if err := importLocalAgents(logger, ses, data.Locals, reset); err != nil {
 				return err
 			}
 		}
 
-		if utils.ContainsStrings(targets, "rules", "all") {
+		if utils.ContainsOneOfStrings(targets, "rules", "all") {
 			if err := importRules(logger, ses, data.Rules, reset); err != nil {
 				return err
 			}
 		}
-		if utils.ContainsStrings(targets, "users", "all") {
+		if utils.ContainsOneOfStrings(targets, "users", "all") {
 			if err := importUsers(logger, ses, data.Users, reset); err != nil {
 				return err
 			}

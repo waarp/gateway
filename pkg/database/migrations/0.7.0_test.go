@@ -5,1398 +5,1538 @@ import (
 	"encoding/binary"
 	"fmt"
 	"math/bits"
+	"testing"
 	"time"
 
-	. "github.com/smartystreets/goconvey/convey"
+	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
-func testVer0_7_0AddLocalAgentEnabled(eng *testEngine) {
-	Convey("Given the 0.7.0 server 'enable' addition", func() {
-		setupDatabaseUpTo(eng, ver0_7_0AddLocalAgentEnabledColumn{})
-		tableShouldNotHaveColumns(eng.DB, "local_agents", "enabled")
+func testVer0_7_0AddLocalAgentEnabled(t *testing.T, eng *testEngine) Change {
+	mig := Migrations[17]
 
-		Convey("When applying the migration", func() {
-			err := eng.Upgrade(ver0_7_0AddLocalAgentEnabledColumn{})
-			So(err, ShouldBeNil)
+	t.Run("When applying the 0.7.0 server 'enable' addition", func(t *testing.T) {
+		tableShouldNotHaveColumns(t, eng.DB, "local_agents", "enabled")
 
-			Convey("Then it should have added the column", func() {
-				tableShouldHaveColumns(eng.DB, "local_agents", "enabled")
-			})
+		require.NoError(t, eng.Upgrade(mig),
+			"The migration should not fail")
 
-			Convey("When reversing the migration", func() {
-				err := eng.Downgrade(ver0_7_0AddLocalAgentEnabledColumn{})
-				So(err, ShouldBeNil)
+		t.Run("Then it should have added the column", func(t *testing.T) {
+			tableShouldHaveColumns(t, eng.DB, "local_agents", "enabled")
+		})
 
-				Convey("Then it should have dropped the column", func() {
-					tableShouldNotHaveColumns(eng.DB, "local_agents", "enabled")
-				})
+		t.Run("When reverting the migration", func(t *testing.T) {
+			require.NoError(t, eng.Downgrade(mig),
+				"Reverting the migration should not fail")
+
+			t.Run("Then it should have dropped the column", func(t *testing.T) {
+				tableShouldNotHaveColumns(t, eng.DB, "local_agents", "enabled")
 			})
 		})
 	})
+
+	return mig
 }
 
-func testVer0_7_0RevampUsersTable(eng *testEngine, dialect string) {
-	Convey("Given the 0.7.0 'users' table revamp", func() {
-		setupDatabaseUpTo(eng, ver0_7_0RevampUsersTable{})
+func testVer0_7_0RevampUsersTable(t *testing.T, eng *testEngine) Change {
+	mig := Migrations[18]
 
+	t.Run("When applying the 0.7.0 'users' table revamp", func(t *testing.T) {
 		const permBefore uint32 = 0xA0000003
 		permAfter := bits.Reverse32(permBefore)
 		mask := make([]byte, 4)
 
 		binary.LittleEndian.PutUint32(mask, permBefore)
 
-		if dialect == PostgreSQL {
+		if eng.Dialect == PostgreSQL {
 			_, err := eng.DB.Exec(`INSERT INTO users(id,owner,username,
             	password_hash,permissions) VALUES (1,'waarp_gw','toto',
 				'pswd_hash',$1)`, mask)
-			So(err, ShouldBeNil)
+			require.NoError(t, err)
 		} else {
 			_, err := eng.DB.Exec(`INSERT INTO users(id,owner,username,
 				password_hash,permissions) VALUES (1,'waarp_gw','toto',
 				'pswd_hash',?)`, mask)
-			So(err, ShouldBeNil)
+			require.NoError(t, err)
 		}
 
-		Convey("When applying the migration", func() {
-			err := eng.Upgrade(ver0_7_0RevampUsersTable{})
-			So(err, ShouldBeNil)
+		t.Cleanup(func() {
+			_, err := eng.DB.Exec(`DELETE FROM users`)
+			require.NoError(t, err)
+		})
 
-			Convey("Then it should have changed the columns", func() {
-				doesIndexExist(eng.DB, dialect, "users", "unique_username")
+		require.NoError(t, eng.Upgrade(mig),
+			"The migration should not fail")
 
-				row := eng.DB.QueryRow(`SELECT id,owner,username,password_hash,
+		t.Run("Then it should have changed the columns", func(t *testing.T) {
+			doesIndexExist(t, eng.DB, eng.Dialect, "users", "unique_username")
+
+			row := eng.DB.QueryRow(`SELECT id,owner,username,password_hash,
        				permissions FROM users`)
-				So(err, ShouldBeNil)
+
+			var (
+				id                int
+				perm              int32
+				owner, name, hash string
+			)
+
+			require.NoError(t, row.Scan(&id, &owner, &name, &hash, &perm))
+
+			assert.Equal(t, 1, id)
+			assert.Equal(t, "waarp_gw", owner)
+			assert.Equal(t, "toto", name)
+			assert.Equal(t, "pswd_hash", hash)
+			assert.Equal(t,
+				fmt.Sprintf("%#b", permAfter),
+				fmt.Sprintf("%#b", uint32(perm)))
+		})
+
+		t.Run("When reverting the migration", func(t *testing.T) {
+			require.NoError(t, eng.Downgrade(mig),
+				"Reverting the migration should not fail")
+
+			t.Run("Then it should have reverted the column changes", func(t *testing.T) {
+				row := eng.DB.QueryRow(`SELECT id,owner,username,password_hash,
+       					permissions FROM users`)
 
 				var (
-					id                int64
-					perm              int32
+					id                int
 					owner, name, hash string
+					perm              []byte
 				)
 
-				So(row.Scan(&id, &owner, &name, &hash, &perm), ShouldBeNil)
+				require.NoError(t, row.Scan(&id, &owner, &name, &hash, &perm))
 
-				So(id, ShouldEqual, 1)
-				So(owner, ShouldEqual, "waarp_gw")
-				So(name, ShouldEqual, "toto")
-				So(hash, ShouldEqual, "pswd_hash")
-				So(fmt.Sprintf("%#b", uint32(perm)), ShouldEqual, fmt.Sprintf("%#b", permAfter))
-			})
-
-			Convey("When reversing the migration", func() {
-				err := eng.Downgrade(ver0_7_0RevampUsersTable{})
-				So(err, ShouldBeNil)
-
-				Convey("Then it should have reverted the column changes", func() {
-					row := eng.DB.QueryRow(`SELECT id,owner,username,password_hash,
-       				permissions FROM users`)
-					So(err, ShouldBeNil)
-
-					var id int64
-					var owner, name, hash string
-					var perm []byte
-
-					So(row.Scan(&id, &owner, &name, &hash, &perm), ShouldBeNil)
-
-					So(id, ShouldEqual, 1)
-					So(owner, ShouldEqual, "waarp_gw")
-					So(name, ShouldEqual, "toto")
-					So(hash, ShouldEqual, "pswd_hash")
-					So(perm, ShouldResemble, mask)
-				})
+				assert.Equal(t, 1, id)
+				assert.Equal(t, "waarp_gw", owner)
+				assert.Equal(t, "toto", name)
+				assert.Equal(t, "pswd_hash", hash)
+				assert.Equal(t, mask, perm)
 			})
 		})
 	})
+
+	return mig
 }
 
-func testVer0_7_0RevampLocalAgentTable(eng *testEngine) {
-	Convey("Given the 0.7.0 'local_agents' table revamp", func() {
-		setupDatabaseUpTo(eng, ver0_7_0RevampLocalAgentsTable{})
+func testVer0_7_0RevampLocalAgentTable(t *testing.T, eng *testEngine) Change {
+	mig := Migrations[19]
 
-		_, err := eng.DB.Exec(`INSERT INTO local_agents(id,owner,name,protocol,
+	t.Run("When applying the 0.7.0 'local_agents' table revamp", func(t *testing.T) {
+		_, err1 := eng.DB.Exec(`INSERT INTO local_agents(id,owner,name,protocol,
 			address,root_dir,receive_dir,send_dir,tmp_receive_dir,proto_config)
 			VALUES (1,'waarp_gw','sftp_serv','sftp','localhost:2222','root',
 			        'rcv','snd','tmp','{"key":"val"}')`)
-		So(err, ShouldBeNil)
+		require.NoError(t, err1)
 
-		Convey("When applying the migration", func() {
-			err := eng.Upgrade(ver0_7_0RevampLocalAgentsTable{})
-			So(err, ShouldBeNil)
+		t.Cleanup(func() {
+			_, err2 := eng.DB.Exec(`DELETE FROM local_agents`)
+			require.NoError(t, err2)
+		})
 
-			Convey("Then it should have changed the columns", func() {
+		require.NoError(t, eng.Upgrade(mig),
+			"The migration should not fail")
+
+		t.Run("Then it should have changed the columns", func(t *testing.T) {
+			row := eng.DB.QueryRow(`SELECT id,owner,name,protocol,address,root_dir,
+       				receive_dir,send_dir,tmp_receive_dir,proto_config FROM local_agents`)
+
+			var (
+				id                                                    int
+				owner, name, proto, addr, root, recv, send, tmp, conf string
+			)
+
+			require.NoError(t, row.Scan(&id, &owner, &name, &proto, &addr,
+				&root, &recv, &send, &tmp, &conf))
+
+			assert.Equal(t, 1, id)
+			assert.Equal(t, "waarp_gw", owner)
+			assert.Equal(t, "sftp_serv", name)
+			assert.Equal(t, "sftp", proto)
+			assert.Equal(t, "localhost:2222", addr)
+			assert.Equal(t, "root", root)
+			assert.Equal(t, "rcv", recv)
+			assert.Equal(t, "snd", send)
+			assert.Equal(t, "tmp", tmp)
+			assert.Equal(t, `{"key":"val"}`, conf)
+		})
+
+		t.Run("When reverting the migration", func(t *testing.T) {
+			require.NoError(t, eng.Downgrade(mig),
+				"Reverting the migration should not fail")
+
+			t.Run("Then it should have reverted the column changes", func(t *testing.T) {
 				row := eng.DB.QueryRow(`SELECT id,owner,name,protocol,address,root_dir,
        				receive_dir,send_dir,tmp_receive_dir,proto_config FROM local_agents`)
-				So(err, ShouldBeNil)
 
-				var id int64
-				var owner, name, proto, addr, root, recv, send, tmp, conf string
+				var (
+					id                                              int
+					owner, name, proto, addr, root, recv, send, tmp string
+					conf                                            []byte
+				)
 
-				So(row.Scan(&id, &owner, &name, &proto, &addr, &root, &recv,
-					&send, &tmp, &conf), ShouldBeNil)
+				require.NoError(t, row.Scan(&id, &owner, &name, &proto, &addr,
+					&root, &recv, &send, &tmp, &conf))
 
-				So(id, ShouldEqual, 1)
-				So(owner, ShouldEqual, "waarp_gw")
-				So(name, ShouldEqual, "sftp_serv")
-				So(proto, ShouldEqual, "sftp")
-				So(addr, ShouldEqual, "localhost:2222")
-				So(root, ShouldEqual, "root")
-				So(recv, ShouldEqual, "rcv")
-				So(send, ShouldEqual, "snd")
-				So(tmp, ShouldEqual, "tmp")
-				So(conf, ShouldEqual, `{"key":"val"}`)
-			})
-
-			Convey("When reversing the migration", func() {
-				err := eng.Downgrade(ver0_7_0RevampLocalAgentsTable{})
-				So(err, ShouldBeNil)
-
-				Convey("Then it should have reverted the column changes", func() {
-					row := eng.DB.QueryRow(`SELECT id,owner,name,protocol,address,root_dir,
-       				receive_dir,send_dir,tmp_receive_dir,proto_config FROM local_agents`)
-					So(err, ShouldBeNil)
-
-					var id int64
-					var owner, name, proto, addr, root, recv, send, tmp string
-					var conf []byte
-
-					So(row.Scan(&id, &owner, &name, &proto, &addr, &root, &recv,
-						&send, &tmp, &conf), ShouldBeNil)
-
-					So(id, ShouldEqual, 1)
-					So(owner, ShouldEqual, "waarp_gw")
-					So(name, ShouldEqual, "sftp_serv")
-					So(proto, ShouldEqual, "sftp")
-					So(addr, ShouldEqual, "localhost:2222")
-					So(root, ShouldEqual, "root")
-					So(recv, ShouldEqual, "rcv")
-					So(send, ShouldEqual, "snd")
-					So(tmp, ShouldEqual, "tmp")
-					So(conf, ShouldResemble, []byte(`{"key":"val"}`))
-				})
+				assert.Equal(t, 1, id)
+				assert.Equal(t, "waarp_gw", owner)
+				assert.Equal(t, "sftp_serv", name)
+				assert.Equal(t, "sftp", proto)
+				assert.Equal(t, "localhost:2222", addr)
+				assert.Equal(t, "root", root)
+				assert.Equal(t, "rcv", recv)
+				assert.Equal(t, "snd", send)
+				assert.Equal(t, "tmp", tmp)
+				assert.Equal(t, []byte(`{"key":"val"}`), conf)
 			})
 		})
 	})
+
+	return mig
 }
 
-func testVer0_7_0RevampRemoteAgentTable(eng *testEngine) {
-	Convey("Given the 0.7.0 'remote_agents' table revamp", func() {
-		setupDatabaseUpTo(eng, ver0_7_0RevampRemoteAgentsTable{})
+func testVer0_7_0RevampRemoteAgentTable(t *testing.T, eng *testEngine) Change {
+	mig := Migrations[20]
 
-		_, err := eng.DB.Exec(`INSERT INTO remote_agents(id,name,protocol,address,
+	t.Run("When applying the 0.7.0 'remote_agents' table revamp", func(t *testing.T) {
+		_, err1 := eng.DB.Exec(`INSERT INTO remote_agents(id,name,protocol,address,
 			proto_config) VALUES (1,'sftp_part','sftp','localhost:2222','{}')`)
-		So(err, ShouldBeNil)
+		require.NoError(t, err1)
 
-		Convey("When applying the migration", func() {
-			err := eng.Upgrade(ver0_7_0RevampRemoteAgentsTable{})
-			So(err, ShouldBeNil)
+		t.Cleanup(func() {
+			_, err2 := eng.DB.Exec(`DELETE FROM remote_agents`)
+			require.NoError(t, err2)
+		})
 
-			Convey("Then it should have changed the columns", func() {
-				row := eng.DB.QueryRow(`SELECT id,name,protocol,address,
+		require.NoError(t, eng.Upgrade(mig),
+			"The migration should not fail")
+
+		t.Run("Then it should have changed the columns", func(t *testing.T) {
+			row := eng.DB.QueryRow(`SELECT id,name,protocol,address,
        				proto_config FROM remote_agents`)
-				So(err, ShouldBeNil)
 
-				var id int64
-				var name, proto, addr, conf string
+			var (
+				id                      int
+				name, proto, addr, conf string
+			)
 
-				So(row.Scan(&id, &name, &proto, &addr, &conf), ShouldBeNil)
+			require.NoError(t, row.Scan(&id, &name, &proto, &addr, &conf))
 
-				So(id, ShouldEqual, 1)
-				So(name, ShouldEqual, "sftp_part")
-				So(proto, ShouldEqual, "sftp")
-				So(addr, ShouldEqual, "localhost:2222")
-				So(conf, ShouldEqual, "{}")
-			})
+			assert.Equal(t, 1, id)
+			assert.Equal(t, "sftp_part", name)
+			assert.Equal(t, "sftp", proto)
+			assert.Equal(t, "localhost:2222", addr)
+			assert.Equal(t, "{}", conf)
+		})
 
-			Convey("When reversing the migration", func() {
-				err := eng.Downgrade(ver0_7_0RevampRemoteAgentsTable{})
-				So(err, ShouldBeNil)
+		t.Run("When reverting the migration", func(t *testing.T) {
+			require.NoError(t, eng.Downgrade(mig),
+				"Reverting the migration should not fail")
 
-				Convey("Then it should have reverted the column changes", func() {
-					row := eng.DB.QueryRow(`SELECT id,name,protocol,address,
+			t.Run("Then it should have reverted the column changes", func(t *testing.T) {
+				row := eng.DB.QueryRow(`SELECT id,name,protocol,address,
        					proto_config FROM remote_agents`)
-					So(err, ShouldBeNil)
 
-					var id int64
-					var name, proto, addr string
-					var conf []byte
+				var (
+					id                int
+					name, proto, addr string
+					conf              []byte
+				)
 
-					So(row.Scan(&id, &name, &proto, &addr, &conf), ShouldBeNil)
+				require.NoError(t, row.Scan(&id, &name, &proto, &addr, &conf))
 
-					So(id, ShouldEqual, 1)
-					So(name, ShouldEqual, "sftp_part")
-					So(proto, ShouldEqual, "sftp")
-					So(addr, ShouldEqual, "localhost:2222")
-					So(conf, ShouldResemble, []byte("{}"))
-				})
+				assert.Equal(t, 1, id)
+				assert.Equal(t, "sftp_part", name)
+				assert.Equal(t, "sftp", proto)
+				assert.Equal(t, "localhost:2222", addr)
+				assert.Equal(t, []byte("{}"), conf)
 			})
 		})
 	})
+
+	return mig
 }
 
-func testVer0_7_0RevampLocalAccountsTable(eng *testEngine, dialect string) {
-	Convey("Given the 0.7.0 'local_accounts' table revamp", func() {
-		setupDatabaseUpTo(eng, ver0_7_0RevampLocalAccountsTable{})
+func testVer0_7_0RevampLocalAccountsTable(t *testing.T, eng *testEngine) Change {
+	mig := Migrations[21]
 
-		_, err := eng.DB.Exec(`INSERT INTO local_agents(id,owner,name,protocol,
+	t.Run("When applying the 0.7.0 'local_accounts' table revamp", func(t *testing.T) {
+		_, err1 := eng.DB.Exec(`INSERT INTO local_agents(id,owner,name,protocol,
 			address,root_dir,receive_dir,send_dir,tmp_receive_dir,proto_config)
 			VALUES (1,'waarp_gw','sftp_serv','sftp','localhost:2222','root',
 			        'rcv','snd','tmp','{}')`)
-		So(err, ShouldBeNil)
+		require.NoError(t, err1)
 
-		if dialect == PostgreSQL {
-			_, err = eng.DB.Exec(`INSERT INTO local_accounts(id,local_agent_id,
-				login,password_hash) VALUES (1,1,'toto',$1)`, []byte("pswdhash"))
+		if eng.Dialect == PostgreSQL {
+			_, err2 := eng.DB.Exec(`INSERT INTO local_accounts(id,local_agent_id,
+				login,password_hash) VALUES (10,1,'toto',$1)`, []byte("pswdhash"))
+			require.NoError(t, err2)
 		} else {
-			_, err = eng.DB.Exec(`INSERT INTO local_accounts(id,local_agent_id,
-				login,password_hash) VALUES (1,1,'toto',?)`, []byte("pswdhash"))
+			_, err2 := eng.DB.Exec(`INSERT INTO local_accounts(id,local_agent_id,
+				login,password_hash) VALUES (10,1,'toto',?)`, []byte("pswdhash"))
+			require.NoError(t, err2)
 		}
 
-		So(err, ShouldBeNil)
+		t.Cleanup(func() {
+			_, err2 := eng.DB.Exec(`DELETE FROM local_accounts`)
+			require.NoError(t, err2)
+			_, err3 := eng.DB.Exec(`DELETE FROM local_agents`)
+			require.NoError(t, err3)
+		})
 
-		Convey("When applying the migration", func() {
-			err := eng.Upgrade(ver0_7_0RevampLocalAccountsTable{})
-			So(err, ShouldBeNil)
+		require.NoError(t, eng.Upgrade(mig),
+			"The migration should not fail")
 
-			Convey("Then it should have changed the columns", func() {
-				row := eng.DB.QueryRow(`SELECT id,local_agent_id,login,
+		t.Run("Then it should have changed the columns", func(t *testing.T) {
+			row := eng.DB.QueryRow(`SELECT id,local_agent_id,login,
        				password_hash FROM local_accounts`)
-				So(err, ShouldBeNil)
 
-				var id, agID int64
-				var login, hash string
+			var (
+				id, agID    int
+				login, hash string
+			)
 
-				So(row.Scan(&id, &agID, &login, &hash), ShouldBeNil)
+			require.NoError(t, row.Scan(&id, &agID, &login, &hash))
 
-				So(id, ShouldEqual, 1)
-				So(agID, ShouldEqual, 1)
-				So(login, ShouldEqual, "toto")
-				So(hash, ShouldEqual, "pswdhash")
-			})
+			assert.Equal(t, 10, id)
+			assert.Equal(t, 1, agID)
+			assert.Equal(t, "toto", login)
+			assert.Equal(t, "pswdhash", hash)
+		})
 
-			Convey("When reversing the migration", func() {
-				err := eng.Downgrade(ver0_7_0RevampLocalAccountsTable{})
-				So(err, ShouldBeNil)
+		t.Run("When reverting the migration", func(t *testing.T) {
+			require.NoError(t, eng.Downgrade(mig),
+				"Reverting the migration should not fail")
 
-				Convey("Then it should have reverted the column changes", func() {
-					row := eng.DB.QueryRow(`SELECT id,local_agent_id,login,
+			t.Run("Then it should have reverted the column changes", func(t *testing.T) {
+				row := eng.DB.QueryRow(`SELECT id,local_agent_id,login,
        					password_hash FROM local_accounts`)
-					So(err, ShouldBeNil)
 
-					var id, agID int64
-					var login, hash string
+				var (
+					id, agID    int
+					login, hash string
+				)
 
-					So(row.Scan(&id, &agID, &login, &hash), ShouldBeNil)
+				require.NoError(t, row.Scan(&id, &agID, &login, &hash))
 
-					So(id, ShouldEqual, 1)
-					So(agID, ShouldEqual, 1)
-					So(login, ShouldEqual, "toto")
-					So(hash, ShouldEqual, "pswdhash")
-				})
+				assert.Equal(t, 10, id)
+				assert.Equal(t, 1, agID)
+				assert.Equal(t, "toto", login)
+				assert.Equal(t, "pswdhash", hash)
 			})
 		})
 	})
+
+	return mig
 }
 
-func testVer0_7_0RevampRemoteAccountsTable(eng *testEngine) {
-	mig := ver0_7_0RevampRemoteAccountsTable{}
+func testVer0_7_0RevampRemoteAccountsTable(t *testing.T, eng *testEngine) Change {
+	mig := Migrations[22]
 
-	Convey("Given the 0.7.0 'remote_accounts' table revamp", func() {
-		setupDatabaseUpTo(eng, mig)
-
-		_, err := eng.DB.Exec(`INSERT INTO remote_agents(id,name,protocol,address,
+	t.Run("When applying the 0.7.0 'remote_accounts' table revamp", func(t *testing.T) {
+		_, err1 := eng.DB.Exec(`INSERT INTO remote_agents(id,name,protocol,address,
         	proto_config) VALUES (1,'sftp_part','sftp','localhost:2222','{}')`)
-		So(err, ShouldBeNil)
+		require.NoError(t, err1)
 
-		_, err = eng.DB.Exec(`INSERT INTO 
-    			remote_accounts(id,remote_agent_id,login,password) 
-				VALUES (1,1,'toto','pswd'), 
-				       (2,1,'titi',NULL)`)
+		_, err2 := eng.DB.Exec(`INSERT INTO
+    			remote_accounts(id,remote_agent_id,login,password)
+				VALUES (10,1,'toto','pswd'), (20,1,'titi',NULL)`)
+		require.NoError(t, err2)
 
-		So(err, ShouldBeNil)
+		t.Cleanup(func() {
+			_, err3 := eng.DB.Exec(`DELETE FROM remote_accounts`)
+			require.NoError(t, err3)
+			_, err4 := eng.DB.Exec(`DELETE FROM remote_agents`)
+			require.NoError(t, err4)
+		})
 
-		Convey("When applying the migration", func() {
-			So(eng.Upgrade(mig), ShouldBeNil)
+		require.NoError(t, eng.Upgrade(mig),
+			"The migration should not fail")
 
-			Convey("Then it should have changed the columns", func() {
-				rows, err := eng.DB.Query(`SELECT id,remote_agent_id,login,
+		t.Run("Then it should have changed the columns", func(t *testing.T) {
+			rows, err := eng.DB.Query(`SELECT id,remote_agent_id,login,
        				password FROM remote_accounts`)
-				So(err, ShouldBeNil)
-				defer func() { So(rows.Close(), ShouldBeNil) }()
-				defer func() { So(rows.Err(), ShouldBeNil) }()
+			require.NoError(t, err)
 
-				var id, agID int64
-				var login, pwd string
+			defer rows.Close()
 
-				So(rows.Next(), ShouldBeTrue)
-				So(rows.Scan(&id, &agID, &login, &pwd), ShouldBeNil)
+			var (
+				id, agID   int
+				login, pwd string
+			)
 
-				So(id, ShouldEqual, 1)
-				So(agID, ShouldEqual, 1)
-				So(login, ShouldEqual, "toto")
-				So(pwd, ShouldEqual, "pswd")
+			require.True(t, rows.Next())
+			require.NoError(t, rows.Scan(&id, &agID, &login, &pwd))
+			assert.Equal(t, 10, id)
+			assert.Equal(t, 1, agID)
+			assert.Equal(t, "toto", login)
+			assert.Equal(t, "pswd", pwd)
 
-				So(rows.Next(), ShouldBeTrue)
-				So(rows.Scan(&id, &agID, &login, &pwd), ShouldBeNil)
+			require.True(t, rows.Next())
+			require.NoError(t, rows.Scan(&id, &agID, &login, &pwd))
+			assert.Equal(t, 20, id)
+			assert.Equal(t, 1, agID)
+			assert.Equal(t, "titi", login)
+			assert.Equal(t, "", pwd)
 
-				So(id, ShouldEqual, 2)
-				So(agID, ShouldEqual, 1)
-				So(login, ShouldEqual, "titi")
-				So(pwd, ShouldEqual, "")
+			require.False(t, rows.Next())
+			require.NoError(t, rows.Err())
+		})
 
-				So(rows.Next(), ShouldBeFalse)
-			})
+		t.Run("When reverting the migration", func(t *testing.T) {
+			require.NoError(t, eng.Downgrade(mig),
+				"Reverting the migration should not fail")
 
-			Convey("When reversing the migration", func() {
-				So(eng.Downgrade(mig), ShouldBeNil)
-
-				Convey("Then it should have reverted the column changes", func() {
-					rows, err := eng.DB.Query(`SELECT id,remote_agent_id,login,
+			t.Run("Then it should have reverted the column changes", func(t *testing.T) {
+				rows, err := eng.DB.Query(`SELECT id,remote_agent_id,login,
        					password FROM remote_accounts`)
-					So(err, ShouldBeNil)
-					defer func() { So(rows.Close(), ShouldBeNil) }()
-					defer func() { So(rows.Err(), ShouldBeNil) }()
+				require.NoError(t, err)
 
-					var id, agID int64
-					var login string
-					var pwd sql.NullString
+				defer rows.Close()
 
-					So(rows.Next(), ShouldBeTrue)
-					So(rows.Scan(&id, &agID, &login, &pwd), ShouldBeNil)
+				var (
+					id, agID int
+					login    string
+					pwd      sql.NullString
+				)
 
-					So(id, ShouldEqual, 1)
-					So(agID, ShouldEqual, 1)
-					So(login, ShouldEqual, "toto")
-					So(pwd.Valid, ShouldBeTrue)
-					So(pwd.String, ShouldEqual, "pswd")
+				require.True(t, rows.Next())
+				require.NoError(t, rows.Scan(&id, &agID, &login, &pwd))
+				assert.Equal(t, 10, id)
+				assert.Equal(t, 1, agID)
+				assert.Equal(t, "toto", login)
+				assert.True(t, pwd.Valid)
+				assert.Equal(t, "pswd", pwd.String)
 
-					So(rows.Next(), ShouldBeTrue)
-					So(rows.Scan(&id, &agID, &login, &pwd), ShouldBeNil)
+				require.True(t, rows.Next())
+				require.NoError(t, rows.Scan(&id, &agID, &login, &pwd))
+				assert.Equal(t, 20, id)
+				assert.Equal(t, 1, agID)
+				assert.Equal(t, "titi", login)
+				assert.False(t, pwd.Valid)
 
-					So(id, ShouldEqual, 2)
-					So(agID, ShouldEqual, 1)
-					So(login, ShouldEqual, "titi")
-					So(pwd.Valid, ShouldBeFalse)
-
-					So(rows.Next(), ShouldBeFalse)
-				})
+				require.False(t, rows.Next())
+				require.NoError(t, rows.Err())
 			})
 		})
 	})
+
+	return mig
 }
 
-func testVer0_7_0RevampRulesTable(eng *testEngine) {
-	Convey("Given the 0.7.0 'rules' table revamp", func() {
-		setupDatabaseUpTo(eng, ver0_7_0RevampRulesTable{})
+func testVer0_7_0RevampRulesTable(t *testing.T, eng *testEngine) Change {
+	mig := Migrations[23]
 
-		_, err := eng.DB.Exec(`INSERT INTO rules(id,name,send,comment,path,
+	t.Run("When applying the 0.7.0 'rules' table revamp", func(t *testing.T) {
+		_, err1 := eng.DB.Exec(`INSERT INTO rules(id,name,send,comment,path,
             local_dir,remote_dir,tmp_local_receive_dir) VALUES (1,'push',TRUE,
             'this is a comment','/push','locDir','remDir','tmpDir')`)
-		So(err, ShouldBeNil)
+		require.NoError(t, err1)
 
-		Convey("When applying the migration", func() {
-			err := eng.Upgrade(ver0_7_0RevampRulesTable{})
-			So(err, ShouldBeNil)
+		t.Cleanup(func() {
+			_, err2 := eng.DB.Exec(`DELETE FROM rules`)
+			require.NoError(t, err2)
+		})
 
-			Convey("Then it should have changed the columns", func() {
-				row := eng.DB.QueryRow(`SELECT id,name,is_send,comment,path,
+		require.NoError(t, eng.Upgrade(mig),
+			"The migration should not fail")
+
+		t.Run("Then it should have changed the columns", func(t *testing.T) {
+			row := eng.DB.QueryRow(`SELECT id,name,is_send,comment,path,
             		local_dir,remote_dir,tmp_local_receive_dir FROM rules`)
-				So(err, ShouldBeNil)
 
-				var id int64
-				var name, comment, path, loc, rem, tmp string
-				var send bool
+			var (
+				id                                 int
+				name, comment, path, loc, rem, tmp string
+				send                               bool
+			)
 
-				So(row.Scan(&id, &name, &send, &comment, &path, &loc, &rem,
-					&tmp), ShouldBeNil)
+			require.NoError(t, row.Scan(&id, &name, &send, &comment, &path,
+				&loc, &rem, &tmp))
 
-				So(id, ShouldEqual, 1)
-				So(name, ShouldEqual, "push")
-				So(send, ShouldEqual, true)
-				So(comment, ShouldEqual, "this is a comment")
-				So(path, ShouldEqual, "/push")
-				So(loc, ShouldEqual, "locDir")
-				So(rem, ShouldEqual, "remDir")
-				So(tmp, ShouldEqual, "tmpDir")
-			})
+			assert.Equal(t, 1, id)
+			assert.Equal(t, "push", name)
+			assert.True(t, send)
+			assert.Equal(t, "this is a comment", comment)
+			assert.Equal(t, "/push", path)
+			assert.Equal(t, "locDir", loc)
+			assert.Equal(t, "remDir", rem)
+			assert.Equal(t, "tmpDir", tmp)
+		})
 
-			Convey("When reversing the migration", func() {
-				err := eng.Downgrade(ver0_7_0RevampRulesTable{})
-				So(err, ShouldBeNil)
+		t.Run("When reverting the migration", func(t *testing.T) {
+			require.NoError(t, eng.Downgrade(mig),
+				"Reverting the migration should not fail")
 
-				Convey("Then it should have reverted the column changes", func() {
-					row := eng.DB.QueryRow(`SELECT id,name,send,comment,path,
+			t.Run("Then it should have reverted the column changes", func(t *testing.T) {
+				row := eng.DB.QueryRow(`SELECT id,name,send,comment,path,
             		local_dir,remote_dir,tmp_local_receive_dir FROM rules`)
-					So(err, ShouldBeNil)
 
-					var id int64
-					var name, comment, path, loc, rem, tmp string
-					var send bool
+				var (
+					id                                 int
+					name, comment, path, loc, rem, tmp string
+					send                               bool
+				)
 
-					So(row.Scan(&id, &name, &send, &comment, &path, &loc, &rem,
-						&tmp), ShouldBeNil)
+				require.NoError(t, row.Scan(&id, &name, &send, &comment, &path,
+					&loc, &rem, &tmp))
 
-					So(id, ShouldEqual, 1)
-					So(name, ShouldEqual, "push")
-					So(send, ShouldEqual, true)
-					So(comment, ShouldEqual, "this is a comment")
-					So(path, ShouldEqual, "/push")
-					So(loc, ShouldEqual, "locDir")
-					So(rem, ShouldEqual, "remDir")
-					So(tmp, ShouldEqual, "tmpDir")
-				})
+				assert.Equal(t, 1, id)
+				assert.Equal(t, "push", name)
+				assert.True(t, send)
+				assert.Equal(t, "this is a comment", comment)
+				assert.Equal(t, "/push", path)
+				assert.Equal(t, "locDir", loc)
+				assert.Equal(t, "remDir", rem)
+				assert.Equal(t, "tmpDir", tmp)
 			})
 		})
 	})
+
+	return mig
 }
 
-func testVer0_7_0RevampTasksTable(eng *testEngine, dialect string) {
-	Convey("Given the 0.7.0 'tasks' table revamp", func() {
-		setupDatabaseUpTo(eng, ver0_7_0RevampTasksTable{})
+func testVer0_7_0RevampTasksTable(t *testing.T, eng *testEngine) Change {
+	mig := Migrations[24]
 
-		_, err := eng.DB.Exec(`INSERT INTO rules(id,name,is_send,comment,path,
+	t.Run("When applying the 0.7.0 'tasks' table revamp", func(t *testing.T) {
+		_, err1 := eng.DB.Exec(`INSERT INTO rules(id,name,is_send,comment,path,
             local_dir,remote_dir,tmp_local_receive_dir) VALUES (1,'push',TRUE,
             'this is a comment','/push','locDir','remDir','tmpDir')`)
-		So(err, ShouldBeNil)
+		require.NoError(t, err1)
 
-		if dialect == PostgreSQL {
-			_, err = eng.DB.Exec(`INSERT INTO tasks(rule_id,chain,rank,type,args)
+		if eng.Dialect == PostgreSQL {
+			_, err2 := eng.DB.Exec(`INSERT INTO tasks(rule_id,chain,rank,type,args)
 				VALUES (1,'POST',0,'DELETE',$1)`, []byte("{}"))
+			require.NoError(t, err2)
 		} else {
-			_, err = eng.DB.Exec(`INSERT INTO tasks(rule_id,chain,rank,type,args)
+			_, err2 := eng.DB.Exec(`INSERT INTO tasks(rule_id,chain,rank,type,args)
 				VALUES (1,'POST',0,'DELETE',?)`, []byte("{}"))
+			require.NoError(t, err2)
 		}
 
-		So(err, ShouldBeNil)
+		t.Cleanup(func() {
+			_, err2 := eng.DB.Exec(`DELETE FROM tasks`)
+			require.NoError(t, err2)
+			_, err3 := eng.DB.Exec(`DELETE FROM rules`)
+			require.NoError(t, err3)
+		})
 
-		Convey("When applying the migration", func() {
-			err := eng.Upgrade(ver0_7_0RevampTasksTable{})
-			So(err, ShouldBeNil)
+		require.NoError(t, eng.Upgrade(mig),
+			"The migration should not fail")
 
-			Convey("Then it should have changed the columns", func() {
+		t.Run("Then it should have changed the columns", func(t *testing.T) {
+			row := eng.DB.QueryRow(`SELECT rule_id,chain,rank,type,args FROM tasks`)
+
+			var (
+				rID, rank        int
+				chain, typ, args string
+			)
+
+			require.NoError(t, row.Scan(&rID, &chain, &rank, &typ, &args))
+
+			assert.Equal(t, 1, rID)
+			assert.Equal(t, "POST", chain)
+			assert.Equal(t, 0, rank)
+			assert.Equal(t, "DELETE", typ)
+			assert.Equal(t, "{}", args)
+		})
+
+		t.Run("When reverting the migration", func(t *testing.T) {
+			require.NoError(t, eng.Downgrade(mig),
+				"Reverting the migration should not fail")
+
+			t.Run("Then it should have reverted the column changes", func(t *testing.T) {
 				row := eng.DB.QueryRow(`SELECT rule_id,chain,rank,type,args FROM tasks`)
-				So(err, ShouldBeNil)
 
-				var rID int64
-				var rank int16
-				var chain, typ, args string
+				var (
+					rID, rank  int
+					chain, typ string
+					args       []byte
+				)
 
-				So(row.Scan(&rID, &chain, &rank, &typ, &args), ShouldBeNil)
+				require.NoError(t, row.Scan(&rID, &chain, &rank, &typ, &args))
 
-				So(rID, ShouldEqual, 1)
-				So(chain, ShouldEqual, "POST")
-				So(rank, ShouldEqual, 0)
-				So(typ, ShouldEqual, "DELETE")
-				So(args, ShouldEqual, "{}")
-			})
-
-			Convey("When reversing the migration", func() {
-				err := eng.Downgrade(ver0_7_0RevampTasksTable{})
-				So(err, ShouldBeNil)
-
-				Convey("Then it should have reverted the column changes", func() {
-					row := eng.DB.QueryRow(`SELECT rule_id,chain,rank,type,args FROM tasks`)
-					So(err, ShouldBeNil)
-
-					var rID int64
-					var rank int32
-					var chain, typ string
-					var args []byte
-
-					So(row.Scan(&rID, &chain, &rank, &typ, &args), ShouldBeNil)
-
-					So(rID, ShouldEqual, 1)
-					So(chain, ShouldEqual, "POST")
-					So(rank, ShouldEqual, 0)
-					So(typ, ShouldEqual, "DELETE")
-					So(args, ShouldResemble, []byte("{}"))
-				})
+				assert.Equal(t, 1, rID)
+				assert.Equal(t, "POST", chain)
+				assert.Equal(t, 0, rank)
+				assert.Equal(t, "DELETE", typ)
+				assert.Equal(t, []byte("{}"), args)
 			})
 		})
 	})
+
+	return mig
 }
 
-func testVer0_7_0RevampHistoryTable(eng *testEngine) {
-	Convey("Given the 0.7.0 'transfer_history' table revamp", func() {
-		setupDatabaseUpTo(eng, ver0_7_0RevampHistoryTable{})
+func testVer0_7_0RevampHistoryTable(t *testing.T, eng *testEngine) Change {
+	mig := Migrations[25]
 
-		_, err := eng.DB.Exec(`INSERT INTO transfer_history(id,owner,is_server,
+	t.Run("When applying the 0.7.0 'transfer_history' table revamp", func(t *testing.T) {
+		_, err1 := eng.DB.Exec(`INSERT INTO transfer_history(id,owner,is_server,
             is_send,remote_transfer_id,rule,account,agent,protocol,local_path,
             remote_path,filesize,start,stop,status,step,progression,task_number,
             error_code,error_details) VALUES (1,'waarp_gw',FALSE,TRUE,'abc','push',
             'toto','sftp_part','sftp','/loc/path','/rem/path',123,'2021-01-01T01:00:00.123456Z',
             '2021-01-01T02:00:00.123456Z','CANCELLED','StepData',111,12,'TeDataTransfer',
             'this is an error message')`)
-		So(err, ShouldBeNil)
+		require.NoError(t, err1)
 
-		Convey("When applying the migration", func() {
-			err := eng.Upgrade(ver0_7_0RevampHistoryTable{})
-			So(err, ShouldBeNil)
+		t.Cleanup(func() {
+			_, err2 := eng.DB.Exec(`DELETE FROM transfer_history`)
+			require.NoError(t, err2)
+		})
 
-			Convey("Then it should have changed the columns", func() {
-				row := eng.DB.QueryRow(`SELECT id,owner,is_server,is_send,
+		require.NoError(t, eng.Upgrade(mig),
+			"The migration should not fail")
+
+		t.Run("Then it should have changed the columns", func(t *testing.T) {
+			row := eng.DB.QueryRow(`SELECT id,owner,is_server,is_send,
        				remote_transfer_id,rule,account,agent,protocol,local_path,
             		remote_path,filesize,start,stop,status,step,progress,task_number,
            			error_code,error_details FROM transfer_history`)
-				So(err, ShouldBeNil)
+
+			var (
+				id, prog, size, taskNb                int
+				serv, send                            bool
+				start, stop                           time.Time
+				owner, remID, rule, acc, ag, proto    string
+				lPath, rPath, stat, step, eCode, eDet string
+			)
+
+			require.NoError(t, row.Scan(&id, &owner, &serv, &send, &remID, &rule,
+				&acc, &ag, &proto, &lPath, &rPath, &size, &start, &stop, &stat,
+				&step, &prog, &taskNb, &eCode, &eDet))
+
+			assert.Equal(t, 1, id)
+			assert.Equal(t, "waarp_gw", owner)
+			assert.False(t, serv)
+			assert.True(t, send)
+			assert.Equal(t, "abc", remID)
+			assert.Equal(t, "push", rule)
+			assert.Equal(t, "toto", acc)
+			assert.Equal(t, "sftp_part", ag)
+			assert.Equal(t, "sftp", proto)
+			assert.Equal(t, "/loc/path", lPath)
+			assert.Equal(t, "/rem/path", rPath)
+			assert.Equal(t, 123, size)
+			assert.Equal(t, time.Date(2021, 1, 1, 1, 0, 0, 123456000, time.UTC), start)
+			assert.Equal(t, time.Date(2021, 1, 1, 2, 0, 0, 123456000, time.UTC), stop)
+			assert.Equal(t, "CANCELLED", stat) //nolint:misspell //must be kept for retro-compatibility
+			assert.Equal(t, "StepData", step)
+			assert.Equal(t, 111, prog)
+			assert.Equal(t, 12, taskNb)
+			assert.Equal(t, "TeDataTransfer", eCode)
+			assert.Equal(t, "this is an error message", eDet)
+		})
+
+		t.Run("When reverting the migration", func(t *testing.T) {
+			require.NoError(t, eng.Downgrade(mig),
+				"Reverting the migration should not fail")
+
+			t.Run("Then it should have reverted the column changes", func(t *testing.T) {
+				row := eng.DB.QueryRow(`SELECT id,owner,is_server,is_send,
+       				remote_transfer_id,rule,account,agent,protocol,local_path,
+            		remote_path,filesize,start,stop,status,step,progression,
+       				task_number,error_code,error_details FROM transfer_history`)
 
 				var (
-					id, prog, size                        int64
-					taskNb                                int16
+					id, prog, size, taskNb                int
 					serv, send                            bool
-					start, stop                           time.Time
+					start, stop                           string
 					owner, remID, rule, acc, ag, proto    string
 					lPath, rPath, stat, step, eCode, eDet string
 				)
 
-				So(row.Scan(&id, &owner, &serv, &send, &remID, &rule, &acc, &ag,
-					&proto, &lPath, &rPath, &size, &start, &stop, &stat, &step,
-					&prog, &taskNb, &eCode, &eDet), ShouldBeNil)
+				require.NoError(t, row.Scan(&id, &owner, &serv, &send, &remID,
+					&rule, &acc, &ag, &proto, &lPath, &rPath, &size, &start,
+					&stop, &stat, &step, &prog, &taskNb, &eCode, &eDet))
 
-				So(id, ShouldEqual, 1)
-				So(owner, ShouldEqual, "waarp_gw")
-				So(serv, ShouldBeFalse)
-				So(send, ShouldBeTrue)
-				So(remID, ShouldEqual, "abc")
-				So(rule, ShouldEqual, "push")
-				So(acc, ShouldEqual, "toto")
-				So(ag, ShouldEqual, "sftp_part")
-				So(proto, ShouldEqual, "sftp")
-				So(lPath, ShouldEqual, "/loc/path")
-				So(rPath, ShouldEqual, "/rem/path")
-				So(size, ShouldEqual, 123)
-				So(start, ShouldHappenWithin, time.Duration(0),
-					time.Date(2021, 1, 1, 1, 0, 0, 123456000, time.UTC))
-				So(stop, ShouldHappenWithin, time.Duration(0),
-					time.Date(2021, 1, 1, 2, 0, 0, 123456000, time.UTC))
-				So(stat, ShouldEqual, "CANCELLED") //nolint:misspell //must be kept for retro-compatibility
-				So(step, ShouldEqual, "StepData")
-				So(prog, ShouldEqual, 111)
-				So(taskNb, ShouldEqual, 12)
-				So(eCode, ShouldEqual, "TeDataTransfer")
-				So(eDet, ShouldEqual, "this is an error message")
-			})
+				startDate, startErr := time.Parse(time.RFC3339Nano, start)
+				require.NoError(t, startErr)
+				stopDate, stopErr := time.Parse(time.RFC3339Nano, stop)
+				require.NoError(t, stopErr)
 
-			Convey("When reversing the migration", func() {
-				err := eng.Downgrade(ver0_7_0RevampHistoryTable{})
-				So(err, ShouldBeNil)
-
-				Convey("Then it should have reverted the column changes", func() {
-					row := eng.DB.QueryRow(`SELECT id,owner,is_server,is_send,
-       				remote_transfer_id,rule,account,agent,protocol,local_path,
-            		remote_path,filesize,start,stop,status,step,progression,
-       				task_number,error_code,error_details FROM transfer_history`)
-					So(err, ShouldBeNil)
-
-					var (
-						id, prog, size                        int64
-						taskNb                                int16
-						serv, send                            bool
-						start, stop                           string
-						owner, remID, rule, acc, ag, proto    string
-						lPath, rPath, stat, step, eCode, eDet string
-					)
-
-					So(row.Scan(&id, &owner, &serv, &send, &remID, &rule, &acc, &ag,
-						&proto, &lPath, &rPath, &size, &start, &stop, &stat, &step,
-						&prog, &taskNb, &eCode, &eDet), ShouldBeNil)
-
-					startTime, err := time.Parse(time.RFC3339, start)
-					So(err, ShouldBeNil)
-
-					stopTime, err := time.Parse(time.RFC3339, stop)
-					So(err, ShouldBeNil)
-
-					So(id, ShouldEqual, 1)
-					So(owner, ShouldEqual, "waarp_gw")
-					So(serv, ShouldBeFalse)
-					So(send, ShouldBeTrue)
-					So(remID, ShouldEqual, "abc")
-					So(rule, ShouldEqual, "push")
-					So(acc, ShouldEqual, "toto")
-					So(ag, ShouldEqual, "sftp_part")
-					So(proto, ShouldEqual, "sftp")
-					So(lPath, ShouldEqual, "/loc/path")
-					So(rPath, ShouldEqual, "/rem/path")
-					So(size, ShouldEqual, 123)
-					So(startTime, ShouldHappenWithin, time.Duration(0),
-						time.Date(2021, 1, 1, 1, 0, 0, 123456000, time.UTC))
-					So(stopTime, ShouldHappenWithin, time.Duration(0),
-						time.Date(2021, 1, 1, 2, 0, 0, 123456000, time.UTC))
-					So(stat, ShouldEqual, "CANCELLED") //nolint:misspell //must be kept for retro-compatibility
-					So(step, ShouldEqual, "StepData")
-					So(prog, ShouldEqual, 111)
-					So(taskNb, ShouldEqual, 12)
-					So(eCode, ShouldEqual, "TeDataTransfer")
-					So(eDet, ShouldEqual, "this is an error message")
-				})
+				assert.Equal(t, 1, id)
+				assert.Equal(t, "waarp_gw", owner)
+				assert.False(t, serv)
+				assert.True(t, send)
+				assert.Equal(t, "abc", remID)
+				assert.Equal(t, "push", rule)
+				assert.Equal(t, "toto", acc)
+				assert.Equal(t, "sftp_part", ag)
+				assert.Equal(t, "sftp", proto)
+				assert.Equal(t, "/loc/path", lPath)
+				assert.Equal(t, "/rem/path", rPath)
+				assert.Equal(t, 123, size)
+				assert.Equal(t,
+					time.Date(2021, 1, 1, 1, 0, 0, 123456000, time.UTC),
+					startDate.UTC())
+				assert.Equal(t,
+					time.Date(2021, 1, 1, 2, 0, 0, 123456000, time.UTC),
+					stopDate.UTC())
+				assert.Equal(t, "CANCELLED", stat) //nolint:misspell //must be kept for retro-compatibility
+				assert.Equal(t, "StepData", step)
+				assert.Equal(t, 111, prog)
+				assert.Equal(t, 12, taskNb)
+				assert.Equal(t, "TeDataTransfer", eCode)
+				assert.Equal(t, "this is an error message", eDet)
 			})
 		})
 	})
+
+	return mig
 }
 
-func testVer0_7_0RevampTransfersTable(eng *testEngine) {
-	Convey("Given the 0.7.0 'transfers' table revamp", func() {
-		setupDatabaseUpTo(eng, ver0_7_0RevampTransfersTable{})
+func testVer0_7_0RevampTransfersTable(t *testing.T, eng *testEngine) Change {
+	mig := Migrations[26]
 
+	t.Run("When applying the 0.7.0 'transfers' table revamp", func(t *testing.T) {
 		// ### Rule ###
-		_, err := eng.DB.Exec(`INSERT INTO rules(id,name,is_send,comment,path,
+		_, err1 := eng.DB.Exec(`INSERT INTO rules(id,name,is_send,comment,path,
             local_dir,remote_dir,tmp_local_receive_dir) VALUES (1,'push',TRUE,
             'this is a comment','/push','locDir','remDir','tmpDir')`)
-		So(err, ShouldBeNil)
+		require.NoError(t, err1)
 
 		// ### Local ###
-		_, err = eng.DB.Exec(`INSERT INTO local_agents(id,owner,name,protocol,
+		_, err2 := eng.DB.Exec(`INSERT INTO local_agents(id,owner,name,protocol,
 			address,root_dir,receive_dir,send_dir,tmp_receive_dir,proto_config)
 			VALUES (10,'waarp_gw','sftp_serv','sftp','localhost:2222','root',
 			        'rcv','snd','tmp','{}')`)
-		So(err, ShouldBeNil)
+		require.NoError(t, err2)
 
-		_, err = eng.DB.Exec(`INSERT INTO local_accounts(id,local_agent_id,login)
+		_, err3 := eng.DB.Exec(`INSERT INTO local_accounts(id,local_agent_id,login)
 			VALUES (100,10,'toto')`)
-		So(err, ShouldBeNil)
+		require.NoError(t, err3)
 
-		_, err = eng.DB.Exec(`INSERT INTO transfers(id,owner,remote_transfer_id,
+		_, err4 := eng.DB.Exec(`INSERT INTO transfers(id,owner,remote_transfer_id,
             rule_id,is_server,agent_id,account_id,local_path,remote_path,filesize,
             start,status,step,progression,task_number,error_code,error_details)
             VALUES (1000,'waarp_gw','abcd',1,TRUE,10,100,'/loc/path/1','/rem/path/1',
             1234,'2021-01-01T01:00:00Z','RUNNING','StepData',456,5,'TeDataTransfer',
             'this is an error message')`)
-		So(err, ShouldBeNil)
+		require.NoError(t, err4)
 
 		// ### Remote ###
-		_, err = eng.DB.Exec(`INSERT INTO remote_agents(id,name,protocol,address,
+		_, err5 := eng.DB.Exec(`INSERT INTO remote_agents(id,name,protocol,address,
         	proto_config) VALUES (20,'sftp_part','sftp','localhost:3333','{}')`)
-		So(err, ShouldBeNil)
+		require.NoError(t, err5)
 
-		_, err = eng.DB.Exec(`INSERT INTO remote_accounts(id,remote_agent_id,login)
+		_, err6 := eng.DB.Exec(`INSERT INTO remote_accounts(id,remote_agent_id,login)
 			VALUES (200,20,'toto')`)
-		So(err, ShouldBeNil)
+		require.NoError(t, err6)
 
-		_, err = eng.DB.Exec(`INSERT INTO transfers(id,owner,remote_transfer_id,
+		_, err7 := eng.DB.Exec(`INSERT INTO transfers(id,owner,remote_transfer_id,
             rule_id,is_server,agent_id,account_id,local_path,remote_path,filesize,
             start,status,step,progression,task_number,error_code,error_details)
             VALUES (2000,'waarp_gw','efgh',1,FALSE,20,200,'/loc/path/2','/rem/path/2',
             5678,'2021-01-02T01:00:00Z','INTERRUPTED','StepPostTasks',789,8,
             'TeExternalOp','this is another error message')`)
-		So(err, ShouldBeNil)
+		require.NoError(t, err7)
 
-		Convey("When applying the migration", func() {
-			err := eng.Upgrade(ver0_7_0RevampTransfersTable{})
-			So(err, ShouldBeNil)
+		t.Cleanup(func() {
+			_, err8 := eng.DB.Exec(`DELETE FROM transfers`)
+			require.NoError(t, err8)
+			_, err9 := eng.DB.Exec(`DELETE FROM remote_accounts`)
+			require.NoError(t, err9)
+			_, err10 := eng.DB.Exec(`DELETE FROM remote_accounts`)
+			require.NoError(t, err10)
+			_, err11 := eng.DB.Exec(`DELETE FROM local_accounts`)
+			require.NoError(t, err11)
+			_, err12 := eng.DB.Exec(`DELETE FROM remote_agents`)
+			require.NoError(t, err12)
+			_, err13 := eng.DB.Exec(`DELETE FROM local_agents`)
+			require.NoError(t, err13)
+			_, err14 := eng.DB.Exec(`DELETE FROM rules`)
+			require.NoError(t, err14)
+		})
 
-			Convey("Then it should have changed the columns", func() {
-				rows, err := eng.DB.Query(`SELECT id,owner,remote_transfer_id,rule_id,
-       				local_account_id,remote_account_id,local_path,remote_path,filesize,start,
-       				status,step,progress,task_number,error_code,error_details FROM transfers`)
-				So(err, ShouldBeNil)
-				So(rows.Err(), ShouldBeNil)
+		require.NoError(t, eng.Upgrade(mig),
+			"The migration should not fail")
+
+		t.Run("Then it should have changed the columns", func(t *testing.T) {
+			rows, err := eng.DB.Query(`SELECT id,owner,remote_transfer_id,rule_id,
+				local_account_id,remote_account_id,local_path,remote_path,filesize,
+				start,status,step,progress,task_number,error_code,error_details
+				FROM transfers ORDER BY id`)
+			require.NoError(t, err)
+
+			defer rows.Close()
+
+			var (
+				id, ruleID, size, prog, taskNb                        int
+				lAcc, rAcc                                            sql.NullInt64
+				owner, remID, lPath, rPath, status, step, eCode, eDet string
+				start                                                 time.Time
+			)
+
+			require.True(t, rows.Next())
+			require.NoError(t, rows.Scan(&id, &owner, &remID, &ruleID, &lAcc,
+				&rAcc, &lPath, &rPath, &size, &start, &status, &step, &prog,
+				&taskNb, &eCode, &eDet))
+
+			assert.Equal(t, 1000, id)
+			assert.Equal(t, "waarp_gw", owner)
+			assert.Equal(t, "abcd", remID)
+			assert.Equal(t, 1, ruleID)
+			assert.Equal(t, int64(100), lAcc.Int64)
+			assert.False(t, rAcc.Valid)
+			assert.Equal(t, "/loc/path/1", lPath)
+			assert.Equal(t, "/rem/path/1", rPath)
+			assert.Equal(t, 1234, size)
+			assert.Equal(t, time.Date(2021, 1, 1, 1, 0, 0, 0, time.UTC), start)
+			assert.Equal(t, "RUNNING", status)
+			assert.Equal(t, "StepData", step)
+			assert.Equal(t, 456, prog)
+			assert.Equal(t, 5, taskNb)
+			assert.Equal(t, "TeDataTransfer", eCode)
+			assert.Equal(t, "this is an error message", eDet)
+
+			require.True(t, rows.Next())
+			require.NoError(t, rows.Scan(&id, &owner, &remID, &ruleID, &lAcc,
+				&rAcc, &lPath, &rPath, &size, &start, &status, &step, &prog,
+				&taskNb, &eCode, &eDet))
+
+			assert.Equal(t, 2000, id)
+			assert.Equal(t, "waarp_gw", owner)
+			assert.Equal(t, "efgh", remID)
+			assert.Equal(t, 1, ruleID)
+			assert.False(t, lAcc.Valid)
+			assert.Equal(t, int64(200), rAcc.Int64)
+			assert.Equal(t, "/loc/path/2", lPath)
+			assert.Equal(t, "/rem/path/2", rPath)
+			assert.Equal(t, 5678, size)
+			assert.Equal(t, time.Date(2021, 1, 2, 1, 0, 0, 0, time.UTC), start)
+			assert.Equal(t, "INTERRUPTED", status)
+			assert.Equal(t, "StepPostTasks", step)
+			assert.Equal(t, 789, prog)
+			assert.Equal(t, 8, taskNb)
+			assert.Equal(t, "TeExternalOp", eCode)
+			assert.Equal(t, "this is another error message", eDet)
+
+			require.False(t, rows.Next())
+			require.NoError(t, rows.Err())
+		})
+
+		t.Run("When reverting the migration", func(t *testing.T) {
+			require.NoError(t, eng.Downgrade(mig),
+				"Reverting the migration should not fail")
+
+			t.Run("Then it should have reverted the column changes", func(t *testing.T) {
+				rows, err := eng.DB.Query(`SELECT id,remote_transfer_id,
+					owner,rule_id,is_server,agent_id,account_id,local_path,
+					remote_path,filesize,start,status,step,progression,
+					task_number,error_code,error_details FROM transfers
+					ORDER BY id`)
+				require.NoError(t, err)
 
 				defer rows.Close()
 
-				for rows.Next() {
-					var (
-						id, ruleID, size, prog                                int64
-						lAcc, rAcc                                            sql.NullInt64
-						taskNb                                                int16
-						owner, remID, lPath, rPath, status, step, eCode, eDet string
-						start                                                 time.Time
-					)
+				var (
+					id, ruleID, agID, accID, size, prog, taskNb                  int
+					isServ                                                       bool
+					remID, owner, lPath, rPath, start, status, step, eCode, eDet string
+				)
 
-					So(rows.Scan(&id, &owner, &remID, &ruleID, &lAcc, &rAcc,
-						&lPath, &rPath, &size, &start, &status, &step, &prog,
-						&taskNb, &eCode, &eDet), ShouldBeNil)
+				require.True(t, rows.Next())
+				require.NoError(t, rows.Scan(&id, &remID, &owner, &ruleID,
+					&isServ, &agID, &accID, &lPath, &rPath, &size, &start,
+					&status, &step, &prog, &taskNb, &eCode, &eDet))
 
-					if id == 1000 {
-						So(id, ShouldEqual, 1000)
-						So(owner, ShouldEqual, "waarp_gw")
-						So(remID, ShouldEqual, "abcd")
-						So(ruleID, ShouldEqual, 1)
-						So(lAcc.Int64, ShouldEqual, 100)
-						So(rAcc.Valid, ShouldBeFalse)
-						So(lPath, ShouldEqual, "/loc/path/1")
-						So(rPath, ShouldEqual, "/rem/path/1")
-						So(size, ShouldEqual, 1234)
-						So(start, ShouldHappenWithin, time.Duration(0),
-							time.Date(2021, 1, 1, 1, 0, 0, 0, time.UTC))
-						So(status, ShouldEqual, "RUNNING")
-						So(step, ShouldEqual, "StepData")
-						So(prog, ShouldEqual, 456)
-						So(taskNb, ShouldEqual, 5)
-						So(eCode, ShouldEqual, "TeDataTransfer")
-						So(eDet, ShouldEqual, "this is an error message")
-					} else {
-						So(id, ShouldEqual, 2000)
-						So(owner, ShouldEqual, "waarp_gw")
-						So(remID, ShouldEqual, "efgh")
-						So(ruleID, ShouldEqual, 1)
-						So(lAcc.Valid, ShouldBeFalse)
-						So(rAcc.Int64, ShouldEqual, 200)
-						So(lPath, ShouldEqual, "/loc/path/2")
-						So(rPath, ShouldEqual, "/rem/path/2")
-						So(size, ShouldEqual, 5678)
-						So(start, ShouldHappenWithin, time.Duration(0),
-							time.Date(2021, 1, 2, 1, 0, 0, 0, time.UTC))
-						So(status, ShouldEqual, "INTERRUPTED")
-						So(step, ShouldEqual, "StepPostTasks")
-						So(prog, ShouldEqual, 789)
-						So(taskNb, ShouldEqual, 8)
-						So(eCode, ShouldEqual, "TeExternalOp")
-						So(eDet, ShouldEqual, "this is another error message")
-					}
-				}
-			})
+				startDate, startErr := time.Parse(time.RFC3339Nano, start)
+				require.NoError(t, startErr)
 
-			Convey("When reversing the migration", func() {
-				err := eng.Downgrade(ver0_7_0RevampTransfersTable{})
-				So(err, ShouldBeNil)
+				assert.Equal(t, 1000, id)
+				assert.Equal(t, "waarp_gw", owner)
+				assert.Equal(t, "abcd", remID)
+				assert.Equal(t, 1, ruleID)
+				assert.True(t, isServ)
+				assert.Equal(t, 10, agID)
+				assert.Equal(t, 100, accID)
+				assert.Equal(t, "/loc/path/1", lPath)
+				assert.Equal(t, "/rem/path/1", rPath)
+				assert.Equal(t, 1234, size)
+				assert.Equal(t,
+					time.Date(2021, 1, 1, 1, 0, 0, 0, time.UTC),
+					startDate.UTC())
+				assert.Equal(t, "RUNNING", status)
+				assert.Equal(t, "StepData", step)
+				assert.Equal(t, 456, prog)
+				assert.Equal(t, 5, taskNb)
+				assert.Equal(t, "TeDataTransfer", eCode)
+				assert.Equal(t, "this is an error message", eDet)
 
-				Convey("Then it should have reverted the column changes", func() {
-					rows, err := eng.DB.Query(`SELECT id,remote_transfer_id,
-       					owner,rule_id,is_server,agent_id,account_id,local_path,
-       					remote_path,filesize,start,status,step,progression,
-       					task_number,error_code,error_details FROM transfers`)
-					So(err, ShouldBeNil)
-					So(rows.Err(), ShouldBeNil)
+				require.True(t, rows.Next())
+				require.NoError(t, rows.Scan(&id, &remID, &owner, &ruleID,
+					&isServ, &agID, &accID, &lPath, &rPath, &size, &start,
+					&status, &step, &prog, &taskNb, &eCode, &eDet))
 
-					defer rows.Close()
+				startDate, startErr = time.Parse(time.RFC3339Nano, start)
+				require.NoError(t, startErr)
 
-					for rows.Next() {
-						var (
-							id, ruleID, agID, accID, size, prog, taskNb                  int64
-							isServ                                                       bool
-							remID, owner, lPath, rPath, start, status, step, eCode, eDet string
-						)
+				assert.Equal(t, 2000, id)
+				assert.Equal(t, "waarp_gw", owner)
+				assert.Equal(t, "efgh", remID)
+				assert.Equal(t, 1, ruleID)
+				assert.False(t, isServ)
+				assert.Equal(t, 20, agID)
+				assert.Equal(t, 200, accID)
+				assert.Equal(t, "/loc/path/2", lPath)
+				assert.Equal(t, "/rem/path/2", rPath)
+				assert.Equal(t, 5678, size)
+				assert.Equal(t,
+					time.Date(2021, 1, 2, 1, 0, 0, 0, time.UTC),
+					startDate.UTC())
+				assert.Equal(t, "INTERRUPTED", status)
+				assert.Equal(t, "StepPostTasks", step)
+				assert.Equal(t, 789, prog)
+				assert.Equal(t, 8, taskNb)
+				assert.Equal(t, "TeExternalOp", eCode)
+				assert.Equal(t, "this is another error message", eDet)
 
-						So(rows.Scan(&id, &remID, &owner, &ruleID, &isServ, &agID,
-							&accID, &lPath, &rPath, &size, &start, &status, &step,
-							&prog, &taskNb, &eCode, &eDet), ShouldBeNil)
-
-						startTime, err := time.Parse(time.RFC3339, start)
-						So(err, ShouldBeNil)
-
-						if id == 1000 {
-							So(id, ShouldEqual, 1000)
-							So(owner, ShouldEqual, "waarp_gw")
-							So(remID, ShouldEqual, "abcd")
-							So(ruleID, ShouldEqual, 1)
-							So(isServ, ShouldBeTrue)
-							So(agID, ShouldEqual, 10)
-							So(accID, ShouldEqual, 100)
-							So(lPath, ShouldEqual, "/loc/path/1")
-							So(rPath, ShouldEqual, "/rem/path/1")
-							So(size, ShouldEqual, 1234)
-							So(startTime.Equal(time.Date(2021, 1, 1, 1, 0, 0, 0, time.UTC)), ShouldBeTrue)
-							So(status, ShouldEqual, "RUNNING")
-							So(step, ShouldEqual, "StepData")
-							So(prog, ShouldEqual, 456)
-							So(taskNb, ShouldEqual, 5)
-							So(eCode, ShouldEqual, "TeDataTransfer")
-							So(eDet, ShouldEqual, "this is an error message")
-						} else {
-							So(id, ShouldEqual, 2000)
-							So(owner, ShouldEqual, "waarp_gw")
-							So(remID, ShouldEqual, "efgh")
-							So(ruleID, ShouldEqual, 1)
-							So(isServ, ShouldBeFalse)
-							So(agID, ShouldEqual, 20)
-							So(accID, ShouldEqual, 200)
-							So(lPath, ShouldEqual, "/loc/path/2")
-							So(rPath, ShouldEqual, "/rem/path/2")
-							So(size, ShouldEqual, 5678)
-							So(startTime.Equal(time.Date(2021, 1, 2, 1, 0, 0, 0, time.UTC)), ShouldBeTrue)
-							So(status, ShouldEqual, "INTERRUPTED")
-							So(step, ShouldEqual, "StepPostTasks")
-							So(prog, ShouldEqual, 789)
-							So(taskNb, ShouldEqual, 8)
-							So(eCode, ShouldEqual, "TeExternalOp")
-							So(eDet, ShouldEqual, "this is another error message")
-						}
-					}
-				})
+				require.False(t, rows.Next())
+				require.NoError(t, rows.Err())
 			})
 		})
 	})
+
+	return mig
 }
 
-func testVer0_7_0RevampTransferInfoTable(eng *testEngine) {
-	Convey("Given the 0.7.0 'transfer_info' table revamp", func() {
-		setupDatabaseUpTo(eng, ver0_7_0RevampTransferInfoTable{})
+func testVer0_7_0RevampTransferInfoTable(t *testing.T, eng *testEngine) Change {
+	mig := Migrations[27]
 
-		_, err := eng.DB.Exec(`INSERT INTO rules(id,name,is_send,comment,path,
+	t.Run("When applying the 0.7.0 'transfer_info' table revamp", func(t *testing.T) {
+		_, err1 := eng.DB.Exec(`INSERT INTO rules(id,name,is_send,comment,path,
             local_dir,remote_dir,tmp_local_receive_dir) VALUES (1,'push',TRUE,
             'this is a comment','/push','locDir','remDir','tmpDir')`)
-		So(err, ShouldBeNil)
+		require.NoError(t, err1)
 
-		_, err = eng.DB.Exec(`INSERT INTO local_agents(id,owner,name,protocol,
+		_, err2 := eng.DB.Exec(`INSERT INTO local_agents(id,owner,name,protocol,
 			address,root_dir,receive_dir,send_dir,tmp_receive_dir,proto_config)
 			VALUES (10,'waarp_gw','sftp_serv','sftp','localhost:2222','root',
 			        'rcv','snd','tmp','{}')`)
-		So(err, ShouldBeNil)
+		require.NoError(t, err2)
 
-		_, err = eng.DB.Exec(`INSERT INTO local_accounts(id,local_agent_id,login)
+		_, err3 := eng.DB.Exec(`INSERT INTO local_accounts(id,local_agent_id,login)
 			VALUES (100,10,'toto')`)
-		So(err, ShouldBeNil)
+		require.NoError(t, err3)
 
-		_, err = eng.DB.Exec(`INSERT INTO transfers(id,owner,remote_transfer_id,
+		_, err4 := eng.DB.Exec(`INSERT INTO transfers(id,owner,remote_transfer_id,
             rule_id,local_account_id,remote_account_id,local_path,remote_path,
             filesize,start,status,step,progress,task_number,error_code,error_details)
             VALUES (1000,'waarp_gw','abcd',1,100,null,'/loc/path/1','/rem/path/1',
             1234,'2021-01-01 01:00:00','RUNNING','StepData',456,5,'TeDataTransfer',
             'this is an error message')`)
-		So(err, ShouldBeNil)
+		require.NoError(t, err4)
 
-		_, err = eng.DB.Exec(`INSERT INTO transfer_history(id,owner,is_server,
+		_, err5 := eng.DB.Exec(`INSERT INTO transfer_history(id,owner,is_server,
             is_send,remote_transfer_id,rule,account,agent,protocol,local_path,
             remote_path,filesize,start,stop,status,step,progress,task_number,
             error_code,error_details) VALUES (2000,'waarp_gw',FALSE,TRUE,'abc','push',
             'toto','sftp_part','sftp','/loc/path','/rem/path',123,'2021-01-01 01:00:00',
             '2021-01-01 02:00:00','CANCELLED','StepData',111,0,'TeDataTransfer',
             'this is an error message')`)
-		So(err, ShouldBeNil)
+		require.NoError(t, err5)
 
-		_, err = eng.DB.Exec(`INSERT INTO transfer_info(transfer_id,is_history,
+		_, err6 := eng.DB.Exec(`INSERT INTO transfer_info(transfer_id,is_history,
         	name,value) VALUES (1000,false,'1_t_info','"t_value"'),
         	                   (2000,true, '2_h_info','"h_value"'),
         	                   (3000,true, '3_h_info_orphan','true')`) // orphaned entry
-		So(err, ShouldBeNil)
+		require.NoError(t, err6)
 
-		Convey("When applying the migration", func() {
-			err := eng.Upgrade(ver0_7_0RevampTransferInfoTable{})
-			So(err, ShouldBeNil)
+		t.Cleanup(func() {
+			_, err7 := eng.DB.Exec(`DELETE FROM transfer_info`)
+			require.NoError(t, err7)
+			_, err8 := eng.DB.Exec(`DELETE FROM transfer_history`)
+			require.NoError(t, err8)
+			_, err9 := eng.DB.Exec(`DELETE FROM transfers`)
+			require.NoError(t, err9)
+			_, err10 := eng.DB.Exec(`DELETE FROM local_accounts`)
+			require.NoError(t, err10)
+			_, err11 := eng.DB.Exec(`DELETE FROM local_agents`)
+			require.NoError(t, err11)
+			_, err12 := eng.DB.Exec(`DELETE FROM rules`)
+			require.NoError(t, err12)
+		})
 
-			Convey("Then it should have changed the columns", func() {
-				rows, err := eng.DB.Query(`SELECT transfer_id,history_id,name,value
+		require.NoError(t, eng.Upgrade(mig),
+			"The migration should not fail")
+
+		t.Run("Then it should have changed the columns", func(t *testing.T) {
+			rows, err := eng.DB.Query(`SELECT transfer_id,history_id,name,value
 					FROM transfer_info ORDER BY name`)
-				So(err, ShouldBeNil)
+			require.NoError(t, err)
+
+			defer rows.Close()
+
+			var (
+				tID, hID    sql.NullInt64
+				name, value string
+			)
+
+			require.True(t, rows.Next())
+			require.NoError(t, rows.Scan(&tID, &hID, &name, &value))
+			assert.Equal(t, int64(1000), tID.Int64)
+			assert.False(t, hID.Valid)
+			assert.Equal(t, "1_t_info", name)
+			assert.Equal(t, `"t_value"`, value)
+
+			require.True(t, rows.Next())
+			require.NoError(t, rows.Scan(&tID, &hID, &name, &value))
+			assert.False(t, tID.Valid)
+			assert.Equal(t, int64(2000), hID.Int64)
+			assert.Equal(t, "2_h_info", name)
+			assert.Equal(t, `"h_value"`, value)
+
+			require.False(t, rows.Next())
+			require.NoError(t, rows.Err())
+		})
+
+		t.Run("When reverting the migration", func(t *testing.T) {
+			require.NoError(t, eng.Downgrade(mig),
+				"Reverting the migration should not fail")
+
+			t.Run("Then it should have reverted the column changes", func(t *testing.T) {
+				rows, err := eng.DB.Query(`SELECT transfer_id,is_history,name,value
+					FROM transfer_info ORDER BY transfer_id`)
+				require.NoError(t, err)
+
 				defer rows.Close()
 
 				var (
-					tID, hID    sql.NullInt64
+					tID         int
+					isHist      bool
 					name, value string
 				)
 
-				So(rows.Next(), ShouldBeTrue)
-				So(rows.Scan(&tID, &hID, &name, &value), ShouldBeNil)
+				require.True(t, rows.Next())
+				require.NoError(t, rows.Scan(&tID, &isHist, &name, &value))
+				assert.Equal(t, 1000, tID)
+				assert.False(t, isHist)
+				assert.Equal(t, "1_t_info", name)
+				assert.Equal(t, `"t_value"`, value)
 
-				So(tID.Int64, ShouldEqual, 1000)
-				So(hID.Valid, ShouldBeFalse)
-				So(name, ShouldEqual, "1_t_info")
-				So(value, ShouldEqual, `"t_value"`)
+				require.True(t, rows.Next())
+				require.NoError(t, rows.Scan(&tID, &isHist, &name, &value))
+				assert.Equal(t, 2000, tID)
+				assert.True(t, isHist)
+				assert.Equal(t, "2_h_info", name)
+				assert.Equal(t, `"h_value"`, value)
 
-				So(rows.Next(), ShouldBeTrue)
-				So(rows.Scan(&tID, &hID, &name, &value), ShouldBeNil)
-
-				So(tID.Valid, ShouldBeFalse)
-				So(hID.Int64, ShouldEqual, 2000)
-				So(name, ShouldEqual, "2_h_info")
-				So(value, ShouldEqual, `"h_value"`)
-
-				So(rows.Next(), ShouldBeFalse)
-				So(rows.Err(), ShouldBeNil)
-			})
-
-			Convey("When reversing the migration", func() {
-				err := eng.Downgrade(ver0_7_0RevampTransferInfoTable{})
-				So(err, ShouldBeNil)
-
-				Convey("Then it should have reverted the column changes", func() {
-					rows, err := eng.DB.Query(`SELECT transfer_id,is_history,name,value
-					FROM transfer_info ORDER BY transfer_id`)
-					So(err, ShouldBeNil)
-					defer rows.Close()
-
-					var (
-						tID         int64
-						isHist      bool
-						name, value string
-					)
-
-					So(rows.Next(), ShouldBeTrue)
-					So(rows.Scan(&tID, &isHist, &name, &value), ShouldBeNil)
-
-					So(tID, ShouldEqual, 1000)
-					So(name, ShouldEqual, "1_t_info")
-					So(value, ShouldEqual, `"t_value"`)
-
-					So(rows.Next(), ShouldBeTrue)
-					So(rows.Scan(&tID, &isHist, &name, &value), ShouldBeNil)
-
-					So(tID, ShouldEqual, 2000)
-					So(name, ShouldEqual, "2_h_info")
-					So(value, ShouldEqual, `"h_value"`)
-
-					So(rows.Next(), ShouldBeFalse)
-					So(rows.Err(), ShouldBeNil)
-				})
+				require.False(t, rows.Next())
+				require.NoError(t, rows.Err())
 			})
 		})
 	})
+
+	return mig
 }
 
-func testVer0_7_0RevampCryptoTable(eng *testEngine) {
-	Convey("Given the 0.7.0 'crypto' table revamp", func() {
-		setupDatabaseUpTo(eng, ver0_7_0RevampCryptoTable{})
+func testVer0_7_0RevampCryptoTable(t *testing.T, eng *testEngine) Change {
+	mig := Migrations[28]
 
+	t.Run("When applying the 0.7.0 'crypto' table revamp", func(t *testing.T) {
 		// ### Local agent ###
-		_, err := eng.DB.Exec(`INSERT INTO local_agents(id,owner,name,protocol,
+		_, err1 := eng.DB.Exec(`INSERT INTO local_agents(id,owner,name,protocol,
 			address,root_dir,receive_dir,send_dir,tmp_receive_dir,proto_config)
 			VALUES (10,'waarp_gw','sftp_serv','sftp','localhost:2222','root',
 			        'rcv','snd','tmp','{}')`)
-		So(err, ShouldBeNil)
+		require.NoError(t, err1)
 
 		// ### Local account ###
-		_, err = eng.DB.Exec(`INSERT INTO local_accounts(id,local_agent_id,login)
+		_, err2 := eng.DB.Exec(`INSERT INTO local_accounts(id,local_agent_id,login)
 			VALUES (100,10,'toto')`)
-		So(err, ShouldBeNil)
+		require.NoError(t, err2)
 
 		// ### Remote agent ###
-		_, err = eng.DB.Exec(`INSERT INTO remote_agents(id,name,protocol,address,
+		_, err3 := eng.DB.Exec(`INSERT INTO remote_agents(id,name,protocol,address,
         	proto_config) VALUES (20,'sftp_part','sftp','localhost:3333','{}')`)
-		So(err, ShouldBeNil)
+		require.NoError(t, err3)
 
 		// ### Remote account ###
-		_, err = eng.DB.Exec(`INSERT INTO remote_accounts(id,remote_agent_id,login)
+		_, err4 := eng.DB.Exec(`INSERT INTO remote_accounts(id,remote_agent_id,login)
 			VALUES (200,20,'toto')`)
-		So(err, ShouldBeNil)
+		require.NoError(t, err4)
 
 		// ##### Certificates #####
-		_, err = eng.DB.Exec(`INSERT INTO crypto_credentials(id,name,owner_type,
-            owner_id,private_key,certificate,ssh_public_key) VALUES (1010,
-            'lag_cert','local_agents',10,'pk1','cert1','pbk1')`)
-		So(err, ShouldBeNil)
+		_, err5 := eng.DB.Exec(`INSERT INTO crypto_credentials(id,name,owner_type,
+            owner_id,private_key,certificate,ssh_public_key) VALUES 
+            (1010,'lag_cert','local_agents',   10, 'pk1','cert1','pbk1'),
+            (1100,'lac_cert','local_accounts', 100,'pk2','cert2','pbk2'),
+            (2020,'rag_cert','remote_agents',  20, 'pk3','cert3','pbk3'),
+            (2200,'rac_cert','remote_accounts',200, NULL,'cert4','pbk4')`)
+		require.NoError(t, err5)
 
-		_, err = eng.DB.Exec(`INSERT INTO crypto_credentials(id,name,owner_type,
-            owner_id,private_key,certificate,ssh_public_key) VALUES (1100,
-        	'lac_cert','local_accounts',100,'pk2','cert2','pbk2')`)
-		So(err, ShouldBeNil)
+		t.Cleanup(func() {
+			_, err6 := eng.DB.Exec(`DELETE FROM crypto_credentials`)
+			require.NoError(t, err6)
+			_, err7 := eng.DB.Exec(`DELETE FROM remote_accounts`)
+			require.NoError(t, err7)
+			_, err8 := eng.DB.Exec(`DELETE FROM remote_agents`)
+			require.NoError(t, err8)
+			_, err9 := eng.DB.Exec(`DELETE FROM local_accounts`)
+			require.NoError(t, err9)
+			_, err10 := eng.DB.Exec(`DELETE FROM local_agents`)
+			require.NoError(t, err10)
+		})
 
-		_, err = eng.DB.Exec(`INSERT INTO crypto_credentials(id,name,owner_type,
-            owner_id,private_key,certificate,ssh_public_key) VALUES (2020,
-            'rag_cert','remote_agents',20,'pk3','cert3','pbk3')`)
-		So(err, ShouldBeNil)
+		require.NoError(t, eng.Upgrade(mig),
+			"The migration should not fail")
 
-		_, err = eng.DB.Exec(`INSERT INTO crypto_credentials(id,name,owner_type,
-            owner_id,private_key,certificate,ssh_public_key) VALUES (2200,
-            'rac_cert','remote_accounts',200,NULL,'cert4','pbk4')`)
-		So(err, ShouldBeNil)
+		t.Run("Then it should have changed the columns", func(t *testing.T) {
+			rows, err := eng.DB.Query(`SELECT id,name,local_agent_id,
+				remote_agent_id,local_account_id,remote_account_id,
+				private_key,certificate,ssh_public_key FROM crypto_credentials
+				ORDER BY id`)
+			require.NoError(t, err)
 
-		Convey("When applying the migration", func() {
-			err := eng.Upgrade(ver0_7_0RevampCryptoTable{})
-			So(err, ShouldBeNil)
+			defer rows.Close()
 
-			Convey("Then it should have changed the columns", func() {
-				rows, err := eng.DB.Query(`SELECT id,name,local_agent_id,
-       				remote_agent_id,local_account_id,remote_account_id,
-       				private_key,certificate,ssh_public_key FROM crypto_credentials`)
-				So(err, ShouldBeNil)
-				So(rows.Err(), ShouldBeNil)
+			var (
+				id                         int
+				lagID, lacID, ragID, racID sql.NullInt64
+				name, pk, cert, pbk        string
+			)
+
+			require.True(t, rows.Next())
+			require.NoError(t, rows.Scan(&id, &name, &lagID, &ragID, &lacID,
+				&racID, &pk, &cert, &pbk))
+			assert.Equal(t, 1010, id)
+			assert.Equal(t, "lag_cert", name)
+			assert.Equal(t, int64(10), lagID.Int64)
+			assert.Equal(t, int64(0), lacID.Int64)
+			assert.Equal(t, int64(0), ragID.Int64)
+			assert.Equal(t, int64(0), racID.Int64)
+			assert.Equal(t, "pk1", pk)
+			assert.Equal(t, "cert1", cert)
+			assert.Equal(t, "pbk1", pbk)
+
+			require.True(t, rows.Next())
+			require.NoError(t, rows.Scan(&id, &name, &lagID, &ragID, &lacID,
+				&racID, &pk, &cert, &pbk))
+			assert.Equal(t, 1100, id)
+			assert.Equal(t, "lac_cert", name)
+			assert.Equal(t, int64(0), lagID.Int64)
+			assert.Equal(t, int64(100), lacID.Int64)
+			assert.Equal(t, int64(0), ragID.Int64)
+			assert.Equal(t, int64(0), racID.Int64)
+			assert.Equal(t, "pk2", pk)
+			assert.Equal(t, "cert2", cert)
+			assert.Equal(t, "pbk2", pbk)
+
+			require.True(t, rows.Next())
+			require.NoError(t, rows.Scan(&id, &name, &lagID, &ragID, &lacID,
+				&racID, &pk, &cert, &pbk))
+			assert.Equal(t, 2020, id)
+			assert.Equal(t, "rag_cert", name)
+			assert.Equal(t, int64(0), lagID.Int64)
+			assert.Equal(t, int64(0), lacID.Int64)
+			assert.Equal(t, int64(20), ragID.Int64)
+			assert.Equal(t, int64(0), racID.Int64)
+			assert.Equal(t, "pk3", pk)
+			assert.Equal(t, "cert3", cert)
+			assert.Equal(t, "pbk3", pbk)
+
+			require.True(t, rows.Next())
+			require.NoError(t, rows.Scan(&id, &name, &lagID, &ragID, &lacID,
+				&racID, &pk, &cert, &pbk))
+			assert.Equal(t, 2200, id)
+			assert.Equal(t, "rac_cert", name)
+			assert.Equal(t, int64(0), lagID.Int64)
+			assert.Equal(t, int64(0), lacID.Int64)
+			assert.Equal(t, int64(0), ragID.Int64)
+			assert.Equal(t, int64(200), racID.Int64)
+			assert.Equal(t, "", pk)
+			assert.Equal(t, "cert4", cert)
+			assert.Equal(t, "pbk4", pbk)
+
+			require.False(t, rows.Next())
+			require.NoError(t, rows.Err())
+		})
+
+		t.Run("When reverting the migration", func(t *testing.T) {
+			require.NoError(t, eng.Downgrade(mig),
+				"Reverting the migration should not fail")
+
+			t.Run("Then it should have reverted the column changes", func(t *testing.T) {
+				rows, err := eng.DB.Query(`SELECT id,name,owner_type,owner_id,
+       					private_key,certificate,ssh_public_key FROM crypto_credentials`)
+				require.NoError(t, err)
 
 				defer rows.Close()
 
-				for rows.Next() {
-					var (
-						id                         int64
-						lagID, lacID, ragID, racID sql.NullInt64
-						name, pk, cert, pbk        string
-					)
+				var (
+					id, oID                int
+					name, oType, cert, pbk string
+					pk                     sql.NullString
+				)
 
-					So(rows.Scan(&id, &name, &lagID, &ragID, &lacID, &racID,
-						&pk, &cert, &pbk), ShouldBeNil)
+				require.True(t, rows.Next())
+				require.NoError(t, rows.Scan(&id, &name, &oType, &oID, &pk, &cert, &pbk))
+				assert.Equal(t, 1010, id)
+				assert.Equal(t, "lag_cert", name)
+				assert.Equal(t, "local_agents", oType)
+				assert.Equal(t, 10, oID)
+				assert.True(t, pk.Valid)
+				assert.Equal(t, "pk1", pk.String)
+				assert.Equal(t, "cert1", cert)
+				assert.Equal(t, "pbk1", pbk)
 
-					switch {
-					case lagID.Valid:
-						So(id, ShouldEqual, 1010)
-						So(name, ShouldEqual, "lag_cert")
-						So(lagID.Int64, ShouldEqual, 10)
-						So(ragID.Int64, ShouldEqual, 0)
-						So(lacID.Int64, ShouldEqual, 0)
-						So(racID.Int64, ShouldEqual, 0)
-						So(pk, ShouldEqual, "pk1")
-						So(cert, ShouldEqual, "cert1")
-						So(pbk, ShouldEqual, "pbk1")
-					case lacID.Valid:
-						So(id, ShouldEqual, 1100)
-						So(name, ShouldEqual, "lac_cert")
-						So(lagID.Int64, ShouldEqual, 0)
-						So(lacID.Int64, ShouldEqual, 100)
-						So(ragID.Int64, ShouldEqual, 0)
-						So(racID.Int64, ShouldEqual, 0)
-						So(pk, ShouldEqual, "pk2")
-						So(cert, ShouldEqual, "cert2")
-						So(pbk, ShouldEqual, "pbk2")
-					case ragID.Valid:
-						So(id, ShouldEqual, 2020)
-						So(name, ShouldEqual, "rag_cert")
-						So(lagID.Int64, ShouldEqual, 0)
-						So(lacID.Int64, ShouldEqual, 0)
-						So(ragID.Int64, ShouldEqual, 20)
-						So(racID.Int64, ShouldEqual, 0)
-						So(pk, ShouldEqual, "pk3")
-						So(cert, ShouldEqual, "cert3")
-						So(pbk, ShouldEqual, "pbk3")
-					case racID.Valid:
-						So(id, ShouldEqual, 2200)
-						So(name, ShouldEqual, "rac_cert")
-						So(lagID.Int64, ShouldEqual, 0)
-						So(lacID.Int64, ShouldEqual, 0)
-						So(ragID.Int64, ShouldEqual, 0)
-						So(racID.Int64, ShouldEqual, 200)
-						So(pk, ShouldEqual, "")
-						So(cert, ShouldEqual, "cert4")
-						So(pbk, ShouldEqual, "pbk4")
-					default:
-						panic("crypto is missing an owner")
-					}
-				}
-			})
+				require.True(t, rows.Next())
+				require.NoError(t, rows.Scan(&id, &name, &oType, &oID, &pk, &cert, &pbk))
+				assert.Equal(t, 1100, id)
+				assert.Equal(t, "lac_cert", name)
+				assert.Equal(t, "local_accounts", oType)
+				assert.Equal(t, 100, oID)
+				assert.True(t, pk.Valid)
+				assert.Equal(t, "pk2", pk.String)
+				assert.Equal(t, "cert2", cert)
+				assert.Equal(t, "pbk2", pbk)
 
-			Convey("When reversing the migration", func() {
-				err := eng.Downgrade(ver0_7_0RevampCryptoTable{})
-				So(err, ShouldBeNil)
+				require.True(t, rows.Next())
+				require.NoError(t, rows.Scan(&id, &name, &oType, &oID, &pk, &cert, &pbk))
+				assert.Equal(t, 2020, id)
+				assert.Equal(t, "rag_cert", name)
+				assert.Equal(t, "remote_agents", oType)
+				assert.Equal(t, 20, oID)
+				assert.True(t, pk.Valid)
+				assert.Equal(t, "pk3", pk.String)
+				assert.Equal(t, "cert3", cert)
+				assert.Equal(t, "pbk3", pbk)
 
-				Convey("Then it should have reverted the column changes", func() {
-					rows, err := eng.DB.Query(`SELECT id,name,owner_type,owner_id,
-       					private_key,certificate,ssh_public_key FROM crypto_credentials`)
-					So(err, ShouldBeNil)
-					So(rows.Err(), ShouldBeNil)
+				require.True(t, rows.Next())
+				require.NoError(t, rows.Scan(&id, &name, &oType, &oID, &pk, &cert, &pbk))
+				assert.Equal(t, 2200, id)
+				assert.Equal(t, "rac_cert", name)
+				assert.Equal(t, "remote_accounts", oType)
+				assert.Equal(t, 200, oID)
+				assert.False(t, pk.Valid)
+				assert.Equal(t, "cert4", cert)
+				assert.Equal(t, "pbk4", pbk)
 
-					defer rows.Close()
-
-					for rows.Next() {
-						var (
-							id, oID                int64
-							name, oType, cert, pbk string
-							pk                     sql.NullString
-						)
-
-						So(rows.Scan(&id, &name, &oType, &oID, &pk, &cert, &pbk), ShouldBeNil)
-
-						switch oType {
-						case "local_agents":
-							So(id, ShouldEqual, 1010)
-							So(name, ShouldEqual, "lag_cert")
-							So(oID, ShouldEqual, 10)
-							So(pk.Valid, ShouldBeTrue)
-							So(pk.String, ShouldEqual, "pk1")
-							So(cert, ShouldEqual, "cert1")
-							So(pbk, ShouldEqual, "pbk1")
-						case "local_accounts":
-							So(id, ShouldEqual, 1100)
-							So(name, ShouldEqual, "lac_cert")
-							So(oID, ShouldEqual, 100)
-							So(pk.Valid, ShouldBeTrue)
-							So(pk.String, ShouldEqual, "pk2")
-							So(cert, ShouldEqual, "cert2")
-							So(pbk, ShouldEqual, "pbk2")
-						case "remote_agents":
-							So(id, ShouldEqual, 2020)
-							So(name, ShouldEqual, "rag_cert")
-							So(oID, ShouldEqual, 20)
-							So(pk.Valid, ShouldBeTrue)
-							So(pk.String, ShouldEqual, "pk3")
-							So(cert, ShouldEqual, "cert3")
-							So(pbk, ShouldEqual, "pbk3")
-						case "remote_accounts":
-							So(id, ShouldEqual, 2200)
-							So(name, ShouldEqual, "rac_cert")
-							So(oID, ShouldEqual, 200)
-							So(pk.Valid, ShouldBeFalse)
-							So(cert, ShouldEqual, "cert4")
-							So(pbk, ShouldEqual, "pbk4")
-						default:
-							panic(fmt.Sprintf("unknown crypto owner type '%s'", oType))
-						}
-					}
-				})
+				require.False(t, rows.Next())
+				require.NoError(t, rows.Err())
 			})
 		})
 	})
+
+	return mig
 }
 
-func testVer0_7_0RevampRuleAccessTable(eng *testEngine) {
-	Convey("Given the 0.7.0 'rule_access' table revamp", func() {
-		setupDatabaseUpTo(eng, ver0_7_0RevampRuleAccessTable{})
+func testVer0_7_0RevampRuleAccessTable(t *testing.T, eng *testEngine) Change {
+	mig := Migrations[29]
 
+	t.Run("When applying the 0.7.0 'rule_access' table revamp", func(t *testing.T) {
 		// ### Rule ###
-		_, err := eng.DB.Exec(`INSERT INTO rules(id,name,is_send,comment,path,
-            local_dir,remote_dir,tmp_local_receive_dir) VALUES (1,'push',TRUE,
-            'this is a comment','/push','locDir','remDir','tmpDir')`)
-		So(err, ShouldBeNil)
+		_, err1 := eng.DB.Exec(`INSERT INTO rules(id,name,is_send,path) 
+			VALUES (1,'push1',TRUE,'/push1'), (2,'push2',TRUE,'/push2'),
+			       (3,'push3',TRUE,'/push3'), (4,'push4',TRUE,'/push4')`)
+		require.NoError(t, err1)
 
 		// ### Local agent ###
-		_, err = eng.DB.Exec(`INSERT INTO local_agents(id,owner,name,protocol,
+		_, err2 := eng.DB.Exec(`INSERT INTO local_agents(id,owner,name,protocol,
 			address,root_dir,receive_dir,send_dir,tmp_receive_dir,proto_config)
 			VALUES (10,'waarp_gw','sftp_serv','sftp','localhost:2222','root',
 			        'rcv','snd','tmp','{}')`)
-		So(err, ShouldBeNil)
+		require.NoError(t, err2)
 
 		// ### Local account ###
-		_, err = eng.DB.Exec(`INSERT INTO local_accounts(id,local_agent_id,login)
+		_, err3 := eng.DB.Exec(`INSERT INTO local_accounts(id,local_agent_id,login)
 			VALUES (100,10,'toto')`)
-		So(err, ShouldBeNil)
+		require.NoError(t, err3)
 
 		// ### Remote agent ###
-		_, err = eng.DB.Exec(`INSERT INTO remote_agents(id,name,protocol,address,
+		_, err4 := eng.DB.Exec(`INSERT INTO remote_agents(id,name,protocol,address,
         	proto_config) VALUES (20,'sftp_part','sftp','localhost:3333','{}')`)
-		So(err, ShouldBeNil)
+		require.NoError(t, err4)
 
 		// ### Remote account ###
-		_, err = eng.DB.Exec(`INSERT INTO remote_accounts(id,remote_agent_id,login)
+		_, err5 := eng.DB.Exec(`INSERT INTO remote_accounts(id,remote_agent_id,login)
 			VALUES (200,20,'toto')`)
-		So(err, ShouldBeNil)
+		require.NoError(t, err5)
 
 		// ##### Accesses #####
-		_, err = eng.DB.Exec(`INSERT INTO rule_access(rule_id,object_type,object_id)
-			VALUES (1,'local_agents',10)`)
-		So(err, ShouldBeNil)
+		_, err6 := eng.DB.Exec(`INSERT INTO rule_access(rule_id,object_type,object_id)
+			VALUES (1,'local_agents',  10),  (2,'remote_agents',  20),
+			       (3,'local_accounts',100), (4,'remote_accounts',200)`)
+		require.NoError(t, err6)
 
-		_, err = eng.DB.Exec(`INSERT INTO rule_access(rule_id,object_type,object_id)
-			VALUES (1,'local_accounts',100)`)
-		So(err, ShouldBeNil)
+		t.Cleanup(func() {
+			_, err7 := eng.DB.Exec("DELETE FROM rule_access")
+			require.NoError(t, err7)
+			_, err8 := eng.DB.Exec("DELETE FROM remote_accounts")
+			require.NoError(t, err8)
+			_, err9 := eng.DB.Exec("DELETE FROM local_accounts")
+			require.NoError(t, err9)
+			_, err10 := eng.DB.Exec("DELETE FROM remote_agents")
+			require.NoError(t, err10)
+			_, err11 := eng.DB.Exec("DELETE FROM local_agents")
+			require.NoError(t, err11)
+			_, err12 := eng.DB.Exec("DELETE FROM rules")
+			require.NoError(t, err12)
+		})
 
-		_, err = eng.DB.Exec(`INSERT INTO rule_access(rule_id,object_type,object_id)
-			VALUES (1,'remote_agents',20)`)
-		So(err, ShouldBeNil)
+		require.NoError(t, eng.Upgrade(mig),
+			"The migration should not fail")
 
-		_, err = eng.DB.Exec(`INSERT INTO rule_access(rule_id,object_type,object_id)
-			VALUES (1,'remote_accounts',200)`)
-		So(err, ShouldBeNil)
+		t.Run("Then it should have changed the columns", func(t *testing.T) {
+			rows, err := eng.DB.Query(`SELECT rule_id,local_agent_id,
+       			remote_agent_id,local_account_id,remote_account_id 
+				FROM rule_access ORDER BY rule_id`)
+			require.NoError(t, err)
 
-		Convey("When applying the migration", func() {
-			err := eng.Upgrade(ver0_7_0RevampRuleAccessTable{})
-			So(err, ShouldBeNil)
+			defer rows.Close()
 
-			Convey("Then it should have changed the columns", func() {
-				rows, err := eng.DB.Query(`SELECT rule_id,local_agent_id,
-       				remote_agent_id,local_account_id,remote_account_id
-       				FROM rule_access`)
-				So(err, ShouldBeNil)
-				So(rows.Err(), ShouldBeNil)
+			var (
+				ruleID                     int
+				lagID, lacID, ragID, racID sql.NullInt64
+			)
+
+			require.True(t, rows.Next())
+			require.NoError(t, rows.Scan(&ruleID, &lagID, &ragID, &lacID, &racID))
+			assert.Equal(t, 1, ruleID)
+			assert.Equal(t, int64(10), lagID.Int64)
+			assert.Equal(t, int64(0), ragID.Int64)
+			assert.Equal(t, int64(0), lacID.Int64)
+			assert.Equal(t, int64(0), racID.Int64)
+
+			require.True(t, rows.Next())
+			require.NoError(t, rows.Scan(&ruleID, &lagID, &ragID, &lacID, &racID))
+			assert.Equal(t, 2, ruleID)
+			assert.Equal(t, int64(0), lagID.Int64)
+			assert.Equal(t, int64(20), ragID.Int64)
+			assert.Equal(t, int64(0), lacID.Int64)
+			assert.Equal(t, int64(0), racID.Int64)
+
+			require.True(t, rows.Next())
+			require.NoError(t, rows.Scan(&ruleID, &lagID, &ragID, &lacID, &racID))
+			assert.Equal(t, 3, ruleID)
+			assert.Equal(t, int64(0), lagID.Int64)
+			assert.Equal(t, int64(0), ragID.Int64)
+			assert.Equal(t, int64(100), lacID.Int64)
+			assert.Equal(t, int64(0), racID.Int64)
+
+			require.True(t, rows.Next())
+			require.NoError(t, rows.Scan(&ruleID, &lagID, &ragID, &lacID, &racID))
+			assert.Equal(t, 4, ruleID)
+			assert.Equal(t, int64(0), lagID.Int64)
+			assert.Equal(t, int64(0), ragID.Int64)
+			assert.Equal(t, int64(0), lacID.Int64)
+			assert.Equal(t, int64(200), racID.Int64)
+
+			require.False(t, rows.Next())
+			require.NoError(t, rows.Err())
+		})
+
+		t.Run("When reverting the migration", func(t *testing.T) {
+			require.NoError(t, eng.Downgrade(mig),
+				"Reverting the migration should not fail")
+
+			t.Run("Then it should have reverted the column changes", func(t *testing.T) {
+				rows, err := eng.DB.Query(`SELECT rule_id,object_type,
+       					object_id FROM rule_access ORDER BY object_id`)
+				require.NoError(t, err)
 
 				defer rows.Close()
 
-				for rows.Next() {
-					var (
-						ruleID                     int64
-						lagID, lacID, ragID, racID sql.NullInt64
-					)
+				var (
+					ruleID, oID int
+					oType       string
+				)
 
-					So(rows.Scan(&ruleID, &lagID, &ragID, &lacID, &racID), ShouldBeNil)
+				require.True(t, rows.Next())
+				require.NoError(t, rows.Scan(&ruleID, &oType, &oID))
+				assert.Equal(t, 1, ruleID)
+				assert.Equal(t, "local_agents", oType)
+				assert.Equal(t, 10, oID)
 
-					switch {
-					case lagID.Valid:
-						So(ruleID, ShouldEqual, 1)
-						So(lagID.Int64, ShouldEqual, 10)
-						So(ragID.Int64, ShouldEqual, 0)
-						So(lacID.Int64, ShouldEqual, 0)
-						So(racID.Int64, ShouldEqual, 0)
-					case lacID.Valid:
-						So(ruleID, ShouldEqual, 1)
-						So(lagID.Int64, ShouldEqual, 0)
-						So(lacID.Int64, ShouldEqual, 100)
-						So(ragID.Int64, ShouldEqual, 0)
-						So(racID.Int64, ShouldEqual, 0)
-					case ragID.Valid:
-						So(ruleID, ShouldEqual, 1)
-						So(lagID.Int64, ShouldEqual, 0)
-						So(lacID.Int64, ShouldEqual, 0)
-						So(ragID.Int64, ShouldEqual, 20)
-						So(racID.Int64, ShouldEqual, 0)
-					case racID.Valid:
-						So(ruleID, ShouldEqual, 1)
-						So(lagID.Int64, ShouldEqual, 0)
-						So(lacID.Int64, ShouldEqual, 0)
-						So(ragID.Int64, ShouldEqual, 0)
-						So(racID.Int64, ShouldEqual, 200)
-					default:
-						panic("rule access is missing a target")
-					}
-				}
-			})
+				require.True(t, rows.Next())
+				require.NoError(t, rows.Scan(&ruleID, &oType, &oID))
+				assert.Equal(t, 2, ruleID)
+				assert.Equal(t, "remote_agents", oType)
+				assert.Equal(t, 20, oID)
 
-			Convey("When reversing the migration", func() {
-				err := eng.Downgrade(ver0_7_0RevampRuleAccessTable{})
-				So(err, ShouldBeNil)
+				require.True(t, rows.Next())
+				require.NoError(t, rows.Scan(&ruleID, &oType, &oID))
+				assert.Equal(t, 3, ruleID)
+				assert.Equal(t, "local_accounts", oType)
+				assert.Equal(t, 100, oID)
 
-				Convey("Then it should have reverted the column changes", func() {
-					rows, err := eng.DB.Query(`SELECT rule_id,object_type,
-       					object_id FROM rule_access`)
-					So(err, ShouldBeNil)
-					So(rows.Err(), ShouldBeNil)
+				require.True(t, rows.Next())
+				require.NoError(t, rows.Scan(&ruleID, &oType, &oID))
+				assert.Equal(t, 4, ruleID)
+				assert.Equal(t, "remote_accounts", oType)
+				assert.Equal(t, 200, oID)
 
-					defer rows.Close()
-
-					for rows.Next() {
-						var (
-							ruleID, oID int64
-							oType       string
-						)
-
-						So(rows.Scan(&ruleID, &oType, &oID), ShouldBeNil)
-
-						switch oType {
-						case "local_agents":
-							So(ruleID, ShouldEqual, 1)
-							So(oID, ShouldEqual, 10)
-						case "local_accounts":
-							So(ruleID, ShouldEqual, 1)
-							So(oID, ShouldEqual, 100)
-						case "remote_agents":
-							So(ruleID, ShouldEqual, 1)
-							So(oID, ShouldEqual, 20)
-						case "remote_accounts":
-							So(ruleID, ShouldEqual, 1)
-							So(oID, ShouldEqual, 200)
-						default:
-							panic(fmt.Sprintf("unknown rule access object type '%s'", oType))
-						}
-					}
-				})
+				require.False(t, rows.Next())
+				require.NoError(t, rows.Err())
 			})
 		})
 	})
+
+	return mig
 }
 
-func testVer0_7_0AddLocalAgentsAddressUnique(eng *testEngine) {
-	Convey("Given the 0.7.0 transfers 'address' unique addition", func() {
-		setupDatabaseUpTo(eng, ver0_7_0AddLocalAgentsAddressUnique{})
+func testVer0_7_0AddLocalAgentsAddressUnique(t *testing.T, eng *testEngine) Change {
+	mig := Migrations[30]
 
-		_, err := eng.DB.Exec(`INSERT INTO local_agents(id,owner,name,protocol,address) 
+	t.Run("When applying the 0.7.0 transfers 'address' unique addition", func(t *testing.T) {
+		_, err1 := eng.DB.Exec(`INSERT INTO local_agents(id,owner,name,protocol,address)
 			VALUES (10,'waarp_gw','sftp_serv','sftp','localhost:2222')`)
-		So(err, ShouldBeNil)
+		require.NoError(t, err1)
 
-		Convey("When applying the migration", func() {
-			So(eng.Upgrade(ver0_7_0AddLocalAgentsAddressUnique{}), ShouldBeNil)
+		t.Cleanup(func() {
+			_, err2 := eng.DB.Exec(`DELETE FROM local_agents`)
+			require.NoError(t, err2)
+		})
 
-			Convey("Then it should have added the unique constraint", func() {
-				_, err := eng.DB.Exec(`INSERT INTO local_agents(id,owner,name,protocol,address) 
+		require.NoError(t, eng.Upgrade(mig),
+			"The migration should not fail")
+
+		t.Run("Then it should have added the unique constraint", func(t *testing.T) {
+			_, err := eng.DB.Exec(`INSERT INTO local_agents(id,owner,name,protocol,address)
 					VALUES (11,'waarp_gw','sftp_serv_2','sftp','localhost:2222')`)
-				shouldBeUniqueViolationError(err)
-			})
+			shouldBeUniqueViolationError(t, err)
+		})
 
-			Convey("When reversing the migration", func() {
-				So(eng.Downgrade(ver0_7_0AddLocalAgentsAddressUnique{}), ShouldBeNil)
+		t.Run("When reverting the migration", func(t *testing.T) {
+			require.NoError(t, eng.Downgrade(mig),
+				"Reverting the migration should not fail")
 
-				Convey("Then it should have removed the unique constraint", func() {
-					_, err := eng.DB.Exec(`INSERT INTO local_agents(id,owner,name,protocol,address) 
+			t.Run("Then it should have removed the unique constraint", func(t *testing.T) {
+				_, err := eng.DB.Exec(`INSERT INTO local_agents(id,owner,name,protocol,address)
 						VALUES (11,'waarp_gw','sftp_serv_2','sftp','localhost:2222')`)
-					So(err, ShouldBeNil)
-				})
+				require.NoError(t, err)
 			})
 		})
 	})
+
+	return mig
 }
 
-func testVer0_7_0AddNormalizedTransfersView(eng *testEngine) {
-	Convey("Given the 0.7.0 normalized transfer view addition", func() {
-		setupDatabaseUpTo(eng, ver0_7_0AddNormalizedTransfersView{})
+func testVer0_7_0AddNormalizedTransfersView(t *testing.T, eng *testEngine) Change {
+	mig := Migrations[31]
 
+	t.Run("When applying the 0.7.0 normalized transfer view addition", func(t *testing.T) {
 		// ### Rules ###
-		_, err := eng.DB.Exec(`INSERT INTO rules(id,name,is_send,path) 
-			VALUES (1,'push',TRUE,'/push')`)
-		So(err, ShouldBeNil)
-
-		_, err = eng.DB.Exec(`INSERT INTO rules(id,name,is_send,path) 
-			VALUES (2,'pull',FALSE,'/pull')`)
-		So(err, ShouldBeNil)
+		_, err1 := eng.DB.Exec(`INSERT INTO rules(id,name,is_send,path)
+			VALUES (1,'push',TRUE,'/push'), (2,'pull',FALSE,'/pull')`)
+		require.NoError(t, err1)
 
 		// ### Local ###
-		_, err = eng.DB.Exec(`INSERT INTO local_agents(id,owner,name,protocol,
+		_, err2 := eng.DB.Exec(`INSERT INTO local_agents(id,owner,name,protocol,
 			address,root_dir,receive_dir,send_dir,tmp_receive_dir,proto_config)
 			VALUES (10,'waarp_gw','sftp_serv','sftp','localhost:2222','root',
 			        'rcv','snd','tmp','{}')`)
-		So(err, ShouldBeNil)
+		require.NoError(t, err2)
 
-		_, err = eng.DB.Exec(`INSERT INTO local_accounts(id,local_agent_id,login)
+		_, err3 := eng.DB.Exec(`INSERT INTO local_accounts(id,local_agent_id,login)
 			VALUES (100,10,'toto')`)
-		So(err, ShouldBeNil)
-
-		_, err = eng.DB.Exec(`INSERT INTO transfers(id,owner,remote_transfer_id,
-            rule_id,local_account_id,local_path,remote_path)
-            VALUES(1000,'waarp_gw','efgh',1,100,'/loc/path/1','/rem/path/1')`)
-		So(err, ShouldBeNil)
+		require.NoError(t, err3)
 
 		// ### Remote ###
-		_, err = eng.DB.Exec(`INSERT INTO remote_agents(id,name,protocol,address,
+		_, err4 := eng.DB.Exec(`INSERT INTO remote_agents(id,name,protocol,address,
         	proto_config) VALUES (20,'sftp_part','sftp','localhost:3333','{}')`)
-		So(err, ShouldBeNil)
+		require.NoError(t, err4)
 
-		_, err = eng.DB.Exec(`INSERT INTO remote_accounts(id,remote_agent_id,login)
+		_, err5 := eng.DB.Exec(`INSERT INTO remote_accounts(id,remote_agent_id,login)
 			VALUES (200,20,'tata')`)
-		So(err, ShouldBeNil)
+		require.NoError(t, err5)
 
-		_, err = eng.DB.Exec(`INSERT INTO transfers(id,owner,remote_transfer_id,
-            rule_id,remote_account_id,local_path,remote_path)
-            VALUES(2000,'waarp_gw','efgh',2,200,'/loc/path/2','/rem/path/2')`)
-		So(err, ShouldBeNil)
+		// ### Transfers ###
 
-		_, err = eng.DB.Exec(`INSERT INTO transfer_history(id,owner,is_server,
+		_, err6 := eng.DB.Exec(`INSERT INTO transfers(id,owner,remote_transfer_id,
+            rule_id,local_account_id,remote_account_id,local_path,remote_path)
+            VALUES (1000,'waarp_gw','efgh',1,100, null,'/loc/path/1','/rem/path/1'),
+                   (2000,'waarp_gw','efgh',2,null,200, '/loc/path/2','/rem/path/2')`)
+		require.NoError(t, err6)
+
+		_, err7 := eng.DB.Exec(`INSERT INTO transfer_history(id,owner,is_server,
             	is_send,remote_transfer_id,rule,account,agent,protocol,local_path,
-            	remote_path,filesize,start,stop,status,step) 
+            	remote_path,filesize,start,stop,status,step)
 			VALUES (3000,'waarp_gw',FALSE,TRUE,'xyz','push','tutu','r66_part',
 				'r66','/loc/path/3','/rem/path/3',123,'2021-01-03 01:00:00',
             	'2021-01-03 02:00:00','CANCELLED','StepData')`)
-		So(err, ShouldBeNil)
+		require.NoError(t, err7)
 
-		Convey("When applying the migration", func() {
-			So(eng.Upgrade(ver0_7_0AddNormalizedTransfersView{}), ShouldBeNil)
+		t.Cleanup(func() {
+			_, err8 := eng.DB.Exec(`DELETE FROM transfer_history`)
+			require.NoError(t, err8)
+			_, err9 := eng.DB.Exec(`DELETE FROM transfers`)
+			require.NoError(t, err9)
+			_, err10 := eng.DB.Exec(`DELETE FROM local_accounts`)
+			require.NoError(t, err10)
+			_, err11 := eng.DB.Exec(`DELETE FROM local_agents`)
+			require.NoError(t, err11)
+			_, err12 := eng.DB.Exec(`DELETE FROM remote_accounts`)
+			require.NoError(t, err12)
+			_, err13 := eng.DB.Exec(`DELETE FROM remote_agents`)
+			require.NoError(t, err13)
+			_, err14 := eng.DB.Exec(`DELETE FROM rules`)
+			require.NoError(t, err14)
+		})
 
-			Convey("Then it should have added the view", func() {
-				type normTrans struct {
-					id                          int64
-					isServ, isSend, isTrans     bool
-					rule, account, agent, proto string
-				}
+		require.NoError(t, eng.Upgrade(mig),
+			"The migration should not fail")
 
-				rows, err := eng.DB.Query(`SELECT id,is_server,is_send,is_transfer,
+		t.Run("Then it should have added the view", func(t *testing.T) {
+			type normTrans struct {
+				id                          int
+				isServ, isSend, isTrans     bool
+				rule, account, agent, proto string
+			}
+
+			rows, err := eng.DB.Query(`SELECT id,is_server,is_send,is_transfer,
        				rule,account,agent,protocol FROM normalized_transfers ORDER BY id`)
-				So(err, ShouldBeNil)
-				defer rows.Close()
+			require.NoError(t, err)
+			defer rows.Close()
 
-				transfers := make([]normTrans, 0, 3)
+			var trans normTrans
 
-				for rows.Next() {
-					var (
-						id                          int64
-						isServ, isSend, isTrans     bool
-						rule, account, agent, proto string
-					)
+			require.True(t, rows.Next())
+			require.NoError(t, rows.Scan(&trans.id, &trans.isServ, &trans.isSend,
+				&trans.isTrans, &trans.rule, &trans.account, &trans.agent, &trans.proto))
+			assert.Equal(t,
+				normTrans{
+					id: 1000, isServ: true, isSend: true, isTrans: true,
+					rule: "push", account: "toto", agent: "sftp_serv", proto: "sftp",
+				},
+				trans)
 
-					So(rows.Scan(&id, &isServ, &isSend, &isTrans, &rule, &account,
-						&agent, &proto), ShouldBeNil)
+			require.True(t, rows.Next())
+			require.NoError(t, rows.Scan(&trans.id, &trans.isServ, &trans.isSend,
+				&trans.isTrans, &trans.rule, &trans.account, &trans.agent, &trans.proto))
+			assert.Equal(t,
+				normTrans{
+					id: 2000, isServ: false, isSend: false, isTrans: true,
+					rule: "pull", account: "tata", agent: "sftp_part", proto: "sftp",
+				},
+				trans)
+			require.True(t, rows.Next())
+			require.NoError(t, rows.Scan(&trans.id, &trans.isServ, &trans.isSend,
+				&trans.isTrans, &trans.rule, &trans.account, &trans.agent, &trans.proto))
+			assert.Equal(t,
+				normTrans{
+					id: 3000, isServ: false, isSend: true, isTrans: false,
+					rule: "push", account: "tutu", agent: "r66_part", proto: "r66",
+				},
+				trans)
 
-					transfers = append(transfers, normTrans{
-						id: id, isServ: isServ, isSend: isSend, isTrans: isTrans,
-						rule: rule, account: account, agent: agent, proto: proto,
-					})
-				}
+			require.False(t, rows.Next())
+			require.NoError(t, rows.Err())
+		})
 
-				So(rows.Err(), ShouldBeNil)
+		t.Run("When reverting the migration", func(t *testing.T) {
+			require.NoError(t, eng.Downgrade(mig),
+				"Reverting the migration should not fail")
 
-				So(transfers, ShouldResemble, []normTrans{
-					{
-						id: 1000, isServ: true, isSend: true, isTrans: true,
-						rule: "push", account: "toto", agent: "sftp_serv", proto: "sftp",
-					},
-					{
-						id: 2000, isServ: false, isSend: false, isTrans: true,
-						rule: "pull", account: "tata", agent: "sftp_part", proto: "sftp",
-					},
-					{
-						id: 3000, isServ: false, isSend: true, isTrans: false,
-						rule: "push", account: "tutu", agent: "r66_part", proto: "r66",
-					},
-				})
-			})
-
-			Convey("When reversing the migration", func() {
-				So(eng.Downgrade(ver0_7_0AddNormalizedTransfersView{}), ShouldBeNil)
-
-				Convey("Then it should have dropped the view", func() {
-					_, err := eng.DB.Exec(`SELECT * FROM normalized_transfers`)
-					So(err, ShouldNotBeNil)
-				})
+			t.Run("Then it should have dropped the view", func(t *testing.T) {
+				_, err := eng.DB.Exec(`SELECT * FROM normalized_transfers`)
+				shouldBeTableNotExist(t, err)
 			})
 		})
 	})
+
+	return mig
 }

@@ -10,9 +10,7 @@ import (
 	"code.waarp.fr/apps/gateway/gateway/pkg/utils"
 )
 
-type ver0_7_0AddLocalAgentEnabledColumn struct{}
-
-func (ver0_7_0AddLocalAgentEnabledColumn) Up(db Actions) error {
+func ver0_7_0AddLocalAgentEnabledColumnUp(db Actions) error {
 	if err := db.AlterTable("local_agents",
 		AddColumn{Name: "enabled", Type: Boolean{}, NotNull: true, Default: true},
 	); err != nil {
@@ -22,7 +20,7 @@ func (ver0_7_0AddLocalAgentEnabledColumn) Up(db Actions) error {
 	return nil
 }
 
-func (ver0_7_0AddLocalAgentEnabledColumn) Down(db Actions) error {
+func ver0_7_0AddLocalAgentEnabledColumnDown(db Actions) error {
 	if err := db.AlterTable("local_agents", DropColumn{Name: "enabled"}); err != nil {
 		return fmt.Errorf("failed to drop the local agent 'enabled' column: %w", err)
 	}
@@ -30,9 +28,7 @@ func (ver0_7_0AddLocalAgentEnabledColumn) Down(db Actions) error {
 	return nil
 }
 
-type ver0_7_0RevampUsersTable struct{}
-
-func (ver0_7_0RevampUsersTable) Up(db Actions) error {
+func ver0_7_0RevampUsersTableUp(db Actions) error {
 	if err := db.DropIndex(quote(db, "UQE_users_name"), "users"); err != nil {
 		return fmt.Errorf("failed to drop the user index: %w", err)
 	}
@@ -80,7 +76,7 @@ func (ver0_7_0RevampUsersTable) Up(db Actions) error {
 	return nil
 }
 
-func (ver0_7_0RevampUsersTable) Down(db Actions) error {
+func ver0_7_0RevampUsersTableDown(db Actions) error {
 	if err := db.AlterTable("users",
 		RenameColumn{OldName: "permissions", NewName: "int_permissions"},
 		DropConstraint{Name: "unique_user"},
@@ -132,9 +128,7 @@ func (ver0_7_0RevampUsersTable) Down(db Actions) error {
 	return nil
 }
 
-type ver0_7_0RevampLocalAgentsTable struct{}
-
-func (ver0_7_0RevampLocalAgentsTable) Up(db Actions) error {
+func ver0_7_0RevampLocalAgentsTableUp(db Actions) error {
 	if err := db.DropIndex(quote(db, "UQE_local_agents_loc_ag"), "local_agents"); err != nil {
 		return fmt.Errorf("failed to drop the old local_agent index: %w", err)
 	}
@@ -172,7 +166,7 @@ func (ver0_7_0RevampLocalAgentsTable) Up(db Actions) error {
 	return nil
 }
 
-func (ver0_7_0RevampLocalAgentsTable) Down(db Actions) error {
+func ver0_7_0RevampLocalAgentsTableDown(db Actions) error {
 	if err := db.AlterTable("local_agents",
 		DropConstraint{Name: "unique_local_agent"},
 		RenameColumn{OldName: "proto_config", NewName: "text_proto_config"},
@@ -213,9 +207,7 @@ func (ver0_7_0RevampLocalAgentsTable) Down(db Actions) error {
 	return nil
 }
 
-type ver0_7_0RevampRemoteAgentsTable struct{}
-
-func (ver0_7_0RevampRemoteAgentsTable) Up(db Actions) error {
+func ver0_7_0RevampRemoteAgentsTableUp(db Actions) error {
 	if err := db.DropIndex(quote(db, "UQE_remote_agents_name"), "remote_agents"); err != nil {
 		return fmt.Errorf("failed to drop the old remote_agent index: %w", err)
 	}
@@ -248,7 +240,7 @@ func (ver0_7_0RevampRemoteAgentsTable) Up(db Actions) error {
 	return nil
 }
 
-func (ver0_7_0RevampRemoteAgentsTable) Down(db Actions) error {
+func ver0_7_0RevampRemoteAgentsTableDown(db Actions) error {
 	if err := db.AlterTable("remote_agents",
 		DropConstraint{Name: "unique_remote_agent"},
 		RenameColumn{OldName: "proto_config", NewName: "text_proto_config"},
@@ -287,9 +279,7 @@ func (ver0_7_0RevampRemoteAgentsTable) Down(db Actions) error {
 	return nil
 }
 
-type ver0_7_0RevampLocalAccountsTable struct{}
-
-func (ver0_7_0RevampLocalAccountsTable) Up(db Actions) error {
+func ver0_7_0RevampLocalAccountsTableUp(db Actions) error {
 	if err := db.DropIndex(quote(db, "UQE_local_accounts_loc_ac"), "local_accounts"); err != nil {
 		return fmt.Errorf("failed to drop the old local_account index: %w", err)
 	}
@@ -312,7 +302,7 @@ func (ver0_7_0RevampLocalAccountsTable) Up(db Actions) error {
 	return nil
 }
 
-func (ver0_7_0RevampLocalAccountsTable) Down(db Actions) error {
+func ver0_7_0RevampLocalAccountsTableDown(db Actions) error {
 	if err := db.AlterTable("local_accounts",
 		DropConstraint{Name: "local_accounts_agent_fkey"},
 		DropConstraint{Name: "unique_local_account"},
@@ -334,9 +324,7 @@ func (ver0_7_0RevampLocalAccountsTable) Down(db Actions) error {
 	return nil
 }
 
-type ver0_7_0RevampRemoteAccountsTable struct{}
-
-func (ver0_7_0RevampRemoteAccountsTable) Up(db Actions) error {
+func ver0_7_0RevampRemoteAccountsTableUp(db Actions) error {
 	if err := db.DropIndex(quote(db, "UQE_remote_accounts_rem_ac"), "remote_accounts"); err != nil {
 		return fmt.Errorf("failed to drop the old remote_account index: %w", err)
 	}
@@ -363,7 +351,7 @@ func (ver0_7_0RevampRemoteAccountsTable) Up(db Actions) error {
 	return nil
 }
 
-func (ver0_7_0RevampRemoteAccountsTable) Down(db Actions) error {
+func ver0_7_0RevampRemoteAccountsTableDown(db Actions) error {
 	if err := db.AlterTable("remote_accounts",
 		DropConstraint{Name: "remote_accounts_agent_fkey"},
 		DropConstraint{Name: "unique_remote_account"},
@@ -389,9 +377,7 @@ func (ver0_7_0RevampRemoteAccountsTable) Down(db Actions) error {
 	return nil
 }
 
-type ver0_7_0RevampRulesTable struct{}
-
-func (ver0_7_0RevampRulesTable) Up(db Actions) error {
+func ver0_7_0RevampRulesTableUp(db Actions) error {
 	if err := db.DropIndex(quote(db, "UQE_rules_dir"), "rules"); err != nil {
 		return fmt.Errorf("failed to drop the old rule name index: %w", err)
 	}
@@ -418,7 +404,7 @@ func (ver0_7_0RevampRulesTable) Up(db Actions) error {
 	return nil
 }
 
-func (ver0_7_0RevampRulesTable) Down(db Actions) error {
+func ver0_7_0RevampRulesTableDown(db Actions) error {
 	if err := db.AlterTable("rules",
 		DropConstraint{Name: "unique_rule_name"},
 		DropConstraint{Name: "unique_rule_path"},
@@ -451,9 +437,7 @@ func (ver0_7_0RevampRulesTable) Down(db Actions) error {
 	return nil
 }
 
-type ver0_7_0RevampTasksTable struct{}
-
-func (ver0_7_0RevampTasksTable) Up(db Actions) error {
+func ver0_7_0RevampTasksTableUp(db Actions) error {
 	if err := db.AlterTable("tasks",
 		RenameColumn{OldName: "args", NewName: "blob_args"},
 		AlterColumn{Name: "rule_id", Type: BigInt{}, NotNull: true},
@@ -490,10 +474,13 @@ func (ver0_7_0RevampTasksTable) Up(db Actions) error {
 	return nil
 }
 
-func (ver0_7_0RevampTasksTable) Down(db Actions) error {
+func ver0_7_0RevampTasksTableDown(db Actions) error {
 	if err := db.AlterTable("tasks",
-		RenameColumn{OldName: "args", NewName: "text_args"},
 		DropConstraint{Name: "tasks_rule_id_fkey"},
+		DropConstraint{Name: "task_rank_check"},
+		DropConstraint{Name: "task_chain_check"},
+		DropConstraint{Name: "unique_task_nb"},
+		RenameColumn{OldName: "args", NewName: "text_args"},
 		AlterColumn{Name: "rule_id", Type: UnsignedBigInt{}, NotNull: true},
 		AlterColumn{Name: "chain", Type: Varchar(255), NotNull: true},
 		AlterColumn{Name: "rank", Type: Integer{}, NotNull: true},
@@ -520,9 +507,7 @@ func (ver0_7_0RevampTasksTable) Down(db Actions) error {
 	return nil
 }
 
-type ver0_7_0RevampHistoryTable struct{}
-
-func (ver0_7_0RevampHistoryTable) Up(db Actions) error {
+func ver0_7_0RevampHistoryTableUp(db Actions) error {
 	if db.GetDialect() == PostgreSQL { // set the db time zone to UTC
 		if err := db.Exec("SET TimeZone = 'UTC'"); err != nil {
 			return fmt.Errorf("failed to set the PostgreSQL time zone: %w", err)
@@ -562,7 +547,7 @@ func (ver0_7_0RevampHistoryTable) Up(db Actions) error {
 	return nil
 }
 
-func (ver0_7_0RevampHistoryTable) Down(db Actions) error {
+func ver0_7_0RevampHistoryTableDown(db Actions) error {
 	if db.GetDialect() == PostgreSQL { // set the db time zone to UTC
 		if err := db.Exec("SET TimeZone = 'UTC'"); err != nil {
 			return fmt.Errorf("failed to set the PostgreSQL time zone: %w", err)
@@ -601,9 +586,7 @@ func (ver0_7_0RevampHistoryTable) Down(db Actions) error {
 	return nil
 }
 
-type ver0_7_0RevampTransfersTable struct{}
-
-func (ver0_7_0RevampTransfersTable) Up(db Actions) error {
+func ver0_7_0RevampTransfersTableUp(db Actions) error {
 	if db.GetDialect() == PostgreSQL { // set the db time zone to UTC
 		if err := db.Exec("SET TimeZone = 'UTC'"); err != nil {
 			return fmt.Errorf("failed to set the PostgreSQL time zone: %w", err)
@@ -675,7 +658,7 @@ func (ver0_7_0RevampTransfersTable) Up(db Actions) error {
 	return nil
 }
 
-func (ver0_7_0RevampTransfersTable) Down(db Actions) error {
+func ver0_7_0RevampTransfersTableDown(db Actions) error {
 	if db.GetDialect() == PostgreSQL { // set the db time zone to UTC
 		if err := db.Exec("SET TimeZone = 'UTC'"); err != nil {
 			return fmt.Errorf("failed to set the PostgreSQL time zone: %w", err)
@@ -741,9 +724,7 @@ func (ver0_7_0RevampTransfersTable) Down(db Actions) error {
 	return nil
 }
 
-type ver0_7_0RevampTransferInfoTable struct{}
-
-func (ver0_7_0RevampTransferInfoTable) Up(db Actions) error {
+func ver0_7_0RevampTransferInfoTableUp(db Actions) error {
 	if err := db.DropIndex(quote(db, "UQE_transfer_info_infoName"), "transfer_info"); err != nil {
 		return fmt.Errorf("failed to drop the old transfer_info index: %w", err)
 	}
@@ -792,7 +773,7 @@ func (ver0_7_0RevampTransferInfoTable) Up(db Actions) error {
 	return nil
 }
 
-func (ver0_7_0RevampTransferInfoTable) Down(db Actions) error {
+func ver0_7_0RevampTransferInfoTableDown(db Actions) error {
 	if err := db.AlterTable("transfer_info",
 		DropConstraint{Name: "info_transfer_fkey"},
 		DropConstraint{Name: "info_history_fkey"},
@@ -833,9 +814,7 @@ func (ver0_7_0RevampTransferInfoTable) Down(db Actions) error {
 	return nil
 }
 
-type ver0_7_0RevampCryptoTable struct{}
-
-func (ver0_7_0RevampCryptoTable) Up(db Actions) error {
+func ver0_7_0RevampCryptoTableUp(db Actions) error {
 	if err := db.DropIndex(quote(db, "UQE_crypto_credentials_cert"),
 		"crypto_credentials"); err != nil {
 		return fmt.Errorf("failed to drop the old crypto_credentials index: %w", err)
@@ -906,7 +885,7 @@ func (ver0_7_0RevampCryptoTable) Up(db Actions) error {
 	return nil
 }
 
-func (ver0_7_0RevampCryptoTable) Down(db Actions) error {
+func ver0_7_0RevampCryptoTableDown(db Actions) error {
 	if err := db.AlterTable("crypto_credentials",
 		DropConstraint{Name: "crypto_local_agent_fkey"},
 		DropConstraint{Name: "crypto_remote_agent_fkey"},
@@ -963,9 +942,7 @@ func (ver0_7_0RevampCryptoTable) Down(db Actions) error {
 	return nil
 }
 
-type ver0_7_0RevampRuleAccessTable struct{}
-
-func (ver0_7_0RevampRuleAccessTable) Up(db Actions) error {
+func ver0_7_0RevampRuleAccessTableUp(db Actions) error {
 	if err := db.DropIndex(quote(db, "UQE_rule_access_perm"), "rule_access"); err != nil {
 		return fmt.Errorf("failed to drop the old rule_access index: %w", err)
 	}
@@ -1028,7 +1005,7 @@ func (ver0_7_0RevampRuleAccessTable) Up(db Actions) error {
 	return nil
 }
 
-func (ver0_7_0RevampRuleAccessTable) Down(db Actions) error {
+func ver0_7_0RevampRuleAccessTableDown(db Actions) error {
 	if err := db.AlterTable("rule_access",
 		DropConstraint{Name: "access_rule_id_fkey"},
 		DropConstraint{Name: "access_local_agent_id_fkey"},
@@ -1078,9 +1055,7 @@ func (ver0_7_0RevampRuleAccessTable) Down(db Actions) error {
 	return nil
 }
 
-type ver0_7_0AddLocalAgentsAddressUnique struct{}
-
-func (ver0_7_0AddLocalAgentsAddressUnique) Up(db Actions) error {
+func ver0_7_0AddLocalAgentsAddressUniqueUp(db Actions) error {
 	if err := db.AlterTable("local_agents",
 		AddUnique{Name: "unique_server_addr", Cols: []string{"owner", "address"}},
 	); err != nil {
@@ -1090,7 +1065,7 @@ func (ver0_7_0AddLocalAgentsAddressUnique) Up(db Actions) error {
 	return nil
 }
 
-func (ver0_7_0AddLocalAgentsAddressUnique) Down(db Actions) error {
+func ver0_7_0AddLocalAgentsAddressUniqueDown(db Actions) error {
 	if err := db.AlterTable("local_agents",
 		DropConstraint{Name: "unique_server_addr"},
 	); err != nil {
@@ -1100,9 +1075,7 @@ func (ver0_7_0AddLocalAgentsAddressUnique) Down(db Actions) error {
 	return nil
 }
 
-type ver0_7_0AddNormalizedTransfersView struct{}
-
-func (ver0_7_0AddNormalizedTransfersView) Up(db Actions) error {
+func ver0_7_0AddNormalizedTransfersViewUp(db Actions) error {
 	transStop := utils.If(db.GetDialect() == PostgreSQL,
 		"null::timestamp", "null")
 
@@ -1139,7 +1112,7 @@ func (ver0_7_0AddNormalizedTransfersView) Up(db Actions) error {
 	return nil
 }
 
-func (ver0_7_0AddNormalizedTransfersView) Down(db Actions) error {
+func ver0_7_0AddNormalizedTransfersViewDown(db Actions) error {
 	if err := db.DropView("normalized_transfers"); err != nil {
 		return fmt.Errorf("failed to drop the normalized transfer view: %w", err)
 	}

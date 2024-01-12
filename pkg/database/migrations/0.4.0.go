@@ -3,11 +3,11 @@ package migrations
 import (
 	"fmt"
 	"strings"
+
+	"code.waarp.fr/lib/migration"
 )
 
-type ver0_4_0InitDatabase struct{}
-
-func (ver0_4_0InitDatabase) Up(db Actions) error {
+func ver0_4_0InitDatabaseUp(db Actions) error {
 	var initScript string
 
 	switch dial := db.GetDialect(); dial {
@@ -30,7 +30,7 @@ func (ver0_4_0InitDatabase) Up(db Actions) error {
 	return nil
 }
 
-func (ver0_4_0InitDatabase) Down(db Actions) error {
+func ver0_4_0InitDatabaseDown(db migration.Actions) error {
 	for _, table := range initTableList() {
 		if err := db.DropTable(table); err != nil {
 			return fmt.Errorf("failed to drop table %q: %w", table, err)

@@ -5,28 +5,24 @@ package migrations
 import (
 	"testing"
 
-	"github.com/smartystreets/goconvey/convey"
-	. "github.com/smartystreets/goconvey/convey"
-
 	"code.waarp.fr/lib/migration"
+	"github.com/stretchr/testify/require"
 
-	"code.waarp.fr/apps/gateway/gateway/pkg/utils/testhelpers"
+	"code.waarp.fr/apps/gateway/gateway/pkg/utils/gwtesting"
 )
 
-func getPostgreEngine(c convey.C) *testEngine {
-	logger := testhelpers.TestLogger(c, "test_postgre_engine")
-	db := testhelpers.GetTestPostgreDB(c)
+func getPostgreEngine(tb testing.TB) *testEngine {
+	logger := gwtesting.Logger(tb)
+	db := gwtesting.PostgreSQLDatabase(tb)
 
-	eng, err := migration.NewEngine(db, migration.PostgreSQL, logger, nil)
-	So(err, ShouldBeNil)
+	eng, err := migration.NewEngine(db, PostgreSQL, logger, nil)
+	require.NoError(tb, err)
 
-	return &testEngine{Engine: eng, DB: db}
+	return &testEngine{Engine: eng, DB: db, Dialect: PostgreSQL}
 }
 
 func TestPostgreSQLMigrations(t *testing.T) {
 	t.Parallel()
 
-	Convey("Given an un-migrated PostgreSQL database engine", t, func(c C) {
-		testMigrations(getPostgreEngine(c), migration.PostgreSQL)
-	})
+	testMigrations(t, getPostgreEngine(t))
 }
