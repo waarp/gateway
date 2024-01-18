@@ -3,6 +3,7 @@ package tasks
 import (
 	"context"
 	"database/sql"
+	"encoding/json"
 	"fmt"
 
 	"code.waarp.fr/lib/log"
@@ -107,12 +108,24 @@ func getTransferInfo(db *database.DB, args map[string]string) (file string,
 }
 
 // Run executes the task by scheduling a new transfer with the given parameters.
-func (t *TransferTask) Run(_ context.Context, args map[string]string, db *database.DB,
-	logger *log.Logger, _ *model.TransferContext,
+func (t *TransferTask) Run(_ context.Context, args map[string]string,
+	db *database.DB, logger *log.Logger, transCtx *model.TransferContext,
 ) error {
-	file, ruleID, accID, isSend, err := getTransferInfo(db, args)
-	if err != nil {
-		return err
+	file, ruleID, accID, isSend, infoErr := getTransferInfo(db, args)
+	if infoErr != nil {
+		return infoErr
+	}
+
+	transferInfo := map[string]any{}
+	if args["copyInfo"] == "true" {
+		transferInfo = transCtx.TransInfo
+	}
+
+	newInfoStr, hasNewInfo := args["info"]
+	if hasNewInfo {
+		if err := json.Unmarshal([]byte(newInfoStr), &transferInfo); err != nil {
+			return fmt.Errorf("failed to parse the new transfer info: %w", err)
+		}
 	}
 
 	trans := &model.Transfer{
@@ -121,7 +134,13 @@ func (t *TransferTask) Run(_ context.Context, args map[string]string, db *databa
 		SrcFilename:     file,
 	}
 
-	if err := db.Insert(trans).Run(); err != nil {
+	if err := db.Transaction(func(ses *database.Session) database.Error {
+		if err := ses.Insert(trans).Run(); err != nil {
+			return err
+		}
+
+		return trans.SetTransferInfo(ses, transferInfo)
+	}); err != nil {
 		return err
 	}
 

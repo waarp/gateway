@@ -26,8 +26,6 @@ import (
 const historyURI = "http://localhost:8080/api/history"
 
 func TestGetHistory(t *testing.T) {
-	t.Parallel()
-
 	Convey("Testing the transfer history get handler", t, func(c C) {
 		logger := testhelpers.TestLogger(c, "rest_history_get_test")
 		db := database.TestDatabase(c)
@@ -160,8 +158,6 @@ func TestGetHistory(t *testing.T) {
 
 //nolint:maintidx //FIXME factorize the function if possible to improve maintainability
 func TestListHistory(t *testing.T) {
-	t.Parallel()
-
 	Convey("Testing the transfer history list handler", t, func(c C) {
 		logger := testhelpers.TestLogger(c, "rest_history_get_test")
 		db := database.TestDatabase(c)
@@ -460,8 +456,6 @@ func TestListHistory(t *testing.T) {
 }
 
 func TestRestartHistory(t *testing.T) {
-	t.Parallel()
-
 	Convey("Testing the transfer restart handler", t, func(c C) {
 		logger := testhelpers.TestLogger(c, "rest_history_restart_test")
 		db := database.TestDatabase(c)

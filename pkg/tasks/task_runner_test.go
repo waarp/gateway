@@ -19,6 +19,7 @@ import (
 	"code.waarp.fr/apps/gateway/gateway/pkg/tk/utils/testhelpers"
 )
 
+//nolint:maintidx //cannot split reasonably
 func TestSetup(t *testing.T) {
 	Convey("Given a Task with some replacement variables", t, func(c C) {
 		testFS := fstest.InitMemFS(c)
@@ -35,7 +36,7 @@ func TestSetup(t *testing.T) {
 			"requestedHost":"#REQUESTEDHOST#", "fullTransferID":"#FULLTRANSFERID#",
 			"errCode":"#ERRORCODE#", "errMsg":"#ERRORMSG#", "errStrCode":"#ERRORSTRCODE#",
 			"inPath":"#INPATH#", "outPath":"#OUTPATH#", "workPath":"#WORKPATH#",
-			"homePath":"#HOMEPATH#"}`),
+			"homePath":"#HOMEPATH#", "transferInfo": "#TI_foo#/#TI_id#"}`),
 		}
 
 		Convey("Given a Runner", func(c C) {
@@ -89,6 +90,7 @@ func TestSetup(t *testing.T) {
 					Details: `error message`,
 				},
 			}
+			transCtx.TransInfo = map[string]any{"foo": "bar", "id": 123}
 
 			r := &Runner{db: db, transCtx: transCtx}
 
@@ -278,6 +280,15 @@ func TestSetup(t *testing.T) {
 
 						Convey("Then res[workPath] should contain the resolved variable", func() {
 							So(val, ShouldEqual, path.Join(root, r.transCtx.Rule.TmpLocalRcvDir))
+						})
+					})
+
+					Convey("Then res should contain a `transferInfo` entry", func() {
+						val, ok := res["transferInfo"]
+						So(ok, ShouldBeTrue)
+
+						Convey("Then res[transferInfo] should contain the resolved variable", func() {
+							So(val, ShouldEqual, "bar/123")
 						})
 					})
 				})
