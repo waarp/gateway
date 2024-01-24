@@ -7,8 +7,8 @@ import (
 // Nullable represents a nullable JSON type. Can be used instead of pointers
 // which can cause panics when handled improperly.
 type Nullable[T any] struct {
-	Value T
-	Valid bool
+	Value T    `json:"-"` // we have to add tags to stop the linter complaining
+	Valid bool `json:"-"` // even though the struct implements json.(Un)Marshaler
 }
 
 func AsNullable[T any](val T) Nullable[T] {

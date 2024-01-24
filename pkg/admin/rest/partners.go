@@ -221,6 +221,17 @@ func addPartnerCred(logger *log.Logger, db *database.DB) http.HandlerFunc {
 	}
 }
 
+func getPartnerCred(logger *log.Logger, db *database.DB) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		dbPartner, err := retrievePartner(r, db)
+		if handleError(w, logger, err) {
+			return
+		}
+
+		handleError(w, logger, getCredential(w, r, db, dbPartner))
+	}
+}
+
 func removePartnerCred(logger *log.Logger, db *database.DB) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		ag, err := retrievePartner(r, db)

@@ -1,7 +1,7 @@
 Ajouter une valeur d'authentification
 =====================================
 
-.. http:post:: /api/partners/(string:partner_name)/authentication
+.. http:post:: /api/partners/(string:partner_name)/credentials
 
    Ajoute une nouvelle valeur d'authentification pour le partenaire donné.
 
@@ -29,7 +29,7 @@ Ajouter une valeur d'authentification
 
       .. code-block:: http
 
-         POST https://my_waarp_gateway.net/api/partners/openssh HTTP/1.1
+         POST https://my_waarp_gateway.net/api/partners/openssh/credentials HTTP/1.1
          Authorization: Basic QWxhZGRpbjpvcGVuIHNlc2FtZQ==
          Content-Type: application/json
          Content-Length: 2410
@@ -45,4 +45,4 @@ Ajouter une valeur d'authentification
       .. code-block:: http
 
          HTTP/1.1 201 CREATED
-         Location: https://my_waarp_gateway.net/api/partners/openssh/authentication/openssh_hostkey
+         Location: https://my_waarp_gateway.net/api/partners/openssh/credentials/openssh_hostkey

@@ -295,14 +295,25 @@ func addServerCred(logger *log.Logger, db *database.DB) http.HandlerFunc {
 	}
 }
 
-func removeServerCred(logger *log.Logger, db *database.DB) http.HandlerFunc {
+func getServerCred(logger *log.Logger, db *database.DB) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		ag, err := getDBServer(r, db)
+		dbServer, err := getDBServer(r, db)
 		if handleError(w, logger, err) {
 			return
 		}
 
-		handleError(w, logger, removeCredential(w, r, db, ag))
+		handleError(w, logger, getCredential(w, r, db, dbServer))
+	}
+}
+
+func removeServerCred(logger *log.Logger, db *database.DB) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		dbServer, err := getDBServer(r, db)
+		if handleError(w, logger, err) {
+			return
+		}
+
+		handleError(w, logger, removeCredential(w, r, db, dbServer))
 	}
 }
 

@@ -2,9 +2,9 @@
 Ajouter une méthode d'authentification
 ======================================
 
-.. program:: waarp-gateway partner auth add
+.. program:: waarp-gateway partner credential add
 
-.. describe:: waarp-gateway partner <PARTNER> auth add
+.. describe:: waarp-gateway partner <PARTNER> credential add
 
 Ajoute une nouvelle valeur d'authentification au partenaire donné. Si une valeur
 du même nom existe déjà, elle sera écrasée.
@@ -37,4 +37,4 @@ du même nom existe déjà, elle sera écrasée.
 
 .. code-block:: shell
 
-   waarp-gateway -a 'http://user:password@localhost:8080' partner auth 'openssh' add -n 'openssh_hostkey' -t 'ssh_public_key' -v './ssh.pub'
+   waarp-gateway -a 'http://user:password@localhost:8080' partner credential 'openssh' add -n 'openssh_hostkey' -t 'ssh_public_key' -v './ssh.pub'

@@ -46,8 +46,8 @@ const (
 	ServerCertPath      = "/api/servers/{server}/certificates/{certificate}" // Deprecated: replaced by credentials
 	ServerAuthorizePath = "/api/servers/{server}/authorize/{rule}/{direction:send|receive}"
 	ServerRevokePath    = "/api/servers/{server}/revoke/{rule}/{direction:send|receive}"
-	ServerAuthsPath     = "/api/servers/{server}/credentials"
-	ServerAuthPath      = "/api/servers/{server}/credentials/{credential}"
+	ServerCredsPath     = "/api/servers/{server}/credentials"
+	ServerCredPath      = "/api/servers/{server}/credentials/{credential}"
 
 	LocAccountsPath     = "/api/servers/{server}/accounts"
 	LocAccountPath      = "/api/servers/{server}/accounts/{local_account}"
@@ -156,13 +156,14 @@ func MakeRESTHandler(logger *log.Logger, db *database.DB, router *mux.Router,
 	mkHandler(ServerCertPath, deleteServerCert, model.PermServersWrite, http.MethodDelete)
 	mkHandler(ServerCertPath, updateServerCert, model.PermServersWrite, http.MethodPatch)
 	mkHandler(ServerCertPath, replaceServerCert, model.PermServersWrite, http.MethodPut)
-	mkHandler(ServerAuthPath, authorizeServer, model.PermRulesWrite, http.MethodPut)
+	mkHandler(ServerAuthorizePath, authorizeServer, model.PermRulesWrite, http.MethodPut)
 	mkHandler(ServerRevokePath, revokeServer, model.PermRulesWrite, http.MethodPut)
 	mkHandler(ServerStartPath, startServer, model.PermServersWrite, http.MethodPut)
 	mkHandler(ServerStopPath, stopServer, model.PermServersWrite, http.MethodPut)
 	mkHandler(ServerRestartPath, restartServer, model.PermServersWrite, http.MethodPut)
-	mkHandler(ServerAuthsPath, addServerCred, model.PermServersWrite, http.MethodPost)
-	mkHandler(ServerAuthPath, removeServerCred, model.PermServersWrite, http.MethodDelete)
+	mkHandler(ServerCredsPath, addServerCred, model.PermServersWrite, http.MethodPost)
+	mkHandler(ServerCredPath, getServerCred, model.PermServersRead, http.MethodGet)
+	mkHandler(ServerCredPath, removeServerCred, model.PermServersWrite, http.MethodDelete)
 
 	// Local accounts
 	mkHandler(LocAccountsPath, listLocalAccounts, model.PermServersRead, http.MethodGet)
@@ -179,8 +180,9 @@ func MakeRESTHandler(logger *log.Logger, db *database.DB, router *mux.Router,
 	mkHandler(LocAccCertPath, replaceLocAccountCert, model.PermServersWrite, http.MethodPut)
 	mkHandler(LocAccAuthorizePath, authorizeLocalAccount, model.PermRulesWrite, http.MethodPut)
 	mkHandler(LocAccRevokePath, revokeLocalAccount, model.PermRulesWrite, http.MethodPut)
-	mkHandler(LocAccCredsPath, addLocAccAuth, model.PermServersWrite, http.MethodPost)
-	mkHandler(LocAccCredPath, removeLocAccAuth, model.PermServersWrite, http.MethodDelete)
+	mkHandler(LocAccCredsPath, addLocAccCred, model.PermServersWrite, http.MethodPost)
+	mkHandler(LocAccCredPath, getLocAccCred, model.PermServersRead, http.MethodGet)
+	mkHandler(LocAccCredPath, removeLocAccCred, model.PermServersWrite, http.MethodDelete)
 
 	// Partners
 	mkHandler(PartnersPath, listPartners, model.PermPartnersRead, http.MethodGet)
@@ -198,6 +200,7 @@ func MakeRESTHandler(logger *log.Logger, db *database.DB, router *mux.Router,
 	mkHandler(PartnerAuthorizePath, authorizePartner, model.PermRulesWrite, http.MethodPut)
 	mkHandler(PartnerRevokePath, revokePartner, model.PermRulesWrite, http.MethodPut)
 	mkHandler(PartnerCredsPath, addPartnerCred, model.PermPartnersWrite, http.MethodPost)
+	mkHandler(PartnerCredPath, getPartnerCred, model.PermPartnersRead, http.MethodGet)
 	mkHandler(PartnerCredPath, removePartnerCred, model.PermPartnersWrite, http.MethodDelete)
 
 	// Remote accounts
@@ -216,6 +219,7 @@ func MakeRESTHandler(logger *log.Logger, db *database.DB, router *mux.Router,
 	mkHandler(RemAccAuthorizePath, authorizeRemoteAccount, model.PermRulesWrite, http.MethodPut)
 	mkHandler(RemAccRevokePath, revokeRemoteAccount, model.PermRulesWrite, http.MethodPut)
 	mkHandler(RemAccCredsPath, addRemAccCred, model.PermPartnersWrite, http.MethodPost)
+	mkHandler(RemAccCredPath, getRemAccCred, model.PermPartnersRead, http.MethodGet)
 	mkHandler(RemAccCredPath, removeRemAccCred, model.PermPartnersWrite, http.MethodDelete)
 
 	// Clients

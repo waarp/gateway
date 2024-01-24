@@ -9,6 +9,10 @@ import "path/filepath"
 // RFC 8089.
 // Deprecated: file URIs are no longer used.
 func NormalizePath(path string) string {
+	if path == "" {
+		return ""
+	}
+
 	return filepath.Clean(path)
 }
 

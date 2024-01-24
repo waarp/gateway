@@ -32,7 +32,7 @@ func TestAuthorityAdd(t *testing.T) {
 
 	t.Run(`Testing the authority "add" command`, func(t *testing.T) {
 		w := newTestOutput()
-		command := &authorityAdd{}
+		command := &AuthorityAdd{}
 
 		expected := &expectedRequest{
 			method: http.MethodPost,
@@ -119,7 +119,7 @@ func TestAuthorityGet(t *testing.T) {
 
 	t.Run(`Testing the authority "get" command`, func(t *testing.T) {
 		w := newTestOutput()
-		command := &authorityGet{}
+		command := &AuthorityGet{}
 
 		expected := &expectedRequest{
 			method: http.MethodGet,
@@ -247,7 +247,7 @@ func TestAuthorityList(t *testing.T) {
 
 	t.Run(`Testing the authority "list" command`, func(t *testing.T) {
 		w := newTestOutput()
-		command := &authorityList{}
+		command := &AuthorityList{}
 
 		expected := &expectedRequest{
 			method: http.MethodGet,
@@ -318,7 +318,7 @@ func TestAuthorityUpdate(t *testing.T) {
 
 	t.Run(`Testing the authority "update" command`, func(t *testing.T) {
 		w := newTestOutput()
-		command := &authorityUpdate{}
+		command := &AuthorityUpdate{}
 
 		expected := &expectedRequest{
 			method: http.MethodPatch,
@@ -365,7 +365,7 @@ func TestAuthorityDelete(t *testing.T) {
 
 	t.Run(`Testing the authority "delete" command`, func(t *testing.T) {
 		w := newTestOutput()
-		command := &authorityDelete{}
+		command := &AuthorityDelete{}
 
 		expected := &expectedRequest{
 			method: http.MethodDelete,

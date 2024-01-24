@@ -1,6 +1,7 @@
 package rest
 
 import (
+	"encoding/json"
 	"net/http"
 	"net/http/httptest"
 	"testing"
@@ -16,7 +17,7 @@ import (
 	"code.waarp.fr/apps/gateway/gateway/pkg/utils/testhelpers"
 )
 
-func TestAddRemoveAuth(t *testing.T) {
+func TestAddRemoveCred(t *testing.T) {
 	Convey("Given a database with agents & accounts in it", t, func(c C) {
 		logger := testhelpers.TestLogger(c, "test_add-del_auth")
 		db := database.TestDatabase(c)
@@ -39,7 +40,7 @@ func TestAddRemoveAuth(t *testing.T) {
 		remAcc := &model.RemoteAccount{RemoteAgentID: partner.ID, Login: "remAcc"}
 		So(db.Insert(remAcc).Run(), ShouldBeNil)
 
-		Convey("When adding an auth method to the server", func() {
+		Convey("When adding a credential to the server", func() {
 			const (
 				credName = "pswd"
 				credType = auth.Password
@@ -52,7 +53,7 @@ func TestAddRemoveAuth(t *testing.T) {
 				"value": credVal,
 			}
 
-			req1 := httptest.NewRequest(http.MethodPost, ServerAuthsPath,
+			req1 := httptest.NewRequest(http.MethodPost, ServerCredsPath,
 				utils.ToJSONBody(body))
 			req1 = mux.SetURLVars(req1, map[string]string{"server": server.Name})
 
@@ -60,7 +61,7 @@ func TestAddRemoveAuth(t *testing.T) {
 
 			addServerCred(logger, db)(resp1, req1)
 
-			Convey("Then it should have added the authentication method", func() {
+			Convey("Then it should have added the credential", func() {
 				So(resp1.Code, ShouldEqual, http.StatusCreated)
 
 				var agAuth model.Credential
@@ -73,8 +74,32 @@ func TestAddRemoveAuth(t *testing.T) {
 					Value:        credVal,
 				})
 
-				Convey("When removing the server's auth method", func() {
-					req2 := httptest.NewRequest(http.MethodDelete, ServerAuthPath, nil)
+				Convey("When retrieving the server's credential", func() {
+					req2 := httptest.NewRequest(http.MethodGet, ServerCredPath, nil)
+					req2 = mux.SetURLVars(req2, map[string]string{
+						"server":     server.Name,
+						"credential": agAuth.Name,
+					})
+
+					resp2 := httptest.NewRecorder()
+
+					getServerCred(logger, db)(resp2, req2)
+
+					Convey("Then it should have retrieved the credential", func() {
+						So(resp2.Code, ShouldEqual, http.StatusOK)
+
+						var retAuth map[string]any
+						So(json.NewDecoder(resp2.Body).Decode(&retAuth), ShouldBeNil)
+						So(retAuth, ShouldResemble, map[string]any{
+							"name":  agAuth.Name,
+							"type":  agAuth.Type,
+							"value": agAuth.Value,
+						})
+					})
+				})
+
+				Convey("When removing the server's credential", func() {
+					req2 := httptest.NewRequest(http.MethodDelete, ServerCredPath, nil)
 					req2 = mux.SetURLVars(req2, map[string]string{
 						"server":     server.Name,
 						"credential": agAuth.Name,
@@ -84,7 +109,7 @@ func TestAddRemoveAuth(t *testing.T) {
 
 					removeServerCred(logger, db)(resp2, req2)
 
-					Convey("Then it should have removed the authentication method", func() {
+					Convey("Then it should have removed the credential", func() {
 						So(resp2.Code, ShouldEqual, http.StatusNoContent)
 
 						var auths model.Credentials
@@ -96,7 +121,7 @@ func TestAddRemoveAuth(t *testing.T) {
 			})
 		})
 
-		Convey("When adding an auth method to the partner", func() {
+		Convey("When adding a credential to the partner", func() {
 			const (
 				credName = "pswd"
 				credType = auth.PasswordHash
@@ -117,7 +142,7 @@ func TestAddRemoveAuth(t *testing.T) {
 
 			addPartnerCred(logger, db)(resp1, req1)
 
-			Convey("Then it should have added the authentication method", func() {
+			Convey("Then it should have added the credential", func() {
 				So(resp1.Code, ShouldEqual, http.StatusCreated)
 
 				var agAuth model.Credential
@@ -129,7 +154,31 @@ func TestAddRemoveAuth(t *testing.T) {
 				So(authErr, ShouldBeNil)
 				So(authRes.Success, ShouldBeTrue)
 
-				Convey("When removing the partner's auth method", func() {
+				Convey("When retrieving the partner's credential", func() {
+					req2 := httptest.NewRequest(http.MethodGet, PartnerCredPath, nil)
+					req2 = mux.SetURLVars(req2, map[string]string{
+						"partner":    partner.Name,
+						"credential": agAuth.Name,
+					})
+
+					resp2 := httptest.NewRecorder()
+
+					getPartnerCred(logger, db)(resp2, req2)
+
+					Convey("Then it should have retrieved the credential", func() {
+						So(resp2.Code, ShouldEqual, http.StatusOK)
+
+						var retAuth map[string]any
+						So(json.NewDecoder(resp2.Body).Decode(&retAuth), ShouldBeNil)
+						So(retAuth, ShouldResemble, map[string]any{
+							"name":  agAuth.Name,
+							"type":  agAuth.Type,
+							"value": agAuth.Value,
+						})
+					})
+				})
+
+				Convey("When removing the partner's credential", func() {
 					req2 := httptest.NewRequest(http.MethodDelete, PartnerCredPath, nil)
 					req2 = mux.SetURLVars(req2, map[string]string{
 						"partner":    partner.Name,
@@ -140,7 +189,7 @@ func TestAddRemoveAuth(t *testing.T) {
 
 					removePartnerCred(logger, db)(resp2, req2)
 
-					Convey("Then it should have removed the authentication method", func() {
+					Convey("Then it should have removed the credential", func() {
 						So(resp2.Code, ShouldEqual, http.StatusNoContent)
 
 						var auths model.Credentials
@@ -152,7 +201,7 @@ func TestAddRemoveAuth(t *testing.T) {
 			})
 		})
 
-		Convey("When adding an auth method to the local account", func() {
+		Convey("When adding a credential to the local account", func() {
 			const (
 				credName = "pswd"
 				credType = auth.PasswordHash
@@ -174,9 +223,9 @@ func TestAddRemoveAuth(t *testing.T) {
 
 			resp1 := httptest.NewRecorder()
 
-			addLocAccAuth(logger, db)(resp1, req1)
+			addLocAccCred(logger, db)(resp1, req1)
 
-			Convey("Then it should have added the authentication method", func() {
+			Convey("Then it should have added the credential", func() {
 				So(resp1.Code, ShouldEqual, http.StatusCreated)
 
 				var accAuth model.Credential
@@ -188,7 +237,32 @@ func TestAddRemoveAuth(t *testing.T) {
 				So(authErr, ShouldBeNil)
 				So(authRes.Success, ShouldBeTrue)
 
-				Convey("When removing the account's auth method", func() {
+				Convey("When retrieving the partner's credential", func() {
+					req2 := httptest.NewRequest(http.MethodGet, LocAccCredPath, nil)
+					req2 = mux.SetURLVars(req2, map[string]string{
+						"server":        server.Name,
+						"local_account": locAcc.Login,
+						"credential":    accAuth.Name,
+					})
+
+					resp2 := httptest.NewRecorder()
+
+					getLocAccCred(logger, db)(resp2, req2)
+
+					Convey("Then it should have retrieved the credential", func() {
+						So(resp2.Code, ShouldEqual, http.StatusOK)
+
+						var retAuth map[string]any
+						So(json.NewDecoder(resp2.Body).Decode(&retAuth), ShouldBeNil)
+						So(retAuth, ShouldResemble, map[string]any{
+							"name":  accAuth.Name,
+							"type":  accAuth.Type,
+							"value": accAuth.Value,
+						})
+					})
+				})
+
+				Convey("When removing the account's credential", func() {
 					req2 := httptest.NewRequest(http.MethodDelete, LocAccCredPath, nil)
 					req2 = mux.SetURLVars(req2, map[string]string{
 						"server":        server.Name,
@@ -198,9 +272,9 @@ func TestAddRemoveAuth(t *testing.T) {
 
 					resp2 := httptest.NewRecorder()
 
-					removeLocAccAuth(logger, db)(resp2, req2)
+					removeLocAccCred(logger, db)(resp2, req2)
 
-					Convey("Then it should have removed the authentication method", func() {
+					Convey("Then it should have removed the credential", func() {
 						So(resp2.Code, ShouldEqual, http.StatusNoContent)
 
 						var auths model.Credentials
@@ -212,7 +286,7 @@ func TestAddRemoveAuth(t *testing.T) {
 			})
 		})
 
-		Convey("When adding an auth method to the remote account", func() {
+		Convey("When adding a credential to the remote account", func() {
 			const (
 				credName = "pswd"
 				credType = auth.Password
@@ -236,7 +310,7 @@ func TestAddRemoveAuth(t *testing.T) {
 
 			addRemAccCred(logger, db)(resp1, req1)
 
-			Convey("Then it should have added the authentication method", func() {
+			Convey("Then it should have added the credential", func() {
 				So(resp1.Code, ShouldEqual, http.StatusCreated)
 
 				var accAuth model.Credential
@@ -249,7 +323,32 @@ func TestAddRemoveAuth(t *testing.T) {
 					Value:           credVal,
 				})
 
-				Convey("When removing the account's auth method", func() {
+				Convey("When retrieving the partner's credential", func() {
+					req2 := httptest.NewRequest(http.MethodGet, RemAccCredPath, nil)
+					req2 = mux.SetURLVars(req2, map[string]string{
+						"partner":        partner.Name,
+						"remote_account": remAcc.Login,
+						"credential":     accAuth.Name,
+					})
+
+					resp2 := httptest.NewRecorder()
+
+					getRemAccCred(logger, db)(resp2, req2)
+
+					Convey("Then it should have retrieved the credential", func() {
+						So(resp2.Code, ShouldEqual, http.StatusOK)
+
+						var retAuth map[string]any
+						So(json.NewDecoder(resp2.Body).Decode(&retAuth), ShouldBeNil)
+						So(retAuth, ShouldResemble, map[string]any{
+							"name":  accAuth.Name,
+							"type":  accAuth.Type,
+							"value": accAuth.Value,
+						})
+					})
+				})
+
+				Convey("When removing the account's credential", func() {
 					req2 := httptest.NewRequest(http.MethodDelete, RemAccCredPath, nil)
 					req2 = mux.SetURLVars(req2, map[string]string{
 						"partner":        partner.Name,
@@ -261,7 +360,7 @@ func TestAddRemoveAuth(t *testing.T) {
 
 					removeRemAccCred(logger, db)(resp2, req2)
 
-					Convey("Then it should have removed the authentication method", func() {
+					Convey("Then it should have removed the credential", func() {
 						So(resp2.Code, ShouldEqual, http.StatusNoContent)
 
 						var auths model.Credentials

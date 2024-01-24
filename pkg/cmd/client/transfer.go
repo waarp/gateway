@@ -6,7 +6,6 @@ import (
 	"io"
 	"net/http"
 	"net/url"
-	"os"
 	"path/filepath"
 	"time"
 
@@ -96,7 +95,7 @@ type TransferAdd struct {
 	Name string `short:"n" long:"name" description:"[DEPRECATED] The name of the file after the transfer" json:"destPath,omitempty"` // Deprecated: the source name is used instead
 }
 
-func (t *TransferAdd) Execute([]string) error { return t.execute(os.Stdout) }
+func (t *TransferAdd) Execute([]string) error { return t.execute(stdOutput) }
 func (t *TransferAdd) execute(w io.Writer) error {
 	t.IsSend = t.Way == directionSend
 
@@ -127,7 +126,7 @@ type TransferGet struct {
 	} `positional-args:"yes"`
 }
 
-func (t *TransferGet) Execute([]string) error { return t.execute(os.Stdout) }
+func (t *TransferGet) Execute([]string) error { return t.execute(stdOutput) }
 func (t *TransferGet) execute(w io.Writer) error {
 	addr.Path = fmt.Sprintf("/api/transfers/%d", t.Args.ID)
 
@@ -183,7 +182,7 @@ func (t *TransferList) listURL() error {
 	return nil
 }
 
-func (t *TransferList) Execute([]string) error { return t.execute(os.Stdout) }
+func (t *TransferList) Execute([]string) error { return t.execute(stdOutput) }
 
 //nolint:dupl //history & transfer commands should be kept separate for future-proofing
 func (t *TransferList) execute(w io.Writer) error {
@@ -220,7 +219,7 @@ type TransferPause struct {
 	} `positional-args:"yes"`
 }
 
-func (t *TransferPause) Execute([]string) error { return t.execute(os.Stdout) }
+func (t *TransferPause) Execute([]string) error { return t.execute(stdOutput) }
 func (t *TransferPause) execute(w io.Writer) error {
 	return putTransferRequest(w, t.Args.ID, "pause",
 		"paused. It can be resumed using the 'resume' command")
@@ -234,7 +233,7 @@ type TransferResume struct {
 	} `positional-args:"yes"`
 }
 
-func (t *TransferResume) Execute([]string) error { return t.execute(os.Stdout) }
+func (t *TransferResume) Execute([]string) error { return t.execute(stdOutput) }
 func (t *TransferResume) execute(w io.Writer) error {
 	return putTransferRequest(w, t.Args.ID, "resume", "resumed")
 }
@@ -247,7 +246,7 @@ type TransferCancel struct {
 	} `positional-args:"yes"`
 }
 
-func (t *TransferCancel) Execute([]string) error { return t.execute(os.Stdout) }
+func (t *TransferCancel) Execute([]string) error { return t.execute(stdOutput) }
 func (t *TransferCancel) execute(w io.Writer) error {
 	return putTransferRequest(w, t.Args.ID, "cancel", "canceled")
 }
@@ -262,7 +261,7 @@ type TransferRetry struct {
 	Date string `short:"d" long:"date" description:"Set the date at which the transfer should restart. Date must be in RFC3339 format."`
 }
 
-func (t *TransferRetry) Execute([]string) error { return t.execute(os.Stdout) }
+func (t *TransferRetry) Execute([]string) error { return t.execute(stdOutput) }
 
 //nolint:dupl //history & transfer commands should be kept separate for future-proofing
 func (t *TransferRetry) execute(w io.Writer) error {
@@ -317,7 +316,7 @@ type TransferCancelAll struct {
 	Target string `required:"yes" short:"t" long:"target" description:"The status of the transfers to cancel" choice:"planned" choice:"running" choice:"paused" choice:"interrupted" choice:"error" choice:"all"`
 }
 
-func (t *TransferCancelAll) Execute([]string) error { return t.execute(os.Stdout) }
+func (t *TransferCancelAll) Execute([]string) error { return t.execute(stdOutput) }
 func (t *TransferCancelAll) execute(w io.Writer) error {
 	addr.Path = rest.TransfersPath
 	query := url.Values{}

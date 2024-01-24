@@ -266,6 +266,17 @@ func addRemAccCred(logger *log.Logger, db *database.DB) http.HandlerFunc {
 	}
 }
 
+func getRemAccCred(logger *log.Logger, db *database.DB) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		_, dbAccount, getErr := getDBRemoteAccount(r, db)
+		if handleError(w, logger, getErr) {
+			return
+		}
+
+		handleError(w, logger, getCredential(w, r, db, dbAccount))
+	}
+}
+
 func removeRemAccCred(logger *log.Logger, db *database.DB) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		_, dbAccount, getErr := getDBRemoteAccount(r, db)

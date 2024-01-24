@@ -84,7 +84,6 @@ func TestGetHistory(t *testing.T) {
 						jHist, err := FromHistory(db, h)
 						So(err, ShouldBeNil)
 
-						//nolint:musttag //false positive, all the struct fields are tagged
 						exp, err := json.Marshal(jHist)
 						So(err, ShouldBeNil)
 						So(w.Body.String(), ShouldResemble, string(exp)+"\n")

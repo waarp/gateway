@@ -253,7 +253,7 @@ func revokeLocalAccount(logger *log.Logger, db *database.DB) http.HandlerFunc {
 	}
 }
 
-func addLocAccAuth(logger *log.Logger, db *database.DB) http.HandlerFunc {
+func addLocAccCred(logger *log.Logger, db *database.DB) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		dbPartner, dbAccount, getErr := getDBLocalAccount(r, db)
 		if handleError(w, logger, getErr) {
@@ -264,7 +264,18 @@ func addLocAccAuth(logger *log.Logger, db *database.DB) http.HandlerFunc {
 	}
 }
 
-func removeLocAccAuth(logger *log.Logger, db *database.DB) http.HandlerFunc {
+func getLocAccCred(logger *log.Logger, db *database.DB) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		_, dbAccount, getErr := getDBLocalAccount(r, db)
+		if handleError(w, logger, getErr) {
+			return
+		}
+
+		handleError(w, logger, getCredential(w, r, db, dbAccount))
+	}
+}
+
+func removeLocAccCred(logger *log.Logger, db *database.DB) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		_, acc, err := getDBLocalAccount(r, db)
 		if handleError(w, logger, err) {

@@ -374,7 +374,6 @@ func TestGetTransfer(t *testing.T) {
 						"in JSON format", func() {
 						jsonObj := fromTransfer(db, trans)
 
-						//nolint:musttag //false positive, all the struct fields are tagged
 						exp, err := json.Marshal(jsonObj)
 						So(err, ShouldBeNil)
 						So(w.Body.String(), ShouldResemble, string(exp)+"\n")

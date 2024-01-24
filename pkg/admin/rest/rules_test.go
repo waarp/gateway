@@ -718,7 +718,6 @@ func TestUpdateRule(t *testing.T) {
 func doUpdate(handler http.HandlerFunc, old *model.Rule, update *InRule) (*http.Response, error) {
 	w := httptest.NewRecorder()
 
-	//nolint:musttag //false positive, all the struct fields are tagged
 	body, err := json.Marshal(update)
 	if err != nil {
 		return nil, err

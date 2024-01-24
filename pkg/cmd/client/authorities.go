@@ -36,15 +36,15 @@ func displayAuthority(f *Formatter, authority *api.OutAuthority) {
 }
 
 //nolint:lll,tagliatelle //flag tags are long
-type authorityAdd struct {
+type AuthorityAdd struct {
 	Name         string   `required:"yes" short:"n" long:"name" description:"The authority's name" json:"name,omitempty"`
 	Type         string   `required:"yes" short:"t" long:"type" description:"The type of authority" choice:"tls_authority" choice:"ssh_cert_authority" json:"type,omitempty"`
 	IdentityFile file     `required:"yes" short:"i" long:"identity-file" description:"The authority's public identity file" json:"publicIdentity,omitempty"`
 	ValidHosts   []string `short:"h" long:"host" description:"The hosts on which the authority is valid. Can be repeated." json:"validHosts,omitempty"`
 }
 
-func (a *authorityAdd) Execute([]string) error { return a.execute(stdOutput) }
-func (a *authorityAdd) execute(w io.Writer) error {
+func (a *AuthorityAdd) Execute([]string) error { return a.execute(stdOutput) }
+func (a *AuthorityAdd) execute(w io.Writer) error {
 	addr.Path = "/api/authorities"
 
 	if _, err := add(w, a); err != nil {
@@ -56,14 +56,14 @@ func (a *authorityAdd) execute(w io.Writer) error {
 	return nil
 }
 
-type authorityGet struct {
+type AuthorityGet struct {
 	Args struct {
 		Name string `required:"yes" positional-arg-name:"name" description:"The authority's name"`
 	} `positional-args:"yes"`
 }
 
-func (a *authorityGet) Execute([]string) error { return a.execute(stdOutput) }
-func (a *authorityGet) execute(w io.Writer) error {
+func (a *AuthorityGet) Execute([]string) error { return a.execute(stdOutput) }
+func (a *AuthorityGet) execute(w io.Writer) error {
 	addr.Path = path.Join("/api/authorities", a.Args.Name)
 
 	authority := &api.OutAuthority{}
@@ -77,15 +77,15 @@ func (a *authorityGet) execute(w io.Writer) error {
 }
 
 //nolint:lll // struct tags can be long for command line args
-type authorityList struct {
+type AuthorityList struct {
 	ListOptions
 	SortBy string `short:"s" long:"sort" description:"Attribute used to sort the returned entries" choice:"name+" choice:"name-" default:"name+" `
 }
 
-func (a *authorityList) Execute([]string) error { return a.execute(stdOutput) }
+func (a *AuthorityList) Execute([]string) error { return a.execute(stdOutput) }
 
 //nolint:dupl //duplicate is for a completely different command, keep separate
-func (a *authorityList) execute(w io.Writer) error {
+func (a *AuthorityList) execute(w io.Writer) error {
 	addr.Path = "/api/authorities"
 
 	listURL(&a.ListOptions, a.SortBy)
@@ -112,7 +112,7 @@ func (a *authorityList) execute(w io.Writer) error {
 }
 
 //nolint:lll,tagliatelle //flag tags are long
-type authorityUpdate struct {
+type AuthorityUpdate struct {
 	Args struct {
 		Name string `required:"yes" positional-arg-name:"name" description:"The authority's name"`
 	} `positional-args:"yes" json:"-"`
@@ -123,8 +123,8 @@ type authorityUpdate struct {
 	ValidHosts   []string `short:"h" long:"host" description:"The hosts on which the authority is valid. Can be repeated. Will replace the existing list. Can be called with an empty host to delete all existing hosts." json:"validHosts,omitempty"`
 }
 
-func (a *authorityUpdate) Execute([]string) error { return a.execute(stdOutput) }
-func (a *authorityUpdate) execute(w io.Writer) error {
+func (a *AuthorityUpdate) Execute([]string) error { return a.execute(stdOutput) }
+func (a *AuthorityUpdate) execute(w io.Writer) error {
 	addr.Path = path.Join("/api/authorities", a.Args.Name)
 
 	if err := update(w, a); err != nil {
@@ -141,14 +141,14 @@ func (a *authorityUpdate) execute(w io.Writer) error {
 	return nil
 }
 
-type authorityDelete struct {
+type AuthorityDelete struct {
 	Args struct {
 		Name string `required:"yes" positional-arg-name:"name" description:"The authority's name"`
 	} `positional-args:"yes"`
 }
 
-func (a *authorityDelete) Execute([]string) error { return a.execute(stdOutput) }
-func (a *authorityDelete) execute(w io.Writer) error {
+func (a *AuthorityDelete) Execute([]string) error { return a.execute(stdOutput) }
+func (a *AuthorityDelete) execute(w io.Writer) error {
 	addr.Path = path.Join("/api/authorities", a.Args.Name)
 
 	if err := remove(w); err != nil {

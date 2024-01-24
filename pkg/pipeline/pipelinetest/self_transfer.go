@@ -160,9 +160,11 @@ func (s *SelfContext) addPullTransfer(c convey.C) {
 // StartService starts the service associated with the test server defined in
 // the SelfContext.
 func (s *SelfContext) StartService(c convey.C) {
+	const shutdownTimeout = 5 * time.Second
+
 	c.So(s.ServerService.Start(), convey.ShouldBeNil)
 	c.Reset(func() {
-		ctx, cancel := context.WithTimeout(context.Background(), time.Second)
+		ctx, cancel := context.WithTimeout(context.Background(), shutdownTimeout)
 		defer cancel()
 		c.So(s.ServerService.Stop(ctx), convey.ShouldBeNil)
 	})

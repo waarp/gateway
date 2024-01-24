@@ -1,7 +1,7 @@
 Supprimer une valeur d'authentification
 =======================================
 
-.. http:delete:: /api/partners/(string:partner_name)/authentication/(string:auth_value_name)
+.. http:delete:: /api/partners/(string:partner_name)/credentials/(string:auth_value_name)
 
    Supprime la valeur d'authentification donnée.
 
@@ -18,7 +18,7 @@ Supprimer une valeur d'authentification
 
       .. code-block:: http
 
-         DELETE https://my_waarp_gateway.net/api/partners/openssh/authentication/openssh_hostkey HTTP/1.1
+         DELETE https://my_waarp_gateway.net/api/partners/openssh/credentials/openssh_hostkey HTTP/1.1
          Authorization: Basic QWxhZGRpbjpvcGVuIHNlc2FtZQ==
 
    **Exemple de réponse**

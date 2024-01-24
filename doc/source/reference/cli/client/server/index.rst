@@ -23,6 +23,7 @@ Une fois démarré, chaque serveur sera considéré comme un service de la gatew
    start
    stop
    restart
-   auth_add
-   auth_delete
+   cred_add
+   cred_get
+   cred_delete
    cert/index

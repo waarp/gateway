@@ -14,6 +14,7 @@ Gestion des partenaires distants
    delete
    authorize
    revoke
-   auth_add
-   auth_delete
+   cred_add
+   cred_get
+   cred_delete
    cert/index

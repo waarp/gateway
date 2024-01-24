@@ -1,7 +1,7 @@
 Ajouter une valeur d'authentification
 =====================================
 
-.. http:post:: /api/servers/(string:server_name)/authentication
+.. http:post:: /api/partners/(string:partner_name)/accounts/(string:login)/credentials
 
    Ajoute une nouvelle valeur d'authentification au serveur donné.
 
@@ -29,14 +29,14 @@ Ajouter une valeur d'authentification
 
       .. code-block:: http
 
-         POST https://my_waarp_gateway.net/api/servers/gw_r66 HTTP/1.1
+         POST https://my_waarp_gateway.net/api/servers/gw_r66/accounts/titi/credentials HTTP/1.1
          Authorization: Basic QWxhZGRpbjpvcGVuIHNlc2FtZQ==
          Content-Type: application/json
          Content-Length: 2410
 
          {
-           "name": "r66_certificate",
-           "type": "tls_certificate_w_private_key",
+           "name": "titi_certificate",
+           "type": "tls_certificate",
            "value": "-----BEGIN CERTIFICATE-----
              MIICMzCCAZygAwIBAgIRAJFIx3lh/L57UPaTaMcBJ8wwDQYJKoZIhvcNAQELBQAw
              EjEQMA4GA1UEChMHQWNtZSBDbzAgFw03MDAxMDEwMDAwMDBaGA8yMDg0MDEyOTE2
@@ -74,4 +74,4 @@ Ajouter une valeur d'authentification
       .. code-block:: http
 
          HTTP/1.1 201 CREATED
-         Location: https://my_waarp_gateway.net/api/servers/gw_r66/authentication/r66_certificate
+         Location: https://my_waarp_gateway.net/api/servers/gw_r66/accounts/titi/credentials/titi_certificate

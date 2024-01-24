@@ -72,6 +72,24 @@ func addCredential(w http.ResponseWriter, r *http.Request, db *database.DB,
 	return nil
 }
 
+func getCredential(w http.ResponseWriter, r *http.Request, db database.Access,
+	target model.CredOwnerTable,
+) error {
+	dbCred, getErr := getCred(r, db, target)
+	if getErr != nil {
+		return getErr
+	}
+
+	w.WriteHeader(http.StatusOK)
+
+	return writeJSON(w, api.OutCred{
+		Name:   dbCred.Name,
+		Type:   dbCred.Type,
+		Value:  dbCred.Value,
+		Value2: dbCred.Value2,
+	})
+}
+
 func removeCredential(w http.ResponseWriter, r *http.Request, db database.Access,
 	target model.CredOwnerTable,
 ) error {
