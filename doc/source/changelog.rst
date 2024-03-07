@@ -3,6 +3,7 @@
 Historique des versions
 =======================
 
+* :release:`0.8.2 <2024-03-07>`
 * :bug:`396` Correction d'une typo dans les mots clés `#TRANSFERID#` et
   `#FULLTRANSFERID#` qui empêchait la substitution de leur valeur de remplacement.
 
