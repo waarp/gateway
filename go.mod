@@ -18,9 +18,10 @@ require (
 	github.com/smartystreets/assertions v1.13.1
 	github.com/smartystreets/goconvey v1.8.0
 	go.step.sm/crypto v0.31.2
-	golang.org/x/crypto v0.9.0
-	golang.org/x/net v0.10.0
-	golang.org/x/term v0.8.0
+	golang.org/x/crypto v0.21.0
+	golang.org/x/exp v0.0.0-20240222234643-814bf88cf225
+	golang.org/x/net v0.21.0
+	golang.org/x/term v0.18.0
 	modernc.org/sqlite v1.23.1
 	xorm.io/builder v0.3.12
 	xorm.io/xorm v1.3.2
@@ -50,10 +51,10 @@ require (
 	github.com/pkg/errors v0.9.1 // indirect
 	github.com/remyoudompheng/bigfft v0.0.0-20230129092748-24d4a6f8daec // indirect
 	github.com/syndtr/goleveldb v1.0.0 // indirect
-	golang.org/x/mod v0.10.0 // indirect
-	golang.org/x/sys v0.8.0 // indirect
-	golang.org/x/text v0.9.0 // indirect
-	golang.org/x/tools v0.9.3 // indirect
+	golang.org/x/mod v0.15.0 // indirect
+	golang.org/x/sys v0.18.0 // indirect
+	golang.org/x/text v0.14.0 // indirect
+	golang.org/x/tools v0.18.0 // indirect
 	lukechampine.com/uint128 v1.3.0 // indirect
 	modernc.org/cc/v3 v3.41.0 // indirect
 	modernc.org/ccgo/v3 v3.16.14 // indirect
