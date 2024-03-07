@@ -3,6 +3,9 @@
 Historique des versions
 =======================
 
+* :bug:`396` Correction d'une typo dans les mots clés `#TRANSFERID#` et
+  `#FULLTRANSFERID#` qui empêchait la substitution de leur valeur de remplacement.
+
 * :release:`0.8.1 <2023-10-23>`
 * :bug:`385` Les mots de passes de partenaires R66 importés via la commande
   d'import sont désormais hashés correctement. Depuis la version 0.8.0, les

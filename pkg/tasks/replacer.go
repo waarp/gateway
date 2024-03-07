@@ -8,6 +8,7 @@ import (
 	"time"
 
 	"code.waarp.fr/apps/gateway/gateway/pkg/model"
+	"code.waarp.fr/apps/gateway/gateway/pkg/tk/utils"
 )
 
 var errNotImplemented = errors.New("key word not implemented")
@@ -44,7 +45,7 @@ func getReplacers() replacersMap {
 			return filepath.Base(r.transCtx.Transfer.SrcFilename), nil
 		},
 		"#FILESIZE#": func(r *Runner) (string, error) {
-			return fmt.Sprint(r.transCtx.Transfer.Filesize), nil
+			return utils.FormatInt(r.transCtx.Transfer.Filesize), nil
 		},
 		"#INPATH#": func(r *Runner) (string, error) {
 			return makeInDir(r.transCtx), nil
@@ -76,8 +77,8 @@ func getReplacers() replacersMap {
 		"#REMOTEHOSTIP#": notImplemented("#REMOTEHOSTIP#"),
 		"#LOCALHOST#":    getLocal,
 		"#LOCALHOSTIP#":  notImplemented("#LOCALHOSTIP#"),
-		"#TRANFERID#": func(r *Runner) (string, error) {
-			return fmt.Sprint(r.transCtx.Transfer.ID), nil
+		"#TRANSFERID#": func(r *Runner) (string, error) {
+			return utils.FormatInt(r.transCtx.Transfer.ID), nil
 		},
 		"#REQUESTERHOST#": func(r *Runner) (string, error) {
 			client, err := getClient(r)
@@ -89,7 +90,7 @@ func getReplacers() replacersMap {
 
 			return server, err
 		},
-		"#FULLTRANFERID#": func(r *Runner) (string, error) {
+		"#FULLTRANSFERID#": func(r *Runner) (string, error) {
 			// DEPRECATED
 			client, err := getClient(r)
 			if err != nil {

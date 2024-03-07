@@ -30,8 +30,8 @@ func TestSetup(t *testing.T) {
 			"trueFullPath":"#TRUEFULLPATH#", "trueFilename":"#TRUEFILENAME#", 
 			"fullPath":"#ORIGINALFULLPATH#", "filename":"#ORIGINALFILENAME#", 
 			"remoteHost":"#REMOTEHOST#", "localHost":"#LOCALHOST#", 
-			"transferID":"#TRANFERID#", "requesterHost":"#REQUESTERHOST#",
-			"requestedHost":"#REQUESTEDHOST#", "fullTransferID":"#FULLTRANFERID#",
+			"transferID":"#TRANSFERID#", "requesterHost":"#REQUESTERHOST#",
+			"requestedHost":"#REQUESTEDHOST#", "fullTransferID":"#FULLTRANSFERID#",
 			"errCode":"#ERRORCODE#", "errMsg":"#ERRORMSG#", "errStrCode":"#ERRORSTRCODE#",
 			"inPath":"#INPATH#", "outPath":"#OUTPATH#", "workPath":"#WORKPATH#",
 			"homePath":"#HOMEPATH#"}`),
@@ -178,7 +178,7 @@ func TestSetup(t *testing.T) {
 						So(ok, ShouldBeTrue)
 
 						Convey("Then res[transferID] should contain the resolved variable", func() {
-							So(val, ShouldEqual, fmt.Sprint(r.transCtx.Transfer.ID))
+							So(val, ShouldEqual, utils.FormatInt(r.transCtx.Transfer.ID))
 						})
 					})
 
