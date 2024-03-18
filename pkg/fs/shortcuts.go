@@ -11,6 +11,8 @@ func SeekFile(file File, offset int64, whence int) (int64, error) {
 	return hackpadfs.SeekFile(file, offset, whence)
 }
 
+func SyncFile(file File) error { return hackpadfs.SyncFile(file) }
+
 func WriteFile(file File, p []byte) (int, error) {
 	return hackpadfs.WriteFile(file, p)
 }

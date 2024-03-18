@@ -21,7 +21,7 @@ import (
 
 //nolint:gochecknoinits //init is required here
 func init() {
-	database.AddRDBMS(database.SQLite, memDBInfo)
+	database.SupportedRBMS[database.SQLite] = memDBInfo
 }
 
 func memDBInfo() *database.DBInfo {

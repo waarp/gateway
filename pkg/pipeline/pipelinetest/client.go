@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"path"
+	"sync/atomic"
 	"time"
 
 	"github.com/smartystreets/goconvey/convey"
@@ -183,9 +184,9 @@ func (cc *ClientContext) addPullTransfer(c convey.C, cont []byte) {
 func (cc *ClientContext) RunTransfer(c convey.C) {
 	pip, err := pipeline.NewClientPipeline(cc.DB, cc.ClientTrans)
 	c.So(err, convey.ShouldBeNil)
+	cc.setClientTrace(pip.Pip)
 
 	convey.So(pip.Run(), convey.ShouldBeNil)
-	pipeline.Tester.WaitClientDone()
 
 	ok := pipeline.ClientTransfers.Exists(cc.ClientTrans.ID)
 	c.So(ok, convey.ShouldBeFalse)
@@ -198,4 +199,24 @@ func (cc *ClientContext) CheckTransferOK(c convey.C) {
 
 	c.So(cc.DB.Get(&actual, "id=?", cc.ClientTrans.ID).Run(), convey.ShouldBeNil)
 	cc.checkClientTransferOK(c, cc.transData, cc.DB, &actual)
+}
+
+func (cc *ClientContext) setClientTrace(pip *pipeline.Pipeline) {
+	pip.Trace.OnPreTask = func(int8) error {
+		atomic.AddUint32(&cc.cliPreTasksNb, 1)
+
+		return nil
+	}
+
+	pip.Trace.OnPostTask = func(int8) error {
+		atomic.AddUint32(&cc.cliPostTasksNb, 1)
+
+		return nil
+	}
+
+	pip.Trace.OnErrorTask = func(int8) {
+		atomic.AddUint32(&cc.cliErrTasksNb, 1)
+	}
+
+	pip.Trace.OnTransferEnd = func() { close(cc.cliDone) }
 }

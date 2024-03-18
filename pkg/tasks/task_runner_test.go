@@ -334,7 +334,7 @@ func TestRunTasks(t *testing.T) {
 				Rule:     rule,
 				Transfer: trans,
 			},
-			ctx: context.Background(),
+			Ctx: context.Background(),
 		}
 
 		Convey("Given a list of tasks", func() {
@@ -357,7 +357,7 @@ func TestRunTasks(t *testing.T) {
 				}
 
 				Convey("Then it should run the tasks without error", func() {
-					rv := proc.runTasks(tasks, false)
+					rv := proc.runTasks(tasks, false, nil)
 					So(rv, ShouldBeNil)
 
 					dummyTaskCheck <- "DONE"
@@ -389,7 +389,7 @@ func TestRunTasks(t *testing.T) {
 				}
 
 				Convey("Then it should run the tasks without error", func() {
-					rv := proc.runTasks(tasks, false)
+					rv := proc.runTasks(tasks, false, nil)
 					So(rv, ShouldBeNil)
 
 					dummyTaskCheck <- "DONE"
@@ -433,7 +433,7 @@ func TestRunTasks(t *testing.T) {
 				}
 
 				Convey("Then running the tasks should return an error", func() {
-					rv := proc.runTasks(tasks, false)
+					rv := proc.runTasks(tasks, false, nil)
 					So(rv, ShouldBeError)
 					dummyTaskCheck <- "DONE"
 
@@ -457,7 +457,7 @@ func TestRunTasks(t *testing.T) {
 				}}
 
 				Convey("Then running the tasks should return an error", func() {
-					So(proc.runTasks(tasks, false), ShouldNotBeNil)
+					So(proc.runTasks(tasks, false, nil), ShouldNotBeNil)
 				})
 			})
 
@@ -473,7 +473,7 @@ func TestRunTasks(t *testing.T) {
 				}}
 
 				Convey("Then running the tasks should return an error", func() {
-					So(proc.runTasks(tasks, false), ShouldNotBeNil)
+					So(proc.runTasks(tasks, false, nil), ShouldNotBeNil)
 				})
 			})
 		})

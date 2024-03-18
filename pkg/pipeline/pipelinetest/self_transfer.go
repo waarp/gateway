@@ -32,7 +32,7 @@ type SelfContext struct {
 	*transData
 
 	constr        serviceConstructor
-	service       proto.Service
+	service       testService
 	fail          *model.Task
 	protoFeatures *features
 }
@@ -133,7 +133,13 @@ func (s *SelfContext) addPullTransfer(c convey.C) {
 // the SelfContext.
 func (s *SelfContext) StartService(c convey.C) {
 	logger := conf.GetLogger(fmt.Sprintf("test_%s_server", s.Server.Protocol))
-	s.service = s.constr(s.DB, logger)
+	protoService := s.constr(s.DB, logger)
+
+	service, ok := protoService.(testService)
+	c.So(ok, convey.ShouldBeTrue)
+
+	s.service = service
+
 	c.So(s.service.Start(s.Server), convey.ShouldBeNil)
 	c.Reset(func() {
 		ctx, cancel := context.WithTimeout(context.Background(), time.Second)
@@ -205,40 +211,45 @@ func (s *SelfContext) AddServerPostTaskError(c convey.C) {
 }
 
 // DataErrorOffset defines the offset at which simulated data errors should occur.
-const DataErrorOffset = TestFileSize / 2
+const DataErrorOffset = TestFileSize / 4
 
 func (s *SelfContext) AddClientDataError(_ convey.C) {
-	if s.ClientRule.IsSend {
-		pipeline.Tester.AddErrorAt(pipeline.DataRead, DataErrorOffset)
-	} else {
-		pipeline.Tester.AddErrorAt(pipeline.DataWrite, DataErrorOffset)
-	}
+	s.hasClientDataError = true
 }
 
 func (s *SelfContext) AddServerDataError(_ convey.C) {
-	if s.ClientRule.IsSend {
-		pipeline.Tester.AddErrorAt(pipeline.DataWrite, DataErrorOffset)
-	} else {
-		pipeline.Tester.AddErrorAt(pipeline.DataRead, DataErrorOffset)
-	}
+	s.hasServerDataError = true
 }
 
 // RunTransfer executes the test self-transfer in its entirety.
 func (s *SelfContext) RunTransfer(c convey.C, willFail bool) {
 	pip, err := pipeline.NewClientPipeline(s.DB, s.ClientTrans)
 	c.So(err, convey.ShouldBeNil)
+	s.setTrace(pip.Pip)
 
 	if tErr := pip.Run(); !willFail {
 		convey.So(tErr, convey.ShouldBeNil)
 	}
 
-	pipeline.Tester.WaitClientDone()
-	pipeline.Tester.WaitServerDone()
+	const transferTimeout = 10 * time.Second
+
+	c.SoMsg("The client pipeline should have ended",
+		utils.WaitChan(s.cliDone, transferTimeout), convey.ShouldBeTrue)
+	c.SoMsg("The server pipeline should have ended",
+		utils.WaitChan(s.servDone, transferTimeout), convey.ShouldBeTrue)
 	s.waitForListDeletion()
 }
 
+func (s *SelfContext) setTrace(pip *pipeline.Pipeline) {
+	s.setClientTrace(pip)
+	s.service.SetTracer(s.makeServerTracer(s.ServerRule.IsSend))
+}
+
 func (s *SelfContext) resetTransfer(c convey.C) {
-	pipeline.Tester.Retry()
+	s.hasServerDataError = false
+	s.hasClientDataError = false
+	s.cliDone = make(chan bool)
+	s.servDone = make(chan bool)
 
 	c.So(s.DB.DeleteAll(&model.Task{}).Where("type=?", taskstest.TaskErr).
 		Run(), convey.ShouldBeNil)

@@ -1,7 +1,10 @@
 package pipeline
 
 import (
+	"io"
+	"os"
 	"path"
+	"path/filepath"
 	"strings"
 	"testing"
 	"time"
@@ -38,7 +41,7 @@ func TestNewFileStream(t *testing.T) {
 			So(pip.machine.Transition(statePreTasksDone), ShouldBeNil)
 
 			Convey("When creating a new transfer stream", func(c C) {
-				stream, err := newFileStream(pip, false)
+				stream, err := newFileStream(pip.Pipeline, false)
 				So(err, ShouldBeNil)
 				// Reset(func() { _ = stream.file.Close() })
 
@@ -59,7 +62,7 @@ func TestNewFileStream(t *testing.T) {
 				So(fs.Remove(ctx.fs, &trans.LocalPath), ShouldBeNil)
 
 				Convey("When creating a new transfer stream", func(c C) {
-					_, err := newFileStream(pip, false)
+					_, err := newFileStream(pip.Pipeline, false)
 
 					Convey("Then it should return an error", func(c C) {
 						So(err, ShouldBeError, types.NewTransferError(
@@ -140,7 +143,7 @@ func TestStreamRead(t *testing.T) {
 			})
 
 			Convey("Given that an error occurs while reading the file", func(c C) {
-				stream.file.(*testFile).err = errFileTest
+				addFileError(stream)
 
 				b := make([]byte, 4)
 				_, err := stream.Read(b)
@@ -216,7 +219,7 @@ func TestStreamReadAt(t *testing.T) {
 			})
 
 			Convey("Given that an error occurs while reading the file", func(c C) {
-				stream.file.(*testFile).err = errFileTest
+				addFileError(stream)
 
 				b := make([]byte, 4)
 				_, err := stream.ReadAt(b, 0)
@@ -289,7 +292,7 @@ func TestStreamWrite(t *testing.T) {
 			})
 
 			Convey("Given that an error occurs while writing the file", func(c C) {
-				stream.file.(*testFile).err = errFileTest
+				addFileError(stream)
 
 				b := make([]byte, 4)
 				_, err := stream.Write(b)
@@ -363,7 +366,7 @@ func TestStreamWriteAt(t *testing.T) {
 			})
 
 			Convey("Given that an error occurs while writing the file", func(c C) {
-				stream.file.(*testFile).err = errFileTest
+				addFileError(stream)
 
 				b := make([]byte, 4)
 				_, err := stream.WriteAt(b, 0)
@@ -500,8 +503,8 @@ func TestStreamMove(t *testing.T) {
 		}
 		So(ctx.db.Insert(trans).Run(), ShouldBeNil)
 
-		filepath := mkURL(ctx.root, ctx.recv.LocalDir, "file")
-		So(fs.WriteFullFile(ctx.fs, filepath, []byte("file content")), ShouldBeNil)
+		filePath := mkURL(ctx.root, ctx.recv.LocalDir, "file")
+		So(fs.WriteFullFile(ctx.fs, filePath, []byte("file content")), ShouldBeNil)
 		// Reset(func() { _ = ctx.fs.Remove(path) })
 
 		Convey("Given a closed file stream for this transfer", func(c C) {
@@ -514,8 +517,96 @@ func TestStreamMove(t *testing.T) {
 
 				Convey("Then it should do nothing", func(c C) {
 					So(stream.TransCtx.Transfer.LocalPath.String(), ShouldEqual,
-						filepath.String())
+						filePath.String())
 				})
+			})
+		})
+	})
+}
+
+func TestStreamSeek(t *testing.T) {
+	Convey("Given an incoming transfer", t, func(c C) {
+		ctx := initTestDB(c)
+
+		trans := &model.Transfer{
+			RemoteAccountID: utils.NewNullInt64(ctx.remoteAccount.ID),
+			RuleID:          ctx.recv.ID,
+			SrcFilename:     filepath.Join(t.TempDir(), "file"),
+		}
+		So(ctx.db.Insert(trans).Run(), ShouldBeNil)
+
+		stream := initFilestream(ctx, trans)
+
+		Convey("When calling the Seek function", func(c C) {
+			const seekOffset = 5
+
+			newOff, err := stream.Seek(seekOffset, io.SeekCurrent)
+			So(err, ShouldBeNil)
+			So(newOff, ShouldEqual, seekOffset)
+
+			Convey("Then the file offset should have changed", func(c C) {
+				off, err := fs.SeekFile(stream.file, 0, io.SeekCurrent)
+				So(err, ShouldBeNil)
+				So(off, ShouldEqual, seekOffset)
+			})
+
+			Convey("Then the transfer progression should have changed", func(c C) {
+				<-time.After(testTransferUpdateInterval)
+
+				So(stream.UpdateTrans(), ShouldBeNil)
+
+				var check model.Transfer
+
+				So(ctx.db.Get(&check, "id=?", trans.ID).Run(), ShouldBeNil)
+				So(check.Progress, ShouldEqual, seekOffset)
+			})
+		})
+	})
+}
+
+func TestStreamSync(t *testing.T) {
+	Convey("Given an incoming transfer", t, func(c C) {
+		ctx := initTestDB(c)
+
+		trans := &model.Transfer{
+			RemoteAccountID: utils.NewNullInt64(ctx.remoteAccount.ID),
+			RuleID:          ctx.recv.ID,
+			SrcFilename:     filepath.Join(t.TempDir(), "file"),
+		}
+		So(ctx.db.Insert(trans).Run(), ShouldBeNil)
+
+		stream := initFilestream(ctx, trans)
+		stream.updTicker.Reset(time.Hour)
+		So(stream.UpdateTrans(), ShouldBeNil)
+
+		select {
+		case <-stream.updTicker.C:
+		default:
+		}
+
+		bytes := []byte("foobar")
+		_, err := stream.Write(bytes)
+		So(err, ShouldBeNil)
+
+		var checkBefore model.Transfer
+
+		So(ctx.db.Get(&checkBefore, "id=?", trans.ID).Run(), ShouldBeNil)
+		So(checkBefore.Progress, ShouldEqual, 0)
+
+		Convey("When calling the Sync function", func(c C) {
+			So(stream.Sync(), ShouldBeNil)
+
+			Convey("Then the content should have written to storage", func(c C) {
+				content, err := os.ReadFile(trans.LocalPath.OSPath())
+				So(err, ShouldBeNil)
+				So(content, ShouldResemble, bytes)
+			})
+
+			Convey("Then the transfer progression should have changed", func(c C) {
+				var checkAfter model.Transfer
+
+				So(ctx.db.Get(&checkAfter, "id=?", trans.ID).Run(), ShouldBeNil)
+				So(checkAfter.Progress, ShouldEqual, len(bytes))
 			})
 		})
 	})

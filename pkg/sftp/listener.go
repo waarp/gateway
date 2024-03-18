@@ -18,6 +18,7 @@ import (
 	"code.waarp.fr/apps/gateway/gateway/pkg/gatewayd/service"
 	"code.waarp.fr/apps/gateway/gateway/pkg/model"
 	"code.waarp.fr/apps/gateway/gateway/pkg/model/types"
+	"code.waarp.fr/apps/gateway/gateway/pkg/pipeline"
 	"code.waarp.fr/apps/gateway/gateway/pkg/sftp/internal"
 	"code.waarp.fr/apps/gateway/gateway/pkg/tk/utils"
 )
@@ -29,6 +30,7 @@ type sshListener struct {
 	SSHConf  *ssh.ServerConfig
 	Listener net.Listener
 
+	tracer   func() pipeline.Trace
 	connWg   sync.WaitGroup
 	shutdown chan struct{}
 
@@ -219,7 +221,8 @@ func (l *sshListener) makeFileReader(endSession func(context.Context), acc *mode
 		l.Logger.Info("Download of file '%s' requested by '%s' using rule '%s'",
 			filePath, acc.Login, rule.Name)
 
-		pip, err := newServerPipeline(l.DB, l.Logger, trans, l.runningTransfers, endSession)
+		pip, err := newServerPipeline(l.DB, l.Logger, trans, l.runningTransfers,
+			endSession, l.tracer)
 		if err != nil {
 			return nil, err
 		}
@@ -263,7 +266,8 @@ func (l *sshListener) makeFileWriter(endSession func(context.Context), acc *mode
 		l.Logger.Info("Upload of file '%s' requested by '%s' using rule '%s'",
 			filePath, acc.Login, rule.Name)
 
-		pip, err := newServerPipeline(l.DB, l.Logger, trans, l.runningTransfers, endSession)
+		pip, err := newServerPipeline(l.DB, l.Logger, trans, l.runningTransfers,
+			endSession, l.tracer)
 		if err != nil {
 			return nil, toSFTPErr(err)
 		}

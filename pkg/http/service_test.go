@@ -17,6 +17,7 @@ import (
 	"code.waarp.fr/apps/gateway/gateway/pkg/model/types"
 	"code.waarp.fr/apps/gateway/gateway/pkg/pipeline"
 	"code.waarp.fr/apps/gateway/gateway/pkg/pipeline/pipelinetest"
+	"code.waarp.fr/apps/gateway/gateway/pkg/tk/utils"
 	"code.waarp.fr/apps/gateway/gateway/pkg/tk/utils/testhelpers"
 )
 
@@ -62,6 +63,7 @@ func TestServiceStop(t *testing.T) {
 		Convey("When calling the 'Stop' function", func() {
 			ctx, cancel := context.WithTimeout(context.Background(), time.Second)
 			defer cancel()
+
 			err := serv.Stop(ctx)
 
 			Convey("Then it should not return an error", func() {
@@ -78,6 +80,22 @@ func TestServerInterruption(t *testing.T) {
 
 		serv := newService(test.DB, logger)
 		c.So(serv.Start(test.Server), ShouldBeNil)
+
+		dataReady := make(chan bool)
+		transferDone := make(chan bool)
+
+		serv.SetTracer(func() pipeline.Trace {
+			return pipeline.Trace{
+				OnDataStart: func() error {
+					close(dataReady)
+
+					return nil
+				},
+				OnTransferEnd: func() {
+					close(transferDone)
+				},
+			}
+		})
 
 		Convey("Given a dummy HTTP client", func() {
 			cli := http.DefaultClient
@@ -96,10 +114,10 @@ func TestServerInterruption(t *testing.T) {
 				stop := make(chan error, 1)
 
 				Convey("When the server shuts down", func() {
-					defer pipeline.Tester.WaitServerDone()
+					defer utils.WaitChan(transferDone, 5*time.Second)
 
 					go func() {
-						pipeline.Tester.WaitServerPreTasks()
+						utils.WaitChan(dataReady, time.Second)
 
 						ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 						defer cancel()
@@ -121,9 +139,10 @@ func TestServerInterruption(t *testing.T) {
 					So(string(body), ShouldResemble, "transfer interrupted by a server shutdown")
 
 					Convey("Then the transfer should have been interrupted", func(c C) {
-						test.ServerShouldHavePreTasked(c)
+						utils.WaitChan(dataReady, time.Second)
 
 						var transfers model.Transfers
+
 						So(test.DB.Select(&transfers).Run(), ShouldBeNil)
 						So(transfers, ShouldNotBeEmpty)
 						So(transfers[0].Status, ShouldEqual, types.StatusInterrupted)

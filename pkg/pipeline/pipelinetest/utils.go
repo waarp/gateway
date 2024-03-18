@@ -3,6 +3,8 @@ package pipelinetest
 import (
 	"crypto/rand"
 	"fmt"
+	"sync/atomic"
+	"time"
 
 	"code.waarp.fr/lib/log"
 	"github.com/smartystreets/goconvey/convey"
@@ -38,10 +40,118 @@ type serviceConstructor func(db *database.DB, logger *log.Logger) proto.Service
 // TestFileSize defines the size of the file used for transfer tests.
 const TestFileSize int64 = 1000000 // 1MB
 
+var ErrTestError = types.NewTransferError(types.TeInternal, "intended test error")
+
 type testData struct {
 	DB    *database.DB
 	FS    fs.FS
 	Paths *conf.PathsConfig
+
+	hasClientDataError bool
+	hasServerDataError bool
+
+	cliPreTasksNb, cliPostTasksNb, cliErrTasksNb    uint32
+	servPreTasksNb, servPostTasksNb, servErrTasksNb uint32
+	cliDone, servDone                               chan bool
+}
+
+func (t *testData) makeServerTracer(isSend bool) func() pipeline.Trace {
+	return func() pipeline.Trace {
+		trace := pipeline.Trace{
+			OnPreTask: func(int8) error {
+				atomic.AddUint32(&t.servPreTasksNb, 1)
+
+				return nil
+			},
+			OnPostTask: func(int8) error {
+				atomic.AddUint32(&t.servPostTasksNb, 1)
+
+				return nil
+			},
+			OnErrorTask: func(int8) {
+				atomic.AddUint32(&t.servErrTasksNb, 1)
+			},
+			OnTransferEnd: func() { close(t.servDone) },
+		}
+
+		//nolint:nestif //no easy way to factorize
+		if t.hasServerDataError {
+			if isSend {
+				trace.OnRead = func(off int64) error {
+					if off >= DataErrorOffset {
+						return ErrTestError
+					}
+
+					return nil
+				}
+			} else {
+				trace.OnWrite = func(off int64) error {
+					if off >= DataErrorOffset {
+						return ErrTestError
+					}
+
+					return nil
+				}
+				trace.OnRead = func(off int64) error {
+					if off >= DataErrorOffset {
+						<-time.After(200 * time.Millisecond) //nolint:gomnd //for test only
+					}
+
+					return nil
+				}
+			}
+		}
+
+		return trace
+	}
+}
+
+func (t *testData) setClientTrace(pip *pipeline.Pipeline) {
+	pip.Trace.OnPreTask = func(int8) error {
+		atomic.AddUint32(&t.cliPreTasksNb, 1)
+
+		return nil
+	}
+
+	pip.Trace.OnPostTask = func(int8) error {
+		atomic.AddUint32(&t.cliPostTasksNb, 1)
+
+		return nil
+	}
+
+	pip.Trace.OnErrorTask = func(int8) {
+		atomic.AddUint32(&t.cliErrTasksNb, 1)
+	}
+
+	pip.Trace.OnTransferEnd = func() { close(t.cliDone) }
+
+	//nolint:nestif //no easy way to factorize
+	if t.hasClientDataError {
+		if pip.TransCtx.Rule.IsSend {
+			pip.Trace.OnRead = func(off int64) error {
+				if off >= DataErrorOffset {
+					return ErrTestError
+				}
+
+				return nil
+			}
+		} else {
+			pip.Trace.OnWrite = func(off int64) error {
+				if off >= DataErrorOffset {
+					return ErrTestError
+				}
+
+				return nil
+			}
+			pip.Trace.OnRead = func(off int64) error {
+				if off >= DataErrorOffset {
+					<-time.After(200 * time.Millisecond) //nolint:gomnd //for test only
+				}
+
+				return nil
+			}
+		}
+	}
 }
 
 func hash(pwd string) string {
@@ -94,12 +204,12 @@ func initTestData(c convey.C) *testData {
 
 	conf.GlobalConfig.Paths = *paths
 
-	pipeline.InitTester(c)
-
 	return &testData{
-		DB:    db,
-		FS:    testFS,
-		Paths: paths,
+		DB:       db,
+		FS:       testFS,
+		Paths:    paths,
+		cliDone:  make(chan bool),
+		servDone: make(chan bool),
 	}
 }
 
@@ -130,25 +240,25 @@ func makeRuleTasks(c convey.C, db *database.DB, rule *model.Rule) {
 }
 
 func (t *testData) ClientShouldHavePreTasked(c convey.C) {
-	c.So(pipeline.Tester.CliPre != 0, convey.ShouldBeTrue)
+	c.So(t.cliPreTasksNb, convey.ShouldNotBeZeroValue)
 }
 
 func (t *testData) ServerShouldHavePreTasked(c convey.C) {
-	c.So(pipeline.Tester.ServPre != 0, convey.ShouldBeTrue)
+	c.So(t.servPreTasksNb, convey.ShouldNotBeZeroValue)
 }
 
 func (t *testData) ClientShouldHavePostTasked(c convey.C) {
-	c.So(pipeline.Tester.CliPost != 0, convey.ShouldBeTrue)
+	c.So(t.cliPostTasksNb, convey.ShouldNotBeZeroValue)
 }
 
 func (t *testData) ServerShouldHavePostTasked(c convey.C) {
-	c.So(pipeline.Tester.ServPost != 0, convey.ShouldBeTrue)
+	c.So(t.servPostTasksNb, convey.ShouldNotBeZeroValue)
 }
 
 func (t *testData) ClientShouldHaveErrorTasked(c convey.C) {
-	c.So(pipeline.Tester.CliErr != 0, convey.ShouldBeTrue)
+	c.So(t.cliErrTasksNb, convey.ShouldNotBeZeroValue)
 }
 
 func (t *testData) ServerShouldHaveErrorTasked(c convey.C) {
-	c.So(pipeline.Tester.ServErr != 0, convey.ShouldBeTrue)
+	c.So(t.servErrTasksNb, convey.ShouldNotBeZeroValue)
 }

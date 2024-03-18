@@ -165,7 +165,6 @@ func TestSSHServerInterruption(t *testing.T) {
 			Convey("Given that a push transfer started", func(c C) {
 				dst, err := cli.Create(path.Join(test.ServerRule.Path, "test_in_shutdown.dst"))
 				So(err, ShouldBeNil)
-				test.ServerShouldHavePreTasked(c)
 
 				_, err = dst.Write([]byte("123"))
 				So(err, ShouldBeNil)

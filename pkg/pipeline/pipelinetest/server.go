@@ -14,6 +14,7 @@ import (
 	"code.waarp.fr/apps/gateway/gateway/pkg/gatewayd/service/proto"
 	"code.waarp.fr/apps/gateway/gateway/pkg/model"
 	"code.waarp.fr/apps/gateway/gateway/pkg/model/config"
+	"code.waarp.fr/apps/gateway/gateway/pkg/pipeline"
 	"code.waarp.fr/apps/gateway/gateway/pkg/tk/utils"
 	"code.waarp.fr/apps/gateway/gateway/pkg/tk/utils/testhelpers"
 )
@@ -31,6 +32,11 @@ type serverData struct {
 	Server     *model.LocalAgent
 	LocAccount *model.LocalAccount
 	ServerRule *model.Rule
+}
+
+type testService interface {
+	proto.Service
+	SetTracer(getTrace func() pipeline.Trace)
 }
 
 func initServer(c convey.C, protocol string, constr serviceConstructor,
@@ -163,15 +169,21 @@ func (s *ServerContext) AddCryptos(c convey.C, certs ...model.Crypto) {
 func (s *ServerContext) StartService(c convey.C) proto.Service {
 	logger := conf.GetLogger(fmt.Sprintf("test_%s_server", s.Server.Protocol))
 	serv := s.constr(s.DB, logger)
-	c.So(serv.Start(s.Server), convey.ShouldBeNil)
+
+	tracerService, ok := serv.(testService)
+	c.So(ok, convey.ShouldBeTrue)
+
+	c.So(tracerService.Start(s.Server), convey.ShouldBeNil)
 	c.Reset(func() {
 		ctx, cancel := context.WithTimeout(context.Background(), time.Second)
 		defer cancel()
 
-		c.So(serv.Stop(ctx), convey.ShouldBeNil)
+		c.So(tracerService.Stop(ctx), convey.ShouldBeNil)
 	})
 
-	return serv
+	tracerService.SetTracer(s.makeServerTracer(s.ServerRule.IsSend))
+
+	return tracerService
 }
 
 // CheckTransferOK checks if the client transfer history entry has succeeded as

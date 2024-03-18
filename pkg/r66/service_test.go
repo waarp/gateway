@@ -114,6 +114,7 @@ func TestServiceStop(t *testing.T) {
 		Convey("When calling the 'Stop' function", func() {
 			ctx, cancel := context.WithTimeout(context.Background(), time.Second)
 			defer cancel()
+
 			err := serv.Stop(ctx)
 
 			Convey("Then it should not return an error", func() {
@@ -130,6 +131,20 @@ func TestR66ServerInterruption(t *testing.T) {
 		logger := testhelpers.TestLogger(c, "test_r66_start")
 		serv := newService(test.DB, logger)
 		c.So(serv.Start(test.Server), ShouldBeNil)
+
+		preTasksDone := make(chan bool)
+		transferDone := make(chan bool)
+
+		serv.SetTracer(func() pipeline.Trace {
+			return pipeline.Trace{
+				OnPreTask: func(int8) error {
+					close(preTasksDone)
+
+					return nil
+				},
+				OnTransferEnd: func() { close(transferDone) },
+			}
+		})
 
 		Convey("Given a dummy R66 client", func(c C) {
 			ses := makeDummyClient(c, test)
@@ -159,10 +174,11 @@ func TestR66ServerInterruption(t *testing.T) {
 
 				Convey("When the server shuts down", func(c C) {
 					go func() {
-						pipeline.Tester.WaitServerPreTasks()
+						utils.WaitChan(preTasksDone, time.Second)
 
 						ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 						defer cancel()
+
 						if err := serv.Stop(ctx); err != nil {
 							panic(err)
 						}
@@ -188,10 +204,10 @@ func TestR66ServerInterruption(t *testing.T) {
 					}
 
 					Convey("Then the transfer should have been interrupted", func(c C) {
-						test.ServerShouldHavePreTasked(c)
-						pipeline.Tester.WaitServerDone()
+						So(utils.WaitChan(transferDone, 5*time.Second), ShouldBeTrue)
 
 						var transfers model.Transfers
+
 						So(test.DB.Select(&transfers).Run(), ShouldBeNil)
 						So(transfers, ShouldNotBeEmpty)
 						So(transfers[0].Status, ShouldEqual, types.StatusInterrupted)

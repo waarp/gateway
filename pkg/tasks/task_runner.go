@@ -22,7 +22,7 @@ type Runner struct {
 	db       *database.DB
 	logger   *log.Logger
 	transCtx *model.TransferContext
-	ctx      context.Context //nolint:containedctx //FIXME move the context to a function parameter
+	Ctx      context.Context //nolint:containedctx //FIXME move the context to a function parameter
 	Stop     context.CancelFunc
 	lock     sync.WaitGroup
 }
@@ -34,7 +34,7 @@ func NewTaskRunner(db *database.DB, logger *log.Logger, transCtx *model.Transfer
 		db:       db,
 		logger:   logger,
 		transCtx: transCtx,
-		ctx:      ctx,
+		Ctx:      ctx,
 	}
 
 	r.Stop = func() {
@@ -46,18 +46,24 @@ func NewTaskRunner(db *database.DB, logger *log.Logger, transCtx *model.Transfer
 }
 
 // PreTasks executes the transfer's pre-tasks.
-func (r *Runner) PreTasks() *types.TransferError {
-	return r.runTasks(r.transCtx.PreTasks, false)
+func (r *Runner) PreTasks(trace func(rank int8) error) *types.TransferError {
+	return r.runTasks(r.transCtx.PreTasks, false, trace)
 }
 
 // PostTasks executes the transfer's post-tasks.
-func (r *Runner) PostTasks() *types.TransferError {
-	return r.runTasks(r.transCtx.PostTasks, false)
+func (r *Runner) PostTasks(trace func(rank int8) error) *types.TransferError {
+	return r.runTasks(r.transCtx.PostTasks, false, trace)
 }
 
 // ErrorTasks executes the transfer's error-tasks.
-func (r *Runner) ErrorTasks() *types.TransferError {
-	return r.runTasks(r.transCtx.ErrTasks, true)
+func (r *Runner) ErrorTasks(trace func(rank int8)) *types.TransferError {
+	return r.runTasks(r.transCtx.ErrTasks, true, func(rank int8) error {
+		if trace != nil {
+			trace(rank)
+		}
+
+		return nil
+	})
 }
 
 func (r *Runner) runTask(task *model.Task, taskInfo string, isErrTasks bool) *types.TransferError {
@@ -87,7 +93,7 @@ func (r *Runner) runTask(task *model.Task, taskInfo string, isErrTasks bool) *ty
 	if isErrTasks {
 		err = runner.Run(context.Background(), args, r.db, r.logger, r.transCtx)
 	} else {
-		err = runner.Run(r.ctx, args, r.db, r.logger, r.transCtx)
+		err = runner.Run(r.Ctx, args, r.db, r.logger, r.transCtx)
 	}
 
 	if err != nil {
@@ -142,7 +148,8 @@ func (r *Runner) updateProgress(isErrTasks bool) *types.TransferError {
 
 // runTasks executes sequentially the list of tasks given according to the
 // Runner context.
-func (r *Runner) runTasks(tasks []*model.Task, isErrTasks bool) *types.TransferError {
+func (r *Runner) runTasks(tasks []*model.Task, isErrTasks bool, trace func(rank int8) error,
+) *types.TransferError {
 	r.lock.Add(1)
 	defer r.lock.Done()
 
@@ -153,7 +160,7 @@ func (r *Runner) runTasks(tasks []*model.Task, isErrTasks bool) *types.TransferE
 
 		if !isErrTasks {
 			select {
-			case <-r.ctx.Done():
+			case <-r.Ctx.Done():
 				return types.NewTransferError(types.TeInternal, "transfer interrupted")
 			default:
 			}
@@ -161,6 +168,12 @@ func (r *Runner) runTasks(tasks []*model.Task, isErrTasks bool) *types.TransferE
 
 		if err := r.runTask(task, taskInfo, isErrTasks); err != nil {
 			return err
+		}
+
+		if trace != nil {
+			if err := trace(i); err != nil {
+				return testError(err)
+			}
 		}
 	}
 

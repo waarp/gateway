@@ -11,7 +11,7 @@ const (
 
 //nolint:gochecknoinits // init is used by design
 func init() {
-	supportedRBMS[SQLite] = sqliteinfo
+	SupportedRBMS[SQLite] = sqliteinfo
 }
 
 func sqliteinfo() *DBInfo {

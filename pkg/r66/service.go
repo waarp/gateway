@@ -20,6 +20,7 @@ import (
 	"code.waarp.fr/apps/gateway/gateway/pkg/gatewayd/service/state"
 	"code.waarp.fr/apps/gateway/gateway/pkg/model"
 	"code.waarp.fr/apps/gateway/gateway/pkg/model/config"
+	"code.waarp.fr/apps/gateway/gateway/pkg/pipeline"
 	"code.waarp.fr/apps/gateway/gateway/pkg/tk/utils"
 	"code.waarp.fr/apps/gateway/gateway/pkg/utils/compatibility"
 )
@@ -38,6 +39,7 @@ type Service struct {
 	logger  *log.Logger
 	agentID int64
 	state   state.State
+	tracer  func() pipeline.Trace
 
 	r66Conf  *config.R66ProtoConfig
 	list     net.Listener
@@ -61,9 +63,9 @@ func newService(db *database.DB, logger *log.Logger) *Service {
 }
 
 func (s *Service) makeTLSConf(agent *model.LocalAgent) (*tls.Config, error) {
-	certs, err := agent.GetCryptos(s.db)
-	if err != nil {
-		return nil, fmt.Errorf("failed to retrieve the server's certificates: %w", err)
+	certs, dbErr := agent.GetCryptos(s.db)
+	if dbErr != nil {
+		return nil, fmt.Errorf("failed to retrieve the server's certificates: %w", dbErr)
 	}
 
 	if len(certs) == 0 {
@@ -74,12 +76,10 @@ func (s *Service) makeTLSConf(agent *model.LocalAgent) (*tls.Config, error) {
 
 	for i := range certs {
 		var err error
-		tlsCerts[i], err = tls.X509KeyPair(
+		if tlsCerts[i], err = tls.X509KeyPair(
 			[]byte(certs[i].Certificate),
 			[]byte(certs[i].PrivateKey),
-		)
-
-		if err != nil {
+		); err != nil {
 			return nil, fmt.Errorf("failed to parse certificate %s: %w", certs[i].Name, err)
 		}
 	}
@@ -235,3 +235,5 @@ func (s *Service) State() *state.State {
 func (s *Service) ManageTransfers() *service.TransferMap {
 	return s.runningTransfers
 }
+
+func (s *Service) SetTracer(f func() pipeline.Trace) { s.tracer = f }
