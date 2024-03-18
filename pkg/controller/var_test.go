@@ -1,6 +1,10 @@
 package controller
 
 import (
+	"path"
+
+	"github.com/smartystreets/goconvey/convey"
+
 	"code.waarp.fr/apps/gateway/gateway/pkg/model/config"
 	"code.waarp.fr/apps/gateway/gateway/pkg/model/types"
 	"code.waarp.fr/apps/gateway/gateway/pkg/pipeline"
@@ -26,3 +30,12 @@ func (a *allSuccess) Request() *types.TransferError                 { return nil
 func (a *allSuccess) Data(pipeline.DataStream) *types.TransferError { return nil }
 func (a *allSuccess) EndTransfer() *types.TransferError             { return nil }
 func (a *allSuccess) SendError(*types.TransferError)                {}
+
+func mkURL(elem ...string) *types.URL {
+	full := path.Join(elem...)
+
+	url, err := types.ParseURL(full)
+	convey.So(err, convey.ShouldBeNil)
+
+	return url
+}

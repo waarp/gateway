@@ -87,6 +87,7 @@ func TestAddTransfer(t *testing.T) {
 					Convey("Then the new transfer should be inserted in "+
 						"the database", func() {
 						var transfers model.Transfers
+
 						So(db.Select(&transfers).Run(), ShouldBeNil)
 						So(transfers, ShouldHaveLength, 1)
 
@@ -96,7 +97,7 @@ func TestAddTransfer(t *testing.T) {
 						So(transfers[0].RemoteAccountID.Int64, ShouldEqual, account.ID)
 						So(transfers[0].SrcFilename, ShouldEqual, "src_dir/test.file")
 						So(transfers[0].DestFilename, ShouldEqual, "dst_dir/test.file")
-						So(transfers[0].LocalPath, ShouldBeBlank)
+						So(transfers[0].LocalPath.String(), ShouldBeBlank)
 						So(transfers[0].RemotePath, ShouldBeBlank)
 						So(transfers[0].Filesize, ShouldEqual, model.UnknownSize)
 						So(transfers[0].Start.Equal(time.Date(2023, 1, 1, 1, 0, 0, 0, time.UTC)), ShouldBeTrue)
@@ -258,6 +259,7 @@ func TestGetTransfer(t *testing.T) {
 				Start:           time.Date(2021, 1, 1, 1, 0, 0, 0, time.Local),
 			}
 			So(db.Insert(other).Run(), ShouldBeNil)
+
 			conf.GlobalConfig.GatewayName = owner
 
 			trans := &model.Transfer{
@@ -273,10 +275,11 @@ func TestGetTransfer(t *testing.T) {
 			So(trans.SetTransferInfo(db, infos), ShouldBeNil)
 
 			Convey("Given a request with the valid transfer ID parameter", func() {
-				id := fmt.Sprint(trans.ID)
+				id := utils.FormatInt(trans.ID)
 				uri := path.Join(transferURI, id)
 				req, err := http.NewRequest(http.MethodGet, uri, nil)
 				So(err, ShouldBeNil)
+
 				req = mux.SetURLVars(req, map[string]string{"transfer": id})
 
 				Convey("When sending the request to the handler", func() {
@@ -307,6 +310,7 @@ func TestGetTransfer(t *testing.T) {
 				uri := path.Join(transferURI, "1000")
 				r, err := http.NewRequest(http.MethodGet, uri, nil)
 				So(err, ShouldBeNil)
+
 				r = mux.SetURLVars(r, map[string]string{"transfer": "1000"})
 
 				Convey("When sending the request to the handler", func() {
@@ -418,6 +422,7 @@ func TestListTransfer(t *testing.T) {
 				Start:           time.Date(2021, 1, 1, 1, 0, 0, 0, time.Local),
 			}
 			So(db.Insert(other).Run(), ShouldBeNil)
+
 			conf.GlobalConfig.GatewayName = owner
 
 			Convey("Given a request with no parameters", func() {
@@ -572,9 +577,10 @@ func TestResumeTransfer(t *testing.T) {
 			So(db.Insert(trans).Run(), ShouldBeNil)
 
 			Convey("Given a request with the valid transfer ID parameter", func() {
-				id := fmt.Sprint(trans.ID)
+				id := utils.FormatInt(trans.ID)
 				req, err := http.NewRequest(http.MethodPut, "", nil)
 				So(err, ShouldBeNil)
+
 				req = mux.SetURLVars(req, map[string]string{"transfer": id})
 
 				Convey("When sending the request to the handler", func() {
@@ -590,9 +596,9 @@ func TestResumeTransfer(t *testing.T) {
 
 					Convey("Then the transfer should have been reprogrammed", func() {
 						var transfers model.Transfers
+
 						So(db.Select(&transfers).Run(), ShouldBeNil)
 						So(transfers, ShouldNotBeEmpty)
-
 						So(transfers[0], ShouldResemble, &model.Transfer{
 							ID:               trans.ID,
 							Owner:            conf.GlobalConfig.GatewayName,
@@ -656,9 +662,10 @@ func TestPauseTransfer(t *testing.T) {
 			So(db.Insert(trans).Run(), ShouldBeNil)
 
 			Convey("Given a request with the valid transfer ID parameter", func() {
-				id := fmt.Sprint(trans.ID)
+				id := utils.FormatInt(trans.ID)
 				req, err := http.NewRequest(http.MethodPut, "", nil)
 				So(err, ShouldBeNil)
+
 				req = mux.SetURLVars(req, map[string]string{"transfer": id})
 
 				Convey("When sending the request to the handler", func() {
@@ -674,9 +681,9 @@ func TestPauseTransfer(t *testing.T) {
 
 					Convey("Then the transfer should have been paused", func() {
 						var transfers model.Transfers
+
 						So(db.Select(&transfers).Run(), ShouldBeNil)
 						So(transfers, ShouldNotBeEmpty)
-
 						So(transfers[0], ShouldResemble, &model.Transfer{
 							ID:               trans.ID,
 							RemoteTransferID: trans.RemoteTransferID,
@@ -740,9 +747,10 @@ func TestCancelTransfer(t *testing.T) {
 			So(db.Insert(trans).Run(), ShouldBeNil)
 
 			Convey("Given a request with the valid transfer ID parameter", func() {
-				id := fmt.Sprint(trans.ID)
+				id := utils.FormatInt(trans.ID)
 				req, err := http.NewRequest(http.MethodPut, "", nil)
 				So(err, ShouldBeNil)
+
 				req = mux.SetURLVars(req, map[string]string{"transfer": id})
 
 				Convey("When sending the request to the handler", func() {
@@ -758,9 +766,9 @@ func TestCancelTransfer(t *testing.T) {
 
 					Convey("Then the transfer should have been canceled", func() {
 						var hist model.HistoryEntries
+
 						So(db.Select(&hist).Run(), ShouldBeNil)
 						So(hist, ShouldNotBeEmpty)
-
 						So(hist[0], ShouldResemble, &model.HistoryEntry{
 							ID:               trans.ID,
 							Owner:            conf.GlobalConfig.GatewayName,
@@ -824,7 +832,7 @@ func TestRestartTransfer(t *testing.T) {
 				Protocol:         testProto1,
 				SrcFilename:      "/source/file.test",
 				DestFilename:     "/dest/file.test",
-				LocalPath:        "/local/file.test",
+				LocalPath:        *mkURL("file:/local/file.test"),
 				RemotePath:       "/remote/file.test",
 				Start:            time.Date(2019, 1, 1, 0, 0, 0, 0, time.Local),
 				Stop:             time.Date(2019, 1, 1, 1, 0, 0, 0, time.Local),
@@ -832,7 +840,7 @@ func TestRestartTransfer(t *testing.T) {
 			}
 			So(db.Insert(h).Run(), ShouldBeNil)
 
-			id := fmt.Sprint(h.ID)
+			id := utils.FormatInt(h.ID)
 
 			Convey("Given a request with the valid transfer history ID parameter", func() {
 				dateStr := url.QueryEscape(h.Start.Format(time.RFC3339Nano))
@@ -840,11 +848,13 @@ func TestRestartTransfer(t *testing.T) {
 				uri := fmt.Sprintf("%s/%s/restart?date=%s", historyURI, id, dateStr)
 				req, err := http.NewRequest(http.MethodPut, uri, nil)
 				So(err, ShouldBeNil)
+
 				req = mux.SetURLVars(req, map[string]string{"transfer": id})
 
 				Convey("When sending the request to the handler", func() {
 					handler.ServeHTTP(w, req)
 					res := w.Result() //nolint:bodyclose // body is closed the line after !?
+
 					defer res.Body.Close()
 
 					Convey("Then it should reply 'CREATED'", func() {
@@ -866,6 +876,7 @@ func TestRestartTransfer(t *testing.T) {
 
 					Convey("Then the transfer should have been reprogrammed", func() {
 						var transfers model.Transfers
+
 						So(db.Select(&transfers).Run(), ShouldBeNil)
 						So(transfers, ShouldNotBeEmpty)
 
@@ -886,6 +897,7 @@ func TestRestartTransfer(t *testing.T) {
 				uri := path.Join(historyURI, "1000")
 				r, err := http.NewRequest(http.MethodGet, uri, nil)
 				So(err, ShouldBeNil)
+
 				r = mux.SetURLVars(r, map[string]string{"history": "1000"})
 
 				Convey("When sending the request to the handler", func() {
@@ -904,7 +916,9 @@ func TestCancelTransfers(t *testing.T) {
 	Convey("Testing the transfers multi cancel handler", t, func(c C) {
 		logger := testhelpers.TestLogger(c, "rest_transfers_cancel_test")
 		db := database.TestDatabase(c)
+
 		var transRun testInterrupter
+
 		serv := newTestProtoService(&transRun)
 		protoServs := map[int64]proto.Service{1: serv}
 		handler := cancelTransfers(protoServs)(logger, db)
@@ -995,6 +1009,7 @@ func TestCancelTransfers(t *testing.T) {
 						}
 
 						var hist model.HistoryEntries
+
 						So(db.Select(&hist).Run(), ShouldBeNil)
 						So(hist, ShouldNotBeEmpty)
 						So(hist[0], ShouldResemble, exp)
@@ -1002,10 +1017,10 @@ func TestCancelTransfers(t *testing.T) {
 
 					Convey("Then the other non-planned transfers should be unaffected", func() {
 						var trans model.Transfers
+
 						So(db.Select(&trans).Run(), ShouldBeNil)
 						So(trans, ShouldHaveLength, 1)
 						So(trans[0], ShouldResemble, transErr)
-
 						So(transRun, ShouldEqual, none)
 					})
 				})
@@ -1032,6 +1047,7 @@ func TestCancelTransfers(t *testing.T) {
 
 					Convey("Then the other non-running transfers should be unaffected", func() {
 						var trans model.Transfers
+
 						So(db.Select(&trans).Run(), ShouldBeNil)
 						So(trans, ShouldHaveLength, 2)
 						So(trans[0], ShouldResemble, transPlan)

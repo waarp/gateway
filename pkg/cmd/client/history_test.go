@@ -35,10 +35,10 @@ func historyInfoString(h *api.OutHistory) string {
 
 	size := sizeUnknown
 	if h.Filesize >= 0 {
-		size = fmt.Sprint(h.Filesize)
+		size = utils.FormatInt(h.Filesize)
 	}
 
-	rv := "● Transfer " + fmt.Sprint(h.ID) + " (as " + role + ") [" + string(h.Status) + "]\n"
+	rv := "● Transfer " + utils.FormatInt(h.ID) + " (as " + role + ") [" + string(h.Status) + "]\n"
 	if h.RemoteID != "" {
 		rv += "    Remote ID:       " + h.RemoteID + "\n"
 	}
@@ -70,9 +70,9 @@ func historyInfoString(h *api.OutHistory) string {
 	if h.Step != types.StepNone {
 		rv += "    Failed step:     " + h.Step.String() + "\n"
 		if h.Step == types.StepData {
-			rv += "    Progress:        " + fmt.Sprint(h.Progress) + "\n"
+			rv += "    Progress:        " + utils.FormatInt(h.Progress) + "\n"
 		} else if h.Step == types.StepPreTasks || h.Step == types.StepPostTasks {
-			rv += "    Failed task:     " + fmt.Sprint(h.TaskNumber) + "\n"
+			rv += "    Failed task:     " + utils.FormatInt(h.TaskNumber) + "\n"
 		}
 	}
 
@@ -118,6 +118,7 @@ func TestDisplayHistory(t *testing.T) {
 			ErrorCode:      types.TeUnknown,
 			TransferInfo:   map[string]any{"key1": "val1", "key2": 2, "key3": true},
 		}
+
 		Convey("When calling the `displayHistory` function", func() {
 			w := getColorable()
 			displayHistory(w, hist)
@@ -148,6 +149,7 @@ func TestDisplayHistory(t *testing.T) {
 			ErrorCode:      types.TeConnectionReset,
 			ErrorMsg:       "connection reset by peer",
 		}
+
 		Convey("When calling the `displayHistory` function", func() {
 			w := getColorable()
 			displayHistory(w, &hist)
@@ -167,7 +169,9 @@ func TestGetHistory(t *testing.T) {
 		Convey("Given a database", func(c C) {
 			db := database.TestDatabase(c)
 			gw := httptest.NewServer(testHandler(db))
+
 			var err error
+
 			addr, err = url.Parse("http://admin:admin_password@" + gw.Listener.Addr().String())
 			So(err, ShouldBeNil)
 
@@ -183,7 +187,7 @@ func TestGetHistory(t *testing.T) {
 					Protocol:         testProto1,
 					SrcFilename:      "/source/file",
 					DestFilename:     "/dest/file",
-					LocalPath:        "/local/path",
+					LocalPath:        *mkURL("file:/local/path"),
 					RemotePath:       "/remote/path",
 					Start:            time.Date(2021, 1, 1, 1, 0, 0, 0, time.Local),
 					Stop:             time.Date(2021, 1, 1, 2, 0, 0, 0, time.Local),
@@ -191,7 +195,7 @@ func TestGetHistory(t *testing.T) {
 					Owner:            conf.GlobalConfig.GatewayName,
 				}
 				So(db.Insert(h).Run(), ShouldBeNil)
-				id := fmt.Sprint(h.ID)
+				id := utils.FormatInt(h.ID)
 
 				Convey("Given a valid history entry ID", func() {
 					args := []string{id}
@@ -235,7 +239,9 @@ func TestListHistory(t *testing.T) {
 		Convey("Given a database", func(c C) {
 			db := database.TestDatabase(c)
 			gw := httptest.NewServer(testHandler(db))
+
 			var err error
+
 			addr, err = url.Parse("http://admin:admin_password@" + gw.Listener.Addr().String())
 			So(err, ShouldBeNil)
 
@@ -250,7 +256,7 @@ func TestListHistory(t *testing.T) {
 					Protocol:         testProto1,
 					SrcFilename:      "/source/file1",
 					DestFilename:     "/dest/file1",
-					LocalPath:        "/local/path1",
+					LocalPath:        *mkURL("file:/local/path1"),
 					RemotePath:       "/remote/path1",
 					Rule:             "rule1",
 					Start:            time.Date(2019, 1, 1, 1, 1, 0, 1000, time.Local),
@@ -267,7 +273,7 @@ func TestListHistory(t *testing.T) {
 					Protocol:         testProto1,
 					SrcFilename:      "/source/file2",
 					DestFilename:     "/dest/file2",
-					LocalPath:        "/local/path2",
+					LocalPath:        *mkURL("file:/local/path2"),
 					RemotePath:       "/remote/path2",
 					Rule:             "rule2",
 					Start:            time.Date(2019, 1, 1, 2, 0, 0, 2000, time.Local),
@@ -284,7 +290,7 @@ func TestListHistory(t *testing.T) {
 					Protocol:         testProto2,
 					SrcFilename:      "/source/file3",
 					DestFilename:     "/dest/file3",
-					LocalPath:        "/local/path3",
+					LocalPath:        *mkURL("file:/local/path3"),
 					RemotePath:       "/remote/path3",
 					Rule:             "rule3",
 					Start:            time.Date(2019, 1, 1, 3, 0, 0, 3000, time.Local),
@@ -301,13 +307,14 @@ func TestListHistory(t *testing.T) {
 					Protocol:         testProto2,
 					SrcFilename:      "/source/file4",
 					DestFilename:     "/dest/file4",
-					LocalPath:        "/local/path4",
+					LocalPath:        *mkURL("file:/local/path4"),
 					RemotePath:       "/remote/path4",
 					Rule:             "rule4",
 					Start:            time.Date(2019, 1, 1, 4, 0, 0, 4000, time.Local),
 					Stop:             time.Date(2019, 1, 1, 4, 1, 0, 4000, time.Local),
 					Status:           types.StatusCancelled,
 				}
+
 				So(db.Insert(h1).Run(), ShouldBeNil)
 				So(db.Insert(h2).Run(), ShouldBeNil)
 				So(db.Insert(h3).Run(), ShouldBeNil)
@@ -535,7 +542,9 @@ func TestRetryHistory(t *testing.T) {
 		Convey("Given a database", func(c C) {
 			db := database.TestDatabase(c)
 			gw := httptest.NewServer(testHandler(db))
+
 			var err error
+
 			addr, err = url.Parse("http://admin:admin_password@" + gw.Listener.Addr().String())
 			So(err, ShouldBeNil)
 
@@ -573,15 +582,16 @@ func TestRetryHistory(t *testing.T) {
 					Protocol:         part.Protocol,
 					SrcFilename:      "/source/file",
 					DestFilename:     "/dest/file",
-					LocalPath:        "/local/path.loc",
+					LocalPath:        *mkURL("file:/local/path.loc"),
 					RemotePath:       "/remote/path.rem",
 					Start:            time.Date(2021, 1, 1, 1, 0, 0, 0, time.Local),
 					Stop:             time.Date(2021, 1, 1, 2, 0, 0, 0, time.Local),
 					Status:           types.StatusCancelled,
 					Owner:            conf.GlobalConfig.GatewayName,
 				}
+
 				So(db.Insert(hist).Run(), ShouldBeNil)
-				id := fmt.Sprint(hist.ID)
+				id := utils.FormatInt(hist.ID)
 
 				Convey("Given a valid history entry ID and date", func() {
 					args := []string{id, "-d", time.Date(2030, 1, 1, 1, 0, 0, 123000,
@@ -599,6 +609,7 @@ func TestRetryHistory(t *testing.T) {
 
 						Convey("Then the transfer should have been added", func() {
 							var trans model.Transfers
+
 							So(db.Select(&trans).Run(), ShouldBeNil)
 							So(trans[0], ShouldResemble, &model.Transfer{
 								ID:               1,

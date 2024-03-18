@@ -4,8 +4,8 @@ import (
 	"bytes"
 	"context"
 	"fmt"
-	"os"
 
+	"code.waarp.fr/apps/gateway/gateway/pkg/fs"
 	"code.waarp.fr/apps/gateway/gateway/pkg/model/types"
 	"code.waarp.fr/apps/gateway/gateway/pkg/r66/internal"
 )
@@ -15,7 +15,7 @@ func (t *serverTransfer) checkSize() *types.TransferError {
 		return nil
 	}
 
-	stat, err := os.Stat(t.pip.TransCtx.Transfer.LocalPath)
+	stat, err := fs.Stat(t.pip.TransCtx.FS, &t.pip.TransCtx.Transfer.LocalPath)
 	if err != nil {
 		t.pip.Logger.Error("Failed to retrieve file info: %s", err)
 
@@ -67,7 +67,8 @@ func (t *serverTransfer) makeHash() ([]byte, *types.TransferError) {
 	go func() {
 		defer close(done)
 
-		hash, tErr = internal.MakeHash(ctx, t.pip.Logger, t.pip.TransCtx.Transfer.LocalPath)
+		hash, tErr = internal.MakeHash(ctx, t.pip.TransCtx.FS, t.pip.Logger,
+			&t.pip.TransCtx.Transfer.LocalPath)
 	}()
 
 	select {

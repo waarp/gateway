@@ -1,6 +1,7 @@
 package wgd
 
 import (
+	"path"
 	"strings"
 	"testing"
 	"time"
@@ -35,7 +36,7 @@ func TestPurgeCommand(t *testing.T) {
 			Account:          "foo",
 			Agent:            "bar",
 			Protocol:         "test_proto",
-			LocalPath:        "/loc_path",
+			LocalPath:        *mkURL("file:/loc_path"),
 			RemotePath:       "/rem_path",
 			Start:            time.Date(2021, 1, 1, 1, 0, 0, 0, time.UTC),
 			Status:           types.StatusCancelled,
@@ -49,7 +50,7 @@ func TestPurgeCommand(t *testing.T) {
 			Account:          "foo",
 			Agent:            "bar",
 			Protocol:         "test_proto",
-			LocalPath:        "/loc_path",
+			LocalPath:        *mkURL("file:/loc_path"),
 			RemotePath:       "/rem_path",
 			Start:            time.Date(2022, 1, 1, 1, 0, 0, 0, time.UTC),
 			Stop:             time.Date(2022, 1, 1, 2, 0, 0, 0, time.UTC),
@@ -64,7 +65,7 @@ func TestPurgeCommand(t *testing.T) {
 			Account:          "foo",
 			Agent:            "bar",
 			Protocol:         "test_proto",
-			LocalPath:        "/loc_path",
+			LocalPath:        *mkURL("file:/loc_path"),
 			RemotePath:       "/rem_path",
 			Start:            time.Date(2022, 1, 1, 3, 0, 0, 0, time.UTC),
 			Stop:             time.Date(2022, 1, 1, 4, 0, 0, 0, time.UTC),
@@ -91,6 +92,7 @@ func TestPurgeCommand(t *testing.T) {
 
 				Convey("Then it should have purged the history", func() {
 					var history model.HistoryEntries
+
 					So(db.Select(&history).Run(), ShouldBeNil)
 					So(history, ShouldBeEmpty)
 				})
@@ -111,6 +113,7 @@ func TestPurgeCommand(t *testing.T) {
 
 				Convey("Then it should NOT have purged the history", func() {
 					var history model.HistoryEntries
+
 					So(db.Select(&history).Run(), ShouldBeNil)
 					So(history, ShouldHaveLength, 3)
 				})
@@ -135,6 +138,7 @@ func TestPurgeCommand(t *testing.T) {
 
 				Convey("Then it should have purged the selected history entries", func() {
 					var history model.HistoryEntries
+
 					So(db.Select(&history).Run(), ShouldBeNil)
 					So(history, ShouldHaveLength, 1)
 					So(history[0].ID, ShouldEqual, t3.ID)
@@ -157,6 +161,7 @@ func TestPurgeCommand(t *testing.T) {
 
 				Convey("Then it should have purged the selected history entries", func() {
 					var history model.HistoryEntries
+
 					So(db.Select(&history).Run(), ShouldBeNil)
 					So(history, ShouldHaveLength, 1)
 					So(history[0].ID, ShouldEqual, t3.ID)
@@ -219,6 +224,7 @@ func TestPurgeCommand(t *testing.T) {
 
 				Convey("Then it should have purged the history", func() {
 					var history model.HistoryEntries
+
 					So(db.Select(&history).Run(), ShouldBeNil)
 					So(history, ShouldBeEmpty)
 				})
@@ -242,6 +248,7 @@ func TestPurgeCommand(t *testing.T) {
 
 				Convey("Then it should NOT have purged the history", func() {
 					var history model.HistoryEntries
+
 					So(db.Select(&history).Run(), ShouldBeNil)
 					So(history, ShouldHaveLength, 3)
 				})
@@ -261,4 +268,13 @@ func TestPurgeCommand(t *testing.T) {
 			})
 		})
 	})
+}
+
+func mkURL(elem ...string) *types.URL {
+	full := path.Join(elem...)
+
+	url, err := types.ParseURL(full)
+	So(err, ShouldBeNil)
+
+	return url
 }

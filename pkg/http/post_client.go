@@ -3,19 +3,18 @@ package http
 import (
 	"context"
 	"errors"
-	"fmt"
 	"io"
 	"mime"
 	"net/http"
 	"net/http/httptrace"
-	"os"
 	"path"
-	"path/filepath"
 	"time"
 
+	"code.waarp.fr/apps/gateway/gateway/pkg/fs"
 	"code.waarp.fr/apps/gateway/gateway/pkg/http/httpconst"
 	"code.waarp.fr/apps/gateway/gateway/pkg/model/types"
 	"code.waarp.fr/apps/gateway/gateway/pkg/pipeline"
+	"code.waarp.fr/apps/gateway/gateway/pkg/tk/utils"
 )
 
 const resumeTimeout = 3 * time.Second
@@ -99,7 +98,7 @@ func (p *postClient) updateTransForResume(prog int64) *types.TransferError {
 func (p *postClient) setRequestHeaders(req *http.Request) *types.TransferError {
 	req.SetBasicAuth(p.pip.TransCtx.RemoteAccount.Login, string(p.pip.TransCtx.RemoteAccount.Password))
 
-	ct := mime.TypeByExtension(filepath.Ext(p.pip.TransCtx.Transfer.LocalPath))
+	ct := mime.TypeByExtension(path.Ext(p.pip.TransCtx.Transfer.LocalPath.Path))
 	if ct == "" {
 		ct = "application/octet-stream"
 	}
@@ -123,7 +122,7 @@ func (p *postClient) setRequestHeaders(req *http.Request) *types.TransferError {
 	req.Trailer.Set(httpconst.ErrorCode, "")
 	req.Trailer.Set(httpconst.ErrorMessage, "")
 
-	fileInfo, err := os.Stat(p.pip.TransCtx.Transfer.LocalPath)
+	fileInfo, err := fs.Stat(p.pip.TransCtx.FS, &p.pip.TransCtx.Transfer.LocalPath)
 	if err != nil {
 		p.pip.Logger.Error("Failed to retrieve local file size: %s", err)
 
@@ -131,7 +130,7 @@ func (p *postClient) setRequestHeaders(req *http.Request) *types.TransferError {
 			"failed to retrieve local file size: %s")
 	}
 
-	req.Header.Set("Waarp-File-Size", fmt.Sprint(fileInfo.Size()))
+	req.Header.Set("Waarp-File-Size", utils.FormatInt(fileInfo.Size()))
 
 	return nil
 }

@@ -70,11 +70,11 @@ func restTransferToDB(jTrans *api.InTransfer, db *database.DB, logger *log.Logge
 // DBTransferToREST transforms the given database transfer into its JSON equivalent.
 func DBTransferToREST(db *database.DB, trans *model.NormalizedTransferView) (*api.OutTransfer, error) {
 	src := path.Base(trans.RemotePath)
-	dst := filepath.Base(trans.LocalPath)
+	dst := trans.LocalPath.OSPath()
 
 	if trans.IsSend {
 		dst = path.Base(trans.RemotePath)
-		src = filepath.Base(trans.LocalPath)
+		src = trans.LocalPath.OSPath()
 	}
 
 	var stop *time.Time
@@ -98,7 +98,7 @@ func DBTransferToREST(db *database.DB, trans *model.NormalizedTransferView) (*ap
 		Protocol:       trans.Protocol,
 		SrcFilename:    trans.SrcFilename,
 		DestFilename:   trans.DestFilename,
-		LocalFilepath:  trans.LocalPath,
+		LocalFilepath:  trans.LocalPath.OSPath(),
 		RemoteFilepath: trans.RemotePath,
 		Filesize:       trans.Filesize,
 		Start:          trans.Start,
@@ -110,7 +110,7 @@ func DBTransferToREST(db *database.DB, trans *model.NormalizedTransferView) (*ap
 		ErrorCode:      trans.Error.Code.String(),
 		ErrorMsg:       trans.Error.Details,
 		TransferInfo:   info,
-		TrueFilepath:   trans.LocalPath,
+		TrueFilepath:   trans.LocalPath.OSPath(),
 		SourcePath:     src,
 		DestPath:       dst,
 		StartDate:      trans.Start,
@@ -198,7 +198,7 @@ func addTransfer(logger *log.Logger, db *database.DB) http.HandlerFunc {
 			return
 		}
 
-		w.Header().Set("Location", location(r.URL, fmt.Sprint(trans.ID)))
+		w.Header().Set("Location", location(r.URL, utils.FormatInt(trans.ID)))
 		w.WriteHeader(http.StatusCreated)
 	}
 }
@@ -339,7 +339,7 @@ func cancelTransfer(protoServices map[int64]proto.Service) handler {
 			}
 
 			r.URL.Path = "/api/history"
-			w.Header().Set("Location", location(r.URL, fmt.Sprint(trans.ID)))
+			w.Header().Set("Location", location(r.URL, utils.FormatInt(trans.ID)))
 			w.WriteHeader(http.StatusAccepted)
 		}
 	}
@@ -425,7 +425,7 @@ func retryTransfer(logger *log.Logger, db *database.DB) http.HandlerFunc {
 		}
 
 		r.URL.Path = "/api/transfers"
-		w.Header().Set("Location", location(r.URL, fmt.Sprint(trans.ID)))
+		w.Header().Set("Location", location(r.URL, utils.FormatInt(trans.ID)))
 		w.WriteHeader(http.StatusCreated)
 	}
 }

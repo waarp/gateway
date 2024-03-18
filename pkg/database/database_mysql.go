@@ -14,9 +14,9 @@ func init() {
 	supportedRBMS[MySQL] = mysqlinfo
 }
 
-func mysqlinfo() *dbInfo {
-	return &dbInfo{
-		driver: migrations.MysqlDriver,
-		dsn:    migrations.MysqlDSN(),
+func mysqlinfo() *DBInfo {
+	return &DBInfo{
+		Driver: migrations.MysqlDriver,
+		DSN:    migrations.MysqlDSN(),
 	}
 }

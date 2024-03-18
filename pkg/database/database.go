@@ -85,7 +85,7 @@ func (db *DB) loadAESKey() error {
 // to open a connection to the database, along with the driver and an optional
 // initialisation function. The DSN varies depending on the options given
 // in the database configuration.
-func (db *DB) createConnectionInfo() (*dbInfo, error) {
+func (db *DB) createConnectionInfo() (*DBInfo, error) {
 	rdbms := conf.GlobalConfig.Database.Type
 
 	makeConnInfo, ok := supportedRBMS[rdbms]
@@ -96,13 +96,17 @@ func (db *DB) createConnectionInfo() (*dbInfo, error) {
 	return makeConnInfo(), nil
 }
 
-type dbInfo struct {
-	driver, dsn string
-	connLimit   int
+type DBInfo struct {
+	Driver, DSN string
+	ConnLimit   int
 }
 
 //nolint:gochecknoglobals // global var is used by design
-var supportedRBMS = map[string]func() *dbInfo{}
+var supportedRBMS = map[string]func() *DBInfo{}
+
+func AddRDBMS(rdbms string, makeConnInfo func() *DBInfo) {
+	supportedRBMS[rdbms] = makeConnInfo
+}
 
 func (db *DB) initEngine() (*xorm.Engine, error) {
 	connInfo, err := db.createConnectionInfo()
@@ -112,7 +116,7 @@ func (db *DB) initEngine() (*xorm.Engine, error) {
 		return nil, err
 	}
 
-	engine, err := xorm.NewEngine(connInfo.driver, connInfo.dsn)
+	engine, err := xorm.NewEngine(connInfo.Driver, connInfo.DSN)
 	if err != nil {
 		db.logger.Critical("Failed to open database: %s", err)
 
@@ -128,8 +132,8 @@ func (db *DB) initEngine() (*xorm.Engine, error) {
 		return nil, fmt.Errorf("cannot access database: %w", err)
 	}
 
-	if connInfo.connLimit > 0 {
-		engine.SetMaxOpenConns(connInfo.connLimit)
+	if connInfo.ConnLimit > 0 {
+		engine.SetMaxOpenConns(connInfo.ConnLimit)
 	}
 
 	return engine, nil

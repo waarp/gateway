@@ -6,7 +6,6 @@ import (
 	"fmt"
 	"net/http"
 	"net/http/httptest"
-	"path/filepath"
 	"reflect"
 	"strings"
 	"testing"
@@ -78,27 +77,27 @@ func TestCreateRule(t *testing.T) {
 						Convey("Then the new rule should be inserted "+
 							"in the database", func() {
 							var rules model.Rules
+
 							So(db.Select(&rules).Run(), ShouldBeNil)
 							So(len(rules), ShouldEqual, 2)
-
 							So(rules[1], ShouldResemble, &model.Rule{
 								ID:             2,
 								Name:           "new_name",
 								Comment:        "new comment",
 								IsSend:         false,
 								Path:           "test_path",
-								LocalDir:       filepath.FromSlash("/local/dir"),
+								LocalDir:       "/local/dir",
 								RemoteDir:      "/remote/dir",
-								TmpLocalRcvDir: filepath.FromSlash("/local/tmp"),
+								TmpLocalRcvDir: "/local/tmp",
 							})
 						})
 
 						Convey("Then the new tasks should be inserted "+
 							"in the database", func() {
 							var tasks model.Tasks
+
 							So(db.Select(&tasks).Run(), ShouldBeNil)
 							So(len(tasks), ShouldEqual, 1)
-
 							So(tasks[0], ShouldResemble, &model.Task{
 								RuleID: 2,
 								Chain:  model.ChainPre,
@@ -111,9 +110,9 @@ func TestCreateRule(t *testing.T) {
 						Convey("Then the existing rule should still be "+
 							"present as well", func() {
 							var rules model.Rules
+
 							So(db.Select(&rules).Run(), ShouldBeNil)
 							So(len(rules), ShouldEqual, 2)
-
 							So(rules[0], ShouldResemble, existing)
 						})
 					})
@@ -150,6 +149,7 @@ func TestGetRule(t *testing.T) {
 			Convey("Given a request with the valid rule name parameter", func() {
 				r, err := http.NewRequest(http.MethodGet, "", nil)
 				So(err, ShouldBeNil)
+
 				r = mux.SetURLVars(r, map[string]string{
 					"rule":      recv.Name,
 					"direction": ruleDirection(recv),
@@ -184,6 +184,7 @@ func TestGetRule(t *testing.T) {
 			Convey("Given a request with the same rule name but different direction", func() {
 				r, err := http.NewRequest(http.MethodGet, "", nil)
 				So(err, ShouldBeNil)
+
 				r = mux.SetURLVars(r, map[string]string{
 					"rule":      send.Name,
 					"direction": ruleDirection(send),
@@ -220,6 +221,7 @@ func TestGetRule(t *testing.T) {
 			Convey("Given a request with a non-existing rule name parameter", func() {
 				r, err := http.NewRequest(http.MethodGet, "", nil)
 				So(err, ShouldBeNil)
+
 				r = mux.SetURLVars(r, map[string]string{
 					"rule":      "toto",
 					"direction": ruleDirection(recv),
@@ -247,6 +249,7 @@ func TestGetRule(t *testing.T) {
 					Protocol:    testProto2,
 					ProtoConfig: json.RawMessage(`{}`),
 				}
+
 				So(db.Insert(serv1).Run(), ShouldBeNil)
 				So(db.Insert(serv2).Run(), ShouldBeNil)
 
@@ -265,6 +268,7 @@ func TestGetRule(t *testing.T) {
 					Login:        "acc1",
 					PasswordHash: hash("sesame"),
 				}
+
 				So(db.Insert(serv1acc1).Run(), ShouldBeNil)
 				So(db.Insert(serv1acc2).Run(), ShouldBeNil)
 				So(db.Insert(serv2acc1).Run(), ShouldBeNil)
@@ -281,6 +285,7 @@ func TestGetRule(t *testing.T) {
 					Protocol:    testProto2,
 					ProtoConfig: json.RawMessage(`{}`),
 				}
+
 				So(db.Insert(part1).Run(), ShouldBeNil)
 				So(db.Insert(part2).Run(), ShouldBeNil)
 
@@ -299,6 +304,7 @@ func TestGetRule(t *testing.T) {
 					Login:         "acc1",
 					Password:      "sesame",
 				}
+
 				So(db.Insert(part1acc1).Run(), ShouldBeNil)
 				So(db.Insert(part2acc1).Run(), ShouldBeNil)
 				So(db.Insert(part2acc2).Run(), ShouldBeNil)
@@ -332,6 +338,7 @@ func TestGetRule(t *testing.T) {
 						RuleID:          send.ID,
 						RemoteAccountID: utils.NewNullInt64(part2acc1.ID),
 					}
+
 					So(db.Insert(authServ1).Run(), ShouldBeNil)
 					So(db.Insert(authServ1Acc1).Run(), ShouldBeNil)
 					So(db.Insert(authServ1Acc2).Run(), ShouldBeNil)
@@ -344,6 +351,7 @@ func TestGetRule(t *testing.T) {
 						//nolint:noctx // this is a test
 						r, err := http.NewRequest(http.MethodGet, "", nil)
 						So(err, ShouldBeNil)
+
 						r = mux.SetURLVars(r, map[string]string{
 							"rule":      send.Name,
 							"direction": ruleDirection(send),
@@ -352,8 +360,8 @@ func TestGetRule(t *testing.T) {
 
 						Convey("Then it should have returned the correct authorizations", func() {
 							var rule OutRule
-							So(json.Unmarshal(w.Body.Bytes(), &rule), ShouldBeNil)
 
+							So(json.Unmarshal(w.Body.Bytes(), &rule), ShouldBeNil)
 							So(rule.Authorized.LocalServers, ShouldResemble, []string{serv1.Name})
 							So(rule.Authorized.RemotePartners, ShouldResemble, []string{part1.Name})
 							So(rule.Authorized.LocalAccounts, ShouldResemble, map[string][]string{
@@ -447,6 +455,7 @@ func TestDeleteRule(t *testing.T) {
 			Convey("Given a request with the valid rule name parameter", func() {
 				r, err := http.NewRequest(http.MethodDelete, "", nil)
 				So(err, ShouldBeNil)
+
 				r = mux.SetURLVars(r, map[string]string{
 					"rule":      rule.Name,
 					"direction": ruleDirection(rule),
@@ -466,6 +475,7 @@ func TestDeleteRule(t *testing.T) {
 					Convey("Then the rule should no longer be present "+
 						"in the database", func() {
 						var rules model.Rules
+
 						So(db.Select(&rules).Run(), ShouldBeNil)
 						So(rules, ShouldBeEmpty)
 					})
@@ -475,6 +485,7 @@ func TestDeleteRule(t *testing.T) {
 			Convey("Given a request with a non-existing rule name parameter", func() {
 				r, err := http.NewRequest(http.MethodDelete, "", nil)
 				So(err, ShouldBeNil)
+
 				r = mux.SetURLVars(r, map[string]string{
 					"rule":      "toto",
 					"direction": ruleDirection(rule),
@@ -520,6 +531,7 @@ func TestUpdateRule(t *testing.T) {
 				Path:   "path/other",
 				IsSend: false,
 			}
+
 			So(db.Insert(old).Run(), ShouldBeNil)
 			So(db.Insert(oldRecv).Run(), ShouldBeNil)
 			So(db.Insert(other).Run(), ShouldBeNil)
@@ -565,6 +577,7 @@ func TestUpdateRule(t *testing.T) {
 				Convey("Given an existing rule name parameter", func() {
 					r, err := http.NewRequest(http.MethodPatch, ruleURI+old.Name, body)
 					So(err, ShouldBeNil)
+
 					r = mux.SetURLVars(r, map[string]string{
 						"rule":      old.Name,
 						"direction": ruleDirection(old),
@@ -589,21 +602,22 @@ func TestUpdateRule(t *testing.T) {
 
 						Convey("Then the rule should have been updated", func() {
 							var results model.Rules
+
 							So(db.Select(&results).OrderBy("id", true).Run(), ShouldBeNil)
 							So(len(results), ShouldEqual, 3)
-
 							So(results[0], ShouldResemble, &model.Rule{
 								ID:             old.ID,
 								Name:           "update_name",
 								Path:           old.Path,
 								LocalDir:       "",
 								RemoteDir:      old.RemoteDir,
-								TmpLocalRcvDir: filepath.FromSlash("/local/update/work"),
+								TmpLocalRcvDir: "/local/update/work",
 								IsSend:         true,
 							})
 
 							Convey("Then the tasks should have changed", func() {
 								var tasks model.Tasks
+
 								So(db.Select(&tasks).Run(), ShouldBeNil)
 								So(len(tasks), ShouldEqual, 3)
 
@@ -624,6 +638,7 @@ func TestUpdateRule(t *testing.T) {
 				Convey("Given a non-existing rule name parameter", func() {
 					r, err := http.NewRequest(http.MethodPatch, ruleURI+"toto", body)
 					So(err, ShouldBeNil)
+
 					r = mux.SetURLVars(r, map[string]string{
 						"rule":      "toto",
 						"direction": ruleDirection(old),
@@ -644,6 +659,7 @@ func TestUpdateRule(t *testing.T) {
 
 						Convey("Then the old rule should still exist", func() {
 							var rules model.Rules
+
 							So(db.Select(&rules).Run(), ShouldBeNil)
 							So(rules, ShouldHaveLength, 3)
 							So(rules[0], ShouldResemble, old)
@@ -762,7 +778,7 @@ func getExpected(src *model.Rule, upt *UptRule) *model.Rule {
 	}
 
 	if upt.LocalDir != nil {
-		res.LocalDir = utils.ToOSPath(*upt.LocalDir)
+		res.LocalDir = *upt.LocalDir
 	}
 
 	if upt.RemoteDir != nil {
@@ -770,7 +786,7 @@ func getExpected(src *model.Rule, upt *UptRule) *model.Rule {
 	}
 
 	if upt.TmpLocalRcvDir != nil {
-		res.TmpLocalRcvDir = utils.ToOSPath(*upt.TmpLocalRcvDir)
+		res.TmpLocalRcvDir = *upt.TmpLocalRcvDir
 	}
 
 	// TODO Tasks
@@ -826,6 +842,7 @@ func TestReplaceRule(t *testing.T) {
 				Convey("Given an existing rule name parameter", func() {
 					r, err := http.NewRequest(http.MethodPut, ruleURI+old.Name, body)
 					So(err, ShouldBeNil)
+
 					r = mux.SetURLVars(r, map[string]string{
 						"rule":      old.Name,
 						"direction": ruleDirection(old),
@@ -850,9 +867,9 @@ func TestReplaceRule(t *testing.T) {
 
 						Convey("Then the rule should have been updated", func() {
 							var results model.Rules
+
 							So(db.Select(&results).Run(), ShouldBeNil)
 							So(len(results), ShouldEqual, 1)
-
 							So(results[0], ShouldResemble, &model.Rule{
 								ID:     old.ID,
 								Name:   "update_name",
@@ -862,6 +879,7 @@ func TestReplaceRule(t *testing.T) {
 
 							Convey("Then the tasks should have been changed", func() {
 								var tasks model.Tasks
+
 								So(db.Select(&tasks).Run(), ShouldBeNil)
 								So(len(tasks), ShouldEqual, 1)
 								So(tasks[0], ShouldResemble, &model.Task{
@@ -879,6 +897,7 @@ func TestReplaceRule(t *testing.T) {
 				Convey("Given a non-existing rule name parameter", func() {
 					r, err := http.NewRequest(http.MethodPut, ruleURI+"toto", body)
 					So(err, ShouldBeNil)
+
 					r = mux.SetURLVars(r, map[string]string{
 						"rule":      "toto",
 						"direction": ruleDirection(old),
@@ -899,6 +918,7 @@ func TestReplaceRule(t *testing.T) {
 
 						Convey("Then the old rule should still exist", func() {
 							var rules model.Rules
+
 							So(db.Select(&rules).Run(), ShouldBeNil)
 							So(rules, ShouldNotBeEmpty)
 							So(rules[0], ShouldResemble, old)

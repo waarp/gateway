@@ -103,7 +103,7 @@ linters-settings:
   errcheck:
     # report about not checking of errors in type assertions: `a := b.(MyStruct)`;
     # default is false: such cases aren't reported by default.
-    check-type-assertions: true
+    check-type-assertions: false
 
     # report about assignment of errors to blank identifier: `num, _ := strconv.Atoi(numStr)`;
     # default is false: such cases aren't reported by default.
@@ -125,6 +125,7 @@ linters-settings:
       - io/ioutil.ReadFile
       - io.Copy(*bytes.Buffer)
       - io.Copy(os.Stdout)
+      - (*database/sql.Rows).Close # Errors returned by Rows.Close are inconsequential
 
   errorlint:
     # Check whether fmt.Errorf uses the %w verb for formatting errors. See the readme for caveats
@@ -489,6 +490,23 @@ linters-settings:
     # make an issue if func has more lines of code than this setting and it has naked returns; default is 30
     max-func-lines: 30
 
+  perfsprint:
+    # Optimizes even if it requires an int or uint type cast.
+    # Default: true
+    int-conversion: true
+    # Optimizes into `err.Error()` even if it is only equivalent for non-nil errors.
+    # Default: false
+    err-error: false
+    # Optimizes `fmt.Errorf`.
+    # Default: true
+    errorf: true
+    # Optimizes `fmt.Sprintf` with only one argument.
+    # Default: true
+    sprintf1: false
+    # Optimizes into strings concatenation.
+    # Default: true
+    strconcat: false
+
   prealloc:
     # XXX: we don't recommend using this linter before doing performance profiling.
     # For most programs usage of prealloc will be a premature optimization.
@@ -665,6 +683,7 @@ linters-settings:
       - .Wrap(
       - .Wrapf(
       - .WithMessage(
+      - code.waarp.fr/apps/gateway/gateway/pkg/tk/utils.GetPath(
 
   wsl:
     # See https://github.com/bombsimon/wsl/blob/master/doc/configuration.md for
@@ -675,9 +694,9 @@ linters-settings:
     allow-cuddle-declarations: false
     allow-multiline-assign: true
     allow-separated-leading-comment: false
-    allow-trailing-comment: false
+    allow-trailing-comment: true
     force-case-trailing-whitespace: 0
-    force-err-cuddling: false
+    force-err-cuddling: true
     force-short-decl-cuddling: false
     strict-append: true
 
@@ -736,6 +755,8 @@ issues:
         - bodyclose
         - noctx
         - gochecknoglobals
+        - wrapcheck
+        - forcetypeassert
 
     # Allow dot import aliases in test files.
     - path: _test\.go
@@ -754,6 +775,14 @@ issues:
     - linters:
         - staticcheck
       text: "SA9003:"
+
+    # Exclude perfsprint issues asking for string concatenation, because,
+    # apparently, the option to disable the check does not work. While string
+    # concatenation might be more performant, fmt.Sprintf is usually better for
+    # readability.
+    - linters:
+        - perfsprint
+      text: "fmt.Sprintf can be replaced with string addition"
 
     # Exclude lll issues for long lines with go:generate
     - linters:

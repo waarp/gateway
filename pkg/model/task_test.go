@@ -2,7 +2,7 @@ package model
 
 import (
 	"context"
-	"fmt"
+	"errors"
 	"testing"
 
 	"code.waarp.fr/lib/log"
@@ -12,8 +12,8 @@ import (
 )
 
 var (
-	errExec  = fmt.Errorf("execution failed")
-	errValid = fmt.Errorf("validation failed")
+	errExec  = errors.New("execution failed")
+	errValid = errors.New("validation failed")
 )
 
 //nolint:gochecknoinits // init is used by design
@@ -28,9 +28,7 @@ func (t *testTaskSuccess) Validate(map[string]string) error {
 	return nil
 }
 
-func (t *testTaskSuccess) Run(context.Context, map[string]string, *database.DB,
-	*log.Logger, *TransferContext,
-) error {
+func (t *testTaskSuccess) Run(context.Context, map[string]string, *database.DB, *log.Logger, *TransferContext) error {
 	return nil
 }
 
@@ -40,9 +38,7 @@ func (t *testTaskFail) Validate(map[string]string) error {
 	return errValid
 }
 
-func (t *testTaskFail) Run(context.Context, map[string]string, *database.DB,
-	*log.Logger, *TransferContext,
-) error {
+func (t *testTaskFail) Run(context.Context, map[string]string, *database.DB, *log.Logger, *TransferContext) error {
 	return errExec
 }
 

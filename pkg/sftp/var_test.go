@@ -1,8 +1,12 @@
 package sftp
 
 import (
+	"path"
+
 	"github.com/smartystreets/goconvey/convey"
 	"golang.org/x/crypto/bcrypt"
+
+	"code.waarp.fr/apps/gateway/gateway/pkg/model/types"
 )
 
 func hash(pwd string) string {
@@ -10,6 +14,15 @@ func hash(pwd string) string {
 	convey.So(err, convey.ShouldBeNil)
 
 	return string(h)
+}
+
+func mkURL(elem ...string) *types.URL {
+	full := path.Join(elem...)
+
+	url, err := types.ParseURL(full)
+	convey.So(err, convey.ShouldBeNil)
+
+	return url
 }
 
 const rsaPK = `-----BEGIN RSA PRIVATE KEY-----

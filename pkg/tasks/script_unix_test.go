@@ -4,9 +4,9 @@
 package tasks
 
 const (
-	execScriptFile       = "./exec_test_script.sh"
-	execMoveScriptFile   = "./execmove_test_script.sh"
-	execOutputScriptFile = "./execoutput_test_script.sh"
+	execScriptFile       = "exec_test_script.sh"
+	execMoveScriptFile   = "execmove_test_script.sh"
+	execOutputScriptFile = "execoutput_test_script.sh"
 )
 
 const scriptExecOK = `#!/bin/sh

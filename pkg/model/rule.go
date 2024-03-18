@@ -2,9 +2,10 @@ package model
 
 import (
 	"path"
+	"path/filepath"
+	"strings"
 
 	"code.waarp.fr/apps/gateway/gateway/pkg/database"
-	"code.waarp.fr/apps/gateway/gateway/pkg/tk/utils"
 )
 
 // Rule represents a transfer rule.
@@ -27,32 +28,8 @@ func (*Rule) TableName() string   { return TableRules }
 func (*Rule) Appellation() string { return "rule" }
 func (r *Rule) GetID() int64      { return r.ID }
 
-func (r *Rule) normalizePaths() {
-	r.Path = path.Clean(r.Path)
-	if r.Path == "/" || r.Path == "." {
-		r.Path = r.Name
-	} else {
-		r.Path = utils.ToStandardPath(r.Path)
-		if path.IsAbs(r.Path) {
-			r.Path = r.Path[1:]
-		}
-	}
-
-	if r.LocalDir != "" {
-		r.LocalDir = utils.ToOSPath(r.LocalDir)
-	}
-
-	if r.RemoteDir != "" {
-		r.RemoteDir = utils.ToStandardPath(r.RemoteDir)
-	}
-
-	if r.TmpLocalRcvDir != "" {
-		r.TmpLocalRcvDir = utils.ToOSPath(r.TmpLocalRcvDir)
-	}
-}
-
 func (r *Rule) checkAncestor(db database.ReadAccess, rulePath string) database.Error {
-	if rulePath == "" || rulePath == "." {
+	if rulePath == "" || rulePath == "." || rulePath == "/" {
 		return nil
 	}
 
@@ -104,7 +81,12 @@ func (r *Rule) BeforeWrite(db database.ReadAccess) database.Error {
 			r.Direction(), r.Name)
 	}
 
-	r.normalizePaths()
+	r.Path = path.Clean(filepath.ToSlash(r.Path))
+	if r.Path == "/" || r.Path == "." {
+		r.Path = r.Name
+	} else if path.IsAbs(r.Path) {
+		r.Path = strings.TrimLeft(r.Path, "/")
+	}
 
 	return r.checkPath(db)
 }

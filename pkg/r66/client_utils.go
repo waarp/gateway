@@ -1,12 +1,12 @@
 package r66
 
 import (
-	"os"
 	"path"
 
 	"code.waarp.fr/lib/r66"
 	"golang.org/x/crypto/bcrypt"
 
+	"code.waarp.fr/apps/gateway/gateway/pkg/fs"
 	"code.waarp.fr/apps/gateway/gateway/pkg/model/types"
 	"code.waarp.fr/apps/gateway/gateway/pkg/r66/internal"
 	"code.waarp.fr/apps/gateway/gateway/pkg/tk/utils"
@@ -127,7 +127,7 @@ func (c *client) request() *types.TransferError {
 	}
 
 	if c.pip.TransCtx.Rule.IsSend {
-		info, statErr := os.Stat(c.pip.TransCtx.Transfer.LocalPath)
+		info, statErr := fs.Stat(c.pip.TransCtx.FS, &c.pip.TransCtx.Transfer.LocalPath)
 		if statErr != nil {
 			c.pip.Logger.Error("Failed to retrieve file size: %s", statErr)
 
@@ -195,13 +195,11 @@ func (c *client) checkReqResp(req, resp *r66.Request) *types.TransferError {
 		return errConf
 	}
 
-	if resp.Rank != req.Rank {
-		progress := int64(resp.Rank) * int64(resp.Block)
-		if progress < c.pip.TransCtx.Transfer.Progress {
-			c.pip.TransCtx.Transfer.Progress = progress
-			if err := c.pip.UpdateTrans(); err != nil {
-				return err
-			}
+	progress := int64(resp.Rank) * int64(resp.Block)
+	if progress < c.pip.TransCtx.Transfer.Progress {
+		c.pip.TransCtx.Transfer.Progress = progress
+		if err := c.pip.UpdateTrans(); err != nil {
+			return err
 		}
 	}
 
@@ -213,7 +211,8 @@ func (c *client) makeHash() ([]byte, error) {
 		return nil, nil
 	}
 
-	hash, err := internal.MakeHash(c.ctx, c.pip.Logger, c.pip.TransCtx.Transfer.LocalPath)
+	hash, err := internal.MakeHash(c.ctx, c.pip.TransCtx.FS, c.pip.Logger,
+		&c.pip.TransCtx.Transfer.LocalPath)
 	if err != nil {
 		return nil, internal.ToR66Error(err)
 	}

@@ -1,24 +1,27 @@
 package pipeline
 
 import (
+	"errors"
 	"fmt"
 	"io"
-	"os"
+	"net/url"
 	"path"
-	"path/filepath"
 
+	"code.waarp.fr/apps/gateway/gateway/pkg/fs"
 	"code.waarp.fr/apps/gateway/gateway/pkg/model"
 	"code.waarp.fr/apps/gateway/gateway/pkg/model/types"
 	"code.waarp.fr/apps/gateway/gateway/pkg/tk/utils"
 )
 
-func leaf(s string) utils.Leaf     { return utils.Leaf(s) }
-func branch(s string) utils.Branch { return utils.Branch(s) }
+type (
+	leaf   = utils.Leaf
+	branch = utils.Branch
+)
 
 // getFilesize returns the size of the given file. If the file does not exist or
 // cannot be accessed, it returns the UnknownSize value (-1).
-func getFilesize(file string) int64 {
-	if info, err := os.Stat(file); err != nil {
+func getFilesize(filesys fs.FS, file *types.URL) int64 {
+	if info, err := fs.Stat(filesys, file); err != nil {
 		return model.UnknownSize
 	} else {
 		return info.Size()
@@ -26,12 +29,20 @@ func getFilesize(file string) int64 {
 }
 
 // GetFile opens/creates (depending on the transfer's direction) the file pointed
-// by the transfer's local path and returns it as a *os.File.
-func (f *fileStream) getFile() (*os.File, *types.TransferError) {
+// by the transfer's local path and returns it as a fs.File.
+func (f *FileStream) getFile() (fs.File, *types.TransferError) {
 	trans := f.TransCtx.Transfer
 
+	filesys, fsErr := fs.GetFileSystem(f.DB, &trans.LocalPath)
+	if fsErr != nil {
+		f.Logger.Error("Failed to instantiate file system: %v", fsErr)
+
+		return nil, types.NewTransferError(types.TeInternal,
+			"file system error: %v", fsErr)
+	}
+
 	if f.TransCtx.Rule.IsSend {
-		file, err := os.OpenFile(trans.LocalPath, os.O_RDONLY, 0o600)
+		file, err := filesys.Open(trans.LocalPath.FSPath())
 		if err != nil {
 			f.Logger.Error("Failed to open source file: %s", err)
 
@@ -48,7 +59,7 @@ func (f *fileStream) getFile() (*os.File, *types.TransferError) {
 		trans.Filesize = stat.Size()
 
 		if trans.Progress != 0 {
-			if _, err := file.Seek(trans.Progress, io.SeekStart); err != nil {
+			if _, err := fs.SeekFile(file, trans.Progress, io.SeekStart); err != nil {
 				f.Logger.Error("Failed to seek inside file: %s", err)
 
 				return nil, types.NewTransferError(types.TeForbidden, err.Error())
@@ -58,21 +69,21 @@ func (f *fileStream) getFile() (*os.File, *types.TransferError) {
 		return file, nil
 	}
 
-	if err := createDir(trans.LocalPath); err != nil {
+	if err := createDir(filesys, &trans.LocalPath); err != nil {
 		f.Logger.Error("Failed to create temp directory: %s", err)
 
 		return nil, err
 	}
 
-	file, err := os.OpenFile(trans.LocalPath, os.O_RDWR|os.O_CREATE, 0o600)
-	if err != nil {
-		f.Logger.Error("Failed to create destination file (%s): %s", trans.LocalPath, err)
+	file, fsErr := fs.OpenFile(filesys, &trans.LocalPath, fs.FlagRW|fs.FlagCreate, 0o600)
+	if fsErr != nil {
+		f.Logger.Error("Failed to create destination file %q: %s", &trans.LocalPath, fsErr)
 
-		return nil, fileErrToTransferErr(err)
+		return nil, fileErrToTransferErr(fsErr)
 	}
 
 	if trans.Progress != 0 {
-		if _, err := file.Seek(trans.Progress, io.SeekStart); err != nil {
+		if _, err := fs.SeekFile(file, trans.Progress, io.SeekStart); err != nil {
 			f.Logger.Error("Failed to seek inside file: %s", err)
 
 			return nil, fileErrToTransferErr(err)
@@ -84,9 +95,8 @@ func (f *fileStream) getFile() (*os.File, *types.TransferError) {
 
 // createDir takes a file path and creates all the file's parent directories if
 // they don't exist.
-func createDir(file string) *types.TransferError {
-	dir := filepath.Dir(file)
-	if err := os.MkdirAll(dir, 0o700); err != nil {
+func createDir(filesys fs.FS, file *types.URL) *types.TransferError {
+	if err := fs.MkdirAll(filesys, file.Dir()); err != nil {
 		return fileErrToTransferErr(err)
 	}
 
@@ -106,7 +116,7 @@ func createDir(file string) *types.TransferError {
 //
 // For remote paths, only the rule's remote dir is added (if defined) before the
 // file name.
-func (p *Pipeline) setFilePaths() {
+func (p *Pipeline) setFilePaths() error {
 	srcFilename := p.TransCtx.Transfer.SrcFilename
 	destFilename := p.TransCtx.Transfer.DestFilename
 
@@ -114,10 +124,10 @@ func (p *Pipeline) setFilePaths() {
 		destFilename = p.TransCtx.Transfer.SrcFilename
 	}
 
-	p.setCustomFilePaths(srcFilename, destFilename)
+	return p.setCustomFilePaths(srcFilename, destFilename)
 }
 
-func (p *Pipeline) setCustomFilePaths(srcFilename, destFilename string) {
+func (p *Pipeline) setCustomFilePaths(srcFilename, destFilename string) error {
 	if !p.TransCtx.Transfer.IsServer() && p.TransCtx.Transfer.RemotePath == "" {
 		if p.TransCtx.Rule.IsSend {
 			p.TransCtx.Transfer.RemotePath = path.Join(p.TransCtx.Rule.RemoteDir, destFilename)
@@ -126,14 +136,20 @@ func (p *Pipeline) setCustomFilePaths(srcFilename, destFilename string) {
 		}
 	}
 
-	if p.TransCtx.Transfer.LocalPath == "" {
-		p.TransCtx.Transfer.LocalPath = makeLocalPath(p.TransCtx, srcFilename, destFilename)
+	if p.TransCtx.Transfer.LocalPath.String() == "" {
+		if u, err := makeLocalPath(p.TransCtx, srcFilename, destFilename); err != nil {
+			return err
+		} else {
+			p.TransCtx.Transfer.LocalPath = types.URL(*u)
+		}
 	}
+
+	return nil
 }
 
 func makeLocalPath(transCtx *model.TransferContext, srcFilename,
 	destFilename string,
-) string {
+) (*url.URL, error) {
 	switch {
 	// Partner client <- GW server
 	case transCtx.Transfer.IsServer() && transCtx.Rule.IsSend:
@@ -162,24 +178,24 @@ func makeLocalPath(transCtx *model.TransferContext, srcFilename,
 // checkFileExist checks if the transfer's local path does point to a file. If
 // the file does exist, it also updates the transfer's filesize field with the
 // file's size. If the file does not exist, an error is returned.
-func (p *Pipeline) checkFileExist() *types.TransferError {
-	trans := p.TransCtx.Transfer
+func (f *FileStream) checkFileExist() *types.TransferError {
+	trans := f.TransCtx.Transfer
 
-	info, err := os.Stat(trans.LocalPath)
+	info, err := fs.Stat(f.TransCtx.FS, &trans.LocalPath)
 	if err != nil {
-		if os.IsNotExist(err) {
-			p.Logger.Error("Failed to open transfer file %s: file does not exist", trans.LocalPath)
+		if errors.Is(err, fs.ErrNotExist) {
+			f.Logger.Error("Failed to open transfer file %q: file does not exist", &trans.LocalPath)
 
 			return types.NewTransferError(types.TeFileNotFound, "file does not exist")
 		}
 
-		if os.IsPermission(err) {
-			p.Logger.Error("Failed to open transfer file %s: permission denied", trans.LocalPath)
+		if errors.Is(err, fs.ErrPermission) {
+			f.Logger.Error("Failed to open transfer file %q: permission denied", &trans.LocalPath)
 
 			return types.NewTransferError(types.TeForbidden, "permission to open file denied")
 		}
 
-		p.Logger.Error("Failed to open transfer file %s: %s", trans.LocalPath, err)
+		f.Logger.Error("Failed to open transfer file %q: %s", &trans.LocalPath, err)
 
 		return types.NewTransferError(types.TeUnknown, fmt.Sprintf("unknown file error: %s", err))
 	}

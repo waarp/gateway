@@ -5,6 +5,7 @@ import (
 	"io"
 	"net/http"
 	"net/http/httptest"
+	gopath "path"
 	"time"
 
 	"code.waarp.fr/lib/log"
@@ -20,6 +21,7 @@ import (
 	"code.waarp.fr/apps/gateway/gateway/pkg/gatewayd/service/state"
 	"code.waarp.fr/apps/gateway/gateway/pkg/model"
 	"code.waarp.fr/apps/gateway/gateway/pkg/model/config"
+	"code.waarp.fr/apps/gateway/gateway/pkg/model/types"
 )
 
 const (
@@ -46,6 +48,15 @@ func hash(pwd string) string {
 	convey.So(err, convey.ShouldBeNil)
 
 	return string(h)
+}
+
+func mkURL(elem ...string) *types.URL {
+	full := gopath.Join(elem...)
+
+	url, err := types.ParseURL(full)
+	convey.So(err, convey.ShouldBeNil)
+
+	return url
 }
 
 func testAdminServer(logger *log.Logger, db *database.DB) string {

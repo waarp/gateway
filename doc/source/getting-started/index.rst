@@ -12,6 +12,7 @@ Premiers pas
    sftp-receive
    r66-send
    rebound
+   cluster
 
 .. xx-re-transfer
 

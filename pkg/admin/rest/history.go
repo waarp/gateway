@@ -1,10 +1,8 @@
 package rest
 
 import (
-	"fmt"
 	"net/http"
 	"path"
-	"path/filepath"
 	"strconv"
 	"time"
 
@@ -27,11 +25,11 @@ func FromHistory(db *database.DB, hist *model.HistoryEntry) (*api.OutHistory, er
 	}
 
 	src := path.Base(hist.RemotePath)
-	dst := filepath.Base(hist.LocalPath)
+	dst := hist.LocalPath.OSPath()
 
 	if hist.IsSend {
 		dst = path.Base(hist.RemotePath)
-		src = filepath.Base(hist.LocalPath)
+		src = hist.LocalPath.OSPath()
 	}
 
 	info, err := hist.GetTransferInfo(db)
@@ -47,7 +45,7 @@ func FromHistory(db *database.DB, hist *model.HistoryEntry) (*api.OutHistory, er
 		Requester:      hist.Account,
 		Requested:      hist.Agent,
 		Protocol:       hist.Protocol,
-		LocalFilepath:  hist.LocalPath,
+		LocalFilepath:  hist.LocalPath.OSPath(),
 		RemoteFilepath: hist.RemotePath,
 		Filesize:       hist.Filesize,
 		Rule:           hist.Rule,
@@ -194,8 +192,8 @@ func listHistory(logger *log.Logger, db *database.DB) http.HandlerFunc {
 
 	return func(w http.ResponseWriter, r *http.Request) {
 		var results model.HistoryEntries
-		query, err := parseSelectQuery(r, db, validSorting, &results)
 
+		query, err := parseSelectQuery(r, db, validSorting, &results)
 		if handleError(w, logger, err) {
 			return
 		}
@@ -250,7 +248,7 @@ func retryHistory(logger *log.Logger, db *database.DB) http.HandlerFunc {
 		}
 
 		r.URL.Path = "/api/transfers"
-		w.Header().Set("Location", location(r.URL, fmt.Sprint(check.ID)))
+		w.Header().Set("Location", location(r.URL, utils.FormatInt(check.ID)))
 		w.WriteHeader(http.StatusCreated)
 	}
 }

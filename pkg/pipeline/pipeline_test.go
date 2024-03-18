@@ -2,15 +2,14 @@ package pipeline
 
 import (
 	"encoding/json"
-	"os"
 	"path"
-	"path/filepath"
 	"testing"
 	"time"
 
 	. "github.com/smartystreets/goconvey/convey"
 
 	"code.waarp.fr/apps/gateway/gateway/pkg/database"
+	"code.waarp.fr/apps/gateway/gateway/pkg/fs"
 	"code.waarp.fr/apps/gateway/gateway/pkg/model"
 	"code.waarp.fr/apps/gateway/gateway/pkg/model/types"
 	"code.waarp.fr/apps/gateway/gateway/pkg/tasks/taskstest"
@@ -25,7 +24,7 @@ func TestNewClientPipeline(t *testing.T) {
 
 		Convey("Given a send transfer", func(c C) {
 			trans := mkSendTransfer(ctx, "file")
-			file := filepath.Join(ctx.root, ctx.send.LocalDir, "file")
+			file := mkURL(ctx.root, ctx.send.LocalDir, "file")
 
 			Convey("When initiating a new pipeline for this transfer", func(c C) {
 				pip, err := NewClientPipeline(ctx.db, trans)
@@ -39,7 +38,7 @@ func TestNewClientPipeline(t *testing.T) {
 					})
 
 					Convey("Then the transfer's paths should have been initiated", func(c C) {
-						So(trans.LocalPath, ShouldEqual, file)
+						So(trans.LocalPath.String(), ShouldEqual, file.String())
 						So(trans.RemotePath, ShouldEqual, path.Join(
 							ctx.send.RemoteDir, "file"))
 						So(trans.Filesize, ShouldEqual, len(testTransferFileContent))
@@ -48,7 +47,7 @@ func TestNewClientPipeline(t *testing.T) {
 			})
 
 			Convey("Given that the file cannot be found", func(c C) {
-				So(os.Remove(file), ShouldBeNil)
+				So(fs.Remove(ctx.fs, file), ShouldBeNil)
 
 				Convey("When initiating a new pipeline for this transfer", func(c C) {
 					_, err := NewClientPipeline(ctx.db, trans)
@@ -105,7 +104,7 @@ func TestNewClientPipeline(t *testing.T) {
 					})
 
 					Convey("Then the transfer's paths should have been initiated", func(c C) {
-						So(trans.LocalPath, ShouldEqual, filepath.Join(
+						So(trans.LocalPath.String(), ShouldEqual, path.Join(
 							ctx.root, ctx.recv.TmpLocalRcvDir, filename))
 						So(trans.RemotePath, ShouldEqual, path.Join(
 							ctx.recv.RemoteDir, filename))
@@ -238,17 +237,17 @@ func TestPipelineStartData(t *testing.T) {
 		Convey("When starting the data transfer", func(c C) {
 			stream, err := pip.StartData()
 			So(err, ShouldBeNil)
-			//nolint:forcetypeassert //no need, the type assertion will always succeed
-			Reset(func() { _ = stream.(*fileStream).file.Close() })
+			// Reset(func() { _ = stream.file.Close() })
 
 			Convey("Then it should return a filestream for the transfer file", func(c C) {
 				So(stream, ShouldNotBeNil)
-				So(stream, ShouldHaveSameTypeAs, &fileStream{})
+				So(stream, ShouldHaveSameTypeAs, &FileStream{})
 			})
 
 			Convey("Then it should have opened/created the file", func(c C) {
-				_, err := os.Stat(filepath.Join(ctx.root, pip.TransCtx.Rule.
-					TmpLocalRcvDir, filename+".part"))
+				file := mkURL(ctx.root, pip.TransCtx.Rule.TmpLocalRcvDir,
+					filename+".part")
+				_, err := fs.Stat(ctx.fs, file)
 				So(err, ShouldBeNil)
 			})
 
@@ -266,9 +265,8 @@ func TestPipelineStartData(t *testing.T) {
 				stream, err := pip.StartData()
 				So(err, ShouldBeNil)
 
-				Convey("Then it should return a dummy stream", func(c C) {
+				Convey("Then it should return a file stream", func(c C) {
 					So(stream, ShouldNotBeNil)
-					So(stream, ShouldHaveSameTypeAs, &voidStream{})
 				})
 			})
 		})
@@ -314,7 +312,7 @@ func TestPipelineEndData(t *testing.T) {
 			So(pip.EndData(), ShouldBeNil)
 
 			Convey("Then it should have closed and moved the file", func(c C) {
-				_, err := os.Stat(filepath.Join(ctx.root, pip.TransCtx.Rule.
+				_, err := fs.Stat(ctx.fs, mkURL(ctx.root, pip.TransCtx.Rule.
 					LocalDir, filename))
 				So(err, ShouldBeNil)
 			})
@@ -461,6 +459,7 @@ func TestPipelineSetError(t *testing.T) {
 
 				Convey("Then the transfer should have the ERROR status", func(c C) {
 					var dbTrans model.Transfer
+
 					So(ctx.db.Get(&dbTrans, "id=?", trans.ID).Run(), ShouldBeNil)
 					So(dbTrans.Status, ShouldEqual, types.StatusError)
 					So(dbTrans.Error, ShouldResemble, expErr)
@@ -491,6 +490,7 @@ func TestPipelineSetError(t *testing.T) {
 			go func() { taskErr = pip.PreTasks() }()
 
 			taskChan <- true
+
 			pip.SetError(remErr)
 			waitEndTransfer(pip)
 
@@ -505,6 +505,7 @@ func TestPipelineSetError(t *testing.T) {
 
 				Convey("Then the transfer should have the ERROR status", func(c C) {
 					var dbTrans model.Transfer
+
 					So(ctx.db.Get(&dbTrans, "id=?", trans.ID).Run(), ShouldBeNil)
 					So(dbTrans.Status, ShouldEqual, types.StatusError)
 					So(dbTrans.Error, ShouldResemble, expErr)
@@ -530,6 +531,7 @@ func TestPipelineSetError(t *testing.T) {
 
 				Convey("Then the transfer should have the ERROR status", func(c C) {
 					var dbTrans model.Transfer
+
 					So(ctx.db.Get(&dbTrans, "id=?", trans.ID).Run(), ShouldBeNil)
 					So(dbTrans.Status, ShouldEqual, types.StatusError)
 					So(dbTrans.Error, ShouldResemble, expErr)
@@ -565,6 +567,7 @@ func TestPipelineSetError(t *testing.T) {
 			go func() { taskErr = pip.PostTasks() }()
 
 			taskChan <- true
+
 			pip.SetError(remErr)
 			waitEndTransfer(pip)
 
@@ -579,6 +582,7 @@ func TestPipelineSetError(t *testing.T) {
 
 				Convey("Then the transfer should have the ERROR status", func(c C) {
 					var dbTrans model.Transfer
+
 					So(ctx.db.Get(&dbTrans, "id=?", trans.ID).Run(), ShouldBeNil)
 					So(dbTrans.Status, ShouldEqual, types.StatusError)
 					So(dbTrans.Error, ShouldResemble, expErr)
@@ -605,6 +609,7 @@ func TestPipelineSetError(t *testing.T) {
 
 				Convey("Then the transfer should have the ERROR status", func(c C) {
 					var dbTrans model.Transfer
+
 					So(ctx.db.Get(&dbTrans, "id=?", trans.ID).Run(), ShouldBeNil)
 					So(dbTrans.Status, ShouldEqual, types.StatusError)
 					So(dbTrans.Error, ShouldResemble, expErr)
@@ -642,6 +647,7 @@ func TestPipelinePause(t *testing.T) {
 
 				Convey("Then the transfer should have the PAUSED status", func(c C) {
 					var dbTrans model.Transfer
+
 					So(ctx.db.Get(&dbTrans, "id=?", trans.ID).Run(), ShouldBeNil)
 					So(dbTrans.Status, ShouldEqual, types.StatusPaused)
 				})
@@ -671,6 +677,7 @@ func TestPipelinePause(t *testing.T) {
 			go func() { taskErr = pip.PreTasks() }()
 
 			taskChan <- true
+
 			pip.Pause()
 			waitEndTransfer(pip)
 
@@ -681,6 +688,7 @@ func TestPipelinePause(t *testing.T) {
 
 				Convey("Then the transfer should have the PAUSED status", func(c C) {
 					var dbTrans model.Transfer
+
 					So(ctx.db.Get(&dbTrans, "id=?", trans.ID).Run(), ShouldBeNil)
 					So(dbTrans.Status, ShouldEqual, types.StatusPaused)
 				})
@@ -705,6 +713,7 @@ func TestPipelinePause(t *testing.T) {
 
 				Convey("Then the transfer should have the PAUSED status", func(c C) {
 					var dbTrans model.Transfer
+
 					So(ctx.db.Get(&dbTrans, "id=?", trans.ID).Run(), ShouldBeNil)
 					So(dbTrans.Status, ShouldEqual, types.StatusPaused)
 				})
@@ -739,6 +748,7 @@ func TestPipelinePause(t *testing.T) {
 			go func() { taskErr = pip.PostTasks() }()
 
 			taskChan <- true
+
 			pip.Pause()
 			waitEndTransfer(pip)
 
@@ -749,6 +759,7 @@ func TestPipelinePause(t *testing.T) {
 
 				Convey("Then the transfer should have the PAUSED status", func(c C) {
 					var dbTrans model.Transfer
+
 					So(ctx.db.Get(&dbTrans, "id=?", trans.ID).Run(), ShouldBeNil)
 					So(dbTrans.Status, ShouldEqual, types.StatusPaused)
 				})
@@ -774,6 +785,7 @@ func TestPipelinePause(t *testing.T) {
 
 				Convey("Then the transfer should have the PAUSED status", func(c C) {
 					var dbTrans model.Transfer
+
 					So(ctx.db.Get(&dbTrans, "id=?", trans.ID).Run(), ShouldBeNil)
 					So(dbTrans.Status, ShouldEqual, types.StatusPaused)
 				})
@@ -810,6 +822,7 @@ func TestPipelineCancel(t *testing.T) {
 
 				Convey("Then the transfer should have been canceled", func(c C) {
 					var hist model.HistoryEntry
+
 					So(ctx.db.Get(&hist, "id=?", trans.ID).Run(), ShouldBeNil)
 					So(hist.Status, ShouldEqual, types.StatusCancelled)
 				})
@@ -839,6 +852,7 @@ func TestPipelineCancel(t *testing.T) {
 			go func() { taskErr = pip.PreTasks() }()
 
 			taskChan <- true
+
 			pip.Cancel()
 			waitEndTransfer(pip)
 
@@ -849,6 +863,7 @@ func TestPipelineCancel(t *testing.T) {
 
 				Convey("Then the transfer should have been canceled", func(c C) {
 					var hist model.HistoryEntry
+
 					So(ctx.db.Get(&hist, "id=?", trans.ID).Run(), ShouldBeNil)
 					So(hist.Status, ShouldEqual, types.StatusCancelled)
 				})
@@ -873,6 +888,7 @@ func TestPipelineCancel(t *testing.T) {
 
 				Convey("Then the transfer should have been canceled", func(c C) {
 					var hist model.HistoryEntry
+
 					So(ctx.db.Get(&hist, "id=?", trans.ID).Run(), ShouldBeNil)
 					So(hist.Status, ShouldEqual, types.StatusCancelled)
 				})
@@ -907,6 +923,7 @@ func TestPipelineCancel(t *testing.T) {
 			go func() { taskErr = pip.PostTasks() }()
 
 			taskChan <- true
+
 			pip.Cancel()
 			waitEndTransfer(pip)
 
@@ -917,6 +934,7 @@ func TestPipelineCancel(t *testing.T) {
 
 				Convey("Then the transfer should have been canceled", func(c C) {
 					var hist model.HistoryEntry
+
 					So(ctx.db.Get(&hist, "id=?", trans.ID).Run(), ShouldBeNil)
 					So(hist.Status, ShouldEqual, types.StatusCancelled)
 				})
@@ -942,6 +960,7 @@ func TestPipelineCancel(t *testing.T) {
 
 				Convey("Then the transfer should have been canceled", func(c C) {
 					var hist model.HistoryEntry
+
 					So(ctx.db.Get(&hist, "id=?", trans.ID).Run(), ShouldBeNil)
 					So(hist.Status, ShouldEqual, types.StatusCancelled)
 				})

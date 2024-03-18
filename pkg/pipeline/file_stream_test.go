@@ -1,9 +1,7 @@
 package pipeline
 
 import (
-	"fmt"
-	"os"
-	"path/filepath"
+	"path"
 	"strings"
 	"testing"
 	"time"
@@ -11,6 +9,7 @@ import (
 	. "github.com/smartystreets/goconvey/convey"
 
 	"code.waarp.fr/apps/gateway/gateway/pkg/database"
+	"code.waarp.fr/apps/gateway/gateway/pkg/fs"
 	"code.waarp.fr/apps/gateway/gateway/pkg/model"
 	"code.waarp.fr/apps/gateway/gateway/pkg/model/types"
 	"code.waarp.fr/apps/gateway/gateway/pkg/tk/utils"
@@ -30,8 +29,8 @@ func TestNewFileStream(t *testing.T) {
 
 			So(ctx.db.Insert(trans).Run(), ShouldBeNil)
 
-			localPath := filepath.Join(ctx.root, ctx.send.LocalDir, trans.SrcFilename)
-			So(os.WriteFile(localPath, []byte("Hello World"), 0o700), ShouldBeNil)
+			localPath := mkURL(ctx.root, ctx.send.LocalDir, trans.SrcFilename)
+			So(fs.WriteFullFile(ctx.fs, localPath, []byte("Hello World")), ShouldBeNil)
 
 			pip := newTestPipeline(c, ctx.db, trans)
 
@@ -41,20 +40,23 @@ func TestNewFileStream(t *testing.T) {
 			Convey("When creating a new transfer stream", func(c C) {
 				stream, err := newFileStream(pip, false)
 				So(err, ShouldBeNil)
-				Reset(func() { _ = stream.file.Close() })
+				// Reset(func() { _ = stream.file.Close() })
 
 				Convey("Then it should  return a new transfer stream", func(c C) {
 					So(stream, ShouldNotBeNil)
 
 					Convey("Then the transfer file should have been opened", func(c C) {
 						So(stream.file, ShouldNotBeNil)
-						So(stream.file.Name(), ShouldEqual, trans.LocalPath)
+
+						info, statErr := stream.file.Stat()
+						So(statErr, ShouldBeNil)
+						So(info.Name(), ShouldEqual, path.Base(trans.LocalPath.Path))
 					})
 				})
 			})
 
 			Convey("Given that the file does not exist", func(c C) {
-				So(os.Remove(trans.LocalPath), ShouldBeNil)
+				So(fs.Remove(ctx.fs, &trans.LocalPath), ShouldBeNil)
 
 				Convey("When creating a new transfer stream", func(c C) {
 					_, err := newFileStream(pip, false)
@@ -82,14 +84,17 @@ func TestNewFileStream(t *testing.T) {
 			Convey("When creating a new transfer stream", func(c C) {
 				stream, err := newFileStream(pip.Pip, false)
 				So(err, ShouldBeNil)
-				Reset(func() { _ = stream.file.Close() })
+				// Reset(func() { _ = stream.file.Close() })
 
 				Convey("Then it should  return a new transfer stream", func(c C) {
 					So(stream, ShouldNotBeNil)
 
 					Convey("Then the transfer file should have been opened", func(c C) {
 						So(stream.file, ShouldNotBeNil)
-						So(stream.file.Name(), ShouldEqual, trans.LocalPath)
+
+						info, statErr := stream.file.Stat()
+						So(statErr, ShouldBeNil)
+						So(info.Name(), ShouldEqual, path.Base(trans.LocalPath.Path))
 					})
 				})
 			})
@@ -110,9 +115,10 @@ func TestStreamRead(t *testing.T) {
 
 		Convey("Given a file stream for this transfer", func(c C) {
 			content := []byte("read file content")
-			localPath := filepath.Join(ctx.root, ctx.send.LocalDir, trans.SrcFilename)
+			localPath := mkURL(ctx.root, ctx.send.LocalDir, trans.SrcFilename)
 
-			So(os.WriteFile(localPath, content, 0o600), ShouldBeNil)
+			So(fs.WriteFullFile(ctx.fs, localPath, content), ShouldBeNil)
+
 			stream := initFilestream(ctx, trans)
 
 			Convey("When reading from the stream", func(c C) {
@@ -134,18 +140,18 @@ func TestStreamRead(t *testing.T) {
 			})
 
 			Convey("Given that an error occurs while reading the file", func(c C) {
-				_ = stream.file.Close()
+				stream.file.(*testFile).err = errFileTest
 
 				b := make([]byte, 4)
 				_, err := stream.Read(b)
-				So(err, ShouldBeError, "TransferError(TeDataTransfer): failed to read data")
+				So(err, ShouldBeError, errRead)
 
 				Convey("Then it should have called the error-tasks", func(c C) {
 					waitEndTransfer(stream.Pipeline)
 
 					Convey("Then any subsequent call to 'Read' should return an error", func(c C) {
 						_, err := stream.Read(b)
-						So(err, ShouldBeError, "TransferError(TeInternal): internal transfer error")
+						So(err, ShouldBeError, errStateMachine)
 					})
 				})
 			})
@@ -163,7 +169,7 @@ func TestStreamRead(t *testing.T) {
 
 					Convey("Then any subsequent call to 'Read' should return an error", func(c C) {
 						_, err := stream.Read(b)
-						So(err, ShouldBeError, "TransferError(TeInternal): internal transfer error")
+						So(err, ShouldBeError, errStateMachine)
 					})
 				})
 			})
@@ -184,9 +190,10 @@ func TestStreamReadAt(t *testing.T) {
 
 		Convey("Given a file stream for this transfer", func(c C) {
 			content := []byte("read file content")
-			localPath := filepath.Join(ctx.root, ctx.send.LocalDir, trans.SrcFilename)
+			localPath := mkURL(ctx.root, ctx.send.LocalDir, trans.SrcFilename)
 
-			So(os.WriteFile(localPath, content, 0o600), ShouldBeNil)
+			So(fs.WriteFullFile(ctx.fs, localPath, content), ShouldBeNil)
+
 			stream := initFilestream(ctx, trans)
 
 			Convey("When reading from the stream with an offset", func(c C) {
@@ -209,18 +216,18 @@ func TestStreamReadAt(t *testing.T) {
 			})
 
 			Convey("Given that an error occurs while reading the file", func(c C) {
-				_ = stream.file.Close()
+				stream.file.(*testFile).err = errFileTest
 
 				b := make([]byte, 4)
 				_, err := stream.ReadAt(b, 0)
-				So(err, ShouldBeError, "TransferError(TeDataTransfer): failed to read data")
+				So(err, ShouldBeError, errRead)
 
 				Convey("Then it should have called the error-tasks", func(c C) {
 					waitEndTransfer(stream.Pipeline)
 
 					Convey("Then any subsequent call to 'ReadAt' should return an error", func(c C) {
 						_, err := stream.ReadAt(b, 0)
-						So(err, ShouldBeError, "TransferError(TeInternal): internal transfer error")
+						So(err, ShouldBeError, errStateMachine)
 					})
 				})
 			})
@@ -231,14 +238,14 @@ func TestStreamReadAt(t *testing.T) {
 
 				b := make([]byte, 4)
 				_, err := stream.ReadAt(b, 0)
-				So(err, ShouldBeError, "TransferError(TeInternal): database error")
+				So(err, ShouldBeError, errDatabase)
 
 				Convey("Then it should have called the error-tasks", func(c C) {
 					waitEndTransfer(stream.Pipeline)
 
 					Convey("Then any subsequent call to 'ReadAt' should return an error", func(c C) {
 						_, err := stream.ReadAt(b, 0)
-						So(err, ShouldBeError, "TransferError(TeInternal): internal transfer error")
+						So(err, ShouldBeError, errStateMachine)
 					})
 				})
 			})
@@ -274,7 +281,7 @@ func TestStreamWrite(t *testing.T) {
 				})
 
 				Convey("Then the file should contain the array content", func(c C) {
-					content, err := os.ReadFile(trans.LocalPath)
+					content, err := fs.ReadFile(ctx.fs, &trans.LocalPath)
 					So(err, ShouldBeNil)
 
 					So(string(content), ShouldEqual, string(b))
@@ -282,18 +289,18 @@ func TestStreamWrite(t *testing.T) {
 			})
 
 			Convey("Given that an error occurs while writing the file", func(c C) {
-				_ = stream.file.Close()
+				stream.file.(*testFile).err = errFileTest
 
 				b := make([]byte, 4)
 				_, err := stream.Write(b)
-				So(err, ShouldBeError, "TransferError(TeDataTransfer): failed to write data")
+				So(err, ShouldBeError, errWrite)
 
 				Convey("Then it should have called the error-tasks", func(c C) {
 					waitEndTransfer(stream.Pipeline)
 
 					Convey("Then any subsequent call to 'Write' should return an error", func(c C) {
 						_, err := stream.Write(b)
-						So(err, ShouldBeError, "TransferError(TeInternal): internal transfer error")
+						So(err, ShouldBeError, errStateMachine)
 					})
 				})
 			})
@@ -304,14 +311,14 @@ func TestStreamWrite(t *testing.T) {
 
 				b := make([]byte, 4)
 				_, err := stream.Write(b)
-				So(err, ShouldBeError, "TransferError(TeInternal): database error")
+				So(err, ShouldBeError, errDatabase)
 
 				Convey("Then it should have called the error-tasks", func(c C) {
 					waitEndTransfer(stream.Pipeline)
 
 					Convey("Then any subsequent call to 'Write' should return an error", func(c C) {
 						_, err := stream.Write(b)
-						So(err, ShouldBeError, "TransferError(TeInternal): internal transfer error")
+						So(err, ShouldBeError, errStateMachine)
 					})
 				})
 			})
@@ -348,7 +355,7 @@ func TestStreamWriteAt(t *testing.T) {
 				})
 
 				Convey("Then the file should contain the array content with an offset", func(c C) {
-					content, err := os.ReadFile(trans.LocalPath)
+					content, err := fs.ReadFile(ctx.fs, &trans.LocalPath)
 					So(err, ShouldBeNil)
 
 					So(string(content), ShouldEqual, strings.Repeat("\000", off)+string(b))
@@ -356,18 +363,18 @@ func TestStreamWriteAt(t *testing.T) {
 			})
 
 			Convey("Given that an error occurs while writing the file", func(c C) {
-				_ = stream.file.Close()
+				stream.file.(*testFile).err = errFileTest
 
 				b := make([]byte, 4)
 				_, err := stream.WriteAt(b, 0)
-				So(err, ShouldBeError, "TransferError(TeDataTransfer): failed to write data")
+				So(err, ShouldBeError, errWrite)
 
 				Convey("Then it should have called the error-tasks", func(c C) {
 					waitEndTransfer(stream.Pipeline)
 
 					Convey("Then any subsequent call to 'WriteAt' should return an error", func(c C) {
 						_, err := stream.WriteAt(b, 0)
-						So(err, ShouldBeError, "TransferError(TeInternal): internal transfer error")
+						So(err, ShouldBeError, errStateMachine)
 					})
 				})
 			})
@@ -378,14 +385,14 @@ func TestStreamWriteAt(t *testing.T) {
 
 				b := make([]byte, 4)
 				_, err := stream.WriteAt(b, 0)
-				So(err, ShouldBeError, "TransferError(TeInternal): database error")
+				So(err, ShouldBeError, errDatabase)
 
 				Convey("Then it should have called the error-tasks", func(c C) {
 					waitEndTransfer(stream.Pipeline)
 
 					Convey("Then any subsequent call to 'WriteAt' should return an error", func(c C) {
 						_, err := stream.WriteAt(b, 0)
-						So(err, ShouldBeError, "TransferError(TeInternal): internal transfer error")
+						So(err, ShouldBeError, errStateMachine)
 					})
 				})
 			})
@@ -412,15 +419,14 @@ func TestStreamClose(t *testing.T) {
 				So(stream.close(), ShouldBeNil)
 
 				Convey("Then the underlying file should be closed", func(c C) {
-					So(stream.file.Close(), ShouldBeError, fmt.Sprintf(
-						"close %s: file already closed", trans.LocalPath))
+					So(stream.file.Close(), ShouldBeError, fs.ErrClosed)
 				})
 			})
 
 			Convey("Given that an error occurs while updating the progress", func(c C) {
 				database.SimulateError(c, ctx.db)
 				time.Sleep(testTransferUpdateInterval)
-				So(stream.close(), ShouldBeError, "TransferError(TeInternal): database error")
+				So(stream.close(), ShouldBeError, errDatabase)
 
 				Convey("Then it should have called the error-tasks", func(c C) {
 					waitEndTransfer(stream.Pipeline)
@@ -450,13 +456,14 @@ func TestStreamMove(t *testing.T) {
 				So(stream.move(), ShouldBeNil)
 
 				Convey("Then the underlying file should have been be moved", func(c C) {
-					_, err := os.Stat(filepath.Join(ctx.root, ctx.recv.LocalDir, "file"))
+					file := mkURL(ctx.root, ctx.recv.LocalDir, "file")
+					_, err := fs.Stat(ctx.fs, file)
 					So(err, ShouldBeNil)
 				})
 			})
 
 			Convey("Given that the move fails", func(c C) {
-				So(os.Remove(stream.TransCtx.Transfer.LocalPath), ShouldBeNil)
+				So(fs.Remove(ctx.fs, &stream.TransCtx.Transfer.LocalPath), ShouldBeNil)
 
 				Convey("When moving the file", func(c C) {
 					So(stream.move(), ShouldBeError, "TransferError(TeFinalization): "+
@@ -473,8 +480,7 @@ func TestStreamMove(t *testing.T) {
 				time.Sleep(testTransferUpdateInterval)
 
 				Convey("When moving the file", func(c C) {
-					So(stream.move(), ShouldBeError, "TransferError(TeInternal): "+
-						"database error")
+					So(stream.move(), ShouldBeError, errDatabase)
 
 					Convey("Then it should have called the error tasks", func(c C) {
 						waitEndTransfer(stream.Pipeline)
@@ -494,9 +500,9 @@ func TestStreamMove(t *testing.T) {
 		}
 		So(ctx.db.Insert(trans).Run(), ShouldBeNil)
 
-		path := filepath.Join(ctx.root, ctx.recv.LocalDir, "file")
-		So(os.WriteFile(path, []byte("file content"), 0o700), ShouldBeNil)
-		Reset(func() { _ = os.Remove(path) })
+		filepath := mkURL(ctx.root, ctx.recv.LocalDir, "file")
+		So(fs.WriteFullFile(ctx.fs, filepath, []byte("file content")), ShouldBeNil)
+		// Reset(func() { _ = ctx.fs.Remove(path) })
 
 		Convey("Given a closed file stream for this transfer", func(c C) {
 			stream := initFilestream(ctx, trans)
@@ -507,7 +513,8 @@ func TestStreamMove(t *testing.T) {
 				So(stream.move(), ShouldBeNil)
 
 				Convey("Then it should do nothing", func(c C) {
-					So(stream.TransCtx.Transfer.LocalPath, ShouldEqual, path)
+					So(stream.TransCtx.Transfer.LocalPath.String(), ShouldEqual,
+						filepath.String())
 				})
 			})
 		})

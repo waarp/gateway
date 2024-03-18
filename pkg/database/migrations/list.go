@@ -170,4 +170,12 @@ var Migrations = []Change{
 		Description: "Restore and update the normalized transfer view with the new filename",
 		Script:      ver0_8_0UpdateNormalizedTransfersView{},
 	},
+	{ // #37
+		Description: `Add a "cloud_instances" table`,
+		Script:      ver0_9_0AddCloudInstances{},
+	},
+	{ // #38
+		Description: `Converts all the transfers' local paths to URLs`,
+		Script:      ver0_9_0LocalPathToURL{},
+	},
 }

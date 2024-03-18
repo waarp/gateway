@@ -6,12 +6,11 @@ import (
 	"bytes"
 	"fmt"
 	"io"
-	"io/ioutil"
 	"os"
 	"path"
 	"path/filepath"
 
-	flags "github.com/jessevdk/go-flags"
+	"github.com/jessevdk/go-flags"
 )
 
 // Parser is the central point to load config files in a struct and
@@ -55,9 +54,9 @@ func (p Parser) Parse(r io.Reader) error {
 }
 
 // ParseFile tries to read the configuration file filename and parses its
-// its content in the configuration object.
+// content in the configuration object.
 func (p Parser) ParseFile(filename string) error {
-	content, err := ioutil.ReadFile(filepath.Clean(filename))
+	content, err := os.ReadFile(filepath.Clean(filename))
 	if err != nil {
 		return fmt.Errorf("cannot parse configuration file: %w", err)
 	}
@@ -78,7 +77,7 @@ func (p Parser) WriteFile(filename string) error {
 
 	p.Write(&buf)
 
-	err := ioutil.WriteFile(filename, buf.Bytes(), 0o600)
+	err := os.WriteFile(filename, buf.Bytes(), 0o600)
 	if err != nil {
 		return fmt.Errorf("cannot write configuration file: %w", err)
 	}

@@ -1,6 +1,8 @@
 package model
 
 import (
+	"io/fs"
+
 	"code.waarp.fr/lib/log"
 
 	"code.waarp.fr/apps/gateway/gateway/pkg/conf"
@@ -34,6 +36,7 @@ type TransferContext struct {
 	LocalAccountCryptos Cryptos
 
 	Paths *conf.PathsConfig
+	FS    fs.FS
 }
 
 // GetTransferContext retrieves all the information regarding the given transfer

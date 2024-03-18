@@ -1,11 +1,14 @@
 package backup
 
 import (
+	"path"
+
 	"code.waarp.fr/lib/log"
 	"github.com/smartystreets/goconvey/convey"
 	"golang.org/x/crypto/bcrypt"
 
 	"code.waarp.fr/apps/gateway/gateway/pkg/model/config"
+	"code.waarp.fr/apps/gateway/gateway/pkg/model/types"
 	_ "code.waarp.fr/apps/gateway/gateway/pkg/tasks"
 	"code.waarp.fr/apps/gateway/gateway/pkg/tk/utils/testhelpers"
 )
@@ -31,4 +34,13 @@ func hash(pwd string) string {
 	convey.So(err, convey.ShouldBeNil)
 
 	return string(h)
+}
+
+func mkURL(elem ...string) *types.URL {
+	full := path.Join(elem...)
+
+	url, err := types.ParseURL(full)
+	convey.So(err, convey.ShouldBeNil)
+
+	return url
 }

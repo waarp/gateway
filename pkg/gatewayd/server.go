@@ -19,12 +19,14 @@ import (
 	"code.waarp.fr/apps/gateway/gateway/pkg/conf"
 	"code.waarp.fr/apps/gateway/gateway/pkg/controller"
 	"code.waarp.fr/apps/gateway/gateway/pkg/database"
+	"code.waarp.fr/apps/gateway/gateway/pkg/fs"
 	"code.waarp.fr/apps/gateway/gateway/pkg/gatewayd/service"
 	"code.waarp.fr/apps/gateway/gateway/pkg/gatewayd/service/constructors"
 	"code.waarp.fr/apps/gateway/gateway/pkg/gatewayd/service/names"
 	"code.waarp.fr/apps/gateway/gateway/pkg/gatewayd/service/proto"
 	"code.waarp.fr/apps/gateway/gateway/pkg/gatewayd/service/state"
 	"code.waarp.fr/apps/gateway/gateway/pkg/model"
+	"code.waarp.fr/apps/gateway/gateway/pkg/model/types"
 )
 
 const (
@@ -48,30 +50,90 @@ func NewWG() *WG {
 	}
 }
 
-func getDir(dir, home string) string {
-	if filepath.IsAbs(dir) {
-		return dir
+func getDir(root *types.URL, dir string) (*types.URL, error) {
+	if types.GetScheme(dir) != "" || filepath.IsAbs(dir) {
+		if url, err := types.ParseURL(dir); err != nil {
+			return nil, fmt.Errorf("failed to parse the url: %w", err)
+		} else {
+			return url, nil
+		}
 	}
 
-	return filepath.Join(home, dir)
+	return root.JoinPath(dir), nil
+}
+
+func parseDirs() (root, in, out, tmp *types.URL, err error) {
+	config := &conf.GlobalConfig.Paths
+
+	root, rootErr := types.ParseURL(config.GatewayHome)
+	if rootErr != nil {
+		return nil, nil, nil, nil, fmt.Errorf("failed to parse root directory: %w", rootErr)
+	}
+
+	in, inErr := getDir(root, config.DefaultInDir)
+	if inErr != nil {
+		return nil, nil, nil, nil, fmt.Errorf("failed to parse in directory: %w", inErr)
+	}
+
+	out, outErr := getDir(root, config.DefaultOutDir)
+	if outErr != nil {
+		return nil, nil, nil, nil, fmt.Errorf("failed to parse out directory: %w", outErr)
+	}
+
+	tmp, tmpErr := getDir(root, config.DefaultTmpDir)
+	if tmpErr != nil {
+		return nil, nil, nil, nil, fmt.Errorf("failed to parse tmp directory: %w", tmpErr)
+	}
+
+	return root, in, out, tmp, nil
 }
 
 func (wg *WG) makeDirs() error {
-	config := &conf.GlobalConfig.Paths
+	root, in, out, tmp, parseErr := parseDirs()
+	if parseErr != nil {
+		return parseErr
+	}
 
-	if err := os.MkdirAll(config.GatewayHome, 0o744); err != nil {
+	rootFS, fsErr := fs.GetFileSystem(wg.dbService, root)
+	if fsErr != nil {
+		return fmt.Errorf(`failed to instantiate gateway home file system: %w`, fsErr)
+	}
+
+	if err := fs.MkdirAll(rootFS, root); err != nil {
 		return fmt.Errorf("failed to create gateway home directory: %w", err)
 	}
 
-	if err := os.MkdirAll(getDir(config.DefaultInDir, config.GatewayHome), 0o744); err != nil {
+	inFS := rootFS
+	outFS := rootFS
+	tmpFS := rootFS
+
+	if !fs.IsOnSameFS(root, in) {
+		if inFS, fsErr = fs.GetFileSystem(wg.dbService, in); fsErr != nil {
+			return fmt.Errorf(`failed to instantiate gateway "in" file system: %w`, fsErr)
+		}
+	}
+
+	if err := fs.MkdirAll(inFS, in); err != nil {
 		return fmt.Errorf("failed to create gateway in directory: %w", err)
 	}
 
-	if err := os.MkdirAll(getDir(config.DefaultOutDir, config.GatewayHome), 0o744); err != nil {
+	if !fs.IsOnSameFS(root, out) {
+		if outFS, fsErr = fs.GetFileSystem(wg.dbService, out); fsErr != nil {
+			return fmt.Errorf(`failed to instantiate gateway "out" file system: %w`, fsErr)
+		}
+	}
+
+	if err := fs.MkdirAll(outFS, out); err != nil {
 		return fmt.Errorf("failed to create gateway out directory: %w", err)
 	}
 
-	if err := os.MkdirAll(getDir(config.DefaultTmpDir, config.GatewayHome), 0o744); err != nil {
+	if !fs.IsOnSameFS(root, tmp) {
+		if tmpFS, fsErr = fs.GetFileSystem(wg.dbService, tmp); fsErr != nil {
+			return fmt.Errorf(`failed to instantiate gateway "out" file system: %w`, fsErr)
+		}
+	}
+
+	if err := fs.MkdirAll(tmpFS, tmp); err != nil {
 		return fmt.Errorf("failed to create gateway work directory: %w", err)
 	}
 
@@ -99,10 +161,6 @@ func (wg *WG) initServices() {
 }
 
 func (wg *WG) startServices() error {
-	if err := wg.makeDirs(); err != nil {
-		return err
-	}
-
 	wg.initServices()
 
 	if err := wg.dbService.Start(); err != nil {
@@ -115,6 +173,10 @@ func (wg *WG) startServices() error {
 
 	if err := wg.controller.Start(); err != nil {
 		return fmt.Errorf("cannot start controller service: %w", err)
+	}
+
+	if err := wg.makeDirs(); err != nil {
+		return err
 	}
 
 	var servers model.LocalAgents

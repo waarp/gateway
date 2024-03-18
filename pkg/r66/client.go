@@ -153,7 +153,8 @@ func (c *client) Data(dataStream pipeline.DataStream) *types.TransferError {
 		return nil
 	}
 
-	hash, hErr := internal.MakeHash(c.ctx, c.pip.Logger, c.pip.TransCtx.Transfer.LocalPath)
+	hash, hErr := internal.MakeHash(c.ctx, c.pip.TransCtx.FS, c.pip.Logger,
+		&c.pip.TransCtx.Transfer.LocalPath)
 	if hErr != nil {
 		return hErr
 	}

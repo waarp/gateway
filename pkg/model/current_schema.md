@@ -28,6 +28,23 @@ CREATE TABLE users (
 )
 ```
 
+### Table ``cloud_instances``
+
+```sqlite
+CREATE TABLE cloud_instances (
+    id      BIGINT       NOT NULL AUTOINCREMENT,
+    owner   VARCHAR(100) NOT NULL ,
+    name    VARCHAR(100) NOT NULL ,
+    type    VARCHAR(50)  NOT NULL ,
+    key     TEXT         NOT NULL DEFAULT '',
+    secret  TEXT         NOT NULL DEFAULT '',
+    options TEXT         NOT NULL DEFAULT '{}',
+    
+    CONSTRAINT cloud_instances_pkey PRIMARY KEY (id),
+    CONSTRAINT unique_cloud_instance UNIQUE (owner, name)
+)
+```
+
 ### Table ``local_agents``
 
 ```sqlite

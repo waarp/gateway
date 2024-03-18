@@ -69,6 +69,9 @@ const (
 
 	OverrideSettingsAddressesPath = "/api/override/addresses"
 	OverrideSettingsAddressPath   = "/api/override/addresses/{address}"
+
+	CloudInstancesPath = "/api/clouds"
+	CloudInstancePath  = "/api/clouds/{cloud}"
 )
 
 // MakeRESTHandler appends all the REST API handlers to the given HTTP router.
@@ -193,4 +196,12 @@ func MakeRESTHandler(logger *log.Logger, db *database.DB, router *mux.Router,
 	mkHandler.noDB(OverrideSettingsAddressesPath, addAddressOverride, model.PermAdminWrite,
 		http.MethodPost, http.MethodPut, http.MethodPatch)
 	mkHandler.noDB(OverrideSettingsAddressPath, deleteAddressOverride, model.PermAdminDelete, http.MethodDelete)
+
+	// Cloud instances
+	mkHandler(CloudInstancesPath, listClouds, model.PermAdminRead, http.MethodGet)
+	mkHandler(CloudInstancesPath, addCloud, model.PermAdminWrite, http.MethodPost)
+	mkHandler(CloudInstancePath, getCloud, model.PermAdminRead, http.MethodGet)
+	mkHandler(CloudInstancePath, updateCloud, model.PermAdminWrite, http.MethodPatch)
+	mkHandler(CloudInstancePath, replaceCloud, model.PermAdminWrite, http.MethodPut)
+	mkHandler(CloudInstancePath, deleteCloud, model.PermAdminDelete, http.MethodDelete)
 }

@@ -2,14 +2,16 @@ package tasks
 
 import (
 	"context"
+	"net/url"
 	"os"
+	"path"
 	"path/filepath"
 	"testing"
 
 	. "github.com/smartystreets/goconvey/convey"
 
+	"code.waarp.fr/apps/gateway/gateway/pkg/fs/fstest"
 	"code.waarp.fr/apps/gateway/gateway/pkg/model"
-	"code.waarp.fr/apps/gateway/gateway/pkg/tk/utils"
 	"code.waarp.fr/apps/gateway/gateway/pkg/tk/utils/testhelpers"
 )
 
@@ -85,6 +87,7 @@ func TestExecMoveValidate(t *testing.T) {
 func TestExecMoveRun(t *testing.T) {
 	Convey("Given an 'EXECMOVE' task", t, func(c C) {
 		logger := testhelpers.TestLogger(c, "task_execmove")
+		testFS := fstest.InitMemFS(c)
 		root := testhelpers.TempDir(c, "task_execmove")
 		scriptPath := filepath.Join(root, execMoveScriptFile)
 
@@ -92,10 +95,12 @@ func TestExecMoveRun(t *testing.T) {
 		transCtx := &model.TransferContext{
 			Rule:     &model.Rule{IsSend: false},
 			Transfer: &model.Transfer{},
+			FS:       testFS,
 		}
 
 		srcFile := filepath.Join(root, "test.src")
 		dstFile := filepath.Join(root, "test.dst")
+
 		So(os.WriteFile(srcFile, []byte("Hello world"), 0o600), ShouldBeNil)
 
 		args := map[string]string{
@@ -105,8 +110,7 @@ func TestExecMoveRun(t *testing.T) {
 		}
 
 		Convey("Given that the command succeeds", func() {
-			err := os.WriteFile(scriptPath, []byte(scriptExecMove), 0o700)
-			So(err, ShouldBeNil)
+			So(os.WriteFile(scriptPath, []byte(scriptExecMove), 0o700), ShouldBeNil)
 
 			Convey("When running the task", func() {
 				err := exec.Run(context.Background(), args, nil, logger, transCtx)
@@ -115,16 +119,21 @@ func TestExecMoveRun(t *testing.T) {
 					So(err, ShouldBeNil)
 
 					Convey("Then the transfer filepath should have changed", func() {
-						So(utils.ToOSPath(transCtx.Transfer.LocalPath),
-							ShouldEqual, dstFile)
+						dstURL := url.URL{
+							Scheme:   "file",
+							OmitHost: true,
+							Path:     path.Join("/", filepath.ToSlash(dstFile)),
+						}
+
+						So(transCtx.Transfer.LocalPath.String(), ShouldEqual,
+							dstURL.String())
 					})
 				})
 			})
 		})
 
 		Convey("Given that the command sends a warning", func() {
-			err := os.WriteFile(scriptPath, []byte(scriptExecWarn), 0o700)
-			So(err, ShouldBeNil)
+			So(os.WriteFile(scriptPath, []byte(scriptExecWarn), 0o700), ShouldBeNil)
 
 			Convey("When running the task", func() {
 				err := exec.Run(context.Background(), args, nil, logger, transCtx)
@@ -136,8 +145,7 @@ func TestExecMoveRun(t *testing.T) {
 		})
 
 		Convey("Given that the command fails", func() {
-			err := os.WriteFile(scriptPath, []byte(scriptExecFail), 0o700)
-			So(err, ShouldBeNil)
+			So(os.WriteFile(scriptPath, []byte(scriptExecFail), 0o700), ShouldBeNil)
 
 			Convey("When running the task", func() {
 				err := exec.Run(context.Background(), args, nil, logger, transCtx)
@@ -150,8 +158,7 @@ func TestExecMoveRun(t *testing.T) {
 		})
 
 		Convey("Given that the command delay expires", func() {
-			err := os.WriteFile(scriptPath, []byte(scriptExecInfinite), 0o700)
-			So(err, ShouldBeNil)
+			So(os.WriteFile(scriptPath, []byte(scriptExecInfinite), 0o700), ShouldBeNil)
 
 			args["delay"] = "100"
 

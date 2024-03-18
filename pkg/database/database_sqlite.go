@@ -14,9 +14,9 @@ func init() {
 	supportedRBMS[SQLite] = sqliteinfo
 }
 
-func sqliteinfo() *dbInfo {
-	return &dbInfo{
-		driver: migrations.SqliteDriver,
-		dsn:    migrations.SqliteDSN(),
+func sqliteinfo() *DBInfo {
+	return &DBInfo{
+		Driver: migrations.SqliteDriver,
+		DSN:    migrations.SqliteDSN(),
 	}
 }

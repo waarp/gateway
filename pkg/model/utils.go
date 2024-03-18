@@ -50,17 +50,17 @@ func getAuthorizedRules(db database.ReadAccess, ownerCol string, ownerID int64,
 
 // CheckClientAuthent checks whether the given certificate chain is valid as a
 // client certificate for the given login, using the target cryptos as root CAs.
-func (c *Cryptos) CheckClientAuthent(login string, certs []*x509.Certificate) error {
-	return c.checkAuthent(login, certs, x509.ExtKeyUsageClientAuth)
+func CheckClientAuthent(c *Cryptos, login string, certs []*x509.Certificate) error {
+	return checkAuthent(c, login, certs, x509.ExtKeyUsageClientAuth)
 }
 
 // CheckServerAuthent checks whether the given certificate chain is valid as a
 // server certificate for the given host, using the target cryptos as root CAs.
-func (c *Cryptos) CheckServerAuthent(host string, certs []*x509.Certificate) error {
-	return c.checkAuthent(host, certs, x509.ExtKeyUsageServerAuth)
+func CheckServerAuthent(c *Cryptos, host string, certs []*x509.Certificate) error {
+	return checkAuthent(c, host, certs, x509.ExtKeyUsageServerAuth)
 }
 
-func (c *Cryptos) checkAuthent(name string, certs []*x509.Certificate,
+func checkAuthent(c *Cryptos, name string, certs []*x509.Certificate,
 	usages ...x509.ExtKeyUsage,
 ) error {
 	roots, err := x509.SystemCertPool()

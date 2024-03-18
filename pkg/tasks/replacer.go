@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"path"
 	"path/filepath"
 	"time"
 
@@ -21,14 +22,14 @@ type replacersMap map[string]replacer
 func getReplacers() replacersMap {
 	return replacersMap{
 		"#TRUEFULLPATH#": func(r *Runner) (string, error) {
-			return r.transCtx.Transfer.LocalPath, nil
+			return r.transCtx.Transfer.LocalPath.String(), nil
 		},
 		"#TRUEFILENAME#": func(r *Runner) (string, error) {
-			return filepath.Base(r.transCtx.Transfer.LocalPath), nil
+			return path.Base(r.transCtx.Transfer.LocalPath.Path), nil
 		},
 		"#ORIGINALFULLPATH#": func(r *Runner) (string, error) {
 			if r.transCtx.Rule.IsSend {
-				return r.transCtx.Transfer.LocalPath, nil
+				return r.transCtx.Transfer.LocalPath.String(), nil
 			}
 
 			if !r.transCtx.Transfer.IsServer() {
@@ -48,13 +49,25 @@ func getReplacers() replacersMap {
 			return utils.FormatInt(r.transCtx.Transfer.Filesize), nil
 		},
 		"#INPATH#": func(r *Runner) (string, error) {
-			return makeInDir(r.transCtx), nil
+			if in, err := makeInDir(r.transCtx); err != nil {
+				return "", err
+			} else {
+				return in.String(), nil
+			}
 		},
 		"#OUTPATH#": func(r *Runner) (string, error) {
-			return makeOutDir(r.transCtx), nil
+			if out, err := makeOutDir(r.transCtx); err != nil {
+				return "", err
+			} else {
+				return out.String(), nil
+			}
 		},
 		"#WORKPATH#": func(r *Runner) (string, error) {
-			return makeTmpDir(r.transCtx), nil
+			if tmp, err := makeTmpDir(r.transCtx); err != nil {
+				return "", err
+			} else {
+				return tmp.String(), nil
+			}
 		},
 		"#ARCHPATH#": notImplemented("#ARCHPATH#"),
 		"#HOMEPATH#": func(r *Runner) (string, error) {

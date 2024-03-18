@@ -3,6 +3,13 @@
 Historique des versions
 =======================
 
+* :feature:`379` Ajout du support pour les instances cloud en remplacement du
+  disque local pour le stockage des fichiers de transfert. Voir la section
+  :ref:`cloud <reference-cloud>` pour avoir plus de détails sur l'implémentation
+  des différents types d'instances, et la section
+  :ref:`gestion des dossiers <gestion_dossiers>` pour plus de détails sur
+  leur utilisation.
+
 * :release:`0.8.2 <2024-03-07>`
 * :bug:`396` Correction d'une typo dans les mots clés `#TRANSFERID#` et
   `#FULLTRANSFERID#` qui empêchait la substitution de leur valeur de remplacement.

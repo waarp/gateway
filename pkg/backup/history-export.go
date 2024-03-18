@@ -29,7 +29,7 @@ func dbHistToFileTrans(hist *model.HistoryEntry, db database.ReadAccess) (*file.
 		Protocol:       hist.Protocol,
 		SrcFilename:    hist.SrcFilename,
 		DestFilename:   hist.DestFilename,
-		LocalFilepath:  hist.LocalPath,
+		LocalFilepath:  hist.LocalPath.String(),
 		RemoteFilepath: hist.RemotePath,
 		Filesize:       hist.Filesize,
 		Start:          hist.Start,

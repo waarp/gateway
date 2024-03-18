@@ -2,7 +2,6 @@ package pipelinetest
 
 import (
 	"encoding/json"
-	"path/filepath"
 
 	"github.com/smartystreets/goconvey/convey"
 
@@ -55,9 +54,12 @@ func (d *clientData) checkClientTransferOK(c convey.C, data *transData,
 }
 
 func (d *serverData) checkServerTransferOK(c convey.C, remoteTransferID, filename string,
-	progress int64, db *database.DB, actual *model.HistoryEntry, data *transData,
+	progress int64, ctx *testData, actual *model.HistoryEntry, data *transData,
 ) {
 	c.Convey("Then there should be a server-side history entry", func(c convey.C) {
+		expectedLocalPath := mkURL(ctx.Paths.GatewayHome, d.Server.RootDir,
+			d.ServerRule.LocalDir, filename)
+
 		expected := &model.HistoryEntry{
 			ID:               actual.ID,
 			RemoteTransferID: remoteTransferID,
@@ -70,7 +72,7 @@ func (d *serverData) checkServerTransferOK(c convey.C, remoteTransferID, filenam
 			Agent:            d.Server.Name,
 			Start:            actual.Start,
 			Stop:             actual.Stop,
-			LocalPath:        filepath.Join(d.Server.RootDir, d.ServerRule.LocalDir, filename),
+			LocalPath:        *expectedLocalPath,
 			RemotePath:       "",
 			Filesize:         TestFileSize,
 			Status:           types.StatusDone,
@@ -87,7 +89,7 @@ func (d *serverData) checkServerTransferOK(c convey.C, remoteTransferID, filenam
 		}
 
 		c.So(*actual, convey.ShouldResemble, *expected)
-		checkHistoryInfo(c, db, actual.ID, data)
+		checkHistoryInfo(c, ctx.DB, actual.ID, data)
 		/* if !d.ServerRule.IsSend {
 			checkFileInfo(c, db, actual.ID, data)
 		} */

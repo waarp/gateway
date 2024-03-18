@@ -1,7 +1,9 @@
 package tasks
 
 import (
+	"code.waarp.fr/apps/gateway/gateway/pkg/fs/fstest"
 	"code.waarp.fr/apps/gateway/gateway/pkg/model/config"
+	"code.waarp.fr/apps/gateway/gateway/pkg/model/types"
 	"code.waarp.fr/apps/gateway/gateway/pkg/tk/utils/testhelpers"
 )
 
@@ -12,4 +14,8 @@ func init() {
 	config.ProtoConfigs[testProtocol] = func() config.ProtoConfig {
 		return new(testhelpers.TestProtoConfig)
 	}
+}
+
+func makeURL(str string) types.URL {
+	return types.URL{Scheme: fstest.MemScheme, OmitHost: true, Path: str}
 }

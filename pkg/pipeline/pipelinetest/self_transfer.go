@@ -5,15 +5,14 @@ package pipelinetest
 import (
 	"context"
 	"fmt"
-	"os"
 	"path"
-	"path/filepath"
 	"strings"
 	"time"
 
 	"github.com/smartystreets/goconvey/convey"
 
 	"code.waarp.fr/apps/gateway/gateway/pkg/conf"
+	"code.waarp.fr/apps/gateway/gateway/pkg/fs"
 	"code.waarp.fr/apps/gateway/gateway/pkg/gatewayd/service/proto"
 	"code.waarp.fr/apps/gateway/gateway/pkg/model"
 	"code.waarp.fr/apps/gateway/gateway/pkg/model/config"
@@ -46,7 +45,7 @@ func initSelfTransfer(c convey.C, protocol string, constr serviceConstructor,
 	t := initTestData(c)
 	port := testhelpers.GetFreePort(c)
 	partner, remAcc := makeClientConf(c, t.DB, port, protocol, partConf)
-	server, locAcc := makeServerConf(c, t.DB, port, t.Paths.GatewayHome, protocol, servConf)
+	server, locAcc := makeServerConf(c, t, port, protocol, servConf)
 
 	return &SelfContext{
 		testData: t,
@@ -97,8 +96,9 @@ func InitSelfPullTransfer(c convey.C, protocol string, constr serviceConstructor
 
 //nolint:dupl // factorizing would hurt readability
 func (s *SelfContext) addPushTransfer(c convey.C) {
-	testDir := filepath.Join(s.Paths.GatewayHome, s.ClientRule.LocalDir, "sub_dir")
-	s.fileContent = AddSourceFile(c, testDir, "self_transfer_push")
+	filePath := mkURL(s.Paths.GatewayHome, s.ClientRule.LocalDir,
+		"sub_dir", "self_transfer_push")
+	s.fileContent = AddSourceFile(c, s.FS, filePath)
 
 	trans := &model.Transfer{
 		RuleID:          s.ClientRule.ID,
@@ -113,9 +113,9 @@ func (s *SelfContext) addPushTransfer(c convey.C) {
 
 //nolint:dupl // factorizing would hurt readability
 func (s *SelfContext) addPullTransfer(c convey.C) {
-	testDir := filepath.Join(s.Server.RootDir, s.ServerRule.LocalDir,
-		s.getClientRemoteDir(), "sub_dir")
-	s.fileContent = AddSourceFile(c, testDir, "self_transfer_pull")
+	filePath := mkURL(s.Paths.GatewayHome, s.Server.RootDir,
+		s.ServerRule.LocalDir, s.getClientRemoteDir(), "sub_dir", "self_transfer_pull")
+	s.fileContent = AddSourceFile(c, s.FS, filePath)
 
 	trans := &model.Transfer{
 		RuleID:          s.ClientRule.ID,
@@ -291,7 +291,7 @@ func (s *SelfContext) checkServerTransferOK(c convey.C, actual *model.HistoryEnt
 	progress := int64(len(s.fileContent))
 	filename := path.Join(s.getClientRemoteDir(), s.ClientTrans.SrcFilename)
 
-	s.serverData.checkServerTransferOK(c, remoteID, filename, progress, s.DB,
+	s.serverData.checkServerTransferOK(c, remoteID, filename, progress, s.testData,
 		actual, s.transData)
 }
 
@@ -309,10 +309,12 @@ func (s *SelfContext) CheckServerTransferOK(c convey.C) {
 func (s *SelfContext) CheckEndTransferOK(c convey.C) {
 	c.Convey("Then the transfers should be over", func(c convey.C) {
 		var trans model.Transfers
+
 		c.So(s.DB.Select(&trans).Run(), convey.ShouldBeNil)
 		c.So(trans, convey.ShouldBeEmpty)
 
 		var results model.HistoryEntries
+
 		c.So(s.DB.Select(&results).OrderBy("id", true).Run(), convey.ShouldBeNil)
 		c.So(results, convey.ShouldHaveLength, 2) //nolint:gomnd // necessary here
 
@@ -327,13 +329,15 @@ func (s *SelfContext) CheckEndTransferOK(c convey.C) {
 // its content is as expected.
 func (s *SelfContext) CheckDestFile(c convey.C) {
 	c.Convey("Then the file should have been sent entirely", func(c convey.C) {
-		fullPath := s.ClientTrans.LocalPath
+		fullPath := &s.ClientTrans.LocalPath
+
 		if s.ClientRule.IsSend {
-			fullPath = filepath.Join(s.Server.RootDir, s.ServerRule.LocalDir,
-				s.getClientRemoteDir(), s.ClientTrans.SrcFilename)
+			fullPathStr := path.Join(s.Paths.GatewayHome, s.Server.RootDir,
+				s.ServerRule.LocalDir, s.getClientRemoteDir(), s.ClientTrans.SrcFilename)
+			fullPath = mkURL(fullPathStr)
 		}
 
-		content, err := os.ReadFile(filepath.Clean(fullPath))
+		content, err := fs.ReadFile(s.FS, fullPath)
 
 		c.So(err, convey.ShouldBeNil)
 		c.So(len(content), convey.ShouldEqual, TestFileSize)

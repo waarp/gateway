@@ -5,24 +5,11 @@ import (
 
 	. "github.com/smartystreets/goconvey/convey"
 
-	"code.waarp.fr/apps/gateway/gateway/pkg/model"
-	"code.waarp.fr/apps/gateway/gateway/pkg/model/config"
 	"code.waarp.fr/apps/gateway/gateway/pkg/model/types"
 	"code.waarp.fr/apps/gateway/gateway/pkg/pipeline"
 	"code.waarp.fr/apps/gateway/gateway/pkg/pipeline/pipelinetest"
 	"code.waarp.fr/apps/gateway/gateway/pkg/r66/internal"
 )
-
-//nolint:gochecknoglobals // these are test variables
-var (
-	servConf = &config.R66ProtoConfig{ServerLogin: "r66_login", ServerPassword: "sesame"}
-	partConf = &config.R66ProtoConfig{ServerLogin: "r66_login", ServerPassword: "sesame"}
-)
-
-func resetConnPool() {
-	clientConns = internal.NewConnPool()
-	Reset(clientConns.ForceClose)
-}
 
 func TestSelfPushOK(t *testing.T) {
 	Convey("Given a new r66 push transfer", t, func(c C) {
@@ -412,8 +399,6 @@ func TestSelfPushServerPostTasksFail(t *testing.T) {
 					"Post-tasks failed: Task TASKERR @ PUSH POST[1]: task failed",
 					types.StepPostTasks)
 
-				var transs model.Transfers
-				_ = ctx.DB.Select(&transs).Run()
 				resetConnPool()
 				ctx.TestRetry(c,
 					ctx.ClientShouldHavePostTasked,
