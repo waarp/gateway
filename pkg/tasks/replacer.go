@@ -1,7 +1,6 @@
 package tasks
 
 import (
-	"encoding/json"
 	"errors"
 	"fmt"
 	"path"
@@ -135,12 +134,7 @@ func getReplacers() replacersMap {
 
 func replaceInfo(val interface{}) replacer {
 	return func(*Runner) (string, error) {
-		jVal, err := json.Marshal(val)
-		if err != nil {
-			return "", fmt.Errorf("failed to marshal JSON value: %w", err)
-		}
-
-		return string(jVal), nil
+		return fmt.Sprint(val), nil
 	}
 }
 

@@ -3,6 +3,17 @@
 Historique des versions
 =======================
 
+* :fix:`-` Les *transfer infos* transmises via HTTP(S) sont désormais bien prises
+  en compte dans les tâches.
+* :fix:`-` Les valeurs de substitution de *transfer info* dans les tâches ne sont
+  plus substituées par leur représentation JSON. Cela avait pour effet que les
+  valeurs de type *string* étaient substituées avec des guillemets ``"``.
+  Désormais, les *transfer info* sont substituées par leur représentation
+  textuelle brute.
+* :feature:`392` Ajout des argument "copyInfo" et "info" à la tâche `TRANSFER`
+  permettant respectivement de copier les *transfer info* du transfer précédent,
+  et de définir de nouvelles *transfer info*. Pour plus d'information, voir
+  la :ref:`documentation de la tâche TRANSFER<reference-task-transfer>`
 * :feature:`379` Ajout du support pour les instances cloud en remplacement du
   disque local pour le stockage des fichiers de transfert. Voir la section
   :ref:`cloud <reference-cloud>` pour avoir plus de détails sur l'implémentation

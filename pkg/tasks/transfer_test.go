@@ -10,6 +10,7 @@ import (
 
 	"code.waarp.fr/apps/gateway/gateway/pkg/database"
 	"code.waarp.fr/apps/gateway/gateway/pkg/model"
+	"code.waarp.fr/apps/gateway/gateway/pkg/tk/utils"
 	"code.waarp.fr/apps/gateway/gateway/pkg/tk/utils/testhelpers"
 )
 
@@ -103,30 +104,53 @@ func TestTransferRun(t *testing.T) {
 		}
 		So(db.Insert(account).Run(), ShouldBeNil)
 
+		oldTransfer := &model.Transfer{
+			RemoteAccountID: utils.NewNullInt64(account.ID),
+			RuleID:          pull.ID,
+			SrcFilename:     "/old/test/file",
+		}
+		So(db.Insert(oldTransfer).Run(), ShouldBeNil)
+
 		Convey("Given a send 'TRANSFER' task", func() {
 			runner := &TransferTask{}
 			args := map[string]string{
-				"file": "/test/file",
-				"to":   partner.Name,
-				"as":   account.Login,
-				"rule": push.Name,
+				"file":     "/test/file",
+				"to":       partner.Name,
+				"as":       account.Login,
+				"rule":     push.Name,
+				"copyInfo": "true",
+				"info":     `{"baz": "qux", "real": true, "delay": 10}`,
 			}
 
 			Convey("Given that the parameters are valid", func() {
 				Convey("When running the task", func() {
-					err := runner.Run(context.Background(), args, db, logger, nil)
+					err := runner.Run(context.Background(), args, db, logger,
+						&model.TransferContext{
+							Transfer: oldTransfer,
+							TransInfo: map[string]any{
+								"foo": "bar", "baz": true,
+							},
+							Rule:          pull,
+							RemoteAgent:   partner,
+							RemoteAccount: account,
+						})
 
 					Convey("Then it should NOT return an error", func() {
 						So(err, ShouldBeNil)
 
 						Convey("Then the database should contain the transfer", func() {
-							var transfers model.Transfers
-							So(db.Select(&transfers).Run(), ShouldBeNil)
-							So(transfers, ShouldHaveLength, 1)
+							var transfer model.Transfer
 
-							So(transfers[0].RemoteAccountID.Int64, ShouldEqual, account.ID)
-							So(transfers[0].RuleID, ShouldEqual, push.ID)
-							So(transfers[0].SrcFilename, ShouldResemble, "/test/file")
+							So(db.Get(&transfer, "id<>?", oldTransfer.ID).Run(), ShouldBeNil)
+							So(transfer.RemoteAccountID.Int64, ShouldEqual, account.ID)
+							So(transfer.RuleID, ShouldEqual, push.ID)
+							So(transfer.SrcFilename, ShouldResemble, "/test/file")
+
+							transInfo, infoErr := transfer.GetTransferInfo(db)
+							So(infoErr, ShouldBeNil)
+							So(transInfo, ShouldResemble, map[string]any{
+								"foo": "bar", "baz": "qux", "real": true, "delay": float64(10),
+							})
 						})
 					})
 				})
@@ -192,13 +216,12 @@ func TestTransferRun(t *testing.T) {
 						So(err, ShouldBeNil)
 
 						Convey("Then the database should contain the transfer", func() {
-							var transfers model.Transfers
-							So(db.Select(&transfers).Run(), ShouldBeNil)
-							So(transfers, ShouldHaveLength, 1)
+							var transfer model.Transfer
 
-							So(transfers[0].RemoteAccountID.Int64, ShouldResemble, account.ID)
-							So(transfers[0].RuleID, ShouldResemble, pull.ID)
-							So(transfers[0].SrcFilename, ShouldResemble, "/test/file")
+							So(db.Get(&transfer, "id<>?", oldTransfer.ID).Run(), ShouldBeNil)
+							So(transfer.RemoteAccountID.Int64, ShouldResemble, account.ID)
+							So(transfer.RuleID, ShouldResemble, pull.ID)
+							So(transfer.SrcFilename, ShouldResemble, "/test/file")
 						})
 					})
 				})

@@ -10,7 +10,6 @@ import (
 	"strings"
 	"sync"
 
-	"code.waarp.fr/apps/gateway/gateway/pkg/database"
 	"code.waarp.fr/apps/gateway/gateway/pkg/http/httpconst"
 	"code.waarp.fr/apps/gateway/gateway/pkg/model"
 	"code.waarp.fr/apps/gateway/gateway/pkg/model/types"
@@ -207,18 +206,10 @@ func setServerFileInfo(pip *pipeline.Pipeline, headers http.Header,
 */
 
 func setTransferInfo(pip *pipeline.Pipeline, headers http.Header) *types.TransferError {
-	return setInfo(pip, headers, httpconst.TransferInfo, pip.TransCtx.Transfer.SetTransferInfo)
+	return setInfo(pip, headers, httpconst.TransferInfo)
 }
 
-/*
-func setFileInfo(pip *pipeline.Pipeline, headers http.Header) *types.TransferError {
-	return setInfo(pip, headers, httpconst.FileInfo, pip.TransCtx.Transfer.SetFileInfo)
-}
-*/
-
-func setInfo(pip *pipeline.Pipeline, headers http.Header, key string,
-	set func(database.Access, map[string]any) database.Error,
-) *types.TransferError {
+func setInfo(pip *pipeline.Pipeline, headers http.Header, key string) *types.TransferError {
 	info := map[string]interface{}{}
 
 	for _, text := range headers.Values(key) {
@@ -242,12 +233,14 @@ func setInfo(pip *pipeline.Pipeline, headers http.Header, key string,
 		info[name] = value
 	}
 
-	if err := set(pip.DB, info); err != nil {
+	if err := pip.TransCtx.Transfer.SetTransferInfo(pip.DB, info); err != nil {
 		pip.Logger.Error("Failed to set transfer info: %s", err)
 		pip.SetError(types.NewTransferError(types.TeInternal, "failed to set transfer info"))
 
 		return types.NewTransferError(types.TeInternal, "database error")
 	}
+
+	pip.TransCtx.TransInfo = info
 
 	return nil
 }
