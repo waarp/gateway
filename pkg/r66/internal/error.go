@@ -16,9 +16,10 @@ func NewR66Error(code rune, details string, args ...interface{}) *r66.Error {
 	return &r66.Error{Code: code, Detail: fmt.Sprintf(details, args...)}
 }
 
-//nolint:funlen,gocyclo,cyclop // splitting the function would add complexity
 // ToR66Error takes an error (preferably a types.TransferError) and returns the
 // equivalent r66.Error.
+//
+//nolint:funlen,gocyclo,cyclop // splitting the function would add complexity
 func ToR66Error(err error) *r66.Error {
 	var rErr *r66.Error
 	if errors.As(err, &rErr) {
@@ -76,9 +77,10 @@ func ToR66Error(err error) *r66.Error {
 	}
 }
 
-//nolint:funlen,gocyclo,cyclop // splitting the function would add complexity
 // FromR66Error takes an R66 error (most likely of type r66.Error) and returns
 // the corresponding types.TransferError.
+//
+//nolint:funlen,gocyclo,cyclop // splitting the function would add complexity
 func FromR66Error(err error, pip *pipeline.Pipeline) *types.TransferError {
 	var rErr *r66.Error
 	if !errors.As(err, &rErr) {

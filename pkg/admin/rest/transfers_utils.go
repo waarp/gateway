@@ -5,58 +5,123 @@ import (
 	"fmt"
 	"net/http"
 	"strconv"
+	"strings"
 	"time"
 
 	"code.waarp.fr/apps/gateway/gateway/pkg/admin/rest/api"
+	"code.waarp.fr/apps/gateway/gateway/pkg/conf"
 	"code.waarp.fr/apps/gateway/gateway/pkg/database"
 	"code.waarp.fr/apps/gateway/gateway/pkg/gatewayd/service"
 	"code.waarp.fr/apps/gateway/gateway/pkg/gatewayd/service/proto"
 	"code.waarp.fr/apps/gateway/gateway/pkg/model"
-	"code.waarp.fr/apps/gateway/gateway/pkg/pipeline"
 )
 
-func getTransIDs(db *database.DB, trans *api.InTransfer) (int64, int64, error) {
+func getTransferClient(db *database.DB, trans *api.InTransfer, protocol string,
+) (*model.Client, error) {
+	if trans.Client != "" {
+		var client model.Client
+
+		if err := db.Get(&client, "name=? AND owner=?", trans.Client,
+			conf.GlobalConfig.GatewayName).Run(); err != nil {
+			if database.IsNotFound(err) {
+				return nil, badRequest("no client '%s' found", trans.Client)
+			}
+
+			return nil, err
+		}
+
+		return &client, nil
+	}
+
+	// If the user didn't specify a client, we search for one with the
+	// appropriate protocol. If we can't find one, or if they are multiple
+	// ones, we return an error
+	var clients model.Clients
+	if err := db.Select(&clients).Where("protocol=? AND owner=?", protocol,
+		conf.GlobalConfig.GatewayName).Run(); err != nil {
+		return nil, err
+	}
+
+	// No client found with the given protocol.
+	if len(clients) == 0 {
+		return nil, badRequest("no suitable %s client found", protocol)
+	}
+
+	// Multiple clients found with the given protocol.
+	if len(clients) > 1 {
+		var candidates []string
+		for _, client := range clients {
+			candidates = append(candidates, fmt.Sprintf("%q", client.Name))
+		}
+
+		return nil, badRequest("multiple suitable %s clients found (%s), please specify one",
+			protocol, strings.Join(candidates, ", "))
+	}
+
+	return clients[0], nil
+}
+
+func getTransInfo(db *database.DB, trans *api.InTransfer,
+) (*model.Rule, *model.RemoteAccount, *model.Client, error) {
 	if trans.IsSend == nil {
-		return 0, 0, badRequest("the transfer direction (isSend) is missing")
+		return nil, nil, nil, badRequest("the transfer direction (isSend) is missing")
+	}
+
+	if trans.Rule == "" {
+		return nil, nil, nil, badRequest("the transfer rule is missing")
+	}
+
+	if trans.Partner == "" {
+		return nil, nil, nil, badRequest("the transfer partner is missing")
+	}
+
+	if trans.Account == "" {
+		return nil, nil, nil, badRequest("the transfer account is missing")
 	}
 
 	var rule model.Rule
 	if err := db.Get(&rule, "name=? AND is_send=?", trans.Rule, trans.IsSend).Run(); err != nil {
 		if database.IsNotFound(err) {
-			return 0, 0, badRequest("no rule '%s' found", trans.Rule)
+			return nil, nil, nil, badRequest("no rule '%s' found", trans.Rule)
 		}
 
-		return 0, 0, err
+		return nil, nil, nil, err
 	}
 
 	var partner model.RemoteAgent
-	if err := db.Get(&partner, "name=?", trans.Partner).Run(); err != nil {
+	if err := db.Get(&partner, "name=? AND owner=?", trans.Partner,
+		conf.GlobalConfig.GatewayName).Run(); err != nil {
 		if database.IsNotFound(err) {
-			return 0, 0, badRequest("no partner '%s' found", trans.Partner)
+			return nil, nil, nil, badRequest("no partner '%s' found", trans.Partner)
 		}
 
-		return 0, 0, err
+		return nil, nil, nil, err
 	}
 
 	var account model.RemoteAccount
 	if err := db.Get(&account, "remote_agent_id=? AND login=?", partner.ID,
 		trans.Account).Run(); err != nil {
 		if database.IsNotFound(err) {
-			return 0, 0, badRequest("no account '%s' found for partner %s",
+			return nil, nil, nil, badRequest("no account '%s' found for partner %s",
 				trans.Account, trans.Partner)
 		}
 
-		return 0, 0, err
+		return nil, nil, nil, err
 	}
 
-	return rule.ID, account.ID, nil
+	client, cliErr := getTransferClient(db, trans, partner.Protocol)
+	if cliErr != nil {
+		return nil, nil, nil, cliErr
+	}
+
+	return &rule, &account, client, nil
 }
 
 //nolint:funlen // FIXME should be refactored
 func parseTransferListQuery(r *http.Request, db *database.DB,
 	transfers *model.NormalizedTransfers,
 ) (*database.SelectQuery, error) {
-	query := db.Select(transfers)
+	query := db.Select(transfers).Where("owner=?", conf.GlobalConfig.GatewayName)
 
 	//nolint:dupl //kept separate for backwards compatibility
 	sorting := orders{
@@ -135,11 +200,21 @@ func parseTransferListQuery(r *http.Request, db *database.DB,
 
 var errServiceNotFound = errors.New("cannot find the service associated with the transfer")
 
-func getPipelineMap(db *database.DB, protoServices map[int64]proto.Service,
+func getPipelineMap(db *database.DB, protoServices map[string]proto.Service,
 	trans *model.Transfer,
 ) (*service.TransferMap, error) {
 	if !trans.IsServer() {
-		return pipeline.ClientTransfers, nil
+		var client model.Client
+		if err := db.Get(&client, "id=?", trans.ClientID).Run(); err != nil {
+			return nil, err
+		}
+
+		cli, ok := protoServices[client.Name]
+		if !ok {
+			return nil, errServiceNotFound
+		}
+
+		return cli.ManageTransfers(), nil
 	}
 
 	var agent model.LocalAgent
@@ -148,7 +223,7 @@ func getPipelineMap(db *database.DB, protoServices map[int64]proto.Service,
 		return nil, err
 	}
 
-	serv, ok := protoServices[agent.ID]
+	serv, ok := protoServices[agent.Name]
 	if !ok {
 		return nil, errServiceNotFound
 	}

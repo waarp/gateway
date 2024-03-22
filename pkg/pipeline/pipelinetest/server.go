@@ -2,13 +2,11 @@ package pipelinetest
 
 import (
 	"context"
-	"encoding/json"
 	"fmt"
 	"time"
 
 	"github.com/smartystreets/goconvey/convey"
 
-	"code.waarp.fr/apps/gateway/gateway/pkg/conf"
 	"code.waarp.fr/apps/gateway/gateway/pkg/database"
 	"code.waarp.fr/apps/gateway/gateway/pkg/fs"
 	"code.waarp.fr/apps/gateway/gateway/pkg/gatewayd/service/proto"
@@ -25,7 +23,7 @@ type ServerContext struct {
 	*testData
 	*serverData
 	filename string
-	constr   serviceConstructor
+	service  testService
 }
 
 type serverData struct {
@@ -39,21 +37,26 @@ type testService interface {
 	SetTracer(getTrace func() pipeline.Trace)
 }
 
-func initServer(c convey.C, protocol string, constr serviceConstructor,
-	servConf config.ProtoConfig,
+func initServer(c convey.C, protocol string, servConf config.ServerProtoConfig,
 ) *ServerContext {
 	t := initTestData(c)
 	port := testhelpers.GetFreePort(c)
-	server, locAcc := makeServerConf(c, t, port, protocol, servConf)
+	locAg, locAcc := makeServerConf(c, t, port, protocol, servConf)
+
+	constr := Protocols[protocol].ServiceConstr
+	server := constr(t.DB, testhelpers.TestLogger(c, locAg.Name))
+
+	testServer, ok := server.(testService)
+	c.So(ok, convey.ShouldBeTrue)
 
 	return &ServerContext{
 		testData: t,
 		serverData: &serverData{
-			Server:     server,
+			Server:     locAg,
 			LocAccount: locAcc,
 		},
 		filename: "test_server.file",
-		constr:   constr,
+		service:  testServer,
 	}
 }
 
@@ -63,10 +66,9 @@ func (s *ServerContext) Filename() string { return s.filename }
 // InitServerPush creates a database and fills it with all the elements necessary
 // for a server push transfer test of the given protocol. It then returns all these
 // element inside a ServerContext.
-func InitServerPush(c convey.C, protocol string, constr serviceConstructor,
-	servConf config.ProtoConfig,
+func InitServerPush(c convey.C, protocol string, servConf config.ServerProtoConfig,
 ) *ServerContext {
-	ctx := initServer(c, protocol, constr, servConf)
+	ctx := initServer(c, protocol, servConf)
 	ctx.ServerRule = makeServerPush(c, ctx.DB)
 
 	return ctx
@@ -75,10 +77,9 @@ func InitServerPush(c convey.C, protocol string, constr serviceConstructor,
 // InitServerPull creates a database and fills it with all the elements necessary
 // for a server pull transfer test of the given protocol. It then returns all these
 // element inside a ServerContext.
-func InitServerPull(c convey.C, protocol string, constr serviceConstructor,
-	servConf config.ProtoConfig,
+func InitServerPull(c convey.C, protocol string, servConf config.ServerProtoConfig,
 ) *ServerContext {
-	ctx := initServer(c, protocol, constr, servConf)
+	ctx := initServer(c, protocol, servConf)
 	ctx.ServerRule = makeServerPull(c, ctx.DB)
 
 	return ctx
@@ -112,13 +113,12 @@ func makeServerPull(c convey.C, db *database.DB) *model.Rule {
 }
 
 func makeServerConf(c convey.C, data *testData, port uint16, protocol string,
-	servConf config.ProtoConfig,
+	servConf config.ServerProtoConfig,
 ) (ag *model.LocalAgent, acc *model.LocalAccount) {
-	jsonServConf := json.RawMessage(`{}`)
+	jsonServConf := map[string]any{}
 
 	if servConf != nil {
-		var err error
-		jsonServConf, err = json.Marshal(servConf)
+		err := utils.JSONConvert(servConf, &jsonServConf)
 		c.So(err, convey.ShouldBeNil)
 	}
 
@@ -166,24 +166,16 @@ func (s *ServerContext) AddCryptos(c convey.C, certs ...model.Crypto) {
 }
 
 // StartService starts the service associated with the server defined in ServerContext.
-func (s *ServerContext) StartService(c convey.C) proto.Service {
-	logger := conf.GetLogger(fmt.Sprintf("test_%s_server", s.Server.Protocol))
-	serv := s.constr(s.DB, logger)
-
-	tracerService, ok := serv.(testService)
-	c.So(ok, convey.ShouldBeTrue)
-
-	c.So(tracerService.Start(s.Server), convey.ShouldBeNil)
+func (s *ServerContext) StartService(c convey.C) {
+	c.So(s.service.Start(s.Server), convey.ShouldBeNil)
 	c.Reset(func() {
 		ctx, cancel := context.WithTimeout(context.Background(), time.Second)
 		defer cancel()
 
-		c.So(tracerService.Stop(ctx), convey.ShouldBeNil)
+		c.So(s.service.Stop(ctx), convey.ShouldBeNil)
 	})
 
-	tracerService.SetTracer(s.makeServerTracer(s.ServerRule.IsSend))
-
-	return tracerService
+	s.service.SetTracer(s.makeServerTracer(s.ServerRule.IsSend))
 }
 
 // CheckTransferOK checks if the client transfer history entry has succeeded as

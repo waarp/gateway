@@ -73,18 +73,21 @@ func TestRuleBeforeWrite(t *testing.T) {
 			Convey("Given a rule with the same name but with different send", func() {
 				rule.Name = old.Name
 				rule.IsSend = !old.IsSend
+
 				shouldSucceed()
 			})
 
 			Convey("Given a rule with the same name and same direction", func() {
 				rule.Name = old.Name
 				rule.IsSend = old.IsSend
+
 				shouldFailWith("the rule already exist", database.NewValidationError(
 					"a %s rule named '%s' already exist", rule.Direction(), rule.Name))
 			})
 
 			Convey("Given a rule with a path ancestor to this rule's path", func() {
 				rule.Path = path.Join(old.Path, rule.Path)
+
 				shouldFailWith("the path cannot be a descendant", database.NewValidationError(
 					"the rule's path cannot be the descendant of another rule's path "+
 						"(the path '%s' is already used by rule '%s')", old.Path, old.Name))
@@ -92,6 +95,7 @@ func TestRuleBeforeWrite(t *testing.T) {
 
 			Convey("Given a rule with a path descendant to this rule's path", func() {
 				rule.Path = path.Dir(old.Path)
+
 				shouldFailWith("the path cannot be an ancestor", database.NewValidationError(
 					"the rule's path cannot be the ancestor of another rule's path"))
 			})
@@ -129,9 +133,10 @@ func TestRuleBeforeDelete(t *testing.T) {
 			}
 			So(db.Insert(&rule).Run(), ShouldBeNil)
 
-			t1 := Task{RuleID: rule.ID, Chain: ChainPre, Rank: 0, Type: "TESTSUCCESS", Args: []byte(`{}`)}
+			t1 := Task{RuleID: rule.ID, Chain: ChainPre, Rank: 0, Type: "TESTSUCCESS"}
 			So(db.Insert(&t1).Run(), ShouldBeNil)
-			t2 := Task{RuleID: rule.ID, Chain: ChainPost, Rank: 0, Type: "TESTSUCCESS", Args: []byte(`{}`)}
+
+			t2 := Task{RuleID: rule.ID, Chain: ChainPost, Rank: 0, Type: "TESTSUCCESS"}
 			So(db.Insert(&t2).Run(), ShouldBeNil)
 
 			server := LocalAgent{
@@ -145,6 +150,7 @@ func TestRuleBeforeDelete(t *testing.T) {
 
 			a1 := RuleAccess{RuleID: rule.ID, LocalAgentID: utils.NewNullInt64(server.ID)}
 			So(db.Insert(&a1).Run(), ShouldBeNil)
+
 			a2 := RuleAccess{RuleID: rule.ID, LocalAccountID: utils.NewNullInt64(account.ID)}
 			So(db.Insert(&a2).Run(), ShouldBeNil)
 

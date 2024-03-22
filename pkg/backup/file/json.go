@@ -2,6 +2,7 @@ package file
 
 import (
 	"encoding/json"
+	"errors"
 
 	"code.waarp.fr/apps/gateway/gateway/pkg/tk/utils"
 )
@@ -78,14 +79,15 @@ func (r *RemoteAgent) UnmarshalJSON(b []byte) error {
 		return nil // nothing to do
 	}
 
-	var confMap map[string]any
-	if err := json.Unmarshal(r.Configuration, &confMap); err != nil {
-		return err
-	}
-
-	servPwd, hasPwd := confMap["serverPassword"].(string)
+	servPwdAny, hasPwd := r.Configuration["serverPassword"]
 	if !hasPwd {
 		return nil
+	}
+
+	servPwd, isStr := servPwdAny.(string)
+	if !isStr {
+		//nolint:goerr113 //too specific
+		return errors.New(`the R66 "serverPassword" field must have type string`)
 	}
 
 	if !utils.IsHash(servPwd) {
@@ -96,11 +98,8 @@ func (r *RemoteAgent) UnmarshalJSON(b []byte) error {
 			return err
 		}
 
-		confMap["serverPassword"] = hash
+		r.Configuration["serverPassword"] = hash
 	}
 
-	var err error
-	r.Configuration, err = json.Marshal(confMap)
-
-	return err
+	return nil
 }

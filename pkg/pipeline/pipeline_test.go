@@ -1,7 +1,6 @@
 package pipeline
 
 import (
-	"encoding/json"
 	"path"
 	"sync/atomic"
 	"testing"
@@ -146,14 +145,14 @@ func TestPipelinePreTasks(t *testing.T) {
 			Chain:  model.ChainPre,
 			Rank:   0,
 			Type:   taskstest.TaskOK,
-			Args:   json.RawMessage(`{}`),
+			Args:   map[string]string{},
 		}}
 		pip.TransCtx.ErrTasks = model.Tasks{{
 			RuleID: ctx.recv.ID,
 			Chain:  model.ChainError,
 			Rank:   0,
 			Type:   taskstest.TaskOK,
-			Args:   json.RawMessage(`{}`),
+			Args:   map[string]string{},
 		}}
 
 		Convey("When calling the pre-tasks", func(c C) {
@@ -201,7 +200,7 @@ func TestPipelinePreTasks(t *testing.T) {
 				Chain:  model.ChainPre,
 				Rank:   1,
 				Type:   taskstest.TaskErr,
-				Args:   json.RawMessage(`{}`),
+				Args:   map[string]string{},
 			})
 
 			Convey("When calling the pre-tasks", func(c C) {
@@ -229,7 +228,7 @@ func TestPipelineStartData(t *testing.T) {
 			Chain:  model.ChainError,
 			Rank:   0,
 			Type:   taskstest.TaskOK,
-			Args:   json.RawMessage(`{}`),
+			Args:   map[string]string{},
 		}).Run(), ShouldBeNil)
 
 		pip := newTestPipeline(c, ctx.db, trans)
@@ -301,7 +300,7 @@ func TestPipelineEndData(t *testing.T) {
 			Chain:  model.ChainError,
 			Rank:   0,
 			Type:   taskstest.TaskOK,
-			Args:   json.RawMessage(`{}`),
+			Args:   map[string]string{},
 		}).Run(), ShouldBeNil)
 
 		pip := newTestPipeline(c, ctx.db, trans)
@@ -354,14 +353,14 @@ func TestPipelinePostTasks(t *testing.T) {
 			Chain:  model.ChainPost,
 			Rank:   0,
 			Type:   taskstest.TaskOK,
-			Args:   json.RawMessage(`{}`),
+			Args:   map[string]string{},
 		}}
 		pip.TransCtx.ErrTasks = model.Tasks{{
 			RuleID: ctx.recv.ID,
 			Chain:  model.ChainError,
 			Rank:   0,
 			Type:   taskstest.TaskOK,
-			Args:   json.RawMessage(`{}`),
+			Args:   map[string]string{},
 		}}
 
 		So(pip.machine.Transition(statePreTasks), ShouldBeNil)
@@ -416,7 +415,7 @@ func TestPipelinePostTasks(t *testing.T) {
 				Chain:  model.ChainPost,
 				Rank:   1,
 				Type:   taskstest.TaskErr,
-				Args:   json.RawMessage(`{}`),
+				Args:   map[string]string{},
 			})
 
 			Convey("When calling the post-tasks", func(c C) {
@@ -449,7 +448,7 @@ func TestPipelineSetError(t *testing.T) {
 			Chain:  model.ChainError,
 			Rank:   0,
 			Type:   taskstest.TaskOK,
-			Args:   json.RawMessage(`{}`),
+			Args:   map[string]string{},
 		}}
 
 		Convey("Given an pre-transfer error", func(c C) {
@@ -479,13 +478,13 @@ func TestPipelineSetError(t *testing.T) {
 				Chain:  model.ChainPre,
 				Rank:   0,
 				Type:   taskstest.TaskOK,
-				Args:   json.RawMessage(`{}`),
+				Args:   map[string]string{},
 			}, {
 				RuleID: ctx.recv.ID,
 				Chain:  model.ChainPre,
 				Rank:   1,
 				Type:   taskstest.TaskOK,
-				Args:   json.RawMessage(`{}`),
+				Args:   map[string]string{},
 			}}
 
 			taskChan := make(chan bool)
@@ -561,13 +560,13 @@ func TestPipelineSetError(t *testing.T) {
 				Chain:  model.ChainPost,
 				Rank:   0,
 				Type:   taskstest.TaskOK,
-				Args:   json.RawMessage(`{}`),
+				Args:   map[string]string{},
 			}, {
 				RuleID: ctx.recv.ID,
 				Chain:  model.ChainPost,
 				Rank:   1,
 				Type:   taskstest.TaskOK,
-				Args:   json.RawMessage(`{}`),
+				Args:   map[string]string{},
 			}}
 
 			So(pip.PreTasks(), ShouldBeNil)
@@ -657,7 +656,7 @@ func TestPipelinePause(t *testing.T) {
 			Chain:  model.ChainError,
 			Rank:   0,
 			Type:   taskstest.TaskOK,
-			Args:   json.RawMessage(`{}`),
+			Args:   map[string]string{},
 		}}
 
 		Convey("Given an pre-transfer pause", func(c C) {
@@ -686,13 +685,13 @@ func TestPipelinePause(t *testing.T) {
 				Chain:  model.ChainPre,
 				Rank:   0,
 				Type:   taskstest.TaskOK,
-				Args:   json.RawMessage(`{}`),
+				Args:   map[string]string{},
 			}, {
 				RuleID: ctx.recv.ID,
 				Chain:  model.ChainPre,
 				Rank:   1,
 				Type:   taskstest.TaskOK,
-				Args:   json.RawMessage(`{}`),
+				Args:   map[string]string{},
 			}}
 
 			taskChan := make(chan bool)
@@ -762,13 +761,13 @@ func TestPipelinePause(t *testing.T) {
 				Chain:  model.ChainPost,
 				Rank:   0,
 				Type:   taskstest.TaskOK,
-				Args:   json.RawMessage(`{}`),
+				Args:   map[string]string{},
 			}, {
 				RuleID: ctx.recv.ID,
 				Chain:  model.ChainPost,
 				Rank:   1,
 				Type:   taskstest.TaskOK,
-				Args:   json.RawMessage(`{}`),
+				Args:   map[string]string{},
 			}}
 
 			So(pip.PreTasks(), ShouldBeNil)
@@ -852,7 +851,7 @@ func TestPipelineCancel(t *testing.T) {
 			Chain:  model.ChainError,
 			Rank:   0,
 			Type:   taskstest.TaskOK,
-			Args:   json.RawMessage(`{}`),
+			Args:   map[string]string{},
 		}}
 
 		Convey("Given an pre-transfer cancel", func(c C) {
@@ -881,13 +880,13 @@ func TestPipelineCancel(t *testing.T) {
 				Chain:  model.ChainPre,
 				Rank:   0,
 				Type:   taskstest.TaskOK,
-				Args:   json.RawMessage(`{}`),
+				Args:   map[string]string{},
 			}, {
 				RuleID: ctx.recv.ID,
 				Chain:  model.ChainPre,
 				Rank:   1,
 				Type:   taskstest.TaskOK,
-				Args:   json.RawMessage(`{}`),
+				Args:   map[string]string{},
 			}}
 
 			taskChan := make(chan bool)
@@ -957,13 +956,13 @@ func TestPipelineCancel(t *testing.T) {
 				Chain:  model.ChainPost,
 				Rank:   0,
 				Type:   taskstest.TaskOK,
-				Args:   json.RawMessage(`{}`),
+				Args:   map[string]string{},
 			}, {
 				RuleID: ctx.recv.ID,
 				Chain:  model.ChainPost,
 				Rank:   1,
 				Type:   taskstest.TaskOK,
-				Args:   json.RawMessage(`{}`),
+				Args:   map[string]string{},
 			}}
 
 			So(pip.PreTasks(), ShouldBeNil)

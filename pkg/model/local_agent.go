@@ -1,7 +1,6 @@
 package model
 
 import (
-	"encoding/json"
 	"fmt"
 	"net"
 
@@ -10,6 +9,7 @@ import (
 	"code.waarp.fr/apps/gateway/gateway/pkg/gatewayd/service/names"
 	"code.waarp.fr/apps/gateway/gateway/pkg/model/config"
 	"code.waarp.fr/apps/gateway/gateway/pkg/tk/utils"
+	"code.waarp.fr/apps/gateway/gateway/pkg/utils/compatibility"
 )
 
 // LocalAgent represents a local server instance operated by the gateway itself.
@@ -22,41 +22,30 @@ type LocalAgent struct {
 	Name     string `xorm:"name"`     // The server's name.
 	Address  string `xorm:"address"`  // The agent's address (including the port)
 	Protocol string `xorm:"protocol"` // The server's protocol.
-	Enabled  bool   `xorm:"enabled"`  // Whether the server is enabled at startup or not.
+	Disabled bool   `xorm:"disabled"` // Whether the server is enabled at startup or not.
 
 	RootDir       string `xorm:"root_dir"`        // The root directory of the agent.
 	ReceiveDir    string `xorm:"receive_dir"`     // The server's directory for received files.
 	SendDir       string `xorm:"send_dir"`        // The server's directory for files to be sent.
 	TmpReceiveDir string `xorm:"tmp_receive_dir"` // The server's temporary directory for partially received files.
 
-	// The server's protocol configuration in raw JSON format.
-	ProtoConfig json.RawMessage `xorm:"proto_config"`
+	// The server's protocol configuration as a map.
+	ProtoConfig map[string]any `xorm:"proto_config"`
 }
 
 func (*LocalAgent) TableName() string   { return TableLocAgents }
 func (*LocalAgent) Appellation() string { return "server" }
 func (l *LocalAgent) GetID() int64      { return l.ID }
 
-//nolint:dupl // factorizing would add complexity
 func (l *LocalAgent) validateProtoConfig() error {
-	protoConf, err := config.GetProtoConfig(l.Protocol, l.ProtoConfig)
-	if err != nil {
-		return fmt.Errorf("cannot parse protocol config for server %q: %w", l.Name, err)
+	if err := config.CheckServerConfig(l.Protocol, l.ProtoConfig); err != nil {
+		return database.NewValidationError(err.Error())
 	}
 
-	if r66Conf, ok := protoConf.(*config.R66ProtoConfig); ok && r66Conf.IsTLS != nil && *r66Conf.IsTLS {
+	// For backwards compatibility, in the presence of the r66 "isTLS" property,
+	// we change the protocol to r66-tls.
+	if l.Protocol == config.ProtocolR66 && compatibility.IsTLS(l.ProtoConfig) {
 		l.Protocol = config.ProtocolR66TLS
-	}
-
-	if err2 := protoConf.ValidServer(); err2 != nil {
-		return fmt.Errorf("the protocol configuration for server %q is not valid: %w",
-			l.Name, err2)
-	}
-
-	l.ProtoConfig, err = json.Marshal(protoConf)
-	if err != nil {
-		return fmt.Errorf("cannot marshal the protocol config for server %q to JSON: %w",
-			l.Name, err)
 	}
 
 	return nil
@@ -100,12 +89,13 @@ func (l *LocalAgent) BeforeWrite(db database.ReadAccess) database.Error {
 		return database.NewValidationError("the server's address cannot be empty")
 	}
 
-	if _, _, err := net.SplitHostPort(l.Address); err != nil {
-		return database.NewValidationError("'%s' is not a valid server address", l.Address)
+	if _, err := net.ResolveTCPAddr("tcp", l.Address); err != nil {
+		return database.NewValidationError("'%s' is not a valid server address: %v",
+			l.Address, err)
 	}
 
 	if l.ProtoConfig == nil {
-		l.ProtoConfig = json.RawMessage(`{}`)
+		l.ProtoConfig = map[string]any{}
 	}
 
 	if err := l.validateProtoConfig(); err != nil {
@@ -158,5 +148,13 @@ func (l *LocalAgent) SetAccessTarget(a *RuleAccess)        { a.LocalAgentID = ut
 func (l *LocalAgent) GenAccessSelectCond() (string, int64) { return "local_agent_id=?", l.ID }
 
 func (l *LocalAgent) GetAuthorizedRules(db database.ReadAccess) ([]*Rule, error) {
-	return getAuthorizedRules(db, "local_agent_id", l.ID)
+	var rules Rules
+	if err := db.Select(&rules).Where(fmt.Sprintf(
+		`id IN (SELECT DISTINCT rule_id FROM %s WHERE local_agent_id=?)
+		  OR (SELECT COUNT(*) FROM %s WHERE rule_id = id) = 0`,
+		TableRuleAccesses, TableRuleAccesses), l.ID).Run(); err != nil {
+		return nil, fmt.Errorf("failed to retrieve the authorized rules: %w", err)
+	}
+
+	return rules, nil
 }

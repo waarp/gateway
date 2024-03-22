@@ -1,9 +1,11 @@
 package sftp
 
 import (
+	"net"
 	"testing"
 
 	. "github.com/smartystreets/goconvey/convey"
+	"golang.org/x/crypto/ssh"
 
 	"code.waarp.fr/apps/gateway/gateway/pkg/conf"
 	"code.waarp.fr/apps/gateway/gateway/pkg/model"
@@ -13,13 +15,13 @@ import (
 )
 
 func TestAddressIndirection(t *testing.T) {
-	fakeAddr := "not_a_real_address:99999"
+	fakeAddr := "9.9.9.9:9999"
 
 	Convey("Given a SFTP service with an indirect address", t, func(c C) {
-		ctx := pipelinetest.InitSelfPushTransfer(c, "sftp", NewService, nil, nil)
-
-		realAddr := ctx.Server.Address
 		conf.InitTestOverrides(c)
+
+		ctx := pipelinetest.InitSelfPushTransfer(c, "sftp", nil, nil, nil)
+		realAddr := ctx.Server.Address
 
 		So(conf.AddIndirection(fakeAddr, realAddr), ShouldBeNil)
 		ctx.Server.Address = fakeAddr
@@ -44,18 +46,19 @@ func TestAddressIndirection(t *testing.T) {
 				pip, err := pipeline.NewClientPipeline(ctx.DB, ctx.ClientTrans)
 				So(err, ShouldBeNil)
 
-				cli, err := newClient(pip.Pipeline())
+				cli, err := newTransferClient(pip.Pipeline(), &net.Dialer{}, &ssh.Config{})
 				So(err, ShouldBeNil)
 
 				So(cli.Request(), ShouldBeNil)
+
 				defer func() {
-					_ = cli.remoteFile.Close()
-					_ = cli.sftpSession.Close()
-					_ = cli.sshSession.Close()
+					_ = cli.sftpFile.Close()
+					_ = cli.sftpClient.Close()
+					_ = cli.sshClient.Close()
 				}()
 
 				Convey("Then it should have connected to the server", func() {
-					So(cli.sshSession.RemoteAddr().String(), ShouldEqual, realAddr)
+					So(cli.sshClient.RemoteAddr().String(), ShouldEqual, realAddr)
 				})
 			})
 		})

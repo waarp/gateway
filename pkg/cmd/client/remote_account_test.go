@@ -1,7 +1,6 @@
 package wg
 
 import (
-	"encoding/json"
 	"net/http/httptest"
 	"net/url"
 	"testing"
@@ -46,8 +45,10 @@ func TestGetRemoteAccount(t *testing.T) {
 
 			send := &model.Rule{Name: "send_rule", IsSend: true, Path: "send_path"}
 			So(db.Insert(send).Run(), ShouldBeNil)
+
 			receive := &model.Rule{Name: "receive", IsSend: false, Path: "rcv_path"}
 			So(db.Insert(receive).Run(), ShouldBeNil)
+
 			sendAll := &model.Rule{Name: "send_all", IsSend: true, Path: "send_all_path"}
 			So(db.Insert(sendAll).Run(), ShouldBeNil)
 
@@ -55,6 +56,7 @@ func TestGetRemoteAccount(t *testing.T) {
 				RuleID: send.ID, RemoteAccountID: utils.NewNullInt64(account.ID),
 			}
 			So(db.Insert(sAccess).Run(), ShouldBeNil)
+
 			rAccess := &model.RuleAccess{
 				RuleID: receive.ID, RemoteAccountID: utils.NewNullInt64(account.ID),
 			}
@@ -71,7 +73,7 @@ func TestGetRemoteAccount(t *testing.T) {
 					Convey("Then it should display the account's info", func() {
 						a := &api.OutAccount{
 							Login: account.Login,
-							AuthorizedRules: &api.AuthorizedRules{
+							AuthorizedRules: api.AuthorizedRules{
 								Sending:   []string{send.Name, sendAll.Name},
 								Reception: []string{receive.Name},
 							},
@@ -193,10 +195,9 @@ func TestDeleteRemoteAccount(t *testing.T) {
 			So(err, ShouldBeNil)
 
 			partner := &model.RemoteAgent{
-				Name:        "partner",
-				Protocol:    testProto1,
-				ProtoConfig: json.RawMessage(`{}`),
-				Address:     "localhost:1",
+				Name:     "partner",
+				Protocol: testProto1,
+				Address:  "localhost:1",
 			}
 			So(db.Insert(partner).Run(), ShouldBeNil)
 			Partner = partner.Name
@@ -287,10 +288,9 @@ func TestUpdateRemoteAccount(t *testing.T) {
 			So(err, ShouldBeNil)
 
 			partner := &model.RemoteAgent{
-				Name:        "parent",
-				Protocol:    testProto1,
-				ProtoConfig: json.RawMessage(`{}`),
-				Address:     "localhost:1",
+				Name:     "parent",
+				Protocol: testProto1,
+				Address:  "localhost:1",
 			}
 			So(db.Insert(partner).Run(), ShouldBeNil)
 			Partner = partner.Name
@@ -389,19 +389,17 @@ func TestListRemoteAccount(t *testing.T) {
 			So(err, ShouldBeNil)
 
 			partner1 := &model.RemoteAgent{
-				Name:        "partner1",
-				Protocol:    testProto1,
-				ProtoConfig: json.RawMessage(`{}`),
-				Address:     "localhost:1",
+				Name:     "partner1",
+				Protocol: testProto1,
+				Address:  "localhost:1",
 			}
 			So(db.Insert(partner1).Run(), ShouldBeNil)
 			Partner = partner1.Name
 
 			partner2 := &model.RemoteAgent{
-				Name:        "partner2",
-				Protocol:    testProto1,
-				ProtoConfig: json.RawMessage(`{}`),
-				Address:     "localhost:2",
+				Name:     "partner2",
+				Protocol: testProto1,
+				Address:  "localhost:2",
 			}
 			So(db.Insert(partner2).Run(), ShouldBeNil)
 
@@ -540,10 +538,9 @@ func TestAuthorizeRemoteAccount(t *testing.T) {
 			So(err, ShouldBeNil)
 
 			partner := &model.RemoteAgent{
-				Name:        "partner",
-				Protocol:    testProto1,
-				ProtoConfig: json.RawMessage(`{}`),
-				Address:     "localhost:1",
+				Name:     "partner",
+				Protocol: testProto1,
+				Address:  "localhost:1",
 			}
 			So(db.Insert(partner).Run(), ShouldBeNil)
 
@@ -668,10 +665,9 @@ func TestRevokeRemoteAccount(t *testing.T) {
 			So(err, ShouldBeNil)
 
 			partner := &model.RemoteAgent{
-				Name:        "partner",
-				Protocol:    testProto1,
-				ProtoConfig: json.RawMessage(`{}`),
-				Address:     "localhost:1",
+				Name:     "partner",
+				Protocol: testProto1,
+				Address:  "localhost:1",
 			}
 			So(db.Insert(partner).Run(), ShouldBeNil)
 

@@ -1,20 +1,26 @@
+//nolint:dupl //identical to https.go for now, keep separate for future-proofing
 package config
 
 //nolint:gochecknoinits // init is used by design
 func init() {
-	ProtoConfigs["http"] = func() ProtoConfig { return new(HTTPProtoConfig) }
-	ProtoConfigs["https"] = func() ProtoConfig { return new(HTTPProtoConfig) }
+	ProtoConfigs["http"] = &Constructor{
+		Server:  func() ServerProtoConfig { return new(HTTPServerProtoConfig) },
+		Partner: func() PartnerProtoConfig { return new(HTTPPartnerProtoConfig) },
+		Client:  func() ClientProtoConfig { return new(HTTPClientProtoConfig) },
+	}
 }
 
-// HTTPProtoConfig represents the configuration of an HTTP or HTTPS agent.
-type HTTPProtoConfig struct{}
+// HTTPServerProtoConfig represents the configuration of a local HTTP server.
+type HTTPServerProtoConfig struct{}
 
-// ValidServer checks if the configuration is valid for a local HTTP server.
-func (h *HTTPProtoConfig) ValidServer() error {
-	return nil
-}
+func (h *HTTPServerProtoConfig) ValidServer() error { return nil }
 
-// ValidPartner checks if the configuration is valid for an HTTP partner.
-func (h *HTTPProtoConfig) ValidPartner() error {
-	return nil
-}
+// HTTPPartnerProtoConfig represents the configuration of a remote HTTP partner.
+type HTTPPartnerProtoConfig struct{}
+
+func (h *HTTPPartnerProtoConfig) ValidPartner() error { return nil }
+
+// HTTPClientProtoConfig represents the configuration of a local HTTP client.
+type HTTPClientProtoConfig struct{}
+
+func (h *HTTPClientProtoConfig) ValidClient() error { return nil }

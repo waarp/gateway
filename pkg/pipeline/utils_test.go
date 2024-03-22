@@ -1,7 +1,7 @@
 package pipeline
 
 import (
-	"encoding/json"
+	"context"
 	"errors"
 	"io"
 	"path"
@@ -15,6 +15,8 @@ import (
 	"code.waarp.fr/apps/gateway/gateway/pkg/database"
 	"code.waarp.fr/apps/gateway/gateway/pkg/fs"
 	"code.waarp.fr/apps/gateway/gateway/pkg/fs/fstest"
+	"code.waarp.fr/apps/gateway/gateway/pkg/gatewayd/service"
+	"code.waarp.fr/apps/gateway/gateway/pkg/gatewayd/service/state"
 	"code.waarp.fr/apps/gateway/gateway/pkg/model"
 	"code.waarp.fr/apps/gateway/gateway/pkg/model/config"
 	"code.waarp.fr/apps/gateway/gateway/pkg/model/types"
@@ -27,6 +29,7 @@ type testContext struct {
 	db   *database.DB
 	fs   fs.FS
 
+	client        *model.Client
 	partner       *model.RemoteAgent
 	remoteAccount *model.RemoteAccount
 	server        *model.LocalAgent
@@ -40,8 +43,10 @@ const testProtocol = "test_proto"
 
 //nolint:gochecknoinits // init is used by design
 func init() {
-	config.ProtoConfigs[testProtocol] = func() config.ProtoConfig {
-		return new(testhelpers.TestProtoConfig)
+	config.ProtoConfigs[testProtocol] = &config.Constructor{
+		Server:  func() config.ServerProtoConfig { return new(testhelpers.TestProtoConfig) },
+		Partner: func() config.PartnerProtoConfig { return new(testhelpers.TestProtoConfig) },
+		Client:  func() config.ClientProtoConfig { return new(testhelpers.TestProtoConfig) },
 	}
 }
 
@@ -124,10 +129,9 @@ func initTestDB(c C) *testContext {
 	So(fs.MkdirAll(testFS, rootPath.JoinPath(recv.TmpLocalRcvDir)), ShouldBeNil)
 
 	server := &model.LocalAgent{
-		Name:        "server",
-		Protocol:    testProtocol,
-		ProtoConfig: json.RawMessage(`{}`),
-		Address:     "localhost:1111",
+		Name:     "server",
+		Protocol: testProtocol,
+		Address:  "localhost:1111",
 	}
 	So(db.Insert(server).Run(), ShouldBeNil)
 
@@ -138,11 +142,17 @@ func initTestDB(c C) *testContext {
 	}
 	So(db.Insert(locAccount).Run(), ShouldBeNil)
 
+	client := &model.Client{
+		Name:         "client",
+		Protocol:     testProtocol,
+		LocalAddress: "127.0.0.1:2000",
+	}
+	So(db.Insert(client).Run(), ShouldBeNil)
+
 	partner := &model.RemoteAgent{
-		Name:        "partner",
-		Protocol:    testProtocol,
-		ProtoConfig: json.RawMessage(`{}`),
-		Address:     "localhost:2222",
+		Name:     "partner",
+		Protocol: testProtocol,
+		Address:  "localhost:2222",
 	}
 	So(db.Insert(partner).Run(), ShouldBeNil)
 
@@ -153,10 +163,13 @@ func initTestDB(c C) *testContext {
 	}
 	So(db.Insert(remAccount).Run(), ShouldBeNil)
 
+	Clients[client.Name] = newTestClient()
+
 	return &testContext{
 		root:          root,
 		db:            db,
 		fs:            testFS,
+		client:        client,
 		partner:       partner,
 		remoteAccount: remAccount,
 		server:        server,
@@ -171,6 +184,7 @@ func mkRecvTransfer(ctx *testContext, filename string) *model.Transfer {
 	So(fs.MkdirAll(ctx.fs, mkURL(ctx.root, ctx.send.TmpLocalRcvDir)), ShouldBeNil)
 
 	trans := &model.Transfer{
+		ClientID:        utils.NewNullInt64(ctx.client.ID),
 		RemoteAccountID: utils.NewNullInt64(ctx.remoteAccount.ID),
 		SrcFilename:     filename,
 		RuleID:          ctx.recv.ID,
@@ -187,6 +201,7 @@ func mkSendTransfer(ctx *testContext, filename string) *model.Transfer {
 	So(fs.MkdirAll(ctx.fs, mkURL(ctx.root, ctx.send.TmpLocalRcvDir)), ShouldBeNil)
 
 	trans := &model.Transfer{
+		ClientID:        utils.NewNullInt64(ctx.client.ID),
 		RemoteAccountID: utils.NewNullInt64(ctx.remoteAccount.ID),
 		SrcFilename:     filename,
 		RuleID:          ctx.send.ID,
@@ -308,17 +323,32 @@ var (
 	errData    = types.NewTransferError(types.TeDataTransfer, "data transfer failed")
 	errPost    = types.NewTransferError(types.TeExternalOperation, "remote post-tasks failed")
 	errEnd     = types.NewTransferError(types.TeFinalization, "remote transfer finalization failed")
-	errChan    = make(chan error, 1)
+	errChan    = make(chan error, 1) //nolint:gochecknoglobals //this is just for tests
 )
 
 //nolint:gochecknoinits // init is used by design
 func init() {
-	ClientConstructors[testProtocol] = newTestProtoClient
+	Clients["test_client"] = newTestClient()
 }
 
-func newTestProtoClient(*Pipeline) (Client, *types.TransferError) {
+func newTestClient() *testClient {
+	cli := &testClient{}
+	cli.state.Set(state.Running, "")
+
+	return cli
+}
+
+type testClient struct{ state state.State }
+
+func (c *testClient) Start() error        { return nil }
+func (c *testClient) State() *state.State { return &c.state }
+
+func (*testClient) InitTransfer(*Pipeline) (TransferClient, *types.TransferError) {
 	return &testProtoClient{}, nil
 }
+
+func (*testClient) ManageTransfers() *service.TransferMap { return service.NewTransferMap() }
+func (*testClient) Stop(context.Context) error            { return nil }
 
 type testProtoClient struct {
 	request, pre1, pre2, data, post1, post2, end bool

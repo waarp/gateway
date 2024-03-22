@@ -1,16 +1,24 @@
 package pipelinetest
 
-import "code.waarp.fr/apps/gateway/gateway/pkg/model/config"
+import (
+	"code.waarp.fr/lib/log"
 
-type features struct {
-	transID, ruleName, size bool
+	"code.waarp.fr/apps/gateway/gateway/pkg/database"
+	"code.waarp.fr/apps/gateway/gateway/pkg/gatewayd/service/proto"
+	"code.waarp.fr/apps/gateway/gateway/pkg/model"
+	"code.waarp.fr/apps/gateway/gateway/pkg/pipeline"
+)
+
+type ProtoFeatures struct {
+	ClientConstr            clientConstructor
+	ServiceConstr           serviceConstructor
+	TransID, RuleName, Size bool
 }
 
-//nolint:gochecknoglobals // global var is necessary here
-var protocols = map[string]features{
-	"sftp":                {transID: false, ruleName: false, size: false},
-	config.ProtocolR66:    {transID: true, ruleName: true, size: true},
-	config.ProtocolR66TLS: {transID: true, ruleName: true, size: true},
-	"http":                {transID: true, ruleName: true, size: true},
-	"https":               {transID: true, ruleName: true, size: true},
-}
+type (
+	serviceConstructor func(db *database.DB, logger *log.Logger) proto.Service
+	clientConstructor  func(*model.Client) (pipeline.Client, error)
+)
+
+//nolint:gochecknoglobals //global var is required here for more flexibility
+var Protocols = map[string]ProtoFeatures{}

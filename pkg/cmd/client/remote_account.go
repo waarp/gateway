@@ -166,7 +166,7 @@ func (r *RemAccAuthorize) Execute([]string) error {
 	addr.Path = fmt.Sprintf("/api/partners/%s/accounts/%s/authorize/%s/%s", Partner,
 		r.Args.Login, r.Args.Rule, r.Args.Direction)
 
-	return authorize("remote account", r.Args.Login, r.Args.Rule, r.Args.Direction)
+	return authorize(out, "remote account", r.Args.Login, r.Args.Rule, r.Args.Direction)
 }
 
 // ######################## REVOKE ##########################
@@ -183,5 +183,5 @@ func (r *RemAccRevoke) Execute([]string) error {
 	addr.Path = fmt.Sprintf("/api/partners/%s/accounts/%s/revoke/%s/%s", Partner,
 		r.Args.Login, r.Args.Rule, r.Args.Direction)
 
-	return revoke("remote account", r.Args.Login, r.Args.Rule, r.Args.Direction)
+	return revoke(out, "remote account", r.Args.Login, r.Args.Rule, r.Args.Direction)
 }

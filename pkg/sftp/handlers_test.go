@@ -1,7 +1,6 @@
 package sftp
 
 import (
-	"encoding/json"
 	"testing"
 
 	"github.com/pkg/sftp"
@@ -13,7 +12,6 @@ import (
 	"code.waarp.fr/apps/gateway/gateway/pkg/fs/fstest"
 	"code.waarp.fr/apps/gateway/gateway/pkg/gatewayd/service"
 	"code.waarp.fr/apps/gateway/gateway/pkg/model"
-	"code.waarp.fr/apps/gateway/gateway/pkg/model/config"
 	"code.waarp.fr/apps/gateway/gateway/pkg/model/types"
 	"code.waarp.fr/apps/gateway/gateway/pkg/tk/utils/testhelpers"
 )
@@ -56,9 +54,6 @@ func TestFileReader(t *testing.T) {
 				PasswordHash: hash("password"),
 			}
 			So(db.Insert(account).Run(), ShouldBeNil)
-
-			serverConf := config.SftpProtoConfig{}
-			So(json.Unmarshal(agent.ProtoConfig, &serverConf), ShouldBeNil)
 
 			Convey("Given the FileReader", func() {
 				conf.GlobalConfig.Paths = conf.PathsConfig{GatewayHome: root}
@@ -163,9 +158,6 @@ func TestFileWriter(t *testing.T) {
 				PasswordHash: hash("password"),
 			}
 			So(db.Insert(account).Run(), ShouldBeNil)
-
-			serverConf := config.SftpProtoConfig{}
-			So(json.Unmarshal(agent.ProtoConfig, &serverConf), ShouldBeNil)
 
 			Convey("Given the Filewriter", func() {
 				conf.GlobalConfig.Paths = conf.PathsConfig{GatewayHome: root}

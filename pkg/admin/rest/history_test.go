@@ -191,6 +191,7 @@ func TestListHistory(t *testing.T) {
 				RemoteTransferID: "2222",
 				IsServer:         false,
 				IsSend:           false,
+				Client:           "with1",
 				Account:          "from2",
 				Agent:            "to1",
 				Protocol:         "sftp",
@@ -210,6 +211,7 @@ func TestListHistory(t *testing.T) {
 				RemoteTransferID: "3333",
 				IsServer:         false,
 				IsSend:           true,
+				Client:           "with2",
 				Account:          "from3",
 				Agent:            "to2",
 				Protocol:         "sftp",
@@ -229,6 +231,7 @@ func TestListHistory(t *testing.T) {
 				RemoteTransferID: "4444",
 				IsServer:         false,
 				IsSend:           true,
+				Client:           "with3",
 				Account:          "from4",
 				Agent:            "to3",
 				Protocol:         "sftp",
@@ -463,9 +466,12 @@ func TestRestartHistory(t *testing.T) {
 		w := httptest.NewRecorder()
 
 		Convey("Given a database with 1 transfer history", func() {
+			client := &model.Client{Name: "test_client", Protocol: testProto1}
+			So(db.Insert(client).Run(), ShouldBeNil)
+
 			partner := &model.RemoteAgent{
 				Name:     "partner",
-				Protocol: testProto1,
+				Protocol: client.Protocol,
 				Address:  "localhost:2022",
 			}
 			So(db.Insert(partner).Run(), ShouldBeNil)
@@ -486,9 +492,10 @@ func TestRestartHistory(t *testing.T) {
 				IsServer:         false,
 				IsSend:           rule.IsSend,
 				Rule:             rule.Name,
+				Client:           client.Name,
 				Account:          account.Login,
 				Agent:            partner.Name,
-				Protocol:         testProto1,
+				Protocol:         client.Protocol,
 				SrcFilename:      "/source/file1.test",
 				DestFilename:     "/dest/file1.test",
 				LocalPath:        *mkURL("file:/local/file.test"),

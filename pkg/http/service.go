@@ -6,7 +6,6 @@ package http
 import (
 	"context"
 	"crypto/tls"
-	"encoding/json"
 	"fmt"
 	"net/http"
 	"time"
@@ -20,6 +19,7 @@ import (
 	"code.waarp.fr/apps/gateway/gateway/pkg/model"
 	"code.waarp.fr/apps/gateway/gateway/pkg/model/config"
 	"code.waarp.fr/apps/gateway/gateway/pkg/pipeline"
+	"code.waarp.fr/apps/gateway/gateway/pkg/tk/utils"
 )
 
 const readHeaderTimeout = 10 * time.Second
@@ -30,7 +30,7 @@ type httpService struct {
 	agentID int64
 	state   state.State
 
-	conf    config.HTTPProtoConfig
+	conf    config.HTTPServerProtoConfig
 	serv    *http.Server
 	tracer  func() pipeline.Trace
 	running *service.TransferMap
@@ -69,7 +69,7 @@ func (h *httpService) Start(agent *model.LocalAgent) (err error) {
 	h.logger.Info("Starting HTTP server '%s'...", agent.Name)
 	h.state.Set(state.Starting, "")
 
-	if err2 := json.Unmarshal(agent.ProtoConfig, &h.conf); err2 != nil {
+	if err2 := utils.JSONConvert(agent.ProtoConfig, &h.conf); err2 != nil {
 		h.logger.Error("Failed to parse server configuration: %s", err2)
 
 		return fmt.Errorf("failed to parse server configuration: %w", err2)

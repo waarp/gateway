@@ -4,11 +4,13 @@ import (
 	"code.waarp.fr/lib/log"
 
 	"code.waarp.fr/apps/gateway/gateway/pkg/backup/file"
+	"code.waarp.fr/apps/gateway/gateway/pkg/conf"
 	"code.waarp.fr/apps/gateway/gateway/pkg/database"
 	"code.waarp.fr/apps/gateway/gateway/pkg/model"
 	"code.waarp.fr/apps/gateway/gateway/pkg/model/types"
 )
 
+//nolint:funlen //splitting would add complexity
 func importRemoteAgents(logger *log.Logger, db database.Access,
 	list []file.RemoteAgent, reset bool,
 ) database.Error {
@@ -31,7 +33,8 @@ func importRemoteAgents(logger *log.Logger, db database.Access,
 
 		// Check if agent exists
 		exists := true
-		err := db.Get(&agent, "name=?", src.Name).Run()
+		err := db.Get(&agent, "name=? AND owner=?", src.Name,
+			conf.GlobalConfig.GatewayName).Run()
 
 		if database.IsNotFound(err) {
 			exists = false

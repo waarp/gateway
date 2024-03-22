@@ -16,7 +16,7 @@ import (
 	"code.waarp.fr/apps/gateway/gateway/pkg/tk/utils"
 )
 
-func makeServerConf(db *database.DB, protoConfig *config.SftpProtoConfig,
+func makeServerConf(db *database.DB, protoConfig *config.SftpServerProtoConfig,
 	agent *model.LocalAgent,
 ) *ssh.ServerConfig {
 	conf := &ssh.ServerConfig{
@@ -95,8 +95,8 @@ func setServerDefaultAlgos(conf *ssh.ServerConfig) {
 // getSSHServerConfig builds and returns an ssh.ServerConfig from the given
 // parameters. By default, the server accepts both public key & password
 // authentication, with the former having priority over the latter.
-func getSSHServerConfig(db *database.DB, hostkeys []*model.Crypto, protoConfig *config.SftpProtoConfig,
-	agent *model.LocalAgent,
+func getSSHServerConfig(db *database.DB, hostkeys []*model.Crypto,
+	protoConfig *config.SftpServerProtoConfig, agent *model.LocalAgent,
 ) (*ssh.ServerConfig, error) {
 	conf := makeServerConf(db, protoConfig, agent)
 

@@ -2,7 +2,7 @@ Référence
 #########
 
 .. toctree::
-   :maxdepth: 1
+   :maxdepth: 2
 
    cli/index
    configuration

@@ -24,6 +24,7 @@ func dbHistToFileTrans(hist *model.HistoryEntry, db database.ReadAccess) (*file.
 		Rule:           hist.Rule,
 		IsSend:         hist.IsSend,
 		IsServer:       hist.IsServer,
+		Client:         hist.Client,
 		Requester:      hist.Account,
 		Requested:      hist.Agent,
 		Protocol:       hist.Protocol,

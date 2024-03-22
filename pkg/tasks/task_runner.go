@@ -2,11 +2,11 @@
 package tasks
 
 import (
-	"bytes"
 	"context"
 	"encoding/json"
 	"errors"
 	"fmt"
+	"strings"
 	"sync"
 
 	"code.waarp.fr/lib/log"
@@ -183,14 +183,9 @@ func (r *Runner) runTasks(tasks []*model.Task, isErrTasks bool, trace func(rank 
 // setup contextualizes and unmarshalls the tasks arguments.
 // It returns a json object exploitable by the task.
 func (r *Runner) setup(t *model.Task) (map[string]string, error) {
-	sArgs, err := r.replace(t)
+	args, err := r.replace(t)
 	if err != nil {
 		return nil, err
-	}
-
-	args := map[string]string{}
-	if err := json.Unmarshal(sArgs, &args); err != nil {
-		return nil, fmt.Errorf("cannot parse task arguments: %w", err)
 	}
 
 	return args, nil
@@ -198,29 +193,39 @@ func (r *Runner) setup(t *model.Task) (map[string]string, error) {
 
 // replaces all the context variables (#varname#) in the tasks arguments
 // by their context value.
-func (r *Runner) replace(t *model.Task) ([]byte, error) {
-	res := t.Args
+func (r *Runner) replace(t *model.Task) (map[string]string, error) {
+	raw, jsonErr := json.Marshal(t.Args)
+	if jsonErr != nil {
+		return nil, fmt.Errorf("failed to serialize the task arguments: %w", jsonErr)
+	}
+
+	rawArgs := string(raw)
 	replacers := getReplacers()
 	replacers.addInfo(r.transCtx)
 
 	for key, f := range replacers {
-		if bytes.Contains(res, []byte(key)) {
-			r, err := f(r)
+		if strings.Contains(rawArgs, key) {
+			rep, err := f(r)
 			if err != nil {
 				return nil, err
 			}
 
-			rep, err := json.Marshal(r)
+			bytesRep, err := json.Marshal(rep)
 			if err != nil {
 				return nil, fmt.Errorf("cannot prepare value for replacement: %w", err)
 			}
 
-			rep = rep[1 : len(rep)-1]
-			res = bytes.ReplaceAll(res, []byte(key), rep)
+			replacement := string(bytesRep[1 : len(bytesRep)-1])
+			rawArgs = strings.ReplaceAll(rawArgs, key, replacement)
 		}
 	}
 
-	return res, nil
+	var newArgs map[string]string
+	if err := json.Unmarshal([]byte(rawArgs), &newArgs); err != nil {
+		return nil, fmt.Errorf("failed to deserialize the task arguments: %w", err)
+	}
+
+	return newArgs, nil
 }
 
 func (r *Runner) getFilesize() int64 {

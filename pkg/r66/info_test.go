@@ -1,7 +1,6 @@
 package r66
 
 import (
-	"encoding/json"
 	"testing"
 	"time"
 
@@ -13,7 +12,6 @@ import (
 	"code.waarp.fr/apps/gateway/gateway/pkg/fs"
 	"code.waarp.fr/apps/gateway/gateway/pkg/fs/fstest"
 	"code.waarp.fr/apps/gateway/gateway/pkg/model"
-	"code.waarp.fr/apps/gateway/gateway/pkg/model/config"
 	"code.waarp.fr/apps/gateway/gateway/pkg/model/types"
 	"code.waarp.fr/apps/gateway/gateway/pkg/tk/utils"
 	"code.waarp.fr/apps/gateway/gateway/pkg/tk/utils/testhelpers"
@@ -28,18 +26,15 @@ func TestGetFileInfo(t *testing.T) {
 		db := database.TestDatabase(c)
 		conf.GlobalConfig.Paths.GatewayHome = root
 
-		protoConf, err := json.Marshal(config.R66ProtoConfig{
-			ServerLogin: "r66_server", ServerPassword: "foobar",
-		})
-		So(err, ShouldBeNil)
-
 		agent := &model.LocalAgent{
-			Name:        "r66_server",
-			Protocol:    "r66",
-			RootDir:     "r66_root",
-			SendDir:     "send",
-			Address:     "localhost:6666",
-			ProtoConfig: protoConf,
+			Name:     "r66_server",
+			Protocol: "r66",
+			RootDir:  "r66_root",
+			SendDir:  "send",
+			Address:  "localhost:6666",
+			ProtoConfig: map[string]any{
+				"serverLogin": "r66_server", "serverPassword": "foobar",
+			},
 		}
 		So(db.Insert(agent).Run(), ShouldBeNil)
 
@@ -157,20 +152,15 @@ func TestGetTransferInfo(t *testing.T) {
 		db := database.TestDatabase(c)
 		conf.GlobalConfig.Paths.GatewayHome = root
 
-		protoConfig := config.R66ProtoConfig{
-			ServerLogin: "r66_server", ServerPassword: "foobar",
-		}
-
-		jsonProtoConf, err := json.Marshal(protoConfig)
-		So(err, ShouldBeNil)
-
 		agent := &model.LocalAgent{
-			Name:        "r66_server",
-			Protocol:    "r66",
-			RootDir:     "r66_root",
-			SendDir:     "send",
-			Address:     "localhost:6666",
-			ProtoConfig: jsonProtoConf,
+			Name:     "r66_server",
+			Protocol: "r66",
+			RootDir:  "r66_root",
+			SendDir:  "send",
+			Address:  "localhost:6666",
+			ProtoConfig: map[string]any{
+				"serverLogin": "r66_server", "serverPassword": "foobar",
+			},
 		}
 		So(db.Insert(agent).Run(), ShouldBeNil)
 
@@ -234,7 +224,7 @@ func TestGetTransferInfo(t *testing.T) {
 						File:      "file.ex",
 						Rule:      rule.Name,
 						IsRecv:    rule.IsSend,
-						IsMd5:     protoConfig.CheckBlockHash,
+						IsMd5:     false,
 						BlockSize: 65536,
 						Info:      `{"key":"val"}`,
 						Start:     trans.Start,

@@ -20,8 +20,10 @@ const testProtocol = "test_proto"
 
 //nolint:gochecknoinits // init is used to ease the tests
 func init() {
-	config.ProtoConfigs[testProtocol] = func() config.ProtoConfig {
-		return new(testhelpers.TestProtoConfig)
+	config.ProtoConfigs[testProtocol] = &config.Constructor{
+		Server:  func() config.ServerProtoConfig { return new(testhelpers.TestProtoConfig) },
+		Partner: func() config.PartnerProtoConfig { return new(testhelpers.TestProtoConfig) },
+		Client:  func() config.ClientProtoConfig { return new(testhelpers.TestProtoConfig) },
 	}
 }
 
@@ -33,6 +35,7 @@ func TestPurgeCommand(t *testing.T) {
 			ID:               1,
 			RemoteTransferID: "000",
 			Rule:             "foobar",
+			Client:           "cli",
 			Account:          "foo",
 			Agent:            "bar",
 			Protocol:         "test_proto",
@@ -47,6 +50,7 @@ func TestPurgeCommand(t *testing.T) {
 			ID:               2,
 			RemoteTransferID: "123",
 			Rule:             "foobar",
+			Client:           "cli",
 			Account:          "foo",
 			Agent:            "bar",
 			Protocol:         "test_proto",
@@ -62,6 +66,7 @@ func TestPurgeCommand(t *testing.T) {
 			ID:               3,
 			RemoteTransferID: "456",
 			Rule:             "foobar",
+			Client:           "cli",
 			Account:          "foo",
 			Agent:            "bar",
 			Protocol:         "test_proto",

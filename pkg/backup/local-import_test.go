@@ -1,7 +1,6 @@
 package backup
 
 import (
-	"encoding/json"
 	"testing"
 
 	. "github.com/smartystreets/goconvey/convey"
@@ -33,7 +32,9 @@ func TestImportLocalAgents(t *testing.T) {
 			}
 			owner := conf.GlobalConfig.GatewayName
 			conf.GlobalConfig.GatewayName = "toto"
+
 			So(db.Insert(agent2).Run(), ShouldBeNil)
+
 			conf.GlobalConfig.GatewayName = owner
 
 			So(db.Insert(agent).Run(), ShouldBeNil)
@@ -49,7 +50,7 @@ func TestImportLocalAgents(t *testing.T) {
 				newServer := LocalAgent{
 					Name:          "foo",
 					Protocol:      testProtocol,
-					Configuration: json.RawMessage(`{}`),
+					Configuration: map[string]any{},
 					Address:       "localhost:1111",
 					Accounts: []LocalAccount{
 						{
@@ -123,7 +124,7 @@ func TestImportLocalAgents(t *testing.T) {
 				agent1 := LocalAgent{
 					Name:          agent.Name,
 					Protocol:      testProtocol,
-					Configuration: json.RawMessage(`{}`),
+					Configuration: map[string]any{},
 					Address:       "localhost:6666",
 					Accounts: []LocalAccount{
 						{

@@ -2,7 +2,6 @@ package tasks
 
 import (
 	"context"
-	"encoding/json"
 	"fmt"
 	"testing"
 
@@ -89,11 +88,13 @@ func TestTransferRun(t *testing.T) {
 		}
 		So(db.Insert(pull).Run(), ShouldBeNil)
 
+		client := &model.Client{Name: "cli", Protocol: testProtocol}
+		So(db.Insert(client).Run(), ShouldBeNil)
+
 		partner := &model.RemoteAgent{
-			Name:        "test partner",
-			Protocol:    testProtocol,
-			ProtoConfig: json.RawMessage(`{}`),
-			Address:     "localhost:1111",
+			Name:     "test partner",
+			Protocol: client.Protocol,
+			Address:  "localhost:1111",
 		}
 		So(db.Insert(partner).Run(), ShouldBeNil)
 
@@ -106,6 +107,7 @@ func TestTransferRun(t *testing.T) {
 
 		oldTransfer := &model.Transfer{
 			RemoteAccountID: utils.NewNullInt64(account.ID),
+			ClientID:        utils.NewNullInt64(client.ID),
 			RuleID:          pull.ID,
 			SrcFilename:     "/old/test/file",
 		}
@@ -115,6 +117,7 @@ func TestTransferRun(t *testing.T) {
 			runner := &TransferTask{}
 			args := map[string]string{
 				"file":     "/test/file",
+				"using":    client.Name,
 				"to":       partner.Name,
 				"as":       account.Login,
 				"rule":     push.Name,
@@ -197,15 +200,30 @@ func TestTransferRun(t *testing.T) {
 					})
 				})
 			})
+
+			Convey("Given that the client does not exist", func() {
+				args["using"] = "toto"
+
+				Convey("When running the task", func() {
+					err := runner.Run(context.Background(), args, db, logger, nil)
+
+					Convey("Then it should return an error", func() {
+						So(err, ShouldBeError, fmt.Sprintf(
+							"failed to retrieve client %q: client not found",
+							args["using"]))
+					})
+				})
+			})
 		})
 
 		Convey("Given a receive 'TRANSFER' task", func() {
 			trans := &TransferTask{}
 			args := map[string]string{
-				"file": "/test/file",
-				"from": partner.Name,
-				"as":   account.Login,
-				"rule": pull.Name,
+				"file":  "/test/file",
+				"using": client.Name,
+				"from":  partner.Name,
+				"as":    account.Login,
+				"rule":  pull.Name,
 			}
 
 			Convey("Given that the parameters are valid", func() {

@@ -1,22 +1,18 @@
 package api
 
-import (
-	"encoding/json"
-)
-
 // InServer is the JSON representation of a local agent in requests
 // made to the REST interface.
 //
 //nolint:lll // JSON tags can be long
 type InServer struct {
-	Name          *string         `json:"name,omitempty"`
-	Protocol      *string         `json:"protocol,omitempty"`
-	Address       *string         `json:"address,omitempty"`
-	RootDir       *string         `json:"rootDir,omitempty"`
-	ReceiveDir    *string         `json:"receiveDir,omitempty"`
-	SendDir       *string         `json:"sendDir,omitempty"`
-	TmpReceiveDir *string         `json:"tmpReceiveDir,omitempty"`
-	ProtoConfig   json.RawMessage `json:"protoConfig,omitempty"`
+	Name          *string        `json:"name,omitempty"`
+	Protocol      *string        `json:"protocol,omitempty"`
+	Address       *string        `json:"address,omitempty"`
+	RootDir       *string        `json:"rootDir,omitempty"`
+	ReceiveDir    *string        `json:"receiveDir,omitempty"`
+	SendDir       *string        `json:"sendDir,omitempty"`
+	TmpReceiveDir *string        `json:"tmpReceiveDir,omitempty"`
+	ProtoConfig   map[string]any `json:"protoConfig,omitempty"`
 
 	// Deprecated fields
 	Root    *string `json:"root,omitempty"`    // Deprecated: replaced by RootDir
@@ -38,7 +34,7 @@ type OutServer struct {
 	ReceiveDir      string           `json:"receiveDir,omitempty"`
 	SendDir         string           `json:"sendDir,omitempty"`
 	TmpReceiveDir   string           `json:"tmpReceiveDir,omitempty"`
-	ProtoConfig     json.RawMessage  `json:"protoConfig"`
+	ProtoConfig     map[string]any   `json:"protoConfig"`
 	AuthorizedRules *AuthorizedRules `json:"authorizedRules"`
 
 	// Deprecated fields

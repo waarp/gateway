@@ -5,7 +5,6 @@ package r66
 import (
 	"context"
 	"crypto/tls"
-	"encoding/json"
 	"errors"
 	"fmt"
 	"net"
@@ -41,7 +40,7 @@ type Service struct {
 	state   state.State
 	tracer  func() pipeline.Trace
 
-	r66Conf  *config.R66ProtoConfig
+	r66Conf  *config.R66ServerProtoConfig
 	list     net.Listener
 	server   *r66.Server
 	shutdown chan struct{}
@@ -105,8 +104,8 @@ func (s *Service) Start(agent *model.LocalAgent) error {
 	s.logger.Info("Starting R66 server '%s'...", agent.Name)
 	s.state.Set(state.Starting, "")
 
-	s.r66Conf = &config.R66ProtoConfig{}
-	if err := json.Unmarshal(agent.ProtoConfig, s.r66Conf); err != nil {
+	s.r66Conf = &config.R66ServerProtoConfig{}
+	if err := utils.JSONConvert(agent.ProtoConfig, s.r66Conf); err != nil {
 		s.logger.Error("Failed to parse server the R66 proto config: %s", err)
 		err1 := fmt.Errorf("failed to parse the R66 proto config: %w", err)
 		s.state.Set(state.Error, err1.Error())
@@ -218,7 +217,11 @@ func (s *Service) Stop(ctx context.Context) error {
 	s.logger.Debug("Closing listener...")
 
 	if err := s.server.Shutdown(ctx); err != nil {
-		s.logger.Warning("Failed to properly shutdown R66 server")
+		s.logger.Warning("Failed to properly shutdown R66 server: %v", err)
+	}
+
+	if err := s.list.Close(); err != nil {
+		s.logger.Warning("Error while closing the listener: %v", err)
 	}
 
 	s.logger.Info("R66 server shutdown successful")

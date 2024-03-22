@@ -13,6 +13,7 @@ import (
 
 	"code.waarp.fr/apps/gateway/gateway/pkg/admin/rest/api"
 	"code.waarp.fr/apps/gateway/gateway/pkg/model/types"
+	"code.waarp.fr/apps/gateway/gateway/pkg/tk/utils"
 )
 
 //nolint:funlen //splitting would add complexity
@@ -29,7 +30,7 @@ func displayHistory(w io.Writer, hist *api.OutHistory) {
 
 	size := sizeUnknown
 	if hist.Filesize >= 0 {
-		size = fmt.Sprint(hist.Filesize)
+		size = utils.FormatInt(hist.Filesize)
 	}
 
 	stop := NotApplicable
@@ -37,7 +38,7 @@ func displayHistory(w io.Writer, hist *api.OutHistory) {
 		stop = hist.Stop.Local().Format(time.RFC3339Nano)
 	}
 
-	fmt.Fprintln(w, orange(bold("● Transfer", hist.ID, "(as", role+")")), coloredStatus(hist.Status))
+	fmt.Fprintln(w, boldOrange("● Transfer %d (as %s)", hist.ID, role), coloredStatus(hist.Status))
 
 	if hist.RemoteID != "" {
 		fmt.Fprintln(w, orange("    Remote ID:      "), hist.RemoteID)
@@ -99,7 +100,7 @@ type HistoryGet struct {
 }
 
 func (h *HistoryGet) Execute([]string) error {
-	addr.Path = path.Join("/api/history/", fmt.Sprint(h.Args.ID))
+	addr.Path = path.Join("/api/history/", utils.FormatUint(h.Args.ID))
 
 	trans := &api.OutHistory{}
 	if err := get(trans); err != nil {
@@ -129,8 +130,8 @@ type HistoryList struct {
 func (h *HistoryList) listURL() error {
 	addr.Path = "/api/history"
 	query := url.Values{}
-	query.Set("limit", fmt.Sprint(h.Limit))
-	query.Set("offset", fmt.Sprint(h.Offset))
+	query.Set("limit", utils.FormatUint(h.Limit))
+	query.Set("offset", utils.FormatUint(h.Offset))
 	query.Set("sort", h.SortBy)
 
 	for _, acc := range h.Requester {

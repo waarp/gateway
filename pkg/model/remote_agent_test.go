@@ -1,7 +1,7 @@
 package model
 
 import (
-	"encoding/json"
+	"fmt"
 	"testing"
 
 	. "github.com/smartystreets/goconvey/convey"
@@ -48,6 +48,7 @@ func TestRemoteAgentBeforeDelete(t *testing.T) {
 				RemoteAgentID: utils.NewNullInt64(ag.ID),
 			}
 			So(db.Insert(&agAccess).Run(), ShouldBeNil)
+
 			accAccess := RuleAccess{
 				RuleID:          rule.ID,
 				RemoteAccountID: utils.NewNullInt64(acc.ID),
@@ -104,8 +105,12 @@ func TestRemoteAgentBeforeDelete(t *testing.T) {
 			})
 
 			Convey("Given that the agent is used in a transfer", func() {
+				cli := &Client{Protocol: ag.Protocol}
+				So(db.Insert(cli).Run(), ShouldBeNil)
+
 				trans := &Transfer{
 					RuleID:          rule.ID,
+					ClientID:        utils.NewNullInt64(cli.ID),
 					RemoteAccountID: utils.NewNullInt64(acc.ID),
 					SrcFilename:     "file",
 				}
@@ -145,15 +150,17 @@ func TestRemoteAgentValidate(t *testing.T) {
 					Address:  "localhost:2023",
 				}
 
-				shouldFailWith := func(errDesc string, expErr error) {
+				shouldFailWith := func(expMsg string, args ...any) {
+					expErr := fmt.Sprintf(expMsg, args...)
+
 					Convey("When calling the 'BeforeWrite' function", func() {
 						err := db.Transaction(func(ses *database.Session) database.Error {
 							return newAgent.BeforeWrite(ses)
 						})
 
-						Convey("Then the error should say that "+errDesc, func() {
+						Convey("Then the error should say that "+expErr, func() {
 							So(err, ShouldBeError)
-							So(err.Error(), ShouldContainSubstring, expErr.Error())
+							So(err.Error(), ShouldContainSubstring, expErr)
 						})
 					})
 				}
@@ -172,39 +179,40 @@ func TestRemoteAgentValidate(t *testing.T) {
 
 				Convey("Given that the new agent is missing a name", func() {
 					newAgent.Name = ""
-					shouldFailWith("the name is missing", database.NewValidationError(
-						"the agent's name cannot be empty"))
+
+					shouldFailWith("the agent's name cannot be empty")
 				})
 
 				Convey("Given that the new agent's name is already taken", func() {
 					newAgent.Name = oldAgent.Name
-					shouldFailWith("the name is already taken", database.NewValidationError(
-						"a remote agent with the same name '%s' already exist", newAgent.Name))
+
+					shouldFailWith(
+						"a remote agent with the same name '%s' already exist",
+						newAgent.Name)
 				})
 
 				Convey("Given that the new agent is missing an address", func() {
 					newAgent.Address = ""
-					shouldFailWith("the address is missing", database.NewValidationError(
-						"the partner's address cannot be empty"))
+
+					shouldFailWith("the partner's address cannot be empty")
 				})
 
 				Convey("Given that the new agent's address is invalid", func() {
 					newAgent.Address = "not_an_address"
-					shouldFailWith("the address is invalid", database.NewValidationError(
-						"'not_an_address' is not a valid partner address"))
+
+					shouldFailWith("'not_an_address' is not a valid partner address")
 				})
 
 				Convey("Given that the new agent's protocol is not valid", func() {
 					newAgent.Protocol = "not a protocol"
-					shouldFailWith("the protocol is invalid", database.NewValidationError(
-						"unknown protocol '%s'", newAgent.Protocol))
+
+					shouldFailWith(`unknown protocol "not a protocol"`)
 				})
 
 				Convey("Given that the new agent's protocol configuration is not valid", func() {
-					newAgent.ProtoConfig = json.RawMessage("invalid")
-					shouldFailWith("the configuration is invalid", database.NewValidationError(
-						"failed to parse protocol configuration: invalid "+
-							"character 'i' looking for beginning of value"))
+					newAgent.ProtoConfig = map[string]any{"": nil}
+
+					shouldFailWith(`invalid proto config: json: unknown field ""`)
 				})
 			})
 		})

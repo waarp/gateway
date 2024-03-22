@@ -10,9 +10,8 @@ import (
 	"sync"
 	"testing"
 
-	. "github.com/smartystreets/goconvey/convey"
-
 	"code.waarp.fr/lib/log"
+	. "github.com/smartystreets/goconvey/convey"
 )
 
 func initLogger() (*log.Logger, io.Reader, func()) {
@@ -161,6 +160,7 @@ func TestLogSha1(t *testing.T) {
 
 				Convey("Then it should have logged the deprecation of SHA1", func() {
 					done()
+
 					bytes, err := io.ReadAll(reader)
 					So(err, ShouldBeNil)
 

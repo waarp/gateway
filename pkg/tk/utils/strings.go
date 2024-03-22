@@ -24,7 +24,7 @@ func ContainsStrings(slice []string, strings ...string) bool {
 	return foundIndex != n
 }
 
-func FormatInt[T constraints.Integer](i T) string {
+func FormatInt[T constraints.Signed](i T) string {
 	return strconv.FormatInt(int64(i), 10)
 }
 

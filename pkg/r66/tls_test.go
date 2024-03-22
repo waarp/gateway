@@ -10,11 +10,26 @@ import (
 	. "github.com/smartystreets/goconvey/convey"
 
 	"code.waarp.fr/apps/gateway/gateway/pkg/model"
+	"code.waarp.fr/apps/gateway/gateway/pkg/model/config"
 	"code.waarp.fr/apps/gateway/gateway/pkg/model/types"
 	"code.waarp.fr/apps/gateway/gateway/pkg/pipeline"
 	"code.waarp.fr/apps/gateway/gateway/pkg/pipeline/pipelinetest"
 	"code.waarp.fr/apps/gateway/gateway/pkg/tk/utils/testhelpers"
 )
+
+//nolint:gochecknoglobals // this variable is only used for tests
+var (
+	cliConfTLS  = &config.R66ClientProtoConfig{}
+	servConfTLS = &config.R66ServerProtoConfig{ServerLogin: "r66_login", ServerPassword: "sesame"}
+	partConfTLS = &config.R66PartnerProtoConfig{ServerLogin: "r66_login", ServerPassword: "sesame"}
+)
+
+func init() {
+	pipelinetest.Protocols[ProtocolR66TLS] = pipelinetest.ProtoFeatures{
+		ClientConstr: NewClient, ServiceConstr: NewService,
+		TransID: true, RuleName: true, Size: true,
+	}
+}
 
 func TestTLS(t *testing.T) {
 	Convey("Given a TLS R66 server", t, func(c C) {
@@ -23,7 +38,7 @@ func TestTLS(t *testing.T) {
 			Detail: "invalid certificate: x509: certificate signed by unknown authority",
 		}
 
-		ctx := pipelinetest.InitServerPush(c, ProtocolR66TLS, NewService, servConf)
+		ctx := pipelinetest.InitServerPush(c, ProtocolR66TLS, servConfTLS)
 		ctx.AddCryptos(c, cert(ctx.Server, "server_cert",
 			testhelpers.LocalhostCert, testhelpers.LocalhostKey))
 		ctx.StartService(c)
@@ -85,13 +100,13 @@ func TestTLS(t *testing.T) {
 	})
 
 	Convey("Given a TLS R66 client", t, func(c C) {
-		ctx := pipelinetest.InitClientPush(c, ProtocolR66TLS, partConf)
-		getClient := func() *client {
+		ctx := pipelinetest.InitClientPush(c, ProtocolR66TLS, cliConfTLS, partConfTLS)
+		getClient := func() *transferClient {
 			pip, err := pipeline.NewClientPipeline(ctx.DB, ctx.ClientTrans)
 			c.So(err, ShouldBeNil)
 
-			cli, err := newClient(pip.Pip)
-			So(err, ShouldBeError)
+			cli, ok := pip.Client.(*transferClient)
+			So(ok, ShouldBeTrue)
 
 			return cli
 		}

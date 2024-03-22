@@ -81,11 +81,18 @@ Si tout s'est bien passé, la commande ``status`` devrait lister le nouveau serv
 .. code-block:: shell-session
 
    # waarp-gateway -a "http://admin:admin_password@127.0.0.1:8080" status
-   Waarp-Gateway services:
-   [Active]  Admin
-   [Active]  Controller
-   [Active]  Database
-   [Active]  sftp_server
+   Server info: waarp-gatewayd/0.4.0
+   Local date: Mon, 02 Jan 2006 16:04:05 CET
+
+   Core services:
+   [Active] Admin
+   [Active] Controller
+   [Active] Database
+
+   Servers:
+   [Active] sftp_server
+
+   Clients: <none>
 
 Création d'un utilisateur
 =========================

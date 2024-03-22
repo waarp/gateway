@@ -1,7 +1,7 @@
 package internal
 
 import (
-	"fmt"
+	"errors"
 	"net"
 	"testing"
 	"time"
@@ -9,13 +9,15 @@ import (
 	"code.waarp.fr/lib/r66"
 	. "github.com/smartystreets/goconvey/convey"
 
+	"code.waarp.fr/apps/gateway/gateway/pkg/model"
+	"code.waarp.fr/apps/gateway/gateway/pkg/model/config"
 	"code.waarp.fr/apps/gateway/gateway/pkg/tk/utils/testhelpers"
 )
 
 func testR66Server() string {
 	authHandler := testAuthHandler(func(*r66.Authent) (r66.SessionHandler, error) {
 		return testSessionHandler(func(*r66.Request) (r66.TransferHandler, error) {
-			return nil, fmt.Errorf("should not happen") //nolint:goerr113 //base test error
+			return nil, errors.New("should not happen") //nolint:goerr113 //base test error
 		}), nil
 	})
 
@@ -40,7 +42,12 @@ func TestConnPool(t *testing.T) {
 	Convey("Given an R66 server", t, func(c C) {
 		logger := testhelpers.TestLogger(c, "test_r66_conn_pool")
 		addr := testR66Server()
-		pool := NewConnPool()
+		pool, err := NewConnPool(&model.Client{
+			Name:         "test_cli",
+			Protocol:     "r66",
+			LocalAddress: "127.0.0.1:0",
+		}, &config.R66ClientProtoConfig{})
+		So(err, ShouldBeNil)
 
 		pool.connGracePeriod = time.Millisecond
 

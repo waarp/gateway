@@ -1,7 +1,6 @@
 package backup
 
 import (
-	"encoding/json"
 	"testing"
 
 	. "github.com/smartystreets/goconvey/convey"
@@ -18,10 +17,9 @@ func TestExportCertificates(t *testing.T) {
 
 		Convey("Given the database contains 1 local agent with a certificate", func() {
 			agent := &model.LocalAgent{
-				Name:        "server",
-				Protocol:    testProtocol,
-				ProtoConfig: json.RawMessage(`{}`),
-				Address:     "localhost:6666",
+				Name:     "server",
+				Protocol: testProtocol,
+				Address:  "localhost:6666",
 			}
 			So(db.Insert(agent).Run(), ShouldBeNil)
 

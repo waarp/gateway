@@ -10,6 +10,6 @@ type InAccount struct {
 // OutAccount is the JSON representation of a local/remote account in responses
 // sent by the REST interface.
 type OutAccount struct {
-	Login           string           `json:"login"`
-	AuthorizedRules *AuthorizedRules `json:"authorizedRules"`
+	Login           string          `json:"login"`
+	AuthorizedRules AuthorizedRules `json:"authorizedRules"`
 }

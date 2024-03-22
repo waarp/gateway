@@ -32,22 +32,6 @@ func getCryptos(db database.ReadAccess, owner CryptoOwner) (Cryptos, error) {
 	return certs, nil
 }
 
-func getAuthorizedRules(db database.ReadAccess, ownerCol string, ownerID int64,
-) (Rules, error) {
-	tbl := TableRuleAccesses
-
-	var rules Rules
-	if err := db.Select(&rules).Where(
-		"(id IN (SELECT DISTINCT rule_id FROM "+tbl+" WHERE "+ownerCol+"=?))"+
-			" OR "+
-			"(SELECT COUNT(*) FROM "+tbl+" WHERE rule_id = id) = 0",
-		ownerID).Run(); err != nil {
-		return nil, fmt.Errorf("failed to retrieve the authorized rules: %w", err)
-	}
-
-	return rules, nil
-}
-
 // CheckClientAuthent checks whether the given certificate chain is valid as a
 // client certificate for the given login, using the target cryptos as root CAs.
 func CheckClientAuthent(c *Cryptos, login string, certs []*x509.Certificate) error {

@@ -8,7 +8,7 @@ import (
 )
 
 func displayUser(w io.Writer, user *api.OutUser) {
-	fmt.Fprintln(w, bold("● User", user.Username))
+	fmt.Fprintln(w, bold("● User %q", user.Username))
 	fmt.Fprintln(w, orange("    Permissions:"))
 	fmt.Fprintln(w, bold("    ├─Transfers:"), user.Perms.Transfers)
 	fmt.Fprintln(w, bold("    ├─Servers:  "), user.Perms.Servers)
@@ -84,9 +84,7 @@ func (u *UserUpdate) Execute([]string) error {
 
 	if u.Perms != nil {
 		var err error
-		perms, err = parsePerms(*u.Perms)
-
-		if err != nil {
+		if perms, err = parsePerms(*u.Perms); err != nil {
 			return err
 		}
 	}

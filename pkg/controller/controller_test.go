@@ -15,6 +15,7 @@ import (
 	"code.waarp.fr/apps/gateway/gateway/pkg/gatewayd/service/state"
 	"code.waarp.fr/apps/gateway/gateway/pkg/model"
 	"code.waarp.fr/apps/gateway/gateway/pkg/model/types"
+	"code.waarp.fr/apps/gateway/gateway/pkg/pipeline"
 	"code.waarp.fr/apps/gateway/gateway/pkg/tk/utils"
 	"code.waarp.fr/apps/gateway/gateway/pkg/tk/utils/testhelpers"
 )
@@ -25,9 +26,14 @@ func TestControllerListen(t *testing.T) {
 		logger := testhelpers.TestLogger(c, "test_controller")
 		db := database.TestDatabase(c)
 
+		client := &model.Client{Name: "client", Protocol: testProtocol}
+		So(db.Insert(client).Run(), ShouldBeNil)
+
+		pipeline.Clients[client.Name] = newAllSuccess()
+
 		remote := &model.RemoteAgent{
 			Name:     "test remote",
-			Protocol: testProtocol,
+			Protocol: client.Protocol,
 			Address:  "localhost:1111",
 		}
 		So(db.Insert(remote).Run(), ShouldBeNil)
@@ -67,6 +73,7 @@ func TestControllerListen(t *testing.T) {
 
 				trans := &model.Transfer{
 					RuleID:          rule.ID,
+					ClientID:        utils.NewNullInt64(client.ID),
 					RemoteAccountID: utils.NewNullInt64(account.ID),
 					SrcFilename:     "file_1",
 					Start:           time.Date(2022, 1, 1, 1, 0, 0, 0, time.UTC),
@@ -127,6 +134,7 @@ func TestControllerListen(t *testing.T) {
 
 				trans := &model.Transfer{
 					RuleID:          rule.ID,
+					ClientID:        utils.NewNullInt64(client.ID),
 					RemoteAccountID: utils.NewNullInt64(account.ID),
 					SrcFilename:     "file2",
 					Start:           time.Date(2022, 1, 1, 1, 0, 0, 0, time.UTC),

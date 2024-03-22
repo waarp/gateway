@@ -12,16 +12,22 @@ import (
 
 	"code.waarp.fr/apps/gateway/gateway/pkg/admin/rest"
 	"code.waarp.fr/apps/gateway/gateway/pkg/admin/rest/api"
+	"code.waarp.fr/apps/gateway/gateway/pkg/conf"
 	"code.waarp.fr/apps/gateway/gateway/pkg/database"
 	"code.waarp.fr/apps/gateway/gateway/pkg/model"
 	"code.waarp.fr/apps/gateway/gateway/pkg/tk/utils"
 )
 
 func partnerInfoString(p *api.OutPartner) string {
-	return "● Partner " + p.Name + "\n" +
+	protoConfig, err := json.Marshal(p.ProtoConfig)
+	if err != nil {
+		protoConfig = []byte("<error while serializing the configuration>")
+	}
+
+	return "● Partner \"" + p.Name + "\"\n" +
 		"    Protocol:      " + p.Protocol + "\n" +
 		"    Address:       " + p.Address + "\n" +
-		"    Configuration: " + string(p.ProtoConfig) + "\n" +
+		"    Configuration: " + string(protoConfig) + "\n" +
 		"    Authorized rules\n" +
 		"    ├─Sending:   " + strings.Join(p.AuthorizedRules.Sending, ", ") + "\n" +
 		"    └─Reception: " + strings.Join(p.AuthorizedRules.Reception, ", ") + "\n"
@@ -48,8 +54,10 @@ func TestGetPartner(t *testing.T) {
 
 			send := &model.Rule{Name: "send_rule", IsSend: true, Path: "send_path"}
 			So(db.Insert(send).Run(), ShouldBeNil)
+
 			receive := &model.Rule{Name: "receive", IsSend: false, Path: "rcv_path"}
 			So(db.Insert(receive).Run(), ShouldBeNil)
+
 			sendAll := &model.Rule{Name: "send_all", IsSend: true, Path: "send_all_path"}
 			So(db.Insert(sendAll).Run(), ShouldBeNil)
 
@@ -57,6 +65,7 @@ func TestGetPartner(t *testing.T) {
 				RuleID: send.ID, RemoteAgentID: utils.NewNullInt64(partner.ID),
 			}
 			So(db.Insert(sAccess).Run(), ShouldBeNil)
+
 			rAccess := &model.RuleAccess{
 				RuleID: receive.ID, RemoteAgentID: utils.NewNullInt64(partner.ID),
 			}
@@ -76,7 +85,7 @@ func TestGetPartner(t *testing.T) {
 							Protocol:    partner.Protocol,
 							Address:     partner.Address,
 							ProtoConfig: partner.ProtoConfig,
-							AuthorizedRules: &api.AuthorizedRules{
+							AuthorizedRules: api.AuthorizedRules{
 								Sending:   []string{send.Name, sendAll.Name},
 								Reception: []string{receive.Name},
 							},
@@ -138,9 +147,10 @@ func TestAddPartner(t *testing.T) {
 
 						So(partners, ShouldContain, &model.RemoteAgent{
 							ID:          1,
+							Owner:       conf.GlobalConfig.GatewayName,
 							Name:        "server_name",
 							Protocol:    testProto1,
-							ProtoConfig: json.RawMessage(`{"key1":"val1","key2":"val2"}`),
+							ProtoConfig: map[string]any{"key1": "val1", "key2": "val2"},
 							Address:     "localhost:1",
 						})
 					})
@@ -160,7 +170,7 @@ func TestAddPartner(t *testing.T) {
 
 					Convey("Then it should return an error", func() {
 						So(err, ShouldBeError)
-						So(err.Error(), ShouldContainSubstring, "unknown protocol 'invalid'")
+						So(err.Error(), ShouldContainSubstring, `unknown protocol "invalid"`)
 					})
 				})
 			})
@@ -178,8 +188,7 @@ func TestAddPartner(t *testing.T) {
 
 					Convey("Then it should return an error", func() {
 						So(err, ShouldBeError)
-						So(err.Error(), ShouldContainSubstring, `failed to parse protocol `+
-							`configuration: json: unknown field "key"`)
+						So(err.Error(), ShouldContainSubstring, `json: unknown field "key"`)
 					})
 				})
 			})
@@ -419,10 +428,11 @@ func TestUpdatePartner(t *testing.T) {
 
 						So(partners, ShouldContain, &model.RemoteAgent{
 							ID:          originalPartner.ID,
+							Owner:       conf.GlobalConfig.GatewayName,
 							Name:        "new_partner",
 							Protocol:    testProto2,
 							Address:     "localhost:1",
-							ProtoConfig: json.RawMessage(`{}`),
+							ProtoConfig: map[string]any{},
 						})
 					})
 				})
@@ -442,7 +452,7 @@ func TestUpdatePartner(t *testing.T) {
 
 					Convey("Then it should return an error", func() {
 						So(err, ShouldBeError)
-						So(err.Error(), ShouldContainSubstring, "unknown protocol 'invalid'")
+						So(err.Error(), ShouldContainSubstring, `unknown protocol "invalid"`)
 					})
 
 					Convey("Then the partner should stay unchanged", func() {
@@ -467,8 +477,8 @@ func TestUpdatePartner(t *testing.T) {
 
 					Convey("Then it should return an error", func() {
 						So(err, ShouldBeError)
-						So(err.Error(), ShouldContainSubstring, `failed to parse protocol `+
-							`configuration: json: unknown field "key"`)
+						So(err.Error(), ShouldContainSubstring,
+							`invalid proto config: json: unknown field "key"`)
 					})
 
 					Convey("Then the partner should stay unchanged", func() {
@@ -640,10 +650,9 @@ func TestRevokePartner(t *testing.T) {
 			So(err, ShouldBeNil)
 
 			partner := &model.RemoteAgent{
-				Name:        "partner",
-				Protocol:    testProto1,
-				ProtoConfig: json.RawMessage(`{}`),
-				Address:     "localhost:1",
+				Name:     "partner",
+				Protocol: testProto1,
+				Address:  "localhost:1",
 			}
 			So(db.Insert(partner).Run(), ShouldBeNil)
 

@@ -1,7 +1,6 @@
 package backup
 
 import (
-	"encoding/json"
 	"fmt"
 	"testing"
 
@@ -167,7 +166,7 @@ func TestExportRuleTasks(t *testing.T) {
 				Chain:  model.ChainPre,
 				Rank:   0,
 				Type:   "COPY",
-				Args:   json.RawMessage(`{"path":"pre1"}`),
+				Args:   map[string]string{"path": "pre1"},
 			}
 			So(db.Insert(pre1).Run(), ShouldBeNil)
 
@@ -184,7 +183,7 @@ func TestExportRuleTasks(t *testing.T) {
 				Chain:  model.ChainPost,
 				Rank:   1,
 				Type:   "COPY",
-				Args:   json.RawMessage(`{"path":"post2"}`),
+				Args:   map[string]string{"path": "post2"},
 			}
 			So(db.Insert(post2).Run(), ShouldBeNil)
 
@@ -193,7 +192,7 @@ func TestExportRuleTasks(t *testing.T) {
 				Chain:  model.ChainError,
 				Rank:   0,
 				Type:   "MOVE",
-				Args:   json.RawMessage(`{"path":"error1"}`),
+				Args:   map[string]string{"path": "error1"},
 			}
 			So(db.Insert(error1).Run(), ShouldBeNil)
 

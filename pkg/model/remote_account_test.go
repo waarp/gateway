@@ -82,8 +82,12 @@ func TestRemoteAccountBeforeDelete(t *testing.T) {
 			})
 
 			Convey("Given that the account is used in a transfer", func() {
+				cli := &Client{Protocol: ag.Protocol}
+				So(db.Insert(cli).Run(), ShouldBeNil)
+
 				trans := Transfer{
 					RuleID:          rule.ID,
+					ClientID:        utils.NewNullInt64(cli.ID),
 					RemoteAccountID: utils.NewNullInt64(acc.ID),
 					SrcFilename:     "file",
 				}
@@ -156,24 +160,28 @@ func TestRemoteAccountBeforeWrite(t *testing.T) {
 
 				Convey("Given that the new account is missing an agent ID", func() {
 					newAccount.RemoteAgentID = 0
+
 					shouldFailWith("the agent ID is missing", database.NewValidationError(
 						"the account's agentID cannot be empty"))
 				})
 
 				Convey("Given that the new account is missing a login", func() {
 					newAccount.Login = ""
+
 					shouldFailWith("the login is missing", database.NewValidationError(
 						"the account's login cannot be empty"))
 				})
 
 				Convey("Given that the new account has an invalid agent ID", func() {
 					newAccount.RemoteAgentID = 1000
+
 					shouldFailWith("the agent ID is invalid", database.NewValidationError(
 						"no remote agent found with the ID '%d'", newAccount.RemoteAgentID))
 				})
 
 				Convey("Given that the new account's login is already taken", func() {
 					newAccount.Login = oldAccount.Login
+
 					shouldFailWith("the login is already taken", database.NewValidationError(
 						"a remote account with the same login '%s' already exist",
 						newAccount.Login))

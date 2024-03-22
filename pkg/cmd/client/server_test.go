@@ -30,6 +30,11 @@ func serverInfoString(s *api.OutServer) string {
 		status = "Disabled"
 	}
 
+	protoConfig, err := json.Marshal(s.ProtoConfig)
+	if err != nil {
+		protoConfig = []byte("<error while serializing the configuration>")
+	}
+
 	return `● Server "` + s.Name + `" [` + status + "]\n" +
 		"    Protocol:               " + s.Protocol + "\n" +
 		"    Address:                " + s.Address + "\n" +
@@ -37,7 +42,7 @@ func serverInfoString(s *api.OutServer) string {
 		"    Receive directory:      " + s.ReceiveDir + "\n" +
 		"    Send directory:         " + s.SendDir + "\n" +
 		"    Temp receive directory: " + s.TmpReceiveDir + "\n" +
-		"    Configuration:          " + string(s.ProtoConfig) + "\n" +
+		"    Configuration:          " + string(protoConfig) + "\n" +
 		"    Authorized rules\n" +
 		"    ├─Sending:              " + strings.Join(s.AuthorizedRules.Sending, ", ") + "\n" +
 		"    └─Reception:            " + strings.Join(s.AuthorizedRules.Reception, ", ") + "\n"
@@ -68,8 +73,10 @@ func TestGetServer(t *testing.T) {
 
 			send := &model.Rule{Name: "send", IsSend: true, Path: "send_path"}
 			So(db.Insert(send).Run(), ShouldBeNil)
+
 			receive := &model.Rule{Name: "receive", IsSend: false, Path: "rcv_path"}
 			So(db.Insert(receive).Run(), ShouldBeNil)
+
 			sendAll := &model.Rule{Name: "send_all", IsSend: true, Path: "send_all_path"}
 			So(db.Insert(sendAll).Run(), ShouldBeNil)
 
@@ -77,6 +84,7 @@ func TestGetServer(t *testing.T) {
 				RuleID: send.ID, LocalAgentID: utils.NewNullInt64(server.ID),
 			}
 			So(db.Insert(sAccess).Run(), ShouldBeNil)
+
 			rAccess := &model.RuleAccess{
 				RuleID: receive.ID, LocalAgentID: utils.NewNullInt64(server.ID),
 			}
@@ -96,6 +104,7 @@ func TestGetServer(t *testing.T) {
 							Protocol:      server.Protocol,
 							Address:       server.Address,
 							RootDir:       server.RootDir,
+							Enabled:       true,
 							ReceiveDir:    server.ReceiveDir,
 							SendDir:       server.SendDir,
 							TmpReceiveDir: server.TmpReceiveDir,
@@ -171,7 +180,7 @@ func TestAddServer(t *testing.T) {
 							ReceiveDir:    *command.ReceiveDir,
 							SendDir:       *command.SendDir,
 							TmpReceiveDir: *command.TempRcvDir,
-							ProtoConfig:   json.RawMessage(`{}`),
+							ProtoConfig:   map[string]any{},
 						})
 					})
 				})
@@ -190,7 +199,7 @@ func TestAddServer(t *testing.T) {
 
 					Convey("Then it should return an error", func() {
 						So(err, ShouldBeError)
-						So(err.Error(), ShouldContainSubstring, "unknown protocol 'invalid'")
+						So(err.Error(), ShouldContainSubstring, `unknown protocol "invalid"`)
 					})
 				})
 			})
@@ -208,9 +217,7 @@ func TestAddServer(t *testing.T) {
 					err = command.Execute(params)
 
 					Convey("Then it should return an error", func() {
-						So(err, ShouldBeError)
-						So(err.Error(), ShouldContainSubstring, `failed to parse protocol `+
-							`configuration: json: unknown field "key"`)
+						So(err, ShouldBeError, `invalid proto config: json: unknown field "key"`)
 					})
 				})
 			})
@@ -228,7 +235,7 @@ func TestAddServer(t *testing.T) {
 
 					Convey("Then it should return an error", func() {
 						So(err, ShouldBeError, "'invalid_address' is not a valid "+
-							"server address")
+							"server address: address invalid_address: missing port in address")
 					})
 				})
 			})
@@ -257,15 +264,10 @@ func TestAddServer(t *testing.T) {
 						So(db.Select(&servers).Run(), ShouldBeNil)
 						So(len(servers), ShouldEqual, 1)
 
-						var r66Conf config.R66ProtoConfig
-						So(json.Unmarshal(servers[0].ProtoConfig, &r66Conf), ShouldBeNil)
-						pwd, err := utils.AESDecrypt(database.GCM, r66Conf.ServerPassword)
+						pwd, err := utils.AESDecrypt(database.GCM,
+							servers[0].ProtoConfig["serverPassword"].(string))
 						So(err, ShouldBeNil)
-
 						So(pwd, ShouldEqual, "sesame")
-						r66Conf.ServerPassword = "sesame"
-						servers[0].ProtoConfig, err = json.Marshal(r66Conf)
-						So(err, ShouldBeNil)
 
 						So(servers[0], ShouldResemble, &model.LocalAgent{
 							ID:            1,
@@ -277,7 +279,10 @@ func TestAddServer(t *testing.T) {
 							ReceiveDir:    "rcv_dir",
 							SendDir:       "snd_dir",
 							TmpReceiveDir: "tmp_dir",
-							ProtoConfig:   json.RawMessage(`{"blockSize":256,"serverPassword":"sesame"}`),
+							ProtoConfig: map[string]any{
+								"blockSize":      float64(256),
+								"serverPassword": servers[0].ProtoConfig["serverPassword"].(string),
+							},
 						})
 					})
 				})
@@ -305,7 +310,6 @@ func TestListServers(t *testing.T) {
 				ReceiveDir:    "/test/in1",
 				SendDir:       "/test/out1",
 				TmpReceiveDir: "/test/tmp1",
-				ProtoConfig:   json.RawMessage(`{}`),
 				Address:       "localhost:1",
 			}
 			So(db.Insert(server1).Run(), ShouldBeNil)
@@ -317,7 +321,6 @@ func TestListServers(t *testing.T) {
 				ReceiveDir:    "/test/in2",
 				SendDir:       "/test/out2",
 				TmpReceiveDir: "/test/tmp2",
-				ProtoConfig:   json.RawMessage(`{}`),
 				Address:       "localhost:2",
 			}
 			So(db.Insert(server2).Run(), ShouldBeNil)
@@ -418,15 +421,14 @@ func TestDeleteServer(t *testing.T) {
 			So(err, ShouldBeNil)
 
 			server := &model.LocalAgent{
-				Name:        "server_name",
-				Protocol:    testProto1,
-				ProtoConfig: json.RawMessage(`{}`),
-				Address:     "localhost:1",
+				Name:     "server_name",
+				Protocol: testProto1,
+				Address:  "localhost:1",
 			}
 			So(db.Insert(server).Run(), ShouldBeNil)
 
 			logger := testhelpers.TestLogger(c, server.Name)
-			testProtoServices[server.ID] = newTestServer(db, logger)
+			testProtoServices[server.Name] = newTestServer(db, logger)
 
 			Convey("Given a valid server name", func() {
 				args := []string{server.Name}
@@ -485,12 +487,14 @@ func TestUpdateServer(t *testing.T) {
 			So(err, ShouldBeNil)
 
 			originalServer := &model.LocalAgent{
-				Name:        "server",
-				Protocol:    testProto1,
-				ProtoConfig: json.RawMessage(`{}`),
-				Address:     "localhost:1",
+				Name:     "server",
+				Protocol: testProto1,
+				Address:  "localhost:1",
 			}
 			So(db.Insert(originalServer).Run(), ShouldBeNil)
+
+			logger := testhelpers.TestLogger(c, originalServer.Name)
+			testProtoServices[originalServer.Name] = newTestServer(db, logger)
 
 			Convey("Given all valid flags", func() {
 				args := []string{
@@ -519,7 +523,7 @@ func TestUpdateServer(t *testing.T) {
 							Name:        *command.Name,
 							Address:     *command.Address,
 							Protocol:    *command.Protocol,
-							ProtoConfig: json.RawMessage(`{}`),
+							ProtoConfig: map[string]any{},
 						})
 					})
 				})
@@ -539,7 +543,7 @@ func TestUpdateServer(t *testing.T) {
 
 					Convey("Then it should return an error", func() {
 						So(err, ShouldBeError)
-						So(err.Error(), ShouldContainSubstring, "unknown protocol 'invalid'")
+						So(err.Error(), ShouldContainSubstring, `unknown protocol "invalid"`)
 					})
 
 					Convey("Then the server should stay unchanged", func() {
@@ -563,9 +567,7 @@ func TestUpdateServer(t *testing.T) {
 					err = command.Execute(params)
 
 					Convey("Then it should return an error", func() {
-						So(err, ShouldBeError)
-						So(err.Error(), ShouldContainSubstring, "failed to parse protocol "+
-							`configuration: json: unknown field "key"`)
+						So(err, ShouldBeError, `invalid proto config: json: unknown field "key"`)
 					})
 
 					Convey("Then the server should stay unchanged", func() {
@@ -590,7 +592,7 @@ func TestUpdateServer(t *testing.T) {
 
 					Convey("Then it should return an error", func() {
 						So(err, ShouldBeError, "'invalid_address' is not a valid "+
-							"server address")
+							"server address: address invalid_address: missing port in address")
 					})
 
 					Convey("Then the server should stay unchanged", func() {
@@ -641,10 +643,9 @@ func TestAuthorizeServer(t *testing.T) {
 			So(err, ShouldBeNil)
 
 			server := &model.LocalAgent{
-				Name:        "server",
-				Protocol:    testProto1,
-				ProtoConfig: json.RawMessage(`{}`),
-				Address:     "localhost:1",
+				Name:     "server",
+				Protocol: testProto1,
+				Address:  "localhost:1",
 			}
 			So(db.Insert(server).Run(), ShouldBeNil)
 
@@ -738,10 +739,9 @@ func TestRevokeServer(t *testing.T) {
 			So(err, ShouldBeNil)
 
 			server := &model.LocalAgent{
-				Name:        "server",
-				Protocol:    testProto1,
-				ProtoConfig: json.RawMessage(`{}`),
-				Address:     "localhost:1",
+				Name:     "server",
+				Protocol: testProto1,
+				Address:  "localhost:1",
 			}
 			So(db.Insert(server).Run(), ShouldBeNil)
 
@@ -832,7 +832,7 @@ func TestEnableDisableServer(t *testing.T) {
 	)
 
 	Convey(`Given the server "enable" command`, t, func() {
-		out = testFile()
+		w := &strings.Builder{}
 		command := &ServerEnable{}
 
 		expected := &expectedRequest{
@@ -846,10 +846,10 @@ func TestEnableDisableServer(t *testing.T) {
 			testServer(expected, result)
 
 			Convey("When executing the command", func() {
-				So(executeCommand(command, locAgentName), ShouldBeNil)
+				So(executeCommand(w, command, locAgentName), ShouldBeNil)
 
 				Convey("Then it should display a message saying the server was enabled", func() {
-					So(getOutput(), ShouldEqual, "The server "+locAgentName+
+					So(w.String(), ShouldEqual, "The server "+locAgentName+
 						" was successfully enabled.\n")
 				})
 			})
@@ -857,7 +857,7 @@ func TestEnableDisableServer(t *testing.T) {
 	})
 
 	Convey(`Given the server "disable" command`, t, func() {
-		out = testFile()
+		w := &strings.Builder{}
 		command := &ServerDisable{}
 
 		expected := &expectedRequest{
@@ -871,10 +871,10 @@ func TestEnableDisableServer(t *testing.T) {
 			testServer(expected, result)
 
 			Convey("When executing the command", func() {
-				So(executeCommand(command, locAgentName), ShouldBeNil)
+				So(executeCommand(w, command, locAgentName), ShouldBeNil)
 
 				Convey("Then it should display a message saying the server was disabled", func() {
-					So(getOutput(), ShouldEqual, "The server "+locAgentName+
+					So(w.String(), ShouldEqual, "The server "+locAgentName+
 						" was successfully disabled.\n")
 				})
 			})
@@ -889,17 +889,16 @@ func TestStartServer(t *testing.T) {
 
 		Convey("Given a gateway with 1 local server", func(c C) {
 			db := database.TestDatabase(c)
-			protoServices := map[int64]proto.Service{}
+			protoServices := map[string]proto.Service{}
 			gw := httptest.NewServer(admin.MakeHandler(discard(), db, nil, protoServices))
 			var err error
 			addr, err = url.Parse("http://admin:admin_password@" + gw.Listener.Addr().String())
 			So(err, ShouldBeNil)
 
 			agent := &model.LocalAgent{
-				Name:        "server_name",
-				Protocol:    testProto1,
-				ProtoConfig: json.RawMessage(`{}`),
-				Address:     "localhost:1",
+				Name:     "server_name",
+				Protocol: testProto1,
+				Address:  "localhost:1",
 			}
 			So(db.Insert(agent).Run(), ShouldBeNil)
 
@@ -917,9 +916,9 @@ func TestStartServer(t *testing.T) {
 					})
 
 					Convey("Then the server should have been started", func() {
-						So(protoServices, ShouldContainKey, agent.ID)
+						So(protoServices, ShouldContainKey, agent.Name)
 
-						code, _ := protoServices[agent.ID].State().Get()
+						code, _ := protoServices[agent.Name].State().Get()
 						So(code, ShouldEqual, state.Running)
 					})
 				})
@@ -953,24 +952,23 @@ func TestStopServer(t *testing.T) {
 
 		Convey("Given a gateway with 1 local server", func(c C) {
 			db := database.TestDatabase(c)
-			protoServices := map[int64]proto.Service{}
+			protoServices := map[string]proto.Service{}
 			gw := httptest.NewServer(admin.MakeHandler(discard(), db, nil, protoServices))
 			var err error
 			addr, err = url.Parse("http://admin:admin_password@" + gw.Listener.Addr().String())
 			So(err, ShouldBeNil)
 
 			agent := &model.LocalAgent{
-				Name:        "server_name",
-				Protocol:    testProto1,
-				ProtoConfig: json.RawMessage(`{}`),
-				Address:     "localhost:1",
+				Name:     "server_name",
+				Protocol: testProto1,
+				Address:  "localhost:1",
 			}
 			So(db.Insert(agent).Run(), ShouldBeNil)
 
 			serv := &testLocalServer{}
 			So(serv.Start(agent), ShouldBeNil)
 
-			protoServices[agent.ID] = serv
+			protoServices[agent.Name] = serv
 
 			Convey("Given a valid server name", func() {
 				args := []string{agent.Name}
@@ -1021,27 +1019,23 @@ func TestRestartServer(t *testing.T) {
 
 		Convey("Given a gateway with 1 local server", func(c C) {
 			db := database.TestDatabase(c)
-			protoServices := map[int64]proto.Service{}
+			protoServices := map[string]proto.Service{}
 			gw := httptest.NewServer(admin.MakeHandler(discard(), db, nil, protoServices))
 			var err error
 			addr, err = url.Parse("http://admin:admin_password@" + gw.Listener.Addr().String())
 			So(err, ShouldBeNil)
 
 			agent := &model.LocalAgent{
-				Name:        "server_name",
-				Protocol:    testProto1,
-				ProtoConfig: json.RawMessage(`{}`),
-				Address:     "localhost:1",
+				Name:     "server_name",
+				Protocol: testProto1,
+				Address:  "localhost:1",
 			}
 			So(db.Insert(agent).Run(), ShouldBeNil)
 
 			serv := &testLocalServer{}
 			So(serv.Start(agent), ShouldBeNil)
 
-			protoServices[agent.ID] = serv
-
-			agent.Name = "restarted server_name"
-			So(db.Update(agent).Run(), ShouldBeNil)
+			protoServices[agent.Name] = serv
 
 			Convey("Given a valid server name", func() {
 				args := []string{agent.Name}
@@ -1059,7 +1053,7 @@ func TestRestartServer(t *testing.T) {
 					Convey("Then the server should have been restarted", func() {
 						code, _ := serv.State().Get()
 						So(code, ShouldEqual, state.Running)
-						So(serv.name, ShouldEqual, "restarted server_name")
+						So(serv.stopped, ShouldBeTrue)
 					})
 				})
 			})
@@ -1079,7 +1073,7 @@ func TestRestartServer(t *testing.T) {
 					Convey("Then the server should not have been restarted", func() {
 						code, _ := serv.State().Get()
 						So(code, ShouldEqual, state.Running)
-						So(serv.name, ShouldEqual, "server_name")
+						So(serv.stopped, ShouldBeFalse)
 					})
 				})
 			})

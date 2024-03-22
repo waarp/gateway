@@ -40,6 +40,7 @@ type Transfer struct {
 	Owner            string               `xorm:"owner"`
 	RemoteTransferID string               `xorm:"remote_transfer_id"`
 	RuleID           int64                `xorm:"rule_id"`
+	ClientID         sql.NullInt64        `xorm:"client_id"`
 	LocalAccountID   sql.NullInt64        `xorm:"local_account_id"`
 	RemoteAccountID  sql.NullInt64        `xorm:"remote_account_id"`
 	SrcFilename      string               `xorm:"src_filename"`
@@ -173,6 +174,8 @@ func (t *Transfer) checkMandatoryValues(rule *Rule) database.Error {
 
 // BeforeWrite checks if the new `Transfer` entry is valid and can be
 // inserted in the database.
+//
+//nolint:funlen //no easy way to split the function
 func (t *Transfer) BeforeWrite(db database.ReadAccess) database.Error {
 	t.Owner = conf.GlobalConfig.GatewayName
 
@@ -194,9 +197,13 @@ func (t *Transfer) BeforeWrite(db database.ReadAccess) database.Error {
 	}
 
 	switch {
-	case !t.LocalAccountID.Valid && !t.RemoteAccountID.Valid:
-		return database.NewValidationError("the transfer is missing an account ID")
-	case !t.LocalAccountID.Valid:
+	case t.LocalAccountID.Valid && t.RemoteAccountID.Valid:
+		return database.NewValidationError("the transfer cannot have both a local and remote account ID")
+	case t.RemoteAccountID.Valid:
+		if !t.ClientID.Valid {
+			return database.NewValidationError("the transfer is missing a client ID")
+		}
+
 		if err := db.Get(&RemoteAccount{}, "id=?", t.RemoteAccountID.Int64).Run(); err != nil {
 			if database.IsNotFound(err) {
 				return database.NewValidationError("the remote account %d does not exist",
@@ -205,7 +212,16 @@ func (t *Transfer) BeforeWrite(db database.ReadAccess) database.Error {
 
 			return err
 		}
-	case !t.RemoteAccountID.Valid:
+
+		if err := db.Get(&Client{}, "id=?", t.ClientID.Int64).Run(); err != nil {
+			if database.IsNotFound(err) {
+				return database.NewValidationError("the client %d does not exist",
+					t.LocalAccountID.Int64)
+			}
+
+			return err
+		}
+	case t.LocalAccountID.Valid:
 		if err := db.Get(&LocalAccount{}, "id=?", t.LocalAccountID.Int64).Run(); err != nil {
 			if database.IsNotFound(err) {
 				return database.NewValidationError("the local account %d does not exist",
@@ -215,7 +231,7 @@ func (t *Transfer) BeforeWrite(db database.ReadAccess) database.Error {
 			return err
 		}
 	default:
-		return database.NewValidationError("the transfer cannot have both a local and remote account ID")
+		return database.NewValidationError("the transfer is missing an account ID")
 	}
 
 	// Check for rule access
@@ -228,32 +244,47 @@ func (t *Transfer) BeforeWrite(db database.ReadAccess) database.Error {
 	return t.checkRemoteTransferID(db)
 }
 
-func (t *Transfer) makeAgentInfo(db database.ReadAccess) (string, string, string, database.Error) {
+func (t *Transfer) makeAgentInfo(db database.ReadAccess,
+) (proto, client, agent, account string, err database.Error) {
 	if t.IsServer() {
-		var account LocalAccount
-		if err := db.Get(&account, "id=?", t.LocalAccountID).Run(); err != nil {
-			return "", "", "", err
+		var locAcc LocalAccount
+		if err = db.Get(&locAcc, "id=?", t.LocalAccountID.Int64).Run(); err != nil {
+			return "", "", "", "", err
 		}
 
-		var agent LocalAgent
-		if err := db.Get(&agent, "id=?", account.LocalAgentID).Run(); err != nil {
-			return "", "", "", err
+		var locAg LocalAgent
+		if err = db.Get(&locAg, "id=?", locAcc.LocalAgentID).Run(); err != nil {
+			return "", "", "", "", err
 		}
 
-		return agent.Name, account.Login, agent.Protocol, nil
+		proto = locAg.Protocol
+		agent = locAg.Name
+		account = locAcc.Login
+
+		return proto, "", agent, account, nil
 	}
 
-	var account RemoteAccount
-	if err := db.Get(&account, "id=?", t.RemoteAccountID).Run(); err != nil {
-		return "", "", "", err
+	var remAcc RemoteAccount
+	if err = db.Get(&remAcc, "id=?", t.RemoteAccountID.Int64).Run(); err != nil {
+		return "", "", "", "", err
 	}
 
-	var agent RemoteAgent
-	if err := db.Get(&agent, "id=?", account.RemoteAgentID).Run(); err != nil {
-		return "", "", "", err
+	var remAg RemoteAgent
+	if err = db.Get(&remAg, "id=?", remAcc.RemoteAgentID).Run(); err != nil {
+		return "", "", "", "", err
 	}
 
-	return agent.Name, account.Login, agent.Protocol, nil
+	var cli Client
+	if err = db.Get(&cli, "id=?", t.ClientID).Run(); err != nil {
+		return "", "", "", "", err
+	}
+
+	proto = cli.Protocol
+	client = cli.Name
+	agent = remAg.Name
+	account = remAcc.Login
+
+	return proto, client, agent, account, nil
 }
 
 // makeHistoryEntry converts the `Transfer` entry into an equivalent `HistoryEntry`
@@ -264,9 +295,9 @@ func (t *Transfer) makeHistoryEntry(db database.ReadAccess, stop time.Time) (*Hi
 		return nil, err
 	}
 
-	agentName, accountLogin, protocol, err2 := t.makeAgentInfo(db)
-	if err2 != nil {
-		return nil, err2
+	protocol, clientName, agentName, accountLogin, err := t.makeAgentInfo(db)
+	if err != nil {
+		return nil, err
 	}
 
 	if !types.ValidateStatusForHistory(t.Status) {
@@ -282,6 +313,7 @@ func (t *Transfer) makeHistoryEntry(db database.ReadAccess, stop time.Time) (*Hi
 		IsSend:           rule.IsSend,
 		Account:          accountLogin,
 		Agent:            agentName,
+		Client:           clientName,
 		Protocol:         protocol,
 		SrcFilename:      t.SrcFilename,
 		DestFilename:     t.DestFilename,

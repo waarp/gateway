@@ -1,7 +1,6 @@
 package backup
 
 import (
-	"encoding/json"
 	"testing"
 
 	. "github.com/smartystreets/goconvey/convey"
@@ -30,7 +29,7 @@ func TestImportRules(t *testing.T) {
 				Chain:  model.ChainPre,
 				Rank:   0,
 				Type:   "COPY",
-				Args:   json.RawMessage(`{"path":"pre1"}`),
+				Args:   map[string]string{"path": "pre1"},
 			}
 			So(db.Insert(pre1).Run(), ShouldBeNil)
 
@@ -39,7 +38,6 @@ func TestImportRules(t *testing.T) {
 				Chain:  model.ChainPre,
 				Rank:   1,
 				Type:   "DELETE",
-				Args:   json.RawMessage(`{}`),
 			}
 			So(db.Insert(pre2).Run(), ShouldBeNil)
 
@@ -48,7 +46,7 @@ func TestImportRules(t *testing.T) {
 				Chain:  model.ChainPost,
 				Rank:   0,
 				Type:   "COPY",
-				Args:   json.RawMessage(`{"path":"pre1"}`),
+				Args:   map[string]string{"path": "pre1"},
 			}
 			So(db.Insert(post1).Run(), ShouldBeNil)
 
@@ -57,15 +55,13 @@ func TestImportRules(t *testing.T) {
 				Chain:  model.ChainPost,
 				Rank:   1,
 				Type:   "DELETE",
-				Args:   json.RawMessage(`{}`),
 			}
 			So(db.Insert(post2).Run(), ShouldBeNil)
 
 			agent := &model.LocalAgent{
-				Name:        "server",
-				Protocol:    testProtocol,
-				ProtoConfig: json.RawMessage(`{}`),
-				Address:     "localhost:2022",
+				Name:     "server",
+				Protocol: testProtocol,
+				Address:  "localhost:2022",
 			}
 			So(db.Insert(agent).Run(), ShouldBeNil)
 
@@ -96,23 +92,23 @@ func TestImportRules(t *testing.T) {
 					Pre: []file.Task{
 						{
 							Type: "COPY",
-							Args: []byte(`{"path":"copy/destination"}`),
+							Args: map[string]string{"path": "copy/destination"},
 						},
 					},
 					Post: []file.Task{
 						{
 							Type: "DELETE",
-							Args: []byte("{}"),
+							Args: map[string]string{},
 						},
 					},
 					Error: []file.Task{
 						{
 							Type: "COPY",
-							Args: []byte(`{"path":"copy/destination"}`),
+							Args: map[string]string{"path": "copy/destination"},
 						},
 						{
 							Type: "DELETE",
-							Args: []byte("{}"),
+							Args: map[string]string{},
 						},
 					},
 				}
@@ -189,23 +185,23 @@ func TestImportRules(t *testing.T) {
 					Pre: []file.Task{
 						{
 							Type: "COPY",
-							Args: []byte(`{"path":"copy/destination"}`),
+							Args: map[string]string{"path": "copy/destination"},
 						},
 					},
 					Post: []file.Task{
 						{
 							Type: "DELETE",
-							Args: []byte("{}"),
+							Args: map[string]string{},
 						},
 					},
 					Error: []file.Task{
 						{
 							Type: "COPY",
-							Args: []byte(`{"path":"copy/destination"}`),
+							Args: map[string]string{"path": "copy/destination"},
 						},
 						{
 							Type: "DELETE",
-							Args: []byte("{}"),
+							Args: map[string]string{},
 						},
 					},
 				}
@@ -321,10 +317,9 @@ func TestImportRuleAccess(t *testing.T) {
 			So(db.Insert(insert).Run(), ShouldBeNil)
 
 			agent := &model.LocalAgent{
-				Name:        "server",
-				Protocol:    testProtocol,
-				ProtoConfig: json.RawMessage(`{}`),
-				Address:     "localhost:2022",
+				Name:     "server",
+				Protocol: testProtocol,
+				Address:  "localhost:2022",
 			}
 			So(db.Insert(agent).Run(), ShouldBeNil)
 
@@ -366,6 +361,7 @@ func TestImportRuleAccess(t *testing.T) {
 							"the ones imported", func() {
 							for i := 0; i < len(dbAccesses); i++ {
 								acc := dbAccesses[i]
+
 								switch {
 								case acc.LocalAgentID.Int64 == agent.ID:
 									Convey("Then access for agent is found", func() {
@@ -418,6 +414,7 @@ func TestImportRuleAccess(t *testing.T) {
 								"the ones imported", func() {
 								for i := 0; i < len(dbAccesses); i++ {
 									acc := dbAccesses[i]
+
 									switch {
 									case acc.LocalAgentID.Int64 == agent.ID:
 										Convey("Then access for agent is found", func() {
@@ -460,7 +457,7 @@ func TestImportTasks(t *testing.T) {
 				Chain:  model.ChainPre,
 				Rank:   0,
 				Type:   "COPY",
-				Args:   json.RawMessage(`{"path":"pre1"}`),
+				Args:   map[string]string{"path": "pre1"},
 			}
 			So(db.Insert(pre1).Run(), ShouldBeNil)
 
@@ -469,7 +466,6 @@ func TestImportTasks(t *testing.T) {
 				Chain:  model.ChainPre,
 				Rank:   1,
 				Type:   "DELETE",
-				Args:   json.RawMessage(`{}`),
 			}
 			So(db.Insert(pre2).Run(), ShouldBeNil)
 
@@ -478,7 +474,7 @@ func TestImportTasks(t *testing.T) {
 				Chain:  model.ChainPost,
 				Rank:   0,
 				Type:   "COPY",
-				Args:   json.RawMessage(`{"path":"pre1"}`),
+				Args:   map[string]string{"path": "pre1"},
 			}
 			So(db.Insert(post1).Run(), ShouldBeNil)
 
@@ -487,7 +483,6 @@ func TestImportTasks(t *testing.T) {
 				Chain:  model.ChainPost,
 				Rank:   1,
 				Type:   "DELETE",
-				Args:   json.RawMessage(`{}`),
 			}
 			So(db.Insert(post2).Run(), ShouldBeNil)
 
@@ -496,7 +491,6 @@ func TestImportTasks(t *testing.T) {
 				Chain:  model.ChainError,
 				Rank:   0,
 				Type:   "DELETE",
-				Args:   json.RawMessage(`{}`),
 			}
 			So(db.Insert(error1).Run(), ShouldBeNil)
 
@@ -504,11 +498,11 @@ func TestImportTasks(t *testing.T) {
 				tasks := []file.Task{
 					{
 						Type: "COPY",
-						Args: []byte(`{"path":"copy/destination"}`),
+						Args: map[string]string{"path": "copy/destination"},
 					},
 					{
 						Type: "DELETE",
-						Args: []byte("{}"),
+						Args: map[string]string{},
 					},
 				}
 

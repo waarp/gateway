@@ -12,6 +12,9 @@ Programmer un transfert
    :reqjson string rule: L'identifiant de la règle utilisée
    :reqjson bool isSend: Indique le transfert est un envoi (``true``) ou une
      réception (``false``).
+   :reqjson string client: Le nom du client avec lequel effectuer le transfert.
+     Peut être omit si la gateway ne possède qu'un seul client du protocole concerné,
+     auquel cas, le client en question sera sélectionné automatiquement.
    :reqjson string account: Le nom du compte ayant demandé le transfert
    :reqjson string partner: Le nom du serveur/partenaire auquel le transfert a été demandé
    :reqjson string partner: Le nom du serveur/partenaire auquel le transfert a été demandé

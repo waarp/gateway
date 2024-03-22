@@ -1,10 +1,10 @@
 package model
 
 import (
-	"encoding/json"
 	"fmt"
 	"net"
 
+	"code.waarp.fr/apps/gateway/gateway/pkg/conf"
 	"code.waarp.fr/apps/gateway/gateway/pkg/database"
 	"code.waarp.fr/apps/gateway/gateway/pkg/model/config"
 	"code.waarp.fr/apps/gateway/gateway/pkg/tk/utils"
@@ -14,46 +14,26 @@ import (
 // communicate and make transfers. The struct contains the information needed by
 // the gateway to connect to the server.
 type RemoteAgent struct {
-	ID int64 `xorm:"<- id AUTOINCR"` // The partner's database ID.
+	ID    int64  `xorm:"<- id AUTOINCR"` // The partner's database ID.
+	Owner string `xorm:"owner"`          // The client's owner (the gateway to which it belongs)
 
 	Name     string `xorm:"name"`     // The partner's display name.
 	Protocol string `xorm:"protocol"` // The partner's protocol.
 	Address  string `xorm:"address"`  // The partner's address (including the port)
 
-	// The partner's protocol configuration in raw JSON format.
-	ProtoConfig json.RawMessage `xorm:"proto_config"`
+	// The partner's protocol configuration as a map.
+	ProtoConfig map[string]any `xorm:"proto_config"`
 }
 
 func (*RemoteAgent) TableName() string   { return TableRemAgents }
 func (*RemoteAgent) Appellation() string { return "partner" }
 func (r *RemoteAgent) GetID() int64      { return r.ID }
 
-//nolint:dupl // factorizing would add complexity
-func (r *RemoteAgent) validateProtoConfig() error {
-	conf, err := config.GetProtoConfig(r.Protocol, r.ProtoConfig)
-	if err != nil {
-		return fmt.Errorf("cannot parse protocol configuration for server %q: %w", r.Name, err)
-	}
-
-	if r66Conf, ok := conf.(*config.R66ProtoConfig); ok && r66Conf.IsTLS != nil && *r66Conf.IsTLS {
-		r.Protocol = config.ProtocolR66TLS
-	}
-
-	if err2 := conf.ValidPartner(); err2 != nil {
-		return fmt.Errorf("protocol configuration for %q is invalid: %w", r.Name, err2)
-	}
-
-	r.ProtoConfig, err = json.Marshal(conf)
-	if err != nil {
-		return fmt.Errorf("cannot marshal protocol configuration for %q to JSON: %w", r.Name, err)
-	}
-
-	return nil
-}
-
 // BeforeWrite is called before inserting a new `RemoteAgent` entry in the
 // database. It checks whether the new entry is valid or not.
 func (r *RemoteAgent) BeforeWrite(db database.ReadAccess) database.Error {
+	r.Owner = conf.GlobalConfig.GatewayName
+
 	if r.Name == "" {
 		return database.NewValidationError("the agent's name cannot be empty")
 	}
@@ -62,20 +42,20 @@ func (r *RemoteAgent) BeforeWrite(db database.ReadAccess) database.Error {
 		return database.NewValidationError("the partner's address cannot be empty")
 	}
 
-	if _, _, err := net.SplitHostPort(r.Address); err != nil {
+	if _, err := net.ResolveTCPAddr("tcp", r.Address); err != nil {
 		return database.NewValidationError("'%s' is not a valid partner address", r.Address)
 	}
 
 	if r.ProtoConfig == nil {
-		r.ProtoConfig = json.RawMessage(`{}`)
+		r.ProtoConfig = map[string]any{}
 	}
 
-	if err := r.validateProtoConfig(); err != nil {
+	if err := config.CheckPartnerConfig(r.Protocol, r.ProtoConfig); err != nil {
 		return database.NewValidationError(err.Error())
 	}
 
-	n, err := db.Count(&RemoteAgent{}).Where("id<>? AND name=?", r.ID, r.Name).Run()
-	if err != nil {
+	if n, err := db.Count(&RemoteAgent{}).Where("id<>? AND owner=? AND name=?",
+		r.ID, r.Owner, r.Name).Run(); err != nil {
 		return err
 	} else if n > 0 {
 		return database.NewValidationError("a remote agent with the same name '%s' "+
@@ -111,5 +91,13 @@ func (r *RemoteAgent) SetAccessTarget(a *RuleAccess)        { a.RemoteAgentID = 
 func (r *RemoteAgent) GenAccessSelectCond() (string, int64) { return "remote_agent_id=?", r.ID }
 
 func (r *RemoteAgent) GetAuthorizedRules(db database.ReadAccess) ([]*Rule, error) {
-	return getAuthorizedRules(db, "remote_agent_id", r.ID)
+	var rules Rules
+	if err := db.Select(&rules).Where(fmt.Sprintf(
+		`id IN (SELECT DISTINCT rule_id FROM %s WHERE remote_agent_id=?)
+		  OR (SELECT COUNT(*) FROM %s WHERE rule_id = id) = 0`,
+		TableRuleAccesses, TableRuleAccesses), r.ID).Run(); err != nil {
+		return nil, fmt.Errorf("failed to retrieve the authorized rules: %w", err)
+	}
+
+	return rules, nil
 }

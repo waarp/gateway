@@ -103,7 +103,7 @@ linters-settings:
   errcheck:
     # report about not checking of errors in type assertions: `a := b.(MyStruct)`;
     # default is false: such cases aren't reported by default.
-    check-type-assertions: false
+    check-type-assertions: true
 
     # report about assignment of errors to blank identifier: `num, _ := strconv.Atoi(numStr)`;
     # default is false: such cases aren't reported by default.
@@ -126,6 +126,9 @@ linters-settings:
       - io.Copy(*bytes.Buffer)
       - io.Copy(os.Stdout)
       - (*database/sql.Rows).Close # Errors returned by Rows.Close are inconsequential
+      - (github.com/smartystreets/goconvey/convey.C).Print
+      - (github.com/smartystreets/goconvey/convey.C).Printf
+      - (github.com/smartystreets/goconvey/convey.C).Println
 
   errorlint:
     # Check whether fmt.Errorf uses the %w verb for formatting errors. See the readme for caveats
@@ -341,7 +344,7 @@ linters-settings:
         # the list of enabled checks, see https://github.com/tommy-muehle/go-mnd/#checks for description.
         checks: argument,case,condition,operation,return,assign
         # for files perm: 384=0o600
-        ignored-numbers: 0o600,384,0o700,0o744
+        ignored-numbers: 0o600,384,0o700,0o744,0o740
         # test files are ignored by default
         # ignored-files: 
         # ignored-functions: math.*
@@ -591,7 +594,7 @@ linters-settings:
 
   tagalign:
     align: false # Toggled off for now, might enable if tags become too hard to read.
-    sort: true
+    sort: false
     order:
       - required
       - positional-arg-name
@@ -691,9 +694,9 @@ linters-settings:
     # `golangci-lint`.
     allow-assign-and-anything: false
     allow-assign-and-call: true
-    allow-cuddle-declarations: false
+    allow-cuddle-declarations: true
     allow-multiline-assign: true
-    allow-separated-leading-comment: false
+    allow-separated-leading-comment: true
     allow-trailing-comment: true
     force-case-trailing-whitespace: 0
     force-err-cuddling: true
@@ -725,6 +728,7 @@ linters:
     - nonamedreturns #named return variables are sometimes ok
     - execinquery #raises lots of false-positives, might re-enable once fixed
     - nosnakecase #raises errors on imported variables (which we have no control on), might re-enable once fixed
+    - tagalign #sorting tags does not always result in better readability
   #presets:
   #  - bugs
   #  - unused
@@ -755,8 +759,10 @@ issues:
         - bodyclose
         - noctx
         - gochecknoglobals
+        - gochecknoinits
         - wrapcheck
         - forcetypeassert
+        - maintidx
 
     # Allow dot import aliases in test files.
     - path: _test\.go
@@ -775,6 +781,13 @@ issues:
     - linters:
         - staticcheck
       text: "SA9003:"
+
+    # Exclude goconst issues for column names. Just because different tables
+    # use identical column names doesn't mean we should replace all of them by
+    # a single constant (in fact, it's probably a bad idea).
+    - linters:
+        - goconst
+      text: "=?`"
 
     # Exclude perfsprint issues asking for string concatenation, because,
     # apparently, the option to disable the check does not work. While string
@@ -799,7 +812,12 @@ issues:
       - tagliatelle
       text: "got 'macs' want 'maCs'"
 
-    # We disable some linters on migration files.
+    # errcheck on deferred sql.Rows.Close, since errors are checked with rows.Err
+    - linters:
+        - errcheck
+      source: "defer rows.Close()"
+
+        # We disable some linters on migration files.
     - path: pkg/database/migrations/+[0-9]\.+[+0-9]\.+[0-9]\.go
       linters:
         - funlen # splitting functions is not always possible (or desirable)

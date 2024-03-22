@@ -1,7 +1,6 @@
 package wg
 
 import (
-	"encoding/json"
 	"fmt"
 	"net/http/httptest"
 	"net/url"
@@ -18,6 +17,7 @@ import (
 	"code.waarp.fr/apps/gateway/gateway/pkg/gatewayd/service/proto"
 	"code.waarp.fr/apps/gateway/gateway/pkg/model"
 	"code.waarp.fr/apps/gateway/gateway/pkg/model/types"
+	"code.waarp.fr/apps/gateway/gateway/pkg/pipeline"
 	"code.waarp.fr/apps/gateway/gateway/pkg/tk/utils"
 )
 
@@ -51,6 +51,7 @@ func transferInfoString(t *api.OutTransfer) string {
 	builder.addLineFull("Rule:             ", t.Rule)
 	builder.addLineFull("Requested by:     ", t.Requester)
 	builder.addLineFull("Requested to:     ", t.Requested)
+	builder.addLineCond("With client:      ", t.Client, !t.IsServer)
 	builder.addLineCond("Full local path:  ", t.LocalFilepath, t.LocalFilepath != "")
 	builder.addLineCond("Full remote path: ", t.RemoteFilepath, t.RemoteFilepath != "")
 	builder.addWithDefV("File size:        ", t.Filesize, t.Filesize >= 0, sizeUnknown)
@@ -89,6 +90,7 @@ func TestDisplayTransfer(t *testing.T) {
 			Rule:           "rule",
 			IsServer:       false,
 			IsSend:         true,
+			Client:         "client",
 			Requester:      "requester",
 			Requested:      "requested",
 			LocalFilepath:  "/local/path",
@@ -104,6 +106,7 @@ func TestDisplayTransfer(t *testing.T) {
 			ErrorMsg:       "custom error message",
 			TransferInfo:   map[string]any{"key1": "val1", "key2": 2, "key3": true},
 		}
+
 		Convey("When calling the `displayTransfer` function", func() {
 			w := getColorable()
 			displayTransfer(w, trans)
@@ -170,9 +173,12 @@ func TestAddTransfer(t *testing.T) {
 			}
 			So(db.Insert(rule).Run(), ShouldBeNil)
 
+			client := &model.Client{Name: "client", Protocol: testProto1}
+			So(db.Insert(client).Run(), ShouldBeNil)
+
 			partner := &model.RemoteAgent{
 				Name:     "partner",
-				Protocol: testProto1,
+				Protocol: client.Protocol,
 				Address:  "localhost:1",
 			}
 			So(db.Insert(partner).Run(), ShouldBeNil)
@@ -186,6 +192,7 @@ func TestAddTransfer(t *testing.T) {
 
 			Convey("Given all valid flags", func() {
 				args := []string{
+					"--client", client.Name,
 					"--partner", partner.Name, "--login", account.Login,
 					"--way", rule.Direction(), "--rule", rule.Name,
 					"--file", "src_dir/test_file", "--out", "dst_dir/test_file",
@@ -234,6 +241,7 @@ func TestAddTransfer(t *testing.T) {
 
 			Convey("Given an invalid rule name", func() {
 				args := []string{
+					"--client", client.Name,
 					"--partner", partner.Name, "--login", account.Login,
 					"--way", rule.Direction(), "--rule", "toto", "--file", "file",
 					"--date", "2020-01-01T01:00:00+01:00",
@@ -252,6 +260,7 @@ func TestAddTransfer(t *testing.T) {
 
 			Convey("Given an invalid account name", func() {
 				args := []string{
+					"--client", client.Name,
 					"--partner", partner.Name, "--login", "tata",
 					"--way", rule.Direction(), "--rule", rule.Name, "--file", "file",
 					"--date", "2020-01-01T01:00:00+01:00",
@@ -271,6 +280,7 @@ func TestAddTransfer(t *testing.T) {
 
 			Convey("Given an invalid partner name", func() {
 				args := []string{
+					"--client", client.Name,
 					"--partner", "tata", "--login", account.Login,
 					"--way", rule.Direction(), "--rule", rule.Name, "--file", "file",
 					"--date", "2020-01-01T01:00:00+01:00",
@@ -287,8 +297,28 @@ func TestAddTransfer(t *testing.T) {
 				})
 			})
 
+			Convey("Given an invalid client name", func() {
+				args := []string{
+					"--client", "tata",
+					"--partner", partner.Name, "--login", account.Login,
+					"--way", rule.Direction(), "--rule", rule.Name, "--file", "file",
+					"--date", "2020-01-01T01:00:00+01:00",
+				}
+
+				Convey("When executing the command", func() {
+					params, err := flags.ParseArgs(command, args)
+					So(err, ShouldBeNil)
+					err = command.Execute(params)
+
+					Convey("Then it should return an error", func() {
+						So(err, ShouldBeError, "no client 'tata' found")
+					})
+				})
+			})
+
 			Convey("Given an invalid start date", func() {
 				args := []string{
+					"--client", client.Name,
 					"--partner", partner.Name, "--login", account.Login,
 					"--way", rule.Direction(), "--rule", rule.Name, "--file", "file",
 					"--date", "toto",
@@ -322,11 +352,13 @@ func TestGetTransfer(t *testing.T) {
 			So(err, ShouldBeNil)
 
 			Convey("Given a valid transfer", func() {
+				cli := &model.Client{Name: "client", Protocol: testProto1}
+				So(db.Insert(cli).Run(), ShouldBeNil)
+
 				p := &model.RemoteAgent{
-					Name:        "partner",
-					Protocol:    testProto1,
-					ProtoConfig: json.RawMessage(`{}`),
-					Address:     "localhost:1",
+					Name:     "partner",
+					Protocol: cli.Protocol,
+					Address:  "localhost:1",
 				}
 				So(db.Insert(p).Run(), ShouldBeNil)
 
@@ -346,13 +378,15 @@ func TestGetTransfer(t *testing.T) {
 
 				trans := &model.Transfer{
 					RuleID:          r.ID,
+					ClientID:        utils.NewNullInt64(cli.ID),
 					RemoteAccountID: utils.NewNullInt64(a.ID),
 					SrcFilename:     "file",
 					Start:           time.Date(2021, 1, 1, 1, 0, 0, 123000, time.Local),
 					Status:          types.StatusPlanned,
 				}
 				So(db.Insert(trans).Run(), ShouldBeNil)
-				id := fmt.Sprint(trans.ID)
+
+				id := utils.FormatInt(trans.ID)
 
 				Convey("Given a valid transfer ID", func() {
 					args := []string{id}
@@ -400,26 +434,30 @@ func TestListTransfer(t *testing.T) {
 			addr, err = url.Parse("http://admin:admin_password@" + gw.Listener.Addr().String())
 			So(err, ShouldBeNil)
 
+			client := &model.Client{Name: "client", Protocol: testProto1}
+			So(db.Insert(client).Run(), ShouldBeNil)
+
 			p1 := &model.RemoteAgent{
 				Name:     "remote1",
-				Protocol: testProto1,
+				Protocol: client.Protocol,
 				Address:  "localhost:1",
 			}
 			p2 := &model.RemoteAgent{
 				Name:     "remote2",
-				Protocol: testProto1,
+				Protocol: client.Protocol,
 				Address:  "localhost:2",
 			}
 			p3 := &model.RemoteAgent{
 				Name:     "remote3",
-				Protocol: testProto1,
+				Protocol: client.Protocol,
 				Address:  "localhost:3",
 			}
 			p4 := &model.RemoteAgent{
 				Name:     "remote4",
-				Protocol: testProto1,
+				Protocol: client.Protocol,
 				Address:  "localhost:4",
 			}
+
 			So(db.Insert(p1).Run(), ShouldBeNil)
 			So(db.Insert(p2).Run(), ShouldBeNil)
 			So(db.Insert(p3).Run(), ShouldBeNil)
@@ -445,6 +483,7 @@ func TestListTransfer(t *testing.T) {
 				Login:         "tutu",
 				Password:      "sesame4",
 			}
+
 			So(db.Insert(a1).Run(), ShouldBeNil)
 			So(db.Insert(a2).Run(), ShouldBeNil)
 			So(db.Insert(a3).Run(), ShouldBeNil)
@@ -454,6 +493,7 @@ func TestListTransfer(t *testing.T) {
 			r2 := &model.Rule{Name: "rule2", IsSend: false, Path: "path2"}
 			r3 := &model.Rule{Name: "rule3", IsSend: false, Path: "path3"}
 			r4 := &model.Rule{Name: "rule4", IsSend: false, Path: "path4"}
+
 			So(db.Insert(r1).Run(), ShouldBeNil)
 			So(db.Insert(r2).Run(), ShouldBeNil)
 			So(db.Insert(r3).Run(), ShouldBeNil)
@@ -462,6 +502,7 @@ func TestListTransfer(t *testing.T) {
 			Convey("Given 4 valid transfers", func() {
 				trans1 := &model.Transfer{
 					RuleID:          r1.ID,
+					ClientID:        utils.NewNullInt64(client.ID),
 					RemoteAccountID: utils.NewNullInt64(a1.ID),
 					SrcFilename:     "file1",
 					Step:            types.StepNone,
@@ -470,6 +511,7 @@ func TestListTransfer(t *testing.T) {
 				}
 				trans2 := &model.Transfer{
 					RuleID:          r2.ID,
+					ClientID:        utils.NewNullInt64(client.ID),
 					RemoteAccountID: utils.NewNullInt64(a2.ID),
 					SrcFilename:     "file2",
 					Step:            types.StepSetup,
@@ -478,6 +520,7 @@ func TestListTransfer(t *testing.T) {
 				}
 				trans3 := &model.Transfer{
 					RuleID:          r3.ID,
+					ClientID:        utils.NewNullInt64(client.ID),
 					RemoteAccountID: utils.NewNullInt64(a3.ID),
 					SrcFilename:     "file3",
 					Step:            types.StepData,
@@ -486,12 +529,14 @@ func TestListTransfer(t *testing.T) {
 				}
 				trans4 := &model.Transfer{
 					RuleID:          r4.ID,
+					ClientID:        utils.NewNullInt64(client.ID),
 					RemoteAccountID: utils.NewNullInt64(a4.ID),
 					SrcFilename:     "file4",
 					Step:            types.StepFinalization,
 					Status:          types.StatusPlanned,
 					Start:           time.Date(2019, 1, 1, 4, 0, 0, 0, time.Local),
 				}
+
 				So(db.Insert(trans1).Run(), ShouldBeNil)
 				So(db.Insert(trans2).Run(), ShouldBeNil)
 				So(db.Insert(trans3).Run(), ShouldBeNil)
@@ -650,12 +695,14 @@ func TestPauseTransfer(t *testing.T) {
 			addr, err = url.Parse("http://admin:admin_password@" + gw.Listener.Addr().String())
 			So(err, ShouldBeNil)
 
+			client := &model.Client{Name: "client", Protocol: testProto1}
+			So(db.Insert(client).Run(), ShouldBeNil)
+
 			Convey("Given a paused transfer entry", func() {
 				part := &model.RemoteAgent{
-					Name:        "partner",
-					Protocol:    testProto1,
-					ProtoConfig: json.RawMessage(`{}`),
-					Address:     "localhost:1",
+					Name:     "partner",
+					Protocol: client.Protocol,
+					Address:  "localhost:1",
 				}
 				So(db.Insert(part).Run(), ShouldBeNil)
 
@@ -675,6 +722,7 @@ func TestPauseTransfer(t *testing.T) {
 
 				trans := &model.Transfer{
 					RuleID:          rule.ID,
+					ClientID:        utils.NewNullInt64(client.ID),
 					RemoteAccountID: utils.NewNullInt64(account.ID),
 					SrcFilename:     "/source/file",
 					DestFilename:    "/dest/file",
@@ -683,7 +731,8 @@ func TestPauseTransfer(t *testing.T) {
 					Owner:           conf.GlobalConfig.GatewayName,
 				}
 				So(db.Insert(trans).Run(), ShouldBeNil)
-				id := fmt.Sprint(trans.ID)
+
+				id := utils.FormatInt(trans.ID)
 
 				Convey("Givens a valid transfer ID", func() {
 					args := []string{id}
@@ -739,12 +788,14 @@ func TestResumeTransfer(t *testing.T) {
 			addr, err = url.Parse("http://admin:admin_password@" + gw.Listener.Addr().String())
 			So(err, ShouldBeNil)
 
+			client := &model.Client{Name: "client", Protocol: testProto1}
+			So(db.Insert(client).Run(), ShouldBeNil)
+
 			Convey("Given a paused transfer entry", func() {
 				partner := &model.RemoteAgent{
-					Name:        "partner",
-					Protocol:    testProto1,
-					ProtoConfig: json.RawMessage(`{}`),
-					Address:     "localhost:1",
+					Name:     "partner",
+					Protocol: client.Protocol,
+					Address:  "localhost:1",
 				}
 				So(db.Insert(partner).Run(), ShouldBeNil)
 
@@ -764,6 +815,7 @@ func TestResumeTransfer(t *testing.T) {
 
 				trans := &model.Transfer{
 					RuleID:          r.ID,
+					ClientID:        utils.NewNullInt64(client.ID),
 					RemoteAccountID: utils.NewNullInt64(account.ID),
 					SrcFilename:     "/source/file",
 					DestFilename:    "/dest/file",
@@ -772,7 +824,8 @@ func TestResumeTransfer(t *testing.T) {
 					Owner:           conf.GlobalConfig.GatewayName,
 				}
 				So(db.Insert(trans).Run(), ShouldBeNil)
-				id := fmt.Sprint(trans.ID)
+
+				id := utils.FormatInt(trans.ID)
 
 				Convey("Given a valid transfer ID", func() {
 					args := []string{id}
@@ -827,12 +880,14 @@ func TestCancelTransfer(t *testing.T) {
 			addr, err = url.Parse("http://admin:admin_password@" + gw.Listener.Addr().String())
 			So(err, ShouldBeNil)
 
+			client := &model.Client{Name: "client", Protocol: testProto1}
+			So(db.Insert(client).Run(), ShouldBeNil)
+
 			Convey("Given a paused transfer entry", func() {
 				partner := &model.RemoteAgent{
-					Name:        "partner",
-					Protocol:    testProto1,
-					ProtoConfig: json.RawMessage(`{}`),
-					Address:     "localhost:1",
+					Name:     "partner",
+					Protocol: client.Protocol,
+					Address:  "localhost:1",
 				}
 				So(db.Insert(partner).Run(), ShouldBeNil)
 
@@ -852,6 +907,7 @@ func TestCancelTransfer(t *testing.T) {
 
 				trans := &model.Transfer{
 					RuleID:          rule.ID,
+					ClientID:        utils.NewNullInt64(client.ID),
 					RemoteAccountID: utils.NewNullInt64(account.ID),
 					SrcFilename:     "/source/file",
 					DestFilename:    "/dest/file",
@@ -860,7 +916,8 @@ func TestCancelTransfer(t *testing.T) {
 					Owner:           conf.GlobalConfig.GatewayName,
 				}
 				So(db.Insert(trans).Run(), ShouldBeNil)
-				id := fmt.Sprint(trans.ID)
+
+				id := utils.FormatInt(trans.ID)
 
 				Convey("Given a valid transfer ID", func() {
 					args := []string{id}
@@ -886,9 +943,10 @@ func TestCancelTransfer(t *testing.T) {
 								Owner:            trans.Owner,
 								IsServer:         trans.IsServer(),
 								IsSend:           rule.IsSend,
+								Client:           client.Name,
 								Account:          account.Login,
 								Agent:            partner.Name,
-								Protocol:         partner.Protocol,
+								Protocol:         client.Protocol,
 								SrcFilename:      trans.SrcFilename,
 								DestFilename:     trans.DestFilename,
 								LocalPath:        trans.LocalPath,
@@ -935,11 +993,13 @@ func TestRetryTransfer(t *testing.T) {
 			So(err, ShouldBeNil)
 
 			Convey("Given a failed history entry", func() {
+				client := &model.Client{Name: "client", Protocol: testProto1}
+				So(db.Insert(client).Run(), ShouldBeNil)
+
 				part := &model.RemoteAgent{
-					Name:        "partner",
-					Protocol:    testProto1,
-					ProtoConfig: json.RawMessage(`{}`),
-					Address:     "localhost:1",
+					Name:     "partner",
+					Protocol: client.Protocol,
+					Address:  "localhost:1",
 				}
 				So(db.Insert(part).Run(), ShouldBeNil)
 
@@ -963,9 +1023,10 @@ func TestRetryTransfer(t *testing.T) {
 					IsServer:         false,
 					IsSend:           r.IsSend,
 					Rule:             r.Name,
+					Client:           client.Name,
 					Account:          acc.Login,
 					Agent:            part.Name,
-					Protocol:         part.Protocol,
+					Protocol:         client.Protocol,
 					SrcFilename:      "/source/file",
 					DestFilename:     "/dest/file",
 					Start:            time.Date(2021, 1, 1, 1, 0, 0, 0, time.Local),
@@ -973,7 +1034,8 @@ func TestRetryTransfer(t *testing.T) {
 					Status:           types.StatusCancelled,
 				}
 				So(db.Insert(hist).Run(), ShouldBeNil)
-				id := fmt.Sprint(hist.ID)
+
+				id := utils.FormatInt(hist.ID)
 
 				Convey("Given a valid history entry ID and date", func() {
 					date := time.Date(2030, 1, 1, 1, 0, 0, 123000, time.UTC)
@@ -1029,8 +1091,7 @@ func TestCancelAllTransfers(t *testing.T) {
 
 		Convey("Given a database", func(c C) {
 			var transRun testInterrupter
-			serv := newTestProtoService(&transRun)
-			protoServs := map[int64]proto.Service{1: serv}
+			protoServs := map[string]proto.Service{}
 
 			db := database.TestDatabase(c)
 			gw := httptest.NewServer(testHandlerProto(db, protoServs))
@@ -1038,11 +1099,13 @@ func TestCancelAllTransfers(t *testing.T) {
 			addr, err = url.Parse("http://admin:admin_password@" + gw.Listener.Addr().String())
 			So(err, ShouldBeNil)
 
+			client := &model.Client{Name: "client", Protocol: testProto1}
+			So(db.Insert(client).Run(), ShouldBeNil)
+
 			partner := &model.RemoteAgent{
-				Name:        "test_server",
-				Protocol:    testProto1,
-				Address:     "localhost:1",
-				ProtoConfig: json.RawMessage(`{}`),
+				Name:     "test_server",
+				Protocol: client.Protocol,
+				Address:  "localhost:1",
 			}
 			So(db.Insert(partner).Run(), ShouldBeNil)
 
@@ -1058,6 +1121,7 @@ func TestCancelAllTransfers(t *testing.T) {
 
 			transPlan := &model.Transfer{
 				RuleID:          rule.ID,
+				ClientID:        utils.NewNullInt64(client.ID),
 				RemoteAccountID: utils.NewNullInt64(account.ID),
 				SrcFilename:     "/source/file",
 				DestFilename:    "/dest/file",
@@ -1072,6 +1136,7 @@ func TestCancelAllTransfers(t *testing.T) {
 
 			transErr := &model.Transfer{
 				RuleID:          rule.ID,
+				ClientID:        utils.NewNullInt64(client.ID),
 				RemoteAccountID: utils.NewNullInt64(account.ID),
 				SrcFilename:     "/source/file",
 				DestFilename:    "/dest/file",
@@ -1083,6 +1148,8 @@ func TestCancelAllTransfers(t *testing.T) {
 				TaskNumber:      0,
 			}
 			So(db.Insert(transErr).Run(), ShouldBeNil)
+
+			pipeline.Clients[client.Name] = newTestClientService(&transRun)
 
 			Convey("Given a target parameter of 'planned'", func() {
 				args := []string{"-t", "planned"}
@@ -1104,6 +1171,7 @@ func TestCancelAllTransfers(t *testing.T) {
 							RemoteTransferID: transPlan.RemoteTransferID,
 							IsServer:         transPlan.IsServer(),
 							IsSend:           rule.IsSend,
+							Client:           client.Name,
 							Account:          account.Login,
 							Agent:            partner.Name,
 							Protocol:         partner.Protocol,

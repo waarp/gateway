@@ -73,7 +73,6 @@ func TestTaskBeforeInsert(t *testing.T) {
 				Chain:  ChainPre,
 				Rank:   0,
 				Type:   "TESTSUCCESS",
-				Args:   []byte("{}"),
 			}
 			So(db.Insert(&t).Run(), ShouldBeNil)
 
@@ -83,7 +82,6 @@ func TestTaskBeforeInsert(t *testing.T) {
 					Chain:  ChainPre,
 					Rank:   0,
 					Type:   "TESTSUCCESS",
-					Args:   []byte("{}"),
 				}
 
 				Convey("When calling the `BeforeWrite` method", func() {
@@ -102,7 +100,6 @@ func TestTaskBeforeInsert(t *testing.T) {
 					Chain:  "XXX",
 					Rank:   0,
 					Type:   "TESTSUCCESS",
-					Args:   []byte("{}"),
 				}
 
 				Convey("When calling the `BeforeWrite` method", func() {
@@ -121,7 +118,6 @@ func TestTaskBeforeInsert(t *testing.T) {
 					Chain:  t.Chain,
 					Rank:   t.Rank,
 					Type:   "TESTSUCCESS",
-					Args:   []byte("{}"),
 				}
 
 				Convey("When calling the `BeforeWrite` method", func() {

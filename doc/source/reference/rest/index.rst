@@ -17,6 +17,7 @@ en interrogeant l'adresse d'administration donnée dans la configuration.
    transfers/index
    history/index
    servers/index
+   clients/index
    partners/index
    rules/index
    clouds/index

@@ -118,7 +118,10 @@ func handleError(w http.ResponseWriter, logger *log.Logger, err error) bool {
 func writeJSON(w http.ResponseWriter, bean interface{}) error {
 	w.Header().Set("Content-Type", "application/json")
 
-	if err := json.NewEncoder(w).Encode(bean); err != nil {
+	encoder := json.NewEncoder(w)
+	// encoder.SetIndent("", "  ") //TODO: uncomment once tests have been adapted
+
+	if err := encoder.Encode(bean); err != nil {
 		return fmt.Errorf("failed to write response JSON object: %w", err)
 	}
 

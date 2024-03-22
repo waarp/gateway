@@ -23,6 +23,12 @@ Programme un nouveau transfert avec les attributs ci-dessous.
 
    La direction du transfer. Peut être ``send`` ou ``receive``.
 
+.. option:: -c <CLIENT>, --client=<CLIENT>
+
+   Le nom du client local avec lequel le transfert va être exécuté. Peut être
+   omit si la gateway ne possède qu'un seul client du protocole concerné, auquel
+   cas, le client en question sera sélectionné automatiquement.
+
 .. option:: -p <PARTNER>, --partner=<PARTNER>
 
    Le nom du partenaire distant avec lequel le transfert va être effectué.

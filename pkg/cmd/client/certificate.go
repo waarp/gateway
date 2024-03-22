@@ -3,7 +3,7 @@ package wg
 import (
 	"fmt"
 	"io"
-	"io/ioutil"
+	"os"
 	"path"
 
 	"github.com/jessevdk/go-flags"
@@ -13,7 +13,7 @@ import (
 )
 
 func displayCertificate(w io.Writer, cert *api.OutCrypto) {
-	fmt.Fprintln(w, orange(bold("● Certificate", cert.Name)))
+	fmt.Fprintln(w, orange(bold("● Certificate %s", cert.Name)))
 	fmt.Fprintln(w, orange("    Private key:"), cert.PrivateKey)
 	fmt.Fprintln(w, orange("    Public key: "), cert.PublicKey)
 	fmt.Fprintln(w, orange("    Content:    "), cert.Certificate)
@@ -70,7 +70,7 @@ func (c *CertAdd) Execute([]string) error {
 	}
 
 	if c.PrivateKey != "" {
-		pk, err := ioutil.ReadFile(string(c.PrivateKey))
+		pk, err := os.ReadFile(string(c.PrivateKey))
 		if err != nil {
 			return fmt.Errorf("cannot read file %q: %w", c.PrivateKey, err)
 		}
@@ -79,7 +79,7 @@ func (c *CertAdd) Execute([]string) error {
 	}
 
 	if c.PublicKey != "" {
-		pbk, err := ioutil.ReadFile(string(c.PublicKey))
+		pbk, err := os.ReadFile(string(c.PublicKey))
 		if err != nil {
 			return fmt.Errorf("cannot read file %q: %w", c.PublicKey, err)
 		}
@@ -88,7 +88,7 @@ func (c *CertAdd) Execute([]string) error {
 	}
 
 	if c.Certificate != "" {
-		cert, err := ioutil.ReadFile(string(c.Certificate))
+		cert, err := os.ReadFile(string(c.Certificate))
 		if err != nil {
 			return fmt.Errorf("cannot read file %q: %w", c.Certificate, err)
 		}
@@ -178,7 +178,7 @@ func (c *CertUpdate) Execute([]string) error {
 	}
 
 	if c.PrivateKey != "" {
-		pk, err := ioutil.ReadFile(string(c.PrivateKey))
+		pk, err := os.ReadFile(string(c.PrivateKey))
 		if err != nil {
 			return fmt.Errorf("cannot read file %q: %w", c.PrivateKey, err)
 		}
@@ -187,7 +187,7 @@ func (c *CertUpdate) Execute([]string) error {
 	}
 
 	if c.PublicKey != "" {
-		pbk, err := ioutil.ReadFile(string(c.PublicKey))
+		pbk, err := os.ReadFile(string(c.PublicKey))
 		if err != nil {
 			return fmt.Errorf("cannot read file %q: %w", c.PublicKey, err)
 		}
@@ -196,7 +196,7 @@ func (c *CertUpdate) Execute([]string) error {
 	}
 
 	if c.Certificate != "" {
-		cert, err := ioutil.ReadFile(string(c.Certificate))
+		cert, err := os.ReadFile(string(c.Certificate))
 		if err != nil {
 			return fmt.Errorf("cannot read file %q: %w", c.Certificate, err)
 		}

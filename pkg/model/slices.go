@@ -9,6 +9,7 @@ func (*Slice[T]) Elem() string      { return T.Appellation(*new(T)) }
 
 type (
 	Cryptos             = Slice[*Crypto]
+	Clients             = Slice[*Client]
 	TransferInfoList    = Slice[*TransferInfo]
 	HistoryEntries      = Slice[*HistoryEntry]
 	LocalAccounts       = Slice[*LocalAccount]

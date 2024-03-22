@@ -18,7 +18,6 @@ import (
 	"code.waarp.fr/apps/gateway/gateway/pkg/gatewayd/service"
 	"code.waarp.fr/apps/gateway/gateway/pkg/gatewayd/service/constructors"
 	"code.waarp.fr/apps/gateway/gateway/pkg/gatewayd/service/proto"
-	"code.waarp.fr/apps/gateway/gateway/pkg/gatewayd/service/state"
 	"code.waarp.fr/apps/gateway/gateway/pkg/model"
 	"code.waarp.fr/apps/gateway/gateway/pkg/model/config"
 	"code.waarp.fr/apps/gateway/gateway/pkg/model/types"
@@ -31,8 +30,17 @@ const (
 
 //nolint:gochecknoinits // init is used by design
 func init() {
-	config.ProtoConfigs[testProto1] = func() config.ProtoConfig { return new(testProtoConfig) }
-	config.ProtoConfigs[testProto2] = func() config.ProtoConfig { return new(testProtoConfig) }
+	config.ProtoConfigs[testProto1] = &config.Constructor{
+		Server:  func() config.ServerProtoConfig { return new(testProtoConfig) },
+		Partner: func() config.PartnerProtoConfig { return new(testProtoConfig) },
+		Client:  func() config.ClientProtoConfig { return new(testProtoConfig) },
+	}
+	config.ProtoConfigs[testProto2] = &config.Constructor{
+		Server:  func() config.ServerProtoConfig { return new(testProtoConfig) },
+		Partner: func() config.PartnerProtoConfig { return new(testProtoConfig) },
+		Client:  func() config.ClientProtoConfig { return new(testProtoConfig) },
+	}
+
 	constructors.ServiceConstructors[testProto1] = newTestServer
 }
 
@@ -42,6 +50,7 @@ type testProtoConfig struct {
 
 func (*testProtoConfig) ValidServer() error  { return nil }
 func (*testProtoConfig) ValidPartner() error { return nil }
+func (*testProtoConfig) ValidClient() error  { return nil }
 
 func hash(pwd string) string {
 	h, err := bcrypt.GenerateFromPassword([]byte(pwd), bcrypt.MinCost)
@@ -65,7 +74,7 @@ func testAdminServer(logger *log.Logger, db *database.DB) string {
 
 func testAdminServerWithServices(logger *log.Logger, db *database.DB,
 	testCoreServices map[string]service.Service,
-	testProtoServices map[int64]proto.Service,
+	testProtoServices map[string]proto.Service,
 ) string {
 	router := mux.NewRouter()
 	MakeRESTHandler(logger, db, router, testCoreServices, testProtoServices)
@@ -107,55 +116,3 @@ func fromTransfer(db *database.DB, trans *model.Transfer) *api.OutTransfer {
 
 	return jTrans
 }
-
-type testInterrupter int
-
-const (
-	none testInterrupter = iota
-	paused
-	interrupted
-	canceled
-)
-
-func (t *testInterrupter) Pause(context.Context) error {
-	*t = paused
-
-	return nil
-}
-
-func (t *testInterrupter) Interrupt(context.Context) error {
-	*t = interrupted
-
-	return nil
-}
-
-func (t *testInterrupter) Cancel(context.Context) error {
-	*t = canceled
-
-	return nil
-}
-
-type testProtoService struct {
-	m  *service.TransferMap
-	st *state.State
-}
-
-func newTestProtoService(trans ...*testInterrupter) *testProtoService {
-	serv := &testProtoService{
-		m:  service.NewTransferMap(),
-		st: &state.State{},
-	}
-
-	for i, t := range trans {
-		serv.m.Add(int64(i), t)
-	}
-
-	serv.st.Set(state.Running, "")
-
-	return serv
-}
-
-func (t *testProtoService) Start(*model.LocalAgent) error         { return nil }
-func (t *testProtoService) Stop(context.Context) error            { return nil }
-func (t *testProtoService) State() *state.State                   { return t.st }
-func (t *testProtoService) ManageTransfers() *service.TransferMap { return t.m }

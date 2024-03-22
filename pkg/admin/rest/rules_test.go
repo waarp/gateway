@@ -103,7 +103,7 @@ func TestCreateRule(t *testing.T) {
 								Chain:  model.ChainPre,
 								Rank:   0,
 								Type:   "DELETE",
-								Args:   json.RawMessage(`{}`),
+								Args:   map[string]string{},
 							})
 						})
 
@@ -238,16 +238,14 @@ func TestGetRule(t *testing.T) {
 
 			Convey("Given some agents", func() {
 				serv1 := &model.LocalAgent{
-					Name:        "serv1",
-					Address:     "localhost:1",
-					Protocol:    testProto1,
-					ProtoConfig: json.RawMessage(`{}`),
+					Name:     "serv1",
+					Address:  "localhost:1",
+					Protocol: testProto1,
 				}
 				serv2 := &model.LocalAgent{
-					Name:        "serv2",
-					Address:     "localhost:2",
-					Protocol:    testProto2,
-					ProtoConfig: json.RawMessage(`{}`),
+					Name:     "serv2",
+					Address:  "localhost:2",
+					Protocol: testProto2,
 				}
 
 				So(db.Insert(serv1).Run(), ShouldBeNil)
@@ -274,16 +272,14 @@ func TestGetRule(t *testing.T) {
 				So(db.Insert(serv2acc1).Run(), ShouldBeNil)
 
 				part1 := &model.RemoteAgent{
-					Name:        "part1",
-					Address:     "localhost:10",
-					Protocol:    testProto1,
-					ProtoConfig: json.RawMessage(`{}`),
+					Name:     "part1",
+					Address:  "localhost:10",
+					Protocol: testProto1,
 				}
 				part2 := &model.RemoteAgent{
-					Name:        "part2",
-					Address:     "localhost:20",
-					Protocol:    testProto2,
-					ProtoConfig: json.RawMessage(`{}`),
+					Name:     "part2",
+					Address:  "localhost:20",
+					Protocol: testProto2,
 				}
 
 				So(db.Insert(part1).Run(), ShouldBeNil)
@@ -541,7 +537,6 @@ func TestUpdateRule(t *testing.T) {
 				Chain:  model.ChainPre,
 				Rank:   0,
 				Type:   "DELETE",
-				Args:   json.RawMessage(`{}`),
 			}
 			So(db.Insert(pTask).Run(), ShouldBeNil)
 
@@ -550,7 +545,6 @@ func TestUpdateRule(t *testing.T) {
 				Chain:  model.ChainPost,
 				Rank:   0,
 				Type:   "DELETE",
-				Args:   json.RawMessage(`{}`),
 			}
 			So(db.Insert(poTask).Run(), ShouldBeNil)
 
@@ -559,7 +553,6 @@ func TestUpdateRule(t *testing.T) {
 				Chain:  model.ChainError,
 				Rank:   0,
 				Type:   "DELETE",
-				Args:   json.RawMessage(`{}`),
 			}
 			So(db.Insert(eTask).Run(), ShouldBeNil)
 
@@ -628,7 +621,7 @@ func TestUpdateRule(t *testing.T) {
 									Chain:  model.ChainPost,
 									Rank:   0,
 									Type:   "MOVE",
-									Args:   json.RawMessage(`{"path": "/move/path"}`),
+									Args:   map[string]string{"path": "/move/path"},
 								})
 							})
 						})
@@ -687,21 +680,21 @@ func TestUpdateRule(t *testing.T) {
 							PreTasks: []*Task{
 								{
 									Type: "DELETE",
-									Args: []byte("{}"),
+									Args: map[string]string{},
 								},
 							},
 						}, {
 							PostTasks: []*Task{
 								{
 									Type: "DELETE",
-									Args: []byte("{}"),
+									Args: map[string]string{},
 								},
 							},
 						}, {
 							ErrorTasks: []*Task{
 								{
 									Type: "DELETE",
-									Args: []byte("{}"),
+									Args: map[string]string{},
 								},
 							},
 						},
@@ -825,7 +818,6 @@ func TestReplaceRule(t *testing.T) {
 				Chain:  model.ChainPre,
 				Rank:   0,
 				Type:   "DELETE",
-				Args:   json.RawMessage(`{}`),
 			}
 			So(db.Insert(pTask).Run(), ShouldBeNil)
 
@@ -887,7 +879,7 @@ func TestReplaceRule(t *testing.T) {
 									Chain:  model.ChainPost,
 									Rank:   0,
 									Type:   "MOVE",
-									Args:   json.RawMessage(`{"path": "/move/path"}`),
+									Args:   map[string]string{"path": "/move/path"},
 								})
 							})
 						})

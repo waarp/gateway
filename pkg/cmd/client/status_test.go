@@ -1,104 +1,104 @@
 package wg
 
 import (
-	"context"
-	"encoding/json"
-	"fmt"
-	"net/http/httptest"
-	"net/url"
+	"net/http"
+	"strings"
 	"testing"
 
 	. "github.com/smartystreets/goconvey/convey"
 
-	"code.waarp.fr/apps/gateway/gateway/pkg/admin"
-	"code.waarp.fr/apps/gateway/gateway/pkg/database"
-	"code.waarp.fr/apps/gateway/gateway/pkg/gatewayd/service"
-	"code.waarp.fr/apps/gateway/gateway/pkg/gatewayd/service/proto"
-	"code.waarp.fr/apps/gateway/gateway/pkg/gatewayd/service/state"
-	"code.waarp.fr/apps/gateway/gateway/pkg/model"
+	"code.waarp.fr/apps/gateway/gateway/pkg/admin/rest/api"
 )
 
-type dummyService struct{ state *state.State }
-
-func (*dummyService) Start() error               { return nil }
-func (*dummyService) Stop(context.Context) error { return nil }
-func (e *dummyService) State() *state.State      { return e.state }
-
-type dummyServer struct{ *dummyService }
-
-func (*dummyServer) Start(*model.LocalAgent) error          { return nil }
-func (e dummyServer) ManageTransfers() *service.TransferMap { return nil }
-
 func TestRequestStatus(t *testing.T) {
-	runningState := state.State{}
-	runningState.Set(state.Running, "")
+	const (
+		version = "waarp-gatewayd/dev"
+		date    = "Mon, 02 Jan 2006 15:04:05 GMT"
+		wgDate  = "Mon, 02 Jan 2006 16:04:05 CET"
 
-	offlineState := state.State{}
-	offlineState.Set(state.Offline, "")
+		path = "/api/about"
+	)
 
-	errorState := state.State{}
-	errorState.Set(state.Error, "Error message")
+	responseBody := map[string]any{
+		"coreServices": []map[string]any{
+			{"name": "Core Service 1", "state": "Offline"},
+			{"name": "Core Service 2", "state": "Running"},
+			{"name": "Core Service 3", "state": "Offline"},
+			{"name": "Core Service 4", "state": "Error", "reason": "error n°4"},
+			{"name": "Core Service 5", "state": "Error", "reason": "error n°5"},
+			{"name": "Core Service 6", "state": "Running"},
+		},
+		"servers": []map[string]any{
+			{"name": "Server 1", "state": "Running"},
+			{"name": "Server 2", "state": "Error", "reason": "error n°2"},
+			{"name": "Server 3", "state": "Offline"},
+			{"name": "Server 4", "state": "Offline"},
+			{"name": "Server 5", "state": "Running"},
+			{"name": "Server 6", "state": "Error", "reason": "error n°6"},
+		},
+		"clients": []map[string]any{
+			{"name": "Client 1", "state": "Error", "reason": "error n°1"},
+			{"name": "Client 2", "state": "Offline"},
+			{"name": "Client 3", "state": "Error", "reason": "error n°3"},
+			{"name": "Client 4", "state": "Running"},
+			{"name": "Client 5", "state": "Running"},
+			{"name": "Client 6", "state": "Offline"},
+		},
+	}
 
 	Convey("Testing the 'status' command", t, func() {
-		out = testFile()
-		s := Status{}
+		w := &strings.Builder{}
+		command := &Status{}
 
-		Convey("Given a running gateway", func(c C) {
-			db := database.TestDatabase(c)
-			i := 0
-			addServ := func(name string) *model.LocalAgent {
-				i++
-				a := &model.LocalAgent{
-					Name:        name,
-					Protocol:    testProto1,
-					ProtoConfig: json.RawMessage("{}"),
-					Address:     fmt.Sprintf("localhost:%d", i),
-				}
-				So(db.Insert(a).Run(), ShouldBeNil)
+		expected := &expectedRequest{
+			method: http.MethodGet,
+			path:   path,
+		}
 
-				return a
-			}
+		result := &expectedResponse{
+			status: http.StatusOK,
+			body:   responseBody,
+			headers: map[string][]string{
+				"Server":       {version},
+				"Date":         {date},
+				api.DateHeader: {wgDate},
+			},
+		}
 
-			core := map[string]service.Service{
-				"Core Service 1": &dummyService{&offlineState},
-				"Core Service 2": &dummyService{&runningState},
-				"Core Service 3": &dummyService{&offlineState},
-				"Core Service 4": &dummyService{&errorState},
-				"Core Service 5": &dummyService{&errorState},
-				"Core Service 6": &dummyService{&runningState},
-			}
-			protoServices := map[int64]proto.Service{
-				addServ("Proto Service 1").ID: &dummyServer{&dummyService{&offlineState}},
-				addServ("Proto Service 2").ID: &dummyServer{&dummyService{&runningState}},
-				addServ("Proto Service 3").ID: &dummyServer{&dummyService{&offlineState}},
-				addServ("Proto Service 4").ID: &dummyServer{&dummyService{&errorState}},
-				addServ("Proto Service 5").ID: &dummyServer{&dummyService{&errorState}},
-				addServ("Proto Service 6").ID: &dummyServer{&dummyService{&runningState}},
-			}
-
-			gw := httptest.NewServer(admin.MakeHandler(discard(), db, core, protoServices))
+		Convey("Given a dummy gateway REST interface", func(c C) {
+			testServer(expected, result)
 
 			Convey("When executing the command", func() {
-				var err error
-				addr, err = url.Parse("http://admin:admin_password@" + gw.Listener.Addr().String())
-				So(err, ShouldBeNil)
-
-				So(s.Execute(nil), ShouldBeNil)
+				So(executeCommand(w, command), ShouldBeNil)
 
 				Convey("Then it should display the services' status", func() {
-					So(getOutput(), ShouldEqual, "Waarp-Gateway services:\n"+
-						"[Error]   Core Service 4 (Error message)\n"+
-						"[Error]   Core Service 5 (Error message)\n"+
-						"[Error]   Proto Service 4 (Error message)\n"+
-						"[Error]   Proto Service 5 (Error message)\n"+
+					So(w.String(), ShouldEqual, "Server info: "+version+"\n"+
+						"Local date: "+wgDate+"\n"+
+						"\n"+
+						"Core services:\n"+
+						"[Error]   Core Service 4 (error n°4)\n"+
+						"[Error]   Core Service 5 (error n°5)\n"+
 						"[Active]  Core Service 2\n"+
 						"[Active]  Core Service 6\n"+
-						"[Active]  Proto Service 2\n"+
-						"[Active]  Proto Service 6\n"+
 						"[Offline] Core Service 1\n"+
 						"[Offline] Core Service 3\n"+
-						"[Offline] Proto Service 1\n"+
-						"[Offline] Proto Service 3\n",
+						"\n"+
+						"Servers:\n"+
+						"[Error]   Server 2 (error n°2)\n"+
+						"[Error]   Server 6 (error n°6)\n"+
+						"[Active]  Server 1\n"+
+						"[Active]  Server 5\n"+
+						"[Offline] Server 3\n"+
+						"[Offline] Server 4\n"+
+						"\n"+
+						"Clients:\n"+
+						"[Error]   Client 1 (error n°1)\n"+
+						"[Error]   Client 3 (error n°3)\n"+
+						"[Active]  Client 4\n"+
+						"[Active]  Client 5\n"+
+						"[Offline] Client 2\n"+
+						"[Offline] Client 6\n"+
+						"\n",
 					)
 				})
 			})

@@ -3,6 +3,37 @@
 Historique des versions
 =======================
 
+* :feature:`332` Matérialisation des :term:`clients de transfert<client>`. Les
+  clients de transfert de la gateway ne sont dorénavant plus créés à la volé au
+  démarrage des transferts, ils doivent désormais avoir été créés au préalable.
+  Par conséquent, initialiser un nouveau transfert requiert désormais de préciser
+  quel client utiliser pour exécuter ce transfert.
+
+  Par commodité, pour les installations existantes, un client par défaut sera
+  créé pour chaque protocole en utilisation lors de la migration de la gateway.
+* :bug:`-` Les dossiers par défaut (spécifiés dans le fichier de configuration)
+  créés par la gateway ont désormais les permission *740* au lieu de *744*.
+* :bug:`-` Dans le cas où la base de données de la gateway est partagée, les
+  partenaires de transfert ne sont désormais plus communs à toutes les instances
+  utilisant la base. Dans les faits, chaque instance de gateway possède donc
+  désormais sont propre annuaire de partenaires, indépendant de ceux des autres
+  instances partageant la base de données.
+
+  Lors de la migration de la gateway, pour éviter d'éventuels problème d'incompatibilité,
+  tous les partenaires existants ainsi que leurs enfants (comptes distants,
+  certificats, etc...) seront dupliqués entre toutes les instances de gateway
+  connues utilisant la base de données.
+* :feature:`-` Ajout de l'option d'activation/désactivation *disabled* à l'objet
+  JSON de serveur local *localAgent* du fichier d'import/export. Il est donc
+  désormais possible de spécifier si un serveur importé doit être activé ou
+  désactivé.
+* :bug:`-` Les nouveaux serveurs locaux créés sont désormais activés par défaut
+  au lieu d'être désactivés comme c'était le cas précédemment.
+
+  **Note**: Le terme "activé" ici (*enabled*) ne doit pas être confondu avec
+  "actif" (*running*). Les serveurs ne seront pas automatiquement démarré
+  immédiatement après leur création. En revanche, ils seront démarrés lors
+  du prochain lancement de la gateway.
 * :fix:`-` Les *transfer infos* transmises via HTTP(S) sont désormais bien prises
   en compte dans les tâches.
 * :fix:`-` Les valeurs de substitution de *transfer info* dans les tâches ne sont

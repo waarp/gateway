@@ -9,18 +9,21 @@ import (
 
 	"code.waarp.fr/apps/gateway/gateway/pkg/model/config"
 	"code.waarp.fr/apps/gateway/gateway/pkg/model/types"
-	"code.waarp.fr/apps/gateway/gateway/pkg/r66/internal"
+	"code.waarp.fr/apps/gateway/gateway/pkg/pipeline/pipelinetest"
 )
 
 //nolint:gochecknoglobals // these are test variables
 var (
-	servConf = &config.R66ProtoConfig{ServerLogin: "r66_login", ServerPassword: "sesame"}
-	partConf = &config.R66ProtoConfig{ServerLogin: "r66_login", ServerPassword: "sesame"}
+	cliConf  = &config.R66ClientProtoConfig{}
+	servConf = &config.R66ServerProtoConfig{ServerLogin: "r66_login", ServerPassword: "sesame"}
+	partConf = &config.R66PartnerProtoConfig{ServerLogin: "r66_login", ServerPassword: "sesame"}
 )
 
-func resetConnPool() {
-	clientConns = internal.NewConnPool()
-	Reset(clientConns.ForceClose)
+func init() {
+	pipelinetest.Protocols[ProtocolR66] = pipelinetest.ProtoFeatures{
+		ClientConstr: NewClient, ServiceConstr: NewService,
+		TransID: true, RuleName: true, Size: true,
+	}
 }
 
 func hash(pwd string) string {

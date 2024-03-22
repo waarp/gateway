@@ -25,7 +25,7 @@ var GlobalConfig ServerConfig
 //
 //nolint:lll // cannot split struct tags
 type ServerConfig struct {
-	GatewayName string `ini-name:"GatewayName" default:"waarp-gateway" description:"The name given to identify this gateway instance. If the the database is shared between multiple gateways, this name MUST be unique across these gateways."`
+	GatewayName string `ini-name:"GatewayName" default:"waarp-gateway" description:"The name given to identify this gateway instance. If the database is shared between multiple gateways, this name MUST be unique across these gateways."`
 	NodeID      string
 	Paths       PathsConfig      `group:"paths"`
 	Log         LogConfig        `group:"log"`

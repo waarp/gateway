@@ -2,14 +2,15 @@ package tasks
 
 import (
 	"context"
-	"database/sql"
 	"encoding/json"
 	"fmt"
 
 	"code.waarp.fr/lib/log"
 
+	"code.waarp.fr/apps/gateway/gateway/pkg/conf"
 	"code.waarp.fr/apps/gateway/gateway/pkg/database"
 	"code.waarp.fr/apps/gateway/gateway/pkg/model"
+	"code.waarp.fr/apps/gateway/gateway/pkg/tk/utils"
 )
 
 // TransferTask is a task which schedules a new transfer.
@@ -45,73 +46,90 @@ func (t *TransferTask) Validate(args map[string]string) error {
 	return nil
 }
 
+//nolint:funlen //function is perfectly readable despite being long
 func getTransferInfo(db *database.DB, args map[string]string) (file string,
-	ruleID, accountID int64, isSend bool, infoErr error,
+	ruleID, clientID, accountID int64, isSend bool, infoErr error,
 ) {
 	fileName, fileOK := args["file"]
 	if !fileOK || fileName == "" {
 		infoErr = fmt.Errorf("missing transfer file: %w", errBadTaskArguments)
 
-		return "", 0, 0, false, infoErr
+		return "", 0, 0, 0, false, infoErr
+	}
+
+	clientName, clientOK := args["using"]
+	if !clientOK || fileName == "" {
+		infoErr = fmt.Errorf("missing transfer client: %w", errBadTaskArguments)
+
+		return "", 0, 0, 0, false, infoErr
 	}
 
 	agentName, agentOK := args["to"]
 	if !agentOK || agentName == "" {
 		agentName, agentOK = args["from"]
 		if !agentOK || agentName == "" {
-			infoErr = fmt.Errorf("a missing transfer remote partner: %w", errBadTaskArguments)
+			infoErr = fmt.Errorf("missing transfer remote partner: %w", errBadTaskArguments)
 
-			return "", 0, 0, false, infoErr
+			return "", 0, 0, 0, false, infoErr
 		}
 	} else if from, ok := args["from"]; ok && from != "" {
 		infoErr = fmt.Errorf("cannot have both 'to' and 'from': %w", errBadTaskArguments)
 
-		return "", 0, 0, false, infoErr
+		return "", 0, 0, 0, false, infoErr
 	}
 
 	ruleName, ruleOK := args["rule"]
 	if !ruleOK || ruleName == "" {
 		infoErr = fmt.Errorf("missing transfer rule: %w", errBadTaskArguments)
 
-		return "", 0, 0, false, infoErr
+		return "", 0, 0, 0, false, infoErr
 	}
 
 	rule := &model.Rule{}
 	if err := db.Get(rule, "name=? AND is_send=?", ruleName, args["to"] != "").Run(); err != nil {
 		infoErr = fmt.Errorf("failed to retrieve rule '%s': %w", ruleName, err)
 
-		return "", 0, 0, false, infoErr
+		return "", 0, 0, 0, false, infoErr
+	}
+
+	client := &model.Client{}
+	if err := db.Get(client, "owner=? AND name=?", conf.GlobalConfig.GatewayName,
+		clientName).Run(); err != nil {
+		infoErr = fmt.Errorf("failed to retrieve client %q: %w", clientName, err)
+
+		return "", 0, 0, 0, false, infoErr
 	}
 
 	agent := &model.RemoteAgent{}
-	if err := db.Get(agent, "name=?", agentName).Run(); err != nil {
+	if err := db.Get(agent, "owner=? AND name=?", conf.GlobalConfig.GatewayName,
+		agentName).Run(); err != nil {
 		infoErr = fmt.Errorf("failed to retrieve partner '%s': %w", agentName, err)
 
-		return "", 0, 0, false, infoErr
+		return "", 0, 0, 0, false, infoErr
 	}
 
 	accName, accOK := args["as"]
 	if !accOK || accName == "" {
 		infoErr = fmt.Errorf("missing transfer account: %w", errBadTaskArguments)
 
-		return "", 0, 0, false, infoErr
+		return "", 0, 0, 0, false, infoErr
 	}
 
 	acc := &model.RemoteAccount{}
 	if err := db.Get(acc, "remote_agent_id=? AND login=?", agent.ID, accName).Run(); err != nil {
 		infoErr = fmt.Errorf("failed to retrieve account '%s': %w", accName, err)
 
-		return "", 0, 0, false, infoErr
+		return "", 0, 0, 0, false, infoErr
 	}
 
-	return fileName, rule.ID, acc.ID, rule.IsSend, nil
+	return fileName, rule.ID, client.ID, acc.ID, rule.IsSend, nil
 }
 
 // Run executes the task by scheduling a new transfer with the given parameters.
 func (t *TransferTask) Run(_ context.Context, args map[string]string,
 	db *database.DB, logger *log.Logger, transCtx *model.TransferContext,
 ) error {
-	file, ruleID, accID, isSend, infoErr := getTransferInfo(db, args)
+	file, ruleID, cliID, accID, isSend, infoErr := getTransferInfo(db, args)
 	if infoErr != nil {
 		return infoErr
 	}
@@ -130,7 +148,8 @@ func (t *TransferTask) Run(_ context.Context, args map[string]string,
 
 	trans := &model.Transfer{
 		RuleID:          ruleID,
-		RemoteAccountID: sql.NullInt64{Int64: accID, Valid: true},
+		ClientID:        utils.NewNullInt64(cliID),
+		RemoteAccountID: utils.NewNullInt64(accID),
 		SrcFilename:     file,
 	}
 

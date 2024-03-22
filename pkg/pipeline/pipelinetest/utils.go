@@ -6,7 +6,6 @@ import (
 	"sync/atomic"
 	"time"
 
-	"code.waarp.fr/lib/log"
 	"github.com/smartystreets/goconvey/convey"
 	"golang.org/x/crypto/bcrypt"
 
@@ -14,7 +13,6 @@ import (
 	"code.waarp.fr/apps/gateway/gateway/pkg/database"
 	"code.waarp.fr/apps/gateway/gateway/pkg/fs"
 	"code.waarp.fr/apps/gateway/gateway/pkg/fs/fstest"
-	"code.waarp.fr/apps/gateway/gateway/pkg/gatewayd/service/proto"
 	"code.waarp.fr/apps/gateway/gateway/pkg/model"
 	"code.waarp.fr/apps/gateway/gateway/pkg/model/types"
 	"code.waarp.fr/apps/gateway/gateway/pkg/pipeline"
@@ -34,8 +32,6 @@ func init() {
 		panic(fmt.Sprintf("failed to initialize the log backend: %v", err))
 	}
 }
-
-type serviceConstructor func(db *database.DB, logger *log.Logger) proto.Service
 
 // TestFileSize defines the size of the file used for transfer tests.
 const TestFileSize int64 = 1000000 // 1MB

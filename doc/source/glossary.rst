@@ -35,6 +35,13 @@ Glossaire
       partenaires qu'elle connait, cela n'implique en aucun cas que ceux-ci
       peuvent initier un transfert avec la *gateway* (voir 'compte local' ci-dessous).
 
+   client
+   (*client*)
+      Un client est l'élément de la gateway responsable des transfers avec des
+      partenaires distants. Lorsqu'un transfert est créé, celui-ci est ensuite
+      récupéré depuis la base de données, puis donné au client approprié pour
+      que celui-ci exécute le transfert.
+
    compte local
    (*local account*)
       Un compte local désigne les identifiants avec lesquels un agent extérieur

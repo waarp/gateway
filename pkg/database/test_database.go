@@ -110,14 +110,14 @@ func resetDB(db *DB) {
 
 	switch config.Type {
 	case PostgreSQL:
-		_, err := db.engine.Exec("DROP SCHEMA public CASCADE")
+		_, err := db.engine.Exec("DROP SCHEMA IF EXISTS public CASCADE")
 		convey.So(err, convey.ShouldBeNil)
 
 		_, err = db.engine.Exec("CREATE SCHEMA public")
 		convey.So(err, convey.ShouldBeNil)
 		convey.So(db.engine.Close(), convey.ShouldBeNil)
 	case MySQL:
-		_, err := db.engine.Exec("DROP DATABASE waarp_gateway_test")
+		_, err := db.engine.Exec("DROP DATABASE IF EXISTS waarp_gateway_test")
 		convey.So(err, convey.ShouldBeNil)
 
 		_, err = db.engine.Exec("CREATE DATABASE waarp_gateway_test")

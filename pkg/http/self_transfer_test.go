@@ -11,7 +11,7 @@ import (
 
 func TestSelfPushOK(t *testing.T) {
 	Convey("Given a new HTTP push transfer", t, func(c C) {
-		ctx := pipelinetest.InitSelfPushTransfer(c, "http", NewService, nil, nil)
+		ctx := pipelinetest.InitSelfPushTransfer(c, "http", nil, nil, nil)
 		ctx.StartService(c)
 
 		Convey("When executing the transfer", func(c C) {
@@ -33,7 +33,7 @@ func TestSelfPushOK(t *testing.T) {
 
 func TestSelfPullOK(t *testing.T) {
 	Convey("Given a new HTTP pull transfer", t, func(c C) {
-		ctx := pipelinetest.InitSelfPullTransfer(c, "http", NewService, nil, nil)
+		ctx := pipelinetest.InitSelfPullTransfer(c, "http", nil, nil, nil)
 		ctx.StartService(c)
 
 		Convey("When executing the transfer", func(c C) {
@@ -55,7 +55,7 @@ func TestSelfPullOK(t *testing.T) {
 
 func TestSelfPushClientPreTasksFail(t *testing.T) {
 	Convey("Given a new http push transfer", t, func(c C) {
-		ctx := pipelinetest.InitSelfPushTransfer(c, "http", NewService, nil, nil)
+		ctx := pipelinetest.InitSelfPushTransfer(c, "http", nil, nil, nil)
 		ctx.StartService(c)
 
 		Convey("Given that an error occurs in client pre-tasks", func(c C) {
@@ -88,7 +88,7 @@ func TestSelfPushClientPreTasksFail(t *testing.T) {
 
 func TestSelfPullServerPreTasksFail(t *testing.T) {
 	Convey("Given a new http pull transfer", t, func(c C) {
-		ctx := pipelinetest.InitSelfPullTransfer(c, "http", NewService, nil, nil)
+		ctx := pipelinetest.InitSelfPullTransfer(c, "http", nil, nil, nil)
 		ctx.StartService(c)
 
 		Convey("Given an error during the server's pre-tasks", func(c C) {
@@ -121,7 +121,7 @@ func TestSelfPullServerPreTasksFail(t *testing.T) {
 
 func TestSelfPushClientPostTasksFail(t *testing.T) {
 	Convey("Given a new http push transfer", t, func(c C) {
-		ctx := pipelinetest.InitSelfPushTransfer(c, "http", NewService, nil, nil)
+		ctx := pipelinetest.InitSelfPushTransfer(c, "http", nil, nil, nil)
 		ctx.StartService(c)
 
 		Convey("Given an error during the client's post-tasks", func(c C) {
@@ -154,7 +154,7 @@ func TestSelfPushClientPostTasksFail(t *testing.T) {
 
 func TestSelfPushServerPostTasksFail(t *testing.T) {
 	Convey("Given a new http push transfer", t, func(c C) {
-		ctx := pipelinetest.InitSelfPushTransfer(c, "http", NewService, nil, nil)
+		ctx := pipelinetest.InitSelfPushTransfer(c, "http", nil, nil, nil)
 		ctx.StartService(c)
 
 		Convey("Given an error during the server's post-tasks", func(c C) {
@@ -186,7 +186,7 @@ func TestSelfPushServerPostTasksFail(t *testing.T) {
 
 func TestSelfPullServerPostTasksFail(t *testing.T) {
 	Convey("Given a new http pull transfer", t, func(c C) {
-		ctx := pipelinetest.InitSelfPullTransfer(c, "http", NewService, nil, nil)
+		ctx := pipelinetest.InitSelfPullTransfer(c, "http", nil, nil, nil)
 		ctx.StartService(c)
 
 		Convey("Given an error during the server's post-tasks", func(c C) {
@@ -219,7 +219,7 @@ func TestSelfPullServerPostTasksFail(t *testing.T) {
 
 func TestSelfPushServerPreTasksFail(t *testing.T) {
 	Convey("Given a new http push transfer", t, func(c C) {
-		ctx := pipelinetest.InitSelfPushTransfer(c, "http", NewService, nil, nil)
+		ctx := pipelinetest.InitSelfPushTransfer(c, "http", nil, nil, nil)
 		ctx.StartService(c)
 
 		Convey("Given an error during the server's pre-tasks", func(c C) {
@@ -264,7 +264,7 @@ func TestSelfPushServerPreTasksFail(t *testing.T) {
 // resume a finished transfer.
 func TestSelfPullClientPostTasksFail(t *testing.T) {
 	Convey("Given a new http pull transfer", t, func(c C) {
-		ctx := pipelinetest.InitSelfPullTransfer(c, "http", NewService, nil, nil)
+		ctx := pipelinetest.InitSelfPullTransfer(c, "http", nil, nil, nil)
 		ctx.StartService(c)
 
 		Convey("Given an error during the client's post-tasks", func(c C) {
@@ -301,7 +301,7 @@ func TestSelfPullClientPostTasksFail(t *testing.T) {
 // because that state is undefined.
 func TestSelfPullClientPreTasksFail(t *testing.T) {
 	Convey("Given a new http pull transfer", t, func(c C) {
-		ctx := pipelinetest.InitSelfPullTransfer(c, "http", NewService, nil, nil)
+		ctx := pipelinetest.InitSelfPullTransfer(c, "http", nil, nil, nil)
 		ctx.StartService(c)
 
 		Convey("Given that an error occurs in client pre-tasks", func(c C) {
@@ -324,7 +324,7 @@ func TestSelfPullClientPreTasksFail(t *testing.T) {
 
 func TestSelfPushClientDataFail(t *testing.T) {
 	Convey("Given a new HTTP push transfer", t, func(c C) {
-		ctx := pipelinetest.InitSelfPushTransfer(c, "http", NewService, nil, nil)
+		ctx := pipelinetest.InitSelfPushTransfer(c, "http", nil, nil, nil)
 		ctx.StartService(c)
 
 		Convey("Given an error during the data transfer", func(c C) {
@@ -354,7 +354,7 @@ func TestSelfPushClientDataFail(t *testing.T) {
 
 func TestSelfPushServerDataFail(t *testing.T) {
 	Convey("Given a new HTTP push transfer", t, func(c C) {
-		ctx := pipelinetest.InitSelfPushTransfer(c, "http", NewService, nil, nil)
+		ctx := pipelinetest.InitSelfPushTransfer(c, "http", nil, nil, nil)
 		ctx.StartService(c)
 
 		Convey("Given an error during the data transfer", func(c C) {
@@ -385,7 +385,7 @@ func TestSelfPushServerDataFail(t *testing.T) {
 // Same as TestSelfPullClientPreTasksFail.
 func TestSelfPullClientDataFail(t *testing.T) {
 	Convey("Given a new HTTP push transfer", t, func(c C) {
-		ctx := pipelinetest.InitSelfPullTransfer(c, "http", NewService, nil, nil)
+		ctx := pipelinetest.InitSelfPullTransfer(c, "http", nil, nil, nil)
 		ctx.StartService(c)
 
 		Convey("Given an error during the data transfer", func(c C) {
@@ -408,7 +408,7 @@ func TestSelfPullClientDataFail(t *testing.T) {
 
 func TestSelfPullServerDataFail(t *testing.T) {
 	Convey("Given a new HTTP push transfer", t, func(c C) {
-		ctx := pipelinetest.InitSelfPullTransfer(c, "http", NewService, nil, nil)
+		ctx := pipelinetest.InitSelfPullTransfer(c, "http", nil, nil, nil)
 		ctx.StartService(c)
 
 		Convey("Given an error during the data transfer", func(c C) {

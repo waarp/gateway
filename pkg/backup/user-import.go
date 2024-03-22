@@ -11,8 +11,24 @@ import (
 	"code.waarp.fr/apps/gateway/gateway/pkg/model"
 )
 
-func importUsers(logger *log.Logger, db database.Access, users []file.User) database.Error {
+//nolint:funlen //splitting would add complexity
+func importUsers(logger *log.Logger, db database.Access, users []file.User,
+	reset bool,
+) database.Error {
 	for i := range users {
+		if reset {
+			var dbUsers model.Users
+			if err := db.Select(&dbUsers).Run(); err != nil {
+				return err
+			}
+
+			for _, dbUser := range dbUsers {
+				if err := db.Delete(dbUser).Run(); err != nil {
+					return err
+				}
+			}
+		}
+
 		var (
 			user   = &users[i]
 			dbUser model.User
@@ -36,15 +52,13 @@ func importUsers(logger *log.Logger, db database.Access, users []file.User) data
 		}
 
 		var err database.Error
-		dbUser.Permissions, err = model.PermsToMask(&model.Permissions{
+		if dbUser.Permissions, err = model.PermsToMask(&model.Permissions{
 			Transfers: user.Permissions.Transfers,
 			Servers:   user.Permissions.Servers,
 			Partners:  user.Permissions.Partners,
 			Rules:     user.Permissions.Rules,
 			Users:     user.Permissions.Users,
-		})
-
-		if err != nil {
+		}); err != nil {
 			return err
 		}
 

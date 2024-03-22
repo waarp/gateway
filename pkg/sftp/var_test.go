@@ -7,7 +7,18 @@ import (
 	"golang.org/x/crypto/bcrypt"
 
 	"code.waarp.fr/apps/gateway/gateway/pkg/model/types"
+	"code.waarp.fr/apps/gateway/gateway/pkg/pipeline/pipelinetest"
 )
+
+func init() {
+	pipelinetest.Protocols["sftp"] = pipelinetest.ProtoFeatures{
+		ClientConstr:  NewClient,
+		ServiceConstr: NewService,
+		TransID:       false,
+		RuleName:      false,
+		Size:          false,
+	}
+}
 
 func hash(pwd string) string {
 	h, err := bcrypt.GenerateFromPassword([]byte(pwd), bcrypt.MinCost)

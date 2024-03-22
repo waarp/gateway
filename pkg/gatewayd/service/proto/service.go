@@ -14,14 +14,24 @@ import (
 // which is considered to be a service.
 type Service interface {
 	// Start is the method called to start the service.
-	Start(*model.LocalAgent) error
+	Start(serv *model.LocalAgent) error
 
+	Stopper
+	Statter
+	TransferManager
+}
+
+type Stopper interface {
 	// Stop is the method called to stop the service. It may include a timeout.
 	Stop(ctx context.Context) error
+}
 
+type Statter interface {
 	// State returns the state of the service.
 	State() *state.State
+}
 
+type TransferManager interface {
 	// ManageTransfers returns a map of the transfers currently running on the
 	// server, along with a few functions to manage each of those transfers.
 	ManageTransfers() *service.TransferMap

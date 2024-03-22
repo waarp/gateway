@@ -27,6 +27,7 @@ func TestClientPipelineRun(t *testing.T) {
 
 			trans := &model.Transfer{
 				RuleID:          ctx.send.ID,
+				ClientID:        utils.NewNullInt64(ctx.client.ID),
 				RemoteAccountID: utils.NewNullInt64(ctx.remoteAccount.ID),
 				SrcFilename:     filename,
 				Start:           time.Date(2021, 1, 1, 1, 0, 0, 0, time.UTC),
@@ -53,6 +54,7 @@ func TestClientPipelineRun(t *testing.T) {
 						Rule:             ctx.send.Name,
 						Agent:            ctx.partner.Name,
 						Account:          ctx.remoteAccount.Login,
+						Client:           ctx.client.Name,
 						Protocol:         testProtocol,
 						SrcFilename:      trans.SrcFilename,
 						LocalPath:        trans.LocalPath,

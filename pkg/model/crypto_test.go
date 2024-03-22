@@ -69,30 +69,35 @@ func TestCryptoBeforeWrite(t *testing.T) {
 
 				Convey("Given that the new credentials are missing an owner", func() {
 					newCert.LocalAgentID = sql.NullInt64{}
+
 					shouldFailWith("the owner type is missing", database.NewValidationError(
 						"the crypto credential is missing an owner"))
 				})
 
 				Convey("Given that the new credentials has multiple owners", func() {
 					newCert.RemoteAgentID = utils.NewNullInt64(1)
+
 					shouldFailWith("the owner ID is missing", database.NewValidationError(
 						"the crypto credential cannot have multiple targets"))
 				})
 
 				Convey("Given that the new credentials are missing a name", func() {
 					newCert.Name = ""
+
 					shouldFailWith("the name is missing", database.NewValidationError(
 						"the credentials' name cannot be empty"))
 				})
 
 				Convey("Given that the new credentials are missing a private key", func() {
 					newCert.PrivateKey = ""
+
 					shouldFailWith("the private key is missing", database.NewValidationError(
 						"the server is missing a private key"))
 				})
 
 				Convey("Given that the new credentials have an invalid owner ID", func() {
 					newCert.LocalAgentID = utils.NewNullInt64(1000)
+
 					shouldFailWith("the owner ID is invalid", database.NewValidationError(
 						"no server found with ID '1000'"))
 				})
@@ -139,11 +144,12 @@ func TestCryptoBeforeWrite(t *testing.T) {
 				})
 
 				Convey("Given that the certificate is not valid for the host", func() {
-					parentAgent.Address = "not_localhost:1"
+					parentAgent.Address = "1.1.1.1:1"
 					So(db.Update(parentAgent).Cols("address").Run(), ShouldBeNil)
+
 					shouldFailWith("the certificate host is incorrect",
 						database.NewValidationError("certificate is invalid: x509: "+
-							"certificate is valid for localhost, not not_localhost"))
+							"certificate is valid for 127.0.0.1, ::1, not 1.1.1.1"))
 				})
 
 				Convey("Given the legacy R66 certificate", func() {
@@ -169,9 +175,7 @@ func TestCryptoBeforeWrite(t *testing.T) {
 						})
 
 						Convey("Given an R66 owner", func() {
-							config.ProtoConfigs[protoR66TLS] = func() config.ProtoConfig {
-								return new(testhelpers.TestProtoConfig)
-							}
+							config.ProtoConfigs[protoR66TLS] = testConfigMaker
 							defer delete(config.ProtoConfigs, protoR66TLS)
 
 							parentAgent.Protocol = protoR66TLS
@@ -187,9 +191,7 @@ func TestCryptoBeforeWrite(t *testing.T) {
 
 					Convey("Given that the legacy certificate is NOT allowed", func() {
 						Convey("Given an R66 owner", func() {
-							config.ProtoConfigs[protoR66TLS] = func() config.ProtoConfig {
-								return new(testhelpers.TestProtoConfig)
-							}
+							config.ProtoConfigs[protoR66TLS] = testConfigMaker
 							defer delete(config.ProtoConfigs, protoR66TLS)
 
 							parentAgent.Protocol = protoR66TLS

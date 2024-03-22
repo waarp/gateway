@@ -23,6 +23,7 @@ func TestNewFileStream(t *testing.T) {
 		ctx := initTestDB(c)
 
 		trans := &model.Transfer{
+			ClientID:        utils.NewNullInt64(ctx.client.ID),
 			RemoteAccountID: utils.NewNullInt64(ctx.remoteAccount.ID),
 		}
 
@@ -110,6 +111,7 @@ func TestStreamRead(t *testing.T) {
 		ctx := initTestDB(c)
 
 		trans := &model.Transfer{
+			ClientID:        utils.NewNullInt64(ctx.client.ID),
 			RemoteAccountID: utils.NewNullInt64(ctx.remoteAccount.ID),
 			RuleID:          ctx.send.ID,
 			SrcFilename:     "file",
@@ -185,6 +187,7 @@ func TestStreamReadAt(t *testing.T) {
 		ctx := initTestDB(c)
 
 		trans := &model.Transfer{
+			ClientID:        utils.NewNullInt64(ctx.client.ID),
 			RemoteAccountID: utils.NewNullInt64(ctx.remoteAccount.ID),
 			RuleID:          ctx.send.ID,
 			SrcFilename:     "file",
@@ -261,6 +264,7 @@ func TestStreamWrite(t *testing.T) {
 		ctx := initTestDB(c)
 
 		trans := &model.Transfer{
+			ClientID:        utils.NewNullInt64(ctx.client.ID),
 			RemoteAccountID: utils.NewNullInt64(ctx.remoteAccount.ID),
 			RuleID:          ctx.recv.ID,
 			SrcFilename:     "file",
@@ -334,6 +338,7 @@ func TestStreamWriteAt(t *testing.T) {
 		ctx := initTestDB(c)
 
 		trans := &model.Transfer{
+			ClientID:        utils.NewNullInt64(ctx.client.ID),
 			RemoteAccountID: utils.NewNullInt64(ctx.remoteAccount.ID),
 			RuleID:          ctx.recv.ID,
 			SrcFilename:     "file",
@@ -408,6 +413,7 @@ func TestStreamClose(t *testing.T) {
 		ctx := initTestDB(c)
 
 		trans := &model.Transfer{
+			ClientID:        utils.NewNullInt64(ctx.client.ID),
 			RemoteAccountID: utils.NewNullInt64(ctx.remoteAccount.ID),
 			RuleID:          ctx.recv.ID,
 			SrcFilename:     "file",
@@ -444,6 +450,7 @@ func TestStreamMove(t *testing.T) {
 		ctx := initTestDB(c)
 
 		trans := &model.Transfer{
+			ClientID:        utils.NewNullInt64(ctx.client.ID),
 			RemoteAccountID: utils.NewNullInt64(ctx.remoteAccount.ID),
 			RuleID:          ctx.recv.ID,
 			SrcFilename:     "file",
@@ -497,6 +504,7 @@ func TestStreamMove(t *testing.T) {
 		ctx := initTestDB(c)
 
 		trans := &model.Transfer{
+			ClientID:        utils.NewNullInt64(ctx.client.ID),
 			RemoteAccountID: utils.NewNullInt64(ctx.remoteAccount.ID),
 			RuleID:          ctx.recv.ID,
 			SrcFilename:     "file",
@@ -530,6 +538,7 @@ func TestStreamSeek(t *testing.T) {
 
 		trans := &model.Transfer{
 			RemoteAccountID: utils.NewNullInt64(ctx.remoteAccount.ID),
+			ClientID:        utils.NewNullInt64(ctx.client.ID),
 			RuleID:          ctx.recv.ID,
 			SrcFilename:     filepath.Join(t.TempDir(), "file"),
 		}
@@ -570,6 +579,7 @@ func TestStreamSync(t *testing.T) {
 
 		trans := &model.Transfer{
 			RemoteAccountID: utils.NewNullInt64(ctx.remoteAccount.ID),
+			ClientID:        utils.NewNullInt64(ctx.client.ID),
 			RuleID:          ctx.recv.ID,
 			SrcFilename:     filepath.Join(t.TempDir(), "file"),
 		}

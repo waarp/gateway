@@ -2,7 +2,6 @@ package sftp
 
 import (
 	"context"
-	"encoding/json"
 	"net"
 	"path"
 	"testing"
@@ -46,9 +45,6 @@ func TestSFTPList(t *testing.T) {
 			}
 			So(db.Insert(agent).Run(), ShouldBeNil)
 
-			protoConfig := config.SftpProtoConfig{}
-			So(json.Unmarshal(agent.ProtoConfig, &protoConfig), ShouldBeNil)
-
 			toto := &model.LocalAccount{
 				LocalAgentID: agent.ID,
 				Login:        "toto",
@@ -71,7 +67,7 @@ func TestSFTPList(t *testing.T) {
 			So(db.Insert(hostKey).Run(), ShouldBeNil)
 
 			serverConfig, err := getSSHServerConfig(db, []*model.Crypto{hostKey},
-				&protoConfig, agent)
+				&config.SftpServerProtoConfig{}, agent)
 			So(err, ShouldBeNil)
 
 			logger := testhelpers.TestLogger(c, "test_sftp_list")

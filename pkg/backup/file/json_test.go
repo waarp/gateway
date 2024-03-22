@@ -10,8 +10,18 @@ import (
 	"code.waarp.fr/apps/gateway/gateway/pkg/tk/utils"
 )
 
-func shouldBeHashOf(hash, pswd string) {
-	So(bcrypt.CompareHashAndPassword([]byte(hash), []byte(pswd)), ShouldBeNil)
+func shouldBeHashOf(hashed any, pswd string) {
+	var hash []byte
+	switch typed := hashed.(type) {
+	case string:
+		hash = []byte(typed)
+	case []byte:
+		hash = typed
+	default:
+		So(hashed, ShouldHaveSameTypeAs, "")
+	}
+
+	So(bcrypt.CompareHashAndPassword(hash, []byte(pswd)), ShouldBeNil)
 }
 
 func TestUserUnmarshalJSON(t *testing.T) {
@@ -78,12 +88,11 @@ func TestRemoteAgentUnmarshalJSON(t *testing.T) {
 			So(json.Unmarshal(input, &partner), ShouldBeNil)
 
 			Convey("Then it should have hashed the server's password", func() {
-				var conf map[string]any
-				So(json.Unmarshal(partner.Configuration, &conf), ShouldBeNil)
+				So(partner.Configuration, ShouldContainKey, "serverPassword")
 
-				So(conf, ShouldContainKey, "serverPassword")
+				So(partner.Configuration, ShouldContainKey, "serverPassword")
 				//nolint:forcetypeassert //type assertion always succeeds
-				shouldBeHashOf(conf["serverPassword"].(string), utils.R66Hash("bar"))
+				shouldBeHashOf(partner.Configuration["serverPassword"], utils.R66Hash("bar"))
 			})
 		})
 	})
@@ -104,13 +113,10 @@ func TestRemoteAgentUnmarshalJSON(t *testing.T) {
 			So(json.Unmarshal(input, &partner), ShouldBeNil)
 
 			Convey("Then it should NOT have changed the server's password", func() {
-				var conf map[string]any
-				So(json.Unmarshal(partner.Configuration, &conf), ShouldBeNil)
-
-				So(conf, ShouldContainKey, "serverPassword")
+				So(partner.Configuration, ShouldContainKey, "serverPassword")
 
 				//nolint:forcetypeassert //type assertion always succeeds
-				hash := conf["serverPassword"].(string)
+				hash := partner.Configuration["serverPassword"]
 				So(hash, ShouldEqual, "$2a$04$KgPxfeImO46ddWHq9En28eHRmBN3TjQvmzJ3QLiFpxV2jmIk.ZSl6")
 				shouldBeHashOf(hash, utils.R66Hash("bar"))
 			})

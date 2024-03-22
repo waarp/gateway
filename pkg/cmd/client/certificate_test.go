@@ -1,7 +1,6 @@
 package wg
 
 import (
-	"encoding/json"
 	"net/http/httptest"
 	"net/url"
 	"testing"
@@ -35,6 +34,7 @@ func resetVars() {
 func TestGetCertificate(t *testing.T) {
 	Convey("Testing the certificate 'get' command", t, func() {
 		resetVars()
+
 		out = testFile()
 		command := &CertGet{}
 
@@ -342,6 +342,7 @@ func TestGetCertificate(t *testing.T) {
 func TestAddCertificate(t *testing.T) {
 	Convey("Testing the cert 'add' command", t, func(c C) {
 		resetVars()
+
 		out = testFile()
 		command := &CertAdd{}
 
@@ -524,10 +525,9 @@ func TestAddCertificate(t *testing.T) {
 
 			Convey("Given a server", func() {
 				server := &model.LocalAgent{
-					Name:        "server",
-					Protocol:    testProto1,
-					ProtoConfig: json.RawMessage(`{}`),
-					Address:     "localhost:6666",
+					Name:     "server",
+					Protocol: testProto1,
+					Address:  "localhost:6666",
 				}
 				So(db.Insert(server).Run(), ShouldBeNil)
 
@@ -696,6 +696,7 @@ func TestAddCertificate(t *testing.T) {
 func TestDeleteCertificate(t *testing.T) {
 	Convey("Testing the certificate 'delete' command", t, func() {
 		resetVars()
+
 		out = testFile()
 		command := &CertDelete{}
 
@@ -708,10 +709,9 @@ func TestDeleteCertificate(t *testing.T) {
 
 			Convey("Given a partner", func() {
 				partner := &model.RemoteAgent{
-					Name:        "partner",
-					Protocol:    testProto1,
-					ProtoConfig: json.RawMessage(`{}`),
-					Address:     "localhost:6666",
+					Name:     "partner",
+					Protocol: testProto1,
+					Address:  "localhost:6666",
 				}
 				So(db.Insert(partner).Run(), ShouldBeNil)
 
@@ -902,10 +902,9 @@ func TestDeleteCertificate(t *testing.T) {
 
 			Convey("Given a server", func() {
 				server := &model.LocalAgent{
-					Name:        "server",
-					Protocol:    testProto1,
-					ProtoConfig: json.RawMessage(`{}`),
-					Address:     "localhost:6666",
+					Name:     "server",
+					Protocol: testProto1,
+					Address:  "localhost:6666",
 				}
 				So(db.Insert(server).Run(), ShouldBeNil)
 
@@ -1101,6 +1100,7 @@ func TestDeleteCertificate(t *testing.T) {
 func TestListCertificate(t *testing.T) {
 	Convey("Testing the certificate 'list' command", t, func() {
 		resetVars()
+
 		out = testFile()
 		command := &CertList{}
 
@@ -1113,10 +1113,9 @@ func TestListCertificate(t *testing.T) {
 
 			Convey("Given a partner", func() {
 				partner := &model.RemoteAgent{
-					Name:        "partner",
-					Protocol:    testProto1,
-					ProtoConfig: json.RawMessage(`{}`),
-					Address:     "localhost:6666",
+					Name:     "partner",
+					Protocol: testProto1,
+					Address:  "localhost:6666",
 				}
 				So(db.Insert(partner).Run(), ShouldBeNil)
 
@@ -1127,6 +1126,7 @@ func TestListCertificate(t *testing.T) {
 						Certificate:   testhelpers.LocalhostCert,
 					}
 					So(db.Insert(cert1).Run(), ShouldBeNil)
+
 					cert2 := &model.Crypto{
 						RemoteAgentID: utils.NewNullInt64(partner.ID),
 						Name:          "partner_cert_2",
@@ -1175,7 +1175,7 @@ func TestListCertificate(t *testing.T) {
 						Convey("When executing the command", func() {
 							params, err := flags.ParseArgs(command, args)
 							So(err, ShouldBeNil)
-							command.Execute(params)
+							So(command.Execute(params), ShouldBeNil)
 
 							Convey("Then it should only display the 1st certificate", func() {
 								So(getOutput(), ShouldEqual, "Certificates:\n"+
@@ -1191,7 +1191,7 @@ func TestListCertificate(t *testing.T) {
 						Convey("When executing the command", func() {
 							params, err := flags.ParseArgs(command, args)
 							So(err, ShouldBeNil)
-							command.Execute(params)
+							So(command.Execute(params), ShouldBeNil)
 
 							Convey("Then it should NOT display the 1st certificate", func() {
 								So(getOutput(), ShouldEqual, "Certificates:\n"+
@@ -1207,7 +1207,7 @@ func TestListCertificate(t *testing.T) {
 						Convey("When executing the command", func() {
 							params, err := flags.ParseArgs(command, args)
 							So(err, ShouldBeNil)
-							command.Execute(params)
+							So(command.Execute(params), ShouldBeNil)
 
 							Convey("Then it should display the certificates in reverse", func() {
 								So(getOutput(), ShouldEqual, "Certificates:\n"+
@@ -1301,7 +1301,7 @@ func TestListCertificate(t *testing.T) {
 						Convey("When executing the command", func() {
 							params, err := flags.ParseArgs(command, args)
 							So(err, ShouldBeNil)
-							command.Execute(params)
+							So(command.Execute(params), ShouldBeNil)
 
 							Convey("Then it should only display the 1st certificate", func() {
 								So(getOutput(), ShouldEqual, "Certificates:\n"+
@@ -1318,7 +1318,7 @@ func TestListCertificate(t *testing.T) {
 						Convey("When executing the command", func() {
 							params, err := flags.ParseArgs(command, args)
 							So(err, ShouldBeNil)
-							command.Execute(params)
+							So(command.Execute(params), ShouldBeNil)
 
 							Convey("Then it should NOT display the 1st certificate", func() {
 								So(getOutput(), ShouldEqual, "Certificates:\n"+
@@ -1335,7 +1335,7 @@ func TestListCertificate(t *testing.T) {
 						Convey("When executing the command", func() {
 							params, err := flags.ParseArgs(command, args)
 							So(err, ShouldBeNil)
-							command.Execute(params)
+							So(command.Execute(params), ShouldBeNil)
 
 							Convey("Then it should display the certificates in reverse", func() {
 								So(getOutput(), ShouldEqual, "Certificates:\n"+
@@ -1348,10 +1348,9 @@ func TestListCertificate(t *testing.T) {
 
 			Convey("Given a server", func() {
 				server := &model.LocalAgent{
-					Name:        "server",
-					Protocol:    testProto1,
-					ProtoConfig: json.RawMessage(`{}`),
-					Address:     "localhost:6666",
+					Name:     "server",
+					Protocol: testProto1,
+					Address:  "localhost:6666",
 				}
 				So(db.Insert(server).Run(), ShouldBeNil)
 
@@ -1413,7 +1412,7 @@ func TestListCertificate(t *testing.T) {
 						Convey("When executing the command", func() {
 							params, err := flags.ParseArgs(command, args)
 							So(err, ShouldBeNil)
-							command.Execute(params)
+							So(command.Execute(params), ShouldBeNil)
 
 							Convey("Then it should only display the 1st certificate", func() {
 								So(getOutput(), ShouldEqual, "Certificates:\n"+
@@ -1429,7 +1428,7 @@ func TestListCertificate(t *testing.T) {
 						Convey("When executing the command", func() {
 							params, err := flags.ParseArgs(command, args)
 							So(err, ShouldBeNil)
-							command.Execute(params)
+							So(command.Execute(params), ShouldBeNil)
 
 							Convey("Then it should NOT display the 1st certificate", func() {
 								So(getOutput(), ShouldEqual, "Certificates:\n"+
@@ -1445,7 +1444,7 @@ func TestListCertificate(t *testing.T) {
 						Convey("When executing the command", func() {
 							params, err := flags.ParseArgs(command, args)
 							So(err, ShouldBeNil)
-							command.Execute(params)
+							So(command.Execute(params), ShouldBeNil)
 
 							Convey("Then it should display the certificates in reverse", func() {
 								So(getOutput(), ShouldEqual, "Certificates:\n"+
@@ -1537,7 +1536,7 @@ func TestListCertificate(t *testing.T) {
 						Convey("When executing the command", func() {
 							params, err := flags.ParseArgs(command, args)
 							So(err, ShouldBeNil)
-							command.Execute(params)
+							So(command.Execute(params), ShouldBeNil)
 
 							Convey("Then it should only display the 1st certificate", func() {
 								So(getOutput(), ShouldEqual, "Certificates:\n"+
@@ -1554,7 +1553,7 @@ func TestListCertificate(t *testing.T) {
 						Convey("When executing the command", func() {
 							params, err := flags.ParseArgs(command, args)
 							So(err, ShouldBeNil)
-							command.Execute(params)
+							So(command.Execute(params), ShouldBeNil)
 
 							Convey("Then it should NOT display the 1st certificate", func() {
 								So(getOutput(), ShouldEqual, "Certificates:\n"+
@@ -1571,7 +1570,7 @@ func TestListCertificate(t *testing.T) {
 						Convey("When executing the command", func() {
 							params, err := flags.ParseArgs(command, args)
 							So(err, ShouldBeNil)
-							command.Execute(params)
+							So(command.Execute(params), ShouldBeNil)
 
 							Convey("Then it should display the certificates in reverse", func() {
 								So(getOutput(), ShouldEqual, "Certificates:\n"+
@@ -1589,6 +1588,7 @@ func TestListCertificate(t *testing.T) {
 func TestUpdateCertificate(t *testing.T) {
 	Convey("Testing the certificate 'update' command", t, func() {
 		resetVars()
+
 		out = testFile()
 		command := &CertUpdate{}
 
@@ -1606,10 +1606,9 @@ func TestUpdateCertificate(t *testing.T) {
 
 			Convey("Given a partner", func() {
 				partner := &model.RemoteAgent{
-					Name:        "partner",
-					Protocol:    testProto1,
-					ProtoConfig: json.RawMessage(`{}`),
-					Address:     "localhost:6666",
+					Name:     "partner",
+					Protocol: testProto1,
+					Address:  "localhost:6666",
 				}
 				So(db.Insert(partner).Run(), ShouldBeNil)
 
@@ -1849,10 +1848,9 @@ func TestUpdateCertificate(t *testing.T) {
 
 			Convey("Given a server", func() {
 				server := &model.LocalAgent{
-					Name:        "server",
-					Protocol:    testProto1,
-					ProtoConfig: json.RawMessage(`{}`),
-					Address:     "localhost:6666",
+					Name:     "server",
+					Protocol: testProto1,
+					Address:  "localhost:6666",
 				}
 				So(db.Insert(server).Run(), ShouldBeNil)
 

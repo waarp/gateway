@@ -1,8 +1,6 @@
 package r66
 
 import (
-	"strings"
-
 	"code.waarp.fr/lib/r66"
 	"golang.org/x/crypto/bcrypt"
 
@@ -20,12 +18,6 @@ func (a *authHandler) ValidAuth(auth *r66.Authent) (r66.SessionHandler, error) {
 	case <-a.shutdown:
 		return nil, internal.NewR66Error(r66.Shutdown, "service is shutting down")
 	default:
-	}
-
-	if auth.FinalHash && !strings.EqualFold(auth.Digest, "SHA-256") {
-		a.logger.Warning("Unknown hash digest '%s'", auth.Digest)
-
-		return nil, internal.NewR66Error(r66.Unimplemented, "unknown final hash digest")
 	}
 
 	var certAcc, pwdAcc *model.LocalAccount
@@ -50,13 +42,19 @@ func (a *authHandler) ValidAuth(auth *r66.Authent) (r66.SessionHandler, error) {
 		return nil, internal.NewR66Error(r66.BadAuthent, "the given certificate does not match the given login")
 	}
 
-	ses := sessionHandler{
+	auth.Filesize = true
+
+	if auth.FinalHash = auth.FinalHash && !a.r66Conf.NoFinalHash; auth.FinalHash {
+		auth.Digest = "SHA-256"
+	} else {
+		auth.Digest = ""
+	}
+
+	return &sessionHandler{
 		authHandler: a,
 		account:     acc,
 		conf:        auth,
-	}
-
-	return &ses, nil
+	}, nil
 }
 
 func (a *authHandler) certAuth(auth *r66.Authent) (*model.LocalAccount, *r66.Error) {

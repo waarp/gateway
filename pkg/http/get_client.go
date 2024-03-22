@@ -14,17 +14,18 @@ import (
 type getClient struct {
 	pip       *pipeline.Pipeline
 	transport *http.Transport
+	isHTTPS   bool
 
 	resp   *http.Response
 	ctx    context.Context //nolint:containedctx //FIXME move the context to a function parameter
 	cancel context.CancelFunc
 }
 
-func (g *getClient) Request() *types.TransferError {
+func (g *getClient) Request() (tErr *types.TransferError) {
 	g.ctx, g.cancel = context.WithCancel(context.Background())
 
 	scheme := "http://"
-	if g.transport.TLSClientConfig != nil {
+	if g.isHTTPS {
 		scheme = "https://"
 	}
 
@@ -59,6 +60,12 @@ func (g *getClient) Request() *types.TransferError {
 
 		return types.NewTransferError(types.TeConnection, "failed to connect to remote host")
 	}
+
+	defer func() {
+		if tErr != nil {
+			g.SendError(tErr)
+		}
+	}()
 
 	switch g.resp.StatusCode {
 	case http.StatusOK, http.StatusPartialContent:
@@ -102,10 +109,12 @@ func (g *getClient) getSizeProgress() *types.TransferError {
 	return nil
 }
 
-func (g *getClient) Data(stream pipeline.DataStream) *types.TransferError {
-	//nolint:errcheck // error is checked elsewhere, this is just to unsure that
-	// the body is always closed, even in case of error
-	defer g.resp.Body.Close()
+func (g *getClient) Data(stream pipeline.DataStream) (tErr *types.TransferError) {
+	defer func() {
+		if tErr != nil {
+			g.SendError(tErr)
+		}
+	}()
 
 	if _, err := io.Copy(stream, g.resp.Body); err != nil {
 		g.pip.Logger.Error("Failed to read from remote HTTP file: %s", err)
@@ -139,5 +148,7 @@ func (g *getClient) SendError(*types.TransferError) {
 		_ = g.resp.Body.Close() //nolint:errcheck // error is irrelevant at this point
 	}
 
-	g.cancel()
+	if g.cancel != nil {
+		g.cancel()
+	}
 }

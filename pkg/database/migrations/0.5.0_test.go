@@ -4,9 +4,8 @@ import (
 	"path/filepath"
 	"runtime"
 
-	. "github.com/smartystreets/goconvey/convey"
-
 	"code.waarp.fr/lib/migration"
+	. "github.com/smartystreets/goconvey/convey"
 )
 
 func testVer0_5_0RemoveRulePathSlash(eng *testEngine, dialect string) {
@@ -102,6 +101,7 @@ func testVer0_5_0CheckRulePathAncestor(eng *testEngine, dialect string) {
 			if dialect == migration.PostgreSQL {
 				query = `UPDATE rules SET path=$1 WHERE name=$2`
 			}
+
 			_, err := eng.DB.Exec(query, "dir", "recv")
 			So(err, ShouldBeNil)
 
