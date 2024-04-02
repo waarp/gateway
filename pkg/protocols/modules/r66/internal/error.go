@@ -27,54 +27,54 @@ func ToR66Error(err error) *r66.Error {
 		return rErr
 	}
 
-	var tErr *types.TransferError
+	var tErr *pipeline.Error
 	if !errors.As(err, &tErr) {
 		return NewR66Error(r66.Unknown, err.Error())
 	}
 
-	switch tErr.Code {
+	switch tErr.Code() {
 	case types.TeOk:
 		return NewR66Error(r66.CompleteOk, "")
 	case types.TeUnknown:
-		return NewR66Error(r66.Unknown, tErr.Details)
+		return NewR66Error(r66.Unknown, tErr.Redacted())
 	case types.TeInternal:
-		return NewR66Error(r66.Internal, tErr.Details)
+		return NewR66Error(r66.Internal, tErr.Redacted())
 	case types.TeUnimplemented:
-		return NewR66Error(r66.Unimplemented, tErr.Details)
+		return NewR66Error(r66.Unimplemented, tErr.Redacted())
 	case types.TeConnection:
-		return NewR66Error(r66.ConnectionImpossible, tErr.Details)
+		return NewR66Error(r66.ConnectionImpossible, tErr.Redacted())
 	case types.TeConnectionReset:
-		return NewR66Error(r66.Disconnection, tErr.Details)
+		return NewR66Error(r66.Disconnection, tErr.Redacted())
 	case types.TeUnknownRemote:
-		return NewR66Error(r66.QueryRemotelyUnknown, tErr.Details)
+		return NewR66Error(r66.QueryRemotelyUnknown, tErr.Redacted())
 	case types.TeExceededLimit:
-		return NewR66Error(r66.ServerOverloaded, tErr.Details)
+		return NewR66Error(r66.ServerOverloaded, tErr.Redacted())
 	case types.TeBadAuthentication:
-		return NewR66Error(r66.BadAuthent, tErr.Details)
+		return NewR66Error(r66.BadAuthent, tErr.Redacted())
 	case types.TeDataTransfer:
-		return NewR66Error(r66.TransferError, tErr.Details)
+		return NewR66Error(r66.TransferError, tErr.Redacted())
 	case types.TeIntegrity:
-		return NewR66Error(r66.FinalOp, tErr.Details)
+		return NewR66Error(r66.FinalOp, tErr.Redacted())
 	case types.TeFinalization:
-		return NewR66Error(r66.FinalOp, tErr.Details)
+		return NewR66Error(r66.FinalOp, tErr.Redacted())
 	case types.TeExternalOperation:
-		return NewR66Error(r66.ExternalOperation, tErr.Details)
+		return NewR66Error(r66.ExternalOperation, tErr.Redacted())
 	case types.TeWarning:
-		return NewR66Error(r66.Warning, tErr.Details)
+		return NewR66Error(r66.Warning, tErr.Redacted())
 	case types.TeStopped:
-		return NewR66Error(r66.StoppedTransfer, tErr.Details)
+		return NewR66Error(r66.StoppedTransfer, tErr.Redacted())
 	case types.TeCanceled:
-		return NewR66Error(r66.CanceledTransfer, tErr.Details)
+		return NewR66Error(r66.CanceledTransfer, tErr.Redacted())
 	case types.TeFileNotFound:
-		return NewR66Error(r66.FileNotFound, tErr.Details)
+		return NewR66Error(r66.FileNotFound, tErr.Redacted())
 	case types.TeForbidden:
-		return NewR66Error(r66.FileNotAllowed, tErr.Details)
+		return NewR66Error(r66.FileNotAllowed, tErr.Redacted())
 	case types.TeBadSize:
-		return NewR66Error(r66.SizeNotAllowed, tErr.Details)
+		return NewR66Error(r66.SizeNotAllowed, tErr.Redacted())
 	case types.TeShuttingDown:
-		return NewR66Error(r66.Shutdown, tErr.Details)
+		return NewR66Error(r66.Shutdown, tErr.Redacted())
 	default:
-		return NewR66Error(r66.Unknown, tErr.Details)
+		return NewR66Error(r66.Unknown, tErr.Redacted())
 	}
 }
 
@@ -82,76 +82,72 @@ func ToR66Error(err error) *r66.Error {
 // the corresponding types.TransferError.
 //
 //nolint:funlen,gocyclo,cyclop // splitting the function would add complexity
-func FromR66Error(err error, pip *pipeline.Pipeline) *types.TransferError {
+func FromR66Error(err error, pip *pipeline.Pipeline) *pipeline.Error {
 	var rErr *r66.Error
 	if !errors.As(err, &rErr) {
-		return types.NewTransferError(types.TeUnknownRemote, err.Error())
+		return pipeline.NewError(types.TeUnknownRemote,
+			fmt.Sprintf("Error on remote partner: %v", err))
 	}
+
+	details := fmt.Sprintf("Error on remote partner: %v", rErr.Detail)
 
 	switch rErr.Code {
 	case r66.InitOk, r66.PreProcessingOk, r66.TransferOk, r66.PostProcessingOk,
 		r66.CompleteOk:
 		return nil
 	case r66.ConnectionImpossible:
-		return types.NewTransferError(types.TeConnection, rErr.Detail)
+		return pipeline.NewError(types.TeConnection, details)
 	case r66.ServerOverloaded:
-		return types.NewTransferError(types.TeExceededLimit, rErr.Detail)
+		return pipeline.NewError(types.TeExceededLimit, details)
 	case r66.BadAuthent:
-		return types.NewTransferError(types.TeBadAuthentication, rErr.Detail)
+		return pipeline.NewError(types.TeBadAuthentication, details)
 	case r66.ExternalOperation:
-		return types.NewTransferError(types.TeExternalOperation, rErr.Detail)
+		return pipeline.NewError(types.TeExternalOperation, details)
 	case r66.TransferError:
-		return types.NewTransferError(types.TeDataTransfer, rErr.Detail)
+		return pipeline.NewError(types.TeDataTransfer, details)
 	case r66.MD5Error:
-		return types.NewTransferError(types.TeIntegrity, rErr.Detail)
+		return pipeline.NewError(types.TeIntegrity, details)
 	case r66.Disconnection:
-		return types.NewTransferError(types.TeConnectionReset, rErr.Detail)
+		return pipeline.NewError(types.TeConnectionReset, details)
 	case r66.RemoteShutdown:
-		return types.NewTransferError(types.TeShuttingDown, rErr.Detail)
+		return pipeline.NewError(types.TeShuttingDown, details)
 	case r66.FinalOp:
-		return types.NewTransferError(types.TeFinalization, rErr.Detail)
+		return pipeline.NewError(types.TeFinalization, details)
 	case r66.Unimplemented:
-		return types.NewTransferError(types.TeUnimplemented, rErr.Detail)
+		return pipeline.NewError(types.TeUnimplemented, details)
 	case r66.Shutdown:
-		return types.NewTransferError(types.TeShuttingDown, rErr.Detail)
+		return pipeline.NewError(types.TeShuttingDown, details)
 	case r66.RemoteError:
-		return types.NewTransferError(types.TeUnknownRemote, rErr.Detail)
+		return pipeline.NewError(types.TeUnknownRemote, details)
 	case r66.Internal:
-		return types.NewTransferError(types.TeInternal, rErr.Detail)
+		return pipeline.NewError(types.TeInternal, details)
 	case r66.Warning:
-		return types.NewTransferError(types.TeWarning, rErr.Detail)
+		return pipeline.NewError(types.TeWarning, details)
 	case r66.Unknown:
-		return types.NewTransferError(types.TeUnknownRemote, rErr.Detail)
+		return pipeline.NewError(types.TeUnknownRemote, details)
 	case r66.FileNotFound:
-		return types.NewTransferError(types.TeFileNotFound, rErr.Detail)
+		return pipeline.NewError(types.TeFileNotFound, details)
 	case r66.CommandNotFound:
-		return types.NewTransferError(types.TeUnimplemented, rErr.Detail)
+		return pipeline.NewError(types.TeUnimplemented, details)
 	case r66.IncorrectCommand:
-		return types.NewTransferError(types.TeUnimplemented, rErr.Detail)
+		return pipeline.NewError(types.TeUnimplemented, details)
 	case r66.FileNotAllowed:
-		return types.NewTransferError(types.TeForbidden, rErr.Detail)
+		return pipeline.NewError(types.TeForbidden, details)
 	case r66.SizeNotAllowed:
-		return types.NewTransferError(types.TeForbidden, rErr.Detail)
+		return pipeline.NewError(types.TeForbidden, details)
 	case r66.StoppedTransfer:
 		if err := pip.Pause(context.Background()); err != nil {
-			return AsTransferError(types.TeStopped, err)
+			return pipeline.NewErrorWith(types.TeInternal, "failed to pause transfer", err)
 		}
 
 		return nil
 	case r66.CanceledTransfer:
 		if err := pip.Cancel(context.Background()); err != nil {
-			return AsTransferError(types.TeCanceled, err)
+			return pipeline.NewErrorWith(types.TeInternal, "failed to cancel transfer", err)
 		}
 
 		return nil
 	default:
-		return types.NewTransferError(types.TeUnknownRemote, rErr.Detail)
+		return pipeline.NewError(types.TeUnknownRemote, details)
 	}
-}
-
-func AsTransferError(defaultCode types.TransferErrorCode, err error) *types.TransferError {
-	tErr := types.NewTransferError(defaultCode, err.Error())
-	errors.As(err, &tErr)
-
-	return tErr
 }

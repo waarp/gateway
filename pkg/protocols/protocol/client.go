@@ -48,7 +48,7 @@ type TransferClient interface {
 
 	// SendError sends the given error to the remote partner, and then closes
 	// the connection.
-	SendError(err *types.TransferError)
+	SendError(code types.TransferErrorCode, msg string)
 }
 
 // PreTasksHandler is an interface which clients can optionally implement in

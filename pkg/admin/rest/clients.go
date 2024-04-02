@@ -303,9 +303,7 @@ func startClient(logger *log.Logger, db *database.DB) http.HandlerFunc {
 		client, ok := services.Clients[dbClient.Name]
 		if !ok {
 			var err error
-			client, err = makeClientService(db, dbClient)
-
-			if handleError(w, logger, err) {
+			if client, err = makeClientService(db, dbClient); handleError(w, logger, err) {
 				return
 			}
 

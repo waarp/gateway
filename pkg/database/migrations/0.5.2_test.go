@@ -11,18 +11,16 @@ func testVer0_5_2FillRemoteTransferID(t *testing.T, eng *testEngine) Change {
 	mig := Migrations[15]
 
 	t.Run("When applying the 0.5.2 remote transfer id change", func(t *testing.T) {
-		_, err1 := eng.DB.Exec(`INSERT INTO transfers (id,owner,remote_transfer_id,
+		eng.NoError(t, `INSERT INTO transfers (id,owner,remote_transfer_id,
         	is_server,rule_id,agent_id,account_id,local_path,remote_path,filesize,
 			start,status,step,progression,task_number,error_code,error_details) VALUES
 			(1234,'', '', false,1,0,0,'/loc_path1','/rem_path1',1111,'2000-01-02 04:05:06 -7:00',
 			 	'','',0,0,'',''),
 			(5678,'', 'ABCD', true,1,0,0,'/loc_path2','/rem_path2',2222,'2000-01-03 04:05:06 -7:00',
 			 	'','',0,0,'','')`)
-		require.NoError(t, err1)
 
 		t.Cleanup(func() {
-			_, err2 := eng.DB.Exec(`DELETE FROM transfers`)
-			require.NoError(t, err2)
+			eng.NoError(t, `DELETE FROM transfers`)
 		})
 
 		require.NoError(t, eng.Upgrade(mig),

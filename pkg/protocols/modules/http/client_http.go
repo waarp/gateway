@@ -20,9 +20,9 @@ import (
 const schemeHTTP = "http://"
 
 var (
-	errPause    = types.NewTransferError(types.TeStopped, "transfer paused by remote host")
-	errShutdown = types.NewTransferError(types.TeShuttingDown, "remote host is shutting down")
-	errCancel   = types.NewTransferError(types.TeCanceled, "transfer canceled by remote host")
+	errPause    = pipeline.NewError(types.TeStopped, "transfer paused by remote host")
+	errShutdown = pipeline.NewError(types.TeShuttingDown, "remote host is shutting down")
+	errCancel   = pipeline.NewError(types.TeCanceled, "transfer canceled by remote host")
 )
 
 type httpClient struct {
@@ -69,7 +69,7 @@ func (h *httpClient) start() error {
 	return nil
 }
 
-func (h *httpClient) InitTransfer(pip *pipeline.Pipeline) (protocol.TransferClient, error) {
+func (h *httpClient) InitTransfer(pip *pipeline.Pipeline) (protocol.TransferClient, *pipeline.Error) {
 	return newTransferClient(pip, h.transport, false), nil
 }
 

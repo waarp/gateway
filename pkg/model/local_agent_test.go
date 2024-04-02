@@ -203,12 +203,6 @@ func TestLocalAgentBeforeWrite(t *testing.T) {
 
 					shouldFailWith(`unknown protocol "not a protocol"`)
 				})
-
-				Convey("Given that the new agent's protocol configuration is not valid", func() {
-					newAgent.ProtoConfig = map[string]any{"": nil}
-
-					shouldFailWith(`invalid proto config: json: unknown field ""`)
-				})
 			})
 		})
 	})

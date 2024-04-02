@@ -160,11 +160,9 @@ func (h *httpHandler) getTransfer(isSend bool) (*model.Transfer, bool) {
 		trans.DestFilename = strings.TrimPrefix(h.req.URL.Path, "/")
 	}
 
-	var oldErr error
-
+	var oldErr *pipeline.Error
 	if trans, oldErr = pipeline.GetOldTransfer(h.db, h.logger, trans); oldErr != nil {
-		tErr := asTransferError(oldErr)
-		h.sendError(http.StatusInternalServerError, tErr.Code, tErr.Details)
+		h.sendError(http.StatusInternalServerError, oldErr.Code(), oldErr.Redacted())
 
 		return nil, false
 	}
@@ -220,8 +218,8 @@ func (h *httpHandler) handleHead() {
 	h.resp.Header().Set(httpconst.TransferID, trans.RemoteTransferID)
 	h.resp.Header().Set(httpconst.Rule, rule.Name)
 	h.resp.Header().Set(httpconst.TransferStatus, string(trans.Status))
-	h.resp.Header().Set(httpconst.ErrorCode, trans.Error.Code.String())
-	h.resp.Header().Set(httpconst.ErrorMessage, trans.Error.Details)
+	h.resp.Header().Set(httpconst.ErrorCode, trans.ErrCode.String())
+	h.resp.Header().Set(httpconst.ErrorMessage, trans.ErrDetails)
 	makeContentRange(h.resp.Header(), &trans)
 	h.resp.WriteHeader(http.StatusNoContent)
 }
@@ -239,8 +237,7 @@ func (h *httpHandler) handle(isSend bool) {
 
 	pip, err := pipeline.NewServerPipeline(h.db, trans)
 	if err != nil {
-		tErr := asTransferError(err)
-		h.sendError(http.StatusInternalServerError, tErr.Code, tErr.Details)
+		h.sendError(http.StatusInternalServerError, err.Code(), err.Redacted())
 
 		return
 	}

@@ -27,6 +27,7 @@ func TestExportLocalAgents(t *testing.T) {
 
 			// Change owner for this insert
 			conf.GlobalConfig.GatewayName = "unknown"
+
 			So(db.Insert(&model.LocalAgent{
 				Name:     "foo",
 				Protocol: testProtocol,

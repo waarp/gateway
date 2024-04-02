@@ -12,24 +12,18 @@ func testVer0_7_5SplitR66TLS(t *testing.T, eng *testEngine) Change {
 
 	t.Run("Given the 0.7.5 R66 agents split", func(t *testing.T) {
 		// ### Local agents ###
-		_, err1 := eng.DB.Exec(
-			`INSERT INTO local_agents(id,owner,name,protocol,address,proto_config) 
+		eng.NoError(t, `INSERT INTO local_agents(id,owner,name,protocol,address,proto_config) 
 			VALUES (1,'waarp_gw','gw_r66_1','r66','localhost:1','{"isTLS":true}'),
 			       (2,'waarp_gw','gw_r66_2','r66','localhost:2','{"isTLS":false}')`)
-		require.NoError(t, err1)
 
 		// ### Remote agents ###
-		_, err2 := eng.DB.Exec(
-			`INSERT INTO remote_agents(id,name,protocol,address,proto_config) 
+		eng.NoError(t, `INSERT INTO remote_agents(id,name,protocol,address,proto_config) 
 			VALUES (3,'waarp_r66_1','r66','localhost:3','{"isTLS":true}'),
 			       (4,'waarp_r66_2','r66','localhost:4','{"isTLS":false}')`)
-		require.NoError(t, err2)
 
 		t.Cleanup(func() {
-			_, err3 := eng.DB.Exec("DELETE FROM local_agents")
-			require.NoError(t, err3)
-			_, err4 := eng.DB.Exec("DELETE FROM remote_agents")
-			require.NoError(t, err4)
+			eng.NoError(t, "DELETE FROM local_agents")
+			eng.NoError(t, "DELETE FROM remote_agents")
 		})
 
 		require.NoError(t, eng.Upgrade(mig),
@@ -79,11 +73,9 @@ func testVer0_7_5SplitR66TLS(t *testing.T, eng *testEngine) Change {
 		t.Run("When reverting the migration", func(t *testing.T) {
 			// Adding new R66-TLS agents without "isTLS" to test if these
 			// cases are handled properly when migrating down.
-			_, err5 := eng.DB.Exec(
-				`INSERT INTO remote_agents(id,name,protocol,address,proto_config) 
-						VALUES (5,'new_waarp_r66-tls','r66-tls','localhost:5','{}'),
-						       (6,'new_waarp_r66','r66','localhost:6','{}')`)
-			require.NoError(t, err5)
+			eng.NoError(t, `INSERT INTO remote_agents(id,name,protocol,address,proto_config) 
+				VALUES (5,'new_waarp_r66-tls','r66-tls','localhost:5','{}'),
+					   (6,'new_waarp_r66','r66','localhost:6','{}')`)
 
 			require.NoError(t, eng.Downgrade(mig),
 				"Reverting the migration should not fail")

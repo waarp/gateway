@@ -14,15 +14,16 @@ import (
 )
 
 var (
-	errDatabase   = errors.New("database error")
-	errFileSystem = errors.New("file system error")
-	errAuthFailed = errors.New("authentication failed")
+	ErrFileSystem = errors.New("file system error")
+	ErrInternal   = errors.New("internal error")
+	ErrDatabase   = errors.New("database error")
+	ErrAuthFailed = errors.New("authentication failed")
 )
 
 // toSFTPErr converts the given error into its closest equivalent
 // SFTP error code. Since SFTP v3 only supports 8 error codes (9 with code Ok),
 // most errors will be converted to the generic code SSH_FX_FAILURE.
-func toSFTPErr(err error) error {
+func toSFTPErr(err *pipeline.Error) error {
 	if err == nil {
 		return nil
 	}
@@ -31,13 +32,12 @@ func toSFTPErr(err error) error {
 		return err
 	}
 
-	var tErr *types.TransferError
-
+	var tErr *pipeline.Error
 	if !errors.As(err, &tErr) {
 		return err
 	}
 
-	switch tErr.Code {
+	switch tErr.Code() {
 	case types.TeOk:
 		return sftp.ErrSSHFxOk
 	case types.TeUnimplemented:
@@ -51,16 +51,9 @@ func toSFTPErr(err error) error {
 	}
 }
 
-func asTransferError(defaultCode types.TransferErrorCode, err error) *types.TransferError {
-	tErr := types.NewTransferError(defaultCode, err.Error())
-	errors.As(err, &tErr)
-
-	return tErr
-}
-
 const stopTimeout = 5 * time.Second
 
-func fromSFTPErr(origErr error, defaults types.TransferErrorCode, pip *pipeline.Pipeline) *types.TransferError {
+func fromSFTPErr(origErr error, defaults types.TransferErrorCode, pip *pipeline.Pipeline) *pipeline.Error {
 	if err := checkTransferErrorString(origErr.Error(), pip); err != nil {
 		return err
 	}
@@ -70,7 +63,7 @@ func fromSFTPErr(origErr error, defaults types.TransferErrorCode, pip *pipeline.
 
 	var sErr *sftp.StatusError
 	if !errors.As(origErr, &sErr) {
-		return types.NewTransferError(code, msg)
+		return pipeline.NewError(code, "Error on remote partner: %s", msg)
 	}
 
 	switch sErr.FxCode() {
@@ -99,10 +92,10 @@ func fromSFTPErr(origErr error, defaults types.TransferErrorCode, pip *pipeline.
 		msg = s2[1]
 	}
 
-	return types.NewTransferError(code, msg)
+	return pipeline.NewError(code, "Error on remote partner: %s", msg)
 }
 
-func checkTransferErrorString(errMsg string, pip *pipeline.Pipeline) *types.TransferError {
+func checkTransferErrorString(errMsg string, pip *pipeline.Pipeline) *pipeline.Error {
 	const (
 		groupNB     = 3
 		codeGroupNB = 1
@@ -125,18 +118,18 @@ func checkTransferErrorString(errMsg string, pip *pipeline.Pipeline) *types.Tran
 		defer cancel()
 
 		if err := pip.Pause(ctx); err != nil {
-			return asTransferError(types.TeInternal, err)
+			return pipeline.NewErrorWith(types.TeInternal, "failed to pause transfer", err)
 		}
 	case types.TeCanceled:
 		ctx, cancel := context.WithTimeout(context.Background(), stopTimeout)
 		defer cancel()
 
 		if err := pip.Cancel(ctx); err != nil {
-			return asTransferError(types.TeInternal, err)
+			return pipeline.NewErrorWith(types.TeInternal, "failed to cancel transfer", err)
 		}
 
 	default:
 	}
 
-	return types.NewTransferError(code, msg)
+	return pipeline.NewError(code, "Error on remote partner: %s", msg)
 }

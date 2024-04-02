@@ -34,7 +34,7 @@ func UpdateFileInfo(info *r66.UpdateInfo, pip *pipeline.Pipeline) error {
 		newFile = strings.TrimLeft(newFile, "/")
 
 		if err := pip.RebuildFilepaths(newFile); err != nil {
-			return AsTransferError(types.TeInternal, err)
+			return err
 		}
 	}
 
@@ -43,7 +43,7 @@ func UpdateFileInfo(info *r66.UpdateInfo, pip *pipeline.Pipeline) error {
 	}
 
 	if err := pip.UpdateTrans(); err != nil {
-		return AsTransferError(types.TeInternal, err)
+		return err
 	}
 
 	/*
@@ -61,7 +61,7 @@ func UpdateFileInfo(info *r66.UpdateInfo, pip *pipeline.Pipeline) error {
 }
 
 // UpdateTransferInfo updates the pipeline transfer info with the ones given.
-func UpdateTransferInfo(userContent string, pip *pipeline.Pipeline) *types.TransferError {
+func UpdateTransferInfo(userContent string, pip *pipeline.Pipeline) *pipeline.Error {
 	if pip.TransCtx.Transfer.Step >= types.StepData {
 		return nil // cannot update transfer info after data transfer started
 	}
@@ -70,7 +70,7 @@ func UpdateTransferInfo(userContent string, pip *pipeline.Pipeline) *types.Trans
 		if err := json.Unmarshal(uContent, &pip.TransCtx.TransInfo); err != nil {
 			pip.Logger.Error("Failed to unmarshall transfer info: %s", err)
 
-			return types.NewTransferError(types.TeInternal, "failed to parse transfer info")
+			return pipeline.NewErrorWith(types.TeInternal, "failed to parse transfer info", err)
 		}
 	} else {
 		pip.TransCtx.TransInfo[UserContent] = userContent
@@ -79,7 +79,7 @@ func UpdateTransferInfo(userContent string, pip *pipeline.Pipeline) *types.Trans
 	if err := pip.TransCtx.Transfer.SetTransferInfo(pip.DB, pip.TransCtx.TransInfo); err != nil {
 		pip.Logger.Error("Failed to update transfer info: %s", err)
 
-		return types.NewTransferError(types.TeInternal, "database error")
+		return pipeline.NewError(types.TeInternal, "database error")
 	}
 
 	return nil
@@ -116,7 +116,7 @@ func MakeTransferInfo(logger *log.Logger, transCtx *model.TransferContext,
 		if fID, ok = follow.(float64); !ok {
 			logger.Error("Invalid type '%T' for R66 follow ID", follow)
 
-			return types.NewTransferError(types.TeInternal, "failed to make file info")
+			return pipeline.NewError(types.TeInternal, "failed to make file info")
 		}
 	}
 
@@ -133,21 +133,21 @@ func MakeTransferInfo(logger *log.Logger, transCtx *model.TransferContext,
 }
 
 // MakeUserContent returns a string containing the marshaled transfer infos.
-func MakeUserContent(logger *log.Logger, transInfo map[string]any) (string, *types.TransferError) {
+func MakeUserContent(logger *log.Logger, transInfo map[string]any) (string, *pipeline.Error) {
 	var userContent string
 
 	if cont, ok := transInfo[UserContent]; ok {
 		if userContent, ok = cont.(string); !ok {
 			logger.Error("Invalid type '%T' for R66 user content", cont)
 
-			return "", types.NewTransferError(types.TeInternal, "failed to make transfer info")
+			return "", pipeline.NewError(types.TeInternal, "failed to make transfer info")
 		}
 	} else {
 		cont, err := json.Marshal(transInfo)
 		if err != nil {
 			logger.Error("Failed to marshal transfer info: %s", err)
 
-			return "", types.NewTransferError(types.TeInternal, "failed to make transfer info")
+			return "", pipeline.NewErrorWith(types.TeInternal, "failed to make transfer info", err)
 		}
 
 		userContent = string(cont)

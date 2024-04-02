@@ -81,7 +81,7 @@ func (c *client) start() error {
 	return nil
 }
 
-func (c *client) InitTransfer(pip *pipeline.Pipeline) (protocol.TransferClient, error) {
+func (c *client) InitTransfer(pip *pipeline.Pipeline) (protocol.TransferClient, *pipeline.Error) {
 	return newTransferClient(pip, c.dialer, &c.sshConf)
 }
 

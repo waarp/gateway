@@ -17,13 +17,22 @@ import (
 	"code.waarp.fr/apps/gateway/gateway/pkg/utils"
 )
 
-func TestNewClientPipeline(t *testing.T) {
-	resetPip := func(pip *Pipeline) {
-		if pip != nil {
-			Reset(pip.doneOK)
-		}
-	}
+var (
+	errStateMachine = NewError(types.TeInternal, "internal logic error")
+	errDatabase     = NewError(types.TeInternal, "database error")
+)
 
+func resetPip(pip *Pipeline) {
+	if pip != nil {
+		Reset(func() {
+			if List.Exists(pip.TransCtx.Transfer.ID) {
+				pip.doneOK()
+			}
+		})
+	}
+}
+
+func TestNewClientPipeline(t *testing.T) {
 	Convey("Given a database", t, func(c C) {
 		ctx := initTestDB(c)
 
@@ -78,7 +87,8 @@ func TestNewClientPipeline(t *testing.T) {
 				})
 
 				Convey("When initiating a new pipeline for this transfer", func(c C) {
-					_, err := NewClientPipeline(ctx.db, ctx.logger, transCtx)
+					pip, err := NewClientPipeline(ctx.db, ctx.logger, transCtx)
+					resetPip(pip)
 
 					Convey("Then it should return an error", func(c C) {
 						So(err, ShouldBeError, ErrLimitReached)
@@ -116,11 +126,11 @@ func TestNewClientPipeline(t *testing.T) {
 			})
 
 			Convey("Given that the transfer limit has been reached", func(c C) {
-				List.countServer++
-				List.SetLimits(1, NoLimit)
+				List.countClient++
+				List.SetLimits(NoLimit, 1)
 
 				Reset(func() {
-					List.countServer--
+					List.countClient--
 					List.SetLimits(NoLimit, NoLimit)
 				})
 
@@ -138,6 +148,8 @@ func TestNewClientPipeline(t *testing.T) {
 }
 
 func TestPipelinePreTasks(t *testing.T) {
+	errPreTasks := NewError(types.TeExternalOperation, "pre-tasks failed")
+
 	Convey("Given a transfer pipeline", t, func(c C) {
 		ctx := initTestDB(c)
 		filename := "file"
@@ -189,7 +201,7 @@ func TestPipelinePreTasks(t *testing.T) {
 			time.Sleep(testTransferUpdateInterval)
 
 			Convey("When calling the pre-tasks", func(c C) {
-				So(pip.PreTasks(), ShouldBeError, ErrDatabase)
+				So(pip.PreTasks(), ShouldBeError, errDatabase)
 
 				Convey("Then the transfer should end in error", func(c C) {
 					utils.WaitChan(pip.transDone, time.Second)
@@ -208,8 +220,7 @@ func TestPipelinePreTasks(t *testing.T) {
 			})
 
 			Convey("When calling the pre-tasks", func(c C) {
-				So(pip.PreTasks(), ShouldBeError, types.NewTransferError(
-					types.TeExternalOperation, "pre-tasks failed"))
+				So(pip.PreTasks(), ShouldBeError, errPreTasks)
 
 				Convey("Then the transfer should end in error", func() {
 					utils.WaitChan(pip.transDone, time.Second)
@@ -282,7 +293,7 @@ func TestPipelineStartData(t *testing.T) {
 
 			Convey("When starting the data transfer", func(c C) {
 				_, err := pip.StartData()
-				So(err, ShouldBeError, ErrDatabase)
+				So(err, ShouldBeError, errDatabase)
 
 				Convey("Then the transfer should end in error", func(c C) {
 					utils.WaitChan(pip.transDone, time.Second)
@@ -334,7 +345,7 @@ func TestPipelineEndData(t *testing.T) {
 
 			database.SimulateError(c, ctx.db)
 			time.Sleep(testTransferUpdateInterval)
-			So(pip.EndData(), ShouldBeError, ErrDatabase)
+			So(pip.EndData(), ShouldBeError, errDatabase)
 
 			Convey("Then the transfer should end in error", func(c C) {
 				utils.WaitChan(pip.transDone, time.Second)
@@ -345,6 +356,8 @@ func TestPipelineEndData(t *testing.T) {
 }
 
 func TestPipelinePostTasks(t *testing.T) {
+	errPostTasks := NewError(types.TeExternalOperation, "post-tasks failed")
+
 	Convey("Given a transfer pipeline", t, func(c C) {
 		ctx := initTestDB(c)
 		filename := "file"
@@ -404,7 +417,7 @@ func TestPipelinePostTasks(t *testing.T) {
 			time.Sleep(testTransferUpdateInterval)
 
 			Convey("When calling the post-tasks", func(c C) {
-				So(pip.PostTasks(), ShouldBeError, ErrDatabase)
+				So(pip.PostTasks(), ShouldBeError, errDatabase)
 
 				Convey("Then the transfer should end in error", func(c C) {
 					utils.WaitChan(pip.transDone, time.Second)
@@ -423,8 +436,7 @@ func TestPipelinePostTasks(t *testing.T) {
 			})
 
 			Convey("When calling the post-tasks", func(c C) {
-				So(pip.PostTasks(), ShouldBeError, types.NewTransferError(
-					types.TeExternalOperation, "post-tasks failed"))
+				So(pip.PostTasks(), ShouldBeError, errPostTasks)
 
 				Convey("Then the transfer should end in error", func() {
 					utils.WaitChan(pip.transDone, time.Second)
@@ -437,9 +449,7 @@ func TestPipelinePostTasks(t *testing.T) {
 }
 
 func TestPipelineSetError(t *testing.T) {
-	remErr := types.NewTransferError(types.TeUnknownRemote, "remote error")
-	expErr := *types.NewTransferError(types.TeUnknownRemote,
-		"Error on remote partner: remote error")
+	const errCode, errMsg = types.TeUnknownRemote, "remote error"
 
 	Convey("Given a transfer pipeline", t, func(c C) {
 		ctx := initTestDB(c)
@@ -456,7 +466,7 @@ func TestPipelineSetError(t *testing.T) {
 		}}
 
 		Convey("Given an pre-transfer error", func(c C) {
-			pip.SetError(remErr)
+			pip.SetError(errCode, errMsg)
 			utils.WaitChan(pip.transDone, time.Second)
 
 			Convey("Then it should have called the error-tasks", func(c C) {
@@ -467,11 +477,12 @@ func TestPipelineSetError(t *testing.T) {
 
 					So(ctx.db.Get(&dbTrans, "id=?", trans.ID).Run(), ShouldBeNil)
 					So(dbTrans.Status, ShouldEqual, types.StatusError)
-					So(dbTrans.Error, ShouldResemble, expErr)
+					So(dbTrans.ErrCode, ShouldResemble, errCode)
+					So(dbTrans.ErrDetails, ShouldResemble, errMsg)
 				})
 
 				Convey("Then any calls to the pipeline should return an error", func(c C) {
-					So(pip.PreTasks(), ShouldBeError, errStateMachine)
+					So(pip.PreTasks(), ShouldBeError, NewError(errCode, errMsg))
 				})
 			})
 		})
@@ -505,16 +516,17 @@ func TestPipelineSetError(t *testing.T) {
 			go func() { taskErr <- pip.PreTasks() }()
 
 			<-taskChan
-			pip.SetError(remErr)
+			pip.SetError(errCode, errMsg)
 
 			utils.WaitChan(pip.transDone, time.Second)
 
 			Convey("Then it should have called the error-tasks", func(c C) {
 				c.So(pip.errTasks, ShouldEqual, 1)
 
+				expErr := NewError(errCode, errMsg)
+
 				Convey("Then it should have interrupted the pre-tasks", func(c C) {
-					So(<-taskErr, ShouldBeError, types.NewTransferError(
-						types.TeExternalOperation, "pre-tasks failed"))
+					So(<-taskErr, ShouldBeError, expErr)
 					So(pip.preTasks, ShouldEqual, 1)
 				})
 
@@ -523,12 +535,13 @@ func TestPipelineSetError(t *testing.T) {
 
 					So(ctx.db.Get(&dbTrans, "id=?", trans.ID).Run(), ShouldBeNil)
 					So(dbTrans.Status, ShouldEqual, types.StatusError)
-					So(dbTrans.Error, ShouldResemble, expErr)
+					So(dbTrans.ErrCode, ShouldResemble, errCode)
+					So(dbTrans.ErrDetails, ShouldResemble, errMsg)
 				})
 
-				Convey("Then any calls to the pipeline should return an error", func(c C) {
+				Convey("Then any calls to the pipeline should return the same error", func(c C) {
 					_, err := pip.StartData()
-					So(err, ShouldBeError, errStateMachine)
+					So(err, ShouldBeError, expErr)
 				})
 			})
 		})
@@ -538,7 +551,7 @@ func TestPipelineSetError(t *testing.T) {
 			_, err := pip.StartData()
 			So(err, ShouldBeNil)
 
-			pip.SetError(remErr)
+			pip.SetError(errCode, errMsg)
 			utils.WaitChan(pip.transDone, time.Second)
 
 			Convey("Then it should have called the error-tasks", func(c C) {
@@ -549,11 +562,12 @@ func TestPipelineSetError(t *testing.T) {
 
 					So(ctx.db.Get(&dbTrans, "id=?", trans.ID).Run(), ShouldBeNil)
 					So(dbTrans.Status, ShouldEqual, types.StatusError)
-					So(dbTrans.Error, ShouldResemble, expErr)
+					So(dbTrans.ErrCode, ShouldResemble, errCode)
+					So(dbTrans.ErrDetails, ShouldResemble, errMsg)
 				})
 
 				Convey("Then any calls to the pipeline should return an error", func(c C) {
-					So(pip.PostTasks(), ShouldBeError, errStateMachine)
+					So(pip.PostTasks(), ShouldBeError, NewError(errCode, errMsg))
 				})
 			})
 		})
@@ -592,16 +606,17 @@ func TestPipelineSetError(t *testing.T) {
 			go func() { taskErr <- pip.PostTasks() }()
 
 			<-taskChan
-			pip.SetError(remErr)
+			pip.SetError(errCode, errMsg)
 
 			utils.WaitChan(pip.transDone, time.Second)
 
 			Convey("Then it should have called the error-tasks", func(c C) {
 				c.So(pip.errTasks, ShouldEqual, 1)
 
+				expErr := NewError(errCode, errMsg)
+
 				Convey("Then it should have interrupted the post-tasks", func(c C) {
-					So(<-taskErr, ShouldBeError, types.NewTransferError(
-						types.TeExternalOperation, "post-tasks failed"))
+					So(<-taskErr, ShouldBeError, expErr)
 					So(pip.postTasks, ShouldEqual, 1)
 				})
 
@@ -610,11 +625,12 @@ func TestPipelineSetError(t *testing.T) {
 
 					So(ctx.db.Get(&dbTrans, "id=?", trans.ID).Run(), ShouldBeNil)
 					So(dbTrans.Status, ShouldEqual, types.StatusError)
-					So(dbTrans.Error, ShouldResemble, expErr)
+					So(dbTrans.ErrCode, ShouldResemble, errCode)
+					So(dbTrans.ErrDetails, ShouldResemble, errMsg)
 				})
 
-				Convey("Then any calls to the pipeline should return an error", func(c C) {
-					So(pip.EndTransfer(), ShouldBeError, errStateMachine)
+				Convey("Then any calls to the pipeline should return the same error", func(c C) {
+					So(pip.EndTransfer(), ShouldBeError, expErr)
 				})
 			})
 		})
@@ -626,7 +642,7 @@ func TestPipelineSetError(t *testing.T) {
 			So(pip.EndData(), ShouldBeNil)
 			So(pip.PostTasks(), ShouldBeNil)
 
-			pip.SetError(remErr)
+			pip.SetError(errCode, errMsg)
 			utils.WaitChan(pip.transDone, time.Second)
 
 			Convey("Then it should have called the error-tasks", func(c C) {
@@ -637,11 +653,12 @@ func TestPipelineSetError(t *testing.T) {
 
 					So(ctx.db.Get(&dbTrans, "id=?", trans.ID).Run(), ShouldBeNil)
 					So(dbTrans.Status, ShouldEqual, types.StatusError)
-					So(dbTrans.Error, ShouldResemble, expErr)
+					So(dbTrans.ErrCode, ShouldResemble, errCode)
+					So(dbTrans.ErrDetails, ShouldResemble, errMsg)
 				})
 
 				Convey("Then any calls to the pipeline should return an error", func(c C) {
-					So(pip.EndTransfer(), ShouldBeError, errStateMachine)
+					So(pip.EndTransfer(), ShouldBeError, NewError(errCode, errMsg))
 				})
 			})
 		})
@@ -678,7 +695,7 @@ func TestPipelinePause(t *testing.T) {
 				})
 
 				Convey("Then any calls to the pipeline should return an error", func(c C) {
-					So(pip.PreTasks(), ShouldBeError, errStateMachine)
+					So(pip.PreTasks(), ShouldBeError, errPause)
 				})
 			})
 		})
@@ -717,8 +734,7 @@ func TestPipelinePause(t *testing.T) {
 			utils.WaitChan(pip.transDone, time.Second)
 
 			Convey("Then it should have interrupted the pre-tasks", func(c C) {
-				So(<-taskErr, ShouldBeError, types.NewTransferError(
-					types.TeExternalOperation, "pre-tasks failed"))
+				So(<-taskErr, ShouldBeError, errPause)
 				So(pip.preTasks, ShouldEqual, 1)
 
 				Convey("Then the transfer should have the PAUSED status", func(c C) {
@@ -730,7 +746,7 @@ func TestPipelinePause(t *testing.T) {
 
 				Convey("Then any calls to the pipeline should return an error", func(c C) {
 					_, err := pip.StartData()
-					So(err, ShouldBeError, errStateMachine)
+					So(err, ShouldBeError, errPause)
 				})
 			})
 		})
@@ -754,7 +770,7 @@ func TestPipelinePause(t *testing.T) {
 				})
 
 				Convey("Then any calls to the pipeline should return an error", func(c C) {
-					So(pip.PreTasks(), ShouldBeError, errStateMachine)
+					So(pip.PreTasks(), ShouldBeError, errPause)
 				})
 			})
 		})
@@ -798,8 +814,7 @@ func TestPipelinePause(t *testing.T) {
 			utils.WaitChan(pip.transDone, time.Second)
 
 			Convey("Then it should have interrupted the post-tasks", func(c C) {
-				So(<-taskErr, ShouldBeError, types.NewTransferError(
-					types.TeExternalOperation, "post-tasks failed"))
+				So(<-taskErr, ShouldBeError, errPause)
 				So(pip.postTasks, ShouldEqual, 1)
 
 				Convey("Then the transfer should have the PAUSED status", func(c C) {
@@ -810,7 +825,7 @@ func TestPipelinePause(t *testing.T) {
 				})
 
 				Convey("Then any calls to the pipeline should return an error", func(c C) {
-					So(pip.EndTransfer(), ShouldBeError, errStateMachine)
+					So(pip.EndTransfer(), ShouldBeError, errPause)
 				})
 			})
 		})
@@ -836,7 +851,7 @@ func TestPipelinePause(t *testing.T) {
 				})
 
 				Convey("Then any calls to the pipeline should return an error", func(c C) {
-					So(pip.EndTransfer(), ShouldBeError, errStateMachine)
+					So(pip.EndTransfer(), ShouldBeError, errPause)
 				})
 			})
 		})
@@ -873,7 +888,7 @@ func TestPipelineCancel(t *testing.T) {
 				})
 
 				Convey("Then any calls to the pipeline should return an error", func(c C) {
-					So(pip.PreTasks(), ShouldBeError, errStateMachine)
+					So(pip.PreTasks(), ShouldBeError, errCanceled)
 				})
 			})
 		})
@@ -912,8 +927,7 @@ func TestPipelineCancel(t *testing.T) {
 			utils.WaitChan(pip.transDone, time.Second)
 
 			Convey("Then it should have interrupted the pre-tasks", func(c C) {
-				So(<-taskErr, ShouldBeError, types.NewTransferError(
-					types.TeExternalOperation, "pre-tasks failed"))
+				So(<-taskErr, ShouldBeError, errCanceled)
 				So(pip.preTasks, ShouldEqual, 1)
 
 				Convey("Then the transfer should have been canceled", func(c C) {
@@ -925,7 +939,7 @@ func TestPipelineCancel(t *testing.T) {
 
 				Convey("Then any calls to the pipeline should return an error", func(c C) {
 					_, err := pip.StartData()
-					So(err, ShouldBeError, errStateMachine)
+					So(err, ShouldBeError, errCanceled)
 				})
 			})
 		})
@@ -949,7 +963,7 @@ func TestPipelineCancel(t *testing.T) {
 				})
 
 				Convey("Then any calls to the pipeline should return an error", func(c C) {
-					So(pip.PreTasks(), ShouldBeError, errStateMachine)
+					So(pip.PreTasks(), ShouldBeError, errCanceled)
 				})
 			})
 		})
@@ -993,8 +1007,7 @@ func TestPipelineCancel(t *testing.T) {
 			utils.WaitChan(pip.transDone, time.Second)
 
 			Convey("Then it should have interrupted the post-tasks", func(c C) {
-				So(<-taskErr, ShouldBeError, types.NewTransferError(
-					types.TeExternalOperation, "post-tasks failed"))
+				So(<-taskErr, ShouldBeError, errCanceled)
 				So(pip.postTasks, ShouldEqual, 1)
 
 				Convey("Then the transfer should have been canceled", func(c C) {
@@ -1005,7 +1018,7 @@ func TestPipelineCancel(t *testing.T) {
 				})
 
 				Convey("Then any calls to the pipeline should return an error", func(c C) {
-					So(pip.EndTransfer(), ShouldBeError, errStateMachine)
+					So(pip.EndTransfer(), ShouldBeError, errCanceled)
 				})
 			})
 		})
@@ -1031,7 +1044,7 @@ func TestPipelineCancel(t *testing.T) {
 				})
 
 				Convey("Then any calls to the pipeline should return an error", func(c C) {
-					So(pip.EndTransfer(), ShouldBeError, errStateMachine)
+					So(pip.EndTransfer(), ShouldBeError, errCanceled)
 				})
 			})
 		})

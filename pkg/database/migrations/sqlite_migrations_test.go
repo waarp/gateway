@@ -2,6 +2,8 @@ package migrations
 
 import (
 	"database/sql"
+	"fmt"
+	"strings"
 	"testing"
 
 	"code.waarp.fr/lib/migration"
@@ -22,6 +24,19 @@ func (t *testEngine) Upgrade(changes ...Change) error {
 
 func (t *testEngine) Downgrade(changes ...Change) error {
 	return t.Engine.Downgrade(changes) //nolint:wrapcheck //this is just for tests
+}
+
+func (t *testEngine) NoError(tb testing.TB, query string, args ...any) {
+	tb.Helper()
+
+	if t.Dialect == PostgreSQL {
+		for i := 1; strings.Contains(query, "?"); i++ {
+			query = strings.Replace(query, "?", fmt.Sprintf("$%d", i), 1)
+		}
+	}
+
+	_, err := t.DB.Exec(query, args...)
+	require.NoError(tb, err)
 }
 
 func getSQLiteEngine(tb testing.TB) *testEngine {

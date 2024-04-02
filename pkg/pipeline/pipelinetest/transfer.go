@@ -42,9 +42,7 @@ func (d *clientData) checkClientTransferOK(c convey.C, data *transData,
 			Filesize:         TestFileSize,
 			Status:           types.StatusDone,
 			Step:             types.StepNone,
-			Error:            types.TransferError{},
 			Progress:         int64(len(data.fileContent)),
-			TaskNumber:       0,
 		}
 		c.So(*actual, convey.ShouldResemble, *expected)
 		checkHistoryInfo(c, db, actual.ID, data)
@@ -78,9 +76,7 @@ func (d *serverData) checkServerTransferOK(c convey.C, remoteTransferID, filenam
 			Filesize:         TestFileSize,
 			Status:           types.StatusDone,
 			Step:             types.StepNone,
-			Error:            types.TransferError{},
 			Progress:         progress,
-			TaskNumber:       0,
 		}
 
 		if d.ServerRule.IsSend {

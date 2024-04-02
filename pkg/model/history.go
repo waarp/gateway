@@ -14,28 +14,29 @@ import (
 
 // HistoryEntry represents one record of the 'transfers_history' table.
 type HistoryEntry struct {
-	ID               int64                `xorm:"id"`
-	Owner            string               `xorm:"owner"`
-	RemoteTransferID string               `xorm:"remote_transfer_id"`
-	IsServer         bool                 `xorm:"is_server"`
-	IsSend           bool                 `xorm:"is_send"`
-	Rule             string               `xorm:"rule"`
-	Account          string               `xorm:"account"`
-	Agent            string               `xorm:"agent"`
-	Client           string               `xorm:"client"`
-	Protocol         string               `xorm:"protocol"`
-	SrcFilename      string               `xorm:"src_filename"`
-	DestFilename     string               `xorm:"dest_filename"`
-	LocalPath        types.URL            `xorm:"local_path"`
-	RemotePath       string               `xorm:"remote_path"`
-	Filesize         int64                `xorm:"filesize"`
-	Start            time.Time            `xorm:"start DATETIME(6) UTC"`
-	Stop             time.Time            `xorm:"stop DATETIME(6) UTC"`
-	Status           types.TransferStatus `xorm:"status"`
-	Step             types.TransferStep   `xorm:"step"`
-	Progress         int64                `xorm:"progress"`
-	TaskNumber       int8                 `xorm:"task_number"`
-	Error            types.TransferError  `xorm:"EXTENDS"`
+	ID               int64                   `xorm:"id"`
+	Owner            string                  `xorm:"owner"`
+	RemoteTransferID string                  `xorm:"remote_transfer_id"`
+	IsServer         bool                    `xorm:"is_server"`
+	IsSend           bool                    `xorm:"is_send"`
+	Rule             string                  `xorm:"rule"`
+	Account          string                  `xorm:"account"`
+	Agent            string                  `xorm:"agent"`
+	Client           string                  `xorm:"client"`
+	Protocol         string                  `xorm:"protocol"`
+	SrcFilename      string                  `xorm:"src_filename"`
+	DestFilename     string                  `xorm:"dest_filename"`
+	LocalPath        types.URL               `xorm:"local_path"`
+	RemotePath       string                  `xorm:"remote_path"`
+	Filesize         int64                   `xorm:"filesize"`
+	Start            time.Time               `xorm:"start DATETIME(6) UTC"`
+	Stop             time.Time               `xorm:"stop DATETIME(6) UTC"`
+	Status           types.TransferStatus    `xorm:"status"`
+	Step             types.TransferStep      `xorm:"step"`
+	Progress         int64                   `xorm:"progress"`
+	TaskNumber       int8                    `xorm:"task_number"`
+	ErrCode          types.TransferErrorCode `xorm:"error_code"`
+	ErrDetails       string                  `xorm:"error_details"`
 }
 
 func (*HistoryEntry) TableName() string   { return TableHistory }

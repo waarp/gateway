@@ -29,10 +29,10 @@ func (h *httpsClient) Start() error {
 	return nil
 }
 
-func (h *httpsClient) InitTransfer(pip *pipeline.Pipeline) (protocol.TransferClient, error) {
+func (h *httpsClient) InitTransfer(pip *pipeline.Pipeline) (protocol.TransferClient, *pipeline.Error) {
 	transport, err := h.makeTransport(pip)
 	if err != nil {
-		return nil, types.NewTransferError(types.TeInternal, err.Error())
+		return nil, pipeline.NewErrorWith(types.TeInternal, "failed to initialize HTTPS client", err)
 	}
 
 	return newTransferClient(pip, transport, true), nil

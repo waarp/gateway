@@ -8,6 +8,7 @@ import (
 	"fmt"
 	"strings"
 	"sync"
+	"time"
 
 	"code.waarp.fr/lib/log"
 
@@ -46,17 +47,17 @@ func NewTaskRunner(db *database.DB, logger *log.Logger, transCtx *model.Transfer
 }
 
 // PreTasks executes the transfer's pre-tasks.
-func (r *Runner) PreTasks(trace func(rank int8) error) *types.TransferError {
+func (r *Runner) PreTasks(trace func(rank int8) error) *Error {
 	return r.runTasks(r.transCtx.PreTasks, false, trace)
 }
 
 // PostTasks executes the transfer's post-tasks.
-func (r *Runner) PostTasks(trace func(rank int8) error) *types.TransferError {
+func (r *Runner) PostTasks(trace func(rank int8) error) *Error {
 	return r.runTasks(r.transCtx.PostTasks, false, trace)
 }
 
 // ErrorTasks executes the transfer's error-tasks.
-func (r *Runner) ErrorTasks(trace func(rank int8)) *types.TransferError {
+func (r *Runner) ErrorTasks(trace func(rank int8)) *Error {
 	return r.runTasks(r.transCtx.ErrTasks, true, func(rank int8) error {
 		if trace != nil {
 			trace(rank)
@@ -66,80 +67,81 @@ func (r *Runner) ErrorTasks(trace func(rank int8)) *types.TransferError {
 	})
 }
 
-func (r *Runner) runTask(task *model.Task, taskInfo string, isErrTasks bool) *types.TransferError {
+func (r *Runner) runTask(updTicker *time.Ticker, task *model.Task, taskInfo string,
+	isErrTasks bool,
+) *Error {
 	runner, ok := model.ValidTasks[task.Type]
 	if !ok {
-		return types.NewTransferError(types.TeExternalOperation,
-			"%s: unknown task", taskInfo)
+		return newError(types.TeExternalOperation, "unknown task type: %s", task.Type)
 	}
 
-	args, err := r.setup(task)
-	if err != nil {
-		logMsg := fmt.Sprintf("%s: %s", taskInfo, err.Error())
-		r.logger.Error(logMsg)
+	args, setupErr := r.setup(task)
+	if setupErr != nil {
+		r.logger.Error("%s: setup failed: %v", taskInfo, setupErr)
 
-		return types.NewTransferError(types.TeExternalOperation, logMsg)
+		return newErrorWith(types.TeExternalOperation,
+			fmt.Sprintf("%s: setup failed", taskInfo), setupErr)
 	}
 
 	if validator, ok := runner.(model.TaskValidator); ok {
-		if err2 := validator.Validate(args); err2 != nil {
-			logMsg := fmt.Sprintf("%s: %s", taskInfo, err2.Error())
-			r.logger.Error(logMsg)
+		if valErr := validator.Validate(args); valErr != nil {
+			r.logger.Error("%s: validation failed %v", taskInfo, valErr)
 
-			return types.NewTransferError(types.TeExternalOperation, logMsg)
+			return newErrorWith(types.TeExternalOperation,
+				fmt.Sprintf("%s: validation failed", taskInfo), valErr)
 		}
 	}
+
+	r.logger.Debug("Executing task %s with args %s", taskInfo, mapToStr(args))
+
+	var runErr error
 
 	if isErrTasks {
-		err = runner.Run(context.Background(), args, r.db, r.logger, r.transCtx)
+		runErr = runner.Run(context.Background(), args, r.db, r.logger, r.transCtx)
 	} else {
-		err = runner.Run(r.Ctx, args, r.db, r.logger, r.transCtx)
+		runErr = runner.Run(r.Ctx, args, r.db, r.logger, r.transCtx)
 	}
 
-	if err != nil {
-		errMsg := fmt.Sprintf("%s: %s", taskInfo, err)
+	if runErr != nil {
+		var warningError *WarningError
+		if !errors.As(runErr, &warningError) {
+			r.logger.Error("%s: %v", taskInfo, runErr)
+			r.transCtx.Transfer.ErrCode = types.TeExternalOperation
+			r.transCtx.Transfer.ErrDetails = fmt.Sprintf("%s: %v", taskInfo, runErr)
 
-		var warning *warningError
-		if !errors.As(err, &warning) {
-			r.logger.Error(errMsg)
-			r.transCtx.Transfer.Error = *types.NewTransferError(types.TeExternalOperation, errMsg)
-
-			return &r.transCtx.Transfer.Error
+			return newErrorWith(types.TeExternalOperation, taskInfo, runErr)
 		}
 
-		r.logger.Warning(errMsg)
-		r.transCtx.Transfer.Error = *types.NewTransferError(types.TeWarning, errMsg)
-
-		if dbErr := r.db.Update(r.transCtx.Transfer).Cols("error_code", "error_details").Run(); dbErr != nil {
-			r.logger.Error("Failed to update task status: %s", dbErr)
-
-			if !isErrTasks {
-				return types.NewTransferError(types.TeInternal, "database error")
-			}
-		}
+		r.logger.Warning("%s: %v", taskInfo, runErr)
+		r.transCtx.Transfer.ErrCode = types.TeWarning
+		r.transCtx.Transfer.ErrDetails = fmt.Sprintf("%s: %v", taskInfo, runErr)
 	} else {
 		r.logger.Debug(taskInfo)
 	}
 
-	return r.updateProgress(isErrTasks)
+	return r.updateProgress(updTicker, isErrTasks)
 }
 
-func (r *Runner) updateProgress(isErrTasks bool) *types.TransferError {
+func (r *Runner) updateProgress(updTicker *time.Ticker, isErrTasks bool) *Error {
 	r.transCtx.Transfer.TaskNumber++
-	query := r.db.Update(r.transCtx.Transfer).Cols("task_number")
 
 	size := r.getFilesize()
 	if size >= 0 && size != r.transCtx.Transfer.Filesize {
 		r.transCtx.Transfer.Filesize = size
-
-		query.Cols("filesize")
 	}
 
-	if dbErr := query.Run(); dbErr != nil {
-		r.logger.Error("Failed to update task number: %s", dbErr)
+	select {
+	case <-updTicker.C:
+	default:
+		return nil
+	}
+
+	if dbErr := r.db.Update(r.transCtx.Transfer).Cols("task_number", "error_code",
+		"error_details", "filesize").Run(); dbErr != nil {
+		r.logger.Error("Failed to update transfer after task: %s", dbErr)
 
 		if !isErrTasks {
-			return types.NewTransferError(types.TeInternal, "database error")
+			return newErrorWith(types.TeInternal, "failed to update transfer", dbErr)
 		}
 	}
 
@@ -149,7 +151,7 @@ func (r *Runner) updateProgress(isErrTasks bool) *types.TransferError {
 // runTasks executes sequentially the list of tasks given according to the
 // Runner context.
 func (r *Runner) runTasks(tasks []*model.Task, isErrTasks bool, trace func(rank int8) error,
-) *types.TransferError {
+) *Error {
 	r.lock.Add(1)
 	defer r.lock.Done()
 
@@ -161,18 +163,19 @@ func (r *Runner) runTasks(tasks []*model.Task, isErrTasks bool, trace func(rank 
 		if !isErrTasks {
 			select {
 			case <-r.Ctx.Done():
-				return types.NewTransferError(types.TeInternal, "transfer interrupted")
+				return ErrTransferInterrupted
 			default:
 			}
 		}
 
-		if err := r.runTask(task, taskInfo, isErrTasks); err != nil {
+		updTicker := time.NewTicker(time.Second)
+		if err := r.runTask(updTicker, task, taskInfo, isErrTasks); err != nil {
 			return err
 		}
 
 		if trace != nil {
 			if err := trace(i); err != nil {
-				return testError(err)
+				return newErrorWith(types.TeInternal, "task trace error", err)
 			}
 		}
 	}

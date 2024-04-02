@@ -26,7 +26,7 @@ func (t *testValid) BeforeDelete(Access) error {
 	return nil
 }
 
-type validList []testValid
+type validList []*testValid
 
 func (*validList) TableName() string { return "test_valid" }
 func (*validList) Elem() string      { return "test struct" }

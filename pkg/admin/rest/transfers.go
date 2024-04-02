@@ -108,8 +108,8 @@ func DBTransferToREST(db *database.DB, trans *model.NormalizedTransferView) (*ap
 		Step:           trans.Step.String(),
 		Progress:       trans.Progress,
 		TaskNumber:     trans.TaskNumber,
-		ErrorCode:      trans.Error.Code.String(),
-		ErrorMsg:       trans.Error.Details,
+		ErrorCode:      trans.ErrCode.String(),
+		ErrorMsg:       trans.ErrDetails,
 		TransferInfo:   info,
 		TrueFilepath:   trans.LocalPath.OSPath(),
 		SourcePath:     src,
@@ -359,7 +359,8 @@ func resumeTransfer(logger *log.Logger, db *database.DB) http.HandlerFunc {
 		}
 
 		dbHist.Status = types.StatusPlanned
-		dbHist.Error = types.TransferError{}
+		dbHist.ErrCode = types.TeOk
+		dbHist.ErrDetails = ""
 
 		if err := db.Update(&dbHist).Cols("status", "error_code", "error_details").
 			Run(); handleError(w, logger, err) {

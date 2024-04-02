@@ -19,8 +19,8 @@ var (
 		limitClient: NoLimit,
 	}
 
-	ErrAlreadyRunning = types.NewTransferError(types.TeInternal, "transfer is already running")
-	ErrLimitReached   = types.NewTransferError(types.TeExceededLimit, "transfer limit reached")
+	ErrAlreadyRunning = NewError(types.TeInternal, "transfer is already running")
+	ErrLimitReached   = NewError(types.TeExceededLimit, "transfer limit reached")
 )
 
 type interruption struct {
@@ -37,7 +37,7 @@ type list struct {
 	countServer, countClient uint64
 }
 
-func (l *list) add(p *Pipeline) *types.TransferError {
+func (l *list) add(p *Pipeline) *Error {
 	l.mutex.Lock()
 	defer l.mutex.Unlock()
 

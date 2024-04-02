@@ -400,8 +400,8 @@ func (s *SelfContext) CheckClientTransferError(c convey.C, errCode types.Transfe
 		c.So(actual.RemoteAccountID.Int64, convey.ShouldEqual, s.RemAccount.ID)
 		c.So(actual.Status, convey.ShouldEqual, types.StatusError)
 
-		err := types.TransferError{Code: errCode, Details: errMsg}
-		c.So(actual.Error, convey.ShouldResemble, err)
+		c.So(actual.ErrCode, convey.ShouldResemble, errCode)
+		c.So(actual.ErrDetails, convey.ShouldEqual, errMsg)
 		c.So(actual.Filesize, testhelpers.ShouldBeOneOf, model.UnknownSize, TestFileSize)
 		c.So(actual.Progress, convey.ShouldBeBetweenOrEqual, 0, TestFileSize)
 		c.So(actual.Step.String(), testhelpers.ShouldBeOneOf, stepsStr)
@@ -439,8 +439,8 @@ func (s *SelfContext) CheckServerTransferError(c convey.C, errCode types.Transfe
 		c.So(actual.LocalAccountID.Int64, convey.ShouldEqual, s.LocAccount.ID)
 		c.So(actual.Status, convey.ShouldEqual, types.StatusError)
 
-		err := types.TransferError{Code: errCode, Details: errMsg}
-		c.So(actual.Error, convey.ShouldResemble, err)
+		c.So(actual.ErrCode, convey.ShouldResemble, errCode)
+		c.So(actual.ErrDetails, convey.ShouldEqual, errMsg)
 		c.So(actual.Filesize, testhelpers.ShouldBeOneOf, model.UnknownSize, TestFileSize)
 		c.So(actual.Progress, convey.ShouldBeBetweenOrEqual, 0, TestFileSize)
 		c.So(actual.Step.String(), testhelpers.ShouldBeOneOf, stepsStr)

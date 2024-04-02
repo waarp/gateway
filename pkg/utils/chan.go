@@ -39,3 +39,12 @@ func RunWithCtx(ctx context.Context, f func() error) error {
 		return context.Cause(ctx) //nolint:wrapcheck //wrapping adds nothing here
 	}
 }
+
+func CheckCtx(ctx context.Context) error {
+	select {
+	case <-ctx.Done():
+		return context.Cause(ctx) //nolint:wrapcheck //wrapping adds nothing here
+	default:
+		return nil
+	}
+}

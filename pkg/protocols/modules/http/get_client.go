@@ -38,8 +38,8 @@ func (g *getClient) Request() error {
 	if reqErr != nil {
 		g.pip.Logger.Error("Failed to make HTTP request: %s", reqErr)
 
-		return types.NewTransferError(types.TeInternal,
-			"failed to make HTTP request")
+		return pipeline.NewErrorWith(types.TeInternal,
+			"failed to make HTTP request", reqErr)
 	}
 
 	req.SetBasicAuth(g.pip.TransCtx.RemoteAccount.Login, string(g.pip.TransCtx.RemoteAccount.Password))
@@ -60,7 +60,7 @@ func (g *getClient) Request() error {
 	if reqErr != nil {
 		g.pip.Logger.Error("Failed to connect to remote host: %s", reqErr)
 
-		return types.NewTransferError(types.TeConnection, "failed to connect to remote host")
+		return pipeline.NewErrorWith(types.TeConnection, "failed to connect to remote host", reqErr)
 	}
 
 	switch g.resp.StatusCode {
@@ -124,7 +124,7 @@ func (g *getClient) EndTransfer() error {
 	return nil
 }
 
-func (g *getClient) SendError(*types.TransferError) {
+func (g *getClient) SendError(types.TransferErrorCode, string) {
 	if g.resp != nil {
 		_ = g.resp.Body.Close() //nolint:errcheck // error is irrelevant at this point
 	}
@@ -136,13 +136,13 @@ func (g *getClient) SendError(*types.TransferError) {
 
 func (g *getClient) wrapAndSendError(cause error, code types.TransferErrorCode, details string,
 ) error {
-	var tErr *types.TransferError
+	var tErr *pipeline.Error
 	if !errors.As(cause, &tErr) {
-		tErr = types.NewTransferError(code, details)
+		tErr = pipeline.NewError(code, details)
 	}
 
 	g.pip.Logger.Error("%s: %v", details, cause)
-	g.SendError(tErr)
+	g.SendError(tErr.Code(), tErr.Redacted())
 
 	return tErr
 }

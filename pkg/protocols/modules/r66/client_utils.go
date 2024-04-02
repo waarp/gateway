@@ -8,35 +8,36 @@ import (
 
 	"code.waarp.fr/apps/gateway/gateway/pkg/fs"
 	"code.waarp.fr/apps/gateway/gateway/pkg/model/types"
+	"code.waarp.fr/apps/gateway/gateway/pkg/pipeline"
 	"code.waarp.fr/apps/gateway/gateway/pkg/protocols/modules/r66/internal"
 	"code.waarp.fr/apps/gateway/gateway/pkg/utils"
 )
 
-var errConf = types.NewTransferError(types.TeUnimplemented, "client-server configuration mismatch")
+var errConf = pipeline.NewError(types.TeUnimplemented, "client-server configuration mismatch")
 
 func (c *transferClient) logErrConf(msg string) {
 	c.pip.Logger.Error("Client-server configuration mismatch: %s", msg)
 }
 
-func (c *transferClient) connect() *types.TransferError {
+func (c *transferClient) connect() *pipeline.Error {
 	cli, err := c.conns.Add(c.pip.TransCtx.RemoteAgent.Address, c.tlsConfig, c.pip.Logger)
 	if err != nil {
 		c.pip.Logger.Error("Failed to connect to remote host: %s", err)
 
-		return types.NewTransferError(types.TeConnection, "failed to connect to remote host")
+		return pipeline.NewErrorWith(types.TeConnection, "failed to connect to remote host", err)
 	}
 
 	c.ses, err = cli.NewSession()
 	if err != nil {
 		c.pip.Logger.Error("Failed to start R66 session: %s", err)
 
-		return types.NewTransferError(types.TeConnection, "failed to start R66 session")
+		return pipeline.NewErrorWith(types.TeConnection, "failed to start R66 session", err)
 	}
 
 	return nil
 }
 
-func (c *transferClient) authenticate() (tErr *types.TransferError) {
+func (c *transferClient) authenticate() (tErr *pipeline.Error) {
 	servHash := []byte(c.serverPassword)
 
 	conf := &r66.Config{
@@ -52,7 +53,7 @@ func (c *transferClient) authenticate() (tErr *types.TransferError) {
 		c.ses = nil
 		c.pip.Logger.Error("Client authentication failed: %s", err)
 
-		return types.NewTransferError(types.TeBadAuthentication, "client authentication failed")
+		return pipeline.NewErrorWith(types.TeBadAuthentication, "client authentication failed", err)
 	}
 
 	loginOK := utils.ConstantEqual(c.serverLogin, auth.Login)
@@ -61,13 +62,13 @@ func (c *transferClient) authenticate() (tErr *types.TransferError) {
 	if !loginOK {
 		c.pip.Logger.Error("Server authentication failed: wrong login '%s'", auth.Login)
 
-		return types.NewTransferError(types.TeBadAuthentication, "server authentication failed")
+		return pipeline.NewError(types.TeBadAuthentication, "server authentication failed")
 	}
 
 	if pwdErr != nil {
 		c.pip.Logger.Error("Server authentication failed: %s", pwdErr)
 
-		return types.NewTransferError(types.TeBadAuthentication, "server authentication failed")
+		return pipeline.NewError(types.TeBadAuthentication, "server authentication failed")
 	}
 
 	if auth.Filesize != conf.FileSize {
@@ -91,7 +92,7 @@ func (c *transferClient) authenticate() (tErr *types.TransferError) {
 	return nil
 }
 
-func (c *transferClient) sendRequest() *types.TransferError {
+func (c *transferClient) sendRequest() *pipeline.Error {
 	blockNB := c.pip.TransCtx.Transfer.Progress / int64(c.blockSize)
 	blockRest := c.pip.TransCtx.Transfer.Progress % int64(c.blockSize)
 
@@ -99,13 +100,13 @@ func (c *transferClient) sendRequest() *types.TransferError {
 		// round progress to the beginning of the block
 		c.pip.TransCtx.Transfer.Progress -= blockRest
 		if err := c.pip.UpdateTrans(); err != nil {
-			return internal.AsTransferError(types.TeInternal, err)
+			return err
 		}
 	}
 
 	transID, err := c.pip.TransCtx.Transfer.TransferID()
 	if err != nil {
-		return types.NewTransferError(types.TeInternal, err.Error())
+		return pipeline.NewErrorWith(types.TeInternal, "failed to parse transfer ID", err)
 	}
 
 	userContent, tErr := internal.MakeUserContent(c.pip.Logger, c.pip.TransCtx.TransInfo)
@@ -129,7 +130,7 @@ func (c *transferClient) sendRequest() *types.TransferError {
 		if statErr != nil {
 			c.pip.Logger.Error("Failed to retrieve file size: %s", statErr)
 
-			return types.NewTransferError(types.TeInternal, "failed to retrieve file size")
+			return pipeline.NewErrorWith(types.TeInternal, "failed to retrieve file size", statErr)
 		}
 
 		req.FileSize = info.Size()
@@ -149,7 +150,7 @@ func (c *transferClient) sendRequest() *types.TransferError {
 	return c.checkReqResp(req, resp)
 }
 
-func (c *transferClient) checkReqResp(req, resp *r66.Request) *types.TransferError {
+func (c *transferClient) checkReqResp(req, resp *r66.Request) *pipeline.Error {
 	if c.pip.TransCtx.Rule.IsSend {
 		if resp.FileSize != req.FileSize {
 			c.logErrConf("different file size")
@@ -160,7 +161,7 @@ func (c *transferClient) checkReqResp(req, resp *r66.Request) *types.TransferErr
 		c.pip.TransCtx.Transfer.Filesize = resp.FileSize
 
 		if err := c.pip.UpdateTrans(); err != nil {
-			return internal.AsTransferError(types.TeInternal, err)
+			return err
 		}
 	}
 
@@ -198,7 +199,7 @@ func (c *transferClient) checkReqResp(req, resp *r66.Request) *types.TransferErr
 	if progress < c.pip.TransCtx.Transfer.Progress {
 		c.pip.TransCtx.Transfer.Progress = progress
 		if err := c.pip.UpdateTrans(); err != nil {
-			return internal.AsTransferError(types.TeInternal, err)
+			return err
 		}
 	}
 

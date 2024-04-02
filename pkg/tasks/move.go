@@ -68,7 +68,7 @@ func MoveFile(db database.ReadAccess, srcFS fs.FS, source, dest *types.URL) (fs.
 func (*moveTask) Validate(args map[string]string) error {
 	if _, ok := args["path"]; !ok {
 		return fmt.Errorf("cannot create a move task without a `path` argument: %w",
-			errBadTaskArguments)
+			ErrBadTaskArguments)
 	}
 
 	return nil

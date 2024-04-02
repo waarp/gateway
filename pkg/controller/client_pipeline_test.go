@@ -66,7 +66,6 @@ func TestClientPipelineRun(t *testing.T) {
 						Step:             0,
 						Progress:         trans.Progress,
 						TaskNumber:       0,
-						Error:            types.TransferError{},
 					})
 				})
 			})

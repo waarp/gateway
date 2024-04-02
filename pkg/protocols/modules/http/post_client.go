@@ -44,7 +44,7 @@ func (p *postClient) checkResume(url string) error {
 	if err != nil {
 		p.pip.Logger.Error("Failed to make head HTTP request: %s", err)
 
-		return types.NewTransferError(types.TeInternal, "failed to make head HTTP request")
+		return pipeline.NewErrorWith(types.TeInternal, "failed to make head HTTP request", err)
 	}
 
 	req.SetBasicAuth(p.pip.TransCtx.RemoteAccount.Login, string(p.pip.TransCtx.RemoteAccount.Password))
@@ -54,7 +54,7 @@ func (p *postClient) checkResume(url string) error {
 	if err != nil {
 		p.pip.Logger.Error("HTTP Head request failed: %s", err)
 
-		return types.NewTransferError(types.TeInternal, "Head HTTP request failed")
+		return pipeline.NewErrorWith(types.TeInternal, "Head HTTP request failed", err)
 	}
 
 	defer resp.Body.Close() //nolint:errcheck // this error is irrelevant
@@ -69,7 +69,7 @@ func (p *postClient) checkResume(url string) error {
 		if err != nil {
 			p.pip.Logger.Error("Failed to parse response Content-Range: %s", err)
 
-			return types.NewTransferError(types.TeInternal, err.Error())
+			return pipeline.NewErrorWith(types.TeInternal, "failed to parse response Content-Range", err)
 		}
 	default:
 		p.pip.Logger.Error("HTTP Head replied with %s", resp.Status)
@@ -90,7 +90,7 @@ func (p *postClient) updateTransForResume(prog int64) error {
 		if err := p.pip.UpdateTrans(); err != nil {
 			p.pip.Logger.Error("Failed to parse response Content-Range: %s", err)
 
-			return types.NewTransferError(types.TeInternal, "database error")
+			return pipeline.NewErrorWith(types.TeInternal, "database error", err)
 		}
 	}
 
@@ -130,8 +130,8 @@ func (p *postClient) setRequestHeaders(req *http.Request) error {
 	if err != nil {
 		p.pip.Logger.Error("Failed to retrieve local file size: %s", err)
 
-		return types.NewTransferError(types.TeInternal,
-			"failed to retrieve local file size: %s")
+		return pipeline.NewErrorWith(types.TeInternal,
+			"failed to retrieve local file size", err)
 	}
 
 	req.Header.Set("Waarp-File-Size", utils.FormatInt(fileInfo.Size()))
@@ -159,7 +159,7 @@ func (p *postClient) prepareRequest(ready chan struct{}) error {
 	if err != nil {
 		p.pip.Logger.Error("Failed to make HTTP request: %s", err)
 
-		return types.NewTransferError(types.TeInternal, "failed to make HTTP request")
+		return pipeline.NewErrorWith(types.TeInternal, "failed to make HTTP request", err)
 	}
 
 	if err := p.setRequestHeaders(req); err != nil {
@@ -201,7 +201,7 @@ func (p *postClient) Request() error {
 	case <-ready:
 		return nil
 	case err := <-p.reqErr:
-		return types.NewTransferError(types.TeConnection, "HTTP request failed: %v", err)
+		return pipeline.NewErrorWith(types.TeConnection, "HTTP request failed", err)
 	case resp := <-p.resp:
 		defer resp.Body.Close() //nolint:errcheck // error is irrelevant at this point
 
@@ -262,7 +262,7 @@ func (p *postClient) EndTransfer() error {
 	return nil
 }
 
-func (p *postClient) SendError(err *types.TransferError) {
+func (p *postClient) SendError(code types.TransferErrorCode, details string) {
 	if p.writer == nil {
 		return
 	}
@@ -274,8 +274,8 @@ func (p *postClient) SendError(err *types.TransferError) {
 	}
 
 	p.req.Trailer.Set(httpconst.TransferStatus, string(types.StatusError))
-	p.req.Trailer.Set(httpconst.ErrorCode, err.Code.String())
-	p.req.Trailer.Set(httpconst.ErrorMessage, err.Details)
+	p.req.Trailer.Set(httpconst.ErrorCode, code.String())
+	p.req.Trailer.Set(httpconst.ErrorMessage, details)
 }
 
 func (p *postClient) Pause() error {
@@ -311,15 +311,15 @@ func (p *postClient) Cancel() error {
 }
 
 func (p *postClient) wrapAndSendError(cause error, code types.TransferErrorCode,
-	details string, args ...any,
+	details string,
 ) error {
-	var tErr *types.TransferError
+	var tErr *pipeline.Error
 	if !errors.As(cause, &tErr) {
-		tErr = types.NewTransferError(code, details, args...)
+		tErr = pipeline.NewError(code, details)
 	}
 
 	p.pip.Logger.Error("%s: %v", details, cause)
-	p.SendError(tErr)
+	p.SendError(tErr.Code(), tErr.Redacted())
 
 	return tErr
 }

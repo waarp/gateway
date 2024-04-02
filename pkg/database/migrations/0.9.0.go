@@ -17,7 +17,7 @@ func ver0_9_0AddCloudInstancesUp(db Actions) error {
 			{Name: "owner", Type: Varchar(100), NotNull: true},
 			{Name: "name", Type: Varchar(100), NotNull: true},
 			{Name: "type", Type: Varchar(50), NotNull: true},
-			{Name: "key", Type: Text{}, NotNull: true, Default: ""},
+			{Name: "api_key", Type: Text{}, NotNull: true, Default: ""},
 			{Name: "secret", Type: Text{}, NotNull: true, Default: ""},
 			{Name: "options", Type: Text{}, NotNull: true, Default: "{}"},
 		},

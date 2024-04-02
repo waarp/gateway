@@ -228,7 +228,6 @@ func TestTransferHistoryRestart(t *testing.T) {
 				Start:            time.Date(2020, 0, 0, 0, 0, 0, 0, time.Local),
 				Stop:             time.Date(2020, 0, 0, 0, 0, 0, 0, time.Local),
 				Status:           types.StatusDone,
-				Error:            types.TransferError{},
 				Step:             types.StepNone,
 				Progress:         100,
 				TaskNumber:       0,
@@ -253,7 +252,6 @@ func TestTransferHistoryRestart(t *testing.T) {
 						Owner:            conf.GlobalConfig.GatewayName,
 						Progress:         0,
 						TaskNumber:       0,
-						Error:            types.TransferError{},
 					})
 				})
 			})
@@ -290,7 +288,6 @@ func TestTransferHistoryRestart(t *testing.T) {
 				Start:            time.Date(2020, 0, 0, 0, 0, 0, 0, time.Local),
 				Stop:             time.Date(2020, 0, 0, 0, 0, 0, 0, time.Local),
 				Status:           types.StatusDone,
-				Error:            types.TransferError{},
 				Step:             types.StepNone,
 				Progress:         100,
 				TaskNumber:       0,
@@ -314,7 +311,6 @@ func TestTransferHistoryRestart(t *testing.T) {
 						Owner:            conf.GlobalConfig.GatewayName,
 						Progress:         0,
 						TaskNumber:       0,
-						Error:            types.TransferError{},
 					})
 				})
 			})

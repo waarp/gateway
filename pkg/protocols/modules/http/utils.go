@@ -3,7 +3,6 @@ package http
 import (
 	"context"
 	"encoding/json"
-	"errors"
 	"fmt"
 	"io"
 	"net/http"
@@ -36,13 +35,13 @@ func unauthorized(w http.ResponseWriter, msg string) {
 	w.Header().Add("WWW-Authenticate", `Transport mode="tls-client-certificate"`)
 }
 
-func getRemoteError(headers http.Header, body io.ReadCloser) error {
+func getRemoteError(headers http.Header, body io.ReadCloser) *pipeline.Error {
 	return parseRemoteError(headers, body, types.TeUnknownRemote, "unknown error on remote")
 }
 
 func parseRemoteError(headers http.Header, body io.ReadCloser,
 	defaultCode types.TransferErrorCode, defaultMsg string,
-) error {
+) *pipeline.Error {
 	code := defaultCode
 	if c := headers.Get(httpconst.ErrorCode); c != "" {
 		code = types.TecFromString(c)
@@ -57,12 +56,12 @@ func parseRemoteError(headers http.Header, body io.ReadCloser,
 		}
 	}
 
-	return types.NewTransferError(code, msg)
+	return pipeline.NewError(code, "Error on remote partner: %v", msg)
 }
 
 const haltTimeout = 5 * time.Second
 
-func getRemoteStatus(headers http.Header, body io.ReadCloser, pip *pipeline.Pipeline) error {
+func getRemoteStatus(headers http.Header, body io.ReadCloser, pip *pipeline.Pipeline) *pipeline.Error {
 	status := types.StatusDone
 
 	if st := headers.Get(httpconst.TransferStatus); st != "" {
@@ -80,7 +79,7 @@ func getRemoteStatus(headers http.Header, body io.ReadCloser, pip *pipeline.Pipe
 		defer cancel()
 
 		if err := pip.Pause(ctx); err != nil {
-			return asTransferError(err)
+			return pipeline.NewErrorWith(types.TeInternal, "failed to pause transfer", err)
 		}
 
 		return errPause
@@ -91,14 +90,14 @@ func getRemoteStatus(headers http.Header, body io.ReadCloser, pip *pipeline.Pipe
 		defer cancel()
 
 		if err := pip.Cancel(ctx); err != nil {
-			return asTransferError(err)
+			return pipeline.NewErrorWith(types.TeInternal, "failed to cancel transfer", err)
 		}
 
 		return errCancel
 	case types.StatusError:
 		return getRemoteError(headers, body)
 	default:
-		return types.NewTransferError(types.TeUnknownRemote, "unknown error on remote")
+		return pipeline.NewError(types.TeUnknownRemote, "unknown error on remote")
 	}
 }
 
@@ -196,7 +195,7 @@ func getContentRange(headers http.Header) (progress, filesize int64, err error) 
 }
 
 func setServerTransferInfo(pip *pipeline.Pipeline, headers http.Header,
-	sendError func(int, error),
+	sendError func(int, *pipeline.Error),
 ) bool {
 	if err := setTransferInfo(pip, headers); err != nil {
 		sendError(http.StatusInternalServerError, err)
@@ -220,11 +219,11 @@ func setServerFileInfo(pip *pipeline.Pipeline, headers http.Header,
 }
 */
 
-func setTransferInfo(pip *pipeline.Pipeline, headers http.Header) *types.TransferError {
+func setTransferInfo(pip *pipeline.Pipeline, headers http.Header) *pipeline.Error {
 	return setInfo(pip, headers, httpconst.TransferInfo)
 }
 
-func setInfo(pip *pipeline.Pipeline, headers http.Header, key string) *types.TransferError {
+func setInfo(pip *pipeline.Pipeline, headers http.Header, key string) *pipeline.Error {
 	info := map[string]any{}
 
 	for _, text := range headers.Values(key) {
@@ -232,7 +231,7 @@ func setInfo(pip *pipeline.Pipeline, headers http.Header, key string) *types.Tra
 		if len(subStr) < 2 {                   //nolint:gomnd //necessary here
 			pip.Logger.Error("Invalid transfer info header format '%s'", text)
 
-			return types.NewTransferError(types.TeUnimplemented, "invalid transfer info header")
+			return pipeline.NewError(types.TeUnimplemented, "invalid transfer info header")
 		}
 
 		name := subStr[0]
@@ -242,7 +241,7 @@ func setInfo(pip *pipeline.Pipeline, headers http.Header, key string) *types.Tra
 		if err := json.Unmarshal([]byte(strVal), &value); err != nil {
 			pip.Logger.Error("Failed to unmarshall transfer info value '%s': %s", strVal, err)
 
-			return types.NewTransferError(types.TeInternal, "failed to parse transfer info value")
+			return pipeline.NewErrorWith(types.TeInternal, "failed to parse transfer info value", err)
 		}
 
 		info[name] = value
@@ -250,9 +249,9 @@ func setInfo(pip *pipeline.Pipeline, headers http.Header, key string) *types.Tra
 
 	if err := pip.TransCtx.Transfer.SetTransferInfo(pip.DB, info); err != nil {
 		pip.Logger.Error("Failed to set transfer info: %s", err)
-		pip.SetError(types.NewTransferError(types.TeInternal, "failed to set transfer info"))
+		pip.SetError(types.TeInternal, "failed to set transfer info")
 
-		return types.NewTransferError(types.TeInternal, "database error")
+		return pipeline.NewError(types.TeInternal, "database error")
 	}
 
 	pip.TransCtx.TransInfo = info
@@ -262,13 +261,13 @@ func setInfo(pip *pipeline.Pipeline, headers http.Header, key string) *types.Tra
 
 func makeInfo(headers http.Header, pip *pipeline.Pipeline, key string,
 	info map[string]any,
-) *types.TransferError {
+) *pipeline.Error {
 	for name, val := range info {
 		jVal, err := json.Marshal(val)
 		if err != nil {
 			pip.Logger.Error("Failed to encode transfer info '%s': %s", name, err)
 
-			return types.NewTransferError(types.TeInternal, "failed to encode transfer info")
+			return pipeline.NewErrorWith(types.TeInternal, "failed to encode transfer info", err)
 		}
 
 		headers.Add(key, fmt.Sprintf("%s=%s", name, string(jVal)))
@@ -277,7 +276,7 @@ func makeInfo(headers http.Header, pip *pipeline.Pipeline, key string,
 	return nil
 }
 
-func makeTransferInfo(headers http.Header, pip *pipeline.Pipeline) *types.TransferError {
+func makeTransferInfo(headers http.Header, pip *pipeline.Pipeline) *pipeline.Error {
 	return makeInfo(headers, pip, httpconst.TransferInfo, pip.TransCtx.TransInfo)
 }
 
@@ -288,28 +287,19 @@ func makeFileInfo(headers http.Header, pip *pipeline.Pipeline) *types.TransferEr
 */
 
 func sendServerError(pip *pipeline.Pipeline, req *http.Request, resp http.ResponseWriter,
-	once *sync.Once, status int, err error,
+	once *sync.Once, status int, err *pipeline.Error,
 ) {
 	once.Do(func() {
 		select {
 		case <-req.Context().Done():
-			err = types.NewTransferError(types.TeConnectionReset, "connection closed by remote host")
+			err = pipeline.NewError(types.TeConnectionReset, "connection closed by remote host")
 		default:
 		}
 
-		tErr := asTransferError(err)
-
-		pip.SetError(tErr)
+		pip.SetError(err.Code(), err.Details())
 		resp.Header().Set(httpconst.TransferStatus, string(types.StatusError))
-		resp.Header().Set(httpconst.ErrorCode, tErr.Code.String())
-		resp.Header().Set(httpconst.ErrorMessage, tErr.Details)
+		resp.Header().Set(httpconst.ErrorCode, err.Code().String())
+		resp.Header().Set(httpconst.ErrorMessage, err.Redacted())
 		resp.WriteHeader(status)
 	})
-}
-
-func asTransferError(err error) *types.TransferError {
-	tErr := types.NewTransferError(types.TeUnknown, err.Error())
-	errors.As(err, &tErr)
-
-	return tErr
 }

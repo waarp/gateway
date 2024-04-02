@@ -29,15 +29,15 @@ func makeServerConf(db *database.DB, protoConfig *serverConfig,
 			if err := db.Get(&user, "local_agent_id=? AND login=?", agent.ID,
 				conn.User()).Run(); err != nil {
 				if !database.IsNotFound(err) {
-					return nil, errDatabase
+					return nil, ErrDatabase
 				}
 
-				return nil, errAuthFailed
+				return nil, ErrAuthFailed
 			}
 
 			certs, err := user.GetCryptos(db)
 			if err != nil {
-				return nil, errAuthFailed
+				return nil, ErrAuthFailed
 			}
 
 			for _, cert := range certs {
@@ -50,7 +50,7 @@ func makeServerConf(db *database.DB, protoConfig *serverConfig,
 				}
 			}
 
-			return nil, errAuthFailed
+			return nil, ErrAuthFailed
 		},
 		PasswordCallback: func(conn ssh.ConnMetadata, pass []byte) (*ssh.Permissions, error) {
 			var user model.LocalAccount
@@ -59,13 +59,13 @@ func makeServerConf(db *database.DB, protoConfig *serverConfig,
 				conn.User()).Run()
 			if err1 != nil {
 				if !database.IsNotFound(err1) {
-					return nil, errDatabase
+					return nil, ErrDatabase
 				}
 			}
 
 			err2 := bcrypt.CompareHashAndPassword([]byte(user.PasswordHash), pass)
 			if err1 != nil || err2 != nil {
-				return nil, errAuthFailed
+				return nil, ErrAuthFailed
 			}
 
 			return &ssh.Permissions{}, nil

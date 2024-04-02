@@ -84,7 +84,7 @@ func (c *client) Stop(ctx context.Context) error {
 	return nil
 }
 
-func (c *client) InitTransfer(pip *pipeline.Pipeline) (protocol.TransferClient, error) {
+func (c *client) InitTransfer(pip *pipeline.Pipeline) (protocol.TransferClient, *pipeline.Error) {
 	trans, err := c.initTransfer(pip)
 	if err != nil {
 		return nil, err
@@ -93,12 +93,13 @@ func (c *client) InitTransfer(pip *pipeline.Pipeline) (protocol.TransferClient, 
 	return trans, nil
 }
 
-func (c *client) initTransfer(pip *pipeline.Pipeline) (*transferClient, error) {
+func (c *client) initTransfer(pip *pipeline.Pipeline) (*transferClient, *pipeline.Error) {
 	var partConf partnerConfig
 	if err := utils.JSONConvert(pip.TransCtx.RemoteAgent.ProtoConfig, &partConf); err != nil {
 		pip.Logger.Error("Failed to parse R66 partner proto config: %v", err)
 
-		return nil, types.NewTransferError(types.TeInternal, "failed to parse R66 partner proto config")
+		return nil, pipeline.NewErrorWith(types.TeInternal,
+			"failed to parse R66 partner proto config", err)
 	}
 
 	var tlsConf *tls.Config
@@ -110,7 +111,7 @@ func (c *client) initTransfer(pip *pipeline.Pipeline) (*transferClient, error) {
 		if err != nil {
 			pip.Logger.Error("Failed to parse R66 TLS config: %v", err)
 
-			return nil, types.NewTransferError(types.TeInternal, "invalid R66 TLS config")
+			return nil, pipeline.NewErrorWith(types.TeInternal, "invalid R66 TLS config", err)
 		}
 	}
 

@@ -3,6 +3,7 @@ package internal
 import (
 	"context"
 	"crypto/sha256"
+	"errors"
 	"io"
 	"os"
 
@@ -10,19 +11,20 @@ import (
 
 	"code.waarp.fr/apps/gateway/gateway/pkg/fs"
 	"code.waarp.fr/apps/gateway/gateway/pkg/model/types"
+	"code.waarp.fr/apps/gateway/gateway/pkg/pipeline"
 	"code.waarp.fr/apps/gateway/gateway/pkg/utils"
 )
 
 // MakeHash takes a file path and returns the sha256 checksum of the file.
 func MakeHash(ctx context.Context, filesys fs.FS, logger *log.Logger, path *types.URL,
-) ([]byte, *types.TransferError) {
+) ([]byte, *pipeline.Error) {
 	hasher := sha256.New()
 
 	file, opErr := fs.OpenFile(filesys, path, os.O_RDONLY, 0o600)
 	if opErr != nil {
 		logger.Error("Failed to open file for hash calculation: %s", opErr)
 
-		return nil, types.NewTransferError(types.TeInternal, "failed to open file")
+		return nil, pipeline.NewErrorWith(types.TeInternal, "failed to open file", opErr)
 	}
 
 	defer func() {
@@ -35,13 +37,17 @@ func MakeHash(ctx context.Context, filesys fs.FS, logger *log.Logger, path *type
 		if _, err := io.Copy(hasher, file); err != nil {
 			logger.Error("Failed to read file content to hash: %s", err)
 
-			return types.NewTransferError(types.TeInternal, "failed to read file")
+			return pipeline.NewErrorWith(types.TeInternal, "failed to read file", err)
 		}
 
 		return nil
 	}); err != nil {
-		//nolint:errorlint,forcetypeassert //assertion always succeeds
-		return nil, err.(*types.TransferError)
+		var pErr *pipeline.Error
+		if errors.As(err, &pErr) {
+			return nil, pErr
+		}
+
+		return nil, pipeline.NewError(types.TeStopped, "transfer interrupted")
 	}
 
 	return hasher.Sum(nil), nil

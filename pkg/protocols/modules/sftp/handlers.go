@@ -18,8 +18,6 @@ import (
 	"code.waarp.fr/apps/gateway/gateway/pkg/utils"
 )
 
-var ErrFileSystem = errors.New("file system error")
-
 type (
 	leaf   = utils.Leaf
 	branch = utils.Branch
@@ -41,7 +39,7 @@ func (l *sshListener) mkdir(r *sftp.Request, acc *model.LocalAccount) error {
 
 	realDir, dirErr := l.getRealPath(acc, r.Filepath)
 	if dirErr != nil {
-		return toSFTPErr(dirErr)
+		return dirErr
 	}
 
 	filesys, fsErr := fs.GetFileSystem(l.DB, realDir)
@@ -50,7 +48,8 @@ func (l *sshListener) mkdir(r *sftp.Request, acc *model.LocalAccount) error {
 	}
 
 	if err := fs.MkdirAll(filesys, realDir); err != nil {
-		return toSFTPErr(err)
+		//nolint:goerr113 //too specific
+		return errors.New("failed to create directory")
 	}
 
 	return nil
@@ -76,20 +75,20 @@ func (l *sshListener) listAt(r *sftp.Request, acc *model.LocalAccount,
 
 		var infos []fs.FileInfo
 
-		realDir, err := l.getRealPath(acc, r.Filepath)
-		if err != nil {
-			return 0, toSFTPErr(err)
+		realDir, pathErr := l.getRealPath(acc, r.Filepath)
+		if pathErr != nil {
+			return 0, pathErr
 		}
 
 		if realDir != nil {
 			var listErr error
 			if infos, listErr = l.listReadDir(realDir); listErr != nil {
-				return 0, toSFTPErr(listErr)
+				return 0, listErr
 			}
 		} else {
 			rulesPaths, rulesErr := l.getRulesPaths(acc, r.Filepath)
 			if rulesErr != nil {
-				return 0, toSFTPErr(rulesErr)
+				return 0, rulesErr
 			}
 
 			for _, rulePath := range rulesPaths {
@@ -119,7 +118,7 @@ func (l *sshListener) statAt(r *sftp.Request, acc *model.LocalAccount,
 
 		realDir, err := l.getRealPath(acc, r.Filepath)
 		if err != nil {
-			return 0, toSFTPErr(err)
+			return 0, err
 		}
 
 		if realDir != nil {
@@ -136,7 +135,7 @@ func (l *sshListener) statAt(r *sftp.Request, acc *model.LocalAccount,
 
 				l.Logger.Error("Failed to stat file %s", err)
 
-				return 0, errFileSystem
+				return 0, ErrFileSystem
 			}
 		} else {
 			if n, err := l.DB.Count(&model.Rule{}).Where("path LIKE ?",
@@ -171,7 +170,7 @@ func (l *sshListener) listReadDir(realDir *types.URL) ([]fs.FileInfo, error) {
 
 		l.Logger.Error("Failed to list directory: %s", readErr)
 
-		return nil, errFileSystem
+		return nil, ErrFileSystem
 	}
 
 	for _, entry := range entries {
@@ -179,7 +178,7 @@ func (l *sshListener) listReadDir(realDir *types.URL) ([]fs.FileInfo, error) {
 		if infoErr != nil {
 			l.Logger.Error("Failed to retrieve the file info: %v", infoErr)
 
-			return nil, errFileSystem
+			return nil, ErrFileSystem
 		}
 
 		infos = append(infos, info)
@@ -209,7 +208,9 @@ func (l *sshListener) getRealPath(acc *model.LocalAccount, dir string,
 		branch(l.Server.RootDir), leaf(confPaths.DefaultOutDir),
 		branch(confPaths.GatewayHome))
 	if dirErr != nil {
-		return nil, fmt.Errorf("failed to build the path: %w", dirErr)
+		l.Logger.Error("Failed to retrieve real path for request %q: %s", dir, dirErr)
+
+		return nil, ErrInternal
 	}
 
 	return (*types.URL)(realDir), nil
@@ -228,7 +229,7 @@ func (l *sshListener) getClosestRule(acc *model.LocalAccount, rulePath string,
 		if !database.IsNotFound(err) {
 			l.Logger.Error("Failed to retrieve rule: %s", err)
 
-			return nil, errDatabase
+			return nil, ErrDatabase
 		}
 
 		if err := l.DB.Get(&rule, "path=? AND is_send=?", rulePath, !isSendPriority).Run(); err != nil {
@@ -238,14 +239,14 @@ func (l *sshListener) getClosestRule(acc *model.LocalAccount, rulePath string,
 
 			l.Logger.Error("Failed to retrieve rule: %s", err)
 
-			return nil, errDatabase
+			return nil, ErrDatabase
 		}
 	}
 
 	if ok, err := rule.IsAuthorized(l.DB, acc); err != nil {
 		l.Logger.Error("Failed to check rule permissions: %s", err)
 
-		return nil, errDatabase
+		return nil, ErrDatabase
 	} else if !ok {
 		return &rule, sftp.ErrSSHFxPermissionDenied
 	}
@@ -275,7 +276,8 @@ func (l *sshListener) getRulesPaths(acc *model.LocalAccount, dir string,
 	if err := query.Run(); err != nil {
 		l.Logger.Error("Failed to retrieve rule list: %s", err)
 
-		return nil, fmt.Errorf("failed to retrieve rule list: %w", err)
+		//nolint:goerr113 //too specific
+		return nil, errors.New("failed to retrieve rule list")
 	}
 
 	if len(rules) == 0 {

@@ -63,11 +63,11 @@ func (u *uploadHandler) Cancel(ctx context.Context) error {
 	})
 }
 
-func (u *uploadHandler) sendError(status int, err error) {
+func (u *uploadHandler) sendError(status int, err *pipeline.Error) {
 	sendServerError(u.pip, u.req, u.resp, &u.reply, status, err)
 }
 
-func (u *uploadHandler) handleError(err error) bool {
+func (u *uploadHandler) handleError(err *pipeline.Error) bool {
 	if err == nil {
 		return false
 	}
@@ -96,9 +96,11 @@ func (u *uploadHandler) run() {
 	}
 
 	if _, err := io.Copy(file, u.reqBody); err != nil {
-		cErr := types.NewTransferError(types.TeDataTransfer, "failed to copy data")
+		var cErr *pipeline.Error
+		if !errors.As(err, &cErr) {
+			cErr = pipeline.NewErrorWith(types.TeDataTransfer, "failed to copy data", err)
+		}
 
-		errors.As(err, &cErr)
 		u.handleError(cErr)
 
 		return

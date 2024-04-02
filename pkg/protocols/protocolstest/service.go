@@ -32,14 +32,14 @@ func (t *TestService) Stop(context.Context) error {
 }
 
 func (t *TestService) State() (utils.StateCode, string) { return t.state.Get() }
-func (t *TestService) InitTransfer(*pipeline.Pipeline) (protocol.TransferClient, error) {
+func (t *TestService) InitTransfer(*pipeline.Pipeline) (protocol.TransferClient, *pipeline.Error) {
 	return TestTransferClient{}, nil
 }
 
 type TestTransferClient struct{}
 
-func (TestTransferClient) Request() error                     { return nil }
-func (TestTransferClient) Send(protocol.SendFile) error       { return nil }
-func (TestTransferClient) Receive(protocol.ReceiveFile) error { return nil }
-func (TestTransferClient) EndTransfer() error                 { return nil }
-func (TestTransferClient) SendError(*types.TransferError)     {}
+func (TestTransferClient) Request() error                            { return nil }
+func (TestTransferClient) Send(protocol.SendFile) error              { return nil }
+func (TestTransferClient) Receive(protocol.ReceiveFile) error        { return nil }
+func (TestTransferClient) EndTransfer() error                        { return nil }
+func (TestTransferClient) SendError(types.TransferErrorCode, string) {}

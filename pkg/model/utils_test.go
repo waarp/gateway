@@ -55,7 +55,9 @@ func (t testConfigChecker) checkConfig(proto string) error {
 }
 
 func (t testConfigChecker) IsValidProtocol(proto string) bool {
-	return !errors.Is(t.checkConfig(proto), errUnknownProtocol)
+	_, ok := t[proto]
+
+	return ok
 }
 
 func (t testConfigChecker) CheckServerConfig(proto string, _ map[string]any) error {

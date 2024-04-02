@@ -39,7 +39,8 @@ func jsonTransToDbHist(trans *file.Transfer) (*model.HistoryEntry, error) {
 		Step:             trans.Step,
 		Progress:         trans.Progress,
 		TaskNumber:       trans.TaskNumber,
-		Error:            types.TransferError{Code: trans.ErrorCode, Details: trans.ErrorMsg},
+		ErrCode:          trans.ErrorCode,
+		ErrDetails:       trans.ErrorMsg,
 	}, nil
 }
 

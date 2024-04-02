@@ -412,21 +412,13 @@ func TestRulesList(t *testing.T) {
 						fmt.Sprintf("│  ├─ Pre tasks: <none>\n")+
 						fmt.Sprintf("│  ├─ Post tasks: <none>\n")+
 						fmt.Sprintf("│  ├─ Error tasks: <none>\n")+
-						fmt.Sprintf("│  ╰─ Rule access\n")+
-						fmt.Sprintf("│     ├─ Local servers: <none>\n")+
-						fmt.Sprintf("│     ├─ Remote partners: <none>\n")+
-						fmt.Sprintf("│     ├─ Local accounts: <none>\n")+
-						fmt.Sprintf("│     ╰─ Remote accounts: <none>\n")+
+						fmt.Sprintf("│  ╰─ Rule access: <unrestricted>\n")+
 						fmt.Sprintf("╰─ Rule %q (%s)\n", rule2, rule2way)+
 						fmt.Sprintf("   ├─ Path: %s\n", rule2Path)+
 						fmt.Sprintf("   ├─ Pre tasks: <none>\n")+
 						fmt.Sprintf("   ├─ Post tasks: <none>\n")+
 						fmt.Sprintf("   ├─ Error tasks: <none>\n")+
-						fmt.Sprintf("   ╰─ Rule access\n")+
-						fmt.Sprintf("      ├─ Local servers: <none>\n")+
-						fmt.Sprintf("      ├─ Remote partners: <none>\n")+
-						fmt.Sprintf("      ├─ Local accounts: <none>\n")+
-						fmt.Sprintf("      ╰─ Remote accounts: <none>\n"),
+						fmt.Sprintf("   ╰─ Rule access: <unrestricted>\n"),
 					w.String(),
 					"Then is should display the list of rules",
 				)

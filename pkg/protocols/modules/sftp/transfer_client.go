@@ -33,13 +33,13 @@ type transferClient struct {
 }
 
 func newTransferClient(pip *pipeline.Pipeline, dialer *net.Dialer, sshClientConf *ssh.Config,
-) (*transferClient, error) {
+) (*transferClient, *pipeline.Error) {
 	var partnerConf partnerConfig
 	if err := utils.JSONConvert(pip.TransCtx.RemoteAgent.ProtoConfig, &partnerConf); err != nil {
 		pip.Logger.Error("Failed to parse SFTP partner protocol configuration: %s", err)
 
-		return nil, types.NewTransferError(types.TeInternal,
-			"failed to parse SFTP partner protocol configuration")
+		return nil, pipeline.NewErrorWith(types.TeInternal,
+			"failed to parse SFTP partner protocol configuration", err)
 	}
 
 	sshPartnerConf := &ssh.Config{
@@ -69,7 +69,7 @@ func newTransferClient(pip *pipeline.Pipeline, dialer *net.Dialer, sshClientConf
 }
 
 func (c *transferClient) makePartnerHostKeys(cryptos model.Cryptos,
-) ([]ssh.PublicKey, []string, *types.TransferError) {
+) ([]ssh.PublicKey, []string, *pipeline.Error) {
 	var (
 		hostKeys []ssh.PublicKey
 		algos    []string
@@ -96,7 +96,7 @@ func (c *transferClient) makePartnerHostKeys(cryptos model.Cryptos,
 	if len(hostKeys) == 0 {
 		c.pip.Logger.Error("No valid hostkey found for partner %q", partner)
 
-		return nil, nil, types.NewTransferError(types.TeInternal,
+		return nil, nil, pipeline.NewError(types.TeInternal,
 			"no valid hostkey found for partner %q", partner)
 	}
 
@@ -145,7 +145,7 @@ func setDefaultClientAlgos(conf *ssh.ClientConfig) {
 }
 
 func (c *transferClient) makeSSHClientConfig(info *model.TransferContext,
-) (*ssh.ClientConfig, *types.TransferError) {
+) (*ssh.ClientConfig, *pipeline.Error) {
 	hostKeys, algos, err := c.makePartnerHostKeys(info.RemoteAgentCryptos)
 	if err != nil {
 		return nil, err
@@ -167,7 +167,7 @@ func (c *transferClient) makeSSHClientConfig(info *model.TransferContext,
 	return conf, nil
 }
 
-func (c *transferClient) openSSHConn() *types.TransferError {
+func (c *transferClient) openSSHConn() *pipeline.Error {
 	sshClientConf, confErr := c.makeSSHClientConfig(c.pip.TransCtx)
 	if confErr != nil {
 		return confErr
@@ -179,16 +179,16 @@ func (c *transferClient) openSSHConn() *types.TransferError {
 	if dialErr != nil {
 		c.pip.Logger.Error("Failed to connect to the SFTP partner: %v", dialErr)
 
-		return types.NewTransferError(types.TeConnection,
-			"failed to connect to the SFTP partner: %v", dialErr)
+		return pipeline.NewErrorWith(types.TeConnection,
+			"failed to connect to the SFTP partner", dialErr)
 	}
 
 	sshConn, chans, reqs, sshErr := ssh.NewClientConn(conn, addr, sshClientConf)
 	if sshErr != nil {
 		c.pip.Logger.Error("Failed to start the SSH session: %v", sshErr)
 
-		return types.NewTransferError(types.TeConnection,
-			"failed to start the SSH session: %v", sshErr)
+		return pipeline.NewErrorWith(types.TeConnection,
+			"failed to start the SSH session", sshErr)
 	}
 
 	c.sshClient = ssh.NewClient(sshConn, chans, reqs)
@@ -196,7 +196,7 @@ func (c *transferClient) openSSHConn() *types.TransferError {
 	return nil
 }
 
-func (c *transferClient) startSFTPSession() *types.TransferError {
+func (c *transferClient) startSFTPSession() *pipeline.Error {
 	var opts []sftp.ClientOption
 
 	if !c.partnerConf.UseStat {
@@ -227,14 +227,14 @@ func (c *transferClient) Request() error {
 	return nil
 }
 
-func (c *transferClient) request() (tErr *types.TransferError) {
+func (c *transferClient) request() (tErr *pipeline.Error) {
 	if err := c.openSSHConn(); err != nil {
 		return err
 	}
 
 	defer func() {
 		if tErr != nil {
-			c.SendError(tErr)
+			c.SendError(tErr.Code(), tErr.Details())
 		}
 	}()
 
@@ -249,7 +249,7 @@ func (c *transferClient) request() (tErr *types.TransferError) {
 	}
 }
 
-func (c *transferClient) requestSend(filepath string) *types.TransferError {
+func (c *transferClient) requestSend(filepath string) *pipeline.Error {
 	if c.pip.TransCtx.Transfer.Progress > 0 {
 		if stat, statErr := c.sftpClient.Stat(filepath); statErr != nil {
 			c.pip.Logger.Warning("Failed to retrieve the remote file's size: %s", statErr)
@@ -259,7 +259,7 @@ func (c *transferClient) requestSend(filepath string) *types.TransferError {
 		}
 
 		if err := c.pip.UpdateTrans(); err != nil {
-			return asTransferError(types.TeInternal, err)
+			return err
 		}
 	}
 
@@ -275,7 +275,7 @@ func (c *transferClient) requestSend(filepath string) *types.TransferError {
 	return nil
 }
 
-func (c *transferClient) requestReceive(filepath string) *types.TransferError {
+func (c *transferClient) requestReceive(filepath string) *pipeline.Error {
 	var err error
 
 	c.sftpFile, err = c.sftpClient.Open(filepath)
@@ -335,7 +335,7 @@ func (c *transferClient) EndTransfer() error {
 	return nil
 }
 
-func (c *transferClient) endTransfer() (tErr *types.TransferError) {
+func (c *transferClient) endTransfer() (tErr *pipeline.Error) {
 	if c.sftpFile != nil {
 		if err := c.sftpFile.Close(); err != nil {
 			c.pip.Logger.Error("Failed to close remote SFTP file: %s", err)
@@ -371,14 +371,14 @@ func (c *transferClient) endTransfer() (tErr *types.TransferError) {
 	return tErr
 }
 
-func (c *transferClient) wrapAndSendError(err error, defaultCode types.TransferErrorCode) *types.TransferError {
+func (c *transferClient) wrapAndSendError(err error, defaultCode types.TransferErrorCode) *pipeline.Error {
 	tErr := fromSFTPErr(err, defaultCode, c.pip)
-	c.SendError(tErr)
+	c.SendError(tErr.Code(), tErr.Details())
 
 	return tErr
 }
 
-func (c *transferClient) SendError(*types.TransferError) {
+func (c *transferClient) SendError(types.TransferErrorCode, string) {
 	if c.sshClient != nil {
 		if err := c.sshClient.Close(); err != nil {
 			c.pip.Logger.Warning("An error occurred while closing the SSH session: %v", err)

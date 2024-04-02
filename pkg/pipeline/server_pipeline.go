@@ -17,7 +17,7 @@ import (
 //
 // If no transfer can be found, the entry is returned as is.
 func GetOldTransfer(db *database.DB, logger *log.Logger, trans *model.Transfer,
-) (*model.Transfer, error) {
+) (*model.Transfer, *Error) {
 	if trans.RemoteTransferID == "" {
 		return trans, nil
 	}
@@ -28,7 +28,7 @@ func GetOldTransfer(db *database.DB, logger *log.Logger, trans *model.Transfer,
 		trans.RemoteTransferID, trans.LocalAccountID.Int64).Run()
 	if err == nil {
 		if oldTrans.Status == types.StatusRunning {
-			return nil, types.NewTransferError(types.TeForbidden,
+			return nil, NewError(types.TeForbidden,
 				"cannot resume a currently running transfer")
 		}
 
@@ -38,7 +38,7 @@ func GetOldTransfer(db *database.DB, logger *log.Logger, trans *model.Transfer,
 	if !database.IsNotFound(err) {
 		logger.Error("Failed to retrieve old server transfer: %s", err)
 
-		return nil, ErrDatabase
+		return nil, NewErrorWith(types.TeInternal, "failed to retrieve old server transfer", err)
 	}
 
 	return trans, nil
@@ -47,12 +47,12 @@ func GetOldTransfer(db *database.DB, logger *log.Logger, trans *model.Transfer,
 // NewServerPipeline initializes and returns a new pipeline suitable for a
 // server transfer.
 func NewServerPipeline(db *database.DB, trans *model.Transfer,
-) (*Pipeline, error) {
+) (*Pipeline, *Error) {
 	logger := logging.NewLogger(fmt.Sprintf("Pipeline %d (server)", trans.ID))
 
 	transCtx, ctxErr := model.GetTransferContext(db, logger, trans)
 	if ctxErr != nil {
-		return nil, fmt.Errorf("failed to retrieve transfer context: %w", ctxErr)
+		return nil, NewError(types.TeInternal, "database error")
 	}
 
 	pipeline, pipErr := newPipeline(db, logger, transCtx)

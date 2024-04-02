@@ -39,8 +39,8 @@ func dbHistToFileTrans(hist *model.HistoryEntry, db database.ReadAccess) (*file.
 		Step:           hist.Step,
 		Progress:       hist.Progress,
 		TaskNumber:     hist.TaskNumber,
-		ErrorCode:      hist.Error.Code,
-		ErrorMsg:       hist.Error.Details,
+		ErrorCode:      hist.ErrCode,
+		ErrorMsg:       hist.ErrDetails,
 		TransferInfo:   info,
 	}, nil
 }

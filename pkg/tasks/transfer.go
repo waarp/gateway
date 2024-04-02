@@ -24,23 +24,23 @@ func init() {
 // Validate checks if the tasks has all the required arguments.
 func (t *TransferTask) Validate(args map[string]string) error {
 	if file, ok := args["file"]; !ok || file == "" {
-		return fmt.Errorf("missing transfer source file: %w", errBadTaskArguments)
+		return fmt.Errorf("missing transfer source file: %w", ErrBadTaskArguments)
 	}
 
 	if to, ok := args["to"]; !ok || to == "" {
 		if from, ok := args["from"]; !ok || from == "" {
-			return fmt.Errorf("missing transfer remote partner: %w", errBadTaskArguments)
+			return fmt.Errorf("missing transfer remote partner: %w", ErrBadTaskArguments)
 		}
 	} else if from, ok := args["from"]; ok && from != "" {
-		return fmt.Errorf("cannot have both 'to' and 'from': %w", errBadTaskArguments)
+		return fmt.Errorf("cannot have both 'to' and 'from': %w", ErrBadTaskArguments)
 	}
 
 	if as, ok := args["as"]; !ok || as == "" {
-		return fmt.Errorf("missing transfer account: %w", errBadTaskArguments)
+		return fmt.Errorf("missing transfer account: %w", ErrBadTaskArguments)
 	}
 
 	if rule, ok := args["rule"]; !ok || rule == "" {
-		return fmt.Errorf("missing transfer rule: %w", errBadTaskArguments)
+		return fmt.Errorf("missing transfer rule: %w", ErrBadTaskArguments)
 	}
 
 	return nil
@@ -52,14 +52,14 @@ func getTransferInfo(db *database.DB, args map[string]string) (file string,
 ) {
 	fileName, fileOK := args["file"]
 	if !fileOK || fileName == "" {
-		infoErr = fmt.Errorf("missing transfer file: %w", errBadTaskArguments)
+		infoErr = fmt.Errorf("missing transfer file: %w", ErrBadTaskArguments)
 
 		return "", 0, 0, 0, false, infoErr
 	}
 
 	clientName, clientOK := args["using"]
 	if !clientOK || fileName == "" {
-		infoErr = fmt.Errorf("missing transfer client: %w", errBadTaskArguments)
+		infoErr = fmt.Errorf("missing transfer client: %w", ErrBadTaskArguments)
 
 		return "", 0, 0, 0, false, infoErr
 	}
@@ -68,19 +68,19 @@ func getTransferInfo(db *database.DB, args map[string]string) (file string,
 	if !agentOK || agentName == "" {
 		agentName, agentOK = args["from"]
 		if !agentOK || agentName == "" {
-			infoErr = fmt.Errorf("missing transfer remote partner: %w", errBadTaskArguments)
+			infoErr = fmt.Errorf("missing transfer remote partner: %w", ErrBadTaskArguments)
 
 			return "", 0, 0, 0, false, infoErr
 		}
 	} else if from, ok := args["from"]; ok && from != "" {
-		infoErr = fmt.Errorf("cannot have both 'to' and 'from': %w", errBadTaskArguments)
+		infoErr = fmt.Errorf("cannot have both 'to' and 'from': %w", ErrBadTaskArguments)
 
 		return "", 0, 0, 0, false, infoErr
 	}
 
 	ruleName, ruleOK := args["rule"]
 	if !ruleOK || ruleName == "" {
-		infoErr = fmt.Errorf("missing transfer rule: %w", errBadTaskArguments)
+		infoErr = fmt.Errorf("missing transfer rule: %w", ErrBadTaskArguments)
 
 		return "", 0, 0, 0, false, infoErr
 	}
@@ -110,7 +110,7 @@ func getTransferInfo(db *database.DB, args map[string]string) (file string,
 
 	accName, accOK := args["as"]
 	if !accOK || accName == "" {
-		infoErr = fmt.Errorf("missing transfer account: %w", errBadTaskArguments)
+		infoErr = fmt.Errorf("missing transfer account: %w", ErrBadTaskArguments)
 
 		return "", 0, 0, 0, false, infoErr
 	}

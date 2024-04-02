@@ -2,7 +2,9 @@ package pipelinetest
 
 import (
 	"crypto/rand"
+	"errors"
 	"fmt"
+	"os"
 	"sync/atomic"
 	"time"
 
@@ -29,7 +31,12 @@ const (
 
 //nolint:gochecknoinits //init is required here
 func init() {
-	if err := logging.AddLogBackend("TRACE", "stdout", "", ""); err != nil {
+	level := "WARNING"
+	if envLvl := os.Getenv("WAARP_TEST_LOG_LEVEL"); envLvl != "" {
+		level = envLvl
+	}
+
+	if err := logging.AddLogBackend(level, "stdout", "", ""); err != nil {
 		panic(fmt.Sprintf("failed to initialize the log backend: %v", err))
 	}
 }
@@ -37,7 +44,7 @@ func init() {
 // TestFileSize defines the size of the file used for transfer tests.
 const TestFileSize int64 = 1000000 // 1MB
 
-var ErrTestError = types.NewTransferError(types.TeInternal, "intended test error")
+var ErrTestError = errors.New("intended test error")
 
 type testData struct {
 	DB    *database.DB

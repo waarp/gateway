@@ -96,10 +96,8 @@ func TestSetup(t *testing.T) {
 				DestFilename:    "dst/file",
 				LocalPath:       filepath,
 				RemotePath:      path.Join(transCtx.Rule.RemoteDir, "file.rem"),
-				Error: types.TransferError{
-					Code:    types.TeConnection,
-					Details: `error message`,
-				},
+				ErrCode:         types.TeConnection,
+				ErrDetails:      `error message`,
 			}
 			transCtx.TransInfo = map[string]any{"foo": "bar", "id": 123}
 
@@ -236,7 +234,7 @@ func TestSetup(t *testing.T) {
 						So(ok, ShouldBeTrue)
 
 						Convey("Then res[errCode] should contain the resolved variable", func() {
-							So(val, ShouldEqual, string(r.transCtx.Transfer.Error.Code.R66Code()))
+							So(val, ShouldEqual, string(r.transCtx.Transfer.ErrCode.R66Code()))
 						})
 					})
 
@@ -245,7 +243,7 @@ func TestSetup(t *testing.T) {
 						So(ok, ShouldBeTrue)
 
 						Convey("Then res[msg] should contain the resolved variable", func() {
-							So(val, ShouldEqual, r.transCtx.Transfer.Error.Details)
+							So(val, ShouldEqual, r.transCtx.Transfer.ErrDetails)
 						})
 					})
 
@@ -254,7 +252,7 @@ func TestSetup(t *testing.T) {
 						So(ok, ShouldBeTrue)
 
 						Convey("Then res[errStrCode] should contain the resolved variable", func() {
-							So(val, ShouldEqual, r.transCtx.Transfer.Error.Details)
+							So(val, ShouldEqual, r.transCtx.Transfer.ErrDetails)
 						})
 					})
 
@@ -415,8 +413,8 @@ func TestRunTasks(t *testing.T) {
 						So(<-dummyTaskCheck, ShouldEqual, "DONE")
 
 						Convey("Then the transfer should have a warning", func() {
-							So(trans.Error.Code, ShouldEqual, types.TeWarning)
-							So(trans.Error.Details, ShouldEqual, "Task TESTWARNING @ rule PRE[1]: warning message")
+							So(trans.ErrCode, ShouldEqual, types.TeWarning)
+							So(trans.ErrDetails, ShouldEqual, "Task TESTWARNING @ rule PRE[1]: warning message")
 						})
 					})
 				})

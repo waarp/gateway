@@ -1,8 +1,6 @@
 package pipeline
 
 import (
-	"errors"
-
 	"code.waarp.fr/lib/log"
 
 	"code.waarp.fr/apps/gateway/gateway/pkg/database"
@@ -13,16 +11,14 @@ import (
 // NewClientPipeline initializes and returns a new ClientPipeline for the given
 // transfer.
 func NewClientPipeline(db *database.DB, logger *log.Logger, transCtx *model.TransferContext,
-) (*Pipeline, error) {
+) (*Pipeline, *Error) {
 	pip, pipErr := newPipeline(db, logger, transCtx)
 	if pipErr != nil {
 		logger.Error("Failed to initialize the client transfer pipeline: %v", pipErr)
 
-		tErr := types.NewTransferError(types.TeInternal, pipErr.Error())
-		errors.As(pipErr, &tErr)
-
 		transCtx.Transfer.Status = types.StatusError
-		transCtx.Transfer.Error = *tErr
+		transCtx.Transfer.ErrCode = pipErr.code
+		transCtx.Transfer.ErrDetails = pipErr.Details()
 
 		if dbErr := db.Update(transCtx.Transfer).Run(); dbErr != nil {
 			logger.Error("Failed to update the transfer error: %s", dbErr)
@@ -34,7 +30,7 @@ func NewClientPipeline(db *database.DB, logger *log.Logger, transCtx *model.Tran
 	if dbErr := pip.UpdateTrans(); dbErr != nil {
 		logger.Error("Failed to update the transfer details: %s", dbErr)
 
-		return nil, ErrDatabase
+		return nil, NewErrorWith(types.TeInternal, "Failed to update the transfer details", dbErr)
 	}
 
 	return pip, nil

@@ -111,13 +111,13 @@ func getReplacers() replacersMap {
 		"#RANKTRANSFER#": notImplemented("#RANKTRANSFER#"),
 		"#BLOCKSIZE#":    notImplemented("#BLOCKSIZE#"),
 		"#ERRORMSG#": func(r *Runner) (string, error) {
-			return r.transCtx.Transfer.Error.Details, nil
+			return r.transCtx.Transfer.ErrDetails, nil
 		},
 		"#ERRORCODE#": func(r *Runner) (string, error) {
-			return string(r.transCtx.Transfer.Error.Code.R66Code()), nil
+			return string(r.transCtx.Transfer.ErrCode.R66Code()), nil
 		},
 		"#ERRORSTRCODE#": func(r *Runner) (string, error) {
-			return r.transCtx.Transfer.Error.Details, nil
+			return r.transCtx.Transfer.ErrDetails, nil
 		},
 		"#NOWAIT#":    notImplemented("#NOWAIT#"),
 		"#LOCALEXEC#": notImplemented("#LOCALEXEC#"),

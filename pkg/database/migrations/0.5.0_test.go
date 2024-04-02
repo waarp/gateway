@@ -14,19 +14,12 @@ func testVer0_5_0RemoveRulePathSlash(t *testing.T, eng *testEngine) Change {
 	t.Run("When applying the 0.5.0 rule slash removal change", func(t *testing.T) {
 		query := `INSERT INTO rules (name, comment, send, path, in_path, 
             out_path, work_path) VALUES (?, ?, ?, ?, ?, ?, ?)`
-		if eng.Dialect == PostgreSQL {
-			query = `INSERT INTO rules (name, comment, send, path, in_path, 
-				out_path, work_path) VALUES ($1, $2, $3, $4, $5, $6, $7)`
-		}
 
-		_, err := eng.DB.Exec(query, "send", "", true, "/send_path", "", "", "")
-		require.NoError(t, err)
-		_, err = eng.DB.Exec(query, "recv", "", false, "/recv_path", "", "", "")
-		require.NoError(t, err)
+		eng.NoError(t, query, "send", "", true, "/send_path", "", "", "")
+		eng.NoError(t, query, "recv", "", false, "/recv_path", "", "", "")
 
 		t.Cleanup(func() {
-			_, err := eng.DB.Exec("DELETE FROM rules")
-			require.NoError(t, err)
+			eng.NoError(t, "DELETE FROM rules")
 		})
 
 		require.NoError(t, eng.Upgrade(mig),
@@ -85,33 +78,20 @@ func testVer0_5_0CheckRulePathAncestor(t *testing.T, eng *testEngine) Change {
 	t.Run("When applying the 0.5.0 rule path ancestry check", func(t *testing.T) {
 		query := `INSERT INTO rules (name, comment, send, path, in_path, 
             out_path, work_path) VALUES (?, ?, ?, ?, ?, ?, ?)`
-		if eng.Dialect == PostgreSQL {
-			query = `INSERT INTO rules (name, comment, send, path, in_path, 
-				out_path, work_path) VALUES ($1, $2, $3, $4, $5, $6, $7)`
-		}
 
-		_, err1 := eng.DB.Exec(query, "send", "", true, "dir/send_path", "", "", "")
-		require.NoError(t, err1)
-		_, err2 := eng.DB.Exec(query, "recv", "", false, "dir/recv_path", "", "", "")
-		require.NoError(t, err2)
+		eng.NoError(t, query, "send", "", true, "dir/send_path", "", "", "")
+		eng.NoError(t, query, "recv", "", false, "dir/recv_path", "", "", "")
 
 		t.Cleanup(func() {
-			_, err3 := eng.DB.Exec("DELETE FROM rules")
-			require.NoError(t, err3)
+			eng.NoError(t, "DELETE FROM rules")
 		})
 
 		t.Run("Given that a rule path IS another one's parent", func(t *testing.T) {
 			query2 := `UPDATE rules SET path=? WHERE name=?`
-			if eng.Dialect == PostgreSQL {
-				query2 = "UPDATE rules SET path=$1 WHERE name=$2"
-			}
-
-			_, err4 := eng.DB.Exec(query2, "dir", "recv")
-			require.NoError(t, err4)
+			eng.NoError(t, query2, "dir", "recv")
 
 			t.Cleanup(func() {
-				_, err5 := eng.DB.Exec(query2, "dir/send_path", "recv")
-				require.NoError(t, err5)
+				eng.NoError(t, query2, "dir/send_path", "recv")
 			})
 
 			require.EqualError(t,
@@ -134,15 +114,13 @@ func testVer0_5_0LocalAgentChangePaths(t *testing.T, eng *testEngine) Change {
 	mig := Migrations[4]
 
 	t.Run("When applying the 0.5.0 local agent paths change", func(t *testing.T) {
-		_, err := eng.DB.Exec(`INSERT INTO local_agents (owner,name,protocol,
+		eng.NoError(t, `INSERT INTO local_agents (owner,name,protocol,
             proto_config,address,root,in_dir,out_dir,work_dir)
 			VALUES ('test_gw','toto','test_proto','{}','[::1]:1','/C:/root',
 			'files/in','files/out','files/work')`)
-		require.NoError(t, err)
 
 		t.Cleanup(func() {
-			_, err := eng.DB.Exec("DELETE FROM local_agents")
-			require.NoError(t, err)
+			eng.NoError(t, "DELETE FROM local_agents")
 		})
 
 		require.NoError(t, eng.Upgrade(mig),
@@ -222,25 +200,21 @@ func testVer0_5_0LocalAgentDisallowReservedNames(t *testing.T, eng *testEngine) 
 	mig := Migrations[6]
 
 	t.Run("When applying the 0.5.0 local agent name verification", func(t *testing.T) {
-		_, err1 := eng.DB.Exec(`INSERT INTO local_agents (owner,name,protocol,
+		eng.NoError(t, `INSERT INTO local_agents (owner,name,protocol,
 				proto_config,address,root_dir,send_dir,receive_dir,tmp_receive_dir)
 			VALUES ('test_gw','toto','test_proto','{}','[::1]:1','','','','')`)
-		require.NoError(t, err1)
 
 		t.Cleanup(func() {
-			_, err2 := eng.DB.Exec("DELETE FROM local_agents")
-			require.NoError(t, err2)
+			eng.NoError(t, "DELETE FROM local_agents")
 		})
 
 		t.Run("Given that some server names are reserved", func(t *testing.T) {
-			_, err2 := eng.DB.Exec(`INSERT INTO local_agents (owner,name,protocol,
+			eng.NoError(t, `INSERT INTO local_agents (owner,name,protocol,
 				proto_config,address,root_dir,send_dir,receive_dir,tmp_receive_dir)
 			VALUES ('test_gw','Database','test_proto','{}','[::1]:2','','','','')`)
-			require.NoError(t, err2)
 
 			t.Cleanup(func() {
-				_, err3 := eng.DB.Exec(`DELETE FROM local_agents WHERE name='Database'`)
-				require.NoError(t, err3)
+				eng.NoError(t, `DELETE FROM local_agents WHERE name='Database'`)
 			})
 
 			require.EqualError(t,
@@ -262,15 +236,12 @@ func testVer0_5_0RuleNewPathCols(t *testing.T, eng *testEngine) Change {
 	mig := Migrations[7]
 
 	t.Run("When applying the 0.5.0 rule new path columns addition", func(t *testing.T) {
-		_, err1 := eng.DB.Exec(`INSERT INTO rules (
-            id,name,send,comment,path,in_path,out_path,work_path)
+		eng.NoError(t, `INSERT INTO rules(id,name,send,comment,path,in_path,out_path,work_path)
 			VALUES (1,'snd',true,'','/snd_path','in','out','tmp'),
 			       (2,'rcv',false,'','/rcv_path','in','out','tmp')`)
-		require.NoError(t, err1)
 
 		t.Cleanup(func() {
-			_, err2 := eng.DB.Exec(`DELETE FROM rules`)
-			require.NoError(t, err2)
+			eng.NoError(t, `DELETE FROM rules`)
 		})
 
 		tableShouldHaveColumns(t, eng.DB, "rules", "in_path", "out_path", "work_path")
@@ -331,14 +302,12 @@ func testVer0_5_0RulePathChanges(t *testing.T, eng *testEngine) Change {
 	mig := Migrations[8]
 
 	t.Run("When applying the 0.5.0 rule paths change", func(t *testing.T) {
-		_, err1 := eng.DB.Exec(`INSERT INTO rules (
+		eng.NoError(t, `INSERT INTO rules (
             name,send,comment,path,local_dir,remote_dir,tmp_local_receive_dir) VALUES
             ('snd',true,'','/snd_path','local/dir','remote/dir','/C:/tmp/dir')`)
-		require.NoError(t, err1)
 
 		t.Cleanup(func() {
-			_, err2 := eng.DB.Exec(`DELETE FROM rules`)
-			require.NoError(t, err2)
+			eng.NoError(t, `DELETE FROM rules`)
 		})
 
 		require.NoError(t, eng.Upgrade(mig),
@@ -413,27 +382,22 @@ func testVer0_5_0TransferChangePaths(t *testing.T, eng *testEngine) Change {
 	mig := Migrations[10]
 
 	t.Run("When applying the 0.5.0 transfer paths changes", func(t *testing.T) {
-		_, err1 := eng.DB.Exec(`INSERT INTO rules (
+		eng.NoError(t, `INSERT INTO rules (
             id,name,send,comment,path,local_dir,remote_dir,tmp_local_receive_dir)
 			VALUES (1,'snd',true,'','/snd_path','snd_loc','snd_rem','snd_tmp'),
 			       (2,'rcv',false,'','/rcv_path','rcv_loc','rcv_rem','rcv_tmp')`)
-		require.NoError(t, err1)
 
-		_, err2 := eng.DB.Exec(`INSERT INTO transfers (id,owner,remote_transfer_id,
+		eng.NoError(t, `INSERT INTO transfers (id,owner,remote_transfer_id,
         	is_server,rule_id,agent_id,account_id,true_filepath,source_file,dest_file,
 			start,status,step,progression,task_number,error_code,error_details) VALUES
 			(10,'', '', false,1,0,0,'/C:/src1','src1','dst1','1999-01-08 04:05:06 -8:00',
 				'','',0,0,'',''),
 			(20,'', '', false,2,0,0,'/C:/dst2','src2','dst2','1999-01-08 04:05:06 -8:00',
 			 	'','',0,0,'','')`)
-		require.NoError(t, err2)
 
 		t.Cleanup(func() {
-			_, err3 := eng.DB.Exec("DELETE FROM transfers")
-			require.NoError(t, err3)
-
-			_, err4 := eng.DB.Exec("DELETE FROM rules")
-			require.NoError(t, err4)
+			eng.NoError(t, "DELETE FROM transfers")
+			eng.NoError(t, "DELETE FROM rules")
 		})
 
 		require.NoError(t, eng.Upgrade(mig),
@@ -519,16 +483,14 @@ func testVer0_5_0TransferFormatLocalPath(t *testing.T, eng *testEngine) Change {
 	mig := Migrations[11]
 
 	t.Run("When applying the 0.5.0 transfer local path formatting", func(t *testing.T) {
-		_, err1 := eng.DB.Exec(`INSERT INTO transfers (owner,remote_transfer_id,
+		eng.NoError(t, `INSERT INTO transfers (owner,remote_transfer_id,
         	is_server,rule_id,agent_id,account_id,local_path,remote_path,start,
 			status,step,progression,task_number,error_code,error_details) VALUES
 			('', '', false,1,0,0,'/C:/src','remote/dst','1999-01-08 04:05:06 -8:00',
 			 '','',0,0,'','')`)
-		require.NoError(t, err1)
 
 		t.Cleanup(func() {
-			_, err2 := eng.DB.Exec("DELETE FROM transfers")
-			require.NoError(t, err2)
+			eng.NoError(t, "DELETE FROM transfers")
 		})
 
 		require.NoError(t,
@@ -569,23 +531,20 @@ func testVer0_5_0HistoryChangePaths(t *testing.T, eng *testEngine) Change {
 	mig := Migrations[12]
 
 	t.Run("When applying the 0.5.0 history paths changes", func(t *testing.T) {
-		_, err1 := eng.DB.Exec(`INSERT INTO transfer_history (id,owner,remote_transfer_id,
+		eng.NoError(t, `INSERT INTO transfer_history (id,owner,remote_transfer_id,
         	protocol,is_server,is_send,rule,agent,account,source_filename,dest_filename,
 			start,stop,status,step,progression,task_number,error_code,error_details) VALUES
 			(1,'','','',false,true,'','','','src_file','dst_file','1999-01-08 04:05:06 -8:00',
 			 '1999-01-08 04:05:06 -8:00','','',0,0,'','')`)
-		require.NoError(t, err1)
 
-		_, err2 := eng.DB.Exec(`INSERT INTO transfer_history (id,owner,remote_transfer_id,
+		eng.NoError(t, `INSERT INTO transfer_history (id,owner,remote_transfer_id,
         	protocol,is_server,is_send,rule,agent,account,source_filename,dest_filename,
 			start,stop,status,step,progression,task_number,error_code,error_details) VALUES
 			(2,'','','',false,false,'','','','src_file','dst_file','1999-01-08 04:05:06 -8:00',
 			 '1999-01-08 04:05:06 -8:00','','',0,0,'','')`)
-		require.NoError(t, err2)
 
 		t.Cleanup(func() {
-			_, err3 := eng.DB.Exec("DELETE FROM transfer_history")
-			require.NoError(t, err3)
+			eng.NoError(t, "DELETE FROM transfer_history")
 		})
 
 		require.NoError(t, eng.Upgrade(mig),
@@ -661,13 +620,11 @@ func testVer0_5_0LocalAccountsPasswordDecode(t *testing.T, eng *testEngine) Chan
 	mig := Migrations[13]
 
 	t.Run("When applying the 0.5.0 local accounts password decoding", func(t *testing.T) {
-		_, err1 := eng.DB.Exec(`INSERT INTO local_accounts (id,local_agent_id,
+		eng.NoError(t, `INSERT INTO local_accounts (id,local_agent_id,
 				login,password_hash) VALUES (1,'1','toto','Zm9vYmFy')`)
-		require.NoError(t, err1)
 
 		t.Cleanup(func() {
-			_, err2 := eng.DB.Exec("DELETE FROM local_accounts")
-			require.NoError(t, err2)
+			eng.NoError(t, "DELETE FROM local_accounts")
 		})
 
 		require.NoError(t, eng.Upgrade(mig),
@@ -705,19 +662,11 @@ func testVer0_5_0UserPasswordChange(t *testing.T, eng *testEngine) Change {
 		pswd := []byte("Zm9vYmFy")
 		perm := []byte{0b10101010}
 
-		if eng.Dialect == PostgreSQL {
-			_, err := eng.DB.Exec(`INSERT INTO users (owner,id,username,password,
-			   permissions)	VALUES ('gw',1,'toto',$1,$2)`, pswd, perm)
-			require.NoError(t, err)
-		} else {
-			_, err := eng.DB.Exec(`INSERT INTO users (owner,id,username,password,
-			   permissions)	VALUES ('gw',1,'toto',?,?)`, pswd, perm)
-			require.NoError(t, err)
-		}
+		eng.NoError(t, `INSERT INTO users (owner,id,username,password,
+		   permissions)	VALUES ('gw',1,'toto',?,?)`, pswd, perm)
 
 		t.Cleanup(func() {
-			_, err := eng.DB.Exec("DELETE FROM users")
-			require.NoError(t, err)
+			eng.NoError(t, "DELETE FROM users")
 		})
 
 		require.NoError(t,

@@ -18,6 +18,11 @@ import (
 	"code.waarp.fr/apps/gateway/gateway/pkg/utils"
 )
 
+var (
+	errRead  = NewError(types.TeInternal, "failed to read file")
+	errWrite = NewError(types.TeInternal, "failed to write file")
+)
+
 func TestNewFileStream(t *testing.T) {
 	Convey("Given a new database", t, func(c C) {
 		ctx := initTestDB(c)
@@ -66,8 +71,8 @@ func TestNewFileStream(t *testing.T) {
 					_, err := newFileStream(pip.Pipeline, false)
 
 					Convey("Then it should return an error", func(c C) {
-						So(err, ShouldBeError, types.NewTransferError(
-							types.TeFileNotFound, "file not found"))
+						So(err, ShouldBeError, NewError(types.TeFileNotFound,
+							"file not found"))
 					})
 				})
 			})
@@ -159,9 +164,9 @@ func TestStreamRead(t *testing.T) {
 				Convey("Then it should have called the error-tasks", func(c C) {
 					waitEndTransfer(stream.Pipeline)
 
-					Convey("Then any subsequent call to 'Read' should return an error", func(c C) {
+					Convey("Then any subsequent call to 'Read' should return the same error", func(c C) {
 						_, err := stream.Read(b)
-						So(err, ShouldBeError, errStateMachine)
+						So(err, ShouldBeError, errRead)
 					})
 				})
 			})
@@ -172,14 +177,14 @@ func TestStreamRead(t *testing.T) {
 
 				b := make([]byte, 4)
 				_, err := stream.Read(b)
-				So(err, ShouldBeError, ErrDatabase)
+				So(err, ShouldBeError, errDatabase)
 
 				Convey("Then it should have called the error-tasks", func(c C) {
 					waitEndTransfer(stream.Pipeline)
 
-					Convey("Then any subsequent call to 'Read' should return an error", func(c C) {
+					Convey("Then any subsequent call to 'Read' should return the same error", func(c C) {
 						_, err := stream.Read(b)
-						So(err, ShouldBeError, errStateMachine)
+						So(err, ShouldBeError, errDatabase)
 					})
 				})
 			})
@@ -236,9 +241,9 @@ func TestStreamReadAt(t *testing.T) {
 				Convey("Then it should have called the error-tasks", func(c C) {
 					waitEndTransfer(stream.Pipeline)
 
-					Convey("Then any subsequent call to 'ReadAt' should return an error", func(c C) {
+					Convey("Then any subsequent call to 'ReadAt' should return the same error", func(c C) {
 						_, err := stream.ReadAt(b, 0)
-						So(err, ShouldBeError, errStateMachine)
+						So(err, ShouldBeError, errRead)
 					})
 				})
 			})
@@ -249,14 +254,14 @@ func TestStreamReadAt(t *testing.T) {
 
 				b := make([]byte, 4)
 				_, err := stream.ReadAt(b, 0)
-				So(err, ShouldBeError, ErrDatabase)
+				So(err, ShouldBeError, errDatabase)
 
 				Convey("Then it should have called the error-tasks", func(c C) {
 					waitEndTransfer(stream.Pipeline)
 
-					Convey("Then any subsequent call to 'ReadAt' should return an error", func(c C) {
+					Convey("Then any subsequent call to 'ReadAt' should return the same error", func(c C) {
 						_, err := stream.ReadAt(b, 0)
-						So(err, ShouldBeError, errStateMachine)
+						So(err, ShouldBeError, errDatabase)
 					})
 				})
 			})
@@ -310,9 +315,9 @@ func TestStreamWrite(t *testing.T) {
 				Convey("Then it should have called the error-tasks", func(c C) {
 					waitEndTransfer(stream.Pipeline)
 
-					Convey("Then any subsequent call to 'Write' should return an error", func(c C) {
+					Convey("Then any subsequent call to 'Write' should return the same error", func(c C) {
 						_, err := stream.Write(b)
-						So(err, ShouldBeError, errStateMachine)
+						So(err, ShouldBeError, errWrite)
 					})
 				})
 			})
@@ -323,14 +328,14 @@ func TestStreamWrite(t *testing.T) {
 
 				b := make([]byte, 4)
 				_, err := stream.Write(b)
-				So(err, ShouldBeError, ErrDatabase)
+				So(err, ShouldBeError, errDatabase)
 
 				Convey("Then it should have called the error-tasks", func(c C) {
 					waitEndTransfer(stream.Pipeline)
 
-					Convey("Then any subsequent call to 'Write' should return an error", func(c C) {
+					Convey("Then any subsequent call to 'Write' should return the same error", func(c C) {
 						_, err := stream.Write(b)
-						So(err, ShouldBeError, errStateMachine)
+						So(err, ShouldBeError, errDatabase)
 					})
 				})
 			})
@@ -385,9 +390,9 @@ func TestStreamWriteAt(t *testing.T) {
 				Convey("Then it should have called the error-tasks", func(c C) {
 					waitEndTransfer(stream.Pipeline)
 
-					Convey("Then any subsequent call to 'WriteAt' should return an error", func(c C) {
+					Convey("Then any subsequent call to 'WriteAt' should return the same error", func(c C) {
 						_, err := stream.WriteAt(b, 0)
-						So(err, ShouldBeError, errStateMachine)
+						So(err, ShouldBeError, errWrite)
 					})
 				})
 			})
@@ -398,14 +403,14 @@ func TestStreamWriteAt(t *testing.T) {
 
 				b := make([]byte, 4)
 				_, err := stream.WriteAt(b, 0)
-				So(err, ShouldBeError, ErrDatabase)
+				So(err, ShouldBeError, errDatabase)
 
 				Convey("Then it should have called the error-tasks", func(c C) {
 					waitEndTransfer(stream.Pipeline)
 
-					Convey("Then any subsequent call to 'WriteAt' should return an error", func(c C) {
+					Convey("Then any subsequent call to 'WriteAt' should return the same error", func(c C) {
 						_, err := stream.WriteAt(b, 0)
-						So(err, ShouldBeError, errStateMachine)
+						So(err, ShouldBeError, errDatabase)
 					})
 				})
 			})
@@ -440,7 +445,7 @@ func TestStreamClose(t *testing.T) {
 			Convey("Given that an error occurs while updating the progress", func(c C) {
 				database.SimulateError(c, ctx.db)
 				time.Sleep(testTransferUpdateInterval)
-				So(stream.close(), ShouldBeError, ErrDatabase)
+				So(stream.close(), ShouldBeError, errDatabase)
 
 				Convey("Then it should have called the error-tasks", func(c C) {
 					waitEndTransfer(stream.Pipeline)
@@ -481,8 +486,8 @@ func TestStreamMove(t *testing.T) {
 				So(fs.Remove(ctx.fs, &stream.TransCtx.Transfer.LocalPath), ShouldBeNil)
 
 				Convey("When moving the file", func(c C) {
-					So(stream.move(), ShouldBeError, "TransferError(TeFinalization): "+
-						"failed to move temp file")
+					So(stream.move(), ShouldBeError,
+						NewError(types.TeFinalization, "temp file rename failed"))
 
 					Convey("Then it should have called the error tasks", func(c C) {
 						waitEndTransfer(stream.Pipeline)
@@ -495,7 +500,7 @@ func TestStreamMove(t *testing.T) {
 				time.Sleep(testTransferUpdateInterval)
 
 				Convey("When moving the file", func(c C) {
-					So(stream.move(), ShouldBeError, ErrDatabase)
+					So(stream.move(), ShouldBeError, errDatabase)
 
 					Convey("Then it should have called the error tasks", func(c C) {
 						waitEndTransfer(stream.Pipeline)

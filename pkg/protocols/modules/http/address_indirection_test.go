@@ -69,7 +69,7 @@ func TestAddressIndirection(t *testing.T) {
 				transferClient := transClient.(*getClient)
 				So(transferClient.Request(), ShouldBeNil)
 
-				defer func() { transferClient.SendError(nil) }()
+				defer func() { transferClient.SendError(0, "") }()
 
 				Convey("Then it should have connected to the server", func() {
 					So(transferClient.resp.Request.URL.Host, ShouldEqual, realAddr)

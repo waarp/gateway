@@ -6,10 +6,11 @@ import (
 
 	"code.waarp.fr/apps/gateway/gateway/pkg/fs"
 	"code.waarp.fr/apps/gateway/gateway/pkg/model/types"
+	"code.waarp.fr/apps/gateway/gateway/pkg/pipeline"
 	"code.waarp.fr/apps/gateway/gateway/pkg/protocols/modules/r66/internal"
 )
 
-func (t *serverTransfer) checkSize() *types.TransferError {
+func (t *serverTransfer) checkSize() *pipeline.Error {
 	if t.pip.TransCtx.Rule.IsSend || !t.conf.Filesize || t.pip.TransCtx.Transfer.Step > types.StepData {
 		return nil
 	}
@@ -18,7 +19,7 @@ func (t *serverTransfer) checkSize() *types.TransferError {
 	if err != nil {
 		t.pip.Logger.Error("Failed to retrieve file info: %s", err)
 
-		return types.NewTransferError(types.TeInternal, "failed to retrieve file info")
+		return pipeline.NewError(types.TeInternal, "failed to retrieve file info")
 	}
 
 	if stat.Size() != t.pip.TransCtx.Transfer.Filesize {
@@ -26,7 +27,7 @@ func (t *serverTransfer) checkSize() *types.TransferError {
 			t.pip.TransCtx.Transfer.Filesize, stat.Size())
 		t.pip.Logger.Error(msg)
 
-		return types.NewTransferError(types.TeBadSize, msg)
+		return pipeline.NewError(types.TeBadSize, msg)
 	}
 
 	return nil
@@ -47,7 +48,7 @@ func (t *serverTransfer) checkHash(exp []byte) error {
 	if !bytes.Equal(hash, exp) {
 		t.pip.Logger.Error("File hash verification failed: hashes do not match")
 
-		return types.NewTransferError(types.TeIntegrity, "file hash does not match expected value")
+		return pipeline.NewError(types.TeIntegrity, "file hash does not match expected value")
 	}
 
 	return nil

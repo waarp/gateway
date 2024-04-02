@@ -23,5 +23,5 @@ type Server interface {
 
 type Client interface {
 	StartStopper
-	InitTransfer(pip *pipeline.Pipeline) (TransferClient, error)
+	InitTransfer(pip *pipeline.Pipeline) (TransferClient, *pipeline.Error)
 }

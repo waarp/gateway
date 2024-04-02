@@ -60,11 +60,11 @@ func (d *downloadHandler) Cancel(ctx context.Context) error {
 	})
 }
 
-func (d *downloadHandler) sendEarlyError(status int, err error) {
+func (d *downloadHandler) sendEarlyError(status int, err *pipeline.Error) {
 	sendServerError(d.pip, d.req, d.resp, &d.reply, status, err)
 }
 
-func (d *downloadHandler) handleEarlyError(err error) bool {
+func (d *downloadHandler) handleEarlyError(err *pipeline.Error) bool {
 	if err == nil {
 		return false
 	}
@@ -74,7 +74,7 @@ func (d *downloadHandler) handleEarlyError(err error) bool {
 	return true
 }
 
-func (d *downloadHandler) handleLateError(err error) bool {
+func (d *downloadHandler) handleLateError(err *pipeline.Error) bool {
 	if err == nil {
 		return false
 	}
@@ -82,16 +82,14 @@ func (d *downloadHandler) handleLateError(err error) bool {
 	d.reply.Do(func() {
 		select {
 		case <-d.req.Context().Done():
-			err = types.NewTransferError(types.TeConnectionReset, "connection closed by remote host")
+			err = pipeline.NewError(types.TeConnectionReset, "connection closed by remote host")
 		default:
 		}
 
-		tErr := asTransferError(err)
-
-		d.pip.SetError(tErr)
+		d.pip.SetError(err.Code(), err.Details())
 		d.resp.Header().Set(httpconst.TransferStatus, string(types.StatusError))
-		d.resp.Header().Set(httpconst.ErrorCode, tErr.Code.String())
-		d.resp.Header().Set(httpconst.ErrorMessage, tErr.Details)
+		d.resp.Header().Set(httpconst.ErrorCode, err.Code().String())
+		d.resp.Header().Set(httpconst.ErrorMessage, err.Redacted())
 	})
 
 	return true
@@ -132,9 +130,9 @@ func (d *downloadHandler) run() {
 	d.makeHeaders()
 
 	if _, err := io.Copy(d.resp, file); err != nil {
-		var tErr *types.TransferError
+		var tErr *pipeline.Error
 		if !errors.As(err, &tErr) {
-			tErr = types.NewTransferError(types.TeDataTransfer, "failed to copy data")
+			tErr = pipeline.NewError(types.TeDataTransfer, "failed to copy data")
 		}
 
 		d.handleLateError(tErr)

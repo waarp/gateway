@@ -3,6 +3,7 @@ package r66
 import (
 	"crypto/tls"
 	"crypto/x509"
+	"errors"
 	"testing"
 
 	"code.waarp.fr/lib/log"
@@ -15,6 +16,7 @@ import (
 	"code.waarp.fr/apps/gateway/gateway/pkg/model/types"
 	"code.waarp.fr/apps/gateway/gateway/pkg/pipeline"
 	"code.waarp.fr/apps/gateway/gateway/pkg/pipeline/pipelinetest"
+	"code.waarp.fr/apps/gateway/gateway/pkg/utils"
 	"code.waarp.fr/apps/gateway/gateway/pkg/utils/testhelpers"
 )
 
@@ -145,8 +147,15 @@ func TestTLS(t *testing.T) {
 			So(err, ShouldBeNil)
 
 			Convey("Then it should return an error", func(c C) {
-				So(trans.connect(), ShouldBeError, types.NewTransferError(
-					types.TeConnection, "failed to connect to remote host"))
+				err := trans.connect()
+				So(err, ShouldNotBeNil)
+
+				var tErr *pipeline.Error
+				So(errors.As(err, &tErr), ShouldBeTrue)
+
+				So(tErr.Code(), ShouldEqual, types.TeConnection)
+				So(tErr.Details(), ShouldContainSubstring, "failed to connect to remote host")
+				So(tErr.Details(), ShouldContainSubstring, "certificate signed by unknown authority")
 			})
 		})
 
@@ -178,8 +187,15 @@ func TestTLS(t *testing.T) {
 				So(err, ShouldBeNil)
 
 				Convey("Then it should return an error", func(c C) {
-					So(trans.connect(), ShouldBeError, types.NewTransferError(
-						types.TeConnection, "failed to connect to remote host"))
+					err := trans.connect()
+					So(err, ShouldNotBeNil)
+
+					var tErr *pipeline.Error
+					So(errors.As(err, &tErr), ShouldBeTrue)
+
+					So(tErr.Code(), ShouldEqual, types.TeConnection)
+					So(tErr.Details(), ShouldContainSubstring,
+						"failed to connect to remote host: invalid certificate")
 				})
 			})
 
@@ -190,8 +206,15 @@ func TestTLS(t *testing.T) {
 				So(err, ShouldBeNil)
 
 				Convey("Then it should return an error", func(c C) {
-					So(trans.connect(), ShouldBeError, types.NewTransferError(
-						types.TeConnection, "failed to connect to remote host"))
+					err := trans.connect()
+					So(err, ShouldNotBeNil)
+
+					var tErr *pipeline.Error
+					So(errors.As(err, &tErr), ShouldBeTrue)
+
+					So(tErr.Code(), ShouldEqual, types.TeConnection)
+					So(tErr.Details(), ShouldContainSubstring,
+						"failed to connect to remote host: tls: failed to verify certificate:")
 				})
 			})
 		})
@@ -233,7 +256,14 @@ func tlsServer(c C, ctx *pipelinetest.ClientContext, cert, key string) {
 		Logger: testhelpers.TestLogger(c, "http_trace").AsStdLogger(log.LevelTrace),
 	}
 
-	go serv.ListenAndServeTLS(ctx.Partner.Address, conf)
+	Reset(func() {
+		_ = serv.Shutdown(utils.CanceledContext())
+	})
+
+	list, err := tls.Listen("tcp", ctx.Partner.Address, conf)
+	So(err, ShouldBeNil)
+
+	go serv.Serve(list)
 }
 
 type authentFunc func(*r66.Authent) (r66.SessionHandler, error)

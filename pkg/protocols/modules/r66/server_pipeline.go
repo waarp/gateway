@@ -19,35 +19,33 @@ type serverStream struct {
 }
 
 func (s *serverStream) ReadAt(p []byte, off int64) (int, error) {
-	var n int
+	if err := utils.CheckCtx(s.ctx); err != nil {
+		return 0, err
+	}
 
-	err := utils.RunWithCtx(s.ctx, func() error {
-		var err error
-		if n, err = s.file.ReadAt(p, off); errors.Is(err, io.EOF) {
-			return io.EOF
-		} else if err != nil {
-			return internal.ToR66Error(err)
-		}
+	n, rErr := s.file.ReadAt(p, off)
+	if rErr != nil && !errors.Is(rErr, io.EOF) {
+		return n, internal.ToR66Error(rErr)
+	}
 
-		return nil
-	})
+	if err := utils.CheckCtx(s.ctx); err != nil {
+		return 0, err
+	}
 
-	return n, err
+	return n, rErr //nolint:wrapcheck //error is either nil or io.EOF, do not wrap
 }
 
 func (s *serverStream) WriteAt(p []byte, off int64) (int, error) {
-	var n int
+	if err := utils.CheckCtx(s.ctx); err != nil {
+		return 0, err
+	}
 
-	done := utils.RunWithCtx(s.ctx, func() error {
-		var err error
-		if n, err = s.file.WriteAt(p, off); err != nil {
-			return internal.ToR66Error(err)
-		}
+	n, err := s.file.WriteAt(p, off)
+	if err != nil {
+		return n, internal.ToR66Error(err)
+	}
 
-		return nil
-	})
-
-	return n, done
+	return n, utils.CheckCtx(s.ctx)
 }
 
 type serverTransfer struct {
@@ -151,7 +149,7 @@ func (t *serverTransfer) validEndRequest() error {
 
 func (t *serverTransfer) runErrorTasks(err error) error {
 	if tErr := internal.FromR66Error(err, t.pip); tErr != nil {
-		t.pip.SetError(tErr)
+		t.pip.SetError(tErr.Code(), tErr.Details())
 	}
 
 	return nil

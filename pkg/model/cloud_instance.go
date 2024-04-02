@@ -14,7 +14,7 @@ type CloudInstance struct {
 	Owner   string           `xorm:"owner"`
 	Name    string           `xorm:"name"`
 	Type    string           `xorm:"type"`
-	Key     string           `xorm:"key"`
+	Key     string           `xorm:"api_key"`
 	Secret  types.CypherText `xorm:"secret"`
 	Options map[string]any   `xorm:"options"`
 }

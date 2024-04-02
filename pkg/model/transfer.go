@@ -36,24 +36,25 @@ func init() {
 //
 //nolint:lll //SQL tags are long, nothing we can do about it
 type Transfer struct {
-	ID               int64                `xorm:"<- id AUTOINCR"`
-	Owner            string               `xorm:"owner"`
-	RemoteTransferID string               `xorm:"remote_transfer_id"`
-	RuleID           int64                `xorm:"rule_id"`
-	ClientID         sql.NullInt64        `xorm:"client_id"`
-	LocalAccountID   sql.NullInt64        `xorm:"local_account_id"`
-	RemoteAccountID  sql.NullInt64        `xorm:"remote_account_id"`
-	SrcFilename      string               `xorm:"src_filename"`
-	DestFilename     string               `xorm:"dest_filename"`
-	LocalPath        types.URL            `xorm:"local_path"`
-	RemotePath       string               `xorm:"remote_path"`
-	Filesize         int64                `xorm:"filesize"`
-	Start            time.Time            `xorm:"start DATETIME(6) UTC"`
-	Status           types.TransferStatus `xorm:"status"`
-	Step             types.TransferStep   `xorm:"step"`
-	Progress         int64                `xorm:"progress"`
-	TaskNumber       int8                 `xorm:"task_number"`
-	Error            types.TransferError  `xorm:"EXTENDS"`
+	ID               int64                   `xorm:"<- id AUTOINCR"`
+	Owner            string                  `xorm:"owner"`
+	RemoteTransferID string                  `xorm:"remote_transfer_id"`
+	RuleID           int64                   `xorm:"rule_id"`
+	ClientID         sql.NullInt64           `xorm:"client_id"`
+	LocalAccountID   sql.NullInt64           `xorm:"local_account_id"`
+	RemoteAccountID  sql.NullInt64           `xorm:"remote_account_id"`
+	SrcFilename      string                  `xorm:"src_filename"`
+	DestFilename     string                  `xorm:"dest_filename"`
+	LocalPath        types.URL               `xorm:"local_path"`
+	RemotePath       string                  `xorm:"remote_path"`
+	Filesize         int64                   `xorm:"filesize"`
+	Start            time.Time               `xorm:"start DATETIME(6) UTC"`
+	Status           types.TransferStatus    `xorm:"status"`
+	Step             types.TransferStep      `xorm:"step"`
+	Progress         int64                   `xorm:"progress"`
+	TaskNumber       int8                    `xorm:"task_number"`
+	ErrCode          types.TransferErrorCode `xorm:"error_code"`
+	ErrDetails       string                  `xorm:"error_details"`
 }
 
 func (*Transfer) TableName() string   { return TableTransfers }
@@ -163,8 +164,8 @@ func (t *Transfer) checkMandatoryValues(rule *Rule) error {
 		return database.NewValidationError("'%s' is not a valid transfer step", t.Step)
 	}
 
-	if !t.Error.Code.IsValid() {
-		return database.NewValidationError("'%s' is not a valid transfer error code", t.Error.Code)
+	if !t.ErrCode.IsValid() {
+		return database.NewValidationError("'%s' is not a valid transfer error code", t.ErrCode)
 	}
 
 	t.RemotePath = utils.ToStandardPath(t.RemotePath)
@@ -324,7 +325,8 @@ func (t *Transfer) makeHistoryEntry(db database.ReadAccess, stop time.Time) (*Hi
 		Start:            t.Start,
 		Stop:             stop,
 		Status:           t.Status,
-		Error:            t.Error,
+		ErrCode:          t.ErrCode,
+		ErrDetails:       t.ErrDetails,
 		Step:             t.Step,
 		Progress:         t.Progress,
 		TaskNumber:       t.TaskNumber,

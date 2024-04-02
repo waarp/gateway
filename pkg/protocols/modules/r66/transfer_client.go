@@ -124,7 +124,7 @@ func (c *transferClient) Receive(file protocol.ReceiveFile) error {
 	if !bytes.Equal(eot.Hash, hash) {
 		c.pip.Logger.Error("File hash does not match expected value")
 
-		eqErr := types.NewTransferError(types.TeIntegrity, "invalid file hash")
+		eqErr := pipeline.NewError(types.TeIntegrity, "invalid file hash")
 
 		return c.wrapAndSendError(eqErr)
 	}
@@ -156,8 +156,11 @@ func (c *transferClient) EndTransfer() error {
 
 // SendError sends the given error to the remote partner and then closes the
 // session.
-func (c *transferClient) SendError(err *types.TransferError) {
-	c.pip.Logger.Debug("Sending error '%v' to remote partner", err)
+func (c *transferClient) SendError(code types.TransferErrorCode, msg string) {
+	pErr := pipeline.NewError(code, msg)
+	r66Err := internal.ToR66Error(pErr)
+
+	c.pip.Logger.Debug("Sending error '%v' to remote partner", pErr)
 
 	defer c.cancel()
 	defer c.conns.Done(c.pip.TransCtx.RemoteAgent.Address)
@@ -168,7 +171,7 @@ func (c *transferClient) SendError(err *types.TransferError) {
 
 	defer c.ses.Close()
 
-	if sErr := c.ses.SendError(internal.ToR66Error(err)); sErr != nil {
+	if sErr := c.ses.SendError(r66Err); sErr != nil {
 		c.pip.Logger.Error("Failed to send error to remote partner: %v", sErr)
 	}
 }
@@ -215,13 +218,13 @@ func (c *transferClient) Cancel() error {
 	return nil
 }
 
-func (c *transferClient) wrapAndSendError(err error) *types.TransferError {
-	var tErr *types.TransferError
+func (c *transferClient) wrapAndSendError(err error) *pipeline.Error {
+	var tErr *pipeline.Error
 	if !errors.As(err, &tErr) {
 		tErr = internal.FromR66Error(err, c.pip)
 	}
 
-	c.SendError(tErr)
+	c.SendError(tErr.Code(), tErr.Details())
 
 	return tErr
 }

@@ -111,7 +111,8 @@ func TestAddTransfer(t *testing.T) {
 						So(transfers[0].Owner, ShouldEqual, conf.GlobalConfig.GatewayName)
 						So(transfers[0].Progress, ShouldEqual, 0)
 						So(transfers[0].TaskNumber, ShouldEqual, 0)
-						So(transfers[0].Error, ShouldBeZeroValue)
+						So(transfers[0].ErrCode, ShouldBeZeroValue)
+						So(transfers[0].ErrDetails, ShouldBeBlank)
 
 						info, err := transfers[0].GetTransferInfo(db)
 						So(err, ShouldBeNil)
@@ -174,7 +175,8 @@ func TestAddTransfer(t *testing.T) {
 						So(transfers[0].Owner, ShouldEqual, conf.GlobalConfig.GatewayName)
 						So(transfers[0].Progress, ShouldEqual, 0)
 						So(transfers[0].TaskNumber, ShouldEqual, 0)
-						So(transfers[0].Error, ShouldBeZeroValue)
+						So(transfers[0].ErrCode, ShouldBeZeroValue)
+						So(transfers[0].ErrDetails, ShouldBeZeroValue)
 
 						info, err := transfers[0].GetTransferInfo(db)
 						So(err, ShouldBeNil)
@@ -658,12 +660,10 @@ func TestResumeTransfer(t *testing.T) {
 				Start:           time.Date(2020, 1, 1, 1, 0, 0, 0, time.Local),
 				Status:          types.StatusError,
 				Step:            types.StepData,
-				Error: types.TransferError{
-					Code:    types.TeDataTransfer,
-					Details: "transfer failed",
-				},
-				Progress:   10,
-				TaskNumber: 0,
+				ErrCode:         types.TeDataTransfer,
+				ErrDetails:      "transfer failed",
+				Progress:        10,
+				TaskNumber:      0,
 			}
 			So(db.Insert(trans).Run(), ShouldBeNil)
 
@@ -702,7 +702,6 @@ func TestResumeTransfer(t *testing.T) {
 							Start:            trans.Start.Local(),
 							Status:           types.StatusPlanned,
 							Step:             types.StepData,
-							Error:            types.TransferError{},
 							Progress:         10,
 							TaskNumber:       0,
 						})
@@ -750,7 +749,6 @@ func TestPauseTransfer(t *testing.T) {
 				Start:           time.Date(2020, 1, 2, 3, 4, 5, 678000, time.Local),
 				Status:          types.StatusPlanned,
 				Step:            types.StepData,
-				Error:           types.TransferError{},
 				Progress:        10,
 				TaskNumber:      0,
 			}
@@ -791,7 +789,6 @@ func TestPauseTransfer(t *testing.T) {
 							Start:            trans.Start.Local(),
 							Status:           types.StatusPaused,
 							Step:             types.StepData,
-							Error:            types.TransferError{},
 							Progress:         10,
 							TaskNumber:       0,
 						})
@@ -839,7 +836,8 @@ func TestCancelTransfer(t *testing.T) {
 				Start:           time.Date(2030, 1, 1, 1, 0, 0, 0, time.Local),
 				Status:          types.StatusError,
 				Step:            types.StepNone,
-				Error:           types.TransferError{Code: types.TeUnknown, Details: "this is an error"},
+				ErrCode:         types.TeUnknown,
+				ErrDetails:      "this is an error",
 				Progress:        0,
 				TaskNumber:      0,
 			}
@@ -884,7 +882,8 @@ func TestCancelTransfer(t *testing.T) {
 							Start:            trans.Start,
 							Stop:             time.Time{},
 							Status:           types.StatusCancelled,
-							Error:            trans.Error,
+							ErrCode:          trans.ErrCode,
+							ErrDetails:       trans.ErrDetails,
 							Step:             trans.Step,
 							Progress:         trans.Progress,
 							TaskNumber:       trans.TaskNumber,
@@ -1053,7 +1052,6 @@ func TestCancelTransfers(t *testing.T) {
 				Start:           time.Date(2030, 1, 1, 1, 0, 0, 0, time.Local),
 				Status:          types.StatusPlanned,
 				Step:            types.StepNone,
-				Error:           types.TransferError{},
 				Progress:        0,
 				TaskNumber:      0,
 			}
@@ -1068,7 +1066,8 @@ func TestCancelTransfers(t *testing.T) {
 				Start:           time.Date(2030, 1, 1, 1, 0, 0, 0, time.Local),
 				Status:          types.StatusError,
 				Step:            types.StepData,
-				Error:           types.TransferError{Code: types.TeDataTransfer, Details: "error msg"},
+				ErrCode:         types.TeDataTransfer,
+				ErrDetails:      "error msg",
 				Progress:        0,
 				TaskNumber:      0,
 			}
@@ -1106,7 +1105,6 @@ func TestCancelTransfers(t *testing.T) {
 							Start:            time.Date(2030, 1, 1, 1, 0, 0, 0, time.Local),
 							Stop:             time.Time{},
 							Status:           types.StatusCancelled,
-							Error:            types.TransferError{},
 							Step:             types.StepNone,
 							Progress:         0,
 							TaskNumber:       0,

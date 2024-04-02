@@ -27,7 +27,7 @@ func makeAndStartTestService() *testService {
 }
 
 func (t *testService) State() (utils.StateCode, string) { return t.state.Get() }
-func (t *testService) InitTransfer(*pipeline.Pipeline) (protocol.TransferClient, error) {
+func (t *testService) InitTransfer(*pipeline.Pipeline) (protocol.TransferClient, *pipeline.Error) {
 	panic("should not be called")
 }
 

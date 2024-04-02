@@ -17,6 +17,12 @@ import (
 	"code.waarp.fr/apps/gateway/gateway/pkg/utils"
 )
 
+type Error = pipeline.Error
+
+func newTransferError(code types.TransferErrorCode, details string, args ...any) *Error {
+	return pipeline.NewError(code, details, args...)
+}
+
 // ClientPipeline associates a Pipeline with a TransferClient, allowing to run complete
 // client transfers.
 type ClientPipeline struct {
@@ -37,11 +43,8 @@ func NewClientPipeline(db *database.DB, trans *model.Transfer) (*ClientPipeline,
 	cli, cliErr := newClientPipeline(db, logger, transCtx)
 	if cliErr != nil {
 		trans.Status = types.StatusError
-
-		tErr := types.NewTransferError(types.TeInternal, cliErr.Error())
-		errors.As(cliErr, &tErr)
-
-		trans.Error = *tErr
+		trans.ErrCode = cliErr.Code()
+		trans.ErrDetails = cliErr.Details()
 
 		if dbErr := db.Update(trans).Run(); dbErr != nil {
 			logger.Error("Failed to update the transfer error: %s", dbErr)
@@ -53,47 +56,43 @@ func NewClientPipeline(db *database.DB, trans *model.Transfer) (*ClientPipeline,
 	if dbErr := cli.Pip.UpdateTrans(); dbErr != nil {
 		logger.Error("Failed to update the transfer details: %s", dbErr)
 
-		return nil, pipeline.ErrDatabase
+		return nil, dbErr
 	}
 
 	return cli, nil
 }
 
 func newClientPipeline(db *database.DB, logger *log.Logger, transCtx *model.TransferContext,
-) (*ClientPipeline, *types.TransferError) {
+) (*ClientPipeline, *Error) {
 	dbClient := transCtx.Client
 
 	client, ok := services.Clients[dbClient.Name]
 	if !ok {
 		logger.Error("No client %q found", dbClient.Name)
 
-		return nil, types.NewTransferError(types.TeInternal,
-			fmt.Sprintf("no client %q found", dbClient.Name))
+		return nil, newTransferError(types.TeInternal, "no client %q found", dbClient.Name)
 	}
 
 	if state, _ := client.State(); state != utils.StateRunning {
 		logger.Error("Client %q is not active, cannot initiate transfer", dbClient.Name)
 
-		return nil, types.NewTransferError(types.TeShuttingDown,
-			fmt.Sprintf("client %q is not active", dbClient.Name))
+		return nil, newTransferError(types.TeShuttingDown, "client %q is not active", dbClient.Name)
 	}
 
 	pip, pipErr := pipeline.NewClientPipeline(db, logger, transCtx)
 	if pipErr != nil {
 		logger.Error("Failed to initialize the client transfer pipeline: %v", pipErr)
 
-		return nil, asTransferError(types.TeInternal, pipErr)
+		return nil, pipErr
 	}
 
 	clientService, err := client.InitTransfer(pip)
 	if err != nil {
-		tErr := asTransferError(types.TeUnknownRemote, err)
-
-		pip.SetError(tErr)
+		pip.SetError(err.Code(), err.Details())
 		logger.Error("Failed to instantiate the %q transfer client: %s",
 			dbClient.Name, err)
 
-		return nil, tErr
+		return nil, pipErr
 	}
 
 	c := &ClientPipeline{
@@ -117,15 +116,14 @@ func newClientPipeline(db *database.DB, logger *log.Logger, transCtx *model.Tran
 }
 
 //nolint:dupl // factorizing would hurt readability
-func (c *ClientPipeline) preTasks() *types.TransferError {
+func (c *ClientPipeline) preTasks() *Error {
 	// Simple pre-tasks
 	pt, ok := c.Client.(protocol.PreTasksHandler)
 	if !ok {
 		if err := c.Pip.PreTasks(); err != nil {
-			tErr := asTransferError(types.TeExternalOperation, err)
-			c.Client.SendError(tErr)
+			c.Client.SendError(err.Code(), err.Details())
 
-			return tErr
+			return err
 		}
 
 		return nil
@@ -133,33 +131,31 @@ func (c *ClientPipeline) preTasks() *types.TransferError {
 
 	// Extended pre-task handling
 	if err := pt.BeginPreTasks(); err != nil {
-		return asTransferError(types.TeUnknownRemote, err)
+		return wrapRemoteError("remote pre-tasks failed", err)
 	}
 
 	if err := c.Pip.PreTasks(); err != nil {
-		tErr := asTransferError(types.TeExternalOperation, err)
-		c.Client.SendError(tErr)
+		c.Client.SendError(err.Code(), err.Details())
 
-		return tErr
+		return err
 	}
 
 	if err := pt.EndPreTasks(); err != nil {
-		return asTransferError(types.TeUnknownRemote, err)
+		return wrapRemoteError("remote pre-tasks failed", err)
 	}
 
 	return nil
 }
 
 //nolint:dupl // factorizing would hurt readability
-func (c *ClientPipeline) postTasks() *types.TransferError {
+func (c *ClientPipeline) postTasks() *Error {
 	// Simple post-tasks
 	pt, ok := c.Client.(protocol.PostTasksHandler)
 	if !ok {
 		if err := c.Pip.PostTasks(); err != nil {
-			tErr := asTransferError(types.TeExternalOperation, err)
-			c.Client.SendError(tErr)
+			c.Client.SendError(err.Code(), err.Details())
 
-			return tErr
+			return err
 		}
 
 		return nil
@@ -167,18 +163,17 @@ func (c *ClientPipeline) postTasks() *types.TransferError {
 
 	// Extended post-task handling
 	if err := pt.BeginPostTasks(); err != nil {
-		return asTransferError(types.TeUnknownRemote, err)
+		return wrapRemoteError("remote post-tasks failed", err)
 	}
 
 	if err := c.Pip.PostTasks(); err != nil {
-		tErr := asTransferError(types.TeExternalOperation, err)
-		c.Client.SendError(tErr)
+		c.Client.SendError(err.Code(), err.Details())
 
-		return tErr
+		return err
 	}
 
 	if err := pt.EndPostTasks(); err != nil {
-		return asTransferError(types.TeUnknownRemote, err)
+		return wrapRemoteError("remote post-tasks failed", err)
 	}
 
 	return nil
@@ -191,8 +186,8 @@ func (c *ClientPipeline) postTasks() *types.TransferError {
 func (c *ClientPipeline) Run() error {
 	// REQUEST
 	if err := c.Client.Request(); err != nil {
-		tErr := asTransferError(types.TeUnknownRemote, err)
-		c.Pip.SetError(tErr)
+		tErr := wrapRemoteError("transfer request failed", err)
+		c.Pip.SetError(tErr.Code(), tErr.Details())
 
 		return tErr
 	}
@@ -205,31 +200,33 @@ func (c *ClientPipeline) Run() error {
 	// DATA
 	file, fErr := c.Pip.StartData()
 	if fErr != nil {
-		tErr := asTransferError(types.TeInternal, fErr)
-		c.Client.SendError(tErr)
+		c.Client.SendError(fErr.Code(), fErr.Details())
 
-		return tErr
+		return fErr
 	}
 
-	var dataErr error
+	var dataErr *Error
+
 	if c.Pip.TransCtx.Rule.IsSend {
-		dataErr = c.Client.Send(file)
+		if err := c.Client.Send(file); err != nil {
+			dataErr = wrapRemoteError("file sending failed", err)
+		}
 	} else {
-		dataErr = c.Client.Receive(file)
+		if err := c.Client.Receive(file); err != nil {
+			dataErr = wrapRemoteError("file reception failed", err)
+		}
 	}
 
 	if dataErr != nil {
-		tErr := asTransferError(types.TeUnknownRemote, dataErr)
-		c.Pip.SetError(tErr)
+		c.Pip.SetError(dataErr.Code(), dataErr.Details())
 
-		return tErr
+		return dataErr
 	}
 
 	if err := c.Pip.EndData(); err != nil {
-		tErr := asTransferError(types.TeInternal, err)
-		c.Client.SendError(tErr)
+		c.Client.SendError(err.Code(), err.Details())
 
-		return tErr
+		return err
 	}
 
 	// POST-TASKS
@@ -239,16 +236,14 @@ func (c *ClientPipeline) Run() error {
 
 	// END TRANSFER
 	if err := c.Client.EndTransfer(); err != nil {
-		tErr := asTransferError(types.TeUnknownRemote, err)
-		c.Pip.SetError(tErr)
+		tErr := wrapRemoteError("transfer finalization failed", err)
+		c.Pip.SetError(tErr.Code(), tErr.Details())
 
 		return tErr
 	}
 
 	if err := c.Pip.EndTransfer(); err != nil {
-		tErr := asTransferError(types.TeInternal, err)
-
-		return tErr
+		return err
 	}
 
 	return nil
@@ -266,8 +261,7 @@ func (c *ClientPipeline) Pause(ctx context.Context) error {
 				return fmt.Errorf("failed to pause remote transfer: %w", err)
 			}
 		} else {
-			c.Client.SendError(types.NewTransferError(types.TeStopped,
-				"transfer paused by user"))
+			c.Client.SendError(types.TeStopped, "transfer paused by user")
 		}
 
 		return nil
@@ -281,8 +275,7 @@ func (c *ClientPipeline) Pause(ctx context.Context) error {
 // Interrupt stops the client pipeline and interrupts the transfer.
 func (c *ClientPipeline) Interrupt(ctx context.Context) error {
 	if err := utils.RunWithCtx(ctx, func() error {
-		c.Client.SendError(types.NewTransferError(types.TeShuttingDown,
-			"transfer interrupted by service shutdown"))
+		c.Client.SendError(types.TeShuttingDown, "transfer interrupted by service shutdown")
 
 		return nil
 	}); err != nil {
@@ -304,8 +297,7 @@ func (c *ClientPipeline) Cancel(ctx context.Context) error {
 				return fmt.Errorf("failed to cancel remote transfer: %w", err)
 			}
 		} else {
-			c.Client.SendError(types.NewTransferError(types.TeCanceled,
-				"transfer canceled by user"))
+			c.Client.SendError(types.TeCanceled, "transfer canceled by user")
 		}
 
 		return nil
@@ -314,4 +306,13 @@ func (c *ClientPipeline) Cancel(ctx context.Context) error {
 	}
 
 	return nil
+}
+
+func wrapRemoteError(msg string, err error) *Error {
+	var pErr *Error
+	if errors.As(err, &pErr) {
+		return pErr
+	}
+
+	return newTransferError(types.TeUnknownRemote, msg, err)
 }

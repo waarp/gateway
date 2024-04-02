@@ -112,7 +112,7 @@ func TestExecRun(t *testing.T) {
 				err := exec.Run(context.Background(), args, nil, logger, nil)
 
 				Convey("Then it should return a 'warning' error", func() {
-					So(err, ShouldHaveSameTypeAs, &warningError{})
+					So(err, ShouldHaveSameTypeAs, &WarningError{})
 					So(err, ShouldBeError, "exit status 1")
 				})
 			})
@@ -139,7 +139,7 @@ func TestExecRun(t *testing.T) {
 				err := exec.Run(context.Background(), args, nil, logger, nil)
 
 				Convey("Then it should return an error", func() {
-					So(err, ShouldBeError, errCommandTimeout)
+					So(err, ShouldBeError, ErrCommandTimeout)
 				})
 			})
 		})

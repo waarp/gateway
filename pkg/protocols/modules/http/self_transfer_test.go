@@ -70,7 +70,7 @@ func TestSelfPushClientPreTasksFail(t *testing.T) {
 
 				ctx.CheckClientTransferError(c,
 					types.TeExternalOperation,
-					"Pre-tasks failed: Task TASKERR @ PUSH PRE[1]: task failed",
+					"Task TASKERR @ PUSH PRE[1]: task failed",
 					types.StepPreTasks)
 				ctx.CheckServerTransferError(c,
 					types.TeExternalOperation,
@@ -106,7 +106,7 @@ func TestSelfPullServerPreTasksFail(t *testing.T) {
 					types.StepSetup)
 				ctx.CheckServerTransferError(c,
 					types.TeExternalOperation,
-					"Pre-tasks failed: Task TASKERR @ PULL PRE[1]: task failed",
+					"Task TASKERR @ PULL PRE[1]: task failed",
 					types.StepPreTasks)
 
 				ctx.TestRetry(c,
@@ -137,7 +137,7 @@ func TestSelfPushClientPostTasksFail(t *testing.T) {
 
 				ctx.CheckClientTransferError(c,
 					types.TeExternalOperation,
-					"Post-tasks failed: Task TASKERR @ PUSH POST[1]: task failed",
+					"Task TASKERR @ PUSH POST[1]: task failed",
 					types.StepPostTasks)
 				ctx.CheckServerTransferError(c,
 					types.TeExternalOperation,
@@ -175,7 +175,7 @@ func TestSelfPushServerPostTasksFail(t *testing.T) {
 					types.StepPostTasks)
 				ctx.CheckServerTransferError(c,
 					types.TeExternalOperation,
-					"Post-tasks failed: Task TASKERR @ PUSH POST[1]: task failed",
+					"Task TASKERR @ PUSH POST[1]: task failed",
 					types.StepPostTasks)
 
 				ctx.TestRetry(c)
@@ -206,7 +206,7 @@ func TestSelfPullServerPostTasksFail(t *testing.T) {
 					types.StepData)
 				ctx.CheckServerTransferError(c,
 					types.TeExternalOperation,
-					"Post-tasks failed: Task TASKERR @ PULL POST[1]: task failed",
+					"Task TASKERR @ PULL POST[1]: task failed",
 					types.StepPostTasks)
 
 				ctx.TestRetry(c,
@@ -243,7 +243,7 @@ func TestSelfPushServerPreTasksFail(t *testing.T) {
 					types.StepSetup, types.StepPreTasks, types.StepData, types.StepPostTasks)
 				ctx.CheckServerTransferError(c,
 					types.TeExternalOperation,
-					"Pre-tasks failed: Task TASKERR @ PUSH PRE[1]: task failed",
+					"Task TASKERR @ PUSH PRE[1]: task failed",
 					types.StepPreTasks)
 				ctx.TestRetry(c,
 					ctx.ClientShouldHavePreTasked,
@@ -281,7 +281,7 @@ func TestSelfPullClientPostTasksFail(t *testing.T) {
 
 				ctx.CheckClientTransferError(c,
 					types.TeExternalOperation,
-					"Post-tasks failed: Task TASKERR @ PULL POST[1]: task failed",
+					"Task TASKERR @ PULL POST[1]: task failed",
 					types.StepPostTasks)
 				ctx.CheckServerTransferOK(c)
 				ctx.CheckDestFile(c)
@@ -315,7 +315,7 @@ func TestSelfPullClientPreTasksFail(t *testing.T) {
 
 				ctx.CheckClientTransferError(c,
 					types.TeExternalOperation,
-					"Pre-tasks failed: Task TASKERR @ PULL PRE[1]: task failed",
+					"Task TASKERR @ PULL PRE[1]: task failed",
 					types.StepPreTasks)
 			})
 		})
@@ -338,12 +338,12 @@ func TestSelfPushClientDataFail(t *testing.T) {
 				ctx.ServerShouldHaveErrorTasked(c)
 
 				ctx.CheckClientTransferError(c,
-					pipelinetest.ErrTestError.Code,
-					"test error: "+pipelinetest.ErrTestError.Details,
+					types.TeInternal,
+					"read trace error: "+pipelinetest.ErrTestError.Error(),
 					types.StepData)
 				ctx.CheckServerTransferError(c,
-					pipelinetest.ErrTestError.Code,
-					"Error on remote partner: "+pipelinetest.ErrTestError.Details,
+					types.TeInternal,
+					"Error on remote partner: failed to read file",
 					types.StepData)
 
 				ctx.TestRetry(c)
@@ -368,12 +368,12 @@ func TestSelfPushServerDataFail(t *testing.T) {
 				ctx.ServerShouldHaveErrorTasked(c)
 
 				ctx.CheckClientTransferError(c,
-					pipelinetest.ErrTestError.Code,
-					"Error on remote partner: "+pipelinetest.ErrTestError.Details,
+					types.TeInternal,
+					"Error on remote partner: failed to write file",
 					types.StepData, types.StepPostTasks)
 				ctx.CheckServerTransferError(c,
-					pipelinetest.ErrTestError.Code,
-					"test error: "+pipelinetest.ErrTestError.Details,
+					types.TeInternal,
+					"write trace error: "+pipelinetest.ErrTestError.Error(),
 					types.StepData)
 
 				ctx.TestRetry(c)
@@ -398,8 +398,8 @@ func TestSelfPullClientDataFail(t *testing.T) {
 				ctx.ClientShouldHaveErrorTasked(c)
 
 				ctx.CheckClientTransferError(c,
-					pipelinetest.ErrTestError.Code,
-					"test error: "+pipelinetest.ErrTestError.Details,
+					types.TeInternal,
+					"write trace error: "+pipelinetest.ErrTestError.Error(),
 					types.StepData)
 			})
 		})
@@ -422,12 +422,12 @@ func TestSelfPullServerDataFail(t *testing.T) {
 				ctx.ServerShouldHaveErrorTasked(c)
 
 				ctx.CheckClientTransferError(c,
-					pipelinetest.ErrTestError.Code,
-					"Error on remote partner: "+pipelinetest.ErrTestError.Details,
+					types.TeInternal,
+					"Error on remote partner: failed to read file",
 					types.StepData)
 				ctx.CheckServerTransferError(c,
-					pipelinetest.ErrTestError.Code,
-					"test error: "+pipelinetest.ErrTestError.Details,
+					types.TeInternal,
+					"read trace error: "+pipelinetest.ErrTestError.Error(),
 					types.StepData)
 
 				ctx.TestRetry(c)

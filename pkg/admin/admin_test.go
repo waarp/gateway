@@ -31,6 +31,7 @@ func TestStart(t *testing.T) {
 			TLSKey:  keyFile,
 		}
 		server := &Server{}
+
 		Reset(func() { _ = server.server.Close() })
 
 		Convey("Given a correct configuration", func() {

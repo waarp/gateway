@@ -10,6 +10,7 @@ import (
 	"code.waarp.fr/apps/gateway/gateway/pkg/fs"
 	"code.waarp.fr/apps/gateway/gateway/pkg/fs/fstest"
 	"code.waarp.fr/apps/gateway/gateway/pkg/model/types"
+	"code.waarp.fr/apps/gateway/gateway/pkg/pipeline"
 	"code.waarp.fr/apps/gateway/gateway/pkg/utils/testhelpers"
 )
 
@@ -38,7 +39,7 @@ func TestCheckHash(t *testing.T) {
 			_, err := MakeHash(context.Background(), testFS, logger, path)
 
 			Convey("Then it should return an error", func() {
-				So(err, ShouldBeError, types.NewTransferError(types.TeInternal,
+				So(err, ShouldBeError, pipeline.NewError(types.TeInternal,
 					"failed to open file"))
 			})
 		})

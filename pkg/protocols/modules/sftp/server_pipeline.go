@@ -29,10 +29,8 @@ type serverPipeline struct {
 func initPipeline(db *database.DB, logger *log.Logger, trans *model.Transfer,
 	setTrace func() pipeline.Trace,
 ) (*serverPipeline, error) {
-	var tErr error
-
-	trans, tErr = pipeline.GetOldTransfer(db, logger, trans)
-	if tErr != nil {
+	var tErr *pipeline.Error
+	if trans, tErr = pipeline.GetOldTransfer(db, logger, trans); tErr != nil {
 		return nil, toSFTPErr(tErr)
 	}
 
@@ -86,13 +84,13 @@ func (s *serverPipeline) TransferError(err error) {
 		err = ErrSessionClosed
 	}
 
-	s.pipeline.SetError(fromSFTPErr(err, types.TeConnectionReset, s.pipeline))
+	s.pipeline.SetError(types.TeConnectionReset, err.Error())
 }
 
 // Pause pauses the transfer and set the transfer's error to the pause error, so
 // that it can be sent to the remote client.
 func (s *serverPipeline) Pause(context.Context) error {
-	sigPause := &types.TransferError{Code: types.TeStopped, Details: "transfer paused by user"}
+	sigPause := pipeline.NewError(types.TeStopped, "transfer paused by user")
 	s.cancel(sigPause)
 
 	return nil
@@ -101,7 +99,7 @@ func (s *serverPipeline) Pause(context.Context) error {
 // Interrupt interrupts the transfer and set the transfer's error to the shutdown
 // error, so that it can be sent to the remote client.
 func (s *serverPipeline) Interrupt(context.Context) error {
-	sigShutdown := &types.TransferError{Code: types.TeShuttingDown, Details: "service is shutting down"}
+	sigShutdown := pipeline.NewError(types.TeShuttingDown, "service is shutting down")
 	s.cancel(sigShutdown)
 
 	return nil
@@ -110,7 +108,7 @@ func (s *serverPipeline) Interrupt(context.Context) error {
 // Cancel cancels the transfer and set the transfer's error to the canceled
 // error, so that it can be sent to the remote client.
 func (s *serverPipeline) Cancel(context.Context) error {
-	sigCancel := &types.TransferError{Code: types.TeCanceled, Details: "transfer canceled by user"}
+	sigCancel := pipeline.NewError(types.TeCanceled, "transfer canceled by user")
 	s.cancel(sigCancel)
 
 	return nil
@@ -120,10 +118,10 @@ func (s *serverPipeline) Cancel(context.Context) error {
 func (s *serverPipeline) init() error {
 	return utils.RunWithCtx(s.ctx, func() error {
 		if err := s.pipeline.PreTasks(); err != nil {
-			return toSFTPErr(err)
+			return pipeline.NewError(err.Code(), "pre-tasks failed")
 		}
 
-		var err error
+		var err *pipeline.Error
 		if s.file, err = s.pipeline.StartData(); err != nil {
 			return toSFTPErr(err)
 		}
@@ -134,45 +132,49 @@ func (s *serverPipeline) init() error {
 
 // ReadAt reads the requested part of the transfer file.
 func (s *serverPipeline) ReadAt(p []byte, off int64) (int, error) {
-	var n int
+	if err := utils.CheckCtx(s.ctx); err != nil {
+		return 0, err
+	}
 
-	err := utils.RunWithCtx(s.ctx, func() error {
-		var err error
-		n, err = s.file.ReadAt(p, off)
+	n, rErr := s.file.ReadAt(p, off)
+	if rErr != nil && !errors.Is(rErr, io.EOF) {
+		return n, rErr //nolint:wrapcheck //wrapping adds nothing
+	}
 
-		return toSFTPErr(err)
-	})
+	if err := utils.CheckCtx(s.ctx); err != nil {
+		return 0, err
+	}
 
-	return n, err
+	return n, rErr //nolint:wrapcheck //error is either nil or io.EOF, do not wrap
 }
 
 // WriteAt writes the given data to the transfer file.
 func (s *serverPipeline) WriteAt(p []byte, off int64) (int, error) {
-	var n int
+	if err := utils.CheckCtx(s.ctx); err != nil {
+		return 0, err
+	}
 
-	err := utils.RunWithCtx(s.ctx, func() error {
-		var err error
-		n, err = s.file.WriteAt(p, off)
+	n, err := s.file.WriteAt(p, off)
+	if err != nil {
+		return n, err //nolint:wrapcheck //wrapping adds nothing
+	}
 
-		return toSFTPErr(err)
-	})
-
-	return n, err
+	return n, utils.CheckCtx(s.ctx)
 }
 
 // Close file, executes post-tasks & end transfer.
 func (s *serverPipeline) Close() error {
 	return utils.RunWithCtx(s.ctx, func() error {
 		if err := s.pipeline.EndData(); err != nil {
-			return toSFTPErr(err)
+			return pipeline.NewError(err.Code(), "failed to close file")
 		}
 
 		if err := s.pipeline.PostTasks(); err != nil {
-			return toSFTPErr(err)
+			return pipeline.NewError(err.Code(), "post-tasks failed")
 		}
 
 		if err := s.pipeline.EndTransfer(); err != nil {
-			return toSFTPErr(err)
+			return pipeline.NewError(err.Code(), "failed to finalize transfer")
 		}
 
 		return nil

@@ -254,13 +254,11 @@ func (t *testFile) WriteAt(p []byte, off int64) (n int, err error) {
 }
 
 func initFilestream(ctx *testContext, trans *model.Transfer) *FileStream {
-	transCtx, err := model.GetTransferContext(ctx.db, ctx.logger, trans)
-	So(err, ShouldBeNil)
+	transCtx, ctxErr := model.GetTransferContext(ctx.db, ctx.logger, trans)
+	So(ctxErr, ShouldBeNil)
 
-	pip, err := NewClientPipeline(ctx.db, ctx.logger, transCtx)
-	if err != nil {
-		So(err, ShouldBeNil)
-	}
+	pip, pipErr := NewClientPipeline(ctx.db, ctx.logger, transCtx)
+	So(pipErr, ShouldBeNil)
 
 	Reset(pip.doneOK)
 
@@ -269,8 +267,8 @@ func initFilestream(ctx *testContext, trans *model.Transfer) *FileStream {
 	So(pip.machine.Transition(statePreTasksDone), ShouldBeNil)
 	So(pip.machine.Transition(stateDataStart), ShouldBeNil)
 
-	stream, err := newFileStream(pip, false)
-	So(err, ShouldBeNil)
+	stream, fileErr := newFileStream(pip, false)
+	So(fileErr, ShouldBeNil)
 	Reset(func() { _ = stream.file.Close() })
 
 	pip.Stream = stream
@@ -301,6 +299,8 @@ func newTestPipeline(c C, db *database.DB, trans *model.Transfer) *testPipeline 
 	c.So(err, ShouldBeNil)
 	pip.updTicker.Reset(testTransferUpdateInterval)
 
+	resetPip(pip)
+
 	testPip := &testPipeline{Pipeline: pip, transDone: make(chan bool)}
 
 	pip.Trace = Trace{
@@ -314,8 +314,10 @@ func newTestPipeline(c C, db *database.DB, trans *model.Transfer) *testPipeline 
 
 			return nil
 		},
-		OnErrorTask:   func(rank int8) { atomic.AddUint32(&testPip.errTasks, 1) },
-		OnTransferEnd: func() { close(testPip.transDone) },
+		OnErrorTask: func(rank int8) { atomic.AddUint32(&testPip.errTasks, 1) },
+		OnTransferEnd: func() {
+			close(testPip.transDone)
+		},
 	}
 
 	return testPip

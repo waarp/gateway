@@ -63,7 +63,7 @@ func initTestDB(c C) *testContext {
 	logger := testhelpers.TestLogger(c, "Pipeline test")
 	filesys := fstest.InitMemFS(c)
 
-	root := "mem:/new_transfer_stream"
+	root := fstest.MemScheme + ":/new_transfer_stream"
 	rootPath := mkURL(root)
 
 	paths := conf.PathsConfig{

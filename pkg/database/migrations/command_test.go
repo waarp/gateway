@@ -50,8 +50,8 @@ func TestDoMigration(t *testing.T) {
 
 		t.Run("When migrating between versions with the same index", func(t *testing.T) {
 			const testTarget = "test_target"
-
 			VersionsMap[testTarget] = VersionsMap["0.4.0"]
+
 			t.Cleanup(func() {
 				delete(VersionsMap, testTarget)
 			})

@@ -208,7 +208,7 @@ func testSelect(db *DB) {
 			So(query.Run(), ShouldBeNil)
 
 			Convey("Then the result should contain the expected elements", func() {
-				So(res, ShouldResemble, exps)
+				So(*res, ShouldResemble, validList(exps))
 			})
 		})
 	}
@@ -290,8 +290,8 @@ func testSelect(db *DB) {
 	}
 
 	Convey("When executing a 'SELECT' query", func() {
-		_, err := db.engine.Insert(&bean1, &bean2,
-			&bean3, &bean4, &bean5)
+		_, err := db.engine.Insert(bean1, bean2,
+			bean3, bean4, bean5)
 		So(err, ShouldBeNil)
 
 		Convey("As a Standalone query", func() {

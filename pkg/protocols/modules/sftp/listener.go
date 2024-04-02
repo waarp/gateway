@@ -226,7 +226,7 @@ func (l *sshListener) makeFileWriter(acc *model.LocalAccount) internal.WriterAtF
 
 		pip, err := newServerPipeline(l.DB, l.Logger, trans, l.tracer)
 		if err != nil {
-			return nil, toSFTPErr(err)
+			return nil, err
 		}
 
 		return pip, nil

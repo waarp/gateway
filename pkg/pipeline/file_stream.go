@@ -2,7 +2,6 @@ package pipeline
 
 import (
 	"errors"
-	"fmt"
 	"io"
 	"net/url"
 	"sync/atomic"
@@ -10,13 +9,7 @@ import (
 	"code.waarp.fr/apps/gateway/gateway/pkg/fs"
 	"code.waarp.fr/apps/gateway/gateway/pkg/model/types"
 	"code.waarp.fr/apps/gateway/gateway/pkg/tasks"
-	"code.waarp.fr/apps/gateway/gateway/pkg/tk/statemachine"
 	"code.waarp.fr/apps/gateway/gateway/pkg/utils"
-)
-
-var (
-	errRead  = types.NewTransferError(types.TeDataTransfer, "failed to read data")
-	errWrite = types.NewTransferError(types.TeDataTransfer, "failed to write data")
 )
 
 // FileStream represents the Pipeline of an incoming transfer made to the
@@ -28,21 +21,21 @@ type FileStream struct {
 	file fs.File
 }
 
-func newFileStream(pipeline *Pipeline, isResume bool) (*FileStream, *types.TransferError) {
+func newFileStream(pipeline *Pipeline, isResume bool) (*FileStream, *Error) {
 	stream := &FileStream{
 		Pipeline: pipeline,
 	}
 
 	if !isResume && !pipeline.TransCtx.Rule.IsSend {
 		pipeline.TransCtx.Transfer.LocalPath.Path += ".part"
-		if err := pipeline.updateTrans(); err != nil {
+		if err := pipeline.UpdateTrans(); err != nil {
 			return nil, err
 		}
 	}
 
 	file, err := stream.getFile()
 	if err != nil {
-		return nil, err
+		return nil, pipeline.internalError(err.code, err.details, err.cause)
 	}
 
 	stream.file = file
@@ -50,21 +43,15 @@ func newFileStream(pipeline *Pipeline, isResume bool) (*FileStream, *types.Trans
 	return stream, nil
 }
 
-func (f *FileStream) updateTrans() *types.TransferError {
-	return f.Pipeline.doUpdateTrans(f.handleError)
-}
-
-func (f *FileStream) updateProgress(n int) *types.TransferError {
+func (f *FileStream) updateProgress(n int) *Error {
 	atomic.AddInt64(&f.TransCtx.Transfer.Progress, int64(n))
 
-	return f.updateTrans()
+	return f.UpdateTrans()
 }
 
 func (f *FileStream) Read(p []byte) (int, error) {
 	if curr := f.machine.Current(); curr != stateReading {
-		f.handleStateErr("Read", curr)
-
-		return 0, errStateMachine
+		return 0, f.stateErr("Read", curr)
 	}
 
 	n, err := f.file.Read(p)
@@ -77,17 +64,13 @@ func (f *FileStream) Read(p []byte) (int, error) {
 			return n, io.EOF
 		}
 
-		f.handleError(types.TeDataTransfer, "Failed to read from the file stream",
-			err.Error())
-
-		return n, errRead
+		return n, f.internalError(types.TeInternal, "failed to read file", err)
 	}
 
 	if f.Trace.OnRead != nil {
-		if testErr := wrapTestError(f.Trace.OnRead(f.TransCtx.Transfer.Progress)); testErr != nil {
-			f.handleError(testErr.Code, "test error", testErr.Details)
-
-			return n, testErr
+		if testErr := f.Trace.OnRead(f.TransCtx.Transfer.Progress); testErr != nil {
+			return n, f.internalErrorWithMsg(types.TeInternal, "read trace error",
+				"failed to read file", testErr)
 		}
 	}
 
@@ -96,9 +79,7 @@ func (f *FileStream) Read(p []byte) (int, error) {
 
 func (f *FileStream) Write(p []byte) (int, error) {
 	if curr := f.machine.Current(); curr != stateWriting {
-		f.handleStateErr("Write", curr)
-
-		return 0, errStateMachine
+		return 0, f.stateErr("Write", curr)
 	}
 
 	n, err := fs.WriteFile(f.file, p)
@@ -107,17 +88,13 @@ func (f *FileStream) Write(p []byte) (int, error) {
 	}
 
 	if err != nil {
-		f.handleError(types.TeDataTransfer, "Failed to write to the file stream",
-			err.Error())
-
-		return n, errWrite
+		return n, f.internalError(types.TeInternal, "failed to write file", err)
 	}
 
 	if f.Trace.OnWrite != nil {
-		if testErr := wrapTestError(f.Trace.OnWrite(f.TransCtx.Transfer.Progress)); testErr != nil {
-			f.handleError(testErr.Code, "test error", testErr.Details)
-
-			return n, testErr
+		if testErr := f.Trace.OnWrite(f.TransCtx.Transfer.Progress); testErr != nil {
+			return n, f.internalErrorWithMsg(types.TeInternal, "write trace error",
+				"failed to write file", testErr)
 		}
 	}
 
@@ -127,9 +104,7 @@ func (f *FileStream) Write(p []byte) (int, error) {
 // ReadAt reads the stream, starting at the given offset.
 func (f *FileStream) ReadAt(p []byte, off int64) (int, error) {
 	if curr := f.machine.Current(); curr != stateReading {
-		f.handleStateErr("ReadAt", curr)
-
-		return 0, errStateMachine
+		return 0, f.stateErr("ReadAt", curr)
 	}
 
 	n, err := fs.ReadAtFile(f.file, p, off)
@@ -142,17 +117,13 @@ func (f *FileStream) ReadAt(p []byte, off int64) (int, error) {
 			return n, io.EOF
 		}
 
-		f.handleError(types.TeDataTransfer, "Failed to readAt from the file stream",
-			err.Error())
-
-		return n, errRead
+		return n, f.internalError(types.TeInternal, "failed to read file", err)
 	}
 
 	if f.Trace.OnRead != nil {
-		if testErr := wrapTestError(f.Trace.OnRead(off)); testErr != nil {
-			f.handleError(testErr.Code, "test error", testErr.Details)
-
-			return n, testErr
+		if testErr := f.Trace.OnRead(f.TransCtx.Transfer.Progress); testErr != nil {
+			return n, f.internalErrorWithMsg(types.TeInternal, "read trace error",
+				"failed to read file", testErr)
 		}
 	}
 
@@ -162,9 +133,7 @@ func (f *FileStream) ReadAt(p []byte, off int64) (int, error) {
 // WriteAt writes the given bytes to the stream, starting at the given offset.
 func (f *FileStream) WriteAt(p []byte, off int64) (int, error) {
 	if curr := f.machine.Current(); curr != stateWriting {
-		f.handleStateErr("WriteAt", curr)
-
-		return 0, errStateMachine
+		return 0, f.stateErr("WriteAt", curr)
 	}
 
 	n, err := fs.WriteAtFile(f.file, p, off)
@@ -173,17 +142,13 @@ func (f *FileStream) WriteAt(p []byte, off int64) (int, error) {
 	}
 
 	if err != nil {
-		f.handleError(types.TeDataTransfer, "Failed to writeAt to the file stream",
-			err.Error())
-
-		return n, errWrite
+		return n, f.internalError(types.TeInternal, "failed to write file", err)
 	}
 
 	if f.Trace.OnWrite != nil {
-		if testErr := wrapTestError(f.Trace.OnWrite(off)); testErr != nil {
-			f.handleError(testErr.Code, "test error", testErr.Details)
-
-			return n, testErr
+		if testErr := f.Trace.OnWrite(f.TransCtx.Transfer.Progress); testErr != nil {
+			return n, f.internalErrorWithMsg(types.TeInternal, "write trace error",
+				"failed to write file", testErr)
 		}
 	}
 
@@ -195,16 +160,12 @@ func (f *FileStream) WriteAt(p []byte, off int64) (int, error) {
 // will also be changed to this new offset.
 func (f *FileStream) Seek(off int64, whence int) (int64, error) {
 	if curr := f.machine.Current(); curr != stateWriting && curr != stateReading {
-		f.handleStateErr("Seek", curr)
-
-		return 0, errStateMachine
+		return 0, f.stateErr("Seek", curr)
 	}
 
 	newOff, seekErr := fs.SeekFile(f.file, off, whence)
 	if seekErr != nil {
-		f.handleError(types.TeInternal, "Failed to seek in file", seekErr.Error())
-
-		return 0, types.NewTransferError(types.TeInternal, "failed to seek in file")
+		return newOff, f.internalError(types.TeInternal, "failed to seek in file", seekErr)
 	}
 
 	f.TransCtx.Transfer.Progress = newOff
@@ -221,16 +182,12 @@ func (f *FileStream) Seek(off int64, whence int) (int64, error) {
 // timer has not ticked yet (it differs from Pipeline.UpdateTrans in that aspect).
 func (f *FileStream) Sync() error {
 	if curr := f.machine.Current(); curr != stateWriting && curr != stateReading {
-		f.handleStateErr("Seek", curr)
-
-		return errStateMachine
+		return f.stateErr("Sync", curr)
 	}
 
 	// If the fs supports it, we sync the file.
 	if err := fs.SyncFile(f.file); err != nil && !errors.Is(err, fs.ErrNotImplemented) {
-		f.handleError(types.TeInternal, "Failed to sync file", err.Error())
-
-		return types.NewTransferError(types.TeInternal, "failed to sync file")
+		return f.internalError(types.TeInternal, "failed to sync file", err)
 	}
 
 	// Reset the update timer since we force an update.
@@ -238,47 +195,23 @@ func (f *FileStream) Sync() error {
 
 	// Force an immediate database update.
 	if dbErr := f.DB.Update(f.TransCtx.Transfer).Run(); dbErr != nil {
-		f.handleError(types.TeInternal, "Failed to update transfer",
-			dbErr.Error())
-
-		return ErrDatabase
+		return f.internalErrorWithMsg(types.TeInternal, "failed to update transfer",
+			"database error", dbErr)
 	}
 
 	return nil
 }
 
-func (f *FileStream) handleStateErr(fun string, currentState statemachine.State) {
-	f.handleError(types.TeInternal, "File stream state machine violation",
-		fmt.Sprintf("cannot call %s while in state %s", fun, currentState))
-}
-
-func (f *FileStream) handleError(code types.TransferErrorCode, msg, cause string) {
-	f.errOnce.Do(func() {
-		if mErr := f.machine.Transition(stateError); mErr != nil {
-			f.Logger.Warning("Failed to transition to 'error' state: %v", mErr)
-		}
-
-		if err := f.file.Close(); err != nil {
-			f.Logger.Warning("Failed to close transfer file: %s", err)
-		}
-
-		f.errDo(code, msg, cause)
-	})
-}
-
 // close the file and stop the progress tracker.
-func (f *FileStream) close() *types.TransferError {
+func (f *FileStream) close() *Error {
 	if curr := f.machine.Current(); curr != stateDataEnd {
-		f.handleStateErr("close", f.machine.Current())
-
-		return errStateMachine
+		return f.stateErr("Close", curr)
 	}
 
 	stat, sErr := f.file.Stat()
 	if sErr != nil {
-		f.handleError(types.TeInternal, "Failed to get final file info", sErr.Error())
-
-		return types.NewTransferError(types.TeInternal, "failed to get final file info")
+		return f.internalErrorWithMsg(types.TeInternal, "failed to get final file info",
+			"file check failed", sErr)
 	}
 
 	if fErr := f.file.Close(); fErr != nil {
@@ -287,14 +220,15 @@ func (f *FileStream) close() *types.TransferError {
 
 	f.TransCtx.Transfer.Filesize = stat.Size()
 
-	if dbErr := f.updateTrans(); dbErr != nil {
+	if dbErr := f.UpdateTrans(); dbErr != nil {
 		return dbErr
 	}
 
-	if err := testError(f.Trace.OnClose); err != nil {
-		f.handleError(types.TeInternal, "Failed to get final file info", err.Error())
-
-		return err
+	if f.Trace.OnClose != nil {
+		if err := f.Trace.OnClose(); err != nil {
+			return f.internalErrorWithMsg(types.TeInternal, "file close trace error",
+				"file check failed", err)
+		}
 	}
 
 	return nil
@@ -304,15 +238,11 @@ func (f *FileStream) close() *types.TransferError {
 // (if the file is the transfer's destination). The method returns an error if
 // the file cannot be moved.
 //
-//nolint:funlen //no easy way to split the function
-func (f *FileStream) move() *types.TransferError {
+//nolint:funlen //best keep in one function
+func (f *FileStream) move() *Error {
 	if curr := f.machine.Current(); curr != stateDataEnd {
-		f.handleStateErr("move", f.machine.Current())
-
-		return errStateMachine
+		return f.stateErr("Move", curr)
 	}
-
-	moveErr := types.NewTransferError(types.TeFinalization, "failed to move temp file")
 
 	if f.TransCtx.Rule.IsSend {
 		return nil
@@ -338,7 +268,10 @@ func (f *FileStream) move() *types.TransferError {
 	}
 
 	if pathErr != nil {
-		return types.NewTransferError(types.TeFileNotFound, pathErr.Error())
+		return f.internalErrorWithMsg(types.TeFileNotFound,
+			"failed to get the file's final destination path",
+			"temp file rename failed",
+			pathErr)
 	}
 
 	dest := (*types.URL)(dstURL)
@@ -349,37 +282,39 @@ func (f *FileStream) move() *types.TransferError {
 
 	dstFS, fsErr := fs.GetFileSystem(f.DB, dest)
 	if fsErr != nil {
-		f.handleError(types.TeFinalization, "Failed to instantiate destination file system",
-			fsErr.Error())
-
-		return moveErr
+		return f.internalErrorWithMsg(types.TeFinalization,
+			"failed to instantiate destination file system",
+			"temp file rename failed",
+			fsErr)
 	}
 
 	if err := createDir(dstFS, dest); err != nil {
-		f.handleError(types.TeFinalization, "Failed to create destination directory",
-			err.Error())
-
-		return moveErr
+		return f.internalErrorWithMsg(types.TeFinalization,
+			"failed to create destination directory",
+			"temp file rename failed",
+			err)
 	}
 
 	newFS, movErr := tasks.MoveFile(f.DB, f.TransCtx.FS, &f.TransCtx.Transfer.LocalPath, dest)
 	if movErr != nil {
-		f.handleError(types.TeFinalization, "Failed to move temp file", movErr.Error())
-
-		return moveErr
+		return f.internalErrorWithMsg(types.TeFinalization,
+			"Failed to move temp file",
+			"temp file rename failed",
+			movErr)
 	}
 
 	f.TransCtx.FS = newFS
 	f.TransCtx.Transfer.LocalPath = *dest
 
-	if dbErr := f.updateTrans(); dbErr != nil {
+	if dbErr := f.UpdateTrans(); dbErr != nil {
 		return dbErr
 	}
 
-	if err := testError(f.Trace.OnMove); err != nil {
-		f.handleError(types.TeInternal, "Failed to get final file info", err.Error())
-
-		return err
+	if f.Trace.OnMove != nil {
+		if err := f.Trace.OnMove(); err != nil {
+			return f.internalErrorWithMsg(types.TeInternal, "file move trace error",
+				"temp file rename failed", err)
+		}
 	}
 
 	return nil

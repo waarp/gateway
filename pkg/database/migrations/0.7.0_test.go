@@ -48,21 +48,11 @@ func testVer0_7_0RevampUsersTable(t *testing.T, eng *testEngine) Change {
 
 		binary.LittleEndian.PutUint32(mask, permBefore)
 
-		if eng.Dialect == PostgreSQL {
-			_, err := eng.DB.Exec(`INSERT INTO users(id,owner,username,
-            	password_hash,permissions) VALUES (1,'waarp_gw','toto',
-				'pswd_hash',$1)`, mask)
-			require.NoError(t, err)
-		} else {
-			_, err := eng.DB.Exec(`INSERT INTO users(id,owner,username,
-				password_hash,permissions) VALUES (1,'waarp_gw','toto',
-				'pswd_hash',?)`, mask)
-			require.NoError(t, err)
-		}
+		eng.NoError(t, `INSERT INTO users(id,owner,username,password_hash,permissions)
+			VALUES (1,'waarp_gw','toto','pswd_hash',?)`, mask)
 
 		t.Cleanup(func() {
-			_, err := eng.DB.Exec(`DELETE FROM users`)
-			require.NoError(t, err)
+			eng.NoError(t, `DELETE FROM users`)
 		})
 
 		require.NoError(t, eng.Upgrade(mig),
@@ -123,15 +113,13 @@ func testVer0_7_0RevampLocalAgentTable(t *testing.T, eng *testEngine) Change {
 	mig := Migrations[19]
 
 	t.Run("When applying the 0.7.0 'local_agents' table revamp", func(t *testing.T) {
-		_, err1 := eng.DB.Exec(`INSERT INTO local_agents(id,owner,name,protocol,
+		eng.NoError(t, `INSERT INTO local_agents(id,owner,name,protocol,
 			address,root_dir,receive_dir,send_dir,tmp_receive_dir,proto_config)
 			VALUES (1,'waarp_gw','sftp_serv','sftp','localhost:2222','root',
 			        'rcv','snd','tmp','{"key":"val"}')`)
-		require.NoError(t, err1)
 
 		t.Cleanup(func() {
-			_, err2 := eng.DB.Exec(`DELETE FROM local_agents`)
-			require.NoError(t, err2)
+			eng.NoError(t, `DELETE FROM local_agents`)
 		})
 
 		require.NoError(t, eng.Upgrade(mig),
@@ -199,13 +187,11 @@ func testVer0_7_0RevampRemoteAgentTable(t *testing.T, eng *testEngine) Change {
 	mig := Migrations[20]
 
 	t.Run("When applying the 0.7.0 'remote_agents' table revamp", func(t *testing.T) {
-		_, err1 := eng.DB.Exec(`INSERT INTO remote_agents(id,name,protocol,address,
+		eng.NoError(t, `INSERT INTO remote_agents(id,name,protocol,address,
 			proto_config) VALUES (1,'sftp_part','sftp','localhost:2222','{}')`)
-		require.NoError(t, err1)
 
 		t.Cleanup(func() {
-			_, err2 := eng.DB.Exec(`DELETE FROM remote_agents`)
-			require.NoError(t, err2)
+			eng.NoError(t, `DELETE FROM remote_agents`)
 		})
 
 		require.NoError(t, eng.Upgrade(mig),
@@ -261,27 +247,17 @@ func testVer0_7_0RevampLocalAccountsTable(t *testing.T, eng *testEngine) Change 
 	mig := Migrations[21]
 
 	t.Run("When applying the 0.7.0 'local_accounts' table revamp", func(t *testing.T) {
-		_, err1 := eng.DB.Exec(`INSERT INTO local_agents(id,owner,name,protocol,
+		eng.NoError(t, `INSERT INTO local_agents(id,owner,name,protocol,
 			address,root_dir,receive_dir,send_dir,tmp_receive_dir,proto_config)
 			VALUES (1,'waarp_gw','sftp_serv','sftp','localhost:2222','root',
 			        'rcv','snd','tmp','{}')`)
-		require.NoError(t, err1)
 
-		if eng.Dialect == PostgreSQL {
-			_, err2 := eng.DB.Exec(`INSERT INTO local_accounts(id,local_agent_id,
-				login,password_hash) VALUES (10,1,'toto',$1)`, []byte("pswdhash"))
-			require.NoError(t, err2)
-		} else {
-			_, err2 := eng.DB.Exec(`INSERT INTO local_accounts(id,local_agent_id,
-				login,password_hash) VALUES (10,1,'toto',?)`, []byte("pswdhash"))
-			require.NoError(t, err2)
-		}
+		eng.NoError(t, `INSERT INTO local_accounts(id,local_agent_id,
+			login,password_hash) VALUES (10,1,'toto',?)`, []byte("pswdhash"))
 
 		t.Cleanup(func() {
-			_, err2 := eng.DB.Exec(`DELETE FROM local_accounts`)
-			require.NoError(t, err2)
-			_, err3 := eng.DB.Exec(`DELETE FROM local_agents`)
-			require.NoError(t, err3)
+			eng.NoError(t, `DELETE FROM local_accounts`)
+			eng.NoError(t, `DELETE FROM local_agents`)
 		})
 
 		require.NoError(t, eng.Upgrade(mig),
@@ -334,20 +310,16 @@ func testVer0_7_0RevampRemoteAccountsTable(t *testing.T, eng *testEngine) Change
 	mig := Migrations[22]
 
 	t.Run("When applying the 0.7.0 'remote_accounts' table revamp", func(t *testing.T) {
-		_, err1 := eng.DB.Exec(`INSERT INTO remote_agents(id,name,protocol,address,
+		eng.NoError(t, `INSERT INTO remote_agents(id,name,protocol,address,
         	proto_config) VALUES (1,'sftp_part','sftp','localhost:2222','{}')`)
-		require.NoError(t, err1)
 
-		_, err2 := eng.DB.Exec(`INSERT INTO
+		eng.NoError(t, `INSERT INTO
     			remote_accounts(id,remote_agent_id,login,password)
 				VALUES (10,1,'toto','pswd'), (20,1,'titi',NULL)`)
-		require.NoError(t, err2)
 
 		t.Cleanup(func() {
-			_, err3 := eng.DB.Exec(`DELETE FROM remote_accounts`)
-			require.NoError(t, err3)
-			_, err4 := eng.DB.Exec(`DELETE FROM remote_agents`)
-			require.NoError(t, err4)
+			eng.NoError(t, `DELETE FROM remote_accounts`)
+			eng.NoError(t, `DELETE FROM remote_agents`)
 		})
 
 		require.NoError(t, eng.Upgrade(mig),
@@ -428,14 +400,12 @@ func testVer0_7_0RevampRulesTable(t *testing.T, eng *testEngine) Change {
 	mig := Migrations[23]
 
 	t.Run("When applying the 0.7.0 'rules' table revamp", func(t *testing.T) {
-		_, err1 := eng.DB.Exec(`INSERT INTO rules(id,name,send,comment,path,
+		eng.NoError(t, `INSERT INTO rules(id,name,send,comment,path,
             local_dir,remote_dir,tmp_local_receive_dir) VALUES (1,'push',TRUE,
             'this is a comment','/push','locDir','remDir','tmpDir')`)
-		require.NoError(t, err1)
 
 		t.Cleanup(func() {
-			_, err2 := eng.DB.Exec(`DELETE FROM rules`)
-			require.NoError(t, err2)
+			eng.NoError(t, `DELETE FROM rules`)
 		})
 
 		require.NoError(t, eng.Upgrade(mig),
@@ -500,26 +470,16 @@ func testVer0_7_0RevampTasksTable(t *testing.T, eng *testEngine) Change {
 	mig := Migrations[24]
 
 	t.Run("When applying the 0.7.0 'tasks' table revamp", func(t *testing.T) {
-		_, err1 := eng.DB.Exec(`INSERT INTO rules(id,name,is_send,comment,path,
+		eng.NoError(t, `INSERT INTO rules(id,name,is_send,comment,path,
             local_dir,remote_dir,tmp_local_receive_dir) VALUES (1,'push',TRUE,
             'this is a comment','/push','locDir','remDir','tmpDir')`)
-		require.NoError(t, err1)
 
-		if eng.Dialect == PostgreSQL {
-			_, err2 := eng.DB.Exec(`INSERT INTO tasks(rule_id,chain,rank,type,args)
-				VALUES (1,'POST',0,'DELETE',$1)`, []byte("{}"))
-			require.NoError(t, err2)
-		} else {
-			_, err2 := eng.DB.Exec(`INSERT INTO tasks(rule_id,chain,rank,type,args)
-				VALUES (1,'POST',0,'DELETE',?)`, []byte("{}"))
-			require.NoError(t, err2)
-		}
+		eng.NoError(t, `INSERT INTO tasks(rule_id,chain,rank,type,args)
+			VALUES (1,'POST',0,'DELETE',?)`, []byte("{}"))
 
 		t.Cleanup(func() {
-			_, err2 := eng.DB.Exec(`DELETE FROM tasks`)
-			require.NoError(t, err2)
-			_, err3 := eng.DB.Exec(`DELETE FROM rules`)
-			require.NoError(t, err3)
+			eng.NoError(t, `DELETE FROM tasks`)
+			eng.NoError(t, `DELETE FROM rules`)
 		})
 
 		require.NoError(t, eng.Upgrade(mig),
@@ -573,18 +533,16 @@ func testVer0_7_0RevampHistoryTable(t *testing.T, eng *testEngine) Change {
 	mig := Migrations[25]
 
 	t.Run("When applying the 0.7.0 'transfer_history' table revamp", func(t *testing.T) {
-		_, err1 := eng.DB.Exec(`INSERT INTO transfer_history(id,owner,is_server,
+		eng.NoError(t, `INSERT INTO transfer_history(id,owner,is_server,
             is_send,remote_transfer_id,rule,account,agent,protocol,local_path,
             remote_path,filesize,start,stop,status,step,progression,task_number,
             error_code,error_details) VALUES (1,'waarp_gw',FALSE,TRUE,'abc','push',
             'toto','sftp_part','sftp','/loc/path','/rem/path',123,'2021-01-01T01:00:00.123456Z',
             '2021-01-01T02:00:00.123456Z','CANCELLED','StepData',111,12,'TeDataTransfer',
             'this is an error message')`)
-		require.NoError(t, err1)
 
 		t.Cleanup(func() {
-			_, err2 := eng.DB.Exec(`DELETE FROM transfer_history`)
-			require.NoError(t, err2)
+			eng.NoError(t, `DELETE FROM transfer_history`)
 		})
 
 		require.NoError(t, eng.Upgrade(mig),
@@ -654,6 +612,7 @@ func testVer0_7_0RevampHistoryTable(t *testing.T, eng *testEngine) Change {
 
 				startDate, startErr := time.Parse(time.RFC3339Nano, start)
 				require.NoError(t, startErr)
+
 				stopDate, stopErr := time.Parse(time.RFC3339Nano, stop)
 				require.NoError(t, stopErr)
 
@@ -693,62 +652,48 @@ func testVer0_7_0RevampTransfersTable(t *testing.T, eng *testEngine) Change {
 
 	t.Run("When applying the 0.7.0 'transfers' table revamp", func(t *testing.T) {
 		// ### Rule ###
-		_, err1 := eng.DB.Exec(`INSERT INTO rules(id,name,is_send,comment,path,
+		eng.NoError(t, `INSERT INTO rules(id,name,is_send,comment,path,
             local_dir,remote_dir,tmp_local_receive_dir) VALUES (1,'push',TRUE,
             'this is a comment','/push','locDir','remDir','tmpDir')`)
-		require.NoError(t, err1)
 
 		// ### Local ###
-		_, err2 := eng.DB.Exec(`INSERT INTO local_agents(id,owner,name,protocol,
+		eng.NoError(t, `INSERT INTO local_agents(id,owner,name,protocol,
 			address,root_dir,receive_dir,send_dir,tmp_receive_dir,proto_config)
 			VALUES (10,'waarp_gw','sftp_serv','sftp','localhost:2222','root',
 			        'rcv','snd','tmp','{}')`)
-		require.NoError(t, err2)
 
-		_, err3 := eng.DB.Exec(`INSERT INTO local_accounts(id,local_agent_id,login)
+		eng.NoError(t, `INSERT INTO local_accounts(id,local_agent_id,login)
 			VALUES (100,10,'toto')`)
-		require.NoError(t, err3)
 
-		_, err4 := eng.DB.Exec(`INSERT INTO transfers(id,owner,remote_transfer_id,
+		eng.NoError(t, `INSERT INTO transfers(id,owner,remote_transfer_id,
             rule_id,is_server,agent_id,account_id,local_path,remote_path,filesize,
             start,status,step,progression,task_number,error_code,error_details)
             VALUES (1000,'waarp_gw','abcd',1,TRUE,10,100,'/loc/path/1','/rem/path/1',
             1234,'2021-01-01T01:00:00Z','RUNNING','StepData',456,5,'TeDataTransfer',
             'this is an error message')`)
-		require.NoError(t, err4)
 
 		// ### Remote ###
-		_, err5 := eng.DB.Exec(`INSERT INTO remote_agents(id,name,protocol,address,
+		eng.NoError(t, `INSERT INTO remote_agents(id,name,protocol,address,
         	proto_config) VALUES (20,'sftp_part','sftp','localhost:3333','{}')`)
-		require.NoError(t, err5)
 
-		_, err6 := eng.DB.Exec(`INSERT INTO remote_accounts(id,remote_agent_id,login)
+		eng.NoError(t, `INSERT INTO remote_accounts(id,remote_agent_id,login)
 			VALUES (200,20,'toto')`)
-		require.NoError(t, err6)
 
-		_, err7 := eng.DB.Exec(`INSERT INTO transfers(id,owner,remote_transfer_id,
+		eng.NoError(t, `INSERT INTO transfers(id,owner,remote_transfer_id,
             rule_id,is_server,agent_id,account_id,local_path,remote_path,filesize,
             start,status,step,progression,task_number,error_code,error_details)
             VALUES (2000,'waarp_gw','efgh',1,FALSE,20,200,'/loc/path/2','/rem/path/2',
             5678,'2021-01-02T01:00:00Z','INTERRUPTED','StepPostTasks',789,8,
             'TeExternalOp','this is another error message')`)
-		require.NoError(t, err7)
 
 		t.Cleanup(func() {
-			_, err8 := eng.DB.Exec(`DELETE FROM transfers`)
-			require.NoError(t, err8)
-			_, err9 := eng.DB.Exec(`DELETE FROM remote_accounts`)
-			require.NoError(t, err9)
-			_, err10 := eng.DB.Exec(`DELETE FROM remote_accounts`)
-			require.NoError(t, err10)
-			_, err11 := eng.DB.Exec(`DELETE FROM local_accounts`)
-			require.NoError(t, err11)
-			_, err12 := eng.DB.Exec(`DELETE FROM remote_agents`)
-			require.NoError(t, err12)
-			_, err13 := eng.DB.Exec(`DELETE FROM local_agents`)
-			require.NoError(t, err13)
-			_, err14 := eng.DB.Exec(`DELETE FROM rules`)
-			require.NoError(t, err14)
+			eng.NoError(t, `DELETE FROM transfers`)
+			eng.NoError(t, `DELETE FROM remote_accounts`)
+			eng.NoError(t, `DELETE FROM remote_accounts`)
+			eng.NoError(t, `DELETE FROM local_accounts`)
+			eng.NoError(t, `DELETE FROM remote_agents`)
+			eng.NoError(t, `DELETE FROM local_agents`)
+			eng.NoError(t, `DELETE FROM rules`)
 		})
 
 		require.NoError(t, eng.Upgrade(mig),
@@ -907,57 +852,46 @@ func testVer0_7_0RevampTransferInfoTable(t *testing.T, eng *testEngine) Change {
 	mig := Migrations[27]
 
 	t.Run("When applying the 0.7.0 'transfer_info' table revamp", func(t *testing.T) {
-		_, err1 := eng.DB.Exec(`INSERT INTO rules(id,name,is_send,comment,path,
+		eng.NoError(t, `INSERT INTO rules(id,name,is_send,comment,path,
             local_dir,remote_dir,tmp_local_receive_dir) VALUES (1,'push',TRUE,
             'this is a comment','/push','locDir','remDir','tmpDir')`)
-		require.NoError(t, err1)
 
-		_, err2 := eng.DB.Exec(`INSERT INTO local_agents(id,owner,name,protocol,
+		eng.NoError(t, `INSERT INTO local_agents(id,owner,name,protocol,
 			address,root_dir,receive_dir,send_dir,tmp_receive_dir,proto_config)
 			VALUES (10,'waarp_gw','sftp_serv','sftp','localhost:2222','root',
 			        'rcv','snd','tmp','{}')`)
-		require.NoError(t, err2)
 
-		_, err3 := eng.DB.Exec(`INSERT INTO local_accounts(id,local_agent_id,login)
+		eng.NoError(t, `INSERT INTO local_accounts(id,local_agent_id,login)
 			VALUES (100,10,'toto')`)
-		require.NoError(t, err3)
 
-		_, err4 := eng.DB.Exec(`INSERT INTO transfers(id,owner,remote_transfer_id,
+		eng.NoError(t, `INSERT INTO transfers(id,owner,remote_transfer_id,
             rule_id,local_account_id,remote_account_id,local_path,remote_path,
             filesize,start,status,step,progress,task_number,error_code,error_details)
             VALUES (1000,'waarp_gw','abcd',1,100,null,'/loc/path/1','/rem/path/1',
             1234,'2021-01-01 01:00:00','RUNNING','StepData',456,5,'TeDataTransfer',
             'this is an error message')`)
-		require.NoError(t, err4)
 
-		_, err5 := eng.DB.Exec(`INSERT INTO transfer_history(id,owner,is_server,
+		eng.NoError(t, `INSERT INTO transfer_history(id,owner,is_server,
             is_send,remote_transfer_id,rule,account,agent,protocol,local_path,
             remote_path,filesize,start,stop,status,step,progress,task_number,
             error_code,error_details) VALUES (2000,'waarp_gw',FALSE,TRUE,'abc','push',
             'toto','sftp_part','sftp','/loc/path','/rem/path',123,'2021-01-01 01:00:00',
             '2021-01-01 02:00:00','CANCELLED','StepData',111,0,'TeDataTransfer',
             'this is an error message')`)
-		require.NoError(t, err5)
 
-		_, err6 := eng.DB.Exec(`INSERT INTO transfer_info(transfer_id,is_history,
+		// orphaned entry
+		eng.NoError(t, `INSERT INTO transfer_info(transfer_id,is_history,
         	name,value) VALUES (1000,false,'1_t_info','"t_value"'),
         	                   (2000,true, '2_h_info','"h_value"'),
-        	                   (3000,true, '3_h_info_orphan','true')`) // orphaned entry
-		require.NoError(t, err6)
+        	                   (3000,true, '3_h_info_orphan','true')`)
 
 		t.Cleanup(func() {
-			_, err7 := eng.DB.Exec(`DELETE FROM transfer_info`)
-			require.NoError(t, err7)
-			_, err8 := eng.DB.Exec(`DELETE FROM transfer_history`)
-			require.NoError(t, err8)
-			_, err9 := eng.DB.Exec(`DELETE FROM transfers`)
-			require.NoError(t, err9)
-			_, err10 := eng.DB.Exec(`DELETE FROM local_accounts`)
-			require.NoError(t, err10)
-			_, err11 := eng.DB.Exec(`DELETE FROM local_agents`)
-			require.NoError(t, err11)
-			_, err12 := eng.DB.Exec(`DELETE FROM rules`)
-			require.NoError(t, err12)
+			eng.NoError(t, `DELETE FROM transfer_info`)
+			eng.NoError(t, `DELETE FROM transfer_history`)
+			eng.NoError(t, `DELETE FROM transfers`)
+			eng.NoError(t, `DELETE FROM local_accounts`)
+			eng.NoError(t, `DELETE FROM local_agents`)
+			eng.NoError(t, `DELETE FROM rules`)
 		})
 
 		require.NoError(t, eng.Upgrade(mig),
@@ -1038,47 +972,37 @@ func testVer0_7_0RevampCryptoTable(t *testing.T, eng *testEngine) Change {
 
 	t.Run("When applying the 0.7.0 'crypto' table revamp", func(t *testing.T) {
 		// ### Local agent ###
-		_, err1 := eng.DB.Exec(`INSERT INTO local_agents(id,owner,name,protocol,
+		eng.NoError(t, `INSERT INTO local_agents(id,owner,name,protocol,
 			address,root_dir,receive_dir,send_dir,tmp_receive_dir,proto_config)
 			VALUES (10,'waarp_gw','sftp_serv','sftp','localhost:2222','root',
 			        'rcv','snd','tmp','{}')`)
-		require.NoError(t, err1)
 
 		// ### Local account ###
-		_, err2 := eng.DB.Exec(`INSERT INTO local_accounts(id,local_agent_id,login)
+		eng.NoError(t, `INSERT INTO local_accounts(id,local_agent_id,login)
 			VALUES (100,10,'toto')`)
-		require.NoError(t, err2)
 
 		// ### Remote agent ###
-		_, err3 := eng.DB.Exec(`INSERT INTO remote_agents(id,name,protocol,address,
+		eng.NoError(t, `INSERT INTO remote_agents(id,name,protocol,address,
         	proto_config) VALUES (20,'sftp_part','sftp','localhost:3333','{}')`)
-		require.NoError(t, err3)
 
 		// ### Remote account ###
-		_, err4 := eng.DB.Exec(`INSERT INTO remote_accounts(id,remote_agent_id,login)
+		eng.NoError(t, `INSERT INTO remote_accounts(id,remote_agent_id,login)
 			VALUES (200,20,'toto')`)
-		require.NoError(t, err4)
 
 		// ##### Certificates #####
-		_, err5 := eng.DB.Exec(`INSERT INTO crypto_credentials(id,name,owner_type,
+		eng.NoError(t, `INSERT INTO crypto_credentials(id,name,owner_type,
             owner_id,private_key,certificate,ssh_public_key) VALUES 
             (1010,'lag_cert','local_agents',   10, 'pk1','cert1','pbk1'),
             (1100,'lac_cert','local_accounts', 100,'pk2','cert2','pbk2'),
             (2020,'rag_cert','remote_agents',  20, 'pk3','cert3','pbk3'),
             (2200,'rac_cert','remote_accounts',200, NULL,'cert4','pbk4')`)
-		require.NoError(t, err5)
 
 		t.Cleanup(func() {
-			_, err6 := eng.DB.Exec(`DELETE FROM crypto_credentials`)
-			require.NoError(t, err6)
-			_, err7 := eng.DB.Exec(`DELETE FROM remote_accounts`)
-			require.NoError(t, err7)
-			_, err8 := eng.DB.Exec(`DELETE FROM remote_agents`)
-			require.NoError(t, err8)
-			_, err9 := eng.DB.Exec(`DELETE FROM local_accounts`)
-			require.NoError(t, err9)
-			_, err10 := eng.DB.Exec(`DELETE FROM local_agents`)
-			require.NoError(t, err10)
+			eng.NoError(t, `DELETE FROM crypto_credentials`)
+			eng.NoError(t, `DELETE FROM remote_accounts`)
+			eng.NoError(t, `DELETE FROM remote_agents`)
+			eng.NoError(t, `DELETE FROM local_accounts`)
+			eng.NoError(t, `DELETE FROM local_agents`)
 		})
 
 		require.NoError(t, eng.Upgrade(mig),
@@ -1229,52 +1153,40 @@ func testVer0_7_0RevampRuleAccessTable(t *testing.T, eng *testEngine) Change {
 
 	t.Run("When applying the 0.7.0 'rule_access' table revamp", func(t *testing.T) {
 		// ### Rule ###
-		_, err1 := eng.DB.Exec(`INSERT INTO rules(id,name,is_send,path) 
+		eng.NoError(t, `INSERT INTO rules(id,name,is_send,path) 
 			VALUES (1,'push1',TRUE,'/push1'), (2,'push2',TRUE,'/push2'),
 			       (3,'push3',TRUE,'/push3'), (4,'push4',TRUE,'/push4')`)
-		require.NoError(t, err1)
 
 		// ### Local agent ###
-		_, err2 := eng.DB.Exec(`INSERT INTO local_agents(id,owner,name,protocol,
+		eng.NoError(t, `INSERT INTO local_agents(id,owner,name,protocol,
 			address,root_dir,receive_dir,send_dir,tmp_receive_dir,proto_config)
 			VALUES (10,'waarp_gw','sftp_serv','sftp','localhost:2222','root',
 			        'rcv','snd','tmp','{}')`)
-		require.NoError(t, err2)
 
 		// ### Local account ###
-		_, err3 := eng.DB.Exec(`INSERT INTO local_accounts(id,local_agent_id,login)
+		eng.NoError(t, `INSERT INTO local_accounts(id,local_agent_id,login)
 			VALUES (100,10,'toto')`)
-		require.NoError(t, err3)
 
 		// ### Remote agent ###
-		_, err4 := eng.DB.Exec(`INSERT INTO remote_agents(id,name,protocol,address,
+		eng.NoError(t, `INSERT INTO remote_agents(id,name,protocol,address,
         	proto_config) VALUES (20,'sftp_part','sftp','localhost:3333','{}')`)
-		require.NoError(t, err4)
 
 		// ### Remote account ###
-		_, err5 := eng.DB.Exec(`INSERT INTO remote_accounts(id,remote_agent_id,login)
+		eng.NoError(t, `INSERT INTO remote_accounts(id,remote_agent_id,login)
 			VALUES (200,20,'toto')`)
-		require.NoError(t, err5)
 
 		// ##### Accesses #####
-		_, err6 := eng.DB.Exec(`INSERT INTO rule_access(rule_id,object_type,object_id)
+		eng.NoError(t, `INSERT INTO rule_access(rule_id,object_type,object_id)
 			VALUES (1,'local_agents',  10),  (2,'remote_agents',  20),
 			       (3,'local_accounts',100), (4,'remote_accounts',200)`)
-		require.NoError(t, err6)
 
 		t.Cleanup(func() {
-			_, err7 := eng.DB.Exec("DELETE FROM rule_access")
-			require.NoError(t, err7)
-			_, err8 := eng.DB.Exec("DELETE FROM remote_accounts")
-			require.NoError(t, err8)
-			_, err9 := eng.DB.Exec("DELETE FROM local_accounts")
-			require.NoError(t, err9)
-			_, err10 := eng.DB.Exec("DELETE FROM remote_agents")
-			require.NoError(t, err10)
-			_, err11 := eng.DB.Exec("DELETE FROM local_agents")
-			require.NoError(t, err11)
-			_, err12 := eng.DB.Exec("DELETE FROM rules")
-			require.NoError(t, err12)
+			eng.NoError(t, "DELETE FROM rule_access")
+			eng.NoError(t, "DELETE FROM remote_accounts")
+			eng.NoError(t, "DELETE FROM local_accounts")
+			eng.NoError(t, "DELETE FROM remote_agents")
+			eng.NoError(t, "DELETE FROM local_agents")
+			eng.NoError(t, "DELETE FROM rules")
 		})
 
 		require.NoError(t, eng.Upgrade(mig),
@@ -1335,7 +1247,7 @@ func testVer0_7_0RevampRuleAccessTable(t *testing.T, eng *testEngine) Change {
 
 			t.Run("Then it should have reverted the column changes", func(t *testing.T) {
 				rows, err := eng.DB.Query(`SELECT rule_id,object_type,
-       					object_id FROM rule_access ORDER BY object_id`)
+					object_id FROM rule_access ORDER BY object_id`)
 				require.NoError(t, err)
 
 				defer rows.Close()
@@ -1382,13 +1294,11 @@ func testVer0_7_0AddLocalAgentsAddressUnique(t *testing.T, eng *testEngine) Chan
 	mig := Migrations[30]
 
 	t.Run("When applying the 0.7.0 transfers 'address' unique addition", func(t *testing.T) {
-		_, err1 := eng.DB.Exec(`INSERT INTO local_agents(id,owner,name,protocol,address)
+		eng.NoError(t, `INSERT INTO local_agents(id,owner,name,protocol,address)
 			VALUES (10,'waarp_gw','sftp_serv','sftp','localhost:2222')`)
-		require.NoError(t, err1)
 
 		t.Cleanup(func() {
-			_, err2 := eng.DB.Exec(`DELETE FROM local_agents`)
-			require.NoError(t, err2)
+			eng.NoError(t, `DELETE FROM local_agents`)
 		})
 
 		require.NoError(t, eng.Upgrade(mig),
@@ -1406,7 +1316,7 @@ func testVer0_7_0AddLocalAgentsAddressUnique(t *testing.T, eng *testEngine) Chan
 
 			t.Run("Then it should have removed the unique constraint", func(t *testing.T) {
 				_, err := eng.DB.Exec(`INSERT INTO local_agents(id,owner,name,protocol,address)
-						VALUES (11,'waarp_gw','sftp_serv_2','sftp','localhost:2222')`)
+					VALUES (11,'waarp_gw','sftp_serv_2','sftp','localhost:2222')`)
 				require.NoError(t, err)
 			})
 		})
@@ -1420,61 +1330,46 @@ func testVer0_7_0AddNormalizedTransfersView(t *testing.T, eng *testEngine) Chang
 
 	t.Run("When applying the 0.7.0 normalized transfer view addition", func(t *testing.T) {
 		// ### Rules ###
-		_, err1 := eng.DB.Exec(`INSERT INTO rules(id,name,is_send,path)
+		eng.NoError(t, `INSERT INTO rules(id,name,is_send,path)
 			VALUES (1,'push',TRUE,'/push'), (2,'pull',FALSE,'/pull')`)
-		require.NoError(t, err1)
 
 		// ### Local ###
-		_, err2 := eng.DB.Exec(`INSERT INTO local_agents(id,owner,name,protocol,
+		eng.NoError(t, `INSERT INTO local_agents(id,owner,name,protocol,
 			address,root_dir,receive_dir,send_dir,tmp_receive_dir,proto_config)
 			VALUES (10,'waarp_gw','sftp_serv','sftp','localhost:2222','root',
 			        'rcv','snd','tmp','{}')`)
-		require.NoError(t, err2)
 
-		_, err3 := eng.DB.Exec(`INSERT INTO local_accounts(id,local_agent_id,login)
+		eng.NoError(t, `INSERT INTO local_accounts(id,local_agent_id,login)
 			VALUES (100,10,'toto')`)
-		require.NoError(t, err3)
 
 		// ### Remote ###
-		_, err4 := eng.DB.Exec(`INSERT INTO remote_agents(id,name,protocol,address,
+		eng.NoError(t, `INSERT INTO remote_agents(id,name,protocol,address,
         	proto_config) VALUES (20,'sftp_part','sftp','localhost:3333','{}')`)
-		require.NoError(t, err4)
 
-		_, err5 := eng.DB.Exec(`INSERT INTO remote_accounts(id,remote_agent_id,login)
+		eng.NoError(t, `INSERT INTO remote_accounts(id,remote_agent_id,login)
 			VALUES (200,20,'tata')`)
-		require.NoError(t, err5)
 
 		// ### Transfers ###
-
-		_, err6 := eng.DB.Exec(`INSERT INTO transfers(id,owner,remote_transfer_id,
+		eng.NoError(t, `INSERT INTO transfers(id,owner,remote_transfer_id,
             rule_id,local_account_id,remote_account_id,local_path,remote_path)
             VALUES (1000,'waarp_gw','efgh',1,100, null,'/loc/path/1','/rem/path/1'),
                    (2000,'waarp_gw','efgh',2,null,200, '/loc/path/2','/rem/path/2')`)
-		require.NoError(t, err6)
 
-		_, err7 := eng.DB.Exec(`INSERT INTO transfer_history(id,owner,is_server,
+		eng.NoError(t, `INSERT INTO transfer_history(id,owner,is_server,
             	is_send,remote_transfer_id,rule,account,agent,protocol,local_path,
             	remote_path,filesize,start,stop,status,step)
 			VALUES (3000,'waarp_gw',FALSE,TRUE,'xyz','push','tutu','r66_part',
 				'r66','/loc/path/3','/rem/path/3',123,'2021-01-03 01:00:00',
             	'2021-01-03 02:00:00','CANCELLED','StepData')`)
-		require.NoError(t, err7)
 
 		t.Cleanup(func() {
-			_, err8 := eng.DB.Exec(`DELETE FROM transfer_history`)
-			require.NoError(t, err8)
-			_, err9 := eng.DB.Exec(`DELETE FROM transfers`)
-			require.NoError(t, err9)
-			_, err10 := eng.DB.Exec(`DELETE FROM local_accounts`)
-			require.NoError(t, err10)
-			_, err11 := eng.DB.Exec(`DELETE FROM local_agents`)
-			require.NoError(t, err11)
-			_, err12 := eng.DB.Exec(`DELETE FROM remote_accounts`)
-			require.NoError(t, err12)
-			_, err13 := eng.DB.Exec(`DELETE FROM remote_agents`)
-			require.NoError(t, err13)
-			_, err14 := eng.DB.Exec(`DELETE FROM rules`)
-			require.NoError(t, err14)
+			eng.NoError(t, `DELETE FROM transfer_history`)
+			eng.NoError(t, `DELETE FROM transfers`)
+			eng.NoError(t, `DELETE FROM local_accounts`)
+			eng.NoError(t, `DELETE FROM local_agents`)
+			eng.NoError(t, `DELETE FROM remote_accounts`)
+			eng.NoError(t, `DELETE FROM remote_agents`)
+			eng.NoError(t, `DELETE FROM rules`)
 		})
 
 		require.NoError(t, eng.Upgrade(mig),

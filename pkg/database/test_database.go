@@ -28,7 +28,7 @@ const (
 	TestMemoryDB = "memory"
 )
 
-var errSimulated = errors.New("simulated database error")
+var ErrSimulated = errors.New("simulated database error")
 
 func memDBInfo() *DBInfo {
 	config := conf.GlobalConfig.Database
@@ -174,7 +174,7 @@ func (e *errHook) BeforeProcess(c *contexts.ContextHook) (context.Context, error
 	ctx := c.Ctx
 
 	e.once.Do(func() {
-		err = errSimulated
+		err = ErrSimulated
 	})
 
 	return ctx, err

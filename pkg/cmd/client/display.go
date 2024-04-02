@@ -93,6 +93,7 @@ func displayRuleAccess(f *Formatter, access api.RuleAccess) {
 		f.Empty("Local accounts", "<none>")
 	} else {
 		var fullAccounts []string
+
 		for partner, accounts := range access.LocalAccounts {
 			for _, account := range accounts {
 				fullAccounts = append(fullAccounts, fmt.Sprintf("%s.%s", partner, account))
@@ -108,6 +109,7 @@ func displayRuleAccess(f *Formatter, access api.RuleAccess) {
 		f.Empty("Remote accounts", "<none>")
 	} else {
 		var fullAccounts []string
+
 		for partner, accounts := range access.RemoteAccounts {
 			for _, account := range accounts {
 				fullAccounts = append(fullAccounts, fmt.Sprintf("%s.%s", partner, account))

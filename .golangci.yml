@@ -684,12 +684,13 @@ linters-settings:
       - .WithMessage(
       - utils.RunWithCtx(
       - utils.GetPath(
+      - utils.CheckCtx(
 
   wsl:
     # See https://github.com/bombsimon/wsl/blob/master/doc/configuration.md for
     # documentation of available settings. These are the defaults for
     # `golangci-lint`.
-    allow-assign-and-anything: false
+    allow-assign-and-anything: true
     allow-assign-and-call: true
     allow-cuddle-declarations: true
     allow-multiline-assign: true
@@ -823,7 +824,6 @@ issues:
         - funlen # splitting functions is not always possible (or desirable)
         - dupl # some tables are similar, but factorizing their migrations is a bad idea
         - gomnd # we use magic numbers for type sizes
-        - thelper # migrations test functions are NOT helpers (they are wrongly detected as such by the linter)
 
     # Hardcoded credentials are fine for testing.
     - path: pkg/utils/testhelpers/certs.go
@@ -836,6 +836,17 @@ issues:
       text: "s1039:"
       linters:
         - gosimple
+
+    # We disable some linters on migration test files.
+    - path: pkg/database/migrations/[0-9]+\.[0-9]+\.[0-9]+_test\.go
+      linters:
+        - thelper # migrations test functions are NOT helpers (they are wrongly detected as such by the linter)
+
+    # We disable defer cuddling checks on test files for better code flow.
+    - path: _test.go
+      text: "defer statement"
+      linters:
+        - wsl
 
   # Independently from option `exclude` we use default exclude patterns,
   # it can be disabled by this option. To list all

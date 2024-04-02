@@ -25,7 +25,7 @@ func init() {
 func (*moveRenameTask) Validate(args map[string]string) error {
 	if _, ok := args["path"]; !ok {
 		return fmt.Errorf("cannot create a move_rename task without a `path` argument: %w",
-			errBadTaskArguments)
+			ErrBadTaskArguments)
 	}
 
 	return nil
