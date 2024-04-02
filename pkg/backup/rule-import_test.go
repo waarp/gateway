@@ -8,7 +8,7 @@ import (
 	"code.waarp.fr/apps/gateway/gateway/pkg/backup/file"
 	"code.waarp.fr/apps/gateway/gateway/pkg/database"
 	"code.waarp.fr/apps/gateway/gateway/pkg/model"
-	"code.waarp.fr/apps/gateway/gateway/pkg/tk/utils"
+	"code.waarp.fr/apps/gateway/gateway/pkg/utils"
 )
 
 //nolint:maintidx //FIXME factorize the function if possible to improve maintainability
@@ -345,7 +345,7 @@ func TestImportRuleAccess(t *testing.T) {
 				}
 
 				Convey("When calling importRuleAccesses with new", func() {
-					err := importRuleAccesses(db, accesses, insert.ID)
+					err := importRuleAccesses(db, accesses, insert)
 
 					Convey("Then it should return no error", func() {
 						So(err, ShouldBeNil)
@@ -398,7 +398,7 @@ func TestImportRuleAccess(t *testing.T) {
 					}
 
 					Convey("When calling importRuleAccesses with new", func() {
-						err := importRuleAccesses(db, accesses, insert.ID)
+						err := importRuleAccesses(db, accesses, insert)
 
 						Convey("Then it should return no error", func() {
 							So(err, ShouldBeNil)
@@ -507,7 +507,7 @@ func TestImportTasks(t *testing.T) {
 				}
 
 				Convey("When calling importTasks on pre tasks", func() {
-					err := importRuleTasks(discard(), db, tasks, insert.ID, model.ChainPre)
+					err := importRuleTasks(discard(), db, tasks, insert, model.ChainPre)
 
 					Convey("Then it should return no error", func() {
 						So(err, ShouldBeNil)
@@ -529,7 +529,7 @@ func TestImportTasks(t *testing.T) {
 				})
 
 				Convey("When calling importTasks on post tasks", func() {
-					err := importRuleTasks(discard(), db, tasks, insert.ID, model.ChainPost)
+					err := importRuleTasks(discard(), db, tasks, insert, model.ChainPost)
 
 					Convey("Then it should return no error", func() {
 						So(err, ShouldBeNil)
@@ -551,7 +551,7 @@ func TestImportTasks(t *testing.T) {
 				})
 
 				Convey("When calling importTasks on error tasks", func() {
-					err := importRuleTasks(discard(), db, tasks, insert.ID, model.ChainError)
+					err := importRuleTasks(discard(), db, tasks, insert, model.ChainError)
 
 					Convey("Then it should return no error", func() {
 						So(err, ShouldBeNil)

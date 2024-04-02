@@ -1,7 +1,6 @@
 package rest
 
 import (
-	"errors"
 	"fmt"
 	"net/http"
 	"strconv"
@@ -11,8 +10,6 @@ import (
 	"code.waarp.fr/apps/gateway/gateway/pkg/admin/rest/api"
 	"code.waarp.fr/apps/gateway/gateway/pkg/conf"
 	"code.waarp.fr/apps/gateway/gateway/pkg/database"
-	"code.waarp.fr/apps/gateway/gateway/pkg/gatewayd/service"
-	"code.waarp.fr/apps/gateway/gateway/pkg/gatewayd/service/proto"
 	"code.waarp.fr/apps/gateway/gateway/pkg/model"
 )
 
@@ -27,7 +24,7 @@ func getTransferClient(db *database.DB, trans *api.InTransfer, protocol string,
 				return nil, badRequest("no client '%s' found", trans.Client)
 			}
 
-			return nil, err
+			return nil, fmt.Errorf("failed to retrieve client %q: %w", trans.Client, err)
 		}
 
 		return &client, nil
@@ -39,7 +36,7 @@ func getTransferClient(db *database.DB, trans *api.InTransfer, protocol string,
 	var clients model.Clients
 	if err := db.Select(&clients).Where("protocol=? AND owner=?", protocol,
 		conf.GlobalConfig.GatewayName).Run(); err != nil {
-		return nil, err
+		return nil, fmt.Errorf("failed to retrieve clients: %w", err)
 	}
 
 	// No client found with the given protocol.
@@ -85,7 +82,7 @@ func getTransInfo(db *database.DB, trans *api.InTransfer,
 			return nil, nil, nil, badRequest("no rule '%s' found", trans.Rule)
 		}
 
-		return nil, nil, nil, err
+		return nil, nil, nil, fmt.Errorf("failed to retrieve rule %q: %w", trans.Rule, err)
 	}
 
 	var partner model.RemoteAgent
@@ -95,7 +92,8 @@ func getTransInfo(db *database.DB, trans *api.InTransfer,
 			return nil, nil, nil, badRequest("no partner '%s' found", trans.Partner)
 		}
 
-		return nil, nil, nil, err
+		return nil, nil, nil, fmt.Errorf("failed to retrieve partner %q: %w",
+			trans.Partner, err)
 	}
 
 	var account model.RemoteAccount
@@ -106,7 +104,8 @@ func getTransInfo(db *database.DB, trans *api.InTransfer,
 				trans.Account, trans.Partner)
 		}
 
-		return nil, nil, nil, err
+		return nil, nil, nil, fmt.Errorf("failed to retrieve remote account %q: %w",
+			trans.Account, err)
 	}
 
 	client, cliErr := getTransferClient(db, trans, partner.Protocol)
@@ -196,37 +195,4 @@ func parseTransferListQuery(r *http.Request, db *database.DB,
 	query.OrderBy(sort.col, sort.asc)
 
 	return query, nil
-}
-
-var errServiceNotFound = errors.New("cannot find the service associated with the transfer")
-
-func getPipelineMap(db *database.DB, protoServices map[string]proto.Service,
-	trans *model.Transfer,
-) (*service.TransferMap, error) {
-	if !trans.IsServer() {
-		var client model.Client
-		if err := db.Get(&client, "id=?", trans.ClientID).Run(); err != nil {
-			return nil, err
-		}
-
-		cli, ok := protoServices[client.Name]
-		if !ok {
-			return nil, errServiceNotFound
-		}
-
-		return cli.ManageTransfers(), nil
-	}
-
-	var agent model.LocalAgent
-	if err := db.Get(&agent, "id=(SELECT local_agent_id FROM local_accounts WHERE id=?)",
-		trans.LocalAccountID).Run(); err != nil {
-		return nil, err
-	}
-
-	serv, ok := protoServices[agent.Name]
-	if !ok {
-		return nil, errServiceNotFound
-	}
-
-	return serv.ManageTransfers(), nil
 }

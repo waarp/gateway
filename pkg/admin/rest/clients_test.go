@@ -8,7 +8,9 @@ import (
 	. "github.com/smartystreets/goconvey/convey"
 
 	"code.waarp.fr/apps/gateway/gateway/pkg/conf"
+	"code.waarp.fr/apps/gateway/gateway/pkg/gatewayd/services"
 	"code.waarp.fr/apps/gateway/gateway/pkg/model"
+	"code.waarp.fr/apps/gateway/gateway/pkg/utils"
 )
 
 const (
@@ -48,6 +50,13 @@ func TestClientAdd(t *testing.T) {
 						ProtoConfig:  jsonClient["protoConfig"].(map[string]any),
 					})
 				})
+
+				Convey("Then it should have started the service", func() {
+					const name = "new_client"
+
+					So(services.Clients, ShouldContainKey, name)
+					So(stateCode(services.Clients[name]), ShouldEqual, utils.StateRunning)
+				})
 			})
 		})
 	})
@@ -85,12 +94,14 @@ func TestClientList(t *testing.T) {
 						"clients": []any{
 							map[string]any{
 								"name":         dbClient1.Name,
+								"enabled":      !dbClient1.Disabled,
 								"protocol":     dbClient1.Protocol,
 								"localAddress": dbClient1.LocalAddress,
 								"protoConfig":  dbClient1.ProtoConfig,
 							},
 							map[string]any{
 								"name":         dbClient2.Name,
+								"enabled":      !dbClient2.Disabled,
 								"protocol":     dbClient2.Protocol,
 								"localAddress": dbClient2.LocalAddress,
 								"protoConfig":  dbClient2.ProtoConfig,
@@ -128,6 +139,7 @@ func TestClientGet(t *testing.T) {
 					content := parseBody(resp.Body)
 					expected := map[string]any{
 						"name":         dbClient.Name,
+						"enabled":      !dbClient.Disabled,
 						"protocol":     dbClient.Protocol,
 						"localAddress": dbClient.LocalAddress,
 						"protoConfig":  dbClient.ProtoConfig,
@@ -150,6 +162,10 @@ func TestClientUpdate(t *testing.T) {
 			LocalAddress: ":1",
 		}
 		So(test.db.Insert(dbClient).Run(), ShouldBeNil)
+
+		service := makeAndStartTestService()
+		services.Clients[dbClient.Name] = service
+		defer delete(services.Clients, dbClient.Name)
 
 		Convey("When updating a client", func() {
 			jsonClient := map[string]any{
@@ -179,6 +195,14 @@ func TestClientUpdate(t *testing.T) {
 					})
 				})
 			})
+
+			Convey("Then it should have restarted the service", func() {
+				So(stateCode(service), ShouldEqual, utils.StateOffline)
+
+				const newName = "new_client"
+				So(services.Clients, ShouldContainKey, newName)
+				So(stateCode(services.Clients[newName]), ShouldEqual, utils.StateRunning)
+			})
 		})
 	})
 }
@@ -193,6 +217,10 @@ func TestClientReplace(t *testing.T) {
 			LocalAddress: ":1",
 		}
 		So(test.db.Insert(dbClient).Run(), ShouldBeNil)
+
+		service := makeAndStartTestService()
+		services.Clients[dbClient.Name] = service
+		defer delete(services.Clients, dbClient.Name)
 
 		Convey("When replacing a client", func() {
 			jsonClient := map[string]any{
@@ -221,6 +249,14 @@ func TestClientReplace(t *testing.T) {
 						ProtoConfig:  map[string]any{},
 					})
 				})
+
+				Convey("Then it should have restarted the service", func() {
+					So(stateCode(service), ShouldEqual, utils.StateOffline)
+
+					const newName = "new_client"
+					So(services.Clients, ShouldContainKey, newName)
+					So(stateCode(services.Clients[newName]), ShouldEqual, utils.StateRunning)
+				})
 			})
 		})
 	})
@@ -244,6 +280,10 @@ func TestClientDelete(t *testing.T) {
 		}
 		So(test.db.Insert(dbClient2).Run(), ShouldBeNil)
 
+		service := makeAndStartTestService()
+		services.Clients[dbClient.Name] = service
+		defer delete(services.Clients, dbClient.Name)
+
 		Convey("When deleting the client", func() {
 			url := fmt.Sprintf(test.URL+clientPathFormat, dbClient.Name)
 			resp := test.delete(url)
@@ -257,6 +297,11 @@ func TestClientDelete(t *testing.T) {
 					So(test.db.Select(&dbClients).Run(), ShouldBeNil)
 					So(dbClients, ShouldHaveLength, 1)
 					So(dbClients[0], ShouldResemble, dbClient2)
+				})
+
+				Convey("Then it should have stopped the service", func() {
+					So(stateCode(service), ShouldEqual, utils.StateOffline)
+					So(services.Clients, ShouldNotContainKey, dbClient.Name)
 				})
 			})
 		})

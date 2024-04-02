@@ -8,12 +8,14 @@ import (
 
 	"github.com/smartystreets/goconvey/convey"
 
+	"code.waarp.fr/apps/gateway/gateway/pkg/controller"
 	"code.waarp.fr/apps/gateway/gateway/pkg/database"
+	"code.waarp.fr/apps/gateway/gateway/pkg/gatewayd/services"
 	"code.waarp.fr/apps/gateway/gateway/pkg/model"
-	"code.waarp.fr/apps/gateway/gateway/pkg/model/config"
 	"code.waarp.fr/apps/gateway/gateway/pkg/pipeline"
-	"code.waarp.fr/apps/gateway/gateway/pkg/tk/utils"
-	"code.waarp.fr/apps/gateway/gateway/pkg/tk/utils/testhelpers"
+	"code.waarp.fr/apps/gateway/gateway/pkg/protocols/protocol"
+	"code.waarp.fr/apps/gateway/gateway/pkg/utils"
+	"code.waarp.fr/apps/gateway/gateway/pkg/utils/testhelpers"
 )
 
 type clientData struct {
@@ -22,7 +24,7 @@ type clientData struct {
 	Client     *model.Client
 	ClientRule *model.Rule
 
-	ProtoClient pipeline.Client
+	ProtoClient protocol.Client
 }
 
 // ClientContext is a struct regrouping all the elements necessary for a
@@ -34,8 +36,8 @@ type ClientContext struct {
 	protoFeatures *ProtoFeatures
 }
 
-func initClient(c convey.C, proto string, clientConf config.ClientProtoConfig,
-	partConf config.PartnerProtoConfig,
+func initClient(c convey.C, proto string, clientConf protocol.ClientConfig,
+	partConf protocol.PartnerConfig,
 ) *ClientContext {
 	feat, ok := Protocols[proto]
 	c.So(ok, convey.ShouldBeTrue)
@@ -43,13 +45,12 @@ func initClient(c convey.C, proto string, clientConf config.ClientProtoConfig,
 	port := testhelpers.GetFreePort(c)
 	cli, partner, remAcc := makeClientConf(c, t.DB, port, proto, clientConf, partConf)
 
-	constr := Protocols[proto].ClientConstr
+	constr := Protocols[proto].MakeClient
 
-	client, err := constr(cli)
-	c.So(err, convey.ShouldBeNil)
+	client := constr(t.DB, cli)
 	c.So(client.Start(), convey.ShouldBeNil)
 
-	pipeline.Clients[cli.Name] = client
+	services.Clients[cli.Name] = client
 
 	return &ClientContext{
 		testData: t,
@@ -70,8 +71,8 @@ func initClient(c convey.C, proto string, clientConf config.ClientProtoConfig,
 // InitClientPush creates a database and fills it with all the elements necessary
 // for a push client transfer test of the given protocol. It then returns all these
 // elements inside a ClientContext.
-func InitClientPush(c convey.C, proto string, clientConf config.ClientProtoConfig,
-	partConf config.PartnerProtoConfig,
+func InitClientPush(c convey.C, proto string, clientConf protocol.ClientConfig,
+	partConf protocol.PartnerConfig,
 ) *ClientContext {
 	ctx := initClient(c, proto, clientConf, partConf)
 	ctx.ClientRule = makeClientPush(c, ctx.DB, proto)
@@ -83,8 +84,8 @@ func InitClientPush(c convey.C, proto string, clientConf config.ClientProtoConfi
 // InitClientPull creates a database and fills it with all the elements necessary
 // for a pull client transfer test of the given protocol. It then returns all these
 // element inside a ClientContext.
-func InitClientPull(c convey.C, proto string, cont []byte, clientConf config.ClientProtoConfig,
-	partConf config.PartnerProtoConfig,
+func InitClientPull(c convey.C, proto string, cont []byte,
+	clientConf protocol.ClientConfig, partConf protocol.PartnerConfig,
 ) *ClientContext {
 	ctx := initClient(c, proto, clientConf, partConf)
 	ctx.ClientRule = makeClientPull(c, ctx.DB, proto)
@@ -138,7 +139,7 @@ func makeClientPull(c convey.C, db *database.DB, proto string) *model.Rule {
 }
 
 func makeClientConf(c convey.C, db *database.DB, port uint16, proto string,
-	clientConf config.ClientProtoConfig, partConf config.PartnerProtoConfig,
+	clientConf protocol.ClientConfig, partConf protocol.PartnerConfig,
 ) (*model.Client, *model.RemoteAgent, *model.RemoteAccount) {
 	jsonClientConf := map[string]any{}
 	jsonPartConf := map[string]any{}
@@ -214,13 +215,13 @@ func (cc *ClientContext) addPullTransfer(c convey.C, cont []byte) {
 
 // RunTransfer executes the test self-transfer in its entirety.
 func (cc *ClientContext) RunTransfer(c convey.C) {
-	pip, err := pipeline.NewClientPipeline(cc.DB, cc.ClientTrans)
+	pip, err := controller.NewClientPipeline(cc.DB, cc.ClientTrans)
 	c.So(err, convey.ShouldBeNil)
 	cc.setClientTrace(pip.Pip)
 
 	convey.So(pip.Run(), convey.ShouldBeNil)
 
-	ok := cc.ProtoClient.ManageTransfers().Exists(cc.ClientTrans.ID)
+	ok := pipeline.List.Exists(cc.ClientTrans.ID)
 	c.So(ok, convey.ShouldBeFalse)
 }
 
@@ -231,6 +232,26 @@ func (cc *ClientContext) CheckTransferOK(c convey.C) {
 
 	c.So(cc.DB.Get(&actual, "id=?", cc.ClientTrans.ID).Run(), convey.ShouldBeNil)
 	cc.checkClientTransferOK(c, cc.transData, cc.DB, &actual)
+}
+
+func (cc *ClientContext) GetTransferContent(c convey.C) *model.TransferContext {
+	partnerCryptos, err := cc.Partner.GetCryptos(cc.DB)
+	c.So(err, convey.ShouldBeNil)
+
+	accountCryptos, err := cc.RemAccount.GetCryptos(cc.DB)
+	c.So(err, convey.ShouldBeNil)
+
+	return &model.TransferContext{
+		Transfer:             cc.ClientTrans,
+		TransInfo:            cc.transferInfo,
+		Rule:                 cc.ClientRule,
+		Client:               cc.Client,
+		RemoteAgent:          cc.Partner,
+		RemoteAgentCryptos:   partnerCryptos,
+		RemoteAccount:        cc.RemAccount,
+		RemoteAccountCryptos: accountCryptos,
+		Paths:                cc.Paths,
+	}
 }
 
 func (cc *ClientContext) setClientTrace(pip *pipeline.Pipeline) {

@@ -3,9 +3,11 @@
 package model
 
 import (
+	"fmt"
+
 	"code.waarp.fr/apps/gateway/gateway/pkg/conf"
 	"code.waarp.fr/apps/gateway/gateway/pkg/database"
-	"code.waarp.fr/apps/gateway/gateway/pkg/tk/utils"
+	"code.waarp.fr/apps/gateway/gateway/pkg/utils"
 )
 
 // User represents a human account on the gateway. These accounts allow users
@@ -26,18 +28,18 @@ func (*User) Appellation() string { return "user" }
 func (u *User) GetID() int64      { return u.ID }
 
 // Init inserts the default user in the database when the table is created.
-func (u *User) Init(db database.Access) database.Error {
+func (u *User) Init(db database.Access) error {
 	if n, err := u.countAdmins(db); err != nil {
 		return err
 	} else if n != 0 {
 		return nil // there is already an admin
 	}
 
-	hash, err := utils.HashPassword(database.BcryptRounds, "admin_password")
-	if err != nil {
-		db.GetLogger().Error("Failed to hash the user password: %s", err)
+	hash, hashErr := utils.HashPassword(database.BcryptRounds, "admin_password")
+	if hashErr != nil {
+		db.GetLogger().Error("Failed to hash the user password: %s", hashErr)
 
-		return database.NewInternalError(err)
+		return database.NewInternalError(hashErr)
 	}
 
 	user := &User{
@@ -48,7 +50,7 @@ func (u *User) Init(db database.Access) database.Error {
 	}
 
 	if err := db.Insert(user).Run(); err != nil {
-		return err
+		return fmt.Errorf("failed to insert the default user: %w", err)
 	}
 
 	return nil
@@ -56,7 +58,7 @@ func (u *User) Init(db database.Access) database.Error {
 
 // BeforeDelete is called before removing the user from the database. Its
 // role is to check that at least one admin user remains.
-func (u *User) BeforeDelete(db database.Access) database.Error {
+func (u *User) BeforeDelete(db database.Access) error {
 	if u.Permissions&PermUsersWrite != 0 {
 		if n, err := u.countAdmins(db); err != nil {
 			return err
@@ -70,7 +72,7 @@ func (u *User) BeforeDelete(db database.Access) database.Error {
 
 // BeforeWrite checks if the new `User` entry is valid and can be
 // inserted in the database.
-func (u *User) BeforeWrite(db database.ReadAccess) database.Error {
+func (u *User) BeforeWrite(db database.ReadAccess) error {
 	u.Owner = conf.GlobalConfig.GatewayName
 	if u.Username == "" {
 		return database.NewValidationError("the username cannot be empty")
@@ -83,7 +85,7 @@ func (u *User) BeforeWrite(db database.ReadAccess) database.Error {
 	n, err := db.Count(&User{}).Where("id<>? AND owner=? AND username=?",
 		u.ID, u.Owner, u.Username).Run()
 	if err != nil {
-		return err
+		return fmt.Errorf("failed to check usernames: %w", err)
 	} else if n != 0 {
 		return database.NewValidationError("a user named '%s' already exist", u.Username)
 	}
@@ -91,11 +93,11 @@ func (u *User) BeforeWrite(db database.ReadAccess) database.Error {
 	return nil
 }
 
-func (*User) countAdmins(db database.ReadAccess) (uint, database.Error) {
+func (*User) countAdmins(db database.ReadAccess) (uint, error) {
 	var users Users
 	if err := db.Select(&users).Where("owner=?", conf.GlobalConfig.GatewayName).
 		Run(); err != nil {
-		return 0, err
+		return 0, fmt.Errorf("failed to count the number of admins: %w", err)
 	}
 
 	var n uint

@@ -5,15 +5,13 @@ import (
 	"fmt"
 )
 
-type ver0_7_5SplitR66TLS struct{}
-
 type ver0_7_5SplitR66TLSRow struct {
 	id    int64
 	proto string
 	conf  map[string]any
 }
 
-func (ver0_7_5SplitR66TLS) getR66AgentsList(db Actions, tbl string) ([]*ver0_7_5SplitR66TLSRow, error) {
+func ver0_7_5SplitR66TLSgetR66AgentsList(db Actions, tbl string) ([]*ver0_7_5SplitR66TLSRow, error) {
 	rows, err := db.Query(`SELECT id,protocol,proto_config FROM ` + tbl +
 		` WHERE protocol = 'r66' OR protocol = 'r66-tls'`)
 	if err != nil {
@@ -48,9 +46,9 @@ func (ver0_7_5SplitR66TLS) getR66AgentsList(db Actions, tbl string) ([]*ver0_7_5
 	return res, nil
 }
 
-func (v ver0_7_5SplitR66TLS) Up(db Actions) error {
+func ver0_7_5SplitR66TLSUp(db Actions) error {
 	for _, tbl := range []string{"local_agents", "remote_agents"} {
-		r66Agents, getErr := v.getR66AgentsList(db, tbl)
+		r66Agents, getErr := ver0_7_5SplitR66TLSgetR66AgentsList(db, tbl)
 		if getErr != nil {
 			return getErr
 		}
@@ -72,9 +70,9 @@ func (v ver0_7_5SplitR66TLS) Up(db Actions) error {
 	return nil
 }
 
-func (v ver0_7_5SplitR66TLS) Down(db Actions) error {
+func ver0_7_5SplitR66TLSDown(db Actions) error {
 	for _, tbl := range []string{"local_agents", "remote_agents"} {
-		r66Agents, getErr := v.getR66AgentsList(db, tbl)
+		r66Agents, getErr := ver0_7_5SplitR66TLSgetR66AgentsList(db, tbl)
 		if getErr != nil {
 			return getErr
 		}

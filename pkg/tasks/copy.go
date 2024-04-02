@@ -26,7 +26,7 @@ func init() {
 // Validate check if the task has a destination for the copy.
 func (*copyTask) Validate(args map[string]string) error {
 	if _, ok := args["path"]; !ok {
-		return fmt.Errorf("cannot create a copy task without a `path` argument: %w", errBadTaskArguments)
+		return fmt.Errorf("cannot create a copy task without a `path` argument: %w", ErrBadTaskArguments)
 	}
 
 	return nil

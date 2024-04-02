@@ -9,7 +9,7 @@ import (
 	"code.waarp.fr/apps/gateway/gateway/pkg/fs"
 	"code.waarp.fr/apps/gateway/gateway/pkg/fs/fstest"
 	"code.waarp.fr/apps/gateway/gateway/pkg/model"
-	"code.waarp.fr/apps/gateway/gateway/pkg/tk/utils/testhelpers"
+	"code.waarp.fr/apps/gateway/gateway/pkg/utils/testhelpers"
 )
 
 func TestMoveRenameTaskValidate(t *testing.T) {

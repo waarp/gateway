@@ -1,6 +1,7 @@
 package rest
 
 import (
+	"fmt"
 	"net/http"
 	"path"
 	"strconv"
@@ -13,8 +14,8 @@ import (
 	"code.waarp.fr/apps/gateway/gateway/pkg/conf"
 	"code.waarp.fr/apps/gateway/gateway/pkg/database"
 	"code.waarp.fr/apps/gateway/gateway/pkg/model"
-	"code.waarp.fr/apps/gateway/gateway/pkg/model/config"
-	"code.waarp.fr/apps/gateway/gateway/pkg/tk/utils"
+	"code.waarp.fr/apps/gateway/gateway/pkg/protocols"
+	"code.waarp.fr/apps/gateway/gateway/pkg/utils"
 )
 
 // FromHistory transforms the given database history entry into its JSON equivalent.
@@ -32,9 +33,9 @@ func FromHistory(db *database.DB, hist *model.HistoryEntry) (*api.OutHistory, er
 		src = hist.LocalPath.OSPath()
 	}
 
-	info, err := hist.GetTransferInfo(db)
-	if err != nil {
-		return nil, err
+	info, infoErr := hist.GetTransferInfo(db)
+	if infoErr != nil {
+		return nil, fmt.Errorf("failed to retrieve transfer info: %w", infoErr)
 	}
 
 	return &api.OutHistory{
@@ -53,8 +54,8 @@ func FromHistory(db *database.DB, hist *model.HistoryEntry) (*api.OutHistory, er
 		Stop:           stop,
 		TransferInfo:   info,
 		Status:         hist.Status,
-		ErrorCode:      hist.Error.Code,
-		ErrorMsg:       hist.Error.Details,
+		ErrorCode:      hist.ErrCode,
+		ErrorMsg:       hist.ErrDetails,
 		Step:           hist.Step,
 		Progress:       hist.Progress,
 		TaskNumber:     hist.TaskNumber,
@@ -84,8 +85,8 @@ func FromHistories(db *database.DB, hs []*model.HistoryEntry) ([]*api.OutHistory
 func getHist(r *http.Request, db *database.DB) (*model.HistoryEntry, error) {
 	val := mux.Vars(r)["history"]
 
-	id, err := strconv.ParseUint(val, 10, 64) //nolint:gomnd // no need for a constant here
-	if err != nil || id == 0 {
+	id, parsErr := strconv.ParseUint(val, 10, 64) //nolint:gomnd // no need for a constant here
+	if parsErr != nil || id == 0 {
 		return nil, notFound("'%s' is not a valid transfer ID", val)
 	}
 
@@ -95,7 +96,7 @@ func getHist(r *http.Request, db *database.DB) (*model.HistoryEntry, error) {
 			return nil, notFound("transfer %v not found", id)
 		}
 
-		return nil, err
+		return nil, fmt.Errorf("failed to retrieve transfer %d: %w", id, err)
 	}
 
 	return &history, nil
@@ -119,16 +120,16 @@ func parseHistoryCond(r *http.Request, query *database.SelectQuery) error {
 		query.In("status", statuses)
 	}
 
-	protocols := r.Form["protocol"]
+	protos := r.Form["protocol"]
 	// Validate requested protocols
-	for _, p := range protocols {
-		if _, ok := config.ProtoConfigs[p]; !ok {
-			return badRequest("'%s' is not a valid protocol", p)
+	for _, p := range protos {
+		if protocols.Get(p) == nil {
+			return badRequest("%q is not a valid protocol", p)
 		}
 	}
 
-	if len(protocols) > 0 {
-		query.In("protocol", protocols)
+	if len(protos) > 0 {
+		query.In("protocol", protos)
 	}
 
 	starts := r.Form["start"]
@@ -193,12 +194,13 @@ func listHistory(logger *log.Logger, db *database.DB) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		var results model.HistoryEntries
 
-		query, err := parseSelectQuery(r, db, validSorting, &results)
-		if handleError(w, logger, err) {
+		query, convErr := parseSelectQuery(r, db, validSorting, &results)
+
+		if handleError(w, logger, convErr) {
 			return
 		}
 
-		if err2 := parseHistoryCond(r, query); handleError(w, logger, err2) {
+		if err := parseHistoryCond(r, query); handleError(w, logger, err) {
 			return
 		}
 
@@ -206,14 +208,13 @@ func listHistory(logger *log.Logger, db *database.DB) http.HandlerFunc {
 			return
 		}
 
-		hist, err := FromHistories(db, results)
-		if handleError(w, logger, err) {
+		hist, convErr := FromHistories(db, results)
+		if handleError(w, logger, convErr) {
 			return
 		}
 
 		resp := map[string][]*api.OutHistory{"history": hist}
-		err = writeJSON(w, resp)
-		handleError(w, logger, err)
+		handleError(w, logger, writeJSON(w, resp))
 	}
 }
 

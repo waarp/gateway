@@ -45,17 +45,17 @@ type UptRule struct {
 // OutRule is the JSON representation of a transfer rule in responses sent by
 // the REST interface.
 type OutRule struct {
-	Name           string      `json:"name"`
-	Comment        string      `json:"comment,omitempty"`
-	IsSend         bool        `json:"isSend"`
-	Path           string      `json:"path"`
-	LocalDir       string      `json:"localDir,omitempty"`
-	RemoteDir      string      `json:"remoteDir,omitempty"`
-	TmpLocalRcvDir string      `json:"tmpLocalRcvDir,omitempty"`
-	Authorized     *RuleAccess `json:"authorized,omitempty"`
-	PreTasks       []*Task     `json:"preTasks,omitempty"`
-	PostTasks      []*Task     `json:"postTasks,omitempty"`
-	ErrorTasks     []*Task     `json:"errorTasks,omitempty"`
+	Name           string     `json:"name"`
+	Comment        string     `json:"comment,omitempty"`
+	IsSend         bool       `json:"isSend"`
+	Path           string     `json:"path"`
+	LocalDir       string     `json:"localDir,omitempty"`
+	RemoteDir      string     `json:"remoteDir,omitempty"`
+	TmpLocalRcvDir string     `json:"tmpLocalRcvDir,omitempty"`
+	Authorized     RuleAccess `json:"authorized,omitempty"`
+	PreTasks       []*Task    `json:"preTasks,omitempty"`
+	PostTasks      []*Task    `json:"postTasks,omitempty"`
+	ErrorTasks     []*Task    `json:"errorTasks,omitempty"`
 
 	// Deprecated fields
 	InPath   string `json:"inPath,omitempty"`   // Deprecated: replaced by LocalDir & RemoteDir

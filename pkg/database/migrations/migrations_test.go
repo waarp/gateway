@@ -1,68 +1,144 @@
 package migrations
 
-func testMigrations(eng *testEngine, dbType string) {
+import (
+	"database/sql"
+	"testing"
+
+	"github.com/stretchr/testify/require"
+)
+
+func listTables(tb testing.TB, eng *testEngine) []string {
+	tb.Helper()
+
+	var (
+		rows *sql.Rows
+		err  error
+	)
+
+	switch eng.Dialect {
+	case PostgreSQL:
+		rows, err = eng.DB.Query(`SELECT tablename FROM pg_catalog.pg_tables
+				WHERE schemaname != 'pg_catalog' AND schemaname != 'information_schema'`)
+	case SQLite:
+		rows, err = eng.DB.Query(`SELECT name FROM sqlite_master
+				WHERE type='table' AND name != 'sqlite_sequence'`)
+	case MySQL:
+		rows, err = eng.DB.Query(`SHOW TABLES`)
+	default:
+		tb.Fatalf("Unsupported database type: %s", eng.Dialect)
+	}
+
+	require.NoError(tb, err)
+
+	defer rows.Close()
+
+	var tables []string
+
+	for rows.Next() {
+		var table string
+
+		require.NoError(tb, rows.Scan(&table))
+
+		tables = append(tables, table)
+	}
+
+	require.NoError(tb, rows.Err())
+
+	return tables
+}
+
+func checkTableEmpty(tb testing.TB, db *sql.DB, table string) {
+	tb.Helper()
+
+	var count int64
+
+	require.NoError(tb, db.QueryRow(`SELECT COUNT(*) FROM `+table).Scan(&count))
+	require.Zerof(tb, count,
+		"Table %s was expected to be empty, but wasn't "+
+			"(most likely a migration test did not clean after itself)", table)
+}
+
+// testMigrations tests all the migrations in order. As such, be careful that
+// tests are run in the same order as the migration list. Once done, the test
+// should also return the migration tested, so that it can be applied for the
+// next test. Each test should also return the database to its original (empty)
+// state once it's done. If it doesn't, the "apply" function will fail the test.
+//
+//nolint:thelper //this is NOT a helper function, t.Helper() should NOT be called here
+func testMigrations(t *testing.T, eng *testEngine) {
+	apply := func(change Change) {
+		tables := listTables(t, eng)
+		for _, table := range tables {
+			if table != "version" {
+				checkTableEmpty(t, eng.DB, table)
+			}
+		}
+
+		require.NoError(t, eng.Upgrade(change))
+	}
+
 	// 0.4.0
-	testVer0_4_0InitDatabase(eng, dbType)
+	apply(testVer0_4_0InitDatabase(t, eng))
 
 	// 0.4.2
-	testVer0_4_2RemoveHistoryRemoteIDUnique(eng, dbType)
+	apply(testVer0_4_2RemoveHistoryRemoteIDUnique(t, eng))
 
 	// 0.5.0
-	testVer0_5_0RemoveRulePathSlash(eng, dbType)
-	testVer0_5_0CheckRulePathAncestor(eng, dbType)
-	testVer0_5_0LocalAgentChangePaths(eng)
-	testVer0_5_0LocalAgentsPathsRename(eng)
-	testVer0_5_0LocalAgentDisallowReservedNames(eng)
-	testVer0_5_0RuleNewPathCols(eng)
-	testVer0_5_0RulePathChanges(eng)
-	testVer0_5_0AddFilesize(eng)
-	testVer0_5_0TransferChangePaths(eng)
-	testVer0_5_0TransferFormatLocalPath(eng)
-	testVer0_5_0HistoryChangePaths(eng)
-	testVer0_5_0LocalAccountsPasswordDecode(eng)
-	testVer0_5_0UserPasswordChange(eng, dbType)
+	apply(testVer0_5_0RemoveRulePathSlash(t, eng))
+	apply(testVer0_5_0CheckRulePathAncestor(t, eng))
+	apply(testVer0_5_0LocalAgentChangePaths(t, eng))
+	apply(testVer0_5_0LocalAgentsPathsRename(t, eng))
+	apply(testVer0_5_0LocalAgentDisallowReservedNames(t, eng))
+	apply(testVer0_5_0RuleNewPathCols(t, eng))
+	apply(testVer0_5_0RulePathChanges(t, eng))
+	apply(testVer0_5_0AddFilesize(t, eng))
+	apply(testVer0_5_0TransferChangePaths(t, eng))
+	apply(testVer0_5_0TransferFormatLocalPath(t, eng))
+	apply(testVer0_5_0HistoryChangePaths(t, eng))
+	apply(testVer0_5_0LocalAccountsPasswordDecode(t, eng))
+	apply(testVer0_5_0UserPasswordChange(t, eng))
 
 	// 0.5.2
-	testVer0_5_2FillRemoteTransferID(eng)
+	apply(testVer0_5_2FillRemoteTransferID(t, eng))
 
 	// 0.6.0
-	testVer0_6_0AddTransferInfoIsHistory(eng)
+	apply(testVer0_6_0AddTransferInfoIsHistory(t, eng))
 
 	// 0.7.0
-	testVer0_7_0AddLocalAgentEnabled(eng)
-	testVer0_7_0RevampUsersTable(eng, dbType)
-	testVer0_7_0RevampLocalAgentTable(eng)
-	testVer0_7_0RevampRemoteAgentTable(eng)
-	testVer0_7_0RevampLocalAccountsTable(eng, dbType)
-	testVer0_7_0RevampRemoteAccountsTable(eng)
-	testVer0_7_0RevampRulesTable(eng)
-	testVer0_7_0RevampTasksTable(eng, dbType)
-	testVer0_7_0RevampHistoryTable(eng)
-	testVer0_7_0RevampTransfersTable(eng)
-	testVer0_7_0RevampTransferInfoTable(eng)
-	testVer0_7_0RevampCryptoTable(eng)
-	testVer0_7_0RevampRuleAccessTable(eng)
-	testVer0_7_0AddLocalAgentsAddressUnique(eng)
-	testVer0_7_0AddNormalizedTransfersView(eng)
+	apply(testVer0_7_0AddLocalAgentEnabled(t, eng))
+	apply(testVer0_7_0RevampUsersTable(t, eng))
+	apply(testVer0_7_0RevampLocalAgentTable(t, eng))
+	apply(testVer0_7_0RevampRemoteAgentTable(t, eng))
+	apply(testVer0_7_0RevampLocalAccountsTable(t, eng))
+	apply(testVer0_7_0RevampRemoteAccountsTable(t, eng))
+	apply(testVer0_7_0RevampRulesTable(t, eng))
+	apply(testVer0_7_0RevampTasksTable(t, eng))
+	apply(testVer0_7_0RevampHistoryTable(t, eng))
+	apply(testVer0_7_0RevampTransfersTable(t, eng))
+	apply(testVer0_7_0RevampTransferInfoTable(t, eng))
+	apply(testVer0_7_0RevampCryptoTable(t, eng))
+	apply(testVer0_7_0RevampRuleAccessTable(t, eng))
+	apply(testVer0_7_0AddLocalAgentsAddressUnique(t, eng))
+	apply(testVer0_7_0AddNormalizedTransfersView(t, eng))
 
 	// 0.7.5
-	testVer0_7_5SplitR66TLS(eng)
+	apply(testVer0_7_5SplitR66TLS(t, eng))
 
 	// 0.8.0
-	testVer0_8_0DropNormalizedTransfersView(eng)
-	testVer0_8_0AddTransferFilename(eng)
-	testVer0_8_0AddHistoryFilename(eng)
-	testVer0_8_0UpdateNormalizedTransfersView(eng)
+	apply(testVer0_8_0DropNormalizedTransfersView(t, eng))
+	apply(testVer0_8_0AddTransferFilename(t, eng))
+	apply(testVer0_8_0AddHistoryFilename(t, eng))
+	apply(testVer0_8_0UpdateNormalizedTransfersView(t, eng))
 
 	// 0.9.0
-	testVer0_9_0AddCloudInstances(eng, dbType)
-	testVer0_9_0LocalPathToURL(eng)
-	testVer0_9_0FixLocalServerEnabled(eng, dbType)
-	testVer0_9_0AddClientsTable(eng, dbType)
-	testVer0_9_0AddRemoteAgentOwner(eng)
-	testVer0_9_0DuplicateRemoteAgents(eng, dbType)
-	testVer0_9_0RelinkTransfers(eng)
-	testVer0_9_0AddTransfersClientID(eng)
-	testVer0_9_0AddHistoryClient(eng)
-	testVer0_9_0AddNormalizedTransfersView(eng)
+	apply(testVer0_9_0AddCloudInstances(t, eng))
+	apply(testVer0_9_0LocalPathToURL(t, eng))
+	apply(testVer0_9_0FixLocalServerEnabled(t, eng))
+	apply(testVer0_9_0AddClientsTable(t, eng))
+	apply(testVer0_9_0AddRemoteAgentOwner(t, eng))
+	apply(testVer0_9_0DuplicateRemoteAgents(t, eng))
+	apply(testVer0_9_0RelinkTransfers(t, eng))
+	apply(testVer0_9_0AddTransfersClientID(t, eng))
+	apply(testVer0_9_0AddHistoryClient(t, eng))
+	apply(testVer0_9_0AddNormalizedTransfersView(t, eng))
 }

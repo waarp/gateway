@@ -3,14 +3,16 @@
 Configuration SFTP
 ##################
 
-L'objet JSON de configuration du protocole SFTP est identique pour les serveurs
-et les partenaires. Les options disponibles sont les suivantes :
+Options communes
+================
+
+Les champs suivants sont communs aux configuration client, serveur et partenaire :
 
 * **keyExchanges** (*array of string*) - *Optionnel* Liste des algorithmes d'échange de clé
-  autorisés sur le serveur. Les algorithmes supportés sont (par ordre de préférence) :
+  autorisés. Les algorithmes supportés sont (par ordre de préférence) :
 
-  - ``curve25519-sha256@libssh.org``:
-  - ``ecdh-sha2-nistp256``:
+  - ``curve25519-sha256@libssh.org``
+  - ``ecdh-sha2-nistp256``
   - ``ecdh-sha2-nistp384``
   - ``ecdh-sha2-nistp521``
   - ``diffie-hellman-group-exchange-sha256`` (*Uniquement supporté par le client*)
@@ -55,6 +57,24 @@ et les partenaires. Les options disponibles sont les suivantes :
   Par défaut, tous les algorithmes sont autorisés.
 
   |
+
+Configuration client
+====================
+
+En dehors des options communes spécifiées ci-dessus, la configuration client
+SFTP ne comporte pas d'options spécifiques.
+
+Configuration serveur
+=====================
+
+
+En dehors des options communes spécifiées ci-dessus, la configuration serveur
+SFTP ne comporte pas d'options spécifiques.
+
+Configuration partenaire
+========================
+
+Les champs suivants ne sont disponibles que pour la configuration partenaire :
 
 * **useStat** (*boolean*) - *Optionnel* Lorsque la *gateway* récupère un fichier
   depuis un serveur SFTP distant, le SFTP client de la *gateway* envoie une

@@ -1,24 +1,23 @@
 package migrations
 
 import (
+	"database/sql"
+	"errors"
 	"fmt"
 	"path/filepath"
 	"strings"
 
-	"code.waarp.fr/apps/gateway/gateway/pkg/conf"
-	"code.waarp.fr/apps/gateway/gateway/pkg/tk/utils"
+	"code.waarp.fr/apps/gateway/gateway/pkg/utils"
 )
 
-type ver0_9_0AddCloudInstances struct{}
-
-func (ver0_9_0AddCloudInstances) Up(db Actions) error {
+func ver0_9_0AddCloudInstancesUp(db Actions) error {
 	if err := db.CreateTable("cloud_instances", &Table{
 		Columns: []Column{
 			{Name: "id", Type: BigInt{}, NotNull: true, Default: AutoIncr{}},
 			{Name: "owner", Type: Varchar(100), NotNull: true},
 			{Name: "name", Type: Varchar(100), NotNull: true},
 			{Name: "type", Type: Varchar(50), NotNull: true},
-			{Name: "key", Type: Text{}, NotNull: true, Default: ""},
+			{Name: "api_key", Type: Text{}, NotNull: true, Default: ""},
 			{Name: "secret", Type: Text{}, NotNull: true, Default: ""},
 			{Name: "options", Type: Text{}, NotNull: true, Default: "{}"},
 		},
@@ -33,7 +32,7 @@ func (ver0_9_0AddCloudInstances) Up(db Actions) error {
 	return nil
 }
 
-func (ver0_9_0AddCloudInstances) Down(db Actions) error {
+func ver0_9_0AddCloudInstancesDown(db Actions) error {
 	if err := db.DropTable("cloud_instances"); err != nil {
 		return fmt.Errorf(`failed to drop the "cloud_instances" table: %w`, err)
 	}
@@ -41,9 +40,7 @@ func (ver0_9_0AddCloudInstances) Down(db Actions) error {
 	return nil
 }
 
-type ver0_9_0LocalPathToURL struct{}
-
-func (ver0_9_0LocalPathToURL) getTransfers(db Actions, limit, offset int,
+func _ver0_9_0LocalPathToURLGetTransfers(db Actions, limit, offset int,
 ) ([]*struct {
 	id   int64
 	path string
@@ -80,7 +77,7 @@ func (ver0_9_0LocalPathToURL) getTransfers(db Actions, limit, offset int,
 	return transfers, nil
 }
 
-func (ver0_9_0LocalPathToURL) toURL(path string) string {
+func _ver0_9_0LocalPathToURLToURL(path string) string {
 	path = filepath.ToSlash(path)
 	path = strings.TrimLeft(path, "/")
 	path = "file:/" + path
@@ -88,7 +85,7 @@ func (ver0_9_0LocalPathToURL) toURL(path string) string {
 	return path
 }
 
-func (ver0_9_0LocalPathToURL) fromURL(path string) string {
+func _ver0_9_0LocalPathToURLFromURL(path string) string {
 	path = strings.TrimPrefix(path, "file:/")
 	path = filepath.FromSlash(path)
 
@@ -99,11 +96,11 @@ func (ver0_9_0LocalPathToURL) fromURL(path string) string {
 	return path
 }
 
-func (v ver0_9_0LocalPathToURL) Up(db Actions) error {
+func ver0_9_0LocalPathToURLUp(db Actions) error {
 	const limit = 20
 
 	for offset := 0; ; offset += limit {
-		transfers, getErr := v.getTransfers(db, limit, offset)
+		transfers, getErr := _ver0_9_0LocalPathToURLGetTransfers(db, limit, offset)
 		if getErr != nil {
 			return getErr
 		} else if len(transfers) == 0 {
@@ -111,7 +108,7 @@ func (v ver0_9_0LocalPathToURL) Up(db Actions) error {
 		}
 
 		for _, trans := range transfers {
-			newPath := v.toURL(trans.path)
+			newPath := _ver0_9_0LocalPathToURLToURL(trans.path)
 			if err := db.Exec(`UPDATE transfers SET local_path=? WHERE id=?`,
 				newPath, trans.id); err != nil {
 				return fmt.Errorf(`failed to update the "transfers" table: %w`, err)
@@ -122,11 +119,11 @@ func (v ver0_9_0LocalPathToURL) Up(db Actions) error {
 	return nil
 }
 
-func (v ver0_9_0LocalPathToURL) Down(db Actions) error {
+func ver0_9_0LocalPathToURLDown(db Actions) error {
 	const limit = 20
 
 	for offset := 0; ; offset += limit {
-		transfers, getErr := v.getTransfers(db, limit, offset)
+		transfers, getErr := _ver0_9_0LocalPathToURLGetTransfers(db, limit, offset)
 		if getErr != nil {
 			return getErr
 		} else if len(transfers) == 0 {
@@ -134,7 +131,7 @@ func (v ver0_9_0LocalPathToURL) Down(db Actions) error {
 		}
 
 		for _, trans := range transfers {
-			oldPath := v.fromURL(trans.path)
+			oldPath := _ver0_9_0LocalPathToURLFromURL(trans.path)
 			if err := db.Exec(`UPDATE transfers SET local_path=? WHERE id=?`,
 				oldPath, trans.id); err != nil {
 				return fmt.Errorf(`failed to update the "transfers" table: %w`, err)
@@ -145,13 +142,11 @@ func (v ver0_9_0LocalPathToURL) Down(db Actions) error {
 	return nil
 }
 
-type ver0_9_0FixLocalServerEnabled struct{}
-
-func (ver0_9_0FixLocalServerEnabled) Up(db Actions) error {
+func ver0_9_0FixLocalServerEnabledUp(db Actions) error {
 	if db.GetDialect() == SQLite {
 		// Due to how SQLite handles ALTER TABLE, we must drop the "normalized_transfers"
 		// view before altering the table, otherwise the operation fails.
-		if err := (&ver0_7_0AddNormalizedTransfersView{}).Down(db); err != nil {
+		if err := ver0_7_0AddNormalizedTransfersViewDown(db); err != nil {
 			return err
 		}
 	}
@@ -169,7 +164,7 @@ func (ver0_9_0FixLocalServerEnabled) Up(db Actions) error {
 
 	if db.GetDialect() == SQLite {
 		// Now we restore the "normalized_transfers" view.
-		if err := (&ver0_7_0AddNormalizedTransfersView{}).Up(db); err != nil {
+		if err := ver0_7_0AddNormalizedTransfersViewUp(db); err != nil {
 			return err
 		}
 	}
@@ -177,11 +172,11 @@ func (ver0_9_0FixLocalServerEnabled) Up(db Actions) error {
 	return nil
 }
 
-func (ver0_9_0FixLocalServerEnabled) Down(db Actions) error {
+func ver0_9_0FixLocalServerEnabledDown(db Actions) error {
 	if db.GetDialect() == SQLite {
 		// Due to how SQLite handles ALTER TABLE, we must drop the "normalized_transfers"
 		// view before altering the table, otherwise the operation fails.
-		if err := (&ver0_7_0AddNormalizedTransfersView{}).Down(db); err != nil {
+		if err := ver0_7_0AddNormalizedTransfersViewDown(db); err != nil {
 			return err
 		}
 	}
@@ -199,7 +194,7 @@ func (ver0_9_0FixLocalServerEnabled) Down(db Actions) error {
 
 	if db.GetDialect() == SQLite {
 		// Now we restore the "normalized_transfers" view.
-		if err := (&ver0_7_0AddNormalizedTransfersView{}).Up(db); err != nil {
+		if err := ver0_7_0AddNormalizedTransfersViewUp(db); err != nil {
 			return err
 		}
 	}
@@ -207,9 +202,7 @@ func (ver0_9_0FixLocalServerEnabled) Down(db Actions) error {
 	return nil
 }
 
-type ver0_9_0AddClientsTable struct{}
-
-func (ver0_9_0AddClientsTable) Up(db Actions) error {
+func ver0_9_0AddClientsTableUp(db Actions) error {
 	if err := db.CreateTable("clients", &Table{
 		Columns: []Column{
 			{Name: "id", Type: BigInt{}, NotNull: true, Default: AutoIncr{}},
@@ -235,7 +228,7 @@ func (ver0_9_0AddClientsTable) Up(db Actions) error {
 	return nil
 }
 
-func (ver0_9_0AddClientsTable) Down(db Actions) error {
+func ver0_9_0AddClientsTableDown(db Actions) error {
 	if err := db.DropTable("clients"); err != nil {
 		return fmt.Errorf("failed to drop the 'clients' table: %w", err)
 	}
@@ -243,12 +236,10 @@ func (ver0_9_0AddClientsTable) Down(db Actions) error {
 	return nil
 }
 
-type ver0_9_0AddRemoteAgentOwner struct{}
-
-func (ver0_9_0AddRemoteAgentOwner) Up(db Actions) error {
+func ver0_9_0AddRemoteAgentOwnerUp(db Actions) error {
 	// We drop the "normalized_transfers" view, otherwise the ALTER TABLE fails
 	// on SQLite. It is restored in a later script.
-	if err := (&ver0_7_0AddNormalizedTransfersView{}).Down(db); err != nil {
+	if err := ver0_7_0AddNormalizedTransfersViewDown(db); err != nil {
 		return err
 	}
 
@@ -262,7 +253,7 @@ func (ver0_9_0AddRemoteAgentOwner) Up(db Actions) error {
 	return nil
 }
 
-func (ver0_9_0AddRemoteAgentOwner) Down(db Actions) error {
+func ver0_9_0AddRemoteAgentOwnerDown(db Actions) error {
 	if err := db.AlterTable("remote_agents",
 		DropColumn{Name: "owner"},
 		AddUnique{Name: "unique_remote_agent", Cols: []string{"name"}},
@@ -270,16 +261,14 @@ func (ver0_9_0AddRemoteAgentOwner) Down(db Actions) error {
 		return fmt.Errorf("failed to alter the 'remote_agents' table: %w", err)
 	}
 
-	if err := (&ver0_7_0AddNormalizedTransfersView{}).Up(db); err != nil {
+	if err := ver0_7_0AddNormalizedTransfersViewUp(db); err != nil {
 		return err
 	}
 
 	return nil
 }
 
-type ver0_9_0DuplicateRemoteAgents struct{ currentOwner string }
-
-func (v ver0_9_0DuplicateRemoteAgents) _duplicateCrypto(db Actions,
+func _ver0_9_0DuplicateRemoteAgentsDuplicateCrypto(db Actions,
 	idCol string, oldOwnerID int64, newIDCte string,
 ) error {
 	type crypto struct{ name, pk, cert, sshKey string }
@@ -325,7 +314,7 @@ func (v ver0_9_0DuplicateRemoteAgents) _duplicateCrypto(db Actions,
 	return nil
 }
 
-func (v ver0_9_0DuplicateRemoteAgents) _duplicateRuleAccess(db Actions,
+func _ver0_9_0DuplicateRemoteAgentsDuplicateRuleAccess(db Actions,
 	idCol string, oldOwnerID int64, newIDCte string,
 ) error {
 	var ruleIDs []int64
@@ -367,7 +356,7 @@ func (v ver0_9_0DuplicateRemoteAgents) _duplicateRuleAccess(db Actions,
 	return nil
 }
 
-func (v ver0_9_0DuplicateRemoteAgents) _duplicateRemoteAccounts(db Actions,
+func _ver0_9_0DuplicateRemoteAgentsDuplicateRemoteAccounts(db Actions,
 	oldAgentID int64, newAgentIDCte string,
 ) error {
 	type remoteAccount struct {
@@ -415,11 +404,13 @@ func (v ver0_9_0DuplicateRemoteAgents) _duplicateRemoteAccounts(db Actions,
 		newIDCte := fmt.Sprintf(`SELECT id FROM remote_accounts WHERE login='%s'
 			AND remote_agent_id=(%s)`, remAcc.login, newAgentIDCte)
 
-		if err := v._duplicateCrypto(db, "remote_account_id", remAcc.id, newIDCte); err != nil {
+		if err := _ver0_9_0DuplicateRemoteAgentsDuplicateCrypto(db,
+			"remote_account_id", remAcc.id, newIDCte); err != nil {
 			return err
 		}
 
-		if err := v._duplicateRuleAccess(db, "remote_account_id", remAcc.id, newIDCte); err != nil {
+		if err := _ver0_9_0DuplicateRemoteAgentsDuplicateRuleAccess(db,
+			"remote_account_id", remAcc.id, newIDCte); err != nil {
 			return err
 		}
 	}
@@ -427,8 +418,8 @@ func (v ver0_9_0DuplicateRemoteAgents) _duplicateRemoteAccounts(db Actions,
 	return nil
 }
 
-func (v ver0_9_0DuplicateRemoteAgents) _duplicateRemoteAgents(db Actions,
-	newOwner string,
+func _ver0_9_0DuplicateRemoteAgentsDuplicateRemoteAgents(db Actions,
+	sourceOwner, newOwner string,
 ) error {
 	type remoteAgent struct {
 		id                           int64
@@ -439,7 +430,7 @@ func (v ver0_9_0DuplicateRemoteAgents) _duplicateRemoteAgents(db Actions,
 
 	if err := func() error {
 		rows, queryErr := db.Query(`SELECT id,name,protocol,address,proto_config
-		    FROM remote_agents WHERE owner=?`, v.currentOwner)
+		    FROM remote_agents WHERE owner=? ORDER BY id`, sourceOwner)
 		if queryErr != nil {
 			return fmt.Errorf("failed to retrieve the remote agents: %w", queryErr)
 		}
@@ -476,15 +467,18 @@ func (v ver0_9_0DuplicateRemoteAgents) _duplicateRemoteAgents(db Actions,
 		newIDCte := fmt.Sprintf(`SELECT id FROM remote_agents WHERE name='%s' AND
 			owner='%s'`, remAg.name, newOwner)
 
-		if err := v._duplicateCrypto(db, "remote_agent_id", remAg.id, newIDCte); err != nil {
+		if err := _ver0_9_0DuplicateRemoteAgentsDuplicateCrypto(db,
+			"remote_agent_id", remAg.id, newIDCte); err != nil {
 			return err
 		}
 
-		if err := v._duplicateRuleAccess(db, "remote_agent_id", remAg.id, newIDCte); err != nil {
+		if err := _ver0_9_0DuplicateRemoteAgentsDuplicateRuleAccess(db,
+			"remote_agent_id", remAg.id, newIDCte); err != nil {
 			return err
 		}
 
-		if err := v._duplicateRemoteAccounts(db, remAg.id, newIDCte); err != nil {
+		if err := _ver0_9_0DuplicateRemoteAgentsDuplicateRemoteAccounts(db,
+			remAg.id, newIDCte); err != nil {
 			return err
 		}
 	}
@@ -492,11 +486,12 @@ func (v ver0_9_0DuplicateRemoteAgents) _duplicateRemoteAgents(db Actions,
 	return nil
 }
 
-func (v ver0_9_0DuplicateRemoteAgents) _getOtherOwners(db Actions) ([]string, error) {
+func _ver0_9_0DuplicateRemoteAgentsGetOtherOwners(db Actions, primaryOwner string,
+) ([]string, error) {
 	var owners []string
 
 	rows, queryErr := db.Query(`SELECT DISTINCT owner FROM users WHERE owner<>?
-		ORDER BY owner`, v.currentOwner)
+		ORDER BY owner`, primaryOwner)
 	if queryErr != nil {
 		return nil, fmt.Errorf("failed to retrieve the owners: %w", queryErr)
 	}
@@ -519,22 +514,40 @@ func (v ver0_9_0DuplicateRemoteAgents) _getOtherOwners(db Actions) ([]string, er
 	return owners, nil
 }
 
-func (v ver0_9_0DuplicateRemoteAgents) Up(db Actions) error {
-	if v.currentOwner == "" {
-		v.currentOwner = conf.GlobalConfig.GatewayName
+func _ver0_9_0DuplicateRemoteAgentsGetFirstOwner(db Actions) (string, error) {
+	var owner string
+
+	row := db.QueryRow(`SELECT owner FROM users ORDER BY username LIMIT 1`)
+	if err := row.Scan(&owner); err != nil {
+		if errors.Is(err, sql.ErrNoRows) {
+			return "", nil
+		}
+
+		return "", fmt.Errorf("failed to retrieve the primary owner: %w", err)
 	}
 
-	if err := db.Exec(`UPDATE remote_agents SET owner=?`, v.currentOwner); err != nil {
+	return owner, nil
+}
+
+func ver0_9_0DuplicateRemoteAgentsUp(db Actions) error {
+	firstOwner, firstErr := _ver0_9_0DuplicateRemoteAgentsGetFirstOwner(db)
+	if firstErr != nil {
+		return firstErr
+	} else if firstOwner == "" {
+		return nil // nothing to do
+	}
+
+	if err := db.Exec(`UPDATE remote_agents SET owner=?`, firstOwner); err != nil {
 		return fmt.Errorf("failed to update remote agents: %w", err)
 	}
 
-	owners, ownErr := v._getOtherOwners(db)
+	owners, ownErr := _ver0_9_0DuplicateRemoteAgentsGetOtherOwners(db, firstOwner)
 	if ownErr != nil {
 		return ownErr
 	}
 
 	for _, owner := range owners {
-		if err := v._duplicateRemoteAgents(db, owner); err != nil {
+		if err := _ver0_9_0DuplicateRemoteAgentsDuplicateRemoteAgents(db, firstOwner, owner); err != nil {
 			return err
 		}
 	}
@@ -542,12 +555,15 @@ func (v ver0_9_0DuplicateRemoteAgents) Up(db Actions) error {
 	return nil
 }
 
-func (v ver0_9_0DuplicateRemoteAgents) Down(db Actions) error {
-	if v.currentOwner == "" {
-		v.currentOwner = conf.GlobalConfig.GatewayName
+func ver0_9_0DuplicateRemoteAgentsDown(db Actions) error {
+	firstOwner, firstErr := _ver0_9_0DuplicateRemoteAgentsGetFirstOwner(db)
+	if firstErr != nil {
+		return firstErr
+	} else if firstOwner == "" {
+		return nil // nothing to do
 	}
 
-	if err := db.Exec(`DELETE FROM remote_agents WHERE owner<>?`, v.currentOwner); err != nil {
+	if err := db.Exec(`DELETE FROM remote_agents WHERE owner<>?`, firstOwner); err != nil {
 		return fmt.Errorf("failed to delete the duplicated remote agents: %w", err)
 	}
 
@@ -558,9 +574,7 @@ func (v ver0_9_0DuplicateRemoteAgents) Down(db Actions) error {
 	return nil
 }
 
-type ver0_9_0RelinkTransfers struct{ currentOwner string }
-
-func (ver0_9_0RelinkTransfers) getPartners(db Actions) ([][4]any, error,
+func _ver0_9_0RelinkTransfersGetPartners(db Actions) ([][4]any, error,
 ) {
 	rows, queryErr := db.Query(`SELECT DISTINCT a.id,a.login,p.name,t.owner FROM 
         transfers t INNER JOIN remote_accounts a ON t.remote_account_id=a.id 
@@ -593,8 +607,8 @@ func (ver0_9_0RelinkTransfers) getPartners(db Actions) ([][4]any, error,
 	return partners, nil
 }
 
-func (v ver0_9_0RelinkTransfers) Up(db Actions) error {
-	partners, cliErr := v.getPartners(db)
+func ver0_9_0RelinkTransfersUp(db Actions) error {
+	partners, cliErr := _ver0_9_0RelinkTransfersGetPartners(db)
 	if cliErr != nil {
 		return cliErr
 	}
@@ -618,8 +632,13 @@ func (v ver0_9_0RelinkTransfers) Up(db Actions) error {
 	return nil
 }
 
-func (v ver0_9_0RelinkTransfers) Down(db Actions) error {
-	partners, cliErr := v.getPartners(db)
+func ver0_9_0RelinkTransfersDown(db Actions) error {
+	primaryOwner, primaryErr := _ver0_9_0DuplicateRemoteAgentsGetFirstOwner(db)
+	if primaryErr != nil {
+		return primaryErr
+	}
+
+	partners, cliErr := _ver0_9_0RelinkTransfersGetPartners(db)
 	if cliErr != nil {
 		return cliErr
 	}
@@ -633,7 +652,7 @@ func (v ver0_9_0RelinkTransfers) Down(db Actions) error {
         	remote_account_id=(SELECT a.id FROM remote_accounts a
                 INNER JOIN remote_agents p ON a.remote_agent_id=p.id
             	WHERE a.login=? AND p.name=? AND p.owner=?)
-			WHERE remote_account_id=?`, login, name, v.currentOwner, oldID); err != nil {
+			WHERE remote_account_id=?`, login, name, primaryOwner, oldID); err != nil {
 			return fmt.Errorf("failed to revert the transfer partners: %w", err)
 		}
 	}
@@ -641,9 +660,7 @@ func (v ver0_9_0RelinkTransfers) Down(db Actions) error {
 	return nil
 }
 
-type ver0_9_0AddTransferClientID struct{}
-
-func (ver0_9_0AddTransferClientID) Up(db Actions) error {
+func ver0_9_0AddTransferClientIDUp(db Actions) error {
 	if err := db.AlterTable("transfers",
 		AddColumn{Name: "client_id", Type: BigInt{}},
 	); err != nil {
@@ -683,7 +700,7 @@ func (ver0_9_0AddTransferClientID) Up(db Actions) error {
 	return nil
 }
 
-func (ver0_9_0AddTransferClientID) Down(db Actions) error {
+func ver0_9_0AddTransferClientIDDown(db Actions) error {
 	// The 2 modifications must be separated, otherwise it fails on SQLite.
 	if err := db.AlterTable("transfers",
 		DropConstraint{Name: "transfer_client_check"}); err != nil {
@@ -698,9 +715,7 @@ func (ver0_9_0AddTransferClientID) Down(db Actions) error {
 	return nil
 }
 
-type ver0_9_0AddHistoryClient struct{}
-
-func (ver0_9_0AddHistoryClient) Up(db Actions) error {
+func ver0_9_0AddHistoryClientUp(db Actions) error {
 	if err := db.AlterTable("transfer_history",
 		AddColumn{Name: "client", Type: Varchar(100) /*NotNull: true*/}); err != nil {
 		return fmt.Errorf("failed to alter the 'transfer_history' table: %w", err)
@@ -725,7 +740,7 @@ func (ver0_9_0AddHistoryClient) Up(db Actions) error {
 	return nil
 }
 
-func (ver0_9_0AddHistoryClient) Down(db Actions) error {
+func ver0_9_0AddHistoryClientDown(db Actions) error {
 	if err := db.AlterTable("transfer_history",
 		DropColumn{Name: "client"}); err != nil {
 		return fmt.Errorf("failed to alter the 'transfer_history' table: %w", err)
@@ -734,9 +749,7 @@ func (ver0_9_0AddHistoryClient) Down(db Actions) error {
 	return nil
 }
 
-type ver0_9_0RestoreNormalizedTransfersView struct{}
-
-func (ver0_9_0RestoreNormalizedTransfersView) Up(db Actions) error {
+func ver0_9_0RestoreNormalizedTransfersViewUp(db Actions) error {
 	transStop := utils.If(db.GetDialect() == PostgreSQL,
 		"null::timestamp", "null")
 
@@ -777,7 +790,7 @@ func (ver0_9_0RestoreNormalizedTransfersView) Up(db Actions) error {
 	return nil
 }
 
-func (ver0_9_0RestoreNormalizedTransfersView) Down(db Actions) error {
+func ver0_9_0RestoreNormalizedTransfersViewDown(db Actions) error {
 	if err := db.DropView("normalized_transfers"); err != nil {
 		return fmt.Errorf("failed to drop the normalized transfer view: %w", err)
 	}

@@ -7,9 +7,10 @@ import (
 	"net/http"
 	"net/http/httptest"
 	"net/url"
-	"reflect"
+	"testing"
 
-	"github.com/smartystreets/goconvey/convey"
+	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
 const (
@@ -29,73 +30,36 @@ type expectedResponse struct {
 	body    map[string]any
 }
 
-func testServer(expected *expectedRequest, result *expectedResponse) {
+func testServer(tb testing.TB, expected *expectedRequest, result *expectedResponse) {
+	tb.Helper()
+
 	if expected.values == nil {
 		expected.values = url.Values{}
 	}
 
 	check := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		if user, pswd, ok := r.BasicAuth(); !ok {
-			http.Error(w, "missing REST credentials", http.StatusUnauthorized)
+		user, pswd, ok := r.BasicAuth()
+		assert.True(tb, ok, "missing REST credentials")
+		assert.Equal(tb, testUser, user, "invalid REST username")
+		assert.Equal(tb, testPswd, pswd, "invalid REST password")
 
-			return
-		} else if user != testUser || pswd != testPswd {
-			http.Error(w, fmt.Sprintf("invalid REST credentials (expected %q and %q, got %q and %q)",
-				testUser, testPswd, user, pswd), http.StatusUnauthorized)
-
-			return
-		}
-
-		if r.Method != expected.method {
-			http.Error(w, fmt.Sprintf("wrong method, expected %q, got %q",
-				expected.method, r.Method), http.StatusMethodNotAllowed)
-
-			return
-		}
-
-		if r.URL.Path != expected.path {
-			http.Error(w, fmt.Sprintf("resource not found, expected %q, got %q",
-				expected.path, r.URL.Path), http.StatusNotFound)
-
-			return
-		}
-
-		if !reflect.DeepEqual(r.URL.Query(), expected.values) {
-			http.Error(w, fmt.Sprintf("bad arguments, expected %v, got %v",
-				expected.values, r.URL.Query()), http.StatusBadRequest)
-
-			return
-		}
+		assert.Equal(tb, expected.method, r.Method, "wrong request method")
+		assert.Equal(tb, expected.path, r.URL.Path, "wrong request path")
+		assert.Equal(tb, expected.values, r.URL.Query(), "wrong URL parameters")
 
 		if expected.body != nil {
 			var body map[string]any
 
 			decoder := json.NewDecoder(r.Body)
-			if err := decoder.Decode(&body); err != nil {
-				http.Error(w, fmt.Sprintf("expected a JSON input in body: %v", err),
-					http.StatusBadRequest)
+			err := decoder.Decode(&body)
+			require.NoError(tb, err, "failed to parse JSON body")
 
-				return
-			}
-
-			if !reflect.DeepEqual(body, expected.body) {
-				http.Error(w, fmt.Sprintf("bad JSON body, expected %v, got %v",
-					expected.body, body), http.StatusBadRequest)
-
-				return
-			}
+			assert.Equal(tb, expected.body, body, "wrong request body")
 		} else {
-			if cont, err := io.ReadAll(r.Body); err != nil {
-				http.Error(w, fmt.Sprintf("error while reading the request body: %v",
-					err), http.StatusInternalServerError)
+			content, err := io.ReadAll(r.Body)
+			require.NoError(tb, err, "failed to read request body")
 
-				return
-			} else if len(cont) != 0 {
-				http.Error(w, fmt.Sprintf("expected no body, got %q", string(cont)),
-					http.StatusBadRequest)
-
-				return
-			}
+			assert.Empty(tb, content, "expected no body")
 		}
 
 		for head, vals := range result.headers {
@@ -106,12 +70,7 @@ func testServer(expected *expectedRequest, result *expectedResponse) {
 
 		if result.body != nil {
 			respBody, err := json.MarshalIndent(result.body, "", "  ")
-			if err != nil {
-				http.Error(w, fmt.Sprintf("error while writing the reesponse body: %v",
-					err), http.StatusInternalServerError)
-
-				return
-			}
+			require.NoError(tb, err, "failed to marshal JSON response body")
 
 			defer fmt.Fprint(w, string(respBody))
 		}
@@ -120,14 +79,14 @@ func testServer(expected *expectedRequest, result *expectedResponse) {
 	})
 
 	serv := httptest.NewServer(check)
+	tb.Cleanup(serv.Close)
 
-	convey.Reset(func() {
-		serv.CloseClientConnections()
-		serv.Close()
-	})
+	if path := result.headers.Get("Location"); path != "" {
+		result.headers.Set("Location", serv.URL+path)
+	}
 
 	host, err := url.Parse(serv.URL)
-	convey.So(err, convey.ShouldBeNil)
+	require.NoError(tb, err)
 
 	addr = host
 	addr.User = url.UserPassword(testUser, testPswd)

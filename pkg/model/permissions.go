@@ -77,8 +77,8 @@ func MaskToPerms(m PermsMask) *Permissions {
 	}
 }
 
-func permToMask(mask *PermsMask, perm string, off int) database.Error {
-	invalid := func(format string, args ...interface{}) database.Error {
+func permToMask(mask *PermsMask, perm string, off int) error {
+	invalid := func(format string, args ...interface{}) error {
 		reason := fmt.Sprintf(format, args...)
 
 		return database.NewValidationError("invalid permission string '%s': %s", perm, reason)
@@ -92,7 +92,7 @@ func permToMask(mask *PermsMask, perm string, off int) database.Error {
 		return invalid("expected length 3, got %d", len(perm))
 	}
 
-	process := func(o int, expected rune) database.Error {
+	process := func(o int, expected rune) error {
 		switch char := rune(perm[o]); char {
 		case '-':
 		case expected:
@@ -116,7 +116,7 @@ func permToMask(mask *PermsMask, perm string, off int) database.Error {
 // PermsToMask converts the given Permissions instance to an equivalent PermsMask.
 //
 //nolint:gomnd //too specific
-func PermsToMask(perms *Permissions) (PermsMask, database.Error) {
+func PermsToMask(perms *Permissions) (PermsMask, error) {
 	if perms == nil {
 		return 0, nil
 	}

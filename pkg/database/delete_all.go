@@ -47,7 +47,7 @@ func (d *DeleteAllQuery) In(col string, vals ...interface{}) *DeleteAllQuery {
 }
 
 // Run executes the 'DELETE ALL' query.
-func (d *DeleteAllQuery) Run() Error {
+func (d *DeleteAllQuery) Run() error {
 	logger := d.db.GetLogger()
 	query := d.db.getUnderlying().NoAutoCondition()
 

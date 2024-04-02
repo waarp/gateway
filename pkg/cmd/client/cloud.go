@@ -27,7 +27,16 @@ func displayCloud(f *Formatter, cloud *cloudObject) {
 	defer f.UnIndent()
 
 	f.ValueWithDefault("Key", cloud.Key, "<none>")
-	displayMap(f, "Options", "<none>", cloud.Options)
+
+	if len(cloud.Options) == 0 {
+		f.Empty("Options", "<none>")
+	} else {
+		f.Title("Options")
+		f.Indent()
+		defer f.UnIndent()
+
+		displayMap(f, cloud.Options)
+	}
 }
 
 type CloudGet struct {
@@ -65,13 +74,13 @@ func (c *CloudAdd) execute(w io.Writer) error {
 
 	newCloud := map[string]any{}
 
-	addIfNotZero(newCloud, "name", c.Name)
-	addIfNotZero(newCloud, "type", c.Type)
-	addIfNotZero(newCloud, "key", c.Key)
-	addIfNotZero(newCloud, "secret", c.Secret)
-	addIfNotZero(newCloud, "options", c.Options)
+	optionalProperty(newCloud, "name", c.Name)
+	optionalProperty(newCloud, "type", c.Type)
+	optionalProperty(newCloud, "key", c.Key)
+	optionalProperty(newCloud, "secret", c.Secret)
+	optionalProperty(newCloud, "options", c.Options)
 
-	if err := add(newCloud); err != nil {
+	if _, err := add(w, newCloud); err != nil {
 		return err
 	}
 
@@ -90,7 +99,7 @@ func (c *CloudDelete) Execute([]string) error { return c.execute(os.Stdout) }
 func (c *CloudDelete) execute(w io.Writer) error {
 	addr.Path = path.Join(cloudsAPIPath, c.Args.Name)
 
-	if err := remove(); err != nil {
+	if err := remove(w); err != nil {
 		return err
 	}
 
@@ -118,13 +127,13 @@ func (c *CloudUpdate) execute(w io.Writer) error {
 
 	newCloud := map[string]any{}
 
-	addIfNotZero(newCloud, "name", c.Name)
-	addIfNotZero(newCloud, "type", c.Type)
-	addIfNotZero(newCloud, "key", c.Key)
-	addIfNotZero(newCloud, "secret", c.Secret)
-	addIfNotZero(newCloud, "options", c.Options)
+	optionalProperty(newCloud, "name", c.Name)
+	optionalProperty(newCloud, "type", c.Type)
+	optionalProperty(newCloud, "key", c.Key)
+	optionalProperty(newCloud, "secret", c.Secret)
+	optionalProperty(newCloud, "options", c.Options)
 
-	if err := update(newCloud); err != nil {
+	if err := update(w, newCloud); err != nil {
 		return err
 	}
 

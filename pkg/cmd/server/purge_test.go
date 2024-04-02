@@ -10,21 +10,17 @@ import (
 
 	"code.waarp.fr/apps/gateway/gateway/pkg/database"
 	"code.waarp.fr/apps/gateway/gateway/pkg/model"
-	"code.waarp.fr/apps/gateway/gateway/pkg/model/config"
 	"code.waarp.fr/apps/gateway/gateway/pkg/model/types"
-	"code.waarp.fr/apps/gateway/gateway/pkg/tk/utils"
-	"code.waarp.fr/apps/gateway/gateway/pkg/tk/utils/testhelpers"
+	"code.waarp.fr/apps/gateway/gateway/pkg/protocols"
+	"code.waarp.fr/apps/gateway/gateway/pkg/protocols/protocolstest"
+	"code.waarp.fr/apps/gateway/gateway/pkg/utils"
 )
 
 const testProtocol = "test_proto"
 
 //nolint:gochecknoinits // init is used to ease the tests
 func init() {
-	config.ProtoConfigs[testProtocol] = &config.Constructor{
-		Server:  func() config.ServerProtoConfig { return new(testhelpers.TestProtoConfig) },
-		Partner: func() config.PartnerProtoConfig { return new(testhelpers.TestProtoConfig) },
-		Client:  func() config.ClientProtoConfig { return new(testhelpers.TestProtoConfig) },
-	}
+	protocols.Register(testProtocol, protocolstest.TestModule{})
 }
 
 func TestPurgeCommand(t *testing.T) {
@@ -38,7 +34,7 @@ func TestPurgeCommand(t *testing.T) {
 			Client:           "cli",
 			Account:          "foo",
 			Agent:            "bar",
-			Protocol:         "test_proto",
+			Protocol:         testProtocol,
 			LocalPath:        *mkURL("file:/loc_path"),
 			RemotePath:       "/rem_path",
 			Start:            time.Date(2021, 1, 1, 1, 0, 0, 0, time.UTC),
@@ -53,7 +49,7 @@ func TestPurgeCommand(t *testing.T) {
 			Client:           "cli",
 			Account:          "foo",
 			Agent:            "bar",
-			Protocol:         "test_proto",
+			Protocol:         testProtocol,
 			LocalPath:        *mkURL("file:/loc_path"),
 			RemotePath:       "/rem_path",
 			Start:            time.Date(2022, 1, 1, 1, 0, 0, 0, time.UTC),
@@ -69,7 +65,7 @@ func TestPurgeCommand(t *testing.T) {
 			Client:           "cli",
 			Account:          "foo",
 			Agent:            "bar",
-			Protocol:         "test_proto",
+			Protocol:         testProtocol,
 			LocalPath:        *mkURL("file:/loc_path"),
 			RemotePath:       "/rem_path",
 			Start:            time.Date(2022, 1, 1, 3, 0, 0, 0, time.UTC),

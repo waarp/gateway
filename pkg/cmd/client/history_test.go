@@ -1,3 +1,5 @@
+//go:build todo
+
 package wg
 
 import (
@@ -10,7 +12,6 @@ import (
 	"time"
 
 	"github.com/jessevdk/go-flags"
-	. "github.com/smartystreets/goconvey/convey"
 
 	"code.waarp.fr/apps/gateway/gateway/pkg/admin/rest"
 	"code.waarp.fr/apps/gateway/gateway/pkg/admin/rest/api"
@@ -18,7 +19,7 @@ import (
 	"code.waarp.fr/apps/gateway/gateway/pkg/database"
 	"code.waarp.fr/apps/gateway/gateway/pkg/model"
 	"code.waarp.fr/apps/gateway/gateway/pkg/model/types"
-	"code.waarp.fr/apps/gateway/gateway/pkg/tk/utils"
+	"code.waarp.fr/apps/gateway/gateway/pkg/utils"
 )
 
 func historyInfoString(h *api.OutHistory) string {

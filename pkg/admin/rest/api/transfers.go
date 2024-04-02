@@ -21,9 +21,9 @@ type InTransfer struct {
 	// FileInfo     map[string]interface{} `json:"fileInfo,omitempty"`
 
 	// Deprecated fields
-	SourcePath string    `json:"sourcePath,omitempty"` // Deprecated: replaced by File
-	DestPath   string    `json:"destPath,omitempty"`   // Deprecated: replaced by File
-	StartDate  time.Time `json:"startDate,omitempty"`  // Deprecated: replaced by Start
+	SourcePath string     `json:"sourcePath,omitempty"` // Deprecated: replaced by File
+	DestPath   string     `json:"destPath,omitempty"`   // Deprecated: replaced by File
+	StartDate  *time.Time `json:"startDate,omitempty"`  // Deprecated: replaced by Start
 }
 
 // OutTransfer is the JSON representation of a transfer in responses sent by

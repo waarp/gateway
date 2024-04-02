@@ -6,9 +6,9 @@ import (
 	"io"
 
 	"code.waarp.fr/apps/gateway/gateway/pkg/backup/file"
-	"code.waarp.fr/apps/gateway/gateway/pkg/conf"
 	"code.waarp.fr/apps/gateway/gateway/pkg/database"
-	"code.waarp.fr/apps/gateway/gateway/pkg/tk/utils"
+	"code.waarp.fr/apps/gateway/gateway/pkg/logging"
+	"code.waarp.fr/apps/gateway/gateway/pkg/utils"
 )
 
 // ExportData extracts from the database the subsets specified in targets,
@@ -18,41 +18,41 @@ import (
 // local servers and accounts, 'partners' for remote partners and accounts, or
 // 'all' for all data.
 func ExportData(db database.ReadAccess, w io.Writer, targets []string) error {
-	logger := conf.GetLogger("export")
+	logger := logging.NewLogger("export")
 
 	var err error
 
 	data := &file.Data{}
 
-	if utils.ContainsStrings(targets, "servers", "all") {
+	if utils.ContainsOneOfStrings(targets, "servers", "all") {
 		data.Locals, err = exportLocals(logger, db)
 		if err != nil {
 			return err
 		}
 	}
 
-	if utils.ContainsStrings(targets, "clients", "all") {
+	if utils.ContainsOneOfStrings(targets, "clients", "all") {
 		data.Clients, err = exportClients(logger, db)
 		if err != nil {
 			return err
 		}
 	}
 
-	if utils.ContainsStrings(targets, "partners", "all") {
+	if utils.ContainsOneOfStrings(targets, "partners", "all") {
 		data.Remotes, err = exportRemotes(logger, db)
 		if err != nil {
 			return err
 		}
 	}
 
-	if utils.ContainsStrings(targets, "rules", "all") {
+	if utils.ContainsOneOfStrings(targets, "rules", "all") {
 		data.Rules, err = exportRules(logger, db)
 		if err != nil {
 			return err
 		}
 	}
 
-	if utils.ContainsStrings(targets, "users", "all") {
+	if utils.ContainsOneOfStrings(targets, "users", "all") {
 		data.Users, err = exportUsers(logger, db)
 		if err != nil {
 			return err

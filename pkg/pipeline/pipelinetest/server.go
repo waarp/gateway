@@ -9,12 +9,11 @@ import (
 
 	"code.waarp.fr/apps/gateway/gateway/pkg/database"
 	"code.waarp.fr/apps/gateway/gateway/pkg/fs"
-	"code.waarp.fr/apps/gateway/gateway/pkg/gatewayd/service/proto"
 	"code.waarp.fr/apps/gateway/gateway/pkg/model"
-	"code.waarp.fr/apps/gateway/gateway/pkg/model/config"
 	"code.waarp.fr/apps/gateway/gateway/pkg/pipeline"
-	"code.waarp.fr/apps/gateway/gateway/pkg/tk/utils"
-	"code.waarp.fr/apps/gateway/gateway/pkg/tk/utils/testhelpers"
+	"code.waarp.fr/apps/gateway/gateway/pkg/protocols/protocol"
+	"code.waarp.fr/apps/gateway/gateway/pkg/utils"
+	"code.waarp.fr/apps/gateway/gateway/pkg/utils/testhelpers"
 )
 
 // ServerContext is a struct regrouping all the elements necessary for a server
@@ -33,18 +32,18 @@ type serverData struct {
 }
 
 type testService interface {
-	proto.Service
+	protocol.Server
 	SetTracer(getTrace func() pipeline.Trace)
 }
 
-func initServer(c convey.C, protocol string, servConf config.ServerProtoConfig,
+func initServer(c convey.C, proto string, servConf protocol.ServerConfig,
 ) *ServerContext {
 	t := initTestData(c)
 	port := testhelpers.GetFreePort(c)
-	locAg, locAcc := makeServerConf(c, t, port, protocol, servConf)
+	locAg, locAcc := makeServerConf(c, t, port, proto, servConf)
 
-	constr := Protocols[protocol].ServiceConstr
-	server := constr(t.DB, testhelpers.TestLogger(c, locAg.Name))
+	constr := Protocols[proto].MakeServer
+	server := constr(t.DB, locAg)
 
 	testServer, ok := server.(testService)
 	c.So(ok, convey.ShouldBeTrue)
@@ -66,9 +65,9 @@ func (s *ServerContext) Filename() string { return s.filename }
 // InitServerPush creates a database and fills it with all the elements necessary
 // for a server push transfer test of the given protocol. It then returns all these
 // element inside a ServerContext.
-func InitServerPush(c convey.C, protocol string, servConf config.ServerProtoConfig,
+func InitServerPush(c convey.C, proto string, servConf protocol.ServerConfig,
 ) *ServerContext {
-	ctx := initServer(c, protocol, servConf)
+	ctx := initServer(c, proto, servConf)
 	ctx.ServerRule = makeServerPush(c, ctx.DB)
 
 	return ctx
@@ -77,9 +76,9 @@ func InitServerPush(c convey.C, protocol string, servConf config.ServerProtoConf
 // InitServerPull creates a database and fills it with all the elements necessary
 // for a server pull transfer test of the given protocol. It then returns all these
 // element inside a ServerContext.
-func InitServerPull(c convey.C, protocol string, servConf config.ServerProtoConfig,
+func InitServerPull(c convey.C, proto string, servConf protocol.ServerConfig,
 ) *ServerContext {
-	ctx := initServer(c, protocol, servConf)
+	ctx := initServer(c, proto, servConf)
 	ctx.ServerRule = makeServerPull(c, ctx.DB)
 
 	return ctx
@@ -112,8 +111,8 @@ func makeServerPull(c convey.C, db *database.DB) *model.Rule {
 	return rule
 }
 
-func makeServerConf(c convey.C, data *testData, port uint16, protocol string,
-	servConf config.ServerProtoConfig,
+func makeServerConf(c convey.C, data *testData, port uint16, proto string,
+	servConf protocol.ServerConfig,
 ) (ag *model.LocalAgent, acc *model.LocalAccount) {
 	jsonServConf := map[string]any{}
 
@@ -122,13 +121,13 @@ func makeServerConf(c convey.C, data *testData, port uint16, protocol string,
 		c.So(err, convey.ShouldBeNil)
 	}
 
-	rootDir := protocol + "_server_root"
+	rootDir := proto + "_server_root"
 	rootPath := mkURL(data.Paths.GatewayHome, rootDir)
 	c.So(fs.MkdirAll(data.FS, rootPath), convey.ShouldBeNil)
 
 	server := &model.LocalAgent{
 		Name:          "server",
-		Protocol:      protocol,
+		Protocol:      proto,
 		RootDir:       rootDir,
 		ProtoConfig:   jsonServConf,
 		Address:       fmt.Sprintf("127.0.0.1:%d", port),
@@ -143,7 +142,7 @@ func makeServerConf(c convey.C, data *testData, port uint16, protocol string,
 	c.So(fs.MkdirAll(data.FS, rootPath.JoinPath(server.TmpReceiveDir)), convey.ShouldBeNil)
 
 	pswd := TestPassword
-	if protocol == config.ProtocolR66 || protocol == config.ProtocolR66TLS {
+	if proto == "r66" || proto == "r66-tls" {
 		pswd = utils.R66Hash(pswd)
 	}
 
@@ -159,15 +158,15 @@ func makeServerConf(c convey.C, data *testData, port uint16, protocol string,
 }
 
 // AddCryptos adds the given cryptos to the test database.
-func (s *ServerContext) AddCryptos(c convey.C, certs ...model.Crypto) {
+func (s *ServerContext) AddCryptos(c convey.C, certs ...*model.Crypto) {
 	for i := range certs {
-		c.So(s.DB.Insert(&certs[i]).Run(), convey.ShouldBeNil)
+		c.So(s.DB.Insert(certs[i]).Run(), convey.ShouldBeNil)
 	}
 }
 
 // StartService starts the service associated with the server defined in ServerContext.
 func (s *ServerContext) StartService(c convey.C) {
-	c.So(s.service.Start(s.Server), convey.ShouldBeNil)
+	c.So(s.service.Start(), convey.ShouldBeNil)
 	c.Reset(func() {
 		ctx, cancel := context.WithTimeout(context.Background(), time.Second)
 		defer cancel()

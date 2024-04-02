@@ -14,7 +14,7 @@ import (
 	. "code.waarp.fr/apps/gateway/gateway/pkg/admin/rest/api"
 	"code.waarp.fr/apps/gateway/gateway/pkg/database"
 	"code.waarp.fr/apps/gateway/gateway/pkg/model"
-	"code.waarp.fr/apps/gateway/gateway/pkg/tk/utils/testhelpers"
+	"code.waarp.fr/apps/gateway/gateway/pkg/utils/testhelpers"
 )
 
 func remoteAccountsURI(agent, login string) string {

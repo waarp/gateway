@@ -8,24 +8,25 @@ import (
 	"net/url"
 	"path"
 	"path/filepath"
-	"sort"
 	"time"
 
 	"code.waarp.fr/apps/gateway/gateway/pkg/admin/rest/api"
 	"code.waarp.fr/apps/gateway/gateway/pkg/model/types"
-	"code.waarp.fr/apps/gateway/gateway/pkg/tk/utils"
+	"code.waarp.fr/apps/gateway/gateway/pkg/utils"
 )
 
-//nolint:funlen //splitting would add complexity
-func displayHistory(w io.Writer, hist *api.OutHistory) {
+func DisplayHistory(w io.Writer, hist *api.OutHistory) {
+	f := NewFormatter(w)
+	defer f.Render()
+
+	displayHistory(f, hist)
+}
+
+//nolint:varnamelen //formatter name is kept short for readability
+func displayHistory(f *Formatter, hist *api.OutHistory) {
 	role := roleClient
 	if hist.IsServer {
 		role = roleServer
-	}
-
-	way := directionRecv
-	if hist.IsSend {
-		way = directionSend
 	}
 
 	size := sizeUnknown
@@ -38,57 +39,39 @@ func displayHistory(w io.Writer, hist *api.OutHistory) {
 		stop = hist.Stop.Local().Format(time.RFC3339Nano)
 	}
 
-	fmt.Fprintln(w, boldOrange("● Transfer %d (as %s)", hist.ID, role), coloredStatus(hist.Status))
+	f.Title("Transfer %d (as %s) [%s]", hist.ID, role, coloredStatus(hist.Status))
+	f.Indent()
 
-	if hist.RemoteID != "" {
-		fmt.Fprintln(w, orange("    Remote ID:      "), hist.RemoteID)
-	}
+	defer f.UnIndent()
 
-	fmt.Fprintln(w, orange("    Way:            "), way)
-	fmt.Fprintln(w, orange("    Protocol:       "), hist.Protocol)
-	fmt.Fprintln(w, orange("    Rule:           "), hist.Rule)
-	fmt.Fprintln(w, orange("    Requester:      "), hist.Requester)
-	fmt.Fprintln(w, orange("    Requested:      "), hist.Requested)
-	fmt.Fprintln(w, orange("    Local filepath: "), hist.LocalFilepath)
-	fmt.Fprintln(w, orange("    Remote filepath:"), hist.RemoteFilepath)
-	fmt.Fprintln(w, orange("    File size:      "), size)
-	fmt.Fprintln(w, orange("    Start date:     "), hist.Start.Format(time.RFC3339Nano))
-	fmt.Fprintln(w, orange("    End date:       "), stop)
+	f.ValueCond("Remote ID", hist.RemoteID)
+	f.Value("Way", direction(hist.IsSend))
+	f.Value("Protocol", hist.Protocol)
+	f.Value("Rule", hist.Rule)
+	f.Value("Requester", hist.Requester)
+	f.Value("Requested", hist.Requested)
+	f.Value("Local filepath", hist.LocalFilepath)
+	f.Value("Remote filepath", hist.RemoteFilepath)
+	f.Value("File size", size)
+	f.Value("Start date", hist.Start.Format(time.RFC3339Nano))
+	f.Value("End date", stop)
 
 	if hist.ErrorCode != types.TeOk {
-		fmt.Fprintln(w, orange("    Error code:     "), hist.ErrorCode)
-
-		if hist.ErrorMsg != "" {
-			fmt.Fprintln(w, orange("    Error message:  "), hist.ErrorMsg)
-		}
+		f.Value("Error code", hist.ErrorCode.String())
+		f.ValueCond("Error message", hist.ErrorMsg)
 	}
 
 	if hist.Step != types.StepNone {
-		fmt.Fprintln(w, orange("    Failed step:    "), hist.Step.String())
+		f.Value("Failed step", hist.Step.String())
 
-		switch hist.Step { //nolint:exhaustive // those are the only relevant cases here
-		case types.StepData:
-			fmt.Fprintln(w, orange("    Progress:       "), hist.Progress)
-		case types.StepPreTasks, types.StepPostTasks:
-			fmt.Fprintln(w, orange("    Failed task:    "), hist.TaskNumber)
+		if hist.Step == types.StepData {
+			f.Value("Progress", hist.Progress)
+		} else if hist.Step == types.StepPreTasks || hist.Step == types.StepPostTasks {
+			f.Value("Task number", hist.TaskNumber)
 		}
 	}
 
-	if len(hist.TransferInfo) > 0 {
-		fmt.Fprintln(w, orange("    Transfer info:"))
-
-		info := make([]string, 0, len(hist.TransferInfo))
-
-		for key, val := range hist.TransferInfo {
-			info = append(info, fmt.Sprint("      - ", key, ": ", val))
-		}
-
-		sort.Strings(info)
-
-		for i := range info {
-			fmt.Fprintln(w, info[i])
-		}
-	}
+	displayTransferInfo(f, hist.TransferInfo)
 }
 
 // ######################## GET ##########################
@@ -99,7 +82,8 @@ type HistoryGet struct {
 	} `positional-args:"yes"`
 }
 
-func (h *HistoryGet) Execute([]string) error {
+func (h *HistoryGet) Execute([]string) error { return h.execute(stdOutput) }
+func (h *HistoryGet) execute(w io.Writer) error {
 	addr.Path = path.Join("/api/history/", utils.FormatUint(h.Args.ID))
 
 	trans := &api.OutHistory{}
@@ -107,7 +91,7 @@ func (h *HistoryGet) Execute([]string) error {
 		return err
 	}
 
-	displayHistory(getColorable(), trans)
+	DisplayHistory(w, trans)
 
 	return nil
 }
@@ -179,23 +163,27 @@ func (h *HistoryList) listURL() error {
 	return nil
 }
 
-func (h *HistoryList) Execute([]string) error {
+func (h *HistoryList) Execute([]string) error { return h.execute(stdOutput) }
+
+//nolint:dupl //history & transfer commands should be kept separate for future-proofing
+func (h *HistoryList) execute(w io.Writer) error {
 	if err := h.listURL(); err != nil {
 		return err
 	}
 
-	body := map[string][]api.OutHistory{}
+	body := map[string][]*api.OutHistory{}
 	if err := list(&body); err != nil {
 		return err
 	}
 
-	w := getColorable() //nolint:ifshort // decrease readability
-
 	if history := body["history"]; len(history) > 0 {
-		fmt.Fprintln(w, bold("History:"))
+		f := NewFormatter(w)
+		defer f.Render()
 
-		for i := range history {
-			displayHistory(w, &history[i])
+		f.MainTitle("History:")
+
+		for _, entry := range history {
+			displayHistory(f, entry)
 		}
 	} else {
 		fmt.Fprintln(w, "No transfers found.")
@@ -214,8 +202,10 @@ type HistoryRetry struct {
 	Date string `short:"d" long:"date" description:"Set the date at which the transfer should restart. Date must be in RFC3339 format."`
 }
 
-//nolint:dupl //must be kept separate for retro-compatibility
-func (h *HistoryRetry) Execute([]string) error {
+func (h *HistoryRetry) Execute([]string) error { return h.execute(stdOutput) }
+
+//nolint:dupl //history & transfer commands should be kept separate for future-proofing
+func (h *HistoryRetry) execute(w io.Writer) error {
 	addr.Path = fmt.Sprintf("/api/history/%d/retry", h.Args.ID)
 
 	query := url.Values{}
@@ -241,8 +231,6 @@ func (h *HistoryRetry) Execute([]string) error {
 	}
 	defer resp.Body.Close() //nolint:errcheck // nothing to handle the error
 
-	w := getColorable()
-
 	switch resp.StatusCode {
 	case http.StatusCreated:
 		loc, err := resp.Location()
@@ -251,7 +239,7 @@ func (h *HistoryRetry) Execute([]string) error {
 		}
 
 		id := filepath.Base(loc.Path)
-		fmt.Fprintln(w, "The transfer will be retried under the ID:", bold(id))
+		fmt.Fprintf(w, "The transfer will be retried under the ID %q\n", id)
 
 		return nil
 	case http.StatusBadRequest:

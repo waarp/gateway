@@ -11,6 +11,7 @@ import (
 	"code.waarp.fr/apps/gateway/gateway/pkg/backup"
 	"code.waarp.fr/apps/gateway/gateway/pkg/conf"
 	"code.waarp.fr/apps/gateway/gateway/pkg/database"
+	"code.waarp.fr/apps/gateway/gateway/pkg/logging"
 )
 
 var ErrResetPipe = errors.New("cannot use -r without -s")
@@ -39,7 +40,7 @@ func initImportExport(configFile string, verbose []bool) (*database.DB, *log.Log
 
 	config.Log = MakeLogConf(verbose)
 
-	back, err2 := conf.NewLogBackend(config.Log.Level, config.Log.LogTo,
+	back, err2 := logging.NewLogBackend(config.Log.Level, config.Log.LogTo,
 		config.Log.SyslogFacility, "waarp-gateway")
 	if err2 != nil {
 		return nil, nil, fmt.Errorf("cannot initialize log backend: %w", err2)

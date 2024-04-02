@@ -4,7 +4,7 @@ import (
 	"encoding/json"
 	"errors"
 
-	"code.waarp.fr/apps/gateway/gateway/pkg/tk/utils"
+	"code.waarp.fr/apps/gateway/gateway/pkg/utils"
 )
 
 const BcryptRounds = 12

@@ -7,41 +7,38 @@ import (
 	"net/http/httptest"
 	"testing"
 
-	"code.waarp.fr/lib/log"
 	. "github.com/smartystreets/goconvey/convey"
 
 	"code.waarp.fr/apps/gateway/gateway/pkg/admin/rest/api"
-	"code.waarp.fr/apps/gateway/gateway/pkg/database"
-	"code.waarp.fr/apps/gateway/gateway/pkg/gatewayd/service"
-	"code.waarp.fr/apps/gateway/gateway/pkg/gatewayd/service/proto"
-	"code.waarp.fr/apps/gateway/gateway/pkg/gatewayd/service/state"
-	"code.waarp.fr/apps/gateway/gateway/pkg/model"
-	"code.waarp.fr/apps/gateway/gateway/pkg/tk/utils/testhelpers"
+	"code.waarp.fr/apps/gateway/gateway/pkg/gatewayd/services"
+	"code.waarp.fr/apps/gateway/gateway/pkg/pipeline"
+	"code.waarp.fr/apps/gateway/gateway/pkg/protocols/protocol"
+	"code.waarp.fr/apps/gateway/gateway/pkg/utils"
+	"code.waarp.fr/apps/gateway/gateway/pkg/utils/testhelpers"
 )
 
-type testService struct{ state state.State }
-
-func (*testService) Start() error               { return nil }
-func (*testService) Stop(context.Context) error { return nil }
-func (t *testService) State() *state.State      { return &t.state }
-
-type testServer struct {
+type testService struct {
+	state   utils.State
 	stopped bool
-	state   state.State
 }
 
-func newTestServer(*database.DB, *log.Logger) proto.Service { return &testServer{} }
-func (t *testServer) State() *state.State                   { return &t.state }
-func (*testServer) ManageTransfers() *service.TransferMap   { return service.NewTransferMap() }
+func makeAndStartTestService() *testService {
+	return &testService{state: utils.NewState(utils.StateRunning, "")}
+}
 
-func (t *testServer) Start(a *model.LocalAgent) error {
-	t.state.Set(state.Running, "")
+func (t *testService) State() (utils.StateCode, string) { return t.state.Get() }
+func (t *testService) InitTransfer(*pipeline.Pipeline) (protocol.TransferClient, *pipeline.Error) {
+	panic("should not be called")
+}
+
+func (t *testService) Start() error {
+	t.state.Set(utils.StateRunning, "")
 
 	return nil
 }
 
-func (t *testServer) Stop(context.Context) error {
-	t.state.Set(state.Offline, "")
+func (t *testService) Stop(context.Context) error {
+	t.state.Set(utils.StateOffline, "")
 	t.stopped = true
 
 	return nil
@@ -49,36 +46,30 @@ func (t *testServer) Stop(context.Context) error {
 
 func TestStatus(t *testing.T) {
 	Convey("Given a gateway with some services", t, func(c C) {
-		core := map[string]service.Service{
-			"Core Running Service": &testService{state: state.State{}},
-			"Core Offline Service": &testService{state: state.State{}},
-			"Core Error Service":   &testService{state: state.State{}},
+		services.Core = map[string]services.Service{
+			"Running Core Service": &testService{state: utils.NewState(utils.StateRunning, "")},
+			"Offline Core Service": &testService{state: utils.NewState(utils.StateOffline, "")},
+			"Error Core Service":   &testService{state: utils.NewState(utils.StateError, "Test Reason")},
 		}
-		core["Core Running Service"].State().Set(state.Running, "")
-		core["Core Offline Service"].State().Set(state.Offline, "")
-		core["Core Error Service"].State().Set(state.Error, "Test Reason")
 
-		protoServices := map[string]proto.Service{
-			"Proto Running Service": &testServer{state: state.State{}},
-			"Proto Offline Service": &testServer{state: state.State{}},
-			"Proto Error Service":   &testServer{state: state.State{}},
+		services.Servers = map[string]services.Server{
+			"Running Server": &testService{state: utils.NewState(utils.StateRunning, "")},
+			"Offline Server": &testService{state: utils.NewState(utils.StateOffline, "")},
+			"Error Server":   &testService{state: utils.NewState(utils.StateError, "Test Reason")},
 		}
-		protoServices["Proto Running Service"].State().Set(state.Running, "")
-		protoServices["Proto Offline Service"].State().Set(state.Offline, "")
-		protoServices["Proto Error Service"].State().Set(state.Error, "Test Reason")
 
 		statuses := map[string]api.Status{
-			"Core Error Service":    {State: state.Error.Name(), Reason: "Test Reason"},
-			"Core Offline Service":  {State: state.Offline.Name()},
-			"Core Running Service":  {State: state.Running.Name()},
-			"Proto Error Service":   {State: state.Error.Name(), Reason: "Test Reason"},
-			"Proto Offline Service": {State: state.Offline.Name()},
-			"Proto Running Service": {State: state.Running.Name()},
+			"Error Core Service":   {State: utils.StateError.String(), Reason: "Test Reason"},
+			"Offline Core Service": {State: utils.StateOffline.String()},
+			"Running Core Service": {State: utils.StateRunning.String()},
+			"Error Server":         {State: utils.StateError.String(), Reason: "Test Reason"},
+			"Offline Server":       {State: utils.StateOffline.String()},
+			"Running Server":       {State: utils.StateRunning.String()},
 		}
 
 		Convey("Given the REST status handler", func() {
 			logger := testhelpers.TestLogger(c, "rest_status_test")
-			handler := getStatus(logger, core, protoServices)
+			handler := getStatus(logger)
 
 			Convey("Given a status request", func() {
 				w := httptest.NewRecorder()

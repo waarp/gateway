@@ -3,61 +3,64 @@ package migrations
 import (
 	"testing"
 
-	"code.waarp.fr/lib/migration"
-	. "github.com/smartystreets/goconvey/convey"
+	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 
-	"code.waarp.fr/apps/gateway/gateway/pkg/tk/utils/testhelpers"
+	"code.waarp.fr/apps/gateway/gateway/pkg/utils/gwtesting"
 )
 
 func TestDoMigration(t *testing.T) {
-	Convey("Given an test database", t, func(c C) {
-		logger := testhelpers.TestLogger(c, "test_do_migration")
-		db := getSQLiteEngine(c).DB
+	t.Parallel()
+
+	t.Run("Given an test database", func(t *testing.T) {
+		logger := gwtesting.Logger(t)
+		db := gwtesting.SQLiteDatabase(t)
 		var curr string
 
-		So(DoMigration(db, logger, "0.4.0", migration.SQLite, nil), ShouldBeNil)
+		require.NoError(t, DoMigration(db, logger, "0.4.0", SQLite, nil))
 
-		So(db.QueryRow(`SELECT current FROM version`).Scan(&curr), ShouldBeNil)
-		So(curr, ShouldEqual, "0.4.0")
+		require.NoError(t, db.QueryRow(`SELECT current FROM version`).Scan(&curr))
+		require.Equal(t, "0.4.0", curr)
 
-		Convey("When migrating up to a version", func() {
-			err := DoMigration(db, logger, "0.4.2", migration.SQLite, nil)
-			So(err, ShouldBeNil)
+		t.Run("When migrating up to a version", func(t *testing.T) {
+			require.NoError(t, DoMigration(db, logger, "0.4.2", SQLite, nil))
 
-			Convey("Then it should have executed all the change scripts "+
-				"up to the given version", func() {
-				So(doesIndexExist(db, SQLite, "transfer_history",
-					"UQE_transfer_history_histRemID"), ShouldBeFalse)
+			t.Run("Then it should have executed all the change scripts "+
+				"up to the given version", func(t *testing.T) {
+				assert.False(t, doesIndexExist(t, db, SQLite,
+					"transfer_history", "UQE_transfer_history_histRemID"))
 
-				So(db.QueryRow(`SELECT current FROM version`).Scan(&curr), ShouldBeNil)
-				So(curr, ShouldEqual, "0.4.2")
+				require.NoError(t, db.QueryRow(`SELECT current FROM version`).Scan(&curr))
+				assert.Equal(t, "0.4.2", curr)
 
-				Convey("When migrating down to a version", func() {
-					err := DoMigration(db, logger, "0.4.0", migration.SQLite, nil)
-					So(err, ShouldBeNil)
+				t.Run("When migrating down to a version", func(t *testing.T) {
+					require.NoError(t, DoMigration(db, logger, "0.4.0", SQLite, nil))
 
-					Convey("Then it should have executed all the change scripts "+
-						"down to the given version", func() {
-						So(doesIndexExist(db, SQLite, "transfer_history",
-							"UQE_transfer_history_histRemID"), ShouldBeTrue)
+					t.Run("Then it should have executed all the change scripts "+
+						"down to the given version", func(t *testing.T) {
+						assert.True(t, doesIndexExist(t, db, SQLite,
+							"transfer_history", "UQE_transfer_history_histRemID"))
 
-						So(db.QueryRow(`SELECT current FROM version`).Scan(&curr), ShouldBeNil)
-						So(curr, ShouldEqual, "0.4.0")
+						require.NoError(t, db.QueryRow(`SELECT current FROM version`).Scan(&curr))
+						assert.Equal(t, "0.4.0", curr)
 					})
 				})
 			})
 		})
 
-		Convey("When migrating between versions with the same index", func() {
+		t.Run("When migrating between versions with the same index", func(t *testing.T) {
 			const testTarget = "test_target"
-
 			VersionsMap[testTarget] = VersionsMap["0.4.0"]
 
-			So(DoMigration(db, logger, testTarget, migration.SQLite, nil), ShouldBeNil)
+			t.Cleanup(func() {
+				delete(VersionsMap, testTarget)
+			})
 
-			Convey("Then it should have changed the database version", func() {
-				So(db.QueryRow(`SELECT current FROM version`).Scan(&curr), ShouldBeNil)
-				So(curr, ShouldEqual, testTarget)
+			require.NoError(t, DoMigration(db, logger, testTarget, SQLite, nil))
+
+			t.Run("Then it should have changed the database version", func(t *testing.T) {
+				require.NoError(t, db.QueryRow(`SELECT current FROM version`).Scan(&curr))
+				assert.Equal(t, testTarget, curr)
 			})
 		})
 	})

@@ -8,18 +8,19 @@ import (
 	"strings"
 	"time"
 
-	"code.waarp.fr/lib/log"
 	"github.com/smartystreets/goconvey/convey"
 
 	"code.waarp.fr/apps/gateway/gateway/pkg/conf"
+	"code.waarp.fr/apps/gateway/gateway/pkg/controller"
 	"code.waarp.fr/apps/gateway/gateway/pkg/fs"
+	"code.waarp.fr/apps/gateway/gateway/pkg/gatewayd/services"
 	"code.waarp.fr/apps/gateway/gateway/pkg/model"
-	"code.waarp.fr/apps/gateway/gateway/pkg/model/config"
 	"code.waarp.fr/apps/gateway/gateway/pkg/model/types"
 	"code.waarp.fr/apps/gateway/gateway/pkg/pipeline"
+	"code.waarp.fr/apps/gateway/gateway/pkg/protocols/protocol"
 	"code.waarp.fr/apps/gateway/gateway/pkg/tasks/taskstest"
-	"code.waarp.fr/apps/gateway/gateway/pkg/tk/utils"
-	"code.waarp.fr/apps/gateway/gateway/pkg/tk/utils/testhelpers"
+	"code.waarp.fr/apps/gateway/gateway/pkg/utils"
+	"code.waarp.fr/apps/gateway/gateway/pkg/utils/testhelpers"
 )
 
 // SelfContext is a struct regrouping all the necessary elements to perform
@@ -31,29 +32,28 @@ type SelfContext struct {
 	*transData
 
 	ServerService testService
-	ClientService pipeline.Client
+	ClientService protocol.Client
 	fail          *model.Task
 	protoFeatures *ProtoFeatures
 }
 
-func initSelfTransfer(c convey.C, protocol string, clientConf config.ClientProtoConfig,
-	partConf config.PartnerProtoConfig, servConf config.ServerProtoConfig,
+func initSelfTransfer(c convey.C, proto string, clientConf protocol.ClientConfig,
+	partConf protocol.PartnerConfig, servConf protocol.ServerConfig,
 ) *SelfContext {
-	feat, protoExists := Protocols[protocol]
+	feat, protoExists := Protocols[proto]
 	c.So(protoExists, convey.ShouldBeTrue)
 
 	test := initTestData(c)
 	port := testhelpers.GetFreePort(c)
-	cli, remAg, remAcc := makeClientConf(c, test.DB, port, protocol, clientConf, partConf)
-	locAg, locAcc := makeServerConf(c, test, port, protocol, servConf)
+	cli, remAg, remAcc := makeClientConf(c, test.DB, port, proto, clientConf, partConf)
+	locAg, locAcc := makeServerConf(c, test, port, proto, servConf)
 
-	client, err := feat.ClientConstr(cli)
-	c.So(err, convey.ShouldBeNil)
+	client := feat.MakeClient(test.DB, cli)
 	c.So(client.Start(), convey.ShouldBeNil)
-	pipeline.Clients[cli.Name] = client
+	services.Clients[cli.Name] = client
 
 	c.Reset(func() {
-		delete(pipeline.Clients, cli.Name)
+		delete(services.Clients, cli.Name)
 
 		//nolint:gomnd //this is just for tests
 		ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
@@ -65,8 +65,7 @@ func initSelfTransfer(c convey.C, protocol string, clientConf config.ClientProto
 		}
 	})
 
-	server := feat.ServiceConstr(test.DB, testhelpers.TestLoggerWithLevel(
-		c, locAg.Name, log.LevelTrace))
+	server := feat.MakeServer(test.DB, locAg)
 
 	testServer, ok := server.(testService)
 	c.So(ok, convey.ShouldBeTrue)
@@ -96,11 +95,11 @@ func initSelfTransfer(c convey.C, protocol string, clientConf config.ClientProto
 // InitSelfPushTransfer creates a database and fills it with all the elements
 // necessary for a push self-transfer test of the given protocol. It then returns
 // all these elements inside a SelfContext.
-func InitSelfPushTransfer(c convey.C, protocol string, clientConf config.ClientProtoConfig,
-	partConf config.PartnerProtoConfig, servConf config.ServerProtoConfig,
+func InitSelfPushTransfer(c convey.C, proto string, clientConf protocol.ClientConfig,
+	partConf protocol.PartnerConfig, servConf protocol.ServerConfig,
 ) *SelfContext {
-	ctx := initSelfTransfer(c, protocol, clientConf, partConf, servConf)
-	ctx.ClientRule = makeClientPush(c, ctx.DB, protocol)
+	ctx := initSelfTransfer(c, proto, clientConf, partConf, servConf)
+	ctx.ClientRule = makeClientPush(c, ctx.DB, proto)
 	ctx.ServerRule = makeServerPush(c, ctx.DB)
 	ctx.addPushTransfer(c)
 
@@ -110,11 +109,11 @@ func InitSelfPushTransfer(c convey.C, protocol string, clientConf config.ClientP
 // InitSelfPullTransfer creates a database and fills it with all the elements
 // necessary for a pull self-transfer test of the given protocol. It then returns
 // all these elements inside a SelfContext.
-func InitSelfPullTransfer(c convey.C, protocol string, clientConf config.ClientProtoConfig,
-	partConf config.PartnerProtoConfig, servConf config.ServerProtoConfig,
+func InitSelfPullTransfer(c convey.C, proto string, clientConf protocol.ClientConfig,
+	partConf protocol.PartnerConfig, servConf protocol.ServerConfig,
 ) *SelfContext {
-	ctx := initSelfTransfer(c, protocol, clientConf, partConf, servConf)
-	ctx.ClientRule = makeClientPull(c, ctx.DB, protocol)
+	ctx := initSelfTransfer(c, proto, clientConf, partConf, servConf)
+	ctx.ClientRule = makeClientPull(c, ctx.DB, proto)
 	ctx.ServerRule = makeServerPull(c, ctx.DB)
 	ctx.addPullTransfer(c)
 
@@ -161,7 +160,7 @@ func (s *SelfContext) addPullTransfer(c convey.C) {
 // StartService starts the service associated with the test server defined in
 // the SelfContext.
 func (s *SelfContext) StartService(c convey.C) {
-	c.So(s.ServerService.Start(s.Server), convey.ShouldBeNil)
+	c.So(s.ServerService.Start(), convey.ShouldBeNil)
 	c.Reset(func() {
 		ctx, cancel := context.WithTimeout(context.Background(), time.Second)
 		defer cancel()
@@ -170,9 +169,9 @@ func (s *SelfContext) StartService(c convey.C) {
 }
 
 // AddCryptos adds the given cryptos to the test database.
-func (s *SelfContext) AddCryptos(c convey.C, certs ...model.Crypto) {
-	for i := range certs {
-		c.So(s.DB.Insert(&certs[i]).Run(), convey.ShouldBeNil)
+func (s *SelfContext) AddCryptos(c convey.C, certs ...*model.Crypto) {
+	for _, cert := range certs {
+		c.So(s.DB.Insert(cert).Run(), convey.ShouldBeNil)
 	}
 }
 
@@ -241,7 +240,7 @@ func (s *SelfContext) AddServerDataError(_ convey.C) {
 
 // RunTransfer executes the test self-transfer in its entirety.
 func (s *SelfContext) RunTransfer(c convey.C, willFail bool) {
-	pip, err := pipeline.NewClientPipeline(s.DB, s.ClientTrans)
+	pip, err := controller.NewClientPipeline(s.DB, s.ClientTrans)
 	c.So(err, convey.ShouldBeNil)
 	s.setTrace(pip.Pip)
 
@@ -401,8 +400,8 @@ func (s *SelfContext) CheckClientTransferError(c convey.C, errCode types.Transfe
 		c.So(actual.RemoteAccountID.Int64, convey.ShouldEqual, s.RemAccount.ID)
 		c.So(actual.Status, convey.ShouldEqual, types.StatusError)
 
-		err := types.TransferError{Code: errCode, Details: errMsg}
-		c.So(actual.Error, convey.ShouldResemble, err)
+		c.So(actual.ErrCode, convey.ShouldResemble, errCode)
+		c.So(actual.ErrDetails, convey.ShouldEqual, errMsg)
 		c.So(actual.Filesize, testhelpers.ShouldBeOneOf, model.UnknownSize, TestFileSize)
 		c.So(actual.Progress, convey.ShouldBeBetweenOrEqual, 0, TestFileSize)
 		c.So(actual.Step.String(), testhelpers.ShouldBeOneOf, stepsStr)
@@ -440,8 +439,8 @@ func (s *SelfContext) CheckServerTransferError(c convey.C, errCode types.Transfe
 		c.So(actual.LocalAccountID.Int64, convey.ShouldEqual, s.LocAccount.ID)
 		c.So(actual.Status, convey.ShouldEqual, types.StatusError)
 
-		err := types.TransferError{Code: errCode, Details: errMsg}
-		c.So(actual.Error, convey.ShouldResemble, err)
+		c.So(actual.ErrCode, convey.ShouldResemble, errCode)
+		c.So(actual.ErrDetails, convey.ShouldEqual, errMsg)
 		c.So(actual.Filesize, testhelpers.ShouldBeOneOf, model.UnknownSize, TestFileSize)
 		c.So(actual.Progress, convey.ShouldBeBetweenOrEqual, 0, TestFileSize)
 		c.So(actual.Step.String(), testhelpers.ShouldBeOneOf, stepsStr)
@@ -487,8 +486,8 @@ func (s *SelfContext) waitForListDeletion() {
 		case <-timer.C:
 			panic("timeout waiting for transfers to be removed from running list")
 		default:
-			ok1 := s.ProtoClient.ManageTransfers().Exists(s.ClientTrans.ID)
-			ok2 := s.ServerService.ManageTransfers().Exists(s.ClientTrans.ID + 1)
+			ok1 := pipeline.List.Exists(s.ClientTrans.ID)
+			ok2 := pipeline.List.Exists(s.ClientTrans.ID + 1)
 
 			if !ok1 && !ok2 {
 				return
@@ -509,3 +508,23 @@ func (s *SelfContext) AddFileInfo(c convey.C, name string, val interface{}) {
 	c.So(s.ClientTrans.SetFileInfo(s.DB, s.fileInfo), convey.ShouldBeNil)
 }
 */
+
+func (s *SelfContext) GetTransferContext(c convey.C) *model.TransferContext {
+	partnerCryptos, err := s.Partner.GetCryptos(s.DB)
+	c.So(err, convey.ShouldBeNil)
+
+	accountCryptos, err := s.RemAccount.GetCryptos(s.DB)
+	c.So(err, convey.ShouldBeNil)
+
+	return &model.TransferContext{
+		Transfer:             s.transData.ClientTrans,
+		TransInfo:            s.transData.transferInfo,
+		Rule:                 s.ClientRule,
+		Client:               s.Client,
+		RemoteAgent:          s.Partner,
+		RemoteAccount:        s.RemAccount,
+		RemoteAgentCryptos:   partnerCryptos,
+		RemoteAccountCryptos: accountCryptos,
+		Paths:                s.Paths,
+	}
+}

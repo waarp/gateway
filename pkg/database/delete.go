@@ -1,5 +1,7 @@
 package database
 
+import "fmt"
+
 // DeleteBean is the interface that a model must implement in order to be
 // deletable via the Delete query builder.
 type DeleteBean interface {
@@ -14,12 +16,12 @@ type DeleteQuery struct {
 	bean DeleteBean
 }
 
-func (d *DeleteQuery) run(s *Session) Error {
+func (d *DeleteQuery) run(s *Session) error {
 	if hook, ok := d.bean.(DeletionHook); ok {
 		if err := hook.BeforeDelete(s); err != nil {
 			s.logger.Error("%s deletion hook failed: %s", d.bean.Appellation(), err)
 
-			return err
+			return fmt.Errorf("%s deletion hook failed: %w", d.bean.Appellation(), err)
 		}
 	}
 
@@ -36,7 +38,7 @@ func (d *DeleteQuery) run(s *Session) Error {
 }
 
 // Run executes the 'DELETE' query.
-func (d *DeleteQuery) Run() Error {
+func (d *DeleteQuery) Run() error {
 	if err := checkExists(d.db, d.bean); err != nil {
 		return err
 	}

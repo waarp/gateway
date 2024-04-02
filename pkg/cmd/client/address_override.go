@@ -3,10 +3,11 @@ package wg
 import (
 	"fmt"
 	"io"
+	"sort"
 )
 
-func displayAddressOverride(w io.Writer, target, redirect string) {
-	fmt.Fprintln(w, "● Address", bold(target), "redirects to", bold(redirect))
+func displayAddressOverride(f *Formatter, target, redirect string) {
+	f.Title("Address %q redirects to %q", target, redirect)
 }
 
 type OverrideAddressSet struct {
@@ -14,32 +15,56 @@ type OverrideAddressSet struct {
 	ReplaceBy string `required:"true" short:"r" long:"replace-by" description:"The real address to replace with"`
 }
 
-func (o *OverrideAddressSet) Execute([]string) error {
+func (o *OverrideAddressSet) Execute([]string) error { return o.execute(stdOutput) }
+func (o *OverrideAddressSet) execute(w io.Writer) error {
 	override := map[string]string{o.Target: o.ReplaceBy}
 	addr.Path = "/api/override/addresses"
 
-	if err := add(&override); err != nil {
+	if _, err := add(w, &override); err != nil {
 		return err
 	}
 
-	fmt.Fprintln(getColorable(), "The indirection for address", bold(o.Target),
-		"was successfully set.")
+	fmt.Fprintf(w, "The indirection for address %q was successfully set to %q.\n",
+		o.Target, o.ReplaceBy)
 
 	return nil
 }
 
 type OverrideAddressList struct{}
 
-func (o *OverrideAddressList) Execute([]string) error {
-	override := map[string]string{}
+func (o *OverrideAddressList) Execute([]string) error { return o.execute(stdOutput) }
+func (o *OverrideAddressList) execute(w io.Writer) error {
+	overrides := map[string]string{}
 	addr.Path = "/api/override/addresses"
 
-	if err := list(&override); err != nil {
+	if err := list(&overrides); err != nil {
 		return err
 	}
 
-	for target, redirect := range override {
-		displayAddressOverride(getColorable(), target, redirect)
+	f := NewFormatter(w)
+	defer f.Render()
+
+	if len(overrides) != 0 {
+		f.MainTitle("Address indirections:")
+		f.Indent()
+
+		type redirection struct{ target, real string }
+
+		redirections := make([]redirection, 0, len(overrides))
+
+		for target, redirectTo := range overrides {
+			redirections = append(redirections, redirection{target: target, real: redirectTo})
+		}
+
+		sort.Slice(redirections, func(i, j int) bool {
+			return redirections[i].target < redirections[j].target
+		})
+
+		for _, redirect := range redirections {
+			displayAddressOverride(f, redirect.target, redirect.real)
+		}
+	} else {
+		f.Empty("No overrides found.", nil)
 	}
 
 	return nil
@@ -51,15 +76,15 @@ type OverrideAddressDelete struct {
 	} `positional-args:"yes"`
 }
 
-func (o *OverrideAddressDelete) Execute([]string) error {
+func (o *OverrideAddressDelete) Execute([]string) error { return o.execute(stdOutput) }
+func (o *OverrideAddressDelete) execute(w io.Writer) error {
 	addr.Path = "/api/override/addresses/" + o.Args.Target
 
-	if err := remove(); err != nil {
+	if err := remove(w); err != nil {
 		return err
 	}
 
-	fmt.Fprintln(getColorable(), "The indirection for address", o.Args.Target,
-		"was successfully deleted.")
+	fmt.Fprintf(w, "The indirection for address %q was successfully deleted.\n", o.Args.Target)
 
 	return nil
 }

@@ -10,7 +10,7 @@ import (
 	"code.waarp.fr/apps/gateway/gateway/pkg/fs"
 	"code.waarp.fr/apps/gateway/gateway/pkg/model"
 	"code.waarp.fr/apps/gateway/gateway/pkg/model/types"
-	"code.waarp.fr/apps/gateway/gateway/pkg/tk/utils"
+	"code.waarp.fr/apps/gateway/gateway/pkg/utils"
 )
 
 type (
@@ -30,15 +30,14 @@ func getFilesize(filesys fs.FS, file *types.URL) int64 {
 
 // GetFile opens/creates (depending on the transfer's direction) the file pointed
 // by the transfer's local path and returns it as a fs.File.
-func (f *FileStream) getFile() (fs.File, *types.TransferError) {
+func (f *FileStream) getFile() (fs.File, *Error) {
 	trans := f.TransCtx.Transfer
 
 	filesys, fsErr := fs.GetFileSystem(f.DB, &trans.LocalPath)
 	if fsErr != nil {
 		f.Logger.Error("Failed to instantiate file system: %v", fsErr)
 
-		return nil, types.NewTransferError(types.TeInternal,
-			"file system error: %v", fsErr)
+		return nil, NewErrorWith(types.TeInternal, "file system error", fsErr)
 	}
 
 	if f.TransCtx.Rule.IsSend {
@@ -62,7 +61,7 @@ func (f *FileStream) getFile() (fs.File, *types.TransferError) {
 			if _, err := fs.SeekFile(file, trans.Progress, io.SeekStart); err != nil {
 				f.Logger.Error("Failed to seek inside file: %s", err)
 
-				return nil, types.NewTransferError(types.TeForbidden, err.Error())
+				return nil, NewErrorWith(types.TeForbidden, "failed to seek inside file", err)
 			}
 		}
 
@@ -95,7 +94,7 @@ func (f *FileStream) getFile() (fs.File, *types.TransferError) {
 
 // createDir takes a file path and creates all the file's parent directories if
 // they don't exist.
-func createDir(filesys fs.FS, file *types.URL) *types.TransferError {
+func createDir(filesys fs.FS, file *types.URL) *Error {
 	if err := fs.MkdirAll(filesys, file.Dir()); err != nil {
 		return fileErrToTransferErr(err)
 	}
@@ -138,7 +137,7 @@ func (p *Pipeline) setCustomFilePaths(srcFilename, destFilename string) error {
 
 	if p.TransCtx.Transfer.LocalPath.String() == "" {
 		if u, err := makeLocalPath(p.TransCtx, srcFilename, destFilename); err != nil {
-			return err
+			return fmt.Errorf("failed to build local path: %w", err)
 		} else {
 			p.TransCtx.Transfer.LocalPath = types.URL(*u)
 		}
@@ -147,6 +146,7 @@ func (p *Pipeline) setCustomFilePaths(srcFilename, destFilename string) error {
 	return nil
 }
 
+//nolint:wrapcheck //wrapping is done by the caller function (just above)
 func makeLocalPath(transCtx *model.TransferContext, srcFilename,
 	destFilename string,
 ) (*url.URL, error) {
@@ -178,7 +178,7 @@ func makeLocalPath(transCtx *model.TransferContext, srcFilename,
 // checkFileExist checks if the transfer's local path does point to a file. If
 // the file does exist, it also updates the transfer's filesize field with the
 // file's size. If the file does not exist, an error is returned.
-func (f *FileStream) checkFileExist() *types.TransferError {
+func (f *FileStream) checkFileExist() *Error {
 	trans := f.TransCtx.Transfer
 
 	info, err := fs.Stat(f.TransCtx.FS, &trans.LocalPath)
@@ -186,18 +186,19 @@ func (f *FileStream) checkFileExist() *types.TransferError {
 		if errors.Is(err, fs.ErrNotExist) {
 			f.Logger.Error("Failed to open transfer file %q: file does not exist", &trans.LocalPath)
 
-			return types.NewTransferError(types.TeFileNotFound, "file does not exist")
+			return f.internalError(types.TeFileNotFound, "file does not exist", err)
 		}
 
 		if errors.Is(err, fs.ErrPermission) {
 			f.Logger.Error("Failed to open transfer file %q: permission denied", &trans.LocalPath)
 
-			return types.NewTransferError(types.TeForbidden, "permission to open file denied")
+			return f.internalError(types.TeForbidden, "permission to open file denied", err)
 		}
 
 		f.Logger.Error("Failed to open transfer file %q: %s", &trans.LocalPath, err)
 
-		return types.NewTransferError(types.TeUnknown, fmt.Sprintf("unknown file error: %s", err))
+		return f.internalErrorWithMsg(types.TeUnknown, "unknown file error",
+			"failed to open file", err)
 	}
 
 	trans.Filesize = info.Size()

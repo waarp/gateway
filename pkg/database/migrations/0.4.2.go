@@ -6,9 +6,7 @@ import (
 	"code.waarp.fr/lib/migration"
 )
 
-type ver0_4_2RemoveHistoryRemoteIDUnique struct{}
-
-func (ver0_4_2RemoveHistoryRemoteIDUnique) Up(db migration.Actions) error {
+func ver0_4_2RemoveHistoryRemoteIDUniqueUp(db migration.Actions) error {
 	if err := db.DropIndex(quote(db, "UQE_transfer_history_histRemID"),
 		"transfer_history"); err != nil {
 		return fmt.Errorf("failed to drop the history id index: %w", err)
@@ -17,7 +15,7 @@ func (ver0_4_2RemoveHistoryRemoteIDUnique) Up(db migration.Actions) error {
 	return nil
 }
 
-func (ver0_4_2RemoveHistoryRemoteIDUnique) Down(db migration.Actions) error {
+func ver0_4_2RemoveHistoryRemoteIDUniqueDown(db migration.Actions) error {
 	if err := db.CreateIndex(&Index{
 		Name: quote(db, "UQE_transfer_history_histRemID"), Unique: true,
 		On: "transfer_history", Cols: []string{"remote_transfer_id", "account", "agent"},

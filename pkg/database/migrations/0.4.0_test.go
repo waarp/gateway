@@ -2,15 +2,20 @@ package migrations
 
 import (
 	"database/sql"
+	"errors"
+	"testing"
 
-	. "github.com/smartystreets/goconvey/convey"
+	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
-func testVer0_4_0InitDatabase(eng *testEngine, dialect string) {
-	dbShouldBeEmpty := func() {
+func testVer0_4_0InitDatabase(t *testing.T, eng *testEngine) Change {
+	mig := Migrations[0]
+
+	isDBEmpty := func() bool {
 		var row *sql.Row
 
-		switch dialect {
+		switch eng.Dialect {
 		case SQLite:
 			row = eng.DB.QueryRow(`SELECT name FROM sqlite_master WHERE 
                 name<>'sqlite_sequence'`)
@@ -23,30 +28,34 @@ func testVer0_4_0InitDatabase(eng *testEngine, dialect string) {
 		}
 
 		var name string
-		err := row.Scan(&name)
-		So(err, ShouldWrap, sql.ErrNoRows)
+
+		return errors.Is(row.Scan(&name), sql.ErrNoRows)
 	}
 
-	Convey("Given the 0.4.0 database initialization", func() {
-		setupDatabaseUpTo(eng, ver0_4_0InitDatabase{})
-		dbShouldBeEmpty()
+	t.Run("When applying the 0.4.0 database initialization", func(t *testing.T) {
+		assert.True(t, isDBEmpty(),
+			"Before the migration, the database should be empty")
 
-		Convey("When applying the migration", func() {
-			So(eng.Upgrade(ver0_4_0InitDatabase{}), ShouldBeNil)
+		require.NoError(t,
+			eng.Upgrade(mig),
+			"The migration should not fail")
 
-			Convey("Then it should have initialized the database", func() {
-				for _, table := range initTableList() {
-					doesTableExist(eng.DB, dialect, table)
-				}
-			})
+		t.Run("Then it should have created the tables", func(t *testing.T) {
+			for _, table := range initTableList() {
+				assert.Truef(t,
+					doesTableExist(t, eng.DB, eng.Dialect, table),
+					"After the migration, the table %s should exist", table)
+			}
+		})
 
-			Convey("When reversing the migration", func() {
-				So(eng.Downgrade(ver0_4_0InitDatabase{}), ShouldBeNil)
+		t.Run("When reverting the migration", func(t *testing.T) {
+			require.NoError(t, eng.Downgrade(mig),
+				"Reverting the migration should not fail")
 
-				Convey("Then it should have reset the database", func() {
-					dbShouldBeEmpty()
-				})
-			})
+			assert.True(t, isDBEmpty(),
+				"After reverting the migration, the database should be empty")
 		})
 	})
+
+	return mig
 }

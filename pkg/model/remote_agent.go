@@ -6,8 +6,7 @@ import (
 
 	"code.waarp.fr/apps/gateway/gateway/pkg/conf"
 	"code.waarp.fr/apps/gateway/gateway/pkg/database"
-	"code.waarp.fr/apps/gateway/gateway/pkg/model/config"
-	"code.waarp.fr/apps/gateway/gateway/pkg/tk/utils"
+	"code.waarp.fr/apps/gateway/gateway/pkg/utils"
 )
 
 // RemoteAgent represents a distant server instance with which the gateway can
@@ -31,7 +30,7 @@ func (r *RemoteAgent) GetID() int64      { return r.ID }
 
 // BeforeWrite is called before inserting a new `RemoteAgent` entry in the
 // database. It checks whether the new entry is valid or not.
-func (r *RemoteAgent) BeforeWrite(db database.ReadAccess) database.Error {
+func (r *RemoteAgent) BeforeWrite(db database.ReadAccess) error {
 	r.Owner = conf.GlobalConfig.GatewayName
 
 	if r.Name == "" {
@@ -50,13 +49,13 @@ func (r *RemoteAgent) BeforeWrite(db database.ReadAccess) database.Error {
 		r.ProtoConfig = map[string]any{}
 	}
 
-	if err := config.CheckPartnerConfig(r.Protocol, r.ProtoConfig); err != nil {
-		return database.NewValidationError(err.Error())
+	if err := ConfigChecker.CheckPartnerConfig(r.Protocol, r.ProtoConfig); err != nil {
+		return database.NewValidationError("%v", err)
 	}
 
 	if n, err := db.Count(&RemoteAgent{}).Where("id<>? AND owner=? AND name=?",
 		r.ID, r.Owner, r.Name).Run(); err != nil {
-		return err
+		return fmt.Errorf("failed to check for duplicate remote agents: %w", err)
 	} else if n > 0 {
 		return database.NewValidationError("a remote agent with the same name '%s' "+
 			"already exist", r.Name)
@@ -67,10 +66,10 @@ func (r *RemoteAgent) BeforeWrite(db database.ReadAccess) database.Error {
 
 // BeforeDelete is called before deleting the account from the database. Its
 // role is to check whether the partner is still used in any ongoing transfer.
-func (r *RemoteAgent) BeforeDelete(db database.Access) database.Error {
+func (r *RemoteAgent) BeforeDelete(db database.Access) error {
 	if n, err := db.Count(&Transfer{}).Where(`remote_account_id IN (SELECT id 
 		FROM remote_accounts WHERE remote_agent_id=?)`, r.ID).Run(); err != nil {
-		return err
+		return fmt.Errorf("failed to check for ongoing transfers: %w", err)
 	} else if n > 0 {
 		return database.NewValidationError("this partner is currently being used " +
 			"in one or more running transfers and thus cannot be deleted, cancel " +
@@ -85,8 +84,9 @@ func (r *RemoteAgent) GetCryptos(db database.ReadAccess) ([]*Crypto, error) {
 	return getCryptos(db, r)
 }
 
-func (r *RemoteAgent) SetCryptoOwner(c *Crypto)             { c.RemoteAgentID = utils.NewNullInt64(r.ID) }
+//nolint:goconst //duplicate is for different columns, best keep separate
 func (r *RemoteAgent) GenCryptoSelectCond() (string, int64) { return "remote_agent_id=?", r.ID }
+func (r *RemoteAgent) SetCryptoOwner(c *Crypto)             { c.RemoteAgentID = utils.NewNullInt64(r.ID) }
 func (r *RemoteAgent) SetAccessTarget(a *RuleAccess)        { a.RemoteAgentID = utils.NewNullInt64(r.ID) }
 func (r *RemoteAgent) GenAccessSelectCond() (string, int64) { return "remote_agent_id=?", r.ID }
 

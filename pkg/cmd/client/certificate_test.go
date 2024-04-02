@@ -1,27 +1,20 @@
 package wg
 
 import (
-	"net/http/httptest"
+	"fmt"
+	"net/http"
 	"net/url"
+	"strings"
 	"testing"
+	"time"
 
-	"github.com/jessevdk/go-flags"
-	. "github.com/smartystreets/goconvey/convey"
+	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
+	"golang.org/x/crypto/ssh"
 
-	"code.waarp.fr/apps/gateway/gateway/pkg/admin/rest"
-	"code.waarp.fr/apps/gateway/gateway/pkg/admin/rest/api"
-	"code.waarp.fr/apps/gateway/gateway/pkg/database"
-	"code.waarp.fr/apps/gateway/gateway/pkg/model"
-	"code.waarp.fr/apps/gateway/gateway/pkg/tk/utils"
-	"code.waarp.fr/apps/gateway/gateway/pkg/tk/utils/testhelpers"
+	"code.waarp.fr/apps/gateway/gateway/pkg/utils"
+	"code.waarp.fr/apps/gateway/gateway/pkg/utils/testhelpers"
 )
-
-func certInfoString(c *api.OutCrypto) string {
-	return "● Certificate " + c.Name + "\n" +
-		"    Private key: " + c.PrivateKey + "\n" +
-		"    Public key:  " + c.PublicKey + "\n" +
-		"    Content:     " + c.Certificate + "\n"
-}
 
 func resetVars() {
 	Server = ""
@@ -30,2060 +23,958 @@ func resetVars() {
 	RemoteAccount = ""
 }
 
-//nolint:maintidx //FIXME factorize the function if possible to improve maintainability
-func TestGetCertificate(t *testing.T) {
-	Convey("Testing the certificate 'get' command", t, func() {
-		resetVars()
+func TestCertificateGet(t *testing.T) {
+	var command *CertGet
 
-		out = testFile()
-		command := &CertGet{}
+	const (
+		server     = "toto"
+		partner    = "tata"
+		locAccount = "titi"
+		remAccount = "tutu"
 
-		Convey("Given a gateway", func(c C) {
-			db := database.TestDatabase(c)
-			gw := httptest.NewServer(testHandler(db))
-			var err error
-			addr, err = url.Parse("http://admin:admin_password@" + gw.Listener.Addr().String())
-			So(err, ShouldBeNil)
+		certName    = "tls-cert"
+		certContent = testhelpers.LocalhostCert
 
-			Convey("Given a partner", func() {
-				partner := &model.RemoteAgent{
-					Name:     "partner",
-					Protocol: testProto1,
-					Address:  "localhost:6666",
-				}
-				So(db.Insert(partner).Run(), ShouldBeNil)
+		sshKeyName    = "ssh-key"
+		sshKeyContent = testhelpers.SSHPbk
 
-				Convey("Given a partner certificate", func() {
-					cert := &model.Crypto{
-						RemoteAgentID: utils.NewNullInt64(partner.ID),
-						Name:          "partner_cert",
-						Certificate:   testhelpers.LocalhostCert,
-					}
-					So(db.Insert(cert).Run(), ShouldBeNil)
+		pkeyName    = "pkey"
+		pkeyContent = testhelpers.RSAPk
+	)
 
-					Convey("Given valid partner & cert names", func() {
-						Partner = partner.Name
-						args := []string{cert.Name}
+	tlsCerts, err := utils.ParsePEMCertChain(certContent)
+	require.NoError(t, err, "could not parse certificate")
 
-						Convey("When executing the command", func() {
-							params, err := flags.ParseArgs(command, args)
-							So(err, ShouldBeNil)
-							So(command.Execute(params), ShouldBeNil)
+	tlsCert := tlsCerts[0]
 
-							Convey("Then it should display the cert's info", func() {
-								c := rest.FromCrypto(cert)
-								So(getOutput(), ShouldEqual, certInfoString(c))
-							})
-						})
-					})
+	sshKey, err := utils.ParseSSHAuthorizedKey(sshKeyContent)
+	require.NoError(t, err, "could not parse SSH public key")
 
-					Convey("Given an invalid partner name", func() {
-						Partner = "tutu"
-						args := []string{cert.Name}
+	pkey, err := ssh.ParsePrivateKey([]byte(pkeyContent))
+	require.NoError(t, err, "could not parse private key")
 
-						Convey("When executing the command", func() {
-							params, err := flags.ParseArgs(command, args)
-							So(err, ShouldBeNil)
-							err = command.Execute(params)
+	t.Run(`Testing the certificate "get" command with a server`, func(t *testing.T) {
+		const path = "/api/servers/" + server + "/certificates/" + certName
 
-							Convey("Then it should return an error", func() {
-								So(err, ShouldBeError, "partner 'tutu' not found")
-							})
-						})
-					})
+		Server = server
+		defer resetVars()
 
-					Convey("Given an invalid cert name", func() {
-						Partner = partner.Name
-						args := []string{"tutu"}
+		w := newTestOutput()
+		command = &CertGet{}
 
-						Convey("When executing the command", func() {
-							params, err := flags.ParseArgs(command, args)
-							So(err, ShouldBeNil)
-							err = command.Execute(params)
+		expected := &expectedRequest{
+			method: http.MethodGet,
+			path:   path,
+		}
 
-							Convey("Then it should return an error", func() {
-								So(err, ShouldBeError, "certificate 'tutu' not found")
-							})
-						})
-					})
-				})
+		result := &expectedResponse{
+			status: http.StatusOK,
+			body: map[string]any{
+				"name":        certName,
+				"certificate": certContent,
+			},
+		}
 
-				Convey("Given an account with a certificate", func() {
-					account := &model.RemoteAccount{
-						RemoteAgentID: partner.ID,
-						Login:         "foo",
-						Password:      "password",
-					}
-					So(db.Insert(account).Run(), ShouldBeNil)
-					cert := &model.Crypto{
-						RemoteAccountID: utils.NewNullInt64(account.ID),
-						Name:            "account_cert",
-						PrivateKey:      testhelpers.ClientFooKey,
-						Certificate:     testhelpers.ClientFooCert,
-					}
-					So(db.Insert(cert).Run(), ShouldBeNil)
+		t.Run("Given dummy gateway REST interface", func(t *testing.T) {
+			testServer(t, expected, result)
 
-					Convey("Given valid account, partner & cert names", func() {
-						Partner = partner.Name
-						RemoteAccount = account.Login
-						args := []string{cert.Name}
+			t.Run("When executing the command", func(t *testing.T) {
+				require.NoError(t, executeCommand(t, w, command, certName))
 
-						Convey("When executing the command", func() {
-							params, err := flags.ParseArgs(command, args)
-							So(err, ShouldBeNil)
-							So(command.Execute(params), ShouldBeNil)
-
-							Convey("Then it should display the cert's info", func() {
-								c := rest.FromCrypto(cert)
-								So(getOutput(), ShouldEqual, certInfoString(c))
-							})
-						})
-					})
-
-					Convey("Given an invalid partner name", func() {
-						Partner = "tutu"
-						RemoteAccount = account.Login
-						args := []string{cert.Name}
-
-						Convey("When executing the command", func() {
-							params, err := flags.ParseArgs(command, args)
-							So(err, ShouldBeNil)
-							err = command.Execute(params)
-
-							Convey("Then it should return an error", func() {
-								So(err, ShouldBeError, "partner 'tutu' not found")
-							})
-						})
-					})
-
-					Convey("Given an invalid account name", func() {
-						Partner = partner.Name
-						RemoteAccount = "tutu"
-						args := []string{cert.Name}
-
-						Convey("When executing the command", func() {
-							params, err := flags.ParseArgs(command, args)
-							So(err, ShouldBeNil)
-							err = command.Execute(params)
-
-							Convey("Then it should return an error", func() {
-								So(err, ShouldBeError, "no account 'tutu' found for partner "+partner.Name)
-							})
-						})
-					})
-
-					Convey("Given an invalid cert name", func() {
-						Partner = partner.Name
-						RemoteAccount = account.Login
-						args := []string{"tutu"}
-
-						Convey("When executing the command", func() {
-							params, err := flags.ParseArgs(command, args)
-							So(err, ShouldBeNil)
-							err = command.Execute(params)
-
-							Convey("Then it should return an error", func() {
-								So(err, ShouldBeError, "certificate 'tutu' not found")
-							})
-						})
-					})
-				})
+				assert.Equal(t,
+					fmt.Sprintf("── Certificate %q\n", certName)+
+						fmt.Sprintf("   ├─ Subject\n")+
+						fmt.Sprintf("   │  ├─ Common name: %s\n", tlsCert.Subject.CommonName)+
+						fmt.Sprintf("   │  ╰─ Organization: %s\n", tlsCert.Subject.Organization)+
+						fmt.Sprintf("   ├─ Issuer\n")+
+						fmt.Sprintf("   │  ├─ Common name: %s\n", tlsCert.Issuer.CommonName)+
+						fmt.Sprintf("   │  ╰─ Organization: %s\n", tlsCert.Issuer.Organization)+
+						fmt.Sprintf("   ├─ Validity\n")+
+						fmt.Sprintf("   │  ├─ Not before: %s\n", tlsCert.NotBefore.Format(time.UnixDate))+
+						fmt.Sprintf("   │  ╰─ Not after: %s\n", tlsCert.NotAfter.Format(time.UnixDate))+
+						fmt.Sprintf("   ├─ Subject Alt Names\n")+
+						fmt.Sprintf("   │  ╰─ DNS name: %s\n", tlsCert.DNSNames[0])+
+						fmt.Sprintf("   ├─ Public Key Algorithm: %s\n", tlsCert.PublicKeyAlgorithm)+
+						fmt.Sprintf("   ├─ Signature Algorithm: %s\n", tlsCert.SignatureAlgorithm)+
+						fmt.Sprintf("   ├─ Signature: %s\n", fmt.Sprintf("%X", tlsCert.Signature))+
+						fmt.Sprintf("   ├─ Key Usages: %s\n",
+							strings.Join(utils.KeyUsageToStrings(tlsCert.KeyUsage), ", "))+
+						fmt.Sprintf("   ╰─ Extended Key Usages: %s\n",
+							strings.Join(utils.ExtKeyUsagesToStrings(tlsCert.ExtKeyUsage), ", ")),
+					w.String(),
+					"Then it should display the certificate")
 			})
+		})
+	})
 
-			Convey("Given a server", func() {
-				server := &model.LocalAgent{
-					Name:     "server",
-					Protocol: testProto1,
-					Address:  "localhost:6666",
-				}
-				So(db.Insert(server).Run(), ShouldBeNil)
+	t.Run(`Testing the certificate "get" command with a partner`, func(t *testing.T) {
+		const path = "/api/partners/" + partner + "/certificates/" + sshKeyName
 
-				Convey("Given a server certificate", func() {
-					cert := &model.Crypto{
-						LocalAgentID: utils.NewNullInt64(server.ID),
-						Name:         "server_cert",
-						PrivateKey:   testhelpers.LocalhostKey,
-						Certificate:  testhelpers.LocalhostCert,
-					}
-					So(db.Insert(cert).Run(), ShouldBeNil)
+		Partner = partner
+		defer resetVars()
 
-					Convey("Given valid server & cert names", func() {
-						Server = server.Name
-						args := []string{cert.Name}
+		w := newTestOutput()
+		command = &CertGet{}
 
-						Convey("When executing the command", func() {
-							params, err := flags.ParseArgs(command, args)
-							So(err, ShouldBeNil)
-							So(command.Execute(params), ShouldBeNil)
+		expected := &expectedRequest{
+			method: http.MethodGet,
+			path:   path,
+		}
 
-							Convey("Then it should display the cert's info", func() {
-								c := rest.FromCrypto(cert)
-								So(getOutput(), ShouldEqual, certInfoString(c))
-							})
-						})
-					})
+		result := &expectedResponse{
+			status: http.StatusOK,
+			body: map[string]any{
+				"name":      sshKeyName,
+				"publicKey": sshKeyContent,
+			},
+		}
 
-					Convey("Given an invalid server name", func() {
-						Server = "tutu"
-						args := []string{cert.Name}
+		t.Run("Given dummy gateway REST interface", func(t *testing.T) {
+			testServer(t, expected, result)
 
-						Convey("When executing the command", func() {
-							params, err := flags.ParseArgs(command, args)
-							So(err, ShouldBeNil)
-							err = command.Execute(params)
+			t.Run("When executing the command", func(t *testing.T) {
+				require.NoError(t, executeCommand(t, w, command, sshKeyName))
 
-							Convey("Then it should return an error", func() {
-								So(err, ShouldBeError, "server 'tutu' not found")
-							})
-						})
-					})
+				assert.Equal(t,
+					fmt.Sprintf("── SSH Public Key %q\n", sshKeyName)+
+						fmt.Sprintf("   ├─ Type: %s\n", sshKey.Type())+
+						fmt.Sprintf("   ╰─ Fingerprint: %s\n", ssh.FingerprintSHA256(sshKey)),
+					w.String(),
+					"Then it should display the public key")
+			})
+		})
+	})
 
-					Convey("Given an invalid cert name", func() {
-						Server = server.Name
-						args := []string{"tutu"}
+	t.Run(`Testing the certificate "get" command with a local account`, func(t *testing.T) {
+		const path = "/api/servers/" + server + "/accounts/" + locAccount + "/certificates/" + sshKeyName
 
-						Convey("When executing the command", func() {
-							params, err := flags.ParseArgs(command, args)
-							So(err, ShouldBeNil)
-							err = command.Execute(params)
+		Server = server
+		LocalAccount = locAccount
+		defer resetVars()
 
-							Convey("Then it should return an error", func() {
-								So(err, ShouldBeError, "certificate 'tutu' not found")
-							})
-						})
-					})
-				})
+		w := newTestOutput()
+		command = &CertGet{}
 
-				Convey("Given an account with a certificate", func() {
-					account := &model.LocalAccount{
-						LocalAgentID: server.ID,
-						Login:        "foo",
-						PasswordHash: hash("password"),
-					}
-					So(db.Insert(account).Run(), ShouldBeNil)
-					cert := &model.Crypto{
-						LocalAccountID: utils.NewNullInt64(account.ID),
-						Name:           "account_cert",
-						Certificate:    testhelpers.ClientFooCert,
-					}
-					So(db.Insert(cert).Run(), ShouldBeNil)
+		expected := &expectedRequest{
+			method: http.MethodGet,
+			path:   path,
+		}
 
-					Convey("Given valid account, server & cert names", func() {
-						Server = server.Name
-						LocalAccount = account.Login
-						args := []string{cert.Name}
+		result := &expectedResponse{
+			status: http.StatusOK,
+			body: map[string]any{
+				"name":      sshKeyName,
+				"publicKey": sshKeyContent,
+			},
+		}
 
-						Convey("When executing the command", func() {
-							params, err := flags.ParseArgs(command, args)
-							So(err, ShouldBeNil)
-							So(command.Execute(params), ShouldBeNil)
+		t.Run("Given dummy gateway REST interface", func(t *testing.T) {
+			testServer(t, expected, result)
 
-							Convey("Then it should display the cert's info", func() {
-								c := rest.FromCrypto(cert)
-								So(getOutput(), ShouldEqual, certInfoString(c))
-							})
-						})
-					})
+			t.Run("When executing the command", func(t *testing.T) {
+				require.NoError(t, executeCommand(t, w, command, sshKeyName))
 
-					Convey("Given an invalid partner name", func() {
-						Server = "tutu"
-						LocalAccount = account.Login
-						args := []string{cert.Name}
+				assert.Equal(t,
+					fmt.Sprintf("── SSH Public Key %q\n", sshKeyName)+
+						fmt.Sprintf("   ├─ Type: %s\n", sshKey.Type())+
+						fmt.Sprintf("   ╰─ Fingerprint: %s\n", ssh.FingerprintSHA256(sshKey)),
+					w.String(),
+					"Then it should display the public key")
+			})
+		})
+	})
 
-						Convey("When executing the command", func() {
-							params, err := flags.ParseArgs(command, args)
-							So(err, ShouldBeNil)
-							err = command.Execute(params)
+	t.Run(`Testing the certificate "get" command with a remote account`, func(t *testing.T) {
+		const path = "/api/partners/" + partner + "/accounts/" + remAccount + "/certificates/" + pkeyName
 
-							Convey("Then it should return an error", func() {
-								So(err, ShouldBeError, "server 'tutu' not found")
-							})
-						})
-					})
+		Partner = partner
+		RemoteAccount = remAccount
+		defer resetVars()
 
-					Convey("Given an invalid account name", func() {
-						Server = server.Name
-						LocalAccount = "tutu"
-						args := []string{cert.Name}
+		w := newTestOutput()
+		command = &CertGet{}
 
-						Convey("When executing the command", func() {
-							params, err := flags.ParseArgs(command, args)
-							So(err, ShouldBeNil)
-							err = command.Execute(params)
+		expected := &expectedRequest{
+			method: http.MethodGet,
+			path:   path,
+		}
 
-							Convey("Then it should return an error", func() {
-								So(err, ShouldBeError, "no account 'tutu' found for server "+server.Name)
-							})
-						})
-					})
+		result := &expectedResponse{
+			status: http.StatusOK,
+			body: map[string]any{
+				"name":       pkeyName,
+				"privateKey": pkeyContent,
+			},
+		}
 
-					Convey("Given an invalid cert name", func() {
-						Server = server.Name
-						LocalAccount = account.Login
-						args := []string{"tutu"}
+		t.Run("Given dummy gateway REST interface", func(t *testing.T) {
+			testServer(t, expected, result)
 
-						Convey("When executing the command", func() {
-							params, err := flags.ParseArgs(command, args)
-							So(err, ShouldBeNil)
-							err = command.Execute(params)
+			t.Run("When executing the command", func(t *testing.T) {
+				require.NoError(t, executeCommand(t, w, command, pkeyName))
 
-							Convey("Then it should return an error", func() {
-								So(err, ShouldBeError, "certificate 'tutu' not found")
-							})
-						})
-					})
-				})
+				assert.Equal(t,
+					fmt.Sprintf("── Private Key %q\n", pkeyName)+
+						fmt.Sprintf("   ├─ Type: %s\n", pkey.PublicKey().Type())+
+						fmt.Sprintf("   ╰─ Fingerprint: %s\n", ssh.FingerprintSHA256(pkey.PublicKey())),
+					w.String(),
+					"Then it should display the private key")
 			})
 		})
 	})
 }
 
-//nolint:maintidx //FIXME factorize the function if possible to improve maintainability
-func TestAddCertificate(t *testing.T) {
-	Convey("Testing the cert 'add' command", t, func(c C) {
-		resetVars()
+func TestCertificateAdd(t *testing.T) {
+	var command *CertAdd
 
-		out = testFile()
-		command := &CertAdd{}
+	const (
+		server     = "toto"
+		partner    = "tata"
+		locAccount = "titi"
+		remAccount = "tutu"
 
-		Convey("Given a gateway", func(c C) {
-			db := database.TestDatabase(c)
-			gw := httptest.NewServer(testHandler(db))
-			var err error
-			addr, err = url.Parse("http://admin:admin_password@" + gw.Listener.Addr().String())
-			So(err, ShouldBeNil)
+		name        = "new_crypto"
+		certContent = testhelpers.LocalhostCert
+		pkey        = testhelpers.LocalhostKey
+		sshKey      = testhelpers.SSHPbk
+	)
 
-			cPk := writeFile(testhelpers.ClientFooKey)
-			cCrt := writeFile(testhelpers.ClientFooCert)
-			sPk := writeFile(testhelpers.LocalhostKey)
-			sCrt := writeFile(testhelpers.LocalhostCert)
+	certFile := writeFile(t, "cert.pem", certContent)
+	pkeyFile := writeFile(t, "key.pem", pkey)
+	sshKeyFile := writeFile(t, "id_rsa", sshKey)
 
-			Convey("Given a partner", func() {
-				partner := &model.RemoteAgent{
-					Name:     "partner",
-					Protocol: testProto1,
-					Address:  "localhost:6666",
-				}
-				So(db.Insert(partner).Run(), ShouldBeNil)
+	t.Run(`Testing the cert "add" command with a server`, func(t *testing.T) {
+		const (
+			path     = "/api/servers/" + server + "/certificates"
+			location = path + "/" + name
+		)
 
-				Convey("When adding a new certificate", func() {
-					Convey("Given valid partner & flags", func() {
-						Partner = partner.Name
-						args := []string{
-							"-n", "partner_cert",
-							"-c", sCrt.Name(),
-						}
+		Server = server
+		defer resetVars()
 
-						Convey("When executing the command", func() {
-							params, err := flags.ParseArgs(command, args)
-							So(err, ShouldBeNil)
-							So(command.Execute(params), ShouldBeNil)
+		w := newTestOutput()
+		command = &CertAdd{}
 
-							Convey("Then is should display a message saying the cert was added", func() {
-								So(getOutput(), ShouldEqual, "The certificate "+command.Name+
-									" was successfully added.\n")
-							})
+		expected := &expectedRequest{
+			method: http.MethodPost,
+			path:   path,
+			body: map[string]any{
+				"name":        name,
+				"certificate": certContent,
+				"privateKey":  pkey,
+			},
+		}
 
-							Convey("Then the new cert should have been added", func() {
-								var certs model.Cryptos
-								So(db.Select(&certs).Run(), ShouldBeNil)
+		result := &expectedResponse{
+			status:  http.StatusCreated,
+			headers: map[string][]string{"Location": {location}},
+		}
 
-								So(certs, ShouldContain, &model.Crypto{
-									ID:            1,
-									RemoteAgentID: utils.NewNullInt64(partner.ID),
-									Name:          "partner_cert",
-									Certificate:   testhelpers.LocalhostCert,
-								})
-							})
-						})
-					})
+		t.Run("Given dummy gateway REST interface", func(t *testing.T) {
+			testServer(t, expected, result)
 
-					Convey("Given an invalid partner", func() {
-						Partner = "tutu"
-						args := []string{
-							"-n", "partner_cert",
-							"-p", sPk.Name(),
-							"-c", sCrt.Name(),
-						}
+			t.Run("When executing the command", func(t *testing.T) {
+				require.NoError(t, executeCommand(t, w, command,
+					"--name", name,
+					"--certificate", certFile,
+					"--private_key", pkeyFile))
 
-						Convey("When executing the command", func() {
-							params, err := flags.ParseArgs(command, args)
-							So(err, ShouldBeNil)
-							err = command.Execute(params)
-
-							Convey("Then is should return an error", func() {
-								So(err, ShouldBeError, "partner 'tutu' not found")
-							})
-
-							Convey("Then the new cert should NOT have been added", func() {
-								var certs model.Cryptos
-								So(db.Select(&certs).Run(), ShouldBeNil)
-								So(certs, ShouldBeEmpty)
-							})
-						})
-					})
-				})
-
-				Convey("Given a partner account", func() {
-					account := &model.RemoteAccount{
-						RemoteAgentID: partner.ID,
-						Login:         "foo",
-						Password:      "password",
-					}
-					So(db.Insert(account).Run(), ShouldBeNil)
-
-					Convey("When adding a new certificate", func() {
-						Convey("Given valid account, partner & flags", func() {
-							Partner = partner.Name
-							RemoteAccount = account.Login
-							args := []string{
-								"-n", "account_cert",
-								"-p", cPk.Name(),
-								"-c", cCrt.Name(),
-							}
-
-							Convey("When executing the command", func() {
-								params, err := flags.ParseArgs(command, args)
-								So(err, ShouldBeNil)
-								So(command.Execute(params), ShouldBeNil)
-
-								Convey("Then is should display a message saying the cert was added", func() {
-									So(getOutput(), ShouldEqual, "The certificate "+command.Name+
-										" was successfully added.\n")
-								})
-
-								Convey("Then the new cert should have been added", func() {
-									var certs model.Cryptos
-									So(db.Select(&certs).Run(), ShouldBeNil)
-									So(certs, ShouldNotBeEmpty)
-
-									So(certs, ShouldContain, &model.Crypto{
-										ID:              1,
-										RemoteAccountID: utils.NewNullInt64(account.ID),
-										Name:            "account_cert",
-										PrivateKey:      testhelpers.ClientFooKey,
-										Certificate:     testhelpers.ClientFooCert,
-									})
-								})
-							})
-						})
-
-						Convey("Given an invalid partner", func() {
-							Partner = "tutu"
-							RemoteAccount = account.Login
-							args := []string{
-								"-n", "account_cert",
-								"-p", cPk.Name(),
-								"-c", cCrt.Name(),
-							}
-
-							Convey("When executing the command", func() {
-								params, err := flags.ParseArgs(command, args)
-								So(err, ShouldBeNil)
-								err = command.Execute(params)
-
-								Convey("Then is should return an error", func() {
-									So(err, ShouldBeError, "partner 'tutu' not found")
-								})
-
-								Convey("Then the new cert should NOT have been added", func() {
-									var certs model.Cryptos
-									So(db.Select(&certs).Run(), ShouldBeNil)
-									So(certs, ShouldBeEmpty)
-								})
-							})
-						})
-
-						Convey("Given an invalid account", func() {
-							Partner = partner.Name
-							RemoteAccount = "tutu"
-							args := []string{
-								"-n", "account_cert",
-								"-p", cPk.Name(),
-								"-c", cCrt.Name(),
-							}
-
-							Convey("When executing the command", func() {
-								params, err := flags.ParseArgs(command, args)
-								So(err, ShouldBeNil)
-								err = command.Execute(params)
-
-								Convey("Then is should return an error", func() {
-									So(err, ShouldBeError, "no account 'tutu' found for partner "+partner.Name)
-								})
-
-								Convey("Then the new cert should NOT have been added", func() {
-									var certs model.Cryptos
-									So(db.Select(&certs).Run(), ShouldBeNil)
-									So(certs, ShouldBeEmpty)
-								})
-							})
-						})
-					})
-				})
+				assert.Equal(t,
+					fmt.Sprintf("The certificate %q was successfully added.\n", name),
+					w.String(),
+					"Then it should display a message saying the certificate was added")
 			})
+		})
+	})
 
-			Convey("Given a server", func() {
-				server := &model.LocalAgent{
-					Name:     "server",
-					Protocol: testProto1,
-					Address:  "localhost:6666",
-				}
-				So(db.Insert(server).Run(), ShouldBeNil)
+	t.Run(`Testing the cert "add" command with a partner`, func(t *testing.T) {
+		const (
+			path     = "/api/partners/" + partner + "/certificates"
+			location = path + "/" + name
+		)
 
-				Convey("When adding a new certificate", func() {
-					Convey("Given valid server & flags", func() {
-						Server = server.Name
-						args := []string{
-							"-n", "server_cert",
-							"-p", sPk.Name(),
-							"-c", sCrt.Name(),
-						}
+		Partner = partner
+		defer resetVars()
 
-						Convey("When executing the command", func() {
-							params, err := flags.ParseArgs(command, args)
-							So(err, ShouldBeNil)
-							So(command.Execute(params), ShouldBeNil)
+		w := newTestOutput()
+		command = &CertAdd{}
 
-							Convey("Then is should display a message saying the cert was added", func() {
-								So(getOutput(), ShouldEqual, rest.ServerCertRestartRequiredMsg+
-									"\nThe certificate "+command.Name+" was successfully added.\n")
-							})
+		expected := &expectedRequest{
+			method: http.MethodPost,
+			path:   path,
+			body: map[string]any{
+				"name":      name,
+				"publicKey": sshKey,
+			},
+		}
 
-							Convey("Then the new cert should have been added", func() {
-								var certs model.Cryptos
-								So(db.Select(&certs).Run(), ShouldBeNil)
-								So(certs, ShouldNotBeEmpty)
+		result := &expectedResponse{
+			status:  http.StatusCreated,
+			headers: map[string][]string{"Location": {location}},
+		}
 
-								So(certs, ShouldContain, &model.Crypto{
-									ID:           1,
-									LocalAgentID: utils.NewNullInt64(server.ID),
-									Name:         "server_cert",
-									PrivateKey:   testhelpers.LocalhostKey,
-									Certificate:  testhelpers.LocalhostCert,
-								})
-							})
-						})
-					})
+		t.Run("Given dummy gateway REST interface", func(t *testing.T) {
+			testServer(t, expected, result)
 
-					Convey("Given an invalid server", func() {
-						Server = "tutu"
-						args := []string{
-							"-n", "server_cert",
-							"-p", sPk.Name(),
-							"-c", sCrt.Name(),
-						}
+			t.Run("When executing the command", func(t *testing.T) {
+				require.NoError(t, executeCommand(t, w, command,
+					"--name", name,
+					"--public_key", sshKeyFile))
 
-						Convey("When executing the command", func() {
-							params, err := flags.ParseArgs(command, args)
-							So(err, ShouldBeNil)
-							err = command.Execute(params)
+				assert.Equal(t,
+					fmt.Sprintf("The certificate %q was successfully added.\n", name),
+					w.String(),
+					"Then it should display a message saying the certificate was added")
+			})
+		})
+	})
 
-							Convey("Then is should return an error", func() {
-								So(err, ShouldBeError, "server 'tutu' not found")
-							})
+	t.Run(`Testing the cert "add" command with a local account`, func(t *testing.T) {
+		const (
+			path     = "/api/servers/" + server + "/accounts/" + locAccount + "/certificates"
+			location = path + "/" + name
+		)
 
-							Convey("Then the new cert should NOT have been added", func() {
-								var certs model.Cryptos
-								So(db.Select(&certs).Run(), ShouldBeNil)
-								So(certs, ShouldBeEmpty)
-							})
-						})
-					})
-				})
+		Server = server
+		LocalAccount = locAccount
+		defer resetVars()
 
-				Convey("Given a server account", func() {
-					account := &model.LocalAccount{
-						LocalAgentID: server.ID,
-						Login:        "foo",
-						PasswordHash: hash("password"),
-					}
-					So(db.Insert(account).Run(), ShouldBeNil)
+		w := newTestOutput()
+		command = &CertAdd{}
 
-					Convey("When adding a new certificate", func() {
-						Convey("Given valid account, server & flags", func() {
-							Server = server.Name
-							LocalAccount = account.Login
-							args := []string{
-								"-n", "account_cert",
-								"-c", cCrt.Name(),
-							}
+		expected := &expectedRequest{
+			method: http.MethodPost,
+			path:   path,
+			body: map[string]any{
+				"name":      name,
+				"publicKey": sshKey,
+			},
+		}
 
-							Convey("When executing the command", func() {
-								params, err := flags.ParseArgs(command, args)
-								So(err, ShouldBeNil)
-								So(command.Execute(params), ShouldBeNil)
+		result := &expectedResponse{
+			status:  http.StatusCreated,
+			headers: map[string][]string{"Location": {location}},
+		}
 
-								Convey("Then is should display a message saying the cert was added", func() {
-									So(getOutput(), ShouldEqual, "The certificate "+command.Name+
-										" was successfully added.\n")
-								})
+		t.Run("Given dummy gateway REST interface", func(t *testing.T) {
+			testServer(t, expected, result)
 
-								Convey("Then the new cert should have been added", func() {
-									var certs model.Cryptos
-									So(db.Select(&certs).Run(), ShouldBeNil)
-									So(certs, ShouldNotBeEmpty)
+			t.Run("When executing the command", func(t *testing.T) {
+				require.NoError(t, executeCommand(t, w, command,
+					"--name", name,
+					"--public_key", sshKeyFile))
 
-									So(certs, ShouldContain, &model.Crypto{
-										ID:             1,
-										LocalAccountID: utils.NewNullInt64(account.ID),
-										Name:           "account_cert",
-										Certificate:    testhelpers.ClientFooCert,
-									})
-								})
-							})
-						})
+				assert.Equal(t,
+					fmt.Sprintf("The certificate %q was successfully added.\n", name),
+					w.String(),
+					"Then it should display a message saying the certificate was added")
+			})
+		})
+	})
 
-						Convey("Given an invalid server", func() {
-							Server = "tutu"
-							LocalAccount = account.Login
-							args := []string{
-								"-n", "account_cert",
-								"-p", cPk.Name(),
-								"-c", cCrt.Name(),
-							}
+	t.Run(`Testing the cert "add" command with a remote account`, func(t *testing.T) {
+		const (
+			path     = "/api/partners/" + partner + "/accounts/" + remAccount + "/certificates"
+			location = path + "/" + name
+		)
 
-							Convey("When executing the command", func() {
-								params, err := flags.ParseArgs(command, args)
-								So(err, ShouldBeNil)
-								err = command.Execute(params)
+		Partner = partner
+		RemoteAccount = remAccount
+		defer resetVars()
 
-								Convey("Then is should return an error", func() {
-									So(err, ShouldBeError, "server 'tutu' not found")
-								})
+		w := newTestOutput()
+		command = &CertAdd{}
 
-								Convey("Then the new cert should NOT have been added", func() {
-									var certs model.Cryptos
-									So(db.Select(&certs).Run(), ShouldBeNil)
-									So(certs, ShouldBeEmpty)
-								})
-							})
-						})
+		expected := &expectedRequest{
+			method: http.MethodPost,
+			path:   path,
+			body: map[string]any{
+				"name":        name,
+				"certificate": certContent,
+				"privateKey":  pkey,
+			},
+		}
 
-						Convey("Given an invalid account", func() {
-							Server = server.Name
-							LocalAccount = "tutu"
-							args := []string{
-								"-n", "account_cert",
-								"-p", cPk.Name(),
-								"-c", cCrt.Name(),
-							}
+		result := &expectedResponse{
+			status:  http.StatusCreated,
+			headers: map[string][]string{"Location": {location}},
+		}
 
-							Convey("When executing the command", func() {
-								params, err := flags.ParseArgs(command, args)
-								So(err, ShouldBeNil)
-								err = command.Execute(params)
+		t.Run("Given dummy gateway REST interface", func(t *testing.T) {
+			testServer(t, expected, result)
 
-								Convey("Then is should return an error", func() {
-									So(err, ShouldBeError, "no account 'tutu' found for server "+server.Name)
-								})
+			t.Run("When executing the command", func(t *testing.T) {
+				require.NoError(t, executeCommand(t, w, command,
+					"--name", name,
+					"--certificate", certFile,
+					"--private_key", pkeyFile))
 
-								Convey("Then the new cert should NOT have been added", func() {
-									var certs model.Cryptos
-									So(db.Select(&certs).Run(), ShouldBeNil)
-									So(certs, ShouldBeEmpty)
-								})
-							})
-						})
-					})
-				})
+				assert.Equal(t,
+					fmt.Sprintf("The certificate %q was successfully added.\n", name),
+					w.String(),
+					"Then it should display a message saying the certificate was added")
 			})
 		})
 	})
 }
 
-//nolint:maintidx //FIXME factorize the function if possible to improve maintainability
-func TestDeleteCertificate(t *testing.T) {
-	Convey("Testing the certificate 'delete' command", t, func() {
-		resetVars()
+func TestCertificateDelete(t *testing.T) {
+	var command *CertDelete
 
-		out = testFile()
-		command := &CertDelete{}
+	const (
+		server     = "toto"
+		partner    = "tata"
+		locAccount = "titi"
+		remAccount = "tutu"
 
-		Convey("Given a gateway", func(c C) {
-			db := database.TestDatabase(c)
-			gw := httptest.NewServer(testHandler(db))
-			var err error
-			addr, err = url.Parse("http://admin:admin_password@" + gw.Listener.Addr().String())
-			So(err, ShouldBeNil)
+		name = "crypto"
+	)
 
-			Convey("Given a partner", func() {
-				partner := &model.RemoteAgent{
-					Name:     "partner",
-					Protocol: testProto1,
-					Address:  "localhost:6666",
-				}
-				So(db.Insert(partner).Run(), ShouldBeNil)
+	t.Run(`Testing the certificate "delete" command with a server`, func(t *testing.T) {
+		const path = "/api/servers/" + server + "/certificates/" + name
 
-				Convey("Given a partner certificate", func() {
-					cert := &model.Crypto{
-						RemoteAgentID: utils.NewNullInt64(partner.ID),
-						Name:          "partner_cert",
-						Certificate:   testhelpers.LocalhostCert,
-					}
-					So(db.Insert(cert).Run(), ShouldBeNil)
+		Server = server
+		defer resetVars()
 
-					Convey("Given valid partner & cert names", func() {
-						Partner = partner.Name
-						args := []string{cert.Name}
+		w := newTestOutput()
+		command = &CertDelete{}
 
-						Convey("When executing the command", func() {
-							params, err := flags.ParseArgs(command, args)
-							So(err, ShouldBeNil)
-							So(command.Execute(params), ShouldBeNil)
+		expected := &expectedRequest{
+			method: http.MethodDelete,
+			path:   path,
+		}
 
-							Convey("Then it should say the cert was deleted", func() {
-								So(getOutput(), ShouldEqual, "The certificate "+
-									cert.Name+" was successfully deleted.\n")
-							})
+		result := &expectedResponse{
+			status: http.StatusNoContent,
+		}
 
-							Convey("Then the cert should have been deleted", func() {
-								var certs model.Cryptos
-								So(db.Select(&certs).Run(), ShouldBeNil)
-								So(certs, ShouldBeEmpty)
-							})
-						})
-					})
+		t.Run("Given dummy gateway REST interface", func(t *testing.T) {
+			testServer(t, expected, result)
 
-					Convey("Given an invalid partner name", func() {
-						Partner = "tutu"
-						args := []string{cert.Name}
+			t.Run("When executing the command", func(t *testing.T) {
+				require.NoError(t, executeCommand(t, w, command, name))
 
-						Convey("When executing the command", func() {
-							params, err := flags.ParseArgs(command, args)
-							So(err, ShouldBeNil)
-							err = command.Execute(params)
-
-							Convey("Then it should return an error", func() {
-								So(err, ShouldBeError, "partner 'tutu' not found")
-							})
-
-							Convey("Then the cert should NOT have been deleted", func() {
-								var certs model.Cryptos
-								So(db.Select(&certs).Run(), ShouldBeNil)
-								So(certs, ShouldNotBeEmpty)
-								So(certs, ShouldContain, cert)
-							})
-						})
-					})
-
-					Convey("Given an invalid cert name", func() {
-						Partner = partner.Name
-						args := []string{"tutu"}
-
-						Convey("When executing the command", func() {
-							params, err := flags.ParseArgs(command, args)
-							So(err, ShouldBeNil)
-							err = command.Execute(params)
-
-							Convey("Then it should return an error", func() {
-								So(err, ShouldBeError, "certificate 'tutu' not found")
-							})
-
-							Convey("Then the cert should NOT have been deleted", func() {
-								var certs model.Cryptos
-								So(db.Select(&certs).Run(), ShouldBeNil)
-								So(certs, ShouldNotBeEmpty)
-								So(certs, ShouldContain, cert)
-							})
-						})
-					})
-				})
-
-				Convey("Given an account with a certificate", func() {
-					account := &model.RemoteAccount{
-						RemoteAgentID: partner.ID,
-						Login:         "foo",
-						Password:      "password",
-					}
-					So(db.Insert(account).Run(), ShouldBeNil)
-
-					cert := &model.Crypto{
-						RemoteAccountID: utils.NewNullInt64(account.ID),
-						Name:            "account_cert",
-						PrivateKey:      testhelpers.ClientFooKey,
-						Certificate:     testhelpers.ClientFooCert,
-					}
-					So(db.Insert(cert).Run(), ShouldBeNil)
-
-					Convey("Given valid account, partner & cert names", func() {
-						Partner = partner.Name
-						RemoteAccount = account.Login
-						args := []string{cert.Name}
-
-						Convey("When executing the command", func() {
-							params, err := flags.ParseArgs(command, args)
-							So(err, ShouldBeNil)
-							So(command.Execute(params), ShouldBeNil)
-
-							Convey("Then it say the cert was deleted", func() {
-								So(getOutput(), ShouldEqual, "The certificate "+
-									cert.Name+" was successfully deleted.\n")
-							})
-
-							Convey("Then the cert should have been deleted", func() {
-								var certs model.Cryptos
-								So(db.Select(&certs).Run(), ShouldBeNil)
-								So(certs, ShouldBeEmpty)
-							})
-						})
-					})
-
-					Convey("Given an invalid partner name", func() {
-						Partner = "tutu"
-						RemoteAccount = account.Login
-						args := []string{cert.Name}
-
-						Convey("When executing the command", func() {
-							params, err := flags.ParseArgs(command, args)
-							So(err, ShouldBeNil)
-							err = command.Execute(params)
-
-							Convey("Then it should return an error", func() {
-								So(err, ShouldBeError, "partner 'tutu' not found")
-							})
-
-							Convey("Then the cert should NOT have been deleted", func() {
-								var certs model.Cryptos
-								So(db.Select(&certs).Run(), ShouldBeNil)
-								So(certs, ShouldNotBeEmpty)
-								So(certs, ShouldContain, cert)
-							})
-						})
-					})
-
-					Convey("Given an invalid account name", func() {
-						Partner = partner.Name
-						RemoteAccount = "tutu"
-						args := []string{cert.Name}
-
-						Convey("When executing the command", func() {
-							params, err := flags.ParseArgs(command, args)
-							So(err, ShouldBeNil)
-							err = command.Execute(params)
-
-							Convey("Then it should return an error", func() {
-								So(err, ShouldBeError, "no account 'tutu' found for partner "+partner.Name)
-							})
-
-							Convey("Then the cert should NOT have been deleted", func() {
-								var certs model.Cryptos
-								So(db.Select(&certs).Run(), ShouldBeNil)
-								So(certs, ShouldNotBeEmpty)
-								So(certs, ShouldContain, cert)
-							})
-						})
-					})
-
-					Convey("Given an invalid cert name", func() {
-						Partner = partner.Name
-						RemoteAccount = account.Login
-						args := []string{"tutu"}
-
-						Convey("When executing the command", func() {
-							params, err := flags.ParseArgs(command, args)
-							So(err, ShouldBeNil)
-							err = command.Execute(params)
-
-							Convey("Then it should return an error", func() {
-								So(err, ShouldBeError, "certificate 'tutu' not found")
-							})
-
-							Convey("Then the cert should NOT have been deleted", func() {
-								var certs model.Cryptos
-								So(db.Select(&certs).Run(), ShouldBeNil)
-								So(certs, ShouldNotBeEmpty)
-								So(certs, ShouldContain, cert)
-							})
-						})
-					})
-				})
+				assert.Equal(t,
+					fmt.Sprintf("The certificate %q was successfully deleted.\n", name),
+					w.String(),
+					"Then it should display a message saying the certificate was deleted")
 			})
+		})
+	})
 
-			Convey("Given a server", func() {
-				server := &model.LocalAgent{
-					Name:     "server",
-					Protocol: testProto1,
-					Address:  "localhost:6666",
-				}
-				So(db.Insert(server).Run(), ShouldBeNil)
+	t.Run(`Testing the certificate "delete" command with a partner`, func(t *testing.T) {
+		const path = "/api/partners/" + partner + "/certificates/" + name
 
-				Convey("Given a server certificate", func() {
-					cert := &model.Crypto{
-						LocalAgentID: utils.NewNullInt64(server.ID),
-						Name:         "server_cert",
-						PrivateKey:   testhelpers.LocalhostKey,
-						Certificate:  testhelpers.LocalhostCert,
-					}
-					So(db.Insert(cert).Run(), ShouldBeNil)
+		Partner = partner
+		defer resetVars()
 
-					Convey("Given valid server & cert names", func() {
-						Server = server.Name
-						args := []string{cert.Name}
+		w := newTestOutput()
+		command = &CertDelete{}
 
-						Convey("When executing the command", func() {
-							params, err := flags.ParseArgs(command, args)
-							So(err, ShouldBeNil)
-							So(command.Execute(params), ShouldBeNil)
+		expected := &expectedRequest{
+			method: http.MethodDelete,
+			path:   path,
+		}
 
-							Convey("Then it should say the cert was deleted", func() {
-								So(getOutput(), ShouldEqual, "The certificate "+
-									cert.Name+" was successfully deleted.\n")
-							})
+		result := &expectedResponse{
+			status: http.StatusNoContent,
+		}
 
-							Convey("Then the cert should have been deleted", func() {
-								var certs model.Cryptos
-								So(db.Select(&certs).Run(), ShouldBeNil)
-								So(certs, ShouldBeEmpty)
-							})
-						})
-					})
+		t.Run("Given dummy gateway REST interface", func(t *testing.T) {
+			testServer(t, expected, result)
 
-					Convey("Given an invalid server name", func() {
-						Server = "tutu"
-						args := []string{cert.Name}
+			t.Run("When executing the command", func(t *testing.T) {
+				require.NoError(t, executeCommand(t, w, command, name))
 
-						Convey("When executing the command", func() {
-							params, err := flags.ParseArgs(command, args)
-							So(err, ShouldBeNil)
-							err = command.Execute(params)
+				assert.Equal(t,
+					fmt.Sprintf("The certificate %q was successfully deleted.\n", name),
+					w.String(),
+					"Then it should display a message saying the certificate was deleted")
+			})
+		})
+	})
 
-							Convey("Then it should return an error", func() {
-								So(err, ShouldBeError, "server 'tutu' not found")
-							})
+	t.Run(`Testing the certificate "delete" command with a local account`, func(t *testing.T) {
+		const path = "/api/servers/" + server + "/accounts/" + locAccount + "/certificates/" + name
 
-							Convey("Then the cert should NOT have been deleted", func() {
-								var certs model.Cryptos
-								So(db.Select(&certs).Run(), ShouldBeNil)
-								So(certs, ShouldNotBeEmpty)
-								So(certs, ShouldContain, cert)
-							})
-						})
-					})
+		Server = server
+		LocalAccount = locAccount
+		defer resetVars()
 
-					Convey("Given an invalid cert name", func() {
-						Server = server.Name
-						args := []string{"tutu"}
+		w := newTestOutput()
+		command = &CertDelete{}
 
-						Convey("When executing the command", func() {
-							params, err := flags.ParseArgs(command, args)
-							So(err, ShouldBeNil)
-							err = command.Execute(params)
+		expected := &expectedRequest{
+			method: http.MethodDelete,
+			path:   path,
+		}
 
-							Convey("Then it should return an error", func() {
-								So(err, ShouldBeError, "certificate 'tutu' not found")
-							})
+		result := &expectedResponse{
+			status: http.StatusNoContent,
+		}
 
-							Convey("Then the cert should NOT have been deleted", func() {
-								var certs model.Cryptos
-								So(db.Select(&certs).Run(), ShouldBeNil)
-								So(certs, ShouldNotBeEmpty)
-								So(certs, ShouldContain, cert)
-							})
-						})
-					})
-				})
+		t.Run("Given dummy gateway REST interface", func(t *testing.T) {
+			testServer(t, expected, result)
 
-				Convey("Given an account with a certificate", func() {
-					account := &model.LocalAccount{
-						LocalAgentID: server.ID,
-						Login:        "foo",
-						PasswordHash: hash("password"),
-					}
-					So(db.Insert(account).Run(), ShouldBeNil)
+			t.Run("When executing the command", func(t *testing.T) {
+				require.NoError(t, executeCommand(t, w, command, name))
 
-					cert := &model.Crypto{
-						LocalAccountID: utils.NewNullInt64(account.ID),
-						Name:           "account_cert",
-						Certificate:    testhelpers.ClientFooCert,
-					}
-					So(db.Insert(cert).Run(), ShouldBeNil)
+				assert.Equal(t,
+					fmt.Sprintf("The certificate %q was successfully deleted.\n", name),
+					w.String(),
+					"Then it should display a message saying the certificate was deleted")
+			})
+		})
+	})
 
-					Convey("Given valid account, server & cert names", func() {
-						Server = server.Name
-						LocalAccount = account.Login
-						args := []string{cert.Name}
+	t.Run(`Testing the certificate "delete" command with a remote account`, func(t *testing.T) {
+		const path = "/api/partners/" + partner + "/accounts/" + remAccount + "/certificates/" + name
 
-						Convey("When executing the command", func() {
-							params, err := flags.ParseArgs(command, args)
-							So(err, ShouldBeNil)
-							So(command.Execute(params), ShouldBeNil)
+		Partner = partner
+		RemoteAccount = remAccount
+		defer resetVars()
 
-							Convey("Then it say the cert was deleted", func() {
-								So(getOutput(), ShouldEqual, "The certificate "+
-									cert.Name+" was successfully deleted.\n")
-							})
+		w := newTestOutput()
+		command = &CertDelete{}
 
-							Convey("Then the cert should have been deleted", func() {
-								var certs model.Cryptos
-								So(db.Select(&certs).Run(), ShouldBeNil)
-								So(certs, ShouldBeEmpty)
-							})
-						})
-					})
+		expected := &expectedRequest{
+			method: http.MethodDelete,
+			path:   path,
+		}
 
-					Convey("Given an invalid server name", func() {
-						Server = "tutu"
-						LocalAccount = account.Login
-						args := []string{cert.Name}
+		result := &expectedResponse{
+			status: http.StatusNoContent,
+		}
 
-						Convey("When executing the command", func() {
-							params, err := flags.ParseArgs(command, args)
-							So(err, ShouldBeNil)
-							err = command.Execute(params)
+		t.Run("Given dummy gateway REST interface", func(t *testing.T) {
+			testServer(t, expected, result)
 
-							Convey("Then it should return an error", func() {
-								So(err, ShouldBeError, "server 'tutu' not found")
-							})
+			t.Run("When executing the command", func(t *testing.T) {
+				require.NoError(t, executeCommand(t, w, command, name))
 
-							Convey("Then the cert should NOT have been deleted", func() {
-								var certs model.Cryptos
-								So(db.Select(&certs).Run(), ShouldBeNil)
-								So(certs, ShouldNotBeEmpty)
-								So(certs, ShouldContain, cert)
-							})
-						})
-					})
-
-					Convey("Given an invalid account name", func() {
-						Server = server.Name
-						LocalAccount = "tutu"
-						args := []string{cert.Name}
-
-						Convey("When executing the command", func() {
-							params, err := flags.ParseArgs(command, args)
-							So(err, ShouldBeNil)
-							err = command.Execute(params)
-
-							Convey("Then it should return an error", func() {
-								So(err, ShouldBeError, "no account 'tutu' found for server "+server.Name)
-							})
-
-							Convey("Then the cert should NOT have been deleted", func() {
-								var certs model.Cryptos
-								So(db.Select(&certs).Run(), ShouldBeNil)
-								So(certs, ShouldNotBeEmpty)
-								So(certs, ShouldContain, cert)
-							})
-						})
-					})
-
-					Convey("Given an invalid cert name", func() {
-						Server = server.Name
-						LocalAccount = account.Login
-						args := []string{"tutu"}
-
-						Convey("When executing the command", func() {
-							params, err := flags.ParseArgs(command, args)
-							So(err, ShouldBeNil)
-							err = command.Execute(params)
-
-							Convey("Then it should return an error", func() {
-								So(err, ShouldBeError, "certificate 'tutu' not found")
-							})
-
-							Convey("Then the cert should NOT have been deleted", func() {
-								var certs model.Cryptos
-								So(db.Select(&certs).Run(), ShouldBeNil)
-								So(certs, ShouldNotBeEmpty)
-								So(certs, ShouldContain, cert)
-							})
-						})
-					})
-				})
+				assert.Equal(t,
+					fmt.Sprintf("The certificate %q was successfully deleted.\n", name),
+					w.String(),
+					"Then it should display a message saying the certificate was deleted")
 			})
 		})
 	})
 }
 
-//nolint:maintidx //FIXME factorize the function if possible to improve maintainability
-func TestListCertificate(t *testing.T) {
-	Convey("Testing the certificate 'list' command", t, func() {
-		resetVars()
+func TestCertificateList(t *testing.T) {
+	var command *CertList
 
-		out = testFile()
-		command := &CertList{}
+	const (
+		sort   = "name+"
+		limit  = "10"
+		offset = "5"
 
-		Convey("Given a gateway", func(c C) {
-			db := database.TestDatabase(c)
-			gw := httptest.NewServer(testHandler(db))
-			var err error
-			addr, err = url.Parse("http://admin:admin_password@" + gw.Listener.Addr().String())
-			So(err, ShouldBeNil)
+		server     = "toto"
+		partner    = "tata"
+		locAccount = "titi"
+		remAccount = "tutu"
 
-			Convey("Given a partner", func() {
-				partner := &model.RemoteAgent{
-					Name:     "partner",
-					Protocol: testProto1,
-					Address:  "localhost:6666",
-				}
-				So(db.Insert(partner).Run(), ShouldBeNil)
+		pkey1Name = "pkey1"
+		pkey1     = testhelpers.RSAPk
+		pkey2Name = "pkey2"
+		pkey2     = testhelpers.LocalhostKey
+	)
 
-				Convey("Given a partner certificate", func() {
-					cert1 := &model.Crypto{
-						RemoteAgentID: utils.NewNullInt64(partner.ID),
-						Name:          "partner_cert_1",
-						Certificate:   testhelpers.LocalhostCert,
-					}
-					So(db.Insert(cert1).Run(), ShouldBeNil)
+	parsedKey1, err := ssh.ParsePrivateKey([]byte(pkey1))
+	require.NoError(t, err)
+	parsedKey2, err := ssh.ParsePrivateKey([]byte(pkey2))
+	require.NoError(t, err)
 
-					cert2 := &model.Crypto{
-						RemoteAgentID: utils.NewNullInt64(partner.ID),
-						Name:          "partner_cert_2",
-						Certificate:   testhelpers.OtherLocalhostCert,
-					}
-					So(db.Insert(cert2).Run(), ShouldBeNil)
+	var (
+		key1Type        = parsedKey1.PublicKey().Type()
+		key2Type        = parsedKey2.PublicKey().Type()
+		key1FingerPrint = ssh.FingerprintSHA256(parsedKey1.PublicKey())
+		key2FingerPrint = ssh.FingerprintSHA256(parsedKey2.PublicKey())
+	)
 
-					c1 := rest.FromCrypto(cert1)
-					c2 := rest.FromCrypto(cert2)
+	keyList := map[string]any{
+		"certificates": []map[string]any{{
+			"name":       pkey1Name,
+			"privateKey": pkey1,
+		}, {
+			"name":       pkey2Name,
+			"privateKey": pkey2,
+		}},
+	}
 
-					Convey("Given no flags", func() {
-						Partner = partner.Name
-						args := []string{}
+	listOutput := "Certificates:\n" +
+		fmt.Sprintf("╭─ Private Key %q\n", pkey1Name) +
+		fmt.Sprintf("│  ├─ Type: %s\n", key1Type) +
+		fmt.Sprintf("│  ╰─ Fingerprint: %s\n", key1FingerPrint) +
+		fmt.Sprintf("╰─ Private Key %q\n", pkey2Name) +
+		fmt.Sprintf("   ├─ Type: %s\n", key2Type) +
+		fmt.Sprintf("   ╰─ Fingerprint: %s\n", key2FingerPrint)
 
-						Convey("When executing the command", func() {
-							params, err := flags.ParseArgs(command, args)
-							So(err, ShouldBeNil)
-							So(command.Execute(params), ShouldBeNil)
+	t.Run(`Testing the certificate "list" command with a server`, func(t *testing.T) {
+		const path = "/api/servers/" + server + "/certificates"
 
-							Convey("Then it should display the certificates", func() {
-								So(getOutput(), ShouldEqual, "Certificates:\n"+
-									certInfoString(c1)+certInfoString(c2))
-							})
-						})
-					})
+		Server = server
+		defer resetVars()
 
-					Convey("Given an invalid partner name", func() {
-						Partner = "tutu"
-						args := []string{}
+		w := newTestOutput()
+		command = &CertList{}
 
-						Convey("When executing the command", func() {
-							params, err := flags.ParseArgs(command, args)
-							So(err, ShouldBeNil)
-							err = command.Execute(params)
+		expected := &expectedRequest{
+			method: http.MethodGet,
+			path:   path,
+			values: url.Values{
+				"limit":  []string{limit},
+				"offset": []string{offset},
+				"sort":   []string{sort},
+			},
+		}
 
-							Convey("Then it should return an error", func() {
-								So(err, ShouldBeError, "partner 'tutu' not found")
-							})
-						})
-					})
+		result := &expectedResponse{
+			status: http.StatusOK,
+			body:   keyList,
+		}
 
-					Convey("Given a 'limit' parameter of 1", func() {
-						Partner = partner.Name
-						args := []string{"-l", "1"}
+		t.Run("Given dummy gateway REST interface", func(t *testing.T) {
+			testServer(t, expected, result)
 
-						Convey("When executing the command", func() {
-							params, err := flags.ParseArgs(command, args)
-							So(err, ShouldBeNil)
-							So(command.Execute(params), ShouldBeNil)
+			t.Run("When executing the command", func(t *testing.T) {
+				require.NoError(t, executeCommand(t, w, command,
+					"--limit", limit, "--offset", offset, "--sort", sort))
 
-							Convey("Then it should only display the 1st certificate", func() {
-								So(getOutput(), ShouldEqual, "Certificates:\n"+
-									certInfoString(c1))
-							})
-						})
-					})
-
-					Convey("Given a 'offset' parameter of 1", func() {
-						Partner = partner.Name
-						args := []string{"-o", "1"}
-
-						Convey("When executing the command", func() {
-							params, err := flags.ParseArgs(command, args)
-							So(err, ShouldBeNil)
-							So(command.Execute(params), ShouldBeNil)
-
-							Convey("Then it should NOT display the 1st certificate", func() {
-								So(getOutput(), ShouldEqual, "Certificates:\n"+
-									certInfoString(c2))
-							})
-						})
-					})
-
-					Convey("Given a 'sort' parameter of 'name-'", func() {
-						Partner = partner.Name
-						args := []string{"-s", "name-"}
-
-						Convey("When executing the command", func() {
-							params, err := flags.ParseArgs(command, args)
-							So(err, ShouldBeNil)
-							So(command.Execute(params), ShouldBeNil)
-
-							Convey("Then it should display the certificates in reverse", func() {
-								So(getOutput(), ShouldEqual, "Certificates:\n"+
-									certInfoString(c2)+certInfoString(c1))
-							})
-						})
-					})
-				})
-
-				Convey("Given an account with a certificate", func() {
-					account := &model.RemoteAccount{
-						RemoteAgentID: partner.ID,
-						Login:         "foo",
-						Password:      "password",
-					}
-					So(db.Insert(account).Run(), ShouldBeNil)
-
-					cert1 := &model.Crypto{
-						RemoteAccountID: utils.NewNullInt64(account.ID),
-						Name:            "account_cert_1",
-						PrivateKey:      testhelpers.ClientFooKey,
-						Certificate:     testhelpers.ClientFooCert,
-					}
-					So(db.Insert(cert1).Run(), ShouldBeNil)
-
-					cert2 := &model.Crypto{
-						RemoteAccountID: utils.NewNullInt64(account.ID),
-						Name:            "account_cert_2",
-						PrivateKey:      testhelpers.ClientFooKey2,
-						Certificate:     testhelpers.ClientFooCert2,
-					}
-					So(db.Insert(cert2).Run(), ShouldBeNil)
-
-					c1 := rest.FromCrypto(cert1)
-					c2 := rest.FromCrypto(cert2)
-
-					Convey("Given no flags", func() {
-						Partner = partner.Name
-						RemoteAccount = account.Login
-						args := []string{}
-
-						Convey("When executing the command", func() {
-							params, err := flags.ParseArgs(command, args)
-							So(err, ShouldBeNil)
-							So(command.Execute(params), ShouldBeNil)
-
-							Convey("Then it should display the certificates", func() {
-								So(getOutput(), ShouldEqual, "Certificates:\n"+
-									certInfoString(c1)+certInfoString(c2))
-							})
-						})
-					})
-
-					Convey("Given an invalid partner name", func() {
-						Partner = "tutu"
-						RemoteAccount = account.Login
-						args := []string{}
-
-						Convey("When executing the command", func() {
-							params, err := flags.ParseArgs(command, args)
-							So(err, ShouldBeNil)
-							err = command.Execute(params)
-
-							Convey("Then it should return an error", func() {
-								So(err, ShouldBeError, "partner 'tutu' not found")
-							})
-						})
-					})
-
-					Convey("Given an invalid account name", func() {
-						Partner = partner.Name
-						RemoteAccount = "tutu"
-						args := []string{}
-
-						Convey("When executing the command", func() {
-							params, err := flags.ParseArgs(command, args)
-							So(err, ShouldBeNil)
-							err = command.Execute(params)
-
-							Convey("Then it should return an error", func() {
-								So(err, ShouldBeError, "no account 'tutu' found for partner "+partner.Name)
-							})
-						})
-					})
-
-					Convey("Given a 'limit' parameter of 1", func() {
-						Partner = partner.Name
-						RemoteAccount = account.Login
-						args := []string{"-l", "1"}
-
-						Convey("When executing the command", func() {
-							params, err := flags.ParseArgs(command, args)
-							So(err, ShouldBeNil)
-							So(command.Execute(params), ShouldBeNil)
-
-							Convey("Then it should only display the 1st certificate", func() {
-								So(getOutput(), ShouldEqual, "Certificates:\n"+
-									certInfoString(c1))
-							})
-						})
-					})
-
-					Convey("Given a 'offset' parameter of 1", func() {
-						Partner = partner.Name
-						RemoteAccount = account.Login
-						args := []string{"-o", "1"}
-
-						Convey("When executing the command", func() {
-							params, err := flags.ParseArgs(command, args)
-							So(err, ShouldBeNil)
-							So(command.Execute(params), ShouldBeNil)
-
-							Convey("Then it should NOT display the 1st certificate", func() {
-								So(getOutput(), ShouldEqual, "Certificates:\n"+
-									certInfoString(c2))
-							})
-						})
-					})
-
-					Convey("Given a 'sort' parameter of 'name-'", func() {
-						Partner = partner.Name
-						RemoteAccount = account.Login
-						args := []string{"-s", "name-"}
-
-						Convey("When executing the command", func() {
-							params, err := flags.ParseArgs(command, args)
-							So(err, ShouldBeNil)
-							So(command.Execute(params), ShouldBeNil)
-
-							Convey("Then it should display the certificates in reverse", func() {
-								So(getOutput(), ShouldEqual, "Certificates:\n"+
-									certInfoString(c2)+certInfoString(c1))
-							})
-						})
-					})
-				})
+				assert.Equal(t,
+					listOutput,
+					w.String(),
+					"Then it should display the certificate")
 			})
+		})
+	})
 
-			Convey("Given a server", func() {
-				server := &model.LocalAgent{
-					Name:     "server",
-					Protocol: testProto1,
-					Address:  "localhost:6666",
-				}
-				So(db.Insert(server).Run(), ShouldBeNil)
+	t.Run(`Testing the certificate "list" command with a partner`, func(t *testing.T) {
+		const path = "/api/partners/" + partner + "/certificates"
 
-				Convey("Given a server certificate", func() {
-					cert1 := &model.Crypto{
-						LocalAgentID: utils.NewNullInt64(server.ID),
-						Name:         "server_cert_1",
-						PrivateKey:   testhelpers.LocalhostKey,
-						Certificate:  testhelpers.LocalhostCert,
-					}
-					So(db.Insert(cert1).Run(), ShouldBeNil)
+		Partner = partner
+		defer resetVars()
 
-					cert2 := &model.Crypto{
-						LocalAgentID: utils.NewNullInt64(server.ID),
-						Name:         "server_cert_2",
-						PrivateKey:   testhelpers.OtherLocalhostKey,
-						Certificate:  testhelpers.OtherLocalhostCert,
-					}
-					So(db.Insert(cert2).Run(), ShouldBeNil)
+		w := newTestOutput()
+		command = &CertList{}
 
-					c1 := rest.FromCrypto(cert1)
-					c2 := rest.FromCrypto(cert2)
+		expected := &expectedRequest{
+			method: http.MethodGet,
+			path:   path,
+			values: url.Values{
+				"limit":  []string{limit},
+				"offset": []string{offset},
+				"sort":   []string{sort},
+			},
+		}
 
-					Convey("Given no flags", func() {
-						Server = server.Name
-						args := []string{}
+		result := &expectedResponse{
+			status: http.StatusOK,
+			body:   keyList,
+		}
 
-						Convey("When executing the command", func() {
-							params, err := flags.ParseArgs(command, args)
-							So(err, ShouldBeNil)
-							So(command.Execute(params), ShouldBeNil)
+		t.Run("Given dummy gateway REST interface", func(t *testing.T) {
+			testServer(t, expected, result)
 
-							Convey("Then it should display the certificates", func() {
-								So(getOutput(), ShouldEqual, "Certificates:\n"+
-									certInfoString(c1)+certInfoString(c2))
-							})
-						})
-					})
+			t.Run("When executing the command", func(t *testing.T) {
+				require.NoError(t, executeCommand(t, w, command,
+					"--limit", limit, "--offset", offset, "--sort", sort))
 
-					Convey("Given an invalid server name", func() {
-						Server = "tutu"
-						args := []string{}
+				assert.Equal(t,
+					listOutput,
+					w.String(),
+					"Then it should display the certificate")
+			})
+		})
+	})
 
-						Convey("When executing the command", func() {
-							params, err := flags.ParseArgs(command, args)
-							So(err, ShouldBeNil)
-							err = command.Execute(params)
+	t.Run(`Testing the certificate "list" command with a local account`, func(t *testing.T) {
+		const path = "/api/servers/" + server + "/accounts/" + locAccount + "/certificates"
 
-							Convey("Then it should return an error", func() {
-								So(err, ShouldBeError, "server 'tutu' not found")
-							})
-						})
-					})
+		Server = server
+		LocalAccount = locAccount
+		defer resetVars()
 
-					Convey("Given a 'limit' parameter of 1", func() {
-						Server = server.Name
-						args := []string{"-l", "1"}
+		w := newTestOutput()
+		command = &CertList{}
 
-						Convey("When executing the command", func() {
-							params, err := flags.ParseArgs(command, args)
-							So(err, ShouldBeNil)
-							So(command.Execute(params), ShouldBeNil)
+		expected := &expectedRequest{
+			method: http.MethodGet,
+			path:   path,
+			values: url.Values{
+				"limit":  []string{limit},
+				"offset": []string{offset},
+				"sort":   []string{sort},
+			},
+		}
 
-							Convey("Then it should only display the 1st certificate", func() {
-								So(getOutput(), ShouldEqual, "Certificates:\n"+
-									certInfoString(c1))
-							})
-						})
-					})
+		result := &expectedResponse{
+			status: http.StatusOK,
+			body:   keyList,
+		}
 
-					Convey("Given a 'offset' parameter of 1", func() {
-						Server = server.Name
-						args := []string{"-o", "1"}
+		t.Run("Given dummy gateway REST interface", func(t *testing.T) {
+			testServer(t, expected, result)
 
-						Convey("When executing the command", func() {
-							params, err := flags.ParseArgs(command, args)
-							So(err, ShouldBeNil)
-							So(command.Execute(params), ShouldBeNil)
+			t.Run("When executing the command", func(t *testing.T) {
+				require.NoError(t, executeCommand(t, w, command,
+					"--limit", limit, "--offset", offset, "--sort", sort))
 
-							Convey("Then it should NOT display the 1st certificate", func() {
-								So(getOutput(), ShouldEqual, "Certificates:\n"+
-									certInfoString(c2))
-							})
-						})
-					})
+				assert.Equal(t,
+					listOutput,
+					w.String(),
+					"Then it should display the certificate")
+			})
+		})
+	})
 
-					Convey("Given a 'sort' parameter of 'name-'", func() {
-						Server = server.Name
-						args := []string{"-s", "name-"}
+	t.Run(`Testing the certificate "list" command with a remote account`, func(t *testing.T) {
+		const path = "/api/partners/" + partner + "/accounts/" + remAccount + "/certificates"
 
-						Convey("When executing the command", func() {
-							params, err := flags.ParseArgs(command, args)
-							So(err, ShouldBeNil)
-							So(command.Execute(params), ShouldBeNil)
+		Partner = partner
+		RemoteAccount = remAccount
+		defer resetVars()
 
-							Convey("Then it should display the certificates in reverse", func() {
-								So(getOutput(), ShouldEqual, "Certificates:\n"+
-									certInfoString(c2)+certInfoString(c1))
-							})
-						})
-					})
-				})
+		w := newTestOutput()
+		command = &CertList{}
 
-				Convey("Given an account with a certificate", func() {
-					account := &model.LocalAccount{
-						LocalAgentID: server.ID,
-						Login:        "foo",
-						PasswordHash: hash("password"),
-					}
-					So(db.Insert(account).Run(), ShouldBeNil)
+		expected := &expectedRequest{
+			method: http.MethodGet,
+			path:   path,
+			values: url.Values{
+				"limit":  []string{limit},
+				"offset": []string{offset},
+				"sort":   []string{sort},
+			},
+		}
 
-					cert1 := &model.Crypto{
-						LocalAccountID: utils.NewNullInt64(account.ID),
-						Name:           "account_cert_1",
-						Certificate:    testhelpers.ClientFooCert,
-					}
-					So(db.Insert(cert1).Run(), ShouldBeNil)
+		result := &expectedResponse{
+			status: http.StatusOK,
+			body:   keyList,
+		}
 
-					cert2 := &model.Crypto{
-						LocalAccountID: utils.NewNullInt64(account.ID),
-						Name:           "account_cert_2",
-						Certificate:    testhelpers.ClientFooCert2,
-					}
-					So(db.Insert(cert2).Run(), ShouldBeNil)
+		t.Run("Given dummy gateway REST interface", func(t *testing.T) {
+			testServer(t, expected, result)
 
-					c1 := rest.FromCrypto(cert1)
-					c2 := rest.FromCrypto(cert2)
+			t.Run("When executing the command", func(t *testing.T) {
+				require.NoError(t, executeCommand(t, w, command,
+					"--limit", limit, "--offset", offset, "--sort", sort))
 
-					Convey("Given no flags", func() {
-						Server = server.Name
-						LocalAccount = account.Login
-						args := []string{}
-
-						Convey("When executing the command", func() {
-							params, err := flags.ParseArgs(command, args)
-							So(err, ShouldBeNil)
-							So(command.Execute(params), ShouldBeNil)
-
-							Convey("Then it should display the certificates", func() {
-								So(getOutput(), ShouldEqual, "Certificates:\n"+
-									certInfoString(c1)+certInfoString(c2))
-							})
-						})
-					})
-
-					Convey("Given an invalid server name", func() {
-						Server = "tutu"
-						LocalAccount = account.Login
-						args := []string{}
-
-						Convey("When executing the command", func() {
-							params, err := flags.ParseArgs(command, args)
-							So(err, ShouldBeNil)
-							err = command.Execute(params)
-
-							Convey("Then it should return an error", func() {
-								So(err, ShouldBeError, "server 'tutu' not found")
-							})
-						})
-					})
-
-					Convey("Given an invalid account name", func() {
-						Server = server.Name
-						LocalAccount = "tutu"
-						args := []string{}
-
-						Convey("When executing the command", func() {
-							params, err := flags.ParseArgs(command, args)
-							So(err, ShouldBeNil)
-							err = command.Execute(params)
-
-							Convey("Then it should return an error", func() {
-								So(err, ShouldBeError, "no account 'tutu' found for server "+server.Name)
-							})
-						})
-					})
-
-					Convey("Given a 'limit' parameter of 1", func() {
-						Server = server.Name
-						LocalAccount = account.Login
-						args := []string{"-l", "1"}
-
-						Convey("When executing the command", func() {
-							params, err := flags.ParseArgs(command, args)
-							So(err, ShouldBeNil)
-							So(command.Execute(params), ShouldBeNil)
-
-							Convey("Then it should only display the 1st certificate", func() {
-								So(getOutput(), ShouldEqual, "Certificates:\n"+
-									certInfoString(c1))
-							})
-						})
-					})
-
-					Convey("Given a 'offset' parameter of 1", func() {
-						Server = server.Name
-						LocalAccount = account.Login
-						args := []string{"-o", "1"}
-
-						Convey("When executing the command", func() {
-							params, err := flags.ParseArgs(command, args)
-							So(err, ShouldBeNil)
-							So(command.Execute(params), ShouldBeNil)
-
-							Convey("Then it should NOT display the 1st certificate", func() {
-								So(getOutput(), ShouldEqual, "Certificates:\n"+
-									certInfoString(c2))
-							})
-						})
-					})
-
-					Convey("Given a 'sort' parameter of 'name-'", func() {
-						Server = server.Name
-						LocalAccount = account.Login
-						args := []string{"-s", "name-"}
-
-						Convey("When executing the command", func() {
-							params, err := flags.ParseArgs(command, args)
-							So(err, ShouldBeNil)
-							So(command.Execute(params), ShouldBeNil)
-
-							Convey("Then it should display the certificates in reverse", func() {
-								So(getOutput(), ShouldEqual, "Certificates:\n"+
-									certInfoString(c2)+certInfoString(c1))
-							})
-						})
-					})
-				})
+				assert.Equal(t,
+					listOutput,
+					w.String(),
+					"Then it should display the certificate")
 			})
 		})
 	})
 }
 
-//nolint:maintidx //FIXME factorize the function if possible to improve maintainability
-func TestUpdateCertificate(t *testing.T) {
-	Convey("Testing the certificate 'update' command", t, func() {
-		resetVars()
+func TestCertificateUpdate(t *testing.T) {
+	var command *CertUpdate
 
-		out = testFile()
-		command := &CertUpdate{}
+	const (
+		server     = "toto"
+		partner    = "tata"
+		locAccount = "titi"
+		remAccount = "tutu"
 
-		Convey("Given a gateway", func(c C) {
-			db := database.TestDatabase(c)
-			gw := httptest.NewServer(testHandler(db))
-			var err error
-			addr, err = url.Parse("http://admin:admin_password@" + gw.Listener.Addr().String())
-			So(err, ShouldBeNil)
+		oldName     = "old_crypto"
+		name        = "new_crypto"
+		certContent = testhelpers.LocalhostCert
+		pkey        = testhelpers.LocalhostKey
+		sshKey      = testhelpers.SSHPbk
+	)
 
-			cPk := writeFile(testhelpers.ClientFooKey)
-			cCrt := writeFile(testhelpers.ClientFooCert)
-			sPk := writeFile(testhelpers.LocalhostKey)
-			sCrt := writeFile(testhelpers.LocalhostCert)
+	certFile := writeFile(t, "cert.pem", certContent)
+	pkeyFile := writeFile(t, "key.pem", pkey)
+	sshKeyFile := writeFile(t, "id_rsa", sshKey)
 
-			Convey("Given a partner", func() {
-				partner := &model.RemoteAgent{
-					Name:     "partner",
-					Protocol: testProto1,
-					Address:  "localhost:6666",
-				}
-				So(db.Insert(partner).Run(), ShouldBeNil)
+	t.Run(`Testing the cert "update" command with a server`, func(t *testing.T) {
+		const (
+			path     = "/api/servers/" + server + "/certificates/" + oldName
+			location = "/api/servers/" + server + "/certificates/" + name
+		)
 
-				Convey("When updating the certificate", func() {
-					originalCert := &model.Crypto{
-						RemoteAgentID: utils.NewNullInt64(partner.ID),
-						Name:          "partner_cert",
-						Certificate:   testhelpers.LocalhostCert,
-					}
-					So(db.Insert(originalCert).Run(), ShouldBeNil)
+		Server = server
+		defer resetVars()
 
-					Convey("Given valid partner, certificate & flags", func() {
-						Partner = partner.Name
-						args := []string{
-							"-c", sCrt.Name(),
-							originalCert.Name,
-						}
+		w := newTestOutput()
+		command = &CertUpdate{}
 
-						Convey("When executing the command", func() {
-							params, err := flags.ParseArgs(command, args)
-							So(err, ShouldBeNil)
-							So(command.Execute(params), ShouldBeNil)
+		expected := &expectedRequest{
+			method: http.MethodPatch,
+			path:   path,
+			body: map[string]any{
+				"name":        name,
+				"certificate": certContent,
+				"privateKey":  pkey,
+			},
+		}
 
-							Convey("Then is should display a message saying the "+
-								"cert was added", func() {
-								So(getOutput(), ShouldEqual, "The certificate "+
-									originalCert.Name+" was successfully updated.\n")
-							})
+		result := &expectedResponse{
+			status:  http.StatusCreated,
+			headers: map[string][]string{"Location": {location}},
+		}
 
-							Convey("Then the cert should have been updated", func() {
-								var certs model.Cryptos
-								So(db.Select(&certs).Run(), ShouldBeNil)
-								So(certs, ShouldNotBeEmpty)
+		t.Run("Given dummy gateway REST interface", func(t *testing.T) {
+			testServer(t, expected, result)
 
-								So(certs, ShouldContain, &model.Crypto{
-									ID:            originalCert.ID,
-									RemoteAgentID: utils.NewNullInt64(partner.ID),
-									Name:          "partner_cert",
-									Certificate:   testhelpers.LocalhostCert,
-								})
-							})
-						})
-					})
+			t.Run("When executing the command", func(t *testing.T) {
+				require.NoError(t, executeCommand(t, w, command,
+					"--name", name,
+					"--certificate", certFile,
+					"--private_key", pkeyFile,
+					oldName,
+				),
+					"Then is should not return an error",
+				)
 
-					Convey("Given an invalid partner name", func() {
-						Partner = "tutu"
-						args := []string{
-							"-n", "partner_cert",
-							"-p", sPk.Name(),
-							"-c", sCrt.Name(),
-							originalCert.Name,
-						}
-
-						Convey("When executing the command", func() {
-							params, err := flags.ParseArgs(command, args)
-							So(err, ShouldBeNil)
-							err = command.Execute(params)
-
-							Convey("Then is should return an error", func() {
-								So(err, ShouldBeError, "partner 'tutu' not found")
-							})
-
-							Convey("Then the new cert should NOT have been changed", func() {
-								var certs model.Cryptos
-								So(db.Select(&certs).Run(), ShouldBeNil)
-								So(certs, ShouldNotBeEmpty)
-								So(certs, ShouldContain, originalCert)
-							})
-						})
-					})
-
-					Convey("Given an invalid certificate name", func() {
-						Partner = partner.Name
-						args := []string{
-							"-n", "partner_cert",
-							"-p", sPk.Name(),
-							"-c", sCrt.Name(),
-							"tutu",
-						}
-
-						Convey("When executing the command", func() {
-							params, err := flags.ParseArgs(command, args)
-							So(err, ShouldBeNil)
-							err = command.Execute(params)
-
-							Convey("Then is should return an error", func() {
-								So(err, ShouldBeError, "certificate 'tutu' not found")
-							})
-
-							Convey("Then the new cert should NOT have been changed", func() {
-								var certs model.Cryptos
-								So(db.Select(&certs).Run(), ShouldBeNil)
-								So(certs, ShouldNotBeEmpty)
-								So(certs, ShouldContain, originalCert)
-							})
-						})
-					})
-				})
-
-				Convey("Given a partner account", func() {
-					account := &model.RemoteAccount{
-						RemoteAgentID: partner.ID,
-						Login:         "foo",
-						Password:      "password",
-					}
-					So(db.Insert(account).Run(), ShouldBeNil)
-
-					Convey("When updating the certificate", func() {
-						originalCert := &model.Crypto{
-							RemoteAccountID: utils.NewNullInt64(account.ID),
-							Name:            "account_cert",
-							PrivateKey:      testhelpers.ClientFooKey,
-							Certificate:     testhelpers.ClientFooCert,
-						}
-						So(db.Insert(originalCert).Run(), ShouldBeNil)
-
-						Convey("Given valid account, partner & flags", func() {
-							Partner = partner.Name
-							RemoteAccount = account.Login
-							args := []string{
-								"-p", cPk.Name(),
-								"-c", cCrt.Name(),
-								originalCert.Name,
-							}
-
-							Convey("When executing the command", func() {
-								params, err := flags.ParseArgs(command, args)
-								So(err, ShouldBeNil)
-								So(command.Execute(params), ShouldBeNil)
-
-								Convey("Then is should display a message saying "+
-									"the cert was added", func() {
-									So(getOutput(), ShouldEqual, "The certificate "+
-										originalCert.Name+" was successfully updated.\n")
-								})
-
-								Convey("Then the cert should have been updated", func() {
-									var certs model.Cryptos
-									So(db.Select(&certs).Run(), ShouldBeNil)
-									So(certs, ShouldNotBeEmpty)
-
-									So(certs, ShouldContain, &model.Crypto{
-										ID:              originalCert.ID,
-										RemoteAccountID: utils.NewNullInt64(account.ID),
-										Name:            "account_cert",
-										PrivateKey:      testhelpers.ClientFooKey,
-										Certificate:     testhelpers.ClientFooCert,
-									})
-								})
-							})
-						})
-
-						Convey("Given an invalid partner name", func() {
-							Partner = "tutu"
-							RemoteAccount = account.Login
-							args := []string{
-								"-p", cPk.Name(),
-								"-c", cCrt.Name(),
-								originalCert.Name,
-							}
-
-							Convey("When executing the command", func() {
-								params, err := flags.ParseArgs(command, args)
-								So(err, ShouldBeNil)
-								err = command.Execute(params)
-
-								Convey("Then is should return an error", func() {
-									So(err, ShouldBeError, "partner 'tutu' not found")
-								})
-
-								Convey("Then the cert should NOT have been updated", func() {
-									var certs model.Cryptos
-									So(db.Select(&certs).Run(), ShouldBeNil)
-									So(certs, ShouldNotBeEmpty)
-									So(certs, ShouldContain, originalCert)
-								})
-							})
-						})
-
-						Convey("Given an invalid account name", func() {
-							Partner = partner.Name
-							RemoteAccount = "tutu"
-							args := []string{
-								"-p", cPk.Name(),
-								"-c", cCrt.Name(),
-								originalCert.Name,
-							}
-
-							Convey("When executing the command", func() {
-								params, err := flags.ParseArgs(command, args)
-								So(err, ShouldBeNil)
-								err = command.Execute(params)
-
-								Convey("Then is should return an error", func() {
-									So(err, ShouldBeError, "no account 'tutu' "+
-										"found for partner "+partner.Name)
-								})
-
-								Convey("Then the cert should NOT have been updated", func() {
-									var certs model.Cryptos
-									So(db.Select(&certs).Run(), ShouldBeNil)
-									So(certs, ShouldNotBeEmpty)
-									So(certs, ShouldContain, originalCert)
-								})
-							})
-						})
-
-						Convey("Given an invalid certificate name", func() {
-							Partner = partner.Name
-							RemoteAccount = account.Login
-							args := []string{
-								"-p", cPk.Name(),
-								"-c", cCrt.Name(),
-								"tutu",
-							}
-
-							Convey("When executing the command", func() {
-								params, err := flags.ParseArgs(command, args)
-								So(err, ShouldBeNil)
-								err = command.Execute(params)
-
-								Convey("Then is should return an error", func() {
-									So(err, ShouldBeError, "certificate 'tutu' not found")
-								})
-
-								Convey("Then the cert should NOT have been updated", func() {
-									var certs model.Cryptos
-									So(db.Select(&certs).Run(), ShouldBeNil)
-									So(certs, ShouldNotBeEmpty)
-									So(certs, ShouldContain, originalCert)
-								})
-							})
-						})
-					})
-				})
+				assert.Equal(t,
+					fmt.Sprintf("The certificate %q was successfully updated.\n", name),
+					w.String(),
+					"Then it should display a message saying the certificate was updated")
 			})
+		})
+	})
 
-			Convey("Given a server", func() {
-				server := &model.LocalAgent{
-					Name:     "server",
-					Protocol: testProto1,
-					Address:  "localhost:6666",
-				}
-				So(db.Insert(server).Run(), ShouldBeNil)
+	t.Run(`Testing the cert "update" command with a partner`, func(t *testing.T) {
+		const (
+			path     = "/api/partners/" + partner + "/certificates/" + oldName
+			location = "/api/partners/" + partner + "/certificates/" + name
+		)
 
-				Convey("When updating the certificate", func() {
-					originalCert := &model.Crypto{
-						LocalAgentID: utils.NewNullInt64(server.ID),
-						Name:         "server_cert",
-						PrivateKey:   testhelpers.LocalhostKey,
-						Certificate:  testhelpers.LocalhostCert,
-					}
-					So(db.Insert(originalCert).Run(), ShouldBeNil)
+		Partner = partner
+		defer resetVars()
 
-					Convey("Given valid server, certificate & flags", func() {
-						Server = server.Name
-						args := []string{
-							"-p", sPk.Name(),
-							"-c", sCrt.Name(),
-							originalCert.Name,
-						}
+		w := newTestOutput()
+		command = &CertUpdate{}
 
-						Convey("When executing the command", func() {
-							params, err := flags.ParseArgs(command, args)
-							So(err, ShouldBeNil)
-							So(command.Execute(params), ShouldBeNil)
+		expected := &expectedRequest{
+			method: http.MethodPatch,
+			path:   path,
+			body: map[string]any{
+				"name":      name,
+				"publicKey": sshKey,
+			},
+		}
 
-							Convey("Then is should display a message saying "+
-								"the cert was added", func() {
-								So(getOutput(), ShouldEqual, rest.ServerCertRestartRequiredMsg+
-									"\nThe certificate "+originalCert.Name+" was successfully updated.\n")
-							})
+		result := &expectedResponse{
+			status:  http.StatusCreated,
+			headers: map[string][]string{"Location": {location}},
+		}
 
-							Convey("Then the cert should have been updated", func() {
-								var certs model.Cryptos
-								So(db.Select(&certs).Run(), ShouldBeNil)
-								So(certs, ShouldNotBeEmpty)
+		t.Run("Given dummy gateway REST interface", func(t *testing.T) {
+			testServer(t, expected, result)
 
-								So(certs, ShouldContain, &model.Crypto{
-									ID:           originalCert.ID,
-									LocalAgentID: utils.NewNullInt64(server.ID),
-									Name:         "server_cert",
-									PrivateKey:   testhelpers.LocalhostKey,
-									Certificate:  testhelpers.LocalhostCert,
-								})
-							})
-						})
-					})
+			t.Run("When executing the command", func(t *testing.T) {
+				require.NoError(t, executeCommand(t, w, command,
+					"--name", name,
+					"--public_key", sshKeyFile,
+					oldName,
+				),
+					"Then is should not return an error",
+				)
 
-					Convey("Given an invalid server name", func() {
-						Server = "tutu"
-						args := []string{
-							"-p", sPk.Name(),
-							"-c", sCrt.Name(),
-							originalCert.Name,
-						}
+				assert.Equal(t,
+					fmt.Sprintf("The certificate %q was successfully updated.\n", name),
+					w.String(),
+					"Then it should display a message saying the certificate was updated")
+			})
+		})
+	})
 
-						Convey("When executing the command", func() {
-							params, err := flags.ParseArgs(command, args)
-							So(err, ShouldBeNil)
-							err = command.Execute(params)
+	t.Run(`Testing the cert "update" command with a local account`, func(t *testing.T) {
+		const (
+			path     = "/api/servers/" + server + "/accounts/" + locAccount + "/certificates/" + oldName
+			location = "/api/servers/" + server + "/accounts/" + locAccount + "/certificates/" + name
+		)
 
-							Convey("Then is should return an error", func() {
-								So(err, ShouldBeError, "server 'tutu' not found")
-							})
+		Server = server
+		LocalAccount = locAccount
+		defer resetVars()
 
-							Convey("Then the new cert should NOT have been changed", func() {
-								var certs model.Cryptos
-								So(db.Select(&certs).Run(), ShouldBeNil)
-								So(certs, ShouldNotBeEmpty)
-								So(certs, ShouldContain, originalCert)
-							})
-						})
-					})
+		w := newTestOutput()
+		command = &CertUpdate{}
 
-					Convey("Given an invalid certificate name", func() {
-						Server = server.Name
-						args := []string{
-							"-p", sPk.Name(),
-							"-c", sCrt.Name(),
-							"tutu",
-						}
+		expected := &expectedRequest{
+			method: http.MethodPatch,
+			path:   path,
+			body: map[string]any{
+				"name":      name,
+				"publicKey": sshKey,
+			},
+		}
 
-						Convey("When executing the command", func() {
-							params, err := flags.ParseArgs(command, args)
-							So(err, ShouldBeNil)
-							err = command.Execute(params)
+		result := &expectedResponse{
+			status:  http.StatusCreated,
+			headers: map[string][]string{"Location": {location}},
+		}
 
-							Convey("Then is should return an error", func() {
-								So(err, ShouldBeError, "certificate 'tutu' not found")
-							})
+		t.Run("Given dummy gateway REST interface", func(t *testing.T) {
+			testServer(t, expected, result)
 
-							Convey("Then the new cert should NOT have been changed", func() {
-								var certs model.Cryptos
-								So(db.Select(&certs).Run(), ShouldBeNil)
-								So(certs, ShouldNotBeEmpty)
-								So(certs, ShouldContain, originalCert)
-							})
-						})
-					})
-				})
+			t.Run("When executing the command", func(t *testing.T) {
+				require.NoError(t, executeCommand(t, w, command,
+					"--name", name,
+					"--public_key", sshKeyFile,
+					oldName,
+				),
+					"Then is should not return an error",
+				)
 
-				Convey("Given a server account", func() {
-					account := &model.LocalAccount{
-						LocalAgentID: server.ID,
-						Login:        "foo",
-						PasswordHash: hash("password"),
-					}
-					So(db.Insert(account).Run(), ShouldBeNil)
+				assert.Equal(t,
+					fmt.Sprintf("The certificate %q was successfully updated.\n", name),
+					w.String(),
+					"Then it should display a message saying the certificate was updated")
+			})
+		})
+	})
 
-					Convey("When updating the certificate", func() {
-						originalCert := &model.Crypto{
-							LocalAccountID: utils.NewNullInt64(account.ID),
-							Name:           "account_cert",
-							Certificate:    testhelpers.ClientFooCert,
-						}
-						So(db.Insert(originalCert).Run(), ShouldBeNil)
+	t.Run(`Testing the cert "update" command with a remote account`, func(t *testing.T) {
+		const (
+			path     = "/api/partners/" + partner + "/accounts/" + remAccount + "/certificates/" + oldName
+			location = "/api/partners/" + partner + "/accounts/" + remAccount + "/certificates/" + name
+		)
 
-						Convey("Given valid account, server & flags", func() {
-							Server = server.Name
-							LocalAccount = account.Login
-							args := []string{
-								"-c", cCrt.Name(),
-								originalCert.Name,
-							}
+		Partner = partner
+		RemoteAccount = remAccount
+		defer resetVars()
 
-							Convey("When executing the command", func() {
-								params, err := flags.ParseArgs(command, args)
-								So(err, ShouldBeNil)
-								So(command.Execute(params), ShouldBeNil)
+		w := newTestOutput()
+		command = &CertUpdate{}
 
-								Convey("Then is should display a message saying "+
-									"the cert was added", func() {
-									So(getOutput(), ShouldEqual, "The certificate "+
-										originalCert.Name+" was successfully updated.\n")
-								})
+		expected := &expectedRequest{
+			method: http.MethodPatch,
+			path:   path,
+			body: map[string]any{
+				"name":        name,
+				"certificate": certContent,
+				"privateKey":  pkey,
+			},
+		}
 
-								Convey("Then the cert should have been updated", func() {
-									var certs model.Cryptos
-									So(db.Select(&certs).Run(), ShouldBeNil)
-									So(certs, ShouldNotBeEmpty)
+		result := &expectedResponse{
+			status:  http.StatusCreated,
+			headers: map[string][]string{"Location": {location}},
+		}
 
-									So(certs, ShouldContain, &model.Crypto{
-										ID:             originalCert.ID,
-										LocalAccountID: utils.NewNullInt64(account.ID),
-										Name:           "account_cert",
-										Certificate:    testhelpers.ClientFooCert,
-									})
-								})
-							})
-						})
+		t.Run("Given dummy gateway REST interface", func(t *testing.T) {
+			testServer(t, expected, result)
 
-						Convey("Given an invalid server name", func() {
-							Server = "tutu"
-							LocalAccount = account.Login
-							args := []string{
-								"-p", cPk.Name(),
-								"-c", cCrt.Name(),
-								originalCert.Name,
-							}
+			t.Run("When executing the command", func(t *testing.T) {
+				require.NoError(t, executeCommand(t, w, command,
+					"--name", name,
+					"--certificate", certFile,
+					"--private_key", pkeyFile,
+					oldName,
+				),
+					"Then is should not return an error",
+				)
 
-							Convey("When executing the command", func() {
-								params, err := flags.ParseArgs(command, args)
-								So(err, ShouldBeNil)
-								err = command.Execute(params)
-
-								Convey("Then is should return an error", func() {
-									So(err, ShouldBeError, "server 'tutu' not found")
-								})
-
-								Convey("Then the cert should NOT have been updated", func() {
-									var certs model.Cryptos
-									So(db.Select(&certs).Run(), ShouldBeNil)
-									So(certs, ShouldNotBeEmpty)
-									So(certs, ShouldContain, originalCert)
-								})
-							})
-						})
-
-						Convey("Given an invalid account name", func() {
-							Server = server.Name
-							LocalAccount = "tutu"
-							args := []string{
-								"-p", cPk.Name(),
-								"-c", cCrt.Name(),
-								originalCert.Name,
-							}
-
-							Convey("When executing the command", func() {
-								params, err := flags.ParseArgs(command, args)
-								So(err, ShouldBeNil)
-								err = command.Execute(params)
-
-								Convey("Then is should return an error", func() {
-									So(err, ShouldBeError, "no account 'tutu' "+
-										"found for server "+server.Name)
-								})
-
-								Convey("Then the cert should NOT have been updated", func() {
-									var certs model.Cryptos
-									So(db.Select(&certs).Run(), ShouldBeNil)
-									So(certs, ShouldNotBeEmpty)
-									So(certs, ShouldContain, originalCert)
-								})
-							})
-						})
-
-						Convey("Given an invalid certificate name", func() {
-							Server = server.Name
-							LocalAccount = account.Login
-							args := []string{
-								"-p", cPk.Name(),
-								"-c", cCrt.Name(),
-								"tutu",
-							}
-
-							Convey("When executing the command", func() {
-								params, err := flags.ParseArgs(command, args)
-								So(err, ShouldBeNil)
-								err = command.Execute(params)
-
-								Convey("Then is should return an error", func() {
-									So(err, ShouldBeError, "certificate 'tutu' not found")
-								})
-
-								Convey("Then the cert should NOT have been updated", func() {
-									var certs model.Cryptos
-									So(db.Select(&certs).Run(), ShouldBeNil)
-									So(certs, ShouldNotBeEmpty)
-									So(certs, ShouldContain, originalCert)
-								})
-							})
-						})
-					})
-				})
+				assert.Equal(t,
+					fmt.Sprintf("The certificate %q was successfully updated.\n", name),
+					w.String(),
+					"Then it should display a message saying the certificate was updated")
 			})
 		})
 	})

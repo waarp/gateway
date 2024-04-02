@@ -8,50 +8,46 @@ import (
 	"code.waarp.fr/lib/log"
 
 	"code.waarp.fr/apps/gateway/gateway/pkg/admin/rest/api"
-	"code.waarp.fr/apps/gateway/gateway/pkg/gatewayd/service"
-	"code.waarp.fr/apps/gateway/gateway/pkg/gatewayd/service/proto"
-	"code.waarp.fr/apps/gateway/gateway/pkg/pipeline"
+	"code.waarp.fr/apps/gateway/gateway/pkg/gatewayd/services"
 	"code.waarp.fr/apps/gateway/gateway/pkg/version"
 )
 
-func makeAbout(logger *log.Logger, core map[string]service.Service,
-	protoServices map[string]proto.Service,
-) http.HandlerFunc {
+func makeAbout(logger *log.Logger) http.HandlerFunc {
 	gmt := time.FixedZone("GMT", 0)
 
 	return func(w http.ResponseWriter, _ *http.Request) {
 		var (
-			coreServices []api.Service
-			servers      []api.Service
-			clients      []api.Service
+			core    []api.Service
+			servers []api.Service
+			clients []api.Service
 		)
 
-		for name, serv := range core {
-			code, reason := serv.State().Get()
+		for name, serv := range services.Core {
+			code, reason := serv.State()
 
-			coreServices = append(coreServices, api.Service{
+			core = append(core, api.Service{
 				Name:   name,
-				State:  code.Name(),
+				State:  code.String(),
 				Reason: reason,
 			})
 		}
 
-		for name, serv := range protoServices {
-			code, reason := serv.State().Get()
+		for name, serv := range services.Servers {
+			code, reason := serv.State()
 
 			servers = append(servers, api.Service{
 				Name:   name,
-				State:  code.Name(),
+				State:  code.String(),
 				Reason: reason,
 			})
 		}
 
-		for name, client := range pipeline.Clients {
-			code, reason := client.State().Get()
+		for name, client := range services.Clients {
+			code, reason := client.State()
 
 			clients = append(clients, api.Service{
 				Name:   name,
-				State:  code.Name(),
+				State:  code.String(),
 				Reason: reason,
 			})
 		}
@@ -63,7 +59,7 @@ func makeAbout(logger *log.Logger, core map[string]service.Service,
 		w.WriteHeader(http.StatusOK)
 
 		respBody := map[string]any{
-			"coreServices": coreServices,
+			"coreServices": core,
 			"servers":      servers,
 			"clients":      clients,
 		}

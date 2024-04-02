@@ -9,7 +9,7 @@ import (
 	. "github.com/smartystreets/goconvey/convey"
 
 	"code.waarp.fr/apps/gateway/gateway/pkg/model"
-	"code.waarp.fr/apps/gateway/gateway/pkg/tk/utils/testhelpers"
+	"code.waarp.fr/apps/gateway/gateway/pkg/utils/testhelpers"
 )
 
 func TestExecOutputValidate(t *testing.T) {
@@ -121,7 +121,7 @@ func TestExecOutputRun(t *testing.T) {
 					err := exec.Run(context.Background(), args, nil, logger, transCtx)
 
 					Convey("Then it should return a 'warning' error", func() {
-						So(err, ShouldHaveSameTypeAs, &warningError{})
+						So(err, ShouldHaveSameTypeAs, &WarningError{})
 					})
 				})
 			})
@@ -135,7 +135,7 @@ func TestExecOutputRun(t *testing.T) {
 
 					Convey("Then it should return an error", func() {
 						So(err, ShouldBeError)
-						So(err, ShouldNotHaveSameTypeAs, &warningError{})
+						So(err, ShouldNotHaveSameTypeAs, &WarningError{})
 
 						Convey("Then the transfer file should have changed", func() {
 							So(transCtx.Transfer.LocalPath.String(), ShouldEqual, "file:/new_name.file")
@@ -154,7 +154,7 @@ func TestExecOutputRun(t *testing.T) {
 					err := exec.Run(context.Background(), args, nil, logger, transCtx)
 
 					Convey("Then it should return an error", func() {
-						So(err, ShouldBeError, errCommandTimeout)
+						So(err, ShouldBeError, ErrCommandTimeout)
 					})
 				})
 			})

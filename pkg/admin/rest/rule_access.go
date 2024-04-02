@@ -31,21 +31,21 @@ func getAuthorizedRules(db database.ReadAccess, target model.AccessTarget) (api.
 func authorizeRule(w http.ResponseWriter, r *http.Request, db *database.DB,
 	target model.AccessTarget,
 ) error {
-	rule, err := retrieveDBRule(r, db)
-	if err != nil {
-		return err
+	rule, getErr := retrieveDBRule(r, db)
+	if getErr != nil {
+		return getErr
 	}
 
-	n, err1 := db.Count(&model.RuleAccess{}).Where("rule_id=?", rule.ID).Run()
-	if err1 != nil {
-		return err1
+	n, countErr := db.Count(&model.RuleAccess{}).Where("rule_id=?", rule.ID).Run()
+	if countErr != nil {
+		return fmt.Errorf("failed to count rule accesses: %w", countErr)
 	}
 
 	access := &model.RuleAccess{RuleID: rule.ID}
 	target.SetAccessTarget(access)
 
 	if err := db.Insert(access).Run(); err != nil {
-		return err
+		return fmt.Errorf("failed to insert rule access: %w", err)
 	}
 
 	if n == 0 {
@@ -61,19 +61,19 @@ func authorizeRule(w http.ResponseWriter, r *http.Request, db *database.DB,
 func revokeRule(w http.ResponseWriter, r *http.Request, db *database.DB,
 	target model.AccessTarget,
 ) error {
-	rule, err := retrieveDBRule(r, db)
-	if err != nil {
-		return err
+	rule, getErr := retrieveDBRule(r, db)
+	if getErr != nil {
+		return getErr
 	}
 
 	if err := db.DeleteAll(&model.RuleAccess{}).Where("rule_id=?", rule.ID).
 		Where(target.GenAccessSelectCond()).Run(); err != nil {
-		return err
+		return fmt.Errorf("failed to delete rule accesses: %w", err)
 	}
 
-	n, err1 := db.Count(&model.RuleAccess{}).Where("rule_id=?", rule.ID).Run()
-	if err1 != nil {
-		return err1
+	n, countErr := db.Count(&model.RuleAccess{}).Where("rule_id=?", rule.ID).Run()
+	if countErr != nil {
+		return fmt.Errorf("failed to count rule accesses: %w", countErr)
 	}
 
 	if n == 0 {
@@ -90,7 +90,7 @@ func makeServerAccess(db *database.DB, rule *model.Rule) ([]string, error) {
 	var agents model.LocalAgents
 	if err := db.Select(&agents).Where("id IN (SELECT local_agent_id FROM rule_access"+
 		" WHERE rule_id=? AND local_agent_id IS NOT NULL)", rule.ID).Run(); err != nil {
-		return nil, err
+		return nil, fmt.Errorf("failed to retrieve servers: %w", err)
 	}
 
 	names := make([]string, len(agents))
@@ -105,7 +105,7 @@ func makePartnerAccess(db *database.DB, rule *model.Rule) ([]string, error) {
 	var agents model.RemoteAgents
 	if err := db.Select(&agents).Where("id IN (SELECT remote_agent_id FROM rule_access"+
 		" WHERE rule_id=? AND remote_agent_id IS NOT NULL)", rule.ID).Run(); err != nil {
-		return nil, err
+		return nil, fmt.Errorf("failed to retrieve partners: %w", err)
 	}
 
 	names := make([]string, len(agents))
@@ -134,7 +134,7 @@ func convertAgentIDs(db *database.DB, isLocal bool, access map[int64][]string) (
 	if isLocal {
 		var agents model.LocalAgents
 		if err := db.Select(&agents).In("id", ids).Run(); err != nil {
-			return nil, err
+			return nil, fmt.Errorf("failed to retrieve servers: %w", err)
 		}
 
 		for i := range agents {
@@ -143,7 +143,7 @@ func convertAgentIDs(db *database.DB, isLocal bool, access map[int64][]string) (
 	} else {
 		var agents model.RemoteAgents
 		if err := db.Select(&agents).In("id", ids).Run(); err != nil {
-			return nil, err
+			return nil, fmt.Errorf("failed to retrieve partners: %w", err)
 		}
 
 		for _, agent := range agents {
@@ -159,7 +159,7 @@ func makeLocalAccountAccess(db *database.DB, rule *model.Rule) (map[string][]str
 	var accounts model.LocalAccounts
 	if err := db.Select(&accounts).Where("id IN (SELECT local_account_id FROM rule_access"+
 		" WHERE rule_id=? AND local_account_id IS NOT NULL)", rule.ID).Run(); err != nil {
-		return nil, err
+		return nil, fmt.Errorf("failed to retrieve local accounts: %w", err)
 	}
 
 	accessIDs := map[int64][]string{}
@@ -179,7 +179,7 @@ func makeRemoteAccountAccess(db *database.DB, rule *model.Rule) (map[string][]st
 	var accounts model.RemoteAccounts
 	if err := db.Select(&accounts).Where("id IN (SELECT remote_account_id FROM rule_access"+
 		" WHERE rule_id=? AND remote_account_id IS NOT NULL)", rule.ID).Run(); err != nil {
-		return nil, err
+		return nil, fmt.Errorf("failed to retrieve remote accounts: %w", err)
 	}
 
 	accessIDs := map[int64][]string{}

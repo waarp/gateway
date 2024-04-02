@@ -4,5 +4,5 @@ package api
 // the REST interface.
 type Task struct {
 	Type string            `json:"type"`
-	Args map[string]string `json:"args"`
+	Args map[string]string `json:"args,omitempty"`
 }

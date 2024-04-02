@@ -9,14 +9,27 @@ import (
 	"github.com/jessevdk/go-flags"
 
 	"code.waarp.fr/apps/gateway/gateway/pkg/admin/rest/api"
-	"code.waarp.fr/apps/gateway/gateway/pkg/tk/utils"
+	"code.waarp.fr/apps/gateway/gateway/pkg/utils"
 )
 
-func displayCertificate(w io.Writer, cert *api.OutCrypto) {
-	fmt.Fprintln(w, orange(bold("● Certificate %s", cert.Name)))
-	fmt.Fprintln(w, orange("    Private key:"), cert.PrivateKey)
-	fmt.Fprintln(w, orange("    Public key: "), cert.PublicKey)
-	fmt.Fprintln(w, orange("    Content:    "), cert.Certificate)
+func DisplayCrypto(w io.Writer, cert *api.OutCrypto) {
+	f := NewFormatter(w)
+	defer f.Render()
+
+	displayCrypto(f, cert)
+}
+
+func displayCrypto(f *Formatter, cert *api.OutCrypto) {
+	switch {
+	case cert.Certificate != "":
+		displayTLSInfo(f, cert.Name, cert.Certificate)
+	case cert.PublicKey != "":
+		displaySSHKeyInfo(f, cert.Name, cert.PublicKey)
+	case cert.PrivateKey != "":
+		displayPrivateKeyInfo(f, cert.Name, cert.PrivateKey)
+	default:
+		f.Title("Entry %q: <unknown authentication type>", cert.Name)
+	}
 }
 
 func getCertPath() string {
@@ -42,7 +55,8 @@ type CertGet struct {
 	} `positional-args:"yes"`
 }
 
-func (c *CertGet) Execute([]string) error {
+func (c *CertGet) Execute([]string) error { return c.execute(stdOutput) }
+func (c *CertGet) execute(w io.Writer) error {
 	addr.Path = path.Join(getCertPath(), "certificates", c.Args.Cert)
 
 	cert := &api.OutCrypto{}
@@ -50,12 +64,14 @@ func (c *CertGet) Execute([]string) error {
 		return err
 	}
 
-	displayCertificate(getColorable(), cert)
+	DisplayCrypto(w, cert)
 
 	return nil
 }
 
 // ######################## ADD ##########################
+
+// TODO: replace underscores "_" with hyphens "-" in flags names.
 
 type CertAdd struct {
 	Name        string         `required:"true" short:"n" long:"name" description:"The certificate's name"`
@@ -64,10 +80,9 @@ type CertAdd struct {
 	Certificate flags.Filename `short:"c" long:"certificate" description:"The path to the certificate file"`
 }
 
-func (c *CertAdd) Execute([]string) error {
-	inCrypto := &api.InCrypto{
-		Name: &c.Name,
-	}
+func (c *CertAdd) Execute([]string) error { return c.execute(stdOutput) }
+func (c *CertAdd) execute(w io.Writer) error {
+	inCrypto := &api.InCrypto{Name: &c.Name}
 
 	if c.PrivateKey != "" {
 		pk, err := os.ReadFile(string(c.PrivateKey))
@@ -98,11 +113,11 @@ func (c *CertAdd) Execute([]string) error {
 
 	addr.Path = path.Join(getCertPath(), "certificates")
 
-	if err := add(inCrypto); err != nil {
+	if _, err := add(w, inCrypto); err != nil {
 		return err
 	}
 
-	fmt.Fprintln(getColorable(), "The certificate", bold(c.Name), "was successfully added.")
+	fmt.Fprintf(w, "The certificate %q was successfully added.\n", c.Name)
 
 	return nil
 }
@@ -115,14 +130,15 @@ type CertDelete struct {
 	} `positional-args:"yes"`
 }
 
-func (c *CertDelete) Execute([]string) error {
+func (c *CertDelete) Execute([]string) error { return c.execute(stdOutput) }
+func (c *CertDelete) execute(w io.Writer) error {
 	addr.Path = path.Join(getCertPath(), "certificates", c.Args.Cert)
 
-	if err := remove(); err != nil {
+	if err := remove(w); err != nil {
 		return err
 	}
 
-	fmt.Fprintln(getColorable(), "The certificate", c.Args.Cert, "was successfully deleted.")
+	fmt.Fprintf(w, "The certificate %q was successfully deleted.\n", c.Args.Cert)
 
 	return nil
 }
@@ -135,23 +151,25 @@ type CertList struct {
 	SortBy string `short:"s" long:"sort" description:"Attribute used to sort the returned entries" choice:"name+" choice:"name-" default:"name+"`
 }
 
-func (c *CertList) Execute([]string) error {
+func (c *CertList) Execute([]string) error { return c.execute(stdOutput) }
+func (c *CertList) execute(w io.Writer) error {
 	addr.Path = path.Join(getCertPath(), "certificates")
 
 	listURL(&c.ListOptions, c.SortBy)
 
-	body := map[string][]api.OutCrypto{}
+	body := map[string][]*api.OutCrypto{}
 	if err := list(&body); err != nil {
 		return err
 	}
 
-	w := getColorable() //nolint:ifshort // decrease readability
-
 	if certs := body["certificates"]; len(certs) > 0 {
-		fmt.Fprintln(w, bold("Certificates:"))
+		f := NewFormatter(w)
+		defer f.Render()
 
-		for i := range certs {
-			displayCertificate(w, &certs[i])
+		f.MainTitle("Certificates:")
+
+		for _, cert := range certs {
+			displayCrypto(f, cert)
 		}
 	} else {
 		fmt.Fprintln(w, "No certificates found.")
@@ -172,7 +190,8 @@ type CertUpdate struct {
 	Certificate flags.Filename `short:"c" long:"certificate" description:"The path to the certificate file"`
 }
 
-func (c *CertUpdate) Execute([]string) error {
+func (c *CertUpdate) Execute([]string) error { return c.execute(stdOutput) }
+func (c *CertUpdate) execute(w io.Writer) error {
 	inCrypto := &api.InCrypto{
 		Name: c.Name,
 	}
@@ -206,7 +225,7 @@ func (c *CertUpdate) Execute([]string) error {
 
 	addr.Path = path.Join(getCertPath(), "certificates", c.Args.Cert)
 
-	if err := update(inCrypto); err != nil {
+	if err := update(w, inCrypto); err != nil {
 		return err
 	}
 
@@ -215,7 +234,7 @@ func (c *CertUpdate) Execute([]string) error {
 		name = *inCrypto.Name
 	}
 
-	fmt.Fprintln(getColorable(), "The certificate", bold(name), "was successfully updated.")
+	fmt.Fprintf(w, "The certificate %q was successfully updated.\n", name)
 
 	return nil
 }

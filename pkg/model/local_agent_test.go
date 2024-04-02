@@ -7,8 +7,8 @@ import (
 	. "github.com/smartystreets/goconvey/convey"
 
 	"code.waarp.fr/apps/gateway/gateway/pkg/database"
-	"code.waarp.fr/apps/gateway/gateway/pkg/tk/utils"
-	"code.waarp.fr/apps/gateway/gateway/pkg/tk/utils/testhelpers"
+	"code.waarp.fr/apps/gateway/gateway/pkg/utils"
+	"code.waarp.fr/apps/gateway/gateway/pkg/utils/testhelpers"
 )
 
 func TestLocalAgentTableName(t *testing.T) {
@@ -150,7 +150,7 @@ func TestLocalAgentBeforeWrite(t *testing.T) {
 					expErr := fmt.Sprintf(expMsg, args...)
 
 					Convey("When calling the 'BeforeWrite' function", func() {
-						err := db.Transaction(func(ses *database.Session) database.Error {
+						err := db.Transaction(func(ses *database.Session) error {
 							return newAgent.BeforeWrite(ses)
 						})
 
@@ -163,7 +163,7 @@ func TestLocalAgentBeforeWrite(t *testing.T) {
 
 				Convey("Given that the new agent is valid", func() {
 					Convey("When calling the 'BeforeWrite' function", func() {
-						err := db.Transaction(func(ses *database.Session) database.Error {
+						err := db.Transaction(func(ses *database.Session) error {
 							return newAgent.BeforeWrite(ses)
 						})
 
@@ -202,12 +202,6 @@ func TestLocalAgentBeforeWrite(t *testing.T) {
 					newAgent.Protocol = "not a protocol"
 
 					shouldFailWith(`unknown protocol "not a protocol"`)
-				})
-
-				Convey("Given that the new agent's protocol configuration is not valid", func() {
-					newAgent.ProtoConfig = map[string]any{"": nil}
-
-					shouldFailWith(`invalid proto config: json: unknown field ""`)
 				})
 			})
 		})

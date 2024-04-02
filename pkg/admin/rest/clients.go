@@ -1,6 +1,7 @@
 package rest
 
 import (
+	"context"
 	"fmt"
 	"net/http"
 
@@ -10,15 +11,17 @@ import (
 	"code.waarp.fr/apps/gateway/gateway/pkg/admin/rest/api"
 	"code.waarp.fr/apps/gateway/gateway/pkg/conf"
 	"code.waarp.fr/apps/gateway/gateway/pkg/database"
-	"code.waarp.fr/apps/gateway/gateway/pkg/gatewayd/service/constructors"
-	"code.waarp.fr/apps/gateway/gateway/pkg/gatewayd/service/state"
+	"code.waarp.fr/apps/gateway/gateway/pkg/gatewayd/services"
 	"code.waarp.fr/apps/gateway/gateway/pkg/model"
-	"code.waarp.fr/apps/gateway/gateway/pkg/pipeline"
+	"code.waarp.fr/apps/gateway/gateway/pkg/protocols"
+	"code.waarp.fr/apps/gateway/gateway/pkg/protocols/protocol"
+	"code.waarp.fr/apps/gateway/gateway/pkg/utils"
 )
 
 func ClientDBToREST(client *model.Client) *api.OutClient {
 	return &api.OutClient{
 		Name:         client.Name,
+		Enabled:      !client.Disabled,
 		Protocol:     client.Protocol,
 		LocalAddress: client.LocalAddress,
 		ProtoConfig:  client.ProtoConfig,
@@ -59,7 +62,7 @@ func getDBClient(r *http.Request, db *database.DB) (*model.Client, error) {
 			return nil, notFound("client %q not found", clientName)
 		}
 
-		return nil, err
+		return nil, fmt.Errorf("failed to retrieve client %q: %w", clientName, err)
 	}
 
 	return &client, nil
@@ -123,21 +126,46 @@ func createClient(logger *log.Logger, db *database.DB) http.HandlerFunc {
 			return
 		}
 
+		service, err := makeClientService(db, dbClient)
+		if handleError(w, logger, err) {
+			return
+		}
+
+		if err := service.Start(); handleError(w, logger, err) {
+			return
+		}
+
+		services.Clients[dbClient.Name] = service
+
 		w.Header().Set("Location", location(r.URL, restClient.Name))
 		w.WriteHeader(http.StatusCreated)
 	}
 }
 
+//nolint:dupl //duplicate is for servers, best keep separate
 func deleteClient(logger *log.Logger, db *database.DB) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		client, err := getDBClient(r, db)
+		dbClient, service, err := getClientService(r, db)
 		if handleError(w, logger, err) {
 			return
 		}
 
-		if err := db.Delete(client).Run(); handleError(w, logger, err) {
+		switch code, _ := service.State(); code {
+		case utils.StateError, utils.StateOffline:
+		default:
+			ctx, cancel := context.WithTimeout(r.Context(), serviceShutdownTimeout)
+			defer cancel()
+
+			if err := service.Stop(ctx); handleError(w, logger, err) {
+				return
+			}
+		}
+
+		if err := db.Delete(dbClient).Run(); handleError(w, logger, err) {
 			return
 		}
+
+		delete(services.Clients, dbClient.Name)
 
 		w.WriteHeader(http.StatusNoContent)
 	}
@@ -145,7 +173,7 @@ func deleteClient(logger *log.Logger, db *database.DB) http.HandlerFunc {
 
 func updateClient(logger *log.Logger, db *database.DB) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		oldDBClient, getErr := getDBClient(r, db)
+		oldDBClient, oldService, getErr := getClientService(r, db)
 		if handleError(w, logger, getErr) {
 			return
 		}
@@ -167,6 +195,27 @@ func updateClient(logger *log.Logger, db *database.DB) http.HandlerFunc {
 			return
 		}
 
+		newService, err := makeClientService(db, dbClient)
+		if handleError(w, logger, err) {
+			return
+		}
+
+		if state, _ := oldService.State(); state == utils.StateRunning {
+			ctx, cancel := context.WithTimeout(r.Context(), serviceShutdownTimeout)
+			defer cancel()
+
+			if err := oldService.Stop(ctx); handleError(w, logger, err) {
+				return
+			}
+
+			if err := newService.Start(); handleError(w, logger, err) {
+				return
+			}
+		}
+
+		delete(services.Clients, oldDBClient.Name)
+		services.Clients[dbClient.Name] = newService
+
 		w.Header().Set("Location", location(r.URL, restClient.Name))
 		w.WriteHeader(http.StatusCreated)
 	}
@@ -175,7 +224,7 @@ func updateClient(logger *log.Logger, db *database.DB) http.HandlerFunc {
 //nolint:dupl //duplicate is for a completely different type
 func replaceClient(logger *log.Logger, db *database.DB) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		oldDBClient, getErr := getDBClient(r, db)
+		oldDBClient, oldService, getErr := getClientService(r, db)
 		if handleError(w, logger, getErr) {
 			return
 		}
@@ -192,25 +241,58 @@ func replaceClient(logger *log.Logger, db *database.DB) http.HandlerFunc {
 			return
 		}
 
+		newService, err := makeClientService(db, dbClient)
+		if handleError(w, logger, err) {
+			return
+		}
+
+		if state, _ := oldService.State(); state == utils.StateRunning {
+			ctx, cancel := context.WithTimeout(r.Context(), serviceShutdownTimeout)
+			defer cancel()
+
+			if err := oldService.Stop(ctx); handleError(w, logger, err) {
+				return
+			}
+
+			if err := newService.Start(); handleError(w, logger, err) {
+				return
+			}
+		}
+
+		delete(services.Clients, oldDBClient.Name)
+		services.Clients[dbClient.Name] = newService
+
 		w.Header().Set("Location", location(r.URL, restClient.Name))
 		w.WriteHeader(http.StatusCreated)
 	}
 }
 
-func getClientService(r *http.Request, db *database.DB) (*model.Client, pipeline.Client, error) {
+func getClientService(r *http.Request, db *database.DB) (*model.Client, protocol.Client, error) {
 	dbClient, getErr := getDBClient(r, db)
 	if getErr != nil {
 		return nil, nil, getErr
 	}
 
-	client, ok := pipeline.Clients[dbClient.Name]
+	client, ok := services.Clients[dbClient.Name]
 	if !ok {
-		return nil, nil, errServiceNotFound
+		return nil, nil, fmt.Errorf("%w %q", ErrServiceNotFound, dbClient.Name)
 	}
 
 	return dbClient, client, nil
 }
 
+func makeClientService(db *database.DB, dbClient *model.Client) (services.Client, error) {
+	module := protocols.Get(dbClient.Protocol)
+	if module == nil {
+		return nil, errModuleNotFound
+	}
+
+	service := module.NewClient(db, dbClient)
+
+	return service, nil
+}
+
+//nolint:dupl //duplicate is for servers, best keep separate
 func startClient(logger *log.Logger, db *database.DB) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		dbClient, getErr := getDBClient(r, db)
@@ -218,26 +300,17 @@ func startClient(logger *log.Logger, db *database.DB) http.HandlerFunc {
 			return
 		}
 
-		client, ok := pipeline.Clients[dbClient.Name]
+		client, ok := services.Clients[dbClient.Name]
 		if !ok {
-			constr, ok := constructors.ClientConstructors[dbClient.Protocol]
-			if !ok {
-				handleError(w, logger, errConstructorNotFound)
-
+			var err error
+			if client, err = makeClientService(db, dbClient); handleError(w, logger, err) {
 				return
 			}
 
-			var cliErr error
-			if client, cliErr = constr(dbClient); cliErr != nil {
-				handleError(w, logger, cliErr)
-
-				return
-			}
-
-			pipeline.Clients[dbClient.Name] = client
+			services.Clients[dbClient.Name] = client
 		}
 
-		if code, _ := client.State().Get(); code == state.Running {
+		if code, _ := client.State(); code == utils.StateRunning {
 			w.WriteHeader(http.StatusBadRequest)
 			fmt.Fprintf(w, "Cannot start client %q, it is already running.", dbClient.Name)
 
@@ -252,6 +325,7 @@ func startClient(logger *log.Logger, db *database.DB) http.HandlerFunc {
 	}
 }
 
+//nolint:dupl //duplicate is for servers, best keep separate
 func stopClient(logger *log.Logger, db *database.DB) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		dbClient, client, err := getClientService(r, db)
@@ -259,7 +333,7 @@ func stopClient(logger *log.Logger, db *database.DB) http.HandlerFunc {
 			return
 		}
 
-		if code, _ := client.State().Get(); code == state.Offline || code == state.Error {
+		if code, _ := client.State(); code == utils.StateOffline || code == utils.StateError {
 			w.WriteHeader(http.StatusBadRequest)
 			fmt.Fprintf(w, "Cannot stop client %q, it isn't running.", dbClient.Name)
 

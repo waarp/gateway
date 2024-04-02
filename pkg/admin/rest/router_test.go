@@ -9,7 +9,7 @@ import (
 	. "github.com/smartystreets/goconvey/convey"
 
 	"code.waarp.fr/apps/gateway/gateway/pkg/database"
-	"code.waarp.fr/apps/gateway/gateway/pkg/tk/utils/testhelpers"
+	"code.waarp.fr/apps/gateway/gateway/pkg/utils/testhelpers"
 )
 
 func TestRouterChange(t *testing.T) {
@@ -18,7 +18,7 @@ func TestRouterChange(t *testing.T) {
 		logger := testhelpers.TestLogger(c, "test_router")
 		router := mux.NewRouter()
 
-		MakeRESTHandler(logger, db, router, nil, nil)
+		MakeRESTHandler(logger, db, router)
 
 		serv := httptest.NewServer(router)
 

@@ -18,11 +18,10 @@ import (
 	. "code.waarp.fr/apps/gateway/gateway/pkg/admin/rest/api"
 	"code.waarp.fr/apps/gateway/gateway/pkg/conf"
 	"code.waarp.fr/apps/gateway/gateway/pkg/database"
-	"code.waarp.fr/apps/gateway/gateway/pkg/gatewayd/service/proto"
 	"code.waarp.fr/apps/gateway/gateway/pkg/model"
 	"code.waarp.fr/apps/gateway/gateway/pkg/model/types"
-	"code.waarp.fr/apps/gateway/gateway/pkg/tk/utils"
-	"code.waarp.fr/apps/gateway/gateway/pkg/tk/utils/testhelpers"
+	"code.waarp.fr/apps/gateway/gateway/pkg/utils"
+	"code.waarp.fr/apps/gateway/gateway/pkg/utils/testhelpers"
 )
 
 const transferURI = "http://localhost:8080/api/transfers"
@@ -112,7 +111,8 @@ func TestAddTransfer(t *testing.T) {
 						So(transfers[0].Owner, ShouldEqual, conf.GlobalConfig.GatewayName)
 						So(transfers[0].Progress, ShouldEqual, 0)
 						So(transfers[0].TaskNumber, ShouldEqual, 0)
-						So(transfers[0].Error, ShouldBeZeroValue)
+						So(transfers[0].ErrCode, ShouldBeZeroValue)
+						So(transfers[0].ErrDetails, ShouldBeBlank)
 
 						info, err := transfers[0].GetTransferInfo(db)
 						So(err, ShouldBeNil)
@@ -175,7 +175,8 @@ func TestAddTransfer(t *testing.T) {
 						So(transfers[0].Owner, ShouldEqual, conf.GlobalConfig.GatewayName)
 						So(transfers[0].Progress, ShouldEqual, 0)
 						So(transfers[0].TaskNumber, ShouldEqual, 0)
-						So(transfers[0].Error, ShouldBeZeroValue)
+						So(transfers[0].ErrCode, ShouldBeZeroValue)
+						So(transfers[0].ErrDetails, ShouldBeZeroValue)
 
 						info, err := transfers[0].GetTransferInfo(db)
 						So(err, ShouldBeNil)
@@ -659,12 +660,10 @@ func TestResumeTransfer(t *testing.T) {
 				Start:           time.Date(2020, 1, 1, 1, 0, 0, 0, time.Local),
 				Status:          types.StatusError,
 				Step:            types.StepData,
-				Error: types.TransferError{
-					Code:    types.TeDataTransfer,
-					Details: "transfer failed",
-				},
-				Progress:   10,
-				TaskNumber: 0,
+				ErrCode:         types.TeDataTransfer,
+				ErrDetails:      "transfer failed",
+				Progress:        10,
+				TaskNumber:      0,
 			}
 			So(db.Insert(trans).Run(), ShouldBeNil)
 
@@ -703,7 +702,6 @@ func TestResumeTransfer(t *testing.T) {
 							Start:            trans.Start.Local(),
 							Status:           types.StatusPlanned,
 							Step:             types.StepData,
-							Error:            types.TransferError{},
 							Progress:         10,
 							TaskNumber:       0,
 						})
@@ -718,7 +716,7 @@ func TestPauseTransfer(t *testing.T) {
 	Convey("Testing the transfer pause handler", t, func(c C) {
 		logger := testhelpers.TestLogger(c, "rest_transfer_pause_test")
 		db := database.TestDatabase(c)
-		handler := pauseTransfer(nil)(logger, db)
+		handler := pauseTransfer(logger, db)
 		w := httptest.NewRecorder()
 
 		Convey("Given a database with 1 planned transfer", func() {
@@ -751,7 +749,6 @@ func TestPauseTransfer(t *testing.T) {
 				Start:           time.Date(2020, 1, 2, 3, 4, 5, 678000, time.Local),
 				Status:          types.StatusPlanned,
 				Step:            types.StepData,
-				Error:           types.TransferError{},
 				Progress:        10,
 				TaskNumber:      0,
 			}
@@ -792,7 +789,6 @@ func TestPauseTransfer(t *testing.T) {
 							Start:            trans.Start.Local(),
 							Status:           types.StatusPaused,
 							Step:             types.StepData,
-							Error:            types.TransferError{},
 							Progress:         10,
 							TaskNumber:       0,
 						})
@@ -807,7 +803,7 @@ func TestCancelTransfer(t *testing.T) {
 	Convey("Testing the transfer resume handler", t, func(c C) {
 		logger := testhelpers.TestLogger(c, "rest_transfer_cancel_test")
 		db := database.TestDatabase(c)
-		handler := cancelTransfer(nil)(logger, db)
+		handler := cancelTransfer(logger, db)
 		w := httptest.NewRecorder()
 
 		Convey("Given a database with 1 planned transfer", func() {
@@ -840,7 +836,8 @@ func TestCancelTransfer(t *testing.T) {
 				Start:           time.Date(2030, 1, 1, 1, 0, 0, 0, time.Local),
 				Status:          types.StatusError,
 				Step:            types.StepNone,
-				Error:           types.TransferError{Code: types.TeUnknown, Details: "this is an error"},
+				ErrCode:         types.TeUnknown,
+				ErrDetails:      "this is an error",
 				Progress:        0,
 				TaskNumber:      0,
 			}
@@ -885,7 +882,8 @@ func TestCancelTransfer(t *testing.T) {
 							Start:            trans.Start,
 							Stop:             time.Time{},
 							Status:           types.StatusCancelled,
-							Error:            trans.Error,
+							ErrCode:          trans.ErrCode,
+							ErrDetails:       trans.ErrDetails,
 							Step:             trans.Step,
 							Progress:         trans.Progress,
 							TaskNumber:       trans.TaskNumber,
@@ -1021,8 +1019,7 @@ func TestCancelTransfers(t *testing.T) {
 	Convey("Testing the transfers multi cancel handler", t, func(c C) {
 		logger := testhelpers.TestLogger(c, "rest_transfers_cancel_test")
 		db := database.TestDatabase(c)
-		protoServs := map[string]proto.Service{}
-		handler := cancelTransfers(protoServs)(logger, db)
+		handler := cancelTransfers(logger, db)
 		w := httptest.NewRecorder()
 
 		Convey("Given a database with 1 planned & 1 error transfer", func() {
@@ -1055,7 +1052,6 @@ func TestCancelTransfers(t *testing.T) {
 				Start:           time.Date(2030, 1, 1, 1, 0, 0, 0, time.Local),
 				Status:          types.StatusPlanned,
 				Step:            types.StepNone,
-				Error:           types.TransferError{},
 				Progress:        0,
 				TaskNumber:      0,
 			}
@@ -1070,7 +1066,8 @@ func TestCancelTransfers(t *testing.T) {
 				Start:           time.Date(2030, 1, 1, 1, 0, 0, 0, time.Local),
 				Status:          types.StatusError,
 				Step:            types.StepData,
-				Error:           types.TransferError{Code: types.TeDataTransfer, Details: "error msg"},
+				ErrCode:         types.TeDataTransfer,
+				ErrDetails:      "error msg",
 				Progress:        0,
 				TaskNumber:      0,
 			}
@@ -1108,7 +1105,6 @@ func TestCancelTransfers(t *testing.T) {
 							Start:            time.Date(2030, 1, 1, 1, 0, 0, 0, time.Local),
 							Stop:             time.Time{},
 							Status:           types.StatusCancelled,
-							Error:            types.TransferError{},
 							Step:             types.StepNone,
 							Progress:         0,
 							TaskNumber:       0,

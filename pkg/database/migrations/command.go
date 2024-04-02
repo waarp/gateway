@@ -5,6 +5,7 @@ import (
 	"errors"
 	"fmt"
 	"io"
+	"runtime"
 
 	"code.waarp.fr/lib/log"
 	"code.waarp.fr/lib/migration"
@@ -13,6 +14,10 @@ import (
 )
 
 const windowsRuntime = "windows"
+
+func isWindowsRuntime() bool {
+	return runtime.GOOS == "windows"
+}
 
 var errInvalidVersion = errors.New("invalid database version")
 
@@ -76,7 +81,8 @@ func DoMigration(db *sql.DB, logger *log.Logger, targetVersion, dialect string, 
 	}
 
 	if target >= start {
-		toApply := makeMigration(Migrations[start+1 : target+1])
+		toApply := make([]migration.Script, target-start, target-start+1)
+		copy(toApply, Migrations[start+1:target+1])
 		toApply = append(toApply, versionBump...)
 
 		if err := engine.Upgrade(toApply); err != nil {
@@ -86,7 +92,8 @@ func DoMigration(db *sql.DB, logger *log.Logger, targetVersion, dialect string, 
 		return nil
 	}
 
-	toApply := makeMigration(Migrations[target+1 : start+1])
+	toApply := make([]migration.Script, start-target, start-target+1)
+	copy(toApply, Migrations[target+1:start+1])
 	toApply = append(versionBump, toApply...)
 
 	if err := engine.Downgrade(toApply); err != nil {
@@ -94,20 +101,6 @@ func DoMigration(db *sql.DB, logger *log.Logger, targetVersion, dialect string, 
 	}
 
 	return nil
-}
-
-func makeMigration(toApply []Change) []migration.Script {
-	migrations := make([]migration.Script, len(toApply))
-
-	for i := range toApply {
-		migrations[i] = migration.Script{
-			Description: toApply[i].Description,
-			Up:          toApply[i].Script.Up,
-			Down:        toApply[i].Script.Down,
-		}
-	}
-
-	return migrations
 }
 
 // Execute migrates the database given in the configuration from its current

@@ -10,7 +10,7 @@ import (
 	"code.waarp.fr/apps/gateway/gateway/pkg/admin/rest/api"
 	"code.waarp.fr/apps/gateway/gateway/pkg/database"
 	"code.waarp.fr/apps/gateway/gateway/pkg/model"
-	"code.waarp.fr/apps/gateway/gateway/pkg/tk/utils"
+	"code.waarp.fr/apps/gateway/gateway/pkg/utils"
 )
 
 // restRuleToDB transforms the JSON transfer rule into its database equivalent.
@@ -104,7 +104,7 @@ func DBRuleToREST(db *database.DB, dbRule *model.Rule) (*api.OutRule, error) {
 		LocalDir:       dbRule.LocalDir,
 		RemoteDir:      dbRule.RemoteDir,
 		TmpLocalRcvDir: dbRule.TmpLocalRcvDir,
-		Authorized:     access,
+		Authorized:     *access,
 	}
 	if err := doListTasks(db, rule, dbRule.ID); err != nil {
 		return nil, err
@@ -154,7 +154,7 @@ func retrieveDBRule(r *http.Request, db *database.DB) (*model.Rule, error) {
 			return nil, notFound("%s rule '%s' not found", direction, ruleName)
 		}
 
-		return nil, err
+		return nil, fmt.Errorf("failed to retrieve rule %q: %w", ruleName, err)
 	}
 
 	return &rule, nil
@@ -172,9 +172,9 @@ func addRule(logger *log.Logger, db *database.DB) http.HandlerFunc {
 			return
 		}
 
-		transErr := db.Transaction(func(ses *database.Session) database.Error {
+		transErr := db.Transaction(func(ses *database.Session) error {
 			if err := ses.Insert(dbRule).Run(); err != nil {
-				return err
+				return fmt.Errorf("failed to insert rule: %w", err)
 			}
 
 			return doTaskUpdate(ses, restRule.UptRule, dbRule.ID, true)
@@ -252,9 +252,9 @@ func updateRule(logger *log.Logger, db *database.DB) http.HandlerFunc {
 
 		dbRule.ID = oldRule.ID
 
-		transErr := db.Transaction(func(ses *database.Session) database.Error {
+		transErr := db.Transaction(func(ses *database.Session) error {
 			if err := ses.Update(dbRule).Run(); err != nil {
-				return err
+				return fmt.Errorf("failed to update rule: %w", err)
 			}
 
 			return doTaskUpdate(ses, restRule.UptRule, oldRule.ID, false)
@@ -287,9 +287,9 @@ func replaceRule(logger *log.Logger, db *database.DB) http.HandlerFunc {
 
 		dbRule.ID = oldRule.ID
 
-		transErr := db.Transaction(func(ses *database.Session) database.Error {
+		transErr := db.Transaction(func(ses *database.Session) error {
 			if err := ses.Update(dbRule).Run(); handleError(w, logger, err) {
-				return err
+				return fmt.Errorf("failed to update rule: %w", err)
 			}
 
 			return doTaskUpdate(ses, restRule.UptRule, oldRule.ID, true)

@@ -4,44 +4,13 @@ import (
 	"fmt"
 	"net/http"
 	"strconv"
-	"strings"
 	"testing"
 
-	. "github.com/smartystreets/goconvey/convey"
+	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 
-	"code.waarp.fr/apps/gateway/gateway/pkg/admin/rest/api"
-	"code.waarp.fr/apps/gateway/gateway/pkg/tk/utils"
+	"code.waarp.fr/apps/gateway/gateway/pkg/utils"
 )
-
-func TestDisplayClient(t *testing.T) {
-	Convey("Given a REST client instance", t, func() {
-		client := &api.OutClient{
-			Name:         "test_client",
-			Protocol:     "test_protocol",
-			LocalAddress: "client.test.address:port",
-			ProtoConfig: map[string]any{
-				"key1": "val1", "key2": 2, "key3": true, "long_key4": "long_val4",
-			},
-		}
-
-		Convey("When displaying the client", func() {
-			w := &strings.Builder{}
-			DisplayClient(w, client)
-
-			Convey("Then it should have displayed the client's info", func() {
-				So(w.String(), ShouldResemble, `── Client "test_client"
-   ├─ Protocol: test_protocol
-   ├─ Local address: client.test.address:port
-   ╰─ Configuration
-      ├─ key1: val1
-      ├─ key2: 2
-      ├─ key3: true
-      ╰─ long_key4: long_val4
-`)
-			})
-		})
-	})
-}
 
 func TestClientAdd(t *testing.T) {
 	const (
@@ -71,8 +40,8 @@ func TestClientAdd(t *testing.T) {
 		},
 	}
 
-	Convey(`Given the client "add" command`, t, func() {
-		w := &strings.Builder{}
+	t.Run(`Given the client "add" command`, func(t *testing.T) {
+		w := newTestOutput()
 		command := &ClientAdd{}
 
 		expected := &expectedRequest{
@@ -86,23 +55,26 @@ func TestClientAdd(t *testing.T) {
 			headers: map[string][]string{"Location": {location}},
 		}
 
-		Convey("Given a dummy gateway REST interface", func() {
-			testServer(expected, result)
+		t.Run("Given a dummy gateway REST interface", func(t *testing.T) {
+			testServer(t, expected, result)
 
-			Convey("When executing the command", func() {
-				So(executeCommand(w, command,
+			t.Run("When executing the command", func(t *testing.T) {
+				require.NoError(t, executeCommand(t, w, command,
 					"--name", clientName,
 					"--protocol", clientProtocol,
 					"--local-address", clientAddress,
 					"--config", clientConfigStrKey+":"+clientConfigStrVal,
 					"--config", clientConfigNumKey+":"+utils.FormatFloat(clientConfigNumVal),
 					"--config", clientConfigBoolKey+":"+strconv.FormatBool(clientConfigBoolVal),
-				), ShouldBeNil)
+				),
+					"Then it should not return an error",
+				)
 
-				Convey("Then it should display a message saying the client was added", func() {
-					So(w.String(), ShouldEqual, "The client "+clientName+
-						" was successfully added.\n")
-				})
+				assert.Equal(t,
+					fmt.Sprintf("The client %q was successfully added.\n", clientName),
+					w.String(),
+					"Then it should display a message saying the client was added",
+				)
 			})
 		})
 	})
@@ -116,27 +88,25 @@ func TestClientList(t *testing.T) {
 		limit    = "10"
 		offset   = "5"
 		protocol = "proto1"
+
+		client1name    = "cli1"
+		client1proto   = "proto1"
+		client1addr    = "addr1"
+		client1enabled = true
+
+		client2name    = "cli2"
+		client2proto   = "proto2"
+		client2addr    = "addr2"
+		client2enabled = false
 	)
 
-	responseBody := map[string]any{
-		"clients": []any{
-			map[string]any{
-				"name":         "cli1",
-				"protocol":     "proto1",
-				"localAddress": "addr1",
-				"protoConfig":  map[string]any{"key1": "val1"},
-			},
-			map[string]any{
-				"name":         "cli2",
-				"protocol":     "proto2",
-				"localAddress": "addr2",
-				"protoConfig":  map[string]any{"key2": "val2"},
-			},
-		},
-	}
+	var (
+		status1 = enabledStatus(client1enabled)
+		status2 = enabledStatus(client2enabled)
+	)
 
-	Convey(`Given the client "list" command`, t, func() {
-		w := &strings.Builder{}
+	t.Run(`Given the client "list" command`, func(t *testing.T) {
+		w := newTestOutput()
 		command := &ClientList{}
 
 		expected := &expectedRequest{
@@ -152,32 +122,48 @@ func TestClientList(t *testing.T) {
 
 		result := &expectedResponse{
 			status: http.StatusOK,
-			body:   responseBody,
+			body: map[string]any{
+				"clients": []any{
+					map[string]any{
+						"name":         client1name,
+						"enabled":      client1enabled,
+						"protocol":     client1proto,
+						"localAddress": client1addr,
+					},
+					map[string]any{
+						"name":         client2name,
+						"enabled":      client2enabled,
+						"protocol":     client2proto,
+						"localAddress": client2addr,
+					},
+				},
+			},
 		}
 
-		Convey("Given a dummy gateway REST interface", func() {
-			testServer(expected, result)
+		t.Run("Given a dummy gateway REST interface", func(t *testing.T) {
+			testServer(t, expected, result)
 
-			Convey("When executing the command", func() {
-				So(executeCommand(w, command,
+			t.Run("When executing the command", func(t *testing.T) {
+				require.NoError(t, executeCommand(t, w, command,
 					"--limit", limit, "--offset", offset,
 					"--sort", sort, "--protocol", protocol,
-				), ShouldBeNil)
+				),
+					"Then it should not return an error",
+				)
 
-				Convey("Then it should display the clients", func() {
-					So(w.String(), ShouldEqual, `Clients:
-╭─ Client "cli1"
-│  ├─ Protocol: proto1
-│  ├─ Local address: addr1
-│  ╰─ Configuration
-│     ╰─ key1: val1
-╰─ Client "cli2"
-   ├─ Protocol: proto2
-   ├─ Local address: addr2
-   ╰─ Configuration
-      ╰─ key2: val2
-`)
-				})
+				assert.Equal(t,
+					fmt.Sprintf("Clients:\n")+
+						fmt.Sprintf("╭─ Client %q [%s]\n", client1name, status1)+
+						fmt.Sprintf("│  ├─ Protocol: %s\n", client1proto)+
+						fmt.Sprintf("│  ├─ Local address: %s\n", client1addr)+
+						fmt.Sprintf("│  ╰─ Configuration: <empty>\n")+
+						fmt.Sprintf("╰─ Client %q [%s]\n", client2name, status2)+
+						fmt.Sprintf("   ├─ Protocol: %s\n", client2proto)+
+						fmt.Sprintf("   ├─ Local address: %s\n", client2addr)+
+						fmt.Sprintf("   ╰─ Configuration: <empty>\n"),
+					w.String(),
+					"Then it should display the clients",
+				)
 			})
 		})
 	})
@@ -185,19 +171,31 @@ func TestClientList(t *testing.T) {
 
 func TestClientGet(t *testing.T) {
 	const (
-		clientName = "test_client"
-		path       = "/api/clients/" + clientName
+		clientName    = "test_client"
+		clientEnabled = true
+		clientProto   = "proto"
+		clientAddr    = "addr"
+
+		key1 = "key1"
+		val1 = "val1"
+		key2 = "key2"
+		val2 = "val2"
+
+		path = "/api/clients/" + clientName
 	)
+
+	status := enabledStatus(clientEnabled)
 
 	responseBody := map[string]any{
 		"name":         clientName,
-		"protocol":     "proto",
-		"localAddress": "addr",
-		"protoConfig":  map[string]any{"key": "val"},
+		"enabled":      clientEnabled,
+		"protocol":     clientProto,
+		"localAddress": clientAddr,
+		"protoConfig":  map[string]any{key1: val1, key2: val2},
 	}
 
-	Convey(`Given the client "get" command`, t, func() {
-		w := &strings.Builder{}
+	t.Run(`Given the client "get" command`, func(t *testing.T) {
+		w := newTestOutput()
 		command := &ClientGet{}
 
 		expected := &expectedRequest{
@@ -210,20 +208,23 @@ func TestClientGet(t *testing.T) {
 			body:   responseBody,
 		}
 
-		Convey("Given a dummy gateway REST interface", func() {
-			testServer(expected, result)
+		t.Run("Given a dummy gateway REST interface", func(t *testing.T) {
+			testServer(t, expected, result)
 
-			Convey("When executing the command", func() {
-				So(executeCommand(w, command, clientName), ShouldBeNil)
+			t.Run("When executing the command", func(t *testing.T) {
+				require.NoError(t, executeCommand(t, w, command, clientName),
+					"Then it should not return an error")
 
-				Convey("Then it should display the client", func() {
-					So(w.String(), ShouldEqual, `── Client "test_client"
-   ├─ Protocol: proto
-   ├─ Local address: addr
-   ╰─ Configuration
-      ╰─ key: val
-`)
-				})
+				assert.Equal(t,
+					fmt.Sprintf("── Client %q [%s]\n", clientName, status)+
+						fmt.Sprintf("   ├─ Protocol: %s\n", clientProto)+
+						fmt.Sprintf("   ├─ Local address: %s\n", clientAddr)+
+						fmt.Sprintf("   ╰─ Configuration\n")+
+						fmt.Sprintf("      ├─ %s: %s\n", key1, val1)+
+						fmt.Sprintf("      ╰─ %s: %s\n", key2, val2),
+					w.String(),
+					"Then it should display the client",
+				)
 			})
 		})
 	})
@@ -250,8 +251,8 @@ func TestClientUpdate(t *testing.T) {
 		"protoConfig":  map[string]any{newClientConfigKey: newClientConfigVal},
 	}
 
-	Convey(`Given the client "update" command`, t, func() {
-		w := &strings.Builder{}
+	t.Run(`Given the client "update" command`, func(t *testing.T) {
+		w := newTestOutput()
 		command := &ClientUpdate{}
 
 		expected := &expectedRequest{
@@ -265,21 +266,24 @@ func TestClientUpdate(t *testing.T) {
 			headers: map[string][]string{"Location": {location}},
 		}
 
-		Convey("Given a dummy gateway REST interface", func() {
-			testServer(expected, result)
+		t.Run("Given a dummy gateway REST interface", func(t *testing.T) {
+			testServer(t, expected, result)
 
-			Convey("When executing the command", func() {
-				So(executeCommand(w, command, oldClientName,
+			t.Run("When executing the command", func(t *testing.T) {
+				require.NoError(t, executeCommand(t, w, command, oldClientName,
 					"--name", newClientName,
 					"--protocol", newClientProtocol,
 					"--local-address", newClientAddress,
 					"--config", newClientConfigKey+":"+newClientConfigVal,
-				), ShouldBeNil)
+				),
+					"Then it should not return an error",
+				)
 
-				Convey("Then it should display a message saying the client was updated", func() {
-					So(w.String(), ShouldEqual, "The client "+newClientName+
-						" was successfully updated.\n")
-				})
+				assert.Equal(t,
+					fmt.Sprintf("The client %q was successfully updated.\n", newClientName),
+					w.String(),
+					"Then it should display a message saying the client was updated",
+				)
 			})
 		})
 	})
@@ -291,8 +295,8 @@ func TestClientDelete(t *testing.T) {
 		path       = "/api/clients/" + clientName
 	)
 
-	Convey(`Given the client "delete" command`, t, func() {
-		w := &strings.Builder{}
+	t.Run(`Given the client "delete" command`, func(t *testing.T) {
+		w := newTestOutput()
 		command := &ClientDelete{}
 
 		expected := &expectedRequest{
@@ -304,16 +308,18 @@ func TestClientDelete(t *testing.T) {
 			status: http.StatusNoContent,
 		}
 
-		Convey("Given a dummy gateway REST interface", func() {
-			testServer(expected, result)
+		t.Run("Given a dummy gateway REST interface", func(t *testing.T) {
+			testServer(t, expected, result)
 
-			Convey("When executing the command", func() {
-				So(executeCommand(w, command, clientName), ShouldBeNil)
+			t.Run("When executing the command", func(t *testing.T) {
+				require.NoError(t, executeCommand(t, w, command, clientName),
+					"Then it should not return an error")
 
-				Convey("Then it should have deleted the client", func() {
-					So(w.String(), ShouldEqual, fmt.Sprintf(
-						"The client %s was successfully deleted.\n", clientName))
-				})
+				assert.Equal(t,
+					fmt.Sprintf("The client %q was successfully deleted.\n", clientName),
+					w.String(),
+					"Then it should display a message saying the client was deleted",
+				)
 			})
 		})
 	})
@@ -325,8 +331,8 @@ func TestClientEnable(t *testing.T) {
 		path       = "/api/clients/" + clientName + "/enable"
 	)
 
-	Convey(`Given the client "enable" command`, t, func() {
-		w := &strings.Builder{}
+	t.Run(`Given the client "enable" command`, func(t *testing.T) {
+		w := newTestOutput()
 		command := &ClientEnable{}
 
 		expected := &expectedRequest{
@@ -336,16 +342,18 @@ func TestClientEnable(t *testing.T) {
 
 		result := &expectedResponse{status: http.StatusAccepted}
 
-		Convey("Given a dummy gateway REST interface", func() {
-			testServer(expected, result)
+		t.Run("Given a dummy gateway REST interface", func(t *testing.T) {
+			testServer(t, expected, result)
 
-			Convey("When executing the command", func() {
-				So(executeCommand(w, command, clientName), ShouldBeNil)
+			t.Run("When executing the command", func(t *testing.T) {
+				require.NoError(t, executeCommand(t, w, command, clientName),
+					"Then it should not return an error")
 
-				Convey("Then it should have enables the client", func() {
-					So(w.String(), ShouldEqual, fmt.Sprintf(
-						"The client %s was successfully enabled.\n", clientName))
-				})
+				assert.Equal(t,
+					fmt.Sprintf("The client %q was successfully enabled.\n", clientName),
+					w.String(),
+					"Then it should display a message saying the client was enabled",
+				)
 			})
 		})
 	})
@@ -357,8 +365,8 @@ func TestClientDisable(t *testing.T) {
 		path       = "/api/clients/" + clientName + "/disable"
 	)
 
-	Convey(`Given the client "disable" command`, t, func() {
-		w := &strings.Builder{}
+	t.Run(`Given the client "disable" command`, func(t *testing.T) {
+		w := newTestOutput()
 		command := &ClientDisable{}
 
 		expected := &expectedRequest{
@@ -368,16 +376,18 @@ func TestClientDisable(t *testing.T) {
 
 		result := &expectedResponse{status: http.StatusAccepted}
 
-		Convey("Given a dummy gateway REST interface", func() {
-			testServer(expected, result)
+		t.Run("Given a dummy gateway REST interface", func(t *testing.T) {
+			testServer(t, expected, result)
 
-			Convey("When executing the command", func() {
-				So(executeCommand(w, command, clientName), ShouldBeNil)
+			t.Run("When executing the command", func(t *testing.T) {
+				require.NoError(t, executeCommand(t, w, command, clientName),
+					"Then it should not return an error")
 
-				Convey("Then it should have disabled the client", func() {
-					So(w.String(), ShouldEqual, fmt.Sprintf(
-						"The client %s was successfully disabled.\n", clientName))
-				})
+				assert.Equal(t,
+					fmt.Sprintf("The client %q was successfully disabled.\n", clientName),
+					w.String(),
+					"Then it should display a message saying the client was disabled",
+				)
 			})
 		})
 	})
@@ -389,8 +399,8 @@ func TestClientStart(t *testing.T) {
 		path       = "/api/clients/" + clientName + "/start"
 	)
 
-	Convey(`Given the client "start" command`, t, func() {
-		w := &strings.Builder{}
+	t.Run(`Given the client "start" command`, func(t *testing.T) {
+		w := newTestOutput()
 		command := &ClientStart{}
 
 		expected := &expectedRequest{
@@ -400,16 +410,18 @@ func TestClientStart(t *testing.T) {
 
 		result := &expectedResponse{status: http.StatusAccepted}
 
-		Convey("Given a dummy gateway REST interface", func() {
-			testServer(expected, result)
+		t.Run("Given a dummy gateway REST interface", func(t *testing.T) {
+			testServer(t, expected, result)
 
-			Convey("When executing the command", func() {
-				So(executeCommand(w, command, clientName), ShouldBeNil)
+			t.Run("When executing the command", func(t *testing.T) {
+				require.NoError(t, executeCommand(t, w, command, clientName),
+					"Then it should not return an error")
 
-				Convey("Then it should have started the client", func() {
-					So(w.String(), ShouldEqual, fmt.Sprintf(
-						"The client %s was successfully started.\n", clientName))
-				})
+				assert.Equal(t,
+					fmt.Sprintf("The client %q was successfully started.\n", clientName),
+					w.String(),
+					"Then it should display a message saying the client was started",
+				)
 			})
 		})
 	})
@@ -421,8 +433,8 @@ func TestClientStop(t *testing.T) {
 		path       = "/api/clients/" + clientName + "/stop"
 	)
 
-	Convey(`Given the client "stop" command`, t, func() {
-		w := &strings.Builder{}
+	t.Run(`Given the client "stop" command`, func(t *testing.T) {
+		w := newTestOutput()
 		command := &ClientStop{}
 
 		expected := &expectedRequest{
@@ -432,16 +444,18 @@ func TestClientStop(t *testing.T) {
 
 		result := &expectedResponse{status: http.StatusAccepted}
 
-		Convey("Given a dummy gateway REST interface", func() {
-			testServer(expected, result)
+		t.Run("Given a dummy gateway REST interface", func(t *testing.T) {
+			testServer(t, expected, result)
 
-			Convey("When executing the command", func() {
-				So(executeCommand(w, command, clientName), ShouldBeNil)
+			t.Run("When executing the command", func(t *testing.T) {
+				require.NoError(t, executeCommand(t, w, command, clientName),
+					"Then it should not return an error")
 
-				Convey("Then it should have stopped the client", func() {
-					So(w.String(), ShouldEqual, fmt.Sprintf(
-						"The client %s was successfully stopped.\n", clientName))
-				})
+				assert.Equal(t,
+					fmt.Sprintf("The client %q was successfully stopped.\n", clientName),
+					w.String(),
+					"Then it should display a message saying the client was stopped",
+				)
 			})
 		})
 	})
@@ -453,8 +467,8 @@ func TestClientRestart(t *testing.T) {
 		path       = "/api/clients/" + clientName + "/restart"
 	)
 
-	Convey(`Given the client "restart" command`, t, func() {
-		w := &strings.Builder{}
+	t.Run(`Given the client "restart" command`, func(t *testing.T) {
+		w := newTestOutput()
 		command := &ClientRestart{}
 
 		expected := &expectedRequest{
@@ -464,16 +478,18 @@ func TestClientRestart(t *testing.T) {
 
 		result := &expectedResponse{status: http.StatusAccepted}
 
-		Convey("Given a dummy gateway REST interface", func() {
-			testServer(expected, result)
+		t.Run("Given a dummy gateway REST interface", func(t *testing.T) {
+			testServer(t, expected, result)
 
-			Convey("When executing the command", func() {
-				So(executeCommand(w, command, clientName), ShouldBeNil)
+			t.Run("When executing the command", func(t *testing.T) {
+				require.NoError(t, executeCommand(t, w, command, clientName),
+					"Then it should not return an error")
 
-				Convey("Then it should have restarted the client", func() {
-					So(w.String(), ShouldEqual, fmt.Sprintf(
-						"The client %s was successfully restarted.\n", clientName))
-				})
+				assert.Equal(t,
+					fmt.Sprintf("The client %q was successfully restarted.\n", clientName),
+					w.String(),
+					"Then it should display a message saying the client was restarted",
+				)
 			})
 		})
 	})

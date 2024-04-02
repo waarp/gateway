@@ -25,7 +25,7 @@ func init() {
 // Validate checks if the RENAME tasks has all the required arguments.
 func (*renameTask) Validate(args map[string]string) error {
 	if _, ok := args["path"]; !ok {
-		return fmt.Errorf("cannot create a rename task without a `path` argument: %w", errBadTaskArguments)
+		return fmt.Errorf("cannot create a rename task without a `path` argument: %w", ErrBadTaskArguments)
 	}
 
 	return nil

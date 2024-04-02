@@ -3,12 +3,25 @@
 Historique des versions
 =======================
 
+* :feature:`-` Ajouter ou enlever des certificats TLS à un agent de transfert
+  ne nécessite plus un redémarrage du service en question pour que les
+  changements soient pris en compte.
+* :feature:`-` Mettre à jour les services (serveurs ou clients) de la gateway
+  provoque désormais automatiquement un redémarrage du service en question,
+  afin que la nouvelle configuration soit prise en compte. Noter que cela
+  interrompra tous les transferts en cours sur le service en question, il est
+  donc déconseillé de redémarrer un service si des transferts sont en cours sur
+  celui-ci.
+* :feature:`-` Les configurations protocolaires client, serveur et partenaire
+  sont maintenant séparées les unes des autres, afin qu'elles puissent (lorsque
+  cela est nécessaire) avoir des options différentes. Voir
+  :ref:`le chapitre sur la configuration protocolaire<reference-proto-config>`
+  pour plus de détails.
 * :feature:`332` Matérialisation des :term:`clients de transfert<client>`. Les
   clients de transfert de la gateway ne sont dorénavant plus créés à la volé au
   démarrage des transferts, ils doivent désormais avoir été créés au préalable.
   Par conséquent, initialiser un nouveau transfert requiert désormais de préciser
   quel client utiliser pour exécuter ce transfert.
-
   Par commodité, pour les installations existantes, un client par défaut sera
   créé pour chaque protocole en utilisation lors de la migration de la gateway.
 * :bug:`-` Les dossiers par défaut (spécifiés dans le fichier de configuration)

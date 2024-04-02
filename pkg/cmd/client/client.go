@@ -3,11 +3,15 @@ package wg
 import (
 	"fmt"
 	"io"
-	"os"
 	"path"
 
 	"code.waarp.fr/apps/gateway/gateway/pkg/admin/rest/api"
+	"code.waarp.fr/apps/gateway/gateway/pkg/utils"
 )
+
+func enabledStatus(enabled bool) string {
+	return utils.If(enabled, "Enabled", "Disabled")
+}
 
 func DisplayClient(w io.Writer, client *api.OutClient) {
 	f := NewFormatter(w)
@@ -17,7 +21,7 @@ func DisplayClient(w io.Writer, client *api.OutClient) {
 }
 
 func displayClient(f *Formatter, client *api.OutClient) {
-	f.Title("Client %q", client.Name)
+	f.Title("Client %q [%s]", client.Name, enabledStatus(client.Enabled))
 	f.Indent()
 
 	defer f.UnIndent()
@@ -43,7 +47,7 @@ type ClientAdd struct {
 	ProtoConfig  map[string]confVal `short:"c" long:"config" description:"The client's configuration, in key:val format. Can be repeated."`
 }
 
-func (c *ClientAdd) Execute([]string) error { return c.execute(os.Stdout) }
+func (c *ClientAdd) Execute([]string) error { return c.execute(stdOutput) }
 func (c *ClientAdd) execute(w io.Writer) error {
 	client := map[string]any{
 		"name":        c.Name,
@@ -54,12 +58,11 @@ func (c *ClientAdd) execute(w io.Writer) error {
 
 	addr.Path = "/api/clients"
 
-	if err := add(client); err != nil {
+	if _, err := add(w, client); err != nil {
 		return err
 	}
 
-	w = makeColorable(w)
-	fmt.Fprintln(w, "The client", bold(c.Name), "was successfully added.")
+	fmt.Fprintf(w, "The client %q was successfully added.\n", c.Name)
 
 	return nil
 }
@@ -73,7 +76,7 @@ type ClientList struct {
 	Protocols []string `short:"p" long:"protocol" description:"Filter the clients based on the protocol they use. Can be repeated multiple times to filter multiple protocols."`
 }
 
-func (c *ClientList) Execute([]string) error { return c.execute(os.Stdout) }
+func (c *ClientList) Execute([]string) error { return c.execute(stdOutput) }
 func (c *ClientList) execute(w io.Writer) error {
 	agentListURL("/api/clients", &c.ListOptions, c.SortBy, c.Protocols)
 
@@ -82,17 +85,17 @@ func (c *ClientList) execute(w io.Writer) error {
 		return err
 	}
 
-	f := NewFormatter(w)
-	defer f.Render()
-
 	if clients := body["clients"]; len(clients) > 0 {
+		f := NewFormatter(w)
+		defer f.Render()
+
 		f.MainTitle("Clients:")
 
 		for _, client := range clients {
 			displayClient(f, client)
 		}
 	} else {
-		f.Empty("No clients found.", nil)
+		fmt.Fprintln(w, "No clients found.")
 	}
 
 	return nil
@@ -106,7 +109,7 @@ type ClientGet struct {
 	} `positional-args:"yes"`
 }
 
-func (c *ClientGet) Execute([]string) error { return c.execute(os.Stdout) }
+func (c *ClientGet) Execute([]string) error { return c.execute(stdOutput) }
 func (c *ClientGet) execute(w io.Writer) error {
 	addr.Path = path.Join("/api/clients", c.Args.Name)
 
@@ -134,7 +137,7 @@ type ClientUpdate struct {
 	ProtoConfig  map[string]confVal `short:"c" long:"config" description:"The new client's configuration, in key:val format. Can be repeated."`
 }
 
-func (c *ClientUpdate) Execute([]string) error { return c.execute(os.Stdout) }
+func (c *ClientUpdate) Execute([]string) error { return c.execute(stdOutput) }
 func (c *ClientUpdate) execute(w io.Writer) error {
 	client := map[string]any{}
 	optionalProperty(client, "name", c.Name)
@@ -144,7 +147,7 @@ func (c *ClientUpdate) execute(w io.Writer) error {
 
 	addr.Path = path.Join("/api/clients", c.Args.Name)
 
-	if err := update(client); err != nil {
+	if err := update(w, client); err != nil {
 		return err
 	}
 
@@ -153,8 +156,7 @@ func (c *ClientUpdate) execute(w io.Writer) error {
 		name = c.Name
 	}
 
-	fmt.Fprintln(makeColorable(w), "The client", bold(name),
-		"was successfully updated.")
+	fmt.Fprintf(w, "The client %q was successfully updated.\n", name)
 
 	return nil
 }
@@ -167,16 +169,15 @@ type ClientDelete struct {
 	} `positional-args:"yes"`
 }
 
-func (c *ClientDelete) Execute([]string) error { return c.execute(os.Stdout) }
+func (c *ClientDelete) Execute([]string) error { return c.execute(stdOutput) }
 func (c *ClientDelete) execute(w io.Writer) error {
 	addr.Path = path.Join("/api/clients", c.Args.Name)
 
-	if err := remove(); err != nil {
+	if err := remove(w); err != nil {
 		return err
 	}
 
-	fmt.Fprintln(makeColorable(w), "The client", bold(c.Args.Name),
-		"was successfully deleted.")
+	fmt.Fprintf(w, "The client %q was successfully deleted.\n", c.Args.Name)
 
 	return nil
 }
@@ -189,13 +190,13 @@ type ClientEnable struct {
 	} `positional-args:"yes"`
 }
 
-func (c *ClientEnable) Execute([]string) error { return c.execute(os.Stdout) }
+func (c *ClientEnable) Execute([]string) error { return c.execute(stdOutput) }
 func (c *ClientEnable) execute(w io.Writer) error {
-	if err := exec(fmt.Sprintf("/api/clients/%s/enable", c.Args.Name)); err != nil {
+	if err := exec(w, fmt.Sprintf("/api/clients/%s/enable", c.Args.Name)); err != nil {
 		return err
 	}
 
-	fmt.Fprintln(makeColorable(w), "The client", bold(c.Args.Name), "was successfully enabled.")
+	fmt.Fprintf(w, "The client %q was successfully enabled.\n", c.Args.Name)
 
 	return nil
 }
@@ -206,13 +207,13 @@ type ClientDisable struct {
 	} `positional-args:"yes"`
 }
 
-func (c *ClientDisable) Execute([]string) error { return c.execute(os.Stdout) }
+func (c *ClientDisable) Execute([]string) error { return c.execute(stdOutput) }
 func (c *ClientDisable) execute(w io.Writer) error {
-	if err := exec(fmt.Sprintf("/api/clients/%s/disable", c.Args.Name)); err != nil {
+	if err := exec(w, fmt.Sprintf("/api/clients/%s/disable", c.Args.Name)); err != nil {
 		return err
 	}
 
-	fmt.Fprintln(makeColorable(w), "The client", bold(c.Args.Name), "was successfully disabled.")
+	fmt.Fprintf(w, "The client %q was successfully disabled.\n", c.Args.Name)
 
 	return nil
 }
@@ -225,13 +226,13 @@ type ClientStart struct {
 	} `positional-args:"yes"`
 }
 
-func (c *ClientStart) Execute([]string) error { return c.execute(os.Stdout) }
+func (c *ClientStart) Execute([]string) error { return c.execute(stdOutput) }
 func (c *ClientStart) execute(w io.Writer) error {
-	if err := exec(fmt.Sprintf("/api/clients/%s/start", c.Args.Name)); err != nil {
+	if err := exec(w, fmt.Sprintf("/api/clients/%s/start", c.Args.Name)); err != nil {
 		return err
 	}
 
-	fmt.Fprintln(makeColorable(w), "The client", bold(c.Args.Name), "was successfully started.")
+	fmt.Fprintf(w, "The client %q was successfully started.\n", c.Args.Name)
 
 	return nil
 }
@@ -242,13 +243,13 @@ type ClientStop struct {
 	} `positional-args:"yes"`
 }
 
-func (c *ClientStop) Execute([]string) error { return c.execute(os.Stdout) }
+func (c *ClientStop) Execute([]string) error { return c.execute(stdOutput) }
 func (c *ClientStop) execute(w io.Writer) error {
-	if err := exec(fmt.Sprintf("/api/clients/%s/stop", c.Args.Name)); err != nil {
+	if err := exec(w, fmt.Sprintf("/api/clients/%s/stop", c.Args.Name)); err != nil {
 		return err
 	}
 
-	fmt.Fprintln(makeColorable(w), "The client", bold(c.Args.Name), "was successfully stopped.")
+	fmt.Fprintf(w, "The client %q was successfully stopped.\n", c.Args.Name)
 
 	return nil
 }
@@ -259,13 +260,13 @@ type ClientRestart struct {
 	} `positional-args:"yes"`
 }
 
-func (c *ClientRestart) Execute([]string) error { return c.execute(os.Stdout) }
+func (c *ClientRestart) Execute([]string) error { return c.execute(stdOutput) }
 func (c *ClientRestart) execute(w io.Writer) error {
-	if err := exec(fmt.Sprintf("/api/clients/%s/restart", c.Args.Name)); err != nil {
+	if err := exec(w, fmt.Sprintf("/api/clients/%s/restart", c.Args.Name)); err != nil {
 		return err
 	}
 
-	fmt.Fprintln(makeColorable(w), "The client", bold(c.Args.Name), "was successfully restarted.")
+	fmt.Fprintf(w, "The client %q was successfully restarted.\n", c.Args.Name)
 
 	return nil
 }

@@ -1,814 +1,464 @@
 package wg
 
 import (
-	"encoding/json"
 	"fmt"
-	"net/http/httptest"
+	"net/http"
 	"net/url"
-	"strings"
 	"testing"
 
-	"github.com/jessevdk/go-flags"
-	. "github.com/smartystreets/goconvey/convey"
-
-	"code.waarp.fr/apps/gateway/gateway/pkg/admin/rest"
-	"code.waarp.fr/apps/gateway/gateway/pkg/admin/rest/api"
-	"code.waarp.fr/apps/gateway/gateway/pkg/database"
-	"code.waarp.fr/apps/gateway/gateway/pkg/model"
-	"code.waarp.fr/apps/gateway/gateway/pkg/tasks/taskstest"
-	"code.waarp.fr/apps/gateway/gateway/pkg/tk/utils"
+	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
-func getDirection(r *model.Rule) string {
-	if r.IsSend {
-		return directionSend
-	}
+func TestRuleGet(t *testing.T) {
+	const (
+		rule = "push"
+		way  = directionSend
 
-	return directionRecv
-}
+		ruleComment   = "this is a comment"
+		ruleIsSend    = true
+		rulePath      = "push/path"
+		ruleLocalDir  = "push/local"
+		ruleRemoteDir = "push/remote"
+		ruleTmpDir    = "push/tmp"
 
-func ruleInfoString(r *api.OutRule) string {
-	way := directionRecv
-	if r.IsSend {
-		way = directionSend
-	}
+		preTask1 = "PRE_TASK_1"
+		preTask2 = "PRE_TASK_2"
+		postTask = "POST_TASK"
+		errTask  = "ERR_TASK"
 
-	servers := strings.Join(r.Authorized.LocalServers, ", ")
-	partners := strings.Join(r.Authorized.RemotePartners, ", ")
-	la := []string{}
+		postTaskArg1 = "arg1"
+		postTaskVal1 = "val1"
+		postTaskArg2 = "arg2"
+		postTaskVal2 = "val2"
 
-	for server, accounts := range r.Authorized.LocalAccounts {
-		for _, account := range accounts {
-			la = append(la, fmt.Sprint(server, ".", account))
-		}
-	}
+		server1      = "server1"
+		server2      = "server2"
+		partner1     = "partner1"
+		partner2     = "partner2"
+		locAccount1A = "loc_account1A"
+		locAccount1B = "loc_account1B"
+		locAccount2A = "loc_account2A"
+		locAccount2B = "loc_account2B"
+		remAccount1A = "rem_account1A"
+		remAccount1B = "rem_account1B"
+		remAccount2A = "rem_account2A"
+		remAccount2B = "rem_account2B"
 
-	ra := []string{}
+		path = "/api/rules/" + rule + "/" + way
+	)
 
-	for partner, accounts := range r.Authorized.RemoteAccounts {
-		for _, account := range accounts {
-			ra = append(ra, fmt.Sprint(partner, ".", account))
-		}
-	}
-
-	locAcc := strings.Join(la, ", ")
-	remAcc := strings.Join(ra, ", ")
-
-	taskStr := func(tasks []*api.Task) string {
-		str := ""
-
-		for i, t := range tasks {
-			prefix := "    ├─Command "
-			if i == len(tasks)-1 {
-				prefix = "    └─Command "
-			}
-
-			args, err := json.Marshal(t.Args)
-			if err != nil {
-				args = []byte("<error while serializing the configuration>")
-			}
-
-			str += prefix + t.Type + " with args: " + string(args) + "\n"
-		}
-
-		return str
-	}
-
-	rv := "● Rule \"" + r.Name + "\" (" + way + ")\n" +
-		"    Comment:                " + r.Comment + "\n" +
-		"    Path:                   " + r.Path + "\n" +
-		"    Local directory:        " + r.LocalDir + "\n" +
-		"    Remote directory:       " + r.RemoteDir + "\n" +
-		"    Temp receive directory: " + r.TmpLocalRcvDir + "\n" +
-		"    Pre tasks:\n" + taskStr(r.PreTasks) +
-		"    Post tasks:\n" + taskStr(r.PostTasks) +
-		"    Error tasks:\n" + taskStr(r.ErrorTasks)
-
-	if servers+partners+locAcc+remAcc == "" {
-		rv += "    Authorized agents: <all>\n"
-	} else {
-		rv += "    Authorized agents:\n" +
-			"    ├─Servers:          " + servers + "\n" +
-			"    ├─Partners:         " + partners + "\n" +
-			"    ├─Server accounts:  " + locAcc + "\n" +
-			"    └─Partner accounts: " + remAcc + "\n"
-	}
-
-	return rv
-}
-
-func TestDisplayRule(t *testing.T) {
-	Convey("Given a rule entry", t, func() {
-		out = testFile()
-
-		rule := &api.OutRule{
-			Name:           "rule_name",
-			Comment:        "this is a comment",
-			IsSend:         true,
-			Path:           "rule/path",
-			LocalDir:       "/rule/local",
-			RemoteDir:      "/rule/remote",
-			TmpLocalRcvDir: "/rule/tmp",
-			Authorized: &api.RuleAccess{
-				LocalServers:   []string{"server1", "server2"},
-				RemotePartners: []string{"partner1", "partner2"},
-				LocalAccounts:  map[string][]string{"server3": {"account1", "account2"}},
-				RemoteAccounts: map[string][]string{"partner3": {"account3", "account4"}},
-			},
-			PreTasks: []*api.Task{{
-				Type: "COPY",
-				Args: map[string]string{"path": "/path/to/copy"},
-			}, {
-				Type: "EXEC",
-				Args: map[string]string{"path": "/path/to/script", "args": "{}", "delay": "0"},
-			}, {
-				Type: "COPYRENAME",
-				Args: map[string]string{"path": "/path/to/copy-rename"},
-			}, {
-				Type: "NOOP",
-				Args: map[string]string{},
-			}},
-			PostTasks: []*api.Task{{
-				Type: "DELETE",
-				Args: map[string]string{},
-			}, {
-				Type: "TRANSFER",
-				Args: map[string]string{"file": "/path/to/file", "to": "server", "as": "account", "rule": "rule"},
-			}},
-			ErrorTasks: []*api.Task{{
-				Type: "MOVE",
-				Args: map[string]string{"path": "/path/to/move"},
-			}, {
-				Type: "RENAME",
-				Args: map[string]string{"path": "/path/to/rename"},
-			}},
-		}
-
-		Convey("When calling the `displayRule` function", func() {
-			w := getColorable()
-			displayRule(w, rule)
-
-			Convey("Then it should display the rule's info correctly", func() {
-				So(getOutput(), ShouldEqual, ruleInfoString(rule))
-			})
-		})
-	})
-}
-
-func TestGetRule(t *testing.T) {
-	Convey("Testing the rule 'get' command", t, func() {
-		out = testFile()
+	t.Run(`Testing the rule "get" command`, func(t *testing.T) {
+		w := newTestOutput()
 		command := &RuleGet{}
 
-		Convey("Given a gateway with 1 rule", func(c C) {
-			db := database.TestDatabase(c)
-			gw := httptest.NewServer(testHandler(db))
+		expected := &expectedRequest{
+			method: http.MethodGet,
+			path:   path,
+		}
 
-			var err error
+		result := &expectedResponse{
+			status: http.StatusOK,
+			body: map[string]any{
+				"name":           rule,
+				"comment":        ruleComment,
+				"isSend":         ruleIsSend,
+				"path":           rulePath,
+				"localDir":       ruleLocalDir,
+				"remoteDir":      ruleRemoteDir,
+				"tmpLocalRcvDir": ruleTmpDir,
+				"preTasks": []map[string]any{
+					{"type": preTask1},
+					{"type": preTask2},
+				},
+				"postTasks": []map[string]any{{
+					"type": postTask,
+					"args": map[string]string{
+						postTaskArg1: postTaskVal1,
+						postTaskArg2: postTaskVal2,
+					},
+				}},
+				"errorTasks": []map[string]any{
+					{"type": errTask},
+				},
+				"authorized": map[string]any{
+					"servers":  []string{server1, server2},
+					"partners": []string{partner1, partner2},
+					"localAccounts": map[string][]string{
+						server1: {locAccount1A, locAccount1B},
+						server2: {locAccount2A, locAccount2B},
+					},
+					"remoteAccounts": map[string][]string{
+						partner1: {remAccount1A, remAccount1B},
+						partner2: {remAccount2A, remAccount2B},
+					},
+				},
+			},
+		}
 
-			addr, err = url.Parse("http://admin:admin_password@" + gw.Listener.Addr().String())
-			So(err, ShouldBeNil)
+		t.Run("Given a dummy gateway REST interface", func(t *testing.T) {
+			testServer(t, expected, result)
 
-			rule := &model.Rule{
-				Name:           "rule_name",
-				Comment:        "this is a test rule",
-				IsSend:         false,
-				Path:           "/rule",
-				LocalDir:       "/rule/local",
-				RemoteDir:      "/rule/remote",
-				TmpLocalRcvDir: "/rule/tmp",
-			}
-			So(db.Insert(rule).Run(), ShouldBeNil)
+			t.Run("When executing the command", func(t *testing.T) {
+				require.NoError(t, executeCommand(t, w, command, rule, way),
+					"Then it should not return an error")
 
-			Convey("Given a valid rule name", func() {
-				args := []string{rule.Name, getDirection(rule)}
-
-				Convey("When executing the command", func() {
-					params, err := flags.ParseArgs(command, args)
-					So(err, ShouldBeNil)
-					So(command.Execute(params), ShouldBeNil)
-
-					Convey("Then it should display the rule's info", func() {
-						r, err := rest.DBRuleToREST(db, rule)
-						So(err, ShouldBeNil)
-						So(getOutput(), ShouldEqual, ruleInfoString(r))
-					})
-				})
-			})
-
-			Convey("Given an invalid rule name", func() {
-				args := []string{"toto", getDirection(rule)}
-
-				Convey("When executing the command", func() {
-					params, err := flags.ParseArgs(command, args)
-					So(err, ShouldBeNil)
-					err = command.Execute(params)
-
-					Convey("Then it should return an error", func() {
-						So(err, ShouldBeError, "receive rule 'toto' not found")
-					})
-				})
+				assert.Equal(t,
+					fmt.Sprintf("── Rule %q (%s)\n", rule, way)+
+						fmt.Sprintf("   ├─ Comment: %s\n", ruleComment)+
+						fmt.Sprintf("   ├─ Path: %s\n", rulePath)+
+						fmt.Sprintf("   ├─ Local directory: %s\n", ruleLocalDir)+
+						fmt.Sprintf("   ├─ Remote directory: %s\n", ruleRemoteDir)+
+						fmt.Sprintf("   ├─ Temp receive directory: %s\n", ruleTmpDir)+
+						fmt.Sprintf("   ├─ Pre tasks\n")+
+						fmt.Sprintf("   │  ├─ Command %q\n", preTask1)+
+						fmt.Sprintf("   │  ╰─ Command %q\n", preTask2)+
+						fmt.Sprintf("   ├─ Post tasks\n")+
+						fmt.Sprintf("   │  ╰─ Command %q with args\n", postTask)+
+						fmt.Sprintf("   │     ├─ %s: %s\n", postTaskArg1, postTaskVal1)+
+						fmt.Sprintf("   │     ╰─ %s: %s\n", postTaskArg2, postTaskVal2)+
+						fmt.Sprintf("   ├─ Error tasks\n")+
+						fmt.Sprintf("   │  ╰─ Command %q\n", errTask)+
+						fmt.Sprintf("   ╰─ Rule access\n")+
+						fmt.Sprintf("      ├─ Local servers: %s, %s\n", server1, server2)+
+						fmt.Sprintf("      ├─ Remote partners: %s, %s\n", partner1, partner2)+
+						fmt.Sprintf("      ├─ Local accounts: %s.%s, %s.%s, %s.%s, %s.%s\n",
+							server1, locAccount1A, server1, locAccount1B,
+							server2, locAccount2A, server2, locAccount2B)+
+						fmt.Sprintf("      ╰─ Remote accounts: %s.%s, %s.%s, %s.%s, %s.%s\n",
+							partner1, remAccount1A, partner1, remAccount1B,
+							partner2, remAccount2A, partner2, remAccount2B),
+					w.String(),
+					"Then is should display the rule's info",
+				)
 			})
 		})
 	})
 }
 
-func TestAddRule(t *testing.T) {
-	Convey("Testing the rule 'add' command", t, func() {
-		out = testFile()
+func TestRuleAdd(t *testing.T) {
+	const (
+		ruleName = "pull"
+		isSend   = true
+
+		ruleComment   = "this is a comment"
+		rulePath      = "rule/path"
+		ruleLocalDir  = "rule/local"
+		ruleRemoteDir = "rule/remote"
+		ruleTmpDir    = "rule/tmp"
+
+		preTask1    = "PRE_TASK_1"
+		preTask2    = "PRE_TASK_2"
+		postTask    = "POST_TASK"
+		errTask     = "ERR_TASK"
+		postTaskArg = "arg"
+		postTaskVal = "val"
+
+		path     = "/api/rules"
+		location = path + "/" + ruleName
+	)
+
+	way := direction(isSend)
+
+	t.Run(`Testing the rule "add" command`, func(t *testing.T) {
+		w := newTestOutput()
 		command := &RuleAdd{}
 
-		Convey("Given a gateway with 1 rule", func(c C) {
-			db := database.TestDatabase(c)
-			gw := httptest.NewServer(testHandler(db))
+		expected := &expectedRequest{
+			method: http.MethodPost,
+			path:   path,
+			body: map[string]any{
+				"name":           ruleName,
+				"isSend":         isSend,
+				"comment":        ruleComment,
+				"path":           rulePath,
+				"localDir":       ruleLocalDir,
+				"remoteDir":      ruleRemoteDir,
+				"tmpLocalRcvDir": ruleTmpDir,
+				"preTasks": []any{
+					map[string]any{"type": preTask1},
+					map[string]any{"type": preTask2},
+				},
+				"postTasks": []any{
+					map[string]any{
+						"type": postTask,
+						"args": map[string]any{postTaskArg: postTaskVal},
+					},
+				},
+				"errorTasks": []any{
+					map[string]any{"type": errTask},
+				},
+			},
+		}
 
-			var err error
+		result := &expectedResponse{
+			status:  http.StatusCreated,
+			headers: map[string][]string{"Location": {location}},
+		}
 
-			addr, err = url.Parse("http://admin:admin_password@" + gw.Listener.Addr().String())
-			So(err, ShouldBeNil)
+		t.Run("Given a dummy gateway REST interface", func(t *testing.T) {
+			testServer(t, expected, result)
 
-			existing := &model.Rule{
-				Name:    "existing rule",
-				Comment: "comment about existing rule",
-				IsSend:  false,
-				Path:    "/existing",
-			}
-			So(db.Insert(existing).Run(), ShouldBeNil)
+			t.Run("When executing the command", func(t *testing.T) {
+				require.NoError(t, executeCommand(t, w, command,
+					"--name", ruleName,
+					"--comment", ruleComment,
+					"--direction", way,
+					"--path", rulePath,
+					"--local-dir", ruleLocalDir,
+					"--remote-dir", ruleRemoteDir,
+					"--tmp-dir", ruleTmpDir,
+					"--pre", fmt.Sprintf(`{"type":"%s"}`, preTask1),
+					"--pre", fmt.Sprintf(`{"type":"%s"}`, preTask2),
+					"--post", fmt.Sprintf(`{"type":"%s","args":{"%s": "%s"}}`, postTask, postTaskArg, postTaskVal),
+					"--err", fmt.Sprintf(`{"type":"%s"}`, errTask)),
+					"Then it should not return an error")
 
-			Convey("Given valid parameters", func() {
-				args := []string{
-					"--name", "new_rule", "--comment", "new_rule comment",
-					"--direction", "receive", "--path", "new/rule/path",
-					"--local-dir", "new/rule/local",
-					"--remote-dir", "new/rule/remote",
-					"--tmp-dir", "new/rule/tmp",
-					"--pre", `{"type":"COPY","args":{"path":"/path/to/copy"}}`,
-					"--pre", `{"type":"EXEC","args":{"path":"/path/to/script","args":"{}","delay":"0"}}`,
-					"--post", `{"type":"DELETE","args":{}}`,
-					"--post", `{"type":"TRANSFER","args":{"file":"/path/to/file","to":"server","as":"account","rule":"rule"}}`,
-					"--err", `{"type":"MOVE","args":{"path":"/path/to/move"}}`,
-					"--err", `{"type":"RENAME","args":{"path":"/path/to/rename"}}`,
-				}
-
-				Convey("When executing the command", func() {
-					params, err := flags.ParseArgs(command, args)
-					So(err, ShouldBeNil)
-					So(command.Execute(params), ShouldBeNil)
-
-					Convey("Then is should display a message saying the rule was added", func() {
-						So(getOutput(), ShouldEqual, "The rule "+command.Name+
-							" was successfully added.\n")
-					})
-
-					Convey("Then the new rule should have been added", func() {
-						var rules model.Rules
-
-						So(db.Select(&rules).Where("id=?", 2).Run(), ShouldBeNil)
-						So(rules, ShouldNotBeEmpty)
-
-						expected := &model.Rule{
-							ID:             2,
-							Name:           "new_rule",
-							Comment:        "new_rule comment",
-							IsSend:         false,
-							Path:           "new/rule/path",
-							LocalDir:       "new/rule/local",
-							RemoteDir:      "new/rule/remote",
-							TmpLocalRcvDir: "new/rule/tmp",
-						}
-						So(rules[0], ShouldResemble, expected)
-
-						Convey("Then the rule's tasks should have been added", func() {
-							tasks := model.Tasks{}
-							So(db.Select(&tasks).Run(), ShouldBeNil)
-
-							pre0 := &model.Task{
-								RuleID: expected.ID,
-								Chain:  model.ChainPre,
-								Rank:   0,
-								Type:   "COPY",
-								Args:   map[string]string{"path": "/path/to/copy"},
-							}
-							pre1 := &model.Task{
-								RuleID: expected.ID,
-								Chain:  model.ChainPre,
-								Rank:   1,
-								Type:   "EXEC",
-								Args: map[string]string{
-									"path": "/path/to/script",
-									"args": "{}", "delay": "0",
-								},
-							}
-							post0 := &model.Task{
-								RuleID: expected.ID,
-								Chain:  model.ChainPost,
-								Rank:   0,
-								Type:   "DELETE",
-								Args:   map[string]string{},
-							}
-							post1 := &model.Task{
-								RuleID: expected.ID,
-								Chain:  model.ChainPost,
-								Rank:   1,
-								Type:   "TRANSFER",
-								Args: map[string]string{
-									"file": "/path/to/file", "to": "server",
-									"as": "account", "rule": "rule",
-								},
-							}
-							err0 := &model.Task{
-								RuleID: expected.ID,
-								Chain:  model.ChainError,
-								Rank:   0,
-								Type:   "MOVE",
-								Args:   map[string]string{"path": "/path/to/move"},
-							}
-							err1 := &model.Task{
-								RuleID: expected.ID,
-								Chain:  model.ChainError,
-								Rank:   1,
-								Type:   "RENAME",
-								Args:   map[string]string{"path": "/path/to/rename"},
-							}
-
-							So(tasks, ShouldContain, pre0)
-							So(tasks, ShouldContain, pre1)
-							So(tasks, ShouldContain, post0)
-							So(tasks, ShouldContain, post1)
-							So(tasks, ShouldContain, err0)
-							So(tasks, ShouldContain, err1)
-						})
-					})
-				})
-			})
-
-			Convey("Given that the rule's name already exist", func() {
-				args := []string{
-					"--name", existing.Name, "--direction", "receive",
-					"--path", "new_rule/path",
-				}
-
-				Convey("When executing the command", func() {
-					params, err := flags.ParseArgs(command, args)
-					So(err, ShouldBeNil)
-					err = command.Execute(params)
-
-					Convey("Then it should return an error", func() {
-						So(err, ShouldBeError, "a "+existing.Direction()+
-							" rule named '"+existing.Name+"' already exist")
-					})
-
-					Convey("Then the rule should NOT have been inserted", func() {
-						var rules model.Rules
-
-						So(db.Select(&rules).Run(), ShouldBeNil)
-						So(rules, ShouldHaveLength, 1)
-						So(rules[0], ShouldResemble, existing)
-					})
-				})
-			})
-
-			Convey("Given that one of the task's JSON is invalid", func() {
-				args := []string{
-					"--name", "new_rule", "--comment", "new_rule comment",
-					"--direction", "receive", "--path", "new/rule/path",
-					"--pre", `{"type":NOT_A_TYPE,"args":{"path":"/path/to/copy"}}`,
-				}
-
-				Convey("When executing the command", func() {
-					params, err := flags.ParseArgs(command, args)
-					So(err, ShouldBeNil)
-					err = command.Execute(params)
-
-					Convey("Then it should return an error", func() {
-						So(err, ShouldBeError, "invalid pre task: invalid character"+
-							" 'N' looking for beginning of value")
-					})
-
-					Convey("Then the rule should NOT have been inserted", func() {
-						var rules model.Rules
-
-						So(db.Select(&rules).Run(), ShouldBeNil)
-						So(rules, ShouldHaveLength, 1)
-						So(rules[0], ShouldResemble, existing)
-					})
-				})
+				assert.Equal(t,
+					fmt.Sprintf("The rule %q was successfully added.\n", ruleName),
+					w.String(),
+					"Then is should display a message saying the rule was added",
+				)
 			})
 		})
 	})
 }
 
-func TestUpdateRule(t *testing.T) {
-	Convey("Testing the rule 'update' command", t, func() {
-		out = testFile()
+func TestRuleUpdate(t *testing.T) {
+	const (
+		oldName  = "old_pull"
+		ruleName = "pull"
+		way      = directionRecv
+
+		ruleComment   = "this is a comment"
+		rulePath      = "rule/path"
+		ruleLocalDir  = "rule/local"
+		ruleRemoteDir = "rule/remote"
+		ruleTmpDir    = "rule/tmp"
+
+		preTask1    = "PRE_TASK_1"
+		preTask2    = "PRE_TASK_2"
+		postTask    = "POST_TASK"
+		errTask     = "ERR_TASK"
+		postTaskArg = "arg"
+		postTaskVal = "val"
+
+		path     = "/api/rules/" + oldName + "/" + way
+		location = "/api/rules/" + ruleName + "/" + way
+	)
+
+	t.Run(`Testing the rule "update" command`, func(t *testing.T) {
+		w := newTestOutput()
 		command := &RuleUpdate{}
 
-		Convey("Given a gateway with 1 rule", func(c C) {
-			db := database.TestDatabase(c)
-			gw := httptest.NewServer(testHandler(db))
+		expected := &expectedRequest{
+			method: http.MethodPatch,
+			path:   path,
+			body: map[string]any{
+				"name":           ruleName,
+				"comment":        ruleComment,
+				"path":           rulePath,
+				"localDir":       ruleLocalDir,
+				"remoteDir":      ruleRemoteDir,
+				"tmpLocalRcvDir": ruleTmpDir,
+				"preTasks": []any{
+					map[string]any{"type": preTask1},
+					map[string]any{"type": preTask2},
+				},
+				"postTasks": []any{
+					map[string]any{
+						"type": postTask,
+						"args": map[string]any{postTaskArg: postTaskVal},
+					},
+				},
+				"errorTasks": []any{
+					map[string]any{"type": errTask},
+				},
+			},
+		}
 
-			var err error
+		result := &expectedResponse{
+			status:  http.StatusCreated,
+			headers: map[string][]string{"Location": {location}},
+		}
 
-			addr, err = url.Parse("http://admin:admin_password@" + gw.Listener.Addr().String())
-			So(err, ShouldBeNil)
+		t.Run("Given a dummy gateway REST interface", func(t *testing.T) {
+			testServer(t, expected, result)
 
-			rule := &model.Rule{
-				Name:    "existing rule",
-				Comment: "comment about existing rule",
-				IsSend:  false,
-				Path:    "/existing",
-			}
-			So(db.Insert(rule).Run(), ShouldBeNil)
+			t.Run("When executing the command", func(t *testing.T) {
+				require.NoError(t, executeCommand(t, w, command,
+					"--name", ruleName,
+					"--comment", ruleComment,
+					"--path", rulePath,
+					"--local-dir", ruleLocalDir,
+					"--remote-dir", ruleRemoteDir,
+					"--tmp-dir", ruleTmpDir,
+					"--pre", fmt.Sprintf(`{"type":"%s"}`, preTask1),
+					"--pre", fmt.Sprintf(`{"type":"%s"}`, preTask2),
+					"--post", fmt.Sprintf(`{"type":"%s","args":{"%s": "%s"}}`, postTask, postTaskArg, postTaskVal),
+					"--err", fmt.Sprintf(`{"type":"%s"}`, errTask),
+					oldName, way,
+				),
+					"Then it should not return an error",
+				)
 
-			pre1 := &model.Task{RuleID: rule.ID, Chain: model.ChainPre, Rank: 0, Type: taskstest.TaskOK}
-			pre2 := &model.Task{RuleID: rule.ID, Chain: model.ChainPre, Rank: 1, Type: taskstest.TaskOK}
-			post1 := &model.Task{RuleID: rule.ID, Chain: model.ChainPost, Rank: 0, Type: taskstest.TaskOK}
-			post2 := &model.Task{RuleID: rule.ID, Chain: model.ChainPost, Rank: 1, Type: taskstest.TaskOK}
-			err1 := &model.Task{RuleID: rule.ID, Chain: model.ChainError, Rank: 0, Type: taskstest.TaskOK}
-			err2 := &model.Task{RuleID: rule.ID, Chain: model.ChainError, Rank: 1, Type: taskstest.TaskOK}
-
-			So(db.Insert(pre1).Run(), ShouldBeNil)
-			So(db.Insert(pre2).Run(), ShouldBeNil)
-			So(db.Insert(post1).Run(), ShouldBeNil)
-			So(db.Insert(post2).Run(), ShouldBeNil)
-			So(db.Insert(err1).Run(), ShouldBeNil)
-			So(db.Insert(err2).Run(), ShouldBeNil)
-
-			Convey("Given valid parameters", func() {
-				args := []string{
-					rule.Name, rule.Direction(),
-					"--name", "new_rule", "--comment", "new_rule comment",
-					"--path", "new/rule/path",
-					"--local-dir", "new/rule/local",
-					"--remote-dir", "new/rule/remote",
-					"--tmp-dir", "new_rule/tmp",
-					"--post", ``,
-					"--err", `{"type":"DELETE", "args":{}}`,
-				}
-
-				Convey("When executing the command", func() {
-					params, err := flags.ParseArgs(command, args)
-					So(err, ShouldBeNil)
-					So(command.Execute(params), ShouldBeNil)
-
-					Convey("Then is should display a message saying the rule was updated", func() {
-						So(getOutput(), ShouldEqual, "The rule "+*command.Name+
-							" was successfully updated.\n")
-					})
-
-					Convey("Then the rule should have been updated", func() {
-						var rules model.Rules
-
-						So(db.Select(&rules).Run(), ShouldBeNil)
-						So(rules, ShouldHaveLength, 1)
-
-						expected := &model.Rule{
-							ID:             rule.ID,
-							Name:           *command.Name,
-							Comment:        *command.Comment,
-							IsSend:         rule.IsSend,
-							Path:           *command.Path,
-							LocalDir:       *command.LocalDir,
-							RemoteDir:      *command.RemoteDir,
-							TmpLocalRcvDir: *command.TmpReceiveDir,
-						}
-						So(rules[0], ShouldResemble, expected)
-
-						Convey("Then the rule's tasks should have been updated", func() {
-							var preTasks, postTasks, errTasks model.Tasks
-
-							So(db.Select(&preTasks).Where("rule_id=? AND chain=?",
-								rule.ID, model.ChainPre).OrderBy("rank", true).Run(),
-								ShouldBeNil)
-							So(preTasks, ShouldResemble, model.Tasks{pre1, pre2})
-
-							So(db.Select(&postTasks).Where("rule_id=? AND chain=?",
-								rule.ID, model.ChainPost).OrderBy("rank", true).Run(),
-								ShouldBeNil)
-							So(postTasks, ShouldBeEmpty)
-
-							So(db.Select(&errTasks).Where("rule_id=? AND chain=?",
-								rule.ID, model.ChainError).OrderBy("rank", true).Run(),
-								ShouldBeNil)
-							So(errTasks, ShouldResemble, model.Tasks{{
-								RuleID: rule.ID, Chain: model.ChainError,
-								Rank: 0, Type: "DELETE", Args: map[string]string{},
-							}})
-						})
-					})
-				})
+				assert.Equal(t,
+					fmt.Sprintf("The rule %q was successfully updated.\n", ruleName),
+					w.String(),
+					"Then is should display a message saying the rule was updated",
+				)
 			})
 		})
 	})
 }
 
-func TestDeleteRule(t *testing.T) {
-	Convey("Testing the rule 'delete' command", t, func() {
-		out = testFile()
+func TestRuleDelete(t *testing.T) {
+	const (
+		ruleName = "pull"
+		way      = directionRecv
+
+		path = "/api/rules/" + ruleName + "/" + way
+	)
+
+	t.Run(`Testing the rule "delete" command`, func(t *testing.T) {
+		w := newTestOutput()
 		command := &RuleDelete{}
 
-		Convey("Given a gateway with 1 rule", func(c C) {
-			db := database.TestDatabase(c)
-			gw := httptest.NewServer(testHandler(db))
+		expected := &expectedRequest{
+			method: http.MethodDelete,
+			path:   path,
+		}
 
-			var err error
+		result := &expectedResponse{status: http.StatusNoContent}
 
-			addr, err = url.Parse("http://admin:admin_password@" + gw.Listener.Addr().String())
-			So(err, ShouldBeNil)
+		t.Run("Given a dummy gateway REST interface", func(t *testing.T) {
+			testServer(t, expected, result)
 
-			rule := &model.Rule{
-				Name:   "rule_name",
-				IsSend: true,
-				Path:   "/existing",
-			}
-			So(db.Insert(rule).Run(), ShouldBeNil)
+			t.Run("When executing the command", func(t *testing.T) {
+				require.NoError(t, executeCommand(t, w, command, ruleName, way),
+					"Then it should not return an error")
 
-			Convey("Given a valid rule name", func() {
-				args := []string{rule.Name, getDirection(rule)}
-
-				Convey("When executing the command", func() {
-					params, err := flags.ParseArgs(command, args)
-					So(err, ShouldBeNil)
-					So(command.Execute(params), ShouldBeNil)
-
-					Convey("Then is should display a message saying the rule was deleted", func() {
-						So(getOutput(), ShouldEqual, "The rule "+rule.Name+
-							" was successfully deleted.\n")
-					})
-
-					Convey("Then the rule should have been removed", func() {
-						var rules model.Rules
-
-						So(db.Select(&rules).Run(), ShouldBeNil)
-						So(rules, ShouldBeEmpty)
-					})
-				})
-			})
-
-			Convey("Given an invalid rule name", func() {
-				args := []string{"toto", getDirection(rule)}
-
-				Convey("When executing the command", func() {
-					params, err := flags.ParseArgs(command, args)
-					So(err, ShouldBeNil)
-					err = command.Execute(params)
-
-					Convey("Then it should return an error", func() {
-						So(err, ShouldBeError, "send rule 'toto' not found")
-					})
-
-					Convey("Then the rule should still exist", func() {
-						var rules model.Rules
-
-						So(db.Select(&rules).Run(), ShouldBeNil)
-						So(rules, ShouldContain, rule)
-					})
-				})
+				assert.Equal(t,
+					fmt.Sprintf("The rule %q was successfully deleted.\n", ruleName),
+					w.String(),
+					"Then is should display a message saying the rule was deleted",
+				)
 			})
 		})
 	})
 }
 
-func TestListRules(t *testing.T) {
-	Convey("Testing the rule 'list' command", t, func() {
-		out = testFile()
+func TestRulesList(t *testing.T) {
+	const (
+		path = "/api/rules"
+
+		sort   = "name+"
+		limit  = "10"
+		offset = "5"
+
+		rule1       = "pull"
+		rule1IsSend = true
+		rule1Path   = "pull/path"
+
+		rule2       = "push"
+		rule2IsSend = false
+		rule2Path   = "push/path"
+	)
+
+	var (
+		rule1way = direction(rule1IsSend)
+		rule2way = direction(rule2IsSend)
+	)
+
+	t.Run(`Testing the rule "list" command`, func(t *testing.T) {
+		w := newTestOutput()
 		command := &RuleList{}
 
-		Convey("Given a gateway with 2 rules", func(c C) {
-			db := database.TestDatabase(c)
-			gw := httptest.NewServer(testHandler(db))
+		expected := &expectedRequest{
+			method: http.MethodGet,
+			path:   path,
+			values: url.Values{"sort": {sort}, "limit": {limit}, "offset": {offset}},
+		}
 
-			var err error
+		result := &expectedResponse{
+			status: http.StatusOK,
+			body: map[string]any{
+				"rules": []map[string]any{{
+					"name":   rule1,
+					"isSend": rule1IsSend,
+					"path":   rule1Path,
+				}, {
+					"name":    rule2,
+					"is_send": rule2IsSend,
+					"path":    rule2Path,
+				}},
+			},
+		}
 
-			addr, err = url.Parse("http://admin:admin_password@" + gw.Listener.Addr().String())
-			So(err, ShouldBeNil)
+		t.Run("Given a dummy gateway REST interface", func(t *testing.T) {
+			testServer(t, expected, result)
 
-			receive := &model.Rule{
-				Name:           "receive_rule",
-				Comment:        "receive comment",
-				IsSend:         false,
-				Path:           "/receive",
-				LocalDir:       "/receive/local",
-				RemoteDir:      "/receive/remote",
-				TmpLocalRcvDir: "/receive/tmp",
-			}
-			So(db.Insert(receive).Run(), ShouldBeNil)
+			t.Run("When executing the command", func(t *testing.T) {
+				require.NoError(t, executeCommand(t, w, command,
+					"--limit", limit, "--offset", offset, "--sort", sort,
+				),
+					"Then it should not return an error",
+				)
 
-			send := &model.Rule{
-				Name:           "send_rule",
-				Comment:        "send comment",
-				IsSend:         true,
-				Path:           "/send",
-				LocalDir:       "/send/local",
-				RemoteDir:      "/send/remote",
-				TmpLocalRcvDir: "/send/tmp",
-			}
-			So(db.Insert(send).Run(), ShouldBeNil)
-
-			rcv, err := rest.DBRuleToREST(db, receive)
-			So(err, ShouldBeNil)
-			snd, err := rest.DBRuleToREST(db, send)
-			So(err, ShouldBeNil)
-
-			Convey("Given no parameters", func() {
-				args := []string{}
-
-				Convey("When executing the command", func() {
-					params, err := flags.ParseArgs(command, args)
-					So(err, ShouldBeNil)
-					So(command.Execute(params), ShouldBeNil)
-
-					Convey("Then it should display the rule' info", func() {
-						So(getOutput(), ShouldEqual, "Rules:\n"+
-							ruleInfoString(rcv)+ruleInfoString(snd))
-					})
-				})
-			})
-
-			Convey("Given a 'limit' parameter of 1", func() {
-				args := []string{"-l", "1"}
-
-				Convey("When executing the command", func() {
-					params, err := flags.ParseArgs(command, args)
-					So(err, ShouldBeNil)
-					So(command.Execute(params), ShouldBeNil)
-
-					Convey("Then it should display only 1 rule's info", func() {
-						So(getOutput(), ShouldEqual, "Rules:\n"+
-							ruleInfoString(rcv))
-					})
-				})
-			})
-
-			Convey("Given an 'offset' parameter of 1", func() {
-				args := []string{"-o", "1"}
-
-				Convey("When executing the command", func() {
-					params, err := flags.ParseArgs(command, args)
-					So(err, ShouldBeNil)
-					So(command.Execute(params), ShouldBeNil)
-
-					Convey("Then it should NOT display the 1st rule", func() {
-						So(getOutput(), ShouldEqual, "Rules:\n"+
-							ruleInfoString(snd))
-					})
-				})
-			})
-
-			Convey("Given an 'sort' parameter of 'name-'", func() {
-				args := []string{"-s", "name-"}
-
-				Convey("When executing the command", func() {
-					params, err := flags.ParseArgs(command, args)
-					So(err, ShouldBeNil)
-					So(command.Execute(params), ShouldBeNil)
-
-					Convey("Then it should display the rules' info in reverse", func() {
-						So(getOutput(), ShouldEqual, "Rules:\n"+
-							ruleInfoString(snd)+ruleInfoString(rcv))
-					})
-				})
+				assert.Equal(t,
+					"Rules:\n"+
+						fmt.Sprintf("╭─ Rule %q (%s)\n", rule1, rule1way)+
+						fmt.Sprintf("│  ├─ Path: %s\n", rule1Path)+
+						fmt.Sprintf("│  ├─ Pre tasks: <none>\n")+
+						fmt.Sprintf("│  ├─ Post tasks: <none>\n")+
+						fmt.Sprintf("│  ├─ Error tasks: <none>\n")+
+						fmt.Sprintf("│  ╰─ Rule access: <unrestricted>\n")+
+						fmt.Sprintf("╰─ Rule %q (%s)\n", rule2, rule2way)+
+						fmt.Sprintf("   ├─ Path: %s\n", rule2Path)+
+						fmt.Sprintf("   ├─ Pre tasks: <none>\n")+
+						fmt.Sprintf("   ├─ Post tasks: <none>\n")+
+						fmt.Sprintf("   ├─ Error tasks: <none>\n")+
+						fmt.Sprintf("   ╰─ Rule access: <unrestricted>\n"),
+					w.String(),
+					"Then is should display the list of rules",
+				)
 			})
 		})
 	})
 }
 
 func TestRuleAllowAll(t *testing.T) {
-	Convey("Testing the rule 'list' command", t, func() {
-		out = testFile()
+	const (
+		rule = "push"
+		way  = directionSend
+
+		path = "/api/rules/" + rule + "/" + way + "/allow_all"
+	)
+
+	t.Run(`Testing the rule "list" command`, func(t *testing.T) {
+		w := newTestOutput()
 		command := &RuleAllowAll{}
 
-		Convey("Given a database with a rule", func(c C) {
-			db := database.TestDatabase(c)
-			gw := httptest.NewServer(testHandler(db))
+		expected := &expectedRequest{
+			method: http.MethodPut,
+			path:   path,
+		}
 
-			var err error
+		result := &expectedResponse{status: http.StatusOK}
 
-			addr, err = url.Parse("http://admin:admin_password@" + gw.Listener.Addr().String())
-			So(err, ShouldBeNil)
+		t.Run("Given a dummy gateway REST interface", func(t *testing.T) {
+			testServer(t, expected, result)
 
-			rule := &model.Rule{
-				Name:   "rule",
-				IsSend: true,
-				Path:   "/rule",
-			}
-			So(db.Insert(rule).Run(), ShouldBeNil)
-
-			Convey("Given multiple accesses to that rule", func() {
-				s := &model.LocalAgent{
-					Name:     "server",
-					Protocol: testProto1,
-					Address:  "localhost:1",
-				}
-				p := &model.RemoteAgent{
-					Name:     "partner",
-					Protocol: testProto1,
-					Address:  "localhost:2",
-				}
-				So(db.Insert(p).Run(), ShouldBeNil)
-				So(db.Insert(s).Run(), ShouldBeNil)
-
-				la := &model.LocalAccount{
-					LocalAgentID: s.ID,
-					Login:        "toto",
-					PasswordHash: hash("password"),
-				}
-				ra := &model.RemoteAccount{
-					RemoteAgentID: p.ID,
-					Login:         "tata",
-					Password:      "password",
-				}
-
-				So(db.Insert(la).Run(), ShouldBeNil)
-				So(db.Insert(ra).Run(), ShouldBeNil)
-
-				sAcc := &model.RuleAccess{
-					RuleID:       rule.ID,
-					LocalAgentID: utils.NewNullInt64(s.ID),
-				}
-				pAcc := &model.RuleAccess{
-					RuleID:        rule.ID,
-					RemoteAgentID: utils.NewNullInt64(p.ID),
-				}
-				laAcc := &model.RuleAccess{
-					RuleID:         rule.ID,
-					LocalAccountID: utils.NewNullInt64(la.ID),
-				}
-				raAcc := &model.RuleAccess{
-					RuleID:          rule.ID,
-					RemoteAccountID: utils.NewNullInt64(ra.ID),
-				}
-
-				So(db.Insert(sAcc).Run(), ShouldBeNil)
-				So(db.Insert(pAcc).Run(), ShouldBeNil)
-				So(db.Insert(laAcc).Run(), ShouldBeNil)
-				So(db.Insert(raAcc).Run(), ShouldBeNil)
-
-				Convey("Given correct command parameters", func() {
-					args := []string{rule.Name, getDirection(rule)}
-
-					Convey("When executing the command", func() {
-						params, err := flags.ParseArgs(command, args)
-						So(err, ShouldBeNil)
-						So(command.Execute(params), ShouldBeNil)
-
-						Convey("Then it should say that the rule is now unrestricted", func() {
-							So(getOutput(), ShouldEqual, "The use of the "+getDirection(rule)+
-								" rule "+rule.Name+" is now unrestricted.\n")
-						})
-
-						Convey("Then all accesses should have been removed from the database", func() {
-							var res model.RuleAccesses
-
-							So(db.Select(&res).Run(), ShouldBeNil)
-							So(res, ShouldBeEmpty)
-						})
-					})
-				})
-
-				Convey("Given an incorrect rule name", func() {
-					args := []string{"toto", getDirection(rule)}
-
-					Convey("When executing the command", func() {
-						params, err := flags.ParseArgs(command, args)
-						So(err, ShouldBeNil)
-						err = command.Execute(params)
-
-						Convey("Then it should return an error", func() {
-							So(err, ShouldBeError, "send rule 'toto' not found")
-						})
-
-						Convey("Then the accesses should still exist", func() {
-							var res model.RuleAccesses
-
-							So(db.Select(&res).Run(), ShouldBeNil)
-							So(len(res), ShouldEqual, 4)
-						})
-					})
-				})
-
-				Convey("Given an incorrect rule direction", func() {
-					args := []string{rule.Name, "toto"}
-
-					Convey("When executing the command", func() {
-						params, err := flags.ParseArgs(command, args)
-						So(err, ShouldBeNil)
-						err = command.Execute(params)
-
-						Convey("Then it should return an error", func() {
-							So(err, ShouldBeError)
-							So(err.Error(), ShouldContainSubstring, "invalid rule direction 'toto'")
-						})
-
-						Convey("Then the accesses should still exist", func() {
-							var res model.RuleAccesses
-
-							So(db.Select(&res).Run(), ShouldBeNil)
-							So(len(res), ShouldEqual, 4)
-						})
-					})
-				})
+			t.Run("When executing the command", func(t *testing.T) {
+				require.NoError(t, executeCommand(t, w, command, rule, way),
+					"Then it should not return an error")
 			})
+
+			assert.Equal(t,
+				fmt.Sprintf("The use of the %s rule %q is now unrestricted.\n", way, rule),
+				w.String(),
+				"Then is should display a message saying the rule's use is now unrestricted",
+			)
 		})
 	})
 }

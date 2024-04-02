@@ -15,7 +15,12 @@ import (
 	"code.waarp.fr/apps/gateway/gateway/pkg/fs"
 	"code.waarp.fr/apps/gateway/gateway/pkg/model"
 	"code.waarp.fr/apps/gateway/gateway/pkg/model/types"
-	"code.waarp.fr/apps/gateway/gateway/pkg/tk/utils"
+	"code.waarp.fr/apps/gateway/gateway/pkg/utils"
+)
+
+var (
+	errRead  = NewError(types.TeInternal, "failed to read file")
+	errWrite = NewError(types.TeInternal, "failed to write file")
 )
 
 func TestNewFileStream(t *testing.T) {
@@ -66,8 +71,8 @@ func TestNewFileStream(t *testing.T) {
 					_, err := newFileStream(pip.Pipeline, false)
 
 					Convey("Then it should return an error", func(c C) {
-						So(err, ShouldBeError, types.NewTransferError(
-							types.TeFileNotFound, "file not found"))
+						So(err, ShouldBeError, NewError(types.TeFileNotFound,
+							"file not found"))
 					})
 				})
 			})
@@ -79,14 +84,19 @@ func TestNewFileStream(t *testing.T) {
 
 			So(ctx.db.Insert(trans).Run(), ShouldBeNil)
 
-			pip, err := NewClientPipeline(ctx.db, trans)
+			transCtx, err := model.GetTransferContext(ctx.db, ctx.logger, trans)
 			So(err, ShouldBeNil)
 
-			So(pip.Pip.machine.Transition(statePreTasks), ShouldBeNil)
-			So(pip.Pip.machine.Transition(statePreTasksDone), ShouldBeNil)
+			pip, err := NewClientPipeline(ctx.db, ctx.logger, transCtx)
+			So(err, ShouldBeNil)
+
+			Reset(pip.doneOK)
+
+			So(pip.machine.Transition(statePreTasks), ShouldBeNil)
+			So(pip.machine.Transition(statePreTasksDone), ShouldBeNil)
 
 			Convey("When creating a new transfer stream", func(c C) {
-				stream, err := newFileStream(pip.Pip, false)
+				stream, err := newFileStream(pip, false)
 				So(err, ShouldBeNil)
 				// Reset(func() { _ = stream.file.Close() })
 
@@ -154,9 +164,9 @@ func TestStreamRead(t *testing.T) {
 				Convey("Then it should have called the error-tasks", func(c C) {
 					waitEndTransfer(stream.Pipeline)
 
-					Convey("Then any subsequent call to 'Read' should return an error", func(c C) {
+					Convey("Then any subsequent call to 'Read' should return the same error", func(c C) {
 						_, err := stream.Read(b)
-						So(err, ShouldBeError, errStateMachine)
+						So(err, ShouldBeError, errRead)
 					})
 				})
 			})
@@ -172,9 +182,9 @@ func TestStreamRead(t *testing.T) {
 				Convey("Then it should have called the error-tasks", func(c C) {
 					waitEndTransfer(stream.Pipeline)
 
-					Convey("Then any subsequent call to 'Read' should return an error", func(c C) {
+					Convey("Then any subsequent call to 'Read' should return the same error", func(c C) {
 						_, err := stream.Read(b)
-						So(err, ShouldBeError, errStateMachine)
+						So(err, ShouldBeError, errDatabase)
 					})
 				})
 			})
@@ -231,9 +241,9 @@ func TestStreamReadAt(t *testing.T) {
 				Convey("Then it should have called the error-tasks", func(c C) {
 					waitEndTransfer(stream.Pipeline)
 
-					Convey("Then any subsequent call to 'ReadAt' should return an error", func(c C) {
+					Convey("Then any subsequent call to 'ReadAt' should return the same error", func(c C) {
 						_, err := stream.ReadAt(b, 0)
-						So(err, ShouldBeError, errStateMachine)
+						So(err, ShouldBeError, errRead)
 					})
 				})
 			})
@@ -249,9 +259,9 @@ func TestStreamReadAt(t *testing.T) {
 				Convey("Then it should have called the error-tasks", func(c C) {
 					waitEndTransfer(stream.Pipeline)
 
-					Convey("Then any subsequent call to 'ReadAt' should return an error", func(c C) {
+					Convey("Then any subsequent call to 'ReadAt' should return the same error", func(c C) {
 						_, err := stream.ReadAt(b, 0)
-						So(err, ShouldBeError, errStateMachine)
+						So(err, ShouldBeError, errDatabase)
 					})
 				})
 			})
@@ -305,9 +315,9 @@ func TestStreamWrite(t *testing.T) {
 				Convey("Then it should have called the error-tasks", func(c C) {
 					waitEndTransfer(stream.Pipeline)
 
-					Convey("Then any subsequent call to 'Write' should return an error", func(c C) {
+					Convey("Then any subsequent call to 'Write' should return the same error", func(c C) {
 						_, err := stream.Write(b)
-						So(err, ShouldBeError, errStateMachine)
+						So(err, ShouldBeError, errWrite)
 					})
 				})
 			})
@@ -323,9 +333,9 @@ func TestStreamWrite(t *testing.T) {
 				Convey("Then it should have called the error-tasks", func(c C) {
 					waitEndTransfer(stream.Pipeline)
 
-					Convey("Then any subsequent call to 'Write' should return an error", func(c C) {
+					Convey("Then any subsequent call to 'Write' should return the same error", func(c C) {
 						_, err := stream.Write(b)
-						So(err, ShouldBeError, errStateMachine)
+						So(err, ShouldBeError, errDatabase)
 					})
 				})
 			})
@@ -380,9 +390,9 @@ func TestStreamWriteAt(t *testing.T) {
 				Convey("Then it should have called the error-tasks", func(c C) {
 					waitEndTransfer(stream.Pipeline)
 
-					Convey("Then any subsequent call to 'WriteAt' should return an error", func(c C) {
+					Convey("Then any subsequent call to 'WriteAt' should return the same error", func(c C) {
 						_, err := stream.WriteAt(b, 0)
-						So(err, ShouldBeError, errStateMachine)
+						So(err, ShouldBeError, errWrite)
 					})
 				})
 			})
@@ -398,9 +408,9 @@ func TestStreamWriteAt(t *testing.T) {
 				Convey("Then it should have called the error-tasks", func(c C) {
 					waitEndTransfer(stream.Pipeline)
 
-					Convey("Then any subsequent call to 'WriteAt' should return an error", func(c C) {
+					Convey("Then any subsequent call to 'WriteAt' should return the same error", func(c C) {
 						_, err := stream.WriteAt(b, 0)
-						So(err, ShouldBeError, errStateMachine)
+						So(err, ShouldBeError, errDatabase)
 					})
 				})
 			})
@@ -476,8 +486,8 @@ func TestStreamMove(t *testing.T) {
 				So(fs.Remove(ctx.fs, &stream.TransCtx.Transfer.LocalPath), ShouldBeNil)
 
 				Convey("When moving the file", func(c C) {
-					So(stream.move(), ShouldBeError, "TransferError(TeFinalization): "+
-						"failed to move temp file")
+					So(stream.move(), ShouldBeError,
+						NewError(types.TeFinalization, "temp file rename failed"))
 
 					Convey("Then it should have called the error tasks", func(c C) {
 						waitEndTransfer(stream.Pipeline)

@@ -7,7 +7,7 @@ import (
 	. "github.com/smartystreets/goconvey/convey"
 
 	"code.waarp.fr/apps/gateway/gateway/pkg/database"
-	"code.waarp.fr/apps/gateway/gateway/pkg/tk/utils"
+	"code.waarp.fr/apps/gateway/gateway/pkg/utils"
 )
 
 func TestRuleTableName(t *testing.T) {
@@ -44,7 +44,7 @@ func TestRuleBeforeWrite(t *testing.T) {
 
 			shouldSucceed := func() {
 				Convey("When calling `BeforeWrite`", func() {
-					err := db.Transaction(func(ses *database.Session) database.Error {
+					err := db.Transaction(func(ses *database.Session) error {
 						return rule.BeforeWrite(ses)
 					})
 
@@ -56,7 +56,7 @@ func TestRuleBeforeWrite(t *testing.T) {
 
 			shouldFailWith := func(errDesc string, expErr error) {
 				Convey("When calling `BeforeWrite`", func() {
-					err := db.Transaction(func(ses *database.Session) database.Error {
+					err := db.Transaction(func(ses *database.Session) error {
 						return rule.BeforeWrite(ses)
 					})
 
@@ -104,7 +104,7 @@ func TestRuleBeforeWrite(t *testing.T) {
 				rule.Path = ""
 
 				Convey("When calling `BeforeWrite`", func() {
-					err := db.Transaction(func(ses *database.Session) database.Error {
+					err := db.Transaction(func(ses *database.Session) error {
 						return rule.BeforeWrite(ses)
 					})
 
@@ -156,7 +156,7 @@ func TestRuleBeforeDelete(t *testing.T) {
 
 			Convey("Given that the rule is unused", func() {
 				Convey("When calling the `BeforeDelete` function", func() {
-					err := db.Transaction(func(ses *database.Session) database.Error {
+					err := db.Transaction(func(ses *database.Session) error {
 						return rule.BeforeDelete(ses)
 					})
 
@@ -175,7 +175,7 @@ func TestRuleBeforeDelete(t *testing.T) {
 				So(db.Insert(&trans).Run(), ShouldBeNil)
 
 				Convey("When calling the `BeforeDelete` function", func() {
-					err := db.Transaction(func(ses *database.Session) database.Error {
+					err := db.Transaction(func(ses *database.Session) error {
 						return rule.BeforeDelete(ses)
 					})
 

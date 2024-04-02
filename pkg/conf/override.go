@@ -10,7 +10,7 @@ import (
 	"github.com/smartystreets/goconvey/convey"
 
 	"code.waarp.fr/apps/gateway/gateway/pkg/tk/config"
-	"code.waarp.fr/apps/gateway/gateway/pkg/tk/utils/testhelpers"
+	"code.waarp.fr/apps/gateway/gateway/pkg/utils/testhelpers"
 )
 
 // LocalOverrides is a global instance of configOverride containing the local
@@ -77,12 +77,14 @@ func (o *configOverride) writeTo(w io.Writer) error {
 	return nil
 }
 
+const iniExtension = ".ini"
+
 func CreateOverride(configFile, nodeID string) error {
 	if nodeID == "" {
 		return nil
 	}
 
-	overrideFile := filepath.Join(filepath.Dir(configFile), nodeID+".ini")
+	overrideFile := filepath.Join(filepath.Dir(configFile), nodeID+iniExtension)
 	o := newOverride(overrideFile)
 
 	p, err := config.NewParser(o)
@@ -98,7 +100,7 @@ func CreateOverride(configFile, nodeID string) error {
 }
 
 func LoadOverride(configPath, nodeID string) (*configOverride, error) {
-	overrideFile := filepath.Join(filepath.Dir(configPath), nodeID+".ini")
+	overrideFile := filepath.Join(filepath.Dir(configPath), nodeID+iniExtension)
 	o := newOverride(overrideFile)
 
 	p, err := config.NewParser(o)
@@ -118,7 +120,7 @@ func UpdateOverride(configFile, nodeID string) error {
 		return nil
 	}
 
-	overrideFile := filepath.Join(filepath.Dir(configFile), nodeID+".ini")
+	overrideFile := filepath.Join(filepath.Dir(configFile), nodeID+iniExtension)
 	o := newOverride(overrideFile)
 
 	parser, err := config.NewParser(o)

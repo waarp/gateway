@@ -3,59 +3,56 @@ package migrations
 import (
 	"database/sql"
 	"fmt"
+	"strings"
 	"testing"
 
 	"code.waarp.fr/lib/migration"
-	. "github.com/smartystreets/goconvey/convey"
+	"github.com/stretchr/testify/require"
 
-	"code.waarp.fr/apps/gateway/gateway/pkg/tk/utils/testhelpers"
+	"code.waarp.fr/apps/gateway/gateway/pkg/utils/gwtesting"
 )
 
 type testEngine struct {
 	*migration.Engine
-	DB *sql.DB
+	DB      *sql.DB
+	Dialect string
 }
 
-func (t *testEngine) makeMigration(scripts []Script) migration.Migration {
-	mig := make(migration.Migration, len(scripts))
+func (t *testEngine) Upgrade(changes ...Change) error {
+	return t.Engine.Upgrade(changes) //nolint:wrapcheck //this is just for tests
+}
 
-	for i := range scripts {
-		mig[i] = migration.Script{
-			Description: fmt.Sprintf("%T", scripts[i]),
-			Up:          scripts[i].Up,
-			Down:        scripts[i].Down,
+func (t *testEngine) Downgrade(changes ...Change) error {
+	return t.Engine.Downgrade(changes) //nolint:wrapcheck //this is just for tests
+}
+
+func (t *testEngine) NoError(tb testing.TB, query string, args ...any) {
+	tb.Helper()
+
+	if t.Dialect == PostgreSQL {
+		for i := 1; strings.Contains(query, "?"); i++ {
+			query = strings.Replace(query, "?", fmt.Sprintf("$%d", i), 1)
 		}
 	}
 
-	return mig
+	_, err := t.DB.Exec(query, args...)
+	require.NoError(tb, err)
 }
 
-func (t *testEngine) Upgrade(scripts ...Script) error {
-	toApply := t.makeMigration(scripts)
+func getSQLiteEngine(tb testing.TB) *testEngine {
+	tb.Helper()
 
-	return t.Engine.Upgrade(toApply) //nolint:wrapcheck //this is just for tests
-}
+	logger := gwtesting.Logger(tb)
+	db := gwtesting.SQLiteDatabase(tb)
 
-func (t *testEngine) Downgrade(scripts ...Script) error {
-	toApply := t.makeMigration(scripts)
+	eng, err := migration.NewEngine(db, SQLite, logger, nil)
+	require.NoError(tb, err)
 
-	return t.Engine.Downgrade(toApply) //nolint:wrapcheck //this is just for tests
-}
-
-func getSQLiteEngine(c C) *testEngine {
-	logger := testhelpers.TestLogger(c, "test_sqlite_engine")
-	db := testhelpers.GetTestSqliteDB(c)
-
-	eng, err := migration.NewEngine(db, migration.SQLite, logger, nil)
-	So(err, ShouldBeNil)
-
-	return &testEngine{Engine: eng, DB: db}
+	return &testEngine{Engine: eng, DB: db, Dialect: SQLite}
 }
 
 func TestSQLiteMigrations(t *testing.T) {
 	t.Parallel()
 
-	Convey("Given an un-migrated SQLite database engine", t, func(c C) {
-		testMigrations(getSQLiteEngine(c), migration.SQLite)
-	})
+	testMigrations(t, getSQLiteEngine(t))
 }

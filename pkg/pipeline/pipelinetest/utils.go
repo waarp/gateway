@@ -2,7 +2,9 @@ package pipelinetest
 
 import (
 	"crypto/rand"
+	"errors"
 	"fmt"
+	"os"
 	"sync/atomic"
 	"time"
 
@@ -13,6 +15,7 @@ import (
 	"code.waarp.fr/apps/gateway/gateway/pkg/database"
 	"code.waarp.fr/apps/gateway/gateway/pkg/fs"
 	"code.waarp.fr/apps/gateway/gateway/pkg/fs/fstest"
+	"code.waarp.fr/apps/gateway/gateway/pkg/logging"
 	"code.waarp.fr/apps/gateway/gateway/pkg/model"
 	"code.waarp.fr/apps/gateway/gateway/pkg/model/types"
 	"code.waarp.fr/apps/gateway/gateway/pkg/pipeline"
@@ -28,7 +31,12 @@ const (
 
 //nolint:gochecknoinits //init is required here
 func init() {
-	if err := conf.InitBackend("TRACE", "stdout", "", ""); err != nil {
+	level := "WARNING"
+	if envLvl := os.Getenv("WAARP_TEST_LOG_LEVEL"); envLvl != "" {
+		level = envLvl
+	}
+
+	if err := logging.AddLogBackend(level, "stdout", "", ""); err != nil {
 		panic(fmt.Sprintf("failed to initialize the log backend: %v", err))
 	}
 }
@@ -36,7 +44,7 @@ func init() {
 // TestFileSize defines the size of the file used for transfer tests.
 const TestFileSize int64 = 1000000 // 1MB
 
-var ErrTestError = types.NewTransferError(types.TeInternal, "intended test error")
+var ErrTestError = errors.New("intended test error")
 
 type testData struct {
 	DB    *database.DB

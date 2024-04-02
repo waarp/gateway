@@ -15,7 +15,7 @@ import (
 	"code.waarp.fr/apps/gateway/gateway/pkg/conf"
 	"code.waarp.fr/apps/gateway/gateway/pkg/database"
 	"code.waarp.fr/apps/gateway/gateway/pkg/model"
-	"code.waarp.fr/apps/gateway/gateway/pkg/tk/utils/testhelpers"
+	"code.waarp.fr/apps/gateway/gateway/pkg/utils/testhelpers"
 )
 
 const usersURI = "http://localhost:8080/api/users/"
@@ -308,6 +308,7 @@ func TestDeleteUser(t *testing.T) {
 				Username:     "other",
 				PasswordHash: hash("other_password"),
 			}
+
 			So(db.Insert(existing).Run(), ShouldBeNil)
 			So(db.Insert(other).Run(), ShouldBeNil)
 			So(db.DeleteAll(&model.User{}).Where("username='admin'").Run(), ShouldBeNil)
@@ -418,6 +419,7 @@ func TestUpdateUser(t *testing.T) {
 				PasswordHash: hash("other_password"),
 				Permissions:  model.PermAll,
 			}
+
 			So(db.Insert(old).Run(), ShouldBeNil)
 			So(db.Insert(other).Run(), ShouldBeNil)
 			So(db.DeleteAll(&model.User{}).Where("username='admin'").Run(), ShouldBeNil)
@@ -629,6 +631,7 @@ func TestReplaceUser(t *testing.T) {
 				Username:     "other",
 				PasswordHash: hash("other"),
 			}
+
 			So(db.Insert(old).Run(), ShouldBeNil)
 			So(db.Insert(other).Run(), ShouldBeNil)
 			So(db.DeleteAll(&model.User{}).Where("username='admin'").Run(), ShouldBeNil)

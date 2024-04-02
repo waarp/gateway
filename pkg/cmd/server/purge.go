@@ -50,17 +50,17 @@ func (p *PurgeCommand) run(db *database.DB, now time.Time, in io.Reader,
 		return err
 	}
 
-	proceed, err := p.userConfirm(db, in, out)
-	if err != nil {
-		return err
+	proceed, okErr := p.userConfirm(db, in, out)
+	if okErr != nil {
+		return okErr
 	} else if !proceed {
 		return nil
 	}
 
 	if p.ExportTo != "" {
-		file, err := os.Create(p.ExportTo)
-		if err != nil {
-			return fmt.Errorf("failed to open the export file: %w", err)
+		file, fileErr := os.Create(p.ExportTo)
+		if fileErr != nil {
+			return fmt.Errorf("failed to open the export file: %w", fileErr)
 		}
 
 		if err := backup.ExportHistory(db, file, p.olderThan); err != nil {
@@ -68,7 +68,7 @@ func (p *PurgeCommand) run(db *database.DB, now time.Time, in io.Reader,
 		}
 	}
 
-	if err := db.Transaction(func(ses *database.Session) database.Error {
+	if err := db.Transaction(func(ses *database.Session) error {
 		delQuery := ses.DeleteAll(&model.HistoryEntry{})
 
 		if !p.olderThan.IsZero() {
@@ -77,12 +77,12 @@ func (p *PurgeCommand) run(db *database.DB, now time.Time, in io.Reader,
 		}
 
 		if err := delQuery.Run(); err != nil {
-			return err
+			return fmt.Errorf("failed to purge the history: %w", err)
 		}
 
 		if p.Reset {
 			if err := ses.ResetIncrement(&model.Transfer{}); err != nil {
-				return err
+				return fmt.Errorf("failed to reset the transfer ID increment: %w", err)
 			}
 		}
 

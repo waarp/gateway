@@ -1,6 +1,11 @@
+// Package pipeline defines the transfer pipeline structure. This pipeline can
+// (and should) be used to execute transfers, both by clients and servers.
+// A pipeline can be initialized using the NewClientPipeline and NewServerPipeline
+// functions.
 package pipeline
 
 import (
+	"context"
 	"fmt"
 	"sync"
 	"time"
@@ -9,15 +14,11 @@ import (
 
 	"code.waarp.fr/apps/gateway/gateway/pkg/database"
 	"code.waarp.fr/apps/gateway/gateway/pkg/fs"
+	"code.waarp.fr/apps/gateway/gateway/pkg/logging"
 	"code.waarp.fr/apps/gateway/gateway/pkg/model"
 	"code.waarp.fr/apps/gateway/gateway/pkg/model/types"
 	"code.waarp.fr/apps/gateway/gateway/pkg/tasks"
 	"code.waarp.fr/apps/gateway/gateway/pkg/tk/statemachine"
-)
-
-var (
-	errDatabase     = types.NewTransferError(types.TeInternal, "database error")
-	errStateMachine = types.NewTransferError(types.TeInternal, "internal transfer error")
 )
 
 const TransferUpdateInterval = time.Second
@@ -38,15 +39,19 @@ type Pipeline struct {
 	Stream   *FileStream
 	Trace    Trace
 
-	machine   *statemachine.Machine
-	updTicker *time.Ticker
+	machine      *statemachine.Machine
+	interruption interruption
+	updTicker    *time.Ticker
+
+	storedErr *Error
 	errOnce   sync.Once
 
 	Runner *tasks.Runner
 }
 
+//nolint:funlen //function is fine as is
 func newPipeline(db *database.DB, logger *log.Logger, transCtx *model.TransferContext,
-) (*Pipeline, *types.TransferError) {
+) (*Pipeline, *Error) {
 	pipeline := &Pipeline{
 		DB:        db,
 		Logger:    logger,
@@ -57,14 +62,12 @@ func newPipeline(db *database.DB, logger *log.Logger, transCtx *model.TransferCo
 	}
 
 	if err := pipeline.setFilePaths(); err != nil {
-		return nil, types.NewTransferError(types.TeInternal,
-			"failed to build the file paths: %v", err)
+		return nil, NewErrorWith(types.TeInternal, "failed to build the file paths", err)
 	}
 
 	filesys, fsErr := fs.GetFileSystem(db, &transCtx.Transfer.LocalPath)
 	if fsErr != nil {
-		return nil, types.NewTransferError(types.TeInternal,
-			"failed to instantiate filesystem: %v", fsErr)
+		return nil, NewErrorWith(types.TeInternal, "failed to instantiate filesystem", fsErr)
 	}
 
 	transCtx.FS = filesys
@@ -81,55 +84,56 @@ func newPipeline(db *database.DB, logger *log.Logger, transCtx *model.TransferCo
 		transCtx.Transfer.Step = types.StepSetup
 	}
 
-	if transCtx.Transfer.Error.Code != types.TeOk {
-		transCtx.Transfer.Error.Code = types.TeOk
+	if transCtx.Transfer.ErrCode != types.TeOk {
+		transCtx.Transfer.ErrCode = types.TeOk
 	}
 
-	if transCtx.Transfer.Error.Details != "" {
-		transCtx.Transfer.Error.Details = ""
+	if transCtx.Transfer.ErrDetails != "" {
+		transCtx.Transfer.ErrDetails = ""
+	}
+
+	if transCtx.Transfer.ID == 0 {
+		if err := db.Insert(transCtx.Transfer).Run(); err != nil {
+			logger.Error("failed to insert the new transfer entry: %s", err)
+
+			return nil, NewErrorWith(types.TeInternal, "failed to insert the new transfer entry", err)
+		}
+
+		*logger = *logging.NewLogger(fmt.Sprintf("Pipeline %d (server)", transCtx.Transfer.ID))
+	} else if err := pipeline.UpdateTrans(); err != nil {
+		logger.Error("Failed to update the transfer details: %s", err)
+
+		return nil, NewErrorWith(types.TeInternal, "Failed to update the transfer details", err)
+	}
+
+	if err := List.add(pipeline); err != nil {
+		logger.Error("Failed to add the pipeline to the list: %s", err)
+
+		return nil, err
 	}
 
 	return pipeline, nil
 }
 
-func (p *Pipeline) init() (err *types.TransferError) {
-	if p.TransCtx.Rule.IsSend {
-		if !TransferOutCount.Add() {
-			err = errLimitReached
-		}
-	} else {
-		if !TransferInCount.Add() {
-			err = errLimitReached
-		}
+func (p *Pipeline) SetInterruptionHandlers(
+	pause func(context.Context) error,
+	interrupt func(context.Context) error,
+	cancel func(context.Context) error,
+) {
+	p.interruption = interruption{
+		Pause:     pause,
+		Interrupt: interrupt,
+		Cancel:    cancel,
 	}
-
-	if err != nil {
-		p.Logger.Error("Failed to initiate transfer pipeline: ¨%s", err)
-		p.TransCtx.Transfer.Error = *err
-
-		if dbErr := p.UpdateTrans(); dbErr != nil {
-			return dbErr
-		}
-	}
-
-	return err
 }
 
 // UpdateTrans updates the given columns of the pipeline's transfer.
-func (p *Pipeline) UpdateTrans() *types.TransferError {
-	return p.doUpdateTrans(p.handleError)
-}
-
-func (p *Pipeline) doUpdateTrans(handleError func(types.TransferErrorCode,
-	string, string),
-) *types.TransferError {
+func (p *Pipeline) UpdateTrans() *Error {
 	select {
 	case <-p.updTicker.C:
 		if dbErr := p.DB.Update(p.TransCtx.Transfer).Run(); dbErr != nil {
-			handleError(types.TeInternal, "Failed to update transfer",
-				dbErr.Error())
-
-			return errDatabase
+			return p.internalErrorWithMsg(types.TeInternal, "Failed to update transfer",
+				"database error", dbErr)
 		}
 	default:
 	}
@@ -143,18 +147,14 @@ func (p *Pipeline) doUpdateTrans(handleError func(types.TransferErrorCode,
 // When resuming a transfer, tasks already successfully executed will be skipped.
 //
 //nolint:dupl // factorizing would add complexity
-func (p *Pipeline) PreTasks() *types.TransferError {
+func (p *Pipeline) PreTasks() *Error {
 	if err := p.machine.Transition(statePreTasks); err != nil {
-		p.handleStateErr("PreTasks", p.machine.Current())
-
-		return errStateMachine
+		return p.stateErr("PreTasks", p.machine.Current())
 	}
 
 	if p.TransCtx.Transfer.Step > types.StepPreTasks {
 		if err := p.machine.Transition(statePreTasksDone); err != nil {
-			p.handleStateErr("PreTasksDone", p.machine.Current())
-
-			return errStateMachine
+			return p.stateErr("PreTasksDone", p.machine.Current())
 		}
 
 		return nil
@@ -166,15 +166,11 @@ func (p *Pipeline) PreTasks() *types.TransferError {
 	}
 
 	if err := p.Runner.PreTasks(p.Trace.OnPreTask); err != nil {
-		p.handleError(err.Code, "Pre-tasks failed", err.Details)
-
-		return types.NewTransferError(types.TeExternalOperation, "pre-tasks failed")
+		return p.internalErrorWithMsg(err.Code, err.Details, "pre-tasks failed", err.Cause)
 	}
 
 	if err := p.machine.Transition(statePreTasksDone); err != nil {
-		p.handleStateErr("PreTasksDone", p.machine.Current())
-
-		return errStateMachine
+		return p.stateErr("PreTasksDone", p.machine.Current())
 	}
 
 	return nil
@@ -183,23 +179,19 @@ func (p *Pipeline) PreTasks() *types.TransferError {
 // StartData marks the beginning of the data transfer. It opens the pipeline's
 // TransferStream and returns it. In the case of a retry, the data transfer will
 // resume at the offset indicated by the Transfer.Progress field.
-func (p *Pipeline) StartData() (*FileStream, *types.TransferError) {
+func (p *Pipeline) StartData() (*FileStream, *Error) {
 	if err := p.machine.Transition(stateDataStart); err != nil {
-		p.handleStateErr("StartData", p.machine.Current())
-
-		return nil, errStateMachine
+		return nil, p.stateErr("StartData", p.machine.Current())
 	}
 
-	transitionData := func() *types.TransferError {
+	transitionData := func() *Error {
 		newState := stateWriting
 		if p.TransCtx.Rule.IsSend {
 			newState = stateReading
 		}
 
 		if err := p.machine.Transition(newState); err != nil {
-			p.handleStateErr("StartData", p.machine.Current())
-
-			return errStateMachine
+			return p.stateErr("StartData", p.machine.Current())
 		}
 
 		return nil
@@ -217,19 +209,16 @@ func (p *Pipeline) StartData() (*FileStream, *types.TransferError) {
 		}
 	}
 
-	var tErr *types.TransferError
-
-	p.Stream, tErr = newFileStream(p, isResume)
-	if tErr != nil {
-		p.handleError(tErr.Code, "Failed to create file stream", tErr.Details)
-
-		return nil, tErr
+	var fErr *Error
+	if p.Stream, fErr = newFileStream(p, isResume); fErr != nil {
+		return nil, fErr
 	}
 
-	if err := testError(p.Trace.OnDataStart); err != nil {
-		p.handleError(err.Code, "Test error on data init", err.Details)
-
-		return nil, err
+	if p.Trace.OnDataStart != nil {
+		if err := p.Trace.OnDataStart(); err != nil {
+			return nil, p.internalErrorWithMsg(types.TeInternal,
+				"data start trace error", "failed to open file", err)
+		}
 	}
 
 	if err := transitionData(); err != nil {
@@ -240,13 +229,11 @@ func (p *Pipeline) StartData() (*FileStream, *types.TransferError) {
 }
 
 // EndData marks the end of the data transfer. It closes the pipeline's
-// TransferStream, and moves the file (when needed) from it's temporary location
+// TransferStream, and moves the file (when needed) from its temporary location
 // to its final destination.
-func (p *Pipeline) EndData() *types.TransferError {
+func (p *Pipeline) EndData() *Error {
 	if err := p.machine.Transition(stateDataEnd); err != nil {
-		p.handleStateErr("EndData", p.machine.Current())
-
-		return errStateMachine
+		return p.stateErr("EndData", p.machine.Current())
 	}
 
 	if err := p.Stream.close(); err != nil {
@@ -259,16 +246,12 @@ func (p *Pipeline) EndData() *types.TransferError {
 
 	if p.TransCtx.Transfer.Filesize < 0 {
 		if err := p.Stream.checkFileExist(); err != nil {
-			p.handleError(err.Code, "Error during final file check", err.Details)
-
 			return err
 		}
 	}
 
 	if err := p.machine.Transition(stateDataEndDone); err != nil {
-		p.handleStateErr("EndDataDone", p.machine.Current())
-
-		return errStateMachine
+		return p.stateErr("EndDataDone", p.machine.Current())
 	}
 
 	return nil
@@ -280,18 +263,14 @@ func (p *Pipeline) EndData() *types.TransferError {
 // When resuming a transfer, tasks already successfully executed will be skipped.
 //
 //nolint:dupl // factorizing would add complexity
-func (p *Pipeline) PostTasks() *types.TransferError {
+func (p *Pipeline) PostTasks() *Error {
 	if err := p.machine.Transition(statePostTasks); err != nil {
-		p.handleStateErr("PostTasks", p.machine.Current())
-
-		return errStateMachine
+		return p.stateErr("PostTasks", p.machine.Current())
 	}
 
 	if p.TransCtx.Transfer.Step > types.StepPostTasks {
 		if err := p.machine.Transition(statePostTasksDone); err != nil {
-			p.handleStateErr("PostTasksDone", p.machine.Current())
-
-			return errStateMachine
+			return p.stateErr("PostTasksDone", p.machine.Current())
 		}
 
 		return nil
@@ -303,15 +282,11 @@ func (p *Pipeline) PostTasks() *types.TransferError {
 	}
 
 	if err := p.Runner.PostTasks(p.Trace.OnPostTask); err != nil {
-		p.handleError(err.Code, "Post-tasks failed", err.Details)
-
-		return types.NewTransferError(types.TeExternalOperation, "post-tasks failed")
+		return p.internalErrorWithMsg(err.Code, err.Details, "post-tasks failed", err.Cause)
 	}
 
 	if err := p.machine.Transition(statePostTasksDone); err != nil {
-		p.handleStateErr("PostTasksDone", p.machine.Current())
-
-		return errStateMachine
+		return p.stateErr("PostTasksDone", p.machine.Current())
 	}
 
 	return nil
@@ -319,20 +294,19 @@ func (p *Pipeline) PostTasks() *types.TransferError {
 
 // EndTransfer signals that the transfer has ended normally, and archives in the
 // transfer history.
-func (p *Pipeline) EndTransfer() *types.TransferError {
+func (p *Pipeline) EndTransfer() *Error {
 	if err := p.machine.Transition(stateEndTransfer); err != nil {
-		p.handleStateErr("EndTransfer", p.machine.Current())
-
-		return errStateMachine
+		return p.stateErr("EndTransfer", p.machine.Current())
 	}
 
-	if err := testError(p.Trace.OnFinalization); err != nil {
-		p.handleError(err.Code, "Test error on finalization", err.Details)
-
-		return err
+	if p.Trace.OnFinalization != nil {
+		if err := p.Trace.OnFinalization(); err != nil {
+			return p.internalErrorWithMsg(types.TeInternal, "Test error on finalization",
+				"error on transfer finalization", err)
+		}
 	}
 
-	var sErr *types.TransferError
+	var sErr *Error
 
 	p.errOnce.Do(func() {
 		p.Runner.Stop()
@@ -341,13 +315,15 @@ func (p *Pipeline) EndTransfer() *types.TransferError {
 		p.TransCtx.Transfer.TaskNumber = 0
 
 		if err := p.TransCtx.Transfer.MoveToHistory(p.DB, p.Logger, time.Now()); err != nil {
+			sErr = NewErrorWith(types.TeInternal, "Failed to move transfer to history", err)
+			p.Logger.Error("Failed to move transfer to history: %s", err)
+
 			if mErr := p.machine.Transition(stateError); mErr != nil {
 				p.Logger.Warning("Failed to transition to 'error' state: %v", mErr)
 			}
 
-			p.errDo(types.TeInternal, "Failed to archive transfer", err.Error())
-
-			sErr = errDatabase
+			p.errorTasks()
+			p.storedErr = sErr
 
 			return
 		}
@@ -383,51 +359,9 @@ func (p *Pipeline) errorTasks() {
 	}
 }
 
-func (p *Pipeline) errDo(code types.TransferErrorCode, msg, cause string) {
-	fullMsg := fmt.Sprintf("%s: %s", msg, cause)
-
-	p.Logger.Error(fullMsg)
-	p.stop()
-
-	if p.Trace.OnError != nil {
-		p.Trace.OnError(types.NewTransferError(code, "%s: %s", msg, cause))
-	}
-
-	go func() {
-		p.TransCtx.Transfer.Error = *types.NewTransferError(code, fullMsg)
-		if dbErr := p.UpdateTrans(); dbErr != nil {
-			p.Logger.Error("Failed to update transfer error: %s", dbErr)
-		}
-
-		p.errorTasks()
-		p.doneErr(types.StatusError)
-	}()
-}
-
-func (p *Pipeline) handleError(code types.TransferErrorCode, msg, cause string) {
-	p.errOnce.Do(func() {
-		if mErr := p.machine.Transition(stateError); mErr != nil {
-			p.Logger.Warning("Failed to transition to 'error' state: %v", mErr)
-		}
-
-		p.errDo(code, msg, cause)
-	})
-}
-
-func (p *Pipeline) handleStateErr(fun string, currentState statemachine.State) {
-	p.handleError(types.TeInternal, "Pipeline state machine violation", fmt.Sprintf(
-		"cannot call %s while in state %s", fun, currentState))
-}
-
 // SetError stops the pipeline and sets its error to the given value.
-func (p *Pipeline) SetError(err *types.TransferError) {
-	p.errOnce.Do(func() {
-		if mErr := p.machine.Transition(stateError); mErr != nil {
-			p.Logger.Warning("Failed to transition to 'error' state: %v", mErr)
-		}
-
-		p.errDo(err.Code, "Error on remote partner", err.Details)
-	})
+func (p *Pipeline) SetError(code types.TransferErrorCode, details string) {
+	p.externalError(code, details)
 }
 
 func (p *Pipeline) stop() {
@@ -440,70 +374,92 @@ func (p *Pipeline) stop() {
 }
 
 // Pause stops the pipeline and pauses the transfer.
-func (p *Pipeline) Pause(handles ...func()) {
+func (p *Pipeline) Pause(ctx context.Context) error {
 	if p.Trace.OnPause != nil {
 		p.Trace.OnPause()
 	}
 
-	p.halt("Transfer paused by user", types.StatusPaused, handles...)
+	return p.halt(ctx, errPause, types.StatusPaused, p.interruption.Pause)
 }
 
 // Interrupt stops the pipeline and interrupts the transfer.
-func (p *Pipeline) Interrupt(handles ...func()) {
+func (p *Pipeline) Interrupt(ctx context.Context) error {
 	if p.Trace.OnInterruption != nil {
 		p.Trace.OnInterruption()
 	}
 
-	p.halt("Transfer interrupted by a service shutdown", types.StatusInterrupted, handles...)
+	return p.halt(ctx, errInterrupted, types.StatusInterrupted, p.interruption.Interrupt)
 }
 
-func (p *Pipeline) halt(msg string, status types.TransferStatus, handles ...func()) {
+func (p *Pipeline) halt(ctx context.Context, err *Error, status types.TransferStatus,
+	handle func(context.Context) error,
+) error {
+	var haltErr error
+
 	p.errOnce.Do(func() {
+		p.Logger.Info(err.details)
+		p.storedErr = err
+
 		if mErr := p.machine.Transition(stateError); mErr != nil {
 			p.Logger.Warning("Failed to transition to 'error' state: %v", mErr)
+			haltErr = fmt.Errorf("failed to transition to 'error' state: %w", mErr)
 		}
 
-		for _, handle := range handles {
-			handle()
+		if handle != nil {
+			if err := handle(ctx); err != nil {
+				haltErr = err
+			}
 		}
 
-		p.Logger.Info(msg)
 		p.stop()
 		p.doneErr(status)
 	})
+
+	return haltErr
 }
 
 // Cancel stops the pipeline and cancels the transfer.
-func (p *Pipeline) Cancel(handles ...func()) {
+func (p *Pipeline) Cancel(ctx context.Context) error {
+	var cancelErr error
+
 	p.errOnce.Do(func() {
+		p.Logger.Info("Transfer canceled by user")
+		p.storedErr = errCanceled
+
 		if mErr := p.machine.Transition(stateError); mErr != nil {
 			p.Logger.Warning("Failed to transition to 'error' state: %v", mErr)
+			cancelErr = fmt.Errorf("failed to transition to 'error' state: %w", mErr)
 		}
 
 		if p.Trace.OnCancel != nil {
 			p.Trace.OnCancel()
 		}
 
-		for _, handle := range handles {
-			handle()
+		if p.interruption.Cancel != nil {
+			if err := p.interruption.Cancel(ctx); err != nil {
+				p.Logger.Warning("Failed to cancel transfer: %v", err)
+				cancelErr = fmt.Errorf("failed to cancel transfer: %w", err)
+			}
 		}
 
-		p.Logger.Info("Transfer canceled by user")
 		p.stop()
 
 		p.TransCtx.Transfer.Status = types.StatusCancelled
 		if err := p.TransCtx.Transfer.MoveToHistory(p.DB, p.Logger, time.Now()); err != nil {
 			p.Logger.Error("Failed to move canceled transfer to history: %s", err)
+			cancelErr = fmt.Errorf("failed to move canceled transfer to history: %w", err)
 		}
 
 		p.done(stateInError)
 	})
+
+	return cancelErr
 }
 
 // RebuildFilepaths rebuilds the transfer's local and remote paths, just like it
 // is done at the beginning of the transfer. This is useful if the file's name
 // has changed during the transfer.
-func (p *Pipeline) RebuildFilepaths(newFile string) *types.TransferError {
+func (p *Pipeline) RebuildFilepaths(newFile string) *Error {
 	var srcFile, dstFile string
 
 	switch {
@@ -519,14 +475,12 @@ func (p *Pipeline) RebuildFilepaths(newFile string) *types.TransferError {
 	p.TransCtx.Transfer.RemotePath = ""
 
 	if err := p.setCustomFilePaths(srcFile, dstFile); err != nil {
-		return types.NewTransferError(types.TeDataTransfer, "failed to rebuild the paths")
+		return p.internalErrorWithMsg(types.TeInternal, "failed to rebuild the paths",
+			"filesystem error", err)
 	}
 
 	if err := p.UpdateTrans(); err != nil {
-		p.handleError(types.TeInternal, "Failed to update the transfer file paths",
-			err.Error())
-
-		return errDatabase
+		return err
 	}
 
 	return nil
@@ -542,7 +496,10 @@ func (p *Pipeline) doneErr(status types.TransferStatus) {
 }
 
 func (p *Pipeline) doneOK() {
-	defer p.Logger.Debug("Transfer ended without errors")
+	defer func() {
+		p.Logger.Debug("Transfer ended without errors in %s",
+			time.Since(p.TransCtx.Transfer.Start))
+	}()
 
 	p.done(stateAllDone)
 }
@@ -552,13 +509,9 @@ func (p *Pipeline) done(state statemachine.State) {
 		p.Logger.Warning("Failed to transition to '%s' state: %v", state, mErr)
 	}
 
-	if !p.TransCtx.Transfer.IsServer() {
-		TransferOutCount.Sub()
-	} else {
-		TransferInCount.Sub()
-	}
-
 	if p.Trace.OnTransferEnd != nil {
 		p.Trace.OnTransferEnd()
 	}
+
+	List.remove(p.TransCtx.Transfer.ID)
 }

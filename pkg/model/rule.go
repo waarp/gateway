@@ -1,6 +1,7 @@
 package model
 
 import (
+	"fmt"
 	"path"
 	"path/filepath"
 	"strings"
@@ -28,7 +29,7 @@ func (*Rule) TableName() string   { return TableRules }
 func (*Rule) Appellation() string { return "rule" }
 func (r *Rule) GetID() int64      { return r.ID }
 
-func (r *Rule) checkAncestor(db database.ReadAccess, rulePath string) database.Error {
+func (r *Rule) checkAncestor(db database.ReadAccess, rulePath string) error {
 	if rulePath == "" || rulePath == "." || rulePath == "/" {
 		return nil
 	}
@@ -39,24 +40,24 @@ func (r *Rule) checkAncestor(db database.ReadAccess, rulePath string) database.E
 			return r.checkAncestor(db, path.Dir(rulePath))
 		}
 
-		return err
+		return fmt.Errorf("failed to check for ancestor rule paths: %w", err)
 	}
 
 	return database.NewValidationError("the rule's path cannot be the descendant of "+
 		"another rule's path (the path '%s' is already used by rule '%s')", rulePath, rule.Name)
 }
 
-func (r *Rule) checkPath(db database.ReadAccess) database.Error {
+func (r *Rule) checkPath(db database.ReadAccess) error {
 	if n, err := db.Count(r).Where("id<>? AND path=? AND is_send=?", r.ID, r.Path,
 		r.IsSend).Run(); err != nil {
-		return err
+		return fmt.Errorf("failed to check for duplicate rule paths: %w", err)
 	} else if n > 0 {
 		return database.NewValidationError("a rule with path: %s already exist", r.Path)
 	}
 
-	// check descendents
+	// check descendants
 	if n, err := db.Count(r).Where("path LIKE ?", r.Path+"/%").Run(); err != nil {
-		return err
+		return fmt.Errorf("failed to check for descendants rule paths: %w", err)
 	} else if n != 0 {
 		return database.NewValidationError("the rule's path cannot be the ancestor " +
 			"of another rule's path")
@@ -67,7 +68,7 @@ func (r *Rule) checkPath(db database.ReadAccess) database.Error {
 
 // BeforeWrite is called before writing the `Rule` entry in the database. It
 // checks whether the new entry is valid or not.
-func (r *Rule) BeforeWrite(db database.ReadAccess) database.Error {
+func (r *Rule) BeforeWrite(db database.ReadAccess) error {
 	if r.Name == "" {
 		return database.NewValidationError("the rule's name cannot be empty")
 	}
@@ -75,7 +76,7 @@ func (r *Rule) BeforeWrite(db database.ReadAccess) database.Error {
 	n, err := db.Count(r).Where("id<>? AND name=? AND is_send=?", r.ID,
 		r.Name, r.IsSend).Run()
 	if err != nil {
-		return err
+		return fmt.Errorf("failed to check for duplicate rules: %w", err)
 	} else if n > 0 {
 		return database.NewValidationError("a %s rule named '%s' already exist",
 			r.Direction(), r.Name)
@@ -102,9 +103,9 @@ func (r *Rule) Direction() string {
 
 // BeforeDelete is called before deleting the rule from the database. Its
 // role is to check whether the rule is still used in any ongoing transfer.
-func (r *Rule) BeforeDelete(db database.Access) database.Error {
+func (r *Rule) BeforeDelete(db database.Access) error {
 	if n, err := db.Count(&Transfer{}).Where("rule_id=?", r.ID).Run(); err != nil {
-		return err
+		return fmt.Errorf("failed to check for ongoing transfers: %w", err)
 	} else if n > 0 {
 		return database.NewValidationError("this rule is currently being used in a " +
 			"running transfer and cannot be deleted, cancel the transfer or wait " +
@@ -119,10 +120,10 @@ func (r *Rule) BeforeDelete(db database.Access) database.Error {
 // if the target has been given access to the rule.
 //
 // Valid target types are: LocalAgent, RemoteAgent, LocalAccount & RemoteAccount.
-func (r *Rule) IsAuthorized(db database.Access, target database.IterateBean) (bool, database.Error) {
+func (r *Rule) IsAuthorized(db database.Access, target database.IterateBean) (bool, error) {
 	var perms RuleAccess
 	if n, err := db.Count(&perms).Where("rule_id=?", r.ID).Run(); err != nil {
-		return false, err
+		return false, fmt.Errorf("failed to count rule accesses: %w", err)
 	} else if n == 0 {
 		return true, nil
 	}
@@ -144,7 +145,7 @@ func (r *Rule) IsAuthorized(db database.Access, target database.IterateBean) (bo
 	}
 
 	if permCount, err := query.Run(); err != nil {
-		return false, err
+		return false, fmt.Errorf("failed to count rule accesses: %w", err)
 	} else {
 		return permCount != 0, nil
 	}

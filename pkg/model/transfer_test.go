@@ -11,8 +11,8 @@ import (
 	"code.waarp.fr/apps/gateway/gateway/pkg/conf"
 	"code.waarp.fr/apps/gateway/gateway/pkg/database"
 	"code.waarp.fr/apps/gateway/gateway/pkg/model/types"
-	"code.waarp.fr/apps/gateway/gateway/pkg/tk/utils"
-	"code.waarp.fr/apps/gateway/gateway/pkg/tk/utils/testhelpers"
+	"code.waarp.fr/apps/gateway/gateway/pkg/utils"
+	"code.waarp.fr/apps/gateway/gateway/pkg/utils/testhelpers"
 )
 
 func TestTransferTableName(t *testing.T) {
@@ -109,7 +109,7 @@ func TestTransferBeforeWrite(t *testing.T) {
 				Convey("Given that the transfer has both account IDs", func() {
 					trans.RemoteAccountID = utils.NewNullInt64(1)
 
-					shouldFailWith("the account ID is missing", database.NewValidationError(
+					shouldFailWith("cannot have both a local & remote account ID", database.NewValidationError(
 						"the transfer cannot have both a local and remote account ID"))
 				})
 
@@ -306,7 +306,7 @@ func TestTransferToHistory(t *testing.T) {
 							})
 						} else {
 							Convey("Then it should return an error", func() {
-								expectedError := fmt.Sprintf(
+								expectedError := fmt.Sprintf("failed to move transfer to history: "+
 									"a transfer cannot be recorded in history with status '%s'",
 									tc.status,
 								)

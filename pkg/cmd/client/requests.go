@@ -5,6 +5,7 @@ import (
 	"context"
 	"crypto/tls"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"io"
 	"net/http"
@@ -21,7 +22,7 @@ func getHTTPClient(insecure bool) *http.Client {
 	//nolint:forcetypeassert //type assertion will always succeed
 	customTransport := http.DefaultTransport.(*http.Transport).Clone()
 
-	//nolint:gosec // needed to pass the option given by the user
+	//nolint:gosec //needed to pass the option given by the user
 	customTransport.TLSClientConfig = &tls.Config{
 		InsecureSkipVerify: insecure,
 		MinVersion:         tls.VersionTLS12,
@@ -30,11 +31,11 @@ func getHTTPClient(insecure bool) *http.Client {
 	return &http.Client{Transport: customTransport}
 }
 
-func sendRequest(ctx context.Context, object interface{}, method string) (*http.Response, error) {
+func sendRequest(ctx context.Context, object any, method string) (*http.Response, error) {
 	return SendRequest(ctx, object, method, addr, insecure)
 }
 
-func SendRequest(ctx context.Context, object interface{}, method string,
+func SendRequest(ctx context.Context, object any, method string,
 	addr *url.URL, insecure bool,
 ) (*http.Response, error) {
 	var body io.Reader
@@ -66,29 +67,35 @@ func SendRequest(ctx context.Context, object interface{}, method string,
 	return resp, nil
 }
 
-func add(object interface{}) error {
+func add(w io.Writer, object any) (*url.URL, error) {
 	ctx, cancel := context.WithTimeout(context.Background(), httpTimeout)
 	defer cancel()
 
 	resp, err := sendRequest(ctx, object, http.MethodPost)
 	if err != nil {
-		return err
+		return nil, err
 	}
 	defer resp.Body.Close() //nolint:errcheck // nothing to handle the error
 
 	switch resp.StatusCode {
 	case http.StatusCreated:
-		return displayResponseMessage(resp)
+		loc, err := resp.Location()
+		if err != nil && !errors.Is(err, http.ErrNoLocation) {
+			return nil, fmt.Errorf("cannot get the resource location: %w", err)
+		}
+
+		return loc, displayResponseMessage(w, resp)
 	case http.StatusBadRequest:
-		return getResponseErrorMessage(resp)
+		return nil, getResponseErrorMessage(resp)
 	case http.StatusNotFound:
-		return getResponseErrorMessage(resp)
+		return nil, getResponseErrorMessage(resp)
 	default:
-		return fmt.Errorf("unexpected error (%s): %w", resp.Status, getResponseErrorMessage(resp))
+		return nil, fmt.Errorf("unexpected response (%s): %w", resp.Status,
+			getResponseErrorMessage(resp))
 	}
 }
 
-func list(target interface{}) error {
+func list(target any) error {
 	ctx, cancel := context.WithTimeout(context.Background(), httpTimeout)
 	defer cancel()
 
@@ -106,11 +113,12 @@ func list(target interface{}) error {
 	case http.StatusNotFound:
 		return getResponseErrorMessage(resp)
 	default:
-		return fmt.Errorf("unexpected error (%s): %w", resp.Status, getResponseErrorMessage(resp))
+		return fmt.Errorf("unexpected response (%s): %w", resp.Status,
+			getResponseErrorMessage(resp))
 	}
 }
 
-func get(target interface{}) error {
+func get(target any) error {
 	ctx, cancel := context.WithTimeout(context.Background(), httpTimeout)
 	defer cancel()
 
@@ -126,11 +134,12 @@ func get(target interface{}) error {
 	case http.StatusNotFound:
 		return getResponseErrorMessage(resp)
 	default:
-		return fmt.Errorf("unexpected error: %w", getResponseErrorMessage(resp))
+		return fmt.Errorf("unexpected response (%s): %w", resp.Status,
+			getResponseErrorMessage(resp))
 	}
 }
 
-func update(object interface{}) error {
+func update(w io.Writer, object any) error {
 	if isNotUpdate(object) {
 		return errNothingToDo
 	}
@@ -146,18 +155,18 @@ func update(object interface{}) error {
 
 	switch resp.StatusCode {
 	case http.StatusCreated:
-		return displayResponseMessage(resp)
+		return displayResponseMessage(w, resp)
 	case http.StatusBadRequest:
 		return getResponseErrorMessage(resp)
 	case http.StatusNotFound:
 		return getResponseErrorMessage(resp)
 	default:
-		return fmt.Errorf("unexpected error (%v): %w", resp.StatusCode,
+		return fmt.Errorf("unexpected response (%v): %w", resp.StatusCode,
 			getResponseErrorMessage(resp))
 	}
 }
 
-func remove() error {
+func remove(w io.Writer) error {
 	ctx, cancel := context.WithTimeout(context.Background(), httpTimeout)
 	defer cancel()
 
@@ -169,15 +178,16 @@ func remove() error {
 
 	switch resp.StatusCode {
 	case http.StatusNoContent:
-		return displayResponseMessage(resp)
+		return displayResponseMessage(w, resp)
 	case http.StatusNotFound:
 		return getResponseErrorMessage(resp)
 	default:
-		return fmt.Errorf("unexpected error: %w", getResponseErrorMessage(resp))
+		return fmt.Errorf("unexpected response (%s): %w", resp.Status,
+			getResponseErrorMessage(resp))
 	}
 }
 
-func exec(path string) error {
+func exec(w io.Writer, path string) error {
 	addr.Path = path
 
 	ctx, cancel := context.WithTimeout(context.Background(), httpTimeout)
@@ -191,10 +201,11 @@ func exec(path string) error {
 
 	switch resp.StatusCode {
 	case http.StatusAccepted:
-		return displayResponseMessage(resp)
+		return displayResponseMessage(w, resp)
 	case http.StatusNotFound:
 		return getResponseErrorMessage(resp)
 	default:
-		return fmt.Errorf("unexpected error: %w", getResponseErrorMessage(resp))
+		return fmt.Errorf("unexpected response (%s): %w", resp.Status,
+			getResponseErrorMessage(resp))
 	}
 }

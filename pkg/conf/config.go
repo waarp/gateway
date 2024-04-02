@@ -12,6 +12,7 @@ import (
 
 	"code.waarp.fr/lib/log"
 
+	"code.waarp.fr/apps/gateway/gateway/pkg/logging"
 	"code.waarp.fr/apps/gateway/gateway/pkg/tk/config"
 )
 
@@ -73,9 +74,9 @@ type AdminConfig struct {
 //
 //nolint:lll // cannot split struct tags
 type DatabaseConfig struct {
-	Type          string `ini-name:"Type" default:"sqlite" description:"Name of the RDBMS used for the gateway database. Possible values: sqlite, mysql, postgresql"`
+	Type          string `ini-name:"Type" default:"sqlite" description:"String of the RDBMS used for the gateway database. Possible values: sqlite, mysql, postgresql"`
 	Address       string `ini-name:"Address" default:"waarp-gateway.db" description:"Address of the database"`
-	Name          string `ini-name:"Name" description:"The name of the database"`
+	Name          string `ini-name:"String" description:"The name of the database"`
 	User          string `ini-name:"User" description:"The name of the gateway database user"`
 	Password      string `ini-name:"Password" description:"The password of the gateway database user"`
 	TLSCert       string `ini-name:"TLSCert" description:"Path of the database TLS certificate file."`
@@ -175,12 +176,12 @@ func loadServerConfig(userConfig string) (*ServerConfig, string, error) {
 		return nil, "", err
 	}
 
-	if err := InitBackend(c.Log.Level, c.Log.LogTo, c.Log.SyslogFacility,
+	if err := logging.AddLogBackend(c.Log.Level, c.Log.LogTo, c.Log.SyslogFacility,
 		"waarp-gateway"); err != nil {
 		return nil, "", fmt.Errorf("failed to initialize log backend: %w", err)
 	}
 
-	logger := GetLogger("Config file")
+	logger := logging.NewLogger("Config file")
 	if err := normalizePaths(c, logger); err != nil {
 		return nil, "", err
 	}

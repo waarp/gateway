@@ -6,8 +6,8 @@ import (
 	"code.waarp.fr/apps/gateway/gateway/pkg/admin/rest/api"
 	"code.waarp.fr/apps/gateway/gateway/pkg/database"
 	"code.waarp.fr/apps/gateway/gateway/pkg/model"
-	"code.waarp.fr/apps/gateway/gateway/pkg/model/config"
-	"code.waarp.fr/apps/gateway/gateway/pkg/tk/utils"
+	"code.waarp.fr/apps/gateway/gateway/pkg/protocols/modules/r66"
+	"code.waarp.fr/apps/gateway/gateway/pkg/utils"
 )
 
 func dbLocalAccountToRESTInput(old *model.LocalAccount) *api.InAccount {
@@ -27,7 +27,7 @@ func dbRemoteAccountToRESTInput(old *model.RemoteAccount) *api.InAccount {
 // restLocalAccountToDB transforms the JSON local account into its database equivalent.
 func restLocalAccountToDB(restAccount *api.InAccount, parent *model.LocalAgent,
 ) (*model.LocalAccount, error) {
-	if parent.Protocol == config.ProtocolR66 || parent.Protocol == config.ProtocolR66TLS {
+	if parent.Protocol == r66.R66 || parent.Protocol == r66.R66TLS {
 		// Unlike other protocols, when authenticating, an R66 client sends a
 		// hash instead of a password, so we replace the password with its hash.
 		restAccount.Password = strPtr(utils.R66Hash(str(restAccount.Password)))

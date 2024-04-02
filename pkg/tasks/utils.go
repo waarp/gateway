@@ -1,16 +1,15 @@
 package tasks
 
 import (
-	"errors"
-
-	"code.waarp.fr/apps/gateway/gateway/pkg/model/types"
+	"fmt"
+	"strings"
 )
 
-func testError(err error) *types.TransferError {
-	var te *types.TransferError
-	if errors.As(err, &te) {
-		return te
+func mapToStr(m map[string]string) string {
+	args := make([]string, 0, len(m))
+	for k, v := range m {
+		args = append(args, fmt.Sprintf("%s=%s", k, v))
 	}
 
-	return types.NewTransferError(types.TeInternal, "test error: %v", err)
+	return "{" + strings.Join(args, ", ") + "}"
 }

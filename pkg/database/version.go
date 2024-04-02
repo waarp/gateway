@@ -19,7 +19,7 @@ func (v *version) TableName() string { return "version" }
 func (v *version) Appellation() string { return "version" }
 
 // Init initializes the version table with the current program version.
-func (v *version) Init(db Access) Error {
+func (v *version) Init(db Access) error {
 	if n, err := db.Count(&version{}).Run(); err != nil {
 		return err
 	} else if n != 0 {

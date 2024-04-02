@@ -5,8 +5,8 @@ import (
 
 	"code.waarp.fr/lib/log"
 
-	"code.waarp.fr/apps/gateway/gateway/pkg/conf"
 	"code.waarp.fr/apps/gateway/gateway/pkg/database"
+	"code.waarp.fr/apps/gateway/gateway/pkg/logging"
 	"code.waarp.fr/apps/gateway/gateway/pkg/model"
 	"code.waarp.fr/apps/gateway/gateway/pkg/model/types"
 )
@@ -17,7 +17,7 @@ import (
 //
 // If no transfer can be found, the entry is returned as is.
 func GetOldTransfer(db *database.DB, logger *log.Logger, trans *model.Transfer,
-) (*model.Transfer, *types.TransferError) {
+) (*model.Transfer, *Error) {
 	if trans.RemoteTransferID == "" {
 		return trans, nil
 	}
@@ -28,7 +28,7 @@ func GetOldTransfer(db *database.DB, logger *log.Logger, trans *model.Transfer,
 		trans.RemoteTransferID, trans.LocalAccountID.Int64).Run()
 	if err == nil {
 		if oldTrans.Status == types.StatusRunning {
-			return nil, types.NewTransferError(types.TeForbidden,
+			return nil, NewError(types.TeForbidden,
 				"cannot resume a currently running transfer")
 		}
 
@@ -38,7 +38,7 @@ func GetOldTransfer(db *database.DB, logger *log.Logger, trans *model.Transfer,
 	if !database.IsNotFound(err) {
 		logger.Error("Failed to retrieve old server transfer: %s", err)
 
-		return nil, errDatabase
+		return nil, NewErrorWith(types.TeInternal, "failed to retrieve old server transfer", err)
 	}
 
 	return trans, nil
@@ -47,38 +47,19 @@ func GetOldTransfer(db *database.DB, logger *log.Logger, trans *model.Transfer,
 // NewServerPipeline initializes and returns a new pipeline suitable for a
 // server transfer.
 func NewServerPipeline(db *database.DB, trans *model.Transfer,
-) (*Pipeline, *types.TransferError) {
-	return newServerPipeline(db, trans)
-}
+) (*Pipeline, *Error) {
+	logger := logging.NewLogger(fmt.Sprintf("Pipeline %d (server)", trans.ID))
 
-func newServerPipeline(db *database.DB, trans *model.Transfer,
-) (*Pipeline, *types.TransferError) {
-	logger := conf.GetLogger(fmt.Sprintf("Pipeline %d (server)", trans.ID))
-
-	transCtx, err := model.GetTransferContext(db, logger, trans)
-	if err != nil {
-		return nil, err
+	transCtx, ctxErr := model.GetTransferContext(db, logger, trans)
+	if ctxErr != nil {
+		return nil, NewError(types.TeInternal, "database error")
 	}
 
 	pipeline, pipErr := newPipeline(db, logger, transCtx)
 	if pipErr != nil {
-		logger.Error("Failed to initialize the server transfer pipeline: %v", err)
+		logger.Error("Failed to initialize the server transfer pipeline: %v", pipErr)
 
 		return nil, pipErr
-	}
-
-	if trans.ID == 0 {
-		if err := db.Insert(trans).Run(); err != nil {
-			logger.Error("failed to insert the new transfer entry: %s", err)
-
-			return nil, errDatabase
-		}
-
-		*logger = *conf.GetLogger(fmt.Sprintf("Pipeline %d (server)", trans.ID))
-	} else if err := pipeline.UpdateTrans(); err != nil {
-		logger.Error("Failed to update the transfer details: %s", err)
-
-		return nil, errDatabase
 	}
 
 	return pipeline, nil

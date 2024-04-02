@@ -9,14 +9,14 @@ import (
 
 	"code.waarp.fr/lib/log"
 
-	"code.waarp.fr/apps/gateway/gateway/pkg/conf"
-	"code.waarp.fr/apps/gateway/gateway/pkg/tk/utils"
+	"code.waarp.fr/apps/gateway/gateway/pkg/logging"
+	"code.waarp.fr/apps/gateway/gateway/pkg/utils"
 )
 
 //nolint:gochecknoinits //must use init here
 func init() {
 	if err := os.Setenv("GODEBUG", "x509sha1=1"); err != nil {
-		conf.GetLogger("TLS").Warning("Failed to set the SHA1 environment variable, "+
+		logging.NewLogger("TLS").Warning("Failed to set the SHA1 environment variable, "+
 			"SHA1 signed certificates will not be accepted: %s", err)
 	}
 }

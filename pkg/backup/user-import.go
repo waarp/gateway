@@ -14,17 +14,17 @@ import (
 //nolint:funlen //splitting would add complexity
 func importUsers(logger *log.Logger, db database.Access, users []file.User,
 	reset bool,
-) database.Error {
+) error {
 	for i := range users {
 		if reset {
 			var dbUsers model.Users
 			if err := db.Select(&dbUsers).Run(); err != nil {
-				return err
+				return fmt.Errorf("failed to retrieve existing users: %w", err)
 			}
 
 			for _, dbUser := range dbUsers {
 				if err := db.Delete(dbUser).Run(); err != nil {
-					return err
+					return fmt.Errorf("failed to delete user %q: %w", dbUser.Username, err)
 				}
 			}
 		}
@@ -39,7 +39,7 @@ func importUsers(logger *log.Logger, db database.Access, users []file.User,
 		if err := db.Get(&dbUser, "username=? AND owner=?", user.Username,
 			conf.GlobalConfig.GatewayName).Run(); err != nil {
 			if !database.IsNotFound(err) {
-				return err
+				return fmt.Errorf("failed to retrieve user %q: %w", dbUser.Username, err)
 			}
 
 			exists = false
@@ -51,7 +51,7 @@ func importUsers(logger *log.Logger, db database.Access, users []file.User,
 			dbUser.PasswordHash = user.PasswordHash
 		}
 
-		var err database.Error
+		var err error
 		if dbUser.Permissions, err = model.PermsToMask(&model.Permissions{
 			Transfers: user.Permissions.Transfers,
 			Servers:   user.Permissions.Servers,
@@ -59,7 +59,7 @@ func importUsers(logger *log.Logger, db database.Access, users []file.User,
 			Rules:     user.Permissions.Rules,
 			Users:     user.Permissions.Users,
 		}); err != nil {
-			return err
+			return fmt.Errorf("failed to parse user %q's permissions: %w", dbUser.Username, err)
 		}
 
 		var msg string
@@ -73,7 +73,7 @@ func importUsers(logger *log.Logger, db database.Access, users []file.User,
 		}
 
 		if err != nil {
-			return err
+			return fmt.Errorf("failed to import user %q: %w", dbUser.Username, err)
 		}
 
 		logger.Info(msg)

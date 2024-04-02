@@ -57,34 +57,34 @@ func parseExecArgs(params map[string]string) (path, args string,
 ) {
 	var ok bool
 	if path, ok = params["path"]; !ok || path == "" {
-		err = fmt.Errorf("missing program path: %w", errBadTaskArguments)
+		err = fmt.Errorf("missing program path: %w", ErrBadTaskArguments)
 
 		return "", "", 0, err
 	}
 
 	if args, ok = params["args"]; !ok {
-		err = fmt.Errorf("missing program arguments: %w", errBadTaskArguments)
+		err = fmt.Errorf("missing program arguments: %w", ErrBadTaskArguments)
 
 		return "", "", 0, err
 	}
 
 	d, ok := params["delay"]
 	if !ok {
-		err = fmt.Errorf("missing program delay: %w", errBadTaskArguments)
+		err = fmt.Errorf("missing program delay: %w", ErrBadTaskArguments)
 
 		return "", "", 0, err
 	}
 
 	d2, err := strconv.ParseFloat(d, 64) //nolint:gomnd // useless to define a constant
 	if err != nil {
-		err = fmt.Errorf("invalid program delay: %w", errBadTaskArguments)
+		err = fmt.Errorf("invalid program delay: %w", ErrBadTaskArguments)
 
 		return "", "", 0, err
 	}
 
 	if delay < 0 {
 		err = fmt.Errorf("invalid program delay value (must be positive or 0): %w",
-			errBadTaskArguments)
+			ErrBadTaskArguments)
 
 		return "", "", 0, err
 	}
@@ -135,12 +135,12 @@ func runExec(parent context.Context, params map[string]string) (*bytes.Buffer, e
 
 		<-waitDone
 
-		return nil, errCommandTimeout
+		return nil, ErrCommandTimeout
 
 	case cmdErr := <-waitDone:
 		var ex *exec.ExitError
 		if ok := errors.As(cmdErr, &ex); ok && ex.ExitCode() == 1 {
-			return &output, &warningError{cmdErr.Error()}
+			return &output, &WarningError{cmdErr.Error()}
 		}
 
 		return &output, cmdErr

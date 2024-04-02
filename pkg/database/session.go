@@ -9,6 +9,7 @@ import (
 	"xorm.io/xorm/schemas"
 
 	"code.waarp.fr/apps/gateway/gateway/pkg/conf"
+	"code.waarp.fr/apps/gateway/gateway/pkg/utils"
 )
 
 // Session is a struct used to perform transactions on the database. A session
@@ -123,13 +124,13 @@ func (s *Session) DeleteAll(bean DeleteAllBean) *DeleteAllQuery {
 //
 // Be aware that, since this method bypasses the data models, all the models'
 // hooks will be skipped. Thus, this method should be used with extreme caution.
-func (s *Session) Exec(query string, args ...interface{}) Error {
+func (s *Session) Exec(query string, args ...interface{}) error {
 	return exec(s.session, s.logger, query, args...)
 }
 
 // ResetIncrement resets the auto-increment on the given model's ID primary key.
 // The auto-increment can only be reset if the table is empty.
-func (s *Session) ResetIncrement(bean IterateBean) Error {
+func (s *Session) ResetIncrement(bean IterateBean) error {
 	if n, err := s.session.NoAutoCondition().Count(bean); err != nil {
 		s.logger.Error("Failed to query table '%s': %s", bean.TableName(), err)
 
@@ -170,7 +171,7 @@ func (s *Session) ResetIncrement(bean IterateBean) Error {
 
 // AdvanceIncrement advances the auto-increment on the given model's ID primary
 // key to the given value.
-func (s *Session) AdvanceIncrement(bean Table, value int64) Error {
+func (s *Session) AdvanceIncrement(bean Table, value int64) error {
 	var maxID sql.NullInt64
 
 	row := s.session.Tx().QueryRow("SELECT MAX(id) AS maxID FROM " + bean.TableName())
@@ -206,7 +207,7 @@ func (s *Session) AdvanceIncrement(bean Table, value int64) Error {
 			bean.TableName(), value)
 	case schemas.MYSQL:
 		_, err = s.session.Exec("ALTER TABLE " + bean.TableName() + " AUTO_INCREMENT = " +
-			fmt.Sprint(value+1))
+			utils.FormatInt(value+1))
 	default:
 		s.logger.Error("%s databases do not support resetting an auto-increment",
 			conf.GlobalConfig.Database.Type)

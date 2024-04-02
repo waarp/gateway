@@ -59,10 +59,8 @@ func TestExportHistory(t *testing.T) {
 			Step:             types.StepData,
 			Progress:         987,
 			TaskNumber:       20,
-			Error: types.TransferError{
-				Code:    types.TeDataTransfer,
-				Details: "error in data transfer",
-			},
+			ErrCode:          types.TeDataTransfer,
+			ErrDetails:       "error in data transfer",
 		}
 		So(db.Insert(hist2).Run(), ShouldBeNil)
 

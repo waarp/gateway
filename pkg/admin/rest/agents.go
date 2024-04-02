@@ -10,8 +10,9 @@ import (
 	"code.waarp.fr/apps/gateway/gateway/pkg/conf"
 	"code.waarp.fr/apps/gateway/gateway/pkg/database"
 	"code.waarp.fr/apps/gateway/gateway/pkg/model"
-	"code.waarp.fr/apps/gateway/gateway/pkg/model/config"
-	"code.waarp.fr/apps/gateway/gateway/pkg/tk/utils"
+	"code.waarp.fr/apps/gateway/gateway/pkg/protocols"
+	"code.waarp.fr/apps/gateway/gateway/pkg/protocols/modules/r66"
+	"code.waarp.fr/apps/gateway/gateway/pkg/utils"
 	"code.waarp.fr/apps/gateway/gateway/pkg/utils/compatibility"
 )
 
@@ -95,11 +96,11 @@ func restPartnerToDB(restPartner *api.InPartner) *model.RemoteAgent {
 // DBServerToREST transforms the given database local agent into its JSON
 // equivalent.
 func DBServerToREST(db database.ReadAccess, dbServer *model.LocalAgent) (*api.OutServer, error) {
-	if dbServer.Protocol == config.ProtocolR66TLS && compatibility.IsTLS(dbServer.ProtoConfig) {
+	if dbServer.Protocol == r66.R66TLS && compatibility.IsTLS(dbServer.ProtoConfig) {
 		// To preserve backwards compatibility, when `ìsTLS` is defined, we
 		// change the protocol back to "r66", like it was before the addition
 		// of the "r66-tls" protocol.
-		dbServer.Protocol = config.ProtocolR66
+		dbServer.Protocol = r66.R66
 	}
 
 	authorizedRules, err := getAuthorizedRules(db, dbServer)
@@ -117,7 +118,7 @@ func DBServerToREST(db database.ReadAccess, dbServer *model.LocalAgent) (*api.Ou
 		ReceiveDir:      dbServer.ReceiveDir,
 		TmpReceiveDir:   dbServer.TmpReceiveDir,
 		ProtoConfig:     dbServer.ProtoConfig,
-		AuthorizedRules: &authorizedRules,
+		AuthorizedRules: authorizedRules,
 
 		Root:    utils.NormalizePath(dbServer.RootDir),
 		InDir:   utils.NormalizePath(dbServer.ReceiveDir),
@@ -144,11 +145,11 @@ func DBServersToREST(db database.ReadAccess, dbServers []*model.LocalAgent) ([]*
 // DBPartnerToREST transforms the given database remote agent into its JSON
 // equivalent.
 func DBPartnerToREST(db database.ReadAccess, dbPartner *model.RemoteAgent) (*api.OutPartner, error) {
-	if dbPartner.Protocol == config.ProtocolR66TLS && compatibility.IsTLS(dbPartner.ProtoConfig) {
+	if dbPartner.Protocol == r66.R66TLS && compatibility.IsTLS(dbPartner.ProtoConfig) {
 		// To preserve backwards compatibility, when `ìsTLS` is defined, we
 		// change the protocol back to "r66", like it was before the addition
 		// of the "r66-tls" protocol.
-		dbPartner.Protocol = config.ProtocolR66
+		dbPartner.Protocol = r66.R66
 	}
 
 	authorizedRules, err := getAuthorizedRules(db, dbPartner)
@@ -184,8 +185,8 @@ func parseProtoParam(r *http.Request, query *database.SelectQuery) error {
 		protos := make([]string, len(r.Form["protocol"]))
 
 		for i, p := range r.Form["protocol"] {
-			if _, ok := config.ProtoConfigs[p]; !ok {
-				return badRequest(fmt.Sprintf("'%s' is not a valid protocol", p))
+			if protocols.Get(p) == nil {
+				return badRequest(fmt.Sprintf("%q is not a valid protocol", p))
 			}
 
 			protos[i] = p

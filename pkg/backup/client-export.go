@@ -1,6 +1,8 @@
 package backup
 
 import (
+	"fmt"
+
 	"code.waarp.fr/lib/log"
 
 	"code.waarp.fr/apps/gateway/gateway/pkg/backup/file"
@@ -13,7 +15,7 @@ func exportClients(logger *log.Logger, db database.ReadAccess) ([]file.Client, e
 	var dbClients model.Clients
 	if err := db.Select(&dbClients).Where("owner=?",
 		conf.GlobalConfig.GatewayName).Run(); err != nil {
-		return nil, err
+		return nil, fmt.Errorf("failed to retrieve clients: %w", err)
 	}
 
 	clients := make([]file.Client, len(dbClients))

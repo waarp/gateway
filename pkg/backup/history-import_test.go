@@ -11,7 +11,7 @@ import (
 	"code.waarp.fr/apps/gateway/gateway/pkg/database"
 	"code.waarp.fr/apps/gateway/gateway/pkg/model"
 	"code.waarp.fr/apps/gateway/gateway/pkg/model/types"
-	"code.waarp.fr/apps/gateway/gateway/pkg/tk/utils"
+	"code.waarp.fr/apps/gateway/gateway/pkg/utils"
 )
 
 func TestImportHistory(t *testing.T) {
@@ -87,7 +87,6 @@ func TestImportHistory(t *testing.T) {
 			Step:             types.StepNone,
 			Progress:         321,
 			TaskNumber:       10,
-			Error:            types.TransferError{},
 		}
 		expected2 := &model.HistoryEntry{
 			ID:               2,
@@ -111,10 +110,8 @@ func TestImportHistory(t *testing.T) {
 			Step:             types.StepData,
 			Progress:         987,
 			TaskNumber:       20,
-			Error: types.TransferError{
-				Code:    types.TeDataTransfer,
-				Details: "error in data transfer",
-			},
+			ErrCode:          types.TeDataTransfer,
+			ErrDetails:       "error in data transfer",
 		}
 
 		hist3 := &model.HistoryEntry{

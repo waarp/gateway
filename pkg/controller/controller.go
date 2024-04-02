@@ -11,10 +11,12 @@ import (
 	"code.waarp.fr/lib/log"
 
 	"code.waarp.fr/apps/gateway/gateway/pkg/conf"
-	"code.waarp.fr/apps/gateway/gateway/pkg/gatewayd/service/names"
-	"code.waarp.fr/apps/gateway/gateway/pkg/gatewayd/service/state"
+	"code.waarp.fr/apps/gateway/gateway/pkg/logging"
 	"code.waarp.fr/apps/gateway/gateway/pkg/pipeline"
+	"code.waarp.fr/apps/gateway/gateway/pkg/utils"
 )
+
+const ServiceName = "Controller"
 
 // Controller is the service responsible for checking the database for new
 // transfers at regular intervals, and starting those new transfers.
@@ -23,11 +25,11 @@ type Controller struct {
 
 	ticker *time.Ticker
 	logger *log.Logger
-	state  state.State
+	state  utils.State
 
 	wg     *sync.WaitGroup
 	done   chan struct{}
-	ctx    context.Context //nolint:containedctx //FIXME move the context to a function parameter
+	ctx    context.Context
 	cancel context.CancelFunc
 }
 
@@ -53,26 +55,30 @@ func (c *Controller) listen() {
 
 // Start starts the transfer controller service.
 func (c *Controller) Start() error {
-	c.logger = conf.GetLogger(names.ControllerServiceName)
+	if c.state.IsRunning() {
+		return utils.ErrAlreadyRunning
+	}
+
+	c.logger = logging.NewLogger(ServiceName)
 
 	config := &conf.GlobalConfig.Controller
-	pipeline.TransferInCount.SetLimit(config.MaxTransfersIn)
-	pipeline.TransferOutCount.SetLimit(config.MaxTransfersOut)
+	pipeline.List.SetLimits(config.MaxTransfersIn, config.MaxTransfersOut)
 	c.ticker = time.NewTicker(config.Delay)
-	c.state.Set(state.Running, "")
 
 	c.listen()
 	c.logger.Info("Controller started")
+	c.state.Set(utils.StateRunning, "")
 
 	return nil
 }
 
 // Stop stops the transfer controller service.
 func (c *Controller) Stop(ctx context.Context) error {
-	defer func() {
-		c.state.Set(state.Offline, "")
-		c.ticker.Stop()
-	}()
+	if !c.state.IsRunning() {
+		return utils.ErrNotRunning
+	}
+
+	defer c.ticker.Stop()
 	c.logger.Info("Shutting down controller...")
 
 	c.cancel()
@@ -80,20 +86,17 @@ func (c *Controller) Stop(ctx context.Context) error {
 	select {
 	case <-c.done:
 		c.logger.Info("Shutdown complete")
+		c.state.Set(utils.StateOffline, "")
 
 		return nil
 	case <-ctx.Done():
 		c.logger.Info("Shutdown failed, forcing exit")
+		c.state.Set(utils.StateError, fmt.Sprintf("shutdown failed: %s", ctx.Err()))
 
-		if err := ctx.Err(); err != nil {
-			return fmt.Errorf("shutdown done with error: %w", err)
-		}
-
-		return nil
+		return fmt.Errorf("shutdown failed: %w", ctx.Err())
 	}
 }
 
-// State returns the state of the transfer controller service.
-func (c *Controller) State() *state.State {
-	return &c.state
+func (c *Controller) State() (utils.StateCode, string) {
+	return c.state.Get()
 }

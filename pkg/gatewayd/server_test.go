@@ -11,9 +11,10 @@ import (
 	"code.waarp.fr/apps/gateway/gateway/pkg/conf"
 	"code.waarp.fr/apps/gateway/gateway/pkg/database"
 	"code.waarp.fr/apps/gateway/gateway/pkg/fs/fstest"
-	"code.waarp.fr/apps/gateway/gateway/pkg/gatewayd/service/state"
+	"code.waarp.fr/apps/gateway/gateway/pkg/gatewayd/services"
 	"code.waarp.fr/apps/gateway/gateway/pkg/model"
-	"code.waarp.fr/apps/gateway/gateway/pkg/tk/utils/testhelpers"
+	"code.waarp.fr/apps/gateway/gateway/pkg/utils"
+	"code.waarp.fr/apps/gateway/gateway/pkg/utils/testhelpers"
 )
 
 func testSetup(c C) (*WG, *model.LocalAgent, *model.LocalAgent) {
@@ -55,27 +56,27 @@ func testSetup(c C) (*WG, *model.LocalAgent, *model.LocalAgent) {
 	return &WG{Logger: testhelpers.TestLogger(c, "test_wg")}, s1, s2
 }
 
-func checkState(wg *WG, code state.StateCode, s1, s2 *model.LocalAgent) {
+func checkState(wg *WG, code utils.StateCode, s1, s2 *model.LocalAgent) {
 	So(wg.dbService, ShouldNotBeNil)
 	So(wg.adminService, ShouldNotBeNil)
 	So(wg.controller, ShouldNotBeNil)
 
-	dbState, _ := wg.dbService.State().Get()
-	adState, _ := wg.adminService.State().Get()
-	contState, _ := wg.controller.State().Get()
+	dbState, _ := wg.dbService.State()
+	adState, _ := wg.adminService.State()
+	contState, _ := wg.controller.State()
 
 	So(dbState, ShouldEqual, code)
 	So(adState, ShouldEqual, code)
 	So(contState, ShouldEqual, code)
 
-	serv1, ok := wg.ProtoServices[s1.Name]
+	serv1, ok := services.Servers[s1.Name]
 	So(ok, ShouldBeTrue)
 
-	serv2, ok := wg.ProtoServices[s2.Name]
+	serv2, ok := services.Servers[s2.Name]
 	So(ok, ShouldBeTrue)
 
-	s1State, _ := serv1.State().Get()
-	s2State, _ := serv2.State().Get()
+	s1State, _ := serv1.State()
+	s2State, _ := serv2.State()
 
 	So(s1State, ShouldEqual, code)
 	So(s2State, ShouldEqual, code)
@@ -90,7 +91,7 @@ func TestStartServices(t *testing.T) {
 			defer wg.stopServices()
 
 			Convey("Then it should have started all the gateway services", func() {
-				checkState(wg, state.Running, s1, s2)
+				checkState(wg, utils.StateRunning, s1, s2)
 			})
 		})
 	})
@@ -107,7 +108,7 @@ func TestStopServices(t *testing.T) {
 				wg.stopServices()
 
 				Convey("Then it should have stopped all the services", func() {
-					checkState(wg, state.Offline, s1, s2)
+					checkState(wg, utils.StateOffline, s1, s2)
 				})
 			})
 		})

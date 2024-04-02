@@ -1,6 +1,7 @@
 package rest
 
 import (
+	"fmt"
 	"net/http"
 
 	"code.waarp.fr/lib/log"
@@ -12,6 +13,7 @@ import (
 	"code.waarp.fr/apps/gateway/gateway/pkg/model"
 )
 
+//nolint:dupl //duplicate is for servers, best keep separate
 func retrievePartner(r *http.Request, db *database.DB) (*model.RemoteAgent, error) {
 	agentName, ok := mux.Vars(r)["partner"]
 	if !ok {
@@ -25,7 +27,7 @@ func retrievePartner(r *http.Request, db *database.DB) (*model.RemoteAgent, erro
 			return nil, notFound("partner '%s' not found", agentName)
 		}
 
-		return nil, err
+		return nil, fmt.Errorf("failed to retrieve partner %q: %w", agentName, err)
 	}
 
 	return &partner, nil
@@ -49,6 +51,7 @@ func addPartner(logger *log.Logger, db *database.DB) http.HandlerFunc {
 	}
 }
 
+//nolint:dupl //duplicate is for completely different type (history), keep separate
 func listPartners(logger *log.Logger, db *database.DB) http.HandlerFunc {
 	validSorting := orders{
 		"default": order{"name", true},

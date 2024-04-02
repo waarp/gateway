@@ -1,8 +1,8 @@
 .. _ref-proto-r66:
 
-===
-R66
-===
+=============
+R66 & R66-TLS
+=============
 
 L'implémentation de R66 et R66-TLS dans la *Gateway*, bien que permettant de
 faire du MFT, n'est pas complète. Un certain nombre de fonctionnalité du

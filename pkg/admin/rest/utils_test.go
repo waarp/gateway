@@ -10,37 +10,27 @@ import (
 	"github.com/gorilla/mux"
 	"github.com/smartystreets/goconvey/convey"
 
-	"code.waarp.fr/apps/gateway/gateway/pkg/conf"
 	"code.waarp.fr/apps/gateway/gateway/pkg/database"
-	"code.waarp.fr/apps/gateway/gateway/pkg/gatewayd/service"
-	"code.waarp.fr/apps/gateway/gateway/pkg/gatewayd/service/names"
-	"code.waarp.fr/apps/gateway/gateway/pkg/gatewayd/service/proto"
+	"code.waarp.fr/apps/gateway/gateway/pkg/logging"
 )
 
 type testRESTServer struct {
 	*httptest.Server
-	db            *database.DB
-	services      map[string]service.Service
-	protoServices map[string]proto.Service
+	db *database.DB
 }
 
 func makeTestRESTServer(c convey.C) *testRESTServer {
 	db := database.TestDatabase(c)
-	services := map[string]service.Service{names.DatabaseServiceName: db}
-	protoServices := map[string]proto.Service{}
-
-	logger := conf.GetLogger("rest_test")
+	logger := logging.NewLogger("rest_test")
 
 	router := mux.NewRouter()
-	MakeRESTHandler(logger, db, router, services, protoServices)
+	MakeRESTHandler(logger, db, router)
 
 	server := httptest.NewServer(router)
 
 	return &testRESTServer{
-		Server:        server,
-		db:            db,
-		services:      services,
-		protoServices: protoServices,
+		Server: server,
+		db:     db,
 	}
 }
 

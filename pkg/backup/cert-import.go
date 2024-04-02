@@ -1,6 +1,8 @@
 package backup
 
 import (
+	"fmt"
+
 	"code.waarp.fr/lib/log"
 
 	"code.waarp.fr/apps/gateway/gateway/pkg/backup/file"
@@ -11,7 +13,7 @@ import (
 
 func importCerts(logger *log.Logger, db database.Access, list []file.Certificate,
 	owner model.CryptoOwner,
-) database.Error {
+) error {
 	for _, src := range list {
 		// Create model with basic info to check existence
 		var crypto model.Crypto
@@ -23,7 +25,7 @@ func importCerts(logger *log.Logger, db database.Access, list []file.Certificate
 		if database.IsNotFound(err) {
 			exist = false
 		} else if err != nil {
-			return err
+			return fmt.Errorf("failed to retrieve certificate %q: %w", src.Name, err)
 		}
 
 		// Populate
@@ -43,7 +45,7 @@ func importCerts(logger *log.Logger, db database.Access, list []file.Certificate
 		}
 
 		if err != nil {
-			return err
+			return fmt.Errorf("failed to import certificate %q: %w", crypto.Name, err)
 		}
 	}
 

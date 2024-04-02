@@ -1,33 +1,39 @@
 package migrations
 
 import (
-	. "github.com/smartystreets/goconvey/convey"
+	"testing"
+
+	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
-func testVer0_4_2RemoveHistoryRemoteIDUnique(eng *testEngine, dialect string) {
-	Convey("Given the 0.4.2 history unique constraint removal", func() {
-		setupDatabaseUpTo(eng, ver0_4_2RemoveHistoryRemoteIDUnique{})
-		So(doesIndexExist(eng.DB, dialect, "transfer_history",
-			"UQE_transfer_history_histRemID"), ShouldBeTrue)
+func testVer0_4_2RemoveHistoryRemoteIDUnique(t *testing.T, eng *testEngine) Change {
+	mig := Migrations[1]
 
-		Convey("When applying the migration", func() {
-			err := eng.Upgrade(ver0_4_2RemoveHistoryRemoteIDUnique{})
-			So(err, ShouldBeNil)
+	t.Run("When applying the 0.4.2 history unique constraint removal", func(t *testing.T) {
+		assert.True(t,
+			doesIndexExist(t, eng.DB, eng.Dialect, "transfer_history", "UQE_transfer_history_histRemID"),
+			"Before the migration, the history unique constraint should exist")
 
-			Convey("Then it should have removed the constraint (the index)", func() {
-				So(doesIndexExist(eng.DB, dialect, "transfer_history",
-					"UQE_transfer_history_histRemID"), ShouldBeFalse)
-			})
+		require.NoError(t, eng.Upgrade(mig),
+			"The migration should not fail")
 
-			Convey("When reversing the migration", func() {
-				err := eng.Downgrade(ver0_4_2RemoveHistoryRemoteIDUnique{})
-				So(err, ShouldBeNil)
+		t.Run("Then it should have removed the history unique constraint", func(t *testing.T) {
+			assert.False(t,
+				doesIndexExist(t, eng.DB, eng.Dialect, "transfer_history",
+					"UQE_transfer_history_histRemID"),
+				"After the migration, the history unique constraint should no longer exist")
+		})
 
-				Convey("Then it should have restored the constraint (the index)", func() {
-					So(doesIndexExist(eng.DB, dialect, "transfer_history",
-						"UQE_transfer_history_histRemID"), ShouldBeTrue)
-				})
-			})
+		t.Run("When reverting the migration", func(t *testing.T) {
+			require.NoError(t, eng.Downgrade(mig),
+				"Reverting the migration should not fail")
+
+			assert.True(t,
+				doesIndexExist(t, eng.DB, eng.Dialect, "transfer_history", "UQE_transfer_history_histRemID"),
+				"After reverting the migration, the history unique constraint should exist again")
 		})
 	})
+
+	return mig
 }

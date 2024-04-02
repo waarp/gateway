@@ -2,6 +2,8 @@ package model
 
 import (
 	"context"
+	"fmt"
+	"strings"
 
 	"code.waarp.fr/lib/log"
 
@@ -49,7 +51,7 @@ type Task struct {
 func (*Task) TableName() string   { return TableTasks }
 func (*Task) Appellation() string { return "task" }
 
-func (t *Task) validateTasks() database.Error {
+func (t *Task) validateTasks() error {
 	if t.Chain != ChainPre && t.Chain != ChainPost && t.Chain != ChainError {
 		return database.NewValidationError("%s is not a valid task chain", t.Chain)
 	}
@@ -74,25 +76,23 @@ func (t *Task) validateTasks() database.Error {
 
 // BeforeWrite checks if the new `Task` entry is valid and can be
 // inserted in the database.
-func (t *Task) BeforeWrite(db database.ReadAccess) database.Error {
-	n, err := db.Count(&Rule{}).Where("id=?", t.RuleID).Run()
-	if err != nil {
-		return err
+func (t *Task) BeforeWrite(db database.ReadAccess) error {
+	if n, err := db.Count(&Rule{}).Where("id=?", t.RuleID).Run(); err != nil {
+		return fmt.Errorf("failed to check for parrent rule: %w", err)
 	} else if n < 1 {
 		return database.NewValidationError("no rule found with ID %d", t.RuleID)
 	}
 
-	if err2 := t.validateTasks(); err2 != nil {
-		return err2
+	if err := t.validateTasks(); err != nil {
+		return err
 	}
 
-	n, err = db.Count(t).Where("rule_id=? AND chain=? AND rank=?", t.RuleID,
-		t.Chain, t.Rank).Run()
-	if err != nil {
-		return err
+	if n, err := db.Count(t).Where("rule_id=? AND chain=? AND rank=?", t.RuleID,
+		t.Chain, t.Rank).Run(); err != nil {
+		return fmt.Errorf("failed to check for duplicate tasks: %w", err)
 	} else if n > 0 {
-		return database.NewValidationError("rule %d already has a task in %s at %d",
-			t.RuleID, t.Chain, t.Rank)
+		return database.NewValidationError("rule %d already has a %s-task at rank %d",
+			t.RuleID, strings.ToLower(string(t.Chain)), t.Rank)
 	}
 
 	return nil

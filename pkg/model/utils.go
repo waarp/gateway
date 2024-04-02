@@ -14,7 +14,7 @@ import (
 
 	"code.waarp.fr/apps/gateway/gateway/pkg/conf"
 	"code.waarp.fr/apps/gateway/gateway/pkg/database"
-	"code.waarp.fr/apps/gateway/gateway/pkg/tk/utils"
+	"code.waarp.fr/apps/gateway/gateway/pkg/utils"
 )
 
 var errWriteOnView = errors.New("cannot insert/update on a view")
@@ -25,7 +25,7 @@ func getCryptos(db database.ReadAccess, owner CryptoOwner) (Cryptos, error) {
 	query := db.Select(&certs).Where(owner.GenCryptoSelectCond())
 
 	if err := query.Run(); err != nil {
-		return nil, err
+		return nil, fmt.Errorf("failed to retrieve the cryptos: %w", err)
 	}
 
 	// TODO: get only validate certificates
@@ -85,10 +85,10 @@ func checkAuthent(c *Cryptos, name string, certs []*x509.Certificate,
 }
 
 func getTransferInfo(db database.ReadAccess, owner transferInfoOwner,
-) (map[string]any, database.Error) {
+) (map[string]any, error) {
 	var infoList TransferInfoList
 	if err := db.Select(&infoList).Where(owner.getTransInfoCondition()).Run(); err != nil {
-		return nil, err
+		return nil, fmt.Errorf("failed to retrieve the transfer info list: %w", err)
 	}
 
 	infoMap := map[string]interface{}{}
@@ -107,10 +107,11 @@ func getTransferInfo(db database.ReadAccess, owner transferInfoOwner,
 
 func setTransferInfo(access database.Access, owner transferInfoOwner,
 	info map[string]any,
-) database.Error {
+) error {
 	switch db := access.(type) {
 	case *database.DB:
-		return db.Transaction(func(ses *database.Session) database.Error {
+		//nolint:wrapcheck //wrapping this error would add nothing
+		return db.Transaction(func(ses *database.Session) error {
 			return doSetTransferInfo(ses, owner, info)
 		})
 	case *database.Session:
@@ -122,10 +123,10 @@ func setTransferInfo(access database.Access, owner transferInfoOwner,
 
 func doSetTransferInfo(ses *database.Session, owner transferInfoOwner,
 	info map[string]any,
-) database.Error {
+) error {
 	if err := ses.DeleteAll(&TransferInfo{}).Where(owner.getTransInfoCondition()).
 		Run(); err != nil {
-		return err
+		return fmt.Errorf("failed to delete transfer info: %w", err)
 	}
 
 	for name, val := range info {
@@ -138,7 +139,7 @@ func doSetTransferInfo(ses *database.Session, owner transferInfoOwner,
 		owner.setTransInfoOwner(i)
 
 		if err := ses.Insert(i).Run(); err != nil {
-			return err
+			return fmt.Errorf("failed to insert transfer info: %w", err)
 		}
 	}
 

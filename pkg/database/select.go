@@ -89,7 +89,7 @@ func (s *SelectQuery) Limit(limit, offset int) *SelectQuery {
 }
 
 // Run executes the 'SELECT' query.
-func (s *SelectQuery) Run() Error {
+func (s *SelectQuery) Run() error {
 	logger := s.db.GetLogger()
 	query := s.db.getUnderlying().NoAutoCondition().Table(s.bean.TableName())
 

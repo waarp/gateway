@@ -1,7 +1,7 @@
 package database
 
 import (
-	"fmt"
+	"errors"
 	"strings"
 
 	"code.waarp.fr/lib/log"
@@ -9,11 +9,10 @@ import (
 	xLog "xorm.io/xorm/log"
 	"xorm.io/xorm/names"
 
-	"code.waarp.fr/apps/gateway/gateway/pkg/gatewayd/service/state"
 	vers "code.waarp.fr/apps/gateway/gateway/pkg/version"
 )
 
-var errBadVersion = fmt.Errorf("database version mismatch")
+var errBadVersion = errors.New("database version mismatch")
 
 type exister interface {
 	Table
@@ -50,7 +49,7 @@ func (db *DB) checkVersion() error {
 	return nil
 }
 
-func checkExists(db Access, bean exister) Error {
+func checkExists(db Access, bean exister) error {
 	logger := db.GetLogger()
 
 	exist, err := db.getUnderlying().NoAutoCondition().
@@ -70,21 +69,6 @@ func checkExists(db Access, bean exister) Error {
 	return nil
 }
 
-// ping checks if the database is reachable and updates the service state accordingly.
-// If an error occurs while contacting the database, that error is returned.
-func ping(dbState *state.State, ses *xorm.Session, logger *log.Logger) Error {
-	if err := ses.Ping(); err != nil {
-		logger.Critical("Could not reach database: %s", err.Error())
-		dbState.Set(state.Error, err.Error())
-
-		return NewInternalError(err)
-	}
-
-	dbState.Set(state.Running, "")
-
-	return nil
-}
-
 type inCond struct {
 	*strings.Builder
 	args []interface{}
@@ -94,7 +78,7 @@ func (i *inCond) Append(args ...interface{}) {
 	i.args = append(i.args, args...)
 }
 
-func exec(ses *xorm.Session, logger *log.Logger, query string, args ...interface{}) Error {
+func exec(ses *xorm.Session, logger *log.Logger, query string, args ...interface{}) error {
 	elems := append([]interface{}{query}, args...)
 
 	if _, err := ses.Exec(elems...); err != nil {

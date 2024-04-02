@@ -1,11 +1,5 @@
 package pipeline
 
-import (
-	"errors"
-
-	"code.waarp.fr/apps/gateway/gateway/pkg/model/types"
-)
-
 // Trace is a struct which can be given to a pipeline when initializing it. The
 // struct regroups a bunch of functions which, if set, will be called by the
 // pipeline at various points of its execution. This allows the caller to trace
@@ -41,7 +35,7 @@ type Trace struct {
 	OnFinalization func() error
 	// OnError is called when an error occurs at any point during the transfer.
 	// The error in question is given as function parameter.
-	OnError func(cause *types.TransferError)
+	OnError func(cause error)
 	// OnErrorTask is called after each error-task. The task's rank is given as
 	// argument.
 	OnErrorTask func(rank int8)
@@ -54,25 +48,4 @@ type Trace struct {
 	// OnTransferEnd is called when the transfer is finished, both normally or
 	// if interrupted.
 	OnTransferEnd func()
-}
-
-func testError(f func() error) *types.TransferError {
-	if f == nil {
-		return nil
-	}
-
-	return wrapTestError(f())
-}
-
-func wrapTestError(err error) *types.TransferError {
-	if err == nil {
-		return nil
-	}
-
-	var te *types.TransferError
-	if errors.As(err, &te) {
-		return te
-	}
-
-	return types.NewTransferError(types.TeInternal, "test error: %v", err)
 }

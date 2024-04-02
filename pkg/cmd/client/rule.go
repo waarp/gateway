@@ -21,85 +21,51 @@ func checkRuleDir(direction string) error {
 	return nil
 }
 
-func displayTasks(w io.Writer, rule *api.OutRule) {
-	chains := []struct {
-		name  string
-		tasks []*api.Task
-	}{
-		{"Pre tasks", rule.PreTasks},
-		{"Post tasks", rule.PostTasks},
-		{"Error tasks", rule.ErrorTasks},
+func direction(isSend bool) string {
+	if isSend {
+		return directionSend
 	}
 
-	for _, chain := range chains {
-		fmt.Fprintln(w, orange("    "+chain.name+":"))
-
-		for i, t := range chain.tasks {
-			prefix := "    ├─Command"
-			if i == len(chain.tasks)-1 {
-				prefix = "    └─Command"
-			}
-
-			args, err := json.Marshal(t.Args)
-			if err != nil {
-				args = []byte(red("<error while serializing the configuration>"))
-			}
-
-			fmt.Fprintln(w, bold(prefix), t.Type, bold("with args:"), string(args))
-		}
-	}
+	return directionRecv
 }
 
-func displayRule(w io.Writer, rule *api.OutRule) {
-	way := directionRecv
-	if rule.IsSend {
-		way = directionSend
-	}
+func DisplayRule(w io.Writer, rule *api.OutRule) {
+	f := NewFormatter(w)
+	defer f.Render()
 
-	var servers, partners, locAcc, remAcc string
+	displayRule(f, rule)
+}
 
-	if rule.Authorized != nil {
-		servers = strings.Join(rule.Authorized.LocalServers, ", ")
-		partners = strings.Join(rule.Authorized.RemotePartners, ", ")
+func displayRule(f *Formatter, rule *api.OutRule) {
+	f.Title("Rule %q (%s)", rule.Name, direction(rule.IsSend))
+	f.Indent()
 
-		var la []string
+	defer f.UnIndent()
 
-		for server, accounts := range rule.Authorized.LocalAccounts {
-			for _, account := range accounts {
-				la = append(la, fmt.Sprint(server, ".", account))
-			}
-		}
+	f.ValueCond("Comment", rule.Comment)
+	f.Value("Path", rule.Path)
+	f.ValueCond("Local directory", rule.LocalDir)
+	f.ValueCond("Remote directory", rule.RemoteDir)
+	f.ValueCond("Temp receive directory", rule.TmpLocalRcvDir)
+	displayTaskChain(f, "Pre tasks", rule.PreTasks)
+	displayTaskChain(f, "Post tasks", rule.PostTasks)
+	displayTaskChain(f, "Error tasks", rule.ErrorTasks)
+	displayRuleAccess(f, rule.Authorized)
+}
 
-		var ra []string
+func warnRuleInPathDeprecated(w io.Writer) {
+	fmt.Fprintln(w, "[WARNING] The '-i' ('--in_path') option is deprecated. "+
+		"Use '--local-dir' and '--remote-dir' instead.")
+}
 
-		for partner, accounts := range rule.Authorized.RemoteAccounts {
-			for _, account := range accounts {
-				ra = append(ra, fmt.Sprint(partner, ".", account))
-			}
-		}
+func warnRuleOutPathDeprecated(w io.Writer) {
+	fmt.Fprintln(w, "[WARNING] The '-o' ('--out_path') option is deprecated. "+
+		"Use '--local-dir' and '--remote-dir' instead.")
+}
 
-		locAcc = strings.Join(la, ", ")
-		remAcc = strings.Join(ra, ", ")
-	}
-
-	fmt.Fprintln(w, boldOrange("● Rule %q (%s)", rule.Name, way))
-	fmt.Fprintln(w, orange("    Comment:               "), rule.Comment)
-	fmt.Fprintln(w, orange("    Path:                  "), rule.Path)
-	fmt.Fprintln(w, orange("    Local directory:       "), rule.LocalDir)
-	fmt.Fprintln(w, orange("    Remote directory:      "), rule.RemoteDir)
-	fmt.Fprintln(w, orange("    Temp receive directory:"), rule.TmpLocalRcvDir)
-	displayTasks(w, rule)
-
-	// if all are empty => rule is unrestricted
-	if servers == "" && partners == "" && locAcc == "" && remAcc == "" {
-		fmt.Fprintln(w, orange("    Authorized agents:"), "<all>")
-	} else {
-		fmt.Fprintln(w, orange("    Authorized agents:"))
-		fmt.Fprintln(w, bold("    ├─Servers:         "), servers)
-		fmt.Fprintln(w, bold("    ├─Partners:        "), partners)
-		fmt.Fprintln(w, bold("    ├─Server accounts: "), locAcc)
-		fmt.Fprintln(w, bold("    └─Partner accounts:"), remAcc)
-	}
+func warnRuleWorkPathDeprecated(w io.Writer) {
+	fmt.Fprintln(w, "[WARNING] The '-w' ('--work_path') option is deprecated. "+
+		"Use '--tmp-dir' instead.")
 }
 
 func parseTasks(rule *api.UptRule, pre, post, errs []string) error {
@@ -143,7 +109,8 @@ type RuleGet struct {
 	} `positional-args:"yes"`
 }
 
-func (r *RuleGet) Execute([]string) error {
+func (r *RuleGet) Execute([]string) error { return r.execute(stdOutput) }
+func (r *RuleGet) execute(w io.Writer) error {
 	if err := checkRuleDir(r.Args.Direction); err != nil {
 		return err
 	}
@@ -155,7 +122,7 @@ func (r *RuleGet) Execute([]string) error {
 		return err
 	}
 
-	displayRule(getColorable(), rule)
+	DisplayRule(w, rule)
 
 	return nil
 }
@@ -181,7 +148,8 @@ type RuleAdd struct {
 	WorkPath *string `short:"w" long:"work_path" description:"[DEPRECATED] The path to write the received file"`   // Deprecated: replaced by TmpReceiveDir
 }
 
-func (r *RuleAdd) Execute([]string) error {
+func (r *RuleAdd) Execute([]string) error { return r.execute(stdOutput) }
+func (r *RuleAdd) execute(w io.Writer) error {
 	isSend := r.Direction == directionSend
 	rule := &api.InRule{
 		UptRule: &api.UptRule{
@@ -196,25 +164,19 @@ func (r *RuleAdd) Execute([]string) error {
 	}
 
 	if r.InPath != nil {
-		//nolint:goconst //too specific
-		fmt.Fprintln(out, "[WARNING] The '-i' ('--in_path') option is deprecated. "+
-			"Use '--local-dir' and '--remote-dir' instead.")
+		warnRuleInPathDeprecated(w)
 
 		rule.InPath = r.InPath
 	}
 
 	if r.OutPath != nil {
-		//nolint:goconst //too specific
-		fmt.Fprintln(out, "[WARNING] The '-o' ('--out_path') option is deprecated. "+
-			"Use '--local-dir' and '--remote-dir' instead.")
+		warnRuleOutPathDeprecated(w)
 
 		rule.OutPath = r.OutPath
 	}
 
 	if r.WorkPath != nil {
-		//nolint:goconst //too specific
-		fmt.Fprintln(out, "[WARNING] The '-w' ('--work_path') option is deprecated. "+
-			"Use '--tmp-dir' instead.")
+		warnRuleWorkPathDeprecated(w)
 
 		rule.WorkPath = r.WorkPath
 	}
@@ -225,11 +187,11 @@ func (r *RuleAdd) Execute([]string) error {
 
 	addr.Path = "/api/rules"
 
-	if err := add(rule); err != nil {
+	if _, err := add(w, rule); err != nil {
 		return err
 	}
 
-	fmt.Fprintln(getColorable(), "The rule", bold(r.Name), "was successfully added.")
+	fmt.Fprintf(w, "The rule %q was successfully added.\n", r.Name)
 
 	return nil
 }
@@ -244,18 +206,19 @@ type RuleDelete struct {
 	} `positional-args:"yes"`
 }
 
-func (r *RuleDelete) Execute([]string) error {
+func (r *RuleDelete) Execute([]string) error { return r.execute(stdOutput) }
+func (r *RuleDelete) execute(w io.Writer) error {
 	if err := checkRuleDir(r.Args.Direction); err != nil {
 		return err
 	}
 
 	addr.Path = path.Join("/api/rules", r.Args.Name, r.Args.Direction)
 
-	if err := remove(); err != nil {
+	if err := remove(w); err != nil {
 		return err
 	}
 
-	fmt.Fprintln(getColorable(), "The rule", bold(r.Args.Name), "was successfully deleted.")
+	fmt.Fprintf(w, "The rule %q was successfully deleted.\n", r.Args.Name)
 
 	return nil
 }
@@ -268,24 +231,27 @@ type RuleList struct {
 	SortBy string `short:"s" long:"sort" description:"Attribute used to sort the returned entries" choice:"name+" choice:"name-" default:"name+"`
 }
 
-func (r *RuleList) Execute([]string) error {
+func (r *RuleList) Execute([]string) error { return r.execute(stdOutput) }
+
+//nolint:dupl //duplicate is for a completely different type, keep separate
+func (r *RuleList) execute(w io.Writer) error {
 	addr.Path = "/api/rules"
 
 	listURL(&r.ListOptions, r.SortBy)
 
-	body := map[string][]api.OutRule{}
+	body := map[string][]*api.OutRule{}
 	if err := list(&body); err != nil {
 		return err
 	}
 
-	w := getColorable() //nolint:ifshort // decrease readability
-
 	if rules := body["rules"]; len(rules) > 0 {
-		fmt.Fprintln(w, bold("Rules:"))
+		f := NewFormatter(w)
+		defer f.Render()
 
-		for i := range rules {
-			rule := rules[i]
-			displayRule(w, &rule)
+		f.MainTitle("Rules:")
+
+		for _, rule := range rules {
+			displayRule(f, rule)
 		}
 	} else {
 		fmt.Fprintln(w, "No rules found.")
@@ -318,7 +284,8 @@ type RuleUpdate struct {
 	WorkPath *string `short:"w" long:"work_path" description:"[DEPRECATED] The path to write the received file"`   // Deprecated: replaced by TmpReceiveDir
 }
 
-func (r *RuleUpdate) Execute([]string) error {
+func (r *RuleUpdate) Execute([]string) error { return r.execute(stdOutput) }
+func (r *RuleUpdate) execute(w io.Writer) error {
 	if err := checkRuleDir(r.Args.Direction); err != nil {
 		return err
 	}
@@ -335,22 +302,19 @@ func (r *RuleUpdate) Execute([]string) error {
 	}
 
 	if r.InPath != nil {
-		fmt.Fprintln(out, "[WARNING] The '-i' ('--in_path') option is deprecated. "+
-			"Use '--local-dir' and '--remote-dir' instead.")
+		warnRuleInPathDeprecated(w)
 
 		rule.InPath = r.InPath
 	}
 
 	if r.OutPath != nil {
-		fmt.Fprintln(out, "[WARNING] The '-o' ('--out_path') option is deprecated. "+
-			"Use '--local-dir' and '--remote-dir' instead.")
+		warnRuleOutPathDeprecated(w)
 
 		rule.OutPath = r.OutPath
 	}
 
 	if r.WorkPath != nil {
-		fmt.Fprintln(out, "[WARNING] The '-w' ('--work_path') option is deprecated. "+
-			"Use '--tmp-dir' instead.")
+		warnRuleWorkPathDeprecated(w)
 
 		rule.WorkPath = r.WorkPath
 	}
@@ -359,7 +323,7 @@ func (r *RuleUpdate) Execute([]string) error {
 		return err
 	}
 
-	if err := update(rule); err != nil {
+	if err := update(w, rule); err != nil {
 		return err
 	}
 
@@ -368,7 +332,7 @@ func (r *RuleUpdate) Execute([]string) error {
 		name = *rule.Name
 	}
 
-	fmt.Fprintln(getColorable(), "The rule", bold(name), "was successfully updated.")
+	fmt.Fprintf(w, "The rule %q was successfully updated.\n", name)
 
 	return nil
 }
@@ -383,7 +347,8 @@ type RuleAllowAll struct {
 	} `positional-args:"yes"`
 }
 
-func (r *RuleAllowAll) Execute([]string) error {
+func (r *RuleAllowAll) Execute([]string) error { return r.execute(stdOutput) }
+func (r *RuleAllowAll) execute(w io.Writer) error {
 	if err := checkRuleDir(r.Args.Direction); err != nil {
 		return err
 	}
@@ -401,12 +366,10 @@ func (r *RuleAllowAll) Execute([]string) error {
 
 	defer resp.Body.Close() //nolint:errcheck,gosec // error is irrelevant
 
-	w := getColorable()
-
 	switch resp.StatusCode {
 	case http.StatusOK:
-		fmt.Fprintln(w, "The use of the", r.Args.Direction, "rule", bold(r.Args.Name),
-			"is now unrestricted.")
+		fmt.Fprintf(w, "The use of the %s rule %q is now unrestricted.\n",
+			r.Args.Direction, r.Args.Name)
 
 		return nil
 
@@ -414,6 +377,7 @@ func (r *RuleAllowAll) Execute([]string) error {
 		return getResponseErrorMessage(resp)
 
 	default:
-		return fmt.Errorf("unexpected error: %w", getResponseErrorMessage(resp))
+		return fmt.Errorf("unexpected response (%s): %w", resp.Status,
+			getResponseErrorMessage(resp))
 	}
 }

@@ -32,12 +32,12 @@ const warnDuration = 10 * time.Second
 
 // TransactionFunc is the type representing a function meant to be executed inside
 // a transaction using the Standalone.Transaction method.
-type TransactionFunc func(*Session) Error
+type TransactionFunc func(*Session) error
 
 // Transaction executes all the commands in the given function as a transaction.
 // The transaction will be then be roll-backed or committed, depending on whether
 // the function returned an error or not.
-func (s *Standalone) Transaction(fun TransactionFunc) Error {
+func (s *Standalone) Transaction(fun TransactionFunc) error {
 	ses := s.newSession()
 
 	if err := ses.session.Begin(); err != nil {
@@ -76,8 +76,8 @@ func (s *Standalone) Transaction(fun TransactionFunc) Error {
 	if err := fun(ses); err != nil {
 		s.logger.Trace("Transaction failed, changes have been rolled back")
 
-		if err := ses.session.Rollback(); err != nil {
-			s.logger.Warning("an error occurred while rolling back the transaction: %v", err)
+		if rbErr := ses.session.Rollback(); rbErr != nil {
+			s.logger.Warning("an error occurred while rolling back the transaction: %v", rbErr)
 		}
 
 		return err
@@ -186,7 +186,7 @@ func (s *Standalone) DeleteAll(bean DeleteAllBean) *DeleteAllQuery {
 //
 // Be aware that, since this method bypasses the data models, all the models'
 // hooks will be skipped. Thus, this method should be used with extreme caution.
-func (s *Standalone) Exec(query string, args ...interface{}) Error {
+func (s *Standalone) Exec(query string, args ...interface{}) error {
 	return exec(s.engine.NewSession(), s.logger, query, args...)
 }
 

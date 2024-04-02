@@ -21,7 +21,7 @@ import (
 	"code.waarp.fr/apps/gateway/gateway/pkg/fs/filesystems"
 	"code.waarp.fr/apps/gateway/gateway/pkg/model"
 	"code.waarp.fr/apps/gateway/gateway/pkg/model/types"
-	"code.waarp.fr/apps/gateway/gateway/pkg/tk/utils/testhelpers"
+	"code.waarp.fr/apps/gateway/gateway/pkg/utils/testhelpers"
 )
 
 func addTestCloudType(tb testing.TB) string {

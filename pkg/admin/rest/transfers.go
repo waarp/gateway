@@ -15,11 +15,10 @@ import (
 	"code.waarp.fr/apps/gateway/gateway/pkg/admin/rest/api"
 	"code.waarp.fr/apps/gateway/gateway/pkg/conf"
 	"code.waarp.fr/apps/gateway/gateway/pkg/database"
-	"code.waarp.fr/apps/gateway/gateway/pkg/gatewayd/service/proto"
 	"code.waarp.fr/apps/gateway/gateway/pkg/model"
 	"code.waarp.fr/apps/gateway/gateway/pkg/model/types"
 	"code.waarp.fr/apps/gateway/gateway/pkg/pipeline"
-	"code.waarp.fr/apps/gateway/gateway/pkg/tk/utils"
+	"code.waarp.fr/apps/gateway/gateway/pkg/utils"
 )
 
 // restTransferToDB transforms the JSON transfer into its database equivalent.
@@ -50,11 +49,11 @@ func restTransferToDB(jTrans *api.InTransfer, db *database.DB, logger *log.Logge
 
 	start := jTrans.Start
 
-	if !jTrans.StartDate.IsZero() {
+	if jTrans.StartDate != nil {
 		logger.Warning("JSON field 'startDate' is deprecated, use 'start' instead")
 
 		if start.IsZero() {
-			start = jTrans.StartDate
+			start = *jTrans.StartDate
 		}
 	}
 
@@ -86,7 +85,7 @@ func DBTransferToREST(db *database.DB, trans *model.NormalizedTransferView) (*ap
 
 	info, iErr := trans.GetTransferInfo(db)
 	if iErr != nil {
-		return nil, iErr
+		return nil, fmt.Errorf("failed to retrieve transfer info: %w", iErr)
 	}
 
 	return &api.OutTransfer{
@@ -109,8 +108,8 @@ func DBTransferToREST(db *database.DB, trans *model.NormalizedTransferView) (*ap
 		Step:           trans.Step.String(),
 		Progress:       trans.Progress,
 		TaskNumber:     trans.TaskNumber,
-		ErrorCode:      trans.Error.Code.String(),
-		ErrorMsg:       trans.Error.Details,
+		ErrorCode:      trans.ErrCode.String(),
+		ErrorMsg:       trans.ErrDetails,
 		TransferInfo:   info,
 		TrueFilepath:   trans.LocalPath.OSPath(),
 		SourcePath:     src,
@@ -140,8 +139,8 @@ func DBTransfersToREST(db *database.DB, models []*model.NormalizedTransferView) 
 func getDBTrans(r *http.Request, db *database.DB) (*model.Transfer, error) {
 	val := mux.Vars(r)["transfer"]
 
-	id, err := strconv.ParseUint(val, 10, 64) //nolint:gomnd // useless to add a constant for that
-	if err != nil || id == 0 {
+	id, parsErr := strconv.ParseUint(val, 10, 64) //nolint:gomnd // useless to add a constant for that
+	if parsErr != nil || id == 0 {
 		return nil, notFound("'%s' is not a valid transfer ID", val)
 	}
 
@@ -152,7 +151,7 @@ func getDBTrans(r *http.Request, db *database.DB) (*model.Transfer, error) {
 			return nil, notFound("transfer %v not found", id)
 		}
 
-		return nil, err
+		return nil, fmt.Errorf("failed to retrieve transfer %d: %w", id, err)
 	}
 
 	return &transfer, nil
@@ -162,8 +161,8 @@ func getDBTrans(r *http.Request, db *database.DB) (*model.Transfer, error) {
 func getDBTransView(r *http.Request, db *database.DB) (*model.NormalizedTransferView, error) {
 	val := mux.Vars(r)["transfer"]
 
-	id, err := strconv.ParseUint(val, 10, 64) //nolint:gomnd // useless to add a constant for that
-	if err != nil || id == 0 {
+	id, parsErr := strconv.ParseUint(val, 10, 64) //nolint:gomnd // useless to add a constant for that
+	if parsErr != nil || id == 0 {
 		return nil, notFound("'%s' is not a valid transfer ID", val)
 	}
 
@@ -174,7 +173,7 @@ func getDBTransView(r *http.Request, db *database.DB) (*model.NormalizedTransfer
 			return nil, notFound("transfer %v not found", id)
 		}
 
-		return nil, err
+		return nil, fmt.Errorf("failed to retrieve transfer %d: %w", id, err)
 	}
 
 	return &transfer, nil
@@ -226,8 +225,8 @@ func listTransfers(logger *log.Logger, db *database.DB) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		var transfers model.NormalizedTransfers
 
-		query, err := parseTransferListQuery(r, db, &transfers)
-		if handleError(w, logger, err) {
+		query, queryErr := parseTransferListQuery(r, db, &transfers)
+		if handleError(w, logger, queryErr) {
 			return
 		}
 
@@ -236,8 +235,8 @@ func listTransfers(logger *log.Logger, db *database.DB) http.HandlerFunc {
 			return
 		}
 
-		json, err := DBTransfersToREST(db, transfers)
-		if handleError(w, logger, err) {
+		json, convErr := DBTransfersToREST(db, transfers)
+		if handleError(w, logger, convErr) {
 			return
 		}
 
@@ -246,104 +245,85 @@ func listTransfers(logger *log.Logger, db *database.DB) http.HandlerFunc {
 	}
 }
 
-func pauseTransfer(protoServices map[string]proto.Service) handler {
-	return func(logger *log.Logger, db *database.DB) http.HandlerFunc {
-		return func(w http.ResponseWriter, r *http.Request) {
-			trans, tErr := getDBTrans(r, db)
-			if handleError(w, logger, tErr) {
+func pauseTransfer(logger *log.Logger, db *database.DB) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		trans, tErr := getDBTrans(r, db)
+		if handleError(w, logger, tErr) {
+			return
+		}
+
+		switch trans.Status {
+		case types.StatusPlanned:
+			trans.Status = types.StatusPaused
+			if err := db.Update(trans).Cols("status").Run(); handleError(w, logger, err) {
 				return
 			}
 
-			switch trans.Status {
-			case types.StatusPlanned:
-				trans.Status = types.StatusPaused
-				if err := db.Update(trans).Cols("status").Run(); handleError(w, logger, err) {
-					return
-				}
+			w.WriteHeader(http.StatusAccepted)
 
-				w.WriteHeader(http.StatusAccepted)
-
-				return
-			case types.StatusRunning:
-				pips, err := getPipelineMap(db, protoServices, trans)
-				if handleError(w, logger, err) {
-					return
-				}
-
-				ctx, cancel := context.WithTimeout(r.Context(), time.Second)
-				defer cancel()
-
-				ok, err := pips.Pause(ctx, trans.ID)
-				if !ok {
-					handleError(w, logger, internal("could not find a "+
-						"corresponding pipeline for transfer %d", trans.ID))
-
-					return
-				}
-
-				if err != nil {
-					handleError(w, logger, err)
-
-					return
-				}
-
-				w.WriteHeader(http.StatusAccepted)
-
-				return
-			default:
-				handleError(w, logger, badRequest("cannot pause an already "+
-					"interrupted transfer"))
+			return
+		case types.StatusRunning:
+			pip := pipeline.List.Get(trans.ID)
+			if pip == nil {
+				handleError(w, logger, internal("pipeline for transfer %d not found", trans.ID))
 
 				return
 			}
+
+			ctx, cancel := context.WithTimeout(r.Context(), time.Second)
+			defer cancel()
+
+			if err := pip.Pause(ctx); err != nil {
+				handleError(w, logger, err)
+
+				return
+			}
+
+			w.WriteHeader(http.StatusAccepted)
+
+			return
+		default:
+			handleError(w, logger, badRequest("cannot pause an already "+
+				"interrupted transfer"))
+
+			return
 		}
 	}
 }
 
-func cancelTransfer(protoServices map[string]proto.Service) handler {
-	return func(logger *log.Logger, db *database.DB) http.HandlerFunc {
-		return func(w http.ResponseWriter, r *http.Request) {
-			trans, tErr := getDBTrans(r, db)
-			if handleError(w, logger, tErr) {
+func cancelTransfer(logger *log.Logger, db *database.DB) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		trans, tErr := getDBTrans(r, db)
+		if handleError(w, logger, tErr) {
+			return
+		}
+
+		if trans.Status == types.StatusRunning {
+			pip := pipeline.List.Get(trans.ID)
+			if pip == nil {
+				handleError(w, logger, internal("pipeline for transfer %d not found", trans.ID))
+
 				return
 			}
 
-			if trans.Status == types.StatusRunning {
-				pips, err := getPipelineMap(db, protoServices, trans)
-				if handleError(w, logger, err) {
-					return
-				}
+			ctx, cancel := context.WithTimeout(r.Context(), time.Second)
+			defer cancel()
 
-				ctx, cancel := context.WithTimeout(r.Context(), time.Second)
-				defer cancel()
+			if err := pip.Cancel(ctx); err != nil {
+				handleError(w, logger, err)
 
-				ok, err := pips.Cancel(ctx, trans.ID)
-				if !ok {
-					logger.Warning("Could not find a corresponding pipeline "+
-						"for transfer %d", trans.ID)
-
-					trans.Status = types.StatusCancelled
-					if err := trans.MoveToHistory(db, logger, time.Time{}); handleError(w, logger, err) {
-						return
-					}
-				}
-
-				if err != nil {
-					handleError(w, logger, err)
-
-					return
-				}
-			} else {
-				trans.Status = types.StatusCancelled
-				if err := trans.MoveToHistory(db, logger, time.Time{}); handleError(w, logger, err) {
-					return
-				}
+				return
 			}
-
-			r.URL.Path = "/api/history"
-			w.Header().Set("Location", location(r.URL, utils.FormatInt(trans.ID)))
-			w.WriteHeader(http.StatusAccepted)
+		} else {
+			trans.Status = types.StatusCancelled
+			if err := trans.MoveToHistory(db, logger, time.Time{}); handleError(w, logger, err) {
+				return
+			}
 		}
+
+		r.URL.Path = "/api/history"
+		w.Header().Set("Location", location(r.URL, utils.FormatInt(trans.ID)))
+		w.WriteHeader(http.StatusAccepted)
 	}
 }
 
@@ -379,7 +359,8 @@ func resumeTransfer(logger *log.Logger, db *database.DB) http.HandlerFunc {
 		}
 
 		dbHist.Status = types.StatusPlanned
-		dbHist.Error = types.TransferError{}
+		dbHist.ErrCode = types.TeOk
+		dbHist.ErrDetails = ""
 
 		if err := db.Update(&dbHist).Cols("status", "error_code", "error_details").
 			Run(); handleError(w, logger, err) {
@@ -441,13 +422,13 @@ func cancelDBTransfer(db *database.DB, logger *log.Logger, w http.ResponseWriter
 		statuses[i] = status[i]
 	}
 
-	tErr := db.Transaction(func(ses *database.Session) database.Error {
+	tErr := db.Transaction(func(ses *database.Session) error {
 		for i := 0; ; i += 20 {
 			var transfers model.Transfers
 			if err := ses.Select(&transfers).Limit(0, i).Run(); err != nil {
-				logger.Error("Failed to retrieve ")
+				logger.Error("Failed to retrieve transfers: %v", err)
 
-				return err
+				return fmt.Errorf("failed to retrieve transfers: %w", err)
 			}
 
 			if len(transfers) == 0 {
@@ -458,13 +439,13 @@ func cancelDBTransfer(db *database.DB, logger *log.Logger, w http.ResponseWriter
 				trans.Status = types.StatusCancelled
 
 				if err := trans.CopyToHistory(ses, logger, time.Time{}); err != nil {
-					return err
+					return fmt.Errorf("failed to move transfer %d to history: %w", trans.ID, err)
 				}
 			}
 		}
 
 		if err := ses.DeleteAll(&model.Transfer{}).In("status", statuses...).Run(); err != nil {
-			return err
+			return fmt.Errorf("failed to cancel transfers: %w", err)
 		}
 
 		return nil
@@ -473,77 +454,63 @@ func cancelDBTransfer(db *database.DB, logger *log.Logger, w http.ResponseWriter
 	return !handleError(w, logger, tErr)
 }
 
-func cancelRunningTransfers(protoServices map[string]proto.Service,
-	logger *log.Logger, r *http.Request, w http.ResponseWriter,
-) bool {
+func cancelRunningTransfers(r *http.Request) bool {
 	const cancelTimeout = 2 * time.Second
 
 	ctx, cancel := context.WithTimeout(r.Context(), cancelTimeout)
 	defer cancel()
 
-	for _, serv := range protoServices {
-		if err := serv.ManageTransfers().CancelAll(ctx); handleError(
-			w, logger, err) {
-			return false
-		}
-	}
-
-	for _, cli := range pipeline.Clients {
-		if err := cli.ManageTransfers().CancelAll(ctx); handleError(
-			w, logger, err) {
-			return false
-		}
+	if err := pipeline.List.CancelAll(ctx); err != nil {
+		return false
 	}
 
 	return true
 }
 
 //nolint:gocognit //there is no way to further simplify this function
-func cancelTransfers(protoServices map[string]proto.Service) handler {
-	return func(logger *log.Logger, db *database.DB) http.HandlerFunc {
-		return func(w http.ResponseWriter, r *http.Request) {
-			switch target := r.FormValue("target"); target {
-			case "":
-				handleError(w, logger, badRequest("missing 'target' parameter"))
+func cancelTransfers(logger *log.Logger, db *database.DB) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		switch target := r.FormValue("target"); target {
+		case "":
+			handleError(w, logger, badRequest("missing 'target' parameter"))
 
+			return
+		case "error":
+			if !cancelDBTransfer(db, logger, w, types.StatusError) {
 				return
-			case "error":
-				if !cancelDBTransfer(db, logger, w, types.StatusError) {
-					return
-				}
-			case "planned":
-				if !cancelDBTransfer(db, logger, w, types.StatusPlanned) {
-					return
-				}
-			case "paused":
-				if !cancelDBTransfer(db, logger, w, types.StatusPaused) {
-					return
-				}
-			case "interrupted":
-				if !cancelDBTransfer(db, logger, w, types.StatusInterrupted) {
-					return
-				}
-			case "running":
-				if !cancelRunningTransfers(protoServices, logger, r, w) {
-					return
-				}
-			case "all":
-				if !cancelDBTransfer(db, logger, w, types.StatusError, types.StatusPlanned,
-					types.StatusPaused, types.StatusInterrupted) {
-					return
-				}
-
-				if !cancelRunningTransfers(protoServices, logger, r, w) {
-					return
-				}
-			default:
-				handleError(w, logger, badRequest("unknown cancel target '%s'", target))
-
+			}
+		case "planned":
+			if !cancelDBTransfer(db, logger, w, types.StatusPlanned) {
+				return
+			}
+		case "paused":
+			if !cancelDBTransfer(db, logger, w, types.StatusPaused) {
+				return
+			}
+		case "interrupted":
+			if !cancelDBTransfer(db, logger, w, types.StatusInterrupted) {
+				return
+			}
+		case "running":
+			if !cancelRunningTransfers(r) {
+				return
+			}
+		case "all":
+			if !cancelDBTransfer(db, logger, w, types.StatusError, types.StatusPlanned,
+				types.StatusPaused, types.StatusInterrupted) {
 				return
 			}
 
-			w.WriteHeader(http.StatusAccepted)
-			fmt.Fprint(w, "Transfers canceled successfully")
+			if !cancelRunningTransfers(r) {
+				return
+			}
+		default:
+			handleError(w, logger, badRequest("unknown cancel target '%s'", target))
+
+			return
 		}
+
+		w.WriteHeader(http.StatusAccepted)
+		fmt.Fprint(w, "Transfers canceled successfully")
 	}
 }

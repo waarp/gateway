@@ -3,7 +3,7 @@ package migrations
 import (
 	"code.waarp.fr/lib/migration"
 
-	"code.waarp.fr/apps/gateway/gateway/pkg/tk/utils"
+	"code.waarp.fr/apps/gateway/gateway/pkg/utils"
 )
 
 type Actions = migration.Actions

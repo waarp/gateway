@@ -6,9 +6,7 @@ import (
 
 	"code.waarp.fr/apps/gateway/gateway/pkg/conf"
 	"code.waarp.fr/apps/gateway/gateway/pkg/database"
-	"code.waarp.fr/apps/gateway/gateway/pkg/gatewayd/service/names"
-	"code.waarp.fr/apps/gateway/gateway/pkg/model/config"
-	"code.waarp.fr/apps/gateway/gateway/pkg/tk/utils"
+	"code.waarp.fr/apps/gateway/gateway/pkg/utils"
 	"code.waarp.fr/apps/gateway/gateway/pkg/utils/compatibility"
 )
 
@@ -38,14 +36,14 @@ func (*LocalAgent) Appellation() string { return "server" }
 func (l *LocalAgent) GetID() int64      { return l.ID }
 
 func (l *LocalAgent) validateProtoConfig() error {
-	if err := config.CheckServerConfig(l.Protocol, l.ProtoConfig); err != nil {
-		return database.NewValidationError(err.Error())
+	if err := ConfigChecker.CheckServerConfig(l.Protocol, l.ProtoConfig); err != nil {
+		return database.NewValidationError("%v", err)
 	}
 
 	// For backwards compatibility, in the presence of the r66 "isTLS" property,
 	// we change the protocol to r66-tls.
-	if l.Protocol == config.ProtocolR66 && compatibility.IsTLS(l.ProtoConfig) {
-		l.Protocol = config.ProtocolR66TLS
+	if l.Protocol == protoR66 && compatibility.IsTLS(l.ProtoConfig) {
+		l.Protocol = protoR66TLS
 	}
 
 	return nil
@@ -73,16 +71,12 @@ func (l *LocalAgent) makePaths() {
 
 // BeforeWrite is called before inserting a new `LocalAgent` entry in the
 // database. It checks whether the new entry is valid or not.
-func (l *LocalAgent) BeforeWrite(db database.ReadAccess) database.Error {
+func (l *LocalAgent) BeforeWrite(db database.ReadAccess) error {
 	l.Owner = conf.GlobalConfig.GatewayName
 	l.makePaths()
 
 	if l.Name == "" {
 		return database.NewValidationError("the agent's name cannot be empty")
-	}
-
-	if names.IsReservedServiceName(l.Name) {
-		return database.NewValidationError("%s is a reserved server name", l.Name)
 	}
 
 	if l.Address == "" {
@@ -99,12 +93,12 @@ func (l *LocalAgent) BeforeWrite(db database.ReadAccess) database.Error {
 	}
 
 	if err := l.validateProtoConfig(); err != nil {
-		return database.NewValidationError(err.Error())
+		return database.NewValidationError("%v", err)
 	}
 
 	if n, err := db.Count(l).Where("id<>? AND owner=? AND name=?", l.ID, l.Owner,
 		l.Name).Run(); err != nil {
-		return err
+		return fmt.Errorf("failed to check for duplicate local agents: %w", err)
 	} else if n > 0 {
 		return database.NewValidationError(
 			"a local agent with the same name '%s' already exist", l.Name)
@@ -112,7 +106,7 @@ func (l *LocalAgent) BeforeWrite(db database.ReadAccess) database.Error {
 
 	if n, err := db.Count(l).Where("id<>? AND owner=? AND address=?", l.ID,
 		l.Owner, l.Address).Run(); err != nil {
-		return err
+		return fmt.Errorf("failed to check for duplicate local agent addresses: %w", err)
 	} else if n > 0 {
 		return database.NewValidationError(
 			"a local agent with the same address '%s' already exist", l.Address)
@@ -123,10 +117,10 @@ func (l *LocalAgent) BeforeWrite(db database.ReadAccess) database.Error {
 
 // BeforeDelete is called before deleting the account from the database. Its
 // role is to check whether the server is still used in any ongoing transfer.
-func (l *LocalAgent) BeforeDelete(db database.Access) database.Error {
+func (l *LocalAgent) BeforeDelete(db database.Access) error {
 	if n, err := db.Count(&Transfer{}).Where(`local_account_id IN (SELECT id
 		FROM local_accounts WHERE local_agent_id=?)`, l.ID).Run(); err != nil {
-		return err
+		return fmt.Errorf("failed to check for ongoing transfers: %w", err)
 	} else if n > 0 {
 		//nolint:goconst //too specific
 		return database.NewValidationError("this server is currently being used " +

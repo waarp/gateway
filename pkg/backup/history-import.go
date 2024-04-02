@@ -39,7 +39,8 @@ func jsonTransToDbHist(trans *file.Transfer) (*model.HistoryEntry, error) {
 		Step:             trans.Step,
 		Progress:         trans.Progress,
 		TaskNumber:       trans.TaskNumber,
-		Error:            types.TransferError{Code: trans.ErrorCode, Details: trans.ErrorMsg},
+		ErrCode:          trans.ErrorCode,
+		ErrDetails:       trans.ErrorMsg,
 	}, nil
 }
 
@@ -48,8 +49,8 @@ var ErrInvalidJSONInput = errors.New("invalid JSON input")
 func importHistory(ses *database.Session, r io.Reader) (int64, error) {
 	decoder := json.NewDecoder(r)
 
-	if tok, err := decoder.Token(); err != nil {
-		return 0, fmt.Errorf("failed to parse JSON input: %w", err)
+	if tok, tokErr := decoder.Token(); tokErr != nil {
+		return 0, fmt.Errorf("failed to parse JSON input: %w", tokErr)
 	} else if tok != json.Delim('[') {
 		return 0, fmt.Errorf("%w: expected array start, got '%v'", ErrInvalidJSONInput, tok)
 	}
@@ -66,17 +67,17 @@ func importHistory(ses *database.Session, r io.Reader) (int64, error) {
 			maxID = trans.ID
 		}
 
-		h, err := jsonTransToDbHist(&trans)
-		if err != nil {
-			return 0, err
+		h, convErr := jsonTransToDbHist(&trans)
+		if convErr != nil {
+			return 0, convErr
 		}
 
 		if err := ses.Insert(h).Run(); err != nil {
-			return 0, err
+			return 0, fmt.Errorf("failed to insert history entry %d: %w", trans.ID, err)
 		}
 
 		if err := h.SetTransferInfo(ses, trans.TransferInfo); err != nil {
-			return 0, err
+			return 0, fmt.Errorf("failed to insert info of transfer %d: %w", trans.ID, err)
 		}
 	}
 
