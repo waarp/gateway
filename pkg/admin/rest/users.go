@@ -14,21 +14,14 @@ import (
 	"code.waarp.fr/apps/gateway/gateway/pkg/utils"
 )
 
-func dbUserToRESTInput(old *model.User) *api.InUser {
-	return &api.InUser{
-		Username: &old.Username,
-		Password: strPtr(old.PasswordHash),
-	}
-}
-
 // restUserToDB transforms the JSON user into its database equivalent.
 func restUserToDB(user *api.InUser, old *model.User) (*model.User, error) {
-	mask, err := permsToMask(old.Permissions, user.Perms)
+	mask, err := permsToMask(old.Permissions, &user.Perms)
 	if err != nil {
 		return nil, err
 	}
 
-	hash, err := utils.HashPassword(database.BcryptRounds, str(user.Password))
+	hash, err := utils.HashPassword(database.BcryptRounds, user.Password.Value)
 	if err != nil {
 		return nil, fmt.Errorf("failed to hash passwordi: %w", err)
 	}
@@ -36,7 +29,7 @@ func restUserToDB(user *api.InUser, old *model.User) (*model.User, error) {
 	return &model.User{
 		ID:           old.ID,
 		Owner:        conf.GlobalConfig.GatewayName,
-		Username:     str(user.Username),
+		Username:     user.Username.Value,
 		PasswordHash: hash,
 		Permissions:  mask,
 	}, nil
@@ -148,7 +141,10 @@ func updateUser(logger *log.Logger, db *database.DB) http.HandlerFunc {
 			return
 		}
 
-		restUser := dbUserToRESTInput(oldUser)
+		restUser := &api.InUser{
+			Username: api.AsNullable(oldUser.Username),
+			Password: api.AsNullable(oldUser.PasswordHash),
+		}
 		if err := readJSON(r, restUser); handleError(w, logger, err) {
 			return
 		}
@@ -163,7 +159,7 @@ func updateUser(logger *log.Logger, db *database.DB) http.HandlerFunc {
 			return
 		}
 
-		w.Header().Set("Location", locationUpdate(r.URL, str(restUser.Username)))
+		w.Header().Set("Location", locationUpdate(r.URL, restUser.Username.Value))
 		w.WriteHeader(http.StatusCreated)
 	}
 }
@@ -190,7 +186,7 @@ func replaceUser(logger *log.Logger, db *database.DB) http.HandlerFunc {
 			return
 		}
 
-		w.Header().Set("Location", locationUpdate(r.URL, str(restUser.Username)))
+		w.Header().Set("Location", locationUpdate(r.URL, restUser.Username.Value))
 		w.WriteHeader(http.StatusCreated)
 	}
 }

@@ -16,81 +16,69 @@ import (
 	"code.waarp.fr/apps/gateway/gateway/pkg/utils/compatibility"
 )
 
-func dbServerToRESTInput(dbServer *model.LocalAgent) *api.InServer {
-	return &api.InServer{
-		Name:          &dbServer.Name,
-		Protocol:      &dbServer.Protocol,
-		Address:       &dbServer.Address,
-		RootDir:       &dbServer.RootDir,
-		ReceiveDir:    &dbServer.ReceiveDir,
-		SendDir:       &dbServer.SendDir,
-		TmpReceiveDir: &dbServer.TmpReceiveDir,
-		ProtoConfig:   dbServer.ProtoConfig,
-	}
-}
-
 // restServerToDB transforms the JSON local agent into its database equivalent.
 func restServerToDB(restServer *api.InServer, logger *log.Logger,
-) *model.LocalAgent {
-	root := str(restServer.RootDir)
-	sndDir := str(restServer.SendDir)
-	rcvDir := str(restServer.ReceiveDir)
-	tmpDir := str(restServer.TmpReceiveDir)
+) (*model.LocalAgent, error) {
+	root := restServer.RootDir.Value
+	sndDir := restServer.SendDir.Value
+	rcvDir := restServer.ReceiveDir.Value
+	tmpDir := restServer.TmpReceiveDir.Value
 
-	if root == "" && restServer.Root != nil {
+	if restServer.Root.Valid {
 		logger.Warning("JSON field 'root' is deprecated, use 'rootDir' instead")
 
-		root = utils.DenormalizePath(str(restServer.Root))
+		root = utils.DenormalizePath(restServer.Root.Value)
 	}
 
-	if rcvDir == "" && restServer.InDir != nil {
+	if restServer.InDir.Valid {
 		logger.Warning("JSON field 'inDir' is deprecated, use 'receiveDir' instead")
 
-		rcvDir = utils.DenormalizePath(str(restServer.InDir))
+		rcvDir = utils.DenormalizePath(restServer.InDir.Value)
 	}
 
-	if sndDir == "" && restServer.OutDir != nil {
+	if restServer.OutDir.Valid {
 		logger.Warning("JSON field 'outDir' is deprecated, use 'sendDir' instead")
 
-		sndDir = utils.DenormalizePath(str(restServer.OutDir))
+		sndDir = utils.DenormalizePath(restServer.OutDir.Value)
 	}
 
-	if tmpDir == "" && restServer.WorkDir != nil {
+	if restServer.WorkDir.Valid {
 		logger.Warning("JSON field 'workDir' is deprecated, use 'tmpLocalRcvDir' instead")
 
-		tmpDir = utils.DenormalizePath(str(restServer.WorkDir))
+		tmpDir = utils.DenormalizePath(restServer.WorkDir.Value)
 	}
 
-	return &model.LocalAgent{
+	dbServer := &model.LocalAgent{
 		Owner:         conf.GlobalConfig.GatewayName,
-		Name:          str(restServer.Name),
-		Address:       str(restServer.Address),
+		Name:          restServer.Name.Value,
 		RootDir:       root,
 		ReceiveDir:    rcvDir,
 		SendDir:       sndDir,
 		TmpReceiveDir: tmpDir,
-		Protocol:      str(restServer.Protocol),
+		Protocol:      restServer.Protocol.Value,
 		ProtoConfig:   restServer.ProtoConfig,
 	}
-}
 
-func dbPartnerToRESTInput(dbPartner *model.RemoteAgent) *api.InPartner {
-	return &api.InPartner{
-		Name:        &dbPartner.Name,
-		Protocol:    &dbPartner.Protocol,
-		Address:     &dbPartner.Address,
-		ProtoConfig: dbPartner.ProtoConfig,
+	if err := dbServer.Address.Set(restServer.Address.Value); err != nil {
+		return nil, badRequest(err.Error())
 	}
+
+	return dbServer, nil
 }
 
 // restPartnerToDB transforms the JSON remote agent into its database equivalent.
-func restPartnerToDB(restPartner *api.InPartner) *model.RemoteAgent {
-	return &model.RemoteAgent{
-		Name:        str(restPartner.Name),
-		Protocol:    str(restPartner.Protocol),
-		Address:     str(restPartner.Address),
+func restPartnerToDB(restPartner *api.InPartner) (*model.RemoteAgent, error) {
+	dbPartner := &model.RemoteAgent{
+		Name:        restPartner.Name.Value,
+		Protocol:    restPartner.Protocol.Value,
 		ProtoConfig: restPartner.ProtoConfig,
 	}
+
+	if err := dbPartner.Address.Set(restPartner.Address.Value); err != nil {
+		return nil, badRequest(err.Error())
+	}
+
+	return dbPartner, nil
 }
 
 // DBServerToREST transforms the given database local agent into its JSON
@@ -108,15 +96,21 @@ func DBServerToREST(db database.ReadAccess, dbServer *model.LocalAgent) (*api.Ou
 		return nil, err
 	}
 
+	credentials, err := makeCredList(db, dbServer)
+	if err != nil {
+		return nil, err
+	}
+
 	return &api.OutServer{
 		Name:            dbServer.Name,
 		Enabled:         !dbServer.Disabled,
 		Protocol:        dbServer.Protocol,
-		Address:         dbServer.Address,
+		Address:         dbServer.Address.String(),
 		RootDir:         dbServer.RootDir,
 		SendDir:         dbServer.SendDir,
 		ReceiveDir:      dbServer.ReceiveDir,
 		TmpReceiveDir:   dbServer.TmpReceiveDir,
+		Credentials:     credentials,
 		ProtoConfig:     dbServer.ProtoConfig,
 		AuthorizedRules: authorizedRules,
 
@@ -157,10 +151,16 @@ func DBPartnerToREST(db database.ReadAccess, dbPartner *model.RemoteAgent) (*api
 		return nil, err
 	}
 
+	credentials, err := makeCredList(db, dbPartner)
+	if err != nil {
+		return nil, err
+	}
+
 	return &api.OutPartner{
 		Name:            dbPartner.Name,
 		Protocol:        dbPartner.Protocol,
-		Address:         dbPartner.Address,
+		Address:         dbPartner.Address.String(),
+		Credentials:     credentials,
 		ProtoConfig:     dbPartner.ProtoConfig,
 		AuthorizedRules: authorizedRules,
 	}, nil

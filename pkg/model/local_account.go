@@ -4,6 +4,7 @@ import (
 	"fmt"
 
 	"code.waarp.fr/apps/gateway/gateway/pkg/database"
+	"code.waarp.fr/apps/gateway/gateway/pkg/model/authentication"
 	"code.waarp.fr/apps/gateway/gateway/pkg/utils"
 )
 
@@ -13,17 +14,19 @@ type LocalAccount struct {
 	ID           int64 `xorm:"<- id AUTOINCR"` // The account's database ID.
 	LocalAgentID int64 `xorm:"local_agent_id"` // The ID of the LocalAgent this account is attached to.
 
-	Login        string `xorm:"login"`         // The account's login.
-	PasswordHash string `xorm:"password_hash"` // A bcrypt hash of the account's password.
+	Login string `xorm:"login"` // The account's login.
 }
 
 func (*LocalAccount) TableName() string   { return TableLocAccounts }
-func (*LocalAccount) Appellation() string { return "local account" }
+func (*LocalAccount) Appellation() string { return NameLocalAccount }
 func (l *LocalAccount) GetID() int64      { return l.ID }
+func (l *LocalAccount) Host() string      { return "" }
+func (*LocalAccount) IsServer() bool      { return false }
 
-// GetCryptos fetch in the database then return the associated Cryptos if they exist.
-func (l *LocalAccount) GetCryptos(db *database.DB) ([]*Crypto, error) {
-	return getCryptos(db, l)
+// GetCredentials fetch in the database then return the associated Credentials if they exist.
+func (l *LocalAccount) GetCredentials(db database.ReadAccess, authTypes ...string,
+) (Credentials, error) {
+	return getCredentials(db, l, authTypes...)
 }
 
 // BeforeWrite checks if the new `LocalAccount` entry is valid and can be
@@ -39,16 +42,10 @@ func (l *LocalAccount) BeforeWrite(db database.ReadAccess) error {
 		return database.NewValidationError("the account's login cannot be empty")
 	}
 
-	if l.PasswordHash != "" {
-		if !utils.IsHash(l.PasswordHash) {
-			return database.NewValidationError("the password is not hashed")
-		}
-	}
-
 	parent := &LocalAgent{}
 	if err := db.Get(parent, "id=?", l.LocalAgentID).Run(); err != nil {
 		if database.IsNotFound(err) {
-			return database.NewValidationError("no local agent found with the ID '%v'", l.LocalAgentID)
+			return database.NewValidationError(`no local agent found with the ID "%v"`, l.LocalAgentID)
 		}
 
 		return fmt.Errorf("failed to check parent local agent: %w", err)
@@ -58,7 +55,7 @@ func (l *LocalAccount) BeforeWrite(db database.ReadAccess) error {
 		l.ID, l.LocalAgentID, l.Login).Run(); err != nil {
 		return fmt.Errorf("failed to check for duplicate local accounts: %w", err)
 	} else if n > 0 {
-		return database.NewValidationError("a local account with the same login '%s' "+
+		return database.NewValidationError("a local account with the same login %q "+
 			"already exist", l.Login)
 	}
 
@@ -80,12 +77,11 @@ func (l *LocalAccount) BeforeDelete(db database.Access) error {
 	return nil
 }
 
-//nolint:goconst //different columns having the same name does not warrant making that name a constant
-func (l *LocalAccount) GenCryptoSelectCond() (string, int64) { return "local_account_id=?", l.ID }
-func (l *LocalAccount) SetCryptoOwner(c *Crypto)             { c.LocalAccountID = utils.NewNullInt64(l.ID) }
+//nolint:goconst //duplicates are for different tables, best not to factorize
+func (l *LocalAccount) GetCredCond() (string, int64)         { return "local_account_id=?", l.ID }
+func (l *LocalAccount) SetCredOwner(a *Credential)           { a.LocalAccountID = utils.NewNullInt64(l.ID) }
 func (l *LocalAccount) GenAccessSelectCond() (string, int64) { return "local_account_id=?", l.ID }
-
-func (l *LocalAccount) SetAccessTarget(a *RuleAccess) { a.LocalAccountID = utils.NewNullInt64(l.ID) }
+func (l *LocalAccount) SetAccessTarget(a *RuleAccess)        { a.LocalAccountID = utils.NewNullInt64(l.ID) }
 
 func (l *LocalAccount) GetAuthorizedRules(db database.ReadAccess) ([]*Rule, error) {
 	var rules Rules
@@ -98,4 +94,9 @@ func (l *LocalAccount) GetAuthorizedRules(db database.ReadAccess) ([]*Rule, erro
 	}
 
 	return rules, nil
+}
+
+func (l *LocalAccount) Authenticate(db database.ReadAccess, authType string, value any,
+) (*authentication.Result, error) {
+	return authenticate(db, l, authType, value)
 }

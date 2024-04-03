@@ -9,7 +9,6 @@ import (
 	"time"
 
 	"github.com/smartystreets/goconvey/convey"
-	"golang.org/x/crypto/bcrypt"
 
 	"code.waarp.fr/apps/gateway/gateway/pkg/conf"
 	"code.waarp.fr/apps/gateway/gateway/pkg/database"
@@ -25,8 +24,9 @@ import (
 // TestLogin and TestPassword are the credentials used for authentication
 // during transfer tests.
 const (
-	TestLogin    = "foo"
-	TestPassword = "sesame"
+	TestLogin      = "foo"
+	TestPassword   = "sesame"
+	testServerName = "waarp_server"
 )
 
 //nolint:gochecknoinits //init is required here
@@ -156,13 +156,6 @@ func (t *testData) setClientTrace(pip *pipeline.Pipeline) {
 			}
 		}
 	}
-}
-
-func hash(pwd string) string {
-	h, err := bcrypt.GenerateFromPassword([]byte(pwd), bcrypt.MinCost)
-	convey.So(err, convey.ShouldBeNil)
-
-	return string(h)
 }
 
 func mkURL(base string, elem ...string) *types.URL {

@@ -30,7 +30,7 @@ func FromRuleTasks(ts []*model.Task) []*api.Task {
 	return tasks
 }
 
-func doListTasks(db *database.DB, rule *api.OutRule, ruleID int64) error {
+func doListTasks(db database.ReadAccess, rule *api.OutRule, ruleID int64) error {
 	var preTasks model.Tasks
 	if err := db.Select(&preTasks).Where("rule_id=? AND chain=?", ruleID,
 		model.ChainPre).Run(); err != nil {
@@ -56,7 +56,7 @@ func doListTasks(db *database.DB, rule *api.OutRule, ruleID int64) error {
 	return nil
 }
 
-func taskUpdateDelete(ses *database.Session, rule *api.UptRule, ruleID int64,
+func taskUpdateDelete(ses *database.Session, rule *api.InRule, ruleID int64,
 	isReplace bool,
 ) error {
 	var task model.Task
@@ -93,7 +93,7 @@ func taskUpdateDelete(ses *database.Session, rule *api.UptRule, ruleID int64,
 	return nil
 }
 
-func doTaskUpdate(ses *database.Session, rule *api.UptRule, ruleID int64,
+func doTaskUpdate(ses *database.Session, rule *api.InRule, ruleID int64,
 	isReplace bool,
 ) error {
 	if err := taskUpdateDelete(ses, rule, ruleID, isReplace); err != nil {

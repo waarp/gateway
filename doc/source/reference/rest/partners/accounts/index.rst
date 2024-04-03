@@ -16,4 +16,6 @@ rattaché à un partenaire, et sert donc à s'authentifier sur ce dernier.
    delete
    authorize
    revoke
+   cred_add
+   cred_delete
    certificates/index

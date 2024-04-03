@@ -30,6 +30,9 @@ func TestServerGet(t *testing.T) {
 		receive1 = "receive1"
 		receive2 = "receive2"
 
+		cred1 = "cred1"
+		cred2 = "cred2"
+
 		path = "/api/servers/" + name
 	)
 
@@ -51,6 +54,7 @@ func TestServerGet(t *testing.T) {
 				"protocol":      proto,
 				"enabled":       enabled,
 				"address":       addr,
+				"credentials":   []string{cred1, cred2},
 				"rootDir":       root,
 				"receiveDir":    recvDir,
 				"sendDir":       sendDir,
@@ -74,6 +78,7 @@ func TestServerGet(t *testing.T) {
 					fmt.Sprintf("── Server %q [%s]\n", name, status)+
 						fmt.Sprintf("   ├─ Protocol: %s\n", proto)+
 						fmt.Sprintf("   ├─ Address: %s\n", addr)+
+						fmt.Sprintf("   ├─ Credentials: %s, %s\n", cred1, cred2)+
 						fmt.Sprintf("   ├─ Root directory: %s\n", root)+
 						fmt.Sprintf("   ├─ Receive directory: %s\n", recvDir)+
 						fmt.Sprintf("   ├─ Send directory: %s\n", sendDir)+
@@ -232,6 +237,7 @@ func TestServersList(t *testing.T) {
 					fmt.Sprintf("╭─ Server %q [%s]\n", name1, status1)+
 					fmt.Sprintf("│  ├─ Protocol: %s\n", proto1)+
 					fmt.Sprintf("│  ├─ Address: %s\n", addr1)+
+					fmt.Sprintf("│  ├─ Credentials: <none>\n")+
 					fmt.Sprintf("│  ├─ Configuration: <empty>\n")+
 					fmt.Sprintf("│  ╰─ Authorized rules\n")+
 					fmt.Sprintf("│     ├─ Send: <none>\n")+
@@ -239,6 +245,7 @@ func TestServersList(t *testing.T) {
 					fmt.Sprintf("╰─ Server %q [%s]\n", name2, status2)+
 					fmt.Sprintf("   ├─ Protocol: %s\n", proto2)+
 					fmt.Sprintf("   ├─ Address: %s\n", addr2)+
+					fmt.Sprintf("   ├─ Credentials: <none>\n")+
 					fmt.Sprintf("   ├─ Configuration: <empty>\n")+
 					fmt.Sprintf("   ╰─ Authorized rules\n")+
 					fmt.Sprintf("      ├─ Send: <none>\n")+

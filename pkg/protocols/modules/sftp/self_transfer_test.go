@@ -11,8 +11,8 @@ import (
 
 func TestSelfPushOK(t *testing.T) {
 	Convey("Given a new SFTP push transfer", t, func(c C) {
-		ctx := pipelinetest.InitSelfPushTransfer(c, SFTP, nil, nil, nil)
-		ctx.AddCryptos(c, makeCerts(ctx)...)
+		ctx := pipelinetest.InitSelfPushTransfer(c, "sftp", nil, nil, nil)
+		ctx.AddAuths(c, makeAuths(ctx)...)
 		ctx.StartService(c)
 
 		Convey("When executing the transfer", func(c C) {
@@ -32,8 +32,8 @@ func TestSelfPushOK(t *testing.T) {
 
 func TestSelfPullOK(t *testing.T) {
 	Convey("Given a new SFTP pull transfer", t, func(c C) {
-		ctx := pipelinetest.InitSelfPullTransfer(c, SFTP, nil, nil, nil)
-		ctx.AddCryptos(c, makeCerts(ctx)...)
+		ctx := pipelinetest.InitSelfPullTransfer(c, "sftp", nil, nil, nil)
+		ctx.AddAuths(c, makeAuths(ctx)...)
 		ctx.StartService(c)
 
 		Convey("When executing the transfer", func(c C) {
@@ -53,8 +53,8 @@ func TestSelfPullOK(t *testing.T) {
 
 func TestPushClientPreError(t *testing.T) {
 	Convey("Given a new SFTP push transfer", t, func(c C) {
-		ctx := pipelinetest.InitSelfPushTransfer(c, SFTP, nil, nil, nil)
-		ctx.AddCryptos(c, makeCerts(ctx)...)
+		ctx := pipelinetest.InitSelfPushTransfer(c, "sftp", nil, nil, nil)
+		ctx.AddAuths(c, makeAuths(ctx)...)
 		ctx.StartService(c)
 
 		Convey("Given that an error occurs in client pre-tasks", func(c C) {
@@ -82,8 +82,8 @@ func TestPushClientPreError(t *testing.T) {
 
 func TestPushServerPreError(t *testing.T) {
 	Convey("Given a new SFTP push transfer", t, func(c C) {
-		ctx := pipelinetest.InitSelfPushTransfer(c, SFTP, nil, nil, nil)
-		ctx.AddCryptos(c, makeCerts(ctx)...)
+		ctx := pipelinetest.InitSelfPushTransfer(c, "sftp", nil, nil, nil)
+		ctx.AddAuths(c, makeAuths(ctx)...)
 		ctx.StartService(c)
 
 		Convey("Given that an error occurs in server pre-tasks", func(c C) {
@@ -111,7 +111,7 @@ func TestPushServerPreError(t *testing.T) {
 func TestPullClientPreError(t *testing.T) {
 	Convey("Given a new SFTP pull transfer", t, func(c C) {
 		ctx := pipelinetest.InitSelfPullTransfer(c, SFTP, nil, nil, nil)
-		ctx.AddCryptos(c, makeCerts(ctx)...)
+		ctx.AddAuths(c, makeAuths(ctx)...)
 		ctx.StartService(c)
 
 		Convey("Given that an error occurs in client pre-tasks", func(c C) {
@@ -140,7 +140,7 @@ func TestPullClientPreError(t *testing.T) {
 func TestPullServerPreError(t *testing.T) {
 	Convey("Given a new SFTP pull transfer", t, func(c C) {
 		ctx := pipelinetest.InitSelfPullTransfer(c, SFTP, nil, nil, nil)
-		ctx.AddCryptos(c, makeCerts(ctx)...)
+		ctx.AddAuths(c, makeAuths(ctx)...)
 		ctx.StartService(c)
 
 		Convey("Given that an error occurs in server pre-tasks", func(c C) {
@@ -167,8 +167,8 @@ func TestPullServerPreError(t *testing.T) {
 
 func TestSelfPushClientDataFail(t *testing.T) {
 	Convey("Given a new r66 push transfer", t, func(c C) {
-		ctx := pipelinetest.InitSelfPushTransfer(c, SFTP, nil, nil, nil)
-		ctx.AddCryptos(c, makeCerts(ctx)...)
+		ctx := pipelinetest.InitSelfPushTransfer(c, "sftp", nil, nil, nil)
+		ctx.AddAuths(c, makeAuths(ctx)...)
 		ctx.StartService(c)
 
 		Convey("Given an error during the data transfer", func(c C) {
@@ -196,8 +196,8 @@ func TestSelfPushClientDataFail(t *testing.T) {
 
 func TestSelfPushServerDataFail(t *testing.T) {
 	Convey("Given a new r66 push transfer", t, func(c C) {
-		ctx := pipelinetest.InitSelfPushTransfer(c, SFTP, nil, nil, nil)
-		ctx.AddCryptos(c, makeCerts(ctx)...)
+		ctx := pipelinetest.InitSelfPushTransfer(c, "sftp", nil, nil, nil)
+		ctx.AddAuths(c, makeAuths(ctx)...)
 		ctx.StartService(c)
 
 		Convey("Given an error during the data transfer", func(c C) {
@@ -225,8 +225,8 @@ func TestSelfPushServerDataFail(t *testing.T) {
 
 func TestSelfPullClientDataFail(t *testing.T) {
 	Convey("Given a new r66 push transfer", t, func(c C) {
-		ctx := pipelinetest.InitSelfPullTransfer(c, SFTP, nil, nil, nil)
-		ctx.AddCryptos(c, makeCerts(ctx)...)
+		ctx := pipelinetest.InitSelfPullTransfer(c, "sftp", nil, nil, nil)
+		ctx.AddAuths(c, makeAuths(ctx)...)
 		ctx.StartService(c)
 
 		Convey("Given an error during the data transfer", func(c C) {
@@ -254,8 +254,8 @@ func TestSelfPullClientDataFail(t *testing.T) {
 
 func TestSelfPullServerDataFail(t *testing.T) {
 	Convey("Given a new r66 push transfer", t, func(c C) {
-		ctx := pipelinetest.InitSelfPullTransfer(c, SFTP, nil, nil, nil)
-		ctx.AddCryptos(c, makeCerts(ctx)...)
+		ctx := pipelinetest.InitSelfPullTransfer(c, "sftp", nil, nil, nil)
+		ctx.AddAuths(c, makeAuths(ctx)...)
 		ctx.StartService(c)
 
 		Convey("Given an error during the data transfer", func(c C) {
@@ -283,8 +283,8 @@ func TestSelfPullServerDataFail(t *testing.T) {
 
 func TestPushClientPostError(t *testing.T) {
 	Convey("Given a new SFTP push transfer", t, func(c C) {
-		ctx := pipelinetest.InitSelfPushTransfer(c, SFTP, nil, nil, nil)
-		ctx.AddCryptos(c, makeCerts(ctx)...)
+		ctx := pipelinetest.InitSelfPushTransfer(c, "sftp", nil, nil, nil)
+		ctx.AddAuths(c, makeAuths(ctx)...)
 		ctx.StartService(c)
 
 		Convey("Given that an error occurs in client post-tasks", func(c C) {
@@ -313,8 +313,8 @@ func TestPushClientPostError(t *testing.T) {
 
 func TestPushServerPostError(t *testing.T) {
 	Convey("Given a new SFTP push transfer", t, func(c C) {
-		ctx := pipelinetest.InitSelfPushTransfer(c, SFTP, nil, nil, nil)
-		ctx.AddCryptos(c, makeCerts(ctx)...)
+		ctx := pipelinetest.InitSelfPushTransfer(c, "sftp", nil, nil, nil)
+		ctx.AddAuths(c, makeAuths(ctx)...)
 		ctx.StartService(c)
 
 		Convey("Given that an error occurs in server post-tasks", func(c C) {
@@ -344,8 +344,8 @@ func TestPushServerPostError(t *testing.T) {
 
 func TestPullClientPostError(t *testing.T) {
 	Convey("Given a new SFTP pull transfer", t, func(c C) {
-		ctx := pipelinetest.InitSelfPullTransfer(c, SFTP, nil, nil, nil)
-		ctx.AddCryptos(c, makeCerts(ctx)...)
+		ctx := pipelinetest.InitSelfPullTransfer(c, "sftp", nil, nil, nil)
+		ctx.AddAuths(c, makeAuths(ctx)...)
 		ctx.StartService(c)
 
 		Convey("Given that an error occurs in client post-tasks", func(c C) {
@@ -374,8 +374,8 @@ func TestPullClientPostError(t *testing.T) {
 
 func TestPullServerPostError(t *testing.T) {
 	Convey("Given a new SFTP pull transfer", t, func(c C) {
-		ctx := pipelinetest.InitSelfPullTransfer(c, SFTP, nil, nil, nil)
-		ctx.AddCryptos(c, makeCerts(ctx)...)
+		ctx := pipelinetest.InitSelfPullTransfer(c, "sftp", nil, nil, nil)
+		ctx.AddAuths(c, makeAuths(ctx)...)
 		ctx.StartService(c)
 
 		Convey("Given that an error occurs in server post-tasks", func(c C) {

@@ -36,17 +36,17 @@ Ajouter une règle
    :reqjson array preTasks: La liste des pré-traitements de la règle.
 
       * **type** (*string*) - Le type de traitements.
-      * **reception** (*object*) - Les arguments du traitement. La structure dépend du type de traitement.
+      * **args** (*object*) - Les arguments du traitement. La structure dépend du type de traitement.
 
    :reqjson array postTasks: La liste des post-traitements de la règle.
 
       * **type** (*string*) - Le type de traitement.
-      * **reception** (*object*) - Les arguments du traitement. La structure dépend du type de traitement.
+      * **args** (*object*) - Les arguments du traitement. La structure dépend du type de traitement.
 
    :reqjson array errorTasks: La liste des traitements d'erreur de la règle.
 
       * **type** (*string*) - Le type de traitement.
-      * **reception** (*object*) - Les arguments du traitement. La structure dépend du type de traitement.
+      * **args** (*object*) - Les arguments du traitement. La structure dépend du type de traitement.
 
    :reqjson object authorized: Les agents autorisés à utiliser cette règle. Par
       défaut, si cet objet est vide, alors la règle peut être utilisée par tous

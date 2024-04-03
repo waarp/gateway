@@ -2,8 +2,6 @@ package wg
 
 import (
 	"context"
-	"encoding/json"
-	"errors"
 	"fmt"
 	"io"
 	"net/http"
@@ -68,37 +66,6 @@ func warnRuleWorkPathDeprecated(w io.Writer) {
 		"Use '--tmp-dir' instead.")
 }
 
-func parseTasks(rule *api.UptRule, pre, post, errs []string) error {
-	if len(pre) > 0 {
-		preDecoder := json.NewDecoder(strings.NewReader("[" + strings.Join(pre, ",") + "]"))
-		preDecoder.DisallowUnknownFields()
-
-		if err := preDecoder.Decode(&rule.PreTasks); err != nil && !errors.Is(err, io.EOF) {
-			return fmt.Errorf("invalid pre task: %w", err)
-		}
-	}
-
-	if len(post) > 0 {
-		postDecoder := json.NewDecoder(strings.NewReader("[" + strings.Join(post, ",") + "]"))
-		postDecoder.DisallowUnknownFields()
-
-		if err := postDecoder.Decode(&rule.PostTasks); err != nil && !errors.Is(err, io.EOF) {
-			return fmt.Errorf("invalid post task: %w", err)
-		}
-	}
-
-	if len(errs) > 0 {
-		errDecoder := json.NewDecoder(strings.NewReader("[" + strings.Join(errs, ",") + "]"))
-		errDecoder.DisallowUnknownFields()
-
-		if err := errDecoder.Decode(&rule.ErrorTasks); err != nil && !errors.Is(err, io.EOF) {
-			return fmt.Errorf("invalid error task: %w", err)
-		}
-	}
-
-	return nil
-}
-
 // ######################## GET ##########################
 
 //nolint:lll // struct tags for command line arguments can be long
@@ -129,65 +96,45 @@ func (r *RuleGet) execute(w io.Writer) error {
 
 // ######################## ADD ##########################
 
-//nolint:lll // struct tags for command line arguments can be long
+//nolint:lll,tagliatelle // struct tags for command line arguments can be long
 type RuleAdd struct {
-	Name          string   `required:"true" short:"n" long:"name" description:"The rule's name"`
-	Comment       *string  `short:"c" long:"comment" description:"A short comment describing the rule"`
-	Direction     string   `required:"true" short:"d" long:"direction" description:"The direction of the file transfer" choice:"send" choice:"receive"`
-	Path          string   `short:"p" long:"path" description:"The path used to identify the rule, by default, the rule's name is used"`
-	LocalDir      *string  `long:"local-dir" description:"The directory for files on the local disk"`
-	RemoteDir     *string  `long:"remote-dir" description:"The directory for files on the remote host"`
-	TmpReceiveDir *string  `long:"tmp-dir" description:"The local temp directory for partially received files "`
-	PreTasks      []string `short:"r" long:"pre" description:"A pre-transfer task in JSON format, can be repeated"`
-	PostTasks     []string `short:"s" long:"post" description:"A post-transfer task in JSON format, can be repeated"`
-	ErrorTasks    []string `short:"e" long:"err" description:"A transfer error task in JSON format, can be repeated"`
+	Name          string       `required:"true" short:"n" long:"name" description:"The rule's name" json:"name,omitempty"`
+	Comment       string       `short:"c" long:"comment" description:"A short comment describing the rule" json:"comment,omitempty"`
+	Direction     string       `required:"true" short:"d" long:"direction" description:"The direction of the file transfer" choice:"send" choice:"receive" json:"-"`
+	IsSend        bool         `json:"isSend,omitempty"`
+	Path          string       `short:"p" long:"path" description:"The path used to identify the rule, by default, the rule's name is used" json:"path,omitempty"`
+	LocalDir      string       `long:"local-dir" description:"The directory for files on the local disk" json:"localDir,omitempty"`
+	RemoteDir     string       `long:"remote-dir" description:"The directory for files on the remote host" json:"remoteDir,omitempty"`
+	TmpReceiveDir string       `long:"tmp-dir" description:"The local temp directory for partially received files" json:"tmpLocalRcvDir,omitempty"`
+	PreTasks      []jsonObject `short:"r" long:"pre" description:"A pre-transfer task in JSON format, can be repeated" json:"preTasks,omitempty"`
+	PostTasks     []jsonObject `short:"s" long:"post" description:"A post-transfer task in JSON format, can be repeated" json:"postTasks,omitempty"`
+	ErrorTasks    []jsonObject `short:"e" long:"err" description:"A transfer error task in JSON format, can be repeated" json:"errorTasks,omitempty"`
 
 	// Deprecated options
-	InPath   *string `short:"i" long:"in_path" description:"[DEPRECATED] The path to the destination of the file"` // Deprecated: replaced by LocalDir & RemoteDir
-	OutPath  *string `short:"o" long:"out_path" description:"[DEPRECATED] The path to the source of the file"`     // Deprecated: replaced by LocalDir & RemoteDir
-	WorkPath *string `short:"w" long:"work_path" description:"[DEPRECATED] The path to write the received file"`   // Deprecated: replaced by TmpReceiveDir
+	InPath   string `short:"i" long:"in_path" description:"[DEPRECATED] The path to the destination of the file" json:"inPath,omitempty"` // Deprecated: replaced by LocalDir & RemoteDir
+	OutPath  string `short:"o" long:"out_path" description:"[DEPRECATED] The path to the source of the file" json:"outPath,omitempty"`    // Deprecated: replaced by LocalDir & RemoteDir
+	WorkPath string `short:"w" long:"work_path" description:"[DEPRECATED] The path to write the received file" json:"workPath,omitempty"` // Deprecated: replaced by TmpReceiveDir
 }
 
 func (r *RuleAdd) Execute([]string) error { return r.execute(stdOutput) }
 func (r *RuleAdd) execute(w io.Writer) error {
-	isSend := r.Direction == directionSend
-	rule := &api.InRule{
-		UptRule: &api.UptRule{
-			Name:           &r.Name,
-			Comment:        r.Comment,
-			Path:           &r.Path,
-			LocalDir:       r.LocalDir,
-			RemoteDir:      r.RemoteDir,
-			TmpLocalRcvDir: r.TmpReceiveDir,
-		},
-		IsSend: &isSend,
-	}
+	r.IsSend = r.Direction == directionSend
 
-	if r.InPath != nil {
+	if r.InPath != "" {
 		warnRuleInPathDeprecated(w)
-
-		rule.InPath = r.InPath
 	}
 
-	if r.OutPath != nil {
+	if r.OutPath != "" {
 		warnRuleOutPathDeprecated(w)
-
-		rule.OutPath = r.OutPath
 	}
 
-	if r.WorkPath != nil {
+	if r.WorkPath != "" {
 		warnRuleWorkPathDeprecated(w)
-
-		rule.WorkPath = r.WorkPath
-	}
-
-	if err := parseTasks(rule.UptRule, r.PreTasks, r.PostTasks, r.ErrorTasks); err != nil {
-		return err
 	}
 
 	addr.Path = "/api/rules"
 
-	if _, err := add(w, rule); err != nil {
+	if _, err := add(w, r); err != nil {
 		return err
 	}
 
@@ -262,26 +209,27 @@ func (r *RuleList) execute(w io.Writer) error {
 
 // ######################## UPDATE ##########################
 
-//nolint:lll // struct tags for command line arguments can be long
+//nolint:lll,tagliatelle // struct tags for command line arguments can be long
 type RuleUpdate struct {
 	Args struct {
 		Name      string `required:"yes" positional-arg-name:"name" description:"The server's name"`
 		Direction string `required:"yes" positional-arg-name:"direction" description:"The rule's direction" choice:"send" choice:"receive"`
-	} `positional-args:"yes"`
-	Name          *string  `short:"n" long:"name" description:"The rule's name"`
-	Comment       *string  `short:"c" long:"comment" description:"A short comment describing the rule"`
-	Path          *string  `short:"p" long:"path" description:"The path used to identify the rule"`
-	LocalDir      *string  `long:"local-dir" description:"The directory for files on the local disk"`
-	RemoteDir     *string  `long:"remote-dir" description:"The directory for files on the remote host"`
-	TmpReceiveDir *string  `long:"tmp-dir" description:"The local temp directory for partially received files "`
-	PreTasks      []string `short:"r" long:"pre" description:"A pre-transfer task in JSON format, can be repeated"`
-	PostTasks     []string `short:"s" long:"post" description:"A post-transfer task in JSON format, can be repeated"`
-	ErrorTasks    []string `short:"e" long:"err" description:"A transfer error task in JSON format, can be repeated"`
+	} `positional-args:"yes" json:"-"`
+
+	Name          string       `short:"n" long:"name" description:"The rule's name" json:"name,omitempty"`
+	Comment       string       `short:"c" long:"comment" description:"A short comment describing the rule" json:"comment,omitempty"`
+	Path          string       `short:"p" long:"path" description:"The path used to identify the rule" json:"path,omitempty"`
+	LocalDir      string       `long:"local-dir" description:"The directory for files on the local disk" json:"localDir,omitempty"`
+	RemoteDir     string       `long:"remote-dir" description:"The directory for files on the remote host" json:"remoteDir,omitempty"`
+	TmpReceiveDir string       `long:"tmp-dir" description:"The local temp directory for partially received files" json:"tmpLocalRcvDir,omitempty"`
+	PreTasks      []jsonObject `short:"r" long:"pre" description:"A pre-transfer task in JSON format, can be repeated" json:"preTasks,omitempty"`
+	PostTasks     []jsonObject `short:"s" long:"post" description:"A post-transfer task in JSON format, can be repeated" json:"postTasks,omitempty"`
+	ErrorTasks    []jsonObject `short:"e" long:"err" description:"A transfer error task in JSON format, can be repeated" json:"errorTasks,omitempty"`
 
 	// Deprecated options
-	InPath   *string `short:"i" long:"in_path" description:"[DEPRECATED] The path to the destination of the file"` // Deprecated: replaced by LocalDir & RemoteDir
-	OutPath  *string `short:"o" long:"out_path" description:"[DEPRECATED] The path to the source of the file"`     // Deprecated: replaced by LocalDir & RemoteDir
-	WorkPath *string `short:"w" long:"work_path" description:"[DEPRECATED] The path to write the received file"`   // Deprecated: replaced by TmpReceiveDir
+	InPath   string `short:"i" long:"in_path" description:"[DEPRECATED] The path to the destination of the file" json:"inPath,omitempty"` // Deprecated: replaced by LocalDir & RemoteDir
+	OutPath  string `short:"o" long:"out_path" description:"[DEPRECATED] The path to the source of the file" json:"outPath,omitempty"`    // Deprecated: replaced by LocalDir & RemoteDir
+	WorkPath string `short:"w" long:"work_path" description:"[DEPRECATED] The path to write the received file" json:"workPath,omitempty"` // Deprecated: replaced by TmpReceiveDir
 }
 
 func (r *RuleUpdate) Execute([]string) error { return r.execute(stdOutput) }
@@ -292,44 +240,25 @@ func (r *RuleUpdate) execute(w io.Writer) error {
 
 	addr.Path = path.Join("/api/rules", r.Args.Name, strings.ToLower(r.Args.Direction))
 
-	rule := &api.UptRule{
-		Name:           r.Name,
-		Comment:        r.Comment,
-		Path:           r.Path,
-		LocalDir:       r.LocalDir,
-		RemoteDir:      r.RemoteDir,
-		TmpLocalRcvDir: r.TmpReceiveDir,
-	}
-
-	if r.InPath != nil {
+	if r.InPath != "" {
 		warnRuleInPathDeprecated(w)
-
-		rule.InPath = r.InPath
 	}
 
-	if r.OutPath != nil {
+	if r.OutPath != "" {
 		warnRuleOutPathDeprecated(w)
-
-		rule.OutPath = r.OutPath
 	}
 
-	if r.WorkPath != nil {
+	if r.WorkPath != "" {
 		warnRuleWorkPathDeprecated(w)
-
-		rule.WorkPath = r.WorkPath
 	}
 
-	if err := parseTasks(rule, r.PreTasks, r.PostTasks, r.ErrorTasks); err != nil {
-		return err
-	}
-
-	if err := update(w, rule); err != nil {
+	if err := update(w, r); err != nil {
 		return err
 	}
 
 	name := r.Args.Name
-	if rule.Name != nil && *rule.Name != "" {
-		name = *rule.Name
+	if r.Name != "" {
+		name = r.Name
 	}
 
 	fmt.Fprintf(w, "The rule %q was successfully updated.\n", name)

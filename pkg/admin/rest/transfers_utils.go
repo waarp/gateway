@@ -60,7 +60,7 @@ func getTransferClient(db *database.DB, trans *api.InTransfer, protocol string,
 
 func getTransInfo(db *database.DB, trans *api.InTransfer,
 ) (*model.Rule, *model.RemoteAccount, *model.Client, error) {
-	if trans.IsSend == nil {
+	if !trans.IsSend.Valid {
 		return nil, nil, nil, badRequest("the transfer direction (isSend) is missing")
 	}
 
@@ -77,7 +77,7 @@ func getTransInfo(db *database.DB, trans *api.InTransfer,
 	}
 
 	var rule model.Rule
-	if err := db.Get(&rule, "name=? AND is_send=?", trans.Rule, trans.IsSend).Run(); err != nil {
+	if err := db.Get(&rule, "name=? AND is_send=?", trans.Rule, trans.IsSend.Value).Run(); err != nil {
 		if database.IsNotFound(err) {
 			return nil, nil, nil, badRequest("no rule '%s' found", trans.Rule)
 		}

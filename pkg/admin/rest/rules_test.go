@@ -15,6 +15,7 @@ import (
 	. "code.waarp.fr/apps/gateway/gateway/pkg/admin/rest/api"
 	"code.waarp.fr/apps/gateway/gateway/pkg/database"
 	"code.waarp.fr/apps/gateway/gateway/pkg/model"
+	"code.waarp.fr/apps/gateway/gateway/pkg/model/types"
 	"code.waarp.fr/apps/gateway/gateway/pkg/utils"
 	"code.waarp.fr/apps/gateway/gateway/pkg/utils/testhelpers"
 )
@@ -237,12 +238,12 @@ func TestGetRule(t *testing.T) {
 			Convey("Given some agents", func() {
 				serv1 := &model.LocalAgent{
 					Name:     "serv1",
-					Address:  "localhost:1",
+					Address:  types.Addr("localhost", 1),
 					Protocol: testProto1,
 				}
 				serv2 := &model.LocalAgent{
 					Name:     "serv2",
-					Address:  "localhost:2",
+					Address:  types.Addr("localhost", 2),
 					Protocol: testProto2,
 				}
 
@@ -252,17 +253,14 @@ func TestGetRule(t *testing.T) {
 				serv1acc1 := &model.LocalAccount{
 					LocalAgentID: serv1.ID,
 					Login:        "acc1",
-					PasswordHash: hash("sesame"),
 				}
 				serv1acc2 := &model.LocalAccount{
 					LocalAgentID: serv1.ID,
 					Login:        "acc2",
-					PasswordHash: hash("sesame"),
 				}
 				serv2acc1 := &model.LocalAccount{
 					LocalAgentID: serv2.ID,
 					Login:        "acc1",
-					PasswordHash: hash("sesame"),
 				}
 
 				So(db.Insert(serv1acc1).Run(), ShouldBeNil)
@@ -271,12 +269,12 @@ func TestGetRule(t *testing.T) {
 
 				part1 := &model.RemoteAgent{
 					Name:     "part1",
-					Address:  "localhost:10",
+					Address:  types.Addr("localhost", 10),
 					Protocol: testProto1,
 				}
 				part2 := &model.RemoteAgent{
 					Name:     "part2",
-					Address:  "localhost:20",
+					Address:  types.Addr("localhost", 20),
 					Protocol: testProto2,
 				}
 
@@ -286,17 +284,14 @@ func TestGetRule(t *testing.T) {
 				part1acc1 := &model.RemoteAccount{
 					RemoteAgentID: part1.ID,
 					Login:         "acc1",
-					Password:      "sesame",
 				}
 				part2acc1 := &model.RemoteAccount{
 					RemoteAgentID: part2.ID,
 					Login:         "acc2",
-					Password:      "sesame",
 				}
 				part2acc2 := &model.RemoteAccount{
 					RemoteAgentID: part2.ID,
 					Login:         "acc1",
-					Password:      "sesame",
 				}
 
 				So(db.Insert(part1acc1).Run(), ShouldBeNil)
@@ -661,19 +656,19 @@ func TestUpdateRule(t *testing.T) {
 
 			for _, rule := range []*model.Rule{old, oldRecv} {
 				Convey(fmt.Sprintf("When updating a rule IsSend: %t", rule.IsSend), func() {
-					testCases := []UptRule{
+					testCases := []InRule{
 						{
-							Name: strPtr("update"),
+							Name: AsNullable("update"),
 						}, {
-							Comment: strPtr("update comment"),
+							Comment: AsNullable("update comment"),
 						}, {
-							Path: strPtr("path/update"),
+							Path: AsNullable("path/update"),
 						}, {
-							LocalDir: strPtr("/update/local"),
+							LocalDir: AsNullable("/update/local"),
 						}, {
-							RemoteDir: strPtr("/update/remote"),
+							RemoteDir: AsNullable("/update/remote"),
 						}, {
-							TmpLocalRcvDir: strPtr("/update/tmp"),
+							TmpLocalRcvDir: AsNullable("/update/tmp"),
 						}, {
 							PreTasks: []*Task{
 								{
@@ -720,7 +715,7 @@ func TestUpdateRule(t *testing.T) {
 }
 
 //nolint:wrapcheck // this is a test helper, err must be passed as is
-func doUpdate(handler http.HandlerFunc, old *model.Rule, update *UptRule) (*http.Response, error) {
+func doUpdate(handler http.HandlerFunc, old *model.Rule, update *InRule) (*http.Response, error) {
 	w := httptest.NewRecorder()
 
 	body, err := json.Marshal(update)
@@ -744,7 +739,7 @@ func doUpdate(handler http.HandlerFunc, old *model.Rule, update *UptRule) (*http
 	return w.Result(), nil
 }
 
-func getExpected(src *model.Rule, upt *UptRule) *model.Rule {
+func getExpected(src *model.Rule, upt *InRule) *model.Rule {
 	res := &model.Rule{
 		ID:             src.ID,
 		Name:           src.Name,
@@ -756,28 +751,28 @@ func getExpected(src *model.Rule, upt *UptRule) *model.Rule {
 		TmpLocalRcvDir: src.TmpLocalRcvDir,
 	}
 
-	if upt.Name != nil {
-		res.Name = *upt.Name
+	if upt.Name.Valid {
+		res.Name = upt.Name.Value
 	}
 
-	if upt.Comment != nil {
-		res.Comment = *upt.Comment
+	if upt.Comment.Valid {
+		res.Comment = upt.Comment.Value
 	}
 
-	if upt.Path != nil {
-		res.Path = *upt.Path
+	if upt.Path.Valid {
+		res.Path = upt.Path.Value
 	}
 
-	if upt.LocalDir != nil {
-		res.LocalDir = *upt.LocalDir
+	if upt.LocalDir.Valid {
+		res.LocalDir = upt.LocalDir.Value
 	}
 
-	if upt.RemoteDir != nil {
-		res.RemoteDir = *upt.RemoteDir
+	if upt.RemoteDir.Valid {
+		res.RemoteDir = upt.RemoteDir.Value
 	}
 
-	if upt.TmpLocalRcvDir != nil {
-		res.TmpLocalRcvDir = *upt.TmpLocalRcvDir
+	if upt.TmpLocalRcvDir.Valid {
+		res.TmpLocalRcvDir = upt.TmpLocalRcvDir.Value
 	}
 
 	// TODO Tasks
@@ -823,6 +818,7 @@ func TestReplaceRule(t *testing.T) {
 				body := strings.NewReader(`{
 					"name": "update_name",
 					"path": "update/path",
+					"isSend": false,
 					"postTasks": [{
 						"type": "MOVE",
 						"args": {"path": "/move/path"}
@@ -864,7 +860,7 @@ func TestReplaceRule(t *testing.T) {
 								ID:     old.ID,
 								Name:   "update_name",
 								Path:   "update/path",
-								IsSend: old.IsSend,
+								IsSend: false,
 							})
 
 							Convey("Then the tasks should have been changed", func() {

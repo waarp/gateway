@@ -41,7 +41,11 @@ func addPartner(logger *log.Logger, db *database.DB) http.HandlerFunc {
 			return
 		}
 
-		dbPartner := restPartnerToDB(&restPartner)
+		dbPartner, err := restPartnerToDB(&restPartner)
+		if handleError(w, logger, err) {
+			return
+		}
+
 		if err := db.Insert(dbPartner).Run(); handleError(w, logger, err) {
 			return
 		}
@@ -120,17 +124,31 @@ func deletePartner(logger *log.Logger, db *database.DB) http.HandlerFunc {
 
 func updatePartner(logger *log.Logger, db *database.DB) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		oldPartner, err := retrievePartner(r, db)
-		if handleError(w, logger, err) {
+		oldPartner, getErr := retrievePartner(r, db)
+		if handleError(w, logger, getErr) {
 			return
 		}
 
-		restPartner := dbPartnerToRESTInput(oldPartner)
+		restPartner := &api.InPartner{
+			Name:        api.AsNullable(oldPartner.Name),
+			Protocol:    api.AsNullable(oldPartner.Protocol),
+			Address:     api.AsNullable(oldPartner.Address.String()),
+			ProtoConfig: oldPartner.ProtoConfig,
+		}
 		if err := readJSON(r, restPartner); handleError(w, logger, err) {
 			return
 		}
 
-		dbPartner := restPartnerToDB(restPartner)
+		dbPartner := &model.RemoteAgent{
+			Name:        restPartner.Name.Value,
+			Protocol:    restPartner.Protocol.Value,
+			ProtoConfig: restPartner.ProtoConfig,
+		}
+
+		if err := dbPartner.Address.Set(restPartner.Address.Value); handleError(w, logger, err) {
+			return
+		}
+
 		dbPartner.ID = oldPartner.ID
 
 		if err := db.Update(dbPartner).Run(); handleError(w, logger, err) {
@@ -144,8 +162,8 @@ func updatePartner(logger *log.Logger, db *database.DB) http.HandlerFunc {
 
 func replacePartner(logger *log.Logger, db *database.DB) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		oldPartner, err := retrievePartner(r, db)
-		if handleError(w, logger, err) {
+		oldPartner, getErr := retrievePartner(r, db)
+		if handleError(w, logger, getErr) {
 			return
 		}
 
@@ -154,7 +172,11 @@ func replacePartner(logger *log.Logger, db *database.DB) http.HandlerFunc {
 			return
 		}
 
-		dbPartner := restPartnerToDB(&restPartner)
+		dbPartner, convErr := restPartnerToDB(&restPartner)
+		if handleError(w, logger, convErr) {
+			return
+		}
+
 		dbPartner.ID = oldPartner.ID
 
 		if err := db.Update(dbPartner).Run(); handleError(w, logger, err) {
@@ -188,6 +210,40 @@ func revokePartner(logger *log.Logger, db *database.DB) http.HandlerFunc {
 	}
 }
 
+func addPartnerCred(logger *log.Logger, db *database.DB) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		dbPartner, err := retrievePartner(r, db)
+		if handleError(w, logger, err) {
+			return
+		}
+
+		handleError(w, logger, addCredential(w, r, db, dbPartner, dbPartner.Protocol))
+	}
+}
+
+func getPartnerCred(logger *log.Logger, db *database.DB) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		dbPartner, err := retrievePartner(r, db)
+		if handleError(w, logger, err) {
+			return
+		}
+
+		handleError(w, logger, getCredential(w, r, db, dbPartner))
+	}
+}
+
+func removePartnerCred(logger *log.Logger, db *database.DB) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		ag, err := retrievePartner(r, db)
+		if handleError(w, logger, err) {
+			return
+		}
+
+		handleError(w, logger, removeCredential(w, r, db, ag))
+	}
+}
+
+// Deprecated: replaced by Credentials.
 func getPartnerCert(logger *log.Logger, db *database.DB) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		dbPartner, err := retrievePartner(r, db)
@@ -199,6 +255,7 @@ func getPartnerCert(logger *log.Logger, db *database.DB) http.HandlerFunc {
 	}
 }
 
+// Deprecated: replaced by Credentials.
 func addPartnerCert(logger *log.Logger, db *database.DB) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		dbPartner, err := retrievePartner(r, db)
@@ -210,6 +267,7 @@ func addPartnerCert(logger *log.Logger, db *database.DB) http.HandlerFunc {
 	}
 }
 
+// Deprecated: replaced by Credentials.
 func listPartnerCerts(logger *log.Logger, db *database.DB) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		dbPartner, err := retrievePartner(r, db)
@@ -221,6 +279,7 @@ func listPartnerCerts(logger *log.Logger, db *database.DB) http.HandlerFunc {
 	}
 }
 
+// Deprecated: replaced by Credentials.
 func deletePartnerCert(logger *log.Logger, db *database.DB) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		dbPartner, err := retrievePartner(r, db)
@@ -232,6 +291,7 @@ func deletePartnerCert(logger *log.Logger, db *database.DB) http.HandlerFunc {
 	}
 }
 
+// Deprecated: replaced by Credentials.
 func updatePartnerCert(logger *log.Logger, db *database.DB) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		dbPartner, err := retrievePartner(r, db)
@@ -243,6 +303,7 @@ func updatePartnerCert(logger *log.Logger, db *database.DB) http.HandlerFunc {
 	}
 }
 
+// Deprecated: replaced by Credentials.
 func replacePartnerCert(logger *log.Logger, db *database.DB) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		dbPartner, err := retrievePartner(r, db)

@@ -10,6 +10,7 @@ import (
 	"code.waarp.fr/apps/gateway/gateway/pkg/database"
 	"code.waarp.fr/apps/gateway/gateway/pkg/logging"
 	"code.waarp.fr/apps/gateway/gateway/pkg/model"
+	"code.waarp.fr/apps/gateway/gateway/pkg/model/authentication/auth"
 	"code.waarp.fr/apps/gateway/gateway/pkg/model/types"
 	"code.waarp.fr/apps/gateway/gateway/pkg/pipeline"
 	"code.waarp.fr/apps/gateway/gateway/pkg/protocols/modules/r66/internal"
@@ -93,6 +94,7 @@ func (c *client) InitTransfer(pip *pipeline.Pipeline) (protocol.TransferClient, 
 	return trans, nil
 }
 
+//nolint:funlen //can't easily be split
 func (c *client) initTransfer(pip *pipeline.Pipeline) (*transferClient, *pipeline.Error) {
 	var partConf partnerConfig
 	if err := utils.JSONConvert(pip.TransCtx.RemoteAgent.ProtoConfig, &partConf); err != nil {
@@ -107,7 +109,7 @@ func (c *client) initTransfer(pip *pipeline.Pipeline) (*transferClient, *pipelin
 	if c.cli.Protocol == R66TLS {
 		var err error
 
-		tlsConf, err = internal.MakeClientTLSConfig(pip)
+		tlsConf, err = makeClientTLSConfig(pip)
 		if err != nil {
 			pip.Logger.Error("Failed to parse R66 TLS config: %v", err)
 
@@ -138,6 +140,16 @@ func (c *client) initTransfer(pip *pipeline.Pipeline) (*transferClient, *pipelin
 		partnerLogin = pip.TransCtx.RemoteAgent.Name
 	}
 
+	var partnerPassword string
+
+	for _, cred := range pip.TransCtx.RemoteAgentCreds {
+		if cred.Type == auth.Password {
+			partnerPassword = cred.Value
+
+			break
+		}
+	}
+
 	ctx, cancel := context.WithCancel(context.Background())
 
 	return &transferClient{
@@ -149,7 +161,7 @@ func (c *client) initTransfer(pip *pipeline.Pipeline) (*transferClient, *pipelin
 		noFinalHash:    noFinalHash,
 		checkBlockHash: checkBlockHash,
 		serverLogin:    partnerLogin,
-		serverPassword: partConf.ServerPassword,
+		serverPassword: partnerPassword,
 		tlsConfig:      tlsConf,
 		ses:            nil,
 	}, nil

@@ -1,6 +1,6 @@
-=======================================
-Ajouter un certificat à un compte local
-=======================================
+==================================================
+[OBSOLÈTE] Ajouter un certificat à un compte local
+==================================================
 
 .. program:: waarp-gateway account local cert add
 

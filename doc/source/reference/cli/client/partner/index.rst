@@ -5,7 +5,7 @@ Gestion des partenaires distants
 ################################
 
 .. toctree::
-   :maxdepth: 2
+   :maxdepth: 1
 
    add
    list
@@ -14,4 +14,7 @@ Gestion des partenaires distants
    delete
    authorize
    revoke
+   cred_add
+   cred_get
+   cred_delete
    cert/index

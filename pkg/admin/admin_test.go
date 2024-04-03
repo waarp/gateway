@@ -168,7 +168,7 @@ func TestAuthentication(t *testing.T) {
 	Convey("Given an authentication handler", t, func(c C) {
 		logger := testhelpers.TestLogger(c, "rest_auth_test")
 		db := database.TestDatabase(c)
-		auth := authentication(logger, db).Middleware(handler)
+		authHandler := authentication(logger, db).Middleware(handler)
 
 		Convey("Given an incoming request", func() {
 			w := httptest.NewRecorder()
@@ -180,7 +180,7 @@ func TestAuthentication(t *testing.T) {
 				r.SetBasicAuth("admin", "admin_password")
 
 				Convey("When sending the request", func() {
-					auth.ServeHTTP(w, r)
+					authHandler.ServeHTTP(w, r)
 
 					Convey("Then the response body should be empty", func() {
 						So(w.Body.String(), ShouldBeBlank)
@@ -196,7 +196,7 @@ func TestAuthentication(t *testing.T) {
 				r.SetBasicAuth("not_admin", "admin_password")
 
 				Convey("When sending the request", func() {
-					auth.ServeHTTP(w, r)
+					authHandler.ServeHTTP(w, r)
 
 					Convey("Then the handler should reply 'Unauthorized'", func() {
 						So(w.Code, ShouldEqual, http.StatusUnauthorized)
@@ -208,7 +208,7 @@ func TestAuthentication(t *testing.T) {
 				r.SetBasicAuth("admin", "not_admin_password")
 
 				Convey("When sending the request", func() {
-					auth.ServeHTTP(w, r)
+					authHandler.ServeHTTP(w, r)
 
 					Convey("Then the handler should reply 'Unauthorized'", func() {
 						So(w.Code, ShouldEqual, http.StatusUnauthorized)

@@ -1,6 +1,6 @@
-=================================
-Supprime un certificat de serveur
-=================================
+=============================================
+[OBSOLÈTE] Supprimer un certificat de serveur
+=============================================
 
 .. program:: waarp-gateway server cert delete
 

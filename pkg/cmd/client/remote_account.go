@@ -42,20 +42,17 @@ func (r *RemAccGet) execute(w io.Writer) error {
 
 // ######################## ADD ##########################
 
+//nolint:lll //tags are long
 type RemAccAdd struct {
-	Login    string `required:"true" short:"l" long:"login" description:"The account's login"`
-	Password string `required:"true" short:"p" long:"password" description:"The account's password"`
+	Login    string `required:"true" short:"l" long:"login" description:"The account's login" json:"login,omitempty"`
+	Password string `required:"true" short:"p" long:"password" description:"The account's password" json:"password,omitempty"`
 }
 
 func (r *RemAccAdd) Execute([]string) error { return r.execute(stdOutput) }
 func (r *RemAccAdd) execute(w io.Writer) error {
-	account := api.InAccount{
-		Login:    &r.Login,
-		Password: &r.Password,
-	}
 	addr.Path = fmt.Sprintf("/api/partners/%s/accounts", Partner)
 
-	if _, err := add(w, account); err != nil {
+	if _, err := add(w, r); err != nil {
 		return err
 	}
 
@@ -90,29 +87,22 @@ func (r *RemAccDelete) execute(w io.Writer) error {
 type RemAccUpdate struct {
 	Args struct {
 		Login string `required:"yes" positional-arg-name:"old-login" description:"The account's login"`
-	} `positional-args:"yes"`
-	Login    *string `short:"l" long:"login" description:"The account's login"`
-	Password *string `short:"p" long:"password" description:"The account's password"`
+	} `positional-args:"yes" json:"-"`
+	Login    string `short:"l" long:"login" description:"The account's login" json:"login,omitempty"`
+	Password string `short:"p" long:"password" description:"The account's password" json:"password,omitempty"`
 }
 
 func (r *RemAccUpdate) Execute([]string) error { return r.execute(stdOutput) }
-
-//nolint:dupl //duplicate is for a different command, better keep separate
 func (r *RemAccUpdate) execute(w io.Writer) error {
-	account := &api.InAccount{
-		Login:    r.Login,
-		Password: r.Password,
-	}
-
 	addr.Path = fmt.Sprintf("/api/partners/%s/accounts/%s", Partner, r.Args.Login)
 
-	if err := update(w, account); err != nil {
+	if err := update(w, r); err != nil {
 		return err
 	}
 
 	login := r.Args.Login
-	if account.Login != nil && *account.Login != "" {
-		login = *account.Login
+	if r.Login != "" {
+		login = r.Login
 	}
 
 	fmt.Fprintf(w, "The account %q was successfully updated.\n", login)
@@ -130,7 +120,7 @@ type RemAccList struct {
 
 func (r *RemAccList) Execute([]string) error { return r.execute(stdOutput) }
 
-//nolint:dupl //duplicate is for a different command, better keep separate
+//nolint:dupl //duplicate is for a different command, best keep separate
 func (r *RemAccList) execute(w io.Writer) error {
 	addr.Path = fmt.Sprintf("/api/partners/%s/accounts", Partner)
 

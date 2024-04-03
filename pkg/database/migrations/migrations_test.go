@@ -141,4 +141,9 @@ func testMigrations(t *testing.T, eng *testEngine) {
 	apply(testVer0_9_0AddTransfersClientID(t, eng))
 	apply(testVer0_9_0AddHistoryClient(t, eng))
 	apply(testVer0_9_0AddNormalizedTransfersView(t, eng))
+	apply(testVer0_9_0AddCredTable(t, eng))
+	apply(testVer0_9_0FillCredTable(t, eng))
+	apply(testVer0_9_0RemoveOldCreds(t, eng))
+	apply(testVer0_9_0MoveR66ServerCreds(t, eng))
+	apply(testVer0_9_0AddAuthorities(t, eng))
 }

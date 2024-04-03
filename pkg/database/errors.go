@@ -10,12 +10,14 @@ var ErrUnsupportedReset = errors.New("unsupported operation 'ResetIncrement'")
 // ValidationError is the error returned when the entry given for insertion is
 // not valid.
 type ValidationError struct {
-	msg string
+	err error
 }
 
 func (v *ValidationError) Error() string {
-	return v.msg
+	return v.err.Error()
 }
+
+func (v *ValidationError) Unwrap() error { return errors.Unwrap(v.err) }
 
 // InternalError is the error encapsulating the database driver errors.
 type InternalError struct {
@@ -24,13 +26,11 @@ type InternalError struct {
 }
 
 func (i *InternalError) Error() string {
-	return i.msg
+	return fmt.Sprintf("%s: %v", i.msg, i.cause)
 }
 
 // Unwrap returns the wrapped error.
-func (i *InternalError) Unwrap() error {
-	return i.cause
-}
+func (i *InternalError) Unwrap() error { return i.cause }
 
 // NotFoundError is the error returned when the requested element in a 'Get',
 // 'Update' or 'Delete' command could not be found.
@@ -56,9 +56,12 @@ func NewNotFoundError(elem Table) *NotFoundError {
 
 // NewValidationError returns a new validation `Error` with the given formatted message.
 func NewValidationError(msg string, args ...interface{}) *ValidationError {
-	return &ValidationError{
-		msg: fmt.Sprintf(msg, args...),
-	}
+	//nolint:goerr113 //this is used to wrap errors
+	return &ValidationError{err: fmt.Errorf(msg, args...)}
+}
+
+func WrapAsValidationError(err error) *ValidationError {
+	return &ValidationError{err: err}
 }
 
 // NewInternalError returns a new internal `Error` with the given formatted message.

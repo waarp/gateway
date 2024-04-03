@@ -3,8 +3,6 @@ package model
 import (
 	"fmt"
 	"math"
-
-	"code.waarp.fr/apps/gateway/gateway/pkg/database"
 )
 
 // PermsMask is a bitmask specifying which actions the user is allowed to
@@ -81,7 +79,8 @@ func permToMask(mask *PermsMask, perm string, off int) error {
 	invalid := func(format string, args ...interface{}) error {
 		reason := fmt.Sprintf(format, args...)
 
-		return database.NewValidationError("invalid permission string '%s': %s", perm, reason)
+		//nolint:goerr113 //too specific to have a base error
+		return fmt.Errorf("invalid permission string %q: %s", perm, reason)
 	}
 
 	if len(perm) == 0 {
@@ -98,7 +97,7 @@ func permToMask(mask *PermsMask, perm string, off int) error {
 		case expected:
 			*mask |= 1 << (off + o)
 		default:
-			return invalid("invalid permission mode '%c' (expected '%c' or '-')", char, expected)
+			return invalid(`invalid permission mode "%c" (expected "%c" or "-")`, char, expected)
 		}
 
 		return nil

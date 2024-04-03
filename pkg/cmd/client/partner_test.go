@@ -23,6 +23,8 @@ func TestPartnerGet(t *testing.T) {
 		send2   = "send2"
 		rcv1    = "rcv1"
 		rcv2    = "rcv2"
+		cred1   = "cred1"
+		cred2   = "cred2"
 
 		path = "/api/partners/" + partner
 	)
@@ -42,6 +44,7 @@ func TestPartnerGet(t *testing.T) {
 				"name":        partner,
 				"protocol":    proto,
 				"address":     addr,
+				"credentials": []string{cred1, cred2},
 				"protoConfig": map[string]any{key1: val1, key2: val2},
 				"authorizedRules": map[string]any{
 					"sending":   []string{send1, send2},
@@ -61,6 +64,7 @@ func TestPartnerGet(t *testing.T) {
 					fmt.Sprintf("── Partner %q\n", partner)+
 						fmt.Sprintf("   ├─ Protocol: %s\n", proto)+
 						fmt.Sprintf("   ├─ Address: %s\n", addr)+
+						fmt.Sprintf("   ├─ Credentials: %s, %s\n", cred1, cred2)+
 						fmt.Sprintf("   ├─ Configuration\n")+
 						fmt.Sprintf("   │  ├─ %s: %s\n", key1, val1)+
 						fmt.Sprintf("   │  ╰─ %s: %s\n", key2, val2)+
@@ -187,6 +191,7 @@ func TestPartnersList(t *testing.T) {
 					fmt.Sprintf("╭─ Partner %q\n", partner1)+
 					fmt.Sprintf("│  ├─ Protocol: %s\n", proto1)+
 					fmt.Sprintf("│  ├─ Address: %s\n", addr1)+
+					fmt.Sprintf("│  ├─ Credentials: <none>\n")+
 					fmt.Sprintf("│  ├─ Configuration: <empty>\n")+
 					fmt.Sprintf("│  ╰─ Authorized rules\n")+
 					fmt.Sprintf("│     ├─ Send: <none>\n")+
@@ -194,6 +199,7 @@ func TestPartnersList(t *testing.T) {
 					fmt.Sprintf("╰─ Partner %q\n", partner2)+
 					fmt.Sprintf("   ├─ Protocol: %s\n", proto2)+
 					fmt.Sprintf("   ├─ Address: %s\n", addr2)+
+					fmt.Sprintf("   ├─ Credentials: <none>\n")+
 					fmt.Sprintf("   ├─ Configuration: <empty>\n")+
 					fmt.Sprintf("   ╰─ Authorized rules\n")+
 					fmt.Sprintf("      ├─ Send: <none>\n")+

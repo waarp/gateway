@@ -22,7 +22,7 @@ type OutHistory struct {
 	Filesize       int64                   `json:"filesize"`
 	Rule           string                  `json:"rule"`
 	Start          time.Time               `json:"start"`
-	Stop           *time.Time              `json:"stop,omitempty"`
+	Stop           Nullable[time.Time]     `json:"stop,omitempty"`
 	TransferInfo   map[string]any          `json:"transferInfo,omitempty"`
 	Status         types.TransferStatus    `json:"status"`
 	ErrorCode      types.TransferErrorCode `json:"errorCode,omitempty"`

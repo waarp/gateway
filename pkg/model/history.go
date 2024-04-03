@@ -40,7 +40,7 @@ type HistoryEntry struct {
 }
 
 func (*HistoryEntry) TableName() string   { return TableHistory }
-func (*HistoryEntry) Appellation() string { return "history entry" }
+func (*HistoryEntry) Appellation() string { return NameHistory }
 func (h *HistoryEntry) GetID() int64      { return h.ID }
 
 func (h *HistoryEntry) getTransInfoCondition() (string, int64) {
@@ -112,11 +112,11 @@ func (h *HistoryEntry) BeforeWrite(db database.ReadAccess) error {
 	}
 
 	if !ConfigChecker.IsValidProtocol(h.Protocol) {
-		return database.NewValidationError("'%s' is not a valid protocol", h.Protocol)
+		return database.NewValidationError("%q is not a valid protocol", h.Protocol)
 	}
 
 	if !types.ValidateStatusForHistory(h.Status) {
-		return database.NewValidationError("'%s' is not a valid transfer history status", h.Status)
+		return database.NewValidationError("%q is not a valid transfer history status", h.Status)
 	}
 
 	if !h.IsServer && h.Client == "" {

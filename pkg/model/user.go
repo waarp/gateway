@@ -87,7 +87,7 @@ func (u *User) BeforeWrite(db database.ReadAccess) error {
 	if err != nil {
 		return fmt.Errorf("failed to check usernames: %w", err)
 	} else if n != 0 {
-		return database.NewValidationError("a user named '%s' already exist", u.Username)
+		return database.NewValidationError("a user named %q already exist", u.Username)
 	}
 
 	return nil

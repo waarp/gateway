@@ -1,6 +1,6 @@
-========================================
-Lister les certificats d'un compte local
-========================================
+===================================================
+[OBSOLÈTE] Lister les certificats d'un compte local
+===================================================
 
 .. program:: waarp-gateway account local cert list
 

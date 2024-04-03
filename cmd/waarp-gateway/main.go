@@ -19,19 +19,25 @@ type commands struct {
 	Status wg.Status `command:"status" description:"Show the status of the gateway services"`
 
 	Server struct {
-		Add     wg.ServerAdd       `command:"add" description:"Add a new server"`
-		Get     wg.ServerGet       `command:"get" description:"Retrieve a server's information"`
-		List    wg.ServerList      `command:"list" description:"List the known servers"`
-		Upd     wg.ServerUpdate    `command:"update" description:"Update a server"`
-		Del     wg.ServerDelete    `command:"delete" description:"Delete a server"`
-		Auth    wg.ServerAuthorize `command:"authorize" description:"Authorize a server to use a rule"`
-		Rev     wg.ServerRevoke    `command:"revoke" description:"Revoke a server's permission to use a rule"`
-		Enable  wg.ServerEnable    `command:"enable" description:"Enable a server at launch"`
-		Disable wg.ServerDisable   `command:"disable" description:"Disable a server at launch"`
-		Start   wg.ServerStart     `command:"start" description:"Start an offline server"`
-		Stop    wg.ServerStop      `command:"stop" description:"Stop a running server"`
-		Restart wg.ServerRestart   `command:"restart" description:"Stop and restart a running server"`
-		Cert    struct {
+		Add         wg.ServerAdd       `command:"add" description:"Add a new server"`
+		Get         wg.ServerGet       `command:"get" description:"Retrieve a server's information"`
+		List        wg.ServerList      `command:"list" description:"List the known servers"`
+		Upd         wg.ServerUpdate    `command:"update" description:"Update a server"`
+		Del         wg.ServerDelete    `command:"delete" description:"Delete a server"`
+		Auth        wg.ServerAuthorize `command:"authorize" description:"Authorize a server to use a rule"`
+		Rev         wg.ServerRevoke    `command:"revoke" description:"Revoke a server's permission to use a rule"`
+		Enable      wg.ServerEnable    `command:"enable" description:"Enable a server at launch"`
+		Disable     wg.ServerDisable   `command:"disable" description:"Disable a server at launch"`
+		Start       wg.ServerStart     `command:"start" description:"Start an offline server"`
+		Stop        wg.ServerStop      `command:"stop" description:"Stop a running server"`
+		Restart     wg.ServerRestart   `command:"restart" description:"Stop and restart a running server"`
+		Credentials struct {
+			Args struct {
+				Server wg.ServerArg `required:"yes" positional-arg-name:"server" description:"The server's name"`
+			} `positional-args:"yes"`
+			credCommands
+		} `command:"credential" description:"Manage an server's credentials"`
+		Cert struct {
 			Args struct {
 				Server wg.ServerArg `required:"yes" positional-arg-name:"server" description:"The server's name"`
 			} `positional-args:"yes"`
@@ -53,13 +59,19 @@ type commands struct {
 	} `command:"client" description:"Manage the gateway's local clients"`
 
 	Partner struct {
-		Add  wg.PartnerAdd       `command:"add" description:"Add a new partner"`
-		Get  wg.PartnerGet       `command:"get" description:"Retrieve a partner's information"`
-		List wg.PartnerList      `command:"list" description:"List the known partners"`
-		Upd  wg.PartnerUpdate    `command:"update" description:"Update a partner"`
-		Del  wg.PartnerDelete    `command:"delete" description:"Delete a partner"`
-		Auth wg.PartnerAuthorize `command:"authorize" description:"Authorize a partner to use a rule"`
-		Rev  wg.PartnerRevoke    `command:"revoke" description:"Revoke a partner's permission to use a rule"`
+		Add         wg.PartnerAdd       `command:"add" description:"Add a new partner"`
+		Get         wg.PartnerGet       `command:"get" description:"Retrieve a partner's information"`
+		List        wg.PartnerList      `command:"list" description:"List the known partners"`
+		Upd         wg.PartnerUpdate    `command:"update" description:"Update a partner"`
+		Del         wg.PartnerDelete    `command:"delete" description:"Delete a partner"`
+		Auth        wg.PartnerAuthorize `command:"authorize" description:"Authorize a partner to use a rule"`
+		Rev         wg.PartnerRevoke    `command:"revoke" description:"Revoke a partner's permission to use a rule"`
+		Credentials struct {
+			Args struct {
+				Partner wg.PartnerArg `required:"yes" positional-arg-name:"partner" description:"The partner's name"`
+			} `positional-args:"yes"`
+			credCommands
+		} `command:"credential" description:"Manage a partner's credentials"`
 		Cert struct {
 			Args struct {
 				Partner wg.PartnerArg `required:"yes" positional-arg-name:"partner" description:"The partner's name"`
@@ -73,13 +85,19 @@ type commands struct {
 			Args struct {
 				Server wg.ServerArg `required:"yes" positional-arg-name:"server" description:"The server's name"`
 			} `positional-args:"yes"`
-			Add  wg.LocAccAdd       `command:"add" description:"Add a new local account to a server"`
-			Get  wg.LocAccGet       `command:"get" description:"Retrieve a local account's information"`
-			List wg.LocAccList      `command:"list" description:"List a server's local accounts"`
-			Upd  wg.LocAccUpdate    `command:"update" description:"Update a local account"`
-			Del  wg.LocAccDelete    `command:"delete" description:"Delete a local account"`
-			Auth wg.LocAccAuthorize `command:"authorize" description:"Authorize a local account to use a rule"`
-			Rev  wg.LocAccRevoke    `command:"revoke" description:"Revoke a local account's permission to use a rule"`
+			Add         wg.LocAccAdd       `command:"add" description:"Add a new local account to a server"`
+			Get         wg.LocAccGet       `command:"get" description:"Retrieve a local account's information"`
+			List        wg.LocAccList      `command:"list" description:"List a server's local accounts"`
+			Upd         wg.LocAccUpdate    `command:"update" description:"Update a local account"`
+			Del         wg.LocAccDelete    `command:"delete" description:"Delete a local account"`
+			Auth        wg.LocAccAuthorize `command:"authorize" description:"Authorize a local account to use a rule"`
+			Rev         wg.LocAccRevoke    `command:"revoke" description:"Revoke a local account's permission to use a rule"`
+			Credentials struct {
+				Args struct {
+					Account wg.LocAccArg `required:"yes" positional-arg-name:"account" description:"The account's name"`
+				} `positional-args:"yes"`
+				credCommands
+			} `command:"credential" description:"Manage a local account's credentials"`
 			Cert struct {
 				Args struct {
 					Account wg.LocAccArg `required:"yes" positional-arg-name:"account" description:"The account's name"`
@@ -91,13 +109,19 @@ type commands struct {
 			Args struct {
 				Partner wg.PartnerArg `required:"yes" positional-arg-name:"partner" description:"The partner's name"`
 			} `positional-args:"yes"`
-			Add  wg.RemAccAdd       `command:"add" description:"Add a new remote account to a partner"`
-			Get  wg.RemAccGet       `command:"get" description:"Retrieve a remote account's information"`
-			List wg.RemAccList      `command:"list" description:"List a partner's remote accounts"`
-			Upd  wg.RemAccUpdate    `command:"update" description:"Update a remote account"`
-			Del  wg.RemAccDelete    `command:"delete" description:"Delete a remote account"`
-			Auth wg.RemAccAuthorize `command:"authorize" description:"Authorize a remote account to use a rule"`
-			Rev  wg.RemAccRevoke    `command:"revoke" description:"Revoke a remote account's permission to use a rule"`
+			Add         wg.RemAccAdd       `command:"add" description:"Add a new remote account to a partner"`
+			Get         wg.RemAccGet       `command:"get" description:"Retrieve a remote account's information"`
+			List        wg.RemAccList      `command:"list" description:"List a partner's remote accounts"`
+			Upd         wg.RemAccUpdate    `command:"update" description:"Update a remote account"`
+			Del         wg.RemAccDelete    `command:"delete" description:"Delete a remote account"`
+			Auth        wg.RemAccAuthorize `command:"authorize" description:"Authorize a remote account to use a rule"`
+			Rev         wg.RemAccRevoke    `command:"revoke" description:"Revoke a remote account's permission to use a rule"`
+			Credentials struct {
+				Args struct {
+					Account wg.RemAccArg `required:"yes" positional-arg-name:"account" description:"The account's name"`
+				} `positional-args:"yes"`
+				credCommands
+			} `command:"credential" description:"Manage a remote account's credentials"`
 			Cert struct {
 				Args struct {
 					Account wg.RemAccArg `required:"yes" positional-arg-name:"account" description:"The account's name"`
@@ -149,7 +173,21 @@ type commands struct {
 		} `command:"address" description:"Manage net address indirections"`
 	} `command:"override" description:"Manage the node's setting overrides"`
 
+	Authorities struct {
+		Add  wg.AuthorityAdd    `command:"add" description:"Add a new authority"`
+		Get  wg.AuthorityGet    `command:"get" description:"Retrieve an authority's information"`
+		List wg.AuthorityList   `command:"list" description:"List the known authorities"`
+		Upd  wg.AuthorityUpdate `command:"update" description:"Update an existing authority"`
+		Del  wg.AuthorityDelete `command:"delete" description:"Delete an authority"`
+	} `command:"authority" description:"Manage the authentication authorities"`
+
 	Version wg.Version `command:"version" description:"Print the program version and exit"`
+}
+
+type credCommands struct {
+	Add wg.CredentialAdd    `command:"add" description:"Add a new credential"`
+	Get wg.CredentialGet    `command:"get" description:"Retrieve a credential's information"`
+	Del wg.CredentialDelete `command:"delete" description:"Delete a credential"`
 }
 
 type certCommands struct {

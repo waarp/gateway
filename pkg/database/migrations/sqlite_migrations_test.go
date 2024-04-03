@@ -29,6 +29,10 @@ func (t *testEngine) Downgrade(changes ...Change) error {
 func (t *testEngine) NoError(tb testing.TB, query string, args ...any) {
 	tb.Helper()
 
+	require.NoError(tb, t.Exec(query, args...))
+}
+
+func (t *testEngine) Exec(query string, args ...any) error {
 	if t.Dialect == PostgreSQL {
 		for i := 1; strings.Contains(query, "?"); i++ {
 			query = strings.Replace(query, "?", fmt.Sprintf("$%d", i), 1)
@@ -36,7 +40,8 @@ func (t *testEngine) NoError(tb testing.TB, query string, args ...any) {
 	}
 
 	_, err := t.DB.Exec(query, args...)
-	require.NoError(tb, err)
+
+	return err
 }
 
 func getSQLiteEngine(tb testing.TB) *testEngine {

@@ -18,6 +18,7 @@ var (
 	ErrInternal   = errors.New("internal error")
 	ErrDatabase   = errors.New("database error")
 	ErrAuthFailed = errors.New("authentication failed")
+	errAuthFailed = errors.New("authentication failed")
 )
 
 // toSFTPErr converts the given error into its closest equivalent

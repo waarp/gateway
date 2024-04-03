@@ -10,6 +10,7 @@ import (
 	. "github.com/smartystreets/goconvey/convey"
 
 	"code.waarp.fr/apps/gateway/gateway/pkg/model"
+	"code.waarp.fr/apps/gateway/gateway/pkg/model/types"
 	"code.waarp.fr/apps/gateway/gateway/pkg/utils/testhelpers"
 )
 
@@ -42,9 +43,8 @@ func TestConnPool(t *testing.T) {
 		logger := testhelpers.TestLogger(c, "test_r66_conn_pool")
 		addr := testR66Server()
 		pool, err := NewConnPool(&model.Client{
-			Name:         "test_cli",
-			Protocol:     "r66",
-			LocalAddress: "127.0.0.1:0",
+			Name: "test_cli", Protocol: "r66",
+			LocalAddress: types.Addr("127.0.0.1", 0),
 		})
 		So(err, ShouldBeNil)
 

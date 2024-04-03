@@ -175,9 +175,8 @@ func TestPurgeCommand(t *testing.T) {
 			in := strings.NewReader("YES")
 
 			server := &model.LocalAgent{
-				Name:     "test_server",
-				Protocol: testProtocol,
-				Address:  "1.2.3.4:5",
+				Name: "test_server", Protocol: testProtocol,
+				Address: types.Addr("1.2.3.4", 5),
 			}
 			So(db.Insert(server).Run(), ShouldBeNil)
 

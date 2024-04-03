@@ -69,10 +69,10 @@ func (c *client) start() error {
 		MACs:         clientConf.MACs,
 	}
 
-	if c.client.LocalAddress != "" {
+	if c.client.LocalAddress.IsSet() {
 		var err error
 
-		c.dialer.LocalAddr, err = net.ResolveTCPAddr("tcp", c.client.LocalAddress)
+		c.dialer.LocalAddr, err = net.ResolveTCPAddr("tcp", c.client.LocalAddress.String())
 		if err != nil {
 			return fmt.Errorf("failed to parse the SFTP client's local address: %w", err)
 		}

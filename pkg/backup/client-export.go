@@ -27,7 +27,7 @@ func exportClients(logger *log.Logger, db database.ReadAccess) ([]file.Client, e
 			Name:         dbClient.Name,
 			Disabled:     dbClient.Disabled,
 			Protocol:     dbClient.Protocol,
-			LocalAddress: dbClient.LocalAddress,
+			LocalAddress: dbClient.LocalAddress.String(),
 			ProtoConfig:  dbClient.ProtoConfig,
 		}
 	}

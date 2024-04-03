@@ -1,6 +1,6 @@
-==================================
-Ajouter un certificat à un serveur
-==================================
+=============================================
+[OBSOLÈTE] Ajouter un certificat à un serveur
+=============================================
 
 .. program:: waarp-gateway server cert add
 

@@ -15,10 +15,12 @@ type tlsServerConfig struct {
 	// The block size for transfers. Optional, 65536 by default.
 	BlockSize uint32 `json:"blockSize,omitempty"`
 
-	// The login used by the server for server authentication.
+	// The login used by the server for server authentication (if different
+	// from the server's name).
 	ServerLogin string `json:"serverLogin,omitempty"`
 
 	// The server's password for server authentication.
+	// Deprecated: use model.Credential instead.
 	ServerPassword string `json:"serverPassword,omitempty"`
 
 	// If true, the final hash verification will be disabled.
@@ -34,7 +36,7 @@ func (c *tlsServerConfig) ValidServer() error {
 	}
 
 	if len(c.ServerPassword) == 0 {
-		return fmt.Errorf("missing server password: %w", errInvalidProtoConfig)
+		return nil
 	}
 
 	pwd, err := utils.AESCrypt(database.GCM, c.ServerPassword)
@@ -52,10 +54,12 @@ type tlsPartnerConfig struct {
 	// The block size for transfers. Optional, 65536 by default.
 	BlockSize uint32 `json:"blockSize,omitempty"`
 
-	// The login used by the server for server authentication.
+	// The login used by the partner for server authentication (if different
+	// from the partner's name).
 	ServerLogin string `json:"serverLogin,omitempty"`
 
 	// The server's password for server authentication.
+	// Deprecated: use model.Credential instead.
 	ServerPassword string `json:"serverPassword,omitempty"`
 
 	// If true, the final hash verification will be disabled.
@@ -72,7 +76,7 @@ func (c *tlsPartnerConfig) ValidPartner() error {
 	}
 
 	if len(c.ServerPassword) == 0 {
-		return fmt.Errorf("missing partner password: %w", errInvalidProtoConfig)
+		return nil
 	}
 
 	if _, err := bcrypt.Cost([]byte(c.ServerPassword)); err == nil {

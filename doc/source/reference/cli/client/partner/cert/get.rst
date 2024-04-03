@@ -1,6 +1,6 @@
-====================================
-Afficher un certificat de partenaire
-====================================
+===============================================
+[OBSOLÈTE] Afficher un certificat de partenaire
+===============================================
 
 .. program:: waarp-gateway partner cert get
 

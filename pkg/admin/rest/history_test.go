@@ -18,6 +18,7 @@ import (
 	"code.waarp.fr/apps/gateway/gateway/pkg/conf"
 	"code.waarp.fr/apps/gateway/gateway/pkg/database"
 	"code.waarp.fr/apps/gateway/gateway/pkg/model"
+	"code.waarp.fr/apps/gateway/gateway/pkg/model/authentication/auth"
 	"code.waarp.fr/apps/gateway/gateway/pkg/model/types"
 	"code.waarp.fr/apps/gateway/gateway/pkg/utils"
 	"code.waarp.fr/apps/gateway/gateway/pkg/utils/testhelpers"
@@ -82,8 +83,8 @@ func TestGetHistory(t *testing.T) {
 						"in JSON format", func() {
 						jHist, err := FromHistory(db, h)
 						So(err, ShouldBeNil)
-						exp, err := json.Marshal(jHist)
 
+						exp, err := json.Marshal(jHist)
 						So(err, ShouldBeNil)
 						So(w.Body.String(), ShouldResemble, string(exp)+"\n")
 					})
@@ -470,18 +471,23 @@ func TestRestartHistory(t *testing.T) {
 			So(db.Insert(client).Run(), ShouldBeNil)
 
 			partner := &model.RemoteAgent{
-				Name:     "partner",
-				Protocol: client.Protocol,
-				Address:  "localhost:2022",
+				Name: "partner", Protocol: client.Protocol,
+				Address: types.Addr("localhost", 2022),
 			}
 			So(db.Insert(partner).Run(), ShouldBeNil)
 
 			account := &model.RemoteAccount{
 				RemoteAgentID: partner.ID,
 				Login:         "toto",
-				Password:      "titi",
 			}
 			So(db.Insert(account).Run(), ShouldBeNil)
+
+			pswd := &model.Credential{
+				RemoteAccountID: utils.NewNullInt64(account.ID),
+				Type:            auth.Password,
+				Value:           "titi",
+			}
+			So(db.Insert(pswd).Run(), ShouldBeNil)
 
 			rule := model.Rule{Name: "rule", IsSend: true, Path: "path"}
 			So(db.Insert(&rule).Run(), ShouldBeNil)

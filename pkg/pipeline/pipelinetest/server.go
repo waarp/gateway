@@ -2,7 +2,6 @@ package pipelinetest
 
 import (
 	"context"
-	"fmt"
 	"time"
 
 	"github.com/smartystreets/goconvey/convey"
@@ -10,6 +9,8 @@ import (
 	"code.waarp.fr/apps/gateway/gateway/pkg/database"
 	"code.waarp.fr/apps/gateway/gateway/pkg/fs"
 	"code.waarp.fr/apps/gateway/gateway/pkg/model"
+	"code.waarp.fr/apps/gateway/gateway/pkg/model/authentication/auth"
+	"code.waarp.fr/apps/gateway/gateway/pkg/model/types"
 	"code.waarp.fr/apps/gateway/gateway/pkg/pipeline"
 	"code.waarp.fr/apps/gateway/gateway/pkg/protocols/protocol"
 	"code.waarp.fr/apps/gateway/gateway/pkg/utils"
@@ -130,7 +131,7 @@ func makeServerConf(c convey.C, data *testData, port uint16, proto string,
 		Protocol:      proto,
 		RootDir:       rootDir,
 		ProtoConfig:   jsonServConf,
-		Address:       fmt.Sprintf("127.0.0.1:%d", port),
+		Address:       types.Addr("127.0.0.1", port),
 		ReceiveDir:    "receive",
 		SendDir:       "send",
 		TmpReceiveDir: "tmp",
@@ -149,18 +150,23 @@ func makeServerConf(c convey.C, data *testData, port uint16, proto string,
 	locAccount := &model.LocalAccount{
 		LocalAgentID: server.ID,
 		Login:        TestLogin,
-		PasswordHash: hash(pswd),
 	}
-
 	c.So(data.DB.Insert(locAccount).Run(), convey.ShouldBeNil)
+
+	cred := &model.Credential{
+		LocalAccountID: utils.NewNullInt64(locAccount.ID),
+		Type:           auth.PasswordHash,
+		Value:          pswd,
+	}
+	c.So(data.DB.Insert(cred).Run(), convey.ShouldBeNil)
 
 	return server, locAccount
 }
 
-// AddCryptos adds the given cryptos to the test database.
-func (s *ServerContext) AddCryptos(c convey.C, certs ...*model.Crypto) {
-	for i := range certs {
-		c.So(s.DB.Insert(certs[i]).Run(), convey.ShouldBeNil)
+// AddAuths adds the given cryptos to the test database.
+func (s *ServerContext) AddAuths(c convey.C, auths ...*model.Credential) {
+	for _, auth := range auths {
+		c.So(s.DB.Insert(auth).Run(), convey.ShouldBeNil)
 	}
 }
 

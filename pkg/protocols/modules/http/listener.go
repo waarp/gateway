@@ -2,17 +2,15 @@ package http
 
 import (
 	"crypto/tls"
-	"crypto/x509"
 	"errors"
 	"fmt"
 	"net"
 	"net/http"
 
-	"golang.org/x/crypto/bcrypt"
-
 	"code.waarp.fr/apps/gateway/gateway/pkg/conf"
 	"code.waarp.fr/apps/gateway/gateway/pkg/database"
 	"code.waarp.fr/apps/gateway/gateway/pkg/model"
+	"code.waarp.fr/apps/gateway/gateway/pkg/model/authentication/auth"
 	"code.waarp.fr/apps/gateway/gateway/pkg/utils"
 	"code.waarp.fr/apps/gateway/gateway/pkg/utils/compatibility"
 )
@@ -20,17 +18,17 @@ import (
 var errNoValidCert = errors.New("could not find a valid certificate for HTTP server")
 
 func (h *httpService) makeTLSConf(*tls.ClientHelloInfo) (*tls.Config, error) {
-	var cryptos model.Cryptos
-	if err := h.db.Select(&cryptos).Where("local_agent_id=?", h.agent.ID).Run(); err != nil {
-		h.logger.Error("Failed to retrieve server certificates: %s", err)
+	creds, dbErr := h.agent.GetCredentials(h.db, auth.TLSCertificate)
+	if dbErr != nil {
+		h.logger.Error("Failed to retrieve server certificates: %s", dbErr)
 
-		return nil, fmt.Errorf("failed to retrieve server certificates: %w", err)
+		return nil, fmt.Errorf("failed to retrieve server certificates: %w", dbErr)
 	}
 
 	var tlsCerts []tls.Certificate
 
-	for _, crypto := range cryptos {
-		cert, err := tls.X509KeyPair([]byte(crypto.Certificate), []byte(crypto.PrivateKey))
+	for _, cred := range creds {
+		cert, err := tls.X509KeyPair([]byte(cred.Value), []byte(cred.Value2))
 		if err != nil {
 			h.logger.Warning("Failed to parse server certificate: %s", err)
 
@@ -46,23 +44,18 @@ func (h *httpService) makeTLSConf(*tls.ClientHelloInfo) (*tls.Config, error) {
 		return nil, errNoValidCert
 	}
 
-	tlsConfig := &tls.Config{
-		MinVersion:       tls.VersionTLS12,
-		Certificates:     tlsCerts,
-		ClientAuth:       tls.RequestClientCert, // client certs are manually verified
-		VerifyConnection: compatibility.LogSha1(h.logger),
-	}
-
-	return tlsConfig, nil
+	return &tls.Config{
+		MinVersion:            tls.VersionTLS12,
+		Certificates:          tlsCerts,
+		ClientAuth:            tls.RequestClientCert,
+		VerifyPeerCertificate: auth.VerifyClientCert(h.db, h.logger, h.agent.ID),
+		VerifyConnection:      compatibility.LogSha1(h.logger),
+	}, nil
 }
 
 func (h *httpService) listen() error {
-	addr, addrErr := conf.GetRealAddress(h.agent.Address)
-	if addrErr != nil {
-		h.logger.Error("Failed to retrieve HTTP server address: %v", addrErr)
-
-		return fmt.Errorf("failed to retrieve HTTP server address: %w", addrErr)
-	}
+	addr := conf.GetRealAddress(h.agent.Host(),
+		utils.FormatUint(h.agent.Address.Port))
 
 	var (
 		list   net.Listener
@@ -135,7 +128,10 @@ func (h *httpService) makeHandler() http.HandlerFunc {
 
 func (h *httpService) checkAuthent(w http.ResponseWriter, r *http.Request,
 ) (*model.LocalAccount, bool) {
-	var acc *model.LocalAccount
+	var (
+		acc          model.LocalAccount
+		authentified bool
+	)
 
 	login, pswd, ok := r.BasicAuth()
 	if !ok || login == "" {
@@ -144,106 +140,47 @@ func (h *httpService) checkAuthent(w http.ResponseWriter, r *http.Request,
 		return nil, false
 	}
 
-	if pswd != "" {
-		acc1, canContinue := h.passwdAuth(w, login, pswd)
-		if !canContinue {
-			return nil, false
-		}
+	acc.Login = login
 
-		acc = acc1
-	}
-
-	if r.TLS != nil && len(r.TLS.PeerCertificates) > 0 {
-		acc2, canContinue := h.certAuth(w, login, r.TLS.PeerCertificates)
-		if !canContinue {
-			return nil, false
-		}
-
-		acc = acc2
-	}
-
-	if acc == nil {
-		unauthorized(w, "missing credentials")
-
-		return nil, false
-	}
-
-	return acc, true
-}
-
-func (h *httpService) passwdAuth(w http.ResponseWriter, login, pswd string,
-) (*model.LocalAccount, bool) {
-	var acc model.LocalAccount
-	if err := h.db.Get(&acc, "login=? AND local_agent_id=?", login, h.agent.ID).Run(); err != nil {
-		if !database.IsNotFound(err) {
-			h.logger.Error("Failed to retrieve user credentials: %s", err)
-			http.Error(w, "Failed to retrieve user credentials", http.StatusInternalServerError)
-
-			return nil, false
-		}
-	}
-
-	if err := bcrypt.CompareHashAndPassword([]byte(acc.PasswordHash), []byte(pswd)); err != nil {
-		h.logger.Warning("Invalid credentials for user '%s'", login)
-		unauthorized(w, "the given credentials are invalid")
-
-		return nil, false
-	}
-
-	return &acc, true
-}
-
-func (h *httpService) certAuth(w http.ResponseWriter, login string, certs []*x509.Certificate,
-) (*model.LocalAccount, bool) {
-	var acc model.LocalAccount
-	if err := h.db.Get(&acc, "login=? AND local_agent_id=?", login, h.agent.ID).Run(); err != nil {
-		if !database.IsNotFound(err) {
-			h.logger.Error("Failed to retrieve user credentials: %s", err)
-			http.Error(w, "Failed to retrieve user credentials", http.StatusInternalServerError)
-
-			return nil, false
-		}
-	}
-
-	var cryptos model.Cryptos
-	if err := h.db.Select(&cryptos).Where("local_account_id=?", acc.ID).Run(); err != nil {
-		h.logger.Error("Failed to retrieve user crypto credentials: %s", err)
+	// We purposefully ignore NotFound errors to avoid leaking information
+	// about the existence of an account.
+	if err := h.db.Get(&acc, "login=? AND local_agent_id=?", login, h.agent.ID).
+		Run(); err != nil && !database.IsNotFound(err) {
+		h.logger.Error("Failed to retrieve user credentials: %s", err)
 		http.Error(w, "Failed to retrieve user credentials", http.StatusInternalServerError)
 
 		return nil, false
 	}
 
-	if len(cryptos) == 0 {
-		h.logger.Warning("No certificates found for user '%s'", login)
-		unauthorized(w, "No certificates found for this user")
+	if r.TLS != nil && len(r.TLS.PeerCertificates) > 0 {
+		if cn := r.TLS.PeerCertificates[0].Subject.CommonName; cn != login {
+			h.logger.Warning("Mismatched login %q and certificate subject %q", login, cn)
+			unauthorized(w, "auth: mismatched login and certificate subject")
 
-		return nil, false
+			return nil, false
+		}
+
+		authentified = true
 	}
 
-	roots, err := x509.SystemCertPool()
-	if err != nil {
-		roots = x509.NewCertPool()
+	if pswd != "" {
+		if res, err := acc.Authenticate(h.db, auth.PasswordHash, pswd); err != nil {
+			h.logger.Error("Failed to check password for user %q: %v", acc.Login, err)
+			http.Error(w, "internal authentication error", http.StatusInternalServerError)
+
+			return nil, false
+		} else if !res.Success {
+			h.logger.Warning("Invalid credentials for user %q: %s", acc.Login, res.Reason)
+			unauthorized(w, "auth: invalid credentials")
+
+			return nil, false
+		}
+
+		authentified = true
 	}
 
-	for _, crypto := range cryptos {
-		roots.AppendCertsFromPEM([]byte(crypto.Certificate))
-	}
-
-	intermediate := x509.NewCertPool()
-	for _, cert := range certs {
-		intermediate.AddCert(cert)
-	}
-
-	opt := x509.VerifyOptions{
-		DNSName:       login,
-		Roots:         roots,
-		Intermediates: intermediate,
-		KeyUsages:     []x509.ExtKeyUsage{x509.ExtKeyUsageClientAuth},
-	}
-
-	if _, err := certs[0].Verify(opt); err != nil {
-		h.logger.Warning("Certificate is not valid for this user: %s", err)
-		unauthorized(w, "Certificate is not valid for this user")
+	if !authentified {
+		unauthorized(w, "missing credentials")
 
 		return nil, false
 	}

@@ -1,6 +1,6 @@
-========================================
-Supprime un certificat de compte distant
-========================================
+====================================================
+[OBSOLÈTE] Supprimer un certificat de compte distant
+====================================================
 
 .. program:: waarp-gateway account remote cert delete
 

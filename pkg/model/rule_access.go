@@ -10,6 +10,8 @@ import (
 // AccessTarget is the interface implemented by all valid RuleAccess target types.
 // Valid owner types are LocalAgent, RemoteAgent, LocalAccount & RemoteAccount.
 type AccessTarget interface {
+	database.Identifier
+
 	// SetAccessTarget sets the target AccessTarget as target of the given RuleAccess
 	// instance (by setting the corresponding foreign key to its own ID).
 	SetAccessTarget(access *RuleAccess)
@@ -36,7 +38,7 @@ type RuleAccess struct {
 }
 
 func (*RuleAccess) TableName() string   { return TableRuleAccesses }
-func (*RuleAccess) Appellation() string { return "rule permission" }
+func (*RuleAccess) Appellation() string { return NameRuleAccess }
 
 // BeforeWrite is called before inserting a new `RuleAccess` entry in the
 // database. It checks whether the new entry is valid or not.
@@ -47,8 +49,8 @@ func (r *RuleAccess) BeforeWrite(db database.ReadAccess) error {
 		return database.NewValidationError("no rule found with ID %d", r.RuleID)
 	}
 
-	if sum := boolToInt(r.LocalAgentID.Valid) + boolToInt(r.RemoteAgentID.Valid) +
-		boolToInt(r.LocalAccountID.Valid) + boolToInt(r.RemoteAccountID.Valid); sum == 0 {
+	if sum := countTrue(r.LocalAgentID.Valid, r.RemoteAgentID.Valid,
+		r.LocalAccountID.Valid, r.RemoteAccountID.Valid); sum == 0 {
 		return database.NewValidationError("the rule access is missing a target")
 	} else if sum > 1 {
 		return database.NewValidationError("the rule access cannot have multiple targets")
@@ -75,7 +77,7 @@ func (r *RuleAccess) BeforeWrite(db database.ReadAccess) error {
 	if n, err := db.Count(target).Where("id=?", target.GetID()).Run(); err != nil {
 		return fmt.Errorf("failed to check access target: %w", err)
 	} else if n == 0 {
-		return database.NewValidationError("no %s found with ID %v", target.Appellation(),
+		return database.NewValidationError("no %s found with ID %q", target.Appellation(),
 			target.GetID())
 	}
 

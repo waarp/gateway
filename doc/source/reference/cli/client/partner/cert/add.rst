@@ -1,6 +1,6 @@
-=====================================
-Ajouter un certificat à un partenaire
-=====================================
+================================================
+[OBSOLÈTE] Ajouter un certificat à un partenaire
+================================================
 
 .. program:: waarp-gateway partner cert add
 

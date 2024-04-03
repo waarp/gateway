@@ -1,6 +1,7 @@
 package database
 
 import (
+	"fmt"
 	"strings"
 
 	"xorm.io/builder"
@@ -55,6 +56,14 @@ func (g *GetQuery) Run() error {
 		logger.Debug("No %s found with conditions (%s)", g.bean.Appellation(), where)
 
 		return NewNotFoundError(g.bean)
+	}
+
+	if hook, ok := g.bean.(ReadCallback); ok {
+		if err := hook.AfterRead(g.db); err != nil {
+			logger.Error("%s entry GET callback failed: %s", g.bean.Appellation(), err)
+
+			return fmt.Errorf("%s entry GET callback failed: %w", g.bean.Appellation(), err)
+		}
 	}
 
 	return nil

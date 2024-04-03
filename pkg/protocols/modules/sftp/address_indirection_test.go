@@ -22,23 +22,25 @@ func TestAddressIndirection(t *testing.T) {
 		conf.InitTestOverrides(c)
 
 		ctx := pipelinetest.InitSelfPushTransfer(c, SFTP, nil, nil, nil)
-		realAddr := ctx.Server.Address
+		realAddr := ctx.Server.Address.String()
 
 		So(conf.AddIndirection(fakeAddr, realAddr), ShouldBeNil)
-		ctx.Server.Address = fakeAddr
+		So(ctx.Server.Address.Set(fakeAddr), ShouldBeNil)
 		So(ctx.DB.Update(ctx.Server).Cols("address").Run(), ShouldBeNil)
 
-		serverHostkey := &model.Crypto{
+		serverHostkey := &model.Credential{
 			LocalAgentID: utils.NewNullInt64(ctx.Server.ID),
+			Type:         AuthSSHPrivateKey,
 			Name:         "sftp_hostkey",
-			PrivateKey:   testhelpers.RSAPk,
+			Value:        RSAPk,
 		}
-		partnerHostkey := &model.Crypto{
+		partnerHostkey := &model.Credential{
 			RemoteAgentID: utils.NewNullInt64(ctx.Partner.ID),
+			Type:          AuthSSHPublicKey,
 			Name:          "sftp_hostkey",
-			SSHPublicKey:  testhelpers.SSHPbk,
+			Value:         SSHPbk,
 		}
-		ctx.AddCryptos(c, serverHostkey, partnerHostkey)
+		ctx.AddAuths(c, serverHostkey, partnerHostkey)
 
 		ctx.StartService(c)
 

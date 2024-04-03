@@ -110,7 +110,7 @@ func TestHistoryBeforeWrite(t *testing.T) {
 				hist.Protocol = "invalid"
 
 				shouldFailWith("the protocol is missing", database.NewValidationError(
-					"'invalid' is not a valid protocol"))
+					`"invalid" is not a valid protocol`))
 			})
 
 			Convey("Given that the starting date is missing", func() {
@@ -152,7 +152,7 @@ type statusTestCase struct {
 }
 
 func testTransferStatus(tc statusTestCase, target database.WriteHook, db *database.DB) {
-	Convey(fmt.Sprintf("Given the status is set to '%s'", tc.status), func() {
+	Convey(fmt.Sprintf("Given the status is set to %q", tc.status), func() {
 		var typeName string
 
 		if t, ok := target.(*HistoryEntry); ok {
@@ -179,7 +179,7 @@ func testTransferStatus(tc statusTestCase, target database.WriteHook, db *databa
 
 				Convey("Then the error should say that the status is invalid", func() {
 					So(err, ShouldBeError, database.NewValidationError(
-						"'%s' is not a valid %s status", tc.status, typeName))
+						"%q is not a valid %s status", tc.status, typeName))
 				})
 			}
 		})
@@ -198,16 +198,14 @@ func TestTransferHistoryRestart(t *testing.T) {
 			So(db.Insert(&cli).Run(), ShouldBeNil)
 
 			agent := &RemoteAgent{
-				Name:     "partner",
-				Protocol: testProtocol,
-				Address:  "localhost:1",
+				Name: "partner", Protocol: testProtocol,
+				Address: types.Addr("localhost", 1),
 			}
 			So(db.Insert(agent).Run(), ShouldBeNil)
 
 			account := &RemoteAccount{
 				RemoteAgentID: agent.ID,
 				Login:         "toto",
-				Password:      "sesame",
 			}
 			So(db.Insert(account).Run(), ShouldBeNil)
 
@@ -259,16 +257,14 @@ func TestTransferHistoryRestart(t *testing.T) {
 
 		Convey("Given a server history entry", func() {
 			agent := &LocalAgent{
-				Name:     "server",
-				Protocol: testProtocol,
-				Address:  "localhost:1",
+				Name: "server", Protocol: testProtocol,
+				Address: types.Addr("localhost", 1),
 			}
 			So(db.Insert(agent).Run(), ShouldBeNil)
 
 			account := &LocalAccount{
 				LocalAgentID: agent.ID,
 				Login:        "toto",
-				PasswordHash: hash("tata"),
 			}
 			So(db.Insert(account).Run(), ShouldBeNil)
 

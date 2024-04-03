@@ -14,6 +14,9 @@ import (
 	. "code.waarp.fr/apps/gateway/gateway/pkg/admin/rest/api"
 	"code.waarp.fr/apps/gateway/gateway/pkg/database"
 	"code.waarp.fr/apps/gateway/gateway/pkg/model"
+	"code.waarp.fr/apps/gateway/gateway/pkg/model/authentication/auth"
+	"code.waarp.fr/apps/gateway/gateway/pkg/model/types"
+	"code.waarp.fr/apps/gateway/gateway/pkg/utils"
 	"code.waarp.fr/apps/gateway/gateway/pkg/utils/testhelpers"
 )
 
@@ -30,18 +33,26 @@ func TestGetRemoteAccount(t *testing.T) {
 
 		Convey("Given a database with 1 account", func() {
 			parent := &model.RemoteAgent{
-				Name:     "parent",
-				Protocol: testProto1,
-				Address:  "localhost:1",
+				Name: "parent", Protocol: testProto1,
+				Address: types.Addr("localhost", 1),
 			}
 			So(db.Insert(parent).Run(), ShouldBeNil)
 
 			existing := &model.RemoteAccount{
 				Login:         "existing",
 				RemoteAgentID: parent.ID,
-				Password:      "existing",
 			}
 			So(db.Insert(existing).Run(), ShouldBeNil)
+
+			pswd := model.Credential{
+				RemoteAccountID: utils.NewNullInt64(existing.ID),
+				Type:            auth.Password,
+				Value:           "sesame",
+			}
+			So(db.Insert(&pswd).Run(), ShouldBeNil)
+
+			rule := model.Rule{Name: "rule name", IsSend: true}
+			So(db.Insert(&rule).Run(), ShouldBeNil)
 
 			Convey("Given a request with the valid account login parameter", func() {
 				r, err := http.NewRequest(http.MethodGet, "", nil)
@@ -68,13 +79,11 @@ func TestGetRemoteAccount(t *testing.T) {
 
 					Convey("Then the body should contain the requested partner "+
 						"in JSON format", func() {
-						expected, err := DBRemoteAccountToREST(db, existing)
-						So(err, ShouldBeNil)
-
-						exp, err := json.Marshal(expected)
-						So(err, ShouldBeNil)
-
-						So(w.Body.String(), ShouldResemble, string(exp)+"\n")
+						So(w.Body.String(), ShouldEqual, `{`+
+							`"login":"`+existing.Login+`",`+
+							`"credentials":["`+pswd.Name+`"],`+
+							`"authorizedRules":{"sending":["`+rule.Name+`"]}`+
+							"}\n")
 					})
 				})
 			})
@@ -148,14 +157,12 @@ func TestListRemoteAccounts(t *testing.T) {
 
 		Convey("Given a database with 4 remote accounts", func() {
 			p1 := &model.RemoteAgent{
-				Name:     "parent1",
-				Protocol: testProto1,
-				Address:  "localhost:1",
+				Name: "parent1", Protocol: testProto1,
+				Address: types.Addr("localhost", 1),
 			}
 			p2 := &model.RemoteAgent{
-				Name:     "parent2",
-				Protocol: testProto1,
-				Address:  "localhost:2",
+				Name: "parent2", Protocol: testProto1,
+				Address: types.Addr("localhost", 2),
 			}
 
 			So(db.Insert(p1).Run(), ShouldBeNil)
@@ -163,22 +170,18 @@ func TestListRemoteAccounts(t *testing.T) {
 
 			a1 := &model.RemoteAccount{
 				Login:         "account1",
-				Password:      "account1",
 				RemoteAgentID: p1.ID,
 			}
 			a2 := &model.RemoteAccount{
 				Login:         "account2",
-				Password:      "account2",
 				RemoteAgentID: p1.ID,
 			}
 			a3 := &model.RemoteAccount{
 				Login:         "account3",
-				Password:      "account3",
 				RemoteAgentID: p2.ID,
 			}
 			a4 := &model.RemoteAccount{
 				Login:         "account4",
-				Password:      "account4",
 				RemoteAgentID: p1.ID,
 			}
 
@@ -297,9 +300,8 @@ func TestCreateRemoteAccount(t *testing.T) {
 
 		Convey("Given a database with 1 agent", func() {
 			parent := &model.RemoteAgent{
-				Name:     "parent",
-				Protocol: testProto1,
-				Address:  "localhost:1",
+				Name: "parent", Protocol: testProto1,
+				Address: types.Addr("localhost", 1),
 			}
 			So(db.Insert(parent).Run(), ShouldBeNil)
 
@@ -339,13 +341,16 @@ func TestCreateRemoteAccount(t *testing.T) {
 							var accs model.RemoteAccounts
 							So(db.Select(&accs).Run(), ShouldBeNil)
 							So(len(accs), ShouldEqual, 1)
-
 							So(accs[0], ShouldResemble, &model.RemoteAccount{
 								ID:            1,
 								RemoteAgentID: parent.ID,
 								Login:         "new_account",
-								Password:      "new_password",
 							})
+
+							var pswd model.Credential
+							So(db.Get(&pswd, "remote_account_id=? AND type=?",
+								accs[0].ID, auth.Password).Run(), ShouldBeNil)
+							So(pswd.Value, ShouldEqual, "new_password")
 						})
 					})
 				})
@@ -390,15 +395,13 @@ func TestDeleteRemoteAccount(t *testing.T) {
 
 		Convey("Given a database with 1 account", func() {
 			parent := &model.RemoteAgent{
-				Name:     "parent",
-				Protocol: testProto1,
-				Address:  "localhost:1",
+				Name: "parent", Protocol: testProto1,
+				Address: types.Addr("localhost", 1),
 			}
 			So(db.Insert(parent).Run(), ShouldBeNil)
 
 			existing := &model.RemoteAccount{
 				Login:         "existing",
-				Password:      "existing",
 				RemoteAgentID: parent.ID,
 			}
 			So(db.Insert(existing).Run(), ShouldBeNil)
@@ -480,15 +483,13 @@ func TestUpdateRemoteAccount(t *testing.T) {
 
 		Convey("Given a database with 1 account", func() {
 			parent := &model.RemoteAgent{
-				Name:     "parent",
-				Protocol: testProto1,
-				Address:  "localhost:1",
+				Name: "parent", Protocol: testProto1,
+				Address: types.Addr("localhost", 1),
 			}
 			So(db.Insert(parent).Run(), ShouldBeNil)
 
 			old := &model.RemoteAccount{
 				Login:         "old",
-				Password:      "old",
 				RemoteAgentID: parent.ID,
 			}
 			So(db.Insert(old).Run(), ShouldBeNil)
@@ -530,13 +531,16 @@ func TestUpdateRemoteAccount(t *testing.T) {
 							var res model.RemoteAccounts
 							So(db.Select(&res).Run(), ShouldBeNil)
 							So(len(res), ShouldEqual, 1)
-
 							So(res[0], ShouldResemble, &model.RemoteAccount{
 								ID:            old.ID,
 								RemoteAgentID: parent.ID,
 								Login:         "old",
-								Password:      res[0].Password,
 							})
+
+							var pswd model.Credential
+							So(db.Get(&pswd, "remote_account_id=? AND type=?",
+								res[0].ID, auth.Password).Run(), ShouldBeNil)
+							So(pswd.Value, ShouldEqual, "upd_password")
 						})
 					})
 				})
@@ -617,15 +621,13 @@ func TestReplaceRemoteAccount(t *testing.T) {
 
 		Convey("Given a database with 1 account", func() {
 			parent := &model.RemoteAgent{
-				Name:     "parent",
-				Protocol: testProto1,
-				Address:  "localhost:1",
+				Name: "parent", Protocol: testProto1,
+				Address: types.Addr("localhost", 1),
 			}
 			So(db.Insert(parent).Run(), ShouldBeNil)
 
 			old := &model.RemoteAccount{
 				Login:         "old",
-				Password:      "old",
 				RemoteAgentID: parent.ID,
 			}
 			So(db.Insert(old).Run(), ShouldBeNil)
@@ -667,13 +669,16 @@ func TestReplaceRemoteAccount(t *testing.T) {
 							var res model.RemoteAccounts
 							So(db.Select(&res).Run(), ShouldBeNil)
 							So(len(res), ShouldEqual, 1)
-
 							So(res[0], ShouldResemble, &model.RemoteAccount{
 								ID:            old.ID,
 								RemoteAgentID: parent.ID,
 								Login:         "upd_login",
-								Password:      res[0].Password,
 							})
+
+							var pswd model.Credential
+							So(db.Get(&pswd, "remote_account_id=? AND type=?",
+								res[0].ID, auth.Password).Run(), ShouldBeNil)
+							So(pswd.Value, ShouldEqual, "upd_password")
 						})
 					})
 				})

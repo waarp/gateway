@@ -7,15 +7,27 @@ type Slice[T database.Table] []T
 func (*Slice[T]) TableName() string { return T.TableName(*new(T)) }
 func (*Slice[T]) Elem() string      { return T.Appellation(*new(T)) }
 
+func (s *Slice[T]) AfterRead(db database.ReadAccess) error {
+	for _, elem := range *s {
+		if hook, ok := any(elem).(database.ReadCallback); ok {
+			if err := hook.AfterRead(db); err != nil {
+				return err //nolint:wrapcheck //wrapping adds nothing here
+			}
+		}
+	}
+
+	return nil
+}
+
 type (
-	Cryptos             = Slice[*Crypto]
-	Clients             = Slice[*Client]
+	Credentials         = Slice[*Credential]
 	TransferInfoList    = Slice[*TransferInfo]
 	HistoryEntries      = Slice[*HistoryEntry]
 	LocalAccounts       = Slice[*LocalAccount]
 	LocalAgents         = Slice[*LocalAgent]
 	RemoteAccounts      = Slice[*RemoteAccount]
 	RemoteAgents        = Slice[*RemoteAgent]
+	Clients             = Slice[*Client]
 	Rules               = Slice[*Rule]
 	RuleAccesses        = Slice[*RuleAccess]
 	Tasks               = Slice[*Task]
@@ -23,4 +35,6 @@ type (
 	Users               = Slice[*User]
 	NormalizedTransfers = Slice[*NormalizedTransferView]
 	CloudInstances      = Slice[*CloudInstance]
+	Authorities         = Slice[*Authority]
+	Hosts               = Slice[*Host]
 )

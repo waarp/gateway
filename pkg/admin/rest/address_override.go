@@ -9,9 +9,9 @@ import (
 	"code.waarp.fr/apps/gateway/gateway/pkg/conf"
 )
 
-type addr struct{ target, real string }
+type addrOverride struct{ target, real string }
 
-func getAddrOverride(r *http.Request) (*addr, error) {
+func getAddrOverride(r *http.Request) (*addrOverride, error) {
 	target, ok := mux.Vars(r)["address"]
 	if !ok {
 		return nil, notFound("missing target address")
@@ -22,7 +22,7 @@ func getAddrOverride(r *http.Request) (*addr, error) {
 		return nil, notFound("target address does not exist")
 	}
 
-	return &addr{target: target, real: realAddress}, nil
+	return &addrOverride{target: target, real: realAddress}, nil
 }
 
 func listAddressOverrides(logger *log.Logger) http.HandlerFunc {
@@ -52,7 +52,6 @@ func addAddressOverride(logger *log.Logger) http.HandlerFunc {
 func deleteAddressOverride(logger *log.Logger) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		address, err := getAddrOverride(r)
-
 		if handleError(w, logger, err) {
 			return
 		}

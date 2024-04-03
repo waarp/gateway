@@ -8,6 +8,8 @@ import (
 	. "code.waarp.fr/apps/gateway/gateway/pkg/backup/file"
 	"code.waarp.fr/apps/gateway/gateway/pkg/database"
 	"code.waarp.fr/apps/gateway/gateway/pkg/model"
+	"code.waarp.fr/apps/gateway/gateway/pkg/model/authentication/auth"
+	"code.waarp.fr/apps/gateway/gateway/pkg/model/types"
 	"code.waarp.fr/apps/gateway/gateway/pkg/utils"
 	"code.waarp.fr/apps/gateway/gateway/pkg/utils/testhelpers"
 )
@@ -20,22 +22,23 @@ func TestImportCerts(t *testing.T) {
 			agent := &model.LocalAgent{
 				Name:     "server",
 				Protocol: testProtocol,
-				Address:  "localhost:6666",
+				Address:  types.Addr("localhost", 6666),
 			}
 			So(db.Insert(agent).Run(), ShouldBeNil)
 
 			agent2 := &model.LocalAgent{
 				Name:     "agent2",
 				Protocol: testProtocol,
-				Address:  "localhost:7777",
+				Address:  types.Addr("localhost", 7777),
 			}
 			So(db.Insert(agent2).Run(), ShouldBeNil)
 
-			cert2 := &model.Crypto{
+			cert2 := &model.Credential{
 				Name:         "foo",
 				LocalAgentID: utils.NewNullInt64(agent2.ID),
-				PrivateKey:   testhelpers.OtherLocalhostKey,
-				Certificate:  testhelpers.OtherLocalhostCert,
+				Type:         auth.TLSCertificate,
+				Value2:       testhelpers.OtherLocalhostKey,
+				Value:        testhelpers.OtherLocalhostCert,
 			}
 			So(db.Insert(cert2).Run(), ShouldBeNil)
 
@@ -56,7 +59,7 @@ func TestImportCerts(t *testing.T) {
 					})
 
 					Convey("Then the agent should have 1 Cryptos", func() {
-						var dbCerts model.Cryptos
+						var dbCerts model.Credentials
 						So(db.Select(&dbCerts).Where("local_agent_id=?",
 							agent.ID).Run(), ShouldBeNil)
 						So(len(dbCerts), ShouldEqual, 1)
@@ -64,9 +67,8 @@ func TestImportCerts(t *testing.T) {
 						Convey("Then the Certificate should correspond "+
 							"to the one imported", func() {
 							So(dbCerts[0].Name, ShouldResemble, insert.Name)
-							So(dbCerts[0].SSHPublicKey, ShouldResemble, insert.PublicKey)
-							So(string(dbCerts[0].PrivateKey), ShouldResemble, insert.PrivateKey)
-							So(dbCerts[0].Certificate, ShouldResemble, insert.Certificate)
+							So(dbCerts[0].Value2, ShouldResemble, insert.PrivateKey)
+							So(dbCerts[0].Value, ShouldResemble, insert.Certificate)
 						})
 					})
 				})
@@ -89,17 +91,16 @@ func TestImportCerts(t *testing.T) {
 					})
 
 					Convey("Then the agent should have 1 Cryptos", func() {
-						var dbCerts model.Cryptos
-						So(db.Select(&dbCerts).Where("local_agent_id=?",
-							agent2.ID).Run(), ShouldBeNil)
+						var dbCerts model.Credentials
+						So(db.Select(&dbCerts).Where("local_agent_id=? AND type=?",
+							agent2.ID, auth.TLSCertificate).Run(), ShouldBeNil)
 						So(len(dbCerts), ShouldEqual, 1)
 
 						Convey("Then the Certificate should correspond "+
 							"to the one imported", func() {
 							So(dbCerts[0].Name, ShouldResemble, insert.Name)
-							So(dbCerts[0].SSHPublicKey, ShouldResemble, insert.PublicKey)
-							So(string(dbCerts[0].PrivateKey), ShouldResemble, insert.PrivateKey)
-							So(dbCerts[0].Certificate, ShouldResemble, insert.Certificate)
+							So(dbCerts[0].Value2, ShouldResemble, insert.PrivateKey)
+							So(dbCerts[0].Value, ShouldResemble, insert.Certificate)
 						})
 					})
 				})

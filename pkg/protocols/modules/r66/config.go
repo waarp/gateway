@@ -1,30 +1,33 @@
 package r66
 
 import (
-	"errors"
 	"fmt"
 
 	"code.waarp.fr/apps/gateway/gateway/pkg/database"
 	"code.waarp.fr/apps/gateway/gateway/pkg/utils"
 )
 
-var errInvalidProtoConfig = errors.New("invalid proto config")
-
 // serverConfig represents the configuration of a local R66 server.
 type serverConfig struct {
 	// The block size for transfers. Optional, 65536 by default.
 	BlockSize uint32 `json:"blockSize,omitempty"`
 
-	// The login used by the server for server authentication.
+	// The login used by the server for server authentication (if different
+	// from the server's name).
 	ServerLogin string `json:"serverLogin,omitempty"`
 
 	// The server's password for server authentication.
+	// Deprecated: use model.Credential instead.
 	ServerPassword string `json:"serverPassword,omitempty"`
 
 	// Specifies whether the partner uses TLS or not. Useless for servers.
 	// Deprecated: use the r66-tls protocol instead.
 	//nolint:tagliatelle // FIXME cannot be changed for compatibility reasons
 	IsTLS *bool `json:"isTLS,omitempty"`
+
+	// Specifies whether the server uses the legacy R66 certificate for TLS.
+	// Useless if the server does not use TLS.
+	UsesLegacyCertificate bool `json:"usesLegacyCertificate,omitempty"`
 
 	// If true, the final hash verification will be disabled.
 	NoFinalHash bool `json:"noFinalHash,omitempty"`
@@ -40,7 +43,7 @@ func (c *serverConfig) ValidServer() error {
 	}
 
 	if len(c.ServerPassword) == 0 {
-		return fmt.Errorf("missing server password: %w", errInvalidProtoConfig)
+		return nil
 	}
 
 	pwd, err := utils.AESCrypt(database.GCM, c.ServerPassword)
@@ -58,10 +61,12 @@ type partnerConfig struct {
 	// The block size for transfers. Optional, 65536 by default.
 	BlockSize uint32 `json:"blockSize,omitempty"`
 
-	// The login used by the server for server authentication.
+	// The login used by the partner for server authentication (if different
+	// from the partner's name).
 	ServerLogin string `json:"serverLogin,omitempty"`
 
 	// The server's password for server authentication.
+	// Deprecated: use model.Credential instead.
 	ServerPassword string `json:"serverPassword,omitempty"`
 
 	// Specifies whether the partner uses TLS or not. Useless for servers.
@@ -85,7 +90,7 @@ func (c *partnerConfig) ValidPartner() error {
 	}
 
 	if len(c.ServerPassword) == 0 {
-		return fmt.Errorf("missing partner password: %w", errInvalidProtoConfig)
+		return nil
 	}
 
 	if utils.IsHash(c.ServerPassword) {

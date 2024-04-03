@@ -70,10 +70,10 @@ func importRules(logger *log.Logger, db database.Access, list []file.Rule,
 		importRuleCheckDeprecated(logger, src, &rule)
 
 		if exists {
-			logger.Info("Update rule %s\n", rule.Name)
+			logger.Info("Update rule %s", rule.Name)
 			err = db.Update(&rule).Run()
 		} else {
-			logger.Info("Create rule %s\n", rule.Name)
+			logger.Info("Create rule %s", rule.Name)
 			err = db.Insert(&rule).Run()
 		}
 
@@ -137,7 +137,7 @@ func importRuleAccesses(db database.Access, list []string, rule *model.Rule) err
 	for _, src := range list {
 		arr := strings.Split(src, "::")
 		if len(arr) < 2 { //nolint:gomnd // no need for a constant, only used once
-			return database.NewValidationError("rule auth is not in a valid format")
+			return database.NewValidationError("rule permission is not in a valid format")
 		}
 
 		var (
@@ -253,7 +253,7 @@ func importRuleTasks(logger *log.Logger, db database.Access, list []file.Task,
 		task.Args = src.Args
 
 		// Create/Update
-		logger.Info("Create task type %s at chain %s rank %d\n", task.Type, chain, i)
+		logger.Info("Create task type %s at chain %s rank %d", task.Type, chain, i)
 
 		if err := db.Insert(&task).Run(); err != nil {
 			return fmt.Errorf("failed to insert task %q: %w", task.Type, err)

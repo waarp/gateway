@@ -26,20 +26,21 @@ func exportRemotes(logger *log.Logger, db database.ReadAccess) ([]file.RemoteAge
 			return nil, err
 		}
 
-		certificates, err := exportCertificates(logger, db, src)
+		credentials, certs, _, err := exportCredentials(logger, db, src)
 		if err != nil {
 			return nil, err
 		}
 
-		logger.Info("Export remote partner %s\n", src.Name)
+		logger.Info("Export remote partner %s", src.Name)
 
 		agent := file.RemoteAgent{
 			Name:          src.Name,
+			Address:       src.Address.String(),
 			Protocol:      src.Protocol,
-			Address:       src.Address,
 			Configuration: src.ProtoConfig,
 			Accounts:      accounts,
-			Certs:         certificates,
+			Credentials:   credentials,
+			Certs:         certs,
 		}
 		res[i] = agent
 	}
@@ -58,17 +59,18 @@ func exportRemoteAccounts(logger *log.Logger, db database.ReadAccess,
 	res := make([]file.RemoteAccount, len(dbAccounts))
 
 	for i, src := range dbAccounts {
-		certificates, err := exportCertificates(logger, db, src)
+		credentials, certs, pswd, err := exportCredentials(logger, db, src)
 		if err != nil {
 			return nil, err
 		}
 
-		logger.Info("Export remote account %s\n", src.Login)
+		logger.Info("Export remote account %s", src.Login)
 
 		account := file.RemoteAccount{
-			Login:    src.Login,
-			Password: string(src.Password),
-			Certs:    certificates,
+			Login:       src.Login,
+			Password:    pswd,
+			Credentials: credentials,
+			Certs:       certs,
 		}
 		res[i] = account
 	}

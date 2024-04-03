@@ -1,3 +1,4 @@
+// Package internal regroups utilities for the R66 protocol module.
 package internal
 
 import (

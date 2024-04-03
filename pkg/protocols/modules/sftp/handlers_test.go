@@ -11,7 +11,9 @@ import (
 	"code.waarp.fr/apps/gateway/gateway/pkg/fs"
 	"code.waarp.fr/apps/gateway/gateway/pkg/fs/fstest"
 	"code.waarp.fr/apps/gateway/gateway/pkg/model"
+	"code.waarp.fr/apps/gateway/gateway/pkg/model/authentication/auth"
 	"code.waarp.fr/apps/gateway/gateway/pkg/model/types"
+	"code.waarp.fr/apps/gateway/gateway/pkg/utils"
 	"code.waarp.fr/apps/gateway/gateway/pkg/utils/testhelpers"
 )
 
@@ -40,19 +42,23 @@ func TestFileReader(t *testing.T) {
 			So(db.Insert(rule).Run(), ShouldBeNil)
 
 			agent := &model.LocalAgent{
-				Name:     "test_sftp_server",
-				Protocol: SFTP,
-				RootDir:  root,
-				Address:  "localhost:2023",
+				Name: "test_sftp_server", Protocol: SFTP,
+				RootDir: root, Address: types.Addr("localhost", 2023),
 			}
 			So(db.Insert(agent).Run(), ShouldBeNil)
 
 			account := &model.LocalAccount{
 				LocalAgentID: agent.ID,
 				Login:        "toto",
-				PasswordHash: hash("password"),
 			}
 			So(db.Insert(account).Run(), ShouldBeNil)
+
+			pswd := &model.Credential{
+				LocalAccountID: utils.NewNullInt64(account.ID),
+				Type:           auth.PasswordHash,
+				Value:          "password",
+			}
+			So(db.Insert(pswd).Run(), ShouldBeNil)
 
 			Convey("Given the FileReader", func() {
 				conf.GlobalConfig.Paths = conf.PathsConfig{GatewayHome: root}
@@ -143,19 +149,23 @@ func TestFileWriter(t *testing.T) {
 			So(db.Insert(rule).Run(), ShouldBeNil)
 
 			agent := &model.LocalAgent{
-				Name:     "test_sftp_server",
-				Protocol: SFTP,
-				RootDir:  root,
-				Address:  "localhost:2023",
+				Name: "test_sftp_server", Protocol: SFTP,
+				RootDir: root, Address: types.Addr("localhost", 2023),
 			}
 			So(db.Insert(agent).Run(), ShouldBeNil)
 
 			account := &model.LocalAccount{
 				LocalAgentID: agent.ID,
 				Login:        "toto",
-				PasswordHash: hash("password"),
 			}
 			So(db.Insert(account).Run(), ShouldBeNil)
+
+			pswd := &model.Credential{
+				LocalAccountID: utils.NewNullInt64(account.ID),
+				Type:           auth.PasswordHash,
+				Value:          "password",
+			}
+			So(db.Insert(pswd).Run(), ShouldBeNil)
 
 			Convey("Given the Filewriter", func() {
 				conf.GlobalConfig.Paths = conf.PathsConfig{GatewayHome: root}

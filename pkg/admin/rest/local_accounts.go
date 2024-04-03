@@ -1,6 +1,7 @@
 package rest
 
 import (
+	"fmt"
 	"net/http"
 
 	"code.waarp.fr/lib/log"
@@ -9,15 +10,17 @@ import (
 	"code.waarp.fr/apps/gateway/gateway/pkg/admin/rest/api"
 	"code.waarp.fr/apps/gateway/gateway/pkg/database"
 	"code.waarp.fr/apps/gateway/gateway/pkg/model"
+	"code.waarp.fr/apps/gateway/gateway/pkg/model/authentication/auth"
+	"code.waarp.fr/apps/gateway/gateway/pkg/utils"
 )
 
 //nolint:dupl // duplicated code is about a different type
 func getDBLocalAccount(r *http.Request, db *database.DB) (*model.LocalAgent,
 	*model.LocalAccount, error,
 ) {
-	parent, err := getDBServer(r, db)
-	if err != nil {
-		return nil, nil, err
+	parent, parentErr := getDBServer(r, db)
+	if parentErr != nil {
+		return nil, nil, parentErr
 	}
 
 	login, ok := mux.Vars(r)["local_account"]
@@ -33,7 +36,7 @@ func getDBLocalAccount(r *http.Request, db *database.DB) (*model.LocalAgent,
 				login, parent.Name)
 		}
 
-		return parent, nil, err
+		return parent, nil, fmt.Errorf("failed to retrieve local account %q: %w", login, err)
 	}
 
 	return parent, &dbAccount, nil
@@ -76,9 +79,7 @@ func listLocalAccounts(logger *log.Logger, db *database.DB) http.HandlerFunc {
 			return
 		}
 
-		query.Where("local_agent_id=?", parent.ID)
-
-		if err := query.Run(); handleError(w, logger, err) {
+		if err := query.Where("local_agent_id=?", parent.ID).Run(); handleError(w, logger, err) {
 			return
 		}
 
@@ -92,6 +93,7 @@ func listLocalAccounts(logger *log.Logger, db *database.DB) http.HandlerFunc {
 	}
 }
 
+//nolint:dupl //duplicated code is about a different type, best keep separate
 func addLocalAccount(logger *log.Logger, db *database.DB) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		parent, getErr := getDBServer(r, db)
@@ -104,12 +106,28 @@ func addLocalAccount(logger *log.Logger, db *database.DB) http.HandlerFunc {
 			return
 		}
 
-		dbAccount, convErr := restLocalAccountToDB(&restAccount, parent)
-		if handleError(w, logger, convErr) {
-			return
+		dbAccount := &model.LocalAccount{
+			LocalAgentID: parent.ID,
+			Login:        restAccount.Login.Value,
 		}
 
-		if err := db.Insert(dbAccount).Run(); handleError(w, logger, err) {
+		if tErr := db.Transaction(func(ses *database.Session) error {
+			if err := ses.Insert(dbAccount).Run(); err != nil {
+				return fmt.Errorf("failed to insert local account: %w", err)
+			}
+
+			if restAccount.Password.Value != "" {
+				if err := ses.Insert(&model.Credential{
+					LocalAccountID: utils.NewNullInt64(dbAccount.ID),
+					Type:           auth.PasswordHash,
+					Value:          restAccount.Password.Value,
+				}).Run(); err != nil {
+					return fmt.Errorf("failed to insert password credential: %w", err)
+				}
+			}
+
+			return nil
+		}); handleError(w, logger, tErr) {
 			return
 		}
 
@@ -118,6 +136,7 @@ func addLocalAccount(logger *log.Logger, db *database.DB) http.HandlerFunc {
 	}
 }
 
+//nolint:dupl //duplicated code is about a different type, best keep separate
 func updateLocalAccount(logger *log.Logger, db *database.DB) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		parent, oldAccount, getErr := getDBLocalAccount(r, db)
@@ -125,18 +144,31 @@ func updateLocalAccount(logger *log.Logger, db *database.DB) http.HandlerFunc {
 			return
 		}
 
-		restAccount := dbLocalAccountToRESTInput(oldAccount)
+		restAccount := &api.InAccount{Login: api.AsNullable(oldAccount.Login)}
 		if err := readJSON(r, restAccount); handleError(w, logger, err) {
 			return
 		}
 
-		dbAccount, convErr := restLocalAccountToDB(restAccount, parent)
-		if handleError(w, logger, convErr) {
-			return
+		dbAccount := &model.LocalAccount{
+			ID:           oldAccount.ID,
+			LocalAgentID: oldAccount.LocalAgentID,
+			Login:        restAccount.Login.Value,
 		}
 
-		dbAccount.ID = oldAccount.ID
-		if err := db.Update(dbAccount).Run(); handleError(w, logger, err) {
+		if tErr := db.Transaction(func(ses *database.Session) error {
+			if err := ses.Update(dbAccount).Run(); err != nil {
+				return fmt.Errorf("failed to update local account: %w", err)
+			}
+
+			if restAccount.Password.Valid {
+				if err := updateAccountPassword(ses, dbAccount, restAccount.Password.Value,
+					auth.PasswordHash, parent.Protocol); err != nil {
+					return err
+				}
+			}
+
+			return nil
+		}); handleError(w, logger, tErr) {
 			return
 		}
 
@@ -145,6 +177,7 @@ func updateLocalAccount(logger *log.Logger, db *database.DB) http.HandlerFunc {
 	}
 }
 
+//nolint:dupl //duplicate is for a different type, best keep separate
 func replaceLocalAccount(logger *log.Logger, db *database.DB) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		parent, oldAccount, getErr := getDBLocalAccount(r, db)
@@ -157,13 +190,24 @@ func replaceLocalAccount(logger *log.Logger, db *database.DB) http.HandlerFunc {
 			return
 		}
 
-		dbAccount, convErr := restLocalAccountToDB(&restAccount, parent)
-		if handleError(w, logger, convErr) {
-			return
+		dbAccount := &model.LocalAccount{
+			ID:           oldAccount.ID,
+			LocalAgentID: oldAccount.LocalAgentID,
+			Login:        restAccount.Login.Value,
 		}
 
-		dbAccount.ID = oldAccount.ID
-		if err := db.Update(dbAccount).Run(); handleError(w, logger, err) {
+		if tErr := db.Transaction(func(ses *database.Session) error {
+			if err := ses.Update(dbAccount).Run(); err != nil {
+				return fmt.Errorf("failed to update local account: %w", err)
+			}
+
+			if err := updateAccountPassword(ses, dbAccount, restAccount.Password.Value,
+				auth.PasswordHash, parent.Protocol); err != nil {
+				return err
+			}
+
+			return nil
+		}); handleError(w, logger, tErr) {
 			return
 		}
 
@@ -209,6 +253,40 @@ func revokeLocalAccount(logger *log.Logger, db *database.DB) http.HandlerFunc {
 	}
 }
 
+func addLocAccCred(logger *log.Logger, db *database.DB) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		dbPartner, dbAccount, getErr := getDBLocalAccount(r, db)
+		if handleError(w, logger, getErr) {
+			return
+		}
+
+		handleError(w, logger, addCredential(w, r, db, dbAccount, dbPartner.Protocol))
+	}
+}
+
+func getLocAccCred(logger *log.Logger, db *database.DB) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		_, dbAccount, getErr := getDBLocalAccount(r, db)
+		if handleError(w, logger, getErr) {
+			return
+		}
+
+		handleError(w, logger, getCredential(w, r, db, dbAccount))
+	}
+}
+
+func removeLocAccCred(logger *log.Logger, db *database.DB) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		_, acc, err := getDBLocalAccount(r, db)
+		if handleError(w, logger, err) {
+			return
+		}
+
+		handleError(w, logger, removeCredential(w, r, db, acc))
+	}
+}
+
+// Deprecated: replaced by Credentials.
 func getLocAccountCert(logger *log.Logger, db *database.DB) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		_, dbAccount, getErr := getDBLocalAccount(r, db)
@@ -220,6 +298,7 @@ func getLocAccountCert(logger *log.Logger, db *database.DB) http.HandlerFunc {
 	}
 }
 
+// Deprecated: replaced by Credentials.
 func addLocAccountCert(logger *log.Logger, db *database.DB) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		_, dbAccount, getErr := getDBLocalAccount(r, db)
@@ -231,6 +310,7 @@ func addLocAccountCert(logger *log.Logger, db *database.DB) http.HandlerFunc {
 	}
 }
 
+// Deprecated: replaced by Credentials.
 func listLocAccountCerts(logger *log.Logger, db *database.DB) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		_, dbAccount, getErr := getDBLocalAccount(r, db)
@@ -242,6 +322,7 @@ func listLocAccountCerts(logger *log.Logger, db *database.DB) http.HandlerFunc {
 	}
 }
 
+// Deprecated: replaced by Credentials.
 func deleteLocAccountCert(logger *log.Logger, db *database.DB) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		_, dbAccount, getErr := getDBLocalAccount(r, db)
@@ -253,6 +334,7 @@ func deleteLocAccountCert(logger *log.Logger, db *database.DB) http.HandlerFunc 
 	}
 }
 
+// Deprecated: replaced by Credentials.
 func updateLocAccountCert(logger *log.Logger, db *database.DB) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		_, dbAccount, getErr := getDBLocalAccount(r, db)
@@ -264,6 +346,7 @@ func updateLocAccountCert(logger *log.Logger, db *database.DB) http.HandlerFunc 
 	}
 }
 
+// Deprecated: replaced by Credentials.
 func replaceLocAccountCert(logger *log.Logger, db *database.DB) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		_, dbAccount, getErr := getDBLocalAccount(r, db)

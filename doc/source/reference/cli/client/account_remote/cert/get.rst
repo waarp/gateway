@@ -1,6 +1,6 @@
-========================================
-Afficher un certificat de compte distant
-========================================
+===================================================
+[OBSOLÈTE] Afficher un certificat de compte distant
+===================================================
 
 .. program:: waarp-gateway account remote cert get
 

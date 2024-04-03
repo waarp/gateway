@@ -160,18 +160,20 @@ func (s *SelfContext) addPullTransfer(c convey.C) {
 // StartService starts the service associated with the test server defined in
 // the SelfContext.
 func (s *SelfContext) StartService(c convey.C) {
+	const shutdownTimeout = 5 * time.Second
+
 	c.So(s.ServerService.Start(), convey.ShouldBeNil)
 	c.Reset(func() {
-		ctx, cancel := context.WithTimeout(context.Background(), time.Second)
+		ctx, cancel := context.WithTimeout(context.Background(), shutdownTimeout)
 		defer cancel()
 		c.So(s.ServerService.Stop(ctx), convey.ShouldBeNil)
 	})
 }
 
-// AddCryptos adds the given cryptos to the test database.
-func (s *SelfContext) AddCryptos(c convey.C, certs ...*model.Crypto) {
-	for _, cert := range certs {
-		c.So(s.DB.Insert(cert).Run(), convey.ShouldBeNil)
+// AddAuths adds the given cryptos to the test database.
+func (s *SelfContext) AddAuths(c convey.C, creds ...*model.Credential) {
+	for _, cred := range creds {
+		c.So(s.DB.Insert(cred).Run(), convey.ShouldBeNil)
 	}
 }
 
@@ -510,21 +512,21 @@ func (s *SelfContext) AddFileInfo(c convey.C, name string, val interface{}) {
 */
 
 func (s *SelfContext) GetTransferContext(c convey.C) *model.TransferContext {
-	partnerCryptos, err := s.Partner.GetCryptos(s.DB)
+	partnerCryptos, err := s.Partner.GetCredentials(s.DB)
 	c.So(err, convey.ShouldBeNil)
 
-	accountCryptos, err := s.RemAccount.GetCryptos(s.DB)
+	accountCryptos, err := s.RemAccount.GetCredentials(s.DB)
 	c.So(err, convey.ShouldBeNil)
 
 	return &model.TransferContext{
-		Transfer:             s.transData.ClientTrans,
-		TransInfo:            s.transData.transferInfo,
-		Rule:                 s.ClientRule,
-		Client:               s.Client,
-		RemoteAgent:          s.Partner,
-		RemoteAccount:        s.RemAccount,
-		RemoteAgentCryptos:   partnerCryptos,
-		RemoteAccountCryptos: accountCryptos,
-		Paths:                s.Paths,
+		Transfer:           s.transData.ClientTrans,
+		TransInfo:          s.transData.transferInfo,
+		Rule:               s.ClientRule,
+		Client:             s.Client,
+		RemoteAgent:        s.Partner,
+		RemoteAccount:      s.RemAccount,
+		RemoteAgentCreds:   partnerCryptos,
+		RemoteAccountCreds: accountCryptos,
+		Paths:              s.Paths,
 	}
 }

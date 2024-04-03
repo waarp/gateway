@@ -6,7 +6,6 @@ import (
 	"golang.org/x/crypto/ssh"
 
 	"code.waarp.fr/apps/gateway/gateway/pkg/utils"
-	"code.waarp.fr/apps/gateway/gateway/pkg/utils/testhelpers"
 )
 
 type dummyClient struct {
@@ -15,7 +14,7 @@ type dummyClient struct {
 }
 
 func makeDummyClient(addr, login, pwd string) *dummyClient {
-	key, err := utils.ParseSSHAuthorizedKey(testhelpers.SSHPbk)
+	key, err := utils.ParseSSHAuthorizedKey(SSHPbk)
 	So(err, ShouldBeNil)
 
 	clientConf := &ssh.ClientConfig{

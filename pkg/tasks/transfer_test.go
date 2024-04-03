@@ -9,6 +9,7 @@ import (
 
 	"code.waarp.fr/apps/gateway/gateway/pkg/database"
 	"code.waarp.fr/apps/gateway/gateway/pkg/model"
+	"code.waarp.fr/apps/gateway/gateway/pkg/model/types"
 	"code.waarp.fr/apps/gateway/gateway/pkg/utils"
 	"code.waarp.fr/apps/gateway/gateway/pkg/utils/testhelpers"
 )
@@ -92,16 +93,14 @@ func TestTransferRun(t *testing.T) {
 		So(db.Insert(client).Run(), ShouldBeNil)
 
 		partner := &model.RemoteAgent{
-			Name:     "test partner",
-			Protocol: client.Protocol,
-			Address:  "localhost:1111",
+			Name: "test partner", Protocol: client.Protocol,
+			Address: types.Addr("localhost", 1111),
 		}
 		So(db.Insert(partner).Run(), ShouldBeNil)
 
 		account := &model.RemoteAccount{
 			RemoteAgentID: partner.ID,
 			Login:         "test account",
-			Password:      "sesame",
 		}
 		So(db.Insert(account).Run(), ShouldBeNil)
 

@@ -20,9 +20,9 @@ import (
 
 // FromHistory transforms the given database history entry into its JSON equivalent.
 func FromHistory(db *database.DB, hist *model.HistoryEntry) (*api.OutHistory, error) {
-	var stop *time.Time
+	var stop api.Nullable[time.Time]
 	if !hist.Stop.IsZero() {
-		stop = &hist.Stop
+		stop = api.AsNullable(hist.Stop)
 	}
 
 	src := path.Base(hist.RemotePath)

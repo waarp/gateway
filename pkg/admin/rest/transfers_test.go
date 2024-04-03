@@ -39,16 +39,14 @@ func TestAddTransfer(t *testing.T) {
 			So(db.Insert(client).Run(), ShouldBeNil)
 
 			partner := &model.RemoteAgent{
-				Name:     "remote",
-				Protocol: client.Protocol,
-				Address:  "localhost:1",
+				Name: "remote", Protocol: client.Protocol,
+				Address: types.Addr("localhost", 1),
 			}
 			So(db.Insert(partner).Run(), ShouldBeNil)
 
 			account := &model.RemoteAccount{
 				RemoteAgentID: partner.ID,
 				Login:         "toto",
-				Password:      "sesame",
 			}
 			So(db.Insert(account).Run(), ShouldBeNil)
 
@@ -309,16 +307,14 @@ func TestGetTransfer(t *testing.T) {
 			So(db.Insert(client).Run(), ShouldBeNil)
 
 			partner := &model.RemoteAgent{
-				Name:     "partner",
-				Protocol: client.Protocol,
-				Address:  "localhost:1",
+				Name: "partner", Protocol: client.Protocol,
+				Address: types.Addr("localhost", 1),
 			}
 			So(db.Insert(partner).Run(), ShouldBeNil)
 
 			account := &model.RemoteAccount{
 				RemoteAgentID: partner.ID,
 				Login:         "toto",
-				Password:      "titi",
 			}
 			So(db.Insert(account).Run(), ShouldBeNil)
 
@@ -377,9 +373,9 @@ func TestGetTransfer(t *testing.T) {
 					Convey("Then the body should contain the requested transfer "+
 						"in JSON format", func() {
 						jsonObj := fromTransfer(db, trans)
+
 						exp, err := json.Marshal(jsonObj)
 						So(err, ShouldBeNil)
-
 						So(w.Body.String(), ShouldResemble, string(exp)+"\n")
 					})
 				})
@@ -421,30 +417,26 @@ func TestListTransfer(t *testing.T) {
 			So(db.Insert(cli2).Run(), ShouldBeNil)
 
 			p1 := &model.RemoteAgent{
-				Name:     "part1",
-				Protocol: cli1.Protocol,
-				Address:  "localhost:1",
+				Name: "part1", Protocol: cli1.Protocol,
+				Address: types.Addr("localhost", 1),
 			}
 			So(db.Insert(p1).Run(), ShouldBeNil)
 
 			p2 := &model.RemoteAgent{
-				Name:     "part2",
-				Protocol: cli2.Protocol,
-				Address:  "localhost:2",
+				Name: "part2", Protocol: cli2.Protocol,
+				Address: types.Addr("localhost", 2),
 			}
 			So(db.Insert(p2).Run(), ShouldBeNil)
 
 			a1 := &model.RemoteAccount{
 				RemoteAgentID: p1.ID,
 				Login:         "toto",
-				Password:      "titi",
 			}
 			So(db.Insert(a1).Run(), ShouldBeNil)
 
 			a2 := &model.RemoteAccount{
 				RemoteAgentID: p2.ID,
 				Login:         "toto",
-				Password:      "titi",
 			}
 			So(db.Insert(a2).Run(), ShouldBeNil)
 
@@ -635,16 +627,14 @@ func TestResumeTransfer(t *testing.T) {
 			So(db.Insert(client).Run(), ShouldBeNil)
 
 			partner := &model.RemoteAgent{
-				Name:     "test_server",
-				Protocol: client.Protocol,
-				Address:  "localhost:1",
+				Name: "test_server", Protocol: client.Protocol,
+				Address: types.Addr("localhost", 1),
 			}
 			So(db.Insert(partner).Run(), ShouldBeNil)
 
 			account := &model.RemoteAccount{
 				RemoteAgentID: partner.ID,
 				Login:         "toto",
-				Password:      "titi",
 			}
 			So(db.Insert(account).Run(), ShouldBeNil)
 
@@ -724,16 +714,14 @@ func TestPauseTransfer(t *testing.T) {
 			So(db.Insert(client).Run(), ShouldBeNil)
 
 			partner := &model.RemoteAgent{
-				Name:     "test_server",
-				Protocol: client.Protocol,
-				Address:  "localhost:1",
+				Name: "test_server", Protocol: client.Protocol,
+				Address: types.Addr("localhost", 1),
 			}
 			So(db.Insert(partner).Run(), ShouldBeNil)
 
 			account := &model.RemoteAccount{
 				RemoteAgentID: partner.ID,
 				Login:         "toto",
-				Password:      "titi",
 			}
 			So(db.Insert(account).Run(), ShouldBeNil)
 
@@ -811,16 +799,14 @@ func TestCancelTransfer(t *testing.T) {
 			So(db.Insert(client).Run(), ShouldBeNil)
 
 			partner := &model.RemoteAgent{
-				Name:     "test_server",
-				Protocol: client.Protocol,
-				Address:  "localhost:1",
+				Name: "test_server", Protocol: client.Protocol,
+				Address: types.Addr("localhost", 1),
 			}
 			So(db.Insert(partner).Run(), ShouldBeNil)
 
 			account := &model.RemoteAccount{
 				RemoteAgentID: partner.ID,
 				Login:         "toto",
-				Password:      "titi",
 			}
 			So(db.Insert(account).Run(), ShouldBeNil)
 
@@ -907,16 +893,14 @@ func TestRestartTransfer(t *testing.T) {
 			So(db.Insert(client).Run(), ShouldBeNil)
 
 			partner := &model.RemoteAgent{
-				Name:     "partner",
-				Protocol: client.Protocol,
-				Address:  "localhost:2022",
+				Name: "partner", Protocol: client.Protocol,
+				Address: types.Addr("localhost", 1),
 			}
 			So(db.Insert(partner).Run(), ShouldBeNil)
 
 			account := &model.RemoteAccount{
 				RemoteAgentID: partner.ID,
 				Login:         "toto",
-				Password:      "titi",
 			}
 			So(db.Insert(account).Run(), ShouldBeNil)
 
@@ -1027,16 +1011,14 @@ func TestCancelTransfers(t *testing.T) {
 			So(db.Insert(client).Run(), ShouldBeNil)
 
 			partner := &model.RemoteAgent{
-				Name:     "test_server",
-				Protocol: client.Protocol,
-				Address:  "localhost:1",
+				Name: "test_server", Protocol: client.Protocol,
+				Address: types.Addr("localhost", 1),
 			}
 			So(db.Insert(partner).Run(), ShouldBeNil)
 
 			account := &model.RemoteAccount{
 				RemoteAgentID: partner.ID,
 				Login:         "toto",
-				Password:      "titi",
 			}
 			So(db.Insert(account).Run(), ShouldBeNil)
 

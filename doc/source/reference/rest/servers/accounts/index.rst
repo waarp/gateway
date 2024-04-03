@@ -14,6 +14,8 @@ sur ce dernier.
    update
    replace
    delete
+   cred_add
+   cred_delete
    authorize
    revoke
    certificates/index

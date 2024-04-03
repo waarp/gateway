@@ -30,21 +30,29 @@ type LocalAgent struct {
 	Address       string         `json:"address"`
 	Configuration map[string]any `json:"configuration"`
 	Accounts      []LocalAccount `json:"accounts"`
-	Certs         []Certificate  `json:"certificates"` //nolint:tagliatelle // doesn't matter
+	Credentials   []Credential   `json:"credentials,omitempty"`
 
 	// Deprecated fields.
+
 	Root    string `json:"root,omitempty"`    // Deprecated: replaced by Root
 	InDir   string `json:"inDir,omitempty"`   // Deprecated: replaced by ReceiveDir
 	OutDir  string `json:"outDir,omitempty"`  // Deprecated: replaced by SendDir
 	WorkDir string `json:"workDir,omitempty"` // Deprecated: replaced by TmpReceiveDir
+	//nolint:tagliatelle // doesn't matter
+	Certs []Certificate `json:"certificates"` // Deprecated: use Credentials instead.
 }
 
 // LocalAccount is the JSON struct representing a local account.
 type LocalAccount struct {
-	Login        string        `json:"login"`
-	Password     string        `json:"password,omitempty"`
-	PasswordHash string        `json:"passwordHash,omitempty"`
-	Certs        []Certificate `json:"certificates,omitempty"` //nolint:tagliatelle // doesn't matter
+	Login       string       `json:"login"`
+	Password    string       `json:"password,omitempty"`
+	Credentials []Credential `json:"credentials,omitempty"`
+
+	// Deprecated fields.
+
+	PasswordHash string `json:"passwordHash,omitempty"` // Deprecated: use Credentials instead.
+	//nolint:tagliatelle // doesn't matter
+	Certs []Certificate `json:"certificates,omitempty"` // Deprecated: use Credentials instead.
 }
 
 type Client struct {
@@ -63,17 +71,28 @@ type RemoteAgent struct {
 	Protocol      string          `json:"protocol"`
 	Configuration map[string]any  `json:"configuration"`
 	Accounts      []RemoteAccount `json:"accounts"`
-	Certs         []Certificate   `json:"certificates"` //nolint:tagliatelle // doesn't matter
+	Credentials   []Credential    `json:"credentials,omitempty"`
+
+	// Deprecated fields.
+
+	//nolint:tagliatelle // doesn't matter
+	Certs []Certificate `json:"certificates"` // Deprecated: use Credentials instead.
 }
 
 // RemoteAccount is the JSON struct representing a local account.
 type RemoteAccount struct {
-	Login    string        `json:"login"`
-	Password string        `json:"password,omitempty"`
-	Certs    []Certificate `json:"certificates,omitempty"` //nolint:tagliatelle // doesn't matter
+	Login       string       `json:"login"`
+	Password    string       `json:"password,omitempty"`
+	Credentials []Credential `json:"credentials,omitempty"`
+
+	// Deprecated fields.
+
+	//nolint:tagliatelle // doesn't matter
+	Certs []Certificate `json:"certificates,omitempty"` // Deprecated: use Credentials instead.
 }
 
 // Certificate is the JSON struct representing a certificate.
+// Deprecated: replaced by Credential.
 type Certificate struct {
 	Name        string `json:"name"`
 	PublicKey   string `json:"publicKey,omitempty"`
@@ -95,6 +114,7 @@ type Rule struct {
 	Error          []Task   `json:"error,omitempty"`
 
 	// Deprecated fields.
+
 	InPath   string `json:"inPath,omitempty"`   // Deprecated: replaced by LocalDir & RemoteDir
 	OutPath  string `json:"outPath,omitempty"`  // Deprecated: replaced by LocalDir & RemoteDir
 	WorkPath string `json:"workPath,omitempty"` // Deprecated: replaced by TmpLocalRcvDir
@@ -150,4 +170,11 @@ type Transfer struct {
 	ErrorCode      types.TransferErrorCode `json:"errorCode,omitempty"`
 	ErrorMsg       string                  `json:"errorMsg,omitempty"`
 	TransferInfo   map[string]any          `json:"transferInfo,omitempty"`
+}
+
+type Credential struct {
+	Name   string `json:"name,omitempty"`
+	Type   string `json:"type"`
+	Value  string `json:"value"`
+	Value2 string `json:"value2"`
 }

@@ -12,6 +12,7 @@ import (
 	"code.waarp.fr/apps/gateway/gateway/pkg/fs"
 	"code.waarp.fr/apps/gateway/gateway/pkg/fs/fstest"
 	"code.waarp.fr/apps/gateway/gateway/pkg/model"
+	"code.waarp.fr/apps/gateway/gateway/pkg/model/authentication/auth"
 	"code.waarp.fr/apps/gateway/gateway/pkg/model/types"
 	"code.waarp.fr/apps/gateway/gateway/pkg/utils"
 	"code.waarp.fr/apps/gateway/gateway/pkg/utils/testhelpers"
@@ -27,11 +28,9 @@ func TestGetFileInfo(t *testing.T) {
 		conf.GlobalConfig.Paths.GatewayHome = root
 
 		agent := &model.LocalAgent{
-			Name:     "r66_server",
-			Protocol: "r66",
-			RootDir:  "r66_root",
-			SendDir:  "send",
-			Address:  "localhost:6666",
+			Name: "r66_server", Protocol: "r66",
+			RootDir: "r66_root", SendDir: "send",
+			Address: types.Addr("localhost", 0),
 			ProtoConfig: map[string]any{
 				"serverLogin": "r66_server", "serverPassword": "foobar",
 			},
@@ -41,9 +40,15 @@ func TestGetFileInfo(t *testing.T) {
 		account := &model.LocalAccount{
 			LocalAgentID: agent.ID,
 			Login:        "foo",
-			PasswordHash: hash("bar"),
 		}
 		So(db.Insert(account).Run(), ShouldBeNil)
+
+		accPswd := &model.Credential{
+			LocalAccountID: utils.NewNullInt64(account.ID),
+			Type:           auth.PasswordHash,
+			Value:          "bar",
+		}
+		So(db.Insert(accPswd).Run(), ShouldBeNil)
 
 		rule := &model.Rule{
 			Name:   "send",
@@ -119,9 +124,15 @@ func TestGetFileInfo(t *testing.T) {
 				other := &model.LocalAccount{
 					LocalAgentID: agent.ID,
 					Login:        "other",
-					PasswordHash: hash("other_pswd"),
 				}
 				So(db.Insert(other).Run(), ShouldBeNil)
+
+				otherPswd := &model.Credential{
+					LocalAccountID: utils.NewNullInt64(other.ID),
+					Type:           auth.PasswordHash,
+					Value:          "other_pswd",
+				}
+				So(db.Insert(otherPswd).Run(), ShouldBeNil)
 
 				accs := &model.RuleAccess{
 					RuleID:         rule.ID,
@@ -153,11 +164,9 @@ func TestGetTransferInfo(t *testing.T) {
 		conf.GlobalConfig.Paths.GatewayHome = root
 
 		agent := &model.LocalAgent{
-			Name:     "r66_server",
-			Protocol: "r66",
-			RootDir:  "r66_root",
-			SendDir:  "send",
-			Address:  "localhost:6666",
+			Name: "r66_server", Protocol: "r66",
+			RootDir: "r66_root", SendDir: "send",
+			Address: types.Addr("localhost", 0),
 			ProtoConfig: map[string]any{
 				"serverLogin": "r66_server", "serverPassword": "foobar",
 			},
@@ -167,9 +176,15 @@ func TestGetTransferInfo(t *testing.T) {
 		account := &model.LocalAccount{
 			LocalAgentID: agent.ID,
 			Login:        "foo",
-			PasswordHash: hash("bar"),
 		}
 		So(db.Insert(account).Run(), ShouldBeNil)
+
+		accPswd := &model.Credential{
+			LocalAccountID: utils.NewNullInt64(account.ID),
+			Type:           auth.PasswordHash,
+			Value:          "bar",
+		}
+		So(db.Insert(accPswd).Run(), ShouldBeNil)
 
 		rule := &model.Rule{
 			Name:     "snd",

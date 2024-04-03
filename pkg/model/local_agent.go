@@ -2,10 +2,10 @@ package model
 
 import (
 	"fmt"
-	"net"
 
 	"code.waarp.fr/apps/gateway/gateway/pkg/conf"
 	"code.waarp.fr/apps/gateway/gateway/pkg/database"
+	"code.waarp.fr/apps/gateway/gateway/pkg/model/types"
 	"code.waarp.fr/apps/gateway/gateway/pkg/utils"
 	"code.waarp.fr/apps/gateway/gateway/pkg/utils/compatibility"
 )
@@ -15,12 +15,12 @@ import (
 // the server.
 type LocalAgent struct {
 	ID    int64  `xorm:"<- id AUTOINCR"` // The agent's database ID.
-	Owner string `xorm:"owner"`          // The agent's owner (the gateway to which it belongs)
+	Owner string `xorm:"owner"`          // The agent's owner (the gateway to which it belongs).
 
-	Name     string `xorm:"name"`     // The server's name.
-	Address  string `xorm:"address"`  // The agent's address (including the port)
-	Protocol string `xorm:"protocol"` // The server's protocol.
-	Disabled bool   `xorm:"disabled"` // Whether the server is enabled at startup or not.
+	Name     string        `xorm:"name"`     // The server's name.
+	Address  types.Address `xorm:"address"`  // The agent's address (including the port)
+	Protocol string        `xorm:"protocol"` // The server's protocol.
+	Disabled bool          `xorm:"disabled"` // Whether the server is enabled at startup or not.
 
 	RootDir       string `xorm:"root_dir"`        // The root directory of the agent.
 	ReceiveDir    string `xorm:"receive_dir"`     // The server's directory for received files.
@@ -34,10 +34,12 @@ type LocalAgent struct {
 func (*LocalAgent) TableName() string   { return TableLocAgents }
 func (*LocalAgent) Appellation() string { return "server" }
 func (l *LocalAgent) GetID() int64      { return l.ID }
+func (*LocalAgent) IsServer() bool      { return true }
+func (l *LocalAgent) Host() string      { return l.Address.Host }
 
 func (l *LocalAgent) validateProtoConfig() error {
 	if err := ConfigChecker.CheckServerConfig(l.Protocol, l.ProtoConfig); err != nil {
-		return database.NewValidationError("%v", err)
+		return database.WrapAsValidationError(err)
 	}
 
 	// For backwards compatibility, in the presence of the r66 "isTLS" property,
@@ -79,13 +81,8 @@ func (l *LocalAgent) BeforeWrite(db database.ReadAccess) error {
 		return database.NewValidationError("the agent's name cannot be empty")
 	}
 
-	if l.Address == "" {
-		return database.NewValidationError("the server's address cannot be empty")
-	}
-
-	if _, err := net.ResolveTCPAddr("tcp", l.Address); err != nil {
-		return database.NewValidationError("'%s' is not a valid server address: %v",
-			l.Address, err)
+	if err := l.Address.Validate(); err != nil {
+		return database.NewValidationError("address validation failed: %w", err)
 	}
 
 	if l.ProtoConfig == nil {
@@ -93,7 +90,7 @@ func (l *LocalAgent) BeforeWrite(db database.ReadAccess) error {
 	}
 
 	if err := l.validateProtoConfig(); err != nil {
-		return database.NewValidationError("%v", err)
+		return database.WrapAsValidationError(err)
 	}
 
 	if n, err := db.Count(l).Where("id<>? AND owner=? AND name=?", l.ID, l.Owner,
@@ -101,15 +98,15 @@ func (l *LocalAgent) BeforeWrite(db database.ReadAccess) error {
 		return fmt.Errorf("failed to check for duplicate local agents: %w", err)
 	} else if n > 0 {
 		return database.NewValidationError(
-			"a local agent with the same name '%s' already exist", l.Name)
+			"a local agent with the same name %q already exist", l.Name)
 	}
 
-	if n, err := db.Count(l).Where("id<>? AND owner=? AND address=?", l.ID,
-		l.Owner, l.Address).Run(); err != nil {
+	if n, err := db.Count(l).Where("id<>? AND owner=? AND address=?",
+		l.ID, l.Owner, l.Address.String()).Run(); err != nil {
 		return fmt.Errorf("failed to check for duplicate local agent addresses: %w", err)
 	} else if n > 0 {
 		return database.NewValidationError(
-			"a local agent with the same address '%s' already exist", l.Address)
+			"a local agent with the same address %q already exist", &l.Address)
 	}
 
 	return nil
@@ -131,13 +128,14 @@ func (l *LocalAgent) BeforeDelete(db database.Access) error {
 	return nil
 }
 
-// GetCryptos fetch in the database then return the associated Cryptos if they exist.
-func (l *LocalAgent) GetCryptos(db database.ReadAccess) ([]*Crypto, error) {
-	return getCryptos(db, l)
+// GetCredentials fetch in the database then return the associated Credentials if they exist.
+func (l *LocalAgent) GetCredentials(db database.ReadAccess, authTypes ...string,
+) (Credentials, error) {
+	return getCredentials(db, l, authTypes...)
 }
 
-func (l *LocalAgent) SetCryptoOwner(c *Crypto)             { c.LocalAgentID = utils.NewNullInt64(l.ID) }
-func (l *LocalAgent) GenCryptoSelectCond() (string, int64) { return "local_agent_id=?", l.ID }
+func (l *LocalAgent) SetCredOwner(a *Credential)           { a.LocalAgentID = utils.NewNullInt64(l.ID) }
+func (l *LocalAgent) GetCredCond() (string, int64)         { return "local_agent_id=?", l.ID }
 func (l *LocalAgent) SetAccessTarget(a *RuleAccess)        { a.LocalAgentID = utils.NewNullInt64(l.ID) }
 func (l *LocalAgent) GenAccessSelectCond() (string, int64) { return "local_agent_id=?", l.ID }
 
@@ -151,4 +149,45 @@ func (l *LocalAgent) GetAuthorizedRules(db database.ReadAccess) ([]*Rule, error)
 	}
 
 	return rules, nil
+}
+
+// AfterWrite is called after any write operation on the local_agents table.
+// If the agent uses R66, the function checks if is still uses the old credentials
+// stored in the proto config. If it does, an equivalent Credential is inserted.
+// Will be removed once server passwords are definitely removed from the proto config.
+//
+//nolint:dupl //duplicate is for RemoteAgent, best keep separate
+func (l *LocalAgent) AfterWrite(db database.Access) error {
+	if l.Protocol != protoR66 && l.Protocol != protoR66TLS {
+		return nil
+	}
+
+	serverPwd, hasPwd := l.ProtoConfig["serverPassword"]
+	if !hasPwd {
+		return nil
+	}
+
+	serverPasswd, pwdIsStr := serverPwd.(string)
+	if !pwdIsStr || serverPasswd == "" {
+		return nil
+	}
+
+	if n, err := db.Count(&Credential{}).Where("local_agent_id=? AND type=?",
+		l.ID, authPassword).Run(); err != nil {
+		return fmt.Errorf("failed to check for duplicate credentials: %w", err)
+	} else if n != 0 {
+		return nil // already has a password
+	}
+
+	pswd := &Credential{
+		LocalAgentID: utils.NewNullInt64(l.ID),
+		Type:         authPassword,
+		Value:        serverPasswd,
+	}
+
+	if err := db.Insert(pswd).Run(); err != nil {
+		return fmt.Errorf("failed to insert server password: %w", err)
+	}
+
+	return nil
 }

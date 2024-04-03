@@ -23,17 +23,17 @@ type TransferContext struct {
 
 	Client *Client
 
-	RemoteAgent        *RemoteAgent
-	RemoteAgentCryptos Cryptos
+	RemoteAgent      *RemoteAgent
+	RemoteAgentCreds Credentials
 
-	RemoteAccount        *RemoteAccount
-	RemoteAccountCryptos Cryptos
+	RemoteAccount      *RemoteAccount
+	RemoteAccountCreds Credentials
 
-	LocalAgent        *LocalAgent
-	LocalAgentCryptos Cryptos
+	LocalAgent      *LocalAgent
+	LocalAgentCreds Credentials
 
-	LocalAccount        *LocalAccount
-	LocalAccountCryptos Cryptos
+	LocalAccount      *LocalAccount
+	LocalAccountCreds Credentials
 
 	Paths *conf.PathsConfig
 	FS    fs.FS
@@ -46,7 +46,7 @@ func GetTransferContext(db *database.DB, logger *log.Logger, trans *Transfer,
 ) (*TransferContext, error) {
 	transCtx := &TransferContext{
 		Transfer:      trans,
-		TransInfo:     map[string]interface{}{},
+		TransInfo:     map[string]any{},
 		Paths:         &conf.GlobalConfig.Paths,
 		Client:        &Client{},
 		Rule:          &Rule{},
@@ -118,14 +118,14 @@ func makeLocalAgentContext(db *database.DB, logger *log.Logger, transCtx *Transf
 	}
 
 	var err error
-	if transCtx.LocalAccountCryptos, err = transCtx.LocalAccount.GetCryptos(db); err != nil {
-		logger.Error("Failed to retrieve local account certificates: %s", err)
+	if transCtx.LocalAccountCreds, err = transCtx.LocalAccount.GetCredentials(db); err != nil {
+		logger.Error("Failed to retrieve local account auth methods: %s", err)
 
 		return nil, fmt.Errorf("failed to retrieve local account certificates: %w", err)
 	}
 
-	if transCtx.LocalAgentCryptos, err = transCtx.LocalAgent.GetCryptos(db); err != nil {
-		logger.Error("Failed to retrieve server certificates: %s", err)
+	if transCtx.LocalAgentCreds, err = transCtx.LocalAgent.GetCredentials(db); err != nil {
+		logger.Error("Failed to retrieve server auth methods: %s", err)
 
 		return nil, fmt.Errorf("failed to retrieve server certificates: %w", err)
 	}
@@ -155,14 +155,14 @@ func makeRemoteAgentContext(db *database.DB, logger *log.Logger, transCtx *Trans
 	}
 
 	var err error
-	if transCtx.RemoteAccountCryptos, err = transCtx.RemoteAccount.GetCryptos(db); err != nil {
-		logger.Error("Failed to retrieve remote account certificates: %s", err)
+	if transCtx.RemoteAccountCreds, err = transCtx.RemoteAccount.GetCredentials(db); err != nil {
+		logger.Error("Failed to retrieve remote account auth methods: %s", err)
 
 		return nil, fmt.Errorf("failed to retrieve remote account certificates: %w", err)
 	}
 
-	if transCtx.RemoteAgentCryptos, err = transCtx.RemoteAgent.GetCryptos(db); err != nil {
-		logger.Error("Failed to retrieve partner certificates: %s", err)
+	if transCtx.RemoteAgentCreds, err = transCtx.RemoteAgent.GetCredentials(db); err != nil {
+		logger.Error("Failed to retrieve partner auth methods: %s", err)
 
 		return nil, fmt.Errorf("failed to retrieve partner certificates: %w", err)
 	}

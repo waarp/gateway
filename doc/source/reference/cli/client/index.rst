@@ -10,7 +10,7 @@ Client ``waarp-gateway``
 .. program:: waarp-gateway
 
 .. toctree::
-   :maxdepth: 3
+   :maxdepth: 1
 
    connection
    status
@@ -25,3 +25,4 @@ Client ``waarp-gateway``
    transfer/index
    history/index
    override/index
+   authority/index

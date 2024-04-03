@@ -95,4 +95,4 @@ Les attributs omis resteront inchangés.
 
 .. code-block:: shell
 
-   waarp-gateway -a 'http://user:password@localhost:8080' server update 'serveur_sftp' -n 'server_sftp_new' -a 'localhost:22' --root-dir 'sftp/root_new'
+   waarp-gateway -a 'http://user:password@localhost:8080' server update 'gw_r66' -a 'localhost:6667' --root-dir 'r66/new_root'

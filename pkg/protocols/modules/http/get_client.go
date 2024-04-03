@@ -7,6 +7,7 @@ import (
 	"net/http"
 	"path"
 
+	"code.waarp.fr/apps/gateway/gateway/pkg/model/authentication/auth"
 	"code.waarp.fr/apps/gateway/gateway/pkg/model/types"
 	"code.waarp.fr/apps/gateway/gateway/pkg/pipeline"
 	"code.waarp.fr/apps/gateway/gateway/pkg/protocols/modules/http/httpconst"
@@ -31,7 +32,7 @@ func (g *getClient) Request() error {
 		scheme = schemeHTTPS
 	}
 
-	addr := g.pip.TransCtx.RemoteAgent.Address
+	addr := g.pip.TransCtx.RemoteAgent.Address.String()
 	url := scheme + path.Join(addr, g.pip.TransCtx.Transfer.RemotePath)
 
 	req, reqErr := http.NewRequestWithContext(g.ctx, http.MethodGet, url, nil)
@@ -42,7 +43,15 @@ func (g *getClient) Request() error {
 			"failed to make HTTP request", reqErr)
 	}
 
-	req.SetBasicAuth(g.pip.TransCtx.RemoteAccount.Login, string(g.pip.TransCtx.RemoteAccount.Password))
+	var pwd string
+
+	for _, a := range g.pip.TransCtx.RemoteAccountCreds {
+		if a.Type == auth.Password {
+			pwd = a.Value
+		}
+	}
+
+	req.SetBasicAuth(g.pip.TransCtx.RemoteAccount.Login, pwd)
 
 	if err := makeTransferInfo(req.Header, g.pip); err != nil {
 		return err
@@ -88,6 +97,8 @@ func (g *getClient) getSizeProgress() error {
 	trans.Progress = progress
 
 	if err := g.pip.DB.Update(trans).Cols(cols...).Run(); err != nil {
+		g.pip.Logger.Error("Failed to update transfer progress: %s", err)
+
 		return g.wrapAndSendError(err, types.TeInternal, "database error")
 	}
 

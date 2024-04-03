@@ -130,7 +130,8 @@ func (tec TransferErrorCode) MarshalJSON() ([]byte, error) {
 func (tec *TransferErrorCode) UnmarshalJSON(b []byte) error {
 	var str string
 	if err := json.Unmarshal(b, &str); err != nil {
-		return fmt.Errorf("%w", err)
+		//nolint:wrapcheck //function is already a wrapper, no need to wrap errors
+		return err
 	}
 
 	*tec = TecFromString(str)

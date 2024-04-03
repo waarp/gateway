@@ -15,65 +15,51 @@ import (
 
 // restRuleToDB transforms the JSON transfer rule into its database equivalent.
 func restRuleToDB(rule *api.InRule, logger *log.Logger) (*model.Rule, error) {
-	if rule.IsSend == nil {
+	if !rule.IsSend.Valid {
 		return nil, badRequest("missing rule direction")
 	}
 
-	local := str(rule.LocalDir)
-	remote := str(rule.RemoteDir)
-	tmp := str(rule.TmpLocalRcvDir)
+	local := rule.LocalDir.Value
+	remote := rule.RemoteDir.Value
+	tmp := rule.TmpLocalRcvDir.Value
 
-	if rule.InPath != nil {
+	if rule.InPath.Valid {
 		logger.Warning("JSON field 'inPath' is deprecated, use 'localDir' & 'remoteDir' instead")
 
-		if *rule.IsSend && remote == "" {
-			remote = utils.DenormalizePath(*rule.InPath)
-		} else if local == "" {
-			local = utils.DenormalizePath(*rule.InPath)
+		if rule.IsSend.Value && !rule.RemoteDir.Valid {
+			remote = utils.DenormalizePath(rule.InPath.Value)
+		} else if !rule.LocalDir.Valid {
+			local = utils.DenormalizePath(rule.InPath.Value)
 		}
 	}
 
-	if rule.OutPath != nil {
+	if rule.OutPath.Valid {
 		logger.Warning("JSON field 'outPath' is deprecated, use 'localDir' & 'remoteDir' instead")
 
-		if *rule.IsSend && local == "" {
-			local = utils.DenormalizePath(*rule.OutPath)
-		} else if remote == "" {
-			remote = utils.DenormalizePath(*rule.OutPath)
+		if rule.IsSend.Value && !rule.LocalDir.Valid {
+			local = utils.DenormalizePath(rule.OutPath.Value)
+		} else if !rule.RemoteDir.Valid {
+			remote = utils.DenormalizePath(rule.OutPath.Value)
 		}
 	}
 
-	if rule.WorkPath != nil {
+	if rule.WorkPath.Valid {
 		logger.Warning("JSON field 'workPath' is deprecated, use 'localTmpDir' instead")
 
-		if tmp == "" {
-			tmp = utils.DenormalizePath(*rule.WorkPath)
+		if !rule.TmpLocalRcvDir.Valid {
+			tmp = utils.DenormalizePath(rule.WorkPath.Value)
 		}
 	}
 
 	return &model.Rule{
-		Name:           str(rule.Name),
-		Comment:        str(rule.Comment),
-		IsSend:         *rule.IsSend,
-		Path:           str(rule.Path),
+		Name:           rule.Name.Value,
+		Comment:        rule.Comment.Value,
+		IsSend:         rule.IsSend.Value,
+		Path:           rule.Path.Value,
 		LocalDir:       local,
 		RemoteDir:      remote,
 		TmpLocalRcvDir: tmp,
 	}, nil
-}
-
-func dbRuleToRESTInput(old *model.Rule) *api.InRule {
-	return &api.InRule{
-		UptRule: &api.UptRule{
-			Name:           &old.Name,
-			Comment:        &old.Comment,
-			Path:           &old.Path,
-			LocalDir:       &old.LocalDir,
-			RemoteDir:      &old.RemoteDir,
-			TmpLocalRcvDir: &old.TmpLocalRcvDir,
-		},
-		IsSend: &old.IsSend,
-	}
 }
 
 // DBRuleToREST transforms the given database transfer rule into its JSON equivalent.
@@ -177,7 +163,7 @@ func addRule(logger *log.Logger, db *database.DB) http.HandlerFunc {
 				return fmt.Errorf("failed to insert rule: %w", err)
 			}
 
-			return doTaskUpdate(ses, restRule.UptRule, dbRule.ID, true)
+			return doTaskUpdate(ses, &restRule, dbRule.ID, true)
 		})
 		if handleError(w, logger, transErr) {
 			return
@@ -240,7 +226,17 @@ func updateRule(logger *log.Logger, db *database.DB) http.HandlerFunc {
 			return
 		}
 
-		restRule := dbRuleToRESTInput(oldRule)
+		restRule := &api.InRule{
+			Name:           api.AsNullable(oldRule.Name),
+			IsSend:         api.AsNullable(oldRule.IsSend),
+			Comment:        api.AsNullable(oldRule.Comment),
+			Path:           api.AsNullable(oldRule.Path),
+			LocalDir:       api.AsNullable(oldRule.LocalDir),
+			RemoteDir:      api.AsNullable(oldRule.RemoteDir),
+			TmpLocalRcvDir: api.AsNullable(oldRule.TmpLocalRcvDir),
+			PostTasks:      nil,
+			ErrorTasks:     nil,
+		}
 		if err := readJSON(r, restRule); handleError(w, logger, err) {
 			return
 		}
@@ -257,7 +253,7 @@ func updateRule(logger *log.Logger, db *database.DB) http.HandlerFunc {
 				return fmt.Errorf("failed to update rule: %w", err)
 			}
 
-			return doTaskUpdate(ses, restRule.UptRule, oldRule.ID, false)
+			return doTaskUpdate(ses, restRule, oldRule.ID, false)
 		})
 		if handleError(w, logger, transErr) {
 			return
@@ -275,8 +271,8 @@ func replaceRule(logger *log.Logger, db *database.DB) http.HandlerFunc {
 			return
 		}
 
-		restRule := &api.InRule{IsSend: &oldRule.IsSend, UptRule: &api.UptRule{}}
-		if err2 := readJSON(r, restRule.UptRule); handleError(w, logger, err2) {
+		restRule := &api.InRule{}
+		if err2 := readJSON(r, restRule); handleError(w, logger, err2) {
 			return
 		}
 
@@ -292,21 +288,21 @@ func replaceRule(logger *log.Logger, db *database.DB) http.HandlerFunc {
 				return fmt.Errorf("failed to update rule: %w", err)
 			}
 
-			return doTaskUpdate(ses, restRule.UptRule, oldRule.ID, true)
+			return doTaskUpdate(ses, restRule, oldRule.ID, true)
 		})
 		if handleError(w, logger, transErr) {
 			return
 		}
 
-		w.Header().Set("Location", locationUpdate(r.URL, str(restRule.Name)))
+		w.Header().Set("Location", locationUpdate(r.URL, restRule.Name.Value))
 		w.WriteHeader(http.StatusCreated)
 	}
 }
 
 func deleteRule(logger *log.Logger, db *database.DB) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		dbRule, getRule := retrieveDBRule(r, db)
-		if handleError(w, logger, getRule) {
+		dbRule, getErr := retrieveDBRule(r, db)
+		if handleError(w, logger, getErr) {
 			return
 		}
 

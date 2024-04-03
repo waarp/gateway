@@ -256,4 +256,29 @@ var Migrations = []Change{
 		Up:          ver0_9_0RestoreNormalizedTransfersViewUp,
 		Down:        ver0_9_0RestoreNormalizedTransfersViewDown,
 	},
+	{ // #47
+		Description: "Add the new 'credentials' table",
+		Up:          ver0_9_0AddCredTableUp,
+		Down:        ver0_9_0AddCredTableDown,
+	},
+	{ // #48
+		Description: "Fill the new 'credentials' table",
+		Up:          ver0_9_0FillCredTableUp,
+		Down:        ver0_9_0FillCredTableDown,
+	},
+	{ // #49
+		Description: "Remove the old 'crypto_credentials' table & the account password columns",
+		Up:          ver0_9_0RemoveOldAuthsUp,
+		Down:        ver0_9_0RemoveOldAuthsDown,
+	},
+	{ // #50
+		Description: "Extracts the R66 server credentials from the proto config to the credentials table",
+		Up:          ver0_9_0MoveR66ServerPswdUp,
+		Down:        ver0_9_0MoveR66ServerPswdDown,
+	},
+	{ // #51
+		Description: `Add the "auth_authorities" & "authority_hosts" tables`,
+		Up:          ver0_9_0AddAuthoritiesTableUp,
+		Down:        ver0_9_0AddAuthoritiesTableDown,
+	},
 }

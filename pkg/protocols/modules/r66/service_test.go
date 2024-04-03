@@ -11,6 +11,7 @@ import (
 
 	"code.waarp.fr/apps/gateway/gateway/pkg/database"
 	"code.waarp.fr/apps/gateway/gateway/pkg/model"
+	"code.waarp.fr/apps/gateway/gateway/pkg/model/authentication/auth"
 	"code.waarp.fr/apps/gateway/gateway/pkg/model/types"
 	"code.waarp.fr/apps/gateway/gateway/pkg/pipeline"
 	"code.waarp.fr/apps/gateway/gateway/pkg/pipeline/pipelinetest"
@@ -25,7 +26,7 @@ func TestServiceStart(t *testing.T) {
 			Name:        "r66_server",
 			Protocol:    R66,
 			ProtoConfig: map[string]any{"blockSize": 512, "serverPassword": "c2VzYW1l"},
-			Address:     testhelpers.GetLocalAddress(c),
+			Address:     types.Addr("localhost", 0),
 		}
 		So(db.Insert(server).Run(), ShouldBeNil)
 
@@ -46,14 +47,15 @@ func TestServiceStart(t *testing.T) {
 			Name:        "r66_server",
 			Protocol:    R66,
 			ProtoConfig: map[string]any{"blockSize": 512, "serverPassword": "c2VzYW1l", "isTLS": true},
-			Address:     testhelpers.GetLocalAddress(c),
+			Address:     types.Addr("localhost", 0),
 		}
 		So(db.Insert(server).Run(), ShouldBeNil)
-		cert := &model.Crypto{
+		cert := &model.Credential{
 			LocalAgentID: utils.NewNullInt64(server.ID),
+			Type:         auth.TLSCertificate,
 			Name:         "r66_cert",
-			PrivateKey:   testhelpers.LocalhostKey,
-			Certificate:  testhelpers.LocalhostCert,
+			Value:        testhelpers.LocalhostCert,
+			Value2:       testhelpers.LocalhostKey,
 		}
 		So(db.Insert(cert).Run(), ShouldBeNil)
 
@@ -75,7 +77,7 @@ func TestServiceStart(t *testing.T) {
 			Name:        "r66_server",
 			Protocol:    R66,
 			ProtoConfig: map[string]any{"blockSize": 512, "serverPassword": "c2VzYW1l", "isTLS": true},
-			Address:     testhelpers.GetLocalAddress(c),
+			Address:     types.Addr("localhost", 0),
 		}
 		So(db.Insert(server).Run(), ShouldBeNil)
 
@@ -98,7 +100,7 @@ func TestServiceStop(t *testing.T) {
 			Name:        "r66_server",
 			Protocol:    R66,
 			ProtoConfig: map[string]any{"blockSize": 512, "serverPassword": "c2VzYW1l"},
-			Address:     "localhost:0",
+			Address:     types.Addr("localhost", 0),
 		}
 		So(db.Insert(server).Run(), ShouldBeNil)
 
@@ -121,6 +123,7 @@ func TestServiceStop(t *testing.T) {
 func TestR66ServerInterruption(t *testing.T) {
 	Convey("Given an R66 server ready for push transfers", t, func(c C) {
 		test := pipelinetest.InitServerPush(c, R66, servConf)
+		test.AddAuths(c, serverPassword(test.Server))
 
 		serv := &service{db: test.DB, agent: test.Server}
 		c.So(serv.Start(), ShouldBeNil)
@@ -206,7 +209,7 @@ func TestR66ServerInterruption(t *testing.T) {
 
 func makeDummyClient(c C, test *pipelinetest.ServerContext) *r66.Session {
 	logger := testhelpers.TestLogger(c, "r66_dummy_client")
-	cli, err := r66.Dial(test.Server.Address, logger.AsStdLogger(log.LevelTrace))
+	cli, err := r66.Dial(test.Server.Address.String(), logger.AsStdLogger(log.LevelTrace))
 	So(err, ShouldBeNil)
 
 	ses, err := cli.NewSession()

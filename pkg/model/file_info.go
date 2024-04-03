@@ -39,7 +39,7 @@ func (t *FileInfo) BeforeWrite(db database.ReadAccess) error {
 		return database.NewValidationError("failed to retrieve info list: %s", err)
 	}
 	if n > 0 {
-		return database.NewValidationError("transfer %d already has a property '%s'",
+		return database.NewValidationError("transfer %d already has a property %q",
 			t.TransferID, t.Name)
 	}
 

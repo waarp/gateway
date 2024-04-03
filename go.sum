@@ -6,6 +6,16 @@ code.waarp.fr/lib/Sqlite3CreateTableParser v0.0.0-20221122183218-24f478e49362 h1
 code.waarp.fr/lib/Sqlite3CreateTableParser v0.0.0-20221122183218-24f478e49362/go.mod h1:9ox2QkeHD920voiwFU0S8h3Qp/pD67mW/czd7wZaxJI=
 code.waarp.fr/lib/log v1.2.0 h1:FvbVnporxqV4xyJhJQt+bKv+zFBvxOb9VfeM1ThIZAI=
 code.waarp.fr/lib/log v1.2.0/go.mod h1:qntTO07EAP1NIGo09Xe4BMuqKBbjb/L2uRTP3V1nYEE=
+code.waarp.fr/lib/migration v0.3.1-0.20221215182244-7175653958f7 h1:QsrzE9ERbMMe4ZnCsZXglEZQCv7k894K0OV+r4gIxEQ=
+code.waarp.fr/lib/migration v0.3.1-0.20221215182244-7175653958f7/go.mod h1:iEXFVqvPTTXv6XC32SDI3jmcGUAEuXdAHsfcYmsfqtc=
+code.waarp.fr/lib/migration v0.3.1-0.20230413122753-f7cb2b659457 h1:OQw7rZjrfyh09a1qTqFg7iufc5YUun9jm7sruXHWLq0=
+code.waarp.fr/lib/migration v0.3.1-0.20230413122753-f7cb2b659457/go.mod h1:iEXFVqvPTTXv6XC32SDI3jmcGUAEuXdAHsfcYmsfqtc=
+code.waarp.fr/lib/migration v0.4.0 h1:IyczzHRFY9wcp7XO8/cJ2tNKwJYAIi86dn7Rie9IxBk=
+code.waarp.fr/lib/migration v0.4.0/go.mod h1:iEXFVqvPTTXv6XC32SDI3jmcGUAEuXdAHsfcYmsfqtc=
+code.waarp.fr/lib/r66 v0.1.6-0.20230315101404-32a362cda016 h1:43DcxgVQFPvV/sRpbI3gKNd1Ibte+Wh3SUm+C2CYAYA=
+code.waarp.fr/lib/r66 v0.1.6-0.20230315101404-32a362cda016/go.mod h1:avEs87Jd9UV9z+t0lAKWazVTH/6lF1OaukIfQEpJ+XE=
+filippo.io/edwards25519 v1.0.0-rc.1 h1:m0VOOB23frXZvAOK44usCgLWvtsxIoMCTBGJZlpmGfU=
+filippo.io/edwards25519 v1.0.0-rc.1/go.mod h1:N1IkdkCkiLB6tki+MYJoSx2JTY9NUlxZE7eHn5EwJns=
 code.waarp.fr/lib/migration v0.4.0 h1:IyczzHRFY9wcp7XO8/cJ2tNKwJYAIi86dn7Rie9IxBk=
 code.waarp.fr/lib/migration v0.4.0/go.mod h1:iEXFVqvPTTXv6XC32SDI3jmcGUAEuXdAHsfcYmsfqtc=
 code.waarp.fr/lib/r66 v0.1.6 h1:mPFU0c12vIQRzuv+rxtniiHYy5+tt/E02NOY3vNscNA=

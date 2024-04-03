@@ -2,12 +2,14 @@ package migrations
 
 import (
 	"database/sql"
+	"encoding/json"
 	"errors"
 	"fmt"
 	"path/filepath"
 	"strings"
 
 	"code.waarp.fr/apps/gateway/gateway/pkg/utils"
+	"code.waarp.fr/apps/gateway/gateway/pkg/utils/compatibility"
 )
 
 func ver0_9_0AddCloudInstancesUp(db Actions) error {
@@ -220,7 +222,7 @@ func ver0_9_0AddClientsTableUp(db Actions) error {
 	}
 
 	if err := db.Exec(`INSERT INTO clients (owner,name,protocol) 
-		SELECT DISTINCT owner,protocol,protocol FROM remote_agents
+		SELECT DISTINCT owner,protocol AS new_name,protocol FROM remote_agents
 		INNER JOIN users ON true ORDER BY protocol, owner`); err != nil {
 		return fmt.Errorf("failed to insert the default client: %w", err)
 	}
@@ -276,7 +278,8 @@ func _ver0_9_0DuplicateRemoteAgentsDuplicateCrypto(db Actions,
 	var cryptos []*crypto
 
 	if err := func() error {
-		rows, queryErr := db.Query(fmt.Sprintf(`SELECT name,private_key,certificate,ssh_public_key 
+		rows, queryErr := db.Query(fmt.Sprintf(
+			`SELECT name,private_key,certificate,ssh_public_key 
 			FROM crypto_credentials WHERE %s=? ORDER BY id`, idCol), oldOwnerID)
 		if queryErr != nil {
 			return fmt.Errorf("failed to retrieve the crypto credentials: %w", queryErr)
@@ -793,6 +796,461 @@ func ver0_9_0RestoreNormalizedTransfersViewUp(db Actions) error {
 func ver0_9_0RestoreNormalizedTransfersViewDown(db Actions) error {
 	if err := db.DropView("normalized_transfers"); err != nil {
 		return fmt.Errorf("failed to drop the normalized transfer view: %w", err)
+	}
+
+	return nil
+}
+
+func ver0_9_0AddCredTableUp(db Actions) error {
+	//nolint:gomnd //magic numbers are required here for variable length types
+	if err := db.CreateTable("credentials", &Table{
+		Columns: []Column{
+			{Name: "id", Type: BigInt{}, NotNull: true, Default: AutoIncr{}},
+			{Name: "local_agent_id", Type: BigInt{}},
+			{Name: "remote_agent_id", Type: BigInt{}},
+			{Name: "local_account_id", Type: BigInt{}},
+			{Name: "remote_account_id", Type: BigInt{}},
+			{Name: "name", Type: Varchar(100), NotNull: true},
+			{Name: "type", Type: Varchar(50), NotNull: true},
+			{Name: "value", Type: Text{}, NotNull: true},
+			{Name: "value2", Type: Text{}, NotNull: true, Default: ""},
+		},
+		PrimaryKey: &PrimaryKey{Name: "credentials_pkey", Cols: []string{"id"}},
+		ForeignKeys: []ForeignKey{{
+			Name: "local_agent_id_fkey", Cols: []string{"local_agent_id"},
+			RefTbl: "local_agents", RefCols: []string{"id"},
+			OnUpdate: Restrict, OnDelete: Cascade,
+		}, {
+			Name: "remote_agent_id_fkey", Cols: []string{"remote_agent_id"},
+			RefTbl: "remote_agents", RefCols: []string{"id"},
+			OnUpdate: Restrict, OnDelete: Cascade,
+		}, {
+			Name: "local_account_id_fkey", Cols: []string{"local_account_id"},
+			RefTbl: "local_accounts", RefCols: []string{"id"},
+			OnUpdate: Restrict, OnDelete: Cascade,
+		}, {
+			Name: "remote_account_id_fkey", Cols: []string{"remote_account_id"},
+			RefTbl: "remote_accounts", RefCols: []string{"id"},
+			OnUpdate: Restrict, OnDelete: Cascade,
+		}},
+		Uniques: []Unique{
+			{Name: "auth_local_agent_unique", Cols: []string{"name", "local_agent_id"}},
+			{Name: "auth_remote_agent_unique", Cols: []string{"name", "remote_agent_id"}},
+			{Name: "auth_local_account_unique", Cols: []string{"name", "local_account_id"}},
+			{Name: "auth_remote_account_unique", Cols: []string{"name", "remote_account_id"}},
+		},
+		Checks: []Check{{
+			Name: "auth_owner_check",
+			Expr: checkOnlyOneNotNull("local_agent_id", "remote_agent_id",
+				"local_account_id", "remote_account_id"),
+		}},
+	}); err != nil {
+		return fmt.Errorf("failed to create the 'credentials' table: %w", err)
+	}
+
+	return nil
+}
+
+func ver0_9_0AddCredTableDown(db Actions) error {
+	if err := db.DropTable("credentials"); err != nil {
+		return fmt.Errorf("failed to drop the 'credentials' table: %w", err)
+	}
+
+	return nil
+}
+
+//nolint:gochecknoglobals //global var is needed here for tests
+var _ver0_9_0FillAuthTableIgnoreCertParseError bool
+
+func _ver0_9_0FillAuthTableGetCerts(db Actions) ([]struct {
+	id    int64
+	value string
+}, error,
+) {
+	rows, queryErr := db.Query(`SELECT id,value FROM credentials 
+		WHERE type='tls_certificate' OR type='trusted_tls_certificate'`)
+	if queryErr != nil {
+		return nil, fmt.Errorf("failed to query the 'credentials' table: %w", queryErr)
+	}
+
+	defer rows.Close()
+
+	var certs []struct {
+		id    int64
+		value string
+	}
+
+	for rows.Next() {
+		cert := struct {
+			id    int64
+			value string
+		}{}
+
+		if scanErr := rows.Scan(&cert.id, &cert.value); scanErr != nil {
+			return nil, fmt.Errorf("failed to scan the 'credentials' table rows: %w", scanErr)
+		}
+
+		certs = append(certs, cert)
+	}
+
+	if err := rows.Err(); err != nil {
+		return nil, fmt.Errorf("failed to iterate over the 'credentials' table rows: %w", err)
+	}
+
+	return certs, nil
+}
+
+func ver0_9_0FillCredTableUp(db Actions) error {
+	if err := db.Exec(`INSERT INTO 
+		credentials (local_account_id, name, type, value)
+		SELECT id, 'password', 'password_hash', password_hash FROM local_accounts
+		WHERE password_hash IS NOT NULL AND LENGTH(password_hash) > 0`); err != nil {
+		return fmt.Errorf("failed to add the local account passwords to the 'credentials' table: %w", err)
+	}
+
+	trimPassword := ltrim(db, "'$AES$'", "password")
+	if err := db.Exec(`INSERT INTO 
+		credentials (remote_account_id, name, type, value)
+		SELECT id, 'password', 'password', ` + trimPassword + ` FROM remote_accounts
+		WHERE password IS NOT NULL AND LENGTH(password) > 0`); err != nil {
+		return fmt.Errorf("failed to add the remote account passwords to the 'credentials' table: %w", err)
+	}
+
+	if err := db.Exec(`INSERT INTO
+		credentials(remote_agent_id, local_account_id, name, type, value)
+		SELECT remote_agent_id, local_account_id, name, 'trusted_tls_certificate', certificate
+		FROM crypto_credentials
+		WHERE (remote_agent_id IS NOT NULL OR local_account_id IS NOT NULL)
+			AND (certificate IS NOT NULL AND LENGTH(certificate) > 0)`); err != nil {
+		return fmt.Errorf("failed to add the remote TLS certificates to the 'credentials' table: %w", err)
+	}
+
+	if err := db.Exec(`INSERT INTO
+		credentials(local_agent_id, remote_account_id, name, type, value, value2)
+		SELECT local_agent_id, remote_account_id, name, 'tls_certificate',
+			certificate, private_key FROM crypto_credentials
+		WHERE (local_agent_id IS NOT NULL OR remote_account_id IS NOT NULL)
+			AND (certificate IS NOT NULL AND LENGTH(certificate) > 0)`); err != nil {
+		return fmt.Errorf("failed to add the local TLS certificates to the 'credentials' table: %w", err)
+	}
+
+	if err := db.Exec(`INSERT INTO
+		credentials(remote_agent_id, local_account_id, name, type, value)
+		SELECT remote_agent_id, local_account_id, name, 'ssh_public_key', ssh_public_key
+		FROM crypto_credentials
+		WHERE (remote_agent_id IS NOT NULL OR local_account_id IS NOT NULL)
+			AND (ssh_public_key IS NOT NULL AND LENGTH(ssh_public_key) > 0)`); err != nil {
+		return fmt.Errorf("failed to add the SSH public keys to the 'credentials' table: %w", err)
+	}
+
+	if err := db.Exec(`INSERT INTO
+		credentials(local_agent_id, remote_account_id, name, type, value)
+		SELECT local_agent_id, remote_account_id, name, 'ssh_private_key', private_key
+		FROM crypto_credentials
+		WHERE (local_agent_id IS NOT NULL OR remote_account_id IS NOT NULL)
+			AND (private_key IS NOT NULL AND LENGTH(private_key) > 0) 
+			AND (certificate IS NULL OR LENGTH(certificate) = 0)`); err != nil {
+		return fmt.Errorf("failed to add the SSH private keys to the credentials table: %w", err)
+	}
+
+	certs, certsErr := _ver0_9_0FillAuthTableGetCerts(db)
+	if certsErr != nil {
+		return certsErr
+	}
+
+	for _, cert := range certs {
+		if certs, err := utils.ParsePEMCertChain(cert.value); err != nil {
+			if !_ver0_9_0FillAuthTableIgnoreCertParseError {
+				return fmt.Errorf("failed to parse the TLS certificate credentials: %w", err)
+			}
+		} else if compatibility.IsLegacyR66Cert(certs[0]) {
+			if err2 := db.Exec(`UPDATE credentials SET type='r66_legacy_certificate',
+				value='', value2='' WHERE id=?`, cert.id); err2 != nil {
+				return fmt.Errorf("failed to update the legacy R66 certificate credentials: %w", err2)
+			}
+		}
+	}
+
+	return nil
+}
+
+func ver0_9_0FillCredTableDown(db Actions) error {
+	if err := db.Exec(`DELETE FROM credentials`); err != nil {
+		return fmt.Errorf("failed to delete the data from table 'crypto_credentials': %w", err)
+	}
+
+	return nil
+}
+
+func ver0_9_0RemoveOldAuthsUp(db Actions) error {
+	if err := db.AlterTable("local_accounts", DropColumn{Name: "password_hash"}); err != nil {
+		return fmt.Errorf("failed to drop the local account 'password_hash' column: %w", err)
+	}
+
+	if err := db.AlterTable("remote_accounts", DropColumn{Name: "password"}); err != nil {
+		return fmt.Errorf("failed to drop the remote account 'password' column: %w", err)
+	}
+
+	if err := db.DropTable("crypto_credentials"); err != nil {
+		return fmt.Errorf("failed to drop the 'crypto_credentials' table: %w", err)
+	}
+
+	return nil
+}
+
+func _ver0_9_0RemoveOldAuthsRecreateCryptoCredentialsTable(db Actions) error {
+	//nolint:gomnd,dupl //magic numbers are required here for variable length types
+	if err := db.CreateTable("crypto_credentials", &Table{
+		Columns: []Column{
+			{Name: "id", Type: BigInt{}, NotNull: true, Default: AutoIncr{}},
+			{Name: "name", Type: Varchar(100), NotNull: true},
+			{Name: "local_agent_id", Type: BigInt{}},
+			{Name: "remote_agent_id", Type: BigInt{}},
+			{Name: "local_account_id", Type: BigInt{}},
+			{Name: "remote_account_id", Type: BigInt{}},
+			{Name: "private_key", Type: Text{}, NotNull: true, Default: ""},
+			{Name: "certificate", Type: Text{}, NotNull: true, Default: ""},
+			{Name: "ssh_public_key", Type: Text{}, NotNull: true, Default: ""},
+		},
+		PrimaryKey: &PrimaryKey{Name: "crypto_credentials_pkey", Cols: []string{"id"}},
+		ForeignKeys: []ForeignKey{{
+			Name: "local_agent_fkey", Cols: []string{"local_agent_id"},
+			RefTbl: "local_agents", RefCols: []string{"id"},
+			OnUpdate: Restrict, OnDelete: Cascade,
+		}, {
+			Name: "remote_agent_fkey", Cols: []string{"remote_agent_id"},
+			RefTbl: "remote_agents", RefCols: []string{"id"},
+			OnUpdate: Restrict, OnDelete: Cascade,
+		}, {
+			Name: "local_account_fkey", Cols: []string{"local_account_id"},
+			RefTbl: "local_accounts", RefCols: []string{"id"},
+			OnUpdate: Restrict, OnDelete: Cascade,
+		}, {
+			Name: "remote_account_fkey", Cols: []string{"remote_account_id"},
+			RefTbl: "remote_accounts", RefCols: []string{"id"},
+			OnUpdate: Restrict, OnDelete: Cascade,
+		}},
+		Uniques: []Unique{
+			{Name: "unique_crypto_loc_agent", Cols: []string{"name", "local_agent_id"}},
+			{Name: "unique_crypto_rem_agent", Cols: []string{"name", "remote_agent_id"}},
+			{Name: "unique_crypto_loc_account", Cols: []string{"name", "local_account_id"}},
+			{Name: "unique_crypto_rem_account", Cols: []string{"name", "remote_account_id"}},
+		},
+		Checks: []Check{{
+			Name: "crypto_check_owner",
+			Expr: checkOnlyOneNotNull("local_agent_id", "remote_agent_id",
+				"local_account_id", "remote_account_id"),
+		}},
+	}); err != nil {
+		return fmt.Errorf("failed to recreate the dropped crypto_credentials table: %w", err)
+	}
+
+	return nil
+}
+
+func ver0_9_0RemoveOldAuthsDown(db Actions) error {
+	if err := _ver0_9_0RemoveOldAuthsRecreateCryptoCredentialsTable(db); err != nil {
+		return err
+	}
+
+	if err := db.Exec(`INSERT INTO crypto_credentials (local_agent_id, remote_agent_id,
+		local_account_id, remote_account_id, name, certificate, private_key) 
+		SELECT local_agent_id, remote_agent_id, local_account_id, remote_account_id, name, 
+		value, value2 FROM credentials WHERE type = 'tls_certificate'
+		OR type = 'trusted_tls_certificate'`); err != nil {
+		return fmt.Errorf("failed to restore the TLS certificates: %w", err)
+	}
+
+	if err := db.Exec(`INSERT INTO crypto_credentials (local_agent_id, remote_account_id, 
+		name, private_key) SELECT local_agent_id, remote_account_id, name, value
+		FROM credentials WHERE type = 'ssh_private_key'`); err != nil {
+		return fmt.Errorf("failed to restore the SSH private keys: %w", err)
+	}
+
+	if err := db.Exec(`INSERT INTO crypto_credentials (remote_agent_id, local_account_id, 
+		name, ssh_public_key) SELECT remote_agent_id, local_account_id, name, value
+		FROM credentials WHERE type = 'ssh_public_key'`); err != nil {
+		return fmt.Errorf("failed to restore the SSH public keys: %w", err)
+	}
+
+	if err := db.Exec(`INSERT INTO crypto_credentials 
+		(local_agent_id, remote_account_id, name, certificate, private_key) 
+		SELECT local_agent_id, remote_account_id, name,	?, ? FROM credentials
+		WHERE type = 'r66_legacy_certificate' AND 
+			(local_agent_id IS NOT NULL OR remote_account_id IS NOT NULL)`,
+		compatibility.LegacyR66CertPEM, compatibility.LegacyR66KeyPEM); err != nil {
+		return fmt.Errorf("failed to restore the local legacy R66 certificates: %w", err)
+	}
+
+	if err := db.Exec(`INSERT INTO crypto_credentials 
+		(remote_agent_id, local_account_id,	name, certificate) 
+		SELECT remote_agent_id, local_account_id, name, ? FROM credentials 
+		WHERE type = 'r66_legacy_certificate' AND
+			(remote_agent_id IS NOT NULL OR local_account_id IS NOT NULL)`,
+		compatibility.LegacyR66CertPEM); err != nil {
+		return fmt.Errorf("failed to restore the remote legacy R66 certificates: %w", err)
+	}
+
+	if err := db.AlterTable("local_accounts",
+		AddColumn{Name: "password_hash", Type: Text{}, NotNull: true, Default: ""},
+	); err != nil {
+		return fmt.Errorf("failed to restore the local account 'password_hash' column: %w", err)
+	}
+
+	if err := db.Exec(`UPDATE local_accounts SET password_hash = ` + ifNull(db,
+		`SELECT credentials.value FROM local_accounts LEFT JOIN credentials
+		ON credentials.local_account_id = local_accounts.id 
+		WHERE credentials.type = 'password'`, "''")); err != nil {
+		return fmt.Errorf("failed to restore the local account 'password_hash' values: %w", err)
+	}
+
+	if err := db.AlterTable("remote_accounts",
+		AddColumn{Name: "password", Type: Text{}, NotNull: true, Default: ""},
+	); err != nil {
+		return fmt.Errorf("failed to restore the remote account 'password' column: %w", err)
+	}
+
+	if err := db.Exec(`UPDATE remote_accounts SET password = ` + ifNull(db,
+		concat(db, `'$AES$'`, `(SELECT credentials.value FROM remote_accounts
+		LEFT JOIN credentials ON credentials.remote_account_id = remote_accounts.id
+		WHERE credentials.type = 'password')`), "''")); err != nil {
+		return fmt.Errorf("failed to restore the remote account 'password' values: %w", err)
+	}
+
+	return nil
+}
+
+func _ver0_9_0MoveR66ServerAuthDo(db Actions, tbl, col, authType string) error {
+	r66Ags, getErr := ver0_7_5SplitR66TLSgetR66AgentsList(db, tbl)
+	if getErr != nil {
+		return getErr
+	}
+
+	for _, ag := range r66Ags {
+		if pwdInter, ok1 := ag.conf["serverPassword"]; ok1 {
+			delete(ag.conf, "serverPassword")
+
+			if pwd, ok2 := pwdInter.(string); ok2 && pwd != "" {
+				if err := db.Exec(`INSERT INTO credentials (`+col+`, name,
+					type, value) VALUES (?, 'password', ?, ?)`,
+					ag.id, authType, strings.TrimPrefix(pwd, "$AES$")); err != nil {
+					return fmt.Errorf("failed to insert the %s password: %w", tbl, err)
+				}
+			}
+
+			rawConf, convErr := json.Marshal(ag.conf)
+			if convErr != nil {
+				return fmt.Errorf("failed to serialize the %s proto config: %w", tbl, convErr)
+			}
+
+			if err := db.Exec(fmt.Sprintf(`UPDATE %s SET proto_config=? WHERE id=?`, tbl),
+				rawConf, ag.id); err != nil {
+				return fmt.Errorf("failed to update the %s proto config: %w", tbl, err)
+			}
+		}
+	}
+
+	return nil
+}
+
+func _ver0_9_0MoveR66ServerAuthUndo(db Actions, tbl, col, authType string, chpwd func(string) string) error {
+	r66Ags, err := ver0_7_5SplitR66TLSgetR66AgentsList(db, tbl)
+	if err != nil {
+		return err
+	}
+
+	for _, ag := range r66Ags {
+		row := db.QueryRow(`SELECT value FROM credentials WHERE `+col+`=? AND type=?`,
+			ag.id, authType)
+
+		var pswd string
+		if err := row.Scan(&pswd); err != nil {
+			if errors.Is(err, sql.ErrNoRows) {
+				continue
+			}
+
+			return fmt.Errorf("failed to retrieve the %s's password: %w", tbl, err)
+		}
+
+		ag.conf["serverPassword"] = chpwd(pswd)
+
+		rawConf, convErr := json.Marshal(ag.conf)
+		if convErr != nil {
+			return fmt.Errorf("failed to serialize the %s's proto config: %w", tbl, convErr)
+		}
+
+		if err := db.Exec(fmt.Sprintf(`UPDATE %s SET proto_config=? WHERE id=?`, tbl),
+			rawConf, ag.id); err != nil {
+			return fmt.Errorf("failed to update the %s password: %w", tbl, err)
+		}
+	}
+
+	if err := db.Exec(`DELETE FROM credentials WHERE (type='password' OR type='password_hash')
+	    AND ` + col + ` IN (SELECT id FROM ` + tbl + ` WHERE protocol='r66' OR protocol='r66-tls')`); err != nil {
+		return fmt.Errorf("failed to delete the R66 credentials: %w", err)
+	}
+
+	return nil
+}
+
+func ver0_9_0MoveR66ServerPswdUp(db Actions) error {
+	if err := _ver0_9_0MoveR66ServerAuthDo(db, "local_agents", "local_agent_id", "password"); err != nil {
+		return err
+	}
+
+	return _ver0_9_0MoveR66ServerAuthDo(db, "remote_agents", "remote_agent_id", "password_hash")
+}
+
+func ver0_9_0MoveR66ServerPswdDown(db Actions) error {
+	if err := _ver0_9_0MoveR66ServerAuthUndo(db, "local_agents", "local_agent_id", "password",
+		func(s string) string { return "$AES$" + s },
+	); err != nil {
+		return err
+	}
+
+	return _ver0_9_0MoveR66ServerAuthUndo(db, "remote_agents", "remote_agent_id", "password_hash",
+		func(s string) string { return s })
+}
+
+func ver0_9_0AddAuthoritiesTableUp(db Actions) error {
+	if err := db.CreateTable("auth_authorities", &Table{
+		Columns: []Column{
+			{Name: "id", Type: BigInt{}, NotNull: true, Default: AutoIncr{}},
+			{Name: "name", Type: Varchar(100), NotNull: true},
+			{Name: "type", Type: Varchar(50), NotNull: true},
+			{Name: "public_identity", Type: Text{}, NotNull: true},
+		},
+		PrimaryKey: &PrimaryKey{Name: "auth_authorities_pkey", Cols: []string{"id"}},
+		Uniques:    []Unique{{Name: "unique_authority_name", Cols: []string{"name"}}},
+	}); err != nil {
+		return fmt.Errorf("failed to create the authorities table: %w", err)
+	}
+
+	if err := db.CreateTable("authority_hosts", &Table{
+		Columns: []Column{
+			{Name: "authority_id", Type: BigInt{}, NotNull: true},
+			{Name: "host", Type: Varchar(255), NotNull: true},
+		},
+		Uniques: []Unique{{Name: "unique_authority_host", Cols: []string{"authority_id", "host"}}},
+		ForeignKeys: []ForeignKey{{
+			Name: "authority_hosts_id_fkey", Cols: []string{"authority_id"},
+			RefTbl: "auth_authorities", RefCols: []string{"id"},
+			OnUpdate: Restrict, OnDelete: Cascade,
+		}},
+	}); err != nil {
+		return fmt.Errorf("failed to create the authority hosts table: %w", err)
+	}
+
+	return nil
+}
+
+func ver0_9_0AddAuthoritiesTableDown(db Actions) error {
+	if err := db.DropTable("authority_hosts"); err != nil {
+		return fmt.Errorf("failed to drop the authority hosts table: %w", err)
+	}
+
+	if err := db.DropTable("auth_authorities"); err != nil {
+		return fmt.Errorf("failed to drop the authorities table: %w", err)
 	}
 
 	return nil

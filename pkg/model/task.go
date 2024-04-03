@@ -49,7 +49,7 @@ type Task struct {
 }
 
 func (*Task) TableName() string   { return TableTasks }
-func (*Task) Appellation() string { return "task" }
+func (*Task) Appellation() string { return NameTask }
 
 func (t *Task) validateTasks() error {
 	if t.Chain != ChainPre && t.Chain != ChainPost && t.Chain != ChainError {

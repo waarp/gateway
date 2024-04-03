@@ -1,6 +1,6 @@
-=========================================
-Ajouter un certificat à un compte distant
-=========================================
+====================================================
+[OBSOLÈTE] Ajouter un certificat à un compte distant
+====================================================
 
 .. program:: waarp-gateway account remote cert add
 

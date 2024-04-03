@@ -17,9 +17,15 @@ func TestNormalizedTransferCreateView(t *testing.T) {
 
 		push := &Rule{Name: "push", IsSend: true, Path: "/push"}
 		pull := &Rule{Name: "pull", IsSend: false, Path: "/pull"}
-		serv := &LocalAgent{Name: "serv", Protocol: testProtocol, Address: "localhost:1234"}
+		serv := &LocalAgent{
+			Name: "serv", Protocol: testProtocol,
+			Address: types.Addr("localhost", 1234),
+		}
 		clie := &Client{Name: "cli", Protocol: testProtocol}
-		part := &RemoteAgent{Name: "part", Protocol: testProtocol, Address: "localhost:5678"}
+		part := &RemoteAgent{
+			Name: "part", Protocol: testProtocol,
+			Address: types.Addr("localhost", 5678),
+		}
 
 		So(db.Insert(push).Run(), ShouldBeNil)
 		So(db.Insert(pull).Run(), ShouldBeNil)

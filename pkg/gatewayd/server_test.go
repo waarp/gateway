@@ -1,7 +1,6 @@
 package gatewayd
 
 import (
-	"fmt"
 	"path"
 	"testing"
 	"time"
@@ -13,6 +12,7 @@ import (
 	"code.waarp.fr/apps/gateway/gateway/pkg/fs/fstest"
 	"code.waarp.fr/apps/gateway/gateway/pkg/gatewayd/services"
 	"code.waarp.fr/apps/gateway/gateway/pkg/model"
+	"code.waarp.fr/apps/gateway/gateway/pkg/model/types"
 	"code.waarp.fr/apps/gateway/gateway/pkg/utils"
 	"code.waarp.fr/apps/gateway/gateway/pkg/utils/testhelpers"
 )
@@ -22,9 +22,8 @@ func testSetup(c C) (*WG, *model.LocalAgent, *model.LocalAgent) {
 	db := database.TestDatabase(c)
 	addServ := func(name string) *model.LocalAgent {
 		s := &model.LocalAgent{
-			Name:     name,
-			Protocol: testProtocol,
-			Address:  fmt.Sprintf("localhost:%d", testhelpers.GetFreePort(c)),
+			Name: name, Protocol: testProtocol,
+			Address: types.Addr("localhost", testhelpers.GetFreePort(c)),
 		}
 		So(db.Insert(s).Run(), ShouldBeNil)
 

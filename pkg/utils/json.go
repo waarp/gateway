@@ -4,6 +4,8 @@ import (
 	"bytes"
 	"encoding/json"
 	"fmt"
+	"io"
+	"sync"
 )
 
 // JSONConvert takes a source object and converts it to the destination object
@@ -25,4 +27,29 @@ func JSONConvert(from, to any) error {
 	}
 
 	return nil
+}
+
+type jsonBody struct {
+	Obj  map[string]any
+	buf  bytes.Buffer
+	once sync.Once
+}
+
+func ToJSONBody(obj map[string]any) io.Reader {
+	return &jsonBody{Obj: obj}
+}
+
+//nolint:wrapcheck //this is just a wrapper func, no need to wrap errors
+func (j *jsonBody) Read(p []byte) (int, error) {
+	var err error
+
+	j.once.Do(func() {
+		err = json.NewEncoder(&j.buf).Encode(j.Obj)
+	})
+
+	if err != nil {
+		return 0, err
+	}
+
+	return j.buf.Read(p)
 }

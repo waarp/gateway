@@ -1,80 +1,86 @@
 package sftp
 
 import (
-	"bytes"
 	"errors"
 	"fmt"
 	"net"
 
 	"code.waarp.fr/lib/log"
-	"golang.org/x/crypto/bcrypt"
 	"golang.org/x/crypto/ssh"
 
 	"code.waarp.fr/apps/gateway/gateway/pkg/database"
 	"code.waarp.fr/apps/gateway/gateway/pkg/model"
-	"code.waarp.fr/apps/gateway/gateway/pkg/utils"
+	"code.waarp.fr/apps/gateway/gateway/pkg/model/authentication/auth"
 )
 
-func makeServerConf(db *database.DB, protoConfig *serverConfig,
-	agent *model.LocalAgent,
+func makeServerConf(db *database.DB, logger *log.Logger,
+	protoConfig *serverConfig, agent *model.LocalAgent,
 ) *ssh.ServerConfig {
-	conf := &ssh.ServerConfig{
-		Config: ssh.Config{
-			KeyExchanges: protoConfig.KeyExchanges,
-			Ciphers:      protoConfig.Ciphers,
-			MACs:         protoConfig.MACs,
-		},
-		PublicKeyCallback: func(conn ssh.ConnMetadata, key ssh.PublicKey) (*ssh.Permissions, error) {
-			var user model.LocalAccount
-			if err := db.Get(&user, "local_agent_id=? AND login=?", agent.ID,
-				conn.User()).Run(); err != nil {
-				if !database.IsNotFound(err) {
-					return nil, ErrDatabase
-				}
+	certChecker := ssh.CertChecker{
+		IsUserAuthority: isUserAuthority(db, logger),
+		UserKeyFallback: func(conn ssh.ConnMetadata, key ssh.PublicKey) (*ssh.Permissions, error) {
+			var acc model.LocalAccount
+			if err := db.Get(&acc, "local_agent_id=? AND login=?", agent.ID,
+				conn.User()).Run(); err != nil && !database.IsNotFound(err) {
+				logger.Error("Failed to retrieve user credentials: %s", err)
 
-				return nil, ErrAuthFailed
+				return nil, ErrDatabase
 			}
 
-			certs, err := user.GetCryptos(db)
-			if err != nil {
-				return nil, ErrAuthFailed
-			}
+			if res, err := acc.Authenticate(db, AuthSSHPublicKey, key); err != nil {
+				logger.Error("Failed to authenticate account %q: %v", acc.Login, err)
 
-			for _, cert := range certs {
-				publicKey, err := utils.ParseSSHAuthorizedKey(cert.SSHPublicKey)
-				if err != nil {
-					return nil, fmt.Errorf("failed to parse public key: %w", err)
-				}
-				if bytes.Equal(publicKey.Marshal(), key.Marshal()) {
-					return &ssh.Permissions{}, nil
-				}
-			}
+				return nil, ErrInternal
+			} else if !res.Success {
+				logger.Warning("Authentication failed for account %q: %s",
+					conn.User(), res.Reason)
 
-			return nil, ErrAuthFailed
-		},
-		PasswordCallback: func(conn ssh.ConnMetadata, pass []byte) (*ssh.Permissions, error) {
-			var user model.LocalAccount
-
-			err1 := db.Get(&user, "local_agent_id=? AND login=?", agent.ID,
-				conn.User()).Run()
-			if err1 != nil {
-				if !database.IsNotFound(err1) {
-					return nil, ErrDatabase
-				}
-			}
-
-			err2 := bcrypt.CompareHashAndPassword([]byte(user.PasswordHash), pass)
-			if err1 != nil || err2 != nil {
-				return nil, ErrAuthFailed
+				return nil, errAuthFailed
 			}
 
 			return &ssh.Permissions{}, nil
 		},
 	}
 
+	conf := &ssh.ServerConfig{
+		Config: ssh.Config{
+			KeyExchanges: protoConfig.KeyExchanges,
+			Ciphers:      protoConfig.Ciphers,
+			MACs:         protoConfig.MACs,
+		},
+		PublicKeyCallback: certChecker.Authenticate,
+		PasswordCallback:  passwordCallback(db, logger, agent),
+	}
+
 	setServerDefaultAlgos(conf)
 
 	return conf
+}
+
+func passwordCallback(db *database.DB, logger *log.Logger, agent *model.LocalAgent,
+) func(ssh.ConnMetadata, []byte) (*ssh.Permissions, error) {
+	return func(conn ssh.ConnMetadata, pass []byte) (*ssh.Permissions, error) {
+		var acc model.LocalAccount
+		if err := db.Get(&acc, "local_agent_id=? AND login=?", agent.ID,
+			conn.User()).Run(); err != nil && !database.IsNotFound(err) {
+			logger.Error("Failed to retrieve user credentials: %s", err)
+
+			return nil, ErrDatabase
+		}
+
+		if res, err := acc.Authenticate(db, auth.PasswordHash, pass); err != nil {
+			logger.Error("Failed to authenticate account %q: %v", acc.Login, err)
+
+			return nil, ErrInternal
+		} else if !res.Success {
+			logger.Warning("Authentication failed for account %q: %s",
+				conn.User(), res.Reason)
+
+			return nil, errAuthFailed
+		}
+
+		return &ssh.Permissions{}, nil
+	}
 }
 
 func setServerDefaultAlgos(conf *ssh.ServerConfig) {
@@ -94,10 +100,10 @@ func setServerDefaultAlgos(conf *ssh.ServerConfig) {
 // getSSHServerConfig builds and returns an ssh.ServerConfig from the given
 // parameters. By default, the server accepts both public key & password
 // authentication, with the former having priority over the latter.
-func getSSHServerConfig(db *database.DB, hostkeys []*model.Crypto,
+func getSSHServerConfig(db *database.DB, logger *log.Logger, hostkeys []*model.Credential,
 	protoConfig *serverConfig, agent *model.LocalAgent,
 ) (*ssh.ServerConfig, error) {
-	conf := makeServerConf(db, protoConfig, agent)
+	conf := makeServerConf(db, logger, protoConfig, agent)
 
 	if len(hostkeys) == 0 {
 		return nil, fmt.Errorf("'%s' SFTP server is missing a hostkey: %w",
@@ -105,7 +111,7 @@ func getSSHServerConfig(db *database.DB, hostkeys []*model.Crypto,
 	}
 
 	for _, hostkey := range hostkeys {
-		privateKey, err := ssh.ParsePrivateKey([]byte(hostkey.PrivateKey))
+		privateKey, err := ssh.ParsePrivateKey([]byte(hostkey.Value))
 		if err != nil {
 			return nil, fmt.Errorf("failed to parse SSH hostkey: %w", err)
 		}

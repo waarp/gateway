@@ -11,7 +11,6 @@ import (
 
 	"code.waarp.fr/apps/gateway/gateway/pkg/admin/rest"
 	"code.waarp.fr/apps/gateway/gateway/pkg/admin/rest/api"
-	"code.waarp.fr/apps/gateway/gateway/pkg/utils"
 )
 
 var ErrMissingServerName = errors.New("the 'server' name argument is missing")
@@ -42,6 +41,7 @@ func displayServer(f *Formatter, server *api.OutServer) {
 
 	f.Value("Protocol", server.Protocol)
 	f.Value("Address", server.Address)
+	f.ValueWithDefault("Credentials", strings.Join(server.Credentials, ", "), "<none>")
 	f.ValueCond("Root directory", server.RootDir)
 	f.ValueCond("Receive directory", server.ReceiveDir)
 	f.ValueCond("Send directory", server.SendDir)
@@ -94,67 +94,45 @@ func (s *ServerGet) execute(w io.Writer) error {
 
 // ######################## ADD ##########################
 
-//nolint:lll // struct tags can be long for command line args
+//nolint:lll,tagliatelle // struct tags can be long for command line args
 type ServerAdd struct {
-	Name        string             `required:"yes" short:"n" long:"name" description:"The server's name"`
-	Protocol    string             `required:"yes" short:"p" long:"protocol" description:"The server's protocol"`
-	Address     string             `required:"yes" short:"a" long:"address" description:"The server's [address:port]"`
-	RootDir     *string            `long:"root-dir" description:"The server's local root directory"`
-	ReceiveDir  *string            `long:"receive-dir" description:"The server's local directory for received files"`
-	SendDir     *string            `long:"send-dir" description:"The server's local directory for files to send"`
-	TempRcvDir  *string            `long:"tmp-dir" description:"The server's local temporary directory for incoming files"`
-	ProtoConfig map[string]confVal `short:"c" long:"config" description:"The server's configuration, in key:val format. Can be repeated."`
+	Name        string             `required:"yes" short:"n" long:"name" description:"The server's name" json:"name,omitempty"`
+	Protocol    string             `required:"yes" short:"p" long:"protocol" description:"The server's protocol" json:"protocol,omitempty"`
+	Address     string             `required:"yes" short:"a" long:"address" description:"The server's [address:port]" json:"address,omitempty"`
+	RootDir     string             `long:"root-dir" description:"The server's local root directory" json:"rootDir,omitempty"`
+	ReceiveDir  string             `long:"receive-dir" description:"The server's local directory for received files" json:"receiveDir,omitempty"`
+	SendDir     string             `long:"send-dir" description:"The server's local directory for files to send" json:"sendDir,omitempty"`
+	TempRcvDir  string             `long:"tmp-dir" description:"The server's local temporary directory for incoming files" json:"tmpReceiveDir,omitempty"`
+	ProtoConfig map[string]confVal `short:"c" long:"config" description:"The server's configuration, in key:val format. Can be repeated." json:"protoConfig,omitempty"`
 
 	// Deprecated options
-	Root    *string `short:"r" long:"root" description:"[DEPRECATED] The server's root directory"`     // Deprecated: replaced by RootDir
-	InDir   *string `short:"i" long:"in" description:"[DEPRECATED] The server's local in directory"`   // Deprecated: replaced by ReceiveDir
-	OutDir  *string `short:"o" long:"out" description:"[DEPRECATED] The server's local out directory"` // Deprecated: replaced by SendDir
-	WorkDir *string `short:"w" long:"work" description:"[DEPRECATED] The server's work directory"`     // Deprecated: replaced by TempRcvDir
+	Root    string `short:"r" long:"root" description:"[DEPRECATED] The server's root directory" json:"root,omitempty"`
+	InDir   string `short:"i" long:"in" description:"[DEPRECATED] The server's local in directory" json:"inDir,omitempty"`
+	OutDir  string `short:"o" long:"out" description:"[DEPRECATED] The server's local out directory" json:"outDir,omitempty"`
+	WorkDir string `short:"w" long:"work" description:"[DEPRECATED] The server's work directory" json:"workDir,omitempty"`
 }
 
 func (s *ServerAdd) Execute([]string) error { return s.execute(stdOutput) }
 func (s *ServerAdd) execute(w io.Writer) error {
-	server := &api.InServer{
-		Name:          &s.Name,
-		Protocol:      &s.Protocol,
-		Address:       &s.Address,
-		RootDir:       s.RootDir,
-		ReceiveDir:    s.ReceiveDir,
-		SendDir:       s.SendDir,
-		TmpReceiveDir: s.TempRcvDir,
-	}
-
-	if err := utils.JSONConvert(s.ProtoConfig, &server.ProtoConfig); err != nil {
-		return fmt.Errorf("invalid config: %w", err)
-	}
-
-	if s.Root != nil {
+	if s.Root != "" {
 		warnServerRootDeprecated(w)
-
-		server.Root = s.Root
 	}
 
-	if s.InDir != nil {
+	if s.InDir != "" {
 		warnServerInDeprecated(w)
-
-		server.InDir = s.InDir
 	}
 
-	if s.OutDir != nil {
+	if s.OutDir != "" {
 		warnServerOutDeprecated(w)
-
-		server.OutDir = s.OutDir
 	}
 
-	if s.WorkDir != nil {
+	if s.WorkDir != "" {
 		warnServerWorkDeprecated(w)
-
-		server.WorkDir = s.WorkDir
 	}
 
 	addr.Path = "/api/servers"
 
-	if _, err := add(w, server); err != nil {
+	if _, err := add(w, s); err != nil {
 		return err
 	}
 
@@ -222,76 +200,54 @@ func (s *ServerList) execute(w io.Writer) error {
 
 // ######################## UPDATE ##########################
 
-//nolint:lll // struct tags can be long for command line args
+//nolint:lll,tagliatelle // struct tags can be long for command line args
 type ServerUpdate struct {
 	Args struct {
 		Name string `required:"yes" positional-arg-name:"name" description:"The server's name"`
-	} `positional-args:"yes"`
-	Name        *string            `short:"n" long:"name" description:"The server's name"`
-	Protocol    *string            `short:"p" long:"protocol" description:"The server's protocol"`
-	Address     *string            `short:"a" long:"address" description:"The server's [address:port]"`
-	RootDir     *string            `long:"root-dir" description:"The server's local root directory"`
-	ReceiveDir  *string            `long:"receive-dir" description:"The server's local directory for received files"`
-	SendDir     *string            `long:"send-dir" description:"The server's local directory for files to send"`
-	TempRcvDir  *string            `long:"tmp-dir" description:"The server's local temporary directory for incoming files"`
-	ProtoConfig map[string]confVal `short:"c" long:"config" description:"The server's configuration in JSON"`
+	} `positional-args:"yes" json:"-"`
+	Name        string             `short:"n" long:"name" description:"The server's name" json:"name,omitempty"`
+	Protocol    string             `short:"p" long:"protocol" description:"The server's protocol" json:"protocol,omitempty"`
+	Address     string             `short:"a" long:"address" description:"The server's [address:port]" json:"address,omitempty"`
+	RootDir     string             `long:"root-dir" description:"The server's local root directory" json:"rootDir,omitempty"`
+	ReceiveDir  string             `long:"receive-dir" description:"The server's local directory for received files" json:"receiveDir,omitempty"`
+	SendDir     string             `long:"send-dir" description:"The server's local directory for files to send" json:"sendDir,omitempty"`
+	TempRcvDir  string             `long:"tmp-dir" description:"The server's local temporary directory for incoming files" json:"tmpReceiveDir,omitempty"`
+	ProtoConfig map[string]confVal `short:"c" long:"config" description:"The server's configuration in JSON" json:"protoConfig,omitempty"`
 
 	// Deprecated options
-	Root    *string `short:"r" long:"root" description:"[DEPRECATED] The server's root directory"`     // Deprecated: replaced by RootDir
-	InDir   *string `short:"i" long:"in" description:"[DEPRECATED] The server's local in directory"`   // Deprecated: replaced by ReceiveDir
-	OutDir  *string `short:"o" long:"out" description:"[DEPRECATED] The server's local out directory"` // Deprecated: replaced by SendDir
-	WorkDir *string `short:"w" long:"work" description:"[DEPRECATED] The server's work directory"`     // Deprecated: replaced by TempRcvDir
+	Root    string `short:"r" long:"root" description:"[DEPRECATED] The server's root directory" json:"root,omitempty"`
+	InDir   string `short:"i" long:"in" description:"[DEPRECATED] The server's local in directory" json:"inDir,omitempty"`
+	OutDir  string `short:"o" long:"out" description:"[DEPRECATED] The server's local out directory" json:"outDir,omitempty"`
+	WorkDir string `short:"w" long:"work" description:"[DEPRECATED] The server's work directory" json:"workDir,omitempty"`
 }
 
 func (s *ServerUpdate) Execute([]string) error { return s.execute(stdOutput) }
 func (s *ServerUpdate) execute(w io.Writer) error {
-	server := &api.InServer{
-		Name:          s.Name,
-		Protocol:      s.Protocol,
-		Address:       s.Address,
-		RootDir:       s.RootDir,
-		ReceiveDir:    s.ReceiveDir,
-		SendDir:       s.SendDir,
-		TmpReceiveDir: s.TempRcvDir,
-	}
-
-	if err := utils.JSONConvert(s.ProtoConfig, &server.ProtoConfig); err != nil {
-		return fmt.Errorf("invalid config: %w", err)
-	}
-
-	if s.Root != nil {
+	if s.Root != "" {
 		warnServerRootDeprecated(w)
-
-		server.Root = s.Root
 	}
 
-	if s.InDir != nil {
+	if s.InDir != "" {
 		warnServerInDeprecated(w)
-
-		server.InDir = s.InDir
 	}
 
-	if s.OutDir != nil {
+	if s.OutDir != "" {
 		warnServerOutDeprecated(w)
-
-		server.OutDir = s.OutDir
 	}
 
-	if s.WorkDir != nil {
+	if s.WorkDir != "" {
 		warnServerWorkDeprecated(w)
-
-		server.WorkDir = s.WorkDir
 	}
 
 	addr.Path = path.Join("/api/servers", s.Args.Name)
 
-	if err := update(w, server); err != nil {
+	if err := update(w, s); err != nil {
 		return err
 	}
 
 	name := s.Args.Name
-	if server.Name != nil && *server.Name != "" {
-		name = *server.Name
+	if s.Name != "" {
+		name = s.Name
 	}
 
 	fmt.Fprintf(w, "The server %q was successfully updated.\n", name)

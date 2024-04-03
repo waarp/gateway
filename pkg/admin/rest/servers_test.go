@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"net/http"
 	"net/http/httptest"
+	"strconv"
 	"strings"
 	"testing"
 
@@ -15,6 +16,8 @@ import (
 	"code.waarp.fr/apps/gateway/gateway/pkg/database"
 	"code.waarp.fr/apps/gateway/gateway/pkg/gatewayd/services"
 	"code.waarp.fr/apps/gateway/gateway/pkg/model"
+	"code.waarp.fr/apps/gateway/gateway/pkg/model/authentication/auth"
+	"code.waarp.fr/apps/gateway/gateway/pkg/model/types"
 	"code.waarp.fr/apps/gateway/gateway/pkg/utils"
 	"code.waarp.fr/apps/gateway/gateway/pkg/utils/testhelpers"
 )
@@ -52,28 +55,20 @@ func TestListServers(t *testing.T) {
 
 		Convey("Given a database with 4 servers", func() {
 			a1 := &model.LocalAgent{
-				Name:     "server1",
-				Protocol: testProto1,
-				RootDir:  "/root1",
-				Address:  "localhost:1",
+				Name: "server1", Protocol: testProto1,
+				Address: types.Addr("localhost", 1),
 			}
 			a2 := &model.LocalAgent{
-				Name:     "server2",
-				Protocol: testProto1,
-				RootDir:  "/root2",
-				Address:  "localhost:2",
+				Name: "server2", Protocol: testProto1,
+				Address: types.Addr("localhost", 2),
 			}
 			a3 := &model.LocalAgent{
-				Name:     "server3",
-				Protocol: testProto1,
-				RootDir:  "/root3",
-				Address:  "localhost:3",
+				Name: "server3", Protocol: testProto1,
+				Address: types.Addr("localhost", 3),
 			}
 			a4 := &model.LocalAgent{
-				Name:     "server4",
-				Protocol: testProto2,
-				RootDir:  "/root4",
-				Address:  "localhost:4",
+				Name: "server4", Protocol: testProto2,
+				Address: types.Addr("localhost", 4),
 			}
 
 			So(db.Insert(a1).Run(), ShouldBeNil)
@@ -94,10 +89,8 @@ func TestListServers(t *testing.T) {
 			owner := conf.GlobalConfig.GatewayName
 			conf.GlobalConfig.GatewayName = "foobar"
 			a5 := model.LocalAgent{
-				Name:     "server5",
-				Protocol: testProto1,
-				RootDir:  "/root5",
-				Address:  "localhost:5",
+				Name: "server5", Protocol: testProto1,
+				Address: types.Addr("localhost", 5),
 			}
 			So(db.Insert(&a5).Run(), ShouldBeNil)
 
@@ -178,22 +171,29 @@ func TestGetServer(t *testing.T) {
 			owner := conf.GlobalConfig.GatewayName
 			conf.GlobalConfig.GatewayName = "foobar"
 			other := &model.LocalAgent{
-				Name:     "existing",
-				Protocol: testProto1,
-				RootDir:  "/root1",
-				Address:  "localhost:10",
+				Name: "existing", Protocol: testProto1,
+				Address: types.Addr("localhost", 10),
 			}
 			So(db.Insert(other).Run(), ShouldBeNil)
 
 			conf.GlobalConfig.GatewayName = owner
 
 			existing := &model.LocalAgent{
-				Name:     other.Name,
-				Protocol: testProto1,
-				RootDir:  "/root",
-				Address:  "localhost:1",
+				Name: other.Name, Protocol: testProto1,
+				Address: types.Addr("localhost", 1),
 			}
 			So(db.Insert(existing).Run(), ShouldBeNil)
+
+			pswd := model.Credential{
+				LocalAgentID: utils.NewNullInt64(existing.ID),
+				Name:         "server password",
+				Type:         auth.Password,
+				Value:        "sesame",
+			}
+			So(db.Insert(&pswd).Run(), ShouldBeNil)
+
+			rule := model.Rule{Name: "rule name", IsSend: false}
+			So(db.Insert(&rule).Run(), ShouldBeNil)
 
 			Convey("Given a request with the valid server name parameter", func() {
 				r, err := http.NewRequest(http.MethodGet, "", nil)
@@ -216,13 +216,15 @@ func TestGetServer(t *testing.T) {
 
 					Convey("Then the body should contain the requested server "+
 						"in JSON format", func() {
-						expected, err := DBServerToREST(db, existing)
-						So(err, ShouldBeNil)
-
-						exp, err := json.Marshal(expected)
-						So(err, ShouldBeNil)
-
-						So(w.Body.String(), ShouldResemble, string(exp)+"\n")
+						So(w.Body.String(), ShouldResemble, `{`+
+							`"name":"`+existing.Name+`",`+
+							`"protocol":"`+existing.Protocol+`",`+
+							`"enabled":`+strconv.FormatBool(!existing.Disabled)+`,`+
+							`"address":"`+existing.Address.String()+`",`+
+							`"credentials":["`+pswd.Name+`"],`+
+							`"protoConfig":{},`+
+							`"authorizedRules":{"reception":["`+rule.Name+`"]}`+
+							"}\n")
 					})
 				})
 			})
@@ -254,10 +256,8 @@ func TestCreateServer(t *testing.T) {
 
 		Convey("Given a database with 1 server", func() {
 			existing := &model.LocalAgent{
-				Name:     "existing",
-				Protocol: testProto1,
-				RootDir:  "/root",
-				Address:  "localhost:1",
+				Name: "existing", Protocol: testProto1,
+				Address: types.Addr("localhost", 1),
 			}
 			So(db.Insert(existing).Run(), ShouldBeNil)
 
@@ -303,7 +303,7 @@ func TestCreateServer(t *testing.T) {
 								Owner:         conf.GlobalConfig.GatewayName,
 								Name:          "new_server",
 								Protocol:      testProto1,
-								Address:       "localhost:2",
+								Address:       types.Addr("localhost", 2),
 								RootDir:       "/new_root",
 								ReceiveDir:    "in",
 								SendDir:       "out",
@@ -342,10 +342,8 @@ func TestDeleteServer(t *testing.T) {
 
 		Convey("Given a database with 1 server", func() {
 			existing := model.LocalAgent{
-				Name:     "existing1",
-				Protocol: testProto1,
-				RootDir:  "/root",
-				Address:  "localhost:1",
+				Name: "existing1", Protocol: testProto1,
+				Address: types.Addr("localhost", 1),
 			}
 			So(db.Insert(&existing).Run(), ShouldBeNil)
 
@@ -435,7 +433,7 @@ func TestUpdateServer(t *testing.T) {
 			old := &model.LocalAgent{
 				Name:          "old",
 				Protocol:      testProto1,
-				Address:       "localhost:1",
+				Address:       types.Addr("localhost", 1),
 				RootDir:       "/old/root",
 				ReceiveDir:    "/old/in",
 				SendDir:       "/old/out",
@@ -483,7 +481,7 @@ func TestUpdateServer(t *testing.T) {
 							Owner:      conf.GlobalConfig.GatewayName,
 							Name:       "update",
 							Protocol:   testProto1,
-							Address:    "localhost:2",
+							Address:    types.Addr("localhost", 2),
 							RootDir:    "/upt/root",
 							ReceiveDir: "/upt/in",
 							// sub-dirs cannot be empty if root isn't empty, so OutDir is reset to default
@@ -545,7 +543,7 @@ func TestReplaceServer(t *testing.T) {
 			old := &model.LocalAgent{
 				Name:          "old",
 				Protocol:      testProto1,
-				Address:       "localhost:1",
+				Address:       types.Addr("localhost", 1),
 				RootDir:       "/old/root",
 				ReceiveDir:    "/old/in",
 				SendDir:       "/old/out",
@@ -597,7 +595,7 @@ func TestReplaceServer(t *testing.T) {
 							Owner:      conf.GlobalConfig.GatewayName,
 							Name:       "update",
 							Protocol:   testProto2,
-							Address:    "localhost:2",
+							Address:    types.Addr("localhost", 2),
 							RootDir:    "/upt/root",
 							ReceiveDir: "/upt/in",
 							// sub-dirs cannot be empty if root isn't empty, so OutDir is reset to default
@@ -662,10 +660,9 @@ func TestEnableDisableServer(t *testing.T) {
 
 			Convey("Given a database with a "+name+"d agent", func() {
 				agent := model.LocalAgent{
-					Name:     "agent",
-					Protocol: testProto1,
+					Name: "agent", Protocol: testProto1,
 					Disabled: !expectedDisabled,
-					Address:  "localhost:1",
+					Address:  types.Addr("localhost", 1),
 				}
 				So(db.Insert(&agent).Run(), ShouldBeNil)
 
@@ -702,9 +699,8 @@ func TestStartServer(t *testing.T) {
 
 		Convey("Given a database with 1 agent", func() {
 			agent := model.LocalAgent{
-				Name:     "local server",
-				Protocol: testProto1,
-				Address:  "localhost:1",
+				Name: "local server", Protocol: testProto1,
+				Address: types.Addr("localhost", 1),
 			}
 			So(db.Insert(&agent).Run(), ShouldBeNil)
 
@@ -749,9 +745,8 @@ func TestStopServer(t *testing.T) {
 
 		Convey("Given a database with 1 agent", func() {
 			agent := model.LocalAgent{
-				Name:     "local server",
-				Protocol: testProto1,
-				Address:  "localhost:1",
+				Name: "local server", Protocol: testProto1,
+				Address: types.Addr("localhost", 1),
 			}
 			So(db.Insert(&agent).Run(), ShouldBeNil)
 
@@ -799,9 +794,8 @@ func TestRestartServer(t *testing.T) {
 
 		Convey("Given a database with 1 agent", func() {
 			agent := model.LocalAgent{
-				Name:     "local server",
-				Protocol: testProto1,
-				Address:  "localhost:1",
+				Name: "local server", Protocol: testProto1,
+				Address: types.Addr("localhost", 1),
 			}
 			So(db.Insert(&agent).Run(), ShouldBeNil)
 

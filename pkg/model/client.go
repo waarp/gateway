@@ -2,20 +2,20 @@ package model
 
 import (
 	"fmt"
-	"net"
 	"strings"
 
 	"code.waarp.fr/apps/gateway/gateway/pkg/conf"
 	"code.waarp.fr/apps/gateway/gateway/pkg/database"
+	"code.waarp.fr/apps/gateway/gateway/pkg/model/types"
 )
 
 type Client struct {
 	ID    int64  `xorm:"<- id AUTOINCR"` // The client's database ID.
 	Owner string `xorm:"owner"`          // The client's owner (the gateway to which it belongs)
 
-	Name         string `xorm:"name"`          // The client's name.
-	Protocol     string `xorm:"protocol"`      // The client's protocol.
-	LocalAddress string `xorm:"local_address"` // The client's local address (optional).
+	Name         string        `xorm:"name"`          // The client's name.
+	Protocol     string        `xorm:"protocol"`      // The client's protocol.
+	LocalAddress types.Address `xorm:"local_address"` // The client's local address (optional).
 
 	// The client's protocol configuration as a map.
 	ProtoConfig map[string]any `xorm:"proto_config"`
@@ -44,10 +44,9 @@ func (c *Client) BeforeWrite(db database.ReadAccess) error {
 		return database.NewValidationError("%q is not a protocol", c.Protocol)
 	}
 
-	if c.LocalAddress != "" {
-		if _, err := net.ResolveTCPAddr("tcp", c.LocalAddress); err != nil {
-			return database.NewValidationError("%q is not a valid client address: %v",
-				c.LocalAddress, err)
+	if c.LocalAddress.IsSet() {
+		if err := c.LocalAddress.Validate(); err != nil {
+			return database.NewValidationError("address validation failed: %w", err)
 		}
 	}
 
@@ -56,7 +55,7 @@ func (c *Client) BeforeWrite(db database.ReadAccess) error {
 	}
 
 	if err := ConfigChecker.CheckClientConfig(c.Protocol, c.ProtoConfig); err != nil {
-		return database.NewValidationError("%v", err)
+		return database.WrapAsValidationError(err)
 	}
 
 	if n, err := db.Count(c).Where("id<>? AND owner=? AND name=?", c.ID, c.Owner,

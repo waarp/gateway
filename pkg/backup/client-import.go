@@ -37,8 +37,11 @@ func importClients(logger *log.Logger, db database.Access, clients []file.Client
 		dbClient.Name = client.Name
 		dbClient.Protocol = client.Protocol
 		dbClient.Disabled = client.Disabled
-		dbClient.LocalAddress = client.LocalAddress
 		dbClient.ProtoConfig = client.ProtoConfig
+
+		if err := dbClient.LocalAddress.Set(client.LocalAddress); err != nil {
+			return fmt.Errorf("invalid client local address: %w", err)
+		}
 
 		var dbErr error
 

@@ -36,16 +36,14 @@ func TestControllerListen(t *testing.T) {
 		defer delete(services.Clients, client.Name)
 
 		remote := &model.RemoteAgent{
-			Name:     "test remote",
-			Protocol: client.Protocol,
-			Address:  "localhost:1111",
+			Name: "test remote", Protocol: client.Protocol,
+			Address: types.Addr("localhost", 1111),
 		}
 		So(db.Insert(remote).Run(), ShouldBeNil)
 
 		account := &model.RemoteAccount{
 			RemoteAgentID: remote.ID,
 			Login:         "test login",
-			Password:      "test password",
 		}
 		So(db.Insert(account).Run(), ShouldBeNil)
 

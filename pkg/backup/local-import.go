@@ -9,6 +9,7 @@ import (
 	"code.waarp.fr/apps/gateway/gateway/pkg/conf"
 	"code.waarp.fr/apps/gateway/gateway/pkg/database"
 	"code.waarp.fr/apps/gateway/gateway/pkg/model"
+	"code.waarp.fr/apps/gateway/gateway/pkg/model/authentication/auth"
 	"code.waarp.fr/apps/gateway/gateway/pkg/utils"
 )
 
@@ -37,10 +38,8 @@ func importLocalAgents(logger *log.Logger, db database.Access, list []file.Local
 
 		// Check if agent exists
 		exists := true
-		err := db.Get(&agent, "name=? AND owner=?", src.Name,
-			conf.GlobalConfig.GatewayName).Run()
-
-		if database.IsNotFound(err) {
+		if err := db.Get(&agent, "name=? AND owner=?", src.Name,
+			conf.GlobalConfig.GatewayName).Run(); database.IsNotFound(err) {
 			exists = false
 		} else if err != nil {
 			return fmt.Errorf("failed to retrieve server %q: %w", src.Name, err)
@@ -52,28 +51,37 @@ func importLocalAgents(logger *log.Logger, db database.Access, list []file.Local
 		agent.ReceiveDir = src.ReceiveDir
 		agent.SendDir = src.SendDir
 		agent.TmpReceiveDir = src.TmpReceiveDir
-		agent.Address = src.Address
 		agent.Protocol = src.Protocol
 		agent.Disabled = src.Disabled
 		agent.ProtoConfig = src.Configuration
 		agent.Owner = ""
 
+		if err := agent.Address.Set(src.Address); err != nil {
+			return database.NewValidationError(err.Error())
+		}
+
 		checkLocalAgentDeprecatedFields(logger, &agent, src)
+
+		var dbErr error
 
 		// Create/Update
 		if exists {
-			logger.Info("Update local server %s\n", agent.Name)
-			err = db.Update(&agent).Run()
+			logger.Info("Update local server %s", agent.Name)
+			dbErr = db.Update(&agent).Run()
 		} else {
-			logger.Info("Create local server %s\n", agent.Name)
-			err = db.Insert(&agent).Run()
+			logger.Info("Create local server %s", agent.Name)
+			dbErr = db.Insert(&agent).Run()
 		}
 
-		if err != nil {
-			return fmt.Errorf("failed to import server %q: %w", agent.Name, err)
+		if dbErr != nil {
+			return fmt.Errorf("failed to import server %q: %w", agent.Name, dbErr)
 		}
 
 		if err := importCerts(logger, db, src.Certs, &agent); err != nil {
+			return err
+		}
+
+		if err := credentialsImport(logger, db, src.Credentials, &agent, agent.Protocol); err != nil {
 			return err
 		}
 
@@ -121,7 +129,7 @@ func checkLocalAgentDeprecatedFields(logger *log.Logger, agent *model.LocalAgent
 	}
 }
 
-//nolint:dupl // duplicated code is about two different types
+//nolint:dupl,funlen // duplicated code is about two different types
 func importLocalAccounts(logger *log.Logger, db database.Access,
 	list []file.LocalAccount, server *model.LocalAgent,
 ) error {
@@ -129,7 +137,6 @@ func importLocalAccounts(logger *log.Logger, db database.Access,
 		// Create model with basic info to check existence
 		var account model.LocalAccount
 
-		// Check if account exists
 		exist, err := accountExists(db, &account, "local_agent_id=? AND login=?",
 			server.ID, src.Login)
 		if err != nil {
@@ -140,21 +147,44 @@ func importLocalAccounts(logger *log.Logger, db database.Access,
 		account.LocalAgentID = server.ID
 		account.Login = src.Login
 
-		if src.PasswordHash != "" {
-			account.PasswordHash = src.PasswordHash
-		}
-
 		// Create/Update
 		if exist {
-			logger.Info("Update local account %s\n", account.Login)
+			logger.Info("Update local account %s", account.Login)
 			err = db.Update(&account).Run()
 		} else {
-			logger.Info("Create local account %s\n", account.Login)
+			logger.Info("Create local account %s", account.Login)
 			err = db.Insert(&account).Run()
 		}
 
 		if err != nil {
 			return fmt.Errorf("failed to import local account %q: %w", account.Login, err)
+		}
+
+		if src.PasswordHash != "" || src.Password != "" {
+			pswd := &model.Credential{
+				LocalAccountID: utils.NewNullInt64(account.ID),
+				Type:           auth.PasswordHash,
+			}
+
+			if src.Password != "" {
+				pswd.Value = cryptR66Pswd(pswd.Type, src.Password, server.Protocol)
+			} else {
+				pswd.Value = src.PasswordHash
+			}
+
+			if err := db.DeleteAll(&model.Credential{}).Where("type=?", pswd.Type).
+				Where(account.GetCredCond()).Run(); err != nil {
+				return fmt.Errorf("failed to delete old password: %w", err)
+			}
+
+			if err := db.Insert(pswd).Run(); err != nil {
+				return fmt.Errorf("failed to insert new password: %w", err)
+			}
+		}
+
+		if err := credentialsImport(logger, db, src.Credentials, &account,
+			server.Protocol); err != nil {
+			return err
 		}
 
 		if err := importCerts(logger, db, src.Certs, &account); err != nil {

@@ -1,6 +1,6 @@
-====================================
-Supprime un certificat de partenaire
-====================================
+================================================
+[OBSOLÈTE] Supprimer un certificat de partenaire
+================================================
 
 .. program:: waarp-gateway partner cert delete
 

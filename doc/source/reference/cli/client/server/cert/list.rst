@@ -1,8 +1,8 @@
 .. _reference-cli-client-servers-certs-list:
 
-###################################
-Lister les certificats d'un serveur
-###################################
+==============================================
+[OBSOLÈTE] Lister les certificats d'un serveur
+==============================================
 
 .. program:: waarp-gateway server cert list
 

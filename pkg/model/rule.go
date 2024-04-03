@@ -26,7 +26,7 @@ type Rule struct {
 }
 
 func (*Rule) TableName() string   { return TableRules }
-func (*Rule) Appellation() string { return "rule" }
+func (*Rule) Appellation() string { return NameRule }
 func (r *Rule) GetID() int64      { return r.ID }
 
 func (r *Rule) checkAncestor(db database.ReadAccess, rulePath string) error {
@@ -44,7 +44,7 @@ func (r *Rule) checkAncestor(db database.ReadAccess, rulePath string) error {
 	}
 
 	return database.NewValidationError("the rule's path cannot be the descendant of "+
-		"another rule's path (the path '%s' is already used by rule '%s')", rulePath, rule.Name)
+		"another rule's path (the path %q is already used by rule %q)", rulePath, rule.Name)
 }
 
 func (r *Rule) checkPath(db database.ReadAccess) error {
@@ -78,7 +78,7 @@ func (r *Rule) BeforeWrite(db database.ReadAccess) error {
 	if err != nil {
 		return fmt.Errorf("failed to check for duplicate rules: %w", err)
 	} else if n > 0 {
-		return database.NewValidationError("a %s rule named '%s' already exist",
+		return database.NewValidationError("a %s rule named %q already exist",
 			r.Direction(), r.Name)
 	}
 
@@ -139,7 +139,7 @@ func (r *Rule) IsAuthorized(db database.Access, target database.IterateBean) (bo
 			"local_agent_id=? )", r.ID, object.ID, object.LocalAgentID)
 	case *RemoteAccount:
 		query = db.Count(&perms).Where("rule_id=? AND ( remote_account_id=? OR "+
-			"remote_agent_id=?", r.ID, object.ID, object.RemoteAgentID)
+			"remote_agent_id=? )", r.ID, object.ID, object.RemoteAgentID)
 	default:
 		return false, database.NewValidationError("%T is not a valid target model for RuleAccess", target)
 	}

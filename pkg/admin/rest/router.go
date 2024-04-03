@@ -12,7 +12,7 @@ import (
 
 // The definitions of all the REST entry points paths.
 //
-//nolint:lll //paths are long
+//nolint:lll,gosec //paths are long; credentials are not hardcoded
 const (
 	AboutPath  = "/api/about"
 	StatusPath = "/api/status" // Deprecated: replaced by AboutPath
@@ -35,38 +35,46 @@ const (
 	HistoryPath   = "/api/history/{history}"       // Deprecated: merged with transfers
 	HistRetryPath = "/api/history/{history}/retry" // Deprecated: merged with transfers
 
-	ServersPath       = "/api/servers"
-	ServerPath        = "/api/servers/{server}"
-	ServerPathEnable  = "/api/servers/{server}/enable"
-	ServerPathDisable = "/api/servers/{server}/disable"
-	ServerStartPath   = "/api/servers/{server}/start"
-	ServerStopPath    = "/api/servers/{server}/stop"
-	ServerRestartPath = "/api/servers/{server}/restart"
-	ServerCertsPath   = "/api/servers/{server}/certificates"
-	ServerCertPath    = "/api/servers/{server}/certificates/{certificate}"
-	ServerAuthPath    = "/api/servers/{server}/authorize/{rule}/{direction:send|receive}"
-	ServerRevPath     = "/api/servers/{server}/revoke/{rule}/{direction:send|receive}"
+	ServersPath         = "/api/servers"
+	ServerPath          = "/api/servers/{server}"
+	ServerPathEnable    = "/api/servers/{server}/enable"
+	ServerPathDisable   = "/api/servers/{server}/disable"
+	ServerStartPath     = "/api/servers/{server}/start"
+	ServerStopPath      = "/api/servers/{server}/stop"
+	ServerRestartPath   = "/api/servers/{server}/restart"
+	ServerCertsPath     = "/api/servers/{server}/certificates"               // Deprecated: replaced by credentials
+	ServerCertPath      = "/api/servers/{server}/certificates/{certificate}" // Deprecated: replaced by credentials
+	ServerAuthorizePath = "/api/servers/{server}/authorize/{rule}/{direction:send|receive}"
+	ServerRevokePath    = "/api/servers/{server}/revoke/{rule}/{direction:send|receive}"
+	ServerCredsPath     = "/api/servers/{server}/credentials"
+	ServerCredPath      = "/api/servers/{server}/credentials/{credential}"
 
-	LocAccountsPath = "/api/servers/{server}/accounts"
-	LocAccountPath  = "/api/servers/{server}/accounts/{local_account}"
-	LocAccCertsPath = "/api/servers/{server}/accounts/{local_account}/certificates"
-	LocAccCertPath  = "/api/servers/{server}/accounts/{local_account}/certificates/{certificate}"
-	LocAccAuthPath  = "/api/servers/{server}/accounts/{local_account}/authorize/{rule}/{direction:send|receive}"
-	LocAccRevPath   = "/api/servers/{server}/accounts/{local_account}/revoke/{rule}/{direction:send|receive}"
+	LocAccountsPath     = "/api/servers/{server}/accounts"
+	LocAccountPath      = "/api/servers/{server}/accounts/{local_account}"
+	LocAccCertsPath     = "/api/servers/{server}/accounts/{local_account}/certificates"               // Deprecated: replaced by credentials
+	LocAccCertPath      = "/api/servers/{server}/accounts/{local_account}/certificates/{certificate}" // Deprecated: replaced by credentials
+	LocAccAuthorizePath = "/api/servers/{server}/accounts/{local_account}/authorize/{rule}/{direction:send|receive}"
+	LocAccRevokePath    = "/api/servers/{server}/accounts/{local_account}/revoke/{rule}/{direction:send|receive}"
+	LocAccCredsPath     = "/api/servers/{server}/accounts/{local_account}/credentials"
+	LocAccCredPath      = "/api/servers/{server}/accounts/{local_account}/credentials/{credential}"
 
-	PartnersPath     = "/api/partners"
-	PartnerPath      = "/api/partners/{partner}"
-	PartnerCertsPath = "/api/partners/{partner}/certificates"
-	PartnerCertPath  = "/api/partners/{partner}/certificates/{certificate}"
-	PartnerAuthPath  = "/api/partners/{partner}/authorize/{rule}/{direction:send|receive}"
-	PartnerRevPath   = "/api/partners/{partner}/revoke/{rule}/{direction:send|receive}"
+	PartnersPath         = "/api/partners"
+	PartnerPath          = "/api/partners/{partner}"
+	PartnerCertsPath     = "/api/partners/{partner}/certificates"               // Deprecated: replaced by credentials
+	PartnerCertPath      = "/api/partners/{partner}/certificates/{certificate}" // Deprecated: replaced by credentials
+	PartnerAuthorizePath = "/api/partners/{partner}/authorize/{rule}/{direction:send|receive}"
+	PartnerRevokePath    = "/api/partners/{partner}/revoke/{rule}/{direction:send|receive}"
+	PartnerCredsPath     = "/api/partners/{partner}/credentials"
+	PartnerCredPath      = "/api/partners/{partner}/credentials/{credential}"
 
-	RemAccountsPath = "/api/partners/{partner}/accounts"
-	RemAccountPath  = "/api/partners/{partner}/accounts/{remote_account}"
-	RemAccCertsPath = "/api/partners/{partner}/accounts/{remote_account}/certificates"
-	RemAccCertPath  = "/api/partners/{partner}/accounts/{remote_account}/certificates/{certificate}"
-	RemAccAuthPath  = "/api/partners/{partner}/accounts/{remote_account}/authorize/{rule}/{direction:send|receive}"
-	RemAccRevPath   = "/api/partners/{partner}/accounts/{remote_account}/revoke/{rule}/{direction:send|receive}"
+	RemAccountsPath     = "/api/partners/{partner}/accounts"
+	RemAccountPath      = "/api/partners/{partner}/accounts/{remote_account}"
+	RemAccCertsPath     = "/api/partners/{partner}/accounts/{remote_account}/certificates"               // Deprecated: replaced by credentials
+	RemAccCertPath      = "/api/partners/{partner}/accounts/{remote_account}/certificates/{certificate}" // Deprecated: replaced by credentials
+	RemAccAuthorizePath = "/api/partners/{partner}/accounts/{remote_account}/authorize/{rule}/{direction:send|receive}"
+	RemAccRevokePath    = "/api/partners/{partner}/accounts/{remote_account}/revoke/{rule}/{direction:send|receive}"
+	RemAccCredsPath     = "/api/partners/{partner}/accounts/{remote_account}/credentials"
+	RemAccCredPath      = "/api/partners/{partner}/accounts/{remote_account}/credentials/{credential}"
 
 	ClientsPath       = "/api/clients"
 	ClientPath        = "/api/clients/{client}"
@@ -79,6 +87,9 @@ const (
 
 	CloudInstancesPath = "/api/clouds"
 	CloudInstancePath  = "/api/clouds/{cloud}"
+
+	AuthAuthoritiesPath = "/api/authorities"
+	AuthAuthorityPath   = "/api/authorities/{authority}"
 )
 
 // MakeRESTHandler appends all the REST API handlers to the given HTTP router.
@@ -145,11 +156,14 @@ func MakeRESTHandler(logger *log.Logger, db *database.DB, router *mux.Router,
 	mkHandler(ServerCertPath, deleteServerCert, model.PermServersWrite, http.MethodDelete)
 	mkHandler(ServerCertPath, updateServerCert, model.PermServersWrite, http.MethodPatch)
 	mkHandler(ServerCertPath, replaceServerCert, model.PermServersWrite, http.MethodPut)
-	mkHandler(ServerAuthPath, authorizeServer, model.PermRulesWrite, http.MethodPut)
-	mkHandler(ServerRevPath, revokeServer, model.PermRulesWrite, http.MethodPut)
+	mkHandler(ServerAuthorizePath, authorizeServer, model.PermRulesWrite, http.MethodPut)
+	mkHandler(ServerRevokePath, revokeServer, model.PermRulesWrite, http.MethodPut)
 	mkHandler(ServerStartPath, startServer, model.PermServersWrite, http.MethodPut)
 	mkHandler(ServerStopPath, stopServer, model.PermServersWrite, http.MethodPut)
 	mkHandler(ServerRestartPath, restartServer, model.PermServersWrite, http.MethodPut)
+	mkHandler(ServerCredsPath, addServerCred, model.PermServersWrite, http.MethodPost)
+	mkHandler(ServerCredPath, getServerCred, model.PermServersRead, http.MethodGet)
+	mkHandler(ServerCredPath, removeServerCred, model.PermServersWrite, http.MethodDelete)
 
 	// Local accounts
 	mkHandler(LocAccountsPath, listLocalAccounts, model.PermServersRead, http.MethodGet)
@@ -164,8 +178,11 @@ func MakeRESTHandler(logger *log.Logger, db *database.DB, router *mux.Router,
 	mkHandler(LocAccCertPath, deleteLocAccountCert, model.PermServersWrite, http.MethodDelete)
 	mkHandler(LocAccCertPath, updateLocAccountCert, model.PermServersWrite, http.MethodPatch)
 	mkHandler(LocAccCertPath, replaceLocAccountCert, model.PermServersWrite, http.MethodPut)
-	mkHandler(LocAccAuthPath, authorizeLocalAccount, model.PermRulesWrite, http.MethodPut)
-	mkHandler(LocAccRevPath, revokeLocalAccount, model.PermRulesWrite, http.MethodPut)
+	mkHandler(LocAccAuthorizePath, authorizeLocalAccount, model.PermRulesWrite, http.MethodPut)
+	mkHandler(LocAccRevokePath, revokeLocalAccount, model.PermRulesWrite, http.MethodPut)
+	mkHandler(LocAccCredsPath, addLocAccCred, model.PermServersWrite, http.MethodPost)
+	mkHandler(LocAccCredPath, getLocAccCred, model.PermServersRead, http.MethodGet)
+	mkHandler(LocAccCredPath, removeLocAccCred, model.PermServersWrite, http.MethodDelete)
 
 	// Partners
 	mkHandler(PartnersPath, listPartners, model.PermPartnersRead, http.MethodGet)
@@ -180,8 +197,11 @@ func MakeRESTHandler(logger *log.Logger, db *database.DB, router *mux.Router,
 	mkHandler(PartnerCertPath, deletePartnerCert, model.PermPartnersWrite, http.MethodDelete)
 	mkHandler(PartnerCertPath, updatePartnerCert, model.PermPartnersWrite, http.MethodPatch)
 	mkHandler(PartnerCertPath, replacePartnerCert, model.PermPartnersWrite, http.MethodPut)
-	mkHandler(PartnerAuthPath, authorizePartner, model.PermRulesWrite, http.MethodPut)
-	mkHandler(PartnerRevPath, revokePartner, model.PermRulesWrite, http.MethodPut)
+	mkHandler(PartnerAuthorizePath, authorizePartner, model.PermRulesWrite, http.MethodPut)
+	mkHandler(PartnerRevokePath, revokePartner, model.PermRulesWrite, http.MethodPut)
+	mkHandler(PartnerCredsPath, addPartnerCred, model.PermPartnersWrite, http.MethodPost)
+	mkHandler(PartnerCredPath, getPartnerCred, model.PermPartnersRead, http.MethodGet)
+	mkHandler(PartnerCredPath, removePartnerCred, model.PermPartnersWrite, http.MethodDelete)
 
 	// Remote accounts
 	mkHandler(RemAccountsPath, listRemoteAccounts, model.PermPartnersRead, http.MethodGet)
@@ -196,8 +216,11 @@ func MakeRESTHandler(logger *log.Logger, db *database.DB, router *mux.Router,
 	mkHandler(RemAccCertPath, deleteRemAccountCert, model.PermPartnersWrite, http.MethodDelete)
 	mkHandler(RemAccCertPath, updateRemAccountCert, model.PermPartnersWrite, http.MethodPatch)
 	mkHandler(RemAccCertPath, replaceRemAccountCert, model.PermPartnersWrite, http.MethodPut)
-	mkHandler(RemAccAuthPath, authorizeRemoteAccount, model.PermRulesWrite, http.MethodPut)
-	mkHandler(RemAccRevPath, revokeRemoteAccount, model.PermRulesWrite, http.MethodPut)
+	mkHandler(RemAccAuthorizePath, authorizeRemoteAccount, model.PermRulesWrite, http.MethodPut)
+	mkHandler(RemAccRevokePath, revokeRemoteAccount, model.PermRulesWrite, http.MethodPut)
+	mkHandler(RemAccCredsPath, addRemAccCred, model.PermPartnersWrite, http.MethodPost)
+	mkHandler(RemAccCredPath, getRemAccCred, model.PermPartnersRead, http.MethodGet)
+	mkHandler(RemAccCredPath, removeRemAccCred, model.PermPartnersWrite, http.MethodDelete)
 
 	// Clients
 	mkHandler(ClientsPath, createClient, model.PermServersWrite, http.MethodPost)
@@ -223,4 +246,12 @@ func MakeRESTHandler(logger *log.Logger, db *database.DB, router *mux.Router,
 	mkHandler(CloudInstancePath, updateCloud, model.PermAdminWrite, http.MethodPatch)
 	mkHandler(CloudInstancePath, replaceCloud, model.PermAdminWrite, http.MethodPut)
 	mkHandler(CloudInstancePath, deleteCloud, model.PermAdminDelete, http.MethodDelete)
+
+	// Authentication authority
+	mkHandler(AuthAuthoritiesPath, addAuthAuthority, model.PermAdminWrite, http.MethodPost)
+	mkHandler(AuthAuthoritiesPath, listAuthAuthorities, model.PermAdminRead, http.MethodGet)
+	mkHandler(AuthAuthorityPath, getAuthAuthority, model.PermAdminRead, http.MethodGet)
+	mkHandler(AuthAuthorityPath, updateAuthAuthority, model.PermAdminWrite, http.MethodPatch)
+	mkHandler(AuthAuthorityPath, replaceAuthAuthority, model.PermAdminWrite, http.MethodPut)
+	mkHandler(AuthAuthorityPath, deleteAuthAuthority, model.PermAdminWrite, http.MethodDelete)
 }

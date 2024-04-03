@@ -63,13 +63,12 @@ func TestSetup(t *testing.T) {
 					ID:       agentID,
 					Name:     "partner",
 					Protocol: testProtocol,
-					Address:  "localhost:6622",
+					Address:  types.Addr("localhost", 6622),
 				},
 				RemoteAccount: &model.RemoteAccount{
 					ID:            accountID,
 					RemoteAgentID: agentID,
 					Login:         "toto",
-					Password:      "sesame",
 				},
 				Rule: &model.Rule{
 					ID:             ruleID,
@@ -320,14 +319,13 @@ func TestRunTasks(t *testing.T) {
 		agent := &model.RemoteAgent{
 			Name:     "agent",
 			Protocol: client.Protocol,
-			Address:  "localhost:6622",
+			Address:  types.Addr("localhost", 6622),
 		}
 		So(db.Insert(agent).Run(), ShouldBeNil)
 
 		account := &model.RemoteAccount{
 			RemoteAgentID: agent.ID,
 			Login:         "toto",
-			Password:      "sesame",
 		}
 		So(db.Insert(account).Run(), ShouldBeNil)
 

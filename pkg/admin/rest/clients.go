@@ -23,7 +23,7 @@ func ClientDBToREST(client *model.Client) *api.OutClient {
 		Name:         client.Name,
 		Enabled:      !client.Disabled,
 		Protocol:     client.Protocol,
-		LocalAddress: client.LocalAddress,
+		LocalAddress: client.LocalAddress.String(),
 		ProtoConfig:  client.ProtoConfig,
 	}
 }
@@ -40,13 +40,21 @@ func ClientsDBToREST(dbClients model.Clients) []*api.OutClient {
 	return restClients
 }
 
-func ClientRESTToDB(client *api.InClient) *model.Client {
-	return &model.Client{
-		Name:         client.Name,
-		Protocol:     client.Protocol,
-		LocalAddress: str(client.LocalAddress),
-		ProtoConfig:  client.ProtoConfig,
+func ClientRESTToDB(client *api.InClient) (*model.Client, error) {
+	cli := &model.Client{
+		Name:        client.Name.Value,
+		Protocol:    client.Protocol.Value,
+		Disabled:    client.Disabled,
+		ProtoConfig: client.ProtoConfig,
 	}
+
+	if client.LocalAddress.Valid {
+		if err := cli.LocalAddress.Set(client.LocalAddress.Value); err != nil {
+			return nil, fmt.Errorf("failed to parse local address: %w", err)
+		}
+	}
+
+	return cli, nil
 }
 
 func getDBClient(r *http.Request, db *database.DB) (*model.Client, error) {
@@ -121,7 +129,11 @@ func createClient(logger *log.Logger, db *database.DB) http.HandlerFunc {
 			return
 		}
 
-		dbClient := ClientRESTToDB(&restClient)
+		dbClient, convErr := ClientRESTToDB(&restClient)
+		if handleError(w, logger, convErr) {
+			return
+		}
+
 		if err := db.Insert(dbClient).Run(); handleError(w, logger, err) {
 			return
 		}
@@ -137,7 +149,7 @@ func createClient(logger *log.Logger, db *database.DB) http.HandlerFunc {
 
 		services.Clients[dbClient.Name] = service
 
-		w.Header().Set("Location", location(r.URL, restClient.Name))
+		w.Header().Set("Location", location(r.URL, dbClient.Name))
 		w.WriteHeader(http.StatusCreated)
 	}
 }
@@ -178,18 +190,30 @@ func updateClient(logger *log.Logger, db *database.DB) http.HandlerFunc {
 			return
 		}
 
-		restClient := api.InClient{
-			Name:         oldDBClient.Name,
-			Protocol:     oldDBClient.Protocol,
-			LocalAddress: &oldDBClient.LocalAddress,
+		restClient := &api.InClient{
+			Name:         api.AsNullable(oldDBClient.Name),
+			Protocol:     api.AsNullable(oldDBClient.Protocol),
+			LocalAddress: api.AsNullable(oldDBClient.LocalAddress.String()),
 			ProtoConfig:  oldDBClient.ProtoConfig,
 		}
-		if err := readJSON(r, &restClient); handleError(w, logger, err) {
+		if err := readJSON(r, restClient); handleError(w, logger, err) {
 			return
 		}
 
-		dbClient := ClientRESTToDB(&restClient)
-		dbClient.ID = oldDBClient.ID
+		dbClient := &model.Client{
+			ID:          oldDBClient.ID,
+			Name:        restClient.Name.Value,
+			Protocol:    restClient.Protocol.Value,
+			ProtoConfig: restClient.ProtoConfig,
+			Disabled:    oldDBClient.Disabled,
+		}
+
+		if restClient.LocalAddress.Valid {
+			if err := dbClient.LocalAddress.Set(restClient.LocalAddress.
+				Value); handleError(w, logger, err) {
+				return
+			}
+		}
 
 		if err := db.Update(dbClient).Run(); handleError(w, logger, err) {
 			return
@@ -216,7 +240,7 @@ func updateClient(logger *log.Logger, db *database.DB) http.HandlerFunc {
 		delete(services.Clients, oldDBClient.Name)
 		services.Clients[dbClient.Name] = newService
 
-		w.Header().Set("Location", location(r.URL, restClient.Name))
+		w.Header().Set("Location", location(r.URL, dbClient.Name))
 		w.WriteHeader(http.StatusCreated)
 	}
 }
@@ -234,7 +258,11 @@ func replaceClient(logger *log.Logger, db *database.DB) http.HandlerFunc {
 			return
 		}
 
-		dbClient := ClientRESTToDB(&restClient)
+		dbClient, convErr := ClientRESTToDB(&restClient)
+		if handleError(w, logger, convErr) {
+			return
+		}
+
 		dbClient.ID = oldDBClient.ID
 
 		if err := db.Update(dbClient).Run(); handleError(w, logger, err) {
@@ -262,7 +290,7 @@ func replaceClient(logger *log.Logger, db *database.DB) http.HandlerFunc {
 		delete(services.Clients, oldDBClient.Name)
 		services.Clients[dbClient.Name] = newService
 
-		w.Header().Set("Location", location(r.URL, restClient.Name))
+		w.Header().Set("Location", location(r.URL, dbClient.Name))
 		w.WriteHeader(http.StatusCreated)
 	}
 }

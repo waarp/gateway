@@ -1305,7 +1305,7 @@ func testVer0_7_0AddLocalAgentsAddressUnique(t *testing.T, eng *testEngine) Chan
 			"The migration should not fail")
 
 		t.Run("Then it should have added the unique constraint", func(t *testing.T) {
-			_, err := eng.DB.Exec(`INSERT INTO local_agents(id,owner,name,protocol,address)
+			err := eng.Exec(`INSERT INTO local_agents(id,owner,name,protocol,address)
 					VALUES (11,'waarp_gw','sftp_serv_2','sftp','localhost:2222')`)
 			shouldBeUniqueViolationError(t, err)
 		})
@@ -1315,7 +1315,7 @@ func testVer0_7_0AddLocalAgentsAddressUnique(t *testing.T, eng *testEngine) Chan
 				"Reverting the migration should not fail")
 
 			t.Run("Then it should have removed the unique constraint", func(t *testing.T) {
-				_, err := eng.DB.Exec(`INSERT INTO local_agents(id,owner,name,protocol,address)
+				err := eng.Exec(`INSERT INTO local_agents(id,owner,name,protocol,address)
 					VALUES (11,'waarp_gw','sftp_serv_2','sftp','localhost:2222')`)
 				require.NoError(t, err)
 			})
@@ -1427,7 +1427,7 @@ func testVer0_7_0AddNormalizedTransfersView(t *testing.T, eng *testEngine) Chang
 				"Reverting the migration should not fail")
 
 			t.Run("Then it should have dropped the view", func(t *testing.T) {
-				_, err := eng.DB.Exec(`SELECT * FROM normalized_transfers`)
+				err := eng.Exec(`SELECT * FROM normalized_transfers`)
 				shouldBeTableNotExist(t, err)
 			})
 		})

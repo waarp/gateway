@@ -8,6 +8,7 @@ import (
 	"code.waarp.fr/apps/gateway/gateway/pkg/backup/file"
 	"code.waarp.fr/apps/gateway/gateway/pkg/database"
 	"code.waarp.fr/apps/gateway/gateway/pkg/model"
+	"code.waarp.fr/apps/gateway/gateway/pkg/model/types"
 	"code.waarp.fr/apps/gateway/gateway/pkg/utils"
 )
 
@@ -59,23 +60,20 @@ func TestImportRules(t *testing.T) {
 			So(db.Insert(post2).Run(), ShouldBeNil)
 
 			agent := &model.LocalAgent{
-				Name:     "server",
-				Protocol: testProtocol,
-				Address:  "localhost:2022",
+				Name: "server", Protocol: testProtocol,
+				Address: types.Addr("localhost", 2022),
 			}
 			So(db.Insert(agent).Run(), ShouldBeNil)
 
 			account1 := &model.LocalAccount{
 				LocalAgentID: agent.ID,
 				Login:        "account1",
-				PasswordHash: hash("pwd"),
 			}
 			So(db.Insert(account1).Run(), ShouldBeNil)
 
 			account2 := &model.LocalAccount{
 				LocalAgentID: agent.ID,
 				Login:        "account2",
-				PasswordHash: hash("pwd"),
 			}
 			So(db.Insert(account2).Run(), ShouldBeNil)
 
@@ -129,25 +127,25 @@ func TestImportRules(t *testing.T) {
 						So(dbRule.IsSend, ShouldEqual, Rule1.IsSend)
 						So(dbRule.Path, ShouldEqual, Rule1.Path)
 
-						var auths model.RuleAccesses
-						So(db.Select(&auths).Where("rule_id=?", dbRule.ID).
+						var ruleAccesses model.RuleAccesses
+						So(db.Select(&ruleAccesses).Where("rule_id=?", dbRule.ID).
 							Run(), ShouldBeNil)
-						So(len(auths), ShouldEqual, 3)
+						So(ruleAccesses, ShouldHaveLength, 3)
 
 						var pres model.Tasks
 						So(db.Select(&pres).Where("rule_id=? AND chain='PRE'",
 							dbRule.ID).Run(), ShouldBeNil)
-						So(len(pres), ShouldEqual, 1)
+						So(pres, ShouldHaveLength, 1)
 
 						var posts model.Tasks
 						So(db.Select(&posts).Where("rule_id=? AND chain='POST'",
 							dbRule.ID).Run(), ShouldBeNil)
-						So(len(posts), ShouldEqual, 1)
+						So(posts, ShouldHaveLength, 1)
 
 						var errors model.Tasks
 						So(db.Select(&errors).Where("rule_id= ? AND chain='ERROR'",
 							dbRule.ID).Run(), ShouldBeNil)
-						So(len(errors), ShouldEqual, 2)
+						So(errors, ShouldHaveLength, 2)
 					})
 
 					Convey("Then the other rules should be unchanged", func() {
@@ -223,25 +221,25 @@ func TestImportRules(t *testing.T) {
 							"the data imported", func() {
 							So(dbRule.Path, ShouldEqual, Rule1.Path)
 
-							var auths model.RuleAccesses
-							So(db.Select(&auths).Where("rule_id=?", dbRule.ID).
+							var ruleAccesses model.RuleAccesses
+							So(db.Select(&ruleAccesses).Where("rule_id=?", dbRule.ID).
 								Run(), ShouldBeNil)
-							So(len(auths), ShouldEqual, 2)
+							So(ruleAccesses, ShouldHaveLength, 2)
 
 							var pres model.Tasks
 							So(db.Select(&pres).Where("rule_id=? AND chain='PRE'",
 								dbRule.ID).Run(), ShouldBeNil)
-							So(len(pres), ShouldEqual, 1)
+							So(pres, ShouldHaveLength, 1)
 
 							var posts model.Tasks
 							So(db.Select(&posts).Where("rule_id=? AND chain='POST'",
 								dbRule.ID).Run(), ShouldBeNil)
-							So(len(posts), ShouldEqual, 1)
+							So(posts, ShouldHaveLength, 1)
 
 							var errors model.Tasks
 							So(db.Select(&errors).Where("rule_id=? AND chain='ERROR'",
 								dbRule.ID).Run(), ShouldBeNil)
-							So(len(errors), ShouldEqual, 2)
+							So(errors, ShouldHaveLength, 2)
 						})
 					})
 				})
@@ -277,25 +275,25 @@ func TestImportRules(t *testing.T) {
 							"the data imported", func() {
 							So(dbRule.Path, ShouldEqual, Rule1.Path)
 
-							var auths model.RuleAccesses
-							So(db.Select(&auths).Where("rule_id=?", dbRule.ID).
+							var ruleAccesses model.RuleAccesses
+							So(db.Select(&ruleAccesses).Where("rule_id=?", dbRule.ID).
 								Run(), ShouldBeNil)
-							So(len(auths), ShouldEqual, 2)
+							So(ruleAccesses, ShouldHaveLength, 2)
 
 							var pres model.Tasks
 							So(db.Select(&pres).Where("rule_id=? AND chain='PRE'",
 								dbRule.ID).Run(), ShouldBeNil)
-							So(len(pres), ShouldEqual, 2)
+							So(pres, ShouldHaveLength, 2)
 
 							var posts model.Tasks
 							So(db.Select(&posts).Where("rule_id=? AND chain='POST'",
 								dbRule.ID).Run(), ShouldBeNil)
-							So(len(posts), ShouldEqual, 0)
+							So(posts, ShouldHaveLength, 0)
 
 							var errors model.Tasks
 							So(db.Select(&errors).Where("rule_id=? AND chain='ERROR'",
 								dbRule.ID).Run(), ShouldBeNil)
-							So(len(errors), ShouldEqual, 0)
+							So(errors, ShouldHaveLength, 0)
 						})
 					})
 				})
@@ -317,23 +315,20 @@ func TestImportRuleAccess(t *testing.T) {
 			So(db.Insert(insert).Run(), ShouldBeNil)
 
 			agent := &model.LocalAgent{
-				Name:     "server",
-				Protocol: testProtocol,
-				Address:  "localhost:2022",
+				Name: "server", Protocol: testProtocol,
+				Address: types.Addr("localhost", 2022),
 			}
 			So(db.Insert(agent).Run(), ShouldBeNil)
 
 			account1 := &model.LocalAccount{
 				LocalAgentID: agent.ID,
 				Login:        "account1",
-				PasswordHash: hash("pwd"),
 			}
 			So(db.Insert(account1).Run(), ShouldBeNil)
 
 			account2 := &model.LocalAccount{
 				LocalAgentID: agent.ID,
 				Login:        "account2",
-				PasswordHash: hash("pwd"),
 			}
 			So(db.Insert(account2).Run(), ShouldBeNil)
 
@@ -352,34 +347,16 @@ func TestImportRuleAccess(t *testing.T) {
 					})
 
 					Convey("Then the database should contains 3 accesses", func() {
-						var dbAccesses model.RuleAccesses
-						So(db.Select(&dbAccesses).Where("rule_id=?", insert.ID).
-							Run(), ShouldBeNil)
-						So(len(dbAccesses), ShouldEqual, 3)
+						var dbAccess model.RuleAccess
 
-						Convey("Then the data should correspond to "+
-							"the ones imported", func() {
-							for i := 0; i < len(dbAccesses); i++ {
-								acc := dbAccesses[i]
+						So(db.Get(&dbAccess, "rule_id=? AND local_agent_id=?",
+							insert.ID, agent.ID).Run(), ShouldBeNil)
 
-								switch {
-								case acc.LocalAgentID.Int64 == agent.ID:
-									Convey("Then access for agent is found", func() {
-									})
-								case acc.LocalAccountID.Int64 == account1.ID:
-									Convey("Then access for account1 is found", func() {
-									})
-								case acc.LocalAccountID.Int64 == account2.ID:
-									Convey("Then access for account2 is found", func() {
-									})
-								default:
-									Convey("Then they should be no "+
-										"other records", func() {
-										So(1, ShouldBeNil)
-									})
-								}
-							}
-						})
+						So(db.Get(&dbAccess, "rule_id=? AND local_account_id=?",
+							insert.ID, account1.ID).Run(), ShouldBeNil)
+
+						So(db.Get(&dbAccess, "rule_id=? AND local_account_id=?",
+							insert.ID, account2.ID).Run(), ShouldBeNil)
 					})
 				})
 			})
@@ -405,33 +382,16 @@ func TestImportRuleAccess(t *testing.T) {
 						})
 
 						Convey("Then the database should contains 3 accesses", func() {
-							var dbAccesses model.RuleAccesses
-							So(db.Select(&dbAccesses).Where("rule_id=?", insert.ID).
-								Run(), ShouldBeNil)
-							So(len(dbAccesses), ShouldEqual, 3)
+							var dbAccess model.RuleAccess
 
-							Convey("Then the data should correspond to "+
-								"the ones imported", func() {
-								for i := 0; i < len(dbAccesses); i++ {
-									acc := dbAccesses[i]
+							So(db.Get(&dbAccess, "rule_id=? AND local_agent_id=?",
+								insert.ID, agent.ID).Run(), ShouldBeNil)
 
-									switch {
-									case acc.LocalAgentID.Int64 == agent.ID:
-										Convey("Then access for agent is found", func() {
-										})
-									case acc.LocalAccountID.Int64 == account1.ID:
-										Convey("Then access for account1 is found", func() {
-										})
-									case acc.LocalAccountID.Int64 == account2.ID:
-										Convey("Then access for account2 is found", func() {
-										})
-									default:
-										Convey("Then they should be no other records", func() {
-											So(1, ShouldBeNil)
-										})
-									}
-								}
-							})
+							So(db.Get(&dbAccess, "rule_id=? AND local_account_id=?",
+								insert.ID, account1.ID).Run(), ShouldBeNil)
+
+							So(db.Get(&dbAccess, "rule_id=? AND local_account_id=?",
+								insert.ID, account2.ID).Run(), ShouldBeNil)
 						})
 					})
 				})
@@ -517,10 +477,10 @@ func TestImportTasks(t *testing.T) {
 						var dbTasks model.Tasks
 						So(db.Select(&dbTasks).Where("rule_id=? AND chain='PRE'",
 							insert.ID).Run(), ShouldBeNil)
-						So(len(dbTasks), ShouldEqual, 2)
+						So(dbTasks, ShouldHaveLength, 2)
 
 						Convey("Then the data should correspond to the ones imported", func() {
-							for i := 0; i < len(dbTasks); i++ {
+							for i := range dbTasks {
 								So(dbTasks[i].Type, ShouldEqual, tasks[i].Type)
 								So(dbTasks[i].Args, ShouldResemble, tasks[i].Args)
 							}
@@ -539,10 +499,10 @@ func TestImportTasks(t *testing.T) {
 						var dbTasks model.Tasks
 						So(db.Select(&dbTasks).Where("rule_id=? AND chain='POST'",
 							insert.ID).Run(), ShouldBeNil)
-						So(len(dbTasks), ShouldEqual, 2)
+						So(dbTasks, ShouldHaveLength, 2)
 
 						Convey("Then the data should correspond to the ones imported", func() {
-							for i := 0; i < len(dbTasks); i++ {
+							for i := range dbTasks {
 								So(dbTasks[i].Type, ShouldEqual, tasks[i].Type)
 								So(dbTasks[i].Args, ShouldResemble, tasks[i].Args)
 							}
@@ -561,10 +521,10 @@ func TestImportTasks(t *testing.T) {
 						var dbTasks model.Tasks
 						So(db.Select(&dbTasks).Where("rule_id=? AND chain='ERROR'",
 							insert.ID).Run(), ShouldBeNil)
-						So(len(dbTasks), ShouldEqual, 2)
+						So(dbTasks, ShouldHaveLength, 2)
 
 						Convey("Then the data should correspond to the ones imported", func() {
-							for i := 0; i < len(dbTasks); i++ {
+							for i := range dbTasks {
 								So(dbTasks[i].Type, ShouldEqual, tasks[i].Type)
 								So(dbTasks[i].Args, ShouldResemble, tasks[i].Args)
 							}

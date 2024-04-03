@@ -1,5 +1,5 @@
-Ajouter un certificat
-=====================
+[OBSOLÈTE] Ajouter un certificat
+================================
 
 .. http:post:: /api/servers/(string:server)/accounts/(string:login)/certificates
 

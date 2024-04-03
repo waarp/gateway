@@ -7,12 +7,17 @@ import (
 	"github.com/smartystreets/goconvey/convey"
 	"golang.org/x/crypto/bcrypt"
 
+	"code.waarp.fr/apps/gateway/gateway/pkg/database"
+	"code.waarp.fr/apps/gateway/gateway/pkg/model/authentication"
 	"code.waarp.fr/apps/gateway/gateway/pkg/model/types"
 )
 
 const (
 	testProtocol        = "test_proto"
 	testProtocolInvalid = "test_proto_invalid"
+	testInternalAuth    = "test_internal_auth"
+	testExternalAuth    = "test_external_auth"
+	testAuthority       = "test_authority"
 
 	testLocalPath = "file:/test/local/file"
 )
@@ -28,6 +33,10 @@ func init() {
 		testProtocol:        nil,
 		testProtocolInvalid: errInvalidProtoConfig,
 	}
+
+	authentication.AddInternalCredentialType(testInternalAuth, &intAuth{})
+	authentication.AddExternalCredentialType(testExternalAuth, &extAuth{})
+	authentication.AddAuthorityType(testAuthority, &testAuthorityHandler{})
 }
 
 func hash(pwd string) string {
@@ -70,4 +79,33 @@ func (t testConfigChecker) CheckClientConfig(proto string, _ map[string]any) err
 
 func (t testConfigChecker) CheckPartnerConfig(proto string, _ map[string]any) error {
 	return t.checkConfig(proto)
+}
+
+type intAuth struct{}
+
+func (*intAuth) CanOnlyHaveOne() bool                        { return false }
+func (*intAuth) Validate(string, string, string, bool) error { return nil }
+func (*intAuth) Authenticate(database.ReadAccess, authentication.Owner, any,
+) (*authentication.Result, error) {
+	return authentication.Success(), nil
+}
+
+type extAuth struct{}
+
+func (*extAuth) CanOnlyHaveOne() bool                        { return false }
+func (*extAuth) Validate(string, string, string, bool) error { return nil }
+
+const invalidAuthorityVal = "authority public identity"
+
+var errInvalidAuthorityVal = fmt.Errorf("%q is not a valid authority identity value",
+	invalidAuthorityVal)
+
+type testAuthorityHandler struct{}
+
+func (*testAuthorityHandler) Validate(val string) error {
+	if val != invalidAuthorityVal {
+		return nil
+	}
+
+	return errInvalidAuthorityVal
 }

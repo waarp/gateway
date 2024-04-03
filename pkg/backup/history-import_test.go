@@ -156,7 +156,10 @@ func TestImportHistory(t *testing.T) {
 				rule := &model.Rule{Name: "rule", IsSend: false}
 				So(db.Insert(rule).Run(), ShouldBeNil)
 
-				locAg := &model.LocalAgent{Name: "locAg", Protocol: testProtocol, Address: "1.2.3.4:5"}
+				locAg := &model.LocalAgent{
+					Name: "locAg", Protocol: testProtocol,
+					Address: types.Addr("1.2.3.4", 5),
+				}
 				So(db.Insert(locAg).Run(), ShouldBeNil)
 
 				locAcc := &model.LocalAccount{LocalAgentID: locAg.ID, Login: "locAcc"}

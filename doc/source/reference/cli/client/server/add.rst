@@ -87,4 +87,4 @@ Ajoute un nouveau serveur de transfert à la gateway avec les attributs fournis.
 
 .. code-block:: shell
 
-   waarp-gateway -a 'http://user:password@localhost:8080' server add -n 'server_sftp' -p 'sftp' -a 'localhost:21' --root-dir 'sftp/root' --config 'keyExchanges:["ecdh-sha2-nistp256"]'
+   waarp-gateway -a 'http://user:password@localhost:8080' server add -n 'gw_r66' -p 'r66-tls' -a 'localhost:6666' --root-dir 'r66/root' --config 'blockSize:32768'

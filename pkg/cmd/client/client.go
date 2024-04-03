@@ -39,26 +39,19 @@ func displayClient(f *Formatter, client *api.OutClient) {
 
 // ######################## ADD ##########################
 
-//nolint:lll // struct tags for command line arguments can be long
+//nolint:lll,tagliatelle // struct tags for command line arguments can be long
 type ClientAdd struct {
-	Name         string             `required:"yes" short:"n" long:"name" description:"The client's name"`
-	Protocol     string             `required:"yes" short:"p" long:"protocol" description:"The partner's protocol"`
-	LocalAddress string             `short:"a" long:"local-address" description:"The client's local address [address:port]"`
-	ProtoConfig  map[string]confVal `short:"c" long:"config" description:"The client's configuration, in key:val format. Can be repeated."`
+	Name         string             `required:"yes" short:"n" long:"name" description:"The client's name" json:"name,omitempty"`
+	Protocol     string             `required:"yes" short:"p" long:"protocol" description:"The partner's protocol" json:"protocol,omitempty"`
+	LocalAddress string             `short:"a" long:"local-address" description:"The client's local address [address:port]" json:"localAddress,omitempty"`
+	ProtoConfig  map[string]confVal `short:"c" long:"config" description:"The client's configuration, in key:val format. Can be repeated." json:"config,omitempty"`
 }
 
 func (c *ClientAdd) Execute([]string) error { return c.execute(stdOutput) }
 func (c *ClientAdd) execute(w io.Writer) error {
-	client := map[string]any{
-		"name":        c.Name,
-		"protocol":    c.Protocol,
-		"protoConfig": c.ProtoConfig,
-	}
-	optionalProperty(client, "localAddress", c.LocalAddress)
-
 	addr.Path = "/api/clients"
 
-	if _, err := add(w, client); err != nil {
+	if _, err := add(w, c); err != nil {
 		return err
 	}
 
@@ -129,25 +122,19 @@ func (c *ClientGet) execute(w io.Writer) error {
 type ClientUpdate struct {
 	Args struct {
 		Name string `required:"yes" positional-arg-name:"name" description:"The old client's name"`
-	} `positional-args:"yes"`
+	} `positional-args:"yes" json:"-"`
 
-	Name         string             `short:"n" long:"name" description:"The new client's name"`
-	Protocol     string             `short:"p" long:"protocol" description:"The new partner's protocol"`
-	LocalAddress string             `short:"a" long:"local-address" description:"The new client's local address [address:port]"`
-	ProtoConfig  map[string]confVal `short:"c" long:"config" description:"The new client's configuration, in key:val format. Can be repeated."`
+	Name         string             `short:"n" long:"name" description:"The new client's name" json:"name,omitempty"`
+	Protocol     string             `short:"p" long:"protocol" description:"The new partner's protocol" json:"protocol,omitempty"`
+	LocalAddress string             `short:"a" long:"local-address" description:"The new client's local address [address:port]" json:"localAddress,omitempty"`
+	ProtoConfig  map[string]confVal `short:"c" long:"config" description:"The new client's configuration, in key:val format. Can be repeated." json:"protoConfig,omitempty"`
 }
 
 func (c *ClientUpdate) Execute([]string) error { return c.execute(stdOutput) }
 func (c *ClientUpdate) execute(w io.Writer) error {
-	client := map[string]any{}
-	optionalProperty(client, "name", c.Name)
-	optionalProperty(client, "protocol", c.Protocol)
-	optionalProperty(client, "localAddress", c.LocalAddress)
-	optionalProperty(client, "protoConfig", c.ProtoConfig)
-
 	addr.Path = path.Join("/api/clients", c.Args.Name)
 
-	if err := update(w, client); err != nil {
+	if err := update(w, c); err != nil {
 		return err
 	}
 

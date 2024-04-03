@@ -6,7 +6,6 @@ import (
 	"io"
 	"net/http"
 	"net/url"
-	"os"
 	"path/filepath"
 	"time"
 
@@ -30,8 +29,8 @@ func DisplayTransfer(w io.Writer, trans *api.OutTransfer) {
 //nolint:varnamelen //formatter name is kept short for readability
 func displayTransfer(f *Formatter, trans *api.OutTransfer) {
 	stop := NotApplicable
-	if trans.Stop != nil {
-		stop = trans.Stop.Local().String()
+	if trans.Stop.Valid {
+		stop = trans.Stop.Value.Local().String()
 	}
 
 	f.Title("Transfer %d (%s as %s) [%s]", trans.ID, direction(trans.IsSend),
@@ -80,57 +79,35 @@ func displayTransfer(f *Formatter, trans *api.OutTransfer) {
 
 // ######################## ADD ##########################
 
-//nolint:lll // struct tags can be long for command line args
+//nolint:lll,tagliatelle // struct tags can be long for command line args
 type TransferAdd struct {
-	File         string            `required:"yes" short:"f" long:"file" description:"The file to transfer"`
-	Out          string            `short:"o" long:"out" description:"The destination of the file"`
-	Way          string            `required:"yes" short:"w" long:"way" description:"The direction of the transfer" choice:"send" choice:"receive"`
-	Client       string            `short:"c" long:"client" description:"The client with which the transfer is performed"`
-	Partner      string            `required:"yes" short:"p" long:"partner" description:"The partner to which the transfer is requested"`
-	Account      string            `required:"yes" short:"l" long:"login" description:"The login of the account used to connect on the partner"`
-	Rule         string            `required:"yes" short:"r" long:"rule" description:"The rule to use for the transfer"`
-	Date         string            `short:"d" long:"date" description:"The starting date (in ISO 8601 format) of the transfer"`
-	TransferInfo map[string]string `short:"i" long:"info" description:"Custom information about the transfer, in key:val format. Can be repeated."`
+	File         string             `required:"yes" short:"f" long:"file" description:"The file to transfer" json:"file,omitempty"`
+	Out          string             `short:"o" long:"out" description:"The destination of the file" json:"output,omitempty"`
+	Way          string             `required:"yes" short:"w" long:"way" description:"The direction of the transfer" choice:"send" choice:"receive" json:"-"`
+	IsSend       bool               `json:"isSend,omitempty"`
+	Client       string             `short:"c" long:"client" description:"The client with which the transfer is performed" json:"client,omitempty"`
+	Partner      string             `required:"yes" short:"p" long:"partner" description:"The partner to which the transfer is requested" json:"partner,omitempty"`
+	Account      string             `required:"yes" short:"l" long:"login" description:"The login of the account used to connect on the partner" json:"account,omitempty"`
+	Rule         string             `required:"yes" short:"r" long:"rule" description:"The rule to use for the transfer" json:"rule,omitempty"`
+	Date         string             `short:"d" long:"date" description:"The starting date (in ISO 8601 format) of the transfer" json:"start,omitempty"`
+	TransferInfo map[string]confVal `short:"i" long:"info" description:"Custom information about the transfer, in key:val format. Can be repeated." json:"transferInfo,omitempty"`
 
-	Name *string `short:"n" long:"name" description:"[DEPRECATED] The name of the file after the transfer"` // Deprecated: the source name is used instead
+	Name string `short:"n" long:"name" description:"[DEPRECATED] The name of the file after the transfer" json:"destPath,omitempty"` // Deprecated: the source name is used instead
 }
 
-func (t *TransferAdd) Execute([]string) error { return t.execute(os.Stdout) }
+func (t *TransferAdd) Execute([]string) error { return t.execute(stdOutput) }
 func (t *TransferAdd) execute(w io.Writer) error {
-	info, mapErr := stringMapToAnyMap(t.TransferInfo)
-	if mapErr != nil {
-		return mapErr
-	}
+	t.IsSend = t.Way == directionSend
 
-	trans := api.InTransfer{
-		Client:       t.Client,
-		Partner:      t.Partner,
-		Account:      t.Account,
-		IsSend:       dirToBoolPtr(t.Way),
-		File:         t.File,
-		Output:       t.Out,
-		Rule:         t.Rule,
-		TransferInfo: info,
-	}
-
-	if t.Name != nil {
+	if t.Name != "" {
 		fmt.Fprintln(w, "[WARNING] The '-n' ('--name') option is deprecated. "+
 			"For simplicity, in the future, files will have the same name at "+
 			"the source and the destination")
-
-		trans.DestPath = *t.Name
-	}
-
-	if t.Date != "" {
-		var err error
-		if trans.Start, err = time.Parse(time.RFC3339Nano, t.Date); err != nil {
-			return fmt.Errorf("'%s' is not a valid date: %w", t.Date, errInvalidDate)
-		}
 	}
 
 	addr.Path = rest.TransfersPath
 
-	loc, addErr := add(w, trans)
+	loc, addErr := add(w, t)
 	if addErr != nil {
 		return addErr
 	}
@@ -149,7 +126,7 @@ type TransferGet struct {
 	} `positional-args:"yes"`
 }
 
-func (t *TransferGet) Execute([]string) error { return t.execute(os.Stdout) }
+func (t *TransferGet) Execute([]string) error { return t.execute(stdOutput) }
 func (t *TransferGet) execute(w io.Writer) error {
 	addr.Path = fmt.Sprintf("/api/transfers/%d", t.Args.ID)
 
@@ -205,7 +182,7 @@ func (t *TransferList) listURL() error {
 	return nil
 }
 
-func (t *TransferList) Execute([]string) error { return t.execute(os.Stdout) }
+func (t *TransferList) Execute([]string) error { return t.execute(stdOutput) }
 
 //nolint:dupl //history & transfer commands should be kept separate for future-proofing
 func (t *TransferList) execute(w io.Writer) error {
@@ -242,7 +219,7 @@ type TransferPause struct {
 	} `positional-args:"yes"`
 }
 
-func (t *TransferPause) Execute([]string) error { return t.execute(os.Stdout) }
+func (t *TransferPause) Execute([]string) error { return t.execute(stdOutput) }
 func (t *TransferPause) execute(w io.Writer) error {
 	return putTransferRequest(w, t.Args.ID, "pause",
 		"paused. It can be resumed using the 'resume' command")
@@ -256,7 +233,7 @@ type TransferResume struct {
 	} `positional-args:"yes"`
 }
 
-func (t *TransferResume) Execute([]string) error { return t.execute(os.Stdout) }
+func (t *TransferResume) Execute([]string) error { return t.execute(stdOutput) }
 func (t *TransferResume) execute(w io.Writer) error {
 	return putTransferRequest(w, t.Args.ID, "resume", "resumed")
 }
@@ -269,7 +246,7 @@ type TransferCancel struct {
 	} `positional-args:"yes"`
 }
 
-func (t *TransferCancel) Execute([]string) error { return t.execute(os.Stdout) }
+func (t *TransferCancel) Execute([]string) error { return t.execute(stdOutput) }
 func (t *TransferCancel) execute(w io.Writer) error {
 	return putTransferRequest(w, t.Args.ID, "cancel", "canceled")
 }
@@ -284,7 +261,7 @@ type TransferRetry struct {
 	Date string `short:"d" long:"date" description:"Set the date at which the transfer should restart. Date must be in RFC3339 format."`
 }
 
-func (t *TransferRetry) Execute([]string) error { return t.execute(os.Stdout) }
+func (t *TransferRetry) Execute([]string) error { return t.execute(stdOutput) }
 
 //nolint:dupl //history & transfer commands should be kept separate for future-proofing
 func (t *TransferRetry) execute(w io.Writer) error {
@@ -339,7 +316,7 @@ type TransferCancelAll struct {
 	Target string `required:"yes" short:"t" long:"target" description:"The status of the transfers to cancel" choice:"planned" choice:"running" choice:"paused" choice:"interrupted" choice:"error" choice:"all"`
 }
 
-func (t *TransferCancelAll) Execute([]string) error { return t.execute(os.Stdout) }
+func (t *TransferCancelAll) Execute([]string) error { return t.execute(stdOutput) }
 func (t *TransferCancelAll) execute(w io.Writer) error {
 	addr.Path = rest.TransfersPath
 	query := url.Values{}

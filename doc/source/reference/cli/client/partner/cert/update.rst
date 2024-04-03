@@ -1,6 +1,6 @@
-====================================
-Modifier un certificat de partenaire
-====================================
+===============================================
+[OBSOLÈTE] Modifier un certificat de partenaire
+===============================================
 
 .. program:: waarp-gateway partner cert update
 

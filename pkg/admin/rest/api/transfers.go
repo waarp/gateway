@@ -9,21 +9,21 @@ import (
 // InTransfer is the JSON representation of a transfer in requests made to
 // the REST interface.
 type InTransfer struct {
-	Rule         string         `json:"rule"`
+	Rule         string         `json:"rule,omitempty"`
 	Client       string         `json:"client,omitempty"`
-	Partner      string         `json:"partner"`
-	Account      string         `json:"account"`
-	IsSend       *bool          `json:"isSend"`
-	File         string         `json:"file"`
-	Output       string         `json:"output"`
+	Partner      string         `json:"partner,omitempty"`
+	Account      string         `json:"account,omitempty"`
+	IsSend       Nullable[bool] `json:"isSend,omitempty"`
+	File         string         `json:"file,omitempty"`
+	Output       string         `json:"output,omitempty"`
 	Start        time.Time      `json:"start,omitempty"`
 	TransferInfo map[string]any `json:"transferInfo,omitempty"`
 	// FileInfo     map[string]interface{} `json:"fileInfo,omitempty"`
 
 	// Deprecated fields
-	SourcePath string     `json:"sourcePath,omitempty"` // Deprecated: replaced by File
-	DestPath   string     `json:"destPath,omitempty"`   // Deprecated: replaced by File
-	StartDate  *time.Time `json:"startDate,omitempty"`  // Deprecated: replaced by Start
+	SourcePath string              `json:"sourcePath,omitempty"` // Deprecated: replaced by File
+	DestPath   string              `json:"destPath,omitempty"`   // Deprecated: replaced by File
+	StartDate  Nullable[time.Time] `json:"startDate,omitempty"`  // Deprecated: replaced by Start
 }
 
 // OutTransfer is the JSON representation of a transfer in responses sent by
@@ -44,7 +44,7 @@ type OutTransfer struct {
 	RemoteFilepath string               `json:"remoteFilepath,omitempty"`
 	Filesize       int64                `json:"filesize"`
 	Start          time.Time            `json:"start"`
-	Stop           *time.Time           `json:"stop,omitempty"`
+	Stop           Nullable[time.Time]  `json:"stop,omitempty"`
 	Status         types.TransferStatus `json:"status"`
 	Step           string               `json:"step,omitempty"`
 	Progress       int64                `json:"progress,omitempty"`

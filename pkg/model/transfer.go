@@ -58,11 +58,9 @@ type Transfer struct {
 }
 
 func (*Transfer) TableName() string   { return TableTransfers }
-func (*Transfer) Appellation() string { return "transfer" }
+func (*Transfer) Appellation() string { return NameTransfer }
 func (t *Transfer) GetID() int64      { return t.ID }
-
-// IsServer returns the transfer is a server transfer (from the gateway's perspective).
-func (t *Transfer) IsServer() bool { return t.LocalAccountID.Valid }
+func (t *Transfer) IsServer() bool    { return t.LocalAccountID.Valid }
 
 func (t *Transfer) getTransInfoCondition() (string, int64) {
 	return "transfer_id=?", t.ID
@@ -157,15 +155,15 @@ func (t *Transfer) checkMandatoryValues(rule *Rule) error {
 	}
 
 	if !types.ValidateStatusForTransfer(t.Status) {
-		return database.NewValidationError("'%s' is not a valid transfer status", t.Status)
+		return database.NewValidationError("%q is not a valid transfer status", t.Status)
 	}
 
 	if !t.Step.IsValid() {
-		return database.NewValidationError("'%s' is not a valid transfer step", t.Step)
+		return database.NewValidationError("%q is not a valid transfer step", t.Step)
 	}
 
 	if !t.ErrCode.IsValid() {
-		return database.NewValidationError("'%s' is not a valid transfer error code", t.ErrCode)
+		return database.NewValidationError("%q is not a valid transfer error code", t.ErrCode)
 	}
 
 	t.RemotePath = utils.ToStandardPath(t.RemotePath)
@@ -303,7 +301,7 @@ func (t *Transfer) makeHistoryEntry(db database.ReadAccess, stop time.Time) (*Hi
 
 	if !types.ValidateStatusForHistory(t.Status) {
 		return nil, database.NewValidationError(
-			"a transfer cannot be recorded in history with status '%s'", t.Status)
+			"a transfer cannot be recorded in history with status %q", t.Status)
 	}
 
 	hist := HistoryEntry{

@@ -1,6 +1,7 @@
 package utils
 
 import (
+	"crypto/tls"
 	"crypto/x509"
 	"encoding/pem"
 	"errors"
@@ -13,6 +14,15 @@ var (
 	errNoCertInPEM          = errors.New("no certificate found in PEM block")
 	errVerifyEmptyCertChain = errors.New("cannot verify an empty certificate chain")
 )
+
+func TLSCertPool() *x509.CertPool {
+	pool, err := x509.SystemCertPool()
+	if err != nil {
+		pool = x509.NewCertPool()
+	}
+
+	return pool
+}
 
 // ParsePEMCertChain takes a certification chain in PEM format, parses it, and
 // returns it as a slice of x509.Certificate. If the decoding or the parsing
@@ -168,4 +178,9 @@ func ExtKeyUsagesToStrings(keyUsages []x509.ExtKeyUsage) []string {
 	}
 
 	return usages
+}
+
+func X509KeyPair(certPEM, keyPEM string) (tls.Certificate, error) {
+	//nolint:wrapcheck //this is just a helper to avoid casting, no need to wrap
+	return tls.X509KeyPair([]byte(certPEM), []byte(keyPEM))
 }
