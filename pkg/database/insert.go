@@ -31,7 +31,7 @@ func (i *InsertQuery) run(s *Session) error {
 		return NewInternalError(err)
 	}
 
-	if callBack, ok := i.bean.(WriteCallBack); ok {
+	if callBack, ok := i.bean.(WriteCallback); ok {
 		if err := callBack.AfterWrite(s); err != nil {
 			s.logger.Error("%s entry INSERT callback failed: %s", i.bean.Appellation(), err)
 
