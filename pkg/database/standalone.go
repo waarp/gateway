@@ -1,13 +1,13 @@
 package database
 
 import (
-	"fmt"
 	"runtime/debug"
 	"sync"
 	"time"
 
 	"code.waarp.fr/lib/log"
 	"xorm.io/xorm"
+	"xorm.io/xorm/core"
 )
 
 // Standalone is a struct used to execute standalone commands on the database.
@@ -190,17 +190,10 @@ func (s *Standalone) Exec(query string, args ...interface{}) error {
 	return exec(s.engine.NewSession(), s.logger, query, args...)
 }
 
-// GenericSelect executes the given custom SQL query, and returns the result as
-// a slice of map[string]any, with each map representing a row of the query
-// result.
+// QueryRow returns a single row from the database, which can then be scanned.
 //
 // Be aware that, since this method bypasses the data models, all the models'
-// hooks will be skipped. Thus, this method should be used with extreme caution.
-func (s *Standalone) GenericSelect(sql string, args ...any) ([]map[string]any, error) {
-	res, err := s.engine.QueryInterface(append([]any{sql}, args...)...)
-	if err != nil {
-		return nil, fmt.Errorf("SQL SELECT failed: %w", err)
-	}
-
-	return res, nil
+// hooks will be skipped. Thus, this method should be used with caution.
+func (s *Standalone) QueryRow(sql string, args ...any) *core.Row {
+	return s.engine.DB().QueryRow(sql, args...)
 }

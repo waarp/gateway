@@ -44,6 +44,8 @@ func CheckServerConfig(proto string, mapConf map[string]any) error {
 		return err
 	}
 
+	utils.EmptyMap(mapConf)
+
 	//nolint:wrapcheck //no need to wrap, this should never return an error anyway
 	return utils.JSONConvert(structConf, &mapConf)
 }
@@ -64,6 +66,8 @@ func CheckPartnerConfig(proto string, mapConf map[string]any) error {
 		return err
 	}
 
+	utils.EmptyMap(mapConf)
+
 	//nolint:wrapcheck //no need to wrap, this should never return an error anyway
 	return utils.JSONConvert(structConf, &mapConf)
 }
@@ -83,6 +87,8 @@ func CheckClientConfig(proto string, mapConf map[string]any) error {
 	if err := structConf.ValidClient(); err != nil {
 		return err
 	}
+
+	utils.EmptyMap(mapConf)
 
 	//nolint:wrapcheck //no need to wrap, this should never return an error anyway
 	return utils.JSONConvert(structConf, &mapConf)

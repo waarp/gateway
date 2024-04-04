@@ -123,11 +123,11 @@ func (s *SelectQuery) Run() error {
 		return NewInternalError(err)
 	}
 
-	if hook, ok := s.bean.(ReadCallback); ok {
-		if err := hook.AfterRead(s.db); err != nil {
+	if callBack, ok := s.bean.(ReadCallback); ok {
+		if err := callBack.AfterRead(s.db); err != nil {
 			logger.Error("%s entry SELECT callback failed: %s", s.bean.Elem(), err)
 
-			return fmt.Errorf("%s entry SELECT callback failed: %w", s.bean.Elem(), err)
+			return fmt.Errorf("%s entry GET callback failed: %w", s.bean.Elem(), err)
 		}
 	}
 

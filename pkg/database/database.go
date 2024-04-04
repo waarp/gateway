@@ -65,22 +65,29 @@ func (db *DB) loadAESKey() error {
 		}
 	}
 
+	var gcmErr error
+	GCM, gcmErr = NewGCM(filename)
+
+	return gcmErr
+}
+
+func NewGCM(filename string) (cipher.AEAD, error) {
 	key, err := os.ReadFile(utils.ToOSPath(filename))
 	if err != nil {
-		return fmt.Errorf("cannot read AES key from file %q: %w", filename, err)
+		return nil, fmt.Errorf("cannot read AES key from file %q: %w", filename, err)
 	}
 
 	c, err := aes.NewCipher(key)
 	if err != nil {
-		return fmt.Errorf("cannot initialize AES key: %w", err)
+		return nil, fmt.Errorf("cannot initialize AES key: %w", err)
 	}
 
-	GCM, err = cipher.NewGCM(c)
+	gcm, err := cipher.NewGCM(c)
 	if err != nil {
-		return fmt.Errorf("cannot initialize AES key: %w", err)
+		return nil, fmt.Errorf("cannot initialize AES key: %w", err)
 	}
 
-	return nil
+	return gcm, nil
 }
 
 // createConnectionInfo creates and returns the dataSourceName string necessary

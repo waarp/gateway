@@ -731,10 +731,7 @@ func TestSqlite(t *testing.T) {
 }
 
 func TestDatabaseStartWithNoPassPhraseFile(t *testing.T) {
-	gcm := GCM
 	GCM = nil
-
-	defer func() { GCM = gcm }()
 
 	conf.GlobalConfig.Log.Level = "CRITICAL"
 	conf.GlobalConfig.Log.LogTo = "stdout"

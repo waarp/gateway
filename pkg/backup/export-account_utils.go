@@ -14,7 +14,7 @@ func accountExists(db database.ReadAccess, account database.GetBean, cond string
 			return false, nil
 		}
 
-		return false, fmt.Errorf("failed to retrieve account: %w", err)
+		return false, fmt.Errorf("failed to retrieve %s: %w", account.Appellation(), err)
 	}
 
 	return true, nil

@@ -1,7 +1,6 @@
 package wgd
 
 import (
-	"path"
 	"strings"
 	"testing"
 	"time"
@@ -270,10 +269,8 @@ func TestPurgeCommand(t *testing.T) {
 	})
 }
 
-func mkURL(elem ...string) *types.URL {
-	full := path.Join(elem...)
-
-	url, err := types.ParseURL(full)
+func mkURL(raw string) *types.URL {
+	url, err := types.ParseURL(raw)
 	So(err, ShouldBeNil)
 
 	return url

@@ -43,11 +43,11 @@ func (g *GetQuery) Run() error {
 		}
 	}
 
-	exist, err := query.Get(g.bean)
-	if err != nil {
-		logger.Error("Failed to retrieve the %s entry: %s", g.bean.Appellation(), err)
+	exist, getErr := query.Get(g.bean)
+	if getErr != nil {
+		logger.Error("Failed to retrieve the %s entry: %s", g.bean.Appellation(), getErr)
 
-		return NewInternalError(err)
+		return NewInternalError(getErr)
 	}
 
 	if !exist {
@@ -58,8 +58,8 @@ func (g *GetQuery) Run() error {
 		return NewNotFoundError(g.bean)
 	}
 
-	if hook, ok := g.bean.(ReadCallback); ok {
-		if err := hook.AfterRead(g.db); err != nil {
+	if callBack, ok := g.bean.(ReadCallback); ok {
+		if err := callBack.AfterRead(g.db); err != nil {
 			logger.Error("%s entry GET callback failed: %s", g.bean.Appellation(), err)
 
 			return fmt.Errorf("%s entry GET callback failed: %w", g.bean.Appellation(), err)
