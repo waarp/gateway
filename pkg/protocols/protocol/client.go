@@ -4,6 +4,7 @@ import (
 	"io"
 
 	"code.waarp.fr/apps/gateway/gateway/pkg/model/types"
+	"code.waarp.fr/apps/gateway/gateway/pkg/pipeline"
 )
 
 type SendFile interface {
@@ -33,18 +34,18 @@ type ReceiveFile interface {
 type TransferClient interface {
 	// Request opens a connection to the transfer partner and then sends a
 	// transfer request to the remote.
-	Request() error
+	Request() *pipeline.Error
 
 	// Send uploads the given file content to the remote partner.
-	Send(file SendFile) error
+	Send(file SendFile) *pipeline.Error
 
 	// Receive downloads data from the remote partner and writes it to the given
 	// file.
-	Receive(file ReceiveFile) error
+	Receive(file ReceiveFile) *pipeline.Error
 
 	// EndTransfer informs the partner of the transfer's end, and then closes
 	// the connection.
-	EndTransfer() error
+	EndTransfer() *pipeline.Error
 
 	// SendError sends the given error to the remote partner, and then closes
 	// the connection.
@@ -59,11 +60,11 @@ type TransferClient interface {
 type PreTasksHandler interface {
 	// BeginPreTasks tells the remote partner to begin executing its pre-tasks.
 	// The function returns once the pre-tasks are over.
-	BeginPreTasks() error
+	BeginPreTasks() *pipeline.Error
 
 	// EndPreTasks informs the remote partner that the client has finished executing
 	// its pre-tasks.
-	EndPreTasks() error
+	EndPreTasks() *pipeline.Error
 }
 
 // PostTasksHandler is an interface which clients can optionally implement in
@@ -74,11 +75,11 @@ type PreTasksHandler interface {
 type PostTasksHandler interface {
 	// BeginPostTasks tells the remote partner to begin executing its post-tasks.
 	// The function returns once the post-tasks are over.
-	BeginPostTasks() error
+	BeginPostTasks() *pipeline.Error
 
 	// EndPostTasks informs the remote partner that the client has finished executing
 	// its post-tasks.
-	EndPostTasks() error
+	EndPostTasks() *pipeline.Error
 }
 
 // PauseHandler is an interface which clients and servers can optionally
@@ -87,7 +88,7 @@ type PostTasksHandler interface {
 // TransferClient.SendError or Server.SendError will be used instead.
 type PauseHandler interface {
 	// Pause informs the partner that the transfer has been paused.
-	Pause() error
+	Pause() *pipeline.Error
 }
 
 // CancelHandler is an interface which clients and servers can optionally
@@ -96,5 +97,5 @@ type PauseHandler interface {
 // TransferClient.SendError or Server.SendError will be used instead.
 type CancelHandler interface {
 	// Cancel informs the partner that the transfer has been canceled.
-	Cancel() error
+	Cancel() *pipeline.Error
 }

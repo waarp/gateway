@@ -5,22 +5,21 @@ import (
 	"os"
 	"testing"
 
-	"code.bcarlin.xyz/go/logging"
 	"code.waarp.fr/lib/log"
 	"github.com/smartystreets/goconvey/convey"
 	"github.com/stretchr/testify/require"
+
+	"code.waarp.fr/apps/gateway/gateway/pkg/logging"
 )
 
 func TestLogger(c convey.C, name string, args ...any) *log.Logger {
-	level := logging.Debug
+	level := log.LevelDebug
 
 	if envLvl := os.Getenv("WAARP_TEST_LOG_LEVEL"); envLvl != "" {
-		var err error
-		level, err = logging.LevelByName(envLvl)
-		c.So(err, convey.ShouldBeNil)
+		level = logging.LevelFromString(envLvl)
 	}
 
-	back, err := log.NewBackend(log.Level(level), log.Stdout, "", "")
+	back, err := log.NewBackend(level, log.Stdout, "", "")
 	c.So(err, convey.ShouldBeNil)
 
 	return back.NewLogger(fmt.Sprintf(name, args...))

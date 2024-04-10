@@ -15,21 +15,21 @@ import (
 func coloredStatus(status types.TransferStatus) string {
 	switch status {
 	case types.StatusPlanned:
-		return text.FgWhite.Sprint(status)
+		return text.FgWhite.Sprintf("[%s]", status)
 	case types.StatusRunning:
-		return text.FgCyan.Sprint(status)
+		return text.FgCyan.Sprintf("[%s]", status)
 	case types.StatusPaused:
-		return text.FgYellow.Sprint(status)
+		return text.FgYellow.Sprintf("[%s]", status)
 	case types.StatusInterrupted:
-		return text.FgHiRed.Sprint(status)
+		return text.FgHiRed.Sprintf("[%s]", status)
 	case types.StatusCancelled:
-		return text.FgHiBlack.Sprint(status)
+		return text.FgHiBlack.Sprintf("[%s]", status)
 	case types.StatusError:
-		return text.FgRed.Sprint(status)
+		return text.FgRed.Sprintf("[%s]", status)
 	case types.StatusDone:
-		return text.FgHiGreen.Sprint(status)
+		return text.FgHiGreen.Sprintf("[%s]", status)
 	default:
-		return string(status)
+		return fmt.Sprintf("[%s]", status)
 	}
 }
 

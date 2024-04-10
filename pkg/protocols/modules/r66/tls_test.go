@@ -38,14 +38,13 @@ func init() {
 		MakePartnerConfig: Module{}.MakePartnerConfig,
 		TransID:           true,
 		RuleName:          true,
-		Size:              true,
 	}
 }
 
 func TestTLS(t *testing.T) {
 	Convey("Given an R66-TLS server & client", t, func(c C) {
 		ctx := pipelinetest.InitSelfPushTransfer(c, R66TLS, cliConfTLS, partConfTLS, servConfTLS)
-		ctx.AddAuths(c, serverPassword(ctx.Server), partnerPassword(ctx.Partner))
+		ctx.AddCreds(c, serverPassword(ctx.Server), partnerPassword(ctx.Partner))
 		ctx.StartService(c)
 
 		connect := func() *pipeline.Error {
@@ -104,7 +103,7 @@ func TestTLS(t *testing.T) {
 		}
 
 		Convey("Given that both provide a valid certificate", func(c C) {
-			ctx.AddAuths(c, remoteAccountCert, localAccountCert, localAgentCert, remotePartnerCert)
+			ctx.AddCreds(c, remoteAccountCert, localAccountCert, localAgentCert, remotePartnerCert)
 
 			Convey("When connecting to the server", func() {
 				SoMsg("Then it should not return an error",
@@ -116,7 +115,7 @@ func TestTLS(t *testing.T) {
 			remoteAccountCert.Value = testhelpers.ClientFooCert2
 			remoteAccountCert.Value2 = testhelpers.ClientFooKey2
 
-			ctx.AddAuths(c, remoteAccountCert, localAccountCert, localAgentCert, remotePartnerCert)
+			ctx.AddCreds(c, remoteAccountCert, localAccountCert, localAgentCert, remotePartnerCert)
 
 			Convey("When connecting to the server", func() {
 				connErr := connect()
@@ -132,7 +131,7 @@ func TestTLS(t *testing.T) {
 			localAgentCert.Value = testhelpers.OtherLocalhostCert
 			localAgentCert.Value2 = testhelpers.OtherLocalhostKey
 
-			ctx.AddAuths(c, remoteAccountCert, localAccountCert, localAgentCert, remotePartnerCert)
+			ctx.AddCreds(c, remoteAccountCert, localAccountCert, localAgentCert, remotePartnerCert)
 
 			Convey("When connecting to the server", func() {
 				connErr := connect()
@@ -153,7 +152,7 @@ func TestTLS(t *testing.T) {
 			Convey("Given that the legacy certificate was expected", func(c C) {
 				localAccountCert.Type = AuthLegacyCertificate
 
-				ctx.AddAuths(c, remoteAccountCert, localAccountCert,
+				ctx.AddCreds(c, remoteAccountCert, localAccountCert,
 					localAgentCert, remotePartnerCert)
 
 				Convey("When connecting to the server", func() {
@@ -163,7 +162,7 @@ func TestTLS(t *testing.T) {
 			})
 
 			Convey("Given that the legacy certificate was not expected", func(c C) {
-				ctx.AddAuths(c, remoteAccountCert, localAccountCert,
+				ctx.AddCreds(c, remoteAccountCert, localAccountCert,
 					localAgentCert, remotePartnerCert)
 
 				Convey("When connecting to the server", func() {
@@ -186,7 +185,7 @@ func TestTLS(t *testing.T) {
 			Convey("Given that the legacy certificate was expected", func(c C) {
 				remotePartnerCert.Type = AuthLegacyCertificate
 
-				ctx.AddAuths(c, remoteAccountCert, localAccountCert,
+				ctx.AddCreds(c, remoteAccountCert, localAccountCert,
 					localAgentCert, remotePartnerCert)
 
 				Convey("When connecting to the server", func() {
@@ -196,7 +195,7 @@ func TestTLS(t *testing.T) {
 			})
 
 			Convey("Given that the legacy certificate was not expected", func(c C) {
-				ctx.AddAuths(c, remoteAccountCert, localAccountCert,
+				ctx.AddCreds(c, remoteAccountCert, localAccountCert,
 					localAgentCert, remotePartnerCert)
 
 				Convey("When connecting to the server", func() {

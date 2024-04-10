@@ -96,6 +96,7 @@ func DBTransferToREST(db *database.DB, trans *model.NormalizedTransferView) (*ap
 		IsSend:         trans.IsSend,
 		Requested:      trans.Agent,
 		Requester:      trans.Account,
+		Client:         trans.Client,
 		Protocol:       trans.Protocol,
 		SrcFilename:    trans.SrcFilename,
 		DestFilename:   trans.DestFilename,

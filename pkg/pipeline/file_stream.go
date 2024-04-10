@@ -202,6 +202,15 @@ func (f *FileStream) Sync() error {
 	return nil
 }
 
+func (f *FileStream) Stat() (fs.FileInfo, error) {
+	info, err := f.file.Stat()
+	if err != nil {
+		return nil, f.internalError(types.TeInternal, "failed to stat file", err)
+	}
+
+	return info, nil
+}
+
 // close the file and stop the progress tracker.
 func (f *FileStream) close() *Error {
 	if curr := f.machine.Current(); curr != stateDataEnd {

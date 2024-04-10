@@ -1,5 +1,5 @@
 # This file is a template, and might need editing before it works on your project.
-image: golang:latest
+image: golang:1.20
 
     #before_script:
     #  - git config --global url."https://code.bcarlin.xyz".insteadOf "ssh://git@code.bcarlin.xyz:2222"
@@ -39,7 +39,7 @@ code_navigation:
 
 lint:
   stage: test
-  image: golangci/golangci-lint:v1.54.2
+  image: golangci/golangci-lint:latest
   script:
   - golangci-lint cache status
   - golangci-lint run --timeout 5m --out-format junit-xml > lint.junit.xml

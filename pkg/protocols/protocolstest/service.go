@@ -38,8 +38,8 @@ func (t *TestService) InitTransfer(*pipeline.Pipeline) (protocol.TransferClient,
 
 type TestTransferClient struct{}
 
-func (TestTransferClient) Request() error                            { return nil }
-func (TestTransferClient) Send(protocol.SendFile) error              { return nil }
-func (TestTransferClient) Receive(protocol.ReceiveFile) error        { return nil }
-func (TestTransferClient) EndTransfer() error                        { return nil }
-func (TestTransferClient) SendError(types.TransferErrorCode, string) {}
+func (TestTransferClient) Request() *pipeline.Error                     { return nil }
+func (TestTransferClient) Send(protocol.SendFile) *pipeline.Error       { return nil }
+func (TestTransferClient) Receive(protocol.ReceiveFile) *pipeline.Error { return nil }
+func (TestTransferClient) EndTransfer() *pipeline.Error                 { return nil }
+func (TestTransferClient) SendError(types.TransferErrorCode, string)    {}

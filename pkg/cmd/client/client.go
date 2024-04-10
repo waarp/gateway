@@ -44,7 +44,7 @@ type ClientAdd struct {
 	Name         string             `required:"yes" short:"n" long:"name" description:"The client's name" json:"name,omitempty"`
 	Protocol     string             `required:"yes" short:"p" long:"protocol" description:"The partner's protocol" json:"protocol,omitempty"`
 	LocalAddress string             `short:"a" long:"local-address" description:"The client's local address [address:port]" json:"localAddress,omitempty"`
-	ProtoConfig  map[string]confVal `short:"c" long:"config" description:"The client's configuration, in key:val format. Can be repeated." json:"config,omitempty"`
+	ProtoConfig  map[string]confVal `short:"c" long:"config" description:"The client's configuration, in key:val format. Can be repeated." json:"protoConfig,omitempty"`
 }
 
 func (c *ClientAdd) Execute([]string) error { return c.execute(stdOutput) }

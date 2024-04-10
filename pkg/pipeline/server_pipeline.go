@@ -1,12 +1,9 @@
 package pipeline
 
 import (
-	"fmt"
-
 	"code.waarp.fr/lib/log"
 
 	"code.waarp.fr/apps/gateway/gateway/pkg/database"
-	"code.waarp.fr/apps/gateway/gateway/pkg/logging"
 	"code.waarp.fr/apps/gateway/gateway/pkg/model"
 	"code.waarp.fr/apps/gateway/gateway/pkg/model/types"
 )
@@ -46,10 +43,8 @@ func GetOldTransfer(db *database.DB, logger *log.Logger, trans *model.Transfer,
 
 // NewServerPipeline initializes and returns a new pipeline suitable for a
 // server transfer.
-func NewServerPipeline(db *database.DB, trans *model.Transfer,
+func NewServerPipeline(db *database.DB, logger *log.Logger, trans *model.Transfer,
 ) (*Pipeline, *Error) {
-	logger := logging.NewLogger(fmt.Sprintf("Pipeline %d (server)", trans.ID))
-
 	transCtx, ctxErr := model.GetTransferContext(db, logger, trans)
 	if ctxErr != nil {
 		return nil, NewError(types.TeInternal, "database error")

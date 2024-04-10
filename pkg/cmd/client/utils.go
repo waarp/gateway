@@ -43,7 +43,9 @@ func getResponseErrorMessage(resp *http.Response) error {
 		return fmt.Errorf("failed to read the response body: %w", err)
 	}
 
-	return errors.New(strings.TrimSpace(string(body))) //nolint:goerr113 // too specific
+	cleanMsg := strings.TrimSpace(string(body))
+
+	return fmt.Errorf("%s: %s", resp.Status, cleanMsg) //nolint:goerr113 // too specific
 }
 
 func displayResponseMessage(w io.Writer, resp *http.Response) error {

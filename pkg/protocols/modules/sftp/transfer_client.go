@@ -225,24 +225,20 @@ func (c *transferClient) startSFTPSession() *pipeline.Error {
 	return nil
 }
 
-func (c *transferClient) Request() error {
+func (c *transferClient) Request() *pipeline.Error {
 	if tErr := c.request(); tErr != nil {
+		c.SendError(tErr.Code(), tErr.Details())
+
 		return tErr
 	}
 
 	return nil
 }
 
-func (c *transferClient) request() (tErr *pipeline.Error) {
+func (c *transferClient) request() *pipeline.Error {
 	if err := c.openSSHConn(); err != nil {
 		return err
 	}
-
-	defer func() {
-		if tErr != nil {
-			c.SendError(tErr.Code(), tErr.Details())
-		}
-	}()
 
 	if err := c.startSFTPSession(); err != nil {
 		return err
@@ -295,7 +291,7 @@ func (c *transferClient) requestReceive(filepath string) *pipeline.Error {
 }
 
 // Send copies the content from the local source file to the remote one.
-func (c *transferClient) Send(file protocol.SendFile) error {
+func (c *transferClient) Send(file protocol.SendFile) *pipeline.Error {
 	// Check parent dir, if it doesn't exist, try to create it
 	parentDir := path.Dir(c.pip.TransCtx.Transfer.RemotePath)
 	if _, statErr := c.sftpClient.Stat(parentDir); errors.Is(statErr, fs.ErrNotExist) {
@@ -315,7 +311,7 @@ func (c *transferClient) Send(file protocol.SendFile) error {
 	return nil
 }
 
-func (c *transferClient) Receive(file protocol.ReceiveFile) error {
+func (c *transferClient) Receive(file protocol.ReceiveFile) *pipeline.Error {
 	if c.pip.TransCtx.Transfer.Progress != 0 {
 		if _, err := c.sftpFile.Seek(c.pip.TransCtx.Transfer.Progress, io.SeekStart); err != nil {
 			c.pip.Logger.Error("Failed to seek into remote SFTP file: %s", err)
@@ -333,7 +329,7 @@ func (c *transferClient) Receive(file protocol.ReceiveFile) error {
 	return nil
 }
 
-func (c *transferClient) EndTransfer() error {
+func (c *transferClient) EndTransfer() *pipeline.Error {
 	if err := c.endTransfer(); err != nil {
 		return err
 	}

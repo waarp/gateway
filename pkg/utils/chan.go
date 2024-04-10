@@ -2,6 +2,8 @@ package utils
 
 import (
 	"context"
+	"errors"
+	"io"
 	"time"
 )
 
@@ -47,4 +49,38 @@ func CheckCtx(ctx context.Context) error {
 	default:
 		return nil
 	}
+}
+
+func RWWithCtx(ctx context.Context, f func([]byte) (int, error), b []byte) (int, error) {
+	if err := CheckCtx(ctx); err != nil {
+		return 0, err
+	}
+
+	n, rwErr := f(b)
+	if rwErr != nil && !errors.Is(rwErr, io.EOF) {
+		return n, rwErr
+	}
+
+	if err := CheckCtx(ctx); err != nil {
+		return 0, err
+	}
+
+	return n, rwErr
+}
+
+func RWatWithCtx(ctx context.Context, f func([]byte, int64) (int, error), b []byte, off int64) (int, error) {
+	if err := CheckCtx(ctx); err != nil {
+		return 0, err
+	}
+
+	n, rwErr := f(b, off)
+	if rwErr != nil && !errors.Is(rwErr, io.EOF) {
+		return n, rwErr
+	}
+
+	if err := CheckCtx(ctx); err != nil {
+		return 0, err
+	}
+
+	return n, rwErr
 }

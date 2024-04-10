@@ -40,7 +40,7 @@ func TestAddressIndirection(t *testing.T) {
 			Name:          "sftp_hostkey",
 			Value:         SSHPbk,
 		}
-		ctx.AddAuths(c, serverHostkey, partnerHostkey)
+		ctx.AddCreds(c, serverHostkey, partnerHostkey)
 
 		ctx.StartService(c)
 

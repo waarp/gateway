@@ -20,7 +20,7 @@ func TestAddressIndirection(t *testing.T) {
 		conf.InitTestOverrides(c)
 
 		ctx := pipelinetest.InitSelfPushTransfer(c, R66, cliConf, partConf, servConf)
-		ctx.AddAuths(c, serverPassword(ctx.Server), partnerPassword(ctx.Partner))
+		ctx.AddCreds(c, serverPassword(ctx.Server), partnerPassword(ctx.Partner))
 
 		realAddr := ctx.Server.Address.String()
 		So(conf.AddIndirection(fakeAddr, realAddr), ShouldBeNil)

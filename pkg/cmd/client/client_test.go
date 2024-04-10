@@ -33,7 +33,7 @@ func TestClientAdd(t *testing.T) {
 		"name":         clientName,
 		"protocol":     clientProtocol,
 		"localAddress": clientAddress,
-		"config": map[string]any{
+		"protoConfig": map[string]any{
 			clientConfigStrKey:  clientConfigStrVal,
 			clientConfigNumKey:  clientConfigNumVal,
 			clientConfigBoolKey: clientConfigBoolVal,

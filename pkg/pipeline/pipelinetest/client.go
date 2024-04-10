@@ -156,14 +156,14 @@ func makeClientConf(c convey.C, db *database.DB, port uint16, proto string,
 	}
 
 	client := &model.Client{
-		Name:        "client",
+		Name:        proto + "-client",
 		Protocol:    proto,
 		ProtoConfig: jsonClientConf,
 	}
 	c.So(db.Insert(client).Run(), convey.ShouldBeNil)
 
 	partner := &model.RemoteAgent{
-		Name:     testServerName,
+		Name:     proto + "-partner",
 		Protocol: proto, ProtoConfig: jsonPartConf,
 		Address: types.Addr("127.0.0.1", port),
 	}

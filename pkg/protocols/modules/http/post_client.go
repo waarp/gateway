@@ -33,7 +33,7 @@ type postClient struct {
 	resp   chan *http.Response
 }
 
-func (p *postClient) checkResume(url string) error {
+func (p *postClient) checkResume(url string) *pipeline.Error {
 	if p.pip.TransCtx.Transfer.Progress == 0 {
 		return nil
 	}
@@ -90,7 +90,7 @@ func (p *postClient) checkResume(url string) error {
 	return p.updateTransForResume(prog)
 }
 
-func (p *postClient) updateTransForResume(prog int64) error {
+func (p *postClient) updateTransForResume(prog int64) *pipeline.Error {
 	if prog != p.pip.TransCtx.Transfer.Progress {
 		p.pip.TransCtx.Transfer.Progress = prog
 		if p.pip.TransCtx.Transfer.Step > types.StepData {
@@ -107,7 +107,7 @@ func (p *postClient) updateTransForResume(prog int64) error {
 	return nil
 }
 
-func (p *postClient) setRequestHeaders(req *http.Request) error {
+func (p *postClient) setRequestHeaders(req *http.Request) *pipeline.Error {
 	var pwd string
 
 	for _, a := range p.pip.TransCtx.RemoteAccountCreds {
@@ -157,7 +157,7 @@ func (p *postClient) setRequestHeaders(req *http.Request) error {
 	return nil
 }
 
-func (p *postClient) prepareRequest(ready chan struct{}) error {
+func (p *postClient) prepareRequest(ready chan struct{}) *pipeline.Error {
 	scheme := schemeHTTP
 	if p.isHTTPS {
 		scheme = schemeHTTPS
@@ -194,7 +194,7 @@ func (p *postClient) prepareRequest(ready chan struct{}) error {
 	return nil
 }
 
-func (p *postClient) Request() error {
+func (p *postClient) Request() *pipeline.Error {
 	ready := make(chan struct{})
 	if err := p.prepareRequest(ready); err != nil {
 		return err
@@ -228,11 +228,11 @@ func (p *postClient) Request() error {
 	}
 }
 
-func (p *postClient) Receive(protocol.ReceiveFile) error {
+func (p *postClient) Receive(protocol.ReceiveFile) *pipeline.Error {
 	panic("cannot receive files with a POST client")
 }
 
-func (p *postClient) Send(file protocol.SendFile) error {
+func (p *postClient) Send(file protocol.SendFile) *pipeline.Error {
 	_, copyErr := io.Copy(p.writer, file)
 	if copyErr == nil {
 		return nil
@@ -257,7 +257,7 @@ func (p *postClient) Send(file protocol.SendFile) error {
 		"failed to write to remote HTTP file")
 }
 
-func (p *postClient) EndTransfer() error {
+func (p *postClient) EndTransfer() *pipeline.Error {
 	p.req.Trailer.Set(httpconst.TransferStatus, string(types.StatusDone))
 
 	if err := p.writer.Close(); err != nil {
@@ -296,7 +296,7 @@ func (p *postClient) SendError(code types.TransferErrorCode, details string) {
 	p.req.Trailer.Set(httpconst.ErrorMessage, details)
 }
 
-func (p *postClient) Pause() error {
+func (p *postClient) Pause() *pipeline.Error {
 	if p.writer == nil {
 		return nil
 	}
@@ -312,7 +312,7 @@ func (p *postClient) Pause() error {
 	return nil
 }
 
-func (p *postClient) Cancel() error {
+func (p *postClient) Cancel() *pipeline.Error {
 	if p.writer == nil {
 		return nil
 	}
@@ -330,7 +330,7 @@ func (p *postClient) Cancel() error {
 
 func (p *postClient) wrapAndSendError(cause error, code types.TransferErrorCode,
 	details string,
-) error {
+) *pipeline.Error {
 	var tErr *pipeline.Error
 	if !errors.As(cause, &tErr) {
 		tErr = pipeline.NewError(code, details)

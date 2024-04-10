@@ -16,7 +16,7 @@ import (
 //nolint:varnamelen //formatter name is kept short for readability
 func showStatus(f *Formatter, title string, services []*api.Service) {
 	if len(services) == 0 {
-		f.Title(title, "<none>")
+		f.Title("%s: %s", title, "<none>")
 
 		return
 	}
