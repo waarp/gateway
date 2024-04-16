@@ -427,6 +427,22 @@ func (s *SelfContext) CheckClientTransferError(c convey.C, errCode types.Transfe
 	}
 }
 
+func (s *SelfContext) GetServerTransfer(c convey.C) *model.NormalizedTransferView {
+	var serverTrans model.NormalizedTransfers
+	c.SoMsg(
+		"Failed retrieve the server transfer entry",
+		s.DB.Select(&serverTrans).Where(
+			"is_server=true AND account=? AND agent=? AND rule=? AND is_send=?",
+			s.LocAccount.Login, s.Server.Name, s.ServerRule.Name,
+			s.ServerRule.IsSend).Run(),
+		convey.ShouldBeNil,
+	)
+
+	c.So(serverTrans, convey.ShouldHaveLength, 1)
+
+	return serverTrans[0]
+}
+
 // CheckServerTransferError takes asserts that the server transfer should have
 // failed like the given expected one. The expected entry must specify the step,
 // filesize (for the receiver), progress, task. The rest of the transfer entry's

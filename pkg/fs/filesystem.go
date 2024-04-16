@@ -33,12 +33,12 @@ func GetFileSystem(db database.ReadAccess, url *types.URL) (fs.FS, error) {
 		return NewLocalFS(url.OSPath())
 	}
 
-	if testFS, ok := filesystems.TestFileSystems[url.Scheme]; ok {
+	if testFS, ok := filesystems.TestFileSystems.Load(url.Scheme); ok {
 		return testFS, nil
 	}
 
-	mkfs := filesystems.FileSystems[url.Scheme]
-	if mkfs == nil {
+	mkfs, ok := filesystems.FileSystems.Load(url.Scheme)
+	if !ok {
 		return nil, fmt.Errorf("%w %q", filesystems.ErrUnknownFileSystem, url.Scheme)
 	}
 

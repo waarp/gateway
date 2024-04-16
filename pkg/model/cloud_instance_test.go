@@ -16,8 +16,8 @@ import (
 func TestCloudInstanceTableName(t *testing.T) {
 	t.Parallel()
 
-	assert.Equal(t, TableCloudInstances, (&CloudInstance{}).TableName(),
-		"The cloud instances table name should be equal to 'cloud_instances'")
+	assert.Equalf(t, TableCloudInstances, (&CloudInstance{}).TableName(),
+		"The cloud instances table name should be equal to %q", TableCloudInstances)
 }
 
 func TestCloudInstanceBeforeWrite(t *testing.T) {
@@ -36,8 +36,7 @@ func TestCloudInstanceBeforeWrite(t *testing.T) {
 		errInvalidConf = errors.New("invalid cloud instance configuration")
 	)
 
-	//nolint:unparam //cannot change the function's signature
-	filesystems.FileSystems[scheme] = func(key, secret string,
+	filesystems.FileSystems.Store(scheme, func(key, secret string,
 		options map[string]any,
 	) (fs.FS, error) {
 		if key != expKey || secret != expSecret ||
@@ -46,9 +45,10 @@ func TestCloudInstanceBeforeWrite(t *testing.T) {
 		}
 
 		return nil, nil
-	}
+	})
 
-	t.Cleanup(func() { delete(filesystems.FileSystems, scheme) })
+	t.Cleanup(func() { filesystems.FileSystems.Delete(scheme) })
+	require.True(t, filesystems.DoesFileSystemExist(scheme))
 
 	db := dbtest.TestDatabase(t)
 

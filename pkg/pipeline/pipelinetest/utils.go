@@ -205,6 +205,7 @@ func AddSourceFile(c convey.C, filesys fs.FS, file *types.URL) []byte {
 func initTestData(c convey.C) *testData {
 	db := database.TestDatabase(c)
 	testFS := fstest.InitMemFS(c)
+	c.Reset(pipeline.List.Reset)
 
 	home := "memory:/gw_home"
 	homePath := mkURL(home)

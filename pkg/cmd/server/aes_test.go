@@ -41,10 +41,10 @@ func TestChangeAESPassphrase(t *testing.T) {
 		cloudSecret = "cld_sec"
 	)
 
-	filesystems.FileSystems[cloudType] = func(string, string, map[string]any) (fs.FS, error) {
+	filesystems.FileSystems.Store(cloudType, func(string, string, map[string]any) (fs.FS, error) {
 		return nil, nil
-	}
-	defer delete(filesystems.FileSystems, cloudType)
+	})
+	defer filesystems.FileSystems.Delete(cloudType)
 
 	Convey("Given a test database", t, func(c C) {
 		db := database.TestDatabase(c)

@@ -1,6 +1,7 @@
 package ftp
 
 import (
+	"net"
 	"testing"
 
 	. "github.com/smartystreets/goconvey/convey"
@@ -185,14 +186,17 @@ func TestTLSActiveSelfPullClientPreError(t *testing.T) {
 					"Task TASKERR @ PULL PRE[1]: task failed",
 					types.StepPreTasks)
 
-				if ctx.GetServerErrTaskNb() == 0 {
+				serverTrans := ctx.GetServerTransfer(c)
+				if serverTrans.Status == types.StatusDone {
 					ctx.ServerShouldHavePostTasked(c)
 					ctx.CheckServerTransferOK(c)
 				} else {
-					ctx.CheckServerTransferError(c,
-						types.TeConnectionReset,
+					ctx.ServerShouldHaveErrorTasked(c)
+
+					So(serverTrans.ErrCode, ShouldEqual, types.TeConnectionReset)
+					So(serverTrans.ErrDetails, ShouldBeIn,
 						"data connection closed unexpectedly",
-						types.StepData)
+						net.ErrClosed.Error())
 				}
 			})
 		})
@@ -406,6 +410,11 @@ func TestTLSActiveSelfPushClientPostError(t *testing.T) {
 					types.TeConnectionReset,
 					"data connection closed unexpectedly",
 					types.StepData)
+
+				ctx.TestRetry(c,
+					ctx.ServerShouldHavePostTasked,
+					ctx.ClientShouldHavePostTasked,
+				)
 			})
 		})
 	})
@@ -440,6 +449,11 @@ func TestTLSActiveSelfPushServerPostError(t *testing.T) {
 					types.TeExternalOperation,
 					"Task TASKERR @ PUSH POST[1]: task failed",
 					types.StepPostTasks)
+
+				ctx.TestRetry(c,
+					ctx.ServerShouldHavePostTasked,
+					ctx.ClientShouldHavePostTasked,
+				)
 			})
 		})
 	})

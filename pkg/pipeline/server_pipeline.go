@@ -52,7 +52,8 @@ func NewServerPipeline(db *database.DB, logger *log.Logger, trans *model.Transfe
 
 	pipeline, pipErr := newPipeline(db, logger, transCtx)
 	if pipErr != nil {
-		logger.Error("Failed to initialize the server transfer pipeline: %v", pipErr)
+		logger.Error("Failed to initialize the server transfer pipeline %d: %v",
+			trans.ID, pipErr)
 
 		return nil, pipErr
 	}

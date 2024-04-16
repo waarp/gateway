@@ -1,6 +1,11 @@
 package model
 
-import "code.waarp.fr/apps/gateway/gateway/pkg/database"
+import (
+	"fmt"
+	"strings"
+
+	"code.waarp.fr/apps/gateway/gateway/pkg/database"
+)
 
 type Slice[T database.Table] []T
 
@@ -17,6 +22,16 @@ func (s *Slice[T]) AfterRead(db database.ReadAccess) error {
 	}
 
 	return nil
+}
+
+func (s Slice[T]) String() string {
+	builder := &strings.Builder{}
+
+	for i, elem := range s {
+		builder.WriteString(fmt.Sprintf("Item #%d: %+v\n", i, elem))
+	}
+
+	return builder.String()
 }
 
 type (

@@ -30,7 +30,7 @@ func (c *CloudInstance) BeforeWrite(db database.ReadAccess) error {
 		return database.NewValidationError("the cloud instance's name cannot be empty")
 	}
 
-	constr, ok := filesystems.FileSystems[c.Type]
+	constr, ok := filesystems.FileSystems.Load(c.Type)
 	if !ok {
 		return database.NewValidationError("unknown cloud instance type %q", c.Type)
 	}

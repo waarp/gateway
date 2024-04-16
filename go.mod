@@ -21,6 +21,7 @@ require (
 	github.com/karrick/tparse/v2 v2.8.2
 	github.com/mattn/go-colorable v0.1.13
 	github.com/pkg/sftp v1.13.6
+	github.com/puzpuzpuz/xsync v1.5.2
 	github.com/smarty/assertions v1.15.1
 	github.com/smartystreets/goconvey v1.8.1
 	github.com/spf13/afero v1.11.0

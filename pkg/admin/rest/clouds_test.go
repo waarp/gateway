@@ -27,19 +27,17 @@ import (
 func addTestCloudType(tb testing.TB) string {
 	tb.Helper()
 
-	filesystems.FileSystems[tb.Name()] = func(string, string, map[string]any,
+	filesystems.FileSystems.Store(tb.Name(), func(string, string, map[string]any,
 	) (fs.FS, error) {
 		return nil, nil
-	}
+	})
 
-	tb.Cleanup(func() { delete(filesystems.FileSystems, tb.Name()) })
+	tb.Cleanup(func() { filesystems.FileSystems.Delete(tb.Name()) })
 
 	return tb.Name()
 }
 
 func TestGetCloud(t *testing.T) {
-	t.Parallel()
-
 	cloudType := addTestCloudType(t)
 	logger := testhelpers.GetTestLogger(t)
 	db := dbtest.TestDatabase(t)
@@ -63,8 +61,6 @@ func TestGetCloud(t *testing.T) {
 	require.NoError(t, jsonErr)
 
 	t.Run("Given a valid cloud name", func(t *testing.T) {
-		t.Parallel()
-
 		r, err := http.NewRequest(http.MethodGet, "", nil)
 		require.NoError(t, err)
 
@@ -81,8 +77,6 @@ func TestGetCloud(t *testing.T) {
 	})
 
 	t.Run("Given an unknown cloud name", func(t *testing.T) {
-		t.Parallel()
-
 		r, err := http.NewRequest(http.MethodGet, "", nil)
 		require.NoError(t, err)
 
@@ -102,13 +96,9 @@ func TestGetCloud(t *testing.T) {
 }
 
 func TestAddCloud(t *testing.T) {
-	t.Parallel()
-
 	cloudType := addTestCloudType(t)
 
 	t.Run("Given a valid cloud object", func(t *testing.T) {
-		t.Parallel()
-
 		logger := testhelpers.GetTestLogger(t)
 		db := dbtest.TestDatabase(t)
 		handle := addCloud(logger, db)
@@ -157,8 +147,6 @@ func TestAddCloud(t *testing.T) {
 	})
 
 	t.Run("Given an invalid cloud object", func(t *testing.T) {
-		t.Parallel()
-
 		logger := testhelpers.GetTestLogger(t)
 		db := dbtest.TestDatabase(t)
 		handle := addCloud(logger, db)
@@ -184,8 +172,6 @@ func TestAddCloud(t *testing.T) {
 }
 
 func TestDeleteCloud(t *testing.T) {
-	t.Parallel()
-
 	cloudType := addTestCloudType(t)
 
 	setup := func(tb testing.TB) (*database.DB, http.Handler, *model.CloudInstance) {
@@ -208,8 +194,6 @@ func TestDeleteCloud(t *testing.T) {
 	}
 
 	t.Run("Given a valid cloud name", func(t *testing.T) {
-		t.Parallel()
-
 		db, handle, existing := setup(t)
 
 		r, err := http.NewRequest(http.MethodDelete, "", nil)
@@ -232,8 +216,6 @@ func TestDeleteCloud(t *testing.T) {
 	})
 
 	t.Run("Given an unknown cloud name", func(t *testing.T) {
-		t.Parallel()
-
 		db, handle, ex := setup(t)
 
 		r, err := http.NewRequest(http.MethodGet, "", nil)
@@ -270,7 +252,6 @@ func TestReplaceCloud(t *testing.T) {
 
 func testUpdateReplaceCloud(t *testing.T, isReplace bool) {
 	t.Helper()
-	t.Parallel()
 
 	cloudType := addTestCloudType(t)
 	input := api.PostCloudReqObject{
@@ -334,8 +315,6 @@ func testUpdateReplaceCloud(t *testing.T, isReplace bool) {
 	}
 
 	t.Run("Given a valid cloud name", func(t *testing.T) {
-		t.Parallel()
-
 		db, handle, old := setup(t)
 
 		body := bytes.Buffer{}

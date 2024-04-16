@@ -133,8 +133,13 @@ type postBody struct {
 	closed chan struct{}
 }
 
-func (b *postBody) Read(p []byte) (n int, err error) {
+func (b *postBody) Read(p []byte) (int, error) {
 	done := make(chan struct{})
+
+	var (
+		n   int
+		err error
+	)
 
 	go func() {
 		n, err = b.src.Read(p)
