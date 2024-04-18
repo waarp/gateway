@@ -3,6 +3,11 @@
 Historique des versions
 =======================
 
+* :bug:`398` Les clé publiques SSH utilisant les algorithmes ``rsa-sha2-256`` et
+  ``rsa-sha2-512`` sont désormais correctement acceptées par le client SFTP lors
+  de sa connexion à un partenaire. Précédemment, ces algorithmes étaient
+  incorrectement refusés par le client SFTP de la gateway malgré le fait qu'ils
+  soient supportés.
 * :feature:`132` Ajout du support de FTP(S) à la gateway. Il est désormais
   possible d'effectuer des transferts client et serveur avec ce protocole.
   Compte tenu du fonctionnement particulier de ce protocole, il est conseillé de
