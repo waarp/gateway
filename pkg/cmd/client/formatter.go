@@ -35,6 +35,10 @@ func NewFormatter(out io.Writer) *Formatter {
 	}
 }
 
+func (*Formatter) titleColor() text.Colors {
+	return text.Colors{text.Bold, text.FgHiYellow}
+}
+
 func (f *Formatter) Indent()   { f.list.Indent() }
 func (f *Formatter) UnIndent() { f.list.UnIndent() }
 func (f *Formatter) Render()   { fmt.Fprintln(f.out, f.list.Render()) }
@@ -49,10 +53,12 @@ func (f *Formatter) Println(format string, args ...any) {
 	f.list.AppendItem(fmt.Sprintf(format, args...))
 }
 
-func (f *Formatter) Title(format string, args ...any) {
-	colors := text.Colors{text.Bold, text.FgHiYellow}
+func (f *Formatter) PlainTitle(format string, args ...any) {
+	f.list.AppendItem(fmt.Sprintf(format, args...))
+}
 
-	f.list.AppendItem(colors.Sprintf(format, args...))
+func (f *Formatter) Title(format string, args ...any) {
+	f.list.AppendItem(f.titleColor().Sprintf(format, args...))
 }
 
 func (f *Formatter) line(valColor text.Color, property string, value any) {

@@ -127,7 +127,7 @@ func makeServerConf(c convey.C, data *testData, port uint16, proto string,
 	c.So(fs.MkdirAll(data.FS, rootPath), convey.ShouldBeNil)
 
 	server := &model.LocalAgent{
-		Name:          "server",
+		Name:          proto + "-server",
 		Protocol:      proto,
 		RootDir:       rootDir,
 		ProtoConfig:   jsonServConf,

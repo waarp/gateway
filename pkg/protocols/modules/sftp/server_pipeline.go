@@ -34,7 +34,7 @@ func initPipeline(db *database.DB, logger *log.Logger, trans *model.Transfer,
 		return nil, toSFTPErr(tErr)
 	}
 
-	pip, tErr := pipeline.NewServerPipeline(db, trans)
+	pip, tErr := pipeline.NewServerPipeline(db, logger, trans)
 	if tErr != nil {
 		return nil, toSFTPErr(tErr)
 	}
@@ -132,34 +132,12 @@ func (s *serverPipeline) init() error {
 
 // ReadAt reads the requested part of the transfer file.
 func (s *serverPipeline) ReadAt(p []byte, off int64) (int, error) {
-	if err := utils.CheckCtx(s.ctx); err != nil {
-		return 0, err
-	}
-
-	n, rErr := s.file.ReadAt(p, off)
-	if rErr != nil && !errors.Is(rErr, io.EOF) {
-		return n, rErr //nolint:wrapcheck //wrapping adds nothing
-	}
-
-	if err := utils.CheckCtx(s.ctx); err != nil {
-		return 0, err
-	}
-
-	return n, rErr //nolint:wrapcheck //error is either nil or io.EOF, do not wrap
+	return utils.RWatWithCtx(s.ctx, s.file.ReadAt, p, off)
 }
 
 // WriteAt writes the given data to the transfer file.
 func (s *serverPipeline) WriteAt(p []byte, off int64) (int, error) {
-	if err := utils.CheckCtx(s.ctx); err != nil {
-		return 0, err
-	}
-
-	n, err := s.file.WriteAt(p, off)
-	if err != nil {
-		return n, err //nolint:wrapcheck //wrapping adds nothing
-	}
-
-	return n, utils.CheckCtx(s.ctx)
+	return utils.RWatWithCtx(s.ctx, s.file.WriteAt, p, off)
 }
 
 // Close file, executes post-tasks & end transfer.

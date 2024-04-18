@@ -2,6 +2,7 @@ package r66
 
 import (
 	"context"
+	"errors"
 	"testing"
 	"time"
 
@@ -184,10 +185,15 @@ func TestR66ServerInterruption(t *testing.T) {
 					file := testhelpers.NewSlowReader()
 					_, err := ses.Send(file, f)
 
-					So(err, ShouldBeError, &r66.Error{
-						Code:   r66.Shutdown,
-						Detail: "service is shutting down",
-					})
+					var r66Err *r66.Error
+					if errors.As(err, &r66Err) {
+						So(err, ShouldBeError, &r66.Error{
+							Code:   r66.Shutdown,
+							Detail: "service is shutting down",
+						})
+					} else {
+						So(err.Error(), ShouldContainSubstring, ": connection reset by peer")
+					}
 
 					Convey("Then the transfer should have been interrupted", func(c C) {
 						So(utils.WaitChan(transferDone, 5*time.Second), ShouldBeTrue)

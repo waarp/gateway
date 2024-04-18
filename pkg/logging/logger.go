@@ -16,7 +16,7 @@ var (
 	ErrUnknownLogLevel = errors.New("unknown log level")
 )
 
-func levelFromString(level string) log.Level {
+func LevelFromString(level string) log.Level {
 	switch {
 	case strings.EqualFold(level, log.LevelTrace.String()):
 		return log.LevelTrace
@@ -42,7 +42,7 @@ func levelFromString(level string) log.Level {
 }
 
 func NewLogBackend(level, logTo, facility, tag string) (*log.Backend, error) {
-	lvl := levelFromString(level)
+	lvl := LevelFromString(level)
 	if lvl == 0 {
 		return nil, fmt.Errorf("%w: %s", ErrUnknownLogLevel, level)
 	}

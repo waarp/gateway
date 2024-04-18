@@ -32,7 +32,7 @@ type transferClient struct {
 
 // Request opens a connection to the remote partner, creates a new authenticated
 // session, and sends the transfer request.
-func (c *transferClient) Request() error {
+func (c *transferClient) Request() *pipeline.Error {
 	// CONNECTION
 	if err := c.connect(); err != nil {
 		return c.wrapAndSendError(err)
@@ -52,10 +52,10 @@ func (c *transferClient) Request() error {
 }
 
 // BeginPreTasks does nothing (needed to implement PreTaskHandler).
-func (c *transferClient) BeginPreTasks() error { return nil }
+func (c *transferClient) BeginPreTasks() *pipeline.Error { return nil }
 
 // EndPreTasks sends/receives updated transfer info to/from the remote partner.
-func (c *transferClient) EndPreTasks() error {
+func (c *transferClient) EndPreTasks() *pipeline.Error {
 	if c.pip.TransCtx.Rule.IsSend {
 		outInfo := &r66.UpdateInfo{
 			Filename: c.pip.TransCtx.Transfer.RemotePath,
@@ -91,7 +91,7 @@ func (c *transferClient) EndPreTasks() error {
 	return nil
 }
 
-func (c *transferClient) Send(file protocol.SendFile) error {
+func (c *transferClient) Send(file protocol.SendFile) *pipeline.Error {
 	if _, err := c.ses.Send(clientReader{r: file}, c.makeHash); err != nil {
 		c.ses = nil
 		c.pip.Logger.Error("Failed to send transfer file: %v", err)
@@ -102,7 +102,7 @@ func (c *transferClient) Send(file protocol.SendFile) error {
 	return nil
 }
 
-func (c *transferClient) Receive(file protocol.ReceiveFile) error {
+func (c *transferClient) Receive(file protocol.ReceiveFile) *pipeline.Error {
 	eot, err := c.ses.Recv(clientWriter{w: file})
 	if err != nil {
 		c.ses = nil
@@ -133,7 +133,7 @@ func (c *transferClient) Receive(file protocol.ReceiveFile) error {
 }
 
 // EndTransfer send a transfer end message, and then closes the session.
-func (c *transferClient) EndTransfer() error {
+func (c *transferClient) EndTransfer() *pipeline.Error {
 	defer c.cancel()
 	defer c.conns.Done(c.pip.TransCtx.RemoteAgent.Address.String())
 
@@ -178,7 +178,7 @@ func (c *transferClient) SendError(code types.TransferErrorCode, msg string) {
 
 // Pause sends a pause message to the remote partner and then closes the
 // session.
-func (c *transferClient) Pause() error {
+func (c *transferClient) Pause() *pipeline.Error {
 	defer c.cancel()
 	defer c.conns.Done(c.pip.TransCtx.RemoteAgent.Address.String())
 
@@ -199,7 +199,7 @@ func (c *transferClient) Pause() error {
 
 // Cancel sends a cancel message to the remote partner and then closes the
 // session.
-func (c *transferClient) Cancel() error {
+func (c *transferClient) Cancel() *pipeline.Error {
 	defer c.cancel()
 	defer c.conns.Done(c.pip.TransCtx.RemoteAgent.Address.String())
 

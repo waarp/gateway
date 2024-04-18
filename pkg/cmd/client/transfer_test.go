@@ -181,7 +181,7 @@ func TestTransferGet(t *testing.T) {
 						fmt.Sprintf("   ├─ With client: %s\n", client)+
 						fmt.Sprintf("   ├─ Full local path: %s\n", localPath)+
 						fmt.Sprintf("   ├─ Full remote path: %s\n", remotePath)+
-						fmt.Sprintf("   ├─ File size: %d\n", filesize)+
+						fmt.Sprintf("   ├─ File size: %d bytes\n", filesize)+
 						fmt.Sprintf("   ├─ Start date: %s\n", startTime)+
 						fmt.Sprintf("   ├─ End date: %s\n", stopTime)+
 						fmt.Sprintf("   ├─ Current step: %s\n", step)+
@@ -333,7 +333,7 @@ func TestTransferList(t *testing.T) {
 					fmt.Sprintf("│  ├─ With client: %s\n", client1)+
 					fmt.Sprintf("│  ├─ Full local path: %s\n", localPath1)+
 					fmt.Sprintf("│  ├─ Full remote path: %s\n", remotePath1)+
-					fmt.Sprintf("│  ├─ File size: 0\n")+
+					fmt.Sprintf("│  ├─ File size: 0 bytes\n")+
 					fmt.Sprintf("│  ├─ Start date: %s\n", startTime1)+
 					fmt.Sprintf("│  ├─ End date: %s\n", NotApplicable)+
 					fmt.Sprintf("│  ╰─ Bytes transferred: %d\n", progress1)+
@@ -346,7 +346,7 @@ func TestTransferList(t *testing.T) {
 					fmt.Sprintf("   ├─ Requested to: %s\n", server2)+
 					fmt.Sprintf("   ├─ Full local path: %s\n", localPath2)+
 					fmt.Sprintf("   ├─ Full remote path: %s\n", remotePath2)+
-					fmt.Sprintf("   ├─ File size: 0\n")+
+					fmt.Sprintf("   ├─ File size: 0 bytes\n")+
 					fmt.Sprintf("   ├─ Start date: %s\n", startTime2)+
 					fmt.Sprintf("   ├─ End date: %s\n", NotApplicable)+
 					fmt.Sprintf("   ╰─ Bytes transferred: %d\n", progress2),

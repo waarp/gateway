@@ -120,7 +120,7 @@ func (r *Rule) BeforeDelete(db database.Access) error {
 // if the target has been given access to the rule.
 //
 // Valid target types are: LocalAgent, RemoteAgent, LocalAccount & RemoteAccount.
-func (r *Rule) IsAuthorized(db database.Access, target database.IterateBean) (bool, error) {
+func (r *Rule) IsAuthorized(db database.ReadAccess, target database.IterateBean) (bool, error) {
 	var perms RuleAccess
 	if n, err := db.Count(&perms).Where("rule_id=?", r.ID).Run(); err != nil {
 		return false, fmt.Errorf("failed to count rule accesses: %w", err)

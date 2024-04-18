@@ -19,7 +19,6 @@ func init() {
 		MakeClientConfig:  Module{}.MakeClientConfig,
 		TransID:           false,
 		RuleName:          false,
-		Size:              false,
 	}
 }
 

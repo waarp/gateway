@@ -28,13 +28,10 @@ func DisplayTransfer(w io.Writer, trans *api.OutTransfer) {
 
 //nolint:varnamelen //formatter name is kept short for readability
 func displayTransfer(f *Formatter, trans *api.OutTransfer) {
-	stop := NotApplicable
-	if trans.Stop.Valid {
-		stop = trans.Stop.Value.Local().String()
-	}
+	title := f.titleColor().Sprintf("Transfer %d (%s as %s)", trans.ID,
+		direction(trans.IsSend), transferRole(trans.IsServer))
 
-	f.Title("Transfer %d (%s as %s) [%s]", trans.ID, direction(trans.IsSend),
-		transferRole(trans.IsServer), coloredStatus(trans.Status))
+	f.PlainTitle(title + " " + coloredStatus(trans.Status))
 	f.Indent()
 
 	defer f.UnIndent()
@@ -54,13 +51,18 @@ func displayTransfer(f *Formatter, trans *api.OutTransfer) {
 	f.ValueCond("Full remote path", trans.RemoteFilepath)
 
 	if trans.Filesize >= 0 {
-		f.Value("File size", trans.Filesize)
+		f.Value("File size", fmt.Sprintf("%d bytes", trans.Filesize))
 	} else {
 		f.Empty("File size", sizeUnknown)
 	}
 
-	f.Value("Start date", trans.Start.Local())
-	f.Value("End date", stop)
+	f.Value("Start date", trans.Start.Local().String())
+
+	if trans.Stop.Valid {
+		f.Value("End date", trans.Stop.Value.Local().String())
+	} else {
+		f.Empty("End date", NotApplicable)
+	}
 
 	if trans.Step != "" && trans.Step != types.StepNone.String() {
 		f.Value("Current step", trans.Step)

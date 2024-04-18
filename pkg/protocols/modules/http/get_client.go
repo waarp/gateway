@@ -24,7 +24,7 @@ type getClient struct {
 	cancel context.CancelFunc
 }
 
-func (g *getClient) Request() error {
+func (g *getClient) Request() *pipeline.Error {
 	g.ctx, g.cancel = context.WithCancel(context.Background())
 
 	scheme := schemeHTTP
@@ -80,7 +80,7 @@ func (g *getClient) Request() error {
 	}
 }
 
-func (g *getClient) getSizeProgress() error {
+func (g *getClient) getSizeProgress() *pipeline.Error {
 	cols := []string{"progress"}
 	trans := g.pip.TransCtx.Transfer
 
@@ -105,11 +105,11 @@ func (g *getClient) getSizeProgress() error {
 	return nil
 }
 
-func (g *getClient) Send(protocol.SendFile) error {
+func (g *getClient) Send(protocol.SendFile) *pipeline.Error {
 	panic("cannot send file with a GET client")
 }
 
-func (g *getClient) Receive(file protocol.ReceiveFile) error {
+func (g *getClient) Receive(file protocol.ReceiveFile) *pipeline.Error {
 	if _, err := io.Copy(file, g.resp.Body); err != nil {
 		return g.wrapAndSendError(err, types.TeDataTransfer, "Failed to read from remote HTTP file")
 	}
@@ -125,7 +125,7 @@ func (g *getClient) Receive(file protocol.ReceiveFile) error {
 	return nil
 }
 
-func (g *getClient) EndTransfer() error {
+func (g *getClient) EndTransfer() *pipeline.Error {
 	if g.resp != nil {
 		if err := g.resp.Body.Close(); err != nil {
 			g.pip.Logger.Warning("Error while closing the response body: %v", err)
@@ -146,7 +146,7 @@ func (g *getClient) SendError(types.TransferErrorCode, string) {
 }
 
 func (g *getClient) wrapAndSendError(cause error, code types.TransferErrorCode, details string,
-) error {
+) *pipeline.Error {
 	var tErr *pipeline.Error
 	if !errors.As(cause, &tErr) {
 		tErr = pipeline.NewError(code, details)

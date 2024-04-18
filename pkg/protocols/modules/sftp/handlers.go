@@ -9,18 +9,12 @@ import (
 
 	"github.com/pkg/sftp"
 
-	"code.waarp.fr/apps/gateway/gateway/pkg/conf"
 	"code.waarp.fr/apps/gateway/gateway/pkg/database"
 	"code.waarp.fr/apps/gateway/gateway/pkg/fs"
 	"code.waarp.fr/apps/gateway/gateway/pkg/model"
 	"code.waarp.fr/apps/gateway/gateway/pkg/model/types"
 	"code.waarp.fr/apps/gateway/gateway/pkg/protocols/modules/sftp/internal"
-	"code.waarp.fr/apps/gateway/gateway/pkg/utils"
-)
-
-type (
-	leaf   = utils.Leaf
-	branch = utils.Branch
+	"code.waarp.fr/apps/gateway/gateway/pkg/protocols/protoutils"
 )
 
 func (l *sshListener) makeFileCmder(acc *model.LocalAccount) internal.CmdFunc {
@@ -91,9 +85,7 @@ func (l *sshListener) listAt(r *sftp.Request, acc *model.LocalAccount,
 				return 0, rulesErr
 			}
 
-			for _, rulePath := range rulesPaths {
-				infos = append(infos, &internal.DirInfo{Dir: rulePath})
-			}
+			infos = append(infos, rulesPaths...)
 		}
 
 		if offset >= int64(len(infos)) {
@@ -145,7 +137,7 @@ func (l *sshListener) statAt(r *sftp.Request, acc *model.LocalAccount,
 				return 0, sftp.ErrSSHFxNoSuchFile
 			}
 
-			infos = &internal.DirInfo{Dir: path.Base(r.Filepath)}
+			infos = protoutils.FakeDirInfo(path.Base(r.Filepath))
 		}
 
 		copy(fileInfos, []fs.FileInfo{infos})
@@ -189,31 +181,18 @@ func (l *sshListener) listReadDir(realDir *types.URL) ([]fs.FileInfo, error) {
 
 func (l *sshListener) getRealPath(acc *model.LocalAccount, dir string,
 ) (*types.URL, error) {
-	dir = strings.TrimPrefix(dir, "/")
+	realPath, err := protoutils.GetRealPath(false, l.DB, l.Logger, l.Server, acc, dir)
 
-	rule, err := l.getClosestRule(acc, dir, true)
-	if errors.Is(err, sftp.ErrSSHFxNoSuchFile) {
-		return nil, nil //nolint:nilnil //returning nil here makes more sense than using a sentinel error
+	switch {
+	case errors.Is(err, protoutils.ErrPermissionDenied):
+		return nil, sftp.ErrSSHFxPermissionDenied
+	case errors.Is(err, protoutils.ErrRuleNotFound):
+		return nil, sftp.ErrSSHFxNoSuchFile
+	case err != nil:
+		return nil, err //nolint:wrapcheck //no need to wrap here
 	}
 
-	if err != nil {
-		return nil, err
-	}
-
-	confPaths := &conf.GlobalConfig.Paths
-	rest := strings.TrimPrefix(dir, rule.Path)
-	rest = strings.TrimPrefix(rest, "/")
-
-	realDir, dirErr := utils.GetPath(rest, leaf(rule.LocalDir), leaf(l.Server.SendDir),
-		branch(l.Server.RootDir), leaf(confPaths.DefaultOutDir),
-		branch(confPaths.GatewayHome))
-	if dirErr != nil {
-		l.Logger.Error("Failed to retrieve real path for request %q: %s", dir, dirErr)
-
-		return nil, ErrInternal
-	}
-
-	return (*types.URL)(realDir), nil
+	return realPath, nil
 }
 
 func (l *sshListener) getClosestRule(acc *model.LocalAccount, rulePath string,
@@ -255,47 +234,15 @@ func (l *sshListener) getClosestRule(acc *model.LocalAccount, rulePath string,
 }
 
 func (l *sshListener) getRulesPaths(acc *model.LocalAccount, dir string,
-) ([]string, error) {
-	dir = strings.TrimPrefix(path.Clean(dir), "/")
-
-	var rules model.Rules
-
-	query := l.DB.Select(&rules).Distinct("path").Where(
-		`(path LIKE ?) AND
-		(
-			(id IN 
-				(SELECT DISTINCT rule_id FROM `+model.TableRuleAccesses+` WHERE
-					(local_account_id=? OR local_agent_id=?)
-				)
-			)
-			OR 
-			( (SELECT COUNT(*) FROM `+model.TableRuleAccesses+` WHERE rule_id = id) = 0 )
-		)`,
-		dir+"%", acc.ID, l.Server.ID).OrderBy("path", true)
-
-	if err := query.Run(); err != nil {
-		l.Logger.Error("Failed to retrieve rule list: %s", err)
-
-		//nolint:goerr113 //too specific
-		return nil, errors.New("failed to retrieve rule list")
-	}
-
-	if len(rules) == 0 {
+) ([]fs.FileInfo, error) {
+	entries, err := protoutils.GetRulesPaths(l.DB, l.Server, acc, dir)
+	if errors.Is(err, protoutils.ErrRuleNotFound) {
 		return nil, sftp.ErrSSHFxNoSuchFile
+	} else if err != nil {
+		l.Logger.Error("Failed to retrieve rules list: %s", err)
+
+		return nil, err //nolint:wrapcheck //no need to wrap here
 	}
 
-	paths := make([]string, 0, len(rules))
-	dir += "/"
-
-	for i := range rules {
-		p := rules[i].Path
-		p = strings.TrimPrefix(p, dir)
-		p = strings.SplitN(p, "/", 2)[0] //nolint:gomnd //not needed here
-
-		if len(paths) == 0 || paths[len(paths)-1] != p {
-			paths = append(paths, p)
-		}
-	}
-
-	return paths, nil
+	return entries, nil
 }

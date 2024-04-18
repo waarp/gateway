@@ -101,7 +101,7 @@ type RuleAdd struct {
 	Name          string       `required:"true" short:"n" long:"name" description:"The rule's name" json:"name,omitempty"`
 	Comment       string       `short:"c" long:"comment" description:"A short comment describing the rule" json:"comment,omitempty"`
 	Direction     string       `required:"true" short:"d" long:"direction" description:"The direction of the file transfer" choice:"send" choice:"receive" json:"-"`
-	IsSend        bool         `json:"isSend,omitempty"`
+	IsSend        bool         `json:"isSend"`
 	Path          string       `short:"p" long:"path" description:"The path used to identify the rule, by default, the rule's name is used" json:"path,omitempty"`
 	LocalDir      string       `long:"local-dir" description:"The directory for files on the local disk" json:"localDir,omitempty"`
 	RemoteDir     string       `long:"remote-dir" description:"The directory for files on the remote host" json:"remoteDir,omitempty"`

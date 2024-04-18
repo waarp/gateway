@@ -3,6 +3,11 @@
 Historique des versions
 =======================
 
+* :feature:`132` Ajout du support de FTP(S) à la gateway. Il est désormais
+  possible d'effectuer des transferts client et serveur avec ce protocole.
+  Compte tenu du fonctionnement particulier de ce protocole, il est conseillé de
+  lire :ref:`la rubrique<ref-proto-ftp>` spécifiant les détails d'implémentation
+  du protocole avant de l'utiliser.
 * :bug:`391` Les mots de passe des serveurs locaux R66 sont maintenant bien
   exportés en clair (comme le reste des mots de passe non-hashés).
 * :feature:`389` Ajout de le commande ``waarp-gatewayd change-aes-passphrase``
@@ -65,9 +70,9 @@ Historique des versions
   "actif" (*running*). Les serveurs ne seront pas automatiquement démarré
   immédiatement après leur création. En revanche, ils seront démarrés lors
   du prochain lancement de la gateway.
-* :fix:`-` Les *transfer infos* transmises via HTTP(S) sont désormais bien prises
+* :bug:`-` Les *transfer infos* transmises via HTTP(S) sont désormais bien prises
   en compte dans les tâches.
-* :fix:`-` Les valeurs de substitution de *transfer info* dans les tâches ne sont
+* :bug:`-` Les valeurs de substitution de *transfer info* dans les tâches ne sont
   plus substituées par leur représentation JSON. Cela avait pour effet que les
   valeurs de type *string* étaient substituées avec des guillemets ``"``.
   Désormais, les *transfer info* sont substituées par leur représentation

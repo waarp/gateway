@@ -41,7 +41,7 @@ func initSelfTransfer(c convey.C, proto string, clientConf protocol.ClientConfig
 	partConf protocol.PartnerConfig, servConf protocol.ServerConfig,
 ) *SelfContext {
 	feat, protoExists := Protocols[proto]
-	c.So(protoExists, convey.ShouldBeTrue)
+	c.SoMsg("the protocol should exist", protoExists, convey.ShouldBeTrue)
 
 	test := initTestData(c)
 	port := testhelpers.GetFreePort(c)
@@ -170,8 +170,8 @@ func (s *SelfContext) StartService(c convey.C) {
 	})
 }
 
-// AddAuths adds the given cryptos to the test database.
-func (s *SelfContext) AddAuths(c convey.C, creds ...*model.Credential) {
+// AddCreds adds the given credentials to the test database.
+func (s *SelfContext) AddCreds(c convey.C, creds ...*model.Credential) {
 	for _, cred := range creds {
 		c.So(s.DB.Insert(cred).Run(), convey.ShouldBeNil)
 	}
@@ -392,28 +392,55 @@ func (s *SelfContext) CheckClientTransferError(c convey.C, errCode types.Transfe
 		stepsStr = append(stepsStr, s.String())
 	}
 
-	c.Convey("Then there should be a client-side transfer in error", func(c convey.C) {
-		c.So(actual.ID, convey.ShouldEqual, s.ClientTrans.ID)
-		c.So(actual.RemoteTransferID, convey.ShouldNotBeBlank)
-		c.So(actual.Owner, convey.ShouldEqual, conf.GlobalConfig.GatewayName)
-		c.So(actual.Status, convey.ShouldEqual, types.StatusError)
-		c.So(actual.RuleID, convey.ShouldEqual, s.ClientRule.ID)
-		c.So(actual.ClientID.Int64, convey.ShouldEqual, s.Client.ID)
-		c.So(actual.RemoteAccountID.Int64, convey.ShouldEqual, s.RemAccount.ID)
-		c.So(actual.Status, convey.ShouldEqual, types.StatusError)
+	c.SoMsg("Then the database ID should match",
+		actual.ID, convey.ShouldEqual, s.ClientTrans.ID)
+	c.SoMsg("Then the remote transfer ID should not be empty",
+		actual.RemoteTransferID, convey.ShouldNotBeBlank)
+	c.SoMsg("Then the transfer should be owned by the gateway",
+		actual.Owner, convey.ShouldEqual, conf.GlobalConfig.GatewayName)
+	c.SoMsg("Then the transfer should be in error",
+		actual.Status, convey.ShouldEqual, types.StatusError)
+	c.SoMsg("Then the rule ID should match",
+		actual.RuleID, convey.ShouldEqual, s.ClientRule.ID)
+	c.SoMsg("Then the client ID should match",
+		actual.ClientID.Int64, convey.ShouldEqual, s.Client.ID)
+	c.SoMsg("Then the remote account ID should match",
+		actual.RemoteAccountID.Int64, convey.ShouldEqual, s.RemAccount.ID)
 
-		c.So(actual.ErrCode, convey.ShouldResemble, errCode)
-		c.So(actual.ErrDetails, convey.ShouldEqual, errMsg)
-		c.So(actual.Filesize, testhelpers.ShouldBeOneOf, model.UnknownSize, TestFileSize)
-		c.So(actual.Progress, convey.ShouldBeBetweenOrEqual, 0, TestFileSize)
-		c.So(actual.Step.String(), testhelpers.ShouldBeOneOf, stepsStr)
+	c.SoMsg("Then the error code should match",
+		actual.ErrCode, convey.ShouldResemble, errCode)
+	c.SoMsg("Then the error details should match",
+		actual.ErrDetails, convey.ShouldResemble, errMsg)
+	c.SoMsg("Then the file size should either match or be unknown",
+		actual.Filesize, testhelpers.ShouldBeOneOf, model.UnknownSize, TestFileSize)
+	c.SoMsg("Then the transfer should have a reasonable progression",
+		actual.Progress, convey.ShouldBeBetweenOrEqual, 0, TestFileSize)
+	c.SoMsg("Then the transfer should be in one of the expected steps",
+		actual.Step.String(), testhelpers.ShouldBeOneOf, stepsStr)
 
-		if actual.Step == types.StepPreTasks || actual.Step == types.StepPostTasks {
-			c.So(actual.TaskNumber, convey.ShouldEqual, 1)
-		} else {
-			c.So(actual.TaskNumber, convey.ShouldEqual, 0)
-		}
-	})
+	if actual.Step == types.StepPreTasks || actual.Step == types.StepPostTasks {
+		c.SoMsg("Then the task counter should be 1",
+			actual.TaskNumber, convey.ShouldEqual, 1)
+	} else {
+		c.SoMsg("Then the task counter should be 0",
+			actual.TaskNumber, convey.ShouldEqual, 0)
+	}
+}
+
+func (s *SelfContext) GetServerTransfer(c convey.C) *model.NormalizedTransferView {
+	var serverTrans model.NormalizedTransfers
+	c.SoMsg(
+		"Failed retrieve the server transfer entry",
+		s.DB.Select(&serverTrans).Where(
+			"is_server=true AND account=? AND agent=? AND rule=? AND is_send=?",
+			s.LocAccount.Login, s.Server.Name, s.ServerRule.Name,
+			s.ServerRule.IsSend).Run(),
+		convey.ShouldBeNil,
+	)
+
+	c.So(serverTrans, convey.ShouldHaveLength, 1)
+
+	return serverTrans[0]
 }
 
 // CheckServerTransferError takes asserts that the server transfer should have
@@ -433,30 +460,40 @@ func (s *SelfContext) CheckServerTransferError(c convey.C, errCode types.Transfe
 		stepsStr = append(stepsStr, s.String())
 	}
 
-	c.Convey("Then there should be a server-side transfer in error", func(c convey.C) {
-		c.So(actual.ID, convey.ShouldEqual, id)
-		c.So(actual.Owner, convey.ShouldEqual, conf.GlobalConfig.GatewayName)
-		c.So(actual.Status, convey.ShouldEqual, types.StatusError)
-		c.So(actual.RuleID, convey.ShouldEqual, s.ServerRule.ID)
-		c.So(actual.LocalAccountID.Int64, convey.ShouldEqual, s.LocAccount.ID)
-		c.So(actual.Status, convey.ShouldEqual, types.StatusError)
+	c.SoMsg("Then the database ID should match",
+		actual.ID, convey.ShouldEqual, id)
+	c.SoMsg("Then the transfer should be owned by the gateway",
+		actual.Owner, convey.ShouldEqual, conf.GlobalConfig.GatewayName)
+	c.SoMsg("Then the transfer should be in error",
+		actual.Status, convey.ShouldEqual, types.StatusError)
+	c.SoMsg("Then the rule ID should match",
+		actual.RuleID, convey.ShouldEqual, s.ServerRule.ID)
+	c.SoMsg("Then the local account ID should match",
+		actual.LocalAccountID.Int64, convey.ShouldEqual, s.LocAccount.ID)
 
-		c.So(actual.ErrCode, convey.ShouldResemble, errCode)
-		c.So(actual.ErrDetails, convey.ShouldEqual, errMsg)
-		c.So(actual.Filesize, testhelpers.ShouldBeOneOf, model.UnknownSize, TestFileSize)
-		c.So(actual.Progress, convey.ShouldBeBetweenOrEqual, 0, TestFileSize)
-		c.So(actual.Step.String(), testhelpers.ShouldBeOneOf, stepsStr)
+	c.SoMsg("Then the error code should match",
+		actual.ErrCode, convey.ShouldResemble, errCode)
+	c.SoMsg("Then the error details should match",
+		actual.ErrDetails, convey.ShouldResemble, errMsg)
+	c.SoMsg("Then the file size should either match or be unknown",
+		actual.Filesize, testhelpers.ShouldBeOneOf, model.UnknownSize, TestFileSize)
+	c.SoMsg("Then the transfer should have a reasonable progression",
+		actual.Progress, convey.ShouldBeBetweenOrEqual, 0, TestFileSize)
+	c.SoMsg("Then the transfer should be in one of the expected steps",
+		actual.Step.String(), testhelpers.ShouldBeOneOf, stepsStr)
 
-		if s.protoFeatures.TransID {
-			c.So(actual.RemoteTransferID, convey.ShouldEqual, s.ClientTrans.RemoteTransferID)
-		}
+	if s.protoFeatures.TransID {
+		c.SoMsg("Then the remote transfer ID should match",
+			actual.RemoteTransferID, convey.ShouldEqual, s.ClientTrans.RemoteTransferID)
+	}
 
-		if actual.Step == types.StepPreTasks || actual.Step == types.StepPostTasks {
-			c.So(actual.TaskNumber, convey.ShouldEqual, 1)
-		} else {
-			c.So(actual.TaskNumber, convey.ShouldEqual, 0)
-		}
-	})
+	if actual.Step == types.StepPreTasks || actual.Step == types.StepPostTasks {
+		c.SoMsg("Then the task counter should be 1",
+			actual.TaskNumber, convey.ShouldEqual, 1)
+	} else {
+		c.SoMsg("Then the task counter should be 0",
+			actual.TaskNumber, convey.ShouldEqual, 0)
+	}
 }
 
 func (s *SelfContext) getTransfer(c convey.C, id int64) *model.Transfer {

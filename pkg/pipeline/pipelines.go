@@ -166,3 +166,11 @@ func (l *list) Exists(id int64) bool {
 
 	return ok
 }
+
+// Reset completely empties the pipelines list. Should only be used in tests.
+func (l *list) Reset() {
+	l.mutex.Lock()
+	defer l.mutex.Unlock()
+
+	l.m = map[int64]*Pipeline{}
+}

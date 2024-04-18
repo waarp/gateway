@@ -21,11 +21,11 @@ func Init(tb testing.TB, scheme string) *mem.FS {
 	memFS, err := mem.NewFS()
 	require.NoError(tb, err, "failed to create memfs")
 
-	filesystems.TestFileSystems[scheme] = memFS
+	filesystems.TestFileSystems.Store(scheme, memFS)
 
 	tb.Cleanup(func() {
 		require.NoError(tb, hfs.RemoveAll(memFS, "."))
-		delete(filesystems.TestFileSystems, scheme)
+		filesystems.TestFileSystems.Delete(scheme)
 	})
 
 	return memFS
@@ -35,12 +35,14 @@ func InitMemFS(c convey.C) fs.FS {
 	memFS, err := mem.NewFS()
 	c.So(err, convey.ShouldBeNil)
 
-	c.So(filesystems.TestFileSystems, convey.ShouldNotContainKey, MemScheme)
-	filesystems.TestFileSystems[MemScheme] = memFS
+	_, ok := filesystems.TestFileSystems.Load(MemScheme)
+	c.So(ok, convey.ShouldBeFalse)
+
+	filesystems.TestFileSystems.Store(MemScheme, memFS)
 
 	c.Reset(func() {
 		c.So(hfs.RemoveAll(memFS, "."), convey.ShouldBeNil)
-		delete(filesystems.TestFileSystems, MemScheme)
+		filesystems.TestFileSystems.Delete(MemScheme)
 	})
 
 	return memFS

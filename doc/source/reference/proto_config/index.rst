@@ -23,3 +23,4 @@ de configuration approprié doit être fourni.
    r66
    sftp
    http
+   ftp

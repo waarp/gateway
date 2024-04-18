@@ -1,7 +1,7 @@
 package pipelinetest
 
 import (
-	"crypto/rand"
+	"bytes"
 	"errors"
 	"fmt"
 	"os"
@@ -24,9 +24,8 @@ import (
 // TestLogin and TestPassword are the credentials used for authentication
 // during transfer tests.
 const (
-	TestLogin      = "foo"
-	TestPassword   = "sesame"
-	testServerName = "waarp_server"
+	TestLogin    = "foo"
+	TestPassword = "sesame"
 )
 
 //nolint:gochecknoinits //init is required here
@@ -41,8 +40,13 @@ func init() {
 	}
 }
 
+const (
+	repeatedString = "0123456789" // 10 bytes
+	repeatAmount   = 100000       // 100,000 times
+)
+
 // TestFileSize defines the size of the file used for transfer tests.
-const TestFileSize int64 = 1000000 // 1MB
+const TestFileSize = int64(len(repeatedString)) * repeatAmount
 
 var ErrTestError = errors.New("intended test error")
 
@@ -106,6 +110,16 @@ func (t *testData) makeServerTracer(isSend bool) func() pipeline.Trace {
 			}
 		}
 
+		if t.hasClientDataError && isSend {
+			trace.OnRead = func(off int64) error {
+				if off >= DataErrorOffset {
+					<-time.After(200 * time.Millisecond) //nolint:gomnd //for test only
+				}
+
+				return nil
+			}
+		}
+
 		return trace
 	}
 }
@@ -156,6 +170,16 @@ func (t *testData) setClientTrace(pip *pipeline.Pipeline) {
 			}
 		}
 	}
+
+	if t.hasServerDataError && pip.TransCtx.Rule.IsSend {
+		pip.Trace.OnRead = func(off int64) error {
+			if off >= DataErrorOffset {
+				<-time.After(200 * time.Millisecond) //nolint:gomnd //for test only
+			}
+
+			return nil
+		}
+	}
 }
 
 func mkURL(base string, elem ...string) *types.URL {
@@ -170,10 +194,8 @@ func mkURL(base string, elem ...string) *types.URL {
 func AddSourceFile(c convey.C, filesys fs.FS, file *types.URL) []byte {
 	c.So(fs.MkdirAll(filesys, file.Dir()), convey.ShouldBeNil)
 
-	cont := make([]byte, TestFileSize)
-
-	_, err := rand.Read(cont)
-	c.So(err, convey.ShouldBeNil)
+	cont := bytes.Repeat([]byte(repeatedString), repeatAmount)
+	c.So(cont, convey.ShouldHaveLength, TestFileSize)
 
 	c.So(fs.WriteFullFile(filesys, file, cont), convey.ShouldBeNil)
 
@@ -183,6 +205,7 @@ func AddSourceFile(c convey.C, filesys fs.FS, file *types.URL) []byte {
 func initTestData(c convey.C) *testData {
 	db := database.TestDatabase(c)
 	testFS := fstest.InitMemFS(c)
+	c.Reset(pipeline.List.Reset)
 
 	home := "memory:/gw_home"
 	homePath := mkURL(home)
@@ -258,4 +281,12 @@ func (t *testData) ClientShouldHaveErrorTasked(c convey.C) {
 
 func (t *testData) ServerShouldHaveErrorTasked(c convey.C) {
 	c.So(t.servErrTasksNb, convey.ShouldNotBeZeroValue)
+}
+
+func (t *testData) GetClientErrTaskNb() uint32 {
+	return atomic.LoadUint32(&t.cliErrTasksNb)
+}
+
+func (t *testData) GetServerErrTaskNb() uint32 {
+	return atomic.LoadUint32(&t.servErrTasksNb)
 }

@@ -39,7 +39,10 @@ func displayHistory(f *Formatter, hist *api.OutHistory) {
 		stop = hist.Stop.Value.Local().Format(time.RFC3339Nano)
 	}
 
-	f.Title("Transfer %d (as %s) [%s]", hist.ID, role, coloredStatus(hist.Status))
+	title := f.titleColor().Sprintf("Transfer %d (%s as %s)", hist.ID, role,
+		direction(hist.IsSend))
+
+	f.PlainTitle(title + " " + coloredStatus(hist.Status))
 	f.Indent()
 
 	defer f.UnIndent()
