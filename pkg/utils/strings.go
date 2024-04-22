@@ -1,3 +1,7 @@
+// Package utils contains utility function for a number of common tasks needed
+// throughout the project. As such, care should be taken to ensure that this
+// package does NOT import any other packages from the project (to avoid
+// import cycles).
 package utils
 
 import (
@@ -5,41 +9,6 @@ import (
 
 	"golang.org/x/exp/constraints"
 )
-
-// ContainsOneOfStrings returns whether the given slice contains one of the given
-// strings or not.
-func ContainsOneOfStrings(slice []string, strings ...string) bool {
-	for _, str := range strings {
-		if ContainsString(slice, str) {
-			return true
-		}
-	}
-
-	return false
-}
-
-// ContainsAllStrings returns whether the given slice contains all the given
-// strings or not.
-func ContainsAllStrings(slice []string, strings ...string) bool {
-	for _, str := range strings {
-		if !ContainsString(slice, str) {
-			return false
-		}
-	}
-
-	return false
-}
-
-// ContainsString returns whether the given slice contains the given string or not.
-func ContainsString(slice []string, str string) bool {
-	for _, elem := range slice {
-		if elem == str {
-			return true
-		}
-	}
-
-	return false
-}
 
 // FormatInt formats an integer as a string. It is a shortcut for strconv.FormatInt
 // but without the need to cast the integer into an int64, and without the need

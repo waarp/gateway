@@ -9,6 +9,7 @@ import (
 
 	"github.com/pkg/sftp"
 	"golang.org/x/crypto/ssh"
+	"golang.org/x/exp/slices"
 
 	"code.waarp.fr/apps/gateway/gateway/pkg/fs"
 	"code.waarp.fr/apps/gateway/gateway/pkg/model"
@@ -69,6 +70,20 @@ func newTransferClient(pip *pipeline.Pipeline, dialer *net.Dialer, sshClientConf
 	}, nil
 }
 
+// algorithmsForKeyFormat returns the supported signature algorithms for a given
+// public key format (PublicKey.Type), in order of preference. See RFC 8332,
+// Section 2. See also the note in sendKexInit on backwards compatibility.
+func algorithmsForKeyFormat(keyFormat string) []string {
+	switch keyFormat {
+	case ssh.KeyAlgoRSA:
+		return []string{ssh.KeyAlgoRSASHA256, ssh.KeyAlgoRSASHA512, ssh.KeyAlgoRSA}
+	case ssh.CertAlgoRSAv01:
+		return []string{ssh.CertAlgoRSASHA256v01, ssh.CertAlgoRSASHA512v01, ssh.CertAlgoRSAv01}
+	default:
+		return []string{keyFormat}
+	}
+}
+
 func (c *transferClient) makePartnerHostKeys(creds model.Credentials,
 ) ([]ssh.PublicKey, []string, *pipeline.Error) {
 	var (
@@ -89,8 +104,10 @@ func (c *transferClient) makePartnerHostKeys(creds model.Credentials,
 
 		hostKeys = append(hostKeys, key)
 
-		if !utils.ContainsOneOfStrings(algos, key.Type()) {
-			algos = append(algos, key.Type())
+		for _, newAlgo := range algorithmsForKeyFormat(key.Type()) {
+			if !slices.Contains(algos, newAlgo) {
+				algos = append(algos, newAlgo)
+			}
 		}
 	}
 

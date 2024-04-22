@@ -1,9 +1,10 @@
 package migrations
 
 import (
-	"code.waarp.fr/lib/migration"
+	"fmt"
+	"strings"
 
-	"code.waarp.fr/apps/gateway/gateway/pkg/utils"
+	"code.waarp.fr/lib/migration"
 )
 
 type Actions = migration.Actions
@@ -67,5 +68,14 @@ const (
 	SetDefault = migration.SetDefault
 )
 
-//nolint:gochecknoglobals //a global var is necessary here to make a function alias
-var checkOnlyOneNotNull = utils.CheckOnlyOneNotNull
+func checkOnlyOneNotNull(cols ...string) string {
+	isNulls := make([]string, len(cols))
+
+	for i := range cols {
+		isNulls[i] = fmt.Sprintf("(CASE WHEN %s IS NOT NULL THEN 1 ELSE 0 END)", cols[i])
+	}
+
+	sum := strings.Join(isNulls, " + ")
+
+	return fmt.Sprintf("%s = 1", sum)
+}

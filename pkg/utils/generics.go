@@ -3,9 +3,9 @@ package utils
 import (
 	"errors"
 	"fmt"
-	"sort"
 
 	"golang.org/x/exp/constraints"
+	"golang.org/x/exp/slices"
 )
 
 // If simulates a ternary operator.
@@ -19,51 +19,30 @@ func If[T any](cond bool, valTrue, valFalse T) T {
 
 func Max[T constraints.Ordered](args ...T) T {
 	if len(args) == 0 {
-		var zeroVal T
-
-		return zeroVal
+		return *new(T)
 	}
 
-	max := args[0]
-
-	for _, candidate := range args {
-		if candidate > max {
-			max = candidate
-		}
-	}
-
-	return max
+	return slices.Max(args)
 }
 
 func Min[T constraints.Ordered](args ...T) T {
 	if len(args) == 0 {
-		var zeroVal T
-
-		return zeroVal
+		return *new(T)
 	}
 
-	min := args[0]
+	return slices.Min(args)
+}
 
-	for _, candidate := range args {
-		if candidate < min {
-			min = candidate
+// ContainsOneOf returns whether the given slice contains at least one of the
+// given elements or not.
+func ContainsOneOf[T comparable](slice []T, elems ...T) bool {
+	for _, elem := range elems {
+		if slices.Contains(slice, elem) {
+			return true
 		}
 	}
 
-	return min
-}
-
-func OrderedIterate[V any](m map[string]V, f func(key string, val V)) {
-	keys := make([]string, 0, len(m))
-	for key := range m {
-		keys = append(keys, key)
-	}
-
-	sort.Strings(keys)
-
-	for _, key := range keys {
-		f(key, m[key])
-	}
+	return false
 }
 
 var (

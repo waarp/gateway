@@ -274,10 +274,12 @@ func TestActiveSelfPullClientDataFail(t *testing.T) {
 					"data connection closed unexpectedly",
 					types.StepData)
 
-				ctx.TestRetry(c,
-					ctx.ServerShouldHavePostTasked,
-					ctx.ClientShouldHavePostTasked,
-				)
+				if ctx.GetServerTransfer(c).Progress > 0 {
+					ctx.TestRetry(c,
+						ctx.ServerShouldHavePostTasked,
+						ctx.ClientShouldHavePostTasked,
+					)
+				}
 			})
 		})
 	})

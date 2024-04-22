@@ -9,6 +9,7 @@ import (
 	"fmt"
 
 	"code.waarp.fr/lib/log"
+	"golang.org/x/exp/slices"
 
 	"code.waarp.fr/apps/gateway/gateway/pkg/database"
 	"code.waarp.fr/apps/gateway/gateway/pkg/model"
@@ -243,7 +244,7 @@ func makeRootCAs(db database.ReadAccess, owner authentication.Owner) (*x509.Cert
 	}
 
 	for _, aut := range trustedAuthorities {
-		if len(aut.ValidHosts) == 0 || utils.ContainsString(aut.ValidHosts, owner.Host()) {
+		if len(aut.ValidHosts) == 0 || slices.Contains(aut.ValidHosts, owner.Host()) {
 			rootCAs.AppendCertsFromPEM([]byte(aut.PublicIdentity))
 		}
 	}
