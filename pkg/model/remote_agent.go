@@ -33,7 +33,7 @@ func (r *RemoteAgent) Host() string      { return r.Address.Host }
 
 // BeforeWrite is called before inserting a new `RemoteAgent` entry in the
 // database. It checks whether the new entry is valid or not.
-func (r *RemoteAgent) BeforeWrite(db database.ReadAccess) error {
+func (r *RemoteAgent) BeforeWrite(db database.Access) error {
 	r.Owner = conf.GlobalConfig.GatewayName
 
 	if r.Name == "" {

@@ -27,7 +27,7 @@ func (*TransferInfo) Appellation() string { return NameTransferInfo }
 func (t *TransferInfo) IsHistory() bool   { return t.HistoryID.Valid }
 
 // BeforeWrite checks if the TransferInfo entry is valid for insertion in the database.
-func (t *TransferInfo) BeforeWrite(db database.ReadAccess) error {
+func (t *TransferInfo) BeforeWrite(db database.Access) error {
 	var (
 		owner   database.IterateBean
 		transID int64

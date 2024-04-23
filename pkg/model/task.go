@@ -76,7 +76,7 @@ func (t *Task) validateTasks() error {
 
 // BeforeWrite checks if the new `Task` entry is valid and can be
 // inserted in the database.
-func (t *Task) BeforeWrite(db database.ReadAccess) error {
+func (t *Task) BeforeWrite(db database.Access) error {
 	if n, err := db.Count(&Rule{}).Where("id=?", t.RuleID).Run(); err != nil {
 		return fmt.Errorf("failed to check for parrent rule: %w", err)
 	} else if n < 1 {

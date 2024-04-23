@@ -22,7 +22,7 @@ func (*Authority) TableName() string   { return TableAuthorities }
 func (*Authority) Appellation() string { return NameAuthority }
 func (a *Authority) GetID() int64      { return a.ID }
 
-func (a *Authority) BeforeWrite(db database.ReadAccess) error {
+func (a *Authority) BeforeWrite(db database.Access) error {
 	if strings.TrimSpace(a.Name) == "" {
 		return database.NewValidationError("the authority is missing a name")
 	}

@@ -33,7 +33,7 @@ func (l *LocalAccount) GetCredentials(db database.ReadAccess, authTypes ...strin
 // inserted in the database.
 //
 //nolint:dupl // too many differences
-func (l *LocalAccount) BeforeWrite(db database.ReadAccess) error {
+func (l *LocalAccount) BeforeWrite(db database.Access) error {
 	if l.LocalAgentID == 0 {
 		return database.NewValidationError("the account's agentID cannot be empty")
 	}

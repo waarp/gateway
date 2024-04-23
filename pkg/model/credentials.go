@@ -54,7 +54,7 @@ func (*Credential) Appellation() string { return NameCredentials }
 
 // BeforeWrite checks if the new `Crypto` entry is valid and can be inserted
 // in the database.
-func (c *Credential) BeforeWrite(db database.ReadAccess) error {
+func (c *Credential) BeforeWrite(db database.Access) error {
 	if c.Type == "" {
 		return database.NewValidationError("the authentication method's type is missing")
 	}

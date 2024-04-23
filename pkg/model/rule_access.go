@@ -42,7 +42,7 @@ func (*RuleAccess) Appellation() string { return NameRuleAccess }
 
 // BeforeWrite is called before inserting a new `RuleAccess` entry in the
 // database. It checks whether the new entry is valid or not.
-func (r *RuleAccess) BeforeWrite(db database.ReadAccess) error {
+func (r *RuleAccess) BeforeWrite(db database.Access) error {
 	if n, err := db.Count(&Rule{}).Where("id=?", r.RuleID).Run(); err != nil {
 		return fmt.Errorf("failed to check access rule: %w", err)
 	} else if n < 1 {

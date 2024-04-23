@@ -23,7 +23,7 @@ import (
 
 // restTransferToDB transforms the JSON transfer into its database equivalent.
 func restTransferToDB(jTrans *api.InTransfer, db *database.DB, logger *log.Logger) (*model.Transfer, error) {
-	rule, account, client, err := getTransInfo(db, jTrans)
+	ruleID, accountID, clientID, err := getTransInfo(db, jTrans)
 	if err != nil {
 		return nil, err
 	}
@@ -58,9 +58,9 @@ func restTransferToDB(jTrans *api.InTransfer, db *database.DB, logger *log.Logge
 	}
 
 	return &model.Transfer{
-		RuleID:          rule.ID,
-		ClientID:        utils.NewNullInt64(client.ID),
-		RemoteAccountID: utils.NewNullInt64(account.ID),
+		RuleID:          ruleID,
+		ClientID:        clientID,
+		RemoteAccountID: accountID,
 		SrcFilename:     srcFile,
 		DestFilename:    destFile,
 		Filesize:        model.UnknownSize,

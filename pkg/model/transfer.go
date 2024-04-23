@@ -175,7 +175,7 @@ func (t *Transfer) checkMandatoryValues(rule *Rule) error {
 // inserted in the database.
 //
 //nolint:funlen //no easy way to split the function
-func (t *Transfer) BeforeWrite(db database.ReadAccess) error {
+func (t *Transfer) BeforeWrite(db database.Access) error {
 	t.Owner = conf.GlobalConfig.GatewayName
 
 	if t.RuleID == 0 {
@@ -199,10 +199,6 @@ func (t *Transfer) BeforeWrite(db database.ReadAccess) error {
 	case t.LocalAccountID.Valid && t.RemoteAccountID.Valid:
 		return database.NewValidationError("the transfer cannot have both a local and remote account ID")
 	case t.RemoteAccountID.Valid:
-		if !t.ClientID.Valid {
-			return database.NewValidationError("the transfer is missing a client ID")
-		}
-
 		if err := db.Get(&RemoteAccount{}, "id=?", t.RemoteAccountID.Int64).Run(); err != nil {
 			if database.IsNotFound(err) {
 				return database.NewValidationError("the remote account %d does not exist",
@@ -210,6 +206,12 @@ func (t *Transfer) BeforeWrite(db database.ReadAccess) error {
 			}
 
 			return fmt.Errorf("failed to retrieve remote account: %w", err)
+		}
+
+		if !t.ClientID.Valid {
+			if err := t.setTransferClient(db); err != nil {
+				return err
+			}
 		}
 
 		if err := db.Get(&Client{}, "id=?", t.ClientID.Int64).Run(); err != nil {
@@ -406,4 +408,45 @@ func (t *Transfer) TransferID() (int64, error) {
 	}
 
 	return id.Int64(), nil
+}
+
+// setTransferClient sets the transfer's client if it was not specified by
+// the user (to maintain backwards compatibility).
+func (t *Transfer) setTransferClient(db database.Access) error {
+	// Retrieve the transfer's partner (to retrieve the transfer's protocol).
+	var partner RemoteAgent
+	if err := db.Get(&partner, "id=(SELECT remote_agent_id FROM remote_accounts WHERE id=?)",
+		t.RemoteAccountID).Run(); err != nil {
+		return fmt.Errorf("failed to retrieve transfer partner: %w", err)
+	}
+
+	// Retrieve all clients with the transfer's protocol.
+	var clients Clients
+	if err := db.Select(&clients).Where("protocol=? AND owner=?", partner.Protocol,
+		conf.GlobalConfig.GatewayName).Run(); err != nil {
+		return fmt.Errorf("failed to retrieve potential transfer clients: %w", err)
+	}
+
+	// If more than one client was found, return an error to the user (because
+	// we don't know which one to use, so we ask the user to specify one).
+	if len(clients) > 1 {
+		return database.NewValidationError("the transfer is missing a client ID")
+	}
+
+	// If exactly one client was found, use it.
+	if len(clients) == 1 {
+		t.ClientID = utils.NewNullInt64(clients[0].ID)
+
+		return nil
+	}
+
+	// Finally, if no clients were found, create a new default one and use it.
+	client := Client{Protocol: partner.Protocol}
+	if err := db.Insert(&client).Run(); err != nil {
+		return fmt.Errorf("failed to create new transfer client: %w", err)
+	}
+
+	t.ClientID = utils.NewNullInt64(client.ID)
+
+	return nil
 }

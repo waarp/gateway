@@ -55,7 +55,7 @@ func (h *HistoryEntry) setTransInfoOwner(info *TransferInfo) {
 // inserted in the database.
 //
 //nolint:funlen,gocyclo,cyclop,gocognit // validation can be long...
-func (h *HistoryEntry) BeforeWrite(db database.ReadAccess) error {
+func (h *HistoryEntry) BeforeWrite(db database.Access) error {
 	h.Owner = conf.GlobalConfig.GatewayName
 
 	if h.Owner == "" {

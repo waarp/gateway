@@ -23,7 +23,7 @@ func (c *CloudInstance) TableName() string   { return TableCloudInstances }
 func (c *CloudInstance) Appellation() string { return "cloud instance" }
 func (c *CloudInstance) GetID() int64        { return c.ID }
 
-func (c *CloudInstance) BeforeWrite(db database.ReadAccess) error {
+func (c *CloudInstance) BeforeWrite(db database.Access) error {
 	c.Owner = conf.GlobalConfig.GatewayName
 
 	if c.Name == "" {

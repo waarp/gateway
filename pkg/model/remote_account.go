@@ -26,7 +26,7 @@ func (*RemoteAccount) IsServer() bool      { return false }
 // inserted in the database.
 //
 //nolint:dupl // too many differences to be factorized easily
-func (r *RemoteAccount) BeforeWrite(db database.ReadAccess) error {
+func (r *RemoteAccount) BeforeWrite(db database.Access) error {
 	if r.RemoteAgentID == 0 {
 		return database.NewValidationError("the account's agentID cannot be empty")
 	}
