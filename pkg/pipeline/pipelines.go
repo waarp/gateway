@@ -70,6 +70,14 @@ func (l *list) SetLimits(server, client uint64) {
 	l.mutex.Lock()
 	defer l.mutex.Unlock()
 
+	if server == 0 {
+		server = NoLimit
+	}
+
+	if client == 0 {
+		client = NoLimit
+	}
+
 	l.limitServer = server
 	l.limitClient = client
 }

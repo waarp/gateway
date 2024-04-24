@@ -497,7 +497,7 @@ func (p *Pipeline) doneErr(status types.TransferStatus) {
 
 func (p *Pipeline) doneOK() {
 	defer func() {
-		p.Logger.Debug("Transfer ended without errors in %s",
+		p.Logger.Info("Transfer ended without errors in %s",
 			time.Since(p.TransCtx.Transfer.Start))
 	}()
 

@@ -163,14 +163,14 @@ func (l *LocalAgent) AfterWrite(db database.Access) error {
 		return nil
 	}
 
-	serverPwd, hasPwd := l.ProtoConfig["serverPassword"]
-	if !hasPwd {
-		return nil
+	cipher, pwdErr := utils.GetAs[string](l.ProtoConfig, "serverPassword")
+	if pwdErr != nil {
+		return nil // no server password in proto config
 	}
 
-	serverPasswd, pwdIsStr := serverPwd.(string)
-	if !pwdIsStr || serverPasswd == "" {
-		return nil
+	serverPasswd, aesErr := utils.AESDecrypt(database.GCM, cipher)
+	if aesErr != nil {
+		return fmt.Errorf("failed to decrypt R66 server JSON password: %w", aesErr)
 	}
 
 	if n, err := db.Count(&Credential{}).Where("local_agent_id=? AND type=?",
