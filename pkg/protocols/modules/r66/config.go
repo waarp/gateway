@@ -32,6 +32,9 @@ type serverConfig struct {
 	// If true, the final hash verification will be disabled.
 	NoFinalHash bool `json:"noFinalHash,omitempty"`
 
+	// Specifies the algorithms allowed for the final hash verification.
+	FinalHashAlgos []string `json:"finalHashAlgos,omitempty"`
+
 	// If true, a hash check will be performed on each block during a transfer.
 	CheckBlockHash bool `json:"checkBlockHash,omitempty"`
 }
@@ -77,6 +80,9 @@ type partnerConfig struct {
 	// If true, the final hash verification will be disabled.
 	NoFinalHash *bool `json:"noFinalHash,omitempty"`
 
+	// The Hash algorithm used to check the validity of the files transferred.
+	FinalHashAlgo *string `json:"finalHashAlgo,omitempty"`
+
 	// If true, a hash check will be performed on each block during a transfer.
 	CheckBlockHash *bool `json:"checkBlockHash,omitempty"`
 }
@@ -116,6 +122,9 @@ type clientConfig struct {
 
 	// If true, the final hash verification will be disabled.
 	NoFinalHash bool `json:"noFinalHash,omitempty"`
+
+	// The Hash algorithm used to check the validity of the files transferred.
+	FinalHashAlgo string `json:"finalHashAlgo,omitempty"`
 
 	// If true, a hash check will be performed on each block during a transfer.
 	CheckBlockHash bool `json:"checkBlockHash,omitempty"`

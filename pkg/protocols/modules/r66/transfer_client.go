@@ -24,6 +24,7 @@ type transferClient struct {
 
 	blockSize                   uint32
 	noFinalHash, checkBlockHash bool
+	finalHashAlgo               string
 	serverLogin, serverPassword string
 
 	tlsConfig *tls.Config
@@ -115,7 +116,7 @@ func (c *transferClient) Receive(file protocol.ReceiveFile) *pipeline.Error {
 		return nil
 	}
 
-	hash, hErr := internal.MakeHash(c.ctx, c.pip.TransCtx.FS, c.pip.Logger,
+	hash, hErr := internal.MakeHash(c.ctx, c.finalHashAlgo, c.pip.TransCtx.FS, c.pip.Logger,
 		&c.pip.TransCtx.Transfer.LocalPath)
 	if hErr != nil {
 		return c.wrapAndSendError(hErr)

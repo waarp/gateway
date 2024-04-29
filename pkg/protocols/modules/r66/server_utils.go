@@ -33,14 +33,23 @@ func (t *serverTransfer) checkSize() *pipeline.Error {
 	return nil
 }
 
+func (t *serverTransfer) getHash() ([]byte, error) {
+	hash, tErr := internal.MakeHash(t.ctx, t.conf.Digest, t.pip.TransCtx.FS, t.pip.Logger,
+		&t.pip.TransCtx.Transfer.LocalPath)
+	if tErr != nil {
+		return nil, internal.ToR66Error(tErr)
+	}
+
+	return hash, nil
+}
+
 func (t *serverTransfer) checkHash(exp []byte) error {
 	if t.r66Conf.NoFinalHash || !t.conf.FinalHash || (len(exp) == 0 &&
 		t.pip.TransCtx.Transfer.Filesize <= 0) {
 		return nil
 	}
 
-	hash, err := internal.MakeHash(t.ctx, t.pip.TransCtx.FS, t.pip.Logger,
-		&t.pip.TransCtx.Transfer.LocalPath)
+	hash, err := t.getHash()
 	if err != nil {
 		return err
 	}

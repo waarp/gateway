@@ -100,16 +100,9 @@ func TestValidAuth(t *testing.T) {
 			})
 
 			Convey("Given an incorrect hash digest", func() {
-				packet.Digest = "SHA-512"
+				packet.Digest = "BAD"
 
-				Convey("When calling the `ValidAuth` function", func() {
-					_, err := handler.ValidAuth(packet)
-					So(err, ShouldBeNil)
-
-					Convey("Then it should return a valid digest", func() {
-						So(packet.Digest, ShouldEqual, "SHA-256")
-					})
-				})
+				shouldFailWith("the credentials are incorrect", "A: unsuported hash algorithm")
 			})
 		})
 	})
