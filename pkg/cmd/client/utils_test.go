@@ -1,7 +1,6 @@
 package wg
 
 import (
-	"io"
 	"os"
 	"path/filepath"
 	"strings"
@@ -9,11 +8,19 @@ import (
 	"time"
 
 	"github.com/jessevdk/go-flags"
+	"github.com/mattn/go-colorable"
 	"github.com/stretchr/testify/require"
 )
 
 func init() {
 	_ = time.Now().Local() // init the time.Local variable
+}
+
+func resetVars() {
+	Server = ""
+	Partner = ""
+	LocalAccount = ""
+	RemoteAccount = ""
 }
 
 func writeFile(tb testing.TB, name, content string) string {
@@ -25,26 +32,11 @@ func writeFile(tb testing.TB, name, content string) string {
 	return file
 }
 
-type commander interface{ execute(w io.Writer) error }
-
 func executeCommand(tb testing.TB, w *strings.Builder, command commander, args ...string) error {
 	tb.Helper()
 
 	_, err := flags.ParseArgs(command, args)
 	require.NoError(tb, err, "failed to parse the command arguments")
 
-	return command.execute(w) //nolint:wrapcheck //no need to wrap here
-}
-
-func newTestOutput() *strings.Builder {
-	return &strings.Builder{}
-}
-
-func parseAsLocalTime(tb testing.TB, str string) time.Time {
-	tb.Helper()
-
-	date, err := time.Parse(time.RFC3339Nano, str)
-	require.NoErrorf(tb, err, "failed to parse date %q", str)
-
-	return date.Local()
+	return command.execute(colorable.NewNonColorable(w)) //nolint:wrapcheck //no need to wrap here
 }

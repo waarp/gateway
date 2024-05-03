@@ -6,45 +6,29 @@ import (
 	"io"
 	"net/http"
 
-	"github.com/jedib0t/go-pretty/v6/text"
+	"github.com/gookit/color"
 
-	"code.waarp.fr/apps/gateway/gateway/pkg/admin/rest/api"
 	"code.waarp.fr/apps/gateway/gateway/pkg/model/types"
 )
 
 func coloredStatus(status types.TransferStatus) string {
 	switch status {
 	case types.StatusPlanned:
-		return text.FgWhite.Sprintf("[%s]", status)
+		return color.HiWhite.Render(status)
 	case types.StatusRunning:
-		return text.FgCyan.Sprintf("[%s]", status)
+		return color.Blue.Render(status)
 	case types.StatusPaused:
-		return text.FgYellow.Sprintf("[%s]", status)
+		return color.HiYellow.Render(status)
 	case types.StatusInterrupted:
-		return text.FgHiRed.Sprintf("[%s]", status)
+		return color.HiYellow.Render(status)
 	case types.StatusCancelled:
-		return text.FgHiBlack.Sprintf("[%s]", status)
+		return color.Gray.Render(status)
 	case types.StatusError:
-		return text.FgRed.Sprintf("[%s]", status)
+		return color.HiRed.Render(status)
 	case types.StatusDone:
-		return text.FgHiGreen.Sprintf("[%s]", status)
+		return color.Green.Render(status)
 	default:
-		return fmt.Sprintf("[%s]", status)
-	}
-}
-
-func displayTransferFile(f *Formatter, trans *api.OutTransfer) {
-	switch {
-	case trans.IsServer && trans.IsSend: // <- Server
-		f.Value("File pulled", trans.SrcFilename)
-	case trans.IsServer && !trans.IsSend: // -> Server
-		f.Value("File pushed", trans.DestFilename)
-	case !trans.IsServer && trans.IsSend: // Client ->
-		f.Value("File to send", trans.SrcFilename)
-		f.ValueCond("File deposited as", trans.DestFilename)
-	case !trans.IsServer && !trans.IsSend: // Client <-
-		f.Value("File to retrieve", trans.SrcFilename)
-		f.ValueCond("File saved as", trans.DestFilename)
+		return color.OpItalic.Sprintf("<unrecognized=%q>", status)
 	}
 }
 
@@ -53,17 +37,13 @@ type pair struct {
 	val any
 }
 
-func displayTransferInfo(f *Formatter, info map[string]any) {
+func displayTransferInfo(w io.Writer, info map[string]any) {
 	if len(info) == 0 {
 		return
 	}
 
-	f.Title("Transfer values")
-	f.Indent()
-
-	defer f.UnIndent()
-
-	displayMap(f, info)
+	style22.printf(w, "Transfer values:")
+	displayMap(w, style333, info)
 }
 
 func putTransferRequest(w io.Writer, id uint64, endpoint, action string) error {

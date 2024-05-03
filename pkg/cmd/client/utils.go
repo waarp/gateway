@@ -21,8 +21,31 @@ const (
 	roleServer    = "server"
 	directionRecv = "receive"
 	directionSend = "send"
-	sizeUnknown   = "unknown"
 )
+
+func ifElse[T any](cond bool, valTrue, valFalse T) T {
+	if cond {
+		return valTrue
+	} else {
+		return valFalse
+	}
+}
+
+func withDefault[T any](val, def T) T {
+	if reflect.ValueOf(val).IsZero() {
+		return def
+	} else {
+		return val
+	}
+}
+
+func direction(isSend bool) string {
+	if isSend {
+		return directionSend
+	}
+
+	return directionRecv
+}
 
 func unmarshalBody(body io.Reader, object any) error {
 	b, err := io.ReadAll(body)

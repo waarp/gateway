@@ -9,6 +9,7 @@ import (
 	"crypto/sha256"
 	"crypto/x509"
 	"fmt"
+	"io"
 	"strings"
 	"time"
 
@@ -19,84 +20,55 @@ import (
 )
 
 //nolint:varnamelen,funlen //formatter name is kept short for readability
-func displayTLSInfo(f *Formatter, name, content string) {
-	f.Title("Certificate %q", name)
-	f.Indent()
-
-	defer f.UnIndent()
-
+func displayTLSInfo(w io.Writer, style *style, name, content string) error {
 	certs, err := utils.ParsePEMCertChain(content)
 	if err != nil || len(certs) == 0 {
-		f.Error("Content", "<could not parse certificate>")
-
-		return
+		return fmt.Errorf("could not parse certificate: %w", err)
 	}
 
 	cert := certs[0]
+	subStyle := nextStyle(style)
+	subSubStyle := nextStyle(subStyle)
 
-	f.Title("Subject")
-	f.Indent()
-	f.Value("Common Name", cert.Subject.CommonName)
-	f.ValueCond("Organization", strings.Join(cert.Subject.Organization, ", "))
-	f.ValueCond("Country", strings.Join(cert.Subject.Country, ", "))
-	f.UnIndent()
+	style.printf(w, "Certificate %q:", name)
 
-	f.Title("Issuer")
-	f.Indent()
-	f.Value("Common Name", cert.Issuer.CommonName)
-	f.ValueCond("Organization", strings.Join(cert.Issuer.Organization, ", "))
-	f.ValueCond("Country", strings.Join(cert.Issuer.Country, ", "))
-	f.UnIndent()
+	subStyle.printf(w, "Subject")
+	subSubStyle.printL(w, "Common Name", cert.Subject.CommonName)
+	subSubStyle.option(w, "Organization", join(cert.Subject.Organization))
+	subSubStyle.option(w, "Country", join(cert.Subject.Country))
 
-	f.Title("Validity")
-	f.Indent()
-	f.Value("Not Before", cert.NotBefore.Format(time.RFC1123))
-	f.Value("Not After", cert.NotAfter.Format(time.RFC1123))
-	f.UnIndent()
+	subStyle.printf(w, "Issuer")
+	subSubStyle.printL(w, "Common Name", cert.Issuer.CommonName)
+	subSubStyle.option(w, "Organization", join(cert.Issuer.Organization))
+	subSubStyle.option(w, "Country", join(cert.Issuer.Country))
 
-	f.Title("Subject Alt Names")
-	f.Indent()
+	subStyle.printf(w, "Validity")
+	subSubStyle.printL(w, "Not Before", cert.NotBefore.Format(time.RFC1123))
+	subSubStyle.printL(w, "Not After", cert.NotAfter.Format(time.RFC1123))
 
-	for _, dnsName := range cert.DNSNames {
-		f.Value("DNS Name", dnsName)
-	}
+	subStyle.printf(w, "Subject Alt Names")
+	subSubStyle.option(w, "DNS Names", join(cert.DNSNames))
+	subSubStyle.option(w, "IP Addresses", joinStringers(cert.IPAddresses))
+	subSubStyle.option(w, "Email Addresses", join(cert.EmailAddresses))
 
-	for _, ipAddr := range cert.IPAddresses {
-		f.Value("IP Address", ipAddr.String())
-	}
+	subStyle.printf(w, "Public Key Info")
+	subSubStyle.printL(w, "Algorithm", cert.PublicKeyAlgorithm.String())
+	subSubStyle.printL(w, "Public Value", marshalPublicKey(cert.PublicKey))
 
-	for _, email := range cert.EmailAddresses {
-		f.Value("Email Address", email)
-	}
+	subStyle.printf(w, "Fingerprints")
+	subSubStyle.printL(w, "SHA-256", sha256Sum(subSubStyle, cert.Raw))
+	//nolint:gosec //sha1 is only used for checksums, no need to be cryptographically secure
+	subSubStyle.printL(w, "SHA-1", fmt.Sprintf("% X", sha1.Sum(cert.Raw)))
 
-	for _, uri := range cert.URIs {
-		f.Value("URI", uri.String())
-	}
+	subStyle.printf(w, "Signature")
+	subSubStyle.printL(w, "Algorithm", cert.SignatureAlgorithm.String())
+	subSubStyle.printL(w, "Public Value", shortHex(cert.Signature))
 
-	f.UnIndent()
+	subStyle.printL(w, "Serial Number", shortHex(cert.SerialNumber.Bytes()))
+	subStyle.printL(w, "Key Usages", strings.Join(utils.KeyUsageToStrings(cert.KeyUsage), ", "))
+	subStyle.printL(w, "Extended Key Usages", strings.Join(utils.ExtKeyUsagesToStrings(cert.ExtKeyUsage), ", "))
 
-	f.Title("Public Key Info")
-	f.Indent()
-	f.Value("Algorithm", cert.PublicKeyAlgorithm.String())
-	f.Value("Public Value", marshalPublicKey(cert.PublicKey))
-	f.UnIndent()
-
-	f.Title("Fingerprints")
-	f.Indent()
-	f.Value("SHA-256", fmt.Sprintf("% X", sha256.Sum256(cert.Raw)))
-	//nolint:gosec //sha1 is used for checksum only, no need to be cryptographically secure
-	f.Value("SHA-1", fmt.Sprintf("% X", sha1.Sum(cert.Raw)))
-	f.UnIndent()
-
-	f.Title("Signature")
-	f.Indent()
-	f.Value("Algorithm", cert.SignatureAlgorithm.String())
-	f.Value("Public Value", prettyHexa(cert.Signature))
-	f.UnIndent()
-
-	f.Value("Serial Number", prettyHexa(cert.SerialNumber.Bytes()))
-	f.Value("Key Usages", strings.Join(utils.KeyUsageToStrings(cert.KeyUsage), ", "))
-	f.Value("Extended Key Usages", strings.Join(utils.ExtKeyUsagesToStrings(cert.ExtKeyUsage), ", "))
+	return nil
 }
 
 func marshalPublicKey(key any) string {
@@ -113,66 +85,54 @@ func marshalPublicKey(key any) string {
 		return text.FgRed.Sprintf("<unknown public key type>")
 	}
 
-	return prettyHexa(bytes)
+	return shortHex(bytes)
 }
 
-func prettyHexa(bytes []byte) string {
-	const (
-		firstLinePrefix = " "
-		firstLineLen    = 27
-		lineLen         = 32
-	)
+func sha256Sum(style *style, b []byte) string {
+	sndLinePrefix := strings.Repeat(" ", len(style.bulletPrefix)+len("SHA-256: "))
+	sum := sha256.Sum256(b)
 
-	var lines []string
+	return fmt.Sprintf("% X\n%s% X", sum[:16], sndLinePrefix, sum[16:])
+}
 
-	if len(bytes) < firstLineLen {
+func shortHex(bytes []byte) string {
+	const maxLen = 20
+	if len(bytes) < maxLen {
 		return fmt.Sprintf("% X", bytes)
 	}
 
-	lines = append(lines, fmt.Sprintf("%s% X", firstLinePrefix, bytes[:firstLineLen]))
-
-	for i := firstLineLen; i < len(bytes); i += lineLen {
-		end := utils.Min(i+lineLen, len(bytes))
-		lines = append(lines, fmt.Sprintf("% X", bytes[i:end]))
-	}
-
-	return strings.Join(lines, "\n")
+	return fmt.Sprintf("% X... (%d bytes total)", bytes[:maxLen-7], len(bytes))
 }
 
-func displaySSHKeyInfo(f *Formatter, name, content string) {
-	f.Title("SSH Public Key %q", name)
-	f.Indent()
-
-	defer f.UnIndent()
-
+func displaySSHKeyInfo(w io.Writer, style *style, name, content string) error {
 	key, err := utils.ParseSSHAuthorizedKey(content)
 	if err != nil || key == nil {
-		f.Error("Content", "<could not parse SSH public key>")
-
-		return
+		return fmt.Errorf("could not parse SSH public key: %w", err)
 	}
 
-	f.Value("Type", key.Type())
-	f.Value("SHA-256 Fingerprint", ssh.FingerprintSHA256(key))
-	f.Value("MD5 Fingerprint", ssh.FingerprintLegacyMD5(key))
+	subStyle := nextStyle(style)
+
+	style.printf(w, "SSH Public Key %q:", name)
+	subStyle.printL(w, "Type", key.Type())
+	subStyle.printL(w, "SHA-256 Fingerprint", ssh.FingerprintSHA256(key))
+	subStyle.printL(w, "MD5 Fingerprint", ssh.FingerprintLegacyMD5(key))
+
+	return nil
 }
 
-func displayPrivateKeyInfo(f *Formatter, name, content string) {
-	f.Title("Private Key %q", name)
-	f.Indent()
-
-	defer f.UnIndent()
-
+func displayPrivateKeyInfo(w io.Writer, style *style, name, content string) error {
 	pk, err := ssh.ParsePrivateKey([]byte(content))
 	if err != nil {
-		f.Error("Content", "<could not parse private key>")
-
-		return
+		return fmt.Errorf("could not parse private key: %w", err)
 	}
 
-	key := pk.PublicKey()
+	subStyle := nextStyle(style)
+	pubkey := pk.PublicKey()
 
-	f.Value("Type", key.Type())
-	f.Value("SHA-256 Fingerprint", ssh.FingerprintSHA256(key))
-	f.Value("MD5 Fingerprint", ssh.FingerprintLegacyMD5(key))
+	style.printf(w, "Private Key %q:", name)
+	subStyle.printL(w, "Type", pubkey.Type())
+	subStyle.printL(w, "SHA-256 Fingerprint", ssh.FingerprintSHA256(pubkey))
+	subStyle.printL(w, "MD5 Fingerprint", ssh.FingerprintLegacyMD5(pubkey))
+
+	return nil
 }

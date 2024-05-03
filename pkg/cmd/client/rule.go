@@ -19,36 +19,18 @@ func checkRuleDir(direction string) error {
 	return nil
 }
 
-func direction(isSend bool) string {
-	if isSend {
-		return directionSend
-	}
+func displayRule(w io.Writer, rule *api.OutRule) {
+	style1.printf(w, "Rule %q (%s)", rule.Name, direction(rule.IsSend))
+	style22.option(w, "Comment", rule.Comment)
+	style22.printL(w, "Path", rule.Path)
+	style22.option(w, "Local directory", rule.LocalDir)
+	style22.option(w, "Remote directory", rule.RemoteDir)
+	style22.option(w, "Temp receive directory", rule.TmpLocalRcvDir)
 
-	return directionRecv
-}
-
-func DisplayRule(w io.Writer, rule *api.OutRule) {
-	f := NewFormatter(w)
-	defer f.Render()
-
-	displayRule(f, rule)
-}
-
-func displayRule(f *Formatter, rule *api.OutRule) {
-	f.Title("Rule %q (%s)", rule.Name, direction(rule.IsSend))
-	f.Indent()
-
-	defer f.UnIndent()
-
-	f.ValueCond("Comment", rule.Comment)
-	f.Value("Path", rule.Path)
-	f.ValueCond("Local directory", rule.LocalDir)
-	f.ValueCond("Remote directory", rule.RemoteDir)
-	f.ValueCond("Temp receive directory", rule.TmpLocalRcvDir)
-	displayTaskChain(f, "Pre tasks", rule.PreTasks)
-	displayTaskChain(f, "Post tasks", rule.PostTasks)
-	displayTaskChain(f, "Error tasks", rule.ErrorTasks)
-	displayRuleAccess(f, rule.Authorized)
+	displayTaskChain(w, "Pre tasks", rule.PreTasks)
+	displayTaskChain(w, "Post tasks", rule.PostTasks)
+	displayTaskChain(w, "Error tasks", rule.ErrorTasks)
+	displayRuleAccess(w, rule.Authorized)
 }
 
 func warnRuleInPathDeprecated(w io.Writer) {
@@ -76,7 +58,7 @@ type RuleGet struct {
 	} `positional-args:"yes"`
 }
 
-func (r *RuleGet) Execute([]string) error { return r.execute(stdOutput) }
+func (r *RuleGet) Execute([]string) error { return execute(r) }
 func (r *RuleGet) execute(w io.Writer) error {
 	if err := checkRuleDir(r.Args.Direction); err != nil {
 		return err
@@ -89,7 +71,7 @@ func (r *RuleGet) execute(w io.Writer) error {
 		return err
 	}
 
-	DisplayRule(w, rule)
+	displayRule(w, rule)
 
 	return nil
 }
@@ -116,7 +98,7 @@ type RuleAdd struct {
 	WorkPath string `short:"w" long:"work_path" description:"[DEPRECATED] The path to write the received file" json:"workPath,omitempty"` // Deprecated: replaced by TmpReceiveDir
 }
 
-func (r *RuleAdd) Execute([]string) error { return r.execute(stdOutput) }
+func (r *RuleAdd) Execute([]string) error { return execute(r) }
 func (r *RuleAdd) execute(w io.Writer) error {
 	r.IsSend = r.Direction == directionSend
 
@@ -153,7 +135,7 @@ type RuleDelete struct {
 	} `positional-args:"yes"`
 }
 
-func (r *RuleDelete) Execute([]string) error { return r.execute(stdOutput) }
+func (r *RuleDelete) Execute([]string) error { return execute(r) }
 func (r *RuleDelete) execute(w io.Writer) error {
 	if err := checkRuleDir(r.Args.Direction); err != nil {
 		return err
@@ -178,7 +160,7 @@ type RuleList struct {
 	SortBy string `short:"s" long:"sort" description:"Attribute used to sort the returned entries" choice:"name+" choice:"name-" default:"name+"`
 }
 
-func (r *RuleList) Execute([]string) error { return r.execute(stdOutput) }
+func (r *RuleList) Execute([]string) error { return execute(r) }
 
 //nolint:dupl //duplicate is for a completely different type, keep separate
 func (r *RuleList) execute(w io.Writer) error {
@@ -192,13 +174,10 @@ func (r *RuleList) execute(w io.Writer) error {
 	}
 
 	if rules := body["rules"]; len(rules) > 0 {
-		f := NewFormatter(w)
-		defer f.Render()
-
-		f.MainTitle("Rules:")
+		style0.printf(w, "=== Rules ===")
 
 		for _, rule := range rules {
-			displayRule(f, rule)
+			displayRule(w, rule)
 		}
 	} else {
 		fmt.Fprintln(w, "No rules found.")
@@ -232,7 +211,7 @@ type RuleUpdate struct {
 	WorkPath string `short:"w" long:"work_path" description:"[DEPRECATED] The path to write the received file" json:"workPath,omitempty"` // Deprecated: replaced by TmpReceiveDir
 }
 
-func (r *RuleUpdate) Execute([]string) error { return r.execute(stdOutput) }
+func (r *RuleUpdate) Execute([]string) error { return execute(r) }
 func (r *RuleUpdate) execute(w io.Writer) error {
 	if err := checkRuleDir(r.Args.Direction); err != nil {
 		return err
@@ -276,7 +255,7 @@ type RuleAllowAll struct {
 	} `positional-args:"yes"`
 }
 
-func (r *RuleAllowAll) Execute([]string) error { return r.execute(stdOutput) }
+func (r *RuleAllowAll) Execute([]string) error { return execute(r) }
 func (r *RuleAllowAll) execute(w io.Writer) error {
 	if err := checkRuleDir(r.Args.Direction); err != nil {
 		return err

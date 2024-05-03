@@ -3,7 +3,6 @@ package wg
 import (
 	"fmt"
 	"io"
-	"os"
 	"path"
 
 	"code.waarp.fr/apps/gateway/gateway/pkg/admin/rest/api"
@@ -13,29 +12,15 @@ const cloudsAPIPath = "/api/clouds"
 
 type cloudObject = api.GetCloudRespObject
 
-func DisplayCloud(w io.Writer, cloud *cloudObject) {
-	f := NewFormatter(w)
-	defer f.Render()
-
-	displayCloud(f, cloud)
-}
-
-func displayCloud(f *Formatter, cloud *cloudObject) {
-	f.Title("Cloud instance %q (%s)", cloud.Name, cloud.Type)
-	f.Indent()
-
-	defer f.UnIndent()
-
-	f.ValueWithDefault("Key", cloud.Key, "<none>")
+func displayCloud(w io.Writer, cloud *cloudObject) {
+	style1.printf(w, "Cloud instance %q (%s)", cloud.Name, cloud.Type)
+	style22.printL(w, "Key", withDefault(cloud.Key, none))
 
 	if len(cloud.Options) == 0 {
-		f.Empty("Options", "<none>")
+		style22.printL(w, "Options", none)
 	} else {
-		f.Title("Options")
-		f.Indent()
-		defer f.UnIndent()
-
-		displayMap(f, cloud.Options)
+		style22.printf(w, "Options:")
+		displayMap(w, style333, cloud.Options)
 	}
 }
 
@@ -45,7 +30,7 @@ type CloudGet struct {
 	} `positional-args:"yes"`
 }
 
-func (c *CloudGet) Execute([]string) error { return c.execute(os.Stdout) }
+func (c *CloudGet) Execute([]string) error { return execute(c) }
 func (c *CloudGet) execute(w io.Writer) error {
 	addr.Path = path.Join(cloudsAPIPath, c.Args.Name)
 
@@ -54,7 +39,7 @@ func (c *CloudGet) execute(w io.Writer) error {
 		return err
 	}
 
-	DisplayCloud(w, cloud)
+	displayCloud(w, cloud)
 
 	return nil
 }
@@ -68,7 +53,7 @@ type CloudAdd struct {
 	Options map[string]confVal `short:"o" long:"options" description:"The options of the cloud instance, in key:val format. Can be repeated." json:"options,omitempty"`
 }
 
-func (c *CloudAdd) Execute([]string) error { return c.execute(os.Stdout) }
+func (c *CloudAdd) Execute([]string) error { return execute(c) }
 func (c *CloudAdd) execute(w io.Writer) error {
 	addr.Path = cloudsAPIPath
 
@@ -87,7 +72,7 @@ type CloudDelete struct {
 	} `positional-args:"yes"`
 }
 
-func (c *CloudDelete) Execute([]string) error { return c.execute(os.Stdout) }
+func (c *CloudDelete) Execute([]string) error { return execute(c) }
 func (c *CloudDelete) execute(w io.Writer) error {
 	addr.Path = path.Join(cloudsAPIPath, c.Args.Name)
 
@@ -113,7 +98,7 @@ type CloudUpdate struct {
 	Options map[string]confVal `short:"o" long:"options" description:"The options of the cloud instance, in key:val format. Can be repeated." json:"options,omitempty"`
 }
 
-func (c *CloudUpdate) Execute([]string) error { return c.execute(os.Stdout) }
+func (c *CloudUpdate) Execute([]string) error { return execute(c) }
 func (c *CloudUpdate) execute(w io.Writer) error {
 	addr.Path = path.Join(cloudsAPIPath, c.Args.Name)
 
@@ -137,7 +122,7 @@ type CloudList struct {
 	SortBy string `short:"s" long:"sort" description:"The property to sort by." choice:"name+" choice:"name-" choice:"type+" choice:"type-" default:"name+"`
 }
 
-func (c *CloudList) Execute([]string) error { return c.execute(os.Stdout) }
+func (c *CloudList) Execute([]string) error { return execute(c) }
 func (c *CloudList) execute(w io.Writer) error {
 	addr.Path = cloudsAPIPath
 
@@ -149,13 +134,10 @@ func (c *CloudList) execute(w io.Writer) error {
 	}
 
 	if clouds := body["clouds"]; clouds != nil {
-		f := NewFormatter(w)
-		defer f.Render()
-
-		f.MainTitle("Cloud instances:")
+		style0.printf(w, "=== Cloud instances ===")
 
 		for _, cloud := range clouds {
-			displayCloud(f, cloud)
+			displayCloud(w, cloud)
 		}
 	} else {
 		fmt.Fprintf(w, "No cloud instances found.\n")

@@ -8,7 +8,10 @@ import (
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
+	"golang.org/x/exp/maps"
+	"golang.org/x/exp/slices"
 
+	"code.waarp.fr/apps/gateway/gateway/pkg/model"
 	"code.waarp.fr/apps/gateway/gateway/pkg/model/types"
 	"code.waarp.fr/apps/gateway/gateway/pkg/utils"
 )
@@ -101,28 +104,21 @@ func TestTransferGet(t *testing.T) {
 		output     = "dir/out"
 		localPath  = "local/" + file
 		remotePath = "remote/" + file
-		filesize   = 1024
+		filesize   = 2048
 		start      = "2020-01-01T00:00:00Z"
 		stop       = "2021-01-01T00:00:00Z"
-		status     = types.StatusCancelled
+		status     = types.StatusDone
 		step       = types.StepData
 		progress   = 512
 		taskNb     = 3
 		errCode    = types.TeDataTransfer
 		errMsg     = "some error"
 
-		key = "key"
-		val = "val"
+		key1, key2 = "key1", "key2"
+		val1, val2 = "val1", "val2"
 	)
 
-	var (
-		path = "/api/transfers/" + utils.FormatInt(id)
-		role = transferRole(isServer)
-		way  = direction(isSend)
-	)
-
-	startTime := parseAsLocalTime(t, start)
-	stopTime := parseAsLocalTime(t, stop)
+	path := "/api/transfers/" + utils.FormatInt(id)
 
 	t.Run(`Testing the partner "get" command`, func(t *testing.T) {
 		w := newTestOutput()
@@ -158,7 +154,7 @@ func TestTransferGet(t *testing.T) {
 				"taskNumber":     taskNb,
 				"errorCode":      errCode,
 				"errorMsg":       errMsg,
-				"transferInfo":   map[string]any{key: val},
+				"transferInfo":   map[string]any{key1: val1, key2: val2},
 			},
 		}
 
@@ -169,28 +165,44 @@ func TestTransferGet(t *testing.T) {
 				require.NoError(t, executeCommand(t, w, command, utils.FormatInt(id)),
 					"Then it should not return an error")
 
+				outputData := maps.Clone(result.body)
+				outputData["way"] = direction(isSend)
+				outputData["role"] = transferRole(isServer)
+				outputData["startTime"] = parseAsLocalTime(t, start)
+				outputData["stopTime"] = parseAsLocalTime(t, stop)
+				outputData["prettySize"] = prettyBytes(filesize)
+				outputData["prettyProgress"] = prettyBytes(progress)
+				outputData["key1"] = key1
+				outputData["key2"] = key2
+				outputData["val1"] = val1
+				outputData["val2"] = val2
+
 				assert.Equal(t,
-					fmt.Sprintf("── Transfer %d (%s as %s) [%s]\n", id, way, role, status)+
-						fmt.Sprintf("   ├─ Remote ID: %s\n", remoteID)+
-						fmt.Sprintf("   ├─ Protocol: %s\n", proto)+
-						fmt.Sprintf("   ├─ File to send: %s\n", file)+
-						fmt.Sprintf("   ├─ File deposited as: %s\n", output)+
-						fmt.Sprintf("   ├─ Rule: %s\n", rule)+
-						fmt.Sprintf("   ├─ Requested by: %s\n", account)+
-						fmt.Sprintf("   ├─ Requested to: %s\n", partner)+
-						fmt.Sprintf("   ├─ With client: %s\n", client)+
-						fmt.Sprintf("   ├─ Full local path: %s\n", localPath)+
-						fmt.Sprintf("   ├─ Full remote path: %s\n", remotePath)+
-						fmt.Sprintf("   ├─ File size: %d bytes\n", filesize)+
-						fmt.Sprintf("   ├─ Start date: %s\n", startTime)+
-						fmt.Sprintf("   ├─ End date: %s\n", stopTime)+
-						fmt.Sprintf("   ├─ Current step: %s\n", step)+
-						fmt.Sprintf("   ├─ Bytes transferred: %d\n", progress)+
-						fmt.Sprintf("   ├─ Tasks executed: %d\n", taskNb)+
-						fmt.Sprintf("   ├─ Error code: %s\n", errCode)+
-						fmt.Sprintf("   ├─ Error message: %s\n", errMsg)+
-						fmt.Sprintf("   ╰─ Transfer values\n")+
-						fmt.Sprintf("      ╰─ %s: %s\n", key, val),
+					expectedOutput(t, outputData,
+						`‣Transfer {{.id}} ({{.way}} as {{.role}}) [{{.status}}]`,
+						`  •Remote ID: {{.remoteID}}`,
+						`  •Protocol: {{.protocol}}`,
+						`  •File to send: {{.srcFilename}}`,
+						`  •File deposited as: {{.destFilename}}`,
+						`  •Rule: {{.rule}}`,
+						`  •Requested by: {{.requester}}`,
+						`  •Requested to: {{.requested}}`,
+						`  •With client: {{.client}}`,
+						`  •Full local path: {{.localFilepath}}`,
+						`  •Full remote path: {{.remoteFilepath}}`,
+						`  •File size: {{.prettySize}}`,
+						`  •Start date: {{.startTime}}`,
+						`  •End date: {{.stopTime}}`,
+						`  •Data transferred: {{.prettyProgress}}`,
+						`  •Current step: {{.step}}`,
+						`  •Current task: #{{.taskNumber}}`,
+						`  •Error code: {{.errorCode}}`,
+						`  •Error message: {{.errorMsg}}`,
+						`  •Transfer values:`,
+						`    {{- range $key, $value := .transferInfo}}`,
+						`    ⁃{{$key}}: {{$value}}`,
+						`    {{- end }}`,
+					),
 					w.String(),
 					"Then it should display the transfer",
 				)
@@ -225,6 +237,7 @@ func TestTransferList(t *testing.T) {
 		remotePath1 = "remote/" + output1
 		start1      = "2020-01-01T00:00:00Z"
 		status1     = types.StatusRunning
+		filesize1   = 0
 		progress1   = 512
 
 		id2         = 2
@@ -241,18 +254,9 @@ func TestTransferList(t *testing.T) {
 		remotePath2 = "remote/" + output2
 		start2      = "2021-01-01T00:00:00Z"
 		status2     = types.StatusPaused
+		filesize2   = model.UnknownSize
 		progress2   = 256
 	)
-
-	var (
-		way1  = direction(isSend1)
-		way2  = direction(isSend2)
-		role1 = transferRole(isServer1)
-		role2 = transferRole(isServer2)
-	)
-
-	startTime1 := parseAsLocalTime(t, start1)
-	startTime2 := parseAsLocalTime(t, start2)
 
 	t.Run(`Testing the transfer "list" command`, func(t *testing.T) {
 		w := newTestOutput()
@@ -267,46 +271,46 @@ func TestTransferList(t *testing.T) {
 			},
 		}
 
+		transfers := []map[string]any{{
+			"id":             id1,
+			"remoteID":       remoteID1,
+			"protocol":       proto1,
+			"rule":           rule1,
+			"isServer":       isServer1,
+			"isSend":         isSend1,
+			"client":         client1,
+			"requester":      account1,
+			"requested":      partner1,
+			"srcFilename":    file1,
+			"destFilename":   output1,
+			"localFilepath":  localPath1,
+			"remoteFilepath": remotePath1,
+			"start":          start1,
+			"status":         status1,
+			"filesize":       filesize1,
+			"progress":       progress1,
+		}, {
+			"id":             id2,
+			"remoteID":       remoteID2,
+			"protocol":       proto2,
+			"rule":           rule2,
+			"isServer":       isServer2,
+			"isSend":         isSend2,
+			"requester":      account2,
+			"requested":      server2,
+			"srcFilename":    file2,
+			"destFilename":   output2,
+			"localFilepath":  localPath2,
+			"remoteFilepath": remotePath2,
+			"start":          start2,
+			"status":         status2,
+			"filesize":       filesize2,
+			"progress":       progress2,
+		}}
+
 		result := &expectedResponse{
 			status: http.StatusOK,
-			body: map[string]any{
-				"transfers": []map[string]any{
-					{
-						"id":             id1,
-						"remoteID":       remoteID1,
-						"protocol":       proto1,
-						"rule":           rule1,
-						"isServer":       isServer1,
-						"isSend":         isSend1,
-						"client":         client1,
-						"requester":      account1,
-						"requested":      partner1,
-						"srcFilename":    file1,
-						"destFilename":   output1,
-						"localFilepath":  localPath1,
-						"remoteFilepath": remotePath1,
-						"start":          start1,
-						"status":         status1,
-						"progress":       progress1,
-					}, {
-						"id":             id2,
-						"remoteID":       remoteID2,
-						"protocol":       proto2,
-						"rule":           rule2,
-						"isServer":       isServer2,
-						"isSend":         isSend2,
-						"requester":      account2,
-						"requested":      server2,
-						"srcFilename":    file2,
-						"destFilename":   output2,
-						"localFilepath":  localPath2,
-						"remoteFilepath": remotePath2,
-						"start":          start2,
-						"status":         status2,
-						"progress":       progress2,
-					},
-				},
-			},
+			body:   map[string]any{"transfers": transfers},
 		}
 
 		t.Run("Given a dummy gateway REST interface", func(t *testing.T) {
@@ -321,35 +325,53 @@ func TestTransferList(t *testing.T) {
 					"Then it should not return an error",
 				)
 
-				assert.Equal(t, "Transfers:\n"+
-					fmt.Sprintf("╭─ Transfer %d (%s as %s) [%s]\n", id1, way1, role1, status1)+
-					fmt.Sprintf("│  ├─ Remote ID: %s\n", remoteID1)+
-					fmt.Sprintf("│  ├─ Protocol: %s\n", proto1)+
-					fmt.Sprintf("│  ├─ File to send: %s\n", file1)+
-					fmt.Sprintf("│  ├─ File deposited as: %s\n", output1)+
-					fmt.Sprintf("│  ├─ Rule: %s\n", rule1)+
-					fmt.Sprintf("│  ├─ Requested by: %s\n", account1)+
-					fmt.Sprintf("│  ├─ Requested to: %s\n", partner1)+
-					fmt.Sprintf("│  ├─ With client: %s\n", client1)+
-					fmt.Sprintf("│  ├─ Full local path: %s\n", localPath1)+
-					fmt.Sprintf("│  ├─ Full remote path: %s\n", remotePath1)+
-					fmt.Sprintf("│  ├─ File size: 0 bytes\n")+
-					fmt.Sprintf("│  ├─ Start date: %s\n", startTime1)+
-					fmt.Sprintf("│  ├─ End date: %s\n", NotApplicable)+
-					fmt.Sprintf("│  ╰─ Bytes transferred: %d\n", progress1)+
-					fmt.Sprintf("╰─ Transfer %d (%s as %s) [%s]\n", id2, way2, role2, status2)+
-					fmt.Sprintf("   ├─ Remote ID: %s\n", remoteID2)+
-					fmt.Sprintf("   ├─ Protocol: %s\n", proto2)+
-					fmt.Sprintf("   ├─ File pushed: %s\n", output2)+
-					fmt.Sprintf("   ├─ Rule: %s\n", rule2)+
-					fmt.Sprintf("   ├─ Requested by: %s\n", account2)+
-					fmt.Sprintf("   ├─ Requested to: %s\n", server2)+
-					fmt.Sprintf("   ├─ Full local path: %s\n", localPath2)+
-					fmt.Sprintf("   ├─ Full remote path: %s\n", remotePath2)+
-					fmt.Sprintf("   ├─ File size: 0 bytes\n")+
-					fmt.Sprintf("   ├─ Start date: %s\n", startTime2)+
-					fmt.Sprintf("   ├─ End date: %s\n", NotApplicable)+
-					fmt.Sprintf("   ╰─ Bytes transferred: %d\n", progress2),
+				outputData := slices.Clone(transfers)
+				outputData[0]["way"] = direction(isSend1)
+				outputData[0]["role"] = transferRole(isServer1)
+				outputData[0]["startTime"] = parseAsLocalTime(t, start1)
+				outputData[0]["prettySize"] = prettyBytes(filesize1)
+				outputData[0]["prettyProgress"] = prettyBytes(progress1)
+				outputData[1]["way"] = direction(isSend2)
+				outputData[1]["role"] = transferRole(isServer2)
+				outputData[1]["startTime"] = parseAsLocalTime(t, start2)
+				outputData[1]["prettyProgress"] = prettyBytes(progress2)
+
+				assert.Equal(t,
+					expectedOutput(t, outputData,
+						`=== Transfers ===`,
+						`{{- with (index . 0) }}`,
+						`‣Transfer {{.id}} ({{.way}} as {{.role}}) [{{.status}}]`,
+						`  •Remote ID: {{.remoteID}}`,
+						`  •Protocol: {{.protocol}}`,
+						`  •File to send: {{.srcFilename}}`,
+						`  •File deposited as: {{.destFilename}}`,
+						`  •Rule: {{.rule}}`,
+						`  •Requested by: {{.requester}}`,
+						`  •Requested to: {{.requested}}`,
+						`  •With client: {{.client}}`,
+						`  •Full local path: {{.localFilepath}}`,
+						`  •Full remote path: {{.remoteFilepath}}`,
+						`  •File size: {{.prettySize}}`,
+						`  •Start date: {{.startTime}}`,
+						`  •End date: N/A`,
+						`  •Data transferred: {{.prettyProgress}}`,
+						`{{- end }}`,
+						`{{- with (index . 1) }}`,
+						`‣Transfer {{.id}} ({{.way}} as {{.role}}) [{{.status}}]`,
+						`  •Remote ID: {{.remoteID}}`,
+						`  •Protocol: {{.protocol}}`,
+						`  •File pushed: {{.destFilename}}`,
+						`  •Rule: {{.rule}}`,
+						`  •Requested by: {{.requester}}`,
+						`  •Requested to: {{.requested}}`,
+						`  •Full local path: {{.localFilepath}}`,
+						`  •Full remote path: {{.remoteFilepath}}`,
+						`  •File size: <unknown>`,
+						`  •Start date: {{.startTime}}`,
+						`  •End date: N/A`,
+						`  •Data transferred: {{.prettyProgress}}`,
+						`{{- end }}`,
+					),
 					w.String(),
 					"Then it should display the transfers",
 				)

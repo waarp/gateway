@@ -14,26 +14,20 @@ const certDeprecatedMsg = `‼WARNING‼ The "certificate" command is deprecated
 	`Please use the "credentials" command instead.`
 
 func warnCertDeprecated() {
-	fmt.Fprintln(asColorable(stdOutput), text.FgRed.Sprint(certDeprecatedMsg))
+	fmt.Fprintln(stdOutput, text.FgRed.Sprint(certDeprecatedMsg))
 }
 
-func DisplayCrypto(w io.Writer, cert *api.OutCrypto) {
-	f := NewFormatter(w)
-	defer f.Render()
-
-	displayCrypto(f, cert)
-}
-
-func displayCrypto(f *Formatter, cert *api.OutCrypto) {
+func displayCrypto(w io.Writer, cert *api.OutCrypto) error {
 	switch {
 	case cert.Certificate != "":
-		displayTLSInfo(f, cert.Name, cert.Certificate)
+		return displayTLSInfo(w, style1, cert.Name, cert.Certificate)
 	case cert.PublicKey != "":
-		displaySSHKeyInfo(f, cert.Name, cert.PublicKey)
+		return displaySSHKeyInfo(w, style1, cert.Name, cert.PublicKey)
 	case cert.PrivateKey != "":
-		displayPrivateKeyInfo(f, cert.Name, cert.PrivateKey)
+		return displayPrivateKeyInfo(w, style1, cert.Name, cert.PrivateKey)
 	default:
-		f.Title("Entry %q: <unknown authentication type>", cert.Name)
+		//nolint:goerr113 //too specific
+		return fmt.Errorf("entry %q: <unknown authentication type>", cert.Name)
 	}
 }
 
@@ -74,9 +68,7 @@ func (c *CertGet) execute(w io.Writer) error {
 		return err
 	}
 
-	DisplayCrypto(w, cert)
-
-	return nil
+	return displayCrypto(w, cert)
 }
 
 // ######################## ADD ##########################
@@ -160,13 +152,12 @@ func (c *CertList) execute(w io.Writer) error {
 	}
 
 	if certs := body["certificates"]; len(certs) > 0 {
-		f := NewFormatter(w)
-		defer f.Render()
-
-		f.MainTitle("Certificates:")
+		style0.printf(w, "=== Certificates ===")
 
 		for _, cert := range certs {
-			displayCrypto(f, cert)
+			if err := displayCrypto(w, cert); err != nil {
+				return err
+			}
 		}
 	} else {
 		fmt.Fprintln(w, "No certificates found.")

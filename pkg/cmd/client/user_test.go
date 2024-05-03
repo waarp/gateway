@@ -55,14 +55,16 @@ func TestUserGet(t *testing.T) {
 					"Then is should not return an error")
 
 				assert.Equal(t,
-					fmt.Sprintf("── User %q\n", username)+
-						fmt.Sprintf("   ╰─ Permissions\n")+
-						fmt.Sprintf("      ├─ Transfers: %s\n", permTrans)+
-						fmt.Sprintf("      ├─ Servers: %s\n", permServers)+
-						fmt.Sprintf("      ├─ Partners: %s\n", permPartners)+
-						fmt.Sprintf("      ├─ Rules: %s\n", permRules)+
-						fmt.Sprintf("      ├─ Users: %s\n", permUsers)+
-						fmt.Sprintf("      ╰─ Administration: %s\n", permAdmin),
+					expectedOutput(t, result.body,
+						`‣User "{{.username}}"`,
+						`  •Permissions:`,
+						`    ⁃Transfers: {{.perms.transfers}}`,
+						`    ⁃Servers: {{.perms.servers}}`,
+						`    ⁃Partners: {{.perms.partners}}`,
+						`    ⁃Rules: {{.perms.rules}}`,
+						`    ⁃Users: {{.perms.users}}`,
+						`    ⁃Administration: {{.perms.administration}}`,
+					),
 					w.String(),
 					"Then it should display the user's info",
 				)
@@ -250,8 +252,8 @@ func TestUserList(t *testing.T) {
 		limit  = "10"
 		offset = "5"
 
-		user1 = "user1"
-		user2 = "user2"
+		username1 = "user1"
+		username2 = "user2"
 	)
 
 	t.Run(`Testing the user "list" command`, func(t *testing.T) {
@@ -272,8 +274,8 @@ func TestUserList(t *testing.T) {
 			status: http.StatusOK,
 			body: map[string]any{
 				"users": []any{
-					map[string]any{"username": user1},
-					map[string]any{"username": user2},
+					map[string]any{"username": username1},
+					map[string]any{"username": username2},
 				},
 			},
 		}
@@ -288,23 +290,29 @@ func TestUserList(t *testing.T) {
 					"Then it should not return an error")
 
 				assert.Equal(t,
-					"Users:\n"+
-						fmt.Sprintf("╭─ User %q\n", user1)+
-						fmt.Sprintf("│  ╰─ Permissions\n")+
-						fmt.Sprintf("│     ├─ Transfers: ---\n")+
-						fmt.Sprintf("│     ├─ Servers: ---\n")+
-						fmt.Sprintf("│     ├─ Partners: ---\n")+
-						fmt.Sprintf("│     ├─ Rules: ---\n")+
-						fmt.Sprintf("│     ├─ Users: ---\n")+
-						fmt.Sprintf("│     ╰─ Administration: ---\n")+
-						fmt.Sprintf("╰─ User %q\n", user2)+
-						fmt.Sprintf("   ╰─ Permissions\n")+
-						fmt.Sprintf("      ├─ Transfers: ---\n")+
-						fmt.Sprintf("      ├─ Servers: ---\n")+
-						fmt.Sprintf("      ├─ Partners: ---\n")+
-						fmt.Sprintf("      ├─ Rules: ---\n")+
-						fmt.Sprintf("      ├─ Users: ---\n")+
-						fmt.Sprintf("      ╰─ Administration: ---\n"),
+					expectedOutput(t, result.body,
+						`=== Users ===`,
+						`{{- with (index .users 0)}}`,
+						`‣User "{{.username}}"`,
+						`  •Permissions:`,
+						`    ⁃Transfers: ---`,
+						`    ⁃Servers: ---`,
+						`    ⁃Partners: ---`,
+						`    ⁃Rules: ---`,
+						`    ⁃Users: ---`,
+						`    ⁃Administration: ---`,
+						`{{- end }}`,
+						`{{- with (index .users 1) }}`,
+						`‣User "{{.username}}"`,
+						`  •Permissions:`,
+						`    ⁃Transfers: ---`,
+						`    ⁃Servers: ---`,
+						`    ⁃Partners: ---`,
+						`    ⁃Rules: ---`,
+						`    ⁃Users: ---`,
+						`    ⁃Administration: ---`,
+						`{{- end }}`,
+					),
 					w.String(),
 					"Then it should display the users",
 				)

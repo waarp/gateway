@@ -26,28 +26,18 @@ func (*ServerArg) UnmarshalFlag(value string) error {
 	return nil
 }
 
-func DisplayServer(w io.Writer, server *api.OutServer) {
-	f := NewFormatter(w)
-	defer f.Render()
+func displayServer(w io.Writer, server *api.OutServer) {
+	style1.printf(w, "Server %q [%s]", server.Name, coloredEnabled(server.Enabled))
+	style22.printL(w, "Protocol", server.Protocol)
+	style22.printL(w, "Address", server.Address)
+	style22.printL(w, "Credentials", withDefault(join(server.Credentials), none))
+	style22.option(w, "Root directory", server.RootDir)
+	style22.option(w, "Receive directory", server.ReceiveDir)
+	style22.option(w, "Send directory", server.SendDir)
+	style22.option(w, "Temp receive directory", server.TmpReceiveDir)
 
-	displayServer(f, server)
-}
-
-func displayServer(f *Formatter, server *api.OutServer) {
-	f.Title("Server %q [%s]", server.Name, enabledStatus(server.Enabled))
-	f.Indent()
-
-	defer f.UnIndent()
-
-	f.Value("Protocol", server.Protocol)
-	f.Value("Address", server.Address)
-	f.ValueWithDefault("Credentials", strings.Join(server.Credentials, ", "), "<none>")
-	f.ValueCond("Root directory", server.RootDir)
-	f.ValueCond("Receive directory", server.ReceiveDir)
-	f.ValueCond("Send directory", server.SendDir)
-	f.ValueCond("Temp receive directory", server.TmpReceiveDir)
-	displayProtoConfig(f, server.ProtoConfig)
-	displayAuthorizedRules(f, server.AuthorizedRules)
+	displayProtoConfig(w, server.ProtoConfig)
+	displayAuthorizedRules(w, server.AuthorizedRules)
 }
 
 func warnServerRootDeprecated(w io.Writer) {
@@ -78,7 +68,7 @@ type ServerGet struct {
 	} `positional-args:"yes"`
 }
 
-func (s *ServerGet) Execute([]string) error { return s.execute(stdOutput) }
+func (s *ServerGet) Execute([]string) error { return execute(s) }
 func (s *ServerGet) execute(w io.Writer) error {
 	addr.Path = path.Join("/api/servers", s.Args.Name)
 
@@ -87,7 +77,7 @@ func (s *ServerGet) execute(w io.Writer) error {
 		return err
 	}
 
-	DisplayServer(w, server)
+	displayServer(w, server)
 
 	return nil
 }
@@ -112,7 +102,7 @@ type ServerAdd struct {
 	WorkDir string `short:"w" long:"work" description:"[DEPRECATED] The server's work directory" json:"workDir,omitempty"`
 }
 
-func (s *ServerAdd) Execute([]string) error { return s.execute(stdOutput) }
+func (s *ServerAdd) Execute([]string) error { return execute(s) }
 func (s *ServerAdd) execute(w io.Writer) error {
 	if s.Root != "" {
 		warnServerRootDeprecated(w)
@@ -149,7 +139,7 @@ type ServerDelete struct {
 	} `positional-args:"yes"`
 }
 
-func (s *ServerDelete) Execute([]string) error { return s.execute(stdOutput) }
+func (s *ServerDelete) Execute([]string) error { return execute(s) }
 func (s *ServerDelete) execute(w io.Writer) error {
 	addr.Path = path.Join("/api/servers", s.Args.Name)
 
@@ -171,7 +161,7 @@ type ServerList struct {
 	Protocols []string `short:"p" long:"protocol" description:"Filter the agents based on the protocol they use. Can be repeated multiple times to filter multiple protocols."`
 }
 
-func (s *ServerList) Execute([]string) error { return s.execute(stdOutput) }
+func (s *ServerList) Execute([]string) error { return execute(s) }
 
 //nolint:dupl //duplicate is for a different type, best keep separate
 func (s *ServerList) execute(w io.Writer) error {
@@ -183,13 +173,10 @@ func (s *ServerList) execute(w io.Writer) error {
 	}
 
 	if servers := body["servers"]; len(servers) > 0 {
-		f := NewFormatter(w)
-		defer f.Render()
-
-		f.MainTitle("Servers:")
+		style0.printf(w, "=== Servers ===")
 
 		for _, server := range servers {
-			displayServer(f, server)
+			displayServer(w, server)
 		}
 	} else {
 		fmt.Fprintln(w, "No servers found.")
@@ -221,7 +208,7 @@ type ServerUpdate struct {
 	WorkDir string `short:"w" long:"work" description:"[DEPRECATED] The server's work directory" json:"workDir,omitempty"`
 }
 
-func (s *ServerUpdate) Execute([]string) error { return s.execute(stdOutput) }
+func (s *ServerUpdate) Execute([]string) error { return execute(s) }
 func (s *ServerUpdate) execute(w io.Writer) error {
 	if s.Root != "" {
 		warnServerRootDeprecated(w)
@@ -266,7 +253,7 @@ type ServerAuthorize struct {
 	} `positional-args:"yes"`
 }
 
-func (s *ServerAuthorize) Execute([]string) error { return s.execute(stdOutput) }
+func (s *ServerAuthorize) Execute([]string) error { return execute(s) }
 func (s *ServerAuthorize) execute(w io.Writer) error {
 	addr.Path = fmt.Sprintf("/api/servers/%s/authorize/%s/%s", s.Args.Server,
 		s.Args.Rule, s.Args.Direction)
@@ -285,7 +272,7 @@ type ServerRevoke struct {
 	} `positional-args:"yes"`
 }
 
-func (s *ServerRevoke) Execute([]string) error { return s.execute(stdOutput) }
+func (s *ServerRevoke) Execute([]string) error { return execute(s) }
 func (s *ServerRevoke) execute(w io.Writer) error {
 	addr.Path = fmt.Sprintf("/api/servers/%s/revoke/%s/%s", s.Args.Server,
 		s.Args.Rule, s.Args.Direction)
@@ -341,9 +328,9 @@ type (
 	ServerDisable struct{ serverEnableDisable }
 )
 
-func (s *ServerEnable) Execute([]string) error     { return s.execute(stdOutput) }
+func (s *ServerEnable) Execute([]string) error     { return execute(s) }
 func (s *ServerEnable) execute(w io.Writer) error  { return s.run(w, true) }
-func (s *ServerDisable) Execute([]string) error    { return s.execute(stdOutput) }
+func (s *ServerDisable) Execute([]string) error    { return execute(s) }
 func (s *ServerDisable) execute(w io.Writer) error { return s.run(w, false) }
 
 // ######################## START/STOP ############################
@@ -354,7 +341,7 @@ type ServerStart struct {
 	} `positional-args:"yes"`
 }
 
-func (s *ServerStart) Execute([]string) error { return s.execute(stdOutput) }
+func (s *ServerStart) Execute([]string) error { return execute(s) }
 func (s *ServerStart) execute(w io.Writer) error {
 	if err := exec(w, fmt.Sprintf("/api/servers/%s/start", s.Args.Name)); err != nil {
 		return err
@@ -371,7 +358,7 @@ type ServerStop struct {
 	} `positional-args:"yes"`
 }
 
-func (s *ServerStop) Execute([]string) error { return s.execute(stdOutput) }
+func (s *ServerStop) Execute([]string) error { return execute(s) }
 func (s *ServerStop) execute(w io.Writer) error {
 	if err := exec(w, fmt.Sprintf("/api/servers/%s/stop", s.Args.Name)); err != nil {
 		return err
@@ -388,7 +375,7 @@ type ServerRestart struct {
 	} `positional-args:"yes"`
 }
 
-func (s *ServerRestart) Execute([]string) error { return s.execute(stdOutput) }
+func (s *ServerRestart) Execute([]string) error { return execute(s) }
 func (s *ServerRestart) execute(w io.Writer) error {
 	if err := exec(w, fmt.Sprintf("/api/servers/%s/restart", s.Args.Name)); err != nil {
 		return err

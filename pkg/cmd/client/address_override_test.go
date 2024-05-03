@@ -74,11 +74,16 @@ func TestAddressOverridesList(t *testing.T) {
 			t.Run("When executing the command", func(t *testing.T) {
 				require.NoError(t, executeCommand(t, w, command))
 
-				require.Equal(t, "Address indirections:\n"+
-					fmt.Sprintf("╭─ Address %q redirects to %q\n", target1, redir1)+
-					fmt.Sprintf("╰─ Address %q redirects to %q\n", target2, redir2),
+				assert.Equal(t,
+					expectedOutput(t, result.body,
+						`=== Address indirections ===`,
+						`{{- range $target, $redir := . }}`,
+						`‣Address "{{$target}}" redirects to "{{$redir}}"`,
+						`{{- end }}`,
+					),
 					w.String(),
-					"Then is should display the indirections")
+					"Then is should display the indirections",
+				)
 			})
 		})
 	})

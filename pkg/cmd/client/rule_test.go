@@ -8,6 +8,8 @@ import (
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
+	"golang.org/x/exp/maps"
+	"golang.org/x/exp/slices"
 )
 
 func TestRuleGet(t *testing.T) {
@@ -103,31 +105,35 @@ func TestRuleGet(t *testing.T) {
 				require.NoError(t, executeCommand(t, w, command, rule, way),
 					"Then it should not return an error")
 
+				outputData := maps.Clone(result.body)
+				outputData["direction"] = way
+
 				assert.Equal(t,
-					fmt.Sprintf("── Rule %q (%s)\n", rule, way)+
-						fmt.Sprintf("   ├─ Comment: %s\n", ruleComment)+
-						fmt.Sprintf("   ├─ Path: %s\n", rulePath)+
-						fmt.Sprintf("   ├─ Local directory: %s\n", ruleLocalDir)+
-						fmt.Sprintf("   ├─ Remote directory: %s\n", ruleRemoteDir)+
-						fmt.Sprintf("   ├─ Temp receive directory: %s\n", ruleTmpDir)+
-						fmt.Sprintf("   ├─ Pre tasks\n")+
-						fmt.Sprintf("   │  ├─ Command %q\n", preTask1)+
-						fmt.Sprintf("   │  ╰─ Command %q\n", preTask2)+
-						fmt.Sprintf("   ├─ Post tasks\n")+
-						fmt.Sprintf("   │  ╰─ Command %q with args\n", postTask)+
-						fmt.Sprintf("   │     ├─ %s: %s\n", postTaskArg1, postTaskVal1)+
-						fmt.Sprintf("   │     ╰─ %s: %s\n", postTaskArg2, postTaskVal2)+
-						fmt.Sprintf("   ├─ Error tasks\n")+
-						fmt.Sprintf("   │  ╰─ Command %q\n", errTask)+
-						fmt.Sprintf("   ╰─ Rule access\n")+
-						fmt.Sprintf("      ├─ Local servers: %s, %s\n", server1, server2)+
-						fmt.Sprintf("      ├─ Remote partners: %s, %s\n", partner1, partner2)+
-						fmt.Sprintf("      ├─ Local accounts: %s.%s, %s.%s, %s.%s, %s.%s\n",
-							server1, locAccount1A, server1, locAccount1B,
-							server2, locAccount2A, server2, locAccount2B)+
-						fmt.Sprintf("      ╰─ Remote accounts: %s.%s, %s.%s, %s.%s, %s.%s\n",
-							partner1, remAccount1A, partner1, remAccount1B,
-							partner2, remAccount2A, partner2, remAccount2B),
+					expectedOutput(t, outputData,
+						`‣Rule "{{.name}}" ({{.direction}})`,
+						`  •Comment: {{.comment}}`,
+						`  •Path: {{.path}}`,
+						`  •Local directory: {{.localDir}}`,
+						`  •Remote directory: {{.remoteDir}}`,
+						`  •Temp receive directory: {{.tmpLocalRcvDir}}`,
+						`  •Pre tasks:`,
+						`    ⁃Task #1 "{{ (index .preTasks 0).type }}"`,
+						`    ⁃Task #2 "{{ (index .preTasks 1).type }}"`,
+						`  •Post tasks:`,
+						`	 {{- with $postTask := (index .postTasks 0) }}`,
+						`    ⁃Task #1 "{{$postTask.type}}" with args:`,
+						`      {{- range $arg, $value := $postTask.args }}`,
+						`      ${{$arg}}: {{$value}}`,
+						`      {{- end }}`,
+						`	 {{- end }}`,
+						`  •Error tasks:`,
+						`    ⁃Task #1 "{{ (index .errorTasks 0).type }}"`,
+						`  •Rule access:`,
+						`    ⁃Local servers: {{ join .authorized.servers }}`,
+						`    ⁃Remote partners: {{ join .authorized.partners }}`,
+						`    ⁃Local accounts: {{ flatten .authorized.localAccounts }}`,
+						`    ⁃Remote accounts: {{ flatten .authorized.remoteAccounts }}`,
+					),
 					w.String(),
 					"Then is should display the rule's info",
 				)
@@ -356,18 +362,13 @@ func TestRulesList(t *testing.T) {
 		limit  = "10"
 		offset = "5"
 
-		rule1       = "pull"
+		rule1Name   = "pull"
 		rule1IsSend = true
 		rule1Path   = "pull/path"
 
-		rule2       = "push"
+		rule2Name   = "push"
 		rule2IsSend = false
 		rule2Path   = "push/path"
-	)
-
-	var (
-		rule1way = direction(rule1IsSend)
-		rule2way = direction(rule2IsSend)
 	)
 
 	t.Run(`Testing the rule "list" command`, func(t *testing.T) {
@@ -380,19 +381,19 @@ func TestRulesList(t *testing.T) {
 			values: url.Values{"sort": {sort}, "limit": {limit}, "offset": {offset}},
 		}
 
+		rules := []map[string]any{{
+			"name":   rule1Name,
+			"isSend": rule1IsSend,
+			"path":   rule1Path,
+		}, {
+			"name":   rule2Name,
+			"isSend": rule2IsSend,
+			"path":   rule2Path,
+		}}
+
 		result := &expectedResponse{
 			status: http.StatusOK,
-			body: map[string]any{
-				"rules": []map[string]any{{
-					"name":   rule1,
-					"isSend": rule1IsSend,
-					"path":   rule1Path,
-				}, {
-					"name":    rule2,
-					"is_send": rule2IsSend,
-					"path":    rule2Path,
-				}},
-			},
+			body:   map[string]any{"rules": rules},
 		}
 
 		t.Run("Given a dummy gateway REST interface", func(t *testing.T) {
@@ -405,20 +406,30 @@ func TestRulesList(t *testing.T) {
 					"Then it should not return an error",
 				)
 
+				outputData := slices.Clone(rules)
+				outputData[0]["direction"] = direction(rule1IsSend)
+				outputData[1]["direction"] = direction(rule2IsSend)
+
 				assert.Equal(t,
-					"Rules:\n"+
-						fmt.Sprintf("╭─ Rule %q (%s)\n", rule1, rule1way)+
-						fmt.Sprintf("│  ├─ Path: %s\n", rule1Path)+
-						fmt.Sprintf("│  ├─ Pre tasks: <none>\n")+
-						fmt.Sprintf("│  ├─ Post tasks: <none>\n")+
-						fmt.Sprintf("│  ├─ Error tasks: <none>\n")+
-						fmt.Sprintf("│  ╰─ Rule access: <unrestricted>\n")+
-						fmt.Sprintf("╰─ Rule %q (%s)\n", rule2, rule2way)+
-						fmt.Sprintf("   ├─ Path: %s\n", rule2Path)+
-						fmt.Sprintf("   ├─ Pre tasks: <none>\n")+
-						fmt.Sprintf("   ├─ Post tasks: <none>\n")+
-						fmt.Sprintf("   ├─ Error tasks: <none>\n")+
-						fmt.Sprintf("   ╰─ Rule access: <unrestricted>\n"),
+					expectedOutput(t, outputData,
+						`=== Rules ===`,
+						`{{- with (index . 0) }}`,
+						`‣Rule "{{.name}}" ({{.direction}})`,
+						`  •Path: {{.path}}`,
+						`  •Pre tasks: <none>`,
+						`  •Post tasks: <none>`,
+						`  •Error tasks: <none>`,
+						`  •Rule access: <unrestricted>`,
+						`{{- end }}`,
+						`{{- with (index . 1) }}`,
+						`‣Rule "{{.name}}" ({{.direction}})`,
+						`  •Path: {{.path}}`,
+						`  •Pre tasks: <none>`,
+						`  •Post tasks: <none>`,
+						`  •Error tasks: <none>`,
+						`  •Rule access: <unrestricted>`,
+						`{{- end }}`,
+					),
 					w.String(),
 					"Then is should display the list of rules",
 				)

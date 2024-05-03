@@ -8,20 +8,17 @@ import (
 	"code.waarp.fr/apps/gateway/gateway/pkg/admin/rest/api"
 )
 
-func DisplayUser(w io.Writer, user *api.OutUser) {
-	f := NewFormatter(w)
-	defer f.Render()
+func displayUser(w io.Writer, user *api.OutUser) {
+	perm := func(p string) string { return withDefault(p, noPerm) }
 
-	displayUser(f, user)
-}
-
-func displayUser(f *Formatter, user *api.OutUser) {
-	f.Title("User %q", user.Username)
-	f.Indent()
-
-	defer f.UnIndent()
-
-	displayPermissions(f, &user.Perms)
+	style1.printf(w, "User %q", user.Username)
+	style22.printf(w, "Permissions:")
+	style333.printL(w, "Transfers", perm(user.Perms.Transfers))
+	style333.printL(w, "Servers", perm(user.Perms.Servers))
+	style333.printL(w, "Partners", perm(user.Perms.Partners))
+	style333.printL(w, "Rules", perm(user.Perms.Rules))
+	style333.printL(w, "Users", perm(user.Perms.Users))
+	style333.printL(w, "Administration", perm(user.Perms.Administration))
 }
 
 // ######################## ADD ##########################
@@ -34,7 +31,7 @@ type UserAdd struct {
 	Perms    *api.Perms `json:"perms,omitempty"`
 }
 
-func (u *UserAdd) Execute([]string) error { return u.execute(stdOutput) }
+func (u *UserAdd) Execute([]string) error { return execute(u) }
 func (u *UserAdd) execute(w io.Writer) error {
 	perms, err := parsePerms(u.PermsStr)
 	if err != nil {
@@ -61,7 +58,7 @@ type UserGet struct {
 	} `positional-args:"yes"`
 }
 
-func (u *UserGet) Execute([]string) error { return u.execute(stdOutput) }
+func (u *UserGet) Execute([]string) error { return execute(u) }
 func (u *UserGet) execute(w io.Writer) error {
 	addr.Path = path.Join("/api/users", u.Args.Username)
 
@@ -70,7 +67,7 @@ func (u *UserGet) execute(w io.Writer) error {
 		return err
 	}
 
-	DisplayUser(w, user)
+	displayUser(w, user)
 
 	return nil
 }
@@ -87,7 +84,7 @@ type UserUpdate struct {
 	Perms    *api.Perms `json:"perms,omitempty"`
 }
 
-func (u *UserUpdate) Execute([]string) error { return u.execute(stdOutput) }
+func (u *UserUpdate) Execute([]string) error { return execute(u) }
 func (u *UserUpdate) execute(w io.Writer) error {
 	if u.PermsStr != "" {
 		var err error
@@ -120,7 +117,7 @@ type UserDelete struct {
 	} `positional-args:"yes"`
 }
 
-func (u *UserDelete) Execute([]string) error { return u.execute(stdOutput) }
+func (u *UserDelete) Execute([]string) error { return execute(u) }
 func (u *UserDelete) execute(w io.Writer) error {
 	addr.Path = path.Join("/api/users", u.Args.Username)
 
@@ -141,7 +138,7 @@ type UserList struct {
 	SortBy string `short:"s" long:"sort" description:"Attribute used to sort the returned entries" choice:"username+" choice:"username-" default:"username+"`
 }
 
-func (u *UserList) Execute([]string) error { return u.execute(stdOutput) }
+func (u *UserList) Execute([]string) error { return execute(u) }
 
 //nolint:dupl //duplicate is for a completely different command
 func (u *UserList) execute(w io.Writer) error {
@@ -155,13 +152,10 @@ func (u *UserList) execute(w io.Writer) error {
 	}
 
 	if users := body["users"]; len(users) > 0 {
-		f := NewFormatter(w)
-		defer f.Render()
-
-		f.MainTitle("Users:")
+		style0.printf(w, "=== Users ===")
 
 		for _, user := range users {
-			displayUser(f, user)
+			displayUser(w, user)
 		}
 	} else {
 		fmt.Fprintln(w, "No users found.")

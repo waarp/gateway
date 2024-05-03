@@ -12,6 +12,7 @@ require (
 	github.com/fclairamb/go-log v0.4.1 //do not update, uses go version >1.20
 	github.com/go-sql-driver/mysql v1.8.1
 	github.com/google/uuid v1.6.0
+	github.com/gookit/color v1.5.4
 	github.com/gorilla/mux v1.8.1
 	github.com/hack-pad/hackpadfs v0.2.1
 	github.com/jackc/pgerrcode v0.0.0-20240316143900-6e2875d9b438
@@ -63,6 +64,7 @@ require (
 	github.com/rivo/uniseg v0.2.0 // indirect
 	github.com/rogpeppe/go-internal v1.12.0 // indirect
 	github.com/syndtr/goleveldb v1.0.0 // indirect
+	github.com/xo/terminfo v0.0.0-20210125001918-ca9a967f8778 // indirect
 	golang.org/x/sync v0.7.0 // indirect
 	golang.org/x/sys v0.19.0 // indirect
 	golang.org/x/text v0.14.0 // indirect

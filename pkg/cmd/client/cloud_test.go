@@ -7,8 +7,8 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/jessevdk/go-flags"
-	. "github.com/smartystreets/goconvey/convey"
+	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
 func TestCloudGet(t *testing.T) {
@@ -23,48 +23,45 @@ func TestCloudGet(t *testing.T) {
 		path = cloudsAPIPath + "/" + cloudName
 	)
 
-	Convey(`Testing the cloud "get" command`, t, func() {
+	t.Run(`Testing the cloud "get" command`, func(t *testing.T) {
 		w := &strings.Builder{}
 		command := &CloudGet{}
 
-		respBody := map[string]any{
-			"name":    cloudName,
-			"type":    cloudType,
-			"key":     cloudKey,
-			"options": map[string]string{opt1: key1, opt2: key2},
-		}
-		expRequest := &expectedRequest{
+		expected := &expectedRequest{
 			method: http.MethodGet,
 			path:   path,
 		}
-		expResponse := &expectedResponse{
+
+		response := &expectedResponse{
 			status: http.StatusOK,
-			body:   respBody,
+			body: map[string]any{
+				"name":    cloudName,
+				"type":    cloudType,
+				"key":     cloudKey,
+				"options": map[string]string{opt1: key1, opt2: key2},
+			},
 		}
 
-		testServer(t, expRequest, expResponse)
+		t.Run("Given a dummy gateway REST interface", func(t *testing.T) {
+			testServer(t, expected, response)
 
-		Convey("When the command is executed", func() {
-			_, err := flags.ParseArgs(command, []string{cloudName})
-			So(err, ShouldBeNil)
+			t.Run("When executing the command", func(t *testing.T) {
+				require.NoError(t, executeCommand(t, w, command, cloudName),
+					"Then it should not return an error")
 
-			SoMsg("Then it should not return an error",
-				command.execute(w), ShouldBeNil)
-			SoMsg("Then it should print the cloud instance's info",
-				w.String(),
-				ShouldEqual,
-				fmt.Sprintf(""+
-					"── Cloud instance %q (%s)\n"+
-					"   ├─ Key: %s\n"+
-					"   ╰─ Options\n"+
-					"      ├─ %s: %s\n"+
-					"      ╰─ %s: %s\n",
-					cloudName, cloudType,
-					cloudKey,
-					opt1, key1,
-					opt2, key2,
-				),
-			)
+				assert.Equal(t,
+					expectedOutput(t, response.body,
+						`‣Cloud instance "{{.name}}" ({{.type}})`,
+						`  •Key: {{.key}}`,
+						`  •Options:`,
+						`    {{- range $option, $value := .options }}`,
+						`    ⁃{{$option}}: {{$value}}`,
+						`    {{- end }}`,
+					),
+					w.String(),
+					"Then it should display the cloud's info",
+				)
+			})
 		})
 	})
 }
@@ -83,21 +80,20 @@ func TestCloudAdd(t *testing.T) {
 		location = path + "/" + cloudName
 	)
 
-	Convey(`Testing the cloud "add" command`, t, func() {
+	t.Run(`Testing the cloud "add" command`, func(t *testing.T) {
 		w := &strings.Builder{}
 		command := &CloudAdd{}
 
-		reqBody := map[string]any{
-			"name":    cloudName,
-			"type":    cloudType,
-			"key":     cloudKey,
-			"secret":  cloudSecret,
-			"options": map[string]any{opt1: key1, opt2: key2},
-		}
 		expRequest := &expectedRequest{
 			method: http.MethodPost,
 			path:   path,
-			body:   reqBody,
+			body: map[string]any{
+				"name":    cloudName,
+				"type":    cloudType,
+				"key":     cloudKey,
+				"secret":  cloudSecret,
+				"options": map[string]any{opt1: key1, opt2: key2},
+			},
 		}
 		expResponse := &expectedResponse{
 			status:  http.StatusCreated,
@@ -106,23 +102,22 @@ func TestCloudAdd(t *testing.T) {
 
 		testServer(t, expRequest, expResponse)
 
-		Convey("When the command is executed", func() {
-			_, err := flags.ParseArgs(command, []string{
+		t.Run("When executing the command", func(t *testing.T) {
+			require.NoError(t, executeCommand(t, w, command,
 				"--name", cloudName,
 				"--type", cloudType,
 				"--key", cloudKey,
 				"--secret", cloudSecret,
 				"--options", fmt.Sprintf("%s:%s", opt1, key1),
 				"--options", fmt.Sprintf("%s:%s", opt2, key2),
-			})
-			So(err, ShouldBeNil)
+			),
+				"Then it should not return an error",
+			)
 
-			SoMsg("Then it should not return an error",
-				command.execute(w), ShouldBeNil)
-			SoMsg("Then it should display a success message",
-				w.String(),
-				ShouldEqual,
+			assert.Equal(t,
 				fmt.Sprintf("The cloud instance %q was successfully added.\n", cloudName),
+				w.String(),
+				"Then it should display a message saying the cloud instance was added",
 			)
 		})
 	})
@@ -135,30 +130,30 @@ func TestCloudDelete(t *testing.T) {
 		path = "/api/clouds/" + cloudName
 	)
 
-	Convey(`Testing the cloud "delete" command`, t, func() {
+	t.Run(`Testing the cloud "delete" command`, func(t *testing.T) {
 		w := &strings.Builder{}
 		command := &CloudDelete{}
 
-		expRequest := &expectedRequest{
+		expected := &expectedRequest{
 			method: http.MethodDelete,
 			path:   path,
 		}
 
-		expResponse := &expectedResponse{status: http.StatusNoContent}
+		response := &expectedResponse{status: http.StatusNoContent}
 
-		testServer(t, expRequest, expResponse)
+		t.Run("Given a dummy gateway REST interface", func(t *testing.T) {
+			testServer(t, expected, response)
 
-		Convey("When the command is executed", func() {
-			_, err := flags.ParseArgs(command, []string{cloudName})
-			So(err, ShouldBeNil)
+			t.Run("When executing the command", func(t *testing.T) {
+				require.NoError(t, executeCommand(t, w, command, cloudName),
+					"Then it should not return an error")
 
-			SoMsg("Then it should not return an error",
-				command.execute(w), ShouldBeNil)
-			SoMsg("Then it should display a success message",
-				w.String(),
-				ShouldEqual,
-				fmt.Sprintf("The cloud instance %q was successfully deleted.\n", cloudName),
-			)
+				assert.Equal(t,
+					fmt.Sprintf("The cloud instance %q was successfully deleted.\n", cloudName),
+					w.String(),
+					"Then it should display a message saying the cloud instance was deleted",
+				)
+			})
 		})
 	})
 }
@@ -179,48 +174,48 @@ func TestCloudUpdate(t *testing.T) {
 		location = "/api/clouds/" + cloudName
 	)
 
-	Convey(`Testing the cloud "update" command`, t, func() {
+	t.Run(`Testing the cloud "update" command`, func(t *testing.T) {
 		w := &strings.Builder{}
 		command := &CloudUpdate{}
 
-		reqBody := map[string]any{
-			"name":    cloudName,
-			"type":    cloudType,
-			"key":     cloudKey,
-			"secret":  cloudSecret,
-			"options": map[string]any{opt1: key1, opt2: key2},
-		}
-		expRequest := &expectedRequest{
+		expected := &expectedRequest{
 			method: http.MethodPatch,
 			path:   path,
-			body:   reqBody,
+			body: map[string]any{
+				"name":    cloudName,
+				"type":    cloudType,
+				"key":     cloudKey,
+				"secret":  cloudSecret,
+				"options": map[string]any{opt1: key1, opt2: key2},
+			},
 		}
-		expResponse := &expectedResponse{
+		response := &expectedResponse{
 			status:  http.StatusCreated,
 			headers: map[string][]string{"Location": {location}},
 		}
 
-		testServer(t, expRequest, expResponse)
+		t.Run("Given a dummy gateway REST interface", func(t *testing.T) {
+			testServer(t, expected, response)
 
-		Convey("When the command is executed", func() {
-			_, err := flags.ParseArgs(command, []string{
-				oldCloudName,
-				"--name", cloudName,
-				"--type", cloudType,
-				"--key", cloudKey,
-				"--secret", cloudSecret,
-				"--options", fmt.Sprintf("%s:%s", opt1, key1),
-				"--options", fmt.Sprintf("%s:%s", opt2, key2),
+			t.Run("When executing the command", func(t *testing.T) {
+				require.NoError(t, executeCommand(t, w, command,
+					oldCloudName,
+					"--name", cloudName,
+					"--type", cloudType,
+					"--key", cloudKey,
+					"--secret", cloudSecret,
+					"--options", fmt.Sprintf("%s:%s", opt1, key1),
+					"--options", fmt.Sprintf("%s:%s", opt2, key2),
+				),
+					"Then it should not return an error",
+				)
+
+				assert.Equal(t,
+					fmt.Sprintf("The cloud instance %q was successfully updated.\n", cloudName),
+					w.String(),
+					"Then it should display a message saying the cloud instance was updated",
+				)
 			})
-			So(err, ShouldBeNil)
-
-			SoMsg("Then it should not return an error",
-				command.execute(w), ShouldBeNil)
-			SoMsg("Then it should display a success message",
-				w.String(),
-				ShouldEqual,
-				fmt.Sprintf("The cloud instance %q was successfully updated.\n", cloudName),
-			)
 		})
 	})
 }
@@ -240,11 +235,11 @@ func TestCloudList(t *testing.T) {
 		cloud2Type = "cloud2_type"
 	)
 
-	Convey(`Testing the cloud "list" command`, t, func() {
+	t.Run(`Testing the cloud "list" command`, func(t *testing.T) {
 		w := &strings.Builder{}
 		command := &CloudList{}
 
-		expRequest := &expectedRequest{
+		expected := &expectedRequest{
 			method: http.MethodGet,
 			path:   path,
 			values: url.Values{
@@ -254,44 +249,46 @@ func TestCloudList(t *testing.T) {
 			},
 		}
 
-		respBody := map[string]any{
-			"clouds": []map[string]any{
-				{"name": cloud1, "type": cloud1Type},
-				{"name": cloud2, "type": cloud2Type},
-			},
+		clouds := []map[string]any{
+			{"name": cloud1, "type": cloud1Type},
+			{"name": cloud2, "type": cloud2Type},
 		}
-		expResponse := &expectedResponse{
+
+		response := &expectedResponse{
 			status: http.StatusOK,
-			body:   respBody,
+			body:   map[string]any{"clouds": clouds},
 		}
 
-		testServer(t, expRequest, expResponse)
+		t.Run("Given a dummy gateway REST interface", func(t *testing.T) {
+			testServer(t, expected, response)
 
-		Convey("When the command is executed", func() {
-			_, err := flags.ParseArgs(command, []string{
-				"--sort", sort,
-				"--limit", limit,
-				"--offset", offset,
-			})
-			So(err, ShouldBeNil)
-
-			SoMsg("Then it should not return an error",
-				command.execute(w), ShouldBeNil)
-
-			SoMsg("Then it should display a list of the cloud instances",
-				w.String(),
-				ShouldEqual,
-				fmt.Sprintf("Cloud instances:\n"+
-					"╭─ Cloud instance %q (%s)\n"+
-					"│  ├─ Key: <none>\n"+
-					"│  ╰─ Options: <none>\n"+
-					"╰─ Cloud instance %q (%s)\n"+
-					"   ├─ Key: <none>\n"+
-					"   ╰─ Options: <none>\n",
-					cloud1, cloud1Type,
-					cloud2, cloud2Type,
+			t.Run("When executing the command", func(t *testing.T) {
+				require.NoError(t, executeCommand(t, w, command,
+					"--sort", sort,
+					"--limit", limit,
+					"--offset", offset,
 				),
-			)
+					"Then it should not return an error",
+				)
+
+				assert.Equal(t,
+					expectedOutput(t, clouds,
+						`=== Cloud instances ===`,
+						`{{- with index . 0 }}`,
+						`‣Cloud instance "{{.name}}" ({{.type}})`,
+						`  •Key: <none>`,
+						`  •Options: <none>`,
+						`{{- end }}`,
+						`{{- with index . 1 }}`,
+						`‣Cloud instance "{{.name}}" ({{.type}})`,
+						`  •Key: <none>`,
+						`  •Options: <none>`,
+						`{{- end }}`,
+					),
+					w.String(),
+					"Then it should display the clients",
+				)
+			})
 		})
 	})
 }
