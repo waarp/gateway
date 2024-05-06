@@ -130,13 +130,12 @@ func (c *client) initTransfer(pip *pipeline.Pipeline) (*transferClient, *pipelin
 		noFinalHash = *partConf.CheckBlockHash
 	}
 
-	finalHashAlgo := c.clientConfig.FinalHashAlgo
-	if partConf.FinalHashAlgo != nil {
-		finalHashAlgo = *partConf.FinalHashAlgo
-	}
-
-	if finalHashAlgo == "" {
-		finalHashAlgo = "SHA-256"
+	var finalHashAlgo string = internal.HashSHA256
+	if c.clientConfig.FinalHashAlgo != "" {
+		finalHashAlgo = c.clientConfig.FinalHashAlgo
+		if partConf.FinalHashAlgo != "" {
+			finalHashAlgo = partConf.FinalHashAlgo
+		}
 	}
 
 	checkBlockHash := c.clientConfig.CheckBlockHash

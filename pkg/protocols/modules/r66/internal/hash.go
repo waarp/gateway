@@ -22,23 +22,32 @@ import (
 	"code.waarp.fr/apps/gateway/gateway/pkg/utils"
 )
 
+const (
+	HashADLER32 = "ADLER32"
+	HashMD5     = "MD5"
+	HashSHA1    = "SHA-1"
+	HashSHA256  = "SHA-256"
+	HashSHA384  = "SHA-384"
+	HashSHA512  = "SHA-512"
+)
+
 var errUnknownHashAlgo error = errors.New("unsuported hash algorithm")
 
 func GetHasher(h string) (hash.Hash, error) {
 	switch h {
-	case "ADLER32":
+	case HashADLER32:
 		return adler32.New(), nil
 	// case "CRC32": // FIXME Add with specific table ?
 	// case "MD2": // FIXME Add despite security concerns ?
-	case "MD5":
+	case HashMD5:
 		return md5.New(), nil //nolint:gosec // MD5 is needed for compatibility with WaarpR66
-	case "SHA-1":
+	case HashSHA1:
 		return sha1.New(), nil //nolint:gosec // SHA1 is needed for compatibility with WaarpR66
-	case "SHA-256":
+	case HashSHA256:
 		return sha256.New(), nil
-	case "SHA-384":
+	case HashSHA384:
 		return sha512.New384(), nil
-	case "SHA-512":
+	case HashSHA512:
 		return sha512.New(), nil
 	default:
 		return nil, errUnknownHashAlgo
