@@ -5,6 +5,7 @@ package admin
 import (
 	"context"
 	"crypto/tls"
+	"crypto/x509"
 	"encoding/pem"
 	"errors"
 	"fmt"
@@ -15,7 +16,6 @@ import (
 	"time"
 
 	"code.waarp.fr/lib/log"
-	"go.step.sm/crypto/pemutil"
 
 	"code.waarp.fr/apps/gateway/gateway/pkg/conf"
 	"code.waarp.fr/apps/gateway/gateway/pkg/database"
@@ -106,7 +106,8 @@ func (s *Server) makeTLSConfig() (*tls.Config, error) {
 		return nil, errors.New("key file does not contain a valid PEM block")
 	}
 
-	keyDER, err := pemutil.DecryptPEMBlock(keyBlock, []byte(passphrase))
+	//nolint:staticcheck //this is needed for decrypting the key, even if the encryption is insecure
+	keyDER, err := x509.DecryptPEMBlock(keyBlock, []byte(passphrase))
 	if err != nil {
 		return nil, fmt.Errorf("failed to decrypt private key: %w", err)
 	}

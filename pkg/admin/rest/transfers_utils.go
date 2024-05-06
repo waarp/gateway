@@ -50,8 +50,7 @@ func getTransInfo(db *database.DB, trans *api.InTransfer,
 			return 0, null, null, badRequest("no partner '%s' found", trans.Partner)
 		}
 
-		return 0, null, null, fmt.Errorf("failed to retrieve partner %q: %w",
-			trans.Partner, err)
+		return 0, null, null, fmt.Errorf("failed to retrieve partner %q: %w", trans.Partner, err)
 	}
 
 	var account model.RemoteAccount
