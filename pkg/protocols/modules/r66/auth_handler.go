@@ -7,6 +7,7 @@ import (
 	"code.waarp.fr/apps/gateway/gateway/pkg/model"
 	"code.waarp.fr/apps/gateway/gateway/pkg/model/authentication/auth"
 	"code.waarp.fr/apps/gateway/gateway/pkg/protocols/modules/r66/internal"
+	"code.waarp.fr/apps/gateway/gateway/pkg/utils"
 	"code.waarp.fr/apps/gateway/gateway/pkg/utils/compatibility"
 )
 
@@ -51,8 +52,14 @@ func (a *authHandler) ValidAuth(authent *r66.Authent) (r66.SessionHandler, error
 
 	authent.Filesize = true
 
-	if authent.FinalHash = authent.FinalHash && !a.r66Conf.NoFinalHash; authent.FinalHash {
-		authent.Digest = "SHA-256"
+	if authent.FinalHash = (authent.FinalHash && !a.r66Conf.NoFinalHash); authent.FinalHash {
+		if _, err := internal.GetHasher(authent.Digest); err != nil {
+			return nil, internal.NewR66Error(r66.BadAuthent, "unsuported hash algorithm")
+		}
+
+		if len(a.r66Conf.FinalHashAlgos) != 0 && !utils.ContainsOneOf(a.r66Conf.FinalHashAlgos, authent.Digest) {
+			return nil, internal.NewR66Error(r66.BadAuthent, "unauthorized hash algorithm")
+		}
 	} else {
 		authent.Digest = ""
 	}

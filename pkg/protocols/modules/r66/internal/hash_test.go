@@ -26,7 +26,7 @@ func TestCheckHash(t *testing.T) {
 		So(fs.WriteFullFile(testFS, path, content), ShouldBeNil)
 
 		Convey("When calling the `checkHash` function with the correct hash", func() {
-			hash, err := MakeHash(context.Background(), testFS, logger, path)
+			hash, err := MakeHash(context.Background(), "SHA-256", testFS, logger, path)
 			So(err, ShouldBeNil)
 
 			Convey("Then it should return the expected hash", func() {
@@ -35,8 +35,8 @@ func TestCheckHash(t *testing.T) {
 		})
 
 		Convey("When calling the `checkHash` function with an invalid path", func() {
-			path := mkURL("memory:/not_a_path")
-			_, err := MakeHash(context.Background(), testFS, logger, path)
+			filepath := mkURL("memory:/not_a_path")
+			_, err := MakeHash(context.Background(), "SHA-256", testFS, logger, filepath)
 
 			Convey("Then it should return an error", func() {
 				So(err, ShouldBeError, pipeline.NewError(types.TeInternal,

@@ -4,6 +4,7 @@ import (
 	"fmt"
 
 	"code.waarp.fr/apps/gateway/gateway/pkg/database"
+	"code.waarp.fr/apps/gateway/gateway/pkg/protocols/modules/r66/internal"
 	"code.waarp.fr/apps/gateway/gateway/pkg/utils"
 )
 
@@ -31,6 +32,9 @@ type serverConfig struct {
 
 	// If true, the final hash verification will be disabled.
 	NoFinalHash bool `json:"noFinalHash,omitempty"`
+
+	// Specifies the algorithms allowed for the final hash verification.
+	FinalHashAlgos []string `json:"finalHashAlgos,omitempty"`
 
 	// If true, a hash check will be performed on each block during a transfer.
 	CheckBlockHash bool `json:"checkBlockHash,omitempty"`
@@ -77,6 +81,9 @@ type partnerConfig struct {
 	// If true, the final hash verification will be disabled.
 	NoFinalHash *bool `json:"noFinalHash,omitempty"`
 
+	// The Hash algorithm used to check the validity of the files transferred.
+	FinalHashAlgo string `json:"finalHashAlgo,omitempty"`
+
 	// If true, a hash check will be performed on each block during a transfer.
 	CheckBlockHash *bool `json:"checkBlockHash,omitempty"`
 }
@@ -87,6 +94,10 @@ type partnerConfig struct {
 func (c *partnerConfig) ValidPartner() error {
 	if c.BlockSize == 0 {
 		c.BlockSize = 65536
+	}
+
+	if c.FinalHashAlgo == "" {
+		c.FinalHashAlgo = internal.HashSHA256
 	}
 
 	if len(c.ServerPassword) == 0 {
@@ -117,6 +128,9 @@ type clientConfig struct {
 	// If true, the final hash verification will be disabled.
 	NoFinalHash bool `json:"noFinalHash,omitempty"`
 
+	// The Hash algorithm used to check the validity of the files transferred.
+	FinalHashAlgo string `json:"finalHashAlgo,omitempty"`
+
 	// If true, a hash check will be performed on each block during a transfer.
 	CheckBlockHash bool `json:"checkBlockHash,omitempty"`
 }
@@ -125,6 +139,10 @@ type clientConfig struct {
 func (c *clientConfig) ValidClient() error {
 	if c.BlockSize == 0 {
 		c.BlockSize = 65536
+	}
+
+	if c.FinalHashAlgo == "" {
+		c.FinalHashAlgo = internal.HashSHA256
 	}
 
 	return nil

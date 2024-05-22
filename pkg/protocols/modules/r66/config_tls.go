@@ -7,6 +7,7 @@ import (
 	"golang.org/x/crypto/bcrypt"
 
 	"code.waarp.fr/apps/gateway/gateway/pkg/database"
+	"code.waarp.fr/apps/gateway/gateway/pkg/protocols/modules/r66/internal"
 	"code.waarp.fr/apps/gateway/gateway/pkg/utils"
 )
 
@@ -25,6 +26,9 @@ type tlsServerConfig struct {
 
 	// If true, the final hash verification will be disabled.
 	NoFinalHash bool `json:"noFinalHash,omitempty"`
+
+	// Specifies the algorithms allowed for the final hash verification.
+	FinalHashAlgos []string `json:"finalHashAlgos,omitempty"`
 
 	// If true, a hash check will be performed on each block during a transfer.
 	CheckBlockHash bool `json:"checkBlockHash,omitempty"`
@@ -65,6 +69,9 @@ type tlsPartnerConfig struct {
 	// If true, the final hash verification will be disabled.
 	NoFinalHash bool `json:"noFinalHash,omitempty"`
 
+	// The Hash algorithm used to check the validity of the files transferred.
+	FinalHashAlgo string `json:"finalHashAlgo,omitempty"`
+
 	// If true, a hash check will be performed on each block during a transfer.
 	CheckBlockHash bool `json:"checkBlockHash,omitempty"`
 }
@@ -73,6 +80,10 @@ type tlsPartnerConfig struct {
 func (c *tlsPartnerConfig) ValidPartner() error {
 	if c.BlockSize == 0 {
 		c.BlockSize = 65536
+	}
+
+	if c.FinalHashAlgo == "" {
+		c.FinalHashAlgo = internal.HashSHA256
 	}
 
 	if len(c.ServerPassword) == 0 {
@@ -103,6 +114,9 @@ type tlsClientConfig struct {
 	// If true, the final hash verification will be disabled.
 	NoFinalHash bool `json:"noFinalHash,omitempty"`
 
+	// The Hash algorithm used to check the validity of the files transferred.
+	FinalHashAlgo string `json:"finalHashAlgo,omitempty"`
+
 	// If true, a hash check will be performed on each block during a transfer.
 	CheckBlockHash bool `json:"checkBlockHash,omitempty"`
 }
@@ -110,6 +124,10 @@ type tlsClientConfig struct {
 func (c *tlsClientConfig) ValidClient() error {
 	if c.BlockSize == 0 {
 		c.BlockSize = 65536
+	}
+
+	if c.FinalHashAlgo == "" {
+		c.FinalHashAlgo = internal.HashSHA256
 	}
 
 	return nil

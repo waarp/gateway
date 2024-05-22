@@ -108,7 +108,7 @@ linters-settings:
     # [deprecated] comma-separated list of pairs of the form pkg:regex
     # the regex is used to ignore names within pkg. (default "fmt:.*").
     # see https://github.com/kisielk/errcheck#the-deprecated-method for details
-    ignore: fmt:.*,io/ioutil:^Read.*
+    #ignore: fmt:.*,io/ioutil:^Read.*
 
     # [deprecated] use exclude-functions instead.
     # path to a file containing a list of functions to exclude from checking
@@ -118,6 +118,7 @@ linters-settings:
     # list of functions to exclude from checking, where each entry is a single function to exclude.
     # see https://github.com/kisielk/errcheck#excluding-functions for details
     exclude-functions:
+      - fmt:.*
       - io/ioutil.ReadFile
       - io.Copy(*bytes.Buffer)
       - io.Copy(os.Stdout)
@@ -334,16 +335,25 @@ linters-settings:
     # minimal confidence for issues, default is 0.8
     min-confidence: 0.8
 
-  gomnd:
-    settings:
-      mnd:
-        # the list of enabled checks, see https://github.com/tommy-muehle/go-mnd/#checks for description.
-        checks: argument,case,condition,operation,return,assign
-        # for files perm: 384=0o600
-        ignored-numbers: 0o600,384,0o700,0o744,0o740
-        # test files are ignored by default
-        # ignored-files: 
-        # ignored-functions: math.*
+  mnd:
+    # the list of enabled checks, see https://github.com/tommy-muehle/go-mnd/#checks for description.
+    checks:
+      - argument
+      - case
+      - condition
+      - operation
+      - return
+      - assign
+    # for files perm: 384=0o600
+    ignored-numbers:
+      - '0o600'
+      - '384'
+      - '0o700'
+      - '0o744'
+      - '0o740'
+    # test files are ignored by default
+    # ignored-files:
+    # ignored-functions: math.*
 
   gomoddirectives:
     # Allow local `replace` directives. Default is false.
@@ -405,8 +415,13 @@ linters-settings:
     checks: [ "all" ]
 
   govet:
-    # report about shadowed variables
-    check-shadowing: true
+    enable-all: true
+    disable:
+      - fieldalignment
+    settings:
+      # report about shadowed variables
+      shadow:
+        strict: true
 
     # settings per analyzer
     #settings:
@@ -732,6 +747,7 @@ linters:
     - tagalign #sorting tags does not always result in better readability
     - containedctx #might re-enable once a better solution has been found
     - tparallel #a test being executable in parallel with others tests does not mean its subtests can be executed in parallel with each others
+    - gomnd #deprecated, renamed to "mnd"
 
   #presets:
   #  - bugs
@@ -826,7 +842,7 @@ issues:
       linters:
         - funlen # splitting functions is not always possible (or desirable)
         - dupl # some tables are similar, but factorizing their migrations is a bad idea
-        - gomnd # we use magic numbers for type sizes
+        - mnd # we use magic numbers for type sizes
 
     # Hardcoded credentials are fine for testing.
     - path: pkg/utils/testhelpers/certs.go

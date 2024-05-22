@@ -43,16 +43,6 @@ type serverTransfer struct {
 	ctx     context.Context
 }
 
-func (t *serverTransfer) getHash() ([]byte, error) {
-	hash, tErr := internal.MakeHash(t.ctx, t.pip.TransCtx.FS, t.pip.Logger,
-		&t.pip.TransCtx.Transfer.LocalPath)
-	if tErr != nil {
-		return nil, internal.ToR66Error(tErr)
-	}
-
-	return hash, nil
-}
-
 func (t *serverTransfer) updTransInfo(info *r66.UpdateInfo) error {
 	if !t.pip.TransCtx.Rule.IsSend {
 		if err := internal.UpdateFileInfo(info, t.pip); err != nil {

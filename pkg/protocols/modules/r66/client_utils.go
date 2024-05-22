@@ -50,7 +50,7 @@ func (c *transferClient) authenticate() *pipeline.Error {
 	conf := &r66.Config{
 		FileSize:   true,
 		FinalHash:  !c.noFinalHash,
-		DigestAlgo: "SHA-256",
+		DigestAlgo: c.finalHashAlgo,
 		Proxified:  false,
 	}
 
@@ -234,7 +234,7 @@ func (c *transferClient) makeHash() ([]byte, error) {
 		return nil, nil
 	}
 
-	hash, err := internal.MakeHash(c.ctx, c.pip.TransCtx.FS, c.pip.Logger,
+	hash, err := internal.MakeHash(c.ctx, c.finalHashAlgo, c.pip.TransCtx.FS, c.pip.Logger,
 		&c.pip.TransCtx.Transfer.LocalPath)
 	if err != nil {
 		return nil, internal.ToR66Error(err)
