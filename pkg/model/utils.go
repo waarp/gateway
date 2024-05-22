@@ -6,6 +6,8 @@ import (
 	"fmt"
 	"math"
 	"math/big"
+	"sync"
+	"time"
 
 	"github.com/bwmarrin/snowflake"
 
@@ -131,12 +133,73 @@ func countTrue(b ...bool) int {
 	return count
 }
 
+type authentCacheKey struct {
+	Id       int64
+	AuthType string
+	Value    any
+}
+
+type authentCacheVal struct {
+	result     *authentication.Result
+	expiration time.Time
+}
+
+func getCachableValue(authType string, value any) (bool, any) {
+    if authType == "password_hash" {
+        v, ok := value.(string)
+        if !ok {
+            return false, nil
+        }
+        return true, v
+    }
+    if authType == "password" {
+        return true, value
+    }
+    return false, nil
+}
+
+const deltaCacheExpiration time.Duration = 3 * time.Second
+
+var cacheLocalAuthent sync.Map = sync.Map{}
+var cacheRemoteAuthent sync.Map = sync.Map{}
+
 func authenticate(db database.ReadAccess, owner CredOwnerTable, authType string, value any,
-) (*authentication.Result, error) {
+) (res *authentication.Result, err error) {
 	handler := authentication.GetInternalAuthHandler(authType)
 	if handler == nil {
 		//nolint:goerr113 //dynamic error is better here for debugging
 		return nil, fmt.Errorf("unknown authentication type %q", authType)
+	}
+
+	// TODO get correct map and key
+	cache := cacheLocalAuthent
+
+	// get cache key
+  if ok, v := getCachableValue(authType, value); ok {
+		_, id := owner.GetCredCond()
+		
+    key := authentCacheKey{
+			Id:       id,
+			AuthType: authType,
+			Value:    v,
+		}
+   
+
+		defer func() {
+			if err == nil {
+				cache.Store(key, authentCacheVal{
+					result:     res,
+					expiration: time.Now().Add(deltaCacheExpiration),
+				})
+			}
+		}()
+
+		if res, ok := cache.Load(key); ok && res != nil {
+			res := res.(authentCacheVal)
+			if time.Now().Before(res.expiration) {
+				return res.result, nil
+			}
+		}
 	}
 
 	//nolint:wrapcheck //error is returned as is for better message readability
