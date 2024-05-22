@@ -251,6 +251,7 @@ var (
 //nolint:funlen //no easy way to split this
 func makeClientTLSConfig(pip *pipeline.Pipeline) (*tls.Config, error) {
 	conf := &tls.Config{
+		ServerName:       pip.TransCtx.RemoteAgent.Address.Host,
 		MinVersion:       tls.VersionTLS12,
 		VerifyConnection: compatibility.LogSha1(pip.Logger),
 	}
@@ -314,6 +315,10 @@ func makeClientTLSConfig(pip *pipeline.Pipeline) (*tls.Config, error) {
 	}
 
 	conf.RootCAs = caPool
+
+	if err := auth.AddTLSAuthorities(pip.DB, conf); err != nil {
+		return nil, fmt.Errorf("failed to setup TLS authorities: %w", err)
+	}
 
 	return conf, nil
 }

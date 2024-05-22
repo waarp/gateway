@@ -177,11 +177,16 @@ func (c *transferClient) makeSSHClientConfig(info *model.TransferContext,
 
 	authMethods := c.makeClientAuthMethods(info.RemoteAccountCreds)
 
+	certChecker := &ssh.CertChecker{
+		IsHostAuthority: isHostAuthority(c.pip.DB, c.pip.Logger),
+		HostKeyFallback: makeFixedHostKeys(hostKeys),
+	}
+
 	conf := &ssh.ClientConfig{
 		Config:            *c.sshConf,
 		User:              info.RemoteAccount.Login,
 		Auth:              authMethods,
-		HostKeyCallback:   makeFixedHostKeys(hostKeys),
+		HostKeyCallback:   certChecker.CheckHostKey,
 		HostKeyAlgorithms: algos,
 	}
 

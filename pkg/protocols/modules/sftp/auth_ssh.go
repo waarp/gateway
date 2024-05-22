@@ -6,6 +6,7 @@ import (
 
 	"code.waarp.fr/lib/log"
 	"golang.org/x/crypto/ssh"
+	"golang.org/x/exp/slices"
 
 	"code.waarp.fr/apps/gateway/gateway/pkg/database"
 	"code.waarp.fr/apps/gateway/gateway/pkg/model"
@@ -117,6 +118,37 @@ func isUserAuthority(db database.ReadAccess, logger *log.Logger) func(ssh.Public
 		}
 
 		for _, aut := range auths {
+			pbk, err := ParseAuthorizedKey(aut.PublicIdentity)
+			if err != nil {
+				logger.Warning("Failed to parse the SSH authority's public key: %s", err)
+
+				continue
+			}
+
+			if subtle.ConstantTimeCompare(key.Marshal(), pbk.Marshal()) == 1 {
+				return true
+			}
+		}
+
+		return false
+	}
+}
+
+func isHostAuthority(db database.ReadAccess, logger *log.Logger,
+) func(key ssh.PublicKey, address string) bool {
+	return func(key ssh.PublicKey, address string) bool {
+		var auths model.Authorities
+		if err := db.Select(&auths).Where("type=?", AuthoritySSHCert).Run(); err != nil {
+			logger.Error("Failed to retrieve the SSH certification authorities: %s", err)
+
+			return false
+		}
+
+		for _, aut := range auths {
+			if len(aut.ValidHosts) != 0 && !slices.Contains(aut.ValidHosts, address) {
+				continue
+			}
+
 			pbk, err := ParseAuthorizedKey(aut.PublicIdentity)
 			if err != nil {
 				logger.Warning("Failed to parse the SSH authority's public key: %s", err)

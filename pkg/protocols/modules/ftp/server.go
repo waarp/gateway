@@ -4,6 +4,7 @@ import (
 	"crypto/tls"
 	"errors"
 	"fmt"
+	"net"
 
 	"code.waarp.fr/lib/log"
 	ftplib "github.com/fclairamb/ftpserverlib"
@@ -28,6 +29,7 @@ type handler struct {
 	tracer     func() pipeline.Trace
 	dbServer   *model.LocalAgent
 	serverConf *ServerConfigTLS
+	tlsConfig  *tls.Config
 }
 
 func (h *handler) getBanner() string {
@@ -36,26 +38,40 @@ func (h *handler) getBanner() string {
 }
 
 func (h *handler) GetSettings() (*ftplib.Settings, error) {
-	return &ftplib.Settings{
-		ListenAddr: h.dbServer.Address.String(),
-		PassiveTransferPortRange: &ftplib.PortRange{
+	var pasvPortRange *ftplib.PortRange
+	if !h.serverConf.DisablePassiveMode {
+		pasvPortRange = &ftplib.PortRange{
 			Start: int(h.serverConf.PassiveModeMinPort),
 			End:   int(h.serverConf.PassiveModeMaxPort),
-		},
-		ActiveTransferPortNon20: true, // maybe make it configurable ?
-		IdleTimeout:             serverDefaultIdleTimeout,
-		ConnectionTimeout:       serverDefaultConnTimeout,
-		Banner:                  h.getBanner(),
-		TLSRequired:             h.serverConf.TLSRequirement.toLib(),
-		DisableActiveMode:       h.serverConf.DisableActiveMode,
-		DisableSite:             true,
-		DisableMFMT:             true,
-		EnableHASH:              false, // maybe make configurable ?
-		EnableCOMB:              false, // proprietary feature, might enable if requested by users
-		DefaultTransferType:     ftplib.TransferTypeBinary,
-		ActiveConnectionsCheck:  ftplib.IPMatchRequired,
-		PasvConnectionsCheck:    ftplib.IPMatchRequired,
+		}
+	}
+
+	return &ftplib.Settings{
+		ListenAddr:               h.dbServer.Address.String(),
+		PassiveTransferPortRange: pasvPortRange,
+		ActiveTransferPortNon20:  true, // maybe make it configurable ?
+		IdleTimeout:              serverDefaultIdleTimeout,
+		ConnectionTimeout:        serverDefaultConnTimeout,
+		Banner:                   h.getBanner(),
+		TLSRequired:              h.serverConf.TLSRequirement.toLib(),
+		DisableActiveMode:        h.serverConf.DisableActiveMode,
+		DisableSite:              true,
+		DisableMFMT:              true,
+		EnableHASH:               false, // maybe make configurable ?
+		EnableCOMB:               false, // proprietary feature, might enable if requested by users
+		DefaultTransferType:      ftplib.TransferTypeBinary,
+		ActiveConnectionsCheck:   ftplib.IPMatchRequired,
+		PasvConnectionsCheck:     ftplib.IPMatchRequired,
 	}, nil
+}
+
+func (h *handler) WrapPassiveListener(listener net.Listener) (net.Listener, error) {
+	if h.serverConf.DisablePassiveMode {
+		//nolint:goerr113 //too specific
+		return nil, errors.New("passive mode is disabled on this server")
+	}
+
+	return listener, nil
 }
 
 func (h *handler) ClientConnected(ftplib.ClientContext) (string, error) {
@@ -66,6 +82,8 @@ func (h *handler) ClientDisconnected(ftplib.ClientContext) {}
 
 //nolint:goerr113 //dynamic errors are used to mask the internal errors (for security reasons)
 func (h *handler) AuthUser(_ ftplib.ClientContext, user, pass string) (ftplib.ClientDriver, error) {
+	h.logger.Debug("Received authentication request from account %q", user)
+
 	var acc model.LocalAccount
 	if err := h.db.Get(&acc, "local_agent_id=? AND login=?", h.dbServer.ID, user).
 		Run(); err != nil && !database.IsNotFound(err) {
@@ -84,6 +102,8 @@ func (h *handler) AuthUser(_ ftplib.ClientContext, user, pass string) (ftplib.Cl
 		return nil, errors.New("invalid credentials")
 	}
 
+	h.logger.Debug("Account %q authenticated successfully", user)
+
 	return &serverFS{
 		db:       h.db,
 		logger:   h.logger,
@@ -93,40 +113,43 @@ func (h *handler) AuthUser(_ ftplib.ClientContext, user, pass string) (ftplib.Cl
 	}, nil
 }
 
-//nolint:goerr113 //dynamic errors are used to mask the internal errors (for security reasons)
 func (h *handler) GetTLSConfig() (*tls.Config, error) {
 	if h.dbServer.Protocol != FTPS {
+		//nolint:goerr113 //too specific
 		return nil, errors.New("cannot create TLS config for non-FTPS server")
 	}
 
-	dbCerts, dbErr := h.dbServer.GetCredentials(h.db, auth.TLSCertificate)
-	if dbErr != nil {
-		h.logger.Error("Failed to retrieve TLS certificates: %v", dbErr)
+	return h.tlsConfig, nil
+}
 
-		return nil, errors.New("internal database error")
-	}
-
-	var certs []tls.Certificate
-
-	for _, dbCert := range dbCerts {
-		cert, err := tls.X509KeyPair([]byte(dbCert.Value), []byte(dbCert.Value2))
-		if err != nil {
-			h.logger.Warning("Failed to parse TLS certificate: %v", err)
-		} else {
-			certs = append(certs, cert)
-		}
-	}
-
-	if len(certs) == 0 {
-		return nil, errors.New("no valid TLS certificate found")
-	}
-
+func (h *handler) mkTLSConfig() {
 	//nolint:gosec //TLS version is set by the user
-	return &tls.Config{
-		MinVersion:   protoutils.ParseTLSVersion(h.serverConf.MinTLSVersion),
-		Certificates: certs,
-		ClientAuth:   tls.RequestClientCert,
-	}, nil
+	h.tlsConfig = &tls.Config{
+		MinVersion: protoutils.ParseTLSVersion(h.serverConf.MinTLSVersion),
+		ClientAuth: tls.RequestClientCert,
+		//nolint:goerr113 //dynamic errors are used to mask the internal errors (for security reasons)
+		GetCertificate: func(chi *tls.ClientHelloInfo) (*tls.Certificate, error) {
+			dbCerts, dbErr := h.dbServer.GetCredentials(h.db, auth.TLSCertificate)
+			if dbErr != nil {
+				h.logger.Error("Failed to retrieve TLS certificates: %v", dbErr)
+
+				return nil, errors.New("internal database error")
+			}
+
+			for _, dbCert := range dbCerts {
+				cert, err := tls.X509KeyPair([]byte(dbCert.Value), []byte(dbCert.Value2))
+				if err != nil {
+					h.logger.Warning("Failed to parse TLS certificate: %v", err)
+				}
+
+				if chi.SupportsCertificate(&cert) == nil {
+					return &cert, nil
+				}
+			}
+
+			return nil, errors.New("no valid TLS certificate found")
+		},
+	}
 }
 
 //nolint:goerr113 //dynamic errors are used to mask the internal errors (for security reasons)
@@ -135,7 +158,8 @@ func (h *handler) VerifyConnection(_ ftplib.ClientContext, user string,
 ) (ftplib.ClientDriver, error) {
 	certs := tlsConn.ConnectionState().PeerCertificates
 	if len(certs) == 0 {
-		return nil, nil // Will need password for authent
+		//nolint:nilnil //returning "nil, nil" here is required by the interface's definition
+		return nil, nil
 	}
 
 	var acc model.LocalAccount

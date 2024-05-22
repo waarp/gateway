@@ -418,10 +418,6 @@ linters-settings:
     enable-all: true
     disable:
       - fieldalignment
-    settings:
-      # report about shadowed variables
-      shadow:
-        strict: true
 
     # settings per analyzer
     #settings:

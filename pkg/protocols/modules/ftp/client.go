@@ -155,7 +155,10 @@ func (c *client) connect(pip *pipeline.Pipeline) (*goftp.Client, *pipeline.Error
 			MinVersion: utils.Max(
 				protoutils.ParseTLSVersion(c.conf.MinTLSVersion),
 				protoutils.ParseTLSVersion(partConf.MinTLSVersion)),
-			RootCAs: utils.TLSCertPool(),
+		}
+
+		if auth.AddTLSAuthorities(pip.DB, tlsConfig) != nil {
+			return nil, pipeline.NewError(types.TeInternal, "failed to setup the TLS authorities")
 		}
 
 		for _, dbCert := range pip.TransCtx.RemoteAccountCreds {
@@ -178,6 +181,7 @@ func (c *client) connect(pip *pipeline.Pipeline) (*goftp.Client, *pipeline.Error
 		}
 
 		if !partConf.DisableTLSSessionReuse {
+			tlsConfig.SessionTicketsDisabled = false
 			tlsConfig.ClientSessionCache = tls.NewLRUClientSessionCache(0)
 		}
 

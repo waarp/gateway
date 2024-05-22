@@ -75,9 +75,7 @@ func GetRealPath(isTemp bool, db database.ReadAccess, logger *log.Logger,
 	rule, err := GetClosestRule(db, logger, server, acc, filepath, true)
 	if errors.Is(err, ErrRuleNotFound) {
 		return nil, nil //nolint:nilnil //returning nil here makes more sense than using a sentinel error
-	}
-
-	if err != nil {
+	} else if err != nil {
 		return nil, err
 	}
 
@@ -90,20 +88,23 @@ func GetRealPath(isTemp bool, db database.ReadAccess, logger *log.Logger,
 		dirErr  error
 	)
 
-	if isTemp {
-		realDir, dirErr = utils.GetPath(rest+".part", utils.Leaf(rule.TmpLocalRcvDir),
-			utils.Leaf(server.TmpReceiveDir), utils.Branch(server.RootDir),
-			utils.Leaf(confPaths.DefaultTmpDir), utils.Branch(confPaths.GatewayHome))
-		if dirErr != nil {
-			return nil, fmt.Errorf("failed to build the path: %w", dirErr)
-		}
-	} else {
+	switch {
+	case rule.IsSend:
 		realDir, dirErr = utils.GetPath(rest, utils.Leaf(rule.LocalDir),
 			utils.Leaf(server.SendDir), utils.Branch(server.RootDir),
 			utils.Leaf(confPaths.DefaultOutDir), utils.Branch(confPaths.GatewayHome))
-		if dirErr != nil {
-			return nil, fmt.Errorf("failed to build the path: %w", dirErr)
-		}
+	case isTemp:
+		realDir, dirErr = utils.GetPath(rest+".part", utils.Leaf(rule.TmpLocalRcvDir),
+			utils.Leaf(server.TmpReceiveDir), utils.Branch(server.RootDir),
+			utils.Leaf(confPaths.DefaultTmpDir), utils.Branch(confPaths.GatewayHome))
+	default:
+		realDir, dirErr = utils.GetPath(rest, utils.Leaf(rule.LocalDir),
+			utils.Leaf(server.ReceiveDir), utils.Branch(server.RootDir),
+			utils.Leaf(confPaths.DefaultInDir), utils.Branch(confPaths.GatewayHome))
+	}
+
+	if dirErr != nil {
+		return nil, fmt.Errorf("failed to build the path: %w", dirErr)
 	}
 
 	return (*types.URL)(realDir), nil
@@ -143,7 +144,7 @@ func GetRulesPaths(db database.ReadAccess, serv *model.LocalAgent,
 	for i := range rules {
 		p := rules[i].Path
 		p = strings.TrimPrefix(p, dir)
-		p = strings.SplitN(p, "/", 2)[0] //nolint:gomnd //not needed here
+		p = strings.SplitN(p, "/", 2)[0] //nolint:mnd //not needed here
 
 		if len(paths) == 0 || paths[len(paths)-1] != p {
 			paths = append(paths, p)

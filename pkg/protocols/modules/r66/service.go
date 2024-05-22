@@ -116,7 +116,7 @@ func (s *service) Start() error {
 
 func (s *service) start() error {
 	s.logger = logging.NewLogger(s.agent.Name)
-	s.logger.Info("Starting R66 server '%s'...", s.agent.Name)
+	s.logger.Info("Starting R66 server...")
 
 	setLogAndReturnError := func(msg string, args ...any) error {
 		//nolint:goerr113 //dynamic error is better here for readability
@@ -165,7 +165,7 @@ func (s *service) start() error {
 	}
 
 	s.state.Set(utils.StateRunning, "")
-	s.logger.Info("R66 server started at %v", s.agent.Address)
+	s.logger.Info("R66 server started successfully on %s", s.list.Addr().String())
 
 	return nil
 }

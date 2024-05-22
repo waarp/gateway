@@ -111,6 +111,30 @@ func TestTLS(t *testing.T) {
 			})
 		})
 
+		Convey("Given that the certificates were signed by a known authority", func(c C) {
+			localhostAuthority := &model.Authority{
+				Name:           "localhost_authority",
+				Type:           auth.AuthorityTLS,
+				PublicIdentity: testhelpers.LocalhostCert,
+				ValidHosts:     []string{ctx.Server.Address.Host},
+			}
+			So(ctx.DB.Insert(localhostAuthority).Run(), ShouldBeNil)
+
+			fooAuthority := &model.Authority{
+				Name:           "foo_authority",
+				Type:           auth.AuthorityTLS,
+				PublicIdentity: testhelpers.ClientFooCert,
+			}
+			So(ctx.DB.Insert(fooAuthority).Run(), ShouldBeNil)
+
+			ctx.AddCreds(c, remoteAccountCert, localAgentCert)
+
+			Convey("When connecting to the server", func() {
+				SoMsg("Then it should not return an error",
+					connect(), ShouldBeNil)
+			})
+		})
+
 		Convey("Given that the client provides a bad certificate", func(c C) {
 			remoteAccountCert.Value = testhelpers.ClientFooCert2
 			remoteAccountCert.Value2 = testhelpers.ClientFooKey2

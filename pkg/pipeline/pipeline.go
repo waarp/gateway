@@ -100,6 +100,7 @@ func newPipeline(db *database.DB, logger *log.Logger, transCtx *model.TransferCo
 		}
 
 		logger = logging.NewLogger(fmt.Sprintf("Pipeline %d (server)", transCtx.Transfer.ID))
+		pipeline.Logger = logger
 	} else if err := pipeline.UpdateTrans(); err != nil {
 		logger.Error("Failed to update the transfer details: %s", err)
 
