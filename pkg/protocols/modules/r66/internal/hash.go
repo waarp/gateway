@@ -57,9 +57,9 @@ func GetHasher(h string) (hash.Hash, error) {
 // MakeHash takes a file path and returns the sha256 checksum of the file.
 func MakeHash(ctx context.Context, hashAlgo string, filesys fs.FS, logger *log.Logger, path *types.URL,
 ) ([]byte, *pipeline.Error) {
-	hasher, err := GetHasher(hashAlgo)
-	if err != nil {
-		return nil, pipeline.NewErrorWith(types.TeInternal, "unknown hash algorithm", err)
+	hasher, hashErr := GetHasher(hashAlgo)
+	if hashErr != nil {
+		return nil, pipeline.NewErrorWith(types.TeInternal, "unknown hash algorithm", hashErr)
 	}
 
 	file, opErr := fs.OpenFile(filesys, path, os.O_RDONLY, 0o600)

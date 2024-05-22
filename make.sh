@@ -23,7 +23,7 @@ t_check() {
   echo "golangci-lint, en utilisant le fichier de configuration .golangci.yml."
 
   go vet ./cmd/... ./pkg/...
-  golangci-lint run
+  golangci-lint run --timeout 5m
 }
 
 t_test_watch() {
