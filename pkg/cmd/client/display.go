@@ -59,7 +59,7 @@ func (s *style) printL(w io.Writer, name string, value any) {
 }
 
 func (s *style) sprintL(name string, value any) string {
-	return color.Sprintf("%s%s: %s", s.bulletPrefix, s.color.Render(name), value)
+	return color.Sprintf("%s%s: %v", s.bulletPrefix, s.color.Render(name), value)
 }
 
 func (s *style) option(w io.Writer, name string, value any) {

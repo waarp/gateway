@@ -5,7 +5,7 @@ import (
 	"io"
 	"path"
 
-	"github.com/jedib0t/go-pretty/v6/text"
+	"github.com/gookit/color"
 
 	"code.waarp.fr/apps/gateway/gateway/pkg/admin/rest/api"
 )
@@ -14,7 +14,7 @@ const certDeprecatedMsg = `‼WARNING‼ The "certificate" command is deprecated
 	`Please use the "credentials" command instead.`
 
 func warnCertDeprecated() {
-	fmt.Fprintln(stdOutput, text.FgRed.Sprint(certDeprecatedMsg))
+	fmt.Fprintln(stdOutput, color.Red.Sprint(certDeprecatedMsg))
 }
 
 func displayCrypto(w io.Writer, cert *api.OutCrypto) error {

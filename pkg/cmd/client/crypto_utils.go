@@ -12,8 +12,9 @@ import (
 	"io"
 	"strings"
 	"time"
+	"unicode/utf8"
 
-	"github.com/jedib0t/go-pretty/v6/text"
+	"github.com/gookit/color"
 	"golang.org/x/crypto/ssh"
 
 	"code.waarp.fr/apps/gateway/gateway/pkg/utils"
@@ -82,14 +83,15 @@ func marshalPublicKey(key any) string {
 	case *ed25519.PublicKey:
 		bytes = *k
 	default:
-		return text.FgRed.Sprintf("<unknown public key type>")
+		return color.Red.Sprintf("<unknown public key type>")
 	}
 
 	return shortHex(bytes)
 }
 
 func sha256Sum(style *style, b []byte) string {
-	sndLinePrefix := strings.Repeat(" ", len(style.bulletPrefix)+len("SHA-256: "))
+	sndLinePrefix := strings.Repeat(" ", utf8.RuneCountInString(style.bulletPrefix)+
+		utf8.RuneCountInString("SHA-256: "))
 	sum := sha256.Sum256(b)
 
 	return fmt.Sprintf("% X\n%s% X", sum[:16], sndLinePrefix, sum[16:])

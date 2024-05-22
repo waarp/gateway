@@ -74,7 +74,7 @@ type TransferAdd struct {
 	File         string             `required:"yes" short:"f" long:"file" description:"The file to transfer" json:"file,omitempty"`
 	Out          string             `short:"o" long:"out" description:"The destination of the file" json:"output,omitempty"`
 	Way          string             `required:"yes" short:"w" long:"way" description:"The direction of the transfer" choice:"send" choice:"receive" json:"-"`
-	IsSend       bool               `json:"isSend,omitempty"`
+	IsSend       bool               `json:"isSend"`
 	Client       string             `short:"c" long:"client" description:"The client with which the transfer is performed" json:"client,omitempty"`
 	Partner      string             `required:"yes" short:"p" long:"partner" description:"The partner to which the transfer is requested" json:"partner,omitempty"`
 	Account      string             `required:"yes" short:"l" long:"login" description:"The login of the account used to connect on the partner" json:"account,omitempty"`
