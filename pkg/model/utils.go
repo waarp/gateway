@@ -97,8 +97,8 @@ func doSetTransferInfo(ses *database.Session, owner transferInfoOwner,
 		i := &TransferInfo{Name: name, Value: string(str)}
 		owner.setTransInfoOwner(i)
 
-		if err := ses.Insert(i).Run(); err != nil {
-			return fmt.Errorf("failed to insert transfer info: %w", err)
+		if err2 := ses.Insert(i).Run(); err2 != nil {
+			return fmt.Errorf("failed to insert transfer info: %w", err2)
 		}
 	}
 
@@ -134,7 +134,7 @@ func countTrue(b ...bool) int {
 }
 
 type authentCacheKey struct {
-	Id       int64
+	ID       int64
 	AuthType string
 	Value    any
 }
@@ -145,23 +145,30 @@ type authentCacheVal struct {
 }
 
 func getCachableValue(authType string, value any) (bool, any) {
-    if authType == "password_hash" {
-        v, ok := value.(string)
-        if !ok {
-            return false, nil
-        }
-        return true, v
-    }
-    if authType == "password" {
-        return true, value
-    }
-    return false, nil
+	if authType == "password_hash" {
+		v, ok := value.([]uint8)
+
+		if !ok {
+			return false, nil
+		}
+
+		return true, string(v)
+	}
+
+	if authType == "password" {
+		return true, value
+	}
+
+	return false, nil
 }
 
 const deltaCacheExpiration time.Duration = 3 * time.Second
 
-var cacheLocalAuthent sync.Map = sync.Map{}
-var cacheRemoteAuthent sync.Map = sync.Map{}
+var (
+	cacheLocalAuthent sync.Map = sync.Map{} //nolint:gochecknoglobals //global var is used for simplicity
+
+	cacheRemoteAuthent sync.Map = sync.Map{} //nolint:gochecknoglobals //global var is used for simplicity
+)
 
 func authenticate(db database.ReadAccess, owner CredOwnerTable, authType string, value any,
 ) (res *authentication.Result, err error) {
@@ -171,22 +178,25 @@ func authenticate(db database.ReadAccess, owner CredOwnerTable, authType string,
 		return nil, fmt.Errorf("unknown authentication type %q", authType)
 	}
 
-	// TODO get correct map and key
-	cache := cacheLocalAuthent
+	cache := &cacheLocalAuthent
+	if !owner.IsServer() {
+		cache = &cacheRemoteAuthent
+	}
 
 	// get cache key
-  if ok, v := getCachableValue(authType, value); ok {
+	fmt.Println(authType)
+	if ok, v := getCachableValue(authType, value); ok {
 		_, id := owner.GetCredCond()
-		
-    key := authentCacheKey{
-			Id:       id,
+
+		key := authentCacheKey{
+			ID:       id,
 			AuthType: authType,
 			Value:    v,
 		}
-   
 
 		defer func() {
 			if err == nil {
+				fmt.Println("add auth to cache")
 				cache.Store(key, authentCacheVal{
 					result:     res,
 					expiration: time.Now().Add(deltaCacheExpiration),
@@ -194,13 +204,18 @@ func authenticate(db database.ReadAccess, owner CredOwnerTable, authType string,
 			}
 		}()
 
-		if res, ok := cache.Load(key); ok && res != nil {
-			res := res.(authentCacheVal)
+		fmt.Println("search auth in cache")
+		if res, ok2 := cache.Load(key); ok2 && res != nil {
+			fmt.Println("auth found in cache")
+			res, _ := res.(authentCacheVal) //nolint:forcetypeassert,errcheck //only authentCacheVal are stored into the map
 			if time.Now().Before(res.expiration) {
+				fmt.Printf("auth validated from cache %t\n", res.result.Success)
 				return res.result, nil
 			}
 		}
 	}
+
+	fmt.Println("validate auth from db")
 
 	//nolint:wrapcheck //error is returned as is for better message readability
 	return handler.Authenticate(db, owner, value)
