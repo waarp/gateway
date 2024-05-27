@@ -155,10 +155,6 @@ func getCachableValue(authType string, value any) (bool, any) {
 		return true, string(v)
 	}
 
-	if authType == "password" {
-		return true, value
-	}
-
 	return false, nil
 }
 
