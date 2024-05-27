@@ -165,6 +165,9 @@ func getCachableValue(authType string, value any) (bool, any) {
 const deltaCacheExpiration time.Duration = 3 * time.Second
 
 var (
+	// FIXME // Is there a better way to store the mutex ?
+	authMutex sync.Mutex //nolint:gochecknoglobals //global var is used for simplicity
+
 	cacheLocalAuthent sync.Map = sync.Map{} //nolint:gochecknoglobals //global var is used for simplicity
 
 	cacheRemoteAuthent sync.Map = sync.Map{} //nolint:gochecknoglobals //global var is used for simplicity
@@ -178,13 +181,15 @@ func authenticate(db database.ReadAccess, owner CredOwnerTable, authType string,
 		return nil, fmt.Errorf("unknown authentication type %q", authType)
 	}
 
+	authMutex.Lock()
+	defer authMutex.Unlock()
+
 	cache := &cacheLocalAuthent
 	if !owner.IsServer() {
 		cache = &cacheRemoteAuthent
 	}
 
 	// get cache key
-	fmt.Println(authType)
 	if ok, v := getCachableValue(authType, value); ok {
 		_, id := owner.GetCredCond()
 
@@ -196,7 +201,6 @@ func authenticate(db database.ReadAccess, owner CredOwnerTable, authType string,
 
 		defer func() {
 			if err == nil {
-				fmt.Println("add auth to cache")
 				cache.Store(key, authentCacheVal{
 					result:     res,
 					expiration: time.Now().Add(deltaCacheExpiration),
@@ -204,18 +208,13 @@ func authenticate(db database.ReadAccess, owner CredOwnerTable, authType string,
 			}
 		}()
 
-		fmt.Println("search auth in cache")
 		if res, ok2 := cache.Load(key); ok2 && res != nil {
-			fmt.Println("auth found in cache")
 			res, _ := res.(authentCacheVal) //nolint:forcetypeassert,errcheck //only authentCacheVal are stored into the map
 			if time.Now().Before(res.expiration) {
-				fmt.Printf("auth validated from cache %t\n", res.result.Success)
 				return res.result, nil
 			}
 		}
 	}
-
-	fmt.Println("validate auth from db")
 
 	//nolint:wrapcheck //error is returned as is for better message readability
 	return handler.Authenticate(db, owner, value)
