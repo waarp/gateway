@@ -165,9 +165,6 @@ func getCachableValue(authType string, value any) (bool, any) {
 const deltaCacheExpiration time.Duration = 3 * time.Second
 
 var (
-	// FIXME // Is there a better way to store the mutex ?
-	authMutex sync.Mutex //nolint:gochecknoglobals //global var is used for simplicity
-
 	cacheLocalAuthent sync.Map = sync.Map{} //nolint:gochecknoglobals //global var is used for simplicity
 
 	cacheRemoteAuthent sync.Map = sync.Map{} //nolint:gochecknoglobals //global var is used for simplicity
@@ -180,9 +177,6 @@ func authenticate(db database.ReadAccess, owner CredOwnerTable, authType string,
 		//nolint:goerr113 //dynamic error is better here for debugging
 		return nil, fmt.Errorf("unknown authentication type %q", authType)
 	}
-
-	authMutex.Lock()
-	defer authMutex.Unlock()
 
 	cache := &cacheLocalAuthent
 	if !owner.IsServer() {
