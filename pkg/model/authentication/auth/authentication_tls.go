@@ -15,7 +15,6 @@ import (
 	"code.waarp.fr/apps/gateway/gateway/pkg/model"
 	"code.waarp.fr/apps/gateway/gateway/pkg/model/authentication"
 	"code.waarp.fr/apps/gateway/gateway/pkg/utils"
-	"code.waarp.fr/apps/gateway/gateway/pkg/utils/compatibility"
 )
 
 const (
@@ -176,10 +175,6 @@ func checkCert(certPEM, keyPEM, host string, isServer bool) error {
 	//nolint:errcheck //cert if already parsed above, so checking for errors here is redundant
 	leaf, _ := x509.ParseCertificate(cert.Certificate[0])
 
-	if compatibility.IsLegacyR66Cert(leaf) {
-		return nil
-	}
-
 	options := &x509.VerifyOptions{DNSName: host}
 	if isServer {
 		options.KeyUsages = []x509.ExtKeyUsage{x509.ExtKeyUsageServerAuth}
@@ -194,10 +189,6 @@ func checkRemoteSelfSignedCert(certPEM, host string, isServer bool) error {
 	cert, err := ParseCertPEM(certPEM)
 	if err != nil {
 		return err
-	}
-
-	if compatibility.IsLegacyR66Cert(cert) {
-		return nil
 	}
 
 	options := &x509.VerifyOptions{DNSName: host}
