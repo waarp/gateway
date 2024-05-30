@@ -44,11 +44,8 @@ import (
 // the library, as I doubt this change would be accepted upstream.
 
 var (
-	clientConfPassive = &ClientConfig{}
-	serverConfPassive = &ServerConfig{
-		DisableActiveMode:  true,
-		PassiveModeMinPort: 10000, PassiveModeMaxPort: 20000,
-	}
+	clientConfPassive  = &ClientConfig{}
+	serverConfPassive  = &ServerConfig{DisableActiveMode: true}
 	partnerConfPassive = &PartnerConfig{DisableActiveMode: true}
 )
 

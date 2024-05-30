@@ -131,11 +131,10 @@ func (c *client) connect(pip *pipeline.Pipeline) (*goftp.Client, *pipeline.Error
 	)
 
 	if c.conf.EnableActiveMode && !partConf.DisableActiveMode {
-		port := getPortInRange(c.conf.ActiveModeAddress,
+		port, err := getPortInRange(c.conf.ActiveModeAddress,
 			c.conf.ActiveModeMinPort, c.conf.ActiveModeMaxPort)
-		if port == 0 {
-			return nil, pipeline.NewError(types.TeInternal,
-				"could not find an available port in the range for active mode")
+		if err != nil {
+			return nil, err
 		}
 
 		enableActiveMode = true
