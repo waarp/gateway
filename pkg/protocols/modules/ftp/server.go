@@ -92,7 +92,7 @@ func (h *handler) AuthUser(_ ftplib.ClientContext, user, pass string) (ftplib.Cl
 		return nil, errors.New("internal authentication error")
 	}
 
-	if res, err := acc.Authenticate(h.db, auth.PasswordHash, pass); err != nil {
+	if res, err := acc.Authenticate(h.db, h.dbServer, auth.Password, pass); err != nil {
 		h.logger.Error("Failed to authenticate account %q: %s", user, err)
 
 		return nil, errors.New("internal authentication error")
@@ -170,7 +170,7 @@ func (h *handler) VerifyConnection(_ ftplib.ClientContext, user string,
 		return nil, errors.New("internal authentication error")
 	}
 
-	res, err := acc.Authenticate(h.db, auth.TLSTrustedCertificate, certs)
+	res, err := acc.Authenticate(h.db, h.dbServer, auth.TLSTrustedCertificate, certs)
 	if err != nil {
 		h.logger.Error("Failed to authenticate account %q with TLS: %s", user, err)
 

@@ -29,7 +29,7 @@ func displayAccount(w io.Writer, account *api.OutAccount) {
 //nolint:lll //tags are long
 type LocAccAdd struct {
 	Login    string `required:"yes" short:"l" long:"login" description:"The account's login" json:"login,omitempty"`
-	Password string `required:"yes" short:"p" long:"password" description:"The account's password" json:"password,omitempty"`
+	Password string `short:"p" long:"password" description:"The account's password" json:"password,omitempty"`
 }
 
 func (l *LocAccAdd) Execute([]string) error { return execute(l) }

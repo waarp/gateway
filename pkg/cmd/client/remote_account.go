@@ -45,7 +45,7 @@ func (r *RemAccGet) execute(w io.Writer) error {
 //nolint:lll //tags are long
 type RemAccAdd struct {
 	Login    string `required:"true" short:"l" long:"login" description:"The account's login" json:"login,omitempty"`
-	Password string `required:"true" short:"p" long:"password" description:"The account's password" json:"password,omitempty"`
+	Password string `short:"p" long:"password" description:"The account's password" json:"password,omitempty"`
 }
 
 func (r *RemAccAdd) Execute([]string) error { return execute(r) }

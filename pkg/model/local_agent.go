@@ -152,6 +152,10 @@ func (l *LocalAgent) GetAuthorizedRules(db database.ReadAccess) ([]*Rule, error)
 	return rules, nil
 }
 
+func (l *LocalAgent) GetProtocol(database.ReadAccess) (string, error) {
+	return l.Protocol, nil
+}
+
 // AfterWrite is called after any write operation on the local_agents table.
 // If the agent uses R66, the function checks if is still uses the old credentials
 // stored in the proto config. If it does, an equivalent Credential is inserted.

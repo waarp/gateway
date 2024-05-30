@@ -22,8 +22,9 @@ const (
 
 //nolint:gochecknoinits //needed to add credential types
 func init() {
-	authentication.AddInternalCredentialType(AuthSSHPublicKey, &sshPublicKey{})
-	authentication.AddExternalCredentialType(AuthSSHPrivateKey, &sshPrivateKey{})
+	authentication.AddInternalCredentialTypeForProtocol(AuthSSHPublicKey, SFTP, &sshPublicKey{})
+	authentication.AddExternalCredentialTypeForProtocol(AuthSSHPrivateKey, SFTP, &sshPrivateKey{})
+
 	authentication.AddAuthorityType(AuthoritySSHCert, &sshCertAuthority{})
 }
 
@@ -31,7 +32,7 @@ type sshPublicKey struct{}
 
 func (*sshPublicKey) CanOnlyHaveOne() bool { return false }
 
-func (*sshPublicKey) Validate(value, _, _ string, _ bool) error {
+func (*sshPublicKey) Validate(value, value2, protocol, host string, isServer bool) error {
 	if _, err := ParseAuthorizedKey(value); err != nil {
 		return fmt.Errorf("failed to parse SSH public key: %w", err)
 	}
@@ -90,7 +91,7 @@ func (*sshPrivateKey) FromDB(val, _ string) (string, string, error) {
 	return clear, "", nil
 }
 
-func (*sshPrivateKey) Validate(value, _, _ string, _ bool) error {
+func (*sshPrivateKey) Validate(value, value2, protocol, host string, isServer bool) error {
 	if _, err := ssh.ParsePrivateKey([]byte(value)); err != nil {
 		return fmt.Errorf("failed to parse SSH private key: %w", err)
 	}

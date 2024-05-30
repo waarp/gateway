@@ -101,9 +101,13 @@ func (r *RemoteAgent) GetAuthorizedRules(db database.ReadAccess) ([]*Rule, error
 	return rules, nil
 }
 
+func (r *RemoteAgent) GetProtocol(database.ReadAccess) (string, error) {
+	return r.Protocol, nil
+}
+
 func (r *RemoteAgent) Authenticate(db database.ReadAccess, authType string, value any,
 ) (*authentication.Result, error) {
-	return authenticate(db, r, authType, value)
+	return authenticate(db, r, authType, r.Protocol, value)
 }
 
 // AfterWrite is called after any write operation on the remote_agents table.

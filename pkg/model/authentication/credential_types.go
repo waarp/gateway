@@ -7,6 +7,8 @@ package authentication
 
 import "code.waarp.fr/apps/gateway/gateway/pkg/database"
 
+const defaultProtocol = ""
+
 // Owner is the interface implemented by all valid credential owner types.
 type Owner interface {
 	// Host returns the owner's hostname.
@@ -22,34 +24,72 @@ type Owner interface {
 
 //nolint:gochecknoglobals //a global var is needed to store the auth handlers
 var (
-	internalAuthentication = map[string]InternalAuthHandler{}
-	externalAuthentication = map[string]ExternalAuthHandler{}
+	internalAuthentication = map[string]map[string]InternalAuthHandler{}
+	externalAuthentication = map[string]map[string]ExternalAuthHandler{}
 )
 
 // AddInternalCredentialType adds the given authentication handler to the list of
-// supported forms of internal authentication under the given name. If the given
-// type is already used, an error is returned.
+// supported forms of internal authentication under the given name.
 func AddInternalCredentialType(authType string, handler InternalAuthHandler) {
-	internalAuthentication[authType] = handler
+	AddInternalCredentialTypeForProtocol(authType, defaultProtocol, handler)
+}
+
+// AddInternalCredentialTypeForProtocol adds the given authentication handler to
+// the list of supported forms of internal authentication under the given name
+// AND ONLY for the given protocol.
+func AddInternalCredentialTypeForProtocol(authType, protocol string, handler InternalAuthHandler) {
+	if internalAuthentication[authType] == nil {
+		internalAuthentication[authType] = map[string]InternalAuthHandler{}
+	}
+
+	internalAuthentication[authType][protocol] = handler
 }
 
 // AddExternalCredentialType adds the given authentication handler to the list of
-// supported forms of partner authentication under the given name. If the given
-// type is already used, an error is returned.
+// supported forms of partner authentication under the given name.
 func AddExternalCredentialType(authType string, handler ExternalAuthHandler) {
-	externalAuthentication[authType] = handler
+	AddExternalCredentialTypeForProtocol(authType, defaultProtocol, handler)
+}
+
+// AddExternalCredentialTypeForProtocol adds the given authentication handler to
+// the list of supported forms of partner authentication under the given name
+// AND ONLY for the given protocol.
+func AddExternalCredentialTypeForProtocol(authType, protocol string, handler ExternalAuthHandler) {
+	if externalAuthentication[authType] == nil {
+		externalAuthentication[authType] = map[string]ExternalAuthHandler{}
+	}
+
+	externalAuthentication[authType][protocol] = handler
 }
 
 // GetInternalAuthHandler returns the InternalAuthHandler associated with the given
 // AuthType name. If no handler exists under this name, the function returns nil.
-func GetInternalAuthHandler(authType string) InternalAuthHandler {
-	return internalAuthentication[authType]
+func GetInternalAuthHandler(authType, protocol string) InternalAuthHandler {
+	handlers := internalAuthentication[authType]
+	if handlers == nil {
+		return nil
+	}
+
+	if handler := handlers[protocol]; handler != nil {
+		return handler
+	}
+
+	return handlers[defaultProtocol]
 }
 
 // GetExternalAuthMethod returns the ExternalAuthHandler associated with the given
 // AuthType name. If no handler exists under this name, the function returns nil.
-func GetExternalAuthMethod(authType string) ExternalAuthHandler {
-	return externalAuthentication[authType]
+func GetExternalAuthMethod(authType, protocol string) ExternalAuthHandler {
+	handlers := externalAuthentication[authType]
+	if handlers == nil {
+		return nil
+	}
+
+	if handler := handlers[protocol]; handler != nil {
+		return handler
+	}
+
+	return handlers[defaultProtocol]
 }
 
 // Handler is the interface exposing the base functions needed to implement
@@ -61,7 +101,7 @@ type Handler interface {
 
 	// Validate checks whether the given authentication value is valid. If it's
 	// not, the function should return an error. This function is required.
-	Validate(value, value2 string, host string, isServer bool) error
+	Validate(value, value2 string, protocol, host string, isServer bool) error
 }
 
 // InternalAuthHandler is a struct regrouping the various function necessary to

@@ -53,8 +53,8 @@ func partnerPassword(partner *model.RemoteAgent) *model.Credential {
 	return &model.Credential{
 		RemoteAgentID: utils.NewNullInt64(partner.ID),
 		Name:          "partner_password",
-		Type:          auth.PasswordHash,
-		Value:         CryptPass(serverPass),
+		Type:          auth.Password,
+		Value:         serverPass,
 	}
 }
 

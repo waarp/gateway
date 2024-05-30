@@ -9,7 +9,6 @@ import (
 	"code.waarp.fr/apps/gateway/gateway/pkg/admin/rest/api"
 	"code.waarp.fr/apps/gateway/gateway/pkg/database"
 	"code.waarp.fr/apps/gateway/gateway/pkg/model"
-	"code.waarp.fr/apps/gateway/gateway/pkg/model/authentication/auth"
 )
 
 func makeCredList(db database.ReadAccess, target model.CredOwnerTable) ([]string, error) {
@@ -43,7 +42,7 @@ func getCred(r *http.Request, db database.ReadAccess, target model.CredOwnerTabl
 }
 
 func addCredential(w http.ResponseWriter, r *http.Request, db *database.DB,
-	target model.CredOwnerTable, protocol string,
+	target model.CredOwnerTable,
 ) error {
 	var jCred api.InCred
 	if err := readJSON(r, &jCred); err != nil {
@@ -57,10 +56,6 @@ func addCredential(w http.ResponseWriter, r *http.Request, db *database.DB,
 		Value2: jCred.Value2.Value,
 	}
 	target.SetCredOwner(dbCred)
-
-	if dbCred.Type == auth.PasswordHash {
-		checkR66Password(dbCred, protocol)
-	}
 
 	if err := db.Insert(dbCred).Run(); err != nil {
 		return fmt.Errorf("failed to insert credential: %w", err)

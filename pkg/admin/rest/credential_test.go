@@ -124,7 +124,7 @@ func TestAddRemoveCred(t *testing.T) {
 		Convey("When adding a credential to the partner", func() {
 			const (
 				credName = "pswd"
-				credType = auth.PasswordHash
+				credType = auth.Password
 				credVal  = "sesame"
 			)
 
@@ -204,7 +204,7 @@ func TestAddRemoveCred(t *testing.T) {
 		Convey("When adding a credential to the local account", func() {
 			const (
 				credName = "pswd"
-				credType = auth.PasswordHash
+				credType = auth.Password
 				credVal  = "sesame"
 			)
 
@@ -233,7 +233,7 @@ func TestAddRemoveCred(t *testing.T) {
 				So(accAuth.Name, ShouldEqual, credName)
 				So(accAuth.Type, ShouldEqual, credType)
 
-				authRes, authErr := locAcc.Authenticate(db, credType, credVal)
+				authRes, authErr := locAcc.Authenticate(db, server, credType, credVal)
 				So(authErr, ShouldBeNil)
 				So(authRes.Success, ShouldBeTrue)
 

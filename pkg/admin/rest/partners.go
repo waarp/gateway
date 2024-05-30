@@ -217,7 +217,7 @@ func addPartnerCred(logger *log.Logger, db *database.DB) http.HandlerFunc {
 			return
 		}
 
-		handleError(w, logger, addCredential(w, r, db, dbPartner, dbPartner.Protocol))
+		handleError(w, logger, addCredential(w, r, db, dbPartner))
 	}
 }
 

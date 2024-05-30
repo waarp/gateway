@@ -48,7 +48,7 @@ func (h *httpService) makeTLSConf(*tls.ClientHelloInfo) (*tls.Config, error) {
 		MinVersion:            tls.VersionTLS12,
 		Certificates:          tlsCerts,
 		ClientAuth:            tls.RequestClientCert,
-		VerifyPeerCertificate: auth.VerifyClientCert(h.db, h.logger, h.agent.ID),
+		VerifyPeerCertificate: auth.VerifyClientCert(h.db, h.logger, h.agent),
 		VerifyConnection:      compatibility.LogSha1(h.logger),
 	}, nil
 }
@@ -164,7 +164,7 @@ func (h *httpService) checkAuthent(w http.ResponseWriter, r *http.Request,
 	}
 
 	if pswd != "" {
-		if res, err := acc.Authenticate(h.db, auth.PasswordHash, pswd); err != nil {
+		if res, err := acc.Authenticate(h.db, h.agent, auth.Password, pswd); err != nil {
 			h.logger.Error("Failed to check password for user %q: %v", acc.Login, err)
 			http.Error(w, "internal authentication error", http.StatusInternalServerError)
 

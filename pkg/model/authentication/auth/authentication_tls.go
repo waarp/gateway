@@ -51,7 +51,7 @@ func (*TLSCertHandler) FromDB(val, val2 string) (string, string, error) {
 	return val, clear, nil
 }
 
-func (*TLSCertHandler) Validate(value, value2, host string, isServer bool) error {
+func (*TLSCertHandler) Validate(value, value2, _, host string, isServer bool) error {
 	if err := checkCert(value, value2, host, isServer); err != nil {
 		return fmt.Errorf("failed to validate certificate: %w", err)
 	}
@@ -63,7 +63,7 @@ type TLSTrustedCertHandler struct{}
 
 func (*TLSTrustedCertHandler) CanOnlyHaveOne() bool { return false }
 
-func (*TLSTrustedCertHandler) Validate(value, _, host string, isServer bool) error {
+func (*TLSTrustedCertHandler) Validate(value, _, _, host string, isServer bool) error {
 	if err := checkRemoteSelfSignedCert(value, host, isServer); err != nil {
 		return fmt.Errorf("failed to validate certificate: %w", err)
 	}
@@ -280,7 +280,7 @@ func verifyCertChain(certChain []*x509.Certificate, rootCAs *x509.CertPool,
 }
 
 //nolint:goerr113 //dynamic errors are needed here
-func VerifyClientCert(db database.ReadAccess, logger *log.Logger, serverID int64,
+func VerifyClientCert(db database.ReadAccess, logger *log.Logger, server *model.LocalAgent,
 ) func([][]byte, [][]*x509.Certificate) error {
 	return func(rawCerts [][]byte, _ [][]*x509.Certificate) error {
 		if len(rawCerts) == 0 {
@@ -304,7 +304,7 @@ func VerifyClientCert(db database.ReadAccess, logger *log.Logger, serverID int64
 		}
 
 		var acc model.LocalAccount
-		if err := db.Get(&acc, "local_agent_id=? AND login=?", serverID, login).
+		if err := db.Get(&acc, "local_agent_id=? AND login=?", server.ID, login).
 			Run(); err != nil {
 			if database.IsNotFound(err) {
 				logger.Warning("Unknown certificate subject %q", login)
@@ -317,7 +317,7 @@ func VerifyClientCert(db database.ReadAccess, logger *log.Logger, serverID int64
 			return errors.New("failed to retrieve user credentials")
 		}
 
-		if res, err := acc.Authenticate(db, TLSTrustedCertificate, certs); err != nil {
+		if res, err := acc.Authenticate(db, server, TLSTrustedCertificate, certs); err != nil {
 			logger.Error("Failed to authenticate client certificate: %v", err)
 
 			return errors.New("internal authentication error")

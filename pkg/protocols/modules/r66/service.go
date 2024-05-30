@@ -60,13 +60,13 @@ func (s *service) makeTLSConf(*tls.ClientHelloInfo) (*tls.Config, error) {
 			}
 
 			if !compatibility.IsLegacyR66Cert(chain[0]) {
-				return auth.VerifyClientCert(s.db, s.logger, s.agent.ID)(rawCerts, nil)
+				return auth.VerifyClientCert(s.db, s.logger, s.agent)(rawCerts, nil)
 			}
 
 			return nil
 		}
 	} else {
-		tlsConfig.VerifyPeerCertificate = auth.VerifyClientCert(s.db, s.logger, s.agent.ID)
+		tlsConfig.VerifyPeerCertificate = auth.VerifyClientCert(s.db, s.logger, s.agent)
 	}
 
 	if usesLegacyCert(s.db, s.agent) {

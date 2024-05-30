@@ -163,11 +163,11 @@ func importLocalAccounts(logger *log.Logger, db database.Access,
 		if src.PasswordHash != "" || src.Password != "" {
 			pswd := &model.Credential{
 				LocalAccountID: utils.NewNullInt64(account.ID),
-				Type:           auth.PasswordHash,
+				Type:           auth.Password,
 			}
 
 			if src.Password != "" {
-				pswd.Value = cryptR66Pswd(pswd.Type, src.Password, server.Protocol)
+				pswd.Value = src.Password
 			} else {
 				pswd.Value = src.PasswordHash
 			}

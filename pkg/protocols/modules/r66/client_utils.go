@@ -74,7 +74,7 @@ func (c *transferClient) authenticate() *pipeline.Error {
 	pswd := &model.Credential{}
 
 	for _, cred := range c.pip.TransCtx.RemoteAgentCreds {
-		if cred.Type == auth.PasswordHash {
+		if cred.Type == auth.Password {
 			pswd = cred
 		}
 	}

@@ -42,13 +42,8 @@ func (l *LocalAccount) BeforeWrite(db database.Access) error {
 		return database.NewValidationError("the account's login cannot be empty")
 	}
 
-	parent := &LocalAgent{}
-	if err := db.Get(parent, "id=?", l.LocalAgentID).Run(); err != nil {
-		if database.IsNotFound(err) {
-			return database.NewValidationError(`no local agent found with the ID "%v"`, l.LocalAgentID)
-		}
-
-		return fmt.Errorf("failed to check parent local agent: %w", err)
+	if _, err := l.getParent(db); err != nil {
+		return err
 	}
 
 	if n, err := db.Count(l).Where("id<>? AND local_agent_id=? AND login=?",
@@ -96,7 +91,30 @@ func (l *LocalAccount) GetAuthorizedRules(db database.ReadAccess) ([]*Rule, erro
 	return rules, nil
 }
 
-func (l *LocalAccount) Authenticate(db database.ReadAccess, authType string, value any,
+func (l *LocalAccount) getParent(db database.ReadAccess) (*LocalAgent, error) {
+	var parent LocalAgent
+	if err := db.Get(&parent, "id=?", l.LocalAgentID).Run(); err != nil {
+		if database.IsNotFound(err) {
+			return nil, database.NewValidationError(`no local agent found with the ID "%v"`, l.LocalAgentID)
+		}
+
+		return nil, fmt.Errorf("failed to check parent local agent: %w", err)
+	}
+
+	return &parent, nil
+}
+
+func (l *LocalAccount) GetProtocol(db database.ReadAccess) (string, error) {
+	parent, err := l.getParent(db)
+	if err != nil {
+		return "", err
+	}
+
+	return parent.Protocol, nil
+}
+
+func (l *LocalAccount) Authenticate(db database.ReadAccess, localAgent *LocalAgent,
+	authType string, value any,
 ) (*authentication.Result, error) {
-	return authenticate(db, l, authType, value)
+	return authenticate(db, l, authType, localAgent.Protocol, value)
 }

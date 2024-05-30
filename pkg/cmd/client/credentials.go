@@ -31,8 +31,6 @@ func getCredentialPath() (string, error) {
 
 func displayCredential(w io.Writer, cred *api.OutCred) error {
 	switch cred.Type {
-	case auth.PasswordHash:
-		style1.printL(w, fmt.Sprintf("Password hash %q", cred.Name), cred.Value)
 	case auth.Password:
 		style1.printL(w, fmt.Sprintf("Password %q", cred.Name), cred.Value)
 	case auth.TLSCertificate, auth.TLSTrustedCertificate:

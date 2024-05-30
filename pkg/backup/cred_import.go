@@ -31,7 +31,7 @@ func credentialsImport(logger *log.Logger, db database.Access, list []file.Crede
 		// Populate
 		credential.Name = src.Name
 		credential.Type = src.Type
-		credential.Value = cryptR66Pswd(src.Type, src.Value, protocol)
+		credential.Value = src.Value
 		credential.Value2 = src.Value2
 		owner.SetCredOwner(&credential)
 

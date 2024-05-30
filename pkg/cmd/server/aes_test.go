@@ -61,28 +61,41 @@ func TestChangeAESPassphrase(t *testing.T) {
 		}
 		So(db.Insert(server).Run(), ShouldBeNil)
 
-		partner := &model.RemoteAgent{
+		r66Partner := &model.RemoteAgent{
 			Name:     "fiz",
 			Protocol: r66.R66,
 			Address:  types.Addr("2.2.2.2", 2),
 		}
-		So(db.Insert(partner).Run(), ShouldBeNil)
+		So(db.Insert(r66Partner).Run(), ShouldBeNil)
 
-		remAccount := &model.RemoteAccount{
-			RemoteAgentID: partner.ID,
+		r66RemAccount := &model.RemoteAccount{
+			RemoteAgentID: r66Partner.ID,
 			Login:         "titi",
 		}
-		So(db.Insert(remAccount).Run(), ShouldBeNil)
+		So(db.Insert(r66RemAccount).Run(), ShouldBeNil)
 
 		pswdCred := &model.Credential{
-			RemoteAccountID: utils.NewNullInt64(remAccount.ID),
+			RemoteAccountID: utils.NewNullInt64(r66RemAccount.ID),
 			Type:            auth.Password,
 			Value:           remAccPwd,
 		}
 		So(db.Insert(pswdCred).Run(), ShouldBeNil)
 
+		sftpPartner := &model.RemoteAgent{
+			Name:     "fuz",
+			Protocol: sftp.SFTP,
+			Address:  types.Addr("3.3.3.3", 3),
+		}
+		So(db.Insert(sftpPartner).Run(), ShouldBeNil)
+
+		sftpRemAccount := &model.RemoteAccount{
+			RemoteAgentID: sftpPartner.ID,
+			Login:         "titi",
+		}
+		So(db.Insert(sftpRemAccount).Run(), ShouldBeNil)
+
 		sshKeyCred := &model.Credential{
-			RemoteAccountID: utils.NewNullInt64(remAccount.ID),
+			RemoteAccountID: utils.NewNullInt64(sftpRemAccount.ID),
 			Type:            sftp.AuthSSHPrivateKey,
 			Value:           remAccSSHKey,
 		}
@@ -161,7 +174,7 @@ func TestChangeAESPassphrase(t *testing.T) {
 
 					Convey("Then the remote passwords should have been re-encrypted", func() {
 						row := db.QueryRow(`SELECT value FROM credentials WHERE
-							type=? AND remote_account_id=?`, auth.Password, remAccount.ID)
+							type=? AND remote_account_id=?`, auth.Password, r66RemAccount.ID)
 
 						var cipherText string
 						So(row.Scan(&cipherText), ShouldBeNil)

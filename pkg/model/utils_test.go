@@ -83,8 +83,8 @@ func (t testConfigChecker) CheckPartnerConfig(proto string, _ map[string]any) er
 
 type intAuth struct{}
 
-func (*intAuth) CanOnlyHaveOne() bool                        { return false }
-func (*intAuth) Validate(string, string, string, bool) error { return nil }
+func (*intAuth) CanOnlyHaveOne() bool                                { return false }
+func (*intAuth) Validate(string, string, string, string, bool) error { return nil }
 func (*intAuth) Authenticate(database.ReadAccess, authentication.Owner, any,
 ) (*authentication.Result, error) {
 	return authentication.Success(), nil
@@ -92,8 +92,8 @@ func (*intAuth) Authenticate(database.ReadAccess, authentication.Owner, any,
 
 type extAuth struct{}
 
-func (*extAuth) CanOnlyHaveOne() bool                        { return false }
-func (*extAuth) Validate(string, string, string, bool) error { return nil }
+func (*extAuth) CanOnlyHaveOne() bool                                { return false }
+func (*extAuth) Validate(string, string, string, string, bool) error { return nil }
 
 const invalidAuthorityVal = "authority public identity"
 

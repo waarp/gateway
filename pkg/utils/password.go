@@ -87,12 +87,6 @@ func HashPassword(bcryptRounds int, password string) (string, error) {
 	return string(hash), nil
 }
 
-func IsPasswordHashed(password string) bool {
-	_, err := bcrypt.Cost([]byte(password))
-
-	return err == nil
-}
-
 // ConstantEqual takes a pair of strings and returns whether they are equal or
 // not. Comparison is done in constant time for security purposes.
 func ConstantEqual(s1, s2 string) bool {

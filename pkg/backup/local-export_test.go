@@ -139,7 +139,7 @@ func TestExportLocalAccounts(t *testing.T) {
 			pswd := &model.Credential{
 				Name:           "test_cert",
 				LocalAccountID: utils.NewNullInt64(account1.ID),
-				Type:           auth.PasswordHash,
+				Type:           auth.Password,
 				Value:          "foobar",
 			}
 			So(db.Insert(pswd).Run(), ShouldBeNil)

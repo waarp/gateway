@@ -45,7 +45,7 @@ func TestGetFileInfo(t *testing.T) {
 
 		accPswd := &model.Credential{
 			LocalAccountID: utils.NewNullInt64(account.ID),
-			Type:           auth.PasswordHash,
+			Type:           auth.Password,
 			Value:          "bar",
 		}
 		So(db.Insert(accPswd).Run(), ShouldBeNil)
@@ -129,7 +129,7 @@ func TestGetFileInfo(t *testing.T) {
 
 				otherPswd := &model.Credential{
 					LocalAccountID: utils.NewNullInt64(other.ID),
-					Type:           auth.PasswordHash,
+					Type:           auth.Password,
 					Value:          "other_pswd",
 				}
 				So(db.Insert(otherPswd).Run(), ShouldBeNil)
@@ -181,7 +181,7 @@ func TestGetTransferInfo(t *testing.T) {
 
 		accPswd := &model.Credential{
 			LocalAccountID: utils.NewNullInt64(account.ID),
-			Type:           auth.PasswordHash,
+			Type:           auth.Password,
 			Value:          "bar",
 		}
 		So(db.Insert(accPswd).Run(), ShouldBeNil)

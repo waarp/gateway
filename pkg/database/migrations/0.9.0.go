@@ -903,7 +903,7 @@ func _ver0_9_0FillAuthTableGetCerts(db Actions) ([]struct {
 func ver0_9_0FillCredTableUp(db Actions) error {
 	if err := db.Exec(`INSERT INTO 
 		credentials (local_account_id, name, type, value)
-		SELECT id, 'password', 'password_hash', password_hash FROM local_accounts
+		SELECT id, 'password', 'password', password_hash FROM local_accounts
 		WHERE password_hash IS NOT NULL AND LENGTH(password_hash) > 0`); err != nil {
 		return fmt.Errorf("failed to add the local account passwords to the 'credentials' table: %w", err)
 	}
@@ -1191,8 +1191,8 @@ func _ver0_9_0MoveR66ServerAuthUndo(db Actions, tbl, col, authType string, chpwd
 		}
 	}
 
-	if err := db.Exec(`DELETE FROM credentials WHERE (type='password' OR type='password_hash')
-	    AND ` + col + ` IN (SELECT id FROM ` + tbl + ` WHERE protocol='r66' OR protocol='r66-tls')`); err != nil {
+	if err := db.Exec(`DELETE FROM credentials WHERE type='password' AND ` +
+		col + ` IN (SELECT id FROM ` + tbl + ` WHERE protocol='r66' OR protocol='r66-tls')`); err != nil {
 		return fmt.Errorf("failed to delete the R66 credentials: %w", err)
 	}
 
@@ -1204,7 +1204,7 @@ func ver0_9_0MoveR66ServerPswdUp(db Actions) error {
 		return err
 	}
 
-	return _ver0_9_0MoveR66ServerAuthDo(db, "remote_agents", "remote_agent_id", "password_hash")
+	return _ver0_9_0MoveR66ServerAuthDo(db, "remote_agents", "remote_agent_id", "password")
 }
 
 func ver0_9_0MoveR66ServerPswdDown(db Actions) error {
@@ -1214,7 +1214,7 @@ func ver0_9_0MoveR66ServerPswdDown(db Actions) error {
 		return err
 	}
 
-	return _ver0_9_0MoveR66ServerAuthUndo(db, "remote_agents", "remote_agent_id", "password_hash",
+	return _ver0_9_0MoveR66ServerAuthUndo(db, "remote_agents", "remote_agent_id", "password",
 		func(s string) string { return s })
 }
 

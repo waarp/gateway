@@ -55,7 +55,7 @@ func TestFileReader(t *testing.T) {
 
 			pswd := &model.Credential{
 				LocalAccountID: utils.NewNullInt64(account.ID),
-				Type:           auth.PasswordHash,
+				Type:           auth.Password,
 				Value:          "password",
 			}
 			So(db.Insert(pswd).Run(), ShouldBeNil)
@@ -162,7 +162,7 @@ func TestFileWriter(t *testing.T) {
 
 			pswd := &model.Credential{
 				LocalAccountID: utils.NewNullInt64(account.ID),
-				Type:           auth.PasswordHash,
+				Type:           auth.Password,
 				Value:          "password",
 			}
 			So(db.Insert(pswd).Run(), ShouldBeNil)
