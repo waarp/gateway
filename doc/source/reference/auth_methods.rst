@@ -17,17 +17,20 @@ lorsque la *gateway* agit comme serveur.
 À l'heure actuelle, les formes d'authentification interne supportées dans la
 *gateway* sont :
 
-+--------------------+------------------------------+----------------------+---------------------------+----------------------------+
-| Nom d'usage        | Nom du type                  | Protocoles supportés | Valeur primaire attendue  | Valeur secondaire attendue |
-+====================+==============================+======================+===========================+============================+
-| Mot de passe       | *password*                   | R66, R66-TLS, HTTP,  | Un mot de passe           | N/A                        |
-|                    |                              | HTTPS & SFTP         |                           |                            |
-+--------------------+------------------------------+----------------------+---------------------------+----------------------------+
-| Certificat TLS de  | *trusted_tls_certificate*    | HTTPS & R66-TLS      | Un certificat TLS de      | N/A                        |
-| Confiance          |                              |                      | confiance                 |                            |
-+--------------------+------------------------------+----------------------+---------------------------+----------------------------+
-| Clé publique SSH   | *ssh_public_key*             | SFTP                 | Une clé publique SSH      | N/A                        |
-+--------------------+------------------------------+----------------------+---------------------------+----------------------------+
++--------------------+---------------------------+----------------------+---------------------------+----------------------------+
+| Nom d'usage        | Nom du type               | Protocoles supportés | Valeur primaire attendue  | Valeur secondaire attendue |
++====================+===========================+======================+===========================+============================+
+| Mot de passe       | *password*                | R66, R66-TLS, HTTP,  | Un mot de passe           | N/A                        |
+|                    |                           | HTTPS & SFTP         |                           |                            |
++--------------------+---------------------------+----------------------+---------------------------+----------------------------+
+| Certificat TLS de  | *trusted_tls_certificate* | HTTPS & R66-TLS      | Un certificat TLS de      | N/A                        |
+| Confiance          |                           |                      | confiance                 |                            |
++--------------------+---------------------------+----------------------+---------------------------+----------------------------+
+| Clé publique SSH   | *ssh_public_key*          | SFTP                 | Une clé publique SSH      | N/A                        |
++--------------------+---------------------------+----------------------+---------------------------+----------------------------+
+| Certificat R66     | *r66_legacy_certificate*  | R66-TLS              | N/A                       | N/A                        |
+| "legacy"           |                           |                      |                           |                            |
++--------------------+---------------------------+----------------------+---------------------------+----------------------------+
 
 Autorité d'authentification
 ---------------------------
@@ -35,8 +38,25 @@ Autorité d'authentification
 En plus des formes d'authentification spécifiées ci-dessus, la *gateway* intègre
 également le concept d'*autorité d'authentification*. Une autorité d'authentification
 représente un tiers de confiance auquel la *gateway* peut déléguer la vérification
-de l'authentification. À l'heure actuelle, les types d'autorité suivants sont
-supportés :
+de l'authentification. À l'heure actuelle, cela ne concerne que l'authentification
+via certificat (TLS ou SSH).
+
+En effet, lorsqu'un partenaire présente un certificat, pour être considéré comme
+valide, le certificat doit soit avoir été renseigné à l'avance (en tant que
+*trusted_tls_certificate*), soit avoir été signé par une autorité de confiance.
+Par défaut, la gateway utilise la liste d'autorité de confiance fournie par l'OS
+sur lequel elle est installée.
+
+Cependant, la gateway maintient également sa propre liste d'autorité de confiance
+(ou autorités d'authentification). Ainsi, tout certificat signé par une autorité
+dans cette liste sera considéré comme "de confiance", et n'aura donc pas besoin
+d'être renseigné à l'avance dans la gateway. Par défaut, tous les certificats
+signé par ces autorités sont acceptés. Il est cependant possible de restreindre
+les hôtes qu'une autorité est habilitée à certifier. Cela permet de limiter le
+champ d'action d'une autorité en limitant la confiance accordée à celle-ci à
+certains hôtes uniquement.
+
+Pour l'heure, la gateway supporte les type d'autorités suivants :
 
 +-------------------------------+----------------------+----------------------+-----------------------------------+
 | Nom d'usage                   | Nom du type          | Protocoles supportés | Valeur d'identité publique        |
@@ -59,20 +79,41 @@ lorsque la *gateway* agit comme client.
 À l'heure actuelle, les formes d'authentification externe supportées dans la
 *gateway* sont :
 
-+----------------+-------------------+----------------------+--------------------------+----------------------------+
-| Nom d'usage    | Nom du type       | Protocoles supportés | Valeur primaire attendue | Valeur secondaire attendue |
-+================+===================+======================+==========================+============================+
-| Mot de passe   | *password*        | R66, R66-TLS, HTTP,  | Un mot de passe          | N/A                        |
-|                |                   | HTTPS & SFTP         |                          |                            |
-+----------------+-------------------+----------------------+--------------------------+----------------------------+
-| Certificat TLS | *tls_certificate* | HTTPS & R66-TLS      | Un certificat TLS        | Une clé privée             |
-+----------------+-------------------+----------------------+--------------------------+----------------------------+
-| Clé privée SSH | *ssh_private_key* | SFTP                 | Une clé privée SSH       | N/A                        |
-+----------------+-------------------+----------------------+--------------------------+----------------------------+
++----------------+--------------------------+----------------------+--------------------------+----------------------------+
+| Nom d'usage    | Nom du type              | Protocoles supportés | Valeur primaire attendue | Valeur secondaire attendue |
++================+==========================+======================+==========================+============================+
+| Mot de passe   | *password*               | R66, R66-TLS, HTTP,  | Un mot de passe          | N/A                        |
+|                |                          | HTTPS & SFTP         |                          |                            |
++----------------+--------------------------+----------------------+--------------------------+----------------------------+
+| Certificat TLS | *tls_certificate*        | HTTPS & R66-TLS      | Un certificat TLS        | Une clé privée             |
++----------------+--------------------------+----------------------+--------------------------+----------------------------+
+| Clé privée SSH | *ssh_private_key*        | SFTP                 | Une clé privée SSH       | N/A                        |
++----------------+--------------------------+----------------------+--------------------------+----------------------------+
+| Certificat R66 | *r66_legacy_certificate* | R66-TLS              | N/A                      | N/A                        |
+| "legacy"       |                          |                      |                          |                            |
++----------------+--------------------------+----------------------+--------------------------+----------------------------+
 
 =======================
 Explications détaillées
 =======================
+
+Certificat R66 "legacy"
+-----------------------
+
+L'application Java Waarp-R66 Server était (et est toujours) livrée avec un
+certificat de test déjà inséré dans son *keystore*. Pour des raisons de praticité,
+et en raison de la difficulté requise pour insérer de nouveaux certificats dans
+les *keystore* Java, accepte ce certificat lors des handshake TLS; et ce, malgré
+le fait que ce certificat n'est plus valide depuis 2015.
+
+La conséquence de tous ces éléments, est que ce certificat de test s'est retrouvé
+à être utilisé en production par un certains nombre d'utilisateurs, et ce, malgré
+le fait qu'il n'avait pas du tout été prévu pour. Devant cet état de fait, nous
+avons donc pris la décision de continuer de permettre l'utilisation de ce
+certificat "legacy" dans Waarp-Gateway afin de maintenir la compatibilité entre
+les deux applications.
+
+Cependant, en raison des problèmes de sécurité posés par ce choix,
 
 Certificats TLS
 ---------------
