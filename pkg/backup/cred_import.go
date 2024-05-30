@@ -11,7 +11,7 @@ import (
 )
 
 func credentialsImport(logger *log.Logger, db database.Access, list []file.Credential,
-	owner model.CredOwnerTable, protocol string,
+	owner model.CredOwnerTable,
 ) error {
 	for _, src := range list {
 		// Create model with basic info to check existence

@@ -81,7 +81,7 @@ func importLocalAgents(logger *log.Logger, db database.Access, list []file.Local
 			return err
 		}
 
-		if err := credentialsImport(logger, db, src.Credentials, &agent, agent.Protocol); err != nil {
+		if err := credentialsImport(logger, db, src.Credentials, &agent); err != nil {
 			return err
 		}
 
@@ -182,8 +182,7 @@ func importLocalAccounts(logger *log.Logger, db database.Access,
 			}
 		}
 
-		if err := credentialsImport(logger, db, src.Credentials, &account,
-			server.Protocol); err != nil {
+		if err := credentialsImport(logger, db, src.Credentials, &account); err != nil {
 			return err
 		}
 

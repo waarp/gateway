@@ -39,6 +39,7 @@ func (h *handler) getBanner() string {
 
 func (h *handler) GetSettings() (*ftplib.Settings, error) {
 	var pasvPortRange *ftplib.PortRange
+
 	if !h.serverConf.DisablePassiveMode {
 		rangeStart := int(h.serverConf.PassiveModeMinPort)
 		rangeEnd := int(h.serverConf.PassiveModeMaxPort)

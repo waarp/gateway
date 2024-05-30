@@ -44,11 +44,11 @@ func ParseLegacyR66Certificate() error {
 	var err error
 	if LegacyR66Cert, err = tls.X509KeyPair([]byte(LegacyR66CertPEM),
 		[]byte(LegacyR66KeyPEM)); err != nil {
-		return fmt.Errorf("failed to load legacy R66 cert: %v", err)
+		return fmt.Errorf("failed to load legacy R66 cert: %w", err)
 	}
 
 	if LegacyR66Cert.Leaf, err = x509.ParseCertificate(LegacyR66Cert.Certificate[0]); err != nil {
-		return fmt.Errorf("failed to parse legacy R66 cert: %v", err)
+		return fmt.Errorf("failed to parse legacy R66 cert: %w", err)
 	}
 
 	return nil

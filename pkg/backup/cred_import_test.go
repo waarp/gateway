@@ -56,7 +56,7 @@ func TestImportAuth(t *testing.T) {
 
 				Convey("When calling the importCerts with the new "+
 					"Credentials on the existing agent", func() {
-					err := credentialsImport(discard(), db, credentials, agent, agent.Protocol)
+					err := credentialsImport(discard(), db, credentials, agent)
 
 					Convey("Then it should return no error", func() {
 						So(err, ShouldBeNil)
@@ -92,7 +92,7 @@ func TestImportAuth(t *testing.T) {
 
 				Convey("When calling the credentialsImport with the new "+
 					"Credentials on the existing agent", func() {
-					err := credentialsImport(discard(), db, credentials, agent2, agent2.Protocol)
+					err := credentialsImport(discard(), db, credentials, agent2)
 					So(err, ShouldBeNil)
 
 					Convey("Then the agent should have 1 Credentials", func() {

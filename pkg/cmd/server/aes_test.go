@@ -42,6 +42,7 @@ func TestChangeAESPassphrase(t *testing.T) {
 	)
 
 	filesystems.FileSystems.Store(cloudType, func(string, string, map[string]any) (fs.FS, error) {
+		//nolint:nilnil //simpler for tests
 		return nil, nil
 	})
 	defer filesystems.FileSystems.Delete(cloudType)

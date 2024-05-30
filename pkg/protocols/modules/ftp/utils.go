@@ -6,12 +6,11 @@ import (
 	"net"
 	"strings"
 
-	"code.waarp.fr/apps/gateway/gateway/pkg/model/types"
-	"code.waarp.fr/apps/gateway/gateway/pkg/pipeline"
-
 	"code.waarp.fr/lib/log"
 	ftplog "github.com/fclairamb/go-log"
 
+	"code.waarp.fr/apps/gateway/gateway/pkg/model/types"
+	"code.waarp.fr/apps/gateway/gateway/pkg/pipeline"
 	"code.waarp.fr/apps/gateway/gateway/pkg/utils"
 )
 
@@ -37,7 +36,7 @@ func getPortInRange(addr string, minPort, maxPort uint16) (uint16, *pipeline.Err
 		candidate := minPort + uint16(rand.Intn(rangeSize))
 
 		if list, err := net.Listen("tcp", fmt.Sprintf("%s:%d", addr, i)); err == nil {
-			_ = list.Close()
+			_ = list.Close() //nolint:errcheck //error is irrelevant
 
 			return candidate, nil
 		}
