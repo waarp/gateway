@@ -10,6 +10,7 @@ import (
 	"code.waarp.fr/lib/r66"
 	"golang.org/x/crypto/bcrypt"
 
+	"code.waarp.fr/apps/gateway/gateway/pkg/conf"
 	"code.waarp.fr/apps/gateway/gateway/pkg/fs"
 	"code.waarp.fr/apps/gateway/gateway/pkg/model"
 	"code.waarp.fr/apps/gateway/gateway/pkg/model/authentication/auth"
@@ -27,8 +28,10 @@ func (c *transferClient) logErrConf(msg string) {
 }
 
 func (c *transferClient) connect() *pipeline.Error {
-	cli, err := c.conns.Add(c.pip.TransCtx.RemoteAgent.Address.String(),
-		c.tlsConfig, c.pip.Logger)
+	addr := conf.GetRealAddress(c.pip.TransCtx.RemoteAgent.Address.Host,
+		utils.FormatUint(c.pip.TransCtx.RemoteAgent.Address.Port))
+
+	cli, err := c.conns.Add(addr, c.tlsConfig, c.pip.Logger)
 	if err != nil {
 		c.pip.Logger.Error("Failed to connect to remote host: %s", err)
 
@@ -47,7 +50,7 @@ func (c *transferClient) connect() *pipeline.Error {
 
 //nolint:funlen //no easy way to split this
 func (c *transferClient) authenticate() *pipeline.Error {
-	conf := &r66.Config{
+	r66Conf := &r66.Config{
 		FileSize:   true,
 		FinalHash:  !c.noFinalHash,
 		DigestAlgo: c.finalHashAlgo,
@@ -62,7 +65,7 @@ func (c *transferClient) authenticate() *pipeline.Error {
 		}
 	}
 
-	authent, err := c.ses.Authent(c.pip.TransCtx.RemoteAccount.Login, pwd, conf)
+	authent, err := c.ses.Authent(c.pip.TransCtx.RemoteAccount.Login, pwd, r66Conf)
 	if err != nil {
 		c.ses = nil
 		c.pip.Logger.Error("Client authentication failed: %s", err)
@@ -94,19 +97,19 @@ func (c *transferClient) authenticate() *pipeline.Error {
 		return pipeline.NewError(types.TeBadAuthentication, "server authentication failed")
 	}
 
-	if authent.Filesize != conf.FileSize {
+	if authent.Filesize != r66Conf.FileSize {
 		c.logErrConf("file size verification")
 
 		return errConf
 	}
 
-	if authent.FinalHash != conf.FinalHash {
+	if authent.FinalHash != r66Conf.FinalHash {
 		c.logErrConf("final hash verification")
 
 		return errConf
 	}
 
-	if authent.Digest != conf.DigestAlgo {
+	if authent.Digest != r66Conf.DigestAlgo {
 		c.logErrConf("unknown digest algorithm")
 
 		return errConf
@@ -250,17 +253,17 @@ var (
 
 //nolint:funlen //no easy way to split this
 func makeClientTLSConfig(pip *pipeline.Pipeline) (*tls.Config, error) {
-	conf := &tls.Config{
+	tlsConf := &tls.Config{
 		ServerName:       pip.TransCtx.RemoteAgent.Address.Host,
 		MinVersion:       tls.VersionTLS12,
 		VerifyConnection: compatibility.LogSha1(pip.Logger),
 	}
 
-	conf.Certificates = make([]tls.Certificate, 0, len(pip.TransCtx.RemoteAccountCreds))
+	tlsConf.Certificates = make([]tls.Certificate, 0, len(pip.TransCtx.RemoteAccountCreds))
 
 	for _, cred := range pip.TransCtx.RemoteAccountCreds {
 		if cred.Type == AuthLegacyCertificate {
-			conf.Certificates = []tls.Certificate{compatibility.LegacyR66Cert}
+			tlsConf.Certificates = []tls.Certificate{compatibility.LegacyR66Cert}
 
 			break
 		}
@@ -274,15 +277,15 @@ func makeClientTLSConfig(pip *pipeline.Pipeline) (*tls.Config, error) {
 			return nil, fmt.Errorf("failed to parse TLS certificate: %w", err)
 		}
 
-		conf.Certificates = append(conf.Certificates, tlsCert)
+		tlsConf.Certificates = append(tlsConf.Certificates, tlsCert)
 	}
 
 	caPool := utils.TLSCertPool()
 
 	for _, cred := range pip.TransCtx.RemoteAgentCreds {
 		if cred.Type == AuthLegacyCertificate {
-			conf.InsecureSkipVerify = true
-			conf.VerifyPeerCertificate = func(rawCerts [][]byte, _ [][]*x509.Certificate) error {
+			tlsConf.InsecureSkipVerify = true
+			tlsConf.VerifyPeerCertificate = func(rawCerts [][]byte, _ [][]*x509.Certificate) error {
 				if len(rawCerts) == 0 {
 					return errMissingCertificate
 				}
@@ -299,7 +302,7 @@ func makeClientTLSConfig(pip *pipeline.Pipeline) (*tls.Config, error) {
 				return nil
 			}
 
-			return conf, nil
+			return tlsConf, nil
 		}
 
 		if cred.Type != auth.TLSTrustedCertificate {
@@ -314,11 +317,11 @@ func makeClientTLSConfig(pip *pipeline.Pipeline) (*tls.Config, error) {
 		caPool.AddCert(certChain[0])
 	}
 
-	conf.RootCAs = caPool
+	tlsConf.RootCAs = caPool
 
-	if err := auth.AddTLSAuthorities(pip.DB, conf); err != nil {
+	if err := auth.AddTLSAuthorities(pip.DB, tlsConf); err != nil {
 		return nil, fmt.Errorf("failed to setup TLS authorities: %w", err)
 	}
 
-	return conf, nil
+	return tlsConf, nil
 }

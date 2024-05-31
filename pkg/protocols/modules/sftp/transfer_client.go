@@ -11,6 +11,7 @@ import (
 	"golang.org/x/crypto/ssh"
 	"golang.org/x/exp/slices"
 
+	"code.waarp.fr/apps/gateway/gateway/pkg/conf"
 	"code.waarp.fr/apps/gateway/gateway/pkg/fs"
 	"code.waarp.fr/apps/gateway/gateway/pkg/model"
 	"code.waarp.fr/apps/gateway/gateway/pkg/model/authentication/auth"
@@ -154,17 +155,17 @@ func (*transferClient) makeClientAuthMethods(creds model.Credentials,
 	return auths
 }
 
-func setDefaultClientAlgos(conf *ssh.ClientConfig) {
-	if len(conf.KeyExchanges) == 0 {
-		conf.KeyExchanges = validKeyExchanges.ClientDefaults()
+func setDefaultClientAlgos(sshConf *ssh.ClientConfig) {
+	if len(sshConf.KeyExchanges) == 0 {
+		sshConf.KeyExchanges = validKeyExchanges.ClientDefaults()
 	}
 
-	if len(conf.Ciphers) == 0 {
-		conf.Ciphers = validCiphers.ClientDefaults()
+	if len(sshConf.Ciphers) == 0 {
+		sshConf.Ciphers = validCiphers.ClientDefaults()
 	}
 
-	if len(conf.MACs) == 0 {
-		conf.MACs = validMACs.ClientDefaults()
+	if len(sshConf.MACs) == 0 {
+		sshConf.MACs = validMACs.ClientDefaults()
 	}
 }
 
@@ -182,7 +183,7 @@ func (c *transferClient) makeSSHClientConfig(info *model.TransferContext,
 		HostKeyFallback: makeFixedHostKeys(hostKeys),
 	}
 
-	conf := &ssh.ClientConfig{
+	sshConf := &ssh.ClientConfig{
 		Config:            *c.sshConf,
 		User:              info.RemoteAccount.Login,
 		Auth:              authMethods,
@@ -190,9 +191,9 @@ func (c *transferClient) makeSSHClientConfig(info *model.TransferContext,
 		HostKeyAlgorithms: algos,
 	}
 
-	setDefaultClientAlgos(conf)
+	setDefaultClientAlgos(sshConf)
 
-	return conf, nil
+	return sshConf, nil
 }
 
 func (c *transferClient) openSSHConn() *pipeline.Error {
@@ -201,7 +202,8 @@ func (c *transferClient) openSSHConn() *pipeline.Error {
 		return confErr
 	}
 
-	addr := c.pip.TransCtx.RemoteAgent.Address.String()
+	addr := conf.GetRealAddress(c.pip.TransCtx.RemoteAgent.Address.Host,
+		utils.FormatUint(c.pip.TransCtx.RemoteAgent.Address.Port))
 
 	conn, dialErr := c.dialer.Dial("tcp", addr)
 	if dialErr != nil {

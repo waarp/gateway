@@ -9,11 +9,13 @@ import (
 	"code.waarp.fr/lib/log"
 	ftplib "github.com/fclairamb/ftpserverlib"
 
+	"code.waarp.fr/apps/gateway/gateway/pkg/conf"
 	"code.waarp.fr/apps/gateway/gateway/pkg/database"
 	"code.waarp.fr/apps/gateway/gateway/pkg/model"
 	"code.waarp.fr/apps/gateway/gateway/pkg/model/authentication/auth"
 	"code.waarp.fr/apps/gateway/gateway/pkg/pipeline"
 	"code.waarp.fr/apps/gateway/gateway/pkg/protocols/protoutils"
+	"code.waarp.fr/apps/gateway/gateway/pkg/utils"
 	"code.waarp.fr/apps/gateway/gateway/pkg/version"
 )
 
@@ -52,8 +54,11 @@ func (h *handler) GetSettings() (*ftplib.Settings, error) {
 		}
 	}
 
+	addr := conf.GetRealAddress(h.dbServer.Address.Host,
+		utils.FormatUint(h.dbServer.Address.Port))
+
 	return &ftplib.Settings{
-		ListenAddr:               h.dbServer.Address.String(),
+		ListenAddr:               addr,
 		PassiveTransferPortRange: pasvPortRange,
 		ActiveTransferPortNon20:  true, // maybe make it configurable ?
 		IdleTimeout:              serverDefaultIdleTimeout,
