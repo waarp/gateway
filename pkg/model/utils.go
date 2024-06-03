@@ -16,6 +16,21 @@ import (
 	"code.waarp.fr/apps/gateway/gateway/pkg/model/authentication"
 )
 
+const (
+	cacheClearAmount     int           = 100
+	deltaCacheClear      time.Duration = 4 * time.Second
+	deltaCacheExpiration time.Duration = 3 * time.Second
+)
+
+//nolint:gochecknoglobals //global var is used for simplicity
+var (
+	clearLocalAuthentCacheTicker *time.Ticker = time.NewTicker(deltaCacheClear)
+	localAuthentCache            sync.Map     = sync.Map{}
+
+	clearRemoteAuthentCacheTicker *time.Ticker = time.NewTicker(deltaCacheClear)
+	remoteAuthentCache            sync.Map     = sync.Map{}
+)
+
 var errWriteOnView = errors.New("cannot insert/update on a view")
 
 // getCredentials fetch from the database then return the associated Credentials if they exist.
@@ -158,20 +173,7 @@ func getCachableValue(authType string, value any) (bool, any) {
 	return false, nil
 }
 
-const deltaCacheExpiration time.Duration = 3 * time.Second
-
-var (
-	cacheLocalAuthent sync.Map = sync.Map{} //nolint:gochecknoglobals //global var is used for simplicity
-
-	cacheRemoteAuthent sync.Map = sync.Map{} //nolint:gochecknoglobals //global var is used for simplicity
-)
-
-func CleanAuthentCache(n int, remoteCache bool) {
-	cache := &cacheLocalAuthent
-	if remoteCache {
-		cache = &cacheRemoteAuthent
-	}
-
+func clearAuthentCache(n int, cache *sync.Map) {
 	now := time.Now()
 	entryRemoved := 0
 
@@ -200,9 +202,18 @@ func authenticate(db database.ReadAccess, owner CredOwnerTable, authType string,
 		return nil, fmt.Errorf("unknown authentication type %q", authType)
 	}
 
-	cache := &cacheLocalAuthent
+	cache := &localAuthentCache
+	ticker := clearLocalAuthentCacheTicker
+
 	if !owner.IsServer() {
-		cache = &cacheRemoteAuthent
+		cache = &remoteAuthentCache
+		ticker = clearRemoteAuthentCacheTicker
+	}
+
+	select {
+	case <-ticker.C:
+		clearAuthentCache(cacheClearAmount, cache)
+	default:
 	}
 
 	// get cache key

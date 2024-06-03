@@ -30,9 +30,7 @@ import (
 )
 
 const (
-	defaultStopTimeout               = 10 * time.Second
-	clearCacheTicker   time.Duration = 4 * time.Second
-	clearCacheAmount   int           = 100
+	defaultStopTimeout = 10 * time.Second
 )
 
 // WG is the top level service handler. It manages all other components.
@@ -42,9 +40,6 @@ type WG struct {
 	dbService    *database.DB
 	adminService *admin.Server
 	controller   *controller.Controller
-
-	clearCacheTicker *time.Ticker
-	clearCacheDone   chan bool
 }
 
 // NewWG creates a new application.
@@ -182,30 +177,7 @@ func (wg *WG) startServices() error {
 		return err
 	}
 
-	wg.startAuthentCacheCleaner()
-
 	return nil
-}
-
-func (wg *WG) startAuthentCacheCleaner() {
-	wg.clearCacheTicker = time.NewTicker(clearCacheTicker)
-	wg.clearCacheDone = make(chan bool)
-
-	go func() {
-		for {
-			select {
-			case <-wg.clearCacheDone:
-				return
-			case <-wg.clearCacheTicker.C:
-				model.CleanAuthentCache(clearCacheAmount, false)
-				model.CleanAuthentCache(clearCacheAmount, true)
-			}
-		}
-	}()
-}
-
-func (wg *WG) stopAuthentCacheCleaner() {
-	close(wg.clearCacheDone)
 }
 
 //nolint:dupl //too many differences
@@ -310,8 +282,6 @@ func (wg *WG) stopServices() {
 	if err := wg.dbService.Stop(ctx); err != nil {
 		wg.Logger.Warning("an error occurred while stopping the database service: %v", err)
 	}
-
-	wg.stopAuthentCacheCleaner()
 }
 
 // Start starts the main service of the Gateway.
