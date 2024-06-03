@@ -166,6 +166,32 @@ var (
 	cacheRemoteAuthent sync.Map = sync.Map{} //nolint:gochecknoglobals //global var is used for simplicity
 )
 
+func CleanAuthentCache(n int, remoteCache bool) {
+	cache := &cacheLocalAuthent
+	if remoteCache {
+		cache = &cacheRemoteAuthent
+	}
+
+	now := time.Now()
+	entryRemoved := 0
+
+	cache.Range(func(key, value any) bool {
+		//nolint:forcetypeassert,errcheck //only authentCacheVal are stored into the map
+		cacheVal, _ := value.(authentCacheVal)
+		if cacheVal.expiration.Before(now) {
+			cache.Delete(key)
+
+			entryRemoved++
+
+			if entryRemoved >= n {
+				return false
+			}
+		}
+
+		return true
+	})
+}
+
 func authenticate(db database.ReadAccess, owner CredOwnerTable, authType string, value any,
 ) (res *authentication.Result, err error) {
 	handler := authentication.GetInternalAuthHandler(authType)
