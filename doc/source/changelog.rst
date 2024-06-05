@@ -3,6 +3,7 @@
 Historique des versions
 =======================
 
+* :release:`0.9.0 <2024-06-05>`
 * :feat:`399` Ajout d'un cache d'authentification, permettant d'améliorer
   significativement les performances lorsqu'un grand nombre de demandes de
   transfert sont effectuées en même temps par un même partenaire.
