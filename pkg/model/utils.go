@@ -6,29 +6,12 @@ import (
 	"fmt"
 	"math"
 	"math/big"
-	"sync"
-	"time"
 
 	"github.com/bwmarrin/snowflake"
 
 	"code.waarp.fr/apps/gateway/gateway/pkg/conf"
 	"code.waarp.fr/apps/gateway/gateway/pkg/database"
 	"code.waarp.fr/apps/gateway/gateway/pkg/model/authentication"
-)
-
-const (
-	cacheClearAmount     int           = 100
-	deltaCacheClear      time.Duration = 4 * time.Second
-	deltaCacheExpiration time.Duration = 3 * time.Second
-)
-
-//nolint:gochecknoglobals //global var is used for simplicity
-var (
-	clearLocalAuthentCacheTicker *time.Ticker = time.NewTicker(deltaCacheClear)
-	localAuthentCache            sync.Map     = sync.Map{}
-
-	clearRemoteAuthentCacheTicker *time.Ticker = time.NewTicker(deltaCacheClear)
-	remoteAuthentCache            sync.Map     = sync.Map{}
 )
 
 var errWriteOnView = errors.New("cannot insert/update on a view")
@@ -146,103 +129,4 @@ func countTrue(b ...bool) int {
 	}
 
 	return count
-}
-
-type authentCacheKey struct {
-	ID       int64
-	AuthType string
-	Value    any
-}
-
-type authentCacheVal struct {
-	result     *authentication.Result
-	expiration time.Time
-}
-
-func getCachableValue(authType string, value any) (bool, any) {
-	if authType == "password_hash" {
-		v, ok := value.([]uint8)
-
-		if !ok {
-			return false, nil
-		}
-
-		return true, string(v)
-	}
-
-	return false, nil
-}
-
-func clearAuthentCache(n int, cache *sync.Map) {
-	now := time.Now()
-	entryRemoved := 0
-
-	cache.Range(func(key, value any) bool {
-		//nolint:forcetypeassert,errcheck //only authentCacheVal are stored into the map
-		cacheVal, _ := value.(authentCacheVal)
-		if cacheVal.expiration.Before(now) {
-			cache.Delete(key)
-
-			entryRemoved++
-
-			if entryRemoved >= n {
-				return false
-			}
-		}
-
-		return true
-	})
-}
-
-func authenticate(db database.ReadAccess, owner CredOwnerTable, authType string, value any,
-) (res *authentication.Result, err error) {
-	handler := authentication.GetInternalAuthHandler(authType)
-	if handler == nil {
-		//nolint:goerr113 //dynamic error is better here for debugging
-		return nil, fmt.Errorf("unknown authentication type %q", authType)
-	}
-
-	cache := &localAuthentCache
-	ticker := clearLocalAuthentCacheTicker
-
-	if !owner.IsServer() {
-		cache = &remoteAuthentCache
-		ticker = clearRemoteAuthentCacheTicker
-	}
-
-	select {
-	case <-ticker.C:
-		clearAuthentCache(cacheClearAmount, cache)
-	default:
-	}
-
-	// get cache key
-	if ok, v := getCachableValue(authType, value); ok {
-		_, id := owner.GetCredCond()
-
-		key := authentCacheKey{
-			ID:       id,
-			AuthType: authType,
-			Value:    v,
-		}
-
-		defer func() {
-			if err == nil {
-				cache.Store(key, authentCacheVal{
-					result:     res,
-					expiration: time.Now().Add(deltaCacheExpiration),
-				})
-			}
-		}()
-
-		if res, ok2 := cache.Load(key); ok2 && res != nil {
-			res, _ := res.(authentCacheVal) //nolint:forcetypeassert,errcheck //only authentCacheVal are stored into the map
-			if time.Now().Before(res.expiration) {
-				return res.result, nil
-			}
-		}
-	}
-
-	//nolint:wrapcheck //error is returned as is for better message readability
-	return handler.Authenticate(db, owner, value)
 }
