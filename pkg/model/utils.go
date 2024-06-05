@@ -95,8 +95,8 @@ func doSetTransferInfo(ses *database.Session, owner transferInfoOwner,
 		i := &TransferInfo{Name: name, Value: string(str)}
 		owner.setTransInfoOwner(i)
 
-		if err := ses.Insert(i).Run(); err != nil {
-			return fmt.Errorf("failed to insert transfer info: %w", err)
+		if err2 := ses.Insert(i).Run(); err2 != nil {
+			return fmt.Errorf("failed to insert transfer info: %w", err2)
 		}
 	}
 
@@ -129,16 +129,4 @@ func countTrue(b ...bool) int {
 	}
 
 	return count
-}
-
-func authenticate(db database.ReadAccess, owner CredOwnerTable, authType string, value any,
-) (*authentication.Result, error) {
-	handler := authentication.GetInternalAuthHandler(authType)
-	if handler == nil {
-		//nolint:goerr113 //dynamic error is better here for debugging
-		return nil, fmt.Errorf("unknown authentication type %q", authType)
-	}
-
-	//nolint:wrapcheck //error is returned as is for better message readability
-	return handler.Authenticate(db, owner, value)
 }
