@@ -3,6 +3,9 @@
 Historique des versions
 =======================
 
+* :feat:`399` Ajout d'un cache d'authentification, permettant d'améliorer
+  significativement les performances lorsqu'un grand nombre de demandes de
+  transfert sont effectuées en même temps par un même partenaire.
 * :bug:`398` Les clé publiques SSH utilisant les algorithmes ``rsa-sha2-256`` et
   ``rsa-sha2-512`` sont désormais correctement acceptées par le client SFTP lors
   de sa connexion à un partenaire. Précédemment, ces algorithmes étaient
