@@ -17,17 +17,15 @@ Annuler plusieurs transferts
    :statuscode 400: Un ou plusieurs des paramètres de la requête sont invalides
    :statuscode 401: Authentification d'utilisateur invalide
 
-   |
-
    **Exemple de requête**
 
-      .. code-block:: http
+   .. code-block:: http
 
-         DELETE https://my_waarp_gateway.net/api/transfers?target=error HTTP/1.1
-         Authorization: Basic QWxhZGRpbjpvcGVuIHNlc2FtZQ==
+      DELETE https://my_waarp_gateway.net/api/transfers?target=error HTTP/1.1
+      Authorization: Basic QWxhZGRpbjpvcGVuIHNlc2FtZQ==
 
    **Exemple de réponse**
 
-      .. code-block:: http
+   .. code-block:: http
 
-         HTTP/1.1 202 ACCEPTED
+      HTTP/1.1 202 ACCEPTED

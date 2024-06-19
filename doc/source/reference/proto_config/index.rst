@@ -4,7 +4,7 @@
 Configuration protocolaire
 ##########################
 
-Chaque serveur et partenaire de transfert de la *gateway* gère un protocole de
+Chaque serveur et partenaire de transfert de Waarp Gateway gère un protocole de
 transfert particulier. Par conséquent, chacun de ces agents doit être accompagné
 d'une configuration spécifique à ce protocole.
 

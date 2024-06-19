@@ -4,18 +4,18 @@ Modifier une règle
 
 .. program:: waarp-gateway rule update
 
-.. describe:: waarp-gateway rule update <RULE> <DIRECTION>
-
 Remplace les attributs de la règle donnée en paramètre par ceux fournis ci-dessous.
 Les attributs omis resteront inchangés.
 
-.. option:: <RULE>
-   
-   Le nom de la règle à modifier.
+**Commande**
 
-.. option:: <DIRECTION>
+.. code-block:: shell
 
-   Le sens de la règle à modifier. Peut être ``send`` ou ``receive``.
+   waarp-gateway rule update "<RULE>" "<DIRECTION>"
+
+``DIRECTION`` peut être ``send`` ou ``receive``.
+
+**Options**
 
 .. option:: -n <NAME>, --name=<NAME>
 
@@ -43,7 +43,7 @@ Les attributs omis resteront inchangés.
    d'envoi, ce dossier est utilisé comme source des fichiers. Dans le cas d'une
    règle de réception, ce dossier est utilisé comme destination des fichiers.
    Peut être un chemin relatif ou absolu. Le format du chemin dépend de l'OS de
-   la *gateway*.
+   Waarp Gateway.
 
 .. option:: --remote-dir=<DIRECTORY>
 
@@ -57,54 +57,58 @@ Les attributs omis resteront inchangés.
 
    Le chemin du dossier local temporaire des fichiers an cours de réception.
    Par conséquent, ce dossier n'est utile que pour les règles de réception.
-   Le format du chemin dépend de l'OS de la *gateway*.
+   Le format du chemin dépend de l'OS de Waarp Gateway.
 
 .. option:: -r <TASK>, --pre=<TASK>
 
-   Un pré-traitement associé à la règle. Peut être répété plusieurs fois
-   pour ajouter plusieurs traitements. Ces traitements seront exécutés
-   avant chaque transfert dans l'ordre dans lequel ils ont été renseignés.
-   Les traitements doivent être renseignés sous la forme d'un objet JSON
-   avec 2 champs: le champ `type` et le champ `args`. Le premier est une
-   *string* contenant la commande a exécuter, le second est un objet JSON
-   contenant les arguments de la commande.
+   Un pré-traitement associé à la règle. Peut être répété plusieurs fois pour
+   ajouter plusieurs traitements. Ces traitements seront exécutés avant chaque
+   transfert dans l'ordre dans lequel ils ont été renseignés. Les traitements
+   doivent être renseignés sous la forme d'un objet JSON avec 2 champs : le
+   champ ``type`` et le champ ``args``. Le premier est une chaîne de caractères
+   contenant la commande a exécuter, le second est un objet JSON contenant les
+   arguments de la commande.
 
 .. option:: -s <TASK>, --post=<TASK>
 
-   Un post-traitement associé à la règle. Peut être répété plusieurs fois
-   pour ajouter plusieurs traitements. Ces traitements seront exécutés
-   après chaque transfert dans l'ordre dans lequel ils ont été renseignés.
-   Les traitements doivent être renseignés sous la forme d'un objet JSON
-   avec 2 champs: le champ `type` et le champ `args`. Le premier est une
-   *string* contenant la commande a exécuter, le second est un objet JSON
-   contenant les arguments de la commande.
+   Un post-traitement associé à la règle. Peut être répété plusieurs fois pour
+   ajouter plusieurs traitements. Ces traitements seront exécutés après chaque
+   transfert dans l'ordre dans lequel ils ont été renseignés. Les traitements
+   doivent être renseignés sous la forme d'un objet JSON avec 2 champs : le
+   champ ``type`` et le champ ``args``. Le premier est une chaîne de caractères
+   contenant la commande a exécuter, le second est un objet JSON contenant les
+   arguments de la commande.
 
 .. option:: -e <TASK>, --err=<TASK>
 
-   Un traitement d'erreur associé à la règle. Peut être répété plusieurs
-   fois pour ajouter plusieurs traitements. Ces traitements seront exécutés
-   en cas d'erreur dans l'ordre dans lequel ils ont été renseignés.
-   Les traitements doivent être renseignés sous la forme d'un objet JSON
-   avec 2 champs: le champ `type` et le champ `args`. Le premier est une
-   *string* contenant la commande a exécuter, le second est un objet JSON
-   contenant les arguments de la commande.
+   Un traitement d'erreur associé à la règle. Peut être répété plusieurs fois
+   pour ajouter plusieurs traitements. Ces traitements seront exécutés en cas
+   d'erreur dans l'ordre dans lequel ils ont été renseignés. Les traitements
+   doivent être renseignés sous la forme d'un objet JSON avec 2 champs : le
+   champ ``type`` et le champ ``args``. Le premier est une chaîne de caractères
+   contenant la commande a exécuter, le second est un objet JSON contenant les
+   arguments de la commande.
 
 .. option:: -o <PATH>, --out_path=<PATH>
 
-   OBSOLÈTE: remplacé par les options ``--local-dir`` et ``--remote-dir``.
+   .. deprecated:: 0.5.0
+
+      Remplacé par les options ``--local-dir`` et ``--remote-dir``.
 
 .. option:: -i <PATH>, --in_path=<PATH>
 
-   OBSOLÈTE: remplacé par les options ``--local-dir`` et ``--remote-dir``.
+   .. deprecated:: 0.5.0
+      
+      Remplacé par les options ``--local-dir`` et ``--remote-dir``.
 
 .. option:: -w <PATH>, --work_path=<PATH>
 
-   OBSOLÈTE: remplacé par ``--tmp-dir``.
+   .. deprecated:: 0.5.0
 
-|
+      Remplacé par ``--tmp-dir``.
 
 **Exemple**
 
 .. code-block:: shell
 
-   waarp-gateway -a 'http://user:password@localhost:8080' rule update règle_1 'send' -n 'règle_1_new' -c 'nouvelle règle de réception des fichiers avec SFTP' -p '/règle_1_new' -i '/règle_1_new/in' -o '/règle_1_new/out' --pre '{"type":"COPY","args":{"path":"chemin/copie"}}' --post '{"type":"DELETE","args":{}}' --err '{"type":"MOVE","args":{"path":"chemin/déplacement"}}'
+   waarp-gateway rule update 'règle_1' 'send' -n 'règle_1_new' -c 'nouvelle règle de réception des fichiers avec SFTP' -p '/règle_1_new' -i '/règle_1_new/in' -o '/règle_1_new/out' --pre '{"type":"COPY","args":{"path":"chemin/copie"}}' --post '{"type":"DELETE","args":{}}' --err '{"type":"MOVE","args":{"path":"chemin/déplacement"}}'

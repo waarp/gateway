@@ -6,9 +6,15 @@ Lister les règles
 
 .. program:: waarp-gateway rule list
 
-.. describe:: waarp-gateway rule list
-
 Affiche une liste de toutes les règles remplissant les critères ci-dessous.
+
+**Commande**
+
+.. code-block:: shell
+
+   waarp-gateway rule list
+
+**Options**
 
 .. option:: -l <LIMIT>, --limit=<LIMIT>
 
@@ -24,10 +30,8 @@ Affiche une liste de toutes les règles remplissant les critères ci-dessous.
 
    - tri par nom (``name+`` & ``name-``)
 
-|
-
 **Exemple**
 
 .. code-block:: shell
 
-   waarp-gateway -a 'http://user:password@localhost:8080' rule list -l 10 -o 5 -s 'name-'
+   waarp-gateway rule list -l 10 -o 5 -s 'name-'

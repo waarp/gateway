@@ -4,7 +4,13 @@
 
 .. program:: waarp-gateway server cert add
 
-.. describe:: waarp-gateway server cert <SERVER> add
+**Commande**
+
+.. code-block:: shell
+
+   waarp-gateway server cert "<SERVER>" add
+
+**Options**
 
 Attache un nouveau certificat au serveur donné à partir des informations renseignées.
 
@@ -22,10 +28,8 @@ Attache un nouveau certificat au serveur donné à partir des informations rense
    Le chemin vers le fichier contenant la clé privée (TLS ou SSH) du serveur,
    en format PEM.
 
-|
-
 **Exemple**
 
 .. code-block:: shell
 
-   waarp-gateway -a 'http://user:password@localhost:8080' server cert 'gw_r66' add -n 'cert_r66' -c '/r66.crt' -p '/r66.key'
+   waarp-gateway server cert 'gw_r66' add -n 'cert_r66' -c '/r66.crt' -p '/r66.key'

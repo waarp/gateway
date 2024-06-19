@@ -5,7 +5,7 @@ Le point d'accès pour gérer les différents serveurs locaux de la gateway est
 ``/api/servers``.
 
 .. toctree::
-   :maxdepth: 3
+   :maxdepth: 1
 
    create
    list

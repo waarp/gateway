@@ -3,9 +3,25 @@ Remplacer un serveur
 
 .. http:put:: /api/servers/(string:server_name)
 
+   .. deprecated:: 0.5.0
+      
+      Les propriétés ``indir`` et `outDir`` de la requête ont été remplacées par
+      les propriétés ``sendDir`` et ``receiveDir``.
+
+   .. deprecated:: 0.5.0
+
+      La propriété ``root``de la requête a été remplacée par la propriété
+      ``rootDir``.
+
+   .. deprecated:: 0.5.0
+
+      La propriété ``workDir` de la requête a été remplacée par la propriété
+      ``tmpReceiveDir``.
+
    Remplace le serveur demandé par celui renseigné en JSON.
 
-   .. warning:: Les dossiers d'envoi, de réception et de travail devant rester
+   .. warning::
+      Les dossiers d'envoi, de réception et de travail devant rester
       distincts, une valeur par défaut leur sera attribuée si l'utilisateur renseigne
       une racine (``root``) sans donner de valeur aux sous-dossiers.
 
@@ -14,17 +30,14 @@ Remplacer un serveur
    :reqjson string name: Le nom du serveur
    :reqjson string protocol: Le protocole utilisé par le serveur
    :reqjson string address: L'adresse du serveur (en format [adresse:port])
-   :reqjson string root: La racine du serveur. Peut être relatif (à la racine
-      de la *gateway*) ou absolu (OBSOLÈTE: remplacé par 'rootDir').
-   :reqjson string inDir: Le dossier de réception du serveur. Peut être
-      relatif (à la racine du serveur) ou absolu. (OBSOLÈTE: remplacé par
-      'receiveDir')
-   :reqjson string outDir: Le dossier d'envoi du serveur. Peut être
-      relatif (à la racine du serveur) ou absolu. (OBSOLÈTE: remplacé par
-      'sendDir')
-   :reqjson string workDir: Le dossier temporaire du serveur. Peut être
-      relatif (à la racine du serveur) ou absolu. (OBSOLÈTE: remplacé par
-      'tmpReceiveDir')
+   :reqjson string root: *Déprécié*. La racine du serveur. Peut être relatif (à la racine
+      de la *gateway*) ou absolu .
+   :reqjson string inDir: *Déprécié*. Le dossier de réception du serveur. Peut être
+      relatif (à la racine du serveur) ou absolu. 
+   :reqjson string outDir: *Déprécié*. Le dossier d'envoi du serveur. Peut être
+      relatif (à la racine du serveur) ou absolu. 
+   :reqjson string workDir: *Déprécié*. Le dossier temporaire du serveur. Peut être
+      relatif (à la racine du serveur) ou absolu. 
    :reqjson string rootDir: Chemin du dossier racine du serveur. Peut être
       relatif (à la racine de la *gateway*) ou absolu.
    :reqjson string receiveDir: Le dossier de réception du serveur. Peut
@@ -44,30 +57,26 @@ Remplacer un serveur
    :resheader Location: Le chemin d'accès au serveur modifié
 
 
-   |
+   **Exemple de requête**
+
+   .. code-block:: http
+
+      PUT https://my_waarp_gateway.net/api/servers/sftp_server HTTP/1.1
+      Authorization: Basic QWxhZGRpbjpvcGVuIHNlc2FtZQ==
+      Content-Type: application/json
+      Content-Length: 148
+
+      {
+        "name": "sftp_server_new",
+        "protocol": "sftp",
+        "address": "localhost:2023",
+        "root": "/new/sftp/root",
+        "protoConfig": {}
+      }
 
    **Exemple de requête**
 
-      .. code-block:: http
+   .. code-block:: http
 
-         PUT https://my_waarp_gateway.net/api/servers/sftp_server HTTP/1.1
-         Authorization: Basic QWxhZGRpbjpvcGVuIHNlc2FtZQ==
-         Content-Type: application/json
-         Content-Length: 148
-
-         {
-           "name": "sftp_server_new",
-           "protocol": "sftp",
-           "address": "localhost:2023",
-           "root": "/new/sftp/root",
-           "protoConfig": {}
-         }
-
-   |
-
-   **Exemple de requête**
-
-      .. code-block:: http
-
-         HTTP/1.1 201 CREATED
-         Location: https://my_waarp_gateway.net/api/servers/sftp_server_new
+      HTTP/1.1 201 CREATED
+      Location: https://my_waarp_gateway.net/api/servers/sftp_server_new

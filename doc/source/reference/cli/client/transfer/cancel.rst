@@ -4,14 +4,17 @@ Annuler un transfert
 
 .. program:: waarp-gateway transfer cancel
 
-.. describe:: waarp-gateway transfer cancel <TRANSFER_ID>
-
 Annule le transfert donné. Un transfert annulé est considéré comme terminé.
 
-|
+**Commande**
+
+.. code-block:: shell
+
+   waarp-gateway transfer cancel "<TRANSFER_ID>"
+
 
 **Exemple**
 
 .. code-block:: shell
 
-   waarp-gateway -a 'http://user:password@localhost:8080' transfer cancel 1234
+   waarp-gateway transfer cancel 1234

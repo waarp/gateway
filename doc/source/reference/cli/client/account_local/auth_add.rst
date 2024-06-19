@@ -2,12 +2,18 @@
 Ajouter une méthode d'authentification
 ======================================
 
-.. program:: waarp-gateway account local auth add
-
-.. describe:: waarp-gateway account local <SERVER> auth <LOGIN> add
+.. program:: waarp-gateway account local credential add
 
 Ajoute une nouvelle valeur d'authentification au compte local donné. Si une
 valeur du même nom existe déjà, elle sera écrasée.
+
+**Commande**
+
+.. code-block:: shell
+
+   waarp-gateway account local "<PARTNER>" credential "<LOGIN>" add
+
+**Options**
 
 .. option:: -n <NAME>, --name=<NAME>
 
@@ -37,4 +43,4 @@ valeur du même nom existe déjà, elle sera écrasée.
 
 .. code-block:: shell
 
-   waarp-gateway -a 'http://user:password@localhost:8080' account local 'gw_r66' auth 'tata' add -t 'r66_password' -v 'sesame'
+   waarp-gateway account local 'gw_r66' credential 'tata' add -t 'r66_password' -v 'sesame'

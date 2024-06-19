@@ -6,9 +6,15 @@ Lister les serveurs
 
 .. program:: waarp-gateway server list
 
-.. describe:: waarp-gateway server list
-
 Affiche les informations des serveurs remplissant les critères ci-dessous.
+
+**Commande**
+
+.. code-block:: shell
+
+   waarp-gateway server list
+
+**Options**
 
 .. option:: -l <LIMIT>, --limit=<LIMIT>
 
@@ -31,9 +37,8 @@ Affiche les informations des serveurs remplissant les critères ci-dessous.
    plusieurs protocoles en même temps.
 
 
-
 **Exemple**
 
 .. code-block:: shell
 
-   waarp-gateway -a 'http://user:password@localhost:8080' server list -l 10 -o 5 -s 'protocol+' -p 'r66' -p 'http'
+   waarp-gateway server list -l 10 -o 5 -s 'protocol+' -p 'r66' -p 'http'

@@ -10,9 +10,9 @@
    :reqjson string name: Le nom du certificat
    :reqjson string privateKey: La clé privée du certificat en format PEM
    :reqjson string certificate: Le certificat de l'entité en format PEM (mutuellement
-      exclusif avec `public_key`)
-   :reqjson string publicKey: La clé publique SSH de l'entité en format *authorized_key*
-      (mutuellement exclusif avec `certificate`)
+      exclusif avec ``public_key``)
+   :reqjson string publicKey: La clé publique SSH de l'entité en format
+      ``authorized_key`` (mutuellement exclusif avec ``certificate``)
 
    :statuscode 201: Le certificat a été modifié avec succès
    :statuscode 400: Un ou plusieurs des paramètres du compte sont invalides
@@ -21,8 +21,6 @@
 
    :resheader Location: Le chemin d'accès au certificat modifié
 
-
-   |
 
    **Exemple de requête**
 

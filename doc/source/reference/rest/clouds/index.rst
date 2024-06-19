@@ -1,3 +1,5 @@
+.. _reference-rest-cloud:
+
 Gestion des instances cloud
 ###########################
 

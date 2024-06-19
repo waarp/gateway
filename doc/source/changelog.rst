@@ -85,7 +85,7 @@ Historique des versions
 * :feature:`392` Ajout des argument "copyInfo" et "info" à la tâche `TRANSFER`
   permettant respectivement de copier les *transfer info* du transfer précédent,
   et de définir de nouvelles *transfer info*. Pour plus d'information, voir
-  la :ref:`documentation de la tâche TRANSFER<reference-task-transfer>`
+  la :ref:`documentation de la tâche TRANSFER<reference-tasks-transfer>`
 * :feature:`379` Ajout du support pour les instances cloud en remplacement du
   disque local pour le stockage des fichiers de transfert. Voir la section
   :ref:`cloud <reference-cloud>` pour avoir plus de détails sur l'implémentation
@@ -126,7 +126,7 @@ Historique des versions
   originale.
 
   L'ajout de ces 2 nouvelles colonnes a également permis de corriger 2 bugs
-  existants de la *gateway*:
+  existants de Gateway:
 
   1) Les transferts créés avec un chemin de fichier absolus déposaient le fichier
      au mauvais endroit,
@@ -137,9 +137,9 @@ Historique des versions
   même si le fichier à envoyer n'existe pas encore, tant que celui-ci est créé
   avant le début de la phase d'envoi des données. Typiquement, cela permet de
   démarrer un transfert où le fichier est créé via les pré-tâches.
-* :feat:`-` Les logs des tâches (notamment des tâche *exec*) ont été améliorés.
+* :feature:`-` Les logs des tâches (notamment des tâche *exec*) ont été améliorés.
   Dans le cas des tâches exec, la sortie standard du programme externe est
-  désormais récupérée et écrite dans les logs de la gateway (au niveau *DEBUG*).
+  désormais récupérée et écrite dans les logs de Gateway (au niveau *DEBUG*).
 * :bug:`377` Suppression de la limite de temps de 2 secondes imposée par le
   script *updateconf* pour réaliser un import de configuration. Cette limite de
   temps causait l'échec de l'import lorsque celui-ci prenait plus de 2 secondes
@@ -202,7 +202,7 @@ Historique des versions
   absolus ou relatifs (précédemment, ils étaient forcés à être absolus).
 
   Á noter que, pour des raisons de sécurité, seuls les clients sont affectés par
-  ce changement. Les serveurs de la *gateway* (quelque soit leur protocole)
+  ce changement. Les serveurs de Gateway (quelque soit leur protocole)
   n'acceptent pas les chemins absolus (ces derniers sont considérés comme étant
   relatifs à la racine du serveur).
 * :bug:`359` Correction d'un bug du CLI qui causait un crash des commandes
@@ -219,12 +219,12 @@ Historique des versions
     d'un *downgrade* de la base de données, ce qui causait l'échec systématique
     ce celui-ci.
 * :bug:`353` Correction d'un bug permettant (lorsque la base de données est partagée)
-  à l'interface REST d'une instance de *Waarp-Gateway* de récupérer des entrées
+  à l'interface REST d'une instance de Waarp Gateway de récupérer des entrées
   d'historique ne lui appartenant pas.
 
 * :release:`0.7.0 <2022-12-05>`
 * :feature:`351` Ajout des algorithmes suivants à la liste des algorithmes supportés
-  par le client et le serveur SFTP de *Waarp-Gateway*:
+  par le client et le serveur SFTP de Waarp Gateway:
 
   - [*Key exchange*] ``diffie-hellman-group-exchange-sha256`` (uniquement côté client)
   - [*Cipher*] ``arcfour256``
@@ -269,16 +269,16 @@ Historique des versions
   possible de désactiver un serveur, via :doc:`l'interface REST<reference/cli/client/partner/add>`
   ou via le :doc:`client en ligne de commande<reference/cli/client/server/disable>`.
   Contrairement aux serveurs activés, un serveur désactivé ne sera pas démarré
-  automatiquement au lancement de la *gateway*. À noter que désactiver un serveur
+  automatiquement au lancement de Gateway. À noter que désactiver un serveur
   n'arrête pas immédiatement celui-ci. Le serveur restera actif jusqu'à l'arrêt
-  de la *gateway* ou du serveur en question.
+  de Gateway ou du serveur en question.
 * :feature:`287` _`287` Séparation de R66 et R66-TLS en 2 protocoles distincts. La
   distinction entre les deux se fait désormais via le nom du protocole au lieu
   de la protoConfig. L'option ``isTLS`` de la protoConfig R66 existe toujours
   mais est dorénavant dépréciée.
 * :bug:`291` Correction d'une erreur causant l'apparition impromptue de messages
   d'erreur (*warnings*) lorsqu'un client SFTP termine normalement une connexion
-  vers un serveur SFTP de la *gateway*.
+  vers un serveur SFTP de Gateway.
 * :feature:`345` Les erreurs pouvant survenir lors de l'interruption ou
   l'annulation d'un transfert sont dorénavant correctement loggées. Par ailleurs,
   il est désormais possible d'annuler un transfert en cours, et ce, même si la
@@ -290,13 +290,13 @@ Historique des versions
   Il est donc désormais possible d'utiliser une clé privée chiffrée pour le
   certificat TLS du serveur d'administration.
 * :feature:`285` Ajout d'une option ``-r, --reset-before-import`` à la commande
-  d'import. Quand présente, cette option indique à la *gateway* que la base de
+  d'import. Quand présente, cette option indique à Gateway que la base de
   données doit être vidée avant d'effectuer l'import. Ainsi, tous les éléments
   présents en base concernés par l'opération d'import seront supprimés. Une 2nde
   option nommée ``--force-reset-before-import`` a été ajoutée, permettant aux
   scripts d'outrepasser le message de confirmation de l'option ``-r``.
-* :feature:`224` Ajout des utilisateurs *gateway* au fichier d'import/export.
-  Il est désormais possible d'exporter et importer les utilisateurs *gateway*
+* :feature:`224` Ajout des utilisateurs Gateway au fichier d'import/export.
+  Il est désormais possible d'exporter et importer les utilisateurs Gateway
   servant à l'administration. Par conséquent, l'option ``-t --target`` des
   commandes :ref:`reference-cmd-waarp-gatewayd-import` et
   :ref:`reference-cmd-waarp-gatewayd-export` accepte
@@ -347,9 +347,9 @@ Historique des versions
   une négociation sur l'endroit d'où reprendre le transfert (comme c'est le cas
   pour R66 par exemple). Cela permet d'éviter qu'un fichier soit potentiellement
   envoyé avec des parties manquantes.
-* :bug:`329` Correction de l'impossibilité pour la *gateway* de se connecter via
+* :bug:`329` Correction de l'impossibilité pour Gateway de se connecter via
   R66-TLS à un agent *Waarp-R66*. Une exception a été ajoutée pour le certificat
-  de *Waarp-R66* afin que celui-ci soit accepté par la *gateway* (voir
+  de *Waarp-R66* afin que celui-ci soit accepté par Gateway (voir
   :ref:`les détails d'implémentation R66<ref-proto-r66>` pour plus d'informations).
 * :bug:`326` Les fichiers transférés ne sont plus requis de se trouver immédiatement
   dans le dossier de la règle avec laquelle ils sont transférés. Il est désormais
@@ -368,7 +368,7 @@ Historique des versions
   lorsqu'une erreur se produisait.
 * :bug:`328` Correction d'une erreur pouvant causer des collisions d'identifiants
   de transfert lorsque l'incrément de la base de données est réinitialisé. La
-  *gateway* génère dorénavant un identifiant de transfert unique (le
+  Gateway génère dorénavant un identifiant de transfert unique (le
   *RemoteTransferID*) qui est envoyé dans la requête de transfert à la place de
   l'ancien auto-incrément. L'identifiant auto-incrémenté reste disponible à des
   fins d'administration.
@@ -391,7 +391,7 @@ Historique des versions
   cet attribut. Le protocole est également visible désormais en sortie de la
   commande ``transfer get`` du terminal.
 * :bug:`-` Correction d'une erreur SIGSEGV survenant lors de l'exécution d'une
-  commande su client terminal sans que l'adresse de la *gateway* soit renseignée.
+  commande su client terminal sans que l'adresse de Gateway soit renseignée.
   Désormais, le client lèvera une erreur plus claire au lieu de paniquer.
 * :bug:`307` Correction d'une erreur *"context canceled"* pouvant survenir lors
   de l'exécution de certaines commandes du client terminal.
@@ -407,11 +407,11 @@ Historique des versions
   et la règle était simplement ajoutée sans cette tâche. Désormais, un JSON de
   tâche invalide produira une erreur comme attendu.
 * :feature:`268` Ajout d'un fichier *override* permettant à une instance de
-  *gateway* au sein d'une grappe d'écraser localement certaines parties de la
+  Gateway au sein d'une grappe d'écraser localement certaines parties de la
   configuration globale de la grappe (voir :ref:`la documentation<reference-conf-override>`
   du fichier d'override de configuration pour plus de détails).
   Pour l'heure, ce fichier permet de définir des remplacement d'adresses pour les
-  serveurs locaux, ce qui est nécessaire pour que la *gateway* fonctionne
+  serveurs locaux, ce qui est nécessaire pour que Gateway fonctionne
   correctement en grappe.
 * :bug:`275` Correction d'une erreur empêchant l'acceptation de transfert de
   fichier vide via R66.
@@ -422,18 +422,18 @@ Historique des versions
 * :bug:`292` Correction d'une erreur empêchant la création de l'utilisateur par
   défaut lorsque la base de données est partagée entre plusieurs *gateways*.
 * :bug:`-` Correction d'un bug permettant la suppression du dernier administrateur
-  d'une *gateway*, rendant cette dernière impossible à administrer.
+  d'une Gateway, rendant cette dernière impossible à administrer.
 * :bug:`294` Correction d'une erreur dans la réponse des requêtes de listage
   d'utilisateurs sur l'interface REST d'administration (et le client terminal).
   Lorsque la base de données est partagée entre plusieurs *gateways*, l'interface
   d'administration renvoyait indistinctement les utilisateur de toutes les
   *gateways* utilisant cette base de données, au lieu de renvoyer uniquement les
   utilisateurs de l'instance interrogée. Désormais, l'interface REST ne renvoi que
-  les utilisateurs de la *gateway* interrogée. Un problème similaire a également
+  les utilisateurs de Gateway interrogée. Un problème similaire a également
   été corrigé pour les transferts.
 * :feature:`277` Ajout d'une option à la commande `history list` de la CLI
   permettant de trier les entrées de l'historique par date de fin (`stop+` et
-  `stop-`). Cette option est également présente sur l'API REST de la *gateway*.
+  `stop-`). Cette option est également présente sur l'API REST de Gateway.
 * :bug:`278` Dans le fichier d'import, si une des listes définissant les chaînes
   de traitements de la règle (``pre``, ``post`` ou ``error``) est vide mais non-nulle,
   la chaîne de traitements en question sera vidée. Si la liste est manquante ou
@@ -445,15 +445,16 @@ Historique des versions
   - il est désormais possible d'ajouter des sous-dossiers à l'intérieur du dossier
     d'une règle
   - la commande SFTP `stat` fonctionne désormais correctement sur les dossiers
-  Pour que cela soit possible, les changements suivants ont été nécessaires:
+    Pour que cela soit possible, les changements suivants ont été nécessaires :
 
-  - les chemins de règles ne sont plus stockés avec un '/' au début
-  - le chemin d'une règle ne peut plus être parent du chemin d'une autre règle
-    (par exemple, une règle `/toto/tata` ne peut exister en même temps qu'une
-    règle `/toto` car cela créerait des conflits)
+    - les chemins de règles ne sont plus stockés avec un '/' au début
+    - le chemin d'une règle ne peut plus être parent du chemin d'une autre règle
+      (par exemple, une règle `/toto/tata` ne peut exister en même temps qu'une
+      règle `/toto` car cela créerait des conflits)
+
 * :bug:`-` Les chemins de règle (*path*) ne sont désormais plus stockés avec le
   '/' de début.
-* :feature:`247` Ajout d'un client et d'un serveur HTTP/S à la *gateway*. Il est
+* :feature:`247` Ajout d'un client et d'un serveur HTTP/S à Gateway. Il est
   donc désormais possible d'effectuer des transferts via ces 2 protocoles.
 * :feature:`194` Dépréciation des champs REST ``sourceFilename`` et ``destFilename``
   de l'objet JSON *history*, remplacés par les champs ``localFilepath`` et
@@ -501,9 +502,9 @@ Historique des versions
 * :release:`0.4.2 <2021-09-21>`
 * :bug:`273` Correction d'une erreur "database table locked" pouvant survenir
   lorsqu'une base de données SQLite est partagée entre plusieurs instances de
-  *gateway*.
+  Gateway.
 * :bug:`272` Correction d'une erreur pouvant survenir lors de l'import d'un
-  serveur local dont le nom existe déjà sur une autre instance de *gateway*
+  serveur local dont le nom existe déjà sur une autre instance de Gateway
   partageant la même base de données.
 * :bug:`263` Suppression du '/' présent au début des noms de dossiers renvoyés
   lors de l'envoi d'une commande SFTP *ls* . Cela devrait résoudre un certains
@@ -518,7 +519,7 @@ Historique des versions
   au démarrage du serveur (et non lors de la connexion à celui-ci).
 
 * :release:`0.4.1 <2021-07-21>`
-* :bug:`-` La *gateway* refusera désormais de démarrer si la version de la base
+* :bug:`-` Gateway refusera désormais de démarrer si la version de la base
   de données est différente de celle du programme.
 
 * :release:`0.4.0 <2021-07-21>`
@@ -527,8 +528,8 @@ Historique des versions
 * :bug:`260` Correction d'une erreur dans l'import des mots de passe de comptes
   locaux R66.
 * :bug:`133` Correction d'une erreur rendant impossible la répartition de charge
-  sur plusieurs instances d'une même *gateway*. Précédemment, il était possible
-  pour 2 instances d'une même *gateway* de récupérer un même transfert depuis la
+  sur plusieurs instances d'une même Gateway. Précédemment, il était possible
+  pour 2 instances d'une même Gateway de récupérer un même transfert depuis la
   base de données, et de l'exécuter 2 fois en parallèle. Ce n'est désormais plus
   possible.
 * :bug:`-` Sous système Unix, l'interruption de tâches externes se fait désormais
@@ -540,7 +541,7 @@ Historique des versions
   Une *hostkey*, reste nécessaire pour les transferts SFTP, mais la vérification
   sera désormais faite au démarrage du transfert (au lieu de son enregistrement).
 * :feature:`-` Dépréciation des options ``InDirectory``, ``OutDirectory`` &
-  ``WorkDirectory`` du fichier de configuration de la *Gateway*. Ces options ont
+  ``WorkDirectory`` du fichier de configuration de Gateway. Ces options ont
   été remplacés respectivement par ``DefaultInDir``, ``DefaultOutDir`` &
   ``DefaultTmpDir``.
 * :feature:`-` Dépréciation des champs JSON ``inDir``, ``outDir`` & ``workDir`` de
@@ -551,12 +552,12 @@ Historique des versions
 * :feature:`-` Dépréciation des champs JSON ``inPath``, ``outPath`` & ``workPath``
   de l'objet REST de règle. Les champs ont été remplacé par ``localDir``,
   ``remoteDir`` & ``localTmpDir`` représentant respectivement le dossier sur le
-  disque local de la *Gateway*, le dossier sur l'hôte distant, et le dossier
+  disque local de Gateway, le dossier sur l'hôte distant, et le dossier
   temporaire local.
 * :feature:`-` Dépréciation des champs JSON ``sourcePath``, ``destPath`` & ``trueFilepath``
   des objets REST de consultation des transferts et de l'historique. Ces champs ont été
   remplacé par les champs ``localPath`` & ``remotePath`` contenant respectivement
-  le chemin du fichier sur le disque local de la *Gateway*, et le chemin d'accès au
+  le chemin du fichier sur le disque local de Gateway, et le chemin d'accès au
   fichier sur l'hôte distant.
 * :feature:`-` Dépréciation des champs ``sourcePath`` & ``destPath`` des objets
   REST de création de transfert. Ces champs ont été remplacé par le champ
@@ -577,7 +578,7 @@ Historique des versions
 * :feature:`242` Ajout de la direction (`isSend`) à l'objet *transfer* de REST.
 * :bug:`239` Correction d'une erreur de base de données survenant lors de la mise
   à jour de la progression des transferts.
-* :bug:`222` Correction d'un comportement incorrect au lancement de la *gateway*
+* :bug:`222` Correction d'un comportement incorrect au lancement de Gateway
   lorsque la racine `GatewayHome` renseignée est un chemin relatif.
 * :bug:`238` Suppression de l'option (maintenant inutile) ``R66Home`` du fichier
   de configuration.
@@ -621,9 +622,9 @@ Historique des versions
 * :bug:`219` Il est désormais possible de créer 2 règles avec des chemins
   (``path``) identiques si leur directions sont différentes.
 * :bug:`221` Ajout de l'identifiant de transfert distant aux interfaces REST &
-  terminal. Lorsqu'un agent de transfert se connecte à la *gateway* pour faire
+  terminal. Lorsqu'un agent de transfert se connecte à Gateway pour faire
   un transfert, cet identifiant correspond au numéro que cet agent a donné au
-  transfert, et qui est donc différent de l'identifiant que la *gateway* a donné
+  transfert, et qui est donc différent de l'identifiant que Gateway a donné
   à ce transfert.
 * :bug:`216` Ajout de l'adresse manquante lors de l'export d'agents locaux/distants.
 * :bug:`218` Correction d'une erreur où le client de transfert envoyait le premier
@@ -637,7 +638,7 @@ Historique des versions
   s'exprime désormais toujours avec les mots ``send`` et ``receive`` (en minuscules)
   pour toutes les commandes.
 * :feature:`131` Ajout d'un système de gestion des droits pour les utilisateurs
-  de l'interface d'administration. Les utilisateurs de la *gateway* ont désormais
+  de l'interface d'administration. Les utilisateurs de Gateway ont désormais
   des droits attachés permettant de restreindre les actions qu'ils sont autorisés
   à effectuer via l'interface REST. Cette gestion des droits peut se faire via
   la commande de gestion des utilisateurs du client terminal, ou via l'interface
@@ -674,7 +675,7 @@ Historique des versions
 * :bug:`199` Correction d'un bug qui causait une double fermeture des fichiers
   de transfert, ce qui causait l'apparition d'une *warning* dans les logs sur
   lequel l'utilisateur ne pouvait pas agir.
-* :feature:`129` Ajout d'un client et d'un serveur R66 à la *gateway*. Il est
+* :feature:`129` Ajout d'un client et d'un serveur R66 à Gateway. Il est
   donc désormais possible d'effectuer des transferts R66 sans avoir recours à un
   serveur externe.
 * :bug:`-` Lors d'un transfert, le compteur ``task_number`` est désormais

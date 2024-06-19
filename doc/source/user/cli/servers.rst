@@ -10,7 +10,7 @@ actions est disponible :any:`ici <reference-cli-client-servers>`.
 
 .. note::
    Toutes modification ou ajout d'un serveur local ne prendra effet qu'après
-   redémarrage de la *gateway*.
+   redémarrage de Gateway.
 
 
 Ajouter un serveur
@@ -29,7 +29,7 @@ suivantes doivent être fournies:
 
 .. code-block:: shell
 
-   waarp-gateway 'https://admin@127.0.0.1:8080' server add -n 'WAARP SFTP' -p 'sftp' -r '/waarp_gw/sftp' -c '{"address":"localhost","port":8022}'
+   waarp-gateway -a 'https://admin@127.0.0.1:8080' server add -n 'WAARP SFTP' -p 'sftp' -r '/waarp_gw/sftp' -c '{"address":"localhost","port":8022}'
 
 
 Modifier un serveur
@@ -44,7 +44,7 @@ options pour faire une mise à jour partielle.
 
 .. code-block:: shell
 
-   waarp-gateway 'https://admin@127.0.0.1:8080' server update 'WAARP SFTP' -c '{"address":"localhost","port":8023}'
+   waarp-gateway -a 'https://admin@127.0.0.1:8080' server update 'WAARP SFTP' -c '{"address":"localhost","port":8023}'
 
 
 Consulter les serveurs
@@ -59,7 +59,7 @@ la commande ``list``.
 
 .. code-block:: shell
 
-   waarp-gateway 'https://admin@127.0.0.1:8080' server list
+   waarp-gateway -a 'https://admin@127.0.0.1:8080' server list
 
 Pour consulter un serveur en particulier, la commande est ``get`` suivie du nom
 du serveur.
@@ -68,7 +68,7 @@ du serveur.
 
 .. code-block:: shell
 
-   waarp-gateway 'https://admin@127.0.0.1:8080' server get 'WAARP SFTP'
+   waarp-gateway -a 'https://admin@127.0.0.1:8080' server get 'WAARP SFTP'
 
 
 Supprimer un serveur
@@ -81,4 +81,4 @@ nom du serveur à supprimer.
 
 .. code-block:: shell
 
-   waarp-gateway 'https://admin@127.0.0.1:8080' server delete 'WAARP SFTP'
+   waarp-gateway -a 'https://admin@127.0.0.1:8080' server delete 'WAARP SFTP'

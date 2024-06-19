@@ -4,9 +4,13 @@ Afficher une règle
 
 .. program:: waarp-gateway rule get
 
-.. describe:: waarp-gateway rule list <RULE> <DIRECTION>
-
 Affiche les informations de la règle donnée en paramètre de commande.
+
+**Commande**
+
+.. code-block:: shell
+
+   waarp-gateway rule get "<RULE>" "<DIRECTION>"
 
 ``DIRECTION`` peut être ``send`` ou ``receive``.
 
@@ -14,4 +18,4 @@ Affiche les informations de la règle donnée en paramètre de commande.
 
 .. code-block:: shell
 
-   waarp-gateway -a 'http://user:password@localhost:8080' rule get 'règle_1' 'send'
+   waarp-gateway rule get 'règle_1' 'send'

@@ -6,7 +6,7 @@
 
 .. program:: waarp-gatewayd restore-history
 
-``waarp-gatewayd dump-history`` est une commande permettant de restorer un précédent
+``waarp-gatewayd restore-history`` est une commande permettant de restorer un précédent
 *dump* de l'historique de transfert en base de données. Ce dump est généralement
 généré par la commande :ref:`reference-cmd-waarp-gatewayd-purge` à l'aide de
 l'option ``-e``.

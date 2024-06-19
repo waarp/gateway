@@ -25,22 +25,22 @@ Elle accepte les options suivantes :
 .. option:: --update, -u
 
    Met à jour le fichier de configuration renseigné par le paramètre
-   :any:`--config`.
+   :option:`--config`.
 
-   Le paramètre :any:`--config` doit être renseigné.
+   Le paramètre :option:`--config` doit être renseigné.
 
 .. option:: --create, -n
 
    Créé un nouveau fichier de configuration à l'emplacement indiqué par le
-   paramètre :any:`--config`.
+   paramètre :option:`--config`.
 
-   Le paramètre :any:`--config` doit être renseigné.
+   Le paramètre :option:`--config` doit être renseigné.
 
 .. option:: --instance NAME, -i NAME
 
-   Le nom unique de l'instance. Lorsque la *gateway* fonctionne en grappe, ce nom
+   Le nom unique de l'instance. Lorsque Waarp Gateway fonctionne en grappe, ce nom
    sert à différencier les différentes instances entre elles. Ce paramètre n'est
-   pas nécessaire si la *gateway* ne fonctionne pas en grappe.
+   pas nécessaire si Waarp Gateway ne fonctionne pas en grappe.
 
 .. option:: --help, -h
 

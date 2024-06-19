@@ -15,18 +15,16 @@ Annuler un transfert
    :resheader Location: Le chemin d'accès au transfert redémarré
 
 
-   |
-
    **Exemple de requête**
 
-      .. code-block:: http
+   .. code-block:: http
 
-         PUT https://my_waarp_gateway.net/api/transfers/1/cancel HTTP/1.1
-         Authorization: Basic QWxhZGRpbjpvcGVuIHNlc2FtZQ==
+      PUT https://my_waarp_gateway.net/api/transfers/1/cancel HTTP/1.1
+      Authorization: Basic QWxhZGRpbjpvcGVuIHNlc2FtZQ==
 
    **Exemple de réponse**
 
-      .. code-block:: http
+   .. code-block:: http
 
-         HTTP/1.1 201 CREATED
-         Location: https://my_waarp_gateway.net/api/history/1
+      HTTP/1.1 201 CREATED
+      Location: https://my_waarp_gateway.net/api/history/1

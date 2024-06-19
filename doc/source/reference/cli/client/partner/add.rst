@@ -4,9 +4,15 @@ Ajouter un partenaire
 
 .. program:: waarp-gateway partner add
 
-.. describe:: waarp-gateway partner add
-
 Ajoute un nouveau partenaire avec les attributs renseignés.
+
+**Commande**
+
+.. code-block:: shell
+
+   waarp-gateway partner add
+
+**Options**
 
 .. option:: -n <NAME>, --name=<NAME>
 
@@ -27,10 +33,8 @@ Ajoute un nouveau partenaire avec les attributs renseignés.
    utilisé (voir :ref:`configuration protocolaire <reference-proto-config>` pour
    plus de détails).
 
-|
-
 **Exemple**
 
 .. code-block:: shell
 
-   waarp-gateway -a 'http://user:password@localhost:8080' partner add -n 'waarp_sftp' -p 'sftp' -a 'waarp.org:2021' -c 'keyExchanges:["ecdh-sha2-nistp256"]'
+   waarp-gateway partner add -n 'waarp_sftp' -p 'sftp' -a 'waarp.org:2021' -c 'keyExchanges:["ecdh-sha2-nistp256"]'

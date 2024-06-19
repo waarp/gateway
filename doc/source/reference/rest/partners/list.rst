@@ -1,3 +1,5 @@
+.. _rest_partners_list:
+
 Lister les partenaires
 ======================
 
@@ -39,43 +41,41 @@ Lister les partenaires
       * **reception** (*array* of *string*) - Les règles de réception.
 
 
-   |
-
    **Exemple de requête**
 
-      .. code-block:: http
+   .. code-block:: http
 
-         GET https://my_waarp_gateway.net/api/partners?limit=10&sort=name-&protocol=sftp HTTP/1.1
-         Authorization: Basic QWxhZGRpbjpvcGVuIHNlc2FtZQ==
+      GET https://my_waarp_gateway.net/api/partners?limit=10&sort=name-&protocol=sftp HTTP/1.1
+      Authorization: Basic QWxhZGRpbjpvcGVuIHNlc2FtZQ==
 
    **Exemple de réponse**
 
-      .. code-block:: http
+   .. code-block:: http
 
-         HTTP/1.1 200 OK
-         Content-Type: application/json
-         Content-Length: 648
+      HTTP/1.1 200 OK
+      Content-Type: application/json
+      Content-Length: 648
 
-         {
-           "partners": [{
-             "name": "waarp_sftp_2",
-             "protocol": "sftp",
-             "address": "waarp.org:2023",
-             "protoConfig": {},
-             "authMethods": ["waarp_hostkey_2"],
-             "authorizedRules": {
-               "sending": ["règle_envoi_1", "règle_envoi_2"],
-               "reception": ["règle_récep_1", "règle_récep_2"]
-             }
-           },{
-             "name": "waarp_sftp_1",
-             "protocol": "sftp",
-             "address": "waarp.fr:2022",
-             "protoConfig": {},
-             "authMethods": ["waarp_hostkey_1"],
-             "authorizedRules": {
-               "sending": ["règle_envoi_1", "règle_envoi_2"],
-               "reception": ["règle_récep_1", "règle_récep_2"]
-             }
-           }]
-         }
+      {
+        "partners": [{
+          "name": "waarp_sftp_2",
+          "protocol": "sftp",
+          "address": "waarp.org:2023",
+          "protoConfig": {},
+          "authMethods": ["waarp_hostkey_2"],
+          "authorizedRules": {
+            "sending": ["règle_envoi_1", "règle_envoi_2"],
+            "reception": ["règle_récep_1", "règle_récep_2"]
+          }
+        },{
+          "name": "waarp_sftp_1",
+          "protocol": "sftp",
+          "address": "waarp.fr:2022",
+          "protoConfig": {},
+          "authMethods": ["waarp_hostkey_1"],
+          "authorizedRules": {
+            "sending": ["règle_envoi_1", "règle_envoi_2"],
+            "reception": ["règle_récep_1", "règle_récep_2"]
+          }
+        }]
+      }

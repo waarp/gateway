@@ -6,9 +6,15 @@ Lister les partenaires
 
 .. program:: waarp-gateway partner list
 
-.. describe:: waarp-gateway partner list
-
 Affiche une liste des partenaires remplissant les critères renseignés ci-dessous.
+
+**Commande**
+
+.. code-block:: shell
+
+   waarp-gateway partner list
+
+**Options**
 
 .. option:: -l <LIMIT>, --limit=<LIMIT>
 
@@ -30,10 +36,8 @@ Affiche une liste des partenaires remplissant les critères renseignés ci-desso
    paramètre. Le paramètre peut être répété plusieurs fois pour filtrer
    plusieurs protocoles en même temps.
 
-|
-
 **Exemple**
 
 .. code-block:: shell
 
-   waarp-gateway -a 'http://user:password@localhost:8080' partner list -l 10 -o 5 -s 'protocol+' -p 'sftp' -p 'http'
+   waarp-gateway partner list -l 10 -o 5 -s 'protocol+' -p 'sftp' -p 'http'

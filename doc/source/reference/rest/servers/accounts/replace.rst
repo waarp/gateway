@@ -18,25 +18,23 @@ Remplacer un compte local
    :resheader Location: Le chemin d'accès au compte modifié
 
 
-   |
-
    **Exemple de requête**
 
-      .. code-block:: http
+   .. code-block:: http
 
-         PUT https://my_waarp_gateway.net/api/servers/sftp_server/accounts/toto HTTP/1.1
-         Authorization: Basic QWxhZGRpbjpvcGVuIHNlc2FtZQ==
-         Content-Type: application/json
-         Content-Length: 96
+      PUT https://my_waarp_gateway.net/api/servers/sftp_server/accounts/toto HTTP/1.1
+      Authorization: Basic QWxhZGRpbjpvcGVuIHNlc2FtZQ==
+      Content-Type: application/json
+      Content-Length: 96
 
-         {
-           "login": "toto_new",
-           "password": "titi_new"
-         }
+      {
+        "login": "toto_new",
+        "password": "titi_new"
+      }
 
    **Exemple de réponse**
 
-      .. code-block:: http
+   .. code-block:: http
 
-         HTTP/1.1 201 CREATED
-         Location: https://my_waarp_gateway.net/api/servers/sftp_server/accounts/toto_new
+      HTTP/1.1 201 CREATED
+      Location: https://my_waarp_gateway.net/api/servers/sftp_server/accounts/toto_new

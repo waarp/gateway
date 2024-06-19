@@ -1,16 +1,16 @@
 EXECOUTPUT
 ==========
 
-Le traitement 'EXECOUTPUT' exécute un programme externe. Si une erreur survient
+Le traitement ``EXECOUTPUT`` exécute un programme externe. Si une erreur survient
 durant exécution, les lignes écrites dans la sortie standard seront interprétées
 comme message d'erreur. Il est également possible pour le programme de déplacer
 le fichier de transfert durant l'exécution. Dans ce cas, la dernière ligne
 écrite sur la sortie standard par le programme doit commencer par
-"``NEWFILENAME:``", suivi du nouveau chemin du fichier.
+``NEWFILENAME:``, suivi du nouveau chemin du fichier.
 
-* **path** (*string*) - Le chemin du programme à exécuter.
-* **args** (*string*) - Les arguments du programme.
-* **delay** (*number*) - La durée d'exécution maximum du programme (en ms). Si
+* ``path`` (*string*) - Le chemin du programme à exécuter.
+* ``args`` (*string*) - Les arguments du programme.
+* ``delay`` (*number*) - La durée d'exécution maximum du programme (en ms). Si
   le programme n'a pas terminé après que cette durée soit écoulée, le programme
   sera interrompu et le traitement sera considéré comme ayant échoué.
 

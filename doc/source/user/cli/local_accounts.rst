@@ -10,7 +10,7 @@ La commande doit donc ressembler donc à ceci:
 
 .. code-block:: shell
 
-   waarp-gateway 'https://admin@127.0.0.1:8080' account local 'SERVEUR' *action*
+   waarp-gateway -a 'https://admin@127.0.0.1:8080' account local 'SERVEUR' *action*
 
 
 La liste complète des actions est disponible :any:`ici
@@ -30,7 +30,7 @@ Les options de commande suivantes doivent être fournies:
 
 .. code-block:: shell
 
-   waarp-gateway 'https://admin@127.0.0.1:8080' account local 'WAARP SFTP' add -l 'toto' -p 'sésame'
+   waarp-gateway -a 'https://admin@127.0.0.1:8080' account local 'WAARP SFTP' add -l 'toto' -p 'sésame'
 
 
 Modifier un compte local
@@ -45,7 +45,7 @@ options pour faire une mise à jour partielle.
 
 .. code-block:: shell
 
-   waarp-gateway 'https://admin@127.0.0.1:8080' account local 'WAARP SFTP' update 'toto' -p 'sésame2'
+   waarp-gateway -a 'https://admin@127.0.0.1:8080' account local 'WAARP SFTP' update 'toto' -p 'sésame2'
 
 
 Consulter les comptes locaux
@@ -60,7 +60,7 @@ de détails, voir la :any:`documentation
 
 .. code-block:: shell
 
-   waarp-gateway 'https://admin@127.0.0.1:8080' account local 'WAARP SFTP' list
+   waarp-gateway -a 'https://admin@127.0.0.1:8080' account local 'WAARP SFTP' list
 
 Pour consulter un compte en particulier, la commande est ``get`` suivie du nom
 de compte.
@@ -69,7 +69,7 @@ de compte.
 
 .. code-block:: shell
 
-   waarp-gateway 'https://admin@127.0.0.1:8080' account local 'WAARP SFTP' get 'toto'
+   waarp-gateway -a 'https://admin@127.0.0.1:8080' account local 'WAARP SFTP' get 'toto'
 
 
 Supprimer un compte local
@@ -82,4 +82,4 @@ compte à supprimer.
 
 .. code-block:: shell
 
-   waarp-gateway 'https://admin@127.0.0.1:8080' account local 'WAARP SFTP' delete 'toto'
+   waarp-gateway -a 'https://admin@127.0.0.1:8080' account local 'WAARP SFTP' delete 'toto'

@@ -1,11 +1,11 @@
 Gestion des partenaires distants
 ################################
 
-Le point d'accès pour gérer les différents partenaires distants de la gateway est
+Le point d'accès pour gérer les différents partenaires distants de Gateway est
 ``/api/partners``.
 
 .. toctree::
-   :maxdepth: 2
+   :maxdepth: 1
 
    create
    list

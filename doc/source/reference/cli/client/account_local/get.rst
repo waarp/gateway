@@ -4,14 +4,16 @@ Afficher un compte local
 
 .. program:: waarp-gateway account local get
 
-.. describe:: waarp-gateway account local <SERVER> get <LOGIN>
-
 Affiche les informations du compte donné en paramètre de commande.
 
-|
+**Commande**
+
+.. code-block:: shell
+
+   waarp-gateway account local "<PARTNER>" get "<LOGIN>"
 
 **Exemple**
 
 .. code-block:: shell
 
-   waarp-gateway -a 'http://user:password@localhost:8080' account local 'serveur_sftp' get 'tata'
+   waarp-gateway account local 'serveur_sftp' get 'tata'

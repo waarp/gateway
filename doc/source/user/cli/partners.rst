@@ -21,7 +21,7 @@ suivantes doivent être fournies:
 
 .. code-block:: shell
 
-   waarp-gateway 'https://admin@127.0.0.1:8080' partner add -n 'WAARP R66' -p 'r66' -c '{"address":"waarp.org","port":8066}'
+   waarp-gateway -a 'https://admin@127.0.0.1:8080' partner add -n 'WAARP R66' -p 'r66' -c '{"address":"waarp.org","port":8066}'
 
 
 Modifier un partenaire
@@ -36,7 +36,7 @@ options pour faire une mise à jour partielle.
 
 .. code-block:: shell
 
-   waarp-gateway 'https://admin@127.0.0.1:8080' partner update 'WAARP R66' -c '{"address":"waarp.fr","port":8068}'
+   waarp-gateway -a 'https://admin@127.0.0.1:8080' partner update 'WAARP R66' -c '{"address":"waarp.fr","port":8068}'
 
 
 Consulter les partenaires
@@ -52,7 +52,7 @@ la commande ``list``.
 
 .. code-block:: shell
 
-   waarp-gateway 'https://admin@127.0.0.1:8080' partner list
+   waarp-gateway -a 'https://admin@127.0.0.1:8080' partner list
 
 Pour consulter un partenaire en particulier, la commande est ``get`` suivie du nom
 du partenaire.
@@ -61,7 +61,7 @@ du partenaire.
 
 .. code-block:: shell
 
-   waarp-gateway 'https://admin@127.0.0.1:8080' partner get 'WAARP R66'
+   waarp-gateway -a 'https://admin@127.0.0.1:8080' partner get 'WAARP R66'
 
 
 Supprimer un partenaire
@@ -74,4 +74,4 @@ du nom du partenaire à supprimer.
 
 .. code-block:: shell
 
-   waarp-gateway 'https://admin@127.0.0.1:8080' partner delete 'WAARP R66'
+   waarp-gateway -a 'https://admin@127.0.0.1:8080' partner delete 'WAARP R66'

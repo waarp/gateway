@@ -3,6 +3,16 @@ Programmer un transfert
 
 .. http:post:: /api/transfers
 
+   .. deprecated:: 0.5.0
+
+      Les propriétés ``sourcePath`` et ``destPath`` de la requête ont été
+      remplacées par les propriétés ``localFilepath`` et ``remoteFilepath``.
+
+   .. deprecated:: 0.5.0
+
+      La propriété ``startDate`` de la requête a été remplacée par la propriété
+      ``start``.
+
    Programme un nouveau transfert avec les informations renseignées en format JSON dans
    le corps de la requête.
 
@@ -18,8 +28,8 @@ Programmer un transfert
    :reqjson string account: Le nom du compte ayant demandé le transfert
    :reqjson string partner: Le nom du serveur/partenaire auquel le transfert a été demandé
    :reqjson string partner: Le nom du serveur/partenaire auquel le transfert a été demandé
-   :reqjson string sourcePath: Le chemin du fichier source (OBSOLÈTE: remplacé par 'file')
-   :reqjson string destPath: Le chemin de destination du fichier (OBSOLÈTE: remplacé par 'output')
+   :reqjson string sourcePath: *Déprécié*. Le chemin du fichier source 
+   :reqjson string destPath: *Déprécié*. Le chemin de destination du fichier 
    :reqjson string file: Le chemin du fichier à transférer
    :reqjson string output: Le chemin de destination du fichier
    :reqjson date start: La date de début du transfert (en format ISO 8601)
@@ -33,31 +43,29 @@ Programmer un transfert
    :resheader Location: Le chemin d'accès au nouveau transfert créé
 
 
-   |
-
    **Exemple de requête**
 
-      .. code-block:: http
+   .. code-block:: http
 
-         POST https://my_waarp_gateway.net/api/transfers HTTP/1.1
-         Authorization: Basic QWxhZGRpbjpvcGVuIHNlc2FtZQ==
-         Content-Type: application/json
-         Content-Length: 212
+      POST https://my_waarp_gateway.net/api/transfers HTTP/1.1
+      Authorization: Basic QWxhZGRpbjpvcGVuIHNlc2FtZQ==
+      Content-Type: application/json
+      Content-Length: 212
 
-         {
-           "isServer": false,
-           "rule": "règle_1",
-           "account": "toto",
-           "partner": "waarp_sftp",
-           "file": "chemin/du/fichier",
-           "output": "destination/du/fichier",
-           "start": "2019-01-01T02:00:00+02:00",
-           "transferInfo": { "key1": "val1", "key2": 2, "key3": true }
-         }
+      {
+        "isServer": false,
+        "rule": "règle_1",
+        "account": "toto",
+        "partner": "waarp_sftp",
+        "file": "chemin/du/fichier",
+        "output": "destination/du/fichier",
+        "start": "2019-01-01T02:00:00+02:00",
+        "transferInfo": { "key1": "val1", "key2": 2, "key3": true }
+      }
 
    **Exemple de réponse**
 
-      .. code-block:: http
+   .. code-block:: http
 
-         HTTP/1.1 202 ACCEPTED
-         Location: https://my_waarp_gateway.net/api/transfers/123
+      HTTP/1.1 202 ACCEPTED
+      Location: https://my_waarp_gateway.net/api/transfers/123

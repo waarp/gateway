@@ -4,7 +4,9 @@
 [OBSOLÈTE] Gestion de l'historique
 ##################################
 
-.. warning:: La gestion de l'historique est désormais unifiée avec la
+.. deprecated:: 0.7.0
+
+   La gestion de l'historique est désormais unifiée avec la
    :ref:`REST_transfers`. Cette partie de l'administration est donc dépréciée
    et sera supprimée à la prochaine mise à jour majeure.
 

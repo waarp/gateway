@@ -2,14 +2,18 @@
 Supprimer une méthode d'authentification
 ========================================
 
-.. program:: waarp-gateway account local auth delete
-
-.. describe:: waarp-gateway account local <SERVER> auth <LOGIN> delete
+.. program:: waarp-gateway account local credential delete
 
 Supprime la valeur d'authentification données du compte.
+
+**Commande**
+
+.. code-block:: shell
+
+   waarp-gateway account local "<PARTNER>" credential "<LOGIN>" delete "<CREDENTIAL>"
 
 **Exemple**
 
 .. code-block:: shell
 
-   waarp-gateway -a 'http://user:password@localhost:8080' account local 'gw_r66' auth 'tata' delete 'r66_password'
+   waarp-gateway account local 'gw_r66' credential 'tata' delete 'r66_password'

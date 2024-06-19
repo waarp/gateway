@@ -3,20 +3,20 @@
 Override de configuration
 #########################
 
-Chaque *gateway* a sa propre configuration (définie dans son
-:any:`fichier de configuration <configuration>`). Cependant, lorsque la
-*gateway* fonctionne en grappe avec plusieurs instances, cette configuration est
+Chaque instance de Gateway a sa propre configuration (définie dans son
+:any:`fichier de configuration <configuration>`). Cependant, lorsque
+Gateway fonctionne en grappe avec plusieurs instances, cette configuration est
 commune à toutes les instances de la grappe (puisque la grappe est considérée
 comme une unique entité). Or, il est parfois nécessaire d'avoir des
 paramètres spécifiques pour chaque instance de la grappe.
 
 Pour palier à ce problème, il est possible d'utiliser un fichier de *override*.
-Au démarrage de la *gateway*, une des options de la commande de démarrage permet
+Au démarrage de Waarp Gateway, une des options de la commande de démarrage permet
 de renseigner un nom d'instance (voir :any:`la documentation de la commande <cli/server/server>`).
-Ce nom d'instance permet de différentier une instance de *gateway* des autres
+Ce nom d'instance permet de différentier une instance de Gateway des autres
 instances de la grappe.
 
-Au démarrage, la *gateway* cherchera un fichier .ini portant son nom d'instance
+Au démarrage, Waarp Gateway cherchera un fichier .ini portant son nom d'instance
 dans le dossier du fichier de configuration principal. Si ce fichier existe,
 tous les paramètres définis dedans prendront précédence sur ceux définis dans le
 fichier de configuration principal ou dans la base de données.
@@ -35,8 +35,8 @@ La section ``[Address Indirection]`` contient une liste d'indirection d'adresses
 Une indirection d'adresse permet de remplacer dynamiquement certaines adresses
 (IP ou DNS) définies dans la configuration par d'autres.
 
-Par example, dans une grappe de *gateways*, les serveurs locaux sont définis au
-niveau de la grappe entière (puisque les noeuds de la grappe sont tous des clones
+Par exemple, dans une grappe d'instances Gateway, les serveurs locaux sont définis au
+niveau de la grappe entière (puisque les nœuds de la grappe sont tous des clones
 les uns des autres). Dans cette situation, l'adresse renseignée lors de la définition
 d'un serveur local est l'adresse du proxy/*load balancer*. Les instances de la
 grappe ne peuvent, elles, pas écouter sur cette adresse puisqu'elles n'y ont pas

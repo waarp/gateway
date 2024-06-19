@@ -8,12 +8,12 @@ Codes d'erreur de transfert
    C'est le code utilisé par défaut. Il indique qu'il n'y a aucune erreur
 
 :index:`TeUnknown`
-   Indique une erreur inconnue (les details de l'erreur peuvent donner plus
+   Indique une erreur inconnue (les détails de l'erreur peuvent donner plus
    d'informations).
 
 :index:`TeInternal`
-   Indique qu'une erreur interne à la gateway s'est produite (perte de
-   connection à la base de données, etc.)
+   Indique qu'une erreur interne à Gateway s'est produite (perte de
+   connexion à la base de données, etc.)
 
 :index:`TeUnimplemented`
    Indique que le partenaire a voulu utiliser une fonctionnalité valide,, mais
@@ -29,11 +29,11 @@ Codes d'erreur de transfert
 
 :index:`TeUnknownRemote`
    Indique que le partenaire distant demandé n'est pas connu dans la base de
-   données de la gateway. Pour des raisons de sécurité, l'utilisation externe de
+   données de Waarp Gateway. Pour des raisons de sécurité, l'utilisation externe de
    ce code d'erreur (retourner cette erreur a un client) est découragé pour les
    connexions entrantes au profit de ``TeBadAuthentication``, au risque de
    laisser fuiter des informations (ici, le compte existe, mais
-   l'authentification a echouée).
+   l'authentification a échouée).
 
 :index:`TeExceededLimit`
    Indique que le transfert ne peut être traité parce que les limites définies
@@ -41,7 +41,7 @@ Codes d'erreur de transfert
 
 :index:`TeBadAuthentication`
    Indique une erreur de connexion causée par des données d'authentification
-   erronées (utilisateur, mot de passe, certificat, etc. les détails de l'erreur
+   erronées (utilisateur, mot de passe, certificat, etc. Les détails de l'erreur
    peuvent fournir plus d'informations).
 
 :index:`TeDataTransfer`

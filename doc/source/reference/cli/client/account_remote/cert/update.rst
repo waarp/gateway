@@ -4,11 +4,17 @@
 
 .. program:: waarp-gateway account remote cert update
 
-.. describe:: waarp-gateway account remote <PARTNER> cert <LOGIN> update <CERT>
-
 Change les attributs du certificat donné. Les noms du partenaire, du compte et du
 certificat doivent être renseignés en arguments de programme. Les attributs omis
 resteront inchangés.
+
+**Commande**
+
+.. code-block:: shell
+
+   waarp-gateway account remote "<PARTNER>" cert "<LOGIN>" update "<CERT>"
+
+**Options**
 
 .. option:: -n <NAME>, --name=<NAME>
 
@@ -24,10 +30,8 @@ resteront inchangés.
    Le chemin vers le fichier contenant la clé privée (TLS ou SSH) de l'agent,
    en format PEM.
 
-|
-
 **Exemple**
 
 .. code-block:: shell
 
-   waarp-gateway -a 'http://user:password@localhost:8080' account remote 'waarp_sftp' cert 'titi' update 'key_titi' -n 'key_titi2' -p './titi2.key'
+   waarp-gateway account remote 'waarp_sftp' cert 'titi' update 'key_titi' -n 'key_titi2' -p './titi2.key'

@@ -4,11 +4,13 @@ Démarrer un client
 
 .. program:: waarp-gateway client start
 
-.. describe:: waarp-gateway client start <CLIENT>
-
 Démarre le client donné en paramètre.
 
-|
+**Commande**
+
+.. code-block:: shell
+
+   waarp-gateway client start "<CLIENT>"
 
 **Exemple**
 

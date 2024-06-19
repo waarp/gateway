@@ -2,12 +2,18 @@
 Ajouter une méthode d'authentification
 ======================================
 
-.. program:: waarp-gateway server credential get
-
-.. describe:: waarp-gateway server <SERVER> credential get
+.. program:: waarp-gateway server credential add
 
 Ajoute une nouvelle valeur d'authentification au serveur donné. Si une valeur du
 même nom existe déjà, elle sera écrasée.
+
+**Commande**
+
+.. code-block:: shell
+
+   waarp-gateway server credential "<SERVER>" add
+
+**Options**
 
 .. option:: -n <NAME>, --name=<NAME>
 
@@ -37,4 +43,4 @@ même nom existe déjà, elle sera écrasée.
 
 .. code-block:: shell
 
-   waarp-gateway -a 'http://user:password@localhost:8080' server credential 'gw_r66' get -n 'r66_cert' -t 'ssh_private_key' -v './gw_ssh.key'
+   waarp-gateway server credential 'gw_r66' get -n 'r66_cert' -t 'ssh_private_key' -v './gw_ssh.key'

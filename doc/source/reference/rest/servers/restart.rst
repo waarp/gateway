@@ -12,8 +12,6 @@ Redémarrer un serveur
    :statuscode 404: Le serveur demandé n'existe pas
 
 
-   |
-
    **Exemple de requête**
 
       .. code-block:: http

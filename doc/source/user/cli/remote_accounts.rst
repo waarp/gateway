@@ -9,7 +9,7 @@ La commande doit donc ressembler donc à ceci:
 
 .. code-block:: shell
 
-   waarp-gateway 'https://admin@127.0.0.1:8080' account remote 'PARTENAIRE' *action*
+   waarp-gateway -a 'https://admin@127.0.0.1:8080' account remote 'PARTENAIRE' *action*
 
 
 La liste complète des actions est disponible :any:`ici
@@ -29,7 +29,7 @@ Les options de commande suivantes doivent être fournies:
 
 .. code-block:: shell
 
-   waarp-gateway 'https://admin@127.0.0.1:8080' account remote 'WAARP R66' add -l 'titi' -p 'sésame'
+   waarp-gateway -a 'https://admin@127.0.0.1:8080' account remote 'WAARP R66' add -l 'titi' -p 'sésame'
 
 
 Modifier un compte distant
@@ -44,7 +44,7 @@ ou plusieurs options pour faire une mise à jour partielle.
 
 .. code-block:: shell
 
-   waarp-gateway 'https://admin@127.0.0.1:8080' account remote 'WAARP R66' update 'titi' -p 'sésame2'
+   waarp-gateway -a 'https://admin@127.0.0.1:8080' account remote 'WAARP R66' update 'titi' -p 'sésame2'
 
 
 Consulter les comptes distants
@@ -60,7 +60,7 @@ de la commande ``list``.
 
 .. code-block:: shell
 
-   waarp-gateway 'https://admin@127.0.0.1:8080' account remote 'WAARP R66' list
+   waarp-gateway -a 'https://admin@127.0.0.1:8080' account remote 'WAARP R66' list
 
 Pour consulter un compte en particulier, la commande est ``get`` suivie du nom
 de compte.
@@ -69,7 +69,7 @@ de compte.
 
 .. code-block:: shell
 
-   waarp-gateway 'https://admin@127.0.0.1:8080' account remote 'WAARP R66' get 'titi'
+   waarp-gateway -a 'https://admin@127.0.0.1:8080' account remote 'WAARP R66' get 'titi'
 
 
 Supprimer un compte distant
@@ -82,4 +82,4 @@ ensuite du nom du compte à supprimer.
 
 .. code-block:: shell
 
-   waarp-gateway 'https://admin@127.0.0.1:8080' account remote 'WAARP R66' delete 'titi'
+   waarp-gateway -a 'https://admin@127.0.0.1:8080' account remote 'WAARP R66' delete 'titi'

@@ -8,6 +8,14 @@ Lister les clients
 
 Affiche une liste de tous les clients remplissant les critères ci-dessous.
 
+**Commande**
+
+.. code-block:: shell
+
+   waarp-gateway client list
+
+**Options**
+
 .. option:: -l <LIMIT>, --limit=<LIMIT>
 
    Le nombre maximum de clients autorisés dans la réponse. Fixé à 20 par défaut.

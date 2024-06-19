@@ -4,14 +4,16 @@ Supprimer un partenaire
 
 .. program:: waarp-gateway partner delete
 
-.. describe:: waarp-gateway partner delete <PARTNER>
-
 Supprime le partenaire donné en paramètre.
 
-|
+**Commande**
+
+.. code-block:: shell
+
+   waarp-gateway partner delete "<PARTNER>"
 
 **Exemple**
 
 .. code-block:: shell
 
-   waarp-gateway -a 'http://user:password@localhost:8080' partner delete 'partenaire_sftp'
+   waarp-gateway partner delete 'partenaire_sftp'

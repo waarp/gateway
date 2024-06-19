@@ -4,9 +4,15 @@
 
 .. program:: waarp-gateway account remote cert add
 
-.. describe:: waarp-gateway account remote <PARTNER> cert <LOGIN> add
-
 Attache un nouveau certificat au compte donné à partir des informations renseignées.
+
+**Commande**
+
+.. code-block:: shell
+
+   waarp-gateway account remote "<PARTNER>" cert "<LOGIN>" add
+
+**Options**
 
 .. option:: -n <NAME>, --name=<NAME>
 
@@ -22,10 +28,8 @@ Attache un nouveau certificat au compte donné à partir des informations rensei
    Le chemin vers le fichier contenant la clé privée (TLS ou SSH) du compte,
    en format PEM.
 
-|
-
 **Exemple**
 
 .. code-block:: shell
 
-   waarp-gateway -a 'http://user:password@localhost:8080' account remote 'waarp_sftp' cert 'titi' add -n 'key_titi' -p './titi.key'
+   waarp-gateway account remote 'waarp_sftp' cert 'titi' add -n 'key_titi' -p './titi.key'

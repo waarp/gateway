@@ -4,7 +4,9 @@
 [OBSOLÈTE] Gestion de l'historique de transferts
 ################################################
 
-.. warning:: La commande de gestion de l'historique est désormais unifiée avec la
+.. deprecated:: 0.7.0
+
+   La commande de gestion de l'historique est désormais unifiée avec la
    :ref:`reference-cli-client-transfers`. Cette commande est désormais dépréciée
    et sera supprimée à la prochaine mise à jour majeure.
 

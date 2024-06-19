@@ -4,9 +4,15 @@ Lister les autorités
 
 .. program:: waarp-gateway authority list
 
-.. describe:: waarp-gateway authority list <NAME>
-
 Affiche une liste de toutes les autorités remplissant les critères ci-dessous.
+
+**Commande**
+
+.. code-block:: shell
+
+   waarp-gateway authority list
+
+**Options**
 
 .. option:: -l <LIMIT>, --limit=<LIMIT>
 
@@ -22,8 +28,6 @@ Affiche une liste de toutes les autorités remplissant les critères ci-dessous.
    choix possibles sont:
 
    - par nom (``name+`` & ``name-``)
-
-|
 
 **Exemple**
 

@@ -4,10 +4,6 @@
 Traitements
 ###########
 
-.. todo:: 
-   
-   documenter les substitutions
-
 Lors de l'ajout d'une règle, les traitements de la règle doivent être fournis
 avec leurs arguments sous forme d'un objet JSON. Cet objet JSON contient 2
 attributs:
@@ -39,7 +35,7 @@ Les marqueurs de substitutions sont délimités par des signes dièse (``#``), e
 sont valorisés au moment de l'exécution du traitement par les données
 correspondant au transfert.
 
-Les susbstitutions disponibles sont les suivantes :
+Les substitutions disponibles sont les suivantes :
 
 ====================== =============
 Marqueur               Signification
@@ -49,7 +45,7 @@ Marqueur               Signification
 ``#ORIGINALFULLPATH#`` Le chemin d'origine du fichier avant le transfert
 ``#ORIGINALFILENAME#`` Le nom d'origine du fichier avant le transfert
 ``#FILESIZE#``         La taille du fichier
-``#HOMEPATH#``         Le dossier racine de la *gateway*. Ce chemin est toujours
+``#HOMEPATH#``         Le dossier racine de la Gateway. Ce chemin est toujours
                        absolu.
 ``#INPATH#``           Le dossier de réception par défaut définit dans le fichier
                        de configuration. Ce chemin est toujours absolu.
@@ -58,14 +54,14 @@ Marqueur               Signification
 ``#WORKPATH#``         Le dossier temporaire de réception par défaut définit dans
                        le fichier de configuration. Ce chemin est toujours absolu.
 ``#RULE#``             La règle utilisée par le transfert
-``#DATE#``             La date (au format ``AAAAMMJJ``) au moment de l'éxecution
+``#DATE#``             La date (au format ``AAAAMMJJ``) au moment de l'exécution
                        de la tâche
-``#HOUR#``             L'heure (au format ``HHMMSS``) au moment de l'éxecution
+``#HOUR#``             L'heure (au format ``HHMMSS``) au moment de l'exécution
                        de la tâche
 ``#REMOTEHOST#``       L'identifiant du partenaire distant
 ``#LOCALHOST#``        L'identifiant du partenaire local
 ``#TRANSFERID#``       L'identifiant du transfert
-``#REQUESTERHOST#``    L'identifiant du partenaire qui a demendé le transfert
+``#REQUESTERHOST#``    L'identifiant du partenaire qui a demandé le transfert
 ``#REQUESTEDHOST#``    L'identifiant du partenaire qui a reçu la demande de
                        transfert
 ``#FULLTRANSFERID#``   Un identifiant "étendu" pour le transfert (de la forme

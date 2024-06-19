@@ -4,10 +4,16 @@ Modifier un partenaire
 
 .. program:: waarp-gateway partner update
 
-.. describe:: waarp-gateway partner update <PARTNER>
-
 Remplace les attributs du partenaire donné par ceux fournis ci-dessous. Les
 attributs omis resteront inchangés.
+
+**Commande**
+
+.. code-block:: shell
+
+   waarp-gateway partner update "<PARTNER>"
+
+**Options**
 
 .. option:: -n <NAME>, --name=<NAME>
 
@@ -19,7 +25,7 @@ attributs omis resteront inchangés.
 
 .. option:: -a <ADDRESS>, --address=<ADDRESS>
 
-   L'adresse du partenaire (au format [adresse:port]).
+   L'adresse du partenaire (au format ``adresse:port``).
 
 .. option:: -c <KEY:VAL>, --config=<KEY:VAL>
 
@@ -28,10 +34,8 @@ attributs omis resteront inchangés.
    utilisé (voir :ref:`configuration protocolaire <reference-proto-config>` pour
    plus de détails).
 
-|
-
 **Exemple**
 
 .. code-block:: shell
 
-   waarp-gateway -a 'http://user:password@localhost:8080' partner update 'partenaire_sftp' -n 'partner_sftp_new' -p 'sftp' -a 'waarp.fr:2022'
+   waarp-gateway partner update 'partenaire_sftp' -n 'partner_sftp_new' -p 'sftp' -a 'waarp.fr:2022'

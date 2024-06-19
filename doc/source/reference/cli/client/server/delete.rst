@@ -4,14 +4,16 @@ Supprimer un serveur
 
 .. program:: waarp-gateway server delete
 
-.. describe:: waarp-gateway server delete <SERVER>
-
 Supprime le serveur donné en paramètre.
 
-|
+**Commande**
+
+.. code-block:: shell
+
+   waarp-gateway server delete "<SERVER>"
 
 **Exemple**
 
 .. code-block:: shell
 
-   waarp-gateway -a 'http://user:password@localhost:8080' server delete 'gw_r66'
+   waarp-gateway server delete 'gw_r66'

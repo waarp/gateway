@@ -4,11 +4,13 @@ Stopper un client
 
 .. program:: waarp-gateway client stop
 
-.. describe:: waarp-gateway client stop <CLIENT>
-
 Arrête le client donné en paramètre.
 
-|
+**Commande**
+
+.. code-block:: shell
+
+   waarp-gateway client stop "<CLIENT>"
 
 **Exemple**
 

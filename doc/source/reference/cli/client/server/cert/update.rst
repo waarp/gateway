@@ -4,11 +4,17 @@
 
 .. program:: waarp-gateway server cert update
 
-.. describe:: waarp-gateway server cert <SERVER> update <CERT>
-
 Change les attributs du certificat donné. Les noms du serveur et du certificat
 doivent être renseignés en arguments de programme. Les attributs omis resteront
 inchangés.
+
+**Commande**
+
+.. code-block:: shell
+
+   waarp-gateway server cert "<SERVER>" update "<CERT>"
+
+**Options**
 
 .. option:: -n <NAME>, --name=<NAME>
 
@@ -24,10 +30,8 @@ inchangés.
    Le chemin vers le fichier contenant la clé privée (TLS ou SSH) du serveur,
    en format PEM.
 
-|
-
 **Exemple**
 
 .. code-block:: shell
 
-   waarp-gateway -a 'http://user:password@localhost:8080' server cert gw_r66 update 'cert_r66' -n 'cert_r66_new' -c './r66_2.crt' -p './r66_2.key'
+   waarp-gateway server cert gw_r66 update 'cert_r66' -n 'cert_r66_new' -c './r66_2.crt' -p './r66_2.key'

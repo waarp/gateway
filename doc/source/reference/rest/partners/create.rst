@@ -20,27 +20,25 @@ Créer un partenaire
    :resheader Location: Le chemin d'accès au nouveau partenaire créé
 
 
-   |
-
    **Exemple de requête**
 
-      .. code-block:: http
+   .. code-block:: http
 
-         POST https://my_waarp_gateway.net/api/partners HTTP/1.1
-         Authorization: Basic QWxhZGRpbjpvcGVuIHNlc2FtZQ==
-         Content-Type: application/json
-         Content-Length: 140
+      POST https://my_waarp_gateway.net/api/partners HTTP/1.1
+      Authorization: Basic QWxhZGRpbjpvcGVuIHNlc2FtZQ==
+      Content-Type: application/json
+      Content-Length: 140
 
-         {
-           "name": "waarp_sftp",
-           "protocol": "sftp",
-           "address": "localhost:2022",
-           "protoConfig": {}
-         }
+      {
+        "name": "waarp_sftp",
+        "protocol": "sftp",
+        "address": "localhost:2022",
+        "protoConfig": {}
+      }
 
    **Exemple de réponse**
 
-      .. code-block:: http
+   .. code-block:: http
 
-         HTTP/1.1 201 CREATED
-         Location: https://my_waarp_gateway.net/api/partners/waarp_sftp
+      HTTP/1.1 201 CREATED
+      Location: https://my_waarp_gateway.net/api/partners/waarp_sftp

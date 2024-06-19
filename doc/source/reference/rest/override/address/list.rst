@@ -18,20 +18,20 @@ Lister les indirections
 
    **Exemple de requête**
 
-      .. code-block:: http
+   .. code-block:: http
 
-         GET https://my_waarp_gateway.net/api/override/address HTTP/1.1
-         Authorization: Basic QWxhZGRpbjpvcGVuIHNlc2FtZQ==
+      GET https://my_waarp_gateway.net/api/override/address HTTP/1.1
+      Authorization: Basic QWxhZGRpbjpvcGVuIHNlc2FtZQ==
 
    **Exemple de réponse**
 
-      .. code-block:: http
+   .. code-block:: http
 
-         HTTP/1.1 200 OK
-         Content-Type: application/json
-         Content-Length: 64
+      HTTP/1.1 200 OK
+      Content-Type: application/json
+      Content-Length: 64
 
-         {
-           "waarp.fr": "192.168.1.1",
-           "waarp.org:6666": "localhost:8066"
-         }
+      {
+        "waarp.fr": "192.168.1.1",
+        "waarp.org:6666": "localhost:8066"
+      }

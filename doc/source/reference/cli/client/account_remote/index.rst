@@ -5,7 +5,7 @@ Gestion des comptes distants
 ############################
 
 .. toctree::
-   :maxdepth: 2
+   :maxdepth: 1
 
    add
    list

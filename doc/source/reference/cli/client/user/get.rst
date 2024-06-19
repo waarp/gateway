@@ -4,14 +4,17 @@ Afficher un utilisateur
 
 .. program:: waarp-gateway user get
 
-.. describe:: waarp-gateway user get <USER>
-
 Affiche les informations de l'utilisateur donné en paramètre.
 
-|
+**Commande**
+
+.. code-block:: shell
+
+   waarp-gateway user get "<USERNAME>"
+
 
 **Exemple**
 
 .. code-block:: shell
 
-   waarp-gateway -a 'http://user:password@localhost:8080' user get 'toto'
+   waarp-gateway user get 'toto'

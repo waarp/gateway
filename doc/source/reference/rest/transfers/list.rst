@@ -1,7 +1,6 @@
 Lister les transferts
 =====================
 
-.. _RFC 3339: https://www.ietf.org/rfc/rfc3339.txt
 
 .. http:get:: /api/transfers
 
@@ -43,7 +42,7 @@ Lister les transferts
    :resjson array transfers: La liste des transferts demandés
    :resjsonarr number id: L'identifiant local du transfert
    :resjsonarr string remoteID: L'identifiant global du transfert
-   :resjsonarr bool isServer: Indique si la *gateway* est agit en tant que serveur
+   :resjsonarr bool isServer: Indique si Gateway est agit en tant que serveur
      (``true``) ou en tant que client (``false``)
    :resjsonarr bool isSend: Indique si le transfert est un envoi (``true``) ou une
      réception (``false``)
@@ -59,10 +58,11 @@ Lister les transferts
    :resjsonarr date start: La date de début du transfert
    :resjsonarr date stop: La date de fin du transfert (si le transfert est terminé)
    :resjsonarr string status: Le statut actuel du transfert (valeurs possibles:
-     *PLANNED*, *RUNNING*, *PAUSED*, *INTERRUPTED*, *ERROR*, *DONE* ou *CANCELLED*)
+     ``PLANNED``, ``RUNNING``, ``PAUSED``, ``INTERRUPTED``, ``ERROR``, ``DONE``
+     ou ``CANCELLED``)
    :resjsonarr string step: L'étape actuelle du transfert (valeurs possibles:
-     *StepNone*, *StepSetup*, *StepPreTasks*, *StepData*, *StepPostTasks*,
-     *StepErrorTasks* ou *StepFinalization*)
+     ``StepNone``, ``StepSetup``, ``StepPreTasks``, ``StepData``,
+     ``StepPostTasks``, ``StepErrorTasks`` ou ``StepFinalization``)
    :resjsonarr number progress: La progression (en octets) du transfert de données
    :resjsonarr number taskNumber: Le numéro du traitement en cours d'exécution
    :resjsonarr string errorCode: Le code d'erreur du transfert (si une erreur s'est produite)
@@ -71,48 +71,46 @@ Lister les transferts
      la forme d'une liste de pairs clé:valeur, c'est-à-dire sous forme d'un objet JSON.
 
 
-   |
-
    **Exemple de requête**
 
-      .. code-block:: http
+   .. code-block:: http
 
-         GET https://my_waarp_gateway.net/api/transfers?limit=10&order=desc&rule=1&start=2019-01-01T01:00:00+02:00 HTTP/1.1
-         Authorization: Basic QWxhZGRpbjpvcGVuIHNlc2FtZQ==
+      GET https://my_waarp_gateway.net/api/transfers?limit=10&order=desc&rule=1&start=2019-01-01T01:00:00+02:00 HTTP/1.1
+      Authorization: Basic QWxhZGRpbjpvcGVuIHNlc2FtZQ==
 
    **Exemple de réponse**
 
-      .. code-block:: http
+   .. code-block:: http
 
-         HTTP/1.1 200 OK
-         Content-Type: application/json
-         Content-Length: 249
+      HTTP/1.1 200 OK
+      Content-Type: application/json
+      Content-Length: 249
 
-         {
-           "transfers": [{
-             "id": 1,
-             "isServer": false,
-             "rule": "règle_1",
-             "requester": "toto",
-             "requested": "waarp_sftp",
-             "protocol": "sftp",
-             "localFilepath": "/chemin/local/fichier1",
-             "remoteFilepath": "/chemin/distant/fichier1",
-             "start": "2019-01-01T02:00:00+02:00",
-             "status": "RUNNING",
-             "step": "DATA",
-             "progress": 123456,
-             "transferInfo": { "key1": "val1", "key2": 2, "key3": true }
-           },{
-             "id": 2,
-             "isServer": true,
-             "rule": "règle_2",
-             "requester": "tata",
-             "requested": "sftp_serveur",
-             "protocol": "r66",
-             "localFilepath": "/chemin/local/fichier2",
-             "remoteFilepath": "/chemin/distant/fichier2",
-             "start": "2019-01-01T03:00:00+02:00",
-             "status": "PLANNED"
-           }]
-         }
+      {
+        "transfers": [{
+          "id": 1,
+          "isServer": false,
+          "rule": "règle_1",
+          "requester": "toto",
+          "requested": "waarp_sftp",
+          "protocol": "sftp",
+          "localFilepath": "/chemin/local/fichier1",
+          "remoteFilepath": "/chemin/distant/fichier1",
+          "start": "2019-01-01T02:00:00+02:00",
+          "status": "RUNNING",
+          "step": "DATA",
+          "progress": 123456,
+          "transferInfo": { "key1": "val1", "key2": 2, "key3": true }
+        },{
+          "id": 2,
+          "isServer": true,
+          "rule": "règle_2",
+          "requester": "tata",
+          "requested": "sftp_serveur",
+          "protocol": "r66",
+          "localFilepath": "/chemin/local/fichier2",
+          "remoteFilepath": "/chemin/distant/fichier2",
+          "start": "2019-01-01T03:00:00+02:00",
+          "status": "PLANNED"
+        }]
+      }

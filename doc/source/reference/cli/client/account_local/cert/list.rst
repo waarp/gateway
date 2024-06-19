@@ -4,9 +4,15 @@
 
 .. program:: waarp-gateway account local cert list
 
-.. describe:: waarp-gateway account local <SERVER> cert <LOGIN> list
-
 Affiche les informations des certificats du compte suivant les critères donnés.
+
+**Commande**
+
+.. code-block:: shell
+
+   waarp-gateway account local "<PARTNER>" cert "<LOGIN>" list
+
+**Options**
 
 .. option:: -l <LIMIT>, --limit=<LIMIT>
 
@@ -23,10 +29,8 @@ Affiche les informations des certificats du compte suivant les critères donnés
 
    - tri par nom (``name+`` & ``name-``)
 
-|
-
 **Exemple**
 
 .. code-block:: shell
 
-   waarp-gateway -a 'http://user:password@localhost:8080' account local 'serveur_sftp' cert 'tata' list -l 10 -o 5 -s 'name-'
+   waarp-gateway account local 'serveur_sftp' cert 'tata' list -l 10 -o 5 -s 'name-'

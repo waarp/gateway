@@ -1,6 +1,6 @@
-#################################################
+##################################################
 [OBSOLÈTE] Gestion des certificats d'un partenaire
-#################################################
+##################################################
 
 .. deprecated:: 0.6
    Les certificats sont désormais gérés via les commandes de gestion des

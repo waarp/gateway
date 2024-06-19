@@ -11,7 +11,7 @@ Avec systemd
 Sur les systèmes fonctionnant avec ``systemd``, dont RHEL 7, les
 commandes usuelles de gestions des services peuvent être utilisées.
 
-L'unité systemd pour Waarp Gateway est fournie dans les packages sur les
+L'unité ``systemd`` pour Waarp Gateway est fournie dans les packages sur les
 systèmes utilisant systemd. Si vous utilisez les archives autonomes,
 voir ci-dessous la :ref:`procédure d'ajout du service <systemd-service-unit>`.
 
@@ -46,8 +46,8 @@ Utilisation de systemd avec les archives autonomes
 Si votre système d'exploitation utilise systemd, vous pouvez gérer
 votre instance de Waarp Gateway avec.
 
-Créez le fichier ``/etc/systemd/system/waarp-gateway.service`` avec le
-contenu suivant, en remplaçant ``/path/to/archive/root`` par le chemin
+Créez le fichier :file:`/etc/systemd/system/waarp-gateway.service` avec le
+contenu suivant, en remplaçant :file:`/path/to/archive/root` par le chemin
 vers le dossier d'extraction de l'archive :
 
 .. code-block:: ini
@@ -65,7 +65,7 @@ vers le dossier d'extraction de l'archive :
    WantedBy=multi-user.target
 
 Pour activer le démarrage automatique de Waarp Gateway au démarrage du
-serveur, eutilisez la commande :
+serveur, utilisez la commande :
 
 .. code-block:: bash
 
@@ -151,7 +151,7 @@ Commande ``manage.sh stop``
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 Lance la procédure d'arrêt de Waarp Gateway. Le script attend 2 minutes
-que Waarp Gateway s'arrête. passé ce délais, le script rend la main,
+que Waarp Gateway s'arrête. Passé ce délais, le script rend la main,
 **mais la procédure d'arrêt continue. L'arrêt définitif de Waarp Gateway
 interviendra dès que tous les processus internes en cours seront terminés**.
 Les codes retours suivants sont possibles :
@@ -188,7 +188,7 @@ Code  Signification
 Commande ``manage.sh force-stop``
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-Envoi un signal KILL à Waarp-Gateway
+Envoi un signal KILL à Waarp Gateway
 
 Codes de retour :
 
@@ -206,7 +206,7 @@ Code  Signification
 Commande ``manage.sh status``
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-Retourne l’état démarré/arrêté du serveur. Les codes retours suivants
+Retourne l'état démarré/arrêté du serveur. Les codes retours suivants
 sont possibles :
 
 Codes de retour :
@@ -223,4 +223,4 @@ Code  Signification
 Windows
 -------
 
-Aucune gestion du service n'est actuellement fourni pour Windows
+Aucune gestion du service n'est actuellement fourni pour Windows.

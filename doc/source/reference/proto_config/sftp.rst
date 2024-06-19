@@ -8,8 +8,9 @@ Options communes
 
 Les champs suivants sont communs aux configuration client, serveur et partenaire :
 
-* **keyExchanges** (*array of string*) - *Optionnel* Liste des algorithmes d'échange de clé
-  autorisés. Les algorithmes supportés sont (par ordre de préférence) :
+* ``keyExchanges`` (*array of string*) - *Optionnel* Liste des algorithmes
+  d'échange de clé autorisés. Les algorithmes supportés sont (par ordre de
+  préférence) :
 
   - ``curve25519-sha256@libssh.org``
   - ``ecdh-sha2-nistp256``
@@ -19,19 +20,15 @@ Les champs suivants sont communs aux configuration client, serveur et partenaire
   - ``diffie-hellman-group1-sha1`` [Déprécié]
   - ``diffie-hellman-group14-sha1`` [Déprécié]
 
-  |
-
-* **ciphers** (*array of string*) - *Optionnel* Liste des algorithmes de cryptage symétrique 
-  de données autorisés sur le serveur. Les algorithmes supportés sont (par ordre de
-  préférence) :
+* ``ciphers`` (*array of string*) - *Optionnel* Liste des algorithmes de
+  cryptage symétrique de données autorisés sur le serveur. Les algorithmes
+  supportés sont (par ordre de préférence) :
 
   - ``aes128-gcm@openssh.com``
   - ``chacha20-poly1305@openssh.com``
   - ``aes128-ctr``
   - ``aes192-ctr``
   - ``aes256-ctr``
-
-  |
 
   Les algorithmes suivants sont également supportés mais ne sont pas activés
   par défaut :
@@ -42,21 +39,17 @@ Les champs suivants sont communs aux configuration client, serveur et partenaire
   - ``aes128-cbc``
   - ``3des-cbc``
 
-  |
-
-* **macs** (*array of string*) -  *Optionnel* Liste des algorithmes d'authentification de message 
-  (MAC) autorisés sur le serveur. Les algorithmes supportés sont (par ordre de préférence) :
+* ``macs`` (*array of string*) -  *Optionnel* Liste des algorithmes
+  d'authentification de message (MAC) autorisés sur le serveur. Les algorithmes
+  supportés sont (par ordre de préférence) :
 
   - ``hmac-sha2-256-etm@openssh.com``
   - ``hmac-sha2-256``
   - ``hmac-sha1`` [Déprécié]
   - ``hmac-sha1-96`` [Déprécié]
 
-  |
-
   Par défaut, tous les algorithmes sont autorisés.
 
-  |
 
 Configuration client
 ====================
@@ -77,19 +70,18 @@ Configuration partenaire
 Les champs suivants ne sont disponibles que pour la configuration partenaire :
 
 * **useStat** (*boolean*) - *Optionnel* Lorsque la *gateway* récupère un fichier
-  depuis un serveur SFTP distant, le SFTP client de la *gateway* envoie une
+  depuis un serveur SFTP distant, le SFTP client de Gateway envoie une
   commande SFTP ``Fstat`` sur le fichier ouvert pour récupérer sa taille avant de
   commencer à le lire. Cependant, la commande ``Fstat`` peut causer des problèmes
   de compatibilité avec certains serveurs SFTP. Cette option permet de remplacer
   la commande ``Fstat`` par une commande ``Stat`` qui est plus largement supportée.
 
-  **Note:** Cette option n'a aucun effet si l'option ``disableClientConcurrentReads``
-  décrite ci-dessous est également activée.
+  .. note::
+     Cette option n'a aucun effet si l'option ``disableClientConcurrentReads``
+     décrite ci-dessous est également activée.
 
-  |
-
-* **disableClientConcurrentReads** (*boolean*) - *Optionnel* Par défaut, lorsque
-  la *gateway* récupère un fichier depuis un serveur SFTP distant, le fichier est
+* ``disableClientConcurrentReads`` (*boolean*) - *Optionnel* Par défaut, lorsque
+  Waarp Gateway récupère un fichier depuis un serveur SFTP distant, le fichier est
   lu en parallèle par plusieurs *workers* afin de maximiser le débit de transfert.
   Cependant, cette méthode de lecture en parallèle requiert que le client connaisse
   la taille du fichier (afin de déterminer le nombre de *workers* à utiliser). Pour
@@ -101,9 +93,9 @@ Les champs suivants ne sont disponibles que pour la configuration partenaire :
   que en conséquence, le fichier sera alors lu de façon séquentielle ce qui impactera
   les performances du transfert.
 
-  **Note:** Activer cette option rend l'option ``useStat`` décrite ci-dessus ineffective.
-
-|
+  .. note::
+     Activer cette option rend l'option ``useStat`` décrite ci-dessus
+     ineffective.
 
 **Exemple**
 

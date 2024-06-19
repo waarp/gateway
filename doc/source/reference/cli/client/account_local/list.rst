@@ -6,9 +6,15 @@ Lister les comptes d'un serveur
 
 .. program:: waarp-gateway account local list
 
-.. describe:: waarp-gateway account local <SERVER> list
-
 Affiche une liste des comptes rattachés au serveur donné.
+
+**Commande**
+
+.. code-block:: shell
+
+   waarp-gateway account local "<PARTNER>" list
+
+**Options**
 
 .. option:: -l <LIMIT>, --limit=<LIMIT>
 
@@ -25,10 +31,8 @@ Affiche une liste des comptes rattachés au serveur donné.
 
    - tri par login (``login+`` & ``login-``)
 
-|
-
 **Exemple**
 
 .. code-block:: shell
 
-   waarp-gateway -a 'http://user:password@localhost:8080' account local 'serveur_sftp' list -l 10 -o 5 -s 'login-'
+   waarp-gateway account local 'serveur_sftp' list -l 10 -o 5 -s 'login-'

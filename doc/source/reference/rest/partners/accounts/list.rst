@@ -29,37 +29,35 @@ Lister les comptes distants
          * **reception** (*array* of *string*) - Les règles de réception.
 
 
-   |
-
    **Exemple de requête**
 
-      .. code-block:: http
+   .. code-block:: http
 
-         GET https://my_waarp_gateway.net/api/partners/waarp_sftp/accounts?limit=10&sort=name- HTTP/1.1
-         Authorization: Basic QWxhZGRpbjpvcGVuIHNlc2FtZQ==
+      GET https://my_waarp_gateway.net/api/partners/waarp_sftp/accounts?limit=10&sort=name- HTTP/1.1
+      Authorization: Basic QWxhZGRpbjpvcGVuIHNlc2FtZQ==
 
    **Exemple de réponse**
 
-      .. code-block:: http
+   .. code-block:: http
 
-         HTTP/1.1 200 OK
-         Content-Type: application/json
-         Content-Length: 147
+      HTTP/1.1 200 OK
+      Content-Type: application/json
+      Content-Length: 147
 
-         {
-           "remoteAccounts": [{
-             "login": "tutu",
-             "authMethods": ["tutu_private_key"],
-             "authorizedRules": {
-               "sending": ["règle_envoi_1", "règle_envoi_2"],
-               "reception": ["règle_récep_1", "règle_récep_2"]
-             }
-           },{
-             "login": "titi",
-             "authMethods": ["titi_private_key", "password"],
-             "authorizedRules": {
-               "sending": ["règle_envoi_1", "règle_envoi_2"],
-               "reception": ["règle_récep_1", "règle_récep_2"]
-             }
-           }]
-         }
+      {
+        "remoteAccounts": [{
+          "login": "tutu",
+          "authMethods": ["tutu_private_key"],
+          "authorizedRules": {
+            "sending": ["règle_envoi_1", "règle_envoi_2"],
+            "reception": ["règle_récep_1", "règle_récep_2"]
+          }
+        },{
+          "login": "titi",
+          "authMethods": ["titi_private_key", "password"],
+          "authorizedRules": {
+            "sending": ["règle_envoi_1", "règle_envoi_2"],
+            "reception": ["règle_récep_1", "règle_récep_2"]
+          }
+        }]
+      }

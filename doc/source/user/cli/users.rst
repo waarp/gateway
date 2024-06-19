@@ -14,12 +14,12 @@ suivantes doivent être fournies:
 
 - ``-u``: le nom de l'utilisateur
 - ``-p``: le mot de passe
-- ``-r``: les droits de l'utilisateur sur les éléments de la gateway. L'option peut 
+- ``-r``: les droits de l'utilisateur sur les éléments de Gateway. L'option peut 
   être répété pour donner des droits sur plusieurs éléments. Les valeurs acceptées sont
   ``U`` pour les utilisateurs, ``S`` pour les serveurs, ``P`` pour les partenaires``,
   ``R`` pour les règles, ``T`` pour les transferts. Chacune de ces valeurs doit être 
-  suivie de ``r`` pour authoriser la consultation, ``w`` pour authoriser la modification, 
-  ``d`` pour authoriser la suppression.
+  suivie de ``r`` pour autoriser la consultation, ``w`` pour autoriser la modification, 
+  ``d`` pour autoriser la suppression.
 
 
 **Exemple**
@@ -50,16 +50,16 @@ ou plusieurs options pour faire une mise à jour partielle.
 Consulter les utilisateurs
 ==========================
 
-Pour lister les utilisateurs de la *gateway*, la commande est ``user list``. Les
+Pour lister les utilisateurs de Gateway, la commande est ``user list``. Les
 options de commande permettent de filtrer les résultats selon divers critères,
-pour plus de détails, voir la :any:`référence <reference-cli-client-user-list>` de
-la commande ``list``.
+pour plus de détails, voir la :any:`référence <reference-cli-client-user-list>`
+de la commande ``list``.
 
 **Exemple**
 
 .. code-block:: shell
 
-   waarp-gateway 'https://admin@127.0.0.1:8080' user list
+   waarp-gateway -a 'https://admin@127.0.0.1:8080' user list
 
 
 Supprimer un utilisateur
@@ -70,4 +70,4 @@ nom de l'utilisateur à supprimer.
 
 .. code-block:: shell
 
-   waarp-gateway 'https://admin@127.0.0.1:8080' user delete 'toto'
+   waarp-gateway -a 'https://admin@127.0.0.1:8080' user delete 'toto'

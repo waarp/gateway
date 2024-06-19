@@ -12,7 +12,7 @@ Lister les instances cloud
    :param offset: Le numéro du premier résultat souhaité *(défaut: 0)*
    :type offset: int
    :param sort: Le paramètre selon lequel les utilisateurs seront triés *(défaut: name+)*
-   :type sort: [name+|name-|type+|type-]
+   :type sort: [name+\|name-\|type+\|type-]
 
    :statuscode 200: La liste a été renvoyée avec succès
    :statuscode 400: Requête invalide
@@ -23,7 +23,8 @@ Lister les instances cloud
    :resjsonarr string name: Le nom de l'instance cloud.
    :resjsonarr string type: Le type d'instance cloud. Voir la section
       :ref:`cloud <reference-cloud>` pour la liste des types d'instance cloud
-      supportés.:resjson string key: La clé d'authentification de l'instance cloud (si
+      supportés.
+   :resjsonarr string key: La clé d'authentification de l'instance cloud (si
       l'instance cloud requiert une authentification).
 
    :resjsonarr object options: Les options de connexion à l'instance cloud. Voir

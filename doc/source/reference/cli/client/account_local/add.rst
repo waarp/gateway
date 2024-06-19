@@ -4,9 +4,15 @@ Ajouter un compte à un serveur
 
 .. program:: waarp-gateway account local add
 
-.. describe:: waarp-gateway account local <SERVER> add
-
 Attache un nouveau compte au serveur donné à partir des informations renseignées.
+
+**Commande**
+
+.. code-block:: shell
+
+   waarp-gateway account local "<PARTNER>" add
+
+**Options**
 
 .. option:: -l <LOGIN>, --login=<LOGIN>
 
@@ -16,10 +22,8 @@ Attache un nouveau compte au serveur donné à partir des informations renseign�
 
    Le mot de passe du compte.
 
-|
-
 **Exemple**
 
 .. code-block:: shell
 
-   waarp-gateway -a 'http://user:password@localhost:8080' account local 'serveur_sftp' add -l 'tata' -p 'password'
+   waarp-gateway account local 'serveur_sftp' add -l 'tata' -p 'password'
