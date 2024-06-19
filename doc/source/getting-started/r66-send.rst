@@ -63,7 +63,7 @@ Ajouter une entrée sous la forme suivante :
 
 .. note::
    La ``<key>`` renseignée ici est la forme cryptée du mot de passe
-   `gateway_password``. Si vous souhaitez utiliser un mot de passe différent, il
+   `gateway_password`. Si vous souhaitez utiliser un mot de passe différent, il
    vous faudra le chiffrer avec la commande suivante avant de l'ajouter à la
    configuration :
 
@@ -210,7 +210,7 @@ transferts de la Gateway :
 .. code-block:: shell-session
 
    $ waarp-gateway transfer list
-   History:
+   Transfers:
    [...]
    * Transfer 2 (as client) [DONE]
        Way:             send

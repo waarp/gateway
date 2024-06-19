@@ -4,10 +4,16 @@ Modifier un client
 
 .. program:: waarp-gateway client update
 
-.. describe:: waarp-gateway client update <CLIENT>
-
 Remplace les attributs du client demandé avec ceux donnés. Les attributs omis
 restent inchangés.
+
+**Commande**
+
+.. code-block:: shell
+
+   waarp-gateway client update "<CLIENT>"
+
+**Options**
 
 .. option:: -n <NAME>, --name=<NAME>
 

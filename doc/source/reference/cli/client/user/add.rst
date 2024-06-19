@@ -6,6 +6,14 @@ Ajouter un utilisateur
 
 Ajoute un nouvel utilisateur avec les identifiants donnés.
 
+**Commande**
+
+.. code-block:: shell
+
+   waarp-gateway user add
+
+**Options**
+
 .. option:: -u <USERNAME>, --username=<USERNAME>
 
    Le nom du nouvel utilisateur créé. Doit être unique.
@@ -32,7 +40,7 @@ Ajoute un nouvel utilisateur avec les identifiants donnés.
    * ``r``: autorisation de lecture
    * ``w``: autorisation d'écriture
    * ``d``: autorisation de suppression (*Note*: les transferts ne pouvant être
-      supprimés, cette autorisation est inconséquente dans leur cas)
+     supprimés, cette autorisation est inconséquente dans leur cas)
 
    Enfin, il existe 3 opérateurs de changement d'état:
 
@@ -53,4 +61,4 @@ serveurs/partenaires, et d'ajouter/supprimer des règles; la syntaxe est la suiv
 
 .. code-block:: shell
 
-   waarp-gateway -a 'http://user:password@localhost:8080' user add -u 'toto' -p 'sésame' -r 'T=rw,S=r,P=r,R=rwd'
+   waarp-gateway user add -u 'toto' -p 'sésame' -r 'T=rw,S=r,P=r,R=rwd'

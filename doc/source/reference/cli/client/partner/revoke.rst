@@ -6,8 +6,14 @@ Interdire une règle sur un partenaire
 
 Retire au partenaire fourni en argument la permission d'utiliser la règle donnée.
 
+**Commande**
+
+.. code-block:: shell
+
+   waarp-gateway partner revoke "<PARTNER>" "<RULE>"
+
 **Exemple**
 
 .. code-block:: shell
 
-   waarp-gateway -a 'http://user:password@localhost:8080' partner revoke 'waarp_sftp' 'règle_1'
+   waarp-gateway partner revoke 'waarp_sftp' 'règle_1'

@@ -82,3 +82,13 @@ Glossaire
       en même temps que la requête de transfert. Par conséquent, ces informations
       voyagent toujours dans le sens de la connexion (depuis le client vers le
       serveur) et jamais dans l'autre sens.
+
+   information d'authentification
+   (*credential*)
+      Une information d'authentification - *parfois aussi désigné comme "identifiant",
+      "valeur d'authentification" ou "méthode d'authentification"* - est une valeur
+      (ou une paire de valeurs) attachée à un serveur, partenaire, compte local
+      ou compte distant, et servant à authentifier cet agent. Les identifiants
+      d'un agent regroupent toutes les formes d'authentification pouvant
+      authentifier l'agent en question. Cela inclue les mots de passes,
+      les certificat TLS, etc...

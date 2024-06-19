@@ -4,9 +4,15 @@ Ajouter un client
 
 .. program:: waarp-gateway client add
 
-.. describe:: waarp-gateway client add
-
 Ajoute un nouveau client avec les attributs renseignés.
+
+**Commande**
+
+.. code-block:: shell
+
+   waarp-gateway client add
+
+**Options**
 
 .. option:: -n <NAME>, --name=<NAME>
 
@@ -29,8 +35,6 @@ Ajoute un nouveau client avec les attributs renseignés.
    configuration. Les options de la configuration varient en fonction du protocole
    utilisé (voir :ref:`configuration protocolaire <reference-proto-config>` pour
    plus de détails).
-
-|
 
 **Exemple**
 

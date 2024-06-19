@@ -6,6 +6,14 @@ Ajouter un transfert
 
 Programme un nouveau transfert avec les attributs ci-dessous.
 
+**Commande**
+
+.. code-block:: shell
+
+   waarp-gateway transfer add
+
+**Options**
+
 .. option:: -f <FILENAME>, --file=<FILENAME>
 
    Le chemin du fichier à transférer. Si le chemin est relatif, il sera relatif
@@ -64,4 +72,4 @@ Programme un nouveau transfert avec les attributs ci-dessous.
 
 .. code-block:: shell
 
-   waarp-gateway -a 'http://user:password@localhost:8080' transfer add -f 'path/to/file' -w 'send' -p 'waarp_sftp' -l 'toto' -r 'règle_1' -d '2022-01-01T01:00:00Z'
+   waarp-gateway transfer add -f 'path/to/file' -w 'send' -p 'waarp_sftp' -l 'toto' -r 'règle_1' -d '2022-01-01T01:00:00Z'

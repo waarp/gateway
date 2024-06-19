@@ -7,8 +7,14 @@
 Supprime le certificat demandé. Les noms du serveur, du compte et du certificat
 doivent être spécifiés en arguments de programme.
 
+**Commande**
+
+.. code-block:: shell
+
+   waarp-gateway account local "<PARTNER>" cert "<LOGIN>" delete "<CERT>"
+
 **Exemple**
 
 .. code-block:: shell
 
-   waarp-gateway -a 'http://user:password@localhost:8080' account local 'serveur_sftp' cert 'tata' delete 'key_tata'
+   waarp-gateway account local 'serveur_sftp' cert 'tata' delete 'key_tata'

@@ -2,12 +2,9 @@
 Gestion des transferts
 ######################
 
-La commande de gestion des transferts en cours est ``transfer``. Cette commande
+La commande de gestion des transferts est ``transfer``. Cette commande
 doit ensuite être suivie d'une action. La documentation complète de la commande
 est disponible :any:`ici <reference-cli-client-transfers>`.
-
-Pour les transferts terminés, la commande est ``history``. La documentation de
-la commande est disponible :any:`ici <reference-cli-client-history>`.
 
 .. _user-add-transfer:
 
@@ -62,10 +59,10 @@ de l'identifiant du transfert.
 Consulter les transferts
 ========================
 
-Pour lister les transferts en cours, la commande est ``transfer list``. Les
+Pour lister les transferts, la commande est ``transfer list``. Les
 options de commande permettent de filtrer les résultats selon divers critères,
 pour plus de détails, voir la :any:`reference
-<reference-cli-client-servers-list>`.
+<reference-cli-client-transfers-list>`.
 
 **Exemple**
 
@@ -73,14 +70,6 @@ pour plus de détails, voir la :any:`reference
 
    waarp-gateway -a 'https://admin@127.0.0.1:8080' transfers list
 
-Pour les transferts terminés, la commande est ``history list``. La documentation
-de la commande est disponible :any:`ici <reference-cli-client-servers-list>`.
-
-**Exemple**
-
-.. code-block:: shell
-
-   waarp-gateway -a 'https://admin@127.0.0.1:8080' history list
 
 Mettre un transfert en pause
 ============================
@@ -125,7 +114,7 @@ l'identifiant du transfert.
 Reprogrammer un transfert
 =========================
 
-Pour reprogrammer un transfert, la commande est ``history retry``, suivie ensuite
+Pour reprogrammer un transfert, la commande est ``transfer retry``, suivie ensuite
 de l'identifiant du transfert. Le transfert recommencera depuis le début.
 
 .. note:: Seuls les transferts terminés peuvent être reprogrammés.

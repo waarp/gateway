@@ -6,6 +6,14 @@ Ajouter une règle
 
 Ajoute une nouvelle règle avec les attributs fournis ci-dessous.
 
+**Commande**
+
+.. code-block:: shell
+
+   waarp-gateway rule add
+
+**Options**
+
 .. option:: -n <NAME>, --name=<NAME>
 
    Le nom de la règle de transfert. Doit être unique.
@@ -114,4 +122,4 @@ Ajoute une nouvelle règle avec les attributs fournis ci-dessous.
 
 .. code-block:: shell
 
-   waarp-gateway -a 'http://user:password@localhost:8080' rule add -n 'règle_1' -c 'règle de réception des fichiers avec SFTP' -d 'receive' -p '/règle_1' -i '/règle_1/in' -o '/règle_1/out'  --pre '{"type":"COPY","args":{"path":"chemin/copie"}}' --post '{"type":"DELETE","args":{}}' --err '{"type":"MOVE","args":{"path":"chemin/déplacement"}}'
+   waarp-gateway rule add -n 'règle_1' -c 'règle de réception des fichiers avec SFTP' -d 'receive' -p '/règle_1' -i '/règle_1/in' -o '/règle_1/out'  --pre '{"type":"COPY","args":{"path":"chemin/copie"}}' --post '{"type":"DELETE","args":{}}' --err '{"type":"MOVE","args":{"path":"chemin/déplacement"}}'

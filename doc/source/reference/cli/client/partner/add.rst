@@ -6,6 +6,14 @@ Ajouter un partenaire
 
 Ajoute un nouveau partenaire avec les attributs renseignés.
 
+**Commande**
+
+.. code-block:: shell
+
+   waarp-gateway partner add
+
+**Options**
+
 .. option:: -n <NAME>, --name=<NAME>
 
    Le nom du partenaire. Doit être unique.
@@ -29,4 +37,4 @@ Ajoute un nouveau partenaire avec les attributs renseignés.
 
 .. code-block:: shell
 
-   waarp-gateway -a 'http://user:password@localhost:8080' partner add -n 'waarp_sftp' -p 'sftp' -a 'waarp.org:2021' -c 'keyExchanges:["ecdh-sha2-nistp256"]'
+   waarp-gateway partner add -n 'waarp_sftp' -p 'sftp' -a 'waarp.org:2021' -c 'keyExchanges:["ecdh-sha2-nistp256"]'

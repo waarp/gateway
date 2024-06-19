@@ -8,6 +8,14 @@ Change les attributs du certificat donné. Les noms du serveur et du certificat
 doivent être renseignés en arguments de programme. Les attributs omis resteront
 inchangés.
 
+**Commande**
+
+.. code-block:: shell
+
+   waarp-gateway server cert "<SERVER>" update "<CERT>"
+
+**Options**
+
 .. option:: -n <NAME>, --name=<NAME>
 
    Le nom du certificat. Doit être unique pour un serveur donné.
@@ -26,4 +34,4 @@ inchangés.
 
 .. code-block:: shell
 
-   waarp-gateway -a 'http://user:password@localhost:8080' server cert gw_r66 update 'cert_r66' -n 'cert_r66_new' -c './r66_2.crt' -p './r66_2.key'
+   waarp-gateway server cert gw_r66 update 'cert_r66' -n 'cert_r66_new' -c './r66_2.crt' -p './r66_2.key'

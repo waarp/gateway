@@ -6,6 +6,14 @@ Afficher l'historique
 
 Affiche une liste des entrées d'historique remplissant les critères ci-dessous.
 
+**Commande**
+
+.. code-block:: shell
+
+   waarp-gateway history list
+
+**Options**
+
 .. option:: -l <LIMIT>, --limit=<LIMIT>
 
    Le nombre de maximum d'entrées à afficher. Fixé à 20 par défaut.
@@ -71,4 +79,4 @@ Affiche une liste des entrées d'historique remplissant les critères ci-dessous
 
 .. code-block:: shell
 
-   waarp-gateway -a 'http://user:password@localhost:8080' history list -l 10 -o 5 -s 'id-' --requester 'toto' --requested 'serveur_sftp' --rule 'règle_1' --protocol 'sftp' --status 'DONE' --start '2019-01-01T12:00:00+02:00' --stop '2019-01-02T12:00:00+02:00'
+   waarp-gateway history list -l 10 -o 5 -s 'id-' --requester 'toto' --requested 'serveur_sftp' --rule 'règle_1' --protocol 'sftp' --status 'DONE' --start '2019-01-01T12:00:00+02:00' --stop '2019-01-02T12:00:00+02:00'

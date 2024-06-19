@@ -4,8 +4,16 @@ Retenter un transfer
 
 .. program:: waarp-gateway transfer retry
 
-Retente le transfert demandé. L'ID du transfert doit être fournit en
-argument de commande. Seuls les transferts ayant terminé peuvent être retentés.
+Rejoue le transfert demandé en intégralité. L'ID du transfert doit être fournit en
+argument de commande. Seuls les transferts ayant terminé peuvent être rejoués.
+
+**Commande**
+
+.. code-block:: shell
+
+   waarp-gateway transfer retry "<TRANSFER_ID>"
+
+**Options**
 
 .. option:: -d <DATE>, --date=<DATE>
 
@@ -17,4 +25,4 @@ argument de commande. Seuls les transferts ayant terminé peuvent être retenté
 
 .. code-block:: shell
 
-   waarp-gateway http://user:password@localhost:8080 transfer restart 1234 -d 2021-01-01T01:00:00+02:00
+   waarp-gateway transfer retry 1234 -d "2021-01-01T01:00:00+02:00"

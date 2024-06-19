@@ -4,6 +4,14 @@
 
 .. program:: waarp-gateway server cert add
 
+**Commande**
+
+.. code-block:: shell
+
+   waarp-gateway server cert "<SERVER>" add
+
+**Options**
+
 Attache un nouveau certificat au serveur donné à partir des informations renseignées.
 
 .. option:: -n <NAME>, --name=<NAME>
@@ -24,4 +32,4 @@ Attache un nouveau certificat au serveur donné à partir des informations rense
 
 .. code-block:: shell
 
-   waarp-gateway -a 'http://user:password@localhost:8080' server cert 'gw_r66' add -n 'cert_r66' -c '/r66.crt' -p '/r66.key'
+   waarp-gateway server cert 'gw_r66' add -n 'cert_r66' -c '/r66.crt' -p '/r66.key'

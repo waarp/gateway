@@ -8,6 +8,14 @@ Lister les utilisateurs
 
 Affiche une liste de tous les utilisateurs remplissant les critères ci-dessous.
 
+**Commande**
+
+.. code-block:: shell
+
+   waarp-gateway user list
+
+**Options**
+
 .. option:: -l <LIMIT>, --limit=<LIMIT>
 
    Le nombre maximum d'utilisateurs autorisés dans la réponse. Fixé à 20 par défaut.
@@ -27,4 +35,4 @@ Affiche une liste de tous les utilisateurs remplissant les critères ci-dessous.
 
 .. code-block:: shell
 
-   waarp-gateway -a 'http://user:password@localhost:8080' user list -l 10 -o 5 -s 'username+'
+   waarp-gateway user list -l 10 -o 5 -s 'username+'

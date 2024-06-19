@@ -6,6 +6,14 @@
 
 Affiche les informations des certificats du compte suivant les critères donnés.
 
+**Commande**
+
+.. code-block:: shell
+
+   waarp-gateway account local "<PARTNER>" cert "<LOGIN>" list
+
+**Options**
+
 .. option:: -l <LIMIT>, --limit=<LIMIT>
 
    Le nombre de maximum certificats autorisés dans la réponse. Fixé à 20 par défaut.
@@ -25,4 +33,4 @@ Affiche les informations des certificats du compte suivant les critères donnés
 
 .. code-block:: shell
 
-   waarp-gateway -a 'http://user:password@localhost:8080' account local 'serveur_sftp' cert 'tata' list -l 10 -o 5 -s 'name-'
+   waarp-gateway account local 'serveur_sftp' cert 'tata' list -l 10 -o 5 -s 'name-'

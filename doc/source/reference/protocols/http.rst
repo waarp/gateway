@@ -50,14 +50,14 @@ du fichier transféré, ainsi que l'endroit à partir duquel un transfert doit �
 repris lors d'une reprise de transfert.
 
 Une autre fonctionnalité utilisée par le client et le serveur est les requêtes
-:http:method:`HEAD`:. Il est en effet possible pour un client de demander des
+:http:method:`HEAD`. Il est en effet possible pour un client de demander des
 informations sur le statut d'un transfert en envoyant une requête
-:http:method:`HEAD`: accompagnée de l'identifiant du transfert. Cela est
+:http:method:`HEAD` accompagnée de l'identifiant du transfert. Cela est
 notamment utilisé par le client de Waarp Gateway dans certains cas pour
 déterminer où un transfert doit être repris (à noter que si le serveur ne
 supporte pas la fonctionnalité, le client reprendra le transfert du début).
 
-HTTP supporte également l'envoi d':term:`infos de transfert` via l'entête
+HTTP supporte également l'envoi de :term:`infos de transfert` via l'entête
 spécial :http:header:`Waarp-Transfer-Info`. Chaque paire doit être présentée
 sous la forme d'une liste de ``<clé>=<valeur>`` avec ``<clé>`` le nom de la clé,
 et ``<valeur>`` la valeur encodée en JSON. Les paires doivent soit être séparées

@@ -26,4 +26,4 @@ Attache un nouveau certificat au partenaire donné à partir des informations re
 
 .. code-block:: shell
 
-   waarp-gateway -a 'http://user:password@localhost:8080' partner cert 'waarp_sftp' add -n 'waarp_hostkey' -b './waarp.pub'
+   waarp-gateway partner cert 'waarp_sftp' add -n 'waarp_hostkey' -b './waarp.pub'

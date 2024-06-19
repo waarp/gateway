@@ -6,6 +6,14 @@ Ajouter un serveur
 
 Ajoute un nouveau serveur de transfert à la gateway avec les attributs fournis.
 
+**Commande**
+
+.. code-block:: shell
+
+   waarp-gateway server add
+
+**Options**
+
 .. option:: -n <NAME>, --name=<NAME>
 
    Le nom du serveur. Doit être unique.
@@ -92,4 +100,4 @@ Ajoute un nouveau serveur de transfert à la gateway avec les attributs fournis.
 
 .. code-block:: shell
 
-   waarp-gateway -a 'http://user:password@localhost:8080' server add -n 'gw_r66' -p 'r66-tls' -a 'localhost:6666' --root-dir 'r66/root' --config 'blockSize:32768'
+   waarp-gateway server add -n 'gw_r66' -p 'r66-tls' -a 'localhost:6666' --root-dir 'r66/root' --config 'blockSize:32768'

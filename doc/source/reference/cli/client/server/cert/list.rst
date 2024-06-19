@@ -8,6 +8,14 @@
 
 Affiche les informations des certificats du serveur suivant les critères donnés.
 
+**Commande**
+
+.. code-block:: shell
+
+   waarp-gateway server cert "<SERVER>" list
+
+**Options**
+
 .. option:: -l <LIMIT>, --limit=<LIMIT>
 
    Le nombre de maximum certificats autorisés dans la réponse. Fixé à 20 par défaut.
@@ -25,4 +33,4 @@ Affiche les informations des certificats du serveur suivant les critères donné
 
 .. code-block:: shell
 
-   waarp-gateway -a 'http://user:password@localhost:8080' server cert 'gw_r66' list -l 10 -o 5 -s 'name-'
+   waarp-gateway server cert 'gw_r66' list -l 10 -o 5 -s 'name-'

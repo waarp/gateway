@@ -7,8 +7,14 @@ Afficher une entrée d'historique
 Affiche l'entrée d'historique demandée. L'ID se l'entrée doit être fournit en
 paramètre de commande.
 
+**Commande**
+
+.. code-block:: shell
+
+   waarp-gateway history get "<TRANSFER_ID>"
+
 **Exemple**
 
 .. code-block:: shell
 
-   waarp-gateway -a 'http://user:password@localhost:8080' history get 1234
+   waarp-gateway history get 1234

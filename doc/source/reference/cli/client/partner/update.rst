@@ -7,6 +7,14 @@ Modifier un partenaire
 Remplace les attributs du partenaire donné par ceux fournis ci-dessous. Les
 attributs omis resteront inchangés.
 
+**Commande**
+
+.. code-block:: shell
+
+   waarp-gateway partner update "<PARTNER>"
+
+**Options**
+
 .. option:: -n <NAME>, --name=<NAME>
 
    Le nom du partenaire. Doit être unique.
@@ -30,4 +38,4 @@ attributs omis resteront inchangés.
 
 .. code-block:: shell
 
-   waarp-gateway -a 'http://user:password@localhost:8080' partner update 'partenaire_sftp' -n 'partner_sftp_new' -p 'sftp' -a 'waarp.fr:2022'
+   waarp-gateway partner update 'partenaire_sftp' -n 'partner_sftp_new' -p 'sftp' -a 'waarp.fr:2022'

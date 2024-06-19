@@ -1,3 +1,5 @@
+.. _reference-cli-client-transfers-list:
+
 =====================
 Lister les transferts
 =====================
@@ -5,6 +7,14 @@ Lister les transferts
 .. program:: waarp-gateway transfer list
 
 Affiche une liste des transferts remplissant les critères ci-dessous.
+
+**Commande**
+
+.. code-block:: shell
+
+   waarp-gateway transfer list
+
+**Options**
 
 .. option:: -l <LIMIT>, --limit=<LIMIT>
 
@@ -46,4 +56,4 @@ Affiche une liste des transferts remplissant les critères ci-dessous.
 
 .. code-block:: shell
 
-   waarp-gateway -a 'http://user:password@localhost:8080' transfer list -l 10 -o 5 -s id- -r 'règle_1' -t 'PLANNED' -d '2019-01-01T12:00:00+02:00'
+   waarp-gateway transfer list -l 10 -o 5 -s id- -r 'règle_1' -t 'PLANNED' -d '2019-01-01T12:00:00+02:00'

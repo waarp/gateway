@@ -7,6 +7,14 @@ Retenter un transfer
 Retente le transfert demandé. L'ID du transfert doit être fournit en
 argument de commande. Seuls les transferts ayant échoué peuvent être retentés.
 
+**Commande**
+
+.. code-block:: shell
+
+   waarp-gateway history retry "<OLD_TRANSFER_ID>"
+
+**Options**
+
 .. option:: -d <DATE>, --date=<DATE>
 
    La date à laquelle le transfert redémarrera. Par défaut, le transfert
@@ -18,4 +26,4 @@ argument de commande. Seuls les transferts ayant échoué peuvent être retenté
 
 .. code-block:: shell
 
-   waarp-gateway -a 'http://user:password@localhost:8080' history restart 1234
+   waarp-gateway history retry 1234 -d "2024-01-01T01:00:00+01:00"

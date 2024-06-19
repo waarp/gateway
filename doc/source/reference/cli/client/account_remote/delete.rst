@@ -6,8 +6,14 @@ Supprimer un compte distant
 
 Supprime le compte donné en paramètre de commande.
 
+**Commande**
+
+.. code-block:: shell
+
+   waarp-gateway account remote "<PARTNER>" delete "<LOGIN>"
+
 **Exemple**
 
 .. code-block:: shell
 
-   waarp-gateway -a http://user:password@remotehost:8080 account remote 'openssh' delete 'titi'
+   waarp-gateway account remote 'openssh' delete 'titi'

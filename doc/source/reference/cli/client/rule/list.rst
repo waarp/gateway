@@ -8,6 +8,14 @@ Lister les règles
 
 Affiche une liste de toutes les règles remplissant les critères ci-dessous.
 
+**Commande**
+
+.. code-block:: shell
+
+   waarp-gateway rule list
+
+**Options**
+
 .. option:: -l <LIMIT>, --limit=<LIMIT>
 
    Le nombre de maximum règles à afficher. Fixé à 20 par défaut.
@@ -26,4 +34,4 @@ Affiche une liste de toutes les règles remplissant les critères ci-dessous.
 
 .. code-block:: shell
 
-   waarp-gateway -a 'http://user:password@localhost:8080' rule list -l 10 -o 5 -s 'name-'
+   waarp-gateway rule list -l 10 -o 5 -s 'name-'

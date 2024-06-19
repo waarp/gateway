@@ -1,5 +1,8 @@
-Statut du service
-=================
+[OBSOLÈTE] Statut du service
+============================
+
+.. deprecated:: 0.9.0
+   Remplacé par le handler ``/api/about``
 
 .. http:get:: /api/status
 

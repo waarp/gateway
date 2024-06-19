@@ -3,7 +3,7 @@
 Override de configuration
 #########################
 
-Chaque instance deGateway a sa propre configuration (définie dans son
+Chaque instance de Gateway a sa propre configuration (définie dans son
 :any:`fichier de configuration <configuration>`). Cependant, lorsque
 Gateway fonctionne en grappe avec plusieurs instances, cette configuration est
 commune à toutes les instances de la grappe (puisque la grappe est considérée
@@ -35,7 +35,7 @@ La section ``[Address Indirection]`` contient une liste d'indirection d'adresses
 Une indirection d'adresse permet de remplacer dynamiquement certaines adresses
 (IP ou DNS) définies dans la configuration par d'autres.
 
-Par exemple, dans une grappe de services Gateway, les serveurs locaux sont définis au
+Par exemple, dans une grappe d'instances Gateway, les serveurs locaux sont définis au
 niveau de la grappe entière (puisque les nœuds de la grappe sont tous des clones
 les uns des autres). Dans cette situation, l'adresse renseignée lors de la définition
 d'un serveur local est l'adresse du proxy/*load balancer*. Les instances de la

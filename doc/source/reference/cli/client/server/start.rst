@@ -6,8 +6,14 @@ Démarrer un serveur
 
 Démarre le serveur donné en paramètre.
 
+**Commande**
+
+.. code-block:: shell
+
+   waarp-gateway server start "<SERVER>"
+
 **Exemple**
 
 .. code-block:: shell
 
-   waarp-gateway http://user:password@localhost:8080 server start serveur_sftp
+   waarp-gateway server start "serveur_sftp"

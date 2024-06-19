@@ -7,6 +7,14 @@ Modifier un utilisateur
 Remplace les attributs de l'utilisateur demandé avec ceux donnés. Les attributs
 omis restent inchangés.
 
+**Commande**
+
+.. code-block:: shell
+
+   waarp-gateway user update "<USERNAME>"
+
+**Options**
+
 .. option:: -u <USERNAME>, --username=<USERNAME>
 
    Le nom de l'utilisateur. Doit être unique.
@@ -30,10 +38,10 @@ omis restent inchangés.
 
    Il existe 3 permissions pour chaque cible:
 
-   * ``r``: autorisation de lecture
-   * ``w``: autorisation d'écriture
-   * ``d``: autorisation de suppression (*Note*: les transferts ne pouvant être
-      supprimés, cette autorisation est inconséquente dans leur cas)
+   * ``r`` : autorisation de lecture
+   * ``w`` : autorisation d'écriture
+   * ``d`` : autorisation de suppression (*Note*: les transferts ne pouvant être
+     supprimés, cette autorisation est inconséquente dans leur cas)
 
    Enfin, il existe 3 opérateurs de changement d'état:
 
@@ -52,4 +60,4 @@ la suivante.
 
 .. code-block:: shell
 
-   waarp-gateway -a 'http://user:password@localhost:8080' user update 'toto' -u 'toto2' -p 'sésame2' -r 'R-d,U+rw'
+   waarp-gateway user update 'toto' -u 'toto2' -p 'sésame2' -r 'R-d,U+rw'

@@ -7,6 +7,14 @@ Modifier un serveur
 Remplace les attributs du serveur donné en paramètre par ceux fournis.
 Les attributs omis resteront inchangés.
 
+**Commande**
+
+.. code-block:: shell
+
+   waarp-gateway server update "<SERVER>"
+
+**Options**
+
 .. option:: <SERVER>
 
    Le nom du serveur local à modifier.
@@ -99,4 +107,4 @@ Les attributs omis resteront inchangés.
 
 .. code-block:: shell
 
-   waarp-gateway -a 'http://user:password@localhost:8080' server update 'gw_r66' -a 'localhost:6667' --root-dir 'r66/new_root'
+   waarp-gateway server update 'gw_r66' -a 'localhost:6667' --root-dir 'r66/new_root'

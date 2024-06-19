@@ -16,6 +16,7 @@ en interrogeant l'adresse d'administration donnée dans la configuration.
 
    authentication
    status
+   about
    users/index
    transfers/index
    history/index

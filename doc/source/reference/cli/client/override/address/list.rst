@@ -7,8 +7,14 @@ Lister les indirections d'adresse
 Affiche une liste de toutes les indirections d'adresse existantes sur l'instance
 de Waarp Gateway interrogée.
 
+**Commande**
+
+.. code-block:: shell
+
+   waarp-gateway override address list
+
 **Exemple**
 
 .. code-block:: shell
 
-   waarp-gateway -a 'http://user:password@localhost:8080' override address list
+   waarp-gateway override address list

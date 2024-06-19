@@ -6,8 +6,14 @@ Afficher un compte distant
 
 Affiche les informations du compte demandé en paramètre de commande.
 
+**Commande**
+
+.. code-block:: shell
+
+   waarp-gateway account remote "<PARTNER>" get "<LOGIN>"
+
 **Exemple**
 
 .. code-block:: shell
 
-   waarp-gateway -a http://user:password@remotehost:8080 account remote 'openssh' get 'titi'
+   waarp-gateway account remote 'openssh' get 'titi'

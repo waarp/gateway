@@ -26,4 +26,4 @@ attributs omis resteront inchangés.
 
 .. code-block:: shell
 
-   waarp-gateway -a 'http://user:password@localhost:8080' partner cert 'waarp_sftp' update 'waarp_hostkey' -n 'waarp_hostkey2' -b './waarp2.pub'
+   waarp-gateway partner cert 'waarp_sftp' update 'waarp_hostkey' -n 'waarp_hostkey2' -b './waarp2.pub'

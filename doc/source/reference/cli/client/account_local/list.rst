@@ -8,6 +8,14 @@ Lister les comptes d'un serveur
 
 Affiche une liste des comptes rattachés au serveur donné.
 
+**Commande**
+
+.. code-block:: shell
+
+   waarp-gateway account local "<PARTNER>" list
+
+**Options**
+
 .. option:: -l <LIMIT>, --limit=<LIMIT>
 
    Le nombre de maximum comptes à afficher. Fixé à 20 par défaut.
@@ -27,4 +35,4 @@ Affiche une liste des comptes rattachés au serveur donné.
 
 .. code-block:: shell
 
-   waarp-gateway -a 'http://user:password@localhost:8080' account local 'serveur_sftp' list -l 10 -o 5 -s 'login-'
+   waarp-gateway account local 'serveur_sftp' list -l 10 -o 5 -s 'login-'

@@ -8,8 +8,14 @@ Désactive le serveur donné, signifiant que celui-ci ne sera pas démarré auto
 lors du prochain lancement de Waarp Gateway. Le serveur restera cependant actif
 jusqu'à l'arrêt de Waarp Gateway.
 
+**Commande**
+
+.. code-block:: shell
+
+   waarp-gateway server disable "<SERVER>"
+
 **Exemple**
 
 .. code-block:: shell
 
-   waarp-gateway -a 'http://user:password@localhost:8080' disable 'serveur_sftp'
+   waarp-gateway server disable 'serveur_sftp'

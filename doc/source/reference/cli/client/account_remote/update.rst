@@ -6,6 +6,14 @@ Modifier un compte distant
 
 Remplace les informations du compte donné par celles fournies ci-dessous.
 
+**Commande**
+
+.. code-block:: shell
+
+   waarp-gateway account remote "<PARTNER>" update "<LOGIN>"
+
+**Options**
+
 .. option:: -l <LOGIN>, --login=<LOGIN>
 
    Le login du compte. Doit être unique pour un partenaire donné.
@@ -18,4 +26,4 @@ Remplace les informations du compte donné par celles fournies ci-dessous.
 
 .. code-block:: shell
 
-   waarp-gateway -a http://user:password@remotehost:8080 account remote 'openssh' update 'titi' -l 'titi2' -p 'password2'
+   waarp-gateway account remote 'openssh' update 'titi' -l 'titi2' -p 'password2'

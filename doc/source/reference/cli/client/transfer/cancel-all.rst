@@ -7,6 +7,14 @@ Annuler plusieurs transferts
 Annule tous les transferts (non-terminés) ayant le statut renseigné en option.
 Ces transferts seront annulés, puis déplacés dans l'historique de transfert.
 
+**Commande**
+
+.. code-block:: shell
+
+   waarp-gateway transfer cancel-all
+
+**Options**
+
 .. option:: -t <TARGET>, --target <TARGET>
 
    Filtre les transferts à annuler par statut. Cette option est requise. Les
@@ -23,4 +31,4 @@ Ces transferts seront annulés, puis déplacés dans l'historique de transfert.
 
 .. code-block:: shell
 
-   waarp-gateway http://user:password@localhost:8080 transfer cancel-all -t error
+   waarp-gateway transfer cancel-all -t error

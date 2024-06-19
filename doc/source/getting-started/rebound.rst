@@ -89,8 +89,8 @@ transferts de la Gateway :
 
 .. code-block:: shell-session
 
-   $ waarp-gateway history list
-   History:
+   $ waarp-gateway transfer list
+   Transfers:
    [...]
    ● Transfer 25 (as server) [DONE]
        Way:             receive

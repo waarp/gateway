@@ -6,6 +6,14 @@ Ajouter une indirection d'adresse
 
 Ajoute une indirection sur une adresse pour la remplacer par une autre.
 
+**Commande**
+
+.. code-block:: shell
+
+   waarp-gateway override address set
+
+**Options**
+
 .. option:: -t <ADDRESS>, --target=<ADDRESS>
 
    L'adresse cible à remplacer. Si cette adresse possède déjà une indirection,
@@ -19,4 +27,4 @@ Ajoute une indirection sur une adresse pour la remplacer par une autre.
 
 .. code-block:: shell
 
-   waarp-gateway -a 'http://user:password@localhost:8080' override address set -t 'waarp.fr' -r '192.168.1.1'
+   waarp-gateway override address set -t 'waarp.fr' -r '192.168.1.1'

@@ -6,8 +6,14 @@ Redémarrer un serveur
 
 Arrête et relance le serveur donné en paramètre.
 
+**Commande**
+
+.. code-block:: shell
+
+   waarp-gateway server restart "<SERVER>"
+
 **Exemple**
 
 .. code-block:: shell
 
-   waarp-gateway http://user:password@localhost:8080 server restart serveur_sftp
+   waarp-gateway server restart "serveur_sftp"

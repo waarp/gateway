@@ -191,7 +191,7 @@ transferts de la Gateway :
 .. code-block:: shell-session
 
    $ waarp-gateway history list
-   History:
+   Transfers:
    * Transfer 1 (as server) [DONE]
        Way:             receive
        Protocol:        sftp

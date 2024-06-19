@@ -8,10 +8,21 @@ Affiche le status des différents services de la gateway. Cela inclus les servic
 nécessaires au fonctionnement de la gateway, ainsi que tous les serveurs locaux
 et des clients rattachés à celle-ci.
 
-La commande affiche également la version de la gateway et la date locale.
+La commande affiche également la version du service Gateway ainsi que son heure
+locale.
+
+**Commande**
+
+.. code-block:: shell
+
+   waarp-gateway transfer add
+
+**Options**
+
+Cette commande le prend aucune option.
 
 **Exemple**
 
 .. code-block:: shell
 
-   waarp-gateway -a 'http://user:password@localhost:8080' status
+   waarp-gateway status

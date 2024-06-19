@@ -2,12 +2,18 @@
 Ajouter une méthode d'authentification
 ======================================
 
-.. program:: waarp-gateway account remote auth add
-
-.. describe:: waarp-gateway account remote <PARTNER> auth <LOGIN> add
+.. program:: waarp-gateway account remote credential add
 
 Ajoute une nouvelle valeur d'authentification au compte local donné. Si une
 valeur du même nom existe déjà, elle sera écrasée.
+
+**Commande**
+
+.. code-block:: shell
+
+   waarp-gateway account remote "<PARTNER>" credential "<LOGIN>" add
+
+**Options**
 
 .. option:: -n <NAME>, --name=<NAME>
 
@@ -37,4 +43,4 @@ valeur du même nom existe déjà, elle sera écrasée.
 
 .. code-block:: shell
 
-   waarp-gateway -a 'http://user:password@localhost:8080' account remote 'openssh' auth 'titi' add -t 'password' -v 'sesame'
+   waarp-gateway account remote 'openssh' credential 'titi' add -t 'password' -v 'sesame'

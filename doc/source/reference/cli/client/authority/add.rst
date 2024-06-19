@@ -4,9 +4,15 @@ Ajouter une autorité
 
 .. program:: waarp-gateway authority add
 
-.. describe:: waarp-gateway authority add
-
 Ajoute une nouvelle autorité d'authentification avec les attributs donnés.
+
+**Commande**
+
+.. code-block:: shell
+
+   waarp-gateway authority add
+
+**Options**
 
 .. option:: -n <NAME>, --name=<NAME>
 
@@ -27,8 +33,6 @@ Ajoute une nouvelle autorité d'authentification avec les attributs donnés.
    Les hôtes que l'autorité est habilitée à authentifier. Répéter l'option pour
    ajouter plusieurs hôtes. Si vide, l'autorité sera habilité à authentifier
    n'importe quel hôte connu.
-
-|
 
 **Exemple**
 

@@ -6,6 +6,14 @@
 
 Attache un nouveau certificat au compte donné à partir des informations renseignées.
 
+**Commande**
+
+.. code-block:: shell
+
+   waarp-gateway account remote "<PARTNER>" cert "<LOGIN>" add
+
+**Options**
+
 .. option:: -n <NAME>, --name=<NAME>
 
    Le nom du certificat. Doit être unique pour le compte concerné.
@@ -24,4 +32,4 @@ Attache un nouveau certificat au compte donné à partir des informations rensei
 
 .. code-block:: shell
 
-   waarp-gateway -a 'http://user:password@localhost:8080' account remote 'waarp_sftp' cert 'titi' add -n 'key_titi' -p './titi.key'
+   waarp-gateway account remote 'waarp_sftp' cert 'titi' add -n 'key_titi' -p './titi.key'

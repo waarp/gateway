@@ -6,8 +6,14 @@ Supprimer un compte local
 
 Supprime le compte donné en paramètre de commande.
 
+**Commande**
+
+.. code-block:: shell
+
+   waarp-gateway account local "<PARTNER>" delete "<LOGIN>"
+
 **Exemple**
 
 .. code-block:: shell
 
-   waarp-gateway -a 'http://user:password@localhost:8080' account local 'serveur_sftp' delete 'tata'
+   waarp-gateway account local 'serveur_sftp' delete 'tata'

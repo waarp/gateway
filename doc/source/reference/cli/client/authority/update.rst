@@ -4,9 +4,15 @@ Modifier une autorité
 
 .. program:: waarp-gateway authority update
 
-.. describe:: waarp-gateway authority update <NAME>
-
 Modifie les attributs de l'autorité demandée. Les attributs omis restent inchangés.
+
+**Commande**
+
+.. code-block:: shell
+
+   waarp-gateway authority update "<AUTHORITY>"
+
+**Options**
 
 .. option:: -n <NAME>, --name=<NAME>
 
@@ -29,8 +35,6 @@ Modifie les attributs de l'autorité demandée. Les attributs omis restent incha
    n'importe quel hôte connu. Cette liste remplacera celle déjà existante.
    Pour supprimer tous les hôtes existant, appeler cette options avec un hôte
    vide (`--host ''`).
-
-|
 
 **Exemple**
 

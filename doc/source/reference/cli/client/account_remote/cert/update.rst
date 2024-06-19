@@ -8,6 +8,14 @@ Change les attributs du certificat donné. Les noms du partenaire, du compte et 
 certificat doivent être renseignés en arguments de programme. Les attributs omis
 resteront inchangés.
 
+**Commande**
+
+.. code-block:: shell
+
+   waarp-gateway account remote "<PARTNER>" cert "<LOGIN>" update "<CERT>"
+
+**Options**
+
 .. option:: -n <NAME>, --name=<NAME>
 
    Le nom du certificat. Doit être unique pour un compte donné.
@@ -26,4 +34,4 @@ resteront inchangés.
 
 .. code-block:: shell
 
-   waarp-gateway -a 'http://user:password@localhost:8080' account remote 'waarp_sftp' cert 'titi' update 'key_titi' -n 'key_titi2' -p './titi2.key'
+   waarp-gateway account remote 'waarp_sftp' cert 'titi' update 'key_titi' -n 'key_titi2' -p './titi2.key'

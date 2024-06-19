@@ -2,7 +2,7 @@
 [OBSOLÈTE] Gestion des certificats d'un serveur
 ###############################################
 
-.. deprecated:: 0.6
+.. deprecated:: 0.9.0
    Les certificats sont désormais gérés via les *handlers* de gestion des
    :ref:`reference-auth-methods`. Les *handlers* suivants sont donc dépréciés.
 

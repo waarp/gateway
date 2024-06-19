@@ -4,12 +4,16 @@ Supprimer une méthode d'authentification
 
 .. program:: waarp-gateway partner credential delete
 
-.. describe:: waarp-gateway partner <PARTNER> credential delete <CRED_NAME>
-
 Supprime la valeur d'authentification donnée du partenaire.
+
+**Commande**
+
+.. code-block:: shell
+
+   waarp-gateway partner credential "<PARTNER>" delete "<CREDENTIAL>"
 
 **Exemple**
 
 .. code-block:: shell
 
-   waarp-gateway -a 'http://user:password@localhost:8080' partner credential 'openssh' delete 'openssh_hostkey'
+   waarp-gateway partner credential 'openssh' delete 'openssh_hostkey'

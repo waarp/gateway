@@ -8,6 +8,14 @@ Lister les serveurs
 
 Affiche les informations des serveurs remplissant les critères ci-dessous.
 
+**Commande**
+
+.. code-block:: shell
+
+   waarp-gateway server list
+
+**Options**
+
 .. option:: -l <LIMIT>, --limit=<LIMIT>
 
    Nombre de maximum de serveurs autorisés dans la réponse. Fixé à 20 par défaut.
@@ -33,4 +41,4 @@ Affiche les informations des serveurs remplissant les critères ci-dessous.
 
 .. code-block:: shell
 
-   waarp-gateway -a 'http://user:password@localhost:8080' server list -l 10 -o 5 -s 'protocol+' -p 'r66' -p 'http'
+   waarp-gateway server list -l 10 -o 5 -s 'protocol+' -p 'r66' -p 'http'

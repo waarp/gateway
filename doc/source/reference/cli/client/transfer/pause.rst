@@ -8,8 +8,15 @@ Pause le transfert donné. Un transfert en pause n'est pas considéré comme ter
 Seuls les transferts en cours ou en attente peuvent être mis en pause. Pour
 reprendre le transfert, voir :any:`reference-cli-client-transfers-resume`.
 
+**Commande**
+
+.. code-block:: shell
+
+   waarp-gateway transfer pause "<TRANSFER_ID>"
+
+
 **Exemple**
 
 .. code-block:: shell
 
-   waarp-gateway -a 'http://user:password@localhost:8080' transfer pause 1234
+   waarp-gateway transfer pause 1234

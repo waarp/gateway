@@ -36,13 +36,20 @@ Configuration serveur
    Utiliser le protocole ``r66-tls`` plutôt que l'option ``isTLS``, qui sera
    supprimé lors d'une version future.
 
+.. deprecated:: 0.9.0
+
+   Utiliser un identifiant de type ``password`` rattaché au serveur R66 plutôt
+   que l'option ``serverPassword``. Celle-ci sera supprimé dans une version
+   future.
+
 La structure de l'objet JSON de configuration du protocole pour un serveur R66
 est la suivante :
 
 * **serverLogin** (*string*) - Le login d'authentification du serveur R66.
   Par défaut, le nom du serveur est utilisé à la place.
-* **serverPassword** (*string*) - **REQUIS** Le mot de passe de l'agent R66.
-* **isTLS** (*boolean*) - **DÉPRÉCIÉ: utilisez plutôt le protocole r66-tls**
+* **serverPassword** (*string*) - **(DÉPRÉCIÉ: utilisez plutôt les identifiants serveur)**
+  Le mot de passe de l'agent R66.
+* **isTLS** (*boolean*) - **(DÉPRÉCIÉ: utilisez plutôt le protocole r66-tls)**
   Spécifie si le serveur utilise TLS. Par défaut, R66 clair est utilisé.
 * **blockSize** (*number*) - La taille (en octets) d'un bloc de données R66.
   Par défaut la valeur `65536` est utilisée.
@@ -72,13 +79,20 @@ Configuration partenaire
    Utiliser le protocole ``r66-tls`` plutôt que l'option ``isTLS``, qui sera
    supprimé lors d'une version future.
 
+.. deprecated:: 0.9.0
+
+   Utiliser un identifiant de type ``password`` rattaché au partenaire R66 plutôt
+   que l'option ``serverPassword``. Celle-ci sera supprimé dans une version
+   future.
+
 La structure de l'objet JSON de configuration du protocole pour un partenaire
 R66 est la suivante :
 
 * **serverLogin** (*string*) - Le login d'authentification attendu pour le
   partenaire R66. Par défaut, le nom du partenaire est utilisé à la place.
-* **serverPassword** (*string*) - **REQUIS** Le mot de passe de l'agent R66.
-* **isTLS** (*boolean*) - **DÉPRÉCIÉ: utilisez plutôt le protocole r66-tls**
+* **serverPassword** (*string*) - **(DÉPRÉCIÉ: utilisez plutôt les identifiants partenaire)**
+  Le mot de passe de l'agent R66.
+* **isTLS** (*boolean*) - **(DÉPRÉCIÉ: utilisez plutôt le protocole r66-tls)**
   Spécifie si le serveur utilise TLS. Par défaut, R66 clair est utilisé.
 * **blockSize** (*number*) - La taille (en octets) d'un bloc de données R66.
   Par défaut la valeur `65536` est utilisée.

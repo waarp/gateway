@@ -7,13 +7,15 @@ Modifier une règle
 Remplace les attributs de la règle donnée en paramètre par ceux fournis ci-dessous.
 Les attributs omis resteront inchangés.
 
-.. option:: <RULE>
-   
-   Le nom de la règle à modifier.
+**Commande**
 
-.. option:: <DIRECTION>
+.. code-block:: shell
 
-   Le sens de la règle à modifier. Peut être ``send`` ou ``receive``.
+   waarp-gateway rule update "<RULE>" "<DIRECTION>"
+
+``DIRECTION`` peut être ``send`` ou ``receive``.
+
+**Options**
 
 .. option:: -n <NAME>, --name=<NAME>
 
@@ -109,4 +111,4 @@ Les attributs omis resteront inchangés.
 
 .. code-block:: shell
 
-   waarp-gateway -a 'http://user:password@localhost:8080' rule update règle_1 'send' -n 'règle_1_new' -c 'nouvelle règle de réception des fichiers avec SFTP' -p '/règle_1_new' -i '/règle_1_new/in' -o '/règle_1_new/out' --pre '{"type":"COPY","args":{"path":"chemin/copie"}}' --post '{"type":"DELETE","args":{}}' --err '{"type":"MOVE","args":{"path":"chemin/déplacement"}}'
+   waarp-gateway rule update 'règle_1' 'send' -n 'règle_1_new' -c 'nouvelle règle de réception des fichiers avec SFTP' -p '/règle_1_new' -i '/règle_1_new/in' -o '/règle_1_new/out' --pre '{"type":"COPY","args":{"path":"chemin/copie"}}' --post '{"type":"DELETE","args":{}}' --err '{"type":"MOVE","args":{"path":"chemin/déplacement"}}'
