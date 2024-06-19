@@ -113,7 +113,7 @@ type DeletionHook interface {
 // WriteHook is an interface which adds a function which will be run before
 // inserting or updating an entry.
 type WriteHook interface {
-	BeforeWrite(db ReadAccess) error
+	BeforeWrite(db Access) error
 }
 
 // WriteCallback is an interface which adds a function which will be run after

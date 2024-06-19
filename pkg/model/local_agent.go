@@ -74,7 +74,7 @@ func (l *LocalAgent) makePaths() {
 
 // BeforeWrite is called before inserting a new `LocalAgent` entry in the
 // database. It checks whether the new entry is valid or not.
-func (l *LocalAgent) BeforeWrite(db database.ReadAccess) error {
+func (l *LocalAgent) BeforeWrite(db database.Access) error {
 	l.Owner = conf.GlobalConfig.GatewayName
 	l.makePaths()
 
@@ -152,6 +152,10 @@ func (l *LocalAgent) GetAuthorizedRules(db database.ReadAccess) ([]*Rule, error)
 	return rules, nil
 }
 
+func (l *LocalAgent) GetProtocol(database.ReadAccess) (string, error) {
+	return l.Protocol, nil
+}
+
 // AfterWrite is called after any write operation on the local_agents table.
 // If the agent uses R66, the function checks if is still uses the old credentials
 // stored in the proto config. If it does, an equivalent Credential is inserted.
@@ -163,14 +167,14 @@ func (l *LocalAgent) AfterWrite(db database.Access) error {
 		return nil
 	}
 
-	serverPwd, hasPwd := l.ProtoConfig["serverPassword"]
-	if !hasPwd {
-		return nil
+	cipher, pwdErr := utils.GetAs[string](l.ProtoConfig, "serverPassword")
+	if pwdErr != nil {
+		return nil // no server password in proto config
 	}
 
-	serverPasswd, pwdIsStr := serverPwd.(string)
-	if !pwdIsStr || serverPasswd == "" {
-		return nil
+	serverPasswd, aesErr := utils.AESDecrypt(database.GCM, cipher)
+	if aesErr != nil {
+		return fmt.Errorf("failed to decrypt R66 server JSON password: %w", aesErr)
 	}
 
 	if n, err := db.Count(&Credential{}).Where("local_agent_id=? AND type=?",

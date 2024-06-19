@@ -5,36 +5,30 @@ import (
 	"io"
 	"path"
 
+	"github.com/gookit/color"
+
 	"code.waarp.fr/apps/gateway/gateway/pkg/admin/rest/api"
 	"code.waarp.fr/apps/gateway/gateway/pkg/utils"
 )
 
-func enabledStatus(enabled bool) string {
-	return utils.If(enabled, "Enabled", "Disabled")
+const (
+	TextEnabled  = "Enabled"
+	TextDisabled = "Disabled"
+)
+
+func coloredEnabled(enabled bool) string {
+	return utils.If(enabled,
+		color.Bold.Render(TextEnabled),
+		color.Gray.Render(TextDisabled),
+	)
 }
 
-func DisplayClient(w io.Writer, client *api.OutClient) {
-	f := NewFormatter(w)
-	defer f.Render()
+func displayClient(w io.Writer, client *api.OutClient) {
+	style1.printf(w, "Client %q [%s]", client.Name, coloredEnabled(client.Enabled))
+	style22.printL(w, "Protocol", client.Protocol)
+	style22.printL(w, "Local address", withDefault(client.LocalAddress, unspecified))
 
-	displayClient(f, client)
-}
-
-func displayClient(f *Formatter, client *api.OutClient) {
-	f.Title("Client %q [%s]", client.Name, enabledStatus(client.Enabled))
-	f.Indent()
-
-	defer f.UnIndent()
-
-	f.Value("Protocol", client.Protocol)
-
-	if client.LocalAddress == "" {
-		f.Empty("Local address", "<unspecified>")
-	} else {
-		f.Value("Local address", client.LocalAddress)
-	}
-
-	displayProtoConfig(f, client.ProtoConfig)
+	displayProtoConfig(w, client.ProtoConfig)
 }
 
 // ######################## ADD ##########################
@@ -47,7 +41,7 @@ type ClientAdd struct {
 	ProtoConfig  map[string]confVal `short:"c" long:"config" description:"The client's configuration, in key:val format. Can be repeated." json:"protoConfig,omitempty"`
 }
 
-func (c *ClientAdd) Execute([]string) error { return c.execute(stdOutput) }
+func (c *ClientAdd) Execute([]string) error { return execute(c) }
 func (c *ClientAdd) execute(w io.Writer) error {
 	addr.Path = "/api/clients"
 
@@ -69,7 +63,7 @@ type ClientList struct {
 	Protocols []string `short:"p" long:"protocol" description:"Filter the clients based on the protocol they use. Can be repeated multiple times to filter multiple protocols."`
 }
 
-func (c *ClientList) Execute([]string) error { return c.execute(stdOutput) }
+func (c *ClientList) Execute([]string) error { return execute(c) }
 func (c *ClientList) execute(w io.Writer) error {
 	agentListURL("/api/clients", &c.ListOptions, c.SortBy, c.Protocols)
 
@@ -79,13 +73,10 @@ func (c *ClientList) execute(w io.Writer) error {
 	}
 
 	if clients := body["clients"]; len(clients) > 0 {
-		f := NewFormatter(w)
-		defer f.Render()
-
-		f.MainTitle("Clients:")
+		style0.printf(w, "=== Clients ===")
 
 		for _, client := range clients {
-			displayClient(f, client)
+			displayClient(w, client)
 		}
 	} else {
 		fmt.Fprintln(w, "No clients found.")
@@ -102,7 +93,7 @@ type ClientGet struct {
 	} `positional-args:"yes"`
 }
 
-func (c *ClientGet) Execute([]string) error { return c.execute(stdOutput) }
+func (c *ClientGet) Execute([]string) error { return execute(c) }
 func (c *ClientGet) execute(w io.Writer) error {
 	addr.Path = path.Join("/api/clients", c.Args.Name)
 
@@ -111,7 +102,7 @@ func (c *ClientGet) execute(w io.Writer) error {
 		return err
 	}
 
-	DisplayClient(w, &client)
+	displayClient(w, &client)
 
 	return nil
 }
@@ -130,7 +121,7 @@ type ClientUpdate struct {
 	ProtoConfig  map[string]confVal `short:"c" long:"config" description:"The new client's configuration, in key:val format. Can be repeated." json:"protoConfig,omitempty"`
 }
 
-func (c *ClientUpdate) Execute([]string) error { return c.execute(stdOutput) }
+func (c *ClientUpdate) Execute([]string) error { return execute(c) }
 func (c *ClientUpdate) execute(w io.Writer) error {
 	addr.Path = path.Join("/api/clients", c.Args.Name)
 
@@ -156,7 +147,7 @@ type ClientDelete struct {
 	} `positional-args:"yes"`
 }
 
-func (c *ClientDelete) Execute([]string) error { return c.execute(stdOutput) }
+func (c *ClientDelete) Execute([]string) error { return execute(c) }
 func (c *ClientDelete) execute(w io.Writer) error {
 	addr.Path = path.Join("/api/clients", c.Args.Name)
 
@@ -177,7 +168,7 @@ type ClientEnable struct {
 	} `positional-args:"yes"`
 }
 
-func (c *ClientEnable) Execute([]string) error { return c.execute(stdOutput) }
+func (c *ClientEnable) Execute([]string) error { return execute(c) }
 func (c *ClientEnable) execute(w io.Writer) error {
 	if err := exec(w, fmt.Sprintf("/api/clients/%s/enable", c.Args.Name)); err != nil {
 		return err
@@ -194,7 +185,7 @@ type ClientDisable struct {
 	} `positional-args:"yes"`
 }
 
-func (c *ClientDisable) Execute([]string) error { return c.execute(stdOutput) }
+func (c *ClientDisable) Execute([]string) error { return execute(c) }
 func (c *ClientDisable) execute(w io.Writer) error {
 	if err := exec(w, fmt.Sprintf("/api/clients/%s/disable", c.Args.Name)); err != nil {
 		return err
@@ -213,7 +204,7 @@ type ClientStart struct {
 	} `positional-args:"yes"`
 }
 
-func (c *ClientStart) Execute([]string) error { return c.execute(stdOutput) }
+func (c *ClientStart) Execute([]string) error { return execute(c) }
 func (c *ClientStart) execute(w io.Writer) error {
 	if err := exec(w, fmt.Sprintf("/api/clients/%s/start", c.Args.Name)); err != nil {
 		return err
@@ -230,7 +221,7 @@ type ClientStop struct {
 	} `positional-args:"yes"`
 }
 
-func (c *ClientStop) Execute([]string) error { return c.execute(stdOutput) }
+func (c *ClientStop) Execute([]string) error { return execute(c) }
 func (c *ClientStop) execute(w io.Writer) error {
 	if err := exec(w, fmt.Sprintf("/api/clients/%s/stop", c.Args.Name)); err != nil {
 		return err
@@ -247,7 +238,7 @@ type ClientRestart struct {
 	} `positional-args:"yes"`
 }
 
-func (c *ClientRestart) Execute([]string) error { return c.execute(stdOutput) }
+func (c *ClientRestart) Execute([]string) error { return execute(c) }
 func (c *ClientRestart) execute(w io.Writer) error {
 	if err := exec(w, fmt.Sprintf("/api/clients/%s/restart", c.Args.Name)); err != nil {
 		return err

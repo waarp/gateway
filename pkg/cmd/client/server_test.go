@@ -7,6 +7,8 @@ import (
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
+	"golang.org/x/exp/maps"
+	"golang.org/x/exp/slices"
 )
 
 func TestServerGet(t *testing.T) {
@@ -35,8 +37,6 @@ func TestServerGet(t *testing.T) {
 
 		path = "/api/servers/" + name
 	)
-
-	status := enabledStatus(enabled)
 
 	t.Run(`Testing the server "get" command`, func(t *testing.T) {
 		w := newTestOutput()
@@ -74,21 +74,27 @@ func TestServerGet(t *testing.T) {
 				require.NoError(t, executeCommand(t, w, command, name),
 					"Then it should not return an error")
 
+				outputData := maps.Clone(result.body)
+				outputData["status"] = enabledStatus(enabled)
+
 				assert.Equal(t,
-					fmt.Sprintf("── Server %q [%s]\n", name, status)+
-						fmt.Sprintf("   ├─ Protocol: %s\n", proto)+
-						fmt.Sprintf("   ├─ Address: %s\n", addr)+
-						fmt.Sprintf("   ├─ Credentials: %s, %s\n", cred1, cred2)+
-						fmt.Sprintf("   ├─ Root directory: %s\n", root)+
-						fmt.Sprintf("   ├─ Receive directory: %s\n", recvDir)+
-						fmt.Sprintf("   ├─ Send directory: %s\n", sendDir)+
-						fmt.Sprintf("   ├─ Temp receive directory: %s\n", tempDir)+
-						fmt.Sprintf("   ├─ Configuration\n")+
-						fmt.Sprintf("   │  ├─ %s: %s\n", key1, val1)+
-						fmt.Sprintf("   │  ╰─ %s: %s\n", key2, val2)+
-						fmt.Sprintf("   ╰─ Authorized rules\n")+
-						fmt.Sprintf("      ├─ Send: %s, %s\n", send1, send2)+
-						fmt.Sprintf("      ╰─ Receive: %s, %s\n", receive1, receive2),
+					expectedOutput(t, outputData,
+						`‣Server "{{.name}}" [{{.status}}]`,
+						`  •Protocol: {{.protocol}}`,
+						`  •Address: {{.address}}`,
+						`  •Credentials: {{ join .credentials }}`,
+						`  •Root directory: {{.rootDir}}`,
+						`  •Receive directory: {{.receiveDir}}`,
+						`  •Send directory: {{.sendDir}}`,
+						`  •Temp receive directory: {{.tmpReceiveDir}}`,
+						`  •Configuration:`,
+						`    {{- range $option, $value := .protoConfig }}`,
+						`    ⁃{{$option}}: {{$value}}`,
+						`    {{- end }}`,
+						`  •Authorized rules:`,
+						`    ⁃Send: {{ join .authorizedRules.sending }}`,
+						`    ⁃Receive: {{ join .authorizedRules.reception }}`,
+					),
 					w.String(),
 					"Then it should display the server's information",
 				)
@@ -187,11 +193,6 @@ func TestServersList(t *testing.T) {
 		protocol = "proto1"
 	)
 
-	var (
-		status1 = enabledStatus(enabled1)
-		status2 = enabledStatus(enabled2)
-	)
-
 	t.Run(`Testing the server "list" command`, func(t *testing.T) {
 		w := newTestOutput()
 		command := &ServerList{}
@@ -207,21 +208,21 @@ func TestServersList(t *testing.T) {
 			},
 		}
 
+		servers := []map[string]any{{
+			"name":     name1,
+			"protocol": proto1,
+			"enabled":  enabled1,
+			"address":  addr1,
+		}, {
+			"name":     name2,
+			"protocol": proto2,
+			"enabled":  enabled2,
+			"address":  addr2,
+		}}
+
 		result := &expectedResponse{
 			status: http.StatusOK,
-			body: map[string]any{
-				"servers": []map[string]any{{
-					"name":     name1,
-					"protocol": proto1,
-					"enabled":  enabled1,
-					"address":  addr1,
-				}, {
-					"name":     name2,
-					"protocol": proto2,
-					"enabled":  enabled2,
-					"address":  addr2,
-				}},
-			},
+			body:   map[string]any{"servers": servers},
 		}
 
 		t.Run("Given a dummy gateway REST interface", func(t *testing.T) {
@@ -233,23 +234,34 @@ func TestServersList(t *testing.T) {
 					"--sort", sort, "--protocol", protocol),
 					"Then it should not return an error")
 
-				assert.Equal(t, "Servers:\n"+
-					fmt.Sprintf("╭─ Server %q [%s]\n", name1, status1)+
-					fmt.Sprintf("│  ├─ Protocol: %s\n", proto1)+
-					fmt.Sprintf("│  ├─ Address: %s\n", addr1)+
-					fmt.Sprintf("│  ├─ Credentials: <none>\n")+
-					fmt.Sprintf("│  ├─ Configuration: <empty>\n")+
-					fmt.Sprintf("│  ╰─ Authorized rules\n")+
-					fmt.Sprintf("│     ├─ Send: <none>\n")+
-					fmt.Sprintf("│     ╰─ Receive: <none>\n")+
-					fmt.Sprintf("╰─ Server %q [%s]\n", name2, status2)+
-					fmt.Sprintf("   ├─ Protocol: %s\n", proto2)+
-					fmt.Sprintf("   ├─ Address: %s\n", addr2)+
-					fmt.Sprintf("   ├─ Credentials: <none>\n")+
-					fmt.Sprintf("   ├─ Configuration: <empty>\n")+
-					fmt.Sprintf("   ╰─ Authorized rules\n")+
-					fmt.Sprintf("      ├─ Send: <none>\n")+
-					fmt.Sprintf("      ╰─ Receive: <none>\n"),
+				outputData := slices.Clone(servers)
+				outputData[0]["status"] = enabledStatus(enabled1)
+				outputData[1]["status"] = enabledStatus(enabled2)
+
+				assert.Equal(t,
+					expectedOutput(t, outputData,
+						`=== Servers ===`,
+						`{{- with index . 0 }}`,
+						`‣Server "{{.name}}" [{{.status}}]`,
+						`  •Protocol: {{.protocol}}`,
+						`  •Address: {{.address}}`,
+						`  •Credentials: <none>`,
+						`  •Configuration: <empty>`,
+						`  •Authorized rules:`,
+						`    ⁃Send: <none>`,
+						`    ⁃Receive: <none>`,
+						`{{- end }}`,
+						`{{- with index . 1 }}`,
+						`‣Server "{{.name}}" [{{.status}}]`,
+						`  •Protocol: {{.protocol}}`,
+						`  •Address: {{.address}}`,
+						`  •Credentials: <none>`,
+						`  •Configuration: <empty>`,
+						`  •Authorized rules:`,
+						`    ⁃Send: <none>`,
+						`    ⁃Receive: <none>`,
+						`{{- end }}`,
+					),
 					w.String(),
 					"Then it should display the list of servers",
 				)

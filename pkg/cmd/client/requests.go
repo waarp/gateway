@@ -20,7 +20,7 @@ const (
 
 func getHTTPClient(insecure bool) *http.Client {
 	//nolint:forcetypeassert //type assertion will always succeed
-	customTransport := http.DefaultTransport.(*http.Transport).Clone()
+	customTransport := &http.Transport{}
 
 	//nolint:gosec //needed to pass the option given by the user
 	customTransport.TLSClientConfig = &tls.Config{

@@ -10,6 +10,7 @@ import (
 	"path"
 	"time"
 
+	"code.waarp.fr/apps/gateway/gateway/pkg/conf"
 	"code.waarp.fr/apps/gateway/gateway/pkg/fs"
 	"code.waarp.fr/apps/gateway/gateway/pkg/model/authentication/auth"
 	"code.waarp.fr/apps/gateway/gateway/pkg/model/types"
@@ -163,8 +164,9 @@ func (p *postClient) prepareRequest(ready chan struct{}) *pipeline.Error {
 		scheme = schemeHTTPS
 	}
 
-	url := scheme + path.Join(p.pip.TransCtx.RemoteAgent.Address.String(),
-		p.pip.TransCtx.Transfer.RemotePath)
+	addr := conf.GetRealAddress(p.pip.TransCtx.RemoteAgent.Address.Host,
+		utils.FormatUint(p.pip.TransCtx.RemoteAgent.Address.Port))
+	url := scheme + path.Join(addr, p.pip.TransCtx.Transfer.RemotePath)
 
 	if err := p.checkResume(url); err != nil {
 		return err

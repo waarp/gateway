@@ -47,7 +47,7 @@ func (s *service) Start() error {
 	}
 
 	s.state.Set(utils.StateRunning, "")
-	s.logger.Info("FTP server started")
+	s.logger.Info("FTP server started successfully on %s", s.server.Addr())
 
 	return nil
 }
@@ -63,6 +63,10 @@ func (s *service) start() error {
 		logger:     s.logger,
 		dbServer:   s.agent,
 		serverConf: &serverConf,
+	}
+
+	if s.agent.Protocol == FTPS {
+		s.handler.mkTLSConfig()
 	}
 
 	s.server = ftplib.NewFtpServer(s.handler)

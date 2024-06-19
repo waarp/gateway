@@ -4,34 +4,30 @@ import (
 	"fmt"
 	"io"
 	"path"
-	"strings"
+
+	"github.com/gookit/color"
 
 	"code.waarp.fr/apps/gateway/gateway/pkg/admin/rest/api"
 	"code.waarp.fr/apps/gateway/gateway/pkg/model/authentication/auth"
 	"code.waarp.fr/apps/gateway/gateway/pkg/protocols/modules/sftp"
 )
 
-func DisplayAuthority(w io.Writer, authority *api.OutAuthority) {
-	f := NewFormatter(w)
-	defer f.Render()
+func displayAuthority(w io.Writer, authority *api.OutAuthority) {
+	style1.printf(w, "Authority %q", authority.Name)
+	style22.printL(w, "Type", authority.Type)
+	style22.printL(w, "Valid for hosts", withDefault(join(authority.ValidHosts), "<all>"))
 
-	displayAuthority(f, authority)
-}
-
-func displayAuthority(f *Formatter, authority *api.OutAuthority) {
-	f.Title("Authority %q", authority.Name)
-	f.Indent()
-
-	defer f.UnIndent()
-
-	f.Value("Type", authority.Type)
-	f.ValueWithDefault("Valid Hosts", strings.Join(authority.ValidHosts, ", "), "<all>")
+	var err error
 
 	switch authority.Type {
 	case auth.AuthorityTLS:
-		displayTLSInfo(f, authority.Name, authority.PublicIdentity)
+		err = displayTLSInfo(w, style22, authority.Name, authority.PublicIdentity)
 	case sftp.AuthoritySSHCert:
-		displaySSHKeyInfo(f, authority.Name, authority.PublicIdentity)
+		err = displaySSHKeyInfo(w, style22, authority.Name, authority.PublicIdentity)
+	}
+
+	if err != nil {
+		fmt.Fprintln(w, color.Red.Sprint(err))
 	}
 }
 
@@ -71,7 +67,7 @@ func (a *AuthorityGet) execute(w io.Writer) error {
 		return err
 	}
 
-	DisplayAuthority(w, authority)
+	displayAuthority(w, authority)
 
 	return nil
 }
@@ -96,13 +92,10 @@ func (a *AuthorityList) execute(w io.Writer) error {
 	}
 
 	if authorities := body["authorities"]; len(authorities) > 0 {
-		f := NewFormatter(w)
-		defer f.Render()
-
-		f.MainTitle("Authentication authorities:")
+		style0.printf(w, "=== Authentication authorities ===")
 
 		for _, authority := range authorities {
-			displayAuthority(f, authority)
+			displayAuthority(w, authority)
 		}
 	} else {
 		fmt.Fprintln(w, "No authorities found.")

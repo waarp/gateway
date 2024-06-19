@@ -163,7 +163,7 @@ func TestGetPartner(t *testing.T) {
 			pswd := model.Credential{
 				RemoteAgentID: utils.NewNullInt64(existing.ID),
 				Name:          "partner pswd",
-				Type:          auth.PasswordHash,
+				Type:          auth.Password,
 				Value:         "sesame",
 			}
 			So(db.Insert(&pswd).Run(), ShouldBeNil)

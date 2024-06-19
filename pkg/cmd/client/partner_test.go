@@ -8,6 +8,8 @@ import (
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
+	"golang.org/x/exp/maps"
+	"golang.org/x/exp/slices"
 )
 
 func TestPartnerGet(t *testing.T) {
@@ -60,17 +62,22 @@ func TestPartnerGet(t *testing.T) {
 				require.NoError(t, executeCommand(t, w, command, partner),
 					"Then it should not return an error")
 
+				outputData := maps.Clone(result.body)
+
 				assert.Equal(t,
-					fmt.Sprintf("── Partner %q\n", partner)+
-						fmt.Sprintf("   ├─ Protocol: %s\n", proto)+
-						fmt.Sprintf("   ├─ Address: %s\n", addr)+
-						fmt.Sprintf("   ├─ Credentials: %s, %s\n", cred1, cred2)+
-						fmt.Sprintf("   ├─ Configuration\n")+
-						fmt.Sprintf("   │  ├─ %s: %s\n", key1, val1)+
-						fmt.Sprintf("   │  ╰─ %s: %s\n", key2, val2)+
-						fmt.Sprintf("   ╰─ Authorized rules\n")+
-						fmt.Sprintf("      ├─ Send: %s, %s\n", send1, send2)+
-						fmt.Sprintf("      ╰─ Receive: %s, %s\n", rcv1, rcv2),
+					expectedOutput(t, outputData,
+						`‣Partner "{{.name}}"`,
+						`  •Protocol: {{.protocol}}`,
+						`  •Address: {{.address}}`,
+						`  •Credentials: {{ join .credentials }}`,
+						`  •Configuration:`,
+						`    {{- range $key, $value := .protoConfig }}`,
+						`    ⁃{{$key}}: {{$value}}`,
+						`    {{- end }}`,
+						`  •Authorized rules:`,
+						`    ⁃Send: {{ join .authorizedRules.sending }}`,
+						`    ⁃Receive: {{ join .authorizedRules.reception }}`,
+					),
 					w.String(),
 					"Then it should display a message saying the account was authorized",
 				)
@@ -163,19 +170,19 @@ func TestPartnersList(t *testing.T) {
 			},
 		}
 
+		partners := []map[string]any{{
+			"name":     partner1,
+			"protocol": proto1,
+			"address":  addr1,
+		}, {
+			"name":     partner2,
+			"protocol": proto2,
+			"address":  addr2,
+		}}
+
 		result := &expectedResponse{
 			status: http.StatusOK,
-			body: map[string]any{
-				"partners": []map[string]any{{
-					"name":     partner1,
-					"protocol": proto1,
-					"address":  addr1,
-				}, {
-					"name":     partner2,
-					"protocol": proto2,
-					"address":  addr2,
-				}},
-			},
+			body:   map[string]any{"partners": partners},
 		}
 
 		t.Run("Given a dummy gateway REST interface", func(t *testing.T) {
@@ -187,23 +194,32 @@ func TestPartnersList(t *testing.T) {
 					"--offset", offset, "--protocol", protocol),
 					"Then it should not return an error")
 
-				assert.Equal(t, fmt.Sprintf("Partners:\n")+
-					fmt.Sprintf("╭─ Partner %q\n", partner1)+
-					fmt.Sprintf("│  ├─ Protocol: %s\n", proto1)+
-					fmt.Sprintf("│  ├─ Address: %s\n", addr1)+
-					fmt.Sprintf("│  ├─ Credentials: <none>\n")+
-					fmt.Sprintf("│  ├─ Configuration: <empty>\n")+
-					fmt.Sprintf("│  ╰─ Authorized rules\n")+
-					fmt.Sprintf("│     ├─ Send: <none>\n")+
-					fmt.Sprintf("│     ╰─ Receive: <none>\n")+
-					fmt.Sprintf("╰─ Partner %q\n", partner2)+
-					fmt.Sprintf("   ├─ Protocol: %s\n", proto2)+
-					fmt.Sprintf("   ├─ Address: %s\n", addr2)+
-					fmt.Sprintf("   ├─ Credentials: <none>\n")+
-					fmt.Sprintf("   ├─ Configuration: <empty>\n")+
-					fmt.Sprintf("   ╰─ Authorized rules\n")+
-					fmt.Sprintf("      ├─ Send: <none>\n")+
-					fmt.Sprintf("      ╰─ Receive: <none>\n"),
+				outputData := slices.Clone(partners)
+
+				assert.Equal(t,
+					expectedOutput(t, outputData,
+						`=== Partners ===`,
+						`{{- with index . 0 }}`,
+						`‣Partner "{{.name}}"`,
+						`  •Protocol: {{.protocol}}`,
+						`  •Address: {{.address}}`,
+						`  •Credentials: <none>`,
+						`  •Configuration: <empty>`,
+						`  •Authorized rules:`,
+						`    ⁃Send: <none>`,
+						`    ⁃Receive: <none>`,
+						`{{- end }}`,
+						`{{- with index . 1 }}`,
+						`‣Partner "{{.name}}"`,
+						`  •Protocol: {{.protocol}}`,
+						`  •Address: {{.address}}`,
+						`  •Credentials: <none>`,
+						`  •Configuration: <empty>`,
+						`  •Authorized rules:`,
+						`    ⁃Send: <none>`,
+						`    ⁃Receive: <none>`,
+						`{{- end }}`,
+					),
 					w.String(),
 					"Then it should display the partners' info",
 				)

@@ -108,18 +108,11 @@ linters-settings:
     # [deprecated] comma-separated list of pairs of the form pkg:regex
     # the regex is used to ignore names within pkg. (default "fmt:.*").
     # see https://github.com/kisielk/errcheck#the-deprecated-method for details
-    #ignore: fmt:.*,io/ioutil:^Read.*
-
-    # [deprecated] use exclude-functions instead.
-    # path to a file containing a list of functions to exclude from checking
-    # see https://github.com/kisielk/errcheck#excluding-functions for details
-    #exclude: /path/to/file.txt
+    ignore: fmt:.*,io/ioutil:^Read.*
 
     # list of functions to exclude from checking, where each entry is a single function to exclude.
     # see https://github.com/kisielk/errcheck#excluding-functions for details
     exclude-functions:
-      - fmt:.*
-      - io/ioutil.ReadFile
       - io.Copy(*bytes.Buffer)
       - io.Copy(os.Stdout)
       - (*database/sql.Rows).Close # Errors returned by Rows.Close are inconsequential
@@ -142,15 +135,6 @@ linters-settings:
     # 'default' case is present, even if all enum members aren't listed in the
     # switch
     default-signifies-exhaustive: true
-
-  #exhaustivestruct:
-  #  # Struct Patterns is list of expressions to match struct packages and names
-  #  # The struct packages have the form example.com/package.ExampleStruct
-  #  # The matching patterns can use matching syntax from https://pkg.go.dev/path#Match
-  #  # If this list is empty, all structs are tested.
-  #  struct-patterns:
-  #    - '*.Test'
-  #    - 'example.com/package.ExampleStruct'
 
   forbidigo:
     # Forbid the following identifiers (identifiers are written using regexp):
@@ -331,10 +315,6 @@ linters-settings:
     # it's a comma-separated list of prefixes
     local-prefixes: code.waarp.fr/apps/gateway/gateway
 
-  golint:
-    # minimal confidence for issues, default is 0.8
-    min-confidence: 0.8
-
   mnd:
     # the list of enabled checks, see https://github.com/tommy-muehle/go-mnd/#checks for description.
     checks:
@@ -418,10 +398,6 @@ linters-settings:
     enable-all: true
     disable:
       - fieldalignment
-    settings:
-      # report about shadowed variables
-      shadow:
-        strict: true
 
     # settings per analyzer
     #settings:
@@ -487,10 +463,6 @@ linters-settings:
   makezero:
     # Allow only slices initialized with a length of zero. Default is false.
     always: false
-
-  maligned:
-    # print struct with more effective memory layout or not, false by default
-    suggest-new: true
 
   misspell:
     # Correct spellings using locale preferences for US or UK.
@@ -728,22 +700,16 @@ linters:
   disable:
     - depguard
     - dogsled
-    - exhaustivestruct
     - godox
     - goheader
-    - golint
-    - interfacer
     - ireturn
-    - maligned
     - nilerr
     - paralleltest
     - prealloc
-    - scopelint
     - testpackage
     - exhaustruct #non-nullable attributes don't need to be explicitly declared
     - nonamedreturns #named return variables are sometimes ok
     - execinquery #raises lots of false-positives, might re-enable once fixed
-    - nosnakecase #raises errors on imported variables (which we have no control on), might re-enable once fixed
     - tagalign #sorting tags does not always result in better readability
     - containedctx #might re-enable once a better solution has been found
     - tparallel #a test being executable in parallel with others tests does not mean its subtests can be executed in parallel with each others

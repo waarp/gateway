@@ -34,6 +34,10 @@ type ServerConfigTLS struct {
 }
 
 func (c *ServerConfigTLS) ValidServer() error {
+	if c.TLSRequirement == "" {
+		c.TLSRequirement = TLSOptional
+	}
+
 	if c.TLSRequirement.toLib() < 0 {
 		return fmt.Errorf("invalid TLS requirement %q: %w", c.TLSRequirement, errSupportedTLSRequirements)
 	}

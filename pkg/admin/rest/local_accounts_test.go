@@ -48,7 +48,7 @@ func TestGetLocalAccount(t *testing.T) {
 			pswd := model.Credential{
 				LocalAccountID: utils.NewNullInt64(existing.ID),
 				Name:           "foo password",
-				Type:           auth.PasswordHash,
+				Type:           auth.Password,
 				Value:          "sesame",
 			}
 			So(db.Insert(&pswd).Run(), ShouldBeNil)
@@ -351,7 +351,7 @@ func TestCreateLocalAccount(t *testing.T) {
 
 							var pswd model.Credential
 							So(db.Get(&pswd, "local_account_id=? AND type=?",
-								accs[0].ID, auth.PasswordHash).Run(), ShouldBeNil)
+								accs[0].ID, auth.Password).Run(), ShouldBeNil)
 							So(bcrypt.CompareHashAndPassword([]byte(pswd.Value),
 								[]byte("new_password")), ShouldBeNil)
 						})
@@ -510,7 +510,7 @@ func TestUpdateLocalAccount(t *testing.T) {
 
 			oldPwd := &model.Credential{
 				LocalAccountID: utils.NewNullInt64(old.ID),
-				Type:           auth.PasswordHash, Value: "old_password",
+				Type:           auth.Password, Value: "old_password",
 			}
 			So(db.Insert(oldPwd).Run(), ShouldBeNil)
 
@@ -559,7 +559,7 @@ func TestUpdateLocalAccount(t *testing.T) {
 
 						var pswd model.Credential
 						So(db.Get(&pswd, "local_account_id=? AND type=?",
-							accounts[0].ID, auth.PasswordHash).Run(), ShouldBeNil)
+							accounts[0].ID, auth.Password).Run(), ShouldBeNil)
 						So(bcrypt.CompareHashAndPassword([]byte(pswd.Value),
 							[]byte("upd_password")), ShouldBeNil)
 					})
@@ -648,7 +648,7 @@ func TestReplaceLocalAccount(t *testing.T) {
 
 			oldPwd := &model.Credential{
 				LocalAccountID: utils.NewNullInt64(old.ID),
-				Type:           auth.PasswordHash, Value: "old_password",
+				Type:           auth.Password, Value: "old_password",
 			}
 			So(db.Insert(oldPwd).Run(), ShouldBeNil)
 
@@ -697,7 +697,7 @@ func TestReplaceLocalAccount(t *testing.T) {
 
 						var pswd model.Credential
 						So(db.Get(&pswd, "local_account_id=? AND type=?",
-							accounts[0].ID, auth.PasswordHash).Run(), ShouldBeNil)
+							accounts[0].ID, auth.Password).Run(), ShouldBeNil)
 						So(bcrypt.CompareHashAndPassword([]byte(pswd.Value),
 							[]byte("upd_password")), ShouldBeNil)
 					})

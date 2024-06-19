@@ -15,6 +15,9 @@ type CredOwnerTable interface {
 	database.Identifier
 	database.Table
 
+	// GetProtocol returns the protocol used by the credential's owner.
+	GetProtocol(db database.ReadAccess) (string, error)
+
 	// SetCredOwner sets the target CredOwnerTable as owner of the given Credential
 	// instance (by setting the corresponding foreign key to its own ID).
 	SetCredOwner(cred *Credential)
@@ -54,7 +57,7 @@ func (*Credential) Appellation() string { return NameCredentials }
 
 // BeforeWrite checks if the new `Crypto` entry is valid and can be inserted
 // in the database.
-func (c *Credential) BeforeWrite(db database.ReadAccess) error {
+func (c *Credential) BeforeWrite(db database.Access) error {
 	if c.Type == "" {
 		return database.NewValidationError("the authentication method's type is missing")
 	}
@@ -83,27 +86,17 @@ func (c *Credential) getOwner(db database.ReadAccess) (CredOwnerTable, authentic
 		CredOwnerTable
 	}
 
-	var handler authentication.Handler
-
 	switch {
 	case c.LocalAgentID.Valid:
 		owner = &LocalAgent{ID: c.LocalAgentID.Int64}
-		handler = authentication.GetExternalAuthMethod(c.Type)
 	case c.RemoteAgentID.Valid:
 		owner = &RemoteAgent{ID: c.RemoteAgentID.Int64}
-		handler = authentication.GetInternalAuthHandler(c.Type)
 	case c.LocalAccountID.Valid:
 		owner = &LocalAccount{ID: c.LocalAccountID.Int64}
-		handler = authentication.GetInternalAuthHandler(c.Type)
 	case c.RemoteAccountID.Valid:
 		owner = &RemoteAccount{ID: c.RemoteAccountID.Int64}
-		handler = authentication.GetExternalAuthMethod(c.Type)
 	default:
 		return nil, nil, database.NewValidationError("the authentication method is missing an owner")
-	}
-
-	if handler == nil {
-		return nil, nil, database.NewValidationError("unknown auth type %q", c.Type)
 	}
 
 	if err := db.Get(owner, "id=?", owner.GetID()).Run(); err != nil {
@@ -116,7 +109,37 @@ func (c *Credential) getOwner(db database.ReadAccess) (CredOwnerTable, authentic
 			owner.Appellation(), err)
 	}
 
+	protocol, protoErr := owner.GetProtocol(db)
+	if protoErr != nil {
+		return nil, nil, fmt.Errorf("failed to retrieve the owner's protocol: %w", protoErr)
+	}
+
+	handler, handlErr := c.getHandler(protocol)
+	if handlErr != nil {
+		return nil, nil, handlErr
+	}
+
 	return owner, handler, nil
+}
+
+func (c *Credential) getHandler(protocol string) (authentication.Handler, error) {
+	var handler authentication.Handler
+
+	switch {
+	case c.LocalAgentID.Valid, c.RemoteAccountID.Valid:
+		handler = authentication.GetExternalAuthMethod(c.Type, protocol)
+	case c.RemoteAgentID.Valid, c.LocalAccountID.Valid:
+		handler = authentication.GetInternalAuthHandler(c.Type, protocol)
+	default:
+		return nil, database.NewValidationError("the authentication method is missing an owner")
+	}
+
+	if handler == nil {
+		return nil, database.NewValidationError(
+			"protocol %q does not support the authentication method %q", protocol, c.Type)
+	}
+
+	return handler, nil
 }
 
 func (c *Credential) validate(db database.ReadAccess) error {
@@ -143,7 +166,7 @@ func (c *Credential) validate(db database.ReadAccess) error {
 		}
 	}
 
-	if err := handler.Validate(c.Value, c.Value2, owner.Host(), owner.IsServer()); err != nil {
+	if err := handler.Validate(c.Value, c.Value2, "", owner.Host(), owner.IsServer()); err != nil {
 		return database.NewValidationError("failed to validate authentication value: %s", err)
 	}
 
@@ -158,25 +181,15 @@ func (c *Credential) validate(db database.ReadAccess) error {
 }
 
 // AfterWrite re-deserializes the authentication value (when it is relevant).
-func (c *Credential) AfterWrite(database.Access) error {
-	return c.AfterRead(nil)
+func (c *Credential) AfterWrite(db database.Access) error {
+	return c.AfterRead(db)
 }
 
 // AfterRead deserializes the authentication value (when it is relevant).
-func (c *Credential) AfterRead(database.ReadAccess) error {
-	var handler authentication.Handler
-
-	switch {
-	case c.LocalAgentID.Valid, c.RemoteAccountID.Valid:
-		handler = authentication.GetExternalAuthMethod(c.Type)
-	case c.RemoteAgentID.Valid, c.LocalAccountID.Valid:
-		handler = authentication.GetInternalAuthHandler(c.Type)
-	default:
-		return database.NewValidationError("the authentication method is missing an owner")
-	}
-
-	if handler == nil {
-		return database.NewValidationError("unknown auth type %q", c.Type)
+func (c *Credential) AfterRead(db database.ReadAccess) error {
+	_, handler, ownErr := c.getOwner(db)
+	if ownErr != nil {
+		return ownErr
 	}
 
 	if des, ok := handler.(authentication.Deserializer); ok {

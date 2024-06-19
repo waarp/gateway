@@ -16,10 +16,7 @@ import (
 
 var (
 	clientTLSConfActive = &ClientConfigTLS{
-		ClientConfig: ClientConfig{
-			EnableActiveMode:  true,
-			ActiveModeMinPort: 20000, ActiveModeMaxPort: 30000,
-		},
+		ClientConfig: ClientConfig{EnableActiveMode: true},
 	}
 	serverTLSConfActive = &ServerConfigTLS{
 		ServerConfig:   ServerConfig{DisablePassiveMode: true},

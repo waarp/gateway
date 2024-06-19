@@ -73,9 +73,9 @@ func clearAuthentCache(cache *sync.Map) {
 	})
 }
 
-func authenticate(db database.ReadAccess, owner CredOwnerTable, authType string, value any,
+func authenticate(db database.ReadAccess, owner CredOwnerTable, authType, proto string, value any,
 ) (res *authentication.Result, err error) {
-	handler := authentication.GetInternalAuthHandler(authType)
+	handler := authentication.GetInternalAuthHandler(authType, proto)
 	if handler == nil {
 		//nolint:goerr113 //dynamic error is better here for debugging
 		return nil, fmt.Errorf("unknown authentication type %q", authType)

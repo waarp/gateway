@@ -7,11 +7,13 @@ import (
 	"net/http"
 	"path"
 
+	"code.waarp.fr/apps/gateway/gateway/pkg/conf"
 	"code.waarp.fr/apps/gateway/gateway/pkg/model/authentication/auth"
 	"code.waarp.fr/apps/gateway/gateway/pkg/model/types"
 	"code.waarp.fr/apps/gateway/gateway/pkg/pipeline"
 	"code.waarp.fr/apps/gateway/gateway/pkg/protocols/modules/http/httpconst"
 	"code.waarp.fr/apps/gateway/gateway/pkg/protocols/protocol"
+	"code.waarp.fr/apps/gateway/gateway/pkg/utils"
 )
 
 type getClient struct {
@@ -32,7 +34,8 @@ func (g *getClient) Request() *pipeline.Error {
 		scheme = schemeHTTPS
 	}
 
-	addr := g.pip.TransCtx.RemoteAgent.Address.String()
+	addr := conf.GetRealAddress(g.pip.TransCtx.RemoteAgent.Address.Host,
+		utils.FormatUint(g.pip.TransCtx.RemoteAgent.Address.Port))
 	url := scheme + path.Join(addr, g.pip.TransCtx.Transfer.RemotePath)
 
 	req, reqErr := http.NewRequestWithContext(g.ctx, http.MethodGet, url, nil)

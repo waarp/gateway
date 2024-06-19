@@ -1,119 +1,80 @@
 package rest
 
 import (
+	"database/sql"
 	"fmt"
 	"net/http"
 	"strconv"
-	"strings"
 	"time"
 
 	"code.waarp.fr/apps/gateway/gateway/pkg/admin/rest/api"
 	"code.waarp.fr/apps/gateway/gateway/pkg/conf"
 	"code.waarp.fr/apps/gateway/gateway/pkg/database"
 	"code.waarp.fr/apps/gateway/gateway/pkg/model"
+	"code.waarp.fr/apps/gateway/gateway/pkg/utils"
 )
 
-func getTransferClient(db *database.DB, trans *api.InTransfer, protocol string,
-) (*model.Client, error) {
-	if trans.Client != "" {
-		var client model.Client
-
-		if err := db.Get(&client, "name=? AND owner=?", trans.Client,
-			conf.GlobalConfig.GatewayName).Run(); err != nil {
-			if database.IsNotFound(err) {
-				return nil, badRequest("no client '%s' found", trans.Client)
-			}
-
-			return nil, fmt.Errorf("failed to retrieve client %q: %w", trans.Client, err)
-		}
-
-		return &client, nil
-	}
-
-	// If the user didn't specify a client, we search for one with the
-	// appropriate protocol. If we can't find one, or if they are multiple
-	// ones, we return an error
-	var clients model.Clients
-	if err := db.Select(&clients).Where("protocol=? AND owner=?", protocol,
-		conf.GlobalConfig.GatewayName).Run(); err != nil {
-		return nil, fmt.Errorf("failed to retrieve clients: %w", err)
-	}
-
-	// No client found with the given protocol.
-	if len(clients) == 0 {
-		return nil, badRequest("no suitable %s client found", protocol)
-	}
-
-	// Multiple clients found with the given protocol.
-	if len(clients) > 1 {
-		var candidates []string
-		for _, client := range clients {
-			candidates = append(candidates, fmt.Sprintf("%q", client.Name))
-		}
-
-		return nil, badRequest("multiple suitable %s clients found (%s), please specify one",
-			protocol, strings.Join(candidates, ", "))
-	}
-
-	return clients[0], nil
-}
-
 func getTransInfo(db *database.DB, trans *api.InTransfer,
-) (*model.Rule, *model.RemoteAccount, *model.Client, error) {
+) (ruleID int64, accountID, clientID sql.NullInt64, _ error) {
+	var null sql.NullInt64
+
 	if !trans.IsSend.Valid {
-		return nil, nil, nil, badRequest("the transfer direction (isSend) is missing")
+		return 0, null, null, badRequest("the transfer direction (isSend) is missing")
 	}
 
 	if trans.Rule == "" {
-		return nil, nil, nil, badRequest("the transfer rule is missing")
+		return 0, null, null, badRequest("the transfer rule is missing")
 	}
 
 	if trans.Partner == "" {
-		return nil, nil, nil, badRequest("the transfer partner is missing")
+		return 0, null, null, badRequest("the transfer partner is missing")
 	}
 
 	if trans.Account == "" {
-		return nil, nil, nil, badRequest("the transfer account is missing")
+		return 0, null, null, badRequest("the transfer account is missing")
 	}
 
 	var rule model.Rule
 	if err := db.Get(&rule, "name=? AND is_send=?", trans.Rule, trans.IsSend.Value).Run(); err != nil {
 		if database.IsNotFound(err) {
-			return nil, nil, nil, badRequest("no rule '%s' found", trans.Rule)
+			return 0, null, null, badRequest("no rule '%s' found", trans.Rule)
 		}
 
-		return nil, nil, nil, fmt.Errorf("failed to retrieve rule %q: %w", trans.Rule, err)
+		return 0, null, null, fmt.Errorf("failed to retrieve rule %q: %w", trans.Rule, err)
 	}
 
 	var partner model.RemoteAgent
 	if err := db.Get(&partner, "name=? AND owner=?", trans.Partner,
 		conf.GlobalConfig.GatewayName).Run(); err != nil {
 		if database.IsNotFound(err) {
-			return nil, nil, nil, badRequest("no partner '%s' found", trans.Partner)
+			return 0, null, null, badRequest("no partner '%s' found", trans.Partner)
 		}
 
-		return nil, nil, nil, fmt.Errorf("failed to retrieve partner %q: %w",
-			trans.Partner, err)
+		return 0, null, null, fmt.Errorf("failed to retrieve partner %q: %w", trans.Partner, err)
 	}
 
 	var account model.RemoteAccount
 	if err := db.Get(&account, "remote_agent_id=? AND login=?", partner.ID,
 		trans.Account).Run(); err != nil {
 		if database.IsNotFound(err) {
-			return nil, nil, nil, badRequest("no account '%s' found for partner %s",
+			return 0, null, null, badRequest("no account '%s' found for partner %s",
 				trans.Account, trans.Partner)
 		}
 
-		return nil, nil, nil, fmt.Errorf("failed to retrieve remote account %q: %w",
+		return 0, null, null, fmt.Errorf("failed to retrieve remote account %q: %w",
 			trans.Account, err)
 	}
 
-	client, cliErr := getTransferClient(db, trans, partner.Protocol)
-	if cliErr != nil {
-		return nil, nil, nil, cliErr
+	if trans.Client != "" {
+		var client model.Client
+		if err := db.Get(&client, "name=?", trans.Client).Run(); err != nil {
+			return 0, null, null, fmt.Errorf("failed to retrieve client %q: %w", trans.Client, err)
+		}
+
+		clientID = utils.NewNullInt64(client.ID)
 	}
 
-	return &rule, &account, client, nil
+	return rule.ID, utils.NewNullInt64(account.ID), clientID, nil
 }
 
 //nolint:funlen // FIXME should be refactored

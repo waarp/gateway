@@ -11,12 +11,12 @@ type ServerConfig struct {
 
 	// PassiveModeMinPort indicates the starting port number of the port range
 	// which the server is allowed to use for data transfer in passive mode.
-	// The default value is 10000 (if DisablePassiveMode is false).
+	// By default, any free port is allowed.
 	PassiveModeMinPort uint16 `json:"passiveModeMinPort,omitempty"`
 
 	// PassiveModeMaxPort indicates the ending port number of the port range
 	// which the server is allowed to use for data transfer in passive mode.
-	// The default value is 20000 (if DisablePassiveMode is false).
+	// By default, any free port is allowed.
 	PassiveModeMaxPort uint16 `json:"passiveModeMaxPort,omitempty"`
 }
 
@@ -24,14 +24,6 @@ func (s *ServerConfig) ValidServer() error {
 	if s.DisablePassiveMode {
 		s.PassiveModeMinPort = 0
 		s.PassiveModeMaxPort = 0
-	} else {
-		if s.PassiveModeMinPort == 0 {
-			s.PassiveModeMinPort = 10000
-		}
-
-		if s.PassiveModeMaxPort == 0 {
-			s.PassiveModeMaxPort = 20000
-		}
 	}
 
 	return nil
@@ -48,12 +40,12 @@ type ClientConfig struct {
 
 	// ActiveModeMinPort indicates the starting port number of the port range
 	// which the client is allowed to use for data transfer in active mode.
-	// The default value is 10000.
+	// By default, any free port is allowed.
 	ActiveModeMinPort uint16 `json:"activeModeMinPort,omitempty"`
 
 	// ActiveModeMaxPort indicates the ending port number of the port range
 	// which the client is allowed to use for data transfer in active mode.
-	// The default value is 20000.
+	// By default, any free port is allowed.
 	ActiveModeMaxPort uint16 `json:"activeModeMaxPort,omitempty"`
 }
 
@@ -61,14 +53,6 @@ func (c *ClientConfig) ValidClient() error {
 	if !c.EnableActiveMode {
 		c.ActiveModeMinPort = 0
 		c.ActiveModeMaxPort = 0
-	} else {
-		if c.ActiveModeMinPort == 0 {
-			c.ActiveModeMinPort = 10000
-		}
-
-		if c.ActiveModeMaxPort == 0 {
-			c.ActiveModeMaxPort = 20000
-		}
 	}
 
 	return nil

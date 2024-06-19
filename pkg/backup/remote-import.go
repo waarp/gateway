@@ -130,8 +130,7 @@ func importRemoteAccounts(logger *log.Logger, db database.Access,
 			}
 		}
 
-		if err := credentialsImport(logger, db, src.Credentials, &account,
-			partner.Protocol); err != nil {
+		if err := credentialsImport(logger, db, src.Credentials, &account); err != nil {
 			return err
 		}
 

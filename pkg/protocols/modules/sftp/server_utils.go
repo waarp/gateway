@@ -27,7 +27,7 @@ func makeServerConf(db *database.DB, logger *log.Logger,
 				return nil, ErrDatabase
 			}
 
-			if res, err := acc.Authenticate(db, AuthSSHPublicKey, key); err != nil {
+			if res, err := acc.Authenticate(db, agent, AuthSSHPublicKey, key); err != nil {
 				logger.Error("Failed to authenticate account %q: %v", acc.Login, err)
 
 				return nil, ErrInternal
@@ -68,7 +68,7 @@ func passwordCallback(db *database.DB, logger *log.Logger, agent *model.LocalAge
 			return nil, ErrDatabase
 		}
 
-		if res, err := acc.Authenticate(db, auth.PasswordHash, pass); err != nil {
+		if res, err := acc.Authenticate(db, agent, auth.Password, pass); err != nil {
 			logger.Error("Failed to authenticate account %q: %v", acc.Login, err)
 
 			return nil, ErrInternal

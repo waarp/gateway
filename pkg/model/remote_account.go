@@ -26,7 +26,7 @@ func (*RemoteAccount) IsServer() bool      { return false }
 // inserted in the database.
 //
 //nolint:dupl // too many differences to be factorized easily
-func (r *RemoteAccount) BeforeWrite(db database.ReadAccess) error {
+func (r *RemoteAccount) BeforeWrite(db database.Access) error {
 	if r.RemoteAgentID == 0 {
 		return database.NewValidationError("the account's agentID cannot be empty")
 	}
@@ -90,4 +90,26 @@ func (r *RemoteAccount) GetAuthorizedRules(db database.ReadAccess) ([]*Rule, err
 	}
 
 	return rules, nil
+}
+
+func (r *RemoteAccount) getParent(db database.ReadAccess) (*RemoteAgent, error) {
+	var parent RemoteAgent
+	if err := db.Get(&parent, "id=?", r.RemoteAgentID).Run(); err != nil {
+		if database.IsNotFound(err) {
+			return nil, database.NewValidationError(`no remote agent found with the ID "%v"`, r.RemoteAgentID)
+		}
+
+		return nil, fmt.Errorf("failed to check parent remote agent: %w", err)
+	}
+
+	return &parent, nil
+}
+
+func (r *RemoteAccount) GetProtocol(db database.ReadAccess) (string, error) {
+	parent, err := r.getParent(db)
+	if err != nil {
+		return "", err
+	}
+
+	return parent.Protocol, nil
 }

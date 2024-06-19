@@ -81,7 +81,7 @@ func importLocalAgents(logger *log.Logger, db database.Access, list []file.Local
 			return err
 		}
 
-		if err := credentialsImport(logger, db, src.Credentials, &agent, agent.Protocol); err != nil {
+		if err := credentialsImport(logger, db, src.Credentials, &agent); err != nil {
 			return err
 		}
 
@@ -163,11 +163,11 @@ func importLocalAccounts(logger *log.Logger, db database.Access,
 		if src.PasswordHash != "" || src.Password != "" {
 			pswd := &model.Credential{
 				LocalAccountID: utils.NewNullInt64(account.ID),
-				Type:           auth.PasswordHash,
+				Type:           auth.Password,
 			}
 
 			if src.Password != "" {
-				pswd.Value = cryptR66Pswd(pswd.Type, src.Password, server.Protocol)
+				pswd.Value = src.Password
 			} else {
 				pswd.Value = src.PasswordHash
 			}
@@ -182,8 +182,7 @@ func importLocalAccounts(logger *log.Logger, db database.Access,
 			}
 		}
 
-		if err := credentialsImport(logger, db, src.Credentials, &account,
-			server.Protocol); err != nil {
+		if err := credentialsImport(logger, db, src.Credentials, &account); err != nil {
 			return err
 		}
 

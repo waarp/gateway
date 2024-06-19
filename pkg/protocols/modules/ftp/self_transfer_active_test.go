@@ -10,10 +10,7 @@ import (
 )
 
 var (
-	clientConfActive = &ClientConfig{
-		EnableActiveMode:  true,
-		ActiveModeMinPort: 20000, ActiveModeMaxPort: 30000,
-	}
+	clientConfActive  = &ClientConfig{EnableActiveMode: true}
 	serverConfActive  = &ServerConfig{DisablePassiveMode: true}
 	partnerConfActive = &PartnerConfig{DisableEPSV: true}
 )

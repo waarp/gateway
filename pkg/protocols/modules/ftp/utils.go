@@ -9,10 +9,18 @@ import (
 	"code.waarp.fr/lib/log"
 	ftplog "github.com/fclairamb/go-log"
 
+	"code.waarp.fr/apps/gateway/gateway/pkg/model/types"
+	"code.waarp.fr/apps/gateway/gateway/pkg/pipeline"
 	"code.waarp.fr/apps/gateway/gateway/pkg/utils"
 )
 
-func getPortInRange(addr string, minPort, maxPort uint16) uint16 {
+func getPortInRange(addr string, minPort, maxPort uint16) (uint16, *pipeline.Error) {
+	if minPort == maxPort {
+		return minPort, nil
+	} else if minPort > maxPort {
+		return 0, pipeline.NewError(types.TeInternal, "invalid port range for active mode")
+	}
+
 	const (
 		minNbTries = 10
 		maxNbTries = 100
@@ -27,12 +35,15 @@ func getPortInRange(addr string, minPort, maxPort uint16) uint16 {
 		//nolint:gosec //we don't need to be secure, we just need a random port
 		candidate := minPort + uint16(rand.Intn(rangeSize))
 
-		if _, err := net.Listen("tcp", fmt.Sprintf("%s:%d", addr, i)); err == nil {
-			return candidate
+		if list, err := net.Listen("tcp", fmt.Sprintf("%s:%d", addr, i)); err == nil {
+			_ = list.Close() //nolint:errcheck //error is irrelevant
+
+			return candidate, nil
 		}
 	}
 
-	return 0
+	return 0, pipeline.NewError(types.TeInternal,
+		"could not find an available port in the range for active mode")
 }
 
 type ftpServerLogger struct {

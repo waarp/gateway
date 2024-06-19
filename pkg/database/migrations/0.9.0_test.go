@@ -1164,12 +1164,12 @@ func testVer0_9_0FillCredTable(t *testing.T, eng *testEngine) Change {
 		eng.NoError(t, `INSERT INTO crypto_credentials
     		(id,name,local_agent_id,remote_agent_id,local_account_id,remote_account_id,
     		 private_key,certificate,ssh_public_key) 
-			VALUES (1010, '1-lag_cert',     10,   NULL, NULL, NULL, 'pk1',    'cert1', ''),
-			       (1020, '2-rag_cert',     NULL, 20,   NULL, NULL, '',       'cert2', ''),
-			       (1100, '3-lac_ssh',      NULL, NULL, 100,  NULL, '',       '',      'ssh_pbk1'),
-			       (1200, '4-rac_ssh',      NULL, NULL, NULL, 200, 'ssh_pk1', '',      ''),
-			       (1011, '5-lag_r66_cert', 10,   NULL, NULL, NULL, ?,        ?,       ''),
-			       (1021, '6-rag_r66_cert', NULL, 20,   NULL, NULL, '',       ?,       '')`,
+			VALUES (1010, '1-lag_cert',     10,   NULL, NULL, NULL, '$AES$pk1',    'cert1', ''),
+			       (1020, '2-rag_cert',     NULL, 20,   NULL, NULL, '',            'cert2', ''),
+			       (1100, '3-lac_ssh',      NULL, NULL, 100,  NULL, '',            '',      'ssh_pbk1'),
+			       (1200, '4-rac_ssh',      NULL, NULL, NULL, 200, '$AES$ssh_pk1', '',      ''),
+			       (1011, '5-lag_r66_cert', 10,   NULL, NULL, NULL, ?,             ?,       ''),
+			       (1021, '6-rag_r66_cert', NULL, 20,   NULL, NULL, '',            ?,       '')`,
 			compatibility.LegacyR66KeyPEM, compatibility.LegacyR66CertPEM,
 			compatibility.LegacyR66CertPEM)
 
@@ -1267,22 +1267,22 @@ func testVer0_9_0FillCredTable(t *testing.T, eng *testEngine) Change {
 			require.NoError(t, rows.Scan(&lagID, &ragID, &lacID, &racID, &name, &typ, &val, &val2))
 			assert.Zero(t, lagID)
 			assert.Zero(t, ragID)
-			assert.Zero(t, lacID)
-			assert.Equal(t, utils.NewNullInt64(200), racID)
+			assert.Equal(t, utils.NewNullInt64(100), lacID)
+			assert.Zero(t, racID)
 			assert.Equal(t, "password", name)
 			assert.Equal(t, "password", typ)
-			assert.Equal(t, "pswd", val)
+			assert.Equal(t, "pswd_hash", val)
 			assert.Zero(t, val2)
 
 			require.True(t, rows.Next())
 			require.NoError(t, rows.Scan(&lagID, &ragID, &lacID, &racID, &name, &typ, &val, &val2))
 			assert.Zero(t, lagID)
 			assert.Zero(t, ragID)
-			assert.Equal(t, utils.NewNullInt64(100), lacID)
-			assert.Zero(t, racID)
+			assert.Zero(t, lacID)
+			assert.Equal(t, utils.NewNullInt64(200), racID)
 			assert.Equal(t, "password", name)
-			assert.Equal(t, "password_hash", typ)
-			assert.Equal(t, "pswd_hash", val)
+			assert.Equal(t, "password", typ)
+			assert.Equal(t, "pswd", val)
 			assert.Zero(t, val2)
 
 			require.False(t, rows.Next())
@@ -1384,7 +1384,7 @@ func testVer0_9_0RemoveOldCreds(t *testing.T, eng *testEngine) Change {
 				assert.Zero(t, racID)
 				assert.Equal(t, "1_lag_cert", name)
 				assert.Equal(t, "cert1", cert)
-				assert.Equal(t, "pk1", pk)
+				assert.Equal(t, "$AES$pk1", pk)
 				assert.Zero(t, pbk)
 
 				require.True(t, rows.Next())
@@ -1417,7 +1417,7 @@ func testVer0_9_0RemoveOldCreds(t *testing.T, eng *testEngine) Change {
 				assert.Equal(t, utils.NewNullInt64(200), racID)
 				assert.Equal(t, "4_rac_prvk", name)
 				assert.Zero(t, cert)
-				assert.Equal(t, "pk4", pk)
+				assert.Equal(t, "$AES$pk4", pk)
 				assert.Zero(t, pbk)
 
 				require.True(t, rows.Next())
@@ -1428,7 +1428,7 @@ func testVer0_9_0RemoveOldCreds(t *testing.T, eng *testEngine) Change {
 				assert.Zero(t, racID)
 				assert.Equal(t, "7_lag_r66_cert", name)
 				assert.Equal(t, compatibility.LegacyR66CertPEM, cert)
-				assert.Equal(t, compatibility.LegacyR66KeyPEM, pk)
+				assert.Equal(t, "$AES$"+compatibility.LegacyR66KeyPEM, pk)
 				assert.Zero(t, pbk)
 
 				require.True(t, rows.Next())
@@ -1546,7 +1546,7 @@ func testVer0_9_0MoveR66ServerCreds(t *testing.T, eng *testEngine) Change {
 			require.NoError(t, rows.Scan(&id, &conf, &name, &typ, &val))
 			assert.Equal(t, 3, id)
 			assert.Equal(t, "password", name)
-			assert.Equal(t, "password_hash", typ)
+			assert.Equal(t, "password", typ)
 			assert.Equal(t, "pwd_hash3", val)
 			checkConf(t)
 
@@ -1554,7 +1554,7 @@ func testVer0_9_0MoveR66ServerCreds(t *testing.T, eng *testEngine) Change {
 			require.NoError(t, rows.Scan(&id, &conf, &name, &typ, &val))
 			assert.Equal(t, 4, id)
 			assert.Equal(t, "password", name)
-			assert.Equal(t, "password_hash", typ)
+			assert.Equal(t, "password", typ)
 			assert.Equal(t, "pwd_hash4", val)
 			checkConf(t)
 

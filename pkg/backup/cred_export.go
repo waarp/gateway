@@ -47,7 +47,7 @@ func exportLegacyCredentials(src *model.Credential, certs *[]file.Certificate,
 	pswd *string,
 ) {
 	switch src.Type {
-	case auth.Password, auth.PasswordHash:
+	case auth.Password:
 		*pswd = src.Value
 	case auth.TLSTrustedCertificate:
 		*certs = append(*certs, file.Certificate{

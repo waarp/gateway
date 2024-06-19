@@ -14,7 +14,7 @@ func (*NormalizedTransferView) Appellation() string { return "normalized transfe
 func (n *NormalizedTransferView) GetID() int64      { return n.ID }
 
 // BeforeWrite always returns an error because writing is not allowed on views.
-func (n *NormalizedTransferView) BeforeWrite(database.ReadAccess) error {
+func (n *NormalizedTransferView) BeforeWrite(database.Access) error {
 	return database.NewInternalError(errWriteOnView)
 }
 

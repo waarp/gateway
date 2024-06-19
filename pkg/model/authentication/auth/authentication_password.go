@@ -14,14 +14,13 @@ import (
 	"code.waarp.fr/apps/gateway/gateway/pkg/utils"
 )
 
-const (
-	PasswordHash = "password_hash"
-	Password     = "password"
-)
+const Password = "password"
+
+type ProtocolPasswordHandler struct{}
 
 //nolint:gochecknoinits //init is used by design
 func init() {
-	authentication.AddInternalCredentialType(PasswordHash, &BcryptAuthHandler{})
+	authentication.AddInternalCredentialType(Password, &BcryptAuthHandler{})
 	authentication.AddExternalCredentialType(Password, &AESPasswordHandler{})
 }
 
@@ -40,7 +39,7 @@ func (*BcryptAuthHandler) ToDB(val, _ string) (string, string, error) {
 	return hashed, "", nil
 }
 
-func (*BcryptAuthHandler) Validate(value, _, _ string, _ bool) error {
+func (*BcryptAuthHandler) Validate(value, _, _, _ string, _ bool) error {
 	if _, err := bcrypt.Cost([]byte(value)); err == nil {
 		return nil // password is already hashed
 	}
@@ -58,7 +57,7 @@ func (*BcryptAuthHandler) Authenticate(db database.ReadAccess,
 ) (*authentication.Result, error) {
 	doVerify := func(value []byte) (*authentication.Result, error) {
 		var pswd model.Credential
-		if err := db.Get(&pswd, "type=?", PasswordHash).And(owner.GetCredCond()).
+		if err := db.Get(&pswd, "type=?", Password).And(owner.GetCredCond()).
 			Run(); err != nil && !database.IsNotFound(err) {
 			return nil, fmt.Errorf("failed to retrieve the reference password hash: %w", err)
 		}
@@ -105,7 +104,7 @@ func (*AESPasswordHandler) FromDB(val, _ string) (string, string, error) {
 	return clear, "", nil
 }
 
-func (*AESPasswordHandler) Validate(value, _, _ string, _ bool) error {
+func (*AESPasswordHandler) Validate(value, _, _, _ string, _ bool) error {
 	// TODO add more verifications (min length, character variety...)
 	if value == "" {
 		return ErrEmptyPassword

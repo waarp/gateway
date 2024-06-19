@@ -3,7 +3,6 @@ package wg
 import (
 	"fmt"
 	"io"
-	"strings"
 
 	"code.waarp.fr/apps/gateway/gateway/pkg/admin/rest/api"
 )
@@ -19,21 +18,10 @@ func (*LocAccArg) UnmarshalFlag(value string) error {
 	return nil
 }
 
-func DisplayAccount(w io.Writer, account *api.OutAccount) {
-	f := NewFormatter(w)
-	defer f.Render()
-
-	displayAccount(f, account)
-}
-
-func displayAccount(f *Formatter, account *api.OutAccount) {
-	f.Title("Account %q", account.Login)
-	f.Indent()
-
-	defer f.UnIndent()
-
-	f.ValueWithDefault("Credentials", strings.Join(account.Credentials, ", "), "<none>")
-	displayAuthorizedRules(f, account.AuthorizedRules)
+func displayAccount(w io.Writer, account *api.OutAccount) {
+	style1.printf(w, "Account %q", account.Login)
+	style22.printL(w, "Credentials", withDefault(join(account.Credentials), none))
+	displayAuthorizedRules(w, account.AuthorizedRules)
 }
 
 // ######################## ADD ##########################
@@ -41,10 +29,10 @@ func displayAccount(f *Formatter, account *api.OutAccount) {
 //nolint:lll //tags are long
 type LocAccAdd struct {
 	Login    string `required:"yes" short:"l" long:"login" description:"The account's login" json:"login,omitempty"`
-	Password string `required:"yes" short:"p" long:"password" description:"The account's password" json:"password,omitempty"`
+	Password string `short:"p" long:"password" description:"The account's password" json:"password,omitempty"`
 }
 
-func (l *LocAccAdd) Execute([]string) error { return l.execute(stdOutput) }
+func (l *LocAccAdd) Execute([]string) error { return execute(l) }
 func (l *LocAccAdd) execute(w io.Writer) error {
 	addr.Path = fmt.Sprintf("/api/servers/%s/accounts", Server)
 
@@ -65,7 +53,7 @@ type LocAccGet struct {
 	} `positional-args:"yes"`
 }
 
-func (l *LocAccGet) Execute([]string) error { return l.execute(stdOutput) }
+func (l *LocAccGet) Execute([]string) error { return execute(l) }
 func (l *LocAccGet) execute(w io.Writer) error {
 	addr.Path = fmt.Sprintf("/api/servers/%s/accounts/%s", Server, l.Args.Login)
 
@@ -74,7 +62,7 @@ func (l *LocAccGet) execute(w io.Writer) error {
 		return err
 	}
 
-	DisplayAccount(w, account)
+	displayAccount(w, account)
 
 	return nil
 }
@@ -89,7 +77,7 @@ type LocAccUpdate struct {
 	Password string `short:"p" long:"password" description:"The account's password" json:"password,omitempty"`
 }
 
-func (l *LocAccUpdate) Execute([]string) error { return l.execute(stdOutput) }
+func (l *LocAccUpdate) Execute([]string) error { return execute(l) }
 func (l *LocAccUpdate) execute(w io.Writer) error {
 	addr.Path = fmt.Sprintf("/api/servers/%s/accounts/%s", Server, l.Args.Login)
 
@@ -115,7 +103,7 @@ type LocAccDelete struct {
 	} `positional-args:"yes"`
 }
 
-func (l *LocAccDelete) Execute([]string) error { return l.execute(stdOutput) }
+func (l *LocAccDelete) Execute([]string) error { return execute(l) }
 func (l *LocAccDelete) execute(w io.Writer) error {
 	addr.Path = fmt.Sprintf("/api/servers/%s/accounts/%s", Server, l.Args.Login)
 
@@ -136,7 +124,7 @@ type LocAccList struct {
 	SortBy string `short:"s" long:"sort" description:"Attribute used to sort the returned entries" choice:"login+" choice:"login-" default:"login+"`
 }
 
-func (l *LocAccList) Execute([]string) error { return l.execute(stdOutput) }
+func (l *LocAccList) Execute([]string) error { return execute(l) }
 
 //nolint:dupl //duplicate is for a different command, best keep separate
 func (l *LocAccList) execute(w io.Writer) error {
@@ -150,13 +138,10 @@ func (l *LocAccList) execute(w io.Writer) error {
 	}
 
 	if accounts := body["localAccounts"]; len(accounts) > 0 {
-		f := NewFormatter(w)
-		defer f.Render()
-
-		f.MainTitle("Accounts of server %q:", Server)
+		style0.printf(w, "=== Accounts of server %q ===", Server)
 
 		for _, account := range accounts {
-			displayAccount(f, account)
+			displayAccount(w, account)
 		}
 	} else {
 		fmt.Fprintf(w, "Server %q has no accounts.\n", Server)
@@ -175,7 +160,7 @@ type LocAccAuthorize struct {
 	} `positional-args:"yes"`
 }
 
-func (l *LocAccAuthorize) Execute([]string) error { return l.execute(stdOutput) }
+func (l *LocAccAuthorize) Execute([]string) error { return execute(l) }
 func (l *LocAccAuthorize) execute(w io.Writer) error {
 	addr.Path = fmt.Sprintf("/api/servers/%s/accounts/%s/authorize/%s/%s", Server,
 		l.Args.Login, l.Args.Rule, l.Args.Direction)
@@ -193,7 +178,7 @@ type LocAccRevoke struct {
 	} `positional-args:"yes"`
 }
 
-func (l *LocAccRevoke) Execute([]string) error { return l.execute(stdOutput) }
+func (l *LocAccRevoke) Execute([]string) error { return execute(l) }
 func (l *LocAccRevoke) execute(w io.Writer) error {
 	addr.Path = fmt.Sprintf("/api/servers/%s/accounts/%s/revoke/%s/%s", Server,
 		l.Args.Login, l.Args.Rule, l.Args.Direction)

@@ -6,8 +6,6 @@ import (
 	"io"
 	"path"
 
-	"github.com/jedib0t/go-pretty/v6/text"
-
 	"code.waarp.fr/apps/gateway/gateway/pkg/admin/rest/api"
 	"code.waarp.fr/apps/gateway/gateway/pkg/model/authentication/auth"
 	"code.waarp.fr/apps/gateway/gateway/pkg/protocols/modules/r66"
@@ -31,30 +29,24 @@ func getCredentialPath() (string, error) {
 	}
 }
 
-func DisplayCredential(w io.Writer, cred *api.OutCred) {
-	f := NewFormatter(w)
-	defer f.Render()
-
-	displayCredential(f, cred)
-}
-
-func displayCredential(f *Formatter, cred *api.OutCred) {
+func displayCredential(w io.Writer, cred *api.OutCred) error {
 	switch cred.Type {
-	case auth.PasswordHash:
-		f.Title("Password hash %q: %s", cred.Name, cred.Value)
 	case auth.Password:
-		f.Title("Password %q: %s", cred.Name, cred.Value)
+		style1.printL(w, fmt.Sprintf("Password %q", cred.Name), cred.Value)
 	case auth.TLSCertificate, auth.TLSTrustedCertificate:
-		displayTLSInfo(f, cred.Name, cred.Value)
+		return displayTLSInfo(w, style1, cred.Name, cred.Value)
 	case sftp.AuthSSHPublicKey:
-		displaySSHKeyInfo(f, cred.Name, cred.Value)
+		return displaySSHKeyInfo(w, style1, cred.Name, cred.Value)
 	case sftp.AuthSSHPrivateKey:
-		displayPrivateKeyInfo(f, cred.Name, cred.Value)
+		return displayPrivateKeyInfo(w, style1, cred.Name, cred.Value)
 	case r66.AuthLegacyCertificate:
-		f.Title("Legacy R66 certificate %q", cred.Name)
+		style1.printf(w, "Legacy R66 certificate %q", cred.Name)
 	default:
-		f.Println(text.FgRed.Sprintf("Unknown credential type %q", cred.Type))
+		//nolint:goerr113 //too specific
+		return fmt.Errorf("unknown credential type %q", cred.Type)
 	}
+
+	return nil
 }
 
 //nolint:lll //flags tags are long
@@ -108,9 +100,7 @@ func (a *CredentialGet) execute(w io.Writer) error {
 		return err
 	}
 
-	DisplayCredential(w, &cred)
-
-	return nil
+	return displayCredential(w, &cred)
 }
 
 type CredentialDelete struct {

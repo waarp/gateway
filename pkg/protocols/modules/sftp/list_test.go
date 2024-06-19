@@ -53,7 +53,7 @@ func TestSFTPList(t *testing.T) {
 
 			totoPswd := &model.Credential{
 				LocalAccountID: utils.NewNullInt64(toto.ID),
-				Type:           auth.PasswordHash,
+				Type:           auth.Password,
 				Value:          "toto",
 			}
 			So(db.Insert(totoPswd).Run(), ShouldBeNil)
@@ -66,7 +66,7 @@ func TestSFTPList(t *testing.T) {
 
 			tataPswd := &model.Credential{
 				LocalAccountID: utils.NewNullInt64(tata.ID),
-				Type:           auth.PasswordHash,
+				Type:           auth.Password,
 				Value:          "tata",
 			}
 			So(db.Insert(tataPswd).Run(), ShouldBeNil)

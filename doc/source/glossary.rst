@@ -92,3 +92,13 @@ Glossaire
       d'un agent regroupent toutes les formes d'authentification pouvant
       authentifier l'agent en question. Cela inclue les mots de passes,
       les certificat TLS, etc...
+
+   autorité d'authentification
+   (*authentification authority*)
+      Une autorité d'authentification (aussi appelée "autorité de certification"
+      ou "autorité de confiance") représente un tiers de confiance auquel la
+      gateway fait confiance pour certifier l'identité d'un partenaire souhaitant
+      se connecter à la gateway. Ainsi, tout identifiant certifié par une autorité
+      d'authentification lui-même considéré comme "de confiance" pour les besoins
+      de l'authentification. Pour l'heure, les seules autorités de confiance
+      acceptées sont les autorités de certification TLS et SSH.

@@ -4,7 +4,6 @@ import (
 	"fmt"
 	"io"
 	"path"
-	"strings"
 
 	"code.waarp.fr/apps/gateway/gateway/pkg/admin/rest/api"
 )
@@ -20,25 +19,15 @@ func (*PartnerArg) UnmarshalFlag(value string) error {
 	return nil
 }
 
-func DisplayPartner(w io.Writer, partner *api.OutPartner) {
-	f := NewFormatter(w)
-	defer f.Render()
+func displayPartner(w io.Writer, partner *api.OutPartner) {
+	style1.printf(w, "Partner %q", partner.Name)
+	style22.printL(w, "Protocol", partner.Protocol)
+	style22.printL(w, "Address", partner.Address)
+	style22.printL(w, "Credentials",
+		withDefault(join(partner.Credentials), none))
 
-	displayPartner(f, partner)
-}
-
-func displayPartner(f *Formatter, partner *api.OutPartner) {
-	f.Title("Partner %q", partner.Name)
-	f.Indent()
-
-	defer f.UnIndent()
-
-	f.Value("Protocol", partner.Protocol)
-	f.Value("Address", partner.Address)
-	f.ValueWithDefault("Credentials", strings.Join(partner.Credentials, ", "), "<none>")
-
-	displayProtoConfig(f, partner.ProtoConfig)
-	displayAuthorizedRules(f, partner.AuthorizedRules)
+	displayProtoConfig(w, partner.ProtoConfig)
+	displayAuthorizedRules(w, partner.AuthorizedRules)
 }
 
 // ######################## ADD ##########################
@@ -51,7 +40,7 @@ type PartnerAdd struct {
 	ProtoConfig map[string]confVal `short:"c" long:"config" description:"The partner's configuration, in key:val format. Can be repeated." json:"protoConfig,omitempty"`
 }
 
-func (p *PartnerAdd) Execute([]string) error { return p.execute(stdOutput) }
+func (p *PartnerAdd) Execute([]string) error { return execute(p) }
 func (p *PartnerAdd) execute(w io.Writer) error {
 	addr.Path = "/api/partners"
 
@@ -73,7 +62,7 @@ type PartnerList struct {
 	Protocols []string `short:"p" long:"protocol" description:"Filter the agents based on the protocol they use. Can be repeated multiple times to filter multiple protocols."`
 }
 
-func (p *PartnerList) Execute([]string) error { return p.execute(stdOutput) }
+func (p *PartnerList) Execute([]string) error { return execute(p) }
 
 //nolint:dupl //duplicate is for a different type, best keep separate
 func (p *PartnerList) execute(w io.Writer) error {
@@ -85,13 +74,10 @@ func (p *PartnerList) execute(w io.Writer) error {
 	}
 
 	if partners := body["partners"]; len(partners) > 0 {
-		f := NewFormatter(w)
-		defer f.Render()
-
-		f.MainTitle("Partners:")
+		style0.printf(w, "=== Partners ===")
 
 		for _, partner := range partners {
-			displayPartner(f, partner)
+			displayPartner(w, partner)
 		}
 	} else {
 		fmt.Fprintln(w, "No partners found.")
@@ -108,7 +94,7 @@ type PartnerGet struct {
 	} `positional-args:"yes"`
 }
 
-func (p *PartnerGet) Execute([]string) error { return p.execute(stdOutput) }
+func (p *PartnerGet) Execute([]string) error { return execute(p) }
 func (p *PartnerGet) execute(w io.Writer) error {
 	addr.Path = path.Join("/api/partners", p.Args.Name)
 
@@ -117,7 +103,7 @@ func (p *PartnerGet) execute(w io.Writer) error {
 		return err
 	}
 
-	DisplayPartner(w, partner)
+	displayPartner(w, partner)
 
 	return nil
 }
@@ -130,7 +116,7 @@ type PartnerDelete struct {
 	} `positional-args:"yes"`
 }
 
-func (p *PartnerDelete) Execute([]string) error { return p.execute(stdOutput) }
+func (p *PartnerDelete) Execute([]string) error { return execute(p) }
 func (p *PartnerDelete) execute(w io.Writer) error {
 	addr.Path = path.Join("/api/partners", p.Args.Name)
 
@@ -156,7 +142,7 @@ type PartnerUpdate struct {
 	ProtoConfig map[string]confVal `short:"c" long:"config" description:"The partner's configuration, in key:val format. Can be repeated." json:"protoConfig,omitempty"`
 }
 
-func (p *PartnerUpdate) Execute([]string) error { return p.execute(stdOutput) }
+func (p *PartnerUpdate) Execute([]string) error { return execute(p) }
 func (p *PartnerUpdate) execute(w io.Writer) error {
 	addr.Path = path.Join("/api/partners", p.Args.Name)
 
@@ -185,7 +171,7 @@ type PartnerAuthorize struct {
 	} `positional-args:"yes"`
 }
 
-func (p *PartnerAuthorize) Execute([]string) error { return p.execute(stdOutput) }
+func (p *PartnerAuthorize) Execute([]string) error { return execute(p) }
 func (p *PartnerAuthorize) execute(w io.Writer) error {
 	addr.Path = fmt.Sprintf("/api/partners/%s/authorize/%s/%s", p.Args.Partner,
 		p.Args.Rule, p.Args.Direction)
@@ -203,7 +189,7 @@ type PartnerRevoke struct {
 	} `positional-args:"yes"`
 }
 
-func (p *PartnerRevoke) Execute([]string) error { return p.execute(stdOutput) }
+func (p *PartnerRevoke) Execute([]string) error { return execute(p) }
 func (p *PartnerRevoke) execute(w io.Writer) error {
 	addr.Path = fmt.Sprintf("/api/partners/%s/revoke/%s/%s", p.Args.Partner,
 		p.Args.Rule, p.Args.Direction)

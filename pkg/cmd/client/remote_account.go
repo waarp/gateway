@@ -26,7 +26,7 @@ type RemAccGet struct {
 	} `positional-args:"yes"`
 }
 
-func (r *RemAccGet) Execute([]string) error { return r.execute(stdOutput) }
+func (r *RemAccGet) Execute([]string) error { return execute(r) }
 func (r *RemAccGet) execute(w io.Writer) error {
 	addr.Path = fmt.Sprintf("/api/partners/%s/accounts/%s", Partner, r.Args.Login)
 
@@ -35,7 +35,7 @@ func (r *RemAccGet) execute(w io.Writer) error {
 		return err
 	}
 
-	DisplayAccount(w, account)
+	displayAccount(w, account)
 
 	return nil
 }
@@ -45,10 +45,10 @@ func (r *RemAccGet) execute(w io.Writer) error {
 //nolint:lll //tags are long
 type RemAccAdd struct {
 	Login    string `required:"true" short:"l" long:"login" description:"The account's login" json:"login,omitempty"`
-	Password string `required:"true" short:"p" long:"password" description:"The account's password" json:"password,omitempty"`
+	Password string `short:"p" long:"password" description:"The account's password" json:"password,omitempty"`
 }
 
-func (r *RemAccAdd) Execute([]string) error { return r.execute(stdOutput) }
+func (r *RemAccAdd) Execute([]string) error { return execute(r) }
 func (r *RemAccAdd) execute(w io.Writer) error {
 	addr.Path = fmt.Sprintf("/api/partners/%s/accounts", Partner)
 
@@ -69,7 +69,7 @@ type RemAccDelete struct {
 	} `positional-args:"yes"`
 }
 
-func (r *RemAccDelete) Execute([]string) error { return r.execute(stdOutput) }
+func (r *RemAccDelete) Execute([]string) error { return execute(r) }
 func (r *RemAccDelete) execute(w io.Writer) error {
 	addr.Path = fmt.Sprintf("/api/partners/%s/accounts/%s", Partner, r.Args.Login)
 
@@ -92,7 +92,7 @@ type RemAccUpdate struct {
 	Password string `short:"p" long:"password" description:"The account's password" json:"password,omitempty"`
 }
 
-func (r *RemAccUpdate) Execute([]string) error { return r.execute(stdOutput) }
+func (r *RemAccUpdate) Execute([]string) error { return execute(r) }
 func (r *RemAccUpdate) execute(w io.Writer) error {
 	addr.Path = fmt.Sprintf("/api/partners/%s/accounts/%s", Partner, r.Args.Login)
 
@@ -118,7 +118,7 @@ type RemAccList struct {
 	SortBy string `short:"s" long:"sort" description:"Attribute used to sort the returned entries" choice:"login+" choice:"login-" default:"login+"`
 }
 
-func (r *RemAccList) Execute([]string) error { return r.execute(stdOutput) }
+func (r *RemAccList) Execute([]string) error { return execute(r) }
 
 //nolint:dupl //duplicate is for a different command, best keep separate
 func (r *RemAccList) execute(w io.Writer) error {
@@ -132,13 +132,10 @@ func (r *RemAccList) execute(w io.Writer) error {
 	}
 
 	if accounts := body["remoteAccounts"]; len(accounts) > 0 {
-		f := NewFormatter(w)
-		defer f.Render()
-
-		f.MainTitle("Accounts of partner %q:", Partner)
+		style0.printf(w, "=== Accounts of partner %q ===", Partner)
 
 		for _, account := range accounts {
-			displayAccount(f, account)
+			displayAccount(w, account)
 		}
 	} else {
 		fmt.Fprintf(w, "Partner %q has no accounts.\n", Partner)
@@ -157,7 +154,7 @@ type RemAccAuthorize struct {
 	} `positional-args:"yes"`
 }
 
-func (r *RemAccAuthorize) Execute([]string) error { return r.execute(stdOutput) }
+func (r *RemAccAuthorize) Execute([]string) error { return execute(r) }
 func (r *RemAccAuthorize) execute(w io.Writer) error {
 	addr.Path = fmt.Sprintf("/api/partners/%s/accounts/%s/authorize/%s/%s", Partner,
 		r.Args.Login, r.Args.Rule, r.Args.Direction)
@@ -175,7 +172,7 @@ type RemAccRevoke struct {
 	} `positional-args:"yes"`
 }
 
-func (r *RemAccRevoke) Execute([]string) error { return r.execute(stdOutput) }
+func (r *RemAccRevoke) Execute([]string) error { return execute(r) }
 func (r *RemAccRevoke) execute(w io.Writer) error {
 	addr.Path = fmt.Sprintf("/api/partners/%s/accounts/%s/revoke/%s/%s", Partner,
 		r.Args.Login, r.Args.Rule, r.Args.Direction)

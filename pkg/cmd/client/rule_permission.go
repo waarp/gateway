@@ -6,7 +6,7 @@ import (
 	"io"
 	"net/http"
 
-	"github.com/jedib0t/go-pretty/v6/text"
+	"github.com/gookit/color"
 )
 
 func authorize(w io.Writer, targetType, target, rule, direction string) error {
@@ -27,7 +27,7 @@ func authorize(w io.Writer, targetType, target, rule, direction string) error {
 	switch resp.StatusCode {
 	case http.StatusOK:
 		if msg, err := io.ReadAll(resp.Body); err != nil {
-			fmt.Fprintln(asColorable(w), text.FgRed.Sprintf(
+			fmt.Fprintln(w, color.Red.Sprintf(
 				"<WARNING: error while reading the response body: %v>", err))
 		} else if len(msg) != 0 {
 			fmt.Fprintln(w, string(msg))
@@ -67,7 +67,7 @@ func revoke(w io.Writer, targetType, target, rule, direction string) error {
 			targetType, target, direction, rule)
 
 		if msg, err := io.ReadAll(resp.Body); err != nil {
-			fmt.Fprintln(asColorable(w), text.FgRed.Sprintf(
+			fmt.Fprintln(w, color.Red.Sprintf(
 				"<WARNING: error while reading the response body: %v>", err))
 		} else if len(msg) != 0 {
 			fmt.Fprintln(w, string(msg))

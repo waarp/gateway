@@ -106,13 +106,12 @@ func (a *authHandler) passwordAuth(authent *r66.Authent, acc *model.LocalAccount
 		return false, nil
 	}
 
-	if res, err := acc.Authenticate(a.db, auth.PasswordHash, authent.Password); err != nil {
+	if res, err := acc.Authenticate(a.db, a.agent, auth.Password, authent.Password); err != nil {
 		a.logger.Error("Failed to authenticate account %q: %v", acc.Login, err)
 
 		return false, internal.NewR66Error(r66.Internal, "internal authentication error")
 	} else if !res.Success {
-		a.logger.Warning("Authentication failed with unknown account %q: %s",
-			authent.Login, res.Reason)
+		a.logger.Warning("Authentication failed for account %q: %s", authent.Login, res.Reason)
 
 		return false, internal.NewR66Error(r66.BadAuthent, "authentication failed")
 	}

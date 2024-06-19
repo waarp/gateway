@@ -15,66 +15,37 @@ import (
 	"code.waarp.fr/apps/gateway/gateway/pkg/utils"
 )
 
-func DisplayHistory(w io.Writer, hist *api.OutHistory) {
-	f := NewFormatter(w)
-	defer f.Render()
+func displayHistory(w io.Writer, hist *api.OutHistory) {
+	fmt.Fprintf(w, "%s%s (%s as %s) [%s]\n", style1.bulletPrefix,
+		style1.color.Sprintf("Transfer %d", hist.ID),
+		direction(hist.IsSend), transferRole(hist.IsServer),
+		coloredStatus(hist.Status))
 
-	displayHistory(f, hist)
-}
-
-//nolint:varnamelen //formatter name is kept short for readability
-func displayHistory(f *Formatter, hist *api.OutHistory) {
-	role := roleClient
-	if hist.IsServer {
-		role = roleServer
-	}
-
-	size := sizeUnknown
-	if hist.Filesize >= 0 {
-		size = utils.FormatInt(hist.Filesize)
-	}
-
-	stop := NotApplicable
-	if hist.Stop.Valid {
-		stop = hist.Stop.Value.Local().Format(time.RFC3339Nano)
-	}
-
-	title := f.titleColor().Sprintf("Transfer %d (%s as %s)", hist.ID, role,
-		direction(hist.IsSend))
-
-	f.PlainTitle(title + " " + coloredStatus(hist.Status))
-	f.Indent()
-
-	defer f.UnIndent()
-
-	f.ValueCond("Remote ID", hist.RemoteID)
-	f.Value("Way", direction(hist.IsSend))
-	f.Value("Protocol", hist.Protocol)
-	f.Value("Rule", hist.Rule)
-	f.Value("Requester", hist.Requester)
-	f.Value("Requested", hist.Requested)
-	f.Value("Local filepath", hist.LocalFilepath)
-	f.Value("Remote filepath", hist.RemoteFilepath)
-	f.Value("File size", size)
-	f.Value("Start date", hist.Start.Format(time.RFC3339Nano))
-	f.Value("End date", stop)
-
-	if hist.ErrorCode != types.TeOk {
-		f.Value("Error code", hist.ErrorCode.String())
-		f.ValueCond("Error message", hist.ErrorMsg)
-	}
+	style22.printL(w, "Remote ID", hist.RemoteID)
+	style22.printL(w, "Protocol", hist.Protocol)
+	style22.printL(w, "Rule", hist.Rule)
+	style22.printL(w, "Requested by", hist.Requester)
+	style22.printL(w, "Requested to", hist.Requested)
+	style22.printL(w, "Full local path", hist.LocalFilepath)
+	style22.printL(w, "Full remote path", hist.RemoteFilepath)
+	style22.printL(w, "File size", prettyBytes(hist.Filesize))
+	style22.printL(w, "Start date", hist.Start.Local().String())
+	style22.printL(w, "End date",
+		ifElse(hist.Stop.Valid, hist.Stop.Value.Local().String(), notApplicable))
+	style22.printL(w, "Data transferred", prettyBytes(hist.Progress))
 
 	if hist.Step != types.StepNone {
-		f.Value("Failed step", hist.Step.String())
-
-		if hist.Step == types.StepData {
-			f.Value("Progress", hist.Progress)
-		} else if hist.Step == types.StepPreTasks || hist.Step == types.StepPostTasks {
-			f.Value("Task number", hist.TaskNumber)
-		}
+		style22.printL(w, "Current step", hist.Step)
 	}
 
-	displayTransferInfo(f, hist.TransferInfo)
+	style22.option(w, "Current task", cardinal(hist.TaskNumber))
+
+	if hist.ErrorCode != types.TeOk {
+		style22.printL(w, "Error code", hist.ErrorCode)
+		style22.printL(w, "Error message", hist.ErrorMsg)
+	}
+
+	displayTransferInfo(w, hist.TransferInfo)
 }
 
 // ######################## GET ##########################
@@ -94,7 +65,7 @@ func (h *HistoryGet) execute(w io.Writer) error {
 		return err
 	}
 
-	DisplayHistory(w, trans)
+	displayHistory(w, trans)
 
 	return nil
 }
@@ -180,13 +151,10 @@ func (h *HistoryList) execute(w io.Writer) error {
 	}
 
 	if history := body["history"]; len(history) > 0 {
-		f := NewFormatter(w)
-		defer f.Render()
-
-		f.MainTitle("History:")
+		style0.printf(w, "=== History ===")
 
 		for _, entry := range history {
-			displayHistory(f, entry)
+			displayHistory(w, entry)
 		}
 	} else {
 		fmt.Fprintln(w, "No transfers found.")

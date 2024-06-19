@@ -70,9 +70,14 @@ func (h *httpsClient) makeTransport(pip *pipeline.Pipeline) (*http.Transport, er
 	}
 
 	transport := h.transport.Clone()
+	transport.TLSClientConfig.ServerName = pip.TransCtx.RemoteAgent.Address.Host
 	transport.TLSClientConfig.RootCAs = rootCAs
 	transport.TLSClientConfig.Certificates = certs
 	transport.TLSClientConfig.VerifyConnection = compatibility.LogSha1(pip.Logger)
+
+	if err := auth.AddTLSAuthorities(pip.DB, transport.TLSClientConfig); err != nil {
+		return nil, fmt.Errorf("failed to setup the TLS authorities: %w", err)
+	}
 
 	return transport, nil
 }

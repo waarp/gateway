@@ -41,8 +41,8 @@ func TestValidAuth(t *testing.T) {
 
 		totoPswd := &model.Credential{
 			LocalAccountID: utils.NewNullInt64(toto.ID),
-			Type:           auth.PasswordHash,
-			Value:          CryptPass("sesame"),
+			Type:           auth.Password,
+			Value:          "sesame",
 		}
 		So(db.Insert(totoPswd).Run(), ShouldBeNil)
 
@@ -56,7 +56,7 @@ func TestValidAuth(t *testing.T) {
 		Convey("Given an authentication packet", func() {
 			packet := &r66.Authent{
 				Login:     toto.Login,
-				Password:  []byte(CryptPass("sesame")),
+				Password:  r66.CryptPass([]byte("sesame")),
 				Filesize:  true,
 				FinalHash: true,
 				Digest:    "SHA-256",
@@ -141,7 +141,7 @@ func TestValidRequest(t *testing.T) {
 
 		accPswd := &model.Credential{
 			LocalAccountID: utils.NewNullInt64(account.ID),
-			Type:           auth.PasswordHash,
+			Type:           auth.Password,
 			Value:          "sesame",
 		}
 		So(db.Insert(accPswd).Run(), ShouldBeNil)
@@ -278,7 +278,7 @@ func TestUpdateTransferInfo(t *testing.T) {
 
 		accPswd := &model.Credential{
 			LocalAccountID: utils.NewNullInt64(account.ID),
-			Type:           auth.PasswordHash,
+			Type:           auth.Password,
 			Value:          "sesame",
 		}
 		So(db.Insert(accPswd).Run(), ShouldBeNil)

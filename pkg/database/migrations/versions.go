@@ -10,7 +10,7 @@ import (
 
 const VersionNone = "none"
 
-//nolint:gochecknoglobals,gomnd //a global var with magic numbers is required here
+//nolint:gochecknoglobals,mnd //a global var with magic numbers is required here
 var VersionsMap = map[string]int{
 	"0.4.0": 0,
 	"0.4.1": 0,
@@ -32,6 +32,7 @@ var VersionsMap = map[string]int{
 	"0.8.0": 36,
 	"0.8.1": 36,
 	"0.8.2": 36,
+	"0.9.0": 51,
 
 	VersionNone: -1,
 	version.Num: len(Migrations) - 1,

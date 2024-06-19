@@ -8,6 +8,8 @@ import (
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
+	"golang.org/x/exp/maps"
+	"golang.org/x/exp/slices"
 
 	"code.waarp.fr/apps/gateway/gateway/pkg/utils"
 )
@@ -100,11 +102,6 @@ func TestClientList(t *testing.T) {
 		client2enabled = false
 	)
 
-	var (
-		status1 = enabledStatus(client1enabled)
-		status2 = enabledStatus(client2enabled)
-	)
-
 	t.Run(`Given the client "list" command`, func(t *testing.T) {
 		w := newTestOutput()
 		command := &ClientList{}
@@ -120,24 +117,21 @@ func TestClientList(t *testing.T) {
 			path: path,
 		}
 
+		clients := []map[string]any{{
+			"name":         client1name,
+			"enabled":      client1enabled,
+			"protocol":     client1proto,
+			"localAddress": client1addr,
+		}, {
+			"name":         client2name,
+			"enabled":      client2enabled,
+			"protocol":     client2proto,
+			"localAddress": client2addr,
+		}}
+
 		result := &expectedResponse{
 			status: http.StatusOK,
-			body: map[string]any{
-				"clients": []any{
-					map[string]any{
-						"name":         client1name,
-						"enabled":      client1enabled,
-						"protocol":     client1proto,
-						"localAddress": client1addr,
-					},
-					map[string]any{
-						"name":         client2name,
-						"enabled":      client2enabled,
-						"protocol":     client2proto,
-						"localAddress": client2addr,
-					},
-				},
-			},
+			body:   map[string]any{"clients": clients},
 		}
 
 		t.Run("Given a dummy gateway REST interface", func(t *testing.T) {
@@ -151,16 +145,26 @@ func TestClientList(t *testing.T) {
 					"Then it should not return an error",
 				)
 
+				outputData := slices.Clone(clients)
+				outputData[0]["status"] = enabledStatus(client1enabled)
+				outputData[1]["status"] = enabledStatus(client2enabled)
+
 				assert.Equal(t,
-					fmt.Sprintf("Clients:\n")+
-						fmt.Sprintf("╭─ Client %q [%s]\n", client1name, status1)+
-						fmt.Sprintf("│  ├─ Protocol: %s\n", client1proto)+
-						fmt.Sprintf("│  ├─ Local address: %s\n", client1addr)+
-						fmt.Sprintf("│  ╰─ Configuration: <empty>\n")+
-						fmt.Sprintf("╰─ Client %q [%s]\n", client2name, status2)+
-						fmt.Sprintf("   ├─ Protocol: %s\n", client2proto)+
-						fmt.Sprintf("   ├─ Local address: %s\n", client2addr)+
-						fmt.Sprintf("   ╰─ Configuration: <empty>\n"),
+					expectedOutput(t, outputData,
+						`=== Clients ===`,
+						`{{- with index . 0 }}`,
+						`‣Client "{{.name}}" [{{.status}}]`,
+						`  •Protocol: {{.protocol}}`,
+						`  •Local address: {{.localAddress}}`,
+						`  •Configuration: <empty>`,
+						`{{- end }}`,
+						`{{- with index . 1 }}`,
+						`‣Client "{{.name}}" [{{.status}}]`,
+						`  •Protocol: {{.protocol}}`,
+						`  •Local address: {{.localAddress}}`,
+						`  •Configuration: <empty>`,
+						`{{- end }}`,
+					),
 					w.String(),
 					"Then it should display the clients",
 				)
@@ -183,8 +187,6 @@ func TestClientGet(t *testing.T) {
 
 		path = "/api/clients/" + clientName
 	)
-
-	status := enabledStatus(clientEnabled)
 
 	responseBody := map[string]any{
 		"name":         clientName,
@@ -215,13 +217,19 @@ func TestClientGet(t *testing.T) {
 				require.NoError(t, executeCommand(t, w, command, clientName),
 					"Then it should not return an error")
 
+				outputData := maps.Clone(result.body)
+				outputData["status"] = enabledStatus(clientEnabled)
+
 				assert.Equal(t,
-					fmt.Sprintf("── Client %q [%s]\n", clientName, status)+
-						fmt.Sprintf("   ├─ Protocol: %s\n", clientProto)+
-						fmt.Sprintf("   ├─ Local address: %s\n", clientAddr)+
-						fmt.Sprintf("   ╰─ Configuration\n")+
-						fmt.Sprintf("      ├─ %s: %s\n", key1, val1)+
-						fmt.Sprintf("      ╰─ %s: %s\n", key2, val2),
+					expectedOutput(t, outputData,
+						`‣Client "{{.name}}" [{{.status}}]`,
+						`  •Protocol: {{.protocol}}`,
+						`  •Local address: {{.localAddress}}`,
+						`  •Configuration:`,
+						`    {{- range $option, $value := .protoConfig }}`,
+						`    ⁃{{$option}}: {{$value}}`,
+						`    {{- end }}`,
+					),
 					w.String(),
 					"Then it should display the client",
 				)

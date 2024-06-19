@@ -291,7 +291,7 @@ func addServerCred(logger *log.Logger, db *database.DB) http.HandlerFunc {
 			return
 		}
 
-		handleError(w, logger, addCredential(w, r, db, dbServer, dbServer.Protocol))
+		handleError(w, logger, addCredential(w, r, db, dbServer))
 	}
 }
 

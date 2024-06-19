@@ -5,6 +5,7 @@ package admin
 import (
 	"context"
 	"crypto/tls"
+	"crypto/x509"
 	"encoding/pem"
 	"errors"
 	"fmt"
@@ -15,7 +16,6 @@ import (
 	"time"
 
 	"code.waarp.fr/lib/log"
-	"go.step.sm/crypto/pemutil"
 
 	"code.waarp.fr/apps/gateway/gateway/pkg/conf"
 	"code.waarp.fr/apps/gateway/gateway/pkg/database"
@@ -37,38 +37,29 @@ type Server struct {
 }
 
 // listen starts the HTTP server listener on the configured port.
-func listen(s *Server) {
-	s.logger.Info("Listening at address %s", s.server.Addr)
+func (s *Server) listen() error {
+	list, err := net.Listen("tcp", s.server.Addr)
+	if err != nil {
+		return fmt.Errorf("failed to open listener: %w", err)
+	}
+
+	s.logger.Info("Listening at address %s", list.Addr().String())
 
 	go func() {
 		var err error
 
 		if s.server.TLSConfig == nil {
-			err = s.server.ListenAndServe()
+			err = s.server.Serve(list)
 		} else {
-			err = s.server.ListenAndServeTLS("", "")
+			err = s.server.ServeTLS(list, "", "")
 		}
 
 		if !errors.Is(err, http.ErrServerClosed) {
 			s.logger.Error("Unexpected error: %s", err)
 		}
 	}()
-}
 
-// checkAddress checks if the address given in the configuration is a
-// valid address on which the server can listen.
-func checkAddress() (string, error) {
-	config := &conf.GlobalConfig.Admin
-	addr := conf.GetRealAddress(config.Host, utils.FormatUint(config.Port))
-
-	l, err := net.Listen("tcp", addr)
-	if err == nil {
-		defer l.Close() //nolint:errcheck // nothing to handle the error
-
-		return l.Addr().String(), nil
-	}
-
-	return "", fmt.Errorf("canot open listener: %w", err)
+	return nil
 }
 
 func (s *Server) makeTLSConfig() (*tls.Config, error) {
@@ -106,7 +97,8 @@ func (s *Server) makeTLSConfig() (*tls.Config, error) {
 		return nil, errors.New("key file does not contain a valid PEM block")
 	}
 
-	keyDER, err := pemutil.DecryptPEMBlock(keyBlock, []byte(passphrase))
+	//nolint:staticcheck //this is needed for decrypting the key, even if the encryption is insecure
+	keyDER, err := x509.DecryptPEMBlock(keyBlock, []byte(passphrase))
 	if err != nil {
 		return nil, fmt.Errorf("failed to decrypt private key: %w", err)
 	}
@@ -135,17 +127,14 @@ func (s *Server) makeTLSConfig() (*tls.Config, error) {
 // If the configuration is invalid, this function returns an error.
 func initServer(serv *Server) error {
 	// Load REST s address
-	addr, err := checkAddress()
-	if err != nil {
-		return err
-	}
+	config := &conf.GlobalConfig.Admin
+	addr := conf.GetRealAddress(config.Host, utils.FormatUint(config.Port))
 
 	var tlsConfig *tls.Config
 
 	if conf.GlobalConfig.Admin.TLSCert != "" {
-		// Load TLS configuration
-		tlsConfig, err = serv.makeTLSConfig()
-		if err != nil {
+		var err error
+		if tlsConfig, err = serv.makeTLSConfig(); err != nil {
 			serv.logger.Error("Failed to make TLS configuration: %s", err)
 
 			return err
@@ -176,16 +165,21 @@ func (s *Server) Start() error {
 	}
 
 	s.logger = logging.NewLogger(ServiceName)
-	s.logger.Info("Startup command received...")
+	s.logger.Info("Starting administration service...")
 
 	if err := initServer(s); err != nil {
-		s.logger.Error("Failed to start: %s", err)
+		s.logger.Error("Failed to initialize server: %s", err)
 		s.state.Set(utils.StateError, err.Error())
 
 		return err
 	}
 
-	listen(s)
+	if err := s.listen(); err != nil {
+		s.logger.Error("Failed to start listener: %s", err)
+		s.state.Set(utils.StateError, err.Error())
+
+		return err
+	}
 
 	s.state.Set(utils.StateRunning, "")
 	s.logger.Info("Server started")

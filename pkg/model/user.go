@@ -72,7 +72,7 @@ func (u *User) BeforeDelete(db database.Access) error {
 
 // BeforeWrite checks if the new `User` entry is valid and can be
 // inserted in the database.
-func (u *User) BeforeWrite(db database.ReadAccess) error {
+func (u *User) BeforeWrite(db database.Access) error {
 	u.Owner = conf.GlobalConfig.GatewayName
 	if u.Username == "" {
 		return database.NewValidationError("the username cannot be empty")

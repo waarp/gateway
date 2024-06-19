@@ -7,32 +7,29 @@ import (
 	"net/http"
 	"sort"
 
-	"github.com/jedib0t/go-pretty/v6/text"
+	"github.com/gookit/color"
 
 	"code.waarp.fr/apps/gateway/gateway/pkg/admin/rest/api"
 	"code.waarp.fr/apps/gateway/gateway/pkg/utils"
 )
 
 //nolint:varnamelen //formatter name is kept short for readability
-func showStatus(f *Formatter, title string, services []*api.Service) {
+func showStatus(w io.Writer, title string, services []*api.Service) {
 	if len(services) == 0 {
-		f.Title("%s: %s", title, "<none>")
+		style1.printf(w, "%s: %s\n", title, none)
 
 		return
 	}
 
 	var (
-		running = text.Colors{text.FgHiGreen}.Sprint("[ACTIVE] ")
-		inError = text.Colors{text.FgHiRed}.Sprint("[ERROR]  ")
-		offline = text.Colors{text.FgHiBlack}.Sprint("[OFFLINE]")
+		running = "[" + color.HiGreen.Sprint("ACTIVE ") + "]"
+		inError = "[" + color.HiRed.Sprint("ERROR  ") + "]"
+		offline = "[" + color.Gray.Sprint("OFFLINE") + "]"
 
-		nameColor = text.Colors{text.Bold}
+		nameColor = color.Bold
 	)
 
-	f.Title(title)
-	f.Indent()
-
-	defer f.UnIndent()
+	style1.printf(w, title+":")
 
 	var errors, actives, offlines []*api.Service
 
@@ -52,15 +49,18 @@ func showStatus(f *Formatter, title string, services []*api.Service) {
 	}
 
 	for _, service := range errors {
-		f.Println("%s %s (%s)", inError, nameColor.Sprint(service.Name), service.Reason)
+		color.Fprintf(w, "%s%s %s (%s)\n", style22.bulletPrefix, inError,
+			nameColor.Render(service.Name), service.Reason)
 	}
 
 	for _, service := range actives {
-		f.Println("%s %s", running, nameColor.Sprint(service.Name))
+		color.Fprintf(w, "%s%s %s\n", style22.bulletPrefix, running,
+			nameColor.Render(service.Name))
 	}
 
 	for _, service := range offlines {
-		f.Println("%s %s", offline, nameColor.Sprint(service.Name))
+		color.Fprintf(w, "%s%s %s\n", style22.bulletPrefix, offline,
+			nameColor.Render(service.Name))
 	}
 }
 
@@ -70,7 +70,7 @@ type Status struct{}
 // Execute executes the 'status' command. The command flags are stored in
 // the 's' parameter, while the program arguments are stored in the 'args'
 // parameter.
-func (s Status) Execute([]string) error { return s.execute(stdOutput) }
+func (s Status) Execute([]string) error { return execute(s) }
 
 func (s Status) execute(w io.Writer) error {
 	addr.Path = "/api/about"
@@ -91,16 +91,12 @@ func (s Status) execute(w io.Writer) error {
 			return err
 		}
 
-		f := NewFormatter(w)
+		style1.printL(w, "Server version", resp.Header.Get("Server"))
+		style1.printL(w, "Local date", resp.Header.Get(api.DateHeader))
 
-		defer f.Render()
-
-		f.Value("Server version", resp.Header.Get("Server"))
-		f.Value("Local date", resp.Header.Get(api.DateHeader))
-
-		showStatus(f, "Core services", body["coreServices"])
-		showStatus(f, "Servers", body["servers"])
-		showStatus(f, "Clients", body["clients"])
+		showStatus(w, "Core services", body["coreServices"])
+		showStatus(w, "Servers", body["servers"])
+		showStatus(w, "Clients", body["clients"])
 
 		return nil
 

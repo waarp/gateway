@@ -903,7 +903,7 @@ func _ver0_9_0FillAuthTableGetCerts(db Actions) ([]struct {
 func ver0_9_0FillCredTableUp(db Actions) error {
 	if err := db.Exec(`INSERT INTO 
 		credentials (local_account_id, name, type, value)
-		SELECT id, 'password', 'password_hash', password_hash FROM local_accounts
+		SELECT id, 'password', 'password', password_hash FROM local_accounts
 		WHERE password_hash IS NOT NULL AND LENGTH(password_hash) > 0`); err != nil {
 		return fmt.Errorf("failed to add the local account passwords to the 'credentials' table: %w", err)
 	}
@@ -925,10 +925,11 @@ func ver0_9_0FillCredTableUp(db Actions) error {
 		return fmt.Errorf("failed to add the remote TLS certificates to the 'credentials' table: %w", err)
 	}
 
+	trimPK := ltrim(db, "'$AES$'", "private_key")
 	if err := db.Exec(`INSERT INTO
 		credentials(local_agent_id, remote_account_id, name, type, value, value2)
 		SELECT local_agent_id, remote_account_id, name, 'tls_certificate',
-			certificate, private_key FROM crypto_credentials
+			certificate, ` + trimPK + ` FROM crypto_credentials
 		WHERE (local_agent_id IS NOT NULL OR remote_account_id IS NOT NULL)
 			AND (certificate IS NOT NULL AND LENGTH(certificate) > 0)`); err != nil {
 		return fmt.Errorf("failed to add the local TLS certificates to the 'credentials' table: %w", err)
@@ -945,7 +946,7 @@ func ver0_9_0FillCredTableUp(db Actions) error {
 
 	if err := db.Exec(`INSERT INTO
 		credentials(local_agent_id, remote_account_id, name, type, value)
-		SELECT local_agent_id, remote_account_id, name, 'ssh_private_key', private_key
+		SELECT local_agent_id, remote_account_id, name, 'ssh_private_key', ` + trimPK + `
 		FROM crypto_credentials
 		WHERE (local_agent_id IS NOT NULL OR remote_account_id IS NOT NULL)
 			AND (private_key IS NOT NULL AND LENGTH(private_key) > 0) 
@@ -1073,12 +1074,17 @@ func ver0_9_0RemoveOldAuthsDown(db Actions) error {
 		return fmt.Errorf("failed to restore the SSH public keys: %w", err)
 	}
 
+	if err := db.Exec(`UPDATE crypto_credentials SET private_key=` +
+		concat(db, "'$AES$'", "private_key") + ` WHERE private_key<>''`); err != nil {
+		return fmt.Errorf("failed to prefix the private keys: %w", err)
+	}
+
 	if err := db.Exec(`INSERT INTO crypto_credentials 
 		(local_agent_id, remote_account_id, name, certificate, private_key) 
 		SELECT local_agent_id, remote_account_id, name,	?, ? FROM credentials
 		WHERE type = 'r66_legacy_certificate' AND 
 			(local_agent_id IS NOT NULL OR remote_account_id IS NOT NULL)`,
-		compatibility.LegacyR66CertPEM, compatibility.LegacyR66KeyPEM); err != nil {
+		compatibility.LegacyR66CertPEM, "$AES$"+compatibility.LegacyR66KeyPEM); err != nil {
 		return fmt.Errorf("failed to restore the local legacy R66 certificates: %w", err)
 	}
 
@@ -1185,8 +1191,8 @@ func _ver0_9_0MoveR66ServerAuthUndo(db Actions, tbl, col, authType string, chpwd
 		}
 	}
 
-	if err := db.Exec(`DELETE FROM credentials WHERE (type='password' OR type='password_hash')
-	    AND ` + col + ` IN (SELECT id FROM ` + tbl + ` WHERE protocol='r66' OR protocol='r66-tls')`); err != nil {
+	if err := db.Exec(`DELETE FROM credentials WHERE type='password' AND ` +
+		col + ` IN (SELECT id FROM ` + tbl + ` WHERE protocol='r66' OR protocol='r66-tls')`); err != nil {
 		return fmt.Errorf("failed to delete the R66 credentials: %w", err)
 	}
 
@@ -1198,7 +1204,7 @@ func ver0_9_0MoveR66ServerPswdUp(db Actions) error {
 		return err
 	}
 
-	return _ver0_9_0MoveR66ServerAuthDo(db, "remote_agents", "remote_agent_id", "password_hash")
+	return _ver0_9_0MoveR66ServerAuthDo(db, "remote_agents", "remote_agent_id", "password")
 }
 
 func ver0_9_0MoveR66ServerPswdDown(db Actions) error {
@@ -1208,7 +1214,7 @@ func ver0_9_0MoveR66ServerPswdDown(db Actions) error {
 		return err
 	}
 
-	return _ver0_9_0MoveR66ServerAuthUndo(db, "remote_agents", "remote_agent_id", "password_hash",
+	return _ver0_9_0MoveR66ServerAuthUndo(db, "remote_agents", "remote_agent_id", "password",
 		func(s string) string { return s })
 }
 

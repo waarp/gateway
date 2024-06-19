@@ -10,14 +10,8 @@ import (
 
 //nolint:gochecknoinits //init is needed here to parse the legacy R66 cert
 func init() {
-	var err error
-	if LegacyR66Cert, err = tls.X509KeyPair([]byte(LegacyR66CertPEM),
-		[]byte(LegacyR66KeyPEM)); err != nil {
-		panic(fmt.Sprintf("failed to load legacy R66 cert: %v", err))
-	}
-
-	if LegacyR66Cert.Leaf, err = x509.ParseCertificate(LegacyR66Cert.Certificate[0]); err != nil {
-		panic(fmt.Sprintf("failed to parse legacy R66 cert: %v", err))
+	if err := ParseLegacyR66Certificate(); err != nil {
+		panic(err)
 	}
 }
 
@@ -45,6 +39,20 @@ var (
 	IsLegacyR66CertificateAllowed = os.Getenv(AllowLegacyR66CertificateVar) == "1"
 	LegacyR66Cert                 tls.Certificate
 )
+
+func ParseLegacyR66Certificate() error {
+	var err error
+	if LegacyR66Cert, err = tls.X509KeyPair([]byte(LegacyR66CertPEM),
+		[]byte(LegacyR66KeyPEM)); err != nil {
+		return fmt.Errorf("failed to load legacy R66 cert: %w", err)
+	}
+
+	if LegacyR66Cert.Leaf, err = x509.ParseCertificate(LegacyR66Cert.Certificate[0]); err != nil {
+		return fmt.Errorf("failed to parse legacy R66 cert: %w", err)
+	}
+
+	return nil
+}
 
 func IsLegacyR66Cert(cert *x509.Certificate) bool {
 	if IsLegacyR66CertificateAllowed &&

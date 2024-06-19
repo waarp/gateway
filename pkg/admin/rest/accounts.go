@@ -83,19 +83,20 @@ func DBRemoteAccountsToREST(db database.ReadAccess, dbAccounts []*model.RemoteAc
 	return restAccounts, nil
 }
 
-func updateAccountPassword(ses *database.Session, account model.CredOwnerTable,
-	password, passwdType, protocol string,
+func updateAccountPassword(ses *database.Session, account model.CredOwnerTable, password string,
 ) error {
 	var cred model.Credential
-	if err := ses.Get(&cred, "type=?", passwdType).And(
+	if err := ses.Get(&cred, "type=?", auth.Password).And(
 		account.GetCredCond()).Run(); database.IsNotFound(err) {
-		cred.Type = passwdType
+		cred.Type = auth.Password
 		cred.Value = password
 		account.SetCredOwner(&cred)
 
 		if err2 := ses.Insert(&cred).Run(); err2 != nil {
 			return fmt.Errorf("failed to insert account password: %w", err2)
 		}
+
+		return nil
 	} else if err != nil {
 		return fmt.Errorf("failed to retrieve old account password: %w", err)
 	}
@@ -107,9 +108,6 @@ func updateAccountPassword(ses *database.Session, account model.CredOwnerTable,
 	}
 
 	cred.Value = password
-	if passwdType == auth.PasswordHash {
-		checkR66Password(&cred, protocol)
-	}
 
 	if err := ses.Update(&cred).Run(); err != nil {
 		return fmt.Errorf("failed to update account password: %w", err)

@@ -12,9 +12,9 @@ import (
 // authority is a trusted third party used to authenticate transfer partners.
 type Authority struct {
 	ID             int64    `xorm:"<- id AUTOINCR"`
-	Name           string   `xorm:"VARCHAR(100) NOTNULL UNIQUE 'name'"`
-	Type           string   `xorm:"VARCHAR(50) NOTNULL 'type'"`
-	PublicIdentity string   `xorm:"TEXT NOTNULL 'public_identity'"`
+	Name           string   `xorm:"name"`
+	Type           string   `xorm:"type"`
+	PublicIdentity string   `xorm:"public_identity"`
 	ValidHosts     []string `xorm:"-"`
 }
 
@@ -22,7 +22,7 @@ func (*Authority) TableName() string   { return TableAuthorities }
 func (*Authority) Appellation() string { return NameAuthority }
 func (a *Authority) GetID() int64      { return a.ID }
 
-func (a *Authority) BeforeWrite(db database.ReadAccess) error {
+func (a *Authority) BeforeWrite(db database.Access) error {
 	if strings.TrimSpace(a.Name) == "" {
 		return database.NewValidationError("the authority is missing a name")
 	}
@@ -92,8 +92,8 @@ func (a *Authority) AfterRead(db database.ReadAccess) error {
 }
 
 type Host struct {
-	AuthorityID int64  `xorm:"BIGINT NOTNULL UNIQUE(Host) 'authority_id'"`
-	Host        string `xorm:"VARCHAR(255) NOTNULL UNIQUE(Host) 'Host'"`
+	AuthorityID int64  `xorm:"authority_id"`
+	Host        string `xorm:"host"`
 }
 
 func (*Host) TableName() string   { return TableAuthHosts }

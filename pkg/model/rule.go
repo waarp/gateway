@@ -68,7 +68,7 @@ func (r *Rule) checkPath(db database.ReadAccess) error {
 
 // BeforeWrite is called before writing the `Rule` entry in the database. It
 // checks whether the new entry is valid or not.
-func (r *Rule) BeforeWrite(db database.ReadAccess) error {
+func (r *Rule) BeforeWrite(db database.Access) error {
 	if r.Name == "" {
 		return database.NewValidationError("the rule's name cannot be empty")
 	}

@@ -8,7 +8,6 @@ import (
 	"errors"
 	"fmt"
 	"io"
-	"strings"
 
 	"golang.org/x/crypto/bcrypt"
 )
@@ -22,18 +21,13 @@ var errNonceTooLong = errors.New("the nonce cannot be longer than the text")
 // If the slice is already encrypted, it is returned unchanged.
 // If the slice cannot be encrypted, an error is returned.
 func AESCrypt(gcm cipher.AEAD, password string) (string, error) {
-	// If password is already encrypted, don't encrypt it again.
-	if strings.HasPrefix(password, "$AES$") {
-		return password, nil
-	}
-
 	nonce := make([]byte, gcm.NonceSize())
 	if _, err := io.ReadFull(rand.Reader, nonce); err != nil {
 		return "", fmt.Errorf("cannot get random bytes: %w", err)
 	}
 
 	cipherBytes := gcm.Seal(nonce, nonce, []byte(password), nil)
-	cipherText := "$AES$" + base64.StdEncoding.EncodeToString(cipherBytes)
+	cipherText := base64.StdEncoding.EncodeToString(cipherBytes)
 
 	return cipherText, nil
 }
@@ -43,11 +37,7 @@ func AESCrypt(gcm cipher.AEAD, password string) (string, error) {
 //
 // If the slice cannot be decrypted, an error is returned.
 func AESDecrypt(gcm cipher.AEAD, cipherStr string) (string, error) {
-	if !strings.HasPrefix(cipherStr, "$AES$") {
-		return cipherStr, nil
-	}
-
-	cryptPassword, err := base64.StdEncoding.DecodeString(cipherStr[5:])
+	cryptPassword, err := base64.StdEncoding.DecodeString(cipherStr)
 	if err != nil {
 		return "", fmt.Errorf("failed to decode encrypted password string: %w", err)
 	}
@@ -95,12 +85,6 @@ func HashPassword(bcryptRounds int, password string) (string, error) {
 	}
 
 	return string(hash), nil
-}
-
-func IsPasswordHashed(password string) bool {
-	_, err := bcrypt.Cost([]byte(password))
-
-	return err == nil
 }
 
 // ConstantEqual takes a pair of strings and returns whether they are equal or

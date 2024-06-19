@@ -4,11 +4,13 @@ import (
 	"context"
 	"crypto/tls"
 	"fmt"
+	"net"
 	"time"
 
 	"code.waarp.fr/lib/goftp"
 	"code.waarp.fr/lib/log"
 
+	"code.waarp.fr/apps/gateway/gateway/pkg/conf"
 	"code.waarp.fr/apps/gateway/gateway/pkg/logging"
 	"code.waarp.fr/apps/gateway/gateway/pkg/model"
 	"code.waarp.fr/apps/gateway/gateway/pkg/model/authentication/auth"
@@ -131,16 +133,17 @@ func (c *client) connect(pip *pipeline.Pipeline) (*goftp.Client, *pipeline.Error
 	)
 
 	if c.conf.EnableActiveMode && !partConf.DisableActiveMode {
-		port := getPortInRange(c.conf.ActiveModeAddress,
+		port, err := getPortInRange(c.conf.ActiveModeAddress,
 			c.conf.ActiveModeMinPort, c.conf.ActiveModeMaxPort)
-		if port == 0 {
-			return nil, pipeline.NewError(types.TeInternal,
-				"could not find an available port in the range for active mode")
+		if err != nil {
+			return nil, err
 		}
 
 		enableActiveMode = true
 		activeModeAddr = fmt.Sprintf("%s:%d", c.conf.ActiveModeAddress, port)
 	}
+
+	addr := conf.GetRealAddress(partner.Address.Host, utils.FormatUint(partner.Address.Port))
 
 	var (
 		tlsConfig *tls.Config
@@ -148,14 +151,20 @@ func (c *client) connect(pip *pipeline.Pipeline) (*goftp.Client, *pipeline.Error
 	)
 
 	if partner.Protocol == "ftps" {
+		//nolint:errcheck //error is guaranteed to be nil
+		serverName, _, _ := net.SplitHostPort(addr)
+
 		//nolint:gosec //TLS version is set by the user
 		tlsConfig = &tls.Config{
-			ServerName: partner.Address.Host,
+			ServerName: serverName,
 			ClientAuth: tls.NoClientCert,
 			MinVersion: utils.Max(
 				protoutils.ParseTLSVersion(c.conf.MinTLSVersion),
 				protoutils.ParseTLSVersion(partConf.MinTLSVersion)),
-			RootCAs: utils.TLSCertPool(),
+		}
+
+		if auth.AddTLSAuthorities(pip.DB, tlsConfig) != nil {
+			return nil, pipeline.NewError(types.TeInternal, "failed to setup the TLS authorities")
 		}
 
 		for _, dbCert := range pip.TransCtx.RemoteAccountCreds {
@@ -178,6 +187,7 @@ func (c *client) connect(pip *pipeline.Pipeline) (*goftp.Client, *pipeline.Error
 		}
 
 		if !partConf.DisableTLSSessionReuse {
+			tlsConfig.SessionTicketsDisabled = false
 			tlsConfig.ClientSessionCache = tls.NewLRUClientSessionCache(0)
 		}
 
@@ -198,7 +208,7 @@ func (c *client) connect(pip *pipeline.Pipeline) (*goftp.Client, *pipeline.Error
 		DisableEPSV:      partConf.DisableEPSV,
 	}
 
-	cli, dialErr := goftp.DialConfig(ftpConf, partner.Address.String())
+	cli, dialErr := goftp.DialConfig(ftpConf, addr)
 	if dialErr != nil {
 		return nil, toPipelineError(dialErr, "could not connect to FTP server")
 	}

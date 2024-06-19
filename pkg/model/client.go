@@ -27,7 +27,7 @@ func (c *Client) GetID() int64      { return c.ID }
 func (*Client) TableName() string   { return TableClients }
 func (*Client) Appellation() string { return "client" }
 
-func (c *Client) BeforeWrite(db database.ReadAccess) error {
+func (c *Client) BeforeWrite(db database.Access) error {
 	c.Owner = conf.GlobalConfig.GatewayName
 
 	if c.Name == "" {

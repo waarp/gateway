@@ -56,11 +56,13 @@ func TestRemoteAccountGet(t *testing.T) {
 					"Then it should not return an error")
 
 				assert.Equal(t,
-					fmt.Sprintf("── Account %q\n", login)+
-						fmt.Sprintf("   ├─ Credentials: %s, %s\n", cred1, cred2)+
-						fmt.Sprintf("   ╰─ Authorized rules\n")+
-						fmt.Sprintf("      ├─ Send: %s, %s\n", send1, send2)+
-						fmt.Sprintf("      ╰─ Receive: %s, %s\n", receive1, receive2),
+					expectedOutput(t, result.body,
+						`‣Account "{{.login}}"`,
+						`  •Credentials: {{ join .credentials }}`,
+						`  •Authorized rules:`,
+						`    ⁃Send: {{ join .authorizedRules.sending }}`,
+						`    ⁃Receive: {{ join .authorizedRules.reception }}`,
+					),
 					w.String(),
 					"Then it should display the account",
 				)
@@ -246,14 +248,14 @@ func TestRemoteAccountList(t *testing.T) {
 			path: path,
 		}
 
+		remoteAccounts := []map[string]any{
+			{"login": login1},
+			{"login": login2},
+		}
+
 		result := &expectedResponse{
 			status: http.StatusOK,
-			body: map[string]any{
-				"remoteAccounts": []any{
-					map[string]any{"login": login1},
-					map[string]any{"login": login2},
-				},
-			},
+			body:   map[string]any{"remoteAccounts": remoteAccounts},
 		}
 
 		t.Run("Given a dummy gateway REST interface", func(t *testing.T) {
@@ -266,17 +268,24 @@ func TestRemoteAccountList(t *testing.T) {
 					"Then it should not return an error",
 				)
 
-				assert.Equal(t, fmt.Sprintf("Accounts of partner %q:\n", partner)+
-					fmt.Sprintf("╭─ Account %q\n", login1)+
-					fmt.Sprintf("│  ├─ Credentials: <none>\n")+
-					fmt.Sprintf("│  ╰─ Authorized rules\n")+
-					fmt.Sprintf("│     ├─ Send: <none>\n")+
-					fmt.Sprintf("│     ╰─ Receive: <none>\n")+
-					fmt.Sprintf("╰─ Account %q\n", login2)+
-					fmt.Sprintf("   ├─ Credentials: <none>\n")+
-					fmt.Sprintf("   ╰─ Authorized rules\n")+
-					fmt.Sprintf("      ├─ Send: <none>\n")+
-					fmt.Sprintf("      ╰─ Receive: <none>\n"),
+				assert.Equal(t,
+					expectedOutput(t, remoteAccounts,
+						`=== Accounts of partner "{{getPartner}}" ===`,
+						`{{- with (index . 0) }}`,
+						`‣Account "{{.login}}"`,
+						`  •Credentials: <none>`,
+						`  •Authorized rules:`,
+						`    ⁃Send: <none>`,
+						`    ⁃Receive: <none>`,
+						`{{- end }}`,
+						`{{- with (index . 1) }}`,
+						`‣Account "{{.login}}"`,
+						`  •Credentials: <none>`,
+						`  •Authorized rules:`,
+						`    ⁃Send: <none>`,
+						`    ⁃Receive: <none>`,
+						`{{- end }}`,
+					),
 					w.String(),
 					"Then it should display the accounts of the partner",
 				)

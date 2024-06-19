@@ -33,7 +33,7 @@ func (r *RemoteAgent) Host() string      { return r.Address.Host }
 
 // BeforeWrite is called before inserting a new `RemoteAgent` entry in the
 // database. It checks whether the new entry is valid or not.
-func (r *RemoteAgent) BeforeWrite(db database.ReadAccess) error {
+func (r *RemoteAgent) BeforeWrite(db database.Access) error {
 	r.Owner = conf.GlobalConfig.GatewayName
 
 	if r.Name == "" {
@@ -101,9 +101,13 @@ func (r *RemoteAgent) GetAuthorizedRules(db database.ReadAccess) ([]*Rule, error
 	return rules, nil
 }
 
+func (r *RemoteAgent) GetProtocol(database.ReadAccess) (string, error) {
+	return r.Protocol, nil
+}
+
 func (r *RemoteAgent) Authenticate(db database.ReadAccess, authType string, value any,
 ) (*authentication.Result, error) {
-	return authenticate(db, r, authType, value)
+	return authenticate(db, r, authType, r.Protocol, value)
 }
 
 // AfterWrite is called after any write operation on the remote_agents table.

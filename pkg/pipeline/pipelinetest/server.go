@@ -142,11 +142,6 @@ func makeServerConf(c convey.C, data *testData, port uint16, proto string,
 	c.So(fs.MkdirAll(data.FS, rootPath.JoinPath(server.SendDir)), convey.ShouldBeNil)
 	c.So(fs.MkdirAll(data.FS, rootPath.JoinPath(server.TmpReceiveDir)), convey.ShouldBeNil)
 
-	pswd := TestPassword
-	if proto == "r66" || proto == "r66-tls" {
-		pswd = utils.R66Hash(pswd)
-	}
-
 	locAccount := &model.LocalAccount{
 		LocalAgentID: server.ID,
 		Login:        TestLogin,
@@ -155,8 +150,8 @@ func makeServerConf(c convey.C, data *testData, port uint16, proto string,
 
 	cred := &model.Credential{
 		LocalAccountID: utils.NewNullInt64(locAccount.ID),
-		Type:           auth.PasswordHash,
-		Value:          pswd,
+		Type:           auth.Password,
+		Value:          TestPassword,
 	}
 	c.So(data.DB.Insert(cred).Run(), convey.ShouldBeNil)
 

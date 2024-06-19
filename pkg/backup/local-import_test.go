@@ -208,7 +208,7 @@ func TestImportLocalAccounts(t *testing.T) {
 
 			accPswd := &model.Credential{
 				LocalAccountID: utils.NewNullInt64(dbAccount.ID),
-				Type:           auth.PasswordHash,
+				Type:           auth.Password,
 				Value:          "bar",
 			}
 			So(db.Insert(accPswd).Run(), ShouldBeNil)
@@ -239,7 +239,7 @@ func TestImportLocalAccounts(t *testing.T) {
 						Convey("Then the 1st account should have been imported", func() {
 							var pswd model.Credential
 							So(db.Get(&pswd, "local_account_id=? AND type=?",
-								accounts[1].ID, auth.PasswordHash).Run(), ShouldBeNil)
+								accounts[1].ID, auth.Password).Run(), ShouldBeNil)
 
 							So(accounts[1].Login, ShouldEqual, account1.Login)
 							So(bcrypt.CompareHashAndPassword([]byte(pswd.Value),
@@ -249,7 +249,7 @@ func TestImportLocalAccounts(t *testing.T) {
 						Convey("Then the 2nd account should have been imported", func() {
 							var pswd model.Credential
 							So(db.Get(&pswd, "local_account_id=? AND type=?",
-								accounts[2].ID, auth.PasswordHash).Run(), ShouldBeNil)
+								accounts[2].ID, auth.Password).Run(), ShouldBeNil)
 
 							So(accounts[2].Login, ShouldEqual, account2.Login)
 							So(bcrypt.CompareHashAndPassword([]byte(pswd.Value),
@@ -292,7 +292,7 @@ func TestImportLocalAccounts(t *testing.T) {
 
 							var pswd model.Credential
 							So(db.Get(&pswd, "local_account_id=? AND type=?",
-								accounts[0].ID, auth.PasswordHash).Run(), ShouldBeNil)
+								accounts[0].ID, auth.Password).Run(), ShouldBeNil)
 							So(bcrypt.CompareHashAndPassword([]byte(pswd.Value),
 								[]byte(account1.Password)), ShouldBeNil)
 

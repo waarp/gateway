@@ -82,13 +82,13 @@ func TestHTTPSClient(t *testing.T) {
 			setAddress(ctx.Partner, serv.URL)
 			So(ctx.DB.Update(ctx.Partner).Cols("address").Run(), ShouldBeNil)
 
-			cert := &model.Credential{
-				RemoteAgentID: utils.NewNullInt64(ctx.Partner.ID),
-				Name:          "partner_cert",
-				Type:          auth.TLSTrustedCertificate,
-				Value:         testhelpers.LocalhostCert,
+			authority := &model.Authority{
+				Name:           "local-tls-auth",
+				Type:           auth.AuthorityTLS,
+				PublicIdentity: testhelpers.LocalhostCert,
+				ValidHosts:     []string{ctx.Partner.Address.Host},
 			}
-			ctx.AddCryptos(c, cert)
+			So(ctx.DB.Insert(authority).Run(), ShouldBeNil)
 
 			Convey("Once the transfer has been processed", func(c C) {
 				ctx.RunTransfer(c)
@@ -171,7 +171,7 @@ func TestHTTPSServer(t *testing.T) {
 				RootCAs:      rootCAs,
 				Certificates: []tls.Certificate{cert},
 			}}
-			client := &http.Client{Transport: transport, Timeout: time.Hour}
+			client := &http.Client{Transport: transport, Timeout: time.Minute}
 			addr := schemeHTTPS + ctx.Server.Address.String() + "/" + ctx.Filename()
 
 			Convey("When executing the transfer", func(c C) {

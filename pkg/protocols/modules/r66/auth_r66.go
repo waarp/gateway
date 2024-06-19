@@ -8,6 +8,7 @@ import (
 
 	"code.waarp.fr/apps/gateway/gateway/pkg/database"
 	"code.waarp.fr/apps/gateway/gateway/pkg/model/authentication"
+	"code.waarp.fr/apps/gateway/gateway/pkg/model/authentication/auth"
 	"code.waarp.fr/apps/gateway/gateway/pkg/utils/compatibility"
 )
 
@@ -20,10 +21,22 @@ var _ interface {
 	authentication.ExternalAuthHandler
 } = &r66LegacyCertificate{}
 
+var _ authentication.InternalAuthHandler = &r66BcryptAuthHandler{}
+
 //nolint:gochecknoinits //init is used by design
 func init() {
-	authentication.AddInternalCredentialType(AuthLegacyCertificate, &r66LegacyCertificate{})
-	authentication.AddExternalCredentialType(AuthLegacyCertificate, &r66LegacyCertificate{})
+	authentication.AddInternalCredentialTypeForProtocol(auth.Password, R66, &r66BcryptAuthHandler{})
+	authentication.AddInternalCredentialTypeForProtocol(auth.Password, R66TLS, &r66BcryptAuthHandler{})
+
+	authentication.AddInternalCredentialTypeForProtocol(AuthLegacyCertificate, R66TLS, &r66LegacyCertificate{})
+	authentication.AddExternalCredentialTypeForProtocol(AuthLegacyCertificate, R66TLS, &r66LegacyCertificate{})
+}
+
+type r66BcryptAuthHandler struct{ auth.BcryptAuthHandler }
+
+func (r *r66BcryptAuthHandler) ToDB(val, _ string) (string, string, error) {
+	//nolint:wrapcheck //wrapping adds nothing here
+	return r.BcryptAuthHandler.ToDB(CryptPass(val), "")
 }
 
 var ErrLegacyCertNotAllowed = errors.New("legacy certificates usage is not allowed on this instance")
@@ -32,7 +45,7 @@ type r66LegacyCertificate struct{}
 
 func (r *r66LegacyCertificate) CanOnlyHaveOne() bool { return true }
 
-func (r *r66LegacyCertificate) Validate(_, _, _ string, _ bool) error {
+func (r *r66LegacyCertificate) Validate(_, _, _, _ string, _ bool) error {
 	if !compatibility.IsLegacyR66CertificateAllowed {
 		return ErrLegacyCertNotAllowed
 	}

@@ -119,8 +119,7 @@ func replaceRemoteAccount(logger *log.Logger, db *database.DB) http.HandlerFunc 
 				return fmt.Errorf("failed to update remote account: %w", err)
 			}
 
-			if err := updateAccountPassword(ses, dbAccount, restAccount.Password.Value,
-				auth.Password, parent.Protocol); err != nil {
+			if err := updateAccountPassword(ses, dbAccount, restAccount.Password.Value); err != nil {
 				return err
 			}
 
@@ -159,8 +158,7 @@ func updateRemoteAccount(logger *log.Logger, db *database.DB) http.HandlerFunc {
 			}
 
 			if restAccount.Password.Valid {
-				if err := updateAccountPassword(ses, dbAccount, restAccount.Password.Value,
-					auth.Password, parent.Protocol); err != nil {
+				if err := updateAccountPassword(ses, dbAccount, restAccount.Password.Value); err != nil {
 					return err
 				}
 			}
@@ -257,12 +255,12 @@ func revokeRemoteAccount(logger *log.Logger, db *database.DB) http.HandlerFunc {
 
 func addRemAccCred(logger *log.Logger, db *database.DB) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		dbPartner, dbAccount, getErr := getDBRemoteAccount(r, db)
+		_, dbAccount, getErr := getDBRemoteAccount(r, db)
 		if handleError(w, logger, getErr) {
 			return
 		}
 
-		handleError(w, logger, addCredential(w, r, db, dbAccount, dbPartner.Protocol))
+		handleError(w, logger, addCredential(w, r, db, dbAccount))
 	}
 }
 

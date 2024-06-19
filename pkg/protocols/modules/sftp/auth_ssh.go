@@ -6,6 +6,7 @@ import (
 
 	"code.waarp.fr/lib/log"
 	"golang.org/x/crypto/ssh"
+	"golang.org/x/exp/slices"
 
 	"code.waarp.fr/apps/gateway/gateway/pkg/database"
 	"code.waarp.fr/apps/gateway/gateway/pkg/model"
@@ -21,8 +22,9 @@ const (
 
 //nolint:gochecknoinits //needed to add credential types
 func init() {
-	authentication.AddInternalCredentialType(AuthSSHPublicKey, &sshPublicKey{})
-	authentication.AddExternalCredentialType(AuthSSHPrivateKey, &sshPrivateKey{})
+	authentication.AddInternalCredentialTypeForProtocol(AuthSSHPublicKey, SFTP, &sshPublicKey{})
+	authentication.AddExternalCredentialTypeForProtocol(AuthSSHPrivateKey, SFTP, &sshPrivateKey{})
+
 	authentication.AddAuthorityType(AuthoritySSHCert, &sshCertAuthority{})
 }
 
@@ -30,7 +32,7 @@ type sshPublicKey struct{}
 
 func (*sshPublicKey) CanOnlyHaveOne() bool { return false }
 
-func (*sshPublicKey) Validate(value, _, _ string, _ bool) error {
+func (*sshPublicKey) Validate(value, value2, protocol, host string, isServer bool) error {
 	if _, err := ParseAuthorizedKey(value); err != nil {
 		return fmt.Errorf("failed to parse SSH public key: %w", err)
 	}
@@ -89,7 +91,7 @@ func (*sshPrivateKey) FromDB(val, _ string) (string, string, error) {
 	return clear, "", nil
 }
 
-func (*sshPrivateKey) Validate(value, _, _ string, _ bool) error {
+func (*sshPrivateKey) Validate(value, value2, protocol, host string, isServer bool) error {
 	if _, err := ssh.ParsePrivateKey([]byte(value)); err != nil {
 		return fmt.Errorf("failed to parse SSH private key: %w", err)
 	}
@@ -117,6 +119,37 @@ func isUserAuthority(db database.ReadAccess, logger *log.Logger) func(ssh.Public
 		}
 
 		for _, aut := range auths {
+			pbk, err := ParseAuthorizedKey(aut.PublicIdentity)
+			if err != nil {
+				logger.Warning("Failed to parse the SSH authority's public key: %s", err)
+
+				continue
+			}
+
+			if subtle.ConstantTimeCompare(key.Marshal(), pbk.Marshal()) == 1 {
+				return true
+			}
+		}
+
+		return false
+	}
+}
+
+func isHostAuthority(db database.ReadAccess, logger *log.Logger,
+) func(key ssh.PublicKey, address string) bool {
+	return func(key ssh.PublicKey, address string) bool {
+		var auths model.Authorities
+		if err := db.Select(&auths).Where("type=?", AuthoritySSHCert).Run(); err != nil {
+			logger.Error("Failed to retrieve the SSH certification authorities: %s", err)
+
+			return false
+		}
+
+		for _, aut := range auths {
+			if len(aut.ValidHosts) != 0 && !slices.Contains(aut.ValidHosts, address) {
+				continue
+			}
+
 			pbk, err := ParseAuthorizedKey(aut.PublicIdentity)
 			if err != nil {
 				logger.Warning("Failed to parse the SSH authority's public key: %s", err)

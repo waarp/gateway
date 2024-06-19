@@ -64,8 +64,10 @@ func (t *clientRetrTransfer) EndTransfer() *pipeline.Error {
 
 func (t *clientRetrTransfer) SendError(types.TransferErrorCode, string) { t.sendError() }
 func (t *clientRetrTransfer) sendError() {
-	if err := t.trans.Abort(); err != nil {
-		t.pip.Logger.Warning("Failed to abort FTP transfer: %v", err)
+	if t.trans != nil {
+		if err := t.trans.Abort(); err != nil {
+			t.pip.Logger.Warning("Failed to abort FTP transfer: %v", err)
+		}
 	}
 
 	if err := t.client.Close(); err != nil {
