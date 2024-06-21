@@ -18,6 +18,12 @@ func (*RemAccArg) UnmarshalFlag(value string) error {
 	return nil
 }
 
+func displayRemoteAccount(w io.Writer, account *api.OutRemoteAccount) {
+	style1.printf(w, "Account %q", account.Login)
+	style22.printL(w, "Credentials", withDefault(join(account.Credentials), none))
+	displayAuthorizedRules(w, account.AuthorizedRules)
+}
+
 // ######################## GET ##########################
 
 type RemAccGet struct {
@@ -30,12 +36,12 @@ func (r *RemAccGet) Execute([]string) error { return execute(r) }
 func (r *RemAccGet) execute(w io.Writer) error {
 	addr.Path = fmt.Sprintf("/api/partners/%s/accounts/%s", Partner, r.Args.Login)
 
-	account := &api.OutAccount{}
+	account := &api.OutRemoteAccount{}
 	if err := get(account); err != nil {
 		return err
 	}
 
-	displayAccount(w, account)
+	displayRemoteAccount(w, account)
 
 	return nil
 }
@@ -126,7 +132,7 @@ func (r *RemAccList) execute(w io.Writer) error {
 
 	listURL(&r.ListOptions, r.SortBy)
 
-	body := map[string][]*api.OutAccount{}
+	body := map[string][]*api.OutRemoteAccount{}
 	if err := list(&body); err != nil {
 		return err
 	}
@@ -135,7 +141,7 @@ func (r *RemAccList) execute(w io.Writer) error {
 		style0.printf(w, "=== Accounts of partner %q ===", Partner)
 
 		for _, account := range accounts {
-			displayAccount(w, account)
+			displayRemoteAccount(w, account)
 		}
 	} else {
 		fmt.Fprintf(w, "Partner %q has no accounts.\n", Partner)

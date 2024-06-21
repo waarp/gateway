@@ -11,6 +11,7 @@ import (
 	"code.waarp.fr/apps/gateway/gateway/pkg/database"
 	"code.waarp.fr/apps/gateway/gateway/pkg/model"
 	"code.waarp.fr/apps/gateway/gateway/pkg/model/authentication/auth"
+	"code.waarp.fr/apps/gateway/gateway/pkg/protocols/protoutils"
 )
 
 func makeServerConf(db *database.DB, logger *log.Logger,
@@ -18,28 +19,7 @@ func makeServerConf(db *database.DB, logger *log.Logger,
 ) *ssh.ServerConfig {
 	certChecker := ssh.CertChecker{
 		IsUserAuthority: isUserAuthority(db, logger),
-		UserKeyFallback: func(conn ssh.ConnMetadata, key ssh.PublicKey) (*ssh.Permissions, error) {
-			var acc model.LocalAccount
-			if err := db.Get(&acc, "local_agent_id=? AND login=?", agent.ID,
-				conn.User()).Run(); err != nil && !database.IsNotFound(err) {
-				logger.Error("Failed to retrieve user credentials: %s", err)
-
-				return nil, ErrDatabase
-			}
-
-			if res, err := acc.Authenticate(db, agent, AuthSSHPublicKey, key); err != nil {
-				logger.Error("Failed to authenticate account %q: %v", acc.Login, err)
-
-				return nil, ErrInternal
-			} else if !res.Success {
-				logger.Warning("Authentication failed for account %q: %s",
-					conn.User(), res.Reason)
-
-				return nil, errAuthFailed
-			}
-
-			return &ssh.Permissions{}, nil
-		},
+		UserKeyFallback: userKeyCallback(db, logger, agent),
 	}
 
 	conf := &ssh.ServerConfig{
@@ -57,6 +37,39 @@ func makeServerConf(db *database.DB, logger *log.Logger,
 	return conf
 }
 
+func userKeyCallback(db *database.DB, logger *log.Logger, agent *model.LocalAgent,
+) func(ssh.ConnMetadata, ssh.PublicKey) (*ssh.Permissions, error) {
+	return func(conn ssh.ConnMetadata, key ssh.PublicKey) (*ssh.Permissions, error) {
+		var acc model.LocalAccount
+		if err := db.Get(&acc, "local_agent_id=? AND login=?", agent.ID,
+			conn.User()).Run(); err != nil && !database.IsNotFound(err) {
+			logger.Error("Failed to retrieve user credentials: %s", err)
+
+			return nil, ErrDatabase
+		}
+
+		if res, err := acc.Authenticate(db, agent, AuthSSHPublicKey, key); err != nil {
+			logger.Error("Failed to authenticate account %q: %v", acc.Login, err)
+
+			return nil, ErrInternal
+		} else if !res.Success {
+			logger.Warning("Authentication failed for account %q: %s",
+				conn.User(), res.Reason)
+
+			return nil, ErrAuthFailed
+		}
+
+		if len(acc.IPAddresses) > 0 {
+			remoteIP := protoutils.GetIP(conn.RemoteAddr().String())
+			if !acc.IPAddresses.Contains(remoteIP) {
+				return nil, ErrUnauthorizedIP
+			}
+		}
+
+		return &ssh.Permissions{}, nil
+	}
+}
+
 func passwordCallback(db *database.DB, logger *log.Logger, agent *model.LocalAgent,
 ) func(ssh.ConnMetadata, []byte) (*ssh.Permissions, error) {
 	return func(conn ssh.ConnMetadata, pass []byte) (*ssh.Permissions, error) {
@@ -68,6 +81,13 @@ func passwordCallback(db *database.DB, logger *log.Logger, agent *model.LocalAge
 			return nil, ErrDatabase
 		}
 
+		if len(acc.IPAddresses) > 0 {
+			remoteIP := protoutils.GetIP(conn.RemoteAddr().String())
+			if !acc.IPAddresses.Contains(remoteIP) {
+				return nil, ErrUnauthorizedIP
+			}
+		}
+
 		if res, err := acc.Authenticate(db, agent, auth.Password, pass); err != nil {
 			logger.Error("Failed to authenticate account %q: %v", acc.Login, err)
 
@@ -76,7 +96,7 @@ func passwordCallback(db *database.DB, logger *log.Logger, agent *model.LocalAge
 			logger.Warning("Authentication failed for account %q: %s",
 				conn.User(), res.Reason)
 
-			return nil, errAuthFailed
+			return nil, ErrAuthFailed
 		}
 
 		return &ssh.Permissions{}, nil

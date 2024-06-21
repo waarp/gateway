@@ -57,6 +57,7 @@ func TestValidAuth(t *testing.T) {
 			packet := &r66.Authent{
 				Login:     toto.Login,
 				Password:  r66.CryptPass([]byte("sesame")),
+				Address:   "1.2.3.4:6666",
 				Filesize:  true,
 				FinalHash: true,
 				Digest:    "SHA-256",
@@ -103,6 +104,29 @@ func TestValidAuth(t *testing.T) {
 				packet.Digest = "BAD"
 
 				shouldFailWith("the credentials are incorrect", "A: unsuported hash algorithm")
+			})
+
+			Convey("Given that the account is IP-restricted", func() {
+				toto.IPAddresses = []string{"1.2.3.4"}
+				So(db.Update(toto).Run(), ShouldBeNil)
+
+				Convey("When logging in from the correct IP", func() {
+					packet.Address = "1.2.3.4:6666"
+
+					Convey("Then it should succeed", func() {
+						_, err := handler.ValidAuth(packet)
+						So(err, ShouldBeNil)
+					})
+				})
+
+				Convey("When logging in from an unauthorized IP", func() {
+					packet.Address = "5.6.7.8:6666"
+
+					Convey("Then it should fail", func() {
+						_, err := handler.ValidAuth(packet)
+						So(err, ShouldBeError, "A: unauthorized IP address")
+					})
+				})
 			})
 		})
 	})

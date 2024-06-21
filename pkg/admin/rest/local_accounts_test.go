@@ -42,6 +42,7 @@ func TestGetLocalAccount(t *testing.T) {
 			existing := &model.LocalAccount{
 				Login:        "existing",
 				LocalAgentID: parent.ID,
+				IPAddresses:  []string{"1.2.3.4", "5.6.7.8"},
 			}
 			So(db.Insert(existing).Run(), ShouldBeNil)
 
@@ -84,7 +85,8 @@ func TestGetLocalAccount(t *testing.T) {
 						So(w.Body.String(), ShouldEqual, `{`+
 							`"login":"`+existing.Login+`",`+
 							`"credentials":["`+pswd.Name+`"],`+
-							`"authorizedRules":{"reception":["`+rule.Name+`"]}`+
+							`"authorizedRules":{"reception":["`+rule.Name+`"]},`+
+							`"ipAddresses":["`+strings.Join(existing.IPAddresses, `","`)+`"]`+
 							"}\n")
 					})
 				})
@@ -130,7 +132,7 @@ func TestGetLocalAccount(t *testing.T) {
 }
 
 func TestListLocalAccounts(t *testing.T) {
-	check := func(w *httptest.ResponseRecorder, expected map[string][]*OutAccount) {
+	check := func(w *httptest.ResponseRecorder, expected map[string][]*OutLocalAccount) {
 		Convey("Then it should reply 'OK'", func() {
 			So(w.Code, ShouldEqual, http.StatusOK)
 		})
@@ -155,7 +157,7 @@ func TestListLocalAccounts(t *testing.T) {
 		db := database.TestDatabase(c)
 		handler := listLocalAccounts(logger, db)
 		w := httptest.NewRecorder()
-		expected := map[string][]*OutAccount{}
+		expected := map[string][]*OutLocalAccount{}
 
 		Convey("Given a database with 4 local accounts", func() {
 			p1 := &model.LocalAgent{
@@ -210,7 +212,7 @@ func TestListLocalAccounts(t *testing.T) {
 				Convey("When sending the request to the handler", func() {
 					handler.ServeHTTP(w, r)
 
-					expected["localAccounts"] = []*OutAccount{
+					expected["localAccounts"] = []*OutLocalAccount{
 						account1, account2, account4,
 					}
 					check(w, expected)
@@ -226,7 +228,7 @@ func TestListLocalAccounts(t *testing.T) {
 				Convey("When sending the request to the handler", func() {
 					handler.ServeHTTP(w, r)
 
-					expected["localAccounts"] = []*OutAccount{account3}
+					expected["localAccounts"] = []*OutLocalAccount{account3}
 					check(w, expected)
 				})
 			})
@@ -255,7 +257,7 @@ func TestListLocalAccounts(t *testing.T) {
 				Convey("When sending the request to the handler", func() {
 					handler.ServeHTTP(w, r)
 
-					expected["localAccounts"] = []*OutAccount{account1}
+					expected["localAccounts"] = []*OutLocalAccount{account1}
 					check(w, expected)
 				})
 			})
@@ -269,7 +271,7 @@ func TestListLocalAccounts(t *testing.T) {
 				Convey("When sending the request to the handler", func() {
 					handler.ServeHTTP(w, r)
 
-					expected["localAccounts"] = []*OutAccount{account2, account4}
+					expected["localAccounts"] = []*OutLocalAccount{account2, account4}
 					check(w, expected)
 				})
 			})
@@ -283,7 +285,7 @@ func TestListLocalAccounts(t *testing.T) {
 				Convey("When sending the request to the handler", func() {
 					handler.ServeHTTP(w, r)
 
-					expected["localAccounts"] = []*OutAccount{
+					expected["localAccounts"] = []*OutLocalAccount{
 						account4, account2, account1,
 					}
 					check(w, expected)
@@ -310,7 +312,8 @@ func TestCreateLocalAccount(t *testing.T) {
 			Convey("Given a new account to insert in the database", func() {
 				body := strings.NewReader(`{
 					"login": "new_account",
-					"password": "new_password"
+					"password": "new_password",
+					"ipAddresses": ["1.2.3.4", "5.6.7.8"]
 				}`)
 
 				Convey("Given a valid agent name parameter", func() {
@@ -347,6 +350,7 @@ func TestCreateLocalAccount(t *testing.T) {
 								ID:           1,
 								LocalAgentID: parent.ID,
 								Login:        "new_account",
+								IPAddresses:  []string{"1.2.3.4", "5.6.7.8"},
 							})
 
 							var pswd model.Credential
@@ -505,6 +509,7 @@ func TestUpdateLocalAccount(t *testing.T) {
 			old := &model.LocalAccount{
 				Login:        "old",
 				LocalAgentID: parent.ID,
+				IPAddresses:  []string{"1.2.3.4", "5.6.7.8"},
 			}
 			So(db.Insert(old).Run(), ShouldBeNil)
 
@@ -516,7 +521,8 @@ func TestUpdateLocalAccount(t *testing.T) {
 
 			Convey("Given new values to update the account with", func() {
 				body := strings.NewReader(`{
-					"password": "upd_password"
+					"password": "upd_password",
+					"ipAddresses": ["9.8.7.6"]
 				}`)
 
 				Convey("Given a valid account login", func() {
@@ -555,6 +561,7 @@ func TestUpdateLocalAccount(t *testing.T) {
 							ID:           old.ID,
 							LocalAgentID: parent.ID,
 							Login:        "old",
+							IPAddresses:  []string{"9.8.7.6"},
 						})
 
 						var pswd model.Credential
@@ -643,6 +650,7 @@ func TestReplaceLocalAccount(t *testing.T) {
 			old := &model.LocalAccount{
 				Login:        "old",
 				LocalAgentID: parent.ID,
+				IPAddresses:  []string{"1.2.3.4", "5.6.7.8"},
 			}
 			So(db.Insert(old).Run(), ShouldBeNil)
 
@@ -655,7 +663,8 @@ func TestReplaceLocalAccount(t *testing.T) {
 			Convey("Given new values to update the account with", func() {
 				body := strings.NewReader(`{
 					"login": "upd_login",
-					"password": "upd_password"
+					"password": "upd_password",
+					"ipAddresses": ["9.8.7.6"]
 				}`)
 
 				Convey("Given a valid account login", func() {
@@ -693,6 +702,7 @@ func TestReplaceLocalAccount(t *testing.T) {
 							ID:           old.ID,
 							LocalAgentID: parent.ID,
 							Login:        "upd_login",
+							IPAddresses:  []string{"9.8.7.6"},
 						})
 
 						var pswd model.Credential

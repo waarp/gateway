@@ -4,6 +4,8 @@ import (
 	"fmt"
 	"io"
 
+	"golang.org/x/exp/slices"
+
 	"code.waarp.fr/apps/gateway/gateway/pkg/admin/rest/api"
 )
 
@@ -18,8 +20,9 @@ func (*LocAccArg) UnmarshalFlag(value string) error {
 	return nil
 }
 
-func displayAccount(w io.Writer, account *api.OutAccount) {
+func displayLocalAccount(w io.Writer, account *api.OutLocalAccount) {
 	style1.printf(w, "Account %q", account.Login)
+	style22.option(w, "Authorized IP addresses", join(account.IPAddresses))
 	style22.printL(w, "Credentials", withDefault(join(account.Credentials), none))
 	displayAuthorizedRules(w, account.AuthorizedRules)
 }
@@ -28,8 +31,9 @@ func displayAccount(w io.Writer, account *api.OutAccount) {
 
 //nolint:lll //tags are long
 type LocAccAdd struct {
-	Login    string `required:"yes" short:"l" long:"login" description:"The account's login" json:"login,omitempty"`
-	Password string `short:"p" long:"password" description:"The account's password" json:"password,omitempty"`
+	Login       string   `required:"yes" short:"l" long:"login" description:"The account's login" json:"login,omitempty"`
+	IPAddresses []string `short:"i" long:"ip-address" description:"The account's authorized IP addresses. Can be repeated." json:"ipAddresses,omitempty"`
+	Password    string   `short:"p" long:"password" description:"The account's password" json:"password,omitempty"`
 }
 
 func (l *LocAccAdd) Execute([]string) error { return execute(l) }
@@ -57,29 +61,35 @@ func (l *LocAccGet) Execute([]string) error { return execute(l) }
 func (l *LocAccGet) execute(w io.Writer) error {
 	addr.Path = fmt.Sprintf("/api/servers/%s/accounts/%s", Server, l.Args.Login)
 
-	account := &api.OutAccount{}
+	account := &api.OutLocalAccount{}
 	if err := get(account); err != nil {
 		return err
 	}
 
-	displayAccount(w, account)
+	displayLocalAccount(w, account)
 
 	return nil
 }
 
 // ######################## UPDATE ##########################
 
+//nolint:lll // struct tags for command line arguments can be long
 type LocAccUpdate struct {
 	Args struct {
 		Login string `required:"yes" positional-arg-name:"old-login" description:"The account's login"`
 	} `positional-args:"yes" json:"-"`
-	Login    string `short:"l" long:"login" description:"The account's login" json:"login,omitempty"`
-	Password string `short:"p" long:"password" description:"The account's password" json:"password,omitempty"`
+	Login       string    `short:"l" long:"login" description:"The account's login" json:"login,omitempty"`
+	IPAddresses *[]string `short:"i" long:"ip-address" description:"The account's authorized IP addresses. Can be repeated. Put 'none' to remove all current authorized IP addresses" json:"ipAddresses"`
+	Password    string    `short:"p" long:"password" description:"The account's password" json:"password,omitempty"`
 }
 
 func (l *LocAccUpdate) Execute([]string) error { return execute(l) }
 func (l *LocAccUpdate) execute(w io.Writer) error {
 	addr.Path = fmt.Sprintf("/api/servers/%s/accounts/%s", Server, l.Args.Login)
+
+	if l.IPAddresses != nil && slices.Contains(*l.IPAddresses, "none") {
+		*l.IPAddresses = []string{}
+	}
 
 	if err := update(w, l); err != nil {
 		return err
@@ -132,7 +142,7 @@ func (l *LocAccList) execute(w io.Writer) error {
 
 	listURL(&l.ListOptions, l.SortBy)
 
-	body := map[string][]*api.OutAccount{}
+	body := map[string][]*api.OutLocalAccount{}
 	if err := list(&body); err != nil {
 		return err
 	}
@@ -141,7 +151,7 @@ func (l *LocAccList) execute(w io.Writer) error {
 		style0.printf(w, "=== Accounts of server %q ===", Server)
 
 		for _, account := range accounts {
-			displayAccount(w, account)
+			displayLocalAccount(w, account)
 		}
 	} else {
 		fmt.Fprintf(w, "Server %q has no accounts.\n", Server)

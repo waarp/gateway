@@ -12,7 +12,7 @@ import (
 // DBLocalAccountToREST transforms the given database local account into its JSON
 // equivalent.
 func DBLocalAccountToREST(db database.ReadAccess, dbAccount *model.LocalAccount,
-) (*api.OutAccount, error) {
+) (*api.OutLocalAccount, error) {
 	authorizedRules, err := getAuthorizedRules(db, dbAccount)
 	if err != nil {
 		return nil, err
@@ -23,18 +23,19 @@ func DBLocalAccountToREST(db database.ReadAccess, dbAccount *model.LocalAccount,
 		return nil, err
 	}
 
-	return &api.OutAccount{
+	return &api.OutLocalAccount{
 		Login:           dbAccount.Login,
 		Credentials:     credentials,
 		AuthorizedRules: authorizedRules,
+		IPAddresses:     dbAccount.IPAddresses,
 	}, nil
 }
 
 // DBLocalAccountsToRest transforms the given list of database local accounts into
 // its JSON equivalent.
 func DBLocalAccountsToRest(db database.ReadAccess, dbAccounts []*model.LocalAccount,
-) ([]*api.OutAccount, error) {
-	restAccounts := make([]*api.OutAccount, len(dbAccounts))
+) ([]*api.OutLocalAccount, error) {
+	restAccounts := make([]*api.OutLocalAccount, len(dbAccounts))
 
 	for i, acc := range dbAccounts {
 		var err error
@@ -49,7 +50,7 @@ func DBLocalAccountsToRest(db database.ReadAccess, dbAccounts []*model.LocalAcco
 // DBRemoteAccountToREST transforms the given database remote account into its JSON
 // equivalent.
 func DBRemoteAccountToREST(db database.ReadAccess, dbAccount *model.RemoteAccount,
-) (*api.OutAccount, error) {
+) (*api.OutRemoteAccount, error) {
 	authorizedRules, err := getAuthorizedRules(db, dbAccount)
 	if err != nil {
 		return nil, err
@@ -60,7 +61,7 @@ func DBRemoteAccountToREST(db database.ReadAccess, dbAccount *model.RemoteAccoun
 		return nil, err
 	}
 
-	return &api.OutAccount{
+	return &api.OutRemoteAccount{
 		Login:           dbAccount.Login,
 		Credentials:     credentials,
 		AuthorizedRules: authorizedRules,
@@ -70,8 +71,8 @@ func DBRemoteAccountToREST(db database.ReadAccess, dbAccount *model.RemoteAccoun
 // DBRemoteAccountsToREST transforms the given list of database remote accounts into
 // its JSON equivalent.
 func DBRemoteAccountsToREST(db database.ReadAccess, dbAccounts []*model.RemoteAccount,
-) ([]*api.OutAccount, error) {
-	restAccounts := make([]*api.OutAccount, len(dbAccounts))
+) ([]*api.OutRemoteAccount, error) {
+	restAccounts := make([]*api.OutRemoteAccount, len(dbAccounts))
 
 	for i, acc := range dbAccounts {
 		var err error

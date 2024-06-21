@@ -27,6 +27,7 @@ Lister les comptes locaux
 
       * ``sending`` (*array* of *string*) - Les règles d'envoi.
       * ``reception`` (*array* of *string*) - Les règles de réception.
+   :resjsonarr array ipAddresses: Une liste des adresses IP autorisées pour le compte.
 
 
    **Exemple de requête**
@@ -51,7 +52,8 @@ Lister les comptes locaux
           "authorizedRules": {
             "sending": ["règle_envoi_1", "règle_envoi_2"],
             "reception": ["règle_récep_1", "règle_récep_2"]
-          }
+          },
+          "ipAddresses": ["1.2.3.4", "5.6.7.8"]
         },{
           "login": "toto",
           "authMethods": ["password", "toto_public_key"],

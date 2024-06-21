@@ -10,6 +10,7 @@ import (
 	"code.waarp.fr/apps/gateway/gateway/pkg/admin/rest/api"
 	"code.waarp.fr/apps/gateway/gateway/pkg/database"
 	"code.waarp.fr/apps/gateway/gateway/pkg/model"
+	"code.waarp.fr/apps/gateway/gateway/pkg/model/types"
 )
 
 //nolint:dupl // duplicated code is about a different type
@@ -87,7 +88,7 @@ func listLocalAccounts(logger *log.Logger, db *database.DB) http.HandlerFunc {
 			return
 		}
 
-		response := map[string][]*api.OutAccount{"localAccounts": restAccounts}
+		response := map[string][]*api.OutLocalAccount{"localAccounts": restAccounts}
 		handleError(w, logger, writeJSON(w, response))
 	}
 }
@@ -100,7 +101,7 @@ func addLocalAccount(logger *log.Logger, db *database.DB) http.HandlerFunc {
 			return
 		}
 
-		var restAccount api.InAccount
+		var restAccount api.InLocalAccount
 		if err := readJSON(r, &restAccount); handleError(w, logger, err) {
 			return
 		}
@@ -108,6 +109,7 @@ func addLocalAccount(logger *log.Logger, db *database.DB) http.HandlerFunc {
 		dbAccount := &model.LocalAccount{
 			LocalAgentID: parent.ID,
 			Login:        restAccount.Login.Value,
+			IPAddresses:  types.IPList(restAccount.IPAddresses),
 		}
 
 		if tErr := db.Transaction(func(ses *database.Session) error {
@@ -139,7 +141,10 @@ func updateLocalAccount(logger *log.Logger, db *database.DB) http.HandlerFunc {
 			return
 		}
 
-		restAccount := &api.InAccount{Login: asNullableStr(oldAccount.Login)}
+		restAccount := &api.InLocalAccount{
+			Login:       asNullableStr(oldAccount.Login),
+			IPAddresses: api.List[string](oldAccount.IPAddresses),
+		}
 		if err := readJSON(r, restAccount); handleError(w, logger, err) {
 			return
 		}
@@ -148,6 +153,7 @@ func updateLocalAccount(logger *log.Logger, db *database.DB) http.HandlerFunc {
 			ID:           oldAccount.ID,
 			LocalAgentID: oldAccount.LocalAgentID,
 			Login:        restAccount.Login.Value,
+			IPAddresses:  types.IPList(restAccount.IPAddresses),
 		}
 
 		if tErr := db.Transaction(func(ses *database.Session) error {
@@ -179,7 +185,7 @@ func replaceLocalAccount(logger *log.Logger, db *database.DB) http.HandlerFunc {
 			return
 		}
 
-		var restAccount api.InAccount
+		var restAccount api.InLocalAccount
 		if err := readJSON(r, &restAccount); handleError(w, logger, err) {
 			return
 		}
@@ -188,6 +194,7 @@ func replaceLocalAccount(logger *log.Logger, db *database.DB) http.HandlerFunc {
 			ID:           oldAccount.ID,
 			LocalAgentID: oldAccount.LocalAgentID,
 			Login:        restAccount.Login.Value,
+			IPAddresses:  types.IPList(restAccount.IPAddresses),
 		}
 
 		if tErr := db.Transaction(func(ses *database.Session) error {

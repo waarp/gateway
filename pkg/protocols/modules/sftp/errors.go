@@ -14,11 +14,11 @@ import (
 )
 
 var (
-	ErrFileSystem = errors.New("file system error")
-	ErrInternal   = errors.New("internal error")
-	ErrDatabase   = errors.New("database error")
-	ErrAuthFailed = errors.New("authentication failed")
-	errAuthFailed = errors.New("authentication failed")
+	ErrFileSystem     = errors.New("file system error")
+	ErrInternal       = errors.New("internal error")
+	ErrDatabase       = errors.New("database error")
+	ErrAuthFailed     = errors.New("authentication failed")
+	ErrUnauthorizedIP = errors.New("unauthorized IP address")
 )
 
 // toSFTPErr converts the given error into its closest equivalent

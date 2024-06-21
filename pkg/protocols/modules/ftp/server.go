@@ -92,7 +92,7 @@ func (h *handler) ClientConnected(ftplib.ClientContext) (string, error) {
 func (h *handler) ClientDisconnected(ftplib.ClientContext) {}
 
 //nolint:goerr113 //dynamic errors are used to mask the internal errors (for security reasons)
-func (h *handler) AuthUser(_ ftplib.ClientContext, user, pass string) (ftplib.ClientDriver, error) {
+func (h *handler) AuthUser(cc ftplib.ClientContext, user, pass string) (ftplib.ClientDriver, error) {
 	h.logger.Debug("Received authentication request from account %q", user)
 
 	var acc model.LocalAccount
@@ -101,6 +101,13 @@ func (h *handler) AuthUser(_ ftplib.ClientContext, user, pass string) (ftplib.Cl
 		h.logger.Error("Failed to retrieve account: %s", err)
 
 		return nil, errors.New("internal authentication error")
+	}
+
+	if len(acc.IPAddresses) > 0 {
+		remoteIP := protoutils.GetIP(cc.RemoteAddr().String())
+		if !acc.IPAddresses.Contains(remoteIP) {
+			return nil, errors.New("unauthorized IP address")
+		}
 	}
 
 	if res, err := acc.Authenticate(h.db, h.dbServer, auth.Password, pass); err != nil {

@@ -74,7 +74,7 @@ func listRemoteAccounts(logger *log.Logger, db *database.DB) http.HandlerFunc {
 			return
 		}
 
-		response := map[string][]*api.OutAccount{"remoteAccounts": restAccounts}
+		response := map[string][]*api.OutRemoteAccount{"remoteAccounts": restAccounts}
 		handleError(w, logger, writeJSON(w, response))
 	}
 }
@@ -103,7 +103,7 @@ func replaceRemoteAccount(logger *log.Logger, db *database.DB) http.HandlerFunc 
 			return
 		}
 
-		var restAccount api.InAccount
+		var restAccount api.InRemoteAccount
 		if err := readJSON(r, &restAccount); handleError(w, logger, err) {
 			return
 		}
@@ -141,7 +141,7 @@ func updateRemoteAccount(logger *log.Logger, db *database.DB) http.HandlerFunc {
 			return
 		}
 
-		restAccount := &api.InAccount{Login: asNullableStr(oldAccount.Login)}
+		restAccount := &api.InRemoteAccount{Login: asNullableStr(oldAccount.Login)}
 		if err := readJSON(r, restAccount); handleError(w, logger, err) {
 			return
 		}
@@ -181,7 +181,7 @@ func addRemoteAccount(logger *log.Logger, db *database.DB) http.HandlerFunc {
 			return
 		}
 
-		var restAccount api.InAccount
+		var restAccount api.InRemoteAccount
 		if err := readJSON(r, &restAccount); handleError(w, logger, err) {
 			return
 		}

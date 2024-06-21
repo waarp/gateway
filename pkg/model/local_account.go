@@ -5,6 +5,7 @@ import (
 
 	"code.waarp.fr/apps/gateway/gateway/pkg/database"
 	"code.waarp.fr/apps/gateway/gateway/pkg/model/authentication"
+	"code.waarp.fr/apps/gateway/gateway/pkg/model/types"
 	"code.waarp.fr/apps/gateway/gateway/pkg/utils"
 )
 
@@ -14,7 +15,8 @@ type LocalAccount struct {
 	ID           int64 `xorm:"<- id AUTOINCR"` // The account's database ID.
 	LocalAgentID int64 `xorm:"local_agent_id"` // The ID of the LocalAgent this account is attached to.
 
-	Login string `xorm:"login"` // The account's login.
+	Login       string       `xorm:"login"`        // The account's login.
+	IPAddresses types.IPList `xorm:"ip_addresses"` // The account's allowed IP addresses.
 }
 
 func (*LocalAccount) TableName() string   { return TableLocAccounts }
@@ -44,6 +46,10 @@ func (l *LocalAccount) BeforeWrite(db database.Access) error {
 
 	if _, err := l.getParent(db); err != nil {
 		return err
+	}
+
+	if err := l.IPAddresses.Validate(); err != nil {
+		return database.NewValidationError("invalid account IP address: %w", err)
 	}
 
 	if n, err := db.Count(l).Where("id<>? AND local_agent_id=? AND login=?",

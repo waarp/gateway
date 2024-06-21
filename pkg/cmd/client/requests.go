@@ -61,6 +61,11 @@ func SendRequest(ctx context.Context, object any, method string,
 
 	resp, err := getHTTPClient(insecure).Do(req)
 	if err != nil {
+		if errors.Is(err, context.DeadlineExceeded) {
+			//nolint:err113 //dynamic error is better here for readability
+			return nil, fmt.Errorf("%s %s: request timed out", req.Method, req.URL.Redacted())
+		}
+
 		return nil, fmt.Errorf("an error occurred while sending the HTTP request: %w", err)
 	}
 

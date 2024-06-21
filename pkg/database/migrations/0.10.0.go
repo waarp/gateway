@@ -43,3 +43,23 @@ func ver0_10_0AddSNMPMonitorsDown(db Actions) error {
 
 	return nil
 }
+
+func ver0_10_0AddLocalAccountIPAddrUp(db Actions) error {
+	if err := db.AlterTable("local_accounts",
+		AddColumn{Name: "ip_addresses", Type: Text{}, NotNull: true, Default: ""},
+	); err != nil {
+		return fmt.Errorf(`failed to add the local account "ip_addresses" column: %w`, err)
+	}
+
+	return nil
+}
+
+func ver0_10_0AddLocalAccountIPAddrDown(db Actions) error {
+	if err := db.AlterTable("local_accounts",
+		DropColumn{Name: "ip_addresses"},
+	); err != nil {
+		return fmt.Errorf(`failed to drop the local account "ip_addresses" column: %w`, err)
+	}
+
+	return nil
+}

@@ -3,6 +3,10 @@
 Historique des versions
 =======================
 
+* :feature:`401` Ajout d'un filtrage d'IP basique permettant de restreindre les
+  adresses IP autorisées pour un partenaire cherchant à s'authentifier auprès
+  de Gateway. Voir les documentation CLI et REST de gestion des comptes locaux
+  pour plus d'information.
 * :fix:`406` À la création d'un transfert, si aucun ID de flux (*followID*) n'a
   été spécifié, un ID sera désormais auto-généré. Cet id est visible dans les
   informations de transfert sous le nom ``__followID__``.

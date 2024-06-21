@@ -39,3 +39,28 @@ func testVer0_10_0AddSNMPMonitors(t *testing.T, eng *testEngine) Change {
 
 	return mig
 }
+
+func ver0_10_0AddLocalAccountIPAddr(t *testing.T, eng *testEngine) Change {
+	mig := Migrations[53]
+
+	t.Run("When applying the 0.10.0 local agent IP addresses addition", func(t *testing.T) {
+		tableShouldNotHaveColumns(t, eng.DB, "local_accounts", "ip_addresses")
+
+		require.NoError(t, eng.Upgrade(mig), "The migration should not fail")
+
+		t.Run("Then it should have added the new column", func(t *testing.T) {
+			tableShouldHaveColumns(t, eng.DB, "local_accounts", "ip_addresses")
+		})
+
+		t.Run("When reverting the migration", func(t *testing.T) {
+			require.NoError(t, eng.Downgrade(mig),
+				"Reverting the migration should not fail")
+
+			t.Run("Then it should have dropped the new column", func(t *testing.T) {
+				tableShouldNotHaveColumns(t, eng.DB, "local_accounts", "ip_addresses")
+			})
+		})
+	})
+
+	return mig
+}
