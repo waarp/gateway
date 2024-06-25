@@ -9,6 +9,8 @@ import (
 	"code.waarp.fr/apps/gateway/gateway/pkg/conf"
 	"code.waarp.fr/apps/gateway/gateway/pkg/database"
 	"code.waarp.fr/apps/gateway/gateway/pkg/model"
+	"code.waarp.fr/apps/gateway/gateway/pkg/protocols/modules/r66"
+	"code.waarp.fr/apps/gateway/gateway/pkg/utils/compatibility"
 )
 
 func exportRemotes(logger *log.Logger, db database.ReadAccess) ([]file.RemoteAgent, error) {
@@ -33,7 +35,7 @@ func exportRemotes(logger *log.Logger, db database.ReadAccess) ([]file.RemoteAge
 
 		logger.Info("Export remote partner %s", src.Name)
 
-		agent := file.RemoteAgent{
+		res[i] = file.RemoteAgent{
 			Name:          src.Name,
 			Address:       src.Address.String(),
 			Protocol:      src.Protocol,
@@ -42,7 +44,11 @@ func exportRemotes(logger *log.Logger, db database.ReadAccess) ([]file.RemoteAge
 			Credentials:   credentials,
 			Certs:         certs,
 		}
-		res[i] = agent
+
+		// Retro-compatibility with the R66 "isTLS" property.
+		if src.Protocol == r66.R66TLS && compatibility.IsTLS(src.ProtoConfig) {
+			res[i].Protocol = r66.R66
+		}
 	}
 
 	return res, nil

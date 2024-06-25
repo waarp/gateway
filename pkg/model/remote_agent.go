@@ -8,6 +8,7 @@ import (
 	"code.waarp.fr/apps/gateway/gateway/pkg/model/authentication"
 	"code.waarp.fr/apps/gateway/gateway/pkg/model/types"
 	"code.waarp.fr/apps/gateway/gateway/pkg/utils"
+	"code.waarp.fr/apps/gateway/gateway/pkg/utils/compatibility"
 )
 
 // RemoteAgent represents a distant server instance with which the gateway can
@@ -31,6 +32,20 @@ func (r *RemoteAgent) GetID() int64      { return r.ID }
 func (*RemoteAgent) IsServer() bool      { return true }
 func (r *RemoteAgent) Host() string      { return r.Address.Host }
 
+func (r *RemoteAgent) validateProtoConfig() error {
+	if err := ConfigChecker.CheckPartnerConfig(r.Protocol, r.ProtoConfig); err != nil {
+		return database.WrapAsValidationError(err)
+	}
+
+	// For backwards compatibility, in the presence of the r66 "isTLS" property,
+	// we change the protocol to r66-tls.
+	if r.Protocol == protoR66 && compatibility.IsTLS(r.ProtoConfig) {
+		r.Protocol = protoR66TLS
+	}
+
+	return nil
+}
+
 // BeforeWrite is called before inserting a new `RemoteAgent` entry in the
 // database. It checks whether the new entry is valid or not.
 func (r *RemoteAgent) BeforeWrite(db database.Access) error {
@@ -48,7 +63,7 @@ func (r *RemoteAgent) BeforeWrite(db database.Access) error {
 		r.ProtoConfig = map[string]any{}
 	}
 
-	if err := ConfigChecker.CheckPartnerConfig(r.Protocol, r.ProtoConfig); err != nil {
+	if err := r.validateProtoConfig(); err != nil {
 		return database.WrapAsValidationError(err)
 	}
 
