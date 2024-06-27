@@ -6,6 +6,8 @@ import (
 	"crypto/x509"
 	"fmt"
 	"os"
+
+	"code.waarp.fr/apps/gateway/gateway/pkg/utils"
 )
 
 //nolint:gochecknoinits //init is needed here to parse the legacy R66 cert
@@ -23,13 +25,11 @@ func init() {
 // maintain backwards compatibility, the property has been kept. This function
 // can be used to check its presence.
 func IsTLS(mapConf map[string]any) bool {
-	if isTLSany, hasTLS := mapConf["isTLS"]; hasTLS {
-		if isTLS, isBool := isTLSany.(bool); isBool && isTLS {
-			return true
-		}
+	if isTLS, err := utils.GetAs[bool](mapConf, "isTLS"); err != nil {
+		return false
+	} else {
+		return isTLS
 	}
-
-	return false
 }
 
 const AllowLegacyR66CertificateVar = "WAARP_GATEWAY_ALLOW_LEGACY_CERT"

@@ -3,6 +3,12 @@
 Historique des versions
 =======================
 
+* :fix:`402` L'ancienne propriété "isTLS" des agents R66 (dépréciée en version
+  0.7.0 avec la séparation des protocoles R66 et R66-TLS) est de nouveau
+  correctement prise en compte. La rétro-compatibilité avec cette propriété
+  avait été involontairement rompue avec la mise à jour 0.9.0. Cette
+  rétro-compatibilité concerne l'API REST et le fichier d'import/export.
+
 * :release:`0.9.0 <2024-06-05>`
 * :feat:`399` Ajout d'un cache d'authentification, permettant d'améliorer
   significativement les performances lorsqu'un grand nombre de demandes de
