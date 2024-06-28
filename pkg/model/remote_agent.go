@@ -146,21 +146,23 @@ func (r *RemoteAgent) AfterWrite(db database.Access) error {
 		return nil
 	}
 
-	if n, err := db.Count(&Credential{}).Where("remote_agent_id=? AND type=?",
-		r.ID, authPasswordHash).Run(); err != nil {
-		return fmt.Errorf("failed to check for existing credentials: %w", err)
-	} else if n != 0 {
-		return nil // already has a password
-	}
-
-	pswd := &Credential{
+	pswd := Credential{
 		RemoteAgentID: utils.NewNullInt64(r.ID),
-		Type:          authPasswordHash,
+		Type:          authPassword,
 		Value:         serverPasswd,
 	}
 
-	if err := db.Insert(pswd).Run(); err != nil {
-		return fmt.Errorf("failed to insert partner password: %w", err)
+	if err := db.Get(&pswd, "remote_agent_id=? AND type=?",
+		r.ID, authPassword).Run(); database.IsNotFound(err) {
+		if err2 := db.Insert(&pswd).Run(); err2 != nil {
+			return fmt.Errorf("failed to insert partner password: %w", err2)
+		}
+	} else if err != nil {
+		return fmt.Errorf("failed to check for existing credentials: %w", err)
+	}
+
+	if err := db.Update(&pswd).Run(); err != nil {
+		return fmt.Errorf("failed to update partner password: %w", err)
 	}
 
 	return nil

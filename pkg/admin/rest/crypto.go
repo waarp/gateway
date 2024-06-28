@@ -12,31 +12,40 @@ import (
 	"code.waarp.fr/apps/gateway/gateway/pkg/database"
 	"code.waarp.fr/apps/gateway/gateway/pkg/model"
 	"code.waarp.fr/apps/gateway/gateway/pkg/model/authentication/auth"
+	"code.waarp.fr/apps/gateway/gateway/pkg/protocols/modules/r66"
 	"code.waarp.fr/apps/gateway/gateway/pkg/protocols/modules/sftp"
 	"code.waarp.fr/apps/gateway/gateway/pkg/utils/compatibility"
 )
 
 // cryptoToModel transforms the JSON secure credentials into its database equivalent.
-func cryptoToModel(in *api.InCrypto, a *model.Credential) *model.Credential {
-	a.Name = in.Name.Value
+func cryptoToModel(in *api.InCrypto, cred *model.Credential) *model.Credential {
+	cred.Name = in.Name.Value
 
 	switch {
 	case in.Certificate.Valid && in.PrivateKey.Valid:
-		a.Type = auth.TLSCertificate
-		a.Value = in.Certificate.Value
-		a.Value2 = in.PrivateKey.Value
+		if compatibility.IsLegacyR66CertPEM(in.Certificate.Value) {
+			cred.Type = r66.AuthLegacyCertificate
+		} else {
+			cred.Type = auth.TLSCertificate
+			cred.Value = in.Certificate.Value
+			cred.Value2 = in.PrivateKey.Value
+		}
 	case in.Certificate.Valid:
-		a.Type = auth.TLSTrustedCertificate
-		a.Value = in.Certificate.Value
+		if compatibility.IsLegacyR66CertPEM(in.Certificate.Value) {
+			cred.Type = r66.AuthLegacyCertificate
+		} else {
+			cred.Type = auth.TLSTrustedCertificate
+			cred.Value = in.Certificate.Value
+		}
 	case in.PrivateKey.Valid:
-		a.Type = sftp.AuthSSHPrivateKey
-		a.Value = in.PrivateKey.Value
+		cred.Type = sftp.AuthSSHPrivateKey
+		cred.Value = in.PrivateKey.Value
 	case in.PublicKey.Valid:
-		a.Type = sftp.AuthSSHPublicKey
-		a.Value = in.PublicKey.Value
+		cred.Type = sftp.AuthSSHPublicKey
+		cred.Value = in.PublicKey.Value
 	}
 
-	return a
+	return cred
 }
 
 func inCryptoFromModel(c *model.Credential) (*api.InCrypto, error) {
@@ -62,37 +71,63 @@ func inCryptoFromModel(c *model.Credential) (*api.InCrypto, error) {
 			Name:       api.AsNullable(c.Name),
 			PrivateKey: api.AsNullable(c.Value),
 		}, nil
+	case r66.AuthLegacyCertificate:
+		if c.LocalAgentID.Valid || c.RemoteAccountID.Valid {
+			return &api.InCrypto{
+				Name:        api.AsNullable(c.Name),
+				Certificate: api.AsNullable(compatibility.LegacyR66CertPEM),
+				PrivateKey:  api.AsNullable(compatibility.LegacyR66KeyPEM),
+			}, nil
+		} else {
+			return &api.InCrypto{
+				Name:        api.AsNullable(c.Name),
+				Certificate: api.AsNullable(compatibility.LegacyR66CertPEM),
+			}, nil
+		}
 	default:
 		return nil, internal("unsupported certificate type '%s'", c.Type)
 	}
 }
 
 // FromCrypto transforms the given database secure credentials into its JSON equivalent.
-func FromCrypto(a *model.Credential) (*api.OutCrypto, error) {
-	switch a.Type {
+func FromCrypto(cred *model.Credential) (*api.OutCrypto, error) {
+	switch cred.Type {
 	case auth.TLSTrustedCertificate:
 		return &api.OutCrypto{
-			Name:        a.Name,
-			Certificate: a.Value,
+			Name:        cred.Name,
+			Certificate: cred.Value,
 		}, nil
 	case auth.TLSCertificate:
 		return &api.OutCrypto{
-			Name:        a.Name,
-			Certificate: a.Value,
-			PrivateKey:  a.Value2,
+			Name:        cred.Name,
+			Certificate: cred.Value,
+			PrivateKey:  cred.Value2,
 		}, nil
 	case sftp.AuthSSHPublicKey:
 		return &api.OutCrypto{
-			Name:      a.Name,
-			PublicKey: a.Value,
+			Name:      cred.Name,
+			PublicKey: cred.Value,
 		}, nil
 	case sftp.AuthSSHPrivateKey:
 		return &api.OutCrypto{
-			Name:       a.Name,
-			PrivateKey: a.Value,
+			Name:       cred.Name,
+			PrivateKey: cred.Value,
 		}, nil
+	case r66.AuthLegacyCertificate:
+		if cred.LocalAgentID.Valid || cred.RemoteAccountID.Valid {
+			return &api.OutCrypto{
+				Name:        cred.Name,
+				Certificate: compatibility.LegacyR66CertPEM,
+				PrivateKey:  compatibility.LegacyR66KeyPEM,
+			}, nil
+		} else {
+			return &api.OutCrypto{
+				Name:        cred.Name,
+				Certificate: compatibility.LegacyR66CertPEM,
+			}, nil
+		}
 	default:
-		return nil, internal("unsupported certificate type '%s'", a.Type)
+		return nil, internal("unsupported certificate type '%s'", cred.Type)
 	}
 }
 

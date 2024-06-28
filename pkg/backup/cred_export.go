@@ -9,7 +9,9 @@ import (
 	"code.waarp.fr/apps/gateway/gateway/pkg/database"
 	"code.waarp.fr/apps/gateway/gateway/pkg/model"
 	"code.waarp.fr/apps/gateway/gateway/pkg/model/authentication/auth"
+	"code.waarp.fr/apps/gateway/gateway/pkg/protocols/modules/r66"
 	"code.waarp.fr/apps/gateway/gateway/pkg/protocols/modules/sftp"
+	"code.waarp.fr/apps/gateway/gateway/pkg/utils/compatibility"
 )
 
 func exportCredentials(logger *log.Logger, db database.ReadAccess,
@@ -70,5 +72,18 @@ func exportLegacyCredentials(src *model.Credential, certs *[]file.Certificate,
 			Name:      src.Name,
 			PublicKey: src.Value,
 		})
+	case r66.AuthLegacyCertificate:
+		if src.LocalAgentID.Valid || src.RemoteAccountID.Valid {
+			*certs = append(*certs, file.Certificate{
+				Name:        src.Name,
+				Certificate: compatibility.LegacyR66CertPEM,
+				PrivateKey:  compatibility.LegacyR66KeyPEM,
+			})
+		} else {
+			*certs = append(*certs, file.Certificate{
+				Name:        src.Name,
+				Certificate: compatibility.LegacyR66CertPEM,
+			})
+		}
 	}
 }

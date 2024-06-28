@@ -66,10 +66,6 @@ func (c *Credential) BeforeWrite(db database.Access) error {
 		c.Name = c.Type
 	}
 
-	if c.Value == "" {
-		return database.NewValidationError("the authentication value is missing")
-	}
-
 	if sum := countTrue(c.LocalAgentID.Valid, c.RemoteAgentID.Valid,
 		c.LocalAccountID.Valid, c.RemoteAccountID.Valid); sum == 0 {
 		return database.NewValidationError("the authentication method is missing an owner")
