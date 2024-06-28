@@ -45,7 +45,7 @@ type authentCacheVal struct {
 }
 
 func getCachableValue(authType string, value any) (bool, any) {
-	if authType == "password_hash" {
+	if authType == authPassword {
 		switch typedVal := value.(type) {
 		case string:
 			return true, typedVal

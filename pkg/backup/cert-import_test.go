@@ -10,7 +10,9 @@ import (
 	"code.waarp.fr/apps/gateway/gateway/pkg/model"
 	"code.waarp.fr/apps/gateway/gateway/pkg/model/authentication/auth"
 	"code.waarp.fr/apps/gateway/gateway/pkg/model/types"
+	"code.waarp.fr/apps/gateway/gateway/pkg/protocols/modules/r66"
 	"code.waarp.fr/apps/gateway/gateway/pkg/utils"
+	"code.waarp.fr/apps/gateway/gateway/pkg/utils/compatibility"
 	"code.waarp.fr/apps/gateway/gateway/pkg/utils/testhelpers"
 )
 
@@ -21,7 +23,7 @@ func TestImportCerts(t *testing.T) {
 		Convey("Given a database with some Cryptos", func() {
 			agent := &model.LocalAgent{
 				Name:     "server",
-				Protocol: testProtocol,
+				Protocol: r66.R66TLS,
 				Address:  types.Addr("localhost", 6666),
 			}
 			So(db.Insert(agent).Run(), ShouldBeNil)
@@ -48,7 +50,16 @@ func TestImportCerts(t *testing.T) {
 					PrivateKey:  testhelpers.LocalhostKey,
 					Certificate: testhelpers.LocalhostCert,
 				}
-				Certificates := []Certificate{insert}
+				legacy := Certificate{
+					Name:        "legacy",
+					PrivateKey:  compatibility.LegacyR66KeyPEM,
+					Certificate: compatibility.LegacyR66CertPEM,
+				}
+				Certificates := []Certificate{insert, legacy}
+
+				compatibility.IsLegacyR66CertificateAllowed = true
+
+				Reset(func() { compatibility.IsLegacyR66CertificateAllowed = false })
 
 				Convey("When calling the importCerts with the new "+
 					"Cryptos on the existing agent", func() {
@@ -62,13 +73,19 @@ func TestImportCerts(t *testing.T) {
 						var dbCerts model.Credentials
 						So(db.Select(&dbCerts).Where("local_agent_id=?",
 							agent.ID).Run(), ShouldBeNil)
-						So(len(dbCerts), ShouldEqual, 1)
+						So(len(dbCerts), ShouldEqual, 2)
 
-						Convey("Then the Certificate should correspond "+
-							"to the one imported", func() {
+						Convey("Then the Certificates should correspond "+
+							"to the ones imported", func() {
 							So(dbCerts[0].Name, ShouldResemble, insert.Name)
+							So(dbCerts[0].Type, ShouldResemble, auth.TLSCertificate)
 							So(dbCerts[0].Value2, ShouldResemble, insert.PrivateKey)
 							So(dbCerts[0].Value, ShouldResemble, insert.Certificate)
+
+							So(dbCerts[1].Name, ShouldResemble, legacy.Name)
+							So(dbCerts[1].Type, ShouldResemble, r66.AuthLegacyCertificate)
+							So(dbCerts[1].Value2, ShouldBeBlank)
+							So(dbCerts[1].Value, ShouldBeBlank)
 						})
 					})
 				})

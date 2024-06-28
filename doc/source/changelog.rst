@@ -3,6 +3,17 @@
 Historique des versions
 =======================
 
+* :fix:`403` Le certificat R66 *legacy* est désormais correctement reconnus
+  en tant que tel à sa création, que ce soit via l'import ou via l'API REST.
+  Ce certificat n'était pas correctement reconnu depuis la version 0.9.0 quand
+  celui-ci était ajouté via l'ancien champ ``certificates``, et sa création
+  échouait donc en raison de l'invalidité du certificat.
+* :fix:`-` Les mots de passe des compte locaux et des partenaires distants
+  peuvent désormais correctement être importés. Un bug introduit en version
+  0.9.0 empêchait leur création via le champ ``password`` (pour les comptes
+  locaux) ou ``serverPassword`` (pour les partenaires R66).
+* :fix:`-` Le cache d'authentification pour mots de passe introduit en version
+  0.9.0 fonctionne désormais correctement.
 * :fix:`402` L'ancienne propriété "isTLS" des agents R66 (dépréciée en version
   0.7.0 avec la séparation des protocoles R66 et R66-TLS) est de nouveau
   correctement prise en compte. La rétro-compatibilité avec cette propriété
@@ -10,7 +21,7 @@ Historique des versions
   rétro-compatibilité concerne l'API REST et le fichier d'import/export.
 
 * :release:`0.9.0 <2024-06-05>`
-* :feat:`399` Ajout d'un cache d'authentification, permettant d'améliorer
+* :feature:`399` Ajout d'un cache d'authentification, permettant d'améliorer
   significativement les performances lorsqu'un grand nombre de demandes de
   transfert sont effectuées en même temps par un même partenaire.
 * :bug:`398` Les clé publiques SSH utilisant les algorithmes ``rsa-sha2-256`` et

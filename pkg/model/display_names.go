@@ -19,7 +19,4 @@ const (
 	NameUser               = "transfer"
 )
 
-const (
-	authPassword     = "password"
-	authPasswordHash = "password_hash"
-)
+const authPassword = "password"

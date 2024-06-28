@@ -54,6 +54,15 @@ func ParseLegacyR66Certificate() error {
 	return nil
 }
 
+func IsLegacyR66CertPEM(pem string) bool {
+	cert, err := utils.ParsePEMCertChain(pem)
+	if err != nil {
+		return false
+	}
+
+	return IsLegacyR66Cert(cert[0])
+}
+
 func IsLegacyR66Cert(cert *x509.Certificate) bool {
 	if IsLegacyR66CertificateAllowed &&
 		cert.SignatureAlgorithm == x509.SHA256WithRSA &&

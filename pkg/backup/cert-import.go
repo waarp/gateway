@@ -9,7 +9,9 @@ import (
 	"code.waarp.fr/apps/gateway/gateway/pkg/database"
 	"code.waarp.fr/apps/gateway/gateway/pkg/model"
 	"code.waarp.fr/apps/gateway/gateway/pkg/model/authentication/auth"
+	"code.waarp.fr/apps/gateway/gateway/pkg/protocols/modules/r66"
 	"code.waarp.fr/apps/gateway/gateway/pkg/protocols/modules/sftp"
+	"code.waarp.fr/apps/gateway/gateway/pkg/utils/compatibility"
 )
 
 // Deprecated: to be replaced by importAuth.
@@ -36,12 +38,20 @@ func importCerts(logger *log.Logger, db database.Access, list []file.Certificate
 
 		switch {
 		case src.Certificate != "" && src.PrivateKey != "":
-			crypto.Type = auth.TLSCertificate
-			crypto.Value = src.Certificate
-			crypto.Value2 = src.PrivateKey
+			if compatibility.IsLegacyR66CertPEM(src.Certificate) {
+				crypto.Type = r66.AuthLegacyCertificate
+			} else {
+				crypto.Type = auth.TLSCertificate
+				crypto.Value = src.Certificate
+				crypto.Value2 = src.PrivateKey
+			}
 		case src.Certificate != "":
-			crypto.Type = auth.TLSTrustedCertificate
-			crypto.Value = src.Certificate
+			if compatibility.IsLegacyR66CertPEM(src.Certificate) {
+				crypto.Type = r66.AuthLegacyCertificate
+			} else {
+				crypto.Type = auth.TLSTrustedCertificate
+				crypto.Value = src.Certificate
+			}
 		case src.PublicKey != "":
 			crypto.Type = sftp.AuthSSHPublicKey
 			crypto.Value = src.PublicKey

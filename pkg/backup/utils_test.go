@@ -9,6 +9,7 @@ import (
 
 	"code.waarp.fr/apps/gateway/gateway/pkg/model/modeltest"
 	"code.waarp.fr/apps/gateway/gateway/pkg/model/types"
+	"code.waarp.fr/apps/gateway/gateway/pkg/protocols/modules/r66"
 	_ "code.waarp.fr/apps/gateway/gateway/pkg/tasks"
 )
 
@@ -17,6 +18,7 @@ const testProtocol = "test_proto"
 //nolint:gochecknoinits // init is used by design
 func init() {
 	modeltest.AddDummyProtoConfig(testProtocol)
+	modeltest.AddDummyProtoConfig(r66.R66TLS)
 }
 
 func discard() *log.Logger {
