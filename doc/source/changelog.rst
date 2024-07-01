@@ -3,6 +3,7 @@
 Historique des versions
 =======================
 
+* :release:`0.9.1 <2024-07-01>`
 * :fix:`403` Le certificat R66 *legacy* est désormais correctement reconnus
   en tant que tel à sa création, que ce soit via l'import ou via l'API REST.
   Ce certificat n'était pas correctement reconnu depuis la version 0.9.0 quand
