@@ -15,6 +15,7 @@ import (
 	"code.waarp.fr/apps/gateway/gateway/pkg/model/types"
 	"code.waarp.fr/apps/gateway/gateway/pkg/pipeline"
 	"code.waarp.fr/apps/gateway/gateway/pkg/protocols/modules/http/httpconst"
+	"code.waarp.fr/apps/gateway/gateway/pkg/snmp"
 	"code.waarp.fr/apps/gateway/gateway/pkg/utils"
 )
 
@@ -241,7 +242,7 @@ func (h *httpHandler) handle(isSend bool) {
 		op = "Download"
 	}
 
-	pip, err := pipeline.NewServerPipeline(h.db, h.logger, trans)
+	pip, err := pipeline.NewServerPipeline(h.db, h.logger, trans, snmp.GlobalService)
 	if err != nil {
 		h.sendError(http.StatusInternalServerError, err.Code(), err.Redacted())
 

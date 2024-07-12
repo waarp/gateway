@@ -55,9 +55,7 @@ func (t testModule) MakeServerConfig() protocol.ServerConfig                   {
 func (t testModule) MakeClientConfig() protocol.ClientConfig                   { return &testProtoConfig{} }
 func (t testModule) MakePartnerConfig() protocol.PartnerConfig                 { return &testProtoConfig{} }
 
-type testProtoConfig struct {
-	Key string `json:"key,omitempty"`
-}
+type testProtoConfig map[string]any
 
 func (*testProtoConfig) ValidServer() error  { return nil }
 func (*testProtoConfig) ValidPartner() error { return nil }

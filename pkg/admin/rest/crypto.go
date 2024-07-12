@@ -52,36 +52,36 @@ func inCryptoFromModel(c *model.Credential) (*api.InCrypto, error) {
 	switch c.Type {
 	case auth.TLSTrustedCertificate:
 		return &api.InCrypto{
-			Name:        api.AsNullable(c.Name),
-			Certificate: api.AsNullable(c.Value),
+			Name:        asNullableStr(c.Name),
+			Certificate: asNullableStr(c.Value),
 		}, nil
 	case auth.TLSCertificate:
 		return &api.InCrypto{
-			Name:        api.AsNullable(c.Name),
-			Certificate: api.AsNullable(c.Value),
-			PrivateKey:  api.AsNullable(c.Value2),
+			Name:        asNullableStr(c.Name),
+			Certificate: asNullableStr(c.Value),
+			PrivateKey:  asNullableStr(c.Value2),
 		}, nil
 	case sftp.AuthSSHPublicKey:
 		return &api.InCrypto{
-			Name:      api.AsNullable(c.Name),
-			PublicKey: api.AsNullable(c.Value),
+			Name:      asNullableStr(c.Name),
+			PublicKey: asNullableStr(c.Value),
 		}, nil
 	case sftp.AuthSSHPrivateKey:
 		return &api.InCrypto{
-			Name:       api.AsNullable(c.Name),
-			PrivateKey: api.AsNullable(c.Value),
+			Name:       asNullableStr(c.Name),
+			PrivateKey: asNullableStr(c.Value),
 		}, nil
 	case r66.AuthLegacyCertificate:
 		if c.LocalAgentID.Valid || c.RemoteAccountID.Valid {
 			return &api.InCrypto{
-				Name:        api.AsNullable(c.Name),
-				Certificate: api.AsNullable(compatibility.LegacyR66CertPEM),
-				PrivateKey:  api.AsNullable(compatibility.LegacyR66KeyPEM),
+				Name:        asNullableStr(c.Name),
+				Certificate: asNullableStr(compatibility.LegacyR66CertPEM),
+				PrivateKey:  asNullableStr(compatibility.LegacyR66KeyPEM),
 			}, nil
 		} else {
 			return &api.InCrypto{
-				Name:        api.AsNullable(c.Name),
-				Certificate: api.AsNullable(compatibility.LegacyR66CertPEM),
+				Name:        asNullableStr(c.Name),
+				Certificate: asNullableStr(compatibility.LegacyR66CertPEM),
 			}, nil
 		}
 	default:

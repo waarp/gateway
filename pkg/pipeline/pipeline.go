@@ -17,6 +17,7 @@ import (
 	"code.waarp.fr/apps/gateway/gateway/pkg/logging"
 	"code.waarp.fr/apps/gateway/gateway/pkg/model"
 	"code.waarp.fr/apps/gateway/gateway/pkg/model/types"
+	"code.waarp.fr/apps/gateway/gateway/pkg/snmp"
 	"code.waarp.fr/apps/gateway/gateway/pkg/tasks"
 	"code.waarp.fr/apps/gateway/gateway/pkg/tk/statemachine"
 )
@@ -38,6 +39,7 @@ type Pipeline struct {
 	Logger   *log.Logger
 	Stream   *FileStream
 	Trace    Trace
+	snmp     *snmp.Service
 
 	machine      *statemachine.Machine
 	interruption interruption
@@ -51,11 +53,13 @@ type Pipeline struct {
 
 //nolint:funlen //function is fine as is
 func newPipeline(db *database.DB, logger *log.Logger, transCtx *model.TransferContext,
+	snmpService *snmp.Service,
 ) (*Pipeline, *Error) {
 	pipeline := &Pipeline{
 		DB:        db,
 		Logger:    logger,
 		TransCtx:  transCtx,
+		snmp:      snmpService,
 		machine:   pipelineSateMachine.New(),
 		updTicker: time.NewTicker(TransferUpdateInterval),
 		Runner:    tasks.NewTaskRunner(db, logger, transCtx),
@@ -491,6 +495,10 @@ func (p *Pipeline) doneErr(status types.TransferStatus) {
 	p.TransCtx.Transfer.Status = status
 	if err := p.DB.Update(p.TransCtx.Transfer).Run(); err != nil {
 		p.Logger.Error("Failed to update transfer status to %v: %s", status, err)
+	}
+
+	if p.snmp != nil {
+		p.snmp.ReportTransferError(p.TransCtx.Transfer.ID)
 	}
 
 	p.done(stateInError)

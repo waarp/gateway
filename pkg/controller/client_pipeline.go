@@ -14,6 +14,7 @@ import (
 	"code.waarp.fr/apps/gateway/gateway/pkg/model/types"
 	"code.waarp.fr/apps/gateway/gateway/pkg/pipeline"
 	"code.waarp.fr/apps/gateway/gateway/pkg/protocols/protocol"
+	"code.waarp.fr/apps/gateway/gateway/pkg/snmp"
 	"code.waarp.fr/apps/gateway/gateway/pkg/utils"
 )
 
@@ -79,7 +80,7 @@ func newClientPipeline(db *database.DB, logger *log.Logger, transCtx *model.Tran
 		return nil, newTransferError(types.TeShuttingDown, "client %q is not active", dbClient.Name)
 	}
 
-	pip, pipErr := pipeline.NewClientPipeline(db, logger, transCtx)
+	pip, pipErr := pipeline.NewClientPipeline(db, logger, transCtx, snmp.GlobalService)
 	if pipErr != nil {
 		logger.Error("Failed to initialize the client transfer pipeline: %v", pipErr)
 

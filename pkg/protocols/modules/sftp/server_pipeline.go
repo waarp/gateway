@@ -11,6 +11,7 @@ import (
 	"code.waarp.fr/apps/gateway/gateway/pkg/model"
 	"code.waarp.fr/apps/gateway/gateway/pkg/model/types"
 	"code.waarp.fr/apps/gateway/gateway/pkg/pipeline"
+	"code.waarp.fr/apps/gateway/gateway/pkg/snmp"
 	"code.waarp.fr/apps/gateway/gateway/pkg/utils"
 )
 
@@ -34,7 +35,7 @@ func initPipeline(db *database.DB, logger *log.Logger, trans *model.Transfer,
 		return nil, toSFTPErr(tErr)
 	}
 
-	pip, tErr := pipeline.NewServerPipeline(db, logger, trans)
+	pip, tErr := pipeline.NewServerPipeline(db, logger, trans, snmp.GlobalService)
 	if tErr != nil {
 		return nil, toSFTPErr(tErr)
 	}

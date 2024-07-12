@@ -13,6 +13,7 @@ import (
 	"code.waarp.fr/apps/gateway/gateway/pkg/conf"
 	"code.waarp.fr/apps/gateway/gateway/pkg/logging"
 	"code.waarp.fr/apps/gateway/gateway/pkg/pipeline"
+	"code.waarp.fr/apps/gateway/gateway/pkg/snmp"
 	"code.waarp.fr/apps/gateway/gateway/pkg/utils"
 )
 
@@ -92,6 +93,7 @@ func (c *Controller) Stop(ctx context.Context) error {
 	case <-ctx.Done():
 		c.logger.Info("Shutdown failed, forcing exit")
 		c.state.Set(utils.StateError, fmt.Sprintf("shutdown failed: %s", ctx.Err()))
+		snmp.ReportServiceFailure(ServiceName, fmt.Errorf("shutdown failed: %w", ctx.Err()))
 
 		return fmt.Errorf("shutdown failed: %w", ctx.Err())
 	}

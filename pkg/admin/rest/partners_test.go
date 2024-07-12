@@ -363,7 +363,8 @@ func TestUpdatePartner(t *testing.T) {
 		Convey("Given a database with 1 agent", func() {
 			old := &model.RemoteAgent{
 				Name: "old", Protocol: testProto1,
-				Address: types.Addr("localhost", 1),
+				Address:     types.Addr("localhost", 1),
+				ProtoConfig: map[string]any{"old_key": "old_val"},
 			}
 			So(db.Insert(old).Run(), ShouldBeNil)
 
@@ -373,7 +374,7 @@ func TestUpdatePartner(t *testing.T) {
 					newProto = testProto2
 					newAddr  = "localhost:2"
 				)
-				newConf := map[string]any{"key": "val"}
+				newConf := map[string]any{"new_key": "new_val"}
 
 				body := map[string]any{
 					"name":        newName,

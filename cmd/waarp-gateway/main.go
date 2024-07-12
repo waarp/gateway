@@ -181,6 +181,16 @@ type commands struct {
 		Del  wg.AuthorityDelete `command:"delete" description:"Delete an authority"`
 	} `command:"authority" description:"Manage the authentication authorities"`
 
+	SNMP struct {
+		Monitor struct {
+			Add  wg.SnmpMonitorAdd    `command:"add" description:"Add a new SNMP monitor"`
+			Get  wg.SnmpMonitorGet    `command:"get" description:"Retrieve a SNMP monitor's information"`
+			List wg.SnmpMonitorList   `command:"list" description:"List the known SNMP monitors"`
+			Upd  wg.SnmpMonitorUpdate `command:"update" description:"Update an existing SNMP monitor"`
+			Del  wg.SnmpMonitorDelete `command:"delete" description:"Delete an SNMP monitor"`
+		} `command:"monitor" description:"Manage the SNMP monitors"`
+	} `command:"snmp" description:"Manage SNMP"`
+
 	Version wg.Version `command:"version" description:"Print the program version and exit"`
 }
 

@@ -80,7 +80,7 @@ func DBTransferToREST(db *database.DB, trans *model.NormalizedTransferView) (*ap
 
 	var stop api.Nullable[time.Time]
 	if !trans.Stop.IsZero() {
-		stop = api.AsNullable(trans.Stop)
+		stop = asNullableTime(trans.Stop)
 	}
 
 	info, iErr := trans.GetTransferInfo(db)

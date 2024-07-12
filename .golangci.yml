@@ -833,6 +833,11 @@ issues:
       linters:
         - wsl
 
+    # The tagliatelle linter raises a false positive on "snmpv3Security".
+    - linters:
+        - tagliatelle
+      text: "got 'snmpv3Security' want 'snmPv3Security'"
+
   # Independently from option `exclude` we use default exclude patterns,
   # it can be disabled by this option. To list all
   # excluded by default patterns execute `golangci-lint run --help`.

@@ -44,7 +44,7 @@ func TestNewClientPipeline(t *testing.T) {
 			So(err, ShouldBeNil)
 
 			Convey("When initiating a new pipeline for this transfer", func(c C) {
-				pip, err := NewClientPipeline(ctx.db, ctx.logger, transCtx)
+				pip, err := NewClientPipeline(ctx.db, ctx.logger, transCtx, nil)
 				So(err, ShouldBeNil)
 				resetPip(pip)
 
@@ -68,7 +68,7 @@ func TestNewClientPipeline(t *testing.T) {
 				So(fs.Remove(ctx.fs, file), ShouldBeNil)
 
 				Convey("When initiating a new pipeline for this transfer", func(c C) {
-					pip, err := NewClientPipeline(ctx.db, ctx.logger, transCtx)
+					pip, err := NewClientPipeline(ctx.db, ctx.logger, transCtx, nil)
 					resetPip(pip)
 
 					Convey("Then it should NOT return an error", func(c C) {
@@ -87,7 +87,7 @@ func TestNewClientPipeline(t *testing.T) {
 				})
 
 				Convey("When initiating a new pipeline for this transfer", func(c C) {
-					pip, err := NewClientPipeline(ctx.db, ctx.logger, transCtx)
+					pip, err := NewClientPipeline(ctx.db, ctx.logger, transCtx, nil)
 					resetPip(pip)
 
 					Convey("Then it should return an error", func(c C) {
@@ -105,7 +105,7 @@ func TestNewClientPipeline(t *testing.T) {
 			So(err, ShouldBeNil)
 
 			Convey("When initiating a new pipeline for this transfer", func(c C) {
-				pip, err := NewClientPipeline(ctx.db, ctx.logger, transCtx)
+				pip, err := NewClientPipeline(ctx.db, ctx.logger, transCtx, nil)
 				So(err, ShouldBeNil)
 				resetPip(pip)
 
@@ -135,7 +135,7 @@ func TestNewClientPipeline(t *testing.T) {
 				})
 
 				Convey("When initiating a new pipeline for this transfer", func(c C) {
-					pip, err := NewClientPipeline(ctx.db, ctx.logger, transCtx)
+					pip, err := NewClientPipeline(ctx.db, ctx.logger, transCtx, nil)
 					resetPip(pip)
 
 					Convey("Then it should return an error", func(c C) {

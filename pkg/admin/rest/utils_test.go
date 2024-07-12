@@ -6,9 +6,13 @@ import (
 	"io"
 	"net/http"
 	"net/http/httptest"
+	"path"
+	"strings"
+	"testing"
 
 	"github.com/gorilla/mux"
 	"github.com/smartystreets/goconvey/convey"
+	"github.com/stretchr/testify/require"
 
 	"code.waarp.fr/apps/gateway/gateway/pkg/database"
 	"code.waarp.fr/apps/gateway/gateway/pkg/logging"
@@ -93,4 +97,26 @@ func readBody(body io.Reader) string {
 	convey.So(err, convey.ShouldBeNil)
 
 	return string(raw)
+}
+
+func marshal(tb testing.TB, data any) string {
+	tb.Helper()
+
+	raw, err := json.Marshal(data)
+	require.NoError(tb, err)
+
+	return string(raw)
+}
+
+func makeRequest(tb testing.TB, method string, body io.Reader, url, elem string) *http.Request {
+	tb.Helper()
+
+	dir := path.Dir(url)
+	urlVar := strings.Trim(path.Base(url), "{}")
+
+	reqURL := path.Join(dir, elem)
+	req := httptest.NewRequest(method, reqURL, body)
+	req = mux.SetURLVars(req, map[string]string{urlVar: elem})
+
+	return req
 }

@@ -120,9 +120,9 @@ func updateAuthAuthority(logger *log.Logger, db *database.DB) http.HandlerFunc {
 		}
 
 		jAuth := &api.InAuthority{
-			Name:           api.AsNullable(old.Name),
-			Type:           api.AsNullable(old.Type),
-			PublicIdentity: api.AsNullable(old.PublicIdentity),
+			Name:           asNullableStr(old.Name),
+			Type:           asNullableStr(old.Type),
+			PublicIdentity: asNullableStr(old.PublicIdentity),
 			ValidHosts:     old.ValidHosts,
 		}
 		if err := readJSON(r, jAuth); handleError(w, logger, err) {

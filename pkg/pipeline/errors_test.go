@@ -244,7 +244,7 @@ func initFilestream(ctx *testContext, trans *model.Transfer) *FileStream {
 	transCtx, ctxErr := model.GetTransferContext(ctx.db, ctx.logger, trans)
 	So(ctxErr, ShouldBeNil)
 
-	pip, pipErr := NewClientPipeline(ctx.db, ctx.logger, transCtx)
+	pip, pipErr := NewClientPipeline(ctx.db, ctx.logger, transCtx, nil)
 	So(pipErr, ShouldBeNil)
 
 	Reset(pip.doneOK)
@@ -282,7 +282,7 @@ func newTestPipeline(c C, db *database.DB, trans *model.Transfer) *testPipeline 
 	transCtx, err := model.GetTransferContext(db, logger, trans)
 	So(err, ShouldBeNil)
 
-	pip, err := NewClientPipeline(db, logger, transCtx)
+	pip, err := NewClientPipeline(db, logger, transCtx, nil)
 	c.So(err, ShouldBeNil)
 	pip.updTicker.Reset(testTransferUpdateInterval)
 

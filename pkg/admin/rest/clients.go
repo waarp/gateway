@@ -191,9 +191,9 @@ func updateClient(logger *log.Logger, db *database.DB) http.HandlerFunc {
 		}
 
 		restClient := &api.InClient{
-			Name:         api.AsNullable(oldDBClient.Name),
-			Protocol:     api.AsNullable(oldDBClient.Protocol),
-			LocalAddress: api.AsNullable(oldDBClient.LocalAddress.String()),
+			Name:         asNullableStr(oldDBClient.Name),
+			Protocol:     asNullableStr(oldDBClient.Protocol),
+			LocalAddress: asNullableStr(oldDBClient.LocalAddress.String()),
 			ProtoConfig:  oldDBClient.ProtoConfig,
 		}
 		if err := readJSON(r, restClient); handleError(w, logger, err) {

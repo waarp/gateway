@@ -8,8 +8,7 @@ import (
 	. "github.com/smartystreets/goconvey/convey"
 
 	"code.waarp.fr/apps/gateway/gateway/pkg/conf"
-	"code.waarp.fr/apps/gateway/gateway/pkg/logging"
-	"code.waarp.fr/apps/gateway/gateway/pkg/pipeline"
+	"code.waarp.fr/apps/gateway/gateway/pkg/controller"
 	"code.waarp.fr/apps/gateway/gateway/pkg/pipeline/pipelinetest"
 )
 
@@ -31,12 +30,11 @@ func TestAddressIndirection(t *testing.T) {
 
 		Convey("Given a new r66 transfer", func(c C) {
 			Convey("When connecting to the server", func(c C) {
-				logger := logging.NewLogger("test_r66_address_indirection")
-				pip, err := pipeline.NewClientPipeline(ctx.DB, logger, ctx.GetTransferContext(c))
+				pip, err := controller.NewClientPipeline(ctx.DB, ctx.ClientTrans)
 				So(err, ShouldBeNil)
-				Reset(func() { pip.EndTransfer() })
+				Reset(func() { pip.Pip.EndTransfer() })
 
-				trans, err := ctx.ClientService.InitTransfer(pip)
+				trans, err := ctx.ClientService.InitTransfer(pip.Pip)
 				So(err, ShouldBeNil)
 
 				cli, ok := trans.(*transferClient)

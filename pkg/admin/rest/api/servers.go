@@ -12,7 +12,7 @@ type InServer struct {
 	ReceiveDir    Nullable[string] `json:"receiveDir,omitempty"`
 	SendDir       Nullable[string] `json:"sendDir,omitempty"`
 	TmpReceiveDir Nullable[string] `json:"tmpReceiveDir,omitempty"`
-	ProtoConfig   map[string]any   `json:"protoConfig,omitempty"`
+	ProtoConfig   UpdateObject     `json:"protoConfig,omitempty"`
 
 	// Deprecated fields
 	Root    Nullable[string] `json:"root,omitempty"`    // Deprecated: replaced by RootDir

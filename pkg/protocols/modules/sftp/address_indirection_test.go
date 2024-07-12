@@ -8,11 +8,10 @@ import (
 	"golang.org/x/crypto/ssh"
 
 	"code.waarp.fr/apps/gateway/gateway/pkg/conf"
+	"code.waarp.fr/apps/gateway/gateway/pkg/controller"
 	"code.waarp.fr/apps/gateway/gateway/pkg/model"
-	"code.waarp.fr/apps/gateway/gateway/pkg/pipeline"
 	"code.waarp.fr/apps/gateway/gateway/pkg/pipeline/pipelinetest"
 	"code.waarp.fr/apps/gateway/gateway/pkg/utils"
-	"code.waarp.fr/apps/gateway/gateway/pkg/utils/testhelpers"
 )
 
 func TestAddressIndirection(t *testing.T) {
@@ -46,12 +45,10 @@ func TestAddressIndirection(t *testing.T) {
 
 		Convey("Given a new SFTP transfer", func(c C) {
 			Convey("When connecting to the server", func(c C) {
-				logger := testhelpers.TestLogger(c, "pipeline n°%d (client)", 1)
-
-				pip, err := pipeline.NewClientPipeline(ctx.DB, logger, ctx.GetTransferContext(c))
+				pip, err := controller.NewClientPipeline(ctx.DB, ctx.ClientTrans)
 				So(err, ShouldBeNil)
 
-				cli, err := newTransferClient(pip, &net.Dialer{}, &ssh.Config{})
+				cli, err := newTransferClient(pip.Pip, &net.Dialer{}, &ssh.Config{})
 				So(err, ShouldBeNil)
 
 				So(cli.Request(), ShouldBeNil)

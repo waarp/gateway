@@ -6,7 +6,7 @@ type InPartner struct {
 	Name        Nullable[string] `json:"name,omitempty"`
 	Protocol    Nullable[string] `json:"protocol,omitempty"`
 	Address     Nullable[string] `json:"address,omitempty"`
-	ProtoConfig map[string]any   `json:"protoConfig,omitempty"`
+	ProtoConfig UpdateObject     `json:"protoConfig,omitempty"`
 }
 
 // OutPartner is the JSON representation of a remote partner in responses sent

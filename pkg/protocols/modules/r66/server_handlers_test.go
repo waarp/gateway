@@ -292,7 +292,7 @@ func TestUpdateTransferInfo(t *testing.T) {
 			}
 			So(db.Insert(trans).Run(), ShouldBeNil)
 
-			pip, err := pipeline.NewServerPipeline(db, logger, trans)
+			pip, err := pipeline.NewServerPipeline(db, logger, trans, nil)
 			So(err, ShouldBeNil)
 			defer pip.EndTransfer()
 
@@ -346,7 +346,7 @@ func TestUpdateTransferInfo(t *testing.T) {
 			So(fs.WriteFullFile(testFS, dir.JoinPath("new.file"),
 				[]byte("file content")), ShouldBeNil)
 
-			pip, err := pipeline.NewServerPipeline(db, logger, trans)
+			pip, err := pipeline.NewServerPipeline(db, logger, trans, nil)
 			So(err, ShouldBeNil)
 			defer pip.EndTransfer()
 

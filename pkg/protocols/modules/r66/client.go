@@ -15,6 +15,7 @@ import (
 	"code.waarp.fr/apps/gateway/gateway/pkg/pipeline"
 	"code.waarp.fr/apps/gateway/gateway/pkg/protocols/modules/r66/internal"
 	"code.waarp.fr/apps/gateway/gateway/pkg/protocols/protocol"
+	"code.waarp.fr/apps/gateway/gateway/pkg/snmp"
 	"code.waarp.fr/apps/gateway/gateway/pkg/utils"
 )
 
@@ -37,6 +38,7 @@ func (c *client) Start() error {
 	if err := c.start(); err != nil {
 		c.logger.Error("Failed to start R66 client: %v", err)
 		c.state.Set(utils.StateError, err.Error())
+		snmp.ReportServiceFailure(c.cli.Name, err)
 
 		return err
 	}
@@ -76,6 +78,7 @@ func (c *client) Stop(ctx context.Context) error {
 
 	if err := pipeline.List.StopAllFromClient(ctx, c.cli.ID); err != nil {
 		c.state.Set(utils.StateError, fmt.Sprintf("failed to stop transfers: %v", err))
+		snmp.ReportServiceFailure(c.cli.Name, err)
 
 		return fmt.Errorf("failed to stop transfers: %w", err)
 	}

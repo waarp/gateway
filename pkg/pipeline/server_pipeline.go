@@ -6,6 +6,7 @@ import (
 	"code.waarp.fr/apps/gateway/gateway/pkg/database"
 	"code.waarp.fr/apps/gateway/gateway/pkg/model"
 	"code.waarp.fr/apps/gateway/gateway/pkg/model/types"
+	"code.waarp.fr/apps/gateway/gateway/pkg/snmp"
 )
 
 // GetOldTransfer searches the database for an interrupted transfer with the
@@ -44,13 +45,14 @@ func GetOldTransfer(db *database.DB, logger *log.Logger, trans *model.Transfer,
 // NewServerPipeline initializes and returns a new pipeline suitable for a
 // server transfer.
 func NewServerPipeline(db *database.DB, logger *log.Logger, trans *model.Transfer,
+	snmpService *snmp.Service,
 ) (*Pipeline, *Error) {
 	transCtx, ctxErr := model.GetTransferContext(db, logger, trans)
 	if ctxErr != nil {
 		return nil, NewError(types.TeInternal, "database error")
 	}
 
-	pipeline, pipErr := newPipeline(db, logger, transCtx)
+	pipeline, pipErr := newPipeline(db, logger, transCtx, snmpService)
 	if pipErr != nil {
 		logger.Error("Failed to initialize the server transfer pipeline %d: %v",
 			trans.ID, pipErr)

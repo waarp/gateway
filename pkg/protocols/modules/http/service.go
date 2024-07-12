@@ -15,6 +15,7 @@ import (
 	"code.waarp.fr/apps/gateway/gateway/pkg/logging"
 	"code.waarp.fr/apps/gateway/gateway/pkg/model"
 	"code.waarp.fr/apps/gateway/gateway/pkg/pipeline"
+	"code.waarp.fr/apps/gateway/gateway/pkg/snmp"
 	"code.waarp.fr/apps/gateway/gateway/pkg/utils"
 )
 
@@ -40,6 +41,7 @@ func (h *httpService) Start() error {
 
 	if err := h.start(); err != nil {
 		h.state.Set(utils.StateError, err.Error())
+		snmp.ReportServiceFailure(h.agent.Name, err)
 
 		return err
 	}
@@ -88,6 +90,7 @@ func (h *httpService) Stop(ctx context.Context) error {
 		h.logger.Notice("Server was shut down forcefully.")
 
 		h.state.Set(utils.StateError, err.Error())
+		snmp.ReportServiceFailure(h.agent.Name, err)
 
 		return err
 	}

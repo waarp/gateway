@@ -14,6 +14,7 @@ import (
 	"code.waarp.fr/apps/gateway/gateway/pkg/model/types"
 	"code.waarp.fr/apps/gateway/gateway/pkg/pipeline"
 	"code.waarp.fr/apps/gateway/gateway/pkg/protocols/protocol"
+	"code.waarp.fr/apps/gateway/gateway/pkg/snmp"
 	"code.waarp.fr/apps/gateway/gateway/pkg/utils"
 )
 
@@ -42,6 +43,7 @@ func (h *httpClient) Start() error {
 	if err := h.start(); err != nil {
 		h.logger.Error("Failed to start HTTP client: %s", err)
 		h.state.Set(utils.StateError, err.Error())
+		snmp.ReportServiceFailure(h.client.Name, err)
 
 		return err
 	}
@@ -81,6 +83,7 @@ func (h *httpClient) Stop(ctx context.Context) error {
 	if err := pipeline.List.StopAllFromClient(ctx, h.client.ID); err != nil {
 		h.logger.Error("Failed to interrupt HTTP client's running transfers: %v", err)
 		h.state.Set(utils.StateError, err.Error())
+		snmp.ReportServiceFailure(h.client.Name, err)
 
 		return fmt.Errorf("failed to stop the HTTP client's running transfers: %w", err)
 	}

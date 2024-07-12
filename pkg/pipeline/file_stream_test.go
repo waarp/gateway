@@ -87,7 +87,7 @@ func TestNewFileStream(t *testing.T) {
 			transCtx, err := model.GetTransferContext(ctx.db, ctx.logger, trans)
 			So(err, ShouldBeNil)
 
-			pip, err := NewClientPipeline(ctx.db, ctx.logger, transCtx)
+			pip, err := NewClientPipeline(ctx.db, ctx.logger, transCtx, nil)
 			So(err, ShouldBeNil)
 
 			Reset(pip.doneOK)

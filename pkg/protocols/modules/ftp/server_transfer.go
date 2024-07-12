@@ -15,6 +15,7 @@ import (
 	"code.waarp.fr/apps/gateway/gateway/pkg/model/types"
 	"code.waarp.fr/apps/gateway/gateway/pkg/pipeline"
 	"code.waarp.fr/apps/gateway/gateway/pkg/protocols/protoutils"
+	"code.waarp.fr/apps/gateway/gateway/pkg/snmp"
 	"code.waarp.fr/apps/gateway/gateway/pkg/utils"
 )
 
@@ -73,7 +74,7 @@ func (s *serverFS) newServerTransfer(path string, isSend bool, offset int64,
 		}
 	}
 
-	pip, pipErr := pipeline.NewServerPipeline(s.db, s.logger, trans)
+	pip, pipErr := pipeline.NewServerPipeline(s.db, s.logger, trans, snmp.GlobalService)
 	if pipErr != nil {
 		return nil, pipErr
 	}
