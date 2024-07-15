@@ -130,9 +130,9 @@ func updatePartner(logger *log.Logger, db *database.DB) http.HandlerFunc {
 		}
 
 		restPartner := &api.InPartner{
-			Name:        api.AsNullable(oldPartner.Name),
-			Protocol:    api.AsNullable(oldPartner.Protocol),
-			Address:     api.AsNullable(oldPartner.Address.String()),
+			Name:        asNullableStr(oldPartner.Name),
+			Protocol:    asNullableStr(oldPartner.Protocol),
+			Address:     asNullableStr(oldPartner.Address.String()),
 			ProtoConfig: oldPartner.ProtoConfig,
 		}
 		if err := readJSON(r, restPartner); handleError(w, logger, err) {

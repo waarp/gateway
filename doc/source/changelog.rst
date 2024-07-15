@@ -3,6 +3,13 @@
 Historique des versions
 =======================
 
+* :feature:`54` Première étape de l'ajout d'un service SNMP. La MIB décrivant
+  ce service SNMP est disponible :ref:`ici <reference-snmp-mib>`. Pour l'heure,
+  celui-ci ne permet que l'envoi de notifications SNMP à un agent tier en cas
+  d'erreur de transfert ou en cas d'erreur au démarrage.
+  Un serveur SNMP permettant de récupérer des informations de diagnostique sera
+  implémenté dans une version ultérieure. Waarp-Gateway supporte SNMPv2 et SNMPv3.
+
 * :release:`0.9.1 <2024-07-01>`
 * :fix:`403` Le certificat R66 *legacy* est désormais correctement reconnus
   en tant que tel à sa création, que ce soit via l'import ou via l'API REST.

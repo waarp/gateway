@@ -90,6 +90,10 @@ const (
 
 	AuthAuthoritiesPath = "/api/authorities"
 	AuthAuthorityPath   = "/api/authorities/{authority}"
+
+	SNMPPath         = "/api/snmp"
+	SNMPMonitorsPath = "/api/snmp/monitors"
+	SNMPMonitorPath  = "/api/snmp/monitors/{snmp_monitor}"
 )
 
 // MakeRESTHandler appends all the REST API handlers to the given HTTP router.
@@ -254,4 +258,11 @@ func MakeRESTHandler(logger *log.Logger, db *database.DB, router *mux.Router,
 	mkHandler(AuthAuthorityPath, updateAuthAuthority, model.PermAdminWrite, http.MethodPatch)
 	mkHandler(AuthAuthorityPath, replaceAuthAuthority, model.PermAdminWrite, http.MethodPut)
 	mkHandler(AuthAuthorityPath, deleteAuthAuthority, model.PermAdminWrite, http.MethodDelete)
+
+	// SNMP configuration
+	mkHandler(SNMPMonitorsPath, addSnmpMonitor, model.PermAdminWrite, http.MethodPost)
+	mkHandler(SNMPMonitorsPath, listSnmpMonitors, model.PermAdminRead, http.MethodGet)
+	mkHandler(SNMPMonitorPath, getSnmpMonitor, model.PermAdminRead, http.MethodGet)
+	mkHandler(SNMPMonitorPath, updateSnmpMonitor, model.PermAdminWrite, http.MethodPatch)
+	mkHandler(SNMPMonitorPath, deleteSnmpMonitor, model.PermAdminDelete, http.MethodDelete)
 }

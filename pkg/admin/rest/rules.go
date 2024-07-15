@@ -227,13 +227,13 @@ func updateRule(logger *log.Logger, db *database.DB) http.HandlerFunc {
 		}
 
 		restRule := &api.InRule{
-			Name:           api.AsNullable(oldRule.Name),
-			IsSend:         api.AsNullable(oldRule.IsSend),
-			Comment:        api.AsNullable(oldRule.Comment),
-			Path:           api.AsNullable(oldRule.Path),
-			LocalDir:       api.AsNullable(oldRule.LocalDir),
-			RemoteDir:      api.AsNullable(oldRule.RemoteDir),
-			TmpLocalRcvDir: api.AsNullable(oldRule.TmpLocalRcvDir),
+			Name:           asNullableStr(oldRule.Name),
+			IsSend:         asNullableBool(oldRule.IsSend),
+			Comment:        asNullableStr(oldRule.Comment),
+			Path:           asNullableStr(oldRule.Path),
+			LocalDir:       asNullableStr(oldRule.LocalDir),
+			RemoteDir:      asNullableStr(oldRule.RemoteDir),
+			TmpLocalRcvDir: asNullableStr(oldRule.TmpLocalRcvDir),
 			PostTasks:      nil,
 			ErrorTasks:     nil,
 		}

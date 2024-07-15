@@ -12,6 +12,7 @@ import (
 	"code.waarp.fr/apps/gateway/gateway/pkg/logging"
 	"code.waarp.fr/apps/gateway/gateway/pkg/model"
 	"code.waarp.fr/apps/gateway/gateway/pkg/pipeline"
+	"code.waarp.fr/apps/gateway/gateway/pkg/snmp"
 	"code.waarp.fr/apps/gateway/gateway/pkg/utils"
 )
 
@@ -82,6 +83,7 @@ func (s *service) Start() error {
 	if err := s.start(); err != nil {
 		s.logger.Error("Failed to start SFTP service: %v", err)
 		s.state.Set(utils.StateError, err.Error())
+		snmp.ReportServiceFailure(s.server.Name, err)
 
 		return err
 	}
@@ -104,6 +106,8 @@ func (s *service) Stop(ctx context.Context) error {
 
 	if err := s.listener.close(ctx); err != nil {
 		s.logger.Error("Failed to shut down SFTP server, forcing exit")
+		s.state.Set(utils.StateError, err.Error())
+		snmp.ReportServiceFailure(s.server.Name, err)
 
 		return err
 	}

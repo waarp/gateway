@@ -15,6 +15,7 @@ import (
 	"code.waarp.fr/apps/gateway/gateway/pkg/model/types"
 	"code.waarp.fr/apps/gateway/gateway/pkg/pipeline"
 	"code.waarp.fr/apps/gateway/gateway/pkg/protocols/modules/r66/internal"
+	"code.waarp.fr/apps/gateway/gateway/pkg/snmp"
 	"code.waarp.fr/apps/gateway/gateway/pkg/utils"
 )
 
@@ -50,7 +51,7 @@ func (s *sessionHandler) ValidRequest(req *r66.Request) (r66.TransferHandler, er
 
 	s.setProgress(req, trans)
 
-	pip, pErr := pipeline.NewServerPipeline(s.db, s.logger, trans)
+	pip, pErr := pipeline.NewServerPipeline(s.db, s.logger, trans, snmp.GlobalService)
 	if pErr != nil {
 		return nil, internal.ToR66Error(pErr)
 	}

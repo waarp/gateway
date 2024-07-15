@@ -79,7 +79,7 @@ func TestPartnerGet(t *testing.T) {
 						`    ⁃Receive: {{ join .authorizedRules.reception }}`,
 					),
 					w.String(),
-					"Then it should display a message saying the account was authorized",
+					"Then it should display the partner's details",
 				)
 			})
 		})

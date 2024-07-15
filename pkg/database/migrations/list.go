@@ -281,4 +281,9 @@ var Migrations = []Change{
 		Up:          ver0_9_0AddAuthoritiesTableUp,
 		Down:        ver0_9_0AddAuthoritiesTableDown,
 	},
+	{ // #52
+		Description: `Add the "snmp_targets" table`,
+		Up:          ver0_10_0AddSNMPMonitorsUp,
+		Down:        ver0_10_0AddSNMPMonitorsDown,
+	},
 }

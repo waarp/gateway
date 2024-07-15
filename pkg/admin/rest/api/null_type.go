@@ -11,10 +11,6 @@ type Nullable[T any] struct {
 	Valid bool `json:"-"` // even though the struct implements json.(Un)Marshaler
 }
 
-func AsNullable[T any](val T) Nullable[T] {
-	return Nullable[T]{Value: val, Valid: true}
-}
-
 func (n *Nullable[T]) UnmarshalJSON(bytes []byte) error {
 	var val *T
 	if err := json.Unmarshal(bytes, &val); err != nil {

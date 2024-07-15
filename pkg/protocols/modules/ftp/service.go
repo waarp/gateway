@@ -11,6 +11,7 @@ import (
 	"code.waarp.fr/apps/gateway/gateway/pkg/logging"
 	"code.waarp.fr/apps/gateway/gateway/pkg/model"
 	"code.waarp.fr/apps/gateway/gateway/pkg/pipeline"
+	"code.waarp.fr/apps/gateway/gateway/pkg/snmp"
 	"code.waarp.fr/apps/gateway/gateway/pkg/utils"
 )
 
@@ -42,6 +43,7 @@ func (s *service) Start() error {
 	if err := s.start(); err != nil {
 		s.logger.Error("Failed to start FTP server: %s", err)
 		s.state.Set(utils.StateError, err.Error())
+		snmp.ReportServiceFailure(s.agent.Name, err)
 
 		return err
 	}
@@ -100,6 +102,7 @@ func (s *service) Stop(ctx context.Context) error {
 	if err := s.stop(ctx); err != nil {
 		s.logger.Error("Failed to stop FTP server: %s", err)
 		s.state.Set(utils.StateError, err.Error())
+		snmp.ReportServiceFailure(s.agent.Name, err)
 
 		return err
 	}

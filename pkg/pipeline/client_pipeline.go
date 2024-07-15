@@ -6,13 +6,15 @@ import (
 	"code.waarp.fr/apps/gateway/gateway/pkg/database"
 	"code.waarp.fr/apps/gateway/gateway/pkg/model"
 	"code.waarp.fr/apps/gateway/gateway/pkg/model/types"
+	"code.waarp.fr/apps/gateway/gateway/pkg/snmp"
 )
 
 // NewClientPipeline initializes and returns a new ClientPipeline for the given
 // transfer.
 func NewClientPipeline(db *database.DB, logger *log.Logger, transCtx *model.TransferContext,
+	snmpService *snmp.Service,
 ) (*Pipeline, *Error) {
-	pip, pipErr := newPipeline(db, logger, transCtx)
+	pip, pipErr := newPipeline(db, logger, transCtx, snmpService)
 	if pipErr != nil {
 		logger.Error("Failed to initialize the client transfer pipeline: %v", pipErr)
 

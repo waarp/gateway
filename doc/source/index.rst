@@ -83,6 +83,7 @@ de l'application.
    reference/cloud/index
    reference/errorcodes
    reference/backup
+   reference/snmp
 
 .. toctree::
    :caption: Annexes

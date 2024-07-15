@@ -7,7 +7,7 @@ type InClient struct {
 	Protocol     Nullable[string] `json:"protocol,omitempty"`
 	Disabled     bool             `json:"disabled,omitempty"`
 	LocalAddress Nullable[string] `json:"localAddress,omitempty"`
-	ProtoConfig  map[string]any   `json:"protoConfig,omitempty"`
+	ProtoConfig  UpdateObject     `json:"protoConfig,omitempty"`
 }
 
 // OutClient is the JSON object representing a local client in responses to GET

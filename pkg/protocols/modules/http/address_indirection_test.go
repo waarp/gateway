@@ -6,8 +6,7 @@ import (
 	. "github.com/smartystreets/goconvey/convey"
 
 	"code.waarp.fr/apps/gateway/gateway/pkg/conf"
-	"code.waarp.fr/apps/gateway/gateway/pkg/logging"
-	"code.waarp.fr/apps/gateway/gateway/pkg/pipeline"
+	"code.waarp.fr/apps/gateway/gateway/pkg/controller"
 	"code.waarp.fr/apps/gateway/gateway/pkg/pipeline/pipelinetest"
 )
 
@@ -27,11 +26,10 @@ func TestAddressIndirection(t *testing.T) {
 			ctx.StartService(c)
 
 			Convey("When connecting to the server", func(c C) {
-				logger := logging.NewLogger("test_http_post_address_indirection")
-				pip, err := pipeline.NewClientPipeline(ctx.DB, logger, ctx.GetTransferContext(c))
+				pip, err := controller.NewClientPipeline(ctx.DB, ctx.ClientTrans)
 				So(err, ShouldBeNil)
 
-				transClient, err := ctx.ProtoClient.InitTransfer(pip)
+				transClient, err := ctx.ProtoClient.InitTransfer(pip.Pip)
 				So(err, ShouldBeNil)
 
 				//nolint:forcetypeassert //no need, the type assertion will always succeed
@@ -58,11 +56,10 @@ func TestAddressIndirection(t *testing.T) {
 			ctx.StartService(c)
 
 			Convey("When connecting to the server", func(c C) {
-				logger := logging.NewLogger("test_http_get_address_indirection")
-				pip, err := pipeline.NewClientPipeline(ctx.DB, logger, ctx.GetTransferContext(c))
+				pip, err := controller.NewClientPipeline(ctx.DB, ctx.ClientTrans)
 				So(err, ShouldBeNil)
 
-				transClient, err := ctx.ProtoClient.InitTransfer(pip)
+				transClient, err := ctx.ProtoClient.InitTransfer(pip.Pip)
 				So(err, ShouldBeNil)
 
 				//nolint:forcetypeassert //no need, the type assertion will always succeed

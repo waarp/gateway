@@ -26,6 +26,7 @@ import (
 	"code.waarp.fr/apps/gateway/gateway/pkg/model/types"
 	"code.waarp.fr/apps/gateway/gateway/pkg/protocols"
 	"code.waarp.fr/apps/gateway/gateway/pkg/protocols/protocol"
+	"code.waarp.fr/apps/gateway/gateway/pkg/snmp"
 	"code.waarp.fr/apps/gateway/gateway/pkg/utils"
 )
 
@@ -39,6 +40,7 @@ type WG struct {
 
 	dbService    *database.DB
 	adminService *admin.Server
+	snmpService  *snmp.Service
 	controller   *controller.Controller
 }
 
@@ -141,9 +143,12 @@ func (wg *WG) makeDirs() error {
 
 func (wg *WG) initServices() {
 	wg.dbService = &database.DB{}
+	wg.snmpService = &snmp.Service{DB: wg.dbService}
 	wg.adminService = &admin.Server{DB: wg.dbService}
 	gwController := controller.GatewayController{DB: wg.dbService}
 	wg.controller = &controller.Controller{Action: gwController.Run}
+
+	snmp.GlobalService = wg.snmpService
 }
 
 func (wg *WG) startServices() error {
@@ -151,6 +156,10 @@ func (wg *WG) startServices() error {
 
 	if err := wg.dbService.Start(); err != nil {
 		return fmt.Errorf("cannot start database service: %w", err)
+	}
+
+	if err := wg.snmpService.Start(); err != nil {
+		return fmt.Errorf("cannot start snmp service: %w", err)
 	}
 
 	if err := wg.adminService.Start(); err != nil {
@@ -168,6 +177,7 @@ func (wg *WG) startServices() error {
 	services.Core[database.ServiceName] = wg.dbService
 	services.Core[controller.ServiceName] = wg.controller
 	services.Core[admin.ServiceName] = wg.adminService
+	services.Core[snmp.ServiceName] = wg.snmpService
 
 	if err := wg.startServers(); err != nil {
 		return err

@@ -1,0 +1,199 @@
+WAARP-GATEWAY-MIB DEFINITIONS ::= BEGIN
+
+IMPORTS
+    NOTIFICATION-GROUP, OBJECT-GROUP
+        FROM SNMPv2-CONF
+    MODULE-IDENTITY, NOTIFICATION-TYPE, OBJECT-TYPE, enterprises
+        FROM SNMPv2-SMI
+    ;
+
+gateway MODULE-IDENTITY
+    LAST-UPDATED "202407040000Z"
+    ORGANIZATION
+        "Waarp SAS"
+    CONTACT-INFO
+    "postal: 65 rue de la Croix
+             92000 Nanterre - France
+     phone: (+33) 01 56 38 51 08
+     email: info@waarp.fr"
+    DESCRIPTION
+        "The MIB module describing the Waarp-Gateway SNMP interface"
+    REVISION    "202407040000Z"
+    DESCRIPTION
+        "The first draft of the Waarp-Gateway MIB"
+    ::= { enterprises 66666 77 }
+
+-- Root
+waarp OBJECT IDENTIFIER ::= { enterprises 66666 }
+
+-- 1. Notifications
+gwNotifs OBJECT IDENTIFIER ::= { gateway 0 }
+
+serviceErrorNotif NOTIFICATION-TYPE
+    OBJECTS
+        { serviceErrorName, serviceErrorMessage }
+    STATUS      current
+    DESCRIPTION
+        "The SNMP notification sent when a micro-service fails to either start or stop"
+    ::= { gwNotifs 1 }
+
+transferErrorNotif NOTIFICATION-TYPE
+    OBJECTS {
+                transferErrorID,
+                transferErrorRemoteID,
+                transferErrorRuleName,
+                transferErrorClientName,
+                transferErrorRequester,
+                transferErrorRequested,
+                transferErrorFilename,
+                transferErrorDate,
+                transferErrorCode,
+                transferErrorMessage
+            }
+    STATUS      current
+    DESCRIPTION
+        "The SNMP notification sent when a transfer error occurs"
+    ::= { gwNotifs 2 }
+
+-- 2. Objects
+gwObjects OBJECT IDENTIFIER ::= { gateway 1 }
+
+notificationObjects OBJECT IDENTIFIER ::= { gwObjects 1 }
+serviceErrorObjects OBJECT IDENTIFIER ::= { notificationObjects 1 }
+
+serviceErrorName OBJECT-TYPE
+    SYNTAX          OCTET STRING
+    MAX-ACCESS      read-only
+    STATUS          current
+    DESCRIPTION
+        "The name of the service in error"
+    ::= { serviceErrorObjects 1 }
+
+serviceErrorMessage OBJECT-TYPE
+    SYNTAX          OCTET STRING
+    MAX-ACCESS      read-only
+    STATUS          current
+    DESCRIPTION
+        "The error message"
+    ::= { serviceErrorObjects 2 }
+
+transferErrorObjects OBJECT IDENTIFIER ::= { notificationObjects 2 }
+
+transferErrorID OBJECT-TYPE
+    SYNTAX          OCTET STRING
+    MAX-ACCESS      read-only
+    STATUS          current
+    DESCRIPTION
+        "The transfer's internal database ID"
+    ::= { transferErrorObjects 1 }
+
+transferErrorRemoteID OBJECT-TYPE
+    SYNTAX          OCTET STRING
+    MAX-ACCESS      read-only
+    STATUS          current
+    DESCRIPTION
+        "The transfer's public ID"
+    ::= { transferErrorObjects 2 }
+
+transferErrorRuleName OBJECT-TYPE
+    SYNTAX          OCTET STRING
+    MAX-ACCESS      read-only
+    STATUS          current
+    DESCRIPTION
+        "The name of the transfer's rule"
+    ::= { transferErrorObjects 3 }
+
+transferErrorClientName OBJECT-TYPE
+    SYNTAX          OCTET STRING
+    MAX-ACCESS      read-only
+    STATUS          current
+    DESCRIPTION
+        "The name of the client used for the transfer (if this was a client transfer)"
+    ::= { transferErrorObjects 4 }
+
+transferErrorRequester OBJECT-TYPE
+    SYNTAX          OCTET STRING
+    MAX-ACCESS      read-only
+    STATUS          current
+    DESCRIPTION
+        "The name of the local/remote account who requested the transfer"
+    ::= { transferErrorObjects 5 }
+
+transferErrorRequested OBJECT-TYPE
+    SYNTAX          OCTET STRING
+    MAX-ACCESS      read-only
+    STATUS          current
+    DESCRIPTION
+        "The name of the server/partner to which the transfer was requested from"
+    ::= { transferErrorObjects 6 }
+
+transferErrorFilename OBJECT-TYPE
+    SYNTAX          OCTET STRING
+    MAX-ACCESS      read-only
+    STATUS          current
+    DESCRIPTION
+        "The name of the file transfered as it was given in the transfer request"
+    ::= { transferErrorObjects 7 }
+
+transferErrorDate OBJECT-TYPE
+    SYNTAX          OCTET STRING
+    MAX-ACCESS      read-only
+    STATUS          current
+    DESCRIPTION
+        "The date at which the transfer error occured (in ISO-8601 format)"
+    ::= { transferErrorObjects 8 }
+
+transferErrorCode OBJECT-TYPE
+    SYNTAX          OCTET STRING
+    MAX-ACCESS      read-only
+    STATUS          current
+    DESCRIPTION
+        "The code of the transfer's error"
+    ::= { transferErrorObjects 9 }
+
+transferErrorMessage OBJECT-TYPE
+    SYNTAX          OCTET STRING
+    MAX-ACCESS      read-only
+    STATUS          current
+    DESCRIPTION
+        "The transfer's error message"
+    ::= { transferErrorObjects 10 }
+
+-- 3. Groups
+gwGroups OBJECT IDENTIFIER ::= { gateway 2 }
+
+gwNotifsGroup NOTIFICATION-GROUP
+    NOTIFICATIONS
+        { serviceErrorNotif, transferErrorNotif }
+    STATUS          current
+    DESCRIPTION
+        "The group of all Waarp-Gateway SNMPv2 notifications"
+    ::= { gwGroups 1 }
+
+serviceErrorGroup OBJECT-GROUP
+    OBJECTS
+        { serviceErrorName, serviceErrorMessage }
+    STATUS      current
+    DESCRIPTION
+        "The properties sent in the service error notification"
+    ::= { gwGroups 2 }
+
+transferErrorGroup OBJECT-GROUP
+    OBJECTS {
+                transferErrorID,
+                transferErrorRemoteID,
+                transferErrorRuleName,
+                transferErrorClientName,
+                transferErrorRequester,
+                transferErrorRequested,
+                transferErrorFilename,
+                transferErrorDate,
+                transferErrorCode,
+                transferErrorMessage
+            }
+    STATUS          current
+    DESCRIPTION
+        "The properties sent in the transfer notification"
+    ::= { gwGroups 3 }
+
+END

@@ -7,7 +7,6 @@ import (
 	"github.com/gorilla/mux"
 
 	"code.waarp.fr/apps/gateway/gateway/pkg/admin/rest/api"
-	"code.waarp.fr/apps/gateway/gateway/pkg/admin/rest/api/jsontypes"
 	"code.waarp.fr/apps/gateway/gateway/pkg/conf"
 	"code.waarp.fr/apps/gateway/gateway/pkg/database"
 	"code.waarp.fr/apps/gateway/gateway/pkg/model"
@@ -128,8 +127,8 @@ func updateCloud(logger *log.Logger, db *database.DB) http.HandlerFunc {
 		restCloud := api.PatchCloudReqObject{
 			Name:    oldCloud.Name,
 			Type:    oldCloud.Type,
-			Key:     jsontypes.NewNullString(oldCloud.Key),
-			Secret:  jsontypes.NewNullString(string(oldCloud.Secret)),
+			Key:     asNullableStr(oldCloud.Key),
+			Secret:  asNullableStr(string(oldCloud.Secret)),
 			Options: oldCloud.Options,
 		}
 		if err := readJSON(r, &restCloud); handleError(w, logger, err) {
@@ -141,8 +140,8 @@ func updateCloud(logger *log.Logger, db *database.DB) http.HandlerFunc {
 			Owner:   oldCloud.Owner,
 			Name:    restCloud.Name,
 			Type:    restCloud.Type,
-			Key:     restCloud.Key.String,
-			Secret:  types.CypherText(restCloud.Secret.String),
+			Key:     restCloud.Key.Value,
+			Secret:  types.CypherText(restCloud.Secret.Value),
 			Options: restCloud.Options,
 		}
 

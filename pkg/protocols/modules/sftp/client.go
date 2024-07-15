@@ -17,6 +17,7 @@ import (
 	"code.waarp.fr/apps/gateway/gateway/pkg/model"
 	"code.waarp.fr/apps/gateway/gateway/pkg/pipeline"
 	"code.waarp.fr/apps/gateway/gateway/pkg/protocols/protocol"
+	"code.waarp.fr/apps/gateway/gateway/pkg/snmp"
 	"code.waarp.fr/apps/gateway/gateway/pkg/utils"
 )
 
@@ -47,6 +48,7 @@ func (c *client) Start() error {
 	if err := c.start(); err != nil {
 		c.logger.Error("Failed to start the client: %v", err)
 		c.state.Set(utils.StateError, err.Error())
+		snmp.ReportServiceFailure(c.client.Name, err)
 
 		return err
 	}
@@ -93,6 +95,7 @@ func (c *client) Stop(ctx context.Context) error {
 	if err := pipeline.List.StopAllFromClient(ctx, c.client.ID); err != nil {
 		c.logger.Error("Failed to stop the SFTP client: %v", err)
 		c.state.Set(utils.StateError, err.Error())
+		snmp.ReportServiceFailure(c.client.Name, err)
 
 		return fmt.Errorf("failed to stop the SFTP client: %w", err)
 	}

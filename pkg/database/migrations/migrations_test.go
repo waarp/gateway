@@ -146,4 +146,7 @@ func testMigrations(t *testing.T, eng *testEngine) {
 	apply(testVer0_9_0RemoveOldCreds(t, eng))
 	apply(testVer0_9_0MoveR66ServerCreds(t, eng))
 	apply(testVer0_9_0AddAuthorities(t, eng))
+
+	// 0.10.0
+	apply(testVer0_10_0AddSNMPMonitors(t, eng))
 }

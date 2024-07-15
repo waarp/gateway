@@ -102,3 +102,17 @@ Glossaire
       d'authentification lui-même considéré comme "de confiance" pour les besoins
       de l'authentification. Pour l'heure, les seules autorités de confiance
       acceptées sont les autorités de certification TLS et SSH.
+
+   moniteur SNMP
+   (*SNMP monitor*)
+      Un moniteur SNMP est une application tierce apte à recevoir des notifications
+      SNMPv2 ou SNMPv3 en provenance de Waarp-Gateway lorsque celle-ci rencontre
+      un problème.
+
+   notification SNMP
+   (*SNMP trap*)
+      Une notification SNMP (ou *trap SNMP*) est un message asynchrone envoyé
+      par Waarp-Gateway à un ou plusieurs moniteurs SNMP en cas d'erreur. Depuis
+      SNMPv2, il existe deux types de notifications : les *traps* et les *informs*.
+      La seule différence étant que les *informs* doivent être acquittés par le
+      récepteur, alors que les *traps* ne le sont pas.

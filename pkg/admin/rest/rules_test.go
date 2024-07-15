@@ -658,17 +658,17 @@ func TestUpdateRule(t *testing.T) {
 				Convey(fmt.Sprintf("When updating a rule IsSend: %t", rule.IsSend), func() {
 					testCases := []InRule{
 						{
-							Name: AsNullable("update"),
+							Name: asNullableStr("update"),
 						}, {
-							Comment: AsNullable("update comment"),
+							Comment: asNullableStr("update comment"),
 						}, {
-							Path: AsNullable("path/update"),
+							Path: asNullableStr("path/update"),
 						}, {
-							LocalDir: AsNullable("/update/local"),
+							LocalDir: asNullableStr("/update/local"),
 						}, {
-							RemoteDir: AsNullable("/update/remote"),
+							RemoteDir: asNullableStr("/update/remote"),
 						}, {
-							TmpLocalRcvDir: AsNullable("/update/tmp"),
+							TmpLocalRcvDir: asNullableStr("/update/tmp"),
 						}, {
 							PreTasks: []*Task{
 								{

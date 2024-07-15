@@ -20,6 +20,7 @@ import (
 	"code.waarp.fr/apps/gateway/gateway/pkg/conf"
 	"code.waarp.fr/apps/gateway/gateway/pkg/database"
 	"code.waarp.fr/apps/gateway/gateway/pkg/logging"
+	"code.waarp.fr/apps/gateway/gateway/pkg/snmp"
 	"code.waarp.fr/apps/gateway/gateway/pkg/utils"
 )
 
@@ -170,6 +171,7 @@ func (s *Server) Start() error {
 	if err := initServer(s); err != nil {
 		s.logger.Error("Failed to initialize server: %s", err)
 		s.state.Set(utils.StateError, err.Error())
+		snmp.ReportServiceFailure(ServiceName, err)
 
 		return err
 	}
@@ -177,6 +179,7 @@ func (s *Server) Start() error {
 	if err := s.listen(); err != nil {
 		s.logger.Error("Failed to start listener: %s", err)
 		s.state.Set(utils.StateError, err.Error())
+		snmp.ReportServiceFailure(ServiceName, err)
 
 		return err
 	}
@@ -201,8 +204,15 @@ func (s *Server) Stop(ctx context.Context) error {
 		s.logger.Info("Shutdown complete")
 	} else {
 		s.logger.Warning("Failed to shutdown gracefully : %s", err)
-		err = s.server.Close()
-		s.logger.Warning("The server was forcefully stopped")
+
+		if err2 := s.server.Close(); err2 != nil {
+			s.logger.Error("Failed to force shutdown: %s", err2)
+		} else {
+			s.logger.Warning("The server was forcefully stopped")
+		}
+
+		s.state.Set(utils.StateError, err.Error())
+		snmp.ReportServiceFailure(ServiceName, err)
 	}
 
 	s.state.Set(utils.StateOffline, "")
