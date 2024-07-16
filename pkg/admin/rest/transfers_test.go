@@ -28,6 +28,8 @@ const transferURI = "http://localhost:8080/api/transfers"
 
 //nolint:maintidx //the function is fine as is
 func TestAddTransfer(t *testing.T) {
+	shouldEqualJSON := testhelpers.ShouldEqualJSON
+
 	Convey("Testing the transfer add handler", t, func(c C) {
 		logger := testhelpers.TestLogger(c, "rest_transfer_add_test")
 		db := database.TestDatabase(c)
@@ -63,7 +65,12 @@ func TestAddTransfer(t *testing.T) {
 					"file": "src_dir/test.file",
 					"output": "dst_dir/test.file",
 					"start": "2023-01-01T01:00:00+00:00",
-					"transferInfo": { "key1":"val1", "key2": 2, "key3": true }
+					"transferInfo": {
+						"key1": "val1",
+						"key2": 2,
+						"key3": true,
+						"__followID__": 12345
+					}
 				}`)
 
 				Convey("When calling the handler", func() {
@@ -114,8 +121,11 @@ func TestAddTransfer(t *testing.T) {
 
 						info, err := transfers[0].GetTransferInfo(db)
 						So(err, ShouldBeNil)
-						So(info, ShouldResemble, map[string]any{
-							"key1": "val1", "key2": float64(2), "key3": true,
+						So(info, shouldEqualJSON, map[string]any{
+							"key1":         "val1",
+							"key2":         2,
+							"key3":         true,
+							model.FollowID: 12345,
 						})
 					})
 				})
@@ -178,8 +188,11 @@ func TestAddTransfer(t *testing.T) {
 
 						info, err := transfers[0].GetTransferInfo(db)
 						So(err, ShouldBeNil)
-						So(info, ShouldResemble, map[string]any{
-							"key1": "val1", "key2": float64(2), "key3": true,
+						So(info, shouldEqualJSON, map[string]any{
+							"key1":         "val1",
+							"key2":         2,
+							"key3":         true,
+							model.FollowID: info[model.FollowID],
 						})
 					})
 				})

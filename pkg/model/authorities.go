@@ -55,12 +55,16 @@ func (a *Authority) BeforeWrite(db database.Access) error {
 	return nil
 }
 
-func (a *Authority) AfterWrite(db database.Access) error {
+func (a *Authority) AfterUpdate(db database.Access) error {
 	if err := db.Exec(fmt.Sprintf("DELETE FROM %s WHERE authority_id=?",
 		TableAuthHosts), a.ID); err != nil {
 		return fmt.Errorf("failed to delete the authority's valid hosts: %w", err)
 	}
 
+	return a.AfterInsert(db)
+}
+
+func (a *Authority) AfterInsert(db database.Access) error {
 	for _, host := range a.ValidHosts {
 		if host = strings.TrimSpace(host); host == "" {
 			continue

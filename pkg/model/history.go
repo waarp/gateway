@@ -5,6 +5,8 @@ import (
 	"fmt"
 	"time"
 
+	"github.com/bwmarrin/snowflake"
+
 	"code.waarp.fr/apps/gateway/gateway/pkg/conf"
 	"code.waarp.fr/apps/gateway/gateway/pkg/database"
 	"code.waarp.fr/apps/gateway/gateway/pkg/fs/filesystems"
@@ -42,6 +44,15 @@ type HistoryEntry struct {
 func (*HistoryEntry) TableName() string   { return TableHistory }
 func (*HistoryEntry) Appellation() string { return NameHistory }
 func (h *HistoryEntry) GetID() int64      { return h.ID }
+
+func (h *HistoryEntry) TransferID() (int64, error) {
+	id, err := snowflake.ParseString(h.RemoteTransferID)
+	if err != nil {
+		return 0, fmt.Errorf("failed to parse the remote transfer ID: %w", err)
+	}
+
+	return id.Int64(), nil
+}
 
 func (h *HistoryEntry) getTransInfoCondition() (string, int64) {
 	return "history_id=?", h.ID

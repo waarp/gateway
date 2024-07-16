@@ -245,6 +245,18 @@ func (t *Transfer) BeforeWrite(db database.Access) error {
 	return t.checkRemoteTransferID(db)
 }
 
+func (t *Transfer) AfterInsert(db database.Access) error {
+	if err := db.Insert(&TransferInfo{
+		TransferID: utils.NewNullInt64(t.ID),
+		Name:       FollowID,
+		Value:      t.RemoteTransferID,
+	}).Run(); err != nil {
+		return fmt.Errorf("failed to create follow ID: %w", err)
+	}
+
+	return nil
+}
+
 func (t *Transfer) makeAgentInfo(db database.ReadAccess,
 ) (proto, client, agent, account string, err error) {
 	if t.IsServer() {

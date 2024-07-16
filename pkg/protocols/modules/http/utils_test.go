@@ -17,7 +17,7 @@ func init() {
 		MakeServerConfig:  Module{}.MakeServerConfig,
 		MakeClientConfig:  Module{}.MakeClientConfig,
 		MakePartnerConfig: Module{}.MakePartnerConfig,
-		TransID:           true, RuleName: true,
+		TransID:           true, RuleName: true, Size: true, TransferInfo: true,
 	}
 	pipelinetest.Protocols[HTTPS] = pipelinetest.ProtoFeatures{
 		MakeClient:        ModuleHTTPS{}.NewClient,
@@ -25,7 +25,7 @@ func init() {
 		MakeServerConfig:  ModuleHTTPS{}.MakeServerConfig,
 		MakeClientConfig:  ModuleHTTPS{}.MakeClientConfig,
 		MakePartnerConfig: ModuleHTTPS{}.MakePartnerConfig,
-		TransID:           true, RuleName: true,
+		TransID:           true, RuleName: true, Size: true, TransferInfo: true,
 	}
 }
 

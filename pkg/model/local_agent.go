@@ -155,14 +155,15 @@ func (l *LocalAgent) GetAuthorizedRules(db database.ReadAccess) ([]*Rule, error)
 func (l *LocalAgent) GetProtocol(database.ReadAccess) (string, error) {
 	return l.Protocol, nil
 }
+func (l *LocalAgent) AfterInsert(db database.Access) error { return l.AfterUpdate(db) }
 
-// AfterWrite is called after any write operation on the local_agents table.
+// AfterUpdate is called after any write operation on the local_agents table.
 // If the agent uses R66, the function checks if is still uses the old credentials
 // stored in the proto config. If it does, an equivalent Credential is inserted.
 // Will be removed once server passwords are definitely removed from the proto config.
 //
 //nolint:dupl //duplicate is for RemoteAgent, best keep separate
-func (l *LocalAgent) AfterWrite(db database.Access) error {
+func (l *LocalAgent) AfterUpdate(db database.Access) error {
 	if !isR66(l.Protocol) {
 		return nil
 	}

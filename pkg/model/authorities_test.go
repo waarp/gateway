@@ -89,7 +89,7 @@ func TestAuthorityBeforeWrite(t *testing.T) {
 	})
 }
 
-func TestAuthorityAfterWrite(t *testing.T) {
+func TestAuthorityAfterUpdate(t *testing.T) {
 	Convey("Given a database with 2 existing authorities", t, func(c C) {
 		db := database.TestDatabase(c)
 
@@ -120,7 +120,7 @@ func TestAuthorityAfterWrite(t *testing.T) {
 		Convey("When calling the `AfterWrite` hook", func() {
 			existing2.ValidHosts = []string{"waarp.org"}
 
-			So(existing2.AfterWrite(db), ShouldBeNil)
+			So(existing2.AfterUpdate(db), ShouldBeNil)
 
 			Convey("Then it should have updated the valid hosts", func() {
 				var newHosts Hosts

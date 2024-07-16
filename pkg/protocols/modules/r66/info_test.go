@@ -233,17 +233,17 @@ func TestGetTransferInfo(t *testing.T) {
 
 				Convey("Then it should return the correct information", func() {
 					So(info, ShouldResemble, &r66.TransferInfo{
-						ID:        123,
-						Client:    account.Login,
-						Server:    agent.Name,
-						File:      "file.ex",
-						Rule:      rule.Name,
-						IsRecv:    rule.IsSend,
-						IsMd5:     false,
-						BlockSize: 65536,
-						Info:      `{"key":"val"}`,
-						Start:     trans.Start,
-						Stop:      time.Time{},
+						ID:          123,
+						Client:      account.Login,
+						Server:      agent.Name,
+						File:        "file.ex",
+						Rule:        rule.Name,
+						IsRecv:      rule.IsSend,
+						IsMd5:       false,
+						BlockSize:   65536,
+						UserContent: `{"key":"val"}`,
+						Start:       trans.Start,
+						Stop:        time.Time{},
 					})
 				})
 			})

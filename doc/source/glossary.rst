@@ -83,6 +83,11 @@ Glossaire
       voyagent toujours dans le sens de la connexion (depuis le client vers le
       serveur) et jamais dans l'autre sens.
 
+      À noter que Waarp-Gateway réserve 2 nom de clé pour les informations de
+      transfert : ``__userContent__`` qui sert pour la rétro-compatibilité avec
+      Waarp-R66, et ``__followID__`` qui contient l'ID de flux utilisé par
+      Waarp-Manager.
+
    information d'authentification
    (*credential*)
       Une information d'authentification - *parfois aussi désigné comme "identifiant",

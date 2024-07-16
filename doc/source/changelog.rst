@@ -3,6 +3,9 @@
 Historique des versions
 =======================
 
+* :fix:`406` À la création d'un transfert, si aucun ID de flux (*followID*) n'a
+  été spécifié, un ID sera désormais auto-généré. Cet id est visible dans les
+  informations de transfert sous le nom ``__followID__``.
 * :feature:`54` Première étape de l'ajout d'un service SNMP. La MIB décrivant
   ce service SNMP est disponible :ref:`ici <reference-snmp-mib>`. Pour l'heure,
   celui-ci ne permet que l'envoi de notifications SNMP à un agent tier en cas
