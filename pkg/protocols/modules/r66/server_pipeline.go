@@ -8,6 +8,7 @@ import (
 	"code.waarp.fr/lib/r66"
 	r66utils "code.waarp.fr/lib/r66/utils"
 
+	"code.waarp.fr/apps/gateway/gateway/pkg/model"
 	"code.waarp.fr/apps/gateway/gateway/pkg/pipeline"
 	"code.waarp.fr/apps/gateway/gateway/pkg/protocols/modules/r66/internal"
 	"code.waarp.fr/apps/gateway/gateway/pkg/utils"
@@ -51,7 +52,7 @@ func (t *serverTransfer) updTransInfo(info *r66.UpdateInfo) error {
 	}
 
 	if fID := info.FileInfo.SystemData.FollowID; fID != 0 {
-		t.pip.TransCtx.TransInfo[internal.FollowID] = fID
+		t.pip.TransCtx.TransInfo[model.FollowID] = fID
 	}
 
 	if tErr := internal.UpdateTransferInfo(info.FileInfo.UserContent, t.pip); tErr != nil {

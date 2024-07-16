@@ -64,8 +64,7 @@ func (c *transferClient) EndPreTasks() *pipeline.Error {
 			FileInfo: &r66.TransferData{},
 		}
 
-		if err := internal.MakeTransferInfo(c.pip.Logger, c.pip.TransCtx,
-			outInfo.FileInfo); err != nil {
+		if err := internal.MakeTransferInfo(c.pip, outInfo.FileInfo); err != nil {
 			return c.wrapAndSendError(err)
 		}
 

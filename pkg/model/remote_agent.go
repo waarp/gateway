@@ -125,13 +125,15 @@ func (r *RemoteAgent) Authenticate(db database.ReadAccess, authType string, valu
 	return authenticate(db, r, authType, r.Protocol, value)
 }
 
-// AfterWrite is called after any write operation on the remote_agents table.
+func (r *RemoteAgent) AfterInsert(db database.Access) error { return r.AfterUpdate(db) }
+
+// AfterUpdate is called after any write operation on the remote_agents table.
 // If the agent uses R66, the function checks if is still uses the old credentials
 // stored in the proto config. If it does, an equivalent Credential is inserted.
 // Will be removed once server passwords are definitely removed from the proto config.
 //
 //nolint:dupl //duplicate is for LocalAgent, best keep separate
-func (r *RemoteAgent) AfterWrite(db database.Access) error {
+func (r *RemoteAgent) AfterUpdate(db database.Access) error {
 	if !isR66(r.Protocol) {
 		return nil
 	}

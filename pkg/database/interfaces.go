@@ -116,10 +116,16 @@ type WriteHook interface {
 	BeforeWrite(db Access) error
 }
 
-// WriteCallback is an interface which adds a function which will be run after
-// inserting or updating an entry.
-type WriteCallback interface {
-	AfterWrite(db Access) error
+// InsertCallback is an interface which adds a function which will be run after
+// inserting a new entry.
+type InsertCallback interface {
+	AfterInsert(db Access) error
+}
+
+// UpdateCallback is an interface which adds a function which will be run after
+// updating an entry.
+type UpdateCallback interface {
+	AfterUpdate(db Access) error
 }
 
 // ReadCallback is an interface which adds a function which will be run after an

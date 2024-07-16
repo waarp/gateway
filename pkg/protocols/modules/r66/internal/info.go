@@ -7,21 +7,17 @@ import (
 
 	"code.waarp.fr/lib/log"
 	"code.waarp.fr/lib/r66"
+	"golang.org/x/exp/maps"
 
 	"code.waarp.fr/apps/gateway/gateway/pkg/model"
 	"code.waarp.fr/apps/gateway/gateway/pkg/model/types"
 	"code.waarp.fr/apps/gateway/gateway/pkg/pipeline"
+	"code.waarp.fr/apps/gateway/gateway/pkg/utils"
 )
 
-const (
-	// FollowID defines the name of the transfer info value containing the R66
-	// follow ID.
-	FollowID = "__followID__"
-
-	// UserContent defines the name of the transfer info value containing the R66
-	// user content.
-	UserContent = "__userContent__"
-)
+// UserContent defines the name of the transfer info value containing the R66
+// user content.
+const UserContent = "__userContent__"
 
 // UpdateFileInfo updates the pipeline file info with the ones given.
 func UpdateFileInfo(info *r66.UpdateInfo, pip *pipeline.Pipeline) error {
@@ -108,17 +104,29 @@ func MakeFileInfo(pip *pipeline.Pipeline, info *r66.SystemData) *types.TransferE
 
 // MakeTransferInfo fills the given r66.TransferData instance with transfer information
 // relating to the given transfer pipeline.
-func MakeTransferInfo(logger *log.Logger, transCtx *model.TransferContext,
+func MakeTransferInfo(pip *pipeline.Pipeline, info *r66.TransferData) error {
+	if err := makeTransferInfo(pip.Logger, pip.TransCtx, info); err != nil {
+		pip.SetError(err.Code(), err.Details())
+
+		return err
+	}
+
+	return nil
+}
+
+func makeTransferInfo(logger *log.Logger, transCtx *model.TransferContext,
 	info *r66.TransferData,
-) error {
-	var fID float64
+) *pipeline.Error {
+	var fID int64
 
-	if follow, ok := transCtx.TransInfo[FollowID]; ok {
-		if fID, ok = follow.(float64); !ok {
-			logger.Error("Invalid type '%T' for R66 follow ID", follow)
+	if follow, err := utils.GetAs[json.Number](transCtx.TransInfo, model.FollowID); err != nil {
+		logger.Error("Could not retrieve the R66 follow ID: %v", err)
 
-			return pipeline.NewError(types.TeInternal, "failed to make file info")
-		}
+		return pipeline.NewError(types.TeInternal, "failed to retrieve follow ID")
+	} else if fID, err = follow.Int64(); err != nil {
+		logger.Error("Could not parse the R66 follow ID: %v", err)
+
+		return pipeline.NewError(types.TeInternal, "failed to parse follow ID")
 	}
 
 	info.SystemData.FollowID = int(fID)
@@ -144,7 +152,10 @@ func MakeUserContent(logger *log.Logger, transInfo map[string]any) (string, *pip
 			return "", pipeline.NewError(types.TeInternal, "failed to make transfer info")
 		}
 	} else {
-		cont, err := json.Marshal(transInfo)
+		userContentMap := maps.Clone(transInfo)
+		delete(userContentMap, model.FollowID)
+
+		cont, err := json.Marshal(userContentMap)
 		if err != nil {
 			logger.Error("Failed to marshal transfer info: %s", err)
 

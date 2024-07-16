@@ -12,12 +12,12 @@ import (
 )
 
 type ProtoFeatures struct {
-	MakeClient              clientConstructor
-	MakeServer              serverConstructor
-	MakeServerConfig        func() protocol.ServerConfig
-	MakeClientConfig        func() protocol.ClientConfig
-	MakePartnerConfig       func() protocol.PartnerConfig
-	TransID, RuleName, Size bool
+	MakeClient                            clientConstructor
+	MakeServer                            serverConstructor
+	MakeServerConfig                      func() protocol.ServerConfig
+	MakeClientConfig                      func() protocol.ClientConfig
+	MakePartnerConfig                     func() protocol.PartnerConfig
+	TransID, RuleName, Size, TransferInfo bool
 }
 
 type (

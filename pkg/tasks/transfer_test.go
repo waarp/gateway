@@ -121,7 +121,7 @@ func TestTransferRun(t *testing.T) {
 				"as":       account.Login,
 				"rule":     push.Name,
 				"copyInfo": "true",
-				"info":     `{"baz": "qux", "real": true, "delay": 10}`,
+				"info":     `{"baz": "qux", "real": true, "delay": 10, "__followID__": 12345}`,
 			}
 
 			Convey("Given that the parameters are valid", func() {
@@ -150,8 +150,12 @@ func TestTransferRun(t *testing.T) {
 
 							transInfo, infoErr := transfer.GetTransferInfo(db)
 							So(infoErr, ShouldBeNil)
-							So(transInfo, ShouldResemble, map[string]any{
-								"foo": "bar", "baz": "qux", "real": true, "delay": float64(10),
+							So(transInfo, testhelpers.ShouldEqualJSON, map[string]any{
+								"foo":          "bar",
+								"baz":          "qux",
+								"real":         true,
+								"delay":        10,
+								model.FollowID: 12345,
 							})
 						})
 					})

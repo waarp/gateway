@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"math"
 	"math/big"
+	"strings"
 
 	"github.com/bwmarrin/snowflake"
 
@@ -51,8 +52,11 @@ func getTransferInfo(db database.ReadAccess, owner transferInfoOwner,
 	infoMap := map[string]interface{}{}
 
 	for _, info := range infoList {
+		decoder := json.NewDecoder(strings.NewReader(info.Value))
+		decoder.UseNumber()
+
 		var val interface{}
-		if err := json.Unmarshal([]byte(info.Value), &val); err != nil {
+		if err := decoder.Decode(&val); err != nil {
 			return nil, database.NewValidationError(`invalid transfer info value "%v": %s`, info.Value, err)
 		}
 
@@ -81,8 +85,12 @@ func setTransferInfo(access database.Access, owner transferInfoOwner,
 func doSetTransferInfo(ses *database.Session, owner transferInfoOwner,
 	info map[string]any,
 ) error {
-	if err := ses.DeleteAll(&TransferInfo{}).Where(owner.getTransInfoCondition()).
-		Run(); err != nil {
+	delQuery := ses.DeleteAll(&TransferInfo{}).Where(owner.getTransInfoCondition())
+	if _, ok := info[FollowID]; !ok {
+		delQuery.Where("name <> ?", FollowID)
+	}
+
+	if err := delQuery.Run(); err != nil {
 		return fmt.Errorf("failed to delete transfer info: %w", err)
 	}
 
@@ -106,7 +114,7 @@ func doSetTransferInfo(ses *database.Session, owner transferInfoOwner,
 func makeIDGenerator() (*snowflake.Node, error) {
 	var nodeID, mod, machineID big.Int
 
-	nodeID.SetBytes([]byte(conf.GlobalConfig.NodeID))
+	nodeID.SetBytes([]byte(conf.GlobalConfig.GatewayName + conf.GlobalConfig.NodeID))
 	mod.SetInt64(math.MaxInt64)
 
 	machineID.Mod(&nodeID, &mod)

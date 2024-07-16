@@ -176,8 +176,11 @@ func (c *Credential) validate(db database.ReadAccess) error {
 	return nil
 }
 
-// AfterWrite re-deserializes the authentication value (when it is relevant).
-func (c *Credential) AfterWrite(db database.Access) error {
+func (c *Credential) AfterInsert(db database.Access) error {
+	return c.AfterRead(db)
+}
+
+func (c *Credential) AfterUpdate(db database.Access) error {
 	return c.AfterRead(db)
 }
 

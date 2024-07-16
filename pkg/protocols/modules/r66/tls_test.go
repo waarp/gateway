@@ -38,6 +38,8 @@ func init() {
 		MakePartnerConfig: Module{}.MakePartnerConfig,
 		TransID:           true,
 		RuleName:          true,
+		Size:              true,
+		TransferInfo:      true,
 	}
 }
 

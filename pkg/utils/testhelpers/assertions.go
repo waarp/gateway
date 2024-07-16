@@ -1,6 +1,7 @@
 package testhelpers
 
 import (
+	"encoding/json"
 	"errors"
 	"fmt"
 	"reflect"
@@ -52,6 +53,25 @@ func ShouldBeErrorType(actual interface{}, expected ...interface{}) string {
 	}
 
 	return ""
+}
+
+func ShouldEqualJSON(actual any, expected ...any) string {
+	if n := len(expected); n != 1 {
+		return fmt.Sprintf("This assertion requires exactly 1 comparison value "+
+			"(you provided %d).", n)
+	}
+
+	actualJSON, err1 := json.Marshal(actual)
+	if err1 != nil {
+		return fmt.Sprintf("Failed to marshal actual value: %s", err1)
+	}
+
+	expectedJSON, err2 := json.Marshal(expected[0])
+	if err2 != nil {
+		return fmt.Sprintf("Failed to marshal expected value: %s", err2)
+	}
+
+	return assertions.ShouldEqualJSON(string(actualJSON), string(expectedJSON))
 }
 
 func isError(val interface{}) bool {

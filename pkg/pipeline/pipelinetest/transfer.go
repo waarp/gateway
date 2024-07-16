@@ -1,14 +1,14 @@
 package pipelinetest
 
 import (
-	"encoding/json"
-
 	"github.com/smartystreets/goconvey/convey"
+	"golang.org/x/exp/maps"
 
 	"code.waarp.fr/apps/gateway/gateway/pkg/conf"
 	"code.waarp.fr/apps/gateway/gateway/pkg/database"
 	"code.waarp.fr/apps/gateway/gateway/pkg/model"
 	"code.waarp.fr/apps/gateway/gateway/pkg/model/types"
+	"code.waarp.fr/apps/gateway/gateway/pkg/utils/testhelpers"
 )
 
 type transData struct {
@@ -45,7 +45,7 @@ func (d *clientData) checkClientTransferOK(c convey.C, data *transData,
 			Progress:         int64(len(data.fileContent)),
 		}
 		c.So(*actual, convey.ShouldResemble, *expected)
-		checkHistoryInfo(c, db, actual.ID, data)
+		checkHistoryInfo(c, db, actual, data)
 		/* if !d.ClientRule.IsSend {
 			checkFileInfo(c, db, actual.ID, data)
 		} */
@@ -86,33 +86,28 @@ func (d *serverData) checkServerTransferOK(c convey.C, remoteTransferID, filenam
 		}
 
 		c.So(*actual, convey.ShouldResemble, *expected)
-		checkHistoryInfo(c, ctx.DB, actual.ID, data)
+		checkHistoryInfo(c, ctx.DB, actual, data)
 		/* if !d.ServerRule.IsSend {
 			checkFileInfo(c, db, actual.ID, data)
 		} */
 	})
 }
 
-func checkHistoryInfo(c convey.C, db *database.DB, transID int64, data *transData) {
-	if data == nil {
+func checkHistoryInfo(c convey.C, db *database.DB, hist *model.HistoryEntry, data *transData) {
+	if data == nil || !Protocols[hist.Protocol].TransferInfo {
 		return
 	}
 
-	var infoList model.TransferInfoList
+	actualInfo, err := hist.GetTransferInfo(db)
+	c.So(err, convey.ShouldBeNil)
 
-	c.So(db.Select(&infoList).Run(), convey.ShouldBeNil)
-	c.So(db.Select(&infoList).Where("history_id=?", transID).Run(), convey.ShouldBeNil)
+	expectedData := maps.Clone(data.transferInfo)
 
-	actualInfo := map[string]interface{}{}
+	var idErr error
+	expectedData[model.FollowID], idErr = hist.TransferID()
+	c.So(idErr, convey.ShouldBeNil)
 
-	for _, info := range infoList {
-		var val interface{}
-
-		c.So(json.Unmarshal([]byte(info.Value), &val), convey.ShouldBeNil)
-		actualInfo[info.Name] = val
-	}
-
-	c.So(actualInfo, convey.ShouldResemble, data.transferInfo)
+	c.So(actualInfo, testhelpers.ShouldEqualJSON, expectedData)
 }
 
 /*

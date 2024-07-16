@@ -226,16 +226,16 @@ func (s *sessionHandler) getInfoFromTransfer(remoteID int64, trans *model.Transf
 	}
 
 	return &r66.TransferInfo{
-		ID:        remoteID,
-		Client:    ctx.LocalAccount.Login,
-		Server:    ctx.LocalAgent.Name,
-		File:      trans.SrcFilename,
-		Rule:      ctx.Rule.Name,
-		IsRecv:    ctx.Rule.IsSend,
-		IsMd5:     protoConf.CheckBlockHash,
-		BlockSize: protoConf.BlockSize,
-		Info:      userContent,
-		Start:     trans.Start,
+		ID:          remoteID,
+		Client:      ctx.LocalAccount.Login,
+		Server:      ctx.LocalAgent.Name,
+		File:        trans.SrcFilename,
+		Rule:        ctx.Rule.Name,
+		IsRecv:      ctx.Rule.IsSend,
+		IsMd5:       protoConf.CheckBlockHash,
+		BlockSize:   protoConf.BlockSize,
+		UserContent: userContent,
+		Start:       trans.Start,
 	}, nil
 }
 

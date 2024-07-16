@@ -6,6 +6,10 @@ import (
 	"code.waarp.fr/apps/gateway/gateway/pkg/database"
 )
 
+// FollowID defines the name of the transfer info value containing the R66
+// follow ID.
+const FollowID = "__followID__"
+
 type transferInfoOwner interface {
 	getTransInfoCondition() (string, int64)
 	setTransInfoOwner(info *TransferInfo)
