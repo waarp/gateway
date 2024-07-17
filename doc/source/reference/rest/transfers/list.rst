@@ -1,7 +1,6 @@
 Lister les transferts
 =====================
 
-
 .. http:get:: /api/transfers
 
    Renvoie une liste des transferts remplissant les critères donnés en
@@ -34,6 +33,8 @@ Lister les transferts
    :param start: Filtre uniquement les transferts dont la date est ultérieure à
       celle renseignée.
    :type start: date
+   :param followID: Filtre uniquement les transferts ayant l'ID de flux renseigné.
+   :type followID: string
 
    :statuscode 200: La liste a été renvoyée avec succès
    :statuscode 400: Un ou plusieurs des paramètres de requêtes sont invalides

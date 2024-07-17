@@ -52,8 +52,13 @@ Affiche une liste des transferts remplissant les critères ci-dessous.
    La date doit être renseignée en suivant le format standard ISO 8601 tel
    qu'il est décrit dans la rfc:`3339`.
 
+.. option:: -f <FOLLOW_ID>, --follow-id=<FOLLOW_ID>
+
+   Filtre les transferts ayant l'ID de flux renseigné avec ce paramètre. Les
+   transferts renvoyés feront donc partie du même flux.
+
 **Exemple**
 
 .. code-block:: shell
 
-   waarp-gateway transfer list -l 10 -o 5 -s id- -r 'règle_1' -t 'PLANNED' -d '2019-01-01T12:00:00+02:00'
+   waarp-gateway transfer list -l 10 -o 5 -s id- -r 'règle_1' -t 'PLANNED' -d '2019-01-01T12:00:00+02:00' -f '12345'
