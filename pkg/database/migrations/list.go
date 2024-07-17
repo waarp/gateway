@@ -291,4 +291,9 @@ var Migrations = []Change{
 		Up:          ver0_10_0AddLocalAccountIPAddrUp,
 		Down:        ver0_10_0AddLocalAccountIPAddrDown,
 	},
+	{ // #54
+		Description: `Add indexes on the transfer & history "start" columns`,
+		Up:          ver0_10_0AddTransferStartIndexUp,
+		Down:        ver0_10_0AddTransferStartIndexDown,
+	},
 }
