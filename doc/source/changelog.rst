@@ -3,6 +3,7 @@
 Historique des versions
 =======================
 
+* :release:`0.10.0 <2024-07-17>`
 * :fix:`407` Ajout d'indexes sur les dates de transfert dans les tables
   d'historique. Cela devrait améliorer les performances des requêtes REST et
   des commandes de listing de transferts, en particulier lorsqu'un filtrage
