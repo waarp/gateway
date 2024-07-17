@@ -118,6 +118,7 @@ func TestLocalAccountBeforeWrite(t *testing.T) {
 				newAccount := &LocalAccount{
 					LocalAgentID: parentAgent.ID,
 					Login:        "new",
+					IPAddresses:  types.IPList{"127.0.0.1"},
 				}
 
 				shouldFailWith := func(errDesc string, expErr error) {
@@ -198,6 +199,14 @@ func TestLocalAccountBeforeWrite(t *testing.T) {
 							So(err, ShouldBeNil)
 						})
 					})
+				})
+
+				Convey("Given an invalid ip address", func() {
+					const notAnAddr = "999.999.999.999"
+					newAccount.IPAddresses.Add(notAnAddr)
+
+					shouldFailWith("invalid account IP address", database.NewValidationError(
+						`invalid account IP address: lookup %s: no such host`, notAnAddr))
 				})
 			})
 		})

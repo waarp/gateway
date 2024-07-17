@@ -7,6 +7,7 @@ import (
 	"code.waarp.fr/apps/gateway/gateway/pkg/model"
 	"code.waarp.fr/apps/gateway/gateway/pkg/model/authentication/auth"
 	"code.waarp.fr/apps/gateway/gateway/pkg/protocols/modules/r66/internal"
+	"code.waarp.fr/apps/gateway/gateway/pkg/protocols/protoutils"
 	"code.waarp.fr/apps/gateway/gateway/pkg/utils"
 	"code.waarp.fr/apps/gateway/gateway/pkg/utils/compatibility"
 )
@@ -28,6 +29,13 @@ func (a *authHandler) ValidAuth(authent *r66.Authent) (r66.SessionHandler, error
 		a.logger.Error("Failed to retrieve client account: %v", err)
 
 		return nil, internal.NewR66Error(r66.Internal, "database error")
+	}
+
+	if len(acc.IPAddresses) > 0 {
+		remoteIP := protoutils.GetIP(authent.Address)
+		if !acc.IPAddresses.Contains(remoteIP) {
+			return nil, internal.NewR66Error(r66.BadAuthent, "unauthorized IP address")
+		}
 	}
 
 	var authenticated bool

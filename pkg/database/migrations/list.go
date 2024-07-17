@@ -286,4 +286,9 @@ var Migrations = []Change{
 		Up:          ver0_10_0AddSNMPMonitorsUp,
 		Down:        ver0_10_0AddSNMPMonitorsDown,
 	},
+	{ // #53
+		Description: `Add an "ip_addresses" column to the "local_accounts" table`,
+		Up:          ver0_10_0AddLocalAccountIPAddrUp,
+		Down:        ver0_10_0AddLocalAccountIPAddrDown,
+	},
 }

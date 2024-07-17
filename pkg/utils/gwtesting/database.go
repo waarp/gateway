@@ -20,10 +20,10 @@ func SQLiteDatabase(tb testing.TB) *sql.DB {
 
 	values.Set("mode", "rwc")
 	values.Set("cache", "shared")
-	values.Set("_txlock", "exclusive")
-	values.Add("_pragma", "busy_timeout(5000)")
+	values.Set("_txlock", "immediate")
+	values.Add("_pragma", "busy_timeout(10000)")
 	values.Add("_pragma", "foreign_keys(ON)")
-	values.Add("_pragma", "journal_mode(MEMORY)")
+	values.Add("_pragma", "journal_mode(WAL)")
 	values.Add("_pragma", "synchronous(NORMAL)")
 
 	dsn := fmt.Sprintf("file:%s?%s", path, values.Encode())

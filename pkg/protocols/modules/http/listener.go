@@ -11,6 +11,7 @@ import (
 	"code.waarp.fr/apps/gateway/gateway/pkg/database"
 	"code.waarp.fr/apps/gateway/gateway/pkg/model"
 	"code.waarp.fr/apps/gateway/gateway/pkg/model/authentication/auth"
+	"code.waarp.fr/apps/gateway/gateway/pkg/protocols/protoutils"
 	"code.waarp.fr/apps/gateway/gateway/pkg/utils"
 	"code.waarp.fr/apps/gateway/gateway/pkg/utils/compatibility"
 )
@@ -126,6 +127,7 @@ func (h *httpService) makeHandler() http.HandlerFunc {
 	}
 }
 
+//nolint:funlen //function is fine for now
 func (h *httpService) checkAuthent(w http.ResponseWriter, r *http.Request,
 ) (*model.LocalAccount, bool) {
 	var (
@@ -150,6 +152,15 @@ func (h *httpService) checkAuthent(w http.ResponseWriter, r *http.Request,
 		http.Error(w, "Failed to retrieve user credentials", http.StatusInternalServerError)
 
 		return nil, false
+	}
+
+	if len(acc.IPAddresses) > 0 {
+		remoteIP := protoutils.GetIP(r.RemoteAddr)
+		if !acc.IPAddresses.Contains(remoteIP) {
+			http.Error(w, "Unauthorized IP address", http.StatusUnauthorized)
+
+			return nil, false
+		}
 	}
 
 	if r.TLS != nil && len(r.TLS.PeerCertificates) > 0 {

@@ -128,7 +128,7 @@ func TestGetRemoteAccount(t *testing.T) {
 }
 
 func TestListRemoteAccounts(t *testing.T) {
-	check := func(w *httptest.ResponseRecorder, expected map[string][]*OutAccount) {
+	check := func(w *httptest.ResponseRecorder, expected map[string][]*OutRemoteAccount) {
 		Convey("Then it should reply 'OK'", func() {
 			So(w.Code, ShouldEqual, http.StatusOK)
 		})
@@ -153,7 +153,7 @@ func TestListRemoteAccounts(t *testing.T) {
 		db := database.TestDatabase(c)
 		handler := listRemoteAccounts(logger, db)
 		w := httptest.NewRecorder()
-		expected := map[string][]*OutAccount{}
+		expected := map[string][]*OutRemoteAccount{}
 
 		Convey("Given a database with 4 remote accounts", func() {
 			p1 := &model.RemoteAgent{
@@ -208,7 +208,7 @@ func TestListRemoteAccounts(t *testing.T) {
 				Convey("When sending the request to the handler", func() {
 					handler.ServeHTTP(w, r)
 
-					expected["remoteAccounts"] = []*OutAccount{
+					expected["remoteAccounts"] = []*OutRemoteAccount{
 						account1, account2, account4,
 					}
 					check(w, expected)
@@ -224,7 +224,7 @@ func TestListRemoteAccounts(t *testing.T) {
 				Convey("When sending the request to the handler", func() {
 					handler.ServeHTTP(w, r)
 
-					expected["remoteAccounts"] = []*OutAccount{account3}
+					expected["remoteAccounts"] = []*OutRemoteAccount{account3}
 					check(w, expected)
 				})
 			})
@@ -253,7 +253,7 @@ func TestListRemoteAccounts(t *testing.T) {
 				Convey("When sending the request to the handler", func() {
 					handler.ServeHTTP(w, r)
 
-					expected["remoteAccounts"] = []*OutAccount{account1}
+					expected["remoteAccounts"] = []*OutRemoteAccount{account1}
 					check(w, expected)
 				})
 			})
@@ -267,7 +267,7 @@ func TestListRemoteAccounts(t *testing.T) {
 				Convey("When sending the request to the handler", func() {
 					handler.ServeHTTP(w, r)
 
-					expected["remoteAccounts"] = []*OutAccount{account2, account4}
+					expected["remoteAccounts"] = []*OutRemoteAccount{account2, account4}
 					check(w, expected)
 				})
 			})
@@ -281,7 +281,7 @@ func TestListRemoteAccounts(t *testing.T) {
 				Convey("When sending the request to the handler", func() {
 					handler.ServeHTTP(w, r)
 
-					expected["remoteAccounts"] = []*OutAccount{
+					expected["remoteAccounts"] = []*OutRemoteAccount{
 						account4, account2, account1,
 					}
 					check(w, expected)

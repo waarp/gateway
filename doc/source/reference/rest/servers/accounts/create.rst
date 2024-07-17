@@ -10,6 +10,7 @@ Ajouter un compte local
 
    :reqjson string login: Le login du compte
    :reqjson string password: Le mot de passe du compte
+   :reqjson array ipAddresses: Une liste des adresses IP autorisées pour le compte.
 
    :statuscode 201: Le compte a été créé avec succès
    :statuscode 400: Un ou plusieurs des paramètres du compte sont invalides
@@ -29,7 +30,8 @@ Ajouter un compte local
 
       {
         "login": "toto",
-        "password": "titi"
+        "password": "titi",
+        "ipAddresses": ["1.2.3.4", "5.6.7.8"]
       }
 
    **Exemple de réponse**

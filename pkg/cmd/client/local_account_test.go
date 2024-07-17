@@ -40,6 +40,7 @@ func TestLocalAccountGet(t *testing.T) {
 			status: http.StatusOK,
 			body: map[string]any{
 				"login":       login,
+				"ipAddresses": []string{"1.2.3.4", "5.6.7.8"},
 				"credentials": []string{cred1, cred2},
 				"authorizedRules": map[string]any{
 					"sending":   []string{send1, send2},
@@ -58,6 +59,7 @@ func TestLocalAccountGet(t *testing.T) {
 				assert.Equal(t,
 					expectedOutput(t, result.body,
 						`‣Account "{{.login}}"`,
+						`  •Authorized IP addresses: {{ join .ipAddresses }}`,
 						`  •Credentials: {{ join .credentials }}`,
 						`  •Authorized rules:`,
 						`    ⁃Send: {{ join .authorizedRules.sending }}`,
@@ -77,6 +79,8 @@ func TestLocalAccountAdd(t *testing.T) {
 
 		login    = "bar"
 		password = "sesame"
+		ip1      = "1.2.3.4"
+		ip2      = "5.6.7.8"
 
 		path     = "/api/servers/" + server + "/accounts"
 		location = path + "/" + login
@@ -93,8 +97,9 @@ func TestLocalAccountAdd(t *testing.T) {
 			method: http.MethodPost,
 			path:   path,
 			body: map[string]any{
-				"login":    login,
-				"password": password,
+				"login":       login,
+				"password":    password,
+				"ipAddresses": []any{ip1, ip2},
 			},
 		}
 
@@ -109,6 +114,7 @@ func TestLocalAccountAdd(t *testing.T) {
 			t.Run("When executing the command", func(t *testing.T) {
 				require.NoError(t, executeCommand(t, w, command,
 					"--login", login,
+					"--ip-address", ip1, "--ip-address", ip2,
 					"--password", password,
 				),
 					"Then it should not return an error",
@@ -186,8 +192,9 @@ func TestLocalAccountUpdate(t *testing.T) {
 			method: http.MethodPatch,
 			path:   path,
 			body: map[string]any{
-				"login":    login,
-				"password": password,
+				"login":       login,
+				"password":    password,
+				"ipAddresses": []any{},
 			},
 		}
 
@@ -202,6 +209,7 @@ func TestLocalAccountUpdate(t *testing.T) {
 			t.Run("When executing the command", func(t *testing.T) {
 				require.NoError(t, executeCommand(t, w, command,
 					"--login", login,
+					"--ip-address", "none",
 					"--password", password,
 					oldLogin,
 				),
