@@ -215,12 +215,13 @@ func TestTransferList(t *testing.T) {
 	const (
 		path = "/api/transfers"
 
-		sort   = "id+"
-		limit  = "10"
-		offset = "5"
-		rule   = "rule"
-		status = "DONE"
-		date   = "2019-01-01T00:00:00Z"
+		sort     = "id+"
+		limit    = "10"
+		offset   = "5"
+		rule     = "rule"
+		status   = "DONE"
+		date     = "2019-01-01T00:00:00Z"
+		followID = "12345"
 
 		id1         = 1
 		remoteID1   = "456"
@@ -268,6 +269,7 @@ func TestTransferList(t *testing.T) {
 			values: url.Values{
 				"sort": {sort}, "limit": {limit}, "offset": {offset},
 				"rule": {rule}, "status": {status}, "start": {date},
+				"followID": {followID},
 			},
 		}
 
@@ -321,6 +323,7 @@ func TestTransferList(t *testing.T) {
 					"--limit", limit, "--offset", offset,
 					"--sort", sort, "--rule", rule,
 					"--status", status, "--date", date,
+					"--follow-id", followID,
 				),
 					"Then it should not return an error",
 				)

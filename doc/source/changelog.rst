@@ -3,6 +3,10 @@
 Historique des versions
 =======================
 
+* :feature:`405` Ajout de la possibilité de filtrer les transferts par ID de
+  flux (*followID*) lors du listing de transferts. Ce changement affecte à la
+  fois l'API REST et le client terminal, se référer à leur docs respectives
+  pour plus de détails.
 * :feature:`401` Ajout d'un filtrage d'IP basique permettant de restreindre les
   adresses IP autorisées pour un partenaire cherchant à s'authentifier auprès
   de Gateway. Voir les documentation CLI et REST de gestion des comptes locaux

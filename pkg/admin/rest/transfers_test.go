@@ -468,7 +468,7 @@ func TestListTransfer(t *testing.T) {
 				Progress:        1,
 				TaskNumber:      2,
 				Start:           time.Date(2021, 1, 1, 1, 0, 0, 123000, time.Local),
-				Step:            types.StepPreTasks,
+				Step:            types.StepFinalization,
 				Status:          types.StatusPlanned,
 			}
 			So(db.Insert(t1).Run(), ShouldBeNil)
@@ -496,9 +496,6 @@ func TestListTransfer(t *testing.T) {
 				Status:          types.StatusPaused,
 			}
 			So(db.Insert(t3).Run(), ShouldBeNil)
-
-			t1.Step = types.StepFinalization
-			So(db.Update(t1).Run(), ShouldBeNil)
 
 			trans1 := fromTransfer(db, t1)
 			trans2 := fromTransfer(db, t2)
@@ -593,6 +590,35 @@ func TestListTransfer(t *testing.T) {
 
 						So(err, ShouldBeNil)
 						So(w.Body.String(), ShouldEqual, string(exp)+"\n")
+					})
+				})
+			})
+
+			Convey("Given a request with a valid 'followID' parameter", func() {
+				followID := t1.RemoteTransferID
+				req, err := http.NewRequest(http.MethodGet,
+					fmt.Sprintf("?followID=%s", followID), nil)
+				So(err, ShouldBeNil)
+
+				Convey("When sending the request to the handler", func() {
+					handler.ServeHTTP(w, req)
+
+					Convey("Then it should reply 'OK'", func() {
+						So(w.Code, ShouldEqual, http.StatusOK)
+					})
+
+					Convey("Then the 'Content-Type' header should contain 'application/json'", func() {
+						contentType := w.Header().Get("Content-Type")
+
+						So(contentType, ShouldEqual, "application/json")
+					})
+
+					Convey("Then it should return 1 transfer", func() {
+						expected["transfers"] = []OutTransfer{*trans1}
+						exp, err := json.Marshal(expected)
+
+						So(err, ShouldBeNil)
+						So(w.Body.String(), ShouldEqualJSON, string(exp))
 					})
 				})
 			})

@@ -133,6 +133,11 @@ func parseTransferListQuery(r *http.Request, db *database.DB,
 		query.In("status", statuses)
 	}
 
+	if followIDs, ok := r.Form["followID"]; ok && len(followIDs) > 0 {
+		query.Where("id IN (SELECT transfer_id FROM transfer_info WHERE name=? AND value=?)",
+			model.FollowID, followIDs[0])
+	}
+
 	if startStr := r.FormValue("start"); startStr != "" {
 		start, err := time.Parse(time.RFC3339Nano, startStr)
 		if err != nil {

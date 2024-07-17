@@ -140,6 +140,7 @@ type TransferList struct {
 	//nolint:misspell //spelling mistake CANCELLED must be kept for backward compatibility
 	Statuses []string `short:"t" long:"status" description:"Filter the transfers based on the transfer's status. Can be repeated multiple times to filter multiple statuses." choice:"PLANNED" choice:"RUNNING" choice:"INTERRUPTED" choice:"PAUSED" choice:"CANCELLED" choice:"DONE" choice:"ERROR"`
 	Start    string   `short:"d" long:"date" description:"Filter the transfers which started after a given date. Date must be in ISO 8601 format."`
+	FollowID string   `short:"f" long:"follow-id" description:"Filter the transfers based on their follow ID."`
 }
 
 func (t *TransferList) listURL() error {
@@ -165,6 +166,10 @@ func (t *TransferList) listURL() error {
 		}
 
 		query.Set("start", t.Start)
+	}
+
+	if t.FollowID != "" {
+		query.Set("followID", t.FollowID)
 	}
 
 	addr.RawQuery = query.Encode()
