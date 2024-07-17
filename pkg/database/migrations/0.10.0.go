@@ -63,3 +63,37 @@ func ver0_10_0AddLocalAccountIPAddrDown(db Actions) error {
 
 	return nil
 }
+
+func ver0_10_0AddTransferStartIndexUp(db Actions) error {
+	if err := db.CreateIndex(&Index{
+		Name:   "transfer_start_index",
+		Unique: false,
+		On:     "transfers",
+		Cols:   []string{"start"},
+	}); err != nil {
+		return fmt.Errorf(`failed to create the "transfer_start_index" index: %w`, err)
+	}
+
+	if err := db.CreateIndex(&Index{
+		Name:   "history_start_index",
+		Unique: false,
+		On:     "transfer_history",
+		Cols:   []string{"start"},
+	}); err != nil {
+		return fmt.Errorf(`failed to create the "history_start_index" index: %w`, err)
+	}
+
+	return nil
+}
+
+func ver0_10_0AddTransferStartIndexDown(db Actions) error {
+	if err := db.DropIndex("transfer_start_index", "transfers"); err != nil {
+		return fmt.Errorf(`failed to drop the "transfer_start_index" index: %w`, err)
+	}
+
+	if err := db.DropIndex("history_start_index", "transfer_history"); err != nil {
+		return fmt.Errorf(`failed to drop the "history_start_index" index: %w`, err)
+	}
+
+	return nil
+}

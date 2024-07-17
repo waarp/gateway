@@ -40,7 +40,7 @@ func testVer0_10_0AddSNMPMonitors(t *testing.T, eng *testEngine) Change {
 	return mig
 }
 
-func ver0_10_0AddLocalAccountIPAddr(t *testing.T, eng *testEngine) Change {
+func testVer0_10_0AddLocalAccountIPAddr(t *testing.T, eng *testEngine) Change {
 	mig := Migrations[53]
 
 	t.Run("When applying the 0.10.0 local agent IP addresses addition", func(t *testing.T) {
@@ -58,6 +58,40 @@ func ver0_10_0AddLocalAccountIPAddr(t *testing.T, eng *testEngine) Change {
 
 			t.Run("Then it should have dropped the new column", func(t *testing.T) {
 				tableShouldNotHaveColumns(t, eng.DB, "local_accounts", "ip_addresses")
+			})
+		})
+	})
+
+	return mig
+}
+
+func testVer0_10_0AddTransferIndex(t *testing.T, eng *testEngine) Change {
+	mig := Migrations[54]
+
+	t.Run("When applying the 0.10.0 transfer start index addition", func(t *testing.T) {
+		require.False(t, doesIndexExist(t, eng.DB, eng.Dialect, "transfers",
+			"transfer_start_index"))
+		require.False(t, doesIndexExist(t, eng.DB, eng.Dialect, "transfer_history",
+			"history_start_index"))
+
+		require.NoError(t, eng.Upgrade(mig), "The migration should not fail")
+
+		t.Run("Then it should have added the new indexes", func(t *testing.T) {
+			require.True(t, doesIndexExist(t, eng.DB, eng.Dialect, "transfers",
+				"transfer_start_index"))
+			require.True(t, doesIndexExist(t, eng.DB, eng.Dialect, "transfer_history",
+				"history_start_index"))
+		})
+
+		t.Run("When reverting the migration", func(t *testing.T) {
+			require.NoError(t, eng.Downgrade(mig),
+				"Reverting the migration should not fail")
+
+			t.Run("Then it should have dropped the new indexes", func(t *testing.T) {
+				require.False(t, doesIndexExist(t, eng.DB, eng.Dialect, "transfers",
+					"transfer_start_index"))
+				require.False(t, doesIndexExist(t, eng.DB, eng.Dialect, "transfer_history",
+					"history_start_index"))
 			})
 		})
 	})

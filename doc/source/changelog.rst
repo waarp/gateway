@@ -3,6 +3,10 @@
 Historique des versions
 =======================
 
+* :fix:`407` Ajout d'indexes sur les dates de transfert dans les tables
+  d'historique. Cela devrait améliorer les performances des requêtes REST et
+  des commandes de listing de transferts, en particulier lorsqu'un filtrage
+  par date est appliqué.
 * :feature:`405` Ajout de la possibilité de filtrer les transferts par ID de
   flux (*followID*) lors du listing de transferts. Ce changement affecte à la
   fois l'API REST et le client terminal, se référer à leur docs respectives
