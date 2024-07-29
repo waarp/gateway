@@ -238,6 +238,7 @@ build_portable_linux_archive() {
   cp ./build/waarp-gateway_linux_amd64 "$dest/bin/waarp-gateway"
   cp ./build/get-remote_linux_amd64 "$dest/share/get-remote"
   cp ./build/updateconf_linux_amd64 "$dest/share/updateconf"
+  cp ./doc/source/reference/waarp-gateway.mib "$dest/share/waarp-gateway.mib"
 
   ./build/waarp-gatewayd_linux_amd64 server -c "$dest/etc/gatewayd.ini" -n
   sed -i \
@@ -265,6 +266,7 @@ build_portable_windows_archive() {
   cp ./build/waarp-gateway_windows_amd64 "$dest/bin/waarp-gateway.exe"
   cp ./build/get-remote_windows_amd64 "$dest/share/get-remote.exe"
   cp ./build/updateconf_windows_amd64 "$dest/share/updateconf.exe"
+  cp ./doc/source/reference/waarp-gateway.mib "$dest/share/waarp-gateway.mib"
 
   ./build/waarp-gatewayd_linux_amd64 server -c "$dest/etc/gatewayd.ini" -n
   sed -i \
