@@ -79,6 +79,8 @@ overrides:
         dst: "/usr/share/waarp-gateway/get-remote"
       - src: ./build/updateconf_linux_amd64
         dst: "/usr/share/waarp-gateway/updateconf"
+      - src: ./doc/source/reference/waarp-gateway.mib
+        dst: "/usr/share/waarp-gateway/waarp-gateway.mib"
 
       - src: ./build/waarp-gatewayd.ini
         dst: "/etc/waarp-gateway/gatewayd.ini"
@@ -99,6 +101,8 @@ overrides:
         dst: "/usr/share/waarp-gateway/get-remote"
       - src: ./build/updateconf_linux_amd64
         dst: "/usr/share/waarp-gateway/updateconf"
+      - src: ./doc/source/reference/waarp-gateway.mib
+        dst: "/usr/share/waarp-gateway/waarp-gateway.mib"
 
       - src: ./build/waarp-gatewayd.ini
         dst: "/etc/waarp-gateway/gatewayd.ini"
