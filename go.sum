@@ -4,6 +4,8 @@ code.bcarlin.xyz/go/logging v0.4.1 h1:Ys0aNB2lz/99mOpT2weU9G/MBRpnhrTb/zximyBKL0
 code.bcarlin.xyz/go/logging v0.4.1/go.mod h1:eI6Lx+k576W8M5vl9b0QksJtYskQZNUG1ojwIXP6/Cg=
 code.waarp.fr/lib/Sqlite3CreateTableParser v0.0.0-20221122183218-24f478e49362 h1:TE7nB3dxksquS/JEb56LDS5408T0/Xhc+eqcPakiRx4=
 code.waarp.fr/lib/Sqlite3CreateTableParser v0.0.0-20221122183218-24f478e49362/go.mod h1:9ox2QkeHD920voiwFU0S8h3Qp/pD67mW/czd7wZaxJI=
+code.waarp.fr/lib/goftp v0.1.1-0.20240410131823-5c6be29f291d h1:d5PVFMFyJRQwnqIysrPfbv1m7UpWmO+7Cz3/pFK4+Zo=
+code.waarp.fr/lib/goftp v0.1.1-0.20240410131823-5c6be29f291d/go.mod h1:PBTOX+UoynADfrbEowCU5KwdwA0z0tljVcneR1VFt6I=
 code.waarp.fr/lib/goftp v0.1.1-0.20240801120050-932aa2b2f9a7 h1:sCOGpisvQskRdr4OaDEg7yX0AxH8TcQesSvVfQzXyXQ=
 code.waarp.fr/lib/goftp v0.1.1-0.20240801120050-932aa2b2f9a7/go.mod h1:PBTOX+UoynADfrbEowCU5KwdwA0z0tljVcneR1VFt6I=
 code.waarp.fr/lib/log v1.2.0 h1:FvbVnporxqV4xyJhJQt+bKv+zFBvxOb9VfeM1ThIZAI=

@@ -12,6 +12,7 @@ import (
 
 	"code.waarp.fr/lib/log"
 
+	"code.waarp.fr/apps/gateway/gateway/pkg/analytics"
 	"code.waarp.fr/apps/gateway/gateway/pkg/database"
 	"code.waarp.fr/apps/gateway/gateway/pkg/fs"
 	"code.waarp.fr/apps/gateway/gateway/pkg/logging"
@@ -115,6 +116,10 @@ func newPipeline(db *database.DB, logger *log.Logger, transCtx *model.TransferCo
 		logger.Error("Failed to add the pipeline to the list: %s", err)
 
 		return nil, err
+	}
+
+	if analytics.GlobalService != nil {
+		analytics.GlobalService.RunningTransfers.Add(1)
 	}
 
 	return pipeline, nil
@@ -523,4 +528,8 @@ func (p *Pipeline) done(state statemachine.State) {
 	}
 
 	List.remove(p.TransCtx.Transfer.ID)
+
+	if analytics.GlobalService != nil {
+		analytics.GlobalService.RunningTransfers.Add(-1)
+	}
 }

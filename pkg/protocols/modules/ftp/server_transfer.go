@@ -9,6 +9,7 @@ import (
 	"strings"
 	"time"
 
+	"code.waarp.fr/apps/gateway/gateway/pkg/analytics"
 	"code.waarp.fr/apps/gateway/gateway/pkg/database"
 	"code.waarp.fr/apps/gateway/gateway/pkg/fs"
 	"code.waarp.fr/apps/gateway/gateway/pkg/model"
@@ -32,6 +33,20 @@ type serverTransfer struct {
 }
 
 func (s *serverFS) newServerTransfer(path string, isSend bool, offset int64,
+) (*serverTransfer, error) {
+	analytics.AddConnection()
+
+	st, err := s.mkNewServerTransfer(path, isSend, offset)
+	if err != nil {
+		analytics.SubConnection()
+
+		return nil, err
+	}
+
+	return st, nil
+}
+
+func (s *serverFS) mkNewServerTransfer(path string, isSend bool, offset int64,
 ) (*serverTransfer, error) {
 	rule, ruleErr := protoutils.GetClosestRule(s.db, s.logger, s.dbServer, s.dbAcc, path, isSend)
 	if ruleErr != nil {
@@ -163,6 +178,8 @@ func (s *serverTransfer) WriteString(str string) (int, error) {
 }
 
 func (s *serverTransfer) Close() error {
+	defer analytics.SubConnection()
+
 	isSend := s.pip.Stream.TransCtx.Rule.IsSend
 	progress := s.pip.Stream.TransCtx.Transfer.Progress
 	filesize := s.pip.Stream.TransCtx.Transfer.Filesize

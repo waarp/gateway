@@ -7,6 +7,7 @@ import (
 	"net/http"
 	"path"
 
+	"code.waarp.fr/apps/gateway/gateway/pkg/analytics"
 	"code.waarp.fr/apps/gateway/gateway/pkg/conf"
 	"code.waarp.fr/apps/gateway/gateway/pkg/model/authentication/auth"
 	"code.waarp.fr/apps/gateway/gateway/pkg/model/types"
@@ -26,6 +27,7 @@ type getClient struct {
 	cancel context.CancelFunc
 }
 
+//nolint:funlen //it's fine as is (for now)
 func (g *getClient) Request() *pipeline.Error {
 	g.ctx, g.cancel = context.WithCancel(context.Background())
 
@@ -77,7 +79,15 @@ func (g *getClient) Request() *pipeline.Error {
 
 	switch g.resp.StatusCode {
 	case http.StatusOK, http.StatusPartialContent:
-		return g.getSizeProgress()
+		analytics.AddConnection()
+
+		if err := g.getSizeProgress(); err != nil {
+			analytics.SubConnection()
+
+			return err
+		}
+
+		return nil
 	default:
 		return getRemoteStatus(g.resp.Header, g.resp.Body, g.pip)
 	}
@@ -129,6 +139,8 @@ func (g *getClient) Receive(file protocol.ReceiveFile) *pipeline.Error {
 }
 
 func (g *getClient) EndTransfer() *pipeline.Error {
+	defer analytics.SubConnection()
+
 	if g.resp != nil {
 		if err := g.resp.Body.Close(); err != nil {
 			g.pip.Logger.Warning("Error while closing the response body: %v", err)
@@ -139,6 +151,8 @@ func (g *getClient) EndTransfer() *pipeline.Error {
 }
 
 func (g *getClient) SendError(types.TransferErrorCode, string) {
+	defer analytics.SubConnection()
+
 	if g.resp != nil {
 		_ = g.resp.Body.Close() //nolint:errcheck // error is irrelevant at this point
 	}

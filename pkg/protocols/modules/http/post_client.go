@@ -10,6 +10,7 @@ import (
 	"path"
 	"time"
 
+	"code.waarp.fr/apps/gateway/gateway/pkg/analytics"
 	"code.waarp.fr/apps/gateway/gateway/pkg/conf"
 	"code.waarp.fr/apps/gateway/gateway/pkg/fs"
 	"code.waarp.fr/apps/gateway/gateway/pkg/model/authentication/auth"
@@ -67,6 +68,9 @@ func (p *postClient) checkResume(url string) *pipeline.Error {
 
 		return pipeline.NewErrorWith(types.TeInternal, "Head HTTP request failed", err)
 	}
+
+	analytics.AddConnection()
+	defer analytics.SubConnection()
 
 	defer resp.Body.Close() //nolint:errcheck // this error is irrelevant
 
@@ -213,6 +217,7 @@ func (p *postClient) Request() *pipeline.Error {
 			p.pip.Logger.Error("HTTP transfer failed: %s", err)
 			p.reqErr <- err
 		} else {
+			analytics.AddConnection()
 			p.resp <- resp
 		}
 	}()
@@ -223,6 +228,7 @@ func (p *postClient) Request() *pipeline.Error {
 	case err := <-p.reqErr:
 		return pipeline.NewErrorWith(types.TeConnection, "HTTP request failed", err)
 	case resp := <-p.resp:
+		defer analytics.SubConnection()
 		defer resp.Body.Close() //nolint:errcheck // error is irrelevant at this point
 
 		return parseRemoteError(resp.Header, resp.Body, types.TeConnection,
@@ -245,6 +251,8 @@ func (p *postClient) Send(file protocol.SendFile) *pipeline.Error {
 	case reqErr := <-p.reqErr:
 		return p.wrapAndSendError(reqErr, types.TeDataTransfer, "HTTP transfer failed")
 	case resp := <-p.resp:
+		defer analytics.SubConnection()
+
 		if cErr := resp.Body.Close(); cErr != nil {
 			p.pip.Logger.Warning("Error while closing response body: %v", cErr)
 		}
@@ -270,6 +278,8 @@ func (p *postClient) EndTransfer() *pipeline.Error {
 	case err := <-p.reqErr:
 		return p.wrapAndSendError(err, types.TeDataTransfer, "HTTP transfer failed")
 	case resp := <-p.resp:
+		defer analytics.SubConnection()
+
 		if err := resp.Body.Close(); err != nil {
 			p.pip.Logger.Warning("Error while closing response body: %v", err)
 		}
@@ -283,6 +293,8 @@ func (p *postClient) EndTransfer() *pipeline.Error {
 }
 
 func (p *postClient) SendError(code types.TransferErrorCode, details string) {
+	defer analytics.SubConnection()
+
 	if p.writer == nil {
 		return
 	}
@@ -299,6 +311,8 @@ func (p *postClient) SendError(code types.TransferErrorCode, details string) {
 }
 
 func (p *postClient) Pause() *pipeline.Error {
+	defer analytics.SubConnection()
+
 	if p.writer == nil {
 		return nil
 	}
@@ -315,6 +329,8 @@ func (p *postClient) Pause() *pipeline.Error {
 }
 
 func (p *postClient) Cancel() *pipeline.Error {
+	defer analytics.SubConnection()
+
 	if p.writer == nil {
 		return nil
 	}

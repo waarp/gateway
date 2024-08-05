@@ -10,6 +10,7 @@ import (
 
 	"github.com/smartystreets/goconvey/convey"
 
+	"code.waarp.fr/apps/gateway/gateway/pkg/analytics"
 	"code.waarp.fr/apps/gateway/gateway/pkg/conf"
 	"code.waarp.fr/apps/gateway/gateway/pkg/controller"
 	"code.waarp.fr/apps/gateway/gateway/pkg/fs"
@@ -246,6 +247,8 @@ func (s *SelfContext) RunTransfer(c convey.C, willFail bool) {
 	c.So(err, convey.ShouldBeNil)
 	s.setTrace(pip.Pip)
 
+	c.So(analytics.GlobalService.OpenConnections.Load(), convey.ShouldEqual, 0)
+
 	if tErr := pip.Run(); !willFail {
 		convey.So(tErr, convey.ShouldBeNil)
 	}
@@ -257,6 +260,11 @@ func (s *SelfContext) RunTransfer(c convey.C, willFail bool) {
 	c.SoMsg("The server pipeline should have ended",
 		utils.WaitChan(s.servDone, transferTimeout), convey.ShouldBeTrue)
 	s.waitForListDeletion()
+
+	if analytics.GlobalService.OpenConnections.Load() != 0 {
+		<-time.After(100 * time.Millisecond) //nolint:mnd // this is a test timeout
+		c.So(analytics.GlobalService.OpenConnections.Load(), convey.ShouldEqual, 0)
+	}
 }
 
 func (s *SelfContext) setTrace(pip *pipeline.Pipeline) {

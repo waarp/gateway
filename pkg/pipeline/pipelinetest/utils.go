@@ -10,6 +10,7 @@ import (
 
 	"github.com/smartystreets/goconvey/convey"
 
+	"code.waarp.fr/apps/gateway/gateway/pkg/analytics"
 	"code.waarp.fr/apps/gateway/gateway/pkg/conf"
 	"code.waarp.fr/apps/gateway/gateway/pkg/database"
 	"code.waarp.fr/apps/gateway/gateway/pkg/fs"
@@ -206,6 +207,9 @@ func initTestData(c convey.C) *testData {
 	db := database.TestDatabase(c)
 	testFS := fstest.InitMemFS(c)
 	c.Reset(pipeline.List.Reset)
+
+	analytics.GlobalService = &analytics.Service{DB: db}
+	c.So(analytics.GlobalService.Start(), convey.ShouldBeNil)
 
 	home := "memory:/gw_home"
 	homePath := mkPath(home)

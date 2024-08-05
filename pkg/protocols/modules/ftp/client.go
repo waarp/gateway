@@ -22,7 +22,7 @@ import (
 	"code.waarp.fr/apps/gateway/gateway/pkg/utils"
 )
 
-const clientDefaultConnTimeout = 5 * time.Second // 5s
+const clientDefaultConnTimeout = 5 * time.Minute // 5s
 
 type client struct {
 	dbClient *model.Client

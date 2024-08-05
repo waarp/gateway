@@ -3,6 +3,7 @@ package ftp
 import (
 	"code.waarp.fr/lib/goftp"
 
+	"code.waarp.fr/apps/gateway/gateway/pkg/analytics"
 	"code.waarp.fr/apps/gateway/gateway/pkg/model/types"
 	"code.waarp.fr/apps/gateway/gateway/pkg/pipeline"
 	"code.waarp.fr/apps/gateway/gateway/pkg/protocols/protocol"
@@ -21,6 +22,8 @@ func (t *clientStorTransfer) Request() *pipeline.Error {
 
 	stor, err := t.client.Store(path, offset)
 	if err != nil {
+		defer t.sendError()
+
 		return toPipelineError(err, `FTP "STORE" transfer request failed`)
 	}
 
@@ -30,10 +33,15 @@ func (t *clientStorTransfer) Request() *pipeline.Error {
 
 	t.trans = stor
 
+	analytics.AddConnection()
+
 	return nil
 }
 
 func (t *clientStorTransfer) Send(file protocol.SendFile) *pipeline.Error {
+	analytics.AddConnection()
+	defer analytics.SubConnection()
+
 	if _, err := t.trans.ReadFrom(file); err != nil {
 		defer t.sendError()
 
@@ -51,6 +59,14 @@ func (t *clientStorTransfer) Receive(protocol.ReceiveFile) *pipeline.Error {
 }
 
 func (t *clientStorTransfer) EndTransfer() *pipeline.Error {
+	defer analytics.SubConnection()
+
+	defer func() {
+		if err := t.client.Close(); err != nil {
+			t.pip.Logger.Warning("Failed to close FTP connection: %v", err)
+		}
+	}()
+
 	if err := t.trans.Done(); err != nil {
 		return toPipelineError(err, "FTP transfer finalization failed")
 	}
@@ -61,6 +77,8 @@ func (t *clientStorTransfer) EndTransfer() *pipeline.Error {
 func (t *clientStorTransfer) SendError(types.TransferErrorCode, string) { t.sendError() }
 func (t *clientStorTransfer) sendError() {
 	if t.trans != nil {
+		analytics.SubConnection()
+
 		if err := t.trans.Abort(); err != nil {
 			t.pip.Logger.Warning("Failed to abort FTP transfer: %v", err)
 		}

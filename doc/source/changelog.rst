@@ -3,6 +3,9 @@
 Historique des versions
 =======================
 
+* :bug:`-` Correction d'une fuite de connexions FTP. Les connexions client FTP
+  n'étaient pas correctement fermées, ce qui pouvait conduire à une perte de
+  performance, voir même empêcher l'ouverture de nouvelles connexions.
 * :feature:`380` Ajout du support pour les instances cloud de type S3. Les fichiers
   de transfert peuvent désormais donc être stockés sur une instance S3. Voir
   la section :ref:`cloud <reference-cloud>` pour avoir plus de détails.
