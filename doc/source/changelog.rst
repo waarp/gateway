@@ -3,6 +3,13 @@
 Historique des versions
 =======================
 
+* :fix:`410` Ajout d'une limite à la taille du fichier WAL en cas d'utilisation
+  d'une base de données SQLite. Le fichier devrait maintenant être correctement
+  tronqué à la fin des transactions. Les connexions à la base de données sont
+  également maintenant fermées systématiquement après 2 secondes d'inactivité.
+  Cela devrait réduire le risque que des connexions concurrentes empêchent la
+  troncature du fichier WAL de s'effectuer en entier.
+
 * :release:`0.10.0 <2024-07-17>`
 * :fix:`407` Ajout d'indexes sur les dates de transfert dans les tables
   d'historique. Cela devrait améliorer les performances des requêtes REST et

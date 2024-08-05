@@ -9,6 +9,7 @@ import (
 	"errors"
 	"fmt"
 	"os"
+	"time"
 
 	"code.waarp.fr/lib/log"
 	"xorm.io/xorm"
@@ -20,7 +21,8 @@ import (
 )
 
 const (
-	aesKeySize = 32
+	aesKeySize      = 32
+	connMaxIdleTime = 2 * time.Second
 
 	ServiceName = "Database"
 )
@@ -140,6 +142,8 @@ func (db *DB) initEngine() (*xorm.Engine, error) {
 	if connInfo.ConnLimit > 0 {
 		engine.SetMaxOpenConns(connInfo.ConnLimit)
 	}
+
+	engine.DB().SetConnMaxIdleTime(connMaxIdleTime)
 
 	return engine, nil
 }
