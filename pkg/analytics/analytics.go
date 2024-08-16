@@ -14,7 +14,9 @@ type analytics struct {
 	StartTime atomic.Pointer[time.Time] // App launch time.
 
 	RunningTransfers atomic.Int64 // Number of running transfers.
-	OpenConnections  atomic.Int64 // Number of open connections.
+
+	OpenIncomingConnections atomic.Int64 // Number of open incoming connections.
+	OpenOutgoingConnections atomic.Int64 // Number of open outgoing connections.
 }
 
 func (*analytics) GetVersion() string { return version.Num }
@@ -26,14 +28,26 @@ func (*analytics) GetUsedMemory() uint64 {
 	return stats.Sys
 }
 
-func AddConnection() {
+func AddIncomingConnection() {
 	if GlobalService != nil {
-		GlobalService.OpenConnections.Add(1)
+		GlobalService.OpenIncomingConnections.Add(1)
 	}
 }
 
-func SubConnection() {
+func SubIncomingConnection() {
 	if GlobalService != nil {
-		GlobalService.OpenConnections.Add(-1)
+		GlobalService.OpenIncomingConnections.Add(-1)
+	}
+}
+
+func AddOutgoingConnection() {
+	if GlobalService != nil {
+		GlobalService.OpenOutgoingConnections.Add(1)
+	}
+}
+
+func SubOutgoingConnection() {
+	if GlobalService != nil {
+		GlobalService.OpenOutgoingConnections.Add(-1)
 	}
 }

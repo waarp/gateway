@@ -87,13 +87,13 @@ func (h *handler) WrapPassiveListener(listener net.Listener) (net.Listener, erro
 }
 
 func (h *handler) ClientConnected(ftplib.ClientContext) (string, error) {
-	analytics.AddConnection()
+	analytics.AddIncomingConnection()
 
 	return h.getBanner(), nil
 }
 
 func (h *handler) ClientDisconnected(ftplib.ClientContext) {
-	analytics.SubConnection()
+	analytics.SubIncomingConnection()
 }
 
 //nolint:goerr113 //dynamic errors are used to mask the internal errors (for security reasons)

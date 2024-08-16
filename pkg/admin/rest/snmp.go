@@ -1,6 +1,7 @@
 package rest
 
 import (
+	"context"
 	"fmt"
 	"net/http"
 
@@ -54,9 +55,9 @@ func addSnmpMonitor(logger *log.Logger, db *database.DB) http.HandlerFunc {
 			AuthEngineID:    restMonitor.AuthEngineID,
 			AuthUsername:    restMonitor.AuthUsername,
 			AuthProtocol:    restMonitor.AuthProtocol,
-			AuthPassphrase:  types.CypherText(restMonitor.AuthPassphrase),
+			AuthPassphrase:  types.SecretText(restMonitor.AuthPassphrase),
 			PrivProtocol:    restMonitor.PrivProtocol,
-			PrivPassphrase:  types.CypherText(restMonitor.PrivPassphrase),
+			PrivPassphrase:  types.SecretText(restMonitor.PrivPassphrase),
 		}
 		if err := db.Insert(&dbMonitor).Run(); handleError(w, logger, err) {
 			return
@@ -124,13 +125,13 @@ func listSnmpMonitors(logger *log.Logger, db *database.DB) http.HandlerFunc {
 
 func getSnmpMonitor(logger *log.Logger, db *database.DB) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		monitor, getErr := retrieveDBSNMPMonitor(r, db)
+		dbMonitor, getErr := retrieveDBSNMPMonitor(r, db)
 		if handleError(w, logger, getErr) {
 			return
 		}
 
-		restUser := dbSNMPMonitorToREST(monitor)
-		handleError(w, logger, writeJSON(w, restUser))
+		restMonitor := dbSNMPMonitorToREST(dbMonitor)
+		handleError(w, logger, writeJSON(w, restMonitor))
 	}
 }
 
@@ -142,10 +143,20 @@ func updateSnmpMonitor(logger *log.Logger, db *database.DB) http.HandlerFunc {
 		}
 
 		restMonitor := api.PatchSnmpMonitorReqObject{
-			Name:       asNullableStr(oldDbMonitor.Name),
-			Version:    asNullableStr(oldDbMonitor.Version),
-			UDPAddress: asNullableStr(oldDbMonitor.UDPAddress),
-			Community:  asNullableStr(oldDbMonitor.Community),
+			Name:            asNullableStr(oldDbMonitor.Name),
+			Version:         asNullableStr(oldDbMonitor.Version),
+			UDPAddress:      asNullableStr(oldDbMonitor.UDPAddress),
+			Community:       asNullableStr(oldDbMonitor.Community),
+			UseInforms:      asNullableBool(oldDbMonitor.UseInforms),
+			ContextName:     asNullableStr(oldDbMonitor.ContextName),
+			ContextEngineID: asNullableStr(oldDbMonitor.ContextEngineID),
+			SNMPv3Security:  asNullableStr(oldDbMonitor.SNMPv3Security),
+			AuthEngineID:    asNullableStr(oldDbMonitor.AuthEngineID),
+			AuthUsername:    asNullableStr(oldDbMonitor.AuthUsername),
+			AuthProtocol:    asNullableStr(oldDbMonitor.AuthProtocol),
+			AuthPassphrase:  asNullableSecret(oldDbMonitor.AuthPassphrase),
+			PrivProtocol:    asNullableStr(oldDbMonitor.PrivProtocol),
+			PrivPassphrase:  asNullableSecret(oldDbMonitor.PrivPassphrase),
 		}
 		if err := readJSON(r, &restMonitor); handleError(w, logger, err) {
 			return
@@ -166,11 +177,11 @@ func updateSnmpMonitor(logger *log.Logger, db *database.DB) http.HandlerFunc {
 		setIfValid(&dbMonitor.PrivProtocol, restMonitor.PrivProtocol)
 
 		if restMonitor.AuthPassphrase.Valid {
-			dbMonitor.AuthPassphrase = types.CypherText(restMonitor.AuthPassphrase.Value)
+			dbMonitor.AuthPassphrase = types.SecretText(restMonitor.AuthPassphrase.Value)
 		}
 
 		if restMonitor.PrivPassphrase.Valid {
-			dbMonitor.PrivPassphrase = types.CypherText(restMonitor.PrivPassphrase.Value)
+			dbMonitor.PrivPassphrase = types.SecretText(restMonitor.PrivPassphrase.Value)
 		}
 
 		if err := db.Update(&dbMonitor).Run(); handleError(w, logger, err) {
@@ -212,4 +223,149 @@ func reloadSNMPMonitorConf() error {
 	}
 
 	return nil
+}
+
+func reloadSNMPServerConf(ctx context.Context) error {
+	if snmp.GlobalService != nil {
+		//nolint:wrapcheck //no need to wrap here
+		return snmp.GlobalService.ReloadServerConf(ctx)
+	}
+
+	return nil
+}
+
+func retrieveDBSNMPServerConf(db *database.DB) (*snmp.ServerConfig, error) {
+	var snmpServer snmp.ServerConfig
+	if err := db.Get(&snmpServer, "owner=?", conf.GlobalConfig.GatewayName).Run(); err != nil {
+		if database.IsNotFound(err) {
+			return nil, notFound("SNMP service config not found")
+		}
+
+		return nil, fmt.Errorf("failed to retrieve the SNMP service config: %w", err)
+	}
+
+	return &snmpServer, nil
+}
+
+func getSnmpService(logger *log.Logger, db *database.DB) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		dbSnmpConfig, getErr := retrieveDBSNMPServerConf(db)
+		if handleError(w, logger, getErr) {
+			return
+		}
+
+		restSnmpConfig := &api.GetSnmpServiceRespObject{
+			LocalUDPAddress:  dbSnmpConfig.LocalUDPAddress,
+			Community:        dbSnmpConfig.Community,
+			V3Only:           dbSnmpConfig.SNMPv3Only,
+			V3Username:       dbSnmpConfig.SNMPv3Username,
+			V3AuthProtocol:   dbSnmpConfig.SNMPv3AuthProtocol,
+			V3AuthPassphrase: string(dbSnmpConfig.SNMPv3AuthPassphrase),
+			V3PrivProtocol:   dbSnmpConfig.SNMPv3PrivProtocol,
+			V3PrivPassphrase: string(dbSnmpConfig.SNMPv3PrivPassphrase),
+		}
+
+		handleError(w, logger, writeJSON(w, restSnmpConfig))
+	}
+}
+
+func addNewSnmpService(db *database.DB, logger *log.Logger, w http.ResponseWriter, r *http.Request) {
+	var restSnmpConf api.PostSnmpServiceReqObject
+	if err := readJSON(r, &restSnmpConf); handleError(w, logger, err) {
+		return
+	}
+
+	dbSnmpConf := snmp.ServerConfig{
+		LocalUDPAddress:      restSnmpConf.LocalUDPAddress,
+		Community:            restSnmpConf.Community,
+		SNMPv3Only:           restSnmpConf.V3Only,
+		SNMPv3Username:       restSnmpConf.V3Username,
+		SNMPv3AuthProtocol:   restSnmpConf.V3AuthProtocol,
+		SNMPv3AuthPassphrase: types.SecretText(restSnmpConf.V3AuthPassphrase),
+		SNMPv3PrivProtocol:   restSnmpConf.V3PrivProtocol,
+		SNMPv3PrivPassphrase: types.SecretText(restSnmpConf.V3PrivPassphrase),
+	}
+	if err := db.Insert(&dbSnmpConf).Run(); handleError(w, logger, err) {
+		return
+	}
+
+	if handleError(w, logger, reloadSNMPServerConf(r.Context())) {
+		return
+	}
+
+	w.Header().Set("Location", r.URL.String())
+	w.WriteHeader(http.StatusCreated)
+}
+
+func setSnmpService(logger *log.Logger, db *database.DB) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		oldDbSnmpConf, getErr := retrieveDBSNMPServerConf(db)
+		if isNotFound(getErr) {
+			addNewSnmpService(db, logger, w, r)
+
+			return
+		} else if handleError(w, logger, getErr) {
+			return
+		}
+
+		restSnmpConf := api.PatchSnmpServiceReqObject{
+			LocalUDPAddress:  asNullableStr(oldDbSnmpConf.LocalUDPAddress),
+			Community:        asNullableStr(oldDbSnmpConf.Community),
+			V3Only:           asNullableBool(oldDbSnmpConf.SNMPv3Only),
+			V3Username:       asNullableStr(oldDbSnmpConf.SNMPv3Username),
+			V3AuthProtocol:   asNullableStr(oldDbSnmpConf.SNMPv3AuthProtocol),
+			V3AuthPassphrase: asNullableSecret(oldDbSnmpConf.SNMPv3AuthPassphrase),
+			V3PrivProtocol:   asNullableStr(oldDbSnmpConf.SNMPv3PrivProtocol),
+			V3PrivPassphrase: asNullableSecret(oldDbSnmpConf.SNMPv3PrivPassphrase),
+		}
+		if err := readJSON(r, &restSnmpConf); handleError(w, logger, err) {
+			return
+		}
+
+		dbSnmpConf := snmp.ServerConfig{ID: oldDbSnmpConf.ID}
+		setIfValid(&dbSnmpConf.LocalUDPAddress, restSnmpConf.LocalUDPAddress)
+		setIfValid(&dbSnmpConf.Community, restSnmpConf.Community)
+		setIfValid(&dbSnmpConf.SNMPv3Only, restSnmpConf.V3Only)
+		setIfValid(&dbSnmpConf.SNMPv3Username, restSnmpConf.V3Username)
+		setIfValid(&dbSnmpConf.SNMPv3AuthProtocol, restSnmpConf.V3AuthProtocol)
+		setIfValid(&dbSnmpConf.SNMPv3PrivProtocol, restSnmpConf.V3PrivProtocol)
+
+		if restSnmpConf.V3AuthPassphrase.Valid {
+			dbSnmpConf.SNMPv3AuthPassphrase = types.SecretText(restSnmpConf.V3AuthPassphrase.Value)
+		}
+
+		if restSnmpConf.V3PrivPassphrase.Valid {
+			dbSnmpConf.SNMPv3PrivPassphrase = types.SecretText(restSnmpConf.V3PrivPassphrase.Value)
+		}
+
+		if err := db.Update(&dbSnmpConf).Run(); handleError(w, logger, err) {
+			return
+		}
+
+		if handleError(w, logger, reloadSNMPServerConf(r.Context())) {
+			return
+		}
+
+		w.Header().Set("Location", r.URL.String())
+		w.WriteHeader(http.StatusCreated)
+	}
+}
+
+func deleteSnmpService(logger *log.Logger, db *database.DB) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		snmpConf, getErr := retrieveDBSNMPServerConf(db)
+		if handleError(w, logger, getErr) {
+			return
+		}
+
+		if err := db.Delete(snmpConf).Run(); handleError(w, logger, err) {
+			return
+		}
+
+		if handleError(w, logger, reloadSNMPServerConf(r.Context())) {
+			return
+		}
+
+		w.WriteHeader(http.StatusNoContent)
+	}
 }

@@ -33,14 +33,14 @@ func (t *clientStorTransfer) Request() *pipeline.Error {
 
 	t.trans = stor
 
-	analytics.AddConnection()
+	analytics.AddOutgoingConnection()
 
 	return nil
 }
 
 func (t *clientStorTransfer) Send(file protocol.SendFile) *pipeline.Error {
-	analytics.AddConnection()
-	defer analytics.SubConnection()
+	analytics.AddOutgoingConnection()
+	defer analytics.SubOutgoingConnection()
 
 	if _, err := t.trans.ReadFrom(file); err != nil {
 		defer t.sendError()
@@ -59,7 +59,7 @@ func (t *clientStorTransfer) Receive(protocol.ReceiveFile) *pipeline.Error {
 }
 
 func (t *clientStorTransfer) EndTransfer() *pipeline.Error {
-	defer analytics.SubConnection()
+	defer analytics.SubOutgoingConnection()
 
 	defer func() {
 		if err := t.client.Close(); err != nil {
@@ -77,7 +77,7 @@ func (t *clientStorTransfer) EndTransfer() *pipeline.Error {
 func (t *clientStorTransfer) SendError(types.TransferErrorCode, string) { t.sendError() }
 func (t *clientStorTransfer) sendError() {
 	if t.trans != nil {
-		analytics.SubConnection()
+		analytics.SubOutgoingConnection()
 
 		if err := t.trans.Abort(); err != nil {
 			t.pip.Logger.Warning("Failed to abort FTP transfer: %v", err)

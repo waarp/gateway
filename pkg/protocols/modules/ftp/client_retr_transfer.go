@@ -32,7 +32,7 @@ func (t *clientRetrTransfer) Request() *pipeline.Error {
 	t.pip.TransCtx.Transfer.Filesize = retr.Size()
 	t.trans = retr
 
-	analytics.AddConnection()
+	analytics.AddOutgoingConnection()
 
 	return nil
 }
@@ -45,8 +45,8 @@ func (t *clientRetrTransfer) Send(protocol.SendFile) *pipeline.Error {
 }
 
 func (t *clientRetrTransfer) Receive(file protocol.ReceiveFile) *pipeline.Error {
-	analytics.AddConnection()
-	defer analytics.SubConnection()
+	analytics.AddOutgoingConnection()
+	defer analytics.SubOutgoingConnection()
 
 	if _, err := t.trans.WriteTo(file); err != nil {
 		defer t.sendError()
@@ -63,7 +63,7 @@ func (t *clientRetrTransfer) Receive(file protocol.ReceiveFile) *pipeline.Error 
 }
 
 func (t *clientRetrTransfer) EndTransfer() *pipeline.Error {
-	defer analytics.SubConnection()
+	defer analytics.SubOutgoingConnection()
 
 	defer func() {
 		if err := t.client.Close(); err != nil {
@@ -81,7 +81,7 @@ func (t *clientRetrTransfer) EndTransfer() *pipeline.Error {
 func (t *clientRetrTransfer) SendError(types.TransferErrorCode, string) { t.sendError() }
 func (t *clientRetrTransfer) sendError() {
 	if t.trans != nil {
-		defer analytics.SubConnection()
+		defer analytics.SubOutgoingConnection()
 
 		if err := t.trans.Abort(); err != nil {
 			t.pip.Logger.Warning("Failed to abort FTP transfer: %v", err)

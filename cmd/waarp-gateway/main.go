@@ -189,6 +189,11 @@ type commands struct {
 			Upd  wg.SnmpMonitorUpdate `command:"update" description:"Update an existing SNMP monitor"`
 			Del  wg.SnmpMonitorDelete `command:"delete" description:"Delete an SNMP monitor"`
 		} `command:"monitor" description:"Manage the SNMP monitors"`
+		Server struct {
+			Set wg.SnmpServerSet    `command:"set" description:"Set the SNMP server configuration"`
+			Get wg.SnmpServerGet    `command:"get" description:"Retrieve the SNMP server configuration"`
+			Del wg.SnmpServerDelete `command:"delete" description:"Delete the SNMP server"`
+		} `command:"server" description:"Manage the SNMP server configuration"`
 	} `command:"snmp" description:"Manage SNMP"`
 
 	Cloud struct {

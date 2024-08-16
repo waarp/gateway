@@ -6,8 +6,10 @@ import (
 	"fmt"
 	"reflect"
 	"strings"
+	"time"
 
 	"github.com/smarty/assertions"
+	"github.com/smartystreets/goconvey/convey"
 )
 
 // ShouldBeOneOf receives at least 2 parameters. The first is a proposed member
@@ -78,4 +80,27 @@ func isError(val interface{}) bool {
 	err, ok := val.(error)
 
 	return ok && err != nil
+}
+
+func ShouldSucceedAfter[T any](c convey.C, duration time.Duration,
+	assert convey.Assertion, getActual func() T, expected any,
+) {
+	const checkInterval = 100 * time.Millisecond
+
+	timer := time.NewTimer(duration)
+	ticker := time.NewTicker(checkInterval)
+
+	defer timer.Stop()
+	defer ticker.Stop()
+
+	for {
+		select {
+		case <-timer.C:
+			c.So(getActual(), assert, expected)
+		default:
+			if assert(getActual(), expected) == "" {
+				return
+			}
+		}
+	}
 }

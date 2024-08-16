@@ -11,6 +11,7 @@ import (
 	"code.waarp.fr/lib/log"
 	"code.waarp.fr/lib/r66"
 
+	"code.waarp.fr/apps/gateway/gateway/pkg/analytics"
 	"code.waarp.fr/apps/gateway/gateway/pkg/model"
 )
 
@@ -103,6 +104,8 @@ func (c *ConnPool) Add(addr string, tlsConf *tls.Config, logger *log.Logger) (*r
 		return nil, fmt.Errorf("failed to initiate the TCP connection: %w", err)
 	}
 
+	analytics.AddOutgoingConnection()
+
 	cli, err := r66.NewClient(conn, logger.AsStdLogger(log.LevelTrace))
 	if err != nil {
 		return nil, fmt.Errorf("failed to initiate the R66 connection: %w", err)
@@ -149,6 +152,8 @@ func (c *ConnPool) waitClose(addr string) {
 
 	info.conn.Close()
 	delete(c.m, addr)
+
+	analytics.SubOutgoingConnection()
 }
 
 func (c *ConnPool) ForceClose() {

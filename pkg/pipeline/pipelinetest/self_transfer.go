@@ -247,7 +247,8 @@ func (s *SelfContext) RunTransfer(c convey.C, willFail bool) {
 	c.So(err, convey.ShouldBeNil)
 	s.setTrace(pip.Pip)
 
-	c.So(analytics.GlobalService.OpenConnections.Load(), convey.ShouldEqual, 0)
+	c.So(analytics.GlobalService.OpenIncomingConnections.Load(), convey.ShouldEqual, 0)
+	c.So(analytics.GlobalService.OpenOutgoingConnections.Load(), convey.ShouldEqual, 0)
 
 	if tErr := pip.Run(); !willFail {
 		convey.So(tErr, convey.ShouldBeNil)
@@ -261,10 +262,10 @@ func (s *SelfContext) RunTransfer(c convey.C, willFail bool) {
 		utils.WaitChan(s.servDone, transferTimeout), convey.ShouldBeTrue)
 	s.waitForListDeletion()
 
-	if analytics.GlobalService.OpenConnections.Load() != 0 {
-		<-time.After(100 * time.Millisecond) //nolint:mnd // this is a test timeout
-		c.So(analytics.GlobalService.OpenConnections.Load(), convey.ShouldEqual, 0)
-	}
+	testhelpers.ShouldSucceedAfter(c, time.Second, convey.ShouldEqual,
+		analytics.GlobalService.OpenIncomingConnections.Load, 0)
+	testhelpers.ShouldSucceedAfter(c, time.Second, convey.ShouldEqual,
+		analytics.GlobalService.OpenOutgoingConnections.Load, 0)
 }
 
 func (s *SelfContext) setTrace(pip *pipeline.Pipeline) {

@@ -302,7 +302,7 @@ func TestSnmpMonitorUpdate(t *testing.T) {
 		location = "/api/snmp/monitors/" + monitorName
 	)
 
-	t.Run(`Testing the SNMP monitor "update command`, func(t *testing.T) {
+	t.Run(`Testing the SNMP monitor "update" command`, func(t *testing.T) {
 		w := newTestOutput()
 		command := &SnmpMonitorUpdate{}
 
@@ -374,6 +374,170 @@ func TestSnmpMonitorDelete(t *testing.T) {
 					fmt.Sprintf("The SNMP monitor %q was successfully deleted.\n", monitor),
 					w.String(),
 					"Then it should display a message saying the monitor was deleted")
+			})
+		})
+	})
+}
+
+func TestSnmpServerSet(t *testing.T) {
+	const (
+		serverAddress   = "1.2.3.4:5"
+		serverCommunity = "public"
+		serverV3Only    = true
+
+		serverAuthUsername   = "toto"
+		serverAuthProtocol   = snmp.AuthSHA
+		serverAuthPassphrase = "sesame"
+		serverPrivProtocol   = snmp.PrivDES
+		serverPrivPassphrase = "foobar"
+
+		path     = "/api/snmp/server"
+		location = path
+	)
+
+	t.Run(`Testing the SNMP server "set" command`, func(t *testing.T) {
+		w := newTestOutput()
+		command := &SnmpServerSet{}
+
+		expected := &expectedRequest{
+			method: http.MethodPut,
+			path:   path,
+			body: map[string]any{
+				"localUDPAddress":  serverAddress,
+				"community":        serverCommunity,
+				"v3Only":           serverV3Only,
+				"v3Username":       serverAuthUsername,
+				"v3AuthProtocol":   serverAuthProtocol,
+				"v3AuthPassphrase": serverAuthPassphrase,
+				"v3PrivProtocol":   serverPrivProtocol,
+				"v3PrivPassphrase": serverPrivPassphrase,
+			},
+		}
+
+		result := &expectedResponse{
+			status:  http.StatusCreated,
+			headers: map[string][]string{"Location": {location}},
+		}
+
+		t.Run("Given a dummy gateway REST interface", func(t *testing.T) {
+			testServer(t, expected, result)
+
+			t.Run("When executing the command", func(t *testing.T) {
+				require.NoError(t, executeCommand(t, w, command,
+					"--udp-address", serverAddress,
+					"--community", serverCommunity,
+					"--v3-only",
+					"--auth-username", serverAuthUsername,
+					"--auth-protocol", serverAuthProtocol,
+					"--auth-passphrase", serverAuthPassphrase,
+					"--priv-protocol", serverPrivProtocol,
+					"--priv-passphrase", serverPrivPassphrase),
+					"Then it should not return an error")
+
+				assert.Equal(t,
+					"The SNMP server config was successfully updated.\n",
+					w.String(),
+					"Then it should display a message saying the server was updated",
+				)
+			})
+		})
+	})
+}
+
+func TestSnmpServerGet(t *testing.T) {
+	const (
+		serverAddress   = "1.2.3.4:5"
+		serverCommunity = "public"
+		serverV3Only    = true
+
+		serverAuthUsername   = "toto"
+		serverAuthProtocol   = snmp.AuthSHA
+		serverAuthPassphrase = "sesame"
+		serverPrivProtocol   = snmp.PrivDES
+		serverPrivPassphrase = "foobar"
+
+		path = "/api/snmp/server"
+	)
+
+	t.Run(`Testing the SNMP server "get" command`, func(t *testing.T) {
+		w := newTestOutput()
+		command := &SnmpServerGet{}
+
+		expected := &expectedRequest{
+			method: http.MethodGet,
+			path:   path,
+		}
+
+		result := &expectedResponse{
+			status: http.StatusOK,
+			body: map[string]any{
+				"localUDPAddress":  serverAddress,
+				"community":        serverCommunity,
+				"v3Only":           serverV3Only,
+				"v3Username":       serverAuthUsername,
+				"v3AuthProtocol":   serverAuthProtocol,
+				"v3AuthPassphrase": serverAuthPassphrase,
+				"v3PrivProtocol":   serverPrivProtocol,
+				"v3PrivPassphrase": serverPrivPassphrase,
+			},
+		}
+
+		t.Run("Given a dummy gateway REST interface", func(t *testing.T) {
+			testServer(t, expected, result)
+
+			t.Run("When executing the command", func(t *testing.T) {
+				require.NoError(t, executeCommand(t, w, command),
+					"Then it should not return an error")
+
+				outputData := maps.Clone(result.body)
+				outputData["versions"] = ifElse(serverV3Only, "SNMPv3", "SNMPv2c & SNMPv3")
+
+				assert.Equal(t,
+					expectedOutput(t, outputData,
+						`‣SNMP server configuration`,
+						`  •Local UDP address: {{.localUDPAddress}}`,
+						`  •Community: {{.community}}`,
+						`  •Accepted SNMP versions: {{.versions}}`,
+						`  •SNMPv3 username: {{.v3Username}}`,
+						`  •SNMPv3 authentication protocol: {{.v3AuthProtocol}}`,
+						`  •SNMPv3 authentication passphrase: {{.v3AuthPassphrase}}`,
+						`  •SNMPv3 privacy protocol: {{.v3PrivProtocol}}`,
+						`  •SNMPv3 privacy passphrase: {{.v3PrivPassphrase}}`,
+					),
+					w.String(),
+					"Then it should display the server's details",
+				)
+			})
+		})
+	})
+}
+
+func TestSnmpServerDelete(t *testing.T) {
+	const path = "/api/snmp/server"
+
+	t.Run(`Testing the SNMP server "delete" command`, func(t *testing.T) {
+		w := newTestOutput()
+		command := &SnmpServerDelete{}
+
+		expected := &expectedRequest{
+			method: http.MethodDelete,
+			path:   path,
+		}
+
+		result := &expectedResponse{status: http.StatusNoContent}
+
+		t.Run("Given a dummy gateway REST interface", func(t *testing.T) {
+			testServer(t, expected, result)
+
+			t.Run("When executing the command", func(t *testing.T) {
+				require.NoError(t, executeCommand(t, w, command),
+					"Then it should not return an error")
+
+				assert.Equal(t,
+					"The SNMP server config was successfully deleted.\n",
+					w.String(),
+					"Then it should display a message saying the server was deleted",
+				)
 			})
 		})
 	})

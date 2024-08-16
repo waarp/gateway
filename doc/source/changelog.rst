@@ -3,6 +3,10 @@
 Historique des versions
 =======================
 
+* :feature:`54` Deuxième partie de l'ajout du service SNMP. Un serveur SNMP a
+  a été ajouté permettant de récupérer des informations de diagnostique.
+  Consulter :ref:`la MIB SNMP <reference-snmp-mib>` pour plus d'information.
+  Ce serveur SNMP peut être configuré via l'API REST et le client terminal.
 * :bug:`-` Correction d'une fuite de connexions FTP. Les connexions client FTP
   n'étaient pas correctement fermées, ce qui pouvait conduire à une perte de
   performance, voir même empêcher l'ouverture de nouvelles connexions.

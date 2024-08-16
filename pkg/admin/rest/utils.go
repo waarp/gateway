@@ -4,10 +4,15 @@ import (
 	"time"
 
 	"code.waarp.fr/apps/gateway/gateway/pkg/admin/rest/api"
+	"code.waarp.fr/apps/gateway/gateway/pkg/model/types"
 )
 
 func asNullableStr(str string) api.Nullable[string] {
 	return api.Nullable[string]{Value: str, Valid: str != ""}
+}
+
+func asNullableSecret(str types.SecretText) api.Nullable[string] {
+	return asNullableStr(string(str))
 }
 
 func asNullableBool(b bool) api.Nullable[bool] {

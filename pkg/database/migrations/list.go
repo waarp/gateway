@@ -296,4 +296,9 @@ var Migrations = []Change{
 		Up:          ver0_10_0AddTransferStartIndexUp,
 		Down:        ver0_10_0AddTransferStartIndexDown,
 	},
+	{ // #55
+		Description: `Add the "snmp_server_conf" table`,
+		Up:          ver0_11_0AddSNMPServerConfigUp,
+		Down:        ver0_11_0AddSNMPServerConfigDown,
+	},
 }

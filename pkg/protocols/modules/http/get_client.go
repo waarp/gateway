@@ -79,10 +79,10 @@ func (g *getClient) Request() *pipeline.Error {
 
 	switch g.resp.StatusCode {
 	case http.StatusOK, http.StatusPartialContent:
-		analytics.AddConnection()
+		analytics.AddOutgoingConnection()
 
 		if err := g.getSizeProgress(); err != nil {
-			analytics.SubConnection()
+			analytics.SubOutgoingConnection()
 
 			return err
 		}
@@ -139,7 +139,7 @@ func (g *getClient) Receive(file protocol.ReceiveFile) *pipeline.Error {
 }
 
 func (g *getClient) EndTransfer() *pipeline.Error {
-	defer analytics.SubConnection()
+	defer analytics.SubOutgoingConnection()
 
 	if g.resp != nil {
 		if err := g.resp.Body.Close(); err != nil {
@@ -151,7 +151,7 @@ func (g *getClient) EndTransfer() *pipeline.Error {
 }
 
 func (g *getClient) SendError(types.TransferErrorCode, string) {
-	defer analytics.SubConnection()
+	defer analytics.SubOutgoingConnection()
 
 	if g.resp != nil {
 		_ = g.resp.Body.Close() //nolint:errcheck // error is irrelevant at this point

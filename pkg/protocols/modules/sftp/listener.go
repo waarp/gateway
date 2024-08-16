@@ -56,8 +56,8 @@ func (l *sshListener) listen() {
 
 //nolint:funlen // factorizing would add complexity
 func (l *sshListener) handleConnection(nConn net.Conn) {
-	analytics.AddConnection()
-	defer analytics.SubConnection()
+	analytics.AddIncomingConnection()
+	defer analytics.SubIncomingConnection()
 
 	defer closeTCPConn(nConn, l.Logger)
 

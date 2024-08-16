@@ -29,6 +29,7 @@ func addTestCloudType(tb testing.TB) string {
 
 	filesystems.FileSystems.Store(tb.Name(), func(string, string, map[string]any,
 	) (fs.FS, error) {
+		//nolint:nilnil //this is just for tests and should never be called
 		return nil, nil
 	})
 
@@ -120,7 +121,7 @@ func TestAddCloud(t *testing.T) {
 			Name:    input.Name,
 			Type:    input.Type,
 			Key:     input.Key,
-			Secret:  types.CypherText(input.Secret),
+			Secret:  types.SecretText(input.Secret),
 			Options: input.Options,
 		}
 		expectedLoc := path.Join(CloudInstancesPath, input.Name)
@@ -285,7 +286,7 @@ func testUpdateReplaceCloud(t *testing.T, isReplace bool) {
 		}
 
 		if isReplace || input.Secret != "" {
-			newCloud.Secret = types.CypherText(input.Secret)
+			newCloud.Secret = types.SecretText(input.Secret)
 		}
 
 		if isReplace || input.Options != nil {

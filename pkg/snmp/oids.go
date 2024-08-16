@@ -11,8 +11,6 @@ const (
 const WaarpEnterpriseOID = EnterprisesOID + ".66666"
 
 // Gateway OIDs.
-//
-//nolint:gochecknoglobals //global vars are required here
 var (
 	AppOID = WaarpEnterpriseOID + ".77" // Other applications should change this value.
 
@@ -22,8 +20,6 @@ var (
 )
 
 // Traps OIDs.
-//
-//nolint:gochecknoglobals //global vars are required here
 var (
 	NotifObjectsOID = ObjectsOID + ".1"
 
@@ -31,9 +27,63 @@ var (
 	TransErrorObjectsOID   = NotifObjectsOID + ".2"
 )
 
-// Transfer Error OIDs
-//
-//nolint:gochecknoglobals //global vars are required here
+// Application info OIDs.
+var (
+	AppInfoOID = ObjectsOID + ".2"
+
+	AppVersionOID = AppInfoOID + ".1"
+	AppUptimeOID  = AppInfoOID + ".2"
+)
+
+// Ressources info OIDs.
+var (
+	RessourcesInfoOID = ObjectsOID + ".3"
+
+	ResObjectMemUsageOID        = RessourcesInfoOID + ".1"
+	ResObjectNbCPUOID           = RessourcesInfoOID + ".2"
+	ResObjectNbGoroutinesOID    = RessourcesInfoOID + ".3"
+	ResObjectNbIncomingConnsOID = RessourcesInfoOID + ".4"
+	ResObjectNbOutgoingConnsOID = RessourcesInfoOID + ".5"
+	ResObjectIncomingTraficOID  = RessourcesInfoOID + ".6"
+	ResObjectOutgoingTraficOID  = RessourcesInfoOID + ".7"
+)
+
+// Last transfer OIDs.
+var (
+	LastTransStatsOID = ObjectsOID + ".4"
+
+	LtObjectLastTransferOID       = LastTransStatsOID + ".1"
+	LtObjectLastTransferDateOID   = LastTransStatsOID + ".2"
+	LtObjectLastTransferStatusOID = LastTransStatsOID + ".3"
+)
+
+// Transfer statistics OIDs.
+var (
+	TransStatsOID = ObjectsOID + ".5"
+
+	TsObjectNbTotalTransfersOID    = TransStatsOID + ".1"
+	TsObjectNbRunningTransfersOID  = TransStatsOID + ".2"
+	TsObjectNbInErrorTransfersOID  = TransStatsOID + ".3"
+	TsObjectNbFinishedTransfersOID = TransStatsOID + ".4"
+	TsObjectNbCanceledTransfersOID = TransStatsOID + ".5"
+)
+
+// Transfer error starts OIDs.
+var (
+	TransErrorStatsOID = ObjectsOID + ".6"
+
+	TesObjectNbUnknownErrOID      = TransErrorStatsOID + ".1"
+	TesObjectNbInternalErrOID     = TransErrorStatsOID + ".2"
+	TesObjectNbConnectionErrOID   = TransErrorStatsOID + ".3"
+	TesObjectNbAuthErrOID         = TransErrorStatsOID + ".4"
+	TesObjectNbForbiddenErrOID    = TransErrorStatsOID + ".5"
+	TesObjectNbFileNotFoundErrOID = TransErrorStatsOID + ".6"
+	TesObjectNbExternalOpErrOID   = TransErrorStatsOID + ".7"
+	TesObjectNbFinalizationErrOID = TransErrorStatsOID + ".8"
+	TesObjectNbIntegrityErrOID    = TransErrorStatsOID + ".9"
+)
+
+// Transfer Error OIDs.
 var (
 	TransferErrorNotifOID = NotifsOID + ".2"
 
@@ -49,9 +99,7 @@ var (
 	TeObjectErrDetailsOID = TransErrorObjectsOID + ".10"
 )
 
-// Service Error OIDs
-//
-//nolint:gochecknoglobals //global vars are required here
+// Service Error OIDs.
 var (
 	ServiceErrorNotifOID = NotifsOID + ".1"
 

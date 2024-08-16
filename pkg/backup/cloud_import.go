@@ -34,7 +34,7 @@ func importCloud(logger *log.Logger, db database.Access, clouds []file.Cloud, re
 		dbCloud.Name = cloud.Name
 		dbCloud.Type = cloud.Type
 		dbCloud.Key = cloud.Key
-		dbCloud.Secret = types.CypherText(cloud.Secret)
+		dbCloud.Secret = types.SecretText(cloud.Secret)
 		dbCloud.Options = cloud.Options
 
 		var (

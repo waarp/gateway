@@ -87,6 +87,7 @@ func TestDatabase(tb testing.TB) *database.DB {
 
 	dbName := strings.ReplaceAll(tb.Name(), "/", "_")
 
+	conf.GlobalConfig.GatewayName = "gw-test"
 	conf.GlobalConfig.Database = conf.DatabaseConfig{
 		Type:    database.SQLite,
 		Address: dbName,

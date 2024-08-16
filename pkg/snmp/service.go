@@ -9,6 +9,7 @@ import (
 	"code.waarp.fr/lib/log"
 	snmplib "github.com/slayercat/GoSNMPServer"
 
+	"code.waarp.fr/apps/gateway/gateway/pkg/conf"
 	"code.waarp.fr/apps/gateway/gateway/pkg/database"
 	"code.waarp.fr/apps/gateway/gateway/pkg/logging"
 	"code.waarp.fr/apps/gateway/gateway/pkg/model"
@@ -53,9 +54,9 @@ func (s *Service) start() error {
 	s.Logger = logging.NewLogger(ServiceName)
 	s.Logger.Info("Starting service...")
 
-	// if err := s.startServer(); err != nil {
-	// 	return err
-	// }
+	if err := s.startServer(); err != nil {
+		return err
+	}
 
 	if err := s.ReloadMonitorsConf(); err != nil {
 		return err
@@ -66,10 +67,12 @@ func (s *Service) start() error {
 	return nil
 }
 
-/*
 func (s *Service) startServer() error {
 	var serverConf ServerConfig
-	if err := s.DB.Get(&serverConf, "true").Run(); database.IsNotFound(err) {
+	if err := s.DB.Get(&serverConf, "owner=?", conf.GlobalConfig.GatewayName).
+		Run(); database.IsNotFound(err) {
+		s.server = nil
+
 		return nil // no server configured
 	} else if err != nil {
 		s.Logger.Error("Failed to retrieve SNMP server configuration: %v", err)
@@ -85,7 +88,6 @@ func (s *Service) startServer() error {
 
 	return nil
 }
-*/
 
 func (s *Service) Stop(ctx context.Context) error {
 	if !s.state.IsRunning() {
@@ -133,6 +135,14 @@ func (s *Service) ReloadMonitorsConf() error {
 	return nil
 }
 
+func (s *Service) ReloadServerConf(ctx context.Context) error {
+	if err := s.Stop(ctx); err != nil {
+		return err
+	}
+
+	return s.Start()
+}
+
 func (s *Service) ReportTransferError(transferID int64) {
 	var trans model.NormalizedTransferView
 	if err := s.DB.Get(&trans, "id = ?", transferID).Run(); err != nil {
@@ -159,6 +169,17 @@ func ReportServiceFailure(service string, sErr error) {
 // sysUpTime returns the elapsed time since the service started (in hundredths
 // of a second).
 func (s *Service) sysUpTime() uint32 {
-	//nolint:mnd //magic number needed here
-	return uint32(time.Since(s.startTime).Milliseconds() / 10)
+	return timeTicksSince(s.startTime)
+}
+
+func (s *Service) GetServerAddr() string {
+	if s.server == nil {
+		return ""
+	}
+
+	if addr := s.server.Address(); addr == nil {
+		return ""
+	} else {
+		return addr.String()
+	}
 }

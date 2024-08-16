@@ -145,6 +145,10 @@ func get(target any) error {
 }
 
 func update(w io.Writer, object any) error {
+	return updateMethod(w, object, http.MethodPatch)
+}
+
+func updateMethod(w io.Writer, object any, method string) error {
 	if isNotUpdate(object) {
 		return errNothingToDo
 	}
@@ -152,7 +156,7 @@ func update(w io.Writer, object any) error {
 	ctx, cancel := context.WithTimeout(context.Background(), httpTimeout)
 	defer cancel()
 
-	resp, err := sendRequest(ctx, object, http.MethodPatch)
+	resp, err := sendRequest(ctx, object, method)
 	if err != nil {
 		return err
 	}

@@ -50,3 +50,36 @@ type PatchSnmpMonitorReqObject struct {
 	PrivProtocol    Nullable[string] `json:"privProtocol,omitempty"`
 	PrivPassphrase  Nullable[string] `json:"privPassphrase,omitempty"`
 }
+
+type GetSnmpServiceRespObject struct {
+	LocalUDPAddress  string `json:"localUDPAddress"`
+	Community        string `json:"community,omitempty"`
+	V3Only           bool   `json:"v3Only"`
+	V3Username       string `json:"v3Username,omitempty"`
+	V3AuthProtocol   string `json:"v3AuthProtocol,omitempty"`
+	V3AuthPassphrase string `json:"v3AuthPassphrase,omitempty"`
+	V3PrivProtocol   string `json:"v3PrivProtocol,omitempty"`
+	V3PrivPassphrase string `json:"v3PrivPassphrase,omitempty"`
+}
+
+type PostSnmpServiceReqObject struct {
+	LocalUDPAddress  string `json:"localUDPAddress"`
+	Community        string `json:"community,omitempty"`
+	V3Only           bool   `json:"v3Only"`
+	V3Username       string `json:"v3Username,omitempty"`
+	V3AuthProtocol   string `json:"v3AuthProtocol,omitempty"`
+	V3AuthPassphrase string `json:"v3AuthPassphrase,omitempty"`
+	V3PrivProtocol   string `json:"v3PrivProtocol,omitempty"`
+	V3PrivPassphrase string `json:"v3PrivPassphrase,omitempty"`
+}
+
+type PatchSnmpServiceReqObject struct {
+	LocalUDPAddress  Nullable[string] `json:"localUDPAddress"`
+	Community        Nullable[string] `json:"community,omitempty"`
+	V3Only           Nullable[bool]   `json:"v3Only"`
+	V3Username       Nullable[string] `json:"v3Username,omitempty"`
+	V3AuthProtocol   Nullable[string] `json:"v3AuthProtocol,omitempty"`
+	V3AuthPassphrase Nullable[string] `json:"v3AuthPassphrase,omitempty"`
+	V3PrivProtocol   Nullable[string] `json:"v3PrivProtocol,omitempty"`
+	V3PrivPassphrase Nullable[string] `json:"v3PrivPassphrase,omitempty"`
+}
