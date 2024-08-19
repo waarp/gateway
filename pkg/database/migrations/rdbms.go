@@ -64,6 +64,7 @@ func SqliteDSN() string {
 	values.Add("_pragma", "foreign_keys(ON)")
 	values.Add("_pragma", "journal_mode(WAL)")
 	values.Add("_pragma", "synchronous(NORMAL)")
+	values.Add("_pragma", "journal_size_limit(0)")
 
 	return fmt.Sprintf("file:%s?%s", config.Address, values.Encode())
 }
