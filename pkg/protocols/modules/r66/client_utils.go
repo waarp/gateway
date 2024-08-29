@@ -146,7 +146,7 @@ func (c *transferClient) sendRequest() *pipeline.Error {
 		FileSize: c.pip.TransCtx.Transfer.Filesize,
 		Rule:     c.pip.TransCtx.Rule.Name,
 		Block:    c.blockSize,
-		Rank:     uint32(blockNB),
+		Rank:     uint32(blockNB), //nolint:gosec // overflow chance is non-existent
 		IsMD5:    c.checkBlockHash,
 		Infos:    userContent,
 	}
