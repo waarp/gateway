@@ -3,6 +3,7 @@
 Historique des versions
 =======================
 
+* :release:`0.10.1 <2024-08-29>`
 * :fix:`410` Ajout d'une limite à la taille du fichier WAL en cas d'utilisation
   d'une base de données SQLite. Le fichier devrait maintenant être correctement
   tronqué à la fin des transactions. Les connexions à la base de données sont
