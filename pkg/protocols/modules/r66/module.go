@@ -18,7 +18,7 @@ func (Module) NewServer(db *database.DB, server *model.LocalAgent) protocol.Serv
 }
 
 func (Module) NewClient(db *database.DB, cli *model.Client) protocol.Client {
-	return &client{db: db, cli: cli}
+	return &Client{db: db, cli: cli}
 }
 
 func (Module) MakeServerConfig() protocol.ServerConfig   { return new(serverConfig) }

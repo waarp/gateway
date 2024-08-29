@@ -28,7 +28,7 @@ var (
 func init() {
 	pipelinetest.Protocols[R66TLS] = pipelinetest.ProtoFeatures{
 		MakeClient: func(db *database.DB, cli *model.Client) services.Client {
-			return &client{db: db, cli: cli}
+			return &Client{db: db, cli: cli}
 		},
 		MakeServer: func(db *database.DB, agent *model.LocalAgent) services.Server {
 			return &service{db: db, agent: agent}
@@ -67,11 +67,12 @@ func TestTLS(t *testing.T) {
 				r66Cli.conns.Done(r66Cli.pip.TransCtx.RemoteAgent.Address.String())
 			})
 
-			if tErr := r66Cli.connect(); tErr != nil {
+			r66conn, tErr := r66Cli.connect()
+			if tErr != nil {
 				return tErr
 			}
 
-			return r66Cli.authenticate()
+			return r66Cli.authenticate(r66conn)
 		}
 
 		remoteAccountCert := &model.Credential{

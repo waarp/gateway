@@ -6,6 +6,7 @@ import (
 	"fmt"
 
 	"code.waarp.fr/lib/log"
+	"code.waarp.fr/lib/r66"
 
 	"code.waarp.fr/apps/gateway/gateway/pkg/database"
 	"code.waarp.fr/apps/gateway/gateway/pkg/logging"
@@ -19,7 +20,7 @@ import (
 	"code.waarp.fr/apps/gateway/gateway/pkg/utils"
 )
 
-type client struct {
+type Client struct {
 	db               *database.DB
 	cli              *model.Client
 	disableConnGrace bool
@@ -30,7 +31,7 @@ type client struct {
 	state        utils.State
 }
 
-func (c *client) Start() error {
+func (c *Client) Start() error {
 	if c.state.IsRunning() {
 		return utils.ErrAlreadyRunning
 	}
@@ -48,7 +49,7 @@ func (c *client) Start() error {
 	return nil
 }
 
-func (c *client) start() error {
+func (c *Client) start() error {
 	c.logger = logging.NewLogger(c.cli.Name)
 
 	var conf clientConfig
@@ -71,9 +72,9 @@ func (c *client) start() error {
 	return nil
 }
 
-func (c *client) State() (utils.StateCode, string) { return c.state.Get() }
+func (c *Client) State() (utils.StateCode, string) { return c.state.Get() }
 
-func (c *client) Stop(ctx context.Context) error {
+func (c *Client) Stop(ctx context.Context) error {
 	defer c.conns.ForceClose()
 
 	if err := pipeline.List.StopAllFromClient(ctx, c.cli.ID); err != nil {
@@ -88,7 +89,7 @@ func (c *client) Stop(ctx context.Context) error {
 	return nil
 }
 
-func (c *client) InitTransfer(pip *pipeline.Pipeline) (protocol.TransferClient, *pipeline.Error) {
+func (c *Client) InitTransfer(pip *pipeline.Pipeline) (protocol.TransferClient, *pipeline.Error) {
 	trans, err := c.initTransfer(pip)
 	if err != nil {
 		return nil, err
@@ -98,7 +99,7 @@ func (c *client) InitTransfer(pip *pipeline.Pipeline) (protocol.TransferClient, 
 }
 
 //nolint:funlen //can't easily be split
-func (c *client) initTransfer(pip *pipeline.Pipeline) (*transferClient, *pipeline.Error) {
+func (c *Client) initTransfer(pip *pipeline.Pipeline) (*transferClient, *pipeline.Error) {
 	var partConf partnerConfig
 	if err := utils.JSONConvert(pip.TransCtx.RemoteAgent.ProtoConfig, &partConf); err != nil {
 		pip.Logger.Error("Failed to parse R66 partner proto config: %v", err)
@@ -177,4 +178,44 @@ func (c *client) initTransfer(pip *pipeline.Pipeline) (*transferClient, *pipelin
 		tlsConfig:      tlsConf,
 		ses:            nil,
 	}, nil
+}
+
+func (c *Client) GetConnection(partner *model.RemoteAgent, account *model.RemoteAccount) (*r66.Client, error) {
+	remoteAgentCreds, err1 := partner.GetCredentials(c.db)
+	if err1 != nil {
+		return nil, fmt.Errorf("failed to retrieve partner credentials: %w", err1)
+	}
+
+	remoteAccountCreds, err2 := account.GetCredentials(c.db)
+	if err2 != nil {
+		return nil, fmt.Errorf("failed to retrieve account credentials: %w", err2)
+	}
+
+	fakeTransCtx := &model.TransferContext{
+		RemoteAgent:        partner,
+		RemoteAccount:      account,
+		RemoteAccountCreds: remoteAccountCreds,
+		RemoteAgentCreds:   remoteAgentCreds,
+	}
+	fakePipeline := &pipeline.Pipeline{
+		DB:       c.db,
+		Logger:   c.logger,
+		TransCtx: fakeTransCtx,
+	}
+
+	transferCli, cliErr := c.initTransfer(fakePipeline)
+	if cliErr != nil {
+		return nil, cliErr
+	}
+
+	conn, connErr := transferCli.connect()
+	if connErr != nil {
+		return nil, connErr
+	}
+
+	return conn, nil
+}
+
+func (c *Client) ReturnConnection(partner *model.RemoteAgent) {
+	c.conns.Done(partner.Address.String())
 }
