@@ -27,7 +27,7 @@ func (c *transferClient) logErrConf(msg string) {
 	c.pip.Logger.Error("Client-server configuration mismatch: %s", msg)
 }
 
-func (c *transferClient) connect() *pipeline.Error {
+func (c *transferClient) connect() (*r66.Client, *pipeline.Error) {
 	addr := conf.GetRealAddress(c.pip.TransCtx.RemoteAgent.Address.Host,
 		utils.FormatUint(c.pip.TransCtx.RemoteAgent.Address.Port))
 
@@ -35,21 +35,21 @@ func (c *transferClient) connect() *pipeline.Error {
 	if err != nil {
 		c.pip.Logger.Error("Failed to connect to remote host: %s", err)
 
-		return pipeline.NewErrorWith(types.TeConnection, "failed to connect to remote host", err)
+		return nil, pipeline.NewErrorWith(types.TeConnection, "failed to connect to remote host", err)
 	}
 
-	c.ses, err = cli.NewSession()
-	if err != nil {
-		c.pip.Logger.Error("Failed to start R66 session: %s", err)
-
-		return pipeline.NewErrorWith(types.TeConnection, "failed to start R66 session", err)
-	}
-
-	return nil
+	return cli, nil
 }
 
 //nolint:funlen //no easy way to split this
-func (c *transferClient) authenticate() *pipeline.Error {
+func (c *transferClient) authenticate(cli *r66.Client) *pipeline.Error {
+	var sesErr error
+	if c.ses, sesErr = cli.NewSession(); sesErr != nil {
+		c.pip.Logger.Error("Failed to start R66 session: %s", sesErr)
+
+		return pipeline.NewErrorWith(types.TeConnection, "failed to start R66 session", sesErr)
+	}
+
 	r66Conf := &r66.Config{
 		FileSize:   true,
 		FinalHash:  !c.noFinalHash,
@@ -146,7 +146,7 @@ func (c *transferClient) sendRequest() *pipeline.Error {
 		FileSize: c.pip.TransCtx.Transfer.Filesize,
 		Rule:     c.pip.TransCtx.Rule.Name,
 		Block:    c.blockSize,
-		Rank:     uint32(blockNB),
+		Rank:     uint32(blockNB), //nolint:gosec // overflow chance is non-existent
 		IsMD5:    c.checkBlockHash,
 		Infos:    userContent,
 	}

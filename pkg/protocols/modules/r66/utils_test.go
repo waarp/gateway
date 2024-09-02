@@ -29,7 +29,7 @@ var (
 func init() {
 	pipelinetest.Protocols[R66] = pipelinetest.ProtoFeatures{
 		MakeClient: func(db *database.DB, cli *model.Client) services.Client {
-			return &client{db: db, cli: cli, disableConnGrace: true}
+			return &Client{db: db, cli: cli, disableConnGrace: true}
 		},
 		MakeServer:        Module{}.NewServer,
 		MakeServerConfig:  Module{}.MakeServerConfig,

@@ -35,12 +35,13 @@ type transferClient struct {
 // session, and sends the transfer request.
 func (c *transferClient) Request() *pipeline.Error {
 	// CONNECTION
-	if err := c.connect(); err != nil {
-		return c.wrapAndSendError(err)
+	conn, connErr := c.connect()
+	if connErr != nil {
+		return c.wrapAndSendError(connErr)
 	}
 
 	// AUTHENTICATION
-	if err := c.authenticate(); err != nil {
+	if err := c.authenticate(conn); err != nil {
 		return c.wrapAndSendError(err)
 	}
 
