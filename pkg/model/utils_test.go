@@ -33,6 +33,7 @@ func init() {
 	ConfigChecker = testConfigChecker{
 		testProtocol:        nil,
 		testProtocolInvalid: errInvalidProtoConfig,
+		"r66":               nil,
 	}
 
 	authentication.AddInternalCredentialType(testInternalAuth, &intAuth{})

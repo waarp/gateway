@@ -3,6 +3,11 @@
 Historique des versions
 =======================
 
+* :bug:`413` Correction d'un bug qui entraînait un échec de l'authentification
+  des partenaires R66 lorsque leur mot de passe avait été renseigné via la
+  configuration protocolaire (champ "serverPassword"). Les mots de passe
+  renseignés via la configuration protocolaire R66 devraient dorénavant fonctionner
+  correctement.
 * :bug:`-` Les paramètres ``"args"`` et ``"delay"`` des diverses tâches *EXEC* -
   spécifiant respectivement les arguments du programme externe, et le temps
   limite d'exécution de la tâche - sont désormais optionnels.

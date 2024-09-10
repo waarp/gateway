@@ -9,6 +9,7 @@ import (
 	"code.waarp.fr/apps/gateway/gateway/pkg/database"
 	"code.waarp.fr/apps/gateway/gateway/pkg/model/authentication"
 	"code.waarp.fr/apps/gateway/gateway/pkg/model/authentication/auth"
+	"code.waarp.fr/apps/gateway/gateway/pkg/utils"
 	"code.waarp.fr/apps/gateway/gateway/pkg/utils/compatibility"
 )
 
@@ -35,6 +36,10 @@ func init() {
 type r66BcryptAuthHandler struct{ auth.BcryptAuthHandler }
 
 func (r *r66BcryptAuthHandler) ToDB(val, _ string) (string, string, error) {
+	if utils.IsHash(val) {
+		return val, "", nil
+	}
+
 	//nolint:wrapcheck //wrapping adds nothing here
 	return r.BcryptAuthHandler.ToDB(CryptPass(val), "")
 }
