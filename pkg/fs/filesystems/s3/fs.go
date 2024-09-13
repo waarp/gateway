@@ -83,11 +83,13 @@ type filesystem struct {
 }
 
 func (f *filesystem) fullPath(name string) string {
-	if f.root == "" {
+	switch {
+	case f.root == "":
 		return name
-	} else if name == "." {
+	case name == ".":
 		return f.root
-	} else {
+	default:
+		// do not use path.Join, we DON'T want the path to be cleaned
 		return f.root + "/" + name
 	}
 }
@@ -140,7 +142,7 @@ func (f *filesystem) Open(name string) (fs.File, error) {
 }
 
 func (f *filesystem) Create(name string) (fs.File, error) {
-	//nolint:gomnd //magic number is required here to mimic os.Create
+	//nolint:mnd //magic number is required here to mimic os.Create
 	return f.OpenFile(name, fs.FlagWOnly|fs.FlagCreate|fs.FlagTruncate, 0o666)
 }
 

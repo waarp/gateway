@@ -34,9 +34,7 @@ func newReadFile(client *s3.Client, bucket, key string) (fs.File, error) {
 	}
 
 	var err error
-	file.body, file.cancel, err = file.makeRequest(0, -1)
-
-	if err != nil {
+	if file.body, file.cancel, err = file.makeRequest(0, -1); err != nil {
 		return nil, err
 	}
 
@@ -51,7 +49,7 @@ func (f *readFile) makeRequest(off int64, size int) (io.ReadCloser, func(), erro
 
 	if off > 0 || size >= 0 {
 		input.Range = aws.String(fmt.Sprintf("bytes=%d-%s", off,
-			utils.If(size < 0, "", fmt.Sprint(off+int64(size)))))
+			utils.If(size < 0, "", utils.FormatInt(off+int64(size)))))
 	}
 
 	ctx, cancel := context.WithCancel(context.Background())

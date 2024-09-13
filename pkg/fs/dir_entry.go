@@ -15,11 +15,12 @@ func (g *GenericDirEntry) Info() (FileInfo, error) { return g.GenericFileInfo, n
 
 func SortDirEntries(entries []fs.DirEntry) {
 	slices.SortFunc(entries, func(a, b fs.DirEntry) int {
-		if a.Name() < b.Name() {
+		switch {
+		case a.Name() < b.Name():
 			return -1
-		} else if a.Name() > b.Name() {
+		case a.Name() > b.Name():
 			return 1
-		} else {
+		default:
 			return 0
 		}
 	})

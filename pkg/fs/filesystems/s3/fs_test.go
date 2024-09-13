@@ -10,12 +10,11 @@ import (
 	"github.com/aws/aws-sdk-go-v2/aws"
 	"github.com/aws/aws-sdk-go-v2/service/s3"
 	"github.com/aws/aws-sdk-go-v2/service/s3/types"
-
+	"github.com/hack-pad/hackpadfs"
+	"github.com/hack-pad/hackpadfs/fstest"
 	"github.com/stretchr/testify/require"
 
 	"code.waarp.fr/apps/gateway/gateway/pkg/fs"
-	"github.com/hack-pad/hackpadfs"
-	"github.com/hack-pad/hackpadfs/fstest"
 )
 
 const (
