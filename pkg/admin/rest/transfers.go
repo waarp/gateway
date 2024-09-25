@@ -71,11 +71,11 @@ func restTransferToDB(jTrans *api.InTransfer, db *database.DB, logger *log.Logge
 // DBTransferToREST transforms the given database transfer into its JSON equivalent.
 func DBTransferToREST(db *database.DB, trans *model.NormalizedTransferView) (*api.OutTransfer, error) {
 	src := path.Base(trans.RemotePath)
-	dst := trans.LocalPath.OSPath()
+	dst := trans.LocalPath.String()
 
 	if trans.IsSend {
 		dst = path.Base(trans.RemotePath)
-		src = trans.LocalPath.OSPath()
+		src = trans.LocalPath.String()
 	}
 
 	var stop api.Nullable[time.Time]
@@ -100,7 +100,7 @@ func DBTransferToREST(db *database.DB, trans *model.NormalizedTransferView) (*ap
 		Protocol:       trans.Protocol,
 		SrcFilename:    trans.SrcFilename,
 		DestFilename:   trans.DestFilename,
-		LocalFilepath:  trans.LocalPath.OSPath(),
+		LocalFilepath:  trans.LocalPath.String(),
 		RemoteFilepath: trans.RemotePath,
 		Filesize:       trans.Filesize,
 		Start:          trans.Start,
@@ -112,7 +112,7 @@ func DBTransferToREST(db *database.DB, trans *model.NormalizedTransferView) (*ap
 		ErrorCode:      trans.ErrCode.String(),
 		ErrorMsg:       trans.ErrDetails,
 		TransferInfo:   info,
-		TrueFilepath:   trans.LocalPath.OSPath(),
+		TrueFilepath:   trans.LocalPath.String(),
 		SourcePath:     src,
 		DestPath:       dst,
 		StartDate:      trans.Start,

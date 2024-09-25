@@ -23,7 +23,7 @@ func init() {
 }
 
 // Warning: both 'oldPath' and 'newPath' must be in denormalized format.
-func fallbackMove(srcFS, dstFS fs.FS, source, dest *types.URL) error {
+func fallbackMove(srcFS, dstFS fs.FS, source, dest *types.FSPath) error {
 	if err := doCopy(srcFS, dstFS, source, dest); err != nil {
 		return err
 	}
@@ -36,7 +36,7 @@ func fallbackMove(srcFS, dstFS fs.FS, source, dest *types.URL) error {
 }
 
 // MoveFile moves the given file to the given location. Works across partitions.
-func MoveFile(db database.ReadAccess, srcFS fs.FS, source, dest *types.URL) (fs.FS, error) {
+func MoveFile(db database.ReadAccess, srcFS fs.FS, source, dest *types.FSPath) (fs.FS, error) {
 	// If the source & destination are on different machines, we must use the
 	// fallback method of making a copy and then deleting the original.
 	if !fs.IsOnSameFS(source, dest) {
@@ -81,7 +81,7 @@ func (*moveTask) Run(_ context.Context, args map[string]string, db *database.DB,
 	newDir := args["path"]
 	source := &transCtx.Transfer.LocalPath
 
-	dirPath, dstErr := types.ParseURL(newDir)
+	dirPath, dstErr := types.ParsePath(newDir)
 	if dstErr != nil {
 		return fmt.Errorf("failed to parse the MOVE destination path %q: %w", newDir, dstErr)
 	}

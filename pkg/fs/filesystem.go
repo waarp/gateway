@@ -17,39 +17,34 @@ import (
 
 var ErrUnknownCloudInstance = errors.New("unknown cloud instance")
 
-func IsOnSameFS(path1, path2 *types.URL) bool {
-	if path1.Scheme == filesystems.FileScheme && path2.Scheme == filesystems.FileScheme {
-		osPath1 := path1.OSPath()
-		osPath2 := path2.OSPath()
-
-		return filepath.VolumeName(osPath1) == filepath.VolumeName(osPath2)
+func IsOnSameFS(path1, path2 *types.FSPath) bool {
+	if path1.Backend == "" && path2.Backend == "" {
+		return filepath.VolumeName(path1.Path) == filepath.VolumeName(path2.Path)
 	}
 
-	return path1.Scheme == path2.Scheme && path1.Host == path2.Host
+	return path1.Backend == path2.Backend
 }
 
-func GetFileSystem(db database.ReadAccess, url *types.URL) (fs.FS, error) {
-	if url.Scheme == filesystems.FileScheme {
-		return NewLocalFS(url.OSPath())
+func GetFileSystem(db database.ReadAccess, path *types.FSPath) (fs.FS, error) {
+	if path.Backend == "" || path.Backend == "file" {
+		return NewLocalFS(path.Path)
 	}
 
-	if testFS, ok := filesystems.TestFileSystems.Load(url.Scheme); ok {
+	if testFS, ok := filesystems.TestFileSystems.Load(path.Backend); ok {
 		return testFS, nil
 	}
 
-	mkfs, ok := filesystems.FileSystems.Load(url.Scheme)
-	if !ok {
-		return nil, fmt.Errorf("%w %q", filesystems.ErrUnknownFileSystem, url.Scheme)
+	var cloud model.CloudInstance
+	if err := db.Get(&cloud, "name=?", path.Backend).And("owner=?",
+		conf.GlobalConfig.GatewayName).Run(); database.IsNotFound(err) {
+		return nil, fmt.Errorf("%w: %q", ErrUnknownCloudInstance, path.Backend)
+	} else if err != nil {
+		return nil, fmt.Errorf("failed to retrieve cloud instance %q: %w", path.Backend, err)
 	}
 
-	var cloud model.CloudInstance
-	if err := db.Get(&cloud, "owner=? AND name=?", conf.GlobalConfig.GatewayName,
-		url.Host).Run(); err != nil {
-		if database.IsNotFound(err) {
-			return nil, fmt.Errorf("%w: %q", ErrUnknownCloudInstance, url.Host)
-		}
-
-		return nil, fmt.Errorf("failed to retrieve cloud instance %q: %w", url.Host, err)
+	mkfs, ok := filesystems.FileSystems.Load(cloud.Type)
+	if !ok {
+		return nil, fmt.Errorf("%w %q", filesystems.ErrUnknownFileSystem, cloud.Type)
 	}
 
 	return mkfs(cloud.Key, string(cloud.Secret), cloud.Options)

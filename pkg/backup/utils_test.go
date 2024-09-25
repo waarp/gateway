@@ -1,7 +1,7 @@
 package backup
 
 import (
-	"path"
+	"runtime"
 
 	"code.waarp.fr/lib/log"
 	"github.com/smartystreets/goconvey/convey"
@@ -35,13 +35,15 @@ func hash(pwd string) string {
 	return string(h)
 }
 
-func mkURL(elem ...string) *types.URL {
-	full := path.Join(elem...)
+func localPath(full string) types.FSPath {
+	if runtime.GOOS == "windows" {
+		full = "C:" + full
+	}
 
-	url, err := types.ParseURL(full)
+	fPath, err := types.ParsePath(full)
 	convey.So(err, convey.ShouldBeNil)
 
-	return url
+	return *fPath
 }
 
 func mustAddr(addr string) types.Address {

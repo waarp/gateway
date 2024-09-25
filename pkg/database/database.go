@@ -9,6 +9,7 @@ import (
 	"errors"
 	"fmt"
 	"os"
+	"path/filepath"
 	"time"
 
 	"code.waarp.fr/lib/log"
@@ -53,7 +54,7 @@ func (db *DB) loadAESKey() error {
 	}
 
 	filename := conf.GlobalConfig.Database.AESPassphrase
-	if _, err := os.Stat(utils.ToOSPath(filename)); os.IsNotExist(err) {
+	if _, err := os.Stat(filepath.Clean(filename)); os.IsNotExist(err) {
 		db.logger.Info("Creating AES passphrase file at '%s'", filename)
 
 		key := make([]byte, aesKeySize)
@@ -62,7 +63,7 @@ func (db *DB) loadAESKey() error {
 			return fmt.Errorf("cannot generate AES key: %w", err)
 		}
 
-		if err := os.WriteFile(utils.ToOSPath(filename), key, 0o600); err != nil {
+		if err := os.WriteFile(filepath.Clean(filename), key, 0o600); err != nil {
 			return fmt.Errorf("cannot write AES key to file %q: %w", filename, err)
 		}
 	}
@@ -74,7 +75,7 @@ func (db *DB) loadAESKey() error {
 }
 
 func NewGCM(filename string) (cipher.AEAD, error) {
-	key, err := os.ReadFile(utils.ToOSPath(filename))
+	key, err := os.ReadFile(filepath.Clean(filename))
 	if err != nil {
 		return nil, fmt.Errorf("cannot read AES key from file %q: %w", filename, err)
 	}

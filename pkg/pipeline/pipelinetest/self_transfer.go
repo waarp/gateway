@@ -55,7 +55,7 @@ func initSelfTransfer(c convey.C, proto string, clientConf protocol.ClientConfig
 	c.Reset(func() {
 		delete(services.Clients, cli.Name)
 
-		//nolint:gomnd //this is just for tests
+		//nolint:mnd //this is just for tests
 		ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 		defer cancel()
 
@@ -122,9 +122,9 @@ func InitSelfPullTransfer(c convey.C, proto string, clientConf protocol.ClientCo
 
 //nolint:dupl // factorizing would hurt readability
 func (s *SelfContext) addPushTransfer(c convey.C) {
-	filePath := mkURL(s.Paths.GatewayHome, s.ClientRule.LocalDir,
+	filePath := mkPath(s.Paths.GatewayHome, s.ClientRule.LocalDir,
 		"sub_dir", "self_transfer_push")
-	s.fileContent = AddSourceFile(c, s.FS, filePath)
+	s.fileContent = AddSourceFile(c, s.FS, &filePath)
 
 	trans := &model.Transfer{
 		RuleID:          s.ClientRule.ID,
@@ -140,9 +140,9 @@ func (s *SelfContext) addPushTransfer(c convey.C) {
 
 //nolint:dupl // factorizing would hurt readability
 func (s *SelfContext) addPullTransfer(c convey.C) {
-	filePath := mkURL(s.Paths.GatewayHome, s.Server.RootDir,
+	filePath := mkPath(s.Paths.GatewayHome, s.Server.RootDir,
 		s.ServerRule.LocalDir, s.getClientRemoteDir(), "sub_dir", "self_transfer_pull")
-	s.fileContent = AddSourceFile(c, s.FS, filePath)
+	s.fileContent = AddSourceFile(c, s.FS, &filePath)
 
 	trans := &model.Transfer{
 		RuleID:          s.ClientRule.ID,
@@ -346,7 +346,7 @@ func (s *SelfContext) CheckEndTransferOK(c convey.C) {
 		var results model.HistoryEntries
 
 		c.So(s.DB.Select(&results).OrderBy("id", true).Run(), convey.ShouldBeNil)
-		c.So(results, convey.ShouldHaveLength, 2) //nolint:gomnd // necessary here
+		c.So(results, convey.ShouldHaveLength, 2) //nolint:mnd // necessary here
 
 		s.checkClientTransferOK(c, s.transData, s.DB, results[0])
 		s.checkServerTransferOK(c, results[1])
@@ -359,15 +359,15 @@ func (s *SelfContext) CheckEndTransferOK(c convey.C) {
 // its content is as expected.
 func (s *SelfContext) CheckDestFile(c convey.C) {
 	c.Convey("Then the file should have been sent entirely", func(c convey.C) {
-		fullPath := &s.ClientTrans.LocalPath
+		fullPath := s.ClientTrans.LocalPath
 
 		if s.ClientRule.IsSend {
 			fullPathStr := path.Join(s.Paths.GatewayHome, s.Server.RootDir,
 				s.ServerRule.LocalDir, s.getClientRemoteDir(), s.ClientTrans.SrcFilename)
-			fullPath = mkURL(fullPathStr)
+			fullPath = mkPath(fullPathStr)
 		}
 
-		content, err := fs.ReadFile(s.FS, fullPath)
+		content, err := fs.ReadFile(s.FS, &fullPath)
 
 		c.So(err, convey.ShouldBeNil)
 		c.So(len(content), convey.ShouldEqual, TestFileSize)
@@ -514,8 +514,8 @@ func (s *SelfContext) getTransfer(c convey.C, id int64) *model.Transfer {
 }
 
 func (s *SelfContext) waitForListDeletion() {
-	timer := time.NewTimer(time.Second * 3)          //nolint:gomnd // this is a test timeout
-	ticker := time.NewTicker(time.Millisecond * 100) //nolint:gomnd // this is a test timeout
+	timer := time.NewTimer(time.Second * 3)          //nolint:mnd // this is a test timeout
+	ticker := time.NewTicker(time.Millisecond * 100) //nolint:mnd // this is a test timeout
 
 	defer timer.Stop()
 	defer ticker.Stop()

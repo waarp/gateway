@@ -12,7 +12,9 @@ import (
 
 	"code.waarp.fr/apps/gateway/gateway/pkg/conf"
 	"code.waarp.fr/apps/gateway/gateway/pkg/database"
+	"code.waarp.fr/apps/gateway/gateway/pkg/fs/filesystems"
 	"code.waarp.fr/apps/gateway/gateway/pkg/model/authentication"
+	"code.waarp.fr/apps/gateway/gateway/pkg/model/types"
 )
 
 var errWriteOnView = errors.New("cannot insert/update on a view")
@@ -137,4 +139,24 @@ func countTrue(b ...bool) int {
 	}
 
 	return count
+}
+
+func checkCloudInstance(db database.ReadAccess, fsPath *types.FSPath) error {
+	if fsPath.Path == "" || fsPath.Backend == "" {
+		return nil
+	}
+
+	if _, ok := filesystems.TestFileSystems.Load(fsPath.Backend); ok {
+		return nil
+	}
+
+	var cloud CloudInstance
+	if err := db.Get(&cloud, "name=?", fsPath.Backend).And("owner=?",
+		conf.GlobalConfig.GatewayName).Run(); database.IsNotFound(err) {
+		return database.NewValidationError("no remote cloud instance %q found", fsPath.Backend)
+	} else if err != nil {
+		return fmt.Errorf("failed to retrieve cloud instance: %w", err)
+	}
+
+	return nil
 }

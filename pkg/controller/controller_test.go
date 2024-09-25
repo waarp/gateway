@@ -48,7 +48,7 @@ func TestControllerListen(t *testing.T) {
 		So(db.Insert(account).Run(), ShouldBeNil)
 
 		rootDir := "memory:/controller-listen"
-		rootPath := mkURL(rootDir)
+		rootPath := mkPath(rootDir)
 
 		rule := &model.Rule{Name: "test rule", IsSend: true}
 		So(db.Insert(rule).Run(), ShouldBeNil)

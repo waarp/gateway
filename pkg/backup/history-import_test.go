@@ -2,6 +2,8 @@ package backup
 
 import (
 	"bytes"
+	"runtime"
+	"strings"
 	"testing"
 	"time"
 
@@ -16,7 +18,7 @@ import (
 
 func TestImportHistory(t *testing.T) {
 	//nolint:misspell //spelling mistake must be kept for compatibility reasons
-	const jsonInput = `[
+	jsonInput := `[
   {
     "id": 1,
     "remoteId": "123",
@@ -65,6 +67,10 @@ func TestImportHistory(t *testing.T) {
 ]
 `
 
+	if runtime.GOOS == "windows" {
+		jsonInput = strings.ReplaceAll(jsonInput, "/path/local", "C:/path/local")
+	}
+
 	Convey("Given a database with a history entry", t, func(c C) {
 		db := database.TestDatabase(c)
 
@@ -79,7 +85,7 @@ func TestImportHistory(t *testing.T) {
 			Agent:            "agent1",
 			Protocol:         testProtocol,
 			DestFilename:     "file1",
-			LocalPath:        *mkURL("file:/path/local/file1"),
+			LocalPath:        localPath("/path/local/file1"),
 			Filesize:         1234,
 			Start:            time.Date(2021, 1, 1, 1, 0, 0, 123456000, time.UTC).Local(),
 			Stop:             time.Date(2021, 1, 1, 2, 0, 0, 123456000, time.UTC).Local(),
@@ -101,7 +107,7 @@ func TestImportHistory(t *testing.T) {
 			Protocol:         testProtocol,
 			SrcFilename:      "src_file2",
 			DestFilename:     "dest_file2",
-			LocalPath:        *mkURL("file:/path/local/src_file2"),
+			LocalPath:        localPath("/path/local/src_file2"),
 			RemotePath:       "/path/remote/dest_file2",
 			Filesize:         5678,
 			Start:            time.Date(2022, 1, 1, 1, 0, 0, 123456000, time.UTC).Local(),
@@ -124,7 +130,7 @@ func TestImportHistory(t *testing.T) {
 			Agent:            "agent3",
 			Protocol:         testProtocol,
 			SrcFilename:      "file3",
-			LocalPath:        *mkURL("file:/path/local/file3"),
+			LocalPath:        localPath("/path/local/file3"),
 			Filesize:         9876,
 			Start:            time.Date(2020, 1, 1, 1, 0, 0, 123456000, time.Local),
 			Stop:             time.Date(2020, 1, 1, 2, 0, 0, 123456000, time.Local),

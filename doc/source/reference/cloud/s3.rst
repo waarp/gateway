@@ -6,22 +6,40 @@ Amazon S3
 
 Pour qu'un fichier soit déposé et/ou lu depuis un serveur cloud de type S3, il
 faut que le chemin complet du fichier (après concaténation des éventuels chemins
-de règle et/ou de serveur) forme un URL.
+de règle et/ou de serveur) forme un chemin distant ayant la syntaxe : ::
 
-Cet URL doit utiliser le schéma ``s3``, et l'hôte doit être le nom de l'instance
-cloud sur laquelle le fichier doit être lu/écrit.
+   instance:chemin/du/fichier
+
+Pour ce faire, l'instance en question doit avoir été pré-configurée dans la
+gateway, par exemple via la :ref:`commande CLI<reference-cli-client-cloud>`.
+
+Identifiants
+------------
+
+Pour se connecter à une instance S3, Waarp Gateway a besoin d'identifiants.
+Ces identifiants peuvent être fournis de 2 manières différentes :
+
+- soit en les renseignant directement à la création de l'instance cloud
+- soit en les renseignant dans des variables d'environnement
+
+Ces variables d'environnement sont :
+
+- :envvar:`AWS_ACCESS_KEY_ID` pour la clé d'accès AWS
+- :envvar:`AWS_SECRET_ACCESS_KEY` pour la clé secrète associée à la clé d'accès
 
 Options
 -------
 
 La *Gateway* permet de stocker les fichier envoyés et reçu sur un serveur cloud
 de stockage S3 (AWS ou autre). Pour cela, l'instance cloud à créer doit contenir
-les options suivantes :
+les options suivantes :
 
-* **bucket**: Le nom du bucket dans lequel le fichier sera déposé.
-* **region**: La région du serveur S3.
-* **endpoint**: L'adresse du serveur S3.
-* **no-tls**: *Booléen* - Si vrai, le client utilisera HTTP au lieu de HTTPS.
+* **bucket**: *REQUIS* - Le nom du bucket dans lequel le fichier sera déposé.
+* **region**: La région du serveur S3. Peut également être renseigné via la
+  variable d'environnement :envvar:`AWS_REGION`.
+* **endpoint**: L'adresse du serveur S3 (si celle-ci est différente de l'adresse
+  par défaut ``amazonaws.com``). Peut également être renseigné via la
+  variable d'environnement :envvar:`AWS_ENDPOINT_URL`.
 
 Exemple
 -------
@@ -34,16 +52,16 @@ Prenons le cas de figure suivant :
   - région: ``eu-west-3`` (Paris)
   - clé d'accès: ``toto``
   - clé d'accès secrète: ``sesame``
-  - protocole: HTTP clair
 
 Dans un premier temps, l'instance cloud doit être définie. Dans cet exemple, nous
 lui donnerons le nom "instance-exemple".
 
-La commande de création pour cette instance cloud est donc :
+La commande de création pour cette instance cloud est donc :
 
 .. code-block:: shell
-   waarp-gateway cloud add -n "instance-exemple" -t "s3" -k "toto" -s "sesame" -o "bucket:archive" -o "region:eu-west-3" -o "endpoint:s3.eu-west-3.amazonaws.com" -o "no-tls:true"
+   waarp-gateway cloud add -n "instance-exemple" -t "s3" -k "toto" -s "sesame" -o "bucket:archive" -o "region:eu-west-3" -o "endpoint:s3.eu-west-3.amazonaws.com"
 
-Par la suite, lors de mon transfert, le chemin du fichier devra donc ressembler à : ::
+Par la suite, lors de mon transfert, le chemin du fichier devra donc ressembler à : ::
 
-    s3://instance-exemple/doc/waarp-gateway.pdf
+    instance-exemple:doc/waarp-gateway.pdf
+

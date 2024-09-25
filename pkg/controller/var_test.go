@@ -11,6 +11,7 @@ import (
 	"code.waarp.fr/apps/gateway/gateway/pkg/fs"
 	"code.waarp.fr/apps/gateway/gateway/pkg/fs/fstest"
 	"code.waarp.fr/apps/gateway/gateway/pkg/gatewayd/services"
+	"code.waarp.fr/apps/gateway/gateway/pkg/logging"
 	"code.waarp.fr/apps/gateway/gateway/pkg/model"
 	"code.waarp.fr/apps/gateway/gateway/pkg/model/types"
 	"code.waarp.fr/apps/gateway/gateway/pkg/protocols"
@@ -25,13 +26,13 @@ func init() {
 	protocols.Register(testProtocol, protocolstest.TestModule{})
 }
 
-func mkURL(elem ...string) *types.URL {
+func mkPath(elem ...string) types.FSPath {
 	full := path.Join(elem...)
 
-	url, err := types.ParseURL(full)
+	parsed, err := types.ParsePath(full)
 	So(err, ShouldBeNil)
 
-	return url
+	return *parsed
 }
 
 type testContext struct {
@@ -52,11 +53,12 @@ type testContext struct {
 
 func initTestDB(c C) *testContext {
 	db := database.TestDatabase(c)
+	c.So(logging.AddLogBackend("DEBUG", "stdout", "", ""), ShouldBeNil)
 	logger := testhelpers.TestLogger(c, "Pipeline test")
 	filesys := fstest.InitMemFS(c)
 
-	root := fstest.MemScheme + ":/new_transfer_stream"
-	rootPath := mkURL(root)
+	root := fstest.MemBackend + ":/new_transfer_stream"
+	rootPath := mkPath(root)
 
 	paths := conf.PathsConfig{
 		GatewayHome:   root,

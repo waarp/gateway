@@ -1,6 +1,3 @@
-//go:build windows
-// +build windows
-
 package tasks
 
 const (
@@ -30,7 +27,9 @@ MOVE %1 %2
 ECHO %2
 EXIT /B 0`
 
+const execOutputNewFilename = "C:/new_name.file"
+
 const scriptExecOutputFail = `@ECHO OFF
 ECHO This is a message
-ECHO NEWFILENAME:new_name.file
+ECHO NEWFILENAME:` + execOutputNewFilename + `
 EXIT /B 2`

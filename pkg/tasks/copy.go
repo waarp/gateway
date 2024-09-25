@@ -39,7 +39,7 @@ func (*copyTask) Run(_ context.Context, args map[string]string, db *database.DB,
 	newDir := args["path"]
 	source := &transCtx.Transfer.LocalPath
 
-	dest, err := types.ParseURL(newDir)
+	dest, err := types.ParsePath(newDir)
 	if err != nil {
 		return fmt.Errorf("failed to parse destination path %q: %w", newDir, err)
 	}
@@ -55,7 +55,7 @@ func (*copyTask) Run(_ context.Context, args map[string]string, db *database.DB,
 	return nil
 }
 
-func makeCopy(db *database.DB, transCtx *model.TransferContext, source, dest *types.URL) error {
+func makeCopy(db *database.DB, transCtx *model.TransferContext, source, dest *types.FSPath) error {
 	if dest.String() == source.String() {
 		// If source == destination, this is a self-copy, so we do nothing.
 		return nil
@@ -77,7 +77,7 @@ func makeCopy(db *database.DB, transCtx *model.TransferContext, source, dest *ty
 
 // doCopy copies the file pointed by the given transfer to the given destination,
 // and then returns the filesystem on which the copy was made.
-func doCopy(srcFS, dstFS fs.FS, source, dest *types.URL) error {
+func doCopy(srcFS, dstFS fs.FS, source, dest *types.FSPath) error {
 	if err := fs.MkdirAll(srcFS, dest.Dir()); err != nil {
 		return fmt.Errorf("cannot create destination directory %q: %w", dest.Dir(), err)
 	}

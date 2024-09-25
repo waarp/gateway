@@ -55,15 +55,15 @@ func (e *execOutputTask) Run(parent context.Context, params map[string]string,
 	}
 
 	if cmdErr != nil {
-		if newPath := getNewFileName(msg); newPath != "" {
-			newURL, err := types.ParseURL(newPath)
+		if newPathStr := getNewFileName(msg); newPathStr != "" {
+			newPath, err := types.ParsePath(newPathStr)
 			if err != nil {
-				return fmt.Errorf("failed to parse the new file path %q: %w", newPath, err)
+				return fmt.Errorf("failed to parse the new file path %q: %w", newPathStr, err)
 			}
 
-			transCtx.Transfer.LocalPath = *newURL
+			transCtx.Transfer.LocalPath = *newPath
 			transCtx.Transfer.RemotePath = path.Join(path.Dir(
-				transCtx.Transfer.RemotePath), path.Base(newURL.Path))
+				transCtx.Transfer.RemotePath), path.Base(newPath.Path))
 		}
 
 		return cmdErr

@@ -81,7 +81,7 @@ func TestDatabase(tb testing.TB) *database.DB {
 	tb.Helper()
 
 	confLock.Lock()
-	defer confLock.Unlock()
+	tb.Cleanup(confLock.Unlock)
 
 	const shutdownTimeout = 5 * time.Second
 

@@ -45,7 +45,7 @@ func TestGetHistory(t *testing.T) {
 				Protocol:         "sftp",
 				SrcFilename:      "file.test",
 				DestFilename:     "file.test",
-				LocalPath:        *mkURL("file:/local/file.test"),
+				LocalPath:        localPath("/local/file.test"),
 				RemotePath:       "/remote/file.test",
 				Start:            time.Date(2021, 1, 2, 3, 4, 5, 678000, time.Local),
 				Stop:             time.Date(2021, 2, 3, 4, 5, 6, 789000, time.Local),
@@ -122,7 +122,7 @@ func TestGetHistory(t *testing.T) {
 					Protocol:         "sftp",
 					SrcFilename:      "/source/file.test",
 					DestFilename:     "/dest/file.test",
-					LocalPath:        *mkURL("file:/local/file.test"),
+					LocalPath:        localPath("/local/file.test"),
 					RemotePath:       "/remote/file.test",
 					Start:            time.Date(2021, 1, 2, 3, 4, 5, 678000, time.Local),
 					Stop:             time.Date(2021, 2, 3, 4, 5, 6, 789000, time.Local),
@@ -182,7 +182,7 @@ func TestListHistory(t *testing.T) {
 				Status:           types.StatusDone,
 				SrcFilename:      "/source/file1.test",
 				DestFilename:     "/dest/file1.test",
-				LocalPath:        *mkURL("file:/local/file1.test"),
+				LocalPath:        localPath("/local/file1.test"),
 				RemotePath:       "/remote/file1.test",
 			}
 			So(db.Insert(h1).Run(), ShouldBeNil)
@@ -202,7 +202,7 @@ func TestListHistory(t *testing.T) {
 				Status:           types.StatusCancelled,
 				SrcFilename:      "/source/file2.test",
 				DestFilename:     "/dest/file2.test",
-				LocalPath:        *mkURL("file:/local/file2.test"),
+				LocalPath:        localPath("/local/file2.test"),
 				RemotePath:       "/remote/file2.test",
 			}
 			So(db.Insert(h2).Run(), ShouldBeNil)
@@ -222,7 +222,7 @@ func TestListHistory(t *testing.T) {
 				Status:           types.StatusCancelled,
 				SrcFilename:      "/source/file3.test",
 				DestFilename:     "/dest/file3.test",
-				LocalPath:        *mkURL("/local/file3.test"),
+				LocalPath:        localPath("/local/file3.test"),
 				RemotePath:       "/remote/file3.test",
 			}
 			So(db.Insert(h3).Run(), ShouldBeNil)
@@ -242,7 +242,7 @@ func TestListHistory(t *testing.T) {
 				Status:           types.StatusDone,
 				SrcFilename:      "/source/file4.test",
 				DestFilename:     "/dest/file4.test",
-				LocalPath:        *mkURL("/local/file4.test"),
+				LocalPath:        localPath("/local/file4.test"),
 				RemotePath:       "/remote/file4.test",
 			}
 			So(db.Insert(h4).Run(), ShouldBeNil)
@@ -504,7 +504,7 @@ func TestRestartHistory(t *testing.T) {
 				Protocol:         client.Protocol,
 				SrcFilename:      "/source/file1.test",
 				DestFilename:     "/dest/file1.test",
-				LocalPath:        *mkURL("file:/local/file.test"),
+				LocalPath:        localPath("/local/file.test"),
 				RemotePath:       "/remote/file.test",
 				Start:            time.Date(2019, 1, 1, 0, 0, 0, 0, time.Local),
 				Stop:             time.Date(2019, 1, 1, 1, 0, 0, 0, time.Local),

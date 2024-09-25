@@ -13,7 +13,7 @@ import (
 )
 
 func jsonTransToDbHist(trans *file.Transfer) (*model.HistoryEntry, error) {
-	localFile, err := types.ParseURL(trans.LocalFilepath)
+	localFile, err := types.ParsePath(trans.LocalFilepath)
 	if err != nil {
 		return nil, fmt.Errorf("failed to parse the history entry's local file path: %w", err)
 	}

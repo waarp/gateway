@@ -51,7 +51,7 @@ func TestMoveRenameTaskRun(t *testing.T) {
 		logger := testhelpers.TestLogger(c, "task_moverename")
 		testFS := fstest.InitMemFS(c)
 		task := &moveRenameTask{}
-		srcPath := makeURL("/src_dir/move_rename.src")
+		srcPath := makePath("/src_dir/move_rename.src")
 
 		So(fs.MkdirAll(testFS, srcPath.Dir()), ShouldBeNil)
 		So(fs.WriteFullFile(testFS, &srcPath, []byte("Hello World")), ShouldBeNil)
@@ -70,7 +70,7 @@ func TestMoveRenameTaskRun(t *testing.T) {
 		args := map[string]string{}
 
 		Convey("Given that the path is valid", func() {
-			dstPath := makeURL("/dst_dir/move_rename.dst")
+			dstPath := makePath("/dst_dir/move_rename.dst")
 			args["path"] = dstPath.String()
 
 			Convey("Given that the file exists", func() {

@@ -44,11 +44,11 @@ func TestCloudInstanceBeforeWrite(t *testing.T) {
 			return nil, errInvalidConf
 		}
 
+		//nolint:nilnil //does not matter, return value should never be used (testing only)
 		return nil, nil
 	})
 
 	t.Cleanup(func() { filesystems.FileSystems.Delete(scheme) })
-	require.True(t, filesystems.DoesFileSystemExist(scheme))
 
 	db := dbtest.TestDatabase(t)
 

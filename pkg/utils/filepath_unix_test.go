@@ -1,46 +1,45 @@
 //go:build !windows
-// +build !windows
 
 package utils
 
 import (
-	"fmt"
 	"testing"
 
-	. "github.com/smartystreets/goconvey/convey"
+	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
 func TestGetPath(t *testing.T) {
 	testCases := []struct {
-		path     string
-		roots    []Elem
-		expected string
+		path                  string
+		roots                 []Elem
+		wantBackend, wantPath string
+		wantErr               error
 	}{
-		{"ressource", []Elem{Branch("/in"), Branch("/out/test")}, "/in/ressource"},
-		{"ressource", []Elem{Branch("in"), Branch("out/test")}, "/out/test/in/ressource"},
-		{"ressource", []Elem{Branch("work"), Leaf("out/test")}, "/work/ressource"},
-		{"ressource", []Elem{Branch(""), Branch("out/test")}, "/out/test/ressource"},
-		{"ressource", []Elem{Branch(""), Branch("")}, "/ressource"},
-		{"ressource", []Elem{}, "/ressource"},
-		{"/ressource", []Elem{Branch("in"), Branch("out/test")}, "/ressource"},
-		{"/ressource", []Elem{Branch(""), Branch("out/test")}, "/ressource"},
-		{"/ressource", []Elem{Branch(""), Branch("")}, "/ressource"},
-		{"", []Elem{Branch("/in"), Branch("out/test")}, "/in"},
-		{"", []Elem{Branch(""), Branch("out/test")}, "/out/test"},
-		{"", []Elem{Branch(""), Branch("")}, "/"},
-		{"", []Elem{}, "/"},
+		{`ressource`, []Elem{Branch(`/in`), Branch(`/out/test`)}, ``, `/in/ressource`, nil},
+		{`ressource`, []Elem{Branch(`in`), Branch(`out/test`)}, ``, `out/test/in/ressource`, nil},
+		{`ressource`, []Elem{Branch(`work`), Leaf(`out/test`)}, ``, `work/ressource`, nil},
+		{`ressource`, []Elem{Branch(``), Branch(`out/test`)}, ``, `out/test/ressource`, nil},
+		{`ressource`, []Elem{Branch(``), Branch(``)}, ``, `ressource`, nil},
+		{`ressource`, []Elem{}, ``, `ressource`, nil},
+		{`/ressource`, []Elem{Branch(`in`), Branch(`out/test`)}, ``, `/ressource`, nil},
+		{`/ressource`, []Elem{Branch(``), Branch(`out/test`)}, ``, `/ressource`, nil},
+		{`/ressource`, []Elem{Branch(``), Branch(``)}, ``, `/ressource`, nil},
+		{``, []Elem{Branch(`/in`), Branch(`out/test`)}, ``, `/in`, nil},
+		{`ressource`, []Elem{Leaf(`file:out`)}, `file`, `out/ressource`, nil},
+		{`ressource`, []Elem{Leaf(`file:`)}, `file`, `ressource`, nil},
 	}
 
 	for _, tc := range testCases {
-		Convey("Given a ressource path: "+tc.path, t, func() {
-			Convey(fmt.Sprintf("When calling the 'FSPath' function with roots: [%v]", tc.roots), func() {
-				res, err := GetPath(tc.path, tc.roots...)
-				So(err, ShouldBeNil)
-
-				Convey(fmt.Sprintf("Then it should returns '%s'", tc.expected), func() {
-					So(res.Path, ShouldEqual, tc.expected)
-				})
-			})
+		t.Run(tc.wantBackend+":"+tc.wantPath, func(t *testing.T) {
+			gotBackent, gotPath, gotErr := GetPath(tc.path, tc.roots...)
+			if tc.wantErr != nil {
+				assert.ErrorContains(t, gotErr, tc.wantErr.Error())
+			} else {
+				require.NoError(t, gotErr)
+				assert.Equal(t, tc.wantBackend, gotBackent)
+				assert.Equal(t, tc.wantPath, gotPath)
+			}
 		})
 	}
 }

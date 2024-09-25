@@ -102,7 +102,7 @@ func (t *testData) makeServerTracer(isSend bool) func() pipeline.Trace {
 				}
 				trace.OnRead = func(off int64) error {
 					if off >= DataErrorOffset {
-						<-time.After(200 * time.Millisecond) //nolint:gomnd //for test only
+						<-time.After(200 * time.Millisecond) //nolint:mnd //for test only
 					}
 
 					return nil
@@ -113,7 +113,7 @@ func (t *testData) makeServerTracer(isSend bool) func() pipeline.Trace {
 		if t.hasClientDataError && isSend {
 			trace.OnRead = func(off int64) error {
 				if off >= DataErrorOffset {
-					<-time.After(200 * time.Millisecond) //nolint:gomnd //for test only
+					<-time.After(200 * time.Millisecond) //nolint:mnd //for test only
 				}
 
 				return nil
@@ -163,7 +163,7 @@ func (t *testData) setClientTrace(pip *pipeline.Pipeline) {
 			}
 			pip.Trace.OnRead = func(off int64) error {
 				if off >= DataErrorOffset {
-					<-time.After(200 * time.Millisecond) //nolint:gomnd //for test only
+					<-time.After(200 * time.Millisecond) //nolint:mnd //for test only
 				}
 
 				return nil
@@ -174,7 +174,7 @@ func (t *testData) setClientTrace(pip *pipeline.Pipeline) {
 	if t.hasServerDataError && pip.TransCtx.Rule.IsSend {
 		pip.Trace.OnRead = func(off int64) error {
 			if off >= DataErrorOffset {
-				<-time.After(200 * time.Millisecond) //nolint:gomnd //for test only
+				<-time.After(200 * time.Millisecond) //nolint:mnd //for test only
 			}
 
 			return nil
@@ -182,16 +182,16 @@ func (t *testData) setClientTrace(pip *pipeline.Pipeline) {
 	}
 }
 
-func mkURL(base string, elem ...string) *types.URL {
-	url, err := types.ParseURL(base)
+func mkPath(base string, elem ...string) types.FSPath {
+	url, err := types.ParsePath(base)
 	convey.So(err, convey.ShouldBeNil)
 
-	return url.JoinPath(elem...)
+	return *url.JoinPath(elem...)
 }
 
 // AddSourceFile creates a file under the given directory with the given name,
 // fills it with random data, and then returns said data.
-func AddSourceFile(c convey.C, filesys fs.FS, file *types.URL) []byte {
+func AddSourceFile(c convey.C, filesys fs.FS, file *types.FSPath) []byte {
 	c.So(fs.MkdirAll(filesys, file.Dir()), convey.ShouldBeNil)
 
 	cont := bytes.Repeat([]byte(repeatedString), repeatAmount)
@@ -208,7 +208,7 @@ func initTestData(c convey.C) *testData {
 	c.Reset(pipeline.List.Reset)
 
 	home := "memory:/gw_home"
-	homePath := mkURL(home)
+	homePath := mkPath(home)
 
 	paths := &conf.PathsConfig{
 		GatewayHome:   home,
@@ -217,7 +217,7 @@ func initTestData(c convey.C) *testData {
 		DefaultTmpDir: "tmp",
 	}
 
-	c.So(fs.MkdirAll(testFS, homePath), convey.ShouldBeNil)
+	c.So(fs.MkdirAll(testFS, &homePath), convey.ShouldBeNil)
 	c.So(fs.MkdirAll(testFS, homePath.JoinPath(paths.DefaultInDir)), convey.ShouldBeNil)
 	c.So(fs.MkdirAll(testFS, homePath.JoinPath(paths.DefaultOutDir)), convey.ShouldBeNil)
 	c.So(fs.MkdirAll(testFS, homePath.JoinPath(paths.DefaultTmpDir)), convey.ShouldBeNil)

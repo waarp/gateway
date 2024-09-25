@@ -1,6 +1,7 @@
 package wgd
 
 import (
+	"runtime"
 	"strings"
 	"testing"
 	"time"
@@ -34,7 +35,7 @@ func TestPurgeCommand(t *testing.T) {
 			Account:          "foo",
 			Agent:            "bar",
 			Protocol:         testProtocol,
-			LocalPath:        *mkURL("file:/loc_path"),
+			LocalPath:        mkPath("/loc_path"),
 			RemotePath:       "/rem_path",
 			Start:            time.Date(2021, 1, 1, 1, 0, 0, 0, time.UTC),
 			Status:           types.StatusCancelled,
@@ -49,7 +50,7 @@ func TestPurgeCommand(t *testing.T) {
 			Account:          "foo",
 			Agent:            "bar",
 			Protocol:         testProtocol,
-			LocalPath:        *mkURL("file:/loc_path"),
+			LocalPath:        mkPath("/loc_path"),
 			RemotePath:       "/rem_path",
 			Start:            time.Date(2022, 1, 1, 1, 0, 0, 0, time.UTC),
 			Stop:             time.Date(2022, 1, 1, 2, 0, 0, 0, time.UTC),
@@ -65,7 +66,7 @@ func TestPurgeCommand(t *testing.T) {
 			Account:          "foo",
 			Agent:            "bar",
 			Protocol:         testProtocol,
-			LocalPath:        *mkURL("file:/loc_path"),
+			LocalPath:        mkPath("/loc_path"),
 			RemotePath:       "/rem_path",
 			Start:            time.Date(2022, 1, 1, 3, 0, 0, 0, time.UTC),
 			Stop:             time.Date(2022, 1, 1, 4, 0, 0, 0, time.UTC),
@@ -269,9 +270,13 @@ func TestPurgeCommand(t *testing.T) {
 	})
 }
 
-func mkURL(raw string) *types.URL {
-	url, err := types.ParseURL(raw)
+func mkPath(raw string) types.FSPath {
+	if runtime.GOOS == "windows" {
+		raw = "C:" + raw
+	}
+
+	path, err := types.ParsePath(raw)
 	So(err, ShouldBeNil)
 
-	return url
+	return *path
 }

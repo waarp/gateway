@@ -23,13 +23,13 @@ func init() {
 	}
 }
 
-func mkURL(elem ...string) *types.URL {
+func mkPath(elem ...string) types.FSPath {
 	full := path.Join(elem...)
 
-	url, err := types.ParseURL(full)
+	fPath, err := types.ParsePath(full)
 	convey.So(err, convey.ShouldBeNil)
 
-	return url
+	return *fPath
 }
 
 const (

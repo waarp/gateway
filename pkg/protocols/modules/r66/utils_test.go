@@ -60,11 +60,11 @@ func partnerPassword(partner *model.RemoteAgent) *model.Credential {
 	}
 }
 
-func mkURL(elem ...string) *types.URL {
+func mkPath(elem ...string) types.FSPath {
 	full := path.Join(elem...)
 
-	url, err := types.ParseURL(full)
+	fPath, err := types.ParsePath(full)
 	So(err, ShouldBeNil)
 
-	return url
+	return *fPath
 }

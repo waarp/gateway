@@ -38,7 +38,7 @@ func TestNewFileStream(t *testing.T) {
 
 			So(ctx.db.Insert(trans).Run(), ShouldBeNil)
 
-			localPath := mkURL(ctx.root, ctx.send.LocalDir, trans.SrcFilename)
+			localPath := mkPath(ctx.root, ctx.send.LocalDir, trans.SrcFilename)
 			So(fs.WriteFullFile(ctx.fs, localPath, []byte("Hello World")), ShouldBeNil)
 
 			pip := newTestPipeline(c, ctx.db, trans)
@@ -130,7 +130,7 @@ func TestStreamRead(t *testing.T) {
 
 		Convey("Given a file stream for this transfer", func(c C) {
 			content := []byte("read file content")
-			localPath := mkURL(ctx.root, ctx.send.LocalDir, trans.SrcFilename)
+			localPath := mkPath(ctx.root, ctx.send.LocalDir, trans.SrcFilename)
 
 			So(fs.WriteFullFile(ctx.fs, localPath, content), ShouldBeNil)
 
@@ -206,7 +206,7 @@ func TestStreamReadAt(t *testing.T) {
 
 		Convey("Given a file stream for this transfer", func(c C) {
 			content := []byte("read file content")
-			localPath := mkURL(ctx.root, ctx.send.LocalDir, trans.SrcFilename)
+			localPath := mkPath(ctx.root, ctx.send.LocalDir, trans.SrcFilename)
 
 			So(fs.WriteFullFile(ctx.fs, localPath, content), ShouldBeNil)
 
@@ -476,7 +476,7 @@ func TestStreamMove(t *testing.T) {
 				So(stream.move(), ShouldBeNil)
 
 				Convey("Then the underlying file should have been be moved", func(c C) {
-					file := mkURL(ctx.root, ctx.recv.LocalDir, "file")
+					file := mkPath(ctx.root, ctx.recv.LocalDir, "file")
 					_, err := fs.Stat(ctx.fs, file)
 					So(err, ShouldBeNil)
 				})
@@ -521,7 +521,7 @@ func TestStreamMove(t *testing.T) {
 		}
 		So(ctx.db.Insert(trans).Run(), ShouldBeNil)
 
-		filePath := mkURL(ctx.root, ctx.recv.LocalDir, "file")
+		filePath := mkPath(ctx.root, ctx.recv.LocalDir, "file")
 		So(fs.WriteFullFile(ctx.fs, filePath, []byte("file content")), ShouldBeNil)
 		// Reset(func() { _ = ctx.fs.Remove(path) })
 
@@ -617,7 +617,7 @@ func TestStreamSync(t *testing.T) {
 			So(stream.Sync(), ShouldBeNil)
 
 			Convey("Then the content should have written to storage", func(c C) {
-				content, err := os.ReadFile(trans.LocalPath.OSPath())
+				content, err := os.ReadFile(trans.LocalPath.Path)
 				So(err, ShouldBeNil)
 				So(content, ShouldResemble, bytes)
 			})

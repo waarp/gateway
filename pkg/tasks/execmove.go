@@ -41,32 +41,32 @@ func (e *execMoveTask) Run(parent context.Context, params map[string]string,
 		return cmdErr
 	}
 
-	var newPath string
+	var newPathStr string
 
 	scanner := bufio.NewScanner(output)
 	for scanner.Scan() {
-		newPath = scanner.Text()
-		logger.Debug(newPath)
+		newPathStr = scanner.Text()
+		logger.Debug(newPathStr)
 	}
 
-	newURL, err := types.ParseURL(newPath)
+	newPath, err := types.ParsePath(newPathStr)
 	if err != nil {
-		return fmt.Errorf("failed to parse the new file path %q: %w", newPath, err)
+		return fmt.Errorf("failed to parse the new file path %q: %w", newPathStr, err)
 	}
 
-	newFS, fsErr := fs.GetFileSystem(db, newURL)
+	newFS, fsErr := fs.GetFileSystem(db, newPath)
 	if fsErr != nil {
-		return fmt.Errorf("failed to instantiate filesystem for new file %q: %w", newPath, fsErr)
+		return fmt.Errorf("failed to instantiate filesystem for new file %q: %w", newPathStr, fsErr)
 	}
 
-	if _, err := fs.Stat(newFS, newURL); err != nil {
-		return fmt.Errorf("could not find moved file %q: %w", newPath, err)
+	if _, err := fs.Stat(newFS, newPath); err != nil {
+		return fmt.Errorf("could not find moved file %q: %w", newPathStr, err)
 	}
 
 	transCtx.FS = newFS
-	transCtx.Transfer.LocalPath = *newURL
+	transCtx.Transfer.LocalPath = *newPath
 	transCtx.Transfer.RemotePath = path.Join(
-		path.Dir(transCtx.Transfer.RemotePath), path.Base(newURL.Path))
+		path.Dir(transCtx.Transfer.RemotePath), path.Base(newPath.Path))
 
 	logger.Debug("Done executing command %s %s", params["path"], params["args"])
 

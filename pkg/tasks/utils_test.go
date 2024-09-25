@@ -13,6 +13,6 @@ func init() {
 	modeltest.AddDummyProtoConfig(testProtocol)
 }
 
-func makeURL(str string) types.URL {
-	return types.URL{Scheme: fstest.MemScheme, OmitHost: true, Path: str}
+func makePath(str string) types.FSPath {
+	return types.FSPath{Backend: fstest.MemBackend, Path: str}
 }

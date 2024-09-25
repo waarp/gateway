@@ -29,7 +29,7 @@ type serverFS struct {
 	dbAcc    *model.LocalAccount
 }
 
-func (s *serverFS) getFS(path *types.URL) (fs.FS, error) {
+func (s *serverFS) getFS(path *types.FSPath) (fs.FS, error) {
 	filesys, fsErr := fs.GetFileSystem(s.db, path)
 	if fsErr != nil {
 		s.logger.Error("Failed to instantiate the filesystem: %v", fsErr)
@@ -145,7 +145,7 @@ func (s *serverFS) stat(name string, temp bool) (fs.FileInfo, error) {
 		return nil, errors.New("failed to build the file path")
 	}
 
-	if realFile == nil {
+	if realFile.IsBlank() {
 		return protoutils.FakeDirInfo(name), nil
 	}
 
@@ -179,7 +179,7 @@ func (s *serverFS) ReadDir(name string) ([]fs.FileInfo, error) {
 		}
 	}
 
-	if realDir == nil {
+	if realDir.IsBlank() {
 		infos, err := protoutils.GetRulesPaths(s.db, s.dbServer, s.dbAcc, name)
 		if err != nil {
 			s.logger.Error("Failed to retrieve rules: %v", err)

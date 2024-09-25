@@ -123,8 +123,8 @@ func makeServerConf(c convey.C, data *testData, port uint16, proto string,
 	}
 
 	rootDir := proto + "_server_root"
-	rootPath := mkURL(data.Paths.GatewayHome, rootDir)
-	c.So(fs.MkdirAll(data.FS, rootPath), convey.ShouldBeNil)
+	rootPath := mkPath(data.Paths.GatewayHome, rootDir)
+	c.So(fs.MkdirAll(data.FS, &rootPath), convey.ShouldBeNil)
 
 	server := &model.LocalAgent{
 		Name:          proto + "-server",

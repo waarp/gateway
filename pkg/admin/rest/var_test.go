@@ -5,7 +5,7 @@ import (
 	"io"
 	"net/http"
 	"net/http/httptest"
-	gopath "path"
+	"runtime"
 	"time"
 
 	"code.waarp.fr/lib/log"
@@ -68,13 +68,12 @@ func hash(pwd string) string {
 	return string(h)
 }
 
-func mkURL(elem ...string) *types.URL {
-	full := gopath.Join(elem...)
+func localPath(fPath string) types.FSPath {
+	if runtime.GOOS == "windows" {
+		fPath = "C:" + fPath
+	}
 
-	url, err := types.ParseURL(full)
-	convey.So(err, convey.ShouldBeNil)
-
-	return url
+	return types.FSPath{Backend: "", Path: fPath}
 }
 
 func testAdminServer(logger *log.Logger, db *database.DB) string {

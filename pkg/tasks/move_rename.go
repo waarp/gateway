@@ -39,7 +39,7 @@ func (*moveRenameTask) Run(_ context.Context, args map[string]string,
 	newPath := args["path"]
 	source := &transCtx.Transfer.LocalPath
 
-	dest, dstErr := types.ParseURL(newPath)
+	dest, dstErr := types.ParsePath(newPath)
 	if dstErr != nil {
 		return fmt.Errorf("failed to parse the MOVE destination path %q: %w", newPath, dstErr)
 	}

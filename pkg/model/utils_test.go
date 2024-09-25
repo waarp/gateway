@@ -3,6 +3,7 @@ package model
 import (
 	"errors"
 	"fmt"
+	"runtime"
 
 	"github.com/smartystreets/goconvey/convey"
 	"golang.org/x/crypto/bcrypt"
@@ -19,7 +20,7 @@ const (
 	testExternalAuth    = "test_external_auth"
 	testAuthority       = "test_authority"
 
-	testLocalPath = "file:/test/local/file"
+	testLocalPath = "/test/local/file"
 )
 
 var (
@@ -46,11 +47,12 @@ func hash(pwd string) string {
 	return string(h)
 }
 
-func mkURL(str string) types.URL {
-	url, err := types.ParseURL(str)
-	convey.So(err, convey.ShouldBeNil)
+func localPath(fPath string) types.FSPath {
+	if runtime.GOOS == "windows" {
+		fPath = "C:" + fPath
+	}
 
-	return *url
+	return types.FSPath{Backend: "", Path: fPath}
 }
 
 type testConfigChecker map[string]error

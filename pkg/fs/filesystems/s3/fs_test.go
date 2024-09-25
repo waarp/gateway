@@ -2,7 +2,6 @@ package s3
 
 import (
 	"context"
-	"os"
 	"strings"
 	"testing"
 	"time"
@@ -17,24 +16,16 @@ import (
 	"code.waarp.fr/apps/gateway/gateway/pkg/fs"
 )
 
-const (
-	accessKeyIDVar = "AWS_ACCESS_KEY_ID"
-	secretKeyVar   = "AWS_SECRET_ACCESS_KEY"
-	regionVar      = "AWS_DEFAULT_REGION"
-	bucketVar      = "AWS_BUCKET"
-)
+const testBucket = "waarp-gateway-tests"
 
 func initTestFS(tb testing.TB) *filesystem {
 	tb.Helper()
 
-	accessKeyID := os.Getenv(accessKeyIDVar)
-	secretKey := os.Getenv(secretKeyVar)
 	options := map[string]any{
-		"bucket": os.Getenv(bucketVar),
-		"region": os.Getenv(regionVar),
+		"bucket": testBucket,
 	}
 
-	s3fs, fsErr := newS3FS(accessKeyID, secretKey, options)
+	s3fs, fsErr := newS3FS("", "", options)
 	require.NoError(tb, fsErr, "failed to create S3 filesystem")
 
 	return s3fs

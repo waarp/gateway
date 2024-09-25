@@ -3,6 +3,7 @@ package tasks
 import (
 	"context"
 	"path"
+	"runtime"
 	"testing"
 
 	. "github.com/smartystreets/goconvey/convey"
@@ -53,7 +54,7 @@ func TestCopyTaskRun(t *testing.T) {
 		testFS := fstest.InitMemFS(c)
 		task := &copyTask{}
 
-		srcFile := makeURL("/src_dir/test.file")
+		srcFile := makePath("/src_dir/test.file")
 		filename := path.Base(srcFile.Path)
 
 		transCtx := &model.TransferContext{
@@ -67,7 +68,11 @@ func TestCopyTaskRun(t *testing.T) {
 		args := map[string]string{}
 
 		Convey("Given that the file does NOT exist", func() {
-			args["path"] = "/dst_dir"
+			if runtime.GOOS == "windows" {
+				args["path"] = "C:/dst_dir"
+			} else {
+				args["path"] = "/dst_dir"
+			}
 
 			So(fs.Remove(testFS, &srcFile), ShouldBeNil)
 
@@ -101,7 +106,7 @@ func TestCopyTaskRun(t *testing.T) {
 		})
 
 		Convey("Given the destination is a non-existing subdir", func() {
-			dstDir := makeURL("/dst_dir")
+			dstDir := makePath("/dst_dir")
 			args["path"] = dstDir.String()
 
 			Convey("Given the target can be created", func() {

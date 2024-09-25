@@ -11,6 +11,7 @@ import (
 	"time"
 
 	"github.com/aws/aws-sdk-go-v2/aws"
+	"github.com/aws/aws-sdk-go-v2/config"
 	"github.com/aws/aws-sdk-go-v2/credentials"
 	"github.com/aws/aws-sdk-go-v2/service/s3"
 
@@ -19,13 +20,12 @@ import (
 	"code.waarp.fr/apps/gateway/gateway/pkg/utils"
 )
 
-var ErrMissingBucket = errors.New("the URL is missing the bucket name (subdomain)")
+var ErrMissingBucket = errors.New(`the S3 "bucket" parameter is missing`)
 
 type Options struct {
 	Bucket   string `json:"bucket"`
 	Region   string `json:"region"`
 	Endpoint string `json:"endpoint"`
-	NoTLS    bool   `json:"noTLS"`
 }
 
 const (
@@ -44,7 +44,6 @@ func init() {
 	)
 }
 
-//nolint:gomnd //magic numbers are needed to split the url...
 func newS3FS(key, secret string, optionsMap map[string]any) (*filesystem, error) {
 	var options Options
 	if err := utils.JSONConvert(optionsMap, &options); err != nil {
@@ -55,23 +54,40 @@ func newS3FS(key, secret string, optionsMap map[string]any) (*filesystem, error)
 		return nil, ErrMissingBucket
 	}
 
-	conf := s3.Options{
-		EndpointOptions: s3.EndpointResolverOptions{DisableHTTPS: options.NoTLS},
-		Credentials:     credentials.NewStaticCredentialsProvider(key, secret, ""),
-		Region:          options.Region,
-	}
-
-	if options.Endpoint != "" {
-		scheme := "https://"
-		if options.NoTLS {
-			scheme = "http://"
+	setCredentialsProviderFn := func(o *config.LoadOptions) error {
+		if key != "" && secret != "" {
+			o.Credentials = credentials.NewStaticCredentialsProvider(key, secret, "")
 		}
 
-		conf.BaseEndpoint = aws.String(scheme + options.Endpoint)
-		conf.EndpointResolverV2 = s3.NewDefaultEndpointResolverV2()
+		return nil
 	}
 
-	return &filesystem{client: s3.New(conf), bucket: options.Bucket}, nil
+	conf, confErr := config.LoadDefaultConfig(context.Background(),
+		setCredentialsProviderFn,
+		config.WithRegion(options.Region),
+	)
+	if confErr != nil {
+		return nil, fmt.Errorf("failed to load AWS config: %w", confErr)
+	}
+
+	if _, err := conf.Credentials.Retrieve(context.Background()); err != nil {
+		return nil, fmt.Errorf("invalid AWS credentials: %w", err)
+	}
+
+	setEndPointFn := func(o *s3.Options) {
+		if options.Endpoint != "" {
+			if !strings.HasPrefix(options.Endpoint, "https://") {
+				options.Endpoint = "https://" + options.Endpoint
+			}
+
+			o.BaseEndpoint = &options.Endpoint
+		}
+	}
+
+	client := s3.NewFromConfig(conf,
+		setEndPointFn)
+
+	return &filesystem{client: client, bucket: options.Bucket}, nil
 }
 
 type filesystem struct {

@@ -96,7 +96,7 @@ func TestAddressValidate(t *testing.T) {
 	t.Run("Given an invalid address", func(t *testing.T) {
 		t.Parallel()
 
-		address := &Address{Host: "not_a_host", Port: port}
+		address := &Address{Host: "jdneqjdhqvzdhgzcdddlkbutgqq", Port: port}
 
 		var addrErr *net.DNSError
 

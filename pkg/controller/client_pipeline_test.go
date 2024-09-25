@@ -21,9 +21,9 @@ func TestClientPipelineRun(t *testing.T) {
 
 		Convey("Given a client push transfer", func() {
 			filename := "client_pipeline_push"
-			filePath := mkURL(conf.GlobalConfig.Paths.GatewayHome,
+			filePath := mkPath(conf.GlobalConfig.Paths.GatewayHome,
 				ctx.send.LocalDir, filename)
-			So(fs.WriteFullFile(ctx.fs, filePath, content), ShouldBeNil)
+			So(fs.WriteFullFile(ctx.fs, &filePath, content), ShouldBeNil)
 
 			trans := &model.Transfer{
 				RuleID:          ctx.send.ID,

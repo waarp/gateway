@@ -6,6 +6,12 @@ Historique des versions
 * :feature:`380` Ajout du support pour les instances cloud de type S3. Les fichiers
   de transfert peuvent désormais donc être stockés sur une instance S3. Voir
   la section :ref:`cloud <reference-cloud>` pour avoir plus de détails.
+* :feature:`-`
+* :feature:`-` Ajout de la commande CLI de gestion des instances cloud.
+* :feature:`-` Ajout de la gestion des instances cloud au fichier d'import/export.
+* :bug:`-` Ajout des droits d'administration à l'objet ``user`` du fichier
+  d'import/export. Les droits d'administration d'un utilisateur étaient
+  précédemment perdus lors de l'import ou de l'export de cet utilisateur.
 
 * :release:`0.10.1 <2024-08-29>`
 * :bug:`410` Ajout d'une limite à la taille du fichier WAL en cas d'utilisation

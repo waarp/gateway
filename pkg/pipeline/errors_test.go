@@ -43,13 +43,13 @@ func init() {
 	modeltest.AddDummyProtoConfig(testProtocol)
 }
 
-func mkURL(elem ...string) *types.URL {
+func mkPath(elem ...string) *types.FSPath {
 	full := path.Join(elem...)
 
-	url, err := types.ParseURL(full)
+	fPath, err := types.ParsePath(full)
 	So(err, ShouldBeNil)
 
-	return url
+	return fPath
 }
 
 func waitEndTransfer(pip *Pipeline) {
@@ -79,7 +79,7 @@ func initTestDB(c C) *testContext {
 	testFS := fstest.InitMemFS(c)
 
 	root := "memory:/new_transfer_stream"
-	rootPath := mkURL(root)
+	rootPath := mkPath(root)
 
 	paths := conf.PathsConfig{
 		GatewayHome:   root,
@@ -161,8 +161,8 @@ func initTestDB(c C) *testContext {
 }
 
 func mkRecvTransfer(ctx *testContext, filename string) *model.Transfer {
-	So(fs.MkdirAll(ctx.fs, mkURL(ctx.root, ctx.send.LocalDir)), ShouldBeNil)
-	So(fs.MkdirAll(ctx.fs, mkURL(ctx.root, ctx.send.TmpLocalRcvDir)), ShouldBeNil)
+	So(fs.MkdirAll(ctx.fs, mkPath(ctx.root, ctx.send.LocalDir)), ShouldBeNil)
+	So(fs.MkdirAll(ctx.fs, mkPath(ctx.root, ctx.send.TmpLocalRcvDir)), ShouldBeNil)
 
 	trans := &model.Transfer{
 		ClientID:        utils.NewNullInt64(ctx.client.ID),
@@ -178,8 +178,8 @@ func mkRecvTransfer(ctx *testContext, filename string) *model.Transfer {
 const testTransferFileContent = "new pipeline content"
 
 func mkSendTransfer(ctx *testContext, filename string) *model.Transfer {
-	So(fs.MkdirAll(ctx.fs, mkURL(ctx.root, ctx.send.LocalDir)), ShouldBeNil)
-	So(fs.MkdirAll(ctx.fs, mkURL(ctx.root, ctx.send.TmpLocalRcvDir)), ShouldBeNil)
+	So(fs.MkdirAll(ctx.fs, mkPath(ctx.root, ctx.send.LocalDir)), ShouldBeNil)
+	So(fs.MkdirAll(ctx.fs, mkPath(ctx.root, ctx.send.TmpLocalRcvDir)), ShouldBeNil)
 
 	trans := &model.Transfer{
 		ClientID:        utils.NewNullInt64(ctx.client.ID),
@@ -189,7 +189,7 @@ func mkSendTransfer(ctx *testContext, filename string) *model.Transfer {
 	}
 	So(ctx.db.Insert(trans).Run(), ShouldBeNil)
 
-	So(fs.WriteFullFile(ctx.fs, mkURL(ctx.root, ctx.send.LocalDir, filename),
+	So(fs.WriteFullFile(ctx.fs, mkPath(ctx.root, ctx.send.LocalDir, filename),
 		[]byte(testTransferFileContent)), ShouldBeNil)
 
 	return trans

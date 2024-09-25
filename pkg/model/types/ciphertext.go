@@ -12,6 +12,8 @@ import (
 // of the string when storing and loading the string from a database.
 type CypherText string
 
+func (c *CypherText) String() string { return string(*c) }
+
 // FromDB takes an slice containing AES encrypted data, and stores the decrypted
 // string in the CypherText receiver.
 func (c *CypherText) FromDB(bytes []byte) error {
