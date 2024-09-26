@@ -46,6 +46,7 @@ func (t *clientRetrTransfer) Send(protocol.SendFile) *pipeline.Error {
 
 func (t *clientRetrTransfer) Receive(file protocol.ReceiveFile) *pipeline.Error {
 	analytics.AddOutgoingConnection()
+
 	defer analytics.SubOutgoingConnection()
 
 	if _, err := t.trans.WriteTo(file); err != nil {

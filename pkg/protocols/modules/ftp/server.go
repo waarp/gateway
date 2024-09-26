@@ -87,12 +87,14 @@ func (h *handler) WrapPassiveListener(listener net.Listener) (net.Listener, erro
 }
 
 func (h *handler) ClientConnected(ftplib.ClientContext) (string, error) {
+	h.logger.Debug("Server control connection opened")
 	analytics.AddIncomingConnection()
 
 	return h.getBanner(), nil
 }
 
 func (h *handler) ClientDisconnected(ftplib.ClientContext) {
+	h.logger.Debug("Server control connection closed")
 	analytics.SubIncomingConnection()
 }
 

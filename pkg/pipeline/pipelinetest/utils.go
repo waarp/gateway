@@ -207,6 +207,7 @@ func initTestData(c convey.C) *testData {
 	db := database.TestDatabase(c)
 	testFS := fstest.InitMemFS(c)
 	c.Reset(pipeline.List.Reset)
+	c.So(logging.AddLogBackend("WARNING", "stdout", "", ""), convey.ShouldBeNil)
 
 	analytics.GlobalService = &analytics.Service{DB: db}
 	c.So(analytics.GlobalService.Start(), convey.ShouldBeNil)
