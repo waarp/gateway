@@ -36,7 +36,7 @@ func (*copyRenameTask) Run(_ context.Context, args map[string]string, db *databa
 	srcPath := &transCtx.Transfer.LocalPath
 	dst := args["path"]
 
-	dstPath, err := types.ParseURL(dst)
+	dstPath, err := types.ParsePath(dst)
 	if err != nil {
 		return fmt.Errorf("failed to parse the copy destination path %q: %w", dst, err)
 	}

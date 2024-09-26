@@ -15,6 +15,7 @@ type Data struct {
 	Remotes []RemoteAgent `json:"remotes,omitempty"`
 	Rules   []Rule        `json:"rules,omitempty"`
 	Users   []User        `json:"users,omitempty"`
+	Clouds  []Cloud       `json:"clouds,omitempty"`
 }
 
 // LocalAgent is the JSON struct representing a local server along with its
@@ -138,17 +139,18 @@ type User struct {
 // Each attribute represents a permission target, and its value defines the read,
 // write & deletion permissions for that target in a chmod-like ('rwd') format.
 type Permissions struct {
-	Transfers string `json:"transfers"`
-	Servers   string `json:"servers"`
-	Partners  string `json:"partners"`
-	Rules     string `json:"rules"`
-	Users     string `json:"users"`
+	Transfers      string `json:"transfers"`
+	Servers        string `json:"servers"`
+	Partners       string `json:"partners"`
+	Rules          string `json:"rules"`
+	Users          string `json:"users"`
+	Administration string `json:"administration"`
 }
 
 // Transfer is the JSON struct representing a transfer history entry.
 type Transfer struct {
 	ID             int64                   `json:"id"`
-	RemoteID       string                  `json:"remoteId,omitempty"`
+	RemoteID       string                  `json:"remoteId,omitempty"` //nolint:tagliatelle //can't change
 	Rule           string                  `json:"rule"`
 	IsSend         bool                    `json:"isSend"`
 	IsServer       bool                    `json:"isServer"`
@@ -177,4 +179,12 @@ type Credential struct {
 	Type   string `json:"type"`
 	Value  string `json:"value"`
 	Value2 string `json:"value2"`
+}
+
+type Cloud struct {
+	Name    string         `json:"name"`
+	Type    string         `json:"type"`
+	Key     string         `json:"key"`
+	Secret  string         `json:"secret"`
+	Options map[string]any `json:"options"`
 }

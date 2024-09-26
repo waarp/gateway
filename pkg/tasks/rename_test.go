@@ -52,8 +52,8 @@ func TestRenameTaskRun(t *testing.T) {
 		testFS := fstest.InitMemFS(c)
 		task := &renameTask{}
 
-		srcPath := makeURL("/rename.src")
-		dstPath := makeURL("/rename.dst")
+		srcPath := makePath("/rename.src")
+		dstPath := makePath("/rename.dst")
 
 		So(fs.WriteFullFile(testFS, &srcPath, []byte("Hello World")), ShouldBeNil)
 		So(fs.WriteFullFile(testFS, &dstPath, []byte("Goodbye World")), ShouldBeNil)

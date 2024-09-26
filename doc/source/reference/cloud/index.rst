@@ -13,7 +13,7 @@ pour plus de détails sur leur utilisation).
 Cette liste regroupe les types d'instances cloud supportés par la gateway, ainsi
 que leur configurations respectives.
 
-*À l'heure actuelle, la gateway ne supporte aucun type d'instance cloud.*
-
 .. toctree::
    :maxdepth: 2
+
+   s3

@@ -4,6 +4,8 @@ import (
 	"strings"
 
 	"xorm.io/builder"
+
+	"code.waarp.fr/apps/gateway/gateway/pkg/conf"
 )
 
 // DeleteAllBean is the interface that a model must implement in order to be
@@ -30,6 +32,10 @@ func (d *DeleteAllQuery) Where(sql string, args ...interface{}) *DeleteAllQuery 
 	d.conds = append(d.conds, &condition{sql: sql, args: args})
 
 	return d
+}
+
+func (d *DeleteAllQuery) Owner() *DeleteAllQuery {
+	return d.Where("owner=?", conf.GlobalConfig.GatewayName)
 }
 
 // In add a 'WHERE col IN' condition to the 'DELETE' query. Because the database/sql

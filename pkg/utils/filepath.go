@@ -2,95 +2,74 @@ package utils
 
 import (
 	"fmt"
-	"net/url"
 	"path"
 	"path/filepath"
+
+	"github.com/rclone/rclone/fs/fspath"
 )
 
-// Elem is the interface which represent an element of a path tree.
-type Elem interface {
-	IsLeaf() bool
-	String() string
+func parsePath(filePath string) (string, string, bool, error) {
+	if filePath == "" {
+		return "", "", false, nil
+	}
+
+	if filepath.IsAbs(filePath) {
+		return "", filepath.ToSlash(filePath), true, nil
+	}
+
+	if parsed, err := fspath.Parse(filePath); err != nil {
+		return "", "", false, fmt.Errorf("failed to parse file path: %w", err)
+	} else {
+		return parsed.Name, parsed.Path, parsed.Name != "", nil
+	}
+}
+
+type Elem struct {
+	isLeaf bool
+	str    string
 }
 
 // Leaf is a leaf in a path tree. Thus, it cannot have any children.
-type Leaf string
-
-// IsLeaf returns whether the element is a leaf (and thus, cannot have
-// children) or not. Always true for type Leaf.
-func (Leaf) IsLeaf() bool     { return true }
-func (l Leaf) String() string { return filepath.ToSlash(string(l)) }
+func Leaf(str string) Elem { return Elem{true, str} }
 
 // Branch is a branch of a path tree. It can have 1 or no child.
-type Branch string
-
-// IsLeaf returns whether the element is a leaf (and thus, cannot have
-// children) or not. Always false for type Branch.
-func (Branch) IsLeaf() bool     { return false }
-func (b Branch) String() string { return filepath.ToSlash(string(b)) }
+func Branch(str string) Elem { return Elem{false, str} }
 
 // GetPath return the path given by joining the given tail with all the given
 // parents in the order they are given. The function will stop at the first
 // absolute path, and return the path formed by all the previous parents.
-func GetPath(file string, elems ...Elem) (*url.URL, error) {
-	file = filepath.ToSlash(file)
-
-	if filepath.IsAbs(file) {
-		file = path.Clean("/" + file)
-
-		return &url.URL{Scheme: "file", OmitHost: true, Path: file}, nil
-	}
-
-	if u, err := url.Parse(file); err != nil {
-		return nil, fmt.Errorf("failed to parse file name: %w", err)
-	} else if u.Scheme != "" {
-		return u, nil
+func GetPath(file string, elems ...Elem) (string, string, error) {
+	backend, fPath, isRooted, fErr := parsePath(file)
+	if fErr != nil {
+		return "", "", fErr
+	} else if isRooted {
+		return backend, fPath, nil
 	}
 
 	strings := []string{file}
 
 	for _, elem := range elems {
-		if elem.String() == "" || elem.String() == "." {
+		// skip empty elements
+		if elem.str == "" || elem.str == "." {
 			continue
 		}
 
-		if elem.IsLeaf() && len(strings) > 1 {
+		// if we already have children, skip all leaves (they can't have children)
+		if elem.isLeaf && len(strings) > 1 {
 			continue
 		}
 
-		if filepath.IsAbs(elem.String()) {
-			strings = append([]string{elem.String()}, strings...)
-
-			break
+		backend, fPath, isRooted, fErr = parsePath(elem.str)
+		if fErr != nil {
+			return "", "", fErr
 		}
 
-		if u, err := url.Parse(elem.String()); err != nil {
-			return nil, fmt.Errorf("failed to parse directory: %w", err)
-		} else if u.Scheme != "" {
-			return u.JoinPath(strings...), nil
+		strings = append([]string{fPath}, strings...)
+
+		if isRooted {
+			return backend, path.Join(strings...), nil
 		}
-
-		strings = append([]string{elem.String()}, strings...)
 	}
 
-	return &url.URL{
-		Scheme:   "file",
-		OmitHost: true,
-		Path:     path.Clean("/" + path.Join(strings...)),
-	}, nil
-}
-
-// ToStandardPath transforms a path into a valid "file" URI according to the RFC 8089.
-func ToStandardPath(paths ...string) string {
-	fullpath := filepath.Join(paths...)
-	if filepath.IsAbs(fullpath) {
-		return path.Join("/", filepath.ToSlash(fullpath))
-	}
-
-	return filepath.ToSlash(fullpath)
-}
-
-// ToOSPath transforms a "file" URI into a valid path for the OS.
-func ToOSPath(paths ...string) string {
-	return filepath.FromSlash(filepath.Join(paths...))
+	return "", path.Join(strings...), nil
 }

@@ -81,22 +81,19 @@ func TestSetup(t *testing.T) {
 				},
 			}
 
-			filepath := types.URL{
-				Scheme:   fstest.MemScheme,
-				OmitHost: true,
-				Path:     path.Join(root, transCtx.Rule.LocalDir, "file.test"),
-			}
-
 			transCtx.Transfer = &model.Transfer{
 				ID:              transferID,
 				RemoteAccountID: utils.NewNullInt64(accountID),
 				ClientID:        utils.NewNullInt64(clientID),
 				SrcFilename:     "src/file",
 				DestFilename:    "dst/file",
-				LocalPath:       filepath,
-				RemotePath:      path.Join(transCtx.Rule.RemoteDir, "file.rem"),
-				ErrCode:         types.TeConnection,
-				ErrDetails:      `error message`,
+				LocalPath: types.FSPath{
+					Backend: fstest.MemBackend,
+					Path:    path.Join(root, transCtx.Rule.LocalDir, "file.test"),
+				},
+				RemotePath: path.Join(transCtx.Rule.RemoteDir, "file.rem"),
+				ErrCode:    types.TeConnection,
+				ErrDetails: `error message`,
 			}
 			transCtx.TransInfo = map[string]any{"foo": "bar", "id": 123}
 

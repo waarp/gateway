@@ -35,28 +35,28 @@ func (*renameTask) Validate(args map[string]string) error {
 func (*renameTask) Run(_ context.Context, args map[string]string, db *database.DB,
 	logger *log.Logger, transCtx *model.TransferContext,
 ) error {
-	newPath := args["path"]
+	newPathStr := args["path"]
 
-	newURL, err := types.ParseURL(newPath)
+	newPath, err := types.ParsePath(newPathStr)
 	if err != nil {
-		return fmt.Errorf("failed to parse the new target path %q: %w", newPath, err)
+		return fmt.Errorf("failed to parse the new target path %q: %w", newPathStr, err)
 	}
 
-	newFS, fsErr := fs.GetFileSystem(db, newURL)
+	newFS, fsErr := fs.GetFileSystem(db, newPath)
 	if fsErr != nil {
-		return fmt.Errorf("failed to instantiate filesystem for new file %q: %w", newPath, fsErr)
+		return fmt.Errorf("failed to instantiate filesystem for new file %q: %w", newPathStr, fsErr)
 	}
 
-	if _, err := fs.Stat(transCtx.FS, newURL); err != nil {
+	if _, err := fs.Stat(transCtx.FS, newPath); err != nil {
 		return fmt.Errorf("failed to change transfer target file: %w", err)
 	}
 
 	transCtx.FS = newFS
-	transCtx.Transfer.LocalPath = *newURL
+	transCtx.Transfer.LocalPath = *newPath
 	transCtx.Transfer.RemotePath = path.Join(path.Dir(transCtx.Transfer.RemotePath),
-		path.Base(newURL.Path))
+		path.Base(newPath.Path))
 
-	logger.Debug("Changed target file to %q", newPath)
+	logger.Debug("Changed target file to %q", newPathStr)
 
 	return nil
 }

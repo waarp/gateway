@@ -4,6 +4,7 @@ import (
 	"database/sql"
 	"fmt"
 	"path"
+	"path/filepath"
 	"strings"
 	"time"
 
@@ -12,7 +13,6 @@ import (
 
 	"code.waarp.fr/apps/gateway/gateway/pkg/conf"
 	"code.waarp.fr/apps/gateway/gateway/pkg/database"
-	"code.waarp.fr/apps/gateway/gateway/pkg/fs/filesystems"
 	"code.waarp.fr/apps/gateway/gateway/pkg/model/types"
 	"code.waarp.fr/apps/gateway/gateway/pkg/utils"
 )
@@ -45,7 +45,7 @@ type Transfer struct {
 	RemoteAccountID  sql.NullInt64           `xorm:"remote_account_id"`
 	SrcFilename      string                  `xorm:"src_filename"`
 	DestFilename     string                  `xorm:"dest_filename"`
-	LocalPath        types.URL               `xorm:"local_path"`
+	LocalPath        types.FSPath            `xorm:"local_path"`
 	RemotePath       string                  `xorm:"remote_path"`
 	Filesize         int64                   `xorm:"filesize"`
 	Start            time.Time               `xorm:"start DATETIME(6) UTC"`
@@ -137,10 +137,6 @@ func (t *Transfer) checkMandatoryValues(rule *Rule) error {
 		return database.NewValidationError("the local path is missing")
 	}
 
-	if t.LocalPath.Path != "" && !filesystems.DoesFileSystemExist(t.LocalPath.Scheme) {
-		return database.NewValidationError("unknown local path scheme %q", t.LocalPath.Scheme)
-	}
-
 	if t.Start.IsZero() {
 		t.Start = time.Now()
 	}
@@ -166,7 +162,7 @@ func (t *Transfer) checkMandatoryValues(rule *Rule) error {
 		return database.NewValidationError("%q is not a valid transfer error code", t.ErrCode)
 	}
 
-	t.RemotePath = utils.ToStandardPath(t.RemotePath)
+	t.RemotePath = filepath.ToSlash(t.RemotePath)
 
 	return nil
 }
@@ -174,7 +170,7 @@ func (t *Transfer) checkMandatoryValues(rule *Rule) error {
 // BeforeWrite checks if the new `Transfer` entry is valid and can be
 // inserted in the database.
 //
-//nolint:funlen //no easy way to split the function
+//nolint:funlen,cyclop //no easy way to split the function
 func (t *Transfer) BeforeWrite(db database.Access) error {
 	t.Owner = conf.GlobalConfig.GatewayName
 
@@ -192,6 +188,10 @@ func (t *Transfer) BeforeWrite(db database.Access) error {
 	}
 
 	if err := t.checkMandatoryValues(&rule); err != nil {
+		return err
+	}
+
+	if err := checkCloudInstance(db, &t.LocalPath); err != nil {
 		return err
 	}
 

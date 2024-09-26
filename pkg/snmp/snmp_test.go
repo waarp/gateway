@@ -74,10 +74,8 @@ func TestSNMPClient(t *testing.T) {
 					Protocol:         "test_proto",
 					SrcFilename:      "src/file.name",
 					DestFilename:     "dst/file.name",
-					LocalPath: types.URL{
-						Scheme:   "file",
-						Path:     "/full/local/path/file.name",
-						OmitHost: true,
+					LocalPath: types.FSPath{
+						Path: "/full/local/path/file.name",
 					},
 					RemotePath: "/full/remote/path/file.name",
 					Filesize:   1000,

@@ -9,7 +9,6 @@ import (
 
 	"code.waarp.fr/apps/gateway/gateway/pkg/conf"
 	"code.waarp.fr/apps/gateway/gateway/pkg/database"
-	"code.waarp.fr/apps/gateway/gateway/pkg/fs/filesystems"
 	"code.waarp.fr/apps/gateway/gateway/pkg/model/types"
 	"code.waarp.fr/apps/gateway/gateway/pkg/utils"
 )
@@ -28,7 +27,7 @@ type HistoryEntry struct {
 	Protocol         string                  `xorm:"protocol"`
 	SrcFilename      string                  `xorm:"src_filename"`
 	DestFilename     string                  `xorm:"dest_filename"`
-	LocalPath        types.URL               `xorm:"local_path"`
+	LocalPath        types.FSPath            `xorm:"local_path"`
 	RemotePath       string                  `xorm:"remote_path"`
 	Filesize         int64                   `xorm:"filesize"`
 	Start            time.Time               `xorm:"start DATETIME(6) UTC"`
@@ -109,8 +108,8 @@ func (h *HistoryEntry) BeforeWrite(db database.Access) error {
 		return database.NewValidationError("the remote filepath cannot be empty")
 	}
 
-	if h.LocalPath.Path != "" && !filesystems.DoesFileSystemExist(h.LocalPath.Scheme) {
-		return database.NewValidationError("unknown local path scheme %q", h.LocalPath.Scheme)
+	if err := checkCloudInstance(db, &h.LocalPath); err != nil {
+		return err
 	}
 
 	if h.Start.IsZero() {

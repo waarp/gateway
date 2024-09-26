@@ -53,11 +53,12 @@ func importUsers(logger *log.Logger, db database.Access, users []file.User,
 
 		var err error
 		if dbUser.Permissions, err = model.PermsToMask(&model.Permissions{
-			Transfers: user.Permissions.Transfers,
-			Servers:   user.Permissions.Servers,
-			Partners:  user.Permissions.Partners,
-			Rules:     user.Permissions.Rules,
-			Users:     user.Permissions.Users,
+			Transfers:      user.Permissions.Transfers,
+			Servers:        user.Permissions.Servers,
+			Partners:       user.Permissions.Partners,
+			Rules:          user.Permissions.Rules,
+			Users:          user.Permissions.Users,
+			Administration: user.Permissions.Administration,
 		}); err != nil {
 			return fmt.Errorf("failed to parse user %q's permissions: %w", dbUser.Username, err)
 		}

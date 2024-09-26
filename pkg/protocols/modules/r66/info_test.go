@@ -23,7 +23,7 @@ func TestGetFileInfo(t *testing.T) {
 		testFS := fstest.InitMemFS(c)
 		logger := testhelpers.TestLogger(c, "test_r66_file_info")
 		root := "memory:/r66_get_file_info"
-		rootPath := mkURL(root)
+		rootPath := mkPath(root)
 		db := database.TestDatabase(c)
 		conf.GlobalConfig.Paths.GatewayHome = root
 

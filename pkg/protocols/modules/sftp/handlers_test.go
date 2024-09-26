@@ -23,8 +23,8 @@ func TestFileReader(t *testing.T) {
 		testFS := fstest.InitMemFS(c)
 		root := "memory:/file_reader_test_root"
 
-		rulePath := mkURL(root, "test", "out")
-		So(fs.MkdirAll(testFS, rulePath), ShouldBeNil)
+		rulePath := mkPath(root, "test", "out")
+		So(fs.MkdirAll(testFS, &rulePath), ShouldBeNil)
 
 		filePath := rulePath.JoinPath("file_read.src")
 		content := []byte("File reader test file content")
@@ -91,8 +91,8 @@ func TestFileReader(t *testing.T) {
 							Convey("Then the transfer should have a valid file and status", func() {
 								trans := file.pipeline.TransCtx.Transfer
 
-								So(trans.LocalPath.String(), ShouldEqual, mkURL(
-									root, rule.LocalDir, "file_read.src").String())
+								So(trans.LocalPath, ShouldEqual, mkPath(
+									root, rule.LocalDir, "file_read.src"))
 								So(trans.Status, ShouldEqual, types.StatusRunning)
 							})
 						})
@@ -198,8 +198,8 @@ func TestFileWriter(t *testing.T) {
 							Convey("Then the transfer should have a valid file and status", func() {
 								trans := file.pipeline.TransCtx.Transfer
 
-								So(trans.LocalPath.String(), ShouldEqual, mkURL(
-									root, agent.TmpReceiveDir, "file.test.part").String())
+								So(trans.LocalPath, ShouldEqual, mkPath(
+									root, agent.TmpReceiveDir, "file.test.part"))
 								So(trans.Status, ShouldEqual, types.StatusRunning)
 							})
 						})

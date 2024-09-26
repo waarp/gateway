@@ -15,10 +15,10 @@ func quote(db Actions, identifier string) string {
 	return fmt.Sprintf(`"%s"`, identifier)
 }
 
-func ltrim(db Actions, str, from string) (sql string) {
-	sql = fmt.Sprintf("LTRIM(%s, %s)", from, str)
+func ltrim(db Actions, pref, from string) (sql string) {
+	sql = fmt.Sprintf("LTRIM(%s, %s)", from, pref)
 	if db.GetDialect() == MySQL {
-		sql = fmt.Sprintf("TRIM(LEADING %s FROM %s)", str, from)
+		sql = fmt.Sprintf("TRIM(LEADING %s FROM %s)", pref, from)
 	}
 
 	return sql

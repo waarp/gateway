@@ -197,7 +197,7 @@ func TestSSHServerInterruption(t *testing.T) {
 							RemoteTransferID: transfers[0].RemoteTransferID,
 							Start:            transfers[0].Start,
 							LocalAccountID:   utils.NewNullInt64(test.LocAccount.ID),
-							LocalPath: *mkURL(test.Paths.GatewayHome, test.Server.RootDir,
+							LocalPath: mkPath(test.Paths.GatewayHome, test.Server.RootDir,
 								test.ServerRule.TmpLocalRcvDir, "test_in_shutdown.dst.part"),
 							DestFilename: "test_in_shutdown.dst",
 							Filesize:     model.UnknownSize,

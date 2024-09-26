@@ -58,10 +58,10 @@ dossier de réception du serveur par son dossier d'envoi.
 Les transferts client fonctionne également de façon similaire, mais sans les
 dossiers spécifiques au serveur.
 
-À noter qu'il est également possible de remplacer les chemins par des URLs
-d'instances cloud. Cela permet de stocker les fichiers sur une machine différente
-de celle où est installée la gateway. Pour plus d'information sur ces URLs,
-voir la `section ci-dessous <#instances-cloud>`_.
+À noter qu'il est également possible de remplacer les chemins locaux par des
+chemins distants. Cela permet de stocker les fichiers sur une machine différente
+de celle où est installée la gateway. Pour plus d'information sur ces chemins
+distants, voir la `section ci-dessous <#instances-cloud>`_.
 
 =======================
 Explications détaillées
@@ -152,16 +152,9 @@ cloud ne supportent pas toutes les actions requises par la gateway, certains
 type d'instances cloud ne peuvent pas être utilisé dans certains contexts. Voir
 la section :ref:`cloud <reference-cloud>` pour avoir plus de détails.
 
-Pour référencer une instance cloud, la syntaxe a utilisé est similaire à un URL,
-avec les spécificités suivantes :
+Pour référencer une instance cloud, la syntaxe est : ::
 
-- D'abord, le schéma (*scheme*) de l'URL renseigne quel est le type de l'instance
-  cloud (par exemple "s3", "azure"...). Voir la
-- Ensuite, l'hôte (*host*) indique le nom de l'instance cloud en question. Ici,
-  le "nom" fait référence au nom qui a été donné à l'instance cloud lors de son
-  insertion dans la gateway (et non à un quelconque autre nom utilisé hors de
-  la gateway).
-- Enfin, le chemin (*path*) indique le chemin dans l'instance cloud.
+   instance_cloud:chemin/du/fichier
 
 .. note:: Il est à noter que, étant donné que les instances cloud agissent
    comme alternatives au disque de stockage local, l'envoi ou la réception d'un
@@ -172,13 +165,13 @@ avec les spécificités suivantes :
 **Exemples**
 
 Par exemple, si je souhaite accéder au fichier "baz" qui se trouve dans le
-dossier "foo/bar" de l'instance cloud S3 nommée "toto", l'URL à utiliser sera
-donc la suivante : ::
+dossier "foo/bar" de l'instance cloud nommée "toto", le chemin à utiliser sera
+donc la suivante : ::
 
-   s3://toto/foo/bar/baz
+   toto:foo/bar/baz
 
 Si je souhaite accéder au dossier "gw/out" de l'instance cloud Azure nommée
-"titi", l'URL à utiliser sera la suivante : ::
+"titi", le chemin à utiliser sera la suivante : ::
 
-   azure://titi/gw/out
+   titi:gw/out
 

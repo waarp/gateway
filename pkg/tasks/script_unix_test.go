@@ -1,5 +1,4 @@
 //go:build !windows
-// +build !windows
 
 package tasks
 
@@ -32,7 +31,9 @@ mv $1 $2
 echo $2
 exit 0`
 
+const execOutputNewFilename = "/new_name.file"
+
 const scriptExecOutputFail = `#!/bin/sh
 echo "This is a message"
-echo "NEWFILENAME:new_name.file"
+echo "NEWFILENAME:` + execOutputNewFilename + `"
 exit 2`

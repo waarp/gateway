@@ -23,13 +23,15 @@ func TestExportUsers(t *testing.T) {
 				model.PermServersWrite |
 				model.PermPartnersRead | model.PermPartnersDelete |
 				model.PermRulesRead | model.PermRulesWrite | model.PermRulesDelete |
-				model.PermUsersWrite | model.PermUsersDelete,
+				model.PermUsersWrite | model.PermUsersDelete |
+				model.PermAdminRead,
 		}
 		So(db.Insert(user1).Run(), ShouldBeNil)
 
 		// Change owner for this insert
 		owner := conf.GlobalConfig.GatewayName
 		conf.GlobalConfig.GatewayName = "tata"
+
 		So(db.Insert(&model.User{
 			Username:     "other",
 			PasswordHash: hash("other_password"),
@@ -53,11 +55,12 @@ func TestExportUsers(t *testing.T) {
 						Username:     "user1",
 						PasswordHash: user1.PasswordHash,
 						Permissions: file.Permissions{
-							Transfers: "rw-",
-							Servers:   "-w-",
-							Partners:  "r-d",
-							Rules:     "rwd",
-							Users:     "-wd",
+							Transfers:      "rw-",
+							Servers:        "-w-",
+							Partners:       "r-d",
+							Rules:          "rwd",
+							Users:          "-wd",
+							Administration: "r--",
 						},
 					})
 				})

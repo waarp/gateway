@@ -56,7 +56,7 @@ func (d *serverData) checkServerTransferOK(c convey.C, remoteTransferID, filenam
 	progress int64, ctx *testData, actual *model.HistoryEntry, data *transData,
 ) {
 	c.Convey("Then there should be a server-side history entry", func(c convey.C) {
-		expectedLocalPath := mkURL(ctx.Paths.GatewayHome, d.Server.RootDir,
+		expectedLocalPath := mkPath(ctx.Paths.GatewayHome, d.Server.RootDir,
 			d.ServerRule.LocalDir, filename)
 
 		expected := &model.HistoryEntry{
@@ -71,7 +71,7 @@ func (d *serverData) checkServerTransferOK(c convey.C, remoteTransferID, filenam
 			Agent:            d.Server.Name,
 			Start:            actual.Start,
 			Stop:             actual.Stop,
-			LocalPath:        *expectedLocalPath,
+			LocalPath:        expectedLocalPath,
 			RemotePath:       "",
 			Filesize:         TestFileSize,
 			Status:           types.StatusDone,

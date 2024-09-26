@@ -476,7 +476,7 @@ func (p *Pipeline) RebuildFilepaths(newFile string) *Error {
 		dstFile = newFile
 	}
 
-	p.TransCtx.Transfer.LocalPath = types.URL{}
+	p.TransCtx.Transfer.LocalPath = types.FSPath{}
 	p.TransCtx.Transfer.RemotePath = ""
 
 	if err := p.setCustomFilePaths(srcFile, dstFile); err != nil {

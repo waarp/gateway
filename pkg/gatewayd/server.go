@@ -51,22 +51,23 @@ func NewWG() *WG {
 	}
 }
 
-func getDir(root *types.URL, dir string) (*types.URL, error) {
-	if types.GetScheme(dir) != "" || filepath.IsAbs(dir) {
-		if url, err := types.ParseURL(dir); err != nil {
-			return nil, fmt.Errorf("failed to parse the url: %w", err)
-		} else {
-			return url, nil
-		}
+func getDir(root *types.FSPath, dir string) (*types.FSPath, error) {
+	dirPath, err := types.ParsePath(dir)
+	if err != nil {
+		return nil, fmt.Errorf("failed to parse the dir: %w", err)
+	}
+
+	if dirPath.Backend != "" || filepath.IsAbs(dirPath.Path) {
+		return dirPath, nil
 	}
 
 	return root.JoinPath(dir), nil
 }
 
-func parseDirs() (root, in, out, tmp *types.URL, err error) {
+func parseDirs() (rootDir, inDir, outDir, tmpDir *types.FSPath, err error) {
 	config := &conf.GlobalConfig.Paths
 
-	root, rootErr := types.ParseURL(config.GatewayHome)
+	root, rootErr := types.ParsePath(config.GatewayHome)
 	if rootErr != nil {
 		return nil, nil, nil, nil, fmt.Errorf("failed to parse root directory: %w", rootErr)
 	}

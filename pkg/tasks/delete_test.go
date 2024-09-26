@@ -32,7 +32,7 @@ func TestDeleteTaskRun(t *testing.T) {
 		logger := testhelpers.TestLogger(c, "task_delete")
 		testFS := fstest.InitMemFS(c)
 		task := &deleteTask{}
-		srcFile := makeURL("/test.src")
+		srcFile := makePath("/test.src")
 
 		transCtx := &model.TransferContext{
 			Transfer: &model.Transfer{LocalPath: srcFile},

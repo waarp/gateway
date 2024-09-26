@@ -346,8 +346,8 @@ func TestUpdateTransferInfo(t *testing.T) {
 				check := pip.TransCtx.Transfer
 
 				Convey("Then it should have updated the transfer's filename", func() {
-					So(check.LocalPath.String(), ShouldEqual, mkURL(root,
-						server.RootDir, recv.TmpLocalRcvDir, info.Filename).String())
+					So(check.LocalPath, ShouldEqual, mkPath(root,
+						server.RootDir, recv.TmpLocalRcvDir, info.Filename))
 				})
 
 				Convey("Then it should have updated the transfer's file size", func() {
@@ -365,8 +365,8 @@ func TestUpdateTransferInfo(t *testing.T) {
 			}
 			So(db.Insert(trans).Run(), ShouldBeNil)
 
-			dir := mkURL(root, server.RootDir, send.LocalDir)
-			So(fs.MkdirAll(testFS, dir), ShouldBeNil)
+			dir := mkPath(root, server.RootDir, send.LocalDir)
+			So(fs.MkdirAll(testFS, &dir), ShouldBeNil)
 			So(fs.WriteFullFile(testFS, dir.JoinPath("new.file"),
 				[]byte("file content")), ShouldBeNil)
 

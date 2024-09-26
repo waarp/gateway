@@ -41,7 +41,7 @@ func TestHistoryBeforeWrite(t *testing.T) {
 				Agent:            "from",
 				Account:          "to",
 				SrcFilename:      "file",
-				LocalPath:        mkURL(testLocalPath),
+				LocalPath:        localPath(testLocalPath),
 				RemotePath:       "test/remote/file",
 				Start:            time.Now(),
 				Stop:             time.Now(),
@@ -92,7 +92,7 @@ func TestHistoryBeforeWrite(t *testing.T) {
 			})
 
 			Convey("Given that the local path is missing", func() {
-				hist.LocalPath = types.URL{}
+				hist.LocalPath = types.FSPath{}
 
 				shouldFailWith("the local filename is missing", database.NewValidationError(
 					"the local filepath cannot be empty"))
@@ -220,7 +220,7 @@ func TestTransferHistoryRestart(t *testing.T) {
 				Agent:            agent.Name,
 				Protocol:         agent.Protocol,
 				SrcFilename:      "file",
-				LocalPath:        mkURL("file:/loc/file"),
+				LocalPath:        localPath("/loc/file"),
 				RemotePath:       "/rem/file",
 				Rule:             rule.Name,
 				Start:            time.Date(2020, 0, 0, 0, 0, 0, 0, time.Local),
@@ -278,7 +278,7 @@ func TestTransferHistoryRestart(t *testing.T) {
 				Agent:            agent.Name,
 				Protocol:         agent.Protocol,
 				SrcFilename:      "file",
-				LocalPath:        mkURL("file:/local/file"),
+				LocalPath:        localPath("/local/file"),
 				RemotePath:       "/remote/file",
 				Rule:             rule.Name,
 				Start:            time.Date(2020, 0, 0, 0, 0, 0, 0, time.Local),

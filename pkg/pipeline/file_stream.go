@@ -3,7 +3,6 @@ package pipeline
 import (
 	"errors"
 	"io"
-	"net/url"
 	"sync/atomic"
 
 	"code.waarp.fr/apps/gateway/gateway/pkg/fs"
@@ -263,16 +262,18 @@ func (f *FileStream) move() *Error {
 	}
 
 	var (
-		dstURL  *url.URL
-		pathErr error
+		backend, path string
+		pathErr       error
 	)
 
+	leaf, branch := utils.Leaf, utils.Branch
+
 	if f.TransCtx.Transfer.IsServer() {
-		dstURL, pathErr = utils.GetPath(destFilename, leaf(f.TransCtx.Rule.LocalDir),
+		backend, path, pathErr = utils.GetPath(destFilename, leaf(f.TransCtx.Rule.LocalDir),
 			leaf(f.TransCtx.LocalAgent.ReceiveDir), branch(f.TransCtx.LocalAgent.RootDir),
 			leaf(f.TransCtx.Paths.DefaultInDir), branch(f.TransCtx.Paths.GatewayHome))
 	} else {
-		dstURL, pathErr = utils.GetPath(destFilename, leaf(f.TransCtx.Rule.LocalDir),
+		backend, path, pathErr = utils.GetPath(destFilename, leaf(f.TransCtx.Rule.LocalDir),
 			leaf(f.TransCtx.Paths.DefaultInDir), branch(f.TransCtx.Paths.GatewayHome))
 	}
 
@@ -283,7 +284,7 @@ func (f *FileStream) move() *Error {
 			pathErr)
 	}
 
-	dest := (*types.URL)(dstURL)
+	dest := &types.FSPath{Backend: backend, Path: path}
 
 	if f.TransCtx.Transfer.LocalPath.String() == dest.String() {
 		return nil

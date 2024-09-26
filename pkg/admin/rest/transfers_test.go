@@ -958,7 +958,7 @@ func TestRestartTransfer(t *testing.T) {
 				Protocol:         testProto1,
 				SrcFilename:      "/source/file.test",
 				DestFilename:     "/dest/file.test",
-				LocalPath:        *mkURL("file:/local/file.test"),
+				LocalPath:        localPath("/local/file.test"),
 				RemotePath:       "/remote/file.test",
 				Start:            time.Date(2019, 1, 1, 0, 0, 0, 0, time.Local),
 				Stop:             time.Date(2019, 1, 1, 1, 0, 0, 0, time.Local),

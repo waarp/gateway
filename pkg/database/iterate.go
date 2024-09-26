@@ -5,6 +5,8 @@ import (
 	"strings"
 
 	"xorm.io/builder"
+
+	"code.waarp.fr/apps/gateway/gateway/pkg/conf"
 )
 
 // IterateBean is the interface that a model must implement in order to be
@@ -41,6 +43,10 @@ func (i *IterateQuery) Where(sql string, args ...interface{}) *IterateQuery {
 	i.conds = append(i.conds, &condition{sql: sql, args: args})
 
 	return i
+}
+
+func (i *IterateQuery) Owner() *IterateQuery {
+	return i.Where("owner = ?", conf.GlobalConfig.GatewayName)
 }
 
 // In add a 'WHERE col IN' condition to the 'SELECT' query. Because the database/sql

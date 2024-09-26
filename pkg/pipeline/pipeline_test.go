@@ -38,7 +38,7 @@ func TestNewClientPipeline(t *testing.T) {
 
 		Convey("Given a send transfer", func(c C) {
 			trans := mkSendTransfer(ctx, "file")
-			file := mkURL(ctx.root, ctx.send.LocalDir, "file")
+			file := mkPath(ctx.root, ctx.send.LocalDir, "file")
 
 			transCtx, err := model.GetTransferContext(ctx.db, ctx.logger, trans)
 			So(err, ShouldBeNil)
@@ -261,7 +261,7 @@ func TestPipelineStartData(t *testing.T) {
 			})
 
 			Convey("Then it should have opened/created the file", func(c C) {
-				file := mkURL(ctx.root, pip.TransCtx.Rule.TmpLocalRcvDir,
+				file := mkPath(ctx.root, pip.TransCtx.Rule.TmpLocalRcvDir,
 					filename+".part")
 				_, err := fs.Stat(ctx.fs, file)
 				So(err, ShouldBeNil)
@@ -328,7 +328,7 @@ func TestPipelineEndData(t *testing.T) {
 			So(pip.EndData(), ShouldBeNil)
 
 			Convey("Then it should have closed and moved the file", func(c C) {
-				_, err := fs.Stat(ctx.fs, mkURL(ctx.root, pip.TransCtx.Rule.
+				_, err := fs.Stat(ctx.fs, mkPath(ctx.root, pip.TransCtx.Rule.
 					LocalDir, filename))
 				So(err, ShouldBeNil)
 			})

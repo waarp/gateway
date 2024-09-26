@@ -28,7 +28,7 @@ func TestSFTPList(t *testing.T) {
 	Convey("Given a SFTP server", t, func(c C) {
 		testFS := fstest.InitMemFS(c)
 		root := "memory:/test_list_root"
-		rootPath := mkURL(root)
+		rootPath := mkPath(root)
 		db := database.TestDatabase(c)
 		conf.GlobalConfig.Paths.GatewayHome = root
 

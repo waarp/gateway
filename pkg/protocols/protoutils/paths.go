@@ -3,7 +3,6 @@ package protoutils
 import (
 	"errors"
 	"fmt"
-	"net/url"
 	"path"
 	"strings"
 
@@ -69,7 +68,7 @@ func GetClosestRule(db database.ReadAccess, logger *log.Logger, server *model.Lo
 // given server & rule directories.
 func GetRealPath(isTemp bool, db database.ReadAccess, logger *log.Logger,
 	server *model.LocalAgent, acc *model.LocalAccount, filepath string,
-) (*types.URL, error) {
+) (*types.FSPath, error) {
 	filepath = strings.TrimPrefix(filepath, "/")
 
 	rule, err := GetClosestRule(db, logger, server, acc, filepath, true)
@@ -84,21 +83,21 @@ func GetRealPath(isTemp bool, db database.ReadAccess, logger *log.Logger,
 	rest = strings.TrimPrefix(rest, "/")
 
 	var (
-		realDir *url.URL
-		dirErr  error
+		backend, realDir string
+		dirErr           error
 	)
 
 	switch {
 	case rule.IsSend:
-		realDir, dirErr = utils.GetPath(rest, utils.Leaf(rule.LocalDir),
+		backend, realDir, dirErr = utils.GetPath(rest, utils.Leaf(rule.LocalDir),
 			utils.Leaf(server.SendDir), utils.Branch(server.RootDir),
 			utils.Leaf(confPaths.DefaultOutDir), utils.Branch(confPaths.GatewayHome))
 	case isTemp:
-		realDir, dirErr = utils.GetPath(rest+".part", utils.Leaf(rule.TmpLocalRcvDir),
+		backend, realDir, dirErr = utils.GetPath(rest+".part", utils.Leaf(rule.TmpLocalRcvDir),
 			utils.Leaf(server.TmpReceiveDir), utils.Branch(server.RootDir),
 			utils.Leaf(confPaths.DefaultTmpDir), utils.Branch(confPaths.GatewayHome))
 	default:
-		realDir, dirErr = utils.GetPath(rest, utils.Leaf(rule.LocalDir),
+		backend, realDir, dirErr = utils.GetPath(rest, utils.Leaf(rule.LocalDir),
 			utils.Leaf(server.ReceiveDir), utils.Branch(server.RootDir),
 			utils.Leaf(confPaths.DefaultInDir), utils.Branch(confPaths.GatewayHome))
 	}
@@ -107,7 +106,7 @@ func GetRealPath(isTemp bool, db database.ReadAccess, logger *log.Logger,
 		return nil, fmt.Errorf("failed to build the path: %w", dirErr)
 	}
 
-	return (*types.URL)(realDir), nil
+	return &types.FSPath{Backend: backend, Path: realDir}, nil
 }
 
 func GetRulesPaths(db database.ReadAccess, serv *model.LocalAgent,

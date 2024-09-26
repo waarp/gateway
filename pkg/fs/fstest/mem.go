@@ -13,7 +13,7 @@ import (
 	"code.waarp.fr/apps/gateway/gateway/pkg/fs/filesystems"
 )
 
-const MemScheme = "memory"
+const MemBackend = "memory"
 
 func Init(tb testing.TB, scheme string) *mem.FS {
 	tb.Helper()
@@ -35,14 +35,14 @@ func InitMemFS(c convey.C) fs.FS {
 	memFS, err := mem.NewFS()
 	c.So(err, convey.ShouldBeNil)
 
-	_, ok := filesystems.TestFileSystems.Load(MemScheme)
+	_, ok := filesystems.TestFileSystems.Load(MemBackend)
 	c.So(ok, convey.ShouldBeFalse)
 
-	filesystems.TestFileSystems.Store(MemScheme, memFS)
+	filesystems.TestFileSystems.Store(MemBackend, memFS)
 
 	c.Reset(func() {
 		c.So(hfs.RemoveAll(memFS, "."), convey.ShouldBeNil)
-		filesystems.TestFileSystems.Delete(MemScheme)
+		filesystems.TestFileSystems.Delete(MemBackend)
 	})
 
 	return memFS

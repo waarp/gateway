@@ -1,8 +1,6 @@
 package internal
 
 import (
-	"path"
-
 	"code.waarp.fr/lib/r66"
 	"github.com/smartystreets/goconvey/convey"
 
@@ -21,11 +19,9 @@ func (t testSessionHandler) ValidRequest(request *r66.Request) (r66.TransferHand
 	return t(request)
 }
 
-func mkURL(elem ...string) *types.URL {
-	full := path.Join(elem...)
-
-	url, err := types.ParseURL(full)
+func mkPath(full string) types.FSPath {
+	fPath, err := types.ParsePath(full)
 	convey.So(err, convey.ShouldBeNil)
 
-	return url
+	return *fPath
 }

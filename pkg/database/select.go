@@ -5,6 +5,8 @@ import (
 	"strings"
 
 	"xorm.io/builder"
+
+	"code.waarp.fr/apps/gateway/gateway/pkg/conf"
 )
 
 // SelectBean is the interface that a model must implement in order to be
@@ -38,6 +40,11 @@ func (s *SelectQuery) Where(sql string, args ...interface{}) *SelectQuery {
 	s.conds = append(s.conds, &condition{sql: sql, args: args})
 
 	return s
+}
+
+// Owner adds a 'WHERE owner = ?' clause to the 'SELECT' query.
+func (s *SelectQuery) Owner() *SelectQuery {
+	return s.Where("owner=?", conf.GlobalConfig.GatewayName)
 }
 
 // In add a 'WHERE col IN' condition to the 'SELECT' query. Because the database/sql

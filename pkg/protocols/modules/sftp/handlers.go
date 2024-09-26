@@ -146,7 +146,7 @@ func (l *sshListener) statAt(r *sftp.Request, acc *model.LocalAccount,
 	}
 }
 
-func (l *sshListener) listReadDir(realDir *types.URL) ([]fs.FileInfo, error) {
+func (l *sshListener) listReadDir(realDir *types.FSPath) ([]fs.FileInfo, error) {
 	var infos []fs.FileInfo
 
 	filesys, fsErr := fs.GetFileSystem(l.DB, realDir)
@@ -180,7 +180,7 @@ func (l *sshListener) listReadDir(realDir *types.URL) ([]fs.FileInfo, error) {
 }
 
 func (l *sshListener) getRealPath(acc *model.LocalAccount, dir string,
-) (*types.URL, error) {
+) (*types.FSPath, error) {
 	realPath, err := protoutils.GetRealPath(false, l.DB, l.Logger, l.Server, acc, dir)
 
 	switch {

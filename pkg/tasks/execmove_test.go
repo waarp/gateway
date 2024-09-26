@@ -2,9 +2,7 @@ package tasks
 
 import (
 	"context"
-	"net/url"
 	"os"
-	"path"
 	"path/filepath"
 	"testing"
 
@@ -119,14 +117,8 @@ func TestExecMoveRun(t *testing.T) {
 					So(err, ShouldBeNil)
 
 					Convey("Then the transfer filepath should have changed", func() {
-						dstURL := url.URL{
-							Scheme:   "file",
-							OmitHost: true,
-							Path:     path.Join("/", filepath.ToSlash(dstFile)),
-						}
-
 						So(transCtx.Transfer.LocalPath.String(), ShouldEqual,
-							dstURL.String())
+							filepath.ToSlash(dstFile))
 					})
 				})
 			})

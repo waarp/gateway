@@ -5,6 +5,8 @@ import (
 	"strings"
 
 	"xorm.io/builder"
+
+	"code.waarp.fr/apps/gateway/gateway/pkg/conf"
 )
 
 // GetBean is the interface that a model must implement in order to be usable
@@ -25,6 +27,10 @@ func (g *GetQuery) And(sql string, args ...any) *GetQuery {
 	g.conds = append(g.conds, &condition{sql: sql, args: args})
 
 	return g
+}
+
+func (g *GetQuery) Owner() *GetQuery {
+	return g.And("owner=?", conf.GlobalConfig.GatewayName)
 }
 
 // Run executes the 'GET' query.

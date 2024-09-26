@@ -4,7 +4,6 @@ import (
 	"errors"
 	"fmt"
 	"io"
-	"net/url"
 	"path"
 
 	"code.waarp.fr/apps/gateway/gateway/pkg/fs"
@@ -13,14 +12,9 @@ import (
 	"code.waarp.fr/apps/gateway/gateway/pkg/utils"
 )
 
-type (
-	leaf   = utils.Leaf
-	branch = utils.Branch
-)
-
 // getFilesize returns the size of the given file. If the file does not exist or
 // cannot be accessed, it returns the UnknownSize value (-1).
-func getFilesize(filesys fs.FS, file *types.URL) int64 {
+func getFilesize(filesys fs.FS, file *types.FSPath) int64 {
 	if info, err := fs.Stat(filesys, file); err != nil {
 		return model.UnknownSize
 	} else {
@@ -94,7 +88,7 @@ func (f *FileStream) getFile() (fs.File, *Error) {
 
 // createDir takes a file path and creates all the file's parent directories if
 // they don't exist.
-func createDir(filesys fs.FS, file *types.URL) *Error {
+func createDir(filesys fs.FS, file *types.FSPath) *Error {
 	if err := fs.MkdirAll(filesys, file.Dir()); err != nil {
 		return fileErrToTransferErr(err)
 	}
@@ -136,10 +130,10 @@ func (p *Pipeline) setCustomFilePaths(srcFilename, destFilename string) error {
 	}
 
 	if p.TransCtx.Transfer.LocalPath.String() == "" {
-		if u, err := makeLocalPath(p.TransCtx, srcFilename, destFilename); err != nil {
+		if back, fPath, err := makeLocalPath(p.TransCtx, srcFilename, destFilename); err != nil {
 			return fmt.Errorf("failed to build local path: %w", err)
 		} else {
-			p.TransCtx.Transfer.LocalPath = types.URL(*u)
+			p.TransCtx.Transfer.LocalPath = types.FSPath{Backend: back, Path: fPath}
 		}
 	}
 
@@ -149,7 +143,12 @@ func (p *Pipeline) setCustomFilePaths(srcFilename, destFilename string) error {
 //nolint:wrapcheck //wrapping is done by the caller function (just above)
 func makeLocalPath(transCtx *model.TransferContext, srcFilename,
 	destFilename string,
-) (*url.URL, error) {
+) (string, string, error) {
+	var (
+		leaf   = utils.Leaf
+		branch = utils.Branch
+	)
+
 	switch {
 	// Partner client <- GW server
 	case transCtx.Transfer.IsServer() && transCtx.Rule.IsSend:

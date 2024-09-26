@@ -3,8 +3,18 @@
 Historique des versions
 =======================
 
+* :feature:`380` Ajout du support pour les instances cloud de type S3. Les fichiers
+  de transfert peuvent désormais donc être stockés sur une instance S3. Voir
+  la section :ref:`cloud <reference-cloud>` pour avoir plus de détails.
+* :feature:`-`
+* :feature:`-` Ajout de la commande CLI de gestion des instances cloud.
+* :feature:`-` Ajout de la gestion des instances cloud au fichier d'import/export.
+* :bug:`-` Ajout des droits d'administration à l'objet ``user`` du fichier
+  d'import/export. Les droits d'administration d'un utilisateur étaient
+  précédemment perdus lors de l'import ou de l'export de cet utilisateur.
+
 * :release:`0.10.1 <2024-08-29>`
-* :fix:`410` Ajout d'une limite à la taille du fichier WAL en cas d'utilisation
+* :bug:`410` Ajout d'une limite à la taille du fichier WAL en cas d'utilisation
   d'une base de données SQLite. Le fichier devrait maintenant être correctement
   tronqué à la fin des transactions. Les connexions à la base de données sont
   également maintenant fermées systématiquement après 2 secondes d'inactivité.
@@ -12,7 +22,7 @@ Historique des versions
   troncature du fichier WAL de s'effectuer en entier.
 
 * :release:`0.10.0 <2024-07-17>`
-* :fix:`407` Ajout d'indexes sur les dates de transfert dans les tables
+* :bug:`407` Ajout d'indexes sur les dates de transfert dans les tables
   d'historique. Cela devrait améliorer les performances des requêtes REST et
   des commandes de listing de transferts, en particulier lorsqu'un filtrage
   par date est appliqué.
@@ -24,7 +34,7 @@ Historique des versions
   adresses IP autorisées pour un partenaire cherchant à s'authentifier auprès
   de Gateway. Voir les documentation CLI et REST de gestion des comptes locaux
   pour plus d'information.
-* :fix:`406` À la création d'un transfert, si aucun ID de flux (*followID*) n'a
+* :bug:`406` À la création d'un transfert, si aucun ID de flux (*followID*) n'a
   été spécifié, un ID sera désormais auto-généré. Cet id est visible dans les
   informations de transfert sous le nom ``__followID__``.
 * :feature:`54` Première étape de l'ajout d'un service SNMP. La MIB décrivant
@@ -35,18 +45,18 @@ Historique des versions
   implémenté dans une version ultérieure. Waarp-Gateway supporte SNMPv2 et SNMPv3.
 
 * :release:`0.9.1 <2024-07-01>`
-* :fix:`403` Le certificat R66 *legacy* est désormais correctement reconnus
+* :bug:`403` Le certificat R66 *legacy* est désormais correctement reconnus
   en tant que tel à sa création, que ce soit via l'import ou via l'API REST.
   Ce certificat n'était pas correctement reconnu depuis la version 0.9.0 quand
   celui-ci était ajouté via l'ancien champ ``certificates``, et sa création
   échouait donc en raison de l'invalidité du certificat.
-* :fix:`-` Les mots de passe des compte locaux et des partenaires distants
+* :bug:`-` Les mots de passe des compte locaux et des partenaires distants
   peuvent désormais correctement être importés. Un bug introduit en version
   0.9.0 empêchait leur création via le champ ``password`` (pour les comptes
   locaux) ou ``serverPassword`` (pour les partenaires R66).
-* :fix:`-` Le cache d'authentification pour mots de passe introduit en version
+* :bug:`-` Le cache d'authentification pour mots de passe introduit en version
   0.9.0 fonctionne désormais correctement.
-* :fix:`402` L'ancienne propriété "isTLS" des agents R66 (dépréciée en version
+* :bug:`402` L'ancienne propriété "isTLS" des agents R66 (dépréciée en version
   0.7.0 avec la séparation des protocoles R66 et R66-TLS) est de nouveau
   correctement prise en compte. La rétro-compatibilité avec cette propriété
   avait été involontairement rompue avec la mise à jour 0.9.0. Cette

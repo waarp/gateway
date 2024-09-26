@@ -178,6 +178,49 @@ stockées dans un fichier en format JSON. Ce JSON a la forme suivante :
     * ``args`` (*object*) - Les arguments du traitement. Variable suivant le
       type de traitement (cf. :any:`traitements <reference-tasks>`).
 
+* ``users`` (*array*) - La liste des utilisateurs de l'interface d'administration
+  de la gateway.
+
+  * ``username`` (*string*) - Le nom de l'utilisateur.
+  * ``password`` (*string*) - Le mot de passe en clair de l'utilisateur.
+    Utilisé uniquement pour l'import, les mots de passes ne sont jamais exportés
+    en clair mais sous forme de hash (voir ci-dessous).
+  * ``passwordHash`` (*string*) - Un hash bcrypt du mot de passe de l'utilisateur.
+  * ``permissions`` (*object*) - La liste des droits de l'utilisateur. Les droits
+    sont renseignés en format chmod ("rwd") indiquant respectivement le droit de
+    lecture, d'écriture et de suppression sur l'élément concerné. Un trait d'union
+    "-" est utilisé pour marquer l'absence d'un droit.
+
+    * ``transfers`` (*string*) - Les droits de l'utilisateur en matière de
+      gestion transferts.
+    * ``servers`` (*string*) - Les droits de l'utilisateur en matière de gestion
+      des serveurs et clients locaux.
+    * ``partners`` (*string*) - Les droits de l'utilisateur en matière de
+      gestion des partenaires distants.
+    * ``rules`` (*string*) - Les droits de l'utilisateur en matière de gestion
+      des règles de transfert.
+    * ``users`` (*string*) - Les droits de l'utilisateur en matière de gestion
+      des utilisateurs de l'interface d'administration.
+    * ``administration`` (*string*) - Les droits de l'utilisateur en matière de
+      gestion de la configuration de Gateway. Cela inclue l'*override* de
+      configuration, la gestion de SNMP, des instances cloud et des
+      autorités de certification.
+
+* ``clouds`` (*array*) - La liste des instances cloud de la gateway.
+
+  * ``name`` (*string*) - Le nom de l'instance cloud.
+  * ``type`` (*string*) - Le type de l'instance cloud. Voir la :ref:`section
+  cloud <reference-cloud>` de la documentation pour la liste des types d'instance
+  cloud supportés.
+  * ``key`` (*string*) - La clé de connexion à l'instance cloud (si l'instance
+    cloud en requiert une).
+  * ``secret`` (*string*) - Le secret d'authentification (mot de passe, token...)
+    de l'instance cloud (si l'instance cloud en requiert un).
+  * ``options`` (*object*) - Les options de connexion à l'instance cloud. Ces
+    options varie en fonction du type de l'instance cloud. Voir la :ref:`section
+    cloud <reference-cloud>` du type de l'instance pour avoir la liste des
+    options disponibles.
+
 **Exemple**
 
 .. code-block:: json
@@ -250,5 +293,27 @@ stockées dans un fichier en format JSON. Ce JSON a la forme suivante :
        "pre": [],
        "post": [],
        "error": []
+     }],
+     "users": [{
+       "username": "toto",
+       "password": "sésame",
+       "permissions": {
+         "transfers": "rw-",
+         "servers": "rwd",
+         "partners": "rw-",
+         "rules": "rwd",
+         "users": "r--",
+         "administration": "---"
+       }
+     }],
+     "clouds": [{
+       "name": "aws-s3",
+       "type": "s3",
+       "key": "<clé d'accès AWS>",
+       "secret": "<clé d'accès secrète AWS>",
+       "options": {
+         "region": "eu-west-1",
+         "bucket": "gw-bucket",
+       }
      }]
    }

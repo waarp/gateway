@@ -51,7 +51,7 @@ func TestCopyRenameTaskRun(t *testing.T) {
 		logger := testhelpers.TestLogger(c, "task_copyrename")
 		testFS := fstest.InitMemFS(c)
 		task := &copyRenameTask{}
-		srcPath := makeURL("/test.src")
+		srcPath := makePath("/test.src")
 
 		transCtx := &model.TransferContext{
 			Transfer: &model.Transfer{LocalPath: srcPath},
@@ -60,12 +60,12 @@ func TestCopyRenameTaskRun(t *testing.T) {
 
 		So(fs.WriteFullFile(testFS, &srcPath, []byte("Hello World")), ShouldBeNil)
 
-		args := map[string]string{}
+		dstPath := makePath("/test.copy")
+		args := map[string]string{
+			"path": dstPath.String(),
+		}
 
 		Convey("Given a valid new path", func() {
-			dstPath := makeURL("/test.copy")
-			args["path"] = dstPath.String()
-
 			Convey("When the task is run", func() {
 				err := task.Run(context.Background(), args, nil, logger, transCtx)
 				So(err, ShouldBeNil)
@@ -106,8 +106,8 @@ func TestCopyRenameTaskRun(t *testing.T) {
 		})
 
 		Convey("Given the target is a non-existing subdir", func() {
-			dstPath := makeURL("/sub_dir/test.src.copy")
-			args["path"] = dstPath.String()
+			newDstPath := makePath("/sub_dir/test.src.copy")
+			args["path"] = newDstPath.String()
 
 			Convey("Given the target can be created", func() {
 				Convey("When the task is run", func() {
@@ -115,14 +115,14 @@ func TestCopyRenameTaskRun(t *testing.T) {
 					So(err, ShouldBeNil)
 
 					Convey("Then the target file exists", func() {
-						_, err := fs.Stat(testFS, &dstPath)
+						_, err := fs.Stat(testFS, &newDstPath)
 						So(err, ShouldBeNil)
 					})
 				})
 			})
 
 			Convey("Given the target CANNOT be created", func() {
-				dummyPath := dstPath.Dir()
+				dummyPath := newDstPath.Dir()
 				So(fs.WriteFullFile(testFS, dummyPath, []byte("hello")), ShouldBeNil)
 
 				Convey("When the task is run", func() {
@@ -130,7 +130,7 @@ func TestCopyRenameTaskRun(t *testing.T) {
 					So(err, ShouldBeError)
 
 					Convey("Then the target file does not exist", func() {
-						_, err := fs.Stat(testFS, &dstPath)
+						_, err := fs.Stat(testFS, &newDstPath)
 						So(fs.IsNotExist(err), ShouldBeTrue)
 					})
 				})

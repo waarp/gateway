@@ -53,7 +53,7 @@ func TestMoveTaskRun(t *testing.T) {
 		testFS := fstest.InitMemFS(c)
 		task := &moveTask{}
 
-		srcPath := makeURL("/src_dir/move.file")
+		srcPath := makePath("/src_dir/move.file")
 		filename := path.Base(srcPath.Path)
 
 		So(fs.MkdirAll(testFS, srcPath.Dir()), ShouldBeNil)
@@ -73,7 +73,7 @@ func TestMoveTaskRun(t *testing.T) {
 		args := map[string]string{}
 
 		Convey("Given that the path is valid", func() {
-			dirPath := makeURL("/dst_dir/")
+			dirPath := makePath("/dst_dir/")
 			args["path"] = dirPath.String()
 
 			Convey("Given that the file exists", func() {

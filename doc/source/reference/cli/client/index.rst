@@ -33,4 +33,5 @@ Pour afficher la version du client, utiliser la commande ``waarp-gateway version
    history/index
    override/index
    authority/index
+   cloud/index
    snmp/index
