@@ -8,15 +8,15 @@ import (
 	"code.waarp.fr/apps/gateway/gateway/pkg/utils"
 )
 
-// CypherText is a wrapper of string which add transparent encryption/decryption
+// SecretText is a wrapper of string which add transparent encryption/decryption
 // of the string when storing and loading the string from a database.
-type CypherText string
+type SecretText string
 
-func (c *CypherText) String() string { return string(*c) }
+func (s *SecretText) String() string { return string(*s) }
 
-// FromDB takes an slice containing AES encrypted data, and stores the decrypted
-// string in the CypherText receiver.
-func (c *CypherText) FromDB(bytes []byte) error {
+// FromDB takes a slice containing AES encrypted data, and stores the decrypted
+// string in the SecretText receiver.
+func (s *SecretText) FromDB(bytes []byte) error {
 	if len(bytes) == 0 {
 		return nil
 	}
@@ -26,19 +26,19 @@ func (c *CypherText) FromDB(bytes []byte) error {
 		return fmt.Errorf("cannot decrypt password: %w", err)
 	}
 
-	*c = CypherText(plain)
+	*s = SecretText(plain)
 
 	return nil
 }
 
-// ToDB takes the string contained in the CypherText receiver, encrypts it using
+// ToDB takes the string contained in the SecretText receiver, encrypts it using
 // AES, and returns the result as a slice of byte.
-func (c *CypherText) ToDB() ([]byte, error) {
-	if *c == "" {
+func (s *SecretText) ToDB() ([]byte, error) {
+	if *s == "" {
 		return []byte(""), nil
 	}
 
-	cypher, err := utils.AESCrypt(database.GCM, string(*c))
+	cypher, err := utils.AESCrypt(database.GCM, string(*s))
 	if err != nil {
 		return nil, fmt.Errorf("cannot encrypt password: %w", err)
 	}
@@ -48,19 +48,19 @@ func (c *CypherText) ToDB() ([]byte, error) {
 
 // Scan implements database/sql.Scanner. It takes an AES encrypted string and
 // sets the object.
-func (c *CypherText) Scan(v interface{}) error {
+func (s *SecretText) Scan(v interface{}) error {
 	switch val := v.(type) {
 	case []byte:
-		return c.FromDB(val)
+		return s.FromDB(val)
 	case string:
-		return c.FromDB([]byte(val))
+		return s.FromDB([]byte(val))
 	default:
 		//nolint:goerr113 // too specific to have a base error
-		return fmt.Errorf("type %T is incompatible with CypherText", val)
+		return fmt.Errorf("type %T is incompatible with SecretText", val)
 	}
 }
 
 // Value is the equivalent of ToDB for the driver.Valuer interface.
-func (c *CypherText) Value() (driver.Value, error) {
-	return c.ToDB()
+func (s *SecretText) Value() (driver.Value, error) {
+	return s.ToDB()
 }

@@ -6,6 +6,7 @@ import (
 
 	"code.waarp.fr/lib/log"
 	"github.com/gosnmp/gosnmp"
+	snmplib "github.com/slayercat/GoSNMPServer"
 )
 
 type clientLogger struct {
@@ -18,7 +19,6 @@ func clientLog(gwLogger *log.Logger) gosnmp.Logger {
 
 func (l *clientLogger) Printf(msg string, v ...any) { l.Print(fmt.Sprintf(msg, v...)) }
 
-/*
 type serverLogger struct {
 	*log.Logger
 }
@@ -48,4 +48,3 @@ func (s *serverLogger) Warnln(args ...any)               { s.Logger.Warning(fmt.
 func (s *serverLogger) Warning(args ...any)              { s.Logger.Warning(fmt.Sprint(args...)) }
 func (s *serverLogger) Warningf(msg string, args ...any) { s.Logger.Warning(msg, args...) }
 func (s *serverLogger) Warningln(args ...any)            { s.Logger.Warning(fmt.Sprintln(args...)) }
-*/

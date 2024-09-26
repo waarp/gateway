@@ -35,7 +35,13 @@ func TestLoggerWithLevel(c convey.C, name string, level log.Level) *log.Logger {
 func GetTestLogger(tb testing.TB) *log.Logger {
 	tb.Helper()
 
-	back, err := log.NewBackend(log.LevelDebug, log.Stdout, "", "")
+	return GetTestLoggerWithLevel(tb, log.LevelDebug)
+}
+
+func GetTestLoggerWithLevel(tb testing.TB, level log.Level) *log.Logger {
+	tb.Helper()
+
+	back, err := log.NewBackend(level, log.Stdout, "", "")
 	require.NoError(tb, err)
 
 	return back.NewLogger(tb.Name())

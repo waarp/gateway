@@ -2,10 +2,16 @@ package snmp
 
 import (
 	"errors"
+	"fmt"
 	"math"
 	"strings"
+	"time"
 
 	"github.com/gosnmp/gosnmp"
+	"golang.org/x/exp/constraints"
+
+	"code.waarp.fr/apps/gateway/gateway/pkg/analytics"
+	"code.waarp.fr/apps/gateway/gateway/pkg/model/types"
 )
 
 var ErrInvalidSNMPVersion = errors.New("invalid SNMP version")
@@ -77,5 +83,35 @@ func getPrivProtocol(name string) gosnmp.SnmpV3PrivProtocol {
 		return gosnmp.NoPriv
 	default:
 		return 0
+	}
+}
+
+func timeTicksSince(t time.Time) uint32 {
+	const milliSecTo100thSecRatio = 10
+
+	//nolint:gosec //SNMP requires we convert to uint32, no other option here
+	return uint32(time.Since(t).Milliseconds() / milliSecTo100thSecRatio)
+}
+
+func mkTsGetFunc[T constraints.Integer](status types.TransferStatus) func() (any, error) {
+	return func() (any, error) {
+		count, err := analytics.GlobalService.CountTransferWithStatus(status)
+		if err != nil {
+			return nil, fmt.Errorf("failed to count transfers with status %q: %w", status, err)
+		}
+
+		return T(count), nil
+	}
+}
+
+func mkTeGetFunc[T constraints.Integer](tec types.TransferErrorCode) func() (any, error) {
+	return func() (any, error) {
+		count, err := analytics.GlobalService.CountTransfersWithErrorCode(tec)
+		if err != nil {
+			return nil, fmt.Errorf("failed to count transfers with error code %q: %w",
+				tec.String(), err)
+		}
+
+		return T(count), nil
 	}
 }

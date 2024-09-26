@@ -136,9 +136,10 @@ func (c *transferClient) Receive(file protocol.ReceiveFile) *pipeline.Error {
 // EndTransfer send a transfer end message, and then closes the session.
 func (c *transferClient) EndTransfer() *pipeline.Error {
 	defer c.cancel()
-	defer c.conns.Done(c.pip.TransCtx.RemoteAgent.Address.String())
 
 	if c.ses == nil {
+		c.conns.Done(c.pip.TransCtx.RemoteAgent.Address.String())
+
 		return nil
 	}
 
@@ -151,6 +152,8 @@ func (c *transferClient) EndTransfer() *pipeline.Error {
 
 		return c.wrapAndSendError(err)
 	}
+
+	c.conns.Done(c.pip.TransCtx.RemoteAgent.Address.String())
 
 	return nil
 }
@@ -177,46 +180,38 @@ func (c *transferClient) SendError(code types.TransferErrorCode, msg string) {
 	}
 }
 
-// Pause sends a pause message to the remote partner and then closes the
-// session.
-func (c *transferClient) Pause() *pipeline.Error {
+func (c *transferClient) halt(op string, haltFunc func() error) *pipeline.Error {
 	defer c.cancel()
-	defer c.conns.Done(c.pip.TransCtx.RemoteAgent.Address.String())
 
 	if c.ses == nil {
+		c.conns.Done(c.pip.TransCtx.RemoteAgent.Address.String())
+
 		return nil
 	}
 
 	defer c.ses.Close()
 
-	if err := c.ses.Stop(); err != nil {
-		c.pip.Logger.Warning("Failed send pause signal to remote host: %v", err)
+	if err := haltFunc(); err != nil {
+		c.pip.Logger.Warning("Failed send %s signal to remote host: %v", op, err)
 
 		return c.wrapAndSendError(err)
 	}
 
+	c.conns.Done(c.pip.TransCtx.RemoteAgent.Address.String())
+
 	return nil
+}
+
+// Pause sends a pause message to the remote partner and then closes the
+// session.
+func (c *transferClient) Pause() *pipeline.Error {
+	return c.halt("pause", c.ses.Stop)
 }
 
 // Cancel sends a cancel message to the remote partner and then closes the
 // session.
 func (c *transferClient) Cancel() *pipeline.Error {
-	defer c.cancel()
-	defer c.conns.Done(c.pip.TransCtx.RemoteAgent.Address.String())
-
-	if c.ses == nil {
-		return nil
-	}
-
-	defer c.ses.Close()
-
-	if err := c.ses.Cancel(); err != nil {
-		c.pip.Logger.Warning("Failed send cancel signal to remote host: %v", err)
-
-		return c.wrapAndSendError(err)
-	}
-
-	return nil
+	return c.halt("cancel", c.ses.Cancel)
 }
 
 func (c *transferClient) wrapAndSendError(err error) *pipeline.Error {

@@ -1,6 +1,7 @@
 package rest
 
 import (
+	"errors"
 	"fmt"
 )
 
@@ -30,4 +31,10 @@ func notFound(format string, args ...interface{}) *notFoundError {
 
 func internal(format string, args ...interface{}) *internalError {
 	return &internalError{msg: fmt.Sprintf(format, args...)}
+}
+
+func isNotFound(err error) bool {
+	var nf *notFoundError
+
+	return errors.As(err, &nf)
 }

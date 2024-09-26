@@ -16,6 +16,7 @@ import (
 	"code.waarp.fr/lib/log"
 
 	"code.waarp.fr/apps/gateway/gateway/pkg/admin"
+	"code.waarp.fr/apps/gateway/gateway/pkg/analytics"
 	"code.waarp.fr/apps/gateway/gateway/pkg/conf"
 	"code.waarp.fr/apps/gateway/gateway/pkg/controller"
 	"code.waarp.fr/apps/gateway/gateway/pkg/database"
@@ -42,6 +43,7 @@ type WG struct {
 	adminService *admin.Server
 	snmpService  *snmp.Service
 	controller   *controller.Controller
+	analytics    *analytics.Service
 }
 
 // NewWG creates a new application.
@@ -144,12 +146,14 @@ func (wg *WG) makeDirs() error {
 
 func (wg *WG) initServices() {
 	wg.dbService = &database.DB{}
+	wg.analytics = &analytics.Service{DB: wg.dbService}
 	wg.snmpService = &snmp.Service{DB: wg.dbService}
 	wg.adminService = &admin.Server{DB: wg.dbService}
 	gwController := controller.GatewayController{DB: wg.dbService}
 	wg.controller = &controller.Controller{Action: gwController.Run}
 
 	snmp.GlobalService = wg.snmpService
+	analytics.GlobalService = wg.analytics
 }
 
 func (wg *WG) startServices() error {
@@ -159,8 +163,12 @@ func (wg *WG) startServices() error {
 		return fmt.Errorf("cannot start database service: %w", err)
 	}
 
+	if err := wg.analytics.Start(); err != nil {
+		return fmt.Errorf("cannot start analytics service: %w", err)
+	}
+
 	if err := wg.snmpService.Start(); err != nil {
-		return fmt.Errorf("cannot start snmp service: %w", err)
+		return fmt.Errorf("cannot start SNMP service: %w", err)
 	}
 
 	if err := wg.adminService.Start(); err != nil {
@@ -179,6 +187,7 @@ func (wg *WG) startServices() error {
 	services.Core[controller.ServiceName] = wg.controller
 	services.Core[admin.ServiceName] = wg.adminService
 	services.Core[snmp.ServiceName] = wg.snmpService
+	services.Core[analytics.ServiceName] = wg.analytics
 
 	if err := wg.startServers(); err != nil {
 		return err
@@ -288,6 +297,10 @@ func (wg *WG) stopServices() {
 
 	if err := wg.adminService.Stop(ctx); err != nil {
 		wg.Logger.Warning("an error occurred while stopping the admin service: %v", err)
+	}
+
+	if err := wg.snmpService.Stop(ctx); err != nil {
+		wg.Logger.Warning("an error occurred while stopping the SNMP service: %v", err)
 	}
 
 	if err := wg.dbService.Stop(ctx); err != nil {

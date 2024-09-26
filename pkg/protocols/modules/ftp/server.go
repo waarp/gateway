@@ -9,6 +9,7 @@ import (
 	"code.waarp.fr/lib/log"
 	ftplib "github.com/fclairamb/ftpserverlib"
 
+	"code.waarp.fr/apps/gateway/gateway/pkg/analytics"
 	"code.waarp.fr/apps/gateway/gateway/pkg/conf"
 	"code.waarp.fr/apps/gateway/gateway/pkg/database"
 	"code.waarp.fr/apps/gateway/gateway/pkg/model"
@@ -86,10 +87,16 @@ func (h *handler) WrapPassiveListener(listener net.Listener) (net.Listener, erro
 }
 
 func (h *handler) ClientConnected(ftplib.ClientContext) (string, error) {
+	h.logger.Debug("Server control connection opened")
+	analytics.AddIncomingConnection()
+
 	return h.getBanner(), nil
 }
 
-func (h *handler) ClientDisconnected(ftplib.ClientContext) {}
+func (h *handler) ClientDisconnected(ftplib.ClientContext) {
+	h.logger.Debug("Server control connection closed")
+	analytics.SubIncomingConnection()
+}
 
 //nolint:goerr113 //dynamic errors are used to mask the internal errors (for security reasons)
 func (h *handler) AuthUser(cc ftplib.ClientContext, user, pass string) (ftplib.ClientDriver, error) {

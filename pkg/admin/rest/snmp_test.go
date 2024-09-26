@@ -2,16 +2,19 @@ package rest
 
 import (
 	"bytes"
+	"context"
 	"encoding/json"
 	"net/http"
 	"net/http/httptest"
 	"path"
 	"testing"
+	"time"
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
 	"code.waarp.fr/apps/gateway/gateway/pkg/conf"
+	"code.waarp.fr/apps/gateway/gateway/pkg/database"
 	"code.waarp.fr/apps/gateway/gateway/pkg/database/dbtest"
 	"code.waarp.fr/apps/gateway/gateway/pkg/snmp"
 	"code.waarp.fr/apps/gateway/gateway/pkg/utils/testhelpers"
@@ -97,7 +100,7 @@ func TestAddSNMPMonitor(t *testing.T) {
 		require.NoError(t, db.Get(&dbMonitor, "name=? AND owner=?", monitorName,
 			conf.GlobalConfig.GatewayName).Run())
 		assert.Equal(t, expectedDBMonitor, dbMonitor,
-			`Then the cloud instance should have been inserted in the database`)
+			`Then the SNMP monitor should have been inserted in the database`)
 	})
 }
 
@@ -268,7 +271,7 @@ func TestUpdateSnmpMonitor(t *testing.T) {
 		require.NoError(t, db.Get(&dbMonitor, "name=? AND owner=?", newMonitorName,
 			conf.GlobalConfig.GatewayName).Run())
 		assert.Equal(t, expectedDBMonitor, dbMonitor,
-			`Then the cloud instance should have been updated in the database`)
+			`Then the SNMP monitor should have been updated in the database`)
 	})
 }
 
@@ -292,5 +295,244 @@ func TestDeleteSnmpMonitor(t *testing.T) {
 
 		assert.Equal(t, http.StatusNoContent, w.Code, `Then the response code should be "204 No Content"`)
 		assert.Zero(t, w.Body.String(), `Then the response body should be blank`)
+
+		var dbCheck snmp.MonitorConfig
+		var dbErr *database.NotFoundError
+
+		require.ErrorAs(t, db.Get(&dbCheck, "true").Run(), &dbErr,
+			`Then the SNMP monitor should have been deleted from the database`)
+	})
+}
+
+func setupSnmpService(tb testing.TB, db *database.DB) {
+	tb.Helper()
+
+	snmp.GlobalService = &snmp.Service{DB: db}
+	require.NoError(tb, snmp.GlobalService.Start())
+
+	tb.Cleanup(func() {
+		ctx, cancel := context.WithTimeout(context.Background(), time.Second)
+		defer cancel()
+
+		require.NoError(tb, snmp.GlobalService.Stop(ctx))
+		snmp.GlobalService = nil
+	})
+}
+
+func TestGetSNMPServer(t *testing.T) {
+	t.Run("When retrieving the existing SNMP server config", func(t *testing.T) {
+		logger := testhelpers.GetTestLogger(t)
+		db := dbtest.TestDatabase(t)
+		handle := getSnmpService(logger, db)
+
+		dbSnmpConf := snmp.ServerConfig{
+			LocalUDPAddress:      "127.0.0.1:1610",
+			Community:            "waarp-gw",
+			SNMPv3Only:           false,
+			SNMPv3Username:       "toto",
+			SNMPv3AuthProtocol:   snmp.AuthSHA,
+			SNMPv3AuthPassphrase: "123456789",
+			SNMPv3PrivProtocol:   snmp.PrivAES,
+			SNMPv3PrivPassphrase: "987654321",
+		}
+		require.NoError(t, db.Insert(&dbSnmpConf).Run())
+
+		expectedResponse := marshal(t, map[string]any{
+			"localUDPAddress":  dbSnmpConf.LocalUDPAddress,
+			"community":        dbSnmpConf.Community,
+			"v3Only":           dbSnmpConf.SNMPv3Only,
+			"v3Username":       dbSnmpConf.SNMPv3Username,
+			"v3AuthProtocol":   dbSnmpConf.SNMPv3AuthProtocol,
+			"v3AuthPassphrase": dbSnmpConf.SNMPv3AuthPassphrase,
+			"v3PrivProtocol":   dbSnmpConf.SNMPv3PrivProtocol,
+			"v3PrivPassphrase": dbSnmpConf.SNMPv3PrivPassphrase,
+		})
+
+		req := httptest.NewRequest(http.MethodGet, SNMPServerPath, nil)
+		w := httptest.NewRecorder()
+		handle.ServeHTTP(w, req)
+
+		assert.Equal(t, http.StatusOK, w.Code, `Then the response code should be "200 OK"`)
+		assert.JSONEq(t, expectedResponse, w.Body.String(),
+			`Then the SNMP server config should have been returned`)
+	})
+}
+
+func TestAddNewSNMPServer(t *testing.T) {
+	const (
+		localUDPAddress  = "127.0.0.1:1610"
+		snmpCommunity    = "waarp-gw"
+		v3Only           = false
+		v3Username       = "toto"
+		v3AuthProtocol   = snmp.AuthSHA
+		v3AuthPassphrase = "123456789"
+		v3PrivProtocol   = snmp.PrivAES
+		v3PrivPassphrase = "987654321"
+	)
+
+	t.Run("When adding a new valid SNMP server", func(t *testing.T) {
+		logger := testhelpers.GetTestLogger(t)
+		db := dbtest.TestDatabase(t)
+		handle := setSnmpService(logger, db)
+		setupSnmpService(t, db)
+
+		reqBody := bytes.Buffer{}
+		encoder := json.NewEncoder(&reqBody)
+
+		input := map[string]any{
+			"localUDPAddress":  localUDPAddress,
+			"community":        snmpCommunity,
+			"v3Only":           v3Only,
+			"v3Username":       v3Username,
+			"v3AuthProtocol":   v3AuthProtocol,
+			"v3AuthPassphrase": v3AuthPassphrase,
+			"v3PrivProtocol":   v3PrivProtocol,
+			"v3PrivPassphrase": v3PrivPassphrase,
+		}
+		require.NoError(t, encoder.Encode(input))
+
+		expectedDBSnmpConf := snmp.ServerConfig{
+			ID:                   1,
+			Owner:                conf.GlobalConfig.GatewayName,
+			LocalUDPAddress:      localUDPAddress,
+			Community:            snmpCommunity,
+			SNMPv3Only:           v3Only,
+			SNMPv3Username:       v3Username,
+			SNMPv3AuthProtocol:   v3AuthProtocol,
+			SNMPv3AuthPassphrase: v3AuthPassphrase,
+			SNMPv3PrivProtocol:   v3PrivProtocol,
+			SNMPv3PrivPassphrase: v3PrivPassphrase,
+		}
+		expectedLoc := SNMPServerPath
+
+		req := httptest.NewRequest(http.MethodPut, SNMPServerPath, &reqBody)
+		w := httptest.NewRecorder()
+		handle.ServeHTTP(w, req)
+
+		assert.Equal(t, http.StatusCreated, w.Code,
+			`Then the response code should be "201 Created"`)
+		assert.Empty(t, w.Body.String(), `Then the response body should be empty`)
+		assert.Equal(t, expectedLoc, w.Header().Get("Location"),
+			`Then the response location header should have been set correctly`)
+		assert.Empty(t, w.Body.String(), `Then the response body should be empty`)
+
+		var dbSnmpConfig snmp.ServerConfig
+
+		require.NoError(t, db.Get(&dbSnmpConfig, "owner=?", conf.GlobalConfig.GatewayName).Run())
+		assert.Equal(t, expectedDBSnmpConf, dbSnmpConfig,
+			`Then the SNMP service config should have been inserted in the database`)
+
+		assert.Equal(t, localUDPAddress, snmp.GlobalService.GetServerAddr(),
+			`Then the SNMP server should be listening at the provided local address`)
+	})
+}
+
+func TestUpdateSNMPServer(t *testing.T) {
+	const (
+		newLocalUDPAddress = "127.0.0.1:1611"
+		newSnmpCommunity   = "public"
+		newV3Only          = false
+	)
+
+	t.Run("When changing the existing SNMP server", func(t *testing.T) {
+		logger := testhelpers.GetTestLogger(t)
+		db := dbtest.TestDatabase(t)
+		handle := setSnmpService(logger, db)
+
+		oldDBSnmpConf := snmp.ServerConfig{
+			LocalUDPAddress:      "127.0.0.1:1610",
+			Community:            "waarp-gw",
+			SNMPv3Only:           true,
+			SNMPv3Username:       "toto",
+			SNMPv3AuthProtocol:   snmp.AuthSHA,
+			SNMPv3AuthPassphrase: "123456789",
+			SNMPv3PrivProtocol:   snmp.PrivAES,
+			SNMPv3PrivPassphrase: "987654321",
+		}
+		require.NoError(t, db.Insert(&oldDBSnmpConf).Run())
+		setupSnmpService(t, db)
+
+		reqBody := bytes.Buffer{}
+		encoder := json.NewEncoder(&reqBody)
+
+		input := map[string]any{
+			"localUDPAddress": newLocalUDPAddress,
+			"community":       newSnmpCommunity,
+			"v3Only":          newV3Only,
+		}
+		require.NoError(t, encoder.Encode(input))
+
+		expectedDBSnmpConf := snmp.ServerConfig{
+			ID:                   oldDBSnmpConf.ID,
+			Owner:                oldDBSnmpConf.Owner,
+			LocalUDPAddress:      newLocalUDPAddress,
+			Community:            newSnmpCommunity,
+			SNMPv3Only:           newV3Only,
+			SNMPv3Username:       oldDBSnmpConf.SNMPv3Username,
+			SNMPv3AuthProtocol:   oldDBSnmpConf.SNMPv3AuthProtocol,
+			SNMPv3AuthPassphrase: oldDBSnmpConf.SNMPv3AuthPassphrase,
+			SNMPv3PrivProtocol:   oldDBSnmpConf.SNMPv3PrivProtocol,
+			SNMPv3PrivPassphrase: oldDBSnmpConf.SNMPv3PrivPassphrase,
+		}
+		expectedLoc := SNMPServerPath
+
+		req := httptest.NewRequest(http.MethodPut, SNMPServerPath, &reqBody)
+		w := httptest.NewRecorder()
+		handle.ServeHTTP(w, req)
+
+		assert.Equal(t, http.StatusCreated, w.Code,
+			`Then the response code should be "201 Created"`)
+		assert.Empty(t, w.Body.String(), `Then the response body should be empty`)
+		assert.Equal(t, expectedLoc, w.Header().Get("Location"),
+			`Then the response location header should have been set correctly`)
+		assert.Empty(t, w.Body.String(), `Then the response body should be empty`)
+
+		var dbSnmpConfig snmp.ServerConfig
+
+		require.NoError(t, db.Get(&dbSnmpConfig, "owner=?", conf.GlobalConfig.GatewayName).Run())
+		assert.Equal(t, expectedDBSnmpConf, dbSnmpConfig,
+			`Then the SNMP service config should have been updated in the database`)
+
+		assert.Equal(t, newLocalUDPAddress, snmp.GlobalService.GetServerAddr(),
+			`Then the SNMP server should be listening at the newly provided local address`)
+	})
+}
+
+func TestDeleteSnmpServer(t *testing.T) {
+	t.Run("When deleting the existing SNMP server config", func(t *testing.T) {
+		logger := testhelpers.GetTestLogger(t)
+		db := dbtest.TestDatabase(t)
+		handle := deleteSnmpService(logger, db)
+
+		dbSnmpConf := snmp.ServerConfig{
+			LocalUDPAddress:      "127.0.0.1:1610",
+			Community:            "waarp-gw",
+			SNMPv3Only:           false,
+			SNMPv3Username:       "toto",
+			SNMPv3AuthProtocol:   snmp.AuthSHA,
+			SNMPv3AuthPassphrase: "123456789",
+			SNMPv3PrivProtocol:   snmp.PrivAES,
+			SNMPv3PrivPassphrase: "987654321",
+		}
+		require.NoError(t, db.Insert(&dbSnmpConf).Run())
+
+		setupSnmpService(t, db)
+		require.Equal(t, dbSnmpConf.LocalUDPAddress, snmp.GlobalService.GetServerAddr())
+
+		req := httptest.NewRequest(http.MethodGet, SNMPServerPath, nil)
+		w := httptest.NewRecorder()
+		handle.ServeHTTP(w, req)
+
+		assert.Equal(t, http.StatusNoContent, w.Code, `Then the response code should be "204 No Content"`)
+		assert.Zero(t, w.Body.String(), `Then the response body should be blank`)
+
+		var dbCheck snmp.ServerConfig
+		var dbErr *database.NotFoundError
+
+		require.ErrorAs(t, db.Get(&dbCheck, "true").Run(), &dbErr,
+			`Then the SNMP server config should have been deleted from the database`)
+
+		assert.Zero(t, snmp.GlobalService.GetServerAddr(),
+			`Then the SNMP server should no longer be listening on the network`)
 	})
 }

@@ -54,7 +54,7 @@ func restCloudToDB(cloud *api.PostCloudReqObject) *model.CloudInstance {
 		Name:    cloud.Name,
 		Type:    cloud.Type,
 		Key:     cloud.Key,
-		Secret:  types.CypherText(cloud.Secret),
+		Secret:  types.SecretText(cloud.Secret),
 		Options: cloud.Options,
 	}
 }
@@ -141,7 +141,7 @@ func updateCloud(logger *log.Logger, db *database.DB) http.HandlerFunc {
 			Name:    restCloud.Name,
 			Type:    restCloud.Type,
 			Key:     restCloud.Key.Value,
-			Secret:  types.CypherText(restCloud.Secret.Value),
+			Secret:  types.SecretText(restCloud.Secret.Value),
 			Options: restCloud.Options,
 		}
 

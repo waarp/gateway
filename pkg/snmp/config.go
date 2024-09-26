@@ -43,39 +43,51 @@ const (
 )
 
 type ServerConfig struct {
+	ID    int64  `xorm:"<- id AUTOINCR"`
 	Owner string `xorm:"owner"`
 
 	LocalUDPAddress string `xorm:"local_udp_address"`
-	Username        string `xorm:"username"`
-	SNMPv3Only      bool   `xorm:"snmp_v3_only"`
+	Community       string `xorm:"community"`
 
-	AuthProtocol   string `xorm:"authentication_protocol"`
-	AuthPassphrase string `xorm:"authentication_passphrase"`
-
-	PrivProtocol   string `xorm:"privacy_protocol"`
-	PrivPassphrase string `xorm:"privacy_passphrase"`
+	SNMPv3Only           bool             `xorm:"v3_only"`
+	SNMPv3Username       string           `xorm:"v3_username"`
+	SNMPv3AuthProtocol   string           `xorm:"v3_auth_protocol"`
+	SNMPv3AuthPassphrase types.SecretText `xorm:"v3_auth_passphrase"`
+	SNMPv3PrivProtocol   string           `xorm:"v3_priv_protocol"`
+	SNMPv3PrivPassphrase types.SecretText `xorm:"v3_priv_passphrase"`
 }
 
 func (*ServerConfig) TableName() string   { return "snmp_server_conf" }
 func (*ServerConfig) Appellation() string { return "SNMP server config" }
+func (s *ServerConfig) GetID() int64      { return s.ID }
 
-func (s *ServerConfig) BeforeWrite(database.Access) error {
+func (s *ServerConfig) BeforeWrite(db database.Access) error {
 	s.Owner = conf.GlobalConfig.GatewayName
 
-	if _, err := net.ResolveUDPAddr("udp", s.LocalUDPAddress); err == nil {
+	if s.Community == "" {
+		s.Community = "public"
+	}
+
+	if _, err := net.ResolveUDPAddr("udp", s.LocalUDPAddress); err != nil {
 		return database.NewValidationError("invalid UDP address %q: %w", s.LocalUDPAddress, err)
 	}
 
-	if proto := getAuthProtocol(s.AuthProtocol); proto == 0 {
-		return database.NewValidationError("invalid authentication protocol %q", s.AuthProtocol)
+	if proto := getAuthProtocol(s.SNMPv3AuthProtocol); proto == 0 {
+		return database.NewValidationError("invalid authentication protocol %q", s.SNMPv3AuthProtocol)
 	} else if proto == gosnmp.NoAuth {
-		s.AuthPassphrase = ""
+		s.SNMPv3AuthPassphrase = ""
 	}
 
-	if proto := getPrivProtocol(s.PrivProtocol); proto == 0 {
-		return database.NewValidationError("invalid privacy protocol %q", s.PrivProtocol)
+	if proto := getPrivProtocol(s.SNMPv3PrivProtocol); proto == 0 {
+		return database.NewValidationError("invalid privacy protocol %q", s.SNMPv3PrivProtocol)
 	} else if proto == gosnmp.NoPriv {
-		s.PrivPassphrase = ""
+		s.SNMPv3PrivPassphrase = ""
+	}
+
+	if n, err := db.Count(s).Where("id<>? AND owner=?", s.ID, s.Owner).Run(); err != nil {
+		return fmt.Errorf("failed to check existing SNMP server config: %w", err)
+	} else if n > 0 {
+		return database.NewValidationError("this agent already has an SNMP server config")
 	}
 
 	return nil
@@ -99,10 +111,10 @@ type MonitorConfig struct {
 	AuthEngineID   string           `xorm:"snmp_v3_auth_engine_id"`
 	AuthUsername   string           `xorm:"snmp_v3_auth_username"`
 	AuthProtocol   string           `xorm:"snmp_v3_auth_protocol"`
-	AuthPassphrase types.CypherText `xorm:"snmp_v3_auth_passphrase"`
+	AuthPassphrase types.SecretText `xorm:"snmp_v3_auth_passphrase"`
 
 	PrivProtocol   string           `xorm:"snmp_v3_priv_protocol"`
-	PrivPassphrase types.CypherText `xorm:"snmp_v3_priv_passphrase"`
+	PrivPassphrase types.SecretText `xorm:"snmp_v3_priv_passphrase"`
 }
 
 func (m *MonitorConfig) GetID() int64      { return m.ID }
@@ -130,7 +142,8 @@ func (m *MonitorConfig) BeforeWrite(db database.Access) error {
 		m.Community = "public"
 	}
 
-	if n, err := db.Count(m).Where("name=?", m.Name).Run(); err != nil {
+	if n, err := db.Count(m).Where("id<>? AND name=? AND owner=?", m.ID, m.Name,
+		m.Owner).Run(); err != nil {
 		return fmt.Errorf("failed to check existing SNMP monitors: %w", err)
 	} else if n > 0 {
 		return database.NewValidationError("an SNMP monitor named %q already exists", m.Name)

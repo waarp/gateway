@@ -1,5 +1,3 @@
-//go:build snmp_server
-
 package snmp
 
 import (
@@ -17,16 +15,18 @@ func (s *Service) listen(conf *ServerConfig) error {
 			SnmpV3Only:               conf.SNMPv3Only,
 			AuthoritativeEngineBoots: 1,
 			Users: []gosnmp.UsmSecurityParameters{{
-				UserName:                 conf.Username,
-				AuthenticationProtocol:   getAuthProtocol(conf.AuthProtocol),
-				PrivacyProtocol:          getPrivProtocol(conf.PrivProtocol),
-				AuthenticationPassphrase: conf.AuthPassphrase,
-				PrivacyPassphrase:        conf.PrivPassphrase,
+				UserName:                 conf.SNMPv3Username,
+				AuthenticationProtocol:   getAuthProtocol(conf.SNMPv3AuthProtocol),
+				PrivacyProtocol:          getPrivProtocol(conf.SNMPv3PrivProtocol),
+				AuthenticationPassphrase: string(conf.SNMPv3AuthPassphrase),
+				PrivacyPassphrase:        string(conf.SNMPv3PrivPassphrase),
 			}},
 		},
-		SubAgents: []*snmplib.SubAgent{
-			// TODO: implement this
-		},
+		SubAgents: []*snmplib.SubAgent{{
+			CommunityIDs: []string{conf.Community},
+			OIDs:         getServerPDUs(),
+			Logger:       serverLog(s.Logger),
+		}},
 		Logger: serverLog(s.Logger),
 	}
 
@@ -40,8 +40,6 @@ func (s *Service) listen(conf *ServerConfig) error {
 		if err := s.server.ServeForever(); err != nil {
 			s.state.Set(utils.StateError, err.Error())
 		}
-
-		s.server.Shutdown()
 	}()
 
 	return nil

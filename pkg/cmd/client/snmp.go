@@ -3,6 +3,7 @@ package wg
 import (
 	"fmt"
 	"io"
+	"net/http"
 	"path"
 
 	"code.waarp.fr/apps/gateway/gateway/pkg/admin/rest/api"
@@ -177,6 +178,75 @@ func (s *SnmpMonitorDelete) execute(w io.Writer) error {
 	}
 
 	fmt.Fprintf(w, "The SNMP monitor %q was successfully deleted.\n", s.Args.Name)
+
+	return nil
+}
+
+func displaySnmpServerConfig(w io.Writer, monitor *api.GetSnmpServiceRespObject) {
+	style1.printf(w, "SNMP server configuration")
+	style22.printL(w, "Local UDP address", monitor.LocalUDPAddress)
+	style22.option(w, "Community", monitor.Community)
+	style22.printL(w, "Accepted SNMP versions", ifElse(monitor.V3Only, "SNMPv3",
+		"SNMPv2c & SNMPv3"))
+	style22.option(w, "SNMPv3 username", monitor.V3Username)
+	style22.option(w, "SNMPv3 authentication protocol", monitor.V3AuthProtocol)
+	style22.option(w, "SNMPv3 authentication passphrase", monitor.V3AuthPassphrase)
+	style22.option(w, "SNMPv3 privacy protocol", monitor.V3PrivProtocol)
+	style22.option(w, "SNMPv3 privacy passphrase", monitor.V3PrivPassphrase)
+}
+
+//nolint:lll //tags can be long for flags
+type SnmpServerSet struct {
+	LocalUDPAddress  string `short:"u" long:"udp-address" description:"The SNMP server's local UDP address" json:"localUDPAddress,omitempty"`
+	Community        string `short:"c" long:"community" description:"The SNMP server's community string" default:"public" json:"community,omitempty"`
+	V3Only           bool   `long:"v3-only" description:"Set the server to only accept SNMPv3" json:"v3Only"`
+	V3Username       string `long:"auth-username" description:"The SNMPv3 authentication username" json:"v3Username,omitempty"`
+	V3AuthProtocol   string `long:"auth-protocol" description:"The SNMPv3 authentication protocol" choice:"MD5" choice:"SHA" choice:"SHA224" choice:"SHA256" choice:"SHA384" choice:"SHA512" json:"v3AuthProtocol,omitempty"`
+	V3AuthPassphrase string `long:"auth-passphrase" description:"The SNMPv3 authentication passphrase" json:"v3AuthPassphrase,omitempty"`
+	V3PrivProtocol   string `long:"priv-protocol" description:"The SNMPv3 privacy protocol" choice:"DES" choice:"AES" choice:"AES192" choice:"AES192C" choice:"AES256" choice:"AES256C" json:"v3PrivProtocol,omitempty"`
+	V3PrivPassphrase string `long:"priv-passphrase" description:"The SNMPv3 privacy passphrase" json:"v3PrivPassphrase,omitempty"`
+}
+
+func (s *SnmpServerSet) Execute([]string) error { return s.execute(stdOutput) }
+func (s *SnmpServerSet) execute(w io.Writer) error {
+	addr.Path = path.Join("/api/snmp/server")
+
+	if err := updateMethod(w, s, http.MethodPut); err != nil {
+		return err
+	}
+
+	fmt.Fprintln(w, "The SNMP server config was successfully updated.")
+
+	return nil
+}
+
+type SnmpServerGet struct{}
+
+func (s *SnmpServerGet) Execute([]string) error { return s.execute(stdOutput) }
+func (s *SnmpServerGet) execute(w io.Writer) error {
+	addr.Path = path.Join("/api/snmp/server")
+
+	var serverConf api.GetSnmpServiceRespObject
+	if err := get(&serverConf); err != nil {
+		return err
+	}
+
+	displaySnmpServerConfig(w, &serverConf)
+
+	return nil
+}
+
+type SnmpServerDelete struct{}
+
+func (s *SnmpServerDelete) Execute([]string) error { return s.execute(stdOutput) }
+func (s *SnmpServerDelete) execute(w io.Writer) error {
+	addr.Path = path.Join("/api/snmp/server")
+
+	if err := remove(w); err != nil {
+		return err
+	}
+
+	fmt.Fprintln(w, "The SNMP server config was successfully deleted.")
 
 	return nil
 }

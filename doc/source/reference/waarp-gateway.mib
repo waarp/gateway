@@ -3,12 +3,12 @@ WAARP-GATEWAY-MIB DEFINITIONS ::= BEGIN
 IMPORTS
     NOTIFICATION-GROUP, OBJECT-GROUP
         FROM SNMPv2-CONF
-    MODULE-IDENTITY, NOTIFICATION-TYPE, OBJECT-TYPE, enterprises
+    MODULE-IDENTITY, NOTIFICATION-TYPE, OBJECT-TYPE, enterprises, Unsigned32, Gauge32, Counter64, TimeTicks
         FROM SNMPv2-SMI
     ;
 
 gateway MODULE-IDENTITY
-    LAST-UPDATED "202407040000Z"
+    LAST-UPDATED "202408080000Z"
     ORGANIZATION
         "Waarp SAS"
     CONTACT-INFO
@@ -18,10 +18,11 @@ gateway MODULE-IDENTITY
      email: info@waarp.fr"
     DESCRIPTION
         "The MIB module describing the Waarp-Gateway SNMP interface"
-    REVISION    "202407040000Z"
+    REVISION    "202408080000Z"
     DESCRIPTION
-        "The first draft of the Waarp-Gateway MIB"
-    ::= { enterprises 66666 77 }
+        "Second version of the Waarp Gateway MIB, with the addition of the
+        SNMP server properties."
+    ::= { waarp 77 }
 
 -- Root
 waarp OBJECT IDENTIFIER ::= { enterprises 66666 }
@@ -159,6 +160,224 @@ transferErrorMessage OBJECT-TYPE
         "The transfer's error message"
     ::= { transferErrorObjects 10 }
 
+appInfoObjects OBJECT IDENTIFIER ::= { gwObjects 2 }
+
+appVersion OBJECT-TYPE
+    SYNTAX          OCTET STRING
+    MAX-ACCESS      read-only
+    STATUS          current
+    DESCRIPTION
+        "The application's current version"
+    ::= { appInfoObjects 1 }
+
+appUptime OBJECT-TYPE
+    SYNTAX          TimeTicks
+    MAX-ACCESS      read-only
+    STATUS          current
+    DESCRIPTION
+        "The time elapsed since the application launch (in 100th of a second)"
+    ::= { appInfoObjects 2 }
+
+resourcesInfoObjects OBJECT IDENTIFIER ::= { gwObjects 3 }
+
+memoryUsage OBJECT-TYPE
+    SYNTAX          Gauge32
+    MAX-ACCESS      read-only
+    STATUS          current
+    DESCRIPTION
+        "The amount of memory used by the application (in kB)"
+    ::= { resourcesInfoObjects 1 }
+
+cpuNumber OBJECT-TYPE
+    SYNTAX          Unsigned32
+    MAX-ACCESS      read-only
+    STATUS          current
+    DESCRIPTION
+        "The number of available (logical) CPU cores on the machine"
+    ::= { resourcesInfoObjects 2 }
+
+goroutineNumber OBJECT-TYPE
+    SYNTAX          Gauge32
+    MAX-ACCESS      read-only
+    STATUS          current
+    DESCRIPTION
+        "The number of active goroutines (or threads) in the appication"
+    ::= { resourcesInfoObjects 3 }
+
+incomingConnections OBJECT-TYPE
+    SYNTAX          Gauge32
+    MAX-ACCESS      read-only
+    STATUS          current
+    DESCRIPTION
+        "The number of open incoming connections made to the application"
+    ::= { resourcesInfoObjects 4 }
+
+outgoingConnections OBJECT-TYPE
+    SYNTAX          Gauge32
+    MAX-ACCESS      read-only
+    STATUS          current
+    DESCRIPTION
+        "The number of open outbboing connections made by the application"
+    ::= { resourcesInfoObjects 5 }
+
+--incomingTrafic OBJECT-TYPE
+--    SYNTAX          Gauge32
+--    MAX-ACCESS      read-only
+--    STATUS          current
+--    DESCRIPTION
+--        "The total incoming trafic on the application (in kB/s)"
+--    ::= { resourcesInfoObjects 6 }
+
+--outgoingTrafic OBJECT-TYPE
+--    SYNTAX          Gauge32
+--    MAX-ACCESS      read-only
+--    STATUS          current
+--    DESCRIPTION
+--        "The total outgoing trafic on the application (in kB/s)"
+--    ::= { resourcesInfoObjects 7 }
+
+lastTransferObjects OBJECT IDENTIFIER ::= { gwObjects 4 }
+
+lastTransferID OBJECT-TYPE
+    SYNTAX          OCTET STRING
+    MAX-ACCESS      read-only
+    STATUS          current
+    DESCRIPTION
+        "The ID of the last started transfer"
+    ::= { lastTransferObjects 1 }
+
+lastTransferDate OBJECT-TYPE
+    SYNTAX          OCTET STRING
+    MAX-ACCESS      read-only
+    STATUS          current
+    DESCRIPTION
+        "The last transfer's start time (in ISO 8601 format)"
+    ::= { lastTransferObjects 2 }
+
+lastTransferStatus OBJECT-TYPE
+    SYNTAX          OCTET STRING
+    MAX-ACCESS      read-only
+    STATUS          current
+    DESCRIPTION
+        "The last transfer's status (running, error, ...)"
+    ::= { lastTransferObjects 3 }
+
+transfersStatisticsObjects OBJECT IDENTIFIER ::= { gwObjects 5 }
+
+nbTransfersRunning OBJECT-TYPE
+    SYNTAX          Gauge32
+    MAX-ACCESS      read-only
+    STATUS          current
+    DESCRIPTION
+        "The number of currently running transfers on the application"
+    ::= { transfersStatisticsObjects 1 }
+
+nbTransfersInError OBJECT-TYPE
+    SYNTAX          Gauge32
+    MAX-ACCESS      read-only
+    STATUS          current
+    DESCRIPTION
+        "The total number of transfers currently in error"
+    ::= { transfersStatisticsObjects 2 }
+
+nbTransfersFinished OBJECT-TYPE
+    SYNTAX          Counter64
+    MAX-ACCESS      read-only
+    STATUS          current
+    DESCRIPTION
+        "The total number of finished transfers"
+    ::= { transfersStatisticsObjects 3 }
+
+nbTransfersCanceled OBJECT-TYPE
+    SYNTAX          Counter64
+    MAX-ACCESS      read-only
+    STATUS          current
+    DESCRIPTION
+        "The total number of canceled transfers"
+    ::= { transfersStatisticsObjects 4 }
+
+nbTransfersAll OBJECT-TYPE
+    SYNTAX          Counter64
+    MAX-ACCESS      read-only
+    STATUS          current
+    DESCRIPTION
+        "The total number of all transfers"
+    ::= { transfersStatisticsObjects 5 }
+
+transferErrorStatisticsObjects OBJECT IDENTIFIER ::= { gwObjects 6 }
+
+nbTransfersErrorUnknown OBJECT-TYPE
+    SYNTAX          Gauge32
+    MAX-ACCESS      read-only
+    STATUS          current
+    DESCRIPTION
+        "The number of transfers with unknown errors"
+    ::= { transferErrorStatisticsObjects 1 }
+
+nbTransfersErrorInternal OBJECT-TYPE
+    SYNTAX          Gauge32
+    MAX-ACCESS      read-only
+    STATUS          current
+    DESCRIPTION
+        "The number of transfers with internal errors"
+    ::= { transferErrorStatisticsObjects 2 }
+
+nbTransfersErrorConnection OBJECT-TYPE
+    SYNTAX          Gauge32
+    MAX-ACCESS      read-only
+    STATUS          current
+    DESCRIPTION
+        "The number of transfers with connection errors"
+    ::= { transferErrorStatisticsObjects 3 }
+
+nbTransfersErrorAuthentication OBJECT-TYPE
+    SYNTAX          Gauge32
+    MAX-ACCESS      read-only
+    STATUS          current
+    DESCRIPTION
+        "The number of transfers with authentication errors"
+    ::= { transferErrorStatisticsObjects 4 }
+
+nbTransfersErrorAuthorization OBJECT-TYPE
+    SYNTAX          Gauge32
+    MAX-ACCESS      read-only
+    STATUS          current
+    DESCRIPTION
+        "The number of transfers with authorization errors"
+    ::= { transferErrorStatisticsObjects 5 }
+
+nbTransfersErrorFileNotFound OBJECT-TYPE
+    SYNTAX          Gauge32
+    MAX-ACCESS      read-only
+    STATUS          current
+    DESCRIPTION
+        "The number of transfers with file not found errors"
+    ::= { transferErrorStatisticsObjects 6 }
+
+nbTransfersErrorExternalOp OBJECT-TYPE
+    SYNTAX          Gauge32
+    MAX-ACCESS      read-only
+    STATUS          current
+    DESCRIPTION
+        "The number of transfers with external operations errors"
+    ::= { transferErrorStatisticsObjects 7 }
+
+nbTransfersErrorFinalization OBJECT-TYPE
+    SYNTAX          Gauge32
+    MAX-ACCESS      read-only
+    STATUS          current
+    DESCRIPTION
+        "The number of transfers with finalization errors"
+    ::= { transferErrorStatisticsObjects 8 }
+
+nbTransfersErrorIntegrity OBJECT-TYPE
+    SYNTAX          Gauge32
+    MAX-ACCESS      read-only
+    STATUS          current
+    DESCRIPTION
+        "The number of transfers with file integrity errors"
+    ::= { transferErrorStatisticsObjects 9 }
+
 -- 3. Groups
 gwGroups OBJECT IDENTIFIER ::= { gateway 2 }
 
@@ -195,5 +414,69 @@ transferErrorGroup OBJECT-GROUP
     DESCRIPTION
         "The properties sent in the transfer notification"
     ::= { gwGroups 3 }
+
+applicationInfoGroup OBJECT-GROUP
+    OBJECTS
+        { appVersion, appUptime }
+    STATUS          current
+    DESCRIPTION
+        "Properties of the gateway application itself"
+    ::= { gwGroups 4 }
+
+ressourcesInfoGroup OBJECT-GROUP
+    OBJECTS
+        {
+            memoryUsage,
+            cpuNumber,
+            goroutineNumber,
+            incomingConnections,
+            outgoingConnections
+            --incomingTrafic,
+            --outgoingTrafic
+        }
+    STATUS          current
+    DESCRIPTION
+        "Information about the machine ressources allocated to the application"
+    ::= { gwGroups 5 }
+
+lastTransferInfoGroup OBJECT-GROUP
+    OBJECTS
+        { lastTransferID, lastTransferDate, lastTransferStatus }
+    STATUS          current
+    DESCRIPTION
+        "Properties of the gateway's last transfer"
+    ::= { gwGroups 6 }
+
+transferStatsGroup OBJECT-GROUP
+    OBJECTS
+        {
+            nbTransfersAll,
+            nbTransfersRunning,
+            nbTransfersInError,
+            nbTransfersFinished,
+            nbTransfersCanceled
+        }
+    STATUS          current
+    DESCRIPTION
+        "Statistics about file transfers"
+    ::= { gwGroups 7 }
+
+transferErrorsStatsGroup OBJECT-GROUP
+    OBJECTS
+        {
+            nbTransfersErrorUnknown,
+            nbTransfersErrorInternal,
+            nbTransfersErrorConnection,
+            nbTransfersErrorAuthentication,
+            nbTransfersErrorAuthorization,
+            nbTransfersErrorFileNotFound,
+            nbTransfersErrorExternalOp,
+            nbTransfersErrorFinalization,
+            nbTransfersErrorIntegrity
+        }
+    STATUS          current
+    DESCRIPTION
+        "Statistics about transfers errors"
+    ::= { gwGroups 8 }
 
 END

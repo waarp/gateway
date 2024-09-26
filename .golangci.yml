@@ -843,6 +843,13 @@ issues:
         - govet
       text: "printf: non-constant format string in call to"
 
+    # Disable global vars check on the SNMP OIDs file. To allow other apps to
+    # use the SNMP package, OIDs are stored as variables instead of constants.
+    # For simplicity, we disable the linter on the whole file.
+    - path: pkg/snmp/oids.go
+      linters:
+        - gochecknoglobals
+
   # Independently from option `exclude` we use default exclude patterns,
   # it can be disabled by this option. To list all
   # excluded by default patterns execute `golangci-lint run --help`.
