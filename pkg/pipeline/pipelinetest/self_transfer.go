@@ -262,9 +262,11 @@ func (s *SelfContext) RunTransfer(c convey.C, willFail bool) {
 		utils.WaitChan(s.servDone, transferTimeout), convey.ShouldBeTrue)
 	s.waitForListDeletion()
 
-	testhelpers.ShouldSucceedAfter(c, time.Second, convey.ShouldEqual,
+	const connCloseTimeout = 3 * time.Second
+
+	testhelpers.ShouldSucceedAfter(c, connCloseTimeout, convey.ShouldEqual,
 		analytics.GlobalService.OpenIncomingConnections.Load, 0)
-	testhelpers.ShouldSucceedAfter(c, time.Second, convey.ShouldEqual,
+	testhelpers.ShouldSucceedAfter(c, connCloseTimeout, convey.ShouldEqual,
 		analytics.GlobalService.OpenOutgoingConnections.Load, 0)
 }
 

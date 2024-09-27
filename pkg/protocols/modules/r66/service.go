@@ -3,7 +3,6 @@
 package r66
 
 import (
-	"code.waarp.fr/apps/gateway/gateway/pkg/protocols/protoutils"
 	"context"
 	"crypto/tls"
 	"crypto/x509"
@@ -20,6 +19,7 @@ import (
 	"code.waarp.fr/apps/gateway/gateway/pkg/model"
 	"code.waarp.fr/apps/gateway/gateway/pkg/model/authentication/auth"
 	"code.waarp.fr/apps/gateway/gateway/pkg/pipeline"
+	"code.waarp.fr/apps/gateway/gateway/pkg/protocols/protoutils"
 	"code.waarp.fr/apps/gateway/gateway/pkg/snmp"
 	"code.waarp.fr/apps/gateway/gateway/pkg/utils"
 	"code.waarp.fr/apps/gateway/gateway/pkg/utils/compatibility"
@@ -177,24 +177,21 @@ func (s *service) listen() error {
 	addr := conf.GetRealAddress(s.agent.Address.Host,
 		utils.FormatUint(s.agent.Address.Port))
 
-	var err error
+	list, listErr := net.Listen("tcp", addr)
+	if listErr != nil {
+		s.logger.Error("Failed to start R66 listener: %s", listErr)
+
+		return fmt.Errorf("failed to start R66 listener: %w", listErr)
+	}
+
+	s.list = &protoutils.TraceListener{Listener: list}
 
 	if s.agent.Protocol == R66TLS {
-		s.list, err = tls.Listen("tcp", addr, &tls.Config{
+		s.list = tls.NewListener(s.list, &tls.Config{
 			MinVersion:         tls.VersionTLS12,
 			GetConfigForClient: s.makeTLSConf,
 		})
-	} else {
-		s.list, err = net.Listen("tcp", addr)
 	}
-
-	if err != nil {
-		s.logger.Error("Failed to start R66 listener: %s", err)
-
-		return fmt.Errorf("failed to start R66 listener: %w", err)
-	}
-
-	s.list = &protoutils.TraceListener{Listener: s.list}
 
 	go func() {
 		if err := s.server.Serve(s.list); err != nil {

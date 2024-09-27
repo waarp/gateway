@@ -6,8 +6,6 @@ import (
 	"net"
 	"net/http"
 
-	"code.waarp.fr/apps/gateway/gateway/pkg/protocols/protoutils"
-
 	"code.waarp.fr/lib/log"
 
 	"code.waarp.fr/apps/gateway/gateway/pkg/database"
@@ -16,6 +14,7 @@ import (
 	"code.waarp.fr/apps/gateway/gateway/pkg/model/types"
 	"code.waarp.fr/apps/gateway/gateway/pkg/pipeline"
 	"code.waarp.fr/apps/gateway/gateway/pkg/protocols/protocol"
+	"code.waarp.fr/apps/gateway/gateway/pkg/protocols/protoutils"
 	"code.waarp.fr/apps/gateway/gateway/pkg/snmp"
 	"code.waarp.fr/apps/gateway/gateway/pkg/utils"
 )
@@ -35,6 +34,8 @@ type httpClient struct {
 	logger    *log.Logger
 	transport *http.Transport
 	state     utils.State
+
+	disableKeepAlive bool
 }
 
 func (h *httpClient) Start() error {
@@ -70,7 +71,10 @@ func (h *httpClient) start() error {
 		dialer.LocalAddr = localAddr
 	}
 
-	h.transport = &http.Transport{DialContext: dialer.DialContext, DisableKeepAlives: true}
+	h.transport = &http.Transport{
+		DialContext:       dialer.DialContext,
+		DisableKeepAlives: h.disableKeepAlive,
+	}
 
 	return nil
 }
@@ -101,19 +105,21 @@ func (h *httpClient) State() (utils.StateCode, string) { return h.state.Get() }
 
 func newTransferClient(pip *pipeline.Pipeline, transport *http.Transport, isHTTPS bool,
 ) protocol.TransferClient {
+	client := &http.Client{Transport: transport}
+
 	if pip.TransCtx.Rule.IsSend {
 		return &postClient{
-			pip:       pip,
-			transport: transport,
-			isHTTPS:   isHTTPS,
-			reqErr:    make(chan error),
-			resp:      make(chan *http.Response),
+			pip:     pip,
+			client:  client,
+			isHTTPS: isHTTPS,
+			reqErr:  make(chan error),
+			resp:    make(chan *http.Response),
 		}
 	}
 
 	return &getClient{
-		pip:       pip,
-		transport: transport,
-		isHTTPS:   isHTTPS,
+		pip:     pip,
+		client:  client,
+		isHTTPS: isHTTPS,
 	}
 }

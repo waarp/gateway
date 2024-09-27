@@ -1,7 +1,6 @@
 package sftp
 
 import (
-	"code.waarp.fr/apps/gateway/gateway/pkg/protocols/protoutils"
 	"net"
 	"testing"
 
@@ -12,6 +11,7 @@ import (
 	"code.waarp.fr/apps/gateway/gateway/pkg/controller"
 	"code.waarp.fr/apps/gateway/gateway/pkg/model"
 	"code.waarp.fr/apps/gateway/gateway/pkg/pipeline/pipelinetest"
+	"code.waarp.fr/apps/gateway/gateway/pkg/protocols/protoutils"
 	"code.waarp.fr/apps/gateway/gateway/pkg/utils"
 )
 

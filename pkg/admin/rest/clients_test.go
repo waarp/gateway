@@ -52,11 +52,11 @@ func TestClientAdd(t *testing.T) {
 					})
 				})
 
-				Convey("Then it should have started the service", func() {
+				Convey("Then it should have added (but not started) the service", func() {
 					const name = "new_client"
 
 					So(services.Clients, ShouldContainKey, name)
-					So(stateCode(services.Clients[name]), ShouldEqual, utils.StateRunning)
+					So(stateCode(services.Clients[name]), ShouldEqual, utils.StateOffline)
 				})
 			})
 		})

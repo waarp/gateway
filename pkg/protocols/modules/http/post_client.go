@@ -23,15 +23,16 @@ import (
 const resumeTimeout = 3 * time.Second
 
 type postClient struct {
-	pip       *pipeline.Pipeline
-	transport *http.Transport
-	isHTTPS   bool
+	pip     *pipeline.Pipeline
+	client  *http.Client
+	isHTTPS bool
 
 	writer *io.PipeWriter
 	req    *http.Request
 
 	reqErr chan error
 	resp   chan *http.Response
+	cancel func()
 }
 
 func (p *postClient) checkResume(url string) *pipeline.Error {
@@ -58,17 +59,16 @@ func (p *postClient) checkResume(url string) *pipeline.Error {
 	}
 
 	req.SetBasicAuth(p.pip.TransCtx.RemoteAccount.Login, pwd)
-
 	req.Header.Set(httpconst.TransferID, p.pip.TransCtx.Transfer.RemoteTransferID)
 
-	resp, err := http.DefaultClient.Do(req)
+	resp, err := p.client.Do(req)
 	if err != nil {
 		p.pip.Logger.Error("HTTP Head request failed: %s", err)
 
 		return pipeline.NewErrorWith(types.TeInternal, "Head HTTP request failed", err)
 	}
 
-	defer resp.Body.Close() //nolint:errcheck // this error is irrelevant
+	defer discardResponse(resp)
 
 	var prog int64
 
@@ -175,7 +175,10 @@ func (p *postClient) prepareRequest(ready chan struct{}) *pipeline.Error {
 	body, writer := io.Pipe()
 	p.writer = writer
 
-	req, err := http.NewRequestWithContext(context.Background(), http.MethodPost, url, body)
+	ctx, cancel := context.WithCancel(context.Background())
+	p.cancel = cancel
+
+	req, err := http.NewRequestWithContext(ctx, http.MethodPost, url, body)
 	if err != nil {
 		p.pip.Logger.Error("Failed to make HTTP request: %s", err)
 
@@ -206,9 +209,7 @@ func (p *postClient) Request() *pipeline.Error {
 		defer close(p.resp)
 		defer close(p.reqErr)
 
-		client := &http.Client{Transport: p.transport}
-
-		resp, err := client.Do(p.req) //nolint:bodyclose //body is closed in another function
+		resp, err := p.client.Do(p.req) //nolint:bodyclose //body is closed in another function
 		if err != nil {
 			p.pip.Logger.Error("HTTP transfer failed: %s", err)
 			p.reqErr <- err
@@ -245,9 +246,8 @@ func (p *postClient) Send(file protocol.SendFile) *pipeline.Error {
 	case reqErr := <-p.reqErr:
 		return p.wrapAndSendError(reqErr, types.TeDataTransfer, "HTTP transfer failed")
 	case resp := <-p.resp:
-		if cErr := resp.Body.Close(); cErr != nil {
-			p.pip.Logger.Warning("Error while closing response body: %v", cErr)
-		}
+		//nolint:errcheck,gosec //error is irrelevant here
+		defer resp.Body.Close()
 
 		if resp.StatusCode != http.StatusCreated {
 			return getRemoteStatus(resp.Header, resp.Body, p.pip)
@@ -270,12 +270,13 @@ func (p *postClient) EndTransfer() *pipeline.Error {
 	case err := <-p.reqErr:
 		return p.wrapAndSendError(err, types.TeDataTransfer, "HTTP transfer failed")
 	case resp := <-p.resp:
-		if err := resp.Body.Close(); err != nil {
-			p.pip.Logger.Warning("Error while closing response body: %v", err)
-		}
-
 		if resp.StatusCode != http.StatusCreated {
+			//nolint:errcheck,gosec //error is irrelevant here
+			defer resp.Body.Close()
+
 			return getRemoteStatus(resp.Header, resp.Body, p.pip)
+		} else {
+			p.discardResponse()
 		}
 	}
 
@@ -283,49 +284,37 @@ func (p *postClient) EndTransfer() *pipeline.Error {
 }
 
 func (p *postClient) SendError(code types.TransferErrorCode, details string) {
-	if p.writer == nil {
-		return
-	}
-
-	defer p.writer.Close() //nolint:errcheck // error is irrelevant at this point
-
-	if p.req == nil {
+	if p.writer == nil || p.req == nil {
 		return
 	}
 
 	p.req.Trailer.Set(httpconst.TransferStatus, string(types.StatusError))
 	p.req.Trailer.Set(httpconst.ErrorCode, code.String())
 	p.req.Trailer.Set(httpconst.ErrorMessage, details)
+
+	p.discardResponse()
 }
 
 func (p *postClient) Pause() *pipeline.Error {
-	if p.writer == nil {
-		return nil
-	}
-
-	defer p.writer.Close() //nolint:errcheck // error is irrelevant at this point
-
-	if p.req == nil {
+	if p.writer == nil || p.req == nil {
 		return nil
 	}
 
 	p.req.Trailer.Set(httpconst.TransferStatus, string(types.StatusPaused))
 
+	p.discardResponse()
+
 	return nil
 }
 
 func (p *postClient) Cancel() *pipeline.Error {
-	if p.writer == nil {
-		return nil
-	}
-
-	defer p.writer.Close() //nolint:errcheck // error is irrelevant at this point
-
-	if p.req == nil {
+	if p.writer == nil || p.req == nil {
 		return nil
 	}
 
 	p.req.Trailer.Set(httpconst.TransferStatus, string(types.StatusCancelled))
+
+	p.discardResponse()
 
 	return nil
 }
@@ -342,4 +331,18 @@ func (p *postClient) wrapAndSendError(cause error, code types.TransferErrorCode,
 	p.SendError(tErr.Code(), tErr.Redacted())
 
 	return tErr
+}
+
+//nolint:errcheck,gosec //errors are irrelevant here, we just want to discard the response
+func (p *postClient) discardResponse() {
+	p.writer.Close()
+	discardResponse(<-p.resp)
+}
+
+//nolint:errcheck,gosec //errors are irrelevant here, we just want to discard the response
+func discardResponse(resp *http.Response) {
+	if resp != nil {
+		io.Copy(io.Discard, resp.Body)
+		resp.Body.Close()
+	}
 }

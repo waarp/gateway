@@ -9,8 +9,6 @@ import (
 	"net"
 	"time"
 
-	"code.waarp.fr/apps/gateway/gateway/pkg/protocols/protoutils"
-
 	"code.waarp.fr/lib/log"
 	"golang.org/x/crypto/ssh"
 
@@ -19,6 +17,7 @@ import (
 	"code.waarp.fr/apps/gateway/gateway/pkg/model"
 	"code.waarp.fr/apps/gateway/gateway/pkg/pipeline"
 	"code.waarp.fr/apps/gateway/gateway/pkg/protocols/protocol"
+	"code.waarp.fr/apps/gateway/gateway/pkg/protocols/protoutils"
 	"code.waarp.fr/apps/gateway/gateway/pkg/snmp"
 	"code.waarp.fr/apps/gateway/gateway/pkg/utils"
 )

@@ -207,7 +207,10 @@ func initTestData(c convey.C) *testData {
 	db := database.TestDatabase(c)
 	testFS := fstest.InitMemFS(c)
 	c.Reset(pipeline.List.Reset)
-	c.So(logging.AddLogBackend("WARNING", "stdout", "", ""), convey.ShouldBeNil)
+
+	// Change log level if needed. Set to CRITICAL to avoid polluting stdout
+	// with error messages from error tests.
+	c.So(logging.AddLogBackend("CRITICAL", "stdout", "", ""), convey.ShouldBeNil)
 
 	analytics.GlobalService = &analytics.Service{DB: db}
 	c.So(analytics.GlobalService.Start(), convey.ShouldBeNil)

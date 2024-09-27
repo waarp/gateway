@@ -312,10 +312,10 @@ func TestCreateServer(t *testing.T) {
 							})
 						})
 
-						Convey("Then it should have added the server to the service list", func() {
+						Convey("Then it should have added (but not started) the server to the service list", func() {
 							const name = "new_server"
 							So(services.Servers, ShouldContainKey, name)
-							So(stateCode(services.Servers[name]), ShouldEqual, utils.StateRunning)
+							So(stateCode(services.Servers[name]), ShouldEqual, utils.StateOffline)
 						})
 
 						Convey("Then the existing server should still be "+

@@ -6,13 +6,17 @@ import (
 
 	. "github.com/smartystreets/goconvey/convey"
 
+	"code.waarp.fr/apps/gateway/gateway/pkg/database"
+	"code.waarp.fr/apps/gateway/gateway/pkg/gatewayd/services"
 	"code.waarp.fr/apps/gateway/gateway/pkg/model"
 	"code.waarp.fr/apps/gateway/gateway/pkg/pipeline/pipelinetest"
 )
 
 func init() {
 	pipelinetest.Protocols[HTTP] = pipelinetest.ProtoFeatures{
-		MakeClient:        Module{}.NewClient,
+		MakeClient: func(db *database.DB, client *model.Client) services.Client {
+			return &httpClient{db: db, client: client, disableKeepAlive: true}
+		},
 		MakeServer:        Module{}.NewServer,
 		MakeServerConfig:  Module{}.MakeServerConfig,
 		MakeClientConfig:  Module{}.MakeClientConfig,
@@ -20,7 +24,11 @@ func init() {
 		TransID:           true, RuleName: true, Size: true, TransferInfo: true,
 	}
 	pipelinetest.Protocols[HTTPS] = pipelinetest.ProtoFeatures{
-		MakeClient:        ModuleHTTPS{}.NewClient,
+		MakeClient: func(db *database.DB, client *model.Client) services.Client {
+			return &httpsClient{
+				httpClient: &httpClient{db: db, client: client, disableKeepAlive: true},
+			}
+		},
 		MakeServer:        ModuleHTTPS{}.NewServer,
 		MakeServerConfig:  ModuleHTTPS{}.MakeServerConfig,
 		MakeClientConfig:  ModuleHTTPS{}.MakeClientConfig,

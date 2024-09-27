@@ -17,9 +17,9 @@ import (
 )
 
 type getClient struct {
-	pip       *pipeline.Pipeline
-	transport *http.Transport
-	isHTTPS   bool
+	pip     *pipeline.Pipeline
+	client  *http.Client
+	isHTTPS bool
 
 	resp   *http.Response
 	ctx    context.Context
@@ -67,9 +67,7 @@ func (g *getClient) Request() *pipeline.Error {
 	req.Trailer = make(http.Header)
 	req.Trailer.Set(httpconst.TransferStatus, "")
 
-	client := &http.Client{Transport: g.transport}
-
-	g.resp, reqErr = client.Do(req) //nolint:bodyclose //body is closed in another function
+	g.resp, reqErr = g.client.Do(req) //nolint:bodyclose //body is closed in another function
 	if reqErr != nil {
 		g.pip.Logger.Error("Failed to connect to remote host: %s", reqErr)
 

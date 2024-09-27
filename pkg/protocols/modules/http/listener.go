@@ -78,8 +78,6 @@ func (h *httpService) listen() error {
 		return fmt.Errorf("failed to start server listener: %w", netErr)
 	}
 
-	list = &protoutils.TraceListener{Listener: list}
-
 	go func() {
 		servErr := h.serv.Serve(list)
 		if !errors.Is(servErr, http.ErrServerClosed) {
