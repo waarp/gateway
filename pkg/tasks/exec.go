@@ -55,41 +55,33 @@ func (e *execTask) Run(parent context.Context, params map[string]string,
 func parseExecArgs(params map[string]string) (path, args string,
 	delay time.Duration, err error,
 ) {
-	var ok bool
-	if path, ok = params["path"]; !ok || path == "" {
+	var hasPath bool
+	if path, hasPath = params["path"]; !hasPath || path == "" {
 		err = fmt.Errorf("missing program path: %w", ErrBadTaskArguments)
 
 		return "", "", 0, err
 	}
 
-	if args, ok = params["args"]; !ok {
-		err = fmt.Errorf("missing program arguments: %w", ErrBadTaskArguments)
+	args = params["args"]
 
-		return "", "", 0, err
+	if delayStr, hasDelay := params["delay"]; hasDelay {
+		//nolint:gomnd // useless to define a constant
+		delayMs, parsErr := strconv.ParseInt(delayStr, 10, 64)
+		if parsErr != nil {
+			parsErr = fmt.Errorf("invalid program delay: %w", ErrBadTaskArguments)
+
+			return "", "", 0, parsErr
+		}
+
+		if delayMs < 0 {
+			err = fmt.Errorf("invalid program delay value (must be positive or 0): %w",
+				ErrBadTaskArguments)
+
+			return "", "", 0, err
+		}
+
+		delay = time.Duration(delayMs) * time.Millisecond
 	}
-
-	d, ok := params["delay"]
-	if !ok {
-		err = fmt.Errorf("missing program delay: %w", ErrBadTaskArguments)
-
-		return "", "", 0, err
-	}
-
-	d2, err := strconv.ParseFloat(d, 64) //nolint:gomnd // useless to define a constant
-	if err != nil {
-		err = fmt.Errorf("invalid program delay: %w", ErrBadTaskArguments)
-
-		return "", "", 0, err
-	}
-
-	if delay < 0 {
-		err = fmt.Errorf("invalid program delay value (must be positive or 0): %w",
-			ErrBadTaskArguments)
-
-		return "", "", 0, err
-	}
-
-	delay = time.Duration(d2) * time.Millisecond
 
 	return path, args, delay, nil
 }

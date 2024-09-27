@@ -3,6 +3,9 @@
 Historique des versions
 =======================
 
+* :bug:`-` Les paramètres ``"args"`` et ``"delay"`` des diverses tâches *EXEC* -
+  spécifiant respectivement les arguments du programme externe, et le temps
+  limite d'exécution de la tâche - sont désormais optionnels.
 * :bug:`414` Le paramètre ``"using"`` de la tâche *TRANSFER*, spécifiant le
   client à utiliser pour le transfert, est désormais optionnel. Si l'argument
   n'est pas présent, un client par défaut sera utilisé (si possible),

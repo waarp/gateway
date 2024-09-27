@@ -47,7 +47,7 @@ func TestExecValidate(t *testing.T) {
 			})
 		})
 
-		Convey("Given that a parameter is missing", func() {
+		Convey("Given that a optional parameter is missing", func() {
 			args := map[string]string{
 				"path":  "cp",
 				"delay": "1000",
@@ -56,8 +56,8 @@ func TestExecValidate(t *testing.T) {
 			Convey("When validating the task", func() {
 				err := exec.Validate(args)
 
-				Convey("Then it should return an error", func() {
-					So(err, ShouldNotBeNil)
+				Convey("Then it should NOT return an error", func() {
+					So(err, ShouldBeNil)
 				})
 			})
 		})

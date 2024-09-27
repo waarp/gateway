@@ -99,6 +99,7 @@ func getTransferInfo(db *database.DB, args map[string]string) (file string,
 	}
 
 	client := &model.Client{}
+
 	if clientName == "" {
 		var err error
 		if client, err = model.GetDefaultTransferClient(db, acc.ID); err != nil {
