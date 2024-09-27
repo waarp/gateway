@@ -209,7 +209,7 @@ func (t *Transfer) BeforeWrite(db database.Access) error {
 		}
 
 		if !t.ClientID.Valid {
-			if err := t.setTransferClient(db); err != nil {
+			if err := t.setDefaultTransferClient(db); err != nil {
 				return err
 			}
 		}
@@ -422,43 +422,50 @@ func (t *Transfer) TransferID() (int64, error) {
 	return id.Int64(), nil
 }
 
-// setTransferClient sets the transfer's client if it was not specified by
+// setDefaultTransferClient sets the transfer's client if it was not specified by
 // the user (to maintain backwards compatibility).
-func (t *Transfer) setTransferClient(db database.Access) error {
+func (t *Transfer) setDefaultTransferClient(db database.Access) error {
+	client, err := GetDefaultTransferClient(db, t.RemoteAccountID.Int64)
+	if err != nil {
+		return err
+	}
+
+	t.ClientID = utils.NewNullInt64(client.ID)
+
+	return nil
+}
+
+func GetDefaultTransferClient(db database.Access, remoteAccountID int64) (*Client, error) {
 	// Retrieve the transfer's partner (to retrieve the transfer's protocol).
 	var partner RemoteAgent
 	if err := db.Get(&partner, "id=(SELECT remote_agent_id FROM remote_accounts WHERE id=?)",
-		t.RemoteAccountID).Run(); err != nil {
-		return fmt.Errorf("failed to retrieve transfer partner: %w", err)
+		remoteAccountID).Run(); err != nil {
+		return nil, fmt.Errorf("failed to retrieve transfer partner: %w", err)
 	}
 
 	// Retrieve all clients with the transfer's protocol.
 	var clients Clients
 	if err := db.Select(&clients).Where("protocol=? AND owner=?", partner.Protocol,
 		conf.GlobalConfig.GatewayName).Run(); err != nil {
-		return fmt.Errorf("failed to retrieve potential transfer clients: %w", err)
+		return nil, fmt.Errorf("failed to retrieve potential transfer clients: %w", err)
 	}
 
 	// If more than one client was found, return an error to the user (because
 	// we don't know which one to use, so we ask the user to specify one).
 	if len(clients) > 1 {
-		return database.NewValidationError("the transfer is missing a client ID")
+		return nil, database.NewValidationError("the transfer is missing a client ID")
 	}
 
 	// If exactly one client was found, use it.
 	if len(clients) == 1 {
-		t.ClientID = utils.NewNullInt64(clients[0].ID)
-
-		return nil
+		return clients[0], nil
 	}
 
 	// Finally, if no clients were found, create a new default one and use it.
 	client := Client{Protocol: partner.Protocol}
 	if err := db.Insert(&client).Run(); err != nil {
-		return fmt.Errorf("failed to create new transfer client: %w", err)
+		return nil, fmt.Errorf("failed to create new transfer client: %w", err)
 	}
 
-	t.ClientID = utils.NewNullInt64(client.ID)
-
-	return nil
+	return &client, nil
 }

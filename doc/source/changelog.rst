@@ -3,6 +3,10 @@
 Historique des versions
 =======================
 
+* :bug:`414` Le paramètre ``"using"`` de la tâche *TRANSFER*, spécifiant le
+  client à utiliser pour le transfert, est désormais optionnel. Si l'argument
+  n'est pas présent, un client par défaut sera utilisé (si possible),
+  similairement à si le transfert avait été créé via l'interface REST.
 * :bug:`412` Les clients & serveurs locaux ne sont plus automatiquement
   démarrés à leur création via l'interface REST. Un appel au handler ``start``
   est désormais nécessaire pour démarrer les serveurs et clients nouvellement

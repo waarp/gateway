@@ -112,6 +112,16 @@ func TestTransferRun(t *testing.T) {
 		}
 		So(db.Insert(oldTransfer).Run(), ShouldBeNil)
 
+		transCtx := &model.TransferContext{
+			Transfer: oldTransfer,
+			TransInfo: map[string]any{
+				"foo": "bar", "baz": true,
+			},
+			Rule:          pull,
+			RemoteAgent:   partner,
+			RemoteAccount: account,
+		}
+
 		Convey("Given a send 'TRANSFER' task", func() {
 			runner := &TransferTask{}
 			args := map[string]string{
@@ -126,16 +136,7 @@ func TestTransferRun(t *testing.T) {
 
 			Convey("Given that the parameters are valid", func() {
 				Convey("When running the task", func() {
-					err := runner.Run(context.Background(), args, db, logger,
-						&model.TransferContext{
-							Transfer: oldTransfer,
-							TransInfo: map[string]any{
-								"foo": "bar", "baz": true,
-							},
-							Rule:          pull,
-							RemoteAgent:   partner,
-							RemoteAccount: account,
-						})
+					err := runner.Run(context.Background(), args, db, logger, transCtx)
 
 					Convey("Then it should NOT return an error", func() {
 						So(err, ShouldBeNil)
@@ -166,11 +167,11 @@ func TestTransferRun(t *testing.T) {
 				args["to"] = "toto"
 
 				Convey("When running the task", func() {
-					err := runner.Run(context.Background(), args, db, logger, nil)
+					err := runner.Run(context.Background(), args, db, logger, transCtx)
 
 					Convey("Then it should return an error", func() {
 						So(err, ShouldBeError, fmt.Sprintf(
-							"failed to retrieve partner '%s': partner not found",
+							"failed to retrieve partner %q: partner not found",
 							args["to"]))
 					})
 				})
@@ -180,11 +181,11 @@ func TestTransferRun(t *testing.T) {
 				args["as"] = "toto"
 
 				Convey("When running the task", func() {
-					err := runner.Run(context.Background(), args, db, logger, nil)
+					err := runner.Run(context.Background(), args, db, logger, transCtx)
 
 					Convey("Then it should return an error", func() {
 						So(err, ShouldBeError, fmt.Sprintf(
-							"failed to retrieve account '%s': remote account not found",
+							"failed to retrieve account %q: remote account not found",
 							args["as"]))
 					})
 				})
@@ -194,11 +195,11 @@ func TestTransferRun(t *testing.T) {
 				args["rule"] = "toto"
 
 				Convey("When running the task", func() {
-					err := runner.Run(context.Background(), args, db, logger, nil)
+					err := runner.Run(context.Background(), args, db, logger, transCtx)
 
 					Convey("Then it should return an error", func() {
 						So(err, ShouldBeError, fmt.Sprintf(
-							"failed to retrieve rule '%s': rule not found",
+							"failed to retrieve rule %q: rule not found",
 							args["rule"]))
 					})
 				})
@@ -208,12 +209,24 @@ func TestTransferRun(t *testing.T) {
 				args["using"] = "toto"
 
 				Convey("When running the task", func() {
-					err := runner.Run(context.Background(), args, db, logger, nil)
+					err := runner.Run(context.Background(), args, db, logger, transCtx)
 
 					Convey("Then it should return an error", func() {
 						So(err, ShouldBeError, fmt.Sprintf(
 							"failed to retrieve client %q: client not found",
 							args["using"]))
+					})
+				})
+			})
+
+			Convey("Given that the client is missing", func() {
+				delete(args, "using")
+
+				Convey("When running the task", func() {
+					err := runner.Run(context.Background(), args, db, logger, transCtx)
+
+					Convey("Then it should NOT return an error", func() {
+						So(err, ShouldBeNil)
 					})
 				})
 			})
@@ -231,7 +244,7 @@ func TestTransferRun(t *testing.T) {
 
 			Convey("Given that the parameters are valid", func() {
 				Convey("When running the task", func() {
-					err := trans.Run(context.Background(), args, db, logger, nil)
+					err := trans.Run(context.Background(), args, db, logger, transCtx)
 
 					Convey("Then it should NOT return an error", func() {
 						So(err, ShouldBeNil)
@@ -252,11 +265,11 @@ func TestTransferRun(t *testing.T) {
 				args["from"] = "toto"
 
 				Convey("When running the task", func() {
-					err := trans.Run(context.Background(), args, db, logger, nil)
+					err := trans.Run(context.Background(), args, db, logger, transCtx)
 
 					Convey("Then it should return an error", func() {
 						So(err, ShouldBeError, fmt.Sprintf(
-							"failed to retrieve partner '%s': partner not found",
+							"failed to retrieve partner %q: partner not found",
 							args["from"]))
 					})
 				})
@@ -266,11 +279,11 @@ func TestTransferRun(t *testing.T) {
 				args["as"] = "toto"
 
 				Convey("When running the task", func() {
-					err := trans.Run(context.Background(), args, db, logger, nil)
+					err := trans.Run(context.Background(), args, db, logger, transCtx)
 
 					Convey("Then it should return an error", func() {
 						So(err, ShouldBeError, fmt.Sprintf(
-							"failed to retrieve account '%s': remote account not found",
+							"failed to retrieve account %q: remote account not found",
 							args["as"]))
 					})
 				})
@@ -280,11 +293,11 @@ func TestTransferRun(t *testing.T) {
 				args["rule"] = "toto"
 
 				Convey("When running the task", func() {
-					err := trans.Run(context.Background(), args, db, logger, nil)
+					err := trans.Run(context.Background(), args, db, logger, transCtx)
 
 					Convey("Then it should return an error", func() {
 						So(err, ShouldBeError, fmt.Sprintf(
-							"failed to retrieve rule '%s': rule not found",
+							"failed to retrieve rule %q: rule not found",
 							args["rule"]))
 					})
 				})
