@@ -3,6 +3,7 @@
 package r66
 
 import (
+	"code.waarp.fr/apps/gateway/gateway/pkg/protocols/protoutils"
 	"context"
 	"crypto/tls"
 	"crypto/x509"
@@ -192,6 +193,8 @@ func (s *service) listen() error {
 
 		return fmt.Errorf("failed to start R66 listener: %w", err)
 	}
+
+	s.list = &protoutils.TraceListener{Listener: s.list}
 
 	go func() {
 		if err := s.server.Serve(s.list); err != nil {

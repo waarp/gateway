@@ -7,7 +7,6 @@ import (
 	"net/http"
 	"path"
 
-	"code.waarp.fr/apps/gateway/gateway/pkg/analytics"
 	"code.waarp.fr/apps/gateway/gateway/pkg/conf"
 	"code.waarp.fr/apps/gateway/gateway/pkg/model/authentication/auth"
 	"code.waarp.fr/apps/gateway/gateway/pkg/model/types"
@@ -79,11 +78,7 @@ func (g *getClient) Request() *pipeline.Error {
 
 	switch g.resp.StatusCode {
 	case http.StatusOK, http.StatusPartialContent:
-		analytics.AddOutgoingConnection()
-
 		if err := g.getSizeProgress(); err != nil {
-			analytics.SubOutgoingConnection()
-
 			return err
 		}
 
@@ -139,8 +134,6 @@ func (g *getClient) Receive(file protocol.ReceiveFile) *pipeline.Error {
 }
 
 func (g *getClient) EndTransfer() *pipeline.Error {
-	defer analytics.SubOutgoingConnection()
-
 	if g.resp != nil {
 		if err := g.resp.Body.Close(); err != nil {
 			g.pip.Logger.Warning("Error while closing the response body: %v", err)
@@ -151,8 +144,6 @@ func (g *getClient) EndTransfer() *pipeline.Error {
 }
 
 func (g *getClient) SendError(types.TransferErrorCode, string) {
-	defer analytics.SubOutgoingConnection()
-
 	if g.resp != nil {
 		_ = g.resp.Body.Close() //nolint:errcheck // error is irrelevant at this point
 	}

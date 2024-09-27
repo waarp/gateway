@@ -5,6 +5,8 @@ import (
 	"fmt"
 	"net"
 
+	"code.waarp.fr/apps/gateway/gateway/pkg/protocols/protoutils"
+
 	"code.waarp.fr/lib/log"
 
 	"code.waarp.fr/apps/gateway/gateway/pkg/conf"
@@ -55,6 +57,8 @@ func (s *service) start() error {
 
 		return fmt.Errorf("failed to start server listener: %w", err3)
 	}
+
+	listener = &protoutils.TraceListener{Listener: listener}
 
 	s.listener = &sshListener{
 		DB:       s.db,

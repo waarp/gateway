@@ -6,6 +6,8 @@ import (
 	"net"
 	"net/http"
 
+	"code.waarp.fr/apps/gateway/gateway/pkg/protocols/protoutils"
+
 	"code.waarp.fr/lib/log"
 
 	"code.waarp.fr/apps/gateway/gateway/pkg/database"
@@ -55,7 +57,7 @@ func (h *httpClient) Start() error {
 
 func (h *httpClient) start() error {
 	h.logger = logging.NewLogger(h.client.Name)
-	h.transport = &http.Transport{}
+	dialer := &protoutils.TraceDialer{Dialer: &net.Dialer{}}
 
 	if h.client.LocalAddress.IsSet() {
 		localAddr, err := net.ResolveTCPAddr("tcp", h.client.LocalAddress.String())
@@ -65,8 +67,10 @@ func (h *httpClient) start() error {
 			return fmt.Errorf("failed to parse the HTTP client's local address: %w", err)
 		}
 
-		h.transport.DialContext = (&net.Dialer{LocalAddr: localAddr}).DialContext
+		dialer.LocalAddr = localAddr
 	}
+
+	h.transport = &http.Transport{DialContext: dialer.DialContext, DisableKeepAlives: true}
 
 	return nil
 }

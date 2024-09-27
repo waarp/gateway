@@ -14,7 +14,6 @@ import (
 	"github.com/pkg/sftp"
 	"golang.org/x/crypto/ssh"
 
-	"code.waarp.fr/apps/gateway/gateway/pkg/analytics"
 	"code.waarp.fr/apps/gateway/gateway/pkg/database"
 	"code.waarp.fr/apps/gateway/gateway/pkg/model"
 	"code.waarp.fr/apps/gateway/gateway/pkg/model/types"
@@ -56,9 +55,6 @@ func (l *sshListener) listen() {
 
 //nolint:funlen // factorizing would add complexity
 func (l *sshListener) handleConnection(nConn net.Conn) {
-	analytics.AddIncomingConnection()
-	defer analytics.SubIncomingConnection()
-
 	defer closeTCPConn(nConn, l.Logger)
 
 	servConn, channels, reqs, err := ssh.NewServerConn(nConn, l.SSHConf)

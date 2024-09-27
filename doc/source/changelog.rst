@@ -3,6 +3,12 @@
 Historique des versions
 =======================
 
+* :bug:`412` Les clients & serveurs locaux ne sont plus automatiquement
+  démarrés à leur création via l'interface REST. Un appel au handler ``start``
+  est désormais nécessaire pour démarrer les serveurs et clients nouvellement
+  créés. À noter cependant que les handlers REST de modification et de suppression
+  des serveurs et clients locaux auront toujours pour effet de, respectivement,
+  redémarrer et stopper les serveurs et clients concernés.
 * :feature:`347` Toutes les réponses aux requêtes faites au serveur HTTP
   d'administration contiennent désormais les informations du serveur (notamment
   sa version) dans l'entête standard "Server". Auparavant, ces informations

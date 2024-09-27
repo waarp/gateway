@@ -106,14 +106,12 @@ func addServer(logger *log.Logger, db *database.DB) http.HandlerFunc {
 			return
 		}
 
-		if err := db.Insert(dbServer).Run(); handleError(w, logger, err) {
+		server, modErr := makeServerService(db, dbServer)
+		if handleError(w, logger, modErr) {
 			return
 		}
 
-		module := protocols.Get(dbServer.Protocol)
-
-		server := module.NewServer(db, dbServer)
-		if err := server.Start(); handleError(w, logger, err) {
+		if err := db.Insert(dbServer).Run(); handleError(w, logger, err) {
 			return
 		}
 
@@ -154,14 +152,17 @@ func updateServer(logger *log.Logger, db *database.DB) http.HandlerFunc {
 
 		dbServer.ID = oldServer.ID
 
-		if err := db.Update(dbServer).Run(); handleError(w, logger, err) {
-			return
-		}
-
 		newService, servErr := makeServerService(db, dbServer)
 		if handleError(w, logger, servErr) {
 			return
 		}
+
+		if err := db.Update(dbServer).Run(); handleError(w, logger, err) {
+			return
+		}
+
+		delete(services.Servers, oldName)
+		services.Servers[dbServer.Name] = newService
 
 		if state, _ := oldService.State(); state == utils.StateRunning {
 			ctx, cancel := context.WithTimeout(r.Context(), serviceShutdownTimeout)
@@ -175,9 +176,6 @@ func updateServer(logger *log.Logger, db *database.DB) http.HandlerFunc {
 				return
 			}
 		}
-
-		delete(services.Servers, oldName)
-		services.Servers[dbServer.Name] = newService
 
 		w.Header().Set("Location", locationUpdate(r.URL, dbServer.Name))
 		w.WriteHeader(http.StatusCreated)
@@ -203,14 +201,17 @@ func replaceServer(logger *log.Logger, db *database.DB) http.HandlerFunc {
 
 		dbServer.ID = oldServer.ID
 
-		if err := db.Update(dbServer).Run(); handleError(w, logger, err) {
-			return
-		}
-
 		newService, servErr := makeServerService(db, dbServer)
 		if handleError(w, logger, servErr) {
 			return
 		}
+
+		if err := db.Update(dbServer).Run(); handleError(w, logger, err) {
+			return
+		}
+
+		delete(services.Servers, oldServer.Name)
+		services.Servers[dbServer.Name] = newService
 
 		if state, _ := oldService.State(); state == utils.StateRunning {
 			ctx, cancel := context.WithTimeout(r.Context(), serviceShutdownTimeout)
@@ -224,9 +225,6 @@ func replaceServer(logger *log.Logger, db *database.DB) http.HandlerFunc {
 				return
 			}
 		}
-
-		delete(services.Servers, oldServer.Name)
-		services.Servers[dbServer.Name] = newService
 
 		w.Header().Set("Location", locationUpdate(r.URL, dbServer.Name))
 		w.WriteHeader(http.StatusCreated)

@@ -134,16 +134,12 @@ func createClient(logger *log.Logger, db *database.DB) http.HandlerFunc {
 			return
 		}
 
-		if err := db.Insert(dbClient).Run(); handleError(w, logger, err) {
-			return
-		}
-
 		service, err := makeClientService(db, dbClient)
 		if handleError(w, logger, err) {
 			return
 		}
 
-		if err := service.Start(); handleError(w, logger, err) {
+		if err := db.Insert(dbClient).Run(); handleError(w, logger, err) {
 			return
 		}
 
@@ -215,14 +211,17 @@ func updateClient(logger *log.Logger, db *database.DB) http.HandlerFunc {
 			}
 		}
 
-		if err := db.Update(dbClient).Run(); handleError(w, logger, err) {
-			return
-		}
-
 		newService, err := makeClientService(db, dbClient)
 		if handleError(w, logger, err) {
 			return
 		}
+
+		if err := db.Update(dbClient).Run(); handleError(w, logger, err) {
+			return
+		}
+
+		delete(services.Clients, oldDBClient.Name)
+		services.Clients[dbClient.Name] = newService
 
 		if state, _ := oldService.State(); state == utils.StateRunning {
 			ctx, cancel := context.WithTimeout(r.Context(), serviceShutdownTimeout)
@@ -236,9 +235,6 @@ func updateClient(logger *log.Logger, db *database.DB) http.HandlerFunc {
 				return
 			}
 		}
-
-		delete(services.Clients, oldDBClient.Name)
-		services.Clients[dbClient.Name] = newService
 
 		w.Header().Set("Location", location(r.URL, dbClient.Name))
 		w.WriteHeader(http.StatusCreated)
@@ -265,14 +261,17 @@ func replaceClient(logger *log.Logger, db *database.DB) http.HandlerFunc {
 
 		dbClient.ID = oldDBClient.ID
 
-		if err := db.Update(dbClient).Run(); handleError(w, logger, err) {
-			return
-		}
-
 		newService, err := makeClientService(db, dbClient)
 		if handleError(w, logger, err) {
 			return
 		}
+
+		if err := db.Update(dbClient).Run(); handleError(w, logger, err) {
+			return
+		}
+
+		delete(services.Clients, oldDBClient.Name)
+		services.Clients[dbClient.Name] = newService
 
 		if state, _ := oldService.State(); state == utils.StateRunning {
 			ctx, cancel := context.WithTimeout(r.Context(), serviceShutdownTimeout)
@@ -286,9 +285,6 @@ func replaceClient(logger *log.Logger, db *database.DB) http.HandlerFunc {
 				return
 			}
 		}
-
-		delete(services.Clients, oldDBClient.Name)
-		services.Clients[dbClient.Name] = newService
 
 		w.Header().Set("Location", location(r.URL, dbClient.Name))
 		w.WriteHeader(http.StatusCreated)
