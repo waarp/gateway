@@ -11,6 +11,7 @@ import (
 	"code.waarp.fr/apps/gateway/gateway/pkg/controller"
 	"code.waarp.fr/apps/gateway/gateway/pkg/model"
 	"code.waarp.fr/apps/gateway/gateway/pkg/pipeline/pipelinetest"
+	"code.waarp.fr/apps/gateway/gateway/pkg/protocols/protoutils"
 	"code.waarp.fr/apps/gateway/gateway/pkg/utils"
 )
 
@@ -48,7 +49,8 @@ func TestAddressIndirection(t *testing.T) {
 				pip, err := controller.NewClientPipeline(ctx.DB, ctx.ClientTrans)
 				So(err, ShouldBeNil)
 
-				cli, err := newTransferClient(pip.Pip, &net.Dialer{}, &ssh.Config{})
+				dialer := &protoutils.TraceDialer{Dialer: &net.Dialer{}}
+				cli, err := newTransferClient(pip.Pip, dialer, &ssh.Config{})
 				So(err, ShouldBeNil)
 
 				So(cli.Request(), ShouldBeNil)

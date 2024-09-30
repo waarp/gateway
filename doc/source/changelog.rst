@@ -3,6 +3,23 @@
 Historique des versions
 =======================
 
+* :bug:`412` Les clients & serveurs locaux ne sont plus automatiquement
+  démarrés à leur création via l'interface REST. Un appel au handler ``start``
+  est désormais nécessaire pour démarrer les serveurs et clients nouvellement
+  créés. À noter cependant que les handlers REST de modification et de suppression
+  des serveurs et clients locaux auront toujours pour effet de, respectivement,
+  redémarrer et stopper les serveurs et clients concernés.
+* :feature:`347` Toutes les réponses aux requêtes faites au serveur HTTP
+  d'administration contiennent désormais les informations du serveur (notamment
+  sa version) dans l'entête standard "Server". Auparavant, ces informations
+  n'était renvoyées que dans les réponses du handler ``/api/about``.
+* :feature:`394` Ajout de logging des requêtes REST. Les requêtes faites au
+  serveur HTTP d'administration sont désormais loggées au niveau *DEBUG*.
+* :feature:`409` Ajout de l'outil de profiling *pprof* au serveur d'administration.
+  Cet outil ajoute des handlers au serveur HTTP d'administration qui permettent
+  d'exporter divers profils d'activité de l'application. Pour plus de détails,
+  consulter la documentation publique de `pprof <https://pkg.go.dev/runtime/pprof>`_
+  et de ses `handlers HTTP <https://pkg.go.dev/net/http/pprof>`_.
 * :feature:`54` Deuxième partie de l'ajout du service SNMP. Un serveur SNMP a
   a été ajouté permettant de récupérer des informations de diagnostique.
   Consulter :ref:`la MIB SNMP <reference-snmp-mib>` pour plus d'information.

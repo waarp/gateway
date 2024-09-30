@@ -12,6 +12,7 @@ import (
 	"code.waarp.fr/apps/gateway/gateway/pkg/logging"
 	"code.waarp.fr/apps/gateway/gateway/pkg/model"
 	"code.waarp.fr/apps/gateway/gateway/pkg/pipeline"
+	"code.waarp.fr/apps/gateway/gateway/pkg/protocols/protoutils"
 	"code.waarp.fr/apps/gateway/gateway/pkg/snmp"
 	"code.waarp.fr/apps/gateway/gateway/pkg/utils"
 )
@@ -55,6 +56,8 @@ func (s *service) start() error {
 
 		return fmt.Errorf("failed to start server listener: %w", err3)
 	}
+
+	listener = &protoutils.TraceListener{Listener: listener}
 
 	s.listener = &sshListener{
 		DB:       s.db,

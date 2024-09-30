@@ -7,7 +7,6 @@ import (
 	"net/http"
 	"path"
 
-	"code.waarp.fr/apps/gateway/gateway/pkg/analytics"
 	"code.waarp.fr/apps/gateway/gateway/pkg/conf"
 	"code.waarp.fr/apps/gateway/gateway/pkg/model/authentication/auth"
 	"code.waarp.fr/apps/gateway/gateway/pkg/model/types"
@@ -18,9 +17,9 @@ import (
 )
 
 type getClient struct {
-	pip       *pipeline.Pipeline
-	transport *http.Transport
-	isHTTPS   bool
+	pip     *pipeline.Pipeline
+	client  *http.Client
+	isHTTPS bool
 
 	resp   *http.Response
 	ctx    context.Context
@@ -68,9 +67,7 @@ func (g *getClient) Request() *pipeline.Error {
 	req.Trailer = make(http.Header)
 	req.Trailer.Set(httpconst.TransferStatus, "")
 
-	client := &http.Client{Transport: g.transport}
-
-	g.resp, reqErr = client.Do(req) //nolint:bodyclose //body is closed in another function
+	g.resp, reqErr = g.client.Do(req) //nolint:bodyclose //body is closed in another function
 	if reqErr != nil {
 		g.pip.Logger.Error("Failed to connect to remote host: %s", reqErr)
 
@@ -79,11 +76,7 @@ func (g *getClient) Request() *pipeline.Error {
 
 	switch g.resp.StatusCode {
 	case http.StatusOK, http.StatusPartialContent:
-		analytics.AddOutgoingConnection()
-
 		if err := g.getSizeProgress(); err != nil {
-			analytics.SubOutgoingConnection()
-
 			return err
 		}
 
@@ -139,8 +132,6 @@ func (g *getClient) Receive(file protocol.ReceiveFile) *pipeline.Error {
 }
 
 func (g *getClient) EndTransfer() *pipeline.Error {
-	defer analytics.SubOutgoingConnection()
-
 	if g.resp != nil {
 		if err := g.resp.Body.Close(); err != nil {
 			g.pip.Logger.Warning("Error while closing the response body: %v", err)
@@ -151,8 +142,6 @@ func (g *getClient) EndTransfer() *pipeline.Error {
 }
 
 func (g *getClient) SendError(types.TransferErrorCode, string) {
-	defer analytics.SubOutgoingConnection()
-
 	if g.resp != nil {
 		_ = g.resp.Body.Close() //nolint:errcheck // error is irrelevant at this point
 	}

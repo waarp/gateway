@@ -17,6 +17,7 @@ import (
 	"code.waarp.fr/apps/gateway/gateway/pkg/model"
 	"code.waarp.fr/apps/gateway/gateway/pkg/pipeline"
 	"code.waarp.fr/apps/gateway/gateway/pkg/protocols/protocol"
+	"code.waarp.fr/apps/gateway/gateway/pkg/protocols/protoutils"
 	"code.waarp.fr/apps/gateway/gateway/pkg/snmp"
 	"code.waarp.fr/apps/gateway/gateway/pkg/utils"
 )
@@ -32,7 +33,7 @@ type client struct {
 	state   utils.State
 	logger  *log.Logger
 	sshConf ssh.Config
-	dialer  *net.Dialer
+	dialer  *protoutils.TraceDialer
 }
 
 func (c *client) State() (utils.StateCode, string) {
@@ -64,7 +65,7 @@ func (c *client) start() error {
 		return fmt.Errorf("failed to parse the SFTP client's proto config: %w", err)
 	}
 
-	c.dialer = &net.Dialer{Timeout: clientDialTimeout}
+	c.dialer = &protoutils.TraceDialer{Dialer: &net.Dialer{Timeout: clientDialTimeout}}
 	c.sshConf = ssh.Config{
 		KeyExchanges: clientConf.KeyExchanges,
 		Ciphers:      clientConf.Ciphers,

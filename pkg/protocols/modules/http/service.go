@@ -6,11 +6,13 @@ package http
 import (
 	"context"
 	"fmt"
+	"net"
 	"net/http"
 	"time"
 
 	"code.waarp.fr/lib/log"
 
+	"code.waarp.fr/apps/gateway/gateway/pkg/analytics"
 	"code.waarp.fr/apps/gateway/gateway/pkg/database"
 	"code.waarp.fr/apps/gateway/gateway/pkg/logging"
 	"code.waarp.fr/apps/gateway/gateway/pkg/model"
@@ -66,7 +68,17 @@ func (h *httpService) start() error {
 		Handler:           h.makeHandler(),
 		ErrorLog:          h.logger.AsStdLogger(log.LevelError),
 		ReadHeaderTimeout: readHeaderTimeout,
+		ConnState: func(conn net.Conn, state http.ConnState) {
+			switch state {
+			case http.StateNew:
+				analytics.AddIncomingConnection()
+			case http.StateClosed:
+				analytics.SubIncomingConnection()
+			default:
+			}
+		},
 	}
+	// h.serv.SetKeepAlivesEnabled(false)
 
 	if err := h.listen(); err != nil {
 		return err

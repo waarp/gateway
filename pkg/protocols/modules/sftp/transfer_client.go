@@ -3,7 +3,6 @@ package sftp
 import (
 	"errors"
 	"io"
-	"net"
 	"os"
 	"path"
 
@@ -11,7 +10,6 @@ import (
 	"golang.org/x/crypto/ssh"
 	"golang.org/x/exp/slices"
 
-	"code.waarp.fr/apps/gateway/gateway/pkg/analytics"
 	"code.waarp.fr/apps/gateway/gateway/pkg/conf"
 	"code.waarp.fr/apps/gateway/gateway/pkg/fs"
 	"code.waarp.fr/apps/gateway/gateway/pkg/model"
@@ -19,6 +17,7 @@ import (
 	"code.waarp.fr/apps/gateway/gateway/pkg/model/types"
 	"code.waarp.fr/apps/gateway/gateway/pkg/pipeline"
 	"code.waarp.fr/apps/gateway/gateway/pkg/protocols/protocol"
+	"code.waarp.fr/apps/gateway/gateway/pkg/protocols/protoutils"
 	"code.waarp.fr/apps/gateway/gateway/pkg/utils"
 )
 
@@ -26,7 +25,7 @@ import (
 // interface which enables the gateway to execute SFTP transfers.
 type transferClient struct {
 	pip    *pipeline.Pipeline
-	dialer *net.Dialer
+	dialer *protoutils.TraceDialer
 
 	partnerConf *partnerConfig
 	sshConf     *ssh.Config
@@ -36,7 +35,7 @@ type transferClient struct {
 	sftpFile   *sftp.File
 }
 
-func newTransferClient(pip *pipeline.Pipeline, dialer *net.Dialer, sshClientConf *ssh.Config,
+func newTransferClient(pip *pipeline.Pipeline, dialer *protoutils.TraceDialer, sshClientConf *ssh.Config,
 ) (*transferClient, *pipeline.Error) {
 	var partnerConf partnerConfig
 	if err := utils.JSONConvert(pip.TransCtx.RemoteAgent.ProtoConfig, &partnerConf); err != nil {
@@ -222,8 +221,6 @@ func (c *transferClient) openSSHConn() *pipeline.Error {
 			"failed to start the SSH session", sshErr)
 	}
 
-	analytics.AddOutgoingConnection()
-
 	c.sshClient = ssh.NewClient(sshConn, chans, reqs)
 
 	return nil
@@ -388,8 +385,6 @@ func (c *transferClient) endTransfer() (tErr *pipeline.Error) {
 	}
 
 	if c.sshClient != nil {
-		defer analytics.SubOutgoingConnection()
-
 		if err := c.sshClient.Close(); err != nil {
 			c.pip.Logger.Error("Failed to close SSH session: %s", err)
 
@@ -411,8 +406,6 @@ func (c *transferClient) wrapAndSendError(err error, defaultCode types.TransferE
 
 func (c *transferClient) SendError(types.TransferErrorCode, string) {
 	if c.sshClient != nil {
-		defer analytics.SubOutgoingConnection()
-
 		if err := c.sshClient.Close(); err != nil {
 			c.pip.Logger.Warning("An error occurred while closing the SSH session: %v", err)
 		}

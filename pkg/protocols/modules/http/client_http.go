@@ -14,6 +14,7 @@ import (
 	"code.waarp.fr/apps/gateway/gateway/pkg/model/types"
 	"code.waarp.fr/apps/gateway/gateway/pkg/pipeline"
 	"code.waarp.fr/apps/gateway/gateway/pkg/protocols/protocol"
+	"code.waarp.fr/apps/gateway/gateway/pkg/protocols/protoutils"
 	"code.waarp.fr/apps/gateway/gateway/pkg/snmp"
 	"code.waarp.fr/apps/gateway/gateway/pkg/utils"
 )
@@ -33,6 +34,8 @@ type httpClient struct {
 	logger    *log.Logger
 	transport *http.Transport
 	state     utils.State
+
+	disableKeepAlive bool
 }
 
 func (h *httpClient) Start() error {
@@ -55,7 +58,7 @@ func (h *httpClient) Start() error {
 
 func (h *httpClient) start() error {
 	h.logger = logging.NewLogger(h.client.Name)
-	h.transport = &http.Transport{}
+	dialer := &protoutils.TraceDialer{Dialer: &net.Dialer{}}
 
 	if h.client.LocalAddress.IsSet() {
 		localAddr, err := net.ResolveTCPAddr("tcp", h.client.LocalAddress.String())
@@ -65,7 +68,12 @@ func (h *httpClient) start() error {
 			return fmt.Errorf("failed to parse the HTTP client's local address: %w", err)
 		}
 
-		h.transport.DialContext = (&net.Dialer{LocalAddr: localAddr}).DialContext
+		dialer.LocalAddr = localAddr
+	}
+
+	h.transport = &http.Transport{
+		DialContext:       dialer.DialContext,
+		DisableKeepAlives: h.disableKeepAlive,
 	}
 
 	return nil
@@ -97,19 +105,21 @@ func (h *httpClient) State() (utils.StateCode, string) { return h.state.Get() }
 
 func newTransferClient(pip *pipeline.Pipeline, transport *http.Transport, isHTTPS bool,
 ) protocol.TransferClient {
+	client := &http.Client{Transport: transport}
+
 	if pip.TransCtx.Rule.IsSend {
 		return &postClient{
-			pip:       pip,
-			transport: transport,
-			isHTTPS:   isHTTPS,
-			reqErr:    make(chan error),
-			resp:      make(chan *http.Response),
+			pip:     pip,
+			client:  client,
+			isHTTPS: isHTTPS,
+			reqErr:  make(chan error),
+			resp:    make(chan *http.Response),
 		}
 	}
 
 	return &getClient{
-		pip:       pip,
-		transport: transport,
-		isHTTPS:   isHTTPS,
+		pip:     pip,
+		client:  client,
+		isHTTPS: isHTTPS,
 	}
 }
