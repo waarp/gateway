@@ -127,44 +127,47 @@ func (r *RemoteAgent) Authenticate(db database.ReadAccess, authType string, valu
 
 func (r *RemoteAgent) AfterInsert(db database.Access) error { return r.AfterUpdate(db) }
 
-// AfterUpdate is called after any write operation on the remote_agents table.
-// If the agent uses R66, the function checks if is still uses the old credentials
-// stored in the proto config. If it does, an equivalent Credential is inserted.
-// Will be removed once server passwords are definitely removed from the proto config.
-//
-//nolint:dupl //duplicate is for LocalAgent, best keep separate
-func (r *RemoteAgent) AfterUpdate(db database.Access) error {
+func (r *RemoteAgent) getR66ServerPswd() string {
 	if !isR66(r.Protocol) {
-		return nil
+		return ""
 	}
 
 	serverPwd, hasPwd := r.ProtoConfig["serverPassword"]
 	if !hasPwd {
-		return nil
+		return ""
 	}
 
 	serverPasswd, pwdIsStr := serverPwd.(string)
 	if !pwdIsStr || serverPasswd == "" {
+		return ""
+	}
+
+	return serverPasswd
+}
+
+func (r *RemoteAgent) AfterUpdate(db database.Access) error {
+	serverPasswd := r.getR66ServerPswd()
+	if serverPasswd == "" {
 		return nil
 	}
 
-	pswd := Credential{
-		RemoteAgentID: utils.NewNullInt64(r.ID),
-		Type:          authPassword,
-		Value:         serverPasswd,
-	}
+	var pswd Credential
+	if getErr := db.Get(&pswd, "remote_agent_id=? AND type=?",
+		r.ID, authPassword).Run(); database.IsNotFound(getErr) {
+		pswd.RemoteAgentID = utils.NewNullInt64(r.ID)
+		pswd.Type = authPassword
+		pswd.Value = serverPasswd
 
-	if err := db.Get(&pswd, "remote_agent_id=? AND type=?",
-		r.ID, authPassword).Run(); database.IsNotFound(err) {
-		if err2 := db.Insert(&pswd).Run(); err2 != nil {
-			return fmt.Errorf("failed to insert partner password: %w", err2)
+		if insErr := db.Insert(&pswd).Run(); insErr != nil {
+			return fmt.Errorf("failed to insert R66 partner password: %w", insErr)
 		}
-	} else if err != nil {
-		return fmt.Errorf("failed to check for existing credentials: %w", err)
-	}
-
-	if err := db.Update(&pswd).Run(); err != nil {
-		return fmt.Errorf("failed to update partner password: %w", err)
+	} else if getErr != nil {
+		return fmt.Errorf("failed to check for existing credentials: %w", getErr)
+	} else {
+		pswd.Value = serverPasswd
+		if updErr := db.Update(&pswd).Run(); updErr != nil {
+			return fmt.Errorf("failed to update R66 partner password: %w", updErr)
+		}
 	}
 
 	return nil
