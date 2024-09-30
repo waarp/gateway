@@ -3,6 +3,7 @@
 Historique des versions
 =======================
 
+* :release:`0.11.0 <2024-09-30>`
 * :bug:`413` Correction d'un bug qui entraînait un échec de l'authentification
   des partenaires R66 lorsque leur mot de passe avait été renseigné via la
   configuration protocolaire (champ "serverPassword"). Les mots de passe
