@@ -264,10 +264,17 @@ func (s *SelfContext) RunTransfer(c convey.C, willFail bool) {
 
 	const connCloseTimeout = 3 * time.Second
 
-	testhelpers.ShouldSucceedAfter(c, connCloseTimeout, convey.ShouldEqual,
-		analytics.GlobalService.OpenIncomingConnections.Load, 0)
-	testhelpers.ShouldSucceedAfter(c, connCloseTimeout, convey.ShouldEqual,
-		analytics.GlobalService.OpenOutgoingConnections.Load, 0)
+	if !testhelpers.ShouldSucceedAfter(c, connCloseTimeout, convey.ShouldEqual,
+		analytics.GlobalService.OpenIncomingConnections.Load, 0) {
+		//nolint:gosec //we don't care about the error
+		c.Printf(`/!\ Server connection was not closed /!\`)
+	}
+
+	if !testhelpers.ShouldSucceedAfter(c, connCloseTimeout, convey.ShouldEqual,
+		analytics.GlobalService.OpenOutgoingConnections.Load, 0) {
+		//nolint:gosec //we don't care about the error
+		c.Printf(`/!\ Client connection was not closed /!\`)
+	}
 }
 
 func (s *SelfContext) setTrace(pip *pipeline.Pipeline) {

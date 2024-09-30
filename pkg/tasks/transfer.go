@@ -57,69 +57,63 @@ func getTransferInfo(db *database.DB, args map[string]string) (file string,
 		return "", 0, 0, 0, false, infoErr
 	}
 
-	clientName, clientOK := args["using"]
-	if !clientOK || fileName == "" {
-		infoErr = fmt.Errorf("missing transfer client: %w", ErrBadTaskArguments)
-
-		return "", 0, 0, 0, false, infoErr
-	}
+	// client name is optional
+	clientName := args["using"]
 
 	agentName, agentOK := args["to"]
 	if !agentOK || agentName == "" {
 		agentName, agentOK = args["from"]
 		if !agentOK || agentName == "" {
-			infoErr = fmt.Errorf("missing transfer remote partner: %w", ErrBadTaskArguments)
-
-			return "", 0, 0, 0, false, infoErr
+			return "", 0, 0, 0, false,
+				fmt.Errorf("missing transfer remote partner: %w", ErrBadTaskArguments)
 		}
 	} else if from, ok := args["from"]; ok && from != "" {
-		infoErr = fmt.Errorf("cannot have both 'to' and 'from': %w", ErrBadTaskArguments)
-
-		return "", 0, 0, 0, false, infoErr
+		return "", 0, 0, 0, false,
+			fmt.Errorf("cannot have both 'to' and 'from': %w", ErrBadTaskArguments)
 	}
 
 	ruleName, ruleOK := args["rule"]
 	if !ruleOK || ruleName == "" {
-		infoErr = fmt.Errorf("missing transfer rule: %w", ErrBadTaskArguments)
-
-		return "", 0, 0, 0, false, infoErr
+		return "", 0, 0, 0, false, fmt.Errorf("missing transfer rule: %w", ErrBadTaskArguments)
 	}
 
 	rule := &model.Rule{}
 	if err := db.Get(rule, "name=? AND is_send=?", ruleName, args["to"] != "").Run(); err != nil {
-		infoErr = fmt.Errorf("failed to retrieve rule '%s': %w", ruleName, err)
-
-		return "", 0, 0, 0, false, infoErr
-	}
-
-	client := &model.Client{}
-	if err := db.Get(client, "owner=? AND name=?", conf.GlobalConfig.GatewayName,
-		clientName).Run(); err != nil {
-		infoErr = fmt.Errorf("failed to retrieve client %q: %w", clientName, err)
-
-		return "", 0, 0, 0, false, infoErr
+		return "", 0, 0, 0, false, fmt.Errorf("failed to retrieve rule %q: %w", ruleName, err)
 	}
 
 	agent := &model.RemoteAgent{}
 	if err := db.Get(agent, "owner=? AND name=?", conf.GlobalConfig.GatewayName,
 		agentName).Run(); err != nil {
-		infoErr = fmt.Errorf("failed to retrieve partner '%s': %w", agentName, err)
-
-		return "", 0, 0, 0, false, infoErr
+		return "", 0, 0, 0, false, fmt.Errorf("failed to retrieve partner %q: %w", agentName, err)
 	}
 
 	accName, accOK := args["as"]
 	if !accOK || accName == "" {
-		infoErr = fmt.Errorf("missing transfer account: %w", ErrBadTaskArguments)
-
-		return "", 0, 0, 0, false, infoErr
+		return "", 0, 0, 0, false, fmt.Errorf("missing transfer account: %w", ErrBadTaskArguments)
 	}
 
 	acc := &model.RemoteAccount{}
 	if err := db.Get(acc, "remote_agent_id=? AND login=?", agent.ID, accName).Run(); err != nil {
-		infoErr = fmt.Errorf("failed to retrieve account '%s': %w", accName, err)
+		return "", 0, 0, 0, false, fmt.Errorf("failed to retrieve account %q: %w", accName, err)
+	}
 
-		return "", 0, 0, 0, false, infoErr
+	client := &model.Client{}
+
+	if clientName == "" {
+		var err error
+		if client, err = model.GetDefaultTransferClient(db, acc.ID); err != nil {
+			infoErr = fmt.Errorf("failed to retrieve default transfer client: %w", err)
+
+			return "", 0, 0, 0, false, infoErr
+		}
+	} else {
+		if err := db.Get(client, "owner=? AND name=?", conf.GlobalConfig.GatewayName,
+			clientName).Run(); err != nil {
+			infoErr = fmt.Errorf("failed to retrieve client %q: %w", clientName, err)
+
+			return "", 0, 0, 0, false, infoErr
+		}
 	}
 
 	return fileName, rule.ID, client.ID, acc.ID, rule.IsSend, nil
