@@ -262,18 +262,20 @@ func (s *SelfContext) RunTransfer(c convey.C, willFail bool) {
 		utils.WaitChan(s.servDone, transferTimeout), convey.ShouldBeTrue)
 	s.waitForListDeletion()
 
-	const connCloseTimeout = 3 * time.Second
+	const connCloseTimeout = time.Second
 
 	if !testhelpers.ShouldSucceedAfter(c, connCloseTimeout, convey.ShouldEqual,
 		analytics.GlobalService.OpenIncomingConnections.Load, 0) {
 		//nolint:gosec //we don't care about the error
 		c.Printf(`/!\ Server connection was not closed /!\`)
+		analytics.GlobalService.OpenIncomingConnections.Store(0)
 	}
 
 	if !testhelpers.ShouldSucceedAfter(c, connCloseTimeout, convey.ShouldEqual,
 		analytics.GlobalService.OpenOutgoingConnections.Load, 0) {
 		//nolint:gosec //we don't care about the error
 		c.Printf(`/!\ Client connection was not closed /!\`)
+		analytics.GlobalService.OpenOutgoingConnections.Store(0)
 	}
 }
 

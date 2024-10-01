@@ -84,8 +84,8 @@ func TestTransferBeforeWrite(t *testing.T) {
 							So(trans.Status, ShouldEqual, types.StatusPlanned)
 						})
 
-						Convey("Then the transfer owner should be 'test_gateway'", func() {
-							So(trans.Owner, ShouldEqual, "test_gateway")
+						Convey("Then the transfer owner should be the gateway name", func() {
+							So(trans.Owner, ShouldEqual, conf.GlobalConfig.GatewayName)
 						})
 					})
 				})

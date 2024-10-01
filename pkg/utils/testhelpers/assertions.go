@@ -85,20 +85,15 @@ func isError(val interface{}) bool {
 func ShouldSucceedAfter[T any](c convey.C, duration time.Duration,
 	assert convey.Assertion, getActual func() T, expected any,
 ) bool {
-	const checkInterval = 100 * time.Millisecond
-
 	timer := time.NewTimer(duration)
-	ticker := time.NewTicker(checkInterval)
-
 	defer timer.Stop()
-	defer ticker.Stop()
 
 	for {
 		select {
 		case <-timer.C:
 			// c.So(getActual(), assert, expected)
 			return false
-		case <-ticker.C:
+		default:
 			if assert(getActual(), expected) == "" {
 				return true
 			}
