@@ -43,4 +43,4 @@ restent inchangés.
 
 .. code-block:: shell
 
-   waarp-gateway client add --name 'sftp_client' --protocol 'sftp' --local-address '192.168.1.2:8022' --config 'keyExchanges:["ecdh-sha2-nistp256"]'
+   waarp-gateway client update sftp_client --name 'sftp_client2' --protocol 'sftp' --local-address '192.168.1.2:8022' --config 'keyExchanges:["ecdh-sha2-nistp256"]'

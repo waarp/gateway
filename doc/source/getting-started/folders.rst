@@ -4,7 +4,6 @@
 Gestion des dossiers
 ####################
 
-======
 Résumé
 ======
 
@@ -64,7 +63,6 @@ les fichiers sur une machine différente de celle où est installée la gateway.
 Pour plus d'information sur ces chemins distants, voir la `section ci-dessous
  <#instances-cloud>`_.
 
-=======================
 Explications détaillées
 =======================
 
@@ -130,9 +128,8 @@ pas.
 
 .. _instances-cloud:
 
----------------
 Instances cloud
----------------
+===============
 
 .. note::
    Pour des raisons techniques, les dossiers temporaires de réception (que ce

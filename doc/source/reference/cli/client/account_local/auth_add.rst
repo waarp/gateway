@@ -43,4 +43,4 @@ valeur du même nom existe déjà, elle sera écrasée.
 
 .. code-block:: shell
 
-   waarp-gateway account local 'gw_r66' credential 'tata' add -t 'r66_password' -v 'sesame'
+   waarp-gateway account local 'gw_r66' credential 'tata' add -t 'password' -v 'sesame'

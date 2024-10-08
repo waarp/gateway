@@ -48,8 +48,9 @@ Ajoute un nouvel utilisateur avec les identifiants donnés.
    * ``-`` pour enlever un droit aux droits courants
    * ``=`` pour écrases les droits courants
 
-   *Note*: Étant donné que l'utilisateur n'a pas de droits courants,les opérateurs
-   *+* et *-* n'ont pas vraiment de sens avec la commande de création d'utilisateur.
+   .. note::
+      Étant donné que l'utilisateur n'a pas de droits courants,les opérateurs
+      ``+`` et ``-`` n'ont pas vraiment de sens avec la commande de création d'utilisateur.
 
    Ensembles, une cible, un opérateur et les permissions forment un groupe. Les
    groupes doivent être séparé par une virgule ``,``.

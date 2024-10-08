@@ -43,4 +43,4 @@ même nom existe déjà, elle sera écrasée.
 
 .. code-block:: shell
 
-   waarp-gateway server credential 'gw_r66' get -n 'r66_cert' -t 'ssh_private_key' -v './gw_ssh.key'
+   waarp-gateway server credential 'gw_r66' add -n 'r66_cert' -t 'ssh_private_key' -v './gw_ssh.key'

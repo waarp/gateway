@@ -108,7 +108,7 @@ En mode TLS explicite, le client se connecte au serveur en FTP clair, puis
 émet une commande ``AUTH TLS`` pour demander au serveur de passer en mode TLS.
 Ce mode est aussi parfois appelé FTPeS.
 
-Waarp-Gateway supporte les 2 modes de fonctionnement, que ce soit côté client ou
+Waarp Gateway supporte les 2 modes de fonctionnement, que ce soit côté client ou
 serveur. Dans le cas du TLS explicit, il est possible pour les serveur FTPS de
 spécifier si TLS est obligatoire ou facultatif.
 
