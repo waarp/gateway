@@ -184,11 +184,11 @@ type Credential struct {
 }
 
 type Cloud struct {
-	Name    string         `json:"name"`
-	Type    string         `json:"type"`
-	Key     string         `json:"key"`
-	Secret  string         `json:"secret"`
-	Options map[string]any `json:"options"`
+	Name    string            `json:"name"`
+	Type    string            `json:"type"`
+	Key     string            `json:"key"`
+	Secret  string            `json:"secret"`
+	Options map[string]string `json:"options"`
 }
 
 type SNMPConfig struct {

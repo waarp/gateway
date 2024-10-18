@@ -3,9 +3,9 @@ package utils
 import (
 	"errors"
 	"fmt"
+	"slices"
 
 	"golang.org/x/exp/constraints"
-	"golang.org/x/exp/slices"
 )
 
 // If simulates a ternary operator.

@@ -6,33 +6,23 @@ import (
 	"github.com/stretchr/testify/require"
 
 	"code.waarp.fr/apps/gateway/gateway/pkg/database/dbtest"
-	"code.waarp.fr/apps/gateway/gateway/pkg/fs"
-	"code.waarp.fr/apps/gateway/gateway/pkg/fs/filesystems"
+	"code.waarp.fr/apps/gateway/gateway/pkg/fs/fstest"
 	"code.waarp.fr/apps/gateway/gateway/pkg/model"
 	"code.waarp.fr/apps/gateway/gateway/pkg/utils/testhelpers"
 )
 
 func TestExportClouds(t *testing.T) {
-	const testFsType = "test-fs-type"
-
 	logger := testhelpers.GetTestLogger(t)
-
-	filesystems.FileSystems.Store(testFsType,
-		func(string, string, map[string]any) (fs.FS, error) {
-			return nil, nil //nolint:nilnil //doesn't matter, we don't use it
-		})
-	t.Cleanup(func() {
-		filesystems.FileSystems.Delete(testFsType)
-	})
+	fsType := fstest.MakeDummyBackend(t)
 
 	db := dbtest.TestDatabase(t)
 
 	dbCloud := model.CloudInstance{
 		Name:    "remote-fs",
-		Type:    testFsType,
+		Type:    fsType,
 		Key:     "access-key",
 		Secret:  "access-secret",
-		Options: map[string]any{"key1": "val1", "key2": true},
+		Options: map[string]string{"key1": "val1", "key2": "val2"},
 	}
 	require.NoError(t, db.Insert(&dbCloud).Run())
 

@@ -33,12 +33,14 @@ func resetPip(pip *Pipeline) {
 }
 
 func TestNewClientPipeline(t *testing.T) {
+	root := t.TempDir()
+
 	Convey("Given a database", t, func(c C) {
-		ctx := initTestDB(c)
+		ctx := initTestDB(c, root)
 
 		Convey("Given a send transfer", func(c C) {
 			trans := mkSendTransfer(ctx, "file")
-			file := mkPath(ctx.root, ctx.send.LocalDir, "file")
+			file := fs.JoinPath(ctx.root, ctx.send.LocalDir, "file")
 
 			transCtx, err := model.GetTransferContext(ctx.db, ctx.logger, trans)
 			So(err, ShouldBeNil)
@@ -56,16 +58,20 @@ func TestNewClientPipeline(t *testing.T) {
 					})
 
 					Convey("Then the transfer's paths should have been initiated", func(c C) {
-						So(trans.LocalPath.String(), ShouldEqual, file.String())
-						So(trans.RemotePath, ShouldEqual, path.Join(
+						So(trans.LocalPath, ShouldEqual, file)
+						So(trans.RemotePath, ShouldEqual, fs.JoinPath(
 							ctx.send.RemoteDir, "file"))
 						So(trans.Filesize, ShouldEqual, len(testTransferFileContent))
+					})
+
+					Convey("Then the pipeline count should have been incremented", func(c C) {
+						So(List.countClient, ShouldEqual, 1)
 					})
 				})
 			})
 
 			Convey("Given that the file cannot be found", func(c C) {
-				So(fs.Remove(ctx.fs, file), ShouldBeNil)
+				So(fs.RemoveAll(file), ShouldBeNil)
 
 				Convey("When initiating a new pipeline for this transfer", func(c C) {
 					pip, err := NewClientPipeline(ctx.db, ctx.logger, transCtx, nil)
@@ -117,9 +123,9 @@ func TestNewClientPipeline(t *testing.T) {
 					})
 
 					Convey("Then the transfer's paths should have been initiated", func(c C) {
-						So(trans.LocalPath.String(), ShouldEqual, path.Join(
+						So(trans.LocalPath, ShouldEqual, fs.JoinPath(
 							ctx.root, ctx.recv.TmpLocalRcvDir, filename))
-						So(trans.RemotePath, ShouldEqual, path.Join(
+						So(trans.RemotePath, ShouldEqual, fs.JoinPath(
 							ctx.recv.RemoteDir, filename))
 					})
 				})
@@ -148,10 +154,11 @@ func TestNewClientPipeline(t *testing.T) {
 }
 
 func TestPipelinePreTasks(t *testing.T) {
+	root := t.TempDir()
 	errPreTasks := NewError(types.TeExternalOperation, "pre-tasks failed")
 
 	Convey("Given a transfer pipeline", t, func(c C) {
-		ctx := initTestDB(c)
+		ctx := initTestDB(c, root)
 		filename := "file"
 		trans := mkRecvTransfer(ctx, filename)
 		pip := newTestPipeline(c, ctx.db, trans)
@@ -233,8 +240,10 @@ func TestPipelinePreTasks(t *testing.T) {
 }
 
 func TestPipelineStartData(t *testing.T) {
+	root := t.TempDir()
+
 	Convey("Given a transfer pipeline", t, func(c C) {
-		ctx := initTestDB(c)
+		ctx := initTestDB(c, root)
 		filename := "file"
 		trans := mkRecvTransfer(ctx, filename)
 
@@ -261,9 +270,10 @@ func TestPipelineStartData(t *testing.T) {
 			})
 
 			Convey("Then it should have opened/created the file", func(c C) {
-				file := mkPath(ctx.root, pip.TransCtx.Rule.TmpLocalRcvDir,
-					filename+".part")
-				_, err := fs.Stat(ctx.fs, file)
+				file := fs.JoinPath(ctx.root, pip.TransCtx.Rule.TmpLocalRcvDir, filename+".part")
+				So(trans.LocalPath, ShouldEqual, file)
+
+				_, err := stream.file.Stat()
 				So(err, ShouldBeNil)
 			})
 
@@ -305,8 +315,10 @@ func TestPipelineStartData(t *testing.T) {
 }
 
 func TestPipelineEndData(t *testing.T) {
+	root := t.TempDir()
+
 	Convey("Given a transfer pipeline", t, func(c C) {
-		ctx := initTestDB(c)
+		ctx := initTestDB(c, root)
 		filename := "file"
 		trans := mkRecvTransfer(ctx, filename)
 
@@ -328,7 +340,7 @@ func TestPipelineEndData(t *testing.T) {
 			So(pip.EndData(), ShouldBeNil)
 
 			Convey("Then it should have closed and moved the file", func(c C) {
-				_, err := fs.Stat(ctx.fs, mkPath(ctx.root, pip.TransCtx.Rule.
+				_, err := fs.Stat(path.Join(ctx.root, pip.TransCtx.Rule.
 					LocalDir, filename))
 				So(err, ShouldBeNil)
 			})
@@ -356,10 +368,11 @@ func TestPipelineEndData(t *testing.T) {
 }
 
 func TestPipelinePostTasks(t *testing.T) {
+	root := t.TempDir()
 	errPostTasks := NewError(types.TeExternalOperation, "post-tasks failed")
 
 	Convey("Given a transfer pipeline", t, func(c C) {
-		ctx := initTestDB(c)
+		ctx := initTestDB(c, root)
 		filename := "file"
 		trans := mkRecvTransfer(ctx, filename)
 
@@ -450,9 +463,10 @@ func TestPipelinePostTasks(t *testing.T) {
 
 func TestPipelineSetError(t *testing.T) {
 	const errCode, errMsg = types.TeUnknownRemote, "remote error"
+	root := t.TempDir()
 
 	Convey("Given a transfer pipeline", t, func(c C) {
-		ctx := initTestDB(c)
+		ctx := initTestDB(c, root)
 		filename := "file"
 		trans := mkRecvTransfer(ctx, filename)
 		pip := newTestPipeline(c, ctx.db, trans)
@@ -666,8 +680,10 @@ func TestPipelineSetError(t *testing.T) {
 }
 
 func TestPipelinePause(t *testing.T) {
+	root := t.TempDir()
+
 	Convey("Given a transfer pipeline", t, func(c C) {
-		ctx := initTestDB(c)
+		ctx := initTestDB(c, root)
 		filename := "file"
 		trans := mkRecvTransfer(ctx, filename)
 		pip := newTestPipeline(c, ctx.db, trans)
@@ -859,8 +875,10 @@ func TestPipelinePause(t *testing.T) {
 }
 
 func TestPipelineCancel(t *testing.T) {
+	root := t.TempDir()
+
 	Convey("Given a transfer pipeline", t, func(c C) {
-		ctx := initTestDB(c)
+		ctx := initTestDB(c, root)
 		filename := "file"
 		trans := mkRecvTransfer(ctx, filename)
 		pip := newTestPipeline(c, ctx.db, trans)

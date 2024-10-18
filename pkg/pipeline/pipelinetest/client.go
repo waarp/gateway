@@ -9,6 +9,7 @@ import (
 
 	"code.waarp.fr/apps/gateway/gateway/pkg/controller"
 	"code.waarp.fr/apps/gateway/gateway/pkg/database"
+	"code.waarp.fr/apps/gateway/gateway/pkg/fs"
 	"code.waarp.fr/apps/gateway/gateway/pkg/gatewayd/services"
 	"code.waarp.fr/apps/gateway/gateway/pkg/model"
 	"code.waarp.fr/apps/gateway/gateway/pkg/model/authentication/auth"
@@ -187,8 +188,8 @@ func makeClientConf(c convey.C, db *database.DB, port uint16, proto string,
 
 //nolint:dupl // factorizing would hurt readability
 func (cc *ClientContext) addPushTransfer(c convey.C) {
-	testFile := mkPath(cc.Paths.GatewayHome, cc.ClientRule.LocalDir, "self_transfer_push")
-	cc.fileContent = AddSourceFile(c, cc.FS, &testFile)
+	testFile := fs.JoinPath(cc.Paths.GatewayHome, cc.ClientRule.LocalDir, "self_transfer_push")
+	cc.fileContent = AddSourceFile(c, testFile)
 
 	trans := &model.Transfer{
 		RuleID:          cc.ClientRule.ID,

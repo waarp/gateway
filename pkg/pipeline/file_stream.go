@@ -1,13 +1,14 @@
 package pipeline
 
 import (
+	"bytes"
 	"errors"
+	"hash"
 	"io"
 	"sync/atomic"
 
 	"code.waarp.fr/apps/gateway/gateway/pkg/fs"
 	"code.waarp.fr/apps/gateway/gateway/pkg/model/types"
-	"code.waarp.fr/apps/gateway/gateway/pkg/tasks"
 	"code.waarp.fr/apps/gateway/gateway/pkg/utils"
 )
 
@@ -26,7 +27,7 @@ func newFileStream(pipeline *Pipeline, isResume bool) (*FileStream, *Error) {
 	}
 
 	if !isResume && !pipeline.TransCtx.Rule.IsSend {
-		pipeline.TransCtx.Transfer.LocalPath.Path += ".part"
+		pipeline.TransCtx.Transfer.LocalPath += ".part"
 		if err := pipeline.UpdateTrans(); err != nil {
 			return nil, err
 		}
@@ -81,7 +82,7 @@ func (f *FileStream) Write(p []byte) (int, error) {
 		return 0, f.stateErr("Write", curr)
 	}
 
-	n, err := fs.WriteFile(f.file, p)
+	n, err := f.file.Write(p)
 	if uErr := f.updateProgress(n); uErr != nil {
 		return n, uErr
 	}
@@ -106,7 +107,7 @@ func (f *FileStream) ReadAt(p []byte, off int64) (int, error) {
 		return 0, f.stateErr("ReadAt", curr)
 	}
 
-	n, err := fs.ReadAtFile(f.file, p, off)
+	n, err := f.file.ReadAt(p, off)
 	if uErr := f.updateProgress(n); uErr != nil {
 		return n, uErr
 	}
@@ -135,7 +136,7 @@ func (f *FileStream) WriteAt(p []byte, off int64) (int, error) {
 		return 0, f.stateErr("WriteAt", curr)
 	}
 
-	n, err := fs.WriteAtFile(f.file, p, off)
+	n, err := f.file.WriteAt(p, off)
 	if uErr := f.updateProgress(n); uErr != nil {
 		return n, uErr
 	}
@@ -162,13 +163,12 @@ func (f *FileStream) Seek(off int64, whence int) (int64, error) {
 		return 0, f.stateErr("Seek", curr)
 	}
 
-	newOff, seekErr := fs.SeekFile(f.file, off, whence)
+	newOff, seekErr := f.file.Seek(off, whence)
 	if seekErr != nil {
 		return newOff, f.internalError(types.TeInternal, "failed to seek in file", seekErr)
 	}
 
 	f.TransCtx.Transfer.Progress = newOff
-
 	if updErr := f.UpdateTrans(); updErr != nil {
 		return newOff, updErr
 	}
@@ -185,8 +185,8 @@ func (f *FileStream) Sync() error {
 	}
 
 	// If the fs supports it, we sync the file.
-	if err := fs.SyncFile(f.file); err != nil && !errors.Is(err, fs.ErrNotImplemented) {
-		return f.internalError(types.TeInternal, "failed to sync file", err)
+	if err := f.file.Sync(); err != nil {
+		return f.internalError(types.TeInternal, "failed to flush file", err)
 	}
 
 	// Reset the update timer since we force an update.
@@ -208,6 +208,34 @@ func (f *FileStream) Stat() (fs.FileInfo, error) {
 	}
 
 	return info, nil
+}
+
+var ErrHashMismatch = errors.New("file hash mismatch")
+
+func (f *FileStream) CheckHash(hasher hash.Hash, expected []byte) error {
+	if err := f.machine.Transition(stateHashCheck); err != nil {
+		return f.stateErr("Hash", f.machine.Current())
+	}
+
+	if _, err := f.file.Seek(0, io.SeekStart); err != nil {
+		return f.internalError(types.TeInternal, "failed to seek file for hashing", err)
+	}
+
+	if _, err := io.Copy(hasher, f.file); err != nil {
+		return f.internalError(types.TeInternal, "failed to read file for hashing", err)
+	}
+
+	actual := hasher.Sum(nil)
+	if !bytes.Equal(actual, expected) {
+		return f.internalError(types.TeIntegrity,
+			"file hash does not match expected value", ErrHashMismatch)
+	}
+
+	if err := f.machine.Transition(stateWriting); err != nil {
+		return f.stateErr("Hash", f.machine.Current())
+	}
+
+	return nil
 }
 
 // close the file and stop the progress tracker.
@@ -262,18 +290,18 @@ func (f *FileStream) move() *Error {
 	}
 
 	var (
-		backend, path string
-		pathErr       error
+		dest    string
+		pathErr error
 	)
 
 	leaf, branch := utils.Leaf, utils.Branch
 
 	if f.TransCtx.Transfer.IsServer() {
-		backend, path, pathErr = utils.GetPath(destFilename, leaf(f.TransCtx.Rule.LocalDir),
+		dest, pathErr = utils.GetPath(destFilename, leaf(f.TransCtx.Rule.LocalDir),
 			leaf(f.TransCtx.LocalAgent.ReceiveDir), branch(f.TransCtx.LocalAgent.RootDir),
 			leaf(f.TransCtx.Paths.DefaultInDir), branch(f.TransCtx.Paths.GatewayHome))
 	} else {
-		backend, path, pathErr = utils.GetPath(destFilename, leaf(f.TransCtx.Rule.LocalDir),
+		dest, pathErr = utils.GetPath(destFilename, leaf(f.TransCtx.Rule.LocalDir),
 			leaf(f.TransCtx.Paths.DefaultInDir), branch(f.TransCtx.Paths.GatewayHome))
 	}
 
@@ -284,37 +312,25 @@ func (f *FileStream) move() *Error {
 			pathErr)
 	}
 
-	dest := &types.FSPath{Backend: backend, Path: path}
-
-	if f.TransCtx.Transfer.LocalPath.String() == dest.String() {
+	if f.TransCtx.Transfer.LocalPath == dest {
 		return nil
 	}
 
-	dstFS, fsErr := fs.GetFileSystem(f.DB, dest)
-	if fsErr != nil {
-		return f.internalErrorWithMsg(types.TeFinalization,
-			"failed to instantiate destination file system",
-			"temp file rename failed",
-			fsErr)
-	}
-
-	if err := createDir(dstFS, dest); err != nil {
+	if err := createDir(dest); err != nil {
 		return f.internalErrorWithMsg(types.TeFinalization,
 			"failed to create destination directory",
 			"temp file rename failed",
 			err)
 	}
 
-	newFS, movErr := tasks.MoveFile(f.DB, f.TransCtx.FS, &f.TransCtx.Transfer.LocalPath, dest)
-	if movErr != nil {
+	if err := fs.MoveFile(f.TransCtx.Transfer.LocalPath, dest); err != nil {
 		return f.internalErrorWithMsg(types.TeFinalization,
 			"Failed to move temp file",
 			"temp file rename failed",
-			movErr)
+			err)
 	}
 
-	f.TransCtx.FS = newFS
-	f.TransCtx.Transfer.LocalPath = *dest
+	f.TransCtx.Transfer.LocalPath = dest
 
 	if dbErr := f.UpdateTrans(); dbErr != nil {
 		return dbErr

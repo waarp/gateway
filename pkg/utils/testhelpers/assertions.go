@@ -8,7 +8,6 @@ import (
 	"strings"
 	"time"
 
-	"github.com/smarty/assertions"
 	"github.com/smartystreets/goconvey/convey"
 )
 
@@ -16,7 +15,7 @@ import (
 // of the collection that is composed of all the remaining parameters.
 // This assertion ensures that the proposed member is in the collection.
 func ShouldBeOneOf(actual interface{}, expected ...interface{}) string {
-	res := assertions.ShouldBeIn(actual, expected...)
+	res := convey.ShouldBeIn(actual, expected...)
 	if strings.HasPrefix(res, "Expected ") {
 		var vals []string
 		for _, exp := range expected {
@@ -73,7 +72,7 @@ func ShouldEqualJSON(actual any, expected ...any) string {
 		return fmt.Sprintf("Failed to marshal expected value: %s", err2)
 	}
 
-	return assertions.ShouldEqualJSON(string(actualJSON), string(expectedJSON))
+	return convey.ShouldEqualJSON(string(actualJSON), string(expectedJSON))
 }
 
 func isError(val interface{}) bool {

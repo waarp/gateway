@@ -11,6 +11,7 @@ const (
 	stateDataStart     statemachine.State = "data start"
 	stateReading       statemachine.State = "reading"
 	stateWriting       statemachine.State = "writing"
+	stateHashCheck     statemachine.State = "hash check"
 	stateDataEnd       statemachine.State = "data end"
 	stateDataEndDone   statemachine.State = "data ended"
 	statePostTasks     statemachine.State = "post-tasks"
@@ -31,7 +32,8 @@ var pipelineSateMachine = statemachine.MachineModel{
 		statePreTasksDone:  statemachine.CanTransitionTo(stateDataStart, stateError),
 		stateDataStart:     statemachine.CanTransitionTo(stateReading, stateWriting, stateError),
 		stateReading:       statemachine.CanTransitionTo(stateDataEnd, stateError),
-		stateWriting:       statemachine.CanTransitionTo(stateDataEnd, stateError),
+		stateWriting:       statemachine.CanTransitionTo(stateDataEnd, stateHashCheck, stateError),
+		stateHashCheck:     statemachine.CanTransitionTo(stateWriting, stateError),
 		stateDataEnd:       statemachine.CanTransitionTo(stateDataEndDone, stateError),
 		stateDataEndDone:   statemachine.CanTransitionTo(statePostTasks, stateError),
 		statePostTasks:     statemachine.CanTransitionTo(statePostTasksDone, stateError),

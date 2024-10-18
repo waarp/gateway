@@ -10,7 +10,6 @@ import (
 
 	"code.waarp.fr/apps/gateway/gateway/pkg/database"
 	"code.waarp.fr/apps/gateway/gateway/pkg/model/authentication"
-	"code.waarp.fr/apps/gateway/gateway/pkg/model/types"
 )
 
 const (
@@ -51,12 +50,12 @@ func hash(pwd string) string {
 	return string(h)
 }
 
-func localPath(fPath string) types.FSPath {
+func localPath(fPath string) string {
 	if runtime.GOOS == "windows" {
 		fPath = "C:" + fPath
 	}
 
-	return types.FSPath{Backend: "", Path: fPath}
+	return fPath
 }
 
 type testConfigChecker map[string]error

@@ -2,7 +2,6 @@ package pipeline
 
 import (
 	"io"
-	"os"
 	"path"
 	"path/filepath"
 	"strings"
@@ -24,8 +23,10 @@ var (
 )
 
 func TestNewFileStream(t *testing.T) {
+	root := t.TempDir()
+
 	Convey("Given a new database", t, func(c C) {
-		ctx := initTestDB(c)
+		ctx := initTestDB(c, root)
 
 		trans := &model.Transfer{
 			ClientID:        utils.NewNullInt64(ctx.client.ID),
@@ -38,8 +39,8 @@ func TestNewFileStream(t *testing.T) {
 
 			So(ctx.db.Insert(trans).Run(), ShouldBeNil)
 
-			localPath := mkPath(ctx.root, ctx.send.LocalDir, trans.SrcFilename)
-			So(fs.WriteFullFile(ctx.fs, localPath, []byte("Hello World")), ShouldBeNil)
+			localPath := filepath.Join(ctx.root, ctx.send.LocalDir, trans.SrcFilename)
+			So(fs.WriteFullFile(localPath, []byte("Hello World")), ShouldBeNil)
 
 			pip := newTestPipeline(c, ctx.db, trans)
 
@@ -49,7 +50,7 @@ func TestNewFileStream(t *testing.T) {
 			Convey("When creating a new transfer stream", func(c C) {
 				stream, err := newFileStream(pip.Pipeline, false)
 				So(err, ShouldBeNil)
-				// Reset(func() { _ = stream.file.Close() })
+				Reset(func() { _ = stream.file.Close() })
 
 				Convey("Then it should  return a new transfer stream", func(c C) {
 					So(stream, ShouldNotBeNil)
@@ -57,15 +58,15 @@ func TestNewFileStream(t *testing.T) {
 					Convey("Then the transfer file should have been opened", func(c C) {
 						So(stream.file, ShouldNotBeNil)
 
-						info, statErr := stream.file.Stat()
+						info, statErr := stream.Stat()
 						So(statErr, ShouldBeNil)
-						So(info.Name(), ShouldEqual, path.Base(trans.LocalPath.Path))
+						So(info.Name(), ShouldEqual, path.Base(trans.LocalPath))
 					})
 				})
 			})
 
 			Convey("Given that the file does not exist", func(c C) {
-				So(fs.Remove(ctx.fs, &trans.LocalPath), ShouldBeNil)
+				So(fs.RemoveAll(trans.LocalPath), ShouldBeNil)
 
 				Convey("When creating a new transfer stream", func(c C) {
 					_, err := newFileStream(pip.Pipeline, false)
@@ -98,17 +99,17 @@ func TestNewFileStream(t *testing.T) {
 			Convey("When creating a new transfer stream", func(c C) {
 				stream, err := newFileStream(pip, false)
 				So(err, ShouldBeNil)
-				// Reset(func() { _ = stream.file.Close() })
+				Reset(func() { _ = stream.file.Close() })
 
-				Convey("Then it should  return a new transfer stream", func(c C) {
+				Convey("Then it should return a new transfer stream", func(c C) {
 					So(stream, ShouldNotBeNil)
 
 					Convey("Then the transfer file should have been opened", func(c C) {
 						So(stream.file, ShouldNotBeNil)
 
-						info, statErr := stream.file.Stat()
+						info, statErr := stream.Stat()
 						So(statErr, ShouldBeNil)
-						So(info.Name(), ShouldEqual, path.Base(trans.LocalPath.Path))
+						So(info.Name(), ShouldEqual, trans.SrcFilename+".part")
 					})
 				})
 			})
@@ -117,8 +118,10 @@ func TestNewFileStream(t *testing.T) {
 }
 
 func TestStreamRead(t *testing.T) {
+	root := t.TempDir()
+
 	Convey("Given an outgoing transfer", t, func(c C) {
-		ctx := initTestDB(c)
+		ctx := initTestDB(c, root)
 
 		trans := &model.Transfer{
 			ClientID:        utils.NewNullInt64(ctx.client.ID),
@@ -130,9 +133,9 @@ func TestStreamRead(t *testing.T) {
 
 		Convey("Given a file stream for this transfer", func(c C) {
 			content := []byte("read file content")
-			localPath := mkPath(ctx.root, ctx.send.LocalDir, trans.SrcFilename)
+			localPath := path.Join(ctx.root, ctx.send.LocalDir, trans.SrcFilename)
 
-			So(fs.WriteFullFile(ctx.fs, localPath, content), ShouldBeNil)
+			So(fs.WriteFullFile(localPath, content), ShouldBeNil)
 
 			stream := initFilestream(ctx, trans)
 
@@ -193,8 +196,10 @@ func TestStreamRead(t *testing.T) {
 }
 
 func TestStreamReadAt(t *testing.T) {
+	root := t.TempDir()
+
 	Convey("Given an outgoing transfer", t, func(c C) {
-		ctx := initTestDB(c)
+		ctx := initTestDB(c, root)
 
 		trans := &model.Transfer{
 			ClientID:        utils.NewNullInt64(ctx.client.ID),
@@ -206,9 +211,9 @@ func TestStreamReadAt(t *testing.T) {
 
 		Convey("Given a file stream for this transfer", func(c C) {
 			content := []byte("read file content")
-			localPath := mkPath(ctx.root, ctx.send.LocalDir, trans.SrcFilename)
+			localPath := path.Join(ctx.root, ctx.send.LocalDir, trans.SrcFilename)
 
-			So(fs.WriteFullFile(ctx.fs, localPath, content), ShouldBeNil)
+			So(fs.WriteFullFile(localPath, content), ShouldBeNil)
 
 			stream := initFilestream(ctx, trans)
 
@@ -270,8 +275,10 @@ func TestStreamReadAt(t *testing.T) {
 }
 
 func TestStreamWrite(t *testing.T) {
+	root := t.TempDir()
+
 	Convey("Given an incoming transfer", t, func(c C) {
-		ctx := initTestDB(c)
+		ctx := initTestDB(c, root)
 
 		trans := &model.Transfer{
 			ClientID:        utils.NewNullInt64(ctx.client.ID),
@@ -298,9 +305,10 @@ func TestStreamWrite(t *testing.T) {
 				})
 
 				Convey("Then the file should contain the array content", func(c C) {
-					content, err := fs.ReadFile(ctx.fs, &trans.LocalPath)
-					So(err, ShouldBeNil)
+					So(stream.Sync(), ShouldBeNil)
 
+					content, err := fs.ReadFullFile(trans.LocalPath)
+					So(err, ShouldBeNil)
 					So(string(content), ShouldEqual, string(b))
 				})
 			})
@@ -344,8 +352,10 @@ func TestStreamWrite(t *testing.T) {
 }
 
 func TestStreamWriteAt(t *testing.T) {
+	root := t.TempDir()
+
 	Convey("Given an incoming transfer", t, func(c C) {
-		ctx := initTestDB(c)
+		ctx := initTestDB(c, root)
 
 		trans := &model.Transfer{
 			ClientID:        utils.NewNullInt64(ctx.client.ID),
@@ -373,7 +383,8 @@ func TestStreamWriteAt(t *testing.T) {
 				})
 
 				Convey("Then the file should contain the array content with an offset", func(c C) {
-					content, err := fs.ReadFile(ctx.fs, &trans.LocalPath)
+					So(stream.file.Close(), ShouldBeNil)
+					content, err := fs.ReadFullFile(trans.LocalPath)
 					So(err, ShouldBeNil)
 
 					So(string(content), ShouldEqual, strings.Repeat("\000", off)+string(b))
@@ -419,8 +430,10 @@ func TestStreamWriteAt(t *testing.T) {
 }
 
 func TestStreamClose(t *testing.T) {
+	root := t.TempDir()
+
 	Convey("Given an incoming transfer", t, func(c C) {
-		ctx := initTestDB(c)
+		ctx := initTestDB(c, root)
 
 		trans := &model.Transfer{
 			ClientID:        utils.NewNullInt64(ctx.client.ID),
@@ -438,7 +451,7 @@ func TestStreamClose(t *testing.T) {
 				So(stream.close(), ShouldBeNil)
 
 				Convey("Then the underlying file should be closed", func(c C) {
-					So(stream.file.Close(), ShouldBeError, fs.ErrClosed)
+					So(stream.file.Close(), ShouldWrap, fs.ErrClosed)
 				})
 			})
 
@@ -456,8 +469,11 @@ func TestStreamClose(t *testing.T) {
 }
 
 func TestStreamMove(t *testing.T) {
+	rootRcv := t.TempDir()
+	rootSnd := t.TempDir()
+
 	Convey("Given an incoming transfer", t, func(c C) {
-		ctx := initTestDB(c)
+		ctx := initTestDB(c, rootRcv)
 
 		trans := &model.Transfer{
 			ClientID:        utils.NewNullInt64(ctx.client.ID),
@@ -476,14 +492,14 @@ func TestStreamMove(t *testing.T) {
 				So(stream.move(), ShouldBeNil)
 
 				Convey("Then the underlying file should have been be moved", func(c C) {
-					file := mkPath(ctx.root, ctx.recv.LocalDir, "file")
-					_, err := fs.Stat(ctx.fs, file)
+					file := path.Join(ctx.root, ctx.recv.LocalDir, "file")
+					_, err := fs.Stat(file)
 					So(err, ShouldBeNil)
 				})
 			})
 
 			Convey("Given that the move fails", func(c C) {
-				So(fs.Remove(ctx.fs, &stream.TransCtx.Transfer.LocalPath), ShouldBeNil)
+				So(fs.RemoveAll(stream.TransCtx.Transfer.LocalPath), ShouldBeNil)
 
 				Convey("When moving the file", func(c C) {
 					So(stream.move(), ShouldBeError,
@@ -511,7 +527,7 @@ func TestStreamMove(t *testing.T) {
 	})
 
 	Convey("Given an outgoing transfer", t, func(c C) {
-		ctx := initTestDB(c)
+		ctx := initTestDB(c, rootSnd)
 
 		trans := &model.Transfer{
 			ClientID:        utils.NewNullInt64(ctx.client.ID),
@@ -521,8 +537,8 @@ func TestStreamMove(t *testing.T) {
 		}
 		So(ctx.db.Insert(trans).Run(), ShouldBeNil)
 
-		filePath := mkPath(ctx.root, ctx.recv.LocalDir, "file")
-		So(fs.WriteFullFile(ctx.fs, filePath, []byte("file content")), ShouldBeNil)
+		filePath := fs.JoinPath(ctx.root, ctx.recv.LocalDir, "file")
+		So(fs.WriteFullFile(filePath, []byte("file content")), ShouldBeNil)
 		// Reset(func() { _ = ctx.fs.Remove(path) })
 
 		Convey("Given a closed file stream for this transfer", func(c C) {
@@ -534,8 +550,7 @@ func TestStreamMove(t *testing.T) {
 				So(stream.move(), ShouldBeNil)
 
 				Convey("Then it should do nothing", func(c C) {
-					So(stream.TransCtx.Transfer.LocalPath.String(), ShouldEqual,
-						filePath.String())
+					So(stream.TransCtx.Transfer.LocalPath, ShouldEqual, filePath)
 				})
 			})
 		})
@@ -543,28 +558,30 @@ func TestStreamMove(t *testing.T) {
 }
 
 func TestStreamSeek(t *testing.T) {
+	root := t.TempDir()
+
 	Convey("Given an incoming transfer", t, func(c C) {
-		ctx := initTestDB(c)
+		ctx := initTestDB(c, root)
 
 		trans := &model.Transfer{
 			RemoteAccountID: utils.NewNullInt64(ctx.remoteAccount.ID),
 			ClientID:        utils.NewNullInt64(ctx.client.ID),
 			RuleID:          ctx.recv.ID,
-			SrcFilename:     filepath.Join(t.TempDir(), "file"),
+			SrcFilename:     "file",
 		}
 		So(ctx.db.Insert(trans).Run(), ShouldBeNil)
 
 		stream := initFilestream(ctx, trans)
 
 		Convey("When calling the Seek function", func(c C) {
-			const seekOffset = 5
+			const seekOffset int64 = 5
 
-			newOff, err := stream.Seek(seekOffset, io.SeekCurrent)
+			newOff, err := stream.Seek(seekOffset, io.SeekStart)
 			So(err, ShouldBeNil)
 			So(newOff, ShouldEqual, seekOffset)
 
 			Convey("Then the file offset should have changed", func(c C) {
-				off, err := fs.SeekFile(stream.file, 0, io.SeekCurrent)
+				off, err := stream.file.Seek(0, io.SeekCurrent)
 				So(err, ShouldBeNil)
 				So(off, ShouldEqual, seekOffset)
 			})
@@ -584,14 +601,16 @@ func TestStreamSeek(t *testing.T) {
 }
 
 func TestStreamSync(t *testing.T) {
+	root := t.TempDir()
+
 	Convey("Given an incoming transfer", t, func(c C) {
-		ctx := initTestDB(c)
+		ctx := initTestDB(c, root)
 
 		trans := &model.Transfer{
 			RemoteAccountID: utils.NewNullInt64(ctx.remoteAccount.ID),
 			ClientID:        utils.NewNullInt64(ctx.client.ID),
 			RuleID:          ctx.recv.ID,
-			SrcFilename:     filepath.Join(t.TempDir(), "file"),
+			SrcFilename:     "file",
 		}
 		So(ctx.db.Insert(trans).Run(), ShouldBeNil)
 
@@ -617,7 +636,7 @@ func TestStreamSync(t *testing.T) {
 			So(stream.Sync(), ShouldBeNil)
 
 			Convey("Then the content should have written to storage", func(c C) {
-				content, err := os.ReadFile(trans.LocalPath.Path)
+				content, err := fs.ReadFullFile(trans.LocalPath)
 				So(err, ShouldBeNil)
 				So(content, ShouldResemble, bytes)
 			})
@@ -627,6 +646,12 @@ func TestStreamSync(t *testing.T) {
 
 				So(ctx.db.Get(&checkAfter, "id=?", trans.ID).Run(), ShouldBeNil)
 				So(checkAfter.Progress, ShouldEqual, len(bytes))
+			})
+
+			Convey("Then we can still write to the stream", func(c C) {
+				b2 := []byte("extra file content")
+				_, err := stream.Write(b2)
+				So(err, ShouldBeNil)
 			})
 		})
 	})

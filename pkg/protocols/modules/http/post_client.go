@@ -119,7 +119,7 @@ func (p *postClient) setRequestHeaders(req *http.Request) *pipeline.Error {
 
 	req.SetBasicAuth(p.pip.TransCtx.RemoteAccount.Login, pwd)
 
-	ct := mime.TypeByExtension(path.Ext(p.pip.TransCtx.Transfer.LocalPath.Path))
+	ct := mime.TypeByExtension(path.Ext(p.pip.TransCtx.Transfer.LocalPath))
 	if ct == "" {
 		ct = "application/octet-stream"
 	}
@@ -145,7 +145,7 @@ func (p *postClient) setRequestHeaders(req *http.Request) *pipeline.Error {
 	req.Trailer.Set(httpconst.ErrorCode, "")
 	req.Trailer.Set(httpconst.ErrorMessage, "")
 
-	fileInfo, err := fs.Stat(p.pip.TransCtx.FS, &p.pip.TransCtx.Transfer.LocalPath)
+	fileInfo, err := fs.Stat(p.pip.TransCtx.Transfer.LocalPath)
 	if err != nil {
 		p.pip.Logger.Error("Failed to retrieve local file size: %s", err)
 

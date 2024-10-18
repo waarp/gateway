@@ -4,11 +4,11 @@ import (
 	"errors"
 	"fmt"
 	"math/big"
+	"slices"
 	"time"
 
 	"code.waarp.fr/lib/log"
 	"github.com/gosnmp/gosnmp"
-	"golang.org/x/exp/slices"
 
 	"code.waarp.fr/apps/gateway/gateway/pkg/model"
 	"code.waarp.fr/apps/gateway/gateway/pkg/utils"
@@ -144,7 +144,7 @@ func (s *Service) sendTransferError(trans *model.NormalizedTransferView) error {
 				Name:  TeObjectRequestedOID,
 				Type:  gosnmp.OctetString,
 			}, {
-				Value: trans.LocalPath.String(),
+				Value: trans.LocalPath,
 				Name:  TeObjectFilenameOID,
 				Type:  gosnmp.OctetString,
 			}, {

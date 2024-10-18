@@ -31,7 +31,7 @@ func getPortInRange(addr string, minPort, maxPort uint16) (uint16, *pipeline.Err
 	nbTries = utils.Min(nbTries, maxNbTries)
 	nbTries = utils.Max(nbTries, minNbTries)
 
-	for i := 0; i < nbTries; i++ {
+	for i := range nbTries {
 		//nolint:gosec //we don't need to be secure, we just need a random port
 		candidate := minPort + uint16(rand.Intn(rangeSize))
 
@@ -75,4 +75,4 @@ func (f *ftpServerLogger) Info(msg string, keyvals ...any)  { f.log(msg, keyvals
 func (f *ftpServerLogger) Warn(msg string, keyvals ...any)  { f.log(msg, keyvals) }
 func (f *ftpServerLogger) Error(msg string, keyvals ...any) { f.log(msg, keyvals) }
 func (f *ftpServerLogger) Panic(msg string, keyvals ...any) { f.log(msg, keyvals) }
-func (f *ftpServerLogger) With(args ...any) ftplog.Logger   { return f }
+func (f *ftpServerLogger) With(...any) ftplog.Logger        { return f }

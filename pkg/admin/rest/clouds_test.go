@@ -17,29 +17,14 @@ import (
 	"code.waarp.fr/apps/gateway/gateway/pkg/conf"
 	"code.waarp.fr/apps/gateway/gateway/pkg/database"
 	"code.waarp.fr/apps/gateway/gateway/pkg/database/dbtest"
-	"code.waarp.fr/apps/gateway/gateway/pkg/fs"
-	"code.waarp.fr/apps/gateway/gateway/pkg/fs/filesystems"
+	"code.waarp.fr/apps/gateway/gateway/pkg/fs/fstest"
 	"code.waarp.fr/apps/gateway/gateway/pkg/model"
 	"code.waarp.fr/apps/gateway/gateway/pkg/model/types"
 	"code.waarp.fr/apps/gateway/gateway/pkg/utils/testhelpers"
 )
 
-func addTestCloudType(tb testing.TB) string {
-	tb.Helper()
-
-	filesystems.FileSystems.Store(tb.Name(), func(string, string, map[string]any,
-	) (fs.FS, error) {
-		//nolint:nilnil //this is just for tests and should never be called
-		return nil, nil
-	})
-
-	tb.Cleanup(func() { filesystems.FileSystems.Delete(tb.Name()) })
-
-	return tb.Name()
-}
-
 func TestGetCloud(t *testing.T) {
-	cloudType := addTestCloudType(t)
+	cloudType := fstest.MakeDummyBackend(t)
 	logger := testhelpers.GetTestLogger(t)
 	db := dbtest.TestDatabase(t)
 	handle := getCloud(logger, db)
@@ -49,7 +34,7 @@ func TestGetCloud(t *testing.T) {
 		Type:    cloudType,
 		Key:     "key",
 		Secret:  "secret",
-		Options: map[string]any{"opt": "val"},
+		Options: map[string]string{"opt": "val"},
 	}
 	require.NoError(t, db.Insert(existing).Run())
 
@@ -97,7 +82,7 @@ func TestGetCloud(t *testing.T) {
 }
 
 func TestAddCloud(t *testing.T) {
-	cloudType := addTestCloudType(t)
+	cloudType := fstest.MakeDummyBackend(t)
 
 	t.Run("Given a valid cloud object", func(t *testing.T) {
 		logger := testhelpers.GetTestLogger(t)
@@ -111,7 +96,7 @@ func TestAddCloud(t *testing.T) {
 			Type:    cloudType,
 			Key:     "app key",
 			Secret:  "app secret",
-			Options: map[string]any{"opt": "val"},
+			Options: map[string]string{"opt": "val"},
 		}
 		require.NoError(t, encoder.Encode(input))
 
@@ -173,7 +158,7 @@ func TestAddCloud(t *testing.T) {
 }
 
 func TestDeleteCloud(t *testing.T) {
-	cloudType := addTestCloudType(t)
+	cloudType := fstest.MakeDummyBackend(t)
 
 	setup := func(tb testing.TB) (*database.DB, http.Handler, *model.CloudInstance) {
 		tb.Helper()
@@ -187,7 +172,7 @@ func TestDeleteCloud(t *testing.T) {
 			Type:    cloudType,
 			Key:     "key",
 			Secret:  "secret",
-			Options: map[string]any{"opt": "val"},
+			Options: map[string]string{"opt": "val"},
 		}
 		require.NoError(tb, db.Insert(ex).Run())
 
@@ -254,12 +239,12 @@ func TestReplaceCloud(t *testing.T) {
 func testUpdateReplaceCloud(t *testing.T, isReplace bool) {
 	t.Helper()
 
-	cloudType := addTestCloudType(t)
+	cloudType := fstest.MakeDummyBackend(t)
 	input := api.PostCloudReqObject{
 		Name:    "new_name",
 		Type:    cloudType,
 		Key:     "new_key",
-		Options: map[string]any{"new_opt": "new_val"},
+		Options: map[string]string{"new_opt": "new_val"},
 	}
 
 	mkHandle := updateCloud
@@ -308,7 +293,7 @@ func testUpdateReplaceCloud(t *testing.T, isReplace bool) {
 			Type:    cloudType,
 			Key:     "key",
 			Secret:  "secret",
-			Options: map[string]any{"opt": "val"},
+			Options: map[string]string{"opt": "val"},
 		}
 		require.NoError(tb, db.Insert(ex).Run())
 

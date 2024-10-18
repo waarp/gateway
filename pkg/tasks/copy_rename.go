@@ -7,8 +7,8 @@ import (
 	"code.waarp.fr/lib/log"
 
 	"code.waarp.fr/apps/gateway/gateway/pkg/database"
+	"code.waarp.fr/apps/gateway/gateway/pkg/fs"
 	"code.waarp.fr/apps/gateway/gateway/pkg/model"
-	"code.waarp.fr/apps/gateway/gateway/pkg/model/types"
 )
 
 // copyRenameTask is a task which allow to copy the current file
@@ -20,10 +20,13 @@ func init() {
 	model.ValidTasks["COPYRENAME"] = &copyRenameTask{}
 }
 
+var ErrCopyRenameMissingPath = fmt.Errorf(
+	`cannot create a COPYRENAME task without a "path" argument: %w`, ErrBadTaskArguments)
+
 // Validate check if the task has a destination for the copy.
 func (*copyRenameTask) Validate(args map[string]string) error {
-	if _, ok := args["path"]; !ok {
-		return fmt.Errorf("cannot create a copy_rename task without a `path` argument: %w", ErrBadTaskArguments)
+	if args["path"] == "" {
+		return ErrCopyRenameMissingPath
 	}
 
 	return nil
@@ -33,19 +36,18 @@ func (*copyRenameTask) Validate(args map[string]string) error {
 func (*copyRenameTask) Run(_ context.Context, args map[string]string, db *database.DB,
 	logger *log.Logger, transCtx *model.TransferContext,
 ) error {
-	srcPath := &transCtx.Transfer.LocalPath
-	dst := args["path"]
+	source := transCtx.Transfer.LocalPath
+	dest := args["path"]
 
-	dstPath, err := types.ParsePath(dst)
-	if err != nil {
-		return fmt.Errorf("failed to parse the copy destination path %q: %w", dst, err)
+	if dest == "" {
+		return ErrCopyRenameMissingPath
 	}
 
-	if err := makeCopy(db, transCtx, srcPath, dstPath); err != nil {
-		return err
+	if err := fs.CopyFile(source, dest); err != nil {
+		return fmt.Errorf("COPYRENAME task failed: %w", err)
 	}
 
-	logger.Debug("Copied file %q to %q", srcPath, dst)
+	logger.Debug("Copied file %q to %q", source, dest)
 
 	return nil
 }

@@ -2,13 +2,13 @@ package wg
 
 import (
 	"fmt"
+	"maps"
 	"net/http"
+	"slices"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
-	"golang.org/x/exp/maps"
-	"golang.org/x/exp/slices"
 )
 
 func TestServerGet(t *testing.T) {

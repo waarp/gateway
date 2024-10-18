@@ -107,7 +107,7 @@ func TestAddTransfer(t *testing.T) {
 						So(transfers[0].RemoteAccountID.Int64, ShouldEqual, account.ID)
 						So(transfers[0].SrcFilename, ShouldEqual, "src_dir/test.file")
 						So(transfers[0].DestFilename, ShouldEqual, "dst_dir/test.file")
-						So(transfers[0].LocalPath.String(), ShouldBeBlank)
+						So(transfers[0].LocalPath, ShouldBeBlank)
 						So(transfers[0].RemotePath, ShouldBeBlank)
 						So(transfers[0].Filesize, ShouldEqual, model.UnknownSize)
 						So(transfers[0].Start.Equal(time.Date(2023, 1, 1, 1, 0, 0, 0, time.UTC)), ShouldBeTrue)

@@ -11,7 +11,6 @@ import (
 	"code.waarp.fr/apps/gateway/gateway/pkg/database"
 	"code.waarp.fr/apps/gateway/gateway/pkg/fs"
 	"code.waarp.fr/apps/gateway/gateway/pkg/model"
-	"code.waarp.fr/apps/gateway/gateway/pkg/model/types"
 )
 
 // execMoveTask is a task which executes an external program which moves the
@@ -33,40 +32,29 @@ func (e *execMoveTask) Validate(params map[string]string) error {
 }
 
 // Run executes the task by executing an external program with the given parameters.
-func (e *execMoveTask) Run(parent context.Context, params map[string]string,
-	db *database.DB, logger *log.Logger, transCtx *model.TransferContext,
+func (e *execMoveTask) Run(ctx context.Context, params map[string]string,
+	_ *database.DB, logger *log.Logger, transCtx *model.TransferContext,
 ) error {
-	output, cmdErr := runExec(parent, params)
+	output, cmdErr := runExec(ctx, params)
 	if cmdErr != nil {
 		return cmdErr
 	}
 
-	var newPathStr string
+	var newPath string
 
 	scanner := bufio.NewScanner(output)
 	for scanner.Scan() {
-		newPathStr = scanner.Text()
-		logger.Debug(newPathStr)
+		newPath = scanner.Text()
+		logger.Debug(newPath)
 	}
 
-	newPath, err := types.ParsePath(newPathStr)
-	if err != nil {
-		return fmt.Errorf("failed to parse the new file path %q: %w", newPathStr, err)
+	if _, err := fs.Stat(newPath); err != nil {
+		return fmt.Errorf("could not find moved file %q: %w", newPath, err)
 	}
 
-	newFS, fsErr := fs.GetFileSystem(db, newPath)
-	if fsErr != nil {
-		return fmt.Errorf("failed to instantiate filesystem for new file %q: %w", newPathStr, fsErr)
-	}
-
-	if _, err := fs.Stat(newFS, newPath); err != nil {
-		return fmt.Errorf("could not find moved file %q: %w", newPathStr, err)
-	}
-
-	transCtx.FS = newFS
-	transCtx.Transfer.LocalPath = *newPath
+	transCtx.Transfer.LocalPath = newPath
 	transCtx.Transfer.RemotePath = path.Join(
-		path.Dir(transCtx.Transfer.RemotePath), path.Base(newPath.Path))
+		path.Dir(transCtx.Transfer.RemotePath), path.Base(newPath))
 
 	logger.Debug("Done executing command %s %s", params["path"], params["args"])
 

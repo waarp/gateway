@@ -2,6 +2,8 @@ package controller
 
 import (
 	"context"
+	"path"
+	"path/filepath"
 	"sync"
 	"testing"
 	"time"
@@ -11,18 +13,19 @@ import (
 	"code.waarp.fr/apps/gateway/gateway/pkg/conf"
 	"code.waarp.fr/apps/gateway/gateway/pkg/database"
 	"code.waarp.fr/apps/gateway/gateway/pkg/fs"
-	"code.waarp.fr/apps/gateway/gateway/pkg/fs/fstest"
 	"code.waarp.fr/apps/gateway/gateway/pkg/gatewayd/services"
 	"code.waarp.fr/apps/gateway/gateway/pkg/model"
 	"code.waarp.fr/apps/gateway/gateway/pkg/model/types"
+	"code.waarp.fr/apps/gateway/gateway/pkg/pipeline"
 	"code.waarp.fr/apps/gateway/gateway/pkg/protocols/protocolstest"
 	"code.waarp.fr/apps/gateway/gateway/pkg/utils"
 	"code.waarp.fr/apps/gateway/gateway/pkg/utils/testhelpers"
 )
 
 func TestControllerListen(t *testing.T) {
+	root := t.TempDir()
+
 	Convey("Given a database", t, func(c C) {
-		testFS := fstest.InitMemFS(c)
 		logger := testhelpers.TestLogger(c, "test_controller")
 		db := database.TestDatabase(c)
 
@@ -47,15 +50,14 @@ func TestControllerListen(t *testing.T) {
 		}
 		So(db.Insert(account).Run(), ShouldBeNil)
 
-		rootDir := "memory:/controller-listen"
-		rootPath := mkPath(rootDir)
+		rootPath := filepath.Join(root, "controller-listen")
 
 		rule := &model.Rule{Name: "test rule", IsSend: true}
 		So(db.Insert(rule).Run(), ShouldBeNil)
 
 		Convey("Given a controller", func() {
 			conf.GlobalConfig.Paths = conf.PathsConfig{
-				GatewayHome: rootDir, DefaultInDir: "in",
+				GatewayHome: rootPath, DefaultInDir: "in",
 				DefaultOutDir: "out", DefaultTmpDir: "tmp",
 			}
 
@@ -69,9 +71,9 @@ func TestControllerListen(t *testing.T) {
 			}
 
 			Convey("Given a planned transfer", func(c C) {
-				path1 := rootPath.JoinPath("out", "file_1")
-				So(fs.MkdirAll(testFS, path1.Dir()), ShouldBeNil)
-				So(fs.WriteFullFile(testFS, path1, []byte("hello world")), ShouldBeNil)
+				path1 := path.Join(rootPath, "out", "file_1")
+				So(fs.MkdirAll(path.Dir(path1)), ShouldBeNil)
+				So(fs.WriteFullFile(path1, []byte("hello world")), ShouldBeNil)
 
 				trans := &model.Transfer{
 					RuleID:          rule.ID,
@@ -130,9 +132,9 @@ func TestControllerListen(t *testing.T) {
 			})
 
 			Convey("Given a running transfer", func(c C) {
-				path2 := rootPath.JoinPath("out", "file_2")
-				So(fs.MkdirAll(testFS, path2.Dir()), ShouldBeNil)
-				So(fs.WriteFullFile(testFS, path2, []byte("hello world")), ShouldBeNil)
+				path2 := path.Join(rootPath, "out", "file_2")
+				So(fs.MkdirAll(path.Dir(path2)), ShouldBeNil)
+				So(fs.WriteFullFile(path2, []byte("hello world")), ShouldBeNil)
 
 				trans := &model.Transfer{
 					RuleID:          rule.ID,
@@ -160,6 +162,43 @@ func TestControllerListen(t *testing.T) {
 								So(result.Status, ShouldEqual, types.StatusInterrupted)
 							})
 						})
+					})
+				})
+			})
+
+			Convey("Given that we reached the transfer limit", func() {
+				path1 := path.Join(rootPath, "out", "file_1")
+				So(fs.MkdirAll(path.Dir(path1)), ShouldBeNil)
+				So(fs.WriteFullFile(path1, []byte("hello world")), ShouldBeNil)
+
+				trans1 := &model.Transfer{
+					RuleID:          rule.ID,
+					ClientID:        utils.NewNullInt64(client.ID),
+					RemoteAccountID: utils.NewNullInt64(account.ID),
+					SrcFilename:     "file_1",
+				}
+				So(db.Insert(trans1).Run(), ShouldBeNil)
+
+				path2 := path.Join(rootPath, "out", "file_2")
+				So(fs.MkdirAll(path.Dir(path1)), ShouldBeNil)
+				So(fs.WriteFullFile(path2, []byte("hello world")), ShouldBeNil)
+
+				trans2 := &model.Transfer{
+					RuleID:          rule.ID,
+					ClientID:        utils.NewNullInt64(client.ID),
+					RemoteAccountID: utils.NewNullInt64(account.ID),
+					SrcFilename:     "file_2",
+				}
+				So(db.Insert(trans2).Run(), ShouldBeNil)
+
+				pipeline.List.SetLimits(1, 1)
+
+				Convey("When the controller retrieves new transfers", func() {
+					plannedTrans, dbErr := gwController.retrieveTransfers()
+					So(dbErr, ShouldBeNil)
+
+					Convey("Then it should return a limited amount of transfers", func() {
+						So(len(plannedTrans), ShouldEqual, 1)
 					})
 				})
 			})

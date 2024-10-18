@@ -1,6 +1,7 @@
 package protocol
 
 import (
+	"hash"
 	"io"
 
 	"code.waarp.fr/apps/gateway/gateway/pkg/model/types"
@@ -17,6 +18,7 @@ type ReceiveFile interface {
 	io.Writer
 	io.WriterAt
 	io.Seeker
+	CheckHash(hasher hash.Hash, expected []byte) error
 }
 
 // TransferClient is the interface defining a protocol client. All protocol

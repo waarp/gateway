@@ -4,11 +4,11 @@ import (
 	"errors"
 	"fmt"
 	"runtime"
+	"slices"
 	"time"
 
 	"github.com/gosnmp/gosnmp"
 	snmplib "github.com/slayercat/GoSNMPServer"
-	"golang.org/x/exp/slices"
 
 	"code.waarp.fr/apps/gateway/gateway/pkg/analytics"
 	"code.waarp.fr/apps/gateway/gateway/pkg/model/types"

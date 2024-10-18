@@ -12,7 +12,6 @@ import (
 	"code.waarp.fr/apps/gateway/gateway/pkg/conf"
 	"code.waarp.fr/apps/gateway/gateway/pkg/database"
 	"code.waarp.fr/apps/gateway/gateway/pkg/fs"
-	"code.waarp.fr/apps/gateway/gateway/pkg/fs/fstest"
 	"code.waarp.fr/apps/gateway/gateway/pkg/model"
 	"code.waarp.fr/apps/gateway/gateway/pkg/model/modeltest"
 	"code.waarp.fr/apps/gateway/gateway/pkg/model/types"
@@ -23,7 +22,6 @@ import (
 type testContext struct {
 	root   string
 	db     *database.DB
-	fs     fs.FS
 	logger *log.Logger
 
 	client        *model.Client
@@ -41,15 +39,6 @@ const testProtocol = "test_proto"
 //nolint:gochecknoinits // init is used by design
 func init() {
 	modeltest.AddDummyProtoConfig(testProtocol)
-}
-
-func mkPath(elem ...string) *types.FSPath {
-	full := path.Join(elem...)
-
-	fPath, err := types.ParsePath(full)
-	So(err, ShouldBeNil)
-
-	return fPath
 }
 
 func waitEndTransfer(pip *Pipeline) {
@@ -73,13 +62,9 @@ func waitEndTransfer(pip *Pipeline) {
 	}
 }
 
-func initTestDB(c C) *testContext {
+func initTestDB(c C, root string) *testContext {
 	db := database.TestDatabase(c)
 	logger := testhelpers.TestLogger(c, "Pipeline test")
-	testFS := fstest.InitMemFS(c)
-
-	root := "memory:/new_transfer_stream"
-	rootPath := mkPath(root)
 
 	paths := conf.PathsConfig{
 		GatewayHome:   root,
@@ -89,9 +74,9 @@ func initTestDB(c C) *testContext {
 	}
 	conf.GlobalConfig.Paths = paths
 
-	So(fs.MkdirAll(testFS, rootPath.JoinPath(paths.DefaultInDir)), ShouldBeNil)
-	So(fs.MkdirAll(testFS, rootPath.JoinPath(paths.DefaultOutDir)), ShouldBeNil)
-	So(fs.MkdirAll(testFS, rootPath.JoinPath(paths.DefaultTmpDir)), ShouldBeNil)
+	So(fs.MkdirAll(path.Join(root, paths.DefaultInDir)), ShouldBeNil)
+	So(fs.MkdirAll(path.Join(root, paths.DefaultOutDir)), ShouldBeNil)
+	So(fs.MkdirAll(path.Join(root, paths.DefaultTmpDir)), ShouldBeNil)
 
 	send := &model.Rule{
 		Name:      "send",
@@ -111,9 +96,9 @@ func initTestDB(c C) *testContext {
 	c.So(db.Insert(recv).Run(), ShouldBeNil)
 	c.So(db.Insert(send).Run(), ShouldBeNil)
 
-	So(fs.MkdirAll(testFS, rootPath.JoinPath(send.LocalDir)), ShouldBeNil)
-	So(fs.MkdirAll(testFS, rootPath.JoinPath(recv.LocalDir)), ShouldBeNil)
-	So(fs.MkdirAll(testFS, rootPath.JoinPath(recv.TmpLocalRcvDir)), ShouldBeNil)
+	So(fs.MkdirAll(path.Join(root, send.LocalDir)), ShouldBeNil)
+	So(fs.MkdirAll(path.Join(root, recv.LocalDir)), ShouldBeNil)
+	So(fs.MkdirAll(path.Join(root, recv.TmpLocalRcvDir)), ShouldBeNil)
 
 	server := &model.LocalAgent{
 		Name: "server", Protocol: testProtocol,
@@ -148,7 +133,6 @@ func initTestDB(c C) *testContext {
 	return &testContext{
 		root:          root,
 		db:            db,
-		fs:            testFS,
 		logger:        logger,
 		client:        client,
 		partner:       partner,
@@ -161,8 +145,8 @@ func initTestDB(c C) *testContext {
 }
 
 func mkRecvTransfer(ctx *testContext, filename string) *model.Transfer {
-	So(fs.MkdirAll(ctx.fs, mkPath(ctx.root, ctx.send.LocalDir)), ShouldBeNil)
-	So(fs.MkdirAll(ctx.fs, mkPath(ctx.root, ctx.send.TmpLocalRcvDir)), ShouldBeNil)
+	So(fs.MkdirAll(path.Join(ctx.root, ctx.send.LocalDir)), ShouldBeNil)
+	So(fs.MkdirAll(path.Join(ctx.root, ctx.send.TmpLocalRcvDir)), ShouldBeNil)
 
 	trans := &model.Transfer{
 		ClientID:        utils.NewNullInt64(ctx.client.ID),
@@ -178,8 +162,8 @@ func mkRecvTransfer(ctx *testContext, filename string) *model.Transfer {
 const testTransferFileContent = "new pipeline content"
 
 func mkSendTransfer(ctx *testContext, filename string) *model.Transfer {
-	So(fs.MkdirAll(ctx.fs, mkPath(ctx.root, ctx.send.LocalDir)), ShouldBeNil)
-	So(fs.MkdirAll(ctx.fs, mkPath(ctx.root, ctx.send.TmpLocalRcvDir)), ShouldBeNil)
+	So(fs.MkdirAll(fs.JoinPath(ctx.root, ctx.send.LocalDir)), ShouldBeNil)
+	So(fs.MkdirAll(fs.JoinPath(ctx.root, ctx.send.TmpLocalRcvDir)), ShouldBeNil)
 
 	trans := &model.Transfer{
 		ClientID:        utils.NewNullInt64(ctx.client.ID),
@@ -189,7 +173,7 @@ func mkSendTransfer(ctx *testContext, filename string) *model.Transfer {
 	}
 	So(ctx.db.Insert(trans).Run(), ShouldBeNil)
 
-	So(fs.WriteFullFile(ctx.fs, mkPath(ctx.root, ctx.send.LocalDir, filename),
+	So(fs.WriteFullFile(path.Join(ctx.root, ctx.send.LocalDir, filename),
 		[]byte(testTransferFileContent)), ShouldBeNil)
 
 	return trans
@@ -221,7 +205,7 @@ func (t *testFile) Write(p []byte) (n int, err error) {
 		return 0, t.err
 	}
 
-	return fs.WriteFile(t.File, p)
+	return t.File.Write(p)
 }
 
 func (t *testFile) ReadAt(p []byte, off int64) (n int, err error) {
@@ -229,7 +213,7 @@ func (t *testFile) ReadAt(p []byte, off int64) (n int, err error) {
 		return 0, t.err
 	}
 
-	return fs.ReadAtFile(t.File, p, off)
+	return t.File.ReadAt(p, off)
 }
 
 func (t *testFile) WriteAt(p []byte, off int64) (n int, err error) {
@@ -237,7 +221,7 @@ func (t *testFile) WriteAt(p []byte, off int64) (n int, err error) {
 		return 0, t.err
 	}
 
-	return fs.WriteAtFile(t.File, p, off)
+	return t.File.WriteAt(p, off)
 }
 
 func initFilestream(ctx *testContext, trans *model.Transfer) *FileStream {
@@ -256,7 +240,9 @@ func initFilestream(ctx *testContext, trans *model.Transfer) *FileStream {
 
 	stream, fileErr := newFileStream(pip, false)
 	So(fileErr, ShouldBeNil)
-	Reset(func() { _ = stream.file.Close() })
+	Reset(func() {
+		_ = stream.file.Close()
+	})
 
 	pip.Stream = stream
 

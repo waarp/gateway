@@ -9,7 +9,6 @@ import (
 	"code.waarp.fr/apps/gateway/gateway/pkg/conf"
 	"code.waarp.fr/apps/gateway/gateway/pkg/database"
 	"code.waarp.fr/apps/gateway/gateway/pkg/fs"
-	"code.waarp.fr/apps/gateway/gateway/pkg/fs/fstest"
 	"code.waarp.fr/apps/gateway/gateway/pkg/gatewayd/services"
 	"code.waarp.fr/apps/gateway/gateway/pkg/logging"
 	"code.waarp.fr/apps/gateway/gateway/pkg/model"
@@ -26,19 +25,9 @@ func init() {
 	protocols.Register(testProtocol, protocolstest.TestModule{})
 }
 
-func mkPath(elem ...string) types.FSPath {
-	full := path.Join(elem...)
-
-	parsed, err := types.ParsePath(full)
-	So(err, ShouldBeNil)
-
-	return *parsed
-}
-
 type testContext struct {
 	root   string
 	db     *database.DB
-	fs     fs.FS
 	logger *log.Logger
 
 	client        *model.Client
@@ -51,26 +40,22 @@ type testContext struct {
 	recv *model.Rule
 }
 
-func initTestDB(c C) *testContext {
+func initTestDB(c C, rootPath string) *testContext {
 	db := database.TestDatabase(c)
 	c.So(logging.AddLogBackend("DEBUG", "stdout", "", ""), ShouldBeNil)
 	logger := testhelpers.TestLogger(c, "Pipeline test")
-	filesys := fstest.InitMemFS(c)
-
-	root := fstest.MemBackend + ":/new_transfer_stream"
-	rootPath := mkPath(root)
 
 	paths := conf.PathsConfig{
-		GatewayHome:   root,
+		GatewayHome:   rootPath,
 		DefaultInDir:  "in",
 		DefaultOutDir: "out",
 		DefaultTmpDir: "work",
 	}
 	conf.GlobalConfig.Paths = paths
 
-	So(fs.MkdirAll(filesys, rootPath.JoinPath(paths.DefaultInDir)), ShouldBeNil)
-	So(fs.MkdirAll(filesys, rootPath.JoinPath(paths.DefaultOutDir)), ShouldBeNil)
-	So(fs.MkdirAll(filesys, rootPath.JoinPath(paths.DefaultTmpDir)), ShouldBeNil)
+	So(fs.MkdirAll(path.Join(rootPath, paths.DefaultInDir)), ShouldBeNil)
+	So(fs.MkdirAll(path.Join(rootPath, paths.DefaultOutDir)), ShouldBeNil)
+	So(fs.MkdirAll(path.Join(rootPath, paths.DefaultTmpDir)), ShouldBeNil)
 
 	send := &model.Rule{
 		Name:      "send",
@@ -90,9 +75,9 @@ func initTestDB(c C) *testContext {
 	c.So(db.Insert(recv).Run(), ShouldBeNil)
 	c.So(db.Insert(send).Run(), ShouldBeNil)
 
-	So(fs.MkdirAll(filesys, rootPath.JoinPath(send.LocalDir)), ShouldBeNil)
-	So(fs.MkdirAll(filesys, rootPath.JoinPath(recv.LocalDir)), ShouldBeNil)
-	So(fs.MkdirAll(filesys, rootPath.JoinPath(recv.TmpLocalRcvDir)), ShouldBeNil)
+	So(fs.MkdirAll(path.Join(rootPath, send.LocalDir)), ShouldBeNil)
+	So(fs.MkdirAll(path.Join(rootPath, recv.LocalDir)), ShouldBeNil)
+	So(fs.MkdirAll(path.Join(rootPath, recv.TmpLocalRcvDir)), ShouldBeNil)
 
 	server := &model.LocalAgent{
 		Name: "server", Protocol: testProtocol,
@@ -132,9 +117,8 @@ func initTestDB(c C) *testContext {
 	Reset(func() { delete(services.Clients, client.Name) })
 
 	return &testContext{
-		root:          root,
+		root:          rootPath,
 		db:            db,
-		fs:            filesys,
 		logger:        logger,
 		client:        client,
 		partner:       partner,

@@ -28,9 +28,9 @@ func (*deleteTask) Validate(map[string]string) error {
 func (*deleteTask) Run(_ context.Context, _ map[string]string, _ *database.DB,
 	logger *log.Logger, transCtx *model.TransferContext,
 ) error {
-	filepath := &transCtx.Transfer.LocalPath
+	filepath := transCtx.Transfer.LocalPath
 
-	if err := fs.Remove(transCtx.FS, filepath); err != nil {
+	if err := fs.Remove(filepath); err != nil {
 		return fmt.Errorf("failed to delete file: %w", err)
 	}
 

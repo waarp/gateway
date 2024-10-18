@@ -40,6 +40,16 @@ les options suivantes :
 * **endpoint**: L'adresse du serveur S3 (si celle-ci est différente de l'adresse
   par défaut ``amazonaws.com``). Peut également être renseigné via la
   variable d'environnement :envvar:`AWS_ENDPOINT_URL`.
+* **cacheMaxAge**: Les fichiers seront purgés du cache après que cette durée se
+  soit écoulée depuis leur dernier accès. Noter que ce timer est réinitialisé
+  à chaque fois qu'un fichier est consulté. Le durée utilise la notation standard
+  avec les unités de temps ``s``, ``m``, ``h``, ``d``, ``w``, ``M`` et ``y``.
+  Par défaut, les fichiers ont une durée de vie de 10 minutes.
+* **cacheMaxSize**: La taille maximum du cache. Quand le cache excède cette taille,
+  les fichiers commenceront à être supprimés du cache, en commençant par celui
+  le moins utilisé. À noter que cette taille doit être exprimée en unités binaires
+  (``KiB``, ``MiB``, ``GiB``, ``TiB``, ``PiB`` et ``EiB``). Par défaut, le cache
+  n'a pas de taille limite.
 
 Exemple
 -------

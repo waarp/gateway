@@ -123,9 +123,9 @@ func InitSelfPullTransfer(c convey.C, proto string, clientConf protocol.ClientCo
 
 //nolint:dupl // factorizing would hurt readability
 func (s *SelfContext) addPushTransfer(c convey.C) {
-	filePath := mkPath(s.Paths.GatewayHome, s.ClientRule.LocalDir,
+	filePath := fs.JoinPath(s.Paths.GatewayHome, s.ClientRule.LocalDir,
 		"sub_dir", "self_transfer_push")
-	s.fileContent = AddSourceFile(c, s.FS, &filePath)
+	s.fileContent = AddSourceFile(c, filePath)
 
 	trans := &model.Transfer{
 		RuleID:          s.ClientRule.ID,
@@ -141,9 +141,9 @@ func (s *SelfContext) addPushTransfer(c convey.C) {
 
 //nolint:dupl // factorizing would hurt readability
 func (s *SelfContext) addPullTransfer(c convey.C) {
-	filePath := mkPath(s.Paths.GatewayHome, s.Server.RootDir,
+	filePath := fs.JoinPath(s.Paths.GatewayHome, s.Server.RootDir,
 		s.ServerRule.LocalDir, s.getClientRemoteDir(), "sub_dir", "self_transfer_pull")
-	s.fileContent = AddSourceFile(c, s.FS, &filePath)
+	s.fileContent = AddSourceFile(c, filePath)
 
 	trans := &model.Transfer{
 		RuleID:          s.ClientRule.ID,
@@ -382,12 +382,11 @@ func (s *SelfContext) CheckDestFile(c convey.C) {
 		fullPath := s.ClientTrans.LocalPath
 
 		if s.ClientRule.IsSend {
-			fullPathStr := path.Join(s.Paths.GatewayHome, s.Server.RootDir,
+			fullPath = path.Join(s.Paths.GatewayHome, s.Server.RootDir,
 				s.ServerRule.LocalDir, s.getClientRemoteDir(), s.ClientTrans.SrcFilename)
-			fullPath = mkPath(fullPathStr)
 		}
 
-		content, err := fs.ReadFile(s.FS, &fullPath)
+		content, err := fs.ReadFullFile(fullPath)
 
 		c.So(err, convey.ShouldBeNil)
 		c.So(len(content), convey.ShouldEqual, TestFileSize)

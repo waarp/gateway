@@ -2,7 +2,6 @@ package model
 
 import (
 	"fmt"
-	"io/fs"
 
 	"code.waarp.fr/lib/log"
 
@@ -36,7 +35,6 @@ type TransferContext struct {
 	LocalAccountCreds Credentials
 
 	Paths *conf.PathsConfig
-	FS    fs.FS
 }
 
 // GetTransferContext retrieves all the information regarding the given transfer

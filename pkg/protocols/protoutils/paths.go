@@ -3,6 +3,7 @@ package protoutils
 import (
 	"errors"
 	"fmt"
+	gofs "io/fs"
 	"path"
 	"strings"
 
@@ -10,9 +11,7 @@ import (
 
 	"code.waarp.fr/apps/gateway/gateway/pkg/conf"
 	"code.waarp.fr/apps/gateway/gateway/pkg/database"
-	"code.waarp.fr/apps/gateway/gateway/pkg/fs"
 	"code.waarp.fr/apps/gateway/gateway/pkg/model"
-	"code.waarp.fr/apps/gateway/gateway/pkg/model/types"
 	"code.waarp.fr/apps/gateway/gateway/pkg/utils"
 )
 
@@ -68,14 +67,14 @@ func GetClosestRule(db database.ReadAccess, logger *log.Logger, server *model.Lo
 // given server & rule directories.
 func GetRealPath(isTemp bool, db database.ReadAccess, logger *log.Logger,
 	server *model.LocalAgent, acc *model.LocalAccount, filepath string,
-) (*types.FSPath, error) {
+) (string, error) {
 	filepath = strings.TrimPrefix(filepath, "/")
 
 	rule, err := GetClosestRule(db, logger, server, acc, filepath, true)
 	if errors.Is(err, ErrRuleNotFound) {
-		return nil, nil //nolint:nilnil //returning nil here makes more sense than using a sentinel error
+		return "", nil //nolint:nilnil //returning nil here makes more sense than using a sentinel error
 	} else if err != nil {
-		return nil, err
+		return "", err
 	}
 
 	confPaths := &conf.GlobalConfig.Paths
@@ -83,35 +82,35 @@ func GetRealPath(isTemp bool, db database.ReadAccess, logger *log.Logger,
 	rest = strings.TrimPrefix(rest, "/")
 
 	var (
-		backend, realDir string
-		dirErr           error
+		realDir string
+		dirErr  error
 	)
 
 	switch {
 	case rule.IsSend:
-		backend, realDir, dirErr = utils.GetPath(rest, utils.Leaf(rule.LocalDir),
+		realDir, dirErr = utils.GetPath(rest, utils.Leaf(rule.LocalDir),
 			utils.Leaf(server.SendDir), utils.Branch(server.RootDir),
 			utils.Leaf(confPaths.DefaultOutDir), utils.Branch(confPaths.GatewayHome))
 	case isTemp:
-		backend, realDir, dirErr = utils.GetPath(rest+".part", utils.Leaf(rule.TmpLocalRcvDir),
+		realDir, dirErr = utils.GetPath(rest+".part", utils.Leaf(rule.TmpLocalRcvDir),
 			utils.Leaf(server.TmpReceiveDir), utils.Branch(server.RootDir),
 			utils.Leaf(confPaths.DefaultTmpDir), utils.Branch(confPaths.GatewayHome))
 	default:
-		backend, realDir, dirErr = utils.GetPath(rest, utils.Leaf(rule.LocalDir),
+		realDir, dirErr = utils.GetPath(rest, utils.Leaf(rule.LocalDir),
 			utils.Leaf(server.ReceiveDir), utils.Branch(server.RootDir),
 			utils.Leaf(confPaths.DefaultInDir), utils.Branch(confPaths.GatewayHome))
 	}
 
 	if dirErr != nil {
-		return nil, fmt.Errorf("failed to build the path: %w", dirErr)
+		return "", fmt.Errorf("failed to build the path: %w", dirErr)
 	}
 
-	return &types.FSPath{Backend: backend, Path: realDir}, nil
+	return realDir, nil
 }
 
 func GetRulesPaths(db database.ReadAccess, serv *model.LocalAgent,
 	acc *model.LocalAccount, dir string,
-) ([]fs.FileInfo, error) {
+) ([]gofs.FileInfo, error) {
 	dir = strings.TrimPrefix(dir, "/")
 
 	var rules model.Rules
@@ -150,7 +149,7 @@ func GetRulesPaths(db database.ReadAccess, serv *model.LocalAgent,
 		}
 	}
 
-	entries := make([]fs.FileInfo, len(paths))
+	entries := make([]gofs.FileInfo, len(paths))
 
 	for i := range paths {
 		entries[i] = FakeDirInfo(paths[i])

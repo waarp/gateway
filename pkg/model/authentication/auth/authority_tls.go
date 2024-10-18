@@ -4,8 +4,7 @@ import (
 	"crypto/tls"
 	"crypto/x509"
 	"fmt"
-
-	"golang.org/x/exp/slices"
+	"slices"
 
 	"code.waarp.fr/apps/gateway/gateway/pkg/database"
 	"code.waarp.fr/apps/gateway/gateway/pkg/model"

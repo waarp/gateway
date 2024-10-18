@@ -14,7 +14,6 @@ import (
 
 	"code.waarp.fr/apps/gateway/gateway/pkg/analytics"
 	"code.waarp.fr/apps/gateway/gateway/pkg/database"
-	"code.waarp.fr/apps/gateway/gateway/pkg/fs"
 	"code.waarp.fr/apps/gateway/gateway/pkg/logging"
 	"code.waarp.fr/apps/gateway/gateway/pkg/model"
 	"code.waarp.fr/apps/gateway/gateway/pkg/model/types"
@@ -70,15 +69,8 @@ func newPipeline(db *database.DB, logger *log.Logger, transCtx *model.TransferCo
 		return nil, NewErrorWith(types.TeInternal, "failed to build the file paths", err)
 	}
 
-	filesys, fsErr := fs.GetFileSystem(db, &transCtx.Transfer.LocalPath)
-	if fsErr != nil {
-		return nil, NewErrorWith(types.TeInternal, "failed to instantiate filesystem", fsErr)
-	}
-
-	transCtx.FS = filesys
-
 	if transCtx.Rule.IsSend {
-		transCtx.Transfer.Filesize = getFilesize(filesys, &transCtx.Transfer.LocalPath)
+		transCtx.Transfer.Filesize = getFilesize(transCtx.Transfer.LocalPath)
 	}
 
 	if transCtx.Transfer.Status != types.StatusRunning {
@@ -481,7 +473,7 @@ func (p *Pipeline) RebuildFilepaths(newFile string) *Error {
 		dstFile = newFile
 	}
 
-	p.TransCtx.Transfer.LocalPath = types.FSPath{}
+	p.TransCtx.Transfer.LocalPath = ""
 	p.TransCtx.Transfer.RemotePath = ""
 
 	if err := p.setCustomFilePaths(srcFile, dstFile); err != nil {

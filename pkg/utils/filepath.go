@@ -1,28 +1,12 @@
 package utils
 
 import (
-	"fmt"
 	"path"
 	"path/filepath"
+	"strings"
 
-	"github.com/rclone/rclone/fs/fspath"
+	"code.waarp.fr/apps/gateway/gateway/pkg/fs"
 )
-
-func parsePath(filePath string) (string, string, bool, error) {
-	if filePath == "" {
-		return "", "", false, nil
-	}
-
-	if filepath.IsAbs(filePath) {
-		return "", filepath.ToSlash(filePath), true, nil
-	}
-
-	if parsed, err := fspath.Parse(filePath); err != nil {
-		return "", "", false, fmt.Errorf("failed to parse file path: %w", err)
-	} else {
-		return parsed.Name, parsed.Path, parsed.Name != "", nil
-	}
-}
 
 type Elem struct {
 	isLeaf bool
@@ -38,15 +22,13 @@ func Branch(str string) Elem { return Elem{false, str} }
 // GetPath return the path given by joining the given tail with all the given
 // parents in the order they are given. The function will stop at the first
 // absolute path, and return the path formed by all the previous parents.
-func GetPath(file string, elems ...Elem) (string, string, error) {
-	backend, fPath, isRooted, fErr := parsePath(file)
-	if fErr != nil {
-		return "", "", fErr
-	} else if isRooted {
-		return backend, fPath, nil
+func GetPath(file string, elems ...Elem) (string, error) {
+	file = filepath.ToSlash(file)
+	if fs.IsAbsPath(file) {
+		return file, nil
 	}
 
-	strings := []string{file}
+	pathElems := []string{file}
 
 	for _, elem := range elems {
 		// skip empty elements
@@ -55,21 +37,21 @@ func GetPath(file string, elems ...Elem) (string, string, error) {
 		}
 
 		// if we already have children, skip all leaves (they can't have children)
-		if elem.isLeaf && len(strings) > 1 {
+		if elem.isLeaf && len(pathElems) > 1 {
 			continue
 		}
 
-		backend, fPath, isRooted, fErr = parsePath(elem.str)
-		if fErr != nil {
-			return "", "", fErr
-		}
+		newElem := filepath.ToSlash(elem.str)
+		pathElems = append([]string{newElem}, pathElems...)
 
-		strings = append([]string{fPath}, strings...)
+		if fs.IsAbsPath(newElem) {
+			if strings.HasSuffix(newElem, ":") {
+				return newElem + path.Join(pathElems[1:]...), nil
+			}
 
-		if isRooted {
-			return backend, path.Join(strings...), nil
+			return path.Join(pathElems...), nil
 		}
 	}
 
-	return "", path.Join(strings...), nil
+	return path.Join(pathElems...), nil
 }

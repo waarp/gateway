@@ -1,10 +1,8 @@
 package r66
 
 import (
-	"bytes"
 	"fmt"
 
-	"code.waarp.fr/apps/gateway/gateway/pkg/fs"
 	"code.waarp.fr/apps/gateway/gateway/pkg/model/types"
 	"code.waarp.fr/apps/gateway/gateway/pkg/pipeline"
 	"code.waarp.fr/apps/gateway/gateway/pkg/protocols/modules/r66/internal"
@@ -15,7 +13,7 @@ func (t *serverTransfer) checkSize() *pipeline.Error {
 		return nil
 	}
 
-	stat, err := fs.Stat(t.pip.TransCtx.FS, &t.pip.TransCtx.Transfer.LocalPath)
+	stat, err := t.pip.Stream.Stat()
 	if err != nil {
 		t.pip.Logger.Error("Failed to retrieve file info: %s", err)
 
@@ -34,8 +32,8 @@ func (t *serverTransfer) checkSize() *pipeline.Error {
 }
 
 func (t *serverTransfer) getHash() ([]byte, error) {
-	hash, tErr := internal.MakeHash(t.ctx, t.conf.Digest, t.pip.TransCtx.FS, t.pip.Logger,
-		&t.pip.TransCtx.Transfer.LocalPath)
+	hash, tErr := internal.MakeHash(t.ctx, t.conf.Digest, t.pip.Logger,
+		t.pip.TransCtx.Transfer.LocalPath)
 	if tErr != nil {
 		return nil, internal.ToR66Error(tErr)
 	}
@@ -44,20 +42,18 @@ func (t *serverTransfer) getHash() ([]byte, error) {
 }
 
 func (t *serverTransfer) checkHash(exp []byte) error {
-	if t.r66Conf.NoFinalHash || !t.conf.FinalHash || (len(exp) == 0 &&
-		t.pip.TransCtx.Transfer.Filesize <= 0) {
+	if t.pip.TransCtx.Rule.IsSend || t.r66Conf.NoFinalHash || !t.conf.FinalHash ||
+		(len(exp) == 0 && t.pip.TransCtx.Transfer.Filesize <= 0) {
 		return nil
 	}
 
-	hash, err := t.getHash()
-	if err != nil {
-		return err
+	hasher, hashErr := internal.GetHasher(t.conf.Digest)
+	if hashErr != nil {
+		return internal.ToR66Error(hashErr)
 	}
 
-	if !bytes.Equal(hash, exp) {
-		t.pip.Logger.Error("File hash verification failed: hashes do not match")
-
-		return pipeline.NewError(types.TeIntegrity, "file hash does not match expected value")
+	if err := t.pip.Stream.CheckHash(hasher, exp); err != nil {
+		return internal.ToR66Error(err)
 	}
 
 	return nil

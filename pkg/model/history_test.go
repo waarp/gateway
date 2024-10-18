@@ -92,7 +92,7 @@ func TestHistoryBeforeWrite(t *testing.T) {
 			})
 
 			Convey("Given that the local path is missing", func() {
-				hist.LocalPath = types.FSPath{}
+				hist.LocalPath = ""
 
 				shouldFailWith("the local filename is missing", database.NewValidationError(
 					"the local filepath cannot be empty"))

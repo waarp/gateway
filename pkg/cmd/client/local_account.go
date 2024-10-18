@@ -3,8 +3,7 @@ package wg
 import (
 	"fmt"
 	"io"
-
-	"golang.org/x/exp/slices"
+	"slices"
 
 	"code.waarp.fr/apps/gateway/gateway/pkg/admin/rest/api"
 )

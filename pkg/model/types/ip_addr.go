@@ -3,9 +3,8 @@ package types
 import (
 	"fmt"
 	"net"
+	"slices"
 	"strings"
-
-	"golang.org/x/exp/slices"
 )
 
 const ipAddrSeparator = " | "

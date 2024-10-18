@@ -2,12 +2,12 @@ package tasks
 
 import (
 	"context"
+	"path"
 	"testing"
 
 	. "github.com/smartystreets/goconvey/convey"
 
 	"code.waarp.fr/apps/gateway/gateway/pkg/fs"
-	"code.waarp.fr/apps/gateway/gateway/pkg/fs/fstest"
 	"code.waarp.fr/apps/gateway/gateway/pkg/model"
 	"code.waarp.fr/apps/gateway/gateway/pkg/utils/testhelpers"
 )
@@ -40,7 +40,7 @@ func TestCopyRenameTaskValidate(t *testing.T) {
 			})
 
 			Convey("Then error should say `need path argument`", func() {
-				So(err.Error(), ShouldContainSubstring, "cannot create a copy_rename task without a `path` argument")
+				So(err, ShouldWrap, ErrCopyRenameMissingPath)
 			})
 		})
 	})
@@ -48,22 +48,19 @@ func TestCopyRenameTaskValidate(t *testing.T) {
 
 func TestCopyRenameTaskRun(t *testing.T) {
 	Convey("Given a Runner for the 'COPYRENAME' task", t, func(c C) {
+		root := t.TempDir()
 		logger := testhelpers.TestLogger(c, "task_copyrename")
-		testFS := fstest.InitMemFS(c)
 		task := &copyRenameTask{}
-		srcPath := makePath("/test.src")
+		srcPath := fs.JoinPath(root, "test.src")
 
 		transCtx := &model.TransferContext{
 			Transfer: &model.Transfer{LocalPath: srcPath},
-			FS:       testFS,
 		}
 
-		So(fs.WriteFullFile(testFS, &srcPath, []byte("Hello World")), ShouldBeNil)
+		So(fs.WriteFullFile(srcPath, []byte("Hello World")), ShouldBeNil)
 
-		dstPath := makePath("/test.copy")
-		args := map[string]string{
-			"path": dstPath.String(),
-		}
+		dstPath := fs.JoinPath(root, "test.copy")
+		args := map[string]string{"path": dstPath}
 
 		Convey("Given a valid new path", func() {
 			Convey("When the task is run", func() {
@@ -71,14 +68,14 @@ func TestCopyRenameTaskRun(t *testing.T) {
 				So(err, ShouldBeNil)
 
 				Convey("Then the destination file should exist", func() {
-					_, err := fs.Stat(testFS, &dstPath)
+					_, err := fs.Stat(dstPath)
 					So(err, ShouldBeNil)
 				})
 			})
 		})
 
 		Convey("Given that the file does NOT exist", func() {
-			So(fs.Remove(testFS, &srcPath), ShouldBeNil)
+			So(fs.RemoveAll(srcPath), ShouldBeNil)
 
 			Convey("When calling the run method", func() {
 				err := task.Run(context.Background(), args, nil, logger, transCtx)
@@ -91,14 +88,14 @@ func TestCopyRenameTaskRun(t *testing.T) {
 		})
 
 		Convey("Given that the file is copied on itself", func() {
-			args["path"] = srcPath.String()
+			args["path"] = srcPath
 
 			Convey("When calling the run method", func() {
 				err := task.Run(context.Background(), args, nil, logger, transCtx)
 				So(err, ShouldBeNil)
 
 				Convey("Then the file should NOT be empty", func() {
-					info, err := fs.Stat(testFS, &srcPath)
+					info, err := fs.Stat(srcPath)
 					So(err, ShouldBeNil)
 					So(info.Size(), ShouldNotEqual, 0)
 				})
@@ -106,8 +103,8 @@ func TestCopyRenameTaskRun(t *testing.T) {
 		})
 
 		Convey("Given the target is a non-existing subdir", func() {
-			newDstPath := makePath("/sub_dir/test.src.copy")
-			args["path"] = newDstPath.String()
+			newDstPath := fs.JoinPath(root, "sub_dir", "test.src.copy")
+			args["path"] = newDstPath
 
 			Convey("Given the target can be created", func() {
 				Convey("When the task is run", func() {
@@ -115,23 +112,23 @@ func TestCopyRenameTaskRun(t *testing.T) {
 					So(err, ShouldBeNil)
 
 					Convey("Then the target file exists", func() {
-						_, err := fs.Stat(testFS, &newDstPath)
+						_, err := fs.Stat(newDstPath)
 						So(err, ShouldBeNil)
 					})
 				})
 			})
 
 			Convey("Given the target CANNOT be created", func() {
-				dummyPath := newDstPath.Dir()
-				So(fs.WriteFullFile(testFS, dummyPath, []byte("hello")), ShouldBeNil)
+				dummyPath := path.Dir(newDstPath)
+				So(fs.WriteFullFile(dummyPath, []byte("hello")), ShouldBeNil)
 
 				Convey("When the task is run", func() {
 					err := task.Run(context.Background(), args, nil, logger, transCtx)
 					So(err, ShouldBeError)
 
 					Convey("Then the target file does not exist", func() {
-						_, err := fs.Stat(testFS, &newDstPath)
-						So(fs.IsNotExist(err), ShouldBeTrue)
+						_, err := fs.Stat(newDstPath)
+						So(err, ShouldWrap, fs.ErrNotExist)
 					})
 				})
 			})

@@ -89,7 +89,6 @@ func getPrivProtocol(name string) gosnmp.SnmpV3PrivProtocol {
 func timeTicksSince(t time.Time) uint32 {
 	const milliSecTo100thSecRatio = 10
 
-	//nolint:gosec //SNMP requires we convert to uint32, no other option here
 	return uint32(time.Since(t).Milliseconds() / milliSecTo100thSecRatio)
 }
 

@@ -11,7 +11,6 @@ import (
 
 	"code.waarp.fr/apps/gateway/gateway/pkg/database"
 	"code.waarp.fr/apps/gateway/gateway/pkg/model"
-	"code.waarp.fr/apps/gateway/gateway/pkg/model/types"
 )
 
 // execOutputTask is a task which executes an external program which moves the
@@ -55,15 +54,10 @@ func (e *execOutputTask) Run(parent context.Context, params map[string]string,
 	}
 
 	if cmdErr != nil {
-		if newPathStr := getNewFileName(msg); newPathStr != "" {
-			newPath, err := types.ParsePath(newPathStr)
-			if err != nil {
-				return fmt.Errorf("failed to parse the new file path %q: %w", newPathStr, err)
-			}
-
-			transCtx.Transfer.LocalPath = *newPath
+		if newPath := getNewFileName(msg); newPath != "" {
+			transCtx.Transfer.LocalPath = newPath
 			transCtx.Transfer.RemotePath = path.Join(path.Dir(
-				transCtx.Transfer.RemotePath), path.Base(newPath.Path))
+				transCtx.Transfer.RemotePath), path.Base(newPath))
 		}
 
 		return cmdErr

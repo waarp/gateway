@@ -21,14 +21,14 @@ type replacersMap map[string]replacer
 func getReplacers() replacersMap {
 	return replacersMap{
 		"#TRUEFULLPATH#": func(r *Runner) (string, error) {
-			return r.transCtx.Transfer.LocalPath.String(), nil
+			return r.transCtx.Transfer.LocalPath, nil
 		},
 		"#TRUEFILENAME#": func(r *Runner) (string, error) {
-			return path.Base(r.transCtx.Transfer.LocalPath.Path), nil
+			return path.Base(r.transCtx.Transfer.LocalPath), nil
 		},
 		"#ORIGINALFULLPATH#": func(r *Runner) (string, error) {
 			if r.transCtx.Rule.IsSend {
-				return r.transCtx.Transfer.LocalPath.String(), nil
+				return r.transCtx.Transfer.LocalPath, nil
 			}
 
 			if !r.transCtx.Transfer.IsServer() {
@@ -51,21 +51,21 @@ func getReplacers() replacersMap {
 			if in, err := makeInDir(r.transCtx); err != nil {
 				return "", err
 			} else {
-				return in.String(), nil
+				return in, nil
 			}
 		},
 		"#OUTPATH#": func(r *Runner) (string, error) {
 			if out, err := makeOutDir(r.transCtx); err != nil {
 				return "", err
 			} else {
-				return out.String(), nil
+				return out, nil
 			}
 		},
 		"#WORKPATH#": func(r *Runner) (string, error) {
 			if tmp, err := makeTmpDir(r.transCtx); err != nil {
 				return "", err
 			} else {
-				return tmp.String(), nil
+				return tmp, nil
 			}
 		},
 		"#ARCHPATH#": notImplemented("#ARCHPATH#"),
