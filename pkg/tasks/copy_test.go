@@ -131,7 +131,7 @@ func TestCopyTaskRun(t *testing.T) {
 						Convey("Then the target file does not exist", func() {
 							dstFile := path.Join(dstDir, filename)
 							_, err := fs.Stat(dstFile)
-							So(err, ShouldWrap, fs.ErrNotExist)
+							So(err, ShouldWrap, fs.ErrNotDir)
 						})
 					})
 				})

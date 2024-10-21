@@ -4,6 +4,7 @@ import (
 	"errors"
 	gofs "io/fs"
 	"os"
+	"syscall"
 
 	rfs "github.com/rclone/rclone/fs"
 	"github.com/rclone/rclone/vfs"
@@ -21,6 +22,8 @@ var (
 	ErrBadFileDesc    = vfs.EBADF
 	ErrReadOnly       = vfs.EROFS
 	ErrNotImplemented = vfs.ENOSYS
+
+	ErrNotDir = syscall.ENOTDIR
 )
 
 type (

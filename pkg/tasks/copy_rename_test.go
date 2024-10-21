@@ -128,7 +128,7 @@ func TestCopyRenameTaskRun(t *testing.T) {
 
 					Convey("Then the target file does not exist", func() {
 						_, err := fs.Stat(newDstPath)
-						So(err, ShouldWrap, fs.ErrNotExist)
+						So(err, ShouldWrap, fs.ErrNotDir)
 					})
 				})
 			})
