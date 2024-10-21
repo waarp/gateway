@@ -3,7 +3,10 @@ package s3
 
 import (
 	"context"
+	"errors"
 	"fmt"
+	"os"
+	"path"
 	"time"
 
 	"github.com/rclone/rclone/backend/s3"
@@ -15,6 +18,8 @@ import (
 	"code.waarp.fr/apps/gateway/gateway/pkg/fs"
 )
 
+var ErrMissingBucket = errors.New("no S3 bucket specified")
+
 //nolint:gochecknoinits //init is used by design
 func init() {
 	fs.Register("s3", newS3FS)
@@ -22,14 +27,44 @@ func init() {
 
 func parseOpts(opts map[string]string) (configmap.Simple, *vfscommon.Options, error) {
 	const (
-		oldBucketKey = "bucket"
-		newBucketKey = "bucket_acl"
+		envAuthKey = "env_auth"
+		envAuth    = "true"
+
+		chunkSizeKey = "chunk_size"
+		chunkSize    = "5MiB"
+
+		copyCutoffKey = "copy_cutoff"
+		copyCutoff    = "5MiB"
+
+		dirMarkersKey = "directory_markers"
+		dirMarkers    = "true"
+
+		regionKey     = "region"
+		regionEnvVar  = "AWS_REGION"
+		regionEnvVar2 = "AWS_DEFAULT_REGION"
+
+		listChunkKey   = "list_chunk"
+		listChunk      = "1000"
+		listVersionKey = "list_version"
+		listVersion    = "2"
 	)
 
 	confMap := configmap.Simple(opts)
-	if confMap[newBucketKey] == "" && confMap[oldBucketKey] != "" {
-		confMap[newBucketKey] = confMap[oldBucketKey]
+
+	if confMap[regionKey] == "" {
+		confMap[regionKey] = os.Getenv(regionEnvVar)
 	}
+
+	if confMap[regionKey] == "" {
+		confMap[regionKey] = os.Getenv(regionEnvVar2)
+	}
+
+	confMap[envAuthKey] = envAuth
+	confMap[chunkSizeKey] = chunkSize
+	confMap[copyCutoffKey] = copyCutoff
+	confMap[dirMarkersKey] = dirMarkers
+	confMap[listChunkKey] = listChunk
+	confMap[listVersionKey] = listVersion
 
 	vfsOpts, err := parseVFSOpts(opts)
 
@@ -66,20 +101,39 @@ func parseVFSOpts(opts map[string]string) (*vfscommon.Options, error) {
 }
 
 func newS3FS(name, key, secret string, opts map[string]string) (fs.FS, error) {
+	if s3vfs, err := newS3FSWithRoot(name, key, secret, "", opts); err != nil {
+		return nil, err
+	} else {
+		return &fs.VFS{VFS: s3vfs}, nil
+	}
+}
+
+func newS3FSWithRoot(name, key, secret, root string, opts map[string]string) (*vfs.VFS, error) {
 	confMap, vfsOpts, err := parseOpts(opts)
 	if err != nil {
 		return nil, err
 	}
 
-	confMap["access_key_id"] = key
-	confMap["secret_access_key"] = secret
+	if key != "" {
+		confMap["access_key_id"] = key
+	}
 
-	s3fs, err := s3.NewFs(context.Background(), name, "", confMap)
+	if secret != "" {
+		confMap["secret_access_key"] = secret
+	}
+
+	if bucket := confMap["bucket"]; bucket == "" {
+		return nil, ErrMissingBucket
+	} else {
+		root = path.Join(bucket, root)
+	}
+
+	s3fs, err := s3.NewFs(context.Background(), name, root, confMap)
 	if err != nil {
 		return nil, fmt.Errorf("failed to instantiate s3 filesystem: %w", err)
 	}
 
 	s3vfs := vfs.New(s3fs, vfsOpts)
 
-	return &fs.VFS{VFS: s3vfs}, nil
+	return s3vfs, nil
 }

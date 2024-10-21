@@ -7,6 +7,7 @@ import (
 	"strings"
 
 	"code.waarp.fr/apps/gateway/gateway/pkg/database"
+	"code.waarp.fr/apps/gateway/gateway/pkg/fs"
 )
 
 // Rule represents a transfer rule.
@@ -87,6 +88,10 @@ func (r *Rule) BeforeWrite(db database.Access) error {
 		r.Path = r.Name
 	} else if path.IsAbs(r.Path) {
 		r.Path = strings.TrimLeft(r.Path, "/")
+	}
+
+	if !fs.IsLocalPath(r.TmpLocalRcvDir) {
+		return database.NewValidationError("rule tmp directory must be local")
 	}
 
 	return r.checkPath(db)

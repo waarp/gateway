@@ -12,6 +12,8 @@ import (
 	"code.waarp.fr/apps/gateway/gateway/pkg/utils"
 )
 
+var ErrNonLocalTmpFile = errors.New("temp received files must be local")
+
 // getFilesize returns the size of the given file. If the file does not exist or
 // cannot be accessed, it returns the UnknownSize value (-1).
 func getFilesize(file string) int64 {
@@ -126,6 +128,10 @@ func (p *Pipeline) setCustomFilePaths(srcFilename, destFilename string) error {
 		if fPath, err := makeLocalPath(p.TransCtx, srcFilename, destFilename); err != nil {
 			return fmt.Errorf("failed to build local path: %w", err)
 		} else {
+			if !p.TransCtx.Rule.IsSend && !fs.IsLocalPath(fPath) {
+				return ErrNonLocalTmpFile
+			}
+
 			p.TransCtx.Transfer.LocalPath = fPath
 		}
 	}

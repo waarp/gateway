@@ -2,8 +2,6 @@ module code.waarp.fr/apps/gateway/gateway
 
 go 1.23
 
-toolchain go1.23.1
-
 require (
 	code.waarp.fr/lib/goftp v0.1.1-0.20240801120050-932aa2b2f9a7
 	code.waarp.fr/lib/log v1.2.0
@@ -31,7 +29,7 @@ require (
 	github.com/spf13/afero v1.11.0
 	github.com/stretchr/testify v1.9.0
 	golang.org/x/crypto v0.28.0
-	golang.org/x/exp v0.0.0-20241004190924-225e2abe05e6
+	golang.org/x/exp v0.0.0-20241009180824-f66d83c29e7c
 	golang.org/x/net v0.30.0
 	golang.org/x/term v0.25.0
 	modernc.org/sqlite v1.33.1

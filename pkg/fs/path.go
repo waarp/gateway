@@ -33,6 +33,10 @@ func (p *parsedPath) unrooted() string {
 }
 
 func parsePath(path string) (*parsedPath, error) {
+	if path == "" {
+		return &parsedPath{}, nil
+	}
+
 	parsed, err := fspath.Parse(path)
 	if err != nil {
 		return nil, fmt.Errorf("failed to parse path: %w", err)

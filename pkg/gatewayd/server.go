@@ -5,6 +5,7 @@ package gatewayd
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"os"
 	"os/signal"
@@ -29,6 +30,8 @@ import (
 	"code.waarp.fr/apps/gateway/gateway/pkg/snmp"
 	"code.waarp.fr/apps/gateway/gateway/pkg/utils"
 )
+
+var ErrNonLocalTmpDir = errors.New("the tmp dir must be local")
 
 const (
 	defaultStopTimeout = 10 * time.Second
@@ -60,7 +63,7 @@ func getDir(root, dir string) string {
 	return path.Join(root, dir)
 }
 
-func parseDirs() (rootDir, inDir, outDir, tmpDir string) {
+func parseDirs() (rootDir, inDir, outDir, tmpDir string, err error) {
 	config := &conf.GlobalConfig.Paths
 
 	root := config.GatewayHome
@@ -68,11 +71,18 @@ func parseDirs() (rootDir, inDir, outDir, tmpDir string) {
 	out := getDir(root, config.DefaultOutDir)
 	tmp := getDir(root, config.DefaultTmpDir)
 
-	return root, in, out, tmp
+	if !fs.IsLocalPath(tmp) {
+		return "", "", "", "", ErrNonLocalTmpDir
+	}
+
+	return root, in, out, tmp, nil
 }
 
 func (wg *WG) makeDirs() error {
-	root, in, out, tmp := parseDirs()
+	root, in, out, tmp, dirErr := parseDirs()
+	if dirErr != nil {
+		return dirErr
+	}
 
 	if err := fs.MkdirAll(root); err != nil {
 		return fmt.Errorf("failed to create gateway home directory: %w", err)
