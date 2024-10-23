@@ -1,10 +1,9 @@
-package types
+package database
 
 import (
 	"database/sql/driver"
 	"fmt"
 
-	"code.waarp.fr/apps/gateway/gateway/pkg/database"
 	"code.waarp.fr/apps/gateway/gateway/pkg/utils"
 )
 
@@ -21,7 +20,7 @@ func (s *SecretText) FromDB(bytes []byte) error {
 		return nil
 	}
 
-	plain, err := utils.AESDecrypt(database.GCM, string(bytes))
+	plain, err := utils.AESDecrypt(GCM, string(bytes))
 	if err != nil {
 		return fmt.Errorf("cannot decrypt password: %w", err)
 	}
@@ -38,7 +37,7 @@ func (s *SecretText) ToDB() ([]byte, error) {
 		return []byte(""), nil
 	}
 
-	cypher, err := utils.AESCrypt(database.GCM, string(*s))
+	cypher, err := utils.AESCrypt(GCM, string(*s))
 	if err != nil {
 		return nil, fmt.Errorf("cannot encrypt password: %w", err)
 	}

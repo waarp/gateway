@@ -17,11 +17,6 @@ import (
 // transferred file.
 type execMoveTask struct{}
 
-//nolint:gochecknoinits // init is used by design
-func init() {
-	model.ValidTasks["EXECMOVE"] = &execMoveTask{}
-}
-
 // Validate checks if the EXECMOVE task has all the required arguments.
 func (e *execMoveTask) Validate(params map[string]string) error {
 	if _, _, _, err := parseExecArgs(params); err != nil {

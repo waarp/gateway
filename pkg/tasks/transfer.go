@@ -16,11 +16,6 @@ import (
 // TransferTask is a task which schedules a new transfer.
 type TransferTask struct{}
 
-//nolint:gochecknoinits // This package is designed this way
-func init() {
-	model.ValidTasks["TRANSFER"] = &TransferTask{}
-}
-
 // Validate checks if the tasks has all the required arguments.
 func (t *TransferTask) Validate(args map[string]string) error {
 	if file, ok := args["file"]; !ok || file == "" {

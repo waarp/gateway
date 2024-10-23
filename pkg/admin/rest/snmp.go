@@ -12,7 +12,6 @@ import (
 	"code.waarp.fr/apps/gateway/gateway/pkg/conf"
 	"code.waarp.fr/apps/gateway/gateway/pkg/database"
 	"code.waarp.fr/apps/gateway/gateway/pkg/model"
-	"code.waarp.fr/apps/gateway/gateway/pkg/model/types"
 	"code.waarp.fr/apps/gateway/gateway/pkg/snmp"
 )
 
@@ -55,9 +54,9 @@ func addSnmpMonitor(logger *log.Logger, db *database.DB) http.HandlerFunc {
 			AuthEngineID:    restMonitor.AuthEngineID,
 			AuthUsername:    restMonitor.AuthUsername,
 			AuthProtocol:    restMonitor.AuthProtocol,
-			AuthPassphrase:  types.SecretText(restMonitor.AuthPassphrase),
+			AuthPassphrase:  database.SecretText(restMonitor.AuthPassphrase),
 			PrivProtocol:    restMonitor.PrivProtocol,
-			PrivPassphrase:  types.SecretText(restMonitor.PrivPassphrase),
+			PrivPassphrase:  database.SecretText(restMonitor.PrivPassphrase),
 		}
 		if err := db.Insert(&dbMonitor).Run(); handleError(w, logger, err) {
 			return
@@ -177,11 +176,11 @@ func updateSnmpMonitor(logger *log.Logger, db *database.DB) http.HandlerFunc {
 		setIfValid(&dbMonitor.PrivProtocol, restMonitor.PrivProtocol)
 
 		if restMonitor.AuthPassphrase.Valid {
-			dbMonitor.AuthPassphrase = types.SecretText(restMonitor.AuthPassphrase.Value)
+			dbMonitor.AuthPassphrase = database.SecretText(restMonitor.AuthPassphrase.Value)
 		}
 
 		if restMonitor.PrivPassphrase.Valid {
-			dbMonitor.PrivPassphrase = types.SecretText(restMonitor.PrivPassphrase.Value)
+			dbMonitor.PrivPassphrase = database.SecretText(restMonitor.PrivPassphrase.Value)
 		}
 
 		if err := db.Update(&dbMonitor).Run(); handleError(w, logger, err) {
@@ -281,9 +280,9 @@ func addNewSnmpService(db *database.DB, logger *log.Logger, w http.ResponseWrite
 		SNMPv3Only:           restSnmpConf.V3Only,
 		SNMPv3Username:       restSnmpConf.V3Username,
 		SNMPv3AuthProtocol:   restSnmpConf.V3AuthProtocol,
-		SNMPv3AuthPassphrase: types.SecretText(restSnmpConf.V3AuthPassphrase),
+		SNMPv3AuthPassphrase: database.SecretText(restSnmpConf.V3AuthPassphrase),
 		SNMPv3PrivProtocol:   restSnmpConf.V3PrivProtocol,
-		SNMPv3PrivPassphrase: types.SecretText(restSnmpConf.V3PrivPassphrase),
+		SNMPv3PrivPassphrase: database.SecretText(restSnmpConf.V3PrivPassphrase),
 	}
 	if err := db.Insert(&dbSnmpConf).Run(); handleError(w, logger, err) {
 		return
@@ -331,11 +330,11 @@ func setSnmpService(logger *log.Logger, db *database.DB) http.HandlerFunc {
 		setIfValid(&dbSnmpConf.SNMPv3PrivProtocol, restSnmpConf.V3PrivProtocol)
 
 		if restSnmpConf.V3AuthPassphrase.Valid {
-			dbSnmpConf.SNMPv3AuthPassphrase = types.SecretText(restSnmpConf.V3AuthPassphrase.Value)
+			dbSnmpConf.SNMPv3AuthPassphrase = database.SecretText(restSnmpConf.V3AuthPassphrase.Value)
 		}
 
 		if restSnmpConf.V3PrivPassphrase.Valid {
-			dbSnmpConf.SNMPv3PrivPassphrase = types.SecretText(restSnmpConf.V3PrivPassphrase.Value)
+			dbSnmpConf.SNMPv3PrivPassphrase = database.SecretText(restSnmpConf.V3PrivPassphrase.Value)
 		}
 
 		if err := db.Update(&dbSnmpConf).Run(); handleError(w, logger, err) {

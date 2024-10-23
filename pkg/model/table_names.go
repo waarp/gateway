@@ -22,6 +22,7 @@ const (
 	TableCloudInstances = "cloud_instances"
 	TableAuthorities    = "auth_authorities"
 	TableAuthHosts      = "authority_hosts"
+	TablePGPKeys        = "pgp_keys"
 
 	ViewNormalizedTransfers = "normalized_transfers"
 )

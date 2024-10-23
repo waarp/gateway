@@ -19,11 +19,6 @@ import (
 // execTask is a task which executes an external program.
 type execTask struct{}
 
-//nolint:gochecknoinits // init is used by design
-func init() {
-	model.ValidTasks["EXEC"] = &execTask{}
-}
-
 // Validate checks if the EXEC task has all the required arguments.
 func (e *execTask) Validate(params map[string]string) error {
 	if _, _, _, err := parseExecArgs(params); err != nil {

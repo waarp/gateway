@@ -10,8 +10,6 @@ import (
 	"code.waarp.fr/apps/gateway/gateway/pkg/model"
 )
 
-// The definitions of all the REST entry points paths.
-//
 //nolint:lll,gosec //paths are long; credentials are not hardcoded
 const (
 	AboutPath  = "/api/about"
@@ -95,6 +93,9 @@ const (
 	SNMPServerPath   = "/api/snmp/server"
 	SNMPMonitorsPath = "/api/snmp/monitors"
 	SNMPMonitorPath  = "/api/snmp/monitors/{snmp_monitor}"
+
+	PGPKeysPath = "/api/pgp/keys"
+	PGPKeyPath  = "/api/pgp/keys/{pgp_key}"
 )
 
 // MakeRESTHandler appends all the REST API handlers to the given HTTP router.
@@ -271,4 +272,11 @@ func MakeRESTHandler(logger *log.Logger, db *database.DB, router *mux.Router,
 	mkHandler(SNMPServerPath, getSnmpService, model.PermAdminRead, http.MethodGet)
 	mkHandler(SNMPServerPath, setSnmpService, model.PermAdminWrite, http.MethodPut)
 	mkHandler(SNMPServerPath, deleteSnmpService, model.PermAdminWrite, http.MethodDelete)
+
+	// PGP keys
+	mkHandler(PGPKeysPath, addPGPKey, model.PermAdminWrite, http.MethodPost)
+	mkHandler(PGPKeysPath, listPGPKeys, model.PermAdminRead, http.MethodGet)
+	mkHandler(PGPKeyPath, getPGPKey, model.PermAdminRead, http.MethodGet)
+	mkHandler(PGPKeyPath, updatePGPKey, model.PermAdminWrite, http.MethodPatch)
+	mkHandler(PGPKeyPath, deletePGPKey, model.PermAdminDelete, http.MethodDelete)
 }

@@ -17,6 +17,7 @@ const (
 	NameTask               = "task"
 	NameTransferInfo       = "transfer info"
 	NameUser               = "transfer"
+	NamePGPKey             = "PGP key"
 )
 
 const authPassword = "password"

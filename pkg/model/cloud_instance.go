@@ -6,17 +6,16 @@ import (
 	"code.waarp.fr/apps/gateway/gateway/pkg/conf"
 	"code.waarp.fr/apps/gateway/gateway/pkg/database"
 	"code.waarp.fr/apps/gateway/gateway/pkg/fs"
-	"code.waarp.fr/apps/gateway/gateway/pkg/model/types"
 )
 
 type CloudInstance struct {
-	ID      int64             `xorm:"<- id AUTOINCR"`
-	Owner   string            `xorm:"owner"`
-	Name    string            `xorm:"name"`
-	Type    string            `xorm:"type"`
-	Key     string            `xorm:"api_key"`
-	Secret  types.SecretText  `xorm:"secret"`
-	Options map[string]string `xorm:"options"`
+	ID      int64               `xorm:"<- id AUTOINCR"`
+	Owner   string              `xorm:"owner"`
+	Name    string              `xorm:"name"`
+	Type    string              `xorm:"type"`
+	Key     string              `xorm:"api_key"`
+	Secret  database.SecretText `xorm:"secret"`
+	Options map[string]string   `xorm:"options"`
 }
 
 func (c *CloudInstance) TableName() string   { return TableCloudInstances }

@@ -301,4 +301,9 @@ var Migrations = []Change{
 		Up:          ver0_11_0AddSNMPServerConfigUp,
 		Down:        ver0_11_0AddSNMPServerConfigDown,
 	},
+	{ // #56
+		Description: `Add the "pgp_keys" table`,
+		Up:          ver0_12_0AddPGPKeysUp,
+		Down:        ver0_12_0AddPGPKeysDown,
+	},
 }

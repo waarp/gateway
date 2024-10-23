@@ -83,7 +83,14 @@ func (r *Runner) runTask(updTicker *time.Ticker, task *model.Task, taskInfo stri
 			fmt.Sprintf("%s: setup failed", taskInfo), setupErr)
 	}
 
-	if validator, ok := runner.(model.TaskValidator); ok {
+	if validatorDB, ok := runner.(model.TaskValidatorDB); ok {
+		if valErr := validatorDB.ValidateDB(r.db, args); valErr != nil {
+			r.logger.Error("%s: validation failed %v", taskInfo, valErr)
+
+			return newErrorWith(types.TeExternalOperation,
+				fmt.Sprintf("%s: validation failed", taskInfo), valErr)
+		}
+	} else if validator, ok := runner.(model.TaskValidator); ok {
 		if valErr := validator.Validate(args); valErr != nil {
 			r.logger.Error("%s: validation failed %v", taskInfo, valErr)
 

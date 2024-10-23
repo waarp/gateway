@@ -22,6 +22,15 @@ type TaskValidator interface {
 	Validate(args map[string]string) error
 }
 
+type TaskDBConverter interface {
+	ToDB(args map[string]string) error
+	FromDB(args map[string]string) error
+}
+
+type TaskValidatorDB interface {
+	ValidateDB(db database.ReadAccess, params map[string]string) error
+}
+
 // TaskRunner is the interface which represents a task. All tasks executors must
 // implement this interface in order for the tasks.Runner to be able to execute
 // them.
@@ -51,7 +60,7 @@ type Task struct {
 func (*Task) TableName() string   { return TableTasks }
 func (*Task) Appellation() string { return NameTask }
 
-func (t *Task) validateTasks() error {
+func (t *Task) validateTasks(db database.ReadAccess) error {
 	if t.Chain != ChainPre && t.Chain != ChainPost && t.Chain != ChainError {
 		return database.NewValidationError("%s is not a valid task chain", t.Chain)
 	}
@@ -65,7 +74,11 @@ func (t *Task) validateTasks() error {
 		return database.NewValidationError("%s is not a valid task Type", t.Type)
 	}
 
-	if validator, ok := runner.(TaskValidator); ok {
+	if validatorDB, ok := runner.(TaskValidatorDB); ok {
+		if err := validatorDB.ValidateDB(db, t.Args); err != nil {
+			return database.NewValidationError("invalid task: %s", err)
+		}
+	} else if validator, ok := runner.(TaskValidator); ok {
 		if err := validator.Validate(t.Args); err != nil {
 			return database.NewValidationError("invalid task: %s", err)
 		}
@@ -83,7 +96,7 @@ func (t *Task) BeforeWrite(db database.Access) error {
 		return database.NewValidationError("no rule found with ID %d", t.RuleID)
 	}
 
-	if err := t.validateTasks(); err != nil {
+	if err := t.validateTasks(db); err != nil {
 		return err
 	}
 
