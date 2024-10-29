@@ -136,5 +136,7 @@ func (p *PGPKeysDelete) execute(w io.Writer) error {
 		return err
 	}
 
+	fmt.Fprintf(w, "The PGP key %q was successfully deleted.\n", p.Args.Key)
+
 	return nil
 }
