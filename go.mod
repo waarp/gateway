@@ -8,6 +8,7 @@ require (
 	code.waarp.fr/lib/migration v0.4.0
 	code.waarp.fr/lib/r66 v0.1.6
 	github.com/bwmarrin/snowflake v0.3.0
+	github.com/dsnet/compress v0.0.1
 	github.com/dustin/go-humanize v1.0.1
 	github.com/fclairamb/ftpserverlib v0.24.1
 	github.com/fclairamb/go-log v0.5.0
@@ -21,14 +22,16 @@ require (
 	github.com/jackc/pgx/v5 v5.7.1
 	github.com/jessevdk/go-flags v1.6.1
 	github.com/karrick/tparse/v2 v2.8.2
+	github.com/klauspost/compress v1.17.11
 	github.com/mattn/go-colorable v0.1.13
-	github.com/pkg/sftp v1.13.6
+	github.com/pkg/sftp v1.13.7
 	github.com/puzpuzpuz/xsync v1.5.2
 	github.com/rclone/rclone v1.68.1
 	github.com/slayercat/GoSNMPServer v0.5.2
 	github.com/smartystreets/goconvey v1.8.1
 	github.com/spf13/afero v1.11.0
 	github.com/stretchr/testify v1.9.0
+	github.com/ulikunitz/xz v0.5.12
 	golang.org/x/crypto v0.28.0
 	golang.org/x/exp v0.0.0-20241009180824-f66d83c29e7c
 	golang.org/x/net v0.30.0
