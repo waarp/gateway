@@ -105,3 +105,4 @@ Liste des traitements
    moverename
    rename
    transfer
+   transcode
