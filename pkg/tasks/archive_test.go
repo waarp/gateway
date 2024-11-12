@@ -78,26 +78,29 @@ func testArchive(t *testing.T, extension string) {
 	}
 
 	extrParams := map[string]string{
-		"archive":   archivePath,
 		"outputDir": root,
 	}
 
-	transCtx := &model.TransferContext{
+	transCtxArch := &model.TransferContext{
 		Transfer: &model.Transfer{LocalPath: dir},
+	}
+
+	transCtxExtr := &model.TransferContext{
+		Transfer: &model.Transfer{LocalPath: archivePath},
 	}
 
 	archive := &archiveTask{}
 	extract := &extractTask{}
 	ctx := context.Background()
 
-	require.NoError(t, archive.Run(ctx, archParam, db, logger, transCtx))
+	require.NoError(t, archive.Run(ctx, archParam, db, logger, transCtxArch))
 	assert.FileExists(t, archivePath)
 
 	require.NoError(t, fs.RemoveAll(fileA))
 	require.NoError(t, fs.RemoveAll(fileB))
 	require.NoError(t, fs.RemoveAll(dir))
 
-	require.NoError(t, extract.Run(ctx, extrParams, db, logger, transCtx))
+	require.NoError(t, extract.Run(ctx, extrParams, db, logger, transCtxExtr))
 
 	assert.FileExists(t, fileA)
 	assert.FileExists(t, fileB)

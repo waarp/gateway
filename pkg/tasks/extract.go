@@ -15,7 +15,6 @@ import (
 )
 
 var (
-	ErrExtractNoArchive = errors.New("no archive specified")
 	ErrExtractNoOutput  = errors.New("no output directory specified")
 	ErrExtractOutputDir = errors.New("output path is not a directory")
 )
@@ -30,10 +29,6 @@ func (e *extractTask) parseParams(params map[string]string) error {
 		return fmt.Errorf("failed to parse the extract task parameters: %w", err)
 	}
 
-	if e.Archive == "" {
-		return ErrExtractNoArchive
-	}
-
 	if e.OutputDir == "" {
 		return ErrExtractNoOutput
 	}
@@ -46,12 +41,16 @@ func (e *extractTask) Validate(args map[string]string) error {
 }
 
 func (e *extractTask) Run(_ context.Context, params map[string]string, db *database.DB,
-	logger *log.Logger, _ *model.TransferContext,
+	logger *log.Logger, transCtx *model.TransferContext,
 ) error {
 	if err := e.parseParams(params); err != nil {
 		logger.Error("%v", err)
 
 		return err
+	}
+
+	if e.Archive == "" {
+		e.Archive = transCtx.Transfer.LocalPath
 	}
 
 	if err := e.extractArchive(); err != nil {

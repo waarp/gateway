@@ -3,7 +3,8 @@ ARCHIVE
 
 Le traitement ``EXTRACT`` extrait le contenu d'une archive. Les arguments sont:
 
-* ``archive`` (*string*) - L'archive a extraire. Les extensions acceptées sont :
+* ``archive`` (*string*) - Optionnel. L'archive a extraire. Par défaut, le
+  fichier de transfert sera utilisé. Les extensions acceptées sont :
 
   - ``.zip`` pour une archive ZIP avec compression "DEFLATE"
   - ``.tar`` pour une archive TAR sans compression
