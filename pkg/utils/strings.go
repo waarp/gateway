@@ -6,6 +6,7 @@ package utils
 
 import (
 	"strconv"
+	"strings"
 
 	"golang.org/x/exp/constraints"
 )
@@ -29,4 +30,16 @@ func FormatUint[T constraints.Unsigned](i T) string {
 // to specify the format, precision and bit size.
 func FormatFloat[T constraints.Float](f T) string {
 	return strconv.FormatFloat(float64(f), 'f', -1, 64)
+}
+
+// TrimSplit splits the string by the given separator and trims the resulting
+// slice of strings of leading and trailing whitespaces.
+func TrimSplit(str, sep string) []string {
+	s := strings.Split(str, sep)
+
+	for i := range s {
+		s[i] = strings.TrimSpace(s[i])
+	}
+
+	return s
 }
