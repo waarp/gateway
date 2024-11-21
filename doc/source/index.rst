@@ -44,7 +44,7 @@ La première vous accompagne dans l'installation de l'application :
    getting-started/rebound
    getting-started/cluster
 
-Le guide utilisateur décrit le fonctionnement de Waarp Transfer :
+Le guide utilisateur décrit le fonctionnement de Waarp Gateway :
 
 .. toctree::
    :caption: Guide utilisateur
