@@ -53,7 +53,7 @@ func (s *service) makeTLSConf(*tls.ClientHelloInfo) (*tls.Config, error) {
 		tlsConfig.InsecureSkipVerify = true
 		tlsConfig.VerifyPeerCertificate = func(rawCerts [][]byte, _ [][]*x509.Certificate) error {
 			if len(rawCerts) == 0 {
-				return errMissingCertificate
+				return nil
 			}
 
 			chain, parsErr := auth.ParseRawCertChain(rawCerts)

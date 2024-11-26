@@ -188,6 +188,18 @@ func TestTLS(t *testing.T) {
 				})
 			})
 
+			Convey("Given that the legacy certificate was expected but not provided", func() {
+				compatibility.IsLegacyR66CertificateAllowed = true
+				defer func() { compatibility.IsLegacyR66CertificateAllowed = false }()
+
+				ctx.AddCreds(c, localAgentCert, remotePartnerCert)
+
+				Convey("When connecting to the server", func() {
+					SoMsg("Then it should not return an error",
+						connect(), ShouldBeNil)
+				})
+			})
+
 			Convey("Given that the legacy certificate was not expected", func(c C) {
 				ctx.AddCreds(c, remoteAccountCert, localAccountCert,
 					localAgentCert, remotePartnerCert)
