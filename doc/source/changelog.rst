@@ -3,6 +3,7 @@
 Historique des versions
 =======================
 
+* :release:`0.11.1 <2024-11-26>`
 * :bug:`421` Correction d'un bug qui empêchait la connection au server R66-TLS
   de la gateway lorsque le client ne présentait pas de certificat et que la
   variable d'environnement ``WAARP_GATEWAY_ALLOW_LEGACY_CERT`` était définie.
