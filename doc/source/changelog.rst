@@ -3,6 +3,11 @@
 Historique des versions
 =======================
 
+* :bug:`423` Il est désormais possible de mettre à jour les mots de passe serveur
+  R66 via la configuration protocolaire (champ "serverPassword"). Précédemment,
+  il n'y avait pas de moyen de mettre à jour les mots de passe des serveurs R66
+  de cette manière.
+
 * :release:`0.11.1 <2024-11-26>`
 * :bug:`421` Correction d'un bug qui empêchait la connection au server R66-TLS
   de la gateway lorsque le client ne présentait pas de certificat et que la

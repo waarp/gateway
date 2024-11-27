@@ -54,11 +54,19 @@ func (c *ChangeAESPassphrase) run(db *database.DB) error {
 	return nil
 }
 
+type noHookLocalAgent struct {
+	model.LocalAgent `xorm:"extends"`
+}
+
+func (*noHookLocalAgent) TableName() string                 { return model.TableLocAgents }
+func (*noHookLocalAgent) Appellation() string               { return model.NameLocalAgent }
+func (*noHookLocalAgent) AfterUpdate(database.Access) error { return nil }
+
 func changeAgentsAESPassphrase(db *database.DB, newGCM cipher.AEAD) error {
 	oldGCM := database.GCM
 	owner := conf.GlobalConfig.GatewayName
 
-	var servers model.LocalAgents
+	var servers model.Slice[*noHookLocalAgent]
 	if err := db.Select(&servers).Where("owner=?", conf.GlobalConfig.GatewayName).
 		In("protocol", r66.R66, r66.R66TLS).Run(); err != nil {
 		return fmt.Errorf("failed to retrieve the R66 servers: %w", err)
@@ -86,23 +94,26 @@ func changeAgentsAESPassphrase(db *database.DB, newGCM cipher.AEAD) error {
 	database.GCM = newGCM
 	defer func() { database.GCM = oldGCM }()
 
-	for _, server := range servers {
-		if err := db.Update(server).Run(); err != nil {
-			return fmt.Errorf("failed to update the R66 server %q: %w", server.Name, err)
+	//nolint:wrapcheck //wrapping adds nothing here
+	return db.Transaction(func(db *database.Session) error {
+		for _, server := range servers {
+			if err := db.Update(server).Run(); err != nil {
+				return fmt.Errorf("failed to update the R66 server %q: %w", server.Name, err)
+			}
 		}
-	}
 
-	for _, cred := range creds {
-		if err := db.Update(cred).Run(); err != nil {
-			return fmt.Errorf("failed to update the credential %q: %w", cred.Name, err)
+		for _, cred := range creds {
+			if err := db.Update(cred).Run(); err != nil {
+				return fmt.Errorf("failed to update the credential %q: %w", cred.Name, err)
+			}
 		}
-	}
 
-	for _, cloud := range clouds {
-		if err := db.Update(cloud).Run(); err != nil {
-			return fmt.Errorf("failed to update the cloud instance %q: %w", cloud.Name, err)
+		for _, cloud := range clouds {
+			if err := db.Update(cloud).Run(); err != nil {
+				return fmt.Errorf("failed to update the cloud instance %q: %w", cloud.Name, err)
+			}
 		}
-	}
 
-	return nil
+		return nil
+	})
 }

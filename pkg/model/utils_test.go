@@ -33,12 +33,15 @@ func init() {
 	ConfigChecker = testConfigChecker{
 		testProtocol:        nil,
 		testProtocolInvalid: errInvalidProtoConfig,
-		"r66":               nil,
+		protoR66:            nil,
 	}
 
 	authentication.AddInternalCredentialType(testInternalAuth, &intAuth{})
 	authentication.AddExternalCredentialType(testExternalAuth, &extAuth{})
 	authentication.AddAuthorityType(testAuthority, &testAuthorityHandler{})
+
+	authentication.AddInternalCredentialTypeForProtocol(authPassword, protoR66, &intAuth{})
+	authentication.AddExternalCredentialTypeForProtocol(authPassword, protoR66, &extAuth{})
 }
 
 func hash(pwd string) string {

@@ -9,8 +9,10 @@ import (
 
 type Slice[T database.Table] []T
 
-func (*Slice[T]) TableName() string { return T.TableName(*new(T)) }
-func (*Slice[T]) Elem() string      { return T.Appellation(*new(T)) }
+func (*Slice[T]) TableName() string {
+	return T.TableName(*new(T))
+}
+func (*Slice[T]) Elem() string { return T.Appellation(*new(T)) }
 
 func (s *Slice[T]) AfterRead(db database.ReadAccess) error {
 	for _, elem := range *s {
