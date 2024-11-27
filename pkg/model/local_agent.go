@@ -157,6 +157,29 @@ func (l *LocalAgent) GetProtocol(database.ReadAccess) (string, error) {
 }
 func (l *LocalAgent) AfterInsert(db database.Access) error { return l.AfterUpdate(db) }
 
+func (l *LocalAgent) getR66ServerPswd() string {
+	if !isR66(l.Protocol) {
+		return ""
+	}
+
+	serverPwd, hasPwd := l.ProtoConfig["serverPassword"]
+	if !hasPwd {
+		return ""
+	}
+
+	cryptServerPasswd, pwdIsStr := serverPwd.(string)
+	if !pwdIsStr || cryptServerPasswd == "" {
+		return ""
+	}
+
+	serverPasswd, aesErr := utils.AESDecrypt(database.GCM, cryptServerPasswd)
+	if aesErr != nil {
+		return ""
+	}
+
+	return serverPasswd
+}
+
 // AfterUpdate is called after any write operation on the local_agents table.
 // If the agent uses R66, the function checks if is still uses the old credentials
 // stored in the proto config. If it does, an equivalent Credential is inserted.
@@ -164,35 +187,28 @@ func (l *LocalAgent) AfterInsert(db database.Access) error { return l.AfterUpdat
 //
 //nolint:dupl //duplicate is for RemoteAgent, best keep separate
 func (l *LocalAgent) AfterUpdate(db database.Access) error {
-	if !isR66(l.Protocol) {
+	serverPasswd := l.getR66ServerPswd()
+	if serverPasswd == "" {
 		return nil
 	}
 
-	cipher, pwdErr := utils.GetAs[string](l.ProtoConfig, "serverPassword")
-	if pwdErr != nil {
-		return nil // no server password in proto config
-	}
+	var pswd Credential
+	if getErr := db.Get(&pswd, "local_agent_id=? AND type=?",
+		l.ID, authPassword).Run(); database.IsNotFound(getErr) {
+		pswd.LocalAgentID = utils.NewNullInt64(l.ID)
+		pswd.Type = authPassword
+		pswd.Value = serverPasswd
 
-	serverPasswd, aesErr := utils.AESDecrypt(database.GCM, cipher)
-	if aesErr != nil {
-		return fmt.Errorf("failed to decrypt R66 server JSON password: %w", aesErr)
-	}
-
-	if n, err := db.Count(&Credential{}).Where("local_agent_id=? AND type=?",
-		l.ID, authPassword).Run(); err != nil {
-		return fmt.Errorf("failed to check for duplicate credentials: %w", err)
-	} else if n != 0 {
-		return nil // already has a password
-	}
-
-	pswd := &Credential{
-		LocalAgentID: utils.NewNullInt64(l.ID),
-		Type:         authPassword,
-		Value:        serverPasswd,
-	}
-
-	if err := db.Insert(pswd).Run(); err != nil {
-		return fmt.Errorf("failed to insert server password: %w", err)
+		if insErr := db.Insert(&pswd).Run(); insErr != nil {
+			return fmt.Errorf("failed to insert R66 server password: %w", insErr)
+		}
+	} else if getErr != nil {
+		return fmt.Errorf("failed to check for existing credentials: %w", getErr)
+	} else {
+		pswd.Value = serverPasswd
+		if updErr := db.Update(&pswd).Run(); updErr != nil {
+			return fmt.Errorf("failed to update R66 server password: %w", updErr)
+		}
 	}
 
 	return l.AfterRead(db)
@@ -210,12 +226,12 @@ func (l *LocalAgent) AfterRead(database.ReadAccess) error {
 		return fmt.Errorf("failed to retrieve the server password: %w", err)
 	}
 
-	clear, err := utils.AESDecrypt(database.GCM, servPwd)
+	plain, err := utils.AESDecrypt(database.GCM, servPwd)
 	if err != nil {
 		return fmt.Errorf("failed to decrypt the server password: %w", err)
 	}
 
-	l.ProtoConfig["serverPassword"] = clear
+	l.ProtoConfig["serverPassword"] = plain
 
 	return nil
 }

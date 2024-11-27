@@ -5,8 +5,11 @@ import (
 	"testing"
 
 	. "github.com/smartystreets/goconvey/convey"
+	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 
 	"code.waarp.fr/apps/gateway/gateway/pkg/database"
+	"code.waarp.fr/apps/gateway/gateway/pkg/database/dbtest"
 	"code.waarp.fr/apps/gateway/gateway/pkg/model/types"
 	"code.waarp.fr/apps/gateway/gateway/pkg/utils"
 )
@@ -208,5 +211,65 @@ func TestRemoteAgentValidate(t *testing.T) {
 				})
 			})
 		})
+	})
+}
+
+func TestRemoteAgentAfterUpdate(t *testing.T) {
+	db := dbtest.TestDatabase(t)
+	partner := RemoteAgent{
+		Owner:       "test_gateway",
+		Name:        "new",
+		Protocol:    "r66",
+		ProtoConfig: map[string]any{},
+		Address:     types.Addr("localhost", 2023),
+	}
+	require.NoError(t, db.Insert(&partner).Run())
+
+	cleanup := func() {
+		require.NoError(t, db.DeleteAll(&Credential{}).Run())
+	}
+
+	t.Run("No changes", func(t *testing.T) {
+		t.Cleanup(cleanup)
+
+		require.NoError(t, partner.AfterUpdate(db))
+	})
+
+	t.Run("New R66 server password", func(t *testing.T) {
+		t.Cleanup(cleanup)
+
+		const password = "sesame_hash"
+		partner.ProtoConfig["serverPassword"] = password
+
+		require.NoError(t, partner.AfterUpdate(db))
+
+		var pswd Credential
+		require.NoError(t, db.Get(&pswd, "remote_agent_id=? AND type=?",
+			partner.ID, authPassword).Run())
+		assert.Equal(t, password, pswd.Value)
+	})
+
+	t.Run("Existing R66 server password", func(t *testing.T) {
+		t.Cleanup(cleanup)
+
+		const (
+			oldPassword = "sesame_hash"
+			newPassword = "sesame2_hash"
+		)
+
+		require.NoError(t, db.Insert(&Credential{
+			RemoteAgentID: utils.NewNullInt64(partner.ID),
+			Name:          authPassword,
+			Type:          authPassword,
+			Value:         oldPassword,
+		}).Run())
+
+		partner.ProtoConfig["serverPassword"] = newPassword
+		require.NoError(t, partner.AfterUpdate(db))
+
+		var pswd Credential
+		require.NoError(t, db.Get(&pswd, "remote_agent_id=? AND type=?",
+			partner.ID, authPassword).Run())
+		assert.Equal(t, newPassword, pswd.Value)
 	})
 }

@@ -5,8 +5,11 @@ import (
 	"testing"
 
 	. "github.com/smartystreets/goconvey/convey"
+	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 
 	"code.waarp.fr/apps/gateway/gateway/pkg/database"
+	"code.waarp.fr/apps/gateway/gateway/pkg/database/dbtest"
 	"code.waarp.fr/apps/gateway/gateway/pkg/model/types"
 	"code.waarp.fr/apps/gateway/gateway/pkg/utils"
 )
@@ -203,5 +206,78 @@ func TestLocalAgentBeforeWrite(t *testing.T) {
 				})
 			})
 		})
+	})
+}
+
+func TestLocalAgentAfterUpdate(t *testing.T) {
+	db := dbtest.TestDatabase(t)
+	server := LocalAgent{
+		Owner:         "test_gateway",
+		Name:          "new",
+		RootDir:       "root",
+		ReceiveDir:    "rcv",
+		SendDir:       "send",
+		TmpReceiveDir: "tmp",
+		Protocol:      "r66",
+		ProtoConfig:   map[string]any{},
+		Address:       types.Addr("localhost", 2023),
+	}
+	require.NoError(t, db.Insert(&server).Run())
+
+	mkPswd := func(tb testing.TB, pswd string) string {
+		tb.Helper()
+
+		crypt, err := utils.AESCrypt(database.GCM, pswd)
+		require.NoError(tb, err)
+
+		return crypt
+	}
+
+	cleanup := func() {
+		require.NoError(t, db.DeleteAll(&Credential{}).Run())
+	}
+
+	t.Run("No changes", func(t *testing.T) {
+		t.Cleanup(cleanup)
+
+		require.NoError(t, server.AfterUpdate(db))
+	})
+
+	t.Run("New R66 server password", func(t *testing.T) {
+		t.Cleanup(cleanup)
+
+		const password = "sesame"
+		server.ProtoConfig["serverPassword"] = mkPswd(t, password)
+
+		require.NoError(t, server.AfterUpdate(db))
+
+		var pswd Credential
+		require.NoError(t, db.Get(&pswd, "local_agent_id=? AND type=?",
+			server.ID, authPassword).Run())
+		assert.Equal(t, password, pswd.Value)
+	})
+
+	t.Run("Existing R66 server password", func(t *testing.T) {
+		t.Cleanup(cleanup)
+
+		const (
+			oldPassword = "sesame"
+			newPassword = "sesame2"
+		)
+
+		require.NoError(t, db.Insert(&Credential{
+			LocalAgentID: utils.NewNullInt64(server.ID),
+			Name:         authPassword,
+			Type:         authPassword,
+			Value:        oldPassword,
+		}).Run())
+
+		server.ProtoConfig["serverPassword"] = mkPswd(t, newPassword)
+		require.NoError(t, server.AfterUpdate(db))
+
+		var pswd Credential
+		require.NoError(t, db.Get(&pswd, "local_agent_id=? AND type=?",
+			server.ID, authPassword).Run())
+		assert.Equal(t, newPassword, pswd.Value)
 	})
 }
