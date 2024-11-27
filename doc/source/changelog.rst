@@ -3,6 +3,7 @@
 Historique des versions
 =======================
 
+* :release:`0.11.2 <2024-11-27>`
 * :bug:`423` Il est désormais possible de mettre à jour les mots de passe serveur
   R66 via la configuration protocolaire (champ "serverPassword"). Précédemment,
   il n'y avait pas de moyen de mettre à jour les mots de passe des serveurs R66
