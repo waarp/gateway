@@ -4,14 +4,18 @@ import (
 	"testing"
 
 	. "github.com/smartystreets/goconvey/convey"
+	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 	"golang.org/x/crypto/bcrypt"
 
 	. "code.waarp.fr/apps/gateway/gateway/pkg/backup/file"
 	"code.waarp.fr/apps/gateway/gateway/pkg/conf"
 	"code.waarp.fr/apps/gateway/gateway/pkg/database"
+	"code.waarp.fr/apps/gateway/gateway/pkg/database/dbtest"
 	"code.waarp.fr/apps/gateway/gateway/pkg/model"
 	"code.waarp.fr/apps/gateway/gateway/pkg/model/authentication/auth"
 	"code.waarp.fr/apps/gateway/gateway/pkg/model/types"
+	"code.waarp.fr/apps/gateway/gateway/pkg/protocols/modules/r66"
 	"code.waarp.fr/apps/gateway/gateway/pkg/utils"
 	"code.waarp.fr/apps/gateway/gateway/pkg/utils/testhelpers"
 )
@@ -344,4 +348,33 @@ func TestImportLocalAccounts(t *testing.T) {
 			})
 		})
 	})
+}
+
+func TestR66PasswordImport(t *testing.T) {
+	db := dbtest.TestDatabase(t)
+	logger := testhelpers.GetTestLogger(t)
+
+	server := &model.LocalAgent{
+		Name:     "r66_server",
+		Address:  types.Addr("localhost", 0),
+		Protocol: r66.R66TLS,
+	}
+	require.NoError(t, db.Insert(server).Run())
+
+	const pswd = "bar"
+	hashed, err := utils.HashPassword(bcrypt.MinCost, r66.CryptPass(pswd))
+	require.NoError(t, err)
+
+	accounts := []LocalAccount{{
+		Login:        "foo",
+		Password:     pswd,
+		PasswordHash: hashed,
+	}}
+
+	require.NoError(t, importLocalAccounts(logger, db, accounts, server))
+
+	var cred model.Credential
+	require.NoError(t, db.Get(&cred, "type=?", auth.Password).Run())
+
+	assert.Equal(t, hashed, cred.Value)
 }

@@ -49,12 +49,13 @@ func (l *LocalAgent) UnmarshalJSON(b []byte) error {
 		acc := &l.Accounts[i]
 
 		if acc.PasswordHash == "" && acc.Password != "" {
+			pswd := acc.Password
 			if l.Protocol == "r66" || l.Protocol == "r66-tls" {
-				acc.Password = utils.R66Hash(acc.Password)
+				pswd = utils.R66Hash(acc.Password)
 			}
 
 			var err error
-			if acc.PasswordHash, err = utils.HashPassword(BcryptRounds, acc.Password); err != nil {
+			if acc.PasswordHash, err = utils.HashPassword(BcryptRounds, pswd); err != nil {
 				return err
 			}
 		}

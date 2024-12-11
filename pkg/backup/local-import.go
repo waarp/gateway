@@ -166,10 +166,10 @@ func importLocalAccounts(logger *log.Logger, db database.Access,
 				Type:           auth.Password,
 			}
 
-			if src.Password != "" {
-				pswd.Value = src.Password
-			} else {
+			if src.PasswordHash != "" {
 				pswd.Value = src.PasswordHash
+			} else {
+				pswd.Value = src.Password
 			}
 
 			if err := db.DeleteAll(&model.Credential{}).Where("type=?", pswd.Type).
