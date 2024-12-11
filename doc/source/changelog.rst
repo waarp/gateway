@@ -3,6 +3,7 @@
 Historique des versions
 =======================
 
+* :release:`0.11.3 <2024-12-11>`
 * :bug:`425` Correction d'une mauvaise gestion des erreurs d'initialisation des
   clients de transfert pouvant causer un crash de l'application. La Gateway ne
   devrait désormais plus crasher lorsqu'elle échoue à initialiser un client de
