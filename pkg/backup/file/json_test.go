@@ -64,6 +64,8 @@ func TestLocalAgentUnmarshalJSON(t *testing.T) {
 				acc1 := &server.Accounts[0]
 				acc2 := &server.Accounts[1]
 
+				So(acc1.Password, ShouldEqual, "sesame1")
+				So(acc2.Password, ShouldEqual, "sesame2")
 				shouldBeHashOf(acc1.PasswordHash, utils.R66Hash("sesame1"))
 				shouldBeHashOf(acc2.PasswordHash, utils.R66Hash("sesame2"))
 			})

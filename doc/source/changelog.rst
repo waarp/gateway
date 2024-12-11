@@ -3,6 +3,9 @@
 Historique des versions
 =======================
 
+* :bug:`426` Correction d'une erreur d'authentification R66 causé par un bug
+  dans l'import des mots de passe R66 via la commande d'import de configuration.
+
 * :release:`0.11.2 <2024-11-27>`
 * :bug:`423` Il est désormais possible de mettre à jour les mots de passe serveur
   R66 via la configuration protocolaire (champ "serverPassword"). Précédemment,
