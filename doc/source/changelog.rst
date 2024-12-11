@@ -3,6 +3,10 @@
 Historique des versions
 =======================
 
+* :bug:`425` Correction d'une mauvaise gestion des erreurs d'initialisation des
+  clients de transfert pouvant causer un crash de l'application. La Gateway ne
+  devrait désormais plus crasher lorsqu'elle échoue à initialiser un client de
+  transfert.
 * :bug:`426` Correction d'une erreur d'authentification R66 causé par un bug
   dans l'import des mots de passe R66 via la commande d'import de configuration.
 

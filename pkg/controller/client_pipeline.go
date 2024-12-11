@@ -87,13 +87,13 @@ func newClientPipeline(db *database.DB, logger *log.Logger, transCtx *model.Tran
 		return nil, pipErr
 	}
 
-	clientService, err := client.InitTransfer(pip)
-	if err != nil {
-		pip.SetError(err.Code(), err.Details())
+	clientService, cliErr := client.InitTransfer(pip)
+	if cliErr != nil {
+		pip.SetError(cliErr.Code(), cliErr.Details())
 		logger.Error("Failed to instantiate the %q transfer client: %s",
-			dbClient.Name, err)
+			dbClient.Name, cliErr)
 
-		return nil, pipErr
+		return nil, cliErr
 	}
 
 	c := &ClientPipeline{
