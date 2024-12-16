@@ -78,7 +78,7 @@ func makeCopy(db *database.DB, transCtx *model.TransferContext, source, dest *ty
 // doCopy copies the file pointed by the given transfer to the given destination,
 // and then returns the filesystem on which the copy was made.
 func doCopy(srcFS, dstFS fs.FS, source, dest *types.FSPath) error {
-	if err := fs.MkdirAll(srcFS, dest.Dir()); err != nil {
+	if err := fs.MkdirAll(dstFS, dest.Dir()); err != nil {
 		return fmt.Errorf("cannot create destination directory %q: %w", dest.Dir(), err)
 	}
 

@@ -58,6 +58,12 @@ func MoveFile(db database.ReadAccess, srcFS fs.FS, source, dest *types.FSPath) (
 	}
 
 	if err := fs.Rename(srcFS, source, dest); err != nil {
+		// Source & dest might be on the same FS but on different partitions.
+		// So if Rename fails, we try the fallback method instead.
+		if err2 := fallbackMove(srcFS, srcFS, source, dest); err2 == nil {
+			return srcFS, nil
+		}
+
 		return nil, fmt.Errorf("failed to rename file: %w", err)
 	}
 
