@@ -36,7 +36,7 @@ resteront inchangés.
    *informs* doivent être acquittés par le moniteur, alors que les *traps* ne
    le sont pas. Par défaut, Waarp-Gateway utilisera des *traps*.
 
-.. option:: -c <COMMUNITY>, --address=<UDP_ADDRESS>
+.. option:: -c <COMMUNITY>, --community=<COMMUNITY>
 
    [SNMPv2 uniquement] La "communauté" SNMP du moniteur. Dans les faits, cela
    correspond au mot de passe du moniteur. Cette valeur est uniquement utilisée
