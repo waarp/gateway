@@ -3,6 +3,14 @@
 Historique des versions
 =======================
 
+* :bug:`-` Lors de l'utilisation des tâches COPY, COPYRENAME, MOVE et MOVERENAME,
+  si le dossier de destination n'existe pas, il sera désormais correctement créé.
+  Précédemment, un bug empêchait sa création lorsque celui-ci se trouvait sur une
+  partition différente du dossier source.
+* :bug:`431` Correction d'une régression sur les tâches MOVE et MOVERENAME qui
+  empêchait leur bon fonctionnement lorsque la source et la destination se
+  trouvaient sur des partitions différentes.
+
 * :release:`0.11.3 <2024-12-11>`
 * :bug:`425` Correction d'une mauvaise gestion des erreurs d'initialisation des
   clients de transfert pouvant causer un crash de l'application. La Gateway ne
