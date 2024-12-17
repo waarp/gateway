@@ -3,6 +3,7 @@
 Historique des versions
 =======================
 
+* :release:`0.11.4 <2024-17-12>`
 * :bug:`-` Lors de l'utilisation des tâches COPY, COPYRENAME, MOVE et MOVERENAME,
   si le dossier de destination n'existe pas, il sera désormais correctement créé.
   Précédemment, un bug empêchait sa création lorsque celui-ci se trouvait sur une
