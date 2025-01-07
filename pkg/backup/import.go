@@ -36,7 +36,7 @@ const (
 // importing. A value of 1 means 'reset', a value of 2 means
 // 'reset with no confirmation prompt', and any other value means 'no reset'.
 //
-//nolint:gocognit //function cannot realistically be split
+//nolint:gocognit,gocyclo,cyclop,funlen //function cannot realistically be split
 func ImportData(db *database.DB, r io.Reader, targets []string, dry, reset bool) error {
 	logger := logging.NewLogger("import")
 	data := &file.Data{}
@@ -69,8 +69,27 @@ func ImportData(db *database.DB, r io.Reader, targets []string, dry, reset bool)
 				return err
 			}
 		}
+
 		if utils.ContainsOneOf(targets, "users", "all") {
 			if err := importUsers(logger, ses, data.Users, reset); err != nil {
+				return err
+			}
+		}
+
+		if utils.ContainsOneOf(targets, "clouds", "all") {
+			if err := importCloud(logger, ses, data.Clouds, reset); err != nil {
+				return err
+			}
+		}
+
+		if utils.ContainsOneOf(targets, "snmp", "all") {
+			if err := importSNMPConfig(logger, ses, data.SNMPConfig, reset); err != nil {
+				return err
+			}
+		}
+
+		if utils.ContainsOneOf(targets, "authorities", "all") {
+			if err := importAuthorities(logger, ses, data.Authorities, reset); err != nil {
 				return err
 			}
 		}

@@ -10,12 +10,14 @@ import (
 
 // Data is the top-level structure of the dump file.
 type Data struct {
-	Locals  []LocalAgent  `json:"locals,omitempty"`
-	Clients []Client      `json:"clients,omitempty"`
-	Remotes []RemoteAgent `json:"remotes,omitempty"`
-	Rules   []Rule        `json:"rules,omitempty"`
-	Users   []User        `json:"users,omitempty"`
-	Clouds  []Cloud       `json:"clouds,omitempty"`
+	Locals      []LocalAgent  `json:"locals,omitempty"`
+	Clients     []Client      `json:"clients,omitempty"`
+	Remotes     []RemoteAgent `json:"remotes,omitempty"`
+	Rules       []Rule        `json:"rules,omitempty"`
+	Users       []User        `json:"users,omitempty"`
+	Clouds      []Cloud       `json:"clouds,omitempty"`
+	SNMPConfig  *SNMPConfig   `json:"snmpConfig,omitempty"`
+	Authorities []*Authority  `json:"authorities,omitempty"`
 }
 
 // LocalAgent is the JSON struct representing a local server along with its
@@ -187,4 +189,44 @@ type Cloud struct {
 	Key     string         `json:"key"`
 	Secret  string         `json:"secret"`
 	Options map[string]any `json:"options"`
+}
+
+type SNMPConfig struct {
+	Server   *SNMPServer    `json:"server,omitempty"`
+	Monitors []*SNMPMonitor `json:"monitors,omitempty"`
+}
+
+type SNMPMonitor struct {
+	Name                string `json:"name"`
+	SNMPVersion         string `json:"snmpVersion"`
+	UDPAddress          string `json:"udpAddress"`
+	Community           string `json:"community,omitempty"`
+	UseInforms          bool   `json:"useInforms"`
+	V3ContextName       string `json:"v3ContextName"`
+	V3ContextEngineID   string `json:"v3ContextEngineID"`
+	V3Security          string `json:"v3Security,omitempty"`
+	V3AuthEngineID      string `json:"v3AuthEngineID,omitempty"`
+	V3AuthUsername      string `json:"v3AuthUsername,omitempty"`
+	V3AuthProtocol      string `json:"v3AuthProtocol,omitempty"`
+	V3AuthPassphrase    string `json:"v3AuthPassphrase,omitempty"`
+	V3PrivacyProtocol   string `json:"v3PrivacyProtocol,omitempty"`
+	V3PrivacyPassphrase string `json:"v3PrivacyPassphrase,omitempty"`
+}
+
+type SNMPServer struct {
+	LocalUDPAddress     string `json:"localUDPAddress"`
+	Community           string `json:"community,omitempty"`
+	V3Only              bool   `json:"v3Only"`
+	V3Username          string `json:"v3Username,omitempty"`
+	V3AuthProtocol      string `json:"v3AuthProtocol,omitempty"`
+	V3AuthPassphrase    string `json:"v3AuthPassphrase,omitempty"`
+	V3PrivacyProtocol   string `json:"v3PrivacyProtocol,omitempty"`
+	V3PrivacyPassphrase string `json:"v3PrivacyPassphrase,omitempty"`
+}
+
+type Authority struct {
+	Name           string   `json:"name"`
+	Type           string   `json:"type"`
+	PublicIdentity string   `json:"publicIdentity"`
+	ValidHosts     []string `json:"validHosts,omitempty"`
 }

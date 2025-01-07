@@ -15,7 +15,7 @@ import (
 type ExportCommand struct {
 	ConfigFile string   `short:"c" long:"config" description:"The configuration file to use"`
 	File       string   `short:"f" long:"file" description:"The destination file. If none is given, the content of the export will be written to the standard output"`
-	Target     []string `short:"t" long:"target" default:"all" choice:"rules" choice:"servers" choice:"partners" choice:"users" choice:"all" description:"Limit the export to a subset of data. Can be repeated to export multiple subsets."`
+	Target     []string `short:"t" long:"target" default:"all" choice:"rules" choice:"servers" choice:"clients" choice:"partners" choice:"users" choice:"clouds" choice:"snmp" choice:"authorities" choice:"all" description:"Limit the export to a subset of data. Can be repeated to export multiple subsets."`
 	Verbose    []bool   `short:"v" long:"verbose" description:"Show verbose debug information. Can be repeated to increase verbosity"`
 }
 

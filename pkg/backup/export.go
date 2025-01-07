@@ -17,6 +17,8 @@ import (
 // Possible values for targets are 'rules' for the transfer rules, 'servers' for
 // local servers and accounts, 'partners' for remote partners and accounts, or
 // 'all' for all data.
+//
+//nolint:funlen //function cannot be easily split
 func ExportData(db database.ReadAccess, w io.Writer, targets []string) error {
 	logger := logging.NewLogger("export")
 
@@ -54,6 +56,27 @@ func ExportData(db database.ReadAccess, w io.Writer, targets []string) error {
 
 	if utils.ContainsOneOf(targets, "users", "all") {
 		data.Users, err = exportUsers(logger, db)
+		if err != nil {
+			return err
+		}
+	}
+
+	if utils.ContainsOneOf(targets, "clouds", "all") {
+		data.Clouds, err = exportClouds(logger, db)
+		if err != nil {
+			return err
+		}
+	}
+
+	if utils.ContainsOneOf(targets, "snmp", "all") {
+		data.SNMPConfig, err = exportSNMPConfig(logger, db)
+		if err != nil {
+			return err
+		}
+	}
+
+	if utils.ContainsOneOf(targets, "authorities", "all") {
+		data.Authorities, err = exportAuthorities(logger, db)
 		if err != nil {
 			return err
 		}

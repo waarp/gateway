@@ -3,6 +3,15 @@
 Historique des versions
 =======================
 
+* :bug:`-`
+* :bug:`433` Ajout d'éléments de configuration manquants du fichier d'import/export.
+  Il est donc désormais possible d'importer et exporter :
+
+  - les instances cloud
+  - la configuration du serveur SNMP local
+  - les moniteurs SNMP distants
+  - les autorités d'authentification
+
 * :release:`0.11.4 <2024-17-12>`
 * :bug:`-` Lors de l'utilisation des tâches COPY, COPYRENAME, MOVE et MOVERENAME,
   si le dossier de destination n'existe pas, il sera désormais correctement créé.

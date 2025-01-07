@@ -221,6 +221,79 @@ stockées dans un fichier en format JSON. Ce JSON a la forme suivante :
     cloud <reference-cloud>` du type de l'instance pour avoir la liste des
     options disponibles.
 
+* ``snmpConfig`` (*object*) - La configuration SNMP.
+
+  * ``server`` (*object*) - La configuration du serveur SNMP local.
+
+    * ``localUDPAddress`` (*string*) - L'adresse UDP locale (port inclus) du
+      serveur SNMP.
+    * ``v3Only`` (*bool*) - Indique si le serveur est restreint à SNMPv3 uniquement.
+      Par défaut, SNMPv2 et SNMPv3 sont toutes deux acceptées (à supposé que leurs
+      configurations respectives ci-dessous soient valides).
+    * ``community`` (*string*) - [SNMPv2 uniquement] La valeur de communauté
+      (ou mot de passe) du serveur. Par défaut, la valeur "public" est utilisée.
+    * ``v3Username`` (*string*) - [SNMPv3 uniquement] Le nom d'utilisateur pour
+      l'authentifier sur le serveur. À noter que le nom d'utilisateur est requis
+      avec SNMPv3 même si l'authentification est désactivée.
+    * ``v3AuthProtocol`` (*string*) - [SNMPv3 uniquement] L'algorithme d'authentification
+      utilisé. Les valeurs acceptées sont : ``MD5``, ``SHA``, ``SHA-224``, ``SHA-256``,
+      ``SHA-384`` et ``SHA-512``.
+    * ``v3AuthPassphrase`` (*string*) - [SNMPv3 uniquement] La passphrase d'authentification.
+    * ``v3PrivacyProtocol`` (*string*) - [SNMPv3 uniquement] L'algorithme de confidentialité
+      utilisé. Les valeurs acceptées sont : ``DES``, ``AES``, ``AES-192``, ``AES-192C``,
+      ``AES-256`` et ``AES-256C``.
+    * ``v3PrivacyPassphrase`` (*string*) - [SNMPv3 uniquement] La passphrase de confidentialité.
+
+  * ``monitors`` (*array*) - La liste des moniteurs SNMP connus.
+
+    * ``name`` (*string*) - Le nom du moniteur SNMP.
+    * ``snmpVersion`` (*string*) - La version de SNMP utilisée par le moniteur.
+      Les versions acceptées sont "SNMPv2" et "SNMPv3" (SNMPv1 n'est pas supportée).
+    * ``udpAddress`` (*string*) - L'adresse UDP (port inclus) du moniteur à laquelle
+      les notifications SNMP doivent être envoyées.
+    * ``useInforms`` (*bool*) - Spécifie le type de notification à envoyer au moniteur.
+      Si *faux* (par défaut), Gateway enverra des *traps*. Si *vrai*, Gateway
+      enverra des *informs*.
+    * ``community`` (*string*) - [SNMPv2 uniquement] La valeur de communauté
+      (ou mot de passe) du moniteur. Par défaut, la valeur "public" est utilisée.
+    * ``v3ContextName`` (*string*) - [SNMPv3 uniquement] Le nom du contexte SNMPv3.
+    * ``v3ContextEngineID`` (*string*) - [SNMPv3 uniquement] L'ID du moteur de contexte SNMPv3.
+    * ``v3Security`` (*string*) - [SNMPv3 uniquement] Spécifie le niveau de
+      sécurité SNMPv3 à utiliser avec ce moniteur. Les valeurs acceptées sont :
+
+         - ``noAuthNoPriv``: pas d'authentification ni de confidentialité
+         - ``authNoPriv``: authentification, mais pas de confidentialité
+         - ``authPriv``: authentification et confidentialité
+
+     Par défaut, l'authentification et la confidentialité sont toutes deux
+     désactivées.
+    * ``authEngineID`` (*string*) - [SNMPv3 uniquement] L'ID du moteur d'authentification.
+      N'a aucun effet si le moniteur utilise des *informs* (voir l'option *useInforms*
+      ci-dessus).
+    * ``authUsername`` (*string*) - [SNMPv3 uniquement] Le nom d'utilisateur. À noter
+      que le nom d'utilisateur est requis avec SNMPv3 même si l'authentification
+      est désactivée.
+    * ``authProtocol`` (*string*) - [SNMPv3 uniquement] L'algorithme d'authentification
+      utilisé. Les valeurs acceptées sont : ``MD5``, ``SHA``, ``SHA-224``, ``SHA-256``,
+      ``SHA-384`` et ``SHA-512``.
+    * ``authPassphrase`` (*string*) - [SNMPv3 uniquement] La passphrase d'authentification.
+    * ``privProtocol`` (*string*) - [SNMPv3 uniquement] L'algorithme de confidentialité
+      utilisé. Les valeurs acceptées sont : ``DES``, ``AES``, ``AES-192``, ``AES-192C``,
+      ``AES-256`` et ``AES-256C``.
+    * ``privPassphrase`` (*string*) - [SNMPv3 uniquement] La passphrase de confidentialité.
+
+* ``authorities`` (*array*) - Liste des autorités de certification reconnue par Gateway.
+
+  * ``name`` (*string*) - Le nom de l'autorité.
+  * ``type`` (*string*) - Le type d'autorité (voir les :ref:`méthodes d'authentification
+    <reference-auth-methods>`, chapitre "Autorité d'authentification" pour la liste
+    des types supportés.
+  * ``publicIdentity`` (*string*) - La valeur d'identité publique de l'autorité
+    (en général, son certificat).
+  * ``validHosts`` (*array of strings*) - La liste des hôtes que l'autorité est
+    habilitée à authentifier. Si vide, l'autorité est habilité à authentifier tous
+    les hôtes qu'elle a certifié.
+
 **Exemple**
 
 .. code-block:: json
@@ -315,5 +388,33 @@ stockées dans un fichier en format JSON. Ce JSON a la forme suivante :
          "region": "eu-west-1",
          "bucket": "gw-bucket",
        }
-     }]
+     }],
+     "snmpConfig": {
+       "server" : {
+         "localUDPAddress": "0.0.0.0:161",
+         "community": "public",
+         "v3Only": false,
+         "v3Username": "toto"
+         "v3AuthProtocol": "MD5"
+         "v3AuthPassphrase": "sesame",
+         "v3PrivacyProtocol": "DES",
+         "v3PrivacyPassphrase": "secret"
+       },
+       "monitors" : [{
+         "name": "centreon",
+         "snmpVersion": "SNMPv3",
+         "udpAddress": "20.0.0.0:162"
+         "community": "public",
+         "useInforms": true,
+         "v3ContextName": "waarp-gw",
+         "v3ContextEngineID": "123"
+         "v3Security": "authPriv",
+         "v3AuthEngineID": "456",
+         "v3AuthUsername": "tata",
+         "v3AuthProtocol": "SHA",
+         "v3AuthPassphrase": "sesame",
+         "v3PrivacyProtocol": "AES",
+         "v3PrivacyPassphrase": "secret"
+       }]
+     }
    }
