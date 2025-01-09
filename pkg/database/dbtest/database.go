@@ -107,3 +107,12 @@ func TestDatabase(tb testing.TB) *database.DB {
 
 	return db
 }
+
+func ChangeOwner(owner string, f func() error) error {
+	oldOwner := conf.GlobalConfig.GatewayName
+	conf.GlobalConfig.GatewayName = owner
+
+	defer func() { conf.GlobalConfig.GatewayName = oldOwner }()
+
+	return f()
+}
