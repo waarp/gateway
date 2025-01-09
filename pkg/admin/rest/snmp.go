@@ -118,7 +118,7 @@ func listSnmpMonitors(logger *log.Logger, db *database.DB) http.HandlerFunc {
 			restMonitors[i] = dbSNMPMonitorToREST(dbMonitor)
 		}
 
-		response := map[string][]*api.GetSnmpMonitorRespObject{"snmpMonitors": restMonitors}
+		response := map[string][]*api.GetSnmpMonitorRespObject{"monitors": restMonitors}
 		handleError(w, logger, writeJSON(w, response))
 	}
 }

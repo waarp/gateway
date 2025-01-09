@@ -3,7 +3,10 @@
 Historique des versions
 =======================
 
-* :bug:`-`
+* :bug:`-` Correction d'un bug de l'API REST qui entravait le bon fonctionnement
+  de la commande client ``snmp monitor list``, la faisait systématiquement répondre
+  par *"No SNMP monitor found."*. L'API REST renvoie désormais les bonnes informations
+  sur les moniteurs SNMP.
 * :bug:`433` Ajout d'éléments de configuration manquants du fichier d'import/export.
   Il est donc désormais possible d'importer et exporter :
 
