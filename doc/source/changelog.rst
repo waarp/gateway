@@ -3,6 +3,7 @@
 Historique des versions
 =======================
 
+* :release:`0.11.5 <2025-01-09>`
 * :bug:`-` Correction d'un bug de l'API REST qui entravait le bon fonctionnement
   de la commande client ``snmp monitor list``, la faisait systématiquement répondre
   par *"No SNMP monitor found."*. L'API REST renvoie désormais les bonnes informations
