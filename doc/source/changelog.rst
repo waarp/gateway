@@ -4,6 +4,9 @@ Historique des versions
 =======================
 
 * :release:`0.11.5 <2025-01-09>`
+* :bug:`-` Correction d'un bug dans le *parsing* des chemins sous Windows qui
+  empêchait le démarrage de Gateway lorsque les chemins renseignés dans le fichier
+  de configuration étaient relatifs.
 * :bug:`-` Correction d'un bug de l'API REST qui entravait le bon fonctionnement
   de la commande client ``snmp monitor list``, la faisait systématiquement répondre
   par *"No SNMP monitor found."*. L'API REST renvoie désormais les bonnes informations

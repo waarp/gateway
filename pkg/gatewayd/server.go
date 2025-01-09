@@ -8,7 +8,6 @@ import (
 	"fmt"
 	"os"
 	"os/signal"
-	"path/filepath"
 	"sync"
 	"syscall"
 	"time"
@@ -59,7 +58,7 @@ func getDir(root *types.FSPath, dir string) (*types.FSPath, error) {
 		return nil, fmt.Errorf("failed to parse the dir: %w", err)
 	}
 
-	if dirPath.Backend != "" || filepath.IsAbs(dirPath.Path) {
+	if dirPath.IsAbs() {
 		return dirPath, nil
 	}
 

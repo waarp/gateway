@@ -2,7 +2,6 @@ package types
 
 import (
 	"database/sql/driver"
-	"errors"
 	"fmt"
 	"path"
 	"path/filepath"
@@ -17,15 +16,10 @@ type FSPath struct {
 	Path    string
 }
 
-var ErrNoVolumeName = errors.New("missing windows volume name in path")
-
 // ParsePath parses the given file path into an FSPath structure. The path must
 // have the form `backend:path`. If no backend is given, the local file system
 // will be assumed.
-// For windows paths, the path MUST be absolute, meaning it must start with a
-// drive letter.
-// For other file systems, the path must be either absolute, or relative to the
-// file system's root.
+// On Windows, all backslashes `\` will be converted to regular slashes `/`.
 func ParsePath(fullPath string) (*FSPath, error) {
 	parsed, pathErr := fspath.Parse(fullPath)
 	if pathErr != nil {
@@ -38,10 +32,6 @@ func ParsePath(fullPath string) (*FSPath, error) {
 
 	if runtime.GOOS == "windows" && parsed.Name == "" {
 		parsed.Path = strings.TrimLeft(parsed.Path, "/")
-
-		if filepath.VolumeName(parsed.Path) == "" {
-			return nil, ErrNoVolumeName
-		}
 	}
 
 	return &FSPath{
@@ -116,4 +106,8 @@ func (p *FSPath) FSPath() string {
 	}
 
 	return path.Clean(fsPath)
+}
+
+func (p *FSPath) IsAbs() bool {
+	return p.Backend != "" || filepath.IsAbs(p.Path)
 }
