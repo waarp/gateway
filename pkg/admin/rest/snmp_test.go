@@ -129,7 +129,7 @@ func TestListSNMPMonitors(t *testing.T) {
 		require.NoError(t, db.Insert(&dbMonitor2).Run())
 
 		expectedResponse := marshal(t, map[string]any{
-			"snmpMonitors": []any{
+			"monitors": []any{
 				map[string]any{
 					"name":       dbMonitor1.Name,
 					"version":    dbMonitor1.Version,

@@ -13,10 +13,10 @@ func TestParsePath(t *testing.T) {
 		wantParsed FSPath
 		wantErr    error
 	}{
-		{`a/b/c`, FSPath{}, ErrNoVolumeName},
-		{`a\b\c`, FSPath{}, ErrNoVolumeName},
-		{`file:a/b/c`, FSPath{}, ErrNoVolumeName},
-		{`file:/a/b/c`, FSPath{}, ErrNoVolumeName},
+		{`a/b/c`, FSPath{``, `a/b/c`}, nil},
+		{`a\b\c`, FSPath{``, `a/b/c`}, nil},
+		{`file:a/b/c`, FSPath{``, `a/b/c`}, nil},
+		{`file:/a/b/c`, FSPath{``, "a/b/c"}, nil},
 		{`C:/a/b/c`, FSPath{``, `C:/a/b/c`}, nil},
 		{`C:\a\b\c`, FSPath{``, `C:/a/b/c`}, nil},
 		{`file:/C:/a/b/c`, FSPath{``, `C:/a/b/c`}, nil},
