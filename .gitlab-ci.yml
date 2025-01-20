@@ -89,7 +89,7 @@ package:
     - export GOPATH="$CI_PROJECT_DIR/.gocache"
     - export PATH="$CI_PROJECT_DIR/.gocache/bin:$PATH"
     - git config url."https://gitlab-ci-token:$CI_JOB_TOKEN@code.waarp.fr".insteadOf "https://code.waarp.fr"
-    - go install github.com/goreleaser/nfpm/v2/cmd/nfpm@latest
+    - go install github.com/goreleaser/nfpm/v2/cmd/nfpm@v2.36.1
   script:
     - ./make.sh build dist
     - ./make.sh package
