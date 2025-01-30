@@ -34,6 +34,10 @@ var ServerPDUs = []*snmplib.PDUValueControlItem{
 		OID:      AppVersionOID,
 		Type:     gosnmp.OctetString,
 		OnGet: func() (any, error) {
+			if analytics.GlobalService == nil {
+				return nil, ErrNoAnalytics
+			}
+
 			return analytics.GlobalService.GetVersion(), nil
 		},
 	},
@@ -42,6 +46,10 @@ var ServerPDUs = []*snmplib.PDUValueControlItem{
 		OID:      AppUptimeOID,
 		Type:     gosnmp.TimeTicks,
 		OnGet: func() (any, error) {
+			if analytics.GlobalService == nil {
+				return nil, ErrNoAnalytics
+			}
+
 			return timeTicksSince(*analytics.GlobalService.StartTime.Load()), nil
 		},
 	},
@@ -52,6 +60,10 @@ var ServerPDUs = []*snmplib.PDUValueControlItem{
 		OID:      ResObjectMemUsageOID,
 		Type:     gosnmp.Gauge32,
 		OnGet: func() (any, error) {
+			if analytics.GlobalService == nil {
+				return nil, ErrNoAnalytics
+			}
+
 			//nolint:mnd //magic number needed here
 			return uint32(analytics.GlobalService.GetUsedMemory() / 1000), nil
 		},
@@ -73,6 +85,10 @@ var ServerPDUs = []*snmplib.PDUValueControlItem{
 		OID:      ResObjectNbIncomingConnsOID,
 		Type:     gosnmp.Gauge32,
 		OnGet: func() (any, error) {
+			if analytics.GlobalService == nil {
+				return nil, ErrNoAnalytics
+			}
+
 			return uint32(analytics.GlobalService.OpenIncomingConnections.Load()), nil
 		},
 	},
@@ -81,6 +97,10 @@ var ServerPDUs = []*snmplib.PDUValueControlItem{
 		OID:      ResObjectNbOutgoingConnsOID,
 		Type:     gosnmp.Gauge32,
 		OnGet: func() (any, error) {
+			if analytics.GlobalService == nil {
+				return nil, ErrNoAnalytics
+			}
+
 			return uint32(analytics.GlobalService.OpenOutgoingConnections.Load()), nil
 		},
 	},
@@ -106,6 +126,10 @@ var ServerPDUs = []*snmplib.PDUValueControlItem{
 		OID:      LtObjectLastTransferOID,
 		Type:     gosnmp.OctetString,
 		OnGet: func() (any, error) {
+			if analytics.GlobalService == nil {
+				return nil, ErrNoAnalytics
+			}
+
 			trans, err := analytics.GlobalService.GetLastTransfer()
 			if errors.Is(err, analytics.ErrNoTransfer) {
 				return noTransferMsg, nil
@@ -121,6 +145,10 @@ var ServerPDUs = []*snmplib.PDUValueControlItem{
 		OID:      LtObjectLastTransferDateOID,
 		Type:     gosnmp.OctetString,
 		OnGet: func() (any, error) {
+			if analytics.GlobalService == nil {
+				return nil, ErrNoAnalytics
+			}
+
 			trans, err := analytics.GlobalService.GetLastTransfer()
 			if errors.Is(err, analytics.ErrNoTransfer) {
 				return noTransferMsg, nil
@@ -136,6 +164,10 @@ var ServerPDUs = []*snmplib.PDUValueControlItem{
 		OID:      LtObjectLastTransferStatusOID,
 		Type:     gosnmp.OctetString,
 		OnGet: func() (any, error) {
+			if analytics.GlobalService == nil {
+				return nil, ErrNoAnalytics
+			}
+
 			trans, err := analytics.GlobalService.GetLastTransfer()
 			if errors.Is(err, analytics.ErrNoTransfer) {
 				return noTransferMsg, nil

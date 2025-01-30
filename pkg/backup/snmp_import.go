@@ -25,6 +25,10 @@ func importSNMPConfig(logger *log.Logger, db database.Access, config *file.SNMPC
 		}
 	}
 
+	if config == nil {
+		return nil
+	}
+
 	if err := importSNMPServer(logger, db, config.Server); err != nil {
 		return err
 	}
@@ -37,6 +41,10 @@ func importSNMPConfig(logger *log.Logger, db database.Access, config *file.SNMPC
 }
 
 func importSNMPServer(logger *log.Logger, db database.Access, server *file.SNMPServer) error {
+	if server == nil {
+		return nil
+	}
+
 	var dbServer snmp.ServerConfig
 	if err := db.Get(&dbServer, "owner=?", conf.GlobalConfig.GatewayName).
 		Run(); err != nil && !database.IsNotFound(err) {

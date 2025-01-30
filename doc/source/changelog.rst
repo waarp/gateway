@@ -3,6 +3,10 @@
 Historique des versions
 =======================
 
+* :bug:`436` Correction d'un crash lors de l'import d'un fichier de configuration
+  ne contenant pas de configuration SNMP. La configuration SNMP est désormais
+  correctement ignorée lorsqu'elle est absente du fichier d'import.
+
 * :release:`0.11.5 <2025-01-09>`
 * :bug:`-` Correction d'un bug dans le *parsing* des chemins sous Windows qui
   empêchait le démarrage de Gateway lorsque les chemins renseignés dans le fichier

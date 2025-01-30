@@ -95,6 +95,10 @@ func timeTicksSince(t time.Time) uint32 {
 
 func mkTsGetFunc[T constraints.Integer](status types.TransferStatus) func() (any, error) {
 	return func() (any, error) {
+		if analytics.GlobalService == nil {
+			return nil, ErrNoAnalytics
+		}
+
 		count, err := analytics.GlobalService.CountTransferWithStatus(status)
 		if err != nil {
 			return nil, fmt.Errorf("failed to count transfers with status %q: %w", status, err)
@@ -106,6 +110,10 @@ func mkTsGetFunc[T constraints.Integer](status types.TransferStatus) func() (any
 
 func mkTeGetFunc[T constraints.Integer](tec types.TransferErrorCode) func() (any, error) {
 	return func() (any, error) {
+		if analytics.GlobalService == nil {
+			return nil, ErrNoAnalytics
+		}
+
 		count, err := analytics.GlobalService.CountTransfersWithErrorCode(tec)
 		if err != nil {
 			return nil, fmt.Errorf("failed to count transfers with error code %q: %w",

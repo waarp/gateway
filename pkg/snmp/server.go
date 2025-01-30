@@ -1,6 +1,7 @@
 package snmp
 
 import (
+	"errors"
 	"fmt"
 
 	"github.com/gosnmp/gosnmp"
@@ -8,6 +9,8 @@ import (
 
 	"code.waarp.fr/apps/gateway/gateway/pkg/utils"
 )
+
+var ErrNoAnalytics = errors.New("analytics service is not running")
 
 func (s *Service) listen(conf *ServerConfig) error {
 	handler := snmplib.MasterAgent{

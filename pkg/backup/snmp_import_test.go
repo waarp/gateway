@@ -43,6 +43,44 @@ func TestNewSNMPConfImport(t *testing.T) {
 	require.NoError(t, db.Insert(dbMonitor1).Run())
 	require.NoError(t, dbtest.ChangeOwner("other-gw", db.Insert(dbMonitor2).Run))
 
+	t.Run("Nil config", func(t *testing.T) {
+		require.NoError(t, importSNMPConfig(logger, db, nil, false))
+
+		t.Run("Existing servers are untouched", func(t *testing.T) {
+			var check model.Slice[*snmp.ServerConfig]
+			require.NoError(t, db.Select(&check).OrderBy("id", true).Run())
+			require.Len(t, check, 1)
+			assert.Equal(t, check[0], dbServer2)
+		})
+
+		t.Run("Existing monitors are untouched", func(t *testing.T) {
+			var check model.Slice[*snmp.MonitorConfig]
+			require.NoError(t, db.Select(&check).OrderBy("id", true).Run())
+			require.Len(t, check, 2)
+			assert.Equal(t, check[0], dbMonitor1)
+			assert.Equal(t, check[1], dbMonitor2)
+		})
+	})
+
+	t.Run("Empty config", func(t *testing.T) {
+		require.NoError(t, importSNMPConfig(logger, db, &file.SNMPConfig{}, false))
+
+		t.Run("Existing servers are untouched", func(t *testing.T) {
+			var check model.Slice[*snmp.ServerConfig]
+			require.NoError(t, db.Select(&check).OrderBy("id", true).Run())
+			require.Len(t, check, 1)
+			assert.Equal(t, check[0], dbServer2)
+		})
+
+		t.Run("Existing monitors are untouched", func(t *testing.T) {
+			var check model.Slice[*snmp.MonitorConfig]
+			require.NoError(t, db.Select(&check).OrderBy("id", true).Run())
+			require.Len(t, check, 2)
+			assert.Equal(t, check[0], dbMonitor1)
+			assert.Equal(t, check[1], dbMonitor2)
+		})
+	})
+
 	t.Run("No reset", func(t *testing.T) {
 		const newMonitorName = "mon7"
 
