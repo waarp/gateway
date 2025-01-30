@@ -3,6 +3,8 @@ package fs
 import (
 	"fmt"
 	gofs "io/fs"
+	"path/filepath"
+	"runtime"
 
 	hfs "github.com/hack-pad/hackpadfs"
 
@@ -92,7 +94,12 @@ func Glob(fs FS, pattern *types.FSPath) ([]*types.FSPath, error) {
 
 	paths := make([]*types.FSPath, len(matches))
 	root := pattern
-	root.Path = "/"
+
+	if runtime.GOOS == "windows" {
+		root.Path = filepath.VolumeName(root.Path)
+	} else {
+		root.Path = "/"
+	}
 
 	for i, match := range matches {
 		paths[i] = root.JoinPath(match)
