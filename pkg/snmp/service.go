@@ -183,3 +183,33 @@ func (s *Service) GetServerAddr() string {
 		return addr.String()
 	}
 }
+
+func (s *Service) StartNoServer() error {
+	if s.state.IsRunning() {
+		return utils.ErrAlreadyRunning
+	}
+
+	if err := s.startNoServer(); err != nil {
+		s.state.Set(utils.StateError, err.Error())
+
+		return err
+	}
+
+	s.state.Set(utils.StateRunning, "")
+	s.startTime = time.Now()
+
+	return nil
+}
+
+func (s *Service) startNoServer() error {
+	s.Logger = logging.NewLogger(ServiceName)
+	s.Logger.Info("Starting service...")
+
+	if err := s.ReloadMonitorsConf(); err != nil {
+		return err
+	}
+
+	s.Logger.Info("Service started")
+
+	return nil
+}
