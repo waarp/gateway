@@ -3,6 +3,7 @@
 Historique des versions
 =======================
 
+* :release:`0.11.6 <2025-31-01>`
 * :bug:`437` Correction du listing de fichier via R66 sous Windows. Précédemment,
   les fichiers renvoyés par le serveur R66 étaient corrects, mais la racine du
   serveur R66 n'était pas correctement retirée des chemins renvoyés (exposant au
