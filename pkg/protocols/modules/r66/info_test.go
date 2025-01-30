@@ -1,6 +1,7 @@
 package r66
 
 import (
+	"path/filepath"
 	"testing"
 	"time"
 
@@ -19,10 +20,13 @@ import (
 )
 
 func TestGetFileInfo(t *testing.T) {
+	root := filepath.Join(t.TempDir(), "r66_get_file_info")
+
 	Convey("Given an R66 server", t, func(c C) {
-		testFS := fstest.InitMemFS(c)
+		testFS, fsErr := fs.NewLocalFS(root)
+		So(fsErr, ShouldBeNil)
+
 		logger := testhelpers.TestLogger(c, "test_r66_file_info")
-		root := "memory:/r66_get_file_info"
 		rootPath := mkPath(root)
 		db := database.TestDatabase(c)
 		conf.GlobalConfig.Paths.GatewayHome = root

@@ -3,6 +3,10 @@
 Historique des versions
 =======================
 
+* :bug:`437` Correction du listing de fichier via R66 sous Windows. Précédemment,
+  les fichiers renvoyés par le serveur R66 étaient corrects, mais la racine du
+  serveur R66 n'était pas correctement retirée des chemins renvoyés (exposant au
+  passage l'architecture interne du système de fichiers).
 * :bug:`436` Correction d'un crash lors de l'import d'un fichier de configuration
   ne contenant pas de configuration SNMP. La configuration SNMP est désormais
   correctement ignorée lorsqu'elle est absente du fichier d'import.
