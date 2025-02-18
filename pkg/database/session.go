@@ -227,3 +227,11 @@ func (s *Session) AdvanceIncrement(bean Table, value int64) error {
 
 	return nil
 }
+
+// QueryRow returns a single row from the database, which can then be scanned.
+//
+// Be aware that, since this method bypasses the data models, all the models'
+// hooks will be skipped. Thus, this method should be used with caution.
+func (s *Session) QueryRow(sql string, args ...any) *sql.Row {
+	return s.session.DB().DB.QueryRow(sql, args...)
+}

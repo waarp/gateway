@@ -1,4 +1,5 @@
-package gwtesting
+// Package migtest contains utilities for testing database migrations.
+package migtest
 
 import (
 	"database/sql"

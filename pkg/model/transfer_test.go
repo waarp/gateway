@@ -130,48 +130,6 @@ func TestTransferBeforeWrite(t *testing.T) {
 						"the local account %d does not exist", trans.LocalAccountID.Int64))
 				})
 
-				Convey("Given that an transfer with the same remoteID already exist", func() {
-					t2 := &Transfer{
-						Owner:            conf.GlobalConfig.GatewayName,
-						RemoteTransferID: trans.RemoteTransferID,
-						RuleID:           rule.ID,
-						LocalAccountID:   utils.NewNullInt64(account.ID),
-						SrcFilename:      "file",
-						Filesize:         -1,
-						Start:            time.Date(2021, 1, 1, 1, 0, 0, 0, time.UTC),
-						Status:           types.StatusRunning,
-					}
-					So(db.Insert(t2).Run(), ShouldBeNil)
-
-					shouldFailWith("the remoteID is already taken", database.NewValidationError(
-						"a transfer from the same account with the same remote ID already exists"))
-				})
-
-				Convey("Given that an history entry with the same remoteID already exist", func() {
-					t2 := &HistoryEntry{
-						ID:               10,
-						Owner:            conf.GlobalConfig.GatewayName,
-						RemoteTransferID: trans.RemoteTransferID,
-						Protocol:         testProtocol,
-						IsServer:         true,
-						IsSend:           rule.IsSend,
-						Rule:             rule.Name,
-						Agent:            server.Name,
-						Account:          account.Login,
-						SrcFilename:      "file",
-						LocalPath:        localPath("/local/file"),
-						RemotePath:       "remote/file",
-						Filesize:         100,
-						Start:            time.Date(2021, 1, 1, 1, 0, 0, 0, time.UTC),
-						Stop:             time.Date(2021, 1, 2, 1, 0, 0, 0, time.UTC),
-						Status:           types.StatusDone,
-					}
-					So(db.Insert(t2).Run(), ShouldBeNil)
-
-					shouldFailWith("the remoteID is already taken", database.NewValidationError(
-						"a transfer from the same account with the same remote ID already exists"))
-				})
-
 				statusTestCases := []statusTestCase{
 					{types.StatusPlanned, true},
 					{types.StatusRunning, true},

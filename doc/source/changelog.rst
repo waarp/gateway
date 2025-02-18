@@ -3,6 +3,19 @@
 Historique des versions
 =======================
 
+* :feature:`440` Ajout du support pour le protocol PeSIT, ainsi que sa variante
+  TLS. À noter que le protocole n'a pas été testé avec d'autres applications, et
+  est donc par conséquent en **BETA**. Compte tenu des nombreuses spécificités
+  du protocole, il est fortement recommandé de lire :ref:`la rubrique<ref-proto-pesit>`
+  spécifiant les détails d'implémentation du protocole avant de commencer à
+  l'utiliser.
+* :feature:`` Suppression de la contrainte d'unicité sur les identifiants de
+  transfert (``remoteTransferID``). Par conséquent, les requêtes de transfert
+  entrantes ne seront plus refusées si l'identifiant de transfert fourni par le
+  partenaire existe déjà. En revanche, cela signifie qu'il n'est désormais plus
+  possible de reprendre un transfert arrêté si un autre transfert avec le même
+  identifiant est a été initialisé plus tard. Seul le transfert le plus récent
+  avec un identifiant donné peut être repris.
 * :feature:`420` Ajout de 2 variables d'environnement ``WAARP_GATEWAYD_CPU_LIMIT``
   et ``WAARP_GATEWAYD_MEMORY_LIMIT`` permettant respectivement de limiter le
   nombre de cœurs CPU ainsi que la mémoire alloués à la Gateway.

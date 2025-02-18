@@ -7,6 +7,7 @@ package pipeline
 import (
 	"context"
 	"fmt"
+	"maps"
 	"sync"
 	"time"
 
@@ -41,9 +42,10 @@ type Pipeline struct {
 	Trace    Trace
 	snmp     *snmp.Service
 
-	machine      *statemachine.Machine
-	interruption interruption
-	updTicker    *time.Ticker
+	machine          *statemachine.Machine
+	interruption     interruption
+	updTicker        *time.Ticker
+	lastTransferInfo map[string]any
 
 	storedErr *Error
 	errOnce   sync.Once
@@ -129,6 +131,20 @@ func (p *Pipeline) SetInterruptionHandlers(
 	}
 }
 
+func (p *Pipeline) updateTransferInfo() *Error {
+	if maps.Equal(p.TransCtx.TransInfo, p.lastTransferInfo) {
+		return nil
+	}
+
+	if err := p.TransCtx.Transfer.SetTransferInfo(p.DB, p.lastTransferInfo); err != nil {
+		return p.internalError(types.TeInternal, "failed to update the transfer info", err)
+	}
+
+	p.lastTransferInfo = maps.Clone(p.TransCtx.TransInfo)
+
+	return nil
+}
+
 // UpdateTrans updates the given columns of the pipeline's transfer.
 func (p *Pipeline) UpdateTrans() *Error {
 	select {
@@ -137,6 +153,8 @@ func (p *Pipeline) UpdateTrans() *Error {
 			return p.internalErrorWithMsg(types.TeInternal, "Failed to update transfer",
 				"database error", dbErr)
 		}
+
+		return p.updateTransferInfo()
 	default:
 	}
 
@@ -489,6 +507,11 @@ func (p *Pipeline) RebuildFilepaths(newFile string) *Error {
 }
 
 func (p *Pipeline) doneErr(status types.TransferStatus) {
+	defer func() {
+		p.Logger.Debug("Transfer ended in error in %s",
+			time.Since(p.TransCtx.Transfer.Start))
+	}()
+
 	p.TransCtx.Transfer.Status = status
 	if err := p.DB.Update(p.TransCtx.Transfer).Run(); err != nil {
 		p.Logger.Error("Failed to update transfer status to %v: %s", status, err)

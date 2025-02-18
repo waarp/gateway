@@ -17,20 +17,21 @@ lorsque la *gateway* agit comme serveur.
 À l'heure actuelle, les formes d'authentification interne supportées dans la
 *gateway* sont :
 
-+--------------------+---------------------------+----------------------+---------------------------+----------------------------+
-| Nom d'usage        | Nom du type               | Protocoles supportés | Valeur primaire attendue  | Valeur secondaire attendue |
-+====================+===========================+======================+===========================+============================+
-| Mot de passe       | *password*                | R66, R66-TLS, HTTP,  | Un mot de passe           | N/A                        |
-|                    |                           | HTTPS & SFTP         |                           |                            |
-+--------------------+---------------------------+----------------------+---------------------------+----------------------------+
-| Certificat TLS de  | *trusted_tls_certificate* | HTTPS & R66-TLS      | Un certificat TLS de      | N/A                        |
-| Confiance          |                           |                      | confiance                 |                            |
-+--------------------+---------------------------+----------------------+---------------------------+----------------------------+
-| Clé publique SSH   | *ssh_public_key*          | SFTP                 | Une clé publique SSH      | N/A                        |
-+--------------------+---------------------------+----------------------+---------------------------+----------------------------+
-| Certificat R66     | *r66_legacy_certificate*  | R66-TLS              | N/A                       | N/A                        |
-| "legacy"           |                           |                      |                           |                            |
-+--------------------+---------------------------+----------------------+---------------------------+----------------------------+
++-------------------+---------------------------+----------------------+--------------------------+----------------------------+
+| Nom d'usage       | Nom du type               | Protocoles supportés | Valeur primaire attendue | Valeur secondaire attendue |
++===================+===========================+======================+==========================+============================+
+| Mot de passe      | *password*                | R66, R66-TLS, HTTP,  | Un mot de passe          | N/A                        |
+|                   |                           | HTTPS, SFTP, PeSIT & |                          |                            |
+|                   |                           | PESIT-TLS            |                          |                            |
++-------------------+---------------------------+----------------------+--------------------------+----------------------------+
+| Certificat TLS de | *trusted_tls_certificate* | HTTPS, R66-TLS &     | Un certificat TLS de     | N/A                        |
+| Confiance         |                           | PeSIT-TLS            | confiance                |                            |
++-------------------+---------------------------+----------------------+--------------------------+----------------------------+
+| Clé publique SSH  | *ssh_public_key*          | SFTP                 | Une clé publique SSH     | N/A                        |
++-------------------+---------------------------+----------------------+--------------------------+----------------------------+
+| Certificat R66    | *r66_legacy_certificate*  | R66-TLS              | N/A                      | N/A                        |
+| "legacy"          |                           |                      |                          |                            |
++-------------------+---------------------------+----------------------+--------------------------+----------------------------+
 
 Autorité d'authentification
 ---------------------------
@@ -79,19 +80,23 @@ lorsque la *gateway* agit comme client.
 À l'heure actuelle, les formes d'authentification externe supportées dans la
 *gateway* sont :
 
-+----------------+--------------------------+----------------------+--------------------------+----------------------------+
-| Nom d'usage    | Nom du type              | Protocoles supportés | Valeur primaire attendue | Valeur secondaire attendue |
-+================+==========================+======================+==========================+============================+
-| Mot de passe   | *password*               | R66, R66-TLS, HTTP,  | Un mot de passe          | N/A                        |
-|                |                          | HTTPS & SFTP         |                          |                            |
-+----------------+--------------------------+----------------------+--------------------------+----------------------------+
-| Certificat TLS | *tls_certificate*        | HTTPS & R66-TLS      | Un certificat TLS        | Une clé privée             |
-+----------------+--------------------------+----------------------+--------------------------+----------------------------+
-| Clé privée SSH | *ssh_private_key*        | SFTP                 | Une clé privée SSH       | N/A                        |
-+----------------+--------------------------+----------------------+--------------------------+----------------------------+
-| Certificat R66 | *r66_legacy_certificate* | R66-TLS              | N/A                      | N/A                        |
-| "legacy"       |                          |                      |                          |                            |
-+----------------+--------------------------+----------------------+--------------------------+----------------------------+
++---------------------+-----------------------------+----------------------+--------------------------+----------------------------+
+| Nom d'usage         | Nom du type                 | Protocoles supportés | Valeur primaire attendue | Valeur secondaire attendue |
++=====================+=============================+======================+==========================+============================+
+| Mot de passe        | *password*                  | R66, R66-TLS, HTTP,  | Un mot de passe          | N/A                        |
+|                     |                             | HTTPS, SFTP & PeSIT  |                          |                            |
++---------------------+-----------------------------+----------------------+--------------------------+----------------------------+
+| Certificat TLS      | *tls_certificate*           | HTTPS, R66-TLS &     | Un certificat TLS        | Une clé privée             |
+|                     |                             | PeSIT-TLS            |                          |                            |
++---------------------+-----------------------------+----------------------+--------------------------+----------------------------+
+| Clé privée SSH      | *ssh_private_key*           | SFTP                 | Une clé privée SSH       | N/A                        |
++---------------------+-----------------------------+----------------------+--------------------------+----------------------------+
+| Certificat R66      | *r66_legacy_certificate*    | R66-TLS              | N/A                      | N/A                        |
+| "legacy"            |                             |                      |                          |                            |
++---------------------+-----------------------------+----------------------+--------------------------+----------------------------+
+| Identifiants de     | *pesit_pre-connection_auth* | PeSIT & PeSIT-TLS    | Un login                 | Un mot de passe            |
+| pré-connexion PeSIT |                             |                      |                          | (8 caractères max)         |
++---------------------+-----------------------------+----------------------+--------------------------+----------------------------+
 
 =======================
 Explications détaillées
@@ -175,3 +180,23 @@ il n'y a plus besoin de renseigner la clé publique de chaque nouveau partenaire
 Il suffit de renseigner la clé publique de l'autorité de certification pour permettre
 l'authentification de tous les partenaires ayant été certifiés par cette autorité,
 et ce, même si leur clé publique change.
+
+Pré-connexion PeSIT
+-------------------
+
+Le protocole PeSIT inclue une étape de pré-connexion survenant avant l'établissement
+même de la connexion PeSIT. Cette pré-connexion inclue notamment une étape
+d'authentification supplémentaire pour le client, en plus de l'authentification
+classique de PeSIT.
+
+Lorsque la Gateway est client, ces identifiants prennent la forme d'un login et
+d'un mot de passe classique (à noter que le mot de passe est protocolairement
+limité à 8 caractères maximum). Ces identifiants peuvent être attachés au
+compte distant utilisé pour le transfert, et, si le partenaire le demande, seront
+envoyés lors de l'étape de pré-connexion.
+
+À noter que lorsque la Gateway est serveur, il n'est pas nécessaire de renseigner
+ces identifiants de pré-connexion. Pour simplifier la configuration et maximiser
+la compatibilité, et cette étape étant redondante avec l'authentification
+standard de PeSIT, la Gateway acceptera tous les identifiants de pré-connexion
+quels qu'ils soient.

@@ -12,3 +12,4 @@ ainsi que leurs détails d'implémentation spécifiques à cette dernière.
    r66
    http
    ftp
+   pesit

@@ -1,13 +1,13 @@
 package database
 
 import (
+	"database/sql"
 	"runtime/debug"
 	"sync"
 	"time"
 
 	"code.waarp.fr/lib/log"
 	"xorm.io/xorm"
-	"xorm.io/xorm/core"
 )
 
 // Standalone is a struct used to execute standalone commands on the database.
@@ -194,6 +194,6 @@ func (s *Standalone) Exec(query string, args ...interface{}) error {
 //
 // Be aware that, since this method bypasses the data models, all the models'
 // hooks will be skipped. Thus, this method should be used with caution.
-func (s *Standalone) QueryRow(sql string, args ...any) *core.Row {
-	return s.engine.DB().QueryRow(sql, args...)
+func (s *Standalone) QueryRow(sql string, args ...any) *sql.Row {
+	return s.engine.DB().DB.QueryRow(sql, args...)
 }

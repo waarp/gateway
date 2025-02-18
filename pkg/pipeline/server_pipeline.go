@@ -23,7 +23,7 @@ func GetOldTransfer(db *database.DB, logger *log.Logger, trans *model.Transfer,
 	var oldTrans model.Transfer
 
 	err := db.Get(&oldTrans, "remote_transfer_id=? AND local_account_id=?",
-		trans.RemoteTransferID, trans.LocalAccountID.Int64).Run()
+		trans.RemoteTransferID, trans.LocalAccountID.Int64).OrderBy("start", false).Run()
 	if err == nil {
 		if oldTrans.Status == types.StatusRunning {
 			return nil, NewError(types.TeForbidden,

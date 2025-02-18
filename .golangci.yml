@@ -819,6 +819,10 @@ issues:
         - funlen # splitting functions is not always possible (or desirable)
         - dupl # some tables are similar, but factorizing their migrations is a bad idea
         - mnd # we use magic numbers for type sizes
+    - path: pkg/database/migrations/[0-9]+\.[0-9]+\.[0-9]+(_test)?\.go
+      text: "ST1003: should not use underscores in Go names;"
+      linters:
+        - stylecheck #
 
     # Hardcoded credentials are fine for testing.
     - path: pkg/utils/testhelpers/certs.go

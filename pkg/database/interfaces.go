@@ -1,6 +1,7 @@
 package database
 
 import (
+	"database/sql"
 	"fmt"
 
 	"code.waarp.fr/lib/log"
@@ -52,6 +53,8 @@ type ReadAccess interface {
 	//
 	// The request can then be executed using the CountQuery.Run method.
 	Count(obj IterateBean) *CountQuery
+
+	QueryRow(sql string, args ...any) *sql.Row
 }
 
 // Access is the interface listing all the write operations possible on the
@@ -136,6 +139,8 @@ type ReadCallback interface {
 
 // Table is the interface which adds the base methods that all database models
 // must implement.
+//
+//nolint:iface //best keep generic table interface separate from bean interfaces
 type Table interface {
 	// TableName returns the name of the table (as defined in the database).
 	TableName() string

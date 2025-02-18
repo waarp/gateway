@@ -14,9 +14,9 @@ var (
 	errCanceled    = NewError(types.TeCanceled, "transfer canceled by user")
 )
 
-// fileErrToTransferErr takes an error returned by a file operation function
+// FileErrToTransferErr takes an error returned by a file operation function
 // (like os.Open or os.Create) and returns the corresponding types.TransferError.
-func fileErrToTransferErr(err error) *Error {
+func FileErrToTransferErr(err error) *Error {
 	if errors.Is(err, fs.ErrNotExist) {
 		return NewError(types.TeFileNotFound, "file not found")
 	}
@@ -47,7 +47,7 @@ func (e *Error) Unwrap() error                 { return e.cause }
 func (e *Error) Redacted() string              { return e.details }
 
 func (e *Error) Error() string {
-	return fmt.Sprintf("TransferError(%s): %s", e.code, e.Redacted())
+	return fmt.Sprintf("TransferError(%s): %s", e.code, e.Details())
 }
 
 func (e *Error) Details() string {

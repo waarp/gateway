@@ -28,3 +28,40 @@ func ver0_12_0AddCryptoKeysDown(db Actions) error {
 
 	return nil
 }
+
+func ver0_12_0DropRemoteTransferIdUniqueUp(db Actions) error {
+	if err := db.AlterTable("transfers",
+		DropConstraint{Name: "unique_transfer_local"},
+		DropConstraint{Name: "unique_transfer_remote"},
+	); err != nil {
+		return fmt.Errorf(`failed to drop "transfers" constraint: %w`, err)
+	}
+
+	if err := db.AlterTable("transfer_history",
+		DropConstraint{Name: "unique_history"},
+	); err != nil {
+		return fmt.Errorf(`failed to drop "transfer_history" constraints: %w`, err)
+	}
+
+	return nil
+}
+
+func ver0_12_0DropRemoteTransferIdUniqueDown(db Actions) error {
+	if err := db.AlterTable("transfer_history",
+		AddUnique{Name: "unique_history", Cols: []string{
+			"remote_transfer_id",
+			"is_server", "account", "agent",
+		}},
+	); err != nil {
+		return fmt.Errorf(`failed to restore the "transfer_history" constraint: %w`, err)
+	}
+
+	if err := db.AlterTable("transfers",
+		AddUnique{Name: "unique_transfer_local", Cols: []string{"remote_transfer_id", "local_account_id"}},
+		AddUnique{Name: "unique_transfer_remote", Cols: []string{"remote_transfer_id", "remote_account_id"}},
+	); err != nil {
+		return fmt.Errorf(`failed to restore the "transfers" constraint: %w`, err)
+	}
+
+	return nil
+}

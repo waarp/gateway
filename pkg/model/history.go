@@ -138,17 +138,6 @@ func (h *HistoryEntry) BeforeWrite(db database.Access) error {
 		return database.NewValidationError("server transfers cannot have a client")
 	}
 
-	if n, err := db.Count(&HistoryEntry{}).Where("id<>? AND remote_transfer_id=? AND "+
-		"is_server=? AND agent=? AND account=?", h.ID, h.RemoteTransferID, h.IsServer,
-		h.Agent, h.Account).Run(); err != nil {
-		return fmt.Errorf("failed to check for duplicate history entries: %w", err)
-	} else if n != 0 {
-		//nolint:goconst //too specific
-		return database.NewValidationError("a history entry from the same "+
-			"requester %q to the same agent %q with the same remote ID %q "+
-			"already exist", h.Account, h.Agent, h.RemoteTransferID)
-	}
-
 	return nil
 }
 

@@ -6,11 +6,13 @@ require (
 	code.waarp.fr/lib/goftp v0.1.1-0.20240801120050-932aa2b2f9a7
 	code.waarp.fr/lib/log v1.2.0
 	code.waarp.fr/lib/migration v0.4.0
+	code.waarp.fr/lib/pesit v0.1.0
 	code.waarp.fr/lib/r66 v0.1.6
 	github.com/ProtonMail/gopenpgp/v3 v3.0.0-beta.2-proton
 	github.com/bwmarrin/snowflake v0.3.0
 	github.com/dsnet/compress v0.0.1
 	github.com/dustin/go-humanize v1.0.1
+	github.com/egirna/icap v0.0.0-20181108071049-d5ee18bd70bc
 	github.com/fclairamb/ftpserverlib v0.24.1
 	github.com/fclairamb/go-log v0.5.0
 	github.com/go-sql-driver/mysql v1.8.1
@@ -25,11 +27,13 @@ require (
 	github.com/karrick/tparse/v2 v2.8.2
 	github.com/klauspost/compress v1.17.11
 	github.com/mattn/go-colorable v0.1.13
+	github.com/pbnjay/memory v0.0.0-20210728143218-7b4eea64cf58
 	github.com/pkg/sftp v1.13.7
 	github.com/puzpuzpuz/xsync v1.5.2
 	github.com/rclone/rclone v1.68.1
 	github.com/slayercat/GoSNMPServer v0.5.2
 	github.com/smartystreets/goconvey v1.8.1
+	github.com/solidwall/icap-client v0.0.0-20240910140159-0c244324de0d
 	github.com/spf13/afero v1.11.0
 	github.com/stretchr/testify v1.9.0
 	github.com/ulikunitz/xz v0.5.12
@@ -41,12 +45,6 @@ require (
 	modernc.org/sqlite v1.33.1
 	xorm.io/builder v0.3.13
 	xorm.io/xorm v1.3.2 //do not update, newer versions break "SELECT FOR UPDATE" on sqlite & postgres
-)
-
-require (
-	github.com/egirna/icap v0.0.0-20181108071049-d5ee18bd70bc
-	github.com/pbnjay/memory v0.0.0-20210728143218-7b4eea64cf58
-	github.com/solidwall/icap-client v0.0.0-20240910140159-0c244324de0d
 )
 
 require (
@@ -92,6 +90,7 @@ require (
 	github.com/jackc/pgpassfile v1.0.0 // indirect
 	github.com/jackc/pgservicefile v0.0.0-20240606120523-5a60cdf6a761 // indirect
 	github.com/jackc/puddle/v2 v2.2.2 // indirect
+	github.com/josephu/go v0.1.1 // indirect
 	github.com/json-iterator/go v1.1.12 // indirect
 	github.com/jtolds/gls v4.20.0+incompatible // indirect
 	github.com/jzelinskie/whirlpool v0.0.0-20201016144138-0675e54bb004 // indirect
@@ -124,8 +123,8 @@ require (
 	github.com/tklauser/numcpus v0.7.0 // indirect
 	github.com/xo/terminfo v0.0.0-20210125001918-ca9a967f8778 // indirect
 	github.com/yusufpapurcu/wmi v1.2.4 // indirect
-	golang.org/x/sync v0.8.0 // indirect
-	golang.org/x/sys v0.26.0 // indirect
+	golang.org/x/sync v0.10.0 // indirect
+	golang.org/x/sys v0.29.0 // indirect
 	golang.org/x/time v0.5.0 // indirect
 	google.golang.org/protobuf v1.34.2 // indirect
 	gopkg.in/yaml.v3 v3.0.1 // indirect
