@@ -4,8 +4,6 @@ import (
 	"context"
 	"crypto/aes"
 	"crypto/cipher"
-	"encoding/base64"
-	"errors"
 	"fmt"
 	"io"
 
@@ -17,91 +15,44 @@ import (
 )
 
 type decryptAES struct {
-	KeepOriginal boolStr `json:"keepOriginal"`
-	OutputFile   string  `json:"outputFile"`
-	Key          string  `json:"key"`
-	Mode         string  `json:"mode"`
+	aesKeyParam
+	KeepOriginal boolStr    `json:"keepOriginal"`
+	OutputFile   string     `json:"outputFile"`
+	Mode         cipherMode `json:"mode"`
 }
 
-func (e *decryptAES) parseParams(params map[string]string) error {
-	if err := utils.JSONConvert(params, e); err != nil {
-		return fmt.Errorf("failed to parse the AES encryption parameters: %w", err)
+func (d *decryptAES) ValidateDB(db database.ReadAccess, params map[string]string) error {
+	if err := utils.JSONConvert(params, d); err != nil {
+		return fmt.Errorf("failed to parse the AES decryption parameters: %w", err)
 	}
 
-	switch length := len(e.Key); length {
-	case 16, 24, 32: //nolint:mnd //too specific
-	default:
-		return fmt.Errorf("%w: %d", ErrAESKeyLength, length)
-	}
-
-	return nil
+	return d.validateDB(db)
 }
 
-func (e *decryptAES) ToDB(params map[string]string) error {
-	if err := e.parseParams(params); err != nil {
-		return err
-	}
-
-	var cryptErr error
-	if e.Key, cryptErr = utils.AESCrypt(database.GCM, e.Key); cryptErr != nil {
-		return fmt.Errorf("failed to encrypt the AES key: %w", cryptErr)
-	}
-
-	if err := utils.JSONConvert(e, &params); err != nil {
-		return fmt.Errorf("failed to serialize the AES decrypt parameters: %w", err)
-	}
-
-	return nil
-}
-
-func (e *decryptAES) FromDB(params map[string]string) error {
-	if err := e.parseParams(params); err != nil && !errors.Is(err, ErrAESKeyLength) {
-		return err
-	}
-
-	var decryptErr error
-	if e.Key, decryptErr = utils.AESDecrypt(database.GCM, e.Key); decryptErr != nil {
-		return fmt.Errorf("failed to decrypt the AES key: %w", decryptErr)
-	}
-
-	if err := utils.JSONConvert(e, &params); err != nil {
-		return fmt.Errorf("failed to serialize the AES decrypt parameters: %w", err)
-	}
-
-	return nil
-}
-
-func (e *decryptAES) Validate(params map[string]string) error {
-	return e.parseParams(params)
-}
-
-func (e *decryptAES) Run(_ context.Context, params map[string]string,
-	_ *database.DB, logger *log.Logger, transCtx *model.TransferContext,
+func (d *decryptAES) Run(_ context.Context, params map[string]string,
+	db *database.DB, logger *log.Logger, transCtx *model.TransferContext,
 ) error {
-	if err := e.parseParams(params); err != nil {
+	if err := d.ValidateDB(db, params); err != nil {
+		logger.Error(err.Error())
+
 		return err
 	}
 
-	if err := decryptFile(logger, transCtx, bool(e.KeepOriginal), e.OutputFile,
-		e.decrypt); err != nil {
+	if err := decryptFile(logger, transCtx, bool(d.KeepOriginal), d.OutputFile,
+		d.decrypt); err != nil {
 		return err
 	}
 
 	return nil
 }
 
-func (e *decryptAES) decrypt(src io.Reader, dst io.Writer) error {
-	key, decErr := base64.StdEncoding.DecodeString(e.Key)
-	if decErr != nil {
-		return fmt.Errorf("failed to decode the AES key: %w", decErr)
-	}
-
-	block, aesErr := aes.NewCipher(key)
+func (d *decryptAES) decrypt(src io.Reader, dst io.Writer) error {
+	block, aesErr := aes.NewCipher(d.key)
 	if aesErr != nil {
 		return fmt.Errorf("failed to create AES cipher: %w", aesErr)
 	}
 
-	switch mode := cipherMode(e.Mode); mode {
+	switch d.Mode {
 	case encryptModeCTR:
 		return decryptStream(src, dst, block, cipher.NewCTR)
 	case encryptModeCFB:
@@ -109,6 +60,6 @@ func (e *decryptAES) decrypt(src io.Reader, dst io.Writer) error {
 	case encryptModeOFB:
 		return decryptStream(src, dst, block, cipher.NewOFB)
 	default:
-		return fmt.Errorf("%w: %s", ErrAESInvalidMode, e.Mode)
+		return fmt.Errorf("%w: %s", ErrInvalidCipherMode, d.Mode)
 	}
 }

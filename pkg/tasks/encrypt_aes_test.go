@@ -8,11 +8,9 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
-	"code.waarp.fr/apps/gateway/gateway/pkg/database"
 	"code.waarp.fr/apps/gateway/gateway/pkg/database/dbtest"
 	"code.waarp.fr/apps/gateway/gateway/pkg/fs"
 	"code.waarp.fr/apps/gateway/gateway/pkg/model"
-	"code.waarp.fr/apps/gateway/gateway/pkg/utils"
 	"code.waarp.fr/apps/gateway/gateway/pkg/utils/testhelpers"
 )
 
@@ -47,6 +45,7 @@ non proident, sunt in culpa qui officia deserunt mollit anim id est laborum.`
 	}
 
 	logger := testhelpers.GetTestLogger(t)
+	db := dbtest.TestDatabase(t)
 
 	outputFile1 := filePath + ".cipher"
 	outputFile2 := filePath + ".plaintext"
@@ -54,24 +53,31 @@ non proident, sunt in culpa qui officia deserunt mollit anim id est laborum.`
 	// 32 chars in base64 => 24 bytes long key => AES-192
 	const key = "0123456789abcdefhijklABCDEFHIJKL"
 
+	cryptoKey := model.CryptoKey{
+		Name: "aes-key",
+		Type: model.CryptoKeyTypeAES,
+		Key:  key,
+	}
+	require.NoError(t, db.Insert(&cryptoKey).Run())
+
 	encryptParams := map[string]string{
-		"key":        key,
+		"aesKeyName": cryptoKey.Name,
 		"outputFile": outputFile1,
 		"mode":       mode,
 	}
 	decryptParams := map[string]string{
-		"key":        key,
+		"aesKeyName": cryptoKey.Name,
 		"outputFile": outputFile2,
 		"mode":       mode,
 	}
 
 	encrypt := func() error {
-		return (&encryptAES{}).Run(context.Background(), encryptParams, nil,
+		return (&encryptAES{}).Run(context.Background(), encryptParams, db,
 			logger, transCtx)
 	}
 
 	decrypt := func() error {
-		return (&decryptAES{}).Run(context.Background(), decryptParams, nil,
+		return (&decryptAES{}).Run(context.Background(), decryptParams, db,
 			logger, transCtx)
 	}
 
@@ -108,66 +114,4 @@ non proident, sunt in culpa qui officia deserunt mollit anim id est laborum.`
 				"The original file should have been deleted")
 		})
 	})
-}
-
-func TestAESEncryptToDB(t *testing.T)   { testAESToDB(t, &encryptAES{}) }
-func TestAESDecryptToDB(t *testing.T)   { testAESToDB(t, &decryptAES{}) }
-func TestAESEncryptFromDB(t *testing.T) { testAESFromDB(t, &encryptAES{}) }
-func TestAESDecryptFromDB(t *testing.T) { testAESFromDB(t, &decryptAES{}) }
-
-func testAESToDB(t *testing.T, task model.TaskDBConverter) {
-	t.Helper()
-
-	dbtest.TestDatabase(t)
-
-	const (
-		// 32 chars in base64 => 24 bytes long key => AES-192
-		key        = "0123456789abcdefhijklABCDEFHIJKL"
-		outputFile = "/output/file"
-		mode       = string(encryptModeCFB)
-	)
-
-	params := map[string]string{
-		"key":        key,
-		"outputFile": outputFile,
-		"mode":       mode,
-	}
-
-	require.NoError(t, task.ToDB(params))
-
-	assert.Equal(t, outputFile, params["outputFile"])
-	assert.Equal(t, mode, params["mode"])
-
-	plain, err := utils.AESDecrypt(database.GCM, params["key"])
-	require.NoError(t, err)
-	assert.Equal(t, key, plain)
-}
-
-func testAESFromDB(t *testing.T, task model.TaskDBConverter) {
-	t.Helper()
-
-	dbtest.TestDatabase(t)
-
-	const (
-		// 32 chars in base64 => 24 bytes long key => AES-192
-		key        = "0123456789abcdefhijklABCDEFHIJKL"
-		outputFile = "/output/file"
-		mode       = string(encryptModeCFB)
-	)
-
-	cipherKey, err := utils.AESCrypt(database.GCM, key)
-	require.NoError(t, err)
-	require.NotEqual(t, key, cipherKey)
-
-	params := map[string]string{
-		"key":        cipherKey,
-		"outputFile": outputFile,
-		"mode":       mode,
-	}
-
-	require.NoError(t, task.FromDB(params))
-
-	assert.Equal(t, outputFile, params["outputFile"])
-	assert.Equal(t, mode, params["mode"])
-	assert.Equal(t, key, params["key"])
 }

@@ -6,6 +6,7 @@ import (
 	"crypto/md5" //nolint:gosec //MD5 is needed for compatibility
 	"crypto/sha256"
 	"crypto/sha512"
+	"encoding/base64"
 	"encoding/json"
 	"errors"
 	"fmt"
@@ -22,7 +23,9 @@ import (
 
 var (
 	ErrSignHMACInvalidAlgorithm = errors.New("invalid HMAC signature algorithm")
-	ErrSignHMACNoKey            = errors.New("missing HMAC signature key")
+	ErrSignHMACNoKeyName        = errors.New("missing HMAC signature key")
+	ErrSignHMACKeyNotFound      = errors.New("HMAC key not found")
+	ErrSignHMACNoKey            = errors.New("cryptographic key does not contain an HMAC key")
 )
 
 type hmacAlgorithm string
@@ -50,32 +53,55 @@ func (h *hmacAlgorithm) UnmarshalJSON(data []byte) error {
 	}
 }
 
-type signHMAC struct {
-	Algorithm  hmacAlgorithm `json:"algorithm"`
-	OutputFile string        `json:"outputFile"`
-	Key        []byte        `json:"key"`
+type hmacKeyParam struct {
+	HMACKeyName string `json:"hmacKeyName"`
+
+	key []byte
 }
 
-func (s *signHMAC) parseParams(params map[string]string) error {
-	if err := utils.JSONConvert(params, s); err != nil {
-		return fmt.Errorf("failed to parse the HMAC signature parameters: %w", err)
+//nolint:dupl //best keep separate from the AES equivalent
+func (h *hmacKeyParam) validateDB(db database.ReadAccess) error {
+	if h.HMACKeyName == "" {
+		return ErrSignHMACNoKeyName
 	}
 
-	if len(s.Key) == 0 {
-		return ErrSignHMACNoKey
+	var hmacKey model.CryptoKey
+	if err := db.Get(&hmacKey, "name = ?", h.HMACKeyName).Run(); database.IsNotFound(err) {
+		return fmt.Errorf("%w %q", ErrSignHMACKeyNotFound, h.HMACKeyName)
+	} else if err != nil {
+		return fmt.Errorf("failed to retrieve HMAC key from database: %w", err)
+	}
+
+	if !isHMACKey(&hmacKey) || hmacKey.Key == "" {
+		return fmt.Errorf("%q: %w", hmacKey.Name, ErrSignHMACNoKey)
+	}
+
+	var decErr error
+	if h.key, decErr = base64.StdEncoding.DecodeString(hmacKey.Key.String()); decErr != nil {
+		return fmt.Errorf("failed to decode the AES key: %w", decErr)
 	}
 
 	return nil
 }
 
-func (s *signHMAC) Validate(params map[string]string) error {
-	return s.parseParams(params)
+type signHMAC struct {
+	hmacKeyParam
+	Algorithm  hmacAlgorithm `json:"algorithm"`
+	OutputFile string        `json:"outputFile"`
+}
+
+func (s *signHMAC) ValidateDB(db database.ReadAccess, params map[string]string) error {
+	if err := utils.JSONConvert(params, s); err != nil {
+		return fmt.Errorf("failed to parse the HMAC signature parameters: %w", err)
+	}
+
+	return s.validateDB(db)
 }
 
 func (s *signHMAC) Run(_ context.Context, params map[string]string, db *database.DB,
 	logger *log.Logger, transCtx *model.TransferContext,
 ) error {
-	if err := s.parseParams(params); err != nil {
+	if err := s.ValidateDB(db, params); err != nil {
 		logger.Error(err.Error())
 
 		return err
@@ -127,10 +153,14 @@ func (s *signHMAC) makeSignature(file io.Reader) ([]byte, error) {
 		return nil, fmt.Errorf("%w: %s", ErrSignHMACInvalidAlgorithm, s.Algorithm)
 	}
 
-	hasher := hmac.New(hashFunc, s.Key)
+	hasher := hmac.New(hashFunc, s.key)
 	if _, err := io.Copy(hasher, file); err != nil {
 		return nil, fmt.Errorf("failed to compute file signature: %w", err)
 	}
 
 	return hasher.Sum(nil), nil
+}
+
+func isHMACKey(key *model.CryptoKey) bool {
+	return key.Type == model.CryptoKeyTypeHMAC
 }

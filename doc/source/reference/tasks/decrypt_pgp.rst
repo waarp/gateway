@@ -8,7 +8,7 @@ Les arguments sont:
   différent du chemin du fichier source. Par défaut, le chemin sera identique
   à celui du fichier source avec le suffixe ``.plain``.
 * ``keepOriginal`` (*boolean*) - Indique si le fichier source (chiffré) doit
-  être conservé ou non après déchiffrage. Par défaut, le fichier chiffré est
+  être conservé ou non après déchiffrement. Par défaut, le fichier chiffré est
   supprimé après déchiffrage.
-* ``pgpKeyName`` (*string*) - Le nom de la clé (privée) PGP de déchiffrage.
-  La clé doit exister dans la base de données.
+* ``pgpKeyName`` (*string*) - Le nom de la :term:`clé cryptographique` à utiliser
+  pour le déchiffrement. Cette clé doit être de type ``PGP-PRIVATE``.

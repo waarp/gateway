@@ -10,7 +10,8 @@ Les arguments sont:
 * ``keepOriginal`` (*boolean*) - Indique si le fichier source (en clair) doit
   être conservé ou non après chiffrage. Par défaut, le fichier clair est
   supprimé après chiffrage.
-* ``encryptionPGPKeyName`` (*string*) - Le nom de la clé (publique) PGP de
-  chiffrage. La clé doit exister dans la base de données.
-* ``signaturePGPKeyName`` (*string*) - Le nom de la clé (privée) PGP de
-  signature. La clé doit exister dans la base de données.
+* ``encryptionPGPKeyName`` (*string*) - Le nom de la :term:`clé cryptographique`
+  à utiliser pour le chiffrement. Cette clé doit être de type ``PGP-PUBLIC`` ou
+  ``PGP-PRIVATE``.
+* ``signaturePGPKeyName`` (*string*) - Le nom de la :term:`clé cryptographique`
+  à utiliser pour la signature du fichier. Cette clé doit être de type ``PGP-PRIVATE``.

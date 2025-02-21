@@ -17,8 +17,8 @@ import (
 
 var (
 	ErrDecryptPGPNoKeyName    = errors.New("missing PGP decryption key")
-	ErrDecryptPGPKeyNotFound  = errors.New("PGP key not found")
-	ErrDecryptPGPNoPrivateKey = errors.New("PGP key does not contain a private key")
+	ErrDecryptPGPKeyNotFound  = errors.New("cryptographic key not found")
+	ErrDecryptPGPNoPrivateKey = errors.New("cryptographic key does not contain a private PGP key")
 )
 
 type decryptPGP struct {
@@ -38,19 +38,19 @@ func (d *decryptPGP) ValidateDB(db database.ReadAccess, params map[string]string
 		return ErrDecryptPGPNoKeyName
 	}
 
-	var pgpKey model.PGPKey
+	var pgpKey model.CryptoKey
 	if err := db.Get(&pgpKey, "name = ?", d.PGPKeyName).Run(); database.IsNotFound(err) {
 		return fmt.Errorf("%w: %q", ErrDecryptPGPKeyNotFound, d.PGPKeyName)
 	} else if err != nil {
 		return fmt.Errorf("failed to retrieve PGP key from database: %w", err)
 	}
 
-	if pgpKey.PrivateKey == "" {
+	if !isPGPPrivateKey(&pgpKey) {
 		return fmt.Errorf("%q: %w", pgpKey.Name, ErrDecryptPGPNoPrivateKey)
 	}
 
 	var err error
-	if d.signKey, err = pgp.NewKeyFromArmored(pgpKey.PrivateKey.String()); err != nil {
+	if d.signKey, err = pgp.NewKeyFromArmored(pgpKey.Key.String()); err != nil {
 		return fmt.Errorf("failed to parse PGP decryption key: %w", err)
 	}
 
@@ -61,7 +61,7 @@ func (d *decryptPGP) Run(_ context.Context, params map[string]string,
 	db *database.DB, logger *log.Logger, transCtx *model.TransferContext,
 ) error {
 	if err := d.ValidateDB(db, params); err != nil {
-		logger.Error("Failed to parse PGP decryption parameters: %v", err)
+		logger.Error(err.Error())
 
 		return err
 	}

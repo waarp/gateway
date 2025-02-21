@@ -25,10 +25,10 @@ non proident, sunt in culpa qui officia deserunt mollit anim id est laborum.`
 	filePath := fs.JoinPath(root, "pgp_test.txt")
 	require.NoError(t, fs.WriteFullFile(filePath, []byte(testFileContent)))
 
-	pgpTestKey := &model.PGPKey{
-		Name:       "test_key",
-		PrivateKey: testhelpers.TestPGPPrivateKey,
-		PublicKey:  testhelpers.TestPGPPublicKey,
+	pgpTestKey := &model.CryptoKey{
+		Name: "test_key",
+		Type: model.CryptoKeyTypePGPPrivate,
+		Key:  testhelpers.TestPGPPrivateKey,
 	}
 	require.NoError(t, db.Insert(pgpTestKey).Run())
 

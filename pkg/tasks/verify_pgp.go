@@ -19,8 +19,8 @@ import (
 var (
 	ErrVerifyPGPNoSigFile   = errors.New("missing PGP signature file")
 	ErrVerifyPGPNoKeyName   = errors.New("missing PGP public key")
-	ErrVerifyPGPKeyNotFound = errors.New("PGP key not found")
-	ErrVerifyPGPNoPubKey    = errors.New("PGP key does not contain a public key")
+	ErrVerifyPGPKeyNotFound = errors.New("cryptographic key not found")
+	ErrVerifyPGPNoPubKey    = errors.New("cryptographic key does not contain a public key")
 )
 
 type verifyPGP struct {
@@ -51,20 +51,26 @@ func (v *verifyPGP) parseParams(db database.ReadAccess, params map[string]string
 		return err
 	}
 
-	var pgpKey model.PGPKey
+	var pgpKey model.CryptoKey
 	if err := db.Get(&pgpKey, "name = ?", v.PGPKeyName).Run(); database.IsNotFound(err) {
 		return fmt.Errorf("%w %q", ErrVerifyPGPKeyNotFound, v.PGPKeyName)
 	} else if err != nil {
 		return fmt.Errorf("failed to retrieve PGP key from database: %w", err)
 	}
 
-	if pgpKey.PublicKey == "" {
+	if !isPGPPrivateKey(&pgpKey) && !isPGPPublicKey(&pgpKey) {
 		return fmt.Errorf("%q: %w", pgpKey.Name, ErrVerifyPGPNoPubKey)
 	}
 
 	var err error
-	if v.verifyKey, err = pgp.NewKeyFromArmored(pgpKey.PublicKey); err != nil {
+	if v.verifyKey, err = pgp.NewKeyFromArmored(pgpKey.Key.String()); err != nil {
 		return fmt.Errorf("failed to parse PGP verification key: %w", err)
+	}
+
+	if v.verifyKey.IsPrivate() {
+		if v.verifyKey, err = v.verifyKey.ToPublic(); err != nil {
+			return fmt.Errorf("failed to parse PGP verification key: %w", err)
+		}
 	}
 
 	return nil

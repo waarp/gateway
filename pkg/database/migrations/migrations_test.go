@@ -156,5 +156,5 @@ func testMigrations(t *testing.T, eng *testEngine) {
 	apply(testVer0_11_0AddSNMPServerConf(t, eng))
 
 	// 0.12.0
-	apply(testVer0_12_0AddPGPKeys(t, eng))
+	apply(testVer0_12_0AddCryptoKeys(t, eng))
 }

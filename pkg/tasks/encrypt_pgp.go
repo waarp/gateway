@@ -17,8 +17,8 @@ import (
 
 var (
 	ErrEncryptPGPNoKeyName   = errors.New("missing PGP encryption key")
-	ErrEncryptPGPKeyNotFound = errors.New("PGP key not found")
-	ErrEncryptPGPNoPublicKey = errors.New("PGP key does not contain a public key")
+	ErrEncryptPGPKeyNotFound = errors.New("cryptographic key not found")
+	ErrEncryptPGPNoPublicKey = errors.New("cryptographic key does not contain a public PGP key")
 )
 
 type encryptPGP struct {
@@ -38,20 +38,26 @@ func (e *encryptPGP) ValidateDB(db database.ReadAccess, params map[string]string
 		return ErrEncryptPGPNoKeyName
 	}
 
-	var pgpKey model.PGPKey
+	var pgpKey model.CryptoKey
 	if err := db.Get(&pgpKey, "name = ?", e.PGPKeyName).Run(); database.IsNotFound(err) {
 		return fmt.Errorf("%w %q", ErrEncryptPGPKeyNotFound, e.PGPKeyName)
 	} else if err != nil {
 		return fmt.Errorf("failed to retrieve PGP key from database: %w", err)
 	}
 
-	if pgpKey.PublicKey == "" {
+	if !isPGPPrivateKey(&pgpKey) && !isPGPPublicKey(&pgpKey) {
 		return fmt.Errorf("%q: %w", pgpKey.Name, ErrEncryptPGPNoPublicKey)
 	}
 
 	var err error
-	if e.encryptKey, err = pgp.NewKeyFromArmored(pgpKey.PublicKey); err != nil {
+	if e.encryptKey, err = pgp.NewKeyFromArmored(pgpKey.Key.String()); err != nil {
 		return fmt.Errorf("failed to parse PGP encryption key: %w", err)
+	}
+
+	if e.encryptKey.IsPrivate() {
+		if e.encryptKey, err = e.encryptKey.ToPublic(); err != nil {
+			return fmt.Errorf("failed to parse PGP encryption key: %w", err)
+		}
 	}
 
 	return nil
@@ -61,7 +67,7 @@ func (e *encryptPGP) Run(_ context.Context, params map[string]string,
 	db *database.DB, logger *log.Logger, transCtx *model.TransferContext,
 ) error {
 	if err := e.ValidateDB(db, params); err != nil {
-		logger.Error("Failed to parse PGP encryption parameters: %v", err)
+		logger.Error(err.Error())
 
 		return err
 	}
@@ -95,4 +101,12 @@ func (e *encryptPGP) encrypt(src io.Reader, dst io.Writer) error {
 	}
 
 	return nil
+}
+
+func isPGPPrivateKey(key *model.CryptoKey) bool {
+	return key.Type == model.CryptoKeyTypePGPPrivate
+}
+
+func isPGPPublicKey(key *model.CryptoKey) bool {
+	return key.Type == model.CryptoKeyTypePGPPublic
 }

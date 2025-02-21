@@ -5,27 +5,30 @@ import (
 	"maps"
 	"net/http"
 	"net/url"
+	"os"
+	"path/filepath"
 	"slices"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
+	"code.waarp.fr/apps/gateway/gateway/pkg/model"
 	"code.waarp.fr/apps/gateway/gateway/pkg/utils/testhelpers"
 )
 
-func TestPGPKeysGet(t *testing.T) {
+func TestCryptoKeysGet(t *testing.T) {
 	const (
-		keyName    = "foobar"
-		publicKey  = testhelpers.TestPGPPublicKey
-		privateKey = testhelpers.TestPGPPrivateKey
+		keyName = "foobar"
+		keyType = model.CryptoKeyTypePGPPrivate
+		key     = testhelpers.TestPGPPrivateKey
 
-		path = "/api/pgp/keys/" + keyName
+		path = "/api/keys/" + keyName
 	)
 
-	t.Run(`Testing the PGP key "get" command`, func(t *testing.T) {
+	t.Run(`Testing the cryptographic key "get" command`, func(t *testing.T) {
 		w := newTestOutput()
-		command := &PGPKeysGet{}
+		command := &CryptoKeysGet{}
 
 		expected := &expectedRequest{
 			method: http.MethodGet,
@@ -35,9 +38,9 @@ func TestPGPKeysGet(t *testing.T) {
 		result := &expectedResponse{
 			status: http.StatusOK,
 			body: map[string]any{
-				"name":       keyName,
-				"publicKey":  publicKey,
-				"privateKey": privateKey,
+				"name": keyName,
+				"type": keyType,
+				"key":  key,
 			},
 		}
 
@@ -52,15 +55,10 @@ func TestPGPKeysGet(t *testing.T) {
 
 				assert.Equal(t,
 					expectedOutput(t, outputData,
-						`‣PGP key "{{.name}}"`,
-						`  •Private key:`,
-						`    ⁃Entity:`,
-						`      $Waarp (Waarp PGP test key) <info@waarp.org>`,
-						`    ⁃Fingerprint: 57e09fbb394eec758040cdc4b9f43dcb4c634a87`,
-						`  •Public key:`,
-						`    ⁃Entity:`,
-						`      $Waarp (Waarp PGP test key) <info@waarp.org>`,
-						`    ⁃Fingerprint: 57e09fbb394eec758040cdc4b9f43dcb4c634a87`,
+						`‣PGP private key "{{.name}}"`,
+						`  •Entity:`,
+						`    ⁃Waarp (Waarp PGP test key) <info@waarp.org>`,
+						`  •Fingerprint: 57e09fbb394eec758040cdc4b9f43dcb4c634a87`,
 					),
 					w.String(),
 					"Then it should display the key's details",
@@ -70,27 +68,30 @@ func TestPGPKeysGet(t *testing.T) {
 	})
 }
 
-func TestPGPKeysAdd(t *testing.T) {
+func TestCryptoKeysAdd(t *testing.T) {
 	const (
-		keyName    = "foobar"
-		publicKey  = testhelpers.TestPGPPublicKey
-		privateKey = testhelpers.TestPGPPrivateKey
+		keyName = "foobar"
+		keyType = model.CryptoKeyTypePGPPrivate
+		key     = testhelpers.TestPGPPublicKey
 
-		path     = "/api/pgp/keys"
+		path     = "/api/keys"
 		location = path + "/" + keyName
 	)
 
-	t.Run(`Testing the PGP key "add" command`, func(t *testing.T) {
+	keyFilePath := filepath.Join(t.TempDir(), "test.key")
+	require.NoError(t, os.WriteFile(keyFilePath, []byte(key), 0o600))
+
+	t.Run(`Testing the cryptographic key "add" command`, func(t *testing.T) {
 		w := newTestOutput()
-		command := &PGPKeysAdd{}
+		command := &CryptoKeysAdd{}
 
 		expected := &expectedRequest{
 			method: http.MethodPost,
 			path:   path,
 			body: map[string]any{
-				"name":       keyName,
-				"privateKey": privateKey,
-				"publicKey":  publicKey,
+				"name": keyName,
+				"type": keyType,
+				"key":  key,
 			},
 		}
 
@@ -105,37 +106,40 @@ func TestPGPKeysAdd(t *testing.T) {
 			t.Run("When executing the command", func(t *testing.T) {
 				require.NoError(t, executeCommand(t, w, command,
 					"--name", keyName,
-					"--private-key", privateKey,
-					"--public-key", publicKey),
+					"--type", keyType,
+					"--key", keyFilePath),
 					"Then it should not return an error")
 
 				assert.Equal(t,
-					fmt.Sprintf("The PGP key %q was successfully added.\n", keyName),
+					fmt.Sprintf("The cryptographic key %q was successfully added.\n", keyName),
 					w.String(),
-					"Then it should display a message saying the PGP key was added",
+					"Then it should display a message saying the cryptographic key was added",
 				)
 			})
 		})
 	})
 }
 
-func TestPGPKeysList(t *testing.T) {
+func TestCryptoKeysList(t *testing.T) {
 	const (
-		path = "/api/pgp/keys"
+		path = "/api/keys"
 
 		sort   = "name+"
 		limit  = "10"
 		offset = "5"
 
-		key1Name  = "foo"
-		key1pbKey = testhelpers.TestPGPPublicKey
-		key2Name  = "bar"
-		key2pKey  = testhelpers.TestPGPPrivateKey
+		key1Name = "foo"
+		key1Type = model.CryptoKeyTypePGPPublic
+		key1Key  = testhelpers.TestPGPPublicKey
+
+		key2Name = "bar"
+		key2Type = model.CryptoKeyTypePGPPrivate
+		key2Key  = testhelpers.TestPGPPrivateKey
 	)
 
-	t.Run(`Testing the PGP keys "list" command`, func(t *testing.T) {
+	t.Run(`Testing the cryptographic keys "list" command`, func(t *testing.T) {
 		w := newTestOutput()
-		command := &PGPKeysList{}
+		command := &CryptographicKeysList{}
 
 		expected := &expectedRequest{
 			method: http.MethodGet,
@@ -148,16 +152,18 @@ func TestPGPKeysList(t *testing.T) {
 		}
 
 		keys := []map[string]any{{
-			"name":      key1Name,
-			"publicKey": key1pbKey,
+			"name": key1Name,
+			"type": key1Type,
+			"key":  key1Key,
 		}, {
-			"name":       key2Name,
-			"privateKey": key2pKey,
+			"name": key2Name,
+			"type": key2Type,
+			"key":  key2Key,
 		}}
 
 		result := &expectedResponse{
 			status: http.StatusOK,
-			body:   map[string]any{"pgpKeys": keys},
+			body:   map[string]any{"cryptoKeys": keys},
 		}
 
 		t.Run("Given a dummy gateway REST interface", func(t *testing.T) {
@@ -172,39 +178,37 @@ func TestPGPKeysList(t *testing.T) {
 
 				assert.Equal(t,
 					expectedOutput(t, outputData,
-						`=== PGP keys ===`,
+						`=== Cryptographic keys ===`,
 						`{{- with index . 0 }}`,
-						`‣PGP key "{{.name}}"`,
-						`  •Public key:`,
-						`    ⁃Entity:`,
-						`      $Waarp (Waarp PGP test key) <info@waarp.org>`,
-						`    ⁃Fingerprint: 57e09fbb394eec758040cdc4b9f43dcb4c634a87`,
+						`‣PGP public key "{{.name}}"`,
+						`  •Entity:`,
+						`    ⁃Waarp (Waarp PGP test key) <info@waarp.org>`,
+						`  •Fingerprint: 57e09fbb394eec758040cdc4b9f43dcb4c634a87`,
 						`{{- end }}`,
 						`{{- with index . 1 }}`,
-						`‣PGP key "{{.name}}"`,
-						`  •Private key:`,
-						`    ⁃Entity:`,
-						`      $Waarp (Waarp PGP test key) <info@waarp.org>`,
-						`    ⁃Fingerprint: 57e09fbb394eec758040cdc4b9f43dcb4c634a87`,
+						`‣PGP private key "{{.name}}"`,
+						`  •Entity:`,
+						`    ⁃Waarp (Waarp PGP test key) <info@waarp.org>`,
+						`  •Fingerprint: 57e09fbb394eec758040cdc4b9f43dcb4c634a87`,
 						`{{- end }}`,
 					),
 					w.String(),
-					"Then it should display the PGP keys' info",
+					"Then it should display the cryptographic keys' info",
 				)
 			})
 		})
 	})
 }
 
-func TestPGPKeysDelete(t *testing.T) {
+func TestCryptoKeysDelete(t *testing.T) {
 	const (
 		keyName = "foobar"
-		path    = "/api/pgp/keys/" + keyName
+		path    = "/api/keys/" + keyName
 	)
 
-	t.Run(`Testing the PGP key "delete" command`, func(t *testing.T) {
+	t.Run(`Testing the cryptographic key "delete" command`, func(t *testing.T) {
 		w := newTestOutput()
-		command := &PGPKeysDelete{}
+		command := &CryptoKeysDelete{}
 
 		expected := &expectedRequest{
 			method: http.MethodDelete,
@@ -221,36 +225,39 @@ func TestPGPKeysDelete(t *testing.T) {
 					"Then it should not return an error")
 
 				assert.Equal(t,
-					fmt.Sprintf("The PGP key %q was successfully deleted.\n", keyName),
+					fmt.Sprintf("The cryptographic key %q was successfully deleted.\n", keyName),
 					w.String(),
-					"Then it should display a message saying the PGP key was deleted")
+					"Then it should display a message saying the cryptographic key was deleted")
 			})
 		})
 	})
 }
 
-func TestPGPKeysUpdate(t *testing.T) {
+func TestCryptoKeysUpdate(t *testing.T) {
 	const (
 		oldKeyName = "foo"
 		newKeyName = "bar"
-		publicKey  = testhelpers.TestPGPPublicKey
-		privateKey = testhelpers.TestPGPPrivateKey
+		newKeyType = model.CryptoKeyTypePGPPublic
+		newKey     = testhelpers.TestPGPPublicKey
 
-		path     = "/api/pgp/keys/" + oldKeyName
-		location = "/api/pgp/keys/" + newKeyName
+		path     = "/api/keys/" + oldKeyName
+		location = "/api/keys/" + newKeyName
 	)
 
-	t.Run(`Testing the PGP key "add" command`, func(t *testing.T) {
+	keyFilePath := filepath.Join(t.TempDir(), "test.key")
+	require.NoError(t, os.WriteFile(keyFilePath, []byte(newKey), 0o600))
+
+	t.Run(`Testing the cryptographic key "add" command`, func(t *testing.T) {
 		w := newTestOutput()
-		command := &PGPKeysUpdate{}
+		command := &CryptoKeysUpdate{}
 
 		expected := &expectedRequest{
 			method: http.MethodPatch,
 			path:   path,
 			body: map[string]any{
-				"name":       newKeyName,
-				"privateKey": privateKey,
-				"publicKey":  publicKey,
+				"name": newKeyName,
+				"type": newKeyType,
+				"key":  newKey,
 			},
 		}
 
@@ -266,14 +273,14 @@ func TestPGPKeysUpdate(t *testing.T) {
 				require.NoError(t, executeCommand(t, w, command,
 					oldKeyName,
 					"--name", newKeyName,
-					"--private-key", privateKey,
-					"--public-key", publicKey),
+					"--type", newKeyType,
+					"--key", keyFilePath),
 					"Then it should not return an error")
 
 				assert.Equal(t,
-					fmt.Sprintf("The PGP key %q was successfully updated.\n", newKeyName),
+					fmt.Sprintf("The cryptographic key %q was successfully updated.\n", newKeyName),
 					w.String(),
-					"Then it should display a message saying the PGP key was updated",
+					"Then it should display a message saying the cryptographic key was updated",
 				)
 			})
 		})

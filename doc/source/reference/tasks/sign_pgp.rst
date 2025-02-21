@@ -8,5 +8,5 @@ Les arguments sont:
   du fichier de transfert. Doit être différent du chemin du fichier source.
   Par défaut, le chemin sera identique à celui du fichier source avec le suffixe
   ``.sig``.
-* ``pgpKeyName`` (*string*) - Le nom de la clé (privée) PGP de signature.
-  La clé doit exister dans la base de données.
+* ``pgpKeyName`` (*string*) - Le nom de la :term:`clé cryptographique` à utiliser
+  pour la signature du fichier. Cette clé doit être de type ``PGP-PRIVATE``.

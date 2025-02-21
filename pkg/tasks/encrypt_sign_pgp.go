@@ -18,9 +18,9 @@ import (
 var (
 	ErrEncryptSignPGPNoEncryptionKey = errors.New("missing PGP encryption key")
 	ErrEncryptSignPGPNoSignatureKey  = errors.New("missing PGP signature key")
-	ErrEncryptSignPGPKeyNotFound     = errors.New("PGP key not found")
-	ErrEncryptSignPGPNoPrivateKey    = errors.New("PGP key does not contain a private key")
-	ErrEncryptSignPGPNoPublicKey     = errors.New("PGP key does not contain a public key")
+	ErrEncryptSignPGPKeyNotFound     = errors.New("cryptographic key not found")
+	ErrEncryptSignPGPNoPrivateKey    = errors.New("cryptographic key does not contain a private PGP key")
+	ErrEncryptSignPGPNoPublicKey     = errors.New("cryptographic key does not contain a public PGP key")
 )
 
 type encryptSignPGP struct {
@@ -35,7 +35,7 @@ type encryptSignPGP struct {
 	encryptKey, signKey *pgp.Key
 }
 
-func (e *encryptSignPGP) checkParams(params map[string]string) error {
+func (e *encryptSignPGP) ValidateDB(db database.ReadAccess, params map[string]string) error {
 	if err := utils.JSONConvert(params, e); err != nil {
 		return fmt.Errorf("failed to parse the PGP encryption parameters: %w", err)
 	}
@@ -48,58 +48,52 @@ func (e *encryptSignPGP) checkParams(params map[string]string) error {
 		return ErrEncryptSignPGPNoSignatureKey
 	}
 
-	return nil
-}
-
-func (e *encryptSignPGP) parseParams(db database.ReadAccess, params map[string]string) error {
-	if err := e.checkParams(params); err != nil {
-		return err
-	}
-
-	var encryptKey model.PGPKey
+	var encryptKey model.CryptoKey
 	if err := db.Get(&encryptKey, "name = ?", e.EncryptionPGPKeyName).Run(); database.IsNotFound(err) {
 		return fmt.Errorf("%w %q", ErrEncryptSignPGPKeyNotFound, e.EncryptionPGPKeyName)
 	} else if err != nil {
 		return fmt.Errorf("failed to retrieve PGP key from database: %w", err)
 	}
 
-	if encryptKey.PublicKey == "" {
+	if !isPGPPrivateKey(&encryptKey) && !isPGPPublicKey(&encryptKey) {
 		return fmt.Errorf("%q: %w", encryptKey.Name, ErrEncryptSignPGPNoPublicKey)
 	}
 
 	var parseErr1 error
-	if e.encryptKey, parseErr1 = pgp.NewKeyFromArmored(encryptKey.PublicKey); parseErr1 != nil {
+	if e.encryptKey, parseErr1 = pgp.NewKeyFromArmored(encryptKey.Key.String()); parseErr1 != nil {
 		return fmt.Errorf("failed to parse PGP encryption key: %w", parseErr1)
 	}
 
-	var signKey model.PGPKey
+	if e.encryptKey.IsPrivate() {
+		if e.encryptKey, parseErr1 = e.encryptKey.ToPublic(); parseErr1 != nil {
+			return fmt.Errorf("failed to parse PGP encryption key: %w", parseErr1)
+		}
+	}
+
+	var signKey model.CryptoKey
 	if err := db.Get(&signKey, "name = ?", e.EncryptionPGPKeyName).Run(); database.IsNotFound(err) {
 		return fmt.Errorf("%w %q", ErrEncryptSignPGPKeyNotFound, e.EncryptionPGPKeyName)
 	} else if err != nil {
 		return fmt.Errorf("failed to retrieve PGP key from database: %w", err)
 	}
 
-	if signKey.PrivateKey == "" {
+	if !isPGPPrivateKey(&signKey) {
 		return fmt.Errorf("%q %w", signKey.Name, ErrEncryptSignPGPNoPrivateKey)
 	}
 
 	var parseErr2 error
-	if e.signKey, parseErr2 = pgp.NewKeyFromArmored(signKey.PrivateKey.String()); parseErr2 != nil {
+	if e.signKey, parseErr2 = pgp.NewKeyFromArmored(signKey.Key.String()); parseErr2 != nil {
 		return fmt.Errorf("failed to parse PGP signature key: %w", parseErr2)
 	}
 
 	return nil
 }
 
-func (e *encryptSignPGP) Validate(params map[string]string) error {
-	return e.checkParams(params)
-}
-
 func (e *encryptSignPGP) Run(_ context.Context, params map[string]string,
 	db *database.DB, logger *log.Logger, transCtx *model.TransferContext,
 ) error {
-	if err := e.parseParams(db, params); err != nil {
-		logger.Error("Failed to parse PGP encryption parameters: %v", err)
+	if err := e.ValidateDB(db, params); err != nil {
+		logger.Error(err.Error())
 
 		return err
 	}

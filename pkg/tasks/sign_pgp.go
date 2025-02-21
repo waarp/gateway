@@ -20,8 +20,8 @@ import (
 var (
 	ErrSignPGPNoOutFile    = errors.New("missing PGP signature output file")
 	ErrSignPGPNoKeyName    = errors.New("missing PGP signature key")
-	ErrSignPGPKeyNotFound  = errors.New("PGP key not found")
-	ErrSignPGPNoPrivateKey = errors.New("PGP key does not contain a private key")
+	ErrSignPGPKeyNotFound  = errors.New("cryptographic key not found")
+	ErrSignPGPNoPrivateKey = errors.New("cryptographic key does not contain a private PGP key")
 )
 
 type signPGP struct {
@@ -31,7 +31,7 @@ type signPGP struct {
 	signKey *pgp.Key
 }
 
-func (s *signPGP) checkParams(params map[string]string) error {
+func (s *signPGP) ValidateDB(db database.ReadAccess, params map[string]string) error {
 	if err := utils.JSONConvert(params, s); err != nil {
 		return fmt.Errorf("failed to parse the PGP signature parameters: %w", err)
 	}
@@ -44,42 +44,30 @@ func (s *signPGP) checkParams(params map[string]string) error {
 		return ErrSignPGPNoKeyName
 	}
 
-	return nil
-}
-
-func (s *signPGP) parseParams(db database.ReadAccess, params map[string]string) error {
-	if err := s.checkParams(params); err != nil {
-		return err
-	}
-
-	var pgpKey model.PGPKey
+	var pgpKey model.CryptoKey
 	if err := db.Get(&pgpKey, "name = ?", s.PGPKeyName).Run(); database.IsNotFound(err) {
 		return fmt.Errorf("%w %q", ErrSignPGPKeyNotFound, s.PGPKeyName)
 	} else if err != nil {
 		return fmt.Errorf("failed to retrieve PGP key from database: %w", err)
 	}
 
-	if pgpKey.PrivateKey == "" {
+	if !isPGPPrivateKey(&pgpKey) {
 		return fmt.Errorf("%q: %w", pgpKey.Name, ErrSignPGPNoPrivateKey)
 	}
 
 	var err error
-	if s.signKey, err = pgp.NewKeyFromArmored(pgpKey.PrivateKey.String()); err != nil {
+	if s.signKey, err = pgp.NewKeyFromArmored(pgpKey.Key.String()); err != nil {
 		return fmt.Errorf("failed to parse PGP signature key: %w", err)
 	}
 
 	return nil
 }
 
-func (s *signPGP) Validate(params map[string]string) error {
-	return s.checkParams(params)
-}
-
-func (s *signPGP) Run(ctx context.Context, params map[string]string,
+func (s *signPGP) Run(_ context.Context, params map[string]string,
 	db *database.DB, logger *log.Logger, transCtx *model.TransferContext,
 ) error {
-	if err := s.parseParams(db, params); err != nil {
-		logger.Error("Failed to parse PGP signature parameters: %v", err)
+	if err := s.ValidateDB(db, params); err != nil {
+		logger.Error(err.Error())
 
 		return err
 	}

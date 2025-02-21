@@ -6,6 +6,7 @@ import (
 
 	"github.com/stretchr/testify/require"
 
+	"code.waarp.fr/apps/gateway/gateway/pkg/database/dbtest"
 	"code.waarp.fr/apps/gateway/gateway/pkg/fs"
 	"code.waarp.fr/apps/gateway/gateway/pkg/model"
 	"code.waarp.fr/apps/gateway/gateway/pkg/utils/testhelpers"
@@ -46,29 +47,37 @@ non proident, sunt in culpa qui officia deserunt mollit anim id est laborum.`
 	}
 
 	logger := testhelpers.GetTestLogger(t)
+	db := dbtest.TestDatabase(t)
 	outputFile := filePath + ".hmac"
 
 	const key = "0123456789ABCDEF"
 
+	hmacKey := model.CryptoKey{
+		Name: "hmac-key",
+		Type: model.CryptoKeyTypeHMAC,
+		Key:  key,
+	}
+	require.NoError(t, db.Insert(&hmacKey).Run())
+
 	signParams := map[string]string{
-		"algorithm":  algo,
-		"outputFile": outputFile,
-		"key":        key,
+		"algorithm":   algo,
+		"outputFile":  outputFile,
+		"hmacKeyName": hmacKey.Name,
 	}
 
 	verifyParams := map[string]string{
 		"algorithm":     algo,
 		"signatureFile": outputFile,
-		"key":           key,
+		"hmacKeyName":   hmacKey.Name,
 	}
 
 	sign := func() error {
-		return (&signHMAC{}).Run(context.Background(), signParams, nil,
+		return (&signHMAC{}).Run(context.Background(), signParams, db,
 			logger, transCtx)
 	}
 
 	verify := func() error {
-		return (&verifyHMAC{}).Run(context.Background(), verifyParams, nil,
+		return (&verifyHMAC{}).Run(context.Background(), verifyParams, db,
 			logger, transCtx)
 	}
 

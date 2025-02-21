@@ -12,15 +12,15 @@ import (
 	"code.waarp.fr/apps/gateway/gateway/pkg/model"
 )
 
-func retrieveDBPGPKey(r *http.Request, db database.ReadAccess) (*model.PGPKey, error) {
-	keyName, ok := mux.Vars(r)["pgp_key"]
+func retrieveDBCryptoKey(r *http.Request, db database.ReadAccess) (*model.CryptoKey, error) {
+	keyName, ok := mux.Vars(r)["crypto_key"]
 	if !ok {
-		return nil, notFound("missing PGP key name")
+		return nil, notFound("missing cryptographic key name")
 	}
 
-	var dbKey model.PGPKey
+	var dbKey model.CryptoKey
 	if err := db.Get(&dbKey, "name=?", keyName).Run(); database.IsNotFound(err) {
-		return nil, notFound("PGP key %q not found", keyName)
+		return nil, notFound("Cryptographic key %q not found", keyName)
 	} else if err != nil {
 		return nil, fmt.Errorf("failed to retrieve PGP key from database: %w", err)
 	}
@@ -28,34 +28,34 @@ func retrieveDBPGPKey(r *http.Request, db database.ReadAccess) (*model.PGPKey, e
 	return &dbKey, nil
 }
 
-func dbPGPKeyToREST(dbKey *model.PGPKey) *api.GetPGPKeyRespObject {
-	return &api.GetPGPKeyRespObject{
-		Name:       dbKey.Name,
-		PublicKey:  dbKey.PublicKey,
-		PrivateKey: dbKey.PrivateKey.String(),
+func dbCryptoKeyToREST(dbKey *model.CryptoKey) *api.GetCryptoKeyRespObject {
+	return &api.GetCryptoKeyRespObject{
+		Name: dbKey.Name,
+		Type: dbKey.Type,
+		Key:  dbKey.Key.String(),
 	}
 }
 
-func dbPGPKeysToREST(dbKeys []*model.PGPKey) []*api.GetPGPKeyRespObject {
-	restKeys := make([]*api.GetPGPKeyRespObject, len(dbKeys))
+func dbCryptoKeysToREST(dbKeys []*model.CryptoKey) []*api.GetCryptoKeyRespObject {
+	restKeys := make([]*api.GetCryptoKeyRespObject, len(dbKeys))
 	for i := range dbKeys {
-		restKeys[i] = dbPGPKeyToREST(dbKeys[i])
+		restKeys[i] = dbCryptoKeyToREST(dbKeys[i])
 	}
 
 	return restKeys
 }
 
-func addPGPKey(logger *log.Logger, db *database.DB) http.HandlerFunc {
+func addCryptoKey(logger *log.Logger, db *database.DB) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		var restKey api.PostPGPKeyReqObject
+		var restKey api.PostCryptoKeyReqObject
 		if err := readJSON(r, &restKey); handleError(w, logger, err) {
 			return
 		}
 
-		dbKey := &model.PGPKey{
-			Name:       restKey.Name,
-			PrivateKey: database.SecretText(restKey.PrivateKey),
-			PublicKey:  restKey.PublicKey,
+		dbKey := &model.CryptoKey{
+			Name: restKey.Name,
+			Type: restKey.Type,
+			Key:  database.SecretText(restKey.Key),
 		}
 		if err := db.Insert(dbKey).Run(); handleError(w, logger, err) {
 			return
@@ -67,15 +67,17 @@ func addPGPKey(logger *log.Logger, db *database.DB) http.HandlerFunc {
 }
 
 //nolint:dupl //duplicate is for a different type, keep separate
-func listPGPKeys(logger *log.Logger, db *database.DB) http.HandlerFunc {
+func listCryptoKeys(logger *log.Logger, db *database.DB) http.HandlerFunc {
 	validSorting := orders{
 		"default": order{"name", true},
 		"name+":   order{"name", true},
 		"name-":   order{"name", false},
+		"type+":   order{"type", true},
+		"type-":   order{"type", false},
 	}
 
 	return func(w http.ResponseWriter, r *http.Request) {
-		var dbKeys model.PGPKeys
+		var dbKeys model.CryptoKeys
 
 		query, queryErr := parseSelectQuery(r, db, validSorting, &dbKeys)
 		if handleError(w, logger, queryErr) {
@@ -86,40 +88,40 @@ func listPGPKeys(logger *log.Logger, db *database.DB) http.HandlerFunc {
 			return
 		}
 
-		restKeys := dbPGPKeysToREST(dbKeys)
+		restKeys := dbCryptoKeysToREST(dbKeys)
 
-		resp := map[string][]*api.GetPGPKeyRespObject{"pgpKeys": restKeys}
+		resp := map[string][]*api.GetCryptoKeyRespObject{"cryptoKeys": restKeys}
 		handleError(w, logger, writeJSON(w, resp))
 	}
 }
 
-func getPGPKey(logger *log.Logger, db *database.DB) http.HandlerFunc {
+func getCryptoKey(logger *log.Logger, db *database.DB) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		dbKey, dbErr := retrieveDBPGPKey(r, db)
+		dbKey, dbErr := retrieveDBCryptoKey(r, db)
 		if handleError(w, logger, dbErr) {
 			return
 		}
 
-		restKey := dbPGPKeyToREST(dbKey)
+		restKey := dbCryptoKeyToREST(dbKey)
 		handleError(w, logger, writeJSON(w, restKey))
 	}
 }
 
-func updatePGPKey(logger *log.Logger, db *database.DB) http.HandlerFunc {
+func updateCryptoKey(logger *log.Logger, db *database.DB) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		dbKey, dbErr := retrieveDBPGPKey(r, db)
+		dbKey, dbErr := retrieveDBCryptoKey(r, db)
 		if handleError(w, logger, dbErr) {
 			return
 		}
 
-		var restKey api.PatchPGPKeyReqObject
+		var restKey api.PatchCryptoKeyReqObject
 		if err := readJSON(r, &restKey); handleError(w, logger, err) {
 			return
 		}
 
 		setIfValid(&dbKey.Name, restKey.Name)
-		setIfValid(&dbKey.PublicKey, restKey.PublicKey)
-		setIfValidSecret(&dbKey.PrivateKey, restKey.PrivateKey)
+		setIfValid(&dbKey.Type, restKey.Type)
+		setIfValidSecret(&dbKey.Key, restKey.Key)
 
 		if err := db.Update(dbKey).Run(); handleError(w, logger, err) {
 			return
@@ -130,9 +132,9 @@ func updatePGPKey(logger *log.Logger, db *database.DB) http.HandlerFunc {
 	}
 }
 
-func deletePGPKey(logger *log.Logger, db *database.DB) http.HandlerFunc {
+func deleteCryptoKey(logger *log.Logger, db *database.DB) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		dbKey, dbErr := retrieveDBPGPKey(r, db)
+		dbKey, dbErr := retrieveDBCryptoKey(r, db)
 		if handleError(w, logger, dbErr) {
 			return
 		}
