@@ -1,11 +1,10 @@
 package utils
 
 import (
+	"cmp"
 	"errors"
 	"fmt"
 	"slices"
-
-	"golang.org/x/exp/constraints"
 )
 
 // If simulates a ternary operator.
@@ -17,7 +16,7 @@ func If[T any](cond bool, valTrue, valFalse T) T {
 	}
 }
 
-func Max[T constraints.Ordered](args ...T) T {
+func Max[T cmp.Ordered](args ...T) T {
 	if len(args) == 0 {
 		return *new(T)
 	}
@@ -25,7 +24,7 @@ func Max[T constraints.Ordered](args ...T) T {
 	return slices.Max(args)
 }
 
-func Min[T constraints.Ordered](args ...T) T {
+func Min[T cmp.Ordered](args ...T) T {
 	if len(args) == 0 {
 		return *new(T)
 	}

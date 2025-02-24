@@ -25,7 +25,7 @@ func init() {
 	fs.Register("s3", newS3FS)
 }
 
-func parseOpts(opts map[string]string) (configmap.Simple, *vfscommon.Options, error) {
+func parseOpts(opts map[string]string) (configmap.Simple, *vfscommon.Options) {
 	const (
 		envAuthKey = "env_auth"
 		envAuth    = "true"
@@ -66,16 +66,13 @@ func parseOpts(opts map[string]string) (configmap.Simple, *vfscommon.Options, er
 	confMap[listChunkKey] = listChunk
 	confMap[listVersionKey] = listVersion
 
-	vfsOpts, err := parseVFSOpts(opts)
+	vfsOpts := parseVFSOpts()
 
-	return confMap, vfsOpts, err
+	return confMap, vfsOpts
 }
 
-func parseVFSOpts(opts map[string]string) (*vfscommon.Options, error) {
+func parseVFSOpts() *vfscommon.Options {
 	const (
-		cacheMaxAgeKey  = "cacheMaxAge"
-		cacheMaxSizeKey = "cacheMaxSize"
-
 		readWaitDuration = rfs.Duration(100 * time.Millisecond)
 	)
 
@@ -85,19 +82,7 @@ func parseVFSOpts(opts map[string]string) (*vfscommon.Options, error) {
 		ReadWait:        readWaitDuration,
 	}
 
-	if age, ok := opts[cacheMaxAgeKey]; ok {
-		if err := vfsOpts.CacheMaxAge.Set(age); err != nil {
-			return nil, fmt.Errorf("failed to parse %s: %w", cacheMaxAgeKey, err)
-		}
-	}
-
-	if size, ok := opts[cacheMaxSizeKey]; ok {
-		if err := vfsOpts.CacheMaxSize.Set(size); err != nil {
-			return nil, fmt.Errorf("failed to parse %s: %w", cacheMaxSizeKey, err)
-		}
-	}
-
-	return vfsOpts, nil
+	return vfsOpts
 }
 
 func newS3FS(name, key, secret string, opts map[string]string) (fs.FS, error) {
@@ -109,10 +94,7 @@ func newS3FS(name, key, secret string, opts map[string]string) (fs.FS, error) {
 }
 
 func newS3FSWithRoot(name, key, secret, root string, opts map[string]string) (*vfs.VFS, error) {
-	confMap, vfsOpts, err := parseOpts(opts)
-	if err != nil {
-		return nil, err
-	}
+	confMap, vfsOpts := parseOpts(opts)
 
 	if key != "" {
 		confMap["access_key_id"] = key
