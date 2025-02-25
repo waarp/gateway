@@ -105,7 +105,7 @@ func newClientPipeline(db *database.DB, logger *log.Logger, transCtx *model.Tran
 
 	if transCtx.Rule.IsSend {
 		logger.Info("Starting upload of file %q to %q as %q using rule %q",
-			&transCtx.Transfer.LocalPath, transCtx.RemoteAgent.Name,
+			transCtx.Transfer.LocalPath, transCtx.RemoteAgent.Name,
 			transCtx.RemoteAccount.Login, transCtx.Rule.Name)
 	} else {
 		logger.Info("Starting download of file %q from %q as %q using rule %q",

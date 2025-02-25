@@ -1,15 +1,10 @@
 package r66
 
 import (
-	"path"
-
-	. "github.com/smartystreets/goconvey/convey"
-
 	"code.waarp.fr/apps/gateway/gateway/pkg/database"
 	"code.waarp.fr/apps/gateway/gateway/pkg/gatewayd/services"
 	"code.waarp.fr/apps/gateway/gateway/pkg/model"
 	"code.waarp.fr/apps/gateway/gateway/pkg/model/authentication/auth"
-	"code.waarp.fr/apps/gateway/gateway/pkg/model/types"
 	"code.waarp.fr/apps/gateway/gateway/pkg/pipeline/pipelinetest"
 	"code.waarp.fr/apps/gateway/gateway/pkg/utils"
 )
@@ -58,13 +53,4 @@ func partnerPassword(partner *model.RemoteAgent) *model.Credential {
 		Type:          auth.Password,
 		Value:         serverPass,
 	}
-}
-
-func mkPath(elem ...string) types.FSPath {
-	full := path.Join(elem...)
-
-	fPath, err := types.ParsePath(full)
-	So(err, ShouldBeNil)
-
-	return *fPath
 }

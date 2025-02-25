@@ -373,8 +373,8 @@ linters-settings:
     #  - G101
     # To specify a set of rules to explicitly exclude.
     # Available rules: https://github.com/securego/gosec#available-rules
-    #excludes:
-    #  - G204
+    excludes:
+      - G115 # Overflow conversions are fine.
     # To specify the configuration of rules.
     # The configuration of rules is not fully documented by gosec:
     # https://github.com/securego/gosec#configuration
@@ -714,6 +714,7 @@ linters:
     - containedctx #might re-enable once a better solution has been found
     - tparallel #a test being executable in parallel with others tests does not mean its subtests can be executed in parallel with each others
     - gomnd #deprecated, renamed to "mnd"
+    - exportloopref #deprecated, replaced by "copyloopvar"
 
   #presets:
   #  - bugs

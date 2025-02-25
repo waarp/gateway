@@ -8,7 +8,6 @@ import (
 
 	. "github.com/smartystreets/goconvey/convey"
 
-	"code.waarp.fr/apps/gateway/gateway/pkg/fs/fstest"
 	"code.waarp.fr/apps/gateway/gateway/pkg/model"
 	"code.waarp.fr/apps/gateway/gateway/pkg/utils/testhelpers"
 )
@@ -85,7 +84,6 @@ func TestExecMoveValidate(t *testing.T) {
 func TestExecMoveRun(t *testing.T) {
 	Convey("Given an 'EXECMOVE' task", t, func(c C) {
 		logger := testhelpers.TestLogger(c, "task_execmove")
-		testFS := fstest.InitMemFS(c)
 		root := testhelpers.TempDir(c, "task_execmove")
 		scriptPath := filepath.Join(root, execMoveScriptFile)
 
@@ -93,7 +91,6 @@ func TestExecMoveRun(t *testing.T) {
 		transCtx := &model.TransferContext{
 			Rule:     &model.Rule{IsSend: false},
 			Transfer: &model.Transfer{},
-			FS:       testFS,
 		}
 
 		srcFile := filepath.Join(root, "test.src")
@@ -117,8 +114,7 @@ func TestExecMoveRun(t *testing.T) {
 					So(err, ShouldBeNil)
 
 					Convey("Then the transfer filepath should have changed", func() {
-						So(transCtx.Transfer.LocalPath.String(), ShouldEqual,
-							filepath.ToSlash(dstFile))
+						So(transCtx.Transfer.LocalPath, ShouldEqual, dstFile)
 					})
 				})
 			})

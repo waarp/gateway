@@ -1,43 +1,40 @@
 package fs
 
-import "strings"
+import (
+	"io/fs"
+	"os"
+)
 
-// ContainsFlags returns true if the flags mask contain the candidate flag.
-func ContainsFlags(flags, candidate int) bool {
-	return flags&candidate != 0
-}
+type FileMode = fs.FileMode
 
-func DescribeFlags(flags int) string {
-	var description []string
+const (
+	ModeDir        = fs.ModeDir
+	ModeAppend     = fs.ModeAppend
+	ModeExclusive  = fs.ModeExclusive
+	ModeTemporary  = fs.ModeTemporary
+	ModeSymlink    = fs.ModeSymlink
+	ModeDevice     = fs.ModeDevice
+	ModeNamedPipe  = fs.ModeNamedPipe
+	ModeSocket     = fs.ModeSocket
+	ModeSetuid     = fs.ModeSetuid
+	ModeSetgid     = fs.ModeSetgid
+	ModeCharDevice = fs.ModeCharDevice
+	ModeSticky     = fs.ModeSticky
+	ModeIrregular  = fs.ModeIrregular
+	ModeType       = fs.ModeType
+	ModePerm       = fs.ModePerm
+)
 
-	switch flags & (FlagROnly | FlagWOnly | FlagRW) {
-	case FlagROnly:
-		description = append(description, "read-only")
-	case FlagWOnly:
-		description = append(description, "write-only")
-	case FlagRW:
-		description = append(description, "read-write")
-	}
+type Flags = int
 
-	if flags&FlagAppend != 0 {
-		description = append(description, "append")
-	}
+const (
+	FlagReadOnly  = os.O_RDONLY
+	FlagWriteOnly = os.O_WRONLY
+	FlagReadWrite = os.O_RDWR
 
-	if flags&FlagCreate != 0 {
-		description = append(description, "create")
-	}
-
-	if flags&FlagExclusive != 0 {
-		description = append(description, "exclusive")
-	}
-
-	if flags&FlagSync != 0 {
-		description = append(description, "sync")
-	}
-
-	if flags&FlagTruncate != 0 {
-		description = append(description, "truncate")
-	}
-
-	return strings.Join(description, ", ")
-}
+	FlagAppend    = os.O_APPEND
+	FlagCreate    = os.O_CREATE
+	FlagExclusive = os.O_EXCL
+	FlagSync      = os.O_SYNC
+	FlagTruncate  = os.O_TRUNC
+)

@@ -10,7 +10,6 @@ import (
 	"code.waarp.fr/apps/gateway/gateway/pkg/database"
 	"code.waarp.fr/apps/gateway/gateway/pkg/fs"
 	"code.waarp.fr/apps/gateway/gateway/pkg/model"
-	"code.waarp.fr/apps/gateway/gateway/pkg/model/types"
 )
 
 // renameTask is a task which rename the target of the transfer
@@ -22,10 +21,13 @@ func init() {
 	model.ValidTasks["RENAME"] = &renameTask{}
 }
 
+var ErrRenameMissingPath = fmt.Errorf(
+	`cannot create a RENAME task without a "path" argument: %w`, ErrBadTaskArguments)
+
 // Validate checks if the RENAME tasks has all the required arguments.
 func (*renameTask) Validate(args map[string]string) error {
-	if _, ok := args["path"]; !ok {
-		return fmt.Errorf("cannot create a rename task without a `path` argument: %w", ErrBadTaskArguments)
+	if args["path"] == "" {
+		return ErrRenameMissingPath
 	}
 
 	return nil
@@ -35,28 +37,21 @@ func (*renameTask) Validate(args map[string]string) error {
 func (*renameTask) Run(_ context.Context, args map[string]string, db *database.DB,
 	logger *log.Logger, transCtx *model.TransferContext,
 ) error {
-	newPathStr := args["path"]
-
-	newPath, err := types.ParsePath(newPathStr)
-	if err != nil {
-		return fmt.Errorf("failed to parse the new target path %q: %w", newPathStr, err)
+	newPath := args["path"]
+	if newPath == "" {
+		return ErrRenameMissingPath
 	}
 
-	newFS, fsErr := fs.GetFileSystem(db, newPath)
-	if fsErr != nil {
-		return fmt.Errorf("failed to instantiate filesystem for new file %q: %w", newPathStr, fsErr)
-	}
-
-	if _, err := fs.Stat(transCtx.FS, newPath); err != nil {
+	if _, err := fs.Stat(newPath); err != nil {
 		return fmt.Errorf("failed to change transfer target file: %w", err)
 	}
 
-	transCtx.FS = newFS
-	transCtx.Transfer.LocalPath = *newPath
-	transCtx.Transfer.RemotePath = path.Join(path.Dir(transCtx.Transfer.RemotePath),
-		path.Base(newPath.Path))
+	transCtx.Transfer.LocalPath = newPath
+	transCtx.Transfer.RemotePath = path.Join(
+		path.Dir(transCtx.Transfer.RemotePath),
+		path.Base(newPath))
 
-	logger.Debug("Changed target file to %q", newPathStr)
+	logger.Debug("Changed target file to %q", newPath)
 
 	return nil
 }

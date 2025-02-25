@@ -9,7 +9,6 @@ import (
 	. "github.com/smartystreets/goconvey/convey"
 
 	"code.waarp.fr/apps/gateway/gateway/pkg/fs"
-	"code.waarp.fr/apps/gateway/gateway/pkg/fs/fstest"
 	"code.waarp.fr/apps/gateway/gateway/pkg/model"
 	"code.waarp.fr/apps/gateway/gateway/pkg/utils/testhelpers"
 )
@@ -42,7 +41,7 @@ func TestCopyTaskValidate(t *testing.T) {
 			})
 
 			Convey("Then error should say `need path argument`", func() {
-				So(err.Error(), ShouldContainSubstring, "cannot create a copy task without a `path` argument")
+				So(err, ShouldWrap, ErrCopyMissingPath)
 			})
 		})
 	})
@@ -50,20 +49,19 @@ func TestCopyTaskValidate(t *testing.T) {
 
 func TestCopyTaskRun(t *testing.T) {
 	Convey("Given a Runner for the 'COPY' task", t, func(c C) {
+		root := t.TempDir()
 		logger := testhelpers.TestLogger(c, "task_copy")
-		testFS := fstest.InitMemFS(c)
 		task := &copyTask{}
 
-		srcFile := makePath("/src_dir/test.file")
-		filename := path.Base(srcFile.Path)
+		srcFile := fs.JoinPath(root, "src_dir", "test.file")
+		filename := path.Base(srcFile)
 
 		transCtx := &model.TransferContext{
 			Transfer: &model.Transfer{LocalPath: srcFile},
-			FS:       testFS,
 		}
 
-		So(fs.MkdirAll(testFS, srcFile.Dir()), ShouldBeNil)
-		So(fs.WriteFullFile(testFS, &srcFile, []byte("Hello World")), ShouldBeNil)
+		So(fs.MkdirAll(path.Dir(srcFile)), ShouldBeNil)
+		So(fs.WriteFullFile(srcFile, []byte("Hello World")), ShouldBeNil)
 
 		args := map[string]string{}
 
@@ -74,7 +72,7 @@ func TestCopyTaskRun(t *testing.T) {
 				args["path"] = "/dst_dir"
 			}
 
-			So(fs.Remove(testFS, &srcFile), ShouldBeNil)
+			So(fs.RemoveAll(srcFile), ShouldBeNil)
 
 			Convey("When calling the run method", func() {
 				err := task.Run(context.Background(), args, nil, logger, transCtx)
@@ -83,22 +81,22 @@ func TestCopyTaskRun(t *testing.T) {
 					So(err, ShouldNotBeNil)
 
 					Convey("Then error should say `no such file`", func() {
-						So(fs.IsNotExist(err), ShouldBeTrue)
+						So(err, ShouldWrap, fs.ErrNotExist)
 					})
 				})
 			})
 		})
 
 		Convey("Given that the file is copied on itself", func() {
-			dstPath := srcFile.Dir()
-			args["path"] = dstPath.String()
+			dstPath := path.Dir(srcFile)
+			args["path"] = dstPath
 
 			Convey("When calling the run method", func() {
 				err := task.Run(context.Background(), args, nil, logger, transCtx)
 				So(err, ShouldBeNil)
 
 				Convey("Then the file should NOT be empty", func() {
-					info, err := fs.Stat(testFS, &srcFile)
+					info, err := fs.Stat(srcFile)
 					So(err, ShouldBeNil)
 					So(info.Size(), ShouldNotEqual, 0)
 				})
@@ -106,8 +104,8 @@ func TestCopyTaskRun(t *testing.T) {
 		})
 
 		Convey("Given the destination is a non-existing subdir", func() {
-			dstDir := makePath("/dst_dir")
-			args["path"] = dstDir.String()
+			dstDir := fs.JoinPath(root, "dst_dir")
+			args["path"] = dstDir
 
 			Convey("Given the target can be created", func() {
 				Convey("When the task is run", func() {
@@ -115,14 +113,14 @@ func TestCopyTaskRun(t *testing.T) {
 					So(err, ShouldBeNil)
 
 					Convey("Then the target file exists", func() {
-						_, err := fs.Stat(testFS, dstDir.JoinPath(filename))
+						_, err := fs.Stat(path.Join(dstDir, filename))
 						So(err, ShouldBeNil)
 					})
 				})
 			})
 
 			Convey("Given the target CANNOT be created", func() {
-				So(fs.WriteFullFile(testFS, &dstDir, []byte("hello")), ShouldBeNil)
+				So(fs.WriteFullFile(dstDir, []byte("hello")), ShouldBeNil)
 
 				Convey("When the task is run", func() {
 					err := task.Run(context.Background(), args, nil, logger, transCtx)
@@ -131,9 +129,9 @@ func TestCopyTaskRun(t *testing.T) {
 						So(err, ShouldBeError)
 
 						Convey("Then the target file does not exist", func() {
-							dstFile := dstDir.JoinPath(filename)
-							_, err := fs.Stat(testFS, dstFile)
-							So(fs.IsNotExist(err), ShouldBeTrue)
+							dstFile := path.Join(dstDir, filename)
+							_, err := fs.Stat(dstFile)
+							So(err, ShouldWrap, fs.ErrNotDir)
 						})
 					})
 				})

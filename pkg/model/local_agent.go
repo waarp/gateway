@@ -6,6 +6,7 @@ import (
 
 	"code.waarp.fr/apps/gateway/gateway/pkg/conf"
 	"code.waarp.fr/apps/gateway/gateway/pkg/database"
+	"code.waarp.fr/apps/gateway/gateway/pkg/fs"
 	"code.waarp.fr/apps/gateway/gateway/pkg/model/types"
 	"code.waarp.fr/apps/gateway/gateway/pkg/utils"
 	"code.waarp.fr/apps/gateway/gateway/pkg/utils/compatibility"
@@ -52,7 +53,7 @@ func (l *LocalAgent) validateProtoConfig() error {
 	return nil
 }
 
-func (l *LocalAgent) makePaths() {
+func (l *LocalAgent) makePaths() error {
 	isEmpty := func(path string) bool {
 		return path == "." || path == ""
 	}
@@ -70,13 +71,29 @@ func (l *LocalAgent) makePaths() {
 			l.TmpReceiveDir = "tmp"
 		}
 	}
+
+	if fs.IsAbsPath(l.TmpReceiveDir) {
+		if !fs.IsLocalPath(l.TmpReceiveDir) {
+			return database.NewValidationError("server tmp directory must be local")
+		}
+	} else if fs.IsAbsPath(l.RootDir) {
+		if !fs.IsLocalPath(l.RootDir) {
+			return database.NewValidationError("server tmp directory must be local, " +
+				"the given one is relative to a non-local root dir")
+		}
+	}
+
+	return nil
 }
 
 // BeforeWrite is called before inserting a new `LocalAgent` entry in the
 // database. It checks whether the new entry is valid or not.
 func (l *LocalAgent) BeforeWrite(db database.Access) error {
 	l.Owner = conf.GlobalConfig.GatewayName
-	l.makePaths()
+
+	if err := l.makePaths(); err != nil {
+		return err
+	}
 
 	if l.Name == "" {
 		return database.NewValidationError("the agent's name cannot be empty")

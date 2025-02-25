@@ -12,7 +12,6 @@ import (
 	"code.waarp.fr/apps/gateway/gateway/pkg/conf"
 	"code.waarp.fr/apps/gateway/gateway/pkg/database"
 	"code.waarp.fr/apps/gateway/gateway/pkg/fs"
-	"code.waarp.fr/apps/gateway/gateway/pkg/fs/fstest"
 	"code.waarp.fr/apps/gateway/gateway/pkg/model"
 	"code.waarp.fr/apps/gateway/gateway/pkg/model/authentication/auth"
 	"code.waarp.fr/apps/gateway/gateway/pkg/model/types"
@@ -133,12 +132,11 @@ func TestValidAuth(t *testing.T) {
 }
 
 func TestValidRequest(t *testing.T) {
-	Convey("Given an R66 session handler", t, func(c C) {
-		fstest.InitMemFS(c)
+	root := t.TempDir()
 
+	Convey("Given an R66 session handler", t, func(c C) {
 		logger := testhelpers.TestLogger(c, "test_valid_request")
 		db := database.TestDatabase(c)
-		root := "memory:/r66_valid_request"
 
 		rule := &model.Rule{
 			Name:           "rule",
@@ -270,11 +268,11 @@ func TestValidRequest(t *testing.T) {
 }
 
 func TestUpdateTransferInfo(t *testing.T) {
+	root := t.TempDir()
+
 	Convey("Given an R66 transfer handler", t, func(c C) {
-		testFS := fstest.InitMemFS(c)
 		logger := testhelpers.TestLogger(c, "test_valid_request")
 		db := database.TestDatabase(c)
-		root := "memory:/r66_update_info"
 		conf.GlobalConfig.Paths = conf.PathsConfig{
 			GatewayHome: root,
 		}
@@ -346,7 +344,7 @@ func TestUpdateTransferInfo(t *testing.T) {
 				check := pip.TransCtx.Transfer
 
 				Convey("Then it should have updated the transfer's filename", func() {
-					So(check.LocalPath, ShouldEqual, mkPath(root,
+					So(check.LocalPath, ShouldEqual, fs.JoinPath(root,
 						server.RootDir, recv.TmpLocalRcvDir, info.Filename))
 				})
 
@@ -365,9 +363,9 @@ func TestUpdateTransferInfo(t *testing.T) {
 			}
 			So(db.Insert(trans).Run(), ShouldBeNil)
 
-			dir := mkPath(root, server.RootDir, send.LocalDir)
-			So(fs.MkdirAll(testFS, &dir), ShouldBeNil)
-			So(fs.WriteFullFile(testFS, dir.JoinPath("new.file"),
+			dir := path.Join(root, server.RootDir, send.LocalDir)
+			So(fs.MkdirAll(dir), ShouldBeNil)
+			So(fs.WriteFullFile(path.Join(dir, "new.file"),
 				[]byte("file content")), ShouldBeNil)
 
 			pip, err := pipeline.NewServerPipeline(db, logger, trans, nil)

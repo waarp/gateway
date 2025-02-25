@@ -35,15 +35,12 @@ func hash(pwd string) string {
 	return string(h)
 }
 
-func localPath(full string) types.FSPath {
+func localPath(full string) string {
 	if runtime.GOOS == "windows" {
 		full = "C:" + full
 	}
 
-	fPath, err := types.ParsePath(full)
-	convey.So(err, convey.ShouldBeNil)
-
-	return *fPath
+	return full
 }
 
 func mustAddr(addr string) types.Address {

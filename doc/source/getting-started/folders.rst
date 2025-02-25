@@ -58,10 +58,11 @@ dossier de réception du serveur par son dossier d'envoi.
 Les transferts client fonctionne également de façon similaire, mais sans les
 dossiers spécifiques au serveur.
 
-À noter qu'il est également possible de remplacer les chemins locaux par des
-chemins distants. Cela permet de stocker les fichiers sur une machine différente
-de celle où est installée la gateway. Pour plus d'information sur ces chemins
-distants, voir la `section ci-dessous <#instances-cloud>`_.
+À noter que, **à l'exception des dossiers temporaires**, il est également possible
+de remplacer les chemins locaux par des chemins distants. Cela permet de stocker
+les fichiers sur une machine différente de celle où est installée la gateway.
+Pour plus d'information sur ces chemins distants, voir la `section ci-dessous
+ <#instances-cloud>`_.
 
 =======================
 Explications détaillées
@@ -132,6 +133,13 @@ pas.
 ---------------
 Instances cloud
 ---------------
+
+.. note::
+   Pour des raisons techniques, les dossiers temporaires de réception (que ce
+   soit le dossier global, d'un serveur, ou d'une règle) **ne peuvent pas** être
+   distants, et doivent donc impérativement être des dossiers montés sur le
+   *filesystem* local. Cette section ne s'applique donc pas aux dossiers
+   temporaires.
 
 Au lieu de stocker les fichiers de transfert sur le disque local de la machine
 sur laquelle est installée la gateway, il est possible, à la place, de les

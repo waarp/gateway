@@ -19,7 +19,7 @@ func TestPathBuilder(t *testing.T) {
 	Convey("Given a Gateway configuration", t, func(c C) {
 		db := database.TestDatabase(c)
 
-		conf.GlobalConfig.Paths.GatewayHome = "memory:/path_builder"
+		conf.GlobalConfig.Paths.GatewayHome = "/path_builder"
 		conf.GlobalConfig.Paths.DefaultInDir = "gwIn"
 		conf.GlobalConfig.Paths.DefaultOutDir = "gwOut"
 		conf.GlobalConfig.Paths.DefaultTmpDir = "gwTmp"
@@ -117,7 +117,7 @@ func TestPathBuilder(t *testing.T) {
 						pip.setFilePaths()
 
 						Convey("Then it should have built the expected tmp path", func() {
-							So(transCtx.Transfer.LocalPath.String(), ShouldEqual, tc.expTmp)
+							So(transCtx.Transfer.LocalPath, ShouldEqual, tc.expTmp)
 						})
 					})
 				})
@@ -175,7 +175,7 @@ func TestPathBuilder(t *testing.T) {
 						pip.setFilePaths()
 
 						Convey("Then it should have built the expected out path", func() {
-							So(transCtx.Transfer.LocalPath.String(), ShouldEqual, tc.expFinal)
+							So(transCtx.Transfer.LocalPath, ShouldEqual, tc.expFinal)
 						})
 					})
 				})

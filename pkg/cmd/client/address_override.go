@@ -3,9 +3,8 @@ package wg
 import (
 	"fmt"
 	"io"
-
-	"golang.org/x/exp/maps"
-	"golang.org/x/exp/slices"
+	"maps"
+	"slices"
 )
 
 func displayAddressOverride(w io.Writer, target, redirect string) {
@@ -46,8 +45,7 @@ func (o *OverrideAddressList) execute(w io.Writer) error {
 	if len(overrides) != 0 {
 		style0.printf(w, "=== Address indirections ===")
 
-		redirects := maps.Keys(overrides)
-		slices.Sort(redirects)
+		redirects := slices.Sorted(maps.Keys(overrides))
 
 		for _, redirect := range redirects {
 			displayAddressOverride(w, redirect, overrides[redirect])

@@ -8,39 +8,29 @@ import (
 
 	"code.waarp.fr/apps/gateway/gateway/pkg/backup/file"
 	"code.waarp.fr/apps/gateway/gateway/pkg/database/dbtest"
-	"code.waarp.fr/apps/gateway/gateway/pkg/fs"
-	"code.waarp.fr/apps/gateway/gateway/pkg/fs/filesystems"
+	"code.waarp.fr/apps/gateway/gateway/pkg/fs/fstest"
 	"code.waarp.fr/apps/gateway/gateway/pkg/model"
 	"code.waarp.fr/apps/gateway/gateway/pkg/utils/testhelpers"
 )
 
 func TestCloudImport(t *testing.T) {
-	const testFsType = "test-fs-type"
-
 	logger := testhelpers.GetTestLogger(t)
-
-	filesystems.FileSystems.Store(testFsType,
-		func(string, string, map[string]any) (fs.FS, error) {
-			return nil, nil //nolint:nilnil //doesn't matter, we don't use it
-		})
-	t.Cleanup(func() {
-		filesystems.FileSystems.Delete(testFsType)
-	})
+	fsType := fstest.MakeDummyBackend(t)
 
 	existing := &model.CloudInstance{
 		Name:    "existing-fs",
-		Type:    testFsType,
+		Type:    fsType,
 		Key:     "other-access-key",
 		Secret:  "other-access-secret",
-		Options: map[string]any{"key1": "val1"},
+		Options: map[string]string{"key1": "val1"},
 	}
 
 	newCloud := file.Cloud{
 		Name:    "remote-fs",
-		Type:    testFsType,
+		Type:    fsType,
 		Key:     "access-key",
 		Secret:  "access-secret",
-		Options: map[string]any{"key1": "val1", "key2": true},
+		Options: map[string]string{"key1": "val1", "key2": "val2"},
 	}
 
 	t.Run("Imported cloud does not exist", func(t *testing.T) {
@@ -89,10 +79,10 @@ func TestCloudImport(t *testing.T) {
 
 		oldCloud := &model.CloudInstance{
 			Name:    newCloud.Name,
-			Type:    testFsType,
+			Type:    fsType,
 			Key:     "old-access-key",
 			Secret:  "old-access-secret",
-			Options: map[string]any{"key1": true},
+			Options: map[string]string{"key1": "val1"},
 		}
 		require.NoError(t, db.Insert(oldCloud).Run())
 

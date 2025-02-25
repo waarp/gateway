@@ -2,12 +2,12 @@ package tasks
 
 import (
 	"context"
+	"path"
 	"testing"
 
 	. "github.com/smartystreets/goconvey/convey"
 
 	"code.waarp.fr/apps/gateway/gateway/pkg/fs"
-	"code.waarp.fr/apps/gateway/gateway/pkg/fs/fstest"
 	"code.waarp.fr/apps/gateway/gateway/pkg/model"
 	"code.waarp.fr/apps/gateway/gateway/pkg/utils/testhelpers"
 )
@@ -40,21 +40,22 @@ func TestMoveRenameTaskValidate(t *testing.T) {
 			})
 
 			Convey("Then error should say `need path argument`", func() {
-				So(err.Error(), ShouldContainSubstring, "cannot create a move_rename task without a `path` argument")
+				So(err, ShouldWrap, ErrMoveRenameMissingPath)
 			})
 		})
 	})
 }
 
 func TestMoveRenameTaskRun(t *testing.T) {
+	root := t.TempDir()
+
 	Convey("Given a Runner for a sending transfer", t, func(c C) {
 		logger := testhelpers.TestLogger(c, "task_moverename")
-		testFS := fstest.InitMemFS(c)
 		task := &moveRenameTask{}
-		srcPath := makePath("/src_dir/move_rename.src")
+		srcPath := fs.JoinPath(root, "src_dir", "move_rename.src")
 
-		So(fs.MkdirAll(testFS, srcPath.Dir()), ShouldBeNil)
-		So(fs.WriteFullFile(testFS, &srcPath, []byte("Hello World")), ShouldBeNil)
+		So(fs.MkdirAll(path.Dir(srcPath)), ShouldBeNil)
+		So(fs.WriteFullFile(srcPath, []byte("Hello World")), ShouldBeNil)
 
 		transCtx := &model.TransferContext{
 			Rule: &model.Rule{
@@ -64,14 +65,13 @@ func TestMoveRenameTaskRun(t *testing.T) {
 				LocalPath:  srcPath,
 				RemotePath: "/remote/move_rename.src",
 			},
-			FS: testFS,
 		}
 
 		args := map[string]string{}
 
 		Convey("Given that the path is valid", func() {
-			dstPath := makePath("/dst_dir/move_rename.dst")
-			args["path"] = dstPath.String()
+			dstPath := fs.JoinPath(root, "dst_dir", "move_rename.dst")
+			args["path"] = dstPath
 
 			Convey("Given that the file exists", func() {
 				Convey("When calling the `Run` method", func() {
@@ -82,12 +82,12 @@ func TestMoveRenameTaskRun(t *testing.T) {
 					})
 
 					Convey("Then the destination file should exist", func() {
-						_, err := fs.Stat(testFS, &dstPath)
+						_, err := fs.Stat(dstPath)
 						So(err, ShouldBeNil)
 					})
 
 					Convey("Then the transfer local filepath should be modified", func() {
-						So(transCtx.Transfer.LocalPath.String(), ShouldEqual, args["path"])
+						So(transCtx.Transfer.LocalPath, ShouldEqual, args["path"])
 					})
 
 					Convey("Then the transfer source path should NOT be modified", func() {
@@ -97,13 +97,13 @@ func TestMoveRenameTaskRun(t *testing.T) {
 			})
 
 			Convey("Given that the file does NOT exist", func() {
-				So(fs.Remove(testFS, &srcPath), ShouldBeNil)
+				So(fs.RemoveAll(srcPath), ShouldBeNil)
 
 				Convey("When calling the 'Run' method", func() {
 					err := task.Run(context.Background(), args, nil, logger, transCtx)
 
 					Convey("Then error should say `no such file`", func() {
-						So(fs.IsNotExist(err), ShouldBeTrue)
+						So(err, ShouldWrap, fs.ErrNotExist)
 					})
 				})
 			})

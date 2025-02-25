@@ -176,7 +176,6 @@ func (s *sessionHandler) getSize(req *r66.Request, rule *model.Rule,
 func (s *sessionHandler) setProgress(req *r66.Request, trans *model.Transfer) {
 	prog := int64(req.Rank) * int64(req.Block)
 	if trans.Progress <= prog {
-		//nolint:gosec //we have to convert to uint32, no other alternative
 		req.Rank = uint32(trans.Progress / int64(req.Block))
 		trans.Progress -= trans.Progress % int64(req.Block)
 	} else {
@@ -314,15 +313,8 @@ func (s *sessionHandler) GetFileInfo(ruleName, pat string) ([]r66.FileInfo, erro
 	return s.listDirFiles(dir, pattern)
 }
 
-func (s *sessionHandler) listDirFiles(root *types.FSPath, pattern string) ([]r66.FileInfo, error) {
-	filesys, fsErr := fs.GetFileSystem(s.db, root)
-	if fsErr != nil {
-		s.logger.Error("Failed to instantiate the file system: %v", fsErr)
-
-		return nil, &r66.Error{Code: r66.Internal, Detail: "file system error"}
-	}
-
-	matches, globErr := fs.Glob(filesys, root.JoinPath(pattern))
+func (s *sessionHandler) listDirFiles(root, pattern string) ([]r66.FileInfo, error) {
+	matches, globErr := fs.Glob(path.Join(root, pattern))
 	if globErr != nil {
 		s.logger.Error("Failed to retrieve matching files: %v", globErr)
 
@@ -336,7 +328,7 @@ func (s *sessionHandler) listDirFiles(root *types.FSPath, pattern string) ([]r66
 	var infos []r66.FileInfo
 
 	for _, match := range matches {
-		file, statErr := fs.Stat(filesys, match)
+		file, statErr := fs.Stat(match)
 		if statErr != nil {
 			s.logger.Error("Failed to retrieve file %q info: %v", match, statErr)
 
@@ -344,7 +336,7 @@ func (s *sessionHandler) listDirFiles(root *types.FSPath, pattern string) ([]r66
 		}
 
 		infos = append(infos, r66.FileInfo{
-			Name:       strings.TrimLeft(strings.TrimPrefix(match.Path, root.Path), "/"),
+			Name:       strings.TrimLeft(strings.TrimPrefix(match, root), "/"),
 			Size:       file.Size(),
 			LastModify: file.ModTime(),
 			Type:       fileMode(file),
@@ -355,7 +347,7 @@ func (s *sessionHandler) listDirFiles(root *types.FSPath, pattern string) ([]r66
 	return infos, nil
 }
 
-func (s *sessionHandler) makeDir(rule *model.Rule) (*types.FSPath, error) {
+func (s *sessionHandler) makeDir(rule *model.Rule) (string, error) {
 	servDir := s.agent.ReceiveDir
 	defDir := conf.GlobalConfig.Paths.DefaultInDir
 
@@ -369,9 +361,7 @@ func (s *sessionHandler) makeDir(rule *model.Rule) (*types.FSPath, error) {
 		branch = utils.Branch
 	)
 
-	backend, dir, err := utils.GetPath("", leaf(rule.LocalDir), leaf(servDir),
+	return utils.GetPath("", leaf(rule.LocalDir), leaf(servDir),
 		branch(s.agent.RootDir), leaf(defDir),
 		branch(conf.GlobalConfig.Paths.GatewayHome))
-
-	return &types.FSPath{Path: dir, Backend: backend}, err
 }

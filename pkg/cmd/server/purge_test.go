@@ -35,7 +35,7 @@ func TestPurgeCommand(t *testing.T) {
 			Account:          "foo",
 			Agent:            "bar",
 			Protocol:         testProtocol,
-			LocalPath:        mkPath("/loc_path"),
+			LocalPath:        localPath("/loc_path"),
 			RemotePath:       "/rem_path",
 			Start:            time.Date(2021, 1, 1, 1, 0, 0, 0, time.UTC),
 			Status:           types.StatusCancelled,
@@ -50,7 +50,7 @@ func TestPurgeCommand(t *testing.T) {
 			Account:          "foo",
 			Agent:            "bar",
 			Protocol:         testProtocol,
-			LocalPath:        mkPath("/loc_path"),
+			LocalPath:        localPath("/loc_path"),
 			RemotePath:       "/rem_path",
 			Start:            time.Date(2022, 1, 1, 1, 0, 0, 0, time.UTC),
 			Stop:             time.Date(2022, 1, 1, 2, 0, 0, 0, time.UTC),
@@ -66,7 +66,7 @@ func TestPurgeCommand(t *testing.T) {
 			Account:          "foo",
 			Agent:            "bar",
 			Protocol:         testProtocol,
-			LocalPath:        mkPath("/loc_path"),
+			LocalPath:        localPath("/loc_path"),
 			RemotePath:       "/rem_path",
 			Start:            time.Date(2022, 1, 1, 3, 0, 0, 0, time.UTC),
 			Stop:             time.Date(2022, 1, 1, 4, 0, 0, 0, time.UTC),
@@ -270,13 +270,10 @@ func TestPurgeCommand(t *testing.T) {
 	})
 }
 
-func mkPath(raw string) types.FSPath {
+func localPath(path string) string {
 	if runtime.GOOS == "windows" {
-		raw = "C:" + raw
+		path = "C:" + path
 	}
 
-	path, err := types.ParsePath(raw)
-	So(err, ShouldBeNil)
-
-	return *path
+	return path
 }

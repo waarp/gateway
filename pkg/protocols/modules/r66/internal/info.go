@@ -3,11 +3,11 @@ package internal
 
 import (
 	"encoding/json"
+	"maps"
 	"strings"
 
 	"code.waarp.fr/lib/log"
 	"code.waarp.fr/lib/r66"
-	"golang.org/x/exp/maps"
 
 	"code.waarp.fr/apps/gateway/gateway/pkg/model"
 	"code.waarp.fr/apps/gateway/gateway/pkg/model/types"

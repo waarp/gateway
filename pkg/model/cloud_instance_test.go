@@ -1,16 +1,15 @@
 package model
 
 import (
-	"errors"
-	"io/fs"
-	"reflect"
+	"fmt"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
 	"code.waarp.fr/apps/gateway/gateway/pkg/database/dbtest"
-	"code.waarp.fr/apps/gateway/gateway/pkg/fs/filesystems"
+	"code.waarp.fr/apps/gateway/gateway/pkg/fs"
+	"code.waarp.fr/apps/gateway/gateway/pkg/fs/fstest"
 )
 
 func TestCloudInstanceTableName(t *testing.T) {
@@ -24,45 +23,24 @@ func TestCloudInstanceBeforeWrite(t *testing.T) {
 	t.Parallel()
 
 	const (
+		expName   = "test"
 		expKey    = "test_key"
 		expSecret = "test_secret"
 	)
 
-	var (
-		scheme = t.Name()
-
-		expOptions = map[string]any{"key": "val"}
-		//nolint:goerr113 //this is only valid for this test
-		errInvalidConf = errors.New("invalid cloud instance configuration")
-	)
-
-	filesystems.FileSystems.Store(scheme, func(key, secret string,
-		options map[string]any,
-	) (fs.FS, error) {
-		if key != expKey || secret != expSecret ||
-			!reflect.DeepEqual(options, expOptions) {
-			return nil, errInvalidConf
-		}
-
-		//nolint:nilnil //does not matter, return value should never be used (testing only)
-		return nil, nil
-	})
-
-	t.Cleanup(func() { filesystems.FileSystems.Delete(scheme) })
-
+	expOptions := map[string]string{"key": "val"}
+	kind := fstest.MakeStaticBackend(t, expName, expKey, expSecret, expOptions)
 	db := dbtest.TestDatabase(t)
 
 	validCloud := CloudInstance{
-		Name:    "cloud",
-		Type:    scheme,
+		Name:    expName,
+		Type:    kind,
 		Key:     expKey,
 		Secret:  expSecret,
 		Options: expOptions,
 	}
 
 	t.Run("Given a valid cloud instance entry", func(t *testing.T) {
-		t.Parallel()
-
 		cloud := validCloud
 
 		require.NoError(t, cloud.BeforeWrite(db),
@@ -70,11 +48,7 @@ func TestCloudInstanceBeforeWrite(t *testing.T) {
 	})
 
 	t.Run("Given an invalid cloud instance entry", func(t *testing.T) {
-		t.Parallel()
-
 		t.Run("Given a cloud instance with no name", func(t *testing.T) {
-			t.Parallel()
-
 			cloud := validCloud
 			cloud.Name = ""
 
@@ -84,19 +58,15 @@ func TestCloudInstanceBeforeWrite(t *testing.T) {
 		})
 
 		t.Run("Given a cloud instance with an unknown type", func(t *testing.T) {
-			t.Parallel()
-
 			cloud := validCloud
 			cloud.Type = "unknown"
 
 			require.ErrorContains(t, cloud.BeforeWrite(db),
-				"unknown cloud instance type",
+				fs.ErrUnknownFSType.Error(),
 				"Then calling 'BeforeWrite' should return an error")
 		})
 
 		t.Run("Given a cloud instance with an invalid configuration", func(t *testing.T) {
-			t.Parallel()
-
 			cloud := validCloud
 			cloud.Key = "invalid"
 
@@ -106,8 +76,6 @@ func TestCloudInstanceBeforeWrite(t *testing.T) {
 		})
 
 		t.Run("Given that the cloud's name is already taken", func(t *testing.T) {
-			t.Parallel()
-
 			otherCloud := validCloud
 			require.NoError(t, db.Insert(&otherCloud).Run())
 
@@ -116,7 +84,7 @@ func TestCloudInstanceBeforeWrite(t *testing.T) {
 			cloud := validCloud
 
 			require.ErrorContains(t, cloud.BeforeWrite(db),
-				`a cloud instance named "cloud" already exist`,
+				fmt.Sprintf(`a cloud instance named "%s" already exist`, cloud.Name),
 				"Then calling 'BeforeWrite' should return an error")
 		})
 	})

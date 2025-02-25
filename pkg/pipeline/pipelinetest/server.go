@@ -2,6 +2,7 @@ package pipelinetest
 
 import (
 	"context"
+	"path"
 	"time"
 
 	"github.com/smartystreets/goconvey/convey"
@@ -123,8 +124,8 @@ func makeServerConf(c convey.C, data *testData, port uint16, proto string,
 	}
 
 	rootDir := proto + "_server_root"
-	rootPath := mkPath(data.Paths.GatewayHome, rootDir)
-	c.So(fs.MkdirAll(data.FS, &rootPath), convey.ShouldBeNil)
+	rootPath := path.Join(data.Paths.GatewayHome, rootDir)
+	c.So(fs.MkdirAll(rootPath), convey.ShouldBeNil)
 
 	server := &model.LocalAgent{
 		Name:          proto + "-server",
@@ -138,9 +139,9 @@ func makeServerConf(c convey.C, data *testData, port uint16, proto string,
 	}
 
 	c.So(data.DB.Insert(server).Run(), convey.ShouldBeNil)
-	c.So(fs.MkdirAll(data.FS, rootPath.JoinPath(server.ReceiveDir)), convey.ShouldBeNil)
-	c.So(fs.MkdirAll(data.FS, rootPath.JoinPath(server.SendDir)), convey.ShouldBeNil)
-	c.So(fs.MkdirAll(data.FS, rootPath.JoinPath(server.TmpReceiveDir)), convey.ShouldBeNil)
+	c.So(fs.MkdirAll(path.Join(rootPath, server.ReceiveDir)), convey.ShouldBeNil)
+	c.So(fs.MkdirAll(path.Join(rootPath, server.SendDir)), convey.ShouldBeNil)
+	c.So(fs.MkdirAll(path.Join(rootPath, server.TmpReceiveDir)), convey.ShouldBeNil)
 
 	locAccount := &model.LocalAccount{
 		LocalAgentID: server.ID,

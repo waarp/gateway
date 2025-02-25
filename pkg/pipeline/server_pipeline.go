@@ -63,12 +63,12 @@ func NewServerPipeline(db *database.DB, logger *log.Logger, trans *model.Transfe
 	if transCtx.Rule.IsSend {
 		pipeline.Logger.Info(
 			"Starting download of file %q requested by %q on the server %q using rule %q",
-			transCtx.Transfer.LocalPath.String(), transCtx.LocalAccount.Login,
+			transCtx.Transfer.LocalPath, transCtx.LocalAccount.Login,
 			transCtx.LocalAgent.Name, transCtx.Rule.Name)
 	} else {
 		pipeline.Logger.Info(
 			"Starting upload of file %q requested by %q on the server %q using rule %q",
-			transCtx.Transfer.LocalPath.String(), transCtx.LocalAccount.Login,
+			transCtx.Transfer.LocalPath, transCtx.LocalAccount.Login,
 			transCtx.LocalAgent.Name, transCtx.Rule.Name)
 	}
 

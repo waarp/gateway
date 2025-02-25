@@ -2,11 +2,7 @@ package sftp
 
 import (
 	"net"
-	"path"
 
-	"github.com/smartystreets/goconvey/convey"
-
-	"code.waarp.fr/apps/gateway/gateway/pkg/model/types"
 	"code.waarp.fr/apps/gateway/gateway/pkg/pipeline/pipelinetest"
 	"code.waarp.fr/apps/gateway/gateway/pkg/utils/testhelpers"
 )
@@ -21,15 +17,6 @@ func init() {
 		TransID:           false,
 		RuleName:          false,
 	}
-}
-
-func mkPath(elem ...string) types.FSPath {
-	full := path.Join(elem...)
-
-	fPath, err := types.ParsePath(full)
-	convey.So(err, convey.ShouldBeNil)
-
-	return *fPath
 }
 
 const (

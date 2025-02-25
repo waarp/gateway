@@ -250,6 +250,6 @@ func (s *serverTransfer) Stat() (os.FileInfo, error) { return s.pip.Stream.Stat(
 //nolint:wrapcheck //no need to wrap here
 func (s *serverTransfer) Sync() error { return s.pip.Stream.Sync() }
 
-func (s *serverTransfer) Readdirnames(int) ([]string, error) { return nil, fs.ErrNotDir }
-func (s *serverTransfer) Readdir(int) ([]os.FileInfo, error) { return nil, fs.ErrNotDir }
+func (s *serverTransfer) Readdirnames(int) ([]string, error) { return nil, fs.ErrInvalid }
+func (s *serverTransfer) Readdir(int) ([]os.FileInfo, error) { return nil, fs.ErrInvalid }
 func (s *serverTransfer) Truncate(int64) error               { return errNotImplemented }

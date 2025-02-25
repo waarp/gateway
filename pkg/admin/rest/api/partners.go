@@ -3,10 +3,10 @@ package api
 // InPartner is the JSON representation of a remote agent in requests
 // made to the REST interface.
 type InPartner struct {
-	Name        Nullable[string] `json:"name,omitempty"`
-	Protocol    Nullable[string] `json:"protocol,omitempty"`
-	Address     Nullable[string] `json:"address,omitempty"`
-	ProtoConfig UpdateObject     `json:"protoConfig,omitempty"`
+	Name        Nullable[string]  `json:"name,omitempty"`
+	Protocol    Nullable[string]  `json:"protocol,omitempty"`
+	Address     Nullable[string]  `json:"address,omitempty"`
+	ProtoConfig UpdateObject[any] `json:"protoConfig,omitempty"`
 }
 
 // OutPartner is the JSON representation of a remote partner in responses sent

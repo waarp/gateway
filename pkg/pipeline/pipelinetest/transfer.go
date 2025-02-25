@@ -1,11 +1,13 @@
 package pipelinetest
 
 import (
+	"maps"
+
 	"github.com/smartystreets/goconvey/convey"
-	"golang.org/x/exp/maps"
 
 	"code.waarp.fr/apps/gateway/gateway/pkg/conf"
 	"code.waarp.fr/apps/gateway/gateway/pkg/database"
+	"code.waarp.fr/apps/gateway/gateway/pkg/fs"
 	"code.waarp.fr/apps/gateway/gateway/pkg/model"
 	"code.waarp.fr/apps/gateway/gateway/pkg/model/types"
 	"code.waarp.fr/apps/gateway/gateway/pkg/utils/testhelpers"
@@ -56,7 +58,7 @@ func (d *serverData) checkServerTransferOK(c convey.C, remoteTransferID, filenam
 	progress int64, ctx *testData, actual *model.HistoryEntry, data *transData,
 ) {
 	c.Convey("Then there should be a server-side history entry", func(c convey.C) {
-		expectedLocalPath := mkPath(ctx.Paths.GatewayHome, d.Server.RootDir,
+		expectedLocalPath := fs.JoinPath(ctx.Paths.GatewayHome, d.Server.RootDir,
 			d.ServerRule.LocalDir, filename)
 
 		expected := &model.HistoryEntry{

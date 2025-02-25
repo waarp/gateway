@@ -5,18 +5,18 @@ import (
 
 	"code.waarp.fr/apps/gateway/gateway/pkg/conf"
 	"code.waarp.fr/apps/gateway/gateway/pkg/database"
-	"code.waarp.fr/apps/gateway/gateway/pkg/fs/filesystems"
+	"code.waarp.fr/apps/gateway/gateway/pkg/fs"
 	"code.waarp.fr/apps/gateway/gateway/pkg/model/types"
 )
 
 type CloudInstance struct {
-	ID      int64            `xorm:"<- id AUTOINCR"`
-	Owner   string           `xorm:"owner"`
-	Name    string           `xorm:"name"`
-	Type    string           `xorm:"type"`
-	Key     string           `xorm:"api_key"`
-	Secret  types.SecretText `xorm:"secret"`
-	Options map[string]any   `xorm:"options"`
+	ID      int64             `xorm:"<- id AUTOINCR"`
+	Owner   string            `xorm:"owner"`
+	Name    string            `xorm:"name"`
+	Type    string            `xorm:"type"`
+	Key     string            `xorm:"api_key"`
+	Secret  types.SecretText  `xorm:"secret"`
+	Options map[string]string `xorm:"options"`
 }
 
 func (c *CloudInstance) TableName() string   { return TableCloudInstances }
@@ -34,12 +34,7 @@ func (c *CloudInstance) BeforeWrite(db database.Access) error {
 		return database.NewValidationError(`the name "file" is reserved for the local filesystem`)
 	}
 
-	constr, ok := filesystems.FileSystems.Load(c.Type)
-	if !ok {
-		return database.NewValidationError("unknown cloud instance type %q", c.Type)
-	}
-
-	if _, err := constr(c.Key, string(c.Secret), c.Options); err != nil {
+	if err := fs.ValidateConfig(c.Name, c.Type, c.Key, c.Secret.String(), c.Options); err != nil {
 		return database.NewValidationError("invalid cloud instance configuration: %v", err)
 	}
 

@@ -5,9 +5,11 @@ package gatewayd
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"os"
 	"os/signal"
+	"path"
 	"sync"
 	"syscall"
 	"time"
@@ -23,12 +25,13 @@ import (
 	"code.waarp.fr/apps/gateway/gateway/pkg/gatewayd/services"
 	"code.waarp.fr/apps/gateway/gateway/pkg/logging"
 	"code.waarp.fr/apps/gateway/gateway/pkg/model"
-	"code.waarp.fr/apps/gateway/gateway/pkg/model/types"
 	"code.waarp.fr/apps/gateway/gateway/pkg/protocols"
 	"code.waarp.fr/apps/gateway/gateway/pkg/protocols/protocol"
 	"code.waarp.fr/apps/gateway/gateway/pkg/snmp"
 	"code.waarp.fr/apps/gateway/gateway/pkg/utils"
 )
+
+var ErrNonLocalTmpDir = errors.New("the tmp dir must be local")
 
 const (
 	defaultStopTimeout = 10 * time.Second
@@ -52,91 +55,48 @@ func NewWG() *WG {
 	}
 }
 
-func getDir(root *types.FSPath, dir string) (*types.FSPath, error) {
-	dirPath, err := types.ParsePath(dir)
-	if err != nil {
-		return nil, fmt.Errorf("failed to parse the dir: %w", err)
+func getDir(root, dir string) string {
+	if fs.IsAbsPath(dir) {
+		return dir
 	}
 
-	if dirPath.IsAbs() {
-		return dirPath, nil
-	}
-
-	return root.JoinPath(dir), nil
+	return path.Join(root, dir)
 }
 
-func parseDirs() (rootDir, inDir, outDir, tmpDir *types.FSPath, err error) {
+func parseDirs() (rootDir, inDir, outDir, tmpDir string, err error) {
 	config := &conf.GlobalConfig.Paths
 
-	root, rootErr := types.ParsePath(config.GatewayHome)
-	if rootErr != nil {
-		return nil, nil, nil, nil, fmt.Errorf("failed to parse root directory: %w", rootErr)
-	}
+	root := config.GatewayHome
+	in := getDir(root, config.DefaultInDir)
+	out := getDir(root, config.DefaultOutDir)
+	tmp := getDir(root, config.DefaultTmpDir)
 
-	in, inErr := getDir(root, config.DefaultInDir)
-	if inErr != nil {
-		return nil, nil, nil, nil, fmt.Errorf("failed to parse in directory: %w", inErr)
-	}
-
-	out, outErr := getDir(root, config.DefaultOutDir)
-	if outErr != nil {
-		return nil, nil, nil, nil, fmt.Errorf("failed to parse out directory: %w", outErr)
-	}
-
-	tmp, tmpErr := getDir(root, config.DefaultTmpDir)
-	if tmpErr != nil {
-		return nil, nil, nil, nil, fmt.Errorf("failed to parse tmp directory: %w", tmpErr)
+	if !fs.IsLocalPath(tmp) {
+		return "", "", "", "", ErrNonLocalTmpDir
 	}
 
 	return root, in, out, tmp, nil
 }
 
 func (wg *WG) makeDirs() error {
-	root, in, out, tmp, parseErr := parseDirs()
-	if parseErr != nil {
-		return parseErr
+	root, in, out, tmp, dirErr := parseDirs()
+	if dirErr != nil {
+		return dirErr
 	}
 
-	rootFS, fsErr := fs.GetFileSystem(wg.dbService, root)
-	if fsErr != nil {
-		return fmt.Errorf(`failed to instantiate gateway home file system: %w`, fsErr)
-	}
-
-	if err := fs.MkdirAll(rootFS, root); err != nil {
+	if err := fs.MkdirAll(root); err != nil {
 		return fmt.Errorf("failed to create gateway home directory: %w", err)
 	}
 
-	inFS := rootFS
-	outFS := rootFS
-	tmpFS := rootFS
-
-	if !fs.IsOnSameFS(root, in) {
-		if inFS, fsErr = fs.GetFileSystem(wg.dbService, in); fsErr != nil {
-			return fmt.Errorf(`failed to instantiate gateway "in" file system: %w`, fsErr)
-		}
-	}
-
-	if err := fs.MkdirAll(inFS, in); err != nil {
+	if err := fs.MkdirAll(in); err != nil {
 		return fmt.Errorf("failed to create gateway in directory: %w", err)
 	}
 
-	if !fs.IsOnSameFS(root, out) {
-		if outFS, fsErr = fs.GetFileSystem(wg.dbService, out); fsErr != nil {
-			return fmt.Errorf(`failed to instantiate gateway "out" file system: %w`, fsErr)
-		}
-	}
-
-	if err := fs.MkdirAll(outFS, out); err != nil {
+	if err := fs.MkdirAll(out); err != nil {
 		return fmt.Errorf("failed to create gateway out directory: %w", err)
 	}
 
-	if !fs.IsOnSameFS(root, tmp) {
-		if tmpFS, fsErr = fs.GetFileSystem(wg.dbService, tmp); fsErr != nil {
-			return fmt.Errorf(`failed to instantiate gateway "out" file system: %w`, fsErr)
-		}
-	}
-
-	if err := fs.MkdirAll(tmpFS, tmp); err != nil {
+	if err := fs.MkdirAll(tmp); err != nil {
 		return fmt.Errorf("failed to create gateway work directory: %w", err)
 	}
 

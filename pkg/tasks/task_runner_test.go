@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"path"
+	"path/filepath"
 	"testing"
 	"time"
 
@@ -11,7 +12,7 @@ import (
 
 	"code.waarp.fr/apps/gateway/gateway/pkg/conf"
 	"code.waarp.fr/apps/gateway/gateway/pkg/database"
-	"code.waarp.fr/apps/gateway/gateway/pkg/fs/fstest"
+	"code.waarp.fr/apps/gateway/gateway/pkg/fs"
 	"code.waarp.fr/apps/gateway/gateway/pkg/model"
 	"code.waarp.fr/apps/gateway/gateway/pkg/model/types"
 	"code.waarp.fr/apps/gateway/gateway/pkg/utils"
@@ -19,11 +20,10 @@ import (
 )
 
 func TestSetup(t *testing.T) {
-	Convey("Given a Task with some replacement variables", t, func(c C) {
-		testFS := fstest.InitMemFS(c)
-		root := "memory:/task_setup"
-		rootAlt := "memory:/task_setup_alt"
+	root := t.TempDir()
+	rootAlt := t.TempDir()
 
+	Convey("Given a Task with some replacement variables", t, func(c C) {
 		task := &model.Task{
 			Type: "DUMMY",
 			Args: map[string]string{
@@ -51,7 +51,6 @@ func TestSetup(t *testing.T) {
 			)
 
 			transCtx := &model.TransferContext{
-				FS: testFS,
 				Paths: &conf.PathsConfig{
 					GatewayHome:   root,
 					DefaultInDir:  "in_dir",
@@ -87,13 +86,10 @@ func TestSetup(t *testing.T) {
 				ClientID:        utils.NewNullInt64(clientID),
 				SrcFilename:     "src/file",
 				DestFilename:    "dst/file",
-				LocalPath: types.FSPath{
-					Backend: fstest.MemBackend,
-					Path:    path.Join(root, transCtx.Rule.LocalDir, "file.test"),
-				},
-				RemotePath: path.Join(transCtx.Rule.RemoteDir, "file.rem"),
-				ErrCode:    types.TeConnection,
-				ErrDetails: `error message`,
+				LocalPath:       filepath.Join(root, transCtx.Rule.LocalDir, "file.test"),
+				RemotePath:      path.Join(transCtx.Rule.RemoteDir, "file.rem"),
+				ErrCode:         types.TeConnection,
+				ErrDetails:      `error message`,
 			}
 			transCtx.TransInfo = map[string]any{"foo": "bar", "id": 123}
 
@@ -139,7 +135,7 @@ func TestSetup(t *testing.T) {
 						So(ok, ShouldBeTrue)
 
 						Convey("Then res[trueFullPath] should contain the resolved variable", func() {
-							So(val, ShouldEqual, r.transCtx.Transfer.LocalPath.String())
+							So(val, ShouldEqual, r.transCtx.Transfer.LocalPath)
 						})
 					})
 
@@ -148,7 +144,7 @@ func TestSetup(t *testing.T) {
 						So(ok, ShouldBeTrue)
 
 						Convey("Then res[trueFilename] should contain the resolved variable", func() {
-							So(val, ShouldEqual, path.Base(r.transCtx.Transfer.LocalPath.Path))
+							So(val, ShouldEqual, path.Base(r.transCtx.Transfer.LocalPath))
 						})
 					})
 
@@ -157,7 +153,7 @@ func TestSetup(t *testing.T) {
 						So(ok, ShouldBeTrue)
 
 						Convey("Then res[fullPath] should contain the resolved variable", func() {
-							So(val, ShouldEqual, r.transCtx.Transfer.LocalPath.String())
+							So(val, ShouldEqual, r.transCtx.Transfer.LocalPath)
 						})
 					})
 
@@ -266,7 +262,7 @@ func TestSetup(t *testing.T) {
 						So(ok, ShouldBeTrue)
 
 						Convey("Then res[inPath] should contain the resolved variable", func() {
-							So(val, ShouldEqual, path.Join(root, r.transCtx.Rule.LocalDir))
+							So(val, ShouldEqual, fs.JoinPath(root, r.transCtx.Rule.LocalDir))
 						})
 					})
 
@@ -275,7 +271,7 @@ func TestSetup(t *testing.T) {
 						So(ok, ShouldBeTrue)
 
 						Convey("Then res[outPath] should contain the resolved variable", func() {
-							So(val, ShouldEqual, path.Join(root, r.transCtx.Rule.LocalDir))
+							So(val, ShouldEqual, fs.JoinPath(root, r.transCtx.Rule.LocalDir))
 						})
 					})
 
@@ -284,7 +280,7 @@ func TestSetup(t *testing.T) {
 						So(ok, ShouldBeTrue)
 
 						Convey("Then res[workPath] should contain the resolved variable", func() {
-							So(val, ShouldEqual, path.Join(root, r.transCtx.Rule.TmpLocalRcvDir))
+							So(val, ShouldEqual, fs.JoinPath(root, r.transCtx.Rule.TmpLocalRcvDir))
 						})
 					})
 

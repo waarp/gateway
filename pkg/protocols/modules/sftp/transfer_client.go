@@ -5,13 +5,12 @@ import (
 	"io"
 	"os"
 	"path"
+	"slices"
 
 	"github.com/pkg/sftp"
 	"golang.org/x/crypto/ssh"
-	"golang.org/x/exp/slices"
 
 	"code.waarp.fr/apps/gateway/gateway/pkg/conf"
-	"code.waarp.fr/apps/gateway/gateway/pkg/fs"
 	"code.waarp.fr/apps/gateway/gateway/pkg/model"
 	"code.waarp.fr/apps/gateway/gateway/pkg/model/authentication/auth"
 	"code.waarp.fr/apps/gateway/gateway/pkg/model/types"
@@ -318,7 +317,7 @@ func (c *transferClient) requestReceive(filepath string) *pipeline.Error {
 func (c *transferClient) Send(file protocol.SendFile) *pipeline.Error {
 	// Check parent dir, if it doesn't exist, try to create it
 	parentDir := path.Dir(c.pip.TransCtx.Transfer.RemotePath)
-	if _, statErr := c.sftpClient.Stat(parentDir); errors.Is(statErr, fs.ErrNotExist) {
+	if _, statErr := c.sftpClient.Stat(parentDir); errors.Is(statErr, os.ErrNotExist) {
 		if mkdirErr := c.sftpClient.MkdirAll(parentDir); mkdirErr != nil {
 			c.pip.Logger.Warning("Failed to create remote parent directory: %s", mkdirErr)
 		}

@@ -1,7 +1,6 @@
 package r66
 
 import (
-	"path/filepath"
 	"testing"
 	"time"
 
@@ -11,7 +10,6 @@ import (
 	"code.waarp.fr/apps/gateway/gateway/pkg/conf"
 	"code.waarp.fr/apps/gateway/gateway/pkg/database"
 	"code.waarp.fr/apps/gateway/gateway/pkg/fs"
-	"code.waarp.fr/apps/gateway/gateway/pkg/fs/fstest"
 	"code.waarp.fr/apps/gateway/gateway/pkg/model"
 	"code.waarp.fr/apps/gateway/gateway/pkg/model/authentication/auth"
 	"code.waarp.fr/apps/gateway/gateway/pkg/model/types"
@@ -20,16 +18,12 @@ import (
 )
 
 func TestGetFileInfo(t *testing.T) {
-	root := filepath.Join(t.TempDir(), "r66_get_file_info")
+	rootPath := t.TempDir()
 
 	Convey("Given an R66 server", t, func(c C) {
-		testFS, fsErr := fs.NewLocalFS(root)
-		So(fsErr, ShouldBeNil)
-
 		logger := testhelpers.TestLogger(c, "test_r66_file_info")
-		rootPath := mkPath(root)
 		db := database.TestDatabase(c)
-		conf.GlobalConfig.Paths.GatewayHome = root
+		conf.GlobalConfig.Paths.GatewayHome = rootPath
 
 		agent := &model.LocalAgent{
 			Name: "r66_server", Protocol: "r66",
@@ -73,23 +67,23 @@ func TestGetFileInfo(t *testing.T) {
 		}
 
 		Convey("Given a few files & directories", func() {
-			dir := rootPath.JoinPath(agent.RootDir, agent.SendDir)
-			subDir := dir.JoinPath("subDir")
-			fooDir := subDir.JoinPath("fooDir")
-			barDir := fooDir.JoinPath("barDir")
+			dir := fs.JoinPath(rootPath, agent.RootDir, agent.SendDir)
+			subDir := fs.JoinPath(dir, "subDir")
+			fooDir := fs.JoinPath(subDir, "fooDir")
+			barDir := fs.JoinPath(fooDir, "barDir")
 
-			foobar := subDir.JoinPath("foobar")
-			toto := subDir.JoinPath("toto")
-			tata := fooDir.JoinPath("tata")
-			tutu := barDir.JoinPath("tutu")
+			foobar := fs.JoinPath(subDir, "foobar")
+			toto := fs.JoinPath(subDir, "toto")
+			tata := fs.JoinPath(fooDir, "tata")
+			tutu := fs.JoinPath(barDir, "tutu")
 
-			So(fs.MkdirAll(testFS, subDir), ShouldBeNil)
-			So(fs.MkdirAll(testFS, fooDir), ShouldBeNil)
-			So(fs.MkdirAll(testFS, barDir), ShouldBeNil)
-			So(fs.WriteFullFile(testFS, foobar, []byte("foobar")), ShouldBeNil)
-			So(fs.WriteFullFile(testFS, toto, []byte("toto")), ShouldBeNil)
-			So(fs.WriteFullFile(testFS, tata, []byte("tata")), ShouldBeNil)
-			So(fs.WriteFullFile(testFS, tutu, []byte("tutu")), ShouldBeNil)
+			So(fs.MkdirAll(subDir), ShouldBeNil)
+			So(fs.MkdirAll(fooDir), ShouldBeNil)
+			So(fs.MkdirAll(barDir), ShouldBeNil)
+			So(fs.WriteFullFile(foobar, []byte("foobar")), ShouldBeNil)
+			So(fs.WriteFullFile(toto, []byte("toto")), ShouldBeNil)
+			So(fs.WriteFullFile(tata, []byte("tata")), ShouldBeNil)
+			So(fs.WriteFullFile(tutu, []byte("tutu")), ShouldBeNil)
 
 			Convey("When calling the GetFileInfo function", func() {
 				infos, err := handle.GetFileInfo(rule.Name, "subDir/foo*")
@@ -160,10 +154,10 @@ func TestGetFileInfo(t *testing.T) {
 }
 
 func TestGetTransferInfo(t *testing.T) {
+	root := t.TempDir()
+
 	Convey("Given an R66 server", t, func(c C) {
-		fstest.InitMemFS(c)
 		logger := testhelpers.TestLogger(c, "test_r66_transfer_info")
-		root := "memory:/r66_get_transfer_info"
 		db := database.TestDatabase(c)
 		conf.GlobalConfig.Paths.GatewayHome = root
 

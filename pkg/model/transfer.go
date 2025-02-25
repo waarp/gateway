@@ -13,6 +13,7 @@ import (
 
 	"code.waarp.fr/apps/gateway/gateway/pkg/conf"
 	"code.waarp.fr/apps/gateway/gateway/pkg/database"
+	"code.waarp.fr/apps/gateway/gateway/pkg/fs"
 	"code.waarp.fr/apps/gateway/gateway/pkg/model/types"
 	"code.waarp.fr/apps/gateway/gateway/pkg/utils"
 )
@@ -45,7 +46,7 @@ type Transfer struct {
 	RemoteAccountID  sql.NullInt64           `xorm:"remote_account_id"`
 	SrcFilename      string                  `xorm:"src_filename"`
 	DestFilename     string                  `xorm:"dest_filename"`
-	LocalPath        types.FSPath            `xorm:"local_path"`
+	LocalPath        string                  `xorm:"local_path"`
 	RemotePath       string                  `xorm:"remote_path"`
 	Filesize         int64                   `xorm:"filesize"`
 	Start            time.Time               `xorm:"start DATETIME(6) UTC"`
@@ -108,6 +109,7 @@ func (t *Transfer) checkRemoteTransferID(db database.ReadAccess) error {
 	return nil
 }
 
+//nolint:funlen //function is fine for now
 func (t *Transfer) checkMandatoryValues(rule *Rule) error {
 	if t.IsServer() {
 		if rule.IsSend {
@@ -133,7 +135,7 @@ func (t *Transfer) checkMandatoryValues(rule *Rule) error {
 		return database.NewValidationError("the source file is missing")
 	}
 
-	if t.RemotePath != "" && t.LocalPath.Path == "" {
+	if t.RemotePath != "" && t.LocalPath == "" {
 		return database.NewValidationError("the local path is missing")
 	}
 
@@ -162,6 +164,12 @@ func (t *Transfer) checkMandatoryValues(rule *Rule) error {
 		return database.NewValidationError("%q is not a valid transfer error code", t.ErrCode)
 	}
 
+	if t.LocalPath != "" {
+		if err := fs.ValidPath(t.LocalPath); err != nil {
+			return database.NewValidationError("invalid local path: %v", err)
+		}
+	}
+
 	t.RemotePath = filepath.ToSlash(t.RemotePath)
 
 	return nil
@@ -188,10 +196,6 @@ func (t *Transfer) BeforeWrite(db database.Access) error {
 	}
 
 	if err := t.checkMandatoryValues(&rule); err != nil {
-		return err
-	}
-
-	if err := checkCloudInstance(db, &t.LocalPath); err != nil {
 		return err
 	}
 

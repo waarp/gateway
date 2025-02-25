@@ -236,7 +236,7 @@ func (r *Runner) getFilesize() int64 {
 		return -1
 	}
 
-	info, err := fs.Stat(r.transCtx.FS, &r.transCtx.Transfer.LocalPath)
+	info, err := fs.Stat(r.transCtx.Transfer.LocalPath)
 	if err != nil {
 		r.logger.Warning("Failed to retrieve file size: %s", err)
 

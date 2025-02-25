@@ -1,7 +1,6 @@
 package r66
 
 import (
-	"bytes"
 	"context"
 	"crypto/tls"
 	"errors"
@@ -104,30 +103,25 @@ func (c *transferClient) Send(file protocol.SendFile) *pipeline.Error {
 }
 
 func (c *transferClient) Receive(file protocol.ReceiveFile) *pipeline.Error {
-	eot, err := c.ses.Recv(clientWriter{w: file})
-	if err != nil {
+	eot, recvErr := c.ses.Recv(clientWriter{w: file})
+	if recvErr != nil {
 		c.ses = nil
-		c.pip.Logger.Error("Failed to receive transfer file: %v", err)
+		c.pip.Logger.Error("Failed to receive transfer file: %v", recvErr)
 
-		return c.wrapAndSendError(err)
+		return c.wrapAndSendError(recvErr)
 	}
 
 	if c.noFinalHash {
 		return nil
 	}
 
-	hash, hErr := internal.MakeHash(c.ctx, c.finalHashAlgo, c.pip.TransCtx.FS, c.pip.Logger,
-		&c.pip.TransCtx.Transfer.LocalPath)
+	hasher, hErr := internal.GetHasher(c.finalHashAlgo)
 	if hErr != nil {
 		return c.wrapAndSendError(hErr)
 	}
 
-	if !bytes.Equal(eot.Hash, hash) {
-		c.pip.Logger.Error("File hash does not match expected value")
-
-		eqErr := pipeline.NewError(types.TeIntegrity, "invalid file hash")
-
-		return c.wrapAndSendError(eqErr)
+	if err := file.CheckHash(hasher, eot.Hash); err != nil {
+		return c.wrapAndSendError(err)
 	}
 
 	return nil

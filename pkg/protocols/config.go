@@ -3,8 +3,6 @@ package protocols
 import (
 	"fmt"
 
-	"golang.org/x/exp/maps"
-
 	"code.waarp.fr/apps/gateway/gateway/pkg/model"
 	"code.waarp.fr/apps/gateway/gateway/pkg/utils"
 )
@@ -46,7 +44,7 @@ func CheckServerConfig(proto string, mapConf map[string]any) error {
 		return err
 	}
 
-	maps.Clear(mapConf)
+	clear(mapConf)
 
 	//nolint:wrapcheck //no need to wrap, this should never return an error anyway
 	return utils.JSONConvert(structConf, &mapConf)
@@ -68,7 +66,7 @@ func CheckPartnerConfig(proto string, mapConf map[string]any) error {
 		return err
 	}
 
-	maps.Clear(mapConf)
+	clear(mapConf)
 
 	//nolint:wrapcheck //no need to wrap, this should never return an error anyway
 	return utils.JSONConvert(structConf, &mapConf)
@@ -90,7 +88,7 @@ func CheckClientConfig(proto string, mapConf map[string]any) error {
 		return err
 	}
 
-	maps.Clear(mapConf)
+	clear(mapConf)
 
 	//nolint:wrapcheck //no need to wrap, this should never return an error anyway
 	return utils.JSONConvert(structConf, &mapConf)

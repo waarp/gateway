@@ -5,7 +5,6 @@ package conf
 import (
 	"errors"
 	"fmt"
-	"io/fs"
 	"os"
 	"path/filepath"
 	"time"
@@ -150,7 +149,7 @@ func ParseServerConfig(userConfig string) (*ServerConfig, error) {
 	} else {
 		for _, file := range getDefaultConfFiles() {
 			if err := p.ParseFile(file); err != nil {
-				if errors.Is(err, fs.ErrNotExist) {
+				if errors.Is(err, os.ErrNotExist) {
 					continue
 				}
 

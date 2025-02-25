@@ -9,7 +9,6 @@ import (
 	"code.waarp.fr/apps/gateway/gateway/pkg/conf"
 	"code.waarp.fr/apps/gateway/gateway/pkg/database"
 	"code.waarp.fr/apps/gateway/gateway/pkg/fs"
-	"code.waarp.fr/apps/gateway/gateway/pkg/fs/fstest"
 	"code.waarp.fr/apps/gateway/gateway/pkg/model"
 	"code.waarp.fr/apps/gateway/gateway/pkg/model/authentication/auth"
 	"code.waarp.fr/apps/gateway/gateway/pkg/model/types"
@@ -18,17 +17,17 @@ import (
 )
 
 func TestFileReader(t *testing.T) {
+	root := t.TempDir()
+
 	Convey("Given a file", t, func(c C) {
 		logger := testhelpers.TestLogger(c, "test_file_reader")
-		testFS := fstest.InitMemFS(c)
-		root := "memory:/file_reader_test_root"
 
-		rulePath := mkPath(root, "test", "out")
-		So(fs.MkdirAll(testFS, &rulePath), ShouldBeNil)
+		rulePath := fs.JoinPath(root, "test", "out")
+		So(fs.MkdirAll(rulePath), ShouldBeNil)
 
-		filePath := rulePath.JoinPath("file_read.src")
+		filePath := fs.JoinPath(rulePath, "file_read.src")
 		content := []byte("File reader test file content")
-		So(fs.WriteFullFile(testFS, filePath, content), ShouldBeNil)
+		So(fs.WriteFullFile(filePath, content), ShouldBeNil)
 
 		Convey("Given a database with a rule, a localAgent and a localAccount", func(dbc C) {
 			db := database.TestDatabase(dbc)
@@ -91,7 +90,7 @@ func TestFileReader(t *testing.T) {
 							Convey("Then the transfer should have a valid file and status", func() {
 								trans := file.pipeline.TransCtx.Transfer
 
-								So(trans.LocalPath, ShouldEqual, mkPath(
+								So(trans.LocalPath, ShouldEqual, fs.JoinPath(
 									root, rule.LocalDir, "file_read.src"))
 								So(trans.Status, ShouldEqual, types.StatusRunning)
 							})
@@ -132,11 +131,10 @@ func TestFileReader(t *testing.T) {
 }
 
 func TestFileWriter(t *testing.T) {
-	Convey("Given a file", t, func(c C) {
-		fstest.InitMemFS(c)
+	root := t.TempDir()
 
+	Convey("Given a file", t, func(c C) {
 		logger := testhelpers.TestLogger(c, "test_file_writer")
-		root := "memory:/file_writer_test_root"
 
 		Convey("Given a database with a rule and a localAgent", func(c C) {
 			db := database.TestDatabase(c)
@@ -198,7 +196,7 @@ func TestFileWriter(t *testing.T) {
 							Convey("Then the transfer should have a valid file and status", func() {
 								trans := file.pipeline.TransCtx.Transfer
 
-								So(trans.LocalPath, ShouldEqual, mkPath(
+								So(trans.LocalPath, ShouldEqual, fs.JoinPath(
 									root, agent.TmpReceiveDir, "file.test.part"))
 								So(trans.Status, ShouldEqual, types.StatusRunning)
 							})

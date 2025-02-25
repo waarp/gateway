@@ -95,16 +95,16 @@ func (t *serverTransfer) validEndTransfer(end *r66.EndTransfer) error {
 		}
 	}
 
-	if pErr := t.pip.EndData(); pErr != nil {
-		return internal.ToR66Error(pErr)
-	}
-
 	if sErr := t.checkSize(); sErr != nil {
 		return internal.ToR66Error(sErr)
 	}
 
 	if hErr := t.checkHash(end.Hash); hErr != nil {
 		return internal.ToR66Error(hErr)
+	}
+
+	if pErr := t.pip.EndData(); pErr != nil {
+		return internal.ToR66Error(pErr)
 	}
 
 	return nil

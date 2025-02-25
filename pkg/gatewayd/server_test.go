@@ -9,7 +9,6 @@ import (
 
 	"code.waarp.fr/apps/gateway/gateway/pkg/conf"
 	"code.waarp.fr/apps/gateway/gateway/pkg/database"
-	"code.waarp.fr/apps/gateway/gateway/pkg/fs/fstest"
 	"code.waarp.fr/apps/gateway/gateway/pkg/gatewayd/services"
 	"code.waarp.fr/apps/gateway/gateway/pkg/model"
 	"code.waarp.fr/apps/gateway/gateway/pkg/model/types"
@@ -17,8 +16,7 @@ import (
 	"code.waarp.fr/apps/gateway/gateway/pkg/utils/testhelpers"
 )
 
-func testSetup(c C) (*WG, *model.LocalAgent, *model.LocalAgent) {
-	fstest.InitMemFS(c)
+func testSetup(c C, root string) (*WG, *model.LocalAgent, *model.LocalAgent) {
 	db := database.TestDatabase(c)
 	addServ := func(name string) *model.LocalAgent {
 		s := &model.LocalAgent{
@@ -33,7 +31,6 @@ func testSetup(c C) (*WG, *model.LocalAgent, *model.LocalAgent) {
 	s1 := addServ("serv1")
 	s2 := addServ("serv2")
 
-	root := "memory:/start_services"
 	conf.GlobalConfig.Paths = conf.PathsConfig{
 		GatewayHome:   root,
 		DefaultInDir:  path.Join(root, "in"),
@@ -82,8 +79,10 @@ func checkState(wg *WG, code utils.StateCode, s1, s2 *model.LocalAgent) {
 }
 
 func TestStartServices(t *testing.T) {
+	root := t.TempDir()
+
 	Convey("Given a gateway service", t, func(c C) {
-		wg, s1, s2 := testSetup(c)
+		wg, s1, s2 := testSetup(c, root)
 
 		Convey("When starting the gateway services", func() {
 			So(wg.startServices(), ShouldBeNil)
@@ -97,8 +96,10 @@ func TestStartServices(t *testing.T) {
 }
 
 func TestStopServices(t *testing.T) {
+	root := t.TempDir()
+
 	Convey("Given a gateway service", t, func(c C) {
-		wg, s1, s2 := testSetup(c)
+		wg, s1, s2 := testSetup(c, root)
 
 		Convey("After starting the gateway services", func() {
 			So(wg.startServices(), ShouldBeNil)

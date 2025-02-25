@@ -4,7 +4,6 @@ import (
 	"context"
 	"fmt"
 	"net"
-	"path"
 	"strconv"
 	"testing"
 	"time"
@@ -14,7 +13,7 @@ import (
 
 	"code.waarp.fr/apps/gateway/gateway/pkg/conf"
 	"code.waarp.fr/apps/gateway/gateway/pkg/database"
-	"code.waarp.fr/apps/gateway/gateway/pkg/fs/fstest"
+	"code.waarp.fr/apps/gateway/gateway/pkg/fs"
 	"code.waarp.fr/apps/gateway/gateway/pkg/model"
 	"code.waarp.fr/apps/gateway/gateway/pkg/model/types"
 	"code.waarp.fr/apps/gateway/gateway/pkg/pipeline"
@@ -75,11 +74,11 @@ func TestServerStop(t *testing.T) {
 }
 
 func TestServerStart(t *testing.T) {
+	root := t.TempDir()
+
 	Convey("Given an SFTP server service", t, func(c C) {
-		fstest.InitMemFS(c)
 		db := database.TestDatabase(c)
 		port := getTestPort()
-		root := "memory:/server_start_root"
 
 		agent := &model.LocalAgent{
 			Name: "test_sftp_server", Protocol: SFTP,
@@ -163,7 +162,7 @@ func TestSSHServerInterruption(t *testing.T) {
 				pipelinetest.TestLogin, pipelinetest.TestPassword)
 
 			Convey("Given that a push transfer started", func(c C) {
-				dst, err := cli.Create(path.Join(test.ServerRule.Path, "test_in_shutdown.dst"))
+				dst, err := cli.Create(fs.JoinPath(test.ServerRule.Path, "test_in_shutdown.dst"))
 				So(err, ShouldBeNil)
 
 				_, err = dst.Write([]byte("123"))
@@ -197,7 +196,7 @@ func TestSSHServerInterruption(t *testing.T) {
 							RemoteTransferID: transfers[0].RemoteTransferID,
 							Start:            transfers[0].Start,
 							LocalAccountID:   utils.NewNullInt64(test.LocAccount.ID),
-							LocalPath: mkPath(test.Paths.GatewayHome, test.Server.RootDir,
+							LocalPath: fs.JoinPath(test.Paths.GatewayHome, test.Server.RootDir,
 								test.ServerRule.TmpLocalRcvDir, "test_in_shutdown.dst.part"),
 							DestFilename: "test_in_shutdown.dst",
 							Filesize:     model.UnknownSize,

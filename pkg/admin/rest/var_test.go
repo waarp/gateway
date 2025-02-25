@@ -68,12 +68,12 @@ func hash(pwd string) string {
 	return string(h)
 }
 
-func localPath(fPath string) types.FSPath {
+func localPath(fPath string) string {
 	if runtime.GOOS == "windows" {
 		fPath = "C:" + fPath
 	}
 
-	return types.FSPath{Backend: "", Path: fPath}
+	return fPath
 }
 
 func testAdminServer(logger *log.Logger, db *database.DB) string {

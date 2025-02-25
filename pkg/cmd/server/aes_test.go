@@ -5,7 +5,6 @@ import (
 	"crypto/cipher"
 	"crypto/rand"
 	"encoding/json"
-	"io/fs"
 	"os"
 	"path/filepath"
 	"testing"
@@ -14,7 +13,7 @@ import (
 
 	"code.waarp.fr/apps/gateway/gateway/pkg/conf"
 	"code.waarp.fr/apps/gateway/gateway/pkg/database"
-	"code.waarp.fr/apps/gateway/gateway/pkg/fs/filesystems"
+	"code.waarp.fr/apps/gateway/gateway/pkg/fs/fstest"
 	"code.waarp.fr/apps/gateway/gateway/pkg/model"
 	"code.waarp.fr/apps/gateway/gateway/pkg/model/authentication/auth"
 	"code.waarp.fr/apps/gateway/gateway/pkg/model/types"
@@ -37,15 +36,10 @@ func TestChangeAESPassphrase(t *testing.T) {
 		servTLSCert = testhelpers.LocalhostCert
 		servTLSKey  = testhelpers.LocalhostKey
 
-		cloudType   = "cld_typ"
 		cloudSecret = "cld_sec"
 	)
 
-	filesystems.FileSystems.Store(cloudType, func(string, string, map[string]any) (fs.FS, error) {
-		//nolint:nilnil //simpler for tests
-		return nil, nil
-	})
-	defer filesystems.FileSystems.Delete(cloudType)
+	cloudType := fstest.MakeDummyBackend(t)
 
 	Convey("Given a test database", t, func(c C) {
 		db := database.TestDatabase(c)

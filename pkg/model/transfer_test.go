@@ -159,7 +159,7 @@ func TestTransferBeforeWrite(t *testing.T) {
 						Agent:            server.Name,
 						Account:          account.Login,
 						SrcFilename:      "file",
-						LocalPath:        localPath("C:/local/file"),
+						LocalPath:        localPath("/local/file"),
 						RemotePath:       "remote/file",
 						Filesize:         100,
 						Start:            time.Date(2021, 1, 1, 1, 0, 0, 0, time.UTC),

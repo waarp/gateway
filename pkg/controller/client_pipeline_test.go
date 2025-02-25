@@ -1,6 +1,7 @@
 package controller
 
 import (
+	"path"
 	"testing"
 	"time"
 
@@ -15,15 +16,16 @@ import (
 
 func TestClientPipelineRun(t *testing.T) {
 	content := []byte("client pipeline test file content")
+	root := t.TempDir()
 
 	Convey("Given a database", t, func(c C) {
-		ctx := initTestDB(c)
+		ctx := initTestDB(c, root)
 
 		Convey("Given a client push transfer", func() {
 			filename := "client_pipeline_push"
-			filePath := mkPath(conf.GlobalConfig.Paths.GatewayHome,
+			filePath := path.Join(conf.GlobalConfig.Paths.GatewayHome,
 				ctx.send.LocalDir, filename)
-			So(fs.WriteFullFile(ctx.fs, &filePath, content), ShouldBeNil)
+			So(fs.WriteFullFile(filePath, content), ShouldBeNil)
 
 			trans := &model.Transfer{
 				RuleID:          ctx.send.ID,

@@ -3,6 +3,7 @@ package ftp
 import (
 	"errors"
 	"fmt"
+	"os"
 	"strings"
 	"time"
 
@@ -13,9 +14,9 @@ import (
 	"code.waarp.fr/apps/gateway/gateway/pkg/database"
 	"code.waarp.fr/apps/gateway/gateway/pkg/fs"
 	"code.waarp.fr/apps/gateway/gateway/pkg/model"
-	"code.waarp.fr/apps/gateway/gateway/pkg/model/types"
 	"code.waarp.fr/apps/gateway/gateway/pkg/pipeline"
 	"code.waarp.fr/apps/gateway/gateway/pkg/protocols/protoutils"
+	"code.waarp.fr/apps/gateway/gateway/pkg/utils"
 )
 
 var errNotImplemented = errors.New("command not implemented")
@@ -29,27 +30,15 @@ type serverFS struct {
 	dbAcc    *model.LocalAccount
 }
 
-func (s *serverFS) getFS(path *types.FSPath) (fs.FS, error) {
-	filesys, fsErr := fs.GetFileSystem(s.db, path)
-	if fsErr != nil {
-		s.logger.Error("Failed to instantiate the filesystem: %v", fsErr)
-
-		//nolint:goerr113 //we mask the internal error
-		return nil, errors.New("failed to instantiate the filesystem")
-	}
-
-	return filesys, nil
-}
-
 func (s *serverFS) Name() string { return s.dbServer.Name }
 
-func (s *serverFS) Mkdir(name string, _ fs.FileMode) error {
+func (s *serverFS) Mkdir(name string, _ os.FileMode) error {
 	s.logger.Debug(`Received "Mkdir" request on %q`, name)
 
 	return s.mkdirAll(name)
 }
 
-func (s *serverFS) MkdirAll(path string, _ fs.FileMode) error {
+func (s *serverFS) MkdirAll(path string, _ os.FileMode) error {
 	s.logger.Debug(`Received "MkdirAll" request on %q`, path)
 
 	return s.mkdirAll(path)
@@ -64,12 +53,7 @@ func (s *serverFS) mkdirAll(path string) error {
 		return errors.New("failed to build the dir path")
 	}
 
-	filesys, fsErr := s.getFS(realDir)
-	if fsErr != nil {
-		return fsErr
-	}
-
-	if err := fs.MkdirAll(filesys, realDir); err != nil {
+	if err := fs.MkdirAll(realDir); err != nil {
 		s.logger.Error("Failed to create directory: %v", err)
 
 		return errors.New("failed to create directory") //nolint:goerr113 //too specific
@@ -78,30 +62,25 @@ func (s *serverFS) mkdirAll(path string) error {
 	return nil
 }
 
-func (s *serverFS) OpenFile(name string, flags int, _ fs.FileMode) (afero.File, error) {
+func (s *serverFS) OpenFile(name string, flags int, _ os.FileMode) (afero.File, error) {
 	s.logger.Debug(`Received "OpenFile" request on %q with flags %s`, name,
-		fs.DescribeFlags(flags))
+		utils.DescribeFlags(flags))
 
 	return s.getHandle(name, flags, 0)
 }
 
 func (s *serverFS) GetHandle(name string, flags int, offset int64) (ftplib.FileTransfer, error) {
 	s.logger.Debug(`Received "GetHandle" request on %q with flags %s and offset %d`,
-		name, fs.DescribeFlags(flags), offset)
+		name, utils.DescribeFlags(flags), offset)
 
 	return s.getHandle(name, flags, offset)
 }
 
 func (s *serverFS) getHandle(name string, flags int, offset int64) (afero.File, error) {
-	if fs.ContainsFlags(flags, fs.FlagAppend) {
-		// The "APPEND" command is not allowed.
-		return nil, errNotImplemented
-	}
-
-	switch flags & (fs.FlagROnly | fs.FlagWOnly | fs.FlagRW) {
-	case fs.FlagROnly:
+	switch flags & (os.O_RDONLY | os.O_WRONLY | os.O_RDWR) {
+	case os.O_RDONLY:
 		return s.newServerTransfer(name, true, offset)
-	case fs.FlagWOnly:
+	case os.O_WRONLY:
 		return s.newServerTransfer(name, false, offset)
 	default:
 		s.logger.Error(`Received "OpenFile" request on %q with invalid flags: %d`, name, flags)
@@ -122,7 +101,7 @@ func (s *serverFS) Create(name string) (afero.File, error) {
 	return s.newServerTransfer(name, false, 0)
 }
 
-func (s *serverFS) Stat(name string) (fs.FileInfo, error) {
+func (s *serverFS) Stat(name string) (os.FileInfo, error) {
 	s.logger.Debug(`Received "Stat" request on %q`, name)
 
 	name = strings.TrimLeft(name, "/")
@@ -138,23 +117,18 @@ func (s *serverFS) Stat(name string) (fs.FileInfo, error) {
 }
 
 //nolint:goerr113 //dynamic errors are used to mask the internal errors (for security reasons)
-func (s *serverFS) stat(name string, temp bool) (fs.FileInfo, error) {
+func (s *serverFS) stat(name string, temp bool) (os.FileInfo, error) {
 	realFile, dirErr := protoutils.GetRealPath(temp, s.db, s.logger, s.dbServer,
 		s.dbAcc, name)
 	if dirErr != nil {
 		return nil, errors.New("failed to build the file path")
 	}
 
-	if realFile.IsBlank() {
+	if realFile == "" {
 		return protoutils.FakeDirInfo(name), nil
 	}
 
-	filesys, fsErr := s.getFS(realFile)
-	if fsErr != nil {
-		return nil, fsErr
-	}
-
-	info, err := fs.Stat(filesys, realFile)
+	info, err := fs.Stat(realFile)
 	if errors.Is(err, fs.ErrNotExist) {
 		return nil, fs.ErrNotExist
 	} else if err != nil {
@@ -165,7 +139,7 @@ func (s *serverFS) stat(name string, temp bool) (fs.FileInfo, error) {
 }
 
 //nolint:goerr113 //dynamic errors are used to mask the internal errors (for security reasons)
-func (s *serverFS) ReadDir(name string) ([]fs.FileInfo, error) {
+func (s *serverFS) ReadDir(name string) ([]os.FileInfo, error) {
 	s.logger.Debug(`Received "ReadDir" request on %q`, name)
 
 	name = strings.TrimLeft(name, "/")
@@ -179,7 +153,7 @@ func (s *serverFS) ReadDir(name string) ([]fs.FileInfo, error) {
 		}
 	}
 
-	if realDir.IsBlank() {
+	if realDir == "" {
 		infos, err := protoutils.GetRulesPaths(s.db, s.dbServer, s.dbAcc, name)
 		if err != nil {
 			s.logger.Error("Failed to retrieve rules: %v", err)
@@ -194,31 +168,24 @@ func (s *serverFS) ReadDir(name string) ([]fs.FileInfo, error) {
 		return infos, nil
 	}
 
-	filesys, fsErr := s.getFS(realDir)
-	if fsErr != nil {
-		return nil, fsErr
-	}
-
-	entries, dirErr := fs.ReadDir(filesys, realDir)
+	entries, dirErr := fs.List(realDir)
 	if dirErr != nil {
 		s.logger.Error(`Failed to list directory "%s": %v`, realDir, dirErr)
 
 		return nil, fmt.Errorf(`failed to list directory %q`, name)
 	}
 
-	infos := make([]fs.FileInfo, len(entries))
+	infos := make([]os.FileInfo, len(entries))
 
 	for i, entry := range entries {
-		info, infoErr := entry.Info()
-		if infoErr != nil {
-			s.logger.Error("Failed to retrieve the file info: %v", infoErr)
+		s.logger.Debug("Returned dir entry: %q", entry.Name())
 
-			return nil, errors.New("failed to retrieve the file info")
+		var err error
+		if infos[i], err = entry.Info(); err != nil {
+			s.logger.Error("Failed to retrieve the file %q info: %v", entry.Name(), err)
+
+			return infos, fmt.Errorf("failed to retrieve file %q info", entry.Name())
 		}
-
-		s.logger.Debug("Returned dir entry: %q", info.Name())
-
-		infos[i] = info
 	}
 
 	return infos, nil
@@ -230,6 +197,6 @@ func (s *serverFS) ReadDir(name string) ([]fs.FileInfo, error) {
 func (*serverFS) Remove(string) error                        { return errNotImplemented }
 func (*serverFS) RemoveAll(string) error                     { return errNotImplemented }
 func (*serverFS) Rename(string, string) error                { return errNotImplemented }
-func (*serverFS) Chmod(string, fs.FileMode) error            { return errNotImplemented }
+func (*serverFS) Chmod(string, os.FileMode) error            { return errNotImplemented }
 func (*serverFS) Chown(string, int, int) error               { return errNotImplemented }
 func (*serverFS) Chtimes(string, time.Time, time.Time) error { return errNotImplemented }

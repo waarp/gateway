@@ -9,6 +9,7 @@ import (
 
 	"code.waarp.fr/apps/gateway/gateway/pkg/conf"
 	"code.waarp.fr/apps/gateway/gateway/pkg/database"
+	"code.waarp.fr/apps/gateway/gateway/pkg/fs"
 	"code.waarp.fr/apps/gateway/gateway/pkg/model/types"
 	"code.waarp.fr/apps/gateway/gateway/pkg/utils"
 )
@@ -27,7 +28,7 @@ type HistoryEntry struct {
 	Protocol         string                  `xorm:"protocol"`
 	SrcFilename      string                  `xorm:"src_filename"`
 	DestFilename     string                  `xorm:"dest_filename"`
-	LocalPath        types.FSPath            `xorm:"local_path"`
+	LocalPath        string                  `xorm:"local_path"`
 	RemotePath       string                  `xorm:"remote_path"`
 	Filesize         int64                   `xorm:"filesize"`
 	Start            time.Time               `xorm:"start DATETIME(6) UTC"`
@@ -100,16 +101,18 @@ func (h *HistoryEntry) BeforeWrite(db database.Access) error {
 		return database.NewValidationError("the destination file is missing")
 	}
 
-	if h.RemotePath != "" && h.LocalPath.Path == "" {
+	if h.RemotePath != "" && h.LocalPath == "" {
 		return database.NewValidationError("the local filepath cannot be empty")
 	}
 
-	if !h.IsServer && h.LocalPath.Path != "" && h.RemotePath == "" {
+	if !h.IsServer && h.LocalPath != "" && h.RemotePath == "" {
 		return database.NewValidationError("the remote filepath cannot be empty")
 	}
 
-	if err := checkCloudInstance(db, &h.LocalPath); err != nil {
-		return err
+	if h.LocalPath != "" {
+		if err := fs.ValidPath(h.LocalPath); err != nil {
+			return database.NewValidationError("invalid local path: %v", err)
+		}
 	}
 
 	if h.Start.IsZero() {

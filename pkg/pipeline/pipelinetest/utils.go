@@ -5,6 +5,7 @@ import (
 	"errors"
 	"fmt"
 	"os"
+	"path"
 	"sync/atomic"
 	"time"
 
@@ -14,12 +15,11 @@ import (
 	"code.waarp.fr/apps/gateway/gateway/pkg/conf"
 	"code.waarp.fr/apps/gateway/gateway/pkg/database"
 	"code.waarp.fr/apps/gateway/gateway/pkg/fs"
-	"code.waarp.fr/apps/gateway/gateway/pkg/fs/fstest"
 	"code.waarp.fr/apps/gateway/gateway/pkg/logging"
 	"code.waarp.fr/apps/gateway/gateway/pkg/model"
-	"code.waarp.fr/apps/gateway/gateway/pkg/model/types"
 	"code.waarp.fr/apps/gateway/gateway/pkg/pipeline"
 	"code.waarp.fr/apps/gateway/gateway/pkg/tasks/taskstest"
+	"code.waarp.fr/apps/gateway/gateway/pkg/utils/testhelpers"
 )
 
 // TestLogin and TestPassword are the credentials used for authentication
@@ -53,7 +53,6 @@ var ErrTestError = errors.New("intended test error")
 
 type testData struct {
 	DB    *database.DB
-	FS    fs.FS
 	Paths *conf.PathsConfig
 
 	hasClientDataError bool
@@ -183,29 +182,21 @@ func (t *testData) setClientTrace(pip *pipeline.Pipeline) {
 	}
 }
 
-func mkPath(base string, elem ...string) types.FSPath {
-	url, err := types.ParsePath(base)
-	convey.So(err, convey.ShouldBeNil)
-
-	return *url.JoinPath(elem...)
-}
-
 // AddSourceFile creates a file under the given directory with the given name,
 // fills it with random data, and then returns said data.
-func AddSourceFile(c convey.C, filesys fs.FS, file *types.FSPath) []byte {
-	c.So(fs.MkdirAll(filesys, file.Dir()), convey.ShouldBeNil)
+func AddSourceFile(c convey.C, file string) []byte {
+	c.So(fs.MkdirAll(path.Dir(file)), convey.ShouldBeNil)
 
 	cont := bytes.Repeat([]byte(repeatedString), repeatAmount)
 	c.So(cont, convey.ShouldHaveLength, TestFileSize)
 
-	c.So(fs.WriteFullFile(filesys, file, cont), convey.ShouldBeNil)
+	c.So(fs.WriteFullFile(file, cont), convey.ShouldBeNil)
 
 	return cont
 }
 
 func initTestData(c convey.C) *testData {
 	db := database.TestDatabase(c)
-	testFS := fstest.InitMemFS(c)
 	c.Reset(pipeline.List.Reset)
 
 	// Change log level if needed. Set to CRITICAL to avoid polluting stdout
@@ -215,8 +206,7 @@ func initTestData(c convey.C) *testData {
 	analytics.GlobalService = &analytics.Service{DB: db}
 	c.So(analytics.GlobalService.Start(), convey.ShouldBeNil)
 
-	home := "memory:/gw_home"
-	homePath := mkPath(home)
+	home := testhelpers.TempDir(c, "pipelinetest")
 
 	paths := &conf.PathsConfig{
 		GatewayHome:   home,
@@ -225,16 +215,15 @@ func initTestData(c convey.C) *testData {
 		DefaultTmpDir: "tmp",
 	}
 
-	c.So(fs.MkdirAll(testFS, &homePath), convey.ShouldBeNil)
-	c.So(fs.MkdirAll(testFS, homePath.JoinPath(paths.DefaultInDir)), convey.ShouldBeNil)
-	c.So(fs.MkdirAll(testFS, homePath.JoinPath(paths.DefaultOutDir)), convey.ShouldBeNil)
-	c.So(fs.MkdirAll(testFS, homePath.JoinPath(paths.DefaultTmpDir)), convey.ShouldBeNil)
+	c.So(fs.MkdirAll(home), convey.ShouldBeNil)
+	c.So(fs.MkdirAll(fs.JoinPath(home, paths.DefaultInDir)), convey.ShouldBeNil)
+	c.So(fs.MkdirAll(fs.JoinPath(home, paths.DefaultOutDir)), convey.ShouldBeNil)
+	c.So(fs.MkdirAll(fs.JoinPath(home, paths.DefaultTmpDir)), convey.ShouldBeNil)
 
 	conf.GlobalConfig.Paths = *paths
 
 	return &testData{
 		DB:       db,
-		FS:       testFS,
 		Paths:    paths,
 		cliDone:  make(chan bool),
 		servDone: make(chan bool),

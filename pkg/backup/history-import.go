@@ -9,15 +9,9 @@ import (
 	"code.waarp.fr/apps/gateway/gateway/pkg/backup/file"
 	"code.waarp.fr/apps/gateway/gateway/pkg/database"
 	"code.waarp.fr/apps/gateway/gateway/pkg/model"
-	"code.waarp.fr/apps/gateway/gateway/pkg/model/types"
 )
 
-func jsonTransToDbHist(trans *file.Transfer) (*model.HistoryEntry, error) {
-	localFile, err := types.ParsePath(trans.LocalFilepath)
-	if err != nil {
-		return nil, fmt.Errorf("failed to parse the history entry's local file path: %w", err)
-	}
-
+func jsonTransToDbHist(trans *file.Transfer) *model.HistoryEntry {
 	return &model.HistoryEntry{
 		ID:               trans.ID,
 		RemoteTransferID: trans.RemoteID,
@@ -30,7 +24,7 @@ func jsonTransToDbHist(trans *file.Transfer) (*model.HistoryEntry, error) {
 		Protocol:         trans.Protocol,
 		SrcFilename:      trans.SrcFilename,
 		DestFilename:     trans.DestFilename,
-		LocalPath:        *localFile,
+		LocalPath:        trans.LocalFilepath,
 		RemotePath:       trans.RemoteFilepath,
 		Filesize:         trans.Filesize,
 		Start:            trans.Start,
@@ -41,7 +35,7 @@ func jsonTransToDbHist(trans *file.Transfer) (*model.HistoryEntry, error) {
 		TaskNumber:       trans.TaskNumber,
 		ErrCode:          trans.ErrorCode,
 		ErrDetails:       trans.ErrorMsg,
-	}, nil
+	}
 }
 
 var ErrInvalidJSONInput = errors.New("invalid JSON input")
@@ -67,11 +61,7 @@ func importHistory(ses *database.Session, r io.Reader) (int64, error) {
 			maxID = trans.ID
 		}
 
-		h, convErr := jsonTransToDbHist(&trans)
-		if convErr != nil {
-			return 0, convErr
-		}
-
+		h := jsonTransToDbHist(&trans)
 		if err := ses.Insert(h).Run(); err != nil {
 			return 0, fmt.Errorf("failed to insert history entry %d: %w", trans.ID, err)
 		}

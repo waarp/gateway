@@ -12,7 +12,6 @@ import (
 	"hash"
 	"hash/adler32"
 	"io"
-	"os"
 
 	"code.waarp.fr/lib/log"
 
@@ -55,19 +54,18 @@ func GetHasher(h string) (hash.Hash, error) {
 }
 
 // MakeHash takes a file path and returns the sha256 checksum of the file.
-func MakeHash(ctx context.Context, hashAlgo string, filesys fs.FS,
-	logger *log.Logger, path *types.FSPath,
+func MakeHash(ctx context.Context, hashAlgo string, logger *log.Logger, path string,
 ) ([]byte, *pipeline.Error) {
 	hasher, hashErr := GetHasher(hashAlgo)
 	if hashErr != nil {
 		return nil, pipeline.NewErrorWith(types.TeInternal, "unknown hash algorithm", hashErr)
 	}
 
-	file, opErr := fs.OpenFile(filesys, path, os.O_RDONLY, 0o600)
+	file, opErr := fs.Open(path)
 	if opErr != nil {
 		logger.Error("Failed to open file for hash calculation: %s", opErr)
 
-		return nil, pipeline.NewErrorWith(types.TeInternal, "failed to open file", opErr)
+		return nil, pipeline.NewErrorWith(types.TeInternal, "failed to open file for hash", opErr)
 	}
 
 	defer func() {

@@ -146,13 +146,13 @@ func (c *transferClient) sendRequest() *pipeline.Error {
 		FileSize: c.pip.TransCtx.Transfer.Filesize,
 		Rule:     c.pip.TransCtx.Rule.Name,
 		Block:    c.blockSize,
-		Rank:     uint32(blockNB), //nolint:gosec // overflow chance is non-existent
+		Rank:     uint32(blockNB),
 		IsMD5:    c.checkBlockHash,
 		Infos:    userContent,
 	}
 
 	if c.pip.TransCtx.Rule.IsSend {
-		info, statErr := fs.Stat(c.pip.TransCtx.FS, &c.pip.TransCtx.Transfer.LocalPath)
+		info, statErr := fs.Stat(c.pip.TransCtx.Transfer.LocalPath)
 		if statErr != nil {
 			c.pip.Logger.Error("Failed to retrieve file size: %s", statErr)
 
@@ -237,8 +237,8 @@ func (c *transferClient) makeHash() ([]byte, error) {
 		return nil, nil
 	}
 
-	hash, err := internal.MakeHash(c.ctx, c.finalHashAlgo, c.pip.TransCtx.FS, c.pip.Logger,
-		&c.pip.TransCtx.Transfer.LocalPath)
+	hash, err := internal.MakeHash(c.ctx, c.finalHashAlgo, c.pip.Logger,
+		c.pip.TransCtx.Transfer.LocalPath)
 	if err != nil {
 		return nil, internal.ToR66Error(err)
 	}

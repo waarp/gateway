@@ -138,7 +138,7 @@ func TestExecOutputRun(t *testing.T) {
 						So(err, ShouldNotHaveSameTypeAs, &WarningError{})
 
 						Convey("Then the transfer file should have changed", func() {
-							So(transCtx.Transfer.LocalPath.String(), ShouldEqual, execOutputNewFilename)
+							So(transCtx.Transfer.LocalPath, ShouldEqual, execOutputNewFilename)
 						})
 					})
 				})
