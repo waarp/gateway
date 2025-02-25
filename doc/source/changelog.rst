@@ -3,6 +3,10 @@
 Historique des versions
 =======================
 
+* :feature:`63` Ajout de la tâche ``TRANSCODE`` permettant de changer l'encodage
+  d'un fichier de transfer. Voir :doc:`la documentation de la tâche TRANSCODE
+  <reference/tasks/transcode>` pour plus de détails.
+
 * :release:`0.11.6 <2025-31-01>`
 * :bug:`437` Correction du listing de fichier via R66 sous Windows. Précédemment,
   les fichiers renvoyés par le serveur R66 étaient corrects, mais la racine du
