@@ -106,3 +106,5 @@ Liste des traitements
    rename
    transfer
    transcode
+   archive
+   extract

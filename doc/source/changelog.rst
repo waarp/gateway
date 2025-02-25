@@ -3,6 +3,10 @@
 Historique des versions
 =======================
 
+* :feature:`65` Ajout des tâches ``ARCHIVE`` et ``EXTRACT`` permettant de créer
+  et d'extraire des archives ZIP et TAR, avec possibilité de choisir le type et
+  le niveau de compression. Voir la :ref:`documentation des traitements<reference-tasks>`
+  pour plus de détails.
 * :feature:`63` Ajout de la tâche ``TRANSCODE`` permettant de changer l'encodage
   d'un fichier de transfer. Voir :doc:`la documentation de la tâche TRANSCODE
   <reference/tasks/transcode>` pour plus de détails.
