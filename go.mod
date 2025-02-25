@@ -43,6 +43,12 @@ require (
 )
 
 require (
+	github.com/egirna/icap v0.0.0-20181108071049-d5ee18bd70bc
+	github.com/pbnjay/memory v0.0.0-20210728143218-7b4eea64cf58
+	github.com/solidwall/icap-client v0.0.0-20240910140159-0c244324de0d
+)
+
+require (
 	code.bcarlin.xyz/go/logging v0.4.1 // indirect
 	code.waarp.fr/lib/Sqlite3CreateTableParser v0.0.0-20221122183218-24f478e49362 // indirect
 	filippo.io/edwards25519 v1.1.0 // indirect

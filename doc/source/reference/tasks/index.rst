@@ -108,3 +108,4 @@ Liste des traitements
    transcode
    archive
    extract
+   icap

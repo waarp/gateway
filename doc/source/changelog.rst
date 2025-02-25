@@ -3,6 +3,11 @@
 Historique des versions
 =======================
 
+* :feature:`130` Ajout d'une tâche ICAP, permettant (entre autre) d'envoyer
+  un fichier de transfert à un service d'analyse antivirus. À noter que cette
+  première version de la tâche comporte deux sévères limitations, et est donc
+  considérée comme une version *BETA* de la tâche. Voir la :ref:`documentation
+  <ref-tasks-icap>` de la tâche pour plus de détails.
 * :feature:`65` Ajout des tâches ``ARCHIVE`` et ``EXTRACT`` permettant de créer
   et d'extraire des archives ZIP et TAR, avec possibilité de choisir le type et
   le niveau de compression. Voir la :ref:`documentation des traitements<reference-tasks>`
@@ -104,7 +109,6 @@ Historique des versions
 * :feature:`380` Ajout du support pour les instances cloud de type S3. Les fichiers
   de transfert peuvent désormais donc être stockés sur une instance S3. Voir
   la section :ref:`cloud <reference-cloud>` pour avoir plus de détails.
-* :feature:`-`
 * :feature:`-` Ajout de la commande CLI de gestion des instances cloud.
 * :feature:`-` Ajout de la gestion des instances cloud au fichier d'import/export.
 * :bug:`-` Ajout des droits d'administration à l'objet ``user`` du fichier
@@ -183,15 +187,12 @@ Historique des versions
   pour plus de détails).
 * :feature:`289` Les certificats et les mots de passe sont remplacés par les
   plus génériques "méthodes d'authentification", permettant d'ajouter plus
-  facilement de nouvelles formes d'authentification. Ajout également des
-  "autorités d'authentification" permettant de déléguer l'authentification de
-  certains types de partenaires à un tier de confiance. Pour plus d'information
-  voir :ref:`le chapitre sur l'authentification <reference-auth-methods>`.
-* :feature:`289` Les certificats et les mots de passe sont remplacés par les
-  plus génériques "méthodes d'authentification", permettant d'ajouter plus
   facilement de nouvelles formes d'authentification. Pour plus de simplicité,
   l'option *password* des commandes de création des comptes locaux et distants
-  est maintenue.
+  est maintenue. Ajout également des "autorités d'authentification" permettant
+  de déléguer l'authentification de certains types de partenaires à un tier de
+  confiance. Pour plus d'information voir :ref:`le chapitre sur l'authentification
+  <reference-auth-methods>`.
 * :feature:`-` Ajouter ou enlever des certificats TLS à un agent de transfert
   ne nécessite plus un redémarrage du service en question pour que les
   changements soient pris en compte.
