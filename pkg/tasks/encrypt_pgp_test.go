@@ -44,26 +44,28 @@ non proident, sunt in culpa qui officia deserunt mollit anim id est laborum.`
 	outputFile2 := filePath + ".plaintext"
 
 	encryptParams := map[string]string{
-		"pgpKeyName": pgpTestKey.Name,
+		"keyName":    pgpTestKey.Name,
 		"outputFile": outputFile1,
+		"method":     EncryptMethodPGP,
 	}
 	decryptParams := map[string]string{
-		"pgpKeyName": pgpTestKey.Name,
+		"keyName":    pgpTestKey.Name,
 		"outputFile": outputFile2,
+		"method":     EncryptMethodPGP,
 	}
 
-	encrypt := func() error {
-		return (&encryptPGP{}).Run(context.Background(), encryptParams, db,
+	doEncrypt := func() error {
+		return (&encrypt{}).Run(context.Background(), encryptParams, db,
 			logger, transCtx)
 	}
 
-	decrypt := func() error {
-		return (&decryptPGP{}).Run(context.Background(), decryptParams, db,
+	doDecrypt := func() error {
+		return (&decrypt{}).Run(context.Background(), decryptParams, db,
 			logger, transCtx)
 	}
 
 	t.Run("Encrypt", func(t *testing.T) {
-		require.NoError(t, encrypt(), "The task should not fail")
+		require.NoError(t, doEncrypt(), "The task should not fail")
 
 		assert.Equal(t, outputFile1, transCtx.Transfer.LocalPath,
 			"The file path should have changed")
@@ -79,7 +81,7 @@ non proident, sunt in culpa qui officia deserunt mollit anim id est laborum.`
 			"The original file should have been deleted")
 
 		t.Run("Decrypt", func(t *testing.T) {
-			require.NoError(t, decrypt(), "The task should not fail")
+			require.NoError(t, doDecrypt(), "The task should not fail")
 
 			assert.Equal(t, outputFile2, transCtx.Transfer.LocalPath,
 				"The file path should have changed")

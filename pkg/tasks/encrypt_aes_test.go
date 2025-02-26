@@ -15,18 +15,18 @@ import (
 )
 
 func TestEncryptAESCFB(t *testing.T) {
-	testEncryptAES(t, string(encryptModeCFB))
+	testEncryptAES(t, EncryptMethodAESCFB)
 }
 
 func TestEncryptAESCTR(t *testing.T) {
-	testEncryptAES(t, string(encryptModeCTR))
+	testEncryptAES(t, EncryptMethodAESCTR)
 }
 
 func TestEncryptAESOFB(t *testing.T) {
-	testEncryptAES(t, string(encryptModeOFB))
+	testEncryptAES(t, EncryptMethodAESOFB)
 }
 
-func testEncryptAES(t *testing.T, mode string) {
+func testEncryptAES(t *testing.T, method string) {
 	t.Helper()
 
 	const testFileContent = `Lorem ipsum dolor sit amet, consectetur adipiscing
@@ -61,28 +61,28 @@ non proident, sunt in culpa qui officia deserunt mollit anim id est laborum.`
 	require.NoError(t, db.Insert(&cryptoKey).Run())
 
 	encryptParams := map[string]string{
-		"aesKeyName": cryptoKey.Name,
+		"keyName":    cryptoKey.Name,
 		"outputFile": outputFile1,
-		"mode":       mode,
+		"method":     method,
 	}
 	decryptParams := map[string]string{
-		"aesKeyName": cryptoKey.Name,
+		"keyName":    cryptoKey.Name,
 		"outputFile": outputFile2,
-		"mode":       mode,
+		"method":     method,
 	}
 
-	encrypt := func() error {
-		return (&encryptAES{}).Run(context.Background(), encryptParams, db,
+	doEncrypt := func() error {
+		return (&encrypt{}).Run(context.Background(), encryptParams, db,
 			logger, transCtx)
 	}
 
-	decrypt := func() error {
-		return (&decryptAES{}).Run(context.Background(), decryptParams, db,
+	doDecrypt := func() error {
+		return (&decrypt{}).Run(context.Background(), decryptParams, db,
 			logger, transCtx)
 	}
 
-	t.Run(mode+" mode encrypt", func(t *testing.T) {
-		require.NoError(t, encrypt(), "The task should not fail")
+	t.Run(method+" mode encrypt", func(t *testing.T) {
+		require.NoError(t, doEncrypt(), "The task should not fail")
 
 		assert.Equal(t, outputFile1, transCtx.Transfer.LocalPath,
 			"The file path should have changed")
@@ -97,8 +97,8 @@ non proident, sunt in culpa qui officia deserunt mollit anim id est laborum.`
 		assert.ErrorIs(t, statErr, os.ErrNotExist,
 			"The original file should have been deleted")
 
-		t.Run(mode+" mode decrypt", func(t *testing.T) {
-			require.NoError(t, decrypt(), "The task should not fail")
+		t.Run(method+" mode decrypt", func(t *testing.T) {
+			require.NoError(t, doDecrypt(), "The task should not fail")
 
 			assert.Equal(t, outputFile2, transCtx.Transfer.LocalPath,
 				"The file path should have changed")

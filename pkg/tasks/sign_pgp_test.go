@@ -40,22 +40,24 @@ non proident, sunt in culpa qui officia deserunt mollit anim id est laborum.`
 	outputPath := filePath + ".signature"
 
 	signParams := map[string]string{
-		"pgpKeyName": pgpTestKey.Name,
+		"keyName":    pgpTestKey.Name,
 		"outputFile": outputPath,
+		"method":     SignMethodPGP,
 	}
 
 	verifyParams := map[string]string{
-		"pgpKeyName":    pgpTestKey.Name,
+		"keyName":       pgpTestKey.Name,
 		"signatureFile": outputPath,
+		"method":        SignMethodPGP,
 	}
 
 	sign := func() error {
-		return (&signPGP{}).Run(context.Background(), signParams, db,
+		return (&sign{}).Run(context.Background(), signParams, db,
 			logger, transCtx)
 	}
 
 	verify := func() error {
-		return (&verifyPGP{}).Run(context.Background(), verifyParams, db,
+		return (&verify{}).Run(context.Background(), verifyParams, db,
 			logger, transCtx)
 	}
 

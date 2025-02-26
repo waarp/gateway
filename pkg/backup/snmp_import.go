@@ -8,7 +8,6 @@ import (
 	"code.waarp.fr/apps/gateway/gateway/pkg/backup/file"
 	"code.waarp.fr/apps/gateway/gateway/pkg/conf"
 	"code.waarp.fr/apps/gateway/gateway/pkg/database"
-	"code.waarp.fr/apps/gateway/gateway/pkg/model/types"
 	"code.waarp.fr/apps/gateway/gateway/pkg/snmp"
 )
 
@@ -56,9 +55,9 @@ func importSNMPServer(logger *log.Logger, db database.Access, server *file.SNMPS
 	dbServer.SNMPv3Only = server.V3Only
 	dbServer.SNMPv3Username = server.V3Username
 	dbServer.SNMPv3AuthProtocol = server.V3AuthProtocol
-	dbServer.SNMPv3AuthPassphrase = types.SecretText(server.V3AuthPassphrase)
+	dbServer.SNMPv3AuthPassphrase = database.SecretText(server.V3AuthPassphrase)
 	dbServer.SNMPv3PrivProtocol = server.V3PrivacyProtocol
-	dbServer.SNMPv3PrivPassphrase = types.SecretText(server.V3PrivacyPassphrase)
+	dbServer.SNMPv3PrivPassphrase = database.SecretText(server.V3PrivacyPassphrase)
 
 	var dbErr error
 
@@ -96,9 +95,9 @@ func importSNMPMonitors(logger *log.Logger, db database.Access, monitors []*file
 		dbMonitor.AuthEngineID = monitor.V3AuthEngineID
 		dbMonitor.AuthUsername = monitor.V3AuthUsername
 		dbMonitor.AuthProtocol = monitor.V3AuthProtocol
-		dbMonitor.AuthPassphrase = types.SecretText(monitor.V3AuthPassphrase)
+		dbMonitor.AuthPassphrase = database.SecretText(monitor.V3AuthPassphrase)
 		dbMonitor.PrivProtocol = monitor.V3PrivacyProtocol
-		dbMonitor.PrivPassphrase = types.SecretText(monitor.V3PrivacyPassphrase)
+		dbMonitor.PrivPassphrase = database.SecretText(monitor.V3PrivacyPassphrase)
 
 		var dbErr error
 

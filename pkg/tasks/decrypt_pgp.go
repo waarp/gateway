@@ -1,82 +1,43 @@
 package tasks
 
 import (
-	"context"
 	"errors"
 	"fmt"
 	"io"
 
-	"code.waarp.fr/lib/log"
 	pgp "github.com/ProtonMail/gopenpgp/v3/crypto"
 	pgpprofile "github.com/ProtonMail/gopenpgp/v3/profile"
 
-	"code.waarp.fr/apps/gateway/gateway/pkg/database"
 	"code.waarp.fr/apps/gateway/gateway/pkg/model"
-	"code.waarp.fr/apps/gateway/gateway/pkg/utils"
 )
 
-var (
-	ErrDecryptPGPNoKeyName    = errors.New("missing PGP decryption key")
-	ErrDecryptPGPKeyNotFound  = errors.New("cryptographic key not found")
-	ErrDecryptPGPNoPrivateKey = errors.New("cryptographic key does not contain a private PGP key")
-)
+var ErrDecryptNotPGPKey = errors.New("the provided cryptographic key does not contain a PGP private key")
 
-type decryptPGP struct {
-	KeepOriginal bool   `json:"keepOriginal"`
-	OutputFile   string `json:"outputFile"`
-	PGPKeyName   string `json:"pgpKeyName"`
-
-	signKey *pgp.Key
+func isPGPPrivateKey(key *model.CryptoKey) bool {
+	return key.Type == model.CryptoKeyTypePGPPrivate
 }
 
-func (d *decryptPGP) ValidateDB(db database.ReadAccess, params map[string]string) error {
-	if err := utils.JSONConvert(params, d); err != nil {
-		return fmt.Errorf("failed to parse the PGP decryption parameters: %w", err)
+func (d *decrypt) makePGPDecryptor(cryptoKey *model.CryptoKey) error {
+	if !isPGPPrivateKey(cryptoKey) {
+		return ErrDecryptNotPGPKey
 	}
 
-	if d.PGPKeyName == "" {
-		return ErrDecryptPGPNoKeyName
-	}
-
-	var pgpKey model.CryptoKey
-	if err := db.Get(&pgpKey, "name = ?", d.PGPKeyName).Run(); database.IsNotFound(err) {
-		return fmt.Errorf("%w: %q", ErrDecryptPGPKeyNotFound, d.PGPKeyName)
-	} else if err != nil {
-		return fmt.Errorf("failed to retrieve PGP key from database: %w", err)
-	}
-
-	if !isPGPPrivateKey(&pgpKey) {
-		return fmt.Errorf("%q: %w", pgpKey.Name, ErrDecryptPGPNoPrivateKey)
-	}
-
-	var err error
-	if d.signKey, err = pgp.NewKeyFromArmored(pgpKey.Key.String()); err != nil {
+	pgpKey, err := pgp.NewKeyFromArmored(cryptoKey.Key.String())
+	if err != nil {
 		return fmt.Errorf("failed to parse PGP decryption key: %w", err)
 	}
 
-	return nil
-}
-
-func (d *decryptPGP) Run(_ context.Context, params map[string]string,
-	db *database.DB, logger *log.Logger, transCtx *model.TransferContext,
-) error {
-	if err := d.ValidateDB(db, params); err != nil {
-		logger.Error(err.Error())
-
-		return err
-	}
-
-	if err := decryptFile(logger, transCtx, d.KeepOriginal, d.OutputFile, d.decrypt); err != nil {
-		return err
+	d.decrypt = func(src io.Reader, dst io.Writer) error {
+		return pgpDecrypt(src, dst, pgpKey)
 	}
 
 	return nil
 }
 
-func (d *decryptPGP) decrypt(src io.Reader, dst io.Writer) error {
+func pgpDecrypt(src io.Reader, dst io.Writer, pgpKey *pgp.Key) error {
 	builder := pgp.PGPWithProfile(pgpprofile.RFC4880()).Decryption()
 
-	decryptHandler, handlerErr := builder.DecryptionKey(d.signKey).New()
+	decryptHandler, handlerErr := builder.DecryptionKey(pgpKey).New()
 	if handlerErr != nil {
 		return fmt.Errorf("failed to create PGP decryption handler: %w", handlerErr)
 	}

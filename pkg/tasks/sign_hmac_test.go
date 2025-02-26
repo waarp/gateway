@@ -13,22 +13,22 @@ import (
 )
 
 func TestSignHMACSHA256(t *testing.T) {
-	testSignHMAC(t, string(hmacAlgoSHA256))
+	testSignHMAC(t, SignMethodHMACSHA256)
 }
 
 func TestSignHMACSHA384(t *testing.T) {
-	testSignHMAC(t, string(hmacAlgoSHA384))
+	testSignHMAC(t, SignMethodHMACSHA384)
 }
 
 func TestSignHMACSHA512(t *testing.T) {
-	testSignHMAC(t, string(hmacAlgoSHA512))
+	testSignHMAC(t, SignMethodHMACSHA512)
 }
 
 func TestSignHMACMD5(t *testing.T) {
-	testSignHMAC(t, string(hmacAlgoMD5))
+	testSignHMAC(t, SignMethodHMACMD5)
 }
 
-func testSignHMAC(t *testing.T, algo string) {
+func testSignHMAC(t *testing.T, method string) {
 	t.Helper()
 
 	const testFileContent = `Lorem ipsum dolor sit amet, consectetur adipiscing
@@ -60,32 +60,32 @@ non proident, sunt in culpa qui officia deserunt mollit anim id est laborum.`
 	require.NoError(t, db.Insert(&hmacKey).Run())
 
 	signParams := map[string]string{
-		"algorithm":   algo,
-		"outputFile":  outputFile,
-		"hmacKeyName": hmacKey.Name,
+		"outputFile": outputFile,
+		"keyName":    hmacKey.Name,
+		"method":     method,
 	}
 
 	verifyParams := map[string]string{
-		"algorithm":     algo,
 		"signatureFile": outputFile,
-		"hmacKeyName":   hmacKey.Name,
+		"keyName":       hmacKey.Name,
+		"method":        method,
 	}
 
-	sign := func() error {
-		return (&signHMAC{}).Run(context.Background(), signParams, db,
+	doSign := func() error {
+		return (&sign{}).Run(context.Background(), signParams, db,
 			logger, transCtx)
 	}
 
-	verify := func() error {
-		return (&verifyHMAC{}).Run(context.Background(), verifyParams, db,
+	doVerify := func() error {
+		return (&verify{}).Run(context.Background(), verifyParams, db,
 			logger, transCtx)
 	}
 
-	t.Run("When signing with "+algo, func(t *testing.T) {
-		require.NoError(t, sign(), "Then the task should not fail")
+	t.Run("When signing with "+method, func(t *testing.T) {
+		require.NoError(t, doSign(), "Then the task should not fail")
 
 		t.Run("When verifying the signature", func(t *testing.T) {
-			require.NoError(t, verify(), "Then the task should not fail")
+			require.NoError(t, doVerify(), "Then the task should not fail")
 		})
 	})
 }

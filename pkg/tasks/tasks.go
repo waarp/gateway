@@ -16,16 +16,12 @@ const (
 	Rename   = "RENAME"
 	Transfer = "TRANSFER"
 
-	EncryptAES          = "ENCRYPT-AES"
-	DecryptAES          = "DECRYPT-AES"
-	EncryptPGP          = "ENCRYPT-PGP"
-	DecryptPGP          = "DECRYPT-PGP"
-	EncryptAndSignPGP   = "ENCRYPT&SIGN-PGP"
-	DecryptAndVerifyPGP = "DECRYPT&VERIFY-PGP"
-	SignHMAC            = "SIGN-HMAC"
-	VerifyHMAC          = "VERIFY-HMAC"
-	SignPGP             = "SIGN-PGP"
-	VerifyPGP           = "VERIFY-PGP"
+	Encrypt          = "ENCRYPT"
+	Decrypt          = "DECRYPT"
+	Sign             = "SIGN"
+	Verify           = "VERIFY"
+	EncryptAndSign   = "ENCRYPT&SIGN"
+	DecryptAndVerify = "DECRYPT&VERIFY"
 )
 
 //nolint:gochecknoinits //init is required here
@@ -47,14 +43,10 @@ func init() {
 	model.ValidTasks[Transfer] = &TransferTask{}
 
 	// File encryption & signing
-	model.ValidTasks[EncryptAES] = &encryptAES{}
-	model.ValidTasks[DecryptAES] = &decryptAES{}
-	model.ValidTasks[EncryptPGP] = &encryptPGP{}
-	model.ValidTasks[DecryptPGP] = &decryptPGP{}
-	model.ValidTasks[EncryptAndSignPGP] = &encryptSignPGP{}
-	model.ValidTasks[DecryptAndVerifyPGP] = &decryptVerifyPGP{}
-	model.ValidTasks[SignHMAC] = &signHMAC{}
-	model.ValidTasks[VerifyHMAC] = &verifyHMAC{}
-	model.ValidTasks[SignPGP] = &signPGP{}
-	model.ValidTasks[VerifyPGP] = &verifyPGP{}
+	model.ValidTasks[Encrypt] = &encrypt{}
+	model.ValidTasks[Decrypt] = &decrypt{}
+	model.ValidTasks[Sign] = &sign{}
+	model.ValidTasks[Verify] = &verify{}
+	model.ValidTasks[EncryptAndSign] = &encryptSign{}
+	model.ValidTasks[DecryptAndVerify] = &decryptVerify{}
 }
