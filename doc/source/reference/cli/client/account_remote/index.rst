@@ -12,6 +12,6 @@ Gestion des comptes distants
    get
    update
    delete
-   auth_add
-   auth_delete
+   cred_add
+   cred_delete
    cert/index

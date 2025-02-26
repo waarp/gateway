@@ -7,6 +7,7 @@ require (
 	code.waarp.fr/lib/log v1.2.0
 	code.waarp.fr/lib/migration v0.4.0
 	code.waarp.fr/lib/r66 v0.1.6
+	github.com/ProtonMail/gopenpgp/v3 v3.0.0-beta.2-proton
 	github.com/bwmarrin/snowflake v0.3.0
 	github.com/dsnet/compress v0.0.1
 	github.com/dustin/go-humanize v1.0.1
@@ -53,6 +54,7 @@ require (
 	code.waarp.fr/lib/Sqlite3CreateTableParser v0.0.0-20221122183218-24f478e49362 // indirect
 	filippo.io/edwards25519 v1.1.0 // indirect
 	github.com/Max-Sum/base32768 v0.0.0-20230304063302-18e6ce5945fd // indirect
+	github.com/ProtonMail/go-crypto v1.1.0-beta.0-proton // indirect
 	github.com/abbot/go-http-auth v0.4.0 // indirect
 	github.com/aws/aws-sdk-go-v2 v1.30.3 // indirect
 	github.com/aws/aws-sdk-go-v2/aws/protocol/eventstream v1.6.3 // indirect
@@ -75,6 +77,7 @@ require (
 	github.com/aws/smithy-go v1.20.3 // indirect
 	github.com/beorn7/perks v1.0.1 // indirect
 	github.com/cespare/xxhash/v2 v2.2.0 // indirect
+	github.com/cloudflare/circl v1.3.7 // indirect
 	github.com/coreos/go-semver v0.3.1 // indirect
 	github.com/coreos/go-systemd/v22 v22.5.0 // indirect
 	github.com/davecgh/go-spew v1.1.2-0.20180830191138-d8f796af33cc // indirect

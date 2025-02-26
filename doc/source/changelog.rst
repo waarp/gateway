@@ -6,6 +6,20 @@ Historique des versions
 * :feature:`420` Ajout de 2 variables d'environnement ``WAARP_GATEWAYD_CPU_LIMIT``
   et ``WAARP_GATEWAYD_MEMORY_LIMIT`` permettant respectivement de limiter le
   nombre de cœurs CPU ainsi que la mémoire alloués à la Gateway.
+* :feature:`-` Ajout de :ref:`handlers REST<rest_keys>` et de :ref:`commandes CLI
+  <ref-cli-client-keys>` de gestions des :term:`clés cryptographiques<clé
+  cryptographique>` pouvant être utilisées dans les nouvelles tâches cryptographiques.
+* :feature:`419` Ajout de plusieurs tâches permettant d'effectuer des tâches
+  cryptographiques sur les fichiers de transfert (notamment le chiffrement et la
+  signature). Ces tâches sont :
+
+  - ``ENCRYPT`` pour chiffrer un fichier
+  - ``DECRYPT`` pour déchiffrer un fichier
+  - ``SIGN`` pour signer un fichier
+  - ``VERIFY`` pour valider la signature d'un fichier
+  - ``ENCRYPT&SIGN`` pour chiffrer et signer un fichier
+  - ``DECRYPT&VERIFY`` pour déchiffrer un fichier et valider sa signature
+  La documentation complète de ces tâches peut être consultée :ref:`ici<reference-tasks-list>`.
 * :feature:`130` Ajout d'une tâche ICAP, permettant (entre autre) d'envoyer
   un fichier de transfert à un service d'analyse antivirus. À noter que cette
   première version de la tâche comporte deux sévères limitations, et est donc

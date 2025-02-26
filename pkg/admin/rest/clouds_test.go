@@ -19,7 +19,6 @@ import (
 	"code.waarp.fr/apps/gateway/gateway/pkg/database/dbtest"
 	"code.waarp.fr/apps/gateway/gateway/pkg/fs/fstest"
 	"code.waarp.fr/apps/gateway/gateway/pkg/model"
-	"code.waarp.fr/apps/gateway/gateway/pkg/model/types"
 	"code.waarp.fr/apps/gateway/gateway/pkg/utils/testhelpers"
 )
 
@@ -106,7 +105,7 @@ func TestAddCloud(t *testing.T) {
 			Name:    input.Name,
 			Type:    input.Type,
 			Key:     input.Key,
-			Secret:  types.SecretText(input.Secret),
+			Secret:  database.SecretText(input.Secret),
 			Options: input.Options,
 		}
 		expectedLoc := path.Join(CloudInstancesPath, input.Name)
@@ -271,7 +270,7 @@ func testUpdateReplaceCloud(t *testing.T, isReplace bool) {
 		}
 
 		if isReplace || input.Secret != "" {
-			newCloud.Secret = types.SecretText(input.Secret)
+			newCloud.Secret = database.SecretText(input.Secret)
 		}
 
 		if isReplace || input.Options != nil {

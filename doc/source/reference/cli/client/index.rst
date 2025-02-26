@@ -35,3 +35,4 @@ Pour afficher la version du client, utiliser la commande ``waarp-gateway version
    authority/index
    cloud/index
    snmp/index
+   key/index

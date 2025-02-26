@@ -121,3 +121,14 @@ Glossaire
       SNMPv2, il existe deux types de notifications : les *traps* et les *informs*.
       La seule différence étant que les *informs* doivent être acquittés par le
       récepteur, alors que les *traps* ne le sont pas.
+
+   clé cryptographique
+   (*cryptographic key*)
+      Une clé cryptographique est un nom générique désignant un contenant pour
+      des clés servant à effectuer des opérations cryptographiques, telles que
+      le (dé)chiffrement ou encore la signature de fichiers. Ces clés sont
+      stockées dans une table dédiée en base de données, et peuvent être
+      référencées dans les tâches effectuant des opérations cryptographiques.
+      Selon le type et l'utilisation de cette clé cryptographique, celle-ci devra
+      contenir soit une clé privée, soit une clé publique (voir même parfois les
+      deux). Le format de la clé dépend également du type de la clé.

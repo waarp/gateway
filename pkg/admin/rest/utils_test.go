@@ -108,13 +108,16 @@ func marshal(tb testing.TB, data any) string {
 	return string(raw)
 }
 
-func makeRequest(tb testing.TB, method string, body io.Reader, url, elem string) *http.Request {
-	tb.Helper()
-
+func replaceURLVar(url, elem string) (string, string) {
 	dir := path.Dir(url)
 	urlVar := strings.Trim(path.Base(url), "{}")
-
 	reqURL := path.Join(dir, elem)
+
+	return reqURL, urlVar
+}
+
+func makeRequest(method string, body io.Reader, url, elem string) *http.Request {
+	reqURL, urlVar := replaceURLVar(url, elem)
 	req := httptest.NewRequest(method, reqURL, body)
 	req = mux.SetURLVars(req, map[string]string{urlVar: elem})
 

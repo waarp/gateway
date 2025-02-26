@@ -159,7 +159,7 @@ func TestListSNMPMonitors(t *testing.T) {
 	})
 }
 
-func TestGetSnmpMonitor(t *testing.T) {
+func TestGetSNMPMonitor(t *testing.T) {
 	t.Run("When retrieving an existing SNMP monitor", func(t *testing.T) {
 		logger := testhelpers.GetTestLogger(t)
 		db := dbtest.TestDatabase(t)
@@ -199,17 +199,17 @@ func TestGetSnmpMonitor(t *testing.T) {
 			"privPassphrase":  dbMonitor.PrivPassphrase,
 		})
 
-		req := makeRequest(t, http.MethodGet, nil, SNMPMonitorPath, dbMonitor.Name)
+		req := makeRequest(http.MethodGet, nil, SNMPMonitorPath, dbMonitor.Name)
 		w := httptest.NewRecorder()
 		handle.ServeHTTP(w, req)
 
 		assert.Equal(t, http.StatusOK, w.Code, `Then the response code should be "200 OK"`)
 		assert.JSONEq(t, expectedResponse, w.Body.String(),
-			`Then the list of SNMP monitors should have been returned`)
+			`Then the SNMP monitor should have been returned`)
 	})
 }
 
-func TestUpdateSnmpMonitor(t *testing.T) {
+func TestUpdateSNMPMonitor(t *testing.T) {
 	const (
 		newMonitorName       = "snmpv3-monitor"
 		newMonitorVersion    = "SNMPv3"
@@ -255,7 +255,7 @@ func TestUpdateSnmpMonitor(t *testing.T) {
 		}
 		expectedLoc := path.Join(SNMPMonitorsPath, expectedDBMonitor.Name)
 
-		req := makeRequest(t, http.MethodPatch, &reqBody, SNMPMonitorPath, oldDBMonitor.Name)
+		req := makeRequest(http.MethodPatch, &reqBody, SNMPMonitorPath, oldDBMonitor.Name)
 		w := httptest.NewRecorder()
 		handle.ServeHTTP(w, req)
 
@@ -289,7 +289,7 @@ func TestDeleteSnmpMonitor(t *testing.T) {
 		}
 		require.NoError(t, db.Insert(&dbMonitor).Run())
 
-		req := makeRequest(t, http.MethodDelete, nil, SNMPMonitorPath, dbMonitor.Name)
+		req := makeRequest(http.MethodDelete, nil, SNMPMonitorPath, dbMonitor.Name)
 		w := httptest.NewRecorder()
 		handle.ServeHTTP(w, req)
 

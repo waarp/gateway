@@ -14,11 +14,6 @@ import (
 // deleteTask is a task which delete the current file from the system.
 type deleteTask struct{}
 
-//nolint:gochecknoinits // designed to use init
-func init() {
-	model.ValidTasks["DELETE"] = &deleteTask{}
-}
-
 // Validate the task.
 func (*deleteTask) Validate(map[string]string) error {
 	return nil

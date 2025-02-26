@@ -151,4 +151,10 @@ func testMigrations(t *testing.T, eng *testEngine) {
 	apply(testVer0_10_0AddSNMPMonitors(t, eng))
 	apply(testVer0_10_0AddLocalAccountIPAddr(t, eng))
 	apply(testVer0_10_0AddTransferIndex(t, eng))
+
+	// 0.11.0
+	apply(testVer0_11_0AddSNMPServerConf(t, eng))
+
+	// 0.12.0
+	apply(testVer0_12_0AddCryptoKeys(t, eng))
 }

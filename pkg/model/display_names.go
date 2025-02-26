@@ -16,7 +16,8 @@ const (
 	NameRuleAccess         = "rule permission"
 	NameTask               = "task"
 	NameTransferInfo       = "transfer info"
-	NameUser               = "transfer"
+	NameUser               = "user"
+	NameCryptoKey          = "cryptographic key"
 )
 
 const authPassword = "password"

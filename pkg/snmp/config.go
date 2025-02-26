@@ -9,7 +9,6 @@ import (
 
 	"code.waarp.fr/apps/gateway/gateway/pkg/conf"
 	"code.waarp.fr/apps/gateway/gateway/pkg/database"
-	"code.waarp.fr/apps/gateway/gateway/pkg/model/types"
 )
 
 const (
@@ -49,12 +48,12 @@ type ServerConfig struct {
 	LocalUDPAddress string `xorm:"local_udp_address"`
 	Community       string `xorm:"community"`
 
-	SNMPv3Only           bool             `xorm:"v3_only"`
-	SNMPv3Username       string           `xorm:"v3_username"`
-	SNMPv3AuthProtocol   string           `xorm:"v3_auth_protocol"`
-	SNMPv3AuthPassphrase types.SecretText `xorm:"v3_auth_passphrase"`
-	SNMPv3PrivProtocol   string           `xorm:"v3_priv_protocol"`
-	SNMPv3PrivPassphrase types.SecretText `xorm:"v3_priv_passphrase"`
+	SNMPv3Only           bool                `xorm:"v3_only"`
+	SNMPv3Username       string              `xorm:"v3_username"`
+	SNMPv3AuthProtocol   string              `xorm:"v3_auth_protocol"`
+	SNMPv3AuthPassphrase database.SecretText `xorm:"v3_auth_passphrase"`
+	SNMPv3PrivProtocol   string              `xorm:"v3_priv_protocol"`
+	SNMPv3PrivPassphrase database.SecretText `xorm:"v3_priv_passphrase"`
 }
 
 func (*ServerConfig) TableName() string   { return "snmp_server_conf" }
@@ -108,13 +107,13 @@ type MonitorConfig struct {
 	ContextEngineID string `xorm:"snmp_v3_context_engine_id"`
 	SNMPv3Security  string `xorm:"snmp_v3_security"`
 
-	AuthEngineID   string           `xorm:"snmp_v3_auth_engine_id"`
-	AuthUsername   string           `xorm:"snmp_v3_auth_username"`
-	AuthProtocol   string           `xorm:"snmp_v3_auth_protocol"`
-	AuthPassphrase types.SecretText `xorm:"snmp_v3_auth_passphrase"`
+	AuthEngineID   string              `xorm:"snmp_v3_auth_engine_id"`
+	AuthUsername   string              `xorm:"snmp_v3_auth_username"`
+	AuthProtocol   string              `xorm:"snmp_v3_auth_protocol"`
+	AuthPassphrase database.SecretText `xorm:"snmp_v3_auth_passphrase"`
 
-	PrivProtocol   string           `xorm:"snmp_v3_priv_protocol"`
-	PrivPassphrase types.SecretText `xorm:"snmp_v3_priv_passphrase"`
+	PrivProtocol   string              `xorm:"snmp_v3_priv_protocol"`
+	PrivPassphrase database.SecretText `xorm:"snmp_v3_priv_passphrase"`
 }
 
 func (m *MonitorConfig) GetID() int64      { return m.ID }

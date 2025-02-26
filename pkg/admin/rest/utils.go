@@ -4,14 +4,14 @@ import (
 	"time"
 
 	"code.waarp.fr/apps/gateway/gateway/pkg/admin/rest/api"
-	"code.waarp.fr/apps/gateway/gateway/pkg/model/types"
+	"code.waarp.fr/apps/gateway/gateway/pkg/database"
 )
 
 func asNullableStr(str string) api.Nullable[string] {
 	return api.Nullable[string]{Value: str, Valid: str != ""}
 }
 
-func asNullableSecret(str types.SecretText) api.Nullable[string] {
+func asNullableSecret(str database.SecretText) api.Nullable[string] {
 	return asNullableStr(string(str))
 }
 
@@ -26,5 +26,11 @@ func asNullableTime(t time.Time) api.Nullable[time.Time] {
 func setIfValid[T any](field *T, value api.Nullable[T]) {
 	if value.Valid {
 		*field = value.Value
+	}
+}
+
+func setIfValidSecret(field *database.SecretText, value api.Nullable[string]) {
+	if value.Valid {
+		*field = database.SecretText(value.Value)
 	}
 }

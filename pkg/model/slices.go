@@ -54,4 +54,5 @@ type (
 	CloudInstances      = Slice[*CloudInstance]
 	Authorities         = Slice[*Authority]
 	Hosts               = Slice[*Host]
+	CryptoKeys          = Slice[*CryptoKey]
 )

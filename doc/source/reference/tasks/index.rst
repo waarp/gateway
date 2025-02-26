@@ -89,6 +89,8 @@ renseignée.
    ``#LOCALEXEC#`` 
    définition de LOCALHOST et de REMOTEHOST ?
 
+.. _reference-tasks-list:
+
 Liste des traitements
 =====================
 
@@ -109,3 +111,9 @@ Liste des traitements
    archive
    extract
    icap
+   encrypt
+   decrypt
+   sign
+   verify
+   encrypt_sign
+   decrypt_verify

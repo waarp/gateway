@@ -10,7 +10,6 @@ import (
 	"code.waarp.fr/apps/gateway/gateway/pkg/conf"
 	"code.waarp.fr/apps/gateway/gateway/pkg/database"
 	"code.waarp.fr/apps/gateway/gateway/pkg/model"
-	"code.waarp.fr/apps/gateway/gateway/pkg/model/types"
 )
 
 func retrieveCloud(r *http.Request, db *database.DB) (*model.CloudInstance, error) {
@@ -54,7 +53,7 @@ func restCloudToDB(cloud *api.PostCloudReqObject) *model.CloudInstance {
 		Name:    cloud.Name,
 		Type:    cloud.Type,
 		Key:     cloud.Key,
-		Secret:  types.SecretText(cloud.Secret),
+		Secret:  database.SecretText(cloud.Secret),
 		Options: cloud.Options,
 	}
 }
@@ -141,7 +140,7 @@ func updateCloud(logger *log.Logger, db *database.DB) http.HandlerFunc {
 			Name:    restCloud.Name,
 			Type:    restCloud.Type,
 			Key:     restCloud.Key.Value,
-			Secret:  types.SecretText(restCloud.Secret.Value),
+			Secret:  database.SecretText(restCloud.Secret.Value),
 			Options: restCloud.Options,
 		}
 
