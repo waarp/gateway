@@ -3,10 +3,19 @@ package main
 import (
 	"fmt"
 	"os"
+	"runtime"
+	"runtime/debug"
+	"strconv"
 
+	"github.com/dustin/go-humanize"
 	"github.com/jessevdk/go-flags"
 
 	wgd "code.waarp.fr/apps/gateway/gateway/pkg/cmd/server"
+)
+
+const (
+	memLimitVar = "WAARP_GATEWAYD_MEMORY_LIMIT"
+	cpuLimitVar = "WAARP_GATEWAYD_CPU_LIMIT"
 )
 
 //nolint:lll // tags can be long for flags
@@ -22,6 +31,7 @@ type commands struct {
 }
 
 func main() {
+	setResourcesLimits()
 	parser := flags.NewNamedParser("waarp-gatewayd", flags.Default)
 
 	if err := wgd.InitParser(parser, &commands{}); err != nil {
@@ -32,5 +42,27 @@ func main() {
 	if err := wgd.Main(parser, os.Args[1:]); err != nil {
 		// fmt.Fprintln(os.Stderr, err)
 		os.Exit(1)
+	}
+}
+
+func setResourcesLimits() {
+	memLimit := os.Getenv(memLimitVar)
+	cpuLimit := os.Getenv(cpuLimitVar)
+
+	if memLimit != "" {
+		if bytes, err := humanize.ParseBytes(memLimit); err != nil {
+			fmt.Fprintf(os.Stderr, "Failed to parse memory limit: %v\n", err)
+		} else {
+			//nolint:gosec //conversion from uint64 to int64 is fine in most cases
+			debug.SetMemoryLimit(int64(bytes))
+		}
+	}
+
+	if cpuLimit != "" {
+		if cpus, err := strconv.Atoi(cpuLimit); err != nil {
+			fmt.Fprintf(os.Stderr, "Failed to parse CPU limit: %v\n", err)
+		} else {
+			runtime.GOMAXPROCS(cpus)
+		}
 	}
 }

@@ -3,6 +3,9 @@
 Historique des versions
 =======================
 
+* :feature:`420` Ajout de 2 variables d'environnement ``WAARP_GATEWAYD_CPU_LIMIT``
+  et ``WAARP_GATEWAYD_MEMORY_LIMIT`` permettant respectivement de limiter le
+  nombre de cœurs CPU ainsi que la mémoire alloués à la Gateway.
 * :feature:`130` Ajout d'une tâche ICAP, permettant (entre autre) d'envoyer
   un fichier de transfert à un service d'analyse antivirus. À noter que cette
   première version de la tâche comporte deux sévères limitations, et est donc
