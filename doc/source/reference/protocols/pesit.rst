@@ -76,9 +76,10 @@ demandes de checkpoints.
 À tout moment, en cas d'erreur, chacun des deux partenaires du transfert peut
 demander à l'autre de faire un *restart* du transfert, et de donc reprendre ce
 transfert à un checkpoint préalablement validé. Il est à noter que bien que
-Waarp Gateway permette à un partenaire externe de faire un *restart* du transfert,
-la Gateway ne demandera jamais de faire un *restart* elle-même (la politique de
-Gateway étant de purement et simplement interrompre les transferts en cas d'erreur).
+Waarp Gateway permette à un partenaire externe de faire un *restart* de transfert
+quand il le souhaite (y compris pendant le transfert lui-même), la Gateway ne
+demandera jamais automatiquement de faire un *restart* elle-même, la politique
+de Waarp étant que la reprise de transfert est une prérogative de l'utilisateur.
 
 Ces 2 fonctionnalités (les checkpoints et les restarts) peuvent être désactivés
 si besoin via les :ref:`configurations protocolaires <proto-config-pesit>` des

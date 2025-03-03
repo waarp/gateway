@@ -6,7 +6,7 @@ require (
 	code.waarp.fr/lib/goftp v0.1.1-0.20240801120050-932aa2b2f9a7
 	code.waarp.fr/lib/log v1.2.0
 	code.waarp.fr/lib/migration v0.4.0
-	code.waarp.fr/lib/pesit v0.1.0
+	code.waarp.fr/lib/pesit v0.1.2
 	code.waarp.fr/lib/r66 v0.1.6
 	github.com/ProtonMail/gopenpgp/v3 v3.0.0-beta.2-proton
 	github.com/bwmarrin/snowflake v0.3.0
