@@ -7,18 +7,13 @@ Système
 
 Les systèmes d'exploitation suivants sont officiellement supportés :
 
-+-----------------------------+----------------+
-| Système d'exploitation      | Architectures  |
-+=============================+================+
-| Linux 2.6.23 (glibc requis) | amd64, i386    |
-+-----------------------------+----------------+
-| Windows 7 ou Server 2008 R2 | amd64, i386    |
-+-----------------------------+----------------+
-
-.. Cependant, la gateway étant écrite en langage *Go*, le système sur lequel elle
-   sera installée doit faire parti des `systèmes supportés par le compilateur
-   <https://golang.org/doc/install#requirements>`_.
-
++-------------------------------------+----------------+
+| Système d'exploitation              | Architecture   |
++=====================================+================+
+| Linux kernel 3.2 minimum            | amd64          |
++-------------------------------------+----------------+
+| Windows 10 (ou Server 2016) minimum | amd64          |
++-------------------------------------+----------------+
 
 Exécutables
 ===========

@@ -4,6 +4,10 @@ Historique des versions
 =======================
 
 * :release:`0.12.0 <2025-03-04>`
+* :feature:`-` Mise à jour des pré-requis système. Côté Windows, Waarp Gateway
+  requiert désormais au minimum Windows 10 ou Windows Server 2016. Côté Linux,
+  un kernel version 3.2 minimum est désormais requis. Toutes les versions
+  antérieures de ces OS ne sont désormais plus supportées.
 * :feature:`440` Ajout du support pour le protocol PeSIT, ainsi que sa variante
   TLS. À noter que le protocole n'a pas été testé avec d'autres applications, et
   est donc par conséquent en **BETA**. Compte tenu des nombreuses spécificités
