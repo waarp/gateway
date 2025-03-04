@@ -15,7 +15,6 @@ performances quand la charge de transferts devient très importante, mais il
 permet également d'éviter d'éventuelles interruptions de service dans le cas où
 une des instances viendrait à tomber.
 
-===========
 Limitations
 ===========
 
@@ -41,7 +40,6 @@ décision d'installer *Waarp-Gateway* en grappe. Ces limitations sont :
    base de données, et doivent donc avoir la même version du schéma de la base
    de données.
 
-============
 Installation
 ============
 
@@ -58,7 +56,6 @@ ces noeuds *node1*, *node2* et *node3*.
 Dans notre exemple, les 3 noeuds tournent sur la même machine, mais la procédure
 est identique dans le cas où les noeuds ne sont pas sur la même machine.
 
-=============
 Configuration
 =============
 
@@ -140,7 +137,6 @@ vers les adresses REST de nos 3 noeuds (respectivement 127.0.0.1:8081,
 
 Une fois la configuration du proxy terminée, celui-ci peut être démarré.
 
-=========
 Lancement
 =========
 

@@ -63,7 +63,7 @@ de la commande ``list``.
 
 
 Supprimer un utilisateur
-------------------------
+========================
 
 Pour supprimer un utilisateur, la commande est ``user delete``, suivie ensuite du
 nom de l'utilisateur à supprimer.

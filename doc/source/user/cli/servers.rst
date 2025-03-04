@@ -8,11 +8,6 @@ La commande de gestion des :term:`serveurs<serveur>` locaux est ``server``.
 Cette commande doit ensuite être suivie d'une action. La liste complète des
 actions est disponible :any:`ici <reference-cli-client-servers>`.
 
-.. note::
-   Toutes modification ou ajout d'un serveur local ne prendra effet qu'après
-   redémarrage de Gateway.
-
-
 Ajouter un serveur
 ==================
 

@@ -12,7 +12,8 @@ Ses principales fonctionnalités sont :
 - Rupture protocolaire
 - Interconnexion protocolaire
 - Protocoles supportés : :ref:`R66 <ref-proto-r66>`, :ref:`SFTP
-  <ref-proto-r66>`, :ref:`HTTP(S) <ref-proto-http>`
+  <ref-proto-r66>`, :ref:`HTTP(S) <ref-proto-http>`, :ref:`FTP(S) 
+  <ref-proto-ftp>`
 - Reprise de transferts
 - Possibilité de :ref:`programmer des transferts <user-add-transfer>`
 - Définition de :ref:`chaînes de traitements <user-add-rule>` pré-transfert,

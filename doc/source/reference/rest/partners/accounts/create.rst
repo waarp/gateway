@@ -22,7 +22,7 @@ Ajouter un compte distant
 
    .. code-block:: http
 
-      POST https://my_waarp_gateway.net/api/partner/waarp_sftp/accounts HTTP/1.1
+      POST https://my_waarp_gateway.net/api/partners/waarp_sftp/accounts HTTP/1.1
       Authorization: Basic QWxhZGRpbjpvcGVuIHNlc2FtZQ==
       Content-Type: application/json
       Content-Length: 109

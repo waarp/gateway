@@ -11,12 +11,6 @@ et des clients rattachés à celle-ci.
 La commande affiche également la version du service Gateway ainsi que son heure
 locale.
 
-**Commande**
-
-.. code-block:: shell
-
-   waarp-gateway transfer add
-
 **Options**
 
 Cette commande le prend aucune option.

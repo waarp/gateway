@@ -16,7 +16,7 @@ Supprimer un compte distant
 
    .. code-block:: http
 
-      DELETE https://my_waarp_gateway.net/api/partner/waarp_sftp/account/titi HTTP/1.1
+      DELETE https://my_waarp_gateway.net/api/partners/waarp_sftp/account/titi HTTP/1.1
       Authorization: Basic QWxhZGRpbjpvcGVuIHNlc2FtZQ==
 
    **Exemple de réponse**

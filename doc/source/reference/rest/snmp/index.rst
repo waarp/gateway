@@ -9,3 +9,4 @@ modifications possède les droits d'administration.
    :maxdepth: 2
 
    monitors/index
+   service/index
