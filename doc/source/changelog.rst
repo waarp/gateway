@@ -3,6 +3,7 @@
 Historique des versions
 =======================
 
+* :release:`0.12.0 <2025-03-04>`
 * :feature:`440` Ajout du support pour le protocol PeSIT, ainsi que sa variante
   TLS. À noter que le protocole n'a pas été testé avec d'autres applications, et
   est donc par conséquent en **BETA**. Compte tenu des nombreuses spécificités
