@@ -189,7 +189,7 @@ func (h *httpHandler) handleHead() {
 	var trans model.Transfer
 
 	if err := h.db.Get(&trans, "remote_transfer_id=? AND local_account_id=?",
-		remoteID, h.account.ID).Run(); err != nil {
+		remoteID, h.account.ID).OrderBy("start", false).Run(); err != nil {
 		if database.IsNotFound(err) {
 			h.sendError(http.StatusBadRequest, types.TeInternal, "unknown transfer ID")
 

@@ -8,12 +8,13 @@ import (
 	"code.waarp.fr/lib/migration"
 	"github.com/stretchr/testify/require"
 
-	"code.waarp.fr/apps/gateway/gateway/pkg/utils/gwtesting"
+	"code.waarp.fr/apps/gateway/gateway/pkg/database/migrations/migtest"
+	"code.waarp.fr/apps/gateway/gateway/pkg/utils/testhelpers"
 )
 
 func getPostgreEngine(tb testing.TB) *testEngine {
-	logger := gwtesting.Logger(tb)
-	db := gwtesting.PostgreSQLDatabase(tb)
+	logger := testhelpers.GetTestLogger(tb)
+	db := migtest.PostgreSQLDatabase(tb)
 
 	eng, err := migration.NewEngine(db, PostgreSQL, logger, nil)
 	require.NoError(tb, err)

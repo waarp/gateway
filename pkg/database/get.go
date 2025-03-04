@@ -11,6 +11,8 @@ import (
 
 // GetBean is the interface that a model must implement in order to be usable
 // with the DB.Get function.
+//
+//nolint:iface //best keep generic table interface separate from bean interfaces
 type GetBean interface {
 	Table
 }
@@ -21,10 +23,21 @@ type GetQuery struct {
 	bean GetBean
 
 	conds []*condition
+	order string
+	asc   bool
 }
 
 func (g *GetQuery) And(sql string, args ...any) *GetQuery {
 	g.conds = append(g.conds, &condition{sql: sql, args: args})
+
+	return g
+}
+
+// OrderBy adds an 'ORDER BY' clause to the 'SELECT' query with the given order
+// and direction.
+func (g *GetQuery) OrderBy(order string, asc bool) *GetQuery {
+	g.order = order
+	g.asc = asc
 
 	return g
 }
@@ -46,6 +59,14 @@ func (g *GetQuery) Run() error {
 		var err error
 		if condsStr[i], err = builder.ConvertToBoundSQL(cond.sql, cond.args); err != nil {
 			logger.Debug("Failed to serialize the SQL condition: %v", err)
+		}
+	}
+
+	if g.order != "" {
+		if g.asc {
+			query.OrderBy(fmt.Sprintf("%s ASC", g.order))
+		} else {
+			query.OrderBy(fmt.Sprintf("%s DESC", g.order))
 		}
 	}
 

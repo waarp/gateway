@@ -9,7 +9,8 @@ import (
 	"code.waarp.fr/lib/migration"
 	"github.com/stretchr/testify/require"
 
-	"code.waarp.fr/apps/gateway/gateway/pkg/utils/gwtesting"
+	"code.waarp.fr/apps/gateway/gateway/pkg/database/migrations/migtest"
+	"code.waarp.fr/apps/gateway/gateway/pkg/utils/testhelpers"
 )
 
 type testEngine struct {
@@ -47,8 +48,8 @@ func (t *testEngine) Exec(query string, args ...any) error {
 func getSQLiteEngine(tb testing.TB) *testEngine {
 	tb.Helper()
 
-	logger := gwtesting.Logger(tb)
-	db := gwtesting.SQLiteDatabase(tb)
+	logger := testhelpers.GetTestLogger(tb)
+	db := migtest.SQLiteDatabase(tb)
 
 	eng, err := migration.NewEngine(db, SQLite, logger, nil)
 	require.NoError(tb, err)

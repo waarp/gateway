@@ -8,6 +8,7 @@ import (
 	"sync/atomic"
 
 	"code.waarp.fr/apps/gateway/gateway/pkg/fs"
+	"code.waarp.fr/apps/gateway/gateway/pkg/model"
 	"code.waarp.fr/apps/gateway/gateway/pkg/model/types"
 	"code.waarp.fr/apps/gateway/gateway/pkg/utils"
 )
@@ -254,7 +255,9 @@ func (f *FileStream) close() *Error {
 		f.Logger.Warning("Failed to close file: %s", fErr)
 	}
 
-	f.TransCtx.Transfer.Filesize = stat.Size()
+	if f.TransCtx.Transfer.Filesize == model.UnknownSize {
+		f.TransCtx.Transfer.Filesize = stat.Size()
+	}
 
 	if dbErr := f.UpdateTrans(); dbErr != nil {
 		return dbErr

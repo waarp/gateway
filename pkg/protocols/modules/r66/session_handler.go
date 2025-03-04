@@ -195,7 +195,7 @@ func (s *sessionHandler) GetTransferInfo(id int64, isClient bool) (*r66.Transfer
 	trans := model.Transfer{}
 
 	if err := s.db.Get(&trans, "remote_transfer_id=? AND local_account_id=?",
-		remoteID, s.account.ID).Run(); database.IsNotFound(err) {
+		remoteID, s.account.ID).OrderBy("start", false).Run(); database.IsNotFound(err) {
 		return s.getInfoFromHistory(id)
 	} else if err != nil {
 		s.logger.Error("Failed to retrieve transfer entry: %v", err)
@@ -243,7 +243,7 @@ func (s *sessionHandler) getInfoFromHistory(transID int64) (*r66.TransferInfo, e
 	var hist model.HistoryEntry
 
 	dbErr := s.db.Get(&hist, "remote_transfer_id=? AND is_server=? AND account=?",
-		utils.FormatInt(transID), true, s.account.Login).Run()
+		utils.FormatInt(transID), true, s.account.Login).OrderBy("start", false).Run()
 	if database.IsNotFound(dbErr) {
 		return nil, &r66.Error{Code: r66.IncorrectCommand, Detail: "transfer not found"}
 	} else if dbErr != nil {

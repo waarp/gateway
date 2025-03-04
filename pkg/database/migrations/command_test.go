@@ -6,15 +6,16 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
-	"code.waarp.fr/apps/gateway/gateway/pkg/utils/gwtesting"
+	"code.waarp.fr/apps/gateway/gateway/pkg/database/migrations/migtest"
+	"code.waarp.fr/apps/gateway/gateway/pkg/utils/testhelpers"
 )
 
 func TestDoMigration(t *testing.T) {
 	t.Parallel()
 
 	t.Run("Given an test database", func(t *testing.T) {
-		logger := gwtesting.Logger(t)
-		db := gwtesting.SQLiteDatabase(t)
+		logger := testhelpers.GetTestLogger(t)
+		db := migtest.SQLiteDatabase(t)
 		var curr string
 
 		require.NoError(t, DoMigration(db, logger, "0.4.0", SQLite, nil))

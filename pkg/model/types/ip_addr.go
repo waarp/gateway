@@ -9,6 +9,7 @@ import (
 
 const ipAddrSeparator = " | "
 
+//nolint:recvcheck //a mix of pointer and non-pointer receivers is needed here to avoid nil pointers
 type IPList []string
 
 func (l *IPList) FromDB(bytes []byte) error {

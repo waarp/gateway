@@ -14,6 +14,8 @@ breaking.
   - R66 / R66 over TLS
   - SFTP
   - HTTP / HTTPS
+  - FTP / FTPS
+  - PeSIT *(currently in beta)*
 - Works in clusters with a load balancer
 - Administration via a REST API & command line interface
 

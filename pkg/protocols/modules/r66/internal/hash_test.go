@@ -9,8 +9,6 @@ import (
 	. "github.com/smartystreets/goconvey/convey"
 
 	"code.waarp.fr/apps/gateway/gateway/pkg/fs"
-	"code.waarp.fr/apps/gateway/gateway/pkg/model/types"
-	"code.waarp.fr/apps/gateway/gateway/pkg/pipeline"
 	"code.waarp.fr/apps/gateway/gateway/pkg/utils/testhelpers"
 )
 
@@ -39,8 +37,7 @@ func TestCheckHash(t *testing.T) {
 			_, err := MakeHash(context.Background(), "SHA-256", logger, invalidPath)
 
 			Convey("Then it should return an error", func() {
-				So(err, ShouldBeError, pipeline.NewError(types.TeInternal,
-					"failed to open file for hash"))
+				So(err.Error(), ShouldContainSubstring, "failed to open file for hash")
 			})
 		})
 	})

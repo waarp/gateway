@@ -34,14 +34,14 @@ func (f *FileStream) getFile() (fs.File, *Error) {
 		if err != nil {
 			f.Logger.Error("Failed to open source file: %s", err)
 
-			return nil, fileErrToTransferErr(err)
+			return nil, FileErrToTransferErr(err)
 		}
 
 		stat, err := file.Stat()
 		if err != nil {
 			f.Logger.Error("Failed to retrieve the file's info: %s", err)
 
-			return nil, fileErrToTransferErr(err)
+			return nil, FileErrToTransferErr(err)
 		}
 
 		trans.Filesize = stat.Size()
@@ -67,14 +67,14 @@ func (f *FileStream) getFile() (fs.File, *Error) {
 	if fsErr != nil {
 		f.Logger.Error("Failed to create destination file %q: %s", trans.LocalPath, fsErr)
 
-		return nil, fileErrToTransferErr(fsErr)
+		return nil, FileErrToTransferErr(fsErr)
 	}
 
 	if trans.Progress != 0 {
 		if _, err := file.Seek(trans.Progress, io.SeekStart); err != nil {
 			f.Logger.Error("Failed to seek inside file: %s", err)
 
-			return nil, fileErrToTransferErr(err)
+			return nil, FileErrToTransferErr(err)
 		}
 	}
 
@@ -85,7 +85,7 @@ func (f *FileStream) getFile() (fs.File, *Error) {
 // they don't exist.
 func createDir(file string) *Error {
 	if err := fs.MkdirAll(path.Dir(file)); err != nil {
-		return fileErrToTransferErr(err)
+		return FileErrToTransferErr(err)
 	}
 
 	return nil

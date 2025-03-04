@@ -8,12 +8,13 @@ import (
 	"code.waarp.fr/lib/migration"
 	"github.com/stretchr/testify/require"
 
-	"code.waarp.fr/apps/gateway/gateway/pkg/utils/gwtesting"
+	"code.waarp.fr/apps/gateway/gateway/pkg/database/migrations/migtest"
+	"code.waarp.fr/apps/gateway/gateway/pkg/utils/testhelpers"
 )
 
 func getMySQLEngine(tb testing.TB) *testEngine {
-	logger := gwtesting.Logger(tb)
-	db := gwtesting.MySQLDatabase(tb)
+	logger := testhelpers.GetTestLogger(tb)
+	db := migtest.MySQLDatabase(tb)
 
 	eng, err := migration.NewEngine(db, MySQL, logger, nil)
 	require.NoError(tb, err)

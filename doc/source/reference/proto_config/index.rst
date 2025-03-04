@@ -24,3 +24,4 @@ de configuration approprié doit être fourni.
    sftp
    http
    ftp
+   pesit

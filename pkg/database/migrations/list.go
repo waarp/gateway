@@ -306,4 +306,9 @@ var Migrations = []Change{
 		Up:          ver0_12_0AddCryptoKeysUp,
 		Down:        ver0_12_0AddCryptoKeysDown,
 	},
+	{ // #57
+		Description: `Remove the unique constraint on the remote transfer ID`,
+		Up:          ver0_12_0DropRemoteTransferIdUniqueUp,
+		Down:        ver0_12_0DropRemoteTransferIdUniqueDown,
+	},
 }

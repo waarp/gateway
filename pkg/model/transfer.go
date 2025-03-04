@@ -71,42 +71,8 @@ func (t *Transfer) setTransInfoOwner(info *TransferInfo) {
 	info.TransferID = utils.NewNullInt64(t.ID)
 }
 
-func (t *Transfer) checkRemoteTransferID(db database.ReadAccess) error {
-	accCond, accArgs := func() (string, []any) {
-		if t.IsServer() {
-			return "local_account_id=?", []any{t.LocalAccountID.Int64}
-		} else {
-			return "remote_account_id=?", []any{t.RemoteAccountID.Int64}
-		}
-	}()
-
-	n1, err := db.Count(t).Where("id<>? AND remote_transfer_id=?", t.ID,
-		t.RemoteTransferID).Where(accCond, accArgs...).Run()
-	if err != nil {
-		return fmt.Errorf("failed to check transfer remote IDs: %w", err)
-	}
-
-	tbl := "local_accounts"
-	accID := t.LocalAccountID.Int64
-
-	if !t.IsServer() {
-		tbl = "remote_accounts"
-		accID = t.RemoteAccountID.Int64
-	}
-
-	n2, err := db.Count(&HistoryEntry{}).Where(fmt.Sprintf("remote_transfer_id=? "+
-		"AND is_server=? AND account=(SELECT login FROM %s WHERE id=?)", tbl),
-		t.RemoteTransferID, t.IsServer(), accID).Run()
-	if err != nil {
-		return fmt.Errorf("failed to check history remote IDs: %w", err)
-	}
-
-	if n1 != 0 || n2 != 0 {
-		return database.NewValidationError("a transfer from the same account " +
-			"with the same remote ID already exists")
-	}
-
-	return nil
+func (t *Transfer) Init(db database.Access) error {
+	return initPesitCounter(db)
 }
 
 //nolint:funlen //function is fine for now
@@ -246,7 +212,7 @@ func (t *Transfer) BeforeWrite(db database.Access) error {
 		return database.NewValidationError("Rule %d is not authorized for this transfer", t.RuleID)
 	}
 
-	return t.checkRemoteTransferID(db)
+	return nil
 }
 
 func (t *Transfer) AfterInsert(db database.Access) error {
@@ -258,7 +224,7 @@ func (t *Transfer) AfterInsert(db database.Access) error {
 		return fmt.Errorf("failed to create follow ID: %w", err)
 	}
 
-	return nil
+	return mkPesitID(db, t)
 }
 
 func (t *Transfer) makeAgentInfo(db database.ReadAccess,

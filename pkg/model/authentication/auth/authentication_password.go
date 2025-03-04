@@ -52,12 +52,18 @@ func (*BcryptAuthHandler) Validate(value, _, _, _ string, _ bool) error {
 	return nil
 }
 
-func (*BcryptAuthHandler) Authenticate(db database.ReadAccess,
+func (b *BcryptAuthHandler) Authenticate(db database.ReadAccess,
 	owner authentication.Owner, val any,
+) (*authentication.Result, error) {
+	return b.AuthenticateType(db, owner, val, Password)
+}
+
+func (*BcryptAuthHandler) AuthenticateType(db database.ReadAccess,
+	owner authentication.Owner, val any, authType string,
 ) (*authentication.Result, error) {
 	doVerify := func(value []byte) (*authentication.Result, error) {
 		var pswd model.Credential
-		if err := db.Get(&pswd, "type=?", Password).And(owner.GetCredCond()).
+		if err := db.Get(&pswd, "type=?", authType).And(owner.GetCredCond()).
 			Run(); err != nil && !database.IsNotFound(err) {
 			return nil, fmt.Errorf("failed to retrieve the reference password hash: %w", err)
 		}
@@ -96,12 +102,12 @@ func (*AESPasswordHandler) ToDB(val, _ string) (string, string, error) {
 }
 
 func (*AESPasswordHandler) FromDB(val, _ string) (string, string, error) {
-	clear, err := utils.AESDecrypt(database.GCM, val)
+	plain, err := utils.AESDecrypt(database.GCM, val)
 	if err != nil {
 		return "", "", fmt.Errorf("failed to decrypt the password: %w", err)
 	}
 
-	return clear, "", nil
+	return plain, "", nil
 }
 
 func (*AESPasswordHandler) Validate(value, _, _, _ string, _ bool) error {

@@ -6,7 +6,18 @@ import (
 
 	"code.waarp.fr/lib/log"
 	"github.com/stretchr/testify/require"
+
+	"code.waarp.fr/apps/gateway/gateway/pkg/logging"
 )
+
+const testLogLevel = "DEBUG"
+
+//nolint:gochecknoinits //init is needed here
+func init() {
+	if err := logging.AddLogBackend(testLogLevel, log.Stdout, "", ""); err != nil {
+		panic(err)
+	}
+}
 
 func Logger(tb testing.TB) *log.Logger {
 	tb.Helper()
