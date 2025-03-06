@@ -1,6 +1,7 @@
 package wg
 
 import (
+	"crypto/ecdh"
 	"crypto/ecdsa"
 	"crypto/ed25519"
 	"crypto/elliptic"
@@ -79,7 +80,10 @@ func marshalPublicKey(key any) string {
 	case *rsa.PublicKey:
 		bytes = x509.MarshalPKCS1PublicKey(k)
 	case *ecdsa.PublicKey:
+		//nolint:staticcheck //keep for retro-compatibility
 		bytes = elliptic.Marshal(k, k.X, k.Y)
+	case *ecdh.PublicKey:
+		bytes = k.Bytes()
 	case *ed25519.PublicKey:
 		bytes = *k
 	default:
