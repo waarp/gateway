@@ -16,7 +16,7 @@ func invalidMode(mode string) error {
 	return badRequest("invalid permission mode '%s'", mode)
 }
 
-//nolint:gomnd // too specific
+//nolint:mnd // too specific
 func alterPerm(old, perm string) (string, error) {
 	res := &[3]byte{}
 	if len(old) == 3 {
@@ -92,6 +92,7 @@ func permsToMask(old model.PermsMask, perms *api.Perms) (model.PermsMask, error)
 		return 0, err
 	}
 
+	//nolint:wrapcheck //wrapping adds nothing here
 	return model.PermsToMask(oldPerms)
 }
 
@@ -109,13 +110,17 @@ func maskToPerms(m model.PermsMask) *api.Perms {
 }
 
 type (
-	handler        func(*log.Logger, *database.DB) http.HandlerFunc
-	handlerNoDB    func(*log.Logger) http.HandlerFunc
-	handlerFactory func(string, handler, model.PermsMask, ...string)
+	HandlerDB      func(*log.Logger, *database.DB) http.HandlerFunc
+	HandlerNoDB    func(*log.Logger) http.HandlerFunc
+	HandlerFactory func(string, HandlerDB, model.PermsMask, ...string)
 )
 
-func makeHandlerFactory(logger *log.Logger, db *database.DB, router *mux.Router) handlerFactory {
-	return func(path string, handle handler, perm model.PermsMask, methods ...string) {
+func MakeHandlerFactory(logger *log.Logger, db *database.DB, router *mux.Router) HandlerFactory {
+	return makeHandlerFactory(logger, db, router)
+}
+
+func makeHandlerFactory(logger *log.Logger, db *database.DB, router *mux.Router) HandlerFactory {
+	return func(path string, handle HandlerDB, perm model.PermsMask, methods ...string) {
 		var auth http.HandlerFunc = func(w http.ResponseWriter, r *http.Request) {
 			login, _, ok := r.BasicAuth()
 			if !ok {
@@ -152,7 +157,7 @@ func makeHandlerFactory(logger *log.Logger, db *database.DB, router *mux.Router)
 	}
 }
 
-func (f handlerFactory) noDB(path string, handle handlerNoDB, perm model.PermsMask, methods ...string) {
+func (f HandlerFactory) noDB(path string, handle HandlerNoDB, perm model.PermsMask, methods ...string) {
 	f(path, func(logger *log.Logger, _ *database.DB) http.HandlerFunc {
 		return handle(logger)
 	}, perm, methods...)

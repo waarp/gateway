@@ -64,8 +64,12 @@ func parseSelectQuery(r *http.Request, db database.ReadAccess, validOrders order
 	return query, nil
 }
 
-// handleError returns `true` if an error has been caught. It returns `false`
+// HandleError returns `true` if an error has been caught. It returns `false`
 // if there is no error, and execution can continue.
+func HandleError(w http.ResponseWriter, logger *log.Logger, err error) bool {
+	return handleError(w, logger, err)
+}
+
 func handleError(w http.ResponseWriter, logger *log.Logger, err error) bool {
 	if err == nil {
 		return false
@@ -112,6 +116,14 @@ func handleError(w http.ResponseWriter, logger *log.Logger, err error) bool {
 	return true
 }
 
+func WriteJSON(w http.ResponseWriter, obj any) error {
+	return writeJSON(w, obj)
+}
+
+func ReadJSON(r *http.Request, dest any) error {
+	return readJSON(r, dest)
+}
+
 func writeJSON(w http.ResponseWriter, bean interface{}) error {
 	w.Header().Set("Content-Type", "application/json")
 
@@ -154,4 +166,8 @@ func locationUpdate(u *url.URL, name string) string {
 	}
 
 	return loc.String()
+}
+
+func LocationUpdate(u *url.URL, name string) string {
+	return locationUpdate(u, name)
 }

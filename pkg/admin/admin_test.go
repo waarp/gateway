@@ -168,7 +168,7 @@ func TestAuthentication(t *testing.T) {
 	Convey("Given an authentication handler", t, func(c C) {
 		logger := testhelpers.TestLogger(c, "rest_auth_test")
 		db := database.TestDatabase(c)
-		authHandler := authentication(logger, db).Middleware(handler)
+		authHandler := AuthenticationMiddleware(logger, db).Middleware(handler)
 
 		Convey("Given an incoming request", func() {
 			w := httptest.NewRecorder()
