@@ -13,17 +13,17 @@ import (
 )
 
 func displayAuthority(w io.Writer, authority *api.OutAuthority) {
-	style1.printf(w, "Authority %q", authority.Name)
-	style22.printL(w, "Type", authority.Type)
-	style22.printL(w, "Valid for hosts", withDefault(join(authority.ValidHosts), "<all>"))
+	Style1.Printf(w, "Authority %q", authority.Name)
+	Style22.PrintL(w, "Type", authority.Type)
+	Style22.PrintL(w, "Valid for hosts", withDefault(join(authority.ValidHosts), "<all>"))
 
 	var err error
 
 	switch authority.Type {
 	case auth.AuthorityTLS:
-		err = displayTLSInfo(w, style22, authority.Name, authority.PublicIdentity)
+		err = displayTLSInfo(w, Style22, authority.Name, authority.PublicIdentity)
 	case sftp.AuthoritySSHCert:
-		err = displaySSHKeyInfo(w, style22, authority.Name, authority.PublicIdentity)
+		err = displaySSHKeyInfo(w, Style22, authority.Name, authority.PublicIdentity)
 	}
 
 	if err != nil {
@@ -92,7 +92,7 @@ func (a *AuthorityList) execute(w io.Writer) error {
 	}
 
 	if authorities := body["authorities"]; len(authorities) > 0 {
-		style0.printf(w, "=== Authentication authorities ===")
+		Style0.Printf(w, "=== Authentication authorities ===")
 
 		for _, authority := range authorities {
 			displayAuthority(w, authority)

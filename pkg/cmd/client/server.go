@@ -27,14 +27,14 @@ func (*ServerArg) UnmarshalFlag(value string) error {
 }
 
 func displayServer(w io.Writer, server *api.OutServer) {
-	style1.printf(w, "Server %q [%s]", server.Name, coloredEnabled(server.Enabled))
-	style22.printL(w, "Protocol", server.Protocol)
-	style22.printL(w, "Address", server.Address)
-	style22.printL(w, "Credentials", withDefault(join(server.Credentials), none))
-	style22.option(w, "Root directory", server.RootDir)
-	style22.option(w, "Receive directory", server.ReceiveDir)
-	style22.option(w, "Send directory", server.SendDir)
-	style22.option(w, "Temp receive directory", server.TmpReceiveDir)
+	Style1.Printf(w, "Server %q [%s]", server.Name, coloredEnabled(server.Enabled))
+	Style22.PrintL(w, "Protocol", server.Protocol)
+	Style22.PrintL(w, "Address", server.Address)
+	Style22.PrintL(w, "Credentials", withDefault(join(server.Credentials), none))
+	Style22.Option(w, "Root directory", server.RootDir)
+	Style22.Option(w, "Receive directory", server.ReceiveDir)
+	Style22.Option(w, "Send directory", server.SendDir)
+	Style22.Option(w, "Temp receive directory", server.TmpReceiveDir)
 
 	displayProtoConfig(w, server.ProtoConfig)
 	displayAuthorizedRules(w, server.AuthorizedRules)
@@ -173,7 +173,7 @@ func (s *ServerList) execute(w io.Writer) error {
 	}
 
 	if servers := body["servers"]; len(servers) > 0 {
-		style0.printf(w, "=== Servers ===")
+		Style0.Printf(w, "=== Servers ===")
 
 		for _, server := range servers {
 			displayServer(w, server)

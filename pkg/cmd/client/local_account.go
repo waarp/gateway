@@ -20,9 +20,9 @@ func (*LocAccArg) UnmarshalFlag(value string) error {
 }
 
 func displayLocalAccount(w io.Writer, account *api.OutLocalAccount) {
-	style1.printf(w, "Account %q", account.Login)
-	style22.option(w, "Authorized IP addresses", join(account.IPAddresses))
-	style22.printL(w, "Credentials", withDefault(join(account.Credentials), none))
+	Style1.Printf(w, "Account %q", account.Login)
+	Style22.Option(w, "Authorized IP addresses", join(account.IPAddresses))
+	Style22.PrintL(w, "Credentials", withDefault(join(account.Credentials), none))
 	displayAuthorizedRules(w, account.AuthorizedRules)
 }
 
@@ -147,7 +147,7 @@ func (l *LocAccList) execute(w io.Writer) error {
 	}
 
 	if accounts := body["localAccounts"]; len(accounts) > 0 {
-		style0.printf(w, "=== Accounts of server %q ===", Server)
+		Style0.Printf(w, "=== Accounts of server %q ===", Server)
 
 		for _, account := range accounts {
 			displayLocalAccount(w, account)

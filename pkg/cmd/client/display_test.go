@@ -7,12 +7,12 @@ import (
 )
 
 func TestColors(t *testing.T) {
-	t.Log(style0.sprintf("=== Main title ==="))
-	t.Log(style1.sprintL("Item", "value"))
-	t.Log(style22.sprintL("Property", "value"))
-	t.Log(style22.sprintL("Empty property", empty))
-	t.Log(style333.sprintL("Sub-property", "value"))
-	t.Log(style4444.sprintL("Sub-sub-property", "value"))
+	t.Log(Style0.sprintf("=== Main title ==="))
+	t.Log(Style1.sprintL("Item", "value"))
+	t.Log(Style22.sprintL("Property", "value"))
+	t.Log(Style22.sprintL("Empty property", empty))
+	t.Log(Style333.sprintL("Sub-property", "value"))
+	t.Log(Style4444.sprintL("Sub-sub-property", "value"))
 
 	t.Logf("Status [%s]", coloredStatus(types.StatusPlanned))
 	t.Logf("Status [%s]", coloredStatus(types.StatusRunning))

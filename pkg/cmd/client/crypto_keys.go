@@ -18,8 +18,8 @@ func displayCryptoKey(w io.Writer, key *api.GetCryptoKeyRespObject) error {
 	case model.CryptoKeyTypePGPPrivate, model.CryptoKeyTypePGPPublic:
 		return displayPGPKey(w, key)
 	default:
-		style1.printf(w, "Cryptographic key %q of unknown type %q", key.Name, key.Type)
-		style22.printL(w, "Base64 key", key.Key)
+		Style1.Printf(w, "Cryptographic key %q of unknown type %q", key.Name, key.Type)
+		Style22.PrintL(w, "Base64 key", key.Key)
 
 		return nil
 	}
@@ -36,21 +36,21 @@ func displayPGPKey(w io.Writer, key *api.GetCryptoKeyRespObject) error {
 		kind = "private"
 	}
 
-	style1.printf(w, "PGP %s key %q", kind, key.Name)
-	style22.printf(w, "Entity:")
+	Style1.Printf(w, "PGP %s key %q", kind, key.Name)
+	Style22.Printf(w, "Entity:")
 
 	for _, identity := range pgpKey.GetEntity().Identities {
-		style333.printf(w, identity.Name)
+		Style333.Printf(w, identity.Name)
 	}
 
-	style22.printL(w, "Fingerprint", pgpKey.GetFingerprint())
+	Style22.PrintL(w, "Fingerprint", pgpKey.GetFingerprint())
 
 	return nil
 }
 
 func displayRawKey(w io.Writer, key *api.GetCryptoKeyRespObject) error {
-	style1.printf(w, "%q key %q", key.Type, key.Name)
-	style22.printL(w, "Base64 value", key.Key)
+	Style1.Printf(w, "%q key %q", key.Type, key.Name)
+	Style22.PrintL(w, "Base64 value", key.Key)
 
 	return nil
 }
@@ -111,7 +111,7 @@ func (p *CryptographicKeysList) execute(w io.Writer) error {
 	}
 
 	if keys := body["cryptoKeys"]; len(keys) > 0 {
-		style0.printf(w, "=== Cryptographic keys ===")
+		Style0.Printf(w, "=== Cryptographic keys ===")
 
 		for _, key := range keys {
 			if err := displayCryptoKey(w, key); err != nil {

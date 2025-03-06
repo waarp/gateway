@@ -24,9 +24,9 @@ func coloredEnabled(enabled bool) string {
 }
 
 func displayClient(w io.Writer, client *api.OutClient) {
-	style1.printf(w, "Client %q [%s]", client.Name, coloredEnabled(client.Enabled))
-	style22.printL(w, "Protocol", client.Protocol)
-	style22.printL(w, "Local address", withDefault(client.LocalAddress, unspecified))
+	Style1.Printf(w, "Client %q [%s]", client.Name, coloredEnabled(client.Enabled))
+	Style22.PrintL(w, "Protocol", client.Protocol)
+	Style22.PrintL(w, "Local address", withDefault(client.LocalAddress, unspecified))
 
 	displayProtoConfig(w, client.ProtoConfig)
 }
@@ -73,7 +73,7 @@ func (c *ClientList) execute(w io.Writer) error {
 	}
 
 	if clients := body["clients"]; len(clients) > 0 {
-		style0.printf(w, "=== Clients ===")
+		Style0.Printf(w, "=== Clients ===")
 
 		for _, client := range clients {
 			displayClient(w, client)

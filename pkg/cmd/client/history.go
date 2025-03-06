@@ -16,33 +16,33 @@ import (
 )
 
 func displayHistory(w io.Writer, hist *api.OutHistory) {
-	fmt.Fprintf(w, "%s%s (%s as %s) [%s]\n", style1.bulletPrefix,
-		style1.color.Sprintf("Transfer %d", hist.ID),
+	fmt.Fprintf(w, "%s%s (%s as %s) [%s]\n", Style1.bulletPrefix,
+		Style1.color.Sprintf("Transfer %d", hist.ID),
 		direction(hist.IsSend), transferRole(hist.IsServer),
 		coloredStatus(hist.Status))
 
-	style22.printL(w, "Remote ID", hist.RemoteID)
-	style22.printL(w, "Protocol", hist.Protocol)
-	style22.printL(w, "Rule", hist.Rule)
-	style22.printL(w, "Requested by", hist.Requester)
-	style22.printL(w, "Requested to", hist.Requested)
-	style22.printL(w, "Full local path", hist.LocalFilepath)
-	style22.printL(w, "Full remote path", hist.RemoteFilepath)
-	style22.printL(w, "File size", prettyBytes(hist.Filesize))
-	style22.printL(w, "Start date", hist.Start.Local().String())
-	style22.printL(w, "End date",
+	Style22.PrintL(w, "Remote ID", hist.RemoteID)
+	Style22.PrintL(w, "Protocol", hist.Protocol)
+	Style22.PrintL(w, "Rule", hist.Rule)
+	Style22.PrintL(w, "Requested by", hist.Requester)
+	Style22.PrintL(w, "Requested to", hist.Requested)
+	Style22.PrintL(w, "Full local path", hist.LocalFilepath)
+	Style22.PrintL(w, "Full remote path", hist.RemoteFilepath)
+	Style22.PrintL(w, "File size", prettyBytes(hist.Filesize))
+	Style22.PrintL(w, "Start date", hist.Start.Local().String())
+	Style22.PrintL(w, "End date",
 		ifElse(hist.Stop.Valid, hist.Stop.Value.Local().String(), notApplicable))
-	style22.printL(w, "Data transferred", prettyBytes(hist.Progress))
+	Style22.PrintL(w, "Data transferred", prettyBytes(hist.Progress))
 
 	if hist.Step != types.StepNone {
-		style22.printL(w, "Current step", hist.Step)
+		Style22.PrintL(w, "Current step", hist.Step)
 	}
 
-	style22.option(w, "Current task", cardinal(hist.TaskNumber))
+	Style22.Option(w, "Current task", cardinal(hist.TaskNumber))
 
 	if hist.ErrorCode != types.TeOk {
-		style22.printL(w, "Error code", hist.ErrorCode)
-		style22.printL(w, "Error message", hist.ErrorMsg)
+		Style22.PrintL(w, "Error code", hist.ErrorCode)
+		Style22.PrintL(w, "Error message", hist.ErrorMsg)
 	}
 
 	displayTransferInfo(w, hist.TransferInfo)
@@ -151,7 +151,7 @@ func (h *HistoryList) execute(w io.Writer) error {
 	}
 
 	if history := body["history"]; len(history) > 0 {
-		style0.printf(w, "=== History ===")
+		Style0.Printf(w, "=== History ===")
 
 		for _, entry := range history {
 			displayHistory(w, entry)

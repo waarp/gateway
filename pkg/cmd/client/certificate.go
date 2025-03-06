@@ -20,11 +20,11 @@ func warnCertDeprecated() {
 func displayCrypto(w io.Writer, cert *api.OutCrypto) error {
 	switch {
 	case cert.Certificate != "":
-		return displayTLSInfo(w, style1, cert.Name, cert.Certificate)
+		return displayTLSInfo(w, Style1, cert.Name, cert.Certificate)
 	case cert.PublicKey != "":
-		return displaySSHKeyInfo(w, style1, cert.Name, cert.PublicKey)
+		return displaySSHKeyInfo(w, Style1, cert.Name, cert.PublicKey)
 	case cert.PrivateKey != "":
-		return displayPrivateKeyInfo(w, style1, cert.Name, cert.PrivateKey)
+		return displayPrivateKeyInfo(w, Style1, cert.Name, cert.PrivateKey)
 	default:
 		//nolint:goerr113 //too specific
 		return fmt.Errorf("entry %q: <unknown authentication type>", cert.Name)
@@ -152,7 +152,7 @@ func (c *CertList) execute(w io.Writer) error {
 	}
 
 	if certs := body["certificates"]; len(certs) > 0 {
-		style0.printf(w, "=== Certificates ===")
+		Style0.Printf(w, "=== Certificates ===")
 
 		for _, cert := range certs {
 			if err := displayCrypto(w, cert); err != nil {
