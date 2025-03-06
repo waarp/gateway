@@ -49,17 +49,20 @@ func testSetup(c C, root string) (*WG, *model.LocalAgent, *model.LocalAgent) {
 		Delay: time.Minute,
 	}
 
-	return &WG{Logger: testhelpers.TestLogger(c, "test_wg")}, s1, s2
+	wg := NewWG()
+	wg.Logger = testhelpers.TestLogger(c, "test_wg")
+
+	return wg, s1, s2
 }
 
 func checkState(wg *WG, code utils.StateCode, s1, s2 *model.LocalAgent) {
-	So(wg.dbService, ShouldNotBeNil)
-	So(wg.adminService, ShouldNotBeNil)
-	So(wg.controller, ShouldNotBeNil)
+	So(wg.DBService, ShouldNotBeNil)
+	So(wg.AdminService, ShouldNotBeNil)
+	So(wg.Controller, ShouldNotBeNil)
 
-	dbState, _ := wg.dbService.State()
-	adState, _ := wg.adminService.State()
-	contState, _ := wg.controller.State()
+	dbState, _ := wg.DBService.State()
+	adState, _ := wg.AdminService.State()
+	contState, _ := wg.Controller.State()
 
 	So(dbState, ShouldEqual, code)
 	So(adState, ShouldEqual, code)
