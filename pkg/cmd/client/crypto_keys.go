@@ -94,13 +94,13 @@ func (p *CryptoKeysGet) execute(w io.Writer) error {
 }
 
 //nolint:lll //struct tags can be long
-type CryptographicKeysList struct {
+type CryptoKeysList struct {
 	ListOptions
 	SortBy string `short:"s" long:"sort" description:"Attribute used to sort the returned entries" choice:"name+" choice:"name-" choice:"type+" choice:"type-" default:"name+"`
 }
 
-func (p *CryptographicKeysList) Execute([]string) error { return p.execute(stdOutput) }
-func (p *CryptographicKeysList) execute(w io.Writer) error {
+func (p *CryptoKeysList) Execute([]string) error { return p.execute(stdOutput) }
+func (p *CryptoKeysList) execute(w io.Writer) error {
 	addr.Path = "/api/keys"
 
 	listURL(&p.ListOptions, p.SortBy)

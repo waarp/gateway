@@ -204,6 +204,14 @@ type commands struct {
 		Del  wg.CloudDelete `command:"delete" description:"Delete an cloud instance"`
 	} `command:"cloud" description:"Manage the gateway's cloud instances"`
 
+	Key struct {
+		Add  wg.CryptoKeysAdd    `command:"add" description:"Add a new cryptographic key"`
+		Get  wg.CryptoKeysGet    `command:"get" description:"Retrieve a cryptographic key"`
+		List wg.CryptoKeysList   `command:"list" description:"List the known cryptographic keys"`
+		Upd  wg.CryptoKeysUpdate `command:"update" description:"Update an existing cryptographic key"`
+		Del  wg.CryptoKeysDelete `command:"delete" description:"Delete a cryptographic key"`
+	} `command:"key" description:"Manage the cryptographic keys"`
+
 	Version wg.Version `command:"version" description:"Print the program version and exit"`
 }
 

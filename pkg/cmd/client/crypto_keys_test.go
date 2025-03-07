@@ -139,7 +139,7 @@ func TestCryptoKeysList(t *testing.T) {
 
 	t.Run(`Testing the cryptographic keys "list" command`, func(t *testing.T) {
 		w := newTestOutput()
-		command := &CryptographicKeysList{}
+		command := &CryptoKeysList{}
 
 		expected := &expectedRequest{
 			method: http.MethodGet,
