@@ -3,6 +3,9 @@
 Historique des versions
 =======================
 
+* :bug:`-` Correction d'une erreur de nommage d'option de la commande terminal
+  ``snmp server set``. Le nom court de l'option ``--udp-address`` avait été
+  incorrectement défini comme étant ``-u`` au lieu de ``-a``.
 * :bug:`-` Ajout de la sous-commande ``key`` au client ligne de commande.
   Celle-ci n'avait pas été ajoutée en 0.12.0 comme elle aurait dû.
 
