@@ -197,7 +197,7 @@ func displaySnmpServerConfig(w io.Writer, monitor *api.GetSnmpServiceRespObject)
 
 //nolint:lll //tags can be long for flags
 type SnmpServerSet struct {
-	LocalUDPAddress  string `short:"u" long:"udp-address" description:"The SNMP server's local UDP address" json:"localUDPAddress,omitempty"`
+	LocalUDPAddress  string `short:"a" long:"udp-address" description:"The SNMP server's local UDP address" json:"localUDPAddress,omitempty"`
 	Community        string `short:"c" long:"community" description:"The SNMP server's community string" default:"public" json:"community,omitempty"`
 	V3Only           bool   `long:"v3-only" description:"Set the server to only accept SNMPv3" json:"v3Only"`
 	V3Username       string `long:"auth-username" description:"The SNMPv3 authentication username" json:"v3Username,omitempty"`
