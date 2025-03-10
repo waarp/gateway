@@ -16,11 +16,11 @@ import (
 
 //nolint:gochecknoglobals //basically constants, but can't be made constants
 var (
-	style0    = &style{color: color.OpReverse, bulletPrefix: ""}
-	style1    = &style{color: color.HiMagenta, bulletPrefix: "‣"}
-	style22   = &style{color: color.HiCyan, bulletPrefix: "  •"}
-	style333  = &style{color: color.Bold, bulletPrefix: "    ⁃"}
-	style4444 = &style{color: color.FgDefault, bulletPrefix: "      $"}
+	Style0    = &style{color: color.OpReverse, bulletPrefix: ""}
+	Style1    = &style{color: color.HiMagenta, bulletPrefix: "‣"}
+	Style22   = &style{color: color.HiCyan, bulletPrefix: "  •"}
+	Style333  = &style{color: color.Bold, bulletPrefix: "    ⁃"}
+	Style4444 = &style{color: color.FgDefault, bulletPrefix: "      $"}
 
 	noPerm        = color.Gray.Render("---")
 	empty         = color.Gray.Render("<empty>")
@@ -36,7 +36,7 @@ type style struct {
 	bulletPrefix string
 }
 
-func (s *style) printf(w io.Writer, format string, args ...any) {
+func (s *style) Printf(w io.Writer, format string, args ...any) {
 	fmt.Fprintln(w, s.sprintf(format, args...))
 }
 
@@ -54,7 +54,7 @@ func (s *style) sprintf(format string, args ...any) string {
 	return color.Sprintf("%s%s", s.bulletPrefix, text)
 }
 
-func (s *style) printL(w io.Writer, name string, value any) {
+func (s *style) PrintL(w io.Writer, name string, value any) {
 	fmt.Fprintln(w, s.sprintL(name, value))
 }
 
@@ -62,24 +62,24 @@ func (s *style) sprintL(name string, value any) string {
 	return color.Sprintf("%s%s: %v", s.bulletPrefix, s.color.Render(name), value)
 }
 
-func (s *style) option(w io.Writer, name string, value any) {
+func (s *style) Option(w io.Writer, name string, value any) {
 	if value != nil && !reflect.ValueOf(value).IsZero() {
-		s.printL(w, name, value)
+		s.PrintL(w, name, value)
 	}
 }
 
 func nextStyle(style *style) *style {
 	switch style {
-	case style0:
-		return style1
-	case style1:
-		return style22
-	case style22:
-		return style333
-	case style333:
-		return style4444
+	case Style0:
+		return Style1
+	case Style1:
+		return Style22
+	case Style22:
+		return Style333
+	case Style333:
+		return Style4444
 	default:
-		return style0
+		return Style0
 	}
 }
 
@@ -95,19 +95,19 @@ func displayMap[T any](w io.Writer, style *style, m map[string]T) {
 	})
 
 	for i := range pairs {
-		style.printL(w, pairs[i].key, pairs[i].val)
+		style.PrintL(w, pairs[i].key, pairs[i].val)
 	}
 }
 
 func displayProtoConfig(w io.Writer, cfg map[string]any) {
 	if len(cfg) == 0 {
-		style22.printL(w, "Configuration", empty)
+		Style22.PrintL(w, "Configuration", empty)
 
 		return
 	}
 
-	style22.printf(w, "Configuration:")
-	displayMap(w, style333, cfg)
+	Style22.Printf(w, "Configuration:")
+	displayMap(w, Style333, cfg)
 }
 
 func displayAuthorizedRules(w io.Writer, auth api.AuthorizedRules) {
@@ -115,15 +115,15 @@ func displayAuthorizedRules(w io.Writer, auth api.AuthorizedRules) {
 		return withDefault(join(a), none)
 	}
 
-	style22.printf(w, "Authorized rules:")
-	style333.printL(w, "Send", targets(auth.Sending))
-	style333.printL(w, "Receive", targets(auth.Reception))
+	Style22.Printf(w, "Authorized rules:")
+	Style333.PrintL(w, "Send", targets(auth.Sending))
+	Style333.PrintL(w, "Receive", targets(auth.Reception))
 }
 
 func displayRuleAccess(w io.Writer, access api.RuleAccess) {
 	if len(access.LocalServers) == 0 && len(access.RemotePartners) == 0 &&
 		len(access.LocalAccounts) == 0 && len(access.RemoteAccounts) == 0 {
-		style22.printL(w, "Rule access", unrestricted)
+		Style22.PrintL(w, "Rule access", unrestricted)
 
 		return
 	}
@@ -135,11 +135,11 @@ func displayRuleAccess(w io.Writer, access api.RuleAccess) {
 		return withDefault(mapFlatten(m), none)
 	}
 
-	style22.printf(w, "Rule access:")
-	style333.printL(w, "Local servers", targets(access.LocalServers))
-	style333.printL(w, "Remote partners", targets(access.RemotePartners))
-	style333.printL(w, "Local accounts", subTargets(access.LocalAccounts))
-	style333.printL(w, "Remote accounts", subTargets(access.RemoteAccounts))
+	Style22.Printf(w, "Rule access:")
+	Style333.PrintL(w, "Local servers", targets(access.LocalServers))
+	Style333.PrintL(w, "Remote partners", targets(access.RemotePartners))
+	Style333.PrintL(w, "Local accounts", subTargets(access.LocalAccounts))
+	Style333.PrintL(w, "Remote accounts", subTargets(access.RemoteAccounts))
 }
 
 func join(s []string) string { return strings.Join(s, ", ") }
@@ -169,21 +169,21 @@ func mapFlatten(m map[string][]string) string {
 
 func displayTask(w io.Writer, index int, task *api.Task) {
 	if len(task.Args) == 0 {
-		style333.printf(w, "Task #%d %q", index+1, task.Type)
+		Style333.Printf(w, "Task #%d %q", index+1, task.Type)
 	} else {
-		style333.printf(w, "Task #%d %q with args:", index+1, task.Type)
-		displayMap(w, style4444, task.Args)
+		Style333.Printf(w, "Task #%d %q with args:", index+1, task.Type)
+		displayMap(w, Style4444, task.Args)
 	}
 }
 
 func displayTaskChain(w io.Writer, title string, chain []*api.Task) {
 	if len(chain) == 0 {
-		style22.printL(w, title, none)
+		Style22.PrintL(w, title, none)
 
 		return
 	}
 
-	style22.printf(w, title+":")
+	Style22.Printf(w, title+":")
 
 	for i, task := range chain {
 		displayTask(w, i, task)

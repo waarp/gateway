@@ -1,7 +1,6 @@
 package admin
 
 import (
-	"net/http"
 	"net/http/pprof"
 
 	"code.waarp.fr/lib/log"
@@ -12,22 +11,22 @@ import (
 )
 
 // MakeHandler returns the router for the REST & Admin http interface.
-func MakeHandler(logger *log.Logger, db *database.DB) http.Handler {
+func MakeHandler(logger *log.Logger, db *database.DB) *mux.Router {
 	adminHandler := mux.NewRouter()
 	adminHandler.Use(
 		mux.CORSMethodMiddleware(adminHandler),
-		authentication(logger, db),
-		requestLogging(logger),
-		serverInfo(),
+		AuthenticationMiddleware(logger, db),
+		LoggingMiddleware(logger),
+		ServerInfoMiddleware(),
 	)
 
 	rest.MakeRESTHandler(logger, db, adminHandler)
-	makePprofHandler(adminHandler)
+	AddPprofHandler(adminHandler)
 
 	return adminHandler
 }
 
-func makePprofHandler(router *mux.Router) {
+func AddPprofHandler(router *mux.Router) {
 	router.HandleFunc("/debug/pprof/", pprof.Index)
 	router.HandleFunc("/debug/pprof/cmdline", pprof.Cmdline)
 	router.HandleFunc("/debug/pprof/profile", pprof.Profile)

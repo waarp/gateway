@@ -42,8 +42,8 @@ func displayTransferInfo(w io.Writer, info map[string]any) {
 		return
 	}
 
-	style22.printf(w, "Transfer values:")
-	displayMap(w, style333, info)
+	Style22.Printf(w, "Transfer values:")
+	displayMap(w, Style333, info)
 }
 
 func putTransferRequest(w io.Writer, id uint64, endpoint, action string) error {

@@ -27,7 +27,7 @@ type getBean[T any] interface {
 	database.GetBean
 }
 
-func testAdd[T any, U getBean[T]](tb testing.TB, mkHandler handler,
+func testAdd[T any, U getBean[T]](tb testing.TB, mkHandler HandlerDB,
 	reqPath, elem string, reqBodyObject map[string]any, expectedDBObject U,
 ) {
 	tb.Helper()
@@ -58,7 +58,7 @@ func testAdd[T any, U getBean[T]](tb testing.TB, mkHandler handler,
 		`Then the %s should have been inserted in the database`, expectedDBObject.Appellation())
 }
 
-func testGet(tb testing.TB, mkHandler handler, reqPath, elem string,
+func testGet(tb testing.TB, mkHandler HandlerDB, reqPath, elem string,
 	dbObject database.InsertBean, expectedResponse map[string]any,
 ) {
 	tb.Helper()
@@ -80,7 +80,7 @@ func testGet(tb testing.TB, mkHandler handler, reqPath, elem string,
 		`Then the %s should have been returned`, dbObject.Appellation())
 }
 
-func testDelete(tb testing.TB, mkHandler handler, reqPath, elem string,
+func testDelete(tb testing.TB, mkHandler HandlerDB, reqPath, elem string,
 	dbObject database.InsertBean,
 ) {
 	tb.Helper()
@@ -104,7 +104,7 @@ func testDelete(tb testing.TB, mkHandler handler, reqPath, elem string,
 		`Then the %s should have been deleted`, dbObject.Appellation())
 }
 
-func testUpdate[T any, U getBean[T]](tb testing.TB, mkHandler handler,
+func testUpdate[T any, U getBean[T]](tb testing.TB, mkHandler HandlerDB,
 	reqPath, elem, newElem string, dbObject database.InsertBean,
 	reqBodyObject map[string]any, expectedDBObject U,
 ) {

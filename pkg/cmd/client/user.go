@@ -11,14 +11,14 @@ import (
 func displayUser(w io.Writer, user *api.OutUser) {
 	perm := func(p string) string { return withDefault(p, noPerm) }
 
-	style1.printf(w, "User %q", user.Username)
-	style22.printf(w, "Permissions:")
-	style333.printL(w, "Transfers", perm(user.Perms.Transfers))
-	style333.printL(w, "Servers", perm(user.Perms.Servers))
-	style333.printL(w, "Partners", perm(user.Perms.Partners))
-	style333.printL(w, "Rules", perm(user.Perms.Rules))
-	style333.printL(w, "Users", perm(user.Perms.Users))
-	style333.printL(w, "Administration", perm(user.Perms.Administration))
+	Style1.Printf(w, "User %q", user.Username)
+	Style22.Printf(w, "Permissions:")
+	Style333.PrintL(w, "Transfers", perm(user.Perms.Transfers))
+	Style333.PrintL(w, "Servers", perm(user.Perms.Servers))
+	Style333.PrintL(w, "Partners", perm(user.Perms.Partners))
+	Style333.PrintL(w, "Rules", perm(user.Perms.Rules))
+	Style333.PrintL(w, "Users", perm(user.Perms.Users))
+	Style333.PrintL(w, "Administration", perm(user.Perms.Administration))
 }
 
 // ######################## ADD ##########################
@@ -152,7 +152,7 @@ func (u *UserList) execute(w io.Writer) error {
 	}
 
 	if users := body["users"]; len(users) > 0 {
-		style0.printf(w, "=== Users ===")
+		Style0.Printf(w, "=== Users ===")
 
 		for _, user := range users {
 			displayUser(w, user)

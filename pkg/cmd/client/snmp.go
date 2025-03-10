@@ -10,20 +10,20 @@ import (
 )
 
 func displaySnmpMonitor(w io.Writer, monitor *api.GetSnmpMonitorRespObject) {
-	style1.printf(w, "SNMP monitor %q", monitor.Name)
-	style22.printL(w, "SNMP version", monitor.Version)
-	style22.printL(w, "UDP address", monitor.UDPAddress)
-	style22.option(w, "Community", monitor.Community)
-	style22.printL(w, "Notification type", snmpNotifType(monitor.UseInforms))
-	style22.option(w, "SNMPv3 security", monitor.SNMPv3Security)
-	style22.option(w, "SNMPv3 context name", monitor.ContextName)
-	style22.option(w, "SNMPv3 context engine ID", monitor.ContextEngineID)
-	style22.option(w, "SNMPv3 auth engine ID", monitor.AuthEngineID)
-	style22.option(w, "SNMPv3 username", monitor.AuthUsername)
-	style22.option(w, "SNMPv3 authentication protocol", monitor.AuthProtocol)
-	style22.option(w, "SNMPv3 authentication passphrase", monitor.AuthPassphrase)
-	style22.option(w, "SNMPv3 privacy protocol", monitor.PrivProtocol)
-	style22.option(w, "SNMPv3 privacy passphrase", monitor.PrivPassphrase)
+	Style1.Printf(w, "SNMP monitor %q", monitor.Name)
+	Style22.PrintL(w, "SNMP version", monitor.Version)
+	Style22.PrintL(w, "UDP address", monitor.UDPAddress)
+	Style22.Option(w, "Community", monitor.Community)
+	Style22.PrintL(w, "Notification type", snmpNotifType(monitor.UseInforms))
+	Style22.Option(w, "SNMPv3 security", monitor.SNMPv3Security)
+	Style22.Option(w, "SNMPv3 context name", monitor.ContextName)
+	Style22.Option(w, "SNMPv3 context engine ID", monitor.ContextEngineID)
+	Style22.Option(w, "SNMPv3 auth engine ID", monitor.AuthEngineID)
+	Style22.Option(w, "SNMPv3 username", monitor.AuthUsername)
+	Style22.Option(w, "SNMPv3 authentication protocol", monitor.AuthProtocol)
+	Style22.Option(w, "SNMPv3 authentication passphrase", monitor.AuthPassphrase)
+	Style22.Option(w, "SNMPv3 privacy protocol", monitor.PrivProtocol)
+	Style22.Option(w, "SNMPv3 privacy passphrase", monitor.PrivPassphrase)
 }
 
 func snmpNotifType(useInforms bool) string {
@@ -85,7 +85,7 @@ func (s *SnmpMonitorList) execute(w io.Writer) error {
 	}
 
 	if monitors := respBody["monitors"]; len(monitors) > 0 {
-		style0.printf(w, "=== SNMP monitors ===")
+		Style0.Printf(w, "=== SNMP monitors ===")
 
 		for _, monitor := range monitors {
 			displaySnmpMonitor(w, monitor)
@@ -183,21 +183,21 @@ func (s *SnmpMonitorDelete) execute(w io.Writer) error {
 }
 
 func displaySnmpServerConfig(w io.Writer, monitor *api.GetSnmpServiceRespObject) {
-	style1.printf(w, "SNMP server configuration")
-	style22.printL(w, "Local UDP address", monitor.LocalUDPAddress)
-	style22.option(w, "Community", monitor.Community)
-	style22.printL(w, "Accepted SNMP versions", ifElse(monitor.V3Only, "SNMPv3",
+	Style1.Printf(w, "SNMP server configuration")
+	Style22.PrintL(w, "Local UDP address", monitor.LocalUDPAddress)
+	Style22.Option(w, "Community", monitor.Community)
+	Style22.PrintL(w, "Accepted SNMP versions", ifElse(monitor.V3Only, "SNMPv3",
 		"SNMPv2c & SNMPv3"))
-	style22.option(w, "SNMPv3 username", monitor.V3Username)
-	style22.option(w, "SNMPv3 authentication protocol", monitor.V3AuthProtocol)
-	style22.option(w, "SNMPv3 authentication passphrase", monitor.V3AuthPassphrase)
-	style22.option(w, "SNMPv3 privacy protocol", monitor.V3PrivProtocol)
-	style22.option(w, "SNMPv3 privacy passphrase", monitor.V3PrivPassphrase)
+	Style22.Option(w, "SNMPv3 username", monitor.V3Username)
+	Style22.Option(w, "SNMPv3 authentication protocol", monitor.V3AuthProtocol)
+	Style22.Option(w, "SNMPv3 authentication passphrase", monitor.V3AuthPassphrase)
+	Style22.Option(w, "SNMPv3 privacy protocol", monitor.V3PrivProtocol)
+	Style22.Option(w, "SNMPv3 privacy passphrase", monitor.V3PrivPassphrase)
 }
 
 //nolint:lll //tags can be long for flags
 type SnmpServerSet struct {
-	LocalUDPAddress  string `short:"u" long:"udp-address" description:"The SNMP server's local UDP address" json:"localUDPAddress,omitempty"`
+	LocalUDPAddress  string `short:"a" long:"udp-address" description:"The SNMP server's local UDP address" json:"localUDPAddress,omitempty"`
 	Community        string `short:"c" long:"community" description:"The SNMP server's community string" default:"public" json:"community,omitempty"`
 	V3Only           bool   `long:"v3-only" description:"Set the server to only accept SNMPv3" json:"v3Only"`
 	V3Username       string `long:"auth-username" description:"The SNMPv3 authentication username" json:"v3Username,omitempty"`

@@ -20,12 +20,12 @@ func checkRuleDir(direction string) error {
 }
 
 func displayRule(w io.Writer, rule *api.OutRule) {
-	style1.printf(w, "Rule %q (%s)", rule.Name, direction(rule.IsSend))
-	style22.option(w, "Comment", rule.Comment)
-	style22.printL(w, "Path", rule.Path)
-	style22.option(w, "Local directory", rule.LocalDir)
-	style22.option(w, "Remote directory", rule.RemoteDir)
-	style22.option(w, "Temp receive directory", rule.TmpLocalRcvDir)
+	Style1.Printf(w, "Rule %q (%s)", rule.Name, direction(rule.IsSend))
+	Style22.Option(w, "Comment", rule.Comment)
+	Style22.PrintL(w, "Path", rule.Path)
+	Style22.Option(w, "Local directory", rule.LocalDir)
+	Style22.Option(w, "Remote directory", rule.RemoteDir)
+	Style22.Option(w, "Temp receive directory", rule.TmpLocalRcvDir)
 
 	displayTaskChain(w, "Pre tasks", rule.PreTasks)
 	displayTaskChain(w, "Post tasks", rule.PostTasks)
@@ -174,7 +174,7 @@ func (r *RuleList) execute(w io.Writer) error {
 	}
 
 	if rules := body["rules"]; len(rules) > 0 {
-		style0.printf(w, "=== Rules ===")
+		Style0.Printf(w, "=== Rules ===")
 
 		for _, rule := range rules {
 			displayRule(w, rule)

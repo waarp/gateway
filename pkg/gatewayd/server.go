@@ -41,18 +41,21 @@ const (
 type WG struct {
 	*log.Logger
 
-	dbService    *database.DB
-	adminService *admin.Server
-	snmpService  *snmp.Service
-	controller   *controller.Controller
-	analytics    *analytics.Service
+	DBService    *database.DB
+	AdminService *admin.Server
+	SnmpService  *snmp.Service
+	Controller   *controller.Controller
+	Analytics    *analytics.Service
 }
 
 // NewWG creates a new application.
 func NewWG() *WG {
-	return &WG{
+	wg := &WG{
 		Logger: logging.NewLogger("Waarp-Gateway"),
 	}
+	wg.initServices()
+
+	return wg
 }
 
 func getDir(root, dir string) string {
@@ -104,37 +107,35 @@ func (wg *WG) makeDirs() error {
 }
 
 func (wg *WG) initServices() {
-	wg.dbService = &database.DB{}
-	wg.analytics = &analytics.Service{DB: wg.dbService}
-	wg.snmpService = &snmp.Service{DB: wg.dbService}
-	wg.adminService = &admin.Server{DB: wg.dbService}
-	gwController := controller.GatewayController{DB: wg.dbService}
-	wg.controller = &controller.Controller{Action: gwController.Run}
+	wg.DBService = &database.DB{}
+	wg.Analytics = &analytics.Service{DB: wg.DBService}
+	wg.SnmpService = &snmp.Service{DB: wg.DBService}
+	wg.AdminService = &admin.Server{DB: wg.DBService}
+	gwController := controller.GatewayController{DB: wg.DBService}
+	wg.Controller = &controller.Controller{Action: gwController.Run}
 
-	snmp.GlobalService = wg.snmpService
-	analytics.GlobalService = wg.analytics
+	snmp.GlobalService = wg.SnmpService
+	analytics.GlobalService = wg.Analytics
 }
 
 func (wg *WG) startServices() error {
-	wg.initServices()
-
-	if err := wg.dbService.Start(); err != nil {
+	if err := wg.DBService.Start(); err != nil {
 		return fmt.Errorf("cannot start database service: %w", err)
 	}
 
-	if err := wg.analytics.Start(); err != nil {
+	if err := wg.Analytics.Start(); err != nil {
 		return fmt.Errorf("cannot start analytics service: %w", err)
 	}
 
-	if err := wg.snmpService.Start(); err != nil {
+	if err := wg.SnmpService.Start(); err != nil {
 		return fmt.Errorf("cannot start SNMP service: %w", err)
 	}
 
-	if err := wg.adminService.Start(); err != nil {
+	if err := wg.AdminService.Start(); err != nil {
 		return fmt.Errorf("cannot start admin service: %w", err)
 	}
 
-	if err := wg.controller.Start(); err != nil {
+	if err := wg.Controller.Start(); err != nil {
 		return fmt.Errorf("cannot start controller service: %w", err)
 	}
 
@@ -142,11 +143,11 @@ func (wg *WG) startServices() error {
 		return err
 	}
 
-	services.Core[database.ServiceName] = wg.dbService
-	services.Core[controller.ServiceName] = wg.controller
-	services.Core[admin.ServiceName] = wg.adminService
-	services.Core[snmp.ServiceName] = wg.snmpService
-	services.Core[analytics.ServiceName] = wg.analytics
+	services.Core[database.ServiceName] = wg.DBService
+	services.Core[controller.ServiceName] = wg.Controller
+	services.Core[admin.ServiceName] = wg.AdminService
+	services.Core[snmp.ServiceName] = wg.SnmpService
+	services.Core[analytics.ServiceName] = wg.Analytics
 
 	if err := wg.startServers(); err != nil {
 		return err
@@ -162,7 +163,7 @@ func (wg *WG) startServices() error {
 //nolint:dupl //too many differences
 func (wg *WG) startServers() error {
 	var servers model.LocalAgents
-	if err := wg.dbService.Select(&servers).Where("owner=?", conf.GlobalConfig.GatewayName).
+	if err := wg.DBService.Select(&servers).Where("owner=?", conf.GlobalConfig.GatewayName).
 		Run(); err != nil {
 		return fmt.Errorf("failed to retrieve servers from the database: %w", err)
 	}
@@ -175,7 +176,7 @@ func (wg *WG) startServers() error {
 			continue
 		}
 
-		serverService := module.NewServer(wg.dbService, server)
+		serverService := module.NewServer(wg.DBService, server)
 		services.Servers[server.Name] = serverService
 
 		if !server.Disabled {
@@ -191,7 +192,7 @@ func (wg *WG) startServers() error {
 //nolint:dupl //too many differences
 func (wg *WG) startClients() error {
 	var dbClients model.Clients
-	if err := wg.dbService.Select(&dbClients).Where("owner=?", conf.GlobalConfig.GatewayName).
+	if err := wg.DBService.Select(&dbClients).Where("owner=?", conf.GlobalConfig.GatewayName).
 		Run(); err != nil {
 		return fmt.Errorf("failed to retrieve clients from the database: %w", err)
 	}
@@ -204,7 +205,7 @@ func (wg *WG) startClients() error {
 			continue
 		}
 
-		clientService := module.NewClient(wg.dbService, client)
+		clientService := module.NewClient(wg.DBService, client)
 		services.Clients[client.Name] = clientService
 
 		if !client.Disabled {
@@ -250,19 +251,19 @@ func (wg *WG) stopServices() {
 
 	w.Wait()
 
-	if err := wg.controller.Stop(ctx); err != nil {
+	if err := wg.Controller.Stop(ctx); err != nil {
 		wg.Logger.Warning("an error occurred while stopping the controller service: %v", err)
 	}
 
-	if err := wg.adminService.Stop(ctx); err != nil {
+	if err := wg.AdminService.Stop(ctx); err != nil {
 		wg.Logger.Warning("an error occurred while stopping the admin service: %v", err)
 	}
 
-	if err := wg.snmpService.Stop(ctx); err != nil {
+	if err := wg.SnmpService.Stop(ctx); err != nil {
 		wg.Logger.Warning("an error occurred while stopping the SNMP service: %v", err)
 	}
 
-	if err := wg.dbService.Stop(ctx); err != nil {
+	if err := wg.DBService.Stop(ctx); err != nil {
 		wg.Logger.Warning("an error occurred while stopping the database service: %v", err)
 	}
 }

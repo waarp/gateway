@@ -20,10 +20,10 @@ func (*PartnerArg) UnmarshalFlag(value string) error {
 }
 
 func displayPartner(w io.Writer, partner *api.OutPartner) {
-	style1.printf(w, "Partner %q", partner.Name)
-	style22.printL(w, "Protocol", partner.Protocol)
-	style22.printL(w, "Address", partner.Address)
-	style22.printL(w, "Credentials",
+	Style1.Printf(w, "Partner %q", partner.Name)
+	Style22.PrintL(w, "Protocol", partner.Protocol)
+	Style22.PrintL(w, "Address", partner.Address)
+	Style22.PrintL(w, "Credentials",
 		withDefault(join(partner.Credentials), none))
 
 	displayProtoConfig(w, partner.ProtoConfig)
@@ -74,7 +74,7 @@ func (p *PartnerList) execute(w io.Writer) error {
 	}
 
 	if partners := body["partners"]; len(partners) > 0 {
-		style0.printf(w, "=== Partners ===")
+		Style0.Printf(w, "=== Partners ===")
 
 		for _, partner := range partners {
 			displayPartner(w, partner)

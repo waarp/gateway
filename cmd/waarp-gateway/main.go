@@ -19,11 +19,11 @@ type commands struct {
 	Status wg.Status `command:"status" description:"Show the status of the gateway services"`
 
 	Server struct {
-		Add         wg.ServerAdd       `command:"add" description:"Add a new server"`
-		Get         wg.ServerGet       `command:"get" description:"Retrieve a server's information"`
-		List        wg.ServerList      `command:"list" description:"List the known servers"`
-		Upd         wg.ServerUpdate    `command:"update" description:"Update a server"`
-		Del         wg.ServerDelete    `command:"delete" description:"Delete a server"`
+		// Add
+		Get  wg.ServerGet    `command:"get" description:"Retrieve a server's information"`
+		List wg.ServerList   `command:"list" description:"List the known servers"`
+		Upd  wg.ServerUpdate `command:"update" description:"Update a server"`
+		// Del
 		Auth        wg.ServerAuthorize `command:"authorize" description:"Authorize a server to use a rule"`
 		Rev         wg.ServerRevoke    `command:"revoke" description:"Revoke a server's permission to use a rule"`
 		Enable      wg.ServerEnable    `command:"enable" description:"Enable a server at launch"`
@@ -203,6 +203,14 @@ type commands struct {
 		Upd  wg.CloudUpdate `command:"update" description:"Update an existing cloud instance"`
 		Del  wg.CloudDelete `command:"delete" description:"Delete an cloud instance"`
 	} `command:"cloud" description:"Manage the gateway's cloud instances"`
+
+	Key struct {
+		Add  wg.CryptoKeysAdd    `command:"add" description:"Add a new cryptographic key"`
+		Get  wg.CryptoKeysGet    `command:"get" description:"Retrieve a cryptographic key"`
+		List wg.CryptoKeysList   `command:"list" description:"List the known cryptographic keys"`
+		Upd  wg.CryptoKeysUpdate `command:"update" description:"Update an existing cryptographic key"`
+		Del  wg.CryptoKeysDelete `command:"delete" description:"Delete a cryptographic key"`
+	} `command:"key" description:"Manage the cryptographic keys"`
 
 	Version wg.Version `command:"version" description:"Print the program version and exit"`
 }

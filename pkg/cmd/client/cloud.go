@@ -13,14 +13,14 @@ const cloudsAPIPath = "/api/clouds"
 type cloudObject = api.GetCloudRespObject
 
 func displayCloud(w io.Writer, cloud *cloudObject) {
-	style1.printf(w, "Cloud instance %q (%s)", cloud.Name, cloud.Type)
-	style22.printL(w, "Key", withDefault(cloud.Key, none))
+	Style1.Printf(w, "Cloud instance %q (%s)", cloud.Name, cloud.Type)
+	Style22.PrintL(w, "Key", withDefault(cloud.Key, none))
 
 	if len(cloud.Options) == 0 {
-		style22.printL(w, "Options", none)
+		Style22.PrintL(w, "Options", none)
 	} else {
-		style22.printf(w, "Options:")
-		displayMap(w, style333, cloud.Options)
+		Style22.Printf(w, "Options:")
+		displayMap(w, Style333, cloud.Options)
 	}
 }
 
@@ -134,7 +134,7 @@ func (c *CloudList) execute(w io.Writer) error {
 	}
 
 	if clouds := body["clouds"]; clouds != nil {
-		style0.printf(w, "=== Cloud instances ===")
+		Style0.Printf(w, "=== Cloud instances ===")
 
 		for _, cloud := range clouds {
 			displayCloud(w, cloud)

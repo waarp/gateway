@@ -20,48 +20,48 @@ func transferRole(isServer bool) string {
 }
 
 func displayTransfer(w io.Writer, trans *api.OutTransfer) {
-	fmt.Fprintf(w, "%s%s (%s as %s) [%s]\n", style1.bulletPrefix,
-		style1.color.Sprintf("Transfer %d", trans.ID),
+	fmt.Fprintf(w, "%s%s (%s as %s) [%s]\n", Style1.bulletPrefix,
+		Style1.color.Sprintf("Transfer %d", trans.ID),
 		direction(trans.IsSend), transferRole(trans.IsServer),
 		coloredStatus(trans.Status))
 
-	style22.printL(w, "Remote ID", trans.RemoteID)
-	style22.printL(w, "Protocol", trans.Protocol)
+	Style22.PrintL(w, "Remote ID", trans.RemoteID)
+	Style22.PrintL(w, "Protocol", trans.Protocol)
 
 	switch {
 	case trans.IsServer && trans.IsSend: // <- Server
-		style22.printL(w, "File pulled", trans.SrcFilename)
+		Style22.PrintL(w, "File pulled", trans.SrcFilename)
 	case trans.IsServer && !trans.IsSend: // -> Server
-		style22.printL(w, "File pushed", trans.DestFilename)
+		Style22.PrintL(w, "File pushed", trans.DestFilename)
 	case !trans.IsServer && trans.IsSend: // Client ->
-		style22.printL(w, "File to send", trans.SrcFilename)
-		style22.printL(w, "File deposited as", trans.DestFilename)
+		Style22.PrintL(w, "File to send", trans.SrcFilename)
+		Style22.PrintL(w, "File deposited as", trans.DestFilename)
 	case !trans.IsServer && !trans.IsSend: // Client <-
-		style22.printL(w, "File to receive", trans.SrcFilename)
-		style22.printL(w, "File retrieved as", trans.DestFilename)
+		Style22.PrintL(w, "File to receive", trans.SrcFilename)
+		Style22.PrintL(w, "File retrieved as", trans.DestFilename)
 	}
 
-	style22.printL(w, "Rule", trans.Rule)
-	style22.printL(w, "Requested by", trans.Requester)
-	style22.printL(w, "Requested to", trans.Requested)
-	style22.option(w, "With client", trans.Client)
-	style22.printL(w, "Full local path", trans.LocalFilepath)
-	style22.printL(w, "Full remote path", trans.RemoteFilepath)
-	style22.printL(w, "File size", prettyBytes(trans.Filesize))
-	style22.printL(w, "Start date", trans.Start.Local().String())
-	style22.printL(w, "End date",
+	Style22.PrintL(w, "Rule", trans.Rule)
+	Style22.PrintL(w, "Requested by", trans.Requester)
+	Style22.PrintL(w, "Requested to", trans.Requested)
+	Style22.Option(w, "With client", trans.Client)
+	Style22.PrintL(w, "Full local path", trans.LocalFilepath)
+	Style22.PrintL(w, "Full remote path", trans.RemoteFilepath)
+	Style22.PrintL(w, "File size", prettyBytes(trans.Filesize))
+	Style22.PrintL(w, "Start date", trans.Start.Local().String())
+	Style22.PrintL(w, "End date",
 		ifElse(trans.Stop.Valid, trans.Stop.Value.Local().String(), notApplicable))
-	style22.printL(w, "Data transferred", prettyBytes(trans.Progress))
+	Style22.PrintL(w, "Data transferred", prettyBytes(trans.Progress))
 
 	if trans.Step != "" && trans.Step != types.StepNone.String() {
-		style22.printL(w, "Current step", trans.Step)
+		Style22.PrintL(w, "Current step", trans.Step)
 	}
 
-	style22.option(w, "Current task", cardinal(trans.TaskNumber))
+	Style22.Option(w, "Current task", cardinal(trans.TaskNumber))
 
 	if trans.ErrorCode != "" && trans.ErrorCode != types.TeOk.String() {
-		style22.printL(w, "Error code", trans.ErrorCode)
-		style22.printL(w, "Error message", trans.ErrorMsg)
+		Style22.PrintL(w, "Error code", trans.ErrorCode)
+		Style22.PrintL(w, "Error message", trans.ErrorMsg)
 	}
 
 	displayTransferInfo(w, trans.TransferInfo)
@@ -191,7 +191,7 @@ func (t *TransferList) execute(w io.Writer) error {
 	}
 
 	if transfers := body["transfers"]; len(transfers) > 0 {
-		style0.printf(w, "=== Transfers ===")
+		Style0.Printf(w, "=== Transfers ===")
 
 		for _, transfer := range transfers {
 			displayTransfer(w, transfer)

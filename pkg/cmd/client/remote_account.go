@@ -19,8 +19,8 @@ func (*RemAccArg) UnmarshalFlag(value string) error {
 }
 
 func displayRemoteAccount(w io.Writer, account *api.OutRemoteAccount) {
-	style1.printf(w, "Account %q", account.Login)
-	style22.printL(w, "Credentials", withDefault(join(account.Credentials), none))
+	Style1.Printf(w, "Account %q", account.Login)
+	Style22.PrintL(w, "Credentials", withDefault(join(account.Credentials), none))
 	displayAuthorizedRules(w, account.AuthorizedRules)
 }
 
@@ -138,7 +138,7 @@ func (r *RemAccList) execute(w io.Writer) error {
 	}
 
 	if accounts := body["remoteAccounts"]; len(accounts) > 0 {
-		style0.printf(w, "=== Accounts of partner %q ===", Partner)
+		Style0.Printf(w, "=== Accounts of partner %q ===", Partner)
 
 		for _, account := range accounts {
 			displayRemoteAccount(w, account)

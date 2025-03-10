@@ -8,3 +8,4 @@ Commande de gestion de l'agent SNMP de Waarp-Gateway.
    :maxdepth: 1
 
    monitor/index
+   server/index

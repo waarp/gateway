@@ -8,7 +8,7 @@ import (
 )
 
 func displayAddressOverride(w io.Writer, target, redirect string) {
-	style1.printf(w, "Address %q redirects to %q", target, redirect)
+	Style1.Printf(w, "Address %q redirects to %q", target, redirect)
 }
 
 type OverrideAddressSet struct {
@@ -43,7 +43,7 @@ func (o *OverrideAddressList) execute(w io.Writer) error {
 	}
 
 	if len(overrides) != 0 {
-		style0.printf(w, "=== Address indirections ===")
+		Style0.Printf(w, "=== Address indirections ===")
 
 		redirects := slices.Sorted(maps.Keys(overrides))
 

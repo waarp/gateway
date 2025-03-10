@@ -428,6 +428,10 @@ func enableDisableServer(logger *log.Logger, db *database.DB, disable bool) http
 
 var ErrServiceNotFound = errors.New("service not found")
 
+func GetServerService(r *http.Request, db *database.DB) (*model.LocalAgent, services.Server, error) {
+	return getServerService(r, db)
+}
+
 func getServerService(r *http.Request, db *database.DB,
 ) (*model.LocalAgent, services.Server, error) {
 	dbServer, getErr := getDBServer(r, db)
@@ -480,6 +484,10 @@ func stopServer(logger *log.Logger, db *database.DB) http.HandlerFunc {
 }
 
 var errModuleNotFound = errors.New("could not instantiate the service: protocol not found")
+
+func MakeServerService(db *database.DB, dbServer *model.LocalAgent) (services.Server, error) {
+	return makeServerService(db, dbServer)
+}
 
 func makeServerService(db *database.DB, dbServer *model.LocalAgent) (services.Server, error) {
 	module := protocols.Get(dbServer.Protocol)

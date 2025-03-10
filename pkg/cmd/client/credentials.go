@@ -32,15 +32,15 @@ func getCredentialPath() (string, error) {
 func displayCredential(w io.Writer, cred *api.OutCred) error {
 	switch cred.Type {
 	case auth.Password:
-		style1.printL(w, fmt.Sprintf("Password %q", cred.Name), cred.Value)
+		Style1.PrintL(w, fmt.Sprintf("Password %q", cred.Name), cred.Value)
 	case auth.TLSCertificate, auth.TLSTrustedCertificate:
-		return displayTLSInfo(w, style1, cred.Name, cred.Value)
+		return displayTLSInfo(w, Style1, cred.Name, cred.Value)
 	case sftp.AuthSSHPublicKey:
-		return displaySSHKeyInfo(w, style1, cred.Name, cred.Value)
+		return displaySSHKeyInfo(w, Style1, cred.Name, cred.Value)
 	case sftp.AuthSSHPrivateKey:
-		return displayPrivateKeyInfo(w, style1, cred.Name, cred.Value)
+		return displayPrivateKeyInfo(w, Style1, cred.Name, cred.Value)
 	case r66.AuthLegacyCertificate:
-		style1.printf(w, "Legacy R66 certificate %q", cred.Name)
+		Style1.Printf(w, "Legacy R66 certificate %q", cred.Name)
 	default:
 		//nolint:goerr113 //too specific
 		return fmt.Errorf("unknown credential type %q", cred.Type)

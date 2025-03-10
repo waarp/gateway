@@ -16,7 +16,7 @@ import (
 //nolint:varnamelen //formatter name is kept short for readability
 func showStatus(w io.Writer, title string, services []*api.Service) {
 	if len(services) == 0 {
-		style1.printf(w, "%s: %s\n", title, none)
+		Style1.Printf(w, "%s: %s\n", title, none)
 
 		return
 	}
@@ -29,7 +29,7 @@ func showStatus(w io.Writer, title string, services []*api.Service) {
 		nameColor = color.Bold
 	)
 
-	style1.printf(w, title+":")
+	Style1.Printf(w, title+":")
 
 	var errors, actives, offlines []*api.Service
 
@@ -49,17 +49,17 @@ func showStatus(w io.Writer, title string, services []*api.Service) {
 	}
 
 	for _, service := range errors {
-		color.Fprintf(w, "%s%s %s (%s)\n", style22.bulletPrefix, inError,
+		color.Fprintf(w, "%s%s %s (%s)\n", Style22.bulletPrefix, inError,
 			nameColor.Render(service.Name), service.Reason)
 	}
 
 	for _, service := range actives {
-		color.Fprintf(w, "%s%s %s\n", style22.bulletPrefix, running,
+		color.Fprintf(w, "%s%s %s\n", Style22.bulletPrefix, running,
 			nameColor.Render(service.Name))
 	}
 
 	for _, service := range offlines {
-		color.Fprintf(w, "%s%s %s\n", style22.bulletPrefix, offline,
+		color.Fprintf(w, "%s%s %s\n", Style22.bulletPrefix, offline,
 			nameColor.Render(service.Name))
 	}
 }
@@ -91,8 +91,8 @@ func (s Status) execute(w io.Writer) error {
 			return err
 		}
 
-		style1.printL(w, "Server version", resp.Header.Get("Server"))
-		style1.printL(w, "Local date", resp.Header.Get(api.DateHeader))
+		Style1.PrintL(w, "Server version", resp.Header.Get("Server"))
+		Style1.PrintL(w, "Local date", resp.Header.Get(api.DateHeader))
 
 		showStatus(w, "Core services", body["coreServices"])
 		showStatus(w, "Servers", body["servers"])

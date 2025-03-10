@@ -17,9 +17,9 @@ import (
 	"code.waarp.fr/apps/gateway/gateway/pkg/version"
 )
 
-// authentication checks if the request is authenticated using Basic HTTP
+// AuthenticationMiddleware checks if the request is authenticated using Basic HTTP
 // authentication.
-func authentication(logger *log.Logger, db *database.DB) mux.MiddlewareFunc {
+func AuthenticationMiddleware(logger *log.Logger, db *database.DB) mux.MiddlewareFunc {
 	return func(next http.Handler) http.Handler {
 		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 			logger.Debug("Received %s on %s", r.Method, r.URL)
@@ -80,7 +80,7 @@ func (r *responseRecorder) Write(p []byte) (int, error) {
 	return r.ResponseWriter.Write(p)
 }
 
-func requestLogging(logger *log.Logger) mux.MiddlewareFunc {
+func LoggingMiddleware(logger *log.Logger) mux.MiddlewareFunc {
 	return func(next http.Handler) http.Handler {
 		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 			user, _, _ := r.BasicAuth()
@@ -100,14 +100,17 @@ func requestLogging(logger *log.Logger) mux.MiddlewareFunc {
 	}
 }
 
-func serverInfo() mux.MiddlewareFunc {
+//nolint:gochecknoglobals //global var needed here for Waarp Transfer
+var AppName = "waarp-gatewayd"
+
+func ServerInfoMiddleware() mux.MiddlewareFunc {
 	gmt := time.FixedZone("GMT", 0)
 
 	return func(next http.Handler) http.Handler {
 		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 			next.ServeHTTP(w, r)
 
-			w.Header().Set("Server", fmt.Sprintf("waarp-gatewayd/%s", version.Num))
+			w.Header().Set("Server", fmt.Sprintf("%s/%s", AppName, version.Num))
 			w.Header().Set("Date", time.Now().In(gmt).Format(time.RFC1123))
 			w.Header().Set(api.DateHeader, time.Now().Format(time.RFC1123))
 		})
