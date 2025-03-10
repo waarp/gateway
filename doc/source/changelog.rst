@@ -3,10 +3,12 @@
 Historique des versions
 =======================
 
+* :bug:`444` Ajout des clés cryptographiques au fichier d'import/export. Celles-ci
+  n'avaient pas été ajoutées en version 0.12.0 comme elles auraient dû être.
 * :bug:`-` Correction d'une erreur de nommage d'option de la commande terminal
   ``snmp server set``. Le nom court de l'option ``--udp-address`` avait été
   incorrectement défini comme étant ``-u`` au lieu de ``-a``.
-* :bug:`-` Ajout de la sous-commande ``key`` au client ligne de commande.
+* :bug:`444` Ajout de la sous-commande ``key`` au client ligne de commande.
   Celle-ci n'avait pas été ajoutée en 0.12.0 comme elle aurait dû.
 
 * :release:`0.12.0 <2025-03-04>`

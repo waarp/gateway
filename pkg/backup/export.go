@@ -82,6 +82,13 @@ func ExportData(db database.ReadAccess, w io.Writer, targets []string) error {
 		}
 	}
 
+	if utils.ContainsOneOf(targets, "keys", "all") {
+		data.CryptoKeys, err = exportCryptoKeys(logger, db)
+		if err != nil {
+			return err
+		}
+	}
+
 	encoder := json.NewEncoder(w)
 	encoder.SetIndent("", "  ")
 

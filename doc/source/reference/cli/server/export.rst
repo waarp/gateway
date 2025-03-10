@@ -36,7 +36,7 @@ Cette commande accepte les options suivantes :
    Indique le chemin vers le fichier dans lequel écrire les données exportées au
    format JSON.
 
-.. option:: -t [rules|servers|partners|users|all], --target [rules|servers|partners|users|all]
+.. option:: -t [rules|servers|partners|clients|users|clouds|snmp|authorities|keys|all], --target [rules|servers|partners|clients|users|clouds|snmp|authorities|keys|all]
 
    :Défaut: ``all``
 

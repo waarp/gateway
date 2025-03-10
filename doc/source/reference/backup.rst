@@ -294,6 +294,18 @@ stockées dans un fichier en format JSON. Ce JSON a la forme suivante :
     habilitée à authentifier. Si vide, l'autorité est habilité à authentifier tous
     les hôtes qu'elle a certifié.
 
+* ``cryptoKeys`` (*array*) - Liste des clés cryptographiques de la Gateway.
+
+  * ``name`` (*string*) - Le nom de la clé
+  * ``type`` (*string*) - Le type de la clé. Les valeurs autorisées sont :
+
+       - ``AES`` pour une clé de chiffrement AES
+       - ``HMAC`` pour une clé de signature HMAC
+       - ``PGP-PUBLIC`` pour les clés PGP publiques
+       - ``PGP-PRIVATE`` pour les clés PGP privées
+  * ``key`` (*string*) - La clé en format textuel. Si la clé n'a pas de format
+    textuel natif, la clé doit être fournie en format Base64.
+
 **Exemple**
 
 .. code-block:: json
@@ -416,5 +428,20 @@ stockées dans un fichier en format JSON. Ce JSON a la forme suivante :
          "v3PrivacyProtocol": "AES",
          "v3PrivacyPassphrase": "secret"
        }]
-     }
+     },
+     "authorities": [{
+       "name": "cert_authority",
+       "type": "tls_authority",
+       "publicIdentity": "<certificat de l'autorité en format PEM>"
+       "validHosts": ["192.168.1.1", "waarp.fr"]
+     }],
+     "cryptoKeys": [{
+       "name": "aes-key",
+       "type": "AES",
+       "key": "<clé AES en Base64>"
+     }, {
+       "name": "pgp-key",
+       "type": "PGP-PRIVATE",
+       "key": "<clé PGP en format PEM>"
+     }]
    }
