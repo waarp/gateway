@@ -1,0 +1,32 @@
+package backup
+
+import (
+	"fmt"
+
+	"code.waarp.fr/lib/log"
+
+	"code.waarp.fr/apps/gateway/gateway/pkg/backup/file"
+	"code.waarp.fr/apps/gateway/gateway/pkg/database"
+	"code.waarp.fr/apps/gateway/gateway/pkg/model"
+)
+
+func exportCryptoKeys(logger *log.Logger, db database.ReadAccess) ([]*file.CryptoKey, error) {
+	var dbKeys model.CryptoKeys
+	if err := db.Select(&dbKeys).Run(); err != nil {
+		return nil, fmt.Errorf("failed to retrieve crypto keys: %w", err)
+	}
+
+	keys := make([]*file.CryptoKey, len(dbKeys))
+
+	for i, dbKey := range dbKeys {
+		keys[i] = &file.CryptoKey{
+			Name: dbKey.Name,
+			Type: dbKey.Type,
+			Key:  dbKey.Key.String(),
+		}
+
+		logger.Info("Exported crypto key %q", dbKey.Name)
+	}
+
+	return keys, nil
+}

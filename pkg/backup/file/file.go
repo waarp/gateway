@@ -18,6 +18,7 @@ type Data struct {
 	Clouds      []Cloud       `json:"clouds,omitempty"`
 	SNMPConfig  *SNMPConfig   `json:"snmpConfig,omitempty"`
 	Authorities []*Authority  `json:"authorities,omitempty"`
+	CryptoKeys  []*CryptoKey  `json:"cryptoKeys,omitempty"`
 }
 
 // LocalAgent is the JSON struct representing a local server along with its
@@ -229,4 +230,10 @@ type Authority struct {
 	Type           string   `json:"type"`
 	PublicIdentity string   `json:"publicIdentity"`
 	ValidHosts     []string `json:"validHosts,omitempty"`
+}
+
+type CryptoKey struct {
+	Name string `json:"name"`
+	Type string `json:"type"`
+	Key  string `json:"key"`
 }

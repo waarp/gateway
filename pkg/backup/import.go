@@ -94,6 +94,12 @@ func ImportData(db *database.DB, r io.Reader, targets []string, dry, reset bool)
 			}
 		}
 
+		if utils.ContainsOneOf(targets, "keys", "all") {
+			if err := importCryptoKeys(logger, ses, data.CryptoKeys, reset); err != nil {
+				return err
+			}
+		}
+
 		if dry {
 			return errDry
 		}

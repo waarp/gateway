@@ -65,7 +65,7 @@ func initImportExport(configFile string, verbose []bool) (*database.DB, *log.Log
 type ImportCommand struct {
 	ConfigFile string   `short:"c" long:"config" description:"The configuration file to use."`
 	File       string   `short:"s" long:"source" description:"The data file to import. If none is given, the content will be read from the standard output."`
-	Target     []string `short:"t" long:"target" default:"all" choice:"rules" choice:"servers" choice:"partners" choice:"clients" choice:"users" choice:"clouds" choice:"snmp" choice:"authorities" choice:"all" description:"Limit the import to a subset of data. Can be repeated to import multiple subsets."`
+	Target     []string `short:"t" long:"target" default:"all" choice:"rules" choice:"servers" choice:"partners" choice:"clients" choice:"users" choice:"clouds" choice:"snmp" choice:"authorities" choice:"keys" choice:"all" description:"Limit the import to a subset of data. Can be repeated to import multiple subsets."`
 	Dry        bool     `short:"d" long:"dry-run" description:"Do not make any changes, but simulate the import of the file."`
 	Verbose    []bool   `short:"v" long:"verbose" description:"Show verbose debug information. Can be repeated to increase verbosity."`
 	Reset      bool     `short:"r" long:"reset-before-import" description:"Empty the database tables before importing the elements from the file. Cannot be used without the -s option."`
