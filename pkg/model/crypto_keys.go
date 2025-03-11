@@ -3,14 +3,16 @@ package model
 import (
 	"fmt"
 
+	"code.waarp.fr/apps/gateway/gateway/pkg/conf"
 	"code.waarp.fr/apps/gateway/gateway/pkg/database"
 )
 
 type CryptoKey struct {
-	ID   int64               `xorm:"<- id AUTOINCR"`
-	Name string              `xorm:"name"`
-	Type string              `xorm:"type"`
-	Key  database.SecretText `xorm:"key"`
+	ID    int64               `xorm:"<- id AUTOINCR"`
+	Owner string              `xorm:"owner"`
+	Name  string              `xorm:"name"`
+	Type  string              `xorm:"type"`
+	Key   database.SecretText `xorm:"value"`
 }
 
 func (*CryptoKey) TableName() string   { return TableCryptoKeys }
@@ -18,6 +20,8 @@ func (*CryptoKey) Appellation() string { return NameCryptoKey }
 func (k *CryptoKey) GetID() int64      { return k.ID }
 
 func (k *CryptoKey) BeforeWrite(db database.Access) error {
+	k.Owner = conf.GlobalConfig.GatewayName
+
 	if k.Name == "" {
 		return database.NewValidationError("the cryptographic key's name is missing")
 	}

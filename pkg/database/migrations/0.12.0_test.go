@@ -75,7 +75,7 @@ func testVer0_12_0DropRemoteTransferIdUnique(t *testing.T, eng *testEngine) Chan
     		transfer_history(id, owner, remote_transfer_id, protocol, is_send,
 				is_server, rule, client, account, agent, start, status, step)
 			VALUES(10000, 'gw', '456', 'sftp', true, false, 'send', '', 'user', 'serv',
-				'2022-01-01T01:00:00Z', 'DONE', 'NONE')`,
+				'2022-01-01 01:00:00', 'DONE', 'NONE')`,
 		)
 		t.Cleanup(func() { eng.NoError(t, `DELETE FROM transfer_history`) })
 
@@ -101,7 +101,7 @@ func testVer0_12_0DropRemoteTransferIdUnique(t *testing.T, eng *testEngine) Chan
     		transfer_history(id, owner, remote_transfer_id, protocol, is_send,
 				is_server, rule, client, account, agent, start, status, step)
 			VALUES(10001, 'gw', '456', 'sftp', true, false, 'send', '', 'user', 'serv',
-				'2022-01-01T02:00:00Z', 'DONE', 'NONE')`,
+				'2022-01-01 02:00:00', 'DONE', 'NONE')`,
 			)
 			t.Cleanup(func() { eng.NoError(t, `DELETE FROM transfer_history WHERE id=10001`) })
 		})
@@ -122,7 +122,7 @@ func testVer0_12_0DropRemoteTransferIdUnique(t *testing.T, eng *testEngine) Chan
     				transfer_history(id, owner, remote_transfer_id, protocol, is_send,
 						is_server, rule, client, account, agent, start, status, step)
 					VALUES(10001, 'gw', '456', 'sftp', true, false, 'send', '', 'user', 'serv',
-						'2022-01-01T02:00:00Z', 'DONE', 'NONE')`,
+						'2022-01-01 02:00:00', 'DONE', 'NONE')`,
 				))
 			})
 		})

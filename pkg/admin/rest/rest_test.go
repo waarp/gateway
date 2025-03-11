@@ -5,12 +5,14 @@ import (
 	"net/http"
 	"net/http/httptest"
 	"path"
+	"reflect"
 	"strings"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
+	"code.waarp.fr/apps/gateway/gateway/pkg/conf"
 	"code.waarp.fr/apps/gateway/gateway/pkg/database"
 	"code.waarp.fr/apps/gateway/gateway/pkg/database/dbtest"
 	"code.waarp.fr/apps/gateway/gateway/pkg/utils/testhelpers"
@@ -49,6 +51,10 @@ func testAdd[T any, U getBean[T]](tb testing.TB, mkHandler HandlerDB,
 	assert.Equal(tb, expectedLoc, w.Header().Get("Location"),
 		`Then the response location header should have been set correctly`)
 	assert.Empty(tb, w.Body.String(), `Then the response body should be empty`)
+
+	if owner := reflect.ValueOf(expectedDBObject).Elem().FieldByName("Owner"); owner.IsValid() {
+		owner.SetString(conf.GlobalConfig.GatewayName)
+	}
 
 	cop := *expectedDBObject
 	actual := U(&cop)
@@ -129,6 +135,10 @@ func testUpdate[T any, U getBean[T]](tb testing.TB, mkHandler HandlerDB,
 	assert.Equal(tb, expectedLoc, w.Header().Get("Location"),
 		`Then the response location header should have been set correctly`)
 	assert.Empty(tb, w.Body.String(), `Then the response body should be empty`)
+
+	if owner := reflect.ValueOf(expectedDBObject).Elem().FieldByName("Owner"); owner.IsValid() {
+		owner.SetString(conf.GlobalConfig.GatewayName)
+	}
 
 	cop := *expectedDBObject
 	actual := U(&cop)

@@ -43,9 +43,9 @@ func SQLiteDatabase(tb testing.TB) *sql.DB {
 func PostgreSQLDatabase(tb testing.TB) *sql.DB {
 	tb.Helper()
 
-	db, openErr := sql.Open("pgx", "user='postgres' host='localhost' port='5432' "+
-		"dbname='waarp_gateway_test' sslmode='disable' statement_cache_capacity=0 "+
-		"default_query_exec_mode=describe_exec")
+	db, openErr := sql.Open("pgx", "user='postgres' password='postgres' "+
+		"host='localhost' port='5432' dbname='waarp_gateway_test' sslmode='disable' "+
+		"statement_cache_capacity=0 default_query_exec_mode=describe_exec")
 	require.NoError(tb, openErr)
 
 	_, createErr := db.Exec("CREATE SCHEMA IF NOT EXISTS public")
@@ -72,7 +72,8 @@ func MySQLDatabase(tb testing.TB) *sql.DB {
 	tb.Helper()
 
 	conf := mysql.NewConfig()
-	conf.User = "root"
+	conf.User = "mysql"
+	conf.Passwd = "mysql"
 	conf.DBName = "waarp_gateway_test"
 	conf.Addr = "localhost:3306"
 	conf.ParseTime = true

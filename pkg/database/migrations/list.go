@@ -311,4 +311,9 @@ var Migrations = []Change{
 		Up:          ver0_12_0DropRemoteTransferIdUniqueUp,
 		Down:        ver0_12_0DropRemoteTransferIdUniqueDown,
 	},
+	{ // #58
+		Description: `Add an "owner" column to the "crypto_keys" table`,
+		Up:          ver0_12_1AddCryptoKeysOwnerUp,
+		Down:        ver0_12_1AddCryptoKeysOwnerDown,
+	},
 }

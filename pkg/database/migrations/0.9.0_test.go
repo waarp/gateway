@@ -1187,7 +1187,7 @@ func testVer0_9_0FillCredTable(t *testing.T, eng *testEngine) Change {
 		t.Run("Then it should have filled the table", func(t *testing.T) {
 			rows, err := eng.DB.Query(`SELECT local_agent_id,remote_agent_id,
        			local_account_id,remote_account_id,name,type,value,value2 
-				FROM credentials ORDER BY name,type`)
+				FROM credentials ORDER BY name,type,id`)
 			require.NoError(t, err)
 
 			defer rows.Close()

@@ -53,14 +53,14 @@ func (e *encryptSign) ValidateDB(db database.ReadAccess, params map[string]strin
 	}
 
 	var eCryptoKey model.CryptoKey
-	if err := db.Get(&eCryptoKey, "name = ?", e.EncryptKeyName).Run(); database.IsNotFound(err) {
+	if err := db.Get(&eCryptoKey, "name=?", e.EncryptKeyName).Owner().Run(); database.IsNotFound(err) {
 		return fmt.Errorf("%w %q", ErrEncryptSignKeyNotFound, e.EncryptKeyName)
 	} else if err != nil {
 		return fmt.Errorf("failed to retrieve encryption key from database: %w", err)
 	}
 
 	var sCryptoKey model.CryptoKey
-	if err := db.Get(&sCryptoKey, "name = ?", e.SignKeyName).Run(); database.IsNotFound(err) {
+	if err := db.Get(&sCryptoKey, "name=?", e.SignKeyName).Owner().Run(); database.IsNotFound(err) {
 		return fmt.Errorf("%w %q", ErrEncryptSignKeyNotFound, e.SignKeyName)
 	} else if err != nil {
 		return fmt.Errorf("failed to retrieve signature key from database: %w", err)

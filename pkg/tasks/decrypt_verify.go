@@ -53,14 +53,14 @@ func (d *decryptVerify) ValidateDB(db database.ReadAccess, params map[string]str
 	}
 
 	var dCryptoKey model.CryptoKey
-	if err := db.Get(&dCryptoKey, "name = ?", d.DecryptKeyName).Run(); database.IsNotFound(err) {
+	if err := db.Get(&dCryptoKey, "name=?", d.DecryptKeyName).Owner().Run(); database.IsNotFound(err) {
 		return fmt.Errorf("%w %q", ErrDecryptVerifyKeyNotFound, d.DecryptKeyName)
 	} else if err != nil {
 		return fmt.Errorf("failed to retrieve decryption key from database: %w", err)
 	}
 
 	var vCryptoKey model.CryptoKey
-	if err := db.Get(&vCryptoKey, "name = ?", d.VerifyKeyName).Run(); database.IsNotFound(err) {
+	if err := db.Get(&vCryptoKey, "name=?", d.VerifyKeyName).Owner().Run(); database.IsNotFound(err) {
 		return fmt.Errorf("%w %q", ErrDecryptVerifyKeyNotFound, d.VerifyKeyName)
 	} else if err != nil {
 		return fmt.Errorf("failed to retrieve verification key from database: %w", err)

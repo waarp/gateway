@@ -18,6 +18,7 @@ func TestPostgreSQL(t *testing.T) {
 	conf.GlobalConfig.Log.LogTo = "stdout"
 	conf.GlobalConfig.Database.Type = PostgreSQL
 	conf.GlobalConfig.Database.User = "postgres"
+	conf.GlobalConfig.Database.Password = "postgres"
 	conf.GlobalConfig.Database.Name = "waarp_gateway_test"
 	conf.GlobalConfig.Database.Address = "localhost:5432"
 	conf.GlobalConfig.Database.AESPassphrase = filepath.Join(os.TempDir(), "pgsql_test_passphrase.aes")

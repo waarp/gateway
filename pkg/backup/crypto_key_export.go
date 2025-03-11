@@ -12,7 +12,7 @@ import (
 
 func exportCryptoKeys(logger *log.Logger, db database.ReadAccess) ([]*file.CryptoKey, error) {
 	var dbKeys model.CryptoKeys
-	if err := db.Select(&dbKeys).Run(); err != nil {
+	if err := db.Select(&dbKeys).Owner().Run(); err != nil {
 		return nil, fmt.Errorf("failed to retrieve crypto keys: %w", err)
 	}
 
