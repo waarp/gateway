@@ -46,7 +46,7 @@ func (v *verify) ValidateDB(db database.ReadAccess, params map[string]string) er
 	}
 
 	var cryptoKey model.CryptoKey
-	if err := db.Get(&cryptoKey, "name = ?", v.KeyName).Run(); database.IsNotFound(err) {
+	if err := db.Get(&cryptoKey, "name = ?", v.KeyName).Owner().Run(); database.IsNotFound(err) {
 		return fmt.Errorf("%w %q", ErrVerifyKeyNotFound, v.KeyName)
 	} else if err != nil {
 		return fmt.Errorf("failed to retrieve verification key from database: %w", err)

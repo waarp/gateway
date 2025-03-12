@@ -8,7 +8,7 @@ func ver0_12_0AddCryptoKeysUp(db Actions) error {
 			{Name: "id", Type: BigInt{}, NotNull: true, Default: AutoIncr{}},
 			{Name: "name", Type: Varchar(100), NotNull: true},
 			{Name: "type", Type: Varchar(50), NotNull: true},
-			{Name: "key", Type: Text{}, NotNull: true},
+			{Name: quote(db, "key"), Type: Text{}, NotNull: true},
 		},
 		PrimaryKey: &PrimaryKey{Name: "crypto_keys_pkey", Cols: []string{"id"}},
 		Uniques: []Unique{

@@ -46,7 +46,7 @@ func (e *encrypt) ValidateDB(db database.ReadAccess, params map[string]string) e
 	}
 
 	var cryptoKey model.CryptoKey
-	if err := db.Get(&cryptoKey, "name = ?", e.KeyName).Run(); database.IsNotFound(err) {
+	if err := db.Get(&cryptoKey, "name=?", e.KeyName).Owner().Run(); database.IsNotFound(err) {
 		return fmt.Errorf("%w %q", ErrEncryptKeyNotFound, e.KeyName)
 	} else if err != nil {
 		return fmt.Errorf("failed to retrieve encryption key from database: %w", err)

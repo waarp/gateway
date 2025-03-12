@@ -158,4 +158,7 @@ func testMigrations(t *testing.T, eng *testEngine) {
 	// 0.12.0
 	apply(testVer0_12_0AddCryptoKeys(t, eng))
 	apply(testVer0_12_0DropRemoteTransferIdUnique(t, eng))
+
+	// 0.12.1
+	apply(testVer0_12_0AddCryptoKeysOwner(t, eng))
 }

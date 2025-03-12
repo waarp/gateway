@@ -8,7 +8,11 @@ import (
 // the given identifier with the appropriate character based on the dialect of
 // the given database.
 func quote(db Actions, identifier string) string {
-	if db.GetDialect() == MySQL {
+	return quoteDial(db.GetDialect(), identifier)
+}
+
+func quoteDial(dialect, identifier string) string {
+	if dialect == MySQL {
 		return fmt.Sprintf("`%s`", identifier)
 	}
 

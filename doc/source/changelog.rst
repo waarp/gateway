@@ -3,6 +3,10 @@
 Historique des versions
 =======================
 
+* :bug:`445` Les clés cryptographiques ne sont désormais plus partagées entre
+  plusieurs instances lorsque celles-ci partagent une même base de données
+  (excepté dans le cadre d'un fonctionnement en grappe). Les clés sont désormais
+  rattachées à une seule instance, et seule celle-ci peut utiliser une clé particulière.
 * :bug:`444` Ajout des clés cryptographiques au fichier d'import/export. Celles-ci
   n'avaient pas été ajoutées en version 0.12.0 comme elles auraient dû être.
 * :bug:`-` Correction d'une erreur de nommage d'option de la commande terminal
