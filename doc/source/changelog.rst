@@ -3,6 +3,7 @@
 Historique des versions
 =======================
 
+* :release:`0.12.1 <2025-03-12>`
 * :bug:`445` Les clés cryptographiques ne sont désormais plus partagées entre
   plusieurs instances lorsque celles-ci partagent une même base de données
   (excepté dans le cadre d'un fonctionnement en grappe). Les clés sont désormais
