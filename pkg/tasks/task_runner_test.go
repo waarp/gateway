@@ -24,6 +24,13 @@ func TestSetup(t *testing.T) {
 	rootAlt := filepath.ToSlash(t.TempDir())
 
 	Convey("Given a Task with some replacement variables", t, func(c C) {
+		const (
+			timestampTsFormat  = "YYYY-MM-DD_HH:mm:sszz"
+			timestampGoFormat  = "2006-01-02_15:04:05Z07:00"
+			timestampPrecision = time.Second
+			defaultTsGoFormat  = "2006-01-02_150405"
+		)
+
 		task := &model.Task{
 			Type: "DUMMY",
 			Args: map[string]string{
@@ -37,6 +44,8 @@ func TestSetup(t *testing.T) {
 				"inPath": "#INPATH#", "outPath": "#OUTPATH#", "workPath": "#WORKPATH#",
 				"homePath": "#HOMEPATH#", "transferInfo": "#TI_foo#/#TI_id#",
 				"baseFileName": "#BASEFILENAME#", "fileExtension": "#FILEEXTENSION#",
+				"timestamp":        fmt.Sprintf("#TIMESTAMP(%s)#", timestampTsFormat),
+				"defaultTimestamp": `#TIMESTAMP#`,
 			},
 		}
 
@@ -97,6 +106,7 @@ func TestSetup(t *testing.T) {
 			r := &Runner{db: db, transCtx: transCtx}
 
 			Convey("When calling the `setup` function", func() {
+				now := time.Now()
 				res, err := r.setup(task)
 
 				Convey("Then it should NOT return an error", func() {
@@ -116,8 +126,7 @@ func TestSetup(t *testing.T) {
 						So(ok, ShouldBeTrue)
 
 						Convey("Then res[date] should contain the resolved variable", func() {
-							today := time.Now().Format("20060102")
-							So(val, ShouldEqual, today)
+							So(val, ShouldEqual, now.Format("20060102"))
 						})
 					})
 
@@ -126,8 +135,7 @@ func TestSetup(t *testing.T) {
 						So(ok, ShouldBeTrue)
 
 						Convey("Then res[hour] should contain the resolved variable", func() {
-							today := time.Now().Format("030405")
-							So(val, ShouldEqual, today)
+							So(val, ShouldEqual, now.Format("030405"))
 						})
 					})
 
@@ -309,6 +317,28 @@ func TestSetup(t *testing.T) {
 
 						Convey("Then res[transferInfo] should contain the resolved variable", func() {
 							So(val, ShouldEqual, ".test")
+						})
+					})
+
+					Convey("Then res should contain a `timestamp` entry", func() {
+						val, ok := res["timestamp"]
+						So(ok, ShouldBeTrue)
+
+						Convey("Then res[transferInfo] should contain the resolved variable", func() {
+							valT, tErr := time.ParseInLocation(timestampGoFormat, val, time.Local)
+							So(tErr, ShouldBeNil)
+							So(valT, ShouldHappenWithin, timestampPrecision, now)
+						})
+					})
+
+					Convey("Then res should contain a `defaultTimestamp` entry", func() {
+						val, ok := res["defaultTimestamp"]
+						So(ok, ShouldBeTrue)
+
+						Convey("Then res[transferInfo] should contain the resolved variable", func() {
+							valT, tErr := time.ParseInLocation(defaultTsGoFormat, val, time.Local)
+							So(tErr, ShouldBeNil)
+							So(valT, ShouldHappenWithin, timestampPrecision, now)
 						})
 					})
 				})

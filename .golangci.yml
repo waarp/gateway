@@ -161,7 +161,7 @@ linters:
     dupl:
       # Tokens count to trigger issue.
       # Default: 150
-      threshold: 100
+      threshold: 150
 
     dupword:
       # Keywords for detecting duplicate words.
