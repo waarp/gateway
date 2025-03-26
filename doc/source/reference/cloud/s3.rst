@@ -59,6 +59,7 @@ lui donnerons le nom "instance-exemple".
 La commande de création pour cette instance cloud est donc :
 
 .. code-block:: shell
+
    waarp-gateway cloud add -n "instance-exemple" -t "s3" -k "toto" -s "sesame" -o "bucket:archive" -o "region:eu-west-3" -o "endpoint:s3.eu-west-3.amazonaws.com"
 
 Par la suite, lors de mon transfert, le chemin du fichier devra donc ressembler à : ::

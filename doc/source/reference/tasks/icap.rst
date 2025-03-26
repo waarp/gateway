@@ -34,7 +34,7 @@ Les arguments de ce traitement sont:
   écrasé par le contenu de la réponse du serveur. Par défaut les modifications
   sont interdites.
 * ``onError`` (*string*) - L'action à effectuer en cas d'erreur. Les valeurs
-  acceptées sont ```` (vide) pour ne rien faire, ``delete`` pour supprimer
+  acceptées sont : (vide) pour ne rien faire, ``delete`` pour supprimer
   le fichier de transfert ou ``move`` pour déplacer le fichier de transfert dans
   un autre dossier. Par défaut, aucune action n'est prise sur le fichier en cas
   d'erreur (le transfert tombera tout de même en erreur).

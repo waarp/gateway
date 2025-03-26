@@ -61,7 +61,7 @@ dossiers spécifiques au serveur.
 de remplacer les chemins locaux par des chemins distants. Cela permet de stocker
 les fichiers sur une machine différente de celle où est installée la gateway.
 Pour plus d'information sur ces chemins distants, voir la `section ci-dessous
- <#instances-cloud>`_.
+<#instances-cloud>`_.
 
 Explications détaillées
 =======================
@@ -143,10 +143,10 @@ sur laquelle est installée la gateway, il est possible, à la place, de les
 stocker sur une machine distante (en générale, une instance cloud).
 
 Pour cela, l'instance cloud doit préalablement avoir été renseignée dans la
-gateway (voir :ref:`la commande de gestion des instances clouds<reference-cli-cloud>`
-ou :ref:`le handler REST de gestion des instances cloud<reference-rest-cloud>`).
-Une fois l'instance cloud définie, il est possible de la référencer dans les
-divers chemin décrits ci-dessus.
+gateway (voir :ref:`la commande de gestion des instances clouds
+<reference-cli-client-cloud>` ou :ref:`le handler REST de gestion des instances
+cloud<reference-rest-cloud>`).Une fois l'instance cloud définie, il est possible
+de la référencer dans les divers chemin décrits ci-dessus.
 
 Ainsi, il est donc possible de définir une règle ayant comme dossier "local"
 un dossier se trouvant sur une instance cloud. De même, il est possible de

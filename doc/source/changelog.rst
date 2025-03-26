@@ -59,6 +59,7 @@ Historique des versions
   - ``VERIFY`` pour valider la signature d'un fichier
   - ``ENCRYPT&SIGN`` pour chiffrer et signer un fichier
   - ``DECRYPT&VERIFY`` pour déchiffrer un fichier et valider sa signature
+
   La documentation complète de ces tâches peut être consultée :ref:`ici<reference-tasks-list>`.
 * :feature:`130` Ajout d'une tâche ICAP, permettant (entre autre) d'envoyer
   un fichier de transfert à un service d'analyse antivirus. À noter que cette
