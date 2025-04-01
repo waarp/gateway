@@ -3,6 +3,7 @@
 Historique des versions
 =======================
 
+* :release:`0.12.2 <2025-04-01>`
 * :bug:`-` Correction d'une potentielle situation de concurrence pouvant survenir
   lors de l'exécution parallèle de plusieurs instance d'une même tâche. Les tâches
   concernées par ce problème sont les nouvelles tâches de cryptographie ajoutées
