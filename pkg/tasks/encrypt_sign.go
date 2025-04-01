@@ -36,6 +36,7 @@ type encryptSign struct {
 }
 
 func (e *encryptSign) ValidateDB(db database.ReadAccess, params map[string]string) error {
+	*e = encryptSign{}
 	if err := utils.JSONConvert(params, e); err != nil {
 		return fmt.Errorf("failed to parse the encryption parameters: %w", err)
 	}

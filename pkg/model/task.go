@@ -13,7 +13,16 @@ import (
 // ValidTasks is a list of all the tasks known by the gateway.
 //
 //nolint:gochecknoglobals // global var is used by design
-var ValidTasks = map[string]TaskRunner{}
+var ValidTasks = map[string]func() TaskRunner{}
+
+func GetTaskRunner(typ string) TaskRunner {
+	getter, ok := ValidTasks[typ]
+	if !ok {
+		return nil
+	}
+
+	return getter()
+}
 
 // TaskValidator is an optional interface which can be implemented by task
 // executors (alongside TaskRunner). This interface can be implemented if the
@@ -69,8 +78,8 @@ func (t *Task) validateTasks(db database.ReadAccess) error {
 		t.Args = map[string]string{}
 	}
 
-	runner, ok := ValidTasks[t.Type]
-	if !ok {
+	runner := GetTaskRunner(t.Type)
+	if runner == nil {
 		return database.NewValidationError("%s is not a valid task Type", t.Type)
 	}
 

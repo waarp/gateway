@@ -24,8 +24,8 @@ const (
 
 //nolint:gochecknoinits //init is required here
 func init() {
-	model.ValidTasks[TaskOK] = &TestTask{}
-	model.ValidTasks[TaskErr] = &TestTaskError{}
+	model.ValidTasks[TaskOK] = func() model.TaskRunner { return &TestTask{} }
+	model.ValidTasks[TaskErr] = func() model.TaskRunner { return &TestTaskError{} }
 }
 
 var ErrTaskFailed = errors.New("task failed")

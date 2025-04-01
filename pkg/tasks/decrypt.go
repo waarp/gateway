@@ -33,6 +33,7 @@ type decrypt struct {
 }
 
 func (d *decrypt) ValidateDB(db database.ReadAccess, params map[string]string) error {
+	*d = decrypt{}
 	if err := utils.JSONConvert(params, d); err != nil {
 		return fmt.Errorf("failed to parse the decryption parameters: %w", err)
 	}

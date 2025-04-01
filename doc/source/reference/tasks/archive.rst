@@ -11,7 +11,7 @@ dossiers. Les arguments sont:
 * ``compressionLevel`` (*string*) - Le niveau de compression. Doit être compris
   entre 0 (pas de compression) et 9 (compression maximum). Si absent, un niveau
   de compression sera choisi automatiquement.
-* ``outputFile`` (*string*) - Le chemin de l'archive. L'extension de cette archive
+* ``outputPath`` (*string*) - Le chemin de l'archive. L'extension de cette archive
   déterminera le type d'archive, ainsi que la méthode de compression utilisée.
   Les extensions acceptées sont :
 

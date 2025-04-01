@@ -15,10 +15,10 @@ import (
 
 //nolint:gochecknoinits // designed this way
 func init() {
-	model.ValidTasks[taskSuccess] = &testTaskSuccess{}
-	model.ValidTasks[taskWarning] = &testTaskWarning{}
-	model.ValidTasks[taskFail] = &testTaskFail{}
-	model.ValidTasks[taskLong] = &testTaskLong{}
+	model.ValidTasks[taskSuccess] = newRunner[*testTaskSuccess]
+	model.ValidTasks[taskWarning] = newRunner[*testTaskWarning]
+	model.ValidTasks[taskFail] = newRunner[*testTaskFail]
+	model.ValidTasks[taskLong] = newRunner[*testTaskLong]
 }
 
 var (

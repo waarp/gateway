@@ -19,8 +19,8 @@ var (
 
 //nolint:gochecknoinits // init is used by design
 func init() {
-	ValidTasks["TESTSUCCESS"] = &testTaskSuccess{}
-	ValidTasks["TESTFAIL"] = &testTaskFail{}
+	ValidTasks["TESTSUCCESS"] = func() TaskRunner { return &testTaskSuccess{} }
+	ValidTasks["TESTFAIL"] = func() TaskRunner { return &testTaskFail{} }
 }
 
 type testTaskSuccess struct{}

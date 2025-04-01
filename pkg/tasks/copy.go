@@ -16,11 +16,6 @@ import (
 // to a given destination with the same filename.
 type copyTask struct{}
 
-//nolint:gochecknoinits // designed to use init
-func init() {
-	model.ValidTasks["COPY"] = &copyTask{}
-}
-
 var ErrCopyMissingPath = fmt.Errorf(
 	`cannot create a COPY task without a "path" argument: %w`, ErrBadTaskArguments)
 

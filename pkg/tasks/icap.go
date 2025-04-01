@@ -20,11 +20,6 @@ import (
 	"code.waarp.fr/apps/gateway/gateway/pkg/utils"
 )
 
-//nolint:gochecknoinits // init is used by design
-func init() {
-	model.ValidTasks["ICAP"] = &icapTask{}
-}
-
 var (
 	ErrIcapMissingUploadURL       = errors.New("ICAP upload URL is missing")
 	ErrIcapMissingErrorMovePath   = errors.New("ICAP error move path is missing")
@@ -52,6 +47,7 @@ type icapTask struct {
 }
 
 func (i *icapTask) parseParams(params map[string]string) error {
+	*i = icapTask{}
 	if err := utils.JSONConvert(params, i); err != nil {
 		return fmt.Errorf("failed to parse icap task arguments: %w", err)
 	}

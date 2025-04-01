@@ -33,6 +33,7 @@ type verify struct {
 }
 
 func (v *verify) ValidateDB(db database.ReadAccess, params map[string]string) error {
+	*v = verify{}
 	if err := utils.JSONConvert(params, v); err != nil {
 		return fmt.Errorf("failed to parse the verification parameters: %w", err)
 	}

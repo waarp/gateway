@@ -130,4 +130,10 @@ func testArchive(t *testing.T, extension string) {
 	assert.Equal(t, "content1", string(data1))
 	assert.Equal(t, "content2", string(data2))
 	assert.Equal(t, "content3", string(data3))
+
+	t.Run("Idempotence", func(t *testing.T) {
+		affectedFiles := len(archive.files)
+		require.NoError(t, archive.Run(ctx, archParam, db, logger, transCtxArch))
+		assert.Len(t, archive.files, affectedFiles)
+	})
 }
