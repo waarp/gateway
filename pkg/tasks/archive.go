@@ -32,6 +32,7 @@ type archiveTask struct {
 }
 
 func (a *archiveTask) parseParams(params map[string]string) error {
+	*a = archiveTask{}
 	if err := utils.JSONConvert(params, a); err != nil {
 		return fmt.Errorf("failed to parse the archive task parameters: %w", err)
 	}

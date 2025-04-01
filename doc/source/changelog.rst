@@ -3,6 +3,15 @@
 Historique des versions
 =======================
 
+* :bug:`-` Correction d'une potentielle situation de concurrence pouvant survenir
+  lors de l'exécution parallèle de plusieurs instance d'une même tâche. Les tâches
+  concernées par ce problème sont les nouvelles tâches de cryptographie ajoutées
+  en version 0.12.0. Cette situation de concurrence pouvait provoquer des erreurs
+  imprévues durant l'exécution de ces tâches.
+* :bug:`450` Les tâches ``ARCHIVE`` et ``EXTRACT`` qui auraient dû être ajoutée
+  en version 0.12.0 ne l'étaient pas. Ces tâches sont maintenant utilisables
+  comme prévu.
+
 * :release:`0.12.1 <2025-03-12>`
 * :bug:`445` Les clés cryptographiques ne sont désormais plus partagées entre
   plusieurs instances lorsque celles-ci partagent une même base de données

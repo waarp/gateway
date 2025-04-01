@@ -16,11 +16,6 @@ import (
 // the transfer model is modified to reflect this change.
 type moveTask struct{}
 
-//nolint:gochecknoinits // init is used by design
-func init() {
-	model.ValidTasks["MOVE"] = &moveTask{}
-}
-
 var ErrMoveMissingPath = fmt.Errorf(
 	`cannot create a MOVE task without a "path" argument: %w`, ErrBadTaskArguments)
 

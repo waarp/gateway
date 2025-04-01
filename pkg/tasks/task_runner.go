@@ -70,8 +70,8 @@ func (r *Runner) ErrorTasks(trace func(rank int8)) *Error {
 func (r *Runner) runTask(updTicker *time.Ticker, task *model.Task, taskInfo string,
 	isErrTasks bool,
 ) *Error {
-	runner, ok := model.ValidTasks[task.Type]
-	if !ok {
+	runner := model.GetTaskRunner(task.Type)
+	if runner == nil {
 		return newError(types.TeExternalOperation, "unknown task type: %s", task.Type)
 	}
 
@@ -81,22 +81,6 @@ func (r *Runner) runTask(updTicker *time.Ticker, task *model.Task, taskInfo stri
 
 		return newErrorWith(types.TeExternalOperation,
 			fmt.Sprintf("%s: setup failed", taskInfo), setupErr)
-	}
-
-	if validatorDB, ok := runner.(model.TaskValidatorDB); ok {
-		if valErr := validatorDB.ValidateDB(r.db, args); valErr != nil {
-			r.logger.Error("%s: validation failed %v", taskInfo, valErr)
-
-			return newErrorWith(types.TeExternalOperation,
-				fmt.Sprintf("%s: validation failed", taskInfo), valErr)
-		}
-	} else if validator, ok := runner.(model.TaskValidator); ok {
-		if valErr := validator.Validate(args); valErr != nil {
-			r.logger.Error("%s: validation failed %v", taskInfo, valErr)
-
-			return newErrorWith(types.TeExternalOperation,
-				fmt.Sprintf("%s: validation failed", taskInfo), valErr)
-		}
 	}
 
 	r.logger.Debug("Executing task %s with args %s", taskInfo, mapToStr(args))

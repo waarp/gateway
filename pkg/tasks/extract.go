@@ -25,6 +25,7 @@ type extractTask struct {
 }
 
 func (e *extractTask) parseParams(params map[string]string) error {
+	*e = extractTask{}
 	if err := utils.JSONConvert(params, e); err != nil {
 		return fmt.Errorf("failed to parse the extract task parameters: %w", err)
 	}

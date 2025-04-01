@@ -16,11 +16,6 @@ import (
 // without impacting the filesystem.
 type renameTask struct{}
 
-//nolint:gochecknoinits // init is used by design
-func init() {
-	model.ValidTasks["RENAME"] = &renameTask{}
-}
-
 var ErrRenameMissingPath = fmt.Errorf(
 	`cannot create a RENAME task without a "path" argument: %w`, ErrBadTaskArguments)
 

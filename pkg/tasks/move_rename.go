@@ -16,11 +16,6 @@ import (
 // destination.
 type moveRenameTask struct{}
 
-//nolint:gochecknoinits // init is used by design
-func init() {
-	model.ValidTasks["MOVERENAME"] = &moveRenameTask{}
-}
-
 var ErrMoveRenameMissingPath = fmt.Errorf(
 	`cannot create a MOVERENAME task without a "path" argument: %w`, ErrBadTaskArguments)
 

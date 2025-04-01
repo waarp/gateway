@@ -1,6 +1,10 @@
 package tasks
 
-import "code.waarp.fr/apps/gateway/gateway/pkg/model"
+import (
+	"reflect"
+
+	"code.waarp.fr/apps/gateway/gateway/pkg/model"
+)
 
 const (
 	Copy       = "COPY"
@@ -22,31 +26,50 @@ const (
 	Verify           = "VERIFY"
 	EncryptAndSign   = "ENCRYPT&SIGN"
 	DecryptAndVerify = "DECRYPT&VERIFY"
+
+	Archive = "ARCHIVE"
+	Extract = "EXTRACT"
+
+	Icap = "ICAP"
 )
 
 //nolint:gochecknoinits //init is required here
 func init() {
 	// File operations
-	model.ValidTasks[Copy] = &copyTask{}
-	model.ValidTasks[CopyRename] = &copyRenameTask{}
-	model.ValidTasks[Move] = &moveTask{}
-	model.ValidTasks[MoveRename] = &moveRenameTask{}
-	model.ValidTasks[Delete] = &deleteTask{}
+	model.ValidTasks[Copy] = newRunner[*copyTask]
+	model.ValidTasks[CopyRename] = newRunner[*copyRenameTask]
+	model.ValidTasks[Move] = newRunner[*moveTask]
+	model.ValidTasks[MoveRename] = newRunner[*moveRenameTask]
+	model.ValidTasks[Delete] = newRunner[*deleteTask]
 
 	// Execution tasks
-	model.ValidTasks[Exec] = &execTask{}
-	model.ValidTasks[ExecMove] = &execMoveTask{}
-	model.ValidTasks[ExecOutput] = &execOutputTask{}
+	model.ValidTasks[Exec] = newRunner[*execTask]
+	model.ValidTasks[ExecMove] = newRunner[*execMoveTask]
+	model.ValidTasks[ExecOutput] = newRunner[*execOutputTask]
 
 	// Transfer tasks
-	model.ValidTasks[Rename] = &renameTask{} // "RENAME" is in fact a "change target" task
-	model.ValidTasks[Transfer] = &TransferTask{}
+	model.ValidTasks[Rename] = newRunner[*renameTask] // "RENAME" is in fact a "change target" task
+	model.ValidTasks[Transfer] = newRunner[*TransferTask]
 
 	// File encryption & signing
-	model.ValidTasks[Encrypt] = &encrypt{}
-	model.ValidTasks[Decrypt] = &decrypt{}
-	model.ValidTasks[Sign] = &sign{}
-	model.ValidTasks[Verify] = &verify{}
-	model.ValidTasks[EncryptAndSign] = &encryptSign{}
-	model.ValidTasks[DecryptAndVerify] = &decryptVerify{}
+	model.ValidTasks[Encrypt] = newRunner[*encrypt]
+	model.ValidTasks[Decrypt] = newRunner[*decrypt]
+	model.ValidTasks[Sign] = newRunner[*sign]
+	model.ValidTasks[Verify] = newRunner[*verify]
+	model.ValidTasks[EncryptAndSign] = newRunner[*encryptSign]
+	model.ValidTasks[DecryptAndVerify] = newRunner[*decryptVerify]
+
+	// Archiving & compression
+	model.ValidTasks[Archive] = newRunner[*archiveTask]
+	model.ValidTasks[Extract] = newRunner[*extractTask]
+
+	// Network
+	model.ValidTasks[Icap] = newRunner[*icapTask]
+}
+
+func newRunner[T model.TaskRunner]() model.TaskRunner {
+	typ := reflect.TypeFor[T]().Elem()
+
+	//nolint:errcheck,forcetypeassert //assertion cannot fail here, no need to check
+	return reflect.New(typ).Interface().(model.TaskRunner)
 }

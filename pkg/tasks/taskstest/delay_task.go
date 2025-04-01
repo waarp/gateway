@@ -19,7 +19,7 @@ const (
 
 //nolint:gochecknoinits //init is required here
 func init() {
-	model.ValidTasks[TaskDelay] = &TestTaskDelay{}
+	model.ValidTasks[TaskDelay] = func() model.TaskRunner { return &TestTaskDelay{} }
 }
 
 // TestTaskDelay is a dummy task made for testing. It waits a specified amount
