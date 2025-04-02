@@ -53,5 +53,5 @@ l'argument d'aide (``-h`` ou ``--help``) dans un terminal (en anglais).
    local_accounts
    partners
    remote_accounts
-   credentials
+   certificates
    transfers

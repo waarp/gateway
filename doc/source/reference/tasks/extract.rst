@@ -1,4 +1,4 @@
-ARCHIVE
+EXTRACT
 =======
 
 Le traitement ``EXTRACT`` extrait le contenu d'une archive. Les arguments sont:

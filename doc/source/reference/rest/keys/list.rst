@@ -12,8 +12,9 @@ Lister les clés cryptographiques
    :type limit: int
    :param offset: Le numéro du premier résultat souhaité *(défaut: 0)*
    :type offset: int
-   :param sort: Le paramètre selon lequel les clés seront triées *(défaut: name+)*
-   :type sort: [name+|name-|type+|type-]
+   :param sort: Le paramètre selon lequel les clés seront triées *(défaut: name+)*.
+      Valeurs autorisées : ``name+``, ``name-``, ``type+``, ``type-``.
+   :type sort: string
 
    :statuscode 200: La liste a été renvoyée avec succès
    :statuscode 400: Un ou plusieurs des paramètres de requêtes sont invalides

@@ -11,8 +11,9 @@ Lister les moniteurs
    :type limit: int
    :param offset: Le numéro du premier résultat souhaité *(défaut: 0)*
    :type offset: int
-   :param sort: Le paramètre selon lequel les moniteurs seront triés *(défaut: name+)*
-   :type sort: [name+|name-|address+|address-]
+   :param sort: Le paramètre selon lequel les moniteurs seront triés *(défaut: name+)*.
+      Valeurs autorisées : ``name+``, ``name-``, ``address+``, ``address-``.
+   :type sort: string
 
    :statuscode 200: Les moniteurs ont été renvoyés avec succès
    :statuscode 400: Un ou plusieurs des paramètres de la requête sont invalides
