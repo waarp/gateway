@@ -10,6 +10,11 @@ import (
 
 const VersionNone = "none"
 
+// VersionsMap pairs each Gateway version with its corresponding index in the
+// migrations list. A rule of thumb is that when adding a new version, the
+// number associated with it should be equal to the index of the last element in
+// the Migrations list (not then list's length).
+//
 //nolint:gochecknoglobals,mnd //a global var with magic numbers is required here
 var VersionsMap = map[string]int{
 	"0.4.0":  0,
@@ -46,6 +51,7 @@ var VersionsMap = map[string]int{
 	"0.12.0": 57,
 	"0.12.1": 58,
 	"0.12.2": 58,
+	"0.12.3": 58,
 
 	VersionNone: -1,
 	version.Num: len(Migrations) - 1,
