@@ -3,6 +3,7 @@
 Historique des versions
 =======================
 
+* :release:`0.12.3 <2025-04-03>`
 * :bug:`453` Ré-ajout des commandes ``server add`` et ``server delete`` au client
   terminal ``waarp-gateway``. Celles-ci avaient été involontairement retirées en
   version 0.12.1.
