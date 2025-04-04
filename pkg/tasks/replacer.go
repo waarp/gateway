@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"path"
 	"path/filepath"
+	"strings"
 	"time"
 
 	"code.waarp.fr/apps/gateway/gateway/pkg/model"
@@ -25,6 +26,14 @@ func getReplacers() replacersMap {
 		},
 		"#TRUEFILENAME#": func(ctx *model.TransferContext) (string, error) {
 			return path.Base(ctx.Transfer.LocalPath), nil
+		},
+		"#BASEFILENAME#": func(ctx *model.TransferContext) (string, error) {
+			return strings.TrimSuffix(
+				path.Base(ctx.Transfer.LocalPath),
+				path.Ext(ctx.Transfer.LocalPath)), nil
+		},
+		"#FILEEXTENSION#": func(ctx *model.TransferContext) (string, error) {
+			return path.Ext(ctx.Transfer.LocalPath), nil
 		},
 		"#ORIGINALFULLPATH#": func(ctx *model.TransferContext) (string, error) {
 			if ctx.Rule.IsSend {
