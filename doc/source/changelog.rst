@@ -3,6 +3,11 @@
 Historique des versions
 =======================
 
+* :bug:`455` La tâche *TRANSFER* ne copie plus l'arborescence du chemin source
+  en dessous du dossier de règle sur la destination. Cela causait des problèmes
+  lorsque le chemin source était absolu. Désormais, le fichier sera toujours
+  déposé à la racine du chemin de la règle, et ce, même si le fichier source,
+  lui, ne s'y trouvait pas.
 * :bug:`457` Les identifiants de pré-connexion PeSIT n'étaient pas correctement
   envoyés par le client de Gateway lorsque celui-ci se connectait à un partenaire.
   Cela est désormais corrigé.
