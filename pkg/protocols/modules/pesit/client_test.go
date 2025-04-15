@@ -1,6 +1,7 @@
 package pesit
 
 import (
+	"context"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
@@ -8,6 +9,7 @@ import (
 
 	"code.waarp.fr/apps/gateway/gateway/pkg/model"
 	"code.waarp.fr/apps/gateway/gateway/pkg/model/types"
+	"code.waarp.fr/apps/gateway/gateway/pkg/utils"
 	"code.waarp.fr/apps/gateway/gateway/pkg/utils/gwtesting"
 )
 
@@ -142,5 +144,35 @@ func TestPesitClientCancel(t *testing.T) {
 				assert.Equal(t, types.StatusCancelled, servTransfer.Status)
 			})
 		})
+	})
+}
+
+func TestClientPreConn(t *testing.T) {
+	db := gwtesting.Database(t)
+	ctx := gwtesting.TestTransferCtx(t, db, Pesit, nil, nil, nil)
+	cli := newClient(ctx.Client)
+
+	require.NoError(t, cli.Start())
+
+	t.Run("Check credentials", func(t *testing.T) {
+		preConnCreds := &model.Credential{
+			RemoteAccountID: utils.NewNullInt64(ctx.RemoteAccount.ID),
+			Name:            "pre-conn-cred",
+			Type:            preConnectionAuth,
+			Value:           "foobar",
+			Value2:          "sesame",
+		}
+		require.NoError(t, db.Insert(preConnCreds).Run())
+
+		pip := ctx.PushPipeline(t)
+		trans := pip.Client.(*clientTransfer)
+
+		requireNoError(t, trans.Request())
+		t.Cleanup(func() {
+			_ = pip.Pip.Cancel(context.Background())
+		})
+
+		assert.Equal(t, preConnCreds.Value, trans.client.PreConnectLogin())
+		assert.Equal(t, preConnCreds.Value2, trans.client.PreConnectPassword())
 	})
 }
