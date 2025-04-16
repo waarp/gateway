@@ -3,6 +3,10 @@
 Historique des versions
 =======================
 
+* :bug:`457` Les identifiants de pré-connexion PeSIT n'étaient pas correctement
+  envoyés par le client de Gateway lorsque celui-ci se connectait à un partenaire.
+  Cela est désormais corrigé.
+
 * :release:`0.12.3 <2025-04-03>`
 * :bug:`453` Ré-ajout des commandes ``server add`` et ``server delete`` au client
   terminal ``waarp-gateway``. Celles-ci avaient été involontairement retirées en
