@@ -3,6 +3,8 @@
 Historique des versions
 =======================
 
+* :bug:`461` La date envoyée dans les notifications SNMP d'erreur de transfert
+  est désormais correcte. Précédemment, cette date était systématiquement nulle.
 * :bug:`459` Correction d'une fuite de mémoire sur le serveur local R66 et R66-TLS.
 * :bug:`455` La tâche *TRANSFER* ne copie plus l'arborescence du chemin source
   en dessous du dossier de règle sur la destination. Cela causait des problèmes
