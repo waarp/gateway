@@ -1,8 +1,8 @@
 module code.waarp.fr/apps/gateway/gateway
 
-go 1.23.6
+go 1.23.8
 
-toolchain go1.24.1
+toolchain go1.24.2
 
 require (
 	code.waarp.fr/lib/goftp v0.1.1-0.20240801120050-932aa2b2f9a7
@@ -21,7 +21,7 @@ require (
 	github.com/google/uuid v1.6.0
 	github.com/gookit/color v1.5.4
 	github.com/gorilla/mux v1.8.1
-	github.com/gosnmp/gosnmp v1.39.0
+	github.com/gosnmp/gosnmp v1.40.0
 	github.com/indece-official/go-ebcdic v1.2.0
 	github.com/jackc/pgerrcode v0.0.0-20240316143900-6e2875d9b438
 	github.com/jackc/pgx/v5 v5.7.2
