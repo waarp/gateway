@@ -3,6 +3,7 @@
 Historique des versions
 =======================
 
+* :release:`0.12.5 <2025-04-18>`
 * :bug:`461` La date envoyée dans les notifications SNMP d'erreur de transfert
   est désormais correcte. Précédemment, cette date était systématiquement nulle.
 * :bug:`459` Correction d'une fuite de mémoire sur le serveur local R66 et R66-TLS.
