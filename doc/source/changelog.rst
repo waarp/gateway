@@ -3,6 +3,7 @@
 Historique des versions
 =======================
 
+* :bug:`459` Correction d'une fuite de mémoire sur le serveur local R66 et R66-TLS.
 * :bug:`455` La tâche *TRANSFER* ne copie plus l'arborescence du chemin source
   en dessous du dossier de règle sur la destination. Cela causait des problèmes
   lorsque le chemin source était absolu. Désormais, le fichier sera toujours

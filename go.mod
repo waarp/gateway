@@ -11,42 +11,41 @@ require (
 	github.com/aws/aws-sdk-go-v2/service/s3 v1.58.3
 	github.com/fclairamb/ftpserverlib v0.23.0
 	github.com/fclairamb/go-log v0.4.1
+	github.com/go-sql-driver/mysql v1.8.1
+	github.com/gosnmp/gosnmp v1.38.0
 	github.com/jackc/pgx/v5 v5.6.0
 	github.com/rclone/rclone v1.67.0
 	github.com/smarty/assertions v1.15.1
+	github.com/spf13/afero v1.11.0
+	golang.org/x/crypto v0.33.0
 	golang.org/x/exp v0.0.0-20240904232852-e7e105dedf7e
+	golang.org/x/net v0.35.0
+	golang.org/x/term v0.29.0
 	modernc.org/sqlite v1.29.6
+	xorm.io/xorm v1.3.2 //do not update, newer versions break "SELECT FOR UPDATE" on sqlite & postgres
 )
 
 require (
 	code.waarp.fr/lib/goftp v0.1.1-0.20240801120050-932aa2b2f9a7
 	code.waarp.fr/lib/log v1.2.0
 	code.waarp.fr/lib/migration v0.4.0
-	code.waarp.fr/lib/r66 v0.1.6
+	code.waarp.fr/lib/r66 v0.1.7
 	github.com/bwmarrin/snowflake v0.3.0
 	github.com/dustin/go-humanize v1.0.1
-	github.com/go-sql-driver/mysql v1.8.1
 	github.com/google/uuid v1.6.0
 	github.com/gookit/color v1.5.4
 	github.com/gorilla/mux v1.8.1
-	github.com/gosnmp/gosnmp v1.38.0
 	github.com/hack-pad/hackpadfs v0.2.4
 	github.com/jackc/pgerrcode v0.0.0-20240316143900-6e2875d9b438
 	github.com/jessevdk/go-flags v1.6.1
 	github.com/karrick/tparse/v2 v2.8.2
-	github.com/mattn/go-colorable v0.1.13
-	github.com/pkg/sftp v1.13.6
+	github.com/mattn/go-colorable v0.1.14
+	github.com/pkg/sftp v1.13.9
 	github.com/puzpuzpuz/xsync v1.5.2
 	github.com/slayercat/GoSNMPServer v0.5.2
 	github.com/smartystreets/goconvey v1.8.1
-	github.com/spf13/afero v1.11.0
-	github.com/stretchr/testify v1.9.0
-	golang.org/x/crypto v0.27.0
-	golang.org/x/net v0.29.0
-	golang.org/x/term v0.24.0
-	golang.org/x/text v0.18.0 // indirect
+	github.com/stretchr/testify v1.10.0
 	xorm.io/builder v0.3.13
-	xorm.io/xorm v1.3.2 //do not update, newer versions break "SELECT FOR UPDATE" on sqlite & postgres
 )
 
 require (
@@ -99,8 +98,9 @@ require (
 	github.com/tklauser/numcpus v0.7.0 // indirect
 	github.com/xo/terminfo v0.0.0-20210125001918-ca9a967f8778 // indirect
 	github.com/yusufpapurcu/wmi v1.2.4 // indirect
-	golang.org/x/sync v0.8.0 // indirect
-	golang.org/x/sys v0.25.0 // indirect
+	golang.org/x/sync v0.11.0 // indirect
+	golang.org/x/sys v0.30.0 // indirect
+	golang.org/x/text v0.22.0 // indirect
 	gopkg.in/yaml.v3 v3.0.1 // indirect
 	modernc.org/gc/v3 v3.0.0-20240107210532-573471604cb6 // indirect
 	modernc.org/libc v1.41.0 // indirect
