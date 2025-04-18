@@ -9,7 +9,7 @@ require (
 	code.waarp.fr/lib/log v1.2.0
 	code.waarp.fr/lib/migration v0.4.0
 	code.waarp.fr/lib/pesit v0.1.2
-	code.waarp.fr/lib/r66 v0.1.6
+	code.waarp.fr/lib/r66 v0.1.7
 	github.com/ProtonMail/gopenpgp/v3 v3.1.3
 	github.com/bwmarrin/snowflake v0.3.0
 	github.com/dsnet/compress v0.0.1
@@ -39,11 +39,11 @@ require (
 	github.com/spf13/afero v1.12.0
 	github.com/stretchr/testify v1.10.0
 	github.com/ulikunitz/xz v0.5.12
-	golang.org/x/crypto v0.35.0
+	golang.org/x/crypto v0.37.0
 	golang.org/x/exp v0.0.0-20250228200357-dead58393ab7
-	golang.org/x/net v0.35.0
-	golang.org/x/term v0.29.0
-	golang.org/x/text v0.22.0
+	golang.org/x/net v0.39.0
+	golang.org/x/term v0.31.0
+	golang.org/x/text v0.24.0
 	modernc.org/sqlite v1.36.0
 	xorm.io/builder v0.3.13
 	xorm.io/xorm v1.3.2 //do not update, newer versions break "SELECT FOR UPDATE" on sqlite & postgres
@@ -163,8 +163,8 @@ require (
 	github.com/zeebo/errs v1.4.0 // indirect
 	go.etcd.io/bbolt v1.4.0 // indirect
 	golang.org/x/oauth2 v0.27.0 // indirect
-	golang.org/x/sync v0.11.0 // indirect
-	golang.org/x/sys v0.30.0 // indirect
+	golang.org/x/sync v0.13.0 // indirect
+	golang.org/x/sys v0.32.0 // indirect
 	golang.org/x/time v0.10.0 // indirect
 	google.golang.org/api v0.223.0 // indirect
 	google.golang.org/genproto/googleapis/rpc v0.0.0-20250303144028-a0af3efb3deb // indirect
