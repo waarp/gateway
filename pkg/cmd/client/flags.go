@@ -75,3 +75,33 @@ func (j *jsonObject) UnmarshalFlag(value string) error {
 
 	return nil
 }
+
+type jsonObjects []jsonObject
+
+//nolint:wrapcheck //function is already a wrapper, best not wrap errors as well
+func (js *jsonObjects) MarshalJSON() ([]byte, error) {
+	switch {
+	case js == nil:
+		return []byte("null"), nil
+	case len(*js) == 0:
+		return []byte("[]"), nil
+	default:
+		return json.Marshal(*js)
+	}
+}
+
+//nolint:wrapcheck //function is already a wrapper, best not wrap errors as well
+func (js *jsonObjects) UnmarshalFlag(value string) error {
+	if value == "" {
+		return nil
+	}
+
+	j := jsonObject{}
+	if err := j.UnmarshalFlag(value); err != nil {
+		return err
+	}
+
+	*js = append(*js, j)
+
+	return nil
+}

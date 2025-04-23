@@ -77,9 +77,10 @@ type LocAccUpdate struct {
 	Args struct {
 		Login string `required:"yes" positional-arg-name:"old-login" description:"The account's login"`
 	} `positional-args:"yes" json:"-"`
-	Login       string    `short:"l" long:"login" description:"The account's login" json:"login,omitempty"`
+
+	Login       *string   `short:"l" long:"login" description:"The account's login" json:"login,omitempty"`
 	IPAddresses *[]string `short:"i" long:"ip-address" description:"The account's authorized IP addresses. Can be repeated. Put 'none' to remove all current authorized IP addresses" json:"ipAddresses"`
-	Password    string    `short:"p" long:"password" description:"The account's password" json:"password,omitempty"`
+	Password    *string   `short:"p" long:"password" description:"The account's password" json:"password,omitempty"`
 }
 
 func (l *LocAccUpdate) Execute([]string) error { return execute(l) }
@@ -95,8 +96,8 @@ func (l *LocAccUpdate) execute(w io.Writer) error {
 	}
 
 	login := l.Args.Login
-	if l.Login != "" {
-		login = l.Login
+	if l.Login != nil && *l.Login != "" {
+		login = *l.Login
 	}
 
 	fmt.Fprintf(w, "The account %q was successfully updated.\n", login)

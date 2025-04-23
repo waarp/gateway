@@ -130,9 +130,10 @@ type CryptoKeysUpdate struct {
 	Args struct {
 		Key string `required:"yes" positional-arg-name:"key" description:"The name of the cryptographic key"`
 	} `positional-args:"yes" json:"-"`
-	Name string `short:"n" long:"name" description:"The name of the cryptographic key" json:"name,omitempty"`
-	Type string `short:"t" long:"type" description:"The type of the cryptographic key." choice:"AES" choice:"HMAC" choice:"PGP-PUBLIC" choice:"PGP-PRIVATE"  json:"type,omitempty"`
-	Key  file   `short:"k" long:"key" description:"The file containing the cryptographic key" json:"key,omitempty"`
+
+	Name *string `short:"n" long:"name" description:"The name of the cryptographic key" json:"name,omitempty"`
+	Type *string `short:"t" long:"type" description:"The type of the cryptographic key." choice:"AES" choice:"HMAC" choice:"PGP-PUBLIC" choice:"PGP-PRIVATE"  json:"type,omitempty"`
+	Key  *file   `short:"k" long:"key" description:"The file containing the cryptographic key" json:"key,omitempty"`
 }
 
 func (p *CryptoKeysUpdate) Execute([]string) error { return p.execute(stdOutput) }
@@ -144,8 +145,8 @@ func (p *CryptoKeysUpdate) execute(w io.Writer) error {
 	}
 
 	name := p.Args.Key
-	if p.Name != "" {
-		name = p.Name
+	if p.Name != nil && *p.Name != "" {
+		name = *p.Name
 	}
 
 	fmt.Fprintf(w, "The cryptographic key %q was successfully updated.\n", name)
