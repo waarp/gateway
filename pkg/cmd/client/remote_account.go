@@ -94,8 +94,9 @@ type RemAccUpdate struct {
 	Args struct {
 		Login string `required:"yes" positional-arg-name:"old-login" description:"The account's login"`
 	} `positional-args:"yes" json:"-"`
-	Login    string `short:"l" long:"login" description:"The account's login" json:"login,omitempty"`
-	Password string `short:"p" long:"password" description:"The account's password" json:"password,omitempty"`
+
+	Login    *string `short:"l" long:"login" description:"The account's login" json:"login,omitempty"`
+	Password *string `short:"p" long:"password" description:"The account's password" json:"password,omitempty"`
 }
 
 func (r *RemAccUpdate) Execute([]string) error { return execute(r) }
@@ -107,8 +108,8 @@ func (r *RemAccUpdate) execute(w io.Writer) error {
 	}
 
 	login := r.Args.Login
-	if r.Login != "" {
-		login = r.Login
+	if r.Login != nil && *r.Login != "" {
+		login = *r.Login
 	}
 
 	fmt.Fprintf(w, "The account %q was successfully updated.\n", login)

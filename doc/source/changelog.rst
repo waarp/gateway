@@ -3,6 +3,11 @@
 Historique des versions
 =======================
 
+* :bug:`472` Il est désormais possible de "vider" un champ via les commandes
+  ``update`` du client terminal. Précédemment, mettre une valeur vide à une
+  options laissait le champ inchangé. Désormais, explicitement renseigner une
+  valeur vide à une option "effacera" la valeur actuelle du champ en question.
+  À noter que omettre l'option entièrement laissera toujours le champ inchangé.
 * :bug:`461` La date envoyée dans les notifications SNMP d'erreur de transfert
   est désormais correcte. Précédemment, cette date était systématiquement nulle.
 * :bug:`459` Correction d'une fuite de mémoire sur le serveur local R66 et R66-TLS.
