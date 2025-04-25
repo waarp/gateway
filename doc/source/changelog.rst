@@ -3,6 +3,7 @@
 Historique des versions
 =======================
 
+* :release:`0.12.6 <2025-04-25>`
 * :bug:`473` Les commandes SNMP prennent désormais les bonnes valeurs pour les
   options SNMPv3 "auth-protocol" et "priv-protocol".
 * :bug:`472` Il est désormais possible de "vider" un champ via les commandes

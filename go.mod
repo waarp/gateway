@@ -10,41 +10,41 @@ require (
 	code.waarp.fr/lib/migration v0.4.0
 	code.waarp.fr/lib/pesit v0.1.2
 	code.waarp.fr/lib/r66 v0.1.7
-	github.com/ProtonMail/gopenpgp/v3 v3.1.3
+	github.com/ProtonMail/gopenpgp/v3 v3.2.0
 	github.com/bwmarrin/snowflake v0.3.0
 	github.com/dsnet/compress v0.0.1
 	github.com/dustin/go-humanize v1.0.1
 	github.com/egirna/icap v0.3.2
 	github.com/fclairamb/ftpserverlib v0.25.0
 	github.com/fclairamb/go-log v0.5.0
-	github.com/go-sql-driver/mysql v1.9.0
+	github.com/go-sql-driver/mysql v1.9.2
 	github.com/google/uuid v1.6.0
 	github.com/gookit/color v1.5.4
 	github.com/gorilla/mux v1.8.1
 	github.com/gosnmp/gosnmp v1.40.0
 	github.com/indece-official/go-ebcdic v1.2.0
 	github.com/jackc/pgerrcode v0.0.0-20240316143900-6e2875d9b438
-	github.com/jackc/pgx/v5 v5.7.2
+	github.com/jackc/pgx/v5 v5.7.4
 	github.com/jessevdk/go-flags v1.6.1
 	github.com/karrick/tparse/v2 v2.8.2
 	github.com/klauspost/compress v1.18.0
 	github.com/mattn/go-colorable v0.1.14
 	github.com/pbnjay/memory v0.0.0-20210728143218-7b4eea64cf58
-	github.com/pkg/sftp v1.13.7
+	github.com/pkg/sftp v1.13.9
 	github.com/puzpuzpuz/xsync v1.5.2
 	github.com/rclone/rclone v1.69.1
 	github.com/slayercat/GoSNMPServer v0.5.2
 	github.com/smartystreets/goconvey v1.8.1
 	github.com/solidwall/icap-client v0.0.0-20240910140159-0c244324de0d
-	github.com/spf13/afero v1.12.0
+	github.com/spf13/afero v1.14.0
 	github.com/stretchr/testify v1.10.0
 	github.com/ulikunitz/xz v0.5.12
 	golang.org/x/crypto v0.37.0
-	golang.org/x/exp v0.0.0-20250228200357-dead58393ab7
+	golang.org/x/exp v0.0.0-20250408133849-7e4ce0ab07d0
 	golang.org/x/net v0.39.0
 	golang.org/x/term v0.31.0
 	golang.org/x/text v0.24.0
-	modernc.org/sqlite v1.36.0
+	modernc.org/sqlite v1.37.0
 	xorm.io/builder v0.3.13
 	xorm.io/xorm v1.3.2 //do not update, newer versions break "SELECT FOR UPDATE" on sqlite & postgres
 )
@@ -61,7 +61,7 @@ require (
 	github.com/Files-com/files-sdk-go/v3 v3.2.127 // indirect
 	github.com/Max-Sum/base32768 v0.0.0-20230304063302-18e6ce5945fd // indirect
 	github.com/Microsoft/go-winio v0.6.2 // indirect
-	github.com/ProtonMail/go-crypto v1.1.6 // indirect
+	github.com/ProtonMail/go-crypto v1.2.0 // indirect
 	github.com/ProtonMail/gopenpgp/v2 v2.8.3 // indirect
 	github.com/PuerkitoBio/goquery v1.10.2 // indirect
 	github.com/abbot/go-http-auth v0.4.0 // indirect
@@ -107,7 +107,7 @@ require (
 	github.com/goccy/go-json v0.10.3 // indirect
 	github.com/gofrs/flock v0.12.1 // indirect
 	github.com/golang/snappy v0.0.4 // indirect
-	github.com/google/pprof v0.0.0-20240509144519-723abb6459b7 // indirect
+	github.com/google/pprof v0.0.0-20250317173921-a4b03ec1a45e // indirect
 	github.com/googleapis/enterprise-certificate-proxy v0.3.5 // indirect
 	github.com/gopherjs/gopherjs v1.17.2 // indirect
 	github.com/jackc/pgpassfile v1.0.0 // indirect
@@ -170,9 +170,9 @@ require (
 	google.golang.org/genproto/googleapis/rpc v0.0.0-20250303144028-a0af3efb3deb // indirect
 	google.golang.org/protobuf v1.36.5 // indirect
 	gopkg.in/yaml.v3 v3.0.1 // indirect
-	modernc.org/libc v1.61.13 // indirect
+	modernc.org/libc v1.62.1 // indirect
 	modernc.org/mathutil v1.7.1 // indirect
-	modernc.org/memory v1.8.2 // indirect
+	modernc.org/memory v1.9.1 // indirect
 	storj.io/common v0.0.0-20250304085343-5ca28067a8a5 // indirect
 	storj.io/eventkit v0.0.0-20241202124130-8c3a47eebc6d // indirect
 	storj.io/picobuf v0.0.4 // indirect
