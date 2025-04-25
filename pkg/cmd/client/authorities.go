@@ -110,10 +110,10 @@ type AuthorityUpdate struct {
 		Name string `required:"yes" positional-arg-name:"name" description:"The authority's name"`
 	} `positional-args:"yes" json:"-"`
 
-	Name         string   `short:"n" long:"name" description:"The new authority name" json:"name,omitempty"`
-	Type         string   `short:"t" long:"type" description:"The type of authority" choice:"tls_authority" choice:"ssh_cert_authority" json:"type,omitempty"`
-	IdentityFile file     `short:"i" long:"identity-file" description:"The authority's public identity file" json:"publicIdentity,omitempty"`
-	ValidHosts   []string `short:"h" long:"host" description:"The hosts on which the authority is valid. Can be repeated. Will replace the existing list. Can be called with an empty host to delete all existing hosts." json:"validHosts,omitempty"`
+	Name         *string   `short:"n" long:"name" description:"The new authority name" json:"name,omitempty"`
+	Type         *string   `short:"t" long:"type" description:"The type of authority" choice:"tls_authority" choice:"ssh_cert_authority" json:"type,omitempty"`
+	IdentityFile *file     `short:"i" long:"identity-file" description:"The authority's public identity file" json:"publicIdentity,omitempty"`
+	ValidHosts   *[]string `short:"h" long:"host" description:"The hosts on which the authority is valid. Can be repeated. Will replace the existing list. Can be called with an empty host to delete all existing hosts." json:"validHosts,omitempty"`
 }
 
 func (a *AuthorityUpdate) Execute([]string) error { return a.execute(stdOutput) }
@@ -125,8 +125,8 @@ func (a *AuthorityUpdate) execute(w io.Writer) error {
 	}
 
 	name := a.Args.Name
-	if a.Name != "" {
-		name = a.Name
+	if a.Name != nil && *a.Name != "" {
+		name = *a.Name
 	}
 
 	fmt.Fprintf(w, "The authority %q was successfully updated.\n", name)

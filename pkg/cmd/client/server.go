@@ -192,37 +192,38 @@ type ServerUpdate struct {
 	Args struct {
 		Name string `required:"yes" positional-arg-name:"name" description:"The server's name"`
 	} `positional-args:"yes" json:"-"`
-	Name        string             `short:"n" long:"name" description:"The server's name" json:"name,omitempty"`
-	Protocol    string             `short:"p" long:"protocol" description:"The server's protocol" json:"protocol,omitempty"`
-	Address     string             `short:"a" long:"address" description:"The server's [address:port]" json:"address,omitempty"`
-	RootDir     string             `long:"root-dir" description:"The server's local root directory" json:"rootDir,omitempty"`
-	ReceiveDir  string             `long:"receive-dir" description:"The server's local directory for received files" json:"receiveDir,omitempty"`
-	SendDir     string             `long:"send-dir" description:"The server's local directory for files to send" json:"sendDir,omitempty"`
-	TempRcvDir  string             `long:"tmp-dir" description:"The server's local temporary directory for incoming files" json:"tmpReceiveDir,omitempty"`
-	ProtoConfig map[string]confVal `short:"c" long:"config" description:"The server's configuration in JSON" json:"protoConfig,omitempty"`
+
+	Name        *string             `short:"n" long:"name" description:"The server's name" json:"name,omitempty"`
+	Protocol    *string             `short:"p" long:"protocol" description:"The server's protocol" json:"protocol,omitempty"`
+	Address     *string             `short:"a" long:"address" description:"The server's [address:port]" json:"address,omitempty"`
+	RootDir     *string             `long:"root-dir" description:"The server's local root directory" json:"rootDir,omitempty"`
+	ReceiveDir  *string             `long:"receive-dir" description:"The server's local directory for received files" json:"receiveDir,omitempty"`
+	SendDir     *string             `long:"send-dir" description:"The server's local directory for files to send" json:"sendDir,omitempty"`
+	TempRcvDir  *string             `long:"tmp-dir" description:"The server's local temporary directory for incoming files" json:"tmpReceiveDir,omitempty"`
+	ProtoConfig *map[string]confVal `short:"c" long:"config" description:"The server's configuration in JSON" json:"protoConfig,omitempty"`
 
 	// Deprecated options
-	Root    string `short:"r" long:"root" description:"[DEPRECATED] The server's root directory" json:"root,omitempty"`
-	InDir   string `short:"i" long:"in" description:"[DEPRECATED] The server's local in directory" json:"inDir,omitempty"`
-	OutDir  string `short:"o" long:"out" description:"[DEPRECATED] The server's local out directory" json:"outDir,omitempty"`
-	WorkDir string `short:"w" long:"work" description:"[DEPRECATED] The server's work directory" json:"workDir,omitempty"`
+	Root    *string `short:"r" long:"root" description:"[DEPRECATED] The server's root directory" json:"root,omitempty"`
+	InDir   *string `short:"i" long:"in" description:"[DEPRECATED] The server's local in directory" json:"inDir,omitempty"`
+	OutDir  *string `short:"o" long:"out" description:"[DEPRECATED] The server's local out directory" json:"outDir,omitempty"`
+	WorkDir *string `short:"w" long:"work" description:"[DEPRECATED] The server's work directory" json:"workDir,omitempty"`
 }
 
 func (s *ServerUpdate) Execute([]string) error { return execute(s) }
 func (s *ServerUpdate) execute(w io.Writer) error {
-	if s.Root != "" {
+	if s.Root != nil {
 		warnServerRootDeprecated(w)
 	}
 
-	if s.InDir != "" {
+	if s.InDir != nil {
 		warnServerInDeprecated(w)
 	}
 
-	if s.OutDir != "" {
+	if s.OutDir != nil {
 		warnServerOutDeprecated(w)
 	}
 
-	if s.WorkDir != "" {
+	if s.WorkDir != nil {
 		warnServerWorkDeprecated(w)
 	}
 
@@ -233,8 +234,8 @@ func (s *ServerUpdate) execute(w io.Writer) error {
 	}
 
 	name := s.Args.Name
-	if s.Name != "" {
-		name = s.Name
+	if s.Name != nil && *s.Name != "" {
+		name = *s.Name
 	}
 
 	fmt.Fprintf(w, "The server %q was successfully updated.\n", name)

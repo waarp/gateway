@@ -244,10 +244,8 @@ func TestRuleUpdate(t *testing.T) {
 
 		preTask1    = "PRE_TASK_1"
 		preTask2    = "PRE_TASK_2"
-		postTask    = "POST_TASK"
-		errTask     = "ERR_TASK"
-		postTaskArg = "arg"
-		postTaskVal = "val"
+		preTask2Arg = "arg"
+		preTask2Val = "val"
 
 		path     = "/api/rules/" + oldName + "/" + way
 		location = "/api/rules/" + ruleName + "/" + way
@@ -269,17 +267,12 @@ func TestRuleUpdate(t *testing.T) {
 				"tmpLocalRcvDir": ruleTmpDir,
 				"preTasks": []any{
 					map[string]any{"type": preTask1},
-					map[string]any{"type": preTask2},
-				},
-				"postTasks": []any{
 					map[string]any{
-						"type": postTask,
-						"args": map[string]any{postTaskArg: postTaskVal},
+						"type": preTask2,
+						"args": map[string]any{preTask2Arg: preTask2Val},
 					},
 				},
-				"errorTasks": []any{
-					map[string]any{"type": errTask},
-				},
+				"errorTasks": []any{},
 			},
 		}
 
@@ -300,9 +293,8 @@ func TestRuleUpdate(t *testing.T) {
 					"--remote-dir", ruleRemoteDir,
 					"--tmp-dir", ruleTmpDir,
 					"--pre", fmt.Sprintf(`{"type":"%s"}`, preTask1),
-					"--pre", fmt.Sprintf(`{"type":"%s"}`, preTask2),
-					"--post", fmt.Sprintf(`{"type":"%s","args":{"%s": "%s"}}`, postTask, postTaskArg, postTaskVal),
-					"--err", fmt.Sprintf(`{"type":"%s"}`, errTask),
+					"--pre", fmt.Sprintf(`{"type":"%s","args":{"%s":"%s"}}`, preTask2, preTask2Arg, preTask2Val),
+					"--err", "",
 					oldName, way,
 				),
 					"Then it should not return an error",

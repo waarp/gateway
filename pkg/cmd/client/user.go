@@ -78,17 +78,18 @@ type UserUpdate struct {
 	Args struct {
 		Username string `required:"yes" positional-arg-name:"username" description:"The old username"`
 	} `positional-args:"yes" json:"-"`
-	Username string     `short:"u" long:"username" description:"The new username" json:"username,omitempty"`
-	Password string     `short:"p" long:"password" description:"The new password" json:"password,omitempty"`
-	PermsStr string     `short:"r" long:"rights" description:"The user's rights in chmod symbolic format" json:"-"`
+
+	Username *string    `short:"u" long:"username" description:"The new username" json:"username,omitempty"`
+	Password *string    `short:"p" long:"password" description:"The new password" json:"password,omitempty"`
+	PermsStr *string    `short:"r" long:"rights" description:"The user's rights in chmod symbolic format" json:"-"`
 	Perms    *api.Perms `json:"perms,omitempty"`
 }
 
 func (u *UserUpdate) Execute([]string) error { return execute(u) }
 func (u *UserUpdate) execute(w io.Writer) error {
-	if u.PermsStr != "" {
+	if u.PermsStr != nil {
 		var err error
-		if u.Perms, err = parsePerms(u.PermsStr); err != nil {
+		if u.Perms, err = parsePerms(*u.PermsStr); err != nil {
 			return err
 		}
 	}
@@ -100,8 +101,8 @@ func (u *UserUpdate) execute(w io.Writer) error {
 	}
 
 	username := u.Args.Username
-	if u.Username != "" {
-		username = u.Username
+	if u.Username != nil && *u.Username != "" {
+		username = *u.Username
 	}
 
 	fmt.Fprintf(w, "The user %q was successfully updated.\n", username)

@@ -136,10 +136,11 @@ type PartnerUpdate struct {
 	Args struct {
 		Name string `required:"yes" positional-arg-name:"name" description:"The partner's name"`
 	} `positional-args:"yes" json:"-"`
-	Name        string             `short:"n" long:"name" description:"The partner's name" json:"name,omitempty"`
-	Protocol    string             `short:"p" long:"protocol" description:"The partner's protocol'" json:"protocol,omitempty"`
-	Address     string             `short:"a" long:"address" description:"The partner's [address:port]" json:"address,omitempty"`
-	ProtoConfig map[string]confVal `short:"c" long:"config" description:"The partner's configuration, in key:val format. Can be repeated." json:"protoConfig,omitempty"`
+
+	Name        *string             `short:"n" long:"name" description:"The partner's name" json:"name,omitempty"`
+	Protocol    *string             `short:"p" long:"protocol" description:"The partner's protocol'" json:"protocol,omitempty"`
+	Address     *string             `short:"a" long:"address" description:"The partner's [address:port]" json:"address,omitempty"`
+	ProtoConfig *map[string]confVal `short:"c" long:"config" description:"The partner's configuration, in key:val format. Can be repeated." json:"protoConfig,omitempty"`
 }
 
 func (p *PartnerUpdate) Execute([]string) error { return execute(p) }
@@ -151,8 +152,8 @@ func (p *PartnerUpdate) execute(w io.Writer) error {
 	}
 
 	name := p.Args.Name
-	if p.Name != "" {
-		name = p.Name
+	if p.Name != nil && *p.Name != "" {
+		name = *p.Name
 	}
 
 	fmt.Fprintf(w, "The partner %q was successfully updated.\n", name)
