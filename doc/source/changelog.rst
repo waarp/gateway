@@ -3,6 +3,8 @@
 Historique des versions
 =======================
 
+* :bug:`473` Les commandes SNMP prennent désormais les bonnes valeurs pour les
+  options SNMPv3 "auth-protocol" et "priv-protocol".
 * :bug:`472` Il est désormais possible de "vider" un champ via les commandes
   ``update`` du client terminal. Précédemment, mettre une valeur vide à une
   options laissait le champ inchangé. Désormais, explicitement renseigner une

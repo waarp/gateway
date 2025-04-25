@@ -30,10 +30,10 @@ func TestSnmpMonitorAdd(t *testing.T) {
 
 		monitorAuthEngineID   = "654321"
 		monitorAuthUsername   = "toto"
-		monitorAuthProtocol   = "SHA"
+		monitorAuthProtocol   = snmp.AuthSHA256
 		monitorAuthPassphrase = "sesame"
 
-		monitorPrivProtocol   = "DES"
+		monitorPrivProtocol   = snmp.PrivAES256
 		monitorPrivPassphrase = "foobar"
 
 		path     = "/api/snmp/monitors"
