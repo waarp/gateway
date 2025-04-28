@@ -136,6 +136,8 @@ type ReadCallback interface {
 
 // Table is the interface which adds the base methods that all database models
 // must implement.
+//
+//nolint:iface //keep Table interface separate
 type Table interface {
 	// TableName returns the name of the table (as defined in the database).
 	TableName() string

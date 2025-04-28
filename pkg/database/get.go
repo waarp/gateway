@@ -11,6 +11,8 @@ import (
 
 // GetBean is the interface that a model must implement in order to be usable
 // with the DB.Get function.
+//
+//nolint:iface //keep Table interface separate
 type GetBean interface {
 	Table
 }

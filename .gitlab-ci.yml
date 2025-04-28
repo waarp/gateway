@@ -26,7 +26,7 @@ code_navigation:
 
 lint:
   stage: test
-  image: golangci/golangci-lint:latest
+  image: golangci/golangci-lint:v1.64.8
   script:
   - golangci-lint cache status
   - golangci-lint run --timeout 5m --out-format junit-xml > lint.junit.xml

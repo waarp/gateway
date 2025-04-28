@@ -96,12 +96,12 @@ func (*AESPasswordHandler) ToDB(val, _ string) (string, string, error) {
 }
 
 func (*AESPasswordHandler) FromDB(val, _ string) (string, string, error) {
-	clear, err := utils.AESDecrypt(database.GCM, val)
+	plain, err := utils.AESDecrypt(database.GCM, val)
 	if err != nil {
 		return "", "", fmt.Errorf("failed to decrypt the password: %w", err)
 	}
 
-	return clear, "", nil
+	return plain, "", nil
 }
 
 func (*AESPasswordHandler) Validate(value, _, _, _ string, _ bool) error {
