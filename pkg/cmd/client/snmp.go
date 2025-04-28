@@ -42,9 +42,9 @@ type SnmpMonitorAdd struct {
 	SNMPv3Security  string `long:"snmpv3-sec" choice:"noAuthNoPriv" choice:"authNoPriv" choice:"authPriv" description:"The SNMPv3 security level" json:"snmpv3Security,omitempty"`
 	AuthEngineID    string `long:"auth-engine-id" description:"The SNMPv3 authentication engine ID" json:"authEngineID,omitempty"`
 	AuthUsername    string `long:"auth-username" description:"The SNMPv3 authentication username" json:"authUsername,omitempty"`
-	AuthProtocol    string `long:"auth-protocol" description:"The SNMPv3 authentication protocol" choice:"MD5" choice:"SHA" choice:"SHA224" choice:"SHA256" choice:"SHA384" choice:"SHA512" json:"authProtocol,omitempty"`
+	AuthProtocol    string `long:"auth-protocol" description:"The SNMPv3 authentication protocol" choice:"MD5" choice:"SHA" choice:"SHA-224" choice:"SHA-256" choice:"SHA-384" choice:"SHA-512" json:"authProtocol,omitempty"`
 	AuthPassphrase  string `long:"auth-passphrase" description:"The SNMPv3 authentication passphrase" json:"authPassphrase,omitempty"`
-	PrivProtocol    string `long:"priv-protocol" description:"The SNMPv3 privacy protocol" choice:"DES" choice:"AES" choice:"AES192" choice:"AES192C" choice:"AES256" choice:"AES256C" json:"privProtocol,omitempty"`
+	PrivProtocol    string `long:"priv-protocol" description:"The SNMPv3 privacy protocol" choice:"DES" choice:"AES" choice:"AES-192" choice:"AES-192C" choice:"AES-256" choice:"AES-256C" json:"privProtocol,omitempty"`
 	PrivPassphrase  string `long:"priv-passphrase" description:"The SNMPv3 privacy passphrase" json:"privPassphrase,omitempty"`
 
 	UseInforms bool `json:"useInforms"`
@@ -123,30 +123,33 @@ type SnmpMonitorUpdate struct {
 		Name string `required:"yes" positional-arg-name:"name" description:"The SNMP monitor's name"`
 	} `positional-args:"yes" json:"-"`
 
-	Name            string `short:"n" long:"name" description:"The SNMP monitor's name" json:"name,omitempty"`
-	UDPAddress      string `short:"a" long:"address" description:"The SNMP monitor's address" json:"udpAddress,omitempty"`
-	Version         string `short:"v" long:"version" description:"The SNMP monitor's version" choice:"SNMPv2" choice:"SNMPv3" json:"version,omitempty"`
-	NotifType       string `long:"notif-type" choice:"trap" choice:"inform" default:"trap" description:"Specifies which type of notification should be sent to this monitor. Defaults to traps." json:"-"`
-	Community       string `short:"c" long:"community" description:"The SNMP monitor's community string." json:"community,omitempty"`
-	ContextName     string `long:"context-name" description:"The SNMPv3 context name." json:"contextName,omitempty"`
-	ContextEngineID string `long:"context-engine-id" description:"The SNMPv3 context engine ID" json:"contextEngineID,omitempty"`
-	SNMPv3Security  string `long:"snmpv3-sec" choice:"noAuthNoPriv" choice:"authNoPriv" choice:"authPriv" description:"The SNMPv3 security level" json:"snmpv3Security,omitempty"`
-	AuthEngineID    string `long:"auth-engine-id" description:"The SNMPv3 authentication engine ID" json:"authEngineID,omitempty"`
-	AuthUsername    string `long:"auth-username" description:"The SNMPv3 authentication username" json:"authUsername,omitempty"`
-	AuthProtocol    string `long:"auth-protocol" description:"The SNMPv3 authentication protocol" choice:"MD5" choice:"SHA" choice:"SHA224" choice:"SHA256" choice:"SHA384" choice:"SHA512" json:"authProtocol,omitempty"`
-	AuthPassphrase  string `long:"auth-passphrase" description:"The SNMPv3 authentication passphrase" json:"authPassphrase,omitempty"`
-	PrivProtocol    string `long:"priv-protocol" description:"The SNMPv3 privacy protocol" choice:"DES" choice:"AES" choice:"AES192" choice:"AES192C" choice:"AES256" choice:"AES256C" json:"privProtocol,omitempty"`
-	PrivPassphrase  string `long:"priv-passphrase" description:"The SNMPv3 privacy passphrase" json:"privPassphrase,omitempty"`
+	Name            *string `short:"n" long:"name" description:"The SNMP monitor's name" json:"name,omitempty"`
+	UDPAddress      *string `short:"a" long:"address" description:"The SNMP monitor's address" json:"udpAddress,omitempty"`
+	Version         *string `short:"v" long:"version" description:"The SNMP monitor's version" choice:"SNMPv2" choice:"SNMPv3" json:"version,omitempty"`
+	NotifType       *string `long:"notif-type" choice:"trap" choice:"inform" default:"trap" description:"Specifies which type of notification should be sent to this monitor. Defaults to traps." json:"-"`
+	Community       *string `short:"c" long:"community" description:"The SNMP monitor's community string." json:"community,omitempty"`
+	ContextName     *string `long:"context-name" description:"The SNMPv3 context name." json:"contextName,omitempty"`
+	ContextEngineID *string `long:"context-engine-id" description:"The SNMPv3 context engine ID" json:"contextEngineID,omitempty"`
+	SNMPv3Security  *string `long:"snmpv3-sec" choice:"noAuthNoPriv" choice:"authNoPriv" choice:"authPriv" description:"The SNMPv3 security level" json:"snmpv3Security,omitempty"`
+	AuthEngineID    *string `long:"auth-engine-id" description:"The SNMPv3 authentication engine ID" json:"authEngineID,omitempty"`
+	AuthUsername    *string `long:"auth-username" description:"The SNMPv3 authentication username" json:"authUsername,omitempty"`
+	AuthProtocol    *string `long:"auth-protocol" description:"The SNMPv3 authentication protocol" choice:"MD5" choice:"SHA" choice:"SHA-224" choice:"SHA-256" choice:"SHA-384" choice:"SHA-512" json:"authProtocol,omitempty"`
+	AuthPassphrase  *string `long:"auth-passphrase" description:"The SNMPv3 authentication passphrase" json:"authPassphrase,omitempty"`
+	PrivProtocol    *string `long:"priv-protocol" description:"The SNMPv3 privacy protocol" choice:"DES" choice:"AES" choice:"AES-192" choice:"AES-192C" choice:"AES-256" choice:"AES-256C" json:"privProtocol,omitempty"`
+	PrivPassphrase  *string `long:"priv-passphrase" description:"The SNMPv3 privacy passphrase" json:"privPassphrase,omitempty"`
 
-	UseInforms bool `json:"useInforms"`
+	UseInforms *bool `json:"useInforms,omitempty"`
 }
 
 func (s *SnmpMonitorUpdate) Execute([]string) error { return s.execute(stdOutput) }
 func (s *SnmpMonitorUpdate) execute(w io.Writer) error {
 	addr.Path = path.Join("/api/snmp/monitors", s.Args.Name)
 
-	if s.NotifType == "inform" {
-		s.UseInforms = true
+	if s.NotifType != nil {
+		s.UseInforms = new(bool)
+		if *s.NotifType == "inform" {
+			*s.UseInforms = true
+		}
 	}
 
 	if err := update(w, s); err != nil {
@@ -154,8 +157,8 @@ func (s *SnmpMonitorUpdate) execute(w io.Writer) error {
 	}
 
 	displayName := s.Args.Name
-	if s.Name != "" {
-		displayName = s.Name
+	if s.Name != nil && *s.Name != "" {
+		displayName = *s.Name
 	}
 
 	fmt.Fprintf(w, "The SNMP monitor %q was successfully updated.\n", displayName)
@@ -197,13 +200,13 @@ func displaySnmpServerConfig(w io.Writer, monitor *api.GetSnmpServiceRespObject)
 
 //nolint:lll //tags can be long for flags
 type SnmpServerSet struct {
-	LocalUDPAddress  string `short:"u" long:"udp-address" description:"The SNMP server's local UDP address" json:"localUDPAddress,omitempty"`
+	LocalUDPAddress  string `short:"a" long:"udp-address" description:"The SNMP server's local UDP address" json:"localUDPAddress,omitempty"`
 	Community        string `short:"c" long:"community" description:"The SNMP server's community string" default:"public" json:"community,omitempty"`
 	V3Only           bool   `long:"v3-only" description:"Set the server to only accept SNMPv3" json:"v3Only"`
 	V3Username       string `long:"auth-username" description:"The SNMPv3 authentication username" json:"v3Username,omitempty"`
-	V3AuthProtocol   string `long:"auth-protocol" description:"The SNMPv3 authentication protocol" choice:"MD5" choice:"SHA" choice:"SHA224" choice:"SHA256" choice:"SHA384" choice:"SHA512" json:"v3AuthProtocol,omitempty"`
+	V3AuthProtocol   string `long:"auth-protocol" description:"The SNMPv3 authentication protocol" choice:"MD5" choice:"SHA" choice:"SHA-224" choice:"SHA-256" choice:"SHA-384" choice:"SHA-512" json:"v3AuthProtocol,omitempty"`
 	V3AuthPassphrase string `long:"auth-passphrase" description:"The SNMPv3 authentication passphrase" json:"v3AuthPassphrase,omitempty"`
-	V3PrivProtocol   string `long:"priv-protocol" description:"The SNMPv3 privacy protocol" choice:"DES" choice:"AES" choice:"AES192" choice:"AES192C" choice:"AES256" choice:"AES256C" json:"v3PrivProtocol,omitempty"`
+	V3PrivProtocol   string `long:"priv-protocol" description:"The SNMPv3 privacy protocol" choice:"DES" choice:"AES" choice:"AES-192" choice:"AES-192C" choice:"AES-256" choice:"AES-256C" json:"v3PrivProtocol,omitempty"`
 	V3PrivPassphrase string `long:"priv-passphrase" description:"The SNMPv3 privacy passphrase" json:"v3PrivPassphrase,omitempty"`
 }
 

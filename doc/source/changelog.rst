@@ -3,6 +3,25 @@
 Historique des versions
 =======================
 
+* :bug:`473` Les commandes SNMP prennent désormais les bonnes valeurs pour les
+  options SNMPv3 "auth-protocol" et "priv-protocol".
+* :bug:`472` Il est désormais possible de "vider" un champ via les commandes
+  ``update`` du client terminal. Précédemment, mettre une valeur vide à une
+  options laissait le champ inchangé. Désormais, explicitement renseigner une
+  valeur vide à une option "effacera" la valeur actuelle du champ en question.
+  À noter que omettre l'option entièrement laissera toujours le champ inchangé.
+* :bug:`461` La date envoyée dans les notifications SNMP d'erreur de transfert
+  est désormais correcte. Précédemment, cette date était systématiquement nulle.
+* :bug:`459` Correction d'une fuite de mémoire sur le serveur local R66 et R66-TLS.
+* :bug:`455` La tâche *TRANSFER* ne copie plus l'arborescence du chemin source
+  en dessous du dossier de règle sur la destination. Cela causait des problèmes
+  lorsque le chemin source était absolu. Désormais, le fichier sera toujours
+  déposé à la racine du chemin de la règle, et ce, même si le fichier source,
+  lui, ne s'y trouvait pas.
+* :bug:`-` Correction d'une erreur de nommage d'option de la commande terminal
+  ``snmp server set``. Le nom court de l'option ``--udp-address`` avait été
+  incorrectement défini comme étant ``-u`` au lieu de ``-a``.
+
 * :release:`0.11.6 <2025-31-01>`
 * :bug:`437` Correction du listing de fichier via R66 sous Windows. Précédemment,
   les fichiers renvoyés par le serveur R66 étaient corrects, mais la racine du
@@ -96,7 +115,6 @@ Historique des versions
 * :feature:`380` Ajout du support pour les instances cloud de type S3. Les fichiers
   de transfert peuvent désormais donc être stockés sur une instance S3. Voir
   la section :ref:`cloud <reference-cloud>` pour avoir plus de détails.
-* :feature:`-`
 * :feature:`-` Ajout de la commande CLI de gestion des instances cloud.
 * :feature:`-` Ajout de la gestion des instances cloud au fichier d'import/export.
 * :bug:`-` Ajout des droits d'administration à l'objet ``user`` du fichier
@@ -175,15 +193,12 @@ Historique des versions
   pour plus de détails).
 * :feature:`289` Les certificats et les mots de passe sont remplacés par les
   plus génériques "méthodes d'authentification", permettant d'ajouter plus
-  facilement de nouvelles formes d'authentification. Ajout également des
-  "autorités d'authentification" permettant de déléguer l'authentification de
-  certains types de partenaires à un tier de confiance. Pour plus d'information
-  voir :ref:`le chapitre sur l'authentification <reference-auth-methods>`.
-* :feature:`289` Les certificats et les mots de passe sont remplacés par les
-  plus génériques "méthodes d'authentification", permettant d'ajouter plus
   facilement de nouvelles formes d'authentification. Pour plus de simplicité,
   l'option *password* des commandes de création des comptes locaux et distants
-  est maintenue.
+  est maintenue. Ajout également des "autorités d'authentification" permettant
+  de déléguer l'authentification de certains types de partenaires à un tier de
+  confiance. Pour plus d'information voir :ref:`le chapitre sur l'authentification
+  <reference-auth-methods>`.
 * :feature:`-` Ajouter ou enlever des certificats TLS à un agent de transfert
   ne nécessite plus un redémarrage du service en question pour que les
   changements soient pris en compte.

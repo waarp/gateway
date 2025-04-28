@@ -148,7 +148,7 @@ func (s *Service) sendTransferError(trans *model.NormalizedTransferView) error {
 				Name:  TeObjectFilenameOID,
 				Type:  gosnmp.OctetString,
 			}, {
-				Value: trans.Stop.Format(time.RFC3339Nano),
+				Value: time.Now().Local().Format(time.RFC3339Nano),
 				Name:  TeObjectDateOID,
 				Type:  gosnmp.OctetString,
 			}, {

@@ -173,10 +173,10 @@ type CertUpdate struct {
 	Args struct {
 		Cert string `required:"yes" positional-arg-name:"cert" description:"The certificate's name"`
 	} `positional-args:"yes" json:"-"`
-	Name        string `short:"n" long:"name" description:"The certificate's name" json:"name,omitempty"`
-	PrivateKey  file   `short:"p" long:"private_key" description:"The path to the certificate's private key file" json:"privateKey,omitempty"`
-	PublicKey   file   `short:"b" long:"public_key" description:"The path to the certificate's public key file" json:"publicKey,omitempty"`
-	Certificate file   `short:"c" long:"certificate" description:"The path to the certificate file" json:"certificate,omitempty"`
+	Name        *string `short:"n" long:"name" description:"The certificate's name" json:"name,omitempty"`
+	PrivateKey  *file   `short:"p" long:"private_key" description:"The path to the certificate's private key file" json:"privateKey,omitempty"`
+	PublicKey   *file   `short:"b" long:"public_key" description:"The path to the certificate's public key file" json:"publicKey,omitempty"`
+	Certificate *file   `short:"c" long:"certificate" description:"The path to the certificate file" json:"certificate,omitempty"`
 }
 
 func (c *CertUpdate) Execute([]string) error {
@@ -193,8 +193,8 @@ func (c *CertUpdate) execute(w io.Writer) error {
 	}
 
 	name := c.Args.Cert
-	if c.Name != "" {
-		name = c.Name
+	if c.Name != nil && *c.Name != "" {
+		name = *c.Name
 	}
 
 	fmt.Fprintf(w, "The certificate %q was successfully updated.\n", name)

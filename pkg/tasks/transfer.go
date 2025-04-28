@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"path/filepath"
 
 	"code.waarp.fr/lib/log"
 
@@ -145,6 +146,7 @@ func (t *TransferTask) Run(_ context.Context, args map[string]string,
 		ClientID:        utils.NewNullInt64(cliID),
 		RemoteAccountID: utils.NewNullInt64(accID),
 		SrcFilename:     file,
+		DestFilename:    filepath.Base(file),
 	}
 
 	if err := db.Transaction(func(ses *database.Session) error {

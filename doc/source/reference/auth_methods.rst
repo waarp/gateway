@@ -113,7 +113,17 @@ avons donc pris la décision de continuer de permettre l'utilisation de ce
 certificat "legacy" dans Waarp-Gateway afin de maintenir la compatibilité entre
 les deux applications.
 
-Cependant, en raison des problèmes de sécurité posés par ce choix,
+Par défaut, pour des raisons de sécurité, cette fonctionnalité est désactivée.
+Pour l'activer, la variable d'environnement :envvar:`WAARP_GATEWAY_ALLOW_LEGACY_CERT=1`
+doit être fixée au démarrage de Waarp Gateway. Une fois cela fait, le certificat R66
+*legacy* peut être utilisé en attachant un :term:`identifiant<information d'authentification>`
+de type *r66_legacy_certificate* au serveur ou au partenaire souhaité.
+
+Cependant, en raison des problèmes de sécurité posés par ce choix, il est
+déconseillé d'activer cette fonctionnalité si ce n'est pas absolument nécessaire.
+En effet, cette exception contourne complètement la phase authentification de TLS,
+et rend donc vulnérable toute connexion utilisant ce certificat à (entre autres)
+une attaque de type `man-in-the-middle <https://fr.wikipedia.org/wiki/Attaque_de_l%27homme_du_milieu>`_.
 
 Certificats TLS
 ---------------

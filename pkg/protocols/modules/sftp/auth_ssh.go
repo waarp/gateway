@@ -83,12 +83,12 @@ func (*sshPrivateKey) ToDB(val, _ string) (string, string, error) {
 }
 
 func (*sshPrivateKey) FromDB(val, _ string) (string, string, error) {
-	clear, err := utils.AESDecrypt(database.GCM, val)
+	plain, err := utils.AESDecrypt(database.GCM, val)
 	if err != nil {
 		return "", "", fmt.Errorf("failed to decrypt the SSH private key: %w", err)
 	}
 
-	return clear, "", nil
+	return plain, "", nil
 }
 
 func (*sshPrivateKey) Validate(value, value2, protocol, host string, isServer bool) error {

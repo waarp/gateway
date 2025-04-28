@@ -115,10 +115,10 @@ type ClientUpdate struct {
 		Name string `required:"yes" positional-arg-name:"name" description:"The old client's name"`
 	} `positional-args:"yes" json:"-"`
 
-	Name         string             `short:"n" long:"name" description:"The new client's name" json:"name,omitempty"`
-	Protocol     string             `short:"p" long:"protocol" description:"The new partner's protocol" json:"protocol,omitempty"`
-	LocalAddress string             `short:"a" long:"local-address" description:"The new client's local address [address:port]" json:"localAddress,omitempty"`
-	ProtoConfig  map[string]confVal `short:"c" long:"config" description:"The new client's configuration, in key:val format. Can be repeated." json:"protoConfig,omitempty"`
+	Name         *string             `short:"n" long:"name" description:"The new client's name" json:"name,omitempty"`
+	Protocol     *string             `short:"p" long:"protocol" description:"The new partner's protocol" json:"protocol,omitempty"`
+	LocalAddress *string             `short:"a" long:"local-address" description:"The new client's local address [address:port]" json:"localAddress,omitempty"`
+	ProtoConfig  *map[string]confVal `short:"c" long:"config" description:"The new client's configuration, in key:val format. Can be repeated." json:"protoConfig,omitempty"`
 }
 
 func (c *ClientUpdate) Execute([]string) error { return execute(c) }
@@ -130,8 +130,8 @@ func (c *ClientUpdate) execute(w io.Writer) error {
 	}
 
 	name := c.Args.Name
-	if c.Name != "" {
-		name = c.Name
+	if c.Name != nil && *c.Name != "" {
+		name = *c.Name
 	}
 
 	fmt.Fprintf(w, "The client %q was successfully updated.\n", name)

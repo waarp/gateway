@@ -21,7 +21,7 @@ stockées dans un fichier en format JSON. Ce JSON a la forme suivante :
     <reference-proto-config>` du serveur.
   * ``credentials`` (*array*) - La liste des :term:`informations d'authentification
     <information d'authentification>` du serveur. Voir la page sur les
-    :ref:`reference-auth-methods <méthodes d'authentification>` (section
+    :ref:`méthodes d'authentification <reference-auth-methods>` (section
     "authentification externe") pour la liste des types supportés et les valeurs
     d'authentification attendue pour chacun d'entres eux.
 
@@ -50,7 +50,7 @@ stockées dans un fichier en format JSON. Ce JSON a la forme suivante :
       utilisé uniquement lors de l'export depuis une gateway existante.
     * ``credentials`` (*array*) - La liste des :term:`informations d'authentification
       <information d'authentification>` du compte. Voir la page sur les
-      :ref:`reference-auth-methods <méthodes d'authentification>` (section
+      :ref:`méthodes d'authentification <reference-auth-methods>` (section
       "authentification interne") pour la liste des types supportés et les
       valeurs d'authentification attendue pour chacun d'entres eux.
 
@@ -79,7 +79,7 @@ stockées dans un fichier en format JSON. Ce JSON a la forme suivante :
     <reference-proto-config>` du serveur.
   * ``credentials`` (*array*) - La liste des :term:`informations d'authentification
     <information d'authentification>` du partenaire. Voir la page sur les
-    :ref:`reference-auth-methods <méthodes d'authentification>` (section
+    :ref:`méthodes d'authentification <reference-auth-methods>` (section
     "authentification interne") pour la liste des types supportés et les valeurs
     d'authentification attendue pour chacun d'entres eux.
 
@@ -105,7 +105,7 @@ stockées dans un fichier en format JSON. Ce JSON a la forme suivante :
     * ``password`` (*string*) - Le mot de passe du compte.
     * ``credentials`` (*array*) - La liste des :term:`informations d'authentification
       <information d'authentification>` du compte. Voir la page sur les
-      :ref:`reference-auth-methods <méthodes d'authentification>` (section
+      :ref:`méthodes d'authentification <reference-auth-methods>` (section
       "authentification externe") pour la liste des types supportés et les
       valeurs d'authentification attendue pour chacun d'entres eux.
 
@@ -210,8 +210,8 @@ stockées dans un fichier en format JSON. Ce JSON a la forme suivante :
 
   * ``name`` (*string*) - Le nom de l'instance cloud.
   * ``type`` (*string*) - Le type de l'instance cloud. Voir la :ref:`section
-  cloud <reference-cloud>` de la documentation pour la liste des types d'instance
-  cloud supportés.
+    cloud <reference-cloud>` de la documentation pour la liste des types d'instance
+    cloud supportés.
   * ``key`` (*string*) - La clé de connexion à l'instance cloud (si l'instance
     cloud en requiert une).
   * ``secret`` (*string*) - Le secret d'authentification (mot de passe, token...)
@@ -265,8 +265,8 @@ stockées dans un fichier en format JSON. Ce JSON a la forme suivante :
          - ``authNoPriv``: authentification, mais pas de confidentialité
          - ``authPriv``: authentification et confidentialité
 
-     Par défaut, l'authentification et la confidentialité sont toutes deux
-     désactivées.
+      Par défaut, l'authentification et la confidentialité sont toutes deux
+      désactivées.
     * ``authEngineID`` (*string*) - [SNMPv3 uniquement] L'ID du moteur d'authentification.
       N'a aucun effet si le moniteur utilise des *informs* (voir l'option *useInforms*
       ci-dessus).

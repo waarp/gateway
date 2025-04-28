@@ -16,7 +16,7 @@ func invalidMode(mode string) error {
 	return badRequest("invalid permission mode '%s'", mode)
 }
 
-//nolint:gomnd // too specific
+//nolint:mnd // too specific
 func alterPerm(old, perm string) (string, error) {
 	res := &[3]byte{}
 	if len(old) == 3 {
@@ -85,6 +85,7 @@ func alterPerms(old *model.Permissions, perms *api.Perms) error {
 	return nil
 }
 
+//nolint:wrapcheck //no need to wrap errors here
 func permsToMask(old model.PermsMask, perms *api.Perms) (model.PermsMask, error) {
 	oldPerms := model.MaskToPerms(old)
 

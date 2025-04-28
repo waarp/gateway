@@ -42,12 +42,12 @@ func (*TLSCertHandler) ToDB(val, val2 string) (string, string, error) {
 }
 
 func (*TLSCertHandler) FromDB(val, val2 string) (string, string, error) {
-	clear, err := utils.AESDecrypt(database.GCM, val2)
+	plain, err := utils.AESDecrypt(database.GCM, val2)
 	if err != nil {
 		return "", "", fmt.Errorf("failed to decrypt the private key: %w", err)
 	}
 
-	return val, clear, nil
+	return val, plain, nil
 }
 
 func (*TLSCertHandler) Validate(value, value2, _, host string, isServer bool) error {

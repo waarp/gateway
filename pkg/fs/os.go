@@ -16,7 +16,7 @@ func NewLocalFS(ospath string) (FS, error) {
 		if subfs, err := osfs.SubVolume(subVolume); err != nil {
 			return nil, fmt.Errorf("failed to change the filesystem volume name: %w", err)
 		} else {
-			//nolint:forcetypeassert //assertion always succeeds
+			//nolint:forcetypeassert,errcheck //assertion always succeeds
 			osfs = subfs.(*os.FS)
 		}
 	}
