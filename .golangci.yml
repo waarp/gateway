@@ -864,6 +864,13 @@ issues:
       linters:
         - gochecknoglobals
 
+    # Disable error wrapping check on the web GUI internal package because the
+    # package only contains utility functions, and wrapping errors in these
+    # functions adds nothing.
+    - path: pkg/admin/gui/internal/
+      linters:
+        - wrapcheck
+
   # Independently from option `exclude` we use default exclude patterns,
   # it can be disabled by this option. To list all
   # excluded by default patterns execute `golangci-lint run --help`.
