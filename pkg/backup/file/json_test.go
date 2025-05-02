@@ -1,3 +1,5 @@
+//go:build removed
+
 package file
 
 import (

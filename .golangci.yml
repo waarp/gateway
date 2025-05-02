@@ -2547,20 +2547,18 @@ linters:
         # Default: empty
         extended-rules:
           json:
-            # Supported string cases:
-            # - `camel`
-            # - `pascal`
-            # - `kebab`
-            # - `snake`
-            # - `upperSnake`
-            # - `goCamel`
-            # - `goPascal`
-            # - `goKebab`
-            # - `goSnake`
-            # - `header`
-            # - `lower`
-            # - `header`
-            #
+            # Required
+            case: goCamel
+            # Adds 'AMQP', 'DB', 'GID', 'RTP', 'SIP', 'TS' to initialisms,
+            # and removes 'LHS', 'RHS' from initialisms.
+            # Default: false
+            extra-initialisms: true
+            # Defines initialism additions and overrides.
+            # Default: empty
+            initialism-overrides:
+              URL: true # add a new initialism
+              SNMP: true
+          yaml:
             # Required
             case: goCamel
             # Adds 'AMQP', 'DB', 'GID', 'RTP', 'SIP', 'TS' to initialisms,

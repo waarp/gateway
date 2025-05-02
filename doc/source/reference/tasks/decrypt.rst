@@ -4,8 +4,11 @@ DECRYPT
 Le traitement ``DECRYPT`` déchiffre le fichier de transfert. Les arguments sont :
 
 * ``outputFile`` (*string*) - Le chemin du nouveau fichier déchiffré. Doit être
-  différent du chemin du fichier source. Par défaut, le chemin sera identique
-  à celui du fichier source avec le suffixe ``.plain``.
+  différent du chemin du fichier source. Par défaut, si le fichier source a
+  l'extension ``.crypt``, alors le fichier déchiffré aura le même chemin mais
+  avec cette extension retirée (ex: ``test.txt.crypt`` deviendra ``test.txt``).
+  Sinon, le chemin sera identique à celui du fichier source avec le suffixe
+  ``.plain`` (ex: ``test.txt`` deviendra ``text.txt.plain``).
 * ``keepOriginal`` (*boolean*) - Indique si le fichier source (chiffré) doit
   être conservé ou non après déchiffrement. Par défaut, le fichier chiffré est
   supprimé après déchiffrement.

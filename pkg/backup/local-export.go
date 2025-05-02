@@ -52,7 +52,7 @@ func exportLocals(logger *log.Logger, db database.ReadAccess) ([]file.LocalAgent
 			InDir:         utils.NormalizePath(src.ReceiveDir),
 			OutDir:        utils.NormalizePath(src.SendDir),
 			WorkDir:       utils.NormalizePath(src.TmpReceiveDir),
-			Certs:         certs,
+			Certificates:  certs,
 		}
 
 		// Retro-compatibility with the R66 "isTLS" property.
@@ -86,7 +86,7 @@ func exportLocalAccounts(logger *log.Logger, db database.ReadAccess,
 			Login:        src.Login,
 			Credentials:  credentials,
 			PasswordHash: pswd,
-			Certs:        certs,
+			Certificates: certs,
 		}
 	}
 

@@ -33,7 +33,8 @@ Cette commande accepte les options suivantes :
 
    :Défaut: entrée standard
 
-   Indique le chemin vers le fichier JSON contenant les données à importer.
+   Indique le chemin vers le fichier contenant les données à importer. Peut être
+   un fichier JSON ou YAML.
 
 .. option:: -t [rules|servers|partners|clients|users|clouds|snmp|authorities|keys|all], --target [rules|servers|partners|clients|users|clouds|snmp|authorities|keys|all]
 

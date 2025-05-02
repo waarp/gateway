@@ -69,7 +69,7 @@ func importRemoteAgents(logger *log.Logger, db database.Access,
 			return fmt.Errorf("failed to create/update partner %q: %w", agent.Name, dbErr)
 		}
 
-		if err := importCerts(logger, db, src.Certs, &agent); err != nil {
+		if err := importCerts(logger, db, src.Certificates, &agent); err != nil {
 			return err
 		}
 
@@ -134,7 +134,7 @@ func importRemoteAccounts(logger *log.Logger, db database.Access,
 			return err
 		}
 
-		if err := importCerts(logger, db, src.Certs, &account); err != nil {
+		if err := importCerts(logger, db, src.Certificates, &account); err != nil {
 			return err
 		}
 	}

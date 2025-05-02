@@ -4,10 +4,12 @@
 package backup
 
 import (
-	"encoding/json"
 	"errors"
 	"fmt"
 	"io"
+	"os"
+
+	"gopkg.in/yaml.v3"
 
 	"code.waarp.fr/apps/gateway/gateway/pkg/backup/file"
 	"code.waarp.fr/apps/gateway/gateway/pkg/database"
@@ -17,11 +19,6 @@ import (
 )
 
 var errDry = database.NewValidationError("dry run")
-
-const (
-	ImportReset int8 = iota + 1
-	ImportForceReset
-)
 
 // ImportData reads the content of the reader r, parses it as json and imports
 // the subsets specified in targets.
@@ -37,11 +34,11 @@ const (
 // 'reset with no confirmation prompt', and any other value means 'no reset'.
 //
 //nolint:gocognit,gocyclo,cyclop,funlen //function cannot realistically be split
-func ImportData(db *database.DB, r io.Reader, targets []string, dry, reset bool) error {
+func ImportData(db *database.DB, r *os.File, targets []string, dry, reset bool) error {
 	logger := logging.NewLogger("import")
-	data := &file.Data{}
 
-	if err := json.NewDecoder(r).Decode(data); err != nil {
+	var data file.Data
+	if err := yaml.NewDecoder(r).Decode(&data); err != nil {
 		return fmt.Errorf("cannot read data: %w", err)
 	}
 
@@ -60,6 +57,12 @@ func ImportData(db *database.DB, r io.Reader, targets []string, dry, reset bool)
 
 		if utils.ContainsOneOf(targets, "servers", "all") {
 			if err := importLocalAgents(logger, ses, data.Locals, reset); err != nil {
+				return err
+			}
+		}
+
+		if utils.ContainsOneOf(targets, "keys", "all") {
+			if err := importCryptoKeys(logger, ses, data.CryptoKeys, reset); err != nil {
 				return err
 			}
 		}

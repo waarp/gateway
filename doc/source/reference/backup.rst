@@ -5,7 +5,7 @@ Fichier d'import/export
 #######################
 
 Lors de l'import/export de la base de données de Gateway, les données sont
-stockées dans un fichier en format JSON. Ce JSON a la forme suivante :
+stockées dans un fichier en format JSON ou YAML. Ce fichier a la forme suivante :
 
 
 * ``local`` (*array*) - La liste des :term:`serveurs locaux<serveur>` de la
