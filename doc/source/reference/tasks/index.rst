@@ -79,6 +79,11 @@ le marqueur à utiliser est le suivant:
 À l'exécution, ce marqueur sera alors substitué par la valeur associée à la clé
 renseignée.
 
+Ces valeurs de substitutions sont également disponibles pour les programmes externes
+appelés par les tâches EXEC sous forme de variables d'environnement. Ces variables
+d'environnement ont exactement le même nom que leurs variables de substitution
+correspondantes (ex: ``#TRUEFULLPATH#``).
+
 .. ``#ARCHPATH#``
    ``#REMOTEHOSTIP#``
    ``#LOCALIP#`` 

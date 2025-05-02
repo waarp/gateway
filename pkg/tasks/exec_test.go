@@ -3,13 +3,89 @@ package tasks
 import (
 	"context"
 	"os"
+	"path"
 	"path/filepath"
 	"testing"
+	"time"
 
 	. "github.com/smartystreets/goconvey/convey"
 
+	"code.waarp.fr/apps/gateway/gateway/pkg/conf"
+	"code.waarp.fr/apps/gateway/gateway/pkg/model"
+	"code.waarp.fr/apps/gateway/gateway/pkg/model/types"
+	"code.waarp.fr/apps/gateway/gateway/pkg/utils"
 	"code.waarp.fr/apps/gateway/gateway/pkg/utils/testhelpers"
 )
+
+func getExecTransCtx(tb testing.TB) *model.TransferContext {
+	tb.Helper()
+
+	root := filepath.ToSlash(tb.TempDir())
+
+	paths := &conf.PathsConfig{
+		GatewayHome:   root,
+		DefaultInDir:  "in",
+		DefaultOutDir: "out",
+		DefaultTmpDir: "tmp",
+	}
+
+	rule := &model.Rule{
+		ID:     1,
+		Name:   "push",
+		IsSend: true,
+	}
+
+	client := &model.Client{
+		ID:           20,
+		Name:         "test_client",
+		Protocol:     "test_protocol",
+		LocalAddress: types.Addr("localhost", 9876),
+	}
+
+	partner := &model.RemoteAgent{
+		ID:       10,
+		Name:     "test_partner",
+		Protocol: "test_protocol",
+		Address:  types.Addr("localhost", 1234),
+	}
+
+	account := &model.RemoteAccount{
+		ID:            100,
+		RemoteAgentID: partner.ID,
+		Login:         "test_login",
+	}
+
+	transfer := &model.Transfer{
+		ID:               1000,
+		RemoteTransferID: "abcd",
+		RuleID:           rule.ID,
+		ClientID:         utils.NewNullInt64(client.ID),
+		RemoteAccountID:  utils.NewNullInt64(account.ID),
+		SrcFilename:      "test.src",
+		DestFilename:     "test.dst",
+		LocalPath:        path.Join(paths.GatewayHome, paths.DefaultOutDir, "test.src"),
+		RemotePath:       path.Join("remote", "dir", "test.dst"),
+		Filesize:         1000,
+		Start:            time.Now(),
+		Status:           types.StatusRunning,
+		Step:             types.StepPreTasks,
+	}
+
+	return &model.TransferContext{
+		Transfer:           transfer,
+		TransInfo:          map[string]any{},
+		Rule:               rule,
+		PreTasks:           model.Tasks{},
+		PostTasks:          model.Tasks{},
+		ErrTasks:           model.Tasks{},
+		Client:             client,
+		RemoteAgent:        partner,
+		RemoteAgentCreds:   model.Credentials{},
+		RemoteAccount:      account,
+		RemoteAccountCreds: model.Credentials{},
+		Paths:              paths,
+	}
+}
 
 func TestExecValidate(t *testing.T) {
 	Convey("Given an 'EXEC' task", t, func() {
@@ -81,6 +157,8 @@ func TestExecValidate(t *testing.T) {
 }
 
 func TestExecRun(t *testing.T) {
+	transCtx := getExecTransCtx(t)
+
 	Convey("Given an 'EXEC' task", t, func(c C) {
 		logger := testhelpers.TestLogger(c, "task_exec")
 		root := testhelpers.TempDir(c, "task_exec")
@@ -89,7 +167,7 @@ func TestExecRun(t *testing.T) {
 		exec := &execTask{}
 		args := map[string]string{
 			"path":  scriptPath,
-			"args":  "'exec run test message'",
+			"args":  `"exec run test message"`,
 			"delay": "0",
 		}
 
@@ -97,7 +175,7 @@ func TestExecRun(t *testing.T) {
 			So(os.WriteFile(scriptPath, []byte(scriptExecOK), 0o700), ShouldBeNil)
 
 			Convey("When running the task", func() {
-				err := exec.Run(context.Background(), args, nil, logger, nil)
+				err := exec.Run(context.Background(), args, nil, logger, transCtx)
 
 				Convey("Then it should NOT return an error", func() {
 					So(err, ShouldBeNil)
@@ -109,7 +187,7 @@ func TestExecRun(t *testing.T) {
 			So(os.WriteFile(scriptPath, []byte(scriptExecWarn), 0o700), ShouldBeNil)
 
 			Convey("When running the task", func() {
-				err := exec.Run(context.Background(), args, nil, logger, nil)
+				err := exec.Run(context.Background(), args, nil, logger, transCtx)
 
 				Convey("Then it should return a 'warning' error", func() {
 					So(err, ShouldHaveSameTypeAs, &WarningError{})
@@ -122,7 +200,7 @@ func TestExecRun(t *testing.T) {
 			So(os.WriteFile(scriptPath, []byte(scriptExecFail), 0o700), ShouldBeNil)
 
 			Convey("When running the task", func() {
-				err := exec.Run(context.Background(), args, nil, logger, nil)
+				err := exec.Run(context.Background(), args, nil, logger, transCtx)
 
 				Convey("Then it should return an error", func() {
 					So(err, ShouldBeError, "exit status 2")
@@ -136,7 +214,7 @@ func TestExecRun(t *testing.T) {
 			args["delay"] = "100"
 
 			Convey("When running the task", func() {
-				err := exec.Run(context.Background(), args, nil, logger, nil)
+				err := exec.Run(context.Background(), args, nil, logger, transCtx)
 
 				Convey("Then it should return an error", func() {
 					So(err, ShouldBeError, ErrCommandTimeout)

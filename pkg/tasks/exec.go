@@ -6,6 +6,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"os"
 	"os/exec"
 	"strconv"
 	"time"
@@ -30,9 +31,9 @@ func (e *execTask) Validate(params map[string]string) error {
 
 // Run executes the task by executing the external program with the given parameters.
 func (e *execTask) Run(parent context.Context, params map[string]string,
-	_ *database.DB, logger *log.Logger, _ *model.TransferContext,
+	_ *database.DB, logger *log.Logger, transCtx *model.TransferContext,
 ) error {
-	output, cmdErr := runExec(parent, params)
+	output, cmdErr := runExec(parent, transCtx, params)
 	if cmdErr != nil {
 		return cmdErr
 	}
@@ -82,15 +83,17 @@ func parseExecArgs(params map[string]string) (path, args string,
 	return path, args, delay, nil
 }
 
-func runExec(parent context.Context, params map[string]string) (*bytes.Buffer, error) {
+//nolint:funlen //no easy way to split the function
+func runExec(parent context.Context, transCtx *model.TransferContext, params map[string]string,
+) (*bytes.Buffer, error) {
 	var (
 		cancel context.CancelFunc
 		output bytes.Buffer
 	)
 
-	script, args, delay, err := parseExecArgs(params)
-	if err != nil {
-		return nil, fmt.Errorf("failed to parse task arguments: %w", err)
+	script, args, delay, parsErr := parseExecArgs(params)
+	if parsErr != nil {
+		return nil, fmt.Errorf("failed to parse task arguments: %w", parsErr)
 	}
 
 	ctx := parent
@@ -102,6 +105,18 @@ func runExec(parent context.Context, params map[string]string) (*bytes.Buffer, e
 
 	cmd := getCommand(script, args)
 	cmd.Stdout = &output
+	cmd.Env = os.Environ()
+
+	for key, replaceFunc := range getReplacers() {
+		value, err := replaceFunc(transCtx)
+		if errors.Is(err, errNotImplemented) {
+			continue
+		} else if err != nil {
+			return nil, fmt.Errorf("failed to get replacement value %s: %w", key, err)
+		}
+
+		cmd.Env = append(cmd.Env, fmt.Sprintf("%s=%s", key, value))
+	}
 
 	if startErr := cmd.Start(); startErr != nil {
 		return nil, fmt.Errorf("failed to start external program: %w", startErr)

@@ -8,7 +8,6 @@ import (
 
 	. "github.com/smartystreets/goconvey/convey"
 
-	"code.waarp.fr/apps/gateway/gateway/pkg/model"
 	"code.waarp.fr/apps/gateway/gateway/pkg/utils/testhelpers"
 )
 
@@ -82,16 +81,14 @@ func TestExecOutputValidate(t *testing.T) {
 }
 
 func TestExecOutputRun(t *testing.T) {
+	transCtx := getExecTransCtx(t)
+
 	Convey("Given an 'EXECOUTPUT' task", t, func(c C) {
 		logger := testhelpers.TestLogger(c, "task_execoutput")
 		root := testhelpers.TempDir(c, "task_execoutput")
 		scriptFile := filepath.Join(root, execOutputScriptFile)
 
 		exec := &execOutputTask{}
-		transCtx := &model.TransferContext{
-			Transfer: &model.Transfer{},
-			Rule:     &model.Rule{},
-		}
 
 		Convey("Given that the task is valid", func() {
 			args := map[string]string{
