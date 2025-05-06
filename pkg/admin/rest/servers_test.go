@@ -648,9 +648,9 @@ func TestReplaceServer(t *testing.T) {
 
 func TestEnableDisableServer(t *testing.T) {
 	testEnableDisableServer := func(expectedDisabled bool) {
-		path, name := ServerPathDisable, "disable"
+		path, name := "/servers/{server}/disable", "disable"
 		if !expectedDisabled {
-			path, name = ServerPathEnable, "enable"
+			path, name = "/servers/{server}/enable", "enable"
 		}
 
 		Convey("Given the agent "+name+" handler", t, func(c C) {
@@ -705,7 +705,7 @@ func TestStartServer(t *testing.T) {
 			So(db.Insert(&agent).Run(), ShouldBeNil)
 
 			Convey("Given a valid name parameter", func() {
-				r := httptest.NewRequest(http.MethodPatch, ServerStartPath, nil)
+				r := httptest.NewRequest(http.MethodPatch, "/servers/{server}/start", nil)
 				r = mux.SetURLVars(r, map[string]string{"server": agent.Name})
 
 				handle.ServeHTTP(w, r)
@@ -722,7 +722,7 @@ func TestStartServer(t *testing.T) {
 			})
 
 			Convey("Given an incorrect name parameter", func() {
-				r := httptest.NewRequest(http.MethodPatch, ServerStartPath, nil)
+				r := httptest.NewRequest(http.MethodPatch, "/servers/{server}/start", nil)
 				r = mux.SetURLVars(r, map[string]string{"server": "toto"})
 
 				handle.ServeHTTP(w, r)
@@ -754,7 +754,7 @@ func TestStopServer(t *testing.T) {
 			defer delete(services.Servers, agent.Name)
 
 			Convey("Given a valid name parameter", func() {
-				r := httptest.NewRequest(http.MethodPatch, ServerStopPath, nil)
+				r := httptest.NewRequest(http.MethodPatch, "/servers/{server}/stop", nil)
 				r = mux.SetURLVars(r, map[string]string{"server": agent.Name})
 
 				handle.ServeHTTP(w, r)
@@ -771,7 +771,7 @@ func TestStopServer(t *testing.T) {
 			})
 
 			Convey("Given an incorrect name parameter", func() {
-				r := httptest.NewRequest(http.MethodPatch, ServerStopPath, nil)
+				r := httptest.NewRequest(http.MethodPatch, "/servers/{server}/stop", nil)
 				r = mux.SetURLVars(r, map[string]string{"server": "toto"})
 
 				handle.ServeHTTP(w, r)
@@ -804,7 +804,7 @@ func TestRestartServer(t *testing.T) {
 			defer delete(services.Servers, agent.Name)
 
 			Convey("Given a valid name parameter", func() {
-				r := httptest.NewRequest(http.MethodPatch, ServerRestartPath, nil)
+				r := httptest.NewRequest(http.MethodPatch, "/servers/{server}/restart", nil)
 				r = mux.SetURLVars(r, map[string]string{"server": agent.Name})
 
 				handle.ServeHTTP(w, r)
@@ -822,7 +822,7 @@ func TestRestartServer(t *testing.T) {
 			})
 
 			Convey("Given an incorrect name parameter", func() {
-				r := httptest.NewRequest(http.MethodPatch, ServerRestartPath, nil)
+				r := httptest.NewRequest(http.MethodPatch, "/servers/{server}/restart", nil)
 				r = mux.SetURLVars(r, map[string]string{"server": "toto"})
 
 				handle.ServeHTTP(w, r)

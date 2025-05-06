@@ -15,8 +15,8 @@ import (
 )
 
 const (
-	clientsPathFormat = "/api/clients"
-	clientPathFormat  = "/api/clients/%s"
+	clientsPathFormat = "/clients"
+	clientPathFormat  = "/clients/%s"
 )
 
 func TestClientAdd(t *testing.T) {

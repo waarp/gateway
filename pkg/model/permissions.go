@@ -33,6 +33,16 @@ const (
 	PermAll = math.MaxInt32 &^ permTransferDelete
 )
 
+func (m PermsMask) HasPermission(perms ...PermsMask) bool {
+	for _, perm := range perms {
+		if m&perm == perm {
+			return true
+		}
+	}
+
+	return false
+}
+
 // Permissions is a structured representation of a PermMask which regroups
 // permissions into categories depending on their target. Each attribute
 // represents 1 target. The attributes are strings which give a chmod-like
@@ -64,7 +74,7 @@ func maskToStr(m PermsMask, s int) string {
 
 // MaskToPerms converts a PermMask to an equivalent Permissions instance.
 func MaskToPerms(m PermsMask) *Permissions {
-	//nolint:gomnd //too specific
+	//nolint:mnd //too specific
 	return &Permissions{
 		Transfers:      maskToStr(m, 0*len(permString)),
 		Servers:        maskToStr(m, 1*len(permString)),
@@ -114,7 +124,7 @@ func permToMask(mask *PermsMask, perm string, off int) error {
 
 // PermsToMask converts the given Permissions instance to an equivalent PermsMask.
 //
-//nolint:gomnd //too specific
+//nolint:mnd //too specific
 func PermsToMask(perms *Permissions) (PermsMask, error) {
 	if perms == nil {
 		return 0, nil

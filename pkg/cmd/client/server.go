@@ -9,7 +9,6 @@ import (
 	"path"
 	"strings"
 
-	"code.waarp.fr/apps/gateway/gateway/pkg/admin/rest"
 	"code.waarp.fr/apps/gateway/gateway/pkg/admin/rest/api"
 )
 
@@ -295,9 +294,9 @@ func (s *serverEnableDisable) run(w io.Writer, isEnable bool) error {
 		return ErrMissingServerName
 	}
 
-	handlerPath, status := rest.ServerPathEnable, "enabled"
+	handlerPath, status := "/api/servers/{server}/enable", "enabled"
 	if !isEnable {
-		handlerPath, status = rest.ServerPathDisable, "disabled"
+		handlerPath, status = "/api/servers/{server}/disable", "disabled"
 	}
 
 	addr.Path = strings.ReplaceAll(handlerPath, "{server}", server)

@@ -1,4 +1,4 @@
-package admin
+package rest
 
 import (
 	"bytes"
@@ -11,7 +11,6 @@ import (
 	"golang.org/x/crypto/bcrypt"
 
 	"code.waarp.fr/apps/gateway/gateway/pkg/admin/rest/api"
-	"code.waarp.fr/apps/gateway/gateway/pkg/conf"
 	"code.waarp.fr/apps/gateway/gateway/pkg/database"
 	"code.waarp.fr/apps/gateway/gateway/pkg/model"
 	"code.waarp.fr/apps/gateway/gateway/pkg/version"
@@ -33,8 +32,8 @@ func AuthenticationMiddleware(logger *log.Logger, db *database.DB) mux.Middlewar
 			}
 
 			var user model.User
-			if err := db.Get(&user, "username=? AND owner=?", login, conf.GlobalConfig.GatewayName).
-				Run(); err != nil && !database.IsNotFound(err) {
+			if err := db.Get(&user, "username=?", login).Owner().Run(); err != nil &&
+				!database.IsNotFound(err) {
 				logger.Error("Database error: %s", err)
 				http.Error(w, "internal database error", http.StatusInternalServerError)
 
@@ -104,15 +103,12 @@ func LoggingMiddleware(logger *log.Logger) mux.MiddlewareFunc {
 var AppName = "waarp-gatewayd"
 
 func ServerInfoMiddleware() mux.MiddlewareFunc {
-	gmt := time.FixedZone("GMT", 0)
-
 	return func(next http.Handler) http.Handler {
 		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-			next.ServeHTTP(w, r)
-
 			w.Header().Set("Server", fmt.Sprintf("%s/%s", AppName, version.Num))
-			w.Header().Set("Date", time.Now().In(gmt).Format(time.RFC1123))
 			w.Header().Set(api.DateHeader, time.Now().Format(time.RFC1123))
+
+			next.ServeHTTP(w, r)
 		})
 	}
 }

@@ -9,7 +9,6 @@ import (
 	"path/filepath"
 	"time"
 
-	"code.waarp.fr/apps/gateway/gateway/pkg/admin/rest"
 	"code.waarp.fr/apps/gateway/gateway/pkg/admin/rest/api"
 	"code.waarp.fr/apps/gateway/gateway/pkg/model/types"
 	"code.waarp.fr/apps/gateway/gateway/pkg/utils"
@@ -95,7 +94,7 @@ func (t *TransferAdd) execute(w io.Writer) error {
 			"the source and the destination")
 	}
 
-	addr.Path = rest.TransfersPath
+	addr.Path = "/api/transfers"
 
 	loc, addErr := add(w, t)
 	if addErr != nil {
@@ -144,7 +143,7 @@ type TransferList struct {
 }
 
 func (t *TransferList) listURL() error {
-	addr.Path = rest.TransfersPath
+	addr.Path = "/api/transfers"
 	query := url.Values{}
 	query.Set("limit", utils.FormatUint(t.Limit))
 	query.Set("offset", utils.FormatUint(t.Offset))
@@ -310,7 +309,7 @@ type TransferCancelAll struct {
 
 func (t *TransferCancelAll) Execute([]string) error { return execute(t) }
 func (t *TransferCancelAll) execute(w io.Writer) error {
-	addr.Path = rest.TransfersPath
+	addr.Path = "/api/transfers"
 	query := url.Values{}
 	query.Set("target", t.Target)
 	addr.RawQuery = query.Encode()
