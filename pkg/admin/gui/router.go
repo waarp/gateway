@@ -18,7 +18,7 @@ func AddGUIRouter(router *mux.Router, logger *log.Logger, db *database.DB) {
 
 	// Add HTTP handlers to the router here.
 	// Example:
-	router.HandleFunc("/", homepage(db, logger))
+	router.HandleFunc("/home", homepage(db, logger)).Methods("GET")
 }
 
 func AuthenticationMiddleware(logger *log.Logger, db *database.DB) mux.MiddlewareFunc {
