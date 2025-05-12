@@ -1,9 +1,10 @@
+//nolint:gochecknoglobals // template
 package gui
 
 import (
-    "html/template"
+	"html/template"
 )
 
 var templates = template.Must(
-    template.ParseFS(webFS, "front_end/html/*.html"),
+	template.ParseFS(webFS, "front_end/html/*.html"),
 )

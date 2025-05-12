@@ -19,13 +19,16 @@ func AddGUIRouter(router *mux.Router, logger *log.Logger, db *database.DB) {
 
 	// Add HTTP handlers to the router here.
 	// Example:
-	router.HandleFunc("/home", homepage(db, logger)).Methods("GET")
+	router.HandleFunc("/home", homepage(logger)).Methods("GET")
+
 	subFS, err := fs.Sub(webFS, "front_end")
-    if err != nil {
-        logger.Error("error accessing css file: %v", err)
-        return
-    }
-    router.PathPrefix("/static/").Handler(http.StripPrefix(Prefix+"/static/", http.FileServer(http.FS(subFS))),)
+	if err != nil {
+		logger.Error("error accessing css file: %v", err)
+
+		return
+	}
+
+	router.PathPrefix("/static/").Handler(http.StripPrefix(Prefix+"/static/", http.FileServer(http.FS(subFS))))
 }
 
 func AuthenticationMiddleware(logger *log.Logger, db *database.DB) mux.MiddlewareFunc {
