@@ -1,70 +1,101 @@
 package gui
 
 import (
+	"crypto/rand"
+	"encoding/base64"
+	"fmt"
 	"net/http"
-	"github.com/golang-jwt/jwt/v5"
- 	"sync"
+	"sync"
 	"time"
-	
+
 	"code.waarp.fr/lib/log"
+	"github.com/golang-jwt/jwt/v5"
 )
 
 type Session struct {
-    Token     string
-    Username    string
-    Expiration time.Time
+	Token      string
+	Username   string
+	Expiration time.Time
 }
 
-var secretKey = []byte("Sh2Hdj1SdMknb8sdDzHd7")
+func CreateSecretKey() []byte {
+	b := 32
+	key := make([]byte, b)
+
+	_, err := rand.Read(key)
+	if err != nil {
+		panic(fmt.Errorf("error: %w", err))
+	}
+
+	return []byte(base64.StdEncoding.EncodeToString(key))
+}
+
+//nolint:gochecknoglobals // secretKey
+var secretKey []byte
+
+//nolint:gochecknoinits // init
+func init() {
+	secretKey = CreateSecretKey()
+}
+
+//nolint:gochecknoglobals // sessionStore
 var sessionStore sync.Map
 
-func CreateToken(username string, valid_time time.Duration) (string, error) {
-   token := jwt.NewWithClaims(jwt.SigningMethodHS256, 
-        jwt.MapClaims{
-		"username": username,
-        "exp": time.Now().Add(valid_time).Unix(),
-    })
+func CreateToken(username string, validTime time.Duration) (string, error) {
+	token := jwt.NewWithClaims(jwt.SigningMethodHS256,
+		jwt.MapClaims{
+			"username": username,
+			"exp":      time.Now().Add(validTime).Unix(),
+		})
 
-    tokenString, err := token.SignedString(secretKey)
-    if err != nil {
-    	return "", err
-    }
+	tokenString, err := token.SignedString(secretKey)
+	if err != nil {
+		return "", fmt.Errorf("failed to sign JWT: %w", err)
+	}
 
 	return tokenString, nil
 }
 
-func CreateSession(username string, valid_time time.Duration) (token string, err error) {
-    token, err = CreateToken(username, valid_time)
-    if err != nil {
-        return "", err
-    }
-    session := Session{
-        Token:     token,
-        Username:    username,
-        Expiration: time.Now().Add(valid_time),
-    }
-    sessionStore.Store(token, session)
-    return token, nil
+func CreateSession(username string, validTime time.Duration) (token string, err error) {
+	token, err = CreateToken(username, validTime)
+	if err != nil {
+		return "", err
+	}
+	session := Session{
+		Token:      token,
+		Username:   username,
+		Expiration: time.Now().Add(validTime),
+	}
+	sessionStore.Store(token, session)
+
+	return token, nil
 }
 
 func ValidateSession(token string) (username string, found bool) {
-    value, ok := sessionStore.Load(token)
-    if !ok {
-        return "", false
-    }
-    session := value.(Session)
-    if session.Expiration.Before(time.Now()) {
-        sessionStore.Delete(token)
-        return "", false
-    }
-    return session.Username, true
+	value, ok := sessionStore.Load(token)
+	if !ok {
+		return "", false
+	}
+
+	session, ok := value.(Session)
+	if !ok {
+		return "", false
+	}
+
+	if session.Expiration.Before(time.Now()) {
+		sessionStore.Delete(token)
+
+		return "", false
+	}
+
+	return session.Username, true
 }
 
 func DeleteSession(token string) {
-    sessionStore.Delete(token)
+	sessionStore.Delete(token)
 }
 
-func login_page(logger *log.Logger) http.HandlerFunc {
+func loginPage(logger *log.Logger) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		if err := templates.ExecuteTemplate(w, "login_page", map[string]any{"Title": "Se connecter"}); err != nil {
 			logger.Error("render login_page: %v", err)
