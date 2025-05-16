@@ -70,6 +70,15 @@ Lister les transferts
    :resjsonarr string errorMsg: Le message d'erreur du transfert (si une erreur s'est produite)
    :resjsonarr object transferInfo: Des informations de transfert personnalisées sous
      la forme d'une liste de pairs clé:valeur, c'est-à-dire sous forme d'un objet JSON.
+   :resjsonarr number remainingTries: Le nombre de tentatives *automatiques* restantes.
+     Ce nombre n'inclue donc pas la tentative originale du transfert.
+   :resjsonarr date nextAttempt: La date de la prochaine tentative du transfert.
+     À noter que ce champ est nul pendant que le transfert est en cours ou si le
+     transfers n'a plus de tentatives restantes.
+   :resjsonarr number nextRetryDelay: Le délai (en secondes) entre la dernière tentative
+     du transfert et la prochaine.
+   :resjsonarr number retryIncrementFactor: Le facteur par lequel le délai ci-dessus sera
+     multiplié à chaque nouvelle tentative.
 
 
    **Exemple de requête**
@@ -101,7 +110,10 @@ Lister les transferts
           "status": "RUNNING",
           "step": "DATA",
           "progress": 123456,
-          "transferInfo": { "key1": "val1", "key2": 2, "key3": true }
+          "transferInfo": { "key1": "val1", "key2": 2, "key3": true },
+          "remainingTries": 1,
+          "nextRetryDelay": 60,
+          "retryIncrementFactor": 2
         },{
           "id": 2,
           "isServer": true,
@@ -112,6 +124,10 @@ Lister les transferts
           "localFilepath": "/chemin/local/fichier2",
           "remoteFilepath": "/chemin/distant/fichier2",
           "start": "2019-01-01T03:00:00+02:00",
-          "status": "PLANNED"
+          "status": "PLANNED",
+          "remainingTries": 3,
+          "nextAttempt": "2019-01-01T03:00:00+02:00",
+          "nextRetryDelay": 600,
+          "retryIncrementFactor": 1.5
         }]
       }

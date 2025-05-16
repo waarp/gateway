@@ -64,6 +64,16 @@ func displayTransfer(w io.Writer, trans *api.OutTransfer) {
 		Style22.PrintL(w, "Error message", trans.ErrorMsg)
 	}
 
+	if trans.NextRetryDelay != 0 {
+		delay := (time.Duration(trans.NextRetryDelay) * time.Second).String()
+
+		Style22.PrintL(w, "Remaining tries", trans.RemainingTries)
+		Style22.PrintL(w, "Next retry delay", delay)
+		Style22.PrintL(w, "Retry increment factor", trans.RetryIncrementFactor)
+		Style22.PrintL(w, "Next attempt",
+			ifElse(!trans.NextAttempt.IsZero(), trans.NextAttempt.Local().String(), notApplicable))
+	}
+
 	displayTransferInfo(w, trans.TransferInfo)
 }
 
@@ -71,16 +81,20 @@ func displayTransfer(w io.Writer, trans *api.OutTransfer) {
 
 //nolint:lll,tagliatelle // struct tags can be long for command line args
 type TransferAdd struct {
-	File         string             `required:"yes" short:"f" long:"file" description:"The file to transfer" json:"file,omitempty"`
-	Out          string             `short:"o" long:"out" description:"The destination of the file" json:"output,omitempty"`
-	Way          string             `required:"yes" short:"w" long:"way" description:"The direction of the transfer" choice:"send" choice:"receive" json:"-"`
-	IsSend       bool               `json:"isSend"`
-	Client       string             `short:"c" long:"client" description:"The client with which the transfer is performed" json:"client,omitempty"`
-	Partner      string             `required:"yes" short:"p" long:"partner" description:"The partner to which the transfer is requested" json:"partner,omitempty"`
-	Account      string             `required:"yes" short:"l" long:"login" description:"The login of the account used to connect on the partner" json:"account,omitempty"`
-	Rule         string             `required:"yes" short:"r" long:"rule" description:"The rule to use for the transfer" json:"rule,omitempty"`
-	Date         string             `short:"d" long:"date" description:"The starting date (in ISO 8601 format) of the transfer" json:"start,omitempty"`
-	TransferInfo map[string]confVal `short:"i" long:"info" description:"Custom information about the transfer, in key:val format. Can be repeated." json:"transferInfo,omitempty"`
+	File                 string             `required:"yes" short:"f" long:"file" description:"The file to transfer" json:"file,omitempty"`
+	Out                  string             `short:"o" long:"out" description:"The destination of the file" json:"output,omitempty"`
+	Way                  string             `required:"yes" short:"w" long:"way" description:"The direction of the transfer" choice:"send" choice:"receive" json:"-"`
+	IsSend               bool               `json:"isSend"`
+	Client               string             `short:"c" long:"client" description:"The client with which the transfer is performed" json:"client,omitempty"`
+	Partner              string             `required:"yes" short:"p" long:"partner" description:"The partner to which the transfer is requested" json:"partner,omitempty"`
+	Account              string             `required:"yes" short:"l" long:"login" description:"The login of the account used to connect on the partner" json:"account,omitempty"`
+	Rule                 string             `required:"yes" short:"r" long:"rule" description:"The rule to use for the transfer" json:"rule,omitempty"`
+	Date                 string             `short:"d" long:"date" description:"The starting date (in ISO 8601 format) of the transfer" json:"start,omitempty"`
+	TransferInfo         map[string]confVal `short:"i" long:"info" description:"Custom information about the transfer, in key:val format. Can be repeated." json:"transferInfo,omitempty"`
+	NumberOfTries        int8               `long:"nb-of-retries" description:"The number of times the transfer will be automatically retried if it failed" json:"numberOfTries,omitempty"`
+	FirstRetryDelay      time.Duration      `long:"retry-delay" description:"The amount of time between automatic retries. Accepted units: 's', 'm' & 'h'" json:"-"`
+	FirstRetryDelaySec   int32              `json:"firstRetryDelay,omitempty"`
+	RetryIncrementFactor float32            `long:"retry-increment-factor" description:"The factor by which the retry delay will increase after each retry" json:"retryIncrementFactor,omitempty"`
 
 	Name string `short:"n" long:"name" description:"[DEPRECATED] The name of the file after the transfer" json:"destPath,omitempty"` // Deprecated: the source name is used instead
 }
@@ -88,6 +102,10 @@ type TransferAdd struct {
 func (t *TransferAdd) Execute([]string) error { return execute(t) }
 func (t *TransferAdd) execute(w io.Writer) error {
 	t.IsSend = t.Way == directionSend
+
+	if t.FirstRetryDelay != 0 {
+		t.FirstRetryDelaySec = int32(t.FirstRetryDelay.Seconds())
+	}
 
 	if t.Name != "" {
 		fmt.Fprintln(w, "[WARNING] The '-n' ('--name') option is deprecated. "+

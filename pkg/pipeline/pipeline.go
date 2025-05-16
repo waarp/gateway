@@ -8,6 +8,7 @@ import (
 	"context"
 	"fmt"
 	"maps"
+	"math"
 	"sync"
 	"time"
 
@@ -507,6 +508,13 @@ func (p *Pipeline) doneErr(status types.TransferStatus) {
 	}()
 
 	p.TransCtx.Transfer.Status = status
+
+	if p.TransCtx.Transfer.RemainingTries > 0 {
+		p.TransCtx.Transfer.NextRetry = time.Now().UTC().
+			Add(time.Second * time.Duration(p.TransCtx.Transfer.NextRetryDelay))
+		incrementRetryDelay(p.TransCtx.Transfer)
+	}
+
 	if err := p.DB.Update(p.TransCtx.Transfer).Run(); err != nil {
 		p.Logger.Errorf("Failed to update transfer status to %v: %v", status, err)
 	}
@@ -540,5 +548,14 @@ func (p *Pipeline) done(state statemachine.State) {
 
 	if analytics.GlobalService != nil {
 		analytics.GlobalService.RunningTransfers.Add(-1)
+	}
+}
+
+func incrementRetryDelay(trans *model.Transfer) {
+	newDelay := float32(trans.NextRetryDelay) * trans.RetryIncrementFactor
+	if newDelay > float32(math.MaxInt32) {
+		trans.NextRetryDelay = math.MaxInt32
+	} else {
+		trans.NextRetryDelay = int32(newDelay)
 	}
 }

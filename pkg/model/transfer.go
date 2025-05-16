@@ -35,25 +35,29 @@ func init() {
 
 // Transfer represents one record of the 'transfers' table.
 type Transfer struct {
-	ID               int64                   `xorm:"<- id AUTOINCR"`
-	Owner            string                  `xorm:"owner"`
-	RemoteTransferID string                  `xorm:"remote_transfer_id"`
-	RuleID           int64                   `xorm:"rule_id"`
-	ClientID         sql.NullInt64           `xorm:"client_id"`
-	LocalAccountID   sql.NullInt64           `xorm:"local_account_id"`
-	RemoteAccountID  sql.NullInt64           `xorm:"remote_account_id"`
-	SrcFilename      string                  `xorm:"src_filename"`
-	DestFilename     string                  `xorm:"dest_filename"`
-	LocalPath        string                  `xorm:"local_path"`
-	RemotePath       string                  `xorm:"remote_path"`
-	Filesize         int64                   `xorm:"filesize"`
-	Start            time.Time               `xorm:"start DATETIME(6) UTC"`
-	Status           types.TransferStatus    `xorm:"status"`
-	Step             types.TransferStep      `xorm:"step"`
-	Progress         int64                   `xorm:"progress"`
-	TaskNumber       int8                    `xorm:"task_number"`
-	ErrCode          types.TransferErrorCode `xorm:"error_code"`
-	ErrDetails       string                  `xorm:"error_details"`
+	ID                   int64                   `xorm:"<- id AUTOINCR"`
+	Owner                string                  `xorm:"owner"`
+	RemoteTransferID     string                  `xorm:"remote_transfer_id"`
+	RuleID               int64                   `xorm:"rule_id"`
+	ClientID             sql.NullInt64           `xorm:"client_id"`
+	LocalAccountID       sql.NullInt64           `xorm:"local_account_id"`
+	RemoteAccountID      sql.NullInt64           `xorm:"remote_account_id"`
+	SrcFilename          string                  `xorm:"src_filename"`
+	DestFilename         string                  `xorm:"dest_filename"`
+	LocalPath            string                  `xorm:"local_path"`
+	RemotePath           string                  `xorm:"remote_path"`
+	Filesize             int64                   `xorm:"filesize"`
+	Start                time.Time               `xorm:"start DATETIME(6) UTC"`
+	Status               types.TransferStatus    `xorm:"status"`
+	Step                 types.TransferStep      `xorm:"step"`
+	Progress             int64                   `xorm:"progress"`
+	TaskNumber           int8                    `xorm:"task_number"`
+	ErrCode              types.TransferErrorCode `xorm:"error_code"`
+	ErrDetails           string                  `xorm:"error_details"`
+	RemainingTries       int8                    `xorm:"remaining_tries"`
+	NextRetryDelay       int32                   `xorm:"next_retry_delay"`
+	RetryIncrementFactor float32                 `xorm:"retry_increment_factor"`
+	NextRetry            time.Time               `xorm:"next_retry DATETIME(6) UTC"`
 }
 
 func (*Transfer) TableName() string   { return TableTransfers }
@@ -135,6 +139,14 @@ func (t *Transfer) checkMandatoryValues(rule *Rule) error {
 	}
 
 	t.RemotePath = filepath.ToSlash(t.RemotePath)
+
+	if t.RetryIncrementFactor == 0 {
+		t.RetryIncrementFactor = 1.0
+	}
+
+	if t.Status == types.StatusPlanned && t.NextRetry.IsZero() {
+		t.NextRetry = t.Start
+	}
 
 	return nil
 }

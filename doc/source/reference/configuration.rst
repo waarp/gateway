@@ -149,6 +149,9 @@ d'administration et l'API REST.
 .. confval:: TLSPassphrase
 
    Le mot de passe de la clé du certificat (si la clé est chiffrée).
+   Waarp Gateway supporte uniquement les clés privées en format PEM et chiffrées
+   via la méthode décrite dans la :rfc:`1423`. Une clé chiffrée avec cette méthode
+   doit avoir un entête PEM ``DEK-Info``.
 
 
 Section ``[database]``
