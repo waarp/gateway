@@ -5,16 +5,16 @@ import (
 	"encoding/base64"
 	"fmt"
 	"net/http"
-	"sync"
 	"time"
 
 	"code.waarp.fr/lib/log"
 	"github.com/golang-jwt/jwt/v5"
+	"github.com/puzpuzpuz/xsync"
 )
 
 type Session struct {
 	Token      string
-	Username   string
+	UserID     string
 	Expiration time.Time
 }
 
@@ -39,13 +39,13 @@ func init() {
 }
 
 //nolint:gochecknoglobals // sessionStore
-var sessionStore sync.Map
+var sessionStore xsync.MapOf[string, Session]
 
-func CreateToken(username string, validTime time.Duration) (string, error) {
+func CreateToken(userID string, validTime time.Duration) (string, error) {
 	token := jwt.NewWithClaims(jwt.SigningMethodHS256,
 		jwt.MapClaims{
-			"username": username,
-			"exp":      time.Now().Add(validTime).Unix(),
+			"userID": userID,
+			"exp":    time.Now().Add(validTime).Unix(),
 		})
 
 	tokenString, err := token.SignedString(secretKey)
@@ -56,14 +56,14 @@ func CreateToken(username string, validTime time.Duration) (string, error) {
 	return tokenString, nil
 }
 
-func CreateSession(username string, validTime time.Duration) (token string, err error) {
-	token, err = CreateToken(username, validTime)
+func CreateSession(userID string, validTime time.Duration) (token string, err error) {
+	token, err = CreateToken(userID, validTime)
 	if err != nil {
 		return "", err
 	}
 	session := Session{
 		Token:      token,
-		Username:   username,
+		UserID:     userID,
 		Expiration: time.Now().Add(validTime),
 	}
 	sessionStore.Store(token, session)
@@ -71,32 +71,38 @@ func CreateSession(username string, validTime time.Duration) (token string, err 
 	return token, nil
 }
 
-func ValidateSession(token string) (username string, found bool) {
+func ValidateSession(token string) (userID string, found bool) {
 	value, ok := sessionStore.Load(token)
 	if !ok {
 		return "", false
 	}
 
-	session, ok := value.(Session)
-	if !ok {
-		return "", false
-	}
-
-	if session.Expiration.Before(time.Now()) {
+	if value.Expiration.Before(time.Now()) {
 		sessionStore.Delete(token)
 
 		return "", false
 	}
 
-	return session.Username, true
+	return value.UserID, true
 }
 
 func DeleteSession(token string) {
 	sessionStore.Delete(token)
 }
 
+func checkUser(logger *log.Logger, username, password string) {
+	logger.Info("username: %s", username)
+	logger.Info("password: %s", password)
+}
+
 func loginPage(logger *log.Logger) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
+		if r.Method == http.MethodPost {
+			username := r.FormValue("username")
+			password := r.FormValue("password")
+			checkUser(logger, username, password)
+		}
+
 		if err := templates.ExecuteTemplate(w, "login_page", map[string]any{"Title": "Se connecter"}); err != nil {
 			logger.Error("render login_page: %v", err)
 			http.Error(w, "Erreur interne", http.StatusInternalServerError)
