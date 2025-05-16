@@ -12,6 +12,12 @@ func GetUser(db database.ReadAccess, username string) (*model.User, error) {
 	return &user, db.Get(&user, "username=?", username).Owner().Run()
 }
 
+func GetUserByID(db database.ReadAccess, id int64) (*model.User, error) {
+	var user model.User
+
+	return &user, db.Get(&user, "id=?", id).Run()
+}
+
 func ListUsers(db database.ReadAccess, orderByCol string, orderByAsc bool, limit, offset int,
 ) ([]*model.User, error) {
 	var users model.Users
