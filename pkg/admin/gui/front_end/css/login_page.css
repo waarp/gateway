@@ -1,0 +1,19 @@
+
+.form-control {
+    border-radius: 17px;
+}
+
+.btn-connexion {
+  background-color: #f54b15;
+  color: white;
+  border-radius: 17px;
+}
+
+.btn-connexion:hover,
+.btn-connexion:focus {
+  background-color: #fff;
+  color: #f54b15 !important;
+  transition: background 0.5s, color 1.0s;
+  border-radius: 17px;
+  box-shadow: 0 6px 18px rgba(200, 199, 199, 0.25);
+}
