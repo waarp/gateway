@@ -20,7 +20,7 @@ func AddGUIRouter(router *mux.Router, logger *log.Logger, db *database.DB) {
 	// Add HTTP handlers to the router here.
 	// Example:
 	router.HandleFunc("/home", homePage(logger)).Methods("GET")
-	router.HandleFunc("/login", loginPage(logger)).Methods("GET", "POST")
+	router.HandleFunc("/login", loginPage(logger, db)).Methods("GET", "POST")
 
 	subFS, err := fs.Sub(webFS, "front_end")
 	if err != nil {
