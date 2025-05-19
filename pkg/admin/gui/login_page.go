@@ -1,19 +1,18 @@
 package gui
 
 import (
-    "crypto/rand"
-    "encoding/base64"
-    "fmt"
-    "net/http"
-    "sync"
-    "time"
+	"crypto/rand"
+	"encoding/base64"
+	"fmt"
+	"net/http"
+	"sync"
+	"time"
 
-    "github.com/golang-jwt/jwt/v5"
-
-    "code.waarp.fr/apps/gateway/gateway/pkg/admin/gui/internal"
-    "code.waarp.fr/apps/gateway/gateway/pkg/database"
-    "code.waarp.fr/apps/gateway/gateway/pkg/model"
-    "code.waarp.fr/lib/log"
+	"code.waarp.fr/apps/gateway/gateway/pkg/admin/gui/internal"
+	"code.waarp.fr/apps/gateway/gateway/pkg/database"
+	"code.waarp.fr/apps/gateway/gateway/pkg/model"
+	"code.waarp.fr/lib/log"
+	"github.com/golang-jwt/jwt/v5"
 )
 
 type Session struct {
@@ -153,6 +152,7 @@ func loginPage(logger *log.Logger, db *database.DB) http.HandlerFunc {
 				Value:    token,
 				Path:     "/",
 				Expires:  time.Now().Add(validTimeToken),
+				Secure:   true,
 				HttpOnly: true,
 				SameSite: http.SameSiteLaxMode,
 			})
