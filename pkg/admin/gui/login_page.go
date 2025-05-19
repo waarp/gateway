@@ -1,20 +1,24 @@
 package gui
 
 import (
-	"crypto/rand"
-	"encoding/base64"
-	"fmt"
-	"net/http"
-	"time"
+    "crypto/rand"
+    "encoding/base64"
+    "fmt"
+    "net/http"
+    "sync"
+    "time"
 
-	"code.waarp.fr/lib/log"
-	"github.com/golang-jwt/jwt/v5"
-	"github.com/puzpuzpuz/xsync"
+    "github.com/golang-jwt/jwt/v5"
+
+    "code.waarp.fr/apps/gateway/gateway/pkg/admin/gui/internal"
+    "code.waarp.fr/apps/gateway/gateway/pkg/database"
+    "code.waarp.fr/apps/gateway/gateway/pkg/model"
+    "code.waarp.fr/lib/log"
 )
 
 type Session struct {
 	Token      string
-	UserID     string
+	UserID     int
 	Expiration time.Time
 }
 
@@ -30,18 +34,21 @@ func CreateSecretKey() []byte {
 	return []byte(base64.StdEncoding.EncodeToString(key))
 }
 
+//nolint:gochecknoglobals // validTimeToken
+var validTimeToken = 24 * time.Hour
+
 //nolint:gochecknoglobals // secretKey
 var secretKey []byte
+
+//nolint:gochecknoglobals // sessionStore
+var sessionStore sync.Map
 
 //nolint:gochecknoinits // init
 func init() {
 	secretKey = CreateSecretKey()
 }
 
-//nolint:gochecknoglobals // sessionStore
-var sessionStore xsync.MapOf[string, Session]
-
-func CreateToken(userID string, validTime time.Duration) (string, error) {
+func CreateToken(userID int, validTime time.Duration) (string, error) {
 	token := jwt.NewWithClaims(jwt.SigningMethodHS256,
 		jwt.MapClaims{
 			"userID": userID,
@@ -56,7 +63,7 @@ func CreateToken(userID string, validTime time.Duration) (string, error) {
 	return tokenString, nil
 }
 
-func CreateSession(userID string, validTime time.Duration) (token string, err error) {
+func CreateSession(userID int, validTime time.Duration) (token string, err error) {
 	token, err = CreateToken(userID, validTime)
 	if err != nil {
 		return "", err
@@ -71,36 +78,87 @@ func CreateSession(userID string, validTime time.Duration) (token string, err er
 	return token, nil
 }
 
-func ValidateSession(token string) (userID string, found bool) {
+func ValidateSession(token string) (userID int, found bool) {
 	value, ok := sessionStore.Load(token)
 	if !ok {
-		return "", false
+		return 0, false
 	}
 
-	if value.Expiration.Before(time.Now()) {
+	session, ok := value.(Session)
+	if !ok {
+		return 0, false
+	}
+
+	if session.Expiration.Before(time.Now()) {
 		sessionStore.Delete(token)
 
-		return "", false
+		return 0, false
 	}
 
-	return value.UserID, true
+	return session.UserID, true
 }
 
 func DeleteSession(token string) {
 	sessionStore.Delete(token)
 }
 
-func checkUser(logger *log.Logger, username, password string) {
-	logger.Info("username: %s", username)
-	logger.Info("password: %s", password)
+func checkUser(db *database.DB, username, password string) (*model.User, error) {
+	user, err := internal.GetUser(db, username)
+	if err != nil {
+		if database.IsNotFound(err) {
+			return nil, fmt.Errorf("identifiant invalide: %w", err)
+		} else {
+			return nil, fmt.Errorf("erreur: %w", err)
+		}
+	}
+
+	if !internal.CheckHash(password, user.PasswordHash) {
+		return nil, fmt.Errorf("mots de passe invalide: %w", err)
+	}
+
+	return user, nil
 }
 
-func loginPage(logger *log.Logger) http.HandlerFunc {
+func loginPage(logger *log.Logger, db *database.DB) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		if r.Method == http.MethodPost {
+			err := r.ParseForm()
+			if err != nil {
+				logger.Error("Erreur: %v", err)
+				http.Error(w, "Erreur", http.StatusInternalServerError)
+
+				return
+			}
 			username := r.FormValue("username")
 			password := r.FormValue("password")
-			checkUser(logger, username, password)
+
+			user, err := checkUser(db, username, password)
+			if err != nil {
+				logger.Error("Erreur d'authentification: %v", err)
+				http.Error(w, "Identifiant ou mot de passe invalide", http.StatusUnauthorized)
+
+				return
+			}
+
+			token, err := CreateSession(int(user.ID), validTimeToken)
+			if err != nil {
+				logger.Error("Erreur de la création de la session: %v", err)
+				http.Error(w, "Erreur de la création de la session", http.StatusInternalServerError)
+
+				return
+			}
+
+			http.SetCookie(w, &http.Cookie{
+				Name:     "token",
+				Value:    token,
+				Path:     "/",
+				Expires:  time.Now().Add(validTimeToken),
+				HttpOnly: true,
+				SameSite: http.SameSiteLaxMode,
+			})
+			http.Redirect(w, r, "home", http.StatusFound)
+
+			return
 		}
 
 		if err := templates.ExecuteTemplate(w, "login_page", map[string]any{"Title": "Se connecter"}); err != nil {
