@@ -6,10 +6,11 @@ import (
 	"io/fs"
 	"net/http"
 
-	"code.waarp.fr/apps/gateway/gateway/pkg/admin/gui/internal"
-	"code.waarp.fr/apps/gateway/gateway/pkg/database"
 	"code.waarp.fr/lib/log"
 	"github.com/gorilla/mux"
+
+	"code.waarp.fr/apps/gateway/gateway/pkg/admin/gui/internal"
+	"code.waarp.fr/apps/gateway/gateway/pkg/database"
 )
 
 const Prefix = "/webui"

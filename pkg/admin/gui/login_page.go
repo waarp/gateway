@@ -8,11 +8,12 @@ import (
 	"sync"
 	"time"
 
+	"code.waarp.fr/lib/log"
+	"github.com/golang-jwt/jwt/v5"
+
 	"code.waarp.fr/apps/gateway/gateway/pkg/admin/gui/internal"
 	"code.waarp.fr/apps/gateway/gateway/pkg/database"
 	"code.waarp.fr/apps/gateway/gateway/pkg/model"
-	"code.waarp.fr/lib/log"
-	"github.com/golang-jwt/jwt/v5"
 )
 
 type Session struct {
