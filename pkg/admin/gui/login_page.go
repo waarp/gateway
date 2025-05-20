@@ -7,6 +7,7 @@ import (
 	"net/http"
 	"sync"
 	"time"
+	"sort"
 
 	"code.waarp.fr/lib/log"
 	"github.com/golang-jwt/jwt/v5"
@@ -61,6 +62,27 @@ func CreateToken(userID int, validTime time.Duration) (string, error) {
 	}
 
 	return tokenString, nil
+}
+
+func TokenMaxPerUser(user *model.User, logger *log.Logger) {
+	var userSessions []Session
+	maxPerUser := 5
+
+	sessionStore.Range(func(key, value any) bool {
+		session, ok := value.(Session)
+		if ok && session.UserID == int(user.ID) {
+			userSessions = append(userSessions, session)
+		}
+
+		return true
+	})
+	sort.Slice(userSessions, func(i, j int) bool {
+		return userSessions[i].Expiration.Before(userSessions[j].Expiration)
+	})
+
+	if len(userSessions) > maxPerUser {
+        sessionStore.Delete(userSessions[0].Token)
+    }
 }
 
 func CreateSession(userID int, validTime time.Duration) (token string, err error) {
@@ -148,6 +170,7 @@ func loginPage(logger *log.Logger, db *database.DB) http.HandlerFunc {
 				return
 			}
 
+			TokenMaxPerUser(user, logger)
 			http.SetCookie(w, &http.Cookie{
 				Name:     "token",
 				Value:    token,
