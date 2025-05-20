@@ -5,9 +5,9 @@ import (
 	"encoding/base64"
 	"fmt"
 	"net/http"
+	"sort"
 	"sync"
 	"time"
-	"sort"
 
 	"code.waarp.fr/lib/log"
 	"github.com/golang-jwt/jwt/v5"
@@ -81,8 +81,8 @@ func TokenMaxPerUser(user *model.User, logger *log.Logger) {
 	})
 
 	if len(userSessions) > maxPerUser {
-        sessionStore.Delete(userSessions[0].Token)
-    }
+		sessionStore.Delete(userSessions[0].Token)
+	}
 }
 
 func CreateSession(userID int, validTime time.Duration) (token string, err error) {
