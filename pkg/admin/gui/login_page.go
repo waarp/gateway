@@ -46,7 +46,28 @@ var sessionStore sync.Map
 
 //nolint:gochecknoinits // init
 func init() {
+	cleaner := 5 * time.Minute //nolint:mnd // cleaner
 	secretKey = CreateSecretKey()
+
+	CleanOldSession(cleaner)
+}
+
+func CleanOldSession(interval time.Duration) {
+	go func() {
+		for {
+			time.Sleep(interval)
+			now := time.Now()
+
+			sessionStore.Range(func(key, value any) bool {
+				session, ok := value.(Session)
+				if ok && session.Expiration.Before(now) {
+					sessionStore.Delete(key)
+				}
+
+				return true
+			})
+		}
+	}()
 }
 
 func CreateToken(userID int, validTime time.Duration) (string, error) {
