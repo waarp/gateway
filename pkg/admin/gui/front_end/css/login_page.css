@@ -17,3 +17,13 @@
   border-radius: 17px;
   box-shadow: 0 6px 18px rgba(200, 199, 199, 0.25);
 }
+
+.forgot-link {
+  color: #000000 !important;
+}
+
+.forgot-link:hover,
+.forgot-link:focus {
+  color: #434343 !important;
+    transition: color 0.3s;
+}
