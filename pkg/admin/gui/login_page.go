@@ -162,51 +162,52 @@ func checkUser(db *database.DB, username, password string) (*model.User, error) 
 	return user, nil
 }
 
+//nolint:nestif // loginpage
 func loginPage(logger *log.Logger, db *database.DB) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
+		var errorMessage string
+
 		if r.Method == http.MethodPost {
 			err := r.ParseForm()
 			if err != nil {
 				logger.Error("Erreur: %v", err)
-				http.Error(w, "Erreur", http.StatusInternalServerError)
+				errorMessage = "Erreur"
+			} else {
+				username := r.FormValue("username")
+				password := r.FormValue("password")
 
-				return
+				user, err := checkUser(db, username, password)
+				if err != nil {
+					logger.Error("Erreur d'authentification: %v", err)
+					errorMessage = "Identifiant ou mot de passe invalide"
+				} else {
+					token, err := CreateSession(int(user.ID), validTimeToken)
+					if err != nil {
+						logger.Error("Erreur de la création de la session: %v", err)
+						errorMessage = "Erreur de la création de la session"
+					} else {
+						TokenMaxPerUser(user, logger)
+						http.SetCookie(w, &http.Cookie{
+							Name:     "token",
+							Value:    token,
+							Path:     "/",
+							Expires:  time.Now().Add(validTimeToken),
+							Secure:   true,
+							HttpOnly: true,
+							SameSite: http.SameSiteLaxMode,
+						})
+						http.Redirect(w, r, "home", http.StatusFound)
+
+						return
+					}
+				}
 			}
-			username := r.FormValue("username")
-			password := r.FormValue("password")
-
-			user, err := checkUser(db, username, password)
-			if err != nil {
-				logger.Error("Erreur d'authentification: %v", err)
-				http.Error(w, "Identifiant ou mot de passe invalide", http.StatusUnauthorized)
-
-				return
-			}
-
-			token, err := CreateSession(int(user.ID), validTimeToken)
-			if err != nil {
-				logger.Error("Erreur de la création de la session: %v", err)
-				http.Error(w, "Erreur de la création de la session", http.StatusInternalServerError)
-
-				return
-			}
-
-			TokenMaxPerUser(user, logger)
-			http.SetCookie(w, &http.Cookie{
-				Name:     "token",
-				Value:    token,
-				Path:     "/",
-				Expires:  time.Now().Add(validTimeToken),
-				Secure:   true,
-				HttpOnly: true,
-				SameSite: http.SameSiteLaxMode,
-			})
-			http.Redirect(w, r, "home", http.StatusFound)
-
-			return
 		}
 
-		if err := templates.ExecuteTemplate(w, "login_page", map[string]any{"Title": "Se connecter"}); err != nil {
+		if err := templates.ExecuteTemplate(w, "login_page", map[string]any{
+			"Title": "Se connecter",
+			"Error": errorMessage,
+		}); err != nil {
 			logger.Error("render login_page: %v", err)
 			http.Error(w, "Erreur interne", http.StatusInternalServerError)
 		}

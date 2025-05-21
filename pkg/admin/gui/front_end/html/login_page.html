@@ -22,6 +22,11 @@
           <input type="password" class="form-control" id="password" name="password" required>
         </div>
         <button type="submit" class="btn btn-connexion w-100">Connexion</button>
+        {{ if .Error }}
+          <div class="alert alert-danger error-animated text-center mt-3 mb-2 py-2" role="alert">
+            {{ .Error }}
+          </div>
+        {{ end }}
         <div class="text-center mt-3">
           <a href="forgot-password" class="forgot-link text-decoration-none text-body fw-semibold">Mot de passe oublié ?</a>
         </div>
