@@ -18,6 +18,7 @@ require (
 	github.com/fclairamb/ftpserverlib v0.25.0
 	github.com/fclairamb/go-log v0.5.0
 	github.com/go-sql-driver/mysql v1.9.2
+	github.com/golang-jwt/jwt/v5 v5.2.1
 	github.com/google/uuid v1.6.0
 	github.com/gookit/color v1.5.4
 	github.com/gorilla/mux v1.8.1
@@ -48,8 +49,6 @@ require (
 	xorm.io/builder v0.3.13
 	xorm.io/xorm v1.3.2 //do not update, newer versions break "SELECT FOR UPDATE" on sqlite & postgres
 )
-
-require github.com/golang-jwt/jwt/v5 v5.2.1
 
 require (
 	code.bcarlin.net/go/logging v0.5.1 // indirect

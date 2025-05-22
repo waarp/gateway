@@ -36,20 +36,16 @@ func CreateSecretKey() []byte {
 }
 
 //nolint:gochecknoglobals // validTimeToken
-var validTimeToken = 24 * time.Hour
+const validTimeToken = 24 * time.Hour
 
-//nolint:gochecknoglobals // secretKey
-var secretKey []byte
-
-//nolint:gochecknoglobals // sessionStore
-var sessionStore sync.Map
-
-//nolint:gochecknoinits // init
-func init() {
-	cleaner := 5 * time.Minute //nolint:mnd // cleaner
+var (
 	secretKey = CreateSecretKey()
+	sessionStore sync.Map
+)
 
-	CleanOldSession(cleaner)
+func init() {
+    const cleaner = 5 * time.Minute
+    CleanOldSession(cleaner)
 }
 
 func CleanOldSession(interval time.Duration) {
@@ -85,7 +81,7 @@ func CreateToken(userID int, validTime time.Duration) (string, error) {
 	return tokenString, nil
 }
 
-func TokenMaxPerUser(user *model.User, logger *log.Logger) {
+func TokenMaxPerUser(user *model.User) {
 	var userSessions []Session
 	maxPerUser := 5
 
@@ -147,18 +143,17 @@ func DeleteSession(token string) {
 
 func checkUser(db *database.DB, username, password string) (*model.User, error) {
 	user, err := internal.GetUser(db, username)
+	passwordHash := ""
+    if err == nil {
+        passwordHash = user.PasswordHash
+    }
+	pwd := internal.CheckHash(password, passwordHash)
+	if !pwd {
+		return nil, fmt.Errorf("identifiant invalide")
+	}
 	if err != nil {
-		if database.IsNotFound(err) {
-			return nil, fmt.Errorf("identifiant invalide: %w", err)
-		} else {
-			return nil, fmt.Errorf("erreur: %w", err)
-		}
-	}
-
-	if !internal.CheckHash(password, user.PasswordHash) {
-		return nil, fmt.Errorf("mots de passe invalide: %w", err)
-	}
-
+        return nil, fmt.Errorf("identifiant invalide")
+    }
 	return user, nil
 }
 
@@ -168,9 +163,8 @@ func loginPage(logger *log.Logger, db *database.DB) http.HandlerFunc {
 		var errorMessage string
 
 		if r.Method == http.MethodPost {
-			err := r.ParseForm()
-			if err != nil {
-				logger.Error("Erreur: %v", err)
+			if err := r.ParseForm(); err != nil {
+				logger.Error("Erreur: %v", err )
 				errorMessage = "Erreur"
 			} else {
 				username := r.FormValue("username")
@@ -179,14 +173,14 @@ func loginPage(logger *log.Logger, db *database.DB) http.HandlerFunc {
 				user, err := checkUser(db, username, password)
 				if err != nil {
 					logger.Error("Erreur d'authentification: %v", err)
-					errorMessage = "Identifiant ou mot de passe invalide"
+					errorMessage = "Identifiant invalide"
 				} else {
 					token, err := CreateSession(int(user.ID), validTimeToken)
 					if err != nil {
 						logger.Error("Erreur de la création de la session: %v", err)
 						errorMessage = "Erreur de la création de la session"
 					} else {
-						TokenMaxPerUser(user, logger)
+						TokenMaxPerUser(user)
 						http.SetCookie(w, &http.Cookie{
 							Name:     "token",
 							Value:    token,
