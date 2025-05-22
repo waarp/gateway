@@ -40,8 +40,8 @@ func AddGUIRouter(router *mux.Router, logger *log.Logger, db *database.DB) {
 	secureRouter := router.PathPrefix("/").Subrouter()
 	secureRouter.Use(AuthenticationMiddleware(logger, db))
 	secureRouter.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
-        http.Redirect(w, r, "home", http.StatusFound)
-    })
+		http.Redirect(w, r, "home", http.StatusFound)
+	})
 	secureRouter.HandleFunc("/home", homePage(logger)).Methods("GET")
 }
 

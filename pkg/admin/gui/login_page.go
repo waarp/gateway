@@ -38,14 +38,16 @@ func CreateSecretKey() []byte {
 //nolint:gochecknoglobals // validTimeToken
 const validTimeToken = 24 * time.Hour
 
+//nolint:gochecknoglobals // secretKey & sessionStore
 var (
-	secretKey = CreateSecretKey()
+	secretKey    = CreateSecretKey()
 	sessionStore sync.Map
 )
 
+//nolint:gochecknoinits // init
 func init() {
-    const cleaner = 5 * time.Minute
-    CleanOldSession(cleaner)
+	const cleaner = 5 * time.Minute
+	CleanOldSession(cleaner)
 }
 
 func CleanOldSession(interval time.Duration) {
@@ -141,19 +143,26 @@ func DeleteSession(token string) {
 	sessionStore.Delete(token)
 }
 
+//nolint:perfsprint // errMessage
+var errMessage = fmt.Errorf("identifiant invalide")
+
 func checkUser(db *database.DB, username, password string) (*model.User, error) {
 	user, err := internal.GetUser(db, username)
+
 	passwordHash := ""
-    if err == nil {
-        passwordHash = user.PasswordHash
-    }
+	if err == nil {
+		passwordHash = user.PasswordHash
+	}
+
 	pwd := internal.CheckHash(password, passwordHash)
 	if !pwd {
-		return nil, fmt.Errorf("identifiant invalide")
+		return nil, errMessage
 	}
+
 	if err != nil {
-        return nil, fmt.Errorf("identifiant invalide")
-    }
+		return nil, errMessage
+	}
+
 	return user, nil
 }
 
@@ -164,7 +173,7 @@ func loginPage(logger *log.Logger, db *database.DB) http.HandlerFunc {
 
 		if r.Method == http.MethodPost {
 			if err := r.ParseForm(); err != nil {
-				logger.Error("Erreur: %v", err )
+				logger.Error("Erreur: %v", err)
 				errorMessage = "Erreur"
 			} else {
 				username := r.FormValue("username")
