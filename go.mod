@@ -6,7 +6,7 @@ toolchain go1.24.2
 
 require (
 	code.waarp.fr/lib/goftp v0.1.1-0.20240801120050-932aa2b2f9a7
-	code.waarp.fr/lib/log v1.2.0
+	code.waarp.fr/lib/log v1.3.1
 	code.waarp.fr/lib/migration v0.4.0
 	code.waarp.fr/lib/pesit v0.1.2
 	code.waarp.fr/lib/r66 v0.1.7
@@ -49,8 +49,10 @@ require (
 	xorm.io/xorm v1.3.2 //do not update, newer versions break "SELECT FOR UPDATE" on sqlite & postgres
 )
 
+require github.com/golang-jwt/jwt/v5 v5.2.1
+
 require (
-	code.bcarlin.xyz/go/logging v0.4.1 // indirect
+	code.bcarlin.net/go/logging v0.5.1 // indirect
 	code.waarp.fr/lib/Sqlite3CreateTableParser v0.0.0-20221122183218-24f478e49362 // indirect
 	filippo.io/edwards25519 v1.1.0 // indirect
 	github.com/Azure/azure-sdk-for-go/sdk/azcore v1.17.0 // indirect
@@ -107,7 +109,6 @@ require (
 	github.com/goccy/go-json v0.10.3 // indirect
 	github.com/gofrs/flock v0.12.1 // indirect
 	github.com/golang/snappy v0.0.4 // indirect
-	github.com/google/pprof v0.0.0-20250317173921-a4b03ec1a45e // indirect
 	github.com/googleapis/enterprise-certificate-proxy v0.3.5 // indirect
 	github.com/gopherjs/gopherjs v1.17.2 // indirect
 	github.com/jackc/pgpassfile v1.0.0 // indirect
