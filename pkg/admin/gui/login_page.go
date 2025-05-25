@@ -170,6 +170,7 @@ func checkUser(db *database.DB, username, password string) (*model.User, error) 
 func loginPage(logger *log.Logger, db *database.DB) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		var errorMessage string
+		userLanguage := r.Context().Value(ContextLanguageKey)
 
 		if r.Method == http.MethodPost {
 			if err := r.ParseForm(); err != nil {
@@ -208,8 +209,9 @@ func loginPage(logger *log.Logger, db *database.DB) http.HandlerFunc {
 		}
 
 		if err := templates.ExecuteTemplate(w, "login_page", map[string]any{
-			"Title": "Se connecter",
-			"Error": errorMessage,
+			"Title":    "Se connecter",
+			"Error":    errorMessage,
+			"language": userLanguage,
 		}); err != nil {
 			logger.Error("render login_page: %v", err)
 			http.Error(w, "Erreur interne", http.StatusInternalServerError)

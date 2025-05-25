@@ -18,11 +18,23 @@ const Prefix = "/webui"
 
 type ContextKey string
 
-const ContextUserKey ContextKey = "user"
+//nolint:gochecknoglobals // global
+var (
+	ContextUserKey     ContextKey = "user"
+	ContextLanguageKey ContextKey = "language"
+)
+
+func LanguageMiddleware(next http.Handler) http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		userLanguage := changeLanguage(w, r)
+		ctx := context.WithValue(r.Context(), ContextLanguageKey, userLanguage)
+		next.ServeHTTP(w, r.WithContext(ctx))
+	})
+}
 
 func AddGUIRouter(router *mux.Router, logger *log.Logger, db *database.DB) {
 	router.StrictSlash(true)
-
+	router.Use(LanguageMiddleware)
 	// Add HTTP handlers to the router here.
 	// Example:
 	router.HandleFunc("/login", loginPage(logger, db)).Methods("GET", "POST")
