@@ -144,7 +144,7 @@ func DeleteSession(token string) {
 }
 
 //nolint:perfsprint // errMessage
-var errMessage = fmt.Errorf("identifiant invalide")
+var errMessage = fmt.Errorf("incorrect username or password")
 
 func checkUser(db *database.DB, username, password string) (*model.User, error) {
 	user, err := internal.GetUser(db, username)
@@ -167,28 +167,30 @@ func checkUser(db *database.DB, username, password string) (*model.User, error) 
 }
 
 //nolint:nestif // loginpage
+//nolint:errcheck// userLanguage
 func loginPage(logger *log.Logger, db *database.DB) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		var errorMessage string
 		userLanguage := r.Context().Value(ContextLanguageKey)
+		tabTranslated := pageTranslated("login_page", userLanguage.(string)) //nolint:errcheck,forcetypeassert // userLanguage
+		var errorMessage string
 
 		if r.Method == http.MethodPost {
 			if err := r.ParseForm(); err != nil {
-				logger.Error("Erreur: %v", err)
-				errorMessage = "Erreur"
+				logger.Error("Error: %v", err)
+				errorMessage = tabTranslated["error"]
 			} else {
 				username := r.FormValue("username")
 				password := r.FormValue("password")
 
 				user, err := checkUser(db, username, password)
 				if err != nil {
-					logger.Error("Erreur d'authentification: %v", err)
-					errorMessage = "Identifiant invalide"
+					logger.Error("Incorrect username or password: %v", err)
+					errorMessage = tabTranslated["errorUser"]
 				} else {
 					token, err := CreateSession(int(user.ID), validTimeToken)
 					if err != nil {
-						logger.Error("Erreur de la création de la session: %v", err)
-						errorMessage = "Erreur de la création de la session"
+						logger.Error("Error creating session: %v", err)
+						errorMessage = tabTranslated["errorSession"]
 					} else {
 						TokenMaxPerUser(user)
 						http.SetCookie(w, &http.Cookie{
@@ -209,12 +211,12 @@ func loginPage(logger *log.Logger, db *database.DB) http.HandlerFunc {
 		}
 
 		if err := templates.ExecuteTemplate(w, "login_page", map[string]any{
-			"Title":    "Se connecter",
+			"tab":      tabTranslated,
 			"Error":    errorMessage,
 			"language": userLanguage,
 		}); err != nil {
 			logger.Error("render login_page: %v", err)
-			http.Error(w, "Erreur interne", http.StatusInternalServerError)
+			http.Error(w, "Internal error", http.StatusInternalServerError)
 		}
 	}
 }
