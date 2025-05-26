@@ -36,7 +36,7 @@ func CreateSecretKey() []byte {
 }
 
 //nolint:gochecknoglobals // validTimeToken
-const validTimeToken = 24 * time.Hour
+const validTimeToken = 20 * time.Minute
 
 //nolint:gochecknoglobals // secretKey & sessionStore
 var (
@@ -101,6 +101,24 @@ func TokenMaxPerUser(user *model.User) {
 
 	if len(userSessions) > maxPerUser {
 		sessionStore.Delete(userSessions[0].Token)
+	}
+}
+
+func RefreshExpirationToken(token string) {
+	value, ok := sessionStore.Load(token)
+	if !ok {
+		return
+	}
+
+	session, ok := value.(Session)
+	if !ok {
+		return
+	}
+
+	if session.Expiration.After(time.Now()) {
+		session.Expiration = time.Now().Add(validTimeToken)
+        sessionStore.Store(token, session)
+
 	}
 }
 

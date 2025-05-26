@@ -112,7 +112,7 @@ func AuthenticationMiddleware(logger *log.Logger, db *database.DB) mux.Middlewar
 
 				return
 			}
-
+			RefreshExpirationToken(token.Value)
 			userID, found := ValidateSession(token.Value)
 			if !found {
 				http.Redirect(w, r, "login", http.StatusFound)
