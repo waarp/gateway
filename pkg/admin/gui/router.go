@@ -3,6 +3,7 @@ package gui
 
 import (
 	"context"
+	"fmt"
 	"io/fs"
 	"net/http"
 	"time"
@@ -12,6 +13,7 @@ import (
 
 	"code.waarp.fr/apps/gateway/gateway/pkg/admin/gui/internal"
 	"code.waarp.fr/apps/gateway/gateway/pkg/database"
+	"code.waarp.fr/apps/gateway/gateway/pkg/model"
 )
 
 const Prefix = "/webui"
@@ -23,6 +25,30 @@ var (
 	ContextUserKey     ContextKey = "user"
 	ContextLanguageKey ContextKey = "language"
 )
+
+func GetUserByToken(r *http.Request, db database.ReadAccess) (*model.User, error) {
+	cookie, err := r.Cookie("token")
+	if err != nil {
+		return nil, fmt.Errorf("error cookie: %w", err)
+	}
+
+	value, ok := sessionStore.Load(cookie.Value)
+	if !ok {
+		return nil, fmt.Errorf("error loading session") //nolint:err113, perfsprint // error
+	}
+
+	session, ok := value.(Session)
+	if !ok {
+		return nil, fmt.Errorf("internal error") //nolint:err113, perfsprint // error
+	}
+
+	user, err := internal.GetUserByID(db, int64(session.UserID))
+	if err != nil {
+		return nil, fmt.Errorf("error: %w", err)
+	}
+
+	return user, nil
+}
 
 func LanguageMiddleware(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
@@ -54,7 +80,7 @@ func AddGUIRouter(router *mux.Router, logger *log.Logger, db *database.DB) {
 	secureRouter.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
 		http.Redirect(w, r, "home", http.StatusFound)
 	})
-	secureRouter.HandleFunc("/home", homePage(logger)).Methods("GET")
+	secureRouter.HandleFunc("/home", homePage(logger, db)).Methods("GET")
 }
 
 func logout() http.HandlerFunc {
