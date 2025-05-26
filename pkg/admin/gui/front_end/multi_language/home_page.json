@@ -1,5 +1,7 @@
 {
     "title": { "fr": "Accueil", "en": "Home", "es": "Inicio" },
+    "about": { "fr": "À propos", "en": "About", "es": "Acerca de" },
+    "logout": { "fr": "Déconnexion", "en": "Logout", "es": "Salir" },
     "connection_settings": { "fr": "Paramètres de connexion", "en": "Connection settings", "es": "Configuración de conexión" },
     "status_of_services": { "fr": "Status des services", "en": "Status of services", "es": "Estado de los servicios" },
     "user_management": { "fr": "Gestion des utilisateurs", "en": "User management", "es": "Gestión de usuarios" },
