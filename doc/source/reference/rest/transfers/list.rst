@@ -72,7 +72,7 @@ Lister les transferts
      la forme d'une liste de pairs clé:valeur, c'est-à-dire sous forme d'un objet JSON.
    :resjsonarr number remainingTries: Le nombre de tentatives *automatiques* restantes.
      Ce nombre n'inclue donc pas la tentative originale du transfert.
-   :resjsonarr date nextAttempt: La date de la prochaine tentative du transfert.
+   :resjsonarr string nextAttempt: La date de la prochaine tentative du transfert.
      À noter que ce champ est nul pendant que le transfert est en cours ou si le
      transfers n'a plus de tentatives restantes.
    :resjsonarr number nextRetryDelay: Le délai (en secondes) entre la dernière tentative

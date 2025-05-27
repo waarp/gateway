@@ -131,13 +131,13 @@ func updateServer(logger *log.Logger, db *database.DB) http.HandlerFunc {
 
 		oldName := oldServer.Name
 		restServer := &api.InServer{
-			Name:          asNullableStr(oldServer.Name),
-			Protocol:      asNullableStr(oldServer.Protocol),
-			Address:       asNullableStr(oldServer.Address.String()),
-			RootDir:       asNullableStr(oldServer.RootDir),
-			ReceiveDir:    asNullableStr(oldServer.ReceiveDir),
-			SendDir:       asNullableStr(oldServer.SendDir),
-			TmpReceiveDir: asNullableStr(oldServer.TmpReceiveDir),
+			Name:          asNullable(oldServer.Name),
+			Protocol:      asNullable(oldServer.Protocol),
+			Address:       asNullable(oldServer.Address.String()),
+			RootDir:       asNullable(oldServer.RootDir),
+			ReceiveDir:    asNullable(oldServer.ReceiveDir),
+			SendDir:       asNullable(oldServer.SendDir),
+			TmpReceiveDir: asNullable(oldServer.TmpReceiveDir),
 			ProtoConfig:   oldServer.ProtoConfig,
 		}
 

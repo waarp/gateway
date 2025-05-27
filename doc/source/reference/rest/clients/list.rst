@@ -26,11 +26,12 @@ Lister les clients
    :resjsonarr string localAddress: L'adresse locale du client (en format [adresse:port])
    :resjsonarr object protoConfig: La configuration du client encodé sous forme
       d'un objet JSON. Cet objet dépend du protocole.
-   :resjsonarr array partners: La liste des partenaires rattachés au client. Voir
-      :any:`rest_partners_list` pour plus de détails sur la structure de cette liste.
-
-      * **sending** (*array* of *string*) - Les règles d'envoi.
-      * **reception** (*array* of *string*) - Les règles de réception.
+   :resjson number nbOfAttempts: Le nombre de fois qu'un transfert effectué avec
+      ce client sera retenté automatiquement en cas d'échec.
+   :resjson number firstRetryDelay: Le délai (en secondes) entre la tentative
+      originale d'un transfert et la première reprise automatique.
+   :resjson number retryIncrementFactor: Le facteur par lequel le délai ci-dessus
+      est multiplié à chaque nouvelle tentative d'un transfert donné.
 
 
    |
@@ -55,11 +56,15 @@ Lister les clients
              "name": "sftp_client",
              "localAddress": "0.0.0.0:2222",
              "protoConfig": {},
-             "partners": []
+             "nbOfAttempts": 5,
+             "firstRetryDelay": 90,
+             "retryIncrementFactor": 1.5
            },{
              "name": "r66_client",
              "localAddress": "0.0.0.0:6666",
              "protoConfig": {},
-             "partners": []
+             "nbOfAttempts": 3,
+             "firstRetryDelay": 60,
+             "retryIncrementFactor": 2
            }]
          }

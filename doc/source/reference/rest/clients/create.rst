@@ -12,6 +12,12 @@ Créer un client
    :reqjson string address: L'adresse locale du client (en format [adresse:port]).
    :reqjson object protoConfig: La configuration du client encodé sous forme
       d'un objet JSON. Cet objet dépend du protocole.
+   :reqjson number nbOfAttempts: Le nombre de fois qu'un transfert effectué avec
+      ce client sera retenté automatiquement en cas d'échec.
+   :reqjson number firstRetryDelay: Le délai (en secondes) entre la tentative
+      originale d'un transfert et la première reprise automatique.
+   :reqjson number retryIncrementFactor: Le facteur par lequel le délai ci-dessus
+      est multiplié à chaque nouvelle tentative d'un transfert donné.
 
    :statuscode 201: Le client a été créé avec succès.
    :statuscode 400: Un ou plusieurs des paramètres du client sont invalides.

@@ -1,6 +1,7 @@
 package tasks
 
 import (
+	"encoding/json"
 	"fmt"
 	"strconv"
 	"strings"
@@ -16,7 +17,7 @@ func mapToStr(m map[string]string) string {
 	return "{" + strings.Join(args, ", ") + "}"
 }
 
-type jsonDuration time.Duration
+type jsonDuration struct{ time.Duration }
 
 func (j *jsonDuration) UnmarshalJSON(bytes []byte) error {
 	str, err := strconv.Unquote(string(bytes))
@@ -29,7 +30,7 @@ func (j *jsonDuration) UnmarshalJSON(bytes []byte) error {
 		return fmt.Errorf("failed to parse duration: %w", err)
 	}
 
-	*j = jsonDuration(dur)
+	j.Duration = dur
 
 	return nil
 }
@@ -48,6 +49,60 @@ func (j *jsonBool) UnmarshalJSON(bytes []byte) error {
 	}
 
 	*j = jsonBool(b)
+
+	return nil
+}
+
+type jsonInt int64
+
+func (j *jsonInt) UnmarshalJSON(bytes []byte) error {
+	str, err := strconv.Unquote(string(bytes))
+	if err != nil {
+		return fmt.Errorf("failed to unquote int: %w", err)
+	}
+
+	i, err := strconv.ParseInt(str, 10, 64)
+	if err != nil {
+		return fmt.Errorf("failed to parse int: %w", err)
+	}
+
+	*j = jsonInt(i)
+
+	return nil
+}
+
+type jsonFloat float64
+
+func (j *jsonFloat) UnmarshalJSON(bytes []byte) error {
+	str, err := strconv.Unquote(string(bytes))
+	if err != nil {
+		return fmt.Errorf("failed to unquote float: %w", err)
+	}
+
+	i, err := strconv.ParseFloat(str, 64)
+	if err != nil {
+		return fmt.Errorf("failed to parse float: %w", err)
+	}
+
+	*j = jsonFloat(i)
+
+	return nil
+}
+
+type jsonMap map[string]any
+
+func (j *jsonMap) UnmarshalJSON(bytes []byte) error {
+	str, err := strconv.Unquote(string(bytes))
+	if err != nil {
+		return fmt.Errorf("failed to unquote map: %w", err)
+	}
+
+	var m map[string]any
+	if err = json.Unmarshal([]byte(str), &m); err != nil {
+		return fmt.Errorf("failed to parse map: %w", err)
+	}
+
+	*j = m
 
 	return nil
 }

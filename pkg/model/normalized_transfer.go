@@ -7,7 +7,8 @@ import (
 )
 
 type NormalizedTransferView struct {
-	HistoryEntry         `xorm:"extends"`
+	HistoryEntry `xorm:"extends"`
+
 	IsTransfer           bool      `xorm:"BOOL 'is_transfer'"`
 	RemainingTries       int8      `xorm:"remaining_tries"`
 	NextRetryDelay       int32     `xorm:"next_retry_delay"`
@@ -30,7 +31,7 @@ func (n *NormalizedTransferView) BeforeDelete(database.Access) error {
 }
 
 // GetTransferInfo returns the list of the transfer's TransferInfo as a map of interfaces.
-func (n *NormalizedTransferView) GetTransferInfo(db database.ReadAccess) (map[string]interface{}, error) {
+func (n *NormalizedTransferView) GetTransferInfo(db database.ReadAccess) (map[string]any, error) {
 	return getTransferInfo(db, n)
 }
 

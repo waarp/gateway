@@ -68,6 +68,24 @@ Programme un nouveau transfert avec les attributs ci-dessous.
    prennent la forme d'une liste de paires clé:valeur. Répéter l'option pour ajouter
    des paires supplémentaires.
 
+.. option:: --nb-of-attempts=<ATTEMPTS>
+
+   Le nombre de fois que le transfert sera automatiquement retenté en cas d'échec.
+
+.. option:: --first-retry-delay=<DELAY>
+
+   Le délai entre la tentative de transfert initiale et la première reprise automatique.
+   Les unités de temps acceptées sont : ``h`` (heures), ``m`` (minutes) et ``s`` (secondes).
+   Plusieurs unités peuvent être combinées ensemble (ex: ``1h15m30s``).
+
+.. option:: --retry-increment-factor=<FACTOR>
+
+   Le facteur par lequel le délai décris ci-dessus sera multiplié entre chaque nouvelle
+   tentative. Par exemple, si le délai initial est de 30s et que le facteur est de 2,
+   alors le délai sera doublé à chaque nouvelle tentative (30s, puis 1m, 2m, 4m,
+   etc) jusqu'à ce que le transfert réussisse ou bien que le nombre de tentatives
+   soit épuisé.
+
 **Exemple**
 
 .. code-block:: shell

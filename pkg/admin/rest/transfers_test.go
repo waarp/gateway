@@ -70,7 +70,10 @@ func TestAddTransfer(t *testing.T) {
 						"key2": 2,
 						"key3": true,
 						"__followID__": 12345
-					}
+					},
+					"nbOfAttempts": 5,
+					"firstRetryDelay": 90,
+				    "retryIncrementFactor": 1.5
 				}`)
 
 				Convey("When calling the handler", func() {
@@ -118,6 +121,9 @@ func TestAddTransfer(t *testing.T) {
 						So(transfers[0].TaskNumber, ShouldEqual, 0)
 						So(transfers[0].ErrCode, ShouldBeZeroValue)
 						So(transfers[0].ErrDetails, ShouldBeBlank)
+						So(transfers[0].RemainingTries, ShouldEqual, 5)
+						So(transfers[0].NextRetryDelay, ShouldEqual, 90)
+						So(transfers[0].RetryIncrementFactor, ShouldEqual, 1.5)
 
 						info, err := transfers[0].GetTransferInfo(db)
 						So(err, ShouldBeNil)
@@ -350,12 +356,16 @@ func TestGetTransfer(t *testing.T) {
 			conf.GlobalConfig.GatewayName = owner
 
 			trans := &model.Transfer{
-				RuleID:          push.ID,
-				ClientID:        utils.NewNullInt64(client.ID),
-				RemoteAccountID: utils.NewNullInt64(account.ID),
-				SrcFilename:     "/source/file2.test",
-				DestFilename:    "/dest/file2.test",
-				Start:           time.Date(2021, 1, 1, 1, 0, 0, 0, time.Local),
+				RuleID:               push.ID,
+				ClientID:             utils.NewNullInt64(client.ID),
+				RemoteAccountID:      utils.NewNullInt64(account.ID),
+				SrcFilename:          "/source/file2.test",
+				DestFilename:         "/dest/file2.test",
+				Start:                time.Date(2021, 1, 1, 1, 0, 0, 0, time.Local),
+				RemainingTries:       5,
+				NextRetry:            time.Date(2021, 1, 1, 1, 0, 0, 0, time.Local),
+				NextRetryDelay:       90,
+				RetryIncrementFactor: 1.5,
 			}
 			So(db.Insert(trans).Run(), ShouldBeNil)
 
@@ -389,7 +399,7 @@ func TestGetTransfer(t *testing.T) {
 
 						exp, err := json.Marshal(jsonObj)
 						So(err, ShouldBeNil)
-						So(w.Body.String(), ShouldResemble, string(exp)+"\n")
+						So(w.Body.String(), ShouldEqual, string(exp)+"\n")
 					})
 				})
 			})
@@ -818,6 +828,7 @@ func TestPauseTransfer(t *testing.T) {
 							Step:             types.StepData,
 							Progress:         10,
 							TaskNumber:       0,
+							NextRetry:        trans.Start.Local(),
 						})
 					})
 				})

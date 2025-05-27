@@ -8,7 +8,6 @@ import (
 	"net/http"
 	"path"
 	"strings"
-	"time"
 
 	"code.waarp.fr/lib/log"
 	"github.com/pbnjay/memory"
@@ -73,7 +72,7 @@ func (i *icapTask) parseParams(params map[string]string) error {
 	}
 
 	i.client = &ic.Client{
-		Timeout:        time.Duration(i.Timeout),
+		Timeout:        i.Timeout.Duration,
 		SetAbsoluteUrl: true,
 	}
 
@@ -173,7 +172,7 @@ func (i *icapTask) options(filepath string) (int64, error) {
 	}
 
 	optClient := &ic.Client{
-		Timeout:        time.Duration(i.Timeout),
+		Timeout:        i.Timeout.Duration,
 		SetAbsoluteUrl: true,
 	}
 

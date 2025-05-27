@@ -2,149 +2,148 @@ package tasks
 
 import (
 	"context"
-	"encoding/json"
+	"errors"
 	"fmt"
+	"maps"
 	"path/filepath"
 
 	"code.waarp.fr/lib/log"
 
-	"code.waarp.fr/apps/gateway/gateway/pkg/conf"
 	"code.waarp.fr/apps/gateway/gateway/pkg/database"
 	"code.waarp.fr/apps/gateway/gateway/pkg/model"
 	"code.waarp.fr/apps/gateway/gateway/pkg/utils"
+)
+
+var (
+	ErrTransferNoSource             = errors.New(`missing transfer source file parameter ("file")`)
+	ErrTransferNoPartner            = errors.New(`missing transfer remote partner parameter ("from" or "to")`)
+	ErrTransferNoAccount            = errors.New(`missing transfer account parameter ("as")`)
+	ErrTransferNoRule               = errors.New(`missing transfer rule parameter ("rule")`)
+	ErrTransferConflictingDirection = errors.New(`transfer cannot have both "to" and "from" parameters`)
 )
 
 //nolint:gochecknoglobals //yes, this is very ugly, but there is really no other way to avoid an import cycle
 var GetDefaultTransferClient func(db *database.DB, accID int64) (*model.Client, error)
 
 // TransferTask is a task which schedules a new transfer.
-type TransferTask struct{}
+type TransferTask struct {
+	File     string   `json:"file"`
+	To       string   `json:"to"`
+	From     string   `json:"from"`
+	As       string   `json:"as"`
+	Using    string   `json:"using"`
+	Rule     string   `json:"rule"`
+	Info     jsonMap  `json:"info"`
+	CopyInfo jsonBool `json:"copyInfo"`
+
+	NbOfAttempts         jsonInt      `json:"nbOfAttempts"`
+	FirstRetryDelay      jsonDuration `json:"firstRetryDelay"`
+	RetryIncrementFactor jsonFloat    `json:"retryIncrementFactor"`
+}
 
 // Validate checks if the tasks has all the required arguments.
 func (t *TransferTask) Validate(args map[string]string) error {
-	if file, ok := args["file"]; !ok || file == "" {
-		return fmt.Errorf("missing transfer source file: %w", ErrBadTaskArguments)
+	*t = TransferTask{}
+
+	if err := utils.JSONConvert(args, t); err != nil {
+		return fmt.Errorf("failed to parse transfer task arguments: %w", err)
 	}
 
-	if to, hasTo := args["to"]; !hasTo || to == "" {
-		if from, ok := args["from"]; !ok || from == "" {
-			return fmt.Errorf("missing transfer remote partner: %w", ErrBadTaskArguments)
-		}
-	} else if from, hasFrom := args["from"]; hasFrom && from != "" {
-		return fmt.Errorf("cannot have both 'to' and 'from': %w", ErrBadTaskArguments)
+	if t.File == "" {
+		return ErrTransferNoSource
 	}
 
-	if as, ok := args["as"]; !ok || as == "" {
-		return fmt.Errorf("missing transfer account: %w", ErrBadTaskArguments)
+	if t.To == "" && t.From == "" {
+		return ErrTransferNoPartner
 	}
 
-	if rule, ok := args["rule"]; !ok || rule == "" {
-		return fmt.Errorf("missing transfer rule: %w", ErrBadTaskArguments)
+	if t.To != "" && t.From != "" {
+		return ErrTransferConflictingDirection
+	}
+
+	if t.As == "" {
+		return ErrTransferNoAccount
+	}
+
+	if t.Rule == "" {
+		return ErrTransferNoRule
 	}
 
 	return nil
 }
 
 //nolint:funlen,revive //function is perfectly readable despite being long
-func getTransferInfo(db *database.DB, args map[string]string) (file string,
-	ruleID, clientID, accountID int64, isSend bool, infoErr error,
-) {
-	fileName, fileOK := args["file"]
-	if !fileOK || fileName == "" {
-		infoErr = fmt.Errorf("missing transfer file: %w", ErrBadTaskArguments)
-
-		return "", 0, 0, 0, false, infoErr
+func (t *TransferTask) getTransferInfo(db *database.DB,
+) (*model.Rule, *model.Client, *model.RemoteAccount, error) {
+	var rule model.Rule
+	if err := db.Get(&rule, "name=? AND is_send=?", t.Rule, t.To != "").Run(); err != nil {
+		return nil, nil, nil, fmt.Errorf("failed to retrieve rule %q: %w", t.Rule, err)
 	}
 
-	// client name is optional
-	clientName := args["using"]
-
-	agentName, agentOK := args["to"]
-	if !agentOK || agentName == "" {
-		agentName, agentOK = args["from"]
-		if !agentOK || agentName == "" {
-			return "", 0, 0, 0, false,
-				fmt.Errorf("missing transfer remote partner: %w", ErrBadTaskArguments)
-		}
-	} else if from, ok := args["from"]; ok && from != "" {
-		return "", 0, 0, 0, false,
-			fmt.Errorf("cannot have both 'to' and 'from': %w", ErrBadTaskArguments)
+	agentName := t.To
+	if t.To == "" {
+		agentName = t.From
 	}
 
-	ruleName, ruleOK := args["rule"]
-	if !ruleOK || ruleName == "" {
-		return "", 0, 0, 0, false, fmt.Errorf("missing transfer rule: %w", ErrBadTaskArguments)
+	var partner model.RemoteAgent
+	if err := db.Get(&partner, "name=?", agentName).Owner().Run(); err != nil {
+		return nil, nil, nil, fmt.Errorf("failed to retrieve partner %q: %w", agentName, err)
 	}
 
-	rule := &model.Rule{}
-	if err := db.Get(rule, "name=? AND is_send=?", ruleName, args["to"] != "").Run(); err != nil {
-		return "", 0, 0, 0, false, fmt.Errorf("failed to retrieve rule %q: %w", ruleName, err)
-	}
-
-	agent := &model.RemoteAgent{}
-	if err := db.Get(agent, "owner=? AND name=?", conf.GlobalConfig.GatewayName,
-		agentName).Run(); err != nil {
-		return "", 0, 0, 0, false, fmt.Errorf("failed to retrieve partner %q: %w", agentName, err)
-	}
-
-	accName, accOK := args["as"]
-	if !accOK || accName == "" {
-		return "", 0, 0, 0, false, fmt.Errorf("missing transfer account: %w", ErrBadTaskArguments)
-	}
-
-	acc := &model.RemoteAccount{}
-	if err := db.Get(acc, "remote_agent_id=? AND login=?", agent.ID, accName).Run(); err != nil {
-		return "", 0, 0, 0, false, fmt.Errorf("failed to retrieve account %q: %w", accName, err)
+	var account model.RemoteAccount
+	if err := db.Get(&account, "remote_agent_id=? AND login=?", partner.ID, t.As).Run(); err != nil {
+		return nil, nil, nil, fmt.Errorf("failed to retrieve account %q: %w", t.As, err)
 	}
 
 	client := &model.Client{}
 
-	if clientName == "" {
+	if t.Using == "" {
 		var err error
-		if client, err = GetDefaultTransferClient(db, acc.ID); err != nil {
-			infoErr = fmt.Errorf("failed to retrieve default transfer client: %w", err)
-
-			return "", 0, 0, 0, false, infoErr
+		if client, err = GetDefaultTransferClient(db, account.ID); err != nil {
+			return nil, nil, nil, fmt.Errorf("failed to retrieve default transfer client: %w", err)
 		}
 	} else {
-		if err := db.Get(client, "owner=? AND name=?", conf.GlobalConfig.GatewayName,
-			clientName).Run(); err != nil {
-			infoErr = fmt.Errorf("failed to retrieve client %q: %w", clientName, err)
-
-			return "", 0, 0, 0, false, infoErr
+		if err := db.Get(client, "name=?", t.Using).Owner().Run(); err != nil {
+			return nil, nil, nil, fmt.Errorf("failed to retrieve client %q: %w", t.Using, err)
 		}
 	}
 
-	return fileName, rule.ID, client.ID, acc.ID, rule.IsSend, nil
+	return &rule, client, &account, nil
 }
 
 // Run executes the task by scheduling a new transfer with the given parameters.
 func (t *TransferTask) Run(_ context.Context, args map[string]string,
 	db *database.DB, logger *log.Logger, transCtx *model.TransferContext,
 ) error {
-	file, ruleID, cliID, accID, isSend, infoErr := getTransferInfo(db, args)
+	if err := t.Validate(args); err != nil {
+		logger.Errorf("%v", err)
+
+		return err
+	}
+
+	rule, client, account, infoErr := t.getTransferInfo(db)
 	if infoErr != nil {
+		logger.Errorf("%v", infoErr)
+
 		return infoErr
 	}
 
 	transferInfo := map[string]any{}
-	if args["copyInfo"] == "true" {
+	if t.CopyInfo {
 		transferInfo = transCtx.TransInfo
 	}
 
-	newInfoStr, hasNewInfo := args["info"]
-	if hasNewInfo {
-		if err := json.Unmarshal([]byte(newInfoStr), &transferInfo); err != nil {
-			return fmt.Errorf("failed to parse the new transfer info: %w", err)
-		}
-	}
+	maps.Copy(transferInfo, t.Info)
 
 	trans := &model.Transfer{
-		RuleID:          ruleID,
-		ClientID:        utils.NewNullInt64(cliID),
-		RemoteAccountID: utils.NewNullInt64(accID),
-		SrcFilename:     file,
-		DestFilename:    filepath.Base(file),
+		RuleID:               rule.ID,
+		ClientID:             utils.NewNullInt64(client.ID),
+		RemoteAccountID:      utils.NewNullInt64(account.ID),
+		SrcFilename:          t.File,
+		DestFilename:         filepath.Base(t.File),
+		RemainingTries:       int8(t.NbOfAttempts),
+		NextRetryDelay:       int32(t.FirstRetryDelay.Seconds()),
+		RetryIncrementFactor: float32(t.RetryIncrementFactor),
 	}
 
 	if err := db.Transaction(func(ses *database.Session) error {
@@ -162,12 +161,12 @@ func (t *TransferTask) Run(_ context.Context, args map[string]string,
 	}
 
 	recipient := fmt.Sprintf("from %q", args["from"])
-	if isSend {
+	if rule.IsSend {
 		recipient = fmt.Sprintf("to %q", args["to"])
 	}
 
 	logger.Debugf("Programmed new transfer n°%d of file %q, %s as %q using rule %q",
-		trans.ID, file, recipient, args["as"], args["rule"])
+		trans.ID, t.File, recipient, args["as"], args["rule"])
 
 	return nil
 }

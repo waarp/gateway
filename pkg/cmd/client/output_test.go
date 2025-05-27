@@ -31,6 +31,7 @@ func expectedOutput(tb testing.TB, data any, text ...string) string {
 		"duration": func(sec int) string {
 			return (time.Duration(sec) * time.Second).String()
 		},
+		"enabledStatus": enabledStatus,
 	}
 
 	fulltext := strings.Join(text, "\n") + "\n"

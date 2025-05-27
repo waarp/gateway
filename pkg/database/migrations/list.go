@@ -321,4 +321,9 @@ var Migrations = []Change{
 		Up:          ver0_13_0AddTransferAutoResumeUp,
 		Down:        ver0_13_0AddTransferAutoResumeDown,
 	},
+	{ // #60
+		Description: `Add columns to the "clients" table for auto-resume`,
+		Up:          ver0_13_0AddClientAutoResumeUp,
+		Down:        ver0_13_0AddClientAutoResumeDown,
+	},
 }

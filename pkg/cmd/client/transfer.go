@@ -51,6 +51,17 @@ func displayTransfer(w io.Writer, trans *api.OutTransfer) {
 	Style22.PrintL(w, "Start date", trans.Start.Local().String())
 	Style22.PrintL(w, "End date",
 		ifElse(trans.Stop.Valid, trans.Stop.Value.Local().String(), notApplicable))
+	Style22.PrintL(w, "Next attempt",
+		ifElse(!trans.NextAttempt.IsZero(), trans.NextAttempt.Local().String(), notApplicable))
+
+	if trans.NextRetryDelay != 0 {
+		delay := (time.Duration(trans.NextRetryDelay) * time.Second).String()
+
+		Style22.PrintL(w, "Remaining attempts", trans.RemainingAttempts)
+		Style22.PrintL(w, "Next retry delay", delay)
+		Style22.PrintL(w, "Retry increment factor", trans.RetryIncrementFactor)
+	}
+
 	Style22.PrintL(w, "Data transferred", prettyBytes(trans.Progress))
 
 	if trans.Step != "" && trans.Step != types.StepNone.String() {
@@ -62,16 +73,6 @@ func displayTransfer(w io.Writer, trans *api.OutTransfer) {
 	if trans.ErrorCode != "" && trans.ErrorCode != types.TeOk.String() {
 		Style22.PrintL(w, "Error code", trans.ErrorCode)
 		Style22.PrintL(w, "Error message", trans.ErrorMsg)
-	}
-
-	if trans.NextRetryDelay != 0 {
-		delay := (time.Duration(trans.NextRetryDelay) * time.Second).String()
-
-		Style22.PrintL(w, "Remaining tries", trans.RemainingTries)
-		Style22.PrintL(w, "Next retry delay", delay)
-		Style22.PrintL(w, "Retry increment factor", trans.RetryIncrementFactor)
-		Style22.PrintL(w, "Next attempt",
-			ifElse(!trans.NextAttempt.IsZero(), trans.NextAttempt.Local().String(), notApplicable))
 	}
 
 	displayTransferInfo(w, trans.TransferInfo)
@@ -91,7 +92,7 @@ type TransferAdd struct {
 	Rule                 string             `required:"yes" short:"r" long:"rule" description:"The rule to use for the transfer" json:"rule,omitempty"`
 	Date                 string             `short:"d" long:"date" description:"The starting date (in ISO 8601 format) of the transfer" json:"start,omitempty"`
 	TransferInfo         map[string]confVal `short:"i" long:"info" description:"Custom information about the transfer, in key:val format. Can be repeated." json:"transferInfo,omitempty"`
-	NumberOfTries        int8               `long:"nb-of-retries" description:"The number of times the transfer will be automatically retried if it failed" json:"numberOfTries,omitempty"`
+	NumberOfTries        int8               `long:"nb-of-attempts" description:"The number of times the transfer will be automatically retried if it failed" json:"numberOfTries,omitempty"`
 	FirstRetryDelay      time.Duration      `long:"retry-delay" description:"The amount of time between automatic retries. Accepted units: 's', 'm' & 'h'" json:"-"`
 	FirstRetryDelaySec   int32              `json:"firstRetryDelay,omitempty"`
 	RetryIncrementFactor float32            `long:"retry-increment-factor" description:"The factor by which the retry delay will increase after each retry" json:"retryIncrementFactor,omitempty"`
@@ -153,6 +154,7 @@ func (t *TransferGet) execute(w io.Writer) error {
 //nolint:lll // struct tags can be long for command line args
 type TransferList struct {
 	ListOptions
+
 	SortBy string   `short:"s" long:"sort" description:"Attribute used to sort the returned entries" choice:"start+" choice:"start-" choice:"id+" choice:"id-" choice:"rule+" choice:"rule-" default:"start+"`
 	Rules  []string `short:"r" long:"rule" description:"Filter the transfers based on the name of the transfer rule used. Can be repeated multiple times to filter multiple rules."`
 	//nolint:misspell //spelling mistake CANCELLED must be kept for backward compatibility
@@ -294,9 +296,9 @@ func (t *TransferRetry) execute(w io.Writer) error {
 	ctx, cancel := context.WithTimeout(context.Background(), httpTimeout)
 	defer cancel()
 
-	resp, err := sendRequest(ctx, nil, http.MethodPut)
-	if err != nil {
-		return err
+	resp, reqErr := sendRequest(ctx, nil, http.MethodPut)
+	if reqErr != nil {
+		return reqErr
 	}
 	defer resp.Body.Close() //nolint:errcheck,gosec // error is irrelevant
 

@@ -18,7 +18,7 @@ type InTransfer struct {
 	Output               string         `json:"output,omitempty"`
 	Start                time.Time      `json:"start,omitempty"`
 	TransferInfo         map[string]any `json:"transferInfo,omitempty"`
-	NumberOfTries        int8           `json:"numberOfTries"`
+	NbOfAttempts         int8           `json:"nbOfAttempts"`
 	FirstRetryDelay      int32          `json:"firstRetryDelay"`
 	RetryIncrementFactor float32        `json:"retryIncrementFactor"`
 
@@ -32,7 +32,7 @@ type InTransfer struct {
 // the REST interface.
 type OutTransfer struct {
 	ID                   int64                `json:"id"`
-	RemoteID             string               `json:"remoteID,omitempty"` //nolint:tagliatelle // FIXME too late to change that
+	RemoteID             string               `json:"remoteID,omitempty"`
 	Rule                 string               `json:"rule"`
 	IsServer             bool                 `json:"isServer"`
 	IsSend               bool                 `json:"isSend"`
@@ -54,7 +54,7 @@ type OutTransfer struct {
 	ErrorCode            string               `json:"errorCode,omitempty"`
 	ErrorMsg             string               `json:"errorMsg,omitempty"`
 	TransferInfo         map[string]any       `json:"transferInfo,omitempty"`
-	RemainingTries       int8                 `json:"remainingTries,omitempty"`
+	RemainingAttempts    int8                 `json:"remainingAttempts,omitempty"`
 	NextAttempt          time.Time            `json:"nextAttempt,omitzero"`
 	NextRetryDelay       int32                `json:"nextRetryDelay,omitempty"`
 	RetryIncrementFactor float32              `json:"retryIncrementFactor,omitempty"`

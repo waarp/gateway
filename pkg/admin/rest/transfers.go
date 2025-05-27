@@ -65,7 +65,7 @@ func restTransferToDB(jTrans *api.InTransfer, db *database.DB, logger *log.Logge
 		DestFilename:         destFile,
 		Filesize:             model.UnknownSize,
 		Start:                start,
-		RemainingTries:       jTrans.NumberOfTries,
+		RemainingTries:       jTrans.NbOfAttempts,
 		NextRetryDelay:       jTrans.FirstRetryDelay,
 		RetryIncrementFactor: jTrans.RetryIncrementFactor,
 	}, nil
@@ -83,7 +83,7 @@ func DBTransferToREST(db *database.DB, trans *model.NormalizedTransferView) (*ap
 
 	var stop api.Nullable[time.Time]
 	if !trans.Stop.IsZero() {
-		stop = asNullableTime(trans.Stop)
+		stop = asNullable(trans.Stop)
 	}
 
 	info, iErr := trans.GetTransferInfo(db)
@@ -114,7 +114,7 @@ func DBTransferToREST(db *database.DB, trans *model.NormalizedTransferView) (*ap
 		TaskNumber:           trans.TaskNumber,
 		ErrorCode:            trans.ErrCode.String(),
 		ErrorMsg:             trans.ErrDetails,
-		RemainingTries:       trans.RemainingTries,
+		RemainingAttempts:    trans.RemainingTries,
 		NextAttempt:          trans.NextRetry,
 		NextRetryDelay:       trans.NextRetryDelay,
 		RetryIncrementFactor: trans.RetryIncrementFactor,

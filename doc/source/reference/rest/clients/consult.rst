@@ -16,8 +16,12 @@ Consulter un client
    :resjson string protocol: Le protocole utilisé par le client.
    :resjson object protoConfig: La configuration du client encodé sous forme
       d'un objet JSON. Cet objet dépend du protocole.
-   :resjson array partners: La liste des partenaires rattachés au client. Voir
-      :ref:`rest_partners_list` pour plus de détails sur la structure de cette liste.
+   :resjson number nbOfAttempts: Le nombre de fois qu'un transfert effectué avec
+      ce client sera retenté automatiquement en cas d'échec.
+   :resjson number firstRetryDelay: Le délai (en secondes) entre la tentative
+      originale d'un transfert et la première reprise automatique.
+   :resjson number retryIncrementFactor: Le facteur par lequel le délai ci-dessus
+      est multiplié à chaque nouvelle tentative d'un transfert donné.
 
 
    **Exemple de requête**
@@ -40,20 +44,7 @@ Consulter un client
         "protocol": "sftp",
         "address": "0.0.0.0:2222",
         "protoConfig": {},
-        "partners": "partners": [{
-          "name": "openssh",
-          "address": "10.0.0.1:22",
-          "protoConfig": {},
-          "authorizedRules": {
-            "sending": [],
-            "reception": []
-          },
-          "accounts": [{
-            "login": "titi",
-            "authorizedRules": {
-              "sending": [],
-              "reception": []
-            }
-          }]
-        }]
+        "nbOfAttempts": 5,
+        "firstRetryDelay": 90,
+        "retryIncrementFactor": 1.5
       }

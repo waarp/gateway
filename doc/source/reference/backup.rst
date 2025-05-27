@@ -134,6 +134,13 @@ stockées dans un fichier en format JSON. Ce JSON a la forme suivante :
   * ``localAddress`` (*string*) - L'adresse locale du client.
   * ``protoConfig`` (*object*) - La :any:`configuration protocolaire
     <reference-proto-config>` du client.
+  * ``nbOfAttempts`` (*number*) - Le nombre de fois qu'un transfert sera automatiquement
+    re-tenté en cas d'échec (n'inclue pas la tentative originale du transfert).
+  * ``firstRetryDelay`` (*number*) - Le délai (en secondes) entre la tentative originale
+    des transferts et leur première reprise automatique.
+  * ``retryIncrementFactor`` (*number*) - Le facteur par lequel le délai entre chaque
+    tentative de transfert est multiplié après chaque essai. Les nombres décimaux
+    (ex: 1.5) sont acceptés.
 
 * ``rules`` (*array*) - La liste des règles de transfert de la gateway.
 

@@ -142,7 +142,7 @@ func updateLocalAccount(logger *log.Logger, db *database.DB) http.HandlerFunc {
 		}
 
 		restAccount := &api.InLocalAccount{
-			Login:       asNullableStr(oldAccount.Login),
+			Login:       asNullable(oldAccount.Login),
 			IPAddresses: api.List[string](oldAccount.IPAddresses),
 		}
 		if err := readJSON(r, restAccount); handleError(w, logger, err) {
