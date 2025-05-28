@@ -3,6 +3,12 @@
 Historique des versions
 =======================
 
+* :bug:`479` Les droits par défaut des fichiers et dossiers de transfert ont été
+  relaxés. Les fichiers reçus ont désormais les droits 640 au lieu de 600. Les
+  dossiers créés pour recevoir des fichiers ont eux désormais les droits 750 au
+  lieu de 700. À noter que ces changements n'affectent que les systèmes Linux
+  (Windows ayant une gestion des droits très différente).
+
 * :release:`0.12.6 <2025-04-25>`
 * :bug:`473` Les commandes SNMP prennent désormais les bonnes valeurs pour les
   options SNMPv3 "auth-protocol" et "priv-protocol".

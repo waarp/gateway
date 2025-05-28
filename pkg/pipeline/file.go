@@ -6,6 +6,7 @@ import (
 	"io"
 	"path"
 
+	"code.waarp.fr/apps/gateway/gateway/pkg/conf"
 	"code.waarp.fr/apps/gateway/gateway/pkg/fs"
 	"code.waarp.fr/apps/gateway/gateway/pkg/model"
 	"code.waarp.fr/apps/gateway/gateway/pkg/model/types"
@@ -63,7 +64,7 @@ func (f *FileStream) getFile() (fs.File, *Error) {
 		return nil, err
 	}
 
-	file, fsErr := fs.OpenFile(trans.LocalPath, fs.FlagReadWrite|fs.FlagCreate, 0o600)
+	file, fsErr := fs.OpenFile(trans.LocalPath, fs.FlagReadWrite|fs.FlagCreate, conf.DefaultFilePermissions)
 	if fsErr != nil {
 		f.Logger.Error("Failed to create destination file %q: %s", trans.LocalPath, fsErr)
 
