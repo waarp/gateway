@@ -117,8 +117,7 @@ func RefreshExpirationToken(token string) {
 
 	if session.Expiration.After(time.Now()) {
 		session.Expiration = time.Now().Add(validTimeToken)
-        sessionStore.Store(token, session)
-
+		sessionStore.Store(token, session)
 	}
 }
 
