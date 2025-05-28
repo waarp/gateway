@@ -1,0 +1,5 @@
+{
+    "title": { "fr": "Gestion des utilisateurs", "en": "User management", "es": "Gestión de usuarios" },
+    "about": { "fr": "À propos", "en": "About", "es": "Acerca de" },
+    "logout": { "fr": "Déconnexion", "en": "Logout", "es": "Salir" }
+}

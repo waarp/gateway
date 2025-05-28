@@ -1,0 +1,13 @@
+{{ define "head" }}
+<title>{{ index .tab "title" }}</title>
+<link rel="stylesheet" href="/webui/static/css/user_management_page.css">
+{{ end }}
+
+{{ define "content" }}
+    <h2>{{ index .tab "title" }}</h2>
+    <hr class="mt-2 mb-4" style="border-top: 1px solid #ababab;">
+{{ end }}
+
+{{ define "user_management_page" }}
+  {{ template "index" . }}
+{{ end }}
