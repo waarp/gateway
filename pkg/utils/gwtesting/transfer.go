@@ -105,6 +105,7 @@ func TestTransferCtx(tb testing.TB, db *database.DB, proto string,
 	ctx.TransferPush = &model.Transfer{
 		RuleID:          ctx.ClientRulePush.ID,
 		RemoteAccountID: utils.NewNullInt64(ctx.RemoteAccount.ID),
+		ClientID:        utils.NewNullInt64(ctx.Client.ID),
 		SrcFilename:     filepath.ToSlash(pushFileName),
 		DestFilename:    "push_dst_dir/push.file",
 	}
@@ -113,6 +114,7 @@ func TestTransferCtx(tb testing.TB, db *database.DB, proto string,
 	ctx.TransferPull = &model.Transfer{
 		RuleID:          ctx.ClientRulePull.ID,
 		RemoteAccountID: utils.NewNullInt64(ctx.RemoteAccount.ID),
+		ClientID:        utils.NewNullInt64(ctx.Client.ID),
 		SrcFilename:     filepath.ToSlash(pullFileName),
 		DestFilename:    "pull_dst_dir/pull.file",
 	}

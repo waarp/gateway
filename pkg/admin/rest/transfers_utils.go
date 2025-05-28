@@ -11,9 +11,11 @@ import (
 	"code.waarp.fr/apps/gateway/gateway/pkg/conf"
 	"code.waarp.fr/apps/gateway/gateway/pkg/database"
 	"code.waarp.fr/apps/gateway/gateway/pkg/model"
+	"code.waarp.fr/apps/gateway/gateway/pkg/model/compatibility"
 	"code.waarp.fr/apps/gateway/gateway/pkg/utils"
 )
 
+//nolint:funlen //no easy way to split the function
 func getTransInfo(db *database.DB, trans *api.InTransfer,
 ) (ruleID int64, accountID, clientID sql.NullInt64, _ error) {
 	var null sql.NullInt64
@@ -69,6 +71,13 @@ func getTransInfo(db *database.DB, trans *api.InTransfer,
 		var client model.Client
 		if err := db.Get(&client, "name=?", trans.Client).Run(); err != nil {
 			return 0, null, null, fmt.Errorf("failed to retrieve client %q: %w", trans.Client, err)
+		}
+
+		clientID = utils.NewNullInt64(client.ID)
+	} else {
+		client, err := compatibility.GetDefaultTransferClient(db, account.ID)
+		if err != nil {
+			return 0, null, null, fmt.Errorf("failed to retrieve default client: %w", err)
 		}
 
 		clientID = utils.NewNullInt64(client.ID)

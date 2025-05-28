@@ -178,48 +178,9 @@ func TestTransferBeforeWrite(t *testing.T) {
 				}
 
 				Convey("Given that no client was specified", func() {
-					Convey("Given that no client exists", func() {
-						SoMsg("Then it should not return any error",
-							trans.BeforeWrite(db), ShouldBeNil)
-
-						Convey("Then it should have created a new default client for the transfer", func() {
-							So(trans.ClientID.Valid, ShouldBeTrue)
-
-							var client Client
-							So(db.Get(&client, "id=?", trans.ClientID.Int64).Run(), ShouldBeNil)
-							So(client, ShouldResemble, Client{
-								Owner:       conf.GlobalConfig.GatewayName,
-								ID:          trans.ClientID.Int64,
-								Name:        testProtocol,
-								Protocol:    testProtocol,
-								ProtoConfig: map[string]any{},
-							})
-						})
-					})
-
-					Convey("Given that a single client exists", func() {
-						client := Client{Name: "existing", Protocol: testProtocol}
-						So(db.Insert(&client).Run(), ShouldBeNil)
-
-						SoMsg("Then it should not return any error",
-							trans.BeforeWrite(db), ShouldBeNil)
-
-						Convey("Then it should use the existing client", func() {
-							So(trans.ClientID.Valid, ShouldBeTrue)
-							So(trans.ClientID.Int64, ShouldEqual, client.ID)
-						})
-					})
-
-					Convey("Given that multiple clients exists", func() {
-						client1 := Client{Name: "existing1", Protocol: testProtocol}
-						So(db.Insert(&client1).Run(), ShouldBeNil)
-						client2 := Client{Name: "existing2", Protocol: testProtocol}
-						So(db.Insert(&client2).Run(), ShouldBeNil)
-
-						SoMsg("Then it should return an error",
-							trans.BeforeWrite(db), ShouldBeError,
-							"the transfer is missing a client ID")
-					})
+					SoMsg("Then it should return an error",
+						trans.BeforeWrite(db), ShouldBeError,
+						"the transfer is missing a client ID")
 				})
 
 				Convey("Given that a client was specified", func() {

@@ -14,6 +14,9 @@ import (
 	"code.waarp.fr/apps/gateway/gateway/pkg/utils"
 )
 
+//nolint:gochecknoglobals //yes, this is very ugly, but there is really no other way to avoid an import cycle
+var GetDefaultTransferClient func(db *database.DB, accID int64) (*model.Client, error)
+
 // TransferTask is a task which schedules a new transfer.
 type TransferTask struct{}
 
@@ -98,7 +101,7 @@ func getTransferInfo(db *database.DB, args map[string]string) (file string,
 
 	if clientName == "" {
 		var err error
-		if client, err = model.GetDefaultTransferClient(db, acc.ID); err != nil {
+		if client, err = GetDefaultTransferClient(db, acc.ID); err != nil {
 			infoErr = fmt.Errorf("failed to retrieve default transfer client: %w", err)
 
 			return "", 0, 0, 0, false, infoErr

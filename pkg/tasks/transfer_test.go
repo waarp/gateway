@@ -92,6 +92,10 @@ func TestTransferRun(t *testing.T) {
 		client := &model.Client{Name: "cli", Protocol: testProtocol}
 		So(db.Insert(client).Run(), ShouldBeNil)
 
+		GetDefaultTransferClient = func(*database.DB, int64) (*model.Client, error) {
+			return client, nil
+		}
+
 		partner := &model.RemoteAgent{
 			Name: "test partner", Protocol: client.Protocol,
 			Address: types.Addr("localhost", 1111),
