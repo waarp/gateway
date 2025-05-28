@@ -81,6 +81,7 @@ func AddGUIRouter(router *mux.Router, logger *log.Logger, db *database.DB) {
 		http.Redirect(w, r, "home", http.StatusFound)
 	})
 	secureRouter.HandleFunc("/home", homePage(logger, db)).Methods("GET")
+	secureRouter.HandleFunc("/user_management", userManagementPage(logger, db)).Methods("GET")
 }
 
 func logout() http.HandlerFunc {

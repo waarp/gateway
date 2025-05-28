@@ -227,7 +227,7 @@ func loginPage(logger *log.Logger, db *database.DB) http.HandlerFunc {
 			}
 		}
 
-		if err := templates.ExecuteTemplate(w, "login_page", map[string]any{
+		if err := loginTemplate.ExecuteTemplate(w, "login_page", map[string]any{
 			"tab":      tabTranslated,
 			"Error":    errorMessage,
 			"language": userLanguage,

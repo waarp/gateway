@@ -1,3 +1,4 @@
+//nolint:dupl // in progress
 package gui
 
 import (
@@ -18,7 +19,7 @@ func homePage(logger *log.Logger, db *database.DB) http.HandlerFunc {
 			logger.Error("Internal error loading user session: %v", err)
 		}
 
-		if err := templates.ExecuteTemplate(w, "home_page", map[string]any{
+		if err := homeTemplate.ExecuteTemplate(w, "home_page", map[string]any{
 			"tab":      tabTranslated,
 			"username": user.Username,
 			"language": userLanguage,
