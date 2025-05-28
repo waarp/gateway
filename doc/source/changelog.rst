@@ -3,6 +3,10 @@
 Historique des versions
 =======================
 
+* :bug:`480` Les clients créés automatiquement lors de l'ajout d'un nouveau
+  transfert sont désormais automatiquement démarrés après leur création.
+  Précédemment, ces clients n'étaient pas démarrés après création, ce qui les
+  rendaient inutilisables sans un redémarrage de l'application.
 * :bug:`479` Les droits par défaut des fichiers et dossiers de transfert ont été
   relaxés. Les fichiers reçus ont désormais les droits 640 au lieu de 600. Les
   dossiers créés pour recevoir des fichiers ont eux désormais les droits 750 au
