@@ -1,11 +1,15 @@
 //go:build windows
-// +build windows
 
 package conf
 
 import (
 	"fmt"
 	"os"
+)
+
+const (
+	DefaultFilePermissions = 0o640
+	DefaultDirPermissions  = 0o750
 )
 
 func getDefaultConfFiles() []string {

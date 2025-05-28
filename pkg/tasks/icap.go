@@ -14,6 +14,7 @@ import (
 	"github.com/pbnjay/memory"
 	ic "github.com/solidwall/icap-client"
 
+	"code.waarp.fr/apps/gateway/gateway/pkg/conf"
 	"code.waarp.fr/apps/gateway/gateway/pkg/database"
 	"code.waarp.fr/apps/gateway/gateway/pkg/fs"
 	"code.waarp.fr/apps/gateway/gateway/pkg/model"
@@ -139,7 +140,7 @@ func (i *icapTask) run(logger *log.Logger, transCtx *model.TransferContext, prev
 		flags = fs.FlagReadWrite
 	}
 
-	file, opErr := fs.OpenFile(transCtx.Transfer.LocalPath, flags, 0o600)
+	file, opErr := fs.OpenFile(transCtx.Transfer.LocalPath, flags, conf.DefaultFilePermissions)
 	if opErr != nil {
 		logger.Error("Failed to open transfer file: %v", opErr)
 

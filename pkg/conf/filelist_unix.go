@@ -1,7 +1,11 @@
 //go:build !windows
-// +build !windows
 
 package conf
+
+const (
+	DefaultFilePermissions = 0o640
+	DefaultDirPermissions  = 0o750
+)
 
 func getDefaultConfFiles() []string {
 	return []string{

@@ -1,7 +1,9 @@
 package fs
 
+import "code.waarp.fr/apps/gateway/gateway/pkg/conf"
+
 func MkdirAll(path string) error {
-	const mkdirPerms FileMode = 0o740
+	const mkdirPerms FileMode = conf.DefaultDirPermissions
 
 	parsed, srcFs, parsErr := parseFs(path)
 	if parsErr != nil {
