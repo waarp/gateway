@@ -6,6 +6,10 @@ import (
 	"net/http"
 	"strings"
 	"time"
+
+	"golang.org/x/text/currency"
+	"golang.org/x/text/language"
+	"golang.org/x/text/message"
 )
 
 const hoursDay = 24
@@ -82,4 +86,64 @@ func detectLanguage(r *http.Request) string {
 	}
 
 	return "en"
+}
+
+//nolint:unused // method for later
+func tagLanguage(r *http.Request, userLanguage string) language.Tag {
+	matcher := language.NewMatcher([]language.Tag{
+		language.MustParse("en"),
+		language.MustParse("en-US"),
+		language.MustParse("en-GB"),
+		language.MustParse("en-AU"),
+
+		language.MustParse("fr"),
+		language.MustParse("fr-FR"),
+		language.MustParse("fr-CA"),
+
+		language.MustParse("es"),
+		language.MustParse("es-ES"),
+	})
+
+	res := r.Header.Get("Accept-Language")
+
+	tag, _, _ := matcher.Match(language.Make(res))
+
+	if base, _ := tag.Base(); base.String() == userLanguage {
+		return tag
+	}
+
+	userTag, err := language.Parse(userLanguage)
+	if err != nil {
+		log.Printf("internal error: %v", err)
+	}
+
+	return userTag
+}
+
+//nolint:unused // method for later
+func translateInt(nb int, r *http.Request, userLanguage string) string {
+	msg := message.NewPrinter(tagLanguage(r, userLanguage))
+
+	return msg.Sprint("%d", nb)
+}
+
+//nolint:unused // method for later
+func translateFloat(nb float64, r *http.Request, userLanguage string) string {
+	msg := message.NewPrinter(tagLanguage(r, userLanguage))
+
+	return msg.Sprintf("%.2f", nb)
+}
+
+//nolint:unused // method for later
+func translateCurrency(nb float64, r *http.Request, currencyStr, userLanguage string) string {
+	tag := tagLanguage(r, userLanguage)
+
+	unit, err := currency.ParseISO(currencyStr)
+	if err != nil {
+		return message.NewPrinter(tag).Sprintf("%.2f %s", nb, currencyStr)
+	}
+	res := unit.Amount(nb)
+	symbol := currency.Symbol(res)
+
+	return message.NewPrinter(tag).Sprintf("%v", symbol)
 }
