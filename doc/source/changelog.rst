@@ -3,6 +3,7 @@
 Historique des versions
 =======================
 
+* :release:`0.12.8 <2025-04-25>`
 * :bug:`480` Les clients créés automatiquement lors de l'ajout d'un nouveau
   transfert sont désormais automatiquement démarrés après leur création.
   Précédemment, ces clients n'étaient pas démarrés après création, ce qui les
