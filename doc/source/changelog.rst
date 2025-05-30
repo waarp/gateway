@@ -3,6 +3,11 @@
 Historique des versions
 =======================
 
+* :feature:`467` Certains attributs PeSIT sont désormais stockés sous forme
+  d'informations de transfert. Ces informations sont : l'encodage du fichier,
+  le type de fichier, l'organisation du fichier, l'identifiant de banque et
+  l'identifiant de client. Pour plus de détails, voir la page sur
+  :ref:`l'implémentation de PeSIT<ref-proto-pesit>` dans la Gateway.
 * :fix:`-` Correction d'une erreur du serveur REST faisant que les entêtes
   "Server" et "Waarp-Gateway-Date" n'étaient pas correctement renvoyés en
   réponse aux requêtes faites sur l'API REST.
