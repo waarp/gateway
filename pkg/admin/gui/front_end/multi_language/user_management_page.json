@@ -1,5 +1,9 @@
 {
     "title": { "fr": "Gestion des utilisateurs", "en": "User management", "es": "Gestión de usuarios" },
     "about": { "fr": "À propos", "en": "About", "es": "Acerca de" },
-    "logout": { "fr": "Déconnexion", "en": "Logout", "es": "Salir" }
+    "logout": { "fr": "Déconnexion", "en": "Logout", "es": "Salir" },
+    "filter": { "fr": "Filtre", "en": "Filter", "es": "Filtrar" },
+    "sort": { "fr": "Trier par ordre alphabétique:", "en": "Sort alphabetically:", "es": "Ordenar alfabéticamente:" },
+    "limit": { "fr": "Limite:", "en": "Limit:", "es": "Límite:" },
+    "apply": { "fr": "Appliquer", "en": "Apply", "es": "Aplicar" }
 }
