@@ -22,8 +22,8 @@ var (
 	)
 	userManagementTemplate = template.Must(
 		template.New("user_management_page.html").
-		Funcs(funcs).
-		ParseFS(webFS, index, header, multiLanguage, "front_end/html/user_management_page.html"),
+			Funcs(funcs).
+			ParseFS(webFS, index, header, multiLanguage, "front_end/html/user_management_page.html"),
 	)
 	loginTemplate = template.Must(
 		template.ParseFS(webFS, multiLanguage, "front_end/html/login_page.html"),
