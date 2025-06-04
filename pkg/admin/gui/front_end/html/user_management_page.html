@@ -8,8 +8,155 @@
     <h2>{{ index .tab "title" }}</h2>
     <hr class="mt-2 mb-4" style="border-top: 1px solid #ababab;">
     
+    {{ if contains .myPermission.Users "w" }}
+        <button class="btn btn-primary mb-3 btn-add" type="button" data-bs-toggle="modal" data-bs-target="#addUserModal">
+        {{ index .tab "addUserTitle" }}
+        </button>
+        <div class="modal fade" id="addUserModal" tabindex="-1" aria-labelledby="addUserModalLabel" aria-hidden="true">
+        <div class="modal-dialog">
+            <div class="modal-content">
+            <form method="get" class="p-3 border rounded bg-light">
+                <div class="modal-header">
+                <h5 class="modal-title" id="addUserModalLabel">{{ index .tab "addUserTitle" }}</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+                <div class="form-input">
+                    <label class="col-form-label">{{ index .tab "usernameStr" }} :</label>
+                    <input type="text" name="newUserUsername" class="form-control" required>
+                </div>
+                <div class="form-input">
+                    <label class="col-form-label mt-2">{{ index .tab "passwordStr" }} :</label>
+                    <input type="password" name="newUserPassword" class="form-control" required>
+                </div>
+                <div class="mt-3 mb-3"><strong>{{ index .tab "permissions" }} :</strong></div>
+                <div class="form-group">
+                <label class="col-form-label mt-2">{{ index .tab "transfers" }} :</label>
+                    <div class="form-check form-check-inline">
+                        <input class="form-check-input" type="radio" name="newUserPermissionsTransfers" id="transfers_-" value="---" required>
+                        <label class="form-check-label" for="transfers_-">---</label>
+                    </div>
+                    <div class="form-check form-check-inline">
+                        <input class="form-check-input" type="radio" name="newUserPermissionsTransfers" id="transfers_r" value="r--">
+                        <label class="form-check-label" for="transfers_r">R--</label>
+                    </div>
+                    <div class="form-check form-check-inline">
+                        <input class="form-check-input" type="radio" name="newUserPermissionsTransfers" id="transfers_rw" value="rw-">
+                        <label class="form-check-label" for="transfers_rw">RW-</label>
+                    </div>
+                    <div class="form-check form-check-inline">
+                        <input class="form-check-input" type="radio" name="newUserPermissionsTransfers" id="transfers_rwd" value="rwd">
+                        <label class="form-check-label" for="transfers_rwd">RWD</label>
+                    </div>
+                    </div>
+                <div class="form-group">
+                <label class="col-form-label mt-2">{{ index .tab "servers" }} :</label>
+                    <div class="form-check form-check-inline">
+                        <input class="form-check-input" type="radio" name="newUserPermissionServers" id="servers_-" value="---" required>
+                        <label class="form-check-label" for="servers_-">---</label>
+                    </div>
+                    <div class="form-check form-check-inline">
+                        <input class="form-check-input" type="radio" name="newUserPermissionServers" id="servers_r" value="r--">
+                        <label class="form-check-label" for="servers_r">R--</label>
+                    </div>
+                    <div class="form-check form-check-inline">
+                        <input class="form-check-input" type="radio" name="newUserPermissionServers" id="servers_rw" value="rw-">
+                        <label class="form-check-label" for="servers_rw">RW-</label>
+                    </div>
+                    <div class="form-check form-check-inline">
+                        <input class="form-check-input" type="radio" name="newUserPermissionServers" id="servers_rwd" value="rwd">
+                        <label class="form-check-label" for="servers_rwd">RWD</label>
+                    </div>
+                    </div>
+                <div class="form-group">
+                <label class="col-form-label mt-2">{{ index .tab "partners" }} :</label>
+                    <div class="form-check form-check-inline">
+                        <input class="form-check-input" type="radio" name="newUserPermissionsPartners" id="partners_-" value="---" required>
+                        <label class="form-check-label" for="partners_-">---</label>
+                    </div>
+                    <div class="form-check form-check-inline">
+                        <input class="form-check-input" type="radio" name="newUserPermissionsPartners" id="partners_r" value="r--">
+                        <label class="form-check-label" for="partners_r">R--</label>
+                    </div>
+                    <div class="form-check form-check-inline">
+                        <input class="form-check-input" type="radio" name="newUserPermissionsPartners" id="partners_rw" value="rw-">
+                        <label class="form-check-label" for="partners_rw">RW-</label>
+                    </div>
+                    <div class="form-check form-check-inline">
+                        <input class="form-check-input" type="radio" name="newUserPermissionsPartners" id="partners_rwd" value="rwd">
+                        <label class="form-check-label" for="partners_rwd">RWD</label>
+                    </div>
+                    </div>
+                <div class="form-group">
+                <label class="col-form-label mt-2">{{ index .tab "rules" }} :</label>
+                      <div class="form-check form-check-inline">
+                        <input class="form-check-input" type="radio" name="newUserPermissionsRules" id="rules_-" value="---" required>
+                        <label class="form-check-label" for="rules_-">---</label>
+                    </div>
+                    <div class="form-check form-check-inline">
+                        <input class="form-check-input" type="radio" name="newUserPermissionsRules" id="rules_r" value="r--">
+                        <label class="form-check-label" for="rules_r">R--</label>
+                    </div>
+                    <div class="form-check form-check-inline">
+                        <input class="form-check-input" type="radio" name="newUserPermissionsRules" id="rules_rw" value="rw-">
+                        <label class="form-check-label" for="rules_rw">RW-</label>
+                    </div>
+                    <div class="form-check form-check-inline">
+                        <input class="form-check-input" type="radio" name="newUserPermissionsRules" id="rules_rwd" value="rwd">
+                        <label class="form-check-label" for="rules_rwd">RWD</label>
+                    </div>
+                    </div>
+                <div class="form-group">
+                <label class="col-form-label mt-2">{{ index .tab "users" }} :</label>
+                      <div class="form-check form-check-inline">
+                        <input class="form-check-input" type="radio" name="newUserPermissionsUsers" id="users_-" value="---" required>
+                        <label class="form-check-label" for="users_-">---</label>
+                    </div>
+                    <div class="form-check form-check-inline">
+                        <input class="form-check-input" type="radio" name="newUserPermissionsUsers" id="users_r" value="r--">
+                        <label class="form-check-label" for="users_r">R--</label>
+                    </div>
+                    <div class="form-check form-check-inline">
+                        <input class="form-check-input" type="radio" name="newUserPermissionsUsers" id="users_rw" value="rw-">
+                        <label class="form-check-label" for="users_rw">RW-</label>
+                    </div>
+                    <div class="form-check form-check-inline">
+                        <input class="form-check-input" type="radio" name="newUserPermissionsUsers" id="users_rwd" value="rwd">
+                        <label class="form-check-label" for="users_rwd">RWD</label>
+                    </div>
+                    </div>
+                <div class="form-group">
+                <label class="col-form-label mt-2">{{ index .tab "administration" }} :</label>
+                      <div class="form-check form-check-inline">
+                        <input class="form-check-input" type="radio" name="newUserPermissionsAdministration" id="administration_-" value="---" required>
+                        <label class="form-check-label" for="administration_-">---</label>
+                    </div>
+                    <div class="form-check form-check-inline">
+                        <input class="form-check-input" type="radio" name="newUserPermissionsAdministration" id="administration_r" value="r--">
+                        <label class="form-check-label" for="administration_r">R--</label>
+                    </div>
+                    <div class="form-check form-check-inline">
+                        <input class="form-check-input" type="radio" name="newUserPermissionsAdministration" id="administration_rw" value="rw-">
+                        <label class="form-check-label" for="administration_rw">RW-</label>
+                    </div>
+                    <div class="form-check form-check-inline">
+                        <input class="form-check-input" type="radio" name="newUserPermissionsAdministration" id="administration_rwd" value="rwd">
+                        <label class="form-check-label" for="administration_rwd">RWD</label>
+                    </div>
+                    </div>
+                </div>
+            <div class="modal-footer">
+            <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">{{ index .tab "close" }}</button>
+            <button type="submit" class="btn btn-success ms-3">{{ index .tab "apply" }}</button>
+            </div>
+        </form>
+        </div>
+    </div>
+    </div>
+    {{ end }}
+
     {{ if contains .myPermission.Users "r" }}
-        <button class="btn-filter btn-primary mb-3" type="button" data-bs-toggle="collapse" data-bs-target="#filterCollapse" aria-expanded="false" aria-controls="filterCollapse">
+        <button class="btn btn-primary mb-3 ms-2 btn-filter" type="button" data-bs-toggle="collapse" data-bs-target="#filterCollapse" aria-expanded="false" aria-controls="filterCollapse">
         {{ index .tab "filter" }}
         </button>
         <div class="collapse" id="filterCollapse">
@@ -21,29 +168,202 @@
             </select>
             </label>
             <label class="ms-3">{{ index .tab "limit" }}
-            <input type="number" name="limit" min="0" value="0" class="form-control d-inline w-auto">
+            <select name="limit" class="form-select d-inline w-auto">
+                <option value="5">5</option>
+                <option value="10">10</option>
+                <option value="15">15</option>
+                <option value="25">25</option>
+                <option value="50">50</option>
+            </select>
             </label>
             <button type="submit" class="btn btn-success ms-3">{{ index .tab "apply" }}</button>
         </form>
         </div>
-        
-        <div class="row g-3 mb-4">
-            <div class="row g-3 mb-4">
+
+        <table class="table table-sm align-middle mb-4 rounded-3 mt-3">
+          <thead class="table-light">
+            <tr>
+              <th></th>
+              <th>{{ index .tab "usernameStr" }}</th>
+              <th>{{ index $.tab "transfers" }}</th><th>{{ index $.tab "servers" }}</th><th>{{ index $.tab "partners" }}</th><th>{{ index $.tab "rules" }}</th><th>{{ index $.tab "users" }}</th><th>{{ index $.tab "administration" }}</th>
+              <th class="text-end"></th>
+            </tr>
+          </thead>
+          <tbody>
             {{ range .userPermissions }}
-                <div class="col-sm-4">
-                <div class="card text-center p-3">
-                    <i class="bi bi-person-fill fs-2"></i>
-                    <div><strong>{{ .Username }}</strong></div>
-                    <div>Permissions transfers: {{ .Permissions.Transfers }}</div>
-                    <div>Permissions servers: {{ .Permissions.Servers }}</div>
-                    <div>Permissions partners: {{ .Permissions.Partners }}</div>
-                    <div>Permissions rules: {{ .Permissions.Rules }}</div>
-                    <div>Permissions users: {{ .Permissions.Users }}</div>
-                    <div>Permissions administration: {{ .Permissions.Administration }}</div>
-                </div>
-                </div>
+            <tr>
+              <td><i class="bi bi-person-fill"></i></td>
+              <td><strong>{{ .Username }}</strong></td>
+
+              <td>{{ .Permissions.Transfers }}</td>
+              <td>{{ .Permissions.Servers }}</td>
+              <td>{{ .Permissions.Partners }}</td>
+              <td>{{ .Permissions.Rules }}</td>
+              <td>{{ .Permissions.Users }}</td>
+              <td>{{ .Permissions.Administration }}</td>
+
+              <td class="text-end">
+                    {{ if contains $.myPermission.Users "w" }}
+                        <button class="btn btn-outline-primary btn-sm me-1" data-bs-toggle="modal" data-bs-target="#editUserModal_{{ .ID }}">
+                        <i class="bi bi-pencil"></i>
+                        </button>
+                        <div class="modal fade" id="editUserModal_{{ .ID }}" tabindex="-1" aria-labelledby="editUserModalLabel_{{ .ID }}" aria-hidden="true">
+                        <div class="modal-dialog">
+                            <div class="modal-content">
+                            <form method="get" class="p-3 border rounded bg-light">
+                            <input type="hidden" name="editUserID" value="{{ .ID }}">
+                            <div class="modal-header">
+                            <h5 class="modal-title" id="editUserModalLabel">{{ index $.tab "edit" }}</h5>
+                            <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                            </div>
+                            <div class="modal-body">
+
+                            <div class="form-input">
+                                <label class="col-form-label">{{ index $.tab "usernameStr" }} :</label>
+                                <input type="text" name="editUserUsername" class="form-control" required value="{{ .Username }}">
+                            </div>
+                            <div class="form-input">
+                                <label class="col-form-label mt-2">{{ index $.tab "passwordStr" }} :</label>
+                                <input type="password" name="editUserPassword" class="form-control">
+                            </div>
+                            <div class="title-perm mt-3 mb-3"><strong>{{ index $.tab "permissions" }} :</strong></div>
+                                <div class="form-group">
+                                    <label class="col-form-label mt-2">{{ index $.tab "transfers" }} :</label>
+                                    <div class="form-check form-check-inline">
+                                    <input class="form-check-input" type="radio" name="editUserPermissionsTransfers" id="edit_transfers_-" value="---" {{ if eq .Permissions.Transfers "---" }}checked{{ end }}>
+                                    <label class="form-check-label" for="edit_transfers_-">---</label>
+                                    </div>
+                                    <div class="form-check form-check-inline">
+                                    <input class="form-check-input" type="radio" name="editUserPermissionsTransfers" id="edit_transfers_r" value="r--" {{ if eq .Permissions.Transfers "r--" }}checked{{ end }}>
+                                    <label class="form-check-label" for="edit_transfers_r">R--</label>
+                                    </div>
+                                    <div class="form-check form-check-inline">
+                                    <input class="form-check-input" type="radio" name="editUserPermissionsTransfers" id="edit_transfers_rw" value="rw-" {{ if eq .Permissions.Transfers "rw-" }}checked{{ end }}>
+                                    <label class="form-check-label" for="edit_transfers_rw">RW-</label>
+                                    </div>
+                                    <div class="form-check form-check-inline">
+                                    <input class="form-check-input" type="radio" name="editUserPermissionsTransfers" id="edit_transfers_rwd" value="rwd" {{ if eq .Permissions.Transfers "rwd" }}checked{{ end }}>
+                                    <label class="form-check-label" for="edit_transfers_rwd">RWD</label>
+                                    </div>
+                                </div>
+                                <div class="form-group">
+                                    <label class="col-form-label mt-2">{{ index $.tab "servers" }} :</label>
+                                    <div class="form-check form-check-inline">
+                                    <input class="form-check-input" type="radio" name="editUserPermissionsServers" id="edit_servers_-" value="---" {{ if eq .Permissions.Servers "---" }}checked{{ end }}>
+                                    <label class="form-check-label" for="edit_servers_-">---</label>
+                                    </div>
+                                    <div class="form-check form-check-inline">
+                                    <input class="form-check-input" type="radio" name="editUserPermissionsServers" id="edit_servers_r" value="r--" {{ if eq .Permissions.Servers "r--" }}checked{{ end }}>
+                                    <label class="form-check-label" for="edit_servers_r">R--</label>
+                                    </div>
+                                    <div class="form-check form-check-inline">
+                                    <input class="form-check-input" type="radio" name="editUserPermissionsServers" id="edit_servers_rw" value="rw-" {{ if eq .Permissions.Servers "rw-" }}checked{{ end }}>
+                                    <label class="form-check-label" for="edit_servers_rw">RW-</label>
+                                    </div>
+                                    <div class="form-check form-check-inline">
+                                    <input class="form-check-input" type="radio" name="editUserPermissionsServers" id="edit_servers_rwd" value="rwd" {{ if eq .Permissions.Servers "rwd" }}checked{{ end }}>
+                                    <label class="form-check-label" for="edit_servers_rwd">RWD</label>
+                                    </div>
+                                </div>
+                                <div class="form-group">
+                                    <label class="col-form-label mt-2">{{ index $.tab "partners" }} :</label>
+                                    <div class="form-check form-check-inline">
+                                    <input class="form-check-input" type="radio" name="editUserPermissionsPartners" id="edit_partners_-" value="---" {{ if eq .Permissions.Partners "---" }}checked{{ end }}>
+                                    <label class="form-check-label" for="edit_partners_-">---</label>
+                                    </div>
+                                    <div class="form-check form-check-inline">
+                                    <input class="form-check-input" type="radio" name="editUserPermissionsPartners" id="edit_partners_r" value="r--" {{ if eq .Permissions.Partners "r--" }}checked{{ end }}>
+                                    <label class="form-check-label" for="edit_partners_r">R--</label>
+                                    </div>
+                                    <div class="form-check form-check-inline">
+                                    <input class="form-check-input" type="radio" name="editUserPermissionsPartners" id="edit_partners_rw" value="rw-" {{ if eq .Permissions.Partners "rw-" }}checked{{ end }}>
+                                    <label class="form-check-label" for="edit_partners_rw">RW-</label>
+                                    </div>
+                                    <div class="form-check form-check-inline">
+                                    <input class="form-check-input" type="radio" name="editUserPermissionsPartners" id="edit_partners_rwd" value="rwd" {{ if eq .Permissions.Partners "rwd" }}checked{{ end }}>
+                                    <label class="form-check-label" for="edit_partners_rwd">RWD</label>
+                                    </div>
+                                </div>
+                                <div class="form-group">
+                                    <label class="col-form-label mt-2">{{ index $.tab "rules" }} :</label>
+                                    <div class="form-check form-check-inline">
+                                    <input class="form-check-input" type="radio" name="editUserPermissionsRules" id="edit_rules_-" value="---" {{ if eq .Permissions.Rules "---" }}checked{{ end }}>
+                                    <label class="form-check-label" for="edit_rules_-">---</label>
+                                    </div>
+                                    <div class="form-check form-check-inline">
+                                    <input class="form-check-input" type="radio" name="editUserPermissionsRules" id="edit_rules_r" value="r--" {{ if eq .Permissions.Rules "r--" }}checked{{ end }}>
+                                    <label class="form-check-label" for="edit_rules_r">R--</label>
+                                    </div>
+                                    <div class="form-check form-check-inline">
+                                    <input class="form-check-input" type="radio" name="editUserPermissionsRules" id="edit_rules_rw" value="rw-" {{ if eq .Permissions.Rules "rw-" }}checked{{ end }}>
+                                    <label class="form-check-label" for="edit_rules_rw">RW-</label>
+                                    </div>
+                                    <div class="form-check form-check-inline">
+                                    <input class="form-check-input" type="radio" name="editUserPermissionsRules" id="edit_rules_rwd" value="rwd" {{ if eq .Permissions.Rules "rwd" }}checked{{ end }}>
+                                    <label class="form-check-label" for="edit_rules_rwd">RWD</label>
+                                    </div>
+                                </div>
+                                <div class="form-group">
+                                    <label class="col-form-label mt-2">{{ index $.tab "users" }} :</label>
+                                    <div class="form-check form-check-inline">
+                                    <input class="form-check-input" type="radio" name="editUserPermissionsUsers" id="edit_users_-" value="---" {{ if eq .Permissions.Users "---" }}checked{{ end }}>
+                                    <label class="form-check-label" for="edit_users_-">---</label>
+                                    </div>
+                                    <div class="form-check form-check-inline">
+                                    <input class="form-check-input" type="radio" name="editUserPermissionsUsers" id="edit_users_r" value="r--" {{ if eq .Permissions.Users "r--" }}checked{{ end }}>
+                                    <label class="form-check-label" for="edit_users_r">R--</label>
+                                    </div>
+                                    <div class="form-check form-check-inline">
+                                    <input class="form-check-input" type="radio" name="editUserPermissionsUsers" id="edit_users_rw" value="rw-" {{ if eq .Permissions.Users "rw-" }}checked{{ end }}>
+                                    <label class="form-check-label" for="edit_users_rw">RW-</label>
+                                    </div>
+                                    <div class="form-check form-check-inline">
+                                    <input class="form-check-input" type="radio" name="editUserPermissionsUsers" id="edit_users_rwd" value="rwd" {{ if eq .Permissions.Users "rwd" }}checked{{ end }}>
+                                    <label class="form-check-label" for="edit_users_rwd">RWD</label>
+                                    </div>
+                                </div>
+                                <div class="form-group">
+                                    <label class="col-form-label mt-2">{{ index $.tab "administration" }} :</label>
+                                    <div class="form-check form-check-inline">
+                                    <input class="form-check-input" type="radio" name="editUserPermissionsAdministration" id="edit_administration_-" value="---" {{ if eq .Permissions.Administration "---" }}checked{{ end }}>
+                                    <label class="form-check-label" for="edit_administration_-">---</label>
+                                    </div>
+                                    <div class="form-check form-check-inline">
+                                    <input class="form-check-input" type="radio" name="editUserPermissionsAdministration" id="edit_administration_r" value="r--" {{ if eq .Permissions.Administration "r--" }}checked{{ end }}>
+                                    <label class="form-check-label" for="edit_administration_r">R--</label>
+                                    </div>
+                                    <div class="form-check form-check-inline">
+                                    <input class="form-check-input" type="radio" name="editUserPermissionsAdministration" id="edit_administration_rw" value="rw-" {{ if eq .Permissions.Administration "rw-" }}checked{{ end }}>
+                                    <label class="form-check-label" for="edit_administration_rw">RW-</label>
+                                    </div>
+                                    <div class="form-check form-check-inline">
+                                    <input class="form-check-input" type="radio" name="editUserPermissionsAdministration" id="edit_administration_rwd" value="rwd" {{ if eq .Permissions.Administration "rwd" }}checked{{ end }}>
+                                    <label class="form-check-label" for="edit_administration_rwd">RWD</label>
+                                    </div>
+                                </div>
+                                </div>
+                                <div class="modal-footer">
+                                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">{{ index $.tab "close" }}</button>
+                                <button type="submit" class="btn btn-success ms-3">{{ index $.tab "apply" }}</button>
+                                </div>
+                            </form>
+                            </div>
+                        </div>
+                        </div>
+                    {{ end }}
+                {{ if contains $.myPermission.Users "d" }}
+                <form method="get" class="d-inline">
+                  <input type="hidden" name="deleteUser" value="{{ .ID }}">
+                  <button type="submit" class="btn btn-outline-danger btn-sm" onclick="confirm('Confirmer la suppression ?')">
+                    <i class="bi bi-trash"></i>
+                  </button>
+                </form>
+                {{ end }}
+              </td>
+            </tr>
             {{ end }}
-        </div>
+          </tbody>
+        </table>
     </div>
     {{ else }}
         <div class="row g-3 mb-4">
@@ -52,12 +372,13 @@
                 <div class="card text-center p-3">
                     <i class="bi bi-person-fill fs-2"></i>
                     <div><strong>{{ .username }}</strong></div>
-                    <div>Permissions transfers: {{ .myPermission.Transfers }}</div>
-                    <div>Permissions servers: {{ .myPermission.Servers }}</div>
-                    <div>Permissions partners: {{ .myPermission.Partners }}</div>
-                    <div>Permissions rules: {{ .myPermission.Rules }}</div>
-                    <div>Permissions users: {{ .myPermission.Users }}</div>
-                    <div>Permissions administration: {{ .myPermission.Administration }}</div>
+                    <div>{{ index .tab "permissions" }}</div>
+                    <div>{{ index .tab "transfers" }}: {{ .myPermission.Transfers }}</div>
+                    <div>{{ index .tab "servers" }}: {{ .myPermission.Servers }}</div>
+                    <div>{{ index .tab "partners" }}: {{ .myPermission.Partners }}</div>
+                    <div>{{ index .tab "rules" }}: {{ .myPermission.Rules }}</div>
+                    <div>{{ index .tab "users" }}: {{ .myPermission.Users }}</div>
+                    <div>{{ index .tab "administration" }}: {{ .myPermission.Administration }}</div>
                 </div>
                 </div>
             </div>

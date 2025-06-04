@@ -2,7 +2,7 @@
   background: #f54b15;
   color: #fff;
   border: none;
-  border-radius: 17px;
+  border-radius: 13px;
   padding: 0.375rem 1rem;
   font-size: 1rem;
   cursor: pointer;
@@ -16,5 +16,5 @@
   color: #f54b15;
   outline: none;
   transition: background 0.2s, color 0.2s;
-  border-radius: 17px;
+  border-radius: 13px;
 }

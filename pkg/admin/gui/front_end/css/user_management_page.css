@@ -1,20 +1,55 @@
-.btn-filter {
-  background: #f54b15;
-  color: #fff;
-  border: none;
-  border-radius: 17px;
-  padding: 0.375rem 1rem;
-  font-size: 1rem;
-  cursor: pointer;
-  appearance: none;
-  text-align: center;
+.btn-add {
+    background-color: #f54b15 !important;
+    border-color: #f54b15 !important;
+    color: #fff !important;
+    border-radius: 10px;
+}
+.btn-add:hover, .btn-add:focus {
+    background-color: #eb3700 !important;
+    border-color: #eb3700 !important;
+    color: #fff !important;
 }
 
-.btn-filter:hover,
-.btn-filter:focus {
-  background: #fff;
-  color: #f54b15;
-  outline: none;
-  transition: background 0.2s, color 0.2s;
-  border-radius: 17px;
+.btn-filter {
+    background-color: #f54b15 !important;
+    border-color: #f54b15 !important;
+    color: #fff !important;
+    border-radius: 10px;
+}
+.btn-filter:hover, .btn-filter:focus {
+    background-color: #eb3700 !important;
+    border-color: #eb3700 !important;
+    color: #fff !important;
+}
+
+.modal-backdrop.show {
+  backdrop-filter: blur(10px);
+  opacity: 7;
+  background-color: rgba(0,0,0,0.1) !important;
+}
+
+.modal-body .form-input{
+    text-align:left;
+}
+
+.modal-body .title-perm {
+    text-align:left;
+}
+
+.modal-body .form-group{
+  display:flex;
+  align-items:center;
+}
+
+.modal-body .form-group label{
+  flex:0 0 30%;
+  text-align:left;
+}
+
+.modal-body .form-group .form-select{
+  flex:0 0 70%;
+}
+
+.table-outline {
+  border: 2px solid grey
 }
