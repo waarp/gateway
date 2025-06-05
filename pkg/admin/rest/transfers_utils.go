@@ -39,7 +39,7 @@ func getTransInfo(db *database.DB, trans *api.InTransfer,
 	var rule model.Rule
 	if err := db.Get(&rule, "name=? AND is_send=?", trans.Rule, trans.IsSend.Value).Run(); err != nil {
 		if database.IsNotFound(err) {
-			return 0, null, null, badRequest("no rule '%s' found", trans.Rule)
+			return 0, null, null, badRequestf("no rule %q found", trans.Rule)
 		}
 
 		return 0, null, null, fmt.Errorf("failed to retrieve rule %q: %w", trans.Rule, err)
@@ -49,7 +49,7 @@ func getTransInfo(db *database.DB, trans *api.InTransfer,
 	if err := db.Get(&partner, "name=? AND owner=?", trans.Partner,
 		conf.GlobalConfig.GatewayName).Run(); err != nil {
 		if database.IsNotFound(err) {
-			return 0, null, null, badRequest("no partner '%s' found", trans.Partner)
+			return 0, null, null, badRequestf("no partner %q found", trans.Partner)
 		}
 
 		return 0, null, null, fmt.Errorf("failed to retrieve partner %q: %w", trans.Partner, err)
@@ -59,7 +59,7 @@ func getTransInfo(db *database.DB, trans *api.InTransfer,
 	if err := db.Get(&account, "remote_agent_id=? AND login=?", partner.ID,
 		trans.Account).Run(); err != nil {
 		if database.IsNotFound(err) {
-			return 0, null, null, badRequest("no account '%s' found for partner %s",
+			return 0, null, null, badRequestf("no account %q found for partner %s",
 				trans.Account, trans.Partner)
 		}
 
@@ -113,21 +113,21 @@ func parseTransferListQuery(r *http.Request, db *database.DB,
 		return nil, fmt.Errorf("cannot parse form data: %w", err)
 	}
 
-	var err error
+	var convErr error
 
 	limit := 20
 	offset := 0
 
 	if limStr := r.FormValue("limit"); limStr != "" {
-		limit, err = strconv.Atoi(limStr)
-		if err != nil {
+		limit, convErr = strconv.Atoi(limStr)
+		if convErr != nil {
 			return nil, badRequest("'limit' must be an int")
 		}
 	}
 
 	if offStr := r.FormValue("offset"); offStr != "" {
-		offset, err = strconv.Atoi(offStr)
-		if err != nil {
+		offset, convErr = strconv.Atoi(offStr)
+		if convErr != nil {
 			return nil, badRequest("'offset' must be an int")
 		}
 	}
@@ -150,7 +150,7 @@ func parseTransferListQuery(r *http.Request, db *database.DB,
 	if startStr := r.FormValue("start"); startStr != "" {
 		start, err := time.Parse(time.RFC3339Nano, startStr)
 		if err != nil {
-			return nil, badRequest("'%s' is not a valid date", startStr)
+			return nil, badRequestf("%q is not a valid date", startStr)
 		}
 
 		query.Where("start >= ?", start.UTC())
@@ -163,7 +163,7 @@ func parseTransferListQuery(r *http.Request, db *database.DB,
 		sort, ok = sorting[sortStr]
 
 		if !ok {
-			return nil, badRequest("'%s' is not a valid order", sortStr)
+			return nil, badRequestf("%q is not a valid order", sortStr)
 		}
 	}
 

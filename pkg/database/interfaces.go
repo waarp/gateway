@@ -54,7 +54,7 @@ type ReadAccess interface {
 	// The request can then be executed using the CountQuery.Run method.
 	Count(obj IterateBean) *CountQuery
 
-	QueryRow(sql string, args ...any) *sql.Row
+	QueryRow(query string, args ...any) *sql.Row
 }
 
 // Access is the interface listing all the write operations possible on the
@@ -104,7 +104,7 @@ type Access interface {
 	//
 	// Be aware that, since this method bypasses the data models, all the models'
 	// hooks will be skipped. Thus, this method should be used with extreme caution.
-	Exec(sql string, args ...any) error
+	Exec(query string, args ...any) error
 }
 
 // DeletionHook is an interface which adds a function which will be run before
@@ -153,6 +153,7 @@ type Table interface {
 // Identifier is an interface which adds a function which returns the entry's
 // ID number. Models must implement this interface in order to be updated.
 type Identifier interface {
+	// GetID returns the entry's ID.
 	GetID() int64
 }
 
@@ -179,7 +180,7 @@ func (i *Iterator) Scan(bean IterateBean) error {
 
 	if hook, ok := bean.(ReadCallback); ok {
 		if err := hook.AfterRead(i.db); err != nil {
-			i.logger.Error("%s entry GET callback failed: %s", bean.Appellation(), err)
+			i.logger.Errorf("%s entry GET callback failed: %v", bean.Appellation(), err)
 
 			return fmt.Errorf("%s entry ITERATE callback failed: %w", bean.Appellation(), err)
 		}

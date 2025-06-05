@@ -83,11 +83,7 @@ func (c *clientTransfer) configureClient(config *PartnerConfig) *pipeline.Error 
 		}
 	}
 
-	if err := setFreetext(c.pip, clientConnFreetextKey, c.client); err != nil {
-		return err
-	}
-
-	return nil
+	return setFreetext(c.pip, clientConnFreetextKey, c.client)
 }
 
 func (c *clientTransfer) Request() *pipeline.Error {
@@ -103,7 +99,7 @@ func (c *clientTransfer) Request() *pipeline.Error {
 	// parse the partner's proto config
 	var partConf PartnerConfigTLS
 	if err := utils.JSONConvert(c.pip.TransCtx.RemoteAgent.ProtoConfig, &partConf); err != nil {
-		c.pip.Logger.Error("Failed to parse the pesit partner's proto config: %v", err)
+		c.pip.Logger.Errorf("Failed to parse the pesit partner's proto config: %v", err)
 
 		return pipeline.NewErrorWith(types.TeInternal, "failed to parse the pesit partner's proto config", err)
 	}
@@ -114,14 +110,14 @@ func (c *clientTransfer) Request() *pipeline.Error {
 
 	conn, connErr := c.dialer.Dial("tcp", realAddr)
 	if connErr != nil {
-		c.pip.Logger.Error("Failed to connect to partner: %v", connErr)
+		c.pip.Logger.Errorf("Failed to connect to partner: %v", connErr)
 
 		return pipeline.NewErrorWith(types.TeConnection, "failed to connect to partner", connErr)
 	}
 
 	if err := c.request(fileInfo, &partConf, conn); err != nil {
 		if closeErr := conn.Close(); closeErr != nil {
-			c.pip.Logger.Warning("Failed to close connection: %v", closeErr)
+			c.pip.Logger.Warningf("Failed to close connection: %v", closeErr)
 		}
 
 		return err
@@ -150,7 +146,7 @@ func (c *clientTransfer) request(fileInfo fs.FileInfo, partConf *PartnerConfigTL
 	if c.isTLS {
 		tlsConfig, tlsErr := c.makeTLSConfig(c.pip.TransCtx.RemoteAgent.Address.Host, partConf)
 		if tlsErr != nil {
-			c.pip.Logger.Error("Failed to parse TLS config: %v", tlsErr)
+			c.pip.Logger.Errorf("Failed to parse TLS config: %v", tlsErr)
 
 			return pipeline.NewErrorWith(types.TeInternal, "failed to parse TLS config", tlsErr)
 		}
@@ -159,7 +155,7 @@ func (c *clientTransfer) request(fileInfo fs.FileInfo, partConf *PartnerConfigTL
 	}
 
 	if err := c.client.Connect(conn); err != nil {
-		c.pip.Logger.Error("Failed to open PeSIT connection: %v", err)
+		c.pip.Logger.Errorf("Failed to open PeSIT connection: %v", err)
 
 		return pipeline.NewErrorWith(types.TeConnection, "failed to connect to partner", err)
 	}
@@ -168,7 +164,7 @@ func (c *clientTransfer) request(fileInfo fs.FileInfo, partConf *PartnerConfigTL
 		return err
 	}
 
-	getFreetext(c.pip, serverConnFreetextKey, c.client.FreeText())
+	setFreetextInfo(c.pip, serverConnFreetextKey, c.client.FreeText())
 
 	// initialize transfer
 	method := pesit.MethodRecv
@@ -221,7 +217,7 @@ func (c *clientTransfer) request(fileInfo fs.FileInfo, partConf *PartnerConfigTL
 
 	// request transfer
 	if err := c.client.SelectFile(c.pTrans); err != nil {
-		c.pip.Logger.Error("Failed to make transfer request: %v", err)
+		c.pip.Logger.Errorf("Failed to make transfer request: %v", err)
 
 		return toPipErr(types.TeForbidden, "failed to make transfer request", err)
 	}
@@ -231,7 +227,7 @@ func (c *clientTransfer) request(fileInfo fs.FileInfo, partConf *PartnerConfigTL
 		c.pip.TransCtx.Transfer.Filesize = model.UnknownSize
 	}
 
-	getFreetext(c.pip, serverTransFreetextKey, c.pTrans.FreeText())
+	setFreetextInfo(c.pip, serverTransFreetextKey, c.pTrans.FreeText())
 
 	return nil
 }
@@ -254,7 +250,7 @@ func (c *clientTransfer) authenticateServer() *pipeline.Error {
 			return pipeline.NewError(types.TeBadAuthentication, "server authentication failed: bad password")
 		}
 	} else if !database.IsNotFound(err) {
-		c.pip.Logger.Error("Failed to retrieve partner password: %v", err)
+		c.pip.Logger.Errorf("Failed to retrieve partner password: %v", err)
 		c.SendError(types.TeInternal, "database error")
 
 		return pipeline.NewErrorWith(types.TeInternal, "failed to retrieve partner password", err)
@@ -266,11 +262,11 @@ func (c *clientTransfer) authenticateServer() *pipeline.Error {
 func (c *clientTransfer) Send(file protocol.SendFile) *pipeline.Error {
 	return c.dataTransfer(func() *pipeline.Error {
 		if _, err := io.Copy(c.pTrans, file); err != nil {
-			c.pip.Logger.Error("Failed to send data: %v", err)
+			c.pip.Logger.Errorf("Failed to send data: %v", err)
 
 			pErr := toPesitErr(pesit.CodeOtherTransferError, err)
 			if hErr := c.halt(pesit.StopError, pErr); hErr != nil {
-				c.pip.Logger.Warning("Failed to send error to partner: %v", hErr)
+				c.pip.Logger.Warningf("Failed to send error to partner: %v", hErr)
 			}
 
 			return toPipErr(types.TeDataTransfer, "failed to send data", err)
@@ -283,11 +279,11 @@ func (c *clientTransfer) Send(file protocol.SendFile) *pipeline.Error {
 func (c *clientTransfer) Receive(file protocol.ReceiveFile) *pipeline.Error {
 	return c.dataTransfer(func() *pipeline.Error {
 		if _, err := io.Copy(file, c.pTrans); err != nil {
-			c.pip.Logger.Error("Failed to retrieve data: %v", err)
+			c.pip.Logger.Errorf("Failed to retrieve data: %v", err)
 
 			pErr := toPesitErr(pesit.CodeOtherTransferError, err)
 			if hErr := c.halt(pesit.StopError, pErr); hErr != nil {
-				c.pip.Logger.Warning("Failed to send error to partner: %v", hErr)
+				c.pip.Logger.Warningf("Failed to send error to partner: %v", hErr)
 			}
 
 			return toPipErr(types.TeDataTransfer, "failed to retrieve data", err)
@@ -301,13 +297,13 @@ func (c *clientTransfer) dataTransfer(doTransfer func() *pipeline.Error,
 	file io.Seeker,
 ) *pipeline.Error {
 	if err := c.pTrans.OpenFile(); err != nil {
-		c.pip.Logger.Error("Failed to open transfer file: %v", err)
+		c.pip.Logger.Errorf("Failed to open transfer file: %v", err)
 
 		return toPipErr(types.TeInternal, "failed to open transfer file", err)
 	}
 
 	if err := c.pTrans.StartDataTransfer(); err != nil {
-		c.pip.Logger.Error("Failed to start data transfer: %v", err)
+		c.pip.Logger.Errorf("Failed to start data transfer: %v", err)
 
 		return toPipErr(types.TeInternal, "failed to start data transfer", err)
 	}
@@ -318,7 +314,7 @@ func (c *clientTransfer) dataTransfer(doTransfer func() *pipeline.Error,
 		offset := ckptSize * ckptNumber
 
 		if _, err := file.Seek(offset, io.SeekStart); err != nil {
-			c.pip.Logger.Error("Failed to seek to offset: %v", err)
+			c.pip.Logger.Errorf("Failed to seek to offset: %v", err)
 
 			return toPipErr(types.TeInternal, "failed to seek to offset", err)
 		}
@@ -329,13 +325,13 @@ func (c *clientTransfer) dataTransfer(doTransfer func() *pipeline.Error,
 	}
 
 	if err := c.pTrans.EndDataTransfer(); err != nil {
-		c.pip.Logger.Error("Failed to end data transfer: %v", err)
+		c.pip.Logger.Errorf("Failed to end data transfer: %v", err)
 
 		return toPipErr(types.TeInternal, "failed to end data transfer", err)
 	}
 
 	if err := c.pTrans.CloseFile(nil); err != nil {
-		c.pip.Logger.Error("Failed to close transfer file: %v", err)
+		c.pip.Logger.Errorf("Failed to close transfer file: %v", err)
 
 		return toPipErr(types.TeInternal, "failed to close transfer file", err)
 	}
@@ -345,13 +341,13 @@ func (c *clientTransfer) dataTransfer(doTransfer func() *pipeline.Error,
 
 func (c *clientTransfer) EndTransfer() *pipeline.Error {
 	if err := c.pTrans.DeselectFile(nil); err != nil {
-		c.pip.Logger.Error("Failed to end transfer: %v", err)
+		c.pip.Logger.Errorf("Failed to end transfer: %v", err)
 
 		return toPipErr(types.TeFinalization, "failed to end transfer", err)
 	}
 
 	if err := c.client.Close(nil); err != nil {
-		c.pip.Logger.Warning("failed to close client: %v", err)
+		c.pip.Logger.Warningf("failed to close client: %v", err)
 	}
 
 	return nil
@@ -382,7 +378,7 @@ func (c *clientTransfer) Pause() *pipeline.Error {
 
 func (c *clientTransfer) Cancel() *pipeline.Error {
 	if err := c.halt(pesit.StopCancel, errClientCancel); err != nil {
-		c.pip.Logger.Error("Failed to halt transfer: %v", err)
+		c.pip.Logger.Errorf("Failed to halt transfer: %v", err)
 
 		return nil
 	}
@@ -393,7 +389,7 @@ func (c *clientTransfer) Cancel() *pipeline.Error {
 func (c *clientTransfer) halt(cause pesit.StopCause, pErr pesit.Diagnostic) *pipeline.Error {
 	defer func() {
 		if err := c.client.Close(pErr); err != nil {
-			c.pip.Logger.Warning("failed to close connection: %v", err)
+			c.pip.Logger.Warningf("failed to close connection: %v", err)
 		}
 	}()
 

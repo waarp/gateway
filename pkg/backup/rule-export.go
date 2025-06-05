@@ -40,9 +40,9 @@ func exportRules(logger *log.Logger, db database.ReadAccess) ([]file.Rule, error
 			return nil, fmt.Errorf("failed to export the rule %s's error tasks: %w", src.Name, err)
 		}
 
-		logger.Info("Export Rule %s", src.Name)
+		logger.Infof("Export Rule %q", src.Name)
 
-		Rule := file.Rule{
+		res[i] = file.Rule{
 			Name:           src.Name,
 			IsSend:         src.IsSend,
 			Path:           src.Path,
@@ -54,7 +54,6 @@ func exportRules(logger *log.Logger, db database.ReadAccess) ([]file.Rule, error
 			Post:           post,
 			Error:          errT,
 		}
-		res[i] = Rule
 	}
 
 	return res, nil
@@ -113,7 +112,7 @@ func exportRuleAccesses(db database.ReadAccess, ruleID int64) ([]string, error) 
 			res[i] = fmt.Sprintf("local::%s::%s", agent.Name, account.Login)
 
 		default:
-			//nolint:goerr113 // too specific for a base error
+			//nolint:err113 // too specific for a base error
 			return nil, errors.New("rule access is missing a target")
 		}
 	}

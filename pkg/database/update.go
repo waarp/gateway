@@ -29,7 +29,7 @@ func (u *UpdateQuery) Cols(columns ...string) *UpdateQuery {
 func (u *UpdateQuery) run(ses *Session) error {
 	if hook, ok := u.bean.(WriteHook); ok {
 		if err := hook.BeforeWrite(ses); err != nil {
-			ses.logger.Error("%s entry UPDATE validation failed: %s", u.bean.Appellation(), err)
+			ses.logger.Errorf("%s entry UPDATE validation failed: %v", u.bean.Appellation(), err)
 
 			return fmt.Errorf("%s entry UPDATE validation failed: %w", u.bean.Appellation(), err)
 		}
@@ -44,7 +44,7 @@ func (u *UpdateQuery) run(ses *Session) error {
 	}
 
 	if _, err := query.Update(u.bean); err != nil {
-		ses.logger.Error("Failed to update the %s entry n°%d: %s",
+		ses.logger.Errorf("Failed to update the %s entry n°%d: %v",
 			u.bean.Appellation(), u.bean.GetID(), err)
 
 		return NewInternalError(err)
@@ -52,7 +52,7 @@ func (u *UpdateQuery) run(ses *Session) error {
 
 	if callback, ok := u.bean.(UpdateCallback); ok {
 		if err := callback.AfterUpdate(ses); err != nil {
-			ses.logger.Error("%s entry UPDATE callback failed: %s", u.bean.Appellation(), err)
+			ses.logger.Errorf("%s entry UPDATE callback failed: %v", u.bean.Appellation(), err)
 
 			return fmt.Errorf("%s entry UPDATE callback failed: %w", u.bean.Appellation(), err)
 		}

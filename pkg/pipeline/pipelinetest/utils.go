@@ -66,17 +66,17 @@ type testData struct {
 func (t *testData) makeServerTracer(isSend bool) func() pipeline.Trace {
 	return func() pipeline.Trace {
 		trace := pipeline.Trace{
-			OnPreTask: func(int8) error {
+			OnPreTask: func(int) error {
 				atomic.AddUint32(&t.servPreTasksNb, 1)
 
 				return nil
 			},
-			OnPostTask: func(int8) error {
+			OnPostTask: func(int) error {
 				atomic.AddUint32(&t.servPostTasksNb, 1)
 
 				return nil
 			},
-			OnErrorTask: func(int8) {
+			OnErrorTask: func(int) {
 				atomic.AddUint32(&t.servErrTasksNb, 1)
 			},
 			OnTransferEnd: func() { close(t.servDone) },
@@ -125,19 +125,19 @@ func (t *testData) makeServerTracer(isSend bool) func() pipeline.Trace {
 }
 
 func (t *testData) setClientTrace(pip *pipeline.Pipeline) {
-	pip.Trace.OnPreTask = func(int8) error {
+	pip.Trace.OnPreTask = func(int) error {
 		atomic.AddUint32(&t.cliPreTasksNb, 1)
 
 		return nil
 	}
 
-	pip.Trace.OnPostTask = func(int8) error {
+	pip.Trace.OnPostTask = func(int) error {
 		atomic.AddUint32(&t.cliPostTasksNb, 1)
 
 		return nil
 	}
 
-	pip.Trace.OnErrorTask = func(int8) {
+	pip.Trace.OnErrorTask = func(int) {
 		atomic.AddUint32(&t.cliErrTasksNb, 1)
 	}
 

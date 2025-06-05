@@ -37,7 +37,7 @@ func (u *User) Init(db database.Access) error {
 
 	hash, hashErr := utils.HashPassword(database.BcryptRounds, "admin_password")
 	if hashErr != nil {
-		db.GetLogger().Error("Failed to hash the user password: %s", hashErr)
+		db.GetLogger().Errorf("Failed to hash the user password: %v", hashErr)
 
 		return database.NewInternalError(hashErr)
 	}
@@ -87,7 +87,7 @@ func (u *User) BeforeWrite(db database.Access) error {
 	if err != nil {
 		return fmt.Errorf("failed to check usernames: %w", err)
 	} else if n != 0 {
-		return database.NewValidationError("a user named %q already exist", u.Username)
+		return database.NewValidationErrorf("a user named %q already exist", u.Username)
 	}
 
 	return nil

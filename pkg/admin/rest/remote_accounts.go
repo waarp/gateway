@@ -32,7 +32,7 @@ func getDBRemoteAccount(r *http.Request, db *database.DB) (*model.RemoteAgent,
 	if err := db.Get(&dbAccount, "login=? AND remote_agent_id=?", login, parent.ID).
 		Run(); err != nil {
 		if database.IsNotFound(err) {
-			return parent, nil, notFound("no account '%s' found for partner %s",
+			return parent, nil, notFoundf("no account %q found for partner %s",
 				login, parent.Name)
 		}
 
@@ -119,11 +119,7 @@ func replaceRemoteAccount(logger *log.Logger, db *database.DB) http.HandlerFunc 
 				return fmt.Errorf("failed to update remote account: %w", err)
 			}
 
-			if err := updateAccountPassword(ses, dbAccount, restAccount.Password.Value); err != nil {
-				return err
-			}
-
-			return nil
+			return updateAccountPassword(ses, dbAccount, restAccount.Password.Value)
 		}); handleError(w, logger, tErr) {
 			return
 		}

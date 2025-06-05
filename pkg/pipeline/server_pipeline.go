@@ -34,7 +34,7 @@ func GetOldTransfer(db *database.DB, logger *log.Logger, trans *model.Transfer,
 	}
 
 	if !database.IsNotFound(err) {
-		logger.Error("Failed to retrieve old server transfer: %s", err)
+		logger.Errorf("Failed to retrieve old server transfer: %v", err)
 
 		return nil, NewErrorWith(types.TeInternal, "failed to retrieve old server transfer", err)
 	}
@@ -54,19 +54,19 @@ func NewServerPipeline(db *database.DB, logger *log.Logger, trans *model.Transfe
 
 	pipeline, pipErr := newPipeline(db, logger, transCtx, snmpService)
 	if pipErr != nil {
-		logger.Error("Failed to initialize the server transfer pipeline %d: %v",
+		logger.Errorf("Failed to initialize the server transfer pipeline %d: %v",
 			trans.ID, pipErr)
 
 		return nil, pipErr
 	}
 
 	if transCtx.Rule.IsSend {
-		pipeline.Logger.Info(
+		pipeline.Logger.Infof(
 			"Starting download of file %q requested by %q on the server %q using rule %q",
 			transCtx.Transfer.LocalPath, transCtx.LocalAccount.Login,
 			transCtx.LocalAgent.Name, transCtx.Rule.Name)
 	} else {
-		pipeline.Logger.Info(
+		pipeline.Logger.Infof(
 			"Starting upload of file %q requested by %q on the server %q using rule %q",
 			transCtx.Transfer.LocalPath, transCtx.LocalAccount.Login,
 			transCtx.LocalAgent.Name, transCtx.Rule.Name)

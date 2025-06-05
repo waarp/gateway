@@ -35,14 +35,14 @@ func (s *service) start() error {
 
 	hostKeys, err := s.server.GetCredentials(s.db, AuthSSHPrivateKey)
 	if err != nil {
-		s.logger.Error("Failed to retrieve the server host keys: %s", err)
+		s.logger.Errorf("Failed to retrieve the server host keys: %v", err)
 
 		return fmt.Errorf("failed to retrieve the server host keys: %w", err)
 	}
 
 	sshConf, err1 := getSSHServerConfig(s.db, s.logger, hostKeys, &protoConfig, s.server)
 	if err1 != nil {
-		s.logger.Error("Failed to parse the SSH server configuration: %s", err1)
+		s.logger.Errorf("Failed to parse the SSH server configuration: %v", err1)
 
 		return fmt.Errorf("failed to parse the SSH server configuration: %w", err1)
 	}
@@ -52,7 +52,7 @@ func (s *service) start() error {
 
 	listener, err3 := net.Listen("tcp", addr)
 	if err3 != nil {
-		s.logger.Error("Failed to start server listener: %s", err3)
+		s.logger.Errorf("Failed to start server listener: %v", err3)
 
 		return fmt.Errorf("failed to start server listener: %w", err3)
 	}
@@ -84,7 +84,7 @@ func (s *service) Start() error {
 	s.logger.Info("Starting SFTP server...")
 
 	if err := s.start(); err != nil {
-		s.logger.Error("Failed to start SFTP service: %v", err)
+		s.logger.Errorf("Failed to start SFTP service: %v", err)
 		s.state.Set(utils.StateError, err.Error())
 		snmp.ReportServiceFailure(s.server.Name, err)
 
@@ -92,7 +92,7 @@ func (s *service) Start() error {
 	}
 
 	s.state.Set(utils.StateRunning, "")
-	s.logger.Info("SFTP server started successfully on %s", s.listener.Listener.Addr().String())
+	s.logger.Infof("SFTP server started successfully on %q", s.listener.Listener.Addr().String())
 
 	return nil
 }

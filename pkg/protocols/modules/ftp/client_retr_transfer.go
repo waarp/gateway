@@ -68,7 +68,7 @@ func (t *clientRetrTransfer) EndTransfer() *pipeline.Error {
 
 	defer func() {
 		if err := t.client.Close(); err != nil {
-			t.pip.Logger.Warning("Failed to close FTP connection: %v", err)
+			t.pip.Logger.Warningf("Failed to close FTP connection: %v", err)
 		}
 	}()
 
@@ -85,11 +85,11 @@ func (t *clientRetrTransfer) sendError() {
 		defer analytics.SubOutgoingConnection()
 
 		if err := t.trans.Abort(); err != nil {
-			t.pip.Logger.Warning("Failed to abort FTP transfer: %v", err)
+			t.pip.Logger.Warningf("Failed to abort FTP transfer: %v", err)
 		}
 	}
 
 	if err := t.client.Close(); err != nil {
-		t.pip.Logger.Warning("Failed to close FTP connection: %v", err)
+		t.pip.Logger.Warningf("Failed to close FTP connection: %v", err)
 	}
 }

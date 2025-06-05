@@ -43,7 +43,7 @@ func TestAuthorizeRule(t *testing.T) {
 				Convey("Then the response body should state that access "+
 					"to the rule is now restricted", func() {
 					So(w.Body.String(), ShouldEqual, "Usage of the "+
-						ruleDirection(rule)+" rule '"+rule.Name+"' is now restricted.")
+						ruleDirection(rule)+` rule "`+rule.Name+`" is now restricted.`)
 				})
 
 				Convey("Then it should reply 'OK'", func() {
@@ -163,7 +163,7 @@ func TestRevokeRule(t *testing.T) {
 				Convey("Then the response body should state that access to the rule "+
 					"is now unrestricted", func() {
 					So(w.Body.String(), ShouldEqual, "Usage of the "+ruleDirection(rule)+
-						" rule '"+rule.Name+"' is now unrestricted.")
+						` rule "`+rule.Name+`" is now unrestricted.`)
 				})
 
 				Convey("Then it should reply 'OK'", func() {
@@ -338,7 +338,7 @@ func TestRuleAllowAll(t *testing.T) {
 					Convey("Then the response body should state that access to the rule "+
 						"is now unrestricted", func() {
 						So(w.Body.String(), ShouldEqual, "Usage of the "+ruleDirection(rule)+
-							" rule '"+rule.Name+"' is now unrestricted.")
+							` rule "`+rule.Name+`" is now unrestricted.`)
 					})
 
 					Convey("Then all accesses should have been removed from the database", func() {

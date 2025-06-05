@@ -151,7 +151,7 @@ func TestRuleAccessBeforeWrite(t *testing.T) {
 					err := ra.BeforeWrite(db)
 
 					Convey("Then the error should say 'No rule found'", func() {
-						So(err, ShouldBeError, database.NewValidationError(
+						So(err, ShouldBeError, database.NewValidationErrorf(
 							"no rule found with ID %d", ra.RuleID))
 					})
 				})

@@ -11,9 +11,14 @@ import (
 	"code.waarp.fr/apps/gateway/gateway/pkg/pipeline"
 )
 
-// NewR66Error returns a new r66.Error from the given code and message. The
+// NewR66Error returns a new r66.Error from the given code and message.
+func NewR66Error(code rune, details string) *r66.Error {
+	return &r66.Error{Code: code, Detail: details}
+}
+
+// NewR66Errorf returns a new r66.Error from the given code and message. The
 // message accepts formats and arguments, similarly to the fmt package.
-func NewR66Error(code rune, details string, args ...interface{}) *r66.Error {
+func NewR66Errorf(code rune, details string, args ...any) *r66.Error {
 	return &r66.Error{Code: code, Detail: fmt.Sprintf(details, args...)}
 }
 
@@ -136,14 +141,14 @@ func FromR66Error(err error, pip *pipeline.Pipeline) *pipeline.Error {
 	case r66.SizeNotAllowed:
 		return pipeline.NewError(types.TeForbidden, details)
 	case r66.StoppedTransfer:
-		if err := pip.Pause(context.Background()); err != nil {
-			return pipeline.NewErrorWith(types.TeInternal, "failed to pause transfer", err)
+		if pErr := pip.Pause(context.Background()); pErr != nil {
+			return pipeline.NewErrorWith(types.TeInternal, "failed to pause transfer", pErr)
 		}
 
 		return nil
 	case r66.CanceledTransfer:
-		if err := pip.Cancel(context.Background()); err != nil {
-			return pipeline.NewErrorWith(types.TeInternal, "failed to cancel transfer", err)
+		if cErr := pip.Cancel(context.Background()); cErr != nil {
+			return pipeline.NewErrorWith(types.TeInternal, "failed to cancel transfer", cErr)
 		}
 
 		return nil

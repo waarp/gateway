@@ -82,14 +82,14 @@ func TestRuleBeforeWrite(t *testing.T) {
 				rule.Name = old.Name
 				rule.IsSend = old.IsSend
 
-				shouldFailWith("the rule already exist", database.NewValidationError(
+				shouldFailWith("the rule already exist", database.NewValidationErrorf(
 					"a %s rule named %q already exist", rule.Direction(), rule.Name))
 			})
 
 			Convey("Given a rule with a path ancestor to this rule's path", func() {
 				rule.Path = path.Join(old.Path, rule.Path)
 
-				shouldFailWith("the path cannot be a descendant", database.NewValidationError(
+				shouldFailWith("the path cannot be a descendant", database.NewValidationErrorf(
 					"the rule's path cannot be the descendant of another rule's path "+
 						"(the path %q is already used by rule %q)", old.Path, old.Name))
 			})

@@ -64,7 +64,7 @@ func maskToStr(m PermsMask, s int) string {
 
 // MaskToPerms converts a PermMask to an equivalent Permissions instance.
 func MaskToPerms(m PermsMask) *Permissions {
-	//nolint:gomnd //too specific
+	//nolint:mnd //too specific
 	return &Permissions{
 		Transfers:      maskToStr(m, 0*len(permString)),
 		Servers:        maskToStr(m, 1*len(permString)),
@@ -76,14 +76,14 @@ func MaskToPerms(m PermsMask) *Permissions {
 }
 
 func permToMask(mask *PermsMask, perm string, off int) error {
-	invalid := func(format string, args ...interface{}) error {
+	invalid := func(format string, args ...any) error {
 		reason := fmt.Sprintf(format, args...)
 
-		//nolint:goerr113 //too specific to have a base error
+		//nolint:err113 //too specific to have a base error
 		return fmt.Errorf("invalid permission string %q: %s", perm, reason)
 	}
 
-	if len(perm) == 0 {
+	if perm == "" {
 		return nil
 	}
 
@@ -114,7 +114,7 @@ func permToMask(mask *PermsMask, perm string, off int) error {
 
 // PermsToMask converts the given Permissions instance to an equivalent PermsMask.
 //
-//nolint:gomnd //too specific
+//nolint:mnd //too specific
 func PermsToMask(perms *Permissions) (PermsMask, error) {
 	if perms == nil {
 		return 0, nil

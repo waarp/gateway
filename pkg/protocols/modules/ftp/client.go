@@ -46,7 +46,7 @@ func (c *client) Start() error {
 	c.logger = logging.NewLogger(c.dbClient.Name)
 	if err := c.start(); err != nil {
 		c.state.Set(utils.StateError, err.Error())
-		c.logger.Error("failed to start the SFTP client: %v", err)
+		c.logger.Errorf("failed to start the SFTP client: %v", err)
 		snmp.ReportServiceFailure(c.dbClient.Name, err)
 
 		return err
@@ -85,7 +85,7 @@ func (c *client) Stop(ctx context.Context) error {
 
 func (c *client) stop(ctx context.Context) error {
 	if err := pipeline.List.StopAllFromClient(ctx, c.dbClient.ID); err != nil {
-		c.logger.Error("Failed to stop the FTP client: %v", err)
+		c.logger.Errorf("Failed to stop the FTP client: %v", err)
 
 		return fmt.Errorf("failed to stop the FTP client: %w", err)
 	}
@@ -174,7 +174,7 @@ func (c *client) connect(pip *pipeline.Pipeline) (*goftp.Client, *pipeline.Error
 			if dbCert.Type == auth.TLSCertificate {
 				cert, err := tls.X509KeyPair([]byte(dbCert.Value), []byte(dbCert.Value2))
 				if err != nil {
-					pip.Logger.Warning("failed to parse TLS certificate %q: %v", dbCert.Name, err)
+					pip.Logger.Warningf("failed to parse TLS certificate %q: %v", dbCert.Name, err)
 
 					continue
 				}

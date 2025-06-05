@@ -77,7 +77,7 @@ func authenticate(db database.ReadAccess, owner CredOwnerTable, authType, proto 
 ) (res *authentication.Result, err error) {
 	handler := authentication.GetInternalAuthHandler(authType, proto)
 	if handler == nil {
-		//nolint:goerr113 //dynamic error is better here for debugging
+		//nolint:err113 //dynamic error is better here for debugging
 		return nil, fmt.Errorf("unknown authentication type %q", authType)
 	}
 

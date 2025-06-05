@@ -134,7 +134,7 @@ func TestR66ServerInterruption(t *testing.T) {
 
 		serv.SetTracer(func() pipeline.Trace {
 			return pipeline.Trace{
-				OnPreTask: func(int8) error {
+				OnPreTask: func(int) error {
 					close(preTasksDone)
 
 					return nil

@@ -640,7 +640,7 @@ func TestUpdateRule(t *testing.T) {
 						Convey("Then the response body should state that "+
 							"the rule was not found", func() {
 							So(w.Body.String(), ShouldEqual, ruleDirection(old)+
-								" rule 'toto' not found\n")
+								" rule \"toto\" not found\n")
 						})
 
 						Convey("Then the old rule should still exist", func() {
@@ -899,7 +899,7 @@ func TestReplaceRule(t *testing.T) {
 						Convey("Then the response body should state that "+
 							"the rule was not found", func() {
 							So(w.Body.String(), ShouldEqual, ruleDirection(old)+
-								" rule 'toto' not found\n")
+								" rule \"toto\" not found\n")
 						})
 
 						Convey("Then the old rule should still exist", func() {

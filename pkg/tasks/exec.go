@@ -42,11 +42,12 @@ func (e *execTask) Run(parent context.Context, params map[string]string,
 		logger.Debug(scanner.Text())
 	}
 
-	logger.Debug("Done executing command %s %s", params["path"], params["args"])
+	logger.Debugf("Done executing command %s %s", params["path"], params["args"])
 
 	return nil
 }
 
+//nolint:revive //need multiple return results here
 func parseExecArgs(params map[string]string) (path, args string,
 	delay time.Duration, err error,
 ) {
@@ -60,7 +61,7 @@ func parseExecArgs(params map[string]string) (path, args string,
 	args = params["args"]
 
 	if delayStr, hasDelay := params["delay"]; hasDelay {
-		//nolint:gomnd // useless to define a constant
+		//nolint:mnd // useless to define a constant
 		delayMs, parsErr := strconv.ParseInt(delayStr, 10, 64)
 		if parsErr != nil {
 			parsErr = fmt.Errorf("invalid program delay: %w", ErrBadTaskArguments)

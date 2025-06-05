@@ -29,6 +29,7 @@ func AddInit(t Initialiser) { inits = append(inits, t) }
 // for the first time.
 type Initialiser interface {
 	Table
+	// Init initializes the table.
 	Init(db Access) error
 }
 
@@ -38,24 +39,26 @@ type Executor struct {
 	ses     *xorm.Session
 }
 
-func (e *Executor) Exec(query string, args ...interface{}) (sql.Result, error) {
-	elems := append([]interface{}{query}, args...)
+func (e *Executor) Exec(query string, args ...any) (sql.Result, error) {
+	elems := append([]any{query}, args...)
 
-	if res, err := e.ses.Exec(elems...); err != nil {
+	res, err := e.ses.Exec(elems...)
+	if err != nil {
 		return nil, fmt.Errorf("command failed: %w", err)
-	} else {
-		return res, nil
 	}
+
+	return res, nil
 }
 
-func (e *Executor) Query(query string, args ...interface{}) ([]map[string]interface{}, error) {
-	elems := append([]interface{}{query}, args...)
+func (e *Executor) Query(query string, args ...any) ([]map[string]any, error) {
+	elems := append([]any{query}, args...)
 
-	if res, err := e.ses.QueryInterface(elems...); err != nil {
+	res, err := e.ses.QueryInterface(elems...)
+	if err != nil {
 		return nil, fmt.Errorf("query failed: %w", err)
-	} else {
-		return res, nil
 	}
+
+	return res, nil
 }
 
 // initDatabase initializes the database and then updates it to the latest version.
@@ -66,14 +69,14 @@ func initDatabase(db *Standalone) error {
 
 	dbExist, existErr := db.engine.IsTableExist(&version{})
 	if existErr != nil {
-		logger.Critical("Failed to probe the database table list: %v", existErr)
+		logger.Criticalf("Failed to probe the database table list: %v", existErr)
 
 		return fmt.Errorf("failed to probe the database table list: %w", existErr)
 	}
 
 	if !dbExist {
 		if err2 := migrations.DoMigration(sqlDB, logger, vers.Num, dialect, nil); err2 != nil {
-			logger.Critical("Database initialization failed: %v", err2)
+			logger.Criticalf("Database initialization failed: %v", err2)
 
 			return fmt.Errorf("database initialization failed: %w", err2)
 		}
@@ -83,7 +86,7 @@ func initDatabase(db *Standalone) error {
 		if !dbExist {
 			if err2 := migrations.DoMigration(sqlDB, logger, migrations.VersionNone,
 				dialect, nil); err2 != nil {
-				logger.Warning("Failed to restore the pristine database: %v", err2)
+				logger.Warningf("Failed to restore the pristine database: %v", err2)
 			}
 		}
 
@@ -96,7 +99,7 @@ func initDatabase(db *Standalone) error {
 func initTables(ses *Session) error {
 	for _, init := range inits {
 		if err := init.Init(ses); err != nil {
-			ses.logger.Error("Failed to initialize table %q: %v", init.TableName(), err)
+			ses.logger.Errorf("Failed to initialize table %q: %v", init.TableName(), err)
 
 			return fmt.Errorf("failed to initialize table %q: %w", init.TableName(), err)
 		}

@@ -66,7 +66,7 @@ func (h *HistoryEntry) setTransInfoOwner(info *TransferInfo) {
 // inserted in the database.
 //
 //nolint:funlen,gocyclo,cyclop,gocognit // validation can be long...
-func (h *HistoryEntry) BeforeWrite(db database.Access) error {
+func (h *HistoryEntry) BeforeWrite(_ database.Access) error {
 	h.Owner = conf.GlobalConfig.GatewayName
 
 	if h.Owner == "" {
@@ -111,7 +111,7 @@ func (h *HistoryEntry) BeforeWrite(db database.Access) error {
 
 	if h.LocalPath != "" {
 		if err := fs.ValidPath(h.LocalPath); err != nil {
-			return database.NewValidationError("invalid local path: %v", err)
+			return database.NewValidationErrorf("invalid local path: %v", err)
 		}
 	}
 
@@ -125,11 +125,11 @@ func (h *HistoryEntry) BeforeWrite(db database.Access) error {
 	}
 
 	if !ConfigChecker.IsValidProtocol(h.Protocol) {
-		return database.NewValidationError("%q is not a valid protocol", h.Protocol)
+		return database.NewValidationErrorf("%q is not a valid protocol", h.Protocol)
 	}
 
 	if !types.ValidateStatusForHistory(h.Status) {
-		return database.NewValidationError("%q is not a valid transfer history status", h.Status)
+		return database.NewValidationErrorf("%q is not a valid transfer history status", h.Status)
 	}
 
 	if !h.IsServer && h.Client == "" {

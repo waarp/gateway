@@ -37,10 +37,10 @@ func (s *sessionHandler) ValidRequest(req *r66.Request) (r66.TransferHandler, er
 	}
 
 	if !rule.IsSend {
-		s.logger.Info("Upload of file %s was requested by %s, using rule %s",
+		s.logger.Infof("Upload of file %q was requested by %q, using rule %q",
 			path.Base(req.Filepath), s.account.Login, req.Rule)
 	} else {
-		s.logger.Info("Download of file %s was requested by %s, using rule %s",
+		s.logger.Infof("Download of file %q was requested by %q, using rule %q",
 			path.Base(req.Filepath), s.account.Login, req.Rule)
 	}
 
@@ -60,7 +60,7 @@ func (s *sessionHandler) ValidRequest(req *r66.Request) (r66.TransferHandler, er
 		pip.Trace = s.tracer()
 	}
 
-	s.getSize(req, rule, trans)
+	s.setFileSize(req, rule, trans)
 
 	if err := internal.UpdateTransferInfo(req.Infos, pip); err != nil {
 		pip.SetError(err.Code(), err.Details())
@@ -115,20 +115,20 @@ func (s *sessionHandler) getRule(ruleName string, isSend bool) (*model.Rule, *r6
 	if err := s.db.Get(&rule, "name=? AND is_send=?", ruleName, isSend).Run(); err != nil {
 		if database.IsNotFound(err) {
 			rule.IsSend = isSend
-			s.logger.Warning("Requested %s transfer rule '%s' does not exist",
+			s.logger.Warningf("Requested %s transfer rule %q does not exist",
 				rule.Direction(), ruleName)
 
 			return nil, internal.NewR66Error(r66.IncorrectCommand, "rule does not exist")
 		}
 
-		s.logger.Error("Failed to retrieve transfer rule: %s", err)
+		s.logger.Errorf("Failed to retrieve transfer rule: %v", err)
 
 		return nil, internal.NewR66Error(r66.Internal, "database error")
 	}
 
 	ok, err := rule.IsAuthorized(s.db, s.account)
 	if err != nil {
-		s.logger.Error("Failed to check rule permissions: %s", err)
+		s.logger.Errorf("Failed to check rule permissions: %v", err)
 
 		return nil, internal.NewR66Error(r66.Internal, "database error")
 	}
@@ -163,7 +163,7 @@ func (s *sessionHandler) getTransfer(req *r66.Request, rule *model.Rule) (*model
 	return trans, nil
 }
 
-func (s *sessionHandler) getSize(req *r66.Request, rule *model.Rule,
+func (s *sessionHandler) setFileSize(req *r66.Request, rule *model.Rule,
 	trans *model.Transfer,
 ) {
 	if rule.IsSend {
@@ -198,7 +198,7 @@ func (s *sessionHandler) GetTransferInfo(id int64, isClient bool) (*r66.Transfer
 		remoteID, s.account.ID).OrderBy("start", false).Run(); database.IsNotFound(err) {
 		return s.getInfoFromHistory(id)
 	} else if err != nil {
-		s.logger.Error("Failed to retrieve transfer entry: %v", err)
+		s.logger.Errorf("Failed to retrieve transfer entry: %v", err)
 
 		return nil, &r66.Error{Code: r66.Internal, Detail: "database error"}
 	}
@@ -215,7 +215,7 @@ func (s *sessionHandler) getInfoFromTransfer(remoteID int64, trans *model.Transf
 
 	var protoConf serverConfig
 	if err := utils.JSONConvert(ctx.LocalAgent.ProtoConfig, &protoConf); err != nil {
-		s.logger.Error("Failed to parse server configuration: %v", err)
+		s.logger.Errorf("Failed to parse server configuration: %v", err)
 
 		return nil, &r66.Error{Code: r66.Internal, Detail: "failed to parse server configuration"}
 	}
@@ -247,7 +247,7 @@ func (s *sessionHandler) getInfoFromHistory(transID int64) (*r66.TransferInfo, e
 	if database.IsNotFound(dbErr) {
 		return nil, &r66.Error{Code: r66.IncorrectCommand, Detail: "transfer not found"}
 	} else if dbErr != nil {
-		s.logger.Error("Failed to retrieve history entry: %v", dbErr)
+		s.logger.Errorf("Failed to retrieve history entry: %v", dbErr)
 
 		return nil, &r66.Error{Code: r66.Internal, Detail: "database error"}
 	}
@@ -287,13 +287,13 @@ func (s *sessionHandler) GetFileInfo(ruleName, pat string) ([]r66.FileInfo, erro
 	if err := s.db.Get(&rule, "name=? AND is_send=?", ruleName, true).Run(); database.IsNotFound(err) {
 		return nil, &r66.Error{Code: r66.IncorrectCommand, Detail: "rule not found"}
 	} else if err != nil {
-		s.logger.Error("Failed to retrieve rule: %v", err)
+		s.logger.Errorf("Failed to retrieve rule: %v", err)
 
 		return nil, &r66.Error{Code: r66.Internal, Detail: "database error"}
 	}
 
 	if ok, err := rule.IsAuthorized(s.db, s.account); err != nil {
-		s.logger.Error("Failed to check rule permissions: %v", err)
+		s.logger.Errorf("Failed to check rule permissions: %v", err)
 
 		return nil, &r66.Error{Code: r66.Internal, Detail: "database error"}
 	} else if !ok {
@@ -316,7 +316,7 @@ func (s *sessionHandler) GetFileInfo(ruleName, pat string) ([]r66.FileInfo, erro
 func (s *sessionHandler) listDirFiles(root, pattern string) ([]r66.FileInfo, error) {
 	matches, globErr := fs.Glob(path.Join(root, pattern))
 	if globErr != nil {
-		s.logger.Error("Failed to retrieve matching files: %v", globErr)
+		s.logger.Errorf("Failed to retrieve matching files: %v", globErr)
 
 		return nil, &r66.Error{Code: r66.IncorrectCommand, Detail: "incorrect file pattern"}
 	}
@@ -330,7 +330,7 @@ func (s *sessionHandler) listDirFiles(root, pattern string) ([]r66.FileInfo, err
 	for _, match := range matches {
 		file, statErr := fs.Stat(match)
 		if statErr != nil {
-			s.logger.Error("Failed to retrieve file %q info: %v", match, statErr)
+			s.logger.Errorf("Failed to retrieve file %q info: %v", match, statErr)
 
 			continue
 		}
@@ -361,6 +361,7 @@ func (s *sessionHandler) makeDir(rule *model.Rule) (string, error) {
 		branch = utils.Branch
 	)
 
+	//nolint:wrapcheck //wrapping adds nothing here
 	return utils.GetPath("", leaf(rule.LocalDir), leaf(servDir),
 		branch(s.agent.RootDir), leaf(defDir),
 		branch(conf.GlobalConfig.Paths.GatewayHome))

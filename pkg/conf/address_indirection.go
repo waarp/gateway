@@ -34,11 +34,11 @@ func (a *addressOverride) parse() error {
 	a.addressMap = map[string]string{}
 	for _, val := range a.Indirections {
 		slice := strings.Split(val, "->")
-		if len(slice) < 2 { //nolint:gomnd //too specific
-			//nolint:goerr113 //this is a base error
+		if len(slice) < 2 { //nolint:mnd //too specific
+			//nolint:err113 //this is a base error
 			return fmt.Errorf("malformed address indirection '%s' (missing '->' separator)", val)
-		} else if len(slice) > 2 { //nolint:gomnd //too specific
-			//nolint:goerr113 //this is a base error
+		} else if len(slice) > 2 { //nolint:mnd //too specific
+			//nolint:err113 //this is a base error
 			return fmt.Errorf("malformed address indirection '%s' (too many '->' separators)", val)
 		}
 
@@ -46,7 +46,7 @@ func (a *addressOverride) parse() error {
 		addr := strings.TrimSpace(slice[1])
 
 		if _, ok := a.addressMap[target]; ok {
-			//nolint:goerr113 //this is a base error
+			//nolint:err113 //this is a base error
 			return fmt.Errorf("duplicate address indirection target '%s'", target)
 		}
 
@@ -88,10 +88,10 @@ func checkIndirectionConsistency(target, redirect string) error {
 		if targetHasPort {
 			return fmt.Errorf("address %q is missing a port number: %w",
 				redirect, errIndirectionWithPort)
-		} else {
-			return fmt.Errorf("address %q should not have a port number: %w",
-				redirect, errIndirectionNoPort)
 		}
+
+		return fmt.Errorf("address %q should not have a port number: %w",
+			redirect, errIndirectionNoPort)
 	}
 
 	return nil

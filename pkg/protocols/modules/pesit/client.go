@@ -38,7 +38,7 @@ func (c *client) Start() error {
 	c.logger = logging.NewLogger(c.dbClient.Name)
 	if err := c.start(); err != nil {
 		c.state.Set(utils.StateError, err.Error())
-		c.logger.Error("failed to start the SFTP client: %v", err)
+		c.logger.Errorf("failed to start the SFTP client: %v", err)
 
 		return err
 	}
@@ -84,7 +84,7 @@ func (c *client) Stop(ctx context.Context) error {
 
 func (c *client) stop(ctx context.Context) error {
 	if err := pipeline.List.StopAllFromClient(ctx, c.dbClient.ID); err != nil {
-		c.logger.Error("Failed to stop the Pesit client: %v", err)
+		c.logger.Errorf("Failed to stop the Pesit client: %v", err)
 
 		return fmt.Errorf("failed to stop the Pesit client: %w", err)
 	}

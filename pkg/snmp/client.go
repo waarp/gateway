@@ -82,7 +82,7 @@ func (s *Service) sendTrap(trap *gosnmp.SnmpTrap) error {
 	for _, monitor := range s.monitors {
 		client, err := connect(s.Logger, monitor)
 		if err != nil {
-			s.Logger.Error("Failed to connect to SNMP monitor %q at %q: %v",
+			s.Logger.Errorf("Failed to connect to SNMP monitor %q at %q: %v",
 				monitor.Name, monitor.UDPAddress, err)
 		}
 
@@ -92,7 +92,7 @@ func (s *Service) sendTrap(trap *gosnmp.SnmpTrap) error {
 	defer func() {
 		for _, client := range clients {
 			if err := client.Conn.Close(); err != nil {
-				s.Logger.Error("Failed to close SNMP connection to %q: %v",
+				s.Logger.Errorf("Failed to close SNMP connection to %q: %v",
 					client.Conn.RemoteAddr().String(), err)
 			}
 		}
@@ -102,7 +102,7 @@ func (s *Service) sendTrap(trap *gosnmp.SnmpTrap) error {
 
 	for _, client := range clients {
 		if _, err := client.SendTrap(*trap); err != nil {
-			s.Logger.Error("Failed to send SNMP trap: %v", err)
+			s.Logger.Errorf("Failed to send SNMP trap: %v", err)
 
 			return fmt.Errorf("failed to send SNMP trap: %w", err)
 		}

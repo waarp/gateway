@@ -17,7 +17,7 @@ import (
 func testR66Server() string {
 	authHandler := testAuthHandler(func(*r66.Authent) (r66.SessionHandler, error) {
 		return testSessionHandler(func(*r66.Request) (r66.TransferHandler, error) {
-			return nil, errors.New("should not happen") //nolint:goerr113 //base test error
+			return nil, errors.New("should not happen") //nolint:err113 //base test error
 		}), nil
 	})
 

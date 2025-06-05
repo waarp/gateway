@@ -252,7 +252,7 @@ func (f *FileStream) close() *Error {
 	}
 
 	if fErr := f.file.Close(); fErr != nil {
-		f.Logger.Warning("Failed to close file: %s", fErr)
+		f.Logger.Warningf("Failed to close file: %v", fErr)
 	}
 
 	if f.TransCtx.Transfer.Filesize == model.UnknownSize {
@@ -351,6 +351,6 @@ func (f *FileStream) move() *Error {
 
 func (f *FileStream) stop() {
 	if fErr := f.file.Close(); fErr != nil {
-		f.Logger.Warning("Failed to close file: %s", fErr)
+		f.Logger.Warningf("Failed to close file: %v", fErr)
 	}
 }

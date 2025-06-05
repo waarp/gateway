@@ -120,13 +120,13 @@ func TestTransferBeforeWrite(t *testing.T) {
 
 				Convey("Given that the rule id is invalid", func() {
 					trans.RuleID = 1000
-					shouldFailWith("the rule does not exist", database.NewValidationError(
+					shouldFailWith("the rule does not exist", database.NewValidationErrorf(
 						"the rule %d does not exist", trans.RuleID))
 				})
 
 				Convey("Given that the account id is invalid", func() {
 					trans.LocalAccountID = utils.NewNullInt64(1000)
-					shouldFailWith("the local account does not exist", database.NewValidationError(
+					shouldFailWith("the local account does not exist", database.NewValidationErrorf(
 						"the local account %d does not exist", trans.LocalAccountID.Int64))
 				})
 

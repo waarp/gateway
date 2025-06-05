@@ -13,7 +13,7 @@ type Trace struct {
 	OnTransferStart func() error
 	// OnPreTask is called after each pre-task. The task's rank is given as
 	// argument.
-	OnPreTask func(rank int8) error
+	OnPreTask func(rank int) error
 	// OnDataStart is called when the data transfer starts.
 	OnDataStart func() error
 	// OnRead is called each time data is read from the transfer stream. The
@@ -29,7 +29,7 @@ type Trace struct {
 	OnMove func() error
 	// OnPostTask is called after each post-task. The task's rank is given as
 	// argument.
-	OnPostTask func(rank int8) error
+	OnPostTask func(rank int) error
 	// OnFinalization is called during the transfer's finalization, when the
 	// transfer ends normally.
 	OnFinalization func() error
@@ -38,7 +38,7 @@ type Trace struct {
 	OnError func(cause error)
 	// OnErrorTask is called after each error-task. The task's rank is given as
 	// argument.
-	OnErrorTask func(rank int8)
+	OnErrorTask func(rank int)
 	// OnPause is called when the transfer is paused.
 	OnPause func()
 	// OnInterruption is called when the transfer is interrupted by a shutdown.

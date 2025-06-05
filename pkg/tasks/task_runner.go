@@ -47,18 +47,18 @@ func NewTaskRunner(db *database.DB, logger *log.Logger, transCtx *model.Transfer
 }
 
 // PreTasks executes the transfer's pre-tasks.
-func (r *Runner) PreTasks(trace func(rank int8) error) *Error {
+func (r *Runner) PreTasks(trace func(rank int) error) *Error {
 	return r.runTasks(r.transCtx.PreTasks, false, trace)
 }
 
 // PostTasks executes the transfer's post-tasks.
-func (r *Runner) PostTasks(trace func(rank int8) error) *Error {
+func (r *Runner) PostTasks(trace func(rank int) error) *Error {
 	return r.runTasks(r.transCtx.PostTasks, false, trace)
 }
 
 // ErrorTasks executes the transfer's error-tasks.
-func (r *Runner) ErrorTasks(trace func(rank int8)) *Error {
-	return r.runTasks(r.transCtx.ErrTasks, true, func(rank int8) error {
+func (r *Runner) ErrorTasks(trace func(rank int)) *Error {
+	return r.runTasks(r.transCtx.ErrTasks, true, func(rank int) error {
 		if trace != nil {
 			trace(rank)
 		}
@@ -77,13 +77,13 @@ func (r *Runner) runTask(updTicker *time.Ticker, task *model.Task, taskInfo stri
 
 	args, setupErr := r.setup(task)
 	if setupErr != nil {
-		r.logger.Error("%s: setup failed: %v", taskInfo, setupErr)
+		r.logger.Errorf("%s: setup failed: %v", taskInfo, setupErr)
 
 		return newErrorWith(types.TeExternalOperation,
 			fmt.Sprintf("%s: setup failed", taskInfo), setupErr)
 	}
 
-	r.logger.Debug("Executing task %s with args %s", taskInfo, mapToStr(args))
+	r.logger.Debugf("Executing task %s with args %s", taskInfo, mapToStr(args))
 
 	var runErr error
 
@@ -96,14 +96,14 @@ func (r *Runner) runTask(updTicker *time.Ticker, task *model.Task, taskInfo stri
 	if runErr != nil {
 		var warningError *WarningError
 		if !errors.As(runErr, &warningError) {
-			r.logger.Error("%s: %v", taskInfo, runErr)
+			r.logger.Errorf("%s: %v", taskInfo, runErr)
 			r.transCtx.Transfer.ErrCode = types.TeExternalOperation
 			r.transCtx.Transfer.ErrDetails = fmt.Sprintf("%s: %v", taskInfo, runErr)
 
 			return newErrorWith(types.TeExternalOperation, taskInfo, runErr)
 		}
 
-		r.logger.Warning("%s: %v", taskInfo, runErr)
+		r.logger.Warningf("%s: %v", taskInfo, runErr)
 		r.transCtx.Transfer.ErrCode = types.TeWarning
 		r.transCtx.Transfer.ErrDetails = fmt.Sprintf("%s: %v", taskInfo, runErr)
 	} else {
@@ -129,7 +129,7 @@ func (r *Runner) updateProgress(updTicker *time.Ticker, isErrTasks bool) *Error 
 
 	if dbErr := r.db.Update(r.transCtx.Transfer).Cols("task_number", "error_code",
 		"error_details", "filesize").Run(); dbErr != nil {
-		r.logger.Error("Failed to update transfer after task: %s", dbErr)
+		r.logger.Errorf("Failed to update transfer after task: %v", dbErr)
 
 		if !isErrTasks {
 			return newErrorWith(types.TeInternal, "failed to update transfer", dbErr)
@@ -141,12 +141,12 @@ func (r *Runner) updateProgress(updTicker *time.Ticker, isErrTasks bool) *Error 
 
 // runTasks executes sequentially the list of tasks given according to the
 // Runner context.
-func (r *Runner) runTasks(tasks []*model.Task, isErrTasks bool, trace func(rank int8) error,
+func (r *Runner) runTasks(tasks []*model.Task, isErrTasks bool, trace func(rank int) error,
 ) *Error {
 	r.lock.Add(1)
 	defer r.lock.Done()
 
-	for i := r.transCtx.Transfer.TaskNumber; i < int8(len(tasks)); i++ {
+	for i := int(r.transCtx.Transfer.TaskNumber); i < len(tasks); i++ {
 		task := tasks[i]
 		taskInfo := fmt.Sprintf("Task %s @ %s %s[%v]", task.Type, r.transCtx.Rule.Name,
 			task.Chain, task.Rank)
@@ -164,10 +164,12 @@ func (r *Runner) runTasks(tasks []*model.Task, isErrTasks bool, trace func(rank 
 			return err
 		}
 
-		if trace != nil {
-			if err := trace(i); err != nil {
-				return newErrorWith(types.TeInternal, "task trace error", err)
-			}
+		if trace == nil {
+			continue
+		}
+
+		if err := trace(i); err != nil {
+			return newErrorWith(types.TeInternal, "task trace error", err)
 		}
 	}
 
@@ -198,20 +200,22 @@ func (r *Runner) replace(t *model.Task) (map[string]string, error) {
 	replacers.addInfo(r.transCtx)
 
 	for key, f := range replacers {
-		if strings.Contains(rawArgs, key) {
-			rep, err := f(r)
-			if err != nil {
-				return nil, err
-			}
-
-			bytesRep, err := json.Marshal(rep)
-			if err != nil {
-				return nil, fmt.Errorf("cannot prepare value for replacement: %w", err)
-			}
-
-			replacement := string(bytesRep[1 : len(bytesRep)-1])
-			rawArgs = strings.ReplaceAll(rawArgs, key, replacement)
+		if !strings.Contains(rawArgs, key) {
+			continue
 		}
+
+		rep, err := f(r)
+		if err != nil {
+			return nil, err
+		}
+
+		bytesRep, err := json.Marshal(rep)
+		if err != nil {
+			return nil, fmt.Errorf("cannot prepare value for replacement: %w", err)
+		}
+
+		replacement := string(bytesRep[1 : len(bytesRep)-1])
+		rawArgs = strings.ReplaceAll(rawArgs, key, replacement)
 	}
 
 	var newArgs map[string]string
@@ -229,7 +233,7 @@ func (r *Runner) getFilesize() int64 {
 
 	info, err := fs.Stat(r.transCtx.Transfer.LocalPath)
 	if err != nil {
-		r.logger.Warning("Failed to retrieve file size: %s", err)
+		r.logger.Warningf("Failed to retrieve file size: %v", err)
 
 		return -1
 	}

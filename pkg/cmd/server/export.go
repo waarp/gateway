@@ -34,17 +34,17 @@ func (e *ExportCommand) Run(db *database.DB, logger *log.Logger) error {
 	f := os.Stdout
 
 	if e.File != "" {
-		var err error
+		var opErr error
 
-		f, err = os.OpenFile(e.File, os.O_WRONLY|os.O_CREATE|os.O_TRUNC, 0o600)
-		if err != nil {
-			return fmt.Errorf("failed to open the output file: %w", err)
+		f, opErr = os.OpenFile(e.File, os.O_WRONLY|os.O_CREATE|os.O_TRUNC, 0o600)
+		if opErr != nil {
+			return fmt.Errorf("failed to open the output file: %w", opErr)
 		}
 
 		//nolint:gosec //close must be deferred here
 		defer func() {
 			if err := f.Close(); err != nil {
-				logger.Warning("Error while closing the destination file: %s", err)
+				logger.Warningf("Error while closing the destination file: %v", err)
 			}
 		}()
 	}

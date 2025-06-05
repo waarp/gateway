@@ -21,7 +21,7 @@ func exportClients(logger *log.Logger, db database.ReadAccess) ([]file.Client, e
 	clients := make([]file.Client, len(dbClients))
 
 	for i, dbClient := range dbClients {
-		logger.Info("Exporting client %q", dbClient.Name)
+		logger.Infof("Exporting client %q", dbClient.Name)
 
 		clients[i] = file.Client{
 			Name:         dbClient.Name,

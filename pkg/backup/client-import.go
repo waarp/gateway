@@ -46,10 +46,10 @@ func importClients(logger *log.Logger, db database.Access, clients []file.Client
 		var dbErr error
 
 		if isNew {
-			logger.Info("Inserting new client %q", dbClient.Name)
+			logger.Infof("Inserting new client %q", dbClient.Name)
 			dbErr = db.Insert(&dbClient).Run()
 		} else {
-			logger.Info("Updating existing client %q", dbClient.Name)
+			logger.Infof("Updating existing client %q", dbClient.Name)
 			dbErr = db.Update(&dbClient).Run()
 		}
 

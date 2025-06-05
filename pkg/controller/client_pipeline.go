@@ -20,10 +20,6 @@ import (
 
 type Error = pipeline.Error
 
-func newTransferError(code types.TransferErrorCode, details string, args ...any) *Error {
-	return pipeline.NewError(code, details, args...)
-}
-
 // ClientPipeline associates a Pipeline with a TransferClient, allowing to run complete
 // client transfers.
 type ClientPipeline struct {
@@ -43,7 +39,7 @@ func NewClientPipeline(db *database.DB, trans *model.Transfer) (*ClientPipeline,
 		trans.ErrDetails = fmt.Sprintf("failed to retrieve the transfer context: %v", ctxErr)
 
 		if dbErr := db.Update(trans).Run(); dbErr != nil {
-			logger.Error("Failed to update the transfer error: %s", dbErr)
+			logger.Errorf("Failed to update the transfer error: %s", dbErr)
 		}
 
 		return nil, fmt.Errorf("failed to retrieve the transfer context: %w", ctxErr)
@@ -56,14 +52,14 @@ func NewClientPipeline(db *database.DB, trans *model.Transfer) (*ClientPipeline,
 		trans.ErrDetails = cliErr.Details()
 
 		if dbErr := db.Update(trans).Run(); dbErr != nil {
-			logger.Error("Failed to update the transfer error: %s", dbErr)
+			logger.Errorf("Failed to update the transfer error: %s", dbErr)
 		}
 
 		return nil, cliErr
 	}
 
 	if dbErr := cli.Pip.UpdateTrans(); dbErr != nil {
-		logger.Error("Failed to update the transfer details: %s", dbErr)
+		logger.Errorf("Failed to update the transfer details: %s", dbErr)
 
 		return nil, dbErr
 	}
@@ -77,20 +73,20 @@ func newClientPipeline(db *database.DB, logger *log.Logger, transCtx *model.Tran
 
 	client, ok := services.Clients[dbClient.Name]
 	if !ok {
-		logger.Error("No client %q found", dbClient.Name)
+		logger.Errorf("No client %q found", dbClient.Name)
 
-		return nil, newTransferError(types.TeInternal, "no client %q found", dbClient.Name)
+		return nil, pipeline.NewErrorf(types.TeInternal, "no client %q found", dbClient.Name)
 	}
 
 	if state, _ := client.State(); state != utils.StateRunning {
-		logger.Error("Client %q is not active, cannot initiate transfer", dbClient.Name)
+		logger.Errorf("Client %q is not active, cannot initiate transfer", dbClient.Name)
 
-		return nil, newTransferError(types.TeShuttingDown, "client %q is not active", dbClient.Name)
+		return nil, pipeline.NewErrorf(types.TeShuttingDown, "client %q is not active", dbClient.Name)
 	}
 
 	pip, pipErr := pipeline.NewClientPipeline(db, logger, transCtx, snmp.GlobalService)
 	if pipErr != nil {
-		logger.Error("Failed to initialize the client transfer pipeline: %v", pipErr)
+		logger.Errorf("Failed to initialize the client transfer pipeline: %v", pipErr)
 
 		return nil, pipErr
 	}
@@ -98,7 +94,7 @@ func newClientPipeline(db *database.DB, logger *log.Logger, transCtx *model.Tran
 	clientService, cliErr := client.InitTransfer(pip)
 	if cliErr != nil {
 		pip.SetError(cliErr.Code(), cliErr.Details())
-		logger.Error("Failed to instantiate the %q transfer client: %s",
+		logger.Errorf("Failed to instantiate the %q transfer client: %s",
 			dbClient.Name, cliErr)
 
 		return nil, cliErr
@@ -112,11 +108,11 @@ func newClientPipeline(db *database.DB, logger *log.Logger, transCtx *model.Tran
 	pip.SetInterruptionHandlers(c.Pause, c.Interrupt, c.Cancel)
 
 	if transCtx.Rule.IsSend {
-		logger.Info("Starting upload of file %q to %q as %q using rule %q",
+		logger.Infof("Starting upload of file %q to %q as %q using rule %q",
 			transCtx.Transfer.LocalPath, transCtx.RemoteAgent.Name,
 			transCtx.RemoteAccount.Login, transCtx.Rule.Name)
 	} else {
-		logger.Info("Starting download of file %q from %q as %q using rule %q",
+		logger.Infof("Starting download of file %q from %q as %q using rule %q",
 			transCtx.Transfer.RemotePath, transCtx.RemoteAgent.Name,
 			transCtx.RemoteAccount.Login, transCtx.Rule.Name)
 	}
@@ -251,6 +247,7 @@ func (c *ClientPipeline) Run() error {
 		return tErr
 	}
 
+	//nolint:revive //do not drop the "if", return types are different
 	if err := c.Pip.EndTransfer(); err != nil {
 		return err
 	}
@@ -265,7 +262,7 @@ func (c *ClientPipeline) Pause(ctx context.Context) error {
 	if err := utils.RunWithCtx(ctx, func() error {
 		if pa, ok := c.Client.(protocol.PauseHandler); ok {
 			if err := pa.Pause(); err != nil {
-				c.Pip.Logger.Error("Failed to pause remote transfer: %v", err)
+				c.Pip.Logger.Errorf("Failed to pause remote transfer: %v", err)
 
 				return fmt.Errorf("failed to pause remote transfer: %w", err)
 			}
@@ -301,7 +298,7 @@ func (c *ClientPipeline) Cancel(ctx context.Context) error {
 	if err := utils.RunWithCtx(ctx, func() error {
 		if ca, ok := c.Client.(protocol.CancelHandler); ok {
 			if err := ca.Cancel(); err != nil {
-				c.Pip.Logger.Error("Failed to cancel remote transfer: %v", err)
+				c.Pip.Logger.Errorf("Failed to cancel remote transfer: %v", err)
 
 				return fmt.Errorf("failed to cancel remote transfer: %w", err)
 			}
@@ -323,5 +320,5 @@ func wrapRemoteError(msg string, err error) *Error {
 		return pErr
 	}
 
-	return newTransferError(types.TeUnknownRemote, msg, err)
+	return pipeline.NewErrorWith(types.TeUnknownRemote, msg, err)
 }

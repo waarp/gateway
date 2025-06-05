@@ -6,6 +6,7 @@ variables:
   IMAGE_TAG: $CI_REGISTRY_IMAGE:$CI_COMMIT_TAG
   LATEST_IMAGE_TAG: $CI_REGISTRY_IMAGE:latest
   PACKAGE_REGISTRY_URL: "${CI_API_V4_URL}/projects/${CI_PROJECT_ID}/packages/generic/waarp-gateway/${VERSION}"
+  GOPRIVATE: "code.waarp.fr/*"
 
 stages:
     - test
@@ -26,10 +27,10 @@ code_navigation:
 
 lint:
   stage: test
-  image: golangci/golangci-lint:v1.64.8
+  image: golangci/golangci-lint:latest
   script:
   - golangci-lint cache status
-  - golangci-lint run --timeout 5m --out-format junit-xml > lint.junit.xml
+  - golangci-lint run --timeout 5m --output.junit-xml.path lint.junit.xml  --output.text.path /dev/null
   artifacts:
     reports:
       junit: lint.junit.xml

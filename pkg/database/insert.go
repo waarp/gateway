@@ -17,7 +17,7 @@ type InsertQuery struct {
 func (i *InsertQuery) run(s *Session) error {
 	if hook, ok := i.bean.(WriteHook); ok {
 		if err := hook.BeforeWrite(s); err != nil {
-			s.logger.Error("%s entry INSERT validation failed: %s", i.bean.Appellation(), err)
+			s.logger.Errorf("%s entry INSERT validation failed: %v", i.bean.Appellation(), err)
 
 			return fmt.Errorf("%s entry INSERT validation failed: %w", i.bean.Appellation(), err)
 		}
@@ -26,14 +26,14 @@ func (i *InsertQuery) run(s *Session) error {
 	query := s.session.Table(i.bean.TableName())
 
 	if _, err := query.Insert(i.bean); err != nil {
-		s.logger.Error("Failed to insert the new %s entry: %s", i.bean.Appellation(), err)
+		s.logger.Errorf("Failed to insert the new %s entry: %v", i.bean.Appellation(), err)
 
 		return NewInternalError(err)
 	}
 
 	if callBack, ok := i.bean.(InsertCallback); ok {
 		if err := callBack.AfterInsert(s); err != nil {
-			s.logger.Error("%s entry INSERT callback failed: %s", i.bean.Appellation(), err)
+			s.logger.Errorf("%s entry INSERT callback failed: %v", i.bean.Appellation(), err)
 
 			return fmt.Errorf("%s entry INSERT callback failed: %w", i.bean.Appellation(), err)
 		}

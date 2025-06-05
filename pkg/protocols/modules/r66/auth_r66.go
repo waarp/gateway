@@ -35,13 +35,13 @@ func init() {
 
 type r66BcryptAuthHandler struct{ auth.BcryptAuthHandler }
 
-func (r *r66BcryptAuthHandler) ToDB(val, _ string) (string, string, error) {
-	if utils.IsHash(val) {
-		return val, "", nil
+func (r *r66BcryptAuthHandler) ToDB(plainPwd, _ string) (hashedPwd, _ string, err error) {
+	if utils.IsHash(plainPwd) {
+		return plainPwd, "", nil
 	}
 
 	//nolint:wrapcheck //wrapping adds nothing here
-	return r.BcryptAuthHandler.ToDB(CryptPass(val), "")
+	return r.BcryptAuthHandler.ToDB(CryptPass(plainPwd), "")
 }
 
 var ErrLegacyCertNotAllowed = errors.New("legacy certificates usage is not allowed on this instance")
@@ -76,7 +76,7 @@ func (r *r66LegacyCertificate) Authenticate(db database.ReadAccess,
 	case []*x509.Certificate:
 		cert = value[0]
 	default:
-		//nolint:goerr113 //this is a base error
+		//nolint:err113 //this is a base error
 		return nil, fmt.Errorf(`type "%T" is not an acceptable TLS certificate type`, value)
 	}
 
@@ -87,6 +87,6 @@ func (r *r66LegacyCertificate) Authenticate(db database.ReadAccess,
 	return authentication.Success(), nil
 }
 
-func (r *r66LegacyCertificate) ToDB(string, string) (string, string, error) {
+func (r *r66LegacyCertificate) ToDB(_, _ string) (_, _ string, err error) {
 	return "", "", nil
 }

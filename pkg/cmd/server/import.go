@@ -87,17 +87,17 @@ func (i *ImportCommand) Run(db *database.DB, logger *log.Logger) error {
 	file := os.Stdin
 
 	if i.File != "" {
-		var err error
+		var opErr error
 
-		file, err = os.Open(i.File)
-		if err != nil {
-			return fmt.Errorf("failed to open file: %w", err)
+		file, opErr = os.Open(i.File)
+		if opErr != nil {
+			return fmt.Errorf("failed to open file: %w", opErr)
 		}
 
 		//nolint:gosec //close must be deferred here
 		defer func() {
 			if err := file.Close(); err != nil {
-				logger.Warning("Error while closing the source file: %s", err)
+				logger.Warningf("Error while closing the source file: %v", err)
 			}
 		}()
 	}
@@ -113,7 +113,7 @@ func (i *ImportCommand) Run(db *database.DB, logger *log.Logger) error {
 		fmt.Fprintln(os.Stdout, "This operation cannot be undone. Do you wish to proceed anyway ?")
 		fmt.Fprintln(os.Stdout)
 		fmt.Fprint(os.Stdout, "(Type 'YES' in all caps to proceed): ")
-		fmt.Fscanf(os.Stdin, "%s", &yes) //nolint:gosec //error is handled bellow
+		fmt.Fscanf(os.Stdin, "%s", &yes) //nolint:errcheck //error is handled bellow
 
 		if yes != "YES" { //nolint:goconst //the other instances are for different commands
 			fmt.Fprintln(os.Stderr, "Import aborted.")
@@ -136,7 +136,7 @@ func (i *ImportCommand) Run(db *database.DB, logger *log.Logger) error {
 //nolint:lll // tags can be long for flags
 type RestoreHistCommand struct {
 	ConfigFile string `short:"c" long:"config" description:"The configuration file to use"`
-	File       string `short:"s" long:"source" required:"yes" description:"The data file to import."`
+	File       string `short:"s" long:"source" required:"true" description:"The data file to import."`
 	Dry        bool   `short:"d" long:"dry-run" description:"Do not make any changes, but simulate the import of the file"`
 	Verbose    []bool `short:"v" long:"verbose" description:"Show verbose debug information. Can be repeated to increase verbosity"`
 }
@@ -157,16 +157,16 @@ func (r *RestoreHistCommand) Execute([]string) error {
 		return nil
 	}
 
-	db, logger, err := initImportExport(r.ConfigFile, r.Verbose)
-	if err != nil {
-		return fmt.Errorf("error at init: %w", err)
+	db, logger, initErr := initImportExport(r.ConfigFile, r.Verbose)
+	if initErr != nil {
+		return fmt.Errorf("error at init: %w", initErr)
 	}
 
 	defer func() { _ = db.Stop(context.Background()) }() //nolint:errcheck // cannot handle the error
 
-	f, err := os.Open(r.File)
-	if err != nil {
-		return fmt.Errorf("failed to open file: %w", err)
+	f, opErr := os.Open(r.File)
+	if opErr != nil {
+		return fmt.Errorf("failed to open file: %w", opErr)
 	}
 
 	defer func() { _ = f.Close() }() //nolint:errcheck,gosec // Close() must be deferred

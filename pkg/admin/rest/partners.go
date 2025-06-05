@@ -24,7 +24,7 @@ func retrievePartner(r *http.Request, db *database.DB) (*model.RemoteAgent, erro
 	if err := db.Get(&partner, "name=? AND owner=?", agentName,
 		conf.GlobalConfig.GatewayName).Run(); err != nil {
 		if database.IsNotFound(err) {
-			return nil, notFound("partner '%s' not found", agentName)
+			return nil, notFoundf("partner %q not found", agentName)
 		}
 
 		return nil, fmt.Errorf("failed to retrieve partner %q: %w", agentName, err)
@@ -41,8 +41,8 @@ func addPartner(logger *log.Logger, db *database.DB) http.HandlerFunc {
 			return
 		}
 
-		dbPartner, err := restPartnerToDB(&restPartner)
-		if handleError(w, logger, err) {
+		dbPartner, convErr := restPartnerToDB(&restPartner)
+		if handleError(w, logger, convErr) {
 			return
 		}
 
@@ -109,8 +109,8 @@ func getPartner(logger *log.Logger, db *database.DB) http.HandlerFunc {
 
 func deletePartner(logger *log.Logger, db *database.DB) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		dbPartner, err := retrievePartner(r, db)
-		if handleError(w, logger, err) {
+		dbPartner, dbErr := retrievePartner(r, db)
+		if handleError(w, logger, dbErr) {
 			return
 		}
 

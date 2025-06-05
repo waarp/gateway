@@ -37,7 +37,7 @@ func (k *CryptoKey) BeforeWrite(db database.Access) error {
 	if n, err := db.Count(k).Where("name=? AND id<>?", k.Name, k.ID).Run(); err != nil {
 		return fmt.Errorf("failed to check existing cryptographic keys: %w", err)
 	} else if n != 0 {
-		return database.NewValidationError("a cryptographic key named %q already exists", k.Name)
+		return database.NewValidationErrorf("a cryptographic key named %q already exists", k.Name)
 	}
 
 	return k.checkKey()

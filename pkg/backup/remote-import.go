@@ -58,10 +58,10 @@ func importRemoteAgents(logger *log.Logger, db database.Access,
 
 		// Create/Update
 		if exists {
-			logger.Info("Update remote partner %s", agent.Name)
+			logger.Infof("Update remote partner %q", agent.Name)
 			dbErr = db.Update(&agent).Run()
 		} else {
-			logger.Info("Create remote partner %s", agent.Name)
+			logger.Infof("Create remote partner %q", agent.Name)
 			dbErr = db.Insert(&agent).Run()
 		}
 
@@ -90,10 +90,10 @@ func importRemoteAccounts(logger *log.Logger, db database.Access,
 		var account model.RemoteAccount
 
 		// Check if account exists
-		exist, err := accountExists(db, &account, "remote_agent_id=? AND login=?",
+		exist, dbErr := accountExists(db, &account, "remote_agent_id=? AND login=?",
 			partner.ID, src.Login)
-		if err != nil {
-			return err
+		if dbErr != nil {
+			return dbErr
 		}
 
 		// Populate
@@ -102,15 +102,15 @@ func importRemoteAccounts(logger *log.Logger, db database.Access,
 
 		// Create/Update
 		if exist {
-			logger.Info("Update remote account %s", account.Login)
-			err = db.Update(&account).Run()
+			logger.Infof("Update remote account %q", account.Login)
+			dbErr = db.Update(&account).Run()
 		} else {
-			logger.Info("Create remote account %s", account.Login)
-			err = db.Insert(&account).Run()
+			logger.Infof("Create remote account %q", account.Login)
+			dbErr = db.Insert(&account).Run()
 		}
 
-		if err != nil {
-			return fmt.Errorf("failed to create/update remote account %q: %w", account.Login, err)
+		if dbErr != nil {
+			return fmt.Errorf("failed to create/update remote account %q: %w", account.Login, dbErr)
 		}
 
 		if src.Password != "" {

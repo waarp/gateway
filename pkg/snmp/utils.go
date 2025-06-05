@@ -19,7 +19,7 @@ var ErrInvalidSNMPVersion = errors.New("invalid SNMP version")
 func toSNMPVersion(str string) (gosnmp.SnmpVersion, error) {
 	switch {
 	case strings.EqualFold(str, "SNMPv1"):
-		return 0, errors.New("SNMPv1 is not supported") //nolint:goerr113 //too specific
+		return 0, errors.New("SNMPv1 is not supported") //nolint:err113 //too specific
 	case strings.EqualFold(str, Version2) || strings.EqualFold(str, Version2c):
 		return gosnmp.Version2c, nil
 	case strings.EqualFold(str, Version3):
@@ -92,7 +92,7 @@ func timeTicksSince(t time.Time) uint32 {
 	return uint32(time.Since(t).Milliseconds() / milliSecTo100thSecRatio)
 }
 
-func mkTsGetFunc[T constraints.Integer](status types.TransferStatus) func() (any, error) {
+func mkTSGetFunc[T constraints.Integer](status types.TransferStatus) func() (any, error) {
 	return func() (any, error) {
 		if analytics.GlobalService == nil {
 			return nil, ErrNoAnalytics

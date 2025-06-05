@@ -57,7 +57,7 @@ func (h *httpHandler) getRuleFromName(name string, isSend bool) bool {
 			return false
 		}
 
-		h.logger.Error("Failed to retrieve transfer rule: %s", err)
+		h.logger.Errorf("Failed to retrieve transfer rule: %v", err)
 		h.sendError(http.StatusInternalServerError, types.TeInternal, "failed to retrieve transfer rule")
 
 		return false
@@ -69,7 +69,7 @@ func (h *httpHandler) getRuleFromName(name string, isSend bool) bool {
 func (h *httpHandler) checkRulePermission() bool {
 	isAuthorized, err := h.rule.IsAuthorized(h.db, h.account)
 	if err != nil {
-		h.logger.Error("Failed to retrieve rule permissions: %s", err)
+		h.logger.Errorf("Failed to retrieve rule permissions: %v", err)
 		h.sendError(http.StatusInternalServerError, types.TeInternal, "failed to check rule permissions")
 
 		return false
@@ -79,7 +79,7 @@ func (h *httpHandler) checkRulePermission() bool {
 		return true
 	}
 
-	h.logger.Warning("Account %s is not allowed to use %s rule %s", h.account.Login,
+	h.logger.Warningf("Account %s is not allowed to use %s rule %s", h.account.Login,
 		h.rule.Direction(), h.rule.Name)
 	h.sendError(http.StatusForbidden, types.TeForbidden, "you do not have permission to use this rule")
 
@@ -90,7 +90,7 @@ func (h *httpHandler) getSizeProgress(trans *model.Transfer) bool {
 	if h.rule.IsSend {
 		progress, err := getRange(h.req)
 		if err != nil {
-			h.logger.Error("Failed to parse transfer file attributes: %s", err)
+			h.logger.Errorf("Failed to parse transfer file attributes: %v", err)
 			h.sendError(http.StatusRequestedRangeNotSatisfiable, types.TeInternal, err.Error())
 
 			return false
@@ -102,7 +102,7 @@ func (h *httpHandler) getSizeProgress(trans *model.Transfer) bool {
 	} else {
 		progress, filesize, err := getContentRange(h.req.Header)
 		if err != nil {
-			h.logger.Error("Failed to parse transfer file attributes: %s", err)
+			h.logger.Errorf("Failed to parse transfer file attributes: %v", err)
 			h.sendError(http.StatusBadRequest, types.TeInternal, err.Error())
 
 			return false
@@ -253,7 +253,7 @@ func (h *httpHandler) handle(isSend bool) {
 		pip.Trace = h.tracer()
 	}
 
-	h.logger.Info("%s of file %s requested by %s using rule %s, transfer "+
+	h.logger.Infof("%s of file %s requested by %s using rule %s, transfer "+
 		"was given ID n°%d", op, path.Base(h.req.URL.Path), h.account.Login,
 		h.rule.Name, trans.ID)
 

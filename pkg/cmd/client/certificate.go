@@ -26,7 +26,7 @@ func displayCrypto(w io.Writer, cert *api.OutCrypto) error {
 	case cert.PrivateKey != "":
 		return displayPrivateKeyInfo(w, Style1, cert.Name, cert.PrivateKey)
 	default:
-		//nolint:goerr113 //too specific
+		//nolint:err113 //too specific
 		return fmt.Errorf("entry %q: <unknown authentication type>", cert.Name)
 	}
 }
@@ -132,6 +132,7 @@ func (c *CertDelete) execute(w io.Writer) error {
 //nolint:lll // struct tags for command line arguments can be long
 type CertList struct {
 	ListOptions
+
 	SortBy string `short:"s" long:"sort" description:"Attribute used to sort the returned entries" choice:"name+" choice:"name-" default:"name+"`
 }
 

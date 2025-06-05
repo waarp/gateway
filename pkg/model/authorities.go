@@ -37,18 +37,18 @@ func (a *Authority) BeforeWrite(db database.Access) error {
 
 	validator := authentication.GetAuthorityHandler(a.Type)
 	if validator == nil {
-		return database.NewValidationError("%q is not a valid authority type", a.Type)
+		return database.NewValidationErrorf("%q is not a valid authority type", a.Type)
 	}
 
 	if err := validator.Validate(a.PublicIdentity); err != nil {
-		return database.NewValidationError("could not validate the authority's "+
-			"public identity value: %w", err)
+		return database.NewValidationErrorf(
+			"could not validate the authority's public identity value: %w", err)
 	}
 
 	if n, err := db.Count(a).Where("id<>? AND name=?", a.ID, a.Name).Run(); err != nil {
 		return fmt.Errorf("failed to check for duplicate authorities: %w", err)
 	} else if n != 0 {
-		return database.NewValidationError("an %s named %q already exists",
+		return database.NewValidationErrorf("an %s named %q already exists",
 			a.Appellation(), a.Name)
 	}
 

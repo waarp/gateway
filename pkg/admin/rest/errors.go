@@ -21,15 +21,23 @@ type internalError struct{ msg string }
 
 func (i *internalError) Error() string { return i.msg }
 
-func badRequest(format string, args ...interface{}) *badRequestError {
+func badRequest(msg string) *badRequestError {
+	return &badRequestError{msg: msg}
+}
+
+func badRequestf(format string, args ...any) *badRequestError {
 	return &badRequestError{msg: fmt.Sprintf(format, args...)}
 }
 
-func notFound(format string, args ...interface{}) *notFoundError {
+func notFound(msg string) *notFoundError {
+	return &notFoundError{msg: msg}
+}
+
+func notFoundf(format string, args ...any) *notFoundError {
 	return &notFoundError{msg: fmt.Sprintf(format, args...)}
 }
 
-func internal(format string, args ...interface{}) *internalError {
+func internalf(format string, args ...any) *internalError {
 	return &internalError{msg: fmt.Sprintf(format, args...)}
 }
 

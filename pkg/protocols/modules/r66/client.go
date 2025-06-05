@@ -37,7 +37,7 @@ func (c *Client) Start() error {
 	}
 
 	if err := c.start(); err != nil {
-		c.logger.Error("Failed to start R66 client: %v", err)
+		c.logger.Errorf("Failed to start R66 client: %v", err)
 		c.state.Set(utils.StateError, err.Error())
 		snmp.ReportServiceFailure(c.cli.Name, err)
 
@@ -102,7 +102,7 @@ func (c *Client) InitTransfer(pip *pipeline.Pipeline) (protocol.TransferClient, 
 func (c *Client) initTransfer(pip *pipeline.Pipeline) (*transferClient, *pipeline.Error) {
 	var partConf partnerConfig
 	if err := utils.JSONConvert(pip.TransCtx.RemoteAgent.ProtoConfig, &partConf); err != nil {
-		pip.Logger.Error("Failed to parse R66 partner proto config: %v", err)
+		pip.Logger.Errorf("Failed to parse R66 partner proto config: %v", err)
 
 		return nil, pipeline.NewErrorWith(types.TeInternal,
 			"failed to parse R66 partner proto config", err)
@@ -115,7 +115,7 @@ func (c *Client) initTransfer(pip *pipeline.Pipeline) (*transferClient, *pipelin
 
 		tlsConf, err = makeClientTLSConfig(pip)
 		if err != nil {
-			pip.Logger.Error("Failed to parse R66 TLS config: %v", err)
+			pip.Logger.Errorf("Failed to parse R66 TLS config: %v", err)
 
 			return nil, pipeline.NewErrorWith(types.TeInternal, "invalid R66 TLS config", err)
 		}
@@ -134,7 +134,7 @@ func (c *Client) initTransfer(pip *pipeline.Pipeline) (*transferClient, *pipelin
 		noFinalHash = *partConf.CheckBlockHash
 	}
 
-	var finalHashAlgo string = internal.HashSHA256
+	finalHashAlgo := internal.HashSHA256
 	if c.clientConfig.FinalHashAlgo != "" {
 		finalHashAlgo = c.clientConfig.FinalHashAlgo
 		if partConf.FinalHashAlgo != "" {

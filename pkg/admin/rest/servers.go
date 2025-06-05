@@ -32,7 +32,7 @@ func getDBServer(r *http.Request, db *database.DB) (*model.LocalAgent, error) {
 	if err := db.Get(&serv, "name=? AND owner=?", serverName, conf.GlobalConfig.GatewayName).
 		Run(); err != nil {
 		if database.IsNotFound(err) {
-			return nil, notFound("server '%s' not found", serverName)
+			return nil, notFoundf("server %q not found", serverName)
 		}
 
 		return nil, fmt.Errorf("failed to retrieve server %q: %w", serverName, err)
@@ -101,8 +101,8 @@ func addServer(logger *log.Logger, db *database.DB) http.HandlerFunc {
 			return
 		}
 
-		dbServer, err := restServerToDB(&restServer, logger)
-		if handleError(w, logger, err) {
+		dbServer, convErr := restServerToDB(&restServer, logger)
+		if handleError(w, logger, convErr) {
 			return
 		}
 
@@ -234,8 +234,8 @@ func replaceServer(logger *log.Logger, db *database.DB) http.HandlerFunc {
 //nolint:dupl //duplicate is for clients, best keep separate
 func deleteServer(logger *log.Logger, db *database.DB) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		dbServer, service, err := getServerService(r, db)
-		if handleError(w, logger, err) {
+		dbServer, service, getErr := getServerService(r, db)
+		if handleError(w, logger, getErr) {
 			return
 		}
 
@@ -463,8 +463,8 @@ func haltService(r *http.Request, serv services.Service) error {
 //nolint:dupl //duplicate is for clients, best keep separate
 func stopServer(logger *log.Logger, db *database.DB) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		dbServer, service, err := getServerService(r, db)
-		if handleError(w, logger, err) {
+		dbServer, service, getErr := getServerService(r, db)
+		if handleError(w, logger, getErr) {
 			return
 		}
 

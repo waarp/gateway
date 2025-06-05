@@ -36,12 +36,19 @@ type style struct {
 	bulletPrefix string
 }
 
+func (s *style) PrintV(w io.Writer, msg string) {
+	fmt.Fprintln(w, s.sprint(msg))
+}
+
 func (s *style) Printf(w io.Writer, format string, args ...any) {
 	fmt.Fprintln(w, s.sprintf(format, args...))
 }
 
 func (s *style) sprintf(format string, args ...any) string {
-	text := fmt.Sprintf(format, args...)
+	return s.sprint(fmt.Sprintf(format, args...))
+}
+
+func (s *style) sprint(text string) string {
 	text = strings.ReplaceAll(text, color.ResetSet, color.StartSet+s.color.Code()+"m")
 	text = strings.ReplaceAll(text, color.StartSet, color.StartSet+"0;")
 
@@ -183,7 +190,7 @@ func displayTaskChain(w io.Writer, title string, chain []*api.Task) {
 		return
 	}
 
-	Style22.Printf(w, title+":")
+	Style22.PrintV(w, title+":")
 
 	for i, task := range chain {
 		displayTask(w, i, task)

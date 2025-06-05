@@ -43,9 +43,9 @@ func (p *postClient) checkResume(url string) *pipeline.Error {
 	ctx, cancel := context.WithTimeout(context.Background(), resumeTimeout)
 	defer cancel()
 
-	req, err := http.NewRequestWithContext(ctx, http.MethodHead, url, nil)
+	req, err := http.NewRequestWithContext(ctx, http.MethodHead, url, http.NoBody)
 	if err != nil {
-		p.pip.Logger.Error("Failed to make head HTTP request: %s", err)
+		p.pip.Logger.Errorf("Failed to make head HTTP request: %v", err)
 
 		return pipeline.NewErrorWith(types.TeInternal, "failed to make head HTTP request", err)
 	}
@@ -63,7 +63,7 @@ func (p *postClient) checkResume(url string) *pipeline.Error {
 
 	resp, err := p.client.Do(req)
 	if err != nil {
-		p.pip.Logger.Error("HTTP Head request failed: %s", err)
+		p.pip.Logger.Errorf("HTTP Head request failed: %v", err)
 
 		return pipeline.NewErrorWith(types.TeInternal, "Head HTTP request failed", err)
 	}
@@ -78,12 +78,12 @@ func (p *postClient) checkResume(url string) *pipeline.Error {
 	case http.StatusNoContent:
 		prog, _, err = getContentRange(resp.Header)
 		if err != nil {
-			p.pip.Logger.Error("Failed to parse response Content-Range: %s", err)
+			p.pip.Logger.Errorf("Failed to parse response Content-Range: %v", err)
 
 			return pipeline.NewErrorWith(types.TeInternal, "failed to parse response Content-Range", err)
 		}
 	default:
-		p.pip.Logger.Error("HTTP Head replied with %s", resp.Status)
+		p.pip.Logger.Errorf("HTTP Head replied with %s", resp.Status)
 
 		return getRemoteError(resp.Header, resp.Body)
 	}
@@ -99,7 +99,7 @@ func (p *postClient) updateTransForResume(prog int64) *pipeline.Error {
 		}
 
 		if err := p.pip.UpdateTrans(); err != nil {
-			p.pip.Logger.Error("Failed to parse response Content-Range: %s", err)
+			p.pip.Logger.Errorf("Failed to parse response Content-Range: %v", err)
 
 			return pipeline.NewErrorWith(types.TeInternal, "database error", err)
 		}
@@ -147,7 +147,7 @@ func (p *postClient) setRequestHeaders(req *http.Request) *pipeline.Error {
 
 	fileInfo, err := fs.Stat(p.pip.TransCtx.Transfer.LocalPath)
 	if err != nil {
-		p.pip.Logger.Error("Failed to retrieve local file size: %s", err)
+		p.pip.Logger.Errorf("Failed to retrieve local file size: %v", err)
 
 		return pipeline.NewErrorWith(types.TeInternal,
 			"failed to retrieve local file size", err)
@@ -180,7 +180,7 @@ func (p *postClient) prepareRequest(ready chan struct{}) *pipeline.Error {
 
 	req, err := http.NewRequestWithContext(ctx, http.MethodPost, url, body)
 	if err != nil {
-		p.pip.Logger.Error("Failed to make HTTP request: %s", err)
+		p.pip.Logger.Errorf("Failed to make HTTP request: %v", err)
 
 		return pipeline.NewErrorWith(types.TeInternal, "failed to make HTTP request", err)
 	}
@@ -211,7 +211,7 @@ func (p *postClient) Request() *pipeline.Error {
 
 		resp, err := p.client.Do(p.req) //nolint:bodyclose //body is closed in another function
 		if err != nil {
-			p.pip.Logger.Error("HTTP transfer failed: %s", err)
+			p.pip.Logger.Errorf("HTTP transfer failed: %v", err)
 			p.reqErr <- err
 		} else {
 			p.resp <- resp
@@ -241,7 +241,8 @@ func (p *postClient) Send(file protocol.SendFile) *pipeline.Error {
 		return nil
 	}
 
-	p.pip.Logger.Error("Failed to write to remote HTTP file: %s", copyErr)
+	p.pip.Logger.Errorf("Failed to write to remote HTTP file: %s", copyErr)
+
 	select {
 	case reqErr := <-p.reqErr:
 		return p.wrapAndSendError(reqErr, types.TeDataTransfer, "HTTP transfer failed")
@@ -263,7 +264,7 @@ func (p *postClient) EndTransfer() *pipeline.Error {
 	p.req.Trailer.Set(httpconst.TransferStatus, string(types.StatusDone))
 
 	if err := p.writer.Close(); err != nil {
-		p.pip.Logger.Warning("Error while closing file pipe writer: %v", err)
+		p.pip.Logger.Warningf("Error while closing file pipe writer: %v", err)
 	}
 
 	select {
@@ -327,7 +328,7 @@ func (p *postClient) wrapAndSendError(cause error, code types.TransferErrorCode,
 		tErr = pipeline.NewError(code, details)
 	}
 
-	p.pip.Logger.Error("%s: %v", details, cause)
+	p.pip.Logger.Errorf("%s: %v", details, cause)
 	p.SendError(tErr.Code(), tErr.Redacted())
 
 	return tErr

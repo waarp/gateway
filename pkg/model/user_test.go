@@ -73,7 +73,7 @@ func TestUsersBeforeWrite(t *testing.T) {
 						err := user.BeforeWrite(db)
 
 						Convey("Then the error should say that the login is already taken", func() {
-							So(err, ShouldBeError, database.NewValidationError(
+							So(err, ShouldBeError, database.NewValidationErrorf(
 								"a user named %q already exist", user.Username))
 						})
 					})

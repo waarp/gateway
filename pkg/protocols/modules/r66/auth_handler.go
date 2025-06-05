@@ -21,12 +21,12 @@ func (a *authHandler) ValidAuth(authent *r66.Authent) (r66.SessionHandler, error
 		return nil, internal.NewR66Error(r66.BadAuthent, "missing credentials")
 	}
 
-	a.logger.Debug("Connection received from %s", authent.Login)
+	a.logger.Debugf("Connection received from %s", authent.Login)
 
 	acc := model.LocalAccount{Login: authent.Login}
 	if err := a.db.Get(&acc, "local_agent_id=? AND login=?", a.agent.ID,
 		authent.Login).Run(); err != nil && !database.IsNotFound(err) {
-		a.logger.Error("Failed to retrieve client account: %v", err)
+		a.logger.Errorf("Failed to retrieve client account: %v", err)
 
 		return nil, internal.NewR66Error(r66.Internal, "database error")
 	}
@@ -53,7 +53,7 @@ func (a *authHandler) ValidAuth(authent *r66.Authent) (r66.SessionHandler, error
 	}
 
 	if !authenticated {
-		a.logger.Warning("Authentication failed for account %q", authent.Login)
+		a.logger.Warningf("Authentication failed for account %q", authent.Login)
 
 		return nil, internal.NewR66Error(r66.BadAuthent, "authentication failed")
 	}
@@ -93,9 +93,9 @@ func (a *authHandler) certAuth(authent *r66.Authent, acc *model.LocalAccount,
 			return false, internal.NewR66Error(r66.Internal, "database error")
 		} else if n == 0 {
 			return false, internal.NewR66Error(r66.BadAuthent, "invalid certificate")
-		} else {
-			return true, nil
 		}
+
+		return true, nil
 	}
 
 	// If client send a "normal" certificate, check if the Common Name matches
@@ -115,11 +115,11 @@ func (a *authHandler) passwordAuth(authent *r66.Authent, acc *model.LocalAccount
 	}
 
 	if res, err := acc.Authenticate(a.db, a.agent, auth.Password, authent.Password); err != nil {
-		a.logger.Error("Failed to authenticate account %q: %v", acc.Login, err)
+		a.logger.Errorf("Failed to authenticate account %q: %v", acc.Login, err)
 
 		return false, internal.NewR66Error(r66.Internal, "internal authentication error")
 	} else if !res.Success {
-		a.logger.Warning("Authentication failed for account %q: %s", authent.Login, res.Reason)
+		a.logger.Warningf("Authentication failed for account %q: %s", authent.Login, res.Reason)
 
 		return false, internal.NewR66Error(r66.BadAuthent, "authentication failed")
 	}

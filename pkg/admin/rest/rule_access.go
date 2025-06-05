@@ -12,7 +12,7 @@ import (
 func getAuthorizedRules(db database.ReadAccess, target model.AccessTarget) (api.AuthorizedRules, error) {
 	rules, err := target.GetAuthorizedRules(db)
 	if err != nil {
-		return api.AuthorizedRules{}, internal("%v", err)
+		return api.AuthorizedRules{}, internalf("%v", err)
 	}
 
 	authorized := api.AuthorizedRules{}
@@ -49,7 +49,7 @@ func authorizeRule(w http.ResponseWriter, r *http.Request, db *database.DB,
 	}
 
 	if n == 0 {
-		fmt.Fprintf(w, "Usage of the %s rule '%s' is now restricted.",
+		fmt.Fprintf(w, "Usage of the %s rule %q is now restricted.",
 			ruleDirection(rule), rule.Name)
 	} else {
 		w.WriteHeader(http.StatusOK)
@@ -77,7 +77,7 @@ func revokeRule(w http.ResponseWriter, r *http.Request, db *database.DB,
 	}
 
 	if n == 0 {
-		fmt.Fprintf(w, "Usage of the %s rule '%s' is now unrestricted.",
+		fmt.Fprintf(w, "Usage of the %s rule %q is now unrestricted.",
 			ruleDirection(rule), rule.Name)
 	} else {
 		w.WriteHeader(http.StatusOK)

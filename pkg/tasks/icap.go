@@ -93,7 +93,7 @@ func (i *icapTask) Run(_ context.Context, params map[string]string,
 
 	previewSize, optErr := i.options(transCtx.Transfer.LocalPath)
 	if optErr != nil {
-		logger.Error("Failed to get preview size: %v", optErr)
+		logger.Errorf("Failed to get preview size: %v", optErr)
 
 		return optErr
 	}
@@ -103,18 +103,18 @@ func (i *icapTask) Run(_ context.Context, params map[string]string,
 		return nil // no error
 	}
 
-	logger.Error("Failed to run ICAP task: %v", runErr)
+	logger.Errorf("Failed to run ICAP task: %v", runErr)
 
 	filepath := transCtx.Transfer.LocalPath
 
 	switch {
 	case i.deleteOnError:
 		if rmErr := fs.Remove(filepath); rmErr != nil {
-			logger.Error("Failed to delete file after error: %v", rmErr)
+			logger.Errorf("Failed to delete file after error: %v", rmErr)
 		}
 	case i.moveOnError:
 		if mvErr := fs.MoveFile(filepath, i.OnErrorMovePath); mvErr != nil {
-			logger.Error("Failed to move file after error: %v", mvErr)
+			logger.Errorf("Failed to move file after error: %v", mvErr)
 		}
 	}
 
@@ -142,7 +142,7 @@ func (i *icapTask) run(logger *log.Logger, transCtx *model.TransferContext, prev
 
 	file, opErr := fs.OpenFile(transCtx.Transfer.LocalPath, flags, conf.DefaultFilePermissions)
 	if opErr != nil {
-		logger.Error("Failed to open transfer file: %v", opErr)
+		logger.Errorf("Failed to open transfer file: %v", opErr)
 
 		return fmt.Errorf("failed to open transfer file: %w", opErr)
 	}
@@ -150,13 +150,13 @@ func (i *icapTask) run(logger *log.Logger, transCtx *model.TransferContext, prev
 
 	fileSize, sizErr := i.checkFileSize(file)
 	if sizErr != nil {
-		logger.Error("%v", sizErr)
+		logger.Errorf("%v", sizErr)
 
 		return sizErr
 	}
 
 	if err := i.makeRequest(file, transCtx, fileSize, previewSize); err != nil {
-		logger.Error("Failed to make icap request: %v", err)
+		logger.Errorf("Failed to make icap request: %v", err)
 
 		return err
 	}
@@ -333,7 +333,7 @@ func containsExt(headers http.Header, header, fileExt string) bool {
 func getOriginAddress(ctx *model.TransferContext) string {
 	if ctx.RemoteAgent != nil {
 		return ctx.RemoteAgent.Address.String()
-	} else {
-		return ctx.LocalAgent.Address.String()
 	}
+
+	return ctx.LocalAgent.Address.String()
 }

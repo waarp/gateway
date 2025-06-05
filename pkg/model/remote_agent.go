@@ -56,7 +56,7 @@ func (r *RemoteAgent) BeforeWrite(db database.Access) error {
 	}
 
 	if err := r.Address.Validate(); err != nil {
-		return database.NewValidationError("address validation failed: %w", err)
+		return database.NewValidationErrorf("address validation failed: %w", err)
 	}
 
 	if r.ProtoConfig == nil {
@@ -71,8 +71,8 @@ func (r *RemoteAgent) BeforeWrite(db database.Access) error {
 		r.ID, r.Owner, r.Name).Run(); err != nil {
 		return fmt.Errorf("failed to check for duplicate remote agents: %w", err)
 	} else if n > 0 {
-		return database.NewValidationError("a remote agent with the same name %q "+
-			"already exist", r.Name)
+		return database.NewValidationErrorf(
+			"a remote agent with the same name %q already exist", r.Name)
 	}
 
 	return nil
@@ -145,6 +145,7 @@ func (r *RemoteAgent) getR66ServerPswd() string {
 	return serverPasswd
 }
 
+//nolint:dupl //keep separate from local agent's version
 func (r *RemoteAgent) AfterUpdate(db database.Access) error {
 	serverPasswd := r.getR66ServerPswd()
 	if serverPasswd == "" {

@@ -5,7 +5,7 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
-	"io/ioutil"
+	"io"
 	"net/http"
 	"net/http/cookiejar"
 	"net/url"
@@ -40,11 +40,11 @@ func newClient() (*httpClient, error) {
 	return c, nil
 }
 
-func (h *httpClient) getJSON(address string, respObj interface{}) error {
+func (h *httpClient) getJSON(address string, respObj any) error {
 	logger := getLogger()
 
 	req, err := http.NewRequestWithContext(context.Background(),
-		http.MethodGet, address, nil)
+		http.MethodGet, address, http.NoBody)
 	if err != nil {
 		return fmt.Errorf("cannot prepare request to create a partner: %w", err)
 	}
@@ -56,16 +56,16 @@ func (h *httpClient) getJSON(address string, respObj interface{}) error {
 
 	defer func() {
 		if err2 := resp.Body.Close(); err2 != nil {
-			logger.Warning("This error occurred while reading the response: %v", err2)
+			logger.Warningf("This error occurred while reading the response: %v", err2)
 		}
 	}()
 
-	bodyContent, err := ioutil.ReadAll(resp.Body)
+	bodyContent, err := io.ReadAll(resp.Body)
 	if err != nil {
 		return fmt.Errorf("cannot read response from Manager: %w", err)
 	}
 
-	logger.Debug("Running request %s %s -> [%d] %s",
+	logger.Debugf("Running request %s %s -> [%d] %s",
 		http.MethodGet, address, resp.StatusCode, string(bodyContent))
 
 	if resp.StatusCode < 200 || resp.StatusCode > 299 {
@@ -73,7 +73,7 @@ func (h *httpClient) getJSON(address string, respObj interface{}) error {
 	}
 
 	if respObj != nil {
-		if err := json.Unmarshal(bodyContent, respObj); err != nil {
+		if err = json.Unmarshal(bodyContent, respObj); err != nil {
 			return fmt.Errorf("cannot parse response: %w", err)
 		}
 	}
@@ -81,47 +81,47 @@ func (h *httpClient) getJSON(address string, respObj interface{}) error {
 	return nil
 }
 
-func (h *httpClient) postJSON(address string, data, respObj interface{}) error {
+func (h *httpClient) postJSON(address string, data, respObj any) error {
 	return h.xxxJSON(http.MethodPost, address, data, respObj)
 }
 
-func (h *httpClient) putJSON(address string, data, respObj interface{}) error {
+func (h *httpClient) putJSON(address string, data, respObj any) error {
 	return h.xxxJSON(http.MethodPut, address, data, respObj)
 }
 
-func (h *httpClient) xxxJSON(method, address string, data, respObj interface{}) error {
+func (h *httpClient) xxxJSON(method, address string, data, respObj any) error {
 	logger := getLogger()
 
-	msgBytes, err := json.Marshal(data)
-	if err != nil {
-		return fmt.Errorf("cannot prepare data for the request to create a partner: %w", err)
+	msgBytes, jErr := json.Marshal(data)
+	if jErr != nil {
+		return fmt.Errorf("cannot prepare data for the request to create a partner: %w", jErr)
 	}
 
-	req, err := http.NewRequestWithContext(context.Background(),
+	req, reqErr := http.NewRequestWithContext(context.Background(),
 		method, address, bytes.NewReader(msgBytes))
-	if err != nil {
-		return fmt.Errorf("cannot prepare request to create a partner: %w", err)
+	if reqErr != nil {
+		return fmt.Errorf("cannot prepare request to create a partner: %w", reqErr)
 	}
 
 	req.Header.Add("Content-Type", "application/json")
 
-	resp, err := h.c.Do(req)
-	if err != nil {
-		return fmt.Errorf("cannot send HTTP Request to Manager: %w", err)
+	resp, doErr := h.c.Do(req)
+	if doErr != nil {
+		return fmt.Errorf("cannot send HTTP Request to Manager: %w", doErr)
 	}
 
 	defer func() {
-		if err2 := resp.Body.Close(); err2 != nil {
-			logger.Warning("This error occurred while reading the response: %v", err2)
+		if err := resp.Body.Close(); err != nil {
+			logger.Warningf("This error occurred while reading the response: %v", err)
 		}
 	}()
 
-	bodyContent, err := ioutil.ReadAll(resp.Body)
-	if err != nil {
-		return fmt.Errorf("cannot read response from Manager: %w", err)
+	bodyContent, rErr := io.ReadAll(resp.Body)
+	if rErr != nil {
+		return fmt.Errorf("cannot read response from Manager: %w", rErr)
 	}
 
-	logger.Debug("Running request %s %s -> [%d] %s",
+	logger.Debugf("Running request %s %s -> [%d] %s",
 		method, address, resp.StatusCode, string(bodyContent))
 
 	if resp.StatusCode < 200 || resp.StatusCode > 299 {
@@ -157,16 +157,16 @@ func (h *httpClient) postForm(address string, data url.Values) error {
 
 	defer func() {
 		if err2 := resp.Body.Close(); err2 != nil {
-			logger.Warning("This error occurred while reading the response: %v", err2)
+			logger.Warningf("This error occurred while reading the response: %v", err2)
 		}
 	}()
 
-	bodyContent, err := ioutil.ReadAll(resp.Body)
+	bodyContent, err := io.ReadAll(resp.Body)
 	if err != nil {
 		return fmt.Errorf("cannot read response from Manager: %w", err)
 	}
 
-	logger.Debug("Call to %s -> [%d] %s",
+	logger.Debugf("Call to %s -> [%d] %s",
 		address, resp.StatusCode, string(bodyContent))
 
 	if resp.StatusCode < 200 || resp.StatusCode > 299 {

@@ -40,7 +40,7 @@ func displayPGPKey(w io.Writer, key *api.GetCryptoKeyRespObject) error {
 	Style22.Printf(w, "Entity:")
 
 	for _, identity := range pgpKey.GetEntity().Identities {
-		Style333.Printf(w, identity.Name)
+		Style333.PrintV(w, identity.Name)
 	}
 
 	Style22.PrintL(w, "Fingerprint", pgpKey.GetFingerprint())
@@ -96,6 +96,7 @@ func (p *CryptoKeysGet) execute(w io.Writer) error {
 //nolint:lll //struct tags can be long
 type CryptoKeysList struct {
 	ListOptions
+
 	SortBy string `short:"s" long:"sort" description:"Attribute used to sort the returned entries" choice:"name+" choice:"name-" choice:"type+" choice:"type-" default:"name+"`
 }
 

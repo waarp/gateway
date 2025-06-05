@@ -100,7 +100,7 @@ func (l *LocalAgent) BeforeWrite(db database.Access) error {
 	}
 
 	if err := l.Address.Validate(); err != nil {
-		return database.NewValidationError("address validation failed: %w", err)
+		return database.NewValidationErrorf("address validation failed: %w", err)
 	}
 
 	if l.ProtoConfig == nil {
@@ -115,7 +115,7 @@ func (l *LocalAgent) BeforeWrite(db database.Access) error {
 		l.Name).Run(); err != nil {
 		return fmt.Errorf("failed to check for duplicate local agents: %w", err)
 	} else if n > 0 {
-		return database.NewValidationError(
+		return database.NewValidationErrorf(
 			"a local agent with the same name %q already exist", l.Name)
 	}
 
@@ -123,8 +123,8 @@ func (l *LocalAgent) BeforeWrite(db database.Access) error {
 		l.ID, l.Owner, l.Address.String()).Run(); err != nil {
 		return fmt.Errorf("failed to check for duplicate local agent addresses: %w", err)
 	} else if n > 0 {
-		return database.NewValidationError(
-			"a local agent with the same address %q already exist", &l.Address)
+		return database.NewValidationErrorf(
+			"a local agent with the same address %q already exist", l.Address.String())
 	}
 
 	return nil

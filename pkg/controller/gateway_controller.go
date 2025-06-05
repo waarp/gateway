@@ -20,7 +20,7 @@ import (
 func (c *Controller) Run(wg *sync.WaitGroup, logger log.Logger) {
 	plannedTrans, dbErr := c.retrieveTransfers()
 	if dbErr != nil {
-		logger.Error("Failed to retrieve the transfers to run: %v", dbErr)
+		logger.Errorf("Failed to retrieve the transfers to run: %v", dbErr)
 
 		return
 	}
@@ -35,7 +35,7 @@ func (c *Controller) Run(wg *sync.WaitGroup, logger log.Logger) {
 
 		go func(t *model.Transfer) {
 			if err := pip.Run(); err != nil {
-				logger.Error("Transfer n°%d failed: %v", t.ID, err)
+				logger.Errorf("Transfer n°%d failed: %v", t.ID, err)
 			}
 
 			wg.Done()
@@ -68,7 +68,7 @@ func (c *Controller) retrieveTransfers() (model.Transfers, error) {
 		for _, trans := range transfers {
 			trans.Status = types.StatusRunning
 			if err := ses.Update(trans).Cols("status").Run(); err != nil {
-				c.logger.Error("Failed to update status of transfer %d: %v", trans.ID, err)
+				c.logger.Errorf("Failed to update status of transfer %d: %v", trans.ID, err)
 				trans.Status = types.StatusError
 			}
 		}

@@ -65,7 +65,7 @@ func retrieveDBUser(r *http.Request, db *database.DB) (*model.User, error) {
 	if err := db.Get(&user, "username=? AND owner=?", username, conf.GlobalConfig.GatewayName).
 		Run(); err != nil {
 		if database.IsNotFound(err) {
-			return nil, notFound("user '%s' not found", username)
+			return nil, notFoundf("user %q not found", username)
 		}
 
 		return nil, fmt.Errorf("failed to retrieve user %q: %w", username, err)
@@ -116,12 +116,12 @@ func listUsers(logger *log.Logger, db *database.DB) http.HandlerFunc {
 func addUser(logger *log.Logger, db *database.DB) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		var restUser api.InUser
-		if err := readJSON(r, &restUser); handleError(w, logger, err) {
+		if rErr := readJSON(r, &restUser); handleError(w, logger, rErr) {
 			return
 		}
 
-		dbUser, err := restUserToDB(&restUser, &model.User{})
-		if handleError(w, logger, err) {
+		dbUser, convErr := restUserToDB(&restUser, &model.User{})
+		if handleError(w, logger, convErr) {
 			return
 		}
 

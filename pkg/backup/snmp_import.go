@@ -32,11 +32,7 @@ func importSNMPConfig(logger *log.Logger, db database.Access, config *file.SNMPC
 		return err
 	}
 
-	if err := importSNMPMonitors(logger, db, config.Monitors); err != nil {
-		return err
-	}
-
-	return nil
+	return importSNMPMonitors(logger, db, config.Monitors)
 }
 
 func importSNMPServer(logger *log.Logger, db database.Access, server *file.SNMPServer) error {
@@ -102,10 +98,10 @@ func importSNMPMonitors(logger *log.Logger, db database.Access, monitors []*file
 		var dbErr error
 
 		if dbMonitor.ID == 0 {
-			logger.Info("Import new SNMP monitor %q", dbMonitor.Name)
+			logger.Infof("Import new SNMP monitor %q", dbMonitor.Name)
 			dbErr = db.Insert(&dbMonitor).Run()
 		} else {
-			logger.Info("Update existing SNMP monitor %q", dbMonitor.Name)
+			logger.Infof("Update existing SNMP monitor %q", dbMonitor.Name)
 			dbErr = db.Update(&dbMonitor).Run()
 		}
 

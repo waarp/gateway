@@ -35,7 +35,7 @@ func exportUsers(logger *log.Logger, db database.ReadAccess) ([]file.User, error
 			},
 		}
 
-		logger.Info("Exported user %s\n", dbUser.Username)
+		logger.Infof("Exported user %q", dbUser.Username)
 	}
 
 	return res, nil

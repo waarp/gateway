@@ -142,7 +142,7 @@ func TestDatabase(c convey.C) *DB {
 
 	c.So(db.Start(), convey.ShouldBeNil)
 	c.Reset(func() { resetDB(db) })
-	db.logger.Notice("%s database started", conf.GlobalConfig.Database.Type)
+	db.logger.Noticef("%s database started", conf.GlobalConfig.Database.Type)
 
 	return db
 }

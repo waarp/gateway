@@ -41,12 +41,12 @@ func (c *Client) BeforeWrite(db database.Access) error {
 	if strings.TrimSpace(c.Protocol) == "" {
 		return database.NewValidationError("the client's protocol is missing")
 	} else if !ConfigChecker.IsValidProtocol(c.Protocol) {
-		return database.NewValidationError("%q is not a protocol", c.Protocol)
+		return database.NewValidationErrorf("%q is not a protocol", c.Protocol)
 	}
 
 	if c.LocalAddress.IsSet() {
 		if err := c.LocalAddress.Validate(); err != nil {
-			return database.NewValidationError("address validation failed: %w", err)
+			return database.NewValidationErrorf("address validation failed: %w", err)
 		}
 	}
 
@@ -62,7 +62,7 @@ func (c *Client) BeforeWrite(db database.Access) error {
 		c.Name).Run(); err != nil {
 		return fmt.Errorf("failed to check for duplicate clients: %w", err)
 	} else if n != 0 {
-		return database.NewValidationError("a client named %q already exist", c.Name)
+		return database.NewValidationErrorf("a client named %q already exist", c.Name)
 	}
 
 	return nil

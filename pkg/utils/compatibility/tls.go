@@ -16,8 +16,8 @@ import (
 //nolint:gochecknoinits //must use init here
 func init() {
 	if err := os.Setenv("GODEBUG", "x509sha1=1"); err != nil {
-		logging.NewLogger("TLS").Warning("Failed to set the SHA1 environment variable, "+
-			"SHA1 signed certificates will not be accepted: %s", err)
+		logging.NewLogger("TLS").Warningf(
+			"Failed to set the SHA1 environment variable, SHA1 signed certificates will not be accepted: %v", err)
 	}
 }
 
@@ -39,7 +39,7 @@ func LogSha1(logger *log.Logger) func(tls.ConnectionState) error {
 					name = cert.DNSNames[0]
 				}
 
-				logger.Warning("The certificate of partner '%s' is signed using "+
+				logger.Warningf("The certificate of partner %q is signed using "+
 					"SHA-1 which is deprecated. All SHA-1 based signature "+
 					"algorithms will be disallowed out shortly.", name)
 			default:

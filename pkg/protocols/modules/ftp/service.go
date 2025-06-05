@@ -41,7 +41,7 @@ func (s *service) Start() error {
 	s.logger.Info("Starting FTP server...")
 
 	if err := s.start(); err != nil {
-		s.logger.Error("Failed to start FTP server: %s", err)
+		s.logger.Errorf("Failed to start FTP server: %v", err)
 		s.state.Set(utils.StateError, err.Error())
 		snmp.ReportServiceFailure(s.agent.Name, err)
 
@@ -49,7 +49,7 @@ func (s *service) Start() error {
 	}
 
 	s.state.Set(utils.StateRunning, "")
-	s.logger.Info("FTP server started successfully on %s", s.server.Addr())
+	s.logger.Infof("FTP server started successfully on %q", s.server.Addr())
 
 	return nil
 }
@@ -82,7 +82,7 @@ func (s *service) start() error {
 		if err := s.server.Serve(); err != nil {
 			_ = s.server.Stop() //nolint:errcheck // error does not matter at this point
 
-			s.logger.Error("Failed to serve FTP server: %s", err)
+			s.logger.Errorf("Failed to serve FTP server: %v", err)
 			s.state.Set(utils.StateError, err.Error())
 
 			return
@@ -100,7 +100,7 @@ func (s *service) Stop(ctx context.Context) error {
 	s.logger.Info("Stopping FTP server...")
 
 	if err := s.stop(ctx); err != nil {
-		s.logger.Error("Failed to stop FTP server: %s", err)
+		s.logger.Errorf("Failed to stop FTP server: %v", err)
 		s.state.Set(utils.StateError, err.Error())
 		snmp.ReportServiceFailure(s.agent.Name, err)
 

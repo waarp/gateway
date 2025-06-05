@@ -39,9 +39,9 @@ func (g *getClient) Request() *pipeline.Error {
 		utils.FormatUint(g.pip.TransCtx.RemoteAgent.Address.Port))
 	url := scheme + path.Join(addr, g.pip.TransCtx.Transfer.RemotePath)
 
-	req, reqErr := http.NewRequestWithContext(g.ctx, http.MethodGet, url, nil)
+	req, reqErr := http.NewRequestWithContext(g.ctx, http.MethodGet, url, http.NoBody)
 	if reqErr != nil {
-		g.pip.Logger.Error("Failed to make HTTP request: %s", reqErr)
+		g.pip.Logger.Errorf("Failed to make HTTP request: %v", reqErr)
 
 		return pipeline.NewErrorWith(types.TeInternal,
 			"failed to make HTTP request", reqErr)
@@ -69,7 +69,7 @@ func (g *getClient) Request() *pipeline.Error {
 
 	g.resp, reqErr = g.client.Do(req) //nolint:bodyclose //body is closed in another function
 	if reqErr != nil {
-		g.pip.Logger.Error("Failed to connect to remote host: %s", reqErr)
+		g.pip.Logger.Errorf("Failed to connect to remote host: %v", reqErr)
 
 		return pipeline.NewErrorWith(types.TeConnection, "failed to connect to remote host", reqErr)
 	}
@@ -103,7 +103,7 @@ func (g *getClient) getSizeProgress() *pipeline.Error {
 	trans.Progress = progress
 
 	if err := g.pip.DB.Update(trans).Cols(cols...).Run(); err != nil {
-		g.pip.Logger.Error("Failed to update transfer progress: %s", err)
+		g.pip.Logger.Errorf("Failed to update transfer progress: %v", err)
 
 		return g.wrapAndSendError(err, types.TeInternal, "database error")
 	}
@@ -134,7 +134,7 @@ func (g *getClient) Receive(file protocol.ReceiveFile) *pipeline.Error {
 func (g *getClient) EndTransfer() *pipeline.Error {
 	if g.resp != nil {
 		if err := g.resp.Body.Close(); err != nil {
-			g.pip.Logger.Warning("Error while closing the response body: %v", err)
+			g.pip.Logger.Warningf("Error while closing the response body: %v", err)
 		}
 	}
 	// nothing more to do at this point
@@ -158,7 +158,7 @@ func (g *getClient) wrapAndSendError(cause error, code types.TransferErrorCode, 
 		tErr = pipeline.NewError(code, details)
 	}
 
-	g.pip.Logger.Error("%s: %v", details, cause)
+	g.pip.Logger.Errorf("%s: %v", details, cause)
 	g.SendError(tErr.Code(), tErr.Redacted())
 
 	return tErr

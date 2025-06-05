@@ -47,7 +47,7 @@ func UpdateFileInfo(info *r66.UpdateInfo, pip *pipeline.Pipeline) error {
 		if info.FileInfo != nil && info.FileInfo.SystemData.FollowID != 0 {
 			pip.TransCtx.FileInfo[FollowID] = info.FileInfo.SystemData.FollowID
 			if err := pip.TransCtx.Transfer.SetFileInfo(pip.DB, pip.TransCtx.FileInfo); err != nil {
-				pip.Logger.Errorf("Failed to update transfer info: %s", err)
+				pip.Logger.Errorf("Failed to update transfer info: %v", err)
 
 				return types.NewTransferError(types.TeInternal, "database error")
 			}
@@ -65,7 +65,7 @@ func UpdateTransferInfo(userContent string, pip *pipeline.Pipeline) *pipeline.Er
 
 	if uContent := []byte(userContent); json.Valid(uContent) {
 		if err := json.Unmarshal(uContent, &pip.TransCtx.TransInfo); err != nil {
-			pip.Logger.Error("Failed to unmarshall transfer info: %s", err)
+			pip.Logger.Errorf("Failed to unmarshall transfer info: %v", err)
 
 			return pipeline.NewErrorWith(types.TeInternal, "failed to parse transfer info", err)
 		}
@@ -74,7 +74,7 @@ func UpdateTransferInfo(userContent string, pip *pipeline.Pipeline) *pipeline.Er
 	}
 
 	if err := pip.TransCtx.Transfer.SetTransferInfo(pip.DB, pip.TransCtx.TransInfo); err != nil {
-		pip.Logger.Error("Failed to update transfer info: %s", err)
+		pip.Logger.Errorf("Failed to update transfer info: %v", err)
 
 		return pipeline.NewError(types.TeInternal, "database error")
 	}
@@ -120,11 +120,11 @@ func makeTransferInfo(logger *log.Logger, transCtx *model.TransferContext,
 	var fID int64
 
 	if follow, err := utils.GetAs[json.Number](transCtx.TransInfo, model.FollowID); err != nil {
-		logger.Error("Could not retrieve the R66 follow ID: %v", err)
+		logger.Errorf("Could not retrieve the R66 follow ID: %v", err)
 
 		return pipeline.NewError(types.TeInternal, "failed to retrieve follow ID")
 	} else if fID, err = follow.Int64(); err != nil {
-		logger.Error("Could not parse the R66 follow ID: %v", err)
+		logger.Errorf("Could not parse the R66 follow ID: %v", err)
 
 		return pipeline.NewError(types.TeInternal, "failed to parse follow ID")
 	}
@@ -147,7 +147,7 @@ func MakeUserContent(logger *log.Logger, transInfo map[string]any) (string, *pip
 
 	if cont, ok := transInfo[UserContent]; ok {
 		if userContent, ok = cont.(string); !ok {
-			logger.Error("Invalid type '%T' for R66 user content", cont)
+			logger.Errorf("Invalid type '%T' for R66 user content", cont)
 
 			return "", pipeline.NewError(types.TeInternal, "failed to make transfer info")
 		}
@@ -157,7 +157,7 @@ func MakeUserContent(logger *log.Logger, transInfo map[string]any) (string, *pip
 
 		cont, err := json.Marshal(userContentMap)
 		if err != nil {
-			logger.Error("Failed to marshal transfer info: %s", err)
+			logger.Errorf("Failed to marshal transfer info: %v", err)
 
 			return "", pipeline.NewErrorWith(types.TeInternal, "failed to make transfer info", err)
 		}
