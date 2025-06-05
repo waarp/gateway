@@ -1,6 +1,7 @@
 {{ define "head" }}
 <title>{{ index .tab "title" }}</title>
 <link rel="stylesheet" href="/webui/static/css/user_management_page.css">
+<script src="/webui/static/javaScript/user_management_page.js"></script>
 {{ end }}
 
 
@@ -33,115 +34,91 @@
                 <div class="form-group">
                 <label class="col-form-label mt-2">{{ index .tab "transfers" }} :</label>
                     <div class="form-check form-check-inline">
-                        <input class="form-check-input" type="radio" name="newUserPermissionsTransfers" id="transfers_-" value="---" required>
-                        <label class="form-check-label" for="transfers_-">---</label>
+                        <input class="form-check-input" type="checkbox" name="newUserPermissionsTransfers" id="transfers_r" value="r">
+                        <label class="form-check-label" for="transfers_r">Read</label>
                     </div>
                     <div class="form-check form-check-inline">
-                        <input class="form-check-input" type="radio" name="newUserPermissionsTransfers" id="transfers_r" value="r--">
-                        <label class="form-check-label" for="transfers_r">R--</label>
+                        <input class="form-check-input" type="checkbox" name="newUserPermissionsTransfers" id="transfers_w" value="w">
+                        <label class="form-check-label" for="transfers_w">Write</label>
                     </div>
                     <div class="form-check form-check-inline">
-                        <input class="form-check-input" type="radio" name="newUserPermissionsTransfers" id="transfers_rw" value="rw-">
-                        <label class="form-check-label" for="transfers_rw">RW-</label>
-                    </div>
-                    <div class="form-check form-check-inline">
-                        <input class="form-check-input" type="radio" name="newUserPermissionsTransfers" id="transfers_rwd" value="rwd">
-                        <label class="form-check-label" for="transfers_rwd">RWD</label>
+                        <input class="form-check-input" type="checkbox" name="newUserPermissionsTransfers" id="transfers_d" value="d">
+                        <label class="form-check-label" for="transfers_d">Delete</label>
                     </div>
                     </div>
                 <div class="form-group">
                 <label class="col-form-label mt-2">{{ index .tab "servers" }} :</label>
                     <div class="form-check form-check-inline">
-                        <input class="form-check-input" type="radio" name="newUserPermissionServers" id="servers_-" value="---" required>
-                        <label class="form-check-label" for="servers_-">---</label>
+                        <input class="form-check-input" type="checkbox" name="newUserPermissionServers" id="servers_r" value="r">
+                        <label class="form-check-label" for="servers_r">Read</label>
                     </div>
                     <div class="form-check form-check-inline">
-                        <input class="form-check-input" type="radio" name="newUserPermissionServers" id="servers_r" value="r--">
-                        <label class="form-check-label" for="servers_r">R--</label>
+                        <input class="form-check-input" type="checkbox" name="newUserPermissionServers" id="servers_w" value="w">
+                        <label class="form-check-label" for="servers_w">Write</label>
                     </div>
                     <div class="form-check form-check-inline">
-                        <input class="form-check-input" type="radio" name="newUserPermissionServers" id="servers_rw" value="rw-">
-                        <label class="form-check-label" for="servers_rw">RW-</label>
-                    </div>
-                    <div class="form-check form-check-inline">
-                        <input class="form-check-input" type="radio" name="newUserPermissionServers" id="servers_rwd" value="rwd">
-                        <label class="form-check-label" for="servers_rwd">RWD</label>
+                        <input class="form-check-input" type="checkbox" name="newUserPermissionServers" id="servers_d" value="rd">
+                        <label class="form-check-label" for="servers_d">Delete</label>
                     </div>
                     </div>
                 <div class="form-group">
                 <label class="col-form-label mt-2">{{ index .tab "partners" }} :</label>
                     <div class="form-check form-check-inline">
-                        <input class="form-check-input" type="radio" name="newUserPermissionsPartners" id="partners_-" value="---" required>
-                        <label class="form-check-label" for="partners_-">---</label>
+                        <input class="form-check-input" type="checkbox" name="newUserPermissionsPartners" id="partners_r" value="r">
+                        <label class="form-check-label" for="partners_r">Read</label>
                     </div>
                     <div class="form-check form-check-inline">
-                        <input class="form-check-input" type="radio" name="newUserPermissionsPartners" id="partners_r" value="r--">
-                        <label class="form-check-label" for="partners_r">R--</label>
+                        <input class="form-check-input" type="checkbox" name="newUserPermissionsPartners" id="partners_w" value="w">
+                        <label class="form-check-label" for="partners_w">Write</label>
                     </div>
                     <div class="form-check form-check-inline">
-                        <input class="form-check-input" type="radio" name="newUserPermissionsPartners" id="partners_rw" value="rw-">
-                        <label class="form-check-label" for="partners_rw">RW-</label>
-                    </div>
-                    <div class="form-check form-check-inline">
-                        <input class="form-check-input" type="radio" name="newUserPermissionsPartners" id="partners_rwd" value="rwd">
-                        <label class="form-check-label" for="partners_rwd">RWD</label>
+                        <input class="form-check-input" type="checkbox" name="newUserPermissionsPartners" id="partners_d" value="d">
+                        <label class="form-check-label" for="partners_d">Delete</label>
                     </div>
                     </div>
                 <div class="form-group">
                 <label class="col-form-label mt-2">{{ index .tab "rules" }} :</label>
-                      <div class="form-check form-check-inline">
-                        <input class="form-check-input" type="radio" name="newUserPermissionsRules" id="rules_-" value="---" required>
-                        <label class="form-check-label" for="rules_-">---</label>
+                    <div class="form-check form-check-inline">
+                        <input class="form-check-input" type="checkbox" name="newUserPermissionsRules" id="rules_r" value="r">
+                        <label class="form-check-label" for="rules_r">Read</label>
                     </div>
                     <div class="form-check form-check-inline">
-                        <input class="form-check-input" type="radio" name="newUserPermissionsRules" id="rules_r" value="r--">
-                        <label class="form-check-label" for="rules_r">R--</label>
+                        <input class="form-check-input" type="checkbox" name="newUserPermissionsRules" id="rules_w" value="w">
+                        <label class="form-check-label" for="rules_w">Write</label>
                     </div>
                     <div class="form-check form-check-inline">
-                        <input class="form-check-input" type="radio" name="newUserPermissionsRules" id="rules_rw" value="rw-">
-                        <label class="form-check-label" for="rules_rw">RW-</label>
-                    </div>
-                    <div class="form-check form-check-inline">
-                        <input class="form-check-input" type="radio" name="newUserPermissionsRules" id="rules_rwd" value="rwd">
-                        <label class="form-check-label" for="rules_rwd">RWD</label>
+                        <input class="form-check-input" type="checkbox" name="newUserPermissionsRules" id="rules_d" value="d">
+                        <label class="form-check-label" for="rules_d">Delete</label>
                     </div>
                     </div>
                 <div class="form-group">
                 <label class="col-form-label mt-2">{{ index .tab "users" }} :</label>
-                      <div class="form-check form-check-inline">
-                        <input class="form-check-input" type="radio" name="newUserPermissionsUsers" id="users_-" value="---" required>
-                        <label class="form-check-label" for="users_-">---</label>
+                    <div class="form-check form-check-inline">
+                        <input class="form-check-input" type="checkbox" name="newUserPermissionsUsers" id="users_r" value="r">
+                        <label class="form-check-label" for="users_r">Read</label>
                     </div>
                     <div class="form-check form-check-inline">
-                        <input class="form-check-input" type="radio" name="newUserPermissionsUsers" id="users_r" value="r--">
-                        <label class="form-check-label" for="users_r">R--</label>
+                        <input class="form-check-input" type="checkbox" name="newUserPermissionsUsers" id="users_w" value="w">
+                        <label class="form-check-label" for="users_w">Write</label>
                     </div>
                     <div class="form-check form-check-inline">
-                        <input class="form-check-input" type="radio" name="newUserPermissionsUsers" id="users_rw" value="rw-">
-                        <label class="form-check-label" for="users_rw">RW-</label>
-                    </div>
-                    <div class="form-check form-check-inline">
-                        <input class="form-check-input" type="radio" name="newUserPermissionsUsers" id="users_rwd" value="rwd">
-                        <label class="form-check-label" for="users_rwd">RWD</label>
+                        <input class="form-check-input" type="checkbox" name="newUserPermissionsUsers" id="users_d" value="d">
+                        <label class="form-check-label" for="users_d">Delete</label>
                     </div>
                     </div>
                 <div class="form-group">
                 <label class="col-form-label mt-2">{{ index .tab "administration" }} :</label>
-                      <div class="form-check form-check-inline">
-                        <input class="form-check-input" type="radio" name="newUserPermissionsAdministration" id="administration_-" value="---" required>
-                        <label class="form-check-label" for="administration_-">---</label>
+                    <div class="form-check form-check-inline">
+                        <input class="form-check-input" type="checkbox" name="newUserPermissionsAdministration" id="administration_r" value="r">
+                        <label class="form-check-label" for="administration_r">Read</label>
                     </div>
                     <div class="form-check form-check-inline">
-                        <input class="form-check-input" type="radio" name="newUserPermissionsAdministration" id="administration_r" value="r--">
-                        <label class="form-check-label" for="administration_r">R--</label>
+                        <input class="form-check-input" type="checkbox" name="newUserPermissionsAdministration" id="administration_w" value="w">
+                        <label class="form-check-label" for="administration_w">Write</label>
                     </div>
                     <div class="form-check form-check-inline">
-                        <input class="form-check-input" type="radio" name="newUserPermissionsAdministration" id="administration_rw" value="rw-">
-                        <label class="form-check-label" for="administration_rw">RW-</label>
-                    </div>
-                    <div class="form-check form-check-inline">
-                        <input class="form-check-input" type="radio" name="newUserPermissionsAdministration" id="administration_rwd" value="rwd">
-                        <label class="form-check-label" for="administration_rwd">RWD</label>
+                        <input class="form-check-input" type="checkbox" name="newUserPermissionsAdministration" id="administration_d" value="d">
+                        <label class="form-check-label" for="administration_d">Delete</label>
                     </div>
                     </div>
                 </div>
@@ -169,6 +146,7 @@
             </label>
             <label class="ms-3">{{ index .tab "limit" }}
             <select name="limit" class="form-select d-inline w-auto">
+                <option value="0" disabled selected>--</option>
                 <option value="5">5</option>
                 <option value="10">10</option>
                 <option value="15">15</option>
@@ -176,7 +154,25 @@
                 <option value="50">50</option>
             </select>
             </label>
-            <button type="submit" class="btn btn-success ms-3">{{ index .tab "apply" }}</button>
+            <label class="ms-3">{{ index .tab "permissions" }}: 
+            <select id="permissions" name="permissions" class="form-select d-inline w-auto">
+                <option value="" selected>--</option>
+                <option value="filterPermissionsTransfers">Transfers</option>
+                <option value="filterPermissionsServers">Servers</option>
+                <option value="filterPermissionsPartners">Partners</option>
+                <option value="filterPermissionsRules">Rules</option>
+                <option value="filterPermissionsUsers">Users</option>
+                <option value="filterPermissionsAdministration">Administration</option>
+            </select>
+            <select id="permissionsValue" name="permissionsValue" class="form-select d-inline w-auto">
+                <option value="" selected>--</option>
+                <option value="---">None</option>
+                <option value="r--">R--</option>
+                <option value="rw-">RW-</option>
+                <option value="rwd">RWD</option>
+            </select>
+            </label>
+            <button id="applyBtn" type="submit" class="btn btn-success ms-3">{{ index .tab "apply" }}</button>
         </form>
         </div>
 
@@ -185,7 +181,12 @@
             <tr>
               <th></th>
               <th>{{ index .tab "usernameStr" }}</th>
-              <th>{{ index $.tab "transfers" }}</th><th>{{ index $.tab "servers" }}</th><th>{{ index $.tab "partners" }}</th><th>{{ index $.tab "rules" }}</th><th>{{ index $.tab "users" }}</th><th>{{ index $.tab "administration" }}</th>
+              <th>{{ index $.tab "transfers" }} <i class="bi bi-info-circle ms-1" data-bs-toggle="tooltip" data-bs-placement="right" data-bs-title="transfers"></i></th>
+              <th>{{ index $.tab "servers" }} <i class="bi bi-info-circle ms-1" data-bs-toggle="tooltip" data-bs-placement="right" data-bs-title="servers"></i></th>
+              <th>{{ index $.tab "partners" }} <i class="bi bi-info-circle ms-1" data-bs-toggle="tooltip" data-bs-placement="right" data-bs-title="partners"></i></th>
+              <th>{{ index $.tab "rules" }} <i class="bi bi-info-circle ms-1" data-bs-toggle="tooltip" data-bs-placement="right" data-bs-title="rules"></i></th>
+              <th>{{ index $.tab "users" }} <i class="bi bi-info-circle ms-1" data-bs-toggle="tooltip" data-bs-placement="right" data-bs-title="users"></i></th>
+              <th>{{ index $.tab "administration" }} <i class="bi bi-info-circle ms-1" data-bs-toggle="tooltip" data-bs-placement="right" data-bs-title="administration"></i></th>
               <th class="text-end"></th>
             </tr>
           </thead>
@@ -230,115 +231,91 @@
                                 <div class="form-group">
                                     <label class="col-form-label mt-2">{{ index $.tab "transfers" }} :</label>
                                     <div class="form-check form-check-inline">
-                                    <input class="form-check-input" type="radio" name="editUserPermissionsTransfers" id="edit_transfers_-" value="---" {{ if eq .Permissions.Transfers "---" }}checked{{ end }}>
-                                    <label class="form-check-label" for="edit_transfers_-">---</label>
+                                    <input class="form-check-input" type="checkbox" name="editUserPermissionsTransfers" id="edit_transfers_r" value="r" {{ if (contains .Permissions.Transfers "r") }}checked{{ end }}>
+                                    <label class="form-check-label" for="edit_transfers_r">Read</label>
                                     </div>
                                     <div class="form-check form-check-inline">
-                                    <input class="form-check-input" type="radio" name="editUserPermissionsTransfers" id="edit_transfers_r" value="r--" {{ if eq .Permissions.Transfers "r--" }}checked{{ end }}>
-                                    <label class="form-check-label" for="edit_transfers_r">R--</label>
+                                    <input class="form-check-input" type="checkbox" name="editUserPermissionsTransfers" id="edit_transfers_w" value="w" {{ if (contains .Permissions.Transfers "w") }}checked{{ end }}>
+                                    <label class="form-check-label" for="edit_transfers_w">Write-</label>
                                     </div>
                                     <div class="form-check form-check-inline">
-                                    <input class="form-check-input" type="radio" name="editUserPermissionsTransfers" id="edit_transfers_rw" value="rw-" {{ if eq .Permissions.Transfers "rw-" }}checked{{ end }}>
-                                    <label class="form-check-label" for="edit_transfers_rw">RW-</label>
-                                    </div>
-                                    <div class="form-check form-check-inline">
-                                    <input class="form-check-input" type="radio" name="editUserPermissionsTransfers" id="edit_transfers_rwd" value="rwd" {{ if eq .Permissions.Transfers "rwd" }}checked{{ end }}>
-                                    <label class="form-check-label" for="edit_transfers_rwd">RWD</label>
+                                    <input class="form-check-input" type="checkbox" name="editUserPermissionsTransfers" id="edit_transfers_d" value="d" {{ if (contains .Permissions.Transfers "d") }}checked{{ end }}>
+                                    <label class="form-check-label" for="edit_transfers_d">Delete</label>
                                     </div>
                                 </div>
                                 <div class="form-group">
                                     <label class="col-form-label mt-2">{{ index $.tab "servers" }} :</label>
                                     <div class="form-check form-check-inline">
-                                    <input class="form-check-input" type="radio" name="editUserPermissionsServers" id="edit_servers_-" value="---" {{ if eq .Permissions.Servers "---" }}checked{{ end }}>
-                                    <label class="form-check-label" for="edit_servers_-">---</label>
+                                    <input class="form-check-input" type="checkbox" name="editUserPermissionsServers" id="edit_servers_r" value="r" {{ if (contains .Permissions.Transfers "r") }}checked{{ end }}>
+                                    <label class="form-check-label" for="edit_servers_r">Read</label>
                                     </div>
                                     <div class="form-check form-check-inline">
-                                    <input class="form-check-input" type="radio" name="editUserPermissionsServers" id="edit_servers_r" value="r--" {{ if eq .Permissions.Servers "r--" }}checked{{ end }}>
-                                    <label class="form-check-label" for="edit_servers_r">R--</label>
+                                    <input class="form-check-input" type="checkbox" name="editUserPermissionsServers" id="edit_servers_w" value="w" {{ if (contains .Permissions.Transfers "w") }}checked{{ end }}>
+                                    <label class="form-check-label" for="edit_servers_w">Write</label>
                                     </div>
                                     <div class="form-check form-check-inline">
-                                    <input class="form-check-input" type="radio" name="editUserPermissionsServers" id="edit_servers_rw" value="rw-" {{ if eq .Permissions.Servers "rw-" }}checked{{ end }}>
-                                    <label class="form-check-label" for="edit_servers_rw">RW-</label>
-                                    </div>
-                                    <div class="form-check form-check-inline">
-                                    <input class="form-check-input" type="radio" name="editUserPermissionsServers" id="edit_servers_rwd" value="rwd" {{ if eq .Permissions.Servers "rwd" }}checked{{ end }}>
-                                    <label class="form-check-label" for="edit_servers_rwd">RWD</label>
+                                    <input class="form-check-input" type="checkbox" name="editUserPermissionsServers" id="edit_servers_d" value="d" {{ if (contains .Permissions.Transfers "d") }}checked{{ end }}>
+                                    <label class="form-check-label" for="edit_servers_d">Delete</label>
                                     </div>
                                 </div>
                                 <div class="form-group">
                                     <label class="col-form-label mt-2">{{ index $.tab "partners" }} :</label>
                                     <div class="form-check form-check-inline">
-                                    <input class="form-check-input" type="radio" name="editUserPermissionsPartners" id="edit_partners_-" value="---" {{ if eq .Permissions.Partners "---" }}checked{{ end }}>
-                                    <label class="form-check-label" for="edit_partners_-">---</label>
+                                    <input class="form-check-input" type="checkbox" name="editUserPermissionsPartners" id="edit_partners_r" value="r" {{ if (contains .Permissions.Transfers "r") }}checked{{ end }}>
+                                    <label class="form-check-label" for="edit_partners_r">Read</label>
                                     </div>
                                     <div class="form-check form-check-inline">
-                                    <input class="form-check-input" type="radio" name="editUserPermissionsPartners" id="edit_partners_r" value="r--" {{ if eq .Permissions.Partners "r--" }}checked{{ end }}>
-                                    <label class="form-check-label" for="edit_partners_r">R--</label>
+                                    <input class="form-check-input" type="checkbox" name="editUserPermissionsPartners" id="edit_partners_w" value="w" {{ if (contains .Permissions.Transfers "w") }}checked{{ end }}>
+                                    <label class="form-check-label" for="edit_partners_w">Write-</label>
                                     </div>
                                     <div class="form-check form-check-inline">
-                                    <input class="form-check-input" type="radio" name="editUserPermissionsPartners" id="edit_partners_rw" value="rw-" {{ if eq .Permissions.Partners "rw-" }}checked{{ end }}>
-                                    <label class="form-check-label" for="edit_partners_rw">RW-</label>
-                                    </div>
-                                    <div class="form-check form-check-inline">
-                                    <input class="form-check-input" type="radio" name="editUserPermissionsPartners" id="edit_partners_rwd" value="rwd" {{ if eq .Permissions.Partners "rwd" }}checked{{ end }}>
-                                    <label class="form-check-label" for="edit_partners_rwd">RWD</label>
+                                    <input class="form-check-input" type="checkbox" name="editUserPermissionsPartners" id="edit_partners_d" value="d" {{ if (contains .Permissions.Transfers "d") }}checked{{ end }}>
+                                    <label class="form-check-label" for="edit_partners_d">Delete</label>
                                     </div>
                                 </div>
                                 <div class="form-group">
                                     <label class="col-form-label mt-2">{{ index $.tab "rules" }} :</label>
                                     <div class="form-check form-check-inline">
-                                    <input class="form-check-input" type="radio" name="editUserPermissionsRules" id="edit_rules_-" value="---" {{ if eq .Permissions.Rules "---" }}checked{{ end }}>
-                                    <label class="form-check-label" for="edit_rules_-">---</label>
+                                    <input class="form-check-input" type="checkbox" name="editUserPermissionsRules" id="edit_rules_r" value="r" {{ if (contains .Permissions.Transfers "r") }}checked{{ end }}>
+                                    <label class="form-check-label" for="edit_rules_r">Read</label>
                                     </div>
                                     <div class="form-check form-check-inline">
-                                    <input class="form-check-input" type="radio" name="editUserPermissionsRules" id="edit_rules_r" value="r--" {{ if eq .Permissions.Rules "r--" }}checked{{ end }}>
-                                    <label class="form-check-label" for="edit_rules_r">R--</label>
+                                    <input class="form-check-input" type="checkbox" name="editUserPermissionsRules" id="edit_rules_w" value="w" {{ if (contains .Permissions.Transfers "w") }}checked{{ end }}>
+                                    <label class="form-check-label" for="edit_rules_w">Write-</label>
                                     </div>
                                     <div class="form-check form-check-inline">
-                                    <input class="form-check-input" type="radio" name="editUserPermissionsRules" id="edit_rules_rw" value="rw-" {{ if eq .Permissions.Rules "rw-" }}checked{{ end }}>
-                                    <label class="form-check-label" for="edit_rules_rw">RW-</label>
-                                    </div>
-                                    <div class="form-check form-check-inline">
-                                    <input class="form-check-input" type="radio" name="editUserPermissionsRules" id="edit_rules_rwd" value="rwd" {{ if eq .Permissions.Rules "rwd" }}checked{{ end }}>
-                                    <label class="form-check-label" for="edit_rules_rwd">RWD</label>
+                                    <input class="form-check-input" type="checkbox" name="editUserPermissionsRules" id="edit_rules_d" value="d" {{ if (contains .Permissions.Transfers "d") }}checked{{ end }}>
+                                    <label class="form-check-label" for="edit_rules_d">Delete</label>
                                     </div>
                                 </div>
                                 <div class="form-group">
                                     <label class="col-form-label mt-2">{{ index $.tab "users" }} :</label>
                                     <div class="form-check form-check-inline">
-                                    <input class="form-check-input" type="radio" name="editUserPermissionsUsers" id="edit_users_-" value="---" {{ if eq .Permissions.Users "---" }}checked{{ end }}>
-                                    <label class="form-check-label" for="edit_users_-">---</label>
+                                    <input class="form-check-input" type="checkbox" name="editUserPermissionsUsers" id="edit_users_r" value="r" {{ if (contains .Permissions.Transfers "r") }}checked{{ end }}>
+                                    <label class="form-check-label" for="edit_users_r">Read</label>
                                     </div>
                                     <div class="form-check form-check-inline">
-                                    <input class="form-check-input" type="radio" name="editUserPermissionsUsers" id="edit_users_r" value="r--" {{ if eq .Permissions.Users "r--" }}checked{{ end }}>
-                                    <label class="form-check-label" for="edit_users_r">R--</label>
+                                    <input class="form-check-input" type="checkbox" name="editUserPermissionsUsers" id="edit_users_w" value="w" {{ if (contains .Permissions.Transfers "w") }}checked{{ end }}>
+                                    <label class="form-check-label" for="edit_users_w">Write-</label>
                                     </div>
                                     <div class="form-check form-check-inline">
-                                    <input class="form-check-input" type="radio" name="editUserPermissionsUsers" id="edit_users_rw" value="rw-" {{ if eq .Permissions.Users "rw-" }}checked{{ end }}>
-                                    <label class="form-check-label" for="edit_users_rw">RW-</label>
-                                    </div>
-                                    <div class="form-check form-check-inline">
-                                    <input class="form-check-input" type="radio" name="editUserPermissionsUsers" id="edit_users_rwd" value="rwd" {{ if eq .Permissions.Users "rwd" }}checked{{ end }}>
-                                    <label class="form-check-label" for="edit_users_rwd">RWD</label>
+                                    <input class="form-check-input" type="checkbox" name="editUserPermissionsUsers" id="edit_users_d" value="d" {{ if (contains .Permissions.Transfers "d") }}checked{{ end }}>
+                                    <label class="form-check-label" for="edit_users_d">Delete</label>
                                     </div>
                                 </div>
                                 <div class="form-group">
                                     <label class="col-form-label mt-2">{{ index $.tab "administration" }} :</label>
                                     <div class="form-check form-check-inline">
-                                    <input class="form-check-input" type="radio" name="editUserPermissionsAdministration" id="edit_administration_-" value="---" {{ if eq .Permissions.Administration "---" }}checked{{ end }}>
-                                    <label class="form-check-label" for="edit_administration_-">---</label>
+                                    <input class="form-check-input" type="checkbox" name="editUserPermissionsAdministration" id="edit_administration_r" value="r" {{ if (contains .Permissions.Transfers "r") }}checked{{ end }}>
+                                    <label class="form-check-label" for="edit_administration_r">Read</label>
                                     </div>
                                     <div class="form-check form-check-inline">
-                                    <input class="form-check-input" type="radio" name="editUserPermissionsAdministration" id="edit_administration_r" value="r--" {{ if eq .Permissions.Administration "r--" }}checked{{ end }}>
-                                    <label class="form-check-label" for="edit_administration_r">R--</label>
+                                    <input class="form-check-input" type="checkbox" name="editUserPermissionsAdministration" id="edit_administration_w" value="w" {{ if (contains .Permissions.Transfers "w") }}checked{{ end }}>
+                                    <label class="form-check-label" for="edit_administration_w">Write-</label>
                                     </div>
                                     <div class="form-check form-check-inline">
-                                    <input class="form-check-input" type="radio" name="editUserPermissionsAdministration" id="edit_administration_rw" value="rw-" {{ if eq .Permissions.Administration "rw-" }}checked{{ end }}>
-                                    <label class="form-check-label" for="edit_administration_rw">RW-</label>
-                                    </div>
-                                    <div class="form-check form-check-inline">
-                                    <input class="form-check-input" type="radio" name="editUserPermissionsAdministration" id="edit_administration_rwd" value="rwd" {{ if eq .Permissions.Administration "rwd" }}checked{{ end }}>
-                                    <label class="form-check-label" for="edit_administration_rwd">RWD</label>
+                                    <input class="form-check-input" type="checkbox" name="editUserPermissionsAdministration" id="edit_administration_d" value="d" {{ if (contains .Permissions.Transfers "d") }}checked{{ end }}>
+                                    <label class="form-check-label" for="edit_administration_d">Delete</label>
                                     </div>
                                 </div>
                                 </div>

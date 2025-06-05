@@ -4,6 +4,7 @@ package gui
 import (
 	"fmt"
 	"net/http"
+	"slices"
 	"strconv"
 
 	"code.waarp.fr/lib/log"
@@ -17,6 +18,29 @@ type userPermissions struct {
 	Username    string
 	ID          int64
 	Permissions *model.Permissions
+}
+
+func strPermissions(p []string) string {
+	res := ""
+	if slices.Contains(p, "r") {
+		res += "r"
+	} else {
+		res += "-"
+	}
+
+	if slices.Contains(p, "w") {
+		res += "w"
+	} else {
+		res += "-"
+	}
+
+	if slices.Contains(p, "d") {
+		res += "d"
+	} else {
+		res += "-"
+	}
+
+	return res
 }
 
 func addUser(db *database.DB, r *http.Request) error {
@@ -36,12 +60,12 @@ func addUser(db *database.DB, r *http.Request) error {
 			return fmt.Errorf("internal error: %w", err)
 		}
 	}
-	permissions.Transfers = r.URL.Query().Get("newUserPermissionsTransfers")
-	permissions.Servers = r.URL.Query().Get("newUserPermissionServers")
-	permissions.Partners = r.URL.Query().Get("newUserPermissionsPartners")
-	permissions.Rules = r.URL.Query().Get("newUserPermissionsRules")
-	permissions.Users = r.URL.Query().Get("newUserPermissionsUsers")
-	permissions.Administration = r.URL.Query().Get("newUserPermissionsAdministration")
+	permissions.Transfers = strPermissions(r.URL.Query()["newUserPermissionsTransfers"])
+	permissions.Servers = strPermissions(r.URL.Query()["newUserPermissionsServers"])
+	permissions.Partners = strPermissions(r.URL.Query()["newUserPermissionsPartners"])
+	permissions.Rules = strPermissions(r.URL.Query()["newUserPermissionsRules"])
+	permissions.Users = strPermissions(r.URL.Query()["newUserPermissionsUsers"])
+	permissions.Administration = strPermissions(r.URL.Query()["newUserPermissionsAdministration"])
 
 	newUser.Permissions, err = model.PermsToMask(&permissions)
 	if err != nil {
@@ -81,12 +105,12 @@ func editUser(db *database.DB, r *http.Request) error {
 			return fmt.Errorf("internal error: %w", err)
 		}
 	}
-	permissions.Transfers = r.URL.Query().Get("editUserPermissionsTransfers")
-	permissions.Servers = r.URL.Query().Get("editUserPermissionsServers")
-	permissions.Partners = r.URL.Query().Get("editUserPermissionsPartners")
-	permissions.Rules = r.URL.Query().Get("editUserPermissionsRules")
-	permissions.Users = r.URL.Query().Get("editUserPermissionsUsers")
-	permissions.Administration = r.URL.Query().Get("editUserPermissionsAdministration")
+	permissions.Transfers = strPermissions(r.URL.Query()["editUserPermissionsTransfers"])
+	permissions.Servers = strPermissions(r.URL.Query()["editUserPermissionsServers"])
+	permissions.Partners = strPermissions(r.URL.Query()["editUserPermissionsPartners"])
+	permissions.Rules = strPermissions(r.URL.Query()["editUserPermissionsRules"])
+	permissions.Users = strPermissions(r.URL.Query()["editUserPermissionsUsers"])
+	permissions.Administration = strPermissions(r.URL.Query()["editUserPermissionsAdministration"])
 
 	newUser.Permissions, err = model.PermsToMask(&permissions)
 	if err != nil {
@@ -142,6 +166,8 @@ func listUser(db *database.DB, r *http.Request) []*model.User {
 	if err != nil {
 		return nil
 	}
+
+	// filter := r.URL.Query().Get("limit")
 
 	return user
 }
