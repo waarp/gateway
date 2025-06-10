@@ -73,16 +73,20 @@ func changeLanguage(w http.ResponseWriter, r *http.Request) string {
 
 func detectLanguage(r *http.Request) string {
 	res := r.Header.Get("Accept-Language")
-	if res[0] == 'e' && res[1] == 'n' {
-		return "en"
-	}
+	languageAl := strings.Split(res, ",")
 
-	if res[0] == 'f' && res[1] == 'r' {
-		return "fr"
-	}
+	for _, v := range languageAl {
+		if strings.HasPrefix(v, "en") {
+			return "en"
+		}
 
-	if res[0] == 'e' && res[1] == 's' {
-		return "es"
+		if strings.HasPrefix(v, "fr") {
+			return "fr"
+		}
+
+		if strings.HasPrefix(v, "es") {
+			return "es"
+		}
 	}
 
 	return "en"
@@ -124,7 +128,7 @@ func tagLanguage(r *http.Request, userLanguage string) language.Tag {
 func translateInt(nb int, r *http.Request, userLanguage string) string {
 	msg := message.NewPrinter(tagLanguage(r, userLanguage))
 
-	return msg.Sprint("%d", nb)
+	return msg.Sprintf("%d", nb)
 }
 
 //nolint:unused // method for later

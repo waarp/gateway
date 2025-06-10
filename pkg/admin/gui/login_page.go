@@ -3,6 +3,7 @@ package gui
 import (
 	"crypto/rand"
 	"encoding/base64"
+	"errors"
 	"fmt"
 	"net/http"
 	"sort"
@@ -35,7 +36,6 @@ func CreateSecretKey() []byte {
 	return []byte(base64.StdEncoding.EncodeToString(key))
 }
 
-//nolint:gochecknoglobals // validTimeToken
 const validTimeToken = 20 * time.Minute
 
 //nolint:gochecknoglobals // secretKey & sessionStore
@@ -160,8 +160,7 @@ func DeleteSession(token string) {
 	sessionStore.Delete(token)
 }
 
-//nolint:perfsprint // errMessage
-var errMessage = fmt.Errorf("incorrect username or password")
+var errAuthentication = errors.New("incorrect username or password")
 
 func checkUser(db *database.DB, username, password string) (*model.User, error) {
 	user, err := internal.GetUser(db, username)
@@ -173,25 +172,23 @@ func checkUser(db *database.DB, username, password string) (*model.User, error) 
 
 	pwd := internal.CheckHash(password, passwordHash)
 	if !pwd {
-		return nil, errMessage
+		return nil, errAuthentication
 	}
 
 	if err != nil {
-		return nil, errMessage
+		return nil, errAuthentication
 	}
 
 	return user, nil
 }
 
-//nolint:nestif // loginpage
-//nolint:errcheck// userLanguage
 func loginPage(logger *log.Logger, db *database.DB) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		userLanguage := r.Context().Value(ContextLanguageKey)
 		tabTranslated := pageTranslated("login_page", userLanguage.(string)) //nolint:errcheck,forcetypeassert // userLanguage
 		var errorMessage string
 
-		if r.Method == http.MethodPost {
+		if r.Method == http.MethodPost { //nolint:nestif // loginpage
 			if err := r.ParseForm(); err != nil {
 				logger.Error("Error: %v", err)
 				errorMessage = tabTranslated["error"]
