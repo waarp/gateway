@@ -3,6 +3,7 @@ package gui
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"io/fs"
 	"net/http"
@@ -21,7 +22,7 @@ const Prefix = "/webui"
 type ContextKey string
 
 //nolint:gochecknoglobals // global
-var (
+const (
 	ContextUserKey     ContextKey = "user"
 	ContextLanguageKey ContextKey = "language"
 )
@@ -34,12 +35,12 @@ func GetUserByToken(r *http.Request, db database.ReadAccess) (*model.User, error
 
 	value, ok := sessionStore.Load(cookie.Value)
 	if !ok {
-		return nil, fmt.Errorf("error loading session") //nolint:err113, perfsprint // error
+		return nil, errors.New("error loading session") //nolint:err113 // error
 	}
 
 	session, ok := value.(Session)
 	if !ok {
-		return nil, fmt.Errorf("internal error") //nolint:err113, perfsprint // error
+		return nil, errors.New("internal error") //nolint:err113 // error
 	}
 
 	user, err := internal.GetUserByID(db, int64(session.UserID))
