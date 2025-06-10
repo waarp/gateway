@@ -15,7 +15,22 @@
     "administration": { "fr": "Administration", "en": "Administration", "es": "Administración" },
     "usernameStr": { "fr": "Nom d'utilisateur", "en": "User name", "es": "Nombre de usuario" },
     "passwordStr": { "fr": "Mot de passe", "en": "Password", "es": "Contraseña" },
+    "passwordConfirmStr": { "fr": "Confirmer le mot de passe", "en": "Confirm password", "es": "Confirmar Contraseña" },
     "addUserTitle": { "fr": "Ajouter un nouvelle utilisateur", "en": "Add a new user", "es": "Agregar un nuevo usuario" },
     "close": { "fr": "Fermer", "en": "Close", "es": "Cerca" },
-    "edit": { "fr": "Modifier", "en": "Edit", "es": "Editar" }
+    "edit": { "fr": "Modifier", "en": "Edit", "es": "Editar" },
+    "read": { "fr": "Lire", "en": "Read", "es": "Leer" },
+    "write": { "fr": "Écrire", "en": "Write", "es": "escribir" },
+    "delete": { "fr": "Supprimer", "en": "Delete", "es": "Borrar" },
+    "none": { "fr": "Aucun", "en": "None", "es": "Ninguno" },
+    "search": { "fr": "Recherche", "en": "Search", "es": "Buscar" },
+    "equal": { "fr": "Égale", "en": "Equal", "es": "Igual" },
+    "confirmDelete": { "fr": "Confirmer la suppression ?", "en": "Confirm deletion?", "es": "¿Confirmar eliminación?" },
+    "tooltipTransfers": { "fr": "Lancer, programmer, suivre, relancer ou annuler les transferts de fichiers et consulter leur historique.", "en": "Start, schedule, track, restart or cancel file transfers and view their history.", "es": "Start, schedule, track, restart or cancel file transfers and view their history." },
+    "tooltipServers": { "fr": "Donne accès à la configuration, au démarrage et à l'arrêt des serveurs Waarp.", "en": "Provides access to configure, start and stop Waarp servers.", "es": "Provides access to configure, start and stop Waarp servers." },
+    "tooltipPartners": { "fr": "Permet de gérer la liste des partenaires : création, clés, certificats et quotas.", "en": "Allows you to manage the list of partners: creation, keys, certificates and quotas.", "es": "Allows you to manage the list of partners: creation, keys, certificates and quotas." },
+    "tooltipRules": { "fr": "Autorise la définition et l'édition des règles de routage et de sécurité.", "en": "Allows definition and editing of routing and security rules.", "es": "Allows definition and editing of routing and security rules." },
+    "tooltipUsers": { "fr": "Ajouter, modifier, supprimer les comptes utilisateurs Gateway et leur attribuer des rôles ou permissions.", "en": "Add, modify, delete Gateway user accounts and assign them roles or permissions.", "es": "Add, modify, delete Gateway user accounts and assign them roles or permissions." },
+    "tooltipAdministration": { "fr": "Accès aux fonctions d'administration avancées de Waarp Gateway.", "en": "Access to advanced administration functions of Waarp Gateway.", "es": "Access to advanced administration functions of Waarp Gateway." },
+    "userNotFound": { "fr": "Utilisateur introuvable", "en": "User not found", "es": "Usuario no encontrado" }
 }

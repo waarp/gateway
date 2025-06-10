@@ -14,6 +14,8 @@ import (
 	"code.waarp.fr/apps/gateway/gateway/pkg/model"
 )
 
+var userFound = true //nolint:gochecknoglobals //userFound
+
 type userPermissions struct {
 	Username    string
 	ID          int64
@@ -145,6 +147,7 @@ func deleteUser(db *database.DB, r *http.Request) error {
 }
 
 func listUser(db *database.DB, r *http.Request) []*model.User {
+	userFound = true
 	orderAsc := false
 	limit := 0
 	var err error
@@ -167,9 +170,147 @@ func listUser(db *database.DB, r *http.Request) []*model.User {
 		return nil
 	}
 
-	// filter := r.URL.Query().Get("limit")
+	search := r.URL.Query().Get("search")
+	if search != "" {
+		userSearch := searchUser(search, user)
+		if userSearch != nil {
+			return []*model.User{userSearch}
+		} else {
+			userFound = false
+		}
+	}
+
+	filterUser := r.URL.Query().Get("permissions")
+	filterUserType := r.URL.Query().Get("permissionsType")
+	filterUserValue := r.URL.Query().Get("permissionsValue")
+
+	if filterUser != "" && filterUserType != "" && filterUserValue != "" {
+		return permissionsFilter(filterUser, filterUserType, filterUserValue, user)
+	}
 
 	return user
+}
+
+func permissionsFilter(filterUser, filterUserType, filterUserValue string, listU []*model.User) []*model.User {
+	if filterUserType == "permissionsEq" {
+		return permissionsFilterLoop(filterUser, filterUserValue, listU)
+	}
+
+	if filterUserType == "permissionsMin" {
+		var userFiltered []*model.User
+		for _, val := range filterMin(filterUserValue) {
+			userFiltered = append(userFiltered, permissionsFilterLoop(filterUser, val, listU)...)
+		}
+
+		return userFiltered
+	}
+
+	if filterUserType == "permissionsMax" {
+		var userFiltered []*model.User
+		for _, val := range filterMax(filterUserValue) {
+			userFiltered = append(userFiltered, permissionsFilterLoop(filterUser, val, listU)...)
+		}
+
+		return userFiltered
+	}
+
+	return nil
+}
+
+func filterMin(filterUserValue string) []string {
+	if filterUserValue == "---" {
+		return []string{"---", "r--", "rw-", "rwd"}
+	}
+
+	if filterUserValue == "r--" {
+		return []string{"r--", "rw-", "rwd"}
+	}
+
+	if filterUserValue == "rw-" {
+		return []string{"rw-", "rwd"}
+	}
+
+	if filterUserValue == "rwd" {
+		return []string{"rwd"}
+	}
+
+	return nil
+}
+
+func filterMax(filterUserValue string) []string {
+	if filterUserValue == "rwd" {
+		return []string{"---", "r--", "rw-", "rwd"}
+	}
+
+	if filterUserValue == "rw-" {
+		return []string{"---", "r--", "rw-"}
+	}
+
+	if filterUserValue == "r--" {
+		return []string{"---", "r--"}
+	}
+
+	if filterUserValue == "---" {
+		return []string{"---"}
+	}
+
+	return nil
+}
+
+//nolint:gocognit // permissionsFilterLoop
+func permissionsFilterLoop(filterUser, filterUserValue string, listU []*model.User) []*model.User {
+	var userFiltered []*model.User
+
+	for _, uModel := range listU {
+		perms := model.MaskToPerms(uModel.Permissions)
+		if filterUser == "filterPermissionsTransfers" {
+			if perms.Transfers == filterUserValue {
+				userFiltered = append(userFiltered, uModel)
+			}
+		}
+
+		if filterUser == "filterPermissionsServers" {
+			if perms.Servers == filterUserValue {
+				userFiltered = append(userFiltered, uModel)
+			}
+		}
+
+		if filterUser == "filterPermissionsPartners" {
+			if perms.Partners == filterUserValue {
+				userFiltered = append(userFiltered, uModel)
+			}
+		}
+
+		if filterUser == "filterPermissionsRules" {
+			if perms.Rules == filterUserValue {
+				userFiltered = append(userFiltered, uModel)
+			}
+		}
+
+		if filterUser == "filterPermissionsUsers" {
+			if perms.Users == filterUserValue {
+				userFiltered = append(userFiltered, uModel)
+			}
+		}
+
+		if filterUser == "filterPermissionsAdministration" {
+			if perms.Administration == filterUserValue {
+				userFiltered = append(userFiltered, uModel)
+			}
+		}
+	}
+
+	return userFiltered
+}
+
+func searchUser(userNameSearch string, listUserSearch []*model.User) *model.User {
+	for _, u := range listUserSearch {
+		if u.Username == userNameSearch {
+			return u
+		}
+	}
+
+	return nil
 }
 
 //nolint:funlen // pattern
@@ -234,6 +375,7 @@ func userManagementPage(logger *log.Logger, db *database.DB) http.HandlerFunc {
 			"tab":             tabTranslated,
 			"username":        user.Username,
 			"language":        userLanguage,
+			"userFound":       userFound,
 		}); err != nil {
 			logger.Error("render user_management_page: %v", err)
 			http.Error(w, "Internal error", http.StatusInternalServerError)

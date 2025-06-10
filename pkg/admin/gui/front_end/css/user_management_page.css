@@ -1,22 +1,23 @@
-.btn-add {
+.btn-navbar {
     background-color: #f54b15 !important;
     border-color: #f54b15 !important;
     color: #fff !important;
-    border-radius: 10px;
+    border-radius: 17px;
 }
-.btn-add:hover, .btn-add:focus {
+
+.btn-navbar:hover, .btn-navbar:focus {
     background-color: #eb3700 !important;
     border-color: #eb3700 !important;
     color: #fff !important;
 }
 
-.btn-filter {
+.btn-filter, .btn-add {
     background-color: #f54b15 !important;
     border-color: #f54b15 !important;
     color: #fff !important;
     border-radius: 10px;
 }
-.btn-filter:hover, .btn-filter:focus {
+.btn-filter:hover, .btn-add:hover, .btn-filter:focus, .btn-add:focus {
     background-color: #eb3700 !important;
     border-color: #eb3700 !important;
     color: #fff !important;
@@ -52,4 +53,8 @@
 
 .table-outline {
   border: 2px solid grey
+}
+
+.navbar-user {
+  border-radius: 17px !important;
 }

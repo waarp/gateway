@@ -28,103 +28,107 @@
                 </div>
                 <div class="form-input">
                     <label class="col-form-label mt-2">{{ index .tab "passwordStr" }} :</label>
-                    <input type="password" name="newUserPassword" class="form-control" required>
+                    <input type="password" id="newUserPassword" class="form-control" required>
+                </div>
+                <div class="form-input">
+                    <label class="col-form-label mt-2">{{ index .tab "passwordConfirmStr" }} :</label>
+                    <input type="password" id="newUserPasswordConfirm" name="newUserPassword" class="form-control" required>
                 </div>
                 <div class="mt-3 mb-3"><strong>{{ index .tab "permissions" }} :</strong></div>
                 <div class="form-group">
                 <label class="col-form-label mt-2">{{ index .tab "transfers" }} :</label>
                     <div class="form-check form-check-inline">
                         <input class="form-check-input" type="checkbox" name="newUserPermissionsTransfers" id="transfers_r" value="r">
-                        <label class="form-check-label" for="transfers_r">Read</label>
+                        <label class="form-check-label" for="transfers_r">{{ index .tab "read" }}</label>
                     </div>
                     <div class="form-check form-check-inline">
                         <input class="form-check-input" type="checkbox" name="newUserPermissionsTransfers" id="transfers_w" value="w">
-                        <label class="form-check-label" for="transfers_w">Write</label>
+                        <label class="form-check-label" for="transfers_w">{{ index .tab "write" }}</label>
                     </div>
                     <div class="form-check form-check-inline">
                         <input class="form-check-input" type="checkbox" name="newUserPermissionsTransfers" id="transfers_d" value="d">
-                        <label class="form-check-label" for="transfers_d">Delete</label>
+                        <label class="form-check-label" for="transfers_d">{{ index .tab "delete" }}</label>
                     </div>
                     </div>
                 <div class="form-group">
                 <label class="col-form-label mt-2">{{ index .tab "servers" }} :</label>
                     <div class="form-check form-check-inline">
                         <input class="form-check-input" type="checkbox" name="newUserPermissionServers" id="servers_r" value="r">
-                        <label class="form-check-label" for="servers_r">Read</label>
+                        <label class="form-check-label" for="servers_r">{{ index .tab "read" }}</label>
                     </div>
                     <div class="form-check form-check-inline">
                         <input class="form-check-input" type="checkbox" name="newUserPermissionServers" id="servers_w" value="w">
-                        <label class="form-check-label" for="servers_w">Write</label>
+                        <label class="form-check-label" for="servers_w">{{ index .tab "write" }}</label>
                     </div>
                     <div class="form-check form-check-inline">
                         <input class="form-check-input" type="checkbox" name="newUserPermissionServers" id="servers_d" value="rd">
-                        <label class="form-check-label" for="servers_d">Delete</label>
+                        <label class="form-check-label" for="servers_d">{{ index .tab "delete" }}</label>
                     </div>
                     </div>
                 <div class="form-group">
                 <label class="col-form-label mt-2">{{ index .tab "partners" }} :</label>
                     <div class="form-check form-check-inline">
                         <input class="form-check-input" type="checkbox" name="newUserPermissionsPartners" id="partners_r" value="r">
-                        <label class="form-check-label" for="partners_r">Read</label>
+                        <label class="form-check-label" for="partners_r">{{ index .tab "read" }}</label>
                     </div>
                     <div class="form-check form-check-inline">
                         <input class="form-check-input" type="checkbox" name="newUserPermissionsPartners" id="partners_w" value="w">
-                        <label class="form-check-label" for="partners_w">Write</label>
+                        <label class="form-check-label" for="partners_w">{{ index .tab "write" }}</label>
                     </div>
                     <div class="form-check form-check-inline">
                         <input class="form-check-input" type="checkbox" name="newUserPermissionsPartners" id="partners_d" value="d">
-                        <label class="form-check-label" for="partners_d">Delete</label>
+                        <label class="form-check-label" for="partners_d">{{ index .tab "delete" }}</label>
                     </div>
                     </div>
                 <div class="form-group">
                 <label class="col-form-label mt-2">{{ index .tab "rules" }} :</label>
                     <div class="form-check form-check-inline">
                         <input class="form-check-input" type="checkbox" name="newUserPermissionsRules" id="rules_r" value="r">
-                        <label class="form-check-label" for="rules_r">Read</label>
+                        <label class="form-check-label" for="rules_r">{{ index .tab "read" }}</label>
                     </div>
                     <div class="form-check form-check-inline">
                         <input class="form-check-input" type="checkbox" name="newUserPermissionsRules" id="rules_w" value="w">
-                        <label class="form-check-label" for="rules_w">Write</label>
+                        <label class="form-check-label" for="rules_w">{{ index .tab "write" }}</label>
                     </div>
                     <div class="form-check form-check-inline">
                         <input class="form-check-input" type="checkbox" name="newUserPermissionsRules" id="rules_d" value="d">
-                        <label class="form-check-label" for="rules_d">Delete</label>
+                        <label class="form-check-label" for="rules_d">{{ index .tab "delete" }}</label>
                     </div>
                     </div>
                 <div class="form-group">
                 <label class="col-form-label mt-2">{{ index .tab "users" }} :</label>
                     <div class="form-check form-check-inline">
                         <input class="form-check-input" type="checkbox" name="newUserPermissionsUsers" id="users_r" value="r">
-                        <label class="form-check-label" for="users_r">Read</label>
+                        <label class="form-check-label" for="users_r">{{ index .tab "read" }}</label>
                     </div>
                     <div class="form-check form-check-inline">
                         <input class="form-check-input" type="checkbox" name="newUserPermissionsUsers" id="users_w" value="w">
-                        <label class="form-check-label" for="users_w">Write</label>
+                        <label class="form-check-label" for="users_w">{{ index .tab "write" }}</label>
                     </div>
                     <div class="form-check form-check-inline">
                         <input class="form-check-input" type="checkbox" name="newUserPermissionsUsers" id="users_d" value="d">
-                        <label class="form-check-label" for="users_d">Delete</label>
+                        <label class="form-check-label" for="users_d">{{ index .tab "delete" }}</label>
                     </div>
                     </div>
                 <div class="form-group">
                 <label class="col-form-label mt-2">{{ index .tab "administration" }} :</label>
                     <div class="form-check form-check-inline">
                         <input class="form-check-input" type="checkbox" name="newUserPermissionsAdministration" id="administration_r" value="r">
-                        <label class="form-check-label" for="administration_r">Read</label>
+                        <label class="form-check-label" for="administration_r">{{ index .tab "read" }}</label>
                     </div>
                     <div class="form-check form-check-inline">
                         <input class="form-check-input" type="checkbox" name="newUserPermissionsAdministration" id="administration_w" value="w">
-                        <label class="form-check-label" for="administration_w">Write</label>
+                        <label class="form-check-label" for="administration_w">{{ index .tab "write" }}</label>
                     </div>
                     <div class="form-check form-check-inline">
                         <input class="form-check-input" type="checkbox" name="newUserPermissionsAdministration" id="administration_d" value="d">
-                        <label class="form-check-label" for="administration_d">Delete</label>
+                        <label class="form-check-label" for="administration_d">{{ index .tab "delete" }}</label>
                     </div>
                     </div>
                 </div>
             <div class="modal-footer">
             <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">{{ index .tab "close" }}</button>
-            <button type="submit" class="btn btn-success ms-3">{{ index .tab "apply" }}</button>
+            <button type="submit" class="btn btn-success ms-3" onclick="confirmPassword('newUserPassword', 'newUserPasswordConfirm', '{{ .language }}')">{{ index .tab "apply" }}</button>
             </div>
         </form>
         </div>
@@ -157,16 +161,22 @@
             <label class="ms-3">{{ index .tab "permissions" }}: 
             <select id="permissions" name="permissions" class="form-select d-inline w-auto">
                 <option value="" selected>--</option>
-                <option value="filterPermissionsTransfers">Transfers</option>
-                <option value="filterPermissionsServers">Servers</option>
-                <option value="filterPermissionsPartners">Partners</option>
-                <option value="filterPermissionsRules">Rules</option>
-                <option value="filterPermissionsUsers">Users</option>
-                <option value="filterPermissionsAdministration">Administration</option>
+                <option value="filterPermissionsTransfers">{{ index .tab "transfers" }}</option>
+                <option value="filterPermissionsServers">{{ index .tab "servers" }}</option>
+                <option value="filterPermissionsPartners">{{ index .tab "partners" }}</option>
+                <option value="filterPermissionsRules">{{ index .tab "rules" }}</option>
+                <option value="filterPermissionsUsers">{{ index .tab "users" }}</option>
+                <option value="filterPermissionsAdministration">{{ index .tab "administration" }}</option>
+            </select>
+            <select id="permissionsType" name="permissionsType" class="form-select d-inline w-auto">
+                <option value="" selected>--</option>
+                <option value="permissionsMin">Min &lt </option>
+                <option value="permissionsEq">{{ index .tab "equal" }} =</option>
+                <option value="permissionsMax">Max &gt</option>
             </select>
             <select id="permissionsValue" name="permissionsValue" class="form-select d-inline w-auto">
                 <option value="" selected>--</option>
-                <option value="---">None</option>
+                <option value="---">{{ index .tab "none" }}</option>
                 <option value="r--">R--</option>
                 <option value="rw-">RW-</option>
                 <option value="rwd">RWD</option>
@@ -175,18 +185,27 @@
             <button id="applyBtn" type="submit" class="btn btn-success ms-3">{{ index .tab "apply" }}</button>
         </form>
         </div>
+        <nav class="navbar navbar-light bg-light">
+            <form method="get" class="d-flex ms-auto">
+                {{ if not .userFound }}
+                    <div class="invalid-feedback d-block mt-2">{{ index .tab "userNotFound" }}</div>
+                {{ end }}
+            <input class="navbar-user form-control {{ if not .userFound }}is-invalid{{ end }}" type="search" placeholder="{{ index .tab "search" }}" name="search">
+            <button class="btn btn-primary ms-2 btn-navbar" type="submit">{{ index .tab "search" }}</button>
+        </form>
+        </nav>
 
         <table class="table table-sm align-middle mb-4 rounded-3 mt-3">
           <thead class="table-light">
             <tr>
               <th></th>
               <th>{{ index .tab "usernameStr" }}</th>
-              <th>{{ index $.tab "transfers" }} <i class="bi bi-info-circle ms-1" data-bs-toggle="tooltip" data-bs-placement="right" data-bs-title="transfers"></i></th>
-              <th>{{ index $.tab "servers" }} <i class="bi bi-info-circle ms-1" data-bs-toggle="tooltip" data-bs-placement="right" data-bs-title="servers"></i></th>
-              <th>{{ index $.tab "partners" }} <i class="bi bi-info-circle ms-1" data-bs-toggle="tooltip" data-bs-placement="right" data-bs-title="partners"></i></th>
-              <th>{{ index $.tab "rules" }} <i class="bi bi-info-circle ms-1" data-bs-toggle="tooltip" data-bs-placement="right" data-bs-title="rules"></i></th>
-              <th>{{ index $.tab "users" }} <i class="bi bi-info-circle ms-1" data-bs-toggle="tooltip" data-bs-placement="right" data-bs-title="users"></i></th>
-              <th>{{ index $.tab "administration" }} <i class="bi bi-info-circle ms-1" data-bs-toggle="tooltip" data-bs-placement="right" data-bs-title="administration"></i></th>
+              <th>{{ index $.tab "transfers" }} <i class="bi bi-info-circle ms-1" data-bs-toggle="tooltip" data-bs-placement="right" data-bs-title="{{ index $.tab "tooltipTransfers" }}"></i></th>
+              <th>{{ index $.tab "servers" }} <i class="bi bi-info-circle ms-1" data-bs-toggle="tooltip" data-bs-placement="right" data-bs-title="{{ index $.tab "tooltipServers" }}"></i></th>
+              <th>{{ index $.tab "partners" }} <i class="bi bi-info-circle ms-1" data-bs-toggle="tooltip" data-bs-placement="right" data-bs-title="{{ index $.tab "tooltipPartners" }}"></i></th>
+              <th>{{ index $.tab "rules" }} <i class="bi bi-info-circle ms-1" data-bs-toggle="tooltip" data-bs-placement="right" data-bs-title="{{ index $.tab "tooltipRules" }}"></i></th>
+              <th>{{ index $.tab "users" }} <i class="bi bi-info-circle ms-1" data-bs-toggle="tooltip" data-bs-placement="right" data-bs-title="{{ index $.tab "tooltipUsers" }}"></i></th>
+              <th>{{ index $.tab "administration" }} <i class="bi bi-info-circle ms-1" data-bs-toggle="tooltip" data-bs-placement="right" data-bs-title="{{ index $.tab "tooltipAdministration" }}"></i></th>
               <th class="text-end"></th>
             </tr>
           </thead>
@@ -225,103 +244,107 @@
                             </div>
                             <div class="form-input">
                                 <label class="col-form-label mt-2">{{ index $.tab "passwordStr" }} :</label>
-                                <input type="password" name="editUserPassword" class="form-control">
+                                <input type="password" id="editUserPassword" class="form-control">
+                            </div>
+                            <div class="form-input">
+                                <label class="col-form-label mt-2">{{ index $.tab "passwordConfirmStr" }} :</label>
+                                <input type="password" id="editUserPasswordConfirm" name="editUserPassword" class="form-control">
                             </div>
                             <div class="title-perm mt-3 mb-3"><strong>{{ index $.tab "permissions" }} :</strong></div>
                                 <div class="form-group">
                                     <label class="col-form-label mt-2">{{ index $.tab "transfers" }} :</label>
                                     <div class="form-check form-check-inline">
                                     <input class="form-check-input" type="checkbox" name="editUserPermissionsTransfers" id="edit_transfers_r" value="r" {{ if (contains .Permissions.Transfers "r") }}checked{{ end }}>
-                                    <label class="form-check-label" for="edit_transfers_r">Read</label>
+                                    <label class="form-check-label" for="edit_transfers_r">{{ index $.tab "read" }}</label>
                                     </div>
                                     <div class="form-check form-check-inline">
                                     <input class="form-check-input" type="checkbox" name="editUserPermissionsTransfers" id="edit_transfers_w" value="w" {{ if (contains .Permissions.Transfers "w") }}checked{{ end }}>
-                                    <label class="form-check-label" for="edit_transfers_w">Write-</label>
+                                    <label class="form-check-label" for="edit_transfers_w">{{ index $.tab "write" }}</label>
                                     </div>
                                     <div class="form-check form-check-inline">
                                     <input class="form-check-input" type="checkbox" name="editUserPermissionsTransfers" id="edit_transfers_d" value="d" {{ if (contains .Permissions.Transfers "d") }}checked{{ end }}>
-                                    <label class="form-check-label" for="edit_transfers_d">Delete</label>
+                                    <label class="form-check-label" for="edit_transfers_d">{{ index $.tab "delete" }}</label>
                                     </div>
                                 </div>
                                 <div class="form-group">
                                     <label class="col-form-label mt-2">{{ index $.tab "servers" }} :</label>
                                     <div class="form-check form-check-inline">
-                                    <input class="form-check-input" type="checkbox" name="editUserPermissionsServers" id="edit_servers_r" value="r" {{ if (contains .Permissions.Transfers "r") }}checked{{ end }}>
-                                    <label class="form-check-label" for="edit_servers_r">Read</label>
+                                    <input class="form-check-input" type="checkbox" name="editUserPermissionsServers" id="edit_servers_r" value="r" {{ if (contains .Permissions.Servers "r") }}checked{{ end }}>
+                                    <label class="form-check-label" for="edit_servers_r">{{ index $.tab "read" }}</label>
                                     </div>
                                     <div class="form-check form-check-inline">
-                                    <input class="form-check-input" type="checkbox" name="editUserPermissionsServers" id="edit_servers_w" value="w" {{ if (contains .Permissions.Transfers "w") }}checked{{ end }}>
-                                    <label class="form-check-label" for="edit_servers_w">Write</label>
+                                    <input class="form-check-input" type="checkbox" name="editUserPermissionsServers" id="edit_servers_w" value="w" {{ if (contains .Permissions.Servers "w") }}checked{{ end }}>
+                                    <label class="form-check-label" for="edit_servers_w">{{ index $.tab "write" }}</label>
                                     </div>
                                     <div class="form-check form-check-inline">
-                                    <input class="form-check-input" type="checkbox" name="editUserPermissionsServers" id="edit_servers_d" value="d" {{ if (contains .Permissions.Transfers "d") }}checked{{ end }}>
-                                    <label class="form-check-label" for="edit_servers_d">Delete</label>
+                                    <input class="form-check-input" type="checkbox" name="editUserPermissionsServers" id="edit_servers_d" value="d" {{ if (contains .Permissions.Servers "d") }}checked{{ end }}>
+                                    <label class="form-check-label" for="edit_servers_d">{{ index $.tab "delete" }}</label>
                                     </div>
                                 </div>
                                 <div class="form-group">
                                     <label class="col-form-label mt-2">{{ index $.tab "partners" }} :</label>
                                     <div class="form-check form-check-inline">
-                                    <input class="form-check-input" type="checkbox" name="editUserPermissionsPartners" id="edit_partners_r" value="r" {{ if (contains .Permissions.Transfers "r") }}checked{{ end }}>
-                                    <label class="form-check-label" for="edit_partners_r">Read</label>
+                                    <input class="form-check-input" type="checkbox" name="editUserPermissionsPartners" id="edit_partners_r" value="r" {{ if (contains .Permissions.Partners "r") }}checked{{ end }}>
+                                    <label class="form-check-label" for="edit_partners_r">{{ index $.tab "read" }}</label>
                                     </div>
                                     <div class="form-check form-check-inline">
-                                    <input class="form-check-input" type="checkbox" name="editUserPermissionsPartners" id="edit_partners_w" value="w" {{ if (contains .Permissions.Transfers "w") }}checked{{ end }}>
-                                    <label class="form-check-label" for="edit_partners_w">Write-</label>
+                                    <input class="form-check-input" type="checkbox" name="editUserPermissionsPartners" id="edit_partners_w" value="w" {{ if (contains .Permissions.Partners "w") }}checked{{ end }}>
+                                    <label class="form-check-label" for="edit_partners_w">{{ index $.tab "write" }}</label>
                                     </div>
                                     <div class="form-check form-check-inline">
-                                    <input class="form-check-input" type="checkbox" name="editUserPermissionsPartners" id="edit_partners_d" value="d" {{ if (contains .Permissions.Transfers "d") }}checked{{ end }}>
-                                    <label class="form-check-label" for="edit_partners_d">Delete</label>
+                                    <input class="form-check-input" type="checkbox" name="editUserPermissionsPartners" id="edit_partners_d" value="d" {{ if (contains .Permissions.Partners "d") }}checked{{ end }}>
+                                    <label class="form-check-label" for="edit_partners_d">{{ index $.tab "delete" }}</label>
                                     </div>
                                 </div>
                                 <div class="form-group">
                                     <label class="col-form-label mt-2">{{ index $.tab "rules" }} :</label>
                                     <div class="form-check form-check-inline">
-                                    <input class="form-check-input" type="checkbox" name="editUserPermissionsRules" id="edit_rules_r" value="r" {{ if (contains .Permissions.Transfers "r") }}checked{{ end }}>
-                                    <label class="form-check-label" for="edit_rules_r">Read</label>
+                                    <input class="form-check-input" type="checkbox" name="editUserPermissionsRules" id="edit_rules_r" value="r" {{ if (contains .Permissions.Rules "r") }}checked{{ end }}>
+                                    <label class="form-check-label" for="edit_rules_r">{{ index $.tab "read" }}</label>
                                     </div>
                                     <div class="form-check form-check-inline">
-                                    <input class="form-check-input" type="checkbox" name="editUserPermissionsRules" id="edit_rules_w" value="w" {{ if (contains .Permissions.Transfers "w") }}checked{{ end }}>
-                                    <label class="form-check-label" for="edit_rules_w">Write-</label>
+                                    <input class="form-check-input" type="checkbox" name="editUserPermissionsRules" id="edit_rules_w" value="w" {{ if (contains .Permissions.Rules "w") }}checked{{ end }}>
+                                    <label class="form-check-label" for="edit_rules_w">{{ index $.tab "write" }}</label>
                                     </div>
                                     <div class="form-check form-check-inline">
-                                    <input class="form-check-input" type="checkbox" name="editUserPermissionsRules" id="edit_rules_d" value="d" {{ if (contains .Permissions.Transfers "d") }}checked{{ end }}>
-                                    <label class="form-check-label" for="edit_rules_d">Delete</label>
+                                    <input class="form-check-input" type="checkbox" name="editUserPermissionsRules" id="edit_rules_d" value="d" {{ if (contains .Permissions.Rules "d") }}checked{{ end }}>
+                                    <label class="form-check-label" for="edit_rules_d">{{ index $.tab "delete" }}</label>
                                     </div>
                                 </div>
                                 <div class="form-group">
                                     <label class="col-form-label mt-2">{{ index $.tab "users" }} :</label>
                                     <div class="form-check form-check-inline">
-                                    <input class="form-check-input" type="checkbox" name="editUserPermissionsUsers" id="edit_users_r" value="r" {{ if (contains .Permissions.Transfers "r") }}checked{{ end }}>
-                                    <label class="form-check-label" for="edit_users_r">Read</label>
+                                    <input class="form-check-input" type="checkbox" name="editUserPermissionsUsers" id="edit_users_r" value="r" {{ if (contains .Permissions.Users "r") }}checked{{ end }}>
+                                    <label class="form-check-label" for="edit_users_r">{{ index $.tab "read" }}</label>
                                     </div>
                                     <div class="form-check form-check-inline">
-                                    <input class="form-check-input" type="checkbox" name="editUserPermissionsUsers" id="edit_users_w" value="w" {{ if (contains .Permissions.Transfers "w") }}checked{{ end }}>
-                                    <label class="form-check-label" for="edit_users_w">Write-</label>
+                                    <input class="form-check-input" type="checkbox" name="editUserPermissionsUsers" id="edit_users_w" value="w" {{ if (contains .Permissions.Users "w") }}checked{{ end }}>
+                                    <label class="form-check-label" for="edit_users_w">{{ index $.tab "write" }}</label>
                                     </div>
                                     <div class="form-check form-check-inline">
-                                    <input class="form-check-input" type="checkbox" name="editUserPermissionsUsers" id="edit_users_d" value="d" {{ if (contains .Permissions.Transfers "d") }}checked{{ end }}>
-                                    <label class="form-check-label" for="edit_users_d">Delete</label>
+                                    <input class="form-check-input" type="checkbox" name="editUserPermissionsUsers" id="edit_users_d" value="d" {{ if (contains .Permissions.Users "d") }}checked{{ end }}>
+                                    <label class="form-check-label" for="edit_users_d">{{ index $.tab "delete" }}</label>
                                     </div>
                                 </div>
                                 <div class="form-group">
                                     <label class="col-form-label mt-2">{{ index $.tab "administration" }} :</label>
                                     <div class="form-check form-check-inline">
-                                    <input class="form-check-input" type="checkbox" name="editUserPermissionsAdministration" id="edit_administration_r" value="r" {{ if (contains .Permissions.Transfers "r") }}checked{{ end }}>
-                                    <label class="form-check-label" for="edit_administration_r">Read</label>
+                                    <input class="form-check-input" type="checkbox" name="editUserPermissionsAdministration" id="edit_administration_r" value="r" {{ if (contains .Permissions.Administration "r") }}checked{{ end }}>
+                                    <label class="form-check-label" for="edit_administration_r">{{ index $.tab "read" }}</label>
                                     </div>
                                     <div class="form-check form-check-inline">
-                                    <input class="form-check-input" type="checkbox" name="editUserPermissionsAdministration" id="edit_administration_w" value="w" {{ if (contains .Permissions.Transfers "w") }}checked{{ end }}>
-                                    <label class="form-check-label" for="edit_administration_w">Write-</label>
+                                    <input class="form-check-input" type="checkbox" name="editUserPermissionsAdministration" id="edit_administration_w" value="w" {{ if (contains .Permissions.Administration "w") }}checked{{ end }}>
+                                    <label class="form-check-label" for="edit_administration_w">{{ index $.tab "write" }}</label>
                                     </div>
                                     <div class="form-check form-check-inline">
-                                    <input class="form-check-input" type="checkbox" name="editUserPermissionsAdministration" id="edit_administration_d" value="d" {{ if (contains .Permissions.Transfers "d") }}checked{{ end }}>
-                                    <label class="form-check-label" for="edit_administration_d">Delete</label>
+                                    <input class="form-check-input" type="checkbox" name="editUserPermissionsAdministration" id="edit_administration_d" value="d" {{ if (contains .Permissions.Administration "d") }}checked{{ end }}>
+                                    <label class="form-check-label" for="edit_administration_d">{{ index $.tab "delete" }}</label>
                                     </div>
                                 </div>
                                 </div>
                                 <div class="modal-footer">
                                 <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">{{ index $.tab "close" }}</button>
-                                <button type="submit" class="btn btn-success ms-3">{{ index $.tab "apply" }}</button>
+                                <button type="submit" class="btn btn-success ms-3" onclick="confirmPassword('editUserPassword', 'editUserPasswordConfirm', '{{ $.language }}')">{{ index $.tab "apply" }}</button>
                                 </div>
                             </form>
                             </div>
@@ -331,7 +354,7 @@
                 {{ if contains $.myPermission.Users "d" }}
                 <form method="get" class="d-inline">
                   <input type="hidden" name="deleteUser" value="{{ .ID }}">
-                  <button type="submit" class="btn btn-outline-danger btn-sm" onclick="confirm('Confirmer la suppression ?')">
+                  <button type="submit" class="btn btn-outline-danger btn-sm" onclick="return confirm('{{ index $.tab "confirmDelete" }}')">
                     <i class="bi bi-trash"></i>
                   </button>
                 </form>
@@ -343,21 +366,19 @@
         </table>
     </div>
     {{ else }}
-        <div class="row g-3 mb-4">
-            <div class="row g-3 mb-4">
-                <div class="col-sm-4">
-                <div class="card text-center p-3">
-                    <i class="bi bi-person-fill fs-2"></i>
-                    <div><strong>{{ .username }}</strong></div>
-                    <div>{{ index .tab "permissions" }}</div>
-                    <div>{{ index .tab "transfers" }}: {{ .myPermission.Transfers }}</div>
-                    <div>{{ index .tab "servers" }}: {{ .myPermission.Servers }}</div>
-                    <div>{{ index .tab "partners" }}: {{ .myPermission.Partners }}</div>
-                    <div>{{ index .tab "rules" }}: {{ .myPermission.Rules }}</div>
-                    <div>{{ index .tab "users" }}: {{ .myPermission.Users }}</div>
-                    <div>{{ index .tab "administration" }}: {{ .myPermission.Administration }}</div>
-                </div>
-                </div>
+    <div class="row justify-content-center mb-4">
+        <div class="col-sm-8 col-md-6 col-lg-4">
+            <div class="card text-center p-3 mx-auto">
+                <i class="bi bi-person-fill fs-2"></i>
+                <div><strong>{{ .username }}</strong></div>
+                <div class="mt-2 mb-2"><i>{{ index .tab "permissions" }} :</i></div>
+                <div>{{ index .tab "transfers" }}: {{ .myPermission.Transfers }}</div>
+                <div>{{ index .tab "servers" }}: {{ .myPermission.Servers }}</div>
+                <div>{{ index .tab "partners" }}: {{ .myPermission.Partners }}</div>
+                <div>{{ index .tab "rules" }}: {{ .myPermission.Rules }}</div>
+                <div>{{ index .tab "users" }}: {{ .myPermission.Users }}</div>
+                <div>{{ index .tab "administration" }}: {{ .myPermission.Administration }}</div>
+            </div>
             </div>
         </div>
     {{ end }}
