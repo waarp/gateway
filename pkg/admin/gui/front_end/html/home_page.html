@@ -1,16 +1,17 @@
 {{ define "head" }}
+<title>{{ index .tab "title" }}</title>
 <link rel="stylesheet" href="/webui/static/css/home_page.css">
 {{ end }}
 
 {{ define "content" }}
-      <h2>Accueil</h2>
+      <h2>{{ index .tab "title" }}</h2>
         <hr class="mt-2 mb-4" style="border-top: 1px solid #ababab;">
       <div class="row g-3 mb-4">
         <div class="col-sm-4">
           <a href="connection_settings.html" class="text-decoration-none text-dark">
             <div class="card text-center p-3">
               <i class="bi bi-gear-fill fs-2"></i>
-              <div>Paramètres de connexion</div>
+              <div>{{ index .tab "connection_settings" }}</div>
             </div>
           </a>
         </div>
@@ -18,7 +19,7 @@
           <a href="status_of_services.html" class="text-decoration-none text-dark">
             <div class="card text-center p-3">
               <i class="bi bi-list-check fs-2"></i>
-              <div>Status des services</div>
+              <div>{{ index .tab "status_of_services" }}</div>
             </div>
           </a>
         </div>
@@ -26,7 +27,7 @@
           <a href="user_management.html" class="text-decoration-none text-dark">
             <div class="card text-center p-3">
               <i class="bi bi-person-fill fs-2"></i>
-              <div>Gestion des utilisateurs</div>
+              <div>{{ index .tab "user_management" }}</div>
             </div>
           </a>
         </div>
@@ -34,7 +35,7 @@
           <a href="local_customer_management.html" class="text-decoration-none text-dark">
             <div class="card text-center p-3">
               <i class="bi bi-people-fill fs-2"></i>
-              <div>Gestion des clients locaux</div>
+              <div>{{ index .tab "local_customer_management" }}</div>
             </div>
           </a>
         </div>
@@ -42,7 +43,7 @@
           <a href="managing_local_servers.html" class="text-decoration-none text-dark">
             <div class="card text-center p-3">
               <i class="bi bi-hdd-stack-fill fs-2"></i>
-              <div>Gestion des serveurs locaux</div>
+              <div>{{ index .tab "managing_local_servers" }}</div>
             </div>
           </a>
         </div>
@@ -50,7 +51,7 @@
           <a href="local_account_anagement.html" class="text-decoration-none text-dark">
             <div class="card text-center p-3">
               <i class="bi bi-person-badge-fill fs-2"></i>
-              <div>Gestion des comptes locaux</div>
+              <div>{{ index .tab "local_account_anagement" }}</div>
             </div>
           </a>
         </div>
@@ -58,7 +59,7 @@
           <a href="remote_partner_management.html" class="text-decoration-none text-dark">
             <div class="card text-center p-3">
               <i class="bi-person-check-fill fs-2"></i>
-              <div>Gestion des partenaires distants</div>
+              <div>{{ index .tab "remote_partner_management" }}</div>
             </div>
           </a>
         </div>
@@ -66,7 +67,7 @@
           <a href="remote_account_management.html" class="text-decoration-none text-dark">
             <div class="card text-center p-3">
               <i class="bi bi-person-lines-fill fs-2"></i>
-              <div>Gestion des comptes distants</div>
+              <div>{{ index .tab "remote_account_management" }}</div>
             </div>
           </a>
         </div>
@@ -74,7 +75,7 @@
           <a href="transfer_rules_management.html" class="text-decoration-none text-dark">
             <div class="card text-center p-3">
               <i class="bi bi-shuffle fs-2"></i>
-              <div>Gestion des règles de transfert</div>
+              <div>{{ index .tab "transfer_rules_management" }}</div>
             </div>
           </a>
         </div>
@@ -82,7 +83,7 @@
           <a href="transfer_management.html" class="text-decoration-none text-dark">
             <div class="card text-center p-3">
               <i class="bi bi-arrow-left-right fs-2"></i>
-              <div>Gestion des transferts</div>
+              <div>{{ index .tab "transfer_management" }}</div>
             </div>
           </a>
         </div>
@@ -90,7 +91,7 @@
           <a href="managing_configuration_overrides.html" class="text-decoration-none text-dark">
             <div class="card text-center p-3">
               <i class="bi bi-sliders fs-2"></i>
-              <div>Gestion des override de configuration</div>
+              <div>{{ index .tab "managing_configuration_overrides" }}</div>
             </div>
           </a>
         </div>
@@ -98,7 +99,7 @@
           <a href="managing_authentication_authorities.html" class="text-decoration-none text-dark">
             <div class="card text-center p-3">
               <i class="bi bi-shield-lock-fill fs-2"></i>
-              <div>Gestion des autorités d'authentification</div>
+              <div>{{ index .tab "managing_authentication_authorities" }}</div>
             </div>
           </a>
         </div>
@@ -106,15 +107,15 @@
           <a href="cloud_instance_management.html" class="text-decoration-none text-dark">
             <div class="card text-center p-3">
               <i class="bi bi-cloud-fill fs-2"></i>
-              <div>Gestion des instances cloud</div>
+              <div>{{ index .tab "cloud_instance_management" }}</div>
             </div>
           </a>
         </div>
         <div class="col-sm-4">
-          <a href="snmp_anagement.html" class="text-decoration-none text-dark">
+          <a href="snmp_management.html" class="text-decoration-none text-dark">
             <div class="card text-center p-3">
               <i class="bi bi-diagram-3-fill fs-2"></i>
-              <div>Gestion de SNMP</div>
+              <div>{{ index .tab "snmp_management" }}</div>
             </div>
           </a>
         </div>
@@ -122,7 +123,7 @@
           <a href="cryptographic_key_management.html" class="text-decoration-none text-dark">
             <div class="card text-center p-3">
               <i class="bi bi-key-fill fs-2"></i>
-              <div>Gestion des clés cryptographiques</div>
+              <div>{{ index .tab "cryptographic_key_management" }}</div>
             </div>
           </a>
         </div>
