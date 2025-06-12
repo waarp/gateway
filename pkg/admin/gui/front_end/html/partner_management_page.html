@@ -1,0 +1,104 @@
+{{ define "head" }}
+<title>{{ index .tab "title" }}</title>
+<link rel="stylesheet" href="/webui/static/css/partner_management_page.css">
+<script src="/webui/static/javaScript/partner_management_page.js"></script>
+{{ end }}
+
+{{ define "content" }}
+    <h2>{{ index .tab "title" }}</h2>
+    <hr class="mt-2 mb-4" style="border-top: 1px solid #ababab;">
+
+    {{ if contains .myPermission.Partners "w" }}
+        <button class="btn btn-primary mb-3 btn-add" type="button" data-bs-toggle="modal" data-bs-target="#addPartnerModal">
+        {{ index .tab "addPartnerTitle" }}
+        </button>
+    {{ end }}
+    {{ if contains .myPermission.Partners "r" }}
+        <button class="btn btn-primary mb-3 ms-2 btn-filter" type="button" data-bs-toggle="collapse" data-bs-target="#filterCollapse" aria-expanded="false" aria-controls="filterCollapse">
+        {{ index .tab "filter" }}
+        </button>
+
+        <nav class="navbar navbar-light bg-light">
+          <form method="get" class="d-flex ms-auto">
+            {{ if not .partnerFound }}
+              <div class="invalid-feedback d-block mt-2">{{ index .tab "partnerNotFound" }}</div>
+            {{ end }}
+            <input class="navbar-user form-control {{ if not .partnerFound }}is-invalid{{ end }}" type="search" placeholder="{{ index .tab "search" }}" name="search">
+            <button class="btn btn-primary ms-2 btn-navbar" type="submit">{{ index .tab "search" }}</button>
+          </form>
+        </nav>
+
+        <table class="table table-sm align-middle mb-4 rounded-3 mt-3">
+          <thead class="table-light">
+            <tr>
+              <th></th>
+              <th>{{ index .tab "partners" }}</th>
+              <th>{{ index .tab "protocol" }} <i class="bi bi-info-circle ms-1" data-bs-toggle="tooltip" data-bs-placement="right" data-bs-title="{{ index $.tab "tooltipProtocol" }}"></i></th>
+              <th>{{ index .tab "address" }} ({{ index .tab "host" }}) <i class="bi bi-info-circle ms-1" data-bs-toggle="tooltip" data-bs-placement="right" data-bs-title="{{ index $.tab "tooltipHost" }}"></i></th>
+              <th>{{ index .tab "address" }} ({{ index .tab "port" }}) <i class="bi bi-info-circle ms-1" data-bs-toggle="tooltip" data-bs-placement="right" data-bs-title="{{ index $.tab "tooltipPort" }}"></i></th>
+              <th>{{ index .tab "protocolConfiguration" }} <i class="bi bi-info-circle ms-1" data-bs-toggle="tooltip" data-bs-placement="right" data-bs-title="{{ index $.tab "tooltipProtocolConfiguration" }}"></i></th>
+              <th class="text-end"></th>
+            </tr>
+          </thead>
+          <tbody>
+            {{ range .partner }}
+            <tr>
+              <td><i class="bi bi-person-fill"></i></td>
+              <td><strong>{{ .Name }}</strong></td>
+
+              <td>{{ .Protocol }}</td>
+              <td>{{ .Address.Host }}</td>
+              <td>{{ .Address.Port }}</td>
+              <td>
+              <button class="btn btn-outline-primary protoConfig-btn" type="button" data-bs-toggle="modal" data-bs-target="#protoConfigModal_{{ .ID }}">
+              ...
+              </button>
+              </td>
+              <div class="modal fade" id="protoConfigModal_{{ .ID }}" tabindex="-1" aria-labelledby="protoConfigModalLabel_{{ .ID }}" aria-hidden="true">
+                <div class="modal-dialog modal-lg">
+                  <div class="modal-content">
+                    <div class="modal-header">
+                      <h5 class="modal-title" id="protoConfigModalLabel_{{ .ID }}">
+                        {{ index $.tab "protocolConfiguration" }}: {{ .Name }}
+                      </h5>
+                      <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                    </div>
+                    <div class="modal-body">
+                        {{ range $key, $value := .ProtoConfig }}
+                        <div class="form-group mt-4">
+                            <label class="col-form-label me-3">{{$key}} :</label>
+                            <input type="text" class="form-control" value="{{$value}}" readonly>
+                        </div>
+                        {{ end }}
+                    </div>
+                    <div class="modal-footer">
+                      <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">{{ index $.tab "close" }}</button>
+                    </div>
+                  </div>
+                </div>
+              </div>
+              <td class="text-end">
+                {{ if contains $.myPermission.Partners "w" }}
+                  <button class="btn btn-outline-primary btn-sm me-1" data-bs-toggle="modal" data-bs-target="#editPartnerModal_{{ .ID }}">
+                  <i class="bi bi-pencil"></i>
+                  </button>
+                {{ end }}
+              {{ if contains $.myPermission.Partners "d" }}
+                <form method="get" class="d-inline">
+                  <input type="hidden" name="deletePartner" value="{{ .ID }}">
+                  <button type="submit" class="btn btn-outline-danger btn-sm" onclick="return confirm('{{ index $.tab "confirmDelete" }}')">
+                    <i class="bi bi-trash"></i>
+                  </button>
+                </form>
+              {{ end }}
+              </td>
+            </tr>
+            {{ end }}
+          </tbody>
+        </table>
+    {{ end }}
+{{ end }}
+
+{{ define "partner_management_page" }}
+  {{ template "index" . }}
+{{ end }}

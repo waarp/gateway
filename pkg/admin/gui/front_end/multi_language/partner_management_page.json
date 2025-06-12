@@ -1,0 +1,22 @@
+{
+    "title": { "fr": "Gestion des partenaires distants", "en": "Remote partner management" },
+    "about": { "fr": "À propos", "en": "About" },
+    "logout": { "fr": "Déconnexion", "en": "Logout" },
+    "addPartnerTitle": { "fr": "Ajouter un nouveau partenaire", "en": "Add a new partner" },
+    "filter": { "fr": "Filtre", "en": "Filter" },
+    "partners": { "fr": "Partenaires", "en": "Partners" },
+    "protocol": { "fr": "Protocole", "en": "Protocol" },
+    "tooltipProtocol": { "fr": "Protocole", "en": "Protocol" },
+    "address": { "fr": "Adresse", "en": "Address" },
+    "host": { "fr": "Hôte", "en": "Host" },
+    "tooltipHost": { "fr": "Host", "en": "Host" },
+    "port": { "fr": "Port", "en": "Port" },
+    "tooltipPort": { "fr": "Port", "en": "Port" },
+    "protocolConfiguration": { "fr": "Configuration protocolaire", "en": "Protocol configuration" },
+    "tooltipProtocolConfiguration": { "fr": "Configuration protocolaire", "en": "Protocol configuration" },
+    "close": { "fr": "Fermer", "en": "Close" },
+    "apply": { "fr": "Appliquer", "en": "Apply" },
+    "confirmDelete": { "fr": "Confirmer la suppression ?", "en": "Confirm deletion?" },
+    "partnerNotFound": { "fr": "Partenaire introuvable", "en": "Partner not found" },
+    "search": { "fr": "Recherche", "en": "Search" }
+}
