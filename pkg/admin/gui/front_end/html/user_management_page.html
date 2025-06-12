@@ -35,8 +35,8 @@
                     <input type="password" id="newUserPasswordConfirm" name="newUserPassword" class="form-control" required>
                 </div>
                 <div class="mt-3 mb-3"><strong>{{ index .tab "permissions" }} :</strong></div>
-                <div class="form-group">
-                <label class="col-form-label mt-2">{{ index .tab "transfers" }} :</label>
+                <div class="form-group mt-2">
+                <label class="col-form-label">{{ index .tab "transfers" }} :</label>
                     <div class="form-check form-check-inline">
                         <input class="form-check-input" type="checkbox" name="newUserPermissionsTransfers" id="transfers_r" value="r">
                         <label class="form-check-label" for="transfers_r">{{ index .tab "read" }}</label>
@@ -50,8 +50,8 @@
                         <label class="form-check-label" for="transfers_d">{{ index .tab "delete" }}</label>
                     </div>
                     </div>
-                <div class="form-group">
-                <label class="col-form-label mt-2">{{ index .tab "servers" }} :</label>
+                <div class="form-group mt-2">
+                <label class="col-form-label">{{ index .tab "servers" }} :</label>
                     <div class="form-check form-check-inline">
                         <input class="form-check-input" type="checkbox" name="newUserPermissionServers" id="servers_r" value="r">
                         <label class="form-check-label" for="servers_r">{{ index .tab "read" }}</label>
@@ -65,8 +65,8 @@
                         <label class="form-check-label" for="servers_d">{{ index .tab "delete" }}</label>
                     </div>
                     </div>
-                <div class="form-group">
-                <label class="col-form-label mt-2">{{ index .tab "partners" }} :</label>
+                <div class="form-group mt-2">
+                <label class="col-form-label">{{ index .tab "partners" }} :</label>
                     <div class="form-check form-check-inline">
                         <input class="form-check-input" type="checkbox" name="newUserPermissionsPartners" id="partners_r" value="r">
                         <label class="form-check-label" for="partners_r">{{ index .tab "read" }}</label>
@@ -80,8 +80,8 @@
                         <label class="form-check-label" for="partners_d">{{ index .tab "delete" }}</label>
                     </div>
                     </div>
-                <div class="form-group">
-                <label class="col-form-label mt-2">{{ index .tab "rules" }} :</label>
+                <div class="form-group mt-2">
+                <label class="col-form-label">{{ index .tab "rules" }} :</label>
                     <div class="form-check form-check-inline">
                         <input class="form-check-input" type="checkbox" name="newUserPermissionsRules" id="rules_r" value="r">
                         <label class="form-check-label" for="rules_r">{{ index .tab "read" }}</label>
@@ -95,8 +95,8 @@
                         <label class="form-check-label" for="rules_d">{{ index .tab "delete" }}</label>
                     </div>
                     </div>
-                <div class="form-group">
-                <label class="col-form-label mt-2">{{ index .tab "users" }} :</label>
+                <div class="form-group mt-2">
+                <label class="col-form-label">{{ index .tab "users" }} :</label>
                     <div class="form-check form-check-inline">
                         <input class="form-check-input" type="checkbox" name="newUserPermissionsUsers" id="users_r" value="r">
                         <label class="form-check-label" for="users_r">{{ index .tab "read" }}</label>
@@ -110,8 +110,8 @@
                         <label class="form-check-label" for="users_d">{{ index .tab "delete" }}</label>
                     </div>
                     </div>
-                <div class="form-group">
-                <label class="col-form-label mt-2">{{ index .tab "administration" }} :</label>
+                <div class="form-group mt-2">
+                <label class="col-form-label">{{ index .tab "administration" }} :</label>
                     <div class="form-check form-check-inline">
                         <input class="form-check-input" type="checkbox" name="newUserPermissionsAdministration" id="administration_r" value="r">
                         <label class="form-check-label" for="administration_r">{{ index .tab "read" }}</label>
@@ -200,12 +200,12 @@
             <tr>
               <th></th>
               <th>{{ index .tab "usernameStr" }}</th>
-              <th>{{ index $.tab "transfers" }} <i class="bi bi-info-circle ms-1" data-bs-toggle="tooltip" data-bs-placement="right" data-bs-title="{{ index $.tab "tooltipTransfers" }}"></i></th>
-              <th>{{ index $.tab "servers" }} <i class="bi bi-info-circle ms-1" data-bs-toggle="tooltip" data-bs-placement="right" data-bs-title="{{ index $.tab "tooltipServers" }}"></i></th>
-              <th>{{ index $.tab "partners" }} <i class="bi bi-info-circle ms-1" data-bs-toggle="tooltip" data-bs-placement="right" data-bs-title="{{ index $.tab "tooltipPartners" }}"></i></th>
-              <th>{{ index $.tab "rules" }} <i class="bi bi-info-circle ms-1" data-bs-toggle="tooltip" data-bs-placement="right" data-bs-title="{{ index $.tab "tooltipRules" }}"></i></th>
-              <th>{{ index $.tab "users" }} <i class="bi bi-info-circle ms-1" data-bs-toggle="tooltip" data-bs-placement="right" data-bs-title="{{ index $.tab "tooltipUsers" }}"></i></th>
-              <th>{{ index $.tab "administration" }} <i class="bi bi-info-circle ms-1" data-bs-toggle="tooltip" data-bs-placement="right" data-bs-title="{{ index $.tab "tooltipAdministration" }}"></i></th>
+              <th>{{ index .tab "transfers" }} <i class="bi bi-info-circle ms-1" data-bs-toggle="tooltip" data-bs-placement="right" data-bs-title="{{ index .tab "tooltipTransfers" }}"></i></th>
+              <th>{{ index .tab "servers" }} <i class="bi bi-info-circle ms-1" data-bs-toggle="tooltip" data-bs-placement="right" data-bs-title="{{ index .tab "tooltipServers" }}"></i></th>
+              <th>{{ index .tab "partners" }} <i class="bi bi-info-circle ms-1" data-bs-toggle="tooltip" data-bs-placement="right" data-bs-title="{{ index .tab "tooltipPartners" }}"></i></th>
+              <th>{{ index .tab "rules" }} <i class="bi bi-info-circle ms-1" data-bs-toggle="tooltip" data-bs-placement="right" data-bs-title="{{ index .tab "tooltipRules" }}"></i></th>
+              <th>{{ index .tab "users" }} <i class="bi bi-info-circle ms-1" data-bs-toggle="tooltip" data-bs-placement="right" data-bs-title="{{ index .tab "tooltipUsers" }}"></i></th>
+              <th>{{ index .tab "administration" }} <i class="bi bi-info-circle ms-1" data-bs-toggle="tooltip" data-bs-placement="right" data-bs-title="{{ index .tab "tooltipAdministration" }}"></i></th>
               <th class="text-end"></th>
             </tr>
           </thead>
@@ -251,8 +251,8 @@
                                 <input type="password" id="editUserPasswordConfirm" name="editUserPassword" class="form-control">
                             </div>
                             <div class="title-perm mt-3 mb-3"><strong>{{ index $.tab "permissions" }} :</strong></div>
-                                <div class="form-group">
-                                    <label class="col-form-label mt-2">{{ index $.tab "transfers" }} :</label>
+                                <div class="form-group mt-2">
+                                    <label class="col-form-label">{{ index $.tab "transfers" }} :</label>
                                     <div class="form-check form-check-inline">
                                     <input class="form-check-input" type="checkbox" name="editUserPermissionsTransfers" id="edit_transfers_r" value="r" {{ if (contains .Permissions.Transfers "r") }}checked{{ end }}>
                                     <label class="form-check-label" for="edit_transfers_r">{{ index $.tab "read" }}</label>
@@ -266,8 +266,8 @@
                                     <label class="form-check-label" for="edit_transfers_d">{{ index $.tab "delete" }}</label>
                                     </div>
                                 </div>
-                                <div class="form-group">
-                                    <label class="col-form-label mt-2">{{ index $.tab "servers" }} :</label>
+                                <div class="form-group mt-2">
+                                    <label class="col-form-label">{{ index $.tab "servers" }} :</label>
                                     <div class="form-check form-check-inline">
                                     <input class="form-check-input" type="checkbox" name="editUserPermissionsServers" id="edit_servers_r" value="r" {{ if (contains .Permissions.Servers "r") }}checked{{ end }}>
                                     <label class="form-check-label" for="edit_servers_r">{{ index $.tab "read" }}</label>
@@ -281,8 +281,8 @@
                                     <label class="form-check-label" for="edit_servers_d">{{ index $.tab "delete" }}</label>
                                     </div>
                                 </div>
-                                <div class="form-group">
-                                    <label class="col-form-label mt-2">{{ index $.tab "partners" }} :</label>
+                                <div class="form-group mt-2">
+                                    <label class="col-form-label">{{ index $.tab "partners" }} :</label>
                                     <div class="form-check form-check-inline">
                                     <input class="form-check-input" type="checkbox" name="editUserPermissionsPartners" id="edit_partners_r" value="r" {{ if (contains .Permissions.Partners "r") }}checked{{ end }}>
                                     <label class="form-check-label" for="edit_partners_r">{{ index $.tab "read" }}</label>
@@ -296,8 +296,8 @@
                                     <label class="form-check-label" for="edit_partners_d">{{ index $.tab "delete" }}</label>
                                     </div>
                                 </div>
-                                <div class="form-group">
-                                    <label class="col-form-label mt-2">{{ index $.tab "rules" }} :</label>
+                                <div class="form-group mt-2">
+                                    <label class="col-form-label">{{ index $.tab "rules" }} :</label>
                                     <div class="form-check form-check-inline">
                                     <input class="form-check-input" type="checkbox" name="editUserPermissionsRules" id="edit_rules_r" value="r" {{ if (contains .Permissions.Rules "r") }}checked{{ end }}>
                                     <label class="form-check-label" for="edit_rules_r">{{ index $.tab "read" }}</label>
@@ -311,8 +311,8 @@
                                     <label class="form-check-label" for="edit_rules_d">{{ index $.tab "delete" }}</label>
                                     </div>
                                 </div>
-                                <div class="form-group">
-                                    <label class="col-form-label mt-2">{{ index $.tab "users" }} :</label>
+                                <div class="form-group mt-2">
+                                    <label class="col-form-label">{{ index $.tab "users" }} :</label>
                                     <div class="form-check form-check-inline">
                                     <input class="form-check-input" type="checkbox" name="editUserPermissionsUsers" id="edit_users_r" value="r" {{ if (contains .Permissions.Users "r") }}checked{{ end }}>
                                     <label class="form-check-label" for="edit_users_r">{{ index $.tab "read" }}</label>
@@ -326,8 +326,8 @@
                                     <label class="form-check-label" for="edit_users_d">{{ index $.tab "delete" }}</label>
                                     </div>
                                 </div>
-                                <div class="form-group">
-                                    <label class="col-form-label mt-2">{{ index $.tab "administration" }} :</label>
+                                <div class="form-group mt-2">
+                                    <label class="col-form-label">{{ index $.tab "administration" }} :</label>
                                     <div class="form-check form-check-inline">
                                     <input class="form-check-input" type="checkbox" name="editUserPermissionsAdministration" id="edit_administration_r" value="r" {{ if (contains .Permissions.Administration "r") }}checked{{ end }}>
                                     <label class="form-check-label" for="edit_administration_r">{{ index $.tab "read" }}</label>
