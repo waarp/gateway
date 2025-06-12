@@ -11,6 +11,12 @@ func GetPartner(db database.ReadAccess, name string) (*model.RemoteAgent, error)
 	return &partner, db.Get(&partner, "name=?", name).Owner().Run()
 }
 
+func GetPartnerByID(db database.ReadAccess, id int64) (*model.RemoteAgent, error) {
+	var partner model.RemoteAgent
+
+	return &partner, db.Get(&partner, "id=?", id).Run()
+}
+
 func ListPartners(db database.ReadAccess, orderByCol string, orderByAsc bool, limit, offset int,
 	protocols ...string,
 ) ([]*model.RemoteAgent, error) {
