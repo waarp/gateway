@@ -20,12 +20,17 @@ var (
 	homeTemplate = template.Must(
 		template.ParseFS(webFS, index, header, multiLanguage, "front_end/html/home_page.html"),
 	)
+	loginTemplate = template.Must(
+		template.ParseFS(webFS, multiLanguage, "front_end/html/login_page.html"),
+	)
 	userManagementTemplate = template.Must(
 		template.New("user_management_page.html").
 			Funcs(funcs).
 			ParseFS(webFS, index, header, multiLanguage, "front_end/html/user_management_page.html"),
 	)
-	loginTemplate = template.Must(
-		template.ParseFS(webFS, multiLanguage, "front_end/html/login_page.html"),
+	partnerManagementTemplate = template.Must(
+		template.New("partner_management_page.html").
+			Funcs(funcs).
+			ParseFS(webFS, index, header, multiLanguage, "front_end/html/partner_management_page.html"),
 	)
 )
