@@ -1,9 +1,10 @@
 package gui
 
 import (
+	"fmt"
 	"net/http"
 	"strconv"
-	"fmt"
+
 	"code.waarp.fr/lib/log"
 
 	"code.waarp.fr/apps/gateway/gateway/pkg/admin/gui/internal"
@@ -31,7 +32,7 @@ func ListPartner(db *database.DB, r *http.Request) []*model.RemoteAgent {
 			limit = 0
 		}
 	}
-	
+
 	partner, err := internal.ListPartners(db, "name", orderAsc, limit, 0)
 	if err != nil {
 		return nil
@@ -62,6 +63,7 @@ func searchPartner(partnerNameSearch string, listPartnerSearch []*model.RemoteAg
 
 func deletePartner(db *database.DB, r *http.Request) error {
 	partnerID := r.URL.Query().Get("deletePartner")
+
 	id, err := strconv.Atoi(partnerID)
 	if err != nil {
 		return fmt.Errorf("internal error: %w", err)
@@ -79,18 +81,11 @@ func deletePartner(db *database.DB, r *http.Request) error {
 	return nil
 }
 
-
 func partnerManagementPage(logger *log.Logger, db *database.DB) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		userLanguage := r.Context().Value(ContextLanguageKey)
-		tabTranslated := pageTranslated("partner_management_page", userLanguage.(string))
+		tTranslated := pageTranslated("partner_management_page", userLanguage.(string)) //nolint:errcheck,forcetypeassert //u
 		partnerList := ListPartner(db, r)
-        for _, partner := range partnerList {
-            fmt.Printf("%s:\n", partner.Name)
-			for key, value := range partner.ProtoConfig {
-				fmt.Printf("%s: %v\n", key, value)
-			}
-        }
 
 		if r.Method == http.MethodGet && r.URL.Query().Get("deletePartner") != "" {
 			deletePartnerErr := deletePartner(db, r)
@@ -111,12 +106,12 @@ func partnerManagementPage(logger *log.Logger, db *database.DB) http.HandlerFunc
 		myPermission := model.MaskToPerms(user.Permissions)
 
 		if err := partnerManagementTemplate.ExecuteTemplate(w, "partner_management_page", map[string]any{
-			"myPermission":    myPermission,
-			"tab":             tabTranslated,
-			"username":        user.Username,
-			"language":        userLanguage,
-			"partner":		   partnerList,
-			"partnerFound":	   partnerFound,
+			"myPermission": myPermission,
+			"tab":          tTranslated,
+			"username":     user.Username,
+			"language":     userLanguage,
+			"partner":      partnerList,
+			"partnerFound": partnerFound,
 		}); err != nil {
 			logger.Error("render partner_management_page: %v", err)
 			http.Error(w, "Internal error", http.StatusInternalServerError)
