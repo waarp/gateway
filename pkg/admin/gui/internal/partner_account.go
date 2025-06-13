@@ -1,3 +1,4 @@
+//nolint:dupl // another page
 package internal
 
 import (
