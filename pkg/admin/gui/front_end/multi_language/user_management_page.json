@@ -6,6 +6,7 @@
     "sort": { "fr": "Trier par ordre alphabétique:", "en": "Sort alphabetically:", "es": "Ordenar alfabéticamente:" },
     "limit": { "fr": "Limite:", "en": "Limit:", "es": "Límite:" },
     "apply": { "fr": "Appliquer", "en": "Apply", "es": "Aplicar" },
+    "reset": { "fr": "Réinitialiser", "en": "Reset", "es": "Reset" },
     "permissions": { "fr": "Permissions", "en": "Permissions", "es": "Permisos" },
     "transfers": { "fr": "Transferts", "en": "Transfers", "es": "Transferencias" },
     "servers": { "fr": "Serveurs", "en": "Servers", "es": "Servidores" },
@@ -32,5 +33,7 @@
     "tooltipRules": { "fr": "Autorise la définition et l'édition des règles de routage et de sécurité.", "en": "Allows definition and editing of routing and security rules.", "es": "Allows definition and editing of routing and security rules." },
     "tooltipUsers": { "fr": "Ajouter, modifier, supprimer les comptes utilisateurs Gateway et leur attribuer des rôles ou permissions.", "en": "Add, modify, delete Gateway user accounts and assign them roles or permissions.", "es": "Add, modify, delete Gateway user accounts and assign them roles or permissions." },
     "tooltipAdministration": { "fr": "Accès aux fonctions d'administration avancées de Waarp Gateway.", "en": "Access to advanced administration functions of Waarp Gateway.", "es": "Access to advanced administration functions of Waarp Gateway." },
-    "userNotFound": { "fr": "Utilisateur introuvable", "en": "User not found", "es": "Usuario no encontrado" }
+    "userNotFound": { "fr": "Utilisateur introuvable", "en": "User not found", "es": "Usuario no encontrado" },
+    "next": { "fr": "Suivant", "en": "Next", "es": "Next" },
+    "previous": { "fr": "Précédent", "en": "Previous", "es": "escribir" }
 }
