@@ -78,10 +78,12 @@ func AddGUIRouter(router *mux.Router, logger *log.Logger, db *database.DB) {
 
 	secureRouter := router.PathPrefix("/").Subrouter()
 	secureRouter.Use(AuthenticationMiddleware(logger, db))
+	secureRouter.HandleFunc("/autocompletion", autocompletionFunc(db)).Methods("GET")
 	secureRouter.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
 		http.Redirect(w, r, "home", http.StatusFound)
 	})
 	secureRouter.HandleFunc("/home", homePage(logger, db)).Methods("GET")
+	secureRouter.HandleFunc("/user_management", userManagementPage(logger, db)).Methods("GET")
 }
 
 func logout() http.HandlerFunc {
@@ -114,7 +116,7 @@ func AuthenticationMiddleware(logger *log.Logger, db *database.DB) mux.Middlewar
 				return
 			}
 
-			RefreshExpirationToken(token.Value)
+			RefreshExpirationToken(token.Value, w)
 
 			userID, found := ValidateSession(token.Value)
 			if !found {

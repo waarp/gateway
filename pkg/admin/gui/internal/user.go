@@ -18,6 +18,14 @@ func GetUserByID(db database.ReadAccess, id int64) (*model.User, error) {
 	return &user, db.Get(&user, "id=?", id).Run()
 }
 
+func GetUsersLike(db *database.DB, prefix string) ([]*model.User, error) {
+	const limit = 5
+	var users model.Users
+
+	return users, db.Select(&users).Owner().Where("username LIKE ?", prefix+"%").
+		OrderBy("username", true).Limit(limit, 0).Run()
+}
+
 func ListUsers(db database.ReadAccess, orderByCol string, orderByAsc bool, limit, offset int,
 ) ([]*model.User, error) {
 	var users model.Users

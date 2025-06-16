@@ -1,12 +1,12 @@
 
 .form-control {
-    border-radius: 17px;
+    border-radius: 13px;
 }
 
 .btn-connexion {
   background-color: #f54b15;
   color: white;
-  border-radius: 17px;
+  border-radius: 13px;
 }
 
 .btn-connexion:hover,
@@ -14,7 +14,7 @@
   background-color: #fff;
   color: #f54b15 !important;
   transition: background 0.5s, color 1.0s;
-  border-radius: 17px;
+  border-radius: 13px;
   box-shadow: 0 6px 18px rgba(200, 199, 199, 0.25);
 }
 
@@ -31,7 +31,7 @@
 .error-animated {
     animation: shake 0.5s ease-in-out;
     border: 1px solid red;
-    border-radius: 17px;
+    border-radius: 13px;
 }
 
 @keyframes shake {
