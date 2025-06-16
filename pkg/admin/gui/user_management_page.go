@@ -2,6 +2,7 @@
 package gui
 
 import (
+	"encoding/json"
 	"fmt"
 	"net/http"
 	"slices"
@@ -14,7 +15,18 @@ import (
 	"code.waarp.fr/apps/gateway/gateway/pkg/model"
 )
 
-var userFound = true //nolint:gochecknoglobals //userFound
+var userFound = "" //nolint:gochecknoglobals //userFound
+
+type Filters struct {
+	Offset           int
+	Limit            int
+	OrderAsc         bool
+	Permissions      string
+	PermissionsType  string
+	PermissionsValue string
+	DisableNext      bool
+	DisablePrevious  bool
+}
 
 type userPermissions struct {
 	Username    string
@@ -146,49 +158,100 @@ func deleteUser(db *database.DB, r *http.Request) error {
 	return nil
 }
 
-func listUser(db *database.DB, r *http.Request) []*model.User {
-	userFound = true
-	orderAsc := false
-	limit := 0
-	var err error
-
-	orderAscRes := r.URL.Query().Get("orderAsc")
-	if orderAscRes == "true" {
-		orderAsc = true
+func listUser(db *database.DB, r *http.Request) ([]*model.User, Filters) {
+	userFound = ""
+	const limit = 30
+	filter := Filters{
+		Offset:          0,
+		Limit:           limit,
+		OrderAsc:        true,
+		DisableNext:     false,
+		DisablePrevious: false,
 	}
 
-	limitRes := r.URL.Query().Get("limit")
-	if limitRes != "" {
-		limit, err = strconv.Atoi(limitRes)
-		if err != nil {
-			limit = 0
+	if r.URL.Query().Get("orderAsc") == "true" {
+		filter.OrderAsc = true
+	} else if r.URL.Query().Get("orderAsc") == "false" {
+		filter.OrderAsc = false
+	}
+
+	if limitRes := r.URL.Query().Get("limit"); limitRes != "" {
+		if l, err := strconv.Atoi(limitRes); err == nil {
+			filter.Limit = l
 		}
 	}
 
-	user, err := internal.ListUsers(db, "username", orderAsc, limit, 0)
+	if offsetRes := r.URL.Query().Get("offset"); offsetRes != "" {
+		if o, err := strconv.Atoi(offsetRes); err == nil {
+			filter.Offset = o
+		}
+	}
+
+	user, err := internal.ListUsers(db, "username", filter.OrderAsc, 0, 0)
 	if err != nil {
-		return nil
+		return nil, Filters{}
 	}
 
-	search := r.URL.Query().Get("search")
-	if search != "" {
-		userSearch := searchUser(search, user)
-		if userSearch != nil {
-			return []*model.User{userSearch}
+	if search := r.URL.Query().Get("search"); search != "" {
+		if userSearch := searchUser(search, user); userSearch != nil {
+			filter.DisableNext = true
+			filter.DisablePrevious = true
+			userFound = "true"
+
+			return []*model.User{userSearch}, filter
 		} else {
-			userFound = false
+			userFound = "false"
 		}
 	}
 
-	filterUser := r.URL.Query().Get("permissions")
-	filterUserType := r.URL.Query().Get("permissionsType")
-	filterUserValue := r.URL.Query().Get("permissionsValue")
+	filter.Permissions = r.URL.Query().Get("permissions")
+	filter.PermissionsType = r.URL.Query().Get("permissionsType")
+	filter.PermissionsValue = r.URL.Query().Get("permissionsValue")
 
-	if filterUser != "" && filterUserType != "" && filterUserValue != "" {
-		return permissionsFilter(filterUser, filterUserType, filterUserValue, user)
+	if filter.Permissions != "" && filter.PermissionsType != "" && filter.PermissionsValue != "" {
+		user = permissionsFilter(filter.Permissions, filter.PermissionsType, filter.PermissionsValue, user)
 	}
 
-	return user
+	users, filtersPtr := paginationFunc(r, user, &filter)
+
+	return users, *filtersPtr
+}
+
+func paginationFunc(r *http.Request, user []*model.User, filter *Filters) ([]*model.User, *Filters) {
+	nbUsers := len(user)
+
+	if r.URL.Query().Get("previous") == "true" && filter.Offset > 0 {
+		filter.Offset--
+	}
+
+	if r.URL.Query().Get("next") == "true" {
+		if filter.Limit*(filter.Offset+1) <= nbUsers {
+			filter.Offset++
+		}
+	}
+
+	start := filter.Offset * filter.Limit
+	end := start + filter.Limit
+
+	if start > nbUsers {
+		start = nbUsers
+	}
+
+	if end > nbUsers {
+		end = nbUsers
+	}
+
+	pagedUsers := user[start:end]
+
+	if filter.Offset == 0 {
+		filter.DisablePrevious = true
+	}
+
+	if (filter.Offset+1)*filter.Limit >= nbUsers {
+		filter.DisableNext = true
+	}
+
+	return pagedUsers, filter
 }
 
 func permissionsFilter(filterUser, filterUserType, filterUserValue string, listU []*model.User) []*model.User {
@@ -303,6 +366,30 @@ func permissionsFilterLoop(filterUser, filterUserValue string, listU []*model.Us
 	return userFiltered
 }
 
+func autocompletionFunc(db *database.DB) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		prefix := r.URL.Query().Get("q")
+
+		users, err := internal.GetUsersLike(db, prefix)
+		if err != nil {
+			http.Error(w, "internal error", http.StatusInternalServerError)
+
+			return
+		}
+
+		names := make([]string, len(users))
+		for i, u := range users {
+			names[i] = u.Username
+		}
+
+		w.Header().Set("Content-Type", "application/json")
+
+		if err := json.NewEncoder(w).Encode(names); err != nil {
+			http.Error(w, "error json", http.StatusInternalServerError)
+		}
+	}
+}
+
 func searchUser(userNameSearch string, listUserSearch []*model.User) *model.User {
 	for _, u := range listUserSearch {
 		if u.Username == userNameSearch {
@@ -318,7 +405,7 @@ func userManagementPage(logger *log.Logger, db *database.DB) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		userLanguage := r.Context().Value(ContextLanguageKey)
 		tabTranslated := pageTranslated("user_management_page", userLanguage.(string)) //nolint:errcheck,forcetypeassert //u
-		userList := listUser(db, r)
+		userList, filter := listUser(db, r)
 
 		var uPermissionsList []userPermissions
 		for _, u := range userList {
@@ -376,6 +463,7 @@ func userManagementPage(logger *log.Logger, db *database.DB) http.HandlerFunc {
 			"username":        user.Username,
 			"language":        userLanguage,
 			"userFound":       userFound,
+			"filter":          filter,
 		}); err != nil {
 			logger.Error("render user_management_page: %v", err)
 			http.Error(w, "Internal error", http.StatusInternalServerError)
