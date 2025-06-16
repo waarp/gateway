@@ -104,7 +104,7 @@ func TokenMaxPerUser(user *model.User) {
 	}
 }
 
-func RefreshExpirationToken(token string) {
+func RefreshExpirationToken(token string, w http.ResponseWriter) {
 	value, ok := sessionStore.Load(token)
 	if !ok {
 		return
@@ -118,6 +118,15 @@ func RefreshExpirationToken(token string) {
 	if session.Expiration.After(time.Now()) {
 		session.Expiration = time.Now().Add(validTimeToken)
 		sessionStore.Store(token, session)
+		http.SetCookie(w, &http.Cookie{
+			Name:     "token",
+			Value:    token,
+			Path:     "/",
+			Expires:  session.Expiration,
+			Secure:   true,
+			HttpOnly: true,
+			SameSite: http.SameSiteLaxMode,
+		})
 	}
 }
 
