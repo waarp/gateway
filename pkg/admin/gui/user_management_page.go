@@ -15,8 +15,6 @@ import (
 	"code.waarp.fr/apps/gateway/gateway/pkg/model"
 )
 
-var userFound = "" //nolint:gochecknoglobals //userFound
-
 type Filters struct {
 	Offset           int
 	Limit            int
@@ -71,7 +69,7 @@ func addUser(db *database.DB, r *http.Request) error {
 	if newUserPassword != "" {
 		newUser.PasswordHash, err = internal.HashPassword(newUserPassword)
 		if err != nil {
-			return fmt.Errorf("internal error: %w", err)
+			return fmt.Errorf("failed to hash user password: %w", err)
 		}
 	}
 	permissions.Transfers = strPermissions(r.URL.Query()["newUserPermissionsTransfers"])
@@ -83,11 +81,11 @@ func addUser(db *database.DB, r *http.Request) error {
 
 	newUser.Permissions, err = model.PermsToMask(&permissions)
 	if err != nil {
-		return fmt.Errorf("internal error: %w", err)
+		return fmt.Errorf("failed to set permissions: %w", err)
 	}
 
 	if err = internal.InsertUser(db, &newUser); err != nil {
-		return fmt.Errorf("internal error: %w", err)
+		return fmt.Errorf("failed to add user: %w", err)
 	}
 
 	return nil
@@ -99,12 +97,12 @@ func editUser(db *database.DB, r *http.Request) error {
 
 	id, err := strconv.Atoi(userID)
 	if err != nil {
-		return fmt.Errorf("internal error: %w", err)
+		return fmt.Errorf("failed to convert id to int: %w", err)
 	}
 
 	newUser, err := internal.GetUserByID(db, int64(id))
 	if err != nil {
-		return fmt.Errorf("internal error: %w", err)
+		return fmt.Errorf("failed to get id: %w", err)
 	}
 
 	newUserUsername := r.URL.Query().Get("editUserUsername")
@@ -116,7 +114,7 @@ func editUser(db *database.DB, r *http.Request) error {
 	if newUserPassword != "" {
 		newUser.PasswordHash, err = internal.HashPassword(newUserPassword)
 		if err != nil {
-			return fmt.Errorf("internal error: %w", err)
+			return fmt.Errorf("failed to hash user password: %w", err)
 		}
 	}
 	permissions.Transfers = strPermissions(r.URL.Query()["editUserPermissionsTransfers"])
@@ -128,11 +126,11 @@ func editUser(db *database.DB, r *http.Request) error {
 
 	newUser.Permissions, err = model.PermsToMask(&permissions)
 	if err != nil {
-		return fmt.Errorf("internal error: %w", err)
+		return fmt.Errorf("failed to set permissions: %w", err)
 	}
 
 	if err = internal.UpdateUser(db, newUser); err != nil {
-		return fmt.Errorf("internal error: %w", err)
+		return fmt.Errorf("failed to edit user: %w", err)
 	}
 
 	return nil
@@ -143,23 +141,23 @@ func deleteUser(db *database.DB, r *http.Request) error {
 
 	id, err := strconv.Atoi(userID)
 	if err != nil {
-		return fmt.Errorf("internal error: %w", err)
+		return fmt.Errorf("failed to convert id to int: %w", err)
 	}
 
 	newUser, err := internal.GetUserByID(db, int64(id))
 	if err != nil {
-		return fmt.Errorf("internal error: %w", err)
+		return fmt.Errorf("failed to get id: %w", err)
 	}
 
 	if err = internal.DeleteUser(db, newUser); err != nil {
-		return fmt.Errorf("internal error: %w", err)
+		return fmt.Errorf("failed to delete user: %w", err)
 	}
 
 	return nil
 }
 
-func listUser(db *database.DB, r *http.Request) ([]*model.User, Filters) {
-	userFound = ""
+func listUser(db *database.DB, r *http.Request) ([]*model.User, Filters, string) {
+	userFound := ""
 	const limit = 30
 	filter := Filters{
 		Offset:          0,
@@ -189,7 +187,7 @@ func listUser(db *database.DB, r *http.Request) ([]*model.User, Filters) {
 
 	user, err := internal.ListUsers(db, "username", filter.OrderAsc, 0, 0)
 	if err != nil {
-		return nil, Filters{}
+		return nil, Filters{}, userFound
 	}
 
 	if search := r.URL.Query().Get("search"); search != "" {
@@ -198,7 +196,7 @@ func listUser(db *database.DB, r *http.Request) ([]*model.User, Filters) {
 			filter.DisablePrevious = true
 			userFound = "true"
 
-			return []*model.User{userSearch}, filter
+			return []*model.User{userSearch}, filter, userFound
 		} else {
 			userFound = "false"
 		}
@@ -214,7 +212,7 @@ func listUser(db *database.DB, r *http.Request) ([]*model.User, Filters) {
 
 	users, filtersPtr := paginationFunc(r, user, &filter)
 
-	return users, *filtersPtr
+	return users, *filtersPtr, userFound
 }
 
 func paginationFunc(r *http.Request, user []*model.User, filter *Filters) ([]*model.User, *Filters) {
@@ -255,108 +253,87 @@ func paginationFunc(r *http.Request, user []*model.User, filter *Filters) ([]*mo
 }
 
 func permissionsFilter(filterUser, filterUserType, filterUserValue string, listU []*model.User) []*model.User {
-	if filterUserType == "permissionsEq" {
+	switch filterUserType {
+	case "permissionsEq":
 		return permissionsFilterLoop(filterUser, filterUserValue, listU)
-	}
-
-	if filterUserType == "permissionsMin" {
+	case "permissionsMin":
 		var userFiltered []*model.User
 		for _, val := range filterMin(filterUserValue) {
 			userFiltered = append(userFiltered, permissionsFilterLoop(filterUser, val, listU)...)
 		}
 
 		return userFiltered
-	}
-
-	if filterUserType == "permissionsMax" {
+	case "permissionsMax":
 		var userFiltered []*model.User
 		for _, val := range filterMax(filterUserValue) {
 			userFiltered = append(userFiltered, permissionsFilterLoop(filterUser, val, listU)...)
 		}
 
 		return userFiltered
+	default:
+		return nil
 	}
-
-	return nil
 }
 
 func filterMin(filterUserValue string) []string {
-	if filterUserValue == "---" {
+	switch filterUserValue {
+	case "---":
 		return []string{"---", "r--", "rw-", "rwd"}
-	}
-
-	if filterUserValue == "r--" {
+	case "r--":
 		return []string{"r--", "rw-", "rwd"}
-	}
-
-	if filterUserValue == "rw-" {
+	case "rw-":
 		return []string{"rw-", "rwd"}
-	}
-
-	if filterUserValue == "rwd" {
+	case "rwd":
 		return []string{"rwd"}
+	default:
+		return nil
 	}
-
-	return nil
 }
 
 func filterMax(filterUserValue string) []string {
-	if filterUserValue == "rwd" {
+	switch filterUserValue {
+	case "rwd":
 		return []string{"---", "r--", "rw-", "rwd"}
-	}
-
-	if filterUserValue == "rw-" {
+	case "rw-":
 		return []string{"---", "r--", "rw-"}
-	}
-
-	if filterUserValue == "r--" {
+	case "r--":
 		return []string{"---", "r--"}
-	}
-
-	if filterUserValue == "---" {
+	case "---":
 		return []string{"---"}
+	default:
+		return nil
 	}
-
-	return nil
 }
 
 //nolint:gocognit // permissionsFilterLoop
 func permissionsFilterLoop(filterUser, filterUserValue string, listU []*model.User) []*model.User {
-	var userFiltered []*model.User
+	userFiltered := make([]*model.User, 0, len(listU))
 
 	for _, uModel := range listU {
 		perms := model.MaskToPerms(uModel.Permissions)
-		if filterUser == "filterPermissionsTransfers" {
+
+		switch filterUser {
+		case "filterPermissionsTransfers":
 			if perms.Transfers == filterUserValue {
 				userFiltered = append(userFiltered, uModel)
 			}
-		}
-
-		if filterUser == "filterPermissionsServers" {
+		case "filterPermissionsServers":
 			if perms.Servers == filterUserValue {
 				userFiltered = append(userFiltered, uModel)
 			}
-		}
-
-		if filterUser == "filterPermissionsPartners" {
+		case "filterPermissionsPartners":
 			if perms.Partners == filterUserValue {
 				userFiltered = append(userFiltered, uModel)
 			}
-		}
-
-		if filterUser == "filterPermissionsRules" {
+		case "filterPermissionsRules":
 			if perms.Rules == filterUserValue {
 				userFiltered = append(userFiltered, uModel)
 			}
-		}
-
-		if filterUser == "filterPermissionsUsers" {
+		case "filterPermissionsUsers":
 			if perms.Users == filterUserValue {
 				userFiltered = append(userFiltered, uModel)
 			}
-		}
-
-		if filterUser == "filterPermissionsAdministration" {
+		case "filterPermissionsAdministration":
 			if perms.Administration == filterUserValue {
 				userFiltered = append(userFiltered, uModel)
 			}
@@ -405,7 +382,7 @@ func userManagementPage(logger *log.Logger, db *database.DB) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		userLanguage := r.Context().Value(ContextLanguageKey)
 		tabTranslated := pageTranslated("user_management_page", userLanguage.(string)) //nolint:errcheck,forcetypeassert //u
-		userList, filter := listUser(db, r)
+		userList, filter, userFound := listUser(db, r)
 
 		var uPermissionsList []userPermissions
 		for _, u := range userList {
@@ -417,9 +394,8 @@ func userManagementPage(logger *log.Logger, db *database.DB) http.HandlerFunc {
 		}
 
 		if r.Method == http.MethodGet && r.URL.Query().Get("newUserUsername") != "" {
-			newUserErr := addUser(db, r)
-			if newUserErr != nil {
-				logger.Error("Internal error: %v", newUserErr)
+			if newUserErr := addUser(db, r); newUserErr != nil {
+				logger.Error("failed to add user: %v", newUserErr)
 			}
 
 			http.Redirect(w, r, r.URL.Path, http.StatusSeeOther)
@@ -428,9 +404,8 @@ func userManagementPage(logger *log.Logger, db *database.DB) http.HandlerFunc {
 		}
 
 		if r.Method == http.MethodGet && r.URL.Query().Get("editUserID") != "" {
-			editUserErr := editUser(db, r)
-			if editUserErr != nil {
-				logger.Error("Internal error: %v", editUserErr)
+			if editUserErr := editUser(db, r); editUserErr != nil {
+				logger.Error("failed to edit user: %v", editUserErr)
 			}
 
 			http.Redirect(w, r, r.URL.Path, http.StatusSeeOther)
@@ -439,9 +414,8 @@ func userManagementPage(logger *log.Logger, db *database.DB) http.HandlerFunc {
 		}
 
 		if r.Method == http.MethodGet && r.URL.Query().Get("deleteUser") != "" {
-			deleteUserErr := deleteUser(db, r)
-			if deleteUserErr != nil {
-				logger.Error("Internal error: %v", deleteUserErr)
+			if deleteUserErr := deleteUser(db, r); deleteUserErr != nil {
+				logger.Error("failed to delete user: %v", deleteUserErr)
 			}
 
 			http.Redirect(w, r, r.URL.Path, http.StatusSeeOther)
@@ -451,10 +425,11 @@ func userManagementPage(logger *log.Logger, db *database.DB) http.HandlerFunc {
 
 		user, err := GetUserByToken(r, db)
 		if err != nil {
-			logger.Error("Internal error: %v", err)
+			logger.Error("failed to get user by token: %v", err)
 		}
 
 		myPermission := model.MaskToPerms(user.Permissions)
+		currentPage := filter.Offset + 1
 
 		if err := userManagementTemplate.ExecuteTemplate(w, "user_management_page", map[string]any{
 			"userPermissions": uPermissionsList,
@@ -464,6 +439,7 @@ func userManagementPage(logger *log.Logger, db *database.DB) http.HandlerFunc {
 			"language":        userLanguage,
 			"userFound":       userFound,
 			"filter":          filter,
+			"currentPage":     currentPage,
 		}); err != nil {
 			logger.Error("render user_management_page: %v", err)
 			http.Error(w, "Internal error", http.StatusInternalServerError)

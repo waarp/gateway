@@ -22,7 +22,8 @@ func GetUsersLike(db *database.DB, prefix string) ([]*model.User, error) {
 	const limit = 5
 	var users model.Users
 
-	return users, db.Select(&users).Where("username LIKE ?", prefix+"%").OrderBy("username", true).Limit(limit, 0).Run()
+	return users, db.Select(&users).Owner().Where("username LIKE ?", prefix+"%").
+		OrderBy("username", true).Limit(limit, 0).Run()
 }
 
 func ListUsers(db database.ReadAccess, orderByCol string, orderByAsc bool, limit, offset int,

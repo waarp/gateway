@@ -390,7 +390,7 @@
                     <input type="hidden" name="permissionsType" value="{{ .filter.PermissionsType }}">
                     <input type="hidden" name="permissionsValue" value="{{ .filter.PermissionsValue }}">
                     <li class="page-item {{ if .filter.DisablePrevious }}disabled{{ end }}"><button class="page-link" name="previous" type="submit" value="true">{{ index .tab "previous" }}</button></li>
-                    <li class="page-item"><button class="page-link disabled">{{ .filter.Offset }}</button></li>
+                    <li class="page-item"><button class="page-link disabled">{{ .currentPage }}</button></li>
                     <li class="page-item {{ if .filter.DisableNext }}disabled{{ end }}"><button class="page-link" name="next" type="submit" value="true">{{ index .tab "next" }}</button></li>
                 </ul>
         </form>
