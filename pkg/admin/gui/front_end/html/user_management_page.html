@@ -135,7 +135,7 @@
                 </div>
             <div class="modal-footer">
             <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">{{ index .tab "close" }}</button>
-            <button type="submit" class="btn btn-success ms-3" onclick="confirmPassword('newUserPassword', 'newUserPasswordConfirm', '{{ .language }}')">{{ index .tab "apply" }}</button>
+            <button type="submit" class="btn btn-success ms-3" onclick="confirmPassword('newUserPassword_{{ .ID }}', 'newUserPasswordConfirm_{{ .ID }}', '{{ .language }}')">{{ index .tab "apply" }}</button>
             </div>
         </form>
         </div>
