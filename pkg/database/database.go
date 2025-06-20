@@ -270,3 +270,5 @@ func (db *DB) stop(ctx context.Context) error {
 func (db *DB) State() (utils.StateCode, string) {
 	return db.state.Get()
 }
+
+func (db *DB) Xorm() *xorm.Engine { return db.Standalone.engine }

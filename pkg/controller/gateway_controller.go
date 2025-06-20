@@ -15,18 +15,9 @@ import (
 	"code.waarp.fr/apps/gateway/gateway/pkg/pipeline"
 )
 
-type GatewayController struct {
-	DB      *database.DB
-	wasDown bool
-}
-
 // Run checks the database for new planned transfers and starts
 // them, as long as there are available transfer slots.
-func (c *GatewayController) Run(wg *sync.WaitGroup, logger log.Logger) {
-	if c.checkIsDBDown(logger) {
-		return
-	}
-
+func (c *Controller) Run(wg *sync.WaitGroup, logger log.Logger) {
 	plannedTrans, dbErr := c.retrieveTransfers()
 	if dbErr != nil {
 		logger.Error("Failed to retrieve the transfers to run: %v", dbErr)
@@ -52,25 +43,7 @@ func (c *GatewayController) Run(wg *sync.WaitGroup, logger log.Logger) {
 	}
 }
 
-func (c *GatewayController) checkIsDBDown(logger log.Logger) bool {
-	if !c.wasDown {
-		return false
-	}
-
-	if err := c.DB.Exec("UPDATE transfers SET status=? WHERE owner=? AND status=?",
-		types.StatusInterrupted, conf.GlobalConfig.GatewayName, types.StatusRunning,
-	); err != nil {
-		logger.Error("Failed to access database: %s", err.Error())
-
-		return true
-	}
-
-	c.wasDown = false
-
-	return false
-}
-
-func (c *GatewayController) retrieveTransfers() (model.Transfers, error) {
+func (c *Controller) retrieveTransfers() (model.Transfers, error) {
 	var transfers model.Transfers
 
 	if tErr := c.DB.Transaction(func(ses *database.Session) error {

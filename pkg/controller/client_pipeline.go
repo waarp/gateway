@@ -36,9 +36,17 @@ type ClientPipeline struct {
 func NewClientPipeline(db *database.DB, trans *model.Transfer) (*ClientPipeline, error) {
 	logger := logging.NewLogger(fmt.Sprintf("Pipeline %d (client)", trans.ID))
 
-	transCtx, err := model.GetTransferContext(db, logger, trans)
-	if err != nil {
-		return nil, fmt.Errorf("failed to retrieve the transfer context: %w", err)
+	transCtx, ctxErr := model.GetTransferContext(db, logger, trans)
+	if ctxErr != nil {
+		trans.Status = types.StatusError
+		trans.ErrCode = types.TeInternal
+		trans.ErrDetails = fmt.Sprintf("failed to retrieve the transfer context: %v", ctxErr)
+
+		if dbErr := db.Update(trans).Run(); dbErr != nil {
+			logger.Error("Failed to update the transfer error: %s", dbErr)
+		}
+
+		return nil, fmt.Errorf("failed to retrieve the transfer context: %w", ctxErr)
 	}
 
 	cli, cliErr := newClientPipeline(db, logger, transCtx)

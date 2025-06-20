@@ -3,6 +3,15 @@
 Historique des versions
 =======================
 
+* :bug:`482` Correction d'un bug qui faisait rester les transferts indéfiniment
+  en statut *"RUNNING"* sans avancement en cas d'erreur de base de données.
+  Parallèlement, un bug empêchant l'annulation des transferts avec le statut
+  *"RUNNING"* dans certaine circonstances a également été résolu.
+* :feature:`482` Une commande permettant d'exécuter directement des requêtes SQL
+  a été ajoutée à l'exécutable serveur ``waarp-gatewayd`` afin de permettre de
+  résoudre d'éventuels problèmes de base de données lorsque des outils externes
+  ne sont pas disponibles à cette fin.
+
 * :release:`0.12.8 <2025-04-25>`
 * :bug:`480` Les clients créés automatiquement lors de l'ajout d'un nouveau
   transfert sont désormais automatiquement démarrés après leur création.

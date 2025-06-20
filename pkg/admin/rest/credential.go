@@ -35,7 +35,7 @@ func getCred(r *http.Request, db database.ReadAccess, target model.CredOwnerTabl
 
 	var cred model.Credential
 	if err := db.Get(&cred, "name=?", name).And(target.GetCredCond()).Run(); err != nil {
-		return nil, fmt.Errorf("failed to retrieve credential %q: %w", name, err)
+		return &cred, fmt.Errorf("failed to retrieve credential %q: %w", name, err)
 	}
 
 	return &cred, nil

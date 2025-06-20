@@ -111,8 +111,7 @@ func (wg *WG) initServices() {
 	wg.Analytics = &analytics.Service{DB: wg.DBService}
 	wg.SnmpService = &snmp.Service{DB: wg.DBService}
 	wg.AdminService = &admin.Server{DB: wg.DBService}
-	gwController := controller.GatewayController{DB: wg.DBService}
-	wg.Controller = &controller.Controller{Action: gwController.Run}
+	wg.Controller = &controller.Controller{DB: wg.DBService}
 
 	snmp.GlobalService = wg.SnmpService
 	analytics.GlobalService = wg.Analytics
