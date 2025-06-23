@@ -17,15 +17,26 @@ func GetPartnerByID(db database.ReadAccess, id int64) (*model.RemoteAgent, error
 	return &partner, db.Get(&partner, "id=?", id).Run()
 }
 
+func GetPartnersLike(db *database.DB, prefix string) ([]*model.RemoteAgent, error) {
+	const limit = 5
+	var partners model.RemoteAgents
+
+	return partners, db.Select(&partners).Owner().Where("name LIKE ?", prefix+"%").
+		OrderBy("name", true).Limit(limit, 0).Run()
+}
+
 func ListPartners(db database.ReadAccess, orderByCol string, orderByAsc bool, limit, offset int,
 	protocols ...string,
 ) ([]*model.RemoteAgent, error) {
 	var partners model.RemoteAgents
 	query := db.Select(&partners).Limit(limit, offset).OrderBy(orderByCol, orderByAsc)
 
-	for _, protocol := range protocols {
-		query = query.Where("protocol=?", protocol)
+	protoSlice := make([]any, len(protocols))
+	for i, protocol := range protocols {
+		protoSlice[i] = protocol
 	}
+
+	query.In("protocol", protoSlice...)
 
 	return partners, query.Run()
 }

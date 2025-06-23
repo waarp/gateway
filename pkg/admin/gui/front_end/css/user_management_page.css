@@ -95,3 +95,7 @@
 .ms-1-5 {
     margin-left: 0.2rem;
 }
+
+.reset-btn {
+  border-radius: 50px;
+}

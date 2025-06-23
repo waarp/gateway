@@ -78,7 +78,8 @@ func AddGUIRouter(router *mux.Router, logger *log.Logger, db *database.DB) {
 
 	secureRouter := router.PathPrefix("/").Subrouter()
 	secureRouter.Use(AuthenticationMiddleware(logger, db))
-	secureRouter.HandleFunc("/autocompletion", autocompletionFunc(db)).Methods("GET")
+	secureRouter.HandleFunc("/autocompletion/users", autocompletionFunc(db)).Methods("GET")
+	secureRouter.HandleFunc("/autocompletion/partners", autocompletionPartnersFunc(db)).Methods("GET")
 	secureRouter.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
 		http.Redirect(w, r, "home", http.StatusFound)
 	})
@@ -89,15 +90,22 @@ func AddGUIRouter(router *mux.Router, logger *log.Logger, db *database.DB) {
 
 func logout() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
+		secure := false
+
 		token, err := r.Cookie("token")
 		if err == nil {
 			DeleteSession(token.Value)
+
+			if r.TLS != nil {
+				secure = true
+			}
+
 			http.SetCookie(w, &http.Cookie{
 				Name:     "token",
 				Value:    "",
 				Path:     "/",
 				Expires:  time.Unix(0, 0),
-				Secure:   true,
+				Secure:   secure,
 				HttpOnly: true,
 				SameSite: http.SameSiteLaxMode,
 			})
@@ -117,7 +125,7 @@ func AuthenticationMiddleware(logger *log.Logger, db *database.DB) mux.Middlewar
 				return
 			}
 
-			RefreshExpirationToken(token.Value, w)
+			RefreshExpirationToken(token.Value, w, r)
 
 			userID, found := ValidateSession(token.Value)
 			if !found {

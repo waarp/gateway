@@ -43,19 +43,19 @@
 }
 
 .modal-body .form-group label{
-  flex:0 0 30%;
+  flex:0 0 40%;
   text-align:left;
 }
 
-.modal-body .form-group .form-select{
-  flex:0 0 70%;
+.modal-body .form-group .index-value {
+  flex:0 0 60%;
 }
 
 .table-outline {
   border: 2px solid grey
 }
 
-.navbar-user {
+.navbar-partner {
   border-radius: 17px !important;
 }
 
@@ -70,4 +70,28 @@
   background-color: #e6e6e6 !important;
   border: 0.5px solid #ababab !important;
   color: #000000 !important;
+}
+
+#autocomplete {
+    position: absolute;
+    top: 115%;
+    box-shadow: 0px 4px 6px rgba(0, 0, 0, 0.1);
+    border-radius: 5px;
+}
+
+#autocomplete li:hover {
+    background-color: #f6f6f6;
+    cursor: pointer;
+}
+
+.ms-1-5 {
+    margin-left: 0.2rem;
+}
+
+.reset-btn {
+  border-radius: 50px;
+}
+
+.page-link {
+  color: black !important;
 }

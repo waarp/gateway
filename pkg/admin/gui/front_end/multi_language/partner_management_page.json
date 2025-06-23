@@ -4,6 +4,8 @@
     "logout": { "fr": "Déconnexion", "en": "Logout" },
     "addPartnerTitle": { "fr": "Ajouter un nouveau partenaire", "en": "Add a new partner" },
     "filter": { "fr": "Filtre", "en": "Filter" },
+    "sort": { "fr": "Trier par ordre alphabétique", "en": "Sort alphabetically" },
+    "limit": { "fr": "Limite", "en": "Limit" },
     "partners": { "fr": "Partenaires", "en": "Partners" },
     "protocol": { "fr": "Protocole", "en": "Protocol" },
     "tooltipProtocol": { "fr": "Protocole", "en": "Protocol" },
@@ -16,7 +18,12 @@
     "tooltipProtocolConfiguration": { "fr": "Configuration protocolaire", "en": "Protocol configuration" },
     "close": { "fr": "Fermer", "en": "Close" },
     "apply": { "fr": "Appliquer", "en": "Apply" },
+    "reset": { "fr": "Réinitialiser", "en": "Reset" },
     "confirmDelete": { "fr": "Confirmer la suppression ?", "en": "Confirm deletion?" },
     "partnerNotFound": { "fr": "Partenaire introuvable", "en": "Partner not found" },
-    "search": { "fr": "Recherche", "en": "Search" }
+    "edit": { "fr": "Modifier", "en": "Edit" },
+    "nameStr": { "fr": "Nom", "en": "Name" },
+    "search": { "fr": "Recherche", "en": "Search" },
+    "next": { "fr": "Suivant", "en": "Next" },
+    "previous": { "fr": "Précédent", "en": "Previous" }
 }

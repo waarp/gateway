@@ -104,7 +104,9 @@ func TokenMaxPerUser(user *model.User) {
 	}
 }
 
-func RefreshExpirationToken(token string, w http.ResponseWriter) {
+func RefreshExpirationToken(token string, w http.ResponseWriter, r *http.Request) {
+	secure := false
+
 	value, ok := sessionStore.Load(token)
 	if !ok {
 		return
@@ -118,12 +120,17 @@ func RefreshExpirationToken(token string, w http.ResponseWriter) {
 	if session.Expiration.After(time.Now()) {
 		session.Expiration = time.Now().Add(validTimeToken)
 		sessionStore.Store(token, session)
+
+		if r.TLS != nil {
+			secure = true
+		}
+
 		http.SetCookie(w, &http.Cookie{
 			Name:     "token",
 			Value:    token,
 			Path:     "/",
 			Expires:  session.Expiration,
-			Secure:   true,
+			Secure:   secure,
 			HttpOnly: true,
 			SameSite: http.SameSiteLaxMode,
 		})
@@ -196,6 +203,7 @@ func loginPage(logger *log.Logger, db *database.DB) http.HandlerFunc {
 		userLanguage := r.Context().Value(ContextLanguageKey)
 		tabTranslated := pageTranslated("login_page", userLanguage.(string)) //nolint:errcheck,forcetypeassert // userLanguage
 		var errorMessage string
+		secure := false
 
 		if r.Method == http.MethodPost { //nolint:nestif // loginpage
 			if err := r.ParseForm(); err != nil {
@@ -216,12 +224,17 @@ func loginPage(logger *log.Logger, db *database.DB) http.HandlerFunc {
 						errorMessage = tabTranslated["errorSession"]
 					} else {
 						TokenMaxPerUser(user)
+
+						if r.TLS != nil {
+							secure = true
+						}
+
 						http.SetCookie(w, &http.Cookie{
 							Name:     "token",
 							Value:    token,
 							Path:     "/",
 							Expires:  time.Now().Add(validTimeToken),
-							Secure:   true,
+							Secure:   secure,
 							HttpOnly: true,
 							SameSite: http.SameSiteLaxMode,
 						})

@@ -3,6 +3,8 @@
 <link rel="stylesheet" href="/webui/static/css/user_management_page.css">
 <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css" rel="stylesheet">
 <script src="/webui/static/javaScript/user_management_page.js"></script>
+<script src="/webui/static/javaScript/autoCompleteSearch.js"></script>
+<script src="/webui/static/javaScript/eyePassword.js"></script>
 {{ end }}
 
 
@@ -189,18 +191,21 @@
                 <option value="rwd" {{ if eq .filter.PermissionsValue "rwd" }}selected{{ end }}>RWD</option>
             </select>
             </label>
-            <button id="applyBtn" type="submit" class="btn btn-success ms-3">{{ index .tab "apply" }}</button>
-            <button id="resetBtn" type="button" class="btn btn-secondary ms-1" onclick="window.location='user_management'">{{ index .tab "reset" }}</button>
+            <div style="float:right">
+                <button id="applyBtn" type="submit" class="btn btn-success ms-3">{{ index .tab "apply" }}</button>
+                <button id="resetBtn" type="button" class="btn btn-secondary ms-1" onclick="window.location='user_management'">{{ index .tab "reset" }}</button>
+            </div>
         </form>
         </div>
         <nav class="navbar navbar-light bg-light">
+            <input type="hidden" id="pageType" value="users">
             <form method="get" class="d-flex ms-auto position-relative" onsubmit="return true">
                 {{ if eq .userFound "false" }}
                     <div class="invalid-feedback d-block mt-2">{{ index .tab "userNotFound" }}</div>
                 {{ else if eq .userFound "true" }}
-                    <button id="resetBtn" type="button" class="btn btn-secondary me-2 reset-btn" onclick="window.location='user_management'"><i class="bi bi-x"></i></button>
+                    <button id="resetBtn" type="button" class="btn btn-secondary me-2 reset-btn" onclick="window.location='user_management'"><i class="bi bi-x fs"></i></button>
                 {{ end }}
-            <input class="navbar-user form-control {{ if eq .userFound "false" }}is-invalid{{ end }}" type="search" placeholder="{{ index .tab "search" }}" name="search" id="searchUser" autocomplete="off">
+            <input class="navbar-user form-control {{ if eq .userFound "false" }}is-invalid{{ end }}" type="search" placeholder="{{ index .tab "search" }}" name="search" id="search" autocomplete="off">
             <button class="btn btn-primary ms-2 btn-navbar" type="submit">{{ index .tab "search" }}</button>
             <ul id="autocomplete" class="list-group"></ul>
             </form>

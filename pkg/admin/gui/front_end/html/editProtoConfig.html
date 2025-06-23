@@ -1,0 +1,289 @@
+{{ define "editR66" }}
+<div id="protoConfig_r66" class="protoConfigBlock" style="display:none;">
+    <hr class="mt-2" style="border-top: 1px solid #ababab;">
+    <div class="mt-4 mb-2 text-start"><strong>{{ index .tab "protocolConfiguration" }} :</strong></div>
+    <div class="form-group mt-4">
+        <label class="col-form-label">serverLogin :</label>
+        <input type="text" name="partnerR66serverLogin" class="form-control" value="{{ .ProtoConfig.serverLogin }}">
+    </div>
+    <hr class="mt-2 mb-4" style="border-top: 1px solid #ababab;">
+    <div class="form-group mt-4">
+        <label class="col-form-label">blockSize :</label>
+        <input type="text" name="partnerR66blockSize" class="form-control" value="{{ .ProtoConfig.blockSize }}">
+    </div>
+    <hr class="mt-2 mb-4" style="border-top: 1px solid #ababab;">
+    <div class="form-input mt-2">
+        <label class="col-form-label me-3">noFinalHash :</label>
+        <div class="form-check form-check-inline">
+        <input class="form-check-input" type="radio" name="noFinalHash" id="noFinalHash_true" value="true" {{ if eq .ProtoConfig.noFinalHash true }}checked{{ end }}>
+        <label class="form-check-label" for="noFinalHash_true">True</label>
+        </div>
+        <div class="form-check form-check-inline">
+        <input class="form-check-input" type="radio" name="noFinalHash" id="noFinalHash_false" value="false" {{ if eq .ProtoConfig.noFinalHash false }}checked{{ end }}>
+        <label class="form-check-label" for="noFinalHash_false">False</label>
+        </div>
+    </div>
+    <hr class="mt-2 mb-4" style="border-top: 1px solid #ababab;">
+    <div class="form-input mt-2">
+        <label class="col-form-label me-3">checkBlockHash :</label>
+        <div class="form-check form-check-inline">
+        <input class="form-check-input" type="radio" name="checkBlockHash" id="checkBlockHash_true" value="true" {{ if eq .ProtoConfig.checkBlockHash true }}checked{{ end }}>
+        <label class="form-check-label" for="checkBlockHash_true">True</label>
+        </div>
+        <div class="form-check form-check-inline">
+        <input class="form-check-input" type="radio" name="checkBlockHash" id="checkBlockHash_false" value="false" {{ if eq .ProtoConfig.checkBlockHash false }}checked{{ end }}>
+        <label class="form-check-label" for="checkBlockHash_false">False</label>
+        </div>
+    </div>
+</div>
+{{ end }}
+
+{{ define "editFtp" }}
+<div id="protoConfig_ftp" class="protoConfigBlock" style="display:none;">
+    <hr class="mt-2" style="border-top: 1px solid #ababab;">
+    <div class="mt-4 mb-2 text-start"><strong>{{ index .tab "protocolConfiguration" }} :</strong></div>
+    <div class="form-input mt-4">
+        <label class="col-form-label me-3">disableActiveMode :</label>
+        <div class="form-check form-check-inline">
+        <input class="form-check-input" type="radio" name="disableActiveMode" id="disableActiveMode_true" value="true" {{ if eq .ProtoConfig.disableActiveMode true }}checked{{ end }}>
+        <label class="form-check-label" for="disableActiveMode_true">True</label>
+        </div>
+        <div class="form-check form-check-inline">
+        <input class="form-check-input" type="radio" name="disableActiveMode" id="disableActiveMode_false" value="false" {{ if eq .ProtoConfig.disableActiveMode false }}checked{{ end }}>
+        <label class="form-check-label" for="disableActiveMode_false">False</label>
+        </div>
+    </div>
+    <hr class="mt-2 mb-4" style="border-top: 1px solid #ababab;">
+    <div class="form-input mt-2">
+        <label class="col-form-label me-3">disableEPSV :</label>
+        <div class="form-check form-check-inline">
+        <input class="form-check-input" type="radio" name="disableEPSV" id="disableEPSV_true" value="true" {{ if eq .ProtoConfig.disableEPSV true }}checked{{ end }}>
+        <label class="form-check-label" for="disableEPSV_true">True</label>
+        </div>
+        <div class="form-check form-check-inline">
+        <input class="form-check-input" type="radio" name="disableEPSV" id="disableEPSV_false" value="false" {{ if eq .ProtoConfig.disableEPSV false }}checked{{ end }}>
+        <label class="form-check-label" for="disableEPSV_false">False</label>
+        </div>
+    </div>
+    <div id="ftpsForm">
+        <hr class="mt-2 mb-4" style="border-top: 1px solid #ababab;">
+        <div class="form-input mt-2">
+            <label class="col-form-label me-3">useImplicitTLS :</label>
+            <div class="form-check form-check-inline">
+            <input class="form-check-input" type="radio" name="useImplicitTLS" id="useImplicitTLS_true" value="true" {{ if eq .ProtoConfig.useImplicitTLS true }}checked{{ end }}>
+            <label class="form-check-label" for="useImplicitTLS_true">True</label>
+            </div>
+            <div class="form-check form-check-inline">
+            <input class="form-check-input" type="radio" name="useImplicitTLS" id="useImplicitTLS_false" value="false"  {{ if eq .ProtoConfig.useImplicitTLS false }}checked{{ end }}>
+            <label class="form-check-label" for="useImplicitTLS_false">False</label>
+            </div>
+        </div>
+        <hr class="mt-2 mb-4" style="border-top: 1px solid #ababab;">
+        <div class="form-group mt-4">
+            <label class="col-form-label">minTLSVersion :</label>
+            <input type="text" name="partnerFTPSminTLSVersion" class="form-control" value="{{ .ProtoConfig.minTLSVersion }}">
+        </div>
+        <hr class="mt-2 mb-4" style="border-top: 1px solid #ababab;">
+        <div class="form-input mt-2">
+            <label class="col-form-label me-3">disableTLSSessionReuse :</label>
+            <div class="form-check form-check-inline">
+            <input class="form-check-input" type="radio" name="disableTLSSessionReuse" id="disableTLSSessionReuse_true" value="true"  {{ if eq .ProtoConfig.disableTLSSessionReuse true }}checked{{ end }}>
+            <label class="form-check-label" for="disableTLSSessionReuse_true">True</label>
+            </div>
+            <div class="form-check form-check-inline">
+            <input class="form-check-input" type="radio" name="disableTLSSessionReuse" id="disableTLSSessionReuse_false" value="false"  {{ if eq .ProtoConfig.disableTLSSessionReuse true }}checked{{ end }}>
+            <label class="form-check-label" for="disableTLSSessionReuse_false">False</label>
+            </div>
+        </div>
+    </div>
+</div>
+{{ end }}
+
+
+{{ define "editPesit" }}
+<div id="protoConfig_pesit" class="protoConfigBlock" style="display:none;">
+    <hr class="mt-2" style="border-top: 1px solid #ababab;">
+    <div class="mt-4 mb-2 text-start"><strong>{{ index .tab "protocolConfiguration" }} :</strong></div>
+    <div class="form-group mt-4">
+        <label class="col-form-label">login :</label>
+        <input type="text" name="partnerPeSITlogin" class="form-control" value="{{ .ProtoConfig.login }}">
+    </div>
+    <hr class="mt-2 mb-4" style="border-top: 1px solid #ababab;">
+    <div class="form-input mt-2">
+        <label class="col-form-label me-3">disableRestart :</label>
+        <div class="form-check form-check-inline">
+        <input class="form-check-input" type="radio" name="disableRestart" id="disableRestart_true" value="true" {{ if eq .ProtoConfig.disableRestart true }}checked{{ end }}>
+        <label class="form-check-label" for="disableRestart_true">True</label>
+        </div>
+        <div class="form-check form-check-inline">
+        <input class="form-check-input" type="radio" name="disableRestart" id="disableRestart_false" value="false" {{ if eq .ProtoConfig.disableRestart false }}checked{{ end }}>
+        <label class="form-check-label" for="disableRestart_false">False</label>
+        </div>
+    </div>
+    <hr class="mt-2 mb-4" style="border-top: 1px solid #ababab;">
+    <div class="form-input mt-2">
+        <label class="col-form-label me-3">disableCheckpoints :</label>
+        <div class="form-check form-check-inline">
+        <input class="form-check-input" type="radio" name="disableCheckpoints" id="disableCheckpoints_true" value="true" {{ if eq .ProtoConfig.disableCheckpoints true }}checked{{ end }}>
+        <label class="form-check-label" for="disableCheckpoints_true">True</label>
+        </div>
+        <div class="form-check form-check-inline">
+        <input class="form-check-input" type="radio" name="disableCheckpoints" id="disableCheckpoints_false" value="false" {{ if eq .ProtoConfig.disableCheckpoints false }}checked{{ end }}>
+        <label class="form-check-label" for="disableCheckpoints_false">False</label>
+        </div>
+    </div>
+    <hr class="mt-2 mb-4" style="border-top: 1px solid #ababab;">
+    <div class="form-group mt-2">
+        <label class="col-form-label">checkpointSize :</label>
+        <input type="text" name="partnerPeSITcheckpointSize" class="form-control" value="{{ .ProtoConfig.checkpointSize }}">
+    </div>
+    <hr class="mt-2 mb-4" style="border-top: 1px solid #ababab;">
+    <div class="form-group mt-2">
+        <label class="col-form-label">checkpointWindow :</label>
+        <input type="text" name="partnerPeSITcheckpointWindow" class="form-control" value="{{ .ProtoConfig.checkpointWindow }}">
+    </div>
+    <hr class="mt-2 mb-4" style="border-top: 1px solid #ababab;">
+    <div class="form-input mt-2">
+        <label class="col-form-label me-3">useNSDU :</label>
+        <div class="form-check form-check-inline">
+        <input class="form-check-input" type="radio" name="useNSDU" id="useNSDU_true" value="true" {{ if eq .ProtoConfig.useNSDU true }}checked{{ end }}>
+        <label class="form-check-label" for="useNSDU_true">True</label>
+        </div>
+        <div class="form-check form-check-inline">
+        <input class="form-check-input" type="radio" name="useNSDU" id="useNSDU_false" value="false" {{ if eq .ProtoConfig.useNSDU false }}checked{{ end }}>
+        <label class="form-check-label" for="useNSDU_false">False</label>
+        </div>
+    </div>
+    <hr class="mt-2 mb-4" style="border-top: 1px solid #ababab;">
+    <div class="form-group mt-2">
+        <label class="col-form-label">compatibilityMode :</label>
+        <input type="text" name="partnerPeSITcompatibilityMode" class="form-control" value="{{ .ProtoConfig.compatibilityMode }}">
+    </div>
+    <hr class="mt-2 mb-4" style="border-top: 1px solid #ababab;">
+    <div class="form-group mt-2">
+        <label class="col-form-label">maxMessageSize :</label>
+        <input type="text" name="partnerPeSITmaxMessageSize" class="form-control" value="{{ .ProtoConfig.maxMessageSize }}">
+    </div>
+    <hr class="mt-2 mb-4" style="border-top: 1px solid #ababab;">
+    <div class="form-input mt-2">
+        <label class="col-form-label me-3">disablePreConnection :</label>
+        <div class="form-check form-check-inline">
+        <input class="form-check-input" type="radio" name="disablePreConnection" id="disablePreConnection_true" value="true"  {{ if eq .ProtoConfig.disablePreConnection true }}checked{{ end }}>
+        <label class="form-check-label" for="disablePreConnection_true">True</label>
+        </div>
+        <div class="form-check form-check-inline">
+        <input class="form-check-input" type="radio" name="disablePreConnection" id="disablePreConnection_false" value="false" {{ if eq .ProtoConfig.disablePreConnection false }}checked{{ end }}>
+        <label class="form-check-label" for="disablePreConnection_false">False</label>
+        </div>
+    </div>
+    <div id="pesit-tlsForm">
+        <hr class="mt-2 mb-4" style="border-top: 1px solid #ababab;">
+        <div class="form-group mt-2">
+            <label class="col-form-label">minTLSVersion :</label>
+            <input type="text" name="partnerPeSIT-TLSminTLSVersion" class="form-control" value="{{ .ProtoConfig.minTLSVersion }}">
+        </div>
+    </div>
+</div>
+{{ end }}
+
+{{ define "editSftp" }}
+<div id="protoConfig_sftp" class="protoConfigBlock" style="display:none;">
+    <hr class="mt-2" style="border-top: 1px solid #ababab;">
+    <div class="mt-4 mb-2 text-start"><strong>{{ index .tab "protocolConfiguration" }} :</strong></div>
+    <div class="form-input mt-4">
+        <label class="col-form-label">keyExchanges :</label>
+        <div id="keyExchangesContainer">
+        {{ if .ProtoConfig.keyExchanges }}
+            {{ range $i, $v := .ProtoConfig.keyExchanges }}
+                <div class="input-group mb-2">
+                    <input type="text" name="keyExchanges[]" class="form-control" value="{{ $v }}">
+                    <button type="button" class="btn btn-outline-danger btn-sm" onclick="removeField(this)" tabindex="-1">
+                        <i class="bi bi-trash"></i>
+                    </button>
+                </div>
+            {{ end }}
+        {{ else }}
+            <div class="input-group mb-2">
+                <input type="text" name="keyExchanges[]" class="form-control">
+                <button type="button" class="btn btn-outline-danger btn-sm" onclick="removeField(this)" tabindex="-1">
+                    <i class="bi bi-trash"></i>
+                </button>
+            </div>
+        {{ end }}
+        </div>
+        <button type="button" class="btn btn-outline-primary btn-sm" onclick="addField(this,'keyExchanges[]')">Add</button>
+    </div>
+    <hr class="mt-4 mb-3" style="border-top: 1px solid #ababab;">
+    <div class="form-input mt-2">
+        <label class="col-form-label">ciphers :</label>
+        <div id="ciphersContainer">
+        {{ if .ProtoConfig.ciphers }}
+            {{ range $i, $v := .ProtoConfig.ciphers }}
+                <div class="input-group mb-2">
+                    <input type="text" name="ciphers[]" class="form-control" value="{{ $v }}">
+                    <button type="button" class="btn btn-outline-danger btn-sm" onclick="removeField(this)" tabindex="-1">
+                        <i class="bi bi-trash"></i>
+                    </button>
+                </div>
+            {{ end }}
+        {{ else }}
+            <div class="input-group mb-2">
+                <input type="text" name="ciphers[]" class="form-control">
+                <button type="button" class="btn btn-outline-danger btn-sm" onclick="removeField(this)" tabindex="-1">
+                    <i class="bi bi-trash"></i>
+                </button>
+            </div>
+        {{ end }}
+        </div>
+        <button type="button" class="btn btn-outline-primary btn-sm" onclick="addField(this,'ciphers[]')">Add</button>
+    </div>
+    <hr class="mt-4 mb-3" style="border-top: 1px solid #ababab;">
+    <div class="form-input mt-2">
+        <label class="col-form-label">macs :</label>
+        <div id="macsContainer">
+        {{ if .ProtoConfig.macs }}
+            {{ range $i, $v := .ProtoConfig.macs }}
+                <div class="input-group mb-2">
+                    <input type="text" name="macs[]" class="form-control" value="{{ $v }}">
+                    <button type="button" class="btn btn-outline-danger btn-sm" onclick="removeField(this)" tabindex="-1">
+                        <i class="bi bi-trash"></i>
+                    </button>
+                </div>
+            {{ end }}
+        {{ else }}
+            <div class="input-group mb-2">
+                <input type="text" name="macs[]" class="form-control">
+                <button type="button" class="btn btn-outline-danger btn-sm" onclick="removeField(this)" tabindex="-1">
+                    <i class="bi bi-trash"></i>
+                </button>
+            </div>
+        {{ end }}
+        </div>
+        <button type="button" class="btn btn-outline-primary btn-sm" onclick="addField(this,'macs[]')">Add</button>
+    </div>
+    <hr class="mt-4 mb-3" style="border-top: 1px solid #ababab;">
+    <div class="form-input mt-2">
+        <label class="col-form-label me-3">useStat :</label>
+        <div class="form-check form-check-inline">
+        <input class="form-check-input" type="radio" name="useStat" id="useStat_true" value="true" {{ if eq .ProtoConfig.useStat true }}checked{{ end }}>
+        <label class="form-check-label" for="useStat_true">True</label>
+        </div>
+        <div class="form-check form-check-inline">
+        <input class="form-check-input" type="radio" name="useStat" id="useStat_false" value="false" {{ if eq .ProtoConfig.useStat false }}checked{{ end }}>
+        <label class="form-check-label" for="useStat_false">False</label>
+        </div>
+    </div>
+    <hr class="mt-2 mb-4" style="border-top: 1px solid #ababab;">
+    <div class="form-input mt-2">
+        <label class="col-form-label me-3">disableClientConcurrentReads :</label>
+        <div class="form-check form-check-inline">
+        <input class="form-check-input" type="radio" name="disableClientConcurrentReads" id="disableClientConcurrentReads_true" value="true" {{ if eq .ProtoConfig.disableClientConcurrentReads true }}checked{{ end }}>
+        <label class="form-check-label" for="disableClientConcurrentReads_true">True</label>
+        </div>
+        <div class="form-check form-check-inline">
+        <input class="form-check-input" type="radio" name="disableClientConcurrentReads" id="disableClientConcurrentReads_false" value="false" {{ if eq .ProtoConfig.disableClientConcurrentReads false }}checked{{ end }}>
+        <label class="form-check-label" for="disableClientConcurrentReads_false">False</label>
+        </div>
+    </div>
+</div>
+{{ end }}
