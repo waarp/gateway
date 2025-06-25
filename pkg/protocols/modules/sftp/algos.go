@@ -9,7 +9,7 @@ import (
 
 //nolint:gochecknoglobals // global var is used by design
 var (
-	validKeyExchanges = internal.Algos{
+	ValidKeyExchanges = internal.Algos{
 		{Name: "curve25519-sha256@libssh.org", ValidFor: internal.Both},
 		{Name: "ecdh-sha2-nistp256", ValidFor: internal.Both},
 		{Name: "ecdh-sha2-nistp384", ValidFor: internal.Both},
@@ -18,7 +18,7 @@ var (
 		{Name: "diffie-hellman-group1-sha1", ValidFor: internal.Both},  // Deprecated: uses SHA-1.
 		{Name: "diffie-hellman-group14-sha1", ValidFor: internal.Both}, // Deprecated: uses SHA-1.
 	}
-	validCiphers = internal.Algos{
+	ValidCiphers = internal.Algos{
 		{Name: "aes128-gcm@openssh.com", ValidFor: internal.Both},
 		{Name: "chacha20-poly1305@openssh.com", ValidFor: internal.Both},
 		{Name: "aes128-ctr", ValidFor: internal.Both},
@@ -30,7 +30,7 @@ var (
 		{Name: "aes128-cbc", ValidFor: internal.Both, DisabledByDefault: true},
 		{Name: "3des-cbc", ValidFor: internal.Both, DisabledByDefault: true},
 	}
-	validMACs = internal.Algos{
+	ValidMACs = internal.Algos{
 		{Name: "hmac-sha2-256-etm@openssh.com", ValidFor: internal.Both},
 		{Name: "hmac-sha2-256", ValidFor: internal.Both},
 		{Name: "hmac-sha1", ValidFor: internal.Both},    // Deprecated: uses SHA-1.
@@ -46,19 +46,19 @@ var (
 
 func checkSFTPAlgos(keyExchanges, ciphers, macs []string, forServer bool) error {
 	for _, kex := range keyExchanges {
-		if !validKeyExchanges.IsAlgoValid(kex, forServer) {
+		if !ValidKeyExchanges.IsAlgoValid(kex, forServer) {
 			return fmt.Errorf("%w %q", ErrUnknownKeyExchange, kex)
 		}
 	}
 
 	for _, ciph := range ciphers {
-		if !validCiphers.IsAlgoValid(ciph, forServer) {
+		if !ValidCiphers.IsAlgoValid(ciph, forServer) {
 			return fmt.Errorf("%w %q", ErrUnknownCipher, ciph)
 		}
 	}
 
 	for _, mac := range macs {
-		if !validMACs.IsAlgoValid(mac, forServer) {
+		if !ValidMACs.IsAlgoValid(mac, forServer) {
 			return fmt.Errorf("%w %q", ErrUnknownMAC, mac)
 		}
 	}
