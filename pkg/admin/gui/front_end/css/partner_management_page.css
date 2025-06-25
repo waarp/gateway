@@ -95,3 +95,12 @@
 .page-link {
   color: black !important;
 }
+
+select:has(option[value=""]:checked) {
+  color:#6c757d;
+}
+
+.btn-outline-info:hover, .btn-outline-info:focus,
+.btn-outline-warning:hover, .btn-outline-warning:focus {
+  color: #fff !important;
+}

@@ -11,6 +11,7 @@ import (
 	"code.waarp.fr/apps/gateway/gateway/pkg/admin/gui/internal"
 	"code.waarp.fr/apps/gateway/gateway/pkg/database"
 	"code.waarp.fr/apps/gateway/gateway/pkg/model"
+	"code.waarp.fr/apps/gateway/gateway/pkg/protocols/modules/sftp"
 )
 
 type Protocols struct {
@@ -33,6 +34,8 @@ type FiltersPartner struct {
 	DisablePrevious bool
 	Protocols       Protocols
 }
+
+var TLSVersions = []string{"v1.0", "v1.1", "v1.2", "v1.3"} //nolint:gochecknoglobals // Constant
 
 func editPartner(db *database.DB, r *http.Request) error {
 	partnerID := r.URL.Query().Get("editPartnerID")
@@ -69,19 +72,14 @@ func editPartner(db *database.DB, r *http.Request) error {
 		editPartner.Address.Port = uint16(port)
 	}
 
-	if editPartner.Protocol == "r66" || editPartner.Protocol == "r66-tls" {
+	switch editPartner.Protocol {
+	case "r66", "r66-tls":
 		editPartner.ProtoConfig = protoConfigR66(r)
-	}
-
-	if editPartner.Protocol == "sftp" {
+	case "sftp":
 		editPartner.ProtoConfig = protoConfigSFTP(r)
-	}
-
-	if editPartner.Protocol == "ftp" || editPartner.Protocol == "ftps" {
+	case "ftp", "ftps":
 		editPartner.ProtoConfig = protoConfigFTP(r, editPartner.Protocol)
-	}
-
-	if editPartner.Protocol == "pesit" || editPartner.Protocol == "pesit-tls" {
+	case "pesit", "pesit-tls":
 		editPartner.ProtoConfig = protoConfigPeSIT(r, editPartner.Protocol)
 	}
 
@@ -107,20 +105,16 @@ func protoConfigR66(r *http.Request) map[string]any {
 		r66ProtoConfig["blockSize"] = uint32(size)
 	}
 
-	if noFinalHash := r.URL.Query().Get("noFinalHash"); noFinalHash != "" {
-		if noFinalHash == "true" {
-			r66ProtoConfig["noFinalHash"] = true
-		} else if noFinalHash == "false" {
-			r66ProtoConfig["noFinalHash"] = false
-		}
+	if noFinalHash := r.URL.Query().Get("noFinalHash"); noFinalHash == "true" {
+		r66ProtoConfig["noFinalHash"] = true
+	} else {
+		r66ProtoConfig["noFinalHash"] = false
 	}
 
-	if checkBlockHash := r.URL.Query().Get("checkBlockHash"); checkBlockHash != "" {
-		if checkBlockHash == "true" {
-			r66ProtoConfig["checkBlockHash"] = true
-		} else if checkBlockHash == "false" {
-			r66ProtoConfig["checkBlockHash"] = false
-		}
+	if checkBlockHash := r.URL.Query().Get("checkBlockHash"); checkBlockHash == "true" {
+		r66ProtoConfig["checkBlockHash"] = true
+	} else {
+		r66ProtoConfig["checkBlockHash"] = false
 	}
 
 	return r66ProtoConfig
@@ -141,20 +135,16 @@ func protoConfigSFTP(r *http.Request) map[string]any {
 		sftpProtoConfig["macs"] = macs
 	}
 
-	if useStat := r.URL.Query().Get("useStat"); useStat != "" {
-		if useStat == "true" {
-			sftpProtoConfig["useStat"] = true
-		} else if useStat == "false" {
-			sftpProtoConfig["useStat"] = false
-		}
+	if useStat := r.URL.Query().Get("useStat"); useStat == "true" {
+		sftpProtoConfig["useStat"] = true
+	} else {
+		sftpProtoConfig["useStat"] = false
 	}
 
-	if dCCR := r.URL.Query().Get("disableClientConcurrentReads"); dCCR != "" {
-		if dCCR == "true" {
-			sftpProtoConfig["dCCR"] = true
-		} else if dCCR == "false" {
-			sftpProtoConfig["dCCR"] = false
-		}
+	if dCCR := r.URL.Query().Get("disableClientConcurrentReads"); dCCR == "true" {
+		sftpProtoConfig["disableClientConcurrentReads"] = true
+	} else {
+		sftpProtoConfig["disableClientConcurrentReads"] = false
 	}
 
 	return sftpProtoConfig
@@ -163,41 +153,33 @@ func protoConfigSFTP(r *http.Request) map[string]any {
 func protoConfigFTP(r *http.Request, protocol string) map[string]any {
 	ftpProtoConfig := make(map[string]any)
 
-	if disableActiveMode := r.URL.Query().Get("disableActiveMode"); disableActiveMode != "" {
-		if disableActiveMode == "true" {
-			ftpProtoConfig["disableActiveMode"] = true
-		} else if disableActiveMode == "false" {
-			ftpProtoConfig["disableActiveMode"] = false
-		}
+	if disableActiveMode := r.URL.Query().Get("disableActiveMode"); disableActiveMode == "true" {
+		ftpProtoConfig["disableActiveMode"] = true
+	} else {
+		ftpProtoConfig["disableActiveMode"] = false
 	}
 
-	if disableEPSV := r.URL.Query().Get("disableEPSV"); disableEPSV != "" {
-		if disableEPSV == "disableEPSV" {
-			ftpProtoConfig["disableEPSV"] = true
-		} else if disableEPSV == "false" {
-			ftpProtoConfig["disableEPSV"] = false
-		}
+	if disableEPSV := r.URL.Query().Get("disableEPSV"); disableEPSV == "true" {
+		ftpProtoConfig["disableEPSV"] = true
+	} else {
+		ftpProtoConfig["disableEPSV"] = false
 	}
 
 	if protocol == "ftps" { //nolint:nestif // call ftps
-		if useImplicitTLS := r.URL.Query().Get("useImplicitTLS"); useImplicitTLS != "" {
-			if useImplicitTLS == "true" {
-				ftpProtoConfig["useImplicitTLS"] = true
-			} else if useImplicitTLS == "false" {
-				ftpProtoConfig["useImplicitTLS"] = false
-			}
+		if useImplicitTLS := r.URL.Query().Get("useImplicitTLS"); useImplicitTLS == "true" {
+			ftpProtoConfig["useImplicitTLS"] = true
+		} else {
+			ftpProtoConfig["useImplicitTLS"] = false
 		}
 
 		if minTLSVersion := r.URL.Query().Get("partnerFTPSminTLSVersion"); minTLSVersion != "" {
 			ftpProtoConfig["minTLSVersion"] = minTLSVersion
 		}
 
-		if disableTLSSessionReuse := r.URL.Query().Get("disableTLSSessionReuse"); disableTLSSessionReuse != "" {
-			if disableTLSSessionReuse == "true" {
-				ftpProtoConfig["disableTLSSessionReuse"] = true
-			} else if disableTLSSessionReuse == "false" {
-				ftpProtoConfig["disableTLSSessionReuse"] = false
-			}
+		if disableTLSSessionReuse := r.URL.Query().Get("disableTLSSessionReuse"); disableTLSSessionReuse == "true" {
+			ftpProtoConfig["disableTLSSessionReuse"] = true
+		} else {
+			ftpProtoConfig["disableTLSSessionReuse"] = false
 		}
 	}
 
@@ -212,20 +194,16 @@ func protoConfigPeSIT(r *http.Request, protocol string) map[string]any {
 		pesitProtoConfig["login"] = login
 	}
 
-	if disableRestart := r.URL.Query().Get("disableRestart"); disableRestart != "" {
-		if disableRestart == "true" {
-			pesitProtoConfig["disableRestart"] = true
-		} else if disableRestart == "false" {
-			pesitProtoConfig["disableRestart"] = false
-		}
+	if disableRestart := r.URL.Query().Get("disableRestart"); disableRestart == "true" {
+		pesitProtoConfig["disableRestart"] = true
+	} else {
+		pesitProtoConfig["disableRestart"] = false
 	}
 
-	if disableCheckpoints := r.URL.Query().Get("disableCheckpoints"); disableCheckpoints != "" {
-		if disableCheckpoints == "disableCheckpoints" {
-			pesitProtoConfig["disableCheckpoints"] = true
-		} else if disableCheckpoints == "false" {
-			pesitProtoConfig["disableCheckpoints"] = false
-		}
+	if disableCheckpoints := r.URL.Query().Get("disableCheckpoints"); disableCheckpoints == "true" {
+		pesitProtoConfig["disableCheckpoints"] = true
+	} else {
+		pesitProtoConfig["disableCheckpoints"] = false
 	}
 
 	if checkpointSize := r.URL.Query().Get("partnerPeSITcheckpointSize"); checkpointSize != "" {
@@ -244,12 +222,10 @@ func protoConfigPeSIT(r *http.Request, protocol string) map[string]any {
 		pesitProtoConfig["checkpointWindow"] = uint32(size)
 	}
 
-	if useNSDU := r.URL.Query().Get("useNSDU"); useNSDU != "" {
-		if useNSDU == "useNSDU" {
-			pesitProtoConfig["useNSDU"] = true
-		} else if useNSDU == "false" {
-			pesitProtoConfig["useNSDU"] = false
-		}
+	if useNSDU := r.URL.Query().Get("useNSDU"); useNSDU == "true" {
+		pesitProtoConfig["useNSDU"] = true
+	} else {
+		pesitProtoConfig["useNSDU"] = false
 	}
 
 	if compatibilityMode := r.URL.Query().Get("partnerPeSITcompatibilityMode"); compatibilityMode != "" {
@@ -264,12 +240,10 @@ func protoConfigPeSIT(r *http.Request, protocol string) map[string]any {
 		pesitProtoConfig["maxMessageSize"] = uint32(size)
 	}
 
-	if disablePreConnection := r.URL.Query().Get("disablePreConnection"); disablePreConnection != "" {
-		if disablePreConnection == "disablePreConnection" {
-			pesitProtoConfig["disablePreConnection"] = true
-		} else if disablePreConnection == "false" {
-			pesitProtoConfig["disablePreConnection"] = false
-		}
+	if disablePreConnection := r.URL.Query().Get("disablePreConnection"); disablePreConnection == "true" {
+		pesitProtoConfig["disablePreConnection"] = true
+	} else {
+		pesitProtoConfig["disablePreConnection"] = false
 	}
 
 	if protocol == "pesit-tls" {
@@ -304,19 +278,14 @@ func addPartner(db *database.DB, r *http.Request) error {
 		newPartner.Address.Port = uint16(port)
 	}
 
-	if newPartner.Protocol == "r66" || newPartner.Protocol == "r66-tls" {
+	switch newPartner.Protocol {
+	case "r66", "r66-tls":
 		newPartner.ProtoConfig = protoConfigR66(r)
-	}
-
-	if newPartner.Protocol == "sftp" {
+	case "sftp":
 		newPartner.ProtoConfig = protoConfigSFTP(r)
-	}
-
-	if newPartner.Protocol == "ftp" || newPartner.Protocol == "ftps" {
+	case "ftp", "ftps":
 		newPartner.ProtoConfig = protoConfigFTP(r, newPartner.Protocol)
-	}
-
-	if newPartner.Protocol == "pesit" || newPartner.Protocol == "pesit-tls" {
+	case "pesit", "pesit-tls":
 		newPartner.ProtoConfig = protoConfigPeSIT(r, newPartner.Protocol)
 	}
 
@@ -560,6 +529,8 @@ func partnerManagementPage(logger *log.Logger, db *database.DB) http.HandlerFunc
 			"partnerFound": partnerFound,
 			"filter":       filter,
 			"currentPage":  currentPage,
+			"TLSVersions":  TLSVersions,
+			"KeyExchanges": sftp.ValidKeyExchanges, "Ciphers": sftp.ValidCiphers, "MACs": sftp.ValidMACs,
 		}); err != nil {
 			logger.Error("render partner_management_page: %v", err)
 			http.Error(w, "Internal error", http.StatusInternalServerError)

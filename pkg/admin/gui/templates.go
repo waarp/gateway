@@ -10,11 +10,12 @@ import (
 )
 
 const (
-	index           = "front_end/html/index.html"
-	header          = "front_end/html/header.html"
-	multiLanguage   = "front_end/html/multi_language.html"
-	addProtoConfig  = "front_end/html/addProtoConfig.html"
-	editProtoConfig = "front_end/html/editProtoConfig.html"
+	index              = "front_end/html/index.html"
+	header             = "front_end/html/header.html"
+	multiLanguage      = "front_end/html/multi_language.html"
+	addProtoConfig     = "front_end/html/addProtoConfig.html"
+	editProtoConfig    = "front_end/html/editProtoConfig.html"
+	displayProtoConfig = "front_end/html/displayProtoConfig.html"
 )
 
 var funcs = template.FuncMap{
@@ -46,7 +47,7 @@ var (
 	partnerManagementTemplate = template.Must(
 		template.New("partner_management_page.html").
 			Funcs(funcs).
-			ParseFS(webFS, index, header, multiLanguage, addProtoConfig, editProtoConfig,
+			ParseFS(webFS, index, header, multiLanguage, addProtoConfig, editProtoConfig, displayProtoConfig,
 				"front_end/html/partner_management_page.html"),
 	)
 )

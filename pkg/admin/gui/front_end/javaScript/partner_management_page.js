@@ -36,29 +36,26 @@ function showProtoConfig (selectElem) {
     container.querySelector('#pesit-tlsForm')?.style.setProperty('display', selected === 'pesit-tls' ? 'block' : 'none');
 }
 
-function addField(btn, inputName) {
-    const container = btn.closest('.form-input').querySelector('div[id$="Container"]');
-    if (!container) return;
-    const group = document.createElement('div');
-    group.className = 'input-group mb-2';
-    group.innerHTML = `
-        <input type="text" name="${inputName}" class="form-control" required>
-        <button type="button" class="btn btn-outline-danger btn-sm" onclick="removeField(this)" tabindex="-1">
-            <i class="bi bi-trash"></i>
-        </button>
-    `;
-    container.appendChild(group);
+function addField(button, fieldName) {
+    const container = button.parentElement.querySelector(`#${fieldName.replace('[]','')}Container`);
+    if (!container)
+        return;
+
+    const firstGroup = container.querySelector('.input-group');
+    if (!firstGroup)
+        return;
+    const newGroup = firstGroup.cloneNode(true);
+    const select = newGroup.querySelector('select');
+    if (select)
+        select.selectedIndex = 0;
+    container.appendChild(newGroup);
 }
 
-function removeField(btn) {
-    const group = btn.closest('.input-group');
-    if (!group) {
-        return;
-    }
+function removeField(button) {
+    const group = button.closest('.input-group');
     const container = group.parentElement;
-    if (container.querySelectorAll('.input-group').length > 1) {
+    if (container.querySelectorAll('.input-group').length > 1)
         group.remove();
-    }
 }
 
 document.addEventListener('DOMContentLoaded', function () {
