@@ -1,0 +1,16 @@
+{{ define "head" }}
+    <title>{{ index .tab "title" }}</title>
+{{ end }}
+
+{{ define "content" }}
+    {{ if .partner }}
+      <h2>{{ index .tab "title" }} : {{ .partner.Name }}</h2>
+      <hr class="mt-2 mb-4" style="border-top: 1px solid #ababab;">
+    {{ else }}
+        <h2>No partner selected</h2>
+    {{ end }}
+{{ end }}
+
+{{ define "partner_authentication_page" }}
+  {{ template "index" . }}
+{{ end }}

@@ -7,3 +7,10 @@ waarp_gatewayd_test.db
 *.iml
 build/
 .vagrant
+pkg/admin/.DS_Store
+pkg/admin/gui/.DS_Store
+pkg/admin/gui/front_end/.DS_Store
+pkg/admin/gui/front_end/javaScript/LICENSE
+pkg/admin/gui/front_end/javaScript/README.md
+pkg/.DS_Store
+.DS_Store

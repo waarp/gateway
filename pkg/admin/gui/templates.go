@@ -50,4 +50,9 @@ var (
 			ParseFS(webFS, index, header, multiLanguage, addProtoConfig, editProtoConfig, displayProtoConfig,
 				"front_end/html/partner_management_page.html"),
 	)
+	partnerAuthenticationTemplate = template.Must(
+		template.New("partner_management_page.html").
+			Funcs(funcs).
+			ParseFS(webFS, index, header, multiLanguage, "front_end/html/partner_authentication_page.html"),
+	)
 )
