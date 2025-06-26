@@ -11,7 +11,9 @@ import (
 	"code.waarp.fr/apps/gateway/gateway/pkg/admin/gui/internal"
 	"code.waarp.fr/apps/gateway/gateway/pkg/database"
 	"code.waarp.fr/apps/gateway/gateway/pkg/model"
+	"code.waarp.fr/apps/gateway/gateway/pkg/protocols/modules/pesit"
 	"code.waarp.fr/apps/gateway/gateway/pkg/protocols/modules/sftp"
+	"code.waarp.fr/apps/gateway/gateway/pkg/protocols/protoutils"
 )
 
 type Protocols struct {
@@ -35,7 +37,11 @@ type FiltersPartner struct {
 	Protocols       Protocols
 }
 
-var TLSVersions = []string{"v1.0", "v1.1", "v1.2", "v1.3"} //nolint:gochecknoglobals // Constant
+//nolint:gochecknoglobals // Constant
+var (
+	TLSVersions            = []string{protoutils.TLSv10, protoutils.TLSv11, protoutils.TLSv12, protoutils.TLSv13}
+	CompatibilityModePeSIT = []string{pesit.CompatibilityModeAxway, pesit.CompatibilityModeNone}
+)
 
 func editPartner(db *database.DB, r *http.Request) error {
 	partnerID := r.URL.Query().Get("editPartnerID")
@@ -521,16 +527,17 @@ func partnerManagementPage(logger *log.Logger, db *database.DB) http.HandlerFunc
 		currentPage := filter.Offset + 1
 
 		if err := partnerManagementTemplate.ExecuteTemplate(w, "partner_management_page", map[string]any{
-			"myPermission": myPermission,
-			"tab":          tTranslated,
-			"username":     user.Username,
-			"language":     userLanguage,
-			"partner":      partnerList,
-			"partnerFound": partnerFound,
-			"filter":       filter,
-			"currentPage":  currentPage,
-			"TLSVersions":  TLSVersions,
-			"KeyExchanges": sftp.ValidKeyExchanges, "Ciphers": sftp.ValidCiphers, "MACs": sftp.ValidMACs,
+			"myPermission":           myPermission,
+			"tab":                    tTranslated,
+			"username":               user.Username,
+			"language":               userLanguage,
+			"partner":                partnerList,
+			"partnerFound":           partnerFound,
+			"filter":                 filter,
+			"currentPage":            currentPage,
+			"TLSVersions":            TLSVersions,
+			"CompatibilityModePeSIT": CompatibilityModePeSIT,
+			"KeyExchanges":           sftp.ValidKeyExchanges, "Ciphers": sftp.ValidCiphers, "MACs": sftp.ValidMACs,
 		}); err != nil {
 			logger.Error("render partner_management_page: %v", err)
 			http.Error(w, "Internal error", http.StatusInternalServerError)

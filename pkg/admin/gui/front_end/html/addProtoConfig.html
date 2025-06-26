@@ -117,7 +117,12 @@
     <hr class="mt-2 mb-4" style="border-top: 1px solid #ababab;">
     <div class="form-input mt-2">
         <label class="col-form-label">{{ index .tab "compatibilityMode" }} :</label><i class="bi bi-info-circle ms-1" data-bs-toggle="tooltip" data-bs-placement="right" data-bs-title="{{ index $.tab "tooltipCompatibilityMode" }}"></i>
-        <input type="text" name="partnerPeSITcompatibilityMode" class="form-control">
+        <select name="partnerPeSITcompatibilityMode" id="partnerPeSITcompatibilityMode" class="form-select">
+            <option value="" disabled selected>{{ index .tab "selectCompatibilityMode" }}</option>
+            {{ range .CompatibilityModePeSIT }}
+                <option value="{{ . }}"> {{ if eq . "axway" }}{{ index $.tab "standardParameterPesit" }}{{ else if eq . "none" }}{{ index $.tab "noneStandardParameterPesit" }}{{ else }}{{ . }}{{ end }}</option>
+            {{ end }}
+        </select>
     </div>
     <hr class="mt-2 mb-4" style="border-top: 1px solid #ababab;">
     <div class="form-input mt-2">
@@ -134,7 +139,7 @@
     <div id="pesit-tlsForm">
         <hr class="mt-2 mb-4" style="border-top: 1px solid #ababab;">
         <div class="form-input mt-2">
-            <label class="col-form-label">{{ index .tab "minTLSVersion" }} :</label></strong><i class="bi bi-info-circle ms-1" data-bs-toggle="tooltip" data-bs-placement="right" data-bs-title="{{ index $.tab "tooltipMinPesitTLSVersion" }}"></i>
+            <label class="col-form-label">{{ index .tab "minTLSVersion" }} :</label><i class="bi bi-info-circle ms-1" data-bs-toggle="tooltip" data-bs-placement="right" data-bs-title="{{ index $.tab "tooltipMinPesitTLSVersion" }}"></i>
             <select name="partnerPeSIT-TLSminTLSVersion" id="partnerPeSIT-TLSminTLSVersion" class="form-select">
                 <option value="" disabled selected>{{ index .tab "selectTLSVersion" }}</option>
                 {{ range .TLSVersions }}

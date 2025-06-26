@@ -195,7 +195,9 @@
                       {{ if or (eq .Protocol "pesit") (eq .Protocol "pesit-tls") }}
                         {{ template "displayPesit" (dict "tab" $.tab "ProtoConfig" .ProtoConfig "TLSVersions" $.TLSVersions) }}
                       {{ end }}
-                      {{ template "displaySftp" (dict "tab" $.tab "ProtoConfig" .ProtoConfig "KeyExchanges" $.KeyExchanges "Ciphers" $.Ciphers "MACs" $.MACs) }}
+                      {{ if eq .Protocol "sftp" }}
+                        {{ template "displaySftp" (dict "tab" $.tab "ProtoConfig" .ProtoConfig "KeyExchanges" $.KeyExchanges "Ciphers" $.Ciphers "MACs" $.MACs) }}
+                      {{ end }}
                     </div>
                     <div class="modal-footer">
                       <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">{{ index $.tab "close" }}</button>
@@ -257,7 +259,7 @@
                       </div>
                       {{ template "editR66" (dict "tab" $.tab "ProtoConfig" .ProtoConfig) }}
                       {{ template "editFtp" (dict "tab" $.tab "ProtoConfig" .ProtoConfig "TLSVersions" $.TLSVersions) }}
-                      {{ template "editPesit" (dict "tab" $.tab "ProtoConfig" .ProtoConfig "TLSVersions" $.TLSVersions) }}
+                      {{ template "editPesit" (dict "tab" $.tab "ProtoConfig" .ProtoConfig "TLSVersions" $.TLSVersions "CompatibilityModePeSIT" $.CompatibilityModePeSIT) }}
                       {{ template "editSftp" (dict "tab" $.tab "ProtoConfig" .ProtoConfig "KeyExchanges" $.KeyExchanges "Ciphers" $.Ciphers "MACs" $.MACs) }}
                     </div>
                       <div class="modal-footer">
