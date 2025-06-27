@@ -17,7 +17,6 @@ import (
 	"code.waarp.fr/apps/gateway/gateway/pkg/model/types"
 	"code.waarp.fr/apps/gateway/gateway/pkg/pipeline"
 	"code.waarp.fr/apps/gateway/gateway/pkg/protocols/protocol"
-	"code.waarp.fr/apps/gateway/gateway/pkg/protocols/protoutils"
 	"code.waarp.fr/apps/gateway/gateway/pkg/snmp"
 	"code.waarp.fr/apps/gateway/gateway/pkg/utils"
 )
@@ -157,13 +156,12 @@ func (c *client) connect(pip *pipeline.Pipeline) (*goftp.Client, *pipeline.Error
 		//nolint:errcheck //error is guaranteed to be nil
 		serverName, _, _ := net.SplitHostPort(addr)
 
-		//nolint:gosec //TLS version is set by the user
 		tlsConfig = &tls.Config{
 			ServerName: serverName,
 			ClientAuth: tls.NoClientCert,
-			MinVersion: utils.Max(
-				protoutils.ParseTLSVersion(c.conf.MinTLSVersion),
-				protoutils.ParseTLSVersion(partConf.MinTLSVersion)),
+			MinVersion: max(
+				c.conf.MinTLSVersion.TLS(),
+				partConf.MinTLSVersion.TLS()),
 		}
 
 		if auth.AddTLSAuthorities(pip.DB, tlsConfig) != nil {

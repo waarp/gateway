@@ -38,7 +38,7 @@ func (s *serverStream) WriteAt(p []byte, off int64) (int, error) {
 }
 
 type serverTransfer struct {
-	r66Conf *serverConfig
+	r66Conf *tlsServerConfig
 	conf    *r66.Authent
 	pip     *pipeline.Pipeline
 	ctx     context.Context

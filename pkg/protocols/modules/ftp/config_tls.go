@@ -3,20 +3,14 @@ package ftp
 import (
 	"errors"
 	"fmt"
-	"strings"
 
 	ftplib "github.com/fclairamb/ftpserverlib"
 
 	"code.waarp.fr/apps/gateway/gateway/pkg/protocols/protoutils"
 )
 
-const defaultMinTLSVersion = protoutils.TLSv12
-
-var (
-	errSupportedTLSVersions = fmt.Errorf("supported TLS versions: %s",
-		strings.Join([]string{protoutils.TLSv10, protoutils.TLSv11, protoutils.TLSv12, protoutils.TLSv13}, ", "))
-	errSupportedTLSRequirements = errors.New(`supported TLS requirements: "Optional", "Mandatory" & "Implicit"`)
-)
+var errSupportedTLSRequirements = errors.New(
+	`supported TLS requirements: "Optional", "Mandatory" & "Implicit"`)
 
 type ServerConfigTLS struct {
 	ServerConfig
@@ -30,7 +24,7 @@ type ServerConfigTLS struct {
 	// MinTLSVersion specifies the minimum TLS version that the server should
 	// allow. The accepted values are "v1.0", "v1.1", "v1.2", and "v1.3". The
 	// default is "v1.2".
-	MinTLSVersion string `json:"minTLSVersion"`
+	MinTLSVersion protoutils.TLSVersion `json:"minTLSVersion"`
 }
 
 func (c *ServerConfigTLS) ValidServer() error {
@@ -42,14 +36,6 @@ func (c *ServerConfigTLS) ValidServer() error {
 		return fmt.Errorf("invalid TLS requirement %q: %w", c.TLSRequirement, errSupportedTLSRequirements)
 	}
 
-	if c.MinTLSVersion == "" {
-		c.MinTLSVersion = defaultMinTLSVersion
-	}
-
-	if protoutils.ParseTLSVersion(c.MinTLSVersion) == 0 {
-		return fmt.Errorf("invalid TLS version %q: %w", c.MinTLSVersion, errSupportedTLSVersions)
-	}
-
 	return c.ServerConfig.ValidServer()
 }
 
@@ -59,18 +45,10 @@ type ClientConfigTLS struct {
 	// MinTLSVersion specifies the minimum TLS version that the client should
 	// allow. The accepted values are "1.0", "1.1", "1.2", and "1.3". The
 	// default is "1.2".
-	MinTLSVersion string `json:"minTLSVersion"`
+	MinTLSVersion protoutils.TLSVersion `json:"minTLSVersion"`
 }
 
 func (c *ClientConfigTLS) ValidClient() error {
-	if c.MinTLSVersion == "" {
-		c.MinTLSVersion = defaultMinTLSVersion
-	}
-
-	if protoutils.ParseTLSVersion(c.MinTLSVersion) == 0 {
-		return fmt.Errorf("invalid TLS version %q: %w", c.MinTLSVersion, errSupportedTLSVersions)
-	}
-
 	return c.ClientConfig.ValidClient()
 }
 
@@ -88,7 +66,7 @@ type PartnerConfigTLS struct {
 	// MinTLSVersion specifies the minimum TLS version that the client should
 	// allow. The accepted values are "1.0", "1.1", "1.2", and "1.3". The
 	// default is "1.2".
-	MinTLSVersion string `json:"minTLSVersion"`
+	MinTLSVersion protoutils.TLSVersion `json:"minTLSVersion"`
 
 	// DisableTLSSessionReuse states whether TLS session reuse should be
 	// disabled. By default, TLS session are reused when opening the data
@@ -97,14 +75,6 @@ type PartnerConfigTLS struct {
 }
 
 func (c *PartnerConfigTLS) ValidPartner() error {
-	if c.MinTLSVersion == "" {
-		c.MinTLSVersion = defaultMinTLSVersion
-	}
-
-	if protoutils.ParseTLSVersion(c.MinTLSVersion) == 0 {
-		return fmt.Errorf("invalid TLS version %q: %w", c.MinTLSVersion, errSupportedTLSVersions)
-	}
-
 	return c.PartnerConfig.ValidPartner()
 }
 

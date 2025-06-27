@@ -252,10 +252,14 @@ var (
 )
 
 //nolint:funlen //no easy way to split this
-func makeClientTLSConfig(pip *pipeline.Pipeline) (*tls.Config, error) {
+func makeClientTLSConfig(pip *pipeline.Pipeline, partConf *tlsPartnerConfig,
+	clientConf *tlsClientConfig,
+) (*tls.Config, error) {
 	tlsConf := &tls.Config{
-		ServerName:       pip.TransCtx.RemoteAgent.Address.Host,
-		MinVersion:       tls.VersionTLS12,
+		ServerName: pip.TransCtx.RemoteAgent.Address.Host,
+		MinVersion: max(
+			partConf.MinTLSVersion.TLS(),
+			clientConf.MinTLSVersion.TLS()),
 		VerifyConnection: compatibility.LogSha1(pip.Logger),
 	}
 

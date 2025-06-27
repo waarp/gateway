@@ -37,14 +37,14 @@ type service struct {
 	state  utils.State
 	tracer func() pipeline.Trace
 
-	r66Conf *serverConfig
+	r66Conf *tlsServerConfig
 	list    net.Listener
 	server  *r66.Server
 }
 
 func (s *service) makeTLSConf(*tls.ClientHelloInfo) (*tls.Config, error) {
 	tlsConfig := &tls.Config{
-		MinVersion:       tls.VersionTLS12,
+		MinVersion:       s.r66Conf.MinTLSVersion.TLS(),
 		ClientAuth:       tls.RequestClientCert,
 		VerifyConnection: compatibility.LogSha1(s.logger),
 	}
@@ -130,7 +130,7 @@ func (s *service) start() error {
 		return err
 	}
 
-	s.r66Conf = &serverConfig{}
+	s.r66Conf = &tlsServerConfig{}
 	if err := utils.JSONConvert(s.agent.ProtoConfig, s.r66Conf); err != nil {
 		return setLogAndReturnError("Failed to parse the R66 proto config: %v", err)
 	}
@@ -188,7 +188,6 @@ func (s *service) listen() error {
 
 	if s.agent.Protocol == R66TLS {
 		s.list = tls.NewListener(s.list, &tls.Config{
-			MinVersion:         tls.VersionTLS12,
 			GetConfigForClient: s.makeTLSConf,
 		})
 	}

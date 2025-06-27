@@ -1338,6 +1338,7 @@ linters:
       exclusions:
         - "*.Value"
         - "*.String"
+        - "*.UnmarshalJSON"
 
     revive:
       # Maximum number of open files at the same time.

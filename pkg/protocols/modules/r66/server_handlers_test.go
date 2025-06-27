@@ -49,7 +49,7 @@ func TestValidAuth(t *testing.T) {
 			db:      db,
 			logger:  logger,
 			agent:   r66Server,
-			r66Conf: &serverConfig{},
+			r66Conf: &tlsServerConfig{},
 		}}
 
 		Convey("Given an authentication packet", func() {

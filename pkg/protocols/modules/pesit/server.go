@@ -42,9 +42,8 @@ func (s *server) listen() (string, error) {
 	)
 
 	if s.localAgent.Protocol == PesitTLS {
-		//nolint:gosec //TLS min version is set by the user
 		tlsConfig := &tls.Config{
-			MinVersion:            protoutils.ParseTLSVersion(s.conf.MinTLSVersion),
+			MinVersion:            s.conf.MinTLSVersion.TLS(),
 			GetCertificate:        s.getCertificate,
 			VerifyPeerCertificate: auth.VerifyClientCert(s.db, s.logger, s.localAgent),
 		}
@@ -97,8 +96,8 @@ func (s *server) Connect(conn *pesit.ServerConnection) (pesit.TransferHandler, e
 		if s.conf.DisableCheckpoints {
 			conn.AllowCheckpoints(pesit.CheckpointDisabled, 0)
 		} else {
-			size := utils.Min(s.conf.CheckpointSize, conn.CheckpointSize())
-			window := utils.Min(s.conf.CheckpointWindow, conn.CheckpointWindow())
+			size := min(s.conf.CheckpointSize, conn.CheckpointSize())
+			window := min(s.conf.CheckpointWindow, conn.CheckpointWindow())
 
 			conn.AllowCheckpoints(size, window)
 		}

@@ -17,6 +17,9 @@ est la suivante :
   Par défaut le contrôle est activé.
 * **checkBlockHash** (*boolean*) - Active le contrôle de hash sur chaque
   bloc du fichier transféré. Par défaut ce contrôle est désactivé.
+* **minTLSVersion** (*string*) - **[R66-TLS uniquement]** Spécifie la version minimale
+  de TLS autorisée par le client. Les valeurs acceptées sont "v1.0", "v1.1", "v1.2"
+  et "v1.3". Par défaut, la version minimale est "v1.2".
 
 **Exemple**
 
@@ -25,7 +28,8 @@ est la suivante :
    {
      "blockSize": 65536,
      "noFinalHash": false,
-     "checkBlockHash": true
+     "checkBlockHash": true,
+     "minTLSVersion": "v1.3"
    }
 
 Configuration serveur
@@ -57,6 +61,9 @@ est la suivante :
   Par défaut le contrôle est activé.
 * **checkBlockHash** (*boolean*) - Active le contrôle de hash sur chaque
   bloc du fichier transféré. Par défaut ce contrôle est désactivé.
+* **minTLSVersion** (*string*) - **[R66-TLS uniquement]** Spécifie la version minimale
+  de TLS autorisée par le serveur. Les valeurs acceptées sont "v1.0", "v1.1", "v1.2"
+  et "v1.3". Par défaut, la version minimale est "v1.2".
 
 **Exemple**
 
@@ -67,7 +74,8 @@ est la suivante :
      "serverLogin": "foobar",
      "serverPassword": "sesame",
      "noFinalHash": false,
-     "checkBlockHash": true
+     "checkBlockHash": true,
+     "minTLSVersion": "v1.3"
    }
 
 
@@ -100,6 +108,9 @@ R66 est la suivante :
   Par défaut le contrôle est activé.
 * **checkBlockHash** (*boolean*) - Active le contrôle de hash sur chaque
   bloc du fichier transféré. Par défaut ce contrôle est désactivé.
+* **minTLSVersion** (*string*) - **[R66-TLS uniquement]** Spécifie la version minimale
+  de TLS autorisée pour ce partenaire. Les valeurs acceptées sont "v1.0", "v1.1",
+  "v1.2" et "v1.3". Par défaut, la version minimale est "v1.2".
 
 **Exemple**
 
@@ -110,5 +121,6 @@ R66 est la suivante :
      "serverLogin": "foobar",
      "serverPassword": "sesame",
      "noFinalHash": false,
-     "checkBlockHash": true
+     "checkBlockHash": true,
+     "minTLSVersion": "v1.3"
    }

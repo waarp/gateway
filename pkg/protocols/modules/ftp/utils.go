@@ -11,7 +11,6 @@ import (
 
 	"code.waarp.fr/apps/gateway/gateway/pkg/model/types"
 	"code.waarp.fr/apps/gateway/gateway/pkg/pipeline"
-	"code.waarp.fr/apps/gateway/gateway/pkg/utils"
 )
 
 func getPortInRange(addr string, minPort, maxPort uint16) (uint16, *pipeline.Error) {
@@ -28,8 +27,8 @@ func getPortInRange(addr string, minPort, maxPort uint16) (uint16, *pipeline.Err
 
 	rangeSize := int(maxPort - minPort)
 	nbTries := rangeSize
-	nbTries = utils.Min(nbTries, maxNbTries)
-	nbTries = utils.Max(nbTries, minNbTries)
+	nbTries = min(nbTries, maxNbTries)
+	nbTries = max(nbTries, minNbTries)
 
 	for i := range nbTries {
 		candidate := minPort + uint16(rand.IntN(rangeSize))

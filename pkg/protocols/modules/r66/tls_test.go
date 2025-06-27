@@ -21,8 +21,8 @@ import (
 //nolint:gochecknoglobals // this variable is only used for tests
 var (
 	cliConfTLS  = &clientConfig{}
-	servConfTLS = &serverConfig{ServerLogin: "r66_login"}
-	partConfTLS = &partnerConfig{ServerLogin: "r66_login"}
+	servConfTLS = &serverConfig{sharedServerConfig: sharedServerConfig{ServerLogin: "r66_login"}}
+	partConfTLS = &partnerConfig{sharedPartnerConfig: sharedPartnerConfig{ServerLogin: "r66_login"}}
 )
 
 func init() {
