@@ -3,12 +3,12 @@ package controller
 import (
 	"fmt"
 	"math"
+	"slices"
 	"sync"
 	"time"
 
 	"code.waarp.fr/lib/log"
 
-	"code.waarp.fr/apps/gateway/gateway/pkg/conf"
 	"code.waarp.fr/apps/gateway/gateway/pkg/database"
 	"code.waarp.fr/apps/gateway/gateway/pkg/model"
 	"code.waarp.fr/apps/gateway/gateway/pkg/model/types"
@@ -52,9 +52,10 @@ func (c *Controller) retrieveTransfers() (model.Transfers, error) {
 			return nil // cannot start more transfers, limit has been reached
 		}
 
-		query := ses.SelectForUpdate(&transfers).Where("owner=? AND status=? AND "+
-			"remote_account_id IS NOT NULL AND start<?", conf.GlobalConfig.GatewayName,
-			types.StatusPlanned, time.Now().UTC())
+		query := ses.SelectForUpdate(&transfers).Owner().
+			Where("status=?", types.StatusPlanned).
+			Where("remote_account_id IS NOT NULL").
+			Where("start<?", time.Now().UTC())
 
 		if lim <= math.MaxInt {
 			query.Limit(int(lim), 0)
@@ -67,7 +68,8 @@ func (c *Controller) retrieveTransfers() (model.Transfers, error) {
 		for _, trans := range transfers {
 			trans.Status = types.StatusRunning
 			if err := ses.Update(trans).Cols("status").Run(); err != nil {
-				return fmt.Errorf("failed to update transfer status: %w", err)
+				c.logger.Error("Failed to update status of transfer %d: %v", trans.ID, err)
+				trans.Status = types.StatusError
 			}
 		}
 
@@ -76,5 +78,7 @@ func (c *Controller) retrieveTransfers() (model.Transfers, error) {
 		return nil, fmt.Errorf("controller database error: %w", tErr)
 	}
 
-	return transfers, nil
+	return slices.DeleteFunc(transfers, func(t *model.Transfer) bool {
+		return t.Status != types.StatusRunning
+	}), nil
 }

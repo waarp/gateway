@@ -3,6 +3,8 @@
 Historique des versions
 =======================
 
+* :bug:`482` L'échec du démarrage d'un transfert planifié n'empêche désormais
+  plus les autres transferts planifiés de démarrer.
 * :bug:`482` Correction d'un bug qui faisait rester les transferts indéfiniment
   en statut *"RUNNING"* sans avancement en cas d'erreur de base de données.
   Parallèlement, un bug empêchant l'annulation des transferts avec le statut
