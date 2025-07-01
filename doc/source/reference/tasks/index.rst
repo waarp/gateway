@@ -42,6 +42,7 @@ Liste des traitements
    rename
    transfer
    transcode
+   change_newline
    archive
    extract
    icap
