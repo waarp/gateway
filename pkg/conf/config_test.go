@@ -4,12 +4,34 @@ import (
 	"bytes"
 	"io/ioutil"
 	"os"
+	"path/filepath"
 	"testing"
 
 	. "github.com/smartystreets/goconvey/convey"
+	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
+func TestParseFileMode(t *testing.T) {
+	content := []byte(`[Paths]
+	FilePermissions = 0666
+	DirectoryPermissions = 0777
+	`)
+
+	dir := t.TempDir()
+	filePath := filepath.Join(dir, "test.ini")
+	require.NoError(t, os.WriteFile(filePath, content, 0o600))
+
+	c, err := LoadServerConfig(filePath)
+	require.NoError(t, err)
+
+	assert.EqualValues(t, c.Paths.FilePerms, 0o666)
+	assert.EqualValues(t, c.Paths.DirPerms, 0o777)
+}
+
 func TestLoadServerConfig(t *testing.T) {
+	t.Chdir(t.TempDir())
+
 	directContent := []byte(`[Log]
 LogTo = stdout
 Level = INFO
@@ -207,6 +229,8 @@ LogTo stdout
 }
 
 func TestUpdateServerConfig(t *testing.T) {
+	t.Chdir(t.TempDir())
+
 	oldContent := []byte(`[global]
 ; old desc
 ; LogTo = old-default-foo

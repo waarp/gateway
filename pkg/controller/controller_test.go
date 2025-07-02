@@ -56,10 +56,10 @@ func TestControllerListen(t *testing.T) {
 		So(db.Insert(rule).Run(), ShouldBeNil)
 
 		Convey("Given a controller", func() {
-			conf.GlobalConfig.Paths = conf.PathsConfig{
-				GatewayHome: rootPath, DefaultInDir: "in",
-				DefaultOutDir: "out", DefaultTmpDir: "tmp",
-			}
+			conf.GlobalConfig.Paths.GatewayHome = rootPath
+			conf.GlobalConfig.Paths.DefaultInDir = "in"
+			conf.GlobalConfig.Paths.DefaultOutDir = "out"
+			conf.GlobalConfig.Paths.DefaultTmpDir = "tmp"
 
 			cont := &Controller{
 				DB:     db,

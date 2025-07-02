@@ -86,6 +86,20 @@ La section ``[path]`` contient les différents chemins de Gateway.
    concernés ne spécifient pas ce dossier temporaire. Par défaut, un dossier
    :file:`tmp` est créé à cet effet sous la racine de Waarp Gateway.
 
+.. confval:: FilePermissions
+
+   Les permissions appliquées à tous les fichiers de transferts créés par la
+   Gateway. Les permissions doivent être en format octal (*0777*). Par défaut,
+   les fichiers seront créés avec les permissions *0640*. Cette option est
+   ineffective sous Windows, car les permissions y sont gérées différemment.
+
+.. confval:: DirectoryPermissions
+
+   Les permissions appliquées à tous les dossiers de transferts créés par la
+   Gateway. Les permissions doivent être en format octal (*0777*). Par défaut,
+   les dossiers seront créés avec les permissions *0750*. Cette option est
+   ineffective sous Windows, car les permissions y sont gérées différemment.
+
 Section ``[log]``
 =================
 
