@@ -9,6 +9,9 @@
     <option value="en" {{if eq .language "en"}}selected{{end}}>English</option>
     <option value="fr" {{if eq .language "fr"}}selected{{end}}>Français</option>
     </select>
+    {{ if .hasPartnerID }}
+      <input type="hidden" name="partnerID" value="{{ .partner.ID }}">
+    {{ end }}
   </form>
 </div>
 {{ end }}

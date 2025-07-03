@@ -35,6 +35,7 @@ func supportedProtocol(protocol string) []string {
 	return listSupportedProtocol
 }
 
+//nolint:dupl // it is not the same function, the calls are different
 func listCredentialPartner(partnerName string, db *database.DB, r *http.Request) (
 	[]*model.Credential, FiltersPagination, string,
 ) {
@@ -209,6 +210,7 @@ func addCredentialPartner(partnerName string, db *database.DB, r *http.Request) 
 	return nil
 }
 
+//nolint:dupl // it is not the same function, the calls are different
 func deleteCredentialPartner(partnerName string, db *database.DB, r *http.Request) error {
 	credentialPartnerID := r.URL.Query().Get("deleteCredentialPartner")
 
@@ -311,6 +313,7 @@ func partnerAuthenticationPage(logger *log.Logger, db *database.DB) http.Handler
 			"filter":                 filter,
 			"currentPage":            currentPage,
 			"credentialPartnerFound": credentialPartnerFound,
+			"hasPartnerID":           true,
 		}); err != nil {
 			logger.Error("render partner_management_page: %v", err)
 			http.Error(w, "Internal error", http.StatusInternalServerError)
