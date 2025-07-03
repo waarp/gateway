@@ -16,6 +16,7 @@ const (
 	addProtoConfig     = "front_end/html/addProtoConfig.html"
 	editProtoConfig    = "front_end/html/editProtoConfig.html"
 	displayProtoConfig = "front_end/html/displayProtoConfig.html"
+	displayFormAuth    = "front_end/html/typeCredential.html"
 )
 
 var funcs = template.FuncMap{
@@ -53,6 +54,6 @@ var (
 	partnerAuthenticationTemplate = template.Must(
 		template.New("partner_management_page.html").
 			Funcs(funcs).
-			ParseFS(webFS, index, header, multiLanguage, "front_end/html/partner_authentication_page.html"),
+			ParseFS(webFS, index, header, multiLanguage, displayFormAuth, "front_end/html/partner_authentication_page.html"),
 	)
 )

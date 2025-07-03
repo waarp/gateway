@@ -62,6 +62,15 @@ func GetPartnerCredential(db database.ReadAccess, partnerName, name string) (*mo
 	return getCredential(db, partner, name)
 }
 
+func GetPartnerCredentialByID(db database.ReadAccess, partnerName string, id int64) (*model.Credential, error) {
+	partner, pErr := GetPartner(db, partnerName)
+	if pErr != nil {
+		return nil, pErr
+	}
+
+	return getCredentialByID(db, partner, id)
+}
+
 func ListPartnerCredentials(db database.ReadAccess, partnerName string,
 	orderByCol string, orderByAsc bool, limit, offset int, types ...string,
 ) ([]*model.Credential, error) {

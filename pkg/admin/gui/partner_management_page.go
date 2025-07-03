@@ -28,7 +28,7 @@ type Protocols struct {
 	PeSITTLS string
 }
 
-type FiltersPartner struct {
+type FiltersPagination struct {
 	Offset          int
 	Limit           int
 	OrderAsc        bool
@@ -302,13 +302,13 @@ func addPartner(db *database.DB, r *http.Request) error {
 	return nil
 }
 
-func paginationPartnerPage(filter *FiltersPartner, lenPartner int, r *http.Request) {
+func paginationPage(filter *FiltersPagination, lenList int, r *http.Request) {
 	if r.URL.Query().Get("previous") == "true" && filter.Offset > 0 {
 		filter.Offset--
 	}
 
 	if r.URL.Query().Get("next") == "true" {
-		if filter.Limit*(filter.Offset+1) <= lenPartner {
+		if filter.Limit*(filter.Offset+1) <= lenList {
 			filter.Offset++
 		}
 	}
@@ -317,15 +317,15 @@ func paginationPartnerPage(filter *FiltersPartner, lenPartner int, r *http.Reque
 		filter.DisablePrevious = true
 	}
 
-	if (filter.Offset+1)*filter.Limit >= lenPartner {
+	if (filter.Offset+1)*filter.Limit >= lenList {
 		filter.DisableNext = true
 	}
 }
 
-func ListPartner(db *database.DB, r *http.Request) ([]*model.RemoteAgent, FiltersPartner, string) {
+func ListPartner(db *database.DB, r *http.Request) ([]*model.RemoteAgent, FiltersPagination, string) {
 	partnerFound := ""
 	const limit = 30
-	filter := FiltersPartner{
+	filter := FiltersPagination{
 		Offset:          0,
 		Limit:           limit,
 		OrderAsc:        true,
@@ -353,7 +353,7 @@ func ListPartner(db *database.DB, r *http.Request) ([]*model.RemoteAgent, Filter
 
 	partner, err := internal.ListPartners(db, "name", filter.OrderAsc, 0, 0)
 	if err != nil {
-		return nil, FiltersPartner{}, partnerFound
+		return nil, FiltersPagination{}, partnerFound
 	}
 
 	if search := r.URL.Query().Get("search"); search != "" && searchPartner(search, partner) == nil {
@@ -367,7 +367,7 @@ func ListPartner(db *database.DB, r *http.Request) ([]*model.RemoteAgent, Filter
 	}
 
 	filtersPtr, filterProtocol := protocolsFilter(r, &filter)
-	paginationPartnerPage(&filter, len(partner), r)
+	paginationPage(&filter, len(partner), r)
 
 	if len(filterProtocol) > 0 {
 		var partners []*model.RemoteAgent
@@ -379,13 +379,13 @@ func ListPartner(db *database.DB, r *http.Request) ([]*model.RemoteAgent, Filter
 
 	partners, err := internal.ListPartners(db, "name", filter.OrderAsc, filter.Limit, filter.Offset*filter.Limit)
 	if err != nil {
-		return nil, FiltersPartner{}, partnerFound
+		return nil, FiltersPagination{}, partnerFound
 	}
 
 	return partners, *filtersPtr, partnerFound
 }
 
-func protocolsFilter(r *http.Request, filter *FiltersPartner) (*FiltersPartner, []string) {
+func protocolsFilter(r *http.Request, filter *FiltersPagination) (*FiltersPagination, []string) {
 	var filterProtocol []string
 	if filter.Protocols.R66 = r.URL.Query().Get("filterProtocolR66"); filter.Protocols.R66 == "true" {
 		filterProtocol = append(filterProtocol, "r66")
