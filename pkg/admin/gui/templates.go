@@ -89,4 +89,9 @@ var (
 			ParseFS(webFS, index, header, multiLanguage, displayFormAuth,
 				"front-end/html/local_account_authentication_page.html"),
 	)
+	accountAuthenticationTemplate = template.Must(
+		template.New("account_authentication_page.html").
+			Funcs(funcs).
+			ParseFS(webFS, index, header, multiLanguage, "front_end/html/account_authentication_page.html"),
+	)
 )
