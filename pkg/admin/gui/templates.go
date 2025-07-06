@@ -145,4 +145,9 @@ var (
 			ParseFS(webFS, index, header, multiLanguage, addTasks, editTasks, displayTasks,
 				"front-end/html/tasks_transfer_rules_page.html"),
 	)
+	accountAuthenticationTemplate = template.Must(
+		template.New("account_authentication_page.html").
+			Funcs(funcs).
+			ParseFS(webFS, index, header, multiLanguage, "front_end/html/account_authentication_page.html"),
+	)
 )
