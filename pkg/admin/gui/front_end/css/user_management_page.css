@@ -101,12 +101,12 @@
 }
 
 .back-btn {
-  border-color: #f54b15;
-  color: #f54b15;
-  background-color: #fff;
+  border-color: #f54b15 !important;
+  color: #f54b15 !important;
+  background-color: #f5f5f5 !important;
 }
 
 .back-btn:hover {
-  background-color: #f54b15;
-  color: #fff;
-} 
+  background-color: #f54b15 !important;
+  color: #fff !important;
+}

@@ -90,6 +90,7 @@ func AddGUIRouter(router *mux.Router, logger *log.Logger, db *database.DB) {
 	secureRouter.HandleFunc("/partner_management", partnerManagementPage(logger, db)).Methods("GET")
 	secureRouter.HandleFunc("/partner_authentication", partnerAuthenticationPage(logger, db)).Methods("GET")
 	secureRouter.HandleFunc("/remote_account_management", remoteAccountPage(logger, db)).Methods("GET")
+	secureRouter.HandleFunc("/account_authentication", accountAuthenticationPage(logger, db)).Methods("GET")
 }
 
 func logout() http.HandlerFunc {

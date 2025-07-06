@@ -38,7 +38,7 @@
     "useImplicitTLS": { "fr": "Utiliser TLS implicite", "en": "Use Implicit TLS" },
     "minTLSVersion": { "fr": "Version TLS minimale", "en": "Minimum TLS version" },
     "disableTLSSessionReuse": { "fr": "Désactiver la réutilisation des sessions TLS", "en": "Disable TLS session reuse" },
-    "login": { "fr": "Se connecter", "en": "Login" },
+    "login": { "fr": "Identifiant", "en": "Login" },
     "disableRestart": { "fr": "Désactiver le redémarrage", "en": "Disable restart" },
     "disableCheckpoints": { "fr": "Désactiver les points de contrôle", "en": "Disable check points" },
     "checkpointSize": { "fr": "Taille du point de contrôle", "en": "Check point size" },

@@ -2,6 +2,7 @@
     <title>{{ index .tab "title" }}</title>
     <link rel="stylesheet" href="/webui/static/css/partner_management_page.css">
     <script src="/webui/static/javaScript/autoCompleteSearch.js"></script>
+    <script src="/webui/static/javaScript/partner_management_page.js"></script>
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css" rel="stylesheet">
 {{ end }}
 
@@ -102,7 +103,7 @@
             <td><i class="bi bi-person-fill"></i></td>
             <td><strong>{{ .Login }}</strong></td>
             <td class="text-end">
-                <a class="btn btn-outline-warning btn-sm me-1" href="partner_authentication?partnerID={{ .ID }}" data-bs-toggle="tooltip" data-bs-placement="top" data-bs-title="{{ index $.tab "tooltipPartnerAuthentication" }}">
+                <a class="btn btn-outline-warning btn-sm me-1" href="account_authentication?partnerID={{ .ID }}" data-bs-toggle="tooltip" data-bs-placement="top" data-bs-title="{{ index $.tab "tooltipAccountAuthentication" }}">
                   <i class="bi bi-shield-lock"></i>
                 </a>
               {{ if contains $.myPermission.Partners "w" }}
