@@ -15,17 +15,6 @@ import (
 	"code.waarp.fr/apps/gateway/gateway/pkg/model"
 )
 
-type Filters struct {
-	Offset           int
-	Limit            int
-	OrderAsc         bool
-	Permissions      string
-	PermissionsType  string
-	PermissionsValue string
-	DisableNext      bool
-	DisablePrevious  bool
-}
-
 type userPermissions struct {
 	Username    string
 	ID          int64

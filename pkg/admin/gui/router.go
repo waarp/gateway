@@ -67,7 +67,7 @@ func AddGUIRouter(router *mux.Router, logger *log.Logger, db *database.DB) {
 	router.HandleFunc("/login", loginPage(logger, db)).Methods("GET", "POST")
 	router.HandleFunc("/logout", logout()).Methods("GET")
 
-	subFS, err := fs.Sub(webFS, "front_end")
+	subFS, err := fs.Sub(webFS, "front-end")
 	if err != nil {
 		logger.Error("error accessing css file: %v", err)
 

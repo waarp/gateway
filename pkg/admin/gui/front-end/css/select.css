@@ -18,3 +18,7 @@
   transition: background 0.2s, color 0.2s;
   border-radius: 13px;
 }
+
+select:has(option[value=""]:checked) {
+  color:#6c757d;
+}
