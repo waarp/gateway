@@ -1,8 +1,3 @@
-function tooltip() {
-    const tooltipTriggerList = document.querySelectorAll('[data-bs-toggle="tooltip"]');
-    const tooltipList = [...tooltipTriggerList].map(tooltipTriggerEl => new bootstrap.Tooltip(tooltipTriggerEl));
-}
-
 function showProtoConfig (selectElem) {
     const selected = selectElem.value;
 
@@ -59,7 +54,6 @@ function removeField(button) {
 }
 
 document.addEventListener('DOMContentLoaded', function () {
-    tooltip();
     document.querySelectorAll('.partner-protocol-select').forEach(sel => {
         sel.addEventListener('change', function() {
             showProtoConfig(this);

@@ -231,7 +231,7 @@ func deleteCredentialPartner(partnerName string, db *database.DB, r *http.Reques
 	return nil
 }
 
-func callMethods(logger *log.Logger, db *database.DB, w http.ResponseWriter, r *http.Request,
+func callMethodsPartnerAuthentication(logger *log.Logger, db *database.DB, w http.ResponseWriter, r *http.Request,
 	idPartner int, partner *model.RemoteAgent,
 ) {
 	if r.Method == http.MethodGet && r.URL.Query().Get("deleteCredentialPartner") != "" {
@@ -297,7 +297,7 @@ func partnerAuthenticationPage(logger *log.Logger, db *database.DB) http.Handler
 
 		partnersCredentials, filter, credentialPartnerFound := listCredentialPartner(partner.Name, db, r)
 
-		callMethods(logger, db, w, r, id, partner)
+		callMethodsPartnerAuthentication(logger, db, w, r, id, partner)
 
 		listSupportedProtocol := supportedProtocol(partner.Protocol)
 		currentPage := filter.Offset + 1

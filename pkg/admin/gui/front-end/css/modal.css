@@ -1,0 +1,27 @@
+.modal-backdrop.show {
+  backdrop-filter: blur(10px);
+  opacity: 7;
+  background-color: rgba(0,0,0,0.1) !important;
+}
+
+.modal-body .form-input{
+    text-align:left;
+}
+
+.modal-body .title-perm {
+    text-align:left;
+}
+
+.modal-body .form-group{
+  display:flex;
+  align-items:center;
+}
+
+.modal-body .form-group label{
+  flex:0 0 40%;
+  text-align:left;
+}
+
+.modal-body .form-group .index-value .form-select {
+  flex:0 0 60%;
+}

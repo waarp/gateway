@@ -1,13 +1,3 @@
-function noSelectedPartner(errMsg) {
-    alert(errMsg);
-    window.location = "partner_management";
-}
-
-function tooltip() {
-    const tooltipTriggerList = document.querySelectorAll('[data-bs-toggle="tooltip"]');
-    const tooltipList = [...tooltipTriggerList].map(tooltipTriggerEl => new bootstrap.Tooltip(tooltipTriggerEl));
-}
-
 function showCredentialTypeBlock(selectElem) {
     const val = selectElem.value;
 
@@ -39,22 +29,7 @@ function showCredentialTypeBlock(selectElem) {
     }
 }
 
-function readFile(hiddenName, fileName) {
-    const file = document.querySelector('input[type="file"][name="' + fileName + '"]');
-    const hidden = document.getElementById(hiddenName);
-    if (file && hidden) {
-        file.addEventListener('change', e => {
-            const file = e.target.files[0];
-            if (!file) return hidden.value = "";
-            const reader = new FileReader();
-            reader.onload = event => hidden.value = event.target.result;
-            reader.readAsText(file);
-        });
-    }
-}
-
 document.addEventListener('DOMContentLoaded', function () {
-    tooltip();
     readFile('addCredentialPartnerValueFile', 'addCredentialPartnerFile');
     document.querySelectorAll('.add-credential-type-select, .edit-credential-type-select').forEach(sel => {
         sel.addEventListener('change', function() {

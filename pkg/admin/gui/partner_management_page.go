@@ -28,15 +28,6 @@ type Protocols struct {
 	PeSITTLS string
 }
 
-type FiltersPagination struct {
-	Offset          int
-	Limit           int
-	OrderAsc        bool
-	DisableNext     bool
-	DisablePrevious bool
-	Protocols       Protocols
-}
-
 //nolint:gochecknoglobals // Constant
 var (
 	TLSVersions            = []string{protoutils.TLSv10, protoutils.TLSv11, protoutils.TLSv12, protoutils.TLSv13}
@@ -300,26 +291,6 @@ func addPartner(db *database.DB, r *http.Request) error {
 	}
 
 	return nil
-}
-
-func paginationPage(filter *FiltersPagination, lenList int, r *http.Request) {
-	if r.URL.Query().Get("previous") == "true" && filter.Offset > 0 {
-		filter.Offset--
-	}
-
-	if r.URL.Query().Get("next") == "true" {
-		if filter.Limit*(filter.Offset+1) <= lenList {
-			filter.Offset++
-		}
-	}
-
-	if filter.Offset == 0 {
-		filter.DisablePrevious = true
-	}
-
-	if (filter.Offset+1)*filter.Limit >= lenList {
-		filter.DisableNext = true
-	}
 }
 
 func ListPartner(db *database.DB, r *http.Request) ([]*model.RemoteAgent, FiltersPagination, string) {
