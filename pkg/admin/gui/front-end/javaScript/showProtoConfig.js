@@ -65,8 +65,11 @@ const group = button.closest('.input-group');
 
 document.addEventListener('DOMContentLoaded', function () {
 <<<<<<<< HEAD:pkg/admin/gui/front-end/javaScript/showProtoConfig.js
+<<<<<<<< HEAD:pkg/admin/gui/front-end/javaScript/showProtoConfig.js
     document.querySelectorAll('.protocolConfiguration-select').forEach(sel => {
 ========
+========
+>>>>>>>> 86cb8059 (feat/cleanup project):pkg/admin/gui/front-end/javaScript/partner_management_page.js
     document.querySelectorAll('.partner-protocol-select').forEach(sel => {
 >>>>>>>> 86cb8059 (feat/cleanup project):pkg/admin/gui/front-end/javaScript/partner_management_page.js
         sel.addEventListener('change', function() {

@@ -30,16 +30,9 @@ function showCredentialTypeBlock(selectElem) {
 }
 
 document.addEventListener('DOMContentLoaded', function () {
-<<<<<<<< HEAD:pkg/admin/gui/front-end/javaScript/showCredentialTypeInternal.js
-<<<<<<<< HEAD:pkg/admin/gui/front-end/javaScript/showCredentialTypeInternal.js
     readFile('addCredentialValueFile', 'addCredentialFile');
     readFile('editCredentialValueFile', 'editCredentialFile');
 
-========
-========
->>>>>>>> 86cb8059 (feat/cleanup project):pkg/admin/gui/front-end/javaScript/partner_authentication_page.js
-    readFile('addCredentialPartnerValueFile', 'addCredentialPartnerFile');
->>>>>>>> 86cb8059 (feat/cleanup project):pkg/admin/gui/front-end/javaScript/partner_authentication_page.js
     document.querySelectorAll('.add-credential-type-select, .edit-credential-type-select').forEach(sel => {
         sel.addEventListener('change', function() {
             showCredentialTypeBlock(this);
