@@ -3,6 +3,9 @@
 Historique des versions
 =======================
 
+* :feature:`456` Ajout d'un paramètre ``output`` à la tâche TRANSFER permettant
+  de spécifier le nom/chemin de destination du fichier lorsque celui diffère du
+  nom d'origine.
 * :feature:`464` Il est désormais possible de configurer la version minimale de
   TLS pour R66-TLS et HTTPS. Cette version minimale peut être renseignée dans
   la configuration protocolaire des client, serveurs et partenaires concernés.

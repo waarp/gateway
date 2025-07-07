@@ -8,6 +8,8 @@ Le traitement ``TRANSFER`` programme un nouveau transfert sur la même instance
 de Gateway avec une date de démarrage immédiate. Les arguments sont:
 
 * ``file`` (*string*) - Le chemin du fichier à transférer.
+* ``output`` (*string*) - Le chemin destination du fichier transféré. Par défaut,
+  le nom d'origine du fichier est utilisé.
 * ``using`` (*string*) - Le client à utiliser pour le transfert.
 * ``to`` (*string*) - Le nom du partenaire auquel se connecter.
 * ``as`` (*string*) - Le nom du compte avec lequel s'authentifier auprès du partenaire.
