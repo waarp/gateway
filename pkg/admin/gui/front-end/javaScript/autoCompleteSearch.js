@@ -19,6 +19,14 @@ function autoCompleteSearch() {
             url += `&partnerID=${encodeURIComponent(partnerID.value)}`;
         }
 
+        if (pageType === "credentialAccount") {
+            const partnerID = document.querySelector('input[name="partnerID"]');
+            const accountID = document.querySelector('input[name="accountID"]');
+            if (partnerID && accountID) {
+                url += `&partnerID=${encodeURIComponent(partnerID.value)}&accountID=${encodeURIComponent(accountID.value)}`;
+            }
+        }
+
         try {
             const response = await fetch(url);
             const names = await response.json();

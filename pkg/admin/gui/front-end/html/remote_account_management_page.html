@@ -103,7 +103,7 @@
             <td><i class="bi bi-person-fill"></i></td>
             <td><strong>{{ .Login }}</strong></td>
             <td class="text-end">
-                <a class="btn btn-outline-warning btn-sm me-1" href="account_authentication?partnerID={{ .ID }}" data-bs-toggle="tooltip" data-bs-placement="top" data-bs-title="{{ index $.tab "tooltipAccountAuthentication" }}">
+                <a class="btn btn-outline-warning btn-sm me-1" href="account_authentication?partnerID={{ $.partner.ID }}&accountID={{ .ID }}" data-bs-toggle="tooltip" data-bs-placement="top" data-bs-title="{{ index $.tab "tooltipAccountAuthentication" }}">
                   <i class="bi bi-shield-lock"></i>
                 </a>
               {{ if contains $.myPermission.Partners "w" }}

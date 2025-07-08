@@ -3,7 +3,7 @@
     "about": { "fr": "À propos", "en": "About" },
     "logout": { "fr": "Déconnexion", "en": "Logout" },
     "confirmDelete": { "fr": "Confirmer la suppression ?", "en": "Confirm deletion?" },
-    "credentialPartnerNotFound": { "fr": "Partenaire d'identification non trouvé", "en": "Credential Partner not found" },
+    "credentialPartnerNotFound": { "fr": "Partenaire d'identification non trouvé", "en": "Credential partner not found" },
     "addCredentialPartnerTitle": { "fr": "Ajouter une nouvelle méthode d'authentification", "en": "Add a new authentication method" },
     "close": { "fr": "Fermer", "en": "Close" },
     "filter": { "fr": "Filtre", "en": "Filter" },

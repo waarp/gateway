@@ -1,11 +1,10 @@
 {{ define "head" }}
     <title>{{ index .tab "title" }}</title>
     <link rel="stylesheet" href="/webui/static/css/style.css">
-    <script src="/webui/static/javaScript/partner_authentication_page.js"></script>
+    <script src="/webui/static/javaScript/showCredentialTypeInternal.js"></script>
     <script src="/webui/static/javaScript/autoCompleteSearch.js"></script>
     <script src="/webui/static/javaScript/readFile.js"></script>
     <script src="/webui/static/javaScript/tooltip.js"></script>
-    <script src="/webui/static/javaScript/noSelectedPartner.js"></script>
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css" rel="stylesheet">
 {{ end }}
 
@@ -60,7 +59,7 @@
                 </select>
               </div>
               {{ template "addFileType" . }}
-              {{ template "addPasswordType" . }}
+              {{ template "addTextType" . }}
             </div>
               <div class="modal-footer">
                   <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">{{ index .tab "close" }}</button>
@@ -194,7 +193,7 @@
                               {{ end }}
                             </select>
                           </div>
-                          {{ template "editPasswordType" (dict "ID" .ID "tab" $.tab) }}
+                          {{ template "editTextType" (dict "ID" .ID "tab" $.tab) }}
                           {{ template "editFileType" (dict "ID" .ID "tab" $.tab) }}
                         </div>
                         <div class="modal-footer">
@@ -232,9 +231,6 @@
         </form>
       {{ end }}
     {{ else }}
-    <script>
-      noSelectedPartner("{{ index .tab "noSelectedPartner" }}");
-    </script>
     {{ end }}
 {{ end }}
 

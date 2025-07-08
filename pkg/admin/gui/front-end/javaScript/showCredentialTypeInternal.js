@@ -2,7 +2,7 @@ function showCredentialTypeBlock(selectElem) {
     const val = selectElem.value;
 
     if (selectElem.classList.contains('add-credential-type-select')) {
-        const passwordBlock = document.getElementById('addPasswordType');
+        const passwordBlock = document.getElementById('addTextType');
         const fileBlock = document.getElementById('addFileType');
         if (passwordBlock) passwordBlock.style.display = 'none';
         if (fileBlock) fileBlock.style.display = 'none';
@@ -17,7 +17,7 @@ function showCredentialTypeBlock(selectElem) {
         const modal = selectElem.closest('.modal');
         if (!modal) return;
         const id = modal.id.replace('editCredentialPartnerModal_', '');
-        const passwordBlock = document.getElementById('editPasswordType_' + id);
+        const passwordBlock = document.getElementById('editTextType_' + id);
         const fileBlock = document.getElementById('editFileType_' + id);
         if (passwordBlock) passwordBlock.style.display = 'none';
         if (fileBlock) fileBlock.style.display = 'none';
@@ -30,7 +30,8 @@ function showCredentialTypeBlock(selectElem) {
 }
 
 document.addEventListener('DOMContentLoaded', function () {
-    readFile('addCredentialPartnerValueFile', 'addCredentialPartnerFile');
+    readFile('addCredentialValueFile', 'addCredentialFile');
+    readFile('editCredentialValueFile', 'editCredentialFile');
     document.querySelectorAll('.add-credential-type-select, .edit-credential-type-select').forEach(sel => {
         sel.addEventListener('change', function() {
             showCredentialTypeBlock(this);

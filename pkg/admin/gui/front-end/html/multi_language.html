@@ -12,6 +12,9 @@
     {{ if .hasPartnerID }}
       <input type="hidden" name="partnerID" value="{{ .partner.ID }}">
     {{ end }}
+    {{ if .hasAccountID }}
+      <input type="hidden" name="accountID" value="{{ .account.ID }}">
+    {{ end }}
   </form>
 </div>
 {{ end }}

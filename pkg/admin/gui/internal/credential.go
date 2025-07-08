@@ -12,7 +12,7 @@ func getCredential(db database.ReadAccess, owner model.CredOwnerTable, name stri
 	return &cred, db.Get(&cred, "name=?", name).And(owner.GetCredCond()).Run()
 }
 
-func getCredentialByID(db database.ReadAccess, owner model.CredOwnerTable, id int64,
+func GetCredentialByID(db database.ReadAccess, owner model.CredOwnerTable, id int64,
 ) (*model.Credential, error) {
 	var cred model.Credential
 

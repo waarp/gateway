@@ -13,7 +13,7 @@ import (
 	"code.waarp.fr/apps/gateway/gateway/pkg/model"
 )
 
-func supportedProtocol(protocol string) []string {
+func supportedProtocolInternal(protocol string) []string {
 	var listSupportedProtocol []string
 	if protocol == "r66" || protocol == "r66-tls" || protocol == "http" || protocol == "https" ||
 		protocol == "sftp" || protocol == "pesit" || protocol == "pesit-tls" {
@@ -167,9 +167,9 @@ func editCredentialPartner(partnerName string, db *database.DB, r *http.Request)
 	}
 
 	if editCredentialPartner.Type == "password" {
-		editCredentialPartner.Value = r.URL.Query().Get("editCredentialPartnerValue")
+		editCredentialPartner.Value = r.URL.Query().Get("editCredentialValue")
 	} else if editCredentialPartner.Type == "trusted_tls_certificate" || editCredentialPartner.Type == "ssh_public_key" {
-		editCredentialPartner.Value = r.URL.Query().Get("editCredentialPartnerValue")
+		editCredentialPartner.Value = r.URL.Query().Get("editCredentialValueFile")
 	}
 
 	if err = internal.UpdateCredential(db, editCredentialPartner); err != nil {
@@ -191,9 +191,9 @@ func addCredentialPartner(partnerName string, db *database.DB, r *http.Request) 
 	}
 
 	if newCredentialPartner.Type == "password" {
-		newCredentialPartner.Value = r.URL.Query().Get("addCredentialPartnerValue")
+		newCredentialPartner.Value = r.URL.Query().Get("addCredentialValue")
 	} else if newCredentialPartner.Type == "trusted_tls_certificate" || newCredentialPartner.Type == "ssh_public_key" {
-		newCredentialPartner.Value = r.URL.Query().Get("addCredentialPartnerValueFile")
+		newCredentialPartner.Value = r.URL.Query().Get("addCredentialValueFile")
 	}
 
 	partner, err := internal.GetPartner(db, partnerName)
@@ -248,7 +248,7 @@ func callMethodsPartnerAuthentication(logger *log.Logger, db *database.DB, w htt
 	if r.Method == http.MethodGet && r.URL.Query().Get("addCredentialPartnerName") != "" {
 		addCredentialPartnerErr := addCredentialPartner(partner.Name, db, r)
 		if addCredentialPartnerErr != nil {
-			logger.Error("failed to delete partner: %v", addCredentialPartnerErr)
+			logger.Error("failed to add partner: %v", addCredentialPartnerErr)
 		}
 
 		http.Redirect(w, r, fmt.Sprintf("%s?partnerID=%d", r.URL.Path, idPartner), http.StatusSeeOther)
@@ -299,7 +299,7 @@ func partnerAuthenticationPage(logger *log.Logger, db *database.DB) http.Handler
 
 		callMethodsPartnerAuthentication(logger, db, w, r, id, partner)
 
-		listSupportedProtocol := supportedProtocol(partner.Protocol)
+		listSupportedProtocol := supportedProtocolInternal(partner.Protocol)
 		currentPage := filter.Offset + 1
 
 		if err := partnerAuthenticationTemplate.ExecuteTemplate(w, "partner_authentication_page", map[string]any{

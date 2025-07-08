@@ -68,7 +68,7 @@ func GetPartnerCredentialByID(db database.ReadAccess, partnerName string, id int
 		return nil, pErr
 	}
 
-	return getCredentialByID(db, partner, id)
+	return GetCredentialByID(db, partner, id)
 }
 
 func ListPartnerCredentials(db database.ReadAccess, partnerName string,
