@@ -29,6 +29,7 @@ function showCredentialTypeBlock(selectElem) {
     }
 }
 
+
 document.addEventListener('DOMContentLoaded', function () {
     readFile('addCredentialValueFile', 'addCredentialFile');
     readFile('editCredentialValueFile', 'editCredentialFile');
