@@ -48,25 +48,26 @@ func addUser(db *database.DB, r *http.Request) error {
 	var newUser model.User
 	var permissions model.Permissions
 	var err error
+	urlParams := r.URL.Query()
 
-	newUserUsername := r.URL.Query().Get("newUserUsername")
+	newUserUsername := urlParams.Get("newUserUsername")
 	if newUserUsername != "" {
 		newUser.Username = newUserUsername
 	}
 
-	newUserPassword := r.URL.Query().Get("newUserPassword")
+	newUserPassword := urlParams.Get("newUserPassword")
 	if newUserPassword != "" {
 		newUser.PasswordHash, err = internal.HashPassword(newUserPassword)
 		if err != nil {
 			return fmt.Errorf("failed to hash user password: %w", err)
 		}
 	}
-	permissions.Transfers = strPermissions(r.URL.Query()["newUserPermissionsTransfers"])
-	permissions.Servers = strPermissions(r.URL.Query()["newUserPermissionsServers"])
-	permissions.Partners = strPermissions(r.URL.Query()["newUserPermissionsPartners"])
-	permissions.Rules = strPermissions(r.URL.Query()["newUserPermissionsRules"])
-	permissions.Users = strPermissions(r.URL.Query()["newUserPermissionsUsers"])
-	permissions.Administration = strPermissions(r.URL.Query()["newUserPermissionsAdministration"])
+	permissions.Transfers = strPermissions(urlParams["newUserPermissionsTransfers"])
+	permissions.Servers = strPermissions(urlParams["newUserPermissionsServers"])
+	permissions.Partners = strPermissions(urlParams["newUserPermissionsPartners"])
+	permissions.Rules = strPermissions(urlParams["newUserPermissionsRules"])
+	permissions.Users = strPermissions(urlParams["newUserPermissionsUsers"])
+	permissions.Administration = strPermissions(urlParams["newUserPermissionsAdministration"])
 
 	newUser.Permissions, err = model.PermsToMask(&permissions)
 	if err != nil {
@@ -82,7 +83,8 @@ func addUser(db *database.DB, r *http.Request) error {
 
 func editUser(db *database.DB, r *http.Request) error {
 	var permissions model.Permissions
-	userID := r.URL.Query().Get("editUserID")
+	urlParams := r.URL.Query()
+	userID := urlParams.Get("editUserID")
 
 	id, err := strconv.Atoi(userID)
 	if err != nil {
@@ -94,24 +96,24 @@ func editUser(db *database.DB, r *http.Request) error {
 		return fmt.Errorf("failed to get id: %w", err)
 	}
 
-	newUserUsername := r.URL.Query().Get("editUserUsername")
+	newUserUsername := urlParams.Get("editUserUsername")
 	if newUserUsername != "" {
 		newUser.Username = newUserUsername
 	}
 
-	newUserPassword := r.URL.Query().Get("editUserPassword")
+	newUserPassword := urlParams.Get("editUserPassword")
 	if newUserPassword != "" {
 		newUser.PasswordHash, err = internal.HashPassword(newUserPassword)
 		if err != nil {
 			return fmt.Errorf("failed to hash user password: %w", err)
 		}
 	}
-	permissions.Transfers = strPermissions(r.URL.Query()["editUserPermissionsTransfers"])
-	permissions.Servers = strPermissions(r.URL.Query()["editUserPermissionsServers"])
-	permissions.Partners = strPermissions(r.URL.Query()["editUserPermissionsPartners"])
-	permissions.Rules = strPermissions(r.URL.Query()["editUserPermissionsRules"])
-	permissions.Users = strPermissions(r.URL.Query()["editUserPermissionsUsers"])
-	permissions.Administration = strPermissions(r.URL.Query()["editUserPermissionsAdministration"])
+	permissions.Transfers = strPermissions(urlParams["editUserPermissionsTransfers"])
+	permissions.Servers = strPermissions(urlParams["editUserPermissionsServers"])
+	permissions.Partners = strPermissions(urlParams["editUserPermissionsPartners"])
+	permissions.Rules = strPermissions(urlParams["editUserPermissionsRules"])
+	permissions.Users = strPermissions(urlParams["editUserPermissionsUsers"])
+	permissions.Administration = strPermissions(urlParams["editUserPermissionsAdministration"])
 
 	newUser.Permissions, err = model.PermsToMask(&permissions)
 	if err != nil {
@@ -154,20 +156,21 @@ func listUser(db *database.DB, r *http.Request) ([]*model.User, Filters, string)
 		DisableNext:     false,
 		DisablePrevious: false,
 	}
+	urlParams := r.URL.Query()
 
-	if r.URL.Query().Get("orderAsc") == "true" {
+	if urlParams.Get("orderAsc") == "true" {
 		filter.OrderAsc = true
-	} else if r.URL.Query().Get("orderAsc") == "false" {
+	} else if urlParams.Get("orderAsc") == "false" {
 		filter.OrderAsc = false
 	}
 
-	if limitRes := r.URL.Query().Get("limit"); limitRes != "" {
+	if limitRes := urlParams.Get("limit"); limitRes != "" {
 		if l, err := strconv.Atoi(limitRes); err == nil {
 			filter.Limit = l
 		}
 	}
 
-	if offsetRes := r.URL.Query().Get("offset"); offsetRes != "" {
+	if offsetRes := urlParams.Get("offset"); offsetRes != "" {
 		if o, err := strconv.Atoi(offsetRes); err == nil {
 			filter.Offset = o
 		}
@@ -178,7 +181,7 @@ func listUser(db *database.DB, r *http.Request) ([]*model.User, Filters, string)
 		return nil, Filters{}, userFound
 	}
 
-	if search := r.URL.Query().Get("search"); search != "" {
+	if search := urlParams.Get("search"); search != "" {
 		if userSearch := searchUser(search, user); userSearch != nil {
 			filter.DisableNext = true
 			filter.DisablePrevious = true
@@ -190,9 +193,9 @@ func listUser(db *database.DB, r *http.Request) ([]*model.User, Filters, string)
 		}
 	}
 
-	filter.Permissions = r.URL.Query().Get("permissions")
-	filter.PermissionsType = r.URL.Query().Get("permissionsType")
-	filter.PermissionsValue = r.URL.Query().Get("permissionsValue")
+	filter.Permissions = urlParams.Get("permissions")
+	filter.PermissionsType = urlParams.Get("permissionsType")
+	filter.PermissionsValue = urlParams.Get("permissionsValue")
 
 	if filter.Permissions != "" && filter.PermissionsType != "" && filter.PermissionsValue != "" {
 		user = permissionsFilter(filter.Permissions, filter.PermissionsType, filter.PermissionsValue, user)
@@ -205,12 +208,13 @@ func listUser(db *database.DB, r *http.Request) ([]*model.User, Filters, string)
 
 func paginationFunc(r *http.Request, user []*model.User, filter *Filters) ([]*model.User, *Filters) {
 	nbUsers := len(user)
+	urlParams := r.URL.Query()
 
-	if r.URL.Query().Get("previous") == "true" && filter.Offset > 0 {
+	if urlParams.Get("previous") == "true" && filter.Offset > 0 {
 		filter.Offset--
 	}
 
-	if r.URL.Query().Get("next") == "true" {
+	if urlParams.Get("next") == "true" {
 		if filter.Limit*(filter.Offset+1) <= nbUsers {
 			filter.Offset++
 		}
@@ -365,6 +369,39 @@ func searchUser(userNameSearch string, listUserSearch []*model.User) *model.User
 	return nil
 }
 
+func callMethodsUserManagement(logger *log.Logger, db *database.DB, w http.ResponseWriter, r *http.Request) {
+	urlParams := r.URL.Query()
+	if r.Method == http.MethodGet && urlParams.Get("newUserUsername") != "" {
+		if newUserErr := addUser(db, r); newUserErr != nil {
+			logger.Error("failed to add user: %v", newUserErr)
+		}
+
+		http.Redirect(w, r, r.URL.Path, http.StatusSeeOther)
+
+		return
+	}
+
+	if r.Method == http.MethodGet && urlParams.Get("editUserID") != "" {
+		if editUserErr := editUser(db, r); editUserErr != nil {
+			logger.Error("failed to edit user: %v", editUserErr)
+		}
+
+		http.Redirect(w, r, r.URL.Path, http.StatusSeeOther)
+
+		return
+	}
+
+	if r.Method == http.MethodGet && urlParams.Get("deleteUser") != "" {
+		if deleteUserErr := deleteUser(db, r); deleteUserErr != nil {
+			logger.Error("failed to delete user: %v", deleteUserErr)
+		}
+
+		http.Redirect(w, r, r.URL.Path, http.StatusSeeOther)
+
+		return
+	}
+}
+
 //nolint:funlen // pattern
 func userManagementPage(logger *log.Logger, db *database.DB) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
@@ -381,35 +418,7 @@ func userManagementPage(logger *log.Logger, db *database.DB) http.HandlerFunc {
 			})
 		}
 
-		if r.Method == http.MethodGet && r.URL.Query().Get("newUserUsername") != "" {
-			if newUserErr := addUser(db, r); newUserErr != nil {
-				logger.Error("failed to add user: %v", newUserErr)
-			}
-
-			http.Redirect(w, r, r.URL.Path, http.StatusSeeOther)
-
-			return
-		}
-
-		if r.Method == http.MethodGet && r.URL.Query().Get("editUserID") != "" {
-			if editUserErr := editUser(db, r); editUserErr != nil {
-				logger.Error("failed to edit user: %v", editUserErr)
-			}
-
-			http.Redirect(w, r, r.URL.Path, http.StatusSeeOther)
-
-			return
-		}
-
-		if r.Method == http.MethodGet && r.URL.Query().Get("deleteUser") != "" {
-			if deleteUserErr := deleteUser(db, r); deleteUserErr != nil {
-				logger.Error("failed to delete user: %v", deleteUserErr)
-			}
-
-			http.Redirect(w, r, r.URL.Path, http.StatusSeeOther)
-
-			return
-		}
+		callMethodsUserManagement(logger, db, w, r)
 
 		user, err := GetUserByToken(r, db)
 		if err != nil {

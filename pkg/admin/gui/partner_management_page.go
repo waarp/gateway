@@ -35,7 +35,8 @@ var (
 )
 
 func editPartner(db *database.DB, r *http.Request) error {
-	partnerID := r.URL.Query().Get("editPartnerID")
+	urlParams := r.URL.Query()
+	partnerID := urlParams.Get("editPartnerID")
 
 	id, err := strconv.Atoi(partnerID)
 	if err != nil {
@@ -47,19 +48,19 @@ func editPartner(db *database.DB, r *http.Request) error {
 		return fmt.Errorf("failed to get id: %w", err)
 	}
 
-	if editPartnerName := r.URL.Query().Get("editPartnerName"); editPartnerName != "" {
+	if editPartnerName := urlParams.Get("editPartnerName"); editPartnerName != "" {
 		editPartner.Name = editPartnerName
 	}
 
-	if editPartnerProtocol := r.URL.Query().Get("editPartnerProtocol"); editPartnerProtocol != "" {
+	if editPartnerProtocol := urlParams.Get("editPartnerProtocol"); editPartnerProtocol != "" {
 		editPartner.Protocol = editPartnerProtocol
 	}
 
-	if editPartnerHost := r.URL.Query().Get("editPartnerHost"); editPartnerHost != "" {
+	if editPartnerHost := urlParams.Get("editPartnerHost"); editPartnerHost != "" {
 		editPartner.Address.Host = editPartnerHost
 	}
 
-	if editPartnerPort := r.URL.Query().Get("editPartnerPort"); editPartnerPort != "" {
+	if editPartnerPort := urlParams.Get("editPartnerPort"); editPartnerPort != "" {
 		var port int
 
 		port, err = strconv.Atoi(editPartnerPort)
@@ -89,12 +90,13 @@ func editPartner(db *database.DB, r *http.Request) error {
 
 func protoConfigR66(r *http.Request) map[string]any {
 	r66ProtoConfig := make(map[string]any)
+	urlParams := r.URL.Query()
 
-	if serverLogin := r.URL.Query().Get("partnerR66serverLogin"); serverLogin != "" {
+	if serverLogin := urlParams.Get("partnerR66serverLogin"); serverLogin != "" {
 		r66ProtoConfig["serverLogin"] = serverLogin
 	}
 
-	if blockSize := r.URL.Query().Get("partnerR66blockSize"); blockSize != "" {
+	if blockSize := urlParams.Get("partnerR66blockSize"); blockSize != "" {
 		size, err := strconv.Atoi(blockSize)
 		if err != nil {
 			return nil
@@ -102,13 +104,13 @@ func protoConfigR66(r *http.Request) map[string]any {
 		r66ProtoConfig["blockSize"] = uint32(size)
 	}
 
-	if noFinalHash := r.URL.Query().Get("noFinalHash"); noFinalHash == "true" {
+	if noFinalHash := urlParams.Get("noFinalHash"); noFinalHash == "true" {
 		r66ProtoConfig["noFinalHash"] = true
 	} else {
 		r66ProtoConfig["noFinalHash"] = false
 	}
 
-	if checkBlockHash := r.URL.Query().Get("checkBlockHash"); checkBlockHash == "true" {
+	if checkBlockHash := urlParams.Get("checkBlockHash"); checkBlockHash == "true" {
 		r66ProtoConfig["checkBlockHash"] = true
 	} else {
 		r66ProtoConfig["checkBlockHash"] = false
@@ -119,26 +121,27 @@ func protoConfigR66(r *http.Request) map[string]any {
 
 func protoConfigSFTP(r *http.Request) map[string]any {
 	sftpProtoConfig := make(map[string]any)
+	urlParams := r.URL.Query()
 
-	if keyExchanges := r.URL.Query()["keyExchanges[]"]; len(keyExchanges) > 0 {
+	if keyExchanges := urlParams["keyExchanges[]"]; len(keyExchanges) > 0 {
 		sftpProtoConfig["keyExchanges"] = keyExchanges
 	}
 
-	if ciphers := r.URL.Query()["ciphers[]"]; len(ciphers) > 0 {
+	if ciphers := urlParams["ciphers[]"]; len(ciphers) > 0 {
 		sftpProtoConfig["ciphers"] = ciphers
 	}
 
-	if macs := r.URL.Query()["macs[]"]; len(macs) > 0 {
+	if macs := urlParams["macs[]"]; len(macs) > 0 {
 		sftpProtoConfig["macs"] = macs
 	}
 
-	if useStat := r.URL.Query().Get("useStat"); useStat == "true" {
+	if useStat := urlParams.Get("useStat"); useStat == "true" {
 		sftpProtoConfig["useStat"] = true
 	} else {
 		sftpProtoConfig["useStat"] = false
 	}
 
-	if dCCR := r.URL.Query().Get("disableClientConcurrentReads"); dCCR == "true" {
+	if dCCR := urlParams.Get("disableClientConcurrentReads"); dCCR == "true" {
 		sftpProtoConfig["disableClientConcurrentReads"] = true
 	} else {
 		sftpProtoConfig["disableClientConcurrentReads"] = false
@@ -149,31 +152,32 @@ func protoConfigSFTP(r *http.Request) map[string]any {
 
 func protoConfigFTP(r *http.Request, protocol string) map[string]any {
 	ftpProtoConfig := make(map[string]any)
+	urlParams := r.URL.Query()
 
-	if disableActiveMode := r.URL.Query().Get("disableActiveMode"); disableActiveMode == "true" {
+	if disableActiveMode := urlParams.Get("disableActiveMode"); disableActiveMode == "true" {
 		ftpProtoConfig["disableActiveMode"] = true
 	} else {
 		ftpProtoConfig["disableActiveMode"] = false
 	}
 
-	if disableEPSV := r.URL.Query().Get("disableEPSV"); disableEPSV == "true" {
+	if disableEPSV := urlParams.Get("disableEPSV"); disableEPSV == "true" {
 		ftpProtoConfig["disableEPSV"] = true
 	} else {
 		ftpProtoConfig["disableEPSV"] = false
 	}
 
 	if protocol == "ftps" { //nolint:nestif // call ftps
-		if useImplicitTLS := r.URL.Query().Get("useImplicitTLS"); useImplicitTLS == "true" {
+		if useImplicitTLS := urlParams.Get("useImplicitTLS"); useImplicitTLS == "true" {
 			ftpProtoConfig["useImplicitTLS"] = true
 		} else {
 			ftpProtoConfig["useImplicitTLS"] = false
 		}
 
-		if minTLSVersion := r.URL.Query().Get("partnerFTPSminTLSVersion"); minTLSVersion != "" {
+		if minTLSVersion := urlParams.Get("partnerFTPSminTLSVersion"); minTLSVersion != "" {
 			ftpProtoConfig["minTLSVersion"] = minTLSVersion
 		}
 
-		if disableTLSSessionReuse := r.URL.Query().Get("disableTLSSessionReuse"); disableTLSSessionReuse == "true" {
+		if disableTLSSessionReuse := urlParams.Get("disableTLSSessionReuse"); disableTLSSessionReuse == "true" {
 			ftpProtoConfig["disableTLSSessionReuse"] = true
 		} else {
 			ftpProtoConfig["disableTLSSessionReuse"] = false
@@ -186,24 +190,25 @@ func protoConfigFTP(r *http.Request, protocol string) map[string]any {
 //nolint:gocyclo,cyclop,funlen // no split method
 func protoConfigPeSIT(r *http.Request, protocol string) map[string]any {
 	pesitProtoConfig := make(map[string]any)
+	urlParams := r.URL.Query()
 
-	if login := r.URL.Query().Get("partnerPeSITlogin"); login != "" {
+	if login := urlParams.Get("partnerPeSITlogin"); login != "" {
 		pesitProtoConfig["login"] = login
 	}
 
-	if disableRestart := r.URL.Query().Get("disableRestart"); disableRestart == "true" {
+	if disableRestart := urlParams.Get("disableRestart"); disableRestart == "true" {
 		pesitProtoConfig["disableRestart"] = true
 	} else {
 		pesitProtoConfig["disableRestart"] = false
 	}
 
-	if disableCheckpoints := r.URL.Query().Get("disableCheckpoints"); disableCheckpoints == "true" {
+	if disableCheckpoints := urlParams.Get("disableCheckpoints"); disableCheckpoints == "true" {
 		pesitProtoConfig["disableCheckpoints"] = true
 	} else {
 		pesitProtoConfig["disableCheckpoints"] = false
 	}
 
-	if checkpointSize := r.URL.Query().Get("partnerPeSITcheckpointSize"); checkpointSize != "" {
+	if checkpointSize := urlParams.Get("partnerPeSITcheckpointSize"); checkpointSize != "" {
 		size, err := strconv.Atoi(checkpointSize)
 		if err != nil {
 			return nil
@@ -211,7 +216,7 @@ func protoConfigPeSIT(r *http.Request, protocol string) map[string]any {
 		pesitProtoConfig["checkpointSize"] = uint32(size)
 	}
 
-	if checkpointWindow := r.URL.Query().Get("partnerPeSITcheckpointWindow"); checkpointWindow != "" {
+	if checkpointWindow := urlParams.Get("partnerPeSITcheckpointWindow"); checkpointWindow != "" {
 		size, err := strconv.Atoi(checkpointWindow)
 		if err != nil {
 			return nil
@@ -219,17 +224,17 @@ func protoConfigPeSIT(r *http.Request, protocol string) map[string]any {
 		pesitProtoConfig["checkpointWindow"] = uint32(size)
 	}
 
-	if useNSDU := r.URL.Query().Get("useNSDU"); useNSDU == "true" {
+	if useNSDU := urlParams.Get("useNSDU"); useNSDU == "true" {
 		pesitProtoConfig["useNSDU"] = true
 	} else {
 		pesitProtoConfig["useNSDU"] = false
 	}
 
-	if compatibilityMode := r.URL.Query().Get("partnerPeSITcompatibilityMode"); compatibilityMode != "" {
+	if compatibilityMode := urlParams.Get("partnerPeSITcompatibilityMode"); compatibilityMode != "" {
 		pesitProtoConfig["compatibilityMode"] = compatibilityMode
 	}
 
-	if maxMessageSize := r.URL.Query().Get("partnerPeSITmaxMessageSize"); maxMessageSize != "" {
+	if maxMessageSize := urlParams.Get("partnerPeSITmaxMessageSize"); maxMessageSize != "" {
 		size, err := strconv.Atoi(maxMessageSize)
 		if err != nil {
 			return nil
@@ -237,14 +242,14 @@ func protoConfigPeSIT(r *http.Request, protocol string) map[string]any {
 		pesitProtoConfig["maxMessageSize"] = uint32(size)
 	}
 
-	if disablePreConnection := r.URL.Query().Get("disablePreConnection"); disablePreConnection == "true" {
+	if disablePreConnection := urlParams.Get("disablePreConnection"); disablePreConnection == "true" {
 		pesitProtoConfig["disablePreConnection"] = true
 	} else {
 		pesitProtoConfig["disablePreConnection"] = false
 	}
 
 	if protocol == "pesit-tls" {
-		if minTLSVersion := r.URL.Query().Get("partnerPeSIT-TLSminTLSVersion"); minTLSVersion != "" {
+		if minTLSVersion := urlParams.Get("partnerPeSIT-TLSminTLSVersion"); minTLSVersion != "" {
 			pesitProtoConfig["minTLSVersion"] = minTLSVersion
 		}
 	}
@@ -254,20 +259,21 @@ func protoConfigPeSIT(r *http.Request, protocol string) map[string]any {
 
 func addPartner(db *database.DB, r *http.Request) error {
 	var newPartner model.RemoteAgent
+	urlParams := r.URL.Query()
 
-	if newPartnerName := r.URL.Query().Get("addPartnerName"); newPartnerName != "" {
+	if newPartnerName := urlParams.Get("addPartnerName"); newPartnerName != "" {
 		newPartner.Name = newPartnerName
 	}
 
-	if newPartnerProtocol := r.URL.Query().Get("addPartnerProtocol"); newPartnerProtocol != "" {
+	if newPartnerProtocol := urlParams.Get("addPartnerProtocol"); newPartnerProtocol != "" {
 		newPartner.Protocol = newPartnerProtocol
 	}
 
-	if newPartnerHost := r.URL.Query().Get("addPartnerHost"); newPartnerHost != "" {
+	if newPartnerHost := urlParams.Get("addPartnerHost"); newPartnerHost != "" {
 		newPartner.Address.Host = newPartnerHost
 	}
 
-	if newPartnerPort := r.URL.Query().Get("addPartnerPort"); newPartnerPort != "" {
+	if newPartnerPort := urlParams.Get("addPartnerPort"); newPartnerPort != "" {
 		port, err := strconv.Atoi(newPartnerPort)
 		if err != nil {
 			return fmt.Errorf("failed to get port: %w", err)
@@ -302,20 +308,21 @@ func ListPartner(db *database.DB, r *http.Request) ([]*model.RemoteAgent, Filter
 		DisableNext:     false,
 		DisablePrevious: false,
 	}
+	urlParams := r.URL.Query()
 
-	if r.URL.Query().Get("orderAsc") == "true" {
+	if urlParams.Get("orderAsc") == "true" {
 		filter.OrderAsc = true
-	} else if r.URL.Query().Get("orderAsc") == "false" {
+	} else if urlParams.Get("orderAsc") == "false" {
 		filter.OrderAsc = false
 	}
 
-	if limitRes := r.URL.Query().Get("limit"); limitRes != "" {
+	if limitRes := urlParams.Get("limit"); limitRes != "" {
 		if l, err := strconv.Atoi(limitRes); err == nil {
 			filter.Limit = l
 		}
 	}
 
-	if offsetRes := r.URL.Query().Get("offset"); offsetRes != "" {
+	if offsetRes := urlParams.Get("offset"); offsetRes != "" {
 		if o, err := strconv.Atoi(offsetRes); err == nil {
 			filter.Offset = o
 		}
@@ -326,7 +333,7 @@ func ListPartner(db *database.DB, r *http.Request) ([]*model.RemoteAgent, Filter
 		return nil, FiltersPagination{}, partnerFound
 	}
 
-	if search := r.URL.Query().Get("search"); search != "" && searchPartner(search, partner) == nil {
+	if search := urlParams.Get("search"); search != "" && searchPartner(search, partner) == nil {
 		partnerFound = "false"
 	} else if search != "" {
 		filter.DisableNext = true
@@ -357,39 +364,41 @@ func ListPartner(db *database.DB, r *http.Request) ([]*model.RemoteAgent, Filter
 
 func protocolsFilter(r *http.Request, filter *FiltersPagination) (*FiltersPagination, []string) {
 	var filterProtocol []string
-	if filter.Protocols.R66 = r.URL.Query().Get("filterProtocolR66"); filter.Protocols.R66 == "true" {
+	urlParams := r.URL.Query()
+
+	if filter.Protocols.R66 = urlParams.Get("filterProtocolR66"); filter.Protocols.R66 == "true" {
 		filterProtocol = append(filterProtocol, "r66")
 	}
 
-	if filter.Protocols.R66TLS = r.URL.Query().Get("filterProtocolR66-TLS"); filter.Protocols.R66TLS == "true" {
+	if filter.Protocols.R66TLS = urlParams.Get("filterProtocolR66-TLS"); filter.Protocols.R66TLS == "true" {
 		filterProtocol = append(filterProtocol, "r66-tls")
 	}
 
-	if filter.Protocols.SFTP = r.URL.Query().Get("filterProtocolSFTP"); filter.Protocols.SFTP == "true" {
+	if filter.Protocols.SFTP = urlParams.Get("filterProtocolSFTP"); filter.Protocols.SFTP == "true" {
 		filterProtocol = append(filterProtocol, "sftp")
 	}
 
-	if filter.Protocols.HTTP = r.URL.Query().Get("filterProtocolHTTP"); filter.Protocols.HTTP == "true" {
+	if filter.Protocols.HTTP = urlParams.Get("filterProtocolHTTP"); filter.Protocols.HTTP == "true" {
 		filterProtocol = append(filterProtocol, "http")
 	}
 
-	if filter.Protocols.HTTPS = r.URL.Query().Get("filterProtocolHTTPS"); filter.Protocols.HTTPS == "true" {
+	if filter.Protocols.HTTPS = urlParams.Get("filterProtocolHTTPS"); filter.Protocols.HTTPS == "true" {
 		filterProtocol = append(filterProtocol, "https")
 	}
 
-	if filter.Protocols.FTP = r.URL.Query().Get("filterProtocolFTP"); filter.Protocols.FTP == "true" {
+	if filter.Protocols.FTP = urlParams.Get("filterProtocolFTP"); filter.Protocols.FTP == "true" {
 		filterProtocol = append(filterProtocol, "ftp")
 	}
 
-	if filter.Protocols.FTPS = r.URL.Query().Get("filterProtocolFTPS"); filter.Protocols.FTPS == "true" {
+	if filter.Protocols.FTPS = urlParams.Get("filterProtocolFTPS"); filter.Protocols.FTPS == "true" {
 		filterProtocol = append(filterProtocol, "ftps")
 	}
 
-	if filter.Protocols.PeSIT = r.URL.Query().Get("filterProtocolPeSIT"); filter.Protocols.PeSIT == "true" {
+	if filter.Protocols.PeSIT = urlParams.Get("filterProtocolPeSIT"); filter.Protocols.PeSIT == "true" {
 		filterProtocol = append(filterProtocol, "pesit")
 	}
 
-	if filter.Protocols.PeSITTLS = r.URL.Query().Get("filterProtocolPeSIT-TLS"); filter.Protocols.PeSITTLS == "true" {
+	if filter.Protocols.PeSITTLS = urlParams.Get("filterProtocolPeSIT-TLS"); filter.Protocols.PeSITTLS == "true" {
 		filterProtocol = append(filterProtocol, "pesit-tls")
 	}
 
@@ -452,7 +461,8 @@ func deletePartner(db *database.DB, r *http.Request) error {
 }
 
 func callMethodsPartnerManagement(logger *log.Logger, db *database.DB, w http.ResponseWriter, r *http.Request) {
-	if r.Method == http.MethodGet && r.URL.Query().Get("addPartnerName") != "" {
+	urlParams := r.URL.Query()
+	if r.Method == http.MethodGet && urlParams.Get("addPartnerName") != "" {
 		if newPartnerErr := addPartner(db, r); newPartnerErr != nil {
 			logger.Error("failed to add partner: %v", newPartnerErr)
 		}
@@ -462,7 +472,7 @@ func callMethodsPartnerManagement(logger *log.Logger, db *database.DB, w http.Re
 		return
 	}
 
-	if r.Method == http.MethodGet && r.URL.Query().Get("deletePartner") != "" {
+	if r.Method == http.MethodGet && urlParams.Get("deletePartner") != "" {
 		deletePartnerErr := deletePartner(db, r)
 		if deletePartnerErr != nil {
 			logger.Error("failed to delete partner: %v", deletePartnerErr)
@@ -473,7 +483,7 @@ func callMethodsPartnerManagement(logger *log.Logger, db *database.DB, w http.Re
 		return
 	}
 
-	if r.Method == http.MethodGet && r.URL.Query().Get("editPartnerID") != "" {
+	if r.Method == http.MethodGet && urlParams.Get("editPartnerID") != "" {
 		if editPartnerErr := editPartner(db, r); editPartnerErr != nil {
 			logger.Error("failed to edit partner: %v", editPartnerErr)
 		}

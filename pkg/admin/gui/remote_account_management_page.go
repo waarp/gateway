@@ -26,19 +26,21 @@ func listRemoteAccount(partnerName string, db *database.DB, r *http.Request) (
 		DisablePrevious: false,
 	}
 
-	if r.URL.Query().Get("orderAsc") == "true" {
+	urlParams := r.URL.Query()
+
+	if urlParams.Get("orderAsc") == "true" {
 		filter.OrderAsc = true
-	} else if r.URL.Query().Get("orderAsc") == "false" {
+	} else if urlParams.Get("orderAsc") == "false" {
 		filter.OrderAsc = false
 	}
 
-	if limitRes := r.URL.Query().Get("limit"); limitRes != "" {
+	if limitRes := urlParams.Get("limit"); limitRes != "" {
 		if l, err := strconv.Atoi(limitRes); err == nil {
 			filter.Limit = l
 		}
 	}
 
-	if offsetRes := r.URL.Query().Get("offset"); offsetRes != "" {
+	if offsetRes := urlParams.Get("offset"); offsetRes != "" {
 		if o, err := strconv.Atoi(offsetRes); err == nil {
 			filter.Offset = o
 		}
@@ -49,7 +51,7 @@ func listRemoteAccount(partnerName string, db *database.DB, r *http.Request) (
 		return nil, FiltersPagination{}, remoteAccountFound
 	}
 
-	if search := r.URL.Query().Get("search"); search != "" && searchRemoteAccount(search, remotesAccounts) == nil {
+	if search := urlParams.Get("search"); search != "" && searchRemoteAccount(search, remotesAccounts) == nil {
 		remoteAccountFound = "false"
 	} else if search != "" {
 		filter.DisableNext = true
@@ -72,12 +74,13 @@ func listRemoteAccount(partnerName string, db *database.DB, r *http.Request) (
 
 func autocompletionRemoteAccountFunc(db *database.DB) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		prefix := r.URL.Query().Get("q")
+		urlParams := r.URL.Query()
+		prefix := urlParams.Get("q")
 		var err error
 		var partner *model.RemoteAgent
 		var id int
 
-		partnerID := r.URL.Query().Get("partnerID")
+		partnerID := urlParams.Get("partnerID")
 		if partnerID != "" {
 			id, err = strconv.Atoi(partnerID)
 			if err != nil {
@@ -126,20 +129,21 @@ func searchRemoteAccount(remoteAccountLoginSearch string,
 	return nil
 }
 
-func editRemoteAccount(partnerName string, db *database.DB, r *http.Request) error {
-	remoteAccountID := r.URL.Query().Get("editRemoteAccountID")
+func editRemoteAccount(db *database.DB, r *http.Request) error {
+	urlParams := r.URL.Query()
+	remoteAccountID := urlParams.Get("editRemoteAccountID")
 
 	id, err := strconv.Atoi(remoteAccountID)
 	if err != nil {
 		return fmt.Errorf("failed to convert id to int: %w", err)
 	}
 
-	editRemoteAccount, err := internal.GetPartnerAccountByID(db, partnerName, int64(id))
+	editRemoteAccount, err := internal.GetPartnerAccountByID(db, int64(id))
 	if err != nil {
 		return fmt.Errorf("failed to get remote account: %w", err)
 	}
 
-	if editRemoteAccountLogin := r.URL.Query().Get("editRemoteAccountLogin"); editRemoteAccountLogin != "" {
+	if editRemoteAccountLogin := urlParams.Get("editRemoteAccountLogin"); editRemoteAccountLogin != "" {
 		editRemoteAccount.Login = editRemoteAccountLogin
 	}
 
@@ -172,7 +176,7 @@ func addRemoteAccount(partnerName string, db *database.DB, r *http.Request) erro
 }
 
 //nolint:dupl // it is not the same function, the calls are different
-func deleteRemoteAccount(partnerName string, db *database.DB, r *http.Request) error {
+func deleteRemoteAccount(db *database.DB, r *http.Request) error {
 	remoteAccountID := r.URL.Query().Get("deleteRemoteAccount")
 
 	id, err := strconv.Atoi(remoteAccountID)
@@ -180,7 +184,7 @@ func deleteRemoteAccount(partnerName string, db *database.DB, r *http.Request) e
 		return fmt.Errorf("internal error: %w", err)
 	}
 
-	remoteAccount, err := internal.GetPartnerAccountByID(db, partnerName, int64(id))
+	remoteAccount, err := internal.GetPartnerAccountByID(db, int64(id))
 	if err != nil {
 		return fmt.Errorf("internal error: %w", err)
 	}
@@ -195,8 +199,9 @@ func deleteRemoteAccount(partnerName string, db *database.DB, r *http.Request) e
 func callMethodsRemoteAccount(logger *log.Logger, db *database.DB, w http.ResponseWriter, r *http.Request,
 	idPartner int, partner *model.RemoteAgent,
 ) {
-	if r.Method == http.MethodGet && r.URL.Query().Get("deleteRemoteAccount") != "" {
-		deleteRemoteAccountErr := deleteRemoteAccount(partner.Name, db, r)
+	urlParams := r.URL.Query()
+	if r.Method == http.MethodGet && urlParams.Get("deleteRemoteAccount") != "" {
+		deleteRemoteAccountErr := deleteRemoteAccount(db, r)
 		if deleteRemoteAccountErr != nil {
 			logger.Error("failed to delete remote account: %v", deleteRemoteAccountErr)
 		}
@@ -206,7 +211,7 @@ func callMethodsRemoteAccount(logger *log.Logger, db *database.DB, w http.Respon
 		return
 	}
 
-	if r.Method == http.MethodGet && r.URL.Query().Get("addRemoteAccountLogin") != "" {
+	if r.Method == http.MethodGet && urlParams.Get("addRemoteAccountLogin") != "" {
 		addRemoteAccountErr := addRemoteAccount(partner.Name, db, r)
 		if addRemoteAccountErr != nil {
 			logger.Error("failed to add remote account: %v", addRemoteAccountErr)
@@ -217,8 +222,8 @@ func callMethodsRemoteAccount(logger *log.Logger, db *database.DB, w http.Respon
 		return
 	}
 
-	if r.Method == http.MethodGet && r.URL.Query().Get("editRemoteAccountID") != "" {
-		editRemoteAccountErr := editRemoteAccount(partner.Name, db, r)
+	if r.Method == http.MethodGet && urlParams.Get("editRemoteAccountID") != "" {
+		editRemoteAccountErr := editRemoteAccount(db, r)
 		if editRemoteAccountErr != nil {
 			logger.Error("failed to edit remote account: %v", editRemoteAccountErr)
 		}
