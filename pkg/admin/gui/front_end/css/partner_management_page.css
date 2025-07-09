@@ -104,3 +104,14 @@ select:has(option[value=""]:checked) {
 .btn-outline-warning:hover, .btn-outline-warning:focus {
   color: #fff !important;
 }
+
+.back-btn {
+  border-color: #f54b15;
+  color: #f54b15;
+  background-color: #fff;
+}
+
+.back-btn:hover {
+  background-color: #f54b15;
+  color: #fff;
+}

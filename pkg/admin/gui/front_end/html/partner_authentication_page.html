@@ -9,7 +9,12 @@
 
 {{ define "content" }}
     {{ if .partner }}
-      <h2>{{ index .tab "title" }} : {{ .partner.Name }}</h2>
+      <div class="d-flex align-items-center justify-content-between">
+        <h2 class="mb-0">{{ index .tab "title" }} : {{ .partner.Name }}</h2>
+        <button class="btn btn-outline-secondary ms-3 back-btn" type="button" onclick="window.location='partner_management'">
+          <i class="bi bi-arrow-left"></i>
+        </button>
+      </div>
       <hr class="mt-2 mb-4" style="border-top: 1px solid #ababab;">
       
       {{ if contains .myPermission.Partners "w" }}
@@ -32,11 +37,23 @@
               </div>
               <hr class="mt-2" style="border-top: 1px solid #ababab;">
               <div class="form-input">
-                <label class="col-form-label">{{ index .tab "type" }} :</label><i class="bi bi-info-circle ms-1" data-bs-toggle="tooltip" data-bs-placement="right" data-bs-title="Type"></i>
+                <label class="col-form-label">{{ index .tab "type" }} :</label><i class="bi bi-info-circle ms-1" data-bs-toggle="tooltip" data-bs-placement="right" data-bs-title="{{ index .tab "typeTooltip" }}"></i>
                 <select name="addCredentialPartnerType" id="addCredentialPartnerType" class="form-select add-credential-type-select" required>
                   <option value="" disabled selected>{{ index .tab "selectType" }}</option>
                   {{ range .listSupportedProtocol }}
-                    <option value="{{ . }}">{{ . }}</option>
+                    <option value="{{ . }}">
+                      {{ if eq . "password" }}
+                        {{ index $.tab "passwordStr" }}
+                      {{ else if eq . "trusted_tls_certificate" }}
+                        {{ index $.tab "tlsCertificate" }}
+                      {{ else if eq . "ssh_public_key" }}
+                        {{ index $.tab "sshPublicKey" }}
+                      {{ else if eq . "r66_legacy_certificate" }}
+                        {{ index $.tab "r66LegacyCertificate" }}
+                      {{ else }}
+                        {{ . }}
+                      {{ end }}
+                    </option>
                   {{ end }}
                 </select>
               </div>
@@ -86,7 +103,7 @@
           <form method="get" class="d-flex ms-auto position-relative" onsubmit="return true">
               <input type="hidden" name="partnerID" value="{{ $.partner.ID }}">
                 {{ if eq .credentialPartnerFound "false" }}
-                    <div class="invalid-feedback d-block mt-2">{{ index .tab "partnerAuthenticationNotFound" }}</div>
+                    <div class="invalid-feedback d-block mt-2">{{ index .tab "credentialPartnerNotFound" }}</div>
                 {{ else if eq .credentialPartnerFound "true" }}
                     <button id="resetBtn" type="button" class="btn btn-secondary me-2 reset-btn" onclick="window.location='partner_authentication?partnerID={{ .partner.ID }}'"><i class="bi bi-x fs"></i></button>
                 {{ end }}
@@ -102,9 +119,9 @@
             <tr>
               <th></th>
               <th>{{ index $.tab "nameStr" }}</th>
-              <th>{{ index $.tab "type" }} <i class="bi bi-info-circle ms-1" data-bs-toggle="tooltip" data-bs-placement="right" data-bs-title="type"></i></th>
-              <th>{{ index $.tab "primaryValue" }} <i class="bi bi-info-circle ms-1" data-bs-toggle="tooltip" data-bs-placement="right" data-bs-title="Valeur primaire"></i></th>
-              <th>{{ index $.tab "secondaryValue" }} <i class="bi bi-info-circle ms-1" data-bs-toggle="tooltip" data-bs-placement="right" data-bs-title="Valeur secondaire"></i></th>
+              <th>{{ index $.tab "type" }} <i class="bi bi-info-circle ms-1" data-bs-toggle="tooltip" data-bs-placement="right" data-bs-title="{{ index $.tab "typeTooltip" }}"></i></th>
+              <th>{{ index $.tab "primaryValue" }} <i class="bi bi-info-circle ms-1" data-bs-toggle="tooltip" data-bs-placement="right" data-bs-title="{{ index $.tab "primaryValueTooltip" }}"></i></th>
+              <th>{{ index $.tab "secondaryValue" }} <i class="bi bi-info-circle ms-1" data-bs-toggle="tooltip" data-bs-placement="right" data-bs-title="{{ index $.tab "secondaryValueTooltip" }}"></i></th>
               <th class="text-end"></th>
             </tr>
           </thead>
@@ -154,17 +171,29 @@
                           <hr class="mt-2" style="border-top: 1px solid #ababab;">
                           <div class="form-input">
                             <label class="col-form-label">{{ index $.tab "type" }} :</label>
-                            <i class="bi bi-info-circle ms-1" data-bs-toggle="tooltip" data-bs-placement="right" data-bs-title="Type"></i>
+                            <i class="bi bi-info-circle ms-1" data-bs-toggle="tooltip" data-bs-placement="right" data-bs-title="{{ index $.tab "typeTooltip" }}"></i>
                             {{ $credential := . }}
                             <select name="editCredentialPartnerType" class="form-select edit-credential-type-select" required>
                               <option value="" disabled>{{ index $.tab "selectType" }}</option>
                               {{ range $.listSupportedProtocol }}
-                                <option value="{{ . }}" {{ if eq $credential.Type . }}selected{{ end }}>{{ . }}</option>
+                                <option value="{{ . }}" {{ if eq $credential.Type . }}selected{{ end }}>
+                                  {{ if eq . "password" }}
+                                    {{ index $.tab "passwordStr" }}
+                                  {{ else if eq . "trusted_tls_certificate" }}
+                                    {{ index $.tab "tlsCertificate" }}
+                                  {{ else if eq . "ssh_public_key" }}
+                                    {{ index $.tab "sshPublicKey" }}
+                                  {{ else if eq . "r66_legacy_certificate" }}
+                                    {{ index $.tab "r66LegacyCertificate" }}
+                                  {{ else }}
+                                    {{ . }}
+                                  {{ end }}
+                                </option>
                               {{ end }}
                             </select>
                           </div>
-                          {{ template "editFileType" . }}
-                          {{ template "editPasswordType" . }}
+                          {{ template "editPasswordType" (dict "ID" .ID "tab" $.tab) }}
+                          {{ template "editFileType" (dict "ID" .ID "tab" $.tab) }}
                         </div>
                         <div class="modal-footer">
                           <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">{{ index $.tab "close" }}</button>

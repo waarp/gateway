@@ -14,7 +14,7 @@ function autoCompleteSearch() {
         }
 
         let url = `/webui/autocompletion/${pageType}?q=${encodeURIComponent(query)}`;
-        if (pageType === "credentialPartner") {
+        if (pageType === "credentialPartner" || pageType === "remoteAccount") {
             const partnerID = document.querySelector('input[name="partnerID"]');
             url += `&partnerID=${encodeURIComponent(partnerID.value)}`;
         }
