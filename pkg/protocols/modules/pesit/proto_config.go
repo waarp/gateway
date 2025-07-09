@@ -125,7 +125,7 @@ type PartnerConfig struct {
 }
 
 func (p *PartnerConfig) ValidPartner() error {
-	if p.DisableCheckpoints.Valid && !p.DisableRestart.Value {
+	if p.DisableCheckpoints.Valid && p.DisableCheckpoints.Value {
 		p.DisableRestart = api.Nullable[bool]{Value: true, Valid: true}
 	}
 

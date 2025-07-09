@@ -83,10 +83,6 @@ func detectLanguage(r *http.Request) string {
 		if strings.HasPrefix(v, "fr") {
 			return "fr"
 		}
-
-		if strings.HasPrefix(v, "es") {
-			return "es"
-		}
 	}
 
 	return "en"
@@ -103,9 +99,6 @@ func tagLanguage(r *http.Request, userLanguage string) language.Tag {
 		language.MustParse("fr"),
 		language.MustParse("fr-FR"),
 		language.MustParse("fr-CA"),
-
-		language.MustParse("es"),
-		language.MustParse("es-ES"),
 	})
 
 	res := r.Header.Get("Accept-Language")
