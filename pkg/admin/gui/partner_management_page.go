@@ -452,42 +452,46 @@ func deletePartner(db *database.DB, r *http.Request) error {
 	return nil
 }
 
+func callMethodsPartnerManagement(logger *log.Logger, db *database.DB, w http.ResponseWriter, r *http.Request) {
+	if r.Method == http.MethodGet && r.URL.Query().Get("addPartnerName") != "" {
+		if newPartnerErr := addPartner(db, r); newPartnerErr != nil {
+			logger.Error("failed to add partner: %v", newPartnerErr)
+		}
+
+		http.Redirect(w, r, r.URL.Path, http.StatusSeeOther)
+
+		return
+	}
+
+	if r.Method == http.MethodGet && r.URL.Query().Get("deletePartner") != "" {
+		deletePartnerErr := deletePartner(db, r)
+		if deletePartnerErr != nil {
+			logger.Error("failed to delete partner: %v", deletePartnerErr)
+		}
+
+		http.Redirect(w, r, r.URL.Path, http.StatusSeeOther)
+
+		return
+	}
+
+	if r.Method == http.MethodGet && r.URL.Query().Get("editPartnerID") != "" {
+		if editPartnerErr := editPartner(db, r); editPartnerErr != nil {
+			logger.Error("failed to edit partner: %v", editPartnerErr)
+		}
+
+		http.Redirect(w, r, r.URL.Path, http.StatusSeeOther)
+
+		return
+	}
+}
+
 func partnerManagementPage(logger *log.Logger, db *database.DB) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		userLanguage := r.Context().Value(ContextLanguageKey)
 		tTranslated := pageTranslated("partner_management_page", userLanguage.(string)) //nolint:errcheck,forcetypeassert //u
 		partnerList, filter, partnerFound := ListPartner(db, r)
 
-		if r.Method == http.MethodGet && r.URL.Query().Get("addPartnerName") != "" {
-			if newPartnerErr := addPartner(db, r); newPartnerErr != nil {
-				logger.Error("failed to add partner: %v", newPartnerErr)
-			}
-
-			http.Redirect(w, r, r.URL.Path, http.StatusSeeOther)
-
-			return
-		}
-
-		if r.Method == http.MethodGet && r.URL.Query().Get("deletePartner") != "" {
-			deletePartnerErr := deletePartner(db, r)
-			if deletePartnerErr != nil {
-				logger.Error("failed to delete partner: %v", deletePartnerErr)
-			}
-
-			http.Redirect(w, r, r.URL.Path, http.StatusSeeOther)
-
-			return
-		}
-
-		if r.Method == http.MethodGet && r.URL.Query().Get("editPartnerID") != "" {
-			if editPartnerErr := editPartner(db, r); editPartnerErr != nil {
-				logger.Error("failed to edit partner: %v", editPartnerErr)
-			}
-
-			http.Redirect(w, r, r.URL.Path, http.StatusSeeOther)
-
-			return
-		}
+		callMethodsPartnerManagement(logger, db, w, r)
 
 		user, err := GetUserByToken(r, db)
 		if err != nil {
@@ -508,7 +512,9 @@ func partnerManagementPage(logger *log.Logger, db *database.DB) http.HandlerFunc
 			"currentPage":            currentPage,
 			"TLSVersions":            TLSVersions,
 			"CompatibilityModePeSIT": CompatibilityModePeSIT,
-			"KeyExchanges":           sftp.ValidKeyExchanges, "Ciphers": sftp.ValidCiphers, "MACs": sftp.ValidMACs,
+			"KeyExchanges":           sftp.ValidKeyExchanges,
+			"Ciphers":                sftp.ValidCiphers,
+			"MACs":                   sftp.ValidMACs,
 		}); err != nil {
 			logger.Error("render partner_management_page: %v", err)
 			http.Error(w, "Internal error", http.StatusInternalServerError)
