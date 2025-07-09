@@ -208,7 +208,7 @@
               {{ end }}
               </td>
               <td class="text-end">
-                <a class="btn btn-outline-warning btn-sm me-1" href="partner_authentication" data-bs-toggle="tooltip" data-bs-placement="top" data-bs-title="{{ index $.tab "tooltipPartnerAuthentication" }}">
+                <a class="btn btn-outline-warning btn-sm me-1" href="partner_authentication?partnerID={{ .ID }}" data-bs-toggle="tooltip" data-bs-placement="top" data-bs-title="{{ index $.tab "tooltipPartnerAuthentication" }}">
                   <i class="bi bi-shield-lock"></i>
                 </a>
                 <a class="btn btn-outline-info btn-sm me-1" href="remote_account_management" data-bs-toggle="tooltip" data-bs-placement="top" data-bs-title="{{ index $.tab "tooltipRemoteAccountManagement" }}">

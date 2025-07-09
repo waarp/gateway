@@ -13,8 +13,14 @@ function autoCompleteSearch() {
             return;
         }
 
+        let url = `/webui/autocompletion/${pageType}?q=${encodeURIComponent(query)}`;
+        if (pageType === "credentialPartner") {
+            const partnerID = document.querySelector('input[name="partnerID"]');
+            url += `&partnerID=${encodeURIComponent(partnerID.value)}`;
+        }
+
         try {
-            const response = await fetch(`/webui/autocompletion/${pageType}?q=${encodeURIComponent(query)}`);    
+            const response = await fetch(url);
             const names = await response.json();
 
             names.forEach(name => {
