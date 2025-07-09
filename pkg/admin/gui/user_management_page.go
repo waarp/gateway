@@ -147,10 +147,9 @@ func deleteUser(db *database.DB, r *http.Request) error {
 
 func listUser(db *database.DB, r *http.Request) ([]*model.User, Filters, string) {
 	userFound := ""
-	const limit = 30
 	filter := Filters{
 		Offset:          0,
-		Limit:           limit,
+		Limit:           LimitPagination,
 		OrderAsc:        true,
 		DisableNext:     false,
 		DisablePrevious: false,

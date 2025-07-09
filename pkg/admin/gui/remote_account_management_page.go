@@ -18,10 +18,9 @@ func listRemoteAccount(partnerName string, db *database.DB, r *http.Request) (
 	[]*model.RemoteAccount, FiltersPagination, string,
 ) {
 	remoteAccountFound := ""
-	const limit = 30
 	filter := FiltersPagination{
 		Offset:          0,
-		Limit:           limit,
+		Limit:           LimitPagination,
 		OrderAsc:        true,
 		DisableNext:     false,
 		DisablePrevious: false,
@@ -83,11 +82,15 @@ func autocompletionRemoteAccountFunc(db *database.DB) http.HandlerFunc {
 			id, err = strconv.Atoi(partnerID)
 			if err != nil {
 				http.Error(w, "failed to convert id to int", http.StatusInternalServerError)
+
+				return
 			}
 
 			partner, err = internal.GetPartnerByID(db, int64(id))
 			if err != nil {
 				http.Error(w, "failed to get id", http.StatusInternalServerError)
+
+				return
 			}
 		}
 

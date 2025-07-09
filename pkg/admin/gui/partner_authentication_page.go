@@ -14,25 +14,17 @@ import (
 )
 
 func supportedProtocolInternal(protocol string) []string {
-	var listSupportedProtocol []string
-	if protocol == "r66" || protocol == "r66-tls" || protocol == "http" || protocol == "https" ||
-		protocol == "sftp" || protocol == "pesit" || protocol == "pesit-tls" {
-		listSupportedProtocol = append(listSupportedProtocol, "password")
+	supportedProtocolsInternal := map[string][]string{
+		"r66":       {"password"},
+		"r66-tls":   {"password", "trusted_tls_certificate", "r66_legacy_certificate"},
+		"http":      {"password"},
+		"https":     {"password", "trusted_tls_certificate"},
+		"sftp":      {"password", "ssh_public_key"},
+		"pesit":     {"password"},
+		"pesit-tls": {"password", "trusted_tls_certificate"},
 	}
 
-	if protocol == "https" || protocol == "r66-tls" || protocol == "pesit-tls" {
-		listSupportedProtocol = append(listSupportedProtocol, "trusted_tls_certificate")
-	}
-
-	if protocol == "sftp" {
-		listSupportedProtocol = append(listSupportedProtocol, "ssh_public_key")
-	}
-
-	if protocol == "r66-tls" {
-		listSupportedProtocol = append(listSupportedProtocol, "r66_legacy_certificate")
-	}
-
-	return listSupportedProtocol
+	return supportedProtocolsInternal[protocol]
 }
 
 //nolint:dupl // it is not the same function, the calls are different
@@ -40,10 +32,9 @@ func listCredentialPartner(partnerName string, db *database.DB, r *http.Request)
 	[]*model.Credential, FiltersPagination, string,
 ) {
 	credentialPartnerFound := ""
-	const limit = 30
 	filter := FiltersPagination{
 		Offset:          0,
-		Limit:           limit,
+		Limit:           LimitPagination,
 		OrderAsc:        true,
 		DisableNext:     false,
 		DisablePrevious: false,
@@ -105,11 +96,15 @@ func autocompletionCredentialsPartnersFunc(db *database.DB) http.HandlerFunc {
 			id, err = strconv.Atoi(partnerID)
 			if err != nil {
 				http.Error(w, "failed to convert id to int", http.StatusInternalServerError)
+
+				return
 			}
 
 			partner, err = internal.GetPartnerByID(db, int64(id))
 			if err != nil {
 				http.Error(w, "failed to get id", http.StatusInternalServerError)
+
+				return
 			}
 		}
 
@@ -166,9 +161,10 @@ func editCredentialPartner(partnerName string, db *database.DB, r *http.Request)
 		editCredentialPartner.Type = editCredentialPartnerType
 	}
 
-	if editCredentialPartner.Type == "password" {
+	switch editCredentialPartner.Type {
+	case "password":
 		editCredentialPartner.Value = r.URL.Query().Get("editCredentialValue")
-	} else if editCredentialPartner.Type == "trusted_tls_certificate" || editCredentialPartner.Type == "ssh_public_key" {
+	case "trusted_tls_certificate", "ssh_public_key":
 		editCredentialPartner.Value = r.URL.Query().Get("editCredentialValueFile")
 	}
 
@@ -190,9 +186,10 @@ func addCredentialPartner(partnerName string, db *database.DB, r *http.Request) 
 		newCredentialPartner.Type = newCredentialPartnerType
 	}
 
-	if newCredentialPartner.Type == "password" {
+	switch newCredentialPartner.Type {
+	case "password":
 		newCredentialPartner.Value = r.URL.Query().Get("addCredentialValue")
-	} else if newCredentialPartner.Type == "trusted_tls_certificate" || newCredentialPartner.Type == "ssh_public_key" {
+	case "trusted_tls_certificate", "ssh_public_key":
 		newCredentialPartner.Value = r.URL.Query().Get("addCredentialValueFile")
 	}
 

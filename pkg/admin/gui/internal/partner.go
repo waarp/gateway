@@ -18,11 +18,10 @@ func GetPartnerByID(db database.ReadAccess, id int64) (*model.RemoteAgent, error
 }
 
 func GetPartnersLike(db *database.DB, prefix string) ([]*model.RemoteAgent, error) {
-	const limit = 5
 	var partners model.RemoteAgents
 
 	return partners, db.Select(&partners).Owner().Where("name LIKE ?", prefix+"%").
-		OrderBy("name", true).Limit(limit, 0).Run()
+		OrderBy("name", true).Limit(LimitLike, 0).Run()
 }
 
 func ListPartners(db database.ReadAccess, orderByCol string, orderByAsc bool, limit, offset int,

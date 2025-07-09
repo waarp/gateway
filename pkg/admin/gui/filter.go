@@ -22,6 +22,8 @@ type FiltersPagination struct {
 	Protocols       Protocols
 }
 
+const LimitPagination = 30
+
 func paginationPage(filter *FiltersPagination, lenList int, r *http.Request) {
 	if r.URL.Query().Get("previous") == "true" && filter.Offset > 0 {
 		filter.Offset--

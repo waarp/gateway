@@ -33,11 +33,10 @@ func GetPartnerAccountsLike(db *database.DB, partnerName, prefix string) ([]*mod
 	if pErr != nil {
 		return nil, pErr
 	}
-	const limit = 5
 	var accounts model.RemoteAccounts
 
 	return accounts, db.Select(&accounts).Where("remote_agent_id=? AND login LIKE ?", partner.ID, prefix+"%").
-		OrderBy("login", true).Limit(limit, 0).Run()
+		OrderBy("login", true).Limit(LimitLike, 0).Run()
 }
 
 func ListPartnerAccounts(db database.ReadAccess, partnerName string,
