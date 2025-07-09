@@ -48,6 +48,7 @@ func addUser(db *database.DB, r *http.Request) error {
 	var newUser model.User
 	var permissions model.Permissions
 	var err error
+	urlParams := r.URL.Query()
 
 	if errForm := r.ParseForm(); errForm != nil {
 		return fmt.Errorf("failed to parse form: %w", errForm)
