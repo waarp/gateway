@@ -43,10 +43,9 @@ func listCredentialAccount(partnerName, login string, db *database.DB, r *http.R
 	[]*model.Credential, FiltersPagination, string,
 ) {
 	credentialAccountFound := ""
-	const limit = 30
 	filter := FiltersPagination{
 		Offset:          0,
-		Limit:           limit,
+		Limit:           LimitPagination,
 		OrderAsc:        true,
 		DisableNext:     false,
 		DisablePrevious: false,
