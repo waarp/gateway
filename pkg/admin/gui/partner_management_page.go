@@ -72,7 +72,6 @@ func editPartner(db *database.DB, r *http.Request) error {
 
 func addPartner(db *database.DB, r *http.Request) error {
 	var newPartner model.RemoteAgent
-	urlParams := r.URL.Query()
 
 	if err := r.ParseForm(); err != nil {
 		return fmt.Errorf("failed to parse form: %w", err)

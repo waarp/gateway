@@ -6,10 +6,18 @@
     <script src="/webui/static/javaScript/eyePassword.js"></script>
     <script src="/webui/static/javaScript/readFile.js"></script>
     <script src="/webui/static/javaScript/tooltip.js"></script>
+    <script>window.modalOpen = "{{ .modalOpen }}";</script>
+    <script src="/webui/static/javaScript/displayErr.js"></script>
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css" rel="stylesheet">
 {{ end }}
 
 {{ define "content" }}
+    {{ if .errMsg }}
+        <div id="errorPopup" class="alert alert-danger alert-dismissible fade show" role="alert">
+            {{ .errMsg }}
+            <button type="button" class="btn-close error-close-btn" data-bs-dismiss="alert" aria-label="Close"></button>
+        </div>
+    {{ end }}
     {{ if .account }}
         <div class="d-flex align-items-center justify-content-between">
             <h2 class="mb-0">{{ index .tab "title" }} : {{ .account.Login }}</h2>
@@ -26,7 +34,7 @@
             <div class="modal fade" id="addCredentialAccountModal" tabindex="-1" aria-labelledby="addCredentialAccountModalLabel" aria-hidden="true">
                 <div class="modal-dialog modal-lg">
                     <div class="modal-content">
-                    <form method="get" class="p-3 border rounded bg-light">
+                    <form method="post" class="p-3 border rounded bg-light">
                         <input type="hidden" name="partnerID" value="{{ .partner.ID }}">
                         <input type="hidden" name="accountID" value="{{ .account.ID }}">
                         <div class="modal-header">
@@ -178,7 +186,7 @@
                             <div class="modal fade" id="editCredentialAccountModal_{{ .ID }}" tabindex="-1" aria-labelledby="editCredentialAccountModalLabel_{{ .ID }}" aria-hidden="true">
                                 <div class="modal-dialog modal-lg">
                                     <div class="modal-content">
-                                        <form method="get" class="p-3 border rounded bg-light">
+                                        <form method="post" class="p-3 border rounded bg-light">
                                             <input type="hidden" name="partnerID" value="{{ $.partner.ID }}">
                                             <input type="hidden" name="accountID" value="{{ $.account.ID }}">
                                             <input type="hidden" name="editCredentialAccountID" value="{{ .ID }}">
@@ -232,7 +240,7 @@
                             </div>
                         {{ end }}
                         {{ if contains $.myPermission.Partners "d" }}
-                            <form method="get" class="d-inline">
+                            <form method="post" class="d-inline">
                                 <input type="hidden" name="partnerID" value="{{ $.partner.ID }}">
                                 <input type="hidden" name="accountID" value="{{ $.account.ID }}">
                                 <input type="hidden" name="deleteCredentialAccount" value="{{ .ID }}">
