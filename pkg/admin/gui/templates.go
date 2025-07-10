@@ -106,4 +106,9 @@ var (
 			ParseFS(webFS, index, header, multiLanguage, addProtoConfig, editProtoConfig, displayProtoConfig,
 				"front-end/html/server_management_page.html"),
 	)
+	serverManagementTemplate = template.Must(
+		template.New("server_management_page.html").
+			Funcs(funcs).
+			ParseFS(webFS, index, header, multiLanguage, displayFormAuth, "front-end/html/server_management_page.html"),
+	)
 )
