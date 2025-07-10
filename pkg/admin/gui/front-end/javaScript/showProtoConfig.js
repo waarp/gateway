@@ -65,7 +65,6 @@ const group = button.closest('.input-group');
 
 document.addEventListener('DOMContentLoaded', function () {
     document.querySelectorAll('.protocolConfiguration-select').forEach(sel => {
-
         sel.addEventListener('change', function() {
             showProtoConfig(this);
         });
