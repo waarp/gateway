@@ -130,8 +130,10 @@ func searchRemoteAccount(remoteAccountLoginSearch string,
 }
 
 func editRemoteAccount(db *database.DB, r *http.Request) error {
-	urlParams := r.URL.Query()
-	remoteAccountID := urlParams.Get("editRemoteAccountID")
+	if err := r.ParseForm(); err != nil {
+		return fmt.Errorf("failed to parse form: %w", err)
+	}
+	remoteAccountID := r.FormValue("editRemoteAccountID")
 
 	id, err := strconv.Atoi(remoteAccountID)
 	if err != nil {
@@ -143,7 +145,7 @@ func editRemoteAccount(db *database.DB, r *http.Request) error {
 		return fmt.Errorf("failed to get remote account: %w", err)
 	}
 
-	if editRemoteAccountLogin := urlParams.Get("editRemoteAccountLogin"); editRemoteAccountLogin != "" {
+	if editRemoteAccountLogin := r.FormValue("editRemoteAccountLogin"); editRemoteAccountLogin != "" {
 		editRemoteAccount.Login = editRemoteAccountLogin
 	}
 
@@ -157,7 +159,11 @@ func editRemoteAccount(db *database.DB, r *http.Request) error {
 func addRemoteAccount(partnerName string, db *database.DB, r *http.Request) error {
 	var newRemoteAccount model.RemoteAccount
 
-	if newRemoteAccountLogin := r.URL.Query().Get("addRemoteAccountLogin"); newRemoteAccountLogin != "" {
+	if err := r.ParseForm(); err != nil {
+		return fmt.Errorf("failed to parse form: %w", err)
+	}
+
+	if newRemoteAccountLogin := r.FormValue("addRemoteAccountLogin"); newRemoteAccountLogin != "" {
 		newRemoteAccount.Login = newRemoteAccountLogin
 	}
 
@@ -177,7 +183,10 @@ func addRemoteAccount(partnerName string, db *database.DB, r *http.Request) erro
 
 //nolint:dupl // it is not the same function, the calls are different
 func deleteRemoteAccount(db *database.DB, r *http.Request) error {
-	remoteAccountID := r.URL.Query().Get("deleteRemoteAccount")
+	if err := r.ParseForm(); err != nil {
+		return fmt.Errorf("failed to parse form: %w", err)
+	}
+	remoteAccountID := r.FormValue("deleteRemoteAccount")
 
 	id, err := strconv.Atoi(remoteAccountID)
 	if err != nil {
@@ -198,40 +207,56 @@ func deleteRemoteAccount(db *database.DB, r *http.Request) error {
 
 func callMethodsRemoteAccount(logger *log.Logger, db *database.DB, w http.ResponseWriter, r *http.Request,
 	idPartner int, partner *model.RemoteAgent,
-) {
-	urlParams := r.URL.Query()
-	if r.Method == http.MethodGet && urlParams.Get("deleteRemoteAccount") != "" {
+) (bool, string, string) {
+	if r.Method == http.MethodPost && r.FormValue("deleteRemoteAccount") != "" {
 		deleteRemoteAccountErr := deleteRemoteAccount(db, r)
 		if deleteRemoteAccountErr != nil {
 			logger.Error("failed to delete remote account: %v", deleteRemoteAccountErr)
+
+			return false, deleteRemoteAccountErr.Error(), ""
 		}
 
 		http.Redirect(w, r, fmt.Sprintf("%s?partnerID=%d", r.URL.Path, idPartner), http.StatusSeeOther)
 
-		return
+		return true, "", ""
 	}
 
-	if r.Method == http.MethodGet && urlParams.Get("addRemoteAccountLogin") != "" {
+	if r.Method == http.MethodPost && r.FormValue("addRemoteAccountLogin") != "" {
 		addRemoteAccountErr := addRemoteAccount(partner.Name, db, r)
 		if addRemoteAccountErr != nil {
 			logger.Error("failed to add remote account: %v", addRemoteAccountErr)
+
+			return false, addRemoteAccountErr.Error(), "addRemoteAccountModal"
 		}
 
 		http.Redirect(w, r, fmt.Sprintf("%s?partnerID=%d", r.URL.Path, idPartner), http.StatusSeeOther)
 
-		return
+		return true, "", ""
 	}
 
-	if r.Method == http.MethodGet && urlParams.Get("editRemoteAccountID") != "" {
+	if r.Method == http.MethodPost && r.FormValue("editRemoteAccountID") != "" {
+		idEdit := r.FormValue("editRemoteAccountID")
+
+		id, err := strconv.Atoi(idEdit)
+		if err != nil {
+			logger.Error("failed to convert id to int: %v", err)
+
+			return false, "", ""
+		}
+
 		editRemoteAccountErr := editRemoteAccount(db, r)
 		if editRemoteAccountErr != nil {
 			logger.Error("failed to edit remote account: %v", editRemoteAccountErr)
+
+			return false, editRemoteAccountErr.Error(), fmt.Sprintf("editRemoteAccountModal_%d", id)
 		}
 
 		http.Redirect(w, r, fmt.Sprintf("%s?partnerID=%d", r.URL.Path, idPartner), http.StatusSeeOther)
 
-		return
+		return true, "", ""
 	}
+
+	return false, "", ""
 }
 
 func remoteAccountPage(logger *log.Logger, db *database.DB) http.HandlerFunc {
@@ -264,7 +289,10 @@ func remoteAccountPage(logger *log.Logger, db *database.DB) http.HandlerFunc {
 
 		remoteAccounts, filter, remoteAccountFound := listRemoteAccount(partner.Name, db, r)
 
-		callMethodsRemoteAccount(logger, db, w, r, id, partner)
+		value, errMsg, modalOpen := callMethodsRemoteAccount(logger, db, w, r, id, partner)
+		if value {
+			return
+		}
 
 		currentPage := filter.Offset + 1
 
@@ -278,6 +306,8 @@ func remoteAccountPage(logger *log.Logger, db *database.DB) http.HandlerFunc {
 			"currentPage":        currentPage,
 			"remoteAccountFound": remoteAccountFound,
 			"tab":                tTranslated,
+			"errMsg":             errMsg,
+			"modalOpen":          modalOpen,
 			"hasPartnerID":       true,
 		}); err != nil {
 			logger.Error("render partner_management_page: %v", err)

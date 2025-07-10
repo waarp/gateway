@@ -144,8 +144,10 @@ func searchCredentialPartner(credentialPartnerNameSearch string,
 }
 
 func editCredentialPartner(partnerName string, db *database.DB, r *http.Request) error {
-	urlParams := r.URL.Query()
-	credentialPartnerID := urlParams.Get("editCredentialPartnerID")
+	if err := r.ParseForm(); err != nil {
+		return fmt.Errorf("failed to parse form: %w", err)
+	}
+	credentialPartnerID := r.FormValue("editCredentialPartnerID")
 
 	id, err := strconv.Atoi(credentialPartnerID)
 	if err != nil {
@@ -157,19 +159,19 @@ func editCredentialPartner(partnerName string, db *database.DB, r *http.Request)
 		return fmt.Errorf("failed to get credential partner: %w", err)
 	}
 
-	if editCredentialPartnerName := urlParams.Get("editCredentialPartnerName"); editCredentialPartnerName != "" {
+	if editCredentialPartnerName := r.FormValue("editCredentialPartnerName"); editCredentialPartnerName != "" {
 		editCredentialPartner.Name = editCredentialPartnerName
 	}
 
-	if editCredentialPartnerType := urlParams.Get("editCredentialPartnerType"); editCredentialPartnerType != "" {
+	if editCredentialPartnerType := r.FormValue("editCredentialPartnerType"); editCredentialPartnerType != "" {
 		editCredentialPartner.Type = editCredentialPartnerType
 	}
 
 	switch editCredentialPartner.Type {
 	case "password":
-		editCredentialPartner.Value = urlParams.Get("editCredentialValue")
+		editCredentialPartner.Value = r.FormValue("editCredentialValue")
 	case "trusted_tls_certificate", "ssh_public_key":
-		editCredentialPartner.Value = urlParams.Get("editCredentialValueFile")
+		editCredentialPartner.Value = r.FormValue("editCredentialValueFile")
 	}
 
 	if err = internal.UpdateCredential(db, editCredentialPartner); err != nil {
@@ -180,22 +182,25 @@ func editCredentialPartner(partnerName string, db *database.DB, r *http.Request)
 }
 
 func addCredentialPartner(partnerName string, db *database.DB, r *http.Request) error {
-	urlParams := r.URL.Query()
 	var newCredentialPartner model.Credential
 
-	if newCredentialPartnerName := urlParams.Get("addCredentialPartnerName"); newCredentialPartnerName != "" {
+	if err := r.ParseForm(); err != nil {
+		return fmt.Errorf("failed to parse form: %w", err)
+	}
+
+	if newCredentialPartnerName := r.FormValue("addCredentialPartnerName"); newCredentialPartnerName != "" {
 		newCredentialPartner.Name = newCredentialPartnerName
 	}
 
-	if newCredentialPartnerType := urlParams.Get("addCredentialPartnerType"); newCredentialPartnerType != "" {
+	if newCredentialPartnerType := r.FormValue("addCredentialPartnerType"); newCredentialPartnerType != "" {
 		newCredentialPartner.Type = newCredentialPartnerType
 	}
 
 	switch newCredentialPartner.Type {
 	case "password":
-		newCredentialPartner.Value = urlParams.Get("addCredentialValue")
+		newCredentialPartner.Value = r.FormValue("addCredentialValue")
 	case "trusted_tls_certificate", "ssh_public_key":
-		newCredentialPartner.Value = urlParams.Get("addCredentialValueFile")
+		newCredentialPartner.Value = r.FormValue("addCredentialValueFile")
 	}
 
 	partner, err := internal.GetPartner(db, partnerName)
@@ -214,7 +219,10 @@ func addCredentialPartner(partnerName string, db *database.DB, r *http.Request) 
 
 //nolint:dupl // it is not the same function, the calls are different
 func deleteCredentialPartner(partnerName string, db *database.DB, r *http.Request) error {
-	credentialPartnerID := r.URL.Query().Get("deleteCredentialPartner")
+	if err := r.ParseForm(); err != nil {
+		return fmt.Errorf("failed to parse form: %w", err)
+	}
+	credentialPartnerID := r.FormValue("deleteCredentialPartner")
 
 	id, err := strconv.Atoi(credentialPartnerID)
 	if err != nil {
@@ -235,40 +243,56 @@ func deleteCredentialPartner(partnerName string, db *database.DB, r *http.Reques
 
 func callMethodsPartnerAuthentication(logger *log.Logger, db *database.DB, w http.ResponseWriter, r *http.Request,
 	idPartner int, partner *model.RemoteAgent,
-) {
-	urlParams := r.URL.Query()
-	if r.Method == http.MethodGet && urlParams.Get("deleteCredentialPartner") != "" {
+) (bool, string, string) {
+	if r.Method == http.MethodPost && r.FormValue("deleteCredentialPartner") != "" {
 		deleteCredentialPartnerErr := deleteCredentialPartner(partner.Name, db, r)
 		if deleteCredentialPartnerErr != nil {
 			logger.Error("failed to delete credential partner: %v", deleteCredentialPartnerErr)
+
+			return false, deleteCredentialPartnerErr.Error(), ""
 		}
 
 		http.Redirect(w, r, fmt.Sprintf("%s?partnerID=%d", r.URL.Path, idPartner), http.StatusSeeOther)
 
-		return
+		return true, "", ""
 	}
 
-	if r.Method == http.MethodGet && urlParams.Get("addCredentialPartnerName") != "" {
+	if r.Method == http.MethodPost && r.FormValue("addCredentialPartnerName") != "" {
 		addCredentialPartnerErr := addCredentialPartner(partner.Name, db, r)
 		if addCredentialPartnerErr != nil {
 			logger.Error("failed to add partner: %v", addCredentialPartnerErr)
+
+			return false, addCredentialPartnerErr.Error(), "addCredentialPartnerModal"
 		}
 
 		http.Redirect(w, r, fmt.Sprintf("%s?partnerID=%d", r.URL.Path, idPartner), http.StatusSeeOther)
 
-		return
+		return true, "", ""
 	}
 
-	if r.Method == http.MethodGet && urlParams.Get("editCredentialPartnerID") != "" {
+	if r.Method == http.MethodPost && r.FormValue("editCredentialPartnerID") != "" {
+		idEdit := r.FormValue("editCredentialPartnerID")
+
+		id, err := strconv.Atoi(idEdit)
+		if err != nil {
+			logger.Error("failed to convert id to int: %v", err)
+
+			return false, "", ""
+		}
+
 		editredentialPartnerErr := editCredentialPartner(partner.Name, db, r)
 		if editredentialPartnerErr != nil {
 			logger.Error("failed to edit credential partner: %v", editredentialPartnerErr)
+
+			return false, editredentialPartnerErr.Error(), fmt.Sprintf("editCredentialPartnerModal_%d", id)
 		}
 
 		http.Redirect(w, r, fmt.Sprintf("%s?partnerID=%d", r.URL.Path, idPartner), http.StatusSeeOther)
 
-		return
+		return true, "", ""
 	}
+
+	return false, "", ""
 }
 
 func partnerAuthenticationPage(logger *log.Logger, db *database.DB) http.HandlerFunc {
@@ -300,7 +324,10 @@ func partnerAuthenticationPage(logger *log.Logger, db *database.DB) http.Handler
 
 		partnersCredentials, filter, credentialPartnerFound := listCredentialPartner(partner.Name, db, r)
 
-		callMethodsPartnerAuthentication(logger, db, w, r, id, partner)
+		value, errMsg, modalOpen := callMethodsPartnerAuthentication(logger, db, w, r, id, partner)
+		if value {
+			return
+		}
 
 		listSupportedProtocol := supportedProtocolInternal(partner.Protocol)
 		currentPage := filter.Offset + 1
@@ -316,6 +343,8 @@ func partnerAuthenticationPage(logger *log.Logger, db *database.DB) http.Handler
 			"filter":                 filter,
 			"currentPage":            currentPage,
 			"credentialPartnerFound": credentialPartnerFound,
+			"errMsg":                 errMsg,
+			"modalOpen":              modalOpen,
 			"hasPartnerID":           true,
 		}); err != nil {
 			logger.Error("render partner_management_page: %v", err)

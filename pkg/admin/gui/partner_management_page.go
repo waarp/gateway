@@ -35,8 +35,10 @@ var (
 )
 
 func editPartner(db *database.DB, r *http.Request) error {
-	urlParams := r.URL.Query()
-	partnerID := urlParams.Get("editPartnerID")
+	if err := r.ParseForm(); err != nil {
+		return fmt.Errorf("failed to parse form: %w", err)
+	}
+	partnerID := r.FormValue("editPartnerID")
 
 	id, err := strconv.Atoi(partnerID)
 	if err != nil {
@@ -48,19 +50,19 @@ func editPartner(db *database.DB, r *http.Request) error {
 		return fmt.Errorf("failed to get id: %w", err)
 	}
 
-	if editPartnerName := urlParams.Get("editPartnerName"); editPartnerName != "" {
+	if editPartnerName := r.FormValue("editPartnerName"); editPartnerName != "" {
 		editPartner.Name = editPartnerName
 	}
 
-	if editPartnerProtocol := urlParams.Get("editPartnerProtocol"); editPartnerProtocol != "" {
+	if editPartnerProtocol := r.FormValue("editPartnerProtocol"); editPartnerProtocol != "" {
 		editPartner.Protocol = editPartnerProtocol
 	}
 
-	if editPartnerHost := urlParams.Get("editPartnerHost"); editPartnerHost != "" {
+	if editPartnerHost := r.FormValue("editPartnerHost"); editPartnerHost != "" {
 		editPartner.Address.Host = editPartnerHost
 	}
 
-	if editPartnerPort := urlParams.Get("editPartnerPort"); editPartnerPort != "" {
+	if editPartnerPort := r.FormValue("editPartnerPort"); editPartnerPort != "" {
 		var port int
 
 		port, err = strconv.Atoi(editPartnerPort)
@@ -90,13 +92,12 @@ func editPartner(db *database.DB, r *http.Request) error {
 
 func protoConfigR66(r *http.Request) map[string]any {
 	r66ProtoConfig := make(map[string]any)
-	urlParams := r.URL.Query()
 
-	if serverLogin := urlParams.Get("partnerR66serverLogin"); serverLogin != "" {
+	if serverLogin := r.FormValue("partnerR66serverLogin"); serverLogin != "" {
 		r66ProtoConfig["serverLogin"] = serverLogin
 	}
 
-	if blockSize := urlParams.Get("partnerR66blockSize"); blockSize != "" {
+	if blockSize := r.FormValue("partnerR66blockSize"); blockSize != "" {
 		size, err := strconv.Atoi(blockSize)
 		if err != nil {
 			return nil
@@ -104,13 +105,13 @@ func protoConfigR66(r *http.Request) map[string]any {
 		r66ProtoConfig["blockSize"] = uint32(size)
 	}
 
-	if noFinalHash := urlParams.Get("noFinalHash"); noFinalHash == "true" {
+	if noFinalHash := r.FormValue("noFinalHash"); noFinalHash == "true" {
 		r66ProtoConfig["noFinalHash"] = true
 	} else {
 		r66ProtoConfig["noFinalHash"] = false
 	}
 
-	if checkBlockHash := urlParams.Get("checkBlockHash"); checkBlockHash == "true" {
+	if checkBlockHash := r.FormValue("checkBlockHash"); checkBlockHash == "true" {
 		r66ProtoConfig["checkBlockHash"] = true
 	} else {
 		r66ProtoConfig["checkBlockHash"] = false
@@ -121,27 +122,26 @@ func protoConfigR66(r *http.Request) map[string]any {
 
 func protoConfigSFTP(r *http.Request) map[string]any {
 	sftpProtoConfig := make(map[string]any)
-	urlParams := r.URL.Query()
 
-	if keyExchanges := urlParams["keyExchanges[]"]; len(keyExchanges) > 0 {
+	if keyExchanges := r.Form["keyExchanges[]"]; len(keyExchanges) > 0 {
 		sftpProtoConfig["keyExchanges"] = keyExchanges
 	}
 
-	if ciphers := urlParams["ciphers[]"]; len(ciphers) > 0 {
+	if ciphers := r.Form["ciphers[]"]; len(ciphers) > 0 {
 		sftpProtoConfig["ciphers"] = ciphers
 	}
 
-	if macs := urlParams["macs[]"]; len(macs) > 0 {
+	if macs := r.Form["macs[]"]; len(macs) > 0 {
 		sftpProtoConfig["macs"] = macs
 	}
 
-	if useStat := urlParams.Get("useStat"); useStat == "true" {
+	if useStat := r.FormValue("useStat"); useStat == "true" {
 		sftpProtoConfig["useStat"] = true
 	} else {
 		sftpProtoConfig["useStat"] = false
 	}
 
-	if dCCR := urlParams.Get("disableClientConcurrentReads"); dCCR == "true" {
+	if dCCR := r.FormValue("disableClientConcurrentReads"); dCCR == "true" {
 		sftpProtoConfig["disableClientConcurrentReads"] = true
 	} else {
 		sftpProtoConfig["disableClientConcurrentReads"] = false
@@ -152,32 +152,31 @@ func protoConfigSFTP(r *http.Request) map[string]any {
 
 func protoConfigFTP(r *http.Request, protocol string) map[string]any {
 	ftpProtoConfig := make(map[string]any)
-	urlParams := r.URL.Query()
 
-	if disableActiveMode := urlParams.Get("disableActiveMode"); disableActiveMode == "true" {
+	if disableActiveMode := r.FormValue("disableActiveMode"); disableActiveMode == "true" {
 		ftpProtoConfig["disableActiveMode"] = true
 	} else {
 		ftpProtoConfig["disableActiveMode"] = false
 	}
 
-	if disableEPSV := urlParams.Get("disableEPSV"); disableEPSV == "true" {
+	if disableEPSV := r.FormValue("disableEPSV"); disableEPSV == "true" {
 		ftpProtoConfig["disableEPSV"] = true
 	} else {
 		ftpProtoConfig["disableEPSV"] = false
 	}
 
 	if protocol == "ftps" { //nolint:nestif // call ftps
-		if useImplicitTLS := urlParams.Get("useImplicitTLS"); useImplicitTLS == "true" {
+		if useImplicitTLS := r.FormValue("useImplicitTLS"); useImplicitTLS == "true" {
 			ftpProtoConfig["useImplicitTLS"] = true
 		} else {
 			ftpProtoConfig["useImplicitTLS"] = false
 		}
 
-		if minTLSVersion := urlParams.Get("partnerFTPSminTLSVersion"); minTLSVersion != "" {
+		if minTLSVersion := r.FormValue("partnerFTPSminTLSVersion"); minTLSVersion != "" {
 			ftpProtoConfig["minTLSVersion"] = minTLSVersion
 		}
 
-		if disableTLSSessionReuse := urlParams.Get("disableTLSSessionReuse"); disableTLSSessionReuse == "true" {
+		if disableTLSSessionReuse := r.FormValue("disableTLSSessionReuse"); disableTLSSessionReuse == "true" {
 			ftpProtoConfig["disableTLSSessionReuse"] = true
 		} else {
 			ftpProtoConfig["disableTLSSessionReuse"] = false
@@ -190,25 +189,24 @@ func protoConfigFTP(r *http.Request, protocol string) map[string]any {
 //nolint:gocyclo,cyclop,funlen // no split method
 func protoConfigPeSIT(r *http.Request, protocol string) map[string]any {
 	pesitProtoConfig := make(map[string]any)
-	urlParams := r.URL.Query()
 
-	if login := urlParams.Get("partnerPeSITlogin"); login != "" {
+	if login := r.FormValue("partnerPeSITlogin"); login != "" {
 		pesitProtoConfig["login"] = login
 	}
 
-	if disableRestart := urlParams.Get("disableRestart"); disableRestart == "true" {
+	if disableRestart := r.FormValue("disableRestart"); disableRestart == "true" {
 		pesitProtoConfig["disableRestart"] = true
 	} else {
 		pesitProtoConfig["disableRestart"] = false
 	}
 
-	if disableCheckpoints := urlParams.Get("disableCheckpoints"); disableCheckpoints == "true" {
+	if disableCheckpoints := r.FormValue("disableCheckpoints"); disableCheckpoints == "true" {
 		pesitProtoConfig["disableCheckpoints"] = true
 	} else {
 		pesitProtoConfig["disableCheckpoints"] = false
 	}
 
-	if checkpointSize := urlParams.Get("partnerPeSITcheckpointSize"); checkpointSize != "" {
+	if checkpointSize := r.FormValue("partnerPeSITcheckpointSize"); checkpointSize != "" {
 		size, err := strconv.Atoi(checkpointSize)
 		if err != nil {
 			return nil
@@ -216,7 +214,7 @@ func protoConfigPeSIT(r *http.Request, protocol string) map[string]any {
 		pesitProtoConfig["checkpointSize"] = uint32(size)
 	}
 
-	if checkpointWindow := urlParams.Get("partnerPeSITcheckpointWindow"); checkpointWindow != "" {
+	if checkpointWindow := r.FormValue("partnerPeSITcheckpointWindow"); checkpointWindow != "" {
 		size, err := strconv.Atoi(checkpointWindow)
 		if err != nil {
 			return nil
@@ -224,17 +222,17 @@ func protoConfigPeSIT(r *http.Request, protocol string) map[string]any {
 		pesitProtoConfig["checkpointWindow"] = uint32(size)
 	}
 
-	if useNSDU := urlParams.Get("useNSDU"); useNSDU == "true" {
+	if useNSDU := r.FormValue("useNSDU"); useNSDU == "true" {
 		pesitProtoConfig["useNSDU"] = true
 	} else {
 		pesitProtoConfig["useNSDU"] = false
 	}
 
-	if compatibilityMode := urlParams.Get("partnerPeSITcompatibilityMode"); compatibilityMode != "" {
+	if compatibilityMode := r.FormValue("partnerPeSITcompatibilityMode"); compatibilityMode != "" {
 		pesitProtoConfig["compatibilityMode"] = compatibilityMode
 	}
 
-	if maxMessageSize := urlParams.Get("partnerPeSITmaxMessageSize"); maxMessageSize != "" {
+	if maxMessageSize := r.FormValue("partnerPeSITmaxMessageSize"); maxMessageSize != "" {
 		size, err := strconv.Atoi(maxMessageSize)
 		if err != nil {
 			return nil
@@ -242,14 +240,14 @@ func protoConfigPeSIT(r *http.Request, protocol string) map[string]any {
 		pesitProtoConfig["maxMessageSize"] = uint32(size)
 	}
 
-	if disablePreConnection := urlParams.Get("disablePreConnection"); disablePreConnection == "true" {
+	if disablePreConnection := r.FormValue("disablePreConnection"); disablePreConnection == "true" {
 		pesitProtoConfig["disablePreConnection"] = true
 	} else {
 		pesitProtoConfig["disablePreConnection"] = false
 	}
 
 	if protocol == "pesit-tls" {
-		if minTLSVersion := urlParams.Get("partnerPeSIT-TLSminTLSVersion"); minTLSVersion != "" {
+		if minTLSVersion := r.FormValue("partnerPeSIT-TLSminTLSVersion"); minTLSVersion != "" {
 			pesitProtoConfig["minTLSVersion"] = minTLSVersion
 		}
 	}
@@ -259,21 +257,24 @@ func protoConfigPeSIT(r *http.Request, protocol string) map[string]any {
 
 func addPartner(db *database.DB, r *http.Request) error {
 	var newPartner model.RemoteAgent
-	urlParams := r.URL.Query()
 
-	if newPartnerName := urlParams.Get("addPartnerName"); newPartnerName != "" {
+	if err := r.ParseForm(); err != nil {
+		return fmt.Errorf("failed to parse form: %w", err)
+	}
+
+	if newPartnerName := r.FormValue("addPartnerName"); newPartnerName != "" {
 		newPartner.Name = newPartnerName
 	}
 
-	if newPartnerProtocol := urlParams.Get("addPartnerProtocol"); newPartnerProtocol != "" {
+	if newPartnerProtocol := r.FormValue("addPartnerProtocol"); newPartnerProtocol != "" {
 		newPartner.Protocol = newPartnerProtocol
 	}
 
-	if newPartnerHost := urlParams.Get("addPartnerHost"); newPartnerHost != "" {
+	if newPartnerHost := r.FormValue("addPartnerHost"); newPartnerHost != "" {
 		newPartner.Address.Host = newPartnerHost
 	}
 
-	if newPartnerPort := urlParams.Get("addPartnerPort"); newPartnerPort != "" {
+	if newPartnerPort := r.FormValue("addPartnerPort"); newPartnerPort != "" {
 		port, err := strconv.Atoi(newPartnerPort)
 		if err != nil {
 			return fmt.Errorf("failed to get port: %w", err)
@@ -440,8 +441,12 @@ func searchPartner(partnerNameSearch string, listPartnerSearch []*model.RemoteAg
 	return nil
 }
 
+//nolint:dupl // is method for partner (different from user method)
 func deletePartner(db *database.DB, r *http.Request) error {
-	partnerID := r.URL.Query().Get("deletePartner")
+	if err := r.ParseForm(); err != nil {
+		return fmt.Errorf("failed to parse form: %w", err)
+	}
+	partnerID := r.FormValue("deletePartner")
 
 	id, err := strconv.Atoi(partnerID)
 	if err != nil {
@@ -460,38 +465,55 @@ func deletePartner(db *database.DB, r *http.Request) error {
 	return nil
 }
 
-func callMethodsPartnerManagement(logger *log.Logger, db *database.DB, w http.ResponseWriter, r *http.Request) {
-	urlParams := r.URL.Query()
-	if r.Method == http.MethodGet && urlParams.Get("addPartnerName") != "" {
+func callMethodsPartnerManagement(logger *log.Logger, db *database.DB, w http.ResponseWriter, r *http.Request,
+) (bool, string, string) {
+	if r.Method == http.MethodPost && r.FormValue("addPartnerName") != "" {
 		if newPartnerErr := addPartner(db, r); newPartnerErr != nil {
 			logger.Error("failed to add partner: %v", newPartnerErr)
+
+			return false, newPartnerErr.Error(), "addPartnerModal"
 		}
 
 		http.Redirect(w, r, r.URL.Path, http.StatusSeeOther)
 
-		return
+		return true, "", ""
 	}
 
-	if r.Method == http.MethodGet && urlParams.Get("deletePartner") != "" {
+	if r.Method == http.MethodPost && r.FormValue("deletePartner") != "" {
 		deletePartnerErr := deletePartner(db, r)
 		if deletePartnerErr != nil {
 			logger.Error("failed to delete partner: %v", deletePartnerErr)
+
+			return false, deletePartnerErr.Error(), ""
 		}
 
 		http.Redirect(w, r, r.URL.Path, http.StatusSeeOther)
 
-		return
+		return true, "", ""
 	}
 
-	if r.Method == http.MethodGet && urlParams.Get("editPartnerID") != "" {
+	if r.Method == http.MethodPost && r.FormValue("editPartnerID") != "" {
+		idEdit := r.FormValue("editPartnerID")
+
+		id, err := strconv.Atoi(idEdit)
+		if err != nil {
+			logger.Error("failed to convert id to int: %v", err)
+
+			return false, "", ""
+		}
+
 		if editPartnerErr := editPartner(db, r); editPartnerErr != nil {
 			logger.Error("failed to edit partner: %v", editPartnerErr)
+
+			return false, editPartnerErr.Error(), fmt.Sprintf("editPartnerModal_%d", id)
 		}
 
 		http.Redirect(w, r, r.URL.Path, http.StatusSeeOther)
 
-		return
+		return true, "", ""
 	}
+
+	return false, "", ""
 }
 
 func partnerManagementPage(logger *log.Logger, db *database.DB) http.HandlerFunc {
@@ -500,7 +522,10 @@ func partnerManagementPage(logger *log.Logger, db *database.DB) http.HandlerFunc
 		tTranslated := pageTranslated("partner_management_page", userLanguage.(string)) //nolint:errcheck,forcetypeassert //u
 		partnerList, filter, partnerFound := ListPartner(db, r)
 
-		callMethodsPartnerManagement(logger, db, w, r)
+		value, errMsg, modalOpen := callMethodsPartnerManagement(logger, db, w, r)
+		if value {
+			return
+		}
 
 		user, err := GetUserByToken(r, db)
 		if err != nil {
@@ -524,6 +549,8 @@ func partnerManagementPage(logger *log.Logger, db *database.DB) http.HandlerFunc
 			"KeyExchanges":           sftp.ValidKeyExchanges,
 			"Ciphers":                sftp.ValidCiphers,
 			"MACs":                   sftp.ValidMACs,
+			"errMsg":                 errMsg,
+			"modalOpen":              modalOpen,
 		}); err != nil {
 			logger.Error("render partner_management_page: %v", err)
 			http.Error(w, "Internal error", http.StatusInternalServerError)

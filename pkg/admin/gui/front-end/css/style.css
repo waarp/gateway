@@ -8,6 +8,7 @@
 @import url('select.css');
 @import url('shake.css');
 @import url('table.css');
+@import url('error.css');
 
 .ms-1-5 {
     margin-left: 0.2rem;

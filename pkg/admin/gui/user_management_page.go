@@ -48,26 +48,29 @@ func addUser(db *database.DB, r *http.Request) error {
 	var newUser model.User
 	var permissions model.Permissions
 	var err error
-	urlParams := r.URL.Query()
 
-	newUserUsername := urlParams.Get("newUserUsername")
+	if errForm := r.ParseForm(); errForm != nil {
+		return fmt.Errorf("failed to parse form: %w", errForm)
+	}
+
+	newUserUsername := r.FormValue("newUserUsername")
 	if newUserUsername != "" {
 		newUser.Username = newUserUsername
 	}
 
-	newUserPassword := urlParams.Get("newUserPassword")
+	newUserPassword := r.FormValue("newUserPassword")
 	if newUserPassword != "" {
 		newUser.PasswordHash, err = internal.HashPassword(newUserPassword)
 		if err != nil {
 			return fmt.Errorf("failed to hash user password: %w", err)
 		}
 	}
-	permissions.Transfers = strPermissions(urlParams["newUserPermissionsTransfers"])
-	permissions.Servers = strPermissions(urlParams["newUserPermissionsServers"])
-	permissions.Partners = strPermissions(urlParams["newUserPermissionsPartners"])
-	permissions.Rules = strPermissions(urlParams["newUserPermissionsRules"])
-	permissions.Users = strPermissions(urlParams["newUserPermissionsUsers"])
-	permissions.Administration = strPermissions(urlParams["newUserPermissionsAdministration"])
+	permissions.Transfers = strPermissions(r.Form["newUserPermissionsTransfers"])
+	permissions.Servers = strPermissions(r.Form["newUserPermissionsServers"])
+	permissions.Partners = strPermissions(r.Form["newUserPermissionsPartners"])
+	permissions.Rules = strPermissions(r.Form["newUserPermissionsRules"])
+	permissions.Users = strPermissions(r.Form["newUserPermissionsUsers"])
+	permissions.Administration = strPermissions(r.Form["newUserPermissionsAdministration"])
 
 	newUser.Permissions, err = model.PermsToMask(&permissions)
 	if err != nil {
@@ -83,8 +86,12 @@ func addUser(db *database.DB, r *http.Request) error {
 
 func editUser(db *database.DB, r *http.Request) error {
 	var permissions model.Permissions
-	urlParams := r.URL.Query()
-	userID := urlParams.Get("editUserID")
+
+	if err := r.ParseForm(); err != nil {
+		return fmt.Errorf("failed to parse form: %w", err)
+	}
+
+	userID := r.FormValue("editUserID")
 
 	id, err := strconv.Atoi(userID)
 	if err != nil {
@@ -96,24 +103,24 @@ func editUser(db *database.DB, r *http.Request) error {
 		return fmt.Errorf("failed to get id: %w", err)
 	}
 
-	newUserUsername := urlParams.Get("editUserUsername")
+	newUserUsername := r.FormValue("editUserUsername")
 	if newUserUsername != "" {
 		newUser.Username = newUserUsername
 	}
 
-	newUserPassword := urlParams.Get("editUserPassword")
+	newUserPassword := r.FormValue("editUserPassword")
 	if newUserPassword != "" {
 		newUser.PasswordHash, err = internal.HashPassword(newUserPassword)
 		if err != nil {
 			return fmt.Errorf("failed to hash user password: %w", err)
 		}
 	}
-	permissions.Transfers = strPermissions(urlParams["editUserPermissionsTransfers"])
-	permissions.Servers = strPermissions(urlParams["editUserPermissionsServers"])
-	permissions.Partners = strPermissions(urlParams["editUserPermissionsPartners"])
-	permissions.Rules = strPermissions(urlParams["editUserPermissionsRules"])
-	permissions.Users = strPermissions(urlParams["editUserPermissionsUsers"])
-	permissions.Administration = strPermissions(urlParams["editUserPermissionsAdministration"])
+	permissions.Transfers = strPermissions(r.Form["editUserPermissionsTransfers"])
+	permissions.Servers = strPermissions(r.Form["editUserPermissionsServers"])
+	permissions.Partners = strPermissions(r.Form["editUserPermissionsPartners"])
+	permissions.Rules = strPermissions(r.Form["editUserPermissionsRules"])
+	permissions.Users = strPermissions(r.Form["editUserPermissionsUsers"])
+	permissions.Administration = strPermissions(r.Form["editUserPermissionsAdministration"])
 
 	newUser.Permissions, err = model.PermsToMask(&permissions)
 	if err != nil {
@@ -128,7 +135,10 @@ func editUser(db *database.DB, r *http.Request) error {
 }
 
 func deleteUser(db *database.DB, r *http.Request) error {
-	userID := r.URL.Query().Get("deleteUser")
+	if err := r.ParseForm(); err != nil {
+		return fmt.Errorf("failed to parse form: %w", err)
+	}
+	userID := r.FormValue("deleteUser")
 
 	id, err := strconv.Atoi(userID)
 	if err != nil {
@@ -369,37 +379,54 @@ func searchUser(userNameSearch string, listUserSearch []*model.User) *model.User
 	return nil
 }
 
-func callMethodsUserManagement(logger *log.Logger, db *database.DB, w http.ResponseWriter, r *http.Request) {
-	urlParams := r.URL.Query()
-	if r.Method == http.MethodGet && urlParams.Get("newUserUsername") != "" {
+func callMethodsUserManagement(logger *log.Logger, db *database.DB, w http.ResponseWriter, r *http.Request,
+) (bool, string, string) {
+	if r.Method == http.MethodPost && r.FormValue("newUserUsername") != "" {
 		if newUserErr := addUser(db, r); newUserErr != nil {
 			logger.Error("failed to add user: %v", newUserErr)
+
+			return false, newUserErr.Error(), "addUserModal"
 		}
 
 		http.Redirect(w, r, r.URL.Path, http.StatusSeeOther)
 
-		return
+		return true, "", ""
 	}
 
-	if r.Method == http.MethodGet && urlParams.Get("editUserID") != "" {
+	if r.Method == http.MethodPost && r.FormValue("editUserID") != "" {
+		idEdit := r.FormValue("editUserID")
+
+		id, err := strconv.Atoi(idEdit)
+		if err != nil {
+			logger.Error("failed to convert id to int: %v", err)
+
+			return false, "", ""
+		}
+
 		if editUserErr := editUser(db, r); editUserErr != nil {
 			logger.Error("failed to edit user: %v", editUserErr)
+
+			return false, editUserErr.Error(), fmt.Sprintf("editUserModal_%d", id)
 		}
 
 		http.Redirect(w, r, r.URL.Path, http.StatusSeeOther)
 
-		return
+		return true, "", ""
 	}
 
-	if r.Method == http.MethodGet && urlParams.Get("deleteUser") != "" {
+	if r.Method == http.MethodPost && r.FormValue("deleteUser") != "" {
 		if deleteUserErr := deleteUser(db, r); deleteUserErr != nil {
 			logger.Error("failed to delete user: %v", deleteUserErr)
+
+			return false, deleteUserErr.Error(), ""
 		}
 
 		http.Redirect(w, r, r.URL.Path, http.StatusSeeOther)
 
-		return
+		return true, "", ""
 	}
+
+	return false, "", ""
 }
 
 //nolint:funlen // pattern
@@ -418,7 +445,10 @@ func userManagementPage(logger *log.Logger, db *database.DB) http.HandlerFunc {
 			})
 		}
 
-		callMethodsUserManagement(logger, db, w, r)
+		value, errMsg, modalOpen := callMethodsUserManagement(logger, db, w, r)
+		if value {
+			return
+		}
 
 		user, err := GetUserByToken(r, db)
 		if err != nil {
@@ -437,6 +467,8 @@ func userManagementPage(logger *log.Logger, db *database.DB) http.HandlerFunc {
 			"userFound":       userFound,
 			"filter":          filter,
 			"currentPage":     currentPage,
+			"errMsg":          errMsg,
+			"modalOpen":       modalOpen,
 		}); err != nil {
 			logger.Error("render user_management_page: %v", err)
 			http.Error(w, "Internal error", http.StatusInternalServerError)

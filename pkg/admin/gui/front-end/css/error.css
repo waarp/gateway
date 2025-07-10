@@ -1,0 +1,16 @@
+#errorPopup {
+    position: fixed;
+    top: 8%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    width: 50%;
+    z-index: 2000;
+    text-align: center;
+    box-shadow: 0 4px 8px rgba(0,0,0,0.2);
+}
+
+#errorPopup .error-close-btn {
+    position: absolute;
+    top: 10px;
+    right: 10px;
+}

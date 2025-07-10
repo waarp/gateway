@@ -5,9 +5,17 @@
   <script src="/webui/static/javaScript/partner_management_page.js"></script>
   <script src="/webui/static/javaScript/autoCompleteSearch.js"></script>
   <script src="/webui/static/javaScript/tooltip.js"></script>
+  <script>window.modalOpen = "{{ .modalOpen }}";</script>
+  <script src="/webui/static/javaScript/displayErr.js"></script>
 {{ end }}
 
 {{ define "content" }}
+    {{ if .errMsg }}
+        <div id="errorPopup" class="alert alert-danger alert-dismissible fade show" role="alert">
+            {{ .errMsg }}
+            <button type="button" class="btn-close error-close-btn" data-bs-dismiss="alert" aria-label="Close"></button>
+        </div>
+    {{ end }}
     <div class="d-flex align-items-center justify-content-between">
         <h2 class="mb-0">{{ index .tab "title" }}</h2>
         <button class="btn btn-outline-secondary ms-3 back-btn" type="button" onclick="window.location='home'">
@@ -23,7 +31,7 @@
         <div class="modal fade" id="addPartnerModal" tabindex="-1" aria-labelledby="addPartnerModalLabel" aria-hidden="true">
           <div class="modal-dialog modal-lg">
               <div class="modal-content">
-              <form method="get" class="p-3 border rounded bg-light">
+              <form method="post" class="p-3 border rounded bg-light">
               <div class="modal-header">
               <h5 class="modal-title" id="addPartnerModalLabel">{{ index .tab "addPartnerTitle" }}</h5>
               <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
@@ -225,7 +233,7 @@
                   <div class="modal fade" id="editPartnerModal_{{ .ID }}" tabindex="-1" aria-labelledby="editPartnerModalLabel_{{ .ID }}" aria-hidden="true">
                   <div class="modal-dialog modal-lg">
                       <div class="modal-content">
-                      <form method="get" class="p-3 border rounded bg-light">
+                      <form method="post" class="p-3 border rounded bg-light">
                       <input type="hidden" name="editPartnerID" value="{{ .ID }}">
                       <div class="modal-header">
                       <h5 class="modal-title" id="editPartnerModalLabel">{{ index $.tab "edit" }}: {{ .Name }}</h5>
@@ -276,7 +284,7 @@
                   </div>
               {{ end }}
               {{ if contains $.myPermission.Partners "d" }}
-                <form method="get" class="d-inline">
+                <form method="post" class="d-inline">
                   <input type="hidden" name="deletePartner" value="{{ .ID }}">
                   <button type="submit" class="btn btn-outline-danger btn-sm" onclick="return confirm('{{ index $.tab "confirmDelete" }}')">
                     <i class="bi bi-trash"></i>

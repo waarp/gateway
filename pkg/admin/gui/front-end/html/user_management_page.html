@@ -7,9 +7,17 @@
     <script src="/webui/static/javaScript/eyePassword.js"></script>
     <script src="/webui/static/javaScript/confirmPassword.js"></script>
     <script src="/webui/static/javaScript/tooltip.js"></script>
+    <script>window.modalOpen = "{{ .modalOpen }}";</script>
+    <script src="/webui/static/javaScript/displayErr.js"></script>
 {{ end }}
 
 {{ define "content" }}
+    {{ if .errMsg }}
+        <div id="errorPopup" class="alert alert-danger alert-dismissible fade show" role="alert">
+            {{ .errMsg }}
+            <button type="button" class="btn-close error-close-btn" data-bs-dismiss="alert" aria-label="Close"></button>
+        </div>
+    {{ end }}
     <div class="d-flex align-items-center justify-content-between">
         <h2 class="mb-0">{{ index .tab "title" }}</h2>
         <button class="btn btn-outline-secondary ms-3 back-btn" type="button" onclick="window.location='home'">
@@ -25,7 +33,7 @@
         <div class="modal fade" id="addUserModal" tabindex="-1" aria-labelledby="addUserModalLabel" aria-hidden="true">
         <div class="modal-dialog">
             <div class="modal-content">
-            <form method="get" class="p-3 border rounded bg-light">
+            <form method="post" class="p-3 border rounded bg-light">
                 <div class="modal-header">
                 <h5 class="modal-title" id="addUserModalLabel">{{ index .tab "addUserTitle" }}</h5>
                 <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
@@ -68,15 +76,15 @@
                 <div class="form-group mt-2">
                 <label class="col-form-label">{{ index .tab "servers" }} :</label>
                     <div class="form-check form-check-inline">
-                        <input class="form-check-input" type="checkbox" name="newUserPermissionServers" id="servers_r" value="r">
+                        <input class="form-check-input" type="checkbox" name="newUserPermissionsServers" id="servers_r" value="r">
                         <label class="form-check-label" for="servers_r">{{ index .tab "read" }}</label>
                     </div>
                     <div class="form-check form-check-inline">
-                        <input class="form-check-input" type="checkbox" name="newUserPermissionServers" id="servers_w" value="w">
+                        <input class="form-check-input" type="checkbox" name="newUserPermissionsServers" id="servers_w" value="w">
                         <label class="form-check-label" for="servers_w">{{ index .tab "write" }}</label>
                     </div>
                     <div class="form-check form-check-inline">
-                        <input class="form-check-input" type="checkbox" name="newUserPermissionServers" id="servers_d" value="rd">
+                        <input class="form-check-input" type="checkbox" name="newUserPermissionsServers" id="servers_d" value="rd">
                         <label class="form-check-label" for="servers_d">{{ index .tab "delete" }}</label>
                     </div>
                     </div>
@@ -252,7 +260,7 @@
                         <div class="modal fade" id="editUserModal_{{ .ID }}" tabindex="-1" aria-labelledby="editUserModalLabel_{{ .ID }}" aria-hidden="true">
                         <div class="modal-dialog">
                             <div class="modal-content">
-                            <form method="get" class="p-3 border rounded bg-light">
+                            <form method="post" class="p-3 border rounded bg-light">
                             <input type="hidden" name="editUserID" value="{{ .ID }}">
                             <div class="modal-header">
                             <h5 class="modal-title" id="editUserModalLabel">{{ index $.tab "edit" }}</h5>
@@ -380,7 +388,7 @@
                         </div>
                     {{ end }}
                 {{ if contains $.myPermission.Users "d" }}
-                <form method="get" class="d-inline">
+                <form method="post" class="d-inline">
                   <input type="hidden" name="deleteUser" value="{{ .ID }}">
                   <button type="submit" class="btn btn-outline-danger btn-sm" onclick="return confirm('{{ index $.tab "confirmDelete" }}')">
                     <i class="bi bi-trash"></i>
