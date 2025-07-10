@@ -169,7 +169,6 @@ func editCredentialPartner(partnerName string, db *database.DB, r *http.Request)
 }
 
 func addCredentialPartner(partnerName string, db *database.DB, r *http.Request) error {
-	urlParams := r.URL.Query()
 	var newCredentialPartner model.Credential
 
 	if err := r.ParseForm(); err != nil {
