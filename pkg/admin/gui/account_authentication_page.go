@@ -14,57 +14,46 @@ import (
 )
 
 func supportedProtocolExternal(protocol string) []string {
-	var listSupportedProtocol []string
-	if protocol == "r66" || protocol == "r66-tls" || protocol == "http" || protocol == "https" ||
-		protocol == "sftp" || protocol == "pesit" {
-		listSupportedProtocol = append(listSupportedProtocol, "password")
+	supportedProtocolsExternal := map[string][]string{
+		"r66":       {"password"},
+		"r66-tls":   {"password", "tls_certificate", "r66_legacy_certificate"},
+		"http":      {"password"},
+		"https":     {"password", "tls_certificate"},
+		"sftp":      {"password", "ssh_private_key"},
+		"pesit":     {"password", "pesit_pre-connection_auth"},
+		"pesit-tls": {"tls_certificate", "pesit_pre-connection_auth"},
 	}
 
-	if protocol == "https" || protocol == "r66-tls" || protocol == "pesit-tls" {
-		listSupportedProtocol = append(listSupportedProtocol, "tls_certificate")
-	}
-
-	if protocol == "sftp" {
-		listSupportedProtocol = append(listSupportedProtocol, "ssh_private_key")
-	}
-
-	if protocol == "r66-tls" {
-		listSupportedProtocol = append(listSupportedProtocol, "r66_legacy_certificate")
-	}
-
-	if protocol == "pesit" || protocol == "pesit-tls" {
-		listSupportedProtocol = append(listSupportedProtocol, "pesit_pre-connection_auth")
-	}
-
-	return listSupportedProtocol
+	return supportedProtocolsExternal[protocol]
 }
 
 func listCredentialAccount(partnerName, login string, db *database.DB, r *http.Request) (
 	[]*model.Credential, FiltersPagination, string,
 ) {
 	credentialAccountFound := ""
-	const limit = 30
 	filter := FiltersPagination{
 		Offset:          0,
-		Limit:           limit,
+		Limit:           LimitPagination,
 		OrderAsc:        true,
 		DisableNext:     false,
 		DisablePrevious: false,
 	}
 
-	if r.URL.Query().Get("orderAsc") == "true" {
+	urlParams := r.URL.Query()
+
+	if urlParams.Get("orderAsc") == "true" {
 		filter.OrderAsc = true
-	} else if r.URL.Query().Get("orderAsc") == "false" {
+	} else if urlParams.Get("orderAsc") == "false" {
 		filter.OrderAsc = false
 	}
 
-	if limitRes := r.URL.Query().Get("limit"); limitRes != "" {
+	if limitRes := urlParams.Get("limit"); limitRes != "" {
 		if l, err := strconv.Atoi(limitRes); err == nil {
 			filter.Limit = l
 		}
 	}
 
-	if offsetRes := r.URL.Query().Get("offset"); offsetRes != "" {
+	if offsetRes := urlParams.Get("offset"); offsetRes != "" {
 		if o, err := strconv.Atoi(offsetRes); err == nil {
 			filter.Offset = o
 		}
@@ -75,7 +64,7 @@ func listCredentialAccount(partnerName, login string, db *database.DB, r *http.R
 		return nil, FiltersPagination{}, credentialAccountFound
 	}
 
-	if search := r.URL.Query().Get("search"); search != "" && searchCredentialAccount(search, accountsCredentials) == nil {
+	if search := urlParams.Get("search"); search != "" && searchCredentialAccount(search, accountsCredentials) == nil {
 		credentialAccountFound = "false"
 	} else if search != "" {
 		filter.DisableNext = true
@@ -96,32 +85,18 @@ func listCredentialAccount(partnerName, login string, db *database.DB, r *http.R
 	return accountsCredentialsList, filter, credentialAccountFound
 }
 
+//nolint:dupl // is not the same, GetCredentialsLike is called
 func autocompletionCredentialsAccountsFunc(db *database.DB) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		prefix := r.URL.Query().Get("q")
+		urlParams := r.URL.Query()
+		prefix := urlParams.Get("q")
 		var err error
-		var partner *model.RemoteAgent
 		var account *model.RemoteAccount
-		var idP, idA int
+		var idA int
 
-		partnerID := r.URL.Query().Get("partnerID")
-		accountID := r.URL.Query().Get("accountID")
+		accountID := urlParams.Get("accountID")
 
-		if partnerID != "" && accountID != "" {
-			idP, err = strconv.Atoi(partnerID)
-			if err != nil {
-				http.Error(w, "failed to convert partner id to int", http.StatusInternalServerError)
-
-				return
-			}
-
-			partner, err = internal.GetPartnerByID(db, int64(idP))
-			if err != nil {
-				http.Error(w, "failed to get partner by id", http.StatusInternalServerError)
-
-				return
-			}
-
+		if accountID != "" {
 			idA, err = strconv.Atoi(accountID)
 			if err != nil {
 				http.Error(w, "failed to convert account id to int", http.StatusInternalServerError)
@@ -129,7 +104,7 @@ func autocompletionCredentialsAccountsFunc(db *database.DB) http.HandlerFunc {
 				return
 			}
 
-			account, err = internal.GetPartnerAccountByID(db, partner.Name, int64(idA))
+			account, err = internal.GetPartnerAccountByID(db, int64(idA))
 			if err != nil {
 				http.Error(w, "failed to get account by id", http.StatusInternalServerError)
 
@@ -172,25 +147,29 @@ func searchCredentialAccount(credentialAccountNameSearch string,
 func addCredentialAccount(partnerName, login string, db *database.DB, r *http.Request) error {
 	var newCredentialAccount model.Credential
 
-	if newCredentialAccountName := r.URL.Query().Get("addCredentialAccountName"); newCredentialAccountName != "" {
+	if err := r.ParseForm(); err != nil {
+		return fmt.Errorf("failed to parse form: %w", err)
+	}
+
+	if newCredentialAccountName := r.FormValue("addCredentialAccountName"); newCredentialAccountName != "" {
 		newCredentialAccount.Name = newCredentialAccountName
 	}
 
-	if newCredentialAccountType := r.URL.Query().Get("addCredentialAccountType"); newCredentialAccountType != "" {
+	if newCredentialAccountType := r.FormValue("addCredentialAccountType"); newCredentialAccountType != "" {
 		newCredentialAccount.Type = newCredentialAccountType
 	}
 
 	switch newCredentialAccount.Type {
 	case "password":
-		newCredentialAccount.Value = r.URL.Query().Get("addCredentialValue")
+		newCredentialAccount.Value = r.FormValue("addCredentialValue")
 	case "ssh_private_key":
-		newCredentialAccount.Value = r.URL.Query().Get("addCredentialValueFile")
+		newCredentialAccount.Value = r.FormValue("addCredentialValueFile")
 	case "tls_certificate":
-		newCredentialAccount.Value = r.URL.Query().Get("addCredentialValueFile1")
-		newCredentialAccount.Value2 = r.URL.Query().Get("addCredentialValueFile2")
+		newCredentialAccount.Value = r.FormValue("addCredentialValueFile1")
+		newCredentialAccount.Value2 = r.FormValue("addCredentialValueFile2")
 	case "pesit_pre-connection_auth":
-		newCredentialAccount.Value = r.URL.Query().Get("addCredentialValue1")
-		newCredentialAccount.Value2 = r.URL.Query().Get("addCredentialValue2")
+		newCredentialAccount.Value = r.FormValue("addCredentialValue1")
+		newCredentialAccount.Value2 = r.FormValue("addCredentialValue2")
 	}
 
 	account, err := internal.GetPartnerAccount(db, partnerName, login)
@@ -208,7 +187,10 @@ func addCredentialAccount(partnerName, login string, db *database.DB, r *http.Re
 }
 
 func editCredentialAccount(account *model.RemoteAccount, db *database.DB, r *http.Request) error {
-	credentialAccountID := r.URL.Query().Get("editCredentialAccountID")
+	if err := r.ParseForm(); err != nil {
+		return fmt.Errorf("failed to parse form: %w", err)
+	}
+	credentialAccountID := r.FormValue("editCredentialAccountID")
 
 	id, err := strconv.Atoi(credentialAccountID)
 	if err != nil {
@@ -220,25 +202,25 @@ func editCredentialAccount(account *model.RemoteAccount, db *database.DB, r *htt
 		return fmt.Errorf("failed to get credential account: %w", err)
 	}
 
-	if editCredentialAccountName := r.URL.Query().Get("editCredentialAccountName"); editCredentialAccountName != "" {
+	if editCredentialAccountName := r.FormValue("editCredentialAccountName"); editCredentialAccountName != "" {
 		editCredentialAccount.Name = editCredentialAccountName
 	}
 
-	if editCredentialAccountType := r.URL.Query().Get("editCredentialAccountType"); editCredentialAccountType != "" {
+	if editCredentialAccountType := r.FormValue("editCredentialAccountType"); editCredentialAccountType != "" {
 		editCredentialAccount.Type = editCredentialAccountType
 	}
 
 	switch editCredentialAccount.Type {
 	case "password":
-		editCredentialAccount.Value = r.URL.Query().Get("editCredentialValue")
+		editCredentialAccount.Value = r.FormValue("editCredentialValue")
 	case "ssh_private_key":
-		editCredentialAccount.Value = r.URL.Query().Get("editCredentialValueFile")
+		editCredentialAccount.Value = r.FormValue("editCredentialValueFile")
 	case "tls_certificate":
-		editCredentialAccount.Value = r.URL.Query().Get("editCredentialValueFile1")
-		editCredentialAccount.Value2 = r.URL.Query().Get("editCredentialValueFile2")
+		editCredentialAccount.Value = r.FormValue("editCredentialValueFile1")
+		editCredentialAccount.Value2 = r.FormValue("editCredentialValueFile2")
 	case "pesit_pre-connection_auth":
-		editCredentialAccount.Value = r.URL.Query().Get("editCredentialValue1")
-		editCredentialAccount.Value2 = r.URL.Query().Get("editCredentialValue2")
+		editCredentialAccount.Value = r.FormValue("editCredentialValue1")
+		editCredentialAccount.Value2 = r.FormValue("editCredentialValue2")
 	}
 
 	if err = internal.UpdateCredential(db, editCredentialAccount); err != nil {
@@ -249,7 +231,10 @@ func editCredentialAccount(account *model.RemoteAccount, db *database.DB, r *htt
 }
 
 func deleteCredentialAccount(account *model.RemoteAccount, db *database.DB, r *http.Request) error {
-	credentialAccountID := r.URL.Query().Get("deleteCredentialAccount")
+	if err := r.ParseForm(); err != nil {
+		return fmt.Errorf("failed to parse form: %w", err)
+	}
+	credentialAccountID := r.FormValue("deleteCredentialAccount")
 
 	id, err := strconv.Atoi(credentialAccountID)
 	if err != nil {
@@ -270,42 +255,98 @@ func deleteCredentialAccount(account *model.RemoteAccount, db *database.DB, r *h
 
 func callMethodsAccountAuthentication(logger *log.Logger, db *database.DB, w http.ResponseWriter, r *http.Request,
 	partner *model.RemoteAgent, account *model.RemoteAccount,
-) {
-	if r.Method == http.MethodGet && r.URL.Query().Get("deleteCredentialAccount") != "" {
+) (bool, string, string) {
+	if r.Method == http.MethodPost && r.FormValue("deleteCredentialAccount") != "" {
 		deleteCredentialAccountErr := deleteCredentialAccount(account, db, r)
 		if deleteCredentialAccountErr != nil {
 			logger.Error("failed to delete credential account: %v", deleteCredentialAccountErr)
+
+			return false, deleteCredentialAccountErr.Error(), ""
 		}
 
 		http.Redirect(w, r, fmt.Sprintf("%s?partnerID=%d&accountID=%d", r.URL.Path, partner.ID, account.ID),
 			http.StatusSeeOther)
 
-		return
+		return true, "", ""
 	}
 
-	if r.Method == http.MethodGet && r.URL.Query().Get("addCredentialAccountName") != "" {
+	if r.Method == http.MethodPost && r.FormValue("addCredentialAccountName") != "" {
 		addCredentialAccountErr := addCredentialAccount(partner.Name, account.Login, db, r)
 		if addCredentialAccountErr != nil {
 			logger.Error("failed to add credential account: %v", addCredentialAccountErr)
+
+			return false, addCredentialAccountErr.Error(), "addCredentialAccountModal"
 		}
 
 		http.Redirect(w, r, fmt.Sprintf("%s?partnerID=%d&accountID=%d", r.URL.Path, partner.ID, account.ID),
 			http.StatusSeeOther)
 
-		return
+		return true, "", ""
 	}
 
-	if r.Method == http.MethodGet && r.URL.Query().Get("editCredentialAccountName") != "" {
+	if r.Method == http.MethodPost && r.FormValue("editCredentialAccountID") != "" {
+		idEdit := r.FormValue("editCredentialAccountID")
+
+		id, err := strconv.Atoi(idEdit)
+		if err != nil {
+			logger.Error("failed to convert id to int: %v", err)
+
+			return false, "", ""
+		}
+
 		editCredentialAccountErr := editCredentialAccount(account, db, r)
 		if editCredentialAccountErr != nil {
 			logger.Error("failed to edit credential account: %v", editCredentialAccountErr)
+
+			return false, editCredentialAccountErr.Error(), fmt.Sprintf("editCredentialAccountModal_%d", id)
 		}
 
 		http.Redirect(w, r, fmt.Sprintf("%s?partnerID=%d&accountID=%d", r.URL.Path, partner.ID, account.ID),
 			http.StatusSeeOther)
 
-		return
+		return true, "", ""
 	}
+
+	return false, "", ""
+}
+
+func getPartnerAndAccount(db *database.DB, partnerID, accountID string, logger *log.Logger) (
+	*model.RemoteAgent, *model.RemoteAccount,
+) {
+	var partner *model.RemoteAgent
+	var account *model.RemoteAccount
+
+	if partnerID != "" && accountID != "" {
+		idP, err := strconv.Atoi(partnerID)
+		if err != nil {
+			logger.Error("failed to convert partner id to int: %v", err)
+
+			return nil, nil
+		}
+
+		partner, err = internal.GetPartnerByID(db, int64(idP))
+		if err != nil {
+			logger.Error("failed to get partner by id: %v", err)
+
+			return nil, nil
+		}
+
+		idA, err := strconv.Atoi(accountID)
+		if err != nil {
+			logger.Error("failed to convert account id to int: %v", err)
+
+			return nil, nil
+		}
+
+		account, err = internal.GetPartnerAccountByID(db, int64(idA))
+		if err != nil {
+			logger.Error("failed to get account by id: %v", err)
+
+			return nil, nil
+		}
+	}
+
+	return partner, account
 }
 
 func accountAuthenticationPage(logger *log.Logger, db *database.DB) http.HandlerFunc {
@@ -320,52 +361,37 @@ func accountAuthenticationPage(logger *log.Logger, db *database.DB) http.Handler
 		}
 
 		myPermission := model.MaskToPerms(user.Permissions)
-		var partner *model.RemoteAgent
-		var account *model.RemoteAccount
 
 		partnerID := r.URL.Query().Get("partnerID")
 		accountID := r.URL.Query().Get("accountID")
-
-		if partnerID != "" && accountID != "" {
-			idP, err := strconv.Atoi(partnerID)
-			if err != nil {
-				logger.Error("failed to convert partner id to int: %v", err)
-			}
-
-			partner, err = internal.GetPartnerByID(db, int64(idP))
-			if err != nil {
-				logger.Error("failed to get partner by id: %v", err)
-			}
-
-			idA, err := strconv.Atoi(accountID)
-			if err != nil {
-				logger.Error("failed to convert account id to int: %v", err)
-			}
-
-			account, err = internal.GetPartnerAccountByID(db, partner.Name, int64(idA))
-			if err != nil {
-				logger.Error("failed to get account by id: %v", err)
-			}
-		}
+		partner, account := getPartnerAndAccount(db, partnerID, accountID, logger)
 
 		credentials, filter, credentialAccountFound := listCredentialAccount(partner.Name, account.Login, db, r)
 
-		callMethodsAccountAuthentication(logger, db, w, r, partner, account)
+		value, errMsg, modalOpen := callMethodsAccountAuthentication(logger, db, w, r, partner, account)
+		if value {
+			return
+		}
 
 		listSupportedProtocol := supportedProtocolExternal(partner.Protocol)
 		currentPage := filter.Offset + 1
 
 		if err := accountAuthenticationTemplate.ExecuteTemplate(w, "account_authentication_page", map[string]any{
-			"myPermission": myPermission,
-			"tab":          tTranslated,
-			"username":     user.Username,
-			"language":     userLanguage,
-			"partner":      partner, "account": account,
-			"accountCredentials":    credentials,
-			"listSupportedProtocol": listSupportedProtocol,
-			"filter":                filter, "currentPage": currentPage,
+			"myPermission":           myPermission,
+			"tab":                    tTranslated,
+			"username":               user.Username,
+			"language":               userLanguage,
+			"partner":                partner,
+			"account":                account,
+			"accountCredentials":     credentials,
+			"listSupportedProtocol":  listSupportedProtocol,
+			"filter":                 filter,
+			"currentPage":            currentPage,
 			"credentialAccountFound": credentialAccountFound,
-			"hasPartnerID":           true, "hasAccountID": true,
+			"errMsg":                 errMsg,
+			"modalOpen":              modalOpen,
+			"hasPartnerID":           true,
+			"hasAccountID":           true,
 		}); err != nil {
 			logger.Error("render account_authentication_page: %v", err)
 			http.Error(w, "Internal error", http.StatusInternalServerError)

@@ -47,10 +47,20 @@ function addField(button, fieldName) {
 }
 
 function removeField(button) {
-    const group = button.closest('.input-group');
+const group = button.closest('.input-group');
     const container = group.parentElement;
-    if (container.querySelectorAll('.input-group').length > 1)
+    const groups = container.querySelectorAll('.input-group');
+    if (groups.length > 1) {
         group.remove();
+    } else {
+        group.querySelectorAll('input, select, textarea').forEach(el => {
+            if (el.type === 'checkbox' || el.type === 'radio') {
+                el.checked = false;
+            } else {
+                el.value = '';
+            }
+        });
+    }
 }
 
 document.addEventListener('DOMContentLoaded', function () {

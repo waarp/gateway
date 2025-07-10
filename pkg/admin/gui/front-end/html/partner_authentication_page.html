@@ -5,10 +5,19 @@
     <script src="/webui/static/javaScript/autoCompleteSearch.js"></script>
     <script src="/webui/static/javaScript/readFile.js"></script>
     <script src="/webui/static/javaScript/tooltip.js"></script>
+    <script src="/webui/static/javaScript/eyePassword.js"></script>
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css" rel="stylesheet">
+    <script>window.modalOpen = "{{ .modalOpen }}";</script>
+    <script src="/webui/static/javaScript/displayErr.js"></script>
 {{ end }}
 
 {{ define "content" }}
+    {{ if .errMsg }}
+        <div id="errorPopup" class="alert alert-danger alert-dismissible fade show" role="alert">
+            {{ .errMsg }}
+            <button type="button" class="btn-close error-close-btn" data-bs-dismiss="alert" aria-label="Close"></button>
+        </div>
+    {{ end }}
     {{ if .partner }}
       <div class="d-flex align-items-center justify-content-between">
         <h2 class="mb-0">{{ index .tab "title" }} : {{ .partner.Name }}</h2>
@@ -25,7 +34,7 @@
         <div class="modal fade" id="addCredentialPartnerModal" tabindex="-1" aria-labelledby="addCredentialPartnerModalLabel" aria-hidden="true">
           <div class="modal-dialog modal-lg">
               <div class="modal-content">
-              <form method="get" class="p-3 border rounded bg-light">
+              <form method="post" class="p-3 border rounded bg-light">
               <input type="hidden" name="partnerID" value="{{ .partner.ID }}">
               <div class="modal-header">
               <h5 class="modal-title" id="addCredentialPartnerModalLabel">{{ index .tab "addCredentialPartnerTitle" }}</h5>
@@ -157,7 +166,7 @@
                 <div class="modal fade" id="editCredentialPartnerModal_{{ .ID }}" tabindex="-1" aria-labelledby="editCredentialPartnerModalLabel_{{ .ID }}" aria-hidden="true">
                   <div class="modal-dialog modal-lg">
                     <div class="modal-content">
-                      <form method="get" class="p-3 border rounded bg-light">
+                      <form method="post" class="p-3 border rounded bg-light">
                         <input type="hidden" name="partnerID" value="{{ $.partner.ID }}">
                         <input type="hidden" name="editCredentialPartnerID" value="{{ .ID }}">
                         <div class="modal-header">
@@ -206,7 +215,7 @@
                 </div>
               {{ end }}
               {{ if contains $.myPermission.Partners "d" }}
-                <form method="get" class="d-inline">
+                <form method="post" class="d-inline">
                   <input type="hidden" name="partnerID" value="{{ $.partner.ID }}">
                   <input type="hidden" name="deleteCredentialPartner" value="{{ .ID }}">
                   <button type="submit" class="btn btn-outline-danger btn-sm" onclick="return confirm('{{ index $.tab "confirmDelete" }}')">
