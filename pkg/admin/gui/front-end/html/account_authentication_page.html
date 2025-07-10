@@ -122,7 +122,7 @@
                 {{ if eq .credentialAccountFound "false" }}
                     <div class="invalid-feedback d-block mt-2">{{ index .tab "credentialAccountNotFound" }}</div>
                 {{ else if eq .credentialAccountFound "true" }}
-                    <button id="resetBtn" type="button" class="btn btn-secondary me-2 reset-btn" onclick="window.location='account_authentication?partnerID={{ .partner.ID }}&accountID={{ .account.ID }}'"><i class="bi bi-x fs"></i></button>
+                    <button id="resetBtn" type="button" class="btn reset-btn" onclick="window.location='account_authentication?partnerID={{ .partner.ID }}&accountID={{ .account.ID }}'"><i class="bi bi-x fs"></i></button>
                 {{ end }}
                 <input class="navbar-partner form-control {{ if eq .credentialAccountFound "false" }}is-invalid{{ end }}" type="search" placeholder="{{ index .tab "search" }}" name="search" id="search" autocomplete="off">
                 <button class="btn btn-primary ms-2 btn-navbar" type="submit">{{ index .tab "search" }}</button>
@@ -148,7 +148,7 @@
                     <td>{{ .Type }}</td>
                     <td>
                         {{ if ne .Type "r66_legacy_certificate" }}
-                        <button class="btn btn-outline-primary protoConfig-btn" type="button" data-bs-toggle="modal" data-bs-target="#valueTypeModal1_{{ .ID }}">
+                        <button class="btn btn-outline-primary modal-btn" type="button" data-bs-toggle="modal" data-bs-target="#valueTypeModal1_{{ .ID }}">
                             ...
                         </button>
                         <div class="modal fade" id="valueTypeModal1_{{ .ID }}" tabindex="-1" aria-labelledby="valueTypeModalLabel1_{{ .ID }}" aria-hidden="true">
@@ -164,7 +164,7 @@
                     </td>
                     <td>
                         {{ if or (eq .Type "tls_certificate") (eq .Type "pesit_pre-connection_auth") }}
-                        <button class="btn btn-outline-primary protoConfig-btn" type="button" data-bs-toggle="modal" data-bs-target="#valueTypeModal2_{{ .ID }}">
+                        <button class="btn btn-outline-primary modal-btn" type="button" data-bs-toggle="modal" data-bs-target="#valueTypeModal2_{{ .ID }}">
                             ...
                         </button>
                         <div class="modal fade" id="valueTypeModal2_{{ .ID }}" tabindex="-1" aria-labelledby="valueTypeModalLabel2_{{ .ID }}" aria-hidden="true">
