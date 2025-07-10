@@ -217,7 +217,7 @@
                 {{ if eq .userFound "false" }}
                     <div class="invalid-feedback d-block mt-2">{{ index .tab "userNotFound" }}</div>
                 {{ else if eq .userFound "true" }}
-                    <button id="resetBtn" type="button" class="btn btn-secondary me-2 reset-btn" onclick="window.location='user_management'"><i class="bi bi-x fs"></i></button>
+                    <button id="resetBtn" type="button" class="btn reset-btn" onclick="window.location='user_management'"><i class="bi bi-x fs"></i></button>
                 {{ end }}
             <input class="navbar-user form-control {{ if eq .userFound "false" }}is-invalid{{ end }}" type="search" placeholder="{{ index .tab "search" }}" name="search" id="search" autocomplete="off">
             <button class="btn btn-primary ms-2 btn-navbar" type="submit">{{ index .tab "search" }}</button>

@@ -49,4 +49,11 @@ function autoCompleteSearch() {
 
 document.addEventListener('DOMContentLoaded', function () {
     autoCompleteSearch();
+    document.addEventListener('click', function(event) {
+        const navbar = document.querySelector('.navbar');
+        const list = document.getElementById('autocomplete');
+        if (navbar && list && !navbar.contains(event.target)) {
+            list.classList.add('d-none');
+        }
+    });
 });

@@ -4,12 +4,12 @@
     <div class="mt-4 mb-2 text-start"><strong>{{ index .tab "protocolConfiguration" }} :</strong><i class="bi bi-info-circle ms-1" data-bs-toggle="tooltip" data-bs-placement="right" data-bs-title="{{ index $.tab "tooltipProtocolConfiguration" }}"></i></div>
     <div class="form-input mt-4">
         <label class="col-form-label">{{ index .tab "serverLogin" }} :</label><i class="bi bi-info-circle ms-1" data-bs-toggle="tooltip" data-bs-placement="right" data-bs-title="{{ index $.tab "tooltipServerLogin" }}"></i>
-        <input type="text" name="partnerR66serverLogin" class="form-control" value="{{ .ProtoConfig.serverLogin }}">
+        <input type="text" name="protoConfigR66serverLogin" class="form-control" value="{{ .ProtoConfig.serverLogin }}">
     </div>
     <hr class="mt-2 mb-4" style="border-top: 1px solid #ababab;">
     <div class="form-input mt-4">
         <label class="col-form-label">{{ index .tab "blockSize" }} :</label><i class="bi bi-info-circle ms-1" data-bs-toggle="tooltip" data-bs-placement="right" data-bs-title="{{ index $.tab "tooltipBlockSize" }}"></i>
-        <input type="text" name="partnerR66blockSize" class="form-control" value="{{ .ProtoConfig.blockSize }}">
+        <input type="text" name="protoConfigR66blockSize" class="form-control" value="{{ .ProtoConfig.blockSize }}">
     </div>
     <hr class="mt-2 mb-4" style="border-top: 1px solid #ababab;">
     <div class="form-input mt-2 d-flex align-items-center">
@@ -57,7 +57,7 @@
         <div class="form-input mt-4">
             <label class="col-form-label">{{ index .tab "minTLSVersion" }} :</label>
             <i class="bi bi-info-circle ms-1" data-bs-toggle="tooltip" data-bs-placement="right" data-bs-title="{{ index $.tab "tooltipMinFtpsTLSVersion" }}"></i>
-            <select name="partnerFTPSminTLSVersion" class="form-select" required>
+            <select name="protoConfigFTPSminTLSVersion" class="form-select" required>
                 {{ range $.TLSVersions }}
                     <option value="{{ . }}" {{ if eq $.ProtoConfig.minTLSVersion . }}selected{{ end }}>{{ . }}</option>
                 {{ end }}
@@ -81,7 +81,7 @@
     <div class="mt-4 mb-2 text-start"><strong>{{ index .tab "protocolConfiguration" }} :</strong><i class="bi bi-info-circle ms-1" data-bs-toggle="tooltip" data-bs-placement="right" data-bs-title="{{ index $.tab "tooltipProtocolConfiguration" }}"></i></div>
     <div class="form-input mt-4">
         <label class="col-form-label">{{ index .tab "login" }} :</label><i class="bi bi-info-circle ms-1" data-bs-toggle="tooltip" data-bs-placement="right" data-bs-title="{{ index $.tab "tooltipLogin" }}"></i>
-        <input type="text" name="partnerPeSITlogin" class="form-control" value="{{ .ProtoConfig.login }}">
+        <input type="text" name="protoConfigPeSITlogin" class="form-control" value="{{ .ProtoConfig.login }}">
     </div>
     <hr class="mt-2 mb-4" style="border-top: 1px solid #ababab;">
     <div class="form-input mt-2 d-flex align-items-center">
@@ -100,12 +100,12 @@
     <hr class="mt-2 mb-4" style="border-top: 1px solid #ababab;">
     <div class="form-input mt-2">
         <label class="col-form-label">{{ index .tab "checkpointSize" }} :</label><i class="bi bi-info-circle ms-1" data-bs-toggle="tooltip" data-bs-placement="right" data-bs-title="{{ index $.tab "tooltipCheckpointSize" }}"></i>
-        <input type="text" name="partnerPeSITcheckpointSize" class="form-control" value="{{ .ProtoConfig.checkpointSize }}">
+        <input type="text" name="protoConfigPeSITcheckpointSize" class="form-control" value="{{ .ProtoConfig.checkpointSize }}">
     </div>
     <hr class="mt-2 mb-4" style="border-top: 1px solid #ababab;">
     <div class="form-input mt-2">
         <label class="col-form-label">{{ index .tab "checkpointWindow" }} :</label><i class="bi bi-info-circle ms-1" data-bs-toggle="tooltip" data-bs-placement="right" data-bs-title="{{ index $.tab "tooltipCheckpointWindow" }}"></i>
-        <input type="text" name="partnerPeSITcheckpointWindow" class="form-control" value="{{ .ProtoConfig.checkpointWindow }}">
+        <input type="text" name="protoConfigPeSITcheckpointWindow" class="form-control" value="{{ .ProtoConfig.checkpointWindow }}">
     </div>
     <hr class="mt-2 mb-4" style="border-top: 1px solid #ababab;">
     <div class="form-input mt-2 d-flex align-items-center">
@@ -117,7 +117,7 @@
     <hr class="mt-2 mb-4" style="border-top: 1px solid #ababab;">
     <div class="form-input mt-2">
         <label class="col-form-label">{{ index .tab "compatibilityMode" }} :</label><i class="bi bi-info-circle ms-1" data-bs-toggle="tooltip" data-bs-placement="right" data-bs-title="{{ index $.tab "tooltipCompatibilityMode" }}"></i>
-        <select name="partnerPeSITcompatibilityMode" class="form-select">
+        <select name="protoConfigPeSITcompatibilityMode" class="form-select">
             {{ range $.CompatibilityModePeSIT }}
                 <option value="{{ . }}" {{ if eq $.ProtoConfig.compatibilityMode . }}selected{{ end }}>
                     {{ if eq . "axway" }}{{ index $.tab "standardParameterPesit" }}{{ else if eq . "none" }}{{ index $.tab "noneStandardParameterPesit" }}{{ else }}{{ . }}{{ end }}
@@ -128,7 +128,7 @@
     <hr class="mt-2 mb-4" style="border-top: 1px solid #ababab;">
     <div class="form-input mt-2">
         <label class="col-form-label">{{ index .tab "maxMessageSize" }} :</label><i class="bi bi-info-circle ms-1" data-bs-toggle="tooltip" data-bs-placement="right" data-bs-title="{{ index $.tab "tooltipMaxMessageSize" }}"></i>
-        <input type="text" name="partnerPeSITmaxMessageSize" class="form-control" value="{{ .ProtoConfig.maxMessageSize }}">
+        <input type="text" name="protoConfigPeSITmaxMessageSize" class="form-control" value="{{ .ProtoConfig.maxMessageSize }}">
     </div>
     <hr class="mt-2 mb-4" style="border-top: 1px solid #ababab;">
     <div class="form-input mt-2 d-flex align-items-center">
@@ -141,7 +141,7 @@
         <hr class="mt-2 mb-4" style="border-top: 1px solid #ababab;">
                 <div class="form-input mt-4">
             <label class="col-form-label">{{ index .tab "minTLSVersion" }} :</label><i class="bi bi-info-circle ms-1" data-bs-toggle="tooltip" data-bs-placement="right" data-bs-title="{{ index $.tab "tooltipMinPesitTLSVersion" }}"></i>
-            <select name="partnerFTPSminTLSVersion" class="form-select" required>
+            <select name="protoConfigFTPSminTLSVersion" class="form-select" required>
                 {{ range $.TLSVersions }}
                     <option value="{{ . }}" {{ if eq $.ProtoConfig.minTLSVersion . }}selected{{ end }}>{{ . }}</option>
                 {{ end }}

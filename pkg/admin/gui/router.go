@@ -83,6 +83,7 @@ func AddGUIRouter(router *mux.Router, logger *log.Logger, db *database.DB) {
 	secureRouter.HandleFunc("/autocompletion/credentialPartner", autocompletionCredentialsPartnersFunc(db)).Methods("GET")
 	secureRouter.HandleFunc("/autocompletion/remoteAccount", autocompletionRemoteAccountFunc(db)).Methods("GET")
 	secureRouter.HandleFunc("/autocompletion/credentialAccount", autocompletionCredentialsAccountsFunc(db)).Methods("GET")
+	secureRouter.HandleFunc("/autocompletion/servers", autocompletionServersFunc(db)).Methods("GET")
 	secureRouter.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
 		http.Redirect(w, r, "home", http.StatusFound)
 	})
@@ -92,7 +93,7 @@ func AddGUIRouter(router *mux.Router, logger *log.Logger, db *database.DB) {
 	secureRouter.HandleFunc("/partner_authentication", partnerAuthenticationPage(logger, db)).Methods("GET", "POST")
 	secureRouter.HandleFunc("/remote_account_management", remoteAccountPage(logger, db)).Methods("GET", "POST")
 	secureRouter.HandleFunc("/account_authentication", accountAuthenticationPage(logger, db)).Methods("GET", "POST")
-	secureRouter.HandleFunc("/server_management", serverManagementPage(logger, db)).Methods("GET")
+	secureRouter.HandleFunc("/server_management", serverManagementPage(logger, db)).Methods("GET", "POST")
 }
 
 func logout() http.HandlerFunc {
