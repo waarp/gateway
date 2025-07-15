@@ -44,6 +44,13 @@ function autoCompleteSearch() {
                 url += `&partnerID=${encodeURIComponent(partnerID.value)}&accountID=${encodeURIComponent(accountID.value)}`;
             }
         }
+        if (pageType === "credentialLocalAccount") {
+            const serverID = document.querySelector('input[name="serverID"]');
+            const accountID = document.querySelector('input[name="accountID"]');
+            if (serverID && accountID) {
+                url += `&serverID=${encodeURIComponent(serverID.value)}&accountID=${encodeURIComponent(accountID.value)}`;
+            }
+        }
 
         try {
             const response = await fetch(url);
