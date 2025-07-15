@@ -18,7 +18,6 @@ function autoCompleteSearch() {
             const partnerID = document.querySelector('input[name="partnerID"]');
             url += `&partnerID=${encodeURIComponent(partnerID.value)}`;
         }
-<<<<<<< HEAD
         if (pageType === "credentialServer" || pageType === "localAccount") {
             const serverID = document.querySelector('input[name="serverID"]');
             url += `&serverID=${encodeURIComponent(serverID.value)}`;
@@ -35,31 +34,6 @@ function autoCompleteSearch() {
             const accountID = document.querySelector('input[name="accountID"]');
             if (serverID && accountID) {
                 url += `&serverID=${encodeURIComponent(serverID.value)}&accountID=${encodeURIComponent(accountID.value)}`;
-            }
-        }
-
-        if (pageType === "credentialAccount") {
-            const partnerID = document.querySelector('input[name="partnerID"]');
-            const accountID = document.querySelector('input[name="accountID"]');
-            if (partnerID && accountID) {
-                url += `&partnerID=${encodeURIComponent(partnerID.value)}&accountID=${encodeURIComponent(accountID.value)}`;
-            }
-        }
-        if (pageType === "credentialLocalAccount") {
-            const serverID = document.querySelector('input[name="serverID"]');
-            const accountID = document.querySelector('input[name="accountID"]');
-            if (serverID && accountID) {
-                url += `&serverID=${encodeURIComponent(serverID.value)}&accountID=${encodeURIComponent(accountID.value)}`;
-            }
-        }
-=======
->>>>>>> 86cb8059 (feat/cleanup project)
-
-        if (pageType === "credentialAccount") {
-            const partnerID = document.querySelector('input[name="partnerID"]');
-            const accountID = document.querySelector('input[name="accountID"]');
-            if (partnerID && accountID) {
-                url += `&partnerID=${encodeURIComponent(partnerID.value)}&accountID=${encodeURIComponent(accountID.value)}`;
             }
         }
 
