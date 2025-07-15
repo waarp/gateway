@@ -18,37 +18,38 @@
             <button type="button" class="btn-close error-close-btn" data-bs-dismiss="alert" aria-label="Close"></button>
         </div>
     {{ end }}
-    {{ if .partner }}
+    {{ if .account }}
       <div class="d-flex align-items-center justify-content-between">
-        <h2 class="mb-0">{{ index .tab "title" }} : {{ .partner.Name }}</h2>
-        <button class="btn btn-outline-secondary ms-3 back-btn" type="button" onclick="window.location='partner_management'">
+        <h2 class="mb-0">{{ index .tab "title" }} : {{ .account.Login }}</h2>
+        <button class="btn btn-outline-secondary ms-3 back-btn" type="button" onclick="window.location='local_account_management?serverID={{ .server.ID }}'">
           <i class="bi bi-arrow-left"></i>
         </button>
       </div>
       <hr class="mt-2 mb-4" style="border-top: 1px solid #ababab;">
       
-      {{ if contains .myPermission.Partners "w" }}
-        <button class="btn btn-primary mb-3 btn-add" type="button" data-bs-toggle="modal" data-bs-target="#addCredentialPartnerModal">
-        {{ index .tab "addCredentialPartnerTitle" }}
+      {{ if contains .myPermission.Servers "w" }}
+        <button class="btn btn-primary mb-3 btn-add" type="button" data-bs-toggle="modal" data-bs-target="#addCredentialAccountModal">
+        {{ index .tab "addCredentialAccountTitle" }}
         </button>
-        <div class="modal fade" id="addCredentialPartnerModal" tabindex="-1" aria-labelledby="addCredentialPartnerModalLabel" aria-hidden="true">
+        <div class="modal fade" id="addCredentialAccountModal" tabindex="-1" aria-labelledby="addCredentialAccountModalLabel" aria-hidden="true">
           <div class="modal-dialog modal-lg">
               <div class="modal-content">
               <form method="post" class="p-3 border rounded bg-light">
-              <input type="hidden" name="partnerID" value="{{ .partner.ID }}">
+              <input type="hidden" name="serverID" value="{{ .server.ID }}">
+              <input type="hidden" name="accountID" value="{{ .account.ID }}">
               <div class="modal-header">
-              <h5 class="modal-title" id="addCredentialPartnerModalLabel">{{ index .tab "addCredentialPartnerTitle" }}</h5>
+              <h5 class="modal-title" id="addCredentialAccountModalLabel">{{ index .tab "addCredentialAccountTitle" }}</h5>
               <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
               </div>
               <div class="modal-body">
               <div class="form-input">
                   <label class="col-form-label">{{ index .tab "nameStr" }} :</label>
-                  <input type="text" name="addCredentialPartnerName" class="form-control" required>
+                  <input type="text" name="addCredentialAccountName" class="form-control" required>
               </div>
               <hr class="mt-2" style="border-top: 1px solid #ababab;">
               <div class="form-input">
                 <label class="col-form-label">{{ index .tab "type" }} <i class="bi bi-info-circle ms-1" data-bs-toggle="tooltip" data-bs-placement="right" data-bs-title="{{ index .tab "typeTooltip" }}"></i> :</label>
-                <select name="addCredentialPartnerType" id="addCredentialPartnerType" class="form-select add-credential-type-select" required>
+                <select name="addCredentialAccountType" id="addCredentialAccountType" class="form-select add-credential-type-select" required>
                   <option value="" disabled selected>{{ index .tab "selectType" }}</option>
                   {{ range .listSupportedProtocol }}
                     <option value="{{ . }}">
@@ -79,13 +80,14 @@
           </div>
         </div>
       {{ end }}
-      {{ if contains .myPermission.Partners "r" }}
+      {{ if contains .myPermission.Servers "r" }}
         <button class="btn btn-primary mb-3 ms-1-5 btn-filter" type="button" data-bs-toggle="collapse" data-bs-target="#filterCollapse" aria-expanded="false" aria-controls="filterCollapse">
         {{ index .tab "filter" }}
         </button>
         <div class="collapse" id="filterCollapse">
         <form method="get" class="p-3 border rounded bg-light">
-          <input type="hidden" name="partnerID" value="{{ $.partner.ID }}">
+          <input type="hidden" name="serverID" value="{{ $.server.ID }}">
+            <input type="hidden" name="accountID" value="{{ .account.ID }}">
             <label class="ms-3">{{ index .tab "sort" }}:
             <select name="orderAsc" class="form-select d-inline w-auto">
                 <option value="true" {{ if .filter.OrderAsc }}selected{{ end }}>A → Z</option>
@@ -104,26 +106,27 @@
             </label>
             <div style="float:right">
               <button id="applyBtn" type="submit" class="btn btn-success">{{ index .tab "apply" }}</button>
-              <button id="resetBtn" type="button" class="btn btn-secondary ms-2" onclick="window.location='partner_authentication?partnerID={{ .partner.ID }}'">{{ index .tab "reset" }}</button>
+              <button id="resetBtn" type="button" class="btn btn-secondary ms-2" onclick="window.location='local_account_authentication?serverID={{ .server.ID }}&accountID={{ .account.ID }}'">{{ index .tab "reset" }}</button>
             </div>
         </form>
         </div>
         <nav class="navbar navbar-light bg-light">
-          <input type="hidden" id="pageType" value="credentialPartner">
+          <input type="hidden" id="pageType" value="credentialLocalAccount">
           <form method="get" class="d-flex ms-auto position-relative" onsubmit="return true">
-              <input type="hidden" name="partnerID" value="{{ $.partner.ID }}">
-                {{ if eq .credentialPartnerFound "false" }}
-                    <div class="invalid-feedback d-block mt-2">{{ index .tab "credentialPartnerNotFound" }}</div>
-                {{ else if eq .credentialPartnerFound "true" }}
-                    <button id="resetBtn" type="button" class="btn reset-btn" onclick="window.location='partner_authentication?partnerID={{ .partner.ID }}'"><i class="bi bi-x fs"></i></button>
+              <input type="hidden" name="serverID" value="{{ $.server.ID }}">
+              <input type="hidden" name="accountID" value="{{ .account.ID }}">
+                {{ if eq .credentialAccountFound "false" }}
+                    <div class="invalid-feedback d-block mt-2">{{ index .tab "credentialAccountNotFound" }}</div>
+                {{ else if eq .credentialAccountFound "true" }}
+                    <button id="resetBtn" type="button" class="btn reset-btn" onclick="window.location='local_account_authentication?serverID={{ .server.ID }}&accountID={{ .account.ID }}'"><i class="bi bi-x fs"></i></button>
                 {{ end }}
-            <input class="navbar-partner form-control {{ if eq .credentialPartnerFound "false" }}is-invalid{{ end }}" type="search" placeholder="{{ index .tab "search" }}" name="search" id="search" autocomplete="off">
+            <input class="navbar-partner form-control {{ if eq .credentialAccountFound "false" }}is-invalid{{ end }}" type="search" placeholder="{{ index .tab "search" }}" name="search" id="search" autocomplete="off">
             <button class="btn btn-primary ms-2 btn-navbar" type="submit">{{ index .tab "search" }}</button>
             <ul id="autocomplete" class="list-group"></ul>
             </form>
         </nav>
       {{ end }}
-      {{ if contains .myPermission.Partners "r" }}
+      {{ if contains .myPermission.Servers "r" }}
        <table class="table table-sm align-middle mb-4 rounded-3 mt-3">
           <thead class="table-light">
             <tr>
@@ -136,7 +139,7 @@
             </tr>
           </thead>
           <tbody>
-            {{ range .partnersCredentials }}
+            {{ range .accountCredentials }}
             <tr>
               <td><i class="bi bi-person-fill"></i></td>
               <td><strong>{{ .Name }}</strong></td>
@@ -159,30 +162,31 @@
               </td>
               <td></td>
               <td class="text-end">
-              {{ if contains $.myPermission.Partners "w" }}
+              {{ if contains $.myPermission.Servers "w" }}
                 <button class="btn btn-outline-primary btn-sm me-1" data-bs-toggle="modal" data-bs-target="#editCredentialInternalModal_{{ .ID }}">
                   <i class="bi bi-pencil"></i>
                 </button>
-                <div class="modal fade" id="editCredentialInternalModal_{{ .ID }}" tabindex="-1" aria-labelledby="editCredentialPartnerModalLabel_{{ .ID }}" aria-hidden="true">
+                <div class="modal fade" id="editCredentialInternalModal_{{ .ID }}" tabindex="-1" aria-labelledby="editCredentialAccountModalLabel_{{ .ID }}" aria-hidden="true">
                   <div class="modal-dialog modal-lg">
                     <div class="modal-content">
                       <form method="post" class="p-3 border rounded bg-light">
-                        <input type="hidden" name="partnerID" value="{{ $.partner.ID }}">
-                        <input type="hidden" name="editCredentialPartnerID" value="{{ .ID }}">
+                        <input type="hidden" name="serverID" value="{{ $.server.ID }}">
+                        <input type="hidden" name="accountID" value="{{ $.account.ID }}">
+                        <input type="hidden" name="editCredentialAccountID" value="{{ .ID }}">
                         <div class="modal-header">
-                          <h5 class="modal-title" id="editCredentialPartnerModalLabel_{{ .ID }}">{{ index $.tab "edit" }}: {{ .Name }}</h5>
+                          <h5 class="modal-title" id="editCredentialAccountModalLabel_{{ .ID }}">{{ index $.tab "edit" }}: {{ .Name }}</h5>
                           <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
                         </div>
                         <div class="modal-body">
                           <div class="form-input">
                             <label class="col-form-label">{{ index $.tab "nameStr" }} :</label>
-                            <input type="text" name="editCredentialPartnerName" class="form-control" required value="{{ .Name }}">
+                            <input type="text" name="editCredentialAccountName" class="form-control" required value="{{ .Name }}">
                           </div>
                           <hr class="mt-2" style="border-top: 1px solid #ababab;">
                           <div class="form-input">
                             <label class="col-form-label">{{ index $.tab "type" }} <i class="bi bi-info-circle ms-1" data-bs-toggle="tooltip" data-bs-placement="right" data-bs-title="{{ index $.tab "typeTooltip" }}"></i> :</label>
                             {{ $credential := . }}
-                            <select name="editCredentialPartnerType" class="form-select edit-credential-type-select" required>
+                            <select name="editCredentialAccountType" class="form-select edit-credential-type-select" required>
                               <option value="" disabled>{{ index $.tab "selectType" }}</option>
                               {{ range $.listSupportedProtocol }}
                                 <option value="{{ . }}" {{ if eq $credential.Type . }}selected{{ end }}>
@@ -213,10 +217,11 @@
                   </div>
                 </div>
               {{ end }}
-              {{ if contains $.myPermission.Partners "d" }}
+              {{ if contains $.myPermission.Servers "d" }}
                 <form method="post" class="d-inline">
-                  <input type="hidden" name="partnerID" value="{{ $.partner.ID }}">
-                  <input type="hidden" name="deleteCredentialPartner" value="{{ .ID }}">
+                  <input type="hidden" name="serverID" value="{{ $.server.ID }}">
+                  <input type="hidden" name="accountID" value="{{ $.account.ID }}">
+                  <input type="hidden" name="deleteCredentialAccount" value="{{ .ID }}">
                   <button type="submit" class="btn btn-outline-danger btn-sm" onclick="return confirm('{{ index $.tab "confirmDelete" }}')">
                     <i class="bi bi-trash"></i>
                   </button>
@@ -242,6 +247,6 @@
     {{ end }}
 {{ end }}
 
-{{ define "partner_authentication_page" }}
+{{ define "local_account_authentication_page" }}
   {{ template "index" . }}
 {{ end }}

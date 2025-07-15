@@ -16,7 +16,7 @@ function showCredentialTypeBlock(selectElem) {
     if (selectElem.classList.contains('edit-credential-type-select')) {
         const modal = selectElem.closest('.modal');
         if (!modal) return;
-        const id = modal.id.replace('editCredentialPartnerModal_', '');
+        const id = modal.id.replace('editCredentialInternalModal_', '');
         const passwordBlock = document.getElementById('editTextType_' + id);
         const fileBlock = document.getElementById('editFileType_' + id);
         if (passwordBlock) passwordBlock.style.display = 'none';

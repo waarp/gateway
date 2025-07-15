@@ -82,8 +82,13 @@ func AddGUIRouter(router *mux.Router, logger *log.Logger, db *database.DB) {
 	secureRouter.HandleFunc("/autocompletion/partners", autocompletionPartnersFunc(db)).Methods("GET")
 	secureRouter.HandleFunc("/autocompletion/credentialPartner", autocompletionCredentialsPartnersFunc(db)).Methods("GET")
 	secureRouter.HandleFunc("/autocompletion/remoteAccount", autocompletionRemoteAccountFunc(db)).Methods("GET")
-	secureRouter.HandleFunc("/autocompletion/credentialAccount", autocompletionCredentialsAccountsFunc(db)).Methods("GET")
+	secureRouter.HandleFunc("/autocompletion/credentialRemoteAccount",
+		autocompletionCredentialsRemoteAccountsFunc(db)).Methods("GET")
 	secureRouter.HandleFunc("/autocompletion/servers", autocompletionServersFunc(db)).Methods("GET")
+	secureRouter.HandleFunc("/autocompletion/credentialServer", autocompletionCredentialsServersFunc(db)).Methods("GET")
+	secureRouter.HandleFunc("/autocompletion/localAccount", autocompletionLocalAccountFunc(db)).Methods("GET")
+	secureRouter.HandleFunc("/autocompletion/credentialLocalAccount",
+		autocompletionCredentialsLocalAccountsFunc(db)).Methods("GET")
 	secureRouter.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
 		http.Redirect(w, r, "home", http.StatusFound)
 	})
@@ -92,8 +97,13 @@ func AddGUIRouter(router *mux.Router, logger *log.Logger, db *database.DB) {
 	secureRouter.HandleFunc("/partner_management", partnerManagementPage(logger, db)).Methods("GET", "POST")
 	secureRouter.HandleFunc("/partner_authentication", partnerAuthenticationPage(logger, db)).Methods("GET", "POST")
 	secureRouter.HandleFunc("/remote_account_management", remoteAccountPage(logger, db)).Methods("GET", "POST")
-	secureRouter.HandleFunc("/account_authentication", accountAuthenticationPage(logger, db)).Methods("GET", "POST")
+	secureRouter.HandleFunc("/remote_account_authentication",
+		remoteAccountAuthenticationPage(logger, db)).Methods("GET", "POST")
 	secureRouter.HandleFunc("/server_management", serverManagementPage(logger, db)).Methods("GET", "POST")
+	secureRouter.HandleFunc("/server_authentication", serverAuthenticationPage(logger, db)).Methods("GET", "POST")
+	secureRouter.HandleFunc("/local_account_management", localAccountPage(logger, db)).Methods("GET", "POST")
+	secureRouter.HandleFunc("/local_account_authentication",
+		localAccountAuthenticationPage(logger, db)).Methods("GET", "POST")
 }
 
 func logout() http.HandlerFunc {

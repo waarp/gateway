@@ -58,6 +58,15 @@ func GetServerCredential(db database.ReadAccess, serverName, name string) (*mode
 	return getCredential(db, server, name)
 }
 
+func GetServerCredentialByID(db database.ReadAccess, serverName string, id int64) (*model.Credential, error) {
+	server, pErr := GetServer(db, serverName)
+	if pErr != nil {
+		return nil, pErr
+	}
+
+	return GetCredentialByID(db, server, id)
+}
+
 func ListServerCredentials(db database.ReadAccess, partnerName string,
 	orderByCol string, orderByAsc bool, limit, offset int, types ...string,
 ) ([]*model.Credential, error) {

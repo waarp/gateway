@@ -15,6 +15,9 @@
     {{ if .hasAccountID }}
       <input type="hidden" name="accountID" value="{{ .account.ID }}">
     {{ end }}
+    {{ if .hasServerID }}
+      <input type="hidden" name="serverID" value="{{ .server.ID }}">
+    {{ end }}
   </form>
 </div>
 {{ end }}

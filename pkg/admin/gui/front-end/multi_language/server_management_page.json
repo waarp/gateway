@@ -12,6 +12,7 @@
     "search": { "fr": "Recherche", "en": "Search" },
     "close": { "fr": "Fermer", "en": "Close" },
     "add": { "fr": "Ajouter", "en": "Add" },
+    "edit": { "fr": "Modifier", "en": "Edit" },
     "next": { "fr": "Suivant", "en": "Next" },
     "previous": { "fr": "Précédent", "en": "Previous" },
     "protocol": { "fr": "Protocole", "en": "Protocol" },
@@ -86,5 +87,8 @@
     "depreciated": { "fr": "Déprécié", "en": "Depreciated" },
     "selectProto": { "fr": "Sélectionnez votre protocole", "en": "Select your protocol" },
     "selectTLSVersion": { "fr": "Sélectionnez la version TLS", "en": "Select TLS version" },
-    "selectCompatibilityMode": { "fr": "Séléctionnez votre mode de compatibilité", "en": "Select your compatibility mode" }
+    "selectCompatibilityMode": { "fr": "Séléctionnez votre mode de compatibilité", "en": "Select your compatibility mode" },
+    "tooltipServerAuthentication": { "fr": "Authentification du serveur", "en": "Server Authentication" },
+    "tooltipLocalAccountManagement": { "fr": "Gestion des comptes distants", "en": "Remote account management" }
+
 }

@@ -1,0 +1,317 @@
+package gui
+
+import (
+	"encoding/json"
+	"fmt"
+	"net/http"
+	"strconv"
+
+	"code.waarp.fr/lib/log"
+
+	"code.waarp.fr/apps/gateway/gateway/pkg/admin/gui/internal"
+	"code.waarp.fr/apps/gateway/gateway/pkg/database"
+	"code.waarp.fr/apps/gateway/gateway/pkg/model"
+)
+
+//nolint:dupl // it is not the same function, the calls are different
+func listLocalAccount(serverName string, db *database.DB, r *http.Request) (
+	[]*model.LocalAccount, FiltersPagination, string,
+) {
+	localAccountFound := ""
+	filter := FiltersPagination{
+		Offset:          0,
+		Limit:           LimitPagination,
+		OrderAsc:        true,
+		DisableNext:     false,
+		DisablePrevious: false,
+	}
+
+	urlParams := r.URL.Query()
+
+	if urlParams.Get("orderAsc") == "true" {
+		filter.OrderAsc = true
+	} else if urlParams.Get("orderAsc") == "false" {
+		filter.OrderAsc = false
+	}
+
+	if limitRes := urlParams.Get("limit"); limitRes != "" {
+		if l, err := strconv.Atoi(limitRes); err == nil {
+			filter.Limit = l
+		}
+	}
+
+	if offsetRes := urlParams.Get("offset"); offsetRes != "" {
+		if o, err := strconv.Atoi(offsetRes); err == nil {
+			filter.Offset = o
+		}
+	}
+
+	localsAccounts, err := internal.ListServerAccounts(db, serverName, "login", true, 0, 0)
+	if err != nil {
+		return nil, FiltersPagination{}, localAccountFound
+	}
+
+	if search := urlParams.Get("search"); search != "" && searchLocalAccount(search, localsAccounts) == nil {
+		localAccountFound = "false"
+	} else if search != "" {
+		filter.DisableNext = true
+		filter.DisablePrevious = true
+		localAccountFound = "true"
+
+		return []*model.LocalAccount{searchLocalAccount(search, localsAccounts)}, filter, localAccountFound
+	}
+
+	paginationPage(&filter, len(localAccountFound), r)
+
+	localsAccountsList, err := internal.ListServerAccounts(db, serverName, "login",
+		filter.OrderAsc, filter.Limit, filter.Offset*filter.Limit)
+	if err != nil {
+		return nil, FiltersPagination{}, localAccountFound
+	}
+
+	return localsAccountsList, filter, localAccountFound
+}
+
+func autocompletionLocalAccountFunc(db *database.DB) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		urlParams := r.URL.Query()
+		prefix := urlParams.Get("q")
+		var err error
+		var server *model.LocalAgent
+		var id int
+
+		serverID := urlParams.Get("serverID")
+		if serverID != "" {
+			id, err = strconv.Atoi(serverID)
+			if err != nil {
+				http.Error(w, "failed to convert id to int", http.StatusInternalServerError)
+
+				return
+			}
+
+			server, err = internal.GetServerByID(db, int64(id))
+			if err != nil {
+				http.Error(w, "failed to get id", http.StatusInternalServerError)
+
+				return
+			}
+		}
+
+		localAccounts, err := internal.GetServerAccountsLike(db, server.Name, prefix)
+		if err != nil {
+			http.Error(w, "internal error", http.StatusInternalServerError)
+
+			return
+		}
+
+		names := make([]string, len(localAccounts))
+		for i, u := range localAccounts {
+			names[i] = u.Login
+		}
+
+		w.Header().Set("Content-Type", "application/json")
+
+		if err := json.NewEncoder(w).Encode(names); err != nil {
+			http.Error(w, "error json", http.StatusInternalServerError)
+		}
+	}
+}
+
+func searchLocalAccount(localAccountLoginSearch string,
+	listLocalAccountSearch []*model.LocalAccount,
+) *model.LocalAccount {
+	for _, la := range listLocalAccountSearch {
+		if la.Login == localAccountLoginSearch {
+			return la
+		}
+	}
+
+	return nil
+}
+
+func editLocalAccount(db *database.DB, r *http.Request) error {
+	if err := r.ParseForm(); err != nil {
+		return fmt.Errorf("failed to parse form: %w", err)
+	}
+	localAccountID := r.FormValue("editLocalAccountID")
+
+	id, err := strconv.Atoi(localAccountID)
+	if err != nil {
+		return fmt.Errorf("failed to convert id to int: %w", err)
+	}
+
+	editLocalAccount, err := internal.GetServerAccountByID(db, int64(id))
+	if err != nil {
+		return fmt.Errorf("failed to get local account: %w", err)
+	}
+
+	if editLocalAccountLogin := r.FormValue("editLocalAccountLogin"); editLocalAccountLogin != "" {
+		editLocalAccount.Login = editLocalAccountLogin
+	}
+
+	if err = internal.UpdateServerAccount(db, editLocalAccount); err != nil {
+		return fmt.Errorf("failed to edit local account: %w", err)
+	}
+
+	return nil
+}
+
+func addLocalAccount(serverName string, db *database.DB, r *http.Request) error {
+	var newLocalAccount model.LocalAccount
+
+	if err := r.ParseForm(); err != nil {
+		return fmt.Errorf("failed to parse form: %w", err)
+	}
+
+	if newLocalAccountLogin := r.FormValue("addLocalAccountLogin"); newLocalAccountLogin != "" {
+		newLocalAccount.Login = newLocalAccountLogin
+	}
+
+	server, err := internal.GetServer(db, serverName)
+	if err != nil {
+		return fmt.Errorf("failed to get server: %w", err)
+	}
+
+	newLocalAccount.LocalAgentID = server.ID
+
+	if err := internal.InsertServerAccount(db, &newLocalAccount); err != nil {
+		return fmt.Errorf("failed to add local account: %w", err)
+	}
+
+	return nil
+}
+
+//nolint:dupl // it is not the same function, the calls are different
+func deleteLocalAccount(db *database.DB, r *http.Request) error {
+	if err := r.ParseForm(); err != nil {
+		return fmt.Errorf("failed to parse form: %w", err)
+	}
+	localAccountID := r.FormValue("deleteLocalAccount")
+
+	id, err := strconv.Atoi(localAccountID)
+	if err != nil {
+		return fmt.Errorf("internal error: %w", err)
+	}
+
+	localAccount, err := internal.GetServerAccountByID(db, int64(id))
+	if err != nil {
+		return fmt.Errorf("internal error: %w", err)
+	}
+
+	if err = internal.DeleteServerAccount(db, localAccount); err != nil {
+		return fmt.Errorf("internal error: %w", err)
+	}
+
+	return nil
+}
+
+func callMethodsLocalAccount(logger *log.Logger, db *database.DB, w http.ResponseWriter, r *http.Request,
+	server *model.LocalAgent,
+) (bool, string, string) {
+	if r.Method == http.MethodPost && r.FormValue("deleteLocalAccount") != "" {
+		deleteLocalAccountErr := deleteLocalAccount(db, r)
+		if deleteLocalAccountErr != nil {
+			logger.Error("failed to delete local account: %v", deleteLocalAccountErr)
+
+			return false, deleteLocalAccountErr.Error(), ""
+		}
+
+		http.Redirect(w, r, fmt.Sprintf("%s?serverID=%d", r.URL.Path, server.ID), http.StatusSeeOther)
+
+		return true, "", ""
+	}
+
+	if r.Method == http.MethodPost && r.FormValue("addLocalAccountLogin") != "" {
+		addLocalAccountErr := addLocalAccount(server.Name, db, r)
+		if addLocalAccountErr != nil {
+			logger.Error("failed to add local account: %v", addLocalAccountErr)
+
+			return false, addLocalAccountErr.Error(), "addLocalAccountModal"
+		}
+
+		http.Redirect(w, r, fmt.Sprintf("%s?serverID=%d", r.URL.Path, server.ID), http.StatusSeeOther)
+
+		return true, "", ""
+	}
+
+	if r.Method == http.MethodPost && r.FormValue("editLocalAccountID") != "" {
+		idEdit := r.FormValue("editLocalAccountID")
+
+		id, err := strconv.Atoi(idEdit)
+		if err != nil {
+			logger.Error("failed to convert id to int: %v", err)
+
+			return false, "", ""
+		}
+
+		editLocalAccountErr := editLocalAccount(db, r)
+		if editLocalAccountErr != nil {
+			logger.Error("failed to edit local account: %v", editLocalAccountErr)
+
+			return false, editLocalAccountErr.Error(), fmt.Sprintf("editLocalAccountModal_%d", id)
+		}
+
+		http.Redirect(w, r, fmt.Sprintf("%s?serverID=%d", r.URL.Path, server.ID), http.StatusSeeOther)
+
+		return true, "", ""
+	}
+
+	return false, "", ""
+}
+
+func localAccountPage(logger *log.Logger, db *database.DB) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		userLanguage := r.Context().Value(ContextLanguageKey)
+		tTranslated := //nolint:forcetypeassert //u
+			pageTranslated("local_account_management_page", userLanguage.(string)) //nolint:errcheck //u
+
+		user, err := GetUserByToken(r, db)
+		if err != nil {
+			logger.Error("Internal error: %v", err)
+		}
+
+		myPermission := model.MaskToPerms(user.Permissions)
+		var server *model.LocalAgent
+		var id int
+
+		serverID := r.URL.Query().Get("serverID")
+		if serverID != "" {
+			id, err = strconv.Atoi(serverID)
+			if err != nil {
+				logger.Error("failed to convert id to int: %v", err)
+			}
+
+			server, err = internal.GetServerByID(db, int64(id))
+			if err != nil {
+				logger.Error("failed to get id: %v", err)
+			}
+		}
+
+		localAccounts, filter, localAccountFound := listLocalAccount(server.Name, db, r)
+
+		value, errMsg, modalOpen := callMethodsLocalAccount(logger, db, w, r, server)
+		if value {
+			return
+		}
+
+		currentPage := filter.Offset + 1
+
+		if err := localAccountTemplate.ExecuteTemplate(w, "local_account_management_page", map[string]any{
+			"myPermission":      myPermission,
+			"username":          user.Username,
+			"language":          userLanguage,
+			"server":            server,
+			"localAccounts":     localAccounts,
+			"filter":            filter,
+			"currentPage":       currentPage,
+			"localAccountFound": localAccountFound,
+			"tab":               tTranslated,
+			"errMsg":            errMsg,
+			"modalOpen":         modalOpen,
+			"hasServerID":       true,
+		}); err != nil {
+			logger.Error("render server_management_page: %v", err)
+			http.Error(w, "Internal error", http.StatusInternalServerError)
+		}
+	}
+}
