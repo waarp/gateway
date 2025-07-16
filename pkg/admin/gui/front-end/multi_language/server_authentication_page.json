@@ -1,5 +1,5 @@
 {
-    "title": { "fr": "Authentification du serveut", "en": "Server Authentication" },
+    "title": { "fr": "Authentification du serveur", "en": "Server authentication" },
     "about": { "fr": "À propos", "en": "About" },
     "logout": { "fr": "Déconnexion", "en": "Logout" },
     "close": { "fr": "Fermer", "en": "Close" },
@@ -24,7 +24,7 @@
     "tlsCertificate": { "fr": "Certificat TLS", "en": "TLS certificate" },
     "sshPrivateKey": { "fr": "Clé privée SSH", "en": "SSH private key" },
     "r66LegacyCertificate": { "fr": "Certificat R66 « legacy »", "en": "R66 « legacy » certificate" },
-    "pesitPreConnectionAuth": { "fr": "Authentification de pré-connexion pesit", "en": "Pesit pre-connection Authentication" },
+    "pesitPreConnectionAuth": { "fr": "Authentification de pré-connexion pesit", "en": "Pesit pre-connection authentication" },
     "selectType": { "fr": "Séléctionnez un Type", "en": "Select a Type" },
     "primaryValue": { "fr": "Valeur primaire", "en": "Primary value" },
     "secondaryValue": { "fr": "Valeur secondaire", "en": "Secondary value" },

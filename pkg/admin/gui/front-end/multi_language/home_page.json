@@ -5,7 +5,7 @@
     "connection_settings": { "fr": "Paramètres de connexion", "en": "Connection settings", "es": "Configuración de conexión" },
     "status_of_services": { "fr": "Status des services", "en": "Status of services", "es": "Estado de los servicios" },
     "user_management": { "fr": "Gestion des utilisateurs", "en": "User management", "es": "Gestión de usuarios" },
-    "local_customer_management": { "fr": "Gestion des clients locaux", "en": "Local customer management", "es": "Gestión de clientes locales" },
+    "local_client_management": { "fr": "Gestion des clients locaux", "en": "Local client management", "es": "Gestión de clientes locales" },
     "managing_local_servers": { "fr": "Gestion des serveurs locaux", "en": "Managing local servers", "es": "Administrar servidores locales" },
     "local_account_anagement": { "fr": "Gestion des comptes locaux", "en": "Local account management", "es": "Gestión de cuentas locales" },
     "remote_partner_management": { "fr": "Gestion des partenaires distants", "en": "Remote partner management", "es": "Gestión remota de socios" },

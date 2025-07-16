@@ -1,5 +1,5 @@
 {
-    "title": { "fr": "Authentification du compte", "en": "Account Authentication" },
+    "title": { "fr": "Authentification du compte local", "en": "Local Account Authentication" },
     "about": { "fr": "À propos", "en": "About" },
     "logout": { "fr": "Déconnexion", "en": "Logout" },
     "close": { "fr": "Fermer", "en": "Close" },

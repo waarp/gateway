@@ -1,5 +1,5 @@
 {
-    "title": { "fr": "Gestion des comptes à distance", "en": "Remote account management" },
+    "title": { "fr": "Gestion des comptes distants", "en": "Remote account management" },
     "about": { "fr": "À propos", "en": "About" },
     "logout": { "fr": "Déconnexion", "en": "Logout" },
     "search": { "fr": "Recherche", "en": "Search" },
@@ -16,6 +16,6 @@
     "edit": { "fr": "Modifier", "en": "Edit" },
     "next": { "fr": "Suivant", "en": "Next" },
     "previous": { "fr": "Précédent", "en": "Previous" },
-    "tooltipRemoteAccountAuthentication": { "fr": "Authentification du compte", "en": "Account Authentication" },
+    "tooltipRemoteAccountAuthentication": { "fr": "Authentification du compte", "en": "Account authentication" },
     "partnerAuthenticationNotFound": { "fr": "Authentification du partenaire introuvable", "en": "Partner authentication not found" }
 }

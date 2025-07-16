@@ -1,5 +1,5 @@
 {
-    "title": { "fr": "Authentification du partenaire", "en": "Partner Authentication" },
+    "title": { "fr": "Authentification du partenaire", "en": "Partner authentication" },
     "about": { "fr": "À propos", "en": "About" },
     "logout": { "fr": "Déconnexion", "en": "Logout" },
     "confirmDelete": { "fr": "Confirmer la suppression ?", "en": "Confirm deletion?" },
