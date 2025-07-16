@@ -14,6 +14,7 @@ import (
 	"code.waarp.fr/apps/gateway/gateway/pkg/protocols/modules/sftp"
 )
 
+//nolint:dupl // is not similar, is method for local client
 func addLocalClient(db *database.DB, r *http.Request) error {
 	var newLocalClient model.Client
 
@@ -59,7 +60,7 @@ func addLocalClient(db *database.DB, r *http.Request) error {
 	return nil
 }
 
-//nolint:funlen // unique method
+//nolint:dupl // is not similar, is method for local client
 func editLocalClient(db *database.DB, r *http.Request) error {
 	if err := r.ParseForm(); err != nil {
 		return fmt.Errorf("failed to parse form: %w", err)
@@ -116,7 +117,7 @@ func editLocalClient(db *database.DB, r *http.Request) error {
 	return nil
 }
 
-//nolint:dupl // no similar func
+//nolint:dupl // is not similar, is method for local client
 func deleteLocalClient(db *database.DB, r *http.Request) error {
 	if err := r.ParseForm(); err != nil {
 		return fmt.Errorf("failed to parse form: %w", err)
@@ -294,7 +295,8 @@ func callMethodsLocalClientManagement(logger *log.Logger, db *database.DB, w htt
 func localClientManagementPage(logger *log.Logger, db *database.DB) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		userLanguage := r.Context().Value(ContextLanguageKey)
-		tabTranslated := pageTranslated("local_client_management_page", userLanguage.(string)) //nolint:errcheck,forcetypeassert //u
+		tabTranslated := //nolint:forcetypeassert //u
+			pageTranslated("local_client_management_page", userLanguage.(string)) //nolint:errcheck //u
 		localClientList, filter, localClientFound := listLocalClient(db, r)
 
 		value, errMsg, modalOpen := callMethodsLocalClientManagement(logger, db, w, r)
@@ -315,8 +317,8 @@ func localClientManagementPage(logger *log.Logger, db *database.DB) http.Handler
 			"tab":                    tabTranslated,
 			"username":               user.Username,
 			"language":               userLanguage,
-			"localClient":                 localClientList,
-			"localClientFound":            localClientFound,
+			"localClient":            localClientList,
+			"localClientFound":       localClientFound,
 			"filter":                 filter,
 			"currentPage":            currentPage,
 			"TLSVersions":            TLSVersions,
