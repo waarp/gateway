@@ -60,8 +60,6 @@
                                                 {{ index $.tab "sshPrivateKey" }}
                                             {{ else if eq . "r66_legacy_certificate" }}
                                                 {{ index $.tab "r66LegacyCertificate" }}
-                                            {{ else if eq . "pesit_pre-connection_auth" }}
-                                                {{ index $.tab "pesitPreConnectionAuth" }}
                                             {{ else }}
                                                 {{ . }}
                                             {{ end }}
@@ -159,7 +157,7 @@
                         {{ end }}
                     </td>
                     <td>
-                        {{ if or (eq .Type "tls_certificate") (eq .Type "pesit_pre-connection_auth") }}
+                        {{ if eq .Type "tls_certificate" }}
                         <button class="btn btn-outline-primary modal-btn" type="button" data-bs-toggle="modal" data-bs-target="#valueTypeModal2_{{ .ID }}">
                             <i class="bi bi-three-dots"></i>
                         </button>
@@ -210,8 +208,6 @@
                                                                     {{ index $.tab "sshPrivateKey" }}
                                                                 {{ else if eq . "r66_legacy_certificate" }}
                                                                     {{ index $.tab "r66LegacyCertificate" }}
-                                                                {{ else if eq . "pesit_pre-connection_auth" }}
-                                                                    {{ index $.tab "pesitPreConnectionAuth" }}
                                                                 {{ else }}
                                                                     {{ . }}
                                                                 {{ end }}

@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"net/http"
+	"slices"
 	"strconv"
 
 	"code.waarp.fr/lib/log"
@@ -335,6 +336,9 @@ func serverAuthenticationPage(logger *log.Logger, db *database.DB) http.HandlerF
 		}
 
 		listSupportedProtocol := supportedProtocolExternal(server.Protocol)
+		listSupportedProtocol = slices.DeleteFunc(listSupportedProtocol, func(method_auth string) bool {
+			return method_auth == "pesit_pre-connection_auth"
+		})
 		currentPage := filter.Offset + 1
 
 		if err := serverAuthenticationTemplate.ExecuteTemplate(w, "server_authentication_page", map[string]any{
