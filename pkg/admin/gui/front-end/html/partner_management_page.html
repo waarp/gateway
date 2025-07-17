@@ -68,10 +68,10 @@
                     <label class="col-form-label">{{ index .tab "address" }} ({{ index .tab "port" }}) <i class="bi bi-info-circle ms-1" data-bs-toggle="tooltip" data-bs-placement="right" data-bs-title="{{ index $.tab "tooltipPort" }}"></i> :</label>
                   <input type="text" name="addPartnerPort" class="form-control" required>
               </div>
-              {{ template "addR66" . }}
-              {{ template "addSftp" . }}
-              {{ template "addFtp" . }}
-              {{ template "addPesit" . }}
+              {{ template "addR66Partner" . }}
+              {{ template "addSftpPartner" . }}
+              {{ template "addFtpPartner" . }}
+              {{ template "addPesitPartner" . }}
             </div>
               <div class="modal-footer">
                   <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">{{ index .tab "close" }}</button>

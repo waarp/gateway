@@ -92,10 +92,10 @@
                 <label class="col-form-label">{{ index .tab "tmpReceiveDir" }} :</label>
                 <input type="text" name="addServerTmpReceiveDir" class="form-control" required>
                 </div>
-                {{ template "addR66" . }}
-                {{ template "addSftp" . }}
-                {{ template "addFtp" . }}
-                {{ template "addPesit" . }}
+                {{ template "addR66Server" . }}
+                {{ template "addSftpServer" . }}
+                {{ template "addFtpServer" . }}
+                {{ template "addPesitServer" . }}
             </div>
             <div class="modal-footer">
                 <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">{{ index .tab "close" }}</button>

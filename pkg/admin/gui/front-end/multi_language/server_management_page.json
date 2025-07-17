@@ -36,6 +36,14 @@
     "noFinalHash": { "fr": "Pas de hachage final", "en": "No final hash" },
     "checkBlockHash": { "fr": "Vérifier le hachage du bloc", "en": "Check block hash" },
     "disableActiveMode": { "fr": "Désactiver le mode actif", "en": "Disable active mode" },
+    disablePassiveMode
+    tooltipDisablePassiveMode
+    passiveModeMinPort
+    tooltipPassiveModeMinPort
+    passiveModeMaxPort
+    tooltipPassiveModeMaxPort
+    tlsRequirement
+    tooltipTlsRequirement
     "disableEPSV": { "fr": "Désactiver EPSV", "en": "Disable EPSV" },
     "useImplicitTLS": { "fr": "Utiliser TLS implicite", "en": "Use Implicit TLS" },
     "minTLSVersion": { "fr": "Version TLS minimale", "en": "Minimum TLS version" },
