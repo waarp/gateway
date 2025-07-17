@@ -15,6 +15,7 @@
     "edit": { "fr": "Modifier", "en": "Edit" },
     "next": { "fr": "Suivant", "en": "Next" },
     "previous": { "fr": "Précédent", "en": "Previous" },
+    "confirmDelete": { "fr": "Confirmer la suppression ?", "en": "Confirm deletion?" },
     "protocol": { "fr": "Protocole", "en": "Protocol" },
     "servers": { "fr": "Serveur", "en": "Server" },
     "address": { "fr": "Adresse", "en": "Address" },

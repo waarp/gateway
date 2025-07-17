@@ -22,7 +22,7 @@
       <i class="bi bi-arrow-left"></i>
     </button>
   </div>
-  <hr class="mt-2 mb-4" style="border-top: 1px solid #ababab;">
+  <hr style="border-top: 1px solid #ababab;">
 
     {{ if contains .myPermission.Servers "w" }}
     <button class="btn btn-primary mb-3 btn-add" type="button" data-bs-toggle="modal" data-bs-target="#addLocalClientModal">
@@ -42,7 +42,7 @@
                 <label class="col-form-label">{{ index .tab "localClientStr" }} :</label>
                 <input type="text" name="addLocalClientName" class="form-control" required>
                 </div>
-                <hr class="mt-2" style="border-top: 1px solid #ababab;">
+                <hr style="border-top: 1px solid #ababab;">
 
                 <div class="form-input">
                 <label class="col-form-label">{{ index .tab "protocol" }} <i class="bi bi-info-circle ms-1" data-bs-toggle="tooltip" data-bs-placement="right" data-bs-title="{{ index $.tab "tooltipProtocol" }}"></i> :</label>
@@ -59,13 +59,13 @@
                     <option value="pesit-tls">PeSIT-TLS</option>
                 </select>
                 </div>
-                <hr class="mt-2" style="border-top: 1px solid #ababab;">
+                <hr style="border-top: 1px solid #ababab;">
 
                 <div class="form-input">
                 <label class="col-form-label">{{ index .tab "address" }} ({{ index .tab "host" }}) <i class="bi bi-info-circle ms-1" data-bs-toggle="tooltip" data-bs-placement="right" data-bs-title="{{ index $.tab "tooltipHost" }}"></i> :</label>
                 <input type="text" name="addLocalClientHost" class="form-control" required>
                 </div>
-                <hr class="mt-2" style="border-top: 1px solid #ababab;">
+                <hr style="border-top: 1px solid #ababab;">
 
                 <div class="form-input">
                 <label class="col-form-label">{{ index .tab "address" }} ({{ index .tab "port" }}) <i class="bi bi-info-circle ms-1" data-bs-toggle="tooltip" data-bs-placement="right" data-bs-title="{{ index $.tab "tooltipPort" }}"></i> :</label>
@@ -235,12 +235,12 @@
                             <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
                         </div>
                         <div class="modal-body">
-                            <div class="form-group">
+                            <div class="form-input">
                             <label class="col-form-label">{{ index $.tab "localClientStr" }} :</label>
                             <input type="text" name="editLocalClientName" class="form-control" required value="{{ .Name }}">
                             </div>
-                            <hr class="mt-2 mb-4" style="border-top: 1px solid #ababab;">
-                            <div class="form-group mt-4">
+                            <hr style="border-top: 1px solid #ababab;">
+                            <div class="form-input mt-4">
                             <label class="col-form-label">{{ index $.tab "protocol" }} <i class="bi bi-info-circle ms-1" data-bs-toggle="tooltip" data-bs-placement="right" data-bs-title="{{ index $.tab "tooltipProtocol" }}"></i> :</label>
                             <select name="editLocalClientProtocol" class="form-select protocolConfiguration-select" required>
                                 <option value="r66" {{ if eq .Protocol "r66" }}selected{{ end }}>R66</option>
@@ -254,13 +254,13 @@
                                 <option value="pesit-tls" {{ if eq .Protocol "pesit-tls" }}selected{{ end }}>PeSIT-TLS</option>
                             </select>
                             </div>
-                            <hr class="mt-2 mb-4" style="border-top: 1px solid #ababab;">
-                            <div class="form-group mt-4">
+                            <hr style="border-top: 1px solid #ababab;">
+                            <div class="form-input mt-4">
                             <label class="col-form-label">{{ index $.tab "address" }} ({{ index $.tab "host" }}) <i class="bi bi-info-circle ms-1" data-bs-toggle="tooltip" data-bs-placement="right" data-bs-title="{{ index $.tab "tooltipHost" }}"></i> :</label>
                             <input type="text" name="editLocalClientHost" class="form-control" required value="{{ .LocalAddress.Host }}">
                             </div>
-                            <hr class="mt-2 mb-4" style="border-top: 1px solid #ababab;">
-                            <div class="form-group mt-4">
+                            <hr style="border-top: 1px solid #ababab;">
+                            <div class="form-input mt-4">
                             <label class="col-form-label">{{ index $.tab "address" }} ({{ index $.tab "port" }}) <i class="bi bi-info-circle ms-1" data-bs-toggle="tooltip" data-bs-placement="right" data-bs-title="{{ index $.tab "tooltipPort" }}"></i> :</label>
                             <input type="text" name="editLocalClientPort" class="form-control" required value="{{ .LocalAddress.Port }}">
                             </div>

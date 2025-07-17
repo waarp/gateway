@@ -13,6 +13,7 @@
     "previous": { "fr": "Précédent", "en": "Previous" },
     "limit": { "fr": "Limite", "en": "Limit" },
     "reset": { "fr": "Réinitialiser", "en": "Reset" },
+    "confirmDelete": { "fr": "Confirmer la suppression ?", "en": "Confirm deletion?" },
     "credentialServerNotFound": { "fr": "Serveur d'identification non trouvé", "en": "Credential server not found" },
     "addCredentialServerTitle": { "fr": "Ajouter une nouvelle méthode d'authentification", "en": "Add a new authentication method" },
     "selectYourTlsCertificate": { "fr": "Sélectionnez votre certificat TLS", "en": "Select your TLS certificate" },

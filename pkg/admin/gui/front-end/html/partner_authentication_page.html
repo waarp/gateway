@@ -25,7 +25,7 @@
           <i class="bi bi-arrow-left"></i>
         </button>
       </div>
-      <hr class="mt-2 mb-4" style="border-top: 1px solid #ababab;">
+      <hr style="border-top: 1px solid #ababab;">
       
       {{ if contains .myPermission.Partners "w" }}
         <button class="btn btn-primary mb-3 btn-add" type="button" data-bs-toggle="modal" data-bs-target="#addCredentialPartnerModal">
@@ -45,7 +45,7 @@
                   <label class="col-form-label">{{ index .tab "nameStr" }} :</label>
                   <input type="text" name="addCredentialPartnerName" class="form-control" required>
               </div>
-              <hr class="mt-2" style="border-top: 1px solid #ababab;">
+              <hr style="border-top: 1px solid #ababab;">
               <div class="form-input">
                 <label class="col-form-label">{{ index .tab "type" }} <i class="bi bi-info-circle ms-1" data-bs-toggle="tooltip" data-bs-placement="right" data-bs-title="{{ index .tab "typeTooltip" }}"></i> :</label>
                 <select name="addCredentialPartnerType" id="addCredentialPartnerType" class="form-select add-credential-type-select" required>
@@ -178,7 +178,7 @@
                             <label class="col-form-label">{{ index $.tab "nameStr" }} :</label>
                             <input type="text" name="editCredentialPartnerName" class="form-control" required value="{{ .Name }}">
                           </div>
-                          <hr class="mt-2" style="border-top: 1px solid #ababab;">
+                          <hr style="border-top: 1px solid #ababab;">
                           <div class="form-input">
                             <label class="col-form-label">{{ index $.tab "type" }} <i class="bi bi-info-circle ms-1" data-bs-toggle="tooltip" data-bs-placement="right" data-bs-title="{{ index $.tab "typeTooltip" }}"></i> :</label>
                             {{ $credential := . }}

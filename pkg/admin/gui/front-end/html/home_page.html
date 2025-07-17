@@ -5,7 +5,7 @@
 
 {{ define "content" }}
 <h2>{{ index .tab "title" }}</h2>
-  <hr class="mt-2 mb-4" style="border-top: 1px solid #ababab;">
+  <hr style="border-top: 1px solid #ababab;">
 <div class="row g-3 mb-4">
   <div class="col-sm-4">
     <a href="connection_settings.html" class="text-decoration-none text-dark">
@@ -72,7 +72,7 @@
     </a>
   </div>
   <div class="col-sm-4">
-    <a href="transfer_rules_management.html" class="text-decoration-none text-dark">
+    <a href="transfer_rules_management" class="text-decoration-none text-dark">
       <div class="card text-center p-3">
         <i class="bi bi-shuffle fs-2"></i>
         <div>{{ index .tab "transfer_rules_management" }}</div>

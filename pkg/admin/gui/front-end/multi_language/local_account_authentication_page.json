@@ -23,6 +23,7 @@
     "tlsCertificate": { "fr": "Certificat TLS de confiance", "en": "Trusted TLS certificate" },
     "sshPublicKey": { "fr": "Clé publique SSH", "en": "SSH public key" },
     "r66LegacyCertificate": { "fr": "Certificat R66 « legacy »", "en": "R66 « legacy » certificate" },
+    "confirmDelete": { "fr": "Confirmer la suppression ?", "en": "Confirm deletion?" },
     "selectType": { "fr": "Séléctionnez un Type", "en": "Select a Type" },
     "primaryValue": { "fr": "Valeur primaire", "en": "Primary value" },
     "secondaryValue": { "fr": "Valeur secondaire", "en": "Secondary value" },

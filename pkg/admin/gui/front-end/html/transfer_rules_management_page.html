@@ -1,0 +1,310 @@
+{{ define "head" }}
+  <title>{{ index .tab "title" }}</title>
+  <link rel="stylesheet" href="/webui/static/css/style.css">
+  <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css" rel="stylesheet">
+  <script src="/webui/static/javaScript/autoCompleteSearch.js"></script>
+  <script src="/webui/static/javaScript/tooltip.js"></script>
+  <script src="/webui/static/javaScript/showProtoConfig.js"></script>
+  <script>window.modalOpen = "{{ .modalOpen }}";</script>
+  <script src="/webui/static/javaScript/displayErr.js"></script>
+{{ end }}
+
+{{ define "content" }}
+    {{ if .errMsg }}
+        <div id="errorPopup" class="alert alert-danger alert-dismissible fade show" role="alert">
+            {{ .errMsg }}
+            <button type="button" class="btn-close error-close-btn" data-bs-dismiss="alert" aria-label="Close"></button>
+        </div>
+    {{ end }}
+  <div class="d-flex align-items-center justify-content-between">
+    <h2 class="mb-0">{{ index .tab "title" }}</h2>
+    <button class="btn btn-outline-secondary ms-3 back-btn" type="button" onclick="window.location='home'">
+      <i class="bi bi-arrow-left"></i>
+    </button>
+  </div>
+  <hr style="border-top: 1px solid #ababab;">
+
+    {{ if contains .myPermission.Rules "w" }}
+    <button class="btn btn-primary mb-3 btn-add" type="button" data-bs-toggle="modal" data-bs-target="#addRuleModal">
+        {{ index .tab "addRuleTitle" }}
+    </button>
+    <div class="modal fade" id="addRuleModal" tabindex="-1" aria-labelledby="addRuleModalLabel" aria-hidden="true">
+        <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <form method="post" class="p-3 border rounded bg-light">
+            <div class="modal-header">
+                <h5 class="modal-title" id="addRuleModalLabel">{{ index .tab "addRuleTitle" }}</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <div class="form-input">
+                    <label class="col-form-label">{{ index .tab "rules" }} :</label>
+                    <input type="text" name="addRuleName" class="form-control" required>
+                </div>
+                <hr style="border-top: 1px solid #ababab;">
+                <div class="form-input d-flex align-items-center">
+                    <label class="col-form-label me-3">{{ index .tab "isSend" }} :</label>
+                    <div class="form-check form-check-inline">
+                        <input class="form-check-input" type="checkbox" name="addRuleIsSend" id="addRuleIsSend" value="true">
+                    </div>
+                </div>
+                <hr style="border-top: 1px solid #ababab;">
+                <div class="form-input">
+                    <label class="col-form-label">{{ index .tab "comment" }} :</label>
+                    <input type="text" name="addRuleComment" class="form-control" required>
+                </div>
+                <hr style="border-top: 1px solid #ababab;">
+                <div class="form-input">
+                    <label class="col-form-label">{{ index .tab "path" }} :</label>
+                    <input type="text" name="addRulePath" class="form-control" required>
+                </div>
+                <hr style="border-top: 1px solid #ababab;">
+                <div class="form-input">
+                    <label class="col-form-label">{{ index .tab "localDir" }} :</label>
+                    <input type="text" name="addRuleLocalDir" class="form-control" required>
+                </div>
+                <hr style="border-top: 1px solid #ababab;">
+                <div class="form-input">
+                    <label class="col-form-label">{{ index .tab "remoteDir" }} :</label>
+                    <input type="text" name="addRuleRemoteDir" class="form-control" required>
+                </div>
+                <hr style="border-top: 1px solid #ababab;">
+                <div class="form-input">
+                    <label class="col-form-label">{{ index .tab "tmpLocalRcvDir" }} :</label>
+                    <input type="text" name="addRuleTmpLocalRcvDir" class="form-control" required>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">{{ index .tab "close" }}</button>
+                <button type="submit" class="btn btn-success ms-3">{{ index .tab "apply" }}</button>
+            </div>
+            </form>
+        </div>
+        </div>
+    </div>
+    {{ end }}
+
+  {{ if contains .myPermission.Rules "r" }}
+    <button class="btn btn-primary mb-3 ms-1-5 btn-filter" type="button" data-bs-toggle="collapse" data-bs-target="#filterCollapse" aria-expanded="false" aria-controls="filterCollapse">
+      {{ index .tab "filter" }}
+    </button>
+    <div class="collapse" id="filterCollapse">
+      <form method="get" class="p-3 border rounded bg-light">
+        <label class="ms-3">{{ index .tab "sort" }}:
+          <select name="orderAsc" class="form-select d-inline w-auto">
+            <option value="true" {{ if .filter.OrderAsc }}selected{{ end }}>A → Z</option>
+            <option value="false" {{ if not .filter.OrderAsc }}selected{{ end }}>Z → A</option>
+          </select>
+        </label>
+        <label class="ms-3">{{ index .tab "limit" }}:
+          <select name="limit" class="form-select d-inline w-auto">
+            <option value="0" disabled selected>--</option>
+            <option value="5" {{ if eq .filter.Limit 5 }}selected{{ end }}>5</option>
+            <option value="10" {{ if eq .filter.Limit 10 }}selected{{ end }}>10</option>
+            <option value="15" {{ if eq .filter.Limit 15 }}selected{{ end }}>15</option>
+            <option value="20" {{ if eq .filter.Limit 20 }}selected{{ end }}>20</option>
+            <option value="25" {{ if eq .filter.Limit 25 }}selected{{ end }}>25</option>
+          </select>
+        </label>
+        <div style="float:right">
+          <button id="applyBtn" type="submit" class="btn btn-success">{{ index .tab "apply" }}</button>
+          <button id="resetBtn" type="button" class="btn btn-secondary ms-2" onclick="window.location='transfer_rules_management'">{{ index .tab "reset" }}</button>
+        </div>
+      </form>
+    </div>
+    <nav class="navbar navbar-light bg-light">
+      <input type="hidden" id="pageType" value="rules">
+      <form method="get" class="d-flex ms-auto position-relative" onsubmit="return true">
+        {{ if eq .ruleFound "false" }}
+          <div class="invalid-feedback d-block mt-2">{{ index .tab "RuleNotFound" }}</div>
+        {{ else if eq .ruleFound "true" }}
+          <button id="resetBtn" type="button" class="btn reset-btn" onclick="window.location='transfer_rules_management'"><i class="bi bi-x fs"></i></button>
+        {{ end }}
+        <input class="navbar-partner form-control {{ if eq .ruleFound "false" }}is-invalid{{ end }}" type="search" placeholder="{{ index .tab "search" }}" name="search" id="search" autocomplete="off">
+        <button class="btn btn-primary ms-2 btn-navbar" type="submit">{{ index .tab "search" }}</button>
+        <ul id="autocomplete" class="list-group"></ul>
+      </form>
+    </nav>
+    <table class="table table-sm align-middle mb-4 rounded-3 mt-3">
+      <thead class="table-light">
+        <tr>
+            <th></th>
+            <th>{{ index .tab "rules" }}</th>
+            <th>{{ index .tab "isSend" }}</th>
+            <th>{{ index .tab "comment" }}</th>
+            <th>{{ index .tab "pathConfiguration" }}</th>
+            <th>{{ index .tab "tasks" }}</th>
+            <th>{{ index .tab "usageRights" }}</th>
+            <th class="text-end"></th>
+        </tr>
+        </thead>
+        <tbody>
+        {{ range .rule }}
+        <tr>
+            <td><i class="bi bi-arrow-left-right me-1"></i></td>
+            <td><strong>{{ .Name }}</strong></td>
+            <td>
+            {{ if .IsSend }}
+                {{ index $.tab "send" }}
+            {{ else }}
+                {{ index $.tab "receive" }}
+            {{ end }}
+            </td>
+            <td>
+                <button class="btn btn-outline-primary modal-btn" type="button" data-bs-toggle="modal" data-bs-target="#commentTypeModal_{{ .ID }}">
+                    <i class="bi bi-three-dots"></i>
+                </button>
+                <div class="modal fade" id="commentTypeModal_{{ .ID }}" tabindex="-1" aria-labelledby="commentTypeModalLabel_{{ .ID }}" aria-hidden="true">
+                    <div class="modal-dialog modal-lg">
+                        <div class="modal-content">
+                            <div class="modal-body text-break">
+                                {{ .Comment }}
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </td>
+            <td>
+              <button class="btn btn-outline-primary modal-btn" type="button" data-bs-toggle="modal" data-bs-target="#pathConfigurationModal_{{ .ID }}">
+                <i class="bi bi-folder2-open"></i>
+              </button>
+              <div class="modal fade" id="pathConfigurationModal_{{ .ID }}" tabindex="-1" aria-labelledby="pathConfigurationModalLabel_{{ .ID }}" aria-hidden="true">
+                <div class="modal-dialog modal-lg">
+                  <div class="modal-content p-3 border rounded bg-light">
+                    <div class="modal-header">
+                      <h5 class="modal-title" id="pathConfigurationModalLabel_{{ .ID }}">
+                        {{ index $.tab "pathConfiguration" }} : {{ .Name }}
+                      </h5>
+                      <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                    </div>
+                    <div class="modal-body">
+                      <div class="form-input mb-2">
+                        <label class="col-form-label">{{ index $.tab "path" }} :</label>
+                        <input type="text" class="form-control-plaintext" value="{{ .Path }}" readonly>
+                      </div>
+                      <hr style="border-top: 1px solid #ababab;">
+                      <div class="form-input mb-2">
+                        <label class="col-form-label">{{ index $.tab "localDir" }} :</label>
+                        <input type="text" class="form-control-plaintext" value="{{ .LocalDir }}" readonly>
+                      </div>
+                      <hr style="border-top: 1px solid #ababab;">
+                      <div class="form-input mb-2">
+                        <label class="col-form-label">{{ index $.tab "remoteDir" }} :</label>
+                        <input type="text" class="form-control-plaintext" value="{{ .RemoteDir }}" readonly>
+                      </div>
+                      <hr style="border-top: 1px solid #ababab;">
+                      <div class="form-input mb-2">
+                        <label class="col-form-label">{{ index $.tab "tmpLocalRcvDir" }} :</label>
+                        <input type="text" class="form-control-plaintext" value="{{ .TmpLocalRcvDir }}" readonly>
+                      </div>
+                    </div>
+                    <div class="modal-footer">
+                      <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">{{ index $.tab "close" }}</button>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </td>
+            <td>
+              <a class="btn btn-outline-primary modal-btn" href="pre_tasks_transfer_rules" data-bs-toggle="tooltip" data-bs-placement="top" data-bs-title="{{ index $.tab "tooltipPreTasks" }}">
+                <i class="bi bi-arrow-left-circle"></i>
+              </a>
+              <a class="btn btn-outline-primary modal-btn" href="post_tasks_transfer_rules" data-bs-toggle="tooltip" data-bs-placement="top" data-bs-title="{{ index $.tab "tooltipPostTasks" }}">
+                <i class="bi bi-check2-circle"></i>
+              </a>
+              <a class="btn btn-outline-primary modal-btn" href="error_tasks_transfer_rules" data-bs-toggle="tooltip" data-bs-placement="top" data-bs-title="{{ index $.tab "tooltipErrorTasks" }}">
+                <i class="bi bi-exclamation-triangle"></i>
+              </a>
+            </td>
+            <td>
+              <button class="btn btn-outline-primary modal-btn" type="button" href="management_usage_rights_rules" data-bs-toggle="tooltip" data-bs-placement="top" data-bs-title="{{ index $.tab "tooltipUsageRights" }}">
+                <i class="bi bi-shield-check"></i>
+              </button>
+            </td>
+            <td class="text-end">
+                {{ if contains $.myPermission.Rules "w" }}
+                <button class="btn btn-outline-primary btn-sm me-1" data-bs-toggle="modal" data-bs-target="#editRuleModal_{{ .ID }}">
+                    <i class="bi bi-pencil"></i>
+                </button>
+                <div class="modal fade" id="editRuleModal_{{ .ID }}" tabindex="-1" aria-labelledby="editRuleModalLabel_{{ .ID }}" aria-hidden="true">
+                    <div class="modal-dialog modal-lg">
+                    <div class="modal-content">
+                        <form method="post" class="p-3 border rounded bg-light">
+                        <input type="hidden" name="editRuleID" value="{{ .ID }}">
+                        <div class="modal-header">
+                            <h5 class="modal-title" id="editRuleModalLabel_{{ .ID }}">{{ index $.tab "edit" }}: {{ .Name }}</h5>
+                            <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                        </div>
+                        <div class="modal-body">
+                            <div class="form-input mb-3">
+                                <label class="col-form-label">{{ index $.tab "rules" }} :</label>
+                                <input type="text" name="editRuleName" class="form-control" required value="{{ .Name }}">
+                            </div>
+                            <hr style="border-top: 1px solid #ababab;">
+                            <div class="form-input mb-3">
+                                <label class="col-form-label">{{ index $.tab "isSend" }} :</label>
+                                <input type="text" name="editRuleIsSend" class="form-control" required value="{{ .IsSend }}">
+                            </div>
+                            <hr style="border-top: 1px solid #ababab;">
+                            <div class="form-input mb-3">
+                                <label class="col-form-label">{{ index $.tab "comment" }} :</label>
+                                <input type="text" name="editRuleComment" class="form-control" value="{{ .Comment }}">
+                            </div>
+                            <hr style="border-top: 1px solid #ababab;">
+                            <div class="form-input mb-3">
+                                <label class="col-form-label">{{ index $.tab "path" }} :</label>
+                                <input type="text" name="editRulePath" class="form-control" required value="{{ .Path }}">
+                            </div>
+                            <hr style="border-top: 1px solid #ababab;">
+                            <div class="form-input mb-3">
+                                <label class="col-form-label">{{ index $.tab "localDir" }} :</label>
+                                <input type="text" name="editRuleLocalDir" class="form-control" required value="{{ .LocalDir }}">
+                            </div>
+                            <hr style="border-top: 1px solid #ababab;">
+                            <div class="form-input mb-3">
+                                <label class="col-form-label">{{ index $.tab "remoteDir" }} :</label>
+                                <input type="text" name="editRuleRemoteDir" class="form-control" required value="{{ .RemoteDir }}">
+                            </div>
+                            <hr style="border-top: 1px solid #ababab;">
+                            <div class="form-input mb-3">
+                                <label class="col-form-label">{{ index $.tab "tmpLocalRcvDir" }} :</label>
+                                <input type="text" name="editRuleTmpLocalRcvDir" class="form-control" required value="{{ .TmpLocalRcvDir }}">
+                            </div>
+                        </div>
+                        <div class="modal-footer">
+                            <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">{{ index $.tab "close" }}</button>
+                            <button type="submit" class="btn btn-success ms-3">{{ index $.tab "apply" }}</button>
+                        </div>
+                        </form>
+                    </div>
+                    </div>
+                </div>
+                {{ end }}
+                {{ if contains $.myPermission.Rules "d" }}
+                <form method="post" class="d-inline">
+                    <input type="hidden" name="deleteRule" value="{{ .ID }}">
+                    <button type="submit" class="btn btn-outline-danger btn-sm" onclick="return confirm('{{ index $.tab "confirmDelete" }}')">
+                    <i class="bi bi-trash"></i>
+                    </button>
+                </form>
+                {{ end }}
+            </td>
+        </tr>
+        {{ end }}
+    </table>
+    <form method="get">
+      <ul class="pagination">
+        <input type="hidden" name="orderAsc" value="{{ .filter.OrderAsc }}">
+        <input type="hidden" name="limit" value="{{ .filter.Limit }}">
+        <input type="hidden" name="offset" value="{{ .filter.Offset }}">
+        <li class="page-item {{ if .filter.DisablePrevious }}disabled{{ end }}"><button class="page-link" name="previous" type="submit" value="true">{{ index .tab "previous" }}</button></li>
+        <li class="page-item"><button class="page-link disabled">{{ .currentPage }}</button></li>
+        <li class="page-item {{ if .filter.DisableNext }}disabled{{ end }}"><button class="page-link" name="next" type="submit" value="true">{{ index .tab "next" }}</button></li>
+      </ul>
+    </form>
+  {{ end }}
+{{ end }}
+
+{{ define "transfer_rules_management_page" }}
+  {{ template "index" . }}
+{{ end }}

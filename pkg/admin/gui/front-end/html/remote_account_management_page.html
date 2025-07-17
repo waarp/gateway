@@ -22,7 +22,7 @@
           <i class="bi bi-arrow-left"></i>
         </button>
       </div>
-      <hr class="mt-2 mb-4" style="border-top: 1px solid #ababab;">
+      <hr style="border-top: 1px solid #ababab;">
 
       {{ if contains .myPermission.Partners "w" }}
         <button class="btn btn-primary mb-3 btn-add" type="button" data-bs-toggle="modal" data-bs-target="#addRemoteAccountModal">
@@ -147,7 +147,7 @@
                 <form method="post" class="d-inline">
                   <input type="hidden" name="partnerID" value="{{ $.partner.ID }}">
                   <input type="hidden" name="deleteRemoteAccount" value="{{ .ID }}">
-                  <button type="submit" class="btn btn-outline-danger btn-sm" onclick="return confirm('Confirm delete?')">
+                  <button type="submit" class="btn btn-outline-danger btn-sm" onclick="return confirm('{{ index $.tab "confirmDelete" }}')">
                     <i class="bi bi-trash"></i>
                   </button>
                 </form>
