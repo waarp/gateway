@@ -41,12 +41,14 @@ func (c *Controller) listen() error {
 	c.done = make(chan struct{})
 	c.ctx, c.cancel = context.WithCancel(context.Background())
 
-	if err := c.DB.Exec("UPDATE transfers SET status=? WHERE owner=? AND status=?",
-		types.StatusInterrupted, conf.GlobalConfig.GatewayName, types.StatusRunning,
-	); err != nil {
-		c.logger.Error("Failed to access database: %v", err)
+	if conf.GlobalConfig.NodeID == "" {
+		if err := c.DB.Exec("UPDATE transfers SET status=? WHERE owner=? AND status=?",
+			types.StatusInterrupted, conf.GlobalConfig.GatewayName, types.StatusRunning,
+		); err != nil {
+			c.logger.Error("Failed to access database: %v", err)
 
-		return fmt.Errorf("failed to access database: %w", err)
+			return fmt.Errorf("failed to access database: %w", err)
+		}
 	}
 
 	go func() {

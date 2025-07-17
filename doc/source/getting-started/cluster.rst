@@ -142,7 +142,8 @@ Lancement
 
 La commande pour lancer un noeud est la même que pour lancer une instance
 classique. Il suffit simplement d'y ajouter l'option `-i` ou ``--instance``
-suivie du nom du *node*.
+suivie du nom du *node*. Cette option est **obligatoire** et les noms d'instances
+doivent impérativement être uniques au sein de la grappe.
 
 Dans notre exemple, il faudra donc lancer la commande 3 fois avec le nom
 de chacun des 3 noeuds :

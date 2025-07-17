@@ -265,7 +265,20 @@ func pauseTransfer(logger *log.Logger, db *database.DB) http.HandlerFunc {
 		case types.StatusRunning:
 			pip := pipeline.List.Get(trans.ID)
 			if pip == nil {
-				handleError(w, logger, internal("pipeline for transfer %d not found", trans.ID))
+				if conf.GlobalConfig.NodeID != "" {
+					handleError(w, logger, internal("pipeline for transfer %d not found", trans.ID))
+
+					return
+				}
+
+				logger.Warning("Pipeline for transfer %d not found", trans.ID)
+
+				trans.Status = types.StatusPaused
+				if err := db.Update(trans).Cols("status").Run(); handleError(w, logger, err) {
+					return
+				}
+
+				w.WriteHeader(http.StatusAccepted)
 
 				return
 			}
@@ -298,32 +311,44 @@ func cancelTransfer(logger *log.Logger, db *database.DB) http.HandlerFunc {
 			return
 		}
 
-		if trans.Status == types.StatusRunning {
-			pip := pipeline.List.Get(trans.ID)
-			if pip == nil {
-				logger.Warning("Pipeline for transfer %d not found", trans.ID)
-
-				trans.Status = types.StatusCancelled
-				if err := trans.MoveToHistory(db, logger, time.Time{}); handleError(w, logger, err) {
-					return
-				}
-
-				return
-			}
-
-			ctx, cancel := context.WithTimeout(r.Context(), time.Second)
-			defer cancel()
-
-			if err := pip.Cancel(ctx); err != nil {
-				handleError(w, logger, err)
-
-				return
-			}
-		} else {
+		if trans.Status != types.StatusRunning {
 			trans.Status = types.StatusCancelled
 			if err := trans.MoveToHistory(db, logger, time.Time{}); handleError(w, logger, err) {
 				return
 			}
+
+			r.URL.Path = "/api/history"
+			w.Header().Set("Location", location(r.URL, utils.FormatInt(trans.ID)))
+			w.WriteHeader(http.StatusAccepted)
+
+			return
+		}
+
+		pip := pipeline.List.Get(trans.ID)
+		if pip == nil {
+			if conf.GlobalConfig.NodeID != "" {
+				handleError(w, logger, internal("pipeline for transfer %d not found", trans.ID))
+
+				return
+			}
+
+			logger.Warning("Pipeline for transfer %d not found", trans.ID)
+
+			trans.Status = types.StatusCancelled
+			if err := trans.MoveToHistory(db, logger, time.Time{}); handleError(w, logger, err) {
+				return
+			}
+
+			return
+		}
+
+		ctx, cancel := context.WithTimeout(r.Context(), time.Second)
+		defer cancel()
+
+		if err := pip.Cancel(ctx); err != nil {
+			handleError(w, logger, err)
+
+			return
 		}
 
 		r.URL.Path = "/api/history"
@@ -383,17 +408,6 @@ func retryTransfer(logger *log.Logger, db *database.DB) http.HandlerFunc {
 			return
 		}
 
-		if dbTransView.IsTransfer {
-			handleError(w, logger, badRequest("cannot retry non-ended transfer"))
-
-			return
-		}
-
-		var dbHist model.HistoryEntry
-		if err := db.Get(&dbHist, "id=?", dbTransView.ID).Run(); handleError(w, logger, err) {
-			return
-		}
-
 		date := time.Now()
 
 		if dateStr := r.FormValue("date"); dateStr != "" {
@@ -403,7 +417,7 @@ func retryTransfer(logger *log.Logger, db *database.DB) http.HandlerFunc {
 			}
 		}
 
-		trans, restartErr := dbHist.Restart(db, date)
+		trans, restartErr := dbTransView.Restart(db, date)
 		if handleError(w, logger, restartErr) {
 			return
 		}

@@ -7,8 +7,12 @@ Historique des versions
   plus les autres transferts planifiés de démarrer.
 * :bug:`482` Correction d'un bug qui faisait rester les transferts indéfiniment
   en statut *"RUNNING"* sans avancement en cas d'erreur de base de données.
-  Parallèlement, un bug empêchant l'annulation des transferts avec le statut
-  *"RUNNING"* dans certaine circonstances a également été résolu.
+* :bug:`482` Un bug qui empêchait, sous certaines conditions, l'annulation au
+  la mise en pause de transferts en cours a été corrigé. Une conséquence de ce
+  correctif est que le fonctionnement en grappe **requiert** désormais
+  obligatoirement qu'un nom d'instance soit fournis dans le commande de
+  lancement (voir :ref:`la documentation<ref-gatewayd-server>` de la commande
+  pour plus de détails).
 * :feature:`482` Une commande permettant d'exécuter directement des requêtes SQL
   a été ajoutée à l'exécutable serveur ``waarp-gatewayd`` afin de permettre de
   résoudre d'éventuels problèmes de base de données lorsque des outils externes
