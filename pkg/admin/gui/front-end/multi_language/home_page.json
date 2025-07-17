@@ -2,6 +2,10 @@
     "title": { "fr": "Accueil", "en": "Home", "es": "Inicio" },
     "about": { "fr": "À propos", "en": "About", "es": "Acerca de" },
     "logout": { "fr": "Déconnexion", "en": "Logout", "es": "Salir" },
+    "connection": { "fr": "Connexion", "en": "Connection" },
+    "treatment": { "fr": "Traitement", "en": "Treatment" },
+    "monitoring": { "fr": "Supervision", "en": "Monitoring" },
+    "administration": { "fr": "Administration", "en": "Administration" },
     "connection_settings": { "fr": "Paramètres de connexion", "en": "Connection settings", "es": "Configuración de conexión" },
     "status_of_services": { "fr": "Status des services", "en": "Status of services", "es": "Estado de los servicios" },
     "user_management": { "fr": "Gestion des utilisateurs", "en": "User management", "es": "Gestión de usuarios" },
@@ -16,5 +20,6 @@
     "managing_authentication_authorities": { "fr": "Gestion des autorités d'authentification", "en": "Managing authentication authorities", "es": "Gestión de autoridades de autenticación" },
     "cloud_instance_management": { "fr": "Gestion des instances cloud", "en": "Cloud instance management", "es": "Gestión de instancias en la nube" },
     "snmp_management": { "fr": "Gestion de SNMP", "en": "SNMP Management", "es": "Administración de SNMP" },
-    "cryptographic_key_management": { "fr": "Gestion des clés cryptographiques", "en": "Cryptographic key management", "es": "Gestión de claves criptográficas" }
+    "cryptographic_key_management": { "fr": "Gestion des clés cryptographiques", "en": "Cryptographic key management", "es": "Gestión de claves criptográficas" },
+    "treatment_settings": {"fr": "Paramètres des traitements", "en": "Treatment settings" }
 }

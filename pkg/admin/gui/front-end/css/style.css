@@ -29,3 +29,15 @@
     transition: background 0.2s, color 0.2s;
     border-radius: 13px;
 }
+
+.logo-waarp {
+    position: fixed;
+    right: 1%;
+    bottom: 1%;
+    z-index: -2000;
+    opacity: 0.5;
+    pointer-events: none;
+    width: 10%;
+    height: auto;
+    user-select: none;
+}

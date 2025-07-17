@@ -1,7 +1,11 @@
 {
     "title": { "fr": "Gestion des serveurs", "en": "Server management" },
-    "about": { "fr": "À propos", "en": "About" },
-    "logout": { "fr": "Déconnexion", "en": "Logout" },
+    "about": { "fr": "À propos", "en": "About", "es": "Acerca de" },
+    "logout": { "fr": "Déconnexion", "en": "Logout", "es": "Salir" },
+    "connection": { "fr": "Connexion", "en": "Connection" },
+    "treatment": { "fr": "Traitement", "en": "Treatment" },
+    "monitoring": { "fr": "Supervision", "en": "Monitoring" },
+    "administration": { "fr": "Administration", "en": "Administration" },
     "addServerTitle": { "fr": "Ajouter un nouveau serveur", "en": "Add a new server" },
     "filter": { "fr": "Filtre", "en": "Filter" },
     "sort": { "fr": "Trier par ordre alphabétique", "en": "Sort alphabetically" },
