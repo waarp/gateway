@@ -3,6 +3,21 @@
 Historique des versions
 =======================
 
+* :bug:`482` L'échec du démarrage d'un transfert planifié n'empêche désormais
+  plus les autres transferts planifiés de démarrer.
+* :bug:`482` Correction d'un bug qui faisait rester les transferts indéfiniment
+  en statut *"RUNNING"* sans avancement en cas d'erreur de base de données.
+* :bug:`482` Un bug qui empêchait, sous certaines conditions, l'annulation au
+  la mise en pause de transferts en cours a été corrigé. Une conséquence de ce
+  correctif est que le fonctionnement en grappe **requiert** désormais
+  obligatoirement qu'un nom d'instance soit fournis dans le commande de
+  lancement (voir :ref:`la documentation<ref-gatewayd-server>` de la commande
+  pour plus de détails).
+* :feature:`482` Une commande permettant d'exécuter directement des requêtes SQL
+  a été ajoutée à l'exécutable serveur ``waarp-gatewayd`` afin de permettre de
+  résoudre d'éventuels problèmes de base de données lorsque des outils externes
+  ne sont pas disponibles à cette fin.
+
 * :release:`0.12.8 <2025-04-25>`
 * :bug:`480` Les clients créés automatiquement lors de l'ajout d'un nouveau
   transfert sont désormais automatiquement démarrés après leur création.

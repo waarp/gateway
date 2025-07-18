@@ -14,7 +14,8 @@ Pour palier à ce problème, il est possible d'utiliser un fichier de *override*
 Au démarrage de Waarp Gateway, une des options de la commande de démarrage permet
 de renseigner un nom d'instance (voir :any:`la documentation de la commande <cli/server/server>`).
 Ce nom d'instance permet de différentier une instance de Gateway des autres
-instances de la grappe.
+instances de la grappe, et doit donc être unique au sein d'une même grappe.
+Ce nom d'instance est **obligatoire** dans le cadre du fonctionnement en grappe.
 
 Au démarrage, Waarp Gateway cherchera un fichier .ini portant son nom d'instance
 dans le dossier du fichier de configuration principal. Si ce fichier existe,

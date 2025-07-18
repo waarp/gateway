@@ -11,4 +11,5 @@ Serveur ``waarp-gatewayd``
    purge
    restore_history
    change_aes
+   sql
    version

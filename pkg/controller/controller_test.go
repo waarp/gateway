@@ -61,9 +61,8 @@ func TestControllerListen(t *testing.T) {
 				DefaultOutDir: "out", DefaultTmpDir: "tmp",
 			}
 
-			gwController := GatewayController{DB: db}
 			cont := &Controller{
-				Action: gwController.Run,
+				DB:     db,
 				ticker: time.NewTicker(time.Millisecond),
 				logger: logger,
 				wg:     new(sync.WaitGroup),
@@ -87,7 +86,7 @@ func TestControllerListen(t *testing.T) {
 				So(db.Insert(trans).Run(), ShouldBeNil)
 
 				Convey("When the controller starts new transfers", func() {
-					cont.Action(cont.wg, *cont.logger)
+					cont.Run(cont.wg, *cont.logger)
 
 					Convey("After waiting enough time", func() {
 						cont.wg.Wait()
@@ -111,13 +110,13 @@ func TestControllerListen(t *testing.T) {
 
 				Convey("When the transfer lasts longer than a controller tick", func() {
 					Convey("When the controller starts new transfers several times", func() {
-						cont.Action(cont.wg, *cont.logger)
+						cont.Run(cont.wg, *cont.logger)
 						time.Sleep(10 * time.Millisecond)
 
-						cont.Action(cont.wg, *cont.logger)
+						cont.Run(cont.wg, *cont.logger)
 						time.Sleep(10 * time.Millisecond)
 
-						cont.Action(cont.wg, *cont.logger)
+						cont.Run(cont.wg, *cont.logger)
 
 						cont.wg.Wait()
 
@@ -126,41 +125,6 @@ func TestControllerListen(t *testing.T) {
 
 							So(db.Select(&historyEntries).Run(), ShouldBeNil)
 							So(historyEntries, ShouldHaveLength, 1)
-						})
-					})
-				})
-			})
-
-			Convey("Given a running transfer", func(c C) {
-				path2 := path.Join(rootPath, "out", "file_2")
-				So(fs.MkdirAll(path.Dir(path2)), ShouldBeNil)
-				So(fs.WriteFullFile(path2, []byte("hello world")), ShouldBeNil)
-
-				trans := &model.Transfer{
-					RuleID:          rule.ID,
-					ClientID:        utils.NewNullInt64(client.ID),
-					RemoteAccountID: utils.NewNullInt64(account.ID),
-					SrcFilename:     "file2",
-					Start:           time.Date(2022, 1, 1, 1, 0, 0, 0, time.UTC),
-					Status:          types.StatusRunning,
-					Owner:           conf.GlobalConfig.GatewayName,
-				}
-				So(db.Insert(trans).Run(), ShouldBeNil)
-
-				Convey("Given that the database stops responding", func() {
-					gwController.wasDown = true
-
-					Convey("When the database comes back online", func() {
-						Convey("When the controller starts new transfers again", func() {
-							cont.Action(cont.wg, *cont.logger)
-							So(gwController.wasDown, ShouldBeFalse)
-
-							Convey("Then the running entry should now be "+
-								"interrupted", func() {
-								result := &model.Transfer{}
-								So(db.Get(result, "id=?", trans.ID).Run(), ShouldBeNil)
-								So(result.Status, ShouldEqual, types.StatusInterrupted)
-							})
 						})
 					})
 				})
@@ -194,7 +158,7 @@ func TestControllerListen(t *testing.T) {
 				pipeline.List.SetLimits(1, 1)
 
 				Convey("When the controller retrieves new transfers", func() {
-					plannedTrans, dbErr := gwController.retrieveTransfers()
+					plannedTrans, dbErr := cont.retrieveTransfers()
 					So(dbErr, ShouldBeNil)
 
 					Convey("Then it should return a limited amount of transfers", func() {

@@ -28,6 +28,7 @@ type commands struct {
 	Version     wgd.VersionCommand      `command:"version" description:"Print version and exit"`
 	Migrate     wgd.MigrateCommand      `command:"migrate" description:"Migrate the gateway database to a different version"`
 	ChangeAES   wgd.ChangeAESPassphrase `command:"change-aes-passphrase" description:"Change the AES passphrase of the gateway database"`
+	SQL         wgd.SQLCommand          `command:"sql" description:"Execute a custom SQL query on the gateway database"`
 }
 
 func main() {

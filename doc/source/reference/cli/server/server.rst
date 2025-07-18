@@ -1,3 +1,5 @@
+.. _ref-gatewayd-server:
+
 #########################
 ``waarp-gatewayd server``
 #########################
@@ -40,7 +42,9 @@ Elle accepte les options suivantes :
 
    Le nom unique de l'instance. Lorsque Waarp Gateway fonctionne en grappe, ce nom
    sert à différencier les différentes instances entre elles. Ce paramètre n'est
-   pas nécessaire si Waarp Gateway ne fonctionne pas en grappe.
+   pas nécessaire si Waarp Gateway ne fonctionne pas en grappe. Il est en revanche
+   **obligatoire** si la Gateway fait partie d'une grappe, et il doit également
+   être unique au sein de la grappe.
 
 .. option:: --help, -h
 

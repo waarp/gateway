@@ -34,8 +34,6 @@ func init() {
 }
 
 // Transfer represents one record of the 'transfers' table.
-//
-//nolint:lll //SQL tags are long, nothing we can do about it
 type Transfer struct {
 	ID               int64                   `xorm:"<- id AUTOINCR"`
 	Owner            string                  `xorm:"owner"`

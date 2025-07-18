@@ -265,7 +265,20 @@ func pauseTransfer(logger *log.Logger, db *database.DB) http.HandlerFunc {
 		case types.StatusRunning:
 			pip := pipeline.List.Get(trans.ID)
 			if pip == nil {
-				handleError(w, logger, internal("pipeline for transfer %d not found", trans.ID))
+				if conf.GlobalConfig.NodeID != "" {
+					handleError(w, logger, internal("pipeline for transfer %d not found", trans.ID))
+
+					return
+				}
+
+				logger.Warning("Pipeline for transfer %d not found", trans.ID)
+
+				trans.Status = types.StatusPaused
+				if err := db.Update(trans).Cols("status").Run(); handleError(w, logger, err) {
+					return
+				}
+
+				w.WriteHeader(http.StatusAccepted)
 
 				return
 			}
@@ -298,27 +311,44 @@ func cancelTransfer(logger *log.Logger, db *database.DB) http.HandlerFunc {
 			return
 		}
 
-		if trans.Status == types.StatusRunning {
-			pip := pipeline.List.Get(trans.ID)
-			if pip == nil {
+		if trans.Status != types.StatusRunning {
+			trans.Status = types.StatusCancelled
+			if err := trans.MoveToHistory(db, logger, time.Time{}); handleError(w, logger, err) {
+				return
+			}
+
+			r.URL.Path = "/api/history"
+			w.Header().Set("Location", location(r.URL, utils.FormatInt(trans.ID)))
+			w.WriteHeader(http.StatusAccepted)
+
+			return
+		}
+
+		pip := pipeline.List.Get(trans.ID)
+		if pip == nil {
+			if conf.GlobalConfig.NodeID != "" {
 				handleError(w, logger, internal("pipeline for transfer %d not found", trans.ID))
 
 				return
 			}
 
-			ctx, cancel := context.WithTimeout(r.Context(), time.Second)
-			defer cancel()
+			logger.Warning("Pipeline for transfer %d not found", trans.ID)
 
-			if err := pip.Cancel(ctx); err != nil {
-				handleError(w, logger, err)
-
-				return
-			}
-		} else {
 			trans.Status = types.StatusCancelled
 			if err := trans.MoveToHistory(db, logger, time.Time{}); handleError(w, logger, err) {
 				return
 			}
+
+			return
+		}
+
+		ctx, cancel := context.WithTimeout(r.Context(), time.Second)
+		defer cancel()
+
+		if err := pip.Cancel(ctx); err != nil {
+			handleError(w, logger, err)
+
+			return
 		}
 
 		r.URL.Path = "/api/history"
@@ -378,17 +408,6 @@ func retryTransfer(logger *log.Logger, db *database.DB) http.HandlerFunc {
 			return
 		}
 
-		if dbTransView.IsTransfer {
-			handleError(w, logger, badRequest("cannot retry non-ended transfer"))
-
-			return
-		}
-
-		var dbHist model.HistoryEntry
-		if err := db.Get(&dbHist, "id=?", dbTransView.ID).Run(); handleError(w, logger, err) {
-			return
-		}
-
 		date := time.Now()
 
 		if dateStr := r.FormValue("date"); dateStr != "" {
@@ -398,7 +417,7 @@ func retryTransfer(logger *log.Logger, db *database.DB) http.HandlerFunc {
 			}
 		}
 
-		trans, restartErr := dbHist.Restart(db, date)
+		trans, restartErr := dbTransView.Restart(db, date)
 		if handleError(w, logger, restartErr) {
 			return
 		}
@@ -423,9 +442,11 @@ func cancelDBTransfer(db *database.DB, logger *log.Logger, w http.ResponseWriter
 	}
 
 	tErr := db.Transaction(func(ses *database.Session) error {
-		for i := 0; ; i += 20 {
+		const batchSize = 20
+
+		for i := 0; ; i += batchSize {
 			var transfers model.Transfers
-			if err := ses.Select(&transfers).Limit(0, i).Run(); err != nil {
+			if err := ses.Select(&transfers).Limit(batchSize, i).Run(); err != nil {
 				logger.Error("Failed to retrieve transfers: %v", err)
 
 				return fmt.Errorf("failed to retrieve transfers: %w", err)
@@ -454,17 +475,19 @@ func cancelDBTransfer(db *database.DB, logger *log.Logger, w http.ResponseWriter
 	return !handleError(w, logger, tErr)
 }
 
-func cancelRunningTransfers(r *http.Request) bool {
+func cancelRunningTransfers(db *database.DB, logger *log.Logger, w http.ResponseWriter,
+	rCtx context.Context,
+) bool {
 	const cancelTimeout = 2 * time.Second
 
-	ctx, cancel := context.WithTimeout(r.Context(), cancelTimeout)
+	ctx, cancel := context.WithTimeout(rCtx, cancelTimeout)
 	defer cancel()
 
 	if err := pipeline.List.CancelAll(ctx); err != nil {
 		return false
 	}
 
-	return true
+	return cancelDBTransfer(db, logger, w, types.StatusRunning)
 }
 
 //nolint:gocognit //there is no way to further simplify this function
@@ -492,7 +515,7 @@ func cancelTransfers(logger *log.Logger, db *database.DB) http.HandlerFunc {
 				return
 			}
 		case "running":
-			if !cancelRunningTransfers(r) {
+			if !cancelRunningTransfers(db, logger, w, r.Context()) {
 				return
 			}
 		case "all":
@@ -501,7 +524,7 @@ func cancelTransfers(logger *log.Logger, db *database.DB) http.HandlerFunc {
 				return
 			}
 
-			if !cancelRunningTransfers(r) {
+			if !cancelRunningTransfers(db, logger, w, r.Context()) {
 				return
 			}
 		default:

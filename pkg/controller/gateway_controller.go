@@ -3,30 +3,21 @@ package controller
 import (
 	"fmt"
 	"math"
+	"slices"
 	"sync"
 	"time"
 
 	"code.waarp.fr/lib/log"
 
-	"code.waarp.fr/apps/gateway/gateway/pkg/conf"
 	"code.waarp.fr/apps/gateway/gateway/pkg/database"
 	"code.waarp.fr/apps/gateway/gateway/pkg/model"
 	"code.waarp.fr/apps/gateway/gateway/pkg/model/types"
 	"code.waarp.fr/apps/gateway/gateway/pkg/pipeline"
 )
 
-type GatewayController struct {
-	DB      *database.DB
-	wasDown bool
-}
-
 // Run checks the database for new planned transfers and starts
 // them, as long as there are available transfer slots.
-func (c *GatewayController) Run(wg *sync.WaitGroup, logger log.Logger) {
-	if c.checkIsDBDown(logger) {
-		return
-	}
-
+func (c *Controller) Run(wg *sync.WaitGroup, logger log.Logger) {
 	plannedTrans, dbErr := c.retrieveTransfers()
 	if dbErr != nil {
 		logger.Error("Failed to retrieve the transfers to run: %v", dbErr)
@@ -52,25 +43,7 @@ func (c *GatewayController) Run(wg *sync.WaitGroup, logger log.Logger) {
 	}
 }
 
-func (c *GatewayController) checkIsDBDown(logger log.Logger) bool {
-	if !c.wasDown {
-		return false
-	}
-
-	if err := c.DB.Exec("UPDATE transfers SET status=? WHERE owner=? AND status=?",
-		types.StatusInterrupted, conf.GlobalConfig.GatewayName, types.StatusRunning,
-	); err != nil {
-		logger.Error("Failed to access database: %s", err.Error())
-
-		return true
-	}
-
-	c.wasDown = false
-
-	return false
-}
-
-func (c *GatewayController) retrieveTransfers() (model.Transfers, error) {
+func (c *Controller) retrieveTransfers() (model.Transfers, error) {
 	var transfers model.Transfers
 
 	if tErr := c.DB.Transaction(func(ses *database.Session) error {
@@ -79,9 +52,10 @@ func (c *GatewayController) retrieveTransfers() (model.Transfers, error) {
 			return nil // cannot start more transfers, limit has been reached
 		}
 
-		query := ses.SelectForUpdate(&transfers).Where("owner=? AND status=? AND "+
-			"remote_account_id IS NOT NULL AND start<?", conf.GlobalConfig.GatewayName,
-			types.StatusPlanned, time.Now().UTC())
+		query := ses.SelectForUpdate(&transfers).Owner().
+			Where("status=?", types.StatusPlanned).
+			Where("remote_account_id IS NOT NULL").
+			Where("start<?", time.Now().UTC())
 
 		if lim <= math.MaxInt {
 			query.Limit(int(lim), 0)
@@ -94,7 +68,8 @@ func (c *GatewayController) retrieveTransfers() (model.Transfers, error) {
 		for _, trans := range transfers {
 			trans.Status = types.StatusRunning
 			if err := ses.Update(trans).Cols("status").Run(); err != nil {
-				return fmt.Errorf("failed to update transfer status: %w", err)
+				c.logger.Error("Failed to update status of transfer %d: %v", trans.ID, err)
+				trans.Status = types.StatusError
 			}
 		}
 
@@ -103,5 +78,7 @@ func (c *GatewayController) retrieveTransfers() (model.Transfers, error) {
 		return nil, fmt.Errorf("controller database error: %w", tErr)
 	}
 
-	return transfers, nil
+	return slices.DeleteFunc(transfers, func(t *model.Transfer) bool {
+		return t.Status != types.StatusRunning
+	}), nil
 }
