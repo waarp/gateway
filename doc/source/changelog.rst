@@ -3,6 +3,7 @@
 Historique des versions
 =======================
 
+* :release:`0.12.9 <2025-07-18>`
 * :bug:`482` L'échec du démarrage d'un transfert planifié n'empêche désormais
   plus les autres transferts planifiés de démarrer.
 * :bug:`482` Correction d'un bug qui faisait rester les transferts indéfiniment
