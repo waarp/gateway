@@ -199,16 +199,16 @@
                     </div>
                     <div class="modal-body">
                       {{ if or (eq .Protocol "r66") (eq .Protocol "r66-tls") }}
-                        {{ template "displayR66" (dict "tab" $.tab "ProtoConfig" .ProtoConfig) }}
+                        {{ template "displayR66Partner" (dict "tab" $.tab "ProtoConfig" .ProtoConfig) }}
                       {{ end }}
                       {{ if or (eq .Protocol "ftp") (eq .Protocol "ftps") }}
-                        {{ template "displayFtp" (dict "tab" $.tab "ProtoConfig" .ProtoConfig "TLSVersions" $.TLSVersions) }}
+                        {{ template "displayFtpPartner" (dict "tab" $.tab "ProtoConfig" .ProtoConfig "TLSVersions" $.TLSVersions "Protocol" .Protocol) }}
                       {{ end }}
                       {{ if or (eq .Protocol "pesit") (eq .Protocol "pesit-tls") }}
-                        {{ template "displayPesit" (dict "tab" $.tab "ProtoConfig" .ProtoConfig "TLSVersions" $.TLSVersions) }}
+                        {{ template "displayPesitPartner" (dict "tab" $.tab "ProtoConfig" .ProtoConfig "TLSVersions" $.TLSVersions "Protocol" .Protocol) }}
                       {{ end }}
                       {{ if eq .Protocol "sftp" }}
-                        {{ template "displaySftp" (dict "tab" $.tab "ProtoConfig" .ProtoConfig "KeyExchanges" $.KeyExchanges "Ciphers" $.Ciphers "MACs" $.MACs) }}
+                        {{ template "displaySftpPartner" (dict "tab" $.tab "ProtoConfig" .ProtoConfig "KeyExchanges" $.KeyExchanges "Ciphers" $.Ciphers "MACs" $.MACs) }}
                       {{ end }}
                     </div>
                     <div class="modal-footer">
@@ -269,10 +269,10 @@
                           <label class="col-form-label">{{ index $.tab "address" }} ({{ index $.tab "port" }}) <i class="bi bi-info-circle ms-1" data-bs-toggle="tooltip" data-bs-placement="right" data-bs-title="{{ index $.tab "tooltipPort" }}"></i> :</label>
                           <input type="text" name="editPartnerPort" class="form-control" required value="{{ .Address.Port }}">
                       </div>
-                      {{ template "editR66" (dict "tab" $.tab "ProtoConfig" .ProtoConfig) }}
-                      {{ template "editFtp" (dict "tab" $.tab "ProtoConfig" .ProtoConfig "TLSVersions" $.TLSVersions) }}
-                      {{ template "editPesit" (dict "tab" $.tab "ProtoConfig" .ProtoConfig "TLSVersions" $.TLSVersions "CompatibilityModePeSIT" $.CompatibilityModePeSIT) }}
-                      {{ template "editSftp" (dict "tab" $.tab "ProtoConfig" .ProtoConfig "KeyExchanges" $.KeyExchanges "Ciphers" $.Ciphers "MACs" $.MACs) }}
+                      {{ template "editR66Partner" (dict "tab" $.tab "ProtoConfig" .ProtoConfig) }}
+                      {{ template "editFtpPartner" (dict "tab" $.tab "ProtoConfig" .ProtoConfig "TLSVersions" $.TLSVersions) }}
+                      {{ template "editPesitPartner" (dict "tab" $.tab "ProtoConfig" .ProtoConfig "TLSVersions" $.TLSVersions "CompatibilityModePeSIT" $.CompatibilityModePeSIT) }}
+                      {{ template "editSftpPartner" (dict "tab" $.tab "ProtoConfig" .ProtoConfig "KeyExchanges" $.KeyExchanges "Ciphers" $.Ciphers "MACs" $.MACs) }}
                     </div>
                       <div class="modal-footer">
                           <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">{{ index $.tab "close" }}</button>

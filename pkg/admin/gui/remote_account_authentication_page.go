@@ -13,20 +13,6 @@ import (
 	"code.waarp.fr/apps/gateway/gateway/pkg/model"
 )
 
-func supportedProtocolExternal(protocol string) []string {
-	supportedProtocolsExternal := map[string][]string{
-		"r66":       {"password"},
-		"r66-tls":   {"password", "tls_certificate", "r66_legacy_certificate"},
-		"http":      {"password"},
-		"https":     {"password", "tls_certificate"},
-		"sftp":      {"password", "ssh_private_key"},
-		"pesit":     {"password", "pesit_pre-connection_auth"},
-		"pesit-tls": {"tls_certificate", "pesit_pre-connection_auth"},
-	}
-
-	return supportedProtocolsExternal[protocol]
-}
-
 //nolint:dupl // no similar func (is for remote_account)
 func listCredentialRemoteAccount(partnerName, login string, db *database.DB, r *http.Request) (
 	[]*model.Credential, FiltersPagination, string,

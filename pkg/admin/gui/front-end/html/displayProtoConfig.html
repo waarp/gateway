@@ -1,4 +1,4 @@
-{{ define "displayR66" }}
+{{ define "displayR66Partner" }}
 <div>
     <div class="form-input mt-2">
         <label class="col-form-label">{{ index .tab "serverLogin" }} <i class="bi bi-info-circle ms-1" data-bs-toggle="tooltip" data-bs-placement="right" data-bs-title="{{ index $.tab "tooltipServerLogin" }}"></i> :</label>
@@ -26,7 +26,58 @@
 </div>
 {{ end }}
 
-{{ define "displayFtp" }}
+{{ define "displayR66Server" }}
+<div>
+    <div class="form-input mt-2">
+        <label class="col-form-label">{{ index .tab "serverLogin" }} <i class="bi bi-info-circle ms-1" data-bs-toggle="tooltip" data-bs-placement="right" data-bs-title="{{ index $.tab "tooltipServerLogin" }}"></i> :</label>
+        <input type="text" class="form-control-plaintext" value="{{ .ProtoConfig.serverLogin }}" disabled>
+    </div>
+    <hr style="border-top: 1px solid #ababab;">
+    <div class="form-input mt-4">
+        <label class="col-form-label">{{ index .tab "blockSize" }} <i class="bi bi-info-circle ms-1" data-bs-toggle="tooltip" data-bs-placement="right" data-bs-title="{{ index $.tab "tooltipBlockSize" }}"></i> :</label>
+        <input type="text" class="form-control-plaintext" value="{{ .ProtoConfig.blockSize }}" disabled>
+    </div>
+    <hr style="border-top: 1px solid #ababab;">
+    <div class="form-input mt-2 d-flex align-items-center">
+        <label class="col-form-label me-3">{{ index .tab "noFinalHash" }} <i class="bi bi-info-circle ms-1" data-bs-toggle="tooltip" data-bs-placement="right" data-bs-title="{{ index $.tab "tooltipNoFinalHash" }}"></i> :</label>
+        <div class="form-check-inline">
+            <input class="form-check-input" type="checkbox" {{ if eq .ProtoConfig.noFinalHash true }}checked{{ end }} disabled>
+        </div>
+    </div>
+    <hr style="border-top: 1px solid #ababab;">
+    <div class="form-input mt-2 d-flex align-items-center">
+        <label class="col-form-label me-3">{{ index .tab "checkBlockHash" }} <i class="bi bi-info-circle ms-1" data-bs-toggle="tooltip" data-bs-placement="right" data-bs-title="{{ index $.tab "tooltipCheckBlockHash" }}"></i> :</label>
+        <div class="form-check-inline">
+            <input class="form-check-input" type="checkbox" {{ if eq .ProtoConfig.checkBlockHash true }}checked{{ end }} disabled>
+        </div>
+    </div>
+</div>
+{{ end }}
+
+{{ define "displayR66Client" }}
+<div>
+    <div class="form-input mt-4">
+        <label class="col-form-label">{{ index .tab "blockSize" }} <i class="bi bi-info-circle ms-1" data-bs-toggle="tooltip" data-bs-placement="right" data-bs-title="{{ index $.tab "tooltipBlockSize" }}"></i> :</label>
+        <input type="text" class="form-control-plaintext" value="{{ .ProtoConfig.blockSize }}" disabled>
+    </div>
+    <hr style="border-top: 1px solid #ababab;">
+    <div class="form-input mt-2 d-flex align-items-center">
+        <label class="col-form-label me-3">{{ index .tab "noFinalHash" }} <i class="bi bi-info-circle ms-1" data-bs-toggle="tooltip" data-bs-placement="right" data-bs-title="{{ index $.tab "tooltipNoFinalHash" }}"></i> :</label>
+        <div class="form-check-inline">
+            <input class="form-check-input" type="checkbox" {{ if eq .ProtoConfig.noFinalHash true }}checked{{ end }} disabled>
+        </div>
+    </div>
+    <hr style="border-top: 1px solid #ababab;">
+    <div class="form-input mt-2 d-flex align-items-center">
+        <label class="col-form-label me-3">{{ index .tab "checkBlockHash" }} <i class="bi bi-info-circle ms-1" data-bs-toggle="tooltip" data-bs-placement="right" data-bs-title="{{ index $.tab "tooltipCheckBlockHash" }}"></i> :</label>
+        <div class="form-check-inline">
+            <input class="form-check-input" type="checkbox" {{ if eq .ProtoConfig.checkBlockHash true }}checked{{ end }} disabled>
+        </div>
+    </div>
+</div>
+{{ end }}
+
+{{ define "displayFtpPartner" }}
 <div>
     <div class="form-input mt-Z d-flex align-items-center">
         <label class="col-form-label me-3">{{ index .tab "disableActiveMode" }} <i class="bi bi-info-circle ms-1" data-bs-toggle="tooltip" data-bs-placement="right" data-bs-title="{{ index $.tab "tooltipDisableActiveMode" }}"></i> :</label>
@@ -41,7 +92,7 @@
             <input class="form-check-input" type="checkbox" {{ if eq .ProtoConfig.disableEPSV true }}checked{{ end }} disabled>
         </div>
     </div>
-    <div id="ftpsForm">
+    {{ if eq .Protocol "ftps" }}
         <hr style="border-top: 1px solid #ababab;">
         <div class="form-input mt-2 d-flex align-items-center">
             <label class="col-form-label me-3">{{ index .tab "useImplicitTLS" }} <i class="bi bi-info-circle ms-1" data-bs-toggle="tooltip" data-bs-placement="right" data-bs-title="{{ index $.tab "tooltipUseImplicitTLS" }}"></i> :</label>
@@ -61,11 +112,84 @@
                 <input class="form-check-input" type="checkbox" {{ if eq .ProtoConfig.disableTLSSessionReuse true }}checked{{ end }} disabled>
             </div>
         </div>
-    </div>
+    {{ end }}
 </div>
 {{ end }}
 
-{{ define "displayPesit" }}
+{{ define "displayFtpServer" }}
+<div>
+    <div class="form-input mt-Z d-flex align-items-center">
+        <label class="col-form-label me-3">{{ index .tab "disablePassiveMode" }} <i class="bi bi-info-circle ms-1" data-bs-toggle="tooltip" data-bs-placement="right" data-bs-title="{{ index $.tab "tooltipDisablePassiveMode" }}"></i> :</label>
+        <div class="form-check form-check-inline">
+            <input class="form-check-input" type="checkbox" {{ if eq .ProtoConfig.disablePassiveMode true }}checked{{ end }} disabled>
+        </div>
+    </div>
+    <hr style="border-top: 1px solid #ababab;">
+    <div class="form-input mt-Z d-flex align-items-center">
+        <label class="col-form-label me-3">{{ index .tab "disableActiveMode" }} <i class="bi bi-info-circle ms-1" data-bs-toggle="tooltip" data-bs-placement="right" data-bs-title="{{ index $.tab "tooltipDisableActiveMode" }}"></i> :</label>
+        <div class="form-check form-check-inline">
+            <input class="form-check-input" type="checkbox" {{ if eq .ProtoConfig.disableActiveMode true }}checked{{ end }} disabled>
+        </div>
+    </div>
+    <hr style="border-top: 1px solid #ababab;">
+    <div class="form-input mt-4">
+        <label class="col-form-label">{{ index .tab "passiveModeMinPort" }} <i class="bi bi-info-circle ms-1" data-bs-toggle="tooltip" data-bs-placement="right" data-bs-title="{{ index $.tab "tooltipPassiveModeMinPort" }}"></i> :</label>
+        <input type="text" class="form-control-plaintext" value="{{ .ProtoConfig.passiveModeMinPort }}" disabled>
+    </div>
+    <hr style="border-top: 1px solid #ababab;">
+    <div class="form-input mt-4">
+        <label class="col-form-label">{{ index .tab "passiveModeMaxPort" }} <i class="bi bi-info-circle ms-1" data-bs-toggle="tooltip" data-bs-placement="right" data-bs-title="{{ index $.tab "tooltipPassiveModeMaxPort" }}"></i> :</label>
+        <input type="text" class="form-control-plaintext" value="{{ .ProtoConfig.passiveModeMaxPort }}" disabled>
+    </div>
+    {{ if eq .Protocol "ftps" }}
+        <hr style="border-top: 1px solid #ababab;">
+        <div class="form-input mt-4">
+            <label class="col-form-label">{{ index .tab "tlsRequirement" }} <i class="bi bi-info-circle ms-1" data-bs-toggle="tooltip" data-bs-placement="right" data-bs-title="{{ index $.tab "tooltipTlsRequirement" }}"></i> :</label>
+            <input type="text" class="form-control-plaintext" value="{{ .ProtoConfig.tlsRequirement }}" disabled>
+        </div>
+        <hr style="border-top: 1px solid #ababab;">
+        <div class="form-input mt-4">
+            <label class="col-form-label">{{ index .tab "minTLSVersion" }} <i class="bi bi-info-circle ms-1" data-bs-toggle="tooltip" data-bs-placement="right" data-bs-title="{{ index $.tab "tooltipMinFtpsTLSVersion" }}"></i> :</label>
+            <input type="text" class="form-control-plaintext" value="{{ .ProtoConfig.minTLSVersion }}" disabled>
+        </div>
+    {{ end }}
+</div>
+{{ end }}
+
+{{ define "displayFtpClient" }}
+<div>
+    <div class="form-input mt-Z d-flex align-items-center">
+        <label class="col-form-label me-3">{{ index .tab "enablePassiveMode" }} <i class="bi bi-info-circle ms-1" data-bs-toggle="tooltip" data-bs-placement="right" data-bs-title="{{ index $.tab "tooltipEnablePassiveMode" }}"></i> :</label>
+        <div class="form-check form-check-inline">
+            <input class="form-check-input" type="checkbox" {{ if eq .ProtoConfig.enablePassiveMode true }}checked{{ end }} disabled>
+        </div>
+    </div>
+    <hr style="border-top: 1px solid #ababab;">
+    <div class="form-input mt-4">
+        <label class="col-form-label">{{ index .tab "activeModeAddress" }} <i class="bi bi-info-circle ms-1" data-bs-toggle="tooltip" data-bs-placement="right" data-bs-title="{{ index $.tab "tooltipActiveModeAddress" }}"></i> :</label>
+        <input type="text" class="form-control-plaintext" value="{{ .ProtoConfig.activeModeAddress }}" disabled>
+    </div>
+    <hr style="border-top: 1px solid #ababab;">
+    <div class="form-input mt-4">
+        <label class="col-form-label">{{ index .tab "activeModeMinPort" }} <i class="bi bi-info-circle ms-1" data-bs-toggle="tooltip" data-bs-placement="right" data-bs-title="{{ index $.tab "tooltipActiveModeMinPort" }}"></i> :</label>
+        <input type="text" class="form-control-plaintext" value="{{ .ProtoConfig.activeModeMinPort }}" disabled>
+    </div>
+    <hr style="border-top: 1px solid #ababab;">
+    <div class="form-input mt-4">
+        <label class="col-form-label">{{ index .tab "activeModeMaxPort" }} <i class="bi bi-info-circle ms-1" data-bs-toggle="tooltip" data-bs-placement="right" data-bs-title="{{ index $.tab "tooltipActiveModeMaxPort" }}"></i> :</label>
+        <input type="text" class="form-control-plaintext" value="{{ .ProtoConfig.activeModeMaxPort }}" disabled>
+    </div>
+    {{ if eq .Protocol "ftps" }}
+        <hr style="border-top: 1px solid #ababab;">
+        <div class="form-input mt-4">
+            <label class="col-form-label">{{ index .tab "minTLSVersion" }} <i class="bi bi-info-circle ms-1" data-bs-toggle="tooltip" data-bs-placement="right" data-bs-title="{{ index $.tab "tooltipMinFtpsTLSVersion" }}"></i> :</label>
+            <input type="text" class="form-control-plaintext" value="{{ .ProtoConfig.minTLSVersion }}" disabled>
+        </div>
+    {{ end }}
+</div>
+{{ end }}
+
+{{ define "displayPesitPartner" }}
 <div>
     <div class="form-input mt-2">
         <label class="col-form-label">{{ index .tab "login" }} <i class="bi bi-info-circle ms-1" data-bs-toggle="tooltip" data-bs-placement="right" data-bs-title="{{ index $.tab "tooltipLogin" }}"></i> :</label>
@@ -119,17 +243,92 @@
             <input class="form-check-input" type="checkbox" {{ if eq .ProtoConfig.disablePreConnection true }}checked{{ end }} disabled>
         </div>
     </div>
-    <div id="pesit-tlsForm">
+    {{ if eq .Protocol "pesit-tls" }}
         <hr style="border-top: 1px solid #ababab;">
         <div class="form-input mt-4">
             <label class="col-form-label">{{ index .tab "minTLSVersion" }} <i class="bi bi-info-circle ms-1" data-bs-toggle="tooltip" data-bs-placement="right" data-bs-title="{{ index $.tab "tooltipMinPesitTLSVersion" }}"></i> :</label>
             <input type="text" class="form-control-plaintext" value="{{ .ProtoConfig.minTLSVersion }}" disabled>
         </div>
+    {{ end }}
+</div>
+{{ end }}
+
+{{ define "displayPesitServer" }}
+<div>
+    <div class="form-input mt-2 d-flex align-items-center">
+        <label class="col-form-label me-3">{{ index .tab "disableRestart" }} <i class="bi bi-info-circle ms-1" data-bs-toggle="tooltip" data-bs-placement="right" data-bs-title="{{ index $.tab "tooltipDisableRestart" }}"></i> :</label>
+        <div class="form-check form-check-inline">
+            <input class="form-check-input" type="checkbox" {{ if eq .ProtoConfig.disableRestart true }}checked{{ end }} disabled>
+        </div>
+    </div>
+    <hr style="border-top: 1px solid #ababab;">
+    <div class="form-input mt-2 d-flex align-items-center">
+        <label class="col-form-label me-3">{{ index .tab "disableCheckpoints" }} <i class="bi bi-info-circle ms-1" data-bs-toggle="tooltip" data-bs-placement="right" data-bs-title="{{ index $.tab "tooltipDisableCheckpoints" }}"></i> :</label>
+        <div class="form-check form-check-inline">
+            <input class="form-check-input" type="checkbox" {{ if eq .ProtoConfig.disableCheckpoints true }}checked{{ end }} disabled>
+        </div>
+    </div>
+    <hr style="border-top: 1px solid #ababab;">
+    <div class="form-input mt-2">
+        <label class="col-form-label">{{ index .tab "checkpointSize" }} <i class="bi bi-info-circle ms-1" data-bs-toggle="tooltip" data-bs-placement="right" data-bs-title="{{ index $.tab "tooltipCheckpointSize" }}"></i> :</label>
+        <input type="text" class="form-control-plaintext" value="{{ .ProtoConfig.checkpointSize }}" disabled>
+    </div>
+    <hr style="border-top: 1px solid #ababab;">
+    <div class="form-input mt-2">
+        <label class="col-form-label">{{ index .tab "checkpointWindow" }} <i class="bi bi-info-circle ms-1" data-bs-toggle="tooltip" data-bs-placement="right" data-bs-title="{{ index $.tab "tooltipCheckpointWindow" }}"></i> :</label>
+        <input type="text" class="form-control-plaintext" value="{{ .ProtoConfig.checkpointWindow }}" disabled>
+    </div>
+    <hr style="border-top: 1px solid #ababab;">
+    <div class="form-input mt-2">
+        <label class="col-form-label">{{ index .tab "maxMessageSize" }} <i class="bi bi-info-circle ms-1" data-bs-toggle="tooltip" data-bs-placement="right" data-bs-title="{{ index $.tab "tooltipMaxMessageSize" }}"></i> :</label>
+        <input type="text" class="form-control-plaintext" value="{{ .ProtoConfig.maxMessageSize }}" disabled>
+    </div>
+    <hr style="border-top: 1px solid #ababab;">
+    <div class="form-input mt-2 d-flex align-items-center">
+        <label class="col-form-label me-3">{{ index .tab "disablePreConnection" }} <i class="bi bi-info-circle ms-1" data-bs-toggle="tooltip" data-bs-placement="right" data-bs-title="{{ index $.tab "tooltipDisablePreConnection" }}"></i> :</label>
+        <div class="form-check form-check-inline">
+            <input class="form-check-input" type="checkbox" {{ if eq .ProtoConfig.disablePreConnection true }}checked{{ end }} disabled>
+        </div>
+    </div>
+    {{ if eq .Protocol "pesit-tls" }}
+        <hr style="border-top: 1px solid #ababab;">
+        <div class="form-input mt-4">
+            <label class="col-form-label">{{ index .tab "minTLSVersion" }} <i class="bi bi-info-circle ms-1" data-bs-toggle="tooltip" data-bs-placement="right" data-bs-title="{{ index $.tab "tooltipMinPesitTLSVersion" }}"></i> :</label>
+            <input type="text" class="form-control-plaintext" value="{{ .ProtoConfig.minTLSVersion }}" disabled>
+        </div>
+    {{ end }}
+</div>
+{{ end }}
+
+{{ define "displayPesitClient" }}
+<div>
+    <div class="form-input mt-2 d-flex align-items-center">
+        <label class="col-form-label me-3">{{ index .tab "disableRestart" }} <i class="bi bi-info-circle ms-1" data-bs-toggle="tooltip" data-bs-placement="right" data-bs-title="{{ index $.tab "tooltipDisableRestart" }}"></i> :</label>
+        <div class="form-check form-check-inline">
+            <input class="form-check-input" type="checkbox" {{ if eq .ProtoConfig.disableRestart true }}checked{{ end }} disabled>
+        </div>
+    </div>
+    <hr style="border-top: 1px solid #ababab;">
+    <div class="form-input mt-2 d-flex align-items-center">
+        <label class="col-form-label me-3">{{ index .tab "disableCheckpoints" }} <i class="bi bi-info-circle ms-1" data-bs-toggle="tooltip" data-bs-placement="right" data-bs-title="{{ index $.tab "tooltipDisableCheckpoints" }}"></i> :</label>
+        <div class="form-check form-check-inline">
+            <input class="form-check-input" type="checkbox" {{ if eq .ProtoConfig.disableCheckpoints true }}checked{{ end }} disabled>
+        </div>
+    </div>
+    <hr style="border-top: 1px solid #ababab;">
+    <div class="form-input mt-2">
+        <label class="col-form-label">{{ index .tab "checkpointSize" }} <i class="bi bi-info-circle ms-1" data-bs-toggle="tooltip" data-bs-placement="right" data-bs-title="{{ index $.tab "tooltipCheckpointSize" }}"></i> :</label>
+        <input type="text" class="form-control-plaintext" value="{{ .ProtoConfig.checkpointSize }}" disabled>
+    </div>
+    <hr style="border-top: 1px solid #ababab;">
+    <div class="form-input mt-2">
+        <label class="col-form-label">{{ index .tab "checkpointWindow" }} <i class="bi bi-info-circle ms-1" data-bs-toggle="tooltip" data-bs-placement="right" data-bs-title="{{ index $.tab "tooltipCheckpointWindow" }}"></i> :</label>
+        <input type="text" class="form-control-plaintext" value="{{ .ProtoConfig.checkpointWindow }}" disabled>
     </div>
 </div>
 {{ end }}
 
-{{ define "displaySftp" }}
+{{ define "displaySftpPartner" }}
 <div>
     <div class="form-input mt-2">
         <label class="col-form-label"><strong>{{ index .tab "keyExchanges" }} <i class="bi bi-info-circle ms-1" data-bs-toggle="tooltip" data-bs-placement="right" data-bs-title="{{ index $.tab "tooltipKeyExchanges" }}"></i> :</strong></label>
@@ -193,6 +392,116 @@
         <label class="col-form-label me-3">{{ index .tab "disableClientConcurrentReads" }} <i class="bi bi-info-circle ms-1" data-bs-toggle="tooltip" data-bs-placement="right" data-bs-title="{{ index $.tab "tooltipDisableClientConcurrentReads" }}"></i> :</label>
         <div class="form-check form-check-inline">
             <input class="form-check-input" type="checkbox" {{ if eq .ProtoConfig.disableClientConcurrentReads true }}checked{{ end }} disabled>
+        </div>
+    </div>
+</div>
+{{ end }}
+
+{{ define "displaySftpServer" }}
+<div>
+    <div class="form-input mt-2">
+        <label class="col-form-label"><strong>{{ index .tab "keyExchanges" }} <i class="bi bi-info-circle ms-1" data-bs-toggle="tooltip" data-bs-placement="right" data-bs-title="{{ index $.tab "tooltipKeyExchanges" }}"></i> :</strong></label>
+        <div id="keyExchangesContainer">
+        {{ if .ProtoConfig.keyExchanges }}
+            {{ range $i, $v := .ProtoConfig.keyExchanges }}
+            <div class="input-group mb-2">
+                <input type="text" class="form-control-plaintext" value="{{ $v }}" disabled>
+            </div>
+            {{ end }}
+        {{ else }}
+            <div class="input-group mb-2">
+                <input type="text" class="form-control-plaintext" value="" disabled>
+            </div>
+        {{ end }}
+        </div>
+    </div>
+    <hr style="border-top: 1px solid #ababab;">
+    <div class="form-input mt-2">
+        <label class="col-form-label"><strong>{{ index .tab "ciphers" }} <i class="bi bi-info-circle ms-1" data-bs-toggle="tooltip" data-bs-placement="right" data-bs-title="{{ index $.tab "tooltipCiphers" }}"></i> :</strong></label>
+        <div id="ciphersContainer">
+        {{ if .ProtoConfig.ciphers }}
+            {{ range $i, $v := .ProtoConfig.ciphers }}
+            <div class="input-group mb-2">
+                <input type="text" class="form-control-plaintext" value="{{ $v }}" disabled>
+            </div>
+            {{ end }}
+        {{ else }}
+            <div class="input-group mb-2">
+                <input type="text" class="form-control-plaintext" value="" disabled>
+            </div>
+        {{ end }}
+        </div>
+    </div>
+    <hr style="border-top: 1px solid #ababab;">
+    <div class="form-input mt-2">
+        <label class="col-form-label"><strong>{{ index .tab "macs" }} <i class="bi bi-info-circle ms-1" data-bs-toggle="tooltip" data-bs-placement="right" data-bs-title="{{ index $.tab "tooltipMacs" }}"></i> :</strong></label>
+        <div id="macsContainer">
+        {{ if .ProtoConfig.macs }}
+            {{ range $i, $v := .ProtoConfig.macs }}
+            <div class="input-group mb-2">
+                <input type="text" class="form-control-plaintext" value="{{ $v }}" disabled>
+            </div>
+            {{ end }}
+        {{ else }}
+            <div class="input-group mb-2">
+                <input type="text" class="form-control-plaintext" value="" disabled>
+            </div>
+        {{ end }}
+        </div>
+    </div>
+</div>
+{{ end }}
+
+{{ define "displaySftpClient" }}
+<div>
+    <div class="form-input mt-2">
+        <label class="col-form-label"><strong>{{ index .tab "keyExchanges" }} <i class="bi bi-info-circle ms-1" data-bs-toggle="tooltip" data-bs-placement="right" data-bs-title="{{ index $.tab "tooltipKeyExchanges" }}"></i> :</strong></label>
+        <div id="keyExchangesContainer">
+        {{ if .ProtoConfig.keyExchanges }}
+            {{ range $i, $v := .ProtoConfig.keyExchanges }}
+            <div class="input-group mb-2">
+                <input type="text" class="form-control-plaintext" value="{{ $v }}" disabled>
+            </div>
+            {{ end }}
+        {{ else }}
+            <div class="input-group mb-2">
+                <input type="text" class="form-control-plaintext" value="" disabled>
+            </div>
+        {{ end }}
+        </div>
+    </div>
+    <hr style="border-top: 1px solid #ababab;">
+    <div class="form-input mt-2">
+        <label class="col-form-label"><strong>{{ index .tab "ciphers" }} <i class="bi bi-info-circle ms-1" data-bs-toggle="tooltip" data-bs-placement="right" data-bs-title="{{ index $.tab "tooltipCiphers" }}"></i> :</strong></label>
+        <div id="ciphersContainer">
+        {{ if .ProtoConfig.ciphers }}
+            {{ range $i, $v := .ProtoConfig.ciphers }}
+            <div class="input-group mb-2">
+                <input type="text" class="form-control-plaintext" value="{{ $v }}" disabled>
+            </div>
+            {{ end }}
+        {{ else }}
+            <div class="input-group mb-2">
+                <input type="text" class="form-control-plaintext" value="" disabled>
+            </div>
+        {{ end }}
+        </div>
+    </div>
+    <hr style="border-top: 1px solid #ababab;">
+    <div class="form-input mt-2">
+        <label class="col-form-label"><strong>{{ index .tab "macs" }} <i class="bi bi-info-circle ms-1" data-bs-toggle="tooltip" data-bs-placement="right" data-bs-title="{{ index $.tab "tooltipMacs" }}"></i> :</strong></label>
+        <div id="macsContainer">
+        {{ if .ProtoConfig.macs }}
+            {{ range $i, $v := .ProtoConfig.macs }}
+            <div class="input-group mb-2">
+                <input type="text" class="form-control-plaintext" value="{{ $v }}" disabled>
+            </div>
+            {{ end }}
+        {{ else }}
+            <div class="input-group mb-2">
+                <input type="text" class="form-control-plaintext" value="" disabled>
+            </div>
+        {{ end }}
         </div>
     </div>
 </div>

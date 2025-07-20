@@ -264,16 +264,16 @@
                         </div>
                         <div class="modal-body">
                         {{ if or (eq .Protocol "r66") (eq .Protocol "r66-tls") }}
-                            {{ template "displayR66" (dict "tab" $.tab "ProtoConfig" .ProtoConfig) }}
+                            {{ template "displayR66Server" (dict "tab" $.tab "ProtoConfig" .ProtoConfig) }}
                         {{ end }}
                         {{ if or (eq .Protocol "ftp") (eq .Protocol "ftps") }}
-                            {{ template "displayFtp" (dict "tab" $.tab "ProtoConfig" .ProtoConfig "TLSVersions" $.TLSVersions) }}
+                            {{ template "displayFtpServer" (dict "tab" $.tab "ProtoConfig" .ProtoConfig "TLSVersions" $.TLSVersions "TLSRequirement" $.TLSRequirement "Protocol" .Protocol) }}
                         {{ end }}
                         {{ if or (eq .Protocol "pesit") (eq .Protocol "pesit-tls") }}
-                            {{ template "displayPesit" (dict "tab" $.tab "ProtoConfig" .ProtoConfig "TLSVersions" $.TLSVersions) }}
+                            {{ template "displayPesitServer" (dict "tab" $.tab "ProtoConfig" .ProtoConfig "TLSVersions" $.TLSVersions "Protocol" .Protocol) }}
                         {{ end }}
                         {{ if eq .Protocol "sftp" }}
-                            {{ template "displaySftp" (dict "tab" $.tab "ProtoConfig" .ProtoConfig "KeyExchanges" $.KeyExchanges "Ciphers" $.Ciphers "MACs" $.MACs) }}
+                            {{ template "displaySftpServer" (dict "tab" $.tab "ProtoConfig" .ProtoConfig "KeyExchanges" $.KeyExchanges "Ciphers" $.Ciphers "MACs" $.MACs) }}
                         {{ end }}
                         </div>
                         <div class="modal-footer">
@@ -353,10 +353,10 @@
                             <label class="col-form-label">{{ index $.tab "tmpReceiveDir" }} :</label>
                             <input type="text" name="editServerTmpReceiveDir" class="form-control" required value="{{ .TmpReceiveDir }}">
                             </div>
-                            {{ template "editR66" (dict "tab" $.tab "ProtoConfig" .ProtoConfig) }}
-                            {{ template "editFtp" (dict "tab" $.tab "ProtoConfig" .ProtoConfig "TLSVersions" $.TLSVersions) }}
-                            {{ template "editPesit" (dict "tab" $.tab "ProtoConfig" .ProtoConfig "TLSVersions" $.TLSVersions "CompatibilityModePeSIT" $.CompatibilityModePeSIT) }}
-                            {{ template "editSftp" (dict "tab" $.tab "ProtoConfig" .ProtoConfig "KeyExchanges" $.KeyExchanges "Ciphers" $.Ciphers "MACs" $.MACs) }}
+                            {{ template "editR66Server" (dict "tab" $.tab "ProtoConfig" .ProtoConfig) }}
+                            {{ template "editFtpServer" (dict "tab" $.tab "ProtoConfig" .ProtoConfig "TLSVersions" $.TLSVersions "TLSRequirement" $.TLSRequirement) }}
+                            {{ template "editPesitServer" (dict "tab" $.tab "ProtoConfig" .ProtoConfig "TLSVersions" $.TLSVersions "CompatibilityModePeSIT" $.CompatibilityModePeSIT) }}
+                            {{ template "editSftpServer" (dict "tab" $.tab "ProtoConfig" .ProtoConfig "KeyExchanges" $.KeyExchanges "Ciphers" $.Ciphers "MACs" $.MACs) }}
                         </div>
                         <div class="modal-footer">
                             <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">{{ index $.tab "close" }}</button>

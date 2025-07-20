@@ -36,14 +36,15 @@
     "noFinalHash": { "fr": "Pas de hachage final", "en": "No final hash" },
     "checkBlockHash": { "fr": "Vérifier le hachage du bloc", "en": "Check block hash" },
     "disableActiveMode": { "fr": "Désactiver le mode actif", "en": "Disable active mode" },
-    disablePassiveMode
-    tooltipDisablePassiveMode
-    passiveModeMinPort
-    tooltipPassiveModeMinPort
-    passiveModeMaxPort
-    tooltipPassiveModeMaxPort
-    tlsRequirement
-    tooltipTlsRequirement
+    "disablePassiveMode": { "fr": "Désactiver le mode passif", "en": "Disable passive mode" },
+    "tooltipDisablePassiveMode": { "fr": "Désactive le mode FTP passif. Par défaut, le mode passif est activé.", "en": "Disables passive FTP mode. By default, passive mode is enabled." },
+    "passiveModeMinPort": { "fr": "Port minimum en mode passif", "en": "Minimum port in passive mode" },
+    "tooltipPassiveModeMinPort": { "fr": "N° de port minimal de la plage de ports utilisés en mode FTP passif (si le mode passif est activé). Par défaut, le port minimal est 10000.", "en": "Minimum port number of the port range used in passive FTP mode (if passive mode is enabled). By default, the minimum port is 10000." },
+    "passiveModeMaxPort": { "fr": "Port max en mode passif", "en": "Maximum port in passive mode" },
+    "tooltipPassiveModeMaxPort": { "fr": "N° de port maximal de la plage de ports utilisés en mode FTP passif (si le mode passif est activé). Par défaut, le port maximal est 20000.", "en": "Maximum port number of the port range used in passive FTP mode (if passive mode is enabled). By default, the maximum port is 20000." },
+    "tlsRequirement": { "fr": "Exigence TLS", "en": "TLS requirement" },
+    "tooltipTlsRequirement": { "fr": "Spécifie le mode TLS utilisé par le serveur. Les valeurs acceptées sont « Optional » (TLS explicite optionnel), « Mandatory » (TLS explicite obligatoire) et « Implicit » (TLS implicite). Par défaut, le mode TLS est « Optional ».", "en": "Specifies the TLS mode used by the server. Accepted values are « Optional » (explicit TLS optional), « Mandatory » (explicit TLS required), and « Implicit » (implicit TLS). By default, the TLS mode is « Optional »." },
+    "selectTLSRequirement": { "fr": "Sélectionnez l'exigence TLS", "en": "Select TLS requirement" },
     "disableEPSV": { "fr": "Désactiver EPSV", "en": "Disable EPSV" },
     "useImplicitTLS": { "fr": "Utiliser TLS implicite", "en": "Use Implicit TLS" },
     "minTLSVersion": { "fr": "Version TLS minimale", "en": "Minimum TLS version" },
