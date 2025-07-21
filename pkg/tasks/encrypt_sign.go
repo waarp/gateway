@@ -14,6 +14,11 @@ import (
 	"code.waarp.fr/apps/gateway/gateway/pkg/utils"
 )
 
+//nolint:gochecknoglobals //global var is needed here for future-proofing
+var EncryptSignMethods = map[string]func(*encryptSign, *model.CryptoKey, *model.CryptoKey) error{
+	EncryptSignMethodPGP: (*encryptSign).makePGPSignEncryptor,
+}
+
 var (
 	ErrEncryptSignNoEncryptionKeyName = errors.New("missing encryption key name")
 	ErrEncryptSignNoSignatureKeyName  = errors.New("missing signature key name")
@@ -67,12 +72,11 @@ func (e *encryptSign) ValidateDB(db database.ReadAccess, params map[string]strin
 		return fmt.Errorf("failed to retrieve signature key from database: %w", err)
 	}
 
-	switch e.Method {
-	case EncryptSignMethodPGP:
-		return e.makePGPSignEncryptor(&eCryptoKey, &sCryptoKey)
-	default:
-		return fmt.Errorf("%w: %s", ErrEncryptSignInvalidMethod, e.Method)
+	if mkEncryptSigner, ok := EncryptSignMethods[e.Method]; ok {
+		return mkEncryptSigner(e, &eCryptoKey, &sCryptoKey)
 	}
+
+	return fmt.Errorf("%w: %s", ErrEncryptSignInvalidMethod, e.Method)
 }
 
 func (e *encryptSign) Run(_ context.Context, params map[string]string,

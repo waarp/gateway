@@ -27,12 +27,12 @@ var (
 	ErrIcapUnexpectedResponseCode = errors.New("ICAP server returned an unexpected response code")
 	ErrIcapFileTooBig             = errors.New("file is too voluminous for ICAP task (see documentation)")
 	ErrIcapInvalidErrorAction     = fmt.Errorf("invalid ICAP error action (must be %q or %q)",
-		icapOnErrorDelete, icapOnErrorMove)
+		IcapOnErrorDelete, IcapOnErrorMove)
 )
 
 const (
-	icapOnErrorDelete = "delete"
-	icapOnErrorMove   = "move"
+	IcapOnErrorDelete = "delete"
+	IcapOnErrorMove   = "move"
 )
 
 type icapTask struct {
@@ -57,9 +57,9 @@ func (i *icapTask) parseParams(params map[string]string) error {
 	}
 
 	switch i.OnError {
-	case icapOnErrorDelete:
+	case IcapOnErrorDelete:
 		i.deleteOnError = true
-	case icapOnErrorMove:
+	case IcapOnErrorMove:
 		if i.OnErrorMovePath == "" {
 			return ErrIcapMissingErrorMovePath
 		}

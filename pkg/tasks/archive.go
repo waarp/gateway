@@ -96,22 +96,11 @@ func (a *archiveTask) Run(_ context.Context, params map[string]string,
 
 //nolint:dupl //simpler to keep archive & extract separate
 func (a *archiveTask) makeArchive() error {
-	switch {
-	case hasExtension(a.OutputPath, extensionZip):
-		return a.makeZipArchive()
-	case hasExtension(a.OutputPath, extensionTar):
-		return a.makeTarArchive(noCompressor)
-	case hasExtension(a.OutputPath, extensionTarGz):
-		return a.makeTarArchive(gzipCompressor)
-	case hasExtension(a.OutputPath, extensionTarBz2):
-		return a.makeTarArchive(bzip2Compressor)
-	case hasExtension(a.OutputPath, extensionTarXz):
-		return a.makeTarArchive(xzCompressor)
-	case hasExtension(a.OutputPath, extensionTarZlib):
-		return a.makeTarArchive(zlibCompressor)
-	case hasExtension(a.OutputPath, extensionTarZstd):
-		return a.makeTarArchive(zstdCompressor)
-	default:
-		return fmt.Errorf("%w %q", ErrArchiveUnknownType, path.Ext(a.OutputPath))
+	for ext, mkArchive := range ArchiveExtensions {
+		if hasExtension(a.OutputPath, ext) {
+			return mkArchive(a)
+		}
 	}
+
+	return fmt.Errorf("%w %q", ErrArchiveUnknownType, path.Ext(a.OutputPath))
 }

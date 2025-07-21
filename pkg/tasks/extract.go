@@ -79,22 +79,11 @@ func (e *extractTask) extractArchive() error {
 	default:
 	}
 
-	switch {
-	case hasExtension(e.Archive, extensionZip):
-		return e.extractZip()
-	case hasExtension(e.Archive, extensionTar):
-		return e.extractTar(noDecompressor)
-	case hasExtension(e.Archive, extensionTarGz):
-		return e.extractTar(gzipDecompressor)
-	case hasExtension(e.Archive, extensionTarBz2):
-		return e.extractTar(bzip2Decompressor)
-	case hasExtension(e.Archive, extensionTarXz):
-		return e.extractTar(xzDecompressor)
-	case hasExtension(e.Archive, extensionTarZlib):
-		return e.extractTar(zlibDecompressor)
-	case hasExtension(e.Archive, extensionTarZstd):
-		return e.extractTar(zstdDecompressor)
-	default:
-		return fmt.Errorf("%w %q", ErrArchiveUnknownType, path.Ext(e.Archive))
+	for ext, decompress := range ExtractExtensions {
+		if hasExtension(e.Archive, ext) {
+			return decompress(e)
+		}
 	}
+
+	return fmt.Errorf("%w %q", ErrArchiveUnknownType, path.Ext(e.Archive))
 }

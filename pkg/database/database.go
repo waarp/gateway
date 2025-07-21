@@ -246,7 +246,7 @@ func (db *DB) stop(ctx context.Context) error {
 		done := make(chan bool)
 
 		db.sessions.Range(func(_, ses any) bool {
-			//nolint:forcetypeassert //type assert will always succeed
+			//nolint:forcetypeassert,errcheck //type assert will always succeed
 			if err := ses.(*Session).session.Close(); err != nil {
 				db.logger.Warning("Failed to close session: %v", err)
 			}

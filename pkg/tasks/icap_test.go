@@ -74,7 +74,7 @@ func TestIcapTaskReqModRun(t *testing.T) {
 		params := map[string]string{
 			"uploadURL": icapAddr,
 			"timeout":   "5s",
-			"onError":   icapOnErrorDelete,
+			"onError":   IcapOnErrorDelete,
 		}
 
 		require.Error(t, task.Run(ctx, params, db, logger, transCtx))
@@ -94,7 +94,7 @@ func TestIcapTaskReqModRun(t *testing.T) {
 		params := map[string]string{
 			"uploadURL":       icapAddr,
 			"timeout":         "5s",
-			"onError":         icapOnErrorMove,
+			"onError":         IcapOnErrorMove,
 			"onErrorMovePath": errorPath,
 		}
 
@@ -163,7 +163,7 @@ func TestIcapTaskRespModRun(t *testing.T) {
 		params := map[string]string{
 			"uploadURL": icapAddr,
 			"timeout":   "5s",
-			"onError":   icapOnErrorDelete,
+			"onError":   IcapOnErrorDelete,
 		}
 
 		require.Error(t, task.Run(ctx, params, db, logger, transCtx))
@@ -183,7 +183,7 @@ func TestIcapTaskRespModRun(t *testing.T) {
 		params := map[string]string{
 			"uploadURL":       icapAddr,
 			"timeout":         "5s",
-			"onError":         icapOnErrorMove,
+			"onError":         IcapOnErrorMove,
 			"onErrorMovePath": errorPath,
 		}
 

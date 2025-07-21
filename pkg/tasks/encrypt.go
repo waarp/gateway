@@ -14,6 +14,14 @@ import (
 	"code.waarp.fr/apps/gateway/gateway/pkg/utils"
 )
 
+//nolint:gochecknoglobals //global var is needed here for future-proofing
+var EncryptMethods = map[string]func(*encrypt, *model.CryptoKey) error{
+	EncryptMethodAESCFB: (*encrypt).makeAESCFBEncryptor,
+	EncryptMethodAESCTR: (*encrypt).makeAESCTREncryptor,
+	EncryptMethodAESOFB: (*encrypt).makeAESOFBEncryptor,
+	EncryptMethodPGP:    (*encrypt).makePGPEncryptor,
+}
+
 var (
 	ErrEncryptNoKeyName     = errors.New("missing encryption key name")
 	ErrEncryptNoMethod      = errors.New("missing encryption method")
@@ -53,18 +61,11 @@ func (e *encrypt) ValidateDB(db database.ReadAccess, params map[string]string) e
 		return fmt.Errorf("failed to retrieve encryption key from database: %w", err)
 	}
 
-	switch e.Method {
-	case EncryptMethodAESCFB:
-		return e.makeAESCFBEncryptor(&cryptoKey)
-	case EncryptMethodAESCTR:
-		return e.makeAESCTREncryptor(&cryptoKey)
-	case EncryptMethodAESOFB:
-		return e.makeAESOFBEncryptor(&cryptoKey)
-	case EncryptMethodPGP:
-		return e.makePGPEncryptor(&cryptoKey)
-	default:
-		return fmt.Errorf("%w: %s", ErrEncryptInvalidMethod, e.Method)
+	if mkEncryptor, ok := EncryptMethods[e.Method]; ok {
+		return mkEncryptor(e, &cryptoKey)
 	}
+
+	return fmt.Errorf("%w: %s", ErrEncryptInvalidMethod, e.Method)
 }
 
 func (e *encrypt) Run(_ context.Context, params map[string]string,

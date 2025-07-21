@@ -15,6 +15,15 @@ import (
 	"code.waarp.fr/apps/gateway/gateway/pkg/utils"
 )
 
+//nolint:gochecknoglobals //global var is needed here for future-proofing
+var SignMethods = map[string]func(*sign, *model.CryptoKey) error{
+	SignMethodHMACSHA256: (*sign).makeHMACSHA256Signer,
+	SignMethodHMACSHA384: (*sign).makeHMACSHA384Signer,
+	SignMethodHMACSHA512: (*sign).makeHMACSHA512Signer,
+	SignMethodHMACMD5:    (*sign).makeHMACMD5Signer,
+	SignMethodPGP:        (*sign).makePGPSigner,
+}
+
 var (
 	ErrSignNoKeyName     = errors.New("missing signature key name")
 	ErrSignNoMethod      = errors.New("missing signature method")
@@ -53,20 +62,11 @@ func (s *sign) ValidateDB(db database.ReadAccess, params map[string]string) erro
 		return fmt.Errorf("failed to retrieve signature key from database: %w", err)
 	}
 
-	switch s.Method {
-	case SignMethodHMACSHA256:
-		return s.makeHMACSHA256Signer(&cryptoKey)
-	case SignMethodHMACSHA384:
-		return s.makeHMACSHA384Signer(&cryptoKey)
-	case SignMethodHMACSHA512:
-		return s.makeHMACSHA512Signer(&cryptoKey)
-	case SignMethodHMACMD5:
-		return s.makeHMACMD5Signer(&cryptoKey)
-	case SignMethodPGP:
-		return s.makePGPSigner(&cryptoKey)
-	default:
-		return fmt.Errorf("%w: %s", ErrSignInvalidMethod, s.Method)
+	if mkSigner, ok := SignMethods[s.Method]; ok {
+		return mkSigner(s, &cryptoKey)
 	}
+
+	return fmt.Errorf("%w: %s", ErrSignInvalidMethod, s.Method)
 }
 
 func (s *sign) Run(_ context.Context, params map[string]string,

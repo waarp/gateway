@@ -19,6 +19,33 @@ import (
 	"code.waarp.fr/apps/gateway/gateway/pkg/utils"
 )
 
+//nolint:gochecknoglobals //global var is needed here for future-proofing
+var TranscodeFormats = map[string]encoding.Encoding{
+	"UTF-8":              unicode.UTF8,
+	"UTF-8 BOM":          unicode.UTF8BOM,
+	"UTF-16BE":           unicode.UTF16(unicode.BigEndian, unicode.IgnoreBOM),
+	"UTF-16LE":           unicode.UTF16(unicode.LittleEndian, unicode.IgnoreBOM),
+	"UTF-16BE BOM":       unicode.UTF16(unicode.BigEndian, unicode.UseBOM),
+	"UTF-16LE BOM":       unicode.UTF16(unicode.LittleEndian, unicode.UseBOM),
+	"UTF-32BE":           utf32.UTF32(utf32.BigEndian, utf32.IgnoreBOM),
+	"UTF-32LE":           utf32.UTF32(utf32.LittleEndian, utf32.IgnoreBOM),
+	"UTF-32BE BOM":       utf32.UTF32(utf32.BigEndian, utf32.UseBOM),
+	"UTF-32LE BOM":       utf32.UTF32(utf32.LittleEndian, utf32.UseBOM),
+	"IBM Code Page 273":  newEBCDICEncoding(ebcdic273),
+	"IBM Code Page 500":  newEBCDICEncoding(ebcdic500),
+	"IBM Code Page 1141": newEBCDICEncoding(ebcdic1141),
+	"IBM Code Page 1148": newEBCDICEncoding(ebcdic1148),
+}
+
+//nolint:gochecknoinits //init is needed here to populate TranscodeFormats
+func init() {
+	for _, chMap := range charmap.All {
+		//nolint:errcheck,forcetypeassert //this assertion always succeeds
+		name := chMap.(fmt.Stringer).String()
+		TranscodeFormats[name] = chMap
+	}
+}
+
 var (
 	ErrTranscodeNoSrcEncoding      = errors.New("missing source encoding")
 	ErrTranscodeNoDstEncoding      = errors.New("missing destination encoding")
@@ -35,45 +62,11 @@ type transcodeTask struct {
 }
 
 func getEncoding(charset string) (encoding.Encoding, error) {
-	switch charset {
-	case "UTF-8":
-		return unicode.UTF8, nil
-	case "UTF-8 BOM":
-		return unicode.UTF8BOM, nil
-	case "UTF-16BE":
-		return unicode.UTF16(unicode.BigEndian, unicode.IgnoreBOM), nil
-	case "UTF-16LE":
-		return unicode.UTF16(unicode.LittleEndian, unicode.IgnoreBOM), nil
-	case "UTF-16BE BOM":
-		return unicode.UTF16(unicode.BigEndian, unicode.UseBOM), nil
-	case "UTF-16LE BOM":
-		return unicode.UTF16(unicode.LittleEndian, unicode.UseBOM), nil
-	case "UTF-32BE":
-		return utf32.UTF32(utf32.BigEndian, utf32.IgnoreBOM), nil
-	case "UTF-32LE":
-		return utf32.UTF32(utf32.LittleEndian, utf32.IgnoreBOM), nil
-	case "UTF-32BE BOM":
-		return utf32.UTF32(utf32.BigEndian, utf32.UseBOM), nil
-	case "UTF-32LE BOM":
-		return utf32.UTF32(utf32.LittleEndian, utf32.UseBOM), nil
-	case "IBM Code Page 273":
-		return newEBCDICEncoding(ebcdic273), nil
-	case "IBM Code Page 500":
-		return newEBCDICEncoding(ebcdic500), nil
-	case "IBM Code Page 1141":
-		return newEBCDICEncoding(ebcdic1141), nil
-	case "IBM Code Page 1148":
-		return newEBCDICEncoding(ebcdic1148), nil
-	default:
-		for _, chMap := range charmap.All {
-			//nolint:errcheck,forcetypeassert //this assertion always succeeds
-			if name := chMap.(fmt.Stringer); name.String() == charset {
-				return chMap, nil
-			}
-		}
-
-		return nil, fmt.Errorf("%w %q", ErrTranscodeInvalidEncoding, charset)
+	if encoder, ok := TranscodeFormats[charset]; ok {
+		return encoder, nil
 	}
+
+	return nil, fmt.Errorf("%w %q", ErrTranscodeInvalidEncoding, charset)
 }
 
 func (t *transcodeTask) parseParams(params map[string]string) error {
