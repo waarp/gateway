@@ -158,7 +158,7 @@ func (c *Credential) validate(db database.ReadAccess) error {
 			return fmt.Errorf("failed to check for duplicate credentials: %w", err)
 		} else if n > 0 {
 			return database.NewValidationErrorf("this %s already has a %s authentication method",
-				owner.Appellation(), c.Name)
+				owner.Appellation(), c.Type)
 		}
 	}
 
