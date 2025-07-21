@@ -25,6 +25,12 @@ func setIfValid[T any](field *T, value api.Nullable[T]) {
 	}
 }
 
+func setIfValidList[T any](field *[]T, value []T) {
+	if value != nil {
+		*field = value
+	}
+}
+
 func setIfValidSecret(field *database.SecretText, value api.Nullable[string]) {
 	if value.Valid {
 		*field = database.SecretText(value.Value)

@@ -100,6 +100,12 @@ func ImportData(db *database.DB, r io.Reader, targets []string, dry, reset bool)
 			}
 		}
 
+		if utils.ContainsOneOf(targets, "email", "all") {
+			if err := importEmailConf(logger, ses, data.EmailConfig, reset); err != nil {
+				return err
+			}
+		}
+
 		if dry {
 			return errDry
 		}

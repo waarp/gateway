@@ -31,7 +31,9 @@ const (
 	Extract = "EXTRACT"
 
 	Transcode = "TRANSCODE"
-	Icap      = "ICAP"
+
+	Icap = "ICAP"
+	Mail = "MAIL"
 )
 
 //nolint:gochecknoinits //init is required here
@@ -69,6 +71,7 @@ func init() {
 
 	// Network
 	model.ValidTasks[Icap] = newRunner[*icapTask]
+	model.ValidTasks[Mail] = newRunner[*mailTask]
 }
 
 func newRunner[T model.TaskRunner]() model.TaskRunner {

@@ -3,9 +3,10 @@ package tasks
 import (
 	"encoding/json"
 	"fmt"
-	"strconv"
+	"regexp"
 	"strings"
-	"time"
+
+	"code.waarp.fr/apps/gateway/gateway/pkg/model"
 )
 
 func mapToStr(m map[string]string) string {
@@ -17,92 +18,29 @@ func mapToStr(m map[string]string) string {
 	return "{" + strings.Join(args, ", ") + "}"
 }
 
-type jsonDuration struct{ time.Duration }
+func replaceVars(orig string, transCtx *model.TransferContext) (string, error) {
+	replacers := getReplacers()
+	replacers.addInfo(transCtx)
 
-func (j *jsonDuration) UnmarshalJSON(bytes []byte) error {
-	var str string
-	if err := json.Unmarshal(bytes, &str); err != nil {
-		return err
+	for key, f := range replacers {
+		reg := regexp.MustCompile(key)
+		matches := reg.FindAllString(orig, -1)
+
+		for _, match := range matches {
+			rep, err := f(transCtx, match)
+			if err != nil {
+				return "", err
+			}
+
+			bytesRep, err := json.Marshal(rep)
+			if err != nil {
+				return "", fmt.Errorf("cannot prepare value for replacement: %w", err)
+			}
+
+			replacement := string(bytesRep[1 : len(bytesRep)-1])
+			orig = strings.ReplaceAll(orig, match, replacement)
+		}
 	}
 
-	dur, err := time.ParseDuration(str)
-	if err != nil {
-		return fmt.Errorf("failed to parse duration: %w", err)
-	}
-
-	j.Duration = dur
-
-	return nil
-}
-
-type jsonBool bool
-
-func (j *jsonBool) UnmarshalJSON(bytes []byte) error {
-	var str string
-	if err := json.Unmarshal(bytes, &str); err != nil {
-		return err
-	}
-
-	b, err := strconv.ParseBool(str)
-	if err != nil {
-		return fmt.Errorf("failed to parse bool: %w", err)
-	}
-
-	*j = jsonBool(b)
-
-	return nil
-}
-
-type jsonInt int64
-
-func (j *jsonInt) UnmarshalJSON(bytes []byte) error {
-	str, err := strconv.Unquote(string(bytes))
-	if err != nil {
-		return fmt.Errorf("failed to unquote int: %w", err)
-	}
-
-	i, err := strconv.ParseInt(str, 10, 64)
-	if err != nil {
-		return fmt.Errorf("failed to parse int: %w", err)
-	}
-
-	*j = jsonInt(i)
-
-	return nil
-}
-
-type jsonFloat float64
-
-func (j *jsonFloat) UnmarshalJSON(bytes []byte) error {
-	str, err := strconv.Unquote(string(bytes))
-	if err != nil {
-		return fmt.Errorf("failed to unquote float: %w", err)
-	}
-
-	i, err := strconv.ParseFloat(str, 64)
-	if err != nil {
-		return fmt.Errorf("failed to parse float: %w", err)
-	}
-
-	*j = jsonFloat(i)
-
-	return nil
-}
-
-type jsonObject map[string]any
-
-func (j *jsonObject) UnmarshalJSON(bytes []byte) error {
-	str, uqErr := strconv.Unquote(string(bytes))
-	if uqErr != nil {
-		return fmt.Errorf("failed to unquote object: %w", uqErr)
-	}
-
-	var m map[string]any
-	if err := json.Unmarshal([]byte(str), &m); err != nil {
-		return fmt.Errorf("failed to unmarshal JSON: %w", err)
-	}
-
-	*j = m
-
-	return nil
+	return orig, nil
 }

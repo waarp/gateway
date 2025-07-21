@@ -104,3 +104,61 @@ func ver0_13_0AddClientAutoResumeDown(db Actions) error {
 
 	return nil
 }
+
+func ver0_13_0AddEmailTemplatesUp(db Actions) error {
+	if err := db.CreateTable("email_templates", &Table{
+		Columns: []Column{
+			{Name: "id", Type: BigInt{}, NotNull: true, Default: AutoIncr{}},
+			{Name: "name", Type: Varchar(50), NotNull: true},
+			{Name: "mime_type", Type: Varchar(50), NotNull: true, Default: "text/plain"},
+			{Name: "subject", Type: Varchar(255), NotNull: true},
+			{Name: "body", Type: Text{}, NotNull: true},
+			{Name: "attachments", Type: Text{}, NotNull: true, Default: ""},
+		},
+		PrimaryKey: &PrimaryKey{Name: "email_template_pkey", Cols: []string{"id"}},
+		Uniques: []Unique{
+			{Name: "unique_email_template", Cols: []string{"name"}},
+		},
+	}); err != nil {
+		return fmt.Errorf(`failed to create table "email_templates" table: %w`, err)
+	}
+
+	return nil
+}
+
+func ver0_13_0AddEmailTemplatesDown(db Actions) error {
+	if err := db.DropTable("email_templates"); err != nil {
+		return fmt.Errorf(`failed to drop "email_templates" table: %w`, err)
+	}
+
+	return nil
+}
+
+func ver0_13_0AddSMTPCredentialsUp(db Actions) error {
+	if err := db.CreateTable("smtp_credentials", &Table{
+		Columns: []Column{
+			{Name: "id", Type: BigInt{}, NotNull: true, Default: AutoIncr{}},
+			{Name: "owner", Type: Varchar(50), NotNull: true},
+			{Name: "email_address", Type: Varchar(255), NotNull: true},
+			{Name: "server_address", Type: Varchar(255), NotNull: true},
+			{Name: "login", Type: Varchar(255), NotNull: true},
+			{Name: "password", Type: Text{}, NotNull: true},
+		},
+		PrimaryKey: &PrimaryKey{Name: "smtp_credentials_pkey", Cols: []string{"id"}},
+		Uniques: []Unique{
+			{Name: "unique_smtp_credential", Cols: []string{"owner", "email_address"}},
+		},
+	}); err != nil {
+		return fmt.Errorf(`failed to create table "smtp_credentials" table: %w`, err)
+	}
+
+	return nil
+}
+
+func ver0_13_0AddSMTPCredentialsDown(db Actions) error {
+	if err := db.DropTable("smtp_credentials"); err != nil {
+		return fmt.Errorf(`failed to drop "smtp_credentials" table: %w`, err)
+	}
+
+	return nil
+}

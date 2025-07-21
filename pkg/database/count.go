@@ -1,6 +1,10 @@
 package database
 
-import "xorm.io/builder"
+import (
+	"xorm.io/builder"
+
+	"code.waarp.fr/apps/gateway/gateway/pkg/conf"
+)
 
 // CountQuery is the type representing a SQL COUNT statement.
 type CountQuery struct {
@@ -20,6 +24,11 @@ func (c *CountQuery) Where(sql string, args ...any) *CountQuery {
 	c.conds = append(c.conds, &condition{sql: sql, args: args})
 
 	return c
+}
+
+// Owner adds a 'WHERE owner = ?' clause to the 'SELECT' query.
+func (c *CountQuery) Owner() *CountQuery {
+	return c.Where("owner=?", conf.GlobalConfig.GatewayName)
 }
 
 // Run executes the 'COUNT' query and returns the count number.

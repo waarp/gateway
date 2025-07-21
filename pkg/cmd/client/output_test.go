@@ -22,6 +22,7 @@ func expectedOutput(tb testing.TB, data any, text ...string) string {
 		"bytes":      prettyBytes[int],
 		"getServer":  func() string { return Server },
 		"getPartner": func() string { return Partner },
+		"lines":      lines,
 		"local": func(str string) string {
 			t, err := time.Parse(time.RFC3339Nano, str)
 			require.NoError(tb, err)
@@ -57,4 +58,8 @@ func parseAsLocalTime(tb testing.TB, str string) time.Time {
 
 func enabledStatus(enabled bool) string {
 	return ifElse(enabled, TextEnabled, TextDisabled)
+}
+
+func lines(s string, indent int) string {
+	return strings.ReplaceAll("\n"+s, "\n", "\n"+strings.Repeat(" ", indent))
 }

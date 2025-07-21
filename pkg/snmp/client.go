@@ -21,7 +21,7 @@ const (
 )
 
 func connect(logger *log.Logger, config *MonitorConfig) (*gosnmp.GoSNMP, error) {
-	host, port, addrErr := utils.SplitHostPort(config.UDPAddress)
+	host, port, addrErr := utils.SplitHostPort[uint16](config.UDPAddress)
 	if addrErr != nil {
 		return nil, fmt.Errorf("failed to parse the target address %q: %w", config.UDPAddress, addrErr)
 	}

@@ -9,10 +9,8 @@ import (
 
 type Slice[T database.Table] []T
 
-func (*Slice[T]) TableName() string {
-	return T.TableName(*new(T))
-}
-func (*Slice[T]) Elem() string { return T.Appellation(*new(T)) }
+func (*Slice[T]) TableName() string { return (*new(T)).TableName() }
+func (*Slice[T]) Elem() string      { return (*new(T)).Appellation() }
 
 func (s *Slice[T]) AfterRead(db database.ReadAccess) error {
 	for _, elem := range *s {
@@ -30,7 +28,7 @@ func (s Slice[T]) String() string {
 	builder := &strings.Builder{}
 
 	for i, elem := range s {
-		builder.WriteString(fmt.Sprintf("Item #%d: %+v\n", i, elem))
+		fmt.Fprintf(builder, "Item #%d: %+v\n", i, elem)
 	}
 
 	return builder.String()
@@ -55,4 +53,6 @@ type (
 	Authorities         = Slice[*Authority]
 	Hosts               = Slice[*Host]
 	CryptoKeys          = Slice[*CryptoKey]
+	EmailTemplates      = Slice[*EmailTemplate]
+	SMTPCredentials     = Slice[*SMTPCredential]
 )

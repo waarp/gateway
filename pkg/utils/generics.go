@@ -52,3 +52,11 @@ func GetAs[T any](m map[string]any, key string) (t T, _ error) {
 
 	return t, fmt.Errorf("key %q: %w", key, ErrKeyNotFound)
 }
+
+func Must[T any](val T, err error) T {
+	if err != nil {
+		panic(err)
+	}
+
+	return val
+}

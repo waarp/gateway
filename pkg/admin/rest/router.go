@@ -89,7 +89,6 @@ const (
 	AuthAuthoritiesPath = "/api/authorities"
 	AuthAuthorityPath   = "/api/authorities/{authority}"
 
-	SNMPPath             = "/api/snmp"
 	SNMPServerPath       = "/api/snmp/server"
 	SNMPMonitorsPath     = "/api/snmp/monitors"
 	SNMPMonitorPath      = "/api/snmp/monitors/{snmp_monitor}"
@@ -97,6 +96,11 @@ const (
 
 	CryptoKeysPath = "/api/keys"
 	CryptoKeyPath  = "/api/keys/{crypto_key}"
+
+	EmailTemplatesPath  = "/api/email/templates"
+	EmailTemplatePath   = "/api/email/templates/{email_template}"
+	SMTPCredentialsPath = "/api/email/credentials"
+	SMTPCredentialPath  = "/api/email/credentials/{smtp_credential}"
 )
 
 // MakeRESTHandler appends all the REST API handlers to the given HTTP router.
@@ -275,10 +279,24 @@ func MakeRESTHandler(logger *log.Logger, db *database.DB, router *mux.Router,
 	mkHandler(SNMPServerPath, deleteSnmpService, model.PermAdminWrite, http.MethodDelete)
 	mkHandler.noDB(SNMPTestMonitorsPath, testSnmpTrapTransErr, model.PermAdminWrite, http.MethodPut)
 
-	// PGP keys
+	// Crypto keys
 	mkHandler(CryptoKeysPath, addCryptoKey, model.PermAdminWrite, http.MethodPost)
 	mkHandler(CryptoKeysPath, listCryptoKeys, model.PermAdminRead, http.MethodGet)
 	mkHandler(CryptoKeyPath, getCryptoKey, model.PermAdminRead, http.MethodGet)
 	mkHandler(CryptoKeyPath, updateCryptoKey, model.PermAdminWrite, http.MethodPatch)
 	mkHandler(CryptoKeyPath, deleteCryptoKey, model.PermAdminDelete, http.MethodDelete)
+
+	// Email templates
+	mkHandler(EmailTemplatesPath, addEmailTemplate, model.PermRulesWrite, http.MethodPost)
+	mkHandler(EmailTemplatesPath, listEmailTemplates, model.PermRulesRead, http.MethodGet)
+	mkHandler(EmailTemplatePath, getEmailTemplate, model.PermRulesRead, http.MethodGet)
+	mkHandler(EmailTemplatePath, updateEmailTemplate, model.PermRulesWrite, http.MethodPatch)
+	mkHandler(EmailTemplatePath, deleteEmailTemplate, model.PermRulesDelete, http.MethodDelete)
+
+	// SMTP credentials
+	mkHandler(SMTPCredentialsPath, addSMTPCredential, model.PermRulesWrite, http.MethodPost)
+	mkHandler(SMTPCredentialsPath, listSMPTCredentials, model.PermRulesRead, http.MethodGet)
+	mkHandler(SMTPCredentialPath, getSMTPCredential, model.PermRulesRead, http.MethodGet)
+	mkHandler(SMTPCredentialPath, updateSMTPCredential, model.PermRulesWrite, http.MethodPatch)
+	mkHandler(SMTPCredentialPath, deleteSMTPCredential, model.PermRulesDelete, http.MethodDelete)
 }
