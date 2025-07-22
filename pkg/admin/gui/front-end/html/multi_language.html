@@ -18,6 +18,9 @@
     {{ if .hasServerID }}
       <input type="hidden" name="serverID" value="{{ .server.ID }}">
     {{ end }}
+    {{ if .hasRuleID }}
+      <input type="hidden" name="ruleID" value="{{ .rule.ID }}">
+    {{ end }}
   </form>
 </div>
 {{ end }}

@@ -37,6 +37,7 @@
                 <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
             </div>
             <div class="modal-body">
+                <h4>1:{{ .ID }}</h4>
                 <div class="form-input">
                     <label class="col-form-label">{{ index .tab "rules" }} :</label>
                     <input type="text" name="addRuleName" class="form-control" required>
@@ -206,14 +207,8 @@
               </div>
             </td>
             <td>
-              <a class="btn btn-outline-primary modal-btn" href="pre_tasks_transfer_rules" data-bs-toggle="tooltip" data-bs-placement="top" data-bs-title="{{ index $.tab "tooltipPreTasks" }}">
-                <i class="bi bi-arrow-left-circle"></i>
-              </a>
-              <a class="btn btn-outline-primary modal-btn" href="post_tasks_transfer_rules" data-bs-toggle="tooltip" data-bs-placement="top" data-bs-title="{{ index $.tab "tooltipPostTasks" }}">
-                <i class="bi bi-check2-circle"></i>
-              </a>
-              <a class="btn btn-outline-primary modal-btn" href="error_tasks_transfer_rules" data-bs-toggle="tooltip" data-bs-placement="top" data-bs-title="{{ index $.tab "tooltipErrorTasks" }}">
-                <i class="bi bi-exclamation-triangle"></i>
+              <a class="btn btn-outline-primary modal-btn" href="tasks_transfer_rules?ruleID={{ .ID }}" data-bs-toggle="tooltip" data-bs-placement="top" data-bs-title="{{ index $.tab "tooltipTasks" }}">
+                <i class="bi bi-list-task"></i>
               </a>
             </td>
             <td>
@@ -230,7 +225,7 @@
                     <div class="modal-dialog modal-lg">
                     <div class="modal-content">
                         <form method="post" class="p-3 border rounded bg-light">
-                        <input type="hidden" name="editRuleID" value="{{ .ID }}">
+                        <input type="hidden" name="ruleID" value="{{ .ID }}">
                         <div class="modal-header">
                             <h5 class="modal-title" id="editRuleModalLabel_{{ .ID }}">{{ index $.tab "edit" }}: {{ .Name }}</h5>
                             <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>

@@ -1,0 +1,198 @@
+{{ define "head" }}
+    <title>{{ index .tab "title" }}</title>
+    <link rel="stylesheet" href="/webui/static/css/style.css">
+    <script src="/webui/static/javaScript/autoCompleteSearch.js"></script>
+    <script src="/webui/static/javaScript/showTasks.js"></script>
+    <script src="/webui/static/javaScript/eyePassword.js"></script>
+    <script src="/webui/static/javaScript/readFile.js"></script>
+    <script src="/webui/static/javaScript/tooltip.js"></script>
+    <script src="/webui/static/javaScript/animationCollapse.js"></script>
+    <script>window.modalOpen = "{{ .modalOpen }}";</script>
+    <script src="/webui/static/javaScript/displayErr.js"></script>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css" rel="stylesheet">
+{{ end }}
+
+{{ define "PreTasks" }}
+    {{ if contains .myPermission.Rules "w" }}
+        <button class="btn btn-primary mb-3 btn-add" type="button" data-bs-toggle="modal" data-bs-target="#addPreTaskModal">
+            {{ index .tab "addPreTaskTitle" }}
+        </button>
+        <div class="modal fade" id="addPreTaskModal" tabindex="-1" aria-labelledby="addPreTaskModalLabel" aria-hidden="true">
+            <div class="modal-dialog modal-lg">
+            <div class="modal-content">
+                <form method="post" class="p-3 border rounded bg-light">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="addPreTaskModalLabel">{{ index .tab "addPreTaskTitle" }}</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+                    <div class="form-input">
+                        <label class="col-form-label">{{ index .tab "type" }} <i class="bi bi-info-circle ms-1" data-bs-toggle="tooltip" data-bs-placement="right" data-bs-title="{{ index $.tab "tooltipType" }}"></i> :</label>
+                        <select name="addPreTaskType" id="addPreTaskType" class="form-select taskType-select" required>
+                            <option value="" disabled selected>Select your type</option>
+                            {{ range .taskTypes }}
+                                {{ if eq . "COPY" }}<option value="COPY">Copy</option>{{ end }}
+                                {{ if eq . "COPYRENAME" }}<option value="COPYRENAME">Copy Rename</option>{{ end }}
+                                {{ if eq . "DELETE" }}<option value="DELETE">Delete</option>{{ end }}
+                                {{ if eq . "EXEC" }}<option value="EXEC">Exec</option>{{ end }}
+                                {{ if eq . "EXECMOVE" }}<option value="EXECMOVE">Exec Move</option>{{ end }}
+                                {{ if eq . "EXECOUTPUT" }}<option value="EXECOUTPUT">Exec Output</option>{{ end }}
+                                {{ if eq . "MOVE" }}<option value="MOVE">Move</option>{{ end }}
+                                {{ if eq . "MOVERENAME" }}<option value="MOVERENAME">Move Rename</option>{{ end }}
+                                {{ if eq . "RENAME" }}<option value="RENAME">Rename</option>{{ end }}
+                                {{ if eq . "TRANSFER" }}<option value="TRANSFER">Transfer</option>{{ end }}
+                                {{ if eq . "TRANSCODE" }}<option value="TRANSCODE">Transcode</option>{{ end }}
+                                {{ if eq . "ARCHIVE" }}<option value="ARCHIVE">Archive</option>{{ end }}
+                                {{ if eq . "EXTRACT" }}<option value="EXTRACT">Extract</option>{{ end }}
+                                {{ if eq . "ICAP" }}<option value="ICAP">ICAP (Beta)</option>{{ end }}
+                                {{ if eq . "ENCRYPT" }}<option value="ENCRYPT">Encrypt</option>{{ end }}
+                                {{ if eq . "DECRYPT" }}<option value="DECRYPT">Decrypt</option>{{ end }}
+                                {{ if eq . "SIGN" }}<option value="SIGN">Sign</option>{{ end }}
+                                {{ if eq . "VERIFY" }}<option value="VERIFY">Verify</option>{{ end }}
+                                {{ if eq . "ENCRYPT&SIGN" }}<option value="ENCRYPT&SIGN">Encrypt &amp; Sign</option>{{ end }}
+                                {{ if eq . "DECRYPT&VERIFY" }}<option value="DECRYPT&VERIFY">Decrypt &amp; Verify</option>{{ end }}
+                            {{ end }}
+                        </select>
+                    </div>
+                    {{ template "addTaskCOPY" . }}
+                    {{ template "addTaskCOPYRENAME" . }}
+                    {{ template "addTaskEXEC" . }}
+                    {{ template "addTaskEXECMOVE" . }}
+                    {{ template "addTaskEXECOUTPUT" . }}
+                    {{ template "addTaskMOVE" . }}
+                    {{ template "addTaskMOVERENAME" . }}
+                    {{ template "addTaskRENAME" . }}
+                    {{ template "addTaskTRANSFER" . }}
+                    {{ template "addTaskTRANSCODE" . }}
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">{{ index .tab "close" }}</button>
+                    <button type="submit" class="btn btn-success ms-3">{{ index .tab "apply" }}</button>
+                </div>
+                </form>
+            </div>
+            </div>
+        </div>
+    {{ end }}
+
+    <table class="table table-sm align-middle mb-4 rounded-3 mt-3">
+        <thead class="table-light">
+            <tr>
+                <th></th>
+                <th>{{ index $.tab "index" }} <i class="bi bi-info-circle ms-1" data-bs-toggle="tooltip" data-bs-placement="right" data-bs-title="{{ index $.tab "tooltipIndex" }}"></i></th>
+                <th>{{ index $.tab "type" }} <i class="bi bi-info-circle ms-1" data-bs-toggle="tooltip" data-bs-placement="right" data-bs-title="{{ index $.tab "tooltipType" }}"></i></th>
+                <th>{{ index $.tab "arguments" }} <i class="bi bi-info-circle ms-1" data-bs-toggle="tooltip" data-bs-placement="right" data-bs-title="{{ index $.tab "tooltipArguments" }}"></i></th>
+                <th class="text-end"></th>
+            </tr>
+        </thead>
+        <tbody>
+            {{ range .preTasks }}
+            <tr>
+                <td><i class="bi bi-list-task"></i></td>
+                <td><strong>{{ .Rank }}</strong></td>
+                <td>
+                    {{ if eq .Type "COPY" }}Copy{{ end }}
+                    {{ if eq .Type "COPYRENAME" }}Copy Rename{{ end }}
+                    {{ if eq .Type "DELETE" }}Delete{{ end }}
+                    {{ if eq .Type "EXEC" }}Exec{{ end }}
+                    {{ if eq .Type "EXECMOVE" }}Exec Move{{ end }}
+                    {{ if eq .Type "EXECOUTPUT" }}Exec Output{{ end }}
+                    {{ if eq .Type "MOVE" }}Move{{ end }}
+                    {{ if eq .Type "MOVERENAME" }}Move Rename{{ end }}
+                    {{ if eq .Type "RENAME" }}Rename{{ end }}
+                    {{ if eq .Type "TRANSFER" }}Transfer{{ end }}
+                    {{ if eq .Type "TRANSCODE" }}Transcode{{ end }}
+                    {{ if eq .Type "ARCHIVE" }}Archive{{ end }}
+                    {{ if eq .Type "EXTRACT" }}Extract{{ end }}
+                    {{ if eq .Type "ICAP (BETA)" }}ICAP (BETA){{ end }}
+                    {{ if eq .Type "ENCRYPT" }}Encrypt{{ end }}
+                    {{ if eq .Type "DECRYPT" }}Decrypt{{ end }}
+                    {{ if eq .Type "SIGN" }}Sign{{ end }}
+                    {{ if eq .Type "VERIFY" }}Verify{{ end }}
+                    {{ if eq .Type "ENCRYPT&SIGN" }}Encrypt &amp; Sign{{ end }}
+                    {{ if eq .Type "DECRYPT&VERIFY" }}Decrypt &amp; Verify{{ end }}
+                </td>
+                <td>
+                    <button class="btn btn-outline-primary modal-btn" type="button" data-bs-toggle="modal" data-bs-target="#argumentsModal_{{ .Rank }}">
+                        <i class="bi bi-three-dots"></i>
+                    </button>
+                    <div class="modal fade" id="argumentsModal_{{ .Rank }}" tabindex="-1" aria-labelledby="argumentsModalLabel_{{ .Rank }}" aria-hidden="true">
+                        <div class="modal-dialog modal-lg">
+                            <div class="modal-content">
+                                <div class="modal-body text-break">
+                                    les value
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </td>
+                <td class="text-end">
+                    {{ if contains $.myPermission.Rules "w" }}
+                        <button class="btn btn-outline-primary btn-sm me-1" data-bs-toggle="modal" data-bs-target="#editPreTaskModal_{{ .Rank }}">
+                            <i class="bi bi-pencil"></i>
+                        </button>
+                    {{ end }}
+                    {{ if contains $.myPermission.Rules "d" }}
+                        <form method="post" class="d-inline">
+                            <input type="hidden" name="ruleID" value="{{ $.rule.ID }}">
+                            <input type="hidden" name="deletePreTask" value="{{ .Rank }}">
+                            <button type="submit" class="btn btn-outline-danger btn-sm" onclick="return confirm('{{ index $.tab "confirmDelete" }}')">
+                                <i class="bi bi-trash"></i>
+                            </button>
+                        </form>
+                    {{ end }}
+                </td>
+            </tr>
+            {{ end }}
+        </tbody>
+    </table>
+{{ end }}
+
+{{ define "content" }}
+  {{ if .errMsg }}
+    <div id="errorPopup" class="alert alert-danger alert-dismissible fade show" role="alert">
+      {{ .errMsg }}
+      <button type="button" class="btn-close error-close-btn" data-bs-dismiss="alert" aria-label="Close"></button>
+    </div>
+  {{ end }}
+    {{ if .rule }}
+        <div class="d-flex align-items-center justify-content-between">
+            <h2 class="mb-0">{{ index .tab "title" }} : {{ .rule.Name }}</h2>
+            <button class="btn btn-outline-secondary ms-3 back-btn" type="button" onclick="window.location='transfer_rules_management'">
+                <i class="bi bi-arrow-left"></i>
+            </button>
+        </div>
+        <hr style="border-top: 1px solid #ababab;">
+        
+    <div id="tasksContainer">
+        <div class="d-flex gap-2 mb-3">
+            <button class="btn btn-light btn-lg w-100 d-flex justify-content-between align-items-center btn-task-border" type="button" data-bs-toggle="collapse" data-bs-target="#preTasksCollapse" aria-expanded="false" aria-controls="preTasksCollapse">
+                {{ index .tab "preTasks" }}
+                <i class="bi bi-chevron-right"></i>
+            </button>
+            <button class="btn btn-light btn-lg w-100 d-flex justify-content-between align-items-center btn-task-border" type="button" data-bs-toggle="collapse" data-bs-target="#postTasksCollapse" aria-expanded="false" aria-controls="postTasksCollapse">
+                {{ index .tab "postTasks" }}
+                <i class="bi bi-chevron-right"></i>
+            </button>
+            <button class="btn btn-light btn-lg w-100 d-flex justify-content-between align-items-center btn-task-border" type="button" data-bs-toggle="collapse" data-bs-target="#errorTasksCollapse" aria-expanded="false" aria-controls="errorTasksCollapse">
+                {{ index .tab "errorTasks" }}
+                <i class="bi bi-chevron-right"></i>
+            </button>
+        </div>
+
+        <div class="no-anim-collapse collapse border rounded p-3 mb-3" id="preTasksCollapse">
+            {{ template "PreTasks" . }}
+        </div>
+        <div class="no-anim-collapse collapse border rounded p-3 mb-3" id="postTasksCollapse">
+            {{ template "PreTasks" . }}
+        </div>
+        <div class="no-anim-collapse collapse border rounded p-3 mb-3" id="errorTasksCollapse">
+            {{ template "PreTasks" . }}
+        </div>
+    </div>
+    {{ end }}
+{{ end }}
+
+{{ define "tasks_transfer_rules_page" }}
+  {{ template "index" . }}
+{{ end }}
