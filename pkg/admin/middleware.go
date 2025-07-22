@@ -103,15 +103,12 @@ func LoggingMiddleware(logger *log.Logger) mux.MiddlewareFunc {
 var AppName = "waarp-gatewayd"
 
 func ServerInfoMiddleware() mux.MiddlewareFunc {
-	gmt := time.FixedZone("GMT", 0)
-
 	return func(next http.Handler) http.Handler {
 		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-			next.ServeHTTP(w, r)
-
 			w.Header().Set("Server", fmt.Sprintf("%s/%s", AppName, version.Num))
-			w.Header().Set("Date", time.Now().In(gmt).Format(time.RFC1123))
 			w.Header().Set(api.DateHeader, time.Now().Format(time.RFC1123))
+
+			next.ServeHTTP(w, r)
 		})
 	}
 }
