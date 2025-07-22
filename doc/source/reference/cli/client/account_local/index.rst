@@ -12,6 +12,7 @@ Gestion des comptes locaux
    get
    update
    delete
-   auth_add
-   auth_delete
+   cred_add
+   cred_get
+   cred_delete
    cert/index

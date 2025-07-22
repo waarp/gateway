@@ -2,7 +2,7 @@
 Consulter une méthode d'authentification
 ========================================
 
-.. program:: waarp-gateway partner credential get
+.. program:: waarp-gateway account remote credential get
 
 Affiche les informations de la méthode d'authentification donnée.
 
@@ -10,7 +10,7 @@ Affiche les informations de la méthode d'authentification donnée.
 
 .. code-block:: shell
 
-   waarp-gateway partner credential "<PARTNER>" get "<CREDENTIAL>"
+   waarp-gateway account remote "<PARTNER>" credential "<LOGIN>" get "<CREDENTIAL>"
 
 **Options**
 
@@ -25,4 +25,4 @@ Affiche les informations de la méthode d'authentification donnée.
 
 .. code-block:: shell
 
-   waarp-gateway partner credential "openssh" get "openssh_hostkey"
+   waarp-gateway account remote "openssh" credential "waarp_ssh" get "password"

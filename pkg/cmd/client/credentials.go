@@ -29,16 +29,16 @@ func getCredentialPath() (string, error) {
 	}
 }
 
-func displayCredential(w io.Writer, cred *api.OutCred) error {
+func displayCredential(w io.Writer, cred *api.OutCred, raw bool) error {
 	switch cred.Type {
 	case auth.Password:
 		Style1.PrintL(w, fmt.Sprintf("Password %q", cred.Name), cred.Value)
 	case auth.TLSCertificate, auth.TLSTrustedCertificate:
-		return displayTLSInfo(w, Style1, cred.Name, cred.Value)
+		return displayTLSInfo(w, Style1, cred.Name, cred.Value, raw)
 	case sftp.AuthSSHPublicKey:
-		return displaySSHKeyInfo(w, Style1, cred.Name, cred.Value)
+		return displaySSHKeyInfo(w, Style1, cred.Name, cred.Value, raw)
 	case sftp.AuthSSHPrivateKey:
-		return displayPrivateKeyInfo(w, Style1, cred.Name, cred.Value)
+		return displayPrivateKeyInfo(w, Style1, cred.Name, cred.Value, raw)
 	case r66.AuthLegacyCertificate:
 		Style1.Printf(w, "Legacy R66 certificate %q", cred.Name)
 	default:
@@ -84,6 +84,7 @@ type CredentialGet struct {
 	Args struct {
 		Credential string `required:"yes" positional-arg-name:"credential" description:"The credential's name"`
 	} `positional-args:"yes"`
+	Raw bool `short:"r" long:"raw" description:"Display the raw credential value (when applicable)"`
 }
 
 func (a *CredentialGet) Execute([]string) error { return a.execute(stdOutput) }
@@ -100,7 +101,7 @@ func (a *CredentialGet) execute(w io.Writer) error {
 		return err
 	}
 
-	return displayCredential(w, &cred)
+	return displayCredential(w, &cred, a.Raw)
 }
 
 type CredentialDelete struct {

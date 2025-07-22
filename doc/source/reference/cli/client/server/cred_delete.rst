@@ -16,4 +16,4 @@ Supprime la valeur d'authentification données du serveur.
 
 .. code-block:: shell
 
-   waarp-gateway server credential 'server_sftp' delete 'sftp_hostkey'
+   waarp-gateway server credential "gw_r66" delete "r66_cert"

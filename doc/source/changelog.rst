@@ -3,6 +3,16 @@
 Historique des versions
 =======================
 
+* :feature:`-` Ajout d'une option ``-r, --raw`` aux commandes d'affichage des
+  certificats et clés SSH permettant d'afficher la valeur brute de ces éléments
+  (typiquement un fichier PEM) au lieu d'afficher leurs métadonnées comme c'est
+  le cas par défaut.
+* :feature:``448` Ajout d'une tâche "EMAIL" permettant d'envoyer un email.
+  Particulièrement utile en tant que tâche d'erreur pour notifier d'une erreur
+  de transfert. Pour configurer cette tâche, deux nouvelles tables, ainsi que
+  leurs :ref:`handlers REST<ref-rest-emails>` et leurs :ref:`commandes terminal
+  <ref-cli-client-email>` ont été ajoutées. Ces tables permettent de configurer
+  les identifiants de connexion SMTP, ainsi que les templates d'email à envoyer.
 * :feature:`435` Ajout d'une commande CLI et d'un handler REST permettant
   d'envoyer des notifications SNMP de test afin de valider la configuration des
   moniteurs SNMP.
