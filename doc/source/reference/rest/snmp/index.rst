@@ -10,3 +10,4 @@ modifications possède les droits d'administration.
 
    monitors/index
    server/index
+   test

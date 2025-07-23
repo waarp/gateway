@@ -89,10 +89,11 @@ const (
 	AuthAuthoritiesPath = "/api/authorities"
 	AuthAuthorityPath   = "/api/authorities/{authority}"
 
-	SNMPPath         = "/api/snmp"
-	SNMPServerPath   = "/api/snmp/server"
-	SNMPMonitorsPath = "/api/snmp/monitors"
-	SNMPMonitorPath  = "/api/snmp/monitors/{snmp_monitor}"
+	SNMPPath             = "/api/snmp"
+	SNMPServerPath       = "/api/snmp/server"
+	SNMPMonitorsPath     = "/api/snmp/monitors"
+	SNMPMonitorPath      = "/api/snmp/monitors/{snmp_monitor}"
+	SNMPTestMonitorsPath = "/api/snmp/test/monitors"
 
 	CryptoKeysPath = "/api/keys"
 	CryptoKeyPath  = "/api/keys/{crypto_key}"
@@ -272,6 +273,7 @@ func MakeRESTHandler(logger *log.Logger, db *database.DB, router *mux.Router,
 	mkHandler(SNMPServerPath, getSnmpService, model.PermAdminRead, http.MethodGet)
 	mkHandler(SNMPServerPath, setSnmpService, model.PermAdminWrite, http.MethodPut)
 	mkHandler(SNMPServerPath, deleteSnmpService, model.PermAdminWrite, http.MethodDelete)
+	mkHandler.noDB(SNMPTestMonitorsPath, testSnmpTrapTransErr, model.PermAdminWrite, http.MethodPut)
 
 	// PGP keys
 	mkHandler(CryptoKeysPath, addCryptoKey, model.PermAdminWrite, http.MethodPost)
