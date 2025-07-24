@@ -16,19 +16,37 @@ import (
 )
 
 //nolint:gochecknoglobals //global var is needed here for future-proofing
-var SignMethods = map[string]func(*sign, *model.CryptoKey) error{
-	SignMethodHMACSHA256: (*sign).makeHMACSHA256Signer,
-	SignMethodHMACSHA384: (*sign).makeHMACSHA384Signer,
-	SignMethodHMACSHA512: (*sign).makeHMACSHA512Signer,
-	SignMethodHMACMD5:    (*sign).makeHMACMD5Signer,
-	SignMethodPGP:        (*sign).makePGPSigner,
+var SignMethods = map[string]struct {
+	KeyTypes []string
+	mkSigner func(*model.CryptoKey) (signFunc, error)
+}{
+	SignMethodHMACSHA256: {
+		KeyTypes: []string{model.CryptoKeyTypeHMAC},
+		mkSigner: makeHMACSHA256Signer,
+	},
+	SignMethodHMACSHA384: {
+		KeyTypes: []string{model.CryptoKeyTypeHMAC},
+		mkSigner: makeHMACSHA384Signer,
+	},
+	SignMethodHMACSHA512: {
+		KeyTypes: []string{model.CryptoKeyTypeHMAC},
+		mkSigner: makeHMACSHA512Signer,
+	},
+	SignMethodHMACMD5: {
+		KeyTypes: []string{model.CryptoKeyTypeHMAC},
+		mkSigner: makeHMACMD5Signer,
+	},
+	SignMethodPGP: {
+		KeyTypes: []string{model.CryptoKeyTypePGPPrivate},
+		mkSigner: makePGPSigner,
+	},
 }
 
 var (
 	ErrSignNoKeyName     = errors.New("missing signature key name")
 	ErrSignNoMethod      = errors.New("missing signature method")
 	ErrSignKeyNotFound   = errors.New("signature key not found")
-	ErrSignInvalidMethod = errors.New("invalid signature method")
+	ErrSignUnknownMethod = errors.New("unknown signature method")
 )
 
 type signFunc func(file io.Reader) ([]byte, error)
@@ -62,11 +80,17 @@ func (s *sign) ValidateDB(db database.ReadAccess, params map[string]string) erro
 		return fmt.Errorf("failed to retrieve signature key from database: %w", err)
 	}
 
-	if mkSigner, ok := SignMethods[s.Method]; ok {
-		return mkSigner(s, &cryptoKey)
+	method, ok := SignMethods[s.Method]
+	if !ok {
+		return fmt.Errorf("%w %q", ErrSignUnknownMethod, s.Method)
 	}
 
-	return fmt.Errorf("%w: %s", ErrSignInvalidMethod, s.Method)
+	var err error
+	if s.sign, err = method.mkSigner(&cryptoKey); err != nil {
+		return err
+	}
+
+	return nil
 }
 
 func (s *sign) Run(_ context.Context, params map[string]string,

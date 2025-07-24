@@ -20,17 +20,17 @@ func isPGPSignKey(cryptoKey *model.CryptoKey) bool {
 	return cryptoKey.Type == model.CryptoKeyTypePGPPrivate
 }
 
-func (s *sign) makePGPSigner(cryptoKey *model.CryptoKey) error {
+func makePGPSigner(cryptoKey *model.CryptoKey) (signFunc, error) {
 	if !isPGPSignKey(cryptoKey) {
-		return ErrSignNotPGPKey
+		return nil, ErrSignNotPGPKey
 	}
 
 	pgpKey, parsErr := pgp.NewKeyFromArmored(cryptoKey.Key.String())
 	if parsErr != nil {
-		return fmt.Errorf("failed to parse PGP signing key: %w", parsErr)
+		return nil, fmt.Errorf("failed to parse PGP signing key: %w", parsErr)
 	}
 
-	s.sign = func(file io.Reader) ([]byte, error) {
+	return func(file io.Reader) ([]byte, error) {
 		builder := pgp.PGPWithProfile(pgpprofile.RFC4880()).Sign().Detached()
 
 		signHandler, handlerErr := builder.SigningKey(pgpKey).New()
@@ -54,7 +54,5 @@ func (s *sign) makePGPSigner(cryptoKey *model.CryptoKey) error {
 		}
 
 		return signature.Bytes(), nil
-	}
-
-	return nil
+	}, nil
 }

@@ -15,18 +15,33 @@ import (
 )
 
 //nolint:gochecknoglobals //global var is needed here for future-proofing
-var EncryptMethods = map[string]func(*encrypt, *model.CryptoKey) error{
-	EncryptMethodAESCFB: (*encrypt).makeAESCFBEncryptor,
-	EncryptMethodAESCTR: (*encrypt).makeAESCTREncryptor,
-	EncryptMethodAESOFB: (*encrypt).makeAESOFBEncryptor,
-	EncryptMethodPGP:    (*encrypt).makePGPEncryptor,
+var EncryptMethods = map[string]struct {
+	KeyTypes    []string
+	mkEncryptor func(*model.CryptoKey) (encryptFunc, error)
+}{
+	EncryptMethodAESCFB: {
+		KeyTypes:    []string{model.CryptoKeyTypeAES},
+		mkEncryptor: makeAESCFBEncryptor,
+	},
+	EncryptMethodAESCTR: {
+		KeyTypes:    []string{model.CryptoKeyTypeAES},
+		mkEncryptor: makeAESCTREncryptor,
+	},
+	EncryptMethodAESOFB: {
+		KeyTypes:    []string{model.CryptoKeyTypeAES},
+		mkEncryptor: makeAESOFBEncryptor,
+	},
+	EncryptMethodPGP: {
+		KeyTypes:    []string{model.CryptoKeyTypePGPPublic, model.CryptoKeyTypePGPPrivate},
+		mkEncryptor: makePGPEncryptor,
+	},
 }
 
 var (
 	ErrEncryptNoKeyName     = errors.New("missing encryption key name")
 	ErrEncryptNoMethod      = errors.New("missing encryption method")
 	ErrEncryptKeyNotFound   = errors.New("encryption key not found")
-	ErrEncryptInvalidMethod = errors.New("invalid encryption method")
+	ErrEncryptUnknownMethod = errors.New("unknown encryption method")
 )
 
 type encryptFunc func(src io.Reader, dst io.Writer) error
@@ -61,11 +76,17 @@ func (e *encrypt) ValidateDB(db database.ReadAccess, params map[string]string) e
 		return fmt.Errorf("failed to retrieve encryption key from database: %w", err)
 	}
 
-	if mkEncryptor, ok := EncryptMethods[e.Method]; ok {
-		return mkEncryptor(e, &cryptoKey)
+	method, ok := EncryptMethods[e.Method]
+	if !ok {
+		return fmt.Errorf("%w %q", ErrEncryptUnknownMethod, e.Method)
 	}
 
-	return fmt.Errorf("%w: %s", ErrEncryptInvalidMethod, e.Method)
+	var err error
+	if e.encrypt, err = method.mkEncryptor(&cryptoKey); err != nil {
+		return err
+	}
+
+	return nil
 }
 
 func (e *encrypt) Run(_ context.Context, params map[string]string,

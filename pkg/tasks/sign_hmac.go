@@ -26,36 +26,34 @@ func isHMACKey(cryptoKey *model.CryptoKey) bool {
 	return cryptoKey.Type == model.CryptoKeyTypeHMAC
 }
 
-func (s *sign) makeHMACSHA256Signer(cryptoKey *model.CryptoKey) error {
-	return s.makeHMACSigner(cryptoKey, sha256.New)
+func makeHMACSHA256Signer(cryptoKey *model.CryptoKey) (signFunc, error) {
+	return makeHMACSigner(cryptoKey, sha256.New)
 }
 
-func (s *sign) makeHMACSHA384Signer(cryptoKey *model.CryptoKey) error {
-	return s.makeHMACSigner(cryptoKey, sha512.New384)
+func makeHMACSHA384Signer(cryptoKey *model.CryptoKey) (signFunc, error) {
+	return makeHMACSigner(cryptoKey, sha512.New384)
 }
 
-func (s *sign) makeHMACSHA512Signer(cryptoKey *model.CryptoKey) error {
-	return s.makeHMACSigner(cryptoKey, sha512.New)
+func makeHMACSHA512Signer(cryptoKey *model.CryptoKey) (signFunc, error) {
+	return makeHMACSigner(cryptoKey, sha512.New)
 }
 
-func (s *sign) makeHMACMD5Signer(cryptoKey *model.CryptoKey) error {
-	return s.makeHMACSigner(cryptoKey, md5.New)
+func makeHMACMD5Signer(cryptoKey *model.CryptoKey) (signFunc, error) {
+	return makeHMACSigner(cryptoKey, md5.New)
 }
 
-func (s *sign) makeHMACSigner(cryptoKey *model.CryptoKey, mkHash func() hash.Hash) error {
+func makeHMACSigner(cryptoKey *model.CryptoKey, mkHash func() hash.Hash) (signFunc, error) {
 	if !isHMACKey(cryptoKey) {
-		return ErrSignNotHMACKey
+		return nil, ErrSignNotHMACKey
 	}
 
 	hasher := hmac.New(mkHash, []byte(cryptoKey.Key))
 
-	s.sign = func(file io.Reader) ([]byte, error) {
+	return func(file io.Reader) ([]byte, error) {
 		if _, err := io.Copy(hasher, file); err != nil {
 			return nil, fmt.Errorf("failed to compute file signature: %w", err)
 		}
 
 		return hasher.Sum(nil), nil
-	}
-
-	return nil
+	}, nil
 }

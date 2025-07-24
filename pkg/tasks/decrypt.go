@@ -14,11 +14,34 @@ import (
 	"code.waarp.fr/apps/gateway/gateway/pkg/utils"
 )
 
+//nolint:gochecknoglobals //global var is needed here for future-proofing
+var DecryptMethods = map[string]struct {
+	KeyTypes    []string
+	mkDecryptor func(*model.CryptoKey) (decryptFunc, error)
+}{
+	EncryptMethodAESCFB: {
+		KeyTypes:    []string{model.CryptoKeyTypeAES},
+		mkDecryptor: makeAESCFBDecryptor,
+	},
+	EncryptMethodAESCTR: {
+		KeyTypes:    []string{model.CryptoKeyTypeAES},
+		mkDecryptor: makeAESCTRDecryptor,
+	},
+	EncryptMethodAESOFB: {
+		KeyTypes:    []string{model.CryptoKeyTypeAES},
+		mkDecryptor: makeAESOFBDecryptor,
+	},
+	EncryptMethodPGP: {
+		KeyTypes:    []string{model.CryptoKeyTypePGPPrivate},
+		mkDecryptor: makePGPDecryptor,
+	},
+}
+
 var (
 	ErrDecryptNoKeyName     = errors.New("missing decryption key name")
 	ErrDecryptNoMethod      = errors.New("missing decryption method")
 	ErrDecryptKeyNotFound   = errors.New("decryption key not found")
-	ErrDecryptInvalidMethod = errors.New("invalid decryption method")
+	ErrDecryptUnknownMethod = errors.New("unknown decryption method")
 )
 
 type decryptFunc func(src io.Reader, dst io.Writer) error
@@ -53,18 +76,17 @@ func (d *decrypt) ValidateDB(db database.ReadAccess, params map[string]string) e
 		return fmt.Errorf("failed to retrieve decryption key from database: %w", err)
 	}
 
-	switch d.Method {
-	case EncryptMethodAESCFB:
-		return d.makeAESCFBDecryptor(&cryptoKey)
-	case EncryptMethodAESCTR:
-		return d.makeAESCTRDecryptor(&cryptoKey)
-	case EncryptMethodAESOFB:
-		return d.makeAESOFBDecryptor(&cryptoKey)
-	case EncryptMethodPGP:
-		return d.makePGPDecryptor(&cryptoKey)
-	default:
-		return fmt.Errorf("%w: %s", ErrDecryptInvalidMethod, d.Method)
+	method, ok := DecryptMethods[d.Method]
+	if !ok {
+		return fmt.Errorf("%w %q", ErrDecryptUnknownMethod, d.Method)
 	}
+
+	var err error
+	if d.decrypt, err = method.mkDecryptor(&cryptoKey); err != nil {
+		return err
+	}
+
+	return nil
 }
 
 func (d *decrypt) Run(_ context.Context, params map[string]string,

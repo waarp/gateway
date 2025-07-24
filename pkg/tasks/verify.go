@@ -15,11 +15,38 @@ import (
 	"code.waarp.fr/apps/gateway/gateway/pkg/utils"
 )
 
+//nolint:gochecknoglobals //global var is needed here for future-proofing
+var VerifyMethods = map[string]struct {
+	KeyTypes   []string
+	mkVerifier func(*model.CryptoKey) (verifyFunc, error)
+}{
+	SignMethodHMACSHA256: {
+		KeyTypes:   []string{model.CryptoKeyTypeHMAC},
+		mkVerifier: makeHMACSHA256Verifier,
+	},
+	SignMethodHMACSHA384: {
+		KeyTypes:   []string{model.CryptoKeyTypeHMAC},
+		mkVerifier: makeHMACSHA384Verifier,
+	},
+	SignMethodHMACSHA512: {
+		KeyTypes:   []string{model.CryptoKeyTypeHMAC},
+		mkVerifier: makeHMACSHA512Verifier,
+	},
+	SignMethodHMACMD5: {
+		KeyTypes:   []string{model.CryptoKeyTypeHMAC},
+		mkVerifier: makeHMACMD5Verifier,
+	},
+	SignMethodPGP: {
+		KeyTypes:   []string{model.CryptoKeyTypePGPPrivate, model.CryptoKeyTypePGPPublic},
+		mkVerifier: makePGPVerifier,
+	},
+}
+
 var (
 	ErrVerifyNoKeyName     = errors.New("missing verification key name")
 	ErrVerifyNoMethod      = errors.New("missing verification method")
 	ErrVerifyKeyNotFound   = errors.New("verification key not found")
-	ErrVerifyInvalidMethod = errors.New("invalid verification method")
+	ErrVerifyUnknownMethod = errors.New("unknown verification method")
 )
 
 type verifyFunc func(file io.Reader, expected []byte) error
@@ -53,20 +80,17 @@ func (v *verify) ValidateDB(db database.ReadAccess, params map[string]string) er
 		return fmt.Errorf("failed to retrieve verification key from database: %w", err)
 	}
 
-	switch v.Method {
-	case SignMethodHMACSHA256:
-		return v.makeHMACSHA256Verifier(&cryptoKey)
-	case SignMethodHMACSHA384:
-		return v.makeHMACSHA384Verifier(&cryptoKey)
-	case SignMethodHMACSHA512:
-		return v.makeHMACSHA512Verifier(&cryptoKey)
-	case SignMethodHMACMD5:
-		return v.makeHMACMD5Verifier(&cryptoKey)
-	case SignMethodPGP:
-		return v.makePGPVerifier(&cryptoKey)
-	default:
-		return fmt.Errorf("%w: %s", ErrVerifyInvalidMethod, v.Method)
+	method, ok := VerifyMethods[v.Method]
+	if !ok {
+		return fmt.Errorf("%w: %s", ErrVerifyUnknownMethod, v.Method)
 	}
+
+	var err error
+	if v.verify, err = method.mkVerifier(&cryptoKey); err != nil {
+		return err
+	}
+
+	return nil
 }
 
 func (v *verify) Run(_ context.Context, params map[string]string, db *database.DB,

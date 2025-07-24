@@ -17,21 +17,19 @@ func isPGPPrivateKey(key *model.CryptoKey) bool {
 	return key.Type == model.CryptoKeyTypePGPPrivate
 }
 
-func (d *decrypt) makePGPDecryptor(cryptoKey *model.CryptoKey) error {
+func makePGPDecryptor(cryptoKey *model.CryptoKey) (decryptFunc, error) {
 	if !isPGPPrivateKey(cryptoKey) {
-		return ErrDecryptNotPGPKey
+		return nil, ErrDecryptNotPGPKey
 	}
 
 	pgpKey, err := pgp.NewKeyFromArmored(cryptoKey.Key.String())
 	if err != nil {
-		return fmt.Errorf("failed to parse PGP decryption key: %w", err)
+		return nil, fmt.Errorf("failed to parse PGP decryption key: %w", err)
 	}
 
-	d.decrypt = func(src io.Reader, dst io.Writer) error {
+	return func(src io.Reader, dst io.Writer) error {
 		return pgpDecrypt(src, dst, pgpKey)
-	}
-
-	return nil
+	}, nil
 }
 
 func pgpDecrypt(src io.Reader, dst io.Writer, pgpKey *pgp.Key) error {

@@ -15,8 +15,16 @@ import (
 )
 
 //nolint:gochecknoglobals //global var is needed here for future-proofing
-var EncryptSignMethods = map[string]func(*encryptSign, *model.CryptoKey, *model.CryptoKey) error{
-	EncryptSignMethodPGP: (*encryptSign).makePGPSignEncryptor,
+var EncryptSignMethods = map[string]struct {
+	KeyTypesEncrypt []string
+	KeyTypesSign    []string
+	mkEncryptSigner func(*model.CryptoKey, *model.CryptoKey) (encryptSignFunc, error)
+}{
+	EncryptSignMethodPGP: {
+		KeyTypesEncrypt: []string{model.CryptoKeyTypePGPPublic, model.CryptoKeyTypePGPPrivate},
+		KeyTypesSign:    []string{model.CryptoKeyTypePGPPrivate},
+		mkEncryptSigner: makePGPSignEncryptor,
+	},
 }
 
 var (
@@ -24,7 +32,7 @@ var (
 	ErrEncryptSignNoSignatureKeyName  = errors.New("missing signature key name")
 	ErrEncryptSignNoMethod            = errors.New("missing encryption/signature method")
 	ErrEncryptSignKeyNotFound         = errors.New("cryptographic key not found")
-	ErrEncryptSignInvalidMethod       = errors.New("invalid encryption/signature method")
+	ErrEncryptSignUnknownMethod       = errors.New("unknown encryption/signature method")
 )
 
 type encryptSignFunc func(src io.Reader, dst io.Writer) error
@@ -72,11 +80,17 @@ func (e *encryptSign) ValidateDB(db database.ReadAccess, params map[string]strin
 		return fmt.Errorf("failed to retrieve signature key from database: %w", err)
 	}
 
-	if mkEncryptSigner, ok := EncryptSignMethods[e.Method]; ok {
-		return mkEncryptSigner(e, &eCryptoKey, &sCryptoKey)
+	method, ok := EncryptSignMethods[e.Method]
+	if !ok {
+		return fmt.Errorf("%w %q", ErrEncryptSignUnknownMethod, e.Method)
 	}
 
-	return fmt.Errorf("%w: %s", ErrEncryptSignInvalidMethod, e.Method)
+	var err error
+	if e.encryptSign, err = method.mkEncryptSigner(&eCryptoKey, &sCryptoKey); err != nil {
+		return err
+	}
+
+	return nil
 }
 
 func (e *encryptSign) Run(_ context.Context, params map[string]string,

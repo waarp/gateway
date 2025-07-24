@@ -19,23 +19,23 @@ func isPGPPublicKey(key *model.CryptoKey) bool {
 	return key.Type == model.CryptoKeyTypePGPPublic || key.Type == model.CryptoKeyTypePGPPrivate
 }
 
-func (e *encrypt) makePGPEncryptor(cryptoKey *model.CryptoKey) error {
+func makePGPEncryptor(cryptoKey *model.CryptoKey) (encryptFunc, error) {
 	if !isPGPPublicKey(cryptoKey) {
-		return ErrEncryptNotPGPKey
+		return nil, ErrEncryptNotPGPKey
 	}
 
 	pgpKey, err := pgp.NewKeyFromArmored(cryptoKey.Key.String())
 	if err != nil {
-		return fmt.Errorf("failed to parse PGP encryption key: %w", err)
+		return nil, fmt.Errorf("failed to parse PGP encryption key: %w", err)
 	}
 
 	if pgpKey.IsPrivate() {
 		if pgpKey, err = pgpKey.ToPublic(); err != nil {
-			return fmt.Errorf("failed to parse PGP encryption key: %w", err)
+			return nil, fmt.Errorf("failed to parse PGP encryption key: %w", err)
 		}
 	}
 
-	e.encrypt = func(src io.Reader, dst io.Writer) error {
+	return func(src io.Reader, dst io.Writer) error {
 		builder := pgp.PGPWithProfile(pgpprofile.RFC4880()).Encryption()
 
 		encryptHandler, handlerErr := builder.Recipient(pgpKey).New()
@@ -57,7 +57,5 @@ func (e *encrypt) makePGPEncryptor(cryptoKey *model.CryptoKey) error {
 		}
 
 		return nil
-	}
-
-	return nil
+	}, nil
 }
