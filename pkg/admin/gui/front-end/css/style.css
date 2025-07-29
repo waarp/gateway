@@ -70,3 +70,11 @@
 .btn-task-border[aria-expanded="true"] .bi-chevron-right {
     transform: rotate(90deg);
 }
+
+.drag-handle {
+    cursor: grab;
+}
+
+.opacity-25  {
+    opacity: .25;
+}

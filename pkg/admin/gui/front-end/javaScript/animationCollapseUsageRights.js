@@ -1,13 +1,13 @@
 document.addEventListener('DOMContentLoaded', function () {
-    const container = document.getElementById('tasksContainer');
+    const container = document.getElementById('container-usage-rights');
     if (!container)
         return;
 
     const panels = Array.from(container.querySelectorAll('.no-anim-collapse'));
 
-    panels.forEach(panel => {
-        bootstrap.Collapse.getOrCreateInstance(panel, { toggle: false }).hide();
-    });
+    panels.forEach(panel =>
+        bootstrap.Collapse.getOrCreateInstance(panel, { toggle: false }).hide()
+    );
 
     panels.forEach(panel => {
         panel.addEventListener('show.bs.collapse', () => {
@@ -17,9 +17,18 @@ document.addEventListener('DOMContentLoaded', function () {
                 }
             });
             panel.classList.add('animate');
+            localStorage.setItem('lastOpenCollapseUsageRights', panel.id);
         });
         panel.addEventListener('hide.bs.collapse', () => {
             panel.classList.remove('animate');
         });
     });
+
+    const last = localStorage.getItem('lastOpenCollapseUsageRights');
+    if (last) {
+        const toOpen = document.getElementById(last);
+        if (toOpen) {
+            bootstrap.Collapse.getOrCreateInstance(toOpen, { toggle: false }).show();
+        }
+    }
 });

@@ -1,12 +1,13 @@
 {{ define "head" }}
     <title>{{ index .tab "title" }}</title>
     <link rel="stylesheet" href="/webui/static/css/style.css">
-    <script src="/webui/static/javaScript/autoCompleteSearch.js"></script>
     <script src="/webui/static/javaScript/showTasks.js"></script>
     <script src="/webui/static/javaScript/eyePassword.js"></script>
     <script src="/webui/static/javaScript/readFile.js"></script>
     <script src="/webui/static/javaScript/tooltip.js"></script>
-    <script src="/webui/static/javaScript/animationCollapse.js"></script>
+    <script src="/webui/static/javaScript/fields.js "></script>
+    <script src="/webui/static/javaScript/dragAndDropTasks.js"></script>
+    <script src="/webui/static/javaScript/animationCollapseTasks.js"></script>
     <script>window.modalOpen = "{{ .modalOpen }}";</script>
     <script src="/webui/static/javaScript/displayErr.js"></script>
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css" rel="stylesheet">
@@ -56,6 +57,7 @@
                     </div>
                     {{ template "addTaskCOPY" . }}
                     {{ template "addTaskCOPYRENAME" . }}
+                    {{ template "addTaskDelete" . }}
                     {{ template "addTaskEXEC" . }}
                     {{ template "addTaskEXECMOVE" . }}
                     {{ template "addTaskEXECOUTPUT" . }}
@@ -64,6 +66,15 @@
                     {{ template "addTaskRENAME" . }}
                     {{ template "addTaskTRANSFER" . }}
                     {{ template "addTaskTRANSCODE" . }}
+                    {{ template "addTaskARCHIVE" . }}
+                    {{ template "addTaskEXTRACT" . }}
+                    {{ template "addTaskICAP" . }}
+                    {{ template "addTaskENCRYPT" . }}
+                    {{ template "addTaskDECRYPT" . }}
+                    {{ template "addTaskSIGN" . }}
+                    {{ template "addTaskVERIFY" . }}
+                    {{ template "addTaskENCRYPT&SIGN" . }}
+                    {{ template "addTaskDECRYPT&VERIFY" . }}
                 </div>
                 <div class="modal-footer">
                     <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">{{ index .tab "close" }}</button>
@@ -74,22 +85,23 @@
             </div>
         </div>
     {{ end }}
-
+    <div class="dragControls" style="display:none; float:right">
+        <button type="button" class="btn btn-secondary">{{ index .tab "cancel" }}</button>
+        <button type="button" class="btn btn-success ms-1">{{ index .tab "apply" }}</button>
+    </div>
     <table class="table table-sm align-middle mb-4 rounded-3 mt-3">
         <thead class="table-light">
             <tr>
                 <th></th>
-                <th>{{ index $.tab "index" }} <i class="bi bi-info-circle ms-1" data-bs-toggle="tooltip" data-bs-placement="right" data-bs-title="{{ index $.tab "tooltipIndex" }}"></i></th>
                 <th>{{ index $.tab "type" }} <i class="bi bi-info-circle ms-1" data-bs-toggle="tooltip" data-bs-placement="right" data-bs-title="{{ index $.tab "tooltipType" }}"></i></th>
                 <th>{{ index $.tab "arguments" }} <i class="bi bi-info-circle ms-1" data-bs-toggle="tooltip" data-bs-placement="right" data-bs-title="{{ index $.tab "tooltipArguments" }}"></i></th>
-                <th class="text-end"></th>
+                <th class="text-end"><strong>{{ index $.tab "trick" }}</strong> <i class="bi bi-info-circle ms-1" data-bs-toggle="tooltip" data-bs-placement="right" data-bs-title="{{ index $.tab "tooltipTrick" }}"></i></th>
             </tr>
         </thead>
         <tbody>
             {{ range .preTasks }}
-            <tr>
-                <td><i class="bi bi-list-task"></i></td>
-                <td><strong>{{ .Rank }}</strong></td>
+            <tr data-task-id="{{ .Rank }}" data-rank="{{ .Rank }}" draggable="true">
+                <td><i class="bi bi-grip-vertical"></i></td>
                 <td>
                     {{ if eq .Type "COPY" }}Copy{{ end }}
                     {{ if eq .Type "COPYRENAME" }}Copy Rename{{ end }}
@@ -104,7 +116,7 @@
                     {{ if eq .Type "TRANSCODE" }}Transcode{{ end }}
                     {{ if eq .Type "ARCHIVE" }}Archive{{ end }}
                     {{ if eq .Type "EXTRACT" }}Extract{{ end }}
-                    {{ if eq .Type "ICAP (BETA)" }}ICAP (BETA){{ end }}
+                    {{ if eq .Type "ICAP" }}ICAP (BETA){{ end }}
                     {{ if eq .Type "ENCRYPT" }}Encrypt{{ end }}
                     {{ if eq .Type "DECRYPT" }}Decrypt{{ end }}
                     {{ if eq .Type "SIGN" }}Sign{{ end }}
@@ -113,29 +125,905 @@
                     {{ if eq .Type "DECRYPT&VERIFY" }}Decrypt &amp; Verify{{ end }}
                 </td>
                 <td>
-                    <button class="btn btn-outline-primary modal-btn" type="button" data-bs-toggle="modal" data-bs-target="#argumentsModal_{{ .Rank }}">
+                    {{ if ne .Type "DELETE" }}
+                        {{ if eq .Type "COPY" }}
+                            {{ index $.tab "path" }}: {{ index .Args "path" }}
+                        {{ end }}
+                        {{ if eq .Type "COPYRENAME" }}
+                            {{ index $.tab "path" }}: {{ index .Args "path" }}
+                        {{ end }}
+                        {{ if eq .Type "EXEC" }}
+                            {{ index $.tab "path" }}: {{ index .Args "path" }}
+                        {{ end }}
+                        {{ if eq .Type "EXECMOVE" }}
+                            {{ index $.tab "path" }}: {{ index .Args "path" }}
+                        {{ end }}
+                        {{ if eq .Type "EXECOUTPUT" }}
+                            {{ index $.tab "path" }}: {{ index .Args "path" }}
+                        {{ end }}
+                        {{ if eq .Type "MOVE" }}
+                            {{ index $.tab "path" }}: {{ index .Args "path" }}
+                        {{ end }}
+                        {{ if eq .Type "MOVERENAME" }}
+                            {{ index $.tab "path" }}: {{ index .Args "path" }}
+                        {{ end }}
+                        {{ if eq .Type "RENAME" }}
+                            {{ index $.tab "path" }}: {{ index .Args "path" }}
+                        {{ end }}
+                        {{ if eq .Type "TRANSFER" }}
+                            {{ index $.tab "file" }}: {{ index .Args "file" }}
+                        {{ end }}
+                        {{ if eq .Type "TRANSCODE" }}
+                            {{ index $.tab "toCharset" }}: {{ index .Args "toCharset" }}
+                        {{ end }}
+                        {{ if eq .Type "ARCHIVE" }}
+                            {{ index $.tab "files" }}: {{ index .Args "files" }}
+                        {{ end }}
+                        {{ if eq .Type "EXTRACT" }}
+                            {{ index $.tab "outputDir" }}: {{ index .Args "outputDir" }}
+                        {{ end }}
+                        {{ if eq .Type "ICAP" }}
+                            {{ index $.tab "uploadURL" }}: {{ index .Args "uploadURL" }}
+                        {{ end }}
+                        {{ if eq .Type "ENCRYPT" }}
+                            {{ index $.tab "method" }}: {{ index .Args "method" }}
+                        {{ end }}
+                        {{ if eq .Type "DECRYPT" }}
+                            {{ index $.tab "method" }}: {{ index .Args "method" }}
+                        {{ end }}
+                        {{ if eq .Type "SIGN" }}
+                            {{ index $.tab "method" }}: {{ index .Args "method" }}
+                        {{ end }}
+                        {{ if eq .Type "VERIFY" }}
+                            {{ index $.tab "method" }}: {{ index .Args "method" }}
+                        {{ end }}
+                        {{ if eq .Type "ENCRYPT&SIGN" }}
+                            {{ index $.tab "method" }}: {{ index .Args "method" }}
+                        {{ end }}
+                        {{ if eq .Type "DECRYPT&VERIFY" }}
+                            {{ index $.tab "method" }}: {{ index .Args "method" }}
+                        {{ end }}
+                    <button class="btn btn-outline-primary modal-btn ms-2" type="button" data-bs-toggle="modal" data-bs-target="#preArgumentsModal_{{ .Rank }}">
                         <i class="bi bi-three-dots"></i>
                     </button>
-                    <div class="modal fade" id="argumentsModal_{{ .Rank }}" tabindex="-1" aria-labelledby="argumentsModalLabel_{{ .Rank }}" aria-hidden="true">
+                    <div class="modal fade" id="preArgumentsModal_{{ .Rank }}" tabindex="-1" aria-labelledby="preArgumentsModalLabel_{{ .Rank }}" aria-hidden="true">
                         <div class="modal-dialog modal-lg">
-                            <div class="modal-content">
-                                <div class="modal-body text-break">
-                                    les value
+                            <div class="modal-content p-3 border rounded bg-light">
+                                <div class="modal-header">
+                                    <h5 class="modal-title" id="preArgumentsModalLabel_{{ .Rank }}">
+                                        {{ index $.tab "arguments" }}
+                                    </h5>
+                                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                                </div>
+                                <div class="modal-body">
+                                    {{ if eq .Type "COPY" }}
+                                        {{ template "displayTaskCOPY" (dict "tab" $.tab "Args" .Args) }}
+                                    {{ end }}
+                                    {{ if eq .Type "COPYRENAME" }}
+                                        {{ template "displayTaskCOPYRENAME" (dict "tab" $.tab "Args" .Args) }}
+                                    {{ end }}
+                                    {{ if eq .Type "DELETE" }}
+                                        {{ template "displayTaskDelete" (dict "tab" $.tab "Args" .Args) }}
+                                    {{ end }}
+                                    {{ if eq .Type "EXEC" }}
+                                        {{ template "displayTaskEXEC" (dict "tab" $.tab "Args" .Args) }}
+                                    {{ end }}
+                                    {{ if eq .Type "EXECMOVE" }}
+                                        {{ template "displayTaskEXECMOVE" (dict "tab" $.tab "Args" .Args) }}
+                                    {{ end }}
+                                    {{ if eq .Type "EXECOUTPUT" }}
+                                        {{ template "displayTaskEXECOUTPUT" (dict "tab" $.tab "Args" .Args) }}
+                                    {{ end }}
+                                    {{ if eq .Type "MOVE" }}
+                                        {{ template "displayTaskMOVE" (dict "tab" $.tab "Args" .Args) }}
+                                    {{ end }}
+                                    {{ if eq .Type "MOVERENAME" }}
+                                        {{ template "displayTaskMOVERENAME" (dict "tab" $.tab "Args" .Args) }}
+                                    {{ end }}
+                                    {{ if eq .Type "RENAME" }}
+                                        {{ template "displayTaskRENAME" (dict "tab" $.tab "Args" .Args) }}
+                                    {{ end }}
+                                    {{ if eq .Type "TRANSFER" }}
+                                        {{ template "displayTaskTRANSFER" (dict "tab" $.tab "Args" .Args) }}
+                                    {{ end }}
+                                    {{ if eq .Type "TRANSCODE" }}
+                                        {{ template "displayTaskTRANSCODE" (dict "tab" $.tab "TranscodeFormats" $.TranscodeFormats "Args" .Args) }}
+                                    {{ end }}
+                                    {{ if eq .Type "ARCHIVE" }}
+                                        {{ template "displayTaskARCHIVE" (dict "tab" $.tab "ArchiveExtensions" $.ArchiveExtensions "Args" .Args) }}
+                                    {{ end }}
+                                    {{ if eq .Type "EXTRACT" }}
+                                        {{ template "displayTaskEXTRACT" (dict "tab" $.tab "ArchiveExtensions" $.ArchiveExtensions "Args" .Args) }}
+                                    {{ end }}
+                                    {{ if eq .Type "ICAP" }}
+                                        {{ template "displayTaskICAP" (dict "tab" $.tab "IcapOnErrorOptions" $.IcapOnErrorOptions "Args" .Args) }}
+                                    {{ end }}
+                                    {{ if eq .Type "ENCRYPT" }}
+                                        {{ template "displayTaskENCRYPT" (dict "tab" $.tab "EncryptMethods" $.EncryptMethods "Args" .Args) }}
+                                    {{ end }}
+                                    {{ if eq .Type "DECRYPT" }}
+                                        {{ template "displayTaskDECRYPT" (dict "tab" $.tab "EncryptMethods" $.EncryptMethods "Args" .Args) }}
+                                    {{ end }}
+                                    {{ if eq .Type "SIGN" }}
+                                        {{ template "displayTaskSIGN" (dict "tab" $.tab "SignMethods" $.SignMethods "Args" .Args) }}
+                                    {{ end }}
+                                    {{ if eq .Type "VERIFY" }}
+                                        {{ template "displayTaskVERIFY" (dict "tab" $.tab "SignMethods" $.SignMethods "Args" .Args) }}
+                                    {{ end }}
+                                    {{ if eq .Type "ENCRYPT&SIGN" }}
+                                        {{ template "displayTaskENCRYPT&SIGN" (dict "tab" $.tab "EncryptSignMethods" $.EncryptSignMethods "Args" .Args) }}
+                                    {{ end }}
+                                    {{ if eq .Type "DECRYPT&VERIFY" }}
+                                        {{ template "displayTaskDECRYPT&VERIFY" (dict "tab" $.tab "EncryptSignMethods" $.EncryptSignMethods "Args" .Args) }}
+                                    {{ end }}
+                                </div>
+                                <div class="modal-footer">
+                                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">{{ index $.tab "close" }}</button>
                                 </div>
                             </div>
                         </div>
                     </div>
+                    {{ end }}
                 </td>
                 <td class="text-end">
                     {{ if contains $.myPermission.Rules "w" }}
                         <button class="btn btn-outline-primary btn-sm me-1" data-bs-toggle="modal" data-bs-target="#editPreTaskModal_{{ .Rank }}">
                             <i class="bi bi-pencil"></i>
                         </button>
+                        <div class="modal fade" id="editPreTaskModal_{{ .Rank }}" tabindex="-1" aria-labelledby="editPreTaskModalLabel_{{ .Rank }}" aria-hidden="true">
+                            <div class="modal-dialog modal-lg">
+                                <div class="modal-content">
+                                <form method="post" class="p-3 border rounded bg-light">
+                                    <input type="hidden" name="editPreTaskRank" value="{{ .Rank }}">
+                                    <div class="modal-header">
+                                        <h5 class="modal-title" id="editPreTaskModalLabel_{{ .Rank }}">{{ index $.tab "edit" }}</h5>
+                                        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                                    </div>
+                                    <div class="modal-body">
+                                        <div class="form-input">
+                                            <label class="col-form-label">{{ index $.tab "type" }} <i class="bi bi-info-circle ms-1" data-bs-toggle="tooltip" data-bs-placement="right" data-bs-title="{{ index $.tab "tooltipType" }}"></i> :</label>
+                                            <select name="editPreTaskType" id="editPreTaskType_{{ .Rank }}" class="form-select taskType-select" required>
+                                                <option value="" disabled>{{ index $.tab "selectType" }}</option>
+                                                {{ $current := . }}
+                                                {{ range $.taskTypes }}
+                                                    {{ if eq . "COPY" }}<option value="COPY" {{ if eq $current.Type "COPY" }}selected{{ end }}>Copy</option>{{ end }}
+                                                    {{ if eq . "COPYRENAME" }}<option value="COPYRENAME" {{ if eq $current.Type "COPYRENAME" }}selected{{ end }}>Copy Rename</option>{{ end }}
+                                                    {{ if eq . "DELETE" }}<option value="DELETE" {{ if eq $current.Type "DELETE" }}selected{{ end }}>Delete</option>{{ end }}
+                                                    {{ if eq . "EXEC" }}<option value="EXEC" {{ if eq $current.Type "EXEC" }}selected{{ end }}>Exec</option>{{ end }}
+                                                    {{ if eq . "EXECMOVE" }}<option value="EXECMOVE" {{ if eq $current.Type "EXECMOVE" }}selected{{ end }}>Exec Move</option>{{ end }}
+                                                    {{ if eq . "EXECOUTPUT" }}<option value="EXECOUTPUT" {{ if eq $current.Type "EXECOUTPUT" }}selected{{ end }}>Exec Output</option>{{ end }}
+                                                    {{ if eq . "MOVE" }}<option value="MOVE" {{ if eq $current.Type "MOVE" }}selected{{ end }}>Move</option>{{ end }}
+                                                    {{ if eq . "MOVERENAME" }}<option value="MOVERENAME" {{ if eq $current.Type "MOVERENAME" }}selected{{ end }}>Move Rename</option>{{ end }}
+                                                    {{ if eq . "RENAME" }}<option value="RENAME" {{ if eq $current.Type "RENAME" }}selected{{ end }}>Rename</option>{{ end }}
+                                                    {{ if eq . "TRANSFER" }}<option value="TRANSFER" {{ if eq $current.Type "TRANSFER" }}selected{{ end }}>Transfer</option>{{ end }}
+                                                    {{ if eq . "TRANSCODE" }}<option value="TRANSCODE" {{ if eq $current.Type "TRANSCODE" }}selected{{ end }}>Transcode</option>{{ end }}
+                                                    {{ if eq . "ARCHIVE" }}<option value="ARCHIVE" {{ if eq $current.Type "ARCHIVE" }}selected{{ end }}>Archive</option>{{ end }}
+                                                    {{ if eq . "EXTRACT" }}<option value="EXTRACT" {{ if eq $current.Type "EXTRACT" }}selected{{ end }}>Extract</option>{{ end }}
+                                                    {{ if eq . "ICAP" }}<option value="ICAP" {{ if eq $current.Type "ICAP" }}selected{{ end }}>ICAP (Beta)</option>{{ end }}
+                                                    {{ if eq . "ENCRYPT" }}<option value="ENCRYPT" {{ if eq $current.Type "ENCRYPT" }}selected{{ end }}>Encrypt</option>{{ end }}
+                                                    {{ if eq . "DECRYPT" }}<option value="DECRYPT" {{ if eq $current.Type "DECRYPT" }}selected{{ end }}>Decrypt</option>{{ end }}
+                                                    {{ if eq . "SIGN" }}<option value="SIGN" {{ if eq $current.Type "SIGN" }}selected{{ end }}>Sign</option>{{ end }}
+                                                    {{ if eq . "VERIFY" }}<option value="VERIFY" {{ if eq $current.Type "VERIFY" }}selected{{ end }}>Verify</option>{{ end }}
+                                                    {{ if eq . "ENCRYPT&SIGN" }}<option value="ENCRYPT&SIGN" {{ if eq $current.Type "ENCRYPT&SIGN" }}selected{{ end }}>Encrypt &amp; Sign</option>{{ end }}
+                                                    {{ if eq . "DECRYPT&VERIFY" }}<option value="DECRYPT&VERIFY" {{ if eq $current.Type "DECRYPT&VERIFY" }}selected{{ end }}>Decrypt &amp; Verify</option>{{ end }}
+                                                {{ end }}
+                                            </select>
+                                        </div>
+                                        {{ template "editTaskCOPY" (dict "tab" $.tab "Args" $current.Args) }}
+                                        {{ template "editTaskCOPYRENAME" (dict "tab" $.tab "Args" $current.Args) }}
+                                        {{ template "editTaskDelete" (dict "tab" $.tab "Args" $current.Args) }}
+                                        {{ template "editTaskEXEC" (dict "tab" $.tab "Args" $current.Args) }}
+                                        {{ template "editTaskEXECMOVE" (dict "tab" $.tab "Args" $current.Args) }}
+                                        {{ template "editTaskEXECOUTPUT" (dict "tab" $.tab "Args" $current.Args) }}
+                                        {{ template "editTaskMOVE" (dict "tab" $.tab "Args" $current.Args) }}
+                                        {{ template "editTaskMOVERENAME" (dict "tab" $.tab "Args" $current.Args) }}
+                                        {{ template "editTaskRENAME" (dict "tab" $.tab "Args" $current.Args) }}
+                                        {{ template "editTaskTRANSFER" (dict "tab" $.tab "Args" $current.Args) }}
+                                        {{ template "editTaskTRANSCODE" (dict "tab" $.tab "TranscodeFormats" $.TranscodeFormats "Args" $current.Args) }}
+                                        {{ template "editTaskARCHIVE" (dict "tab" $.tab "ArchiveExtensions" $.ArchiveExtensions "CompressionLevelList" $.CompressionLevelList "Args" $current.Args) }}
+                                        {{ template "editTaskEXTRACT" (dict "tab" $.tab "ArchiveExtensions" $.ArchiveExtensions "Args" $current.Args) }}
+                                        {{ template "editTaskICAP" (dict "tab" $.tab "IcapOnErrorOptions" $.IcapOnErrorOptions "Args" $current.Args) }}
+                                        {{ template "editTaskENCRYPT" (dict "tab" $.tab "EncryptMethods" $.EncryptMethods "Args" $current.Args) }}
+                                        {{ template "editTaskDECRYPT" (dict "tab" $.tab "EncryptMethods" $.EncryptMethods "Args" $current.Args) }}
+                                        {{ template "editTaskSIGN" (dict "tab" $.tab "SignMethods" $.SignMethods "Args" $current.Args) }}
+                                        {{ template "editTaskVERIFY" (dict "tab" $.tab "SignMethods" $.SignMethods "Args" $current.Args) }}
+                                        {{ template "editTaskENCRYPT&SIGN" (dict "tab" $.tab "EncryptSignMethods" $.EncryptSignMethods "Args" $current.Args) }}
+                                        {{ template "editTaskDECRYPT&VERIFY" (dict "tab" $.tab "EncryptSignMethods" $.EncryptSignMethods "Args" $current.Args) }}
+                                    </div>
+                                    <div class="modal-footer">
+                                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">{{ index $.tab "close" }}</button>
+                                        <button type="submit" class="btn btn-success ms-3"> {{ index $.tab "apply" }}</button>
+                                    </div>
+                                </form>
+                                </div>
+                            </div>
+                        </div>
                     {{ end }}
                     {{ if contains $.myPermission.Rules "d" }}
                         <form method="post" class="d-inline">
-                            <input type="hidden" name="ruleID" value="{{ $.rule.ID }}">
                             <input type="hidden" name="deletePreTask" value="{{ .Rank }}">
+                            <button type="submit" class="btn btn-outline-danger btn-sm" onclick="return confirm('{{ index $.tab "confirmDelete" }}')">
+                                <i class="bi bi-trash"></i>
+                            </button>
+                        </form>
+                    {{ end }}
+                </td>
+            </tr>
+            {{ end }}
+        </tbody>
+    </table>
+{{ end }}
+
+{{ define "PostTasks" }}
+    {{ if contains .myPermission.Rules "w" }}
+        <button class="btn btn-primary mb-3 btn-add" type="button" data-bs-toggle="modal" data-bs-target="#addPostTaskModal">
+            {{ index .tab "addPostTaskTitle" }}
+        </button>
+        <div class="modal fade" id="addPostTaskModal" tabindex="-1" aria-labelledby="addPostTaskModalLabel" aria-hidden="true">
+            <div class="modal-dialog modal-lg">
+            <div class="modal-content">
+                <form method="post" class="p-3 border rounded bg-light">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="addPostTaskModalLabel">{{ index .tab "addPostTaskTitle" }}</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+                    <div class="form-input">
+                        <label class="col-form-label">{{ index .tab "type" }} <i class="bi bi-info-circle ms-1" data-bs-toggle="tooltip" data-bs-placement="right" data-bs-title="{{ index $.tab "tooltipType" }}"></i> :</label>
+                        <select name="addPostTaskType" id="addPostTaskType" class="form-select taskType-select" required>
+                            <option value="" disabled selected>Select your type</option>
+                            {{ range .taskTypes }}
+                                {{ if eq . "COPY" }}<option value="COPY">Copy</option>{{ end }}
+                                {{ if eq . "COPYRENAME" }}<option value="COPYRENAME">Copy Rename</option>{{ end }}
+                                {{ if eq . "DELETE" }}<option value="DELETE">Delete</option>{{ end }}
+                                {{ if eq . "EXEC" }}<option value="EXEC">Exec</option>{{ end }}
+                                {{ if eq . "EXECMOVE" }}<option value="EXECMOVE">Exec Move</option>{{ end }}
+                                {{ if eq . "EXECOUTPUT" }}<option value="EXECOUTPUT">Exec Output</option>{{ end }}
+                                {{ if eq . "MOVE" }}<option value="MOVE">Move</option>{{ end }}
+                                {{ if eq . "MOVERENAME" }}<option value="MOVERENAME">Move Rename</option>{{ end }}
+                                {{ if eq . "RENAME" }}<option value="RENAME">Rename</option>{{ end }}
+                                {{ if eq . "TRANSFER" }}<option value="TRANSFER">Transfer</option>{{ end }}
+                                {{ if eq . "TRANSCODE" }}<option value="TRANSCODE">Transcode</option>{{ end }}
+                                {{ if eq . "ARCHIVE" }}<option value="ARCHIVE">Archive</option>{{ end }}
+                                {{ if eq . "EXTRACT" }}<option value="EXTRACT">Extract</option>{{ end }}
+                                {{ if eq . "ICAP" }}<option value="ICAP">ICAP (Beta)</option>{{ end }}
+                                {{ if eq . "ENCRYPT" }}<option value="ENCRYPT">Encrypt</option>{{ end }}
+                                {{ if eq . "DECRYPT" }}<option value="DECRYPT">Decrypt</option>{{ end }}
+                                {{ if eq . "SIGN" }}<option value="SIGN">Sign</option>{{ end }}
+                                {{ if eq . "VERIFY" }}<option value="VERIFY">Verify</option>{{ end }}
+                                {{ if eq . "ENCRYPT&SIGN" }}<option value="ENCRYPT&SIGN">Encrypt &amp; Sign</option>{{ end }}
+                                {{ if eq . "DECRYPT&VERIFY" }}<option value="DECRYPT&VERIFY">Decrypt &amp; Verify</option>{{ end }}
+                            {{ end }}
+                        </select>
+                    </div>
+                    {{ template "addTaskCOPY" . }}
+                    {{ template "addTaskCOPYRENAME" . }}
+                    {{ template "addTaskDelete" . }}
+                    {{ template "addTaskEXEC" . }}
+                    {{ template "addTaskEXECMOVE" . }}
+                    {{ template "addTaskEXECOUTPUT" . }}
+                    {{ template "addTaskMOVE" . }}
+                    {{ template "addTaskMOVERENAME" . }}
+                    {{ template "addTaskRENAME" . }}
+                    {{ template "addTaskTRANSFER" . }}
+                    {{ template "addTaskTRANSCODE" . }}
+                    {{ template "addTaskARCHIVE" . }}
+                    {{ template "addTaskEXTRACT" . }}
+                    {{ template "addTaskICAP" . }}
+                    {{ template "addTaskENCRYPT" . }}
+                    {{ template "addTaskDECRYPT" . }}
+                    {{ template "addTaskSIGN" . }}
+                    {{ template "addTaskVERIFY" . }}
+                    {{ template "addTaskENCRYPT&SIGN" . }}
+                    {{ template "addTaskDECRYPT&VERIFY" . }}
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">{{ index .tab "close" }}</button>
+                    <button type="submit" class="btn btn-success ms-3">{{ index .tab "apply" }}</button>
+                </div>
+                </form>
+            </div>
+            </div>
+        </div>
+    {{ end }}
+    <div class="dragControls" style="display:none; float:right">
+        <button type="button" class="btn btn-secondary">{{ index .tab "cancel" }}</button>
+        <button type="button" class="btn btn-success ms-1">{{ index .tab "apply" }}</button>
+    </div>
+    <table class="table table-sm align-middle mb-4 rounded-3 mt-3">
+        <thead class="table-light">
+            <tr>
+                <th></th>
+                <th>{{ index $.tab "type" }} <i class="bi bi-info-circle ms-1" data-bs-toggle="tooltip" data-bs-placement="right" data-bs-title="{{ index $.tab "tooltipType" }}"></i></th>
+                <th>{{ index $.tab "arguments" }} <i class="bi bi-info-circle ms-1" data-bs-toggle="tooltip" data-bs-placement="right" data-bs-title="{{ index $.tab "tooltipArguments" }}"></i></th>
+                <th class="text-end"><strong>{{ index $.tab "trick" }}</strong> <i class="bi bi-info-circle ms-1" data-bs-toggle="tooltip" data-bs-placement="right" data-bs-title="{{ index $.tab "tooltipTrick" }}"></i></th>
+            </tr>
+        </thead>
+        <tbody>
+            {{ range .postTasks }}
+            <tr data-task-id="{{ .Rank }}" data-rank="{{ .Rank }}" draggable="true">
+                <td><i class="bi bi-grip-vertical"></i></td>
+                <td>
+                    {{ if eq .Type "COPY" }}Copy{{ end }}
+                    {{ if eq .Type "COPYRENAME" }}Copy Rename{{ end }}
+                    {{ if eq .Type "DELETE" }}Delete{{ end }}
+                    {{ if eq .Type "EXEC" }}Exec{{ end }}
+                    {{ if eq .Type "EXECMOVE" }}Exec Move{{ end }}
+                    {{ if eq .Type "EXECOUTPUT" }}Exec Output{{ end }}
+                    {{ if eq .Type "MOVE" }}Move{{ end }}
+                    {{ if eq .Type "MOVERENAME" }}Move Rename{{ end }}
+                    {{ if eq .Type "RENAME" }}Rename{{ end }}
+                    {{ if eq .Type "TRANSFER" }}Transfer{{ end }}
+                    {{ if eq .Type "TRANSCODE" }}Transcode{{ end }}
+                    {{ if eq .Type "ARCHIVE" }}Archive{{ end }}
+                    {{ if eq .Type "EXTRACT" }}Extract{{ end }}
+                    {{ if eq .Type "ICAP" }}ICAP (BETA){{ end }}
+                    {{ if eq .Type "ENCRYPT" }}Encrypt{{ end }}
+                    {{ if eq .Type "DECRYPT" }}Decrypt{{ end }}
+                    {{ if eq .Type "SIGN" }}Sign{{ end }}
+                    {{ if eq .Type "VERIFY" }}Verify{{ end }}
+                    {{ if eq .Type "ENCRYPT&SIGN" }}Encrypt &amp; Sign{{ end }}
+                    {{ if eq .Type "DECRYPT&VERIFY" }}Decrypt &amp; Verify{{ end }}
+                </td>
+                <td>
+                    {{ if ne .Type "DELETE" }}
+                        {{ if eq .Type "COPY" }}
+                            {{ index $.tab "path" }}: {{ index .Args "path" }}
+                        {{ end }}
+                        {{ if eq .Type "COPYRENAME" }}
+                            {{ index $.tab "path" }}: {{ index .Args "path" }}
+                        {{ end }}
+                        {{ if eq .Type "EXEC" }}
+                            {{ index $.tab "path" }}: {{ index .Args "path" }}
+                        {{ end }}
+                        {{ if eq .Type "EXECMOVE" }}
+                            {{ index $.tab "path" }}: {{ index .Args "path" }}
+                        {{ end }}
+                        {{ if eq .Type "EXECOUTPUT" }}
+                            {{ index $.tab "path" }}: {{ index .Args "path" }}
+                        {{ end }}
+                        {{ if eq .Type "MOVE" }}
+                            {{ index $.tab "path" }}: {{ index .Args "path" }}
+                        {{ end }}
+                        {{ if eq .Type "MOVERENAME" }}
+                            {{ index $.tab "path" }}: {{ index .Args "path" }}
+                        {{ end }}
+                        {{ if eq .Type "RENAME" }}
+                            {{ index $.tab "path" }}: {{ index .Args "path" }}
+                        {{ end }}
+                        {{ if eq .Type "TRANSFER" }}
+                            {{ index $.tab "file" }}: {{ index .Args "file" }}
+                        {{ end }}
+                        {{ if eq .Type "TRANSCODE" }}
+                            {{ index $.tab "toCharset" }}: {{ index .Args "toCharset" }}
+                        {{ end }}
+                        {{ if eq .Type "ARCHIVE" }}
+                            {{ index $.tab "files" }}: {{ index .Args "files" }}
+                        {{ end }}
+                        {{ if eq .Type "EXTRACT" }}
+                            {{ index $.tab "outputDir" }}: {{ index .Args "outputDir" }}
+                        {{ end }}
+                        {{ if eq .Type "ICAP" }}
+                            {{ index $.tab "uploadURL" }}: {{ index .Args "uploadURL" }}
+                        {{ end }}
+                        {{ if eq .Type "ENCRYPT" }}
+                            {{ index $.tab "method" }}: {{ index .Args "method" }}
+                        {{ end }}
+                        {{ if eq .Type "DECRYPT" }}
+                            {{ index $.tab "method" }}: {{ index .Args "method" }}
+                        {{ end }}
+                        {{ if eq .Type "SIGN" }}
+                            {{ index $.tab "method" }}: {{ index .Args "method" }}
+                        {{ end }}
+                        {{ if eq .Type "VERIFY" }}
+                            {{ index $.tab "method" }}: {{ index .Args "method" }}
+                        {{ end }}
+                        {{ if eq .Type "ENCRYPT&SIGN" }}
+                            {{ index $.tab "method" }}: {{ index .Args "method" }}
+                        {{ end }}
+                        {{ if eq .Type "DECRYPT&VERIFY" }}
+                            {{ index $.tab "method" }}: {{ index .Args "method" }}
+                        {{ end }}
+                    <button class="btn btn-outline-primary modal-btn ms-2" type="button" data-bs-toggle="modal" data-bs-target="#postArgumentsModal_{{ .Rank }}">
+                        <i class="bi bi-three-dots"></i>
+                    </button>
+                    <div class="modal fade" id="postArgumentsModal_{{ .Rank }}" tabindex="-1" aria-labelledby="postArgumentsModalLabel_{{ .Rank }}" aria-hidden="true">
+                        <div class="modal-dialog modal-lg">
+                            <div class="modal-content p-3 border rounded bg-light">
+                                <div class="modal-header">
+                                    <h5 class="modal-title" id="postArgumentsModalLabel_{{ .Rank }}">
+                                        {{ index $.tab "arguments" }}
+                                    </h5>
+                                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                                </div>
+                                <div class="modal-body">
+                                    {{ if eq .Type "COPY" }}
+                                        {{ template "displayTaskCOPY" (dict "tab" $.tab "Args" .Args) }}
+                                    {{ end }}
+                                    {{ if eq .Type "COPYRENAME" }}
+                                        {{ template "displayTaskCOPYRENAME" (dict "tab" $.tab "Args" .Args) }}
+                                    {{ end }}
+                                    {{ if eq .Type "DELETE" }}
+                                        {{ template "displayTaskDelete" (dict "tab" $.tab "Args" .Args) }}
+                                    {{ end }}
+                                    {{ if eq .Type "EXEC" }}
+                                        {{ template "displayTaskEXEC" (dict "tab" $.tab "Args" .Args) }}
+                                    {{ end }}
+                                    {{ if eq .Type "EXECMOVE" }}
+                                        {{ template "displayTaskEXECMOVE" (dict "tab" $.tab "Args" .Args) }}
+                                    {{ end }}
+                                    {{ if eq .Type "EXECOUTPUT" }}
+                                        {{ template "displayTaskEXECOUTPUT" (dict "tab" $.tab "Args" .Args) }}
+                                    {{ end }}
+                                    {{ if eq .Type "MOVE" }}
+                                        {{ template "displayTaskMOVE" (dict "tab" $.tab "Args" .Args) }}
+                                    {{ end }}
+                                    {{ if eq .Type "MOVERENAME" }}
+                                        {{ template "displayTaskMOVERENAME" (dict "tab" $.tab "Args" .Args) }}
+                                    {{ end }}
+                                    {{ if eq .Type "RENAME" }}
+                                        {{ template "displayTaskRENAME" (dict "tab" $.tab "Args" .Args) }}
+                                    {{ end }}
+                                    {{ if eq .Type "TRANSFER" }}
+                                        {{ template "displayTaskTRANSFER" (dict "tab" $.tab "Args" .Args) }}
+                                    {{ end }}
+                                    {{ if eq .Type "TRANSCODE" }}
+                                        {{ template "displayTaskTRANSCODE" (dict "tab" $.tab "TranscodeFormats" $.TranscodeFormats "Args" .Args) }}
+                                    {{ end }}
+                                    {{ if eq .Type "ARCHIVE" }}
+                                        {{ template "displayTaskARCHIVE" (dict "tab" $.tab "ArchiveExtensions" $.ArchiveExtensions "Args" .Args) }}
+                                    {{ end }}
+                                    {{ if eq .Type "EXTRACT" }}
+                                        {{ template "displayTaskEXTRACT" (dict "tab" $.tab "ArchiveExtensions" $.ArchiveExtensions "Args" .Args) }}
+                                    {{ end }}
+                                    {{ if eq .Type "ICAP" }}
+                                        {{ template "displayTaskICAP" (dict "tab" $.tab "IcapOnErrorOptions" $.IcapOnErrorOptions "Args" .Args) }}
+                                    {{ end }}
+                                    {{ if eq .Type "ENCRYPT" }}
+                                        {{ template "displayTaskENCRYPT" (dict "tab" $.tab "EncryptMethods" $.EncryptMethods "Args" .Args) }}
+                                    {{ end }}
+                                    {{ if eq .Type "DECRYPT" }}
+                                        {{ template "displayTaskDECRYPT" (dict "tab" $.tab "EncryptMethods" $.EncryptMethods "Args" .Args) }}
+                                    {{ end }}
+                                    {{ if eq .Type "SIGN" }}
+                                        {{ template "displayTaskSIGN" (dict "tab" $.tab "SignMethods" $.SignMethods "Args" .Args) }}
+                                    {{ end }}
+                                    {{ if eq .Type "VERIFY" }}
+                                        {{ template "displayTaskVERIFY" (dict "tab" $.tab "SignMethods" $.SignMethods "Args" .Args) }}
+                                    {{ end }}
+                                    {{ if eq .Type "ENCRYPT&SIGN" }}
+                                        {{ template "displayTaskENCRYPT&SIGN" (dict "tab" $.tab "EncryptSignMethods" $.EncryptSignMethods "Args" .Args) }}
+                                    {{ end }}
+                                    {{ if eq .Type "DECRYPT&VERIFY" }}
+                                        {{ template "displayTaskDECRYPT&VERIFY" (dict "tab" $.tab "EncryptSignMethods" $.EncryptSignMethods "Args" .Args) }}
+                                    {{ end }}
+                                </div>
+                                <div class="modal-footer">
+                                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">{{ index $.tab "close" }}</button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    {{ end }}
+                </td>
+                <td class="text-end">
+                    {{ if contains $.myPermission.Rules "w" }}
+                        <button class="btn btn-outline-primary btn-sm me-1" data-bs-toggle="modal" data-bs-target="#editPostTaskModal_{{ .Rank }}">
+                            <i class="bi bi-pencil"></i>
+                        </button>
+                        <div class="modal fade" id="editPostTaskModal_{{ .Rank }}" tabindex="-1" aria-labelledby="editPostTaskModalLabel_{{ .Rank }}" aria-hidden="true">
+                            <div class="modal-dialog modal-lg">
+                                <div class="modal-content">
+                                <form method="post" class="p-3 border rounded bg-light">
+                                    <input type="hidden" name="editPostTaskRank" value="{{ .Rank }}">
+                                    <div class="modal-header">
+                                        <h5 class="modal-title" id="editPostTaskModalLabel_{{ .Rank }}">{{ index $.tab "edit" }}</h5>
+                                        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                                    </div>
+                                    <div class="modal-body">
+                                        <div class="form-input">
+                                            <label class="col-form-label">{{ index $.tab "type" }} <i class="bi bi-info-circle ms-1" data-bs-toggle="tooltip" data-bs-placement="right" data-bs-title="{{ index $.tab "tooltipType" }}"></i> :</label>
+                                            <select name="editPostTaskType" id="editPostTaskType_{{ .Rank }}" class="form-select taskType-select" required>
+                                                <option value="" disabled>{{ index $.tab "selectType" }}</option>
+                                                {{ $current := . }}
+                                                {{ range $.taskTypes }}
+                                                    {{ if eq . "COPY" }}<option value="COPY" {{ if eq $current.Type "COPY" }}selected{{ end }}>Copy</option>{{ end }}
+                                                    {{ if eq . "COPYRENAME" }}<option value="COPYRENAME" {{ if eq $current.Type "COPYRENAME" }}selected{{ end }}>Copy Rename</option>{{ end }}
+                                                    {{ if eq . "DELETE" }}<option value="DELETE" {{ if eq $current.Type "DELETE" }}selected{{ end }}>Delete</option>{{ end }}
+                                                    {{ if eq . "EXEC" }}<option value="EXEC" {{ if eq $current.Type "EXEC" }}selected{{ end }}>Exec</option>{{ end }}
+                                                    {{ if eq . "EXECMOVE" }}<option value="EXECMOVE" {{ if eq $current.Type "EXECMOVE" }}selected{{ end }}>Exec Move</option>{{ end }}
+                                                    {{ if eq . "EXECOUTPUT" }}<option value="EXECOUTPUT" {{ if eq $current.Type "EXECOUTPUT" }}selected{{ end }}>Exec Output</option>{{ end }}
+                                                    {{ if eq . "MOVE" }}<option value="MOVE" {{ if eq $current.Type "MOVE" }}selected{{ end }}>Move</option>{{ end }}
+                                                    {{ if eq . "MOVERENAME" }}<option value="MOVERENAME" {{ if eq $current.Type "MOVERENAME" }}selected{{ end }}>Move Rename</option>{{ end }}
+                                                    {{ if eq . "RENAME" }}<option value="RENAME" {{ if eq $current.Type "RENAME" }}selected{{ end }}>Rename</option>{{ end }}
+                                                    {{ if eq . "TRANSFER" }}<option value="TRANSFER" {{ if eq $current.Type "TRANSFER" }}selected{{ end }}>Transfer</option>{{ end }}
+                                                    {{ if eq . "TRANSCODE" }}<option value="TRANSCODE" {{ if eq $current.Type "TRANSCODE" }}selected{{ end }}>Transcode</option>{{ end }}
+                                                    {{ if eq . "ARCHIVE" }}<option value="ARCHIVE" {{ if eq $current.Type "ARCHIVE" }}selected{{ end }}>Archive</option>{{ end }}
+                                                    {{ if eq . "EXTRACT" }}<option value="EXTRACT" {{ if eq $current.Type "EXTRACT" }}selected{{ end }}>Extract</option>{{ end }}
+                                                    {{ if eq . "ICAP" }}<option value="ICAP" {{ if eq $current.Type "ICAP" }}selected{{ end }}>ICAP (Beta)</option>{{ end }}
+                                                    {{ if eq . "ENCRYPT" }}<option value="ENCRYPT" {{ if eq $current.Type "ENCRYPT" }}selected{{ end }}>Encrypt</option>{{ end }}
+                                                    {{ if eq . "DECRYPT" }}<option value="DECRYPT" {{ if eq $current.Type "DECRYPT" }}selected{{ end }}>Decrypt</option>{{ end }}
+                                                    {{ if eq . "SIGN" }}<option value="SIGN" {{ if eq $current.Type "SIGN" }}selected{{ end }}>Sign</option>{{ end }}
+                                                    {{ if eq . "VERIFY" }}<option value="VERIFY" {{ if eq $current.Type "VERIFY" }}selected{{ end }}>Verify</option>{{ end }}
+                                                    {{ if eq . "ENCRYPT&SIGN" }}<option value="ENCRYPT&SIGN" {{ if eq $current.Type "ENCRYPT&SIGN" }}selected{{ end }}>Encrypt &amp; Sign</option>{{ end }}
+                                                    {{ if eq . "DECRYPT&VERIFY" }}<option value="DECRYPT&VERIFY" {{ if eq $current.Type "DECRYPT&VERIFY" }}selected{{ end }}>Decrypt &amp; Verify</option>{{ end }}
+                                                {{ end }}
+                                            </select>
+                                        </div>
+                                        {{ template "editTaskCOPY" (dict "tab" $.tab "Args" $current.Args) }}
+                                        {{ template "editTaskCOPYRENAME" (dict "tab" $.tab "Args" $current.Args) }}
+                                        {{ template "editTaskDelete" (dict "tab" $.tab "Args" $current.Args) }}
+                                        {{ template "editTaskEXEC" (dict "tab" $.tab "Args" $current.Args) }}
+                                        {{ template "editTaskEXECMOVE" (dict "tab" $.tab "Args" $current.Args) }}
+                                        {{ template "editTaskEXECOUTPUT" (dict "tab" $.tab "Args" $current.Args) }}
+                                        {{ template "editTaskMOVE" (dict "tab" $.tab "Args" $current.Args) }}
+                                        {{ template "editTaskMOVERENAME" (dict "tab" $.tab "Args" $current.Args) }}
+                                        {{ template "editTaskRENAME" (dict "tab" $.tab "Args" $current.Args) }}
+                                        {{ template "editTaskTRANSFER" (dict "tab" $.tab "Args" $current.Args) }}
+                                        {{ template "editTaskTRANSCODE" (dict "tab" $.tab "TranscodeFormats" $.TranscodeFormats "Args" $current.Args) }}
+                                        {{ template "editTaskARCHIVE" (dict "tab" $.tab "ArchiveExtensions" $.ArchiveExtensions "CompressionLevelList" $.CompressionLevelList "Args" $current.Args) }}
+                                        {{ template "editTaskEXTRACT" (dict "tab" $.tab "ArchiveExtensions" $.ArchiveExtensions "Args" $current.Args) }}
+                                        {{ template "editTaskICAP" (dict "tab" $.tab "IcapOnErrorOptions" $.IcapOnErrorOptions "Args" $current.Args) }}
+                                        {{ template "editTaskENCRYPT" (dict "tab" $.tab "EncryptMethods" $.EncryptMethods "Args" $current.Args) }}
+                                        {{ template "editTaskDECRYPT" (dict "tab" $.tab "EncryptMethods" $.EncryptMethods "Args" $current.Args) }}
+                                        {{ template "editTaskSIGN" (dict "tab" $.tab "SignMethods" $.SignMethods "Args" $current.Args) }}
+                                        {{ template "editTaskVERIFY" (dict "tab" $.tab "SignMethods" $.SignMethods "Args" $current.Args) }}
+                                        {{ template "editTaskENCRYPT&SIGN" (dict "tab" $.tab "EncryptSignMethods" $.EncryptSignMethods "Args" $current.Args) }}
+                                        {{ template "editTaskDECRYPT&VERIFY" (dict "tab" $.tab "EncryptSignMethods" $.EncryptSignMethods "Args" $current.Args) }}
+                                    </div>
+                                    <div class="modal-footer">
+                                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">{{ index $.tab "close" }}</button>
+                                        <button type="submit" class="btn btn-success ms-3"> {{ index $.tab "apply" }}</button>
+                                    </div>
+                                </form>
+                                </div>
+                            </div>
+                        </div>
+                    {{ end }}
+                    {{ if contains $.myPermission.Rules "d" }}
+                        <form method="post" class="d-inline">
+                            <input type="hidden" name="deletePostTask" value="{{ .Rank }}">
+                            <button type="submit" class="btn btn-outline-danger btn-sm" onclick="return confirm('{{ index $.tab "confirmDelete" }}')">
+                                <i class="bi bi-trash"></i>
+                            </button>
+                        </form>
+                    {{ end }}
+                </td>
+            </tr>
+            {{ end }}
+        </tbody>
+    </table>
+{{ end }}
+
+{{ define "ErrorTasks" }}
+    {{ if contains .myPermission.Rules "w" }}
+        <button class="btn btn-primary mb-3 btn-add" type="button" data-bs-toggle="modal" data-bs-target="#addErrorTaskModal">
+            {{ index .tab "addErrorTaskTitle" }}
+        </button>
+        <div class="modal fade" id="addErrorTaskModal" tabindex="-1" aria-labelledby="addErrorTaskModalLabel" aria-hidden="true">
+            <div class="modal-dialog modal-lg">
+            <div class="modal-content">
+                <form method="post" class="p-3 border rounded bg-light">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="addErrorTaskModalLabel">{{ index .tab "addErrorTaskTitle" }}</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+                    <div class="form-input">
+                        <label class="col-form-label">{{ index .tab "type" }} <i class="bi bi-info-circle ms-1" data-bs-toggle="tooltip" data-bs-placement="right" data-bs-title="{{ index $.tab "tooltipType" }}"></i> :</label>
+                        <select name="addErrorTaskType" id="addErrorTaskType" class="form-select taskType-select" required>
+                            <option value="" disabled selected>Select your type</option>
+                            {{ range .taskTypes }}
+                                {{ if eq . "COPY" }}<option value="COPY">Copy</option>{{ end }}
+                                {{ if eq . "COPYRENAME" }}<option value="COPYRENAME">Copy Rename</option>{{ end }}
+                                {{ if eq . "DELETE" }}<option value="DELETE">Delete</option>{{ end }}
+                                {{ if eq . "EXEC" }}<option value="EXEC">Exec</option>{{ end }}
+                                {{ if eq . "EXECMOVE" }}<option value="EXECMOVE">Exec Move</option>{{ end }}
+                                {{ if eq . "EXECOUTPUT" }}<option value="EXECOUTPUT">Exec Output</option>{{ end }}
+                                {{ if eq . "MOVE" }}<option value="MOVE">Move</option>{{ end }}
+                                {{ if eq . "MOVERENAME" }}<option value="MOVERENAME">Move Rename</option>{{ end }}
+                                {{ if eq . "RENAME" }}<option value="RENAME">Rename</option>{{ end }}
+                                {{ if eq . "TRANSFER" }}<option value="TRANSFER">Transfer</option>{{ end }}
+                                {{ if eq . "TRANSCODE" }}<option value="TRANSCODE">Transcode</option>{{ end }}
+                                {{ if eq . "ARCHIVE" }}<option value="ARCHIVE">Archive</option>{{ end }}
+                                {{ if eq . "EXTRACT" }}<option value="EXTRACT">Extract</option>{{ end }}
+                                {{ if eq . "ICAP" }}<option value="ICAP">ICAP (Beta)</option>{{ end }}
+                                {{ if eq . "ENCRYPT" }}<option value="ENCRYPT">Encrypt</option>{{ end }}
+                                {{ if eq . "DECRYPT" }}<option value="DECRYPT">Decrypt</option>{{ end }}
+                                {{ if eq . "SIGN" }}<option value="SIGN">Sign</option>{{ end }}
+                                {{ if eq . "VERIFY" }}<option value="VERIFY">Verify</option>{{ end }}
+                                {{ if eq . "ENCRYPT&SIGN" }}<option value="ENCRYPT&SIGN">Encrypt &amp; Sign</option>{{ end }}
+                                {{ if eq . "DECRYPT&VERIFY" }}<option value="DECRYPT&VERIFY">Decrypt &amp; Verify</option>{{ end }}
+                            {{ end }}
+                        </select>
+                    </div>
+                    {{ template "addTaskCOPY" . }}
+                    {{ template "addTaskCOPYRENAME" . }}
+                    {{ template "addTaskDelete" . }}
+                    {{ template "addTaskEXEC" . }}
+                    {{ template "addTaskEXECMOVE" . }}
+                    {{ template "addTaskEXECOUTPUT" . }}
+                    {{ template "addTaskMOVE" . }}
+                    {{ template "addTaskMOVERENAME" . }}
+                    {{ template "addTaskRENAME" . }}
+                    {{ template "addTaskTRANSFER" . }}
+                    {{ template "addTaskTRANSCODE" . }}
+                    {{ template "addTaskARCHIVE" . }}
+                    {{ template "addTaskEXTRACT" . }}
+                    {{ template "addTaskICAP" . }}
+                    {{ template "addTaskENCRYPT" . }}
+                    {{ template "addTaskDECRYPT" . }}
+                    {{ template "addTaskSIGN" . }}
+                    {{ template "addTaskVERIFY" . }}
+                    {{ template "addTaskENCRYPT&SIGN" . }}
+                    {{ template "addTaskDECRYPT&VERIFY" . }}
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">{{ index .tab "close" }}</button>
+                    <button type="submit" class="btn btn-success ms-3">{{ index .tab "apply" }}</button>
+                </div>
+                </form>
+            </div>
+            </div>
+        </div>
+    {{ end }}
+    <div class="dragControls" style="display:none; float:right">
+        <button type="button" class="btn btn-secondary">{{ index .tab "cancel" }}</button>
+        <button type="button" class="btn btn-success ms-1">{{ index .tab "apply" }}</button>
+    </div>
+    <table class="table table-sm align-middle mb-4 rounded-3 mt-3">
+        <thead class="table-light">
+            <tr>
+                <th></th>
+                <th>{{ index $.tab "type" }} <i class="bi bi-info-circle ms-1" data-bs-toggle="tooltip" data-bs-placement="right" data-bs-title="{{ index $.tab "tooltipType" }}"></i></th>
+                <th>{{ index $.tab "arguments" }} <i class="bi bi-info-circle ms-1" data-bs-toggle="tooltip" data-bs-placement="right" data-bs-title="{{ index $.tab "tooltipArguments" }}"></i></th>
+                <th class="text-end"><strong>{{ index $.tab "trick" }}</strong> <i class="bi bi-info-circle ms-1" data-bs-toggle="tooltip" data-bs-placement="right" data-bs-title="{{ index $.tab "tooltipTrick" }}"></i></th>
+            </tr>
+        </thead>
+        <tbody>
+            {{ range .errorTasks }}
+            <tr data-task-id="{{ .Rank }}" data-rank="{{ .Rank }}" draggable="true">
+                <td><i class="bi bi-grip-vertical"></i></td>
+                <td>
+                    {{ if eq .Type "COPY" }}Copy{{ end }}
+                    {{ if eq .Type "COPYRENAME" }}Copy Rename{{ end }}
+                    {{ if eq .Type "DELETE" }}Delete{{ end }}
+                    {{ if eq .Type "EXEC" }}Exec{{ end }}
+                    {{ if eq .Type "EXECMOVE" }}Exec Move{{ end }}
+                    {{ if eq .Type "EXECOUTPUT" }}Exec Output{{ end }}
+                    {{ if eq .Type "MOVE" }}Move{{ end }}
+                    {{ if eq .Type "MOVERENAME" }}Move Rename{{ end }}
+                    {{ if eq .Type "RENAME" }}Rename{{ end }}
+                    {{ if eq .Type "TRANSFER" }}Transfer{{ end }}
+                    {{ if eq .Type "TRANSCODE" }}Transcode{{ end }}
+                    {{ if eq .Type "ARCHIVE" }}Archive{{ end }}
+                    {{ if eq .Type "EXTRACT" }}Extract{{ end }}
+                    {{ if eq .Type "ICAP" }}ICAP (BETA){{ end }}
+                    {{ if eq .Type "ENCRYPT" }}Encrypt{{ end }}
+                    {{ if eq .Type "DECRYPT" }}Decrypt{{ end }}
+                    {{ if eq .Type "SIGN" }}Sign{{ end }}
+                    {{ if eq .Type "VERIFY" }}Verify{{ end }}
+                    {{ if eq .Type "ENCRYPT&SIGN" }}Encrypt &amp; Sign{{ end }}
+                    {{ if eq .Type "DECRYPT&VERIFY" }}Decrypt &amp; Verify{{ end }}
+                </td>
+                <td>
+                    {{ if ne .Type "DELETE" }}
+                        {{ if eq .Type "COPY" }}
+                            {{ index $.tab "path" }}: {{ index .Args "path" }}
+                        {{ end }}
+                        {{ if eq .Type "COPYRENAME" }}
+                            {{ index $.tab "path" }}: {{ index .Args "path" }}
+                        {{ end }}
+                        {{ if eq .Type "EXEC" }}
+                            {{ index $.tab "path" }}: {{ index .Args "path" }}
+                        {{ end }}
+                        {{ if eq .Type "EXECMOVE" }}
+                            {{ index $.tab "path" }}: {{ index .Args "path" }}
+                        {{ end }}
+                        {{ if eq .Type "EXECOUTPUT" }}
+                            {{ index $.tab "path" }}: {{ index .Args "path" }}
+                        {{ end }}
+                        {{ if eq .Type "MOVE" }}
+                            {{ index $.tab "path" }}: {{ index .Args "path" }}
+                        {{ end }}
+                        {{ if eq .Type "MOVERENAME" }}
+                            {{ index $.tab "path" }}: {{ index .Args "path" }}
+                        {{ end }}
+                        {{ if eq .Type "RENAME" }}
+                            {{ index $.tab "path" }}: {{ index .Args "path" }}
+                        {{ end }}
+                        {{ if eq .Type "TRANSFER" }}
+                            {{ index $.tab "file" }}: {{ index .Args "file" }}
+                        {{ end }}
+                        {{ if eq .Type "TRANSCODE" }}
+                            {{ index $.tab "toCharset" }}: {{ index .Args "toCharset" }}
+                        {{ end }}
+                        {{ if eq .Type "ARCHIVE" }}
+                            {{ index $.tab "files" }}: {{ index .Args "files" }}
+                        {{ end }}
+                        {{ if eq .Type "EXTRACT" }}
+                            {{ index $.tab "outputDir" }}: {{ index .Args "outputDir" }}
+                        {{ end }}
+                        {{ if eq .Type "ICAP" }}
+                            {{ index $.tab "uploadURL" }}: {{ index .Args "uploadURL" }}
+                        {{ end }}
+                        {{ if eq .Type "ENCRYPT" }}
+                            {{ index $.tab "method" }}: {{ index .Args "method" }}
+                        {{ end }}
+                        {{ if eq .Type "DECRYPT" }}
+                            {{ index $.tab "method" }}: {{ index .Args "method" }}
+                        {{ end }}
+                        {{ if eq .Type "SIGN" }}
+                            {{ index $.tab "method" }}: {{ index .Args "method" }}
+                        {{ end }}
+                        {{ if eq .Type "VERIFY" }}
+                            {{ index $.tab "method" }}: {{ index .Args "method" }}
+                        {{ end }}
+                        {{ if eq .Type "ENCRYPT&SIGN" }}
+                            {{ index $.tab "method" }}: {{ index .Args "method" }}
+                        {{ end }}
+                        {{ if eq .Type "DECRYPT&VERIFY" }}
+                            {{ index $.tab "method" }}: {{ index .Args "method" }}
+                        {{ end }}
+                    <button class="btn btn-outline-primary modal-btn ms-2" type="button" data-bs-toggle="modal" data-bs-target="#errorArgumentsModal_{{ .Rank }}">
+                        <i class="bi bi-three-dots"></i>
+                    </button>
+                    <div class="modal fade" id="errorArgumentsModal_{{ .Rank }}" tabindex="-1" aria-labelledby="errorArgumentsModalLabel_{{ .Rank }}" aria-hidden="true">
+                        <div class="modal-dialog modal-lg">
+                            <div class="modal-content p-3 border rounded bg-light">
+                                <div class="modal-header">
+                                    <h5 class="modal-title" id="errorArgumentsModalLabel_{{ .Rank }}">
+                                        {{ index $.tab "arguments" }}
+                                    </h5>
+                                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                                </div>
+                                <div class="modal-body">
+                                    {{ if eq .Type "COPY" }}
+                                        {{ template "displayTaskCOPY" (dict "tab" $.tab "Args" .Args) }}
+                                    {{ end }}
+                                    {{ if eq .Type "COPYRENAME" }}
+                                        {{ template "displayTaskCOPYRENAME" (dict "tab" $.tab "Args" .Args) }}
+                                    {{ end }}
+                                    {{ if eq .Type "DELETE" }}
+                                        {{ template "displayTaskDelete" (dict "tab" $.tab "Args" .Args) }}
+                                    {{ end }}
+                                    {{ if eq .Type "EXEC" }}
+                                        {{ template "displayTaskEXEC" (dict "tab" $.tab "Args" .Args) }}
+                                    {{ end }}
+                                    {{ if eq .Type "EXECMOVE" }}
+                                        {{ template "displayTaskEXECMOVE" (dict "tab" $.tab "Args" .Args) }}
+                                    {{ end }}
+                                    {{ if eq .Type "EXECOUTPUT" }}
+                                        {{ template "displayTaskEXECOUTPUT" (dict "tab" $.tab "Args" .Args) }}
+                                    {{ end }}
+                                    {{ if eq .Type "MOVE" }}
+                                        {{ template "displayTaskMOVE" (dict "tab" $.tab "Args" .Args) }}
+                                    {{ end }}
+                                    {{ if eq .Type "MOVERENAME" }}
+                                        {{ template "displayTaskMOVERENAME" (dict "tab" $.tab "Args" .Args) }}
+                                    {{ end }}
+                                    {{ if eq .Type "RENAME" }}
+                                        {{ template "displayTaskRENAME" (dict "tab" $.tab "Args" .Args) }}
+                                    {{ end }}
+                                    {{ if eq .Type "TRANSFER" }}
+                                        {{ template "displayTaskTRANSFER" (dict "tab" $.tab "Args" .Args) }}
+                                    {{ end }}
+                                    {{ if eq .Type "TRANSCODE" }}
+                                        {{ template "displayTaskTRANSCODE" (dict "tab" $.tab "TranscodeFormats" $.TranscodeFormats "Args" .Args) }}
+                                    {{ end }}
+                                    {{ if eq .Type "ARCHIVE" }}
+                                        {{ template "displayTaskARCHIVE" (dict "tab" $.tab "ArchiveExtensions" $.ArchiveExtensions "Args" .Args) }}
+                                    {{ end }}
+                                    {{ if eq .Type "EXTRACT" }}
+                                        {{ template "displayTaskEXTRACT" (dict "tab" $.tab "ArchiveExtensions" $.ArchiveExtensions "Args" .Args) }}
+                                    {{ end }}
+                                    {{ if eq .Type "ICAP" }}
+                                        {{ template "displayTaskICAP" (dict "tab" $.tab "IcapOnErrorOptions" $.IcapOnErrorOptions "Args" .Args) }}
+                                    {{ end }}
+                                    {{ if eq .Type "ENCRYPT" }}
+                                        {{ template "displayTaskENCRYPT" (dict "tab" $.tab "EncryptMethods" $.EncryptMethods "Args" .Args) }}
+                                    {{ end }}
+                                    {{ if eq .Type "DECRYPT" }}
+                                        {{ template "displayTaskDECRYPT" (dict "tab" $.tab "EncryptMethods" $.EncryptMethods "Args" .Args) }}
+                                    {{ end }}
+                                    {{ if eq .Type "SIGN" }}
+                                        {{ template "displayTaskSIGN" (dict "tab" $.tab "SignMethods" $.SignMethods "Args" .Args) }}
+                                    {{ end }}
+                                    {{ if eq .Type "VERIFY" }}
+                                        {{ template "displayTaskVERIFY" (dict "tab" $.tab "SignMethods" $.SignMethods "Args" .Args) }}
+                                    {{ end }}
+                                    {{ if eq .Type "ENCRYPT&SIGN" }}
+                                        {{ template "displayTaskENCRYPT&SIGN" (dict "tab" $.tab "EncryptSignMethods" $.EncryptSignMethods "Args" .Args) }}
+                                    {{ end }}
+                                    {{ if eq .Type "DECRYPT&VERIFY" }}
+                                        {{ template "displayTaskDECRYPT&VERIFY" (dict "tab" $.tab "EncryptSignMethods" $.EncryptSignMethods "Args" .Args) }}
+                                    {{ end }}
+                                </div>
+                                <div class="modal-footer">
+                                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">{{ index $.tab "close" }}</button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    {{ end }}
+                </td>
+                <td class="text-end">
+                    {{ if contains $.myPermission.Rules "w" }}
+                        <button class="btn btn-outline-primary btn-sm me-1" data-bs-toggle="modal" data-bs-target="#editErrorTaskModal_{{ .Rank }}">
+                            <i class="bi bi-pencil"></i>
+                        </button>
+                        <div class="modal fade" id="editErrorTaskModal_{{ .Rank }}" tabindex="-1" aria-labelledby="editErrorTaskModalLabel_{{ .Rank }}" aria-hidden="true">
+                            <div class="modal-dialog modal-lg">
+                                <div class="modal-content">
+                                <form method="post" class="p-3 border rounded bg-light">
+                                    <input type="hidden" name="editErrorTaskRank" value="{{ .Rank }}">
+                                    <div class="modal-header">
+                                        <h5 class="modal-title" id="editErrorTaskModalLabel_{{ .Rank }}">{{ index $.tab "edit" }}</h5>
+                                        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                                    </div>
+                                    <div class="modal-body">
+                                        <div class="form-input">
+                                            <label class="col-form-label">{{ index $.tab "type" }} <i class="bi bi-info-circle ms-1" data-bs-toggle="tooltip" data-bs-placement="right" data-bs-title="{{ index $.tab "tooltipType" }}"></i> :</label>
+                                            <select name="editErrorTaskType" id="editErrorTaskType_{{ .Rank }}" class="form-select taskType-select" required>
+                                                <option value="" disabled>{{ index $.tab "selectType" }}</option>
+                                                {{ $current := . }}
+                                                {{ range $.taskTypes }}
+                                                    {{ if eq . "COPY" }}<option value="COPY" {{ if eq $current.Type "COPY" }}selected{{ end }}>Copy</option>{{ end }}
+                                                    {{ if eq . "COPYRENAME" }}<option value="COPYRENAME" {{ if eq $current.Type "COPYRENAME" }}selected{{ end }}>Copy Rename</option>{{ end }}
+                                                    {{ if eq . "DELETE" }}<option value="DELETE" {{ if eq $current.Type "DELETE" }}selected{{ end }}>Delete</option>{{ end }}
+                                                    {{ if eq . "EXEC" }}<option value="EXEC" {{ if eq $current.Type "EXEC" }}selected{{ end }}>Exec</option>{{ end }}
+                                                    {{ if eq . "EXECMOVE" }}<option value="EXECMOVE" {{ if eq $current.Type "EXECMOVE" }}selected{{ end }}>Exec Move</option>{{ end }}
+                                                    {{ if eq . "EXECOUTPUT" }}<option value="EXECOUTPUT" {{ if eq $current.Type "EXECOUTPUT" }}selected{{ end }}>Exec Output</option>{{ end }}
+                                                    {{ if eq . "MOVE" }}<option value="MOVE" {{ if eq $current.Type "MOVE" }}selected{{ end }}>Move</option>{{ end }}
+                                                    {{ if eq . "MOVERENAME" }}<option value="MOVERENAME" {{ if eq $current.Type "MOVERENAME" }}selected{{ end }}>Move Rename</option>{{ end }}
+                                                    {{ if eq . "RENAME" }}<option value="RENAME" {{ if eq $current.Type "RENAME" }}selected{{ end }}>Rename</option>{{ end }}
+                                                    {{ if eq . "TRANSFER" }}<option value="TRANSFER" {{ if eq $current.Type "TRANSFER" }}selected{{ end }}>Transfer</option>{{ end }}
+                                                    {{ if eq . "TRANSCODE" }}<option value="TRANSCODE" {{ if eq $current.Type "TRANSCODE" }}selected{{ end }}>Transcode</option>{{ end }}
+                                                    {{ if eq . "ARCHIVE" }}<option value="ARCHIVE" {{ if eq $current.Type "ARCHIVE" }}selected{{ end }}>Archive</option>{{ end }}
+                                                    {{ if eq . "EXTRACT" }}<option value="EXTRACT" {{ if eq $current.Type "EXTRACT" }}selected{{ end }}>Extract</option>{{ end }}
+                                                    {{ if eq . "ICAP" }}<option value="ICAP" {{ if eq $current.Type "ICAP" }}selected{{ end }}>ICAP (Beta)</option>{{ end }}
+                                                    {{ if eq . "ENCRYPT" }}<option value="ENCRYPT" {{ if eq $current.Type "ENCRYPT" }}selected{{ end }}>Encrypt</option>{{ end }}
+                                                    {{ if eq . "DECRYPT" }}<option value="DECRYPT" {{ if eq $current.Type "DECRYPT" }}selected{{ end }}>Decrypt</option>{{ end }}
+                                                    {{ if eq . "SIGN" }}<option value="SIGN" {{ if eq $current.Type "SIGN" }}selected{{ end }}>Sign</option>{{ end }}
+                                                    {{ if eq . "VERIFY" }}<option value="VERIFY" {{ if eq $current.Type "VERIFY" }}selected{{ end }}>Verify</option>{{ end }}
+                                                    {{ if eq . "ENCRYPT&SIGN" }}<option value="ENCRYPT&SIGN" {{ if eq $current.Type "ENCRYPT&SIGN" }}selected{{ end }}>Encrypt &amp; Sign</option>{{ end }}
+                                                    {{ if eq . "DECRYPT&VERIFY" }}<option value="DECRYPT&VERIFY" {{ if eq $current.Type "DECRYPT&VERIFY" }}selected{{ end }}>Decrypt &amp; Verify</option>{{ end }}
+                                                {{ end }}
+                                            </select>
+                                        </div>
+                                        {{ template "editTaskCOPY" (dict "tab" $.tab "Args" $current.Args) }}
+                                        {{ template "editTaskCOPYRENAME" (dict "tab" $.tab "Args" $current.Args) }}
+                                        {{ template "editTaskDelete" (dict "tab" $.tab "Args" $current.Args) }}
+                                        {{ template "editTaskEXEC" (dict "tab" $.tab "Args" $current.Args) }}
+                                        {{ template "editTaskEXECMOVE" (dict "tab" $.tab "Args" $current.Args) }}
+                                        {{ template "editTaskEXECOUTPUT" (dict "tab" $.tab "Args" $current.Args) }}
+                                        {{ template "editTaskMOVE" (dict "tab" $.tab "Args" $current.Args) }}
+                                        {{ template "editTaskMOVERENAME" (dict "tab" $.tab "Args" $current.Args) }}
+                                        {{ template "editTaskRENAME" (dict "tab" $.tab "Args" $current.Args) }}
+                                        {{ template "editTaskTRANSFER" (dict "tab" $.tab "Args" $current.Args) }}
+                                        {{ template "editTaskTRANSCODE" (dict "tab" $.tab "TranscodeFormats" $.TranscodeFormats "Args" $current.Args) }}
+                                        {{ template "editTaskARCHIVE" (dict "tab" $.tab "ArchiveExtensions" $.ArchiveExtensions "CompressionLevelList" $.CompressionLevelList "Args" $current.Args) }}
+                                        {{ template "editTaskEXTRACT" (dict "tab" $.tab "ArchiveExtensions" $.ArchiveExtensions "Args" $current.Args) }}
+                                        {{ template "editTaskICAP" (dict "tab" $.tab "IcapOnErrorOptions" $.IcapOnErrorOptions "Args" $current.Args) }}
+                                        {{ template "editTaskENCRYPT" (dict "tab" $.tab "EncryptMethods" $.EncryptMethods "Args" $current.Args) }}
+                                        {{ template "editTaskDECRYPT" (dict "tab" $.tab "EncryptMethods" $.EncryptMethods "Args" $current.Args) }}
+                                        {{ template "editTaskSIGN" (dict "tab" $.tab "SignMethods" $.SignMethods "Args" $current.Args) }}
+                                        {{ template "editTaskVERIFY" (dict "tab" $.tab "SignMethods" $.SignMethods "Args" $current.Args) }}
+                                        {{ template "editTaskENCRYPT&SIGN" (dict "tab" $.tab "EncryptSignMethods" $.EncryptSignMethods "Args" $current.Args) }}
+                                        {{ template "editTaskDECRYPT&VERIFY" (dict "tab" $.tab "EncryptSignMethods" $.EncryptSignMethods "Args" $current.Args) }}
+                                    </div>
+                                    <div class="modal-footer">
+                                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">{{ index $.tab "close" }}</button>
+                                        <button type="submit" class="btn btn-success ms-3"> {{ index $.tab "apply" }}</button>
+                                    </div>
+                                </form>
+                                </div>
+                            </div>
+                        </div>
+                    {{ end }}
+                    {{ if contains $.myPermission.Rules "d" }}
+                        <form method="post" class="d-inline">
+                            <input type="hidden" name="deleteErrorTask" value="{{ .Rank }}">
                             <button type="submit" class="btn btn-outline-danger btn-sm" onclick="return confirm('{{ index $.tab "confirmDelete" }}')">
                                 <i class="bi bi-trash"></i>
                             </button>
@@ -164,7 +1052,7 @@
         </div>
         <hr style="border-top: 1px solid #ababab;">
         
-    <div id="tasksContainer">
+    <div id="container-tasks">
         <div class="d-flex gap-2 mb-3">
             <button class="btn btn-light btn-lg w-100 d-flex justify-content-between align-items-center btn-task-border" type="button" data-bs-toggle="collapse" data-bs-target="#preTasksCollapse" aria-expanded="false" aria-controls="preTasksCollapse">
                 {{ index .tab "preTasks" }}
@@ -184,10 +1072,10 @@
             {{ template "PreTasks" . }}
         </div>
         <div class="no-anim-collapse collapse border rounded p-3 mb-3" id="postTasksCollapse">
-            {{ template "PreTasks" . }}
+            {{ template "PostTasks" . }}
         </div>
         <div class="no-anim-collapse collapse border rounded p-3 mb-3" id="errorTasksCollapse">
-            {{ template "PreTasks" . }}
+            {{ template "ErrorTasks" . }}
         </div>
     </div>
     {{ end }}

@@ -103,6 +103,6 @@
     "selectTLSVersion": { "fr": "Sélectionnez la version TLS", "en": "Select TLS version" },
     "selectCompatibilityMode": { "fr": "Séléctionnez votre mode de compatibilité", "en": "Select your compatibility mode" },
     "tooltipServerAuthentication": { "fr": "Authentification du serveur", "en": "Server authentication" },
-    "tooltipLocalAccountManagement": { "fr": "Gestion des comptes distants", "en": "Remote account management" }
+    "tooltipLocalAccountManagement": { "fr": "Gestion des comptes locaux", "en": "Local account management" }
 
 }

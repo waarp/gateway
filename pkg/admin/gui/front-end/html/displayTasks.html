@@ -1,0 +1,343 @@
+{{ define "displayTaskCOPY" }}
+<div class="form-input">
+    <label class="col-form-label">{{ index .tab "path" }} <i class="bi bi-info-circle ms-1" data-bs-toggle="tooltip" data-bs-placement="right" data-bs-title="{{ index $.tab "tooltipDestinationPath" }}"></i> :</label>
+    <input type="text" class="form-control-plaintext" value="{{ index .Args "path" }}" disabled>
+</div>
+{{ end }}
+
+{{ define "displayTaskCOPYRENAME" }}
+<div class="form-input">
+    <label class="col-form-label">{{ index .tab "path" }} <i class="bi bi-info-circle ms-1" data-bs-toggle="tooltip" data-bs-placement="right" data-bs-title="{{ index $.tab "tooltipDestinationPath" }}"></i> :</label>
+    <input type="text" class="form-control-plaintext" value="{{ index .Args "path" }}" disabled>
+</div>
+{{ end }}
+
+{{ define "displayTaskDelete" }}
+{{ end }}
+
+{{ define "displayTaskEXEC" }}
+<div class="form-input">
+    <label class="col-form-label">{{ index .tab "path" }} <i class="bi bi-info-circle ms-1" data-bs-toggle="tooltip" data-bs-placement="right" data-bs-title="{{ index $.tab "tooltipExecutedPath" }}"></i> :</label>
+    <input type="text" class="form-control-plaintext" value="{{ index .Args "path" }}" disabled>
+</div>
+<hr style="border-top: 1px solid #ababab;">
+<div class="form-input">
+    <label class="col-form-label">{{ index .tab "args" }} <i class="bi bi-info-circle ms-1" data-bs-toggle="tooltip" data-bs-placement="right" data-bs-title="{{ index $.tab "tooltipArgs" }}"></i> :</label>
+    <input type="text" class="form-control-plaintext" value="{{ index .Args "args" }}" disabled>
+</div>
+<hr style="border-top: 1px solid #ababab;">
+<div class="form-input">
+    <label class="col-form-label">{{ index .tab "delay" }} <i class="bi bi-info-circle ms-1" data-bs-toggle="tooltip" data-bs-placement="right" data-bs-title="{{ index $.tab "tooltipDelay" }}"></i> :</label>
+    <input type="text" class="form-control-plaintext" value="{{ index .Args "delay" }}" disabled>
+</div>
+{{ end }}
+
+{{ define "displayTaskEXECMOVE" }}
+<div class="form-input">
+    <label class="col-form-label">{{ index .tab "path" }} <i class="bi bi-info-circle ms-1" data-bs-toggle="tooltip" data-bs-placement="right" data-bs-title="{{ index $.tab "tooltipExecutedPath" }}"></i> :</label>
+    <input type="text" class="form-control-plaintext" value="{{ index .Args "path" }}" disabled>
+</div>
+<hr style="border-top: 1px solid #ababab;">
+<div class="form-input">
+    <label class="col-form-label">{{ index .tab "args" }} <i class="bi bi-info-circle ms-1" data-bs-toggle="tooltip" data-bs-placement="right" data-bs-title="{{ index $.tab "tooltipArgs" }}"></i> :</label>
+    <input type="text" class="form-control-plaintext" value="{{ index .Args "args" }}" disabled>
+</div>
+<hr style="border-top: 1px solid #ababab;">
+<div class="form-input">
+    <label class="col-form-label">{{ index .tab "delay" }} <i class="bi bi-info-circle ms-1" data-bs-toggle="tooltip" data-bs-placement="right" data-bs-title="{{ index $.tab "tooltipDelay" }}"></i> :</label>
+    <input type="text" class="form-control-plaintext" value="{{ index .Args "delay" }}" disabled>
+</div>
+{{ end }}
+
+{{ define "displayTaskEXECOUTPUT" }}
+<div class="form-input">
+    <label class="col-form-label">{{ index .tab "path" }} <i class="bi bi-info-circle ms-1" data-bs-toggle="tooltip" data-bs-placement="right" data-bs-title="{{ index $.tab "tooltipExecutedPath" }}"></i> :</label>
+    <input type="text" class="form-control-plaintext" value="{{ index .Args "path" }}" disabled>
+</div>
+<hr style="border-top: 1px solid #ababab;">
+<div class="form-input">
+    <label class="col-form-label">{{ index .tab "args" }} <i class="bi bi-info-circle ms-1" data-bs-toggle="tooltip" data-bs-placement="right" data-bs-title="{{ index $.tab "tooltipArgs" }}"></i> :</label>
+    <input type="text" class="form-control-plaintext" value="{{ index .Args "args" }}" disabled>
+</div>
+<hr style="border-top: 1px solid #ababab;">
+<div class="form-input">
+    <label class="col-form-label">{{ index .tab "delay" }} <i class="bi bi-info-circle ms-1" data-bs-toggle="tooltip" data-bs-placement="right" data-bs-title="{{ index $.tab "tooltipDelay" }}"></i> :</label>
+    <input type="text" class="form-control-plaintext" value="{{ index .Args "delay" }}" disabled>
+</div>
+{{ end }}
+
+{{ define "displayTaskMOVE" }}
+<div class="form-input">
+    <label class="col-form-label">{{ index .tab "path" }} <i class="bi bi-info-circle ms-1" data-bs-toggle="tooltip" data-bs-placement="right" data-bs-title="{{ index $.tab "tooltipDestinationPath" }}"></i> :</label>
+    <input type="text" class="form-control-plaintext" value="{{ index .Args "path" }}" disabled>
+</div>
+{{ end }}
+
+{{ define "displayTaskMOVERENAME" }}
+<div class="form-input">
+    <label class="col-form-label">{{ index .tab "path" }} <i class="bi bi-info-circle ms-1" data-bs-toggle="tooltip" data-bs-placement="right" data-bs-title="{{ index $.tab "tooltipNewPath" }}"></i> :</label>
+    <input type="text" class="form-control-plaintext" value="{{ index .Args "path" }}" disabled>
+</div>
+{{ end }}
+
+{{ define "displayTaskRENAME" }}
+<div class="form-input">
+    <label class="col-form-label">{{ index .tab "path" }} <i class="bi bi-info-circle ms-1" data-bs-toggle="tooltip" data-bs-placement="right" data-bs-title="{{ index $.tab "tooltipNewFilePath" }}"></i> :</label>
+    <input type="text" class="form-control-plaintext" value="{{ index .Args "path" }}" disabled>
+</div>
+{{ end }}
+
+{{ define "displayTaskTRANSFER" }}
+    <div class="form-input">
+        <label class="col-form-label">{{ index .tab "file" }} <i class="bi bi-info-circle ms-1" data-bs-toggle="tooltip" data-bs-placement="right" data-bs-title="{{ index $.tab "tooltipFile" }}"></i> :</label>
+        <input type="text" class="form-control-plaintext" value="{{ index .Args "file" }}" disabled>
+    </div>
+    <hr style="border-top: 1px solid #ababab;">
+    <div class="form-input">
+        <label class="col-form-label">{{ index .tab "using" }} <i class="bi bi-info-circle ms-1" data-bs-toggle="tooltip" data-bs-placement="right" data-bs-title="{{ index $.tab "tooltipUsing" }}"></i> :</label>
+        <input type="text" class="form-control-plaintext" value="{{ index .Args "using" }}" disabled>
+    </div>
+    <hr style="border-top: 1px solid #ababab;">
+    <div class="form-input">
+        <label class="col-form-label">{{ index .tab "to" }} <i class="bi bi-info-circle ms-1" data-bs-toggle="tooltip" data-bs-placement="right" data-bs-title="{{ index $.tab "tooltipTo" }}"></i> :</label>
+        <input type="text" class="form-control-plaintext" value="{{ index .Args "to" }}" disabled>
+    </div>
+    <hr style="border-top: 1px solid #ababab;">
+    <div class="form-input">
+        <label class="col-form-label">{{ index .tab "as" }} <i class="bi bi-info-circle ms-1" data-bs-toggle="tooltip" data-bs-placement="right" data-bs-title="{{ index $.tab "tooltipAs" }}"></i> :</label>
+        <input type="text" class="form-control-plaintext" value="{{ index .Args "as" }}" disabled>
+    </div>
+    <hr style="border-top: 1px solid #ababab;">
+    <div class="form-input">
+        <label class="col-form-label">{{ index .tab "rule" }} <i class="bi bi-info-circle ms-1" data-bs-toggle="tooltip" data-bs-placement="right" data-bs-title="{{ index $.tab "tooltipRule" }}"></i> :</label>
+        <input type="text" class="form-control-plaintext" value="{{ index .Args "rule" }}" disabled>
+    </div>
+    <hr style="border-top: 1px solid #ababab;">
+    <div class="form-input d-flex align-items-center">
+        <label class="col-form-label me-3">{{ index .tab "copyInfo" }} <i class="bi bi-info-circle ms-1" data-bs-toggle="tooltip" data-bs-placement="right" data-bs-title="{{ index $.tab "tooltipCopyInfo" }}"></i> :</label>
+        <div class="form-check form-check-inline">
+            <input class="form-check-input" type="checkbox" {{ if eq (index .Args "copyInfo") "true" }}checked{{ end }} disabled>
+        </div>
+    </div>
+    <hr style="border-top: 1px solid #ababab;">
+    {{ with index .Args "info" }}
+        <div class="form-input">
+        <label class="col-form-label">{{ index $.tab "info" }} <i class="bi bi-info-circle ms-1" data-bs-toggle="tooltip" data-bs-placement="right" data-bs-title="{{ index $.tab "tooltipInfo" }}"></i> :</label>
+        <ul class="list-unstyled mb-0">
+            {{ range split "," . }}
+            <li>{{ . }}</li>
+            {{ end }}
+        </ul>
+        </div>
+    {{ end }}
+{{ end }}
+
+{{ define "displayTaskTRANSCODE" }}
+<div class="form-input">
+    <label class="col-form-label">{{ index .tab "fromCharset" }} <i class="bi bi-info-circle ms-1" data-bs-toggle="tooltip" data-bs-placement="right" data-bs-title="{{ index $.tab "tooltipFromCharset" }}"></i> :</label>
+    <input type="text" class="form-control-plaintext" value="{{ index .Args "fromCharset" }}" disabled>
+</div>
+<hr style="border-top: 1px solid #ababab;">
+    <div class="form-input">
+    <label class="col-form-label">{{ index .tab "toCharset" }} <i class="bi bi-info-circle ms-1" data-bs-toggle="tooltip" data-bs-placement="right" data-bs-title="{{ index $.tab "tooltipToCharset" }}"></i> :</label>
+    <input type="text" class="form-control-plaintext" value="{{ index .Args "toCharset" }}" disabled>
+</div>
+{{ end }}
+
+{{ define "displayTaskARCHIVE" }}
+<div class="form-input">
+    <label class="col-form-label">{{ index .tab "files" }} <i class="bi bi-info-circle ms-1" data-bs-toggle="tooltip" data-bs-placement="right" data-bs-title="{{ index $.tab "tooltipFiles" }}"></i> :</label>
+    <input type="text" class="form-control-plaintext" value="{{ index .Args "files" }}" disabled>
+</div>
+<hr style="border-top: 1px solid #ababab;">
+<div class="form-input">
+    <label class="col-form-label">{{ index .tab "compressionLevel" }} <i class="bi bi-info-circle ms-1" data-bs-toggle="tooltip" data-bs-placement="right" data-bs-title="{{ index $.tab "tooltipCompressionLevel" }}"></i> :</label>
+    <input type="text" class="form-control-plaintext" value="{{ index .Args "compressionLevel" }}" disabled>
+</div>
+<hr style="border-top: 1px solid #ababab;">
+<div class="form-input">
+    <label class="col-form-label">{{ index .tab "outputPath" }} …</label>
+    <input type="text" class="form-control-plaintext" value="{{ index .Args "outputPath" }}" disabled>
+</div>
+{{ end }}
+
+{{ define "displayTaskEXTRACT" }}
+<div class="form-input">
+    <label class="col-form-label">{{ index .tab "archive" }} <i class="bi bi-info-circle ms-1" data-bs-toggle="tooltip" data-bs-placement="right" data-bs-title="{{ index $.tab "tooltipArchive" }}"></i> :</label>
+    <input type="text" class="form-control-plaintext" value="{{ index .Args "archive" }}" disabled>
+</div>
+<hr style="border-top: 1px solid #ababab;">
+<div class="form-input">
+    <label class="col-form-label">{{ index .tab "outputDir" }} <i class="bi bi-info-circle ms-1" data-bs-toggle="tooltip" data-bs-placement="right" data-bs-title="{{ index $.tab "tooltipOutputDir" }}"></i> :</label>
+    <input type="text" class="form-control-plaintext" value="{{ index .Args "outputDir" }}" disabled>
+</div>
+{{ end}}
+
+{{ define "displayTaskICAP" }}
+<div class="form-input">
+    <label class="col-form-label">{{ index .tab "uploadURL" }} <i class="bi bi-info-circle ms-1" data-bs-toggle="tooltip" data-bs-placement="right" data-bs-title="{{ index $.tab "tooltipUploadURL" }}"></i> :</label>
+    <input type="text" class="form-control-plaintext" value="{{ index .Args "uploadURL" }}" disabled>
+</div>
+<hr style="border-top: 1px solid #ababab;">
+<div class="form-input">
+    <label class="col-form-label">{{ index .tab "timeout" }} <i class="bi bi-info-circle ms-1" data-bs-toggle="tooltip" data-bs-placement="right" data-bs-title="{{ index $.tab "tooltipTimeout" }}"></i> :</label>
+    <input type="text" class="form-control-plaintext" value="{{ index .Args "timeout" }}" disabled>
+</div>
+<hr style="border-top: 1px solid #ababab;">
+<div class="form-input d-flex align-items-center">
+    <label class="col-form-label me-3">{{ index .tab "allowFileModifications" }} <i class="bi bi-info-circle ms-1" data-bs-toggle="tooltip" data-bs-placement="right" data-bs-title="{{ index $.tab "tooltipAllowFileModifications" }}"></i> :</label>
+    <div class="form-check form-check-inline">
+        <input class="form-check-input" type="checkbox" {{ if eq (index .Args "allowFileModifications") true }}checked{{ end }} disabled>
+    </div>
+</div>
+<hr style="border-top: 1px solid #ababab;">
+<div class="form-input">
+    <label class="col-form-label">{{ index .tab "onError" }} <i class="bi bi-info-circle ms-1" data-bs-toggle="tooltip" data-bs-placement="right" data-bs-title="{{ index $.tab "tooltipOnError" }}"></i> :</label>
+    <input type="text" class="form-control-plaintext" value="{{ index .Args "onError" }}" disabled>
+</div>
+<hr style="border-top: 1px solid #ababab;">
+<div class="form-input">
+    <label class="col-form-label">{{ index .tab "onErrorMovePath" }} <i class="bi bi-info-circle ms-1" data-bs-toggle="tooltip" data-bs-placement="right" data-bs-title="{{ index $.tab "tooltipOnErrorMovePath" }}"></i> :</label>
+    <input type="text" class="form-control-plaintext" value="{{ index .Args "onErrorMovePath" }}" disabled>
+</div>
+{{ end}}
+
+{{ define "displayTaskENCRYPT" }}
+<div class="form-input">
+    <label class="col-form-label">{{ index .tab "outputFile" }} <i class="bi bi-info-circle ms-1" data-bs-toggle="tooltip" data-bs-placement="right" data-bs-title="{{ index $.tab "tooltipOutputFileEncrypt" }}"></i> :</label>
+    <input type="text" class="form-control-plaintext" value="{{ index .Args "outputFile" }}" disabled>
+</div>
+<hr style="border-top: 1px solid #ababab;">
+<div class="form-input d-flex align-items-center">
+    <label class="col-form-label me-3">{{ index .tab "keepOriginal" }} <i class="bi bi-info-circle ms-1" data-bs-toggle="tooltip" data-bs-placement="right" data-bs-title="{{ index $.tab "tooltipKeepOriginalEncrypt" }}"></i> :</label>
+    <div class="form-check form-check-inline">
+        <input class="form-check-input" type="checkbox" {{ if eq (index .Args "keepOriginal") true }}checked{{ end }} disabled>
+    </div>
+</div>
+<hr style="border-top: 1px solid #ababab;">
+<div class="form-input">
+    <label class="col-form-label">{{ index .tab "method" }} <i class="bi bi-info-circle ms-1" data-bs-toggle="tooltip" data-bs-placement="right" data-bs-title="{{ index $.tab "tooltipMethodEncrypt" }}"></i> :</label>
+    <input type="text" class="form-control-plaintext" value="{{ index .Args "method" }}" disabled>
+</div>
+<hr style="border-top: 1px solid #ababab;">
+<div class="form-input">
+    <label class="col-form-label">{{ index .tab "keyName" }} <i class="bi bi-info-circle ms-1" data-bs-toggle="tooltip" data-bs-placement="right" data-bs-title="{{ index $.tab "tooltipKeyNameEncrypt" }}"></i> :</label>
+    <input type="text" class="form-control-plaintext" value="{{ index .Args "keyName" }}" disabled>
+</div>
+{{ end}}
+
+{{ define "displayTaskDECRYPT" }}
+<div class="form-input">
+    <label class="col-form-label">{{ index .tab "outputFile" }} <i class="bi bi-info-circle ms-1" data-bs-toggle="tooltip" data-bs-placement="right" data-bs-title="{{ index $.tab "tooltipOutputFileDecrypt" }}"></i> :</label>
+    <input type="text" class="form-control-plaintext" value="{{ index .Args "outputFile" }}" disabled>
+</div>
+<hr style="border-top: 1px solid #ababab;">
+<div class="form-input d-flex align-items-center">
+    <label class="col-form-label me-3">{{ index .tab "keepOriginal" }} <i class="bi bi-info-circle ms-1" data-bs-toggle="tooltip" data-bs-placement="right" data-bs-title="{{ index $.tab "tooltipKeepOriginalDecrypt" }}"></i> :</label>
+    <div class="form-check form-check-inline">
+        <input class="form-check-input" type="checkbox" {{ if eq (index .Args "keepOriginal") true }}checked{{ end }} disabled>
+    </div>
+</div>
+<hr style="border-top: 1px solid #ababab;">
+<div class="form-input">
+    <label class="col-form-label">{{ index .tab "method" }} <i class="bi bi-info-circle ms-1" data-bs-toggle="tooltip" data-bs-placement="right" data-bs-title="{{ index $.tab "tooltipMethodDecrypt" }}"></i> :</label>
+    <input type="text" class="form-control-plaintext" value="{{ index .Args "method" }}" disabled>
+</div>
+<hr style="border-top: 1px solid #ababab;">
+<div class="form-input">
+    <label class="col-form-label">{{ index .tab "keyName" }} <i class="bi bi-info-circle ms-1" data-bs-toggle="tooltip" data-bs-placement="right" data-bs-title="{{ index $.tab "tooltipKeyNameDecrypt" }}"></i> :</label>
+    <input type="text" class="form-control-plaintext" value="{{ index .Args "keyName" }}" disabled>
+</div>
+{{ end}}
+
+{{ define "displayTaskSIGN" }}
+<div class="form-input">
+    <label class="col-form-label">{{ index .tab "outputFile" }} <i class="bi bi-info-circle ms-1" data-bs-toggle="tooltip" data-bs-placement="right" data-bs-title="{{ index $.tab "tooltipOutputFileSign" }}"></i> :</label>
+    <input type="text" class="form-control-plaintext" value="{{ index .Args "outputFile" }}" disabled>
+</div>
+<hr style="border-top: 1px solid #ababab;">
+<div class="form-input">
+    <label class="col-form-label">{{ index .tab "method" }} <i class="bi bi-info-circle ms-1" data-bs-toggle="tooltip" data-bs-placement="right" data-bs-title="{{ index $.tab "tooltipMethodSign" }}"></i> :</label>
+    <input type="text" class="form-control-plaintext" value="{{ index .Args "method" }}" disabled>
+</div>
+<hr style="border-top: 1px solid #ababab;">
+<div class="form-input">
+    <label class="col-form-label">{{ index .tab "keyName" }} <i class="bi bi-info-circle ms-1" data-bs-toggle="tooltip" data-bs-placement="right" data-bs-title="{{ index $.tab "tooltipKeyNameSign" }}"></i> :</label>
+    <input type="text" class="form-control-plaintext" value="{{ index .Args "keyName" }}" disabled>
+</div>
+{{ end}}
+
+{{ define "displayTaskVERIFY" }}
+<div class="form-input">
+    <label class="col-form-label">{{ index .tab "signatureFile" }} <i class="bi bi-info-circle ms-1" data-bs-toggle="tooltip" data-bs-placement="right" data-bs-title="{{ index $.tab "tooltipSignatureFile" }}"></i> :</label>
+    <input type="text" class="form-control-plaintext" value="{{ index .Args "signatureFile" }}" disabled>
+</div>
+<hr style="border-top: 1px solid #ababab;">
+<div class="form-input">
+    <label class="col-form-label">{{ index .tab "method" }} <i class="bi bi-info-circle ms-1" data-bs-toggle="tooltip" data-bs-placement="right" data-bs-title="{{ index $.tab "tooltipMethodVerify" }}"></i> :</label>
+    <input type="text" class="form-control-plaintext" value="{{ index .Args "method" }}" disabled>
+</div>
+<hr style="border-top: 1px solid #ababab;">
+<div class="form-input">
+    <label class="col-form-label">{{ index .tab "keyName" }} <i class="bi bi-info-circle ms-1" data-bs-toggle="tooltip" data-bs-placement="right" data-bs-title="{{ index $.tab "tooltipKeyNameVerify" }}"></i> :</label>
+    <input type="text" class="form-control-plaintext" value="{{ index .Args "keyName" }}" disabled>
+</div>
+{{ end}}
+
+{{ define "displayTaskENCRYPT&SIGN" }}
+<div class="form-input">
+    <label class="col-form-label">{{ index .tab "outputFile" }} <i class="bi bi-info-circle ms-1" data-bs-toggle="tooltip" data-bs-placement="right" data-bs-title="{{ index $.tab "tooltipOutputFileEncrypt" }}"></i> :</label>
+    <input type="text" class="form-control-plaintext" value="{{ index .Args "outputFile" }}" disabled>
+</div>
+<hr style="border-top: 1px solid #ababab;">
+<div class="form-input d-flex align-items-center">
+    <label class="col-form-label me-3">{{ index .tab "keepOriginal" }} <i class="bi bi-info-circle ms-1" data-bs-toggle="tooltip" data-bs-placement="right" data-bs-title="{{ index $.tab "tooltipKeepOriginalEncrypt" }}"></i> :</label>
+    <div class="form-check form-check-inline">
+        <input class="form-check-input" type="checkbox" {{ if eq (index .Args "keepOriginal") true }}checked{{ end }} disabled>
+    </div>
+</div>
+<hr style="border-top: 1px solid #ababab;">
+<div class="form-input">
+    <label class="col-form-label">{{ index .tab "method" }} <i class="bi bi-info-circle ms-1" data-bs-toggle="tooltip" data-bs-placement="right" data-bs-title="{{ index $.tab "tooltipMethodEncrypt&Sign" }}"></i> :</label>
+    <input type="text" class="form-control-plaintext" value="{{ index .Args "method" }}" disabled>
+</div>
+<hr style="border-top: 1px solid #ababab;">
+<div class="form-input">
+    <label class="col-form-label">{{ index .tab "encryptKeyName" }} <i class="bi bi-info-circle ms-1" data-bs-toggle="tooltip" data-bs-placement="right" data-bs-title="{{ index $.tab "tooltipEncryptKeyName" }}"></i> :</label>
+    <input type="text" class="form-control-plaintext" value="{{ index .Args "encryptKeyName" }}" disabled>
+</div>
+<hr style="border-top: 1px solid #ababab;">
+<div class="form-input">
+    <label class="col-form-label">{{ index .tab "signKeyName" }} <i class="bi bi-info-circle ms-1" data-bs-toggle="tooltip" data-bs-placement="right" data-bs-title="{{ index $.tab "tooltipSignKeyNameEncrypt&Sign" }}"></i> :</label>
+    <input type="text" class="form-control-plaintext" value="{{ index .Args "signKeyName" }}" disabled>
+</div>
+{{ end}}
+
+{{ define "displayTaskDECRYPT&VERIFY" }}
+<div class="form-input">
+    <label class="col-form-label">{{ index .tab "outputFile" }} <i class="bi bi-info-circle ms-1" data-bs-toggle="tooltip" data-bs-placement="right" data-bs-title="{{ index $.tab "tooltipOutputFileDecrypt" }}"></i> :</label>
+    <input type="text" class="form-control-plaintext" value="{{ index .Args "outputFile" }}" disabled>
+</div>
+<hr style="border-top: 1px solid #ababab;">
+<div class="form-input d-flex align-items-center">
+    <label class="col-form-label me-3">{{ index .tab "keepOriginal" }} <i class="bi bi-info-circle ms-1" data-bs-toggle="tooltip" data-bs-placement="right" data-bs-title="{{ index $.tab "tooltipKeepOriginalDecrypt" }}"></i> :</label>
+    <div class="form-check form-check-inline">
+        <input class="form-check-input" type="checkbox" {{ if eq (index .Args "keepOriginal") true }}checked{{ end }} disabled>
+    </div>
+</div>
+<hr style="border-top: 1px solid #ababab;">
+<div class="form-input">
+    <label class="col-form-label">{{ index .tab "method" }} <i class="bi bi-info-circle ms-1" data-bs-toggle="tooltip" data-bs-placement="right" data-bs-title="{{ index $.tab "tooltipMethodDecrypt&verify" }}"></i> :</label>
+    <input type="text" class="form-control-plaintext" value="{{ index .Args "method" }}" disabled>
+</div>
+<hr style="border-top: 1px solid #ababab;">
+<div class="form-input">
+    <label class="col-form-label">{{ index .tab "decryptKeyName" }} <i class="bi bi-info-circle ms-1" data-bs-toggle="tooltip" data-bs-placement="right" data-bs-title="{{ index $.tab "tooltipDecryptKeyName" }}"></i> :</label>
+    <input type="text" class="form-control-plaintext" value="{{ index .Args "decryptKeyName" }}" disabled>
+</div>
+<hr style="border-top: 1px solid #ababab;">
+<div class="form-input">
+    <label class="col-form-label">{{ index .tab "signKeyName" }} <i class="bi bi-info-circle ms-1" data-bs-toggle="tooltip" data-bs-placement="right" data-bs-title="{{ index $.tab "tooltipSignKeyNameDecryptKeyName" }}"></i> :</label>
+    <input type="text" class="form-control-plaintext" value="{{ index .Args "signKeyName" }}" disabled>
+</div>
+{{ end}}

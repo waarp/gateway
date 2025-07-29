@@ -3,7 +3,9 @@ package gui
 import (
 	"fmt"
 	"net/http"
+	"slices"
 	"strconv"
+	"strings"
 
 	"code.waarp.fr/lib/log"
 
@@ -12,6 +14,7 @@ import (
 	"code.waarp.fr/apps/gateway/gateway/pkg/model"
 )
 
+//nolint:dupl, gocyclo, cyclop, funlen // method for pre-task (gocyclo 20 differents tasks)
 func addPreTask(ruleID int, preTasks []*model.Task, db *database.DB, r *http.Request) error {
 	var newPreTask model.Task
 
@@ -44,6 +47,24 @@ func addPreTask(ruleID int, preTasks []*model.Task, db *database.DB, r *http.Req
 		newPreTask.Args = taskTRANSFER(r)
 	case "TRANSCODE":
 		newPreTask.Args = taskTRANSCODE(r)
+	case "ARCHIVE":
+		newPreTask.Args = taskARCHIVE(r)
+	case "EXTRACT":
+		newPreTask.Args = taskEXTRACT(r)
+	case "ICAP (BETA)":
+		newPreTask.Args = taskICAP(r)
+	case "ENCRYPT":
+		newPreTask.Args = taskENCRYPT(r)
+	case "DECRYPT":
+		newPreTask.Args = taskDECRYPT(r)
+	case "SIGN":
+		newPreTask.Args = taskSIGN(r)
+	case "VERIFY":
+		newPreTask.Args = taskVERIFY(r)
+	case "ENCRYPT&SIGN":
+		newPreTask.Args = taskENCRYPTandSIGN(r)
+	case "DECRYPT&VERIFY":
+		newPreTask.Args = taskDECRYPTandVERIFY(r)
 	}
 
 	rule, err := internal.GetRuleByID(db, int64(ruleID))
@@ -59,7 +80,134 @@ func addPreTask(ruleID int, preTasks []*model.Task, db *database.DB, r *http.Req
 	return nil
 }
 
-func callMethodsTasksTransferRules(logger *log.Logger, db *database.DB, w http.ResponseWriter, r *http.Request,
+//nolint:gocyclo, cyclop, funlen // 20 differents tasks
+func editPreTask(ruleID int, preTasks []*model.Task, db *database.DB, r *http.Request) error {
+	var editPreTask model.Task
+
+	if err := r.ParseForm(); err != nil {
+		return fmt.Errorf("failed to parse form: %w", err)
+	}
+
+	preTaskRank := r.FormValue("editPreTaskRank")
+
+	rank, err := strconv.Atoi(preTaskRank)
+	if err != nil {
+		return fmt.Errorf("failed to get rank: %w", err)
+	}
+
+	if editPreTaskType := r.FormValue("editPreTaskType"); editPreTaskType != "" {
+		editPreTask.Type = editPreTaskType
+	}
+
+	//nolint:dupl // switch for pre-task
+	switch editPreTask.Type {
+	case "COPY":
+		editPreTask.Args = taskCOPY(r)
+	case "COPYRENAME":
+		editPreTask.Args = taskCOPYRENAME(r)
+	case "EXEC":
+		editPreTask.Args = taskEXEC(r)
+	case "EXECMOVE":
+		editPreTask.Args = taskEXECMOVE(r)
+	case "EXECOUTPUT":
+		editPreTask.Args = taskEXECOUTPUT(r)
+	case "MOVE":
+		editPreTask.Args = taskMOVE(r)
+	case "MOVERENAME":
+		editPreTask.Args = taskMOVERENAME(r)
+	case "RENAME":
+		editPreTask.Args = taskRENAME(r)
+	case "TRANSFER":
+		editPreTask.Args = taskTRANSFER(r)
+	case "TRANSCODE":
+		editPreTask.Args = taskTRANSCODE(r)
+	case "ARCHIVE":
+		editPreTask.Args = taskARCHIVE(r)
+	case "EXTRACT":
+		editPreTask.Args = taskEXTRACT(r)
+	case "ICAP (BETA)":
+		editPreTask.Args = taskICAP(r)
+	case "ENCRYPT":
+		editPreTask.Args = taskENCRYPT(r)
+	case "DECRYPT":
+		editPreTask.Args = taskDECRYPT(r)
+	case "SIGN":
+		editPreTask.Args = taskSIGN(r)
+	case "VERIFY":
+		editPreTask.Args = taskVERIFY(r)
+	case "ENCRYPT&SIGN":
+		editPreTask.Args = taskENCRYPTandSIGN(r)
+	case "DECRYPT&VERIFY":
+		editPreTask.Args = taskDECRYPTandVERIFY(r)
+	}
+
+	preTasks[rank] = &editPreTask
+
+	rule, err := internal.GetRuleByID(db, int64(ruleID))
+	if err != nil {
+		return fmt.Errorf("failed to get rule: %w", err)
+	}
+
+	if err = internal.SetPreTasks(db, rule, preTasks); err != nil {
+		return fmt.Errorf("failed to set task: %w", err)
+	}
+
+	return nil
+}
+
+func deletePreTask(ruleID int, preTasks []*model.Task, db *database.DB, r *http.Request) error {
+	if err := r.ParseForm(); err != nil {
+		return fmt.Errorf("failed to parse form: %w", err)
+	}
+
+	preTaskRank := r.FormValue("deletePreTask")
+
+	rank, err := strconv.Atoi(preTaskRank)
+	if err != nil {
+		return fmt.Errorf("failed to get rank: %w", err)
+	}
+
+	preTasksUpdated := slices.DeleteFunc(preTasks, func(preT *model.Task) bool {
+		return int(preT.Rank) == rank
+	})
+
+	rule, err := internal.GetRuleByID(db, int64(ruleID))
+	if err != nil {
+		return fmt.Errorf("failed to get rule: %w", err)
+	}
+
+	if err = internal.SetPreTasks(db, rule, preTasksUpdated); err != nil {
+		return fmt.Errorf("failed to set task: %w", err)
+	}
+
+	return nil
+}
+
+func newOrderPreTasks(db *database.DB, r *http.Request, tasks []*model.Task, ruleID int) error {
+	newOrderTasks := strings.Split(r.FormValue("newOrderPreTasks"), ",")
+	preTasks := make([]*model.Task, len(newOrderTasks))
+
+	for i, str := range newOrderTasks {
+		rank, err := strconv.Atoi(str)
+		if err != nil || rank < 0 || rank >= len(tasks) {
+			continue
+		}
+		preTasks[i] = tasks[rank]
+	}
+
+	rule, err := internal.GetRuleByID(db, int64(ruleID))
+	if err != nil {
+		return fmt.Errorf("failed to rule id: %w", err)
+	}
+
+	if err := internal.SetPreTasks(db, rule, preTasks); err != nil {
+		return fmt.Errorf("failed set pre-tasks: %w", err)
+	}
+
+	return nil
+}
+
+func callMethodsPreTasks(logger *log.Logger, db *database.DB, w http.ResponseWriter, r *http.Request,
 	preTasks []*model.Task, ruleID int,
 ) (bool, string, string) {
 	if r.Method == http.MethodPost && r.FormValue("addPreTaskType") != "" {
@@ -70,8 +218,46 @@ func callMethodsTasksTransferRules(logger *log.Logger, db *database.DB, w http.R
 			return false, addPreTaskErr.Error(), "addPreTaskModal"
 		}
 
-		http.Redirect(w, r, fmt.Sprintf("%s?ruleID=%d", r.URL.Path, ruleID),
-			http.StatusSeeOther)
+		http.Redirect(w, r, fmt.Sprintf("%s?ruleID=%d", r.URL.Path, ruleID), http.StatusSeeOther)
+
+		return true, "", ""
+	}
+
+	if r.Method == http.MethodPost && r.FormValue("editPreTaskRank") != "" {
+		editPreTaskErr := editPreTask(ruleID, preTasks, db, r)
+		if editPreTaskErr != nil {
+			logger.Error("failed to edit pre-task: %v", editPreTaskErr)
+
+			return false, editPreTaskErr.Error(), "editPreTaskModal_" + r.FormValue("editPreTaskRank")
+		}
+
+		http.Redirect(w, r, fmt.Sprintf("%s?ruleID=%d", r.URL.Path, ruleID), http.StatusSeeOther)
+
+		return true, "", ""
+	}
+
+	if r.Method == http.MethodPost && r.FormValue("deletePreTask") != "" {
+		deletePreTaskErr := deletePreTask(ruleID, preTasks, db, r)
+		if deletePreTaskErr != nil {
+			logger.Error("failed to delete pre-task: %v", deletePreTaskErr)
+
+			return false, deletePreTaskErr.Error(), ""
+		}
+
+		http.Redirect(w, r, fmt.Sprintf("%s?ruleID=%d", r.URL.Path, ruleID), http.StatusSeeOther)
+
+		return true, "", ""
+	}
+
+	if r.Method == http.MethodPost && r.FormValue("newOrderPreTasks") != "" {
+		orderPreTaskErr := newOrderPreTasks(db, r, preTasks, ruleID)
+		if orderPreTaskErr != nil {
+			logger.Error("failed to set new order pre-task: %v", orderPreTaskErr)
+
+			return false, orderPreTaskErr.Error(), ""
+		}
+
+		http.Redirect(w, r, fmt.Sprintf("%s?ruleID=%d", r.URL.Path, ruleID), http.StatusSeeOther)
 
 		return true, "", ""
 	}
@@ -79,6 +265,511 @@ func callMethodsTasksTransferRules(logger *log.Logger, db *database.DB, w http.R
 	return false, "", ""
 }
 
+//nolint:dupl, gocyclo, cyclop, funlen // method for post-task (20 differents tasks)
+func addPostTask(ruleID int, postTasks []*model.Task, db *database.DB, r *http.Request) error {
+	var newPostTask model.Task
+
+	if err := r.ParseForm(); err != nil {
+		return fmt.Errorf("failed to parse form: %w", err)
+	}
+
+	if newPostTaskType := r.FormValue("addPostTaskType"); newPostTaskType != "" {
+		newPostTask.Type = newPostTaskType
+	}
+
+	//nolint:dupl // switch for post-task
+	switch newPostTask.Type {
+	case "COPY":
+		newPostTask.Args = taskCOPY(r)
+	case "COPYRENAME":
+		newPostTask.Args = taskCOPYRENAME(r)
+	case "EXEC":
+		newPostTask.Args = taskEXEC(r)
+	case "EXECMOVE":
+		newPostTask.Args = taskEXECMOVE(r)
+	case "EXECOUTPUT":
+		newPostTask.Args = taskEXECOUTPUT(r)
+	case "MOVE":
+		newPostTask.Args = taskMOVE(r)
+	case "MOVERENAME":
+		newPostTask.Args = taskMOVERENAME(r)
+	case "RENAME":
+		newPostTask.Args = taskRENAME(r)
+	case "TRANSFER":
+		newPostTask.Args = taskTRANSFER(r)
+	case "TRANSCODE":
+		newPostTask.Args = taskTRANSCODE(r)
+	case "ARCHIVE":
+		newPostTask.Args = taskARCHIVE(r)
+	case "EXTRACT":
+		newPostTask.Args = taskEXTRACT(r)
+	case "ICAP (BETA)":
+		newPostTask.Args = taskICAP(r)
+	case "ENCRYPT":
+		newPostTask.Args = taskENCRYPT(r)
+	case "DECRYPT":
+		newPostTask.Args = taskDECRYPT(r)
+	case "SIGN":
+		newPostTask.Args = taskSIGN(r)
+	case "VERIFY":
+		newPostTask.Args = taskVERIFY(r)
+	case "ENCRYPT&SIGN":
+		newPostTask.Args = taskENCRYPTandSIGN(r)
+	case "DECRYPT&VERIFY":
+		newPostTask.Args = taskDECRYPTandVERIFY(r)
+	}
+
+	rule, err := internal.GetRuleByID(db, int64(ruleID))
+	if err != nil {
+		return fmt.Errorf("failed to get rule: %w", err)
+	}
+
+	postTasks = append(postTasks, &newPostTask)
+	if err = internal.SetPostTasks(db, rule, postTasks); err != nil {
+		return fmt.Errorf("failed to set task: %w", err)
+	}
+
+	return nil
+}
+
+//nolint:gocyclo, cyclop, funlen // 20 differents tasks
+func editPostTask(ruleID int, postTasks []*model.Task, db *database.DB, r *http.Request) error {
+	var editPostTask model.Task
+
+	if err := r.ParseForm(); err != nil {
+		return fmt.Errorf("failed to parse form: %w", err)
+	}
+
+	postTaskRank := r.FormValue("editPostTaskRank")
+
+	rank, err := strconv.Atoi(postTaskRank)
+	if err != nil {
+		return fmt.Errorf("failed to get rank: %w", err)
+	}
+
+	if editPostTaskType := r.FormValue("editPostTaskType"); editPostTaskType != "" {
+		editPostTask.Type = editPostTaskType
+	}
+
+	//nolint:dupl // switch for post-task
+	switch editPostTask.Type {
+	case "COPY":
+		editPostTask.Args = taskCOPY(r)
+	case "COPYRENAME":
+		editPostTask.Args = taskCOPYRENAME(r)
+	case "EXEC":
+		editPostTask.Args = taskEXEC(r)
+	case "EXECMOVE":
+		editPostTask.Args = taskEXECMOVE(r)
+	case "EXECOUTPUT":
+		editPostTask.Args = taskEXECOUTPUT(r)
+	case "MOVE":
+		editPostTask.Args = taskMOVE(r)
+	case "MOVERENAME":
+		editPostTask.Args = taskMOVERENAME(r)
+	case "RENAME":
+		editPostTask.Args = taskRENAME(r)
+	case "TRANSFER":
+		editPostTask.Args = taskTRANSFER(r)
+	case "TRANSCODE":
+		editPostTask.Args = taskTRANSCODE(r)
+	case "ARCHIVE":
+		editPostTask.Args = taskARCHIVE(r)
+	case "EXTRACT":
+		editPostTask.Args = taskEXTRACT(r)
+	case "ICAP (BETA)":
+		editPostTask.Args = taskICAP(r)
+	case "ENCRYPT":
+		editPostTask.Args = taskENCRYPT(r)
+	case "DECRYPT":
+		editPostTask.Args = taskDECRYPT(r)
+	case "SIGN":
+		editPostTask.Args = taskSIGN(r)
+	case "VERIFY":
+		editPostTask.Args = taskVERIFY(r)
+	case "ENCRYPT&SIGN":
+		editPostTask.Args = taskENCRYPTandSIGN(r)
+	case "DECRYPT&VERIFY":
+		editPostTask.Args = taskDECRYPTandVERIFY(r)
+	}
+
+	postTasks[rank] = &editPostTask
+
+	rule, err := internal.GetRuleByID(db, int64(ruleID))
+	if err != nil {
+		return fmt.Errorf("failed to get rule: %w", err)
+	}
+
+	if err = internal.SetPostTasks(db, rule, postTasks); err != nil {
+		return fmt.Errorf("failed to set task: %w", err)
+	}
+
+	return nil
+}
+
+func deletePostTask(ruleID int, postTasks []*model.Task, db *database.DB, r *http.Request) error {
+	if err := r.ParseForm(); err != nil {
+		return fmt.Errorf("failed to parse form: %w", err)
+	}
+
+	postTaskRank := r.FormValue("deletePostTask")
+
+	rank, err := strconv.Atoi(postTaskRank)
+	if err != nil {
+		return fmt.Errorf("failed to get rank: %w", err)
+	}
+
+	postTasksUpdated := slices.DeleteFunc(postTasks, func(postT *model.Task) bool {
+		return int(postT.Rank) == rank
+	})
+
+	rule, err := internal.GetRuleByID(db, int64(ruleID))
+	if err != nil {
+		return fmt.Errorf("failed to get rule: %w", err)
+	}
+
+	if err = internal.SetPostTasks(db, rule, postTasksUpdated); err != nil {
+		return fmt.Errorf("failed to set task: %w", err)
+	}
+
+	return nil
+}
+
+func newOrderPostTasks(db *database.DB, r *http.Request, tasks []*model.Task, ruleID int) error {
+	newOrderTasks := strings.Split(r.FormValue("newOrderPostTasks"), ",")
+	postTasks := make([]*model.Task, len(newOrderTasks))
+
+	for i, str := range newOrderTasks {
+		rank, err := strconv.Atoi(str)
+		if err != nil || rank < 0 || rank >= len(tasks) {
+			continue
+		}
+		postTasks[i] = tasks[rank]
+	}
+
+	rule, err := internal.GetRuleByID(db, int64(ruleID))
+	if err != nil {
+		return fmt.Errorf("failed to rule id: %w", err)
+	}
+
+	if err := internal.SetPostTasks(db, rule, postTasks); err != nil {
+		return fmt.Errorf("failed to set post tasks: %w", err)
+	}
+
+	return nil
+}
+
+func callMethodsPostTasks(logger *log.Logger, db *database.DB, w http.ResponseWriter, r *http.Request,
+	postTasks []*model.Task, ruleID int,
+) (bool, string, string) {
+	if r.Method == http.MethodPost && r.FormValue("addPostTaskType") != "" {
+		addPostTaskErr := addPostTask(ruleID, postTasks, db, r)
+		if addPostTaskErr != nil {
+			logger.Error("failed to add post-task: %v", addPostTaskErr)
+
+			return false, addPostTaskErr.Error(), "addPostTaskModal"
+		}
+
+		http.Redirect(w, r, fmt.Sprintf("%s?ruleID=%d", r.URL.Path, ruleID), http.StatusSeeOther)
+
+		return true, "", ""
+	}
+
+	if r.Method == http.MethodPost && r.FormValue("editPostTaskRank") != "" {
+		editPostTaskErr := editPostTask(ruleID, postTasks, db, r)
+		if editPostTaskErr != nil {
+			logger.Error("failed to edit post-task: %v", editPostTaskErr)
+
+			return false, editPostTaskErr.Error(), "editPostTaskModal_" + r.FormValue("editPostTaskRank")
+		}
+
+		http.Redirect(w, r, fmt.Sprintf("%s?ruleID=%d", r.URL.Path, ruleID), http.StatusSeeOther)
+
+		return true, "", ""
+	}
+
+	if r.Method == http.MethodPost && r.FormValue("deletePostTask") != "" {
+		deletePostTaskErr := deletePostTask(ruleID, postTasks, db, r)
+		if deletePostTaskErr != nil {
+			logger.Error("failed to delete post-task: %v", deletePostTaskErr)
+
+			return false, deletePostTaskErr.Error(), ""
+		}
+
+		http.Redirect(w, r, fmt.Sprintf("%s?ruleID=%d", r.URL.Path, ruleID), http.StatusSeeOther)
+
+		return true, "", ""
+	}
+
+	if r.Method == http.MethodPost && r.FormValue("newOrderPostTasks") != "" {
+		orderPostTaskErr := newOrderPostTasks(db, r, postTasks, ruleID)
+		if orderPostTaskErr != nil {
+			logger.Error("failed to set new order post-task: %v", orderPostTaskErr)
+
+			return false, orderPostTaskErr.Error(), ""
+		}
+
+		http.Redirect(w, r, fmt.Sprintf("%s?ruleID=%d", r.URL.Path, ruleID), http.StatusSeeOther)
+
+		return true, "", ""
+	}
+
+	return false, "", ""
+}
+
+//nolint:dupl, gocyclo, cyclop, funlen // method for error-task (20 differents tasks)
+func addErrorTask(ruleID int, errorTasks []*model.Task, db *database.DB, r *http.Request) error {
+	var newErrorTask model.Task
+
+	if err := r.ParseForm(); err != nil {
+		return fmt.Errorf("failed to parse form: %w", err)
+	}
+
+	if newErrorTaskType := r.FormValue("addErrorTaskType"); newErrorTaskType != "" {
+		newErrorTask.Type = newErrorTaskType
+	}
+
+	//nolint:dupl // switch for error-task
+	switch newErrorTask.Type {
+	case "COPY":
+		newErrorTask.Args = taskCOPY(r)
+	case "COPYRENAME":
+		newErrorTask.Args = taskCOPYRENAME(r)
+	case "EXEC":
+		newErrorTask.Args = taskEXEC(r)
+	case "EXECMOVE":
+		newErrorTask.Args = taskEXECMOVE(r)
+	case "EXECOUTPUT":
+		newErrorTask.Args = taskEXECOUTPUT(r)
+	case "MOVE":
+		newErrorTask.Args = taskMOVE(r)
+	case "MOVERENAME":
+		newErrorTask.Args = taskMOVERENAME(r)
+	case "RENAME":
+		newErrorTask.Args = taskRENAME(r)
+	case "TRANSFER":
+		newErrorTask.Args = taskTRANSFER(r)
+	case "TRANSCODE":
+		newErrorTask.Args = taskTRANSCODE(r)
+	case "ARCHIVE":
+		newErrorTask.Args = taskARCHIVE(r)
+	case "EXTRACT":
+		newErrorTask.Args = taskEXTRACT(r)
+	case "ICAP (BETA)":
+		newErrorTask.Args = taskICAP(r)
+	case "ENCRYPT":
+		newErrorTask.Args = taskENCRYPT(r)
+	case "DECRYPT":
+		newErrorTask.Args = taskDECRYPT(r)
+	case "SIGN":
+		newErrorTask.Args = taskSIGN(r)
+	case "VERIFY":
+		newErrorTask.Args = taskVERIFY(r)
+	case "ENCRYPT&SIGN":
+		newErrorTask.Args = taskENCRYPTandSIGN(r)
+	case "DECRYPT&VERIFY":
+		newErrorTask.Args = taskDECRYPTandVERIFY(r)
+	}
+
+	rule, err := internal.GetRuleByID(db, int64(ruleID))
+	if err != nil {
+		return fmt.Errorf("failed to get rule: %w", err)
+	}
+
+	errorTasks = append(errorTasks, &newErrorTask)
+	if err = internal.SetErrorTasks(db, rule, errorTasks); err != nil {
+		return fmt.Errorf("failed to set task: %w", err)
+	}
+
+	return nil
+}
+
+//nolint:gocyclo, cyclop, funlen // 20 differents tasks
+func editErrorTask(ruleID int, errorTasks []*model.Task, db *database.DB, r *http.Request) error {
+	var editErrorTask model.Task
+
+	if err := r.ParseForm(); err != nil {
+		return fmt.Errorf("failed to parse form: %w", err)
+	}
+
+	errorTaskRank := r.FormValue("editErrorTaskRank")
+
+	rank, err := strconv.Atoi(errorTaskRank)
+	if err != nil {
+		return fmt.Errorf("failed to get rank: %w", err)
+	}
+
+	if editErrorTaskType := r.FormValue("editErrorTaskType"); editErrorTaskType != "" {
+		editErrorTask.Type = editErrorTaskType
+	}
+
+	//nolint:dupl // switch for error-task
+	switch editErrorTask.Type {
+	case "COPY":
+		editErrorTask.Args = taskCOPY(r)
+	case "COPYRENAME":
+		editErrorTask.Args = taskCOPYRENAME(r)
+	case "EXEC":
+		editErrorTask.Args = taskEXEC(r)
+	case "EXECMOVE":
+		editErrorTask.Args = taskEXECMOVE(r)
+	case "EXECOUTPUT":
+		editErrorTask.Args = taskEXECOUTPUT(r)
+	case "MOVE":
+		editErrorTask.Args = taskMOVE(r)
+	case "MOVERENAME":
+		editErrorTask.Args = taskMOVERENAME(r)
+	case "RENAME":
+		editErrorTask.Args = taskRENAME(r)
+	case "TRANSFER":
+		editErrorTask.Args = taskTRANSFER(r)
+	case "TRANSCODE":
+		editErrorTask.Args = taskTRANSCODE(r)
+	case "ARCHIVE":
+		editErrorTask.Args = taskARCHIVE(r)
+	case "EXTRACT":
+		editErrorTask.Args = taskEXTRACT(r)
+	case "ICAP (BETA)":
+		editErrorTask.Args = taskICAP(r)
+	case "ENCRYPT":
+		editErrorTask.Args = taskENCRYPT(r)
+	case "DECRYPT":
+		editErrorTask.Args = taskDECRYPT(r)
+	case "SIGN":
+		editErrorTask.Args = taskSIGN(r)
+	case "VERIFY":
+		editErrorTask.Args = taskVERIFY(r)
+	case "ENCRYPT&SIGN":
+		editErrorTask.Args = taskENCRYPTandSIGN(r)
+	case "DECRYPT&VERIFY":
+		editErrorTask.Args = taskDECRYPTandVERIFY(r)
+	}
+
+	errorTasks[rank] = &editErrorTask
+
+	rule, err := internal.GetRuleByID(db, int64(ruleID))
+	if err != nil {
+		return fmt.Errorf("failed to get rule: %w", err)
+	}
+
+	if err = internal.SetErrorTasks(db, rule, errorTasks); err != nil {
+		return fmt.Errorf("failed to set task: %w", err)
+	}
+
+	return nil
+}
+
+func deleteErrorTask(ruleID int, errorTasks []*model.Task, db *database.DB, r *http.Request) error {
+	if err := r.ParseForm(); err != nil {
+		return fmt.Errorf("failed to parse form: %w", err)
+	}
+
+	errorTaskRank := r.FormValue("deleteErrorTask")
+
+	rank, err := strconv.Atoi(errorTaskRank)
+	if err != nil {
+		return fmt.Errorf("failed to get rank: %w", err)
+	}
+
+	errorTasksUpdated := slices.DeleteFunc(errorTasks, func(errorT *model.Task) bool {
+		return int(errorT.Rank) == rank
+	})
+
+	rule, err := internal.GetRuleByID(db, int64(ruleID))
+	if err != nil {
+		return fmt.Errorf("failed to get rule: %w", err)
+	}
+
+	if err = internal.SetErrorTasks(db, rule, errorTasksUpdated); err != nil {
+		return fmt.Errorf("failed to set task: %w", err)
+	}
+
+	return nil
+}
+
+func newOrderErrorTasks(db *database.DB, r *http.Request, tasks []*model.Task, ruleID int) error {
+	newOrderTasks := strings.Split(r.FormValue("newOrderErrorTasks"), ",")
+	errorTasks := make([]*model.Task, len(newOrderTasks))
+
+	for i, str := range newOrderTasks {
+		rank, err := strconv.Atoi(str)
+		if err != nil || rank < 0 || rank >= len(tasks) {
+			continue
+		}
+		errorTasks[i] = tasks[rank]
+	}
+
+	rule, err := internal.GetRuleByID(db, int64(ruleID))
+	if err != nil {
+		return fmt.Errorf("failed to rule id: %w", err)
+	}
+
+	if err := internal.SetErrorTasks(db, rule, errorTasks); err != nil {
+		return fmt.Errorf("failed to set error tasks: %w", err)
+	}
+
+	return nil
+}
+
+func callMethodsErrorTasks(logger *log.Logger, db *database.DB, w http.ResponseWriter, r *http.Request,
+	errorTasks []*model.Task, ruleID int,
+) (bool, string, string) {
+	if r.Method == http.MethodPost && r.FormValue("addErrorTaskType") != "" {
+		addErrorTaskErr := addErrorTask(ruleID, errorTasks, db, r)
+		if addErrorTaskErr != nil {
+			logger.Error("failed to add error-task: %v", addErrorTaskErr)
+
+			return false, addErrorTaskErr.Error(), "addErrorTaskModal"
+		}
+
+		http.Redirect(w, r, fmt.Sprintf("%s?ruleID=%d", r.URL.Path, ruleID), http.StatusSeeOther)
+
+		return true, "", ""
+	}
+
+	if r.Method == http.MethodPost && r.FormValue("editErrorTaskRank") != "" {
+		editErrorTaskErr := editErrorTask(ruleID, errorTasks, db, r)
+		if editErrorTaskErr != nil {
+			logger.Error("failed to edit error-task: %v", editErrorTaskErr)
+
+			return false, editErrorTaskErr.Error(), "editErrorTaskModal_" + r.FormValue("editErrorTaskRank")
+		}
+
+		http.Redirect(w, r, fmt.Sprintf("%s?ruleID=%d", r.URL.Path, ruleID), http.StatusSeeOther)
+
+		return true, "", ""
+	}
+
+	if r.Method == http.MethodPost && r.FormValue("deleteErrorTask") != "" {
+		deleteErrorTaskErr := deleteErrorTask(ruleID, errorTasks, db, r)
+		if deleteErrorTaskErr != nil {
+			logger.Error("failed to delete error-task: %v", deleteErrorTaskErr)
+
+			return false, deleteErrorTaskErr.Error(), ""
+		}
+
+		http.Redirect(w, r, fmt.Sprintf("%s?ruleID=%d", r.URL.Path, ruleID), http.StatusSeeOther)
+
+		return true, "", ""
+	}
+
+	if r.Method == http.MethodPost && r.FormValue("newOrderErrorTasks") != "" {
+		orderErrorTaskErr := newOrderErrorTasks(db, r, errorTasks, ruleID)
+		if orderErrorTaskErr != nil {
+			logger.Error("failed to set new order error-task: %v", orderErrorTaskErr)
+
+			return false, orderErrorTaskErr.Error(), ""
+		}
+
+		http.Redirect(w, r, fmt.Sprintf("%s?ruleID=%d", r.URL.Path, ruleID), http.StatusSeeOther)
+
+		return true, "", ""
+	}
+
+	return false, "", ""
+}
+
+//nolint:funlen // is for one page
 func tasksTransferRulesPage(logger *log.Logger, db *database.DB) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		userLanguage := r.Context().Value(ContextLanguageKey)
@@ -112,23 +803,55 @@ func tasksTransferRulesPage(logger *log.Logger, db *database.DB) http.HandlerFun
 			return
 		}
 
-		value, errMsg, modalOpen := callMethodsTasksTransferRules(logger, db, w, r, preTasks, int(rule.ID))
-		if value {
+		postTasks, err := internal.ListPostTasks(db, rule)
+		if err != nil {
 			return
 		}
 
+		errorTasks, err := internal.ListErrorTasks(db, rule)
+		if err != nil {
+			return
+		}
+		var errMsg, modalOpen string
+
+		if handled, em, mo := callMethodsPreTasks(logger, db, w, r, preTasks, int(rule.ID)); handled {
+			return
+		} else if em != "" {
+			errMsg, modalOpen = em, mo
+		}
+
+		if handled, em, mo := callMethodsPostTasks(logger, db, w, r, postTasks, int(rule.ID)); handled {
+			return
+		} else if em != "" {
+			errMsg, modalOpen = em, mo
+		}
+
+		if handled, em, mo := callMethodsErrorTasks(logger, db, w, r, errorTasks, int(rule.ID)); handled {
+			return
+		} else if em != "" {
+			errMsg, modalOpen = em, mo
+		}
+
 		if err := tasksTransferRulesTemplate.ExecuteTemplate(w, "tasks_transfer_rules_page", map[string]any{
-			"myPermission":  myPermission,
-			"tab":           tTranslated,
-			"username":      user.Username,
-			"language":      userLanguage,
-			"rule":          rule,
-			"taskTypes":     TaskTypes,
-			"preTasks":      preTasks,
-			"TranscodeList": SupportedTranscode,
-			"errMsg":        errMsg,
-			"modalOpen":     modalOpen,
-			"hasRuleID":     true,
+			"myPermission":         myPermission,
+			"tab":                  tTranslated,
+			"username":             user.Username,
+			"language":             userLanguage,
+			"rule":                 rule,
+			"taskTypes":            TaskTypes,
+			"preTasks":             preTasks,
+			"postTasks":            postTasks,
+			"errorTasks":           errorTasks,
+			"TranscodeFormats":     TranscodeFormats,
+			"ArchiveExtensions":    ArchiveExtensions,
+			"EncryptMethods":       EncryptMethods,
+			"SignMethods":          SignMethods,
+			"EncryptSignMethods":   EncryptSignMethods,
+			"IcapOnErrorOptions":   IcapOnErrorOptions,
+			"CompressionLevelList": CompressionLevelList,
+			"errMsg":               errMsg,
+			"modalOpen":            modalOpen,
+			"hasRuleID":            true,
 		}); err != nil {
 			logger.Error("render tasks_transfer_rules_page: %v", err)
 			http.Error(w, "Internal error", http.StatusInternalServerError)

@@ -2,70 +2,47 @@ package gui
 
 import (
 	"net/http"
+	"slices"
+	"strings"
+
+	"golang.org/x/exp/maps" //nolint:exptostd // does not work when I put only "maps"
+
+	"code.waarp.fr/apps/gateway/gateway/pkg/tasks"
 )
 
 //nolint:gochecknoglobals // Constant
-var SupportedTranscode = []string{
-	"UTF-8",
-	"UTF-8 BOM",
-	"UTF-16BE",
-	"UTF-16LE",
-	"UTF-16BE BOM",
-	"UTF-16LE BOM",
-	"UTF-32BE",
-	"UTF-32LE",
-	"UTF-32BE BOM",
-	"UTF-32LE BOM",
-	"IBM Code Page 037",
-	"IBM Code Page 273",
-	"IBM Code Page 437",
-	"IBM Code Page 500",
-	"IBM Code Page 850",
-	"IBM Code Page 852",
-	"IBM Code Page 855",
-	"IBM Code Page 858",
-	"IBM Code Page 860",
-	"IBM Code Page 862",
-	"IBM Code Page 863",
-	"IBM Code Page 865",
-	"IBM Code Page 866",
-	"IBM Code Page 1047",
-	"IBM Code Page 1140",
-	"IBM Code Page 1141",
-	"IBM Code Page 1148",
-	"ISO 8859-1",
-	"ISO 8859-2",
-	"ISO 8859-3",
-	"ISO 8859-4",
-	"ISO 8859-5",
-	"ISO 8859-6",
-	"ISO 8859-6E",
-	"ISO 8859-6I",
-	"ISO 8859-7",
-	"ISO 8859-8",
-	"ISO 8859-8E",
-	"ISO 8859-8I",
-	"ISO 8859-9",
-	"ISO 8859-10",
-	"ISO 8859-13",
-	"ISO 8859-14",
-	"ISO 8859-15",
-	"ISO 8859-16",
-	"KOI8-R",
-	"KOI8-U",
-	"Macintosh",
-	"Macintosh Cyrillic",
-	"Windows 874",
-	"Windows 1250",
-	"Windows 1251",
-	"Windows 1252",
-	"Windows 1253",
-	"Windows 1254",
-	"Windows 1255",
-	"Windows 1256",
-	"Windows 1257",
-	"Windows 1258",
-	"X-User-Defined",
+var (
+	TranscodeFormats   []string
+	ArchiveExtensions  []string
+	EncryptMethods     []string
+	SignMethods        []string
+	EncryptSignMethods []string
+	IcapOnErrorOptions = []string{
+		"",
+		tasks.IcapOnErrorDelete,
+		tasks.IcapOnErrorMove,
+	}
+	CompressionLevelList = []string{
+		"0", "1", "2", "3", "4", "5", "6", "7", "8", "9",
+	}
+)
+
+//nolint:gochecknoinits, exptostd // to initialie map needed
+func init() {
+	TranscodeFormats = maps.Keys(tasks.TranscodeFormats)
+	slices.Sort(TranscodeFormats)
+
+	ArchiveExtensions = maps.Keys(tasks.ArchiveExtensions)
+	slices.Sort(ArchiveExtensions)
+
+	EncryptMethods = maps.Keys(tasks.EncryptMethods)
+	slices.Sort(EncryptMethods)
+
+	SignMethods = maps.Keys(tasks.SignMethods)
+	slices.Sort(SignMethods)
+
+	EncryptSignMethods = maps.Keys(tasks.EncryptSignMethods)
+	slices.Sort(EncryptSignMethods)
 }
 
 //nolint:gochecknoglobals // Constant
@@ -83,7 +60,7 @@ var TaskTypes = []string{
 	"TRANSCODE",
 	"ARCHIVE",
 	"EXTRACT",
-	"ICAP (BETA)",
+	"ICAP",
 	"ENCRYPT",
 	"DECRYPT",
 	"SIGN",
@@ -223,8 +200,8 @@ func taskTRANSFER(r *http.Request) map[string]string {
 		taskTransfer["copyInfo"] = copyInfoTransfer
 	}
 
-	if infoTransfer := r.FormValue("infoTransfer"); infoTransfer != "" {
-		taskTransfer["info"] = infoTransfer
+	if infoTransfer := r.Form["infoTransfer[]"]; len(infoTransfer) > 0 {
+		taskTransfer["info"] = strings.Join(infoTransfer, ",")
 	}
 
 	return taskTransfer
@@ -242,4 +219,197 @@ func taskTRANSCODE(r *http.Request) map[string]string {
 	}
 
 	return taskTranscode
+}
+
+func taskARCHIVE(r *http.Request) map[string]string {
+	taskArchive := make(map[string]string)
+
+	if filesArchive := r.FormValue("filesArchive"); filesArchive != "" {
+		taskArchive["files"] = filesArchive
+	}
+
+	if compressionLevelArchive := r.FormValue("compressionLevelArchive"); compressionLevelArchive != "" {
+		taskArchive["compressionLevel"] = compressionLevelArchive
+	}
+
+	if outputPathArchive := r.FormValue("outputPathArchive"); outputPathArchive != "" {
+		taskArchive["outputPath"] = outputPathArchive
+	}
+
+	return taskArchive
+}
+
+func taskEXTRACT(r *http.Request) map[string]string {
+	taskExtract := make(map[string]string)
+
+	if archiveExtract := r.FormValue("archiveExtract"); archiveExtract != "" {
+		taskExtract["archive"] = archiveExtract
+	}
+
+	if outputDirExtract := r.FormValue("outputDirExtract"); outputDirExtract != "" {
+		taskExtract["outputDir"] = outputDirExtract
+	}
+
+	return taskExtract
+}
+
+//nolint:dupl // method for task Icap
+func taskICAP(r *http.Request) map[string]string {
+	taskIcap := make(map[string]string)
+
+	if uploadURLIcap := r.FormValue("uploadURLIcap"); uploadURLIcap != "" {
+		taskIcap["uploadURL"] = uploadURLIcap
+	}
+
+	if timeoutIcap := r.FormValue("timeoutIcap"); timeoutIcap != "" {
+		taskIcap["timeout"] = timeoutIcap
+	}
+
+	if allowFileModificationsIcap := r.FormValue("allowFileModificationsIcap"); allowFileModificationsIcap != "" {
+		taskIcap["allowFileModifications"] = allowFileModificationsIcap
+	}
+
+	if onErrorIcap := r.FormValue("onErrorIcap"); onErrorIcap != "" {
+		taskIcap["onError"] = onErrorIcap
+	}
+
+	if onErrorMovePathIcap := r.FormValue("onErrorMovePathIcap"); onErrorMovePathIcap != "" {
+		taskIcap["onErrorMovePath"] = onErrorMovePathIcap
+	}
+
+	return taskIcap
+}
+
+func taskENCRYPT(r *http.Request) map[string]string {
+	taskEncrypt := make(map[string]string)
+
+	if outputFileEncrypt := r.FormValue("outputFileEncrypt"); outputFileEncrypt != "" {
+		taskEncrypt["outputFile"] = outputFileEncrypt
+	}
+
+	if keepOriginalEncrypt := r.FormValue("keepOriginalEncrypt"); keepOriginalEncrypt != "" {
+		taskEncrypt["keepOriginal"] = keepOriginalEncrypt
+	}
+
+	if methodEncrypt := r.FormValue("methodEncrypt"); methodEncrypt != "" {
+		taskEncrypt["method"] = methodEncrypt
+	}
+
+	if keyNameEncrypt := r.FormValue("keyNameEncrypt"); keyNameEncrypt != "" {
+		taskEncrypt["keyName"] = keyNameEncrypt
+	}
+
+	return taskEncrypt
+}
+
+func taskDECRYPT(r *http.Request) map[string]string {
+	taskDecrypt := make(map[string]string)
+
+	if outputFileDecrypt := r.FormValue("outputFileDecrypt"); outputFileDecrypt != "" {
+		taskDecrypt["outputFile"] = outputFileDecrypt
+	}
+
+	if keepOriginalDecrypt := r.FormValue("keepOriginalDecrypt"); keepOriginalDecrypt != "" {
+		taskDecrypt["keepOriginal"] = keepOriginalDecrypt
+	}
+
+	if methodDecrypt := r.FormValue("methodDecrypt"); methodDecrypt != "" {
+		taskDecrypt["method"] = methodDecrypt
+	}
+
+	if keyNameDecrypt := r.FormValue("keyNameDecrypt"); keyNameDecrypt != "" {
+		taskDecrypt["keyName"] = keyNameDecrypt
+	}
+
+	return taskDecrypt
+}
+
+func taskSIGN(r *http.Request) map[string]string {
+	taskSign := make(map[string]string)
+
+	if outputFileSign := r.FormValue("outputFileSign"); outputFileSign != "" {
+		taskSign["outputFile"] = outputFileSign
+	}
+
+	if methodSign := r.FormValue("methodSign"); methodSign != "" {
+		taskSign["method"] = methodSign
+	}
+
+	if keyNameSign := r.FormValue("keyNameSign"); keyNameSign != "" {
+		taskSign["keyName"] = keyNameSign
+	}
+
+	return taskSign
+}
+
+func taskVERIFY(r *http.Request) map[string]string {
+	taskVerify := make(map[string]string)
+
+	if signatureFileVerify := r.FormValue("signatureFileVerify"); signatureFileVerify != "" {
+		taskVerify["signatureFile"] = signatureFileVerify
+	}
+
+	if methodVerify := r.FormValue("methodVerify"); methodVerify != "" {
+		taskVerify["method"] = methodVerify
+	}
+
+	if keyNameVerify := r.FormValue("keyNameVerify"); keyNameVerify != "" {
+		taskVerify["keyName"] = keyNameVerify
+	}
+
+	return taskVerify
+}
+
+//nolint:dupl // method for task encrypt and sign
+func taskENCRYPTandSIGN(r *http.Request) map[string]string {
+	taskES := make(map[string]string)
+
+	if outputFileES := r.FormValue("outputFileEncrypt&Sign"); outputFileES != "" {
+		taskES["outputFile"] = outputFileES
+	}
+
+	if keepOriginalES := r.FormValue("keepOriginalEncrypt&Sign"); keepOriginalES != "" {
+		taskES["keepOriginal"] = keepOriginalES
+	}
+
+	if methodES := r.FormValue("methodEncrypt&Sign"); methodES != "" {
+		taskES["method"] = methodES
+	}
+
+	if encryptKeyNameES := r.FormValue("encryptKeyNameEncrypt&Sign"); encryptKeyNameES != "" {
+		taskES["encryptKeyName"] = encryptKeyNameES
+	}
+
+	if signKeyNameES := r.FormValue("signKeyNameEncrypt&Sign"); signKeyNameES != "" {
+		taskES["signKeyName"] = signKeyNameES
+	}
+
+	return taskES
+}
+
+//nolint:dupl // method for task decrypt and verify
+func taskDECRYPTandVERIFY(r *http.Request) map[string]string {
+	taskDV := make(map[string]string)
+
+	if outputFileDV := r.FormValue("outputFileDecrypt&verify"); outputFileDV != "" {
+		taskDV["outputFile"] = outputFileDV
+	}
+
+	if keepOriginalDV := r.FormValue("keepOriginalDecrypt&verify"); keepOriginalDV != "" {
+		taskDV["keepOriginal"] = keepOriginalDV
+	}
+
+	if methodDV := r.FormValue("methodDecrypt&verify"); methodDV != "" {
+		taskDV["method"] = methodDV
+	}
+
+	if decryptKeyNameDV := r.FormValue("decryptKeyNameDecrypt&verify"); decryptKeyNameDV != "" {
+		taskDV["decryptKeyName"] = decryptKeyNameDV
+	}
+
+	if signKeyNameDV := r.FormValue("signKeyNameDecrypt&verify"); signKeyNameDV != "" {
+		taskDV["signKeyName"] = signKeyNameDV
+	}
+
+	return taskDV
 }

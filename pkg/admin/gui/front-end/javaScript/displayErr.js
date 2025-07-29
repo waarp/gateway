@@ -2,12 +2,10 @@ document.addEventListener("DOMContentLoaded", function() {
     if (window.modalOpen && window.modalOpen !== "") {
         var modal = document.getElementById(window.modalOpen);
         if (modal) {
-            // 1) si la modal est dans une collapse, on l’ouvre d’abord
             var collapseParent = modal.closest('.no-anim-collapse');
             if (collapseParent) {
                 bootstrap.Collapse.getOrCreateInstance(collapseParent).show();
             }
-            // 2) puis on affiche la modal
             var reOpenModal = new bootstrap.Modal(modal);
             reOpenModal.show();
         }
