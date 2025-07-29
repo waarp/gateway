@@ -69,3 +69,10 @@ func AddLogBackend(level, logTo, facility, tag string) error {
 func NewLogger(name string) *log.Logger {
 	return pool.NewLogger(name)
 }
+
+func Discard() *log.Logger {
+	//nolint:errcheck //never returns an error
+	back, _ := log.NewBackend(log.LevelInfo, log.Discard, "", "")
+
+	return back.NewLogger("")
+}

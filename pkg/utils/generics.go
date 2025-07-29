@@ -69,3 +69,12 @@ func GetAs[T any](m map[string]any, key string) (t T, _ error) {
 
 	return t, fmt.Errorf("key %q: %w", key, ErrKeyNotFound)
 }
+
+func AsAny[T any](slice []T) []any {
+	anySlice := make([]any, len(slice))
+	for i, elem := range slice {
+		anySlice[i] = elem
+	}
+
+	return anySlice
+}

@@ -1,6 +1,8 @@
 // Package types contains all the special types used by the database models.
 package types
 
+import "slices"
+
 // TransferStatus represents the valid statuses for a transfer entry.
 type TransferStatus string
 
@@ -71,4 +73,8 @@ func ValidateStatusForTransfer(t TransferStatus) bool {
 // model.TransferHistory entry.
 func ValidateStatusForHistory(t TransferStatus) bool {
 	return t == StatusDone || t == StatusCancelled
+}
+
+func (t TransferStatus) IsOneOf(statuses ...TransferStatus) bool {
+	return slices.Contains(statuses, t)
 }
