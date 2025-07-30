@@ -213,6 +213,8 @@ func initTestData(c convey.C) *testData {
 		DefaultInDir:  "in",
 		DefaultOutDir: "out",
 		DefaultTmpDir: "tmp",
+		FilePerms:     0o600,
+		DirPerms:      0o700,
 	}
 
 	c.So(fs.MkdirAll(home), convey.ShouldBeNil)

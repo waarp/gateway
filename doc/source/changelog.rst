@@ -3,6 +3,10 @@
 Historique des versions
 =======================
 
+* :feature:`478` Ajout des options ``FilePermissions`` et ``DirectoryPermissions``
+  permettant de spécifier les droits attribués au fichiers et dossiers créés par
+  la Gateway. Les droits par défauts restent toujours respectivement 0640 pour
+  les fichiers et 0750 pour les dossiers.
 * :feature:`470` Ajout d'un mécanisme de reprise de transfert automatique en cas
   d'erreur. Pour chaque transfer, il est possible de configurer un nombre d'essais,
   un délai entre chaque essai, et un facteur d'incrément pour ce délai. Il est

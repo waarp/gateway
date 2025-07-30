@@ -72,6 +72,8 @@ func TestTransferCtx(tb testing.TB, db *database.DB, proto string,
 		DefaultInDir:  "in",
 		DefaultOutDir: "out",
 		DefaultTmpDir: "tmp",
+		FilePerms:     0o600,
+		DirPerms:      0o700,
 	}
 
 	paths := &conf.GlobalConfig.Paths

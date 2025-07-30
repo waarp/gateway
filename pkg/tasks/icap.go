@@ -139,7 +139,9 @@ func (i *icapTask) run(logger *log.Logger, transCtx *model.TransferContext, prev
 		flags = fs.FlagReadWrite
 	}
 
-	file, opErr := fs.OpenFile(transCtx.Transfer.LocalPath, flags, conf.DefaultFilePermissions)
+	filePerms := conf.GlobalConfig.Paths.FilePerms
+
+	file, opErr := fs.OpenFile(transCtx.Transfer.LocalPath, flags, filePerms)
 	if opErr != nil {
 		logger.Errorf("Failed to open transfer file: %v", opErr)
 

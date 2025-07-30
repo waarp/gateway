@@ -8,6 +8,7 @@ import (
 
 	. "github.com/smartystreets/goconvey/convey"
 
+	"code.waarp.fr/apps/gateway/gateway/pkg/conf"
 	"code.waarp.fr/apps/gateway/gateway/pkg/fs"
 	"code.waarp.fr/apps/gateway/gateway/pkg/utils/testhelpers"
 )
@@ -16,6 +17,9 @@ func TestCheckHash(t *testing.T) {
 	content := []byte("test CheckHash file content")
 	expHash, _ := hex.DecodeString("cddfc994ff46f856395a6a387f722429bff47751cf0fd6924e80445e5c035672")
 	root := t.TempDir()
+
+	conf.GlobalConfig.Paths.FilePerms = 0o600
+	conf.GlobalConfig.Paths.DirPerms = 0o700
 
 	Convey("Given a file", t, func(c C) {
 		path := filepath.Join(root, "test_check_hash_file")

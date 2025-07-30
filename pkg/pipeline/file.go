@@ -65,7 +65,9 @@ func (f *FileStream) getFile() (fs.File, *Error) {
 		return nil, err
 	}
 
-	file, fsErr := fs.OpenFile(trans.LocalPath, fs.FlagReadWrite|fs.FlagCreate, conf.DefaultFilePermissions)
+	filePerms := conf.GlobalConfig.Paths.FilePerms
+
+	file, fsErr := fs.OpenFile(trans.LocalPath, fs.FlagReadWrite|fs.FlagCreate, filePerms)
 	if fsErr != nil {
 		f.Logger.Errorf("Failed to create destination file %q: %v", trans.LocalPath, fsErr)
 
