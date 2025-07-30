@@ -35,25 +35,29 @@ func init() {
 
 // Transfer represents one record of the 'transfers' table.
 type Transfer struct {
-	ID               int64                   `xorm:"<- id AUTOINCR"`
-	Owner            string                  `xorm:"owner"`
-	RemoteTransferID string                  `xorm:"remote_transfer_id"`
-	RuleID           int64                   `xorm:"rule_id"`
-	ClientID         sql.NullInt64           `xorm:"client_id"`
-	LocalAccountID   sql.NullInt64           `xorm:"local_account_id"`
-	RemoteAccountID  sql.NullInt64           `xorm:"remote_account_id"`
-	SrcFilename      string                  `xorm:"src_filename"`
-	DestFilename     string                  `xorm:"dest_filename"`
-	LocalPath        string                  `xorm:"local_path"`
-	RemotePath       string                  `xorm:"remote_path"`
-	Filesize         int64                   `xorm:"filesize"`
-	Start            time.Time               `xorm:"start DATETIME(6) UTC"`
-	Status           types.TransferStatus    `xorm:"status"`
-	Step             types.TransferStep      `xorm:"step"`
-	Progress         int64                   `xorm:"progress"`
-	TaskNumber       int8                    `xorm:"task_number"`
-	ErrCode          types.TransferErrorCode `xorm:"error_code"`
-	ErrDetails       string                  `xorm:"error_details"`
+	ID                   int64                   `xorm:"<- id AUTOINCR"`
+	Owner                string                  `xorm:"owner"`
+	RemoteTransferID     string                  `xorm:"remote_transfer_id"`
+	RuleID               int64                   `xorm:"rule_id"`
+	ClientID             sql.NullInt64           `xorm:"client_id"`
+	LocalAccountID       sql.NullInt64           `xorm:"local_account_id"`
+	RemoteAccountID      sql.NullInt64           `xorm:"remote_account_id"`
+	SrcFilename          string                  `xorm:"src_filename"`
+	DestFilename         string                  `xorm:"dest_filename"`
+	LocalPath            string                  `xorm:"local_path"`
+	RemotePath           string                  `xorm:"remote_path"`
+	Filesize             int64                   `xorm:"filesize"`
+	Start                time.Time               `xorm:"start DATETIME(6) UTC"`
+	Status               types.TransferStatus    `xorm:"status"`
+	Step                 types.TransferStep      `xorm:"step"`
+	Progress             int64                   `xorm:"progress"`
+	TaskNumber           int8                    `xorm:"task_number"`
+	ErrCode              types.TransferErrorCode `xorm:"error_code"`
+	ErrDetails           string                  `xorm:"error_details"`
+	RemainingTries       int8                    `xorm:"remaining_tries"`
+	NextRetryDelay       int32                   `xorm:"next_retry_delay"`
+	RetryIncrementFactor float32                 `xorm:"retry_increment_factor"`
+	NextRetry            time.Time               `xorm:"next_retry DATETIME(6) UTC"`
 }
 
 func (*Transfer) TableName() string   { return TableTransfers }
@@ -73,7 +77,7 @@ func (t *Transfer) Init(db database.Access) error {
 	return initPesitCounter(db)
 }
 
-//nolint:funlen //function is fine for now
+//nolint:funlen,gocyclo,cyclop //function is fine for now
 func (t *Transfer) checkMandatoryValues(rule *Rule) error {
 	if t.IsServer() {
 		if rule.IsSend {
@@ -180,7 +184,8 @@ func (t *Transfer) BeforeWrite(db database.Access) error {
 			return database.NewValidationError("the transfer is missing a client ID")
 		}
 
-		if err := db.Get(&Client{}, "id=?", t.ClientID.Int64).Run(); err != nil {
+		var client Client
+		if err := db.Get(&client, "id=?", t.ClientID.Int64).Run(); err != nil {
 			if database.IsNotFound(err) {
 				return database.NewValidationErrorf("the client %d does not exist",
 					t.LocalAccountID.Int64)
@@ -188,6 +193,8 @@ func (t *Transfer) BeforeWrite(db database.Access) error {
 
 			return fmt.Errorf("failed to retrieve client: %w", err)
 		}
+
+		t.setRetryParameters(&client)
 	case t.LocalAccountID.Valid:
 		if err := db.Get(&LocalAccount{}, "id=?", t.LocalAccountID.Int64).Run(); err != nil {
 			if database.IsNotFound(err) {
@@ -197,6 +204,8 @@ func (t *Transfer) BeforeWrite(db database.Access) error {
 
 			return fmt.Errorf("failed to retrieve local account: %w", err)
 		}
+
+		t.clearRetryParameters()
 	default:
 		return database.NewValidationError("the transfer is missing an account ID")
 	}
@@ -386,4 +395,73 @@ func (t *Transfer) TransferID() (int64, error) {
 	}
 
 	return id.Int64(), nil
+}
+
+func (t *Transfer) setRetryParameters(client *Client) {
+	if t.ID == 0 {
+		if t.RemainingTries == 0 {
+			t.RemainingTries = client.NbOfAttempts
+		}
+
+		if t.NextRetryDelay == 0 {
+			t.NextRetryDelay = client.FirstRetryDelay
+		}
+
+		if t.RetryIncrementFactor == 0 {
+			t.RetryIncrementFactor = client.RetryIncrementFactor
+		}
+	}
+
+	if t.RemainingTries != 0 && t.NextRetryDelay == 0 {
+		t.NextRetryDelay = 1
+	}
+
+	if t.NextRetryDelay != 0 && t.RetryIncrementFactor == 0 {
+		t.RetryIncrementFactor = 1.0
+	}
+
+	if t.Status == types.StatusPlanned && t.NextRetry.IsZero() {
+		t.NextRetry = t.Start
+	}
+}
+
+func (t *Transfer) clearRetryParameters() {
+	t.RemainingTries = 0
+	t.NextRetryDelay = 0
+	t.RetryIncrementFactor = 0
+}
+
+func GetDefaultTransferClient(db database.Access, remoteAccountID int64) (*Client, error) {
+	// Retrieve the transfer's partner (to retrieve the transfer's protocol).
+	var partner RemoteAgent
+	if err := db.Get(&partner, "id=(SELECT remote_agent_id FROM remote_accounts WHERE id=?)",
+		remoteAccountID).Run(); err != nil {
+		return nil, fmt.Errorf("failed to retrieve transfer partner: %w", err)
+	}
+
+	// Retrieve all clients with the transfer's protocol.
+	var clients Clients
+	if err := db.Select(&clients).Where("protocol=? AND owner=?", partner.Protocol,
+		conf.GlobalConfig.GatewayName).Run(); err != nil {
+		return nil, fmt.Errorf("failed to retrieve potential transfer clients: %w", err)
+	}
+
+	// If more than one client was found, return an error to the user (because
+	// we don't know which one to use, so we ask the user to specify one).
+	if len(clients) > 1 {
+		return nil, database.NewValidationError("the transfer is missing a client ID")
+	}
+
+	// If exactly one client was found, use it.
+	if len(clients) == 1 {
+		return clients[0], nil
+	}
+
+	// Finally, if no clients were found, create a new default one and use it.
+	client := Client{Protocol: partner.Protocol}
+	if err := db.Insert(&client).Run(); err != nil {
+		return nil, fmt.Errorf("failed to create new transfer client: %w", err)
+	}
+
+	return &client, nil
 }

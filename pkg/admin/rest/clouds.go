@@ -126,8 +126,8 @@ func updateCloud(logger *log.Logger, db *database.DB) http.HandlerFunc {
 		restCloud := api.PatchCloudReqObject{
 			Name:    oldCloud.Name,
 			Type:    oldCloud.Type,
-			Key:     asNullableStr(oldCloud.Key),
-			Secret:  asNullableStr(string(oldCloud.Secret)),
+			Key:     asNullable(oldCloud.Key),
+			Secret:  asNullable(string(oldCloud.Secret)),
 			Options: oldCloud.Options,
 		}
 		if err := readJSON(r, &restCloud); handleError(w, logger, err) {

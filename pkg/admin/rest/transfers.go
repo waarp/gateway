@@ -23,9 +23,9 @@ import (
 
 // restTransferToDB transforms the JSON transfer into its database equivalent.
 func restTransferToDB(jTrans *api.InTransfer, db *database.DB, logger *log.Logger) (*model.Transfer, error) {
-	ruleID, accountID, clientID, err := getTransInfo(db, jTrans)
-	if err != nil {
-		return nil, err
+	ruleID, accountID, clientID, infoErr := getTransInfo(db, jTrans)
+	if infoErr != nil {
+		return nil, infoErr
 	}
 
 	srcFile := jTrans.File
@@ -58,13 +58,16 @@ func restTransferToDB(jTrans *api.InTransfer, db *database.DB, logger *log.Logge
 	}
 
 	return &model.Transfer{
-		RuleID:          ruleID,
-		ClientID:        clientID,
-		RemoteAccountID: accountID,
-		SrcFilename:     srcFile,
-		DestFilename:    destFile,
-		Filesize:        model.UnknownSize,
-		Start:           start,
+		RuleID:               ruleID,
+		ClientID:             clientID,
+		RemoteAccountID:      accountID,
+		SrcFilename:          srcFile,
+		DestFilename:         destFile,
+		Filesize:             model.UnknownSize,
+		Start:                start,
+		RemainingTries:       jTrans.NbOfAttempts,
+		NextRetryDelay:       jTrans.FirstRetryDelay,
+		RetryIncrementFactor: jTrans.RetryIncrementFactor,
 	}, nil
 }
 
@@ -80,7 +83,7 @@ func DBTransferToREST(db *database.DB, trans *model.NormalizedTransferView) (*ap
 
 	var stop api.Nullable[time.Time]
 	if !trans.Stop.IsZero() {
-		stop = asNullableTime(trans.Stop)
+		stop = asNullable(trans.Stop)
 	}
 
 	info, iErr := trans.GetTransferInfo(db)
@@ -89,33 +92,38 @@ func DBTransferToREST(db *database.DB, trans *model.NormalizedTransferView) (*ap
 	}
 
 	return &api.OutTransfer{
-		ID:             trans.ID,
-		RemoteID:       trans.RemoteTransferID,
-		Rule:           trans.Rule,
-		IsServer:       trans.IsServer,
-		IsSend:         trans.IsSend,
-		Requested:      trans.Agent,
-		Requester:      trans.Account,
-		Client:         trans.Client,
-		Protocol:       trans.Protocol,
-		SrcFilename:    trans.SrcFilename,
-		DestFilename:   trans.DestFilename,
-		LocalFilepath:  trans.LocalPath,
-		RemoteFilepath: trans.RemotePath,
-		Filesize:       trans.Filesize,
-		Start:          trans.Start,
-		Stop:           stop,
-		Status:         trans.Status,
-		Step:           trans.Step.String(),
-		Progress:       trans.Progress,
-		TaskNumber:     trans.TaskNumber,
-		ErrorCode:      trans.ErrCode.String(),
-		ErrorMsg:       trans.ErrDetails,
-		TransferInfo:   info,
-		TrueFilepath:   trans.LocalPath,
-		SourcePath:     src,
-		DestPath:       dst,
-		StartDate:      trans.Start,
+		ID:                   trans.ID,
+		RemoteID:             trans.RemoteTransferID,
+		Rule:                 trans.Rule,
+		IsServer:             trans.IsServer,
+		IsSend:               trans.IsSend,
+		Requested:            trans.Agent,
+		Requester:            trans.Account,
+		Client:               trans.Client,
+		Protocol:             trans.Protocol,
+		SrcFilename:          trans.SrcFilename,
+		DestFilename:         trans.DestFilename,
+		LocalFilepath:        trans.LocalPath,
+		RemoteFilepath:       trans.RemotePath,
+		Filesize:             trans.Filesize,
+		Start:                trans.Start,
+		Stop:                 stop,
+		Status:               trans.Status,
+		Step:                 trans.Step.String(),
+		Progress:             trans.Progress,
+		TaskNumber:           trans.TaskNumber,
+		ErrorCode:            trans.ErrCode.String(),
+		ErrorMsg:             trans.ErrDetails,
+		RemainingAttempts:    trans.RemainingTries,
+		NextAttempt:          trans.NextRetry,
+		NextRetryDelay:       trans.NextRetryDelay,
+		RetryIncrementFactor: trans.RetryIncrementFactor,
+
+		TransferInfo: info,
+		TrueFilepath: trans.LocalPath,
+		SourcePath:   src,
+		DestPath:     dst,
+		StartDate:    trans.Start,
 	}, nil
 }
 

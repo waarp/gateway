@@ -142,8 +142,8 @@ func updateUser(logger *log.Logger, db *database.DB) http.HandlerFunc {
 		}
 
 		restUser := &api.InUser{
-			Username: asNullableStr(oldUser.Username),
-			Password: asNullableStr(oldUser.PasswordHash),
+			Username: asNullable(oldUser.Username),
+			Password: asNullable(oldUser.PasswordHash),
 		}
 		if err := readJSON(r, restUser); handleError(w, logger, err) {
 			return

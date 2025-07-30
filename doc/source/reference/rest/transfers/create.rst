@@ -35,6 +35,16 @@ Programmer un transfert
    :reqjson date start: La date de début du transfert (en format ISO 8601)
    :reqjson object transferInfo: Des informations de transfert personnalisées sous
      la forme d'une liste de pairs clé:valeur, c'est-à-dire sous forme d'un objet JSON.
+   :reqjson number numberOfTries: Le nombre de fois que le transfert sera automatiquement
+     retenté en cas d'échec.
+   :reqjson number firstRetryDelay: Le délai (en secondes) entre la tentative de transfert
+     initiale et la première reprise automatique.
+   :reqjson number retryIncrementFactor: Le facteur par lequel le délai décris ci-dessus
+     sera multiplié entre chaque nouvelle tentative. Par exemple, si le délai initial est de
+     30s et que le facteur est de 2, alors le délai entre chaque tentative sera respectivement
+     de 30s, puis 60s, 120s, 240s, etc jusqu'à ce que le transfert réussisse ou bien que
+     le nombre de tentatives soit épuisé.
+
 
    :statuscode 202: Le transfert a été lancé avec succès
    :statuscode 400: Un ou plusieurs des paramètres du transfert sont invalides

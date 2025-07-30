@@ -92,18 +92,24 @@ func TestClientList(t *testing.T) {
 					expected := map[string]any{
 						"clients": []any{
 							map[string]any{
-								"name":         dbClient1.Name,
-								"enabled":      !dbClient1.Disabled,
-								"protocol":     dbClient1.Protocol,
-								"localAddress": dbClient1.LocalAddress.String(),
-								"protoConfig":  dbClient1.ProtoConfig,
+								"name":                 dbClient1.Name,
+								"enabled":              !dbClient1.Disabled,
+								"protocol":             dbClient1.Protocol,
+								"localAddress":         dbClient1.LocalAddress.String(),
+								"protoConfig":          dbClient1.ProtoConfig,
+								"firstRetryDelay":      0.0,
+								"nbOfAttempts":         0.0,
+								"retryIncrementFactor": 0.0,
 							},
 							map[string]any{
-								"name":         dbClient2.Name,
-								"enabled":      !dbClient2.Disabled,
-								"protocol":     dbClient2.Protocol,
-								"localAddress": dbClient2.LocalAddress.String(),
-								"protoConfig":  dbClient2.ProtoConfig,
+								"name":                 dbClient2.Name,
+								"enabled":              !dbClient2.Disabled,
+								"protocol":             dbClient2.Protocol,
+								"localAddress":         dbClient2.LocalAddress.String(),
+								"protoConfig":          dbClient2.ProtoConfig,
+								"firstRetryDelay":      0.0,
+								"nbOfAttempts":         0.0,
+								"retryIncrementFactor": 0.0,
 							},
 						},
 					}
@@ -120,8 +126,14 @@ func TestClientGet(t *testing.T) {
 		test := makeTestRESTServer(c)
 
 		dbClient := &model.Client{
-			Name: "test_client", Protocol: testProto1,
-			LocalAddress: types.Addr("localhost", 1),
+			Name:                 "test_client",
+			Protocol:             testProto1,
+			LocalAddress:         types.Addr("localhost", 1),
+			Disabled:             false,
+			NbOfAttempts:         5,
+			FirstRetryDelay:      90,
+			RetryIncrementFactor: 1.5,
+			ProtoConfig:          map[string]any{"key": "val"},
 		}
 		So(test.db.Insert(dbClient).Run(), ShouldBeNil)
 
@@ -136,11 +148,14 @@ func TestClientGet(t *testing.T) {
 				Convey("Then it should have returned the client", func() {
 					content := parseBody(resp.Body)
 					expected := map[string]any{
-						"name":         dbClient.Name,
-						"enabled":      !dbClient.Disabled,
-						"protocol":     dbClient.Protocol,
-						"localAddress": dbClient.LocalAddress.String(),
-						"protoConfig":  dbClient.ProtoConfig,
+						"name":                 dbClient.Name,
+						"enabled":              !dbClient.Disabled,
+						"protocol":             dbClient.Protocol,
+						"localAddress":         dbClient.LocalAddress.String(),
+						"protoConfig":          dbClient.ProtoConfig,
+						"firstRetryDelay":      float64(dbClient.FirstRetryDelay),
+						"nbOfAttempts":         float64(dbClient.NbOfAttempts),
+						"retryIncrementFactor": float64(dbClient.RetryIncrementFactor),
 					}
 
 					So(content, ShouldResemble, expected)

@@ -129,13 +129,16 @@ func TestTransferRun(t *testing.T) {
 		Convey("Given a send 'TRANSFER' task", func() {
 			runner := &TransferTask{}
 			args := map[string]string{
-				"file":     "/test/file",
-				"using":    client.Name,
-				"to":       partner.Name,
-				"as":       account.Login,
-				"rule":     push.Name,
-				"copyInfo": "true",
-				"info":     `{"baz": "qux", "real": true, "delay": 10, "__followID__": 12345}`,
+				"file":                 "/test/file",
+				"using":                client.Name,
+				"to":                   partner.Name,
+				"as":                   account.Login,
+				"rule":                 push.Name,
+				"copyInfo":             "true",
+				"info":                 `{"baz": "qux", "real": true, "delay": 10, "__followID__": 12345}`,
+				"nbOfAttempts":         "5",
+				"firstRetryDelay":      "1m30s",
+				"retryIncrementFactor": "1.5",
 			}
 
 			Convey("Given that the parameters are valid", func() {
@@ -152,6 +155,9 @@ func TestTransferRun(t *testing.T) {
 							So(transfer.RemoteAccountID.Int64, ShouldEqual, account.ID)
 							So(transfer.RuleID, ShouldEqual, push.ID)
 							So(transfer.SrcFilename, ShouldResemble, "/test/file")
+							So(transfer.RemainingTries, ShouldEqual, 5)
+							So(transfer.NextRetryDelay, ShouldEqual, 90)
+							So(transfer.RetryIncrementFactor, ShouldEqual, 1.5)
 
 							transInfo, infoErr := transfer.GetTransferInfo(db)
 							So(infoErr, ShouldBeNil)

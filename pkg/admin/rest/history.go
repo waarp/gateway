@@ -22,7 +22,7 @@ import (
 func FromHistory(db *database.DB, hist *model.HistoryEntry) (*api.OutHistory, error) {
 	var stop api.Nullable[time.Time]
 	if !hist.Stop.IsZero() {
-		stop = asNullableTime(hist.Stop)
+		stop = asNullable(hist.Stop)
 	}
 
 	src := path.Base(hist.RemotePath)

@@ -137,7 +137,7 @@ func updateRemoteAccount(logger *log.Logger, db *database.DB) http.HandlerFunc {
 			return
 		}
 
-		restAccount := &api.InRemoteAccount{Login: asNullableStr(oldAccount.Login)}
+		restAccount := &api.InRemoteAccount{Login: asNullable(oldAccount.Login)}
 		if err := readJSON(r, restAccount); handleError(w, logger, err) {
 			return
 		}

@@ -37,6 +37,25 @@ restent inchangés.
    utilisé (voir :ref:`configuration protocolaire <reference-proto-config>` pour
    plus de détails).
 
+.. option:: --nb-of-attempts=<ATTEMPTS>
+
+   Le nombre de fois que les transferts effectués avec ce client seront automatiquement
+   retentés en cas d'échec.
+
+.. option:: --first-retry-delay=<DELAY>
+
+   Le délai entre la tentative de transfert initiale et la première reprise automatique.
+   Les unités de temps acceptées sont : ``h`` (heures), ``m`` (minutes) et ``s`` (secondes).
+   Plusieurs unités peuvent être combinées ensemble (ex: ``1h15m30s``).
+
+.. option:: --retry-increment-factor=<FACTOR>
+
+   Le facteur par lequel le délai décris ci-dessus sera multiplié entre chaque nouvelle
+   tentative d'un transfert. Par exemple, si le délai initial est de 30s et que le
+   facteur est de 2, alors le délai sera doublé à chaque nouvelle tentative (30s,
+   puis 1m, 2m, 4m, etc) jusqu'à ce que le transfert réussisse ou bien que le nombre
+   de tentatives soit épuisé.
+
 |
 
 **Exemple**

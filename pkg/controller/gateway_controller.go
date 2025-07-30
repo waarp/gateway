@@ -53,9 +53,9 @@ func (c *Controller) retrieveTransfers() (model.Transfers, error) {
 		}
 
 		query := ses.SelectForUpdate(&transfers).Owner().
-			Where("status=?", types.StatusPlanned).
+			In("status", types.StatusPlanned, types.StatusInterrupted, types.StatusError).
 			Where("remote_account_id IS NOT NULL").
-			Where("start<?", time.Now().UTC())
+			Where("next_retry <= ?", time.Now().UTC())
 
 		if lim <= math.MaxInt {
 			query.Limit(int(lim), 0)
@@ -67,7 +67,14 @@ func (c *Controller) retrieveTransfers() (model.Transfers, error) {
 
 		for _, trans := range transfers {
 			trans.Status = types.StatusRunning
-			if err := ses.Update(trans).Cols("status").Run(); err != nil {
+
+			if trans.RemainingTries > 0 {
+				trans.RemainingTries--
+				trans.NextRetry = time.Time{}
+			}
+
+			if err := ses.Update(trans).Cols("status", "remaining_retries",
+				"next_retry").Run(); err != nil {
 				c.logger.Errorf("Failed to update status of transfer %d: %v", trans.ID, err)
 				trans.Status = types.StatusError
 			}

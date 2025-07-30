@@ -3,6 +3,11 @@
 Historique des versions
 =======================
 
+* :feature:`470` Ajout d'un mécanisme de reprise de transfert automatique en cas
+  d'erreur. Pour chaque transfer, il est possible de configurer un nombre d'essais,
+  un délai entre chaque essai, et un facteur d'incrément pour ce délai. Il est
+  également possible de configurer ces paramètres plus globalement au niveau des
+  clients de transfert.
 * :feature:`469` Les programmes externes appelés par la tâche EXEC (ou ses variantes)
   héritent désormais des :ref:`valeurs de remplacement<reference-tasks-substitutions>`
   sous forme de variables d'environnement. Il est donc désormais possible de

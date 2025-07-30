@@ -33,11 +33,14 @@ func TestImportClients(t *testing.T) {
 
 			Convey("Given a list of new clients", func() {
 				newClient := file.Client{
-					Name:         "new_cli",
-					Protocol:     testProtocol,
-					Disabled:     false,
-					ProtoConfig:  map[string]any{},
-					LocalAddress: "localhost:11111",
+					Name:                 "new_cli",
+					Protocol:             testProtocol,
+					Disabled:             false,
+					LocalAddress:         "localhost:11111",
+					ProtoConfig:          map[string]any{},
+					NbOfAttempts:         5,
+					FirstRetryDelay:      90,
+					RetryIncrementFactor: 1.5,
 				}
 
 				updatedClient := file.Client{
@@ -50,7 +53,7 @@ func TestImportClients(t *testing.T) {
 
 				newClients := []file.Client{newClient, updatedClient}
 
-				SkipConvey("When calling the importClients method", func() {
+				Convey("When calling the importClients method", func() {
 					So(importClients(discard(), db, newClients, false), ShouldBeNil)
 
 					var dbClients model.Clients
@@ -61,13 +64,16 @@ func TestImportClients(t *testing.T) {
 						dbClient := dbClients[2]
 
 						So(dbClient, ShouldResemble, &model.Client{
-							ID:           3,
-							Owner:        conf.GlobalConfig.GatewayName,
-							Name:         newClient.Name,
-							Protocol:     newClient.Protocol,
-							LocalAddress: mustAddr(newClient.LocalAddress),
-							ProtoConfig:  newClient.ProtoConfig,
-							Disabled:     newClient.Disabled,
+							ID:                   3,
+							Owner:                conf.GlobalConfig.GatewayName,
+							Name:                 newClient.Name,
+							Protocol:             newClient.Protocol,
+							LocalAddress:         mustAddr(newClient.LocalAddress),
+							NbOfAttempts:         newClient.NbOfAttempts,
+							FirstRetryDelay:      newClient.FirstRetryDelay,
+							RetryIncrementFactor: newClient.RetryIncrementFactor,
+							ProtoConfig:          newClient.ProtoConfig,
+							Disabled:             newClient.Disabled,
 						})
 					})
 

@@ -60,11 +60,14 @@ type LocalAccount struct {
 }
 
 type Client struct {
-	Name         string         `json:"name"`
-	Protocol     string         `json:"protocol"`
-	Disabled     bool           `json:"disabled"`
-	LocalAddress string         `json:"localAddress,omitempty"`
-	ProtoConfig  map[string]any `json:"protoConfig"`
+	Name                 string         `json:"name"`
+	Protocol             string         `json:"protocol"`
+	Disabled             bool           `json:"disabled"`
+	LocalAddress         string         `json:"localAddress,omitempty"`
+	ProtoConfig          map[string]any `json:"protoConfig"`
+	NbOfAttempts         int8           `json:"nbOfAttempts"`
+	FirstRetryDelay      int32          `json:"firstRetryDelay"`
+	RetryIncrementFactor float32        `json:"retryIncrementFactor"`
 }
 
 // RemoteAgent is the JSON struct representing a remote partner along with its

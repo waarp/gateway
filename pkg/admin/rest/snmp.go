@@ -142,19 +142,19 @@ func updateSnmpMonitor(logger *log.Logger, db *database.DB) http.HandlerFunc {
 		}
 
 		restMonitor := api.PatchSnmpMonitorReqObject{
-			Name:            asNullableStr(oldDBMonitor.Name),
-			Version:         asNullableStr(oldDBMonitor.Version),
-			UDPAddress:      asNullableStr(oldDBMonitor.UDPAddress),
-			Community:       asNullableStr(oldDBMonitor.Community),
-			UseInforms:      asNullableBool(oldDBMonitor.UseInforms),
-			ContextName:     asNullableStr(oldDBMonitor.ContextName),
-			ContextEngineID: asNullableStr(oldDBMonitor.ContextEngineID),
-			SNMPv3Security:  asNullableStr(oldDBMonitor.SNMPv3Security),
-			AuthEngineID:    asNullableStr(oldDBMonitor.AuthEngineID),
-			AuthUsername:    asNullableStr(oldDBMonitor.AuthUsername),
-			AuthProtocol:    asNullableStr(oldDBMonitor.AuthProtocol),
+			Name:            asNullable(oldDBMonitor.Name),
+			Version:         asNullable(oldDBMonitor.Version),
+			UDPAddress:      asNullable(oldDBMonitor.UDPAddress),
+			Community:       asNullable(oldDBMonitor.Community),
+			UseInforms:      asNullable(oldDBMonitor.UseInforms),
+			ContextName:     asNullable(oldDBMonitor.ContextName),
+			ContextEngineID: asNullable(oldDBMonitor.ContextEngineID),
+			SNMPv3Security:  asNullable(oldDBMonitor.SNMPv3Security),
+			AuthEngineID:    asNullable(oldDBMonitor.AuthEngineID),
+			AuthUsername:    asNullable(oldDBMonitor.AuthUsername),
+			AuthProtocol:    asNullable(oldDBMonitor.AuthProtocol),
 			AuthPassphrase:  asNullableSecret(oldDBMonitor.AuthPassphrase),
-			PrivProtocol:    asNullableStr(oldDBMonitor.PrivProtocol),
+			PrivProtocol:    asNullable(oldDBMonitor.PrivProtocol),
 			PrivPassphrase:  asNullableSecret(oldDBMonitor.PrivPassphrase),
 		}
 		if err := readJSON(r, &restMonitor); handleError(w, logger, err) {
@@ -308,13 +308,13 @@ func setSnmpService(logger *log.Logger, db *database.DB) http.HandlerFunc {
 		}
 
 		restSnmpConf := api.PatchSnmpServiceReqObject{
-			LocalUDPAddress:  asNullableStr(oldDBSnmpConf.LocalUDPAddress),
-			Community:        asNullableStr(oldDBSnmpConf.Community),
-			V3Only:           asNullableBool(oldDBSnmpConf.SNMPv3Only),
-			V3Username:       asNullableStr(oldDBSnmpConf.SNMPv3Username),
-			V3AuthProtocol:   asNullableStr(oldDBSnmpConf.SNMPv3AuthProtocol),
+			LocalUDPAddress:  asNullable(oldDBSnmpConf.LocalUDPAddress),
+			Community:        asNullable(oldDBSnmpConf.Community),
+			V3Only:           asNullable(oldDBSnmpConf.SNMPv3Only),
+			V3Username:       asNullable(oldDBSnmpConf.SNMPv3Username),
+			V3AuthProtocol:   asNullable(oldDBSnmpConf.SNMPv3AuthProtocol),
 			V3AuthPassphrase: asNullableSecret(oldDBSnmpConf.SNMPv3AuthPassphrase),
-			V3PrivProtocol:   asNullableStr(oldDBSnmpConf.SNMPv3PrivProtocol),
+			V3PrivProtocol:   asNullable(oldDBSnmpConf.SNMPv3PrivProtocol),
 			V3PrivPassphrase: asNullableSecret(oldDBSnmpConf.SNMPv3PrivPassphrase),
 		}
 		if err := readJSON(r, &restSnmpConf); handleError(w, logger, err) {

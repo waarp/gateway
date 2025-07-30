@@ -2,7 +2,6 @@ package wg
 
 import (
 	"fmt"
-	"maps"
 	"net/http"
 	"slices"
 	"strconv"
@@ -12,13 +11,17 @@ import (
 	"github.com/stretchr/testify/require"
 
 	"code.waarp.fr/apps/gateway/gateway/pkg/utils"
+	"code.waarp.fr/apps/gateway/gateway/pkg/utils/testhelpers"
 )
 
 func TestClientAdd(t *testing.T) {
 	const (
-		clientName     = "test_client"
-		clientProtocol = "test_protocol"
-		clientAddress  = "1.2.3.4:5"
+		clientName            = "test_client"
+		clientProtocol        = "test_protocol"
+		clientAddress         = "1.2.3.4:5"
+		clientNbOfAttempts    = 5.0
+		clientRetryDelay      = "1m30s"
+		clientIncrementFactor = 1.5
 
 		clientConfigStrKey  = "str_key"
 		clientConfigStrVal  = "str_val"
@@ -31,6 +34,7 @@ func TestClientAdd(t *testing.T) {
 		location = path + "/" + clientName
 	)
 
+	clientRetryDelaySec := testhelpers.MustParseDuration(t, clientRetryDelay).Seconds()
 	expectedBody := map[string]any{
 		"name":         clientName,
 		"protocol":     clientProtocol,
@@ -40,6 +44,9 @@ func TestClientAdd(t *testing.T) {
 			clientConfigNumKey:  clientConfigNumVal,
 			clientConfigBoolKey: clientConfigBoolVal,
 		},
+		"nbOfAttempts":         clientNbOfAttempts,
+		"firstRetryDelay":      clientRetryDelaySec,
+		"retryIncrementFactor": clientIncrementFactor,
 	}
 
 	t.Run(`Given the client "add" command`, func(t *testing.T) {
@@ -68,6 +75,9 @@ func TestClientAdd(t *testing.T) {
 					"--config", clientConfigStrKey+":"+clientConfigStrVal,
 					"--config", clientConfigNumKey+":"+utils.FormatFloat(clientConfigNumVal),
 					"--config", clientConfigBoolKey+":"+strconv.FormatBool(clientConfigBoolVal),
+					"--nb-of-attempts", utils.FormatFloat(clientNbOfAttempts),
+					"--first-retry-delay", clientRetryDelay,
+					"--retry-increment-factor", utils.FormatFloat(clientIncrementFactor),
 				),
 					"Then it should not return an error",
 				)
@@ -189,11 +199,14 @@ func TestClientGet(t *testing.T) {
 	)
 
 	responseBody := map[string]any{
-		"name":         clientName,
-		"enabled":      clientEnabled,
-		"protocol":     clientProto,
-		"localAddress": clientAddr,
-		"protoConfig":  map[string]any{key1: val1, key2: val2},
+		"name":                 clientName,
+		"enabled":              clientEnabled,
+		"protocol":             clientProto,
+		"localAddress":         clientAddr,
+		"protoConfig":          map[string]any{key1: val1, key2: val2},
+		"nbOfAttempts":         5,
+		"firstRetryDelay":      90,
+		"retryIncrementFactor": 1.5,
 	}
 
 	t.Run(`Given the client "get" command`, func(t *testing.T) {
@@ -217,18 +230,18 @@ func TestClientGet(t *testing.T) {
 				require.NoError(t, executeCommand(t, w, command, clientName),
 					"Then it should not return an error")
 
-				outputData := maps.Clone(result.body)
-				outputData["status"] = enabledStatus(clientEnabled)
-
 				assert.Equal(t,
-					expectedOutput(t, outputData,
-						`‣Client "{{.name}}" [{{.status}}]`,
+					expectedOutput(t, result.body,
+						`‣Client "{{.name}}" [{{enabledStatus .enabled}}]`,
 						`  •Protocol: {{.protocol}}`,
 						`  •Local address: {{.localAddress}}`,
 						`  •Configuration:`,
 						`    {{- range $option, $value := .protoConfig }}`,
 						`    ⁃{{$option}}: {{$value}}`,
 						`    {{- end }}`,
+						`  •Transfers number of attempts: {{.nbOfAttempts}}`,
+						`  •Transfers first retry delay: {{duration .firstRetryDelay}}`,
+						`  •Transfers retry increment factor: {{.retryIncrementFactor}}`,
 					),
 					w.String(),
 					"Then it should display the client",
