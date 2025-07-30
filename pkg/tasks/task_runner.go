@@ -204,7 +204,7 @@ func (r *Runner) replace(t *model.Task) (map[string]string, error) {
 			continue
 		}
 
-		rep, err := f(r)
+		rep, err := f(r.transCtx)
 		if err != nil {
 			return nil, err
 		}

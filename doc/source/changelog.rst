@@ -3,6 +3,13 @@
 Historique des versions
 =======================
 
+* :feature:`469` Les programmes externes appelés par la tâche EXEC (ou ses variantes)
+  héritent désormais des :ref:`valeurs de remplacement<reference-tasks-substitutions>`
+  sous forme de variables d'environnement. Il est donc désormais possible de
+  référencer ces valeurs dans des programmes externes sans avoir à les fournir via
+  les paramètres du programme. Ces variables d'environnement ont exactement le même
+  nom que leur valeurs de substitution correspondante (ex: ``#TRUEFULLPATH#``).
+
 * :release:`0.12.9 <2025-07-18>`
 * :bug:`482` L'échec du démarrage d'un transfert planifié n'empêche désormais
   plus les autres transferts planifiés de démarrer.

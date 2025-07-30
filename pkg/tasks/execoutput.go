@@ -41,7 +41,7 @@ func getNewFileName(output string) string {
 func (e *execOutputTask) Run(parent context.Context, params map[string]string,
 	_ *database.DB, logger *log.Logger, transCtx *model.TransferContext,
 ) error {
-	output, cmdErr := runExec(parent, params)
+	output, cmdErr := runExec(parent, transCtx, params)
 	msg := ""
 
 	if output != nil {

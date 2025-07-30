@@ -30,7 +30,7 @@ func (e *execMoveTask) Validate(params map[string]string) error {
 func (e *execMoveTask) Run(ctx context.Context, params map[string]string,
 	_ *database.DB, logger *log.Logger, transCtx *model.TransferContext,
 ) error {
-	output, cmdErr := runExec(ctx, params)
+	output, cmdErr := runExec(ctx, transCtx, params)
 	if cmdErr != nil {
 		return cmdErr
 	}
