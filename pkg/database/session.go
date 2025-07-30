@@ -66,7 +66,7 @@ func (s *Session) SelectForUpdate(bean SelectBean) *SelectQuery {
 //
 // The request can then be executed using the GetQuery.Run method. The bean
 // parameter will be filled with the values retrieved from the database.
-func (s *Session) Get(bean GetBean, where string, args ...interface{}) *GetQuery {
+func (s *Session) Get(bean GetBean, where string, args ...any) *GetQuery {
 	return &GetQuery{db: s, bean: bean, conds: []*condition{{sql: where, args: args}}}
 }
 
@@ -124,7 +124,7 @@ func (s *Session) DeleteAll(bean DeleteAllBean) *DeleteAllQuery {
 //
 // Be aware that, since this method bypasses the data models, all the models'
 // hooks will be skipped. Thus, this method should be used with extreme caution.
-func (s *Session) Exec(query string, args ...interface{}) error {
+func (s *Session) Exec(query string, args ...any) error {
 	return exec(s.session, s.logger, query, args...)
 }
 
@@ -132,12 +132,13 @@ func (s *Session) Exec(query string, args ...interface{}) error {
 // The auto-increment can only be reset if the table is empty.
 func (s *Session) ResetIncrement(bean IterateBean) error {
 	if n, err := s.session.NoAutoCondition().Count(bean); err != nil {
-		s.logger.Error("Failed to query table '%s': %s", bean.TableName(), err)
+		s.logger.Errorf("Failed to query table %q: %v", bean.TableName(), err)
 
 		return NewInternalError(err)
 	} else if n != 0 {
-		return NewValidationError("cannot reset the increment on table %q "+
-			"while there are still rows in it", bean.TableName())
+		return NewValidationErrorf(
+			"cannot reset the increment on table %q while there are still rows in it",
+			bean.TableName())
 	}
 
 	var err error
@@ -150,7 +151,7 @@ func (s *Session) ResetIncrement(bean IterateBean) error {
 	case schemas.MYSQL:
 		_, err = s.session.Exec("ALTER TABLE " + bean.TableName() + " AUTO_INCREMENT = 1")
 	default:
-		s.logger.Error("%s databases do not support resetting an auto-increment",
+		s.logger.Errorf("%s databases do not support resetting an auto-increment",
 			conf.GlobalConfig.Database.Type)
 
 		return &InternalError{
@@ -160,7 +161,7 @@ func (s *Session) ResetIncrement(bean IterateBean) error {
 	}
 
 	if err != nil {
-		s.logger.Error("Failed to reset the auto-increment on table '%s': %s",
+		s.logger.Errorf("Failed to reset the auto-increment on table %q: %v",
 			bean.TableName(), err)
 
 		return NewInternalError(err)
@@ -177,15 +178,15 @@ func (s *Session) AdvanceIncrement(bean Table, value int64) error {
 	row := s.session.Tx().QueryRow("SELECT MAX(id) AS maxID FROM " + bean.TableName())
 
 	if err := row.Scan(&maxID); err != nil {
-		s.logger.Error("Failed to query table '%s': %s", bean.TableName(), err)
+		s.logger.Errorf("Failed to query table %q: %v", bean.TableName(), err)
 
 		return NewInternalError(err)
 	}
 
 	if maxID.Valid && maxID.Int64 > value {
-		return NewValidationError("cannot advance the auto-increment of table "+
-			bean.TableName()+" to a value (%d) lower than the current max value "+
-			"(%d) of the column", value, maxID)
+		return NewValidationErrorf("cannot advance the auto-increment of table "+
+			"%q to a value (%d) lower than the current max value (%d) of the column",
+			bean.TableName(), value, maxID.Int64)
 	}
 
 	var err error
@@ -194,7 +195,7 @@ func (s *Session) AdvanceIncrement(bean Table, value int64) error {
 	case schemas.SQLITE:
 		if _, delErr := s.session.Exec("DELETE FROM sqlite_sequence WHERE name=?",
 			bean.TableName()); delErr != nil {
-			s.logger.Error("Failed to delete the SQLite auto-increment on table %q: %v",
+			s.logger.Errorf("Failed to delete the SQLite auto-increment on table %q: %v",
 				bean.TableName(), err)
 
 			return NewInternalError(err)
@@ -209,7 +210,7 @@ func (s *Session) AdvanceIncrement(bean Table, value int64) error {
 		_, err = s.session.Exec("ALTER TABLE " + bean.TableName() + " AUTO_INCREMENT = " +
 			utils.FormatInt(value+1))
 	default:
-		s.logger.Error("%s databases do not support resetting an auto-increment",
+		s.logger.Errorf("%s databases do not support resetting an auto-increment",
 			conf.GlobalConfig.Database.Type)
 
 		return &InternalError{
@@ -219,7 +220,7 @@ func (s *Session) AdvanceIncrement(bean Table, value int64) error {
 	}
 
 	if err != nil {
-		s.logger.Error("Failed to advance the auto-increment on table %q: %v",
+		s.logger.Errorf("Failed to advance the auto-increment on table %q: %v",
 			bean.TableName(), err)
 
 		return NewInternalError(err)
@@ -232,6 +233,6 @@ func (s *Session) AdvanceIncrement(bean Table, value int64) error {
 //
 // Be aware that, since this method bypasses the data models, all the models'
 // hooks will be skipped. Thus, this method should be used with caution.
-func (s *Session) QueryRow(sql string, args ...any) *sql.Row {
-	return s.session.DB().DB.QueryRow(sql, args...)
+func (s *Session) QueryRow(query string, args ...any) *sql.Row {
+	return s.session.DB().DB.QueryRow(query, args...)
 }

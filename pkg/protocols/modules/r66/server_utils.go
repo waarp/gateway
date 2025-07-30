@@ -15,7 +15,7 @@ func (t *serverTransfer) checkSize() *pipeline.Error {
 
 	stat, err := t.pip.Stream.Stat()
 	if err != nil {
-		t.pip.Logger.Error("Failed to retrieve file info: %s", err)
+		t.pip.Logger.Errorf("Failed to retrieve file info: %v", err)
 
 		return pipeline.NewError(types.TeInternal, "failed to retrieve file info")
 	}

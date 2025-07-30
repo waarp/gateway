@@ -9,10 +9,11 @@ import (
 	"errors"
 	"fmt"
 	"io"
-	"io/ioutil"
 	"net/http"
 	"net/url"
+	"os"
 	"os/exec"
+	"strconv"
 	"strings"
 	"time"
 
@@ -94,23 +95,23 @@ func importConfFromManager(serverConf *conf.ServerConfig, managerURL string) err
 
 	logger.Info("Synchronizing Waarp Gateway with Waarp Manager")
 
-	confURL, err := buildConfURL(managerURL, serverConf.GatewayName)
-	if err != nil {
-		return fmt.Errorf("cannot build the URL of the configuration package: %w", err)
+	confURL, urlErr := buildConfURL(managerURL, serverConf.GatewayName)
+	if urlErr != nil {
+		return fmt.Errorf("cannot build the URL of the configuration package: %w", urlErr)
 	}
 
 	logger.Info("Downloading configuration from Waarp Manager")
 
-	zipFileContent, err := downloadConf(confURL)
-	if err != nil {
-		return err
+	zipFileContent, downErr := downloadConf(confURL)
+	if downErr != nil {
+		return downErr
 	}
 
 	logger.Info("Getting the configuration file from the zip package")
 
-	buf, err := getConfFileFromZipContent(zipFileContent, serverConf.GatewayName)
-	if err != nil {
-		return fmt.Errorf("cannot extract the configuration file from the package: %w", err)
+	buf, confErr := getConfFileFromZipContent(zipFileContent, serverConf.GatewayName)
+	if confErr != nil {
+		return fmt.Errorf("cannot extract the configuration file from the package: %w", confErr)
 	}
 
 	logger.Info("Importing configuration into Waarp Gateway")
@@ -161,7 +162,7 @@ func downloadConf(confURL string) ([]byte, error) {
 	ctx, cancel := context.WithDeadline(context.Background(), time.Now().Add(1*time.Minute))
 	defer cancel()
 
-	req, err := http.NewRequestWithContext(ctx, http.MethodGet, confURL, nil)
+	req, err := http.NewRequestWithContext(ctx, http.MethodGet, confURL, http.NoBody)
 	if err != nil {
 		return nil, fmt.Errorf("the following error occurred while preparing the HTTP request: %w", err)
 	}
@@ -173,7 +174,7 @@ func downloadConf(confURL string) ([]byte, error) {
 
 	defer func() {
 		if err2 := resp.Body.Close(); err2 != nil {
-			getLogger().Warning(
+			getLogger().Warningf(
 				"This error occurred while closing the HTTP request: %v", err2)
 		}
 	}()
@@ -182,7 +183,7 @@ func downloadConf(confURL string) ([]byte, error) {
 		return nil, errConfURLNotFound
 	}
 
-	zipContent, err := ioutil.ReadAll(resp.Body)
+	zipContent, err := io.ReadAll(resp.Body)
 	if err != nil {
 		return nil, fmt.Errorf("cannot read the configuration file from Manager: %w", err)
 	}
@@ -191,9 +192,9 @@ func downloadConf(confURL string) ([]byte, error) {
 }
 
 func getConfFileFromZipContent(zipContent []byte, gatewayName string) (*bytes.Buffer, error) {
-	zipFile, err := zip.NewReader(bytes.NewReader(zipContent), int64(len(zipContent)))
-	if err != nil {
-		return nil, fmt.Errorf("cannot open the zip configuration file: %w", err)
+	zipFile, zErr := zip.NewReader(bytes.NewReader(zipContent), int64(len(zipContent)))
+	if zErr != nil {
+		return nil, fmt.Errorf("cannot open the zip configuration file: %w", zErr)
 	}
 
 	var file *zip.File
@@ -208,14 +209,14 @@ func getConfFileFromZipContent(zipContent []byte, gatewayName string) (*bytes.Bu
 		return nil, ErrNoConfFound
 	}
 
-	confReader, err := file.Open()
-	if err != nil {
-		return nil, fmt.Errorf("cannot open configuration from the configuration package: %w", err)
+	confReader, opErr := file.Open()
+	if opErr != nil {
+		return nil, fmt.Errorf("cannot open configuration from the configuration package: %w", opErr)
 	}
 
 	defer func() {
 		if err2 := confReader.Close(); err2 != nil {
-			getLogger().Warning(
+			getLogger().Warningf(
 				"This error occurred while reading the configuration package: %v", err2)
 		}
 	}()
@@ -234,7 +235,7 @@ func importConf(r io.Reader) error {
 
 	cmdArgs := []string{"import", "--config", defaultConfigFile}
 
-	logger.Debug("Command used to import the configuration: %s %s",
+	logger.Debugf("Command used to import the configuration: %s %s",
 		gatewaydBin, strings.Join(cmdArgs, " "))
 
 	cmd := exec.Command(gatewaydBin, cmdArgs...)
@@ -242,7 +243,7 @@ func importConf(r io.Reader) error {
 
 	out, err := cmd.CombinedOutput()
 	if err != nil {
-		logger.Info("Import command output: %s", out)
+		logger.Infof("Import command output: %s", out)
 
 		return fmt.Errorf("configuration import failed: %w", err)
 	}
@@ -318,7 +319,7 @@ func initializeGatewayInManager(serverConfig *conf.ServerConfig, managerURL stri
 	}
 
 	// Read aes passphrase from file
-	aesPassphrase, err := ioutil.ReadFile(serverConfig.Database.AESPassphrase)
+	aesPassphrase, err := os.ReadFile(serverConfig.Database.AESPassphrase)
 	if err != nil {
 		return fmt.Errorf("cannot read the AES passphrase file %q: %w", serverConfig.Database.AESPassphrase, err)
 	}
@@ -335,11 +336,7 @@ func initializeGatewayInManager(serverConfig *conf.ServerConfig, managerURL stri
 	// 	return fmt.Errorf("cannot prepare SSH keys for the Gateway: %w", err2)
 	// }
 
-	if err := registerGatewayInManager(&partner, managerURL); err != nil {
-		return err
-	}
-
-	return nil
+	return registerGatewayInManager(&partner, managerURL)
 }
 
 func updatePartnerFromEnv(partner *gwPartner) error {
@@ -452,7 +449,7 @@ func getDefaultFlow(partner *gwPartner) gwFlow {
 
 func handleR66KeyCert(partner *gwPartner) error {
 	if partner.R66TLSKeyPath != "" {
-		tlsKey, err2 := ioutil.ReadFile(partner.R66TLSKeyPath)
+		tlsKey, err2 := os.ReadFile(partner.R66TLSKeyPath)
 		if err2 != nil {
 			return fmt.Errorf("cannot read the R66 TLS key file %q: %w", partner.R66TLSKeyPath, err2)
 		}
@@ -461,7 +458,7 @@ func handleR66KeyCert(partner *gwPartner) error {
 	}
 
 	if partner.R66TLSCertPath != "" {
-		tlsCert, err2 := ioutil.ReadFile(partner.R66TLSCertPath)
+		tlsCert, err2 := os.ReadFile(partner.R66TLSCertPath)
 		if err2 != nil {
 			return fmt.Errorf("cannot read the R66 TLS certificate file %q: %w", partner.R66TLSCertPath, err2)
 		}
@@ -514,7 +511,7 @@ func authenticate(c *httpClient, u *url.URL) error {
 func updateR66TLSInterface(client *httpClient, reqURL *url.URL, partner *gwPartner) error {
 	reqURL.Path = "/api/local_servers"
 	query := reqURL.Query()
-	query.Set("partner_id", fmt.Sprintf("%d", partner.ID))
+	query.Set("partner_id", strconv.Itoa(partner.ID))
 	query.Set("protocol", "r66-ssl")
 	reqURL.RawQuery = query.Encode()
 	interfacesResp := map[string][]gwInterface{}
@@ -582,7 +579,7 @@ func addConfigFlow(client *httpClient, reqURL *url.URL, partner *gwPartner, orig
 	flow.Origin = originID
 	flow.Destination[0].Partner = partner.ID
 	reqURL.Path = "/api/flows"
-	jsonMsg := map[string]interface{}{
+	jsonMsg := map[string]any{
 		"flow": flow,
 	}
 
@@ -617,7 +614,7 @@ func registerGatewayInManager(partner *gwPartner, managerURL string) error {
 	logger.Info("Creating a partner in Manager")
 
 	parsedURL.Path = "/api/partners"
-	jsonMsg := map[string]interface{}{
+	jsonMsg := map[string]any{
 		"partner": partner,
 	}
 	partnerResp := map[string]gwPartner{"partner": {}}
@@ -650,9 +647,6 @@ func registerGatewayInManager(partner *gwPartner, managerURL string) error {
 	logger.Info("Creating a configuration flow in Manager")
 
 	urlCopy = *parsedURL
-	if err := addConfigFlow(client, &urlCopy, partner, originID); err != nil {
-		return err
-	}
 
-	return nil
+	return addConfigFlow(client, &urlCopy, partner, originID)
 }

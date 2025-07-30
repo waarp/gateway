@@ -59,7 +59,7 @@ func main() {
 
 	if managerURL != "" {
 		if err := verifyCertificates(serverConf); err != nil {
-			logger.Critical("there is an issue with the certificates: %v", err)
+			logger.Criticalf("there is an issue with the certificates: %v", err)
 			os.Exit(ExitCannotCreateCerts)
 		}
 
@@ -69,7 +69,7 @@ func main() {
 
 				logger.Info("This Gateway has not been found in Manager. We will try to register it")
 			} else {
-				logger.Critical("Cannot synchronize the gateway with Manager: %v", err)
+				logger.Criticalf("Cannot synchronize the gateway with Manager: %v", err)
 				os.Exit(ExitManagerConfError)
 			}
 		}
@@ -102,14 +102,14 @@ func startGatewayServer(serverConf *conf.ServerConfig, managerURL string, retryC
 
 		err2 := initializeGatewayInManager(serverConf, managerURL)
 		if err2 != nil {
-			logger.Critical("cannot register this Gateway in manager: %v", err2)
+			logger.Criticalf("cannot register this Gateway in manager: %v", err2)
 			os.Exit(ExitManagerConfError)
 		}
 
 		logger.Info("The Gateway has been added to Manager. Trying to download conf again")
 
 		if err := importConfFromManager(serverConf, managerURL); err != nil {
-			logger.Critical("Cannot synchronize the gateway with Manager: %v", err)
+			logger.Criticalf("Cannot synchronize the gateway with Manager: %v", err)
 			os.Exit(ExitManagerConfError)
 		}
 
@@ -128,7 +128,7 @@ func startGatewayProccess(restart <-chan struct{}) error {
 	}
 
 	logger.Info("Starting Waarp Gateway...")
-	logger.Debug("Command used to start Waarp Gateway: %s %s",
+	logger.Debugf("Command used to start Waarp Gateway: %s %s",
 		gatewaydBin, strings.Join(cmdArgs, " "))
 
 	for {
@@ -140,7 +140,7 @@ func startGatewayProccess(restart <-chan struct{}) error {
 
 		go func() {
 			if err := cmd.Run(); err != nil {
-				logger.Error("Waarp Gateway exited abnormally: %v", err)
+				logger.Errorf("Waarp Gateway exited abnormally: %v", err)
 			}
 		}()
 

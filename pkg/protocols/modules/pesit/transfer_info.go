@@ -28,10 +28,10 @@ func setFreetext(pip *pipeline.Pipeline, key string, f freetextSetter) *pipeline
 		return nil
 	}
 
-	return pipeline.NewError(types.TeInternal,
+	return pipeline.NewErrorf(types.TeInternal,
 		"freetext variable %q must be a string (was of type %T)", key, valAny)
 }
 
-func getFreetext(pip *pipeline.Pipeline, key, freetext string) {
+func setFreetextInfo(pip *pipeline.Pipeline, key, freetext string) {
 	pip.TransCtx.TransInfo[key] = freetext
 }

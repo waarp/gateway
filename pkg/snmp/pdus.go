@@ -184,31 +184,31 @@ var ServerPDUs = []*snmplib.PDUValueControlItem{
 		Document: "The total number of transfers",
 		OID:      TsObjectNbTotalTransfersOID,
 		Type:     gosnmp.Counter64,
-		OnGet:    mkTsGetFunc[uint64](""),
+		OnGet:    mkTSGetFunc[uint64](""),
 	},
 	{
 		Document: "The number of running transfers",
 		OID:      TsObjectNbRunningTransfersOID,
 		Type:     gosnmp.Gauge32,
-		OnGet:    mkTsGetFunc[uint32](types.StatusRunning),
+		OnGet:    mkTSGetFunc[uint32](types.StatusRunning),
 	},
 	{
 		Document: "The number of in error transfers",
 		OID:      TsObjectNbInErrorTransfersOID,
 		Type:     gosnmp.Gauge32,
-		OnGet:    mkTsGetFunc[uint32](types.StatusError),
+		OnGet:    mkTSGetFunc[uint32](types.StatusError),
 	},
 	{
 		Document: "The number of finished transfers",
 		OID:      TsObjectNbFinishedTransfersOID,
 		Type:     gosnmp.Counter64,
-		OnGet:    mkTsGetFunc[uint64](types.StatusDone),
+		OnGet:    mkTSGetFunc[uint64](types.StatusDone),
 	},
 	{
 		Document: "The number of canceled transfers",
 		OID:      TsObjectNbCanceledTransfersOID,
 		Type:     gosnmp.Counter64,
-		OnGet:    mkTsGetFunc[uint64](types.StatusCancelled),
+		OnGet:    mkTSGetFunc[uint64](types.StatusCancelled),
 	},
 
 	// ### Transfer error statistics ###

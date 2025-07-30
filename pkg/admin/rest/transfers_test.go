@@ -219,7 +219,7 @@ func TestAddTransfer(t *testing.T) {
 					})
 
 					Convey("Then the response body should say the partner is invalid", func() {
-						So(w.Body.String(), ShouldEqual, "no rule 'tata' found\n")
+						So(w.Body.String(), ShouldEqual, "no rule \"tata\" found\n")
 					})
 				})
 			})
@@ -245,7 +245,7 @@ func TestAddTransfer(t *testing.T) {
 					})
 
 					Convey("Then the response body should say the partner is invalid", func() {
-						So(w.Body.String(), ShouldEqual, "no partner 'tata' found\n")
+						So(w.Body.String(), ShouldEqual, "no partner \"tata\" found\n")
 					})
 				})
 			})
@@ -271,7 +271,7 @@ func TestAddTransfer(t *testing.T) {
 					})
 
 					Convey("Then the response body should say the partner is invalid", func() {
-						So(w.Body.String(), ShouldEqual, "no account 'tata' found "+
+						So(w.Body.String(), ShouldEqual, "no account \"tata\" found "+
 							"for partner "+partner.Name+"\n")
 					})
 				})

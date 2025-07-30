@@ -79,7 +79,7 @@ func (h *handler) GetSettings() (*ftplib.Settings, error) {
 
 func (h *handler) WrapPassiveListener(listener net.Listener) (net.Listener, error) {
 	if h.serverConf.DisablePassiveMode {
-		//nolint:goerr113 //too specific
+		//nolint:err113 //too specific
 		return nil, errors.New("passive mode is disabled on this server")
 	}
 
@@ -98,14 +98,14 @@ func (h *handler) ClientDisconnected(ftplib.ClientContext) {
 	analytics.SubIncomingConnection()
 }
 
-//nolint:goerr113 //dynamic errors are used to mask the internal errors (for security reasons)
+//nolint:err113 //dynamic errors are used to mask the internal errors (for security reasons)
 func (h *handler) AuthUser(cc ftplib.ClientContext, user, pass string) (ftplib.ClientDriver, error) {
-	h.logger.Debug("Received authentication request from account %q", user)
+	h.logger.Debugf("Received authentication request from account %q", user)
 
 	var acc model.LocalAccount
 	if err := h.db.Get(&acc, "local_agent_id=? AND login=?", h.dbServer.ID, user).
 		Run(); err != nil && !database.IsNotFound(err) {
-		h.logger.Error("Failed to retrieve account: %s", err)
+		h.logger.Errorf("Failed to retrieve account: %v", err)
 
 		return nil, errors.New("internal authentication error")
 	}
@@ -118,16 +118,16 @@ func (h *handler) AuthUser(cc ftplib.ClientContext, user, pass string) (ftplib.C
 	}
 
 	if res, err := acc.Authenticate(h.db, h.dbServer, auth.Password, pass); err != nil {
-		h.logger.Error("Failed to authenticate account %q: %s", user, err)
+		h.logger.Errorf("Failed to authenticate account %q: %v", user, err)
 
 		return nil, errors.New("internal authentication error")
 	} else if !res.Success {
-		h.logger.Warning("Invalid credentials for account %q: %s", user, res.Reason)
+		h.logger.Warningf("Invalid credentials for account %q: %s", user, res.Reason)
 
 		return nil, errors.New("invalid credentials")
 	}
 
-	h.logger.Debug("Account %q authenticated successfully", user)
+	h.logger.Debugf("Account %q authenticated successfully", user)
 
 	return &serverFS{
 		db:       h.db,
@@ -140,7 +140,7 @@ func (h *handler) AuthUser(cc ftplib.ClientContext, user, pass string) (ftplib.C
 
 func (h *handler) GetTLSConfig() (*tls.Config, error) {
 	if h.dbServer.Protocol != FTPS {
-		//nolint:goerr113 //too specific
+		//nolint:err113 //too specific
 		return nil, errors.New("cannot create TLS config for non-FTPS server")
 	}
 
@@ -152,11 +152,11 @@ func (h *handler) mkTLSConfig() {
 	h.tlsConfig = &tls.Config{
 		MinVersion: protoutils.ParseTLSVersion(h.serverConf.MinTLSVersion),
 		ClientAuth: tls.RequestClientCert,
-		//nolint:goerr113 //dynamic errors are used to mask the internal errors (for security reasons)
+		//nolint:err113 //dynamic errors are used to mask the internal errors (for security reasons)
 		GetCertificate: func(chi *tls.ClientHelloInfo) (*tls.Certificate, error) {
 			dbCerts, dbErr := h.dbServer.GetCredentials(h.db, auth.TLSCertificate)
 			if dbErr != nil {
-				h.logger.Error("Failed to retrieve TLS certificates: %v", dbErr)
+				h.logger.Errorf("Failed to retrieve TLS certificates: %v", dbErr)
 
 				return nil, errors.New("internal database error")
 			}
@@ -164,7 +164,7 @@ func (h *handler) mkTLSConfig() {
 			for _, dbCert := range dbCerts {
 				cert, err := tls.X509KeyPair([]byte(dbCert.Value), []byte(dbCert.Value2))
 				if err != nil {
-					h.logger.Warning("Failed to parse TLS certificate: %v", err)
+					h.logger.Warningf("Failed to parse TLS certificate: %v", err)
 				}
 
 				if chi.SupportsCertificate(&cert) == nil {
@@ -177,7 +177,7 @@ func (h *handler) mkTLSConfig() {
 	}
 }
 
-//nolint:goerr113 //dynamic errors are used to mask the internal errors (for security reasons)
+//nolint:err113 //dynamic errors are used to mask the internal errors (for security reasons)
 func (h *handler) VerifyConnection(_ ftplib.ClientContext, user string,
 	tlsConn *tls.Conn,
 ) (ftplib.ClientDriver, error) {
@@ -190,18 +190,18 @@ func (h *handler) VerifyConnection(_ ftplib.ClientContext, user string,
 	var acc model.LocalAccount
 	if err := h.db.Get(&acc, "local_agent_id=? AND login=?", h.dbServer.ID,
 		user).Run(); err != nil && !database.IsNotFound(err) {
-		h.logger.Error("Failed to retrieve TLS account: %v", err)
+		h.logger.Errorf("Failed to retrieve TLS account: %v", err)
 
 		return nil, errors.New("internal authentication error")
 	}
 
 	res, err := acc.Authenticate(h.db, h.dbServer, auth.TLSTrustedCertificate, certs)
 	if err != nil {
-		h.logger.Error("Failed to authenticate account %q with TLS: %s", user, err)
+		h.logger.Errorf("Failed to authenticate account %q with TLS: %v", user, err)
 
 		return nil, errors.New("internal authentication error")
 	} else if !res.Success {
-		h.logger.Warning("Invalid credentials for account %q: %s", user, res.Reason)
+		h.logger.Warningf("Invalid credentials for account %q: %s", user, res.Reason)
 
 		return nil, errors.New("invalid credentials")
 	}

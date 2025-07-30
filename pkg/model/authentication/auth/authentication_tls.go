@@ -32,22 +32,22 @@ type TLSCertHandler struct{}
 
 func (*TLSCertHandler) CanOnlyHaveOne() bool { return false }
 
-func (*TLSCertHandler) ToDB(val, val2 string) (string, string, error) {
-	encrypted, err := utils.AESCrypt(database.GCM, val2)
+func (*TLSCertHandler) ToDB(cert, plainPk string) (certificate, encryptedPk string, err error) {
+	encryptedPk, err = utils.AESCrypt(database.GCM, plainPk)
 	if err != nil {
 		return "", "", fmt.Errorf("failed to encrypt the private key: %w", err)
 	}
 
-	return val, encrypted, nil
+	return cert, encryptedPk, nil
 }
 
-func (*TLSCertHandler) FromDB(val, val2 string) (string, string, error) {
-	plain, err := utils.AESDecrypt(database.GCM, val2)
+func (*TLSCertHandler) FromDB(cert, encryptedPk string) (certificate, plainPk string, err error) {
+	plainPk, err = utils.AESDecrypt(database.GCM, encryptedPk)
 	if err != nil {
 		return "", "", fmt.Errorf("failed to decrypt the private key: %w", err)
 	}
 
-	return val, plain, nil
+	return cert, plainPk, nil
 }
 
 func (*TLSCertHandler) Validate(value, value2, _, host string, isServer bool) error {
@@ -98,7 +98,7 @@ func (*TLSTrustedCertHandler) Authenticate(db database.ReadAccess,
 	case []*x509.Certificate:
 		return doVerify(value)
 	default:
-		//nolint:goerr113 //this is a base error
+		//nolint:err113 //this is a base error
 		return nil, fmt.Errorf(`unknown TLS certificate type "%T"`, value)
 	}
 }
@@ -122,7 +122,7 @@ func ParseCertPEM(pemBlock string) (*x509.Certificate, error) {
 			return nil, fmt.Errorf("failed to parsee x509 certificate: %w", err)
 		}
 	} else {
-		//nolint:goerr113 //this is a base error
+		//nolint:err113 //this is a base error
 		return nil, fmt.Errorf("invalid PEM block type %q", block.Type)
 	}
 
@@ -133,11 +133,12 @@ func ParseRawCertChain(rawCerts [][]byte) ([]*x509.Certificate, error) {
 	certs := make([]*x509.Certificate, len(rawCerts))
 
 	for i, rawCert := range rawCerts {
-		if cert, err := x509.ParseCertificate(rawCert); err != nil {
+		cert, err := x509.ParseCertificate(rawCert)
+		if err != nil {
 			return nil, fmt.Errorf("failed to parse x509 certificate: %w", err)
-		} else {
-			certs[i] = cert
 		}
+
+		certs[i] = cert
 	}
 
 	return certs, nil
@@ -270,7 +271,7 @@ func verifyCertChain(certChain []*x509.Certificate, rootCAs *x509.CertPool,
 	return nil
 }
 
-//nolint:goerr113 //dynamic errors are needed here
+//nolint:err113 //dynamic errors are needed here
 func VerifyClientCert(db database.ReadAccess, logger *log.Logger, server *model.LocalAgent,
 ) func([][]byte, [][]*x509.Certificate) error {
 	return func(rawCerts [][]byte, _ [][]*x509.Certificate) error {
@@ -283,7 +284,7 @@ func VerifyClientCert(db database.ReadAccess, logger *log.Logger, server *model.
 		for i, asn1Data := range rawCerts {
 			var err error
 			if certs[i], err = x509.ParseCertificate(asn1Data); err != nil {
-				logger.Warning("Failed to parse client certificate: %s", err)
+				logger.Warningf("Failed to parse client certificate: %v", err)
 
 				return fmt.Errorf("tls: failed to parse client certificate: %w", err)
 			}
@@ -298,22 +299,22 @@ func VerifyClientCert(db database.ReadAccess, logger *log.Logger, server *model.
 		if err := db.Get(&acc, "local_agent_id=? AND login=?", server.ID, login).
 			Run(); err != nil {
 			if database.IsNotFound(err) {
-				logger.Warning("Unknown certificate subject %q", login)
+				logger.Warningf("Unknown certificate subject %q", login)
 
 				return fmt.Errorf("tls: unknown certificate subject %q", login)
 			}
 
-			logger.Error("Failed to retrieve user credentials: %s", err)
+			logger.Errorf("Failed to retrieve user credentials: %v", err)
 
 			return errors.New("failed to retrieve user credentials")
 		}
 
 		if res, err := acc.Authenticate(db, server, TLSTrustedCertificate, certs); err != nil {
-			logger.Error("Failed to authenticate client certificate: %v", err)
+			logger.Errorf("Failed to authenticate client certificate: %v", err)
 
 			return errors.New("internal authentication error")
 		} else if !res.Success {
-			logger.Warning("Failed to verify client certificate %q: %v", login, res.Reason)
+			logger.Warningf("Failed to verify client certificate %q: %v", login, res.Reason)
 
 			return fmt.Errorf("invalid client certificate: %s", res.Reason)
 		}

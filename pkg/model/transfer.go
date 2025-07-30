@@ -117,20 +117,20 @@ func (t *Transfer) checkMandatoryValues(rule *Rule) error {
 	}
 
 	if !types.ValidateStatusForTransfer(t.Status) {
-		return database.NewValidationError("%q is not a valid transfer status", t.Status)
+		return database.NewValidationErrorf("%q is not a valid transfer status", t.Status)
 	}
 
 	if !t.Step.IsValid() {
-		return database.NewValidationError("%q is not a valid transfer step", t.Step)
+		return database.NewValidationErrorf("%q is not a valid transfer step", t.Step)
 	}
 
 	if !t.ErrCode.IsValid() {
-		return database.NewValidationError("%q is not a valid transfer error code", t.ErrCode)
+		return database.NewValidationErrorf("%q is not a valid transfer error code", t.ErrCode)
 	}
 
 	if t.LocalPath != "" {
 		if err := fs.ValidPath(t.LocalPath); err != nil {
-			return database.NewValidationError("invalid local path: %v", err)
+			return database.NewValidationErrorf("invalid local path: %v", err)
 		}
 	}
 
@@ -153,7 +153,7 @@ func (t *Transfer) BeforeWrite(db database.Access) error {
 	var rule Rule
 	if err := db.Get(&rule, "id=?", t.RuleID).Run(); err != nil {
 		if database.IsNotFound(err) {
-			return database.NewValidationError("the rule %d does not exist", t.RuleID)
+			return database.NewValidationErrorf("the rule %d does not exist", t.RuleID)
 		}
 
 		return fmt.Errorf("failed to retrieve rule: %w", err)
@@ -169,7 +169,7 @@ func (t *Transfer) BeforeWrite(db database.Access) error {
 	case t.RemoteAccountID.Valid:
 		if err := db.Get(&RemoteAccount{}, "id=?", t.RemoteAccountID.Int64).Run(); err != nil {
 			if database.IsNotFound(err) {
-				return database.NewValidationError("the remote account %d does not exist",
+				return database.NewValidationErrorf("the remote account %d does not exist",
 					t.RemoteAccountID.Int64)
 			}
 
@@ -182,7 +182,7 @@ func (t *Transfer) BeforeWrite(db database.Access) error {
 
 		if err := db.Get(&Client{}, "id=?", t.ClientID.Int64).Run(); err != nil {
 			if database.IsNotFound(err) {
-				return database.NewValidationError("the client %d does not exist",
+				return database.NewValidationErrorf("the client %d does not exist",
 					t.LocalAccountID.Int64)
 			}
 
@@ -191,7 +191,7 @@ func (t *Transfer) BeforeWrite(db database.Access) error {
 	case t.LocalAccountID.Valid:
 		if err := db.Get(&LocalAccount{}, "id=?", t.LocalAccountID.Int64).Run(); err != nil {
 			if database.IsNotFound(err) {
-				return database.NewValidationError("the local account %d does not exist",
+				return database.NewValidationErrorf("the local account %d does not exist",
 					t.LocalAccountID.Int64)
 			}
 
@@ -205,7 +205,7 @@ func (t *Transfer) BeforeWrite(db database.Access) error {
 	if auth, err := IsRuleAuthorized(db, t); err != nil {
 		return err
 	} else if !auth {
-		return database.NewValidationError("Rule %d is not authorized for this transfer", t.RuleID)
+		return database.NewValidationErrorf("rule %d is not authorized for this transfer", t.RuleID)
 	}
 
 	return nil
@@ -280,7 +280,7 @@ func (t *Transfer) makeHistoryEntry(db database.ReadAccess, stop time.Time) (*Hi
 	}
 
 	if !types.ValidateStatusForHistory(t.Status) {
-		return nil, database.NewValidationError(
+		return nil, database.NewValidationErrorf(
 			"a transfer cannot be recorded in history with status %q", t.Status)
 	}
 
@@ -314,29 +314,29 @@ func (t *Transfer) makeHistoryEntry(db database.ReadAccess, stop time.Time) (*Hi
 }
 
 func (t *Transfer) CopyToHistory(db database.Access, logger *log.Logger, end time.Time) error {
-	hist, err := t.makeHistoryEntry(db, end)
-	if err != nil {
-		logger.Error("Failed to convert transfer to history: %s", err)
+	hist, hErr := t.makeHistoryEntry(db, end)
+	if hErr != nil {
+		logger.Errorf("Failed to convert transfer to history: %v", hErr)
 
-		return err
+		return hErr
 	}
 
 	if err := db.Insert(hist).Run(); err != nil {
-		logger.Error("Failed to create new history entry: %s", err)
+		logger.Errorf("Failed to create new history entry: %v", err)
 
 		return fmt.Errorf("failed to create new history entry: %w", err)
 	}
 
 	if err := db.Exec(`UPDATE transfer_info SET history_id=transfer_id, 
 			transfer_id=null WHERE transfer_id=?`, t.ID); err != nil {
-		logger.Error("Failed to update transfer info target: %s", err)
+		logger.Errorf("Failed to update transfer info target: %v", err)
 
 		return fmt.Errorf("failed to update transfer info target: %w", err)
 	}
 
 	/*
 		if err := ses.Exec(`UPDATE file_info SET history_id=transfer_id, transfer_id=null`); err != nil {
-			logger.Errorf("Failed to update file info target: %s", err)
+			logger.Errorf("Failed to update file info target: %v", err)
 
 			return err
 		}
@@ -355,7 +355,7 @@ func (t *Transfer) MoveToHistory(db *database.DB, logger *log.Logger, end time.T
 		}
 
 		if err := ses.Delete(t).Run(); err != nil {
-			logger.Error("Failed to delete transfer for archival: %s", err)
+			logger.Errorf("Failed to delete transfer for archival: %v", err)
 
 			return fmt.Errorf("failed to delete transfer for archival: %w", err)
 		}

@@ -41,7 +41,7 @@ func (s *Standalone) Transaction(fun TransactionFunc) error {
 	ses := s.newSession()
 
 	if err := ses.session.Begin(); err != nil {
-		s.logger.Error("Failed to start transaction: %s", err)
+		s.logger.Errorf("Failed to start transaction: %v", err)
 
 		return NewInternalError(err)
 	}
@@ -53,7 +53,7 @@ func (s *Standalone) Transaction(fun TransactionFunc) error {
 
 	defer func() {
 		if err := ses.session.Close(); err != nil {
-			s.logger.Warning("an error occurred while closing the session: %v", err)
+			s.logger.Warningf("an error occurred while closing the session: %v", err)
 		}
 
 		close(done)
@@ -67,7 +67,7 @@ func (s *Standalone) Transaction(fun TransactionFunc) error {
 
 		select {
 		case <-timer.C:
-			s.logger.Warning("transaction is taking an unusually long time, "+
+			s.logger.Warningf("transaction is taking an unusually long time, "+
 				"printing stack for debugging purposes:\n%s", stack)
 		case <-done:
 		}
@@ -77,14 +77,14 @@ func (s *Standalone) Transaction(fun TransactionFunc) error {
 		s.logger.Trace("Transaction failed, changes have been rolled back")
 
 		if rbErr := ses.session.Rollback(); rbErr != nil {
-			s.logger.Warning("an error occurred while rolling back the transaction: %v", rbErr)
+			s.logger.Warningf("an error occurred while rolling back the transaction: %v", rbErr)
 		}
 
 		return err
 	}
 
 	if err := ses.session.Commit(); err != nil {
-		s.logger.Error("Failed to commit changes: %s", err)
+		s.logger.Errorf("Failed to commit changes: %v", err)
 
 		return NewInternalError(err)
 	}
@@ -128,7 +128,7 @@ func (s *Standalone) Select(bean SelectBean) *SelectQuery {
 //
 // The request can then be executed using the GetQuery.Run method. The bean
 // parameter will be filled with the values retrieved from the database.
-func (s *Standalone) Get(bean GetBean, where string, args ...interface{}) *GetQuery {
+func (s *Standalone) Get(bean GetBean, where string, args ...any) *GetQuery {
 	return &GetQuery{db: s, bean: bean, conds: []*condition{{sql: where, args: args}}}
 }
 
@@ -186,7 +186,7 @@ func (s *Standalone) DeleteAll(bean DeleteAllBean) *DeleteAllQuery {
 //
 // Be aware that, since this method bypasses the data models, all the models'
 // hooks will be skipped. Thus, this method should be used with extreme caution.
-func (s *Standalone) Exec(query string, args ...interface{}) error {
+func (s *Standalone) Exec(query string, args ...any) error {
 	return exec(s.engine.NewSession(), s.logger, query, args...)
 }
 
@@ -194,6 +194,6 @@ func (s *Standalone) Exec(query string, args ...interface{}) error {
 //
 // Be aware that, since this method bypasses the data models, all the models'
 // hooks will be skipped. Thus, this method should be used with caution.
-func (s *Standalone) QueryRow(sql string, args ...any) *sql.Row {
-	return s.engine.DB().DB.QueryRow(sql, args...)
+func (s *Standalone) QueryRow(query string, args ...any) *sql.Row {
+	return s.engine.DB().DB.QueryRow(query, args...)
 }

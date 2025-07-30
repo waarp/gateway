@@ -517,7 +517,7 @@ func TestPipelineSetError(t *testing.T) {
 			}}
 
 			taskChan := make(chan bool)
-			pip.Trace.OnPreTask = func(rank int8) error {
+			pip.Trace.OnPreTask = func(rank int) error {
 				atomic.AddUint32(&pip.preTasks, 1)
 				taskChan <- true
 
@@ -607,7 +607,7 @@ func TestPipelineSetError(t *testing.T) {
 			So(pip.EndData(), ShouldBeNil)
 
 			taskChan := make(chan bool)
-			pip.Trace.OnPostTask = func(rank int8) error {
+			pip.Trace.OnPostTask = func(rank int) error {
 				atomic.AddUint32(&pip.postTasks, 1)
 				taskChan <- true
 
@@ -732,7 +732,7 @@ func TestPipelinePause(t *testing.T) {
 			}}
 
 			taskChan := make(chan bool)
-			pip.Trace.OnPreTask = func(rank int8) error {
+			pip.Trace.OnPreTask = func(rank int) error {
 				atomic.AddUint32(&pip.preTasks, 1)
 				taskChan <- true
 
@@ -812,7 +812,7 @@ func TestPipelinePause(t *testing.T) {
 			So(pip.EndData(), ShouldBeNil)
 
 			taskChan := make(chan bool)
-			pip.Trace.OnPostTask = func(rank int8) error {
+			pip.Trace.OnPostTask = func(rank int) error {
 				atomic.AddUint32(&pip.postTasks, 1)
 				taskChan <- true
 
@@ -927,7 +927,7 @@ func TestPipelineCancel(t *testing.T) {
 			}}
 
 			taskChan := make(chan bool)
-			pip.Trace.OnPreTask = func(rank int8) error {
+			pip.Trace.OnPreTask = func(rank int) error {
 				atomic.AddUint32(&pip.preTasks, 1)
 				taskChan <- true
 
@@ -1007,7 +1007,7 @@ func TestPipelineCancel(t *testing.T) {
 			So(pip.EndData(), ShouldBeNil)
 
 			taskChan := make(chan bool)
-			pip.Trace.OnPostTask = func(rank int8) error {
+			pip.Trace.OnPostTask = func(rank int) error {
 				atomic.AddUint32(&pip.postTasks, 1)
 				taskChan <- true
 

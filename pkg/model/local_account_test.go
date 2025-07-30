@@ -158,7 +158,7 @@ func TestLocalAccountBeforeWrite(t *testing.T) {
 				Convey("Given that the new account has an invalid agent ID", func() {
 					newAccount.LocalAgentID = 1000
 
-					shouldFailWith("the agent ID is invalid", database.NewValidationError(
+					shouldFailWith("the agent ID is invalid", database.NewValidationErrorf(
 						`no local agent found with the ID "%d"`, newAccount.LocalAgentID))
 				})
 
@@ -170,7 +170,7 @@ func TestLocalAccountBeforeWrite(t *testing.T) {
 					So(db.Insert(&oldAccount).Run(), ShouldBeNil)
 
 					newAccount.Login = oldAccount.Login
-					shouldFailWith("the login is already taken", database.NewValidationError(
+					shouldFailWith("the login is already taken", database.NewValidationErrorf(
 						"a local account with the same login %q already exist",
 						newAccount.Login))
 				})
@@ -205,7 +205,7 @@ func TestLocalAccountBeforeWrite(t *testing.T) {
 					const notAnAddr = "999.999.999.999"
 					newAccount.IPAddresses.Add(notAnAddr)
 
-					shouldFailWith("invalid account IP address", database.NewValidationError(
+					shouldFailWith("invalid account IP address", database.NewValidationErrorf(
 						`invalid account IP address: lookup %s: no such host`, notAnAddr))
 				})
 			})

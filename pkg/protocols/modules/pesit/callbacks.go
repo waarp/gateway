@@ -20,7 +20,7 @@ func stopReceived(pip *pipeline.Pipeline) func(pesit.StopCause, error) {
 		errors.As(err, &pErr)
 
 		if pErr.GetMessage() != "" {
-			pip.Logger.Info("Transfer interrupted by partner: %s", pErr.GetMessage())
+			pip.Logger.Infof("Transfer interrupted by partner: %s", pErr.GetMessage())
 		}
 
 		ctx, cancel := context.WithTimeout(context.Background(), stopTimeout)
@@ -29,12 +29,12 @@ func stopReceived(pip *pipeline.Pipeline) func(pesit.StopCause, error) {
 		switch cause {
 		case pesit.StopSuspend:
 			if pErr := pip.Pause(ctx); pErr != nil {
-				pip.Logger.Error("Failed to pause transfer: %v", pErr)
+				pip.Logger.Errorf("Failed to pause transfer: %v", pErr)
 			}
 		case pesit.StopCancel:
 			if pErr.IsSuccess() {
 				if cErr := pip.Cancel(ctx); cErr != nil {
-					pip.Logger.Error("Failed to cancel transfer: %v", cErr)
+					pip.Logger.Errorf("Failed to cancel transfer: %v", cErr)
 				}
 
 				return
@@ -68,7 +68,7 @@ func restartReceived(pip *pipeline.Pipeline) func(uint32, error) uint32 {
 
 		newOff, err := pip.Stream.Seek(int64(offset), io.SeekStart)
 		if err != nil {
-			pip.Logger.Error("Restart request failed: %v", err)
+			pip.Logger.Errorf("Restart request failed: %v", err)
 		}
 
 		return uint32(newOff)
@@ -76,13 +76,13 @@ func restartReceived(pip *pipeline.Pipeline) func(uint32, error) uint32 {
 }
 
 func checkpointRequestReceived(pip *pipeline.Pipeline) func(uint32) bool {
-	return func(checkpoint uint32) bool {
+	return func(uint32) bool {
 		if pip.Stream == nil {
 			return false
 		}
 
 		if err := pip.Stream.Sync(); err != nil {
-			pip.Logger.Error("Checkpoint validation failed: %v", err)
+			pip.Logger.Errorf("Checkpoint validation failed: %v", err)
 
 			return false
 		}

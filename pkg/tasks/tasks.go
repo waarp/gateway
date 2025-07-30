@@ -30,7 +30,8 @@ const (
 	Archive = "ARCHIVE"
 	Extract = "EXTRACT"
 
-	Icap = "ICAP"
+	Transcode = "TRANSCODE"
+	Icap      = "ICAP"
 )
 
 //nolint:gochecknoinits //init is required here
@@ -62,6 +63,9 @@ func init() {
 	// Archiving & compression
 	model.ValidTasks[Archive] = newRunner[*archiveTask]
 	model.ValidTasks[Extract] = newRunner[*extractTask]
+
+	// Transcoding
+	model.ValidTasks[Transcode] = newRunner[*transcodeTask]
 
 	// Network
 	model.ValidTasks[Icap] = newRunner[*icapTask]

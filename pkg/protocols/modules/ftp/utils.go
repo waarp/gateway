@@ -2,7 +2,7 @@ package ftp
 
 import (
 	"fmt"
-	"math/rand"
+	"math/rand/v2"
 	"net"
 	"strings"
 
@@ -32,8 +32,7 @@ func getPortInRange(addr string, minPort, maxPort uint16) (uint16, *pipeline.Err
 	nbTries = utils.Max(nbTries, minNbTries)
 
 	for i := range nbTries {
-		//nolint:gosec //we don't need to be secure, we just need a random port
-		candidate := minPort + uint16(rand.Intn(rangeSize))
+		candidate := minPort + uint16(rand.IntN(rangeSize))
 
 		if list, err := net.Listen("tcp", fmt.Sprintf("%s:%d", addr, i)); err == nil {
 			_ = list.Close() //nolint:errcheck //error is irrelevant
@@ -67,7 +66,7 @@ func (f *ftpServerLogger) log(msg string, keyvals []any) {
 		}
 	}
 
-	f.Trace("%s %s", msg, strings.Join(args, ", "))
+	f.Tracef("%s %s", msg, strings.Join(args, ", "))
 }
 
 func (f *ftpServerLogger) Debug(msg string, keyvals ...any) { f.log(msg, keyvals) }

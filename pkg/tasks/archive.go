@@ -78,13 +78,13 @@ func (a *archiveTask) Run(_ context.Context, params map[string]string,
 	_ *database.DB, logger *log.Logger, transCtx *model.TransferContext,
 ) error {
 	if err := a.parseParams(params); err != nil {
-		logger.Error("%v", err)
+		logger.Errorf("%v", err)
 
 		return err
 	}
 
 	if err := a.makeArchive(); err != nil {
-		logger.Error("Failed to create archive: %v", err)
+		logger.Errorf("Failed to create archive: %v", err)
 
 		return err
 	}

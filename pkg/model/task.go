@@ -28,15 +28,12 @@ func GetTaskRunner(typ string) TaskRunner {
 // executors (alongside TaskRunner). This interface can be implemented if the
 // task's arguments need to be checked before executing the task.
 type TaskValidator interface {
+	// Validate validates the task parameters.
 	Validate(args map[string]string) error
 }
 
-type TaskDBConverter interface {
-	ToDB(args map[string]string) error
-	FromDB(args map[string]string) error
-}
-
 type TaskValidatorDB interface {
+	// ValidateDB validates the task parameters
 	ValidateDB(db database.ReadAccess, params map[string]string) error
 }
 
@@ -44,6 +41,7 @@ type TaskValidatorDB interface {
 // implement this interface in order for the tasks.Runner to be able to execute
 // them.
 type TaskRunner interface {
+	// Run executes the task.
 	Run(ctx context.Context, args map[string]string, db *database.DB,
 		logger *log.Logger, transCtx *TransferContext) error
 }
@@ -71,7 +69,7 @@ func (*Task) Appellation() string { return NameTask }
 
 func (t *Task) validateTasks(db database.ReadAccess) error {
 	if t.Chain != ChainPre && t.Chain != ChainPost && t.Chain != ChainError {
-		return database.NewValidationError("%s is not a valid task chain", t.Chain)
+		return database.NewValidationErrorf("%q is not a valid task chain", t.Chain)
 	}
 
 	if len(t.Args) == 0 {
@@ -80,17 +78,19 @@ func (t *Task) validateTasks(db database.ReadAccess) error {
 
 	runner := GetTaskRunner(t.Type)
 	if runner == nil {
-		return database.NewValidationError("%s is not a valid task Type", t.Type)
+		return database.NewValidationErrorf("%q is not a valid task Type", t.Type)
 	}
 
-	if validatorDB, ok := runner.(TaskValidatorDB); ok {
-		if err := validatorDB.ValidateDB(db, t.Args); err != nil {
-			return database.NewValidationError("invalid task: %s", err)
-		}
-	} else if validator, ok := runner.(TaskValidator); ok {
+	switch validator := runner.(type) {
+	case TaskValidator:
 		if err := validator.Validate(t.Args); err != nil {
-			return database.NewValidationError("invalid task: %s", err)
+			return database.NewValidationErrorf("invalid task: %w", err)
 		}
+	case TaskValidatorDB:
+		if err := validator.ValidateDB(db, t.Args); err != nil {
+			return database.NewValidationErrorf("invalid task: %w", err)
+		}
+	default:
 	}
 
 	return nil
@@ -102,7 +102,7 @@ func (t *Task) BeforeWrite(db database.Access) error {
 	if n, err := db.Count(&Rule{}).Where("id=?", t.RuleID).Run(); err != nil {
 		return fmt.Errorf("failed to check for parrent rule: %w", err)
 	} else if n < 1 {
-		return database.NewValidationError("no rule found with ID %d", t.RuleID)
+		return database.NewValidationErrorf("no rule found with ID %d", t.RuleID)
 	}
 
 	if err := t.validateTasks(db); err != nil {
@@ -113,7 +113,7 @@ func (t *Task) BeforeWrite(db database.Access) error {
 		t.Chain, t.Rank).Run(); err != nil {
 		return fmt.Errorf("failed to check for duplicate tasks: %w", err)
 	} else if n > 0 {
-		return database.NewValidationError("rule %d already has a %s-task at rank %d",
+		return database.NewValidationErrorf("rule %d already has a %s-task at rank %d",
 			t.RuleID, strings.ToLower(string(t.Chain)), t.Rank)
 	}
 

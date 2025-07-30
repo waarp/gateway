@@ -41,12 +41,12 @@ type Server struct {
 
 // listen starts the HTTP server listener on the configured port.
 func (s *Server) listen() error {
-	list, err := net.Listen("tcp", s.server.Addr)
-	if err != nil {
-		return fmt.Errorf("failed to open listener: %w", err)
+	list, lErr := net.Listen("tcp", s.server.Addr)
+	if lErr != nil {
+		return fmt.Errorf("failed to open listener: %w", lErr)
 	}
 
-	s.logger.Info("Listening at address %s", list.Addr().String())
+	s.logger.Infof("Listening at address %q", list.Addr().String())
 
 	go func() {
 		var err error
@@ -58,7 +58,7 @@ func (s *Server) listen() error {
 		}
 
 		if !errors.Is(err, http.ErrServerClosed) {
-			s.logger.Error("Unexpected error: %s", err)
+			s.logger.Errorf("Unexpected error: %v", err)
 		}
 	}()
 
@@ -96,7 +96,7 @@ func (s *Server) makeTLSConfig() (*tls.Config, error) {
 
 	keyBlock, _ := pem.Decode(keyCryptPEM)
 	if keyBlock == nil {
-		//nolint:goerr113 //this is a base error
+		//nolint:err113 //this is a base error
 		return nil, errors.New("key file does not contain a valid PEM block")
 	}
 
@@ -142,7 +142,7 @@ func initServer(serv *Server) error {
 	if conf.GlobalConfig.Admin.TLSCert != "" {
 		var err error
 		if tlsConfig, err = serv.makeTLSConfig(); err != nil {
-			serv.logger.Error("Failed to make TLS configuration: %s", err)
+			serv.logger.Errorf("Failed to make TLS configuration: %v", err)
 
 			return err
 		}
@@ -175,7 +175,7 @@ func (s *Server) Start() error {
 	s.logger.Info("Starting administration service...")
 
 	if err := initServer(s); err != nil {
-		s.logger.Error("Failed to initialize server: %s", err)
+		s.logger.Errorf("Failed to initialize server: %v", err)
 		s.state.Set(utils.StateError, err.Error())
 		snmp.ReportServiceFailure(ServiceName, err)
 
@@ -183,7 +183,7 @@ func (s *Server) Start() error {
 	}
 
 	if err := s.listen(); err != nil {
-		s.logger.Error("Failed to start listener: %s", err)
+		s.logger.Errorf("Failed to start listener: %v", err)
 		s.state.Set(utils.StateError, err.Error())
 		snmp.ReportServiceFailure(ServiceName, err)
 
@@ -209,10 +209,10 @@ func (s *Server) Stop(ctx context.Context) error {
 	if err == nil {
 		s.logger.Info("Shutdown complete")
 	} else {
-		s.logger.Warning("Failed to shutdown gracefully : %s", err)
+		s.logger.Warningf("Failed to shutdown gracefully : %v", err)
 
 		if err2 := s.server.Close(); err2 != nil {
-			s.logger.Error("Failed to force shutdown: %s", err2)
+			s.logger.Errorf("Failed to force shutdown: %v", err2)
 		} else {
 			s.logger.Warning("The server was forcefully stopped")
 		}

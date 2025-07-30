@@ -20,7 +20,7 @@ func retrieveDBCryptoKey(r *http.Request, db database.ReadAccess) (*model.Crypto
 
 	var dbKey model.CryptoKey
 	if err := db.Get(&dbKey, "name=?", keyName).Owner().Run(); database.IsNotFound(err) {
-		return nil, notFound("Cryptographic key %q not found", keyName)
+		return nil, notFoundf("Cryptographic key %q not found", keyName)
 	} else if err != nil {
 		return nil, fmt.Errorf("failed to retrieve PGP key from database: %w", err)
 	}

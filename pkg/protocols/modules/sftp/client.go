@@ -47,7 +47,7 @@ func (c *client) Start() error {
 
 	c.logger = logging.NewLogger(c.client.Name)
 	if err := c.start(); err != nil {
-		c.logger.Error("Failed to start the client: %v", err)
+		c.logger.Errorf("Failed to start the client: %v", err)
 		c.state.Set(utils.StateError, err.Error())
 		snmp.ReportServiceFailure(c.client.Name, err)
 
@@ -94,7 +94,7 @@ func (c *client) Stop(ctx context.Context) error {
 	}
 
 	if err := pipeline.List.StopAllFromClient(ctx, c.client.ID); err != nil {
-		c.logger.Error("Failed to stop the SFTP client: %v", err)
+		c.logger.Errorf("Failed to stop the SFTP client: %v", err)
 		c.state.Set(utils.StateError, err.Error())
 		snmp.ReportServiceFailure(c.client.Name, err)
 

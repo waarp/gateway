@@ -80,7 +80,7 @@ func (s *sign) Run(_ context.Context, params map[string]string,
 
 	file, openErr := fs.Open(transCtx.Transfer.LocalPath)
 	if openErr != nil {
-		logger.Error("Failed to open signature file: %v", openErr)
+		logger.Errorf("Failed to open signature file: %v", openErr)
 
 		return fmt.Errorf("failed to open signature file: %w", openErr)
 	}
@@ -89,7 +89,7 @@ func (s *sign) Run(_ context.Context, params map[string]string,
 
 	sig, sigErr := s.sign(file)
 	if sigErr != nil {
-		logger.Error("Failed to sign file: %v", sigErr)
+		logger.Errorf("Failed to sign file: %v", sigErr)
 
 		return fmt.Errorf("failed to sign file: %w", sigErr)
 	}
@@ -100,7 +100,7 @@ func (s *sign) Run(_ context.Context, params map[string]string,
 	}
 
 	if err := fs.WriteFullFile(outputFile, sig); err != nil {
-		logger.Error("Failed to write HMAC signature file: %v", err)
+		logger.Errorf("Failed to write HMAC signature file: %v", err)
 
 		return fmt.Errorf("failed to write HMAC signature file: %w", err)
 	}

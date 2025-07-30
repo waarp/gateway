@@ -263,11 +263,7 @@ func ver0_9_0AddRemoteAgentOwnerDown(db Actions) error {
 		return fmt.Errorf("failed to alter the 'remote_agents' table: %w", err)
 	}
 
-	if err := ver0_7_0AddNormalizedTransfersViewUp(db); err != nil {
-		return err
-	}
-
-	return nil
+	return ver0_7_0AddNormalizedTransfersViewUp(db)
 }
 
 func _ver0_9_0DuplicateRemoteAgentsDuplicateCrypto(db Actions,
@@ -802,7 +798,7 @@ func ver0_9_0RestoreNormalizedTransfersViewDown(db Actions) error {
 }
 
 func ver0_9_0AddCredTableUp(db Actions) error {
-	//nolint:gomnd //magic numbers are required here for variable length types
+	//nolint:mnd //magic numbers are required here for variable length types
 	if err := db.CreateTable("credentials", &Table{
 		Columns: []Column{
 			{Name: "id", Type: BigInt{}, NotNull: true, Default: AutoIncr{}},
@@ -1000,7 +996,7 @@ func ver0_9_0RemoveOldAuthsUp(db Actions) error {
 }
 
 func _ver0_9_0RemoveOldAuthsRecreateCryptoCredentialsTable(db Actions) error {
-	//nolint:gomnd,dupl //magic numbers are required here for variable length types
+	//nolint:mnd,dupl //magic numbers are required here for variable length types
 	if err := db.CreateTable("crypto_credentials", &Table{
 		Columns: []Column{
 			{Name: "id", Type: BigInt{}, NotNull: true, Default: AutoIncr{}},
@@ -1133,26 +1129,29 @@ func _ver0_9_0MoveR66ServerAuthDo(db Actions, tbl, col, authType string) error {
 	}
 
 	for _, ag := range r66Ags {
-		if pwdInter, ok1 := ag.conf["serverPassword"]; ok1 {
-			delete(ag.conf, "serverPassword")
+		pwdInter, ok1 := ag.conf["serverPassword"]
+		if !ok1 {
+			continue
+		}
 
-			if pwd, ok2 := pwdInter.(string); ok2 && pwd != "" {
-				if err := db.Exec(`INSERT INTO credentials (`+col+`, name,
+		delete(ag.conf, "serverPassword")
+
+		if pwd, ok2 := pwdInter.(string); ok2 && pwd != "" {
+			if err := db.Exec(`INSERT INTO credentials (`+col+`, name,
 					type, value) VALUES (?, 'password', ?, ?)`,
-					ag.id, authType, strings.TrimPrefix(pwd, "$AES$")); err != nil {
-					return fmt.Errorf("failed to insert the %s password: %w", tbl, err)
-				}
+				ag.id, authType, strings.TrimPrefix(pwd, "$AES$")); err != nil {
+				return fmt.Errorf("failed to insert the %s password: %w", tbl, err)
 			}
+		}
 
-			rawConf, convErr := json.Marshal(ag.conf)
-			if convErr != nil {
-				return fmt.Errorf("failed to serialize the %s proto config: %w", tbl, convErr)
-			}
+		rawConf, convErr := json.Marshal(ag.conf)
+		if convErr != nil {
+			return fmt.Errorf("failed to serialize the %s proto config: %w", tbl, convErr)
+		}
 
-			if err := db.Exec(fmt.Sprintf(`UPDATE %s SET proto_config=? WHERE id=?`, tbl),
-				rawConf, ag.id); err != nil {
-				return fmt.Errorf("failed to update the %s proto config: %w", tbl, err)
-			}
+		if err := db.Exec(fmt.Sprintf(`UPDATE %s SET proto_config=? WHERE id=?`, tbl),
+			rawConf, ag.id); err != nil {
+			return fmt.Errorf("failed to update the %s proto config: %w", tbl, err)
 		}
 	}
 
@@ -1170,7 +1169,7 @@ func _ver0_9_0MoveR66ServerAuthUndo(db Actions, tbl, col, authType string, chpwd
 			ag.id, authType)
 
 		var pswd string
-		if err := row.Scan(&pswd); err != nil {
+		if err = row.Scan(&pswd); err != nil {
 			if errors.Is(err, sql.ErrNoRows) {
 				continue
 			}
@@ -1185,13 +1184,13 @@ func _ver0_9_0MoveR66ServerAuthUndo(db Actions, tbl, col, authType string, chpwd
 			return fmt.Errorf("failed to serialize the %s's proto config: %w", tbl, convErr)
 		}
 
-		if err := db.Exec(fmt.Sprintf(`UPDATE %s SET proto_config=? WHERE id=?`, tbl),
+		if err = db.Exec(fmt.Sprintf(`UPDATE %s SET proto_config=? WHERE id=?`, tbl),
 			rawConf, ag.id); err != nil {
 			return fmt.Errorf("failed to update the %s password: %w", tbl, err)
 		}
 	}
 
-	if err := db.Exec(`DELETE FROM credentials WHERE type='password' AND ` +
+	if err = db.Exec(`DELETE FROM credentials WHERE type='password' AND ` +
 		col + ` IN (SELECT id FROM ` + tbl + ` WHERE protocol='r66' OR protocol='r66-tls')`); err != nil {
 		return fmt.Errorf("failed to delete the R66 credentials: %w", err)
 	}

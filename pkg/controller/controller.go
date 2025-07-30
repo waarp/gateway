@@ -45,7 +45,7 @@ func (c *Controller) listen() error {
 		if err := c.DB.Exec("UPDATE transfers SET status=? WHERE owner=? AND status=?",
 			types.StatusInterrupted, conf.GlobalConfig.GatewayName, types.StatusRunning,
 		); err != nil {
-			c.logger.Error("Failed to access database: %v", err)
+			c.logger.Errorf("Failed to access database: %v", err)
 
 			return fmt.Errorf("failed to access database: %w", err)
 		}
@@ -99,8 +99,8 @@ func (c *Controller) Stop(ctx context.Context) error {
 	}
 
 	defer c.ticker.Stop()
-	c.logger.Info("Shutting down controller...")
 
+	c.logger.Info("Shutting down controller...")
 	c.cancel()
 
 	select {

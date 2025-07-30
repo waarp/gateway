@@ -31,7 +31,7 @@ func TestClientAdd(t *testing.T) {
 				"localAddress": ":0",
 			}
 
-			url := fmt.Sprintf(test.URL + clientsPathFormat)
+			url := test.URL + clientsPathFormat
 			resp := test.post(url, jsonClient)
 
 			Convey("Then it should return a code 201", func() {
@@ -80,7 +80,7 @@ func TestClientList(t *testing.T) {
 		So(test.db.Insert(dbClient2).Run(), ShouldBeNil)
 
 		Convey("When listing the clients", func() {
-			url := fmt.Sprintf(test.URL + clientsPathFormat)
+			url := test.URL + clientsPathFormat
 			resp := test.get(url)
 
 			Convey("Then it should return a code 200", func() {

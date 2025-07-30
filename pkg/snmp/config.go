@@ -68,17 +68,17 @@ func (s *ServerConfig) BeforeWrite(db database.Access) error {
 	}
 
 	if _, err := net.ResolveUDPAddr("udp", s.LocalUDPAddress); err != nil {
-		return database.NewValidationError("invalid UDP address %q: %w", s.LocalUDPAddress, err)
+		return database.NewValidationErrorf("invalid UDP address %q: %w", s.LocalUDPAddress, err)
 	}
 
 	if proto := getAuthProtocol(s.SNMPv3AuthProtocol); proto == 0 {
-		return database.NewValidationError("invalid authentication protocol %q", s.SNMPv3AuthProtocol)
+		return database.NewValidationErrorf("invalid authentication protocol %q", s.SNMPv3AuthProtocol)
 	} else if proto == gosnmp.NoAuth {
 		s.SNMPv3AuthPassphrase = ""
 	}
 
 	if proto := getPrivProtocol(s.SNMPv3PrivProtocol); proto == 0 {
-		return database.NewValidationError("invalid privacy protocol %q", s.SNMPv3PrivProtocol)
+		return database.NewValidationErrorf("invalid privacy protocol %q", s.SNMPv3PrivProtocol)
 	} else if proto == gosnmp.NoPriv {
 		s.SNMPv3PrivPassphrase = ""
 	}
@@ -134,7 +134,7 @@ func (m *MonitorConfig) BeforeWrite(db database.Access) error {
 	}
 
 	if _, err := net.ResolveUDPAddr("udp", m.UDPAddress); err != nil {
-		return database.NewValidationError("invalid UDP address %q: %w", m.UDPAddress, err)
+		return database.NewValidationErrorf("invalid UDP address %q: %w", m.UDPAddress, err)
 	}
 
 	if m.Community == "" && m.Version != Version3 {
@@ -145,7 +145,7 @@ func (m *MonitorConfig) BeforeWrite(db database.Access) error {
 		m.Owner).Run(); err != nil {
 		return fmt.Errorf("failed to check existing SNMP monitors: %w", err)
 	} else if n > 0 {
-		return database.NewValidationError("an SNMP monitor named %q already exists", m.Name)
+		return database.NewValidationErrorf("an SNMP monitor named %q already exists", m.Name)
 	}
 
 	return nil
@@ -170,13 +170,13 @@ func (m *MonitorConfig) checkV3Settings(version gosnmp.SnmpVersion) error {
 	}
 
 	if v3Flags := getSNMPv3MsgFlags(m.SNMPv3Security); v3Flags == unknownV3MsgFlag {
-		return database.NewValidationError("invalid SNMPv3 message flags %q", m.SNMPv3Security)
+		return database.NewValidationErrorf("invalid SNMPv3 message flags %q", m.SNMPv3Security)
 	}
 
 	if m.SNMPv3Security == V3SecurityAuthPriv {
 		privProtocol := getPrivProtocol(m.PrivProtocol)
 		if privProtocol == 0 {
-			return database.NewValidationError("invalid privacy protocol %q", m.PrivProtocol)
+			return database.NewValidationErrorf("invalid privacy protocol %q", m.PrivProtocol)
 		}
 
 		if privProtocol != gosnmp.NoPriv && m.PrivPassphrase == "" {
@@ -194,7 +194,7 @@ func (m *MonitorConfig) checkV3Settings(version gosnmp.SnmpVersion) error {
 
 		authProtocol := getAuthProtocol(m.AuthProtocol)
 		if authProtocol == 0 {
-			return database.NewValidationError("invalid authentication protocol %q", m.AuthProtocol)
+			return database.NewValidationErrorf("invalid authentication protocol %q", m.AuthProtocol)
 		}
 
 		if authProtocol != gosnmp.NoAuth && m.AuthPassphrase == "" {

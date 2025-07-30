@@ -64,7 +64,7 @@ func fromSFTPErr(origErr error, defaults types.TransferErrorCode, pip *pipeline.
 
 	var sErr *sftp.StatusError
 	if !errors.As(origErr, &sErr) {
-		return pipeline.NewError(code, "Error on remote partner: %s", msg)
+		return pipeline.NewErrorf(code, "Error on remote partner: %s", msg)
 	}
 
 	switch sErr.FxCode() {
@@ -93,7 +93,7 @@ func fromSFTPErr(origErr error, defaults types.TransferErrorCode, pip *pipeline.
 		msg = s2[1]
 	}
 
-	return pipeline.NewError(code, "Error on remote partner: %s", msg)
+	return pipeline.NewErrorf(code, "Error on remote partner: %s", msg)
 }
 
 func checkTransferErrorString(errMsg string, pip *pipeline.Pipeline) *pipeline.Error {
@@ -132,5 +132,5 @@ func checkTransferErrorString(errMsg string, pip *pipeline.Pipeline) *pipeline.E
 	default:
 	}
 
-	return pipeline.NewError(code, "Error on remote partner: %s", msg)
+	return pipeline.NewErrorf(code, "Error on remote partner: %s", msg)
 }

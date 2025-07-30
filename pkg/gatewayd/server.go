@@ -152,11 +152,7 @@ func (wg *WG) startServices() error {
 		return err
 	}
 
-	if err := wg.startClients(); err != nil {
-		return err
-	}
-
-	return nil
+	return wg.startClients()
 }
 
 //nolint:dupl //too many differences
@@ -170,7 +166,7 @@ func (wg *WG) startServers() error {
 	for _, server := range servers {
 		module := protocols.Get(server.Protocol)
 		if module == nil {
-			wg.Logger.Error("Unknown protocol %q for server %q", server.Protocol, server.Name)
+			wg.Logger.Errorf("Unknown protocol %q for server %q", server.Protocol, server.Name)
 
 			continue
 		}
@@ -180,7 +176,7 @@ func (wg *WG) startServers() error {
 
 		if !server.Disabled {
 			if err := serverService.Start(); err != nil {
-				wg.Logger.Error("Error starting the %q server: %v", server.Name, err)
+				wg.Logger.Errorf("Error starting the %q server: %v", server.Name, err)
 			}
 		}
 	}
@@ -199,7 +195,7 @@ func (wg *WG) startClients() error {
 	for _, client := range dbClients {
 		module := protocols.Get(client.Protocol)
 		if module == nil {
-			wg.Logger.Error("Unknown protocol %q for client %q", client.Protocol, client.Name)
+			wg.Logger.Errorf("Unknown protocol %q for client %q", client.Protocol, client.Name)
 
 			continue
 		}
@@ -209,7 +205,7 @@ func (wg *WG) startClients() error {
 
 		if !client.Disabled {
 			if err := clientService.Start(); err != nil {
-				wg.Logger.Error("Error starting the %q client: %v", client.Name, err)
+				wg.Logger.Errorf("Error starting the %q client: %v", client.Name, err)
 			}
 		}
 	}
@@ -226,7 +222,7 @@ func (wg *WG) stopServices() {
 		defer w.Done()
 
 		if err := s.Stop(ctx); err != nil {
-			wg.Logger.Warning("an error occurred while stopping the %q service: %v", name, err)
+			wg.Logger.Warningf("an error occurred while stopping the %q service: %v", name, err)
 		}
 	}
 
@@ -251,19 +247,19 @@ func (wg *WG) stopServices() {
 	w.Wait()
 
 	if err := wg.Controller.Stop(ctx); err != nil {
-		wg.Logger.Warning("an error occurred while stopping the controller service: %v", err)
+		wg.Logger.Warningf("an error occurred while stopping the controller service: %v", err)
 	}
 
 	if err := wg.AdminService.Stop(ctx); err != nil {
-		wg.Logger.Warning("an error occurred while stopping the admin service: %v", err)
+		wg.Logger.Warningf("an error occurred while stopping the admin service: %v", err)
 	}
 
 	if err := wg.SnmpService.Stop(ctx); err != nil {
-		wg.Logger.Warning("an error occurred while stopping the SNMP service: %v", err)
+		wg.Logger.Warningf("an error occurred while stopping the SNMP service: %v", err)
 	}
 
 	if err := wg.DBService.Stop(ctx); err != nil {
-		wg.Logger.Warning("an error occurred while stopping the database service: %v", err)
+		wg.Logger.Warningf("an error occurred while stopping the database service: %v", err)
 	}
 }
 
@@ -271,13 +267,13 @@ func (wg *WG) stopServices() {
 func (wg *WG) Start() error {
 	gwName := conf.GlobalConfig.GatewayName
 
-	wg.Info("Waarp Gateway '%s' is starting", gwName)
+	wg.Infof("Waarp Gateway %q is starting", gwName)
 
 	if err := wg.startServices(); err != nil {
 		return err
 	}
 
-	wg.Info("Waarp Gateway '%s' has started", gwName)
+	wg.Infof("Waarp Gateway %q has started", gwName)
 
 	c := make(chan os.Signal, 1)
 	signal.Notify(c, syscall.SIGTERM, syscall.SIGQUIT, syscall.SIGINT)

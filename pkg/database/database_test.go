@@ -38,7 +38,7 @@ func testSelectForUpdate(db *DB) {
 		}
 
 		if len(beans) != 0 {
-			return NewValidationError("%+v should be empty", beans)
+			return NewValidationErrorf("%+v should be empty", beans)
 		}
 
 		return nil
@@ -618,7 +618,7 @@ func testTransaction(db *DB) {
 		trans := func(ses *Session) error {
 			So(ses.Insert(&bean).Run(), ShouldBeNil)
 
-			return errors.New("transaction failed") //nolint:goerr113 // this is a test
+			return errors.New("transaction failed") //nolint:err113 // this is a test
 		}
 
 		Convey("When executing the transaction", func() {
@@ -709,15 +709,15 @@ func TestSqlite(t *testing.T) {
 	db := &DB{}
 	defer func() {
 		if err := db.engine.Close(); err != nil {
-			t.Logf("Failed to close database: %s", err)
+			t.Logf("Failed to close database: %v", err)
 		}
 
 		if err := os.Remove(conf.GlobalConfig.Database.AESPassphrase); err != nil {
-			t.Logf("Failed to delete passphrase file: %s", err)
+			t.Logf("Failed to delete passphrase file: %v", err)
 		}
 
 		if err := os.Remove(conf.GlobalConfig.Database.Address); err != nil {
-			t.Logf("Failed to delete sqlite file: %s", err)
+			t.Logf("Failed to delete sqlite file: %v", err)
 		}
 	}()
 
@@ -745,7 +745,7 @@ func TestDatabaseStartWithNoPassPhraseFile(t *testing.T) {
 
 			So(db.Start(), ShouldBeNil)
 			Reset(func() {
-				ctx, cancel := context.WithTimeout(context.Background(), time.Second)
+				ctx, cancel := context.WithTimeout(t.Context(), time.Second)
 				defer cancel()
 
 				So(db.Stop(ctx), ShouldBeNil)
@@ -785,7 +785,7 @@ func TestDatabaseStartVersionMismatch(t *testing.T) {
 			ver := &version{Current: "0.0.0"}
 			_, err := db.engine.Table(ver.TableName()).Update(ver)
 			So(err, ShouldBeNil)
-			So(db.Stop(context.Background()), ShouldBeNil)
+			So(db.Stop(t.Context()), ShouldBeNil)
 
 			Convey("When starting the database", func() {
 				err := db.Start()

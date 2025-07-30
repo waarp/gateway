@@ -51,7 +51,7 @@ func (e *execMoveTask) Run(ctx context.Context, params map[string]string,
 	transCtx.Transfer.RemotePath = path.Join(
 		path.Dir(transCtx.Transfer.RemotePath), path.Base(newPath))
 
-	logger.Debug("Done executing command %s %s", params["path"], params["args"])
+	logger.Debugf("Done executing command %s %s", params["path"], params["args"])
 
 	return nil
 }

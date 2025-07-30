@@ -26,11 +26,11 @@ func (t *TransferTask) Validate(args map[string]string) error {
 		return fmt.Errorf("missing transfer source file: %w", ErrBadTaskArguments)
 	}
 
-	if to, ok := args["to"]; !ok || to == "" {
+	if to, hasTo := args["to"]; !hasTo || to == "" {
 		if from, ok := args["from"]; !ok || from == "" {
 			return fmt.Errorf("missing transfer remote partner: %w", ErrBadTaskArguments)
 		}
-	} else if from, ok := args["from"]; ok && from != "" {
+	} else if from, hasFrom := args["from"]; hasFrom && from != "" {
 		return fmt.Errorf("cannot have both 'to' and 'from': %w", ErrBadTaskArguments)
 	}
 
@@ -45,7 +45,7 @@ func (t *TransferTask) Validate(args map[string]string) error {
 	return nil
 }
 
-//nolint:funlen //function is perfectly readable despite being long
+//nolint:funlen,revive //function is perfectly readable despite being long
 func getTransferInfo(db *database.DB, args map[string]string) (file string,
 	ruleID, clientID, accountID int64, isSend bool, infoErr error,
 ) {
@@ -166,7 +166,7 @@ func (t *TransferTask) Run(_ context.Context, args map[string]string,
 		recipient = fmt.Sprintf("to %q", args["to"])
 	}
 
-	logger.Debug("Programmed new transfer n°%d of file %q, %s as %q using rule %q",
+	logger.Debugf("Programmed new transfer n°%d of file %q, %s as %q using rule %q",
 		trans.ID, file, recipient, args["as"], args["rule"])
 
 	return nil

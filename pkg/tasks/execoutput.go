@@ -63,7 +63,7 @@ func (e *execOutputTask) Run(parent context.Context, params map[string]string,
 		logger.Debug(scanner.Text())
 	}
 
-	logger.Debug("Done executing command %s %s", params["path"], params["args"])
+	logger.Debugf("Done executing command %s %s", params["path"], params["args"])
 
 	return nil
 }

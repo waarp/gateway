@@ -140,16 +140,16 @@ func DBTransfersToREST(db *database.DB, models []*model.NormalizedTransferView) 
 func getDBTrans(r *http.Request, db *database.DB) (*model.Transfer, error) {
 	val := mux.Vars(r)["transfer"]
 
-	id, parsErr := strconv.ParseUint(val, 10, 64) //nolint:gomnd // useless to add a constant for that
+	id, parsErr := strconv.ParseUint(val, 10, 64) //nolint:mnd // useless to add a constant for that
 	if parsErr != nil || id == 0 {
-		return nil, notFound("'%s' is not a valid transfer ID", val)
+		return nil, notFoundf("%q is not a valid transfer ID", val)
 	}
 
 	var transfer model.Transfer
 	if err := db.Get(&transfer, "id=? AND owner=?", id, conf.GlobalConfig.GatewayName).
 		Run(); err != nil {
 		if database.IsNotFound(err) {
-			return nil, notFound("transfer %v not found", id)
+			return nil, notFoundf("transfer %v not found", id)
 		}
 
 		return nil, fmt.Errorf("failed to retrieve transfer %d: %w", id, err)
@@ -162,16 +162,16 @@ func getDBTrans(r *http.Request, db *database.DB) (*model.Transfer, error) {
 func getDBTransView(r *http.Request, db *database.DB) (*model.NormalizedTransferView, error) {
 	val := mux.Vars(r)["transfer"]
 
-	id, parsErr := strconv.ParseUint(val, 10, 64) //nolint:gomnd // useless to add a constant for that
+	id, parsErr := strconv.ParseUint(val, 10, 64) //nolint:mnd // useless to add a constant for that
 	if parsErr != nil || id == 0 {
-		return nil, notFound("'%s' is not a valid transfer ID", val)
+		return nil, notFoundf("%q is not a valid transfer ID", val)
 	}
 
 	var transfer model.NormalizedTransferView
 	if err := db.Get(&transfer, "id=? AND owner=?", id, conf.GlobalConfig.GatewayName).
 		Run(); err != nil {
 		if database.IsNotFound(err) {
-			return nil, notFound("transfer %v not found", id)
+			return nil, notFoundf("transfer %v not found", id)
 		}
 
 		return nil, fmt.Errorf("failed to retrieve transfer %d: %w", id, err)
@@ -187,8 +187,8 @@ func addTransfer(logger *log.Logger, db *database.DB) http.HandlerFunc {
 			return
 		}
 
-		trans, err := restTransferToDB(&jsonTrans, db, logger)
-		if handleError(w, logger, err) {
+		trans, convErr := restTransferToDB(&jsonTrans, db, logger)
+		if handleError(w, logger, convErr) {
 			return
 		}
 
@@ -266,12 +266,12 @@ func pauseTransfer(logger *log.Logger, db *database.DB) http.HandlerFunc {
 			pip := pipeline.List.Get(trans.ID)
 			if pip == nil {
 				if conf.GlobalConfig.NodeID != "" {
-					handleError(w, logger, internal("pipeline for transfer %d not found", trans.ID))
+					handleError(w, logger, internalf("pipeline for transfer %d not found", trans.ID))
 
 					return
 				}
 
-				logger.Warning("Pipeline for transfer %d not found", trans.ID)
+				logger.Warningf("Pipeline for transfer %d not found", trans.ID)
 
 				trans.Status = types.StatusPaused
 				if err := db.Update(trans).Cols("status").Run(); handleError(w, logger, err) {
@@ -327,12 +327,12 @@ func cancelTransfer(logger *log.Logger, db *database.DB) http.HandlerFunc {
 		pip := pipeline.List.Get(trans.ID)
 		if pip == nil {
 			if conf.GlobalConfig.NodeID != "" {
-				handleError(w, logger, internal("pipeline for transfer %d not found", trans.ID))
+				handleError(w, logger, internalf("pipeline for transfer %d not found", trans.ID))
 
 				return
 			}
 
-			logger.Warning("Pipeline for transfer %d not found", trans.ID)
+			logger.Warningf("Pipeline for transfer %d not found", trans.ID)
 
 			trans.Status = types.StatusCancelled
 			if err := trans.MoveToHistory(db, logger, time.Time{}); handleError(w, logger, err) {
@@ -435,7 +435,7 @@ func retryTransfer(logger *log.Logger, db *database.DB) http.HandlerFunc {
 func cancelDBTransfer(db *database.DB, logger *log.Logger, w http.ResponseWriter,
 	status ...types.TransferStatus,
 ) bool {
-	statuses := make([]interface{}, len(status))
+	statuses := make([]any, len(status))
 
 	for i := range status {
 		statuses[i] = status[i]
@@ -447,7 +447,7 @@ func cancelDBTransfer(db *database.DB, logger *log.Logger, w http.ResponseWriter
 		for i := 0; ; i += batchSize {
 			var transfers model.Transfers
 			if err := ses.Select(&transfers).Limit(batchSize, i).Run(); err != nil {
-				logger.Error("Failed to retrieve transfers: %v", err)
+				logger.Errorf("Failed to retrieve transfers: %v", err)
 
 				return fmt.Errorf("failed to retrieve transfers: %w", err)
 			}
@@ -475,8 +475,8 @@ func cancelDBTransfer(db *database.DB, logger *log.Logger, w http.ResponseWriter
 	return !handleError(w, logger, tErr)
 }
 
-func cancelRunningTransfers(db *database.DB, logger *log.Logger, w http.ResponseWriter,
-	rCtx context.Context,
+func cancelRunningTransfers(rCtx context.Context, db *database.DB,
+	logger *log.Logger, w http.ResponseWriter,
 ) bool {
 	const cancelTimeout = 2 * time.Second
 
@@ -515,7 +515,7 @@ func cancelTransfers(logger *log.Logger, db *database.DB) http.HandlerFunc {
 				return
 			}
 		case "running":
-			if !cancelRunningTransfers(db, logger, w, r.Context()) {
+			if !cancelRunningTransfers(r.Context(), db, logger, w) {
 				return
 			}
 		case "all":
@@ -524,11 +524,11 @@ func cancelTransfers(logger *log.Logger, db *database.DB) http.HandlerFunc {
 				return
 			}
 
-			if !cancelRunningTransfers(db, logger, w, r.Context()) {
+			if !cancelRunningTransfers(r.Context(), db, logger, w) {
 				return
 			}
 		default:
-			handleError(w, logger, badRequest("unknown cancel target '%s'", target))
+			handleError(w, logger, badRequestf("unknown cancel target %q", target))
 
 			return
 		}

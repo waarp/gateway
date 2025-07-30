@@ -38,7 +38,7 @@ func (r *RemoteAccount) BeforeWrite(db database.Access) error {
 	if n, err := db.Count(&RemoteAgent{}).Where("id=?", r.RemoteAgentID).Run(); err != nil {
 		return fmt.Errorf("failed to check parent remote agent: %w", err)
 	} else if n == 0 {
-		return database.NewValidationError(`no remote agent found with the ID "%v"`,
+		return database.NewValidationErrorf(`no remote agent found with the ID "%v"`,
 			r.RemoteAgentID)
 	}
 
@@ -46,7 +46,7 @@ func (r *RemoteAccount) BeforeWrite(db database.Access) error {
 		r.ID, r.RemoteAgentID, r.Login).Run(); err != nil {
 		return fmt.Errorf("failed to check for duplicate remote accounts: %w", err)
 	} else if n > 0 {
-		return database.NewValidationError(
+		return database.NewValidationErrorf(
 			"a remote account with the same login %q already exist", r.Login)
 	}
 
@@ -96,7 +96,7 @@ func (r *RemoteAccount) getParent(db database.ReadAccess) (*RemoteAgent, error) 
 	var parent RemoteAgent
 	if err := db.Get(&parent, "id=?", r.RemoteAgentID).Run(); err != nil {
 		if database.IsNotFound(err) {
-			return nil, database.NewValidationError(`no remote agent found with the ID "%v"`, r.RemoteAgentID)
+			return nil, database.NewValidationErrorf(`no remote agent found with the ID "%v"`, r.RemoteAgentID)
 		}
 
 		return nil, fmt.Errorf("failed to check parent remote agent: %w", err)

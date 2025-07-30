@@ -381,7 +381,7 @@ func TestDeleteUser(t *testing.T) {
 
 					Convey("Then the response body should state that the user "+
 						"was not found", func() {
-						So(w.Body.String(), ShouldEqual, "user 'toto' not found\n")
+						So(w.Body.String(), ShouldEqual, "user \"toto\" not found\n")
 					})
 
 					Convey("Then the user should still be present in the "+
@@ -501,7 +501,7 @@ func TestUpdateUser(t *testing.T) {
 
 						Convey("Then the response body should state that "+
 							"the user was not found", func() {
-							So(w.Body.String(), ShouldEqual, "user 'toto' not found\n")
+							So(w.Body.String(), ShouldEqual, "user \"toto\" not found\n")
 						})
 
 						Convey("Then the old users should be unchanged", func() {
@@ -697,7 +697,7 @@ func TestReplaceUser(t *testing.T) {
 
 						Convey("Then the response body should state that "+
 							"the user was not found", func() {
-							So(w.Body.String(), ShouldEqual, "user 'toto' not found\n")
+							So(w.Body.String(), ShouldEqual, "user \"toto\" not found\n")
 						})
 
 						Convey("Then it should reply 'NotFound'", func() {

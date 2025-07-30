@@ -20,7 +20,7 @@ func (c *clientTransfer) makeTLSConfig(servName string, conf *PartnerConfigTLS,
 
 		cert, err := utils.X509KeyPair(cred.Value, cred.Value2)
 		if err != nil {
-			c.pip.Logger.Warning("Failed to parse the TLS certificate %q: %v", cred.Name, err)
+			c.pip.Logger.Warningf("Failed to parse the TLS certificate %q: %v", cred.Name, err)
 
 			continue
 		}
@@ -36,7 +36,7 @@ func (c *clientTransfer) makeTLSConfig(servName string, conf *PartnerConfigTLS,
 		}
 
 		if !rootCAs.AppendCertsFromPEM([]byte(cred.Value)) {
-			c.pip.Logger.Warning("Failed to parse the remote TLS certificate %q", cred.Name)
+			c.pip.Logger.Warningf("Failed to parse the remote TLS certificate %q", cred.Name)
 		}
 	}
 

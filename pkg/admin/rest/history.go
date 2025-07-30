@@ -85,15 +85,15 @@ func FromHistories(db *database.DB, hs []*model.HistoryEntry) ([]*api.OutHistory
 func getHist(r *http.Request, db *database.DB) (*model.HistoryEntry, error) {
 	val := mux.Vars(r)["history"]
 
-	id, parsErr := strconv.ParseUint(val, 10, 64) //nolint:gomnd // no need for a constant here
+	id, parsErr := strconv.ParseUint(val, 10, 64) //nolint:mnd // no need for a constant here
 	if parsErr != nil || id == 0 {
-		return nil, notFound("'%s' is not a valid transfer ID", val)
+		return nil, notFoundf("%q is not a valid transfer ID", val)
 	}
 
 	var history model.HistoryEntry
 	if err := db.Get(&history, "id=? AND owner=?", id, conf.GlobalConfig.GatewayName).Run(); err != nil {
 		if database.IsNotFound(err) {
-			return nil, notFound("transfer %v not found", id)
+			return nil, notFoundf("transfer %v not found", id)
 		}
 
 		return nil, fmt.Errorf("failed to retrieve transfer %d: %w", id, err)
@@ -124,7 +124,7 @@ func parseHistoryCond(r *http.Request, query *database.SelectQuery) error {
 	// Validate requested protocols
 	for _, p := range protos {
 		if protocols.Get(p) == nil {
-			return badRequest("%q is not a valid protocol", p)
+			return badRequestf("%q is not a valid protocol", p)
 		}
 	}
 
@@ -136,7 +136,7 @@ func parseHistoryCond(r *http.Request, query *database.SelectQuery) error {
 	if len(starts) > 0 {
 		start, err := time.Parse(time.RFC3339Nano, starts[0])
 		if err != nil {
-			return badRequest("'%s' is not a valid date", starts[0])
+			return badRequestf("%q is not a valid date", starts[0])
 		}
 
 		query.Where("start >= ?", start.UTC())
@@ -146,7 +146,7 @@ func parseHistoryCond(r *http.Request, query *database.SelectQuery) error {
 	if len(stops) > 0 {
 		stop, err := time.Parse(time.RFC3339Nano, stops[0])
 		if err != nil {
-			return badRequest("'%s' is not a valid date", stops[0])
+			return badRequestf("%q is not a valid date", stops[0])
 		}
 
 		query.Where("stop <= ?", stop.UTC())
@@ -220,15 +220,16 @@ func listHistory(logger *log.Logger, db *database.DB) http.HandlerFunc {
 
 func retryHistory(logger *log.Logger, db *database.DB) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		check, err := getHist(r, db)
-		if handleError(w, logger, err) {
+		check, getErr := getHist(r, db)
+		if handleError(w, logger, getErr) {
 			return
 		}
 
 		date := time.Now().UTC()
+
 		if dateStr := r.FormValue("date"); dateStr != "" {
-			date, err = time.Parse(time.RFC3339Nano, dateStr)
-			if handleError(w, logger, err) {
+			var err error
+			if date, err = time.Parse(time.RFC3339Nano, dateStr); handleError(w, logger, err) {
 				return
 			}
 		}
@@ -239,8 +240,8 @@ func retryHistory(logger *log.Logger, db *database.DB) http.HandlerFunc {
 			return
 		}
 
-		trans, err := check.Restart(db, date)
-		if handleError(w, logger, err) {
+		trans, resErr := check.Restart(db, date)
+		if handleError(w, logger, resErr) {
 			return
 		}
 

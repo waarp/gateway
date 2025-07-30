@@ -42,7 +42,7 @@ func displayCredential(w io.Writer, cred *api.OutCred) error {
 	case r66.AuthLegacyCertificate:
 		Style1.Printf(w, "Legacy R66 certificate %q", cred.Name)
 	default:
-		//nolint:goerr113 //too specific
+		//nolint:err113 //too specific
 		return fmt.Errorf("unknown credential type %q", cred.Type)
 	}
 

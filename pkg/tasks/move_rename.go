@@ -49,7 +49,7 @@ func (*moveRenameTask) Run(_ context.Context, args map[string]string,
 		path.Dir(transCtx.Transfer.RemotePath),
 		path.Base(transCtx.Transfer.LocalPath))
 
-	logger.Debug("Moved file %q to %q", source, dest)
+	logger.Debugf("Moved file %q to %q", source, dest)
 
 	return nil
 }

@@ -26,7 +26,7 @@ func init() {
 // of time and succeeds.
 type TestTaskDelay struct{}
 
-//nolint:goerr113 //errors are too specific
+//nolint:err113 //errors are too specific
 func (*TestTaskDelay) getDelay(args map[string]string) (time.Duration, error) {
 	d, hasDelay := args["delay"]
 	if !hasDelay {

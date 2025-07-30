@@ -35,6 +35,7 @@ type ClientContext struct {
 	*testData
 	*clientData
 	*transData
+
 	protoFeatures *ProtoFeatures
 }
 
@@ -63,8 +64,8 @@ func initClient(c convey.C, proto string, clientConf protocol.ClientConfig,
 			ProtoClient: client,
 		},
 		transData: &transData{
-			transferInfo: map[string]interface{}{},
-			// fileInfo:     map[string]interface{}{},
+			transferInfo: map[string]any{},
+			// fileInfo:     map[string]any{},
 		},
 		protoFeatures: &feat,
 	}
@@ -262,19 +263,19 @@ func (cc *ClientContext) GetTransferContent(c convey.C) *model.TransferContext {
 }
 
 func (cc *ClientContext) setClientTrace(pip *pipeline.Pipeline) {
-	pip.Trace.OnPreTask = func(int8) error {
+	pip.Trace.OnPreTask = func(int) error {
 		atomic.AddUint32(&cc.cliPreTasksNb, 1)
 
 		return nil
 	}
 
-	pip.Trace.OnPostTask = func(int8) error {
+	pip.Trace.OnPostTask = func(int) error {
 		atomic.AddUint32(&cc.cliPostTasksNb, 1)
 
 		return nil
 	}
 
-	pip.Trace.OnErrorTask = func(int8) {
+	pip.Trace.OnErrorTask = func(int) {
 		atomic.AddUint32(&cc.cliErrTasksNb, 1)
 	}
 

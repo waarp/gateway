@@ -34,7 +34,7 @@ func exportLocals(logger *log.Logger, db database.ReadAccess) ([]file.LocalAgent
 			return nil, err
 		}
 
-		logger.Info("Export local server %s", src.Name)
+		logger.Infof("Export local server %q", src.Name)
 
 		res[i] = file.LocalAgent{
 			Name:          src.Name,
@@ -80,7 +80,7 @@ func exportLocalAccounts(logger *log.Logger, db database.ReadAccess,
 			return nil, err
 		}
 
-		logger.Info("Export local account %s", src.Login)
+		logger.Infof("Export local account %q", src.Login)
 
 		res[i] = file.LocalAccount{
 			Login:        src.Login,

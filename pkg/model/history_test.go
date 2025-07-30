@@ -178,7 +178,7 @@ func testTransferStatus(tc statusTestCase, target database.WriteHook, db *databa
 				})
 
 				Convey("Then the error should say that the status is invalid", func() {
-					So(err, ShouldBeError, database.NewValidationError(
+					So(err, ShouldBeError, database.NewValidationErrorf(
 						"%q is not a valid %s status", tc.status, typeName))
 				})
 			}

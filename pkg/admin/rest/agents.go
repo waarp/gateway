@@ -1,7 +1,6 @@
 package rest
 
 import (
-	"fmt"
 	"net/http"
 
 	"code.waarp.fr/lib/log"
@@ -178,6 +177,7 @@ func DBPartnersToREST(db database.ReadAccess, dbPartners []*model.RemoteAgent) (
 	for i, dbPartner := range dbPartners {
 		var err error
 		if restPartners[i], err = DBPartnerToREST(db, dbPartner); err != nil {
+			return nil, err
 		}
 	}
 
@@ -190,7 +190,7 @@ func parseProtoParam(r *http.Request, query *database.SelectQuery) error {
 
 		for i, p := range r.Form["protocol"] {
 			if protocols.Get(p) == nil {
-				return badRequest(fmt.Sprintf("%q is not a valid protocol", p))
+				return badRequestf("%q is not a valid protocol", p)
 			}
 
 			protos[i] = p

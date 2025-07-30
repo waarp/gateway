@@ -66,10 +66,10 @@ func importLocalAgents(logger *log.Logger, db database.Access, list []file.Local
 
 		// Create/Update
 		if exists {
-			logger.Info("Update local server %s", agent.Name)
+			logger.Infof("Update local server %q", agent.Name)
 			dbErr = db.Update(&agent).Run()
 		} else {
-			logger.Info("Create local server %s", agent.Name)
+			logger.Infof("Create local server %q", agent.Name)
 			dbErr = db.Insert(&agent).Run()
 		}
 
@@ -137,10 +137,10 @@ func importLocalAccounts(logger *log.Logger, db database.Access,
 		// Create model with basic info to check existence
 		var account model.LocalAccount
 
-		exist, err := accountExists(db, &account, "local_agent_id=? AND login=?",
+		exist, dbErr := accountExists(db, &account, "local_agent_id=? AND login=?",
 			server.ID, src.Login)
-		if err != nil {
-			return err
+		if dbErr != nil {
+			return dbErr
 		}
 
 		// Populate
@@ -149,15 +149,15 @@ func importLocalAccounts(logger *log.Logger, db database.Access,
 
 		// Create/Update
 		if exist {
-			logger.Info("Update local account %s", account.Login)
-			err = db.Update(&account).Run()
+			logger.Infof("Update local account %q", account.Login)
+			dbErr = db.Update(&account).Run()
 		} else {
-			logger.Info("Create local account %s", account.Login)
-			err = db.Insert(&account).Run()
+			logger.Infof("Create local account %q", account.Login)
+			dbErr = db.Insert(&account).Run()
 		}
 
-		if err != nil {
-			return fmt.Errorf("failed to import local account %q: %w", account.Login, err)
+		if dbErr != nil {
+			return fmt.Errorf("failed to import local account %q: %w", account.Login, dbErr)
 		}
 
 		if src.PasswordHash != "" || src.Password != "" {

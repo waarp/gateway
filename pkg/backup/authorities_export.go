@@ -22,7 +22,7 @@ func exportAuthorities(logger *log.Logger, db database.ReadAccess) ([]*file.Auth
 	}
 
 	for i, authority := range authorities {
-		logger.Info("Exported authority %q", authority.Name)
+		logger.Infof("Exported authority %q", authority.Name)
 		res[i] = &file.Authority{
 			Name:           authority.Name,
 			Type:           authority.Type,

@@ -47,14 +47,14 @@ func (s *SecretText) ToDB() ([]byte, error) {
 
 // Scan implements database/sql.Scanner. It takes an AES encrypted string and
 // sets the object.
-func (s *SecretText) Scan(v interface{}) error {
+func (s *SecretText) Scan(v any) error {
 	switch val := v.(type) {
 	case []byte:
 		return s.FromDB(val)
 	case string:
 		return s.FromDB([]byte(val))
 	default:
-		//nolint:goerr113 // too specific to have a base error
+		//nolint:err113 // too specific to have a base error
 		return fmt.Errorf("type %T is incompatible with SecretText", val)
 	}
 }

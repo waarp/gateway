@@ -26,7 +26,7 @@ func (k *CryptoKey) checkKey() error {
 	case CryptoKeyTypePGPPublic:
 		return k.checkKeyPGPPublic()
 	default:
-		return database.NewValidationError("unknown cryptographic key type %q", k.Type)
+		return database.NewValidationErrorf("unknown cryptographic key type %q", k.Type)
 	}
 }
 

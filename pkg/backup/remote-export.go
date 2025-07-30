@@ -33,7 +33,7 @@ func exportRemotes(logger *log.Logger, db database.ReadAccess) ([]file.RemoteAge
 			return nil, err
 		}
 
-		logger.Info("Export remote partner %s", src.Name)
+		logger.Infof("Export remote partner %q", src.Name)
 
 		res[i] = file.RemoteAgent{
 			Name:          src.Name,
@@ -70,7 +70,7 @@ func exportRemoteAccounts(logger *log.Logger, db database.ReadAccess,
 			return nil, err
 		}
 
-		logger.Info("Export remote account %s", src.Login)
+		logger.Infof("Export remote account %q", src.Login)
 
 		account := file.RemoteAccount{
 			Login:       src.Login,

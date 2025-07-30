@@ -18,11 +18,12 @@ var ErrNonLocalTmpFile = errors.New("temp received files must be local")
 // getFilesize returns the size of the given file. If the file does not exist or
 // cannot be accessed, it returns the UnknownSize value (-1).
 func getFilesize(file string) int64 {
-	if info, err := fs.Stat(file); err != nil {
+	info, err := fs.Stat(file)
+	if err != nil {
 		return model.UnknownSize
-	} else {
-		return info.Size()
 	}
+
+	return info.Size()
 }
 
 // GetFile opens/creates (depending on the transfer's direction) the file pointed
@@ -31,25 +32,25 @@ func (f *FileStream) getFile() (fs.File, *Error) {
 	trans := f.TransCtx.Transfer
 
 	if f.TransCtx.Rule.IsSend {
-		file, err := fs.Open(trans.LocalPath)
-		if err != nil {
-			f.Logger.Error("Failed to open source file: %s", err)
+		file, opErr := fs.Open(trans.LocalPath)
+		if opErr != nil {
+			f.Logger.Errorf("Failed to open source file: %v", opErr)
 
-			return nil, FileErrToTransferErr(err)
+			return nil, FileErrToTransferErr(opErr)
 		}
 
-		stat, err := file.Stat()
-		if err != nil {
-			f.Logger.Error("Failed to retrieve the file's info: %s", err)
+		stat, statErr := file.Stat()
+		if statErr != nil {
+			f.Logger.Errorf("Failed to retrieve the file's info: %v", statErr)
 
-			return nil, FileErrToTransferErr(err)
+			return nil, FileErrToTransferErr(statErr)
 		}
 
 		trans.Filesize = stat.Size()
 
 		if trans.Progress != 0 {
 			if _, err := file.Seek(trans.Progress, io.SeekStart); err != nil {
-				f.Logger.Error("Failed to seek inside file: %s", err)
+				f.Logger.Errorf("Failed to seek inside file: %v", err)
 
 				return nil, NewErrorWith(types.TeForbidden, "failed to seek inside file", err)
 			}
@@ -59,21 +60,21 @@ func (f *FileStream) getFile() (fs.File, *Error) {
 	}
 
 	if err := createDir(trans.LocalPath); err != nil {
-		f.Logger.Error("Failed to create temp directory: %s", err)
+		f.Logger.Errorf("Failed to create temp directory: %v", err)
 
 		return nil, err
 	}
 
 	file, fsErr := fs.OpenFile(trans.LocalPath, fs.FlagReadWrite|fs.FlagCreate, conf.DefaultFilePermissions)
 	if fsErr != nil {
-		f.Logger.Error("Failed to create destination file %q: %s", trans.LocalPath, fsErr)
+		f.Logger.Errorf("Failed to create destination file %q: %v", trans.LocalPath, fsErr)
 
 		return nil, FileErrToTransferErr(fsErr)
 	}
 
 	if trans.Progress != 0 {
 		if _, err := file.Seek(trans.Progress, io.SeekStart); err != nil {
-			f.Logger.Error("Failed to seek inside file: %s", err)
+			f.Logger.Errorf("Failed to seek inside file: %v", err)
 
 			return nil, FileErrToTransferErr(err)
 		}
@@ -126,15 +127,16 @@ func (p *Pipeline) setCustomFilePaths(srcFilename, destFilename string) error {
 	}
 
 	if p.TransCtx.Transfer.LocalPath == "" {
-		if fPath, err := makeLocalPath(p.TransCtx, srcFilename, destFilename); err != nil {
+		fPath, err := makeLocalPath(p.TransCtx, srcFilename, destFilename)
+		if err != nil {
 			return fmt.Errorf("failed to build local path: %w", err)
-		} else {
-			if !p.TransCtx.Rule.IsSend && !fs.IsLocalPath(fPath) {
-				return ErrNonLocalTmpFile
-			}
-
-			p.TransCtx.Transfer.LocalPath = fPath
 		}
+
+		if !p.TransCtx.Rule.IsSend && !fs.IsLocalPath(fPath) {
+			return ErrNonLocalTmpFile
+		}
+
+		p.TransCtx.Transfer.LocalPath = fPath
 	}
 
 	return nil
@@ -183,18 +185,18 @@ func (f *FileStream) checkFileExist() *Error {
 	info, err := fs.Stat(trans.LocalPath)
 	if err != nil {
 		if errors.Is(err, fs.ErrNotExist) {
-			f.Logger.Error("Failed to open transfer file %q: file does not exist", trans.LocalPath)
+			f.Logger.Errorf("Failed to open transfer file %q: file does not exist", trans.LocalPath)
 
 			return f.internalError(types.TeFileNotFound, "file does not exist", err)
 		}
 
 		if errors.Is(err, fs.ErrPermission) {
-			f.Logger.Error("Failed to open transfer file %q: permission denied", trans.LocalPath)
+			f.Logger.Errorf("Failed to open transfer file %q: permission denied", trans.LocalPath)
 
 			return f.internalError(types.TeForbidden, "permission to open file denied", err)
 		}
 
-		f.Logger.Error("Failed to open transfer file %q: %s", trans.LocalPath, err)
+		f.Logger.Errorf("Failed to open transfer file %q: %v", trans.LocalPath, err)
 
 		return f.internalErrorWithMsg(types.TeUnknown, "unknown file error",
 			"failed to open file", err)

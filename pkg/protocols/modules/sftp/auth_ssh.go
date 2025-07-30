@@ -32,8 +32,8 @@ type sshPublicKey struct{}
 
 func (*sshPublicKey) CanOnlyHaveOne() bool { return false }
 
-func (*sshPublicKey) Validate(value, value2, protocol, host string, isServer bool) error {
-	if _, err := ParseAuthorizedKey(value); err != nil {
+func (*sshPublicKey) Validate(pbkey, _, _, _ string, _ bool) error {
+	if _, err := ParseAuthorizedKey(pbkey); err != nil {
 		return fmt.Errorf("failed to parse SSH public key: %w", err)
 	}
 
@@ -64,7 +64,7 @@ func (*sshPublicKey) Authenticate(db database.ReadAccess, owner authentication.O
 
 		return authentication.Failure("unknown SSH public key"), nil
 	default:
-		//nolint:goerr113 //dynamic error is better here
+		//nolint:err113 //dynamic error is better here
 		return nil, fmt.Errorf("unknown SSH public key type '%T'", value)
 	}
 }
@@ -73,26 +73,24 @@ type sshPrivateKey struct{}
 
 func (*sshPrivateKey) CanOnlyHaveOne() bool { return false }
 
-func (*sshPrivateKey) ToDB(val, _ string) (string, string, error) {
-	encrypted, err := utils.AESCrypt(database.GCM, val)
-	if err != nil {
+func (*sshPrivateKey) ToDB(plain, _ string) (encrypted, _ string, err error) {
+	if encrypted, err = utils.AESCrypt(database.GCM, plain); err != nil {
 		return "", "", fmt.Errorf("failed to encrypt the SSH private key: %w", err)
 	}
 
 	return encrypted, "", nil
 }
 
-func (*sshPrivateKey) FromDB(val, _ string) (string, string, error) {
-	plain, err := utils.AESDecrypt(database.GCM, val)
-	if err != nil {
+func (*sshPrivateKey) FromDB(encrypted, _ string) (plain, _ string, err error) {
+	if plain, err = utils.AESDecrypt(database.GCM, encrypted); err != nil {
 		return "", "", fmt.Errorf("failed to decrypt the SSH private key: %w", err)
 	}
 
 	return plain, "", nil
 }
 
-func (*sshPrivateKey) Validate(value, value2, protocol, host string, isServer bool) error {
-	if _, err := ssh.ParsePrivateKey([]byte(value)); err != nil {
+func (*sshPrivateKey) Validate(pkey, _, _, _ string, _ bool) error {
+	if _, err := ssh.ParsePrivateKey([]byte(pkey)); err != nil {
 		return fmt.Errorf("failed to parse SSH private key: %w", err)
 	}
 
@@ -113,7 +111,7 @@ func isUserAuthority(db database.ReadAccess, logger *log.Logger) func(ssh.Public
 	return func(key ssh.PublicKey) bool {
 		var auths model.Authorities
 		if err := db.Select(&auths).Where("type=?", AuthoritySSHCert).Run(); err != nil {
-			logger.Error("Failed to retrieve the SSH certification authorities: %s", err)
+			logger.Errorf("Failed to retrieve the SSH certification authorities: %v", err)
 
 			return false
 		}
@@ -121,7 +119,7 @@ func isUserAuthority(db database.ReadAccess, logger *log.Logger) func(ssh.Public
 		for _, aut := range auths {
 			pbk, err := ParseAuthorizedKey(aut.PublicIdentity)
 			if err != nil {
-				logger.Warning("Failed to parse the SSH authority's public key: %s", err)
+				logger.Warningf("Failed to parse the SSH authority's public key: %v", err)
 
 				continue
 			}
@@ -140,7 +138,7 @@ func isHostAuthority(db database.ReadAccess, logger *log.Logger,
 	return func(key ssh.PublicKey, address string) bool {
 		var auths model.Authorities
 		if err := db.Select(&auths).Where("type=?", AuthoritySSHCert).Run(); err != nil {
-			logger.Error("Failed to retrieve the SSH certification authorities: %s", err)
+			logger.Errorf("Failed to retrieve the SSH certification authorities: %v", err)
 
 			return false
 		}
@@ -152,7 +150,7 @@ func isHostAuthority(db database.ReadAccess, logger *log.Logger,
 
 			pbk, err := ParseAuthorizedKey(aut.PublicIdentity)
 			if err != nil {
-				logger.Warning("Failed to parse the SSH authority's public key: %s", err)
+				logger.Warningf("Failed to parse the SSH authority's public key: %v", err)
 
 				continue
 			}

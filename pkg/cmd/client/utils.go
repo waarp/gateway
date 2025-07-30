@@ -26,17 +26,17 @@ const (
 func ifElse[T any](cond bool, valTrue, valFalse T) T {
 	if cond {
 		return valTrue
-	} else {
-		return valFalse
 	}
+
+	return valFalse
 }
 
 func withDefault[T any](val, def T) T {
 	if reflect.ValueOf(val).IsZero() {
 		return def
-	} else {
-		return val
 	}
+
+	return val
 }
 
 func direction(isSend bool) string {
@@ -48,9 +48,9 @@ func direction(isSend bool) string {
 }
 
 func unmarshalBody(body io.Reader, object any) error {
-	b, err := io.ReadAll(body)
-	if err != nil {
-		return fmt.Errorf("failed to read response body: %w", err)
+	b, rErr := io.ReadAll(body)
+	if rErr != nil {
+		return fmt.Errorf("failed to read response body: %w", rErr)
 	}
 
 	if err := json.Unmarshal(b, object); err != nil {
@@ -68,7 +68,7 @@ func getResponseErrorMessage(resp *http.Response) error {
 
 	cleanMsg := strings.TrimSpace(string(body))
 
-	return fmt.Errorf("%s: %s", resp.Status, cleanMsg) //nolint:goerr113 // too specific
+	return fmt.Errorf("%s: %s", resp.Status, cleanMsg) //nolint:err113 // too specific
 }
 
 func displayResponseMessage(w io.Writer, resp *http.Response) error {
@@ -93,7 +93,7 @@ func isNotUpdate(obj any) bool {
 	case reflect.Map:
 		return value.Len() == 0
 	case reflect.Struct:
-		for i := 0; i < value.NumField(); i++ {
+		for i := range value.NumField() {
 			if !value.Field(i).IsZero() {
 				return false
 			}
@@ -138,7 +138,7 @@ func parsePerms(str string) (*api.Perms, error) {
 	groups := strings.Split(str, ",")
 
 	for _, grp := range groups {
-		if len(grp) == 0 {
+		if grp == "" {
 			continue
 		}
 

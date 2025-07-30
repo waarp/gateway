@@ -22,7 +22,7 @@ func retrieveCloud(r *http.Request, db *database.DB) (*model.CloudInstance, erro
 	if err := db.Get(&cloud, "owner=? AND name=?", conf.GlobalConfig.GatewayName,
 		cloudName).Run(); err != nil {
 		if database.IsNotFound(err) {
-			return nil, notFound("cloud %q not found", cloudName)
+			return nil, notFoundf("cloud %q not found", cloudName)
 		}
 	}
 

@@ -27,7 +27,7 @@ func exportClouds(logger *log.Logger, db database.ReadAccess) ([]file.Cloud, err
 			Options: dbCloud.Options,
 		}
 
-		logger.Info("Exported cloud %q", dbCloud.Name)
+		logger.Infof("Exported cloud %q", dbCloud.Name)
 	}
 
 	return clouds, nil

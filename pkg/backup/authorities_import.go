@@ -34,10 +34,10 @@ func importAuthorities(logger *log.Logger, db database.Access,
 		var dbErr error
 
 		if dbAuth.ID == 0 {
-			logger.Info("Inserting new authority %q", dbAuth.Name)
+			logger.Infof("Inserting new authority %q", dbAuth.Name)
 			dbErr = db.Insert(&dbAuth).Run()
 		} else {
-			logger.Info("Updating authority %q", dbAuth.Name)
+			logger.Infof("Updating authority %q", dbAuth.Name)
 			dbErr = db.Update(&dbAuth).Run()
 		}
 

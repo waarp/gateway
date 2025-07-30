@@ -29,10 +29,10 @@ func TestMySQL(t *testing.T) {
 
 	defer func() {
 		if err := db.engine.Close(); err != nil {
-			t.Logf("Failed to close database: %s", err)
+			t.Logf("Failed to close database: %v", err)
 		}
 		if err := os.Remove(conf.GlobalConfig.Database.AESPassphrase); err != nil {
-			t.Logf("Failed to delete passphrase file: %s", err)
+			t.Logf("Failed to delete passphrase file: %v", err)
 		}
 	}()
 

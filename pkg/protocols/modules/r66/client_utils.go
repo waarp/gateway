@@ -24,7 +24,7 @@ import (
 var errConf = pipeline.NewError(types.TeUnimplemented, "client-server configuration mismatch")
 
 func (c *transferClient) logErrConf(msg string) {
-	c.pip.Logger.Error("Client-server configuration mismatch: %s", msg)
+	c.pip.Logger.Errorf("Client-server configuration mismatch: %s", msg)
 }
 
 func (c *transferClient) connect() (*r66.Client, *pipeline.Error) {
@@ -33,7 +33,7 @@ func (c *transferClient) connect() (*r66.Client, *pipeline.Error) {
 
 	cli, err := c.conns.Add(addr, c.tlsConfig, c.pip.Logger)
 	if err != nil {
-		c.pip.Logger.Error("Failed to connect to remote host: %s", err)
+		c.pip.Logger.Errorf("Failed to connect to remote host: %v", err)
 
 		return nil, pipeline.NewErrorWith(types.TeConnection, "failed to connect to remote host", err)
 	}
@@ -45,7 +45,7 @@ func (c *transferClient) connect() (*r66.Client, *pipeline.Error) {
 func (c *transferClient) authenticate(cli *r66.Client) *pipeline.Error {
 	var sesErr error
 	if c.ses, sesErr = cli.NewSession(); sesErr != nil {
-		c.pip.Logger.Error("Failed to start R66 session: %s", sesErr)
+		c.pip.Logger.Errorf("Failed to start R66 session: %s", sesErr)
 
 		return pipeline.NewErrorWith(types.TeConnection, "failed to start R66 session", sesErr)
 	}
@@ -68,7 +68,7 @@ func (c *transferClient) authenticate(cli *r66.Client) *pipeline.Error {
 	authent, err := c.ses.Authent(c.pip.TransCtx.RemoteAccount.Login, pwd, r66Conf)
 	if err != nil {
 		c.ses = nil
-		c.pip.Logger.Error("Client authentication failed: %s", err)
+		c.pip.Logger.Errorf("Client authentication failed: %v", err)
 
 		return pipeline.NewErrorWith(types.TeBadAuthentication, "client authentication failed", err)
 	}
@@ -86,13 +86,13 @@ func (c *transferClient) authenticate(cli *r66.Client) *pipeline.Error {
 	pwdErr := bcrypt.CompareHashAndPassword([]byte(pswd.Value), authent.Password)
 
 	if !loginOK {
-		c.pip.Logger.Error("Server authentication failed: wrong login %q", authent.Login)
+		c.pip.Logger.Errorf("Server authentication failed: wrong login %q", authent.Login)
 
 		return pipeline.NewError(types.TeBadAuthentication, "server authentication failed")
 	}
 
 	if pwdErr != nil {
-		c.pip.Logger.Error("Server authentication failed: wrong password: %v", pwdErr)
+		c.pip.Logger.Errorf("Server authentication failed: wrong password: %v", pwdErr)
 
 		return pipeline.NewError(types.TeBadAuthentication, "server authentication failed")
 	}
@@ -154,7 +154,7 @@ func (c *transferClient) sendRequest() *pipeline.Error {
 	if c.pip.TransCtx.Rule.IsSend {
 		info, statErr := fs.Stat(c.pip.TransCtx.Transfer.LocalPath)
 		if statErr != nil {
-			c.pip.Logger.Error("Failed to retrieve file size: %s", statErr)
+			c.pip.Logger.Errorf("Failed to retrieve file size: %s", statErr)
 
 			return pipeline.NewErrorWith(types.TeInternal, "failed to retrieve file size", statErr)
 		}
@@ -168,7 +168,7 @@ func (c *transferClient) sendRequest() *pipeline.Error {
 	resp, err := c.ses.Request(req)
 	if err != nil {
 		c.ses = nil
-		c.pip.Logger.Error("Transfer request failed: %s", err)
+		c.pip.Logger.Errorf("Transfer request failed: %v", err)
 
 		return internal.FromR66Error(err, c.pip)
 	}

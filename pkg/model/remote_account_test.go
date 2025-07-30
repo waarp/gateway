@@ -171,14 +171,14 @@ func TestRemoteAccountBeforeWrite(t *testing.T) {
 				Convey("Given that the new account has an invalid agent ID", func() {
 					newAccount.RemoteAgentID = 1000
 
-					shouldFailWith("the agent ID is invalid", database.NewValidationError(
+					shouldFailWith("the agent ID is invalid", database.NewValidationErrorf(
 						`no remote agent found with the ID "%d"`, newAccount.RemoteAgentID))
 				})
 
 				Convey("Given that the new account's login is already taken", func() {
 					newAccount.Login = oldAccount.Login
 
-					shouldFailWith("the login is already taken", database.NewValidationError(
+					shouldFailWith("the login is already taken", database.NewValidationErrorf(
 						"a remote account with the same login %q already exist",
 						newAccount.Login))
 				})

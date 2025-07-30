@@ -39,7 +39,7 @@ func (p *Pipeline) processError(code types.TransferErrorCode, msg, extMsg string
 	cause error,
 ) {
 	if err := p.machine.Transition(stateError); err != nil {
-		p.Logger.Warning("Failed to transition to %q state: %v", stateError, err)
+		p.Logger.Warningf("Failed to transition to %q state: %v", stateError, err)
 	}
 
 	err := NewErrorWith(code, msg, cause)
@@ -61,7 +61,7 @@ func (p *Pipeline) processError(code types.TransferErrorCode, msg, extMsg string
 	p.TransCtx.Transfer.ErrDetails = fullMsg
 
 	if dbErr := p.UpdateTrans(); dbErr != nil {
-		p.Logger.Error("Failed to update transfer error: %s", dbErr)
+		p.Logger.Errorf("Failed to update transfer error: %s", dbErr)
 	}
 
 	p.errorTasks()
@@ -85,7 +85,7 @@ func (f *FileStream) internalErrorWithMsg(code types.TransferErrorCode, msg, ext
 ) *Error {
 	f.errOnce.Do(func() {
 		if err := f.file.Close(); err != nil {
-			f.Logger.Warning("Failed to close file: %s", err)
+			f.Logger.Warningf("Failed to close file: %v", err)
 		}
 
 		f.processError(code, msg, extMsg, cause)

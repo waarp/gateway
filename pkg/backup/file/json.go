@@ -87,7 +87,7 @@ func (r *RemoteAgent) UnmarshalJSON(b []byte) error {
 
 	servPwd, isStr := servPwdAny.(string)
 	if !isStr {
-		//nolint:goerr113 //too specific
+		//nolint:err113 //too specific
 		return errors.New(`the R66 "serverPassword" field must have type string`)
 	}
 

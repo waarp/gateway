@@ -29,7 +29,7 @@ func (*deleteTask) Run(_ context.Context, _ map[string]string, _ *database.DB,
 		return fmt.Errorf("failed to delete file: %w", err)
 	}
 
-	logger.Debug("Deleted file %q", filepath)
+	logger.Debugf("Deleted file %q", filepath)
 
 	return nil
 }

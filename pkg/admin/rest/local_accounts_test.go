@@ -378,7 +378,7 @@ func TestCreateLocalAccount(t *testing.T) {
 
 						Convey("Then the response body should state that "+
 							"the account was not found", func() {
-							So(w.Body.String(), ShouldEqual, "server 'toto' not found\n")
+							So(w.Body.String(), ShouldEqual, "server \"toto\" not found\n")
 						})
 
 						Convey("Then the new account should NOT exist", func() {
@@ -460,7 +460,7 @@ func TestDeleteLocalAccount(t *testing.T) {
 
 					Convey("Then the response body should state that the account "+
 						"was not found", func() {
-						So(w.Body.String(), ShouldEqual, "no account 'toto' found "+
+						So(w.Body.String(), ShouldEqual, "no account \"toto\" found "+
 							"for server parent\n")
 					})
 				})
@@ -484,7 +484,7 @@ func TestDeleteLocalAccount(t *testing.T) {
 
 					Convey("Then the response body should state that the account "+
 						"was not found", func() {
-						So(w.Body.String(), ShouldEqual, "server 'toto' not found\n")
+						So(w.Body.String(), ShouldEqual, "server \"toto\" not found\n")
 					})
 				})
 			})
@@ -590,7 +590,7 @@ func TestUpdateLocalAccount(t *testing.T) {
 
 					Convey("Then the response body should state that "+
 						"the account was not found", func() {
-						So(w.Body.String(), ShouldEqual, "no account 'toto' found "+
+						So(w.Body.String(), ShouldEqual, "no account \"toto\" found "+
 							"for server parent\n")
 					})
 
@@ -619,7 +619,7 @@ func TestUpdateLocalAccount(t *testing.T) {
 
 					Convey("Then the response body should state that "+
 						"the account was not found", func() {
-						So(w.Body.String(), ShouldEqual, "server 'toto' not found\n")
+						So(w.Body.String(), ShouldEqual, "server \"toto\" not found\n")
 					})
 
 					Convey("Then the old account should still exist", func() {
@@ -731,7 +731,7 @@ func TestReplaceLocalAccount(t *testing.T) {
 
 					Convey("Then the response body should state that "+
 						"the account was not found", func() {
-						So(w.Body.String(), ShouldEqual, "no account 'toto' found "+
+						So(w.Body.String(), ShouldEqual, "no account \"toto\" found "+
 							"for server parent\n")
 					})
 
@@ -761,7 +761,7 @@ func TestReplaceLocalAccount(t *testing.T) {
 
 					Convey("Then the response body should state that "+
 						"the account was not found", func() {
-						So(w.Body.String(), ShouldEqual, "server 'toto' not found\n")
+						So(w.Body.String(), ShouldEqual, "server \"toto\" not found\n")
 					})
 
 					Convey("Then the old account should still exist", func() {

@@ -89,7 +89,7 @@ func TestTaskBeforeInsert(t *testing.T) {
 					err := t2.BeforeWrite(db)
 
 					Convey("Then the error should say the rule was not found", func() {
-						So(err, ShouldBeError, database.NewValidationError(
+						So(err, ShouldBeError, database.NewValidationErrorf(
 							"no rule found with ID %d", t2.RuleID))
 					})
 				})
@@ -107,8 +107,8 @@ func TestTaskBeforeInsert(t *testing.T) {
 					err := t2.BeforeWrite(db)
 
 					Convey("Then the error should say that the chain is invalid", func() {
-						So(err, ShouldBeError, database.NewValidationError(
-							"%s is not a valid task chain", t2.Chain))
+						So(err, ShouldBeError, database.NewValidationErrorf(
+							"%q is not a valid task chain", t2.Chain))
 					})
 				})
 			})
@@ -125,7 +125,7 @@ func TestTaskBeforeInsert(t *testing.T) {
 					err := t2.BeforeWrite(db)
 
 					Convey("Then the error should say that the task already exist", func() {
-						So(err, ShouldBeError, database.NewValidationError(
+						So(err, ShouldBeError, database.NewValidationErrorf(
 							"rule %d already has a %s-task at rank %d", t2.RuleID,
 							strings.ToLower(string(t2.Chain)), t2.Rank))
 					})

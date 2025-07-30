@@ -16,7 +16,7 @@ var (
 func (s *server) getCertificate(info *tls.ClientHelloInfo) (*tls.Certificate, error) {
 	credentials, dbErr := s.localAgent.GetCredentials(s.db, auth.TLSCertificate)
 	if dbErr != nil {
-		s.logger.Error("Failed to retrieve the TLS certificates: %v", dbErr)
+		s.logger.Errorf("Failed to retrieve the TLS certificates: %v", dbErr)
 
 		return nil, ErrCertDBError
 	}
@@ -24,7 +24,7 @@ func (s *server) getCertificate(info *tls.ClientHelloInfo) (*tls.Certificate, er
 	for _, cred := range credentials {
 		cert, err := utils.X509KeyPair(cred.Value, cred.Value2)
 		if err != nil {
-			s.logger.Warning("Failed to parse the TLS certificate %q: %v", cred.Name, err)
+			s.logger.Warningf("Failed to parse the TLS certificate %q: %v", cred.Name, err)
 
 			continue
 		}

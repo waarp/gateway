@@ -145,7 +145,7 @@ func checkCompatibilityMode(mode string) error {
 	case CompatibilityModeNone, CompatibilityModeAxway:
 		return nil
 	default:
-		//nolint:goerr113 // this is a base error
+		//nolint:err113 // this is a base error
 		return fmt.Errorf("unknown compatibility mode %q", mode)
 	}
 }

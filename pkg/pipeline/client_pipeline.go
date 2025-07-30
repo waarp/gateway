@@ -16,21 +16,21 @@ func NewClientPipeline(db *database.DB, logger *log.Logger, transCtx *model.Tran
 ) (*Pipeline, *Error) {
 	pip, pipErr := newPipeline(db, logger, transCtx, snmpService)
 	if pipErr != nil {
-		logger.Error("Failed to initialize the client transfer pipeline: %v", pipErr)
+		logger.Errorf("Failed to initialize the client transfer pipeline: %v", pipErr)
 
 		transCtx.Transfer.Status = types.StatusError
 		transCtx.Transfer.ErrCode = pipErr.code
 		transCtx.Transfer.ErrDetails = pipErr.Details()
 
 		if dbErr := db.Update(transCtx.Transfer).Run(); dbErr != nil {
-			logger.Error("Failed to update the transfer error: %s", dbErr)
+			logger.Errorf("Failed to update the transfer error: %v", dbErr)
 		}
 
 		return nil, pipErr
 	}
 
 	if dbErr := pip.UpdateTrans(); dbErr != nil {
-		logger.Error("Failed to update the transfer details: %s", dbErr)
+		logger.Errorf("Failed to update the transfer details: %v", dbErr)
 
 		return nil, NewErrorWith(types.TeInternal, "Failed to update the transfer details", dbErr)
 	}

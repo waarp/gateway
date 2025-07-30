@@ -58,7 +58,7 @@ func (h *httpService) start() error {
 	h.logger.Info("Starting HTTP server...")
 
 	if err := utils.JSONConvert(h.agent.ProtoConfig, &h.conf); err != nil {
-		h.logger.Error("Failed to parse server configuration: %s", err)
+		h.logger.Errorf("Failed to parse server configuration: %v", err)
 
 		return fmt.Errorf("failed to parse server configuration: %w", err)
 	}
@@ -68,7 +68,7 @@ func (h *httpService) start() error {
 		Handler:           h.makeHandler(),
 		ErrorLog:          h.logger.AsStdLogger(log.LevelError),
 		ReadHeaderTimeout: readHeaderTimeout,
-		ConnState: func(conn net.Conn, state http.ConnState) {
+		ConnState: func(_ net.Conn, state http.ConnState) {
 			switch state {
 			case http.StateNew:
 				analytics.AddIncomingConnection()
@@ -84,7 +84,7 @@ func (h *httpService) start() error {
 		return err
 	}
 
-	h.logger.Info("HTTP server started at: %s", &h.agent.Address)
+	h.logger.Infof("HTTP server started at %q", &h.agent.Address)
 
 	h.shutdown = make(chan struct{})
 
@@ -116,7 +116,7 @@ func (h *httpService) stop(ctx context.Context) error {
 	h.logger.Debug("Interrupting transfers...")
 
 	if err := pipeline.List.StopAllFromServer(ctx, h.agent.ID); err != nil {
-		h.logger.Error("Failed to interrupt R66 transfers: %s", err)
+		h.logger.Errorf("Failed to interrupt R66 transfers: %v", err)
 
 		return fmt.Errorf("could not halt the service gracefully: %w", err)
 	}
@@ -124,7 +124,7 @@ func (h *httpService) stop(ctx context.Context) error {
 	h.logger.Debug("Closing listener...")
 
 	if err := h.serv.Shutdown(ctx); err != nil {
-		h.logger.Error("Error while closing HTTP listener: %v", err)
+		h.logger.Errorf("Error while closing HTTP listener: %v", err)
 
 		return fmt.Errorf("failed to stop the HTTP listener: %w", err)
 	}

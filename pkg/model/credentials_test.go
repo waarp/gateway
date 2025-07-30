@@ -95,7 +95,7 @@ func TestAuthBeforeWrite(t *testing.T) {
 					}
 					So(db.Insert(otherAuth).Run(), ShouldBeNil)
 					newAuth.Name = otherAuth.Name
-					shouldFailWith("the name is taken", database.NewValidationError(
+					shouldFailWith("the name is taken", database.NewValidationErrorf(
 						"an authentication method with the same name %q already exist",
 						newAuth.Name))
 				})

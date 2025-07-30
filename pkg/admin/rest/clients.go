@@ -67,7 +67,7 @@ func getDBClient(r *http.Request, db *database.DB) (*model.Client, error) {
 	if err := db.Get(&client, "owner=? AND name=?", conf.GlobalConfig.GatewayName,
 		clientName).Run(); err != nil {
 		if database.IsNotFound(err) {
-			return nil, notFound("client %q not found", clientName)
+			return nil, notFoundf("client %q not found", clientName)
 		}
 
 		return nil, fmt.Errorf("failed to retrieve client %q: %w", clientName, err)
@@ -134,8 +134,8 @@ func createClient(logger *log.Logger, db *database.DB) http.HandlerFunc {
 			return
 		}
 
-		service, err := makeClientService(db, dbClient)
-		if handleError(w, logger, err) {
+		service, mkErr := makeClientService(db, dbClient)
+		if handleError(w, logger, mkErr) {
 			return
 		}
 
@@ -153,8 +153,8 @@ func createClient(logger *log.Logger, db *database.DB) http.HandlerFunc {
 //nolint:dupl //duplicate is for servers, best keep separate
 func deleteClient(logger *log.Logger, db *database.DB) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		dbClient, service, err := getClientService(r, db)
-		if handleError(w, logger, err) {
+		dbClient, service, getErr := getClientService(r, db)
+		if handleError(w, logger, getErr) {
 			return
 		}
 
@@ -211,8 +211,8 @@ func updateClient(logger *log.Logger, db *database.DB) http.HandlerFunc {
 			}
 		}
 
-		newService, err := makeClientService(db, dbClient)
-		if handleError(w, logger, err) {
+		newService, mkErr := makeClientService(db, dbClient)
+		if handleError(w, logger, mkErr) {
 			return
 		}
 
@@ -261,8 +261,8 @@ func replaceClient(logger *log.Logger, db *database.DB) http.HandlerFunc {
 
 		dbClient.ID = oldDBClient.ID
 
-		newService, err := makeClientService(db, dbClient)
-		if handleError(w, logger, err) {
+		newService, mkErr := makeClientService(db, dbClient)
+		if handleError(w, logger, mkErr) {
 			return
 		}
 
@@ -352,8 +352,8 @@ func startClient(logger *log.Logger, db *database.DB) http.HandlerFunc {
 //nolint:dupl //duplicate is for servers, best keep separate
 func stopClient(logger *log.Logger, db *database.DB) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		dbClient, client, err := getClientService(r, db)
-		if handleError(w, logger, err) {
+		dbClient, client, getErr := getClientService(r, db)
+		if handleError(w, logger, getErr) {
 			return
 		}
 
