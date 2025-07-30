@@ -5,7 +5,6 @@ import (
 	"fmt"
 
 	"code.waarp.fr/apps/gateway/gateway/pkg/model/authentication/auth"
-	"code.waarp.fr/apps/gateway/gateway/pkg/protocols/protoutils"
 	"code.waarp.fr/apps/gateway/gateway/pkg/utils"
 )
 
@@ -40,10 +39,9 @@ func (c *clientTransfer) makeTLSConfig(servName string, conf *PartnerConfigTLS,
 		}
 	}
 
-	//nolint:gosec //the TLS min version is set by the user
 	tlsConfig := &tls.Config{
 		ServerName:   servName,
-		MinVersion:   protoutils.ParseTLSVersion(conf.MinTLSVersion),
+		MinVersion:   conf.MinTLSVersion.TLS(),
 		Certificates: certs,
 		RootCAs:      rootCAs,
 	}

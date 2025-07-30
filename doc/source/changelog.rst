@@ -3,6 +3,10 @@
 Historique des versions
 =======================
 
+* :feature:`464` Il est désormais possible de configurer la version minimale de
+  TLS pour R66-TLS et HTTPS. Cette version minimale peut être renseignée dans
+  la configuration protocolaire des client, serveurs et partenaires concernés.
+  Pour l'heure, la version minimale par défaut reste toujours la v1.2.
 * :feature:`478` Ajout des options ``FilePermissions`` et ``DirectoryPermissions``
   permettant de spécifier les droits attribués au fichiers et dossiers créés par
   la Gateway. Les droits par défauts restent toujours respectivement 0640 pour

@@ -148,9 +148,8 @@ func (h *handler) GetTLSConfig() (*tls.Config, error) {
 }
 
 func (h *handler) mkTLSConfig() {
-	//nolint:gosec //TLS version is set by the user
 	h.tlsConfig = &tls.Config{
-		MinVersion: protoutils.ParseTLSVersion(h.serverConf.MinTLSVersion),
+		MinVersion: h.serverConf.MinTLSVersion.TLS(),
 		ClientAuth: tls.RequestClientCert,
 		//nolint:err113 //dynamic errors are used to mask the internal errors (for security reasons)
 		GetCertificate: func(chi *tls.ClientHelloInfo) (*tls.Certificate, error) {

@@ -17,8 +17,8 @@ const (
 //nolint:gochecknoglobals // these are test variables
 var (
 	cliConf  = &clientConfig{}
-	servConf = &serverConfig{ServerLogin: serverLogin}
-	partConf = &partnerConfig{ServerLogin: serverLogin}
+	servConf = &serverConfig{sharedServerConfig: sharedServerConfig{ServerLogin: serverLogin}}
+	partConf = &partnerConfig{sharedPartnerConfig: sharedPartnerConfig{ServerLogin: serverLogin}}
 )
 
 func init() {

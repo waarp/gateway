@@ -20,9 +20,9 @@ func mapToStr(m map[string]string) string {
 type jsonDuration struct{ time.Duration }
 
 func (j *jsonDuration) UnmarshalJSON(bytes []byte) error {
-	str, err := strconv.Unquote(string(bytes))
-	if err != nil {
-		return fmt.Errorf("failed to unquote duration: %w", err)
+	var str string
+	if err := json.Unmarshal(bytes, &str); err != nil {
+		return err
 	}
 
 	dur, err := time.ParseDuration(str)
@@ -38,9 +38,9 @@ func (j *jsonDuration) UnmarshalJSON(bytes []byte) error {
 type jsonBool bool
 
 func (j *jsonBool) UnmarshalJSON(bytes []byte) error {
-	str, err := strconv.Unquote(string(bytes))
-	if err != nil {
-		return fmt.Errorf("failed to unquote bool: %w", err)
+	var str string
+	if err := json.Unmarshal(bytes, &str); err != nil {
+		return err
 	}
 
 	b, err := strconv.ParseBool(str)
