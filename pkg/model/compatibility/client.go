@@ -16,17 +16,10 @@ func init() {
 	tasks.GetDefaultTransferClient = GetDefaultTransferClient
 }
 
-func GetDefaultTransferClient(db *database.DB, remoteAccountID int64) (*model.Client, error) {
-	// Retrieve the transfer's partner (to retrieve the transfer's protocol).
-	var partner model.RemoteAgent
-	if err := db.Get(&partner, "id=(SELECT remote_agent_id FROM remote_accounts WHERE id=?)",
-		remoteAccountID).Run(); err != nil {
-		return nil, fmt.Errorf("failed to retrieve transfer partner: %w", err)
-	}
-
+func GetDefaultTransferClient(db *database.DB, protocol string) (*model.Client, error) {
 	// Retrieve all clients with the transfer's protocol.
 	var clients model.Clients
-	if err := db.Select(&clients).Where("protocol=?", partner.Protocol).Owner().Run(); err != nil {
+	if err := db.Select(&clients).Where("protocol=?", protocol).Owner().Run(); err != nil {
 		return nil, fmt.Errorf("failed to retrieve potential transfer clients: %w", err)
 	}
 
@@ -42,7 +35,7 @@ func GetDefaultTransferClient(db *database.DB, remoteAccountID int64) (*model.Cl
 	}
 
 	// Finally, if no clients were found, create a new default one and use it.
-	client := &model.Client{Protocol: partner.Protocol}
+	client := &model.Client{Protocol: protocol}
 	if err := db.Insert(client).Run(); err != nil {
 		return nil, fmt.Errorf("failed to create new transfer client: %w", err)
 	}

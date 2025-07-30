@@ -75,7 +75,7 @@ func getTransInfo(db *database.DB, trans *api.InTransfer,
 
 		clientID = utils.NewNullInt64(client.ID)
 	} else {
-		client, err := compatibility.GetDefaultTransferClient(db, account.ID)
+		client, err := compatibility.GetDefaultTransferClient(db, partner.Protocol)
 		if err != nil {
 			return 0, null, null, fmt.Errorf("failed to retrieve default client: %w", err)
 		}

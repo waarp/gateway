@@ -89,17 +89,17 @@ func (j *jsonFloat) UnmarshalJSON(bytes []byte) error {
 	return nil
 }
 
-type jsonMap map[string]any
+type jsonObject map[string]any
 
-func (j *jsonMap) UnmarshalJSON(bytes []byte) error {
-	str, err := strconv.Unquote(string(bytes))
-	if err != nil {
-		return fmt.Errorf("failed to unquote map: %w", err)
+func (j *jsonObject) UnmarshalJSON(bytes []byte) error {
+	str, uqErr := strconv.Unquote(string(bytes))
+	if uqErr != nil {
+		return fmt.Errorf("failed to unquote object: %w", uqErr)
 	}
 
 	var m map[string]any
-	if err = json.Unmarshal([]byte(str), &m); err != nil {
-		return fmt.Errorf("failed to parse map: %w", err)
+	if err := json.Unmarshal([]byte(str), &m); err != nil {
+		return fmt.Errorf("failed to unmarshal JSON: %w", err)
 	}
 
 	*j = m
