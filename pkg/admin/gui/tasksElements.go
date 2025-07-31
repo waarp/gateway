@@ -17,6 +17,8 @@ var (
 	EncryptMethods     []string
 	SignMethods        []string
 	EncryptSignMethods []string
+	DecryptMethods     []string
+	VerifyMethods      []string
 	IcapOnErrorOptions = []string{
 		"",
 		tasks.IcapOnErrorDelete,
@@ -43,6 +45,12 @@ func init() {
 
 	EncryptSignMethods = maps.Keys(tasks.EncryptSignMethods)
 	slices.Sort(EncryptSignMethods)
+
+	DecryptMethods = maps.Keys(tasks.DecryptMethods)
+	slices.Sort(DecryptMethods)
+
+	VerifyMethods = maps.Keys(tasks.VerifyMethods)
+	slices.Sort(VerifyMethods)
 }
 
 //nolint:gochecknoglobals // Constant
@@ -201,7 +209,7 @@ func taskTRANSFER(r *http.Request) map[string]string {
 	}
 
 	if infoTransfer := r.Form["infoTransfer[]"]; len(infoTransfer) > 0 {
-		taskTransfer["info"] = strings.Join(infoTransfer, ",")
+		taskTransfer["info"] = strings.Join(infoTransfer, "\n")
 	}
 
 	return taskTransfer
@@ -232,8 +240,11 @@ func taskARCHIVE(r *http.Request) map[string]string {
 		taskArchive["compressionLevel"] = compressionLevelArchive
 	}
 
-	if outputPathArchive := r.FormValue("outputPathArchive"); outputPathArchive != "" {
-		taskArchive["outputPath"] = outputPathArchive
+	outputPathArchiveName := r.FormValue("outputPathArchiveName")
+
+	if outputPathArchiveExt := r.FormValue("outputPathArchiveExt"); outputPathArchiveExt != "" &&
+		outputPathArchiveName != "" {
+		taskArchive["outputPath"] = outputPathArchiveName + outputPathArchiveExt
 	}
 
 	return taskArchive
@@ -242,8 +253,10 @@ func taskARCHIVE(r *http.Request) map[string]string {
 func taskEXTRACT(r *http.Request) map[string]string {
 	taskExtract := make(map[string]string)
 
-	if archiveExtract := r.FormValue("archiveExtract"); archiveExtract != "" {
-		taskExtract["archive"] = archiveExtract
+	archiveExtractName := r.FormValue("archiveExtractName")
+
+	if archiveExtractExt := r.FormValue("archiveExtractExt"); archiveExtractExt != "" && archiveExtractName != "" {
+		taskExtract["archive"] = archiveExtractName + archiveExtractExt
 	}
 
 	if outputDirExtract := r.FormValue("outputDirExtract"); outputDirExtract != "" {
@@ -260,10 +273,25 @@ func taskICAP(r *http.Request) map[string]string {
 	if uploadURLIcap := r.FormValue("uploadURLIcap"); uploadURLIcap != "" {
 		taskIcap["uploadURL"] = uploadURLIcap
 	}
+	var timeout string
 
-	if timeoutIcap := r.FormValue("timeoutIcap"); timeoutIcap != "" {
-		taskIcap["timeout"] = timeoutIcap
+	if h := r.FormValue("timeoutIcapH"); h != "" {
+		timeout += h + "h"
 	}
+
+	if m := r.FormValue("timeoutIcapM"); m != "" {
+		timeout += m + "m"
+	}
+
+	if s := r.FormValue("timeoutIcapS"); s != "" {
+		timeout += s + "s"
+	}
+
+	if ms := r.FormValue("timeoutIcapMS"); ms != "" {
+		timeout += ms + "ms"
+	}
+
+	taskIcap["timeout"] = timeout
 
 	if allowFileModificationsIcap := r.FormValue("allowFileModificationsIcap"); allowFileModificationsIcap != "" {
 		taskIcap["allowFileModifications"] = allowFileModificationsIcap

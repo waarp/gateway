@@ -148,7 +148,34 @@
     <hr style="border-top: 1px solid #ababab;">
     <div class="form-input">
         <label class="col-form-label">{{ index .tab "info" }} <i class="bi bi-info-circle ms-1" data-bs-toggle="tooltip" data-bs-placement="right" data-bs-title="{{ index $.tab "tooltipInfo" }}"></i> :</label>
-        <input type="text" name="infoTransfer" class="form-control" value="{{ index .Args "info" }}">
+        <div id="infoTransferContainer">
+            {{ $infos := split (index .Args "info") "\n" }}
+            {{ $count := 0 }}
+            {{ range $i, $info := $infos }}
+                {{ if ne $info "" }}
+                    {{ $count = add $count 1 }}
+                    <div class="input-group mb-2">
+                        <input type="text" name="infoTransfer[]" class="form-control" value="{{ $info }}">
+                        <button type="button" class="btn btn-outline-danger btn-sm" onclick="removeField(this)">
+                            <i class="bi bi-trash"></i>
+                        </button>
+                    </div>
+                {{ end }}
+            {{ end }}
+            {{ if eq $count 0 }}
+                <div class="input-group mb-2">
+                    <input type="text" name="infoTransfer[]" class="form-control" placeholder="{{ index .tab "info" }}">
+                    <button type="button" class="btn btn-outline-danger btn-sm" onclick="removeField(this)">
+                        <i class="bi bi-trash"></i>
+                    </button>
+                </div>
+            {{ end }}
+        </div>
+        <button type="button"
+                class="btn btn-outline-primary btn-sm"
+                onclick="addField(this,'infoTransfer[]')">
+            add
+        </button>
     </div>
 </div>
 {{ end }}
@@ -201,13 +228,16 @@
     <hr style="border-top: 1px solid #ababab;">
     <div class="form-input">
         <label class="col-form-label">{{ index .tab "outputPath" }} <i class="bi bi-info-circle ms-1" data-bs-toggle="tooltip" data-bs-placement="right" data-bs-title="{{ index $.tab "tooltipOutputPath" }}"></i> :</label>
-        <select name="outputPathArchive" id="outputPathArchive" class="form-select">
-            <option value="" disabled selected>{{ index .tab "selectOutputPath" }}</option>
-            {{ $args := .Args }}
-            {{ range .ArchiveExtensions }}
-                <option value="{{ . }}" {{ if eq (index $args "outputPath") . }}selected{{ end }}>{{ . }}</option>
-            {{ end }}
-        </select>
+        <div class="input-group">
+            <input type="text" name="outputPathArchiveName" class="form-control" value="{{ splitExtensions (index .Args "outputPath") "before" }}">
+            <select name="outputPathArchiveExt" id="outputPathArchiveExt" class="form-select" style="max-width: 20%;">
+                <option value="" disabled selected>{{ index .tab "extensions" }}</option>
+                {{ $args := .Args }}
+                {{ range .ArchiveExtensions }}
+                    <option value="{{ . }}" {{ if eq (splitExtensions (index $args "outputPath") "after") . }}selected{{ end }}>{{ . }}</option>
+                {{ end }}
+            </select>
+        </div>
     </div>
 </div>
 {{ end }}
@@ -217,13 +247,16 @@
     <hr style="border-top: 1px solid #ababab;">
     <div class="form-input">
         <label class="col-form-label">{{ index .tab "archive" }} <i class="bi bi-info-circle ms-1" data-bs-toggle="tooltip" data-bs-placement="right" data-bs-title="{{ index $.tab "tooltipArchive" }}"></i> :</label>
-        <select name="archiveExtract" id="archiveExtract" class="form-select">
-            <option value="" disabled selected>{{ index .tab "selectArchive" }}</option>
-            {{ $args := .Args }}
-            {{ range .ArchiveExtensions }}
-            <option value="{{ . }}" {{ if eq (index $args "archive") . }}selected{{ end }}>{{ . }}</option>
-            {{ end }}
-        </select>
+        <div class="input-group">
+            <input type="text" name="archiveExtractName" class="form-control" value="{{ splitExtensions (index .Args "archive") "before" }}">
+            <select name="archiveExtractExt" id="archiveExtractExt" class="form-select" style="max-width: 20%;">
+                <option value="" disabled selected>{{ index .tab "extensions" }}</option>
+                {{ $args := .Args }}
+                {{ range .ArchiveExtensions }}
+                    <option value="{{ . }}" {{ if eq (splitExtensions (index $args "archive") "after") . }}selected{{ end }}>{{ . }}</option>
+                {{ end }}
+            </select>
+        </div>
     </div>
     <hr style="border-top: 1px solid #ababab;">
     <div class="form-input">
@@ -243,7 +276,16 @@
     <hr style="border-top: 1px solid #ababab;">
     <div class="form-input">
         <label class="col-form-label">{{ index .tab "timeout" }} <i class="bi bi-info-circle ms-1" data-bs-toggle="tooltip" data-bs-placement="right" data-bs-title="{{ index $.tab "tooltipTimeout" }}"></i> :</label>
-        <input type="text" name="timeoutIcap" class="form-control" value="{{ index .Args "timeout" }}">
+        <div class="input-group" style="max-width: 60%;">
+            <span class="input-group-text">h</span>
+            <input type="text" name="timeoutIcapH" class="form-control" placeholder="00" value="{{ splitTime (index .Args "timeout") "h" }}">
+            <span class="input-group-text">m</span>
+            <input type="text" name="timeoutIcapM" class="form-control" placeholder="00" value="{{ splitTime (index .Args "timeout") "m" }}">
+            <span class="input-group-text">s</span>
+            <input type="text" name="timeoutIcapS" class="form-control" placeholder="00" value="{{ splitTime (index .Args "timeout") "s" }}">
+            <span class="input-group-text">ms</span>
+            <input type="text" name="timeoutIcapMS" class="form-control" placeholder="00" value="{{ splitTime (index .Args "timeout") "ms" }}">
+        </div>
     </div>
     <hr style="border-top: 1px solid #ababab;">
     <div class="form-input d-flex align-items-center">
@@ -326,7 +368,7 @@
         <select name="methodDecrypt" id="methodDecrypt" class="form-select">
             <option value="" disabled selected>{{ index .tab "selectMethod" }}</option>
             {{ $args := .Args }}
-            {{ range .EncryptMethods }}
+            {{ range .DecryptMethods }}
             <option value="{{ . }}" {{ if eq (index $args "method") . }}selected{{ end }}>{{ . }}</option>
             {{ end }}
         </select>
@@ -378,7 +420,7 @@
         <select name="methodVerify" id="methodVerify" class="form-select">
             <option value="" disabled selected>{{ index .tab "selectMethodVerify" }}</option>
             {{ $args := .Args }}
-            {{ range .SignMethods }}
+            {{ range .VerifyMethods }}
             <option value="{{ . }}" {{ if eq (index $args "method") . }}selected{{ end }}>{{ . }}</option>
             {{ end }}
         </select>

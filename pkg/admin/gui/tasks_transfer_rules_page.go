@@ -51,7 +51,7 @@ func addPreTask(ruleID int, preTasks []*model.Task, db *database.DB, r *http.Req
 		newPreTask.Args = taskARCHIVE(r)
 	case "EXTRACT":
 		newPreTask.Args = taskEXTRACT(r)
-	case "ICAP (BETA)":
+	case "ICAP":
 		newPreTask.Args = taskICAP(r)
 	case "ENCRYPT":
 		newPreTask.Args = taskENCRYPT(r)
@@ -125,7 +125,7 @@ func editPreTask(ruleID int, preTasks []*model.Task, db *database.DB, r *http.Re
 		editPreTask.Args = taskARCHIVE(r)
 	case "EXTRACT":
 		editPreTask.Args = taskEXTRACT(r)
-	case "ICAP (BETA)":
+	case "ICAP":
 		editPreTask.Args = taskICAP(r)
 	case "ENCRYPT":
 		editPreTask.Args = taskENCRYPT(r)
@@ -303,7 +303,7 @@ func addPostTask(ruleID int, postTasks []*model.Task, db *database.DB, r *http.R
 		newPostTask.Args = taskARCHIVE(r)
 	case "EXTRACT":
 		newPostTask.Args = taskEXTRACT(r)
-	case "ICAP (BETA)":
+	case "ICAP":
 		newPostTask.Args = taskICAP(r)
 	case "ENCRYPT":
 		newPostTask.Args = taskENCRYPT(r)
@@ -377,7 +377,7 @@ func editPostTask(ruleID int, postTasks []*model.Task, db *database.DB, r *http.
 		editPostTask.Args = taskARCHIVE(r)
 	case "EXTRACT":
 		editPostTask.Args = taskEXTRACT(r)
-	case "ICAP (BETA)":
+	case "ICAP":
 		editPostTask.Args = taskICAP(r)
 	case "ENCRYPT":
 		editPostTask.Args = taskENCRYPT(r)
@@ -555,7 +555,7 @@ func addErrorTask(ruleID int, errorTasks []*model.Task, db *database.DB, r *http
 		newErrorTask.Args = taskARCHIVE(r)
 	case "EXTRACT":
 		newErrorTask.Args = taskEXTRACT(r)
-	case "ICAP (BETA)":
+	case "ICAP":
 		newErrorTask.Args = taskICAP(r)
 	case "ENCRYPT":
 		newErrorTask.Args = taskENCRYPT(r)
@@ -629,7 +629,7 @@ func editErrorTask(ruleID int, errorTasks []*model.Task, db *database.DB, r *htt
 		editErrorTask.Args = taskARCHIVE(r)
 	case "EXTRACT":
 		editErrorTask.Args = taskEXTRACT(r)
-	case "ICAP (BETA)":
+	case "ICAP":
 		editErrorTask.Args = taskICAP(r)
 	case "ENCRYPT":
 		editErrorTask.Args = taskENCRYPT(r)
@@ -845,7 +845,9 @@ func tasksTransferRulesPage(logger *log.Logger, db *database.DB) http.HandlerFun
 			"TranscodeFormats":     TranscodeFormats,
 			"ArchiveExtensions":    ArchiveExtensions,
 			"EncryptMethods":       EncryptMethods,
+			"DecryptMethods":       DecryptMethods,
 			"SignMethods":          SignMethods,
+			"VerifyMethods":        VerifyMethods,
 			"EncryptSignMethods":   EncryptSignMethods,
 			"IcapOnErrorOptions":   IcapOnErrorOptions,
 			"CompressionLevelList": CompressionLevelList,

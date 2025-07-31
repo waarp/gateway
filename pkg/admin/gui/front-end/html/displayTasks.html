@@ -120,16 +120,15 @@
         </div>
     </div>
     <hr style="border-top: 1px solid #ababab;">
-    {{ with index .Args "info" }}
-        <div class="form-input">
-        <label class="col-form-label">{{ index $.tab "info" }} <i class="bi bi-info-circle ms-1" data-bs-toggle="tooltip" data-bs-placement="right" data-bs-title="{{ index $.tab "tooltipInfo" }}"></i> :</label>
-        <ul class="list-unstyled mb-0">
-            {{ range split "," . }}
-            <li>{{ . }}</li>
-            {{ end }}
-        </ul>
-        </div>
+    <div class="form-input">
+        <label class="col-form-label">{{ index .tab "info" }} <i class="bi bi-info-circle ms-1" data-bs-toggle="tooltip" data-bs-placement="right" data-bs-title="{{ index $.tab "tooltipInfo" }}"></i> :</label>
+            {{ $infos := split (index .Args "info") "\n" }}
+    {{ range $i, $info := $infos }}
+        {{ if ne $info "" }}
+            <input type="text" class="form-control-plaintext mb-1" value="{{ $info }}" disabled>
+        {{ end }}
     {{ end }}
+    </div>
 {{ end }}
 
 {{ define "displayTaskTRANSCODE" }}
@@ -156,7 +155,7 @@
 </div>
 <hr style="border-top: 1px solid #ababab;">
 <div class="form-input">
-    <label class="col-form-label">{{ index .tab "outputPath" }} …</label>
+    <label class="col-form-label">{{ index .tab "outputPath" }} <i class="bi bi-info-circle ms-1" data-bs-toggle="tooltip" data-bs-placement="right" data-bs-title="{{ index $.tab "tooltipOutputPath" }}"></i> :</label>
     <input type="text" class="form-control-plaintext" value="{{ index .Args "outputPath" }}" disabled>
 </div>
 {{ end }}
@@ -187,7 +186,7 @@
 <div class="form-input d-flex align-items-center">
     <label class="col-form-label me-3">{{ index .tab "allowFileModifications" }} <i class="bi bi-info-circle ms-1" data-bs-toggle="tooltip" data-bs-placement="right" data-bs-title="{{ index $.tab "tooltipAllowFileModifications" }}"></i> :</label>
     <div class="form-check form-check-inline">
-        <input class="form-check-input" type="checkbox" {{ if eq (index .Args "allowFileModifications") true }}checked{{ end }} disabled>
+        <input class="form-check-input" type="checkbox" {{ if eq (index .Args "allowFileModifications") "true" }}checked{{ end }} disabled>
     </div>
 </div>
 <hr style="border-top: 1px solid #ababab;">
@@ -211,7 +210,7 @@
 <div class="form-input d-flex align-items-center">
     <label class="col-form-label me-3">{{ index .tab "keepOriginal" }} <i class="bi bi-info-circle ms-1" data-bs-toggle="tooltip" data-bs-placement="right" data-bs-title="{{ index $.tab "tooltipKeepOriginalEncrypt" }}"></i> :</label>
     <div class="form-check form-check-inline">
-        <input class="form-check-input" type="checkbox" {{ if eq (index .Args "keepOriginal") true }}checked{{ end }} disabled>
+        <input class="form-check-input" type="checkbox" {{ if eq (index .Args "keepOriginal") "true" }}checked{{ end }} disabled>
     </div>
 </div>
 <hr style="border-top: 1px solid #ababab;">
@@ -235,7 +234,7 @@
 <div class="form-input d-flex align-items-center">
     <label class="col-form-label me-3">{{ index .tab "keepOriginal" }} <i class="bi bi-info-circle ms-1" data-bs-toggle="tooltip" data-bs-placement="right" data-bs-title="{{ index $.tab "tooltipKeepOriginalDecrypt" }}"></i> :</label>
     <div class="form-check form-check-inline">
-        <input class="form-check-input" type="checkbox" {{ if eq (index .Args "keepOriginal") true }}checked{{ end }} disabled>
+        <input class="form-check-input" type="checkbox" {{ if eq (index .Args "keepOriginal") "true" }}checked{{ end }} disabled>
     </div>
 </div>
 <hr style="border-top: 1px solid #ababab;">
@@ -293,7 +292,7 @@
 <div class="form-input d-flex align-items-center">
     <label class="col-form-label me-3">{{ index .tab "keepOriginal" }} <i class="bi bi-info-circle ms-1" data-bs-toggle="tooltip" data-bs-placement="right" data-bs-title="{{ index $.tab "tooltipKeepOriginalEncrypt" }}"></i> :</label>
     <div class="form-check form-check-inline">
-        <input class="form-check-input" type="checkbox" {{ if eq (index .Args "keepOriginal") true }}checked{{ end }} disabled>
+        <input class="form-check-input" type="checkbox" {{ if eq (index .Args "keepOriginal") "true" }}checked{{ end }} disabled>
     </div>
 </div>
 <hr style="border-top: 1px solid #ababab;">
@@ -322,7 +321,7 @@
 <div class="form-input d-flex align-items-center">
     <label class="col-form-label me-3">{{ index .tab "keepOriginal" }} <i class="bi bi-info-circle ms-1" data-bs-toggle="tooltip" data-bs-placement="right" data-bs-title="{{ index $.tab "tooltipKeepOriginalDecrypt" }}"></i> :</label>
     <div class="form-check form-check-inline">
-        <input class="form-check-input" type="checkbox" {{ if eq (index .Args "keepOriginal") true }}checked{{ end }} disabled>
+        <input class="form-check-input" type="checkbox" {{ if eq (index .Args "keepOriginal") "true" }}checked{{ end }} disabled>
     </div>
 </div>
 <hr style="border-top: 1px solid #ababab;">

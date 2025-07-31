@@ -7,9 +7,17 @@ function addField(button, fieldName) {
     if (!firstGroup)
         return;
     const newGroup = firstGroup.cloneNode(true);
-    const select = newGroup.querySelector('select');
-    if (select)
-        select.selectedIndex = 0;
+
+    newGroup.querySelectorAll('input, select, textarea').forEach(el => {
+        if (el.type === 'checkbox' || el.type === 'radio') {
+            el.checked = false;
+        } else if (el.tagName === 'SELECT') {
+            el.selectedIndex = 0;
+        } else {
+            el.value = '';
+        }
+    });
+
     container.appendChild(newGroup);
 }
 
