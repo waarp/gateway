@@ -58,28 +58,27 @@ func (q *TransferListQuery) File(file string) *TransferListQuery {
 	return q
 }
 
-// FilePattern adds a condition on the transfer file name using the provided
-// pattern. The pattern must be in Unix glob format, which accepts the following
-// wildcards:
-// - "?" for matching any character exactly once
-// - "*" for matching a string of zero or more characters
-//
-// That glob will then be converted to an SQL pattern, with the equivalent SQL
-// wildcards.
-func (q *TransferListQuery) FilePattern(glob string) *TransferListQuery {
-	const escapeChar = "!"
+// FilePattern adds a condition which will match any transfer whose filename
+// contains the provided substring.
+func (q *TransferListQuery) FilePattern(substring string) *TransferListQuery {
+	const escapeChar = "\033"
 
-	// First, escape SQL wildcard characters
-	pattern := strings.ReplaceAll(glob, "%", escapeChar+"%")
-	pattern = strings.ReplaceAll(pattern, "_", escapeChar+"_")
-	// Then replace glob wildcards with SQL wildcards
-	pattern = strings.ReplaceAll(pattern, "*", "%")
-	pattern = strings.ReplaceAll(pattern, "?", "_")
+	replacer := strings.NewReplacer(
+		"%", escapeChar+"%",
+		"_", escapeChar+"_",
+	)
+
+	substring = replacer.Replace(substring)
+	substring = "%" + substring + "%"
 
 	q.query.Where("src_filename LIKE ? ESCAPE ? OR dest_filename LIKE ? ESCAPE ?",
-		pattern, escapeChar, pattern, escapeChar)
+		substring, escapeChar, substring, escapeChar)
 
 	return q
+}
+
+func (q *TransferListQuery) Count() (uint64, error) {
+	return q.query.Count()
 }
 
 func (q *TransferListQuery) Run() ([]*model.NormalizedTransferView, error) {

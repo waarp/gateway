@@ -24,7 +24,7 @@ func TestTransferListFilePattern(t *testing.T) {
 		Agent:            "bar",
 		Client:           "baz",
 		Protocol:         "http",
-		SrcFilename:      "/test/source_f%le.txt",
+		SrcFilename:      "/test/source_file.txt",
 		DestFilename:     "/test/dest_file.txt",
 		LocalPath:        "/full/local/path",
 		RemotePath:       "/full/remote/path",
@@ -46,8 +46,8 @@ func TestTransferListFilePattern(t *testing.T) {
 		Agent:            "bar",
 		Client:           "baz",
 		Protocol:         "http",
-		SrcFilename:      "/test/source_file.txt",
-		DestFilename:     "/test/dest_file.txt",
+		SrcFilename:      "/test/source-file.txt",
+		DestFilename:     "/test/dest-file.txt",
 		LocalPath:        "/full/local/path",
 		RemotePath:       "/full/remote/path",
 		Filesize:         1000,
@@ -59,7 +59,7 @@ func TestTransferListFilePattern(t *testing.T) {
 	require.NoError(t, db.Insert(hist2).Run())
 
 	query := StartTransferQuery(db, "id", true)
-	query.FilePattern("/test/*_f%le.t?t")
+	query.FilePattern("source_file")
 
 	result, err := query.Run()
 	require.NoError(t, err)

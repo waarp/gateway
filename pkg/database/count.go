@@ -1,13 +1,21 @@
 package database
 
-import "xorm.io/builder"
+import (
+	"xorm.io/builder"
+
+	"code.waarp.fr/apps/gateway/gateway/pkg/conf"
+)
+
+type selectCountBean struct{ SelectBean }
+
+func (s *selectCountBean) Appellation() string { return s.Elem() }
 
 // CountQuery is the type representing a SQL COUNT statement.
 type CountQuery struct {
 	db   Access
 	bean IterateBean
 
-	conds []condition
+	conds []*condition
 }
 
 // Where adds a 'WHERE' clause to the 'COUNT' query with the given conditions
@@ -17,9 +25,14 @@ type CountQuery struct {
 // If the function is called multiple times, all the conditions will be chained
 // using the 'AND' operator.
 func (c *CountQuery) Where(sql string, args ...interface{}) *CountQuery {
-	c.conds = append(c.conds, condition{sql: sql, args: args})
+	c.conds = append(c.conds, &condition{sql: sql, args: args})
 
 	return c
+}
+
+// Owner adds a 'WHERE owner = ?' clause to the 'SELECT' query.
+func (c *CountQuery) Owner() *CountQuery {
+	return c.Where("owner=?", conf.GlobalConfig.GatewayName)
 }
 
 // Run executes the 'COUNT' query and returns the count number.

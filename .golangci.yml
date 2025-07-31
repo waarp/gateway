@@ -900,7 +900,7 @@ issues:
   new: false
 
   # Show only new issues not already present in the git 'master' branch
-  new-from-rev: origin/master
+  new-from-rev: v0.12.9
 
   # Show issues in any part of update files (requires new-from-rev or new-from-patch)
   whole-files: true

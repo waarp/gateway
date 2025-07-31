@@ -95,6 +95,12 @@ func (s *SelectQuery) Limit(limit, offset int) *SelectQuery {
 	return s
 }
 
+func (s *SelectQuery) Count() (uint64, error) {
+	countQuery := &CountQuery{db: s.db, bean: &selectCountBean{s.bean}, conds: s.conds}
+
+	return countQuery.Run()
+}
+
 // Run executes the 'SELECT' query.
 func (s *SelectQuery) Run() error {
 	logger := s.db.GetLogger()

@@ -136,8 +136,7 @@ func (s *Standalone) Get(bean GetBean, where string, args ...interface{}) *GetQu
 // of the given model from the database. The request can be narrowed using
 // the CountQuery.Where method.
 //
-// The request can then be executed using the IterateQuery.Run method. The
-// selected entries will be returned inside an Iterator instance.
+// The request can then be executed using the CountQuery.Run method.
 func (s *Standalone) Count(bean IterateBean) *CountQuery {
 	return &CountQuery{db: s, bean: bean}
 }
