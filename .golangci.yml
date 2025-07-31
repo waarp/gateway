@@ -2539,7 +2539,7 @@ linters:
           bson: camel
           avro: snake
           mapstructure: kebab
-          env: upperSnake
+          #env: upperSnake
           envconfig: upperSnake
           whatever: snake
         # Defines the association between tag name and case.
@@ -2571,6 +2571,7 @@ linters:
             # Default: empty
             initialism-overrides:
               URL: true # add a new initialism
+              SNMP: true
 
         # Uses the struct field name to check the name of the struct tag.
         # Default: false

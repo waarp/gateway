@@ -3,6 +3,9 @@
 Historique des versions
 =======================
 
+* :feature:`435` Ajout d'une commande CLI et d'un handler REST permettant
+  d'envoyer des notifications SNMP de test afin de valider la configuration des
+  moniteurs SNMP.
 * :feature:`438` Ajout du nom de l'instance Gateway dans les *traps* SNMP.
   Consulter :ref:`la MIB SNMP <reference-snmp-mib>` pour plus d'information.
 * :feature:`429` Ajout d'une variable de substitution ``#TIMESTAMP#`` utilisable

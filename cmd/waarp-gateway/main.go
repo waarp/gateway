@@ -9,7 +9,7 @@ import (
 	wg "code.waarp.fr/apps/gateway/gateway/pkg/cmd/client"
 )
 
-//nolint:lll // struct tags for command line arguments can be long
+//nolint:lll,embeddedstructfieldcheck // struct tags for command line arguments can be long
 type commands struct {
 	Connection struct {
 		Address  wg.AddrOpt     `short:"a" long:"address" required:"yes" description:"The address of the gateway" env:"WAARP_GATEWAY_ADDRESS"`
@@ -188,6 +188,7 @@ type commands struct {
 			List wg.SnmpMonitorList   `command:"list" description:"List the known SNMP monitors"`
 			Upd  wg.SnmpMonitorUpdate `command:"update" description:"Update an existing SNMP monitor"`
 			Del  wg.SnmpMonitorDelete `command:"delete" description:"Delete an SNMP monitor"`
+			Test wg.SnmpTestMonitors  `command:"test" description:"Send a test notification to the SNMP monitors"`
 		} `command:"monitor" description:"Manage the SNMP monitors"`
 		Server struct {
 			Set wg.SnmpServerSet    `command:"set" description:"Set the SNMP server configuration"`

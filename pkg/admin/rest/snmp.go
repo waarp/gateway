@@ -368,3 +368,19 @@ func deleteSnmpService(logger *log.Logger, db *database.DB) http.HandlerFunc {
 		w.WriteHeader(http.StatusNoContent)
 	}
 }
+
+func testSnmpTrapTransErr(logger *log.Logger) http.HandlerFunc {
+	return func(w http.ResponseWriter, _ *http.Request) {
+		if snmp.GlobalService == nil {
+			http.Error(w, "SNMP service is not running", http.StatusServiceUnavailable)
+
+			return
+		}
+
+		if err := snmp.GlobalService.SendTestNotification(); handleError(w, logger, err) {
+			return
+		}
+
+		w.WriteHeader(http.StatusAccepted)
+	}
+}

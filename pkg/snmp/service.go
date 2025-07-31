@@ -13,6 +13,7 @@ import (
 	"code.waarp.fr/apps/gateway/gateway/pkg/database"
 	"code.waarp.fr/apps/gateway/gateway/pkg/logging"
 	"code.waarp.fr/apps/gateway/gateway/pkg/model"
+	"code.waarp.fr/apps/gateway/gateway/pkg/model/types"
 	"code.waarp.fr/apps/gateway/gateway/pkg/utils"
 )
 
@@ -154,6 +155,27 @@ func (s *Service) ReportTransferError(transferID int64) {
 	if err := s.sendTransferError(&trans); err != nil {
 		s.Logger.Errorf("Failed to send transfer error: %v", err)
 	}
+}
+
+func (s *Service) SendTestNotification() error {
+	trans := &model.NormalizedTransferView{
+		HistoryEntry: model.HistoryEntry{
+			ID:               -1,
+			RemoteTransferID: "",
+			IsServer:         false,
+			IsSend:           true,
+			Rule:             "test_rule",
+			Account:          "test_account",
+			Agent:            "test_agent",
+			Client:           "test_client",
+			LocalPath:        "/test/file",
+			ErrCode:          types.TeInternal,
+			ErrDetails:       "This is a test notification",
+		},
+		IsTransfer: true,
+	}
+
+	return s.sendTransferError(trans)
 }
 
 func ReportServiceFailure(service string, sErr error) {
