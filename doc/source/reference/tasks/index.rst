@@ -41,7 +41,9 @@ Les substitutions disponibles sont les suivantes :
 Marqueur               Signification
 ====================== =============
 ``#TRUEFULLPATH#``     Le chemin réel du fichier sur le disque
-``#TRUEFILENAME#``     Le nom réel du fichier sur le disque
+``#TRUEFILENAME#``     Le nom complet du fichier sur le disque (nom + extension)
+``#BASEFILENAME#``     Le nom du fichier sur disque (sans extension)
+``#FILEEXTENSION#``    L'extension du fichier (avec le point inclus, ex: ``.txt``)
 ``#ORIGINALFULLPATH#`` Le chemin d'origine du fichier avant le transfert
 ``#ORIGINALFILENAME#`` Le nom d'origine du fichier avant le transfert
 ``#FILESIZE#``         La taille du fichier

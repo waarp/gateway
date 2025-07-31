@@ -20,8 +20,8 @@ import (
 )
 
 func TestSetup(t *testing.T) {
-	root := t.TempDir()
-	rootAlt := t.TempDir()
+	root := filepath.ToSlash(t.TempDir())
+	rootAlt := filepath.ToSlash(t.TempDir())
 
 	Convey("Given a Task with some replacement variables", t, func(c C) {
 		task := &model.Task{
@@ -36,6 +36,7 @@ func TestSetup(t *testing.T) {
 				"errCode": "#ERRORCODE#", "errMsg": "#ERRORMSG#", "errStrCode": "#ERRORSTRCODE#",
 				"inPath": "#INPATH#", "outPath": "#OUTPATH#", "workPath": "#WORKPATH#",
 				"homePath": "#HOMEPATH#", "transferInfo": "#TI_foo#/#TI_id#",
+				"baseFileName": "#BASEFILENAME#", "fileExtension": "#FILEEXTENSION#",
 			},
 		}
 
@@ -86,7 +87,7 @@ func TestSetup(t *testing.T) {
 				ClientID:        utils.NewNullInt64(clientID),
 				SrcFilename:     "src/file",
 				DestFilename:    "dst/file",
-				LocalPath:       filepath.Join(root, transCtx.Rule.LocalDir, "file.test"),
+				LocalPath:       path.Join(root, transCtx.Rule.LocalDir, "file.test"),
 				RemotePath:      path.Join(transCtx.Rule.RemoteDir, "file.rem"),
 				ErrCode:         types.TeConnection,
 				ErrDetails:      `error message`,
@@ -290,6 +291,24 @@ func TestSetup(t *testing.T) {
 
 						Convey("Then res[transferInfo] should contain the resolved variable", func() {
 							So(val, ShouldEqual, "bar/123")
+						})
+					})
+
+					Convey("Then res should contain a `baseFileName` entry", func() {
+						val, ok := res["baseFileName"]
+						So(ok, ShouldBeTrue)
+
+						Convey("Then res[transferInfo] should contain the resolved variable", func() {
+							So(val, ShouldEqual, "file")
+						})
+					})
+
+					Convey("Then res should contain a `fileExtension` entry", func() {
+						val, ok := res["fileExtension"]
+						So(ok, ShouldBeTrue)
+
+						Convey("Then res[transferInfo] should contain the resolved variable", func() {
+							So(val, ShouldEqual, ".test")
 						})
 					})
 				})

@@ -3,6 +3,9 @@
 Historique des versions
 =======================
 
+* :feature:`452` Les nouvelles valeurs de substitution ``#BASEFILENAME#`` et
+  ``#FILEEXTENSION#`` ont été rajoutées, permettant de récupérer, respectivement
+  et séparément, le nom du fichier de transfert et son extension.
 * :feature:`456` Ajout d'un paramètre ``output`` à la tâche TRANSFER permettant
   de spécifier le nom/chemin de destination du fichier lorsque celui diffère du
   nom d'origine.
