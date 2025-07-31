@@ -3002,6 +3002,11 @@ linters:
           - dupl
         path: pkg/database/migrations/[0-9]+\.[0-9]+\.[0-9]+\.go
 
+      # Exclude 'gochecknoglobals' on the file defining the SNMP OIDs.
+      - linters:
+          - gochecknoglobals
+        path: pkg/snmp/oids\.go
+
     # Which file paths to exclude: they will be analyzed, but issues from them won't be reported.
     # "/" will be replaced by the current OS file path separator to properly work on Windows.
     # Default: []

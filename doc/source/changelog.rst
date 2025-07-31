@@ -3,6 +3,8 @@
 Historique des versions
 =======================
 
+* :feature:`438` Ajout du nom de l'instance Gateway dans les *traps* SNMP.
+  Consulter :ref:`la MIB SNMP <reference-snmp-mib>` pour plus d'information.
 * :feature:`429` Ajout d'une variable de substitution ``#TIMESTAMP#`` utilisable
   dans les traitement pré ou post transfert. Cette variable combine les variables
   existantes ``#DATE#`` et ``#HOUR#`` en une seule valeur plus facilement utilisable.

@@ -12,7 +12,8 @@ const WaarpEnterpriseOID = EnterprisesOID + ".66666"
 
 // Gateway OIDs.
 var (
-	AppOID = WaarpEnterpriseOID + ".77" // Other applications should change this value.
+	AppOID          = WaarpEnterpriseOID + ".77" // Other applications should change this value.
+	InstanceNameOID = AppOID + ".99"
 
 	NotifsOID  = AppOID + ".0"
 	ObjectsOID = AppOID + ".1"
@@ -61,11 +62,11 @@ var (
 var (
 	TransStatsOID = ObjectsOID + ".5"
 
-	TsObjectNbTotalTransfersOID    = TransStatsOID + ".1"
-	TsObjectNbRunningTransfersOID  = TransStatsOID + ".2"
-	TsObjectNbInErrorTransfersOID  = TransStatsOID + ".3"
-	TsObjectNbFinishedTransfersOID = TransStatsOID + ".4"
-	TsObjectNbCanceledTransfersOID = TransStatsOID + ".5"
+	StatObjectNbTotalTransfersOID    = TransStatsOID + ".1"
+	StatObjectNbRunningTransfersOID  = TransStatsOID + ".2"
+	StatObjectNbInErrorTransfersOID  = TransStatsOID + ".3"
+	StatObjectNbFinishedTransfersOID = TransStatsOID + ".4"
+	StatObjectNbCanceledTransfersOID = TransStatsOID + ".5"
 )
 
 // Transfer error starts OIDs.
