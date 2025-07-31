@@ -108,7 +108,7 @@ func runExec(parent context.Context, transCtx *model.TransferContext, params map
 	cmd.Env = os.Environ()
 
 	for key, replaceFunc := range getReplacers() {
-		value, err := replaceFunc(transCtx)
+		value, err := replaceFunc(transCtx, key)
 		if errors.Is(err, errNotImplemented) {
 			continue
 		} else if err != nil {

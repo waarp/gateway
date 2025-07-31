@@ -6,6 +6,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"regexp"
 	"strings"
 	"sync"
 	"time"
@@ -200,22 +201,23 @@ func (r *Runner) replace(t *model.Task) (map[string]string, error) {
 	replacers.addInfo(r.transCtx)
 
 	for key, f := range replacers {
-		if !strings.Contains(rawArgs, key) {
-			continue
-		}
+		reg := regexp.MustCompile(key)
+		matches := reg.FindAllString(rawArgs, -1)
 
-		rep, err := f(r.transCtx)
-		if err != nil {
-			return nil, err
-		}
+		for _, match := range matches {
+			rep, err := f(r.transCtx, match)
+			if err != nil {
+				return nil, err
+			}
 
-		bytesRep, err := json.Marshal(rep)
-		if err != nil {
-			return nil, fmt.Errorf("cannot prepare value for replacement: %w", err)
-		}
+			bytesRep, err := json.Marshal(rep)
+			if err != nil {
+				return nil, fmt.Errorf("cannot prepare value for replacement: %w", err)
+			}
 
-		replacement := string(bytesRep[1 : len(bytesRep)-1])
-		rawArgs = strings.ReplaceAll(rawArgs, key, replacement)
+			replacement := string(bytesRep[1 : len(bytesRep)-1])
+			rawArgs = strings.ReplaceAll(rawArgs, match, replacement)
+		}
 	}
 
 	var newArgs map[string]string

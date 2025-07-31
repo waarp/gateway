@@ -3,6 +3,9 @@
 Historique des versions
 =======================
 
+* :feature:`429` Ajout d'une variable de substitution ``#TIMESTAMP#`` utilisable
+  dans les traitement pré ou post transfert. Cette variable combine les variables
+  existantes ``#DATE#`` et ``#HOUR#`` en une seule valeur plus facilement utilisable.
 * :feature:`452` Les nouvelles valeurs de substitution ``#BASEFILENAME#`` et
   ``#FILEEXTENSION#`` ont été rajoutées, permettant de récupérer, respectivement
   et séparément, le nom du fichier de transfert et son extension.
