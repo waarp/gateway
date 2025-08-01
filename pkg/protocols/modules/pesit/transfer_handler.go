@@ -171,6 +171,7 @@ func (t *transferHandler) SelectFile(req *pesit.ServerTransfer) error {
 	return nil
 }
 
+//nolint:funlen //no easy way to split for now
 func (t *transferHandler) initPipeline(req *pesit.ServerTransfer,
 	trans *model.Transfer, rule *model.Rule,
 ) error {
@@ -196,8 +197,28 @@ func (t *transferHandler) initPipeline(req *pesit.ServerTransfer,
 		t.pip.Trace = t.tracer()
 	}
 
-	setFreetextInfo(t.pip, clientConnFreetextKey, t.connFreetext)
-	setFreetextInfo(t.pip, clientTransFreetextKey, req.FreeText())
+	setTransInfo(t.pip, clientConnFreetextKey, t.connFreetext)
+	setTransInfo(t.pip, clientTransFreetextKey, req.FreeText())
+	setTransInfo(t.pip, customerIDKey, req.CustomerID())
+	setTransInfo(t.pip, bankIDKey, req.BankID())
+
+	if pip.TransCtx.Rule.IsSend {
+		if err := setFileType(t.pip, req); err != nil {
+			return err
+		}
+
+		if err := setFileOrganization(t.pip, req); err != nil {
+			return nil
+		}
+
+		if err := setFileEncoding(t.pip, req); err != nil {
+			return err
+		}
+	} else {
+		setTransInfo(t.pip, fileEncodingKey, req.DataCoding().String())
+		setTransInfo(t.pip, fileTypeKey, req.FileType())
+		setTransInfo(t.pip, organizationKey, req.FileOrganization().String())
+	}
 
 	return utils.RunWithCtx(t.ctx, func() error {
 		// execute the pre-tasks

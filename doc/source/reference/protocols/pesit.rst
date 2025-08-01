@@ -126,3 +126,24 @@ renverra jamais de texte.
 Ces valeurs étant stockées dans les :term:`infos de transfert`, il est donc possible
 de référencer ces valeurs dans des traitements via les :ref:`marqueurs de substitution
 <reference-tasks-substitutions>`.
+
+Attributs PeSIT
+---------------
+
+En plus du texte libre, le protocole PeSIT permet la transmission de divers attributs
+et informations. Comme le texte libre, ces informations sont stockées par la Gateway
+sous forme :term:`d'infos de transfert<infos de transfert>` avec des clés spéciales
+réservées. Les clés correspondantes pour ces attributs sont :
+
+- ``__fileEncoding__`` pour l'encodage du fichier (PI 16)
+- ``__fileType__`` pour le type de fichier (PI 11)
+- ``__organization__`` pour l'organisation du fichier (PI 33)
+- ``__customerID__`` pour l'identifiant de client (PI 61)
+- ``__bankID__`` pour l'identifiant de banque (PI 62)
+
+À noter que les 3 premiers attributs voyagent toujours dans le même sens que le fichier
+transféré (donc de l'émetteur vers le récepteur), alors que les 2 derniers voyagent
+toujours dans le sens de la connexion (donc du client vers le serveur).
+
+Comme pour le texte libre, ces informations peuvent être référencées dans les traitements
+en utilisant leurs clés respectives.

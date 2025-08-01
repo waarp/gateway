@@ -126,7 +126,7 @@ func (c *clientTransfer) Request() *pipeline.Error {
 	return nil
 }
 
-//nolint:funlen //no easy way to split the function for now
+//nolint:funlen,gocognit,gocyclo,cyclop //no easy way to split the function for now
 func (c *clientTransfer) request(fileInfo fs.FileInfo, partConf *PartnerConfigTLS,
 	conn net.Conn,
 ) *pipeline.Error {
@@ -164,7 +164,7 @@ func (c *clientTransfer) request(fileInfo fs.FileInfo, partConf *PartnerConfigTL
 		return err
 	}
 
-	setFreetextInfo(c.pip, serverConnFreetextKey, c.client.FreeText())
+	setTransInfo(c.pip, serverConnFreetextKey, c.client.FreeText())
 
 	// initialize transfer
 	method := pesit.MethodRecv
@@ -206,9 +206,29 @@ func (c *clientTransfer) request(fileInfo fs.FileInfo, partConf *PartnerConfigTL
 		return err
 	}
 
+	if err := setBankID(c.pip, c.pTrans); err != nil {
+		return err
+	}
+
+	if err := setCustomerID(c.pip, c.pTrans); err != nil {
+		return err
+	}
+
 	if c.pip.TransCtx.Rule.IsSend {
 		c.pTrans.SetCreationDate(fileInfo.ModTime())
 		c.pTrans.SetReservationSpace(makeReservationSpaceKB(fileInfo), pesit.UnitKB)
+
+		if err := setFileType(c.pip, c.pTrans); err != nil {
+			return err
+		}
+
+		if err := setFileOrganization(c.pip, c.pTrans); err != nil {
+			return nil
+		}
+
+		if err := setFileEncoding(c.pip, c.pTrans); err != nil {
+			return err
+		}
 	}
 
 	if c.client.UseCFTCompatibility() {
@@ -225,9 +245,13 @@ func (c *clientTransfer) request(fileInfo fs.FileInfo, partConf *PartnerConfigTL
 	if !c.pip.TransCtx.Rule.IsSend {
 		c.pip.TransCtx.Transfer.RemoteTransferID = utils.FormatUint(c.pTrans.TransferID())
 		c.pip.TransCtx.Transfer.Filesize = model.UnknownSize
+
+		setTransInfo(c.pip, fileEncodingKey, c.pTrans.DataCoding().String())
+		setTransInfo(c.pip, fileTypeKey, c.pTrans.FileType())
+		setTransInfo(c.pip, organizationKey, c.pTrans.FileOrganization().String())
 	}
 
-	setFreetextInfo(c.pip, serverTransFreetextKey, c.pTrans.FreeText())
+	setTransInfo(c.pip, serverTransFreetextKey, c.pTrans.FreeText())
 
 	return nil
 }
