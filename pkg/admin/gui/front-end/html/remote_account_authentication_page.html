@@ -48,8 +48,7 @@
                             </div>
                             <hr class="mt-2" style="border-top: 1px solid #ababab;">
                             <div class="form-input">
-                                <label class="col-form-label">{{ index .tab "type" }} :</label>
-                                <i class="bi bi-info-circle ms-1" data-bs-toggle="tooltip" data-bs-placement="right" data-bs-title="{{ index .tab "typeTooltip" }}"></i>
+                                <label class="col-form-label">{{ index .tab "type" }} <i class="bi bi-info-circle ms-1" data-bs-toggle="tooltip" data-bs-placement="right" data-bs-title="{{ index .tab "typeTooltip" }}"></i> :</label>
                                 <select name="addCredentialAccountType" id="addCredentialAccountType" class="form-select add-credential-type-select" required>
                                     <option value="" disabled selected>{{ index .tab "selectType" }}</option>
                                     {{ range .listSupportedProtocol }}
@@ -85,6 +84,7 @@
                 </div>
             </div>
         {{ end }}
+        {{ if contains .myPermission.Partners "r" }}
         <button class="btn btn-primary mb-3 ms-1-5 btn-filter" type="button" data-bs-toggle="collapse" data-bs-target="#filterCollapse" aria-expanded="false" aria-controls="filterCollapse">
             {{ index .tab "filter" }}
         </button>
@@ -110,33 +110,35 @@
                 </label>
                 <div style="float:right">
                     <button id="applyBtn" type="submit" class="btn btn-success">{{ index .tab "apply" }}</button>
-                    <button id="resetBtn" type="button" class="btn btn-secondary ms-2" onclick="window.location='account_authentication?partnerID={{ .partner.ID }}&accountID={{ .account.ID }}'">{{ index .tab "reset" }}</button>
+                    <button id="resetBtn" type="button" class="btn btn-secondary ms-2" onclick="window.location='remote_account_authentication?partnerID={{ .partner.ID }}&accountID={{ .account.ID }}'">{{ index .tab "reset" }}</button>
                 </div>
             </form>
         </div>
         <nav class="navbar navbar-light bg-light">
-            <input type="hidden" id="pageType" value="credentialAccount">
+            <input type="hidden" id="pageType" value="credentialRemoteAccount">
             <form method="get" class="d-flex ms-auto position-relative" onsubmit="return true">
                 <input type="hidden" name="partnerID" value="{{ .partner.ID }}">
                 <input type="hidden" name="accountID" value="{{ .account.ID }}">
                 {{ if eq .credentialAccountFound "false" }}
                     <div class="invalid-feedback d-block mt-2">{{ index .tab "credentialAccountNotFound" }}</div>
                 {{ else if eq .credentialAccountFound "true" }}
-                    <button id="resetBtn" type="button" class="btn btn-secondary me-2 reset-btn" onclick="window.location='account_authentication?partnerID={{ .partner.ID }}&accountID={{ .account.ID }}'"><i class="bi bi-x fs"></i></button>
+                    <button id="resetBtn" type="button" class="btn reset-btn" onclick="window.location='remote_account_authentication?partnerID={{ .partner.ID }}&accountID={{ .account.ID }}'"><i class="bi bi-x fs"></i></button>
                 {{ end }}
                 <input class="navbar-partner form-control {{ if eq .credentialAccountFound "false" }}is-invalid{{ end }}" type="search" placeholder="{{ index .tab "search" }}" name="search" id="search" autocomplete="off">
                 <button class="btn btn-primary ms-2 btn-navbar" type="submit">{{ index .tab "search" }}</button>
                 <ul id="autocomplete" class="list-group"></ul>
             </form>
         </nav>
+      {{ end }}
+      {{ if contains .myPermission.Partners "r" }}
         <table class="table table-sm align-middle mb-4 rounded-3 mt-3">
             <thead class="table-light">
                 <tr>
                     <th></th>
                     <th>{{ index $.tab "nameStr" }}</th>
-                    <th>{{ index $.tab "type" }}</th>
-                    <th>{{ index $.tab "primaryValue" }}</th>
-                    <th>{{ index $.tab "secondaryValue" }}</th>
+                    <th>{{ index $.tab "type" }} <i class="bi bi-info-circle ms-1" data-bs-toggle="tooltip" data-bs-placement="right" data-bs-title="{{ index $.tab "typeTooltip" }}"></i></th>
+                    <th>{{ index $.tab "primaryValue" }} <i class="bi bi-info-circle ms-1" data-bs-toggle="tooltip" data-bs-placement="right" data-bs-title="{{ index $.tab "primaryValueTooltip" }}"></i></th>
+                    <th>{{ index $.tab "secondaryValue" }} <i class="bi bi-info-circle ms-1" data-bs-toggle="tooltip" data-bs-placement="right" data-bs-title="{{ index $.tab "secondaryValueTooltip" }}"></i></th>
                     <th class="text-end"></th>
                 </tr>
             </thead>
@@ -148,8 +150,8 @@
                     <td>{{ .Type }}</td>
                     <td>
                         {{ if ne .Type "r66_legacy_certificate" }}
-                        <button class="btn btn-outline-primary protoConfig-btn" type="button" data-bs-toggle="modal" data-bs-target="#valueTypeModal1_{{ .ID }}">
-                            ...
+                        <button class="btn btn-outline-primary modal-btn" type="button" data-bs-toggle="modal" data-bs-target="#valueTypeModal1_{{ .ID }}">
+                            <i class="bi bi-three-dots"></i>
                         </button>
                         <div class="modal fade" id="valueTypeModal1_{{ .ID }}" tabindex="-1" aria-labelledby="valueTypeModalLabel1_{{ .ID }}" aria-hidden="true">
                             <div class="modal-dialog modal-lg">
@@ -164,8 +166,8 @@
                     </td>
                     <td>
                         {{ if or (eq .Type "tls_certificate") (eq .Type "pesit_pre-connection_auth") }}
-                        <button class="btn btn-outline-primary protoConfig-btn" type="button" data-bs-toggle="modal" data-bs-target="#valueTypeModal2_{{ .ID }}">
-                            ...
+                        <button class="btn btn-outline-primary modal-btn" type="button" data-bs-toggle="modal" data-bs-target="#valueTypeModal2_{{ .ID }}">
+                            <i class="bi bi-three-dots"></i>
                         </button>
                         <div class="modal fade" id="valueTypeModal2_{{ .ID }}" tabindex="-1" aria-labelledby="valueTypeModalLabel2_{{ .ID }}" aria-hidden="true">
                             <div class="modal-dialog modal-lg">
@@ -180,10 +182,10 @@
                     </td>
                     <td class="text-end">
                         {{ if contains $.myPermission.Partners "w" }}
-                            <button class="btn btn-outline-primary btn-sm me-1" data-bs-toggle="modal" data-bs-target="#editCredentialAccountModal_{{ .ID }}">
+                            <button class="btn btn-outline-primary btn-sm me-1" data-bs-toggle="modal" data-bs-target="#editCredentialExternalModal_{{ .ID }}">
                                 <i class="bi bi-pencil"></i>
                             </button>
-                            <div class="modal fade" id="editCredentialAccountModal_{{ .ID }}" tabindex="-1" aria-labelledby="editCredentialAccountModalLabel_{{ .ID }}" aria-hidden="true">
+                            <div class="modal fade" id="editCredentialExternalModal_{{ .ID }}" tabindex="-1" aria-labelledby="editCredentialAccountModalLabel_{{ .ID }}" aria-hidden="true">
                                 <div class="modal-dialog modal-lg">
                                     <div class="modal-content">
                                         <form method="post" class="p-3 border rounded bg-light">
@@ -201,8 +203,7 @@
                                                 </div>
                                                 <hr class="mt-2" style="border-top: 1px solid #ababab;">
                                                 <div class="form-input">
-                                                    <label class="col-form-label">{{ index $.tab "type" }} :</label>
-                                                    <i class="bi bi-info-circle ms-1" data-bs-toggle="tooltip" data-bs-placement="right" data-bs-title="{{ index $.tab "typeTooltip" }}"></i>
+                                                    <label class="col-form-label">{{ index $.tab "type" }} <i class="bi bi-info-circle ms-1" data-bs-toggle="tooltip" data-bs-placement="right" data-bs-title="{{ index $.tab "typeTooltip" }}"></i> :</label>
                                                     <select name="editCredentialAccountType" class="form-select edit-credential-type-select" required>
                                                         <option value="" disabled>{{ index $.tab "selectType" }}</option>
                                                         {{ $credential := . }}
@@ -267,8 +268,10 @@
             </ul>
         </form>
     {{ end }}
+    {{ else }}
+    {{ end }}
 {{ end }}
 
-{{ define "account_authentication_page" }}
+{{ define "remote_account_authentication_page" }}
   {{ template "index" . }}
 {{ end }}

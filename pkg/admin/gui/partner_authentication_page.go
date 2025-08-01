@@ -143,6 +143,7 @@ func searchCredentialPartner(credentialPartnerNameSearch string,
 	return nil
 }
 
+//nolint:dupl // no similar func (is for partner)
 func editCredentialPartner(partnerName string, db *database.DB, r *http.Request) error {
 	if err := r.ParseForm(); err != nil {
 		return fmt.Errorf("failed to parse form: %w", err)
@@ -242,7 +243,7 @@ func deleteCredentialPartner(partnerName string, db *database.DB, r *http.Reques
 }
 
 func callMethodsPartnerAuthentication(logger *log.Logger, db *database.DB, w http.ResponseWriter, r *http.Request,
-	idPartner int, partner *model.RemoteAgent,
+	partner *model.RemoteAgent,
 ) (bool, string, string) {
 	if r.Method == http.MethodPost && r.FormValue("deleteCredentialPartner") != "" {
 		deleteCredentialPartnerErr := deleteCredentialPartner(partner.Name, db, r)
@@ -252,7 +253,7 @@ func callMethodsPartnerAuthentication(logger *log.Logger, db *database.DB, w htt
 			return false, deleteCredentialPartnerErr.Error(), ""
 		}
 
-		http.Redirect(w, r, fmt.Sprintf("%s?partnerID=%d", r.URL.Path, idPartner), http.StatusSeeOther)
+		http.Redirect(w, r, fmt.Sprintf("%s?partnerID=%d", r.URL.Path, partner.ID), http.StatusSeeOther)
 
 		return true, "", ""
 	}
@@ -265,7 +266,7 @@ func callMethodsPartnerAuthentication(logger *log.Logger, db *database.DB, w htt
 			return false, addCredentialPartnerErr.Error(), "addCredentialPartnerModal"
 		}
 
-		http.Redirect(w, r, fmt.Sprintf("%s?partnerID=%d", r.URL.Path, idPartner), http.StatusSeeOther)
+		http.Redirect(w, r, fmt.Sprintf("%s?partnerID=%d", r.URL.Path, partner.ID), http.StatusSeeOther)
 
 		return true, "", ""
 	}
@@ -284,10 +285,10 @@ func callMethodsPartnerAuthentication(logger *log.Logger, db *database.DB, w htt
 		if editredentialPartnerErr != nil {
 			logger.Error("failed to edit credential partner: %v", editredentialPartnerErr)
 
-			return false, editredentialPartnerErr.Error(), fmt.Sprintf("editCredentialPartnerModal_%d", id)
+			return false, editredentialPartnerErr.Error(), fmt.Sprintf("editCredentialInternalModal_%d", id)
 		}
 
-		http.Redirect(w, r, fmt.Sprintf("%s?partnerID=%d", r.URL.Path, idPartner), http.StatusSeeOther)
+		http.Redirect(w, r, fmt.Sprintf("%s?partnerID=%d", r.URL.Path, partner.ID), http.StatusSeeOther)
 
 		return true, "", ""
 	}
@@ -324,7 +325,7 @@ func partnerAuthenticationPage(logger *log.Logger, db *database.DB) http.Handler
 
 		partnersCredentials, filter, credentialPartnerFound := listCredentialPartner(partner.Name, db, r)
 
-		value, errMsg, modalOpen := callMethodsPartnerAuthentication(logger, db, w, r, id, partner)
+		value, errMsg, modalOpen := callMethodsPartnerAuthentication(logger, db, w, r, partner)
 		if value {
 			return
 		}

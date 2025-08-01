@@ -11,6 +11,19 @@ func GetServer(db database.ReadAccess, name string) (*model.LocalAgent, error) {
 	return &server, db.Get(&server, "name=?", name).Owner().Run()
 }
 
+func GetServerByID(db database.ReadAccess, id int64) (*model.LocalAgent, error) {
+	var server model.LocalAgent
+
+	return &server, db.Get(&server, "id=?", id).Run()
+}
+
+func GetServersLike(db *database.DB, prefix string) ([]*model.LocalAgent, error) {
+	var servers model.LocalAgents
+
+	return servers, db.Select(&servers).Owner().Where("name LIKE ?", prefix+"%").
+		OrderBy("name", true).Limit(LimitLike, 0).Run()
+}
+
 func ListServers(db database.ReadAccess, orderByCol string, orderByAsc bool, limit, offset int,
 	protocols ...string,
 ) ([]*model.LocalAgent, error) {
@@ -43,6 +56,15 @@ func GetServerCredential(db database.ReadAccess, serverName, name string) (*mode
 	}
 
 	return getCredential(db, server, name)
+}
+
+func GetServerCredentialByID(db database.ReadAccess, serverName string, id int64) (*model.Credential, error) {
+	server, pErr := GetServer(db, serverName)
+	if pErr != nil {
+		return nil, pErr
+	}
+
+	return GetCredentialByID(db, server, id)
 }
 
 func ListServerCredentials(db database.ReadAccess, partnerName string,

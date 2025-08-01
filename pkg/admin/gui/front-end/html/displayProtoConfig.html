@@ -1,12 +1,12 @@
 {{ define "displayR66" }}
 <div>
     <div class="form-input mt-2">
-        <label class="col-form-label">{{ index .tab "serverLogin" }} :</label><i class="bi bi-info-circle ms-1" data-bs-toggle="tooltip" data-bs-placement="right" data-bs-title="{{ index $.tab "tooltipServerLogin" }}"></i>
+        <label class="col-form-label">{{ index .tab "serverLogin" }} <i class="bi bi-info-circle ms-1" data-bs-toggle="tooltip" data-bs-placement="right" data-bs-title="{{ index $.tab "tooltipServerLogin" }}"></i> :</label>
         <input type="text" class="form-control-plaintext" value="{{ .ProtoConfig.serverLogin }}" disabled>
     </div>
     <hr class="mt-2 mb-4" style="border-top: 1px solid #ababab;">
     <div class="form-input mt-4">
-        <label class="col-form-label">{{ index .tab "blockSize" }} :</label><i class="bi bi-info-circle ms-1" data-bs-toggle="tooltip" data-bs-placement="right" data-bs-title="{{ index $.tab "tooltipBlockSize" }}"></i>
+        <label class="col-form-label">{{ index .tab "blockSize" }} <i class="bi bi-info-circle ms-1" data-bs-toggle="tooltip" data-bs-placement="right" data-bs-title="{{ index $.tab "tooltipBlockSize" }}"></i> :</label>
         <input type="text" class="form-control-plaintext" value="{{ .ProtoConfig.blockSize }}" disabled>
     </div>
     <hr class="mt-2 mb-4" style="border-top: 1px solid #ababab;">
@@ -51,8 +51,7 @@
         </div>
         <hr class="mt-2 mb-4" style="border-top: 1px solid #ababab;">
         <div class="form-input mt-4">
-            <label class="col-form-label">{{ index .tab "minTLSVersion" }} :</label>
-            <i class="bi bi-info-circle ms-1" data-bs-toggle="tooltip" data-bs-placement="right" data-bs-title="{{ index $.tab "tooltipMinFtpsTLSVersion" }}"></i>
+            <label class="col-form-label">{{ index .tab "minTLSVersion" }} <i class="bi bi-info-circle ms-1" data-bs-toggle="tooltip" data-bs-placement="right" data-bs-title="{{ index $.tab "tooltipMinFtpsTLSVersion" }}"></i> :</label>
             <input type="text" class="form-control-plaintext" value="{{ .ProtoConfig.minTLSVersion }}" disabled>
         </div>
         <hr class="mt-2 mb-4" style="border-top: 1px solid #ababab;">
@@ -69,7 +68,7 @@
 {{ define "displayPesit" }}
 <div>
     <div class="form-input mt-2">
-        <label class="col-form-label">{{ index .tab "login" }} :</label><i class="bi bi-info-circle ms-1" data-bs-toggle="tooltip" data-bs-placement="right" data-bs-title="{{ index $.tab "tooltipLogin" }}"></i>
+        <label class="col-form-label">{{ index .tab "login" }} <i class="bi bi-info-circle ms-1" data-bs-toggle="tooltip" data-bs-placement="right" data-bs-title="{{ index $.tab "tooltipLogin" }}"></i> :</label>
         <input type="text" class="form-control-plaintext" value="{{ .ProtoConfig.login }}" disabled>
     </div>
     <hr class="mt-2 mb-4" style="border-top: 1px solid #ababab;">
@@ -88,12 +87,12 @@
     </div>
     <hr class="mt-2 mb-4" style="border-top: 1px solid #ababab;">
     <div class="form-input mt-2">
-        <label class="col-form-label">{{ index .tab "checkpointSize" }} :</label><i class="bi bi-info-circle ms-1" data-bs-toggle="tooltip" data-bs-placement="right" data-bs-title="{{ index $.tab "tooltipCheckpointSize" }}"></i>
+        <label class="col-form-label">{{ index .tab "checkpointSize" }} <i class="bi bi-info-circle ms-1" data-bs-toggle="tooltip" data-bs-placement="right" data-bs-title="{{ index $.tab "tooltipCheckpointSize" }}"></i> :</label>
         <input type="text" class="form-control-plaintext" value="{{ .ProtoConfig.checkpointSize }}" disabled>
     </div>
     <hr class="mt-2 mb-4" style="border-top: 1px solid #ababab;">
     <div class="form-input mt-2">
-        <label class="col-form-label">{{ index .tab "checkpointWindow" }} :</label><i class="bi bi-info-circle ms-1" data-bs-toggle="tooltip" data-bs-placement="right" data-bs-title="{{ index $.tab "tooltipCheckpointWindow" }}"></i>
+        <label class="col-form-label">{{ index .tab "checkpointWindow" }} <i class="bi bi-info-circle ms-1" data-bs-toggle="tooltip" data-bs-placement="right" data-bs-title="{{ index $.tab "tooltipCheckpointWindow" }}"></i> :</label>
         <input type="text" class="form-control-plaintext" value="{{ .ProtoConfig.checkpointWindow }}" disabled>
     </div>
     <hr class="mt-2 mb-4" style="border-top: 1px solid #ababab;">
@@ -105,12 +104,12 @@
     </div>
     <hr class="mt-2 mb-4" style="border-top: 1px solid #ababab;">
     <div class="form-input mt-2">
-        <label class="col-form-label">{{ index .tab "compatibilityMode" }} :</label><i class="bi bi-info-circle ms-1" data-bs-toggle="tooltip" data-bs-placement="right" data-bs-title="{{ index $.tab "tooltipCompatibilityMode" }}"></i>
+        <label class="col-form-label">{{ index .tab "compatibilityMode" }} <i class="bi bi-info-circle ms-1" data-bs-toggle="tooltip" data-bs-placement="right" data-bs-title="{{ index $.tab "tooltipCompatibilityMode" }}"></i> :</label>
         <input type="text" class="form-control-plaintext" value='{{ if eq .ProtoConfig.compatibilityMode "axway" }}{{ index $.tab "standardParameterPesit" }}{{ else if eq .ProtoConfig.compatibilityMode "none" }}{{ index $.tab "noneStandardParameterPesit" }}{{ else }}{{ .ProtoConfig.compatibilityMode }}{{ end }}' disabled>
     </div>
     <hr class="mt-2 mb-4" style="border-top: 1px solid #ababab;">
     <div class="form-input mt-2">
-        <label class="col-form-label">{{ index .tab "maxMessageSize" }} :</label><i class="bi bi-info-circle ms-1" data-bs-toggle="tooltip" data-bs-placement="right" data-bs-title="{{ index $.tab "tooltipMaxMessageSize" }}"></i>
+        <label class="col-form-label">{{ index .tab "maxMessageSize" }} <i class="bi bi-info-circle ms-1" data-bs-toggle="tooltip" data-bs-placement="right" data-bs-title="{{ index $.tab "tooltipMaxMessageSize" }}"></i> :</label>
         <input type="text" class="form-control-plaintext" value="{{ .ProtoConfig.maxMessageSize }}" disabled>
     </div>
     <hr class="mt-2 mb-4" style="border-top: 1px solid #ababab;">
@@ -123,8 +122,7 @@
     <div id="pesit-tlsForm">
         <hr class="mt-2 mb-4" style="border-top: 1px solid #ababab;">
         <div class="form-input mt-4">
-            <label class="col-form-label">{{ index .tab "minTLSVersion" }} :</label>
-            <i class="bi bi-info-circle ms-1" data-bs-toggle="tooltip" data-bs-placement="right" data-bs-title="{{ index $.tab "tooltipMinPesitTLSVersion" }}"></i>
+            <label class="col-form-label">{{ index .tab "minTLSVersion" }} <i class="bi bi-info-circle ms-1" data-bs-toggle="tooltip" data-bs-placement="right" data-bs-title="{{ index $.tab "tooltipMinPesitTLSVersion" }}"></i> :</label>
             <input type="text" class="form-control-plaintext" value="{{ .ProtoConfig.minTLSVersion }}" disabled>
         </div>
     </div>
@@ -134,7 +132,7 @@
 {{ define "displaySftp" }}
 <div>
     <div class="form-input mt-2">
-        <label class="col-form-label"><strong>{{ index .tab "keyExchanges" }} :</strong></label><i class="bi bi-info-circle ms-1" data-bs-toggle="tooltip" data-bs-placement="right" data-bs-title="{{ index $.tab "tooltipKeyExchanges" }}"></i>
+        <label class="col-form-label"><strong>{{ index .tab "keyExchanges" }} <i class="bi bi-info-circle ms-1" data-bs-toggle="tooltip" data-bs-placement="right" data-bs-title="{{ index $.tab "tooltipKeyExchanges" }}"></i> :</strong></label>
         <div id="keyExchangesContainer">
         {{ if .ProtoConfig.keyExchanges }}
             {{ range $i, $v := .ProtoConfig.keyExchanges }}
@@ -151,7 +149,7 @@
     </div>
     <hr class="mt-4 mb-3" style="border-top: 1px solid #ababab;">
     <div class="form-input mt-2">
-        <label class="col-form-label"><strong>{{ index .tab "ciphers" }} :</strong></label><i class="bi bi-info-circle ms-1" data-bs-toggle="tooltip" data-bs-placement="right" data-bs-title="{{ index $.tab "tooltipCiphers" }}"></i>
+        <label class="col-form-label"><strong>{{ index .tab "ciphers" }} <i class="bi bi-info-circle ms-1" data-bs-toggle="tooltip" data-bs-placement="right" data-bs-title="{{ index $.tab "tooltipCiphers" }}"></i> :</strong></label>
         <div id="ciphersContainer">
         {{ if .ProtoConfig.ciphers }}
             {{ range $i, $v := .ProtoConfig.ciphers }}
@@ -168,7 +166,7 @@
     </div>
     <hr class="mt-4 mb-3" style="border-top: 1px solid #ababab;">
     <div class="form-input mt-2">
-        <label class="col-form-label"><strong>{{ index .tab "macs" }} :</strong></label><i class="bi bi-info-circle ms-1" data-bs-toggle="tooltip" data-bs-placement="right" data-bs-title="{{ index $.tab "tooltipMacs" }}"></i>
+        <label class="col-form-label"><strong>{{ index .tab "macs" }} <i class="bi bi-info-circle ms-1" data-bs-toggle="tooltip" data-bs-placement="right" data-bs-title="{{ index $.tab "tooltipMacs" }}"></i> :</strong></label>
         <div id="macsContainer">
         {{ if .ProtoConfig.macs }}
             {{ range $i, $v := .ProtoConfig.macs }}

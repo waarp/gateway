@@ -27,7 +27,8 @@ func supportedProtocolExternal(protocol string) []string {
 	return supportedProtocolsExternal[protocol]
 }
 
-func listCredentialAccount(partnerName, login string, db *database.DB, r *http.Request) (
+//nolint:dupl // no similar func (is for remote_account)
+func listCredentialRemoteAccount(partnerName, login string, db *database.DB, r *http.Request) (
 	[]*model.Credential, FiltersPagination, string,
 ) {
 	credentialAccountFound := ""
@@ -64,14 +65,15 @@ func listCredentialAccount(partnerName, login string, db *database.DB, r *http.R
 		return nil, FiltersPagination{}, credentialAccountFound
 	}
 
-	if search := urlParams.Get("search"); search != "" && searchCredentialAccount(search, accountsCredentials) == nil {
+	if search := urlParams.Get("search"); search != "" && searchCredentialRemoteAccount(search,
+		accountsCredentials) == nil {
 		credentialAccountFound = "false"
 	} else if search != "" {
 		filter.DisableNext = true
 		filter.DisablePrevious = true
 		credentialAccountFound = "true"
 
-		return []*model.Credential{searchCredentialAccount(search, accountsCredentials)}, filter, credentialAccountFound
+		return []*model.Credential{searchCredentialRemoteAccount(search, accountsCredentials)}, filter, credentialAccountFound
 	}
 
 	paginationPage(&filter, len(accountsCredentials), r)
@@ -86,7 +88,7 @@ func listCredentialAccount(partnerName, login string, db *database.DB, r *http.R
 }
 
 //nolint:dupl // is not the same, GetCredentialsLike is called
-func autocompletionCredentialsAccountsFunc(db *database.DB) http.HandlerFunc {
+func autocompletionCredentialsRemoteAccountsFunc(db *database.DB) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		urlParams := r.URL.Query()
 		prefix := urlParams.Get("q")
@@ -132,19 +134,19 @@ func autocompletionCredentialsAccountsFunc(db *database.DB) http.HandlerFunc {
 	}
 }
 
-func searchCredentialAccount(credentialAccountNameSearch string,
+func searchCredentialRemoteAccount(credentialAccountNameSearch string,
 	listCredentialAccountSearch []*model.Credential,
 ) *model.Credential {
-	for _, ca := range listCredentialAccountSearch {
-		if ca.Name == credentialAccountNameSearch {
-			return ca
+	for _, cra := range listCredentialAccountSearch {
+		if cra.Name == credentialAccountNameSearch {
+			return cra
 		}
 	}
 
 	return nil
 }
 
-func addCredentialAccount(partnerName, login string, db *database.DB, r *http.Request) error {
+func addCredentialRemoteAccount(partnerName, login string, db *database.DB, r *http.Request) error {
 	var newCredentialAccount model.Credential
 
 	if err := r.ParseForm(); err != nil {
@@ -186,7 +188,8 @@ func addCredentialAccount(partnerName, login string, db *database.DB, r *http.Re
 	return nil
 }
 
-func editCredentialAccount(account *model.RemoteAccount, db *database.DB, r *http.Request) error {
+//nolint:dupl // no similar func (is for account)
+func editCredentialRemoteAccount(account *model.RemoteAccount, db *database.DB, r *http.Request) error {
 	if err := r.ParseForm(); err != nil {
 		return fmt.Errorf("failed to parse form: %w", err)
 	}
@@ -230,7 +233,7 @@ func editCredentialAccount(account *model.RemoteAccount, db *database.DB, r *htt
 	return nil
 }
 
-func deleteCredentialAccount(account *model.RemoteAccount, db *database.DB, r *http.Request) error {
+func deleteCredentialRemoteAccount(account *model.RemoteAccount, db *database.DB, r *http.Request) error {
 	if err := r.ParseForm(); err != nil {
 		return fmt.Errorf("failed to parse form: %w", err)
 	}
@@ -253,11 +256,11 @@ func deleteCredentialAccount(account *model.RemoteAccount, db *database.DB, r *h
 	return nil
 }
 
-func callMethodsAccountAuthentication(logger *log.Logger, db *database.DB, w http.ResponseWriter, r *http.Request,
+func callMethodsRemoteAccountAuthentication(logger *log.Logger, db *database.DB, w http.ResponseWriter, r *http.Request,
 	partner *model.RemoteAgent, account *model.RemoteAccount,
 ) (bool, string, string) {
 	if r.Method == http.MethodPost && r.FormValue("deleteCredentialAccount") != "" {
-		deleteCredentialAccountErr := deleteCredentialAccount(account, db, r)
+		deleteCredentialAccountErr := deleteCredentialRemoteAccount(account, db, r)
 		if deleteCredentialAccountErr != nil {
 			logger.Error("failed to delete credential account: %v", deleteCredentialAccountErr)
 
@@ -271,7 +274,7 @@ func callMethodsAccountAuthentication(logger *log.Logger, db *database.DB, w htt
 	}
 
 	if r.Method == http.MethodPost && r.FormValue("addCredentialAccountName") != "" {
-		addCredentialAccountErr := addCredentialAccount(partner.Name, account.Login, db, r)
+		addCredentialAccountErr := addCredentialRemoteAccount(partner.Name, account.Login, db, r)
 		if addCredentialAccountErr != nil {
 			logger.Error("failed to add credential account: %v", addCredentialAccountErr)
 
@@ -294,11 +297,11 @@ func callMethodsAccountAuthentication(logger *log.Logger, db *database.DB, w htt
 			return false, "", ""
 		}
 
-		editCredentialAccountErr := editCredentialAccount(account, db, r)
+		editCredentialAccountErr := editCredentialRemoteAccount(account, db, r)
 		if editCredentialAccountErr != nil {
 			logger.Error("failed to edit credential account: %v", editCredentialAccountErr)
 
-			return false, editCredentialAccountErr.Error(), fmt.Sprintf("editCredentialAccountModal_%d", id)
+			return false, editCredentialAccountErr.Error(), fmt.Sprintf("editCredentialExternalModal_%d", id)
 		}
 
 		http.Redirect(w, r, fmt.Sprintf("%s?partnerID=%d&accountID=%d", r.URL.Path, partner.ID, account.ID),
@@ -349,11 +352,11 @@ func getPartnerAndAccount(db *database.DB, partnerID, accountID string, logger *
 	return partner, account
 }
 
-func accountAuthenticationPage(logger *log.Logger, db *database.DB) http.HandlerFunc {
+func remoteAccountAuthenticationPage(logger *log.Logger, db *database.DB) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		userLanguage := r.Context().Value(ContextLanguageKey)
 		tTranslated := //nolint:forcetypeassert //u
-			pageTranslated("account_authentication_page", userLanguage.(string)) //nolint:errcheck //u
+			pageTranslated("remote_account_authentication_page", userLanguage.(string)) //nolint:errcheck //u
 
 		user, err := GetUserByToken(r, db)
 		if err != nil {
@@ -366,9 +369,9 @@ func accountAuthenticationPage(logger *log.Logger, db *database.DB) http.Handler
 		accountID := r.URL.Query().Get("accountID")
 		partner, account := getPartnerAndAccount(db, partnerID, accountID, logger)
 
-		credentials, filter, credentialAccountFound := listCredentialAccount(partner.Name, account.Login, db, r)
+		credentials, filter, credentialAccountFound := listCredentialRemoteAccount(partner.Name, account.Login, db, r)
 
-		value, errMsg, modalOpen := callMethodsAccountAuthentication(logger, db, w, r, partner, account)
+		value, errMsg, modalOpen := callMethodsRemoteAccountAuthentication(logger, db, w, r, partner, account)
 		if value {
 			return
 		}
@@ -376,7 +379,7 @@ func accountAuthenticationPage(logger *log.Logger, db *database.DB) http.Handler
 		listSupportedProtocol := supportedProtocolExternal(partner.Protocol)
 		currentPage := filter.Offset + 1
 
-		if err := accountAuthenticationTemplate.ExecuteTemplate(w, "account_authentication_page", map[string]any{
+		if err := remoteAccountAuthenticationTemplate.ExecuteTemplate(w, "remote_account_authentication_page", map[string]any{
 			"myPermission":           myPermission,
 			"tab":                    tTranslated,
 			"username":               user.Username,
@@ -393,7 +396,7 @@ func accountAuthenticationPage(logger *log.Logger, db *database.DB) http.Handler
 			"hasPartnerID":           true,
 			"hasAccountID":           true,
 		}); err != nil {
-			logger.Error("render account_authentication_page: %v", err)
+			logger.Error("render remote_account_authentication_page: %v", err)
 			http.Error(w, "Internal error", http.StatusInternalServerError)
 		}
 	}

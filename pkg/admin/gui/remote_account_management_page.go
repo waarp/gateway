@@ -206,7 +206,7 @@ func deleteRemoteAccount(db *database.DB, r *http.Request) error {
 }
 
 func callMethodsRemoteAccount(logger *log.Logger, db *database.DB, w http.ResponseWriter, r *http.Request,
-	idPartner int, partner *model.RemoteAgent,
+	partner *model.RemoteAgent,
 ) (bool, string, string) {
 	if r.Method == http.MethodPost && r.FormValue("deleteRemoteAccount") != "" {
 		deleteRemoteAccountErr := deleteRemoteAccount(db, r)
@@ -216,7 +216,7 @@ func callMethodsRemoteAccount(logger *log.Logger, db *database.DB, w http.Respon
 			return false, deleteRemoteAccountErr.Error(), ""
 		}
 
-		http.Redirect(w, r, fmt.Sprintf("%s?partnerID=%d", r.URL.Path, idPartner), http.StatusSeeOther)
+		http.Redirect(w, r, fmt.Sprintf("%s?partnerID=%d", r.URL.Path, partner.ID), http.StatusSeeOther)
 
 		return true, "", ""
 	}
@@ -229,7 +229,7 @@ func callMethodsRemoteAccount(logger *log.Logger, db *database.DB, w http.Respon
 			return false, addRemoteAccountErr.Error(), "addRemoteAccountModal"
 		}
 
-		http.Redirect(w, r, fmt.Sprintf("%s?partnerID=%d", r.URL.Path, idPartner), http.StatusSeeOther)
+		http.Redirect(w, r, fmt.Sprintf("%s?partnerID=%d", r.URL.Path, partner.ID), http.StatusSeeOther)
 
 		return true, "", ""
 	}
@@ -251,7 +251,7 @@ func callMethodsRemoteAccount(logger *log.Logger, db *database.DB, w http.Respon
 			return false, editRemoteAccountErr.Error(), fmt.Sprintf("editRemoteAccountModal_%d", id)
 		}
 
-		http.Redirect(w, r, fmt.Sprintf("%s?partnerID=%d", r.URL.Path, idPartner), http.StatusSeeOther)
+		http.Redirect(w, r, fmt.Sprintf("%s?partnerID=%d", r.URL.Path, partner.ID), http.StatusSeeOther)
 
 		return true, "", ""
 	}
@@ -289,7 +289,7 @@ func remoteAccountPage(logger *log.Logger, db *database.DB) http.HandlerFunc {
 
 		remoteAccounts, filter, remoteAccountFound := listRemoteAccount(partner.Name, db, r)
 
-		value, errMsg, modalOpen := callMethodsRemoteAccount(logger, db, w, r, id, partner)
+		value, errMsg, modalOpen := callMethodsRemoteAccount(logger, db, w, r, partner)
 		if value {
 			return
 		}
