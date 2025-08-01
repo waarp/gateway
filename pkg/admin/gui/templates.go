@@ -89,32 +89,10 @@ var (
 			ParseFS(webFS, index, header, multiLanguage, displayFormAuth,
 				"front-end/html/local_account_authentication_page.html"),
 	)
-	accountAuthenticationTemplate = template.Must(
-		template.New("account_authentication_page.html").
-			Funcs(funcs).
-			ParseFS(webFS, index, header, multiLanguage, displayFormAuth,
-				"front-end/html/remote_account_authentication_page.html"),
-	)
-	serverManagementTemplate = template.Must(
-		template.New("server_management_page.html").
+	localClientManagementTemplate = template.Must(
+		template.New("local_client_management_page.html").
 			Funcs(funcs).
 			ParseFS(webFS, index, header, multiLanguage, addProtoConfig, editProtoConfig, displayProtoConfig,
-				"front-end/html/server_management_page.html"),
-	)
-	serverAuthenticationTemplate = template.Must(
-		template.New("server_authentication_page.html").
-			Funcs(funcs).
-			ParseFS(webFS, index, header, multiLanguage, displayFormAuth, "front-end/html/server_authentication_page.html"),
-	)
-	localAccountTemplate = template.Must(
-		template.New("local_account_management_page.html").
-			Funcs(funcs).
-			ParseFS(webFS, index, header, multiLanguage, "front-end/html/local_account_management_page.html"),
-	)
-	localAccountAuthenticationTemplate = template.Must(
-		template.New("local_account_authentication_page.html").
-			Funcs(funcs).
-			ParseFS(webFS, index, header, multiLanguage, displayFormAuth,
-				"front-end/html/local_account_authentication_page.html"),
+				"front-end/html/local_client_management_page.html"),
 	)
 )
