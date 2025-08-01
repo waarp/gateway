@@ -145,6 +145,15 @@ func translateCurrency(nb float64, r *http.Request, currencyStr, userLanguage st
 	return message.NewPrinter(tag).Sprintf("%v", symbol)
 }
 
+func translateDateTime(t time.Time, r *http.Request, userLanguage string) string {
+	tag := tagLanguage(r, userLanguage).String()
+	if tag == "en-US" {
+		return t.Format("03:04:05 PM 01-02-2006")
+	}
+
+	return t.Format("15:04:05 02/01/2006")
+}
+
 //nolint:unused // method for later
 func translateDateShort(t time.Time, r *http.Request, userLanguage string) string {
 	tag := tagLanguage(r, userLanguage).String()

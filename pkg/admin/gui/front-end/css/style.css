@@ -78,3 +78,8 @@
 .opacity-25  {
     opacity: .25;
 }
+
+.bg-success-subtle {
+    background-color: #41c288 !important;
+    color: #19191a !important;
+}

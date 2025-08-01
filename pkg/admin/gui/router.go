@@ -111,6 +111,7 @@ func AddGUIRouter(router *mux.Router, logger *log.Logger, db *database.DB) {
 	secureRouter.HandleFunc("/tasks_transfer_rules", tasksTransferRulesPage(logger, db)).Methods("GET", "POST")
 	secureRouter.HandleFunc("/management_usage_rights_rules",
 		managementUsageRightsRulesPage(logger, db)).Methods("GET", "POST")
+	secureRouter.HandleFunc("/transfer_monitoring", transferMonitoringPage(logger, db)).Methods("GET", "POST")
 }
 
 func logout() http.HandlerFunc {
