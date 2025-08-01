@@ -37,6 +37,21 @@ function autoCompleteSearch() {
             }
         }
 
+        if (pageType === "credentialAccount") {
+            const partnerID = document.querySelector('input[name="partnerID"]');
+            const accountID = document.querySelector('input[name="accountID"]');
+            if (partnerID && accountID) {
+                url += `&partnerID=${encodeURIComponent(partnerID.value)}&accountID=${encodeURIComponent(accountID.value)}`;
+            }
+        }
+        if (pageType === "credentialLocalAccount") {
+            const serverID = document.querySelector('input[name="serverID"]');
+            const accountID = document.querySelector('input[name="accountID"]');
+            if (serverID && accountID) {
+                url += `&serverID=${encodeURIComponent(serverID.value)}&accountID=${encodeURIComponent(accountID.value)}`;
+            }
+        }
+
         try {
             const response = await fetch(url);
             const names = await response.json();

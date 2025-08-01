@@ -14,6 +14,7 @@ import (
 	"code.waarp.fr/apps/gateway/gateway/pkg/protocols/modules/sftp"
 )
 
+//nolint:dupl // is not similar, is method for partner
 func editPartner(db *database.DB, r *http.Request) error {
 	if err := r.ParseForm(); err != nil {
 		return fmt.Errorf("failed to parse form: %w", err)
@@ -70,6 +71,7 @@ func editPartner(db *database.DB, r *http.Request) error {
 	return nil
 }
 
+//nolint:dupl // is not similar, is method for partner
 func addPartner(db *database.DB, r *http.Request) error {
 	var newPartner model.RemoteAgent
 

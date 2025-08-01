@@ -1,5 +1,5 @@
 {
-    "title": { "fr": "Gestion des partenaires distants", "en": "Remote partner management" },
+    "title": { "fr": "Gestion des partenaires", "en": "Partner management" },
     "about": { "fr": "À propos", "en": "About" },
     "logout": { "fr": "Déconnexion", "en": "Logout" },
     "addPartnerTitle": { "fr": "Ajouter un nouveau partenaire", "en": "Add a new partner" },
@@ -29,7 +29,7 @@
     "false": { "fr": "Faux", "en": "False" },
     "next": { "fr": "Suivant", "en": "Next" },
     "previous": { "fr": "Précédent", "en": "Previous" },
-    "serverLogin": { "fr": "Connexion au serveur", "en": "Server login" },
+    "serverLogin": { "fr": "Identifiant du serveur", "en": "Server login" },
     "blockSize": { "fr": "Taille du bloc", "en": "Block size" },
     "noFinalHash": { "fr": "Pas de hachage final", "en": "No final hash" },
     "checkBlockHash": { "fr": "Vérifier le hachage du bloc", "en": "Check block hash" },
@@ -85,6 +85,6 @@
     "tooltipMaxMessageSize": { "fr": "Spécifie la taille maximale (en octets) autorisée pour les paquets PeSIT envoyés à (et reçus depuis) ce partenaire. Le partenaire pourra unilatéralement décider d'utiliser une taille plus petite que celle-ci, mais jamais plus grande. La valeur par défaut est de 65535 octets.", "en": "Specifies the maximum size (in bytes) allowed for PeSIT packets sent to (and received from) this partner. The partner can unilaterally decide to use a size smaller than this, but never larger. The default value is 65535 bytes." },
     "tooltipDisablePreConnection": { "fr": "Permet de désactiver le processus de pré-connexion (et la pré-authentification qui va avec) pour ce partenaire. Par défaut, un échange de pré-connexion est attendu à chaque nouvelle connexion.", "en": "Allows you to disable the pre-connection process (and the associated pre-authentication) for this partner. By default, a pre-connection exchange is expected for each new connection." },
     "tooltipMinPesitTLSVersion": { "fr": "Spécifie la version minimale de TLS autorisée pour ce partenaire. Par défaut, la valeur « v1.2 » (pour TLS 1.2) est utilisée.", "en": "Specifies the minimum TLS version allowed for this partner. By default, the value « v1.2 » (for TLS 1.2) is used." },
-    "tooltipPartnerAuthentication": { "fr": "Authentification du partenaire", "en": "Partner Authentication" },
+    "tooltipPartnerAuthentication": { "fr": "Authentification du partenaire", "en": "Partner authentication" },
     "tooltipRemoteAccountManagement": { "fr": "Gestion des comptes distants", "en": "Remote account management" }
 }

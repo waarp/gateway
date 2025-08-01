@@ -89,4 +89,10 @@ var (
 			ParseFS(webFS, index, header, multiLanguage, displayFormAuth,
 				"front-end/html/local_account_authentication_page.html"),
 	)
+	localClientManagementTemplate = template.Must(
+		template.New("local_client_management_page.html").
+			Funcs(funcs).
+			ParseFS(webFS, index, header, multiLanguage, addProtoConfig, editProtoConfig, displayProtoConfig,
+				"front-end/html/local_client_management_page.html"),
+	)
 )
