@@ -130,7 +130,11 @@ func (t *transferHandler) SelectFile(req *pesit.ServerTransfer) error {
 	if rule.IsSend {
 		trans.SrcFilename = trimRequestPath(req.Filename(), rule)
 	} else {
-		trans.DestFilename = trimRequestPath(req.Filename(), rule)
+		if t.cftMode {
+			trans.DestFilename = generateDestFilename(&trans, t.account, rule)
+		} else {
+			trans.DestFilename = trimRequestPath(req.Filename(), rule)
+		}
 	}
 
 	// initialize the pipeline
