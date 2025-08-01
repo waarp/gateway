@@ -12,7 +12,7 @@ import (
 	"code.waarp.fr/apps/gateway/gateway/pkg/protocols/modules/sftp"
 )
 
-func displayAuthority(w io.Writer, authority *api.OutAuthority) {
+func displayAuthority(w io.Writer, authority *api.OutAuthority, raw bool) {
 	Style1.Printf(w, "Authority %q", authority.Name)
 	Style22.PrintL(w, "Type", authority.Type)
 	Style22.PrintL(w, "Valid for hosts", withDefault(join(authority.ValidHosts), "<all>"))
@@ -21,9 +21,9 @@ func displayAuthority(w io.Writer, authority *api.OutAuthority) {
 
 	switch authority.Type {
 	case auth.AuthorityTLS:
-		err = displayTLSInfo(w, Style22, authority.Name, authority.PublicIdentity)
+		err = displayTLSInfo(w, Style22, authority.Name, authority.PublicIdentity, raw)
 	case sftp.AuthoritySSHCert:
-		err = displaySSHKeyInfo(w, Style22, authority.Name, authority.PublicIdentity)
+		err = displaySSHKeyInfo(w, Style22, authority.Name, authority.PublicIdentity, raw)
 	}
 
 	if err != nil {
@@ -56,6 +56,7 @@ type AuthorityGet struct {
 	Args struct {
 		Name string `required:"yes" positional-arg-name:"name" description:"The authority's name"`
 	} `positional-args:"yes"`
+	Raw bool `short:"r" long:"raw" description:"Display the raw authority identity information"`
 }
 
 func (a *AuthorityGet) Execute([]string) error { return a.execute(stdOutput) }
@@ -67,7 +68,7 @@ func (a *AuthorityGet) execute(w io.Writer) error {
 		return err
 	}
 
-	displayAuthority(w, authority)
+	displayAuthority(w, authority, a.Raw)
 
 	return nil
 }
@@ -75,7 +76,9 @@ func (a *AuthorityGet) execute(w io.Writer) error {
 //nolint:lll // struct tags can be long for command line args
 type AuthorityList struct {
 	ListOptions
+
 	SortBy string `short:"s" long:"sort" description:"Attribute used to sort the returned entries" choice:"name+" choice:"name-" default:"name+" `
+	Raw    bool   `short:"r" long:"raw" description:"Display the raw authority identity information"`
 }
 
 func (a *AuthorityList) Execute([]string) error { return a.execute(stdOutput) }
@@ -95,7 +98,7 @@ func (a *AuthorityList) execute(w io.Writer) error {
 		Style0.Printf(w, "=== Authentication authorities ===")
 
 		for _, authority := range authorities {
-			displayAuthority(w, authority)
+			displayAuthority(w, authority, a.Raw)
 		}
 	} else {
 		fmt.Fprintln(w, "No authorities found.")

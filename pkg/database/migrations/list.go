@@ -326,4 +326,14 @@ var Migrations = []Change{
 		Up:          ver0_13_0AddClientAutoResumeUp,
 		Down:        ver0_13_0AddClientAutoResumeDown,
 	},
+	{ // #61
+		Description: `Add the "email_templates" table`,
+		Up:          ver0_13_0AddEmailTemplatesUp,
+		Down:        ver0_13_0AddEmailTemplatesDown,
+	},
+	{ // #62
+		Description: `Add the "smtp_credentials" table`,
+		Up:          ver0_13_0AddSMTPCredentialsUp,
+		Down:        ver0_13_0AddSMTPCredentialsDown,
+	},
 }

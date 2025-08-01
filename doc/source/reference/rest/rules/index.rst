@@ -26,3 +26,4 @@ blanche, se référer aux chapitres :
    replace
    delete
    allow_all
+   emails/index

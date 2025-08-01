@@ -45,6 +45,7 @@ Liste des traitements
    archive
    extract
    icap
+   email
    encrypt
    decrypt
    sign

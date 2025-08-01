@@ -18,6 +18,8 @@ const (
 	NameTransferInfo       = "transfer info"
 	NameUser               = "user"
 	NameCryptoKey          = "cryptographic key"
+	NameEmailTemplate      = "email template"
+	NameSMTPCredential     = "smtp credential"
 )
 
 const authPassword = "password"

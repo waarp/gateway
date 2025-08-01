@@ -19,6 +19,7 @@ type Data struct {
 	SNMPConfig  *SNMPConfig   `json:"snmpConfig,omitempty"`
 	Authorities []*Authority  `json:"authorities,omitempty"`
 	CryptoKeys  []*CryptoKey  `json:"cryptoKeys,omitempty"`
+	EmailConfig *EmailConfig  `json:"emailConfig,omitempty"`
 }
 
 // LocalAgent is the JSON struct representing a local server along with its
@@ -239,4 +240,24 @@ type CryptoKey struct {
 	Name string `json:"name"`
 	Type string `json:"type"`
 	Key  string `json:"key"`
+}
+
+type EmailConfig struct {
+	Credentials []*SMTPCredential `json:"credentials,omitempty"`
+	Templates   []*EmailTemplate  `json:"templates,omitempty"`
+}
+
+type SMTPCredential struct {
+	EmailAddress  string `json:"emailAddress"`
+	ServerAddress string `json:"serverAddress"`
+	Login         string `json:"login"`
+	Password      string `json:"password"`
+}
+
+type EmailTemplate struct {
+	Name        string   `json:"name"`
+	Subject     string   `json:"subject"`
+	MIMEType    string   `json:"mimeType"`
+	Body        string   `json:"body"`
+	Attachments []string `json:"attachments,omitempty"`
 }

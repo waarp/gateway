@@ -18,7 +18,7 @@ import (
 // local servers and accounts, 'partners' for remote partners and accounts, or
 // 'all' for all data.
 //
-//nolint:funlen //function cannot be easily split
+//nolint:funlen,gocognit,cyclop //function cannot be easily split
 func ExportData(db database.ReadAccess, w io.Writer, targets []string) error {
 	logger := logging.NewLogger("export")
 
@@ -89,11 +89,18 @@ func ExportData(db database.ReadAccess, w io.Writer, targets []string) error {
 		}
 	}
 
+	if utils.ContainsOneOf(targets, "email", "all") {
+		data.EmailConfig, err = exportEmailConf(logger, db)
+		if err != nil {
+			return err
+		}
+	}
+
 	encoder := json.NewEncoder(w)
 	encoder.SetIndent("", "  ")
 
-	if err := encoder.Encode(data); err != nil {
-		return fmt.Errorf("cannot encode data: %w", err)
+	if encErr := encoder.Encode(data); encErr != nil {
+		return fmt.Errorf("cannot encode data: %w", encErr)
 	}
 
 	return nil

@@ -26,6 +26,7 @@ linters:
     - noinlineerr
     - noctx
     - wsl
+    - gocyclo
 
   # All available settings of specific linters.
   settings:
@@ -1873,7 +1874,7 @@ linters:
         # https://github.com/mgechev/revive/blob/HEAD/RULES_DESCRIPTIONS.md#var-naming
         - name: var-naming
           severity: warning
-          disabled: false
+          disabled: true
           exclude: [""]
           arguments:
             - [ "ID" ] # AllowList

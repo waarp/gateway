@@ -6,6 +6,7 @@ import (
 	"reflect"
 	"sort"
 	"strings"
+	"unicode/utf8"
 
 	"github.com/dustin/go-humanize"
 	"github.com/gookit/color"
@@ -72,6 +73,30 @@ func (s *style) sprintL(name string, value any) string {
 func (s *style) Option(w io.Writer, name string, value any) {
 	if value != nil && !reflect.ValueOf(value).IsZero() {
 		s.PrintL(w, name, value)
+	}
+}
+
+func (s *style) Defaul(w io.Writer, name string, value, defaultVal any) {
+	if value != nil && !reflect.ValueOf(value).IsZero() {
+		s.PrintL(w, name, value)
+	} else {
+		s.PrintL(w, name, defaultVal)
+	}
+}
+
+func (s *style) MultiL(w io.Writer, name, value string) {
+	lines := strings.Split(value, "\n")
+	if len(lines) <= 1 {
+		s.PrintL(w, name, value)
+
+		return
+	}
+
+	indent := strings.Repeat(" ", utf8.RuneCountInString(nextStyle(s).bulletPrefix))
+	s.PrintV(w, name+":")
+
+	for _, line := range lines {
+		fmt.Fprintln(w, indent+line)
 	}
 }
 

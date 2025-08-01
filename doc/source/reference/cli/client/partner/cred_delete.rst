@@ -16,4 +16,4 @@ Supprime la valeur d'authentification donnée du partenaire.
 
 .. code-block:: shell
 
-   waarp-gateway partner credential 'openssh' delete 'openssh_hostkey'
+   waarp-gateway partner credential "openssh" delete "openssh_hostkey"

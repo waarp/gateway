@@ -213,6 +213,23 @@ type commands struct {
 		Del  wg.CryptoKeysDelete `command:"delete" description:"Delete a cryptographic key"`
 	} `command:"key" description:"Manage the cryptographic keys"`
 
+	Email struct {
+		Template struct {
+			Add  wg.EmailTemplateAdd    `command:"add" description:"Add a new email template"`
+			Get  wg.EmailTemplateGet    `command:"get" description:"Retrieve an email template"`
+			List wg.EmailTemplateList   `command:"list" description:"List the email templates"`
+			Upd  wg.EmailTemplateUpdate `command:"update" description:"Update an existing email template"`
+			Del  wg.EmailTemplateDelete `command:"delete" description:"Delete an email template"`
+		} `command:"template" description:"Manage the email templates"`
+		Credential struct {
+			Add  wg.SMTPCredentialAdd    `command:"add" description:"Add a new SMTP credential"`
+			Get  wg.SMTPCredentialGet    `command:"get" description:"Retrieve an SMTP credential"`
+			List wg.SMTPCredentialList   `command:"list" description:"List the SMTP credentials"`
+			Upd  wg.SMTPCredentialUpdate `command:"update" description:"Update an existing SMTP credential"`
+			Del  wg.SMTPCredentialDelete `command:"delete" description:"Delete an SMTP credential"`
+		} `command:"credential" description:"Manage the SMTP credentials"`
+	} `command:"email" description:"Manage the gateway's email configuration"`
+
 	Version wg.Version `command:"version" description:"Print the program version and exit"`
 }
 

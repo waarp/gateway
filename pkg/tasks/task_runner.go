@@ -6,8 +6,6 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
-	"regexp"
-	"strings"
 	"sync"
 	"time"
 
@@ -196,28 +194,9 @@ func (r *Runner) replace(t *model.Task) (map[string]string, error) {
 		return nil, fmt.Errorf("failed to serialize the task arguments: %w", jsonErr)
 	}
 
-	rawArgs := string(raw)
-	replacers := getReplacers()
-	replacers.addInfo(r.transCtx)
-
-	for key, f := range replacers {
-		reg := regexp.MustCompile(key)
-		matches := reg.FindAllString(rawArgs, -1)
-
-		for _, match := range matches {
-			rep, err := f(r.transCtx, match)
-			if err != nil {
-				return nil, err
-			}
-
-			bytesRep, err := json.Marshal(rep)
-			if err != nil {
-				return nil, fmt.Errorf("cannot prepare value for replacement: %w", err)
-			}
-
-			replacement := string(bytesRep[1 : len(bytesRep)-1])
-			rawArgs = strings.ReplaceAll(rawArgs, match, replacement)
-		}
+	rawArgs, repErr := replaceVars(string(raw), r.transCtx)
+	if repErr != nil {
+		return nil, repErr
 	}
 
 	var newArgs map[string]string
