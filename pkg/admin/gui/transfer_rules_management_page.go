@@ -138,7 +138,7 @@ func listRule(db *database.DB, r *http.Request) ([]*model.Rule, FiltersPaginatio
 	ruleFound := ""
 	filter := FiltersPagination{
 		Offset:          0,
-		Limit:           LimitPagination,
+		Limit:           DefaultLimitPagination,
 		OrderAsc:        true,
 		DisableNext:     false,
 		DisablePrevious: false,

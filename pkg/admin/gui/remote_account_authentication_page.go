@@ -11,6 +11,8 @@ import (
 	"code.waarp.fr/apps/gateway/gateway/pkg/admin/gui/internal"
 	"code.waarp.fr/apps/gateway/gateway/pkg/database"
 	"code.waarp.fr/apps/gateway/gateway/pkg/model"
+	"code.waarp.fr/apps/gateway/gateway/pkg/model/authentication/auth"
+	"code.waarp.fr/apps/gateway/gateway/pkg/protocols/modules/sftp"
 )
 
 //nolint:dupl // no similar func (is for remote_account)
@@ -20,7 +22,7 @@ func listCredentialRemoteAccount(partnerName, login string, db *database.DB, r *
 	credentialAccountFound := ""
 	filter := FiltersPagination{
 		Offset:          0,
-		Limit:           LimitPagination,
+		Limit:           DefaultLimitPagination,
 		OrderAsc:        true,
 		DisableNext:     false,
 		DisablePrevious: false,
@@ -148,14 +150,14 @@ func addCredentialRemoteAccount(partnerName, login string, db *database.DB, r *h
 	}
 
 	switch newCredentialAccount.Type {
-	case "password": //nolint:goconst // correction in next push
+	case auth.Password:
 		newCredentialAccount.Value = r.FormValue("addCredentialValue")
-	case "ssh_private_key": //nolint:goconst // correction in next push
+	case sftp.AuthSSHPrivateKey:
 		newCredentialAccount.Value = r.FormValue("addCredentialValueFile")
-	case "tls_certificate": //nolint:goconst // correction in next push
+	case auth.TLSCertificate:
 		newCredentialAccount.Value = r.FormValue("addCredentialValueFile1")
 		newCredentialAccount.Value2 = r.FormValue("addCredentialValueFile2")
-	case "pesit_pre-connection_auth": //nolint:goconst // correction in next push
+	case PreConnectionAuth: // pesit.PreConnectionAuth
 		newCredentialAccount.Value = r.FormValue("addCredentialValue1")
 		newCredentialAccount.Value2 = r.FormValue("addCredentialValue2")
 	}
@@ -200,14 +202,14 @@ func editCredentialRemoteAccount(account *model.RemoteAccount, db *database.DB, 
 	}
 
 	switch editCredentialAccount.Type {
-	case "password":
+	case auth.Password:
 		editCredentialAccount.Value = r.FormValue("editCredentialValue")
-	case "ssh_private_key":
+	case sftp.AuthSSHPrivateKey:
 		editCredentialAccount.Value = r.FormValue("editCredentialValueFile")
-	case "tls_certificate":
+	case auth.TLSCertificate:
 		editCredentialAccount.Value = r.FormValue("editCredentialValueFile1")
 		editCredentialAccount.Value2 = r.FormValue("editCredentialValueFile2")
-	case "pesit_pre-connection_auth":
+	case PreConnectionAuth: // pesit.PreConnectionAuth
 		editCredentialAccount.Value = r.FormValue("editCredentialValue1")
 		editCredentialAccount.Value2 = r.FormValue("editCredentialValue2")
 	}

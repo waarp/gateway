@@ -12,6 +12,8 @@ import (
 	"code.waarp.fr/apps/gateway/gateway/pkg/admin/gui/internal"
 	"code.waarp.fr/apps/gateway/gateway/pkg/database"
 	"code.waarp.fr/apps/gateway/gateway/pkg/model"
+	"code.waarp.fr/apps/gateway/gateway/pkg/model/authentication/auth"
+	"code.waarp.fr/apps/gateway/gateway/pkg/protocols/modules/sftp"
 )
 
 //nolint:dupl // no similar func (is for server)
@@ -21,7 +23,7 @@ func listCredentialServer(serverName string, db *database.DB, r *http.Request) (
 	credentialServerFound := ""
 	filter := FiltersPagination{
 		Offset:          0,
-		Limit:           LimitPagination,
+		Limit:           DefaultLimitPagination,
 		OrderAsc:        true,
 		DisableNext:     false,
 		DisablePrevious: false,
@@ -148,14 +150,14 @@ func addCredentialServer(serverName string, db *database.DB, r *http.Request) er
 	}
 
 	switch newCredentialServer.Type {
-	case "password":
+	case auth.Password:
 		newCredentialServer.Value = r.FormValue("addCredentialValue")
-	case "ssh_private_key":
+	case sftp.AuthSSHPrivateKey:
 		newCredentialServer.Value = r.FormValue("addCredentialValueFile")
-	case "tls_certificate":
+	case auth.TLSCertificate:
 		newCredentialServer.Value = r.FormValue("addCredentialValueFile1")
 		newCredentialServer.Value2 = r.FormValue("addCredentialValueFile2")
-	case "pesit_pre-connection_auth":
+	case PreConnectionAuth: // pesit.PreConnectionAuth
 		newCredentialServer.Value = r.FormValue("addCredentialValue1")
 		newCredentialServer.Value2 = r.FormValue("addCredentialValue2")
 	}
@@ -200,14 +202,14 @@ func editCredentialServer(serverName string, db *database.DB, r *http.Request) e
 	}
 
 	switch editCredentialServer.Type {
-	case "password":
+	case auth.Password:
 		editCredentialServer.Value = r.FormValue("editCredentialValue")
-	case "ssh_private_key":
+	case sftp.AuthSSHPrivateKey:
 		editCredentialServer.Value = r.FormValue("editCredentialValueFile")
-	case "tls_certificate":
+	case auth.TLSCertificate:
 		editCredentialServer.Value = r.FormValue("editCredentialValueFile1")
 		editCredentialServer.Value2 = r.FormValue("editCredentialValueFile2")
-	case "pesit_pre-connection_auth":
+	case PreConnectionAuth: // pesit.PreConnectionAuth
 		editCredentialServer.Value = r.FormValue("editCredentialValue1")
 		editCredentialServer.Value2 = r.FormValue("editCredentialValue2")
 	}
@@ -338,7 +340,7 @@ func serverAuthenticationPage(logger *log.Logger, db *database.DB) http.HandlerF
 
 		listSupportedProtocol := supportedProtocolExternal(server.Protocol)
 		listSupportedProtocol = slices.DeleteFunc(listSupportedProtocol, func(method_auth string) bool {
-			return method_auth == "pesit_pre-connection_auth"
+			return method_auth == PreConnectionAuth
 		})
 		currentPage := filter.Offset + 1
 

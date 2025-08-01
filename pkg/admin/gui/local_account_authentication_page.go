@@ -11,6 +11,8 @@ import (
 	"code.waarp.fr/apps/gateway/gateway/pkg/admin/gui/internal"
 	"code.waarp.fr/apps/gateway/gateway/pkg/database"
 	"code.waarp.fr/apps/gateway/gateway/pkg/model"
+	"code.waarp.fr/apps/gateway/gateway/pkg/model/authentication/auth"
+	"code.waarp.fr/apps/gateway/gateway/pkg/protocols/modules/sftp"
 )
 
 //nolint:dupl // no similar func (is for account)
@@ -20,7 +22,7 @@ func listCredentialLocalAccount(serverName, login string, db *database.DB, r *ht
 	credentialAccountFound := ""
 	filter := FiltersPagination{
 		Offset:          0,
-		Limit:           LimitPagination,
+		Limit:           DefaultLimitPagination,
 		OrderAsc:        true,
 		DisableNext:     false,
 		DisablePrevious: false,
@@ -148,9 +150,9 @@ func addCredentialLocalAccount(serverName, login string, db *database.DB, r *htt
 	}
 
 	switch newCredentialAccount.Type {
-	case "password":
+	case auth.Password:
 		newCredentialAccount.Value = r.FormValue("addCredentialValue")
-	case "trusted_tls_certificate", "ssh_public_key":
+	case auth.TLSTrustedCertificate, sftp.AuthSSHPublicKey:
 		newCredentialAccount.Value = r.FormValue("addCredentialValueFile")
 	}
 
@@ -194,9 +196,9 @@ func editCredentialLocalAccount(account *model.LocalAccount, db *database.DB, r 
 	}
 
 	switch editCredentialAccount.Type {
-	case "password":
+	case auth.Password:
 		editCredentialAccount.Value = r.FormValue("editCredentialValue")
-	case "trusted_tls_certificate", "ssh_public_key":
+	case auth.TLSTrustedCertificate, sftp.AuthSSHPublicKey:
 		editCredentialAccount.Value = r.FormValue("editCredentialValueFile")
 	}
 

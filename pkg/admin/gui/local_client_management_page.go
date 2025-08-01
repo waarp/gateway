@@ -11,6 +11,9 @@ import (
 	"code.waarp.fr/apps/gateway/gateway/pkg/admin/gui/internal"
 	"code.waarp.fr/apps/gateway/gateway/pkg/database"
 	"code.waarp.fr/apps/gateway/gateway/pkg/model"
+	"code.waarp.fr/apps/gateway/gateway/pkg/protocols/modules/ftp"
+	"code.waarp.fr/apps/gateway/gateway/pkg/protocols/modules/pesit"
+	"code.waarp.fr/apps/gateway/gateway/pkg/protocols/modules/r66"
 	"code.waarp.fr/apps/gateway/gateway/pkg/protocols/modules/sftp"
 )
 
@@ -43,13 +46,13 @@ func addLocalClient(db *database.DB, r *http.Request) error {
 	}
 
 	switch newLocalClient.Protocol {
-	case "r66", "r66-tls":
+	case r66.R66, r66.R66TLS:
 		newLocalClient.ProtoConfig = protoConfigR66Client(r)
-	case "sftp":
+	case sftp.SFTP:
 		newLocalClient.ProtoConfig = protoConfigSFTPClient(r)
-	case "ftp", "ftps":
+	case ftp.FTP, ftp.FTPS:
 		newLocalClient.ProtoConfig = protoConfigFTPClient(r, newLocalClient.Protocol)
-	case "pesit", "pesit-tls":
+	case pesit.Pesit, pesit.PesitTLS:
 		newLocalClient.ProtoConfig = protoConfigPeSITClient(r)
 	}
 
@@ -100,13 +103,13 @@ func editLocalClient(db *database.DB, r *http.Request) error {
 	}
 
 	switch editLocalClient.Protocol {
-	case "r66", "r66-tls":
+	case r66.R66, r66.R66TLS:
 		editLocalClient.ProtoConfig = protoConfigR66Client(r)
-	case "sftp":
+	case sftp.SFTP:
 		editLocalClient.ProtoConfig = protoConfigSFTPClient(r)
-	case "ftp", "ftps":
+	case ftp.FTP, ftp.FTPS:
 		editLocalClient.ProtoConfig = protoConfigFTPClient(r, editLocalClient.Protocol)
-	case "pesit", "pesit-tls":
+	case pesit.Pesit, pesit.PesitTLS:
 		editLocalClient.ProtoConfig = protoConfigPeSITClient(r)
 	}
 
@@ -145,7 +148,7 @@ func listLocalClient(db *database.DB, r *http.Request) ([]*model.Client, Filters
 	localClientFound := ""
 	filter := FiltersPagination{
 		Offset:          0,
-		Limit:           LimitPagination,
+		Limit:           DefaultLimitPagination,
 		OrderAsc:        true,
 		DisableNext:     false,
 		DisablePrevious: false,

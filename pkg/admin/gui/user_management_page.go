@@ -161,7 +161,7 @@ func listUser(db *database.DB, r *http.Request) ([]*model.User, Filters, string)
 	userFound := ""
 	filter := Filters{
 		Offset:          0,
-		Limit:           LimitPagination,
+		Limit:           DefaultLimitPagination,
 		OrderAsc:        true,
 		DisableNext:     false,
 		DisablePrevious: false,

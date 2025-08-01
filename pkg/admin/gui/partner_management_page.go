@@ -11,6 +11,9 @@ import (
 	"code.waarp.fr/apps/gateway/gateway/pkg/admin/gui/internal"
 	"code.waarp.fr/apps/gateway/gateway/pkg/database"
 	"code.waarp.fr/apps/gateway/gateway/pkg/model"
+	"code.waarp.fr/apps/gateway/gateway/pkg/protocols/modules/ftp"
+	"code.waarp.fr/apps/gateway/gateway/pkg/protocols/modules/pesit"
+	"code.waarp.fr/apps/gateway/gateway/pkg/protocols/modules/r66"
 	"code.waarp.fr/apps/gateway/gateway/pkg/protocols/modules/sftp"
 )
 
@@ -54,13 +57,13 @@ func editPartner(db *database.DB, r *http.Request) error {
 	}
 
 	switch editPartner.Protocol {
-	case "r66", "r66-tls": //nolint:goconst // correction in next push
+	case r66.R66, r66.R66TLS:
 		editPartner.ProtoConfig = protoConfigR66Partner(r)
-	case "sftp": //nolint:goconst // correction in next push
+	case sftp.SFTP:
 		editPartner.ProtoConfig = protoConfigSFTPpartner(r)
-	case "ftp", "ftps": //nolint:goconst // correction in next push
+	case ftp.FTP, ftp.FTPS:
 		editPartner.ProtoConfig = protoConfigFTPpartner(r, editPartner.Protocol)
-	case "pesit", "pesit-tls": //nolint:goconst // correction in next push
+	case pesit.Pesit, pesit.PesitTLS:
 		editPartner.ProtoConfig = protoConfigPeSITPartner(r, editPartner.Protocol)
 	}
 
@@ -100,13 +103,13 @@ func addPartner(db *database.DB, r *http.Request) error {
 	}
 
 	switch newPartner.Protocol {
-	case "r66", "r66-tls":
+	case r66.R66, r66.R66TLS:
 		newPartner.ProtoConfig = protoConfigR66Partner(r)
-	case "sftp":
+	case sftp.SFTP:
 		newPartner.ProtoConfig = protoConfigSFTPpartner(r)
-	case "ftp", "ftps":
+	case ftp.FTP, ftp.FTPS:
 		newPartner.ProtoConfig = protoConfigFTPpartner(r, newPartner.Protocol)
-	case "pesit", "pesit-tls":
+	case pesit.Pesit, pesit.PesitTLS:
 		newPartner.ProtoConfig = protoConfigPeSITPartner(r, newPartner.Protocol)
 	}
 
@@ -121,7 +124,7 @@ func ListPartner(db *database.DB, r *http.Request) ([]*model.RemoteAgent, Filter
 	partnerFound := ""
 	filter := FiltersPagination{
 		Offset:          0,
-		Limit:           LimitPagination,
+		Limit:           DefaultLimitPagination,
 		OrderAsc:        true,
 		DisableNext:     false,
 		DisablePrevious: false,

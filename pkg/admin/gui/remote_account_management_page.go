@@ -20,7 +20,7 @@ func listRemoteAccount(partnerName string, db *database.DB, r *http.Request) (
 	remoteAccountFound := ""
 	filter := FiltersPagination{
 		Offset:          0,
-		Limit:           LimitPagination,
+		Limit:           DefaultLimitPagination,
 		OrderAsc:        true,
 		DisableNext:     false,
 		DisablePrevious: false,

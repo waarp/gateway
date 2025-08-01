@@ -11,6 +11,8 @@ import (
 	"code.waarp.fr/apps/gateway/gateway/pkg/admin/gui/internal"
 	"code.waarp.fr/apps/gateway/gateway/pkg/database"
 	"code.waarp.fr/apps/gateway/gateway/pkg/model"
+	"code.waarp.fr/apps/gateway/gateway/pkg/model/authentication/auth"
+	"code.waarp.fr/apps/gateway/gateway/pkg/protocols/modules/sftp"
 )
 
 //nolint:dupl // it is not the same function, the calls are different
@@ -20,7 +22,7 @@ func listCredentialPartner(partnerName string, db *database.DB, r *http.Request)
 	credentialPartnerFound := ""
 	filter := FiltersPagination{
 		Offset:          0,
-		Limit:           LimitPagination,
+		Limit:           DefaultLimitPagination,
 		OrderAsc:        true,
 		DisableNext:     false,
 		DisablePrevious: false,
@@ -155,9 +157,9 @@ func editCredentialPartner(partnerName string, db *database.DB, r *http.Request)
 	}
 
 	switch editCredentialPartner.Type {
-	case "password": //nolint:goconst // correction in next push
+	case auth.Password:
 		editCredentialPartner.Value = r.FormValue("editCredentialValue")
-	case "trusted_tls_certificate", "ssh_public_key": //nolint:goconst // correction in next push
+	case auth.TLSTrustedCertificate, sftp.AuthSSHPublicKey:
 		editCredentialPartner.Value = r.FormValue("editCredentialValueFile")
 	}
 
@@ -184,9 +186,9 @@ func addCredentialPartner(partnerName string, db *database.DB, r *http.Request) 
 	}
 
 	switch newCredentialPartner.Type {
-	case "password":
+	case auth.Password:
 		newCredentialPartner.Value = r.FormValue("addCredentialValue")
-	case "trusted_tls_certificate", "ssh_public_key":
+	case auth.TLSTrustedCertificate, sftp.AuthSSHPublicKey:
 		newCredentialPartner.Value = r.FormValue("addCredentialValueFile")
 	}
 

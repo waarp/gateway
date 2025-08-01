@@ -3,6 +3,8 @@ package gui
 import (
 	"net/http"
 	"strconv"
+
+	"code.waarp.fr/apps/gateway/gateway/pkg/protocols/modules/ftp"
 )
 
 //nolint:dupl // is for partner protoConfig
@@ -174,7 +176,7 @@ func protoConfigFTPpartner(r *http.Request, protocol string) map[string]any {
 		ftpProtoConfig["disableEPSV"] = false
 	}
 
-	if protocol == "ftps" { //nolint:nestif // call ftps
+	if protocol == ftp.FTPS { //nolint:nestif // call ftps
 		if useImplicitTLS := r.FormValue("useImplicitTLS"); useImplicitTLS == "true" {
 			ftpProtoConfig["useImplicitTLS"] = true
 		} else {
@@ -226,7 +228,7 @@ func protoConfigFTPServer(r *http.Request, protocol string) map[string]any {
 		ftpProtoConfig["passiveModeMaxPort"] = uint32(size)
 	}
 
-	if protocol == "ftps" { //nolint:nestif // call ftps
+	if protocol == ftp.FTPS { //nolint:nestif // call ftps
 		if tlsRequirement := r.FormValue("tlsRequirement"); tlsRequirement != "" {
 			ftpProtoConfig["tlsRequirement"] = tlsRequirement
 		}
@@ -268,7 +270,7 @@ func protoConfigFTPClient(r *http.Request, protocol string) map[string]any {
 		ftpProtoConfig["activeModeMaxPort"] = uint32(size)
 	}
 
-	if protocol == "ftps" {
+	if protocol == ftp.FTPS {
 		if minTLSVersion := r.FormValue("protoConfigFTPSminTLSVersion"); minTLSVersion != "" {
 			ftpProtoConfig["minTLSVersion"] = minTLSVersion
 		}

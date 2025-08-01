@@ -20,7 +20,7 @@ func listLocalAccount(serverName string, db *database.DB, r *http.Request) (
 	localAccountFound := ""
 	filter := FiltersPagination{
 		Offset:          0,
-		Limit:           LimitPagination,
+		Limit:           DefaultLimitPagination,
 		OrderAsc:        true,
 		DisableNext:     false,
 		DisablePrevious: false,

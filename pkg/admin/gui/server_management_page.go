@@ -11,6 +11,9 @@ import (
 	"code.waarp.fr/apps/gateway/gateway/pkg/admin/gui/internal"
 	"code.waarp.fr/apps/gateway/gateway/pkg/database"
 	"code.waarp.fr/apps/gateway/gateway/pkg/model"
+	"code.waarp.fr/apps/gateway/gateway/pkg/protocols/modules/ftp"
+	"code.waarp.fr/apps/gateway/gateway/pkg/protocols/modules/pesit"
+	"code.waarp.fr/apps/gateway/gateway/pkg/protocols/modules/r66"
 	"code.waarp.fr/apps/gateway/gateway/pkg/protocols/modules/sftp"
 )
 
@@ -58,13 +61,13 @@ func addServer(db *database.DB, r *http.Request) error {
 	}
 
 	switch newServer.Protocol {
-	case "r66", "r66-tls":
+	case r66.R66, r66.R66TLS:
 		newServer.ProtoConfig = protoConfigR66Server(r)
-	case "sftp":
+	case sftp.SFTP:
 		newServer.ProtoConfig = protoConfigSFTPServer(r)
-	case "ftp", "ftps":
+	case ftp.FTP, ftp.FTPS:
 		newServer.ProtoConfig = protoConfigFTPServer(r, newServer.Protocol)
-	case "pesit", "pesit-tls":
+	case pesit.Pesit, pesit.PesitTLS:
 		newServer.ProtoConfig = protoConfigPeSITServer(r, newServer.Protocol)
 	}
 
@@ -131,13 +134,13 @@ func editServer(db *database.DB, r *http.Request) error {
 	}
 
 	switch editServer.Protocol {
-	case "r66", "r66-tls":
+	case r66.R66, r66.R66TLS:
 		editServer.ProtoConfig = protoConfigR66Server(r)
-	case "sftp":
+	case sftp.SFTP:
 		editServer.ProtoConfig = protoConfigSFTPServer(r)
-	case "ftp", "ftps":
+	case ftp.FTP, ftp.FTPS:
 		editServer.ProtoConfig = protoConfigFTPServer(r, editServer.Protocol)
-	case "pesit", "pesit-tls":
+	case pesit.Pesit, pesit.PesitTLS:
 		editServer.ProtoConfig = protoConfigPeSITServer(r, editServer.Protocol)
 	}
 
@@ -176,7 +179,7 @@ func listServer(db *database.DB, r *http.Request) ([]*model.LocalAgent, FiltersP
 	serverFound := ""
 	filter := FiltersPagination{
 		Offset:          0,
-		Limit:           LimitPagination,
+		Limit:           DefaultLimitPagination,
 		OrderAsc:        true,
 		DisableNext:     false,
 		DisablePrevious: false,
