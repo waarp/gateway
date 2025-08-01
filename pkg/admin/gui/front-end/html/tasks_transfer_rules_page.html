@@ -9,6 +9,13 @@
     <script src="/webui/static/javaScript/dragAndDropTasks.js"></script>
     <script src="/webui/static/javaScript/animationCollapseTasks.js"></script>
     <script>window.modalOpen = "{{ .modalOpen }}";</script>
+    <script>window.encryptKeyTypes = {{ marshalJSON .EncryptKeyTypes }};</script>
+    <script>window.decryptKeyTypes = {{ marshalJSON .DecryptKeyTypes }};</script>
+    <script>window.signKeyTypes = {{ marshalJSON .SignKeyTypes }};</script>
+    <script>window.verifyKeyTypes = {{ marshalJSON .VerifyKeyTypes }};</script>
+    <script>window.encryptSignKeyTypes = {{ marshalJSON .EncryptSignKeyTypes }};</script>
+    <script>window.decryptVerifyKeyTypes = {{ marshalJSON .DecryptVerifyKeyTypes }};</script>
+    <script src="/webui/static/javaScript/showDynamicsKeyname.js"></script>
     <script src="/webui/static/javaScript/displayErr.js"></script>
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css" rel="stylesheet">
 {{ end }}

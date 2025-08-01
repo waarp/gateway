@@ -88,47 +88,47 @@
 {{ end }}
 
 {{ define "displayTaskTRANSFER" }}
-    <div class="form-input">
-        <label class="col-form-label">{{ index .tab "file" }} <i class="bi bi-info-circle ms-1" data-bs-toggle="tooltip" data-bs-placement="right" data-bs-title="{{ index $.tab "tooltipFile" }}"></i> :</label>
-        <input type="text" class="form-control-plaintext" value="{{ index .Args "file" }}" disabled>
+<div class="form-input">
+    <label class="col-form-label">{{ index .tab "file" }} <i class="bi bi-info-circle ms-1" data-bs-toggle="tooltip" data-bs-placement="right" data-bs-title="{{ index $.tab "tooltipFile" }}"></i> :</label>
+    <input type="text" class="form-control-plaintext" value="{{ index .Args "file" }}" disabled>
+</div>
+<hr style="border-top: 1px solid #ababab;">
+<div class="form-input">
+    <label class="col-form-label">{{ index .tab "using" }} <i class="bi bi-info-circle ms-1" data-bs-toggle="tooltip" data-bs-placement="right" data-bs-title="{{ index $.tab "tooltipUsing" }}"></i> :</label>
+    <input type="text" class="form-control-plaintext" value="{{ index .Args "using" }}" disabled>
+</div>
+<hr style="border-top: 1px solid #ababab;">
+<div class="form-input">
+    <label class="col-form-label">{{ index .tab "to" }} <i class="bi bi-info-circle ms-1" data-bs-toggle="tooltip" data-bs-placement="right" data-bs-title="{{ index $.tab "tooltipTo" }}"></i> :</label>
+    <input type="text" class="form-control-plaintext" value="{{ index .Args "to" }}" disabled>
+</div>
+<hr style="border-top: 1px solid #ababab;">
+<div class="form-input">
+    <label class="col-form-label">{{ index .tab "as" }} <i class="bi bi-info-circle ms-1" data-bs-toggle="tooltip" data-bs-placement="right" data-bs-title="{{ index $.tab "tooltipAs" }}"></i> :</label>
+    <input type="text" class="form-control-plaintext" value="{{ index .Args "as" }}" disabled>
+</div>
+<hr style="border-top: 1px solid #ababab;">
+<div class="form-input">
+    <label class="col-form-label">{{ index .tab "rule" }} <i class="bi bi-info-circle ms-1" data-bs-toggle="tooltip" data-bs-placement="right" data-bs-title="{{ index $.tab "tooltipRule" }}"></i> :</label>
+    <input type="text" class="form-control-plaintext" value="{{ index .Args "rule" }}" disabled>
+</div>
+<hr style="border-top: 1px solid #ababab;">
+<div class="form-input d-flex align-items-center">
+    <label class="col-form-label me-3">{{ index .tab "copyInfo" }} <i class="bi bi-info-circle ms-1" data-bs-toggle="tooltip" data-bs-placement="right" data-bs-title="{{ index $.tab "tooltipCopyInfo" }}"></i> :</label>
+    <div class="form-check form-check-inline">
+        <input class="form-check-input" type="checkbox" {{ if eq (index .Args "copyInfo") "true" }}checked{{ end }} disabled>
     </div>
-    <hr style="border-top: 1px solid #ababab;">
-    <div class="form-input">
-        <label class="col-form-label">{{ index .tab "using" }} <i class="bi bi-info-circle ms-1" data-bs-toggle="tooltip" data-bs-placement="right" data-bs-title="{{ index $.tab "tooltipUsing" }}"></i> :</label>
-        <input type="text" class="form-control-plaintext" value="{{ index .Args "using" }}" disabled>
-    </div>
-    <hr style="border-top: 1px solid #ababab;">
-    <div class="form-input">
-        <label class="col-form-label">{{ index .tab "to" }} <i class="bi bi-info-circle ms-1" data-bs-toggle="tooltip" data-bs-placement="right" data-bs-title="{{ index $.tab "tooltipTo" }}"></i> :</label>
-        <input type="text" class="form-control-plaintext" value="{{ index .Args "to" }}" disabled>
-    </div>
-    <hr style="border-top: 1px solid #ababab;">
-    <div class="form-input">
-        <label class="col-form-label">{{ index .tab "as" }} <i class="bi bi-info-circle ms-1" data-bs-toggle="tooltip" data-bs-placement="right" data-bs-title="{{ index $.tab "tooltipAs" }}"></i> :</label>
-        <input type="text" class="form-control-plaintext" value="{{ index .Args "as" }}" disabled>
-    </div>
-    <hr style="border-top: 1px solid #ababab;">
-    <div class="form-input">
-        <label class="col-form-label">{{ index .tab "rule" }} <i class="bi bi-info-circle ms-1" data-bs-toggle="tooltip" data-bs-placement="right" data-bs-title="{{ index $.tab "tooltipRule" }}"></i> :</label>
-        <input type="text" class="form-control-plaintext" value="{{ index .Args "rule" }}" disabled>
-    </div>
-    <hr style="border-top: 1px solid #ababab;">
-    <div class="form-input d-flex align-items-center">
-        <label class="col-form-label me-3">{{ index .tab "copyInfo" }} <i class="bi bi-info-circle ms-1" data-bs-toggle="tooltip" data-bs-placement="right" data-bs-title="{{ index $.tab "tooltipCopyInfo" }}"></i> :</label>
-        <div class="form-check form-check-inline">
-            <input class="form-check-input" type="checkbox" {{ if eq (index .Args "copyInfo") "true" }}checked{{ end }} disabled>
-        </div>
-    </div>
-    <hr style="border-top: 1px solid #ababab;">
-    <div class="form-input">
-        <label class="col-form-label">{{ index .tab "info" }} <i class="bi bi-info-circle ms-1" data-bs-toggle="tooltip" data-bs-placement="right" data-bs-title="{{ index $.tab "tooltipInfo" }}"></i> :</label>
-            {{ $infos := split (index .Args "info") "\n" }}
-    {{ range $i, $info := $infos }}
-        {{ if ne $info "" }}
-            <input type="text" class="form-control-plaintext mb-1" value="{{ $info }}" disabled>
-        {{ end }}
+</div>
+<hr style="border-top: 1px solid #ababab;">
+<div class="form-input">
+    <label class="col-form-label">{{ index .tab "info" }} <i class="bi bi-info-circle ms-1" data-bs-toggle="tooltip" data-bs-placement="right" data-bs-title="{{ index $.tab "tooltipInfo" }}"></i> :</label>
+        {{ $infos := split (index .Args "info") "\n" }}
+{{ range $i, $info := $infos }}
+    {{ if ne $info "" }}
+        <input type="text" class="form-control-plaintext mb-1" value="{{ $info }}" disabled>
     {{ end }}
-    </div>
+{{ end }}
+</div>
 {{ end }}
 
 {{ define "displayTaskTRANSCODE" }}
@@ -336,7 +336,7 @@
 </div>
 <hr style="border-top: 1px solid #ababab;">
 <div class="form-input">
-    <label class="col-form-label">{{ index .tab "signKeyName" }} <i class="bi bi-info-circle ms-1" data-bs-toggle="tooltip" data-bs-placement="right" data-bs-title="{{ index $.tab "tooltipSignKeyNameDecryptKeyName" }}"></i> :</label>
-    <input type="text" class="form-control-plaintext" value="{{ index .Args "signKeyName" }}" disabled>
+    <label class="col-form-label">{{ index .tab "verifyKeyName" }} <i class="bi bi-info-circle ms-1" data-bs-toggle="tooltip" data-bs-placement="right" data-bs-title="{{ index $.tab "tooltipVerifyKeyName" }}"></i> :</label>
+    <input type="text" class="form-control-plaintext" value="{{ index .Args "verifyKeyName" }}" disabled>
 </div>
 {{ end}}

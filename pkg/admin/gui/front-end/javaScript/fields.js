@@ -1,22 +1,12 @@
-function addField(button, fieldName) {
-    const container = button.parentElement.querySelector(`#${fieldName.replace('[]','')}Container`);
-    if (!container)
-        return;
+function addField(button) {
+    const container = button.parentElement.querySelector('#infoTransferContainer');
+    if (!container) return;
 
     const firstGroup = container.querySelector('.input-group');
-    if (!firstGroup)
-        return;
+    if (!firstGroup) return;
     const newGroup = firstGroup.cloneNode(true);
 
-    newGroup.querySelectorAll('input, select, textarea').forEach(el => {
-        if (el.type === 'checkbox' || el.type === 'radio') {
-            el.checked = false;
-        } else if (el.tagName === 'SELECT') {
-            el.selectedIndex = 0;
-        } else {
-            el.value = '';
-        }
-    });
+    newGroup.querySelectorAll('input').forEach(el => el.value = '');
 
     container.appendChild(newGroup);
 }

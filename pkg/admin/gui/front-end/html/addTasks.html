@@ -148,19 +148,20 @@
     <hr style="border-top: 1px solid #ababab;">
     <div class="form-input">
         <label class="col-form-label">{{ index .tab "info" }} <i class="bi bi-info-circle ms-1" data-bs-toggle="tooltip" data-bs-placement="right" data-bs-title="{{ index $.tab "tooltipInfo" }}"></i> :</label>
-       <div id="infoTransferContainer">
-           <div class="input-group mb-2">
-               <input type="text" name="infoTransfer[]" class="form-control" placeholder="{{ index .tab "info" }}">
+        <div id="infoTransferContainer">
+            <div class="input-group mb-2">
+                <input type="text" name="infoTransferKey[]" class="form-control" placeholder="clé">
+                <input type="text" name="infoTransferValue[]" class="form-control" placeholder="valeur">
                <button type="button" class="btn btn-outline-danger btn-sm" onclick="removeField(this)">
                    <i class="bi bi-trash"></i>
-               </button>
-           </div>
-       </div>
-       <button type="button"
-               class="btn btn-outline-primary btn-sm"
-               onclick="addField(this,'infoTransfer[]')">
-           add
-       </button>
+                </button>
+            </div>
+        </div>
+        <button type="button"
+                class="btn btn-outline-primary btn-sm"
+                onclick="addField(this)">
+            add
+        </button>
     </div>
 </div>
 {{ end }}
@@ -321,7 +322,9 @@
     <hr style="border-top: 1px solid #ababab;">
     <div class="form-input">
         <label class="col-form-label">{{ index .tab "keyName" }} <i class="bi bi-info-circle ms-1" data-bs-toggle="tooltip" data-bs-placement="right" data-bs-title="{{ index $.tab "tooltipKeyNameEncrypt" }}"></i> :</label>
-        <input type="text" name="keyNameEncrypt" class="form-control">
+        <select id="keyTypeEncrypt" name="keyNameEncrypt" class="form-select">
+            <option value="" disabled selected>{{ index .tab "selectKeyType" }}</option>
+        </select>
     </div>
 </div>
 {{ end}}
@@ -353,7 +356,9 @@
     <hr style="border-top: 1px solid #ababab;">
     <div class="form-input">
         <label class="col-form-label">{{ index .tab "keyName" }} <i class="bi bi-info-circle ms-1" data-bs-toggle="tooltip" data-bs-placement="right" data-bs-title="{{ index $.tab "tooltipKeyNameDecrypt" }}"></i> :</label>
-        <input type="text" name="keyNameDecrypt" class="form-control">
+        <select id="keyTypeDecrypt" name="keyNameDecrypt" class="form-select">
+            <option value="" disabled selected>{{ index .tab "selectKeyType" }}</option>
+        </select>
     </div>
 </div>
 {{ end}}
@@ -378,7 +383,9 @@
     <hr style="border-top: 1px solid #ababab;">
     <div class="form-input">
         <label class="col-form-label">{{ index .tab "keyName" }} <i class="bi bi-info-circle ms-1" data-bs-toggle="tooltip" data-bs-placement="right" data-bs-title="{{ index $.tab "tooltipKeyNameSign" }}"></i> :</label>
-        <input type="text" name="keyNameSign" class="form-control">
+        <select id="keyTypeSign" name="keyNameSign" class="form-select">
+            <option value="" disabled selected>{{ index .tab "selectKeyType" }}</option>
+        </select>
     </div>
 </div>
 {{ end}}
@@ -403,7 +410,9 @@
     <hr style="border-top: 1px solid #ababab;">
     <div class="form-input">
         <label class="col-form-label">{{ index .tab "keyName" }} <i class="bi bi-info-circle ms-1" data-bs-toggle="tooltip" data-bs-placement="right" data-bs-title="{{ index $.tab "tooltipKeyNameVerify" }}"></i> :</label>
-        <input type="text" name="keyNameVerify" class="form-control">
+        <select id="keyTypeVerify" name="keyNameVerify" class="form-select">
+            <option value="" disabled selected>{{ index .tab "selectKeyType" }}</option>
+        </select>
     </div>
 </div>
 {{ end}}
@@ -425,7 +434,7 @@
     <hr style="border-top: 1px solid #ababab;">
     <div class="form-input">
         <label class="col-form-label">{{ index .tab "method" }} <i class="bi bi-info-circle ms-1" data-bs-toggle="tooltip" data-bs-placement="right" data-bs-title="{{ index $.tab "tooltipMethodEncrypt&Sign" }}"></i> :</label>
-        <select name="methodEncrypt&Sign" id="methodEncrypt&Sign" class="form-select">
+        <select name="methodEncrypt&Sign" id="methodEncryptSign" class="form-select">
             <option value="" disabled selected>{{ index .tab "selectMethodEncrypt&Sign" }}</option>
             {{ range .EncryptSignMethods }}
             <option value="{{ . }}">{{ . }}</option>
@@ -435,12 +444,16 @@
     <hr style="border-top: 1px solid #ababab;">
     <div class="form-input">
         <label class="col-form-label">{{ index .tab "encryptKeyName" }} <i class="bi bi-info-circle ms-1" data-bs-toggle="tooltip" data-bs-placement="right" data-bs-title="{{ index $.tab "tooltipEncryptKeyName" }}"></i> :</label>
-        <input type="text" name="encryptKeyNameEncrypt&Sign" class="form-control">
+        <select id="keyTypeEncryptSignEncrypt" name="encryptKeyNameEncrypt&Sign" class="form-select">
+            <option value="" disabled selected>{{ index .tab "selectKeyType" }}</option>
+        </select>
     </div>
     <hr style="border-top: 1px solid #ababab;">
     <div class="form-input">
         <label class="col-form-label">{{ index .tab "signKeyName" }} <i class="bi bi-info-circle ms-1" data-bs-toggle="tooltip" data-bs-placement="right" data-bs-title="{{ index $.tab "tooltipSignKeyNameEncrypt&Sign" }}"></i> :</label>
-        <input type="text" name="signKeyNameEncrypt&Sign" class="form-control">
+        <select id="keyTypeEncryptSignSign" name="signKeyNameEncrypt&Sign" class="form-select">
+            <option value="" disabled selected>{{ index .tab "selectKeyType" }}</option>
+        </select>
     </div>
 </div>
 {{ end}}
@@ -462,22 +475,26 @@
     <hr style="border-top: 1px solid #ababab;">
     <div class="form-input">
         <label class="col-form-label">{{ index .tab "method" }} <i class="bi bi-info-circle ms-1" data-bs-toggle="tooltip" data-bs-placement="right" data-bs-title="{{ index $.tab "tooltipMethodDecrypt&verify" }}"></i> :</label>
-        <select name="methodDecrypt&verify" id="methodDecrypt&verify" class="form-select">
+        <select name="methodDecrypt&verify" id="methodDecryptVerify" class="form-select">
             <option value="" disabled selected>{{ index .tab "selectMethodDecrypt&verify" }}</option>
-            {{ range .EncryptSignMethods }}
+            {{ range .DecryptVerifyMethods }}
             <option value="{{ . }}">{{ . }}</option>
             {{ end }}
         </select>
     </div>
     <hr style="border-top: 1px solid #ababab;">
     <div class="form-input">
-        <label class="col-form-label">{{ index .tab "decryptKeyName" }} <i class="bi bi-info-circle ms-1" data-bs-toggle="tooltip" data-bs-placement="right" data-bs-title="{{ index $.tab "tooltipDecryptKeyName" }}"></i> :</label>
-        <input type="text" name="decryptKeyNameDecrypt&verify" class="form-control">
+    <label class="col-form-label">{{ index .tab "decryptKeyName" }} <i class="bi bi-info-circle ms-1" data-bs-toggle="tooltip" data-bs-placement="right" data-bs-title="{{ index $.tab "tooltipDecryptKeyName" }}"></i> :</label>
+    <select id="keyTypeDecryptVerifyDecrypt" name="decryptKeyNameDecrypt&verify" class="form-select">
+        <option value="" disabled selected>{{ index .tab "selectKeyType" }}</option>
+    </select>
     </div>
     <hr style="border-top: 1px solid #ababab;">
     <div class="form-input">
-        <label class="col-form-label">{{ index .tab "signKeyName" }} <i class="bi bi-info-circle ms-1" data-bs-toggle="tooltip" data-bs-placement="right" data-bs-title="{{ index $.tab "tooltipSignKeyNameDecryptKeyName" }}"></i> :</label>
-        <input type="text" name="signKeyNameEncrypt&Sign" class="form-control">
+        <label class="col-form-label">{{ index .tab "verifyKeyName" }} <i class="bi bi-info-circle ms-1" data-bs-toggle="tooltip" data-bs-placement="right" data-bs-title="{{ index $.tab "tooltipVerifyKeyName" }}"></i> :</label>
+        <select id="keyTypeDecryptVerifyVerify" name="verifyKeyNameDecrypt&verify" class="form-select">
+            <option value="" disabled selected>{{ index .tab "selectKeyType" }}</option>
+        </select>
     </div>
 </div>
 {{ end}}

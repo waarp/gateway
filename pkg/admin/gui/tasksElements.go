@@ -12,14 +12,21 @@ import (
 
 //nolint:gochecknoglobals // Constant
 var (
-	TranscodeFormats   []string
-	ArchiveExtensions  []string
-	EncryptMethods     []string
-	SignMethods        []string
-	EncryptSignMethods []string
-	DecryptMethods     []string
-	VerifyMethods      []string
-	IcapOnErrorOptions = []string{
+	TranscodeFormats      []string
+	ArchiveExtensions     []string
+	EncryptMethods        []string
+	EncryptKeyTypes       map[string][]string
+	SignMethods           []string
+	SignKeyTypes          map[string][]string
+	EncryptSignMethods    []string
+	EncryptSignKeyTypes   map[string]map[string][]string
+	DecryptVerifyMethods  []string
+	DecryptVerifyKeyTypes map[string]map[string][]string
+	DecryptMethods        []string
+	DecryptKeyTypes       map[string][]string
+	VerifyMethods         []string
+	VerifyKeyTypes        map[string][]string
+	IcapOnErrorOptions    = []string{
 		"",
 		tasks.IcapOnErrorDelete,
 		tasks.IcapOnErrorMove,
@@ -40,17 +47,56 @@ func init() {
 	EncryptMethods = maps.Keys(tasks.EncryptMethods)
 	slices.Sort(EncryptMethods)
 
+	EncryptKeyTypes = make(map[string][]string, len(tasks.EncryptMethods))
+	for m, tab := range tasks.EncryptMethods {
+		EncryptKeyTypes[m] = tab.KeyTypes
+	}
+
 	SignMethods = maps.Keys(tasks.SignMethods)
 	slices.Sort(SignMethods)
 
-	EncryptSignMethods = maps.Keys(tasks.EncryptSignMethods)
-	slices.Sort(EncryptSignMethods)
+	SignKeyTypes = make(map[string][]string, len(tasks.SignMethods))
+	for m, tab := range tasks.SignMethods {
+		SignKeyTypes[m] = tab.KeyTypes
+	}
 
 	DecryptMethods = maps.Keys(tasks.DecryptMethods)
 	slices.Sort(DecryptMethods)
 
+	DecryptKeyTypes = make(map[string][]string, len(tasks.DecryptMethods))
+	for m, tab := range tasks.DecryptMethods {
+		DecryptKeyTypes[m] = tab.KeyTypes
+	}
+
 	VerifyMethods = maps.Keys(tasks.VerifyMethods)
 	slices.Sort(VerifyMethods)
+
+	VerifyKeyTypes = make(map[string][]string, len(tasks.VerifyMethods))
+	for m, tab := range tasks.VerifyMethods {
+		VerifyKeyTypes[m] = tab.KeyTypes
+	}
+
+	EncryptSignMethods = maps.Keys(tasks.EncryptSignMethods)
+	slices.Sort(EncryptSignMethods)
+
+	EncryptSignKeyTypes = make(map[string]map[string][]string, len(tasks.EncryptSignMethods))
+	for m, tab := range tasks.EncryptSignMethods {
+		EncryptSignKeyTypes[m] = map[string][]string{
+			"encrypt": tab.KeyTypesEncrypt,
+			"sign":    tab.KeyTypesSign,
+		}
+	}
+
+	DecryptVerifyMethods = maps.Keys(tasks.EncryptSignMethods)
+	slices.Sort(DecryptVerifyMethods)
+
+	DecryptVerifyKeyTypes = make(map[string]map[string][]string, len(tasks.EncryptSignMethods))
+	for m, tab := range tasks.EncryptSignMethods {
+		DecryptVerifyKeyTypes[m] = map[string][]string{
+			"decrypt": tab.KeyTypesEncrypt,
+			"verify":  tab.KeyTypesSign,
+		}
+	}
 }
 
 //nolint:gochecknoglobals // Constant
@@ -208,8 +254,19 @@ func taskTRANSFER(r *http.Request) map[string]string {
 		taskTransfer["copyInfo"] = copyInfoTransfer
 	}
 
-	if infoTransfer := r.Form["infoTransfer[]"]; len(infoTransfer) > 0 {
-		taskTransfer["info"] = strings.Join(infoTransfer, "\n")
+	infoKeys := r.Form["infoTransferKey[]"]
+	infoVals := r.Form["infoTransferValue[]"]
+
+	var infoPairs []string
+
+	for i := range infoKeys {
+		if infoKeys[i] != "" && i < len(infoVals) && infoVals[i] != "" {
+			infoPairs = append(infoPairs, infoKeys[i]+":"+infoVals[i])
+		}
+	}
+
+	if len(infoPairs) > 0 {
+		taskTransfer["info"] = strings.Join(infoPairs, "\n")
 	}
 
 	return taskTransfer
@@ -435,8 +492,8 @@ func taskDECRYPTandVERIFY(r *http.Request) map[string]string {
 		taskDV["decryptKeyName"] = decryptKeyNameDV
 	}
 
-	if signKeyNameDV := r.FormValue("signKeyNameDecrypt&verify"); signKeyNameDV != "" {
-		taskDV["signKeyName"] = signKeyNameDV
+	if verifyKeyNameDV := r.FormValue("verifyKeyNameDecrypt&verify"); verifyKeyNameDV != "" {
+		taskDV["verifyKeyName"] = verifyKeyNameDV
 	}
 
 	return taskDV
