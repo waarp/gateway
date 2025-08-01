@@ -160,7 +160,7 @@ func deleteServer(db *database.DB, r *http.Request) error {
 
 	id, err := strconv.Atoi(serverID)
 	if err != nil {
-		return fmt.Errorf("internal error: %w", err)
+		return fmt.Errorf("failed to convert id to int: %w", err)
 	}
 
 	server, err := internal.GetServerByID(db, int64(id))
