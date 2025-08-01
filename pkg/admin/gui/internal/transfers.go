@@ -81,6 +81,12 @@ func (q *TransferListQuery) Count() (uint64, error) {
 	return q.query.Count()
 }
 
+func (q *TransferListQuery) Limit(limit, offset int) *TransferListQuery {
+	q.query.Limit(limit, offset)
+
+	return q
+}
+
 func (q *TransferListQuery) Run() ([]*model.NormalizedTransferView, error) {
 	return q.transfers, q.query.Run()
 }
