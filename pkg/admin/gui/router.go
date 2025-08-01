@@ -67,7 +67,7 @@ func AddGUIRouter(router *mux.Router, logger *log.Logger, db *database.DB) {
 	router.HandleFunc("/login", loginPage(logger, db)).Methods("GET", "POST")
 	router.HandleFunc("/logout", logout()).Methods("GET")
 
-	subFS, err := fs.Sub(webFS, "front_end")
+	subFS, err := fs.Sub(webFS, "front-end")
 	if err != nil {
 		logger.Error("error accessing css file: %v", err)
 
@@ -82,14 +82,16 @@ func AddGUIRouter(router *mux.Router, logger *log.Logger, db *database.DB) {
 	secureRouter.HandleFunc("/autocompletion/partners", autocompletionPartnersFunc(db)).Methods("GET")
 	secureRouter.HandleFunc("/autocompletion/credentialPartner", autocompletionCredentialsPartnersFunc(db)).Methods("GET")
 	secureRouter.HandleFunc("/autocompletion/remoteAccount", autocompletionRemoteAccountFunc(db)).Methods("GET")
+	secureRouter.HandleFunc("/autocompletion/credentialAccount", autocompletionCredentialsAccountsFunc(db)).Methods("GET")
 	secureRouter.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
 		http.Redirect(w, r, "home", http.StatusFound)
 	})
 	secureRouter.HandleFunc("/home", homePage(logger, db)).Methods("GET")
-	secureRouter.HandleFunc("/user_management", userManagementPage(logger, db)).Methods("GET")
-	secureRouter.HandleFunc("/partner_management", partnerManagementPage(logger, db)).Methods("GET")
-	secureRouter.HandleFunc("/partner_authentication", partnerAuthenticationPage(logger, db)).Methods("GET")
-	secureRouter.HandleFunc("/remote_account_management", remoteAccountPage(logger, db)).Methods("GET")
+	secureRouter.HandleFunc("/user_management", userManagementPage(logger, db)).Methods("GET", "POST")
+	secureRouter.HandleFunc("/partner_management", partnerManagementPage(logger, db)).Methods("GET", "POST")
+	secureRouter.HandleFunc("/partner_authentication", partnerAuthenticationPage(logger, db)).Methods("GET", "POST")
+	secureRouter.HandleFunc("/remote_account_management", remoteAccountPage(logger, db)).Methods("GET", "POST")
+	secureRouter.HandleFunc("/account_authentication", accountAuthenticationPage(logger, db)).Methods("GET", "POST")
 }
 
 func logout() http.HandlerFunc {

@@ -1,0 +1,5 @@
+.error-animated {
+    animation: shake 0.5s ease-in-out;
+    border: 1px solid red;
+    border-radius: 13px;
+}

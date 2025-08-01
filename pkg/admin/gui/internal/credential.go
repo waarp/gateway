@@ -12,7 +12,7 @@ func getCredential(db database.ReadAccess, owner model.CredOwnerTable, name stri
 	return &cred, db.Get(&cred, "name=?", name).And(owner.GetCredCond()).Run()
 }
 
-func getCredentialByID(db database.ReadAccess, owner model.CredOwnerTable, id int64,
+func GetCredentialByID(db database.ReadAccess, owner model.CredOwnerTable, id int64,
 ) (*model.Credential, error) {
 	var cred model.Credential
 
@@ -20,11 +20,10 @@ func getCredentialByID(db database.ReadAccess, owner model.CredOwnerTable, id in
 }
 
 func GetCredentialsLike(db *database.DB, owner model.CredOwnerTable, prefix string) ([]*model.Credential, error) {
-	const limit = 5
 	var cred model.Credentials
 
 	return cred, db.Select(&cred).Where(owner.GetCredCond()).Where("name LIKE ?", prefix+"%").
-		OrderBy("name", true).Limit(limit, 0).Run()
+		OrderBy("name", true).Limit(LimitLike, 0).Run()
 }
 
 func listCredentials(db database.ReadAccess, owner model.CredOwnerTable,

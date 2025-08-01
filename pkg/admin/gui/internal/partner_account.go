@@ -17,15 +17,10 @@ func GetPartnerAccount(db database.ReadAccess, partnerName, login string) (*mode
 	return &account, db.Get(&account, "remote_agent_id=? AND login=?", partner.ID, login).Run()
 }
 
-func GetPartnerAccountByID(db database.ReadAccess, partnerName string, id int64) (*model.RemoteAccount, error) {
-	partner, pErr := GetPartner(db, partnerName)
-	if pErr != nil {
-		return nil, pErr
-	}
-
+func GetPartnerAccountByID(db database.ReadAccess, id int64) (*model.RemoteAccount, error) {
 	var account model.RemoteAccount
 
-	return &account, db.Get(&account, "remote_agent_id=? AND id=?", partner.ID, id).Run()
+	return &account, db.Get(&account, "id=?", id).Run()
 }
 
 func GetPartnerAccountsLike(db *database.DB, partnerName, prefix string) ([]*model.RemoteAccount, error) {
@@ -33,11 +28,10 @@ func GetPartnerAccountsLike(db *database.DB, partnerName, prefix string) ([]*mod
 	if pErr != nil {
 		return nil, pErr
 	}
-	const limit = 5
 	var accounts model.RemoteAccounts
 
 	return accounts, db.Select(&accounts).Where("remote_agent_id=? AND login LIKE ?", partner.ID, prefix+"%").
-		OrderBy("login", true).Limit(limit, 0).Run()
+		OrderBy("login", true).Limit(LimitLike, 0).Run()
 }
 
 func ListPartnerAccounts(db database.ReadAccess, partnerName string,

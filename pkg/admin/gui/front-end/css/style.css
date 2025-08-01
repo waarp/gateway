@@ -1,0 +1,31 @@
+@import url('auto-complete.css');
+@import url('button.css');
+@import url('card.css');
+@import url('error-animated.css');
+@import url('form.css');
+@import url('modal.css');
+@import url('navbar.css');
+@import url('select.css');
+@import url('shake.css');
+@import url('table.css');
+@import url('error.css');
+
+.ms-1-5 {
+    margin-left: 0.2rem;
+}
+
+.page-link {
+  color: black !important;
+}
+
+.nav-pills .nav-link.text-white {
+    border-radius: 13px;
+}
+
+.nav-pills .nav-link.text-white:hover,
+.nav-pills .nav-link.text-white:focus {
+    background-color: #fff;
+    color: #f54b15 !important;
+    transition: background 0.2s, color 0.2s;
+    border-radius: 13px;
+}

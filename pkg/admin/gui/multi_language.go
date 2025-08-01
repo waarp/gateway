@@ -19,13 +19,13 @@ var mapLanguage = make(map[string]map[string]map[string]string)
 
 //nolint:gochecknoinits // init
 func init() {
-	entries, err := webFS.ReadDir("front_end/multi_language")
+	entries, err := webFS.ReadDir("front-end/multi_language")
 	if err != nil {
 		log.Fatal(err)
 	}
 
 	for _, e := range entries {
-		file, err := webFS.ReadFile("front_end/multi_language/" + e.Name())
+		file, err := webFS.ReadFile("front-end/multi_language/" + e.Name())
 		if err != nil {
 			log.Fatal(err)
 		}
