@@ -72,7 +72,7 @@ func PauseTransfer(ctx context.Context, db database.Access, transfer *model.Norm
 }
 
 func ResumeTransfer(db database.Access, transfer *model.NormalizedTransferView) error {
-	if transfer.Status.IsOneOf(types.StatusPaused, types.StatusError, types.StatusInterrupted) {
+	if !transfer.Status.IsOneOf(types.StatusPaused, types.StatusError, types.StatusInterrupted) {
 		return ErrResumeTransferNotPaused
 	}
 
@@ -103,6 +103,7 @@ func CancelTransfer(ctx context.Context, db *database.DB, transfer *model.Normal
 		return fmt.Errorf("failed to retrieve transfer: %w", err)
 	}
 
+	trans.Status = types.StatusCancelled
 	if err := trans.MoveToHistory(db, logging.Discard(), time.Now()); err != nil {
 		return fmt.Errorf("failed to move transfer to history: %w", err)
 	}
