@@ -6,6 +6,7 @@
     "treatment": { "fr": "Traitement", "en": "Treatment" },
     "monitoring": { "fr": "Supervision", "en": "Monitoring" },
     "administration": { "fr": "Administration", "en": "Administration" },
+    "undefined": { "fr": "<non définie>", "en": "<undefined>" },
     "addPreTaskTitle": { "fr": "Ajouter une nouvelle pré-tâche", "en": "Add a new pre-task" },
     "confirmDelete": { "fr": "Confirmer la suppression ?", "en": "Confirm deletion?" },
     "index": { "fr": "Index", "en": "Index" },

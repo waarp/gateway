@@ -11,9 +11,23 @@
 {{ define "transfer_monitoring_tbody" }}
     {{ range .transfer }}
     <tr>
-        <td><i class="bi bi-arrow-left-right me-1"></i></td>
-        <td><strong>{{ .ID }}</strong></td>
         <td>
+          {{ if .IsServer }}
+            {{ if .IsSend }}
+              <i class="bi bi-box-arrow-in-up me-1" data-bs-toggle="tooltip" data-bs-title="{{ index $.tab "serverSend" }}"></i>
+            {{ else }}
+              <i class="bi bi-box-arrow-in-down me-1" data-bs-toggle="tooltip" data-bs-title="{{ index $.tab "serverReceive" }}"></i>
+            {{ end }}
+          {{ else }}
+            {{ if .IsSend }}
+              <i class="bi bi-cloud-upload me-1" data-bs-toggle="tooltip" data-bs-title="{{ index $.tab "clientSend" }}"></i>
+            {{ else }}
+              <i class="bi bi-cloud-download me-1" data-bs-toggle="tooltip" data-bs-title="{{ index $.tab "clientReceive" }}"></i>
+            {{ end }}
+          {{ end }}
+        </td>
+        <td><strong>{{ .ID }}</strong></td>
+        <td data-bs-toggle="tooltip" data-bs-placement="top" data-bs-title="{{ .ErrCode }}{{ if .ErrDetails }} : {{ .ErrDetails }}{{ end }}">
           {{ if eq .Status "DONE" }}
               <span class="fw-bold text-success">{{ index $.tab "done" }}</span>
           {{ else if eq .Status "ERROR" }}
@@ -31,13 +45,7 @@
             {{ .SrcFilename }}
         {{ end }}
         </td>
-        <td>
-          {{ if .IsSend }}
-              {{ index $.tab "send" }}
-          {{ else }}
-              {{ index $.tab "receive" }}
-          {{ end }}
-        </td>
+        <td>{{ .Rule }}</td>
         <td>{{ formatDateTime .Start $.Request $.language }}</td>
         <td>
           {{ $stopTime := print (formatDateTime .Stop $.Request $.language) }}
@@ -58,7 +66,7 @@
               </div>
             </div>
         </td>
-        <td>{{ .Filesize }}</td>
+        <td>{{ humanizeSize .Filesize }}</td>
         <td>
             <button class="btn btn-outline-primary modal-btn" type="button" data-bs-toggle="modal" data-bs-target="#moreInfosModal_{{ .ID }}">
             <i class="bi bi-three-dots"></i>
@@ -73,74 +81,64 @@
                     <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
                 </div>
                 <div class="modal-body">
-                    <div class="form-input">
-                    <label class="col-form-label">{{ index $.tab "nameTransferAgent" }} :</label>
-                    <input type="text" class="form-control-plaintext" value="{{ .Agent }}" readonly>
+                    <div class="flex-label-input mb-2">
+                        <label class="col-form-label label-light-bold me-3">{{ index $.tab "nameTransferAgent" }} :</label>
+                        <input type="text" class="form-control-plaintext input-auto-width" value="{{ displayOrDefault .Agent (index $.tab "undefined") }}" readonly>
                     </div>
                     <hr style="border-top: 1px solid #ababab;">
-                    <div class="form-input">
-                    <label class="col-form-label">{{ index $.tab "account" }} :</label>
-                    <input type="text" class="form-control-plaintext" value="{{ .Account }}" readonly>
+                    <div class="flex-label-input mb-2">
+                        <label class="col-form-label label-light-bold me-3">{{ index $.tab "account" }} :</label>
+                        <input type="text" class="form-control-plaintext input-auto-width" value="{{ displayOrDefault .Account (index $.tab "undefined") }}" readonly>
                     </div>
                     <hr style="border-top: 1px solid #ababab;">
-                    <div class="form-input">
-                    <label class="col-form-label">{{ index $.tab "ruleTransfer" }} :</label>
-                    <input type="text" class="form-control-plaintext" value="{{ .Rule }}" readonly>
+                    <div class="flex-label-input mb-2">
+                        <label class="col-form-label label-light-bold me-3">{{ index $.tab "step" }} :</label>
+                        <input type="text" class="form-control-plaintext input-auto-width" value="{{ displayOrDefault .Step (index $.tab "undefined") }}" readonly>
                     </div>
                     <hr style="border-top: 1px solid #ababab;">
-                    <div class="form-input">
-                    <label class="col-form-label">{{ index $.tab "transferDirection" }} :</label>
-                    <input type="text" class="form-control-plaintext" value="{{ if .IsSend }}send{{ else }}receive{{ end }}" readonly>
+                    <div class="flex-label-input mb-2">
+                        <label class="col-form-label label-light-bold me-3">{{ index $.tab "protocol" }} :</label>
+                        <input type="text" class="form-control-plaintext input-auto-width" value="{{ displayOrDefault .Protocol (index $.tab "undefined") }}" readonly>
                     </div>
                     <hr style="border-top: 1px solid #ababab;">
-                    <div class="form-input">
-                    <label class="col-form-label">{{ index $.tab "step" }} :</label>
-                    <input type="text" class="form-control-plaintext" value="{{ .Step }}" readonly>
+                    <div class="flex-label-input mb-2">
+                        <label class="col-form-label label-light-bold me-3">{{ index $.tab "client" }} :</label>
+                        <input type="text" class="form-control-plaintext input-auto-width" value="{{ displayOrDefault .Client (index $.tab "undefined") }}" readonly>
                     </div>
                     <hr style="border-top: 1px solid #ababab;">
-                    <div class="form-input">
-                    <label class="col-form-label">{{ index $.tab "protocol" }} :</label>
-                    <input type="text" class="form-control-plaintext" value="{{ .Protocol }}" readonly>
+                    <div class="flex-label-input mb-2">
+                        <label class="col-form-label label-light-bold me-3">{{ index $.tab "destFilename" }} :</label>
+                        <input type="text" class="form-control-plaintext input-auto-width" value="{{ displayOrDefault .DestFilename (index $.tab "undefined") }}" readonly>
                     </div>
                     <hr style="border-top: 1px solid #ababab;">
-                    <div class="form-input">
-                    <label class="col-form-label">{{ index $.tab "client" }} :</label>
-                    <input type="text" class="form-control-plaintext" value="{{ .Client }}" readonly>
+                    <div class="flex-label-input mb-2">
+                        <label class="col-form-label label-light-bold me-3">{{ index $.tab "localPath" }} :</label>
+                        <input type="text" class="form-control-plaintext input-auto-width" value="{{ displayOrDefault .LocalPath (index $.tab "undefined") }}" readonly>
                     </div>
                     <hr style="border-top: 1px solid #ababab;">
-                    <div class="form-input">
-                    <label class="col-form-label">{{ index $.tab "destFilename" }} :</label>
-                    <input type="text" class="form-control-plaintext" value="{{ .DestFilename }}" readonly>
+                    <div class="flex-label-input mb-2">
+                        <label class="col-form-label label-light-bold me-3">{{ index $.tab "remotePath" }} :</label>
+                        <input type="text" class="form-control-plaintext input-auto-width" value="{{ displayOrDefault .RemotePath (index $.tab "undefined") }}" readonly>
                     </div>
                     <hr style="border-top: 1px solid #ababab;">
-                    <div class="form-input">
-                    <label class="col-form-label">{{ index $.tab "localPath" }} :</label>
-                    <input type="text" class="form-control-plaintext" value="{{ .LocalPath }}" readonly>
+                    <div class="flex-label-input mb-2">
+                        <label class="col-form-label label-light-bold me-3">{{ index $.tab "bytesTransferred" }} :</label>
+                        <input type="text" class="form-control-plaintext input-auto-width" value="{{ displayOrDefault .Progress (index $.tab "undefined") }}" readonly>
                     </div>
                     <hr style="border-top: 1px solid #ababab;">
-                    <div class="form-input">
-                    <label class="col-form-label">{{ index $.tab "remotePath" }} :</label>
-                    <input type="text" class="form-control-plaintext" value="{{ .RemotePath }}" readonly>
+                    <div class="flex-label-input mb-2">
+                        <label class="col-form-label label-light-bold me-3">{{ index $.tab "taskNumber" }} :</label>
+                        <input type="text" class="form-control-plaintext input-auto-width" value="{{ displayOrDefault .TaskNumber (index $.tab "undefined") }}" readonly>
                     </div>
                     <hr style="border-top: 1px solid #ababab;">
-                    <div class="form-input">
-                    <label class="col-form-label">{{ index $.tab "bytesTransferred" }} :</label>
-                    <input type="text" class="form-control-plaintext" value="{{ .Progress }}" readonly>
+                    <div class="flex-label-input mb-2">
+                        <label class="col-form-label label-light-bold me-3">{{ index $.tab "errCode" }} :</label>
+                        <input type="text" class="form-control-plaintext input-auto-width" value="{{ displayOrDefault .ErrCode (index $.tab "undefined") }}" readonly>
                     </div>
                     <hr style="border-top: 1px solid #ababab;">
-                    <div class="form-input">
-                    <label class="col-form-label">{{ index $.tab "taskNumber" }} :</label>
-                    <input type="text" class="form-control-plaintext" value="{{ .TaskNumber }}" readonly>
-                    </div>
-                    <hr style="border-top: 1px solid #ababab;">
-                    <div class="form-input">
-                    <label class="col-form-label">{{ index $.tab "errCode" }} :</label>
-                    <input type="text" class="form-control-plaintext" value="{{ .ErrCode }}" readonly>
-                    </div>
-                    <hr style="border-top: 1px solid #ababab;">
-                    <div class="form-input">
-                    <label class="col-form-label">{{ index $.tab "errDetails" }} :</label>
-                    <input type="text" class="form-control-plaintext" value="{{ .ErrDetails }}" readonly>
+                    <div class="flex-label-input mb-2">
+                        <label class="col-form-label label-light-bold me-3">{{ index $.tab "errDetails" }} :</label>
+                        <input type="text" class="form-control-plaintext input-auto-width" value="{{ displayOrDefault .ErrDetails (index $.tab "undefined") }}" readonly>
                     </div>
                 </div>
                 <div class="modal-footer">
@@ -205,6 +203,13 @@
                     <label class="col-form-label">{{ index .tab "pathDestination" }} :</label>
                     <input type="text" name="transferOut" class="form-control">
                   </div>
+                  <hr style="border-top: 1px solid #ababab;">
+                  <div class="form-input d-flex align-items-center">
+                    <label class="col-form-label me-3">{{ index .tab "connectionDirection" }} :</label>
+                    <div class="form-check form-check-inline">
+                        <input class="form-check-input" type="checkbox" name="connectionWay" id="connectionWay" value="true">
+                    </div>
+                 </div>
                   <hr style="border-top: 1px solid #ababab;">
                   <div class="form-input d-flex align-items-center">
                     <label class="col-form-label me-3">{{ index .tab "transferDirection" }} :</label>
@@ -288,11 +293,25 @@
     <table class="table table-sm align-middle mb-4 rounded-3 mt-3">
       <thead class="table-light">
         <tr>
-            <th></th>
+            <th>
+              <i class="bi bi-info-circle" 
+                data-bs-toggle="tooltip"
+                data-bs-html="true"
+                data-bs-placement="right"
+                data-bs-title='
+                  <div>
+                    <div><i class="bi bi-cloud-upload me-2"></i><b>{{ index .tab "clientSend" }}</b> : {{ index .tab "tooltipClientSend" }}</div>
+                    <div><i class="bi bi-cloud-download me-2"></i><b>{{ index .tab "clientReceive" }}</b> : {{ index .tab "tooltipClientReceive" }}</div>
+                    <div><i class="bi bi-box-arrow-in-up me-2"></i><b>{{ index .tab "serverSend" }}</b> : {{ index .tab "tooltipServerSend" }}</div>
+                    <div><i class="bi bi-box-arrow-in-down me-2"></i><b>{{ index .tab "serverReceive" }}</b> : {{ index .tab "tooltipServerReceive" }}</div>
+                  </div>
+                '
+                style="cursor: help;"></i>
+            </th>
             <th>{{ index .tab "id" }}</th>
             <th>{{ index .tab "status" }}</th>
             <th>{{ index .tab "file" }}</th>
-            <th>{{ index .tab "connectionDirection" }}</th>
+            <th>{{ index .tab "rule" }}</th>
             <th>{{ index .tab "start" }}</th>
             <th>{{ index .tab "end" }}</th>
             <th>{{ index .tab "progress" }}</th>

@@ -45,7 +45,7 @@
                 </div>
                 <hr style="border-top: 1px solid #ababab;">
                 <div class="form-input">
-                    <label class="col-form-label mt-2">{{ index .tab "passwordStr" }} :</label>
+                    <label class="col-form-label">{{ index .tab "passwordStr" }} :</label>
                     <div class="input-group">
                         <input type="password" id="newUserPassword_{{ .ID }}" class="form-control" required>
                         <button class="btn btn-outline-secondary eye-button" type="button" onclick="eyePassword('newUserPassword_{{ .ID }}', this)"><i class="far fa-eye-slash"></i></button>
@@ -53,7 +53,7 @@
                 </div>
                 <hr style="border-top: 1px solid #ababab;">
                 <div class="form-input">
-                    <label class="col-form-label mt-2">{{ index .tab "passwordConfirmStr" }} :</label>
+                    <label class="col-form-label">{{ index .tab "passwordConfirmStr" }} :</label>
                     <div class="input-group">
                         <input type="password" id="newUserPasswordConfirm_{{ .ID }}" name="newUserPassword" class="form-control" required>
                         <button class="btn btn-outline-secondary eye-button" type="button" onclick="eyePassword('newUserPasswordConfirm_{{ .ID }}', this)"><i class="far fa-eye-slash"></i></button>
@@ -277,7 +277,7 @@
                             </div>
                             <hr style="border-top: 1px solid #ababab;">
                             <div class="form-input">
-                                <label class="col-form-label mt-2">{{ index $.tab "passwordStr" }} :</label>
+                                <label class="col-form-label">{{ index $.tab "passwordStr" }} :</label>
                                 <div class="input-group">
                                     <input type="password" id="editUserPassword_{{ .ID }}" class="form-control">
                                     <button class="btn btn-outline-secondary eye-button" type="button" onclick="eyePassword('editUserPassword_{{ .ID }}', this)"><i class="far fa-eye-slash"></i></button>
@@ -285,7 +285,7 @@
                             </div>
                             <hr style="border-top: 1px solid #ababab;">
                             <div class="form-input">
-                                <label class="col-form-label mt-2">{{ index $.tab "passwordConfirmStr" }} :</label>
+                                <label class="col-form-label">{{ index $.tab "passwordConfirmStr" }} :</label>
                                 <div class="input-group">
                                     <input type="password" id="editUserPasswordConfirm_{{ .ID }}" name="editUserPassword" class="form-control">
                                     <button class="btn btn-outline-secondary eye-button" type="button" onclick="eyePassword('editUserPasswordConfirm_{{ .ID }}', this)"><i class="far fa-eye-slash"></i></button>

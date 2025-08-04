@@ -353,7 +353,7 @@ func taskICAP(r *http.Request) map[string]string {
 	if uploadURLIcap := r.FormValue("uploadURLIcap"); uploadURLIcap != "" {
 		taskIcap["uploadURL"] = uploadURLIcap
 	}
-	var timeout string
+	timeout := ""
 
 	if h := r.FormValue("timeoutIcapH"); h != "" {
 		timeout += h + "h"
@@ -371,7 +371,9 @@ func taskICAP(r *http.Request) map[string]string {
 		timeout += ms + "ms"
 	}
 
-	taskIcap["timeout"] = timeout
+	if timeout != "" {
+		taskIcap["timeout"] = timeout
+	}
 
 	if allowFileModificationsIcap := r.FormValue("allowFileModificationsIcap"); allowFileModificationsIcap != "" {
 		taskIcap["allowFileModifications"] = allowFileModificationsIcap

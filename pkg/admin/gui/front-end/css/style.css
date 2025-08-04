@@ -83,3 +83,12 @@
     background-color: #41c288 !important;
     color: #19191a !important;
 }
+
+.input-undefined {
+    color: #6c757d !important;
+    font-style: italic;
+}
+
+.label-light-bold {
+    font-weight: 500;
+}

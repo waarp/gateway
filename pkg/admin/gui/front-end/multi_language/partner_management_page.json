@@ -6,6 +6,7 @@
     "treatment": { "fr": "Traitement", "en": "Treatment" },
     "monitoring": { "fr": "Supervision", "en": "Monitoring" },
     "administration": { "fr": "Administration", "en": "Administration" },
+    "undefined": { "fr": "<non définie>", "en": "<undefined>" },
     "addPartnerTitle": { "fr": "Ajouter un nouveau partenaire", "en": "Add a new partner" },
     "filter": { "fr": "Filtre", "en": "Filter" },
     "sort": { "fr": "Trier par ordre alphabétique", "en": "Sort alphabetically" },

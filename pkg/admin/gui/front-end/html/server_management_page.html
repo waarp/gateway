@@ -222,24 +222,24 @@
                       <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
                     </div>
                     <div class="modal-body">
-                      <div class="form-input mb-2">
-                        <label class="col-form-label">{{ index $.tab "rootDir" }} :</label>
-                        <input type="text" class="form-control-plaintext" value="{{ .RootDir }}" readonly>
+                      <div class="flex-label-input mb-2">
+                        <label class="col-form-label label-light-bold me-3">{{ index $.tab "rootDir" }} :</label>
+                        <input type="text" class="form-control-plaintext input-auto-width" value="{{ displayOrDefault .RootDir (index $.tab "undefined") }}" readonly>
                       </div>
                       <hr style="border-top: 1px solid #ababab;">
-                      <div class="form-input mb-2">
-                        <label class="col-form-label">{{ index $.tab "receiveDir" }} :</label>
-                        <input type="text" class="form-control-plaintext" value="{{ .ReceiveDir }}" readonly>
+                      <div class="flex-label-input mb-2">
+                        <label class="col-form-label label-light-bold me-3">{{ index $.tab "receiveDir" }} :</label>
+                        <input type="text" class="form-control-plaintext input-auto-width" value="{{ displayOrDefault .ReceiveDir (index $.tab "undefined") }}" readonly>
                       </div>
                       <hr style="border-top: 1px solid #ababab;">
-                      <div class="form-input mb-2">
-                        <label class="col-form-label">{{ index $.tab "sendDir" }} :</label>
-                        <input type="text" class="form-control-plaintext" value="{{ .SendDir }}" readonly>
+                      <div class="flex-label-input mb-2">
+                        <label class="col-form-label label-light-bold me-3">{{ index $.tab "sendDir" }} :</label>
+                        <input type="text" class="form-control-plaintext input-auto-width" value="{{ displayOrDefault .SendDir (index $.tab "undefined") }}" readonly>
                       </div>
                       <hr style="border-top: 1px solid #ababab;">
-                      <div class="form-input mb-2">
-                        <label class="col-form-label">{{ index $.tab "tmpReceiveDir" }} :</label>
-                        <input type="text" class="form-control-plaintext" value="{{ .TmpReceiveDir }}" readonly>
+                      <div class="flex-label-input mb-2">
+                        <label class="col-form-label label-light-bold me-3">{{ index $.tab "tmpReceiveDir" }} :</label>
+                        <input type="text" class="form-control-plaintext input-auto-width" value="{{ displayOrDefault .TmpReceiveDir (index $.tab "undefined") }}" readonly>
                       </div>
                     </div>
                     <div class="modal-footer">
