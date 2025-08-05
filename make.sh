@@ -33,9 +33,24 @@ t_test_watch() {
 ensure-venv() {
   test -d .venv && return 0
 
-  local VENV_CMD="python -m venv"
-  if ! $VENV_CMD -h >/dev/null 2>&1; then
+  local PYTHON
+  if command -v python3 >/dev/null 2>&1; then
+    PYTHON=python3
+  elif command -v python >/dev/null 2>&1; then
+    PYTHON=python
+  else
+    echo "No python interpreter found"
+    return 1
+  fi
+
+  local VENV_CMD="$PYTHON -m venv"
+  if $PYTHON -m venv -h >/dev/null 2>&1; then
+    VENV_CMD="python3 -m venv"
+  elif virtualenv -h >/dev/null 2>&1; then
     VENV_CMD=virtualenv
+  else
+    echo "No virtualenv command found"
+    return 1
   fi
 
   $VENV_CMD .venv
