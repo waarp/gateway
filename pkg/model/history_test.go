@@ -29,7 +29,13 @@ func TestHistoryTableName(t *testing.T) {
 
 func TestHistoryBeforeWrite(t *testing.T) {
 	Convey("Given a database", t, func(c C) {
-		db := database.TestDatabase(c)
+		// The database is set to nil here because the test does not require
+		// it. TestDatabase is only used for its side effect of initializing
+		// the configiration. It speds up the test by a 200x factor.
+
+		// db := database.TestDatabase(c)
+		var db *database.DB
+		conf.GlobalConfig.GatewayName = "gateway"
 
 		Convey("Given a new history entry", func() {
 			hist := &HistoryEntry{
