@@ -3,6 +3,8 @@
 Historique des versions
 =======================
 
+* :bug:`485` Correction d'une erreur de droits lors du déplacement de fichiers
+  vers un dossier qui n'éxistait pas, générant des erreurs de permission.
 * :bug:`463` Les mots de passe vides sont désormais acceptés pour l'authentification.
   Si un partenaire souhaite s'authentifier avec un mot de passe vide, alors un
   mot de passe vide doit explicitement avoir été attaché au compte local correspondant.

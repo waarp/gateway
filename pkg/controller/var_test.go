@@ -50,6 +50,8 @@ func initTestDB(c C, rootPath string) *testContext {
 		DefaultInDir:  "in",
 		DefaultOutDir: "out",
 		DefaultTmpDir: "work",
+		FilePerms:     0o600,
+		DirPerms:      0o700,
 	}
 	conf.GlobalConfig.Paths = paths
 
