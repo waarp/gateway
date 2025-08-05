@@ -12,6 +12,7 @@
     "index": { "fr": "Index", "en": "Index" },
     "tooltipIndex": { "fr": "Index de la tâche", "en": "Task Index" },
     "type": { "fr": "Type", "en": "Type" },
+    "add": { "fr": "Ajouter", "en": "Add" },
     "tooltipType": { "fr": "Le type de traitement", "en": "The type of treatment" },
     "arguments": { "fr": " Arguments", "en": "Arguments" },
     "tooltipArguments": { "fr": " Les arguments du traitement", "en": "The arguments for treatment" },

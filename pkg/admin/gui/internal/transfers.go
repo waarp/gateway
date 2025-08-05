@@ -91,6 +91,12 @@ func (q *TransferListQuery) Run() ([]*model.NormalizedTransferView, error) {
 	return q.transfers, q.query.Run()
 }
 
+func GetNormalizedTransferView(db database.ReadAccess, id int64) (*model.NormalizedTransferView, error) {
+	var transfer model.NormalizedTransferView
+
+	return &transfer, db.Get(&transfer, "id=?", id).Run()
+}
+
 func GetTransfer(db database.ReadAccess, id int64) (*model.Transfer, error) {
 	var transfer model.Transfer
 

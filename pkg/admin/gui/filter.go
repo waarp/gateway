@@ -20,6 +20,7 @@ type FiltersPagination struct {
 	DisableNext     bool
 	DisablePrevious bool
 	Protocols       Protocols
+	OrderBy         string
 }
 
 const DefaultLimitPagination = 30
