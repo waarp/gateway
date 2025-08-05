@@ -111,13 +111,28 @@ func CancelTransfer(ctx context.Context, db *database.DB, transfer *model.Normal
 	return nil
 }
 
-func ReprogramTransfer(db database.Access, transfer *model.NormalizedTransferView,
+func ReprogramTransfer(db *database.DB, transfer *model.NormalizedTransferView,
 	date time.Time,
 ) (*model.Transfer, error) {
-	newTransfer, err := transfer.Restart(db, date)
-	if err != nil {
-		return nil, fmt.Errorf("failed to reprogram transfer: %w", err)
+	newTransfer, copyErr := transfer.Restart(db, date)
+	if copyErr != nil {
+		return nil, fmt.Errorf("failed to reprogram transfer: %w", copyErr)
 	}
 
-	return newTransfer, nil
+	infos, infErr := transfer.GetTransferInfo(db)
+	if infErr != nil {
+		return nil, fmt.Errorf("failed to get transfer info: %w", infErr)
+	}
+
+	return newTransfer, db.Transaction(func(ses *database.Session) error {
+		if err := ses.Insert(newTransfer).Run(); err != nil {
+			return fmt.Errorf("failed to insert transfer: %w", err)
+		}
+
+		if err := newTransfer.SetTransferInfo(ses, infos); err != nil {
+			return fmt.Errorf("failed to set transfer info: %w", err)
+		}
+
+		return nil
+	})
 }

@@ -24,7 +24,7 @@ var (
 		"(only remote accounts)")
 )
 
-const preConnectionAuth = "pesit_pre-connection_auth"
+const PreConnectionAuth = "pesit_pre-connection_auth"
 
 //nolint:gochecknoinits //init is required here
 func init() {
@@ -36,8 +36,8 @@ func init() {
 	authentication.AddExternalCredentialTypeForProtocol(auth.Password, PesitTLS, &pesitAESAuthHandler{})
 
 	// Pre-connection authentication
-	authentication.AddExternalCredentialTypeForProtocol(preConnectionAuth, Pesit, &preConnectionAuthExtHandler{})
-	authentication.AddExternalCredentialTypeForProtocol(preConnectionAuth, PesitTLS, &preConnectionAuthExtHandler{})
+	authentication.AddExternalCredentialTypeForProtocol(PreConnectionAuth, Pesit, &preConnectionAuthExtHandler{})
+	authentication.AddExternalCredentialTypeForProtocol(PreConnectionAuth, PesitTLS, &preConnectionAuthExtHandler{})
 }
 
 func checkPesitPassword(pswd string) error {

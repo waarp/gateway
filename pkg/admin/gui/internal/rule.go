@@ -8,14 +8,24 @@ import (
 func GetRule(db database.ReadAccess, name string, isSend bool) (*model.Rule, error) {
 	var rule model.Rule
 
-	return &rule, db.Get(&rule, "name=? AND is_send=?", name).Run()
+	return &rule, db.Get(&rule, "name=? AND is_send=?", name, isSend).Run()
 }
 
-func ListRules(db database.ReadAccess, orderByCol string, orderByAsc bool, limit, offset int,
+func ListRules(db database.ReadAccess, orderByCol string, orderByAsc bool,
+	limit, offset int,
 ) ([]*model.Rule, error) {
 	var rules model.Rules
 
 	return rules, db.Select(&rules).Limit(limit, offset).OrderBy(orderByCol, orderByAsc).Run()
+}
+
+func ListRulesByDirection(db database.ReadAccess, orderByCol string, orderByAsc bool,
+	limit, offset int, isSend bool,
+) ([]*model.Rule, error) {
+	var rules model.Rules
+
+	return rules, db.Select(&rules).Limit(limit, offset).
+		OrderBy(orderByCol, orderByAsc).Where("is_send=?", isSend).Run()
 }
 
 func InsertRule(db database.Access, rule *model.Rule) error {
