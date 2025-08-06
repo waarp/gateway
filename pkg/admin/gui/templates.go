@@ -95,42 +95,9 @@ var (
 			ParseFS(webFS, index, header, multiLanguage, addProtoConfig, editProtoConfig, displayProtoConfig,
 				"front-end/html/local_client_management_page.html"),
 	)
-	accountAuthenticationTemplate = template.Must(
-		template.New("account_authentication_page.html").
+	ruleManagementTemplate = template.Must(
+		template.New("transfer_rules_management_page.html").
 			Funcs(funcs).
-			ParseFS(webFS, index, header, multiLanguage, displayFormAuth, "front-end/html/account_authentication_page.html"),
-	)
-	serverManagementTemplate = template.Must(
-		template.New("server_management_page.html").
-			Funcs(funcs).
-			ParseFS(webFS, index, header, multiLanguage, addProtoConfig, editProtoConfig, displayProtoConfig,
-				"front-end/html/server_management_page.html"),
-	)
-	serverManagementTemplate = template.Must(
-		template.New("server_management_page.html").
-			Funcs(funcs).
-			ParseFS(webFS, index, header, multiLanguage, displayFormAuth, "front-end/html/server_management_page.html"),
-	)
-	serverManagementTemplate = template.Must(
-		template.New("server_management_page.html").
-			Funcs(funcs).
-			ParseFS(webFS, index, header, multiLanguage, addProtoConfig, editProtoConfig, displayProtoConfig,
-				"front-end/html/server_management_page.html"),
-	)
-	serverAuthenticationTemplate = template.Must(
-		template.New("server_authentication_page.html").
-			Funcs(funcs).
-			ParseFS(webFS, index, header, multiLanguage, displayFormAuth, "front-end/html/server_authentication_page.html"),
-	)
-	localAccountTemplate = template.Must(
-		template.New("local_account_management_page.html").
-			Funcs(funcs).
-			ParseFS(webFS, index, header, multiLanguage, "front-end/html/local_account_management_page.html"),
-	)
-	localAccountAuthenticationTemplate = template.Must(
-		template.New("local_account_authentication_page.html").
-			Funcs(funcs).
-			ParseFS(webFS, index, header, multiLanguage, displayFormAuth,
-				"front-end/html/local_account_authentication_page.html"),
+			ParseFS(webFS, index, header, multiLanguage, "front-end/html/transfer_rules_management_page.html"),
 	)
 )
