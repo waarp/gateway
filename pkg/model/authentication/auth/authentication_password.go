@@ -24,7 +24,7 @@ func init() {
 	authentication.AddExternalCredentialType(Password, &AESPasswordHandler{})
 }
 
-var ErrEmptyPassword = errors.New("password input is empty")
+var ErrNoPassword = errors.New("no password found")
 
 type BcryptAuthHandler struct{}
 
@@ -44,9 +44,6 @@ func (*BcryptAuthHandler) Validate(value, _, _, _ string, _ bool) error {
 	}
 
 	// TODO add more verifications (min length, character variety...)
-	if value == "" {
-		return ErrEmptyPassword
-	}
 
 	return nil
 }
@@ -107,11 +104,7 @@ func (*AESPasswordHandler) FromDB(encryptedPwd, _ string) (plainPwd, _ string, e
 	return plainPwd, "", nil
 }
 
-func (*AESPasswordHandler) Validate(pwd, _, _, _ string, _ bool) error {
+func (*AESPasswordHandler) Validate(_, _, _, _ string, _ bool) error {
 	// TODO add more verifications (min length, character variety...)
-	if pwd == "" {
-		return ErrEmptyPassword
-	}
-
 	return nil
 }
