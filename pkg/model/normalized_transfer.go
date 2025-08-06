@@ -37,10 +37,10 @@ func (n *NormalizedTransferView) GetTransferInfo(db database.ReadAccess) (map[st
 
 func (n *NormalizedTransferView) getTransInfoCondition() (string, int64) {
 	if n.IsTransfer {
-		return (&Transfer{}).getTransInfoCondition()
+		return (&Transfer{ID: n.ID}).getTransInfoCondition()
 	}
 
-	return (&HistoryEntry{}).getTransInfoCondition()
+	return n.HistoryEntry.getTransInfoCondition()
 }
 
 func (n *NormalizedTransferView) setTransInfoOwner(info *TransferInfo) {

@@ -1,6 +1,7 @@
 package model
 
 import (
+	"database/sql"
 	"errors"
 	"fmt"
 
@@ -33,11 +34,12 @@ type LocalAgent struct {
 	ProtoConfig map[string]any `xorm:"proto_config"`
 }
 
-func (*LocalAgent) TableName() string   { return TableLocAgents }
-func (*LocalAgent) Appellation() string { return "server" }
-func (l *LocalAgent) GetID() int64      { return l.ID }
-func (*LocalAgent) IsServer() bool      { return true }
-func (l *LocalAgent) Host() string      { return l.Address.Host }
+func (*LocalAgent) TableName() string          { return TableLocAgents }
+func (*LocalAgent) Appellation() string        { return "server" }
+func (l *LocalAgent) GetID() int64             { return l.ID }
+func (l *LocalAgent) GetNullID() sql.NullInt64 { return utils.NewNullInt64(l.ID) }
+func (*LocalAgent) IsServer() bool             { return true }
+func (l *LocalAgent) Host() string             { return l.Address.Host }
 
 func (l *LocalAgent) validateProtoConfig() error {
 	if err := ConfigChecker.CheckServerConfig(l.Protocol, l.ProtoConfig); err != nil {

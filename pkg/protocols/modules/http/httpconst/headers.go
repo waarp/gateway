@@ -28,15 +28,7 @@ const (
 const (
 	// TransferInfo defines the name of the header containing all the transfer
 	// info. The information should be presented as a list of key:value pairs.
-	// A transfer info can only be transmitted by the client to the server, never
-	// the other way around.
+	// A transfer info can only be transmitted by the client to the server, and/or
+	// by the sender to the receiver.
 	TransferInfo = "Waarp-Transfer-Info"
-
-	/*
-		// FileInfo defines the name of the header containing all the file
-		// info. The information should be presented as a list of key:value pairs.
-		// A file info can only be transmitted by the sender to the receiver, never
-		// the other way around.
-		FileInfo = "Waarp-File-Info"
-	*/
 )

@@ -1,0 +1,98 @@
+package tasks
+
+import (
+	"fmt"
+	"strconv"
+	"testing"
+	"time"
+
+	"github.com/stretchr/testify/assert"
+
+	"code.waarp.fr/apps/gateway/gateway/pkg/model/types"
+
+	"github.com/stretchr/testify/require"
+
+	"code.waarp.fr/apps/gateway/gateway/pkg/database/dbtest"
+	"code.waarp.fr/apps/gateway/gateway/pkg/model"
+	"code.waarp.fr/apps/gateway/gateway/pkg/utils/testhelpers"
+)
+
+func TestTransferPreregister(t *testing.T) {
+	logger := testhelpers.GetTestLogger(t)
+	db := dbtest.TestDatabase(t)
+
+	// Setup
+	rule := &model.Rule{
+		Name:   "send",
+		IsSend: true,
+	}
+	require.NoError(t, db.Insert(rule).Run())
+
+	server := &model.LocalAgent{
+		Name:     "test_server",
+		Address:  types.Addr("127.0.0.1", 6666),
+		Protocol: testProtocol,
+	}
+	require.NoError(t, db.Insert(server).Run())
+
+	account := &model.LocalAccount{
+		LocalAgentID: server.ID,
+		Login:        "foobar",
+	}
+	require.NoError(t, db.Insert(account).Run())
+
+	// Test
+	const (
+		file = "test/file.txt"
+
+		oldKey     = "foo"
+		oldVal     = "bar"
+		updKey     = "fizz"
+		origUpdVal = "buzz"
+		newUpdVal  = "bazz"
+		newKey     = "toto"
+		newVal     = "tata"
+	)
+	dueDate := time.Date(2026, 1, 1, 12, 0, 0, 0, time.Local)
+
+	runner := TransferPreregister{}
+	transCtx := &model.TransferContext{
+		TransInfo: map[string]any{
+			oldKey: oldVal,
+			updKey: origUpdVal,
+		},
+	}
+
+	require.NoError(t, runner.Run(t.Context(), map[string]string{
+		"file":     file,
+		"rule":     rule.Name,
+		"isSend":   strconv.FormatBool(rule.IsSend),
+		"server":   server.Name,
+		"account":  account.Login,
+		"dueDate":  dueDate.Format(time.RFC3339Nano),
+		"copyInfo": "true",
+		"info": fmt.Sprintf(`{"%s": "%s", "%s": "%s"}`,
+			updKey, newUpdVal, newKey, newVal),
+	}, db, logger, transCtx))
+
+	var check model.Transfer
+	require.NoError(t, db.Get(&check, "rule_id=?", rule.ID).Run())
+	checkInfo, infErr := check.GetTransferInfo(db)
+	require.NoError(t, infErr)
+
+	if rule.IsSend {
+		assert.Equal(t, file, check.SrcFilename)
+	} else {
+		assert.Equal(t, file, check.DestFilename)
+	}
+
+	assert.Equal(t, types.StatusAvailable, check.Status)
+	assert.Equal(t, rule.ID, check.RuleID)
+	assert.Equal(t, account.ID, check.LocalAccountID.Int64)
+	assert.Equal(t, dueDate, check.Start)
+	assert.Subset(t, checkInfo, map[string]any{
+		oldKey: oldVal,
+		updKey: newUpdVal,
+		newKey: newVal,
+	})
+}

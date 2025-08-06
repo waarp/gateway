@@ -4,10 +4,7 @@ import (
 	"fmt"
 	"math"
 	"slices"
-	"sync"
 	"time"
-
-	"code.waarp.fr/lib/log"
 
 	"code.waarp.fr/apps/gateway/gateway/pkg/database"
 	"code.waarp.fr/apps/gateway/gateway/pkg/model"
@@ -17,10 +14,10 @@ import (
 
 // Run checks the database for new planned transfers and starts
 // them, as long as there are available transfer slots.
-func (c *Controller) Run(wg *sync.WaitGroup, logger log.Logger) {
+func (c *Controller) Run() {
 	plannedTrans, dbErr := c.retrieveTransfers()
 	if dbErr != nil {
-		logger.Errorf("Failed to retrieve the transfers to run: %v", dbErr)
+		c.logger.Errorf("Failed to retrieve the transfers to run: %v", dbErr)
 
 		return
 	}
@@ -31,14 +28,20 @@ func (c *Controller) Run(wg *sync.WaitGroup, logger log.Logger) {
 			continue
 		}
 
-		wg.Add(1)
+		c.wg.Add(1)
 
 		go func(t *model.Transfer) {
-			if err := pip.Run(); err != nil {
-				logger.Errorf("Transfer n°%d failed: %v", t.ID, err)
+			defer c.wg.Done()
+
+			if t.IsServer() {
+				pip.Pip.SetError(types.TeExpired, "Transfer expired")
+
+				return
 			}
 
-			wg.Done()
+			if err := pip.Run(); err != nil {
+				c.logger.Errorf("Transfer n°%d failed: %v", t.ID, err)
+			}
 		}(trans)
 	}
 }

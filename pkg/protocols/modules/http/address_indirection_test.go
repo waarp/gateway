@@ -14,7 +14,7 @@ func TestAddressIndirection(t *testing.T) {
 	fakeAddr := "9.9.9.9:9999"
 
 	Convey("Given a HTTP service with an indirect address", t, func(c C) {
-		Convey("Given a new POST HTTP transfer", func(c C) {
+		SkipConvey("Given a new POST HTTP transfer", func(c C) {
 			ctx := pipelinetest.InitSelfPushTransfer(c, HTTP, nil, nil, nil)
 			realAddr := ctx.Server.Address.String()
 

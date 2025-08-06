@@ -6,7 +6,6 @@ import (
 	"net/http"
 	"path"
 	"strings"
-	"time"
 
 	"code.waarp.fr/lib/log"
 
@@ -16,7 +15,6 @@ import (
 	"code.waarp.fr/apps/gateway/gateway/pkg/pipeline"
 	"code.waarp.fr/apps/gateway/gateway/pkg/protocols/modules/http/httpconst"
 	"code.waarp.fr/apps/gateway/gateway/pkg/snmp"
-	"code.waarp.fr/apps/gateway/gateway/pkg/utils"
 )
 
 type httpHandler struct {
@@ -141,29 +139,16 @@ func (h *httpHandler) getTransfer(isSend bool) (*model.Transfer, bool) {
 		return nil, false
 	}
 
+	filepath := strings.TrimPrefix(h.req.URL.Path, "/")
 	remoteID := h.req.Header.Get(httpconst.TransferID)
+
 	if remoteID == "" {
 		remoteID = h.req.FormValue(httpconst.ID)
 	}
 
-	trans := &model.Transfer{
-		RemoteTransferID: remoteID,
-		RuleID:           h.rule.ID,
-		LocalAccountID:   utils.NewNullInt64(h.account.ID),
-		Filesize:         model.UnknownSize,
-		Start:            time.Now(),
-		Status:           types.StatusPlanned,
-	}
-
-	if h.rule.IsSend {
-		trans.SrcFilename = strings.TrimPrefix(h.req.URL.Path, "/")
-	} else {
-		trans.DestFilename = strings.TrimPrefix(h.req.URL.Path, "/")
-	}
-
-	var oldErr *pipeline.Error
-	if trans, oldErr = pipeline.GetOldTransfer(h.db, h.logger, trans); oldErr != nil {
-		h.sendError(http.StatusInternalServerError, oldErr.Code(), oldErr.Redacted())
+	trans, tErr := h.mkTransfer(remoteID, filepath)
+	if tErr != nil {
+		h.sendError(http.StatusInternalServerError, tErr.Code(), tErr.Redacted())
 
 		return nil, false
 	}
@@ -173,6 +158,24 @@ func (h *httpHandler) getTransfer(isSend bool) (*model.Transfer, bool) {
 	}
 
 	return trans, true
+}
+
+func (h *httpHandler) mkTransfer(remoteID, filepath string) (*model.Transfer, *pipeline.Error) {
+	if trans, err := pipeline.GetOldTransferByRemoteID(h.db, remoteID, h.account,
+		&h.rule); err == nil {
+		return trans, nil
+	} else if !database.IsNotFound(err) {
+		return nil, err
+	}
+
+	if trans, err := pipeline.GetAvailableTransferByFilename(h.db, filepath, remoteID,
+		h.account, &h.rule); err == nil {
+		return trans, nil
+	} else if !database.IsNotFound(err) {
+		return nil, err
+	}
+
+	return pipeline.MakeServerTransfer(remoteID, filepath, h.account, &h.rule), nil
 }
 
 func (h *httpHandler) handleHead() {

@@ -87,6 +87,9 @@ const (
 	// TeShuttingDown should be used when the gateway is shutting down.
 	TeShuttingDown
 
+	// TeExpired should be used when a transfer has passed its expiration date.
+	TeExpired
+
 	// Used as a marker to know the number of defined errorcodes.
 	endoferrorcodes
 )

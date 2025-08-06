@@ -1090,12 +1090,11 @@ linters:
       # Correct spellings using locale preferences for US or UK.
       # Setting locale to US will correct the British spelling of 'colour' to 'color'.
       # Default is to use a neutral variety of English.
-      locale: US
+      #locale: US
       # Typos to ignore.
       # Should be in lower case.
       # Default: []
-      ignore-rules:
-        - someword
+      ignore-rules: []
       # Extra word corrections.
       # `typo` and `correction` should only contain letters.
       # The words are case-insensitive.

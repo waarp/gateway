@@ -86,7 +86,7 @@ func TestControllerListen(t *testing.T) {
 				So(db.Insert(trans).Run(), ShouldBeNil)
 
 				Convey("When the controller starts new transfers", func() {
-					cont.Run(cont.wg, *cont.logger)
+					cont.Run()
 
 					Convey("After waiting enough time", func() {
 						cont.wg.Wait()
@@ -110,13 +110,13 @@ func TestControllerListen(t *testing.T) {
 
 				Convey("When the transfer lasts longer than a controller tick", func() {
 					Convey("When the controller starts new transfers several times", func() {
-						cont.Run(cont.wg, *cont.logger)
+						cont.Run()
 						time.Sleep(10 * time.Millisecond)
 
-						cont.Run(cont.wg, *cont.logger)
+						cont.Run()
 						time.Sleep(10 * time.Millisecond)
 
-						cont.Run(cont.wg, *cont.logger)
+						cont.Run()
 
 						cont.wg.Wait()
 

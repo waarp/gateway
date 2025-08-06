@@ -61,7 +61,7 @@ func (t *transferHandler) getRule(filepath string, isSend bool) (*model.Rule, er
 
 func (t *transferHandler) getRuleByName(name string, isSend bool) (*model.Rule, error) {
 	var rule model.Rule
-	if err := t.db.Get(&rule, "name=? AND is_send=?", name, isSend); err != nil {
+	if err := t.db.Get(&rule, "name=? AND is_send=?", name, isSend).Run(); err != nil {
 		t.logger.Errorf("Failed to retrieve rule: %v", err)
 
 		return nil, pesit.NewDiagnostic(pesit.CodeInternalError, "database error")
@@ -74,12 +74,13 @@ func (t *transferHandler) getRuleByName(name string, isSend bool) (*model.Rule, 
 func (t *transferHandler) SelectFile(req *pesit.ServerTransfer) error {
 	// retrieve the rule and initialize the transfer
 	var (
-		trans     model.Transfer
 		isSend    bool
 		operation string
 	)
 
 	t.logger.Debugf("Request received for file %q by %q", req.Filename(), req.ClientLogin())
+
+	req.SetArticleSize(defaultArticleSize)
 
 	if t.conf.MaxMessageSize < req.MessageSize() {
 		req.SetMessageSize(t.conf.MaxMessageSize)
@@ -100,8 +101,6 @@ func (t *transferHandler) SelectFile(req *pesit.ServerTransfer) error {
 	case req.IsReceive():
 		operation = "Upload"
 		isSend = false
-		trans.SrcFilename = path.Base(req.Filename())
-		trans.Filesize = model.UnknownSize
 	default:
 		t.logger.Warning("Unknown transfer method (should be either send or receive)")
 
@@ -109,8 +108,9 @@ func (t *transferHandler) SelectFile(req *pesit.ServerTransfer) error {
 	}
 
 	var (
-		rule    *model.Rule
-		ruleErr error
+		rule             *model.Rule
+		ruleErr          error
+		remoteTransferID string
 	)
 
 	if t.cftMode {
@@ -123,18 +123,10 @@ func (t *transferHandler) SelectFile(req *pesit.ServerTransfer) error {
 		return ruleErr
 	}
 
-	trans.RemoteTransferID = utils.FormatUint(req.TransferID())
-	trans.RuleID = rule.ID
-	trans.LocalAccountID = utils.NewNullInt64(t.account.ID)
+	filepath := trimRequestPath(req.Filename(), rule)
 
-	if rule.IsSend {
-		trans.SrcFilename = trimRequestPath(req.Filename(), rule)
-	} else {
-		if t.cftMode {
-			trans.DestFilename = generateDestFilename(&trans, t.account, rule)
-		} else {
-			trans.DestFilename = trimRequestPath(req.Filename(), rule)
-		}
+	if req.TransferID() != 0 {
+		remoteTransferID = utils.FormatUint(req.TransferID())
 	}
 
 	// initialize the pipeline
@@ -143,7 +135,7 @@ func (t *transferHandler) SelectFile(req *pesit.ServerTransfer) error {
 
 	t.ctx, t.cancel = context.WithCancelCause(context.Background())
 
-	if err := t.initPipeline(req, &trans, rule); err != nil {
+	if err := t.initPipeline(req, remoteTransferID, filepath, rule); err != nil {
 		t.logger.Warningf("Transfer request for file %q refused: %v", req.Filename(), err)
 
 		return err
@@ -155,12 +147,12 @@ func (t *transferHandler) SelectFile(req *pesit.ServerTransfer) error {
 	req.CheckpointRequestReceived = checkpointRequestReceived(t.pip)
 
 	if req.TransferID() == 0 {
-		pesitID, convErr := strconv.ParseUint(trans.RemoteTransferID, 10, 32)
+		pesitID, convErr := strconv.ParseUint(t.pip.TransCtx.Transfer.RemoteTransferID, 10, 32)
 		if convErr != nil {
-			t.pip.SetError(types.TeInternal, "failed to get parse Pesit transfer ID")
+			t.pip.SetError(types.TeInternal, "failed to parse Pesit transfer ID")
 			t.logger.Errorf("Failed to parse Pesit transfer ID: %v", convErr)
 
-			return pesit.NewDiagnostic(pesit.CodeInternalError, "failed to get parse Pesit transfer ID")
+			return pesit.NewDiagnostic(pesit.CodeInternalError, "failed to parse Pesit transfer ID")
 		}
 
 		req.SetTransferID(uint32(pesitID))
@@ -171,16 +163,44 @@ func (t *transferHandler) SelectFile(req *pesit.ServerTransfer) error {
 	return nil
 }
 
-//nolint:funlen //no easy way to split for now
+func (t *transferHandler) mkTransfer(remoteID, filepath string, rule *model.Rule,
+) (*model.Transfer, error) {
+	if trans, err := pipeline.GetOldTransferByRemoteID(t.db, remoteID, t.account,
+		rule); err == nil {
+		return trans, nil
+	} else if !database.IsNotFound(err) {
+		return nil, transErrToPesitErr(err)
+	}
+
+	// CFT mode -> no filename, so we use the rule instead
+	if filepath == "" {
+		if trans, err := pipeline.GetAvailableTransferByRule(t.db, remoteID, t.account, rule); err == nil {
+			return trans, nil
+		} else if !database.IsNotFound(err) {
+			return nil, transErrToPesitErr(err)
+		}
+
+		return nil, pesit.NewDiagnostic(pesit.CodeFileNotExists, "no available transfer found")
+	}
+
+	if trans, err := pipeline.GetAvailableTransferByFilename(t.db, filepath, remoteID,
+		t.account, rule); err == nil {
+		return trans, nil
+	} else if !database.IsNotFound(err) {
+		return nil, transErrToPesitErr(err)
+	}
+
+	return pipeline.MakeServerTransfer(remoteID, filepath, t.account, rule), nil
+}
+
 func (t *transferHandler) initPipeline(req *pesit.ServerTransfer,
-	trans *model.Transfer, rule *model.Rule,
+	remoteID, filepath string, rule *model.Rule,
 ) error {
-	if oldTrans, tErr := pipeline.GetOldTransfer(t.db, t.logger, trans); tErr != nil {
+	trans, tErr := t.mkTransfer(remoteID, filepath, rule)
+	if tErr != nil {
 		t.logger.Errorf("Failed to check for existing transfers: %v", tErr)
 
-		return transErrToPesitErr(tErr)
-	} else {
-		*trans = *oldTrans
+		return tErr
 	}
 
 	pip, pipErr := pipeline.NewServerPipeline(t.db, t.logger, trans, snmp.GlobalService)
@@ -218,6 +238,14 @@ func (t *transferHandler) initPipeline(req *pesit.ServerTransfer,
 		setTransInfo(t.pip, fileEncodingKey, req.DataCoding().String())
 		setTransInfo(t.pip, fileTypeKey, req.FileType())
 		setTransInfo(t.pip, organizationKey, req.FileOrganization().String())
+	}
+
+	if t.pip.TransCtx.Rule.IsSend {
+		if err := setFreetext(pip, serverTransFreetextKey, req); err != nil {
+			t.logger.Errorf("Failed to set server transfer freetext: %v", err)
+
+			return transErrToPesitErr(err)
+		}
 	}
 
 	return utils.RunWithCtx(t.ctx, func() error {
@@ -299,21 +327,72 @@ func (t *transferHandler) StartDataTransfer(dtr *pesit.ServerTransfer) error {
 	return nil
 }
 
+func (t *transferHandler) receiveTransfer(trans *pesit.ServerTransfer) error {
+	var articlesLen []int64
+
+	for {
+		article, aErr := trans.GetNextRecvArticle()
+		if errors.Is(aErr, pesit.ErrNoMoreArticle) {
+			return nil
+		} else if aErr != nil {
+			t.handleError(aErr)
+
+			//nolint:wrapcheck //wrapping adds nothing here
+			return aErr
+		}
+
+		start := t.pip.TransCtx.Transfer.Progress
+
+		if _, err := io.Copy(t.file, article); err != nil {
+			return toPesitErr(pesit.CodeInternalError, err)
+		}
+
+		end := t.pip.TransCtx.Transfer.Progress
+		articlesLen = append(articlesLen, end-start)
+		t.pip.TransCtx.TransInfo[articlesLengthsKey] = articlesLen
+	}
+}
+
+func (t *transferHandler) sendTransfer(trans *pesit.ServerTransfer) error {
+	lengths, isMArticles := isMultiArticles(t.pip)
+	if !isMArticles {
+		if _, err := io.Copy(trans, t.file); err != nil {
+			return toPesitErr(pesit.CodeInternalError, err)
+		}
+
+		return nil
+	}
+
+	trans.SetArticleFormat(pesit.FormatVariable)
+	trans.SetManualArticleHandling(true)
+
+	for _, length := range lengths {
+		article, aErr := trans.StartNextSendArticle()
+		if aErr != nil {
+			t.handleError(aErr)
+
+			return aErr //nolint:wrapcheck //wrapping adds nothing here
+		}
+
+		file := io.LimitReader(t.file, length)
+
+		if _, err := io.Copy(article, file); err != nil {
+			return toPesitErr(pesit.CodeInternalError, err)
+		}
+	}
+
+	return nil
+}
+
 func (t *transferHandler) DataTransfer(trans *pesit.ServerTransfer) error {
 	t.pip.Logger.Debug("Data transfer started")
 
 	if err := utils.RunWithCtx(t.ctx, func() error {
 		if t.pip.TransCtx.Rule.IsSend {
-			if _, err := io.Copy(trans, t.file); err != nil {
-				return toPesitErr(pesit.CodeInternalError, err)
-			}
-		} else {
-			if _, err := io.Copy(t.file, trans); err != nil {
-				return toPesitErr(pesit.CodeInternalError, err)
-			}
+			return t.sendTransfer(trans)
 		}
 
-		return nil
+		return t.receiveTransfer(trans)
 	}); err != nil {
 		t.pip.Logger.Debugf("Data transfer failed: %v", err)
 

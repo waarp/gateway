@@ -7,6 +7,7 @@ import (
 
 	"code.waarp.fr/apps/gateway/gateway/pkg/model/types"
 	"code.waarp.fr/apps/gateway/gateway/pkg/pipeline"
+	"code.waarp.fr/apps/gateway/gateway/pkg/utils"
 )
 
 const (
@@ -20,6 +21,8 @@ const (
 	clientTransFreetextKey = "__clientTransFreetext__"
 	serverConnFreetextKey  = "__serverConnFreetext__"
 	serverTransFreetextKey = "__serverTransFreetext__"
+
+	articlesLengthsKey = "__articlesLengths__"
 )
 
 type valueTypes interface {
@@ -124,4 +127,13 @@ func setTransInfo[T valueTypes](pip *pipeline.Pipeline, key string, val T) {
 	if !reflect.ValueOf(val).IsZero() {
 		pip.TransCtx.TransInfo[key] = val
 	}
+}
+
+func isMultiArticles(pip *pipeline.Pipeline) ([]int64, bool) {
+	vals, err := utils.GetAs[[]int64](pip.TransCtx.TransInfo, articlesLengthsKey)
+	if err != nil {
+		return nil, false
+	}
+
+	return vals, len(vals) > 0
 }

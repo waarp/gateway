@@ -8,7 +8,7 @@ require (
 	code.waarp.fr/lib/goftp v0.1.1-0.20240801120050-932aa2b2f9a7
 	code.waarp.fr/lib/log v1.4.0
 	code.waarp.fr/lib/migration v1.0.0
-	code.waarp.fr/lib/pesit v0.1.3-0.20250428091118-6e960424831c
+	code.waarp.fr/lib/pesit v0.1.4-0.20250806120609-9700fd4023a8
 	code.waarp.fr/lib/r66 v0.1.7
 	github.com/ProtonMail/gopenpgp/v3 v3.3.0
 	github.com/bwmarrin/snowflake v0.3.0

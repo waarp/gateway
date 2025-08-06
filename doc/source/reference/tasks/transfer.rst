@@ -4,8 +4,12 @@
 TRANSFER
 ########
 
-Le traitement ``TRANSFER`` programme un nouveau transfert sur la même instance
-de Gateway avec une date de démarrage immédiate. Les arguments sont:
+.. note:: À ne pas confondre avec la tâche *PREREGISTER*. Cette dernière permet
+   de pré-enregistrer des transferts **serveur** qui s'exécuteront quand un
+   partenaire en fera la demande.
+
+Le traitement ``TRANSFER`` programme un nouveau transfert client sur la même
+instance de Gateway avec une date de démarrage immédiate. Les arguments sont :
 
 * ``file`` (*string*) - Le chemin du fichier à transférer.
 * ``output`` (*string*) - Le chemin destination du fichier transféré. Par défaut,

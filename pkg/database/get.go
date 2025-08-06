@@ -33,6 +33,24 @@ func (g *GetQuery) And(sql string, args ...any) *GetQuery {
 	return g
 }
 
+// In add a 'WHERE col IN' condition to the 'SELECT' query. Because the database/sql
+// package cannot handle variadic placeholders in the Where function, a separate
+// method is required.
+func (g *GetQuery) In(col string, vals ...any) *GetQuery {
+	if len(vals) == 0 {
+		return g
+	}
+
+	sql := &inCond{Builder: &strings.Builder{}}
+	if builder.In(col, vals...).WriteTo(sql) != nil {
+		return g
+	}
+
+	g.conds = append(g.conds, &condition{sql: sql.String(), args: sql.args})
+
+	return g
+}
+
 // OrderBy adds an 'ORDER BY' clause to the 'SELECT' query with the given order
 // and direction.
 func (g *GetQuery) OrderBy(order string, asc bool) *GetQuery {

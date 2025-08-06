@@ -218,7 +218,7 @@ func setTransferInfo(pip *pipeline.Pipeline, headers http.Header) *pipeline.Erro
 }
 
 func setInfo(pip *pipeline.Pipeline, headers http.Header, key string) *pipeline.Error {
-	info := map[string]any{}
+	info := pip.TransCtx.TransInfo
 	const headerParts = 2
 
 	for _, text := range headers.Values(key) {

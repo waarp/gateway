@@ -106,7 +106,7 @@ func (c *client) initTransfer(pip *pipeline.Pipeline) (*clientTransfer, *pipelin
 	if pip.TransCtx.Rule.IsSend || pip.TransCtx.Transfer.Step > types.StepSetup {
 		pesitID64, convErr := strconv.ParseUint(pip.TransCtx.Transfer.RemoteTransferID, 10, 32)
 		if convErr != nil {
-			return nil, pipeline.NewErrorWith(types.TeInternal, "failed to get parse Pesit transfer ID", convErr)
+			return nil, pipeline.NewErrorWith(types.TeInternal, "failed to parse Pesit transfer ID", convErr)
 		}
 
 		pesitID = uint32(pesitID64)

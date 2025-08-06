@@ -1,6 +1,7 @@
 package model
 
 import (
+	"database/sql"
 	"fmt"
 
 	"code.waarp.fr/apps/gateway/gateway/pkg/conf"
@@ -26,11 +27,12 @@ type RemoteAgent struct {
 	ProtoConfig map[string]any `xorm:"proto_config"`
 }
 
-func (*RemoteAgent) TableName() string   { return TableRemAgents }
-func (*RemoteAgent) Appellation() string { return NameRemoteAgent }
-func (r *RemoteAgent) GetID() int64      { return r.ID }
-func (*RemoteAgent) IsServer() bool      { return true }
-func (r *RemoteAgent) Host() string      { return r.Address.Host }
+func (*RemoteAgent) TableName() string          { return TableRemAgents }
+func (*RemoteAgent) Appellation() string        { return NameRemoteAgent }
+func (r *RemoteAgent) GetID() int64             { return r.ID }
+func (r *RemoteAgent) GetNullID() sql.NullInt64 { return utils.NewNullInt64(r.ID) }
+func (*RemoteAgent) IsServer() bool             { return true }
+func (r *RemoteAgent) Host() string             { return r.Address.Host }
 
 func (r *RemoteAgent) validateProtoConfig() error {
 	if err := ConfigChecker.CheckPartnerConfig(r.Protocol, r.ProtoConfig); err != nil {

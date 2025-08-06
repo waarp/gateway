@@ -580,7 +580,7 @@ func testVer0_7_0RevampHistoryTable(t *testing.T, eng *testEngine) Change {
 			assert.Equal(t, 123, size)
 			assert.Equal(t, time.Date(2021, 1, 1, 1, 0, 0, 123456000, time.UTC), start)
 			assert.Equal(t, time.Date(2021, 1, 1, 2, 0, 0, 123456000, time.UTC), stop)
-			assert.Equal(t, "CANCELLED", stat) //nolint:misspell //must be kept for retro-compatibility
+			assert.Equal(t, "CANCELLED", stat)
 			assert.Equal(t, "StepData", step)
 			assert.Equal(t, 111, prog)
 			assert.Equal(t, 12, taskNb)
@@ -634,7 +634,7 @@ func testVer0_7_0RevampHistoryTable(t *testing.T, eng *testEngine) Change {
 				assert.Equal(t,
 					time.Date(2021, 1, 1, 2, 0, 0, 123456000, time.UTC),
 					stopDate.UTC())
-				assert.Equal(t, "CANCELLED", stat) //nolint:misspell //must be kept for retro-compatibility
+				assert.Equal(t, "CANCELLED", stat)
 				assert.Equal(t, "StepData", step)
 				assert.Equal(t, 111, prog)
 				assert.Equal(t, 12, taskNb)

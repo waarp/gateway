@@ -60,7 +60,7 @@ func (c *Controller) listen() error {
 
 				return
 			case <-c.ticker.C:
-				c.Run(c.wg, *c.logger)
+				c.Run()
 			}
 		}
 	}()
