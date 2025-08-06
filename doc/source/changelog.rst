@@ -3,6 +3,9 @@
 Historique des versions
 =======================
 
+* :bug:`463` Les mots de passe vides sont désormais acceptés pour l'authentification.
+  Si un partenaire souhaite s'authentifier avec un mot de passe vide, alors un
+  mot de passe vide doit explicitement avoir été attaché au compte local correspondant.
 * :feature:`-` Correction du mode de compatibilité non-standard de PeSIT.
   Celui-ci gère maintenant correctement les noms de fichiers en émission et en
   réception. Les modes de compatibilité pour PeSIT ont par ailleurs été renommés
