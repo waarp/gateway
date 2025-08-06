@@ -166,7 +166,7 @@ func TestFileWriter(t *testing.T) {
 			So(db.Insert(pswd).Run(), ShouldBeNil)
 
 			Convey("Given the Filewriter", func() {
-				conf.GlobalConfig.Paths = conf.PathsConfig{GatewayHome: root}
+				conf.GlobalConfig.Paths.GatewayHome = root
 
 				handler := (&sshListener{
 					DB:     db,
