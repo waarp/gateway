@@ -246,7 +246,13 @@ func (ctx *TransferCtx) makeClient(tb testing.TB,
 func (ctx *TransferCtx) makeClientRules(tb testing.TB) {
 	tb.Helper()
 
-	ctx.ClientRulePush = &model.Rule{Name: "push", Comment: "client push", IsSend: true, RemoteDir: "push"}
+	features := Protocols[ctx.Server.Protocol]
+
+	ctx.ClientRulePush = &model.Rule{Name: "push", Comment: "client push", IsSend: true}
+	if !features.RuleName {
+		ctx.ClientRulePush.RemoteDir = "push"
+	}
+
 	require.NoError(tb, ctx.db.Insert(ctx.ClientRulePush).Run(), "Failed to insert test client push rule")
 
 	pushPreTask := &model.Task{RuleID: ctx.ClientRulePush.ID, Chain: model.ChainPre, Type: taskstest.TaskOK}
@@ -258,7 +264,11 @@ func (ctx *TransferCtx) makeClientRules(tb testing.TB) {
 	pushErrTask := &model.Task{RuleID: ctx.ClientRulePush.ID, Chain: model.ChainError, Type: taskstest.TaskOK}
 	require.NoError(tb, ctx.db.Insert(pushErrTask).Run(), "Failed to insert test client push error-task")
 
-	ctx.ClientRulePull = &model.Rule{Name: "pull", Comment: "client pull", IsSend: false, RemoteDir: "pull"}
+	ctx.ClientRulePull = &model.Rule{Name: "pull", Comment: "client pull", IsSend: false}
+	if !features.RuleName {
+		ctx.ClientRulePull.RemoteDir = "pull"
+	}
+
 	require.NoError(tb, ctx.db.Insert(ctx.ClientRulePull).Run(), "Failed to insert test client pull rule")
 
 	pullPreTask := &model.Task{RuleID: ctx.ClientRulePull.ID, Chain: model.ChainPre, Type: taskstest.TaskOK}

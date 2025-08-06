@@ -17,7 +17,6 @@ import (
 )
 
 func TestImportHistory(t *testing.T) {
-	//nolint:misspell //spelling mistake must be kept for compatibility reasons
 	jsonInput := `[
   {
     "id": 1,

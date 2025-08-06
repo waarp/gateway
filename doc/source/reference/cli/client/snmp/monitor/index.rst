@@ -15,3 +15,4 @@ notification SNMP en provenance de Waarp-Gateway en cas de problème sur celle-c
    get
    update
    delete
+   test

@@ -4,7 +4,6 @@ import (
 	"context"
 	"path"
 	"strings"
-	"time"
 
 	"code.waarp.fr/lib/r66"
 
@@ -12,7 +11,6 @@ import (
 	"code.waarp.fr/apps/gateway/gateway/pkg/database"
 	"code.waarp.fr/apps/gateway/gateway/pkg/fs"
 	"code.waarp.fr/apps/gateway/gateway/pkg/model"
-	"code.waarp.fr/apps/gateway/gateway/pkg/model/types"
 	"code.waarp.fr/apps/gateway/gateway/pkg/pipeline"
 	"code.waarp.fr/apps/gateway/gateway/pkg/protocols/modules/r66/internal"
 	"code.waarp.fr/apps/gateway/gateway/pkg/snmp"
@@ -31,9 +29,9 @@ func (s *sessionHandler) ValidRequest(req *r66.Request) (r66.TransferHandler, er
 		return nil, err
 	}
 
-	rule, err := s.getRule(req.Rule, req.IsRecv)
-	if err != nil {
-		return nil, err
+	rule, ruleErr := s.getRule(req.Rule, req.IsRecv)
+	if ruleErr != nil {
+		return nil, ruleErr
 	}
 
 	if !rule.IsSend {
@@ -44,9 +42,9 @@ func (s *sessionHandler) ValidRequest(req *r66.Request) (r66.TransferHandler, er
 			path.Base(req.Filepath), s.account.Login, req.Rule)
 	}
 
-	trans, err := s.getTransfer(req, rule)
-	if err != nil {
-		return nil, err
+	trans, tErr := s.getTransfer(req, rule)
+	if tErr != nil {
+		return nil, tErr
 	}
 
 	s.setProgress(req, trans)
@@ -141,26 +139,24 @@ func (s *sessionHandler) getRule(ruleName string, isSend bool) (*model.Rule, *r6
 }
 
 func (s *sessionHandler) getTransfer(req *r66.Request, rule *model.Rule) (*model.Transfer, *r66.Error) {
-	trans := &model.Transfer{
-		RemoteTransferID: utils.FormatInt(req.ID),
-		RuleID:           rule.ID,
-		LocalAccountID:   utils.NewNullInt64(s.account.ID),
-		Start:            time.Now(),
-		Status:           types.StatusPlanned,
+	remoteID := utils.FormatInt(req.ID)
+	filepath := strings.TrimPrefix(req.Filepath, "/")
+
+	if trans, err := pipeline.GetOldTransferByRemoteID(s.db, remoteID, s.account,
+		rule); err == nil {
+		return trans, nil
+	} else if !database.IsNotFound(err) {
+		return nil, internal.ToR66Error(err)
 	}
 
-	if rule.IsSend {
-		trans.SrcFilename = strings.TrimPrefix(req.Filepath, "/")
-	} else {
-		trans.DestFilename = strings.TrimPrefix(req.Filepath, "/")
+	if trans, err := pipeline.GetAvailableTransferByFilename(s.db, filepath, remoteID,
+		s.account, rule); err == nil {
+		return trans, nil
+	} else if !database.IsNotFound(err) {
+		return nil, internal.ToR66Error(err)
 	}
 
-	trans, tErr := pipeline.GetOldTransfer(s.db, s.logger, trans)
-	if tErr != nil {
-		return nil, internal.ToR66Error(tErr)
-	}
-
-	return trans, nil
+	return pipeline.MakeServerTransfer(remoteID, filepath, s.account, rule), nil
 }
 
 func (s *sessionHandler) setFileSize(req *r66.Request, rule *model.Rule,

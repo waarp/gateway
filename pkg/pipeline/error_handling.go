@@ -60,7 +60,7 @@ func (p *Pipeline) processError(code types.TransferErrorCode, msg, extMsg string
 	p.TransCtx.Transfer.ErrCode = code
 	p.TransCtx.Transfer.ErrDetails = fullMsg
 
-	if dbErr := p.UpdateTrans(); dbErr != nil {
+	if dbErr := p.forceUpdateTrans(); dbErr != nil {
 		p.Logger.Errorf("Failed to update transfer error: %s", dbErr)
 	}
 

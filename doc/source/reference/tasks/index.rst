@@ -41,6 +41,7 @@ Liste des traitements
    moverename
    rename
    transfer
+   preregister
    transcode
    change_newline
    archive

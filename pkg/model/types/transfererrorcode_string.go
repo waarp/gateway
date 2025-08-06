@@ -28,12 +28,13 @@ func _() {
 	_ = x[TeForbidden-17]
 	_ = x[TeBadSize-18]
 	_ = x[TeShuttingDown-19]
-	_ = x[endoferrorcodes-20]
+	_ = x[TeExpired-20]
+	_ = x[endoferrorcodes-21]
 }
 
-const _TransferErrorCode_name = "TeOkTeUnknownTeInternalTeUnimplementedTeConnectionTeConnectionResetTeUnknownRemoteTeExceededLimitTeBadAuthenticationTeDataTransferTeIntegrityTeFinalizationTeExternalOperationTeWarningTeStoppedTeCanceledTeFileNotFoundTeForbiddenTeBadSizeTeShuttingDownendoferrorcodes"
+const _TransferErrorCode_name = "TeOkTeUnknownTeInternalTeUnimplementedTeConnectionTeConnectionResetTeUnknownRemoteTeExceededLimitTeBadAuthenticationTeDataTransferTeIntegrityTeFinalizationTeExternalOperationTeWarningTeStoppedTeCanceledTeFileNotFoundTeForbiddenTeBadSizeTeShuttingDownTeExpiredendoferrorcodes"
 
-var _TransferErrorCode_index = [...]uint16{0, 4, 13, 23, 38, 50, 67, 82, 97, 116, 130, 141, 155, 174, 183, 192, 202, 216, 227, 236, 250, 265}
+var _TransferErrorCode_index = [...]uint16{0, 4, 13, 23, 38, 50, 67, 82, 97, 116, 130, 141, 155, 174, 183, 192, 202, 216, 227, 236, 250, 259, 274}
 
 func (i TransferErrorCode) String() string {
 	if i >= TransferErrorCode(len(_TransferErrorCode_index)-1) {

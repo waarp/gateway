@@ -3,12 +3,26 @@
 Historique des versions
 =======================
 
+* :feature:`-` Correction du mode de compatibilité non-standard de PeSIT.
+  Celui-ci gère maintenant correctement les noms de fichiers en émission et en
+  réception. Les modes de compatibilité pour PeSIT ont par ailleurs été renommés
+  en "standard" et "non-standard", ce dernier servant pour la compatibilité avec
+  les applications PeSIT tierces.
+* :feature:`-` Le découpage en article des transferts PeSIT est désormais
+  correctement traité et stocké dans les infos de transfert.
+* :feature:`464` Il est désormais possible de préenregistrer un transfert serveur.
+  Préenregistrer un transfert permet, entre autres, de conserver les informations
+  de transfert dans le cas d'un rebond vers un transfert serveur. Cela permet
+  également de spécifier une date limite de disponibilité pour un fichier.
+  Un transfert serveur peut être préenregistré via la commande terminal
+  :ref:`"transfer preregister"<ref-cli-transfer-preregister>` ou bien via la
+  nouvelle tâche :ref:`PREGEGISTER <ref-tasks-preregister>`.
 * :feature:`467` Certains attributs PeSIT sont désormais stockés sous forme
   d'informations de transfert. Ces informations sont : l'encodage du fichier,
   le type de fichier, l'organisation du fichier, l'identifiant de banque et
   l'identifiant de client. Pour plus de détails, voir la page sur
   :ref:`l'implémentation de PeSIT<ref-proto-pesit>` dans la Gateway.
-* :fix:`-` Correction d'une erreur du serveur REST faisant que les entêtes
+* :bug:`-` Correction d'une erreur du serveur REST faisant que les entêtes
   "Server" et "Waarp-Gateway-Date" n'étaient pas correctement renvoyés en
   réponse aux requêtes faites sur l'API REST.
 * :feature:`-` Ajout d'une option ``-r, --raw`` aux commandes d'affichage des

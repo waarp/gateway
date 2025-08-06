@@ -4,7 +4,7 @@ Ajouter un transfert
 
 .. program:: waarp-gateway transfer add
 
-Programme un nouveau transfert avec les attributs ci-dessous.
+Programme un nouveau transfert client avec les attributs ci-dessous.
 
 **Commande**
 

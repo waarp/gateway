@@ -141,6 +141,7 @@ func MakeRESTHandler(logger *log.Logger, db *database.DB, router *mux.Router,
 	mkHandler(TransfersPath, listTransfers, model.PermTransfersRead, http.MethodGet)
 	mkHandler(TransfersPath, addTransfer, model.PermTransfersWrite, http.MethodPost)
 	mkHandler(TransfersPath, cancelTransfers, model.PermTransfersWrite, http.MethodDelete)
+	mkHandler(TransfersPath, preregisterServerTransfer, model.PermTransfersWrite, http.MethodPut)
 	mkHandler(TransferPath, getTransfer, model.PermTransfersRead, http.MethodGet)
 	mkHandler(TransPausePath, pauseTransfer, model.PermTransfersWrite, http.MethodPut)
 	mkHandler(TransResumePath, resumeTransfer, model.PermTransfersWrite, http.MethodPut)

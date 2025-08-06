@@ -576,3 +576,70 @@ func TestTransfersCancelAll(t *testing.T) {
 		})
 	})
 }
+
+func TestTransferRegister(t *testing.T) {
+	const (
+		rule    = "push"
+		isSend  = true
+		server  = "server"
+		account = "acc"
+		file    = "dir/file"
+		date    = "2026-01-01T00:00:00Z"
+
+		key = "key"
+		val = "val"
+
+		id       = "1234"
+		path     = "/api/transfers"
+		location = "/api/transfers/" + id
+	)
+
+	t.Run(`Testing the transfer "preregister" command`, func(t *testing.T) {
+		w := newTestOutput()
+		command := &TransferPreregister{}
+
+		expected := &expectedRequest{
+			method: http.MethodPut,
+			path:   path,
+			body: map[string]any{
+				"rule":         rule,
+				"isSend":       isSend,
+				"server":       server,
+				"account":      account,
+				"file":         file,
+				"dueDate":      date,
+				"transferInfo": map[string]any{key: val},
+			},
+		}
+
+		result := &expectedResponse{
+			status:  http.StatusCreated,
+			headers: http.Header{"Location": []string{location}},
+		}
+
+		t.Run("Given a dummy gateway REST interface", func(t *testing.T) {
+			testServer(t, expected, result)
+
+			t.Run("When executing the command", func(t *testing.T) {
+				require.NoError(t, executeCommand(t, w, command,
+					"--server", server,
+					"--login", account,
+					"--way", direction(isSend),
+					"--rule", rule,
+					"--file", file,
+					"--due-date", date,
+					"--info", key+":"+val,
+				),
+					"Then it should not return an error",
+				)
+
+				assert.Equal(t,
+					fmt.Sprintf("The transfer of file %q was successfully preregistered under the ID: %s\n",
+						file, id),
+					w.String(),
+					"Then it should display a message saying the transfer was preregistered",
+				)
+			})
+		})
+	})
+}

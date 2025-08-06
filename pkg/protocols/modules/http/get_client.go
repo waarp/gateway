@@ -80,6 +80,10 @@ func (g *getClient) Request() *pipeline.Error {
 			return err
 		}
 
+		if err := setTransferInfo(g.pip, g.resp.Header); err != nil {
+			return err
+		}
+
 		return nil
 	default:
 		return getRemoteStatus(g.resp.Header, g.resp.Body, g.pip)

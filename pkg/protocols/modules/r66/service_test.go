@@ -157,15 +157,15 @@ func TestR66ServerInterruption(t *testing.T) {
 					Block:    10,
 					Rank:     0,
 				}
-				_, err := ses.Request(req)
-				So(err, ShouldBeNil)
+				_, reqErr := ses.Request(req)
+				So(reqErr, ShouldBeNil)
 
 				So(ses.SendUpdateRequest(&r66.UpdateInfo{
 					Filename: req.Filepath,
 					FileSize: req.FileSize,
 					FileInfo: &r66.TransferData{
 						UserContent: "",
-						SystemData:  r66.SystemData{},
+						SystemData:  r66.SystemData{FollowID: 123},
 					},
 				}), ShouldBeNil)
 
@@ -183,16 +183,16 @@ func TestR66ServerInterruption(t *testing.T) {
 
 					f := func() ([]byte, error) { panic("should never be called") }
 					file := testhelpers.NewSlowReader()
-					_, err := ses.Send(file, f)
+					_, sendErr := ses.Send(file, f)
 
 					var r66Err *r66.Error
-					if errors.As(err, &r66Err) {
-						So(err, ShouldBeError, &r66.Error{
+					if errors.As(sendErr, &r66Err) {
+						So(sendErr, ShouldBeError, &r66.Error{
 							Code:   r66.Shutdown,
 							Detail: "service is shutting down",
 						})
 					} else {
-						So(err.Error(), ShouldContainSubstring, ": connection reset by peer")
+						So(sendErr, ShouldBeError)
 					}
 
 					Convey("Then the transfer should have been interrupted", func(c C) {

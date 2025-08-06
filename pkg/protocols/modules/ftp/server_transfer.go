@@ -3,7 +3,6 @@ package ftp
 import (
 	"context"
 	"errors"
-	"fmt"
 	"net"
 	"os"
 	"strings"
@@ -113,25 +112,21 @@ func (s *serverFS) mkNewServerTransfer(path string, isSend bool, offset int64,
 
 func (s *serverFS) checkExistingTransfer(path string, rule *model.Rule, offset int64,
 ) (*model.Transfer, error) {
-	var trans model.Transfer
-
-	query := s.db.Get(&trans, "local_account_id = ? AND rule_id = ? AND status <> ?",
-		s.dbAcc.ID, rule.ID, types.StatusRunning)
-	if rule.IsSend {
-		query = query.And("src_filename = ? AND progress >= ?", path, offset)
-	} else {
-		query = query.And("dest_filename = ? AND progress >= ?", path, offset)
+	if trans, err := pipeline.GetOldTransferByFilename(s.db, path, offset,
+		s.dbAcc, rule); err == nil {
+		return trans, nil
+	} else if !database.IsNotFound(err) {
+		return nil, err
 	}
 
-	if err := query.Run(); err != nil {
-		if database.IsNotFound(err) {
-			return nil, ErrRESTOnNewTransfer
-		}
-
-		return nil, fmt.Errorf("failed to check for existing transfer: %w", err)
+	if trans, err := pipeline.GetAvailableTransferByFilename(s.db, path, "",
+		s.dbAcc, rule); err == nil {
+		return trans, nil
+	} else if !database.IsNotFound(err) {
+		return nil, err
 	}
 
-	return &trans, nil
+	return pipeline.MakeServerTransfer("", path, s.dbAcc, rule), nil
 }
 
 func (s *serverTransfer) init() error {
@@ -149,9 +144,9 @@ func (s *serverTransfer) init() error {
 func (s *serverTransfer) Name() string {
 	if s.pip.Stream.TransCtx.Rule.IsSend {
 		return s.pip.Stream.TransCtx.Transfer.SrcFilename
-	} else {
-		return s.pip.Stream.TransCtx.Transfer.DestFilename
 	}
+
+	return s.pip.Stream.TransCtx.Transfer.DestFilename
 }
 
 func (s *serverTransfer) Read(p []byte) (n int, err error) {
@@ -176,6 +171,7 @@ func (s *serverTransfer) Seek(offset int64, whence int) (int64, error) {
 }
 
 func (s *serverTransfer) WriteString(str string) (int, error) {
+	//nolint:gocritic //calling WriteString would lead to infinite recursion
 	return s.Write([]byte(str))
 }
 
@@ -204,6 +200,7 @@ func (s *serverTransfer) Close() error {
 			return err
 		}
 
+		//nolint:revive //can't just return the error because it's not of type error
 		if err := s.pip.EndTransfer(); err != nil {
 			return err
 		}

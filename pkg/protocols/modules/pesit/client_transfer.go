@@ -64,7 +64,7 @@ func (c *clientTransfer) configureClient(config *PartnerConfig) *pipeline.Error 
 		c.client.SetNSDUUsage(true)
 	}
 
-	if config.CompatibilityMode == CompatibilityModeAxway {
+	if config.CompatibilityMode == CompatibilityModeNonStandard {
 		c.client.SetCFTCompatibilityUsage(true)
 	}
 
@@ -201,6 +201,7 @@ func (c *clientTransfer) request(fileInfo fs.FileInfo, partConf *PartnerConfigTL
 	c.pTrans.RestartReceived = restartReceived(c.pip)
 	c.pTrans.CheckpointRequestReceived = checkpointRequestReceived(c.pip)
 	c.pTrans.SetMessageSize(partConf.MaxMessageSize)
+	c.pTrans.SetArticleSize(defaultArticleSize)
 
 	if err := setFreetext(c.pip, clientTransFreetextKey, c.pTrans); err != nil {
 		return err
@@ -283,9 +284,9 @@ func (c *clientTransfer) authenticateServer() *pipeline.Error {
 	return nil
 }
 
-func (c *clientTransfer) Send(file protocol.SendFile) *pipeline.Error {
-	return c.dataTransfer(func() *pipeline.Error {
-		if _, err := io.Copy(c.pTrans, file); err != nil {
+func (c *clientTransfer) Send(fullFile protocol.SendFile) *pipeline.Error {
+	copyArticle := func(article io.Writer, file io.Reader) *pipeline.Error {
+		if _, err := io.Copy(article, file); err != nil {
 			c.pip.Logger.Errorf("Failed to send data: %v", err)
 
 			pErr := toPesitErr(pesit.CodeOtherTransferError, err)
@@ -297,23 +298,67 @@ func (c *clientTransfer) Send(file protocol.SendFile) *pipeline.Error {
 		}
 
 		return nil
-	}, file)
+	}
+
+	return c.dataTransfer(func() *pipeline.Error {
+		articleLengths, isMArt := isMultiArticles(c.pip)
+		if !isMArt {
+			return copyArticle(c.pTrans, fullFile)
+		}
+
+		c.pTrans.SetArticleFormat(pesit.FormatVariable)
+		c.pTrans.SetManualArticleHandling(true)
+
+		for _, length := range articleLengths {
+			article, aErr := c.pTrans.StartNextSendArticle()
+			if aErr != nil {
+				c.pip.Logger.Errorf("Failed to start next article: %v", aErr)
+
+				return toPipErr(types.TeDataTransfer, "failed to start next article", aErr)
+			}
+
+			file := io.LimitReader(fullFile, length)
+
+			if err := copyArticle(article, file); err != nil {
+				return err
+			}
+		}
+
+		return nil
+	}, fullFile)
 }
 
 func (c *clientTransfer) Receive(file protocol.ReceiveFile) *pipeline.Error {
 	return c.dataTransfer(func() *pipeline.Error {
-		if _, err := io.Copy(file, c.pTrans); err != nil {
-			c.pip.Logger.Errorf("Failed to retrieve data: %v", err)
+		var articleLengths []int64
 
-			pErr := toPesitErr(pesit.CodeOtherTransferError, err)
-			if hErr := c.halt(pesit.StopError, pErr); hErr != nil {
-				c.pip.Logger.Warningf("Failed to send error to partner: %v", hErr)
+		for {
+			article, aErr := c.pTrans.GetNextRecvArticle()
+			if errors.Is(aErr, pesit.ErrNoMoreArticle) {
+				return nil
+			} else if aErr != nil {
+				c.pip.Logger.Errorf("Failed to retrieve next article: %v", aErr)
+
+				return toPipErr(types.TeDataTransfer, "failed to retrieve next article", aErr)
 			}
 
-			return toPipErr(types.TeDataTransfer, "failed to retrieve data", err)
-		}
+			start := c.pip.TransCtx.Transfer.Progress
 
-		return nil
+			if _, err := io.Copy(file, article); err != nil {
+				c.pip.Logger.Errorf("Failed to retrieve data: %v", err)
+
+				pErr := toPesitErr(pesit.CodeOtherTransferError, err)
+				if hErr := c.halt(pesit.StopError, pErr); hErr != nil {
+					c.pip.Logger.Warningf("Failed to send error to partner: %v", hErr)
+				}
+
+				return toPipErr(types.TeDataTransfer, "failed to retrieve data", err)
+			}
+
+			end := c.pip.TransCtx.Transfer.Progress
+			articleLengths = append(articleLengths, end-start)
+			c.pip.TransCtx.TransInfo[articlesLengthsKey] = articleLengths
+		}
 	}, file)
 }
 
@@ -421,12 +466,10 @@ func (c *clientTransfer) halt(cause pesit.StopCause, pErr pesit.Diagnostic) *pip
 
 	//nolint:nestif // no easy way to reduce complexity here
 	if c.pTrans != nil {
-		if c.pTrans.IsTransferring() {
-			if err := c.pTrans.Stop(cause, pErr); err != nil {
-				var diag pesit.Diagnostic
-				if !errors.As(err, &diag) || diag.GetCode() != pesit.CodeVolontaryTermination {
-					retErr = toPipErr(types.TeUnknownRemote, "failed to send error to partner", err)
-				}
+		if err := c.pTrans.Stop(cause, pErr); err != nil {
+			var diag pesit.Diagnostic
+			if !errors.As(err, &diag) || diag.GetCode() != pesit.CodeVolontaryTermination {
+				retErr = toPipErr(types.TeUnknownRemote, "failed to send error to partner", err)
 			}
 		}
 

@@ -12,7 +12,6 @@ import (
 	"code.waarp.fr/apps/gateway/gateway/pkg/model"
 	"code.waarp.fr/apps/gateway/gateway/pkg/model/types"
 	"code.waarp.fr/apps/gateway/gateway/pkg/pipeline"
-	"code.waarp.fr/apps/gateway/gateway/pkg/utils"
 )
 
 // UserContent defines the name of the transfer info value containing the R66
@@ -20,7 +19,7 @@ import (
 const UserContent = "__userContent__"
 
 // UpdateFileInfo updates the pipeline file info with the ones given.
-func UpdateFileInfo(info *r66.UpdateInfo, pip *pipeline.Pipeline) error {
+func UpdateFileInfo(info *r66.UpdateInfo, pip *pipeline.Pipeline) *pipeline.Error {
 	if pip.TransCtx.Transfer.Step >= types.StepData {
 		return nil // cannot update file info after data transfer started
 	}
@@ -39,22 +38,7 @@ func UpdateFileInfo(info *r66.UpdateInfo, pip *pipeline.Pipeline) error {
 		pip.TransCtx.Transfer.Filesize = info.FileSize
 	}
 
-	if err := pip.UpdateTrans(); err != nil {
-		return err
-	}
-
-	/*
-		if info.FileInfo != nil && info.FileInfo.SystemData.FollowID != 0 {
-			pip.TransCtx.FileInfo[FollowID] = info.FileInfo.SystemData.FollowID
-			if err := pip.TransCtx.Transfer.SetFileInfo(pip.DB, pip.TransCtx.FileInfo); err != nil {
-				pip.Logger.Errorf("Failed to update transfer info: %v", err)
-
-				return types.NewTransferError(types.TeInternal, "database error")
-			}
-		}
-	*/
-
-	return nil
+	return pip.UpdateTrans()
 }
 
 // UpdateTransferInfo updates the pipeline transfer info with the ones given.
@@ -63,14 +47,24 @@ func UpdateTransferInfo(userContent string, pip *pipeline.Pipeline) *pipeline.Er
 		return nil // cannot update transfer info after data transfer started
 	}
 
+	info := map[string]any{}
+	if !pip.IsServer() {
+		info = pip.TransCtx.TransInfo
+	}
+
 	if uContent := []byte(userContent); json.Valid(uContent) {
-		if err := json.Unmarshal(uContent, &pip.TransCtx.TransInfo); err != nil {
-			pip.Logger.Errorf("Failed to unmarshall transfer info: %v", err)
+		if err := json.Unmarshal(uContent, &info); err != nil {
+			pip.Logger.Errorf("Failed to unmarshall transfer info: %s", err)
 
 			return pipeline.NewErrorWith(types.TeInternal, "failed to parse transfer info", err)
 		}
 	} else {
 		pip.TransCtx.TransInfo[UserContent] = userContent
+	}
+
+	if pip.IsServer() {
+		maps.Copy(info, pip.TransCtx.TransInfo)
+		pip.TransCtx.TransInfo = info
 	}
 
 	if err := pip.TransCtx.Transfer.SetTransferInfo(pip.DB, pip.TransCtx.TransInfo); err != nil {
@@ -117,19 +111,24 @@ func MakeTransferInfo(pip *pipeline.Pipeline, info *r66.TransferData) error {
 func makeTransferInfo(logger *log.Logger, transCtx *model.TransferContext,
 	info *r66.TransferData,
 ) *pipeline.Error {
-	var fID int64
-
-	if follow, err := utils.GetAs[json.Number](transCtx.TransInfo, model.FollowID); err != nil {
-		logger.Errorf("Could not retrieve the R66 follow ID: %v", err)
-
-		return pipeline.NewError(types.TeInternal, "failed to retrieve follow ID")
-	} else if fID, err = follow.Int64(); err != nil {
-		logger.Errorf("Could not parse the R66 follow ID: %v", err)
-
-		return pipeline.NewError(types.TeInternal, "failed to parse follow ID")
+	follow, hasFollow := transCtx.TransInfo[model.FollowID]
+	if !hasFollow {
+		return nil
 	}
 
-	info.SystemData.FollowID = int(fID)
+	switch fID := follow.(type) {
+	case json.Number:
+		fID64, err := fID.Int64()
+		if err != nil {
+			logger.Errorf("Could not parse the R66 follow ID: %v", err)
+
+			return pipeline.NewError(types.TeInternal, "failed to parse follow ID")
+		}
+
+		info.SystemData.FollowID = int(fID64)
+	case int:
+		info.SystemData.FollowID = fID
+	}
 
 	userContent, err := MakeUserContent(logger, transCtx.TransInfo)
 	if err != nil {

@@ -8,7 +8,6 @@ import (
 	"net"
 	"strings"
 	"sync"
-	"time"
 
 	"code.waarp.fr/lib/log"
 	"github.com/pkg/sftp"
@@ -16,10 +15,8 @@ import (
 
 	"code.waarp.fr/apps/gateway/gateway/pkg/database"
 	"code.waarp.fr/apps/gateway/gateway/pkg/model"
-	"code.waarp.fr/apps/gateway/gateway/pkg/model/types"
 	"code.waarp.fr/apps/gateway/gateway/pkg/pipeline"
 	"code.waarp.fr/apps/gateway/gateway/pkg/protocols/modules/sftp/internal"
-	"code.waarp.fr/apps/gateway/gateway/pkg/utils"
 )
 
 type sshListener struct {
@@ -168,21 +165,10 @@ func (l *sshListener) makeFileReader(acc *model.LocalAccount) internal.ReaderAtF
 		filePath = strings.TrimPrefix(filePath, rule.Path)
 		filePath = strings.TrimPrefix(filePath, "/")
 
-		// Create Transfer
-		trans := &model.Transfer{
-			RuleID:         rule.ID,
-			LocalAccountID: utils.NewNullInt64(acc.ID),
-			SrcFilename:    filePath,
-			Filesize:       model.UnknownSize,
-			Start:          time.Now(),
-			Status:         types.StatusRunning,
-			Step:           types.StepNone,
-		}
-
 		l.Logger.Infof("Download of file %q requested by %q using rule %q",
 			filePath, acc.Login, rule.Name)
 
-		pip, err := newServerPipeline(l.DB, l.Logger, trans, l.tracer)
+		pip, err := newServerPipeline(l.DB, l.Logger, filePath, acc, rule, l.tracer)
 		if err != nil {
 			return nil, err
 		}
@@ -212,20 +198,10 @@ func (l *sshListener) makeFileWriter(acc *model.LocalAccount) internal.WriterAtF
 		filePath = strings.TrimPrefix(filePath, "/")
 
 		// Create Transfer
-		trans := &model.Transfer{
-			RuleID:         rule.ID,
-			LocalAccountID: utils.NewNullInt64(acc.ID),
-			DestFilename:   filePath,
-			Filesize:       model.UnknownSize,
-			Start:          time.Now(),
-			Status:         types.StatusRunning,
-			Step:           types.StepNone,
-		}
-
 		l.Logger.Infof("Upload of file %q requested by %q using rule %q",
 			filePath, acc.Login, rule.Name)
 
-		pip, err := newServerPipeline(l.DB, l.Logger, trans, l.tracer)
+		pip, err := newServerPipeline(l.DB, l.Logger, filePath, acc, rule, l.tracer)
 		if err != nil {
 			return nil, err
 		}

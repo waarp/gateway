@@ -7,6 +7,7 @@ import (
 	"code.waarp.fr/apps/gateway/gateway/pkg/model/authentication/auth"
 	"code.waarp.fr/apps/gateway/gateway/pkg/pipeline/pipelinetest"
 	"code.waarp.fr/apps/gateway/gateway/pkg/utils"
+	"code.waarp.fr/apps/gateway/gateway/pkg/utils/gwtesting"
 )
 
 const (
@@ -35,6 +36,39 @@ func init() {
 		Size:              true,
 		TransferInfo:      true,
 	}
+}
+
+func init() {
+	gwtesting.Protocols[R66] = gwtesting.ProtoFeatures{
+		MakeClient:        Module{}.NewClient,
+		MakeServer:        makeTestServer,
+		MakeServerConfig:  Module{}.MakeServerConfig,
+		MakeClientConfig:  Module{}.MakeClientConfig,
+		MakePartnerConfig: Module{}.MakePartnerConfig,
+		TransID:           true,
+		RuleName:          true,
+		Size:              true,
+	}
+
+	gwtesting.Protocols[R66TLS] = gwtesting.ProtoFeatures{
+		MakeClient:        ModuleTLS{}.NewClient,
+		MakeServer:        makeTestServer,
+		MakeServerConfig:  ModuleTLS{}.MakeServerConfig,
+		MakeClientConfig:  ModuleTLS{}.MakeClientConfig,
+		MakePartnerConfig: ModuleTLS{}.MakePartnerConfig,
+		TransID:           true,
+		RuleName:          true,
+		Size:              true,
+	}
+}
+
+func makeTestServer(db *database.DB, agent *model.LocalAgent) services.Server {
+	pswd := serverPassword(agent)
+	if err := db.Insert(pswd).Run(); err != nil {
+		panic(err)
+	}
+
+	return Module{}.NewServer(db, agent)
 }
 
 func serverPassword(server *model.LocalAgent) *model.Credential {

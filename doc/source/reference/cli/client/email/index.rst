@@ -26,9 +26,9 @@ La commande de gestion les identifiants SMTP est ``email credential``.
 .. toctree::
    :maxdepth: 1
 
-   credentials/create
+   credentials/add
    credentials/list
-   credentials/consult
+   credentials/get
    credentials/update
    credentials/delete
 
@@ -48,8 +48,8 @@ La commande de gestion des templates d'email est ``email template``.
 .. toctree::
    :maxdepth: 1
 
-   templates/create
+   templates/add
    templates/list
-   templates/consult
+   templates/get
    templates/update
    templates/delete

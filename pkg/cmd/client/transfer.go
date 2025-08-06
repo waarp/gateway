@@ -6,7 +6,7 @@ import (
 	"io"
 	"net/http"
 	"net/url"
-	"path/filepath"
+	"path"
 	"time"
 
 	"code.waarp.fr/apps/gateway/gateway/pkg/admin/rest"
@@ -122,7 +122,7 @@ func (t *TransferAdd) execute(w io.Writer) error {
 	}
 
 	fmt.Fprintf(w, "The transfer of file %q was successfully added under the ID: %s\n",
-		t.File, filepath.Base(loc.Path))
+		t.File, path.Base(loc.Path))
 
 	return nil
 }
@@ -309,7 +309,7 @@ func (t *TransferRetry) execute(w io.Writer) error {
 			return fmt.Errorf("cannot get the resource location: %w", err)
 		}
 
-		id := filepath.Base(loc.Path)
+		id := path.Base(loc.Path)
 		fmt.Fprintf(w, "The transfer will be retried under the ID: %q\n", id)
 
 		return nil
@@ -356,4 +356,43 @@ func (t *TransferCancelAll) execute(w io.Writer) error {
 		return fmt.Errorf("unexpected error (%s): %w", resp.Status,
 			getResponseErrorMessage(resp))
 	}
+}
+
+//nolint:lll //struct tags are long
+type TransferPreregister struct {
+	File         string             `required:"yes" short:"f" long:"file" description:"The file to transfer" json:"file,omitempty"`
+	Rule         string             `required:"yes" short:"r" long:"rule" description:"The rule to use for the transfer" json:"rule,omitempty"`
+	Way          string             `required:"yes" short:"w" long:"way" description:"The direction of the transfer" choice:"send" choice:"receive" json:"-"`
+	Server       string             `required:"yes" short:"s" long:"server" description:"The name of the local server" json:"server,omitempty"`
+	Account      string             `required:"yes" short:"l" long:"login" description:"The login of the account used to by partner" json:"account,omitempty"`
+	DueDate      string             `required:"yes" short:"d" long:"due-date" description:"The expiration date (in ISO 8601 format) of the transfer" json:"dueDate,omitempty"`
+	TransferInfo map[string]confVal `short:"i" long:"info" description:"Custom information about the transfer, in key:val format. Can be repeated." json:"transferInfo,omitempty"`
+
+	IsSend bool `json:"isSend"`
+}
+
+func (t *TransferPreregister) Execute([]string) error { return execute(t) }
+func (t *TransferPreregister) execute(w io.Writer) error {
+	t.IsSend = t.Way == directionSend
+	addr.Path = rest.TransfersPath
+
+	ctx, cancel := context.WithTimeout(context.Background(), httpTimeout)
+	defer cancel()
+
+	resp, addErr := sendRequest(ctx, t, http.MethodPut)
+	if addErr != nil {
+		return addErr
+	}
+
+	defer resp.Body.Close() //nolint:errcheck,gosec // error is irrelevant
+
+	loc, locErr := resp.Location()
+	if locErr != nil {
+		return fmt.Errorf("cannot get the resource location: %w", locErr)
+	}
+
+	fmt.Fprintf(w, "The transfer of file %q was successfully preregistered under the ID: %s\n",
+		t.File, path.Base(loc.Path))
+
+	return nil
 }

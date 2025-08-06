@@ -9,6 +9,7 @@ import (
 	"fmt"
 	"maps"
 	"math"
+	"reflect"
 	"sync"
 	"time"
 
@@ -22,6 +23,7 @@ import (
 	"code.waarp.fr/apps/gateway/gateway/pkg/snmp"
 	"code.waarp.fr/apps/gateway/gateway/pkg/tasks"
 	"code.waarp.fr/apps/gateway/gateway/pkg/tk/statemachine"
+	"code.waarp.fr/apps/gateway/gateway/pkg/utils"
 )
 
 const TransferUpdateInterval = time.Second
@@ -74,6 +76,10 @@ func newPipeline(db *database.DB, logger *log.Logger, transCtx *model.TransferCo
 
 	if transCtx.Rule.IsSend {
 		transCtx.Transfer.Filesize = getFilesize(transCtx.Transfer.LocalPath)
+	}
+
+	if transCtx.Transfer.Status == types.StatusAvailable {
+		transCtx.Transfer.Start = time.Now()
 	}
 
 	if transCtx.Transfer.Status != types.StatusRunning {
@@ -130,12 +136,20 @@ func (p *Pipeline) SetInterruptionHandlers(
 	}
 }
 
+func (p *Pipeline) forceUpdateTrans() *Error {
+	if dbErr := p.DB.Update(p.TransCtx.Transfer).Run(); dbErr != nil {
+		return NewErrorWith(types.TeInternal, "Failed to update transfer", dbErr)
+	}
+
+	return p.updateTransferInfo()
+}
+
 func (p *Pipeline) updateTransferInfo() *Error {
-	if maps.Equal(p.TransCtx.TransInfo, p.lastTransferInfo) {
+	if reflect.DeepEqual(p.TransCtx.TransInfo, p.lastTransferInfo) {
 		return nil
 	}
 
-	if err := p.TransCtx.Transfer.SetTransferInfo(p.DB, p.lastTransferInfo); err != nil {
+	if err := p.TransCtx.Transfer.SetTransferInfo(p.DB, p.TransCtx.TransInfo); err != nil {
 		return p.internalError(types.TeInternal, "failed to update the transfer info", err)
 	}
 
@@ -148,12 +162,10 @@ func (p *Pipeline) updateTransferInfo() *Error {
 func (p *Pipeline) UpdateTrans() *Error {
 	select {
 	case <-p.updTicker.C:
-		if dbErr := p.DB.Update(p.TransCtx.Transfer).Run(); dbErr != nil {
+		if err := p.forceUpdateTrans(); err != nil {
 			return p.internalErrorWithMsg(types.TeInternal, "Failed to update transfer",
-				"database error", dbErr)
+				"database error", err)
 		}
-
-		return p.updateTransferInfo()
 	default:
 	}
 
@@ -203,19 +215,6 @@ func (p *Pipeline) StartData() (*FileStream, *Error) {
 		return nil, p.stateErr("StartData", p.machine.Current())
 	}
 
-	transitionData := func() *Error {
-		newState := stateWriting
-		if p.TransCtx.Rule.IsSend {
-			newState = stateReading
-		}
-
-		if err := p.machine.Transition(newState); err != nil {
-			return p.stateErr("StartData", p.machine.Current())
-		}
-
-		return nil
-	}
-
 	isResume := false
 	if p.TransCtx.Transfer.Step >= types.StepData {
 		isResume = true
@@ -235,13 +234,18 @@ func (p *Pipeline) StartData() (*FileStream, *Error) {
 
 	if p.Trace.OnDataStart != nil {
 		if err := p.Trace.OnDataStart(); err != nil {
+			_ = p.Stream.file.Close() //nolint:errcheck //we don't care about the error here
+
 			return nil, p.internalErrorWithMsg(types.TeInternal,
 				"data start trace error", "failed to open file", err)
 		}
 	}
 
-	if err := transitionData(); err != nil {
-		return nil, err
+	exitState := utils.If(p.TransCtx.Rule.IsSend, stateReading, stateWriting)
+	if err := p.machine.Transition(exitState); err != nil {
+		_ = p.Stream.file.Close() //nolint:errcheck //we don't care about the error here
+
+		return nil, p.stateErr("StartData", p.machine.Current())
 	}
 
 	return p.Stream, nil
@@ -333,6 +337,14 @@ func (p *Pipeline) EndTransfer() *Error {
 		p.TransCtx.Transfer.Step = types.StepNone
 		p.TransCtx.Transfer.TaskNumber = 0
 
+		if err := p.updateTransferInfo(); err != nil {
+			p.Logger.Errorf("Failed to update transfer infos: %v", err)
+			p.errorTasks()
+			p.storedErr = sErr
+
+			return
+		}
+
 		if err := p.TransCtx.Transfer.MoveToHistory(p.DB, p.Logger, time.Now()); err != nil {
 			sErr = NewErrorWith(types.TeInternal, "Failed to move transfer to history", err)
 			p.Logger.Errorf("Failed to move transfer to history: %v", err)
@@ -361,7 +373,7 @@ func (p *Pipeline) errorTasks() {
 		p.TransCtx.Transfer.Step = oldStep
 		p.TransCtx.Transfer.TaskNumber = oldTask
 
-		if dbErr := p.UpdateTrans(); dbErr != nil {
+		if dbErr := p.forceUpdateTrans(); dbErr != nil {
 			p.Logger.Errorf("Failed to reset transfer step after error-tasks: %v", dbErr)
 		}
 	}()
@@ -369,7 +381,7 @@ func (p *Pipeline) errorTasks() {
 	p.TransCtx.Transfer.TaskNumber = 0
 	p.TransCtx.Transfer.Step = types.StepErrorTasks
 
-	if dbErr := p.UpdateTrans(); dbErr != nil {
+	if dbErr := p.forceUpdateTrans(); dbErr != nil {
 		p.Logger.Errorf("Failed to update transfer step for error-tasks: %v", dbErr)
 	}
 
@@ -515,7 +527,7 @@ func (p *Pipeline) doneErr(status types.TransferStatus) {
 		incrementRetryDelay(p.TransCtx.Transfer)
 	}
 
-	if err := p.DB.Update(p.TransCtx.Transfer).Run(); err != nil {
+	if err := p.forceUpdateTrans(); err != nil {
 		p.Logger.Errorf("Failed to update transfer status to %v: %v", status, err)
 	}
 
@@ -550,6 +562,9 @@ func (p *Pipeline) done(state statemachine.State) {
 		analytics.GlobalService.RunningTransfers.Add(-1)
 	}
 }
+
+func (p *Pipeline) IsServer() bool { return p.TransCtx.Transfer.IsServer() }
+func (p *Pipeline) IsSend() bool   { return p.TransCtx.Rule.IsSend }
 
 func incrementRetryDelay(trans *model.Transfer) {
 	newDelay := float32(trans.NextRetryDelay) * trans.RetryIncrementFactor

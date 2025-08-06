@@ -17,8 +17,9 @@ const (
 	ExecMove   = "EXECMOVE"
 	ExecOutput = "EXECOUTPUT"
 
-	Rename   = "RENAME"
-	Transfer = "TRANSFER"
+	Rename      = "RENAME"
+	Transfer    = "TRANSFER"
+	Preregister = "PREREGISTER"
 
 	Encrypt          = "ENCRYPT"
 	Decrypt          = "DECRYPT"
@@ -54,6 +55,7 @@ func init() {
 	// Transfer tasks
 	model.ValidTasks[Rename] = newRunner[*renameTask] // "RENAME" is in fact a "change target" task
 	model.ValidTasks[Transfer] = newRunner[*TransferTask]
+	model.ValidTasks[Preregister] = newRunner[*TransferPreregister]
 
 	// File encryption & signing
 	model.ValidTasks[Encrypt] = newRunner[*encrypt]

@@ -1,6 +1,7 @@
 package model
 
 import (
+	"database/sql"
 	"fmt"
 
 	"code.waarp.fr/apps/gateway/gateway/pkg/database"
@@ -16,11 +17,12 @@ type RemoteAccount struct {
 	Login string `xorm:"login"` // The account's login
 }
 
-func (*RemoteAccount) TableName() string   { return TableRemAccounts }
-func (*RemoteAccount) Appellation() string { return NameRemoteAccount }
-func (r *RemoteAccount) GetID() int64      { return r.ID }
-func (r *RemoteAccount) Host() string      { return "" }
-func (*RemoteAccount) IsServer() bool      { return false }
+func (*RemoteAccount) TableName() string          { return TableRemAccounts }
+func (*RemoteAccount) Appellation() string        { return NameRemoteAccount }
+func (r *RemoteAccount) GetID() int64             { return r.ID }
+func (r *RemoteAccount) GetNullID() sql.NullInt64 { return utils.NewNullInt64(r.ID) }
+func (r *RemoteAccount) Host() string             { return "" }
+func (*RemoteAccount) IsServer() bool             { return false }
 
 // BeforeWrite checks if the new `RemoteAccount` entry is valid and can be
 // inserted in the database.

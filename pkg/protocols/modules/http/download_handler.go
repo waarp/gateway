@@ -95,12 +95,17 @@ func (d *downloadHandler) handleLateError(err *pipeline.Error) bool {
 	return true
 }
 
-func (d *downloadHandler) makeHeaders() {
+func (d *downloadHandler) makeHeaders() *pipeline.Error {
 	d.resp.Header().Set(httpconst.TransferID, d.pip.TransCtx.Transfer.RemoteTransferID)
 	d.resp.Header().Set(httpconst.RuleName, d.pip.TransCtx.Rule.Name)
 	head := d.resp.Header()
 	makeContentRange(head, d.pip.TransCtx.Transfer)
-	// _ = makeFileInfo(head, d.pip)
+
+	if err := makeTransferInfo(head, d.pip); err != nil {
+		d.sendEarlyError(http.StatusInternalServerError, err)
+
+		return err
+	}
 
 	d.resp.Header().Add("Trailer", httpconst.TransferStatus)
 	d.resp.Header().Add("Trailer", httpconst.ErrorCode)
@@ -111,6 +116,8 @@ func (d *downloadHandler) makeHeaders() {
 	} else {
 		d.resp.WriteHeader(http.StatusOK)
 	}
+
+	return nil
 }
 
 func (d *downloadHandler) run() {
@@ -127,7 +134,9 @@ func (d *downloadHandler) run() {
 		return
 	}
 
-	d.makeHeaders()
+	if err := d.makeHeaders(); d.handleEarlyError(err) {
+		return
+	}
 
 	if _, err := io.Copy(d.resp, file); err != nil {
 		var tErr *pipeline.Error

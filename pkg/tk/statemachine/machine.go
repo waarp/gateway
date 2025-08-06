@@ -46,37 +46,11 @@ func (m *Machine) Transition(newState State) error {
 	return m.transition(newState)
 }
 
-// DeferTransition checks whether the state machine can transition to the given
-// state but defer executing the transition to the caller. If the transition is
-// possible, this function returns a function which can be used by the caller to
-// execute the transition. Once DeferTransition has returned with no error, no
-// other transition will be possible until the returned function is called.
-func (m *Machine) DeferTransition(newState State) (do func(), err error) {
-	m.mutex.Lock()
-
-	if err := m.isValidTransition(newState); err != nil {
-		m.mutex.Unlock()
-
-		return nil, err
-	}
-
-	once := sync.Once{}
-
-	return func() {
-		once.Do(func() {
-			defer m.mutex.Unlock()
-
-			m.doTransition(newState)
-		})
-	}, nil
-}
-
 func (m *Machine) isValidTransition(newState State) error {
 	validStates := m.states[m.current]
 
-	_, ok := validStates[newState]
-	if !ok {
-		if _, ok := m.states[newState]; !ok {
+	if _, isValid := validStates[newState]; !isValid {
+		if _, exists := m.states[newState]; !exists {
 			return &unknownStateError{newState}
 		}
 

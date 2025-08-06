@@ -79,7 +79,9 @@ func (t *testData) makeServerTracer(isSend bool) func() pipeline.Trace {
 			OnErrorTask: func(int) {
 				atomic.AddUint32(&t.servErrTasksNb, 1)
 			},
-			OnTransferEnd: func() { close(t.servDone) },
+			OnTransferEnd: func() {
+				close(t.servDone)
+			},
 		}
 
 		//nolint:nestif //no easy way to factorize
