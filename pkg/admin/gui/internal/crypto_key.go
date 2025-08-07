@@ -11,6 +11,6 @@ func ListCryptoKeys(db database.ReadAccess, orderByCol string, orderByAsc bool,
 ) ([]*model.CryptoKey, error) {
 	var keys model.CryptoKeys
 
-	return keys, db.Select(&keys).OrderBy(orderByCol, orderByAsc).
+	return keys, db.Select(&keys).Owner().OrderBy(orderByCol, orderByAsc).
 		Limit(limit, offset).In("type", utils.AsAny(keyTypes)...).Run()
 }
