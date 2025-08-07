@@ -1,0 +1,444 @@
+# This is the Waarp Gateway configuration example file. It contains a pre-made
+# configuration in YAML format, which can be imported into a Gateway instance to
+# test some of  the application's capabilities. This configuration provides the
+# necessary configuration elements to test some simple common use cases.
+# While the configuration can be used as-is, you can also modify it to better suit
+# your needs, if you wish to test a use case not covered by the pre-made configuration.
+#
+# However, it should be noted that this still remains an example file, and as such,
+# should NEVER be used in a production environment.
+
+
+# The list of the Gateway's local servers. In this example, the list contains 5 local
+# servers, one for each protocol implemented in Waarp Gateway. Each of these servers
+# has a single, password-authenticated account named "waarp" attached to it, which
+# uses the password "sesame" for authentification.
+locals:
+  # An R66-TLS local server, listening on port 10066.
+  - name: wg-r66-tls-server
+    protocol: r66-tls
+    address: ":10066"
+
+    # The list of accounts for the R66 server. These can be used to authenticate
+    # with the server. In this example, it contains a single account "waarp".
+    accounts:
+      - login: waarp
+        password: sesame
+
+    # The list of the R66 server's credentials. These will be used by the server
+    # to authenticate itself to partners connecting to it. In this example, it
+    # contains the server's password and TLS certificate.
+    credentials:
+      # The R66 server's password is "sesame".
+      - name: server-password
+        type: password
+        value: sesame
+      # The R66 server's TLS certificate and private key in PEM format. This
+      # is a self-signed certificate and should NOT be used in production.
+      - name: r66-cert
+        type: tls_certificate
+        value: {{.r66Certificate}}
+        value2: {{.r66PrivateKey}}
+
+  # An SFTP local server, listening on port 10022.
+  - name: wg-sftp-server
+    protocol: sftp
+    address: ":10022"
+
+    # The list of accounts for the SFTP server. These can be used to authenticate
+    # with the server. In this example, it contains a single account "waarp".
+    accounts:
+      - login: waarp
+        password: sesame
+
+    # The list of the SFTP server's credentials. These will be used by the server
+    # to authenticate itself to partners connecting to it. In this example, it
+    # contains the server's SSH hostkey.
+    credentials:
+      # The R66 server's SSH private key. Since this private key is publicly
+      # available as part of this example file, it should NOT be used in production.
+      - name: sftp-hostkey
+        type: ssh_private_key
+        value: |
+          -----BEGIN OPENSSH PRIVATE KEY-----
+          b3BlbnNzaC1rZXktdjEAAAAABG5vbmUAAAAEbm9uZQAAAAAAAAABAAAAlwAAAAdzc2gtcn
+          NhAAAAAwEAAQAAAIEAwg0KXLz4S0UF4QRgDp+WTWzCewS+sLUtZ0aLQSAN2HWdCssm/Lu0
+          k2gLxH3XJjYJd400tc/CMcWW+IUVrhMhfLNR1pjVixqGVPSxXjGpNgfwzxyZ5QC0o6aNbB
+          TZl1U8v/qi7+xFbEX7gNTMnAgQy79BzCoqH+CIXUHjHl5CEi8AAAIItGeBDLRngQwAAAAH
+          c3NoLXJzYQAAAIEAwg0KXLz4S0UF4QRgDp+WTWzCewS+sLUtZ0aLQSAN2HWdCssm/Lu0k2
+          gLxH3XJjYJd400tc/CMcWW+IUVrhMhfLNR1pjVixqGVPSxXjGpNgfwzxyZ5QC0o6aNbBTZ
+          l1U8v/qi7+xFbEX7gNTMnAgQy79BzCoqH+CIXUHjHl5CEi8AAAADAQABAAAAgHafwCjnAC
+          YLQMfIg+wMlLYp+U14nhWp++J5VmFudehQJbtWazPujznZTfBFOUPLnsftkz5djgodDuhH
+          evRaD4p6FvjZ8Rpr0zH5Ieg8hSRpjJZezGuOsAEswpLFau5bKkLj5LkQrFNv1TndcrUadi
+          Ht6lJPopALaJ5918BRSeqZAAAAQHT/b5HbiwGx/7uTisLQ19YK9GwqH9kW1a6kvzyG2Yct
+          EoGd6VmkZ5cxr0AIY2XyoxhfXFPyk0bqilC+K0e316AAAABBAN/OkGhlhlO1zvkiDIsdzh
+          39YrjB7SJD0H6qViru04IndUnwLet2d9B7/tAnoqMEkSWGLZVMvE/cl2i0sG7genMAAABB
+          AN32v0DkVrcZBl39vbbk2+syaNWxx5rjnVDSlVkpTf/5lAhtnNLwX6LoOMDTCsfY8nodJ2
+          wZCoCb3M+TY690blUAAAAMcGFvbG9AcXVhc2FyAQIDBAUGBw==
+          -----END OPENSSH PRIVATE KEY-----
+
+  # An HTTPS local server, listening on port 10080.
+  - name: wg-https-server
+    protocol: https
+    address: ":10080"
+
+    # The list of accounts for the HTTP server. These can be used to authenticate
+    # with the server. In this example, it contains a single account "waarp".
+    accounts:
+      - login: waarp
+        password: sesame
+
+    # The list of the HTTPS server's credentials. These will be used by the server
+    # to authenticate itself to partners connecting to it. In this example, it
+    # contains the server's TLS certificate.
+    credentials:
+      # The HTTP server's TLS certificate and private key in PEM format. This
+      # is a self-signed certificate and should NOT be used in production.
+      - name: https-cert
+        type: tls_certificate
+        value: {{.httpsCertificate}}
+        value2: {{.httpsPrivateKey}}
+
+  # An FTPS local server, listening on port 10021.
+  - name: wg-ftps-server
+    protocol: ftps
+    address: ":10021"
+
+    # The FTP server's configuration. In this example, the server uses optional,
+    # explicit TLS. This server allows both active and passive modes. When using
+    # passive mode, the server will pick a random free port for data connections.
+    # In this example, there is no bounds for the port number choice.
+    configuration:
+      tlsRequirement: Optional # Can be changed to "Mandatory" or "Implicit".
+      passiveModeMinPort: 0  # The lowest port number used for data connections.
+      passiveModeMaxPort: 0  # The highest port number used for data connections.
+
+    # The list of accounts for the FTP server. These can be used to authenticate
+    # with the server. In this example, it contains a single account "waarp".
+    accounts:
+      - login: waarp
+        password: sesame
+
+    # The list of the FTP server's credentials. These will be used by the server
+    # to authenticate itself to partners connecting to it. In this example, it
+    # contains the server's TLS certificate.
+    credentials:
+      # The FTP server's TLS certificate and private key in PEM format. This
+      # is a self-signed certificate and should NOT be used in production.
+      - name: ftps-cert
+        type: tls_certificate
+        value: {{.ftpsCertificate}}
+        value2: {{.ftpsPrivateKey}}
+
+  # An PESIT-TLS local server, listening on port 10010.
+  - name: wg-pesit-tls-server
+    protocol: pesit-tls
+    address: ":10010"
+
+    # The list of accounts for the PeSIT server. These can be used to authenticate
+    # with the server. In this example, it contains a single account "waarp".
+    accounts:
+      - login: waarp
+        password: sesame
+
+    # The list of the PeSIT server's credentials. These will be used by the server
+    # to authenticate itself to partners connecting to it. In this example, it
+    # contains the server's TLS certificate.
+    credentials:
+      # The PeSIT server's TLS certificate and private key in PEM format. This
+      # is a self-signed certificate and should NOT be used in production.
+      - name: pesit-cert
+        type: tls_certificate
+        value: {{.pesitCertificate}}
+        value2: {{.pesitPrivateKey}}
+
+# The list of the Gateway's local clients. These are used when the Gateway
+# connects to a partner.
+clients:
+  # An R66-TLS client.
+  - name: wg-r66-tls-client
+    protocol: r66-tls
+
+  # An SFTP client.
+  - name: wg-sftp-client
+    protocol: sftp
+
+  # An HTTPS client.
+  - name: wg-https-client
+    protocol: https
+
+  # An FTPS client.
+  - name: wg-ftps-client
+    protocol: ftps
+
+  # A PeSIT client.
+  - name: wg-pesit-client
+    protocol: pesit-tls
+
+# The list of the Gateway's remote partners. This is basically a list of all
+# addresses which the Gateway knows and is allowed to connect to. By default,
+# this list only contains a reference to the example Waarp Transfer instance.
+remotes:
+  # The example Waarp Transfer instance. This instance is described in the
+  # Waarp Transfer example configuration file.
+  - name: wt-r66-tls-server
+    protocol: r66-tls
+    address: "127.0.0.1:11066"
+    # The list of accounts for the Waarp Transfer partner. These are used by the
+    # Gateway to authenticate itself with the partner. In this example, it contains
+    # a single account "waarp".
+    accounts:
+      - login: waarp
+        password: sesame
+    # The list of the Waarp Transfer partner's credentials. These will be used by
+    # the partner to authenticate itself to the Gateway when the latter connects
+    # to the former. In this example, since we use self-signed certificates, it
+    # must contain the partner's TLS certificate to indicate that it is a trusted
+    # certificate.
+    credentials:
+      # The Waarp Transfer's TLS certificate in PEM format. This is a self-signed
+      # certificate and should NOT be used in production.
+      - name: wt-cert
+        type: trusted_tls_certificate
+        value: {{.wtCertificate}}
+
+
+# The list of usable transfer rules. When making a transfer, the requester must
+# specify a rule to apply to that transfer. The rule specifies where the file
+# goes, and what processing must be applied to it before or after the transfer.
+#
+# All default rules defined in this category will have 2 versions: sender's version
+# and the receiver's version of the rule (so that the rule can be used in both
+# cases). Consequentially, each rule's folder will have 2 subfolders named
+# "in/" and "out/", one for receiving files with that rule, and the other for
+# sending them.
+rules:
+  # A simple download rule. This rule can be used to simply transfer a file between
+  # the Gateway and a partner. No tasks are executed before or after the transfer.
+  - name: default
+    isSend: true
+    localDir: default/out
+  - name: default
+    isSend: false
+    localDir: default/in
+
+  # A basic archiving rule. Once the transfer is finished, the original file on
+  # the sender's side will be deleted, whereas the new file on the receiver's
+  # side will be moved to the "backup/" folder.
+  - name: backup-and-delete
+    isSend: true
+    localDir: backup-and-delete/out
+    post:
+      - type: DELETE
+  - name: backup-and-delete
+    isSend: false
+    localDir: backup-and-delete/in
+    post:
+      - type: MOVERENAME
+        args:
+          path: "backup/#TRUEFILENAME#.back"
+
+  # A simple ZIP transfer rule. This rule first zips the file on the sender's side,
+  # sends it, and then unzips it on the receiver's side.
+  - name: with-compression
+    isSend: true
+    localDir: with-compression/out
+    pre:
+      - type: ARCHIVE
+        args:
+          files: "#TRUEFULLPATH#"
+          outputPath: "#TRUEFULLPATH#.zip"
+  - name: with-compression
+    isSend: false
+    localDir: with-compression/in
+    post:
+      - type: EXTRACT
+        args:
+          outputDir: "with-compression/in"
+
+  # A basic secure transfer rule. The rule encrypts a file using PGP on the sender
+  # side before sending it, and then decrypts the file on the receiver side once
+  # received.
+  - name: with-encryption
+    isSend: true
+    localDir: with-encryption/out
+    pre:
+      - type: ENCRYPT
+        args:
+          keepOriginal: false
+          outputFile: "#TRUEFULLPATH#.pgp"
+          method: PGP
+          keyName: pgp-pubkey
+  - name: with-encryption
+    isSend: false
+    localDir: with-encryption/in
+    post:
+      - type: DECRYPT
+        args:
+          keepOriginal: false
+          outputFile: "#BASEFILENAME#"
+          method: PGP
+          keyName: pgp-privkey
+
+
+# A list of cryptographic keys which can be used in cryptographic tasks. In this
+# example, it only contains a PGP key - both the private and public parts - so
+# that it can be used both for encrypting and decrypting files.
+cryptoKeys:
+  # The public part of the PGP key.
+  - name: pgp-pubkey
+    type: PGP-PUBLIC
+    key: |
+      -----BEGIN PGP PUBLIC KEY BLOCK-----
+
+      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
+      =yUng
+      -----END PGP PUBLIC KEY BLOCK-----
+  
+
+  # The private part of the PGP key.
+  - name: pgp-privkey
+    type: PGP-PRIVATE
+    key: |
+      -----BEGIN PGP PRIVATE KEY BLOCK-----
+
+      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
+      t2kQEnyiQDOoD+o/jFrAm+nUnnioUHXGMw==
+      =fW5w
+      -----END PGP PRIVATE KEY BLOCK-----
