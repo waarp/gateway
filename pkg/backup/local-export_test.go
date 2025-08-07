@@ -91,10 +91,10 @@ func TestExportLocalAgents(t *testing.T) {
 						So(res[0].Credentials[0].Value, ShouldEqual, cert.Value)
 						So(res[0].Credentials[0].Value2, ShouldEqual, cert.Value2)
 
-						So(res[0].Certs, ShouldHaveLength, 1)
-						So(res[0].Certs[0].Name, ShouldEqual, cert.Name)
-						So(res[0].Certs[0].Certificate, ShouldEqual, cert.Value)
-						So(res[0].Certs[0].PrivateKey, ShouldEqual, cert.Value2)
+						So(res[0].Certificates, ShouldHaveLength, 1)
+						So(res[0].Certificates[0].Name, ShouldEqual, cert.Name)
+						So(res[0].Certificates[0].Certificate, ShouldEqual, cert.Value)
+						So(res[0].Certificates[0].PrivateKey, ShouldEqual, cert.Value2)
 
 						So(res[0].Accounts, ShouldHaveLength, 1)
 					})
@@ -111,7 +111,7 @@ func TestExportLocalAgents(t *testing.T) {
 
 						So(res[1].Credentials, ShouldHaveLength, 0)
 						So(res[1].Accounts, ShouldHaveLength, 2)
-						So(res[1].Certs, ShouldHaveLength, 0)
+						So(res[1].Certificates, ShouldHaveLength, 0)
 					})
 				})
 			})
@@ -183,10 +183,10 @@ func TestExportLocalAccounts(t *testing.T) {
 						So(res[1].Credentials[0].Value, ShouldEqual, cert.Value)
 						So(res[1].Credentials[0].Value2, ShouldEqual, cert.Value2)
 
-						So(res[1].Certs, ShouldHaveLength, 1)
-						So(res[1].Certs[0].Name, ShouldEqual, cert.Name)
-						So(res[1].Certs[0].Certificate, ShouldEqual, cert.Value)
-						So(res[1].Certs[0].PrivateKey, ShouldEqual, cert.Value2)
+						So(res[1].Certificates, ShouldHaveLength, 1)
+						So(res[1].Certificates[0].Name, ShouldEqual, cert.Name)
+						So(res[1].Certificates[0].Certificate, ShouldEqual, cert.Value)
+						So(res[1].Certificates[0].PrivateKey, ShouldEqual, cert.Value2)
 					})
 				})
 			})

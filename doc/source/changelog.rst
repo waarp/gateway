@@ -3,6 +3,17 @@
 Historique des versions
 =======================
 
+* :feature:`449` Les commandes d'import/export acceptent désormais les fichiers en
+  format YAML. Si le fichier à importer ou exporter possède l'extension *.yml*
+  ou *.yaml*, alors le format YAML sera utilisé au lieu du format JSON par défaut.
+  YAML a l'avantage d'être plus lisible pour les utilisateurs et permet également
+  d'ajouter des commentaires au fichier.
+* :feature:`-` Le comportement par défaut de la tâche ``DECRYPT`` a été légèrement
+  changé. En l'absence d'un ``outputFile`` explicite, si le nom du fichier chiffré
+  termine par l'extension ``.crypt``, alors le fichier destination aura le même nom
+  avec cette extension retirée. Si l'extension n'est pas présente, alors le fichier
+  destination sera suffixé de l'extension ``.plain`` comme c'était déjà le cas.
+  Le comportement lorsqu'un ``outputFile`` explicite est fourni reste inchangé.
 * :bug:`485` Correction d'une erreur de droits lors du déplacement de fichiers
   vers un dossier qui n'éxistait pas, générant des erreurs de permission.
 * :bug:`463` Les mots de passe vides sont désormais acceptés pour l'authentification.
@@ -154,7 +165,7 @@ Historique des versions
   Celle-ci n'avait pas été ajoutée en 0.12.0 comme elle aurait dû.
 
 * :release:`0.12.0 <2025-03-04>`
-* :feature:`-` Mise à jour des pré-requis système. Côté Windows, Waarp Gateway
+* :support:`-` Mise à jour des pré-requis système. Côté Windows, Waarp Gateway
   requiert désormais au minimum Windows 10 ou Windows Server 2016. Côté Linux,
   un kernel version 3.2 minimum est désormais requis. Toutes les versions
   antérieures de ces OS ne sont désormais plus supportées.

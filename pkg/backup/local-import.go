@@ -77,7 +77,7 @@ func importLocalAgents(logger *log.Logger, db database.Access, list []file.Local
 			return fmt.Errorf("failed to import server %q: %w", agent.Name, dbErr)
 		}
 
-		if err := importCerts(logger, db, src.Certs, &agent); err != nil {
+		if err := importCerts(logger, db, src.Certificates, &agent); err != nil {
 			return err
 		}
 
@@ -186,7 +186,7 @@ func importLocalAccounts(logger *log.Logger, db database.Access,
 			return err
 		}
 
-		if err := importCerts(logger, db, src.Certs, &account); err != nil {
+		if err := importCerts(logger, db, src.Certificates, &account); err != nil {
 			return err
 		}
 	}

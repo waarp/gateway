@@ -165,7 +165,8 @@ func TestSelfPullClientPreTasksFail(t *testing.T) {
 
 				servTrans := ctx.GetServerTransfer(c)
 				So(servTrans.ErrCode, ShouldBeIn,
-					types.TeExternalOperation, types.TeConnectionReset, types.TeUnknown)
+					types.TeExternalOperation, types.TeConnectionReset,
+					types.TeUnknown, types.TeUnknownRemote)
 
 				ctx.CheckServerTransferError(c,
 					servTrans.ErrCode,

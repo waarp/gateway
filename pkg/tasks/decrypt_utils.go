@@ -5,6 +5,8 @@ import (
 	"errors"
 	"fmt"
 	"io"
+	"path"
+	"strings"
 
 	"code.waarp.fr/lib/log"
 
@@ -18,10 +20,14 @@ func decryptFile(logger *log.Logger, transCtx *model.TransferContext,
 	decryptFunc func(src io.Reader, dst io.Writer) error,
 ) error {
 	cryptFilepath := transCtx.Transfer.LocalPath
-	plainFilepath := cryptFilepath + ".plain"
+	plainFilepath := outputFile
 
-	if outputFile != "" {
-		plainFilepath = outputFile
+	if plainFilepath == "" {
+		if ext := path.Ext(cryptFilepath); ext == ".crypt" {
+			plainFilepath = strings.TrimSuffix(cryptFilepath, ext)
+		} else {
+			plainFilepath = cryptFilepath + ".plain"
+		}
 	}
 
 	if err := doDecryptFile(logger, cryptFilepath, plainFilepath,

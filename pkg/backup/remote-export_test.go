@@ -72,9 +72,9 @@ func TestExportRemoteAgents(t *testing.T) {
 					So(res[0].Credentials[0].Type, ShouldEqual, cert.Type)
 					So(res[0].Credentials[0].Value, ShouldEqual, cert.Value)
 
-					So(res[0].Certs, ShouldHaveLength, 1)
-					So(res[0].Certs[0].Name, ShouldEqual, cert.Name)
-					So(res[0].Certs[0].Certificate, ShouldEqual, cert.Value)
+					So(res[0].Certificates, ShouldHaveLength, 1)
+					So(res[0].Certificates[0].Name, ShouldEqual, cert.Name)
+					So(res[0].Certificates[0].Certificate, ShouldEqual, cert.Value)
 
 					So(res[0].Accounts, ShouldHaveLength, 1)
 				})
@@ -86,7 +86,7 @@ func TestExportRemoteAgents(t *testing.T) {
 						agent2.ProtoConfig)
 
 					So(res[1].Credentials, ShouldHaveLength, 0)
-					So(res[1].Certs, ShouldHaveLength, 0)
+					So(res[1].Certificates, ShouldHaveLength, 0)
 					So(res[1].Accounts, ShouldHaveLength, 2)
 				})
 			})
@@ -142,7 +142,7 @@ func TestExportRemoteAccounts(t *testing.T) {
 				Convey("Then it should have exported the first account", func() {
 					So(res[0].Login, ShouldEqual, account1.Login)
 					So(res[0].Password, ShouldEqual, pwd1)
-					So(res[0].Certs, ShouldHaveLength, 0)
+					So(res[0].Certificates, ShouldHaveLength, 0)
 
 					So(res[0].Credentials, ShouldHaveLength, 1)
 					So(res[0].Credentials[0].Name, ShouldEqual, pswd.Name)
@@ -154,10 +154,10 @@ func TestExportRemoteAccounts(t *testing.T) {
 					So(res[1].Login, ShouldEqual, account2.Login)
 					So(res[1].Password, ShouldBeEmpty)
 
-					So(res[1].Certs, ShouldHaveLength, 1)
-					So(res[1].Certs[0].Name, ShouldEqual, cert.Name)
-					So(res[1].Certs[0].Certificate, ShouldEqual, cert.Value)
-					So(res[1].Certs[0].PrivateKey, ShouldEqual, cert.Value2)
+					So(res[1].Certificates, ShouldHaveLength, 1)
+					So(res[1].Certificates[0].Name, ShouldEqual, cert.Name)
+					So(res[1].Certificates[0].Certificate, ShouldEqual, cert.Value)
+					So(res[1].Certificates[0].PrivateKey, ShouldEqual, cert.Value2)
 
 					So(res[1].Credentials, ShouldHaveLength, 1)
 					So(res[1].Credentials[0].Name, ShouldEqual, cert.Name)

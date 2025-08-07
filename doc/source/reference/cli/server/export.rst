@@ -33,8 +33,9 @@ Cette commande accepte les options suivantes :
 
    :Défaut: sortie standard
 
-   Indique le chemin vers le fichier dans lequel écrire les données exportées au
-   format JSON.
+   Indique le chemin vers le fichier dans lequel écrire les données exportées.
+   Si le nom du fichier termine par *.yml* ou *.yaml*, les données seront exportées
+   en format YAML. Sinon, elles seront exportées en format JSON.
 
 .. option:: -t [rules|servers|partners|clients|users|clouds|snmp|authorities|keys|all], --target [rules|servers|partners|clients|users|clouds|snmp|authorities|keys|all]
 
