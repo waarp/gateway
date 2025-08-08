@@ -24,8 +24,6 @@ type Protocols struct {
 	PeSITTLS string
 }
 
-const PreConnectionAuth = "pesit_pre-connection_auth"
-
 func supportedProtocolInternal(protocol string) []string {
 	supportedProtocolsInternal := map[string][]string{
 		r66.R66:         {auth.Password},
