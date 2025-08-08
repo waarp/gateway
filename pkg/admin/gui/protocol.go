@@ -24,8 +24,6 @@ type Protocols struct {
 	PeSITTLS string
 }
 
-const PreConnectionAuth = "pesit_pre-connection_auth"
-
 func supportedProtocolInternal(protocol string) []string {
 	supportedProtocolsInternal := map[string][]string{
 		r66.R66:         {auth.Password},
@@ -47,8 +45,8 @@ func supportedProtocolExternal(protocol string) []string {
 		httpConst.HTTP:  {auth.Password},
 		httpConst.HTTPS: {auth.Password, auth.TLSCertificate},
 		sftp.SFTP:       {auth.Password, sftp.AuthSSHPrivateKey},
-		pesit.Pesit:     {auth.Password, PreConnectionAuth},
-		pesit.PesitTLS:  {auth.TLSCertificate, PreConnectionAuth},
+		pesit.Pesit:     {auth.Password, pesit.PreConnectionAuth},
+		pesit.PesitTLS:  {auth.TLSCertificate, pesit.PreConnectionAuth},
 	}
 
 	return supportedProtocolsExternal[protocol]

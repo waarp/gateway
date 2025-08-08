@@ -35,13 +35,13 @@ func listRemoteAccount(partnerName string, db *database.DB, r *http.Request) (
 	}
 
 	if limitRes := urlParams.Get("limit"); limitRes != "" {
-		if l, err := strconv.Atoi(limitRes); err == nil {
+		if l, err := strconv.ParseUint(limitRes, 10, 64); err == nil {
 			filter.Limit = l
 		}
 	}
 
 	if offsetRes := urlParams.Get("offset"); offsetRes != "" {
-		if o, err := strconv.Atoi(offsetRes); err == nil {
+		if o, err := strconv.ParseUint(offsetRes, 10, 64); err == nil {
 			filter.Offset = o
 		}
 	}
@@ -61,10 +61,10 @@ func listRemoteAccount(partnerName string, db *database.DB, r *http.Request) (
 		return []*model.RemoteAccount{searchRemoteAccount(search, remotesAccounts)}, filter, remoteAccountFound
 	}
 
-	paginationPage(&filter, len(remoteAccountFound), r)
+	paginationPage(&filter, uint64(len(remoteAccountFound)), r)
 
 	remotesAccountsList, err := internal.ListPartnerAccounts(db, partnerName, "login",
-		filter.OrderAsc, filter.Limit, filter.Offset*filter.Limit)
+		filter.OrderAsc, int(filter.Limit), int(filter.Offset*filter.Limit))
 	if err != nil {
 		return nil, FiltersPagination{}, remoteAccountFound
 	}
@@ -78,11 +78,11 @@ func autocompletionRemoteAccountFunc(db *database.DB) http.HandlerFunc {
 		prefix := urlParams.Get("q")
 		var err error
 		var partner *model.RemoteAgent
-		var id int
+		var id uint64
 
 		partnerID := urlParams.Get("partnerID")
 		if partnerID != "" {
-			id, err = strconv.Atoi(partnerID)
+			id, err = strconv.ParseUint(partnerID, 10, 64)
 			if err != nil {
 				http.Error(w, "failed to convert id to int", http.StatusInternalServerError)
 
@@ -135,7 +135,7 @@ func editRemoteAccount(db *database.DB, r *http.Request) error {
 	}
 	remoteAccountID := r.FormValue("editRemoteAccountID")
 
-	id, err := strconv.Atoi(remoteAccountID)
+	id, err := strconv.ParseUint(remoteAccountID, 10, 64)
 	if err != nil {
 		return fmt.Errorf("failed to convert id to int: %w", err)
 	}
@@ -188,7 +188,7 @@ func deleteRemoteAccount(db *database.DB, r *http.Request) error {
 	}
 	remoteAccountID := r.FormValue("deleteRemoteAccount")
 
-	id, err := strconv.Atoi(remoteAccountID)
+	id, err := strconv.ParseUint(remoteAccountID, 10, 64)
 	if err != nil {
 		return fmt.Errorf("internal error: %w", err)
 	}
@@ -237,7 +237,7 @@ func callMethodsRemoteAccount(logger *log.Logger, db *database.DB, w http.Respon
 	if r.Method == http.MethodPost && r.FormValue("editRemoteAccountID") != "" {
 		idEdit := r.FormValue("editRemoteAccountID")
 
-		id, err := strconv.Atoi(idEdit)
+		id, err := strconv.ParseUint(idEdit, 10, 64)
 		if err != nil {
 			logger.Errorf("failed to convert id to int: %v", err)
 
@@ -272,11 +272,11 @@ func remoteAccountPage(logger *log.Logger, db *database.DB) http.HandlerFunc {
 
 		myPermission := model.MaskToPerms(user.Permissions)
 		var partner *model.RemoteAgent
-		var id int
+		var id uint64
 
 		partnerID := r.URL.Query().Get("partnerID")
 		if partnerID != "" {
-			id, err = strconv.Atoi(partnerID)
+			id, err = strconv.ParseUint(partnerID, 10, 64)
 			if err != nil {
 				logger.Errorf("failed to convert id to int: %v", err)
 			}

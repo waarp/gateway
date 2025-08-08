@@ -7,6 +7,15 @@
   <script src="/webui/static/javaScript/refreshTableTransfer.js"></script>
   <script>window.modalOpen = "{{ .modalOpen }}";</script>
   <script src="/webui/static/javaScript/displayErr.js"></script>
+  <script src="/webui/static/javaScript/displaySuccess.js"></script>
+  <script src="/webui/static/javaScript/dynamicsSelect.js"></script>
+  <script>
+  window.listAccounts = {{ marshalJSON .listAccounts }};
+</script>
+<script>
+  window.listAgents = {{ marshalJSON .listAgents }};
+</script>
+
 {{ end }}
 
 {{ define "transfer_monitoring_tbody" }}
@@ -15,15 +24,15 @@
         <td>
           {{ if .IsServer }}
             {{ if .IsSend }}
-              <i class="bi bi-box-arrow-in-up me-1" data-bs-toggle="tooltip" data-bs-title="{{ index $.tab "serverSend" }}"></i>
+              <i class="bi bi-cloud-upload me-1" data-bs-toggle="tooltip" data-bs-title="{{ index $.tab "serverSend" }}"></i>
             {{ else }}
-              <i class="bi bi-box-arrow-in-down me-1" data-bs-toggle="tooltip" data-bs-title="{{ index $.tab "serverReceive" }}"></i>
+              <i class="bi bi-cloud-download me-1" data-bs-toggle="tooltip" data-bs-title="{{ index $.tab "serverReceive" }}"></i>
             {{ end }}
           {{ else }}
             {{ if .IsSend }}
-              <i class="bi bi-cloud-upload me-1" data-bs-toggle="tooltip" data-bs-title="{{ index $.tab "clientSend" }}"></i>
+              <i class="bi bi-box-arrow-up me-1" data-bs-toggle="tooltip" data-bs-title="{{ index $.tab "clientSend" }}"></i>
             {{ else }}
-              <i class="bi bi-cloud-download me-1" data-bs-toggle="tooltip" data-bs-title="{{ index $.tab "clientReceive" }}"></i>
+              <i class="bi bi-box-arrow-in-down me-1" data-bs-toggle="tooltip" data-bs-title="{{ index $.tab "clientReceive" }}"></i>
             {{ end }}
           {{ end }}
         </td>
@@ -200,7 +209,7 @@
             </form>
             <button class="btn btn-outline-info btn-sm me-1" data-bs-toggle="tooltip" data-bs-placement="top" data-bs-title="{{ index $.tab "reschedule" }} {{if or (eq .Status "PAUSED") (eq .Status "ERROR") (eq .Status "INTERRUPTED") (eq .Status "PLANNED")}} {{else}}disabled{{end}}"
                     onclick="bootstrap.Modal.getOrCreateInstance(document.getElementById('rescheduleTransferModal_{{ .ID }}')).show();">
-                <i class="bi bi-x-circle"></i>
+                <i class="bi bi-arrow-repeat"></i>
             </button>
             <div class="modal fade" id="rescheduleTransferModal_{{ .ID }}" tabindex="-1" aria-labelledby="rescheduleTransferModalLabel_{{ .ID }}" aria-hidden="true">
             <div class="modal-dialog modal-lg">
@@ -237,6 +246,18 @@
             <button type="button" class="btn-close error-close-btn" data-bs-dismiss="alert" aria-label="Close"></button>
         </div>
     {{ end }}
+    {{ if .successAddTransfer }}
+        <div id="successPopup" class="alert alert-success alert-dismissible fade show" role="alert">
+            {{ index .tab "addingTransfer" }}{{ .successAddTransfer }}
+            <button type="button" class="btn-close success-close-btn" data-bs-dismiss="alert" aria-label="Close"></button>
+        </div>
+    {{ end }}
+    {{ if .successReprogramTransfer }}
+        <div id="successPopup" class="alert alert-success alert-dismissible fade show" role="alert">
+            {{ index .tab "reprogTransfer" }}{{ .successReprogramTransfer }}
+            <button type="button" class="btn-close success-close-btn" data-bs-dismiss="alert" aria-label="Close"></button>
+        </div>
+    {{ end }}
   <div class="d-flex align-items-center justify-content-between">
     <h2 class="mb-0">{{ index .tab "title" }}</h2>
     <button class="btn btn-outline-secondary ms-3 back-btn" type="button" onclick="window.location='home'">
@@ -268,24 +289,52 @@
                     <input type="text" name="transferOut" class="form-control" required>
                   </div>
                   <hr style="border-top: 1px solid #ababab;">
-                  <div class="form-input mb-2">
-                    <label class="col-form-label">{{ index .tab "rule" }} :</label>
-                    <input type="text" name="transferRule" class="form-control" required>
+                  <div class="form-input mb-2 d-flex align-items-center">
+                    <label class="col-form-label me-3">{{ index .tab "rule" }} :</label>
+                    <div class="form-check form-check-inline me-3">
+                        <input class="form-check-input" type="radio" name="ruleDirection" id="ruleSendRadio" value="send" checked>
+                        <label class="form-check-label" for="ruleSendRadio">{{ index .tab "send" }}</label>
+                    </div>
+                    <div class="form-check form-check-inline me-3">
+                        <input class="form-check-input" type="radio" name="ruleDirection" id="ruleReceiveRadio" value="receive">
+                        <label class="form-check-label" for="ruleReceiveRadio">{{ index .tab "receive" }}</label>
+                    </div>
+                    <select name="transferRule" id="transferRuleSelect" class="form-select ms-2" required style="max-width: 40%;">
+                      <option value="" disabled selected>{{ index .tab "selectRule" }}</option>
+                      {{ range .ruleSend }}
+                        <option data-dir="send" value="{{ . }}">{{ . }}</option>
+                      {{ end }}
+                      {{ range .ruleReceive }}
+                        <option data-dir="receive" value="{{ . }}">{{ . }}</option>
+                      {{ end }}
+                    </select>
                   </div>
                   <hr style="border-top: 1px solid #ababab;">
-                  <div class="form-input mb-2">
-                    <label class="col-form-label">{{ index .tab "localAccountName" }} :</label>
-                    <input type="text" name="transferPartner" class="form-control" required>
+                  <div class="form-input mt-2">
+                    <label class="col-form-label">{{ index .tab "remotePartnerName" }} :</label>
+                    <select name="transferPartner" id="transferPartner" class="form-select" required>
+                      <option value="" disabled selected>{{ index .tab "selectPartner" }}</option>
+                      {{ range .listPartners }}
+                          <option value="{{ . }}">{{ . }}</option>
+                      {{ end }}
+                    </select>
                   </div>
                   <hr style="border-top: 1px solid #ababab;">
                   <div class="form-input mb-2">
                     <label class="col-form-label">{{ index .tab "remoteAccountName" }} :</label>
-                    <input type="text" name="transferLogin" class="form-control" required>
+                      <select name="transferLogin" id="transferLogin" class="form-select" required>
+                        <option value="" disabled selected>{{ index .tab "selectRemoteAccount" }}</option>
+                      </select>
                   </div>
                   <hr style="border-top: 1px solid #ababab;">
                   <div class="form-input mb-2">
                     <label class="col-form-label">{{ index .tab "localClientName" }} :</label>
-                    <input type="text" name="transferClient" class="form-control" required>
+                    <select name="transferClient" id="transferClient" class="form-select" required>
+                      <option value="" disabled selected>{{ index .tab "selectLocalClient" }}</option>
+                      {{ range .listClients }}
+                          <option value="{{ . }}">{{ . }}</option>
+                      {{ end }}
+                    </select>
                   </div>
                   <hr style="border-top: 1px solid #ababab;">
                   <div class="form-input mb-2">
@@ -348,6 +397,93 @@
           <button id="applyBtn" type="submit" class="btn btn-success">{{ index .tab "apply" }}</button>
           <button id="resetBtn" type="button" class="btn btn-secondary ms-2" onclick="window.location='transfer_monitoring'">{{ index .tab "reset" }}</button>
         </div>
+        <hr style="border-top: 1px solid #ababab;">
+        <div>
+          <label class="ms-3 me-3">{{ index .tab "status" }} :</label>
+          <div class="form-check form-check-inline">
+            <input class="form-check-input" type="checkbox" name="status" value="DONE">
+            <label class="form-check-label" for="statusDone">{{ index .tab "done" }}</label>
+          </div>
+          <div class="form-check form-check-inline">
+            <input class="form-check-input" type="checkbox" name="status" value="ERROR">
+            <label class="form-check-label" for="statusError">{{ index .tab "error" }}</label>
+          </div>
+          <div class="form-check form-check-inline">
+            <input class="form-check-input" type="checkbox" name="status" value="PLANNED" id="statusPlanned">
+            <label class="form-check-label" for="statusPlanned">{{ index .tab "planned" }}</label>
+          </div>
+          <div class="form-check form-check-inline">
+            <input class="form-check-input" type="checkbox" name="status" value="RUNNING" id="statusRunning">
+            <label class="form-check-label" for="statusRunning">{{ index .tab "running" }}</label>
+          </div>
+          <div class="form-check form-check-inline">
+            <input class="form-check-input" type="checkbox" name="status" value="PAUSED" id="statusPaused">
+            <label class="form-check-label" for="statusPaused">{{ index .tab "paused" }}</label>
+          </div>
+          <div class="form-check form-check-inline">
+            <input class="form-check-input" type="checkbox" name="status" value="INTERRUPTED" id="statusInterrupted">
+            <label class="form-check-label" for="statusInterrupted">{{ index .tab "interrupted" }}</label>
+          </div>
+          <div class="form-check form-check-inline">
+            <input class="form-check-input" type="checkbox" name="status" value="CANCELLED" id="statusCancelled">
+            <label class="form-check-label" for="statusCancelled">{{ index .tab "cancelled" }}</label>
+          </div>
+        </div>
+        <hr style="border-top: 1px solid #ababab;">
+        <div>
+          <label class="ms-3 me-3">{{ index .tab "sendingRule" }} :
+            <select name="filterRuleSend" class="form-select d-inline w-auto">
+              <option value="" disabled selected>{{ index .tab "sendingRuleSelect" }}</option>
+              {{ range .ruleSend }}
+                <option value="{{ . }}">{{ . }}</option>
+              {{ end }}
+            </select>
+          </label>
+          <label class="ms-3 me-3">{{ index .tab "receptionRule" }} :
+            <select name="filterRuleReceive" class="form-select d-inline w-auto">
+              <option value="" disabled selected>{{ index .tab "receptionRuleSelect" }}</option>
+              {{ range .ruleReceive }}
+              <option value="{{ . }}">{{ . }}</option>
+              {{ end }}
+            </select>
+          </label>
+        </div>
+        <hr style="border-top: 1px solid #ababab;">
+        <div>
+          <label class="ms-3 me-3">{{ index .tab "timeSlot" }} :
+            <input type="datetime-local" name="dateStart" class="form-control d-inline w-auto">
+          </label>
+          <label class="ms-3">
+            <input type="datetime-local" name="dateEnd" class="form-control d-inline w-auto">
+          </label>
+        </div>
+        <hr style="border-top: 1px solid #ababab;">
+        <div>
+          <label class="ms-3 me-3">{{ index .tab "fileFilter" }} :
+            <input type="text" name="filterFilePattern" class="form-control d-inline w-auto" placeholder="{{ index .tab "file" }}">
+          </label>
+        </div>
+        <hr style="border-top: 1px solid #ababab;">
+        <div>
+        <label class="ms-3 me-3">{{ index .tab "agentFilter" }} :
+          <select id="filterAgent" name="filterAgent" class="form-select d-inline w-auto">
+            <option value="" disabled selected>{{ index .tab "agent" }}</option>
+            <optgroup label="Partners">
+              {{ range .listPartners }}
+                <option value="partner:{{ . }}">{{ . }}</option>
+              {{ end }}
+            </optgroup>
+            <optgroup label="Servers">
+              {{ range .listServers }}
+                <option value="server:{{ . }}">{{ . }}</option>
+              {{ end }}
+            </optgroup>
+          </select>
+            <select id="filterAccount" name="filterAccount" class="form-select d-inline w-auto">
+            <option value="" disabled selected>{{ index .tab "account" }}</option>
+          </select>
+        </label>
+      </div>
       </form>
     </div>
     <table class="table table-sm align-middle mb-4 rounded-3 mt-3">
@@ -360,10 +496,10 @@
                 data-bs-placement="right"
                 data-bs-title='
                   <div>
-                    <div><i class="bi bi-cloud-upload me-2"></i><b>{{ index .tab "clientSend" }}</b> : {{ index .tab "tooltipClientSend" }}</div>
-                    <div><i class="bi bi-cloud-download me-2"></i><b>{{ index .tab "clientReceive" }}</b> : {{ index .tab "tooltipClientReceive" }}</div>
-                    <div><i class="bi bi-box-arrow-in-up me-2"></i><b>{{ index .tab "serverSend" }}</b> : {{ index .tab "tooltipServerSend" }}</div>
-                    <div><i class="bi bi-box-arrow-in-down me-2"></i><b>{{ index .tab "serverReceive" }}</b> : {{ index .tab "tooltipServerReceive" }}</div>
+                    <div><i class="bi bi-box-arrow-up me-2"></i><b>{{ index .tab "clientSend" }}</b> : {{ index .tab "tooltipClientSend" }}</div>
+                    <div><i class="bi bi-box-arrow-in-down me-2"></i><b>{{ index .tab "clientReceive" }}</b> : {{ index .tab "tooltipClientReceive" }}</div>
+                    <div><i class="bi bi-cloud-upload me-2"></i><b>{{ index .tab "serverSend" }}</b> : {{ index .tab "tooltipServerSend" }}</div>
+                    <div><i class="bi bi-cloud-download me-2"></i><b>{{ index .tab "serverReceive" }}</b> : {{ index .tab "tooltipServerReceive" }}</div>
                   </div>
                 '
                 style="cursor: help;"></i>

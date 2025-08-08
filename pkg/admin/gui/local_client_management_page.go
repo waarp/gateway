@@ -38,7 +38,7 @@ func addLocalClient(db *database.DB, r *http.Request) error {
 	}
 
 	if newLocalClientPort := r.FormValue("addLocalClientPort"); newLocalClientPort != "" {
-		port, err := strconv.Atoi(newLocalClientPort)
+		port, err := strconv.ParseUint(newLocalClientPort, 10, 64)
 		if err != nil {
 			return fmt.Errorf("failed to get port: %w", err)
 		}
@@ -70,7 +70,7 @@ func editLocalClient(db *database.DB, r *http.Request) error {
 	}
 	localClientID := r.FormValue("editLocalClientID")
 
-	id, err := strconv.Atoi(localClientID)
+	id, err := strconv.ParseUint(localClientID, 10, 64)
 	if err != nil {
 		return fmt.Errorf("failed to convert id to int: %w", err)
 	}
@@ -93,9 +93,9 @@ func editLocalClient(db *database.DB, r *http.Request) error {
 	}
 
 	if editLocalClientPort := r.FormValue("editLocalClientPort"); editLocalClientPort != "" {
-		var port int
+		var port uint64
 
-		port, err = strconv.Atoi(editLocalClientPort)
+		port, err = strconv.ParseUint(editLocalClientPort, 10, 64)
 		if err != nil {
 			return fmt.Errorf("failed to get port: %w", err)
 		}
@@ -127,7 +127,7 @@ func deleteLocalClient(db *database.DB, r *http.Request) error {
 	}
 	localClientID := r.FormValue("deleteLocalClient")
 
-	id, err := strconv.Atoi(localClientID)
+	id, err := strconv.ParseUint(localClientID, 10, 64)
 	if err != nil {
 		return fmt.Errorf("internal error: %w", err)
 	}
@@ -162,13 +162,13 @@ func listLocalClient(db *database.DB, r *http.Request) ([]*model.Client, Filters
 	}
 
 	if limitRes := urlParams.Get("limit"); limitRes != "" {
-		if l, err := strconv.Atoi(limitRes); err == nil {
+		if l, err := strconv.ParseUint(limitRes, 10, 64); err == nil {
 			filter.Limit = l
 		}
 	}
 
 	if offsetRes := urlParams.Get("offset"); offsetRes != "" {
-		if o, err := strconv.Atoi(offsetRes); err == nil {
+		if o, err := strconv.ParseUint(offsetRes, 10, 64); err == nil {
 			filter.Offset = o
 		}
 	}
@@ -187,19 +187,19 @@ func listLocalClient(db *database.DB, r *http.Request) ([]*model.Client, Filters
 
 		return []*model.Client{searchLocalClient(search, localClient)}, filter, localClientFound
 	}
-
 	filtersPtr, filterProtocol := protocolsFilter(r, &filter)
-	paginationPage(&filter, len(localClient), r)
+	paginationPage(&filter, uint64(len(localClient)), r)
 
 	if len(filterProtocol) > 0 {
 		var localClients []*model.Client
-		if localClients, err = internal.ListClients(db, "name", filter.OrderAsc, filter.Limit,
-			filter.Offset*filter.Limit, filterProtocol...); err == nil {
+		if localClients, err = internal.ListClients(db, "name", filter.OrderAsc, int(filter.Limit),
+			int(filter.Offset*filter.Limit), filterProtocol...); err == nil {
 			return localClients, *filtersPtr, localClientFound
 		}
 	}
 
-	localClients, err := internal.ListClients(db, "name", filter.OrderAsc, filter.Limit, filter.Offset*filter.Limit)
+	localClients, err := internal.ListClients(db, "name",
+		filter.OrderAsc, int(filter.Limit), int(filter.Offset*filter.Limit))
 	if err != nil {
 		return nil, FiltersPagination{}, localClientFound
 	}
@@ -274,7 +274,7 @@ func callMethodsLocalClientManagement(logger *log.Logger, db *database.DB, w htt
 	if r.Method == http.MethodPost && r.FormValue("editLocalClientID") != "" {
 		idEdit := r.FormValue("editLocalClientID")
 
-		id, err := strconv.Atoi(idEdit)
+		id, err := strconv.ParseUint(idEdit, 10, 64)
 		if err != nil {
 			logger.Errorf("failed to convert id to int: %v", err)
 

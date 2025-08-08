@@ -13,6 +13,7 @@ import (
 	"code.waarp.fr/apps/gateway/gateway/pkg/database"
 	"code.waarp.fr/apps/gateway/gateway/pkg/model"
 	"code.waarp.fr/apps/gateway/gateway/pkg/model/authentication/auth"
+	"code.waarp.fr/apps/gateway/gateway/pkg/protocols/modules/pesit"
 	"code.waarp.fr/apps/gateway/gateway/pkg/protocols/modules/sftp"
 )
 
@@ -38,13 +39,13 @@ func listCredentialServer(serverName string, db *database.DB, r *http.Request) (
 	}
 
 	if limitRes := urlParams.Get("limit"); limitRes != "" {
-		if l, err := strconv.Atoi(limitRes); err == nil {
+		if l, err := strconv.ParseUint(limitRes, 10, 64); err == nil {
 			filter.Limit = l
 		}
 	}
 
 	if offsetRes := urlParams.Get("offset"); offsetRes != "" {
-		if o, err := strconv.Atoi(offsetRes); err == nil {
+		if o, err := strconv.ParseUint(offsetRes, 10, 64); err == nil {
 			filter.Offset = o
 		}
 	}
@@ -64,10 +65,10 @@ func listCredentialServer(serverName string, db *database.DB, r *http.Request) (
 		return []*model.Credential{searchCredentialServer(search, serversCredentials)}, filter, credentialServerFound
 	}
 
-	paginationPage(&filter, len(serversCredentials), r)
+	paginationPage(&filter, uint64(len(serversCredentials)), r)
 
 	serversCredentialsList, err := internal.ListServerCredentials(db, serverName, "name",
-		filter.OrderAsc, filter.Limit, filter.Offset*filter.Limit)
+		filter.OrderAsc, int(filter.Limit), int(filter.Offset*filter.Limit))
 	if err != nil {
 		return nil, FiltersPagination{}, credentialServerFound
 	}
@@ -82,12 +83,12 @@ func autocompletionCredentialsServersFunc(db *database.DB) http.HandlerFunc {
 		prefix := urlParams.Get("q")
 		var err error
 		var server *model.LocalAgent
-		var idA int
+		var idA uint64
 
 		serverID := urlParams.Get("serverID")
 
 		if serverID != "" {
-			idA, err = strconv.Atoi(serverID)
+			idA, err = strconv.ParseUint(serverID, 10, 64)
 			if err != nil {
 				http.Error(w, "failed to convert server id to int", http.StatusInternalServerError)
 
@@ -157,7 +158,7 @@ func addCredentialServer(serverName string, db *database.DB, r *http.Request) er
 	case auth.TLSCertificate:
 		newCredentialServer.Value = r.FormValue("addCredentialValueFile1")
 		newCredentialServer.Value2 = r.FormValue("addCredentialValueFile2")
-	case PreConnectionAuth: // pesit.PreConnectionAuth
+	case pesit.PreConnectionAuth:
 		newCredentialServer.Value = r.FormValue("addCredentialValue1")
 		newCredentialServer.Value2 = r.FormValue("addCredentialValue2")
 	}
@@ -183,7 +184,7 @@ func editCredentialServer(serverName string, db *database.DB, r *http.Request) e
 	}
 	credentialServerID := r.FormValue("editCredentialServerID")
 
-	id, err := strconv.Atoi(credentialServerID)
+	id, err := strconv.ParseUint(credentialServerID, 10, 64)
 	if err != nil {
 		return fmt.Errorf("failed to convert id to int: %w", err)
 	}
@@ -209,7 +210,7 @@ func editCredentialServer(serverName string, db *database.DB, r *http.Request) e
 	case auth.TLSCertificate:
 		editCredentialServer.Value = r.FormValue("editCredentialValueFile1")
 		editCredentialServer.Value2 = r.FormValue("editCredentialValueFile2")
-	case PreConnectionAuth: // pesit.PreConnectionAuth
+	case pesit.PreConnectionAuth:
 		editCredentialServer.Value = r.FormValue("editCredentialValue1")
 		editCredentialServer.Value2 = r.FormValue("editCredentialValue2")
 	}
@@ -228,7 +229,7 @@ func deleteCredentialServer(serverName string, db *database.DB, r *http.Request)
 	}
 	credentialServerID := r.FormValue("deleteCredentialServer")
 
-	id, err := strconv.Atoi(credentialServerID)
+	id, err := strconv.ParseUint(credentialServerID, 10, 64)
 	if err != nil {
 		return fmt.Errorf("internal error: %w", err)
 	}
@@ -280,7 +281,7 @@ func callMethodsServerAuthentication(logger *log.Logger, db *database.DB, w http
 	if r.Method == http.MethodPost && r.FormValue("editCredentialServerID") != "" {
 		idEdit := r.FormValue("editCredentialServerID")
 
-		id, err := strconv.Atoi(idEdit)
+		id, err := strconv.ParseUint(idEdit, 10, 64)
 		if err != nil {
 			logger.Errorf("failed to convert id to int: %v", err)
 
@@ -316,11 +317,11 @@ func serverAuthenticationPage(logger *log.Logger, db *database.DB) http.HandlerF
 
 		myPermission := model.MaskToPerms(user.Permissions)
 		var server *model.LocalAgent
-		var id int
+		var id uint64
 
 		serverID := r.URL.Query().Get("serverID")
 		if serverID != "" {
-			id, err = strconv.Atoi(serverID)
+			id, err = strconv.ParseUint(serverID, 10, 64)
 			if err != nil {
 				logger.Errorf("failed to convert id to int: %v", err)
 			}
@@ -340,7 +341,7 @@ func serverAuthenticationPage(logger *log.Logger, db *database.DB) http.HandlerF
 
 		listSupportedProtocol := supportedProtocolExternal(server.Protocol)
 		listSupportedProtocol = slices.DeleteFunc(listSupportedProtocol, func(method_auth string) bool {
-			return method_auth == PreConnectionAuth
+			return method_auth == pesit.PreConnectionAuth
 		})
 		currentPage := filter.Offset + 1
 

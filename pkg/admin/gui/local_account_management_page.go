@@ -35,13 +35,13 @@ func listLocalAccount(serverName string, db *database.DB, r *http.Request) (
 	}
 
 	if limitRes := urlParams.Get("limit"); limitRes != "" {
-		if l, err := strconv.Atoi(limitRes); err == nil {
+		if l, err := strconv.ParseUint(limitRes, 10, 64); err == nil {
 			filter.Limit = l
 		}
 	}
 
 	if offsetRes := urlParams.Get("offset"); offsetRes != "" {
-		if o, err := strconv.Atoi(offsetRes); err == nil {
+		if o, err := strconv.ParseUint(offsetRes, 10, 64); err == nil {
 			filter.Offset = o
 		}
 	}
@@ -61,10 +61,10 @@ func listLocalAccount(serverName string, db *database.DB, r *http.Request) (
 		return []*model.LocalAccount{searchLocalAccount(search, localsAccounts)}, filter, localAccountFound
 	}
 
-	paginationPage(&filter, len(localAccountFound), r)
+	paginationPage(&filter, uint64(len(localAccountFound)), r)
 
 	localsAccountsList, err := internal.ListServerAccounts(db, serverName, "login",
-		filter.OrderAsc, filter.Limit, filter.Offset*filter.Limit)
+		filter.OrderAsc, int(filter.Limit), int(filter.Offset*filter.Limit))
 	if err != nil {
 		return nil, FiltersPagination{}, localAccountFound
 	}
@@ -78,11 +78,11 @@ func autocompletionLocalAccountFunc(db *database.DB) http.HandlerFunc {
 		prefix := urlParams.Get("q")
 		var err error
 		var server *model.LocalAgent
-		var id int
+		var id uint64
 
 		serverID := urlParams.Get("serverID")
 		if serverID != "" {
-			id, err = strconv.Atoi(serverID)
+			id, err = strconv.ParseUint(serverID, 10, 64)
 			if err != nil {
 				http.Error(w, "failed to convert id to int", http.StatusInternalServerError)
 
@@ -135,7 +135,7 @@ func editLocalAccount(db *database.DB, r *http.Request) error {
 	}
 	localAccountID := r.FormValue("editLocalAccountID")
 
-	id, err := strconv.Atoi(localAccountID)
+	id, err := strconv.ParseUint(localAccountID, 10, 64)
 	if err != nil {
 		return fmt.Errorf("failed to convert id to int: %w", err)
 	}
@@ -188,7 +188,7 @@ func deleteLocalAccount(db *database.DB, r *http.Request) error {
 	}
 	localAccountID := r.FormValue("deleteLocalAccount")
 
-	id, err := strconv.Atoi(localAccountID)
+	id, err := strconv.ParseUint(localAccountID, 10, 64)
 	if err != nil {
 		return fmt.Errorf("internal error: %w", err)
 	}
@@ -237,7 +237,7 @@ func callMethodsLocalAccount(logger *log.Logger, db *database.DB, w http.Respons
 	if r.Method == http.MethodPost && r.FormValue("editLocalAccountID") != "" {
 		idEdit := r.FormValue("editLocalAccountID")
 
-		id, err := strconv.Atoi(idEdit)
+		id, err := strconv.ParseUint(idEdit, 10, 64)
 		if err != nil {
 			logger.Errorf("failed to convert id to int: %v", err)
 
@@ -272,11 +272,11 @@ func localAccountPage(logger *log.Logger, db *database.DB) http.HandlerFunc {
 
 		myPermission := model.MaskToPerms(user.Permissions)
 		var server *model.LocalAgent
-		var id int
+		var id uint64
 
 		serverID := r.URL.Query().Get("serverID")
 		if serverID != "" {
-			id, err = strconv.Atoi(serverID)
+			id, err = strconv.ParseUint(serverID, 10, 64)
 			if err != nil {
 				logger.Errorf("failed to convert id to int: %v", err)
 			}

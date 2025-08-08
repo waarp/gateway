@@ -90,7 +90,7 @@ func editPreTask(ruleID int, preTasks []*model.Task, db *database.DB, r *http.Re
 
 	preTaskRank := r.FormValue("editPreTaskRank")
 
-	rank, err := strconv.Atoi(preTaskRank)
+	rank, err := strconv.ParseUint(preTaskRank, 10, 64)
 	if err != nil {
 		return fmt.Errorf("failed to get rank: %w", err)
 	}
@@ -162,13 +162,13 @@ func deletePreTask(ruleID int, preTasks []*model.Task, db *database.DB, r *http.
 
 	preTaskRank := r.FormValue("deletePreTask")
 
-	rank, err := strconv.Atoi(preTaskRank)
+	rank, err := strconv.ParseUint(preTaskRank, 10, 64)
 	if err != nil {
 		return fmt.Errorf("failed to get rank: %w", err)
 	}
 
 	preTasksUpdated := slices.DeleteFunc(preTasks, func(preT *model.Task) bool {
-		return int(preT.Rank) == rank
+		return int(preT.Rank) == int(rank)
 	})
 
 	rule, err := internal.GetRuleByID(db, int64(ruleID))
@@ -188,8 +188,8 @@ func newOrderPreTasks(db *database.DB, r *http.Request, tasks []*model.Task, rul
 	preTasks := make([]*model.Task, len(newOrderTasks))
 
 	for i, str := range newOrderTasks {
-		rank, err := strconv.Atoi(str)
-		if err != nil || rank < 0 || rank >= len(tasks) {
+		rank, err := strconv.ParseUint(str, 10, 64)
+		if err != nil || int(rank) < 0 || int(rank) >= len(tasks) {
 			continue
 		}
 		preTasks[i] = tasks[rank]
@@ -343,7 +343,7 @@ func editPostTask(ruleID int, postTasks []*model.Task, db *database.DB, r *http.
 
 	postTaskRank := r.FormValue("editPostTaskRank")
 
-	rank, err := strconv.Atoi(postTaskRank)
+	rank, err := strconv.ParseUint(postTaskRank, 10, 64)
 	if err != nil {
 		return fmt.Errorf("failed to get rank: %w", err)
 	}
@@ -415,13 +415,13 @@ func deletePostTask(ruleID int, postTasks []*model.Task, db *database.DB, r *htt
 
 	postTaskRank := r.FormValue("deletePostTask")
 
-	rank, err := strconv.Atoi(postTaskRank)
+	rank, err := strconv.ParseUint(postTaskRank, 10, 64)
 	if err != nil {
 		return fmt.Errorf("failed to get rank: %w", err)
 	}
 
 	postTasksUpdated := slices.DeleteFunc(postTasks, func(postT *model.Task) bool {
-		return int(postT.Rank) == rank
+		return int(postT.Rank) == int(rank)
 	})
 
 	rule, err := internal.GetRuleByID(db, int64(ruleID))
@@ -441,8 +441,8 @@ func newOrderPostTasks(db *database.DB, r *http.Request, tasks []*model.Task, ru
 	postTasks := make([]*model.Task, len(newOrderTasks))
 
 	for i, str := range newOrderTasks {
-		rank, err := strconv.Atoi(str)
-		if err != nil || rank < 0 || rank >= len(tasks) {
+		rank, err := strconv.ParseUint(str, 10, 64)
+		if err != nil || int(rank) < 0 || int(rank) >= len(tasks) {
 			continue
 		}
 		postTasks[i] = tasks[rank]
@@ -596,7 +596,7 @@ func editErrorTask(ruleID int, errorTasks []*model.Task, db *database.DB, r *htt
 
 	errorTaskRank := r.FormValue("editErrorTaskRank")
 
-	rank, err := strconv.Atoi(errorTaskRank)
+	rank, err := strconv.ParseUint(errorTaskRank, 10, 64)
 	if err != nil {
 		return fmt.Errorf("failed to get rank: %w", err)
 	}
@@ -668,13 +668,13 @@ func deleteErrorTask(ruleID int, errorTasks []*model.Task, db *database.DB, r *h
 
 	errorTaskRank := r.FormValue("deleteErrorTask")
 
-	rank, err := strconv.Atoi(errorTaskRank)
+	rank, err := strconv.ParseUint(errorTaskRank, 10, 64)
 	if err != nil {
 		return fmt.Errorf("failed to get rank: %w", err)
 	}
 
 	errorTasksUpdated := slices.DeleteFunc(errorTasks, func(errorT *model.Task) bool {
-		return int(errorT.Rank) == rank
+		return int(errorT.Rank) == int(rank)
 	})
 
 	rule, err := internal.GetRuleByID(db, int64(ruleID))
@@ -694,8 +694,8 @@ func newOrderErrorTasks(db *database.DB, r *http.Request, tasks []*model.Task, r
 	errorTasks := make([]*model.Task, len(newOrderTasks))
 
 	for i, str := range newOrderTasks {
-		rank, err := strconv.Atoi(str)
-		if err != nil || rank < 0 || rank >= len(tasks) {
+		rank, err := strconv.ParseUint(str, 10, 64)
+		if err != nil || int(rank) < 0 || int(rank) >= len(tasks) {
 			continue
 		}
 		errorTasks[i] = tasks[rank]
@@ -786,11 +786,11 @@ func tasksTransferRulesPage(logger *log.Logger, db *database.DB) http.HandlerFun
 
 		myPermission := model.MaskToPerms(user.Permissions)
 		var rule *model.Rule
-		var id int
+		var id uint64
 
 		ruleID := r.URL.Query().Get("ruleID")
 		if ruleID != "" {
-			id, err = strconv.Atoi(ruleID)
+			id, err = strconv.ParseUint(ruleID, 10, 64)
 			if err != nil {
 				logger.Errorf("failed to convert id to int: %v", err)
 			}
