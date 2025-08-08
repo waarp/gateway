@@ -55,13 +55,13 @@ func editPartner(db *database.DB, r *http.Request) error {
 
 	switch editPartner.Protocol {
 	case "r66", "r66-tls":
-		editPartner.ProtoConfig = protoConfigR66(r)
+		editPartner.ProtoConfig = protoConfigR66Partner(r)
 	case "sftp":
-		editPartner.ProtoConfig = protoConfigSFTP(r)
+		editPartner.ProtoConfig = protoConfigSFTPpartner(r)
 	case "ftp", "ftps":
-		editPartner.ProtoConfig = protoConfigFTP(r, editPartner.Protocol)
+		editPartner.ProtoConfig = protoConfigFTPpartner(r, editPartner.Protocol)
 	case "pesit", "pesit-tls":
-		editPartner.ProtoConfig = protoConfigPeSIT(r, editPartner.Protocol)
+		editPartner.ProtoConfig = protoConfigPeSITPartner(r, editPartner.Protocol)
 	}
 
 	if err = internal.UpdatePartner(db, editPartner); err != nil {
@@ -101,13 +101,13 @@ func addPartner(db *database.DB, r *http.Request) error {
 
 	switch newPartner.Protocol {
 	case "r66", "r66-tls":
-		newPartner.ProtoConfig = protoConfigR66(r)
+		newPartner.ProtoConfig = protoConfigR66Partner(r)
 	case "sftp":
-		newPartner.ProtoConfig = protoConfigSFTP(r)
+		newPartner.ProtoConfig = protoConfigSFTPpartner(r)
 	case "ftp", "ftps":
-		newPartner.ProtoConfig = protoConfigFTP(r, newPartner.Protocol)
+		newPartner.ProtoConfig = protoConfigFTPpartner(r, newPartner.Protocol)
 	case "pesit", "pesit-tls":
-		newPartner.ProtoConfig = protoConfigPeSIT(r, newPartner.Protocol)
+		newPartner.ProtoConfig = protoConfigPeSITPartner(r, newPartner.Protocol)
 	}
 
 	if err := internal.InsertPartner(db, &newPartner); err != nil {

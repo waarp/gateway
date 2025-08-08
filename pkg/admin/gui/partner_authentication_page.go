@@ -13,20 +13,6 @@ import (
 	"code.waarp.fr/apps/gateway/gateway/pkg/model"
 )
 
-func supportedProtocolInternal(protocol string) []string {
-	supportedProtocolsInternal := map[string][]string{
-		"r66":       {"password"},
-		"r66-tls":   {"password", "trusted_tls_certificate", "r66_legacy_certificate"},
-		"http":      {"password"},
-		"https":     {"password", "trusted_tls_certificate"},
-		"sftp":      {"password", "ssh_public_key"},
-		"pesit":     {"password"},
-		"pesit-tls": {"password", "trusted_tls_certificate"},
-	}
-
-	return supportedProtocolsInternal[protocol]
-}
-
 //nolint:dupl // it is not the same function, the calls are different
 func listCredentialPartner(partnerName string, db *database.DB, r *http.Request) (
 	[]*model.Credential, FiltersPagination, string,

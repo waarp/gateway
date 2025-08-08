@@ -1,7 +1,11 @@
 {
     "title": { "fr": "Gestion des partenaires", "en": "Partner management" },
-    "about": { "fr": "À propos", "en": "About" },
-    "logout": { "fr": "Déconnexion", "en": "Logout" },
+    "about": { "fr": "À propos", "en": "About", "es": "Acerca de" },
+    "logout": { "fr": "Déconnexion", "en": "Logout", "es": "Salir" },
+    "connection": { "fr": "Connexion", "en": "Connection" },
+    "treatment": { "fr": "Traitement", "en": "Treatment" },
+    "monitoring": { "fr": "Supervision", "en": "Monitoring" },
+    "administration": { "fr": "Administration", "en": "Administration" },
     "addPartnerTitle": { "fr": "Ajouter un nouveau partenaire", "en": "Add a new partner" },
     "filter": { "fr": "Filtre", "en": "Filter" },
     "sort": { "fr": "Trier par ordre alphabétique", "en": "Sort alphabetically" },

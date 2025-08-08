@@ -1,7 +1,11 @@
 {
     "title": { "fr": "Authentification du partenaire", "en": "Partner authentication" },
-    "about": { "fr": "À propos", "en": "About" },
-    "logout": { "fr": "Déconnexion", "en": "Logout" },
+    "about": { "fr": "À propos", "en": "About", "es": "Acerca de" },
+    "logout": { "fr": "Déconnexion", "en": "Logout", "es": "Salir" },
+    "connection": { "fr": "Connexion", "en": "Connection" },
+    "treatment": { "fr": "Traitement", "en": "Treatment" },
+    "monitoring": { "fr": "Supervision", "en": "Monitoring" },
+    "administration": { "fr": "Administration", "en": "Administration" },
     "confirmDelete": { "fr": "Confirmer la suppression ?", "en": "Confirm deletion?" },
     "credentialPartnerNotFound": { "fr": "Partenaire d'identification non trouvé", "en": "Credential partner not found" },
     "addCredentialPartnerTitle": { "fr": "Ajouter une nouvelle méthode d'authentification", "en": "Add a new authentication method" },

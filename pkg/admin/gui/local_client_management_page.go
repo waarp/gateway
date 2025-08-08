@@ -44,13 +44,13 @@ func addLocalClient(db *database.DB, r *http.Request) error {
 
 	switch newLocalClient.Protocol {
 	case "r66", "r66-tls":
-		newLocalClient.ProtoConfig = protoConfigR66(r)
+		newLocalClient.ProtoConfig = protoConfigR66Client(r)
 	case "sftp":
-		newLocalClient.ProtoConfig = protoConfigSFTP(r)
+		newLocalClient.ProtoConfig = protoConfigSFTPClient(r)
 	case "ftp", "ftps":
-		newLocalClient.ProtoConfig = protoConfigFTP(r, newLocalClient.Protocol)
+		newLocalClient.ProtoConfig = protoConfigFTPClient(r, newLocalClient.Protocol)
 	case "pesit", "pesit-tls":
-		newLocalClient.ProtoConfig = protoConfigPeSIT(r, newLocalClient.Protocol)
+		newLocalClient.ProtoConfig = protoConfigPeSITClient(r)
 	}
 
 	if err := internal.InsertClient(db, &newLocalClient); err != nil {
@@ -101,13 +101,13 @@ func editLocalClient(db *database.DB, r *http.Request) error {
 
 	switch editLocalClient.Protocol {
 	case "r66", "r66-tls":
-		editLocalClient.ProtoConfig = protoConfigR66(r)
+		editLocalClient.ProtoConfig = protoConfigR66Client(r)
 	case "sftp":
-		editLocalClient.ProtoConfig = protoConfigSFTP(r)
+		editLocalClient.ProtoConfig = protoConfigSFTPClient(r)
 	case "ftp", "ftps":
-		editLocalClient.ProtoConfig = protoConfigFTP(r, editLocalClient.Protocol)
+		editLocalClient.ProtoConfig = protoConfigFTPClient(r, editLocalClient.Protocol)
 	case "pesit", "pesit-tls":
-		editLocalClient.ProtoConfig = protoConfigPeSIT(r, editLocalClient.Protocol)
+		editLocalClient.ProtoConfig = protoConfigPeSITClient(r)
 	}
 
 	if err = internal.UpdateClient(db, editLocalClient); err != nil {

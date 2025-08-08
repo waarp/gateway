@@ -1,7 +1,11 @@
 {
     "title": { "fr": "Gestion des comptes locaux", "en": "Local account management" },
-    "about": { "fr": "À propos", "en": "About" },
-    "logout": { "fr": "Déconnexion", "en": "Logout" },
+    "about": { "fr": "À propos", "en": "About", "es": "Acerca de" },
+    "logout": { "fr": "Déconnexion", "en": "Logout", "es": "Salir" },
+    "connection": { "fr": "Connexion", "en": "Connection" },
+    "treatment": { "fr": "Traitement", "en": "Treatment" },
+    "monitoring": { "fr": "Supervision", "en": "Monitoring" },
+    "administration": { "fr": "Administration", "en": "Administration" },
     "search": { "fr": "Recherche", "en": "Search" },
     "addLocalAccount": { "fr": "Ajouter un compte Local", "en": "Add Local Account" },
     "close": { "fr": "Fermer", "en": "Close" },

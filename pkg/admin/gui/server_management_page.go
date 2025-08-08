@@ -59,13 +59,13 @@ func addServer(db *database.DB, r *http.Request) error {
 
 	switch newServer.Protocol {
 	case "r66", "r66-tls":
-		newServer.ProtoConfig = protoConfigR66(r)
+		newServer.ProtoConfig = protoConfigR66Server(r)
 	case "sftp":
-		newServer.ProtoConfig = protoConfigSFTP(r)
+		newServer.ProtoConfig = protoConfigSFTPServer(r)
 	case "ftp", "ftps":
-		newServer.ProtoConfig = protoConfigFTP(r, newServer.Protocol)
+		newServer.ProtoConfig = protoConfigFTPServer(r, newServer.Protocol)
 	case "pesit", "pesit-tls":
-		newServer.ProtoConfig = protoConfigPeSIT(r, newServer.Protocol)
+		newServer.ProtoConfig = protoConfigPeSITServer(r, newServer.Protocol)
 	}
 
 	if err := internal.InsertServer(db, &newServer); err != nil {
@@ -132,13 +132,13 @@ func editServer(db *database.DB, r *http.Request) error {
 
 	switch editServer.Protocol {
 	case "r66", "r66-tls":
-		editServer.ProtoConfig = protoConfigR66(r)
+		editServer.ProtoConfig = protoConfigR66Server(r)
 	case "sftp":
-		editServer.ProtoConfig = protoConfigSFTP(r)
+		editServer.ProtoConfig = protoConfigSFTPServer(r)
 	case "ftp", "ftps":
-		editServer.ProtoConfig = protoConfigFTP(r, editServer.Protocol)
+		editServer.ProtoConfig = protoConfigFTPServer(r, editServer.Protocol)
 	case "pesit", "pesit-tls":
-		editServer.ProtoConfig = protoConfigPeSIT(r, editServer.Protocol)
+		editServer.ProtoConfig = protoConfigPeSITServer(r, editServer.Protocol)
 	}
 
 	if err = internal.UpdateServer(db, editServer); err != nil {
@@ -353,6 +353,7 @@ func serverManagementPage(logger *log.Logger, db *database.DB) http.HandlerFunc 
 			"currentPage":            currentPage,
 			"TLSVersions":            TLSVersions,
 			"CompatibilityModePeSIT": CompatibilityModePeSIT,
+			"TLSRequirement":         TLSRequirement,
 			"KeyExchanges":           sftp.ValidKeyExchanges,
 			"Ciphers":                sftp.ValidCiphers,
 			"MACs":                   sftp.ValidMACs,

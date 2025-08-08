@@ -95,4 +95,9 @@ var (
 			ParseFS(webFS, index, header, multiLanguage, addProtoConfig, editProtoConfig, displayProtoConfig,
 				"front-end/html/local_client_management_page.html"),
 	)
+	ruleManagementTemplate = template.Must(
+		template.New("transfer_rules_management_page.html").
+			Funcs(funcs).
+			ParseFS(webFS, index, header, multiLanguage, "front-end/html/transfer_rules_management_page.html"),
+	)
 )
