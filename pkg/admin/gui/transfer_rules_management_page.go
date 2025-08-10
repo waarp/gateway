@@ -126,9 +126,9 @@ func deleteRule(db *database.DB, r *http.Request) error {
 	return nil
 }
 
-func listRule(db *database.DB, r *http.Request) ([]*model.Rule, FiltersPagination, string) {
+func listRule(db *database.DB, r *http.Request) ([]*model.Rule, Filters, string) {
 	ruleFound := ""
-	filter := FiltersPagination{
+	filter := Filters{
 		Offset:          0,
 		Limit:           DefaultLimitPagination,
 		OrderAsc:        true,
@@ -157,7 +157,7 @@ func listRule(db *database.DB, r *http.Request) ([]*model.Rule, FiltersPaginatio
 
 	rule, err := internal.ListRules(db, "name", true, 0, 0)
 	if err != nil {
-		return nil, FiltersPagination{}, ruleFound
+		return nil, Filters{}, ruleFound
 	}
 
 	if search := urlParams.Get("search"); search != "" && searchRule(search, rule) == nil {
@@ -174,7 +174,7 @@ func listRule(db *database.DB, r *http.Request) ([]*model.Rule, FiltersPaginatio
 
 	rules, err := internal.ListRules(db, "name", filter.OrderAsc, int(filter.Limit), int(filter.Offset*filter.Limit))
 	if err != nil {
-		return nil, FiltersPagination{}, ruleFound
+		return nil, Filters{}, ruleFound
 	}
 
 	return rules, filter, ruleFound

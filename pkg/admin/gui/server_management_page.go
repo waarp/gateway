@@ -175,9 +175,9 @@ func deleteServer(db *database.DB, r *http.Request) error {
 	return nil
 }
 
-func listServer(db *database.DB, r *http.Request) ([]*model.LocalAgent, FiltersPagination, string) {
+func listServer(db *database.DB, r *http.Request) ([]*model.LocalAgent, Filters, string) {
 	serverFound := ""
-	filter := FiltersPagination{
+	filter := Filters{
 		Offset:          0,
 		Limit:           DefaultLimitPagination,
 		OrderAsc:        true,
@@ -206,7 +206,7 @@ func listServer(db *database.DB, r *http.Request) ([]*model.LocalAgent, FiltersP
 
 	server, err := internal.ListServers(db, "name", true, 0, 0)
 	if err != nil {
-		return nil, FiltersPagination{}, serverFound
+		return nil, Filters{}, serverFound
 	}
 
 	if search := urlParams.Get("search"); search != "" && searchServer(search, server) == nil {
@@ -232,7 +232,7 @@ func listServer(db *database.DB, r *http.Request) ([]*model.LocalAgent, FiltersP
 
 	servers, err := internal.ListServers(db, "name", filter.OrderAsc, int(filter.Limit), int(filter.Offset*filter.Limit))
 	if err != nil {
-		return nil, FiltersPagination{}, serverFound
+		return nil, Filters{}, serverFound
 	}
 
 	return servers, filter, serverFound

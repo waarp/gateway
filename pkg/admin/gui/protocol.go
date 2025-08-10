@@ -59,7 +59,7 @@ var (
 	TLSRequirement         = []string{string(ftp.TLSOptional), string(ftp.TLSMandatory), string(ftp.TLSImplicit)}
 )
 
-func protocolsFilter(r *http.Request, filter *FiltersPagination) (*FiltersPagination, []string) {
+func protocolsFilter(r *http.Request, filter *Filters) (*Filters, []string) {
 	var filterProtocol []string
 	urlParams := r.URL.Query()
 

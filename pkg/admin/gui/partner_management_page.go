@@ -120,9 +120,9 @@ func addPartner(db *database.DB, r *http.Request) error {
 	return nil
 }
 
-func ListPartner(db *database.DB, r *http.Request) ([]*model.RemoteAgent, FiltersPagination, string) {
+func ListPartner(db *database.DB, r *http.Request) ([]*model.RemoteAgent, Filters, string) {
 	partnerFound := ""
-	filter := FiltersPagination{
+	filter := Filters{
 		Offset:          0,
 		Limit:           DefaultLimitPagination,
 		OrderAsc:        true,
@@ -151,7 +151,7 @@ func ListPartner(db *database.DB, r *http.Request) ([]*model.RemoteAgent, Filter
 
 	partner, err := internal.ListPartners(db, "name", filter.OrderAsc, 0, 0)
 	if err != nil {
-		return nil, FiltersPagination{}, partnerFound
+		return nil, Filters{}, partnerFound
 	}
 
 	if search := urlParams.Get("search"); search != "" && searchPartner(search, partner) == nil {
@@ -177,7 +177,7 @@ func ListPartner(db *database.DB, r *http.Request) ([]*model.RemoteAgent, Filter
 
 	partners, err := internal.ListPartners(db, "name", filter.OrderAsc, int(filter.Limit), int(filter.Offset*filter.Limit))
 	if err != nil {
-		return nil, FiltersPagination{}, partnerFound
+		return nil, Filters{}, partnerFound
 	}
 
 	return partners, *filtersPtr, partnerFound

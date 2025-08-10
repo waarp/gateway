@@ -9,11 +9,15 @@
   <script src="/webui/static/javaScript/displayErr.js"></script>
   <script src="/webui/static/javaScript/displaySuccess.js"></script>
   <script src="/webui/static/javaScript/dynamicsSelect.js"></script>
+  <script src="/webui/static/javaScript/filterRuleSelect.js"></script>
   <script>
   window.listAccounts = {{ marshalJSON .listAccounts }};
 </script>
 <script>
   window.listAgents = {{ marshalJSON .listAgents }};
+</script>
+<script>
+  window.filterAccountValue = "{{ .filter.FilterAccount }}";
 </script>
 
 {{ end }}
@@ -375,7 +379,7 @@
     </button>
     <div class="collapse" id="filterCollapse">
       <form method="get" class="p-3 border rounded bg-light">
-        <label class="ms-3">{{ index .tab "sort" }}:
+        <label class="ms-3">{{ index .tab "sort" }} :
           <select name="order" class="form-select d-inline w-auto">
             <option value="date-start" {{ if and (eq .filter.OrderBy "start") (not .filter.OrderAsc) }}selected{{ end }}>Date ↓</option>
             <option value="date-end" {{ if and (eq .filter.OrderBy "start") (.filter.OrderAsc) }}selected{{ end }}>Date ↑</option>
@@ -383,7 +387,7 @@
             <option value="id-end" {{ if and (eq .filter.OrderBy "id") (.filter.OrderAsc) }}selected{{ end }}>ID ↑</option>
           </select>
         </label>
-        <label class="ms-3">{{ index .tab "limit" }}:
+        <label class="ms-3">{{ index .tab "limit" }} :
           <select name="limit" class="form-select d-inline w-auto">
             <option value="0" disabled selected>--</option>
             <option value="5" {{ if eq .filter.Limit 5 }}selected{{ end }}>5</option>
@@ -401,66 +405,71 @@
         <div>
           <label class="ms-3 me-3">{{ index .tab "status" }} :</label>
           <div class="form-check form-check-inline">
-            <input class="form-check-input" type="checkbox" name="status" value="DONE">
+            <input class="form-check-input" type="checkbox" name="status" value="DONE" {{ if .filter.Status.DONE }}checked{{ end }}>
             <label class="form-check-label" for="statusDone">{{ index .tab "done" }}</label>
           </div>
           <div class="form-check form-check-inline">
-            <input class="form-check-input" type="checkbox" name="status" value="ERROR">
+            <input class="form-check-input" type="checkbox" name="status" value="ERROR" {{ if .filter.Status.ERROR }}checked{{ end }}>
             <label class="form-check-label" for="statusError">{{ index .tab "error" }}</label>
           </div>
           <div class="form-check form-check-inline">
-            <input class="form-check-input" type="checkbox" name="status" value="PLANNED" id="statusPlanned">
+            <input class="form-check-input" type="checkbox" name="status" value="PLANNED" {{ if .filter.Status.PLANNED }}checked{{ end }}>
             <label class="form-check-label" for="statusPlanned">{{ index .tab "planned" }}</label>
           </div>
           <div class="form-check form-check-inline">
-            <input class="form-check-input" type="checkbox" name="status" value="RUNNING" id="statusRunning">
+            <input class="form-check-input" type="checkbox" name="status" value="RUNNING" {{ if .filter.Status.RUNNING }}checked{{ end }}>
             <label class="form-check-label" for="statusRunning">{{ index .tab "running" }}</label>
           </div>
           <div class="form-check form-check-inline">
-            <input class="form-check-input" type="checkbox" name="status" value="PAUSED" id="statusPaused">
+            <input class="form-check-input" type="checkbox" name="status" value="PAUSED" {{ if .filter.Status.PAUSED }}checked{{ end }}>
             <label class="form-check-label" for="statusPaused">{{ index .tab "paused" }}</label>
           </div>
           <div class="form-check form-check-inline">
-            <input class="form-check-input" type="checkbox" name="status" value="INTERRUPTED" id="statusInterrupted">
+            <input class="form-check-input" type="checkbox" name="status" value="INTERRUPTED" {{ if .filter.Status.INTERRUPTED }}checked{{ end }}>
             <label class="form-check-label" for="statusInterrupted">{{ index .tab "interrupted" }}</label>
           </div>
           <div class="form-check form-check-inline">
-            <input class="form-check-input" type="checkbox" name="status" value="CANCELLED" id="statusCancelled">
+            <input class="form-check-input" type="checkbox" name="status" value="CANCELLED" {{ if .filter.Status.CANCELLED }}checked{{ end }}>
             <label class="form-check-label" for="statusCancelled">{{ index .tab "cancelled" }}</label>
           </div>
         </div>
         <hr style="border-top: 1px solid #ababab;">
         <div>
           <label class="ms-3 me-3">{{ index .tab "sendingRule" }} :
-            <select name="filterRuleSend" class="form-select d-inline w-auto">
-              <option value="" disabled selected>{{ index .tab "sendingRuleSelect" }}</option>
+            <select name="filterRuleSend" id="filterRuleSend" class="form-select d-inline w-auto" onchange="filterRuleSelect()">
+              <option value="" disabled selected style="display:none;">{{ index .tab "sendingRuleSelect" }}</option>
+              <option value="">None</option>
               {{ range .ruleSend }}
-                <option value="{{ . }}">{{ . }}</option>
+                <option value="{{ . }}" {{ if eq $.filter.FilterRuleSend . }}selected{{ end }}>{{ . }}</option>
               {{ end }}
             </select>
           </label>
           <label class="ms-3 me-3">{{ index .tab "receptionRule" }} :
-            <select name="filterRuleReceive" class="form-select d-inline w-auto">
-              <option value="" disabled selected>{{ index .tab "receptionRuleSelect" }}</option>
+            <select name="filterRuleReceive" id="filterRuleReceive" class="form-select d-inline w-auto" onchange="filterRuleSelect()">
+              <option value="" disabled selected style="display:none;">{{ index .tab "receptionRuleSelect" }}</option>
+              <option value="">None</option>
               {{ range .ruleReceive }}
-              <option value="{{ . }}">{{ . }}</option>
+                <option value="{{ . }}" {{ if eq $.filter.FilterRuleReceive . }}selected{{ end }}>{{ . }}</option>
               {{ end }}
             </select>
           </label>
         </div>
         <hr style="border-top: 1px solid #ababab;">
         <div>
-          <label class="ms-3 me-3">{{ index .tab "timeSlot" }} :
-            <input type="datetime-local" name="dateStart" class="form-control d-inline w-auto">
+        <label class="ms-3">{{ index .tab "timeSlot" }} :
+            <input type="datetime-local" name="dateStart" class="form-control d-inline w-auto" value="{{ .filter.DateStart }}">
           </label>
           <label class="ms-3">
-            <input type="datetime-local" name="dateEnd" class="form-control d-inline w-auto">
+            <input type="datetime-local" name="dateEnd" class="form-control d-inline w-auto" value="{{ .filter.DateEnd }}">
           </label>
         </div>
         <hr style="border-top: 1px solid #ababab;">
         <div>
           <label class="ms-3 me-3">{{ index .tab "fileFilter" }} :
-            <input type="text" name="filterFilePattern" class="form-control d-inline w-auto" placeholder="{{ index .tab "file" }}">
+            <div class="input-group d-inline-flex w-auto">
+              <input type="text" name="filterFilePattern" id="filterFilePatternInput" class="form-control d-inline w-auto" placeholder="{{ index .tab "file" }}" value="{{ .filter.FilterFilePattern }}">
+              <button type="button" class="btn btn-outline-secondary" onclick="document.getElementById('filterFilePatternInput').value='';"> <i class="fa fa-times"></i></button>
+            </div>
           </label>
         </div>
         <hr style="border-top: 1px solid #ababab;">
@@ -470,12 +479,12 @@
             <option value="" disabled selected>{{ index .tab "agent" }}</option>
             <optgroup label="Partners">
               {{ range .listPartners }}
-                <option value="partner:{{ . }}">{{ . }}</option>
+                <option value="partner:{{ . }}" {{ if eq $.filter.FilterAgent (print "partner:" .) }}selected{{ end }}>{{ . }}</option>
               {{ end }}
             </optgroup>
             <optgroup label="Servers">
               {{ range .listServers }}
-                <option value="server:{{ . }}">{{ . }}</option>
+                <option value="server:{{ . }}" {{ if eq $.filter.FilterAgent (print "server:" .) }}selected{{ end }}>{{ . }}</option>
               {{ end }}
             </optgroup>
           </select>

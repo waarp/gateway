@@ -17,10 +17,10 @@ import (
 
 //nolint:dupl // it is not the same function, the calls are different
 func listCredentialPartner(partnerName string, db *database.DB, r *http.Request) (
-	[]*model.Credential, FiltersPagination, string,
+	[]*model.Credential, Filters, string,
 ) {
 	credentialPartnerFound := ""
-	filter := FiltersPagination{
+	filter := Filters{
 		Offset:          0,
 		Limit:           DefaultLimitPagination,
 		OrderAsc:        true,
@@ -49,7 +49,7 @@ func listCredentialPartner(partnerName string, db *database.DB, r *http.Request)
 
 	partnersCredentials, err := internal.ListPartnerCredentials(db, partnerName, "name", true, 0, 0)
 	if err != nil {
-		return nil, FiltersPagination{}, credentialPartnerFound
+		return nil, Filters{}, credentialPartnerFound
 	}
 
 	if search := urlParams.Get("search"); search != "" && searchCredentialPartner(search, partnersCredentials) == nil {
@@ -67,7 +67,7 @@ func listCredentialPartner(partnerName string, db *database.DB, r *http.Request)
 	partnersCredentialsList, err := internal.ListPartnerCredentials(db, partnerName, "name",
 		filter.OrderAsc, int(filter.Limit), int(filter.Offset*filter.Limit))
 	if err != nil {
-		return nil, FiltersPagination{}, credentialPartnerFound
+		return nil, Filters{}, credentialPartnerFound
 	}
 
 	return partnersCredentialsList, filter, credentialPartnerFound

@@ -35,21 +35,33 @@ document.addEventListener('DOMContentLoaded', () => {
     const srcSelect = document.getElementById('filterAgent');
     const accSelect = document.getElementById('filterAccount');
 
-    srcSelect.addEventListener('change', () => {
-        const key = srcSelect.value;
+    function updateFilterAccounts() {
+        if (!accSelect || !srcSelect)
+            return;
+        accSelect.innerHTML = '';
+        const placeholder = document.createElement('option');
+        placeholder.value = '';
+        placeholder.disabled = true;
+        placeholder.textContent = accSelect.getAttribute('data-placeholder') || 'Account';
+        placeholder.selected = true;
+        accSelect.appendChild(placeholder);
 
-        if (key && window.listAgents[key]) {
+        const key = srcSelect.value;
+        if (key && window.listAgents?.[key]) {
             window.listAgents[key].forEach(acc => {
                 const opt = document.createElement('option');
                 opt.value = acc;
                 opt.textContent = acc;
+                if (window.filterAccountValue === acc) opt.selected = true;
                 accSelect.appendChild(opt);
             });
         }
-    });
+    }
     
-    partnerSelect.addEventListener('change', updateAccounts);
-    updateAccounts();
+    updateFilterAccounts();
     filterOptions();
+    updateAccounts();
     radios.forEach(radio => radio.addEventListener('change', filterOptions));
+    partnerSelect.addEventListener('change', updateAccounts);
+    srcSelect.addEventListener('change', updateFilterAccounts);
 });

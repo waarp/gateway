@@ -18,10 +18,10 @@ import (
 
 //nolint:dupl // no similar func (is for remote_account)
 func listCredentialRemoteAccount(partnerName, login string, db *database.DB, r *http.Request) (
-	[]*model.Credential, FiltersPagination, string,
+	[]*model.Credential, Filters, string,
 ) {
 	credentialAccountFound := ""
-	filter := FiltersPagination{
+	filter := Filters{
 		Offset:          0,
 		Limit:           DefaultLimitPagination,
 		OrderAsc:        true,
@@ -51,7 +51,7 @@ func listCredentialRemoteAccount(partnerName, login string, db *database.DB, r *
 
 	accountsCredentials, err := internal.ListPartnerAccountCredentials(db, partnerName, login, "name", true, 0, 0)
 	if err != nil {
-		return nil, FiltersPagination{}, credentialAccountFound
+		return nil, Filters{}, credentialAccountFound
 	}
 
 	if search := urlParams.Get("search"); search != "" && searchCredentialRemoteAccount(search,
@@ -70,7 +70,7 @@ func listCredentialRemoteAccount(partnerName, login string, db *database.DB, r *
 	accountsCredentialsList, err := internal.ListPartnerAccountCredentials(db, partnerName, login, "name",
 		filter.OrderAsc, int(filter.Limit), int(filter.Offset*filter.Limit))
 	if err != nil {
-		return nil, FiltersPagination{}, credentialAccountFound
+		return nil, Filters{}, credentialAccountFound
 	}
 
 	return accountsCredentialsList, filter, credentialAccountFound

@@ -144,9 +144,9 @@ func deleteLocalClient(db *database.DB, r *http.Request) error {
 	return nil
 }
 
-func listLocalClient(db *database.DB, r *http.Request) ([]*model.Client, FiltersPagination, string) {
+func listLocalClient(db *database.DB, r *http.Request) ([]*model.Client, Filters, string) {
 	localClientFound := ""
-	filter := FiltersPagination{
+	filter := Filters{
 		Offset:          0,
 		Limit:           DefaultLimitPagination,
 		OrderAsc:        true,
@@ -175,7 +175,7 @@ func listLocalClient(db *database.DB, r *http.Request) ([]*model.Client, Filters
 
 	localClient, err := internal.ListClients(db, "name", true, 0, 0)
 	if err != nil {
-		return nil, FiltersPagination{}, localClientFound
+		return nil, Filters{}, localClientFound
 	}
 
 	if search := urlParams.Get("search"); search != "" && searchLocalClient(search, localClient) == nil {
@@ -201,7 +201,7 @@ func listLocalClient(db *database.DB, r *http.Request) ([]*model.Client, Filters
 	localClients, err := internal.ListClients(db, "name",
 		filter.OrderAsc, int(filter.Limit), int(filter.Offset*filter.Limit))
 	if err != nil {
-		return nil, FiltersPagination{}, localClientFound
+		return nil, Filters{}, localClientFound
 	}
 
 	return localClients, filter, localClientFound

@@ -15,10 +15,10 @@ import (
 
 //nolint:dupl // it is not the same function, the calls are different
 func listLocalAccount(serverName string, db *database.DB, r *http.Request) (
-	[]*model.LocalAccount, FiltersPagination, string,
+	[]*model.LocalAccount, Filters, string,
 ) {
 	localAccountFound := ""
-	filter := FiltersPagination{
+	filter := Filters{
 		Offset:          0,
 		Limit:           DefaultLimitPagination,
 		OrderAsc:        true,
@@ -48,7 +48,7 @@ func listLocalAccount(serverName string, db *database.DB, r *http.Request) (
 
 	localsAccounts, err := internal.ListServerAccounts(db, serverName, "login", true, 0, 0)
 	if err != nil {
-		return nil, FiltersPagination{}, localAccountFound
+		return nil, Filters{}, localAccountFound
 	}
 
 	if search := urlParams.Get("search"); search != "" && searchLocalAccount(search, localsAccounts) == nil {
@@ -66,7 +66,7 @@ func listLocalAccount(serverName string, db *database.DB, r *http.Request) (
 	localsAccountsList, err := internal.ListServerAccounts(db, serverName, "login",
 		filter.OrderAsc, int(filter.Limit), int(filter.Offset*filter.Limit))
 	if err != nil {
-		return nil, FiltersPagination{}, localAccountFound
+		return nil, Filters{}, localAccountFound
 	}
 
 	return localsAccountsList, filter, localAccountFound

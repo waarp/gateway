@@ -15,10 +15,10 @@ import (
 
 //nolint:dupl // it is not the same function, the calls are different
 func listRemoteAccount(partnerName string, db *database.DB, r *http.Request) (
-	[]*model.RemoteAccount, FiltersPagination, string,
+	[]*model.RemoteAccount, Filters, string,
 ) {
 	remoteAccountFound := ""
-	filter := FiltersPagination{
+	filter := Filters{
 		Offset:          0,
 		Limit:           DefaultLimitPagination,
 		OrderAsc:        true,
@@ -48,7 +48,7 @@ func listRemoteAccount(partnerName string, db *database.DB, r *http.Request) (
 
 	remotesAccounts, err := internal.ListPartnerAccounts(db, partnerName, "login", true, 0, 0)
 	if err != nil {
-		return nil, FiltersPagination{}, remoteAccountFound
+		return nil, Filters{}, remoteAccountFound
 	}
 
 	if search := urlParams.Get("search"); search != "" && searchRemoteAccount(search, remotesAccounts) == nil {
@@ -66,7 +66,7 @@ func listRemoteAccount(partnerName string, db *database.DB, r *http.Request) (
 	remotesAccountsList, err := internal.ListPartnerAccounts(db, partnerName, "login",
 		filter.OrderAsc, int(filter.Limit), int(filter.Offset*filter.Limit))
 	if err != nil {
-		return nil, FiltersPagination{}, remoteAccountFound
+		return nil, Filters{}, remoteAccountFound
 	}
 
 	return remotesAccountsList, filter, remoteAccountFound

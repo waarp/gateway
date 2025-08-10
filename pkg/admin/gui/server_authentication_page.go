@@ -19,10 +19,10 @@ import (
 
 //nolint:dupl // no similar func (is for server)
 func listCredentialServer(serverName string, db *database.DB, r *http.Request) (
-	[]*model.Credential, FiltersPagination, string,
+	[]*model.Credential, Filters, string,
 ) {
 	credentialServerFound := ""
-	filter := FiltersPagination{
+	filter := Filters{
 		Offset:          0,
 		Limit:           DefaultLimitPagination,
 		OrderAsc:        true,
@@ -52,7 +52,7 @@ func listCredentialServer(serverName string, db *database.DB, r *http.Request) (
 
 	serversCredentials, err := internal.ListServerCredentials(db, serverName, "name", true, 0, 0)
 	if err != nil {
-		return nil, FiltersPagination{}, credentialServerFound
+		return nil, Filters{}, credentialServerFound
 	}
 
 	if search := urlParams.Get("search"); search != "" && searchCredentialServer(search, serversCredentials) == nil {
@@ -70,7 +70,7 @@ func listCredentialServer(serverName string, db *database.DB, r *http.Request) (
 	serversCredentialsList, err := internal.ListServerCredentials(db, serverName, "name",
 		filter.OrderAsc, int(filter.Limit), int(filter.Offset*filter.Limit))
 	if err != nil {
-		return nil, FiltersPagination{}, credentialServerFound
+		return nil, Filters{}, credentialServerFound
 	}
 
 	return serversCredentialsList, filter, credentialServerFound

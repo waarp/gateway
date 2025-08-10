@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"net/http"
 	"strconv"
+	"strings"
 	"time"
 
 	"code.waarp.fr/lib/log"
@@ -15,6 +16,16 @@ import (
 )
 
 const LimitTransfer = 10
+
+type Status struct {
+	DONE        bool
+	ERROR       bool
+	PLANNED     bool
+	RUNNING     bool
+	PAUSED      bool
+	INTERRUPTED bool
+	CANCELLED   bool //nolint:misspell // check the good spelling
+}
 
 func addTransfer(db *database.DB, r *http.Request) (int, error) {
 	if err := r.ParseForm(); err != nil {
@@ -168,24 +179,82 @@ func rescheduleTransfer(db *database.DB, r *http.Request) (int, error) {
 	return int(newTransfer.ID), nil
 }
 
+func filterTransfer(filter *Filters, statuses []string, r *http.Request) {
+	urlParams := r.URL.Query()
+
+	for _, s := range statuses {
+		switch s {
+		case "DONE":
+			filter.Status.DONE = true
+		case "ERROR":
+			filter.Status.ERROR = true
+		case "PLANNED":
+			filter.Status.PLANNED = true
+		case "RUNNING":
+			filter.Status.RUNNING = true
+		case "PAUSED":
+			filter.Status.PAUSED = true
+		case "INTERRUPTED":
+			filter.Status.INTERRUPTED = true
+		case "CANCELLED": //nolint:misspell // check the good spelling
+			filter.Status.CANCELLED = true //nolint:misspell // check the good spelling
+		}
+	}
+
+	filterRuleSend := urlParams.Get("filterRuleSend")
+	if filterRuleSend != "" {
+		filter.FilterRuleSend = filterRuleSend
+	}
+
+	filterRuleReceive := urlParams.Get("filterRuleReceive")
+	if filterRuleReceive != "" {
+		filter.FilterRuleReceive = filterRuleReceive
+	}
+
+	dateStartStr := urlParams.Get("dateStart")
+	if dateStartStr != "" {
+		filter.DateStart = dateStartStr
+	}
+
+	dateEndStr := urlParams.Get("dateEnd")
+	if dateEndStr != "" {
+		filter.DateEnd = dateEndStr
+	}
+
+	filterFilePattern := urlParams.Get("filterFilePattern")
+	if filterFilePattern != "" {
+		filter.FilterFilePattern = filterFilePattern
+	}
+
+	filterAgent := urlParams.Get("filterAgent")
+	if filterAgent != "" {
+		filter.FilterAgent = filterAgent
+	}
+
+	filterAccount := urlParams.Get("filterAccount")
+	if filterAccount != "" {
+		filter.FilterAccount = filterAccount
+	}
+}
+
 //nolint:gocyclo,cyclop,funlen // all filter
-func listTransfer(db *database.DB, r *http.Request) ([]*model.NormalizedTransferView, FiltersPagination) {
-	filter := FiltersPagination{
-		Offset:          0,
-		Limit:           LimitTransfer,
-		OrderAsc:        false,
-		OrderBy:         "",
-		DisableNext:     false,
-		DisablePrevious: false,
+func listTransfer(db *database.DB, r *http.Request) ([]*model.NormalizedTransferView, Filters) {
+	filter := Filters{
+		Offset:            0,
+		Limit:             LimitTransfer,
+		OrderAsc:          false,
+		OrderBy:           "",
+		DisableNext:       false,
+		DisablePrevious:   false,
+		Status:            Status{},
+		FilterRuleSend:    "",
+		FilterRuleReceive: "",
 	}
 
 	urlParams := r.URL.Query()
 	statuses := urlParams["status"]
-	filterRuleSend := urlParams.Get("filterRuleSend")
-	filterRuleReceive := urlParams.Get("filterRuleReceive")
-	dateStartStr := urlParams.Get("dateStart")
-	dateEndStr := urlParams.Get("dateEnd")
-	filterFilePattern := urlParams.Get("filterFilePattern")
+
+	filterTransfer(&filter, statuses, r)
 
 	order := urlParams.Get("order")
 	switch order {
@@ -217,15 +286,15 @@ func listTransfer(db *database.DB, r *http.Request) ([]*model.NormalizedTransfer
 	var dateStart, dateEnd time.Time
 	var err error
 
-	if dateStartStr != "" {
-		dateStart, err = time.ParseInLocation("2006-01-02T15:04", dateStartStr, time.Local)
+	if filter.DateStart != "" {
+		dateStart, err = time.ParseInLocation("2006-01-02T15:04", filter.DateStart, time.Local)
 		if err != nil {
 			dateStart = time.Time{}
 		}
 	}
 
-	if dateEndStr != "" {
-		dateEnd, err = time.ParseInLocation("2006-01-02T15:04", dateEndStr, time.Local)
+	if filter.DateEnd != "" {
+		dateEnd, err = time.ParseInLocation("2006-01-02T15:04", filter.DateEnd, time.Local)
 		if err != nil {
 			dateEnd = time.Time{}
 		}
@@ -242,12 +311,12 @@ func listTransfer(db *database.DB, r *http.Request) ([]*model.NormalizedTransfer
 		transfer.Status(statusEnums...)
 	}
 
-	if filterRuleSend != "" {
-		transfer.Rule(filterRuleSend, true)
+	if filter.FilterRuleSend != "" {
+		transfer.Rule(filter.FilterRuleSend, true)
 	}
 
-	if filterRuleReceive != "" {
-		transfer.Rule(filterRuleReceive, false)
+	if filter.FilterRuleReceive != "" {
+		transfer.Rule(filter.FilterRuleReceive, false)
 	}
 
 	switch {
@@ -259,8 +328,18 @@ func listTransfer(db *database.DB, r *http.Request) ([]*model.NormalizedTransfer
 		transfer.Date(time.Time{}, dateEnd)
 	}
 
-	if filterFilePattern != "" {
-		transfer.FilePattern(filterFilePattern)
+	if filter.FilterFilePattern != "" {
+		transfer.FilePattern(filter.FilterFilePattern)
+	}
+
+	if filter.FilterAgent != "" && filter.FilterAccount != "" {
+		transfer.Requester(filter.FilterAccount)
+	} else if filter.FilterAgent != "" && filter.FilterAccount == "" {
+		idx := strings.Index(filter.FilterAgent, ":")
+		if idx != -1 && idx+1 < len(filter.FilterAgent) {
+			agentName := filter.FilterAgent[idx+1:]
+			transfer.Requested(agentName)
+		}
 	}
 
 	totalTransfers, err := transfer.Count()

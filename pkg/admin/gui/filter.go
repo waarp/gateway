@@ -3,29 +3,29 @@ package gui
 import "net/http"
 
 type Filters struct {
-	Offset           uint64
-	Limit            uint64
-	OrderAsc         bool
-	Permissions      string
-	PermissionsType  string
-	PermissionsValue string
-	DisableNext      bool
-	DisablePrevious  bool
-}
-
-type FiltersPagination struct {
-	Offset          uint64
-	Limit           uint64
-	OrderAsc        bool
-	DisableNext     bool
-	DisablePrevious bool
-	Protocols       Protocols
-	OrderBy         string
+	Offset            uint64
+	Limit             uint64
+	OrderAsc          bool
+	Permissions       string
+	PermissionsType   string
+	PermissionsValue  string
+	DisableNext       bool
+	DisablePrevious   bool
+	OrderBy           string
+	Protocols         Protocols
+	Status            Status
+	FilterRuleSend    string
+	FilterRuleReceive string
+	DateStart         string
+	DateEnd           string
+	FilterFilePattern string
+	FilterAgent       string
+	FilterAccount     string
 }
 
 const DefaultLimitPagination = 30
 
-func paginationPage(filter *FiltersPagination, lenList uint64, r *http.Request) {
+func paginationPage(filter *Filters, lenList uint64, r *http.Request) {
 	if r.URL.Query().Get("previous") == "true" && filter.Offset > 0 {
 		filter.Offset--
 	}

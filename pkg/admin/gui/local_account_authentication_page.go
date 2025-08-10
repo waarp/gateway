@@ -17,10 +17,10 @@ import (
 
 //nolint:dupl // no similar func (is for account)
 func listCredentialLocalAccount(serverName, login string, db *database.DB, r *http.Request) (
-	[]*model.Credential, FiltersPagination, string,
+	[]*model.Credential, Filters, string,
 ) {
 	credentialAccountFound := ""
-	filter := FiltersPagination{
+	filter := Filters{
 		Offset:          0,
 		Limit:           DefaultLimitPagination,
 		OrderAsc:        true,
@@ -50,7 +50,7 @@ func listCredentialLocalAccount(serverName, login string, db *database.DB, r *ht
 
 	accountsCredentials, err := internal.ListServerAccountCredentials(db, serverName, login, "name", true, 0, 0)
 	if err != nil {
-		return nil, FiltersPagination{}, credentialAccountFound
+		return nil, Filters{}, credentialAccountFound
 	}
 
 	if search := urlParams.Get("search"); search != "" && searchCredentialLocalAccount(search,
@@ -69,7 +69,7 @@ func listCredentialLocalAccount(serverName, login string, db *database.DB, r *ht
 	accountsCredentialsList, err := internal.ListServerAccountCredentials(db, serverName, login, "name",
 		filter.OrderAsc, int(filter.Limit), int(filter.Offset*filter.Limit))
 	if err != nil {
-		return nil, FiltersPagination{}, credentialAccountFound
+		return nil, Filters{}, credentialAccountFound
 	}
 
 	return accountsCredentialsList, filter, credentialAccountFound
