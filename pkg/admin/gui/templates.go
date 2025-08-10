@@ -144,9 +144,4 @@ var (
 			ParseFS(webFS, index, header, multiLanguage, addTasks, editTasks, displayTasks,
 				"front-end/html/tasks_transfer_rules_page.html"),
 	)
-	serverManagementTemplate = template.Must(
-		template.New("server_management_page.html").
-			Funcs(funcs).
-			ParseFS(webFS, index, header, multiLanguage, displayFormAuth, "front-end/html/server_management_page.html"),
-	)
 )
