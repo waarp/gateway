@@ -2,6 +2,7 @@
 package gui
 
 import (
+	"encoding/json"
 	"html/template"
 	"reflect"
 	"strings"
@@ -17,6 +18,9 @@ const (
 	editProtoConfig    = "front-end/html/editProtoConfig.html"
 	displayProtoConfig = "front-end/html/displayProtoConfig.html"
 	displayFormAuth    = "front-end/html/typeCredential.html"
+	addTasks           = "front-end/html/addTasks.html"
+	editTasks          = "front-end/html/editTasks.html"
+	displayTasks       = "front-end/html/displayTasks.html"
 )
 
 var funcs = template.FuncMap{
@@ -30,7 +34,41 @@ var funcs = template.FuncMap{
 	"add": func(a, b int) int {
 		return a + b
 	},
-	"dict": sprig.TxtFuncMap()["dict"],
+	"dict":  sprig.TxtFuncMap()["dict"],
+	"split": strings.Split,
+	"splitTime": func(timeout, part string) string {
+		i := strings.Index(timeout, part)
+		if i != -1 {
+			start := i - 1
+			for start >= 0 && timeout[start] >= '0' && timeout[start] <= '9' {
+				start--
+			}
+
+			return timeout[start+1 : i]
+		}
+
+		return ""
+	},
+	"splitExtensions": func(fileName, part string) string {
+		i := strings.Index(fileName, ".")
+		if i != -1 {
+			if part == "before" {
+				return fileName[:i]
+			} else if part == "after" {
+				return fileName[i:]
+			}
+		}
+
+		return ""
+	},
+	"marshalJSON": func(v interface{}) template.JS {
+		b, err := json.Marshal(v)
+		if err != nil {
+			return "null"
+		}
+
+		return template.JS(b) //nolint:gosec // template.JS is necessary
+	},
 }
 
 var (
@@ -100,15 +138,10 @@ var (
 			Funcs(funcs).
 			ParseFS(webFS, index, header, multiLanguage, "front-end/html/transfer_rules_management_page.html"),
 	)
-	accountAuthenticationTemplate = template.Must(
-		template.New("account_authentication_page.html").
+	tasksTransferRulesTemplate = template.Must(
+		template.New("tasks_transfer_rules_page.html").
 			Funcs(funcs).
-			ParseFS(webFS, index, header, multiLanguage, "front_end/html/account_authentication_page.html"),
-	)
-	serverManagementTemplate = template.Must(
-		template.New("server_management_page.html").
-			Funcs(funcs).
-			ParseFS(webFS, index, header, multiLanguage, addProtoConfig, editProtoConfig, displayProtoConfig,
-				"front-end/html/server_management_page.html"),
+			ParseFS(webFS, index, header, multiLanguage, addTasks, editTasks, displayTasks,
+				"front-end/html/tasks_transfer_rules_page.html"),
 	)
 )
