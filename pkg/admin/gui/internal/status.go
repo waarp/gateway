@@ -1,6 +1,8 @@
 package internal
 
-import "code.waarp.fr/apps/gateway/gateway/pkg/gatewayd/services"
+import (
+	"code.waarp.fr/apps/gateway/gateway/pkg/gatewayd/services"
+)
 
 type Service struct {
 	Name   string

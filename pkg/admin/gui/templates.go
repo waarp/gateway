@@ -8,6 +8,10 @@ import (
 	"strings"
 
 	"github.com/Masterminds/sprig/v3"
+	"github.com/dustin/go-humanize"
+
+	"code.waarp.fr/apps/gateway/gateway/pkg/admin/gui/internal"
+	"code.waarp.fr/apps/gateway/gateway/pkg/database"
 )
 
 const (
@@ -70,6 +74,56 @@ var funcs = template.FuncMap{
 
 		return template.JS(b) //nolint:gosec // template.JS is necessary
 	},
+	"formatDateTime": translateDateTime,
+	"div":            sprig.TxtFuncMap()["div"],
+	"mul":            sprig.TxtFuncMap()["mul"],
+	"displayOrDefault": func(val any, def string) any {
+		if val == nil {
+			return def
+		}
+		if s, ok := val.(string); ok && s == "" {
+			return def
+		}
+
+		return val
+	},
+	"humanizeSize": func(size int64) string {
+		return humanize.Bytes(uint64(size))
+	},
+}
+
+func CombinedFuncMap(db *database.DB) template.FuncMap {
+	funcMap := template.FuncMap{}
+	for k, v := range funcs {
+		funcMap[k] = v
+	}
+
+	for k, v := range NewFuncMap(db) {
+		funcMap[k] = v
+	}
+
+	return funcMap
+}
+
+func NewFuncMap(db *database.DB) template.FuncMap {
+	return template.FuncMap{
+		"getServerName": func(id int64) string {
+			server, err := internal.GetServerByID(db, id)
+			if err != nil {
+				return ""
+			}
+
+			return server.Name
+		},
+		"getPartnerName": func(id int64) string {
+			partner, err := internal.GetPartnerByID(db, id)
+			if err != nil {
+				return ""
+			}
+
+			return partner.Name
+		},
+	}
 }
 
 var (
@@ -145,9 +199,10 @@ var (
 			ParseFS(webFS, index, header, multiLanguage, addTasks, editTasks, displayTasks,
 				"front-end/html/tasks_transfer_rules_page.html"),
 	)
-	accountAuthenticationTemplate = template.Must(
-		template.New("account_authentication_page.html").
+	// ManagementUsageRightsRulesTemplate in .go, for dynamics template (with db).
+	transferMonitoringTemplate = template.Must(
+		template.New("transfer_monitoring_page.html").
 			Funcs(funcs).
-			ParseFS(webFS, index, header, multiLanguage, "front_end/html/account_authentication_page.html"),
+			ParseFS(webFS, index, header, multiLanguage, "front-end/html/transfer_monitoring_page.html"),
 	)
 )
