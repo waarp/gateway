@@ -234,7 +234,7 @@ type TransferPause struct {
 func (t *TransferPause) Execute([]string) error { return execute(t) }
 func (t *TransferPause) execute(w io.Writer) error {
 	return putTransferRequest(w, t.Args.ID, "pause",
-		"paused. It can be resumed using the 'resume' command")
+		`paused. It can be resumed using the "resume" command`)
 }
 
 // ######################## RESUME ##########################
@@ -385,6 +385,15 @@ func (t *TransferPreregister) execute(w io.Writer) error {
 	}
 
 	defer resp.Body.Close() //nolint:errcheck,gosec // error is irrelevant
+
+	switch resp.StatusCode {
+	case http.StatusCreated:
+	case http.StatusBadRequest:
+		return getResponseErrorMessage(resp)
+	default:
+		return fmt.Errorf("unexpected error (%s): %w", resp.Status,
+			getResponseErrorMessage(resp))
+	}
 
 	loc, locErr := resp.Location()
 	if locErr != nil {

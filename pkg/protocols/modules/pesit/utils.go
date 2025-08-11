@@ -31,11 +31,11 @@ func makeReservationSpaceKB(info fs.FileInfo) uint32 {
 	return uint32(floor) + 1
 }
 
-func generateDestFilename(trans *model.Transfer, partner *model.LocalAccount,
+func generateDestFilename(remoteTransferID string, partner *model.LocalAccount,
 	rule *model.Rule,
 ) string {
 	return fmt.Sprintf("%s_%s_%s",
 		rule.Name,
 		partner.Login,
-		trans.RemoteTransferID)
+		remoteTransferID)
 }

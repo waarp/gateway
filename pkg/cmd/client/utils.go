@@ -48,12 +48,10 @@ func direction(isSend bool) string {
 }
 
 func unmarshalBody(body io.Reader, object any) error {
-	b, rErr := io.ReadAll(body)
-	if rErr != nil {
-		return fmt.Errorf("failed to read response body: %w", rErr)
-	}
+	decoder := json.NewDecoder(body)
+	decoder.UseNumber()
 
-	if err := json.Unmarshal(b, object); err != nil {
+	if err := decoder.Decode(object); err != nil {
 		return fmt.Errorf("invalid JSON response object: %w", err)
 	}
 

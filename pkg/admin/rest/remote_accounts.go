@@ -32,7 +32,7 @@ func getDBRemoteAccount(r *http.Request, db *database.DB) (*model.RemoteAgent,
 	if err := db.Get(&dbAccount, "login=? AND remote_agent_id=?", login, parent.ID).
 		Run(); err != nil {
 		if database.IsNotFound(err) {
-			return parent, nil, notFoundf("no account %q found for partner %s",
+			return parent, nil, notFoundf("no account %q found for partner %q",
 				login, parent.Name)
 		}
 

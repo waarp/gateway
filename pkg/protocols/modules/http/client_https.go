@@ -24,7 +24,9 @@ func (h *httpsClient) Start() error {
 		return err
 	}
 
-	h.transport.TLSClientConfig = &tls.Config{MinVersion: tls.VersionTLS12}
+	h.transport.TLSClientConfig = &tls.Config{
+		MinVersion: h.conf.MinTLSVersion.TLS(),
+	}
 
 	return nil
 }
@@ -39,6 +41,11 @@ func (h *httpsClient) InitTransfer(pip *pipeline.Pipeline) (protocol.TransferCli
 }
 
 func (h *httpsClient) makeTransport(pip *pipeline.Pipeline) (*http.Transport, error) {
+	var partConf httpsPartnerConfig
+	if err := utils.JSONConvert(pip.TransCtx.RemoteAgent.ProtoConfig, &partConf); err != nil {
+		return nil, fmt.Errorf("invalid partner config: %w", err)
+	}
+
 	rootCAs := utils.TLSCertPool()
 
 	for _, cred := range pip.TransCtx.RemoteAgentCreds {
@@ -77,6 +84,10 @@ func (h *httpsClient) makeTransport(pip *pipeline.Pipeline) (*http.Transport, er
 
 	if err := auth.AddTLSAuthorities(pip.DB, transport.TLSClientConfig); err != nil {
 		return nil, fmt.Errorf("failed to setup the TLS authorities: %w", err)
+	}
+
+	if partConf.MinTLSVersion != 0 {
+		transport.TLSClientConfig.MinVersion = partConf.MinTLSVersion.TLS()
 	}
 
 	return transport, nil

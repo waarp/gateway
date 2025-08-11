@@ -277,8 +277,8 @@ func TestAddTransfer(t *testing.T) {
 					})
 
 					Convey("Then the response body should say the partner is invalid", func() {
-						So(w.Body.String(), ShouldEqual, "no account \"tata\" found "+
-							"for partner "+partner.Name+"\n")
+						So(w.Body.String(), ShouldEqual, fmt.Sprintf(
+							"no account %q found for partner %q\n", "tata", partner.Name))
 					})
 				})
 			})
@@ -729,21 +729,20 @@ func TestResumeTransfer(t *testing.T) {
 
 						So(db.Select(&transfers).Run(), ShouldBeNil)
 						So(transfers, ShouldNotBeEmpty)
-						So(transfers[0], ShouldResemble, &model.Transfer{
-							ID:               trans.ID,
-							Owner:            conf.GlobalConfig.GatewayName,
-							RemoteTransferID: trans.RemoteTransferID,
-							RuleID:           rule.ID,
-							ClientID:         utils.NewNullInt64(client.ID),
-							RemoteAccountID:  utils.NewNullInt64(account.ID),
-							SrcFilename:      "file.src",
-							DestFilename:     "file.dst",
-							Start:            trans.Start.Local(),
-							Status:           types.StatusPlanned,
-							Step:             types.StepData,
-							Progress:         10,
-							TaskNumber:       0,
-						})
+						So(transfers[0].ID, ShouldEqual, trans.ID)
+						So(transfers[0].Owner, ShouldEqual, conf.GlobalConfig.GatewayName)
+						So(transfers[0].RemoteTransferID, ShouldEqual, trans.RemoteTransferID)
+						So(transfers[0].RuleID, ShouldEqual, rule.ID)
+						So(transfers[0].ClientID, ShouldEqual, utils.NewNullInt64(client.ID))
+						So(transfers[0].RemoteAccountID, ShouldEqual, utils.NewNullInt64(account.ID))
+						So(transfers[0].SrcFilename, ShouldEqual, "file.src")
+						So(transfers[0].DestFilename, ShouldEqual, "file.dst")
+						So(transfers[0].Start, ShouldEqual, trans.Start.Local())
+						So(transfers[0].Status, ShouldEqual, types.StatusPlanned)
+						So(transfers[0].Step, ShouldEqual, types.StepData)
+						So(transfers[0].Progress, ShouldEqual, 10)
+						So(transfers[0].TaskNumber, ShouldEqual, 0)
+						So(transfers[0].NextRetry, ShouldHappenWithin, time.Second, time.Now())
 					})
 				})
 			})

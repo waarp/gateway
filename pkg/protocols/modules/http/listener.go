@@ -46,7 +46,7 @@ func (h *httpService) makeTLSConf(*tls.ClientHelloInfo) (*tls.Config, error) {
 	}
 
 	return &tls.Config{
-		MinVersion:            tls.VersionTLS12,
+		MinVersion:            h.conf.MinTLSVersion.TLS(),
 		Certificates:          tlsCerts,
 		ClientAuth:            tls.RequestClientCert,
 		VerifyPeerCertificate: auth.VerifyClientCert(h.db, h.logger, h.agent),
@@ -65,7 +65,7 @@ func (h *httpService) listen() error {
 
 	if h.agent.Protocol == HTTPS {
 		list, netErr = tls.Listen("tcp", addr, &tls.Config{
-			MinVersion:         tls.VersionTLS12,
+			MinVersion:         h.conf.MinTLSVersion.TLS(),
 			GetConfigForClient: h.makeTLSConf,
 		})
 	} else {

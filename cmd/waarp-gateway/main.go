@@ -141,14 +141,15 @@ type commands struct {
 	} `command:"rule" description:"Manage the transfer rules"`
 
 	Transfer struct {
-		Add    wg.TransferAdd       `command:"add" description:"Add a new transfer to be executed"`
-		Get    wg.TransferGet       `command:"get" description:"Consult a transfer"`
-		List   wg.TransferList      `command:"list" description:"List the transfers"`
-		Pau    wg.TransferPause     `command:"pause" description:"Pause a running transfer"`
-		Res    wg.TransferResume    `command:"resume" description:"Resume a paused transfer"`
-		Can    wg.TransferCancel    `command:"cancel" description:"Cancel a transfer"`
-		Ret    wg.TransferRetry     `command:"retry" description:"Reprogram a canceled transfer"`
-		CanAll wg.TransferCancelAll `command:"cancel-all" description:"Cancel all transfers in the given status"`
+		Add    wg.TransferAdd         `command:"add" description:"Add a new client transfer to be executed"`
+		Reg    wg.TransferPreregister `command:"preregister" description:"Register a server transfer"`
+		Get    wg.TransferGet         `command:"get" description:"Consult a transfer"`
+		List   wg.TransferList        `command:"list" description:"List the transfers"`
+		Pau    wg.TransferPause       `command:"pause" description:"Pause a running transfer"`
+		Res    wg.TransferResume      `command:"resume" description:"Resume a paused transfer"`
+		Can    wg.TransferCancel      `command:"cancel" description:"Cancel a transfer"`
+		Ret    wg.TransferRetry       `command:"retry" description:"Reprogram a canceled transfer"`
+		CanAll wg.TransferCancelAll   `command:"cancel-all" description:"Cancel all transfers in the given status"`
 	} `command:"transfer" description:"Manage the running transfers"`
 
 	History struct {
