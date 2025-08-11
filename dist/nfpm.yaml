@@ -43,6 +43,8 @@ contents:
   - src: ./build/waarp-gatewayd.ini
     dst: "/etc/waarp-gateway/gatewayd.ini"
     type: config
+  - src: ./build/dist/example_config.yaml
+    dst: "/usr/share/waarp-gateway/example_config.yaml"
 
   - dst: /var/lib/waarp-gateway/in
     type: dir
