@@ -29,7 +29,7 @@ type httpService struct {
 
 	logger *log.Logger
 	state  utils.State
-	conf   serverConfig
+	conf   httpsServerConfig
 	serv   *http.Server
 
 	tracer   func() pipeline.Trace
@@ -84,7 +84,7 @@ func (h *httpService) start() error {
 		return err
 	}
 
-	h.logger.Infof("HTTP server started at %q", &h.agent.Address)
+	h.logger.Infof("HTTP server started successfully on %q", h.serv.Addr)
 
 	h.shutdown = make(chan struct{})
 

@@ -174,13 +174,17 @@ func (t *transferHandler) mkTransfer(remoteID, filepath string, rule *model.Rule
 
 	// CFT mode -> no filename, so we use the rule instead
 	if filepath == "" {
-		if trans, err := pipeline.GetAvailableTransferByRule(t.db, remoteID, t.account, rule); err == nil {
-			return trans, nil
-		} else if !database.IsNotFound(err) {
-			return nil, transErrToPesitErr(err)
+		if rule.IsSend {
+			if trans, err := pipeline.GetAvailableTransferByRule(t.db, remoteID, t.account, rule); err == nil {
+				return trans, nil
+			} else if !database.IsNotFound(err) {
+				return nil, transErrToPesitErr(err)
+			}
+
+			return nil, pesit.NewDiagnostic(pesit.CodeFileNotExists, "no available transfer found")
 		}
 
-		return nil, pesit.NewDiagnostic(pesit.CodeFileNotExists, "no available transfer found")
+		filepath = generateDestFilename(remoteID, t.account, rule)
 	}
 
 	if trans, err := pipeline.GetAvailableTransferByFilename(t.db, filepath, remoteID,

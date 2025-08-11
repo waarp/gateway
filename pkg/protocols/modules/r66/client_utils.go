@@ -256,11 +256,13 @@ func makeClientTLSConfig(pip *pipeline.Pipeline, partConf *tlsPartnerConfig,
 	clientConf *tlsClientConfig,
 ) (*tls.Config, error) {
 	tlsConf := &tls.Config{
-		ServerName: pip.TransCtx.RemoteAgent.Address.Host,
-		MinVersion: max(
-			partConf.MinTLSVersion.TLS(),
-			clientConf.MinTLSVersion.TLS()),
+		ServerName:       pip.TransCtx.RemoteAgent.Address.Host,
+		MinVersion:       clientConf.MinTLSVersion.TLS(),
 		VerifyConnection: compatibility.LogSha1(pip.Logger),
+	}
+
+	if partConf.MinTLSVersion != 0 {
+		tlsConf.MinVersion = partConf.MinTLSVersion.TLS()
 	}
 
 	tlsConf.Certificates = make([]tls.Certificate, 0, len(pip.TransCtx.RemoteAccountCreds))

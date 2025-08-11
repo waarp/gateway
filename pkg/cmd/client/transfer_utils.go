@@ -13,7 +13,7 @@ import (
 
 func coloredStatus(status types.TransferStatus) string {
 	switch status {
-	case types.StatusPlanned:
+	case types.StatusPlanned, types.StatusAvailable:
 		return color.HiWhite.Render(status)
 	case types.StatusRunning:
 		return color.Blue.Render(status)

@@ -71,16 +71,16 @@ func preregisterServerTransfer(logger *log.Logger, db *database.DB) http.Handler
 			return
 		}
 
-		if handleError(w, logger, db.Get(&account, "local_agent_id=? AND name=?",
+		if handleError(w, logger, db.Get(&account, "local_agent_id=? AND login=?",
 			server.ID, rTrans.Account).Run()) {
 			return
 		}
 
 		dbTrans := &model.Transfer{
-			RuleID:          rule.ID,
-			RemoteAccountID: utils.NewNullInt64(account.ID),
-			Start:           rTrans.DueDate,
-			Status:          types.StatusAvailable,
+			RuleID:         rule.ID,
+			LocalAccountID: utils.NewNullInt64(account.ID),
+			Start:          rTrans.DueDate,
+			Status:         types.StatusAvailable,
 		}
 
 		if *rTrans.IsSend {

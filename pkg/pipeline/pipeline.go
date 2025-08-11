@@ -525,6 +525,8 @@ func (p *Pipeline) doneErr(status types.TransferStatus) {
 		p.TransCtx.Transfer.NextRetry = time.Now().UTC().
 			Add(time.Second * time.Duration(p.TransCtx.Transfer.NextRetryDelay))
 		incrementRetryDelay(p.TransCtx.Transfer)
+	} else {
+		p.TransCtx.Transfer.NextRetry = time.Time{}
 	}
 
 	if err := p.forceUpdateTrans(); err != nil {

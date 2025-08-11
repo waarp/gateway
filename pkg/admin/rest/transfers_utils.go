@@ -59,7 +59,7 @@ func getTransInfo(db *database.DB, trans *api.InTransfer,
 	if err := db.Get(&account, "remote_agent_id=? AND login=?", partner.ID,
 		trans.Account).Run(); err != nil {
 		if database.IsNotFound(err) {
-			return 0, null, null, badRequestf("no account %q found for partner %s",
+			return 0, null, null, badRequestf("no account %q found for partner %q",
 				trans.Account, trans.Partner)
 		}
 

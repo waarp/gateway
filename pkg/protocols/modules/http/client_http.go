@@ -30,6 +30,7 @@ var (
 type httpClient struct {
 	db     *database.DB
 	client *model.Client
+	conf   httpsClientConfig
 
 	logger    *log.Logger
 	transport *http.Transport
@@ -59,6 +60,12 @@ func (h *httpClient) Start() error {
 func (h *httpClient) start() error {
 	h.logger = logging.NewLogger(h.client.Name)
 	dialer := &protoutils.TraceDialer{Dialer: &net.Dialer{}}
+
+	if err := utils.JSONConvert(h.client.ProtoConfig, &h.conf); err != nil {
+		h.logger.Errorf("Failed to parse the HTTP client's configuration: %v", err)
+
+		return fmt.Errorf("failed to parse the HTTP client's configuration: %w", err)
+	}
 
 	if h.client.LocalAddress.IsSet() {
 		localAddr, err := net.ResolveTCPAddr("tcp", h.client.LocalAddress.String())
