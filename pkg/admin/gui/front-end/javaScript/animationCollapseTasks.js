@@ -1,4 +1,4 @@
-document.addEventListener('DOMContentLoaded', function () {
+function initCollapseTasks() {
     const container = document.getElementById('container-collapse');
     if (!container)
         return;
@@ -10,7 +10,10 @@ document.addEventListener('DOMContentLoaded', function () {
     );
 
     panels.forEach(panel => {
-        panel.addEventListener('show.bs.collapse', () => {
+        panel.removeEventListener('show.bs.collapse', panel._showListener);
+        panel.removeEventListener('hide.bs.collapse', panel._hideListener);
+
+        panel._showListener = () => {
             panels.forEach(other => {
                 if (other !== panel && other.classList.contains('show')) {
                     bootstrap.Collapse.getInstance(other).hide();
@@ -18,10 +21,13 @@ document.addEventListener('DOMContentLoaded', function () {
             });
             panel.classList.add('animate');
             localStorage.setItem('lastOpenCollapseTasks', panel.id);
-        });
-        panel.addEventListener('hide.bs.collapse', () => {
+        };
+        panel._hideListener = () => {
             panel.classList.remove('animate');
-        });
+        };
+
+        panel.addEventListener('show.bs.collapse', panel._showListener);
+        panel.addEventListener('hide.bs.collapse', panel._hideListener);
     });
 
     const last = localStorage.getItem('lastOpenCollapseTasks');
@@ -31,4 +37,6 @@ document.addEventListener('DOMContentLoaded', function () {
             bootstrap.Collapse.getOrCreateInstance(toOpen, { toggle: false }).show();
         }
     }
-});
+}
+
+document.addEventListener('DOMContentLoaded', initCollapseTasks);

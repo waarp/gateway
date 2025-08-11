@@ -1,0 +1,16 @@
+{
+    "title": { "fr": "Status des services", "en": "Status of services" },
+    "about": { "fr": "À propos", "en": "About" },
+    "logout": { "fr": "Déconnexion", "en": "Logout" },
+    "connection": { "fr": "Connexion", "en": "Connection" },
+    "treatment": { "fr": "Traitement", "en": "Treatment" },
+    "monitoring": { "fr": "Supervision", "en": "Monitoring" },
+    "administration": { "fr": "Administration", "en": "Administration" },
+    "undefined": { "fr": "<non définie>", "en": "<undefined>" },
+    "core": { "fr": "Noyau", "en": "Core" },
+    "server": { "fr": "Serveur", "en": "Server" },
+    "client": { "fr": "Client", "en": "Client" },
+    "name": { "fr": "Nom", "en": "Name" },
+    "state": { "fr": "État", "en": "State" },
+    "reason": { "fr": "Raison", "en": "Reason" }
+}
