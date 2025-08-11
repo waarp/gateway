@@ -29,11 +29,7 @@ func listCredentialPartner(partnerName string, db *database.DB, r *http.Request)
 	}
 	urlParams := r.URL.Query()
 
-	if urlParams.Get("orderAsc") == "true" { //nolint:goconst // correction in next push
-		filter.OrderAsc = true
-	} else if urlParams.Get("orderAsc") == "false" { //nolint:goconst // correction in next push
-		filter.OrderAsc = false
-	}
+	filter.OrderAsc = urlParams.Get("orderAsc") == "true"
 
 	if limitRes := urlParams.Get("limit"); limitRes != "" {
 		if l, err := strconv.ParseUint(limitRes, 10, 64); err == nil {

@@ -137,11 +137,8 @@ func listRule(db *database.DB, r *http.Request) ([]*model.Rule, Filters, string)
 	}
 
 	urlParams := r.URL.Query()
-	if urlParams.Get("orderAsc") == "true" {
-		filter.OrderAsc = true
-	} else if urlParams.Get("orderAsc") == "false" {
-		filter.OrderAsc = false
-	}
+
+	filter.OrderAsc = urlParams.Get("orderAsc") == "true"
 
 	if limitRes := urlParams.Get("limit"); limitRes != "" {
 		if l, err := strconv.ParseUint(limitRes, 10, 64); err == nil {
