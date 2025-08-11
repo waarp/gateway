@@ -8,6 +8,7 @@ import (
 	"code.waarp.fr/apps/gateway/gateway/pkg/admin/gui/internal"
 	"code.waarp.fr/apps/gateway/gateway/pkg/database"
 	"code.waarp.fr/apps/gateway/gateway/pkg/model"
+	"code.waarp.fr/apps/gateway/gateway/pkg/utils"
 )
 
 func statusServicesPage(logger *log.Logger, db *database.DB) http.HandlerFunc {
@@ -33,6 +34,9 @@ func statusServicesPage(logger *log.Logger, db *database.DB) http.HandlerFunc {
 			"cores":        cores,
 			"servers":      servers,
 			"clients":      clients,
+			"Offline":		utils.StateOffline.String(),
+			"Running":		utils.StateRunning.String(),
+			"Error":		utils.StateError.String(),
 		}
 		if r.URL.Query().Get("partial") == "true" {
 			if err := statusServicesTemplate.ExecuteTemplate(w, "status_services_partial", data); err != nil {

@@ -22,7 +22,17 @@
           <tr>
             <td><i class="bi bi-cpu"></i></td>
             <td><strong>{{ .Name }}</strong></td>
-            <td>{{ .State }}</td>
+            <td>
+              {{ if eq .State $.Offline }}
+                <span class="fw-bold text-secondary">{{ .State }}</span>
+              {{ else if eq .State $.Running }}
+                <span class="fw-bold text-primary">{{ .State }}</span>
+              {{ else if eq .State $.Error }}
+                <span class="fw-bold text-danger">{{ .State }}</span>
+              {{ else }}
+                <span class="fw-bold">{{ .State }}</span>
+              {{ end }}
+            </td>
             <td>{{ .Reason }}</td>
           </tr>
           {{ end }}
@@ -47,7 +57,17 @@
           <tr>
             <td><i class="bi bi-hdd-network me-1"></i></td>
             <td><strong>{{ .Name }}</strong></td>
-            <td>{{ .State }}</td>
+            <td>
+              {{ if eq .State $.Offline }}
+                <span class="fw-bold text-secondary">{{ .State }}</span>
+              {{ else if eq .State $.Running }}
+                <span class="fw-bold text-primary">{{ .State }}</span>
+              {{ else if eq .State $.Error }}
+                <span class="fw-bold text-danger">{{ .State }}</span>
+              {{ else }}
+                <span class="fw-bold">{{ .State }}</span>
+              {{ end }}
+            </td>
             <td>{{ .Reason }}</td>
           </tr>
           {{ end }}
@@ -72,7 +92,17 @@
           <tr>
             <td><i class="bi bi-person"></i></td>
             <td><strong>{{ .Name }}</strong></td>
-            <td>{{ .State }}</td>
+            <td>
+              {{ if eq .State $.Offline }}
+                <span class="fw-bold text-secondary">{{ .State }}</span>
+              {{ else if eq .State $.Running }}
+                <span class="fw-bold text-primary">{{ .State }}</span>
+              {{ else if eq .State $.Error }}
+                <span class="fw-bold text-danger">{{ .State }}</span>
+              {{ else }}
+                <span class="fw-bold">{{ .State }}</span>
+              {{ end }}
+            </td>
             <td>{{ .Reason }}</td>
           </tr>
           {{ end }}
