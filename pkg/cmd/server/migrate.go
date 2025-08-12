@@ -30,9 +30,9 @@ func (cmd *MigrateCommand) Execute([]string) error {
 		cmd.Args.Version = version.Num
 	}
 
-	config, logger, err := initMigration(string(cmd.ConfigFile), cmd.Verbose)
-	if err != nil {
-		return err
+	config, logger, migErr := initMigration(string(cmd.ConfigFile), cmd.Verbose)
+	if migErr != nil {
+		return migErr
 	}
 
 	var out io.Writer
@@ -41,15 +41,15 @@ func (cmd *MigrateCommand) Execute([]string) error {
 	}
 
 	if cmd.ExtractToFile != "" {
-		file, err := os.OpenFile(string(cmd.ExtractToFile), os.O_RDWR|os.O_CREATE|os.O_TRUNC, 0o600)
-		if err != nil {
-			return fmt.Errorf("cannot open destination file: %w", err)
+		file, opErr := os.OpenFile(string(cmd.ExtractToFile), os.O_RDWR|os.O_CREATE|os.O_TRUNC, 0o600)
+		if opErr != nil {
+			return fmt.Errorf("cannot open destination file: %w", opErr)
 		}
 
 		//nolint:gosec //close must be deferred here
 		defer func() {
 			if err := file.Close(); err != nil {
-				logger.Warning("Error while closing the script output file: %s", err)
+				logger.Warningf("Error while closing the script output file: %v", err)
 			}
 		}()
 

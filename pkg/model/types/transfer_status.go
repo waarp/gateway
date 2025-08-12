@@ -7,8 +7,11 @@ import "slices"
 type TransferStatus string
 
 const (
-	// StatusPlanned is the state of a transfer before it begins.
+	// StatusPlanned is the state of a client transfer before it begins.
 	StatusPlanned TransferStatus = "PLANNED"
+
+	// StatusAvailable is the state of a server transfer before it begins.
+	StatusAvailable TransferStatus = "AVAILABLE"
 
 	// StatusRunning is the state of a transfer when it is running.
 	StatusRunning TransferStatus = "RUNNING"
@@ -20,7 +23,6 @@ const (
 	StatusPaused TransferStatus = "PAUSED"
 
 	// StatusCancelled is the state of a transfer when canceled by a user.
-	//nolint:misspell // must be kept for retro-compatibility
 	StatusCancelled TransferStatus = "CANCELLED"
 
 	// StatusDone is the state of a transfer when finished without error.
@@ -36,6 +38,8 @@ func StatusFromString(str string) (TransferStatus, bool) {
 	switch str {
 	case string(StatusPlanned):
 		return StatusPlanned, true
+	case string(StatusAvailable):
+		return StatusAvailable, true
 	case string(StatusRunning):
 		return StatusRunning, true
 	case string(StatusInterrupted):
@@ -65,8 +69,8 @@ func StatusFromString(str string) (TransferStatus, bool) {
 // ValidateStatusForTransfer returns whether the transfer value is valid for a
 // model.Transfer entry.
 func ValidateStatusForTransfer(t TransferStatus) bool {
-	return t == StatusPlanned || t == StatusRunning || t == StatusPaused ||
-		t == StatusInterrupted || t == StatusError
+	return t == StatusPlanned || t == StatusAvailable || t == StatusRunning ||
+		t == StatusPaused || t == StatusInterrupted || t == StatusError
 }
 
 // ValidateStatusForHistory returns whether the transfer value is valid for a

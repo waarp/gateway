@@ -34,9 +34,9 @@ func main() {
 	archFile := os.Args[1]
 	instance := getConfFilename(archFile)
 
-	archReader, err := zip.OpenReader(archFile)
-	if err != nil {
-		fmt.Printf("Cannot open archive: %s\n", err.Error())
+	archReader, opErr := zip.OpenReader(archFile)
+	if opErr != nil {
+		fmt.Printf("Cannot open archive: %s\n", opErr.Error())
 		os.Exit(exitErrorCode)
 	}
 
@@ -67,7 +67,7 @@ func getConfFilename(archfile string) string {
 	part := strings.Split(archName, separator)
 
 	// Remove last part of file (from last '-')
-	if len(part) < 2 { //nolint: gomnd // this would be a constant used only once
+	if len(part) < 2 { //nolint:mnd //this would be a constant used only once
 		return ""
 	}
 
@@ -133,9 +133,9 @@ func execImport(confReader io.Reader) error {
 }
 
 func moveToConf(arch *zip.Reader, files ...string) error {
-	confDir, err := getConfDir("etc/", "/etc/waarp-gateway/")
-	if err != nil {
-		return err
+	confDir, dirErr := getConfDir("etc/", "/etc/waarp-gateway/")
+	if dirErr != nil {
+		return dirErr
 	}
 
 	for _, f := range files {

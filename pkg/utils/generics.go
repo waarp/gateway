@@ -1,7 +1,6 @@
 package utils
 
 import (
-	"cmp"
 	"errors"
 	"fmt"
 	"slices"
@@ -11,25 +10,9 @@ import (
 func If[T any](cond bool, valTrue, valFalse T) T {
 	if cond {
 		return valTrue
-	} else {
-		return valFalse
-	}
-}
-
-func Max[T cmp.Ordered](args ...T) T {
-	if len(args) == 0 {
-		return *new(T)
 	}
 
-	return slices.Max(args)
-}
-
-func Min[T cmp.Ordered](args ...T) T {
-	if len(args) == 0 {
-		return *new(T)
-	}
-
-	return slices.Min(args)
+	return valFalse
 }
 
 // ContainsOneOf returns whether the given slice contains at least one of the
@@ -77,4 +60,12 @@ func AsAny[T any](slice []T) []any {
 	}
 
 	return anySlice
+}
+
+func Must[T any](val T, err error) T {
+	if err != nil {
+		panic(err)
+	}
+
+	return val
 }

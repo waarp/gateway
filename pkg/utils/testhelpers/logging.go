@@ -1,7 +1,6 @@
 package testhelpers
 
 import (
-	"fmt"
 	"os"
 	"testing"
 
@@ -12,7 +11,7 @@ import (
 	"code.waarp.fr/apps/gateway/gateway/pkg/logging"
 )
 
-func TestLogger(c convey.C, name string, args ...any) *log.Logger {
+func TestLogger(c convey.C, name string) *log.Logger {
 	level := log.LevelDebug
 
 	if envLvl := os.Getenv("WAARP_TEST_LOG_LEVEL"); envLvl != "" {
@@ -22,7 +21,7 @@ func TestLogger(c convey.C, name string, args ...any) *log.Logger {
 	back, err := log.NewBackend(level, log.Stdout, "", "")
 	c.So(err, convey.ShouldBeNil)
 
-	return back.NewLogger(fmt.Sprintf(name, args...))
+	return back.NewLogger(name)
 }
 
 func TestLoggerWithLevel(c convey.C, name string, level log.Level) *log.Logger {

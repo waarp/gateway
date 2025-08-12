@@ -78,6 +78,8 @@ func tempFilename() string {
 func initTestDBConf() {
 	BcryptRounds = bcrypt.MinCost
 	conf.GlobalConfig.GatewayName = uuid.NewString()
+	conf.GlobalConfig.Paths.FilePerms = 0o600
+	conf.GlobalConfig.Paths.DirPerms = 0o700
 	conf.GlobalConfig.NodeID = "test_node"
 	config := &conf.GlobalConfig.Database
 	dbType := os.Getenv(TestDBEnv)
@@ -142,7 +144,7 @@ func TestDatabase(c convey.C) *DB {
 
 	c.So(db.Start(), convey.ShouldBeNil)
 	c.Reset(func() { resetDB(db) })
-	db.logger.Notice("%s database started", conf.GlobalConfig.Database.Type)
+	db.logger.Noticef("%s database started", conf.GlobalConfig.Database.Type)
 
 	return db
 }

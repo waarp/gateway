@@ -13,6 +13,7 @@ import (
 	"code.waarp.fr/apps/gateway/gateway/pkg/database"
 	"code.waarp.fr/apps/gateway/gateway/pkg/logging"
 	"code.waarp.fr/apps/gateway/gateway/pkg/model"
+	"code.waarp.fr/apps/gateway/gateway/pkg/model/types"
 	"code.waarp.fr/apps/gateway/gateway/pkg/utils"
 )
 
@@ -75,13 +76,13 @@ func (s *Service) startServer() error {
 
 		return nil // no server configured
 	} else if err != nil {
-		s.Logger.Error("Failed to retrieve SNMP server configuration: %v", err)
+		s.Logger.Errorf("Failed to retrieve SNMP server configuration: %v", err)
 
 		return fmt.Errorf("failed to retrieve SNMP server configuration: %w", err)
 	}
 
 	if err := s.listen(&serverConf); err != nil {
-		s.Logger.Error("Failed to start SNMP server: %v", err)
+		s.Logger.Errorf("Failed to start SNMP server: %v", err)
 
 		return fmt.Errorf("failed to start SNMP server: %w", err)
 	}
@@ -125,7 +126,7 @@ func (s *Service) ReloadMonitorsConf() error {
 
 	var monitors model.Slice[*MonitorConfig]
 	if err := s.DB.Select(&monitors).Run(); err != nil {
-		s.Logger.Error("Failed to retrieve SNMP monitors: %v", err)
+		s.Logger.Errorf("Failed to retrieve SNMP monitors: %v", err)
 
 		return fmt.Errorf("failed to retrieve SNMP monitors: %w", err)
 	}
@@ -146,14 +147,35 @@ func (s *Service) ReloadServerConf(ctx context.Context) error {
 func (s *Service) ReportTransferError(transferID int64) {
 	var trans model.NormalizedTransferView
 	if err := s.DB.Get(&trans, "id = ?", transferID).Run(); err != nil {
-		s.Logger.Error("Failed to retrieve transfer: %v", err)
+		s.Logger.Errorf("Failed to retrieve transfer: %v", err)
 
 		return
 	}
 
 	if err := s.sendTransferError(&trans); err != nil {
-		s.Logger.Error("Failed to send transfer error: %v", err)
+		s.Logger.Errorf("Failed to send transfer error: %v", err)
 	}
+}
+
+func (s *Service) SendTestNotification() error {
+	trans := &model.NormalizedTransferView{
+		HistoryEntry: model.HistoryEntry{
+			ID:               -1,
+			RemoteTransferID: "",
+			IsServer:         false,
+			IsSend:           true,
+			Rule:             "test_rule",
+			Account:          "test_account",
+			Agent:            "test_agent",
+			Client:           "test_client",
+			LocalPath:        "/test/file",
+			ErrCode:          types.TeInternal,
+			ErrDetails:       "This is a test notification",
+		},
+		IsTransfer: true,
+	}
+
+	return s.sendTransferError(trans)
 }
 
 func ReportServiceFailure(service string, sErr error) {
@@ -162,7 +184,7 @@ func ReportServiceFailure(service string, sErr error) {
 	}
 
 	if err := GlobalService.sendServiceError(service, sErr); err != nil {
-		GlobalService.Logger.Error("Failed to send service error: %v", err)
+		GlobalService.Logger.Errorf("Failed to send service error: %v", err)
 	}
 }
 
@@ -177,11 +199,12 @@ func (s *Service) GetServerAddr() string {
 		return ""
 	}
 
-	if addr := s.server.Address(); addr == nil {
+	addr := s.server.Address()
+	if addr == nil {
 		return ""
-	} else {
-		return addr.String()
 	}
+
+	return addr.String()
 }
 
 func (s *Service) StartNoServer() error {

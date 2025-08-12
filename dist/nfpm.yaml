@@ -4,7 +4,7 @@
 name: "waarp-gateway"
 arch: "amd64"
 platform: "linux"
-version: v0.12.6
+version: v0.12.9
 release: 1
 section: "default"
 priority: "extra"
@@ -43,6 +43,8 @@ contents:
   - src: ./build/waarp-gatewayd.ini
     dst: "/etc/waarp-gateway/gatewayd.ini"
     type: config
+  - src: ./build/dist/example_config.yaml
+    dst: "/usr/share/waarp-gateway/example_config.yaml"
 
   - dst: /var/lib/waarp-gateway/in
     type: dir

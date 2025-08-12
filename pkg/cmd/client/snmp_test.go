@@ -542,3 +542,33 @@ func TestSnmpServerDelete(t *testing.T) {
 		})
 	})
 }
+
+func TestSnmpMonitorTest(t *testing.T) {
+	const path = "/api/snmp/test/monitors"
+
+	t.Run(`Testing the SNMP monitor "test" command`, func(t *testing.T) {
+		w := newTestOutput()
+		command := &SnmpTestMonitors{}
+
+		expected := &expectedRequest{
+			method: http.MethodPut,
+			path:   path,
+		}
+
+		result := &expectedResponse{status: http.StatusAccepted}
+
+		t.Run("Given a dummy gateway REST interface", func(t *testing.T) {
+			testServer(t, expected, result)
+
+			t.Run("When executing the command", func(t *testing.T) {
+				require.NoError(t, executeCommand(t, w, command),
+					"Then it should not return an error")
+
+				assert.Equal(t,
+					"The SNMP test notification was successfully sent.\n",
+					w.String(),
+					"Then it should display a message saying the test notification was sent")
+			})
+		})
+	})
+}

@@ -19,7 +19,7 @@ func exportCredentials(logger *log.Logger, db database.ReadAccess,
 ) ([]file.Credential, []file.Certificate, string, error) {
 	credentials, err := owner.GetCredentials(db)
 	if err != nil {
-		logger.Error("Failed to retrieve the %s's credentials: %s",
+		logger.Errorf("Failed to retrieve the %s's credentials: %v",
 			owner.Appellation(), err)
 
 		return nil, nil, "", fmt.Errorf("failed to retrieve the %s's credentials: %w",

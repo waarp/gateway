@@ -92,6 +92,8 @@ func TestDatabase(tb testing.TB) *database.DB {
 		Type:    database.SQLite,
 		Address: dbName,
 	}
+	conf.GlobalConfig.Paths.FilePerms = 0o600
+	conf.GlobalConfig.Paths.DirPerms = 0o700
 
 	makeTestGCM(tb)
 

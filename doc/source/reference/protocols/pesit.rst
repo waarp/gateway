@@ -126,3 +126,50 @@ renverra jamais de texte.
 Ces valeurs étant stockées dans les :term:`infos de transfert`, il est donc possible
 de référencer ces valeurs dans des traitements via les :ref:`marqueurs de substitution
 <reference-tasks-substitutions>`.
+
+Attributs PeSIT
+---------------
+
+En plus du texte libre, le protocole PeSIT permet la transmission de divers attributs
+et informations. Comme le texte libre, ces informations sont stockées par la Gateway
+sous forme :term:`d'infos de transfert<infos de transfert>` avec des clés spéciales
+réservées. Les clés correspondantes pour ces attributs sont :
+
+- ``__fileEncoding__`` pour l'encodage du fichier (PI 16)
+- ``__fileType__`` pour le type de fichier (PI 11)
+- ``__organization__`` pour l'organisation du fichier (PI 33)
+- ``__customerID__`` pour l'identifiant de client (PI 61)
+- ``__bankID__`` pour l'identifiant de banque (PI 62)
+
+À noter que les 3 premiers attributs voyagent toujours dans le même sens que le fichier
+transféré (donc de l'émetteur vers le récepteur), alors que les 2 derniers voyagent
+toujours dans le sens de la connexion (donc du client vers le serveur).
+
+Comme pour le texte libre, ces informations peuvent être référencées dans les traitements
+en utilisant leurs clés respectives.
+
+Articles
+--------
+
+Le protocole PeSIT permet techniquement d'envoyer plusieurs "articles" au sein
+d'un même transfert. Bien que cela puisse potentiellement permettre de transférer
+plusieurs fichiers en un seul transfert, il est à noter **qu'un article n'est pas
+équivalent à un fichier**. Notamment, les fichiers de grande taille seront
+quasi-systématiquement découpés en plusieurs articles.
+
+Voici donc comment Gateway gère ce découpage en articles :
+
+En réception, tous les articles envoyés par l'émetteur seront stockés dans un
+même fichier sur le disque. Le découpage en article sera lui stocké dans les
+:term:`infos de transfert` sous le nom de clé ``__articlesLengths__``.
+Cet attribut prendra la forme d'une liste JSON d'entiers spécifiant la taille
+(en octets) de chaque article du transfert.
+
+À l'inverse, pour les transferts en émission, si la clé ``__articlesLengths__``
+est présente dans les infos de transfert, alors sa valeur sera utilisée pour le
+découpage en articles. En l'absence de cet attribut, un découpage automatique
+minimisant le nombre d'articles sera utilisé par défaut.
+
+Pour conserver le découpage en articles d'un transfert à l'autre en cas de rebond,
+pensez donc bien à activer l'option ``copyInfo`` de la tâche TRANSFER pour que la
+clé soit copiée sur le nouveau transfert.

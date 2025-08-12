@@ -37,10 +37,10 @@ func credentialsImport(logger *log.Logger, db database.Access, list []file.Crede
 
 		// Create/Update
 		if exist {
-			logger.Info("Update the credential %s", credential.Name)
+			logger.Infof("Update the credential %q", credential.Name)
 			dbErr = db.Update(&credential).Run()
 		} else {
-			logger.Info("Create the credential %s", credential.Name)
+			logger.Infof("Create the credential %q", credential.Name)
 			dbErr = db.Insert(&credential).Run()
 		}
 

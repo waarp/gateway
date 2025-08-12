@@ -640,7 +640,7 @@ func TestUpdateRule(t *testing.T) {
 						Convey("Then the response body should state that "+
 							"the rule was not found", func() {
 							So(w.Body.String(), ShouldEqual, ruleDirection(old)+
-								" rule 'toto' not found\n")
+								" rule \"toto\" not found\n")
 						})
 
 						Convey("Then the old rule should still exist", func() {
@@ -658,17 +658,17 @@ func TestUpdateRule(t *testing.T) {
 				Convey(fmt.Sprintf("When updating a rule IsSend: %t", rule.IsSend), func() {
 					testCases := []InRule{
 						{
-							Name: asNullableStr("update"),
+							Name: asNullable("update"),
 						}, {
-							Comment: asNullableStr("update comment"),
+							Comment: asNullable("update comment"),
 						}, {
-							Path: asNullableStr("path/update"),
+							Path: asNullable("path/update"),
 						}, {
-							LocalDir: asNullableStr("/update/local"),
+							LocalDir: asNullable("/update/local"),
 						}, {
-							RemoteDir: asNullableStr("/update/remote"),
+							RemoteDir: asNullable("/update/remote"),
 						}, {
-							TmpLocalRcvDir: asNullableStr("/update/tmp"),
+							TmpLocalRcvDir: asNullable("/update/tmp"),
 						}, {
 							PreTasks: []*Task{
 								{
@@ -702,9 +702,9 @@ func TestUpdateRule(t *testing.T) {
 
 							Convey("Then only the property updated should be modified", func() {
 								expected := getExpected(rule, &update)
-								dbRule, err := getFromDb(db, expected.Name, rule.IsSend)
-								So(err, ShouldBeNil)
-								So(dbRule, ShouldResemble, expected)
+								var dbRule model.Rule
+								So(db.Get(&dbRule, "id=?", rule.ID).Run(), ShouldBeNil)
+								So(&dbRule, ShouldResemble, expected)
 							})
 						})
 					}
@@ -777,15 +777,6 @@ func getExpected(src *model.Rule, upt *InRule) *model.Rule {
 
 	// TODO Tasks
 	return res
-}
-
-func getFromDb(db *database.DB, name string, isSend bool) (*model.Rule, error) {
-	var rule model.Rule
-	if err := db.Get(&rule, "name=? AND is_send=?", name, isSend).Run(); err != nil {
-		return nil, err
-	}
-
-	return &rule, nil
 }
 
 func TestReplaceRule(t *testing.T) {
@@ -899,7 +890,7 @@ func TestReplaceRule(t *testing.T) {
 						Convey("Then the response body should state that "+
 							"the rule was not found", func() {
 							So(w.Body.String(), ShouldEqual, ruleDirection(old)+
-								" rule 'toto' not found\n")
+								" rule \"toto\" not found\n")
 						})
 
 						Convey("Then the old rule should still exist", func() {

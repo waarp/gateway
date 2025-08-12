@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"io"
 	"path"
+	"time"
 
 	"github.com/gookit/color"
 
@@ -27,23 +28,37 @@ func displayClient(w io.Writer, client *api.OutClient) {
 	Style1.Printf(w, "Client %q [%s]", client.Name, coloredEnabled(client.Enabled))
 	Style22.PrintL(w, "Protocol", client.Protocol)
 	Style22.PrintL(w, "Local address", withDefault(client.LocalAddress, unspecified))
-
 	displayProtoConfig(w, client.ProtoConfig)
+
+	if client.NbOfAttempts != 0 {
+		Style22.PrintL(w, "Transfers number of attempts", client.NbOfAttempts)
+		Style22.PrintL(w, "Transfers first retry delay",
+			(time.Duration(client.FirstRetryDelay) * time.Second).String())
+		Style22.PrintL(w, "Transfers retry increment factor", client.RetryIncrementFactor)
+	}
 }
 
 // ######################## ADD ##########################
 
 //nolint:lll,tagliatelle // struct tags for command line arguments can be long
 type ClientAdd struct {
-	Name         string             `required:"yes" short:"n" long:"name" description:"The client's name" json:"name,omitempty"`
-	Protocol     string             `required:"yes" short:"p" long:"protocol" description:"The partner's protocol" json:"protocol,omitempty"`
-	LocalAddress string             `short:"a" long:"local-address" description:"The client's local address [address:port]" json:"localAddress,omitempty"`
-	ProtoConfig  map[string]confVal `short:"c" long:"config" description:"The client's configuration, in key:val format. Can be repeated." json:"protoConfig,omitempty"`
+	Name                 string             `required:"yes" short:"n" long:"name" description:"The client's name" json:"name,omitempty"`
+	Protocol             string             `required:"yes" short:"p" long:"protocol" description:"The partner's protocol" json:"protocol,omitempty"`
+	LocalAddress         string             `short:"a" long:"local-address" description:"The client's local address [address:port]" json:"localAddress,omitempty"`
+	ProtoConfig          map[string]confVal `short:"c" long:"config" description:"The client's configuration, in key:val format. Can be repeated." json:"protoConfig,omitempty"`
+	NbOfAttempts         int8               `long:"nb-of-attempts" description:"The number of times a transfer will be automatically re-tried in case of failure" json:"nbOfAttempts,omitempty"`
+	FirstRetryDelay      time.Duration      `long:"first-retry-delay" description:"The delay (in seconds) between the original attempt and the first automatic retry" json:"-"`
+	FirstRetryDelaySec   int32              `json:"firstRetryDelay,omitempty"`
+	RetryIncrementFactor float32            `long:"retry-increment-factor" description:"The factor by which the delay will be multiplied between each attempt of a transfer" json:"retryIncrementFactor,omitempty"`
 }
 
 func (c *ClientAdd) Execute([]string) error { return execute(c) }
 func (c *ClientAdd) execute(w io.Writer) error {
 	addr.Path = "/api/clients"
+
+	if c.FirstRetryDelay != 0 {
+		c.FirstRetryDelaySec = int32(c.FirstRetryDelay.Seconds())
+	}
 
 	if _, err := add(w, c); err != nil {
 		return err
@@ -59,6 +74,7 @@ func (c *ClientAdd) execute(w io.Writer) error {
 //nolint:lll // struct tags for command line arguments can be long
 type ClientList struct {
 	ListOptions
+
 	SortBy    string   `short:"s" long:"sort" description:"Attribute used to sort the returned entries" choice:"name+" choice:"name-" choice:"protocol+" choice:"protocol-" default:"name+"`
 	Protocols []string `short:"p" long:"protocol" description:"Filter the clients based on the protocol they use. Can be repeated multiple times to filter multiple protocols."`
 }
@@ -115,15 +131,23 @@ type ClientUpdate struct {
 		Name string `required:"yes" positional-arg-name:"name" description:"The old client's name"`
 	} `positional-args:"yes" json:"-"`
 
-	Name         *string             `short:"n" long:"name" description:"The new client's name" json:"name,omitempty"`
-	Protocol     *string             `short:"p" long:"protocol" description:"The new partner's protocol" json:"protocol,omitempty"`
-	LocalAddress *string             `short:"a" long:"local-address" description:"The new client's local address [address:port]" json:"localAddress,omitempty"`
-	ProtoConfig  *map[string]confVal `short:"c" long:"config" description:"The new client's configuration, in key:val format. Can be repeated." json:"protoConfig,omitempty"`
+	Name                 *string             `short:"n" long:"name" description:"The new client's name" json:"name,omitempty"`
+	Protocol             *string             `short:"p" long:"protocol" description:"The new partner's protocol" json:"protocol,omitempty"`
+	LocalAddress         *string             `short:"a" long:"local-address" description:"The new client's local address [address:port]" json:"localAddress,omitempty"`
+	ProtoConfig          *map[string]confVal `short:"c" long:"config" description:"The new client's configuration, in key:val format. Can be repeated." json:"protoConfig,omitempty"`
+	NbOfAttempts         *int8               `long:"nb-of-attempts" description:"The number of times a transfer will be automatically re-tried in case of failure" json:"nbOfAttempts,omitempty"`
+	FirstRetryDelayDur   time.Duration       `long:"first-retry-delay-dur" description:"The delay (in seconds) between the original attempt and the first automatic retry" json:"-"`
+	FirstRetryDelay      int32               `json:"firstRetryDelay,omitempty"`
+	RetryIncrementFactor *float32            `long:"retry-increment-factor" description:"The factor by which the delay will be multiplied between each attempt of a transfer" json:"retryIncrementFactor,omitempty"`
 }
 
 func (c *ClientUpdate) Execute([]string) error { return execute(c) }
 func (c *ClientUpdate) execute(w io.Writer) error {
 	addr.Path = path.Join("/api/clients", c.Args.Name)
+
+	if c.FirstRetryDelayDur != 0 {
+		c.FirstRetryDelay = int32(c.FirstRetryDelayDur.Seconds())
+	}
 
 	if err := update(w, c); err != nil {
 		return err

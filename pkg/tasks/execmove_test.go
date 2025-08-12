@@ -8,7 +8,6 @@ import (
 
 	. "github.com/smartystreets/goconvey/convey"
 
-	"code.waarp.fr/apps/gateway/gateway/pkg/model"
 	"code.waarp.fr/apps/gateway/gateway/pkg/utils/testhelpers"
 )
 
@@ -82,16 +81,14 @@ func TestExecMoveValidate(t *testing.T) {
 }
 
 func TestExecMoveRun(t *testing.T) {
+	transCtx := getExecTransCtx(t)
+
 	Convey("Given an 'EXECMOVE' task", t, func(c C) {
 		logger := testhelpers.TestLogger(c, "task_execmove")
 		root := testhelpers.TempDir(c, "task_execmove")
 		scriptPath := filepath.Join(root, execMoveScriptFile)
 
 		exec := &execMoveTask{}
-		transCtx := &model.TransferContext{
-			Rule:     &model.Rule{IsSend: false},
-			Transfer: &model.Transfer{},
-		}
 
 		srcFile := filepath.Join(root, "test.src")
 		dstFile := filepath.Join(root, "test.dst")

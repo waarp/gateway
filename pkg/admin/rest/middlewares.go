@@ -21,7 +21,7 @@ import (
 func AuthenticationMiddleware(logger *log.Logger, db *database.DB) mux.MiddlewareFunc {
 	return func(next http.Handler) http.Handler {
 		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-			logger.Debug("Received %s on %s", r.Method, r.URL)
+			logger.Debugf("Received %s on %q", r.Method, r.URL)
 
 			login, password, ok := r.BasicAuth()
 			if !ok {
@@ -34,7 +34,7 @@ func AuthenticationMiddleware(logger *log.Logger, db *database.DB) mux.Middlewar
 			var user model.User
 			if err := db.Get(&user, "username=?", login).Owner().Run(); err != nil &&
 				!database.IsNotFound(err) {
-				logger.Error("Database error: %s", err)
+				logger.Errorf("Database error: %s", err)
 				http.Error(w, "internal database error", http.StatusInternalServerError)
 
 				return
@@ -42,7 +42,7 @@ func AuthenticationMiddleware(logger *log.Logger, db *database.DB) mux.Middlewar
 
 			if err := bcrypt.CompareHashAndPassword([]byte(user.PasswordHash),
 				[]byte(password)); err != nil {
-				logger.Warning("Invalid credentials for user '%s'", login)
+				logger.Warningf("Invalid credentials for user %q", login)
 				w.Header().Set("WWW-Authenticate", "Basic")
 				http.Error(w, "the given credentials are invalid", http.StatusUnauthorized)
 
@@ -66,16 +66,18 @@ func (r *responseRecorder) WriteHeader(statusCode int) {
 	r.ResponseWriter.WriteHeader(statusCode)
 }
 
+//nolint:wrapcheck //wrapping the error adds nothing here
 func (r *responseRecorder) Write(p []byte) (int, error) {
 	if r.statusCode == 0 {
-		r.WriteHeader(http.StatusOK)
+		r.statusCode = http.StatusOK
 	}
 
 	if r.statusCode >= http.StatusBadRequest {
-		r.errMsg.Write(p)
+		if n, err := r.errMsg.Write(p); err != nil {
+			return n, err
+		}
 	}
 
-	//nolint:wrapcheck //wrapping the error adds nothing here
 	return r.ResponseWriter.Write(p)
 }
 
@@ -83,17 +85,17 @@ func LoggingMiddleware(logger *log.Logger) mux.MiddlewareFunc {
 	return func(next http.Handler) http.Handler {
 		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 			user, _, _ := r.BasicAuth()
-			logger.Debug("Received %s request by user %q on %s", r.Method, user,
+			logger.Debugf("Received %s request by user %q on %q", r.Method, user,
 				r.URL.String())
 
 			rec := responseRecorder{ResponseWriter: w}
 			next.ServeHTTP(&rec, r)
 
 			if rec.statusCode >= http.StatusBadRequest {
-				logger.Warning("Request failed with code %d: %s", rec.statusCode,
+				logger.Warningf("Request failed with code %d: %s", rec.statusCode,
 					rec.errMsg.String())
 			} else {
-				logger.Debug("Responded with code %d", rec.statusCode)
+				logger.Debugf("Responded with code %d", rec.statusCode)
 			}
 		})
 	}

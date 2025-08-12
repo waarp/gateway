@@ -22,14 +22,14 @@ type accessTarget interface {
 func resetRules(logger *log.Logger, db database.Access) error {
 	var rules model.Rules
 	if err := db.Select(&rules).Run(); err != nil {
-		logger.Error("Failed to retrieve the existing rules: %v", err)
+		logger.Errorf("Failed to retrieve the existing rules: %v", err)
 
 		return fmt.Errorf("failed to retrieve the existing rules: %w", err)
 	}
 
 	for _, rule := range rules {
 		if err := db.Delete(rule).Run(); err != nil {
-			logger.Error("Failed to delete the existing rules: %v", err)
+			logger.Errorf("Failed to delete the existing rules: %v", err)
 
 			return fmt.Errorf("failed to delete rule %q: %w", rule.Name, err)
 		}
@@ -53,11 +53,11 @@ func importRules(logger *log.Logger, db database.Access, list []file.Rule,
 		src := &list[i]
 		exists := true
 
-		err := db.Get(&rule, "name=? AND is_send=?", src.Name, src.IsSend).Run()
-		if database.IsNotFound(err) {
+		dbErr := db.Get(&rule, "name=? AND is_send=?", src.Name, src.IsSend).Run()
+		if database.IsNotFound(dbErr) {
 			exists = false
-		} else if err != nil {
-			return fmt.Errorf("failed to retrieve rule %q: %w", src.Name, err)
+		} else if dbErr != nil {
+			return fmt.Errorf("failed to retrieve rule %q: %w", src.Name, dbErr)
 		}
 
 		rule.Name = src.Name
@@ -70,30 +70,30 @@ func importRules(logger *log.Logger, db database.Access, list []file.Rule,
 		importRuleCheckDeprecated(logger, src, &rule)
 
 		if exists {
-			logger.Info("Update rule %s", rule.Name)
-			err = db.Update(&rule).Run()
+			logger.Infof("Update rule %q", rule.Name)
+			dbErr = db.Update(&rule).Run()
 		} else {
-			logger.Info("Create rule %s", rule.Name)
-			err = db.Insert(&rule).Run()
+			logger.Infof("Create rule %q", rule.Name)
+			dbErr = db.Insert(&rule).Run()
 		}
 
-		if err != nil {
-			return fmt.Errorf("failed to import rule %q: %w", rule.Name, err)
+		if dbErr != nil {
+			return fmt.Errorf("failed to import rule %q: %w", rule.Name, dbErr)
 		}
 
-		if err = importRuleAccesses(db, src.Accesses, &rule); err != nil {
+		if err := importRuleAccesses(db, src.Accesses, &rule); err != nil {
 			return err
 		}
 
-		if err = importRuleTasks(logger, db, src.Pre, &rule, model.ChainPre); err != nil {
+		if err := importRuleTasks(logger, db, src.Pre, &rule, model.ChainPre); err != nil {
 			return err
 		}
 
-		if err = importRuleTasks(logger, db, src.Post, &rule, model.ChainPost); err != nil {
+		if err := importRuleTasks(logger, db, src.Post, &rule, model.ChainPost); err != nil {
 			return err
 		}
 
-		if err = importRuleTasks(logger, db, src.Error, &rule, model.ChainError); err != nil {
+		if err := importRuleTasks(logger, db, src.Error, &rule, model.ChainError); err != nil {
 			return err
 		}
 	}
@@ -136,7 +136,7 @@ var ErrInvalidRuleAuthFormat = errors.New("invalid rule auth format")
 func importRuleAccesses(db database.Access, list []string, rule *model.Rule) error {
 	for _, src := range list {
 		arr := strings.Split(src, "::")
-		if len(arr) < 2 { //nolint:gomnd // no need for a constant, only used once
+		if len(arr) < 2 { //nolint:mnd // no need for a constant, only used once
 			return database.NewValidationError("rule permission is not in a valid format")
 		}
 
@@ -181,7 +181,7 @@ func createRemoteAccess(db database.ReadAccess, arr []string,
 		return nil, nil, fmt.Errorf("failed to retrieve remote agent %q: %w", arr[1], err)
 	}
 
-	if len(arr) < 3 { //nolint:gomnd // no need for a constant, only used once
+	if len(arr) < 3 { //nolint:mnd // no need for a constant, only used once
 		// RemoteAgent Access
 		return &model.RuleAccess{
 			RuleID:        ruleID,
@@ -212,7 +212,7 @@ func createLocalAccess(db database.ReadAccess, arr []string,
 		return nil, nil, fmt.Errorf("failed to retrieve local agent %q: %w", arr[1], err)
 	}
 
-	if len(arr) < 3 { //nolint:gomnd // no need for a constant, only used once
+	if len(arr) < 3 { //nolint:mnd // no need for a constant, only used once
 		// LocalAgent Access
 		return &model.RuleAccess{
 			RuleID:       ruleID,
@@ -253,7 +253,7 @@ func importRuleTasks(logger *log.Logger, db database.Access, list []file.Task,
 		task.Args = src.Args
 
 		// Create/Update
-		logger.Info("Create task type %s at chain %s rank %d", task.Type, chain, i)
+		logger.Infof("Create task type %s at chain %s rank %d", task.Type, chain, i)
 
 		if err := db.Insert(&task).Run(); err != nil {
 			return fmt.Errorf("failed to insert task %q: %w", task.Type, err)

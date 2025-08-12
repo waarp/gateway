@@ -8,7 +8,7 @@ IMPORTS
     ;
 
 gateway MODULE-IDENTITY
-    LAST-UPDATED "202408080000Z"
+    LAST-UPDATED "202507230000Z"
     ORGANIZATION
         "Waarp SAS"
     CONTACT-INFO
@@ -18,14 +18,22 @@ gateway MODULE-IDENTITY
      email: info@waarp.fr"
     DESCRIPTION
         "The MIB module describing the Waarp-Gateway SNMP interface"
-    REVISION    "202408080000Z"
+    REVISION    "202507230000Z"
     DESCRIPTION
-        "Second version of the Waarp Gateway MIB, with the addition of the
-        SNMP server properties."
+        "Third version of the Waarp Gateway MIB, with the addition of the instance
+        name property to notifications."
     ::= { waarp 77 }
 
 -- Root
 waarp OBJECT IDENTIFIER ::= { enterprises 66666 }
+
+instanceName OBJECT-TYPE
+    SYNTAX          OCTET STRING
+    MAX-ACCESS      read-only
+    STATUS          current
+    DESCRIPTION
+        "The name of the Gateway instance (as defined in its config file)"
+    ::= { gateway 99 }
 
 -- 1. Notifications
 gwNotifs OBJECT IDENTIFIER ::= { gateway 0 }
@@ -391,7 +399,7 @@ gwNotifsGroup NOTIFICATION-GROUP
 
 serviceErrorGroup OBJECT-GROUP
     OBJECTS
-        { serviceErrorName, serviceErrorMessage }
+        { instanceName, serviceErrorName, serviceErrorMessage }
     STATUS      current
     DESCRIPTION
         "The properties sent in the service error notification"
@@ -399,6 +407,7 @@ serviceErrorGroup OBJECT-GROUP
 
 transferErrorGroup OBJECT-GROUP
     OBJECTS {
+                instanceName,
                 transferErrorID,
                 transferErrorRemoteID,
                 transferErrorRuleName,

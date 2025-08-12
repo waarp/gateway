@@ -3,10 +3,12 @@ package utils
 import (
 	"net"
 	"strconv"
+
+	"golang.org/x/exp/constraints"
 )
 
 //nolint:wrapcheck //wrapping errors adds nothing here
-func SplitHostPort(hostport string) (string, uint16, error) {
+func SplitHostPort[T constraints.Integer](hostport string) (string, T, error) {
 	host, port, err := net.SplitHostPort(hostport)
 	if err != nil {
 		return "", 0, err
@@ -17,5 +19,5 @@ func SplitHostPort(hostport string) (string, uint16, error) {
 		return "", 0, err
 	}
 
-	return host, uint16(portnum), nil
+	return host, T(portnum), nil
 }

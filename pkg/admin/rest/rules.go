@@ -51,22 +51,25 @@ func restRuleToDB(rule *api.InRule, logger *log.Logger) (*model.Rule, error) {
 		}
 	}
 
-	return &model.Rule{
-		Name:           rule.Name.Value,
-		Comment:        rule.Comment.Value,
-		IsSend:         rule.IsSend.Value,
-		Path:           rule.Path.Value,
+	dbRule := &model.Rule{
 		LocalDir:       local,
 		RemoteDir:      remote,
 		TmpLocalRcvDir: tmp,
-	}, nil
+	}
+
+	setIfValid(&dbRule.Name, rule.Name)
+	setIfValid(&dbRule.IsSend, rule.IsSend)
+	setIfValid(&dbRule.Comment, rule.Comment)
+	setIfValid(&dbRule.Path, rule.Path)
+
+	return dbRule, nil
 }
 
 // DBRuleToREST transforms the given database transfer rule into its JSON equivalent.
 func DBRuleToREST(db *database.DB, dbRule *model.Rule) (*api.OutRule, error) {
-	access, err := makeRuleAccess(db, dbRule)
-	if err != nil {
-		return nil, err
+	access, accErr := makeRuleAccess(db, dbRule)
+	if accErr != nil {
+		return nil, accErr
 	}
 
 	in := utils.NormalizePath(dbRule.LocalDir)
@@ -137,7 +140,7 @@ func retrieveDBRule(r *http.Request, db *database.DB) (*model.Rule, error) {
 	if err := db.Get(&rule, "name=? AND is_send=?", ruleName,
 		direction == "send").Run(); err != nil {
 		if database.IsNotFound(err) {
-			return nil, notFound("%s rule '%s' not found", direction, ruleName)
+			return nil, notFoundf("%s rule %q not found", direction, ruleName)
 		}
 
 		return nil, fmt.Errorf("failed to retrieve rule %q: %w", ruleName, err)
@@ -227,13 +230,15 @@ func updateRule(logger *log.Logger, db *database.DB) http.HandlerFunc {
 		}
 
 		restRule := &api.InRule{
-			Name:           asNullableStr(oldRule.Name),
+			Name: asNullable(oldRule.Name),
+
+			Comment:        asNullable(oldRule.Comment),
 			IsSend:         asNullableBool(oldRule.IsSend),
-			Comment:        asNullableStr(oldRule.Comment),
-			Path:           asNullableStr(oldRule.Path),
-			LocalDir:       asNullableStr(oldRule.LocalDir),
-			RemoteDir:      asNullableStr(oldRule.RemoteDir),
-			TmpLocalRcvDir: asNullableStr(oldRule.TmpLocalRcvDir),
+			Path:           asNullable(oldRule.Path),
+			LocalDir:       asNullable(oldRule.LocalDir),
+			RemoteDir:      asNullable(oldRule.RemoteDir),
+			TmpLocalRcvDir: asNullable(oldRule.TmpLocalRcvDir),
+			PreTasks:       nil,
 			PostTasks:      nil,
 			ErrorTasks:     nil,
 		}
@@ -326,7 +331,7 @@ func allowAllRule(logger *log.Logger, db *database.DB) http.HandlerFunc {
 			return
 		}
 
-		fmt.Fprintf(w, "Usage of the %s rule '%s' is now unrestricted.",
+		fmt.Fprintf(w, "Usage of the %s rule %q is now unrestricted.",
 			ruleDirection(dbRule), dbRule.Name)
 	}
 }

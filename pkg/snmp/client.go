@@ -10,6 +10,7 @@ import (
 	"code.waarp.fr/lib/log"
 	"github.com/gosnmp/gosnmp"
 
+	"code.waarp.fr/apps/gateway/gateway/pkg/conf"
 	"code.waarp.fr/apps/gateway/gateway/pkg/model"
 	"code.waarp.fr/apps/gateway/gateway/pkg/utils"
 )
@@ -19,13 +20,13 @@ const (
 	trapsRetries = 3
 )
 
-func connect(logger *log.Logger, conf *MonitorConfig) (*gosnmp.GoSNMP, error) {
-	host, port, addrErr := utils.SplitHostPort(conf.UDPAddress)
+func connect(logger *log.Logger, config *MonitorConfig) (*gosnmp.GoSNMP, error) {
+	host, port, addrErr := utils.SplitHostPort[uint16](config.UDPAddress)
 	if addrErr != nil {
-		return nil, fmt.Errorf("failed to parse the target address %q: %w", conf.UDPAddress, addrErr)
+		return nil, fmt.Errorf("failed to parse the target address %q: %w", config.UDPAddress, addrErr)
 	}
 
-	version, vErr := toSNMPVersion(conf.Version)
+	version, vErr := toSNMPVersion(config.Version)
 	if vErr != nil {
 		return nil, vErr
 	}
@@ -36,7 +37,7 @@ func connect(logger *log.Logger, conf *MonitorConfig) (*gosnmp.GoSNMP, error) {
 		Version:   version,
 		Target:    host,
 		Port:      port,
-		Community: conf.Community,
+		Community: config.Community,
 		Transport: "udp",
 		Logger:    snmpLogger,
 		Timeout:   trapsTimeout,
@@ -44,30 +45,30 @@ func connect(logger *log.Logger, conf *MonitorConfig) (*gosnmp.GoSNMP, error) {
 	}
 
 	if version == gosnmp.Version3 {
-		if conf.AuthEngineID != "" {
+		if config.AuthEngineID != "" {
 			var authEngineIDInt big.Int
-			if _, ok := authEngineIDInt.SetString(conf.AuthEngineID, 0); ok {
-				conf.AuthEngineID = string(authEngineIDInt.Bytes())
+			if _, ok := authEngineIDInt.SetString(config.AuthEngineID, 0); ok {
+				config.AuthEngineID = string(authEngineIDInt.Bytes())
 			}
 		}
 
-		client.MsgFlags = conf.snmpV3MsgFlags()
-		client.ContextName = conf.ContextName
-		client.ContextEngineID = conf.ContextEngineID
+		client.MsgFlags = config.snmpV3MsgFlags()
+		client.ContextName = config.ContextName
+		client.ContextEngineID = config.ContextEngineID
 		client.SecurityModel = gosnmp.UserSecurityModel
 		client.SecurityParameters = &gosnmp.UsmSecurityParameters{
-			AuthoritativeEngineID:    conf.AuthEngineID,
-			UserName:                 conf.AuthUsername,
-			AuthenticationProtocol:   getAuthProtocol(conf.AuthProtocol),
-			PrivacyProtocol:          getPrivProtocol(conf.PrivProtocol),
-			AuthenticationPassphrase: string(conf.AuthPassphrase),
-			PrivacyPassphrase:        string(conf.PrivPassphrase),
+			AuthoritativeEngineID:    config.AuthEngineID,
+			UserName:                 config.AuthUsername,
+			AuthenticationProtocol:   getAuthProtocol(config.AuthProtocol),
+			PrivacyProtocol:          getPrivProtocol(config.PrivProtocol),
+			AuthenticationPassphrase: string(config.AuthPassphrase),
+			PrivacyPassphrase:        string(config.PrivPassphrase),
 			Logger:                   snmpLogger,
 		}
 	}
 
 	if err := client.Connect(); err != nil {
-		return nil, fmt.Errorf("failed to connect to %q: %w", conf.UDPAddress, err)
+		return nil, fmt.Errorf("failed to connect to %q: %w", config.UDPAddress, err)
 	}
 
 	return client, nil
@@ -82,7 +83,7 @@ func (s *Service) sendTrap(trap *gosnmp.SnmpTrap) error {
 	for _, monitor := range s.monitors {
 		client, err := connect(s.Logger, monitor)
 		if err != nil {
-			s.Logger.Error("Failed to connect to SNMP monitor %q at %q: %v",
+			s.Logger.Errorf("Failed to connect to SNMP monitor %q at %q: %v",
 				monitor.Name, monitor.UDPAddress, err)
 		}
 
@@ -92,7 +93,7 @@ func (s *Service) sendTrap(trap *gosnmp.SnmpTrap) error {
 	defer func() {
 		for _, client := range clients {
 			if err := client.Conn.Close(); err != nil {
-				s.Logger.Error("Failed to close SNMP connection to %q: %v",
+				s.Logger.Errorf("Failed to close SNMP connection to %q: %v",
 					client.Conn.RemoteAddr().String(), err)
 			}
 		}
@@ -102,7 +103,7 @@ func (s *Service) sendTrap(trap *gosnmp.SnmpTrap) error {
 
 	for _, client := range clients {
 		if _, err := client.SendTrap(*trap); err != nil {
-			s.Logger.Error("Failed to send SNMP trap: %v", err)
+			s.Logger.Errorf("Failed to send SNMP trap: %v", err)
 
 			return fmt.Errorf("failed to send SNMP trap: %w", err)
 		}
@@ -123,6 +124,10 @@ func (s *Service) sendTransferError(trans *model.NormalizedTransferView) error {
 				Value: TransferErrorNotifOID,
 				Name:  SNMPTrapOID,
 				Type:  gosnmp.ObjectIdentifier,
+			}, {
+				Value: InstanceNameOID,
+				Name:  conf.GlobalConfig.GatewayName,
+				Type:  gosnmp.OctetString,
 			}, {
 				Value: utils.FormatInt(trans.ID),
 				Name:  TeObjectTransOID,
@@ -187,6 +192,10 @@ func (s *Service) sendServiceError(service string, sErr error) error {
 				Value: ServiceErrorNotifOID,
 				Name:  SNMPTrapOID,
 				Type:  gosnmp.ObjectIdentifier,
+			}, {
+				Value: InstanceNameOID,
+				Name:  conf.GlobalConfig.GatewayName,
+				Type:  gosnmp.OctetString,
 			}, {
 				Value: service,
 				Name:  SeObjectNameOID,

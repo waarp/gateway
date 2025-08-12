@@ -29,7 +29,7 @@ func showStatus(w io.Writer, title string, services []*api.Service) {
 		nameColor = color.Bold
 	)
 
-	Style1.Printf(w, title+":")
+	Style1.PrintV(w, title+":")
 
 	var errors, actives, offlines []*api.Service
 

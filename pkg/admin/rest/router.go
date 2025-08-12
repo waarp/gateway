@@ -89,6 +89,7 @@ func makeTransferHandlers(mkHandler HandlerFactory) {
 
 	mkHandler(transfersPath, listTransfers, model.PermTransfersRead, http.MethodGet)
 	mkHandler(transfersPath, addTransfer, model.PermTransfersWrite, http.MethodPost)
+	mkHandler(transfersPath, preregisterServerTransfer, model.PermTransfersWrite, http.MethodPut)
 	mkHandler(transfersPath, cancelTransfers, model.PermTransfersWrite, http.MethodDelete)
 	mkHandler(transferPath, getTransfer, model.PermTransfersRead, http.MethodGet)
 	mkHandler(transPausePath, pauseTransfer, model.PermTransfersWrite, http.MethodPut)
@@ -337,4 +338,28 @@ func makeKeysHandlers(mkHandler HandlerFactory) {
 	mkHandler(cryptoKeyPath, getCryptoKey, model.PermAdminRead, http.MethodGet)
 	mkHandler(cryptoKeyPath, updateCryptoKey, model.PermAdminWrite, http.MethodPatch)
 	mkHandler(cryptoKeyPath, deleteCryptoKey, model.PermAdminDelete, http.MethodDelete)
+}
+
+func makeEmailHanddlers(mkHandler HandlerFactory) {
+	const (
+		emailTemplatesPath  = "/email/templates"
+		emailTemplatePath   = "/email/templates/{email_template}"
+		smtpCredentialsPath = "/email/credentials"
+		smtpCredentialPath  = "/email/credentials/{smtp_credential}"
+	)
+
+	// Email templates
+	mkHandler(emailTemplatesPath, addEmailTemplate, model.PermRulesWrite, http.MethodPost)
+	mkHandler(emailTemplatesPath, listEmailTemplates, model.PermRulesRead, http.MethodGet)
+	mkHandler(emailTemplatePath, getEmailTemplate, model.PermRulesRead, http.MethodGet)
+	mkHandler(emailTemplatePath, updateEmailTemplate, model.PermRulesWrite, http.MethodPatch)
+	mkHandler(emailTemplatePath, deleteEmailTemplate, model.PermRulesDelete, http.MethodDelete)
+
+	// SMTP credentials
+	mkHandler(smtpCredentialsPath, addSMTPCredential, model.PermRulesWrite, http.MethodPost)
+	mkHandler(smtpCredentialsPath, listSMPTCredentials, model.PermRulesRead, http.MethodGet)
+	mkHandler(smtpCredentialPath, getSMTPCredential, model.PermRulesRead, http.MethodGet)
+	mkHandler(smtpCredentialPath, updateSMTPCredential, model.PermRulesWrite, http.MethodPatch)
+	mkHandler(smtpCredentialPath, deleteSMTPCredential, model.PermRulesDelete, http.MethodDelete)
+
 }

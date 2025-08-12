@@ -33,26 +33,26 @@ func GetClosestRule(db database.ReadAccess, logger *log.Logger, server *model.Lo
 	}
 
 	var rule model.Rule
-	if err := db.Get(&rule, "path=? AND is_send=?", rulePath, isSendPriority).Run(); err != nil {
-		if !database.IsNotFound(err) {
-			logger.Error("Failed to retrieve rule: %s", err)
+	if err1 := db.Get(&rule, "path=? AND is_send=?", rulePath, isSendPriority).Run(); err1 != nil {
+		if !database.IsNotFound(err1) {
+			logger.Errorf("Failed to retrieve rule: %v", err1)
 
 			return nil, ErrDatabase
 		}
 
-		if err := db.Get(&rule, "path=? AND is_send=?", rulePath, !isSendPriority).Run(); err != nil {
-			if database.IsNotFound(err) {
+		if err2 := db.Get(&rule, "path=? AND is_send=?", rulePath, !isSendPriority).Run(); err2 != nil {
+			if database.IsNotFound(err2) {
 				return GetClosestRule(db, logger, server, acc, path.Dir(rulePath), isSendPriority)
 			}
 
-			logger.Error("Failed to retrieve rule: %s", err)
+			logger.Errorf("Failed to retrieve rule: %v", err2)
 
 			return nil, ErrDatabase
 		}
 	}
 
 	if ok, err := rule.IsAuthorized(db, acc); err != nil {
-		logger.Error("Failed to check rule permissions: %s", err)
+		logger.Errorf("Failed to check rule permissions: %v", err)
 
 		return nil, ErrDatabase
 	} else if !ok {

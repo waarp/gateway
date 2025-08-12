@@ -1,6 +1,7 @@
 package model
 
 import (
+	"database/sql"
 	"fmt"
 
 	"code.waarp.fr/apps/gateway/gateway/pkg/conf"
@@ -26,11 +27,12 @@ type RemoteAgent struct {
 	ProtoConfig map[string]any `xorm:"proto_config"`
 }
 
-func (*RemoteAgent) TableName() string   { return TableRemAgents }
-func (*RemoteAgent) Appellation() string { return NameRemoteAgent }
-func (r *RemoteAgent) GetID() int64      { return r.ID }
-func (*RemoteAgent) IsServer() bool      { return true }
-func (r *RemoteAgent) Host() string      { return r.Address.Host }
+func (*RemoteAgent) TableName() string          { return TableRemAgents }
+func (*RemoteAgent) Appellation() string        { return NameRemoteAgent }
+func (r *RemoteAgent) GetID() int64             { return r.ID }
+func (r *RemoteAgent) GetNullID() sql.NullInt64 { return utils.NewNullInt64(r.ID) }
+func (*RemoteAgent) IsServer() bool             { return true }
+func (r *RemoteAgent) Host() string             { return r.Address.Host }
 
 func (r *RemoteAgent) validateProtoConfig() error {
 	if err := ConfigChecker.CheckPartnerConfig(r.Protocol, r.ProtoConfig); err != nil {
@@ -56,7 +58,7 @@ func (r *RemoteAgent) BeforeWrite(db database.Access) error {
 	}
 
 	if err := r.Address.Validate(); err != nil {
-		return database.NewValidationError("address validation failed: %w", err)
+		return database.NewValidationErrorf("address validation failed: %w", err)
 	}
 
 	if r.ProtoConfig == nil {
@@ -71,8 +73,8 @@ func (r *RemoteAgent) BeforeWrite(db database.Access) error {
 		r.ID, r.Owner, r.Name).Run(); err != nil {
 		return fmt.Errorf("failed to check for duplicate remote agents: %w", err)
 	} else if n > 0 {
-		return database.NewValidationError("a remote agent with the same name %q "+
-			"already exist", r.Name)
+		return database.NewValidationErrorf(
+			"a remote agent with the same name %q already exist", r.Name)
 	}
 
 	return nil
@@ -145,6 +147,7 @@ func (r *RemoteAgent) getR66ServerPswd() string {
 	return serverPasswd
 }
 
+//nolint:dupl //keep separate from local agent's version
 func (r *RemoteAgent) AfterUpdate(db database.Access) error {
 	serverPasswd := r.getR66ServerPswd()
 	if serverPasswd == "" {

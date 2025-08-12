@@ -84,7 +84,7 @@ func TestCloudInstanceBeforeWrite(t *testing.T) {
 			cloud := validCloud
 
 			require.ErrorContains(t, cloud.BeforeWrite(db),
-				fmt.Sprintf(`a cloud instance named "%s" already exist`, cloud.Name),
+				fmt.Sprintf(`a cloud instance named %q already exist`, cloud.Name),
 				"Then calling 'BeforeWrite' should return an error")
 		})
 	})

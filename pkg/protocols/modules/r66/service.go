@@ -37,14 +37,14 @@ type service struct {
 	state  utils.State
 	tracer func() pipeline.Trace
 
-	r66Conf *serverConfig
+	r66Conf *tlsServerConfig
 	list    net.Listener
 	server  *r66.Server
 }
 
 func (s *service) makeTLSConf(*tls.ClientHelloInfo) (*tls.Config, error) {
 	tlsConfig := &tls.Config{
-		MinVersion:       tls.VersionTLS12,
+		MinVersion:       s.r66Conf.MinTLSVersion.TLS(),
 		ClientAuth:       tls.RequestClientCert,
 		VerifyConnection: compatibility.LogSha1(s.logger),
 	}
@@ -105,7 +105,7 @@ func (s *service) Start() error {
 	}
 
 	if err := s.start(); err != nil {
-		s.logger.Error("Failed to start R66 service: %s", err)
+		s.logger.Errorf("Failed to start R66 service: %v", err)
 		s.state.Set(utils.StateError, err.Error())
 		snmp.ReportServiceFailure(s.agent.Name, err)
 
@@ -122,7 +122,7 @@ func (s *service) start() error {
 	s.logger.Info("Starting R66 server...")
 
 	setLogAndReturnError := func(msg string, args ...any) error {
-		//nolint:goerr113 //dynamic error is better here for readability
+		//nolint:err113 //dynamic error is better here for readability
 		err := fmt.Errorf(msg, args...)
 		s.logger.Error(err.Error())
 		s.state.Set(utils.StateError, err.Error())
@@ -130,9 +130,9 @@ func (s *service) start() error {
 		return err
 	}
 
-	s.r66Conf = &serverConfig{}
+	s.r66Conf = &tlsServerConfig{}
 	if err := utils.JSONConvert(s.agent.ProtoConfig, s.r66Conf); err != nil {
-		return setLogAndReturnError("Failed to parse the R66 proto config: %s", err)
+		return setLogAndReturnError("Failed to parse the R66 proto config: %v", err)
 	}
 
 	var pswd model.Credential
@@ -168,7 +168,7 @@ func (s *service) start() error {
 	}
 
 	s.state.Set(utils.StateRunning, "")
-	s.logger.Info("R66 server started successfully on %s", s.list.Addr().String())
+	s.logger.Infof("R66 server started successfully on %q", s.list.Addr().String())
 
 	return nil
 }
@@ -179,7 +179,7 @@ func (s *service) listen() error {
 
 	list, listErr := net.Listen("tcp", addr)
 	if listErr != nil {
-		s.logger.Error("Failed to start R66 listener: %s", listErr)
+		s.logger.Errorf("Failed to start R66 listener: %v", listErr)
 
 		return fmt.Errorf("failed to start R66 listener: %w", listErr)
 	}
@@ -188,15 +188,14 @@ func (s *service) listen() error {
 
 	if s.agent.Protocol == R66TLS {
 		s.list = tls.NewListener(s.list, &tls.Config{
-			MinVersion:         tls.VersionTLS12,
 			GetConfigForClient: s.makeTLSConf,
 		})
 	}
 
 	go func() {
 		if err := s.server.Serve(s.list); err != nil {
-			s.logger.Error("Server stopped unexpectedly: %s", err)
-			s.state.Set(utils.StateError, fmt.Sprintf("server stopped unexpectedly: %s", err))
+			s.logger.Errorf("Server stopped unexpectedly: %q", err)
+			s.state.Set(utils.StateError, fmt.Sprintf("server stopped unexpectedly: %v", err))
 		}
 	}()
 
@@ -235,7 +234,7 @@ func (s *service) stop(ctx context.Context) error {
 	s.logger.Debug("Closing listener...")
 
 	if err := s.server.Shutdown(ctx); err != nil {
-		s.logger.Warning("Failed to properly shutdown R66 server: %v", err)
+		s.logger.Warningf("Failed to properly shutdown R66 server: %v", err)
 	}
 
 	if stopErr != nil {

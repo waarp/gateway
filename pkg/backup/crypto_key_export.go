@@ -25,7 +25,7 @@ func exportCryptoKeys(logger *log.Logger, db database.ReadAccess) ([]*file.Crypt
 			Key:  dbKey.Key.String(),
 		}
 
-		logger.Info("Exported crypto key %q", dbKey.Name)
+		logger.Infof("Exported crypto key %q", dbKey.Name)
 	}
 
 	return keys, nil

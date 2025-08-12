@@ -2,6 +2,7 @@ package model
 
 import (
 	"database/sql"
+	"fmt"
 
 	"code.waarp.fr/apps/gateway/gateway/pkg/database"
 )
@@ -53,16 +54,16 @@ func (t *TransferInfo) BeforeWrite(db database.Access) error {
 
 	n, err := db.Count(owner).Where("id=?", transID).Run()
 	if err != nil {
-		return database.NewValidationError("failed to retrieve transfer list: %s", err)
+		return fmt.Errorf("failed to retrieve transfer list: %w", err)
 	} else if n == 0 {
-		return database.NewValidationError("no transfer %d found", transID)
+		return database.NewValidationErrorf("no transfer %d found", transID)
 	}
 
 	if n, err = db.Count(&TransferInfo{}).Where("transfer_id=? AND name=?",
 		transID, t.Name).Run(); err != nil {
-		return database.NewValidationError("failed to retrieve info list: %s", err)
+		return fmt.Errorf("failed to retrieve info list: %w", err)
 	} else if n > 0 {
-		return database.NewValidationError("transfer %d already has a property %q",
+		return database.NewValidationErrorf("transfer %d already has a property %q",
 			transID, t.Name)
 	}
 

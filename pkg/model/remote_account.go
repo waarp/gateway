@@ -1,6 +1,7 @@
 package model
 
 import (
+	"database/sql"
 	"fmt"
 
 	"code.waarp.fr/apps/gateway/gateway/pkg/database"
@@ -16,11 +17,12 @@ type RemoteAccount struct {
 	Login string `xorm:"login"` // The account's login
 }
 
-func (*RemoteAccount) TableName() string   { return TableRemAccounts }
-func (*RemoteAccount) Appellation() string { return NameRemoteAccount }
-func (r *RemoteAccount) GetID() int64      { return r.ID }
-func (r *RemoteAccount) Host() string      { return "" }
-func (*RemoteAccount) IsServer() bool      { return false }
+func (*RemoteAccount) TableName() string          { return TableRemAccounts }
+func (*RemoteAccount) Appellation() string        { return NameRemoteAccount }
+func (r *RemoteAccount) GetID() int64             { return r.ID }
+func (r *RemoteAccount) GetNullID() sql.NullInt64 { return utils.NewNullInt64(r.ID) }
+func (r *RemoteAccount) Host() string             { return "" }
+func (*RemoteAccount) IsServer() bool             { return false }
 
 // BeforeWrite checks if the new `RemoteAccount` entry is valid and can be
 // inserted in the database.
@@ -38,7 +40,7 @@ func (r *RemoteAccount) BeforeWrite(db database.Access) error {
 	if n, err := db.Count(&RemoteAgent{}).Where("id=?", r.RemoteAgentID).Run(); err != nil {
 		return fmt.Errorf("failed to check parent remote agent: %w", err)
 	} else if n == 0 {
-		return database.NewValidationError(`no remote agent found with the ID "%v"`,
+		return database.NewValidationErrorf(`no remote agent found with the ID "%v"`,
 			r.RemoteAgentID)
 	}
 
@@ -46,7 +48,7 @@ func (r *RemoteAccount) BeforeWrite(db database.Access) error {
 		r.ID, r.RemoteAgentID, r.Login).Run(); err != nil {
 		return fmt.Errorf("failed to check for duplicate remote accounts: %w", err)
 	} else if n > 0 {
-		return database.NewValidationError(
+		return database.NewValidationErrorf(
 			"a remote account with the same login %q already exist", r.Login)
 	}
 
@@ -96,7 +98,7 @@ func (r *RemoteAccount) getParent(db database.ReadAccess) (*RemoteAgent, error) 
 	var parent RemoteAgent
 	if err := db.Get(&parent, "id=?", r.RemoteAgentID).Run(); err != nil {
 		if database.IsNotFound(err) {
-			return nil, database.NewValidationError(`no remote agent found with the ID "%v"`, r.RemoteAgentID)
+			return nil, database.NewValidationErrorf(`no remote agent found with the ID "%v"`, r.RemoteAgentID)
 		}
 
 		return nil, fmt.Errorf("failed to check parent remote agent: %w", err)

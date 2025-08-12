@@ -10,6 +10,7 @@ Le point d'accès pour gérer tous les transferts en cours et terminés est ``/a
    :maxdepth: 1
 
    create
+   preregister
    list
    consult
    pause

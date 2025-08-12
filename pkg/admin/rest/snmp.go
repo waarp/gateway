@@ -26,7 +26,7 @@ func retrieveDBSNMPMonitor(r *http.Request, db *database.DB) (*snmp.MonitorConfi
 	if err := db.Get(&monitor, "name=? AND owner=?", name,
 		conf.GlobalConfig.GatewayName).Run(); err != nil {
 		if database.IsNotFound(err) {
-			return nil, notFound("SNMP monitor %q not found", name)
+			return nil, notFoundf("SNMP monitor %q not found", name)
 		}
 
 		return nil, fmt.Errorf("failed to retrieve SNMP monitor %q: %w", name, err)
@@ -136,32 +136,32 @@ func getSnmpMonitor(logger *log.Logger, db *database.DB) http.HandlerFunc {
 
 func updateSnmpMonitor(logger *log.Logger, db *database.DB) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		oldDbMonitor, getErr := retrieveDBSNMPMonitor(r, db)
+		oldDBMonitor, getErr := retrieveDBSNMPMonitor(r, db)
 		if handleError(w, logger, getErr) {
 			return
 		}
 
 		restMonitor := api.PatchSnmpMonitorReqObject{
-			Name:            asNullableStr(oldDbMonitor.Name),
-			Version:         asNullableStr(oldDbMonitor.Version),
-			UDPAddress:      asNullableStr(oldDbMonitor.UDPAddress),
-			Community:       asNullableStr(oldDbMonitor.Community),
-			UseInforms:      asNullableBool(oldDbMonitor.UseInforms),
-			ContextName:     asNullableStr(oldDbMonitor.ContextName),
-			ContextEngineID: asNullableStr(oldDbMonitor.ContextEngineID),
-			SNMPv3Security:  asNullableStr(oldDbMonitor.SNMPv3Security),
-			AuthEngineID:    asNullableStr(oldDbMonitor.AuthEngineID),
-			AuthUsername:    asNullableStr(oldDbMonitor.AuthUsername),
-			AuthProtocol:    asNullableStr(oldDbMonitor.AuthProtocol),
-			AuthPassphrase:  asNullableSecret(oldDbMonitor.AuthPassphrase),
-			PrivProtocol:    asNullableStr(oldDbMonitor.PrivProtocol),
-			PrivPassphrase:  asNullableSecret(oldDbMonitor.PrivPassphrase),
+			Name:            asNullable(oldDBMonitor.Name),
+			Version:         asNullable(oldDBMonitor.Version),
+			UDPAddress:      asNullable(oldDBMonitor.UDPAddress),
+			Community:       asNullable(oldDBMonitor.Community),
+			UseInforms:      asNullable(oldDBMonitor.UseInforms),
+			ContextName:     asNullable(oldDBMonitor.ContextName),
+			ContextEngineID: asNullable(oldDBMonitor.ContextEngineID),
+			SNMPv3Security:  asNullable(oldDBMonitor.SNMPv3Security),
+			AuthEngineID:    asNullable(oldDBMonitor.AuthEngineID),
+			AuthUsername:    asNullable(oldDBMonitor.AuthUsername),
+			AuthProtocol:    asNullable(oldDBMonitor.AuthProtocol),
+			AuthPassphrase:  asNullableSecret(oldDBMonitor.AuthPassphrase),
+			PrivProtocol:    asNullable(oldDBMonitor.PrivProtocol),
+			PrivPassphrase:  asNullableSecret(oldDBMonitor.PrivPassphrase),
 		}
 		if err := readJSON(r, &restMonitor); handleError(w, logger, err) {
 			return
 		}
 
-		dbMonitor := snmp.MonitorConfig{ID: oldDbMonitor.ID}
+		dbMonitor := snmp.MonitorConfig{ID: oldDBMonitor.ID}
 		setIfValid(&dbMonitor.Name, restMonitor.Name)
 		setIfValid(&dbMonitor.Version, restMonitor.Version)
 		setIfValid(&dbMonitor.UDPAddress, restMonitor.UDPAddress)
@@ -247,7 +247,7 @@ func retrieveDBSNMPServerConf(db *database.DB) (*snmp.ServerConfig, error) {
 }
 
 func getSnmpService(logger *log.Logger, db *database.DB) http.HandlerFunc {
-	return func(w http.ResponseWriter, r *http.Request) {
+	return func(w http.ResponseWriter, _ *http.Request) {
 		dbSnmpConfig, getErr := retrieveDBSNMPServerConf(db)
 		if handleError(w, logger, getErr) {
 			return
@@ -298,7 +298,7 @@ func addNewSnmpService(db *database.DB, logger *log.Logger, w http.ResponseWrite
 
 func setSnmpService(logger *log.Logger, db *database.DB) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		oldDbSnmpConf, getErr := retrieveDBSNMPServerConf(db)
+		oldDBSnmpConf, getErr := retrieveDBSNMPServerConf(db)
 		if isNotFound(getErr) {
 			addNewSnmpService(db, logger, w, r)
 
@@ -308,20 +308,20 @@ func setSnmpService(logger *log.Logger, db *database.DB) http.HandlerFunc {
 		}
 
 		restSnmpConf := api.PatchSnmpServiceReqObject{
-			LocalUDPAddress:  asNullableStr(oldDbSnmpConf.LocalUDPAddress),
-			Community:        asNullableStr(oldDbSnmpConf.Community),
-			V3Only:           asNullableBool(oldDbSnmpConf.SNMPv3Only),
-			V3Username:       asNullableStr(oldDbSnmpConf.SNMPv3Username),
-			V3AuthProtocol:   asNullableStr(oldDbSnmpConf.SNMPv3AuthProtocol),
-			V3AuthPassphrase: asNullableSecret(oldDbSnmpConf.SNMPv3AuthPassphrase),
-			V3PrivProtocol:   asNullableStr(oldDbSnmpConf.SNMPv3PrivProtocol),
-			V3PrivPassphrase: asNullableSecret(oldDbSnmpConf.SNMPv3PrivPassphrase),
+			LocalUDPAddress:  asNullable(oldDBSnmpConf.LocalUDPAddress),
+			Community:        asNullable(oldDBSnmpConf.Community),
+			V3Only:           asNullable(oldDBSnmpConf.SNMPv3Only),
+			V3Username:       asNullable(oldDBSnmpConf.SNMPv3Username),
+			V3AuthProtocol:   asNullable(oldDBSnmpConf.SNMPv3AuthProtocol),
+			V3AuthPassphrase: asNullableSecret(oldDBSnmpConf.SNMPv3AuthPassphrase),
+			V3PrivProtocol:   asNullable(oldDBSnmpConf.SNMPv3PrivProtocol),
+			V3PrivPassphrase: asNullableSecret(oldDBSnmpConf.SNMPv3PrivPassphrase),
 		}
 		if err := readJSON(r, &restSnmpConf); handleError(w, logger, err) {
 			return
 		}
 
-		dbSnmpConf := snmp.ServerConfig{ID: oldDbSnmpConf.ID}
+		dbSnmpConf := snmp.ServerConfig{ID: oldDBSnmpConf.ID}
 		setIfValid(&dbSnmpConf.LocalUDPAddress, restSnmpConf.LocalUDPAddress)
 		setIfValid(&dbSnmpConf.Community, restSnmpConf.Community)
 		setIfValid(&dbSnmpConf.SNMPv3Only, restSnmpConf.V3Only)
@@ -366,5 +366,21 @@ func deleteSnmpService(logger *log.Logger, db *database.DB) http.HandlerFunc {
 		}
 
 		w.WriteHeader(http.StatusNoContent)
+	}
+}
+
+func testSnmpTrapTransErr(logger *log.Logger) http.HandlerFunc {
+	return func(w http.ResponseWriter, _ *http.Request) {
+		if snmp.GlobalService == nil {
+			http.Error(w, "SNMP service is not running", http.StatusServiceUnavailable)
+
+			return
+		}
+
+		if err := snmp.GlobalService.SendTestNotification(); handleError(w, logger, err) {
+			return
+		}
+
+		w.WriteHeader(http.StatusAccepted)
 	}
 }

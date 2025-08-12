@@ -71,6 +71,8 @@ func initTestDB(c C, root string) *testContext {
 		DefaultInDir:  "in",
 		DefaultOutDir: "out",
 		DefaultTmpDir: "work",
+		FilePerms:     0o600,
+		DirPerms:      0o700,
 	}
 	conf.GlobalConfig.Paths = paths
 
@@ -277,17 +279,17 @@ func newTestPipeline(c C, db *database.DB, trans *model.Transfer) *testPipeline 
 	testPip := &testPipeline{Pipeline: pip, transDone: make(chan bool)}
 
 	pip.Trace = Trace{
-		OnPreTask: func(rank int8) error {
+		OnPreTask: func(rank int) error {
 			atomic.AddUint32(&testPip.preTasks, 1)
 
 			return nil
 		},
-		OnPostTask: func(rank int8) error {
+		OnPostTask: func(rank int) error {
 			atomic.AddUint32(&testPip.postTasks, 1)
 
 			return nil
 		},
-		OnErrorTask: func(rank int8) { atomic.AddUint32(&testPip.errTasks, 1) },
+		OnErrorTask: func(rank int) { atomic.AddUint32(&testPip.errTasks, 1) },
 		OnTransferEnd: func() {
 			close(testPip.transDone)
 		},

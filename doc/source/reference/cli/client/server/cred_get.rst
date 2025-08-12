@@ -10,10 +10,20 @@ Affiche les informations de la méthode d'authentification donnée.
 
 .. code-block:: shell
 
-   waarp-gateway server credential "<SERVER>" add
+   waarp-gateway server credential "<SERVER>" get "<CREDENTIAL>"
+
+
+**Options**
+
+.. option:: -r, --raw
+
+   Affiche la valeur brute de la méthode d'authentification au lieu de ses
+   métadonnées quand applicable. Par exemple, utiliser cette option sur un
+   certificat TLS affichera le fichier PEM du certificat au lieu des informations
+   du certificat.
 
 **Exemple**
 
 .. code-block:: shell
 
-   waarp-gateway server credential 'server_sftp' get 'sftp_hostkey'
+   waarp-gateway server credential "gw_r66" get "r66_cert"

@@ -33,44 +33,44 @@ type serverFS struct {
 func (s *serverFS) Name() string { return s.dbServer.Name }
 
 func (s *serverFS) Mkdir(name string, _ os.FileMode) error {
-	s.logger.Debug(`Received "Mkdir" request on %q`, name)
+	s.logger.Debugf(`Received "Mkdir" request on %q`, name)
 
 	return s.mkdirAll(name)
 }
 
 func (s *serverFS) MkdirAll(path string, _ os.FileMode) error {
-	s.logger.Debug(`Received "MkdirAll" request on %q`, path)
+	s.logger.Debugf(`Received "MkdirAll" request on %q`, path)
 
 	return s.mkdirAll(path)
 }
 
-//nolint:goerr113 //dynamic errors are used to mask the internal errors (for security reasons)
+//nolint:err113 //dynamic errors are used to mask the internal errors (for security reasons)
 func (s *serverFS) mkdirAll(path string) error {
 	realDir, dirErr := protoutils.GetRealPath(false, s.db, s.logger, s.dbServer, s.dbAcc, path)
 	if dirErr != nil {
-		s.logger.Error("Failed to build the dir path: %v", dirErr)
+		s.logger.Errorf("Failed to build the dir path: %v", dirErr)
 
 		return errors.New("failed to build the dir path")
 	}
 
 	if err := fs.MkdirAll(realDir); err != nil {
-		s.logger.Error("Failed to create directory: %v", err)
+		s.logger.Errorf("Failed to create directory: %v", err)
 
-		return errors.New("failed to create directory") //nolint:goerr113 //too specific
+		return errors.New("failed to create directory") //nolint:err113 //too specific
 	}
 
 	return nil
 }
 
 func (s *serverFS) OpenFile(name string, flags int, _ os.FileMode) (afero.File, error) {
-	s.logger.Debug(`Received "OpenFile" request on %q with flags %s`, name,
+	s.logger.Debugf(`Received "OpenFile" request on %q with flags %s`, name,
 		utils.DescribeFlags(flags))
 
 	return s.getHandle(name, flags, 0)
 }
 
 func (s *serverFS) GetHandle(name string, flags int, offset int64) (ftplib.FileTransfer, error) {
-	s.logger.Debug(`Received "GetHandle" request on %q with flags %s and offset %d`,
+	s.logger.Debugf(`Received "GetHandle" request on %q with flags %s and offset %d`,
 		name, utils.DescribeFlags(flags), offset)
 
 	return s.getHandle(name, flags, offset)
@@ -83,26 +83,26 @@ func (s *serverFS) getHandle(name string, flags int, offset int64) (afero.File, 
 	case os.O_WRONLY:
 		return s.newServerTransfer(name, false, offset)
 	default:
-		s.logger.Error(`Received "OpenFile" request on %q with invalid flags: %d`, name, flags)
+		s.logger.Errorf(`Received "OpenFile" request on %q with invalid flags: %d`, name, flags)
 
-		return nil, fmt.Errorf("invalid file flags: %d", flags) //nolint:goerr113 //too specific
+		return nil, fmt.Errorf("invalid file flags: %d", flags) //nolint:err113 //too specific
 	}
 }
 
 func (s *serverFS) Open(name string) (afero.File, error) {
-	s.logger.Debug(`Received "Open" request on %q`, name)
+	s.logger.Debugf(`Received "Open" request on %q`, name)
 
 	return s.newServerTransfer(name, true, 0)
 }
 
 func (s *serverFS) Create(name string) (afero.File, error) {
-	s.logger.Debug(`Received "Create" request on %q`, name)
+	s.logger.Debugf(`Received "Create" request on %q`, name)
 
 	return s.newServerTransfer(name, false, 0)
 }
 
 func (s *serverFS) Stat(name string) (os.FileInfo, error) {
-	s.logger.Debug(`Received "Stat" request on %q`, name)
+	s.logger.Debugf(`Received "Stat" request on %q`, name)
 
 	name = strings.TrimLeft(name, "/")
 
@@ -116,7 +116,7 @@ func (s *serverFS) Stat(name string) (os.FileInfo, error) {
 	return info, nil
 }
 
-//nolint:goerr113 //dynamic errors are used to mask the internal errors (for security reasons)
+//nolint:err113 //dynamic errors are used to mask the internal errors (for security reasons)
 func (s *serverFS) stat(name string, temp bool) (os.FileInfo, error) {
 	realFile, dirErr := protoutils.GetRealPath(temp, s.db, s.logger, s.dbServer,
 		s.dbAcc, name)
@@ -138,9 +138,9 @@ func (s *serverFS) stat(name string, temp bool) (os.FileInfo, error) {
 	return info, nil
 }
 
-//nolint:goerr113 //dynamic errors are used to mask the internal errors (for security reasons)
+//nolint:err113 //dynamic errors are used to mask the internal errors (for security reasons)
 func (s *serverFS) ReadDir(name string) ([]os.FileInfo, error) {
-	s.logger.Debug(`Received "ReadDir" request on %q`, name)
+	s.logger.Debugf(`Received "ReadDir" request on %q`, name)
 
 	name = strings.TrimLeft(name, "/")
 
@@ -156,13 +156,13 @@ func (s *serverFS) ReadDir(name string) ([]os.FileInfo, error) {
 	if realDir == "" {
 		infos, err := protoutils.GetRulesPaths(s.db, s.dbServer, s.dbAcc, name)
 		if err != nil {
-			s.logger.Error("Failed to retrieve rules: %v", err)
+			s.logger.Errorf("Failed to retrieve rules: %v", err)
 
 			return nil, errors.New("failed to retrieve rules")
 		}
 
 		for _, entry := range infos {
-			s.logger.Debug("Returned dir entry: %q", entry.Name())
+			s.logger.Debugf("Returned dir entry: %q", entry.Name())
 		}
 
 		return infos, nil
@@ -170,7 +170,7 @@ func (s *serverFS) ReadDir(name string) ([]os.FileInfo, error) {
 
 	entries, dirErr := fs.List(realDir)
 	if dirErr != nil {
-		s.logger.Error(`Failed to list directory "%s": %v`, realDir, dirErr)
+		s.logger.Errorf(`Failed to list directory "%s": %v`, realDir, dirErr)
 
 		return nil, fmt.Errorf(`failed to list directory %q`, name)
 	}
@@ -178,11 +178,11 @@ func (s *serverFS) ReadDir(name string) ([]os.FileInfo, error) {
 	infos := make([]os.FileInfo, len(entries))
 
 	for i, entry := range entries {
-		s.logger.Debug("Returned dir entry: %q", entry.Name())
+		s.logger.Debugf("Returned dir entry: %q", entry.Name())
 
 		var err error
 		if infos[i], err = entry.Info(); err != nil {
-			s.logger.Error("Failed to retrieve the file %q info: %v", entry.Name(), err)
+			s.logger.Errorf("Failed to retrieve the file %q info: %v", entry.Name(), err)
 
 			return infos, fmt.Errorf("failed to retrieve file %q info", entry.Name())
 		}
@@ -194,9 +194,9 @@ func (s *serverFS) ReadDir(name string) ([]os.FileInfo, error) {
 // The following methods are not implemented. Some might be implemented later
 // if there is a legitimate need for it.
 
-func (*serverFS) Remove(string) error                        { return errNotImplemented }
-func (*serverFS) RemoveAll(string) error                     { return errNotImplemented }
-func (*serverFS) Rename(string, string) error                { return errNotImplemented }
-func (*serverFS) Chmod(string, os.FileMode) error            { return errNotImplemented }
-func (*serverFS) Chown(string, int, int) error               { return errNotImplemented }
-func (*serverFS) Chtimes(string, time.Time, time.Time) error { return errNotImplemented }
+func (*serverFS) Remove(string) error                    { return errNotImplemented }
+func (*serverFS) RemoveAll(string) error                 { return errNotImplemented }
+func (*serverFS) Rename(_, _ string) error               { return errNotImplemented }
+func (*serverFS) Chmod(string, os.FileMode) error        { return errNotImplemented }
+func (*serverFS) Chown(_ string, _, _ int) error         { return errNotImplemented }
+func (*serverFS) Chtimes(_ string, _, _ time.Time) error { return errNotImplemented }

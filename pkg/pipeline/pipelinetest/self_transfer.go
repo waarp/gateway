@@ -61,7 +61,7 @@ func initSelfTransfer(c convey.C, proto string, clientConf protocol.ClientConfig
 		defer cancel()
 
 		if err := client.Stop(ctx); err != nil {
-			testhelpers.TestLogger(c, cli.Name).Warning(
+			testhelpers.TestLogger(c, cli.Name).Warningf(
 				"Error while stopping client: %v", err)
 		}
 	})
@@ -84,8 +84,8 @@ func initSelfTransfer(c convey.C, proto string, clientConf protocol.ClientConfig
 			LocAccount: locAcc,
 		},
 		transData: &transData{
-			transferInfo: map[string]interface{}{},
-			// fileInfo:     map[string]interface{}{},
+			transferInfo: map[string]any{},
+			// fileInfo:     map[string]any{},
 		},
 		ServerService: testServer,
 		ClientService: client,
@@ -167,6 +167,7 @@ func (s *SelfContext) StartService(c convey.C) {
 	c.Reset(func() {
 		ctx, cancel := context.WithTimeout(context.Background(), shutdownTimeout)
 		defer cancel()
+
 		c.So(s.ServerService.Stop(ctx), convey.ShouldBeNil)
 	})
 }
@@ -264,14 +265,14 @@ func (s *SelfContext) RunTransfer(c convey.C, willFail bool) {
 
 	const connCloseTimeout = time.Second
 
-	if !testhelpers.ShouldSucceedAfter(c, connCloseTimeout, convey.ShouldEqual,
+	if !testhelpers.ShouldSucceedAfter(connCloseTimeout, convey.ShouldEqual,
 		analytics.GlobalService.OpenIncomingConnections.Load, 0) {
 		//nolint:gosec //we don't care about the error
 		c.Printf(`/!\ Server connection was not closed /!\`)
 		analytics.GlobalService.OpenIncomingConnections.Store(0)
 	}
 
-	if !testhelpers.ShouldSucceedAfter(c, connCloseTimeout, convey.ShouldEqual,
+	if !testhelpers.ShouldSucceedAfter(connCloseTimeout, convey.ShouldEqual,
 		analytics.GlobalService.OpenOutgoingConnections.Load, 0) {
 		//nolint:gosec //we don't care about the error
 		c.Printf(`/!\ Client connection was not closed /!\`)
@@ -554,7 +555,7 @@ func (s *SelfContext) waitForListDeletion() {
 	}
 }
 
-func (s *SelfContext) AddTransferInfo(c convey.C, name string, val interface{}) {
+func (s *SelfContext) AddTransferInfo(c convey.C, name string, val any) {
 	s.transferInfo[name] = val
 	c.So(s.ClientTrans.SetTransferInfo(s.DB, s.transferInfo), convey.ShouldBeNil)
 }

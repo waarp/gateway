@@ -34,28 +34,30 @@ func init() {
 }
 
 // Transfer represents one record of the 'transfers' table.
-//
-//nolint:lll //SQL tags are long, nothing we can do about it
 type Transfer struct {
-	ID               int64                   `xorm:"<- id AUTOINCR"`
-	Owner            string                  `xorm:"owner"`
-	RemoteTransferID string                  `xorm:"remote_transfer_id"`
-	RuleID           int64                   `xorm:"rule_id"`
-	ClientID         sql.NullInt64           `xorm:"client_id"`
-	LocalAccountID   sql.NullInt64           `xorm:"local_account_id"`
-	RemoteAccountID  sql.NullInt64           `xorm:"remote_account_id"`
-	SrcFilename      string                  `xorm:"src_filename"`
-	DestFilename     string                  `xorm:"dest_filename"`
-	LocalPath        string                  `xorm:"local_path"`
-	RemotePath       string                  `xorm:"remote_path"`
-	Filesize         int64                   `xorm:"filesize"`
-	Start            time.Time               `xorm:"start DATETIME(6) UTC"`
-	Status           types.TransferStatus    `xorm:"status"`
-	Step             types.TransferStep      `xorm:"step"`
-	Progress         int64                   `xorm:"progress"`
-	TaskNumber       int8                    `xorm:"task_number"`
-	ErrCode          types.TransferErrorCode `xorm:"error_code"`
-	ErrDetails       string                  `xorm:"error_details"`
+	ID                   int64                   `xorm:"<- id AUTOINCR"`
+	Owner                string                  `xorm:"owner"`
+	RemoteTransferID     string                  `xorm:"remote_transfer_id"`
+	RuleID               int64                   `xorm:"rule_id"`
+	ClientID             sql.NullInt64           `xorm:"client_id"`
+	LocalAccountID       sql.NullInt64           `xorm:"local_account_id"`
+	RemoteAccountID      sql.NullInt64           `xorm:"remote_account_id"`
+	SrcFilename          string                  `xorm:"src_filename"`
+	DestFilename         string                  `xorm:"dest_filename"`
+	LocalPath            string                  `xorm:"local_path"`
+	RemotePath           string                  `xorm:"remote_path"`
+	Filesize             int64                   `xorm:"filesize"`
+	Start                time.Time               `xorm:"start DATETIME(6) UTC"`
+	Status               types.TransferStatus    `xorm:"status"`
+	Step                 types.TransferStep      `xorm:"step"`
+	Progress             int64                   `xorm:"progress"`
+	TaskNumber           int8                    `xorm:"task_number"`
+	ErrCode              types.TransferErrorCode `xorm:"error_code"`
+	ErrDetails           string                  `xorm:"error_details"`
+	RemainingTries       int8                    `xorm:"remaining_tries"`
+	NextRetryDelay       int32                   `xorm:"next_retry_delay"`
+	RetryIncrementFactor float32                 `xorm:"retry_increment_factor"`
+	NextRetry            time.Time               `xorm:"next_retry DATETIME(6) UTC"`
 }
 
 func (*Transfer) TableName() string   { return TableTransfers }
@@ -75,7 +77,7 @@ func (t *Transfer) Init(db database.Access) error {
 	return initPesitCounter(db)
 }
 
-//nolint:funlen //function is fine for now
+//nolint:funlen,gocyclo,cyclop //function is fine for now
 func (t *Transfer) checkMandatoryValues(rule *Rule) error {
 	if t.IsServer() {
 		if rule.IsSend {
@@ -119,20 +121,20 @@ func (t *Transfer) checkMandatoryValues(rule *Rule) error {
 	}
 
 	if !types.ValidateStatusForTransfer(t.Status) {
-		return database.NewValidationError("%q is not a valid transfer status", t.Status)
+		return database.NewValidationErrorf("%q is not a valid transfer status", t.Status)
 	}
 
 	if !t.Step.IsValid() {
-		return database.NewValidationError("%q is not a valid transfer step", t.Step)
+		return database.NewValidationErrorf("%q is not a valid transfer step", t.Step)
 	}
 
 	if !t.ErrCode.IsValid() {
-		return database.NewValidationError("%q is not a valid transfer error code", t.ErrCode)
+		return database.NewValidationErrorf("%q is not a valid transfer error code", t.ErrCode)
 	}
 
 	if t.LocalPath != "" {
 		if err := fs.ValidPath(t.LocalPath); err != nil {
-			return database.NewValidationError("invalid local path: %v", err)
+			return database.NewValidationErrorf("invalid local path: %v", err)
 		}
 	}
 
@@ -155,7 +157,7 @@ func (t *Transfer) BeforeWrite(db database.Access) error {
 	var rule Rule
 	if err := db.Get(&rule, "id=?", t.RuleID).Run(); err != nil {
 		if database.IsNotFound(err) {
-			return database.NewValidationError("the rule %d does not exist", t.RuleID)
+			return database.NewValidationErrorf("the rule %d does not exist", t.RuleID)
 		}
 
 		return fmt.Errorf("failed to retrieve rule: %w", err)
@@ -171,7 +173,7 @@ func (t *Transfer) BeforeWrite(db database.Access) error {
 	case t.RemoteAccountID.Valid:
 		if err := db.Get(&RemoteAccount{}, "id=?", t.RemoteAccountID.Int64).Run(); err != nil {
 			if database.IsNotFound(err) {
-				return database.NewValidationError("the remote account %d does not exist",
+				return database.NewValidationErrorf("the remote account %d does not exist",
 					t.RemoteAccountID.Int64)
 			}
 
@@ -179,28 +181,31 @@ func (t *Transfer) BeforeWrite(db database.Access) error {
 		}
 
 		if !t.ClientID.Valid {
-			if err := t.setDefaultTransferClient(db); err != nil {
-				return err
-			}
+			return database.NewValidationError("the transfer is missing a client ID")
 		}
 
-		if err := db.Get(&Client{}, "id=?", t.ClientID.Int64).Run(); err != nil {
+		var client Client
+		if err := db.Get(&client, "id=?", t.ClientID.Int64).Run(); err != nil {
 			if database.IsNotFound(err) {
-				return database.NewValidationError("the client %d does not exist",
+				return database.NewValidationErrorf("the client %d does not exist",
 					t.LocalAccountID.Int64)
 			}
 
 			return fmt.Errorf("failed to retrieve client: %w", err)
 		}
+
+		t.setRetryParameters(&client)
 	case t.LocalAccountID.Valid:
 		if err := db.Get(&LocalAccount{}, "id=?", t.LocalAccountID.Int64).Run(); err != nil {
 			if database.IsNotFound(err) {
-				return database.NewValidationError("the local account %d does not exist",
+				return database.NewValidationErrorf("the local account %d does not exist",
 					t.LocalAccountID.Int64)
 			}
 
 			return fmt.Errorf("failed to retrieve local account: %w", err)
 		}
+
+		t.clearRetryParameters()
 	default:
 		return database.NewValidationError("the transfer is missing an account ID")
 	}
@@ -209,7 +214,7 @@ func (t *Transfer) BeforeWrite(db database.Access) error {
 	if auth, err := IsRuleAuthorized(db, t); err != nil {
 		return err
 	} else if !auth {
-		return database.NewValidationError("Rule %d is not authorized for this transfer", t.RuleID)
+		return database.NewValidationErrorf("rule %d is not authorized for this transfer", t.RuleID)
 	}
 
 	return nil
@@ -284,7 +289,7 @@ func (t *Transfer) makeHistoryEntry(db database.ReadAccess, stop time.Time) (*Hi
 	}
 
 	if !types.ValidateStatusForHistory(t.Status) {
-		return nil, database.NewValidationError(
+		return nil, database.NewValidationErrorf(
 			"a transfer cannot be recorded in history with status %q", t.Status)
 	}
 
@@ -318,29 +323,29 @@ func (t *Transfer) makeHistoryEntry(db database.ReadAccess, stop time.Time) (*Hi
 }
 
 func (t *Transfer) CopyToHistory(db database.Access, logger *log.Logger, end time.Time) error {
-	hist, err := t.makeHistoryEntry(db, end)
-	if err != nil {
-		logger.Error("Failed to convert transfer to history: %s", err)
+	hist, hErr := t.makeHistoryEntry(db, end)
+	if hErr != nil {
+		logger.Errorf("Failed to convert transfer to history: %v", hErr)
 
-		return err
+		return hErr
 	}
 
 	if err := db.Insert(hist).Run(); err != nil {
-		logger.Error("Failed to create new history entry: %s", err)
+		logger.Errorf("Failed to create new history entry: %v", err)
 
 		return fmt.Errorf("failed to create new history entry: %w", err)
 	}
 
 	if err := db.Exec(`UPDATE transfer_info SET history_id=transfer_id, 
 			transfer_id=null WHERE transfer_id=?`, t.ID); err != nil {
-		logger.Error("Failed to update transfer info target: %s", err)
+		logger.Errorf("Failed to update transfer info target: %v", err)
 
 		return fmt.Errorf("failed to update transfer info target: %w", err)
 	}
 
 	/*
 		if err := ses.Exec(`UPDATE file_info SET history_id=transfer_id, transfer_id=null`); err != nil {
-			logger.Errorf("Failed to update file info target: %s", err)
+			logger.Errorf("Failed to update file info target: %v", err)
 
 			return err
 		}
@@ -359,7 +364,7 @@ func (t *Transfer) MoveToHistory(db *database.DB, logger *log.Logger, end time.T
 		}
 
 		if err := ses.Delete(t).Run(); err != nil {
-			logger.Error("Failed to delete transfer for archival: %s", err)
+			logger.Errorf("Failed to delete transfer for archival: %v", err)
 
 			return fmt.Errorf("failed to delete transfer for archival: %w", err)
 		}
@@ -392,17 +397,38 @@ func (t *Transfer) TransferID() (int64, error) {
 	return id.Int64(), nil
 }
 
-// setDefaultTransferClient sets the transfer's client if it was not specified by
-// the user (to maintain backwards compatibility).
-func (t *Transfer) setDefaultTransferClient(db database.Access) error {
-	client, err := GetDefaultTransferClient(db, t.RemoteAccountID.Int64)
-	if err != nil {
-		return err
+func (t *Transfer) setRetryParameters(client *Client) {
+	if t.ID == 0 {
+		if t.RemainingTries == 0 {
+			t.RemainingTries = client.NbOfAttempts
+		}
+
+		if t.NextRetryDelay == 0 {
+			t.NextRetryDelay = client.FirstRetryDelay
+		}
+
+		if t.RetryIncrementFactor == 0 {
+			t.RetryIncrementFactor = client.RetryIncrementFactor
+		}
 	}
 
-	t.ClientID = utils.NewNullInt64(client.ID)
+	if t.RemainingTries != 0 && t.NextRetryDelay == 0 {
+		t.NextRetryDelay = 1
+	}
 
-	return nil
+	if t.NextRetryDelay != 0 && t.RetryIncrementFactor == 0 {
+		t.RetryIncrementFactor = 1.0
+	}
+
+	if t.Status == types.StatusPlanned && t.NextRetry.IsZero() {
+		t.NextRetry = t.Start
+	}
+}
+
+func (t *Transfer) clearRetryParameters() {
+	t.RemainingTries = 0
+	t.NextRetryDelay = 0
+	t.RetryIncrementFactor = 0
 }
 
 func GetDefaultTransferClient(db database.Access, remoteAccountID int64) (*Client, error) {

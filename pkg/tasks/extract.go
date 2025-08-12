@@ -41,11 +41,11 @@ func (e *extractTask) Validate(args map[string]string) error {
 	return e.parseParams(args)
 }
 
-func (e *extractTask) Run(_ context.Context, params map[string]string, db *database.DB,
+func (e *extractTask) Run(_ context.Context, params map[string]string, _ *database.DB,
 	logger *log.Logger, transCtx *model.TransferContext,
 ) error {
 	if err := e.parseParams(params); err != nil {
-		logger.Error("%v", err)
+		logger.Errorf("%v", err)
 
 		return err
 	}
@@ -55,7 +55,7 @@ func (e *extractTask) Run(_ context.Context, params map[string]string, db *datab
 	}
 
 	if err := e.extractArchive(); err != nil {
-		logger.Error("Failed to extract archive: %v", err)
+		logger.Errorf("Failed to extract archive: %v", err)
 
 		return err
 	}

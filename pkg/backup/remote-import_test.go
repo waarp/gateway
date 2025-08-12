@@ -256,7 +256,7 @@ func TestImportRemoteAccounts(t *testing.T) {
 				account1 := RemoteAccount{
 					Login:    dbAccount.Login,
 					Password: "new password",
-					Certs: []Certificate{
+					Certificates: []Certificate{
 						{
 							Name:        "cert",
 							PrivateKey:  testhelpers.ClientFooKey,
@@ -290,8 +290,8 @@ func TestImportRemoteAccounts(t *testing.T) {
 							var cert model.Credential
 							So(db.Get(&cert, "remote_account_id=? AND type=?",
 								accounts[0].ID, auth.TLSCertificate).Run(), ShouldBeNil)
-							So(cert.Value, ShouldEqual, account1.Certs[0].Certificate)
-							So(cert.Value2, ShouldEqual, account1.Certs[0].PrivateKey)
+							So(cert.Value, ShouldEqual, account1.Certificates[0].Certificate)
+							So(cert.Value2, ShouldEqual, account1.Certificates[0].PrivateKey)
 						})
 					})
 				})
@@ -300,7 +300,7 @@ func TestImportRemoteAccounts(t *testing.T) {
 			Convey("Given a list of partially updated agents", func() {
 				account1 := RemoteAccount{
 					Login: dbAccount.Login,
-					Certs: []Certificate{{
+					Certificates: []Certificate{{
 						Name:        "cert",
 						PrivateKey:  testhelpers.ClientFooKey,
 						Certificate: testhelpers.ClientFooCert,
@@ -333,8 +333,8 @@ func TestImportRemoteAccounts(t *testing.T) {
 							var cert model.Credential
 							So(db.Get(&cert, "remote_account_id=? AND type=?",
 								accounts[0].ID, auth.TLSCertificate).Run(), ShouldBeNil)
-							So(cert.Value, ShouldEqual, account1.Certs[0].Certificate)
-							So(cert.Value2, ShouldEqual, account1.Certs[0].PrivateKey)
+							So(cert.Value, ShouldEqual, account1.Certificates[0].Certificate)
+							So(cert.Value2, ShouldEqual, account1.Certificates[0].PrivateKey)
 						})
 					})
 				})

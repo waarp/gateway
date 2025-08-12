@@ -55,7 +55,7 @@ func parseSelectQuery(r *http.Request, db database.ReadAccess, validOrders order
 
 		orderBy, ok = validOrders[sortStr]
 		if !ok {
-			return nil, badRequest(fmt.Sprintf("'%s' is not a valid sort parameter", sortStr))
+			return nil, badRequestf("%q is not a valid sort parameter", sortStr)
 		}
 	}
 
@@ -110,7 +110,7 @@ func handleError(w http.ResponseWriter, logger *log.Logger, err error) bool {
 		return true
 	}
 
-	logger.Error("Unexpected error: %s", err)
+	logger.Errorf("Unexpected error: %v", err)
 	http.Error(w, err.Error(), http.StatusInternalServerError)
 
 	return true
@@ -124,7 +124,7 @@ func ReadJSON(r *http.Request, dest any) error {
 	return readJSON(r, dest)
 }
 
-func writeJSON(w http.ResponseWriter, bean interface{}) error {
+func writeJSON(w http.ResponseWriter, bean any) error {
 	w.Header().Set("Content-Type", "application/json")
 
 	encoder := json.NewEncoder(w)
@@ -137,12 +137,12 @@ func writeJSON(w http.ResponseWriter, bean interface{}) error {
 	return nil
 }
 
-func readJSON(r *http.Request, dest interface{}) error {
+func readJSON(r *http.Request, dest any) error {
 	decoder := json.NewDecoder(r.Body)
 	decoder.DisallowUnknownFields()
 
 	if err := decoder.Decode(dest); err != nil {
-		return badRequest("malformed JSON object: %s", err)
+		return badRequestf("malformed JSON object: %v", err)
 	}
 
 	return nil

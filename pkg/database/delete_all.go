@@ -28,7 +28,7 @@ type DeleteAllQuery struct {
 //
 // If the function is called multiple times, all the conditions will be chained
 // using the 'AND' operator.
-func (d *DeleteAllQuery) Where(sql string, args ...interface{}) *DeleteAllQuery {
+func (d *DeleteAllQuery) Where(sql string, args ...any) *DeleteAllQuery {
 	d.conds = append(d.conds, &condition{sql: sql, args: args})
 
 	return d
@@ -41,7 +41,7 @@ func (d *DeleteAllQuery) Owner() *DeleteAllQuery {
 // In add a 'WHERE col IN' condition to the 'DELETE' query. Because the database/sql
 // package cannot handle variadic placeholders in the Where function, a separate
 // method is required.
-func (d *DeleteAllQuery) In(col string, vals ...interface{}) *DeleteAllQuery {
+func (d *DeleteAllQuery) In(col string, vals ...any) *DeleteAllQuery {
 	sql := &inCond{Builder: &strings.Builder{}}
 	if builder.In(col, vals...).WriteTo(sql) != nil {
 		return d
@@ -59,7 +59,7 @@ func (d *DeleteAllQuery) Run() error {
 
 	if len(d.conds) == 0 {
 		if _, err := query.Exec("DELETE FROM " + d.bean.TableName()); err != nil {
-			logger.Error("Failed to delete the %s entries: %s", d.bean.Appellation(), err)
+			logger.Errorf("Failed to delete the %s entries: %v", d.bean.Appellation(), err)
 
 			return NewInternalError(err)
 		}
@@ -72,7 +72,7 @@ func (d *DeleteAllQuery) Run() error {
 	}
 
 	if _, err := query.Table(d.bean.TableName()).Delete(d.bean); err != nil {
-		logger.Error("Failed to delete the %s entries: %s", d.bean.Appellation(), err)
+		logger.Errorf("Failed to delete the %s entries: %v", d.bean.Appellation(), err)
 
 		return NewInternalError(err)
 	}

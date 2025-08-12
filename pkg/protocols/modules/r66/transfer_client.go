@@ -69,7 +69,7 @@ func (c *transferClient) EndPreTasks() *pipeline.Error {
 		}
 
 		if err := c.ses.SendUpdateRequest(outInfo); err != nil {
-			c.pip.Logger.Error("Failed to send transfer info: %v", err)
+			c.pip.Logger.Errorf("Failed to send transfer info: %v", err)
 
 			return c.wrapAndSendError(err)
 		}
@@ -79,7 +79,7 @@ func (c *transferClient) EndPreTasks() *pipeline.Error {
 
 	inInfo, reqErr := c.ses.RecvUpdateRequest()
 	if reqErr != nil {
-		c.pip.Logger.Error("Failed to receive transfer info: %v", reqErr)
+		c.pip.Logger.Errorf("Failed to receive transfer info: %v", reqErr)
 
 		return c.wrapAndSendError(reqErr)
 	}
@@ -94,7 +94,7 @@ func (c *transferClient) EndPreTasks() *pipeline.Error {
 func (c *transferClient) Send(file protocol.SendFile) *pipeline.Error {
 	if _, err := c.ses.Send(clientReader{r: file}, c.makeHash); err != nil {
 		c.ses = nil
-		c.pip.Logger.Error("Failed to send transfer file: %v", err)
+		c.pip.Logger.Errorf("Failed to send transfer file: %v", err)
 
 		return c.wrapAndSendError(err)
 	}
@@ -106,7 +106,7 @@ func (c *transferClient) Receive(file protocol.ReceiveFile) *pipeline.Error {
 	eot, recvErr := c.ses.Recv(clientWriter{w: file})
 	if recvErr != nil {
 		c.ses = nil
-		c.pip.Logger.Error("Failed to receive transfer file: %v", recvErr)
+		c.pip.Logger.Errorf("Failed to receive transfer file: %v", recvErr)
 
 		return c.wrapAndSendError(recvErr)
 	}
@@ -142,7 +142,7 @@ func (c *transferClient) EndTransfer() *pipeline.Error {
 	c.pip.Logger.Debug("Ending transfert with remote partner")
 
 	if err := c.ses.EndRequest(); err != nil {
-		c.pip.Logger.Error("Failed to end transfer request: %v", err)
+		c.pip.Logger.Errorf("Failed to end transfer request: %v", err)
 
 		return c.wrapAndSendError(err)
 	}
@@ -158,7 +158,7 @@ func (c *transferClient) SendError(code types.TransferErrorCode, msg string) {
 	pErr := pipeline.NewError(code, msg)
 	r66Err := internal.ToR66Error(pErr)
 
-	c.pip.Logger.Debug("Sending error '%v' to remote partner", pErr)
+	c.pip.Logger.Debugf(`Sending error "%v" to remote partner`, pErr)
 
 	defer c.cancel()
 	defer c.conns.Done(c.pip.TransCtx.RemoteAgent.Address.String())
@@ -170,7 +170,7 @@ func (c *transferClient) SendError(code types.TransferErrorCode, msg string) {
 	defer c.ses.Close()
 
 	if sErr := c.ses.SendError(r66Err); sErr != nil {
-		c.pip.Logger.Error("Failed to send error to remote partner: %v", sErr)
+		c.pip.Logger.Errorf("Failed to send error to remote partner: %v", sErr)
 	}
 }
 
@@ -186,7 +186,7 @@ func (c *transferClient) halt(op string, haltFunc func() error) *pipeline.Error 
 	defer c.ses.Close()
 
 	if err := haltFunc(); err != nil {
-		c.pip.Logger.Warning("Failed send %s signal to remote host: %v", op, err)
+		c.pip.Logger.Warningf("Failed send %q signal to remote host: %v", op, err)
 
 		return c.wrapAndSendError(err)
 	}

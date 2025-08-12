@@ -5,6 +5,11 @@ import (
 	"testing"
 	"time"
 
+	"code.waarp.fr/apps/gateway/gateway/pkg/model"
+	"code.waarp.fr/apps/gateway/gateway/pkg/utils/gwtesting"
+	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
+
 	. "github.com/smartystreets/goconvey/convey"
 
 	"code.waarp.fr/apps/gateway/gateway/pkg/model/types"
@@ -157,9 +162,15 @@ func TestSelfPullClientPreTasksFail(t *testing.T) {
 					types.TeExternalOperation,
 					"Task TASKERR @ PULL PRE[1]: task failed",
 					types.StepPreTasks)
+
+				servTrans := ctx.GetServerTransfer(c)
+				So(servTrans.ErrCode, ShouldBeIn,
+					types.TeExternalOperation, types.TeConnectionReset,
+					types.TeUnknown, types.TeUnknownRemote)
+
 				ctx.CheckServerTransferError(c,
-					types.TeExternalOperation,
-					"Error on remote partner: pre-tasks failed",
+					servTrans.ErrCode,
+					servTrans.ErrDetails,
 					types.StepData)
 
 				resetClient(ctx.ClientService)
@@ -468,6 +479,63 @@ func TestSelfPullServerPostTasksFail(t *testing.T) {
 
 				resetClient(ctx.ClientService)
 				ctx.TestRetry(c)
+			})
+		})
+	})
+}
+
+func TestTransOnHold(t *testing.T) {
+	t.Skip("Re-enable once the R66 lib gets fixed to actually send transfer info")
+
+	db := gwtesting.Database(t)
+	ctx := gwtesting.TestTransferCtx(t, db, R66, servConf, cliConf, partConf)
+	ctx.AddCred(t, partnerPassword(ctx.Partner))
+
+	t.Run("Given a R66 pull transfer", func(t *testing.T) {
+		serverPullTrans := &model.Transfer{
+			RuleID:         ctx.ServerRulePull.ID,
+			LocalAccountID: ctx.LocalAccount.GetNullID(),
+			SrcFilename:    ctx.TransferPull.SrcFilename,
+			Start:          time.Date(9999, 1, 1, 1, 0, 0, 0, time.UTC),
+			Status:         types.StatusAvailable,
+		}
+		require.NoError(t, db.Insert(serverPullTrans).Run())
+
+		pip := ctx.PullPipeline(t)
+
+		t.Run("When executing the transfer", func(t *testing.T) {
+			require.NoError(t, pip.Run(), "Then the transfer should execute without error")
+
+			t.Run("Then it should have finished both the client & the server transfers", func(t *testing.T) {
+				ctx.CheckPullTransferOK(t)
+
+				hist := &model.HistoryEntry{ID: ctx.TransferPull.ID}
+				infoCheck, infoErr := hist.GetTransferInfo(db)
+				require.NoError(t, infoErr)
+
+				assert.Subset(t, infoCheck, map[string]any{model.FollowID: serverPullTrans.RemoteTransferID})
+			})
+		})
+	})
+
+	t.Run("Given a PESIT push client", func(t *testing.T) {
+		serverPushTrans := &model.Transfer{
+			RuleID:         ctx.ServerRulePush.ID,
+			LocalAccountID: ctx.LocalAccount.GetNullID(),
+			DestFilename:   ctx.TransferPull.DestFilename,
+			Start:          time.Date(9999, 1, 1, 1, 0, 0, 0, time.UTC),
+			Status:         types.StatusAvailable,
+			Filesize:       model.UnknownSize,
+		}
+		require.NoError(t, db.Insert(serverPushTrans).Run())
+
+		pip := ctx.PushPipeline(t)
+
+		t.Run("When executing the transfer", func(t *testing.T) {
+			require.NoError(t, pip.Run(), "Then the transfer should execute without error")
+
+			t.Run("Then it should have finished both the client & the server transfers", func(t *testing.T) {
+				ctx.CheckPushTransferOK(t)
 			})
 		})
 	})

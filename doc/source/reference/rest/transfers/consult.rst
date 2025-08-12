@@ -55,6 +55,15 @@ Consulter un transfert
    :resjson string errorMsg: Le message d'erreur du transfert (si une erreur s'est produite)
    :resjson object transferInfo: Des informations de transfert personnalisées sous
      la forme d'une liste de pairs clé:valeur, c'est-à-dire sous forme d'un objet JSON.
+   :resjson number remainingAttempts: Le nombre de tentatives *automatiques* restantes.
+     Ce nombre n'inclue donc pas la tentative originale du transfert.
+   :resjson string nextAttempt: La date de la prochaine tentative du transfert.
+     À noter que ce champ est nul pendant que le transfert est en cours ou si le
+     transfers n'a plus de tentatives restantes.
+   :resjson number nextRetryDelay: Le délai (en secondes) entre la dernière tentative
+     du transfert et la prochaine.
+   :resjson number retryIncrementFactor: Le facteur par lequel le délai ci-dessus sera
+     multiplié à chaque nouvelle tentative.
 
    :resjson string trueFilepath: *Déprécié*. Le chemin local complet du fichier 
    :resjson string sourcePath: *Déprécié*. Le fichier source du transfer 
@@ -98,5 +107,9 @@ Consulter un transfert
           "key1": "val1",
           "key2": 2,
           "key3": true
-        }
+        },
+        "remainingTries": 3,
+        "nextAttempt": "2019-01-01T03:00:00+02:00",
+        "nextRetryDelay": 3600,
+        "retryIncrementFactor": 1.5
       }

@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"path"
 	"path/filepath"
+	"strings"
 	"time"
 
 	"code.waarp.fr/apps/gateway/gateway/pkg/model"
@@ -13,119 +14,115 @@ import (
 
 var errNotImplemented = errors.New("key word not implemented")
 
-type replacer func(*Runner) (string, error)
+type replacer func(*model.TransferContext, string) (string, error)
 
 type replacersMap map[string]replacer
 
 //nolint:funlen //cannot split function without adding complexity and hurting readability
 func getReplacers() replacersMap {
 	return replacersMap{
-		"#TRUEFULLPATH#": func(r *Runner) (string, error) {
-			return r.transCtx.Transfer.LocalPath, nil
+		"#TRUEFULLPATH#": func(ctx *model.TransferContext, _ string) (string, error) {
+			return ctx.Transfer.LocalPath, nil
 		},
-		"#TRUEFILENAME#": func(r *Runner) (string, error) {
-			return path.Base(r.transCtx.Transfer.LocalPath), nil
+		"#TRUEFILENAME#": func(ctx *model.TransferContext, _ string) (string, error) {
+			return path.Base(ctx.Transfer.LocalPath), nil
 		},
-		"#ORIGINALFULLPATH#": func(r *Runner) (string, error) {
-			if r.transCtx.Rule.IsSend {
-				return r.transCtx.Transfer.LocalPath, nil
+		"#BASEFILENAME#": func(ctx *model.TransferContext, _ string) (string, error) {
+			return strings.TrimSuffix(
+				path.Base(ctx.Transfer.LocalPath),
+				path.Ext(ctx.Transfer.LocalPath)), nil
+		},
+		"#FILEEXTENSION#": func(ctx *model.TransferContext, _ string) (string, error) {
+			return path.Ext(ctx.Transfer.LocalPath), nil
+		},
+		"#ORIGINALFULLPATH#": func(ctx *model.TransferContext, _ string) (string, error) {
+			if ctx.Rule.IsSend {
+				return ctx.Transfer.LocalPath, nil
 			}
 
-			if !r.transCtx.Transfer.IsServer() {
-				return r.transCtx.Transfer.RemotePath, nil
+			if !ctx.Transfer.IsServer() {
+				return ctx.Transfer.RemotePath, nil
 			}
 
-			return r.transCtx.Transfer.DestFilename, nil
+			return ctx.Transfer.DestFilename, nil
 		},
-		"#ORIGINALFILENAME#": func(r *Runner) (string, error) {
-			if r.transCtx.Transfer.IsServer() && !r.transCtx.Rule.IsSend {
-				return filepath.Base(r.transCtx.Transfer.DestFilename), nil
+		"#ORIGINALFILENAME#": func(ctx *model.TransferContext, _ string) (string, error) {
+			if ctx.Transfer.IsServer() && !ctx.Rule.IsSend {
+				return filepath.Base(ctx.Transfer.DestFilename), nil
 			}
 
-			return filepath.Base(r.transCtx.Transfer.SrcFilename), nil
+			return filepath.Base(ctx.Transfer.SrcFilename), nil
 		},
-		"#FILESIZE#": func(r *Runner) (string, error) {
-			return utils.FormatInt(r.transCtx.Transfer.Filesize), nil
+		"#FILESIZE#": func(ctx *model.TransferContext, _ string) (string, error) {
+			return utils.FormatInt(ctx.Transfer.Filesize), nil
 		},
-		"#INPATH#": func(r *Runner) (string, error) {
-			if in, err := makeInDir(r.transCtx); err != nil {
-				return "", err
-			} else {
-				return in, nil
-			}
-		},
-		"#OUTPATH#": func(r *Runner) (string, error) {
-			if out, err := makeOutDir(r.transCtx); err != nil {
-				return "", err
-			} else {
-				return out, nil
-			}
-		},
-		"#WORKPATH#": func(r *Runner) (string, error) {
-			if tmp, err := makeTmpDir(r.transCtx); err != nil {
-				return "", err
-			} else {
-				return tmp, nil
-			}
-		},
+		"#INPATH#":   makeInDir,
+		"#OUTPATH#":  makeOutDir,
+		"#WORKPATH#": makeTmpDir,
 		"#ARCHPATH#": notImplemented("#ARCHPATH#"),
-		"#HOMEPATH#": func(r *Runner) (string, error) {
-			return r.transCtx.Paths.GatewayHome, nil
+		"#HOMEPATH#": func(ctx *model.TransferContext, _ string) (string, error) {
+			return ctx.Paths.GatewayHome, nil
 		},
-		"#RULE#": func(r *Runner) (string, error) {
-			return r.transCtx.Rule.Name, nil
+		"#RULE#": func(ctx *model.TransferContext, _ string) (string, error) {
+			return ctx.Rule.Name, nil
 		},
-		"#DATE#": func(r *Runner) (string, error) {
+		"#DATE#": func(*model.TransferContext, string) (string, error) {
 			t := time.Now()
 
 			return t.Format("20060102"), nil
 		},
-		"#HOUR#": func(r *Runner) (string, error) {
+		"#HOUR#": func(*model.TransferContext, string) (string, error) {
 			t := time.Now()
 
 			return t.Format("030405"), nil
+		},
+		`#TIMESTAMP(\([^\)]*\))?#`: func(_ *model.TransferContext, match string) (string, error) {
+			format := strings.TrimPrefix(match, "#TIMESTAMP")
+			format = strings.TrimSuffix(format, "#")
+
+			return formatTime(format, time.Now()), nil
 		},
 		"#REMOTEHOST#":   getRemote,
 		"#REMOTEHOSTIP#": notImplemented("#REMOTEHOSTIP#"),
 		"#LOCALHOST#":    getLocal,
 		"#LOCALHOSTIP#":  notImplemented("#LOCALHOSTIP#"),
-		"#TRANSFERID#": func(r *Runner) (string, error) {
-			return utils.FormatInt(r.transCtx.Transfer.ID), nil
+		"#TRANSFERID#": func(ctx *model.TransferContext, _ string) (string, error) {
+			return utils.FormatInt(ctx.Transfer.ID), nil
 		},
 		"#REQUESTERHOST#": getClient,
 		"#REQUESTEDHOST#": getServer,
-		"#FULLTRANSFERID#": func(r *Runner) (string, error) {
+		"#FULLTRANSFERID#": func(ctx *model.TransferContext, match string) (string, error) {
 			// DEPRECATED
-			client, err := getClient(r)
+			client, err := getClient(ctx, match)
 			if err != nil {
 				return "", nil
 			}
 
-			server, err := getServer(r)
+			server, err := getServer(ctx, match)
 			if err != nil {
 				return "", nil
 			}
 
-			return fmt.Sprintf("%d_%s_%s", r.transCtx.Transfer.ID, client, server), nil
+			return fmt.Sprintf("%d_%s_%s", ctx.Transfer.ID, client, server), nil
 		},
 		"#RANKTRANSFER#": notImplemented("#RANKTRANSFER#"),
 		"#BLOCKSIZE#":    notImplemented("#BLOCKSIZE#"),
-		"#ERRORMSG#": func(r *Runner) (string, error) {
-			return r.transCtx.Transfer.ErrDetails, nil
+		"#ERRORMSG#": func(ctx *model.TransferContext, _ string) (string, error) {
+			return ctx.Transfer.ErrDetails, nil
 		},
-		"#ERRORCODE#": func(r *Runner) (string, error) {
-			return string(r.transCtx.Transfer.ErrCode.R66Code()), nil
+		"#ERRORCODE#": func(ctx *model.TransferContext, _ string) (string, error) {
+			return string(ctx.Transfer.ErrCode.R66Code()), nil
 		},
-		"#ERRORSTRCODE#": func(r *Runner) (string, error) {
-			return r.transCtx.Transfer.ErrDetails, nil
+		"#ERRORSTRCODE#": func(ctx *model.TransferContext, _ string) (string, error) {
+			return ctx.Transfer.ErrDetails, nil
 		},
 		"#NOWAIT#":    notImplemented("#NOWAIT#"),
 		"#LOCALEXEC#": notImplemented("#LOCALEXEC#"),
 	}
 }
 
-func replaceInfo(val interface{}) replacer {
-	return func(*Runner) (string, error) {
+func replaceInfo(val any) replacer {
+	return func(*model.TransferContext, string) (string, error) {
 		return fmt.Sprint(val), nil
 	}
 }
@@ -139,40 +136,40 @@ func (r replacersMap) addInfo(c *model.TransferContext) {
 	}
 }
 
-func notImplemented(word string) func(*Runner) (string, error) {
-	return func(*Runner) (string, error) {
+func notImplemented(word string) replacer {
+	return func(*model.TransferContext, string) (string, error) {
 		return "", fmt.Errorf("%w: %s", errNotImplemented, word)
 	}
 }
 
-func getLocal(r *Runner) (string, error) {
-	if r.transCtx.Transfer.IsServer() {
-		return r.transCtx.LocalAgent.Name, nil
+func getLocal(ctx *model.TransferContext, _ string) (string, error) {
+	if ctx.Transfer.IsServer() {
+		return ctx.LocalAgent.Name, nil
 	}
 
-	return r.transCtx.RemoteAccount.Login, nil
+	return ctx.RemoteAccount.Login, nil
 }
 
-func getRemote(r *Runner) (string, error) {
-	if r.transCtx.Transfer.IsServer() {
-		return r.transCtx.LocalAccount.Login, nil
+func getRemote(ctx *model.TransferContext, _ string) (string, error) {
+	if ctx.Transfer.IsServer() {
+		return ctx.LocalAccount.Login, nil
 	}
 
-	return r.transCtx.RemoteAgent.Name, nil
+	return ctx.RemoteAgent.Name, nil
 }
 
-func getClient(r *Runner) (string, error) {
-	if r.transCtx.Transfer.IsServer() {
-		return r.transCtx.LocalAccount.Login, nil
+func getClient(ctx *model.TransferContext, _ string) (string, error) {
+	if ctx.Transfer.IsServer() {
+		return ctx.LocalAccount.Login, nil
 	}
 
-	return r.transCtx.RemoteAccount.Login, nil
+	return ctx.RemoteAccount.Login, nil
 }
 
-func getServer(r *Runner) (string, error) {
-	if r.transCtx.Transfer.IsServer() {
-		return r.transCtx.LocalAgent.Name, nil
+func getServer(ctx *model.TransferContext, _ string) (string, error) {
+	if ctx.Transfer.IsServer() {
+		return ctx.LocalAgent.Name, nil
 	}
 
-	return r.transCtx.RemoteAgent.Name, nil
+	return ctx.RemoteAgent.Name, nil
 }

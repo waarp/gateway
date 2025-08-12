@@ -90,18 +90,16 @@ func (p pesitAESAuthHandler) Validate(val, val2, protocol, host string, isServer
 
 type preConnectionAuthExtHandler struct{}
 
-func (p preConnectionAuthExtHandler) FromDB(login, cryptPwd string) (string, string, error) {
-	plainPwd, err := utils.AESDecrypt(database.GCM, cryptPwd)
-	if err != nil {
+func (p preConnectionAuthExtHandler) FromDB(login, cryptPwd string) (preLogin, plainPwd string, err error) {
+	if plainPwd, err = utils.AESDecrypt(database.GCM, cryptPwd); err != nil {
 		return "", "", fmt.Errorf("failed to decrypt the password: %w", err)
 	}
 
 	return login, plainPwd, nil
 }
 
-func (p preConnectionAuthExtHandler) ToDB(login, plainPwd string) (string, string, error) {
-	cryptPwd, err := utils.AESCrypt(database.GCM, plainPwd)
-	if err != nil {
+func (p preConnectionAuthExtHandler) ToDB(login, plainPwd string) (preLogin, cryptPwd string, err error) {
+	if cryptPwd, err = utils.AESCrypt(database.GCM, plainPwd); err != nil {
 		return "", "", fmt.Errorf("failed to encrypt the password: %w", err)
 	}
 

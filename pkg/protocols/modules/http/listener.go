@@ -21,7 +21,7 @@ var errNoValidCert = errors.New("could not find a valid certificate for HTTP ser
 func (h *httpService) makeTLSConf(*tls.ClientHelloInfo) (*tls.Config, error) {
 	creds, dbErr := h.agent.GetCredentials(h.db, auth.TLSCertificate)
 	if dbErr != nil {
-		h.logger.Error("Failed to retrieve server certificates: %s", dbErr)
+		h.logger.Errorf("Failed to retrieve server certificates: %s", dbErr)
 
 		return nil, fmt.Errorf("failed to retrieve server certificates: %w", dbErr)
 	}
@@ -31,7 +31,7 @@ func (h *httpService) makeTLSConf(*tls.ClientHelloInfo) (*tls.Config, error) {
 	for _, cred := range creds {
 		cert, err := tls.X509KeyPair([]byte(cred.Value), []byte(cred.Value2))
 		if err != nil {
-			h.logger.Warning("Failed to parse server certificate: %s", err)
+			h.logger.Warningf("Failed to parse server certificate: %v", err)
 
 			continue
 		}
@@ -46,7 +46,7 @@ func (h *httpService) makeTLSConf(*tls.ClientHelloInfo) (*tls.Config, error) {
 	}
 
 	return &tls.Config{
-		MinVersion:            tls.VersionTLS12,
+		MinVersion:            h.conf.MinTLSVersion.TLS(),
 		Certificates:          tlsCerts,
 		ClientAuth:            tls.RequestClientCert,
 		VerifyPeerCertificate: auth.VerifyClientCert(h.db, h.logger, h.agent),
@@ -65,7 +65,7 @@ func (h *httpService) listen() error {
 
 	if h.agent.Protocol == HTTPS {
 		list, netErr = tls.Listen("tcp", addr, &tls.Config{
-			MinVersion:         tls.VersionTLS12,
+			MinVersion:         h.conf.MinTLSVersion.TLS(),
 			GetConfigForClient: h.makeTLSConf,
 		})
 	} else {
@@ -73,7 +73,7 @@ func (h *httpService) listen() error {
 	}
 
 	if netErr != nil {
-		h.logger.Error("Failed to start server listener: %s", netErr)
+		h.logger.Errorf("Failed to start server listener: %s", netErr)
 
 		return fmt.Errorf("failed to start server listener: %w", netErr)
 	}
@@ -81,7 +81,7 @@ func (h *httpService) listen() error {
 	go func() {
 		servErr := h.serv.Serve(list)
 		if !errors.Is(servErr, http.ErrServerClosed) {
-			h.logger.Error("Unexpected error: %v", servErr)
+			h.logger.Errorf("Unexpected error: %v", servErr)
 			h.state.Set(utils.StateError, fmt.Sprintf("unexpected error: %v", servErr))
 		} else {
 			h.state.Set(utils.StateOffline, "")
@@ -148,7 +148,7 @@ func (h *httpService) checkAuthent(w http.ResponseWriter, r *http.Request,
 	// about the existence of an account.
 	if err := h.db.Get(&acc, "login=? AND local_agent_id=?", login, h.agent.ID).
 		Run(); err != nil && !database.IsNotFound(err) {
-		h.logger.Error("Failed to retrieve user credentials: %s", err)
+		h.logger.Errorf("Failed to retrieve user credentials: %v", err)
 		http.Error(w, "Failed to retrieve user credentials", http.StatusInternalServerError)
 
 		return nil, false
@@ -165,7 +165,7 @@ func (h *httpService) checkAuthent(w http.ResponseWriter, r *http.Request,
 
 	if r.TLS != nil && len(r.TLS.PeerCertificates) > 0 {
 		if cn := r.TLS.PeerCertificates[0].Subject.CommonName; cn != login {
-			h.logger.Warning("Mismatched login %q and certificate subject %q", login, cn)
+			h.logger.Warningf("Mismatched login %q and certificate subject %q", login, cn)
 			unauthorized(w, "auth: mismatched login and certificate subject")
 
 			return nil, false
@@ -176,12 +176,12 @@ func (h *httpService) checkAuthent(w http.ResponseWriter, r *http.Request,
 
 	if pswd != "" {
 		if res, err := acc.Authenticate(h.db, h.agent, auth.Password, pswd); err != nil {
-			h.logger.Error("Failed to check password for user %q: %v", acc.Login, err)
+			h.logger.Errorf("Failed to check password for user %q: %v", acc.Login, err)
 			http.Error(w, "internal authentication error", http.StatusInternalServerError)
 
 			return nil, false
 		} else if !res.Success {
-			h.logger.Warning("Invalid credentials for user %q: %s", acc.Login, res.Reason)
+			h.logger.Warningf("Invalid credentials for user %q: %s", acc.Login, res.Reason)
 			unauthorized(w, "auth: invalid credentials")
 
 			return nil, false

@@ -86,14 +86,14 @@ func MaskToPerms(m PermsMask) *Permissions {
 }
 
 func permToMask(mask *PermsMask, perm string, off int) error {
-	invalid := func(format string, args ...interface{}) error {
+	invalid := func(format string, args ...any) error {
 		reason := fmt.Sprintf(format, args...)
 
-		//nolint:goerr113 //too specific to have a base error
+		//nolint:err113 //too specific to have a base error
 		return fmt.Errorf("invalid permission string %q: %s", perm, reason)
 	}
 
-	if len(perm) == 0 {
+	if perm == "" {
 		return nil
 	}
 

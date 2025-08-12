@@ -25,8 +25,11 @@ func Addr(host string, port uint16) Address {
 // NewAddress parses the given string as an address and returns it, if it is valid.
 func NewAddress(str string) (*Address, error) {
 	addr := &Address{}
+	if err := addr.Set(str); err != nil {
+		return nil, err
+	}
 
-	return addr, addr.Set(str)
+	return addr, nil
 }
 
 func (a *Address) IsSet() bool               { return a.Host != "" || a.Port != 0 }
@@ -72,4 +75,8 @@ func (a *Address) Validate() error {
 	}
 
 	return nil
+}
+
+func (a Address) MarshalJSON() ([]byte, error) {
+	return []byte(strconv.Quote(a.String())), nil
 }

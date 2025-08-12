@@ -17,11 +17,13 @@ const (
 	// DefaultMessageSize defines the default PeSIT message size (in bytes) if
 	// omitted by the user in the proto config.
 	DefaultMessageSize uint16 = math.MaxUint16
+
+	defaultArticleSize = 0xFF00
 )
 
 const (
-	CompatibilityModeNone  = "none"
-	CompatibilityModeAxway = "axway"
+	CompatibilityModeStandard    = "standard"
+	CompatibilityModeNonStandard = "non-standard"
 )
 
 type CheckPointConfig struct {
@@ -130,7 +132,7 @@ func (p *PartnerConfig) ValidPartner() error {
 	}
 
 	if p.CompatibilityMode == "" {
-		p.CompatibilityMode = CompatibilityModeNone
+		p.CompatibilityMode = CompatibilityModeStandard
 	}
 
 	if p.MaxMessageSize == 0 {
@@ -142,10 +144,10 @@ func (p *PartnerConfig) ValidPartner() error {
 
 func checkCompatibilityMode(mode string) error {
 	switch mode {
-	case CompatibilityModeNone, CompatibilityModeAxway:
+	case CompatibilityModeStandard, CompatibilityModeNonStandard:
 		return nil
 	default:
-		//nolint:goerr113 // this is a base error
+		//nolint:err113 // this is a base error
 		return fmt.Errorf("unknown compatibility mode %q", mode)
 	}
 }

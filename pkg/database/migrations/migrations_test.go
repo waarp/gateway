@@ -161,4 +161,10 @@ func testMigrations(t *testing.T, eng *testEngine) {
 
 	// 0.12.1
 	apply(testVer0_12_0AddCryptoKeysOwner(t, eng))
+
+	// 0.13.0
+	apply(testVer0_13_0AddTransferAutoResume(t, eng))
+	apply(testVer0_13_0AddClientAutoResume(t, eng))
+	apply(testVer0_13_0AddEmailTemplates(t, eng))
+	apply(testVer0_13_0AddSMTPCredentials(t, eng))
 }

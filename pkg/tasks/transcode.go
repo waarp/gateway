@@ -74,22 +74,22 @@ func (t *transcodeTask) parseParams(params map[string]string) error {
 		return fmt.Errorf("failed to parse transcode task params: %w", ErrBadTaskArguments)
 	}
 
-	var err error
-
 	if t.FromCharset == "" {
 		return ErrTranscodeNoSrcEncoding
-	} else {
-		if t.from, err = getEncoding(t.FromCharset); err != nil {
-			return fmt.Errorf("source encoding: %w", err)
-		}
 	}
 
 	if t.ToCharset == "" {
 		return ErrTranscodeNoDstEncoding
-	} else {
-		if t.to, err = getEncoding(t.ToCharset); err != nil {
-			return fmt.Errorf("destination encoding: %w", err)
-		}
+	}
+
+	var err error
+
+	if t.from, err = getEncoding(t.FromCharset); err != nil {
+		return fmt.Errorf("source encoding: %w", err)
+	}
+
+	if t.to, err = getEncoding(t.ToCharset); err != nil {
+		return fmt.Errorf("destination encoding: %w", err)
 	}
 
 	if t.ToCharset == t.FromCharset {
@@ -116,13 +116,13 @@ func (t *transcodeTask) Run(_ context.Context, params map[string]string,
 	}
 
 	if err := fs.Remove(transCtx.Transfer.LocalPath); err != nil {
-		logger.Error("Failed to delete source file: %v", err)
+		logger.Errorf("Failed to delete source file: %v", err)
 
 		return fmt.Errorf("failed to delete source file: %w", err)
 	}
 
 	if err := fs.MoveFile(tempFilename, transCtx.Transfer.LocalPath); err != nil {
-		logger.Error("Failed to rename temporary file: %v", err)
+		logger.Errorf("Failed to rename temporary file: %v", err)
 
 		return fmt.Errorf("failed to rename temporary file: %w", err)
 	}
@@ -133,7 +133,7 @@ func (t *transcodeTask) Run(_ context.Context, params map[string]string,
 func (t *transcodeTask) transcode(logger *log.Logger, srcFilepath, dstFilepath string) error {
 	srcFile, opErr := fs.Open(srcFilepath)
 	if opErr != nil {
-		logger.Error("Failed to open source file: %v", opErr)
+		logger.Errorf("Failed to open source file: %v", opErr)
 
 		return fmt.Errorf("failed to open source file: %w", opErr)
 	}
@@ -141,7 +141,7 @@ func (t *transcodeTask) transcode(logger *log.Logger, srcFilepath, dstFilepath s
 
 	dstFile, opErr := fs.Create(dstFilepath)
 	if opErr != nil {
-		logger.Error("Failed to create destination file: %v", opErr)
+		logger.Errorf("Failed to create destination file: %v", opErr)
 
 		return fmt.Errorf("failed to create destination file: %w", opErr)
 	}
@@ -155,7 +155,7 @@ func (t *transcodeTask) transcode(logger *log.Logger, srcFilepath, dstFilepath s
 	}
 
 	if err := dst.Close(); err != nil {
-		logger.Error("Failed to close destination file: %v", err)
+		logger.Errorf("Failed to close destination file: %v", err)
 
 		return fmt.Errorf("failed to close destination file: %w", err)
 	}

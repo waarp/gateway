@@ -8,7 +8,6 @@ import (
 	"net"
 	"strings"
 	"sync"
-	"time"
 
 	"code.waarp.fr/lib/log"
 	"github.com/pkg/sftp"
@@ -16,10 +15,8 @@ import (
 
 	"code.waarp.fr/apps/gateway/gateway/pkg/database"
 	"code.waarp.fr/apps/gateway/gateway/pkg/model"
-	"code.waarp.fr/apps/gateway/gateway/pkg/model/types"
 	"code.waarp.fr/apps/gateway/gateway/pkg/pipeline"
 	"code.waarp.fr/apps/gateway/gateway/pkg/protocols/modules/sftp/internal"
-	"code.waarp.fr/apps/gateway/gateway/pkg/utils"
 )
 
 type sshListener struct {
@@ -43,7 +40,7 @@ func (l *sshListener) listen() {
 			case <-l.shutdown:
 				return
 			default:
-				l.Logger.Error("Failed to accept connection: %s", err)
+				l.Logger.Errorf("Failed to accept connection: %v", err)
 			}
 
 			continue
@@ -57,9 +54,9 @@ func (l *sshListener) listen() {
 func (l *sshListener) handleConnection(nConn net.Conn) {
 	defer closeTCPConn(nConn, l.Logger)
 
-	servConn, channels, reqs, err := ssh.NewServerConn(nConn, l.SSHConf)
-	if err != nil {
-		l.Logger.Error("Failed to perform handshake: %s", err)
+	servConn, channels, reqs, connErr := ssh.NewServerConn(nConn, l.SSHConf)
+	if connErr != nil {
+		l.Logger.Errorf("Failed to perform handshake: %s", connErr)
 
 		return
 	}
@@ -71,7 +68,7 @@ func (l *sshListener) handleConnection(nConn net.Conn) {
 	var acc model.LocalAccount
 	if err := l.DB.Get(&acc, "local_agent_id=? AND login=?", l.Server.ID,
 		servConn.User()).Run(); err != nil {
-		l.Logger.Error("Failed to retrieve SFTP user: %s", err)
+		l.Logger.Errorf("Failed to retrieve SFTP user: %v", err)
 
 		return
 	}
@@ -88,10 +85,11 @@ func (l *sshListener) handleConnection(nConn net.Conn) {
 			if !ok {
 				return
 			}
+
 			select {
 			case <-l.shutdown:
 				if err := newChannel.Reject(ssh.ResourceShortage, "server shutting down"); err != nil {
-					l.Logger.Warning("An error occurred while rejecting an SFTP channel: %v", err)
+					l.Logger.Warningf("An error occurred while rejecting an SFTP channel: %v", err)
 				}
 
 			default:
@@ -112,15 +110,15 @@ func (l *sshListener) handleSession(sesWg *sync.WaitGroup,
 		l.Logger.Warning("Unknown channel type received")
 
 		if err := newChannel.Reject(ssh.UnknownChannelType, "unknown channel type"); err != nil {
-			l.Logger.Warning("An error occurred while rejecting an SFTP channel: %v", err)
+			l.Logger.Warningf("An error occurred while rejecting an SFTP channel: %v", err)
 		}
 
 		return
 	}
 
-	channel, requests, err := newChannel.Accept()
-	if err != nil {
-		l.Logger.Error("Failed to accept SFTP session: %s", err)
+	channel, requests, accErr := newChannel.Accept()
+	if accErr != nil {
+		l.Logger.Errorf("Failed to accept SFTP session: %s", accErr)
 
 		return
 	}
@@ -130,11 +128,11 @@ func (l *sshListener) handleSession(sesWg *sync.WaitGroup,
 	server := sftp.NewRequestServer(channel, l.handlerMaker(acc))
 
 	if err := server.Serve(); err != nil && !errors.Is(err, io.EOF) {
-		l.Logger.Warning("An error occurred while serving SFTP requests: %v", err)
+		l.Logger.Warningf("An error occurred while serving SFTP requests: %v", err)
 	}
 
 	if err := server.Close(); err != nil {
-		l.Logger.Warning("An error occurred while ending the SFTP session: %v", err)
+		l.Logger.Warningf("An error occurred while ending the SFTP session: %v", err)
 	}
 }
 
@@ -167,21 +165,10 @@ func (l *sshListener) makeFileReader(acc *model.LocalAccount) internal.ReaderAtF
 		filePath = strings.TrimPrefix(filePath, rule.Path)
 		filePath = strings.TrimPrefix(filePath, "/")
 
-		// Create Transfer
-		trans := &model.Transfer{
-			RuleID:         rule.ID,
-			LocalAccountID: utils.NewNullInt64(acc.ID),
-			SrcFilename:    filePath,
-			Filesize:       model.UnknownSize,
-			Start:          time.Now(),
-			Status:         types.StatusRunning,
-			Step:           types.StepNone,
-		}
-
-		l.Logger.Info("Download of file '%s' requested by '%s' using rule '%s'",
+		l.Logger.Infof("Download of file %q requested by %q using rule %q",
 			filePath, acc.Login, rule.Name)
 
-		pip, err := newServerPipeline(l.DB, l.Logger, trans, l.tracer)
+		pip, err := newServerPipeline(l.DB, l.Logger, filePath, acc, rule, l.tracer)
 		if err != nil {
 			return nil, err
 		}
@@ -211,20 +198,10 @@ func (l *sshListener) makeFileWriter(acc *model.LocalAccount) internal.WriterAtF
 		filePath = strings.TrimPrefix(filePath, "/")
 
 		// Create Transfer
-		trans := &model.Transfer{
-			RuleID:         rule.ID,
-			LocalAccountID: utils.NewNullInt64(acc.ID),
-			DestFilename:   filePath,
-			Filesize:       model.UnknownSize,
-			Start:          time.Now(),
-			Status:         types.StatusRunning,
-			Step:           types.StepNone,
-		}
-
-		l.Logger.Info("Upload of file '%s' requested by '%s' using rule '%s'",
+		l.Logger.Infof("Upload of file %q requested by %q using rule %q",
 			filePath, acc.Login, rule.Name)
 
-		pip, err := newServerPipeline(l.DB, l.Logger, trans, l.tracer)
+		pip, err := newServerPipeline(l.DB, l.Logger, filePath, acc, rule, l.tracer)
 		if err != nil {
 			return nil, err
 		}
@@ -242,12 +219,12 @@ func (l *sshListener) close(ctx context.Context) error {
 
 	defer func() {
 		if err := l.Listener.Close(); err != nil {
-			l.Logger.Warning("An error occurred while closing the network connection: %v", err)
+			l.Logger.Warningf("An error occurred while closing the network connection: %v", err)
 		}
 	}()
 
 	if err := pipeline.List.StopAllFromServer(ctx, l.Server.ID); err != nil {
-		l.Logger.Error("Failed to stop the ongoing SFTP transfers: %v", err)
+		l.Logger.Errorf("Failed to stop the ongoing SFTP transfers: %v", err)
 
 		return fmt.Errorf("failed to stop the ongoing SFTP transfers: %w", err)
 	}

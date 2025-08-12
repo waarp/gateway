@@ -25,7 +25,7 @@ func getCredentials(db database.ReadAccess, owner authentication.Owner,
 	query := db.Select(&auths).Where(owner.GetCredCond()).OrderBy("id", true)
 
 	if len(authTypes) > 0 {
-		vals := make([]interface{}, len(authTypes))
+		vals := make([]any, len(authTypes))
 
 		for i := range authTypes {
 			vals[i] = authTypes[i]
@@ -49,15 +49,15 @@ func getTransferInfo(db database.ReadAccess, owner transferInfoOwner,
 		return nil, fmt.Errorf("failed to retrieve the transfer info list: %w", err)
 	}
 
-	infoMap := map[string]interface{}{}
+	infoMap := map[string]any{}
 
 	for _, info := range infoList {
 		decoder := json.NewDecoder(strings.NewReader(info.Value))
 		decoder.UseNumber()
 
-		var val interface{}
+		var val any
 		if err := decoder.Decode(&val); err != nil {
-			return nil, database.NewValidationError(`invalid transfer info value "%v": %s`, info.Value, err)
+			return nil, database.NewValidationErrorf(`invalid transfer info value "%v": %w`, info.Value, err)
 		}
 
 		infoMap[info.Name] = val
@@ -97,7 +97,7 @@ func doSetTransferInfo(ses *database.Session, owner transferInfoOwner,
 	for name, val := range info {
 		str, err := json.Marshal(val)
 		if err != nil {
-			return database.NewValidationError(`invalid transfer info value "%v": %w`, val, err)
+			return database.NewValidationErrorf(`invalid transfer info value "%v": %w`, val, err)
 		}
 
 		i := &TransferInfo{Name: name, Value: string(str)}

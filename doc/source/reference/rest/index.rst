@@ -21,6 +21,15 @@ en interrogeant l'adresse d'administration donnée dans la configuration.
    et conservent donc leur ancienne valeur. Lors d'une mise à jour complète,
    les champs omits sont réinitialisés à leurs valeurs par défaut.
 
+.. important::
+   Pour une meilleure lisibilité, les URLs donnés dans les exemples de requêtes
+   et de réponses de cette documentation ne sont pas encodés en `encodage-pourcent
+   <https://fr.wikipedia.org/wiki/Encodage-pourcent>`_. Cependant, dans la pratique,
+   il est impératif que les éventuels caractères réservés présents dans vos URLs
+   soient échappés via ce mécanisme, sans quoi ces URLs ne seront pas valides.
+   Veillez donc bien à passer vos URLs dans un encodeur d'URL avant de les
+   envoyer dans des requêtes.
+
 .. toctree::
    :maxdepth: 1
 

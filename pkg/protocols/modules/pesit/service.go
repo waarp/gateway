@@ -34,14 +34,14 @@ func (s *Service) Start() error {
 
 	addr, err := s.start()
 	if err != nil {
-		s.logger.Error("Failed to start Pesit server: %s", err)
+		s.logger.Errorf("Failed to start Pesit server: %v", err)
 		s.state.Set(utils.StateError, err.Error())
 
 		return err
 	}
 
 	s.state.Set(utils.StateRunning, "")
-	s.logger.Info("Pesit server started successfully on %s", addr)
+	s.logger.Infof("Pesit server started successfully on %s", addr)
 
 	return nil
 }
@@ -65,7 +65,7 @@ func (s *Service) Stop(ctx context.Context) error {
 	s.logger.Info("Stopping Pesit service...")
 
 	if err := s.server.stop(ctx); err != nil {
-		s.logger.Error("Failed to stop Pesit server: %s", err)
+		s.logger.Errorf("Failed to stop Pesit server: %v", err)
 		s.state.Set(utils.StateError, err.Error())
 
 		return err

@@ -34,7 +34,11 @@ type Error struct {
 	cause   error
 }
 
-func NewError(code types.TransferErrorCode, details string, args ...any) *Error {
+func NewError(code types.TransferErrorCode, details string) *Error {
+	return &Error{code: code, details: details}
+}
+
+func NewErrorf(code types.TransferErrorCode, details string, args ...any) *Error {
 	return &Error{code: code, details: fmt.Sprintf(details, args...)}
 }
 

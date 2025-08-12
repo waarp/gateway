@@ -38,7 +38,7 @@ func (s *serverStream) WriteAt(p []byte, off int64) (int, error) {
 }
 
 type serverTransfer struct {
-	r66Conf *serverConfig
+	r66Conf *tlsServerConfig
 	conf    *r66.Authent
 	pip     *pipeline.Pipeline
 	ctx     context.Context
@@ -49,14 +49,14 @@ func (t *serverTransfer) updTransInfo(info *r66.UpdateInfo) error {
 		if err := internal.UpdateFileInfo(info, t.pip); err != nil {
 			return internal.ToR66Error(err)
 		}
+
+		if fID := info.FileInfo.SystemData.FollowID; fID != 0 {
+			t.pip.TransCtx.TransInfo[model.FollowID] = fID
+		}
 	}
 
-	if fID := info.FileInfo.SystemData.FollowID; fID != 0 {
-		t.pip.TransCtx.TransInfo[model.FollowID] = fID
-	}
-
-	if tErr := internal.UpdateTransferInfo(info.FileInfo.UserContent, t.pip); tErr != nil {
-		return internal.ToR66Error(tErr)
+	if err := internal.MakeTransferInfo(t.pip, info.FileInfo); err != nil {
+		return internal.ToR66Error(err)
 	}
 
 	return nil

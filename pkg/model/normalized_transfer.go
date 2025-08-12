@@ -1,12 +1,19 @@
 package model
 
 import (
+	"time"
+
 	"code.waarp.fr/apps/gateway/gateway/pkg/database"
 )
 
 type NormalizedTransferView struct {
 	HistoryEntry `xorm:"extends"`
-	IsTransfer   bool `xorm:"BOOL 'is_transfer'"`
+
+	IsTransfer           bool      `xorm:"BOOL 'is_transfer'"`
+	RemainingTries       int8      `xorm:"remaining_tries"`
+	NextRetryDelay       int32     `xorm:"next_retry_delay"`
+	RetryIncrementFactor float32   `xorm:"retry_increment_factor"`
+	NextRetry            time.Time `xorm:"next_retry DATETIME(6) UTC"`
 }
 
 func (*NormalizedTransferView) TableName() string   { return ViewNormalizedTransfers }
@@ -24,7 +31,7 @@ func (n *NormalizedTransferView) BeforeDelete(database.Access) error {
 }
 
 // GetTransferInfo returns the list of the transfer's TransferInfo as a map of interfaces.
-func (n *NormalizedTransferView) GetTransferInfo(db database.ReadAccess) (map[string]interface{}, error) {
+func (n *NormalizedTransferView) GetTransferInfo(db database.ReadAccess) (map[string]any, error) {
 	return getTransferInfo(db, n)
 }
 

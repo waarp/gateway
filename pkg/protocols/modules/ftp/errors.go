@@ -12,7 +12,7 @@ import (
 	"code.waarp.fr/apps/gateway/gateway/pkg/pipeline"
 )
 
-//nolint:gomnd //magic numbers are needed here for FTP return codes
+//nolint:mnd //magic numbers are needed here for FTP return codes
 func toPipelineError(ftpErr error, context string) *pipeline.Error {
 	var pipErr *pipeline.Error
 	if errors.As(ftpErr, &pipErr) && pipErr != nil {
@@ -38,11 +38,12 @@ func toPipelineError(ftpErr error, context string) *pipeline.Error {
 	reg := regexp.MustCompile(`TransferError\((?P<Code>Te\w+)\): (?P<Details>.*)$`)
 	matches := reg.FindStringSubmatch(goftpErr.Message())
 
+	//nolint:mnd //too specific
 	if len(matches) == 3 {
 		code := types.TecFromString(matches[1])
 		details := matches[2]
 
-		return pipeline.NewError(code, "Error on remote partner: %s", details)
+		return pipeline.NewErrorf(code, "Error on remote partner: %s", details)
 	}
 
 	detail := goftpErr.Message()
@@ -54,6 +55,7 @@ func toPipelineError(ftpErr error, context string) *pipeline.Error {
 
 	// see https://en.wikipedia.org/wiki/List_of_FTP_server_return_codes for a
 	// list of FTP return codes
+	//nolint:mnd //too specific
 	switch goftpErr.Code() {
 	case 331, 332, 430, 530, 532:
 		return pipeline.NewError(types.TeBadAuthentication, msg)

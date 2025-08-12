@@ -24,15 +24,14 @@ func init() {
 	authentication.AddExternalCredentialType(Password, &AESPasswordHandler{})
 }
 
-var ErrEmptyPassword = errors.New("password input is empty")
+var ErrNoPassword = errors.New("no password found")
 
 type BcryptAuthHandler struct{}
 
 func (*BcryptAuthHandler) CanOnlyHaveOne() bool { return true }
 
-func (*BcryptAuthHandler) ToDB(val, _ string) (string, string, error) {
-	hashed, err := utils.HashPassword(database.BcryptRounds, val)
-	if err != nil {
+func (*BcryptAuthHandler) ToDB(plain, _ string) (hashed, _ string, err error) {
+	if hashed, err = utils.HashPassword(database.BcryptRounds, plain); err != nil {
 		return "", "", fmt.Errorf("failed to hash the password: %w", err)
 	}
 
@@ -45,9 +44,6 @@ func (*BcryptAuthHandler) Validate(value, _, _, _ string, _ bool) error {
 	}
 
 	// TODO add more verifications (min length, character variety...)
-	if value == "" {
-		return ErrEmptyPassword
-	}
 
 	return nil
 }
@@ -83,7 +79,7 @@ func (*BcryptAuthHandler) AuthenticateType(db database.ReadAccess,
 	case []byte:
 		return doVerify(value)
 	default:
-		//nolint:goerr113 //this is a base error
+		//nolint:err113 //this is a base error
 		return nil, fmt.Errorf(`unknown bcrypt hash type "%T"`, value)
 	}
 }
@@ -92,29 +88,23 @@ type AESPasswordHandler struct{}
 
 func (*AESPasswordHandler) CanOnlyHaveOne() bool { return true }
 
-func (*AESPasswordHandler) ToDB(val, _ string) (string, string, error) {
-	encrypted, err := utils.AESCrypt(database.GCM, val)
-	if err != nil {
+func (*AESPasswordHandler) ToDB(plainPwd, _ string) (encryptedPwd, _ string, err error) {
+	if encryptedPwd, err = utils.AESCrypt(database.GCM, plainPwd); err != nil {
 		return "", "", fmt.Errorf("failed to encrypt the password: %w", err)
 	}
 
-	return encrypted, "", nil
+	return encryptedPwd, "", nil
 }
 
-func (*AESPasswordHandler) FromDB(val, _ string) (string, string, error) {
-	plain, err := utils.AESDecrypt(database.GCM, val)
-	if err != nil {
+func (*AESPasswordHandler) FromDB(encryptedPwd, _ string) (plainPwd, _ string, err error) {
+	if plainPwd, err = utils.AESDecrypt(database.GCM, encryptedPwd); err != nil {
 		return "", "", fmt.Errorf("failed to decrypt the password: %w", err)
 	}
 
-	return plain, "", nil
+	return plainPwd, "", nil
 }
 
-func (*AESPasswordHandler) Validate(value, _, _, _ string, _ bool) error {
+func (*AESPasswordHandler) Validate(_, _, _, _ string, _ bool) error {
 	// TODO add more verifications (min length, character variety...)
-	if value == "" {
-		return ErrEmptyPassword
-	}
-
 	return nil
 }

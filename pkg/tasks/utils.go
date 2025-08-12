@@ -1,10 +1,12 @@
 package tasks
 
 import (
+	"encoding/json"
 	"fmt"
-	"strconv"
+	"regexp"
 	"strings"
-	"time"
+
+	"code.waarp.fr/apps/gateway/gateway/pkg/model"
 )
 
 func mapToStr(m map[string]string) string {
@@ -16,38 +18,29 @@ func mapToStr(m map[string]string) string {
 	return "{" + strings.Join(args, ", ") + "}"
 }
 
-type jsonDuration time.Duration
+func replaceVars(orig string, transCtx *model.TransferContext) (string, error) {
+	replacers := getReplacers()
+	replacers.addInfo(transCtx)
 
-func (j *jsonDuration) UnmarshalJSON(bytes []byte) error {
-	str, err := strconv.Unquote(string(bytes))
-	if err != nil {
-		return fmt.Errorf("failed to unquote duration: %w", err)
+	for key, f := range replacers {
+		reg := regexp.MustCompile(key)
+		matches := reg.FindAllString(orig, -1)
+
+		for _, match := range matches {
+			rep, err := f(transCtx, match)
+			if err != nil {
+				return "", err
+			}
+
+			bytesRep, err := json.Marshal(rep)
+			if err != nil {
+				return "", fmt.Errorf("cannot prepare value for replacement: %w", err)
+			}
+
+			replacement := string(bytesRep[1 : len(bytesRep)-1])
+			orig = strings.ReplaceAll(orig, match, replacement)
+		}
 	}
 
-	dur, err := time.ParseDuration(str)
-	if err != nil {
-		return fmt.Errorf("failed to parse duration: %w", err)
-	}
-
-	*j = jsonDuration(dur)
-
-	return nil
-}
-
-type jsonBool bool
-
-func (j *jsonBool) UnmarshalJSON(bytes []byte) error {
-	str, err := strconv.Unquote(string(bytes))
-	if err != nil {
-		return fmt.Errorf("failed to unquote bool: %w", err)
-	}
-
-	b, err := strconv.ParseBool(str)
-	if err != nil {
-		return fmt.Errorf("failed to parse bool: %w", err)
-	}
-
-	*j = jsonBool(b)
-
-	return nil
+	return orig, nil
 }

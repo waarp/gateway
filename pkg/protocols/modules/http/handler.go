@@ -6,7 +6,6 @@ import (
 	"net/http"
 	"path"
 	"strings"
-	"time"
 
 	"code.waarp.fr/lib/log"
 
@@ -16,7 +15,6 @@ import (
 	"code.waarp.fr/apps/gateway/gateway/pkg/pipeline"
 	"code.waarp.fr/apps/gateway/gateway/pkg/protocols/modules/http/httpconst"
 	"code.waarp.fr/apps/gateway/gateway/pkg/snmp"
-	"code.waarp.fr/apps/gateway/gateway/pkg/utils"
 )
 
 type httpHandler struct {
@@ -57,7 +55,7 @@ func (h *httpHandler) getRuleFromName(name string, isSend bool) bool {
 			return false
 		}
 
-		h.logger.Error("Failed to retrieve transfer rule: %s", err)
+		h.logger.Errorf("Failed to retrieve transfer rule: %v", err)
 		h.sendError(http.StatusInternalServerError, types.TeInternal, "failed to retrieve transfer rule")
 
 		return false
@@ -69,7 +67,7 @@ func (h *httpHandler) getRuleFromName(name string, isSend bool) bool {
 func (h *httpHandler) checkRulePermission() bool {
 	isAuthorized, err := h.rule.IsAuthorized(h.db, h.account)
 	if err != nil {
-		h.logger.Error("Failed to retrieve rule permissions: %s", err)
+		h.logger.Errorf("Failed to retrieve rule permissions: %v", err)
 		h.sendError(http.StatusInternalServerError, types.TeInternal, "failed to check rule permissions")
 
 		return false
@@ -79,7 +77,7 @@ func (h *httpHandler) checkRulePermission() bool {
 		return true
 	}
 
-	h.logger.Warning("Account %s is not allowed to use %s rule %s", h.account.Login,
+	h.logger.Warningf("Account %s is not allowed to use %s rule %s", h.account.Login,
 		h.rule.Direction(), h.rule.Name)
 	h.sendError(http.StatusForbidden, types.TeForbidden, "you do not have permission to use this rule")
 
@@ -90,7 +88,7 @@ func (h *httpHandler) getSizeProgress(trans *model.Transfer) bool {
 	if h.rule.IsSend {
 		progress, err := getRange(h.req)
 		if err != nil {
-			h.logger.Error("Failed to parse transfer file attributes: %s", err)
+			h.logger.Errorf("Failed to parse transfer file attributes: %v", err)
 			h.sendError(http.StatusRequestedRangeNotSatisfiable, types.TeInternal, err.Error())
 
 			return false
@@ -102,7 +100,7 @@ func (h *httpHandler) getSizeProgress(trans *model.Transfer) bool {
 	} else {
 		progress, filesize, err := getContentRange(h.req.Header)
 		if err != nil {
-			h.logger.Error("Failed to parse transfer file attributes: %s", err)
+			h.logger.Errorf("Failed to parse transfer file attributes: %v", err)
 			h.sendError(http.StatusBadRequest, types.TeInternal, err.Error())
 
 			return false
@@ -141,29 +139,16 @@ func (h *httpHandler) getTransfer(isSend bool) (*model.Transfer, bool) {
 		return nil, false
 	}
 
+	filepath := strings.TrimPrefix(h.req.URL.Path, "/")
 	remoteID := h.req.Header.Get(httpconst.TransferID)
+
 	if remoteID == "" {
 		remoteID = h.req.FormValue(httpconst.ID)
 	}
 
-	trans := &model.Transfer{
-		RemoteTransferID: remoteID,
-		RuleID:           h.rule.ID,
-		LocalAccountID:   utils.NewNullInt64(h.account.ID),
-		Filesize:         model.UnknownSize,
-		Start:            time.Now(),
-		Status:           types.StatusPlanned,
-	}
-
-	if h.rule.IsSend {
-		trans.SrcFilename = strings.TrimPrefix(h.req.URL.Path, "/")
-	} else {
-		trans.DestFilename = strings.TrimPrefix(h.req.URL.Path, "/")
-	}
-
-	var oldErr *pipeline.Error
-	if trans, oldErr = pipeline.GetOldTransfer(h.db, h.logger, trans); oldErr != nil {
-		h.sendError(http.StatusInternalServerError, oldErr.Code(), oldErr.Redacted())
+	trans, tErr := h.mkTransfer(remoteID, filepath)
+	if tErr != nil {
+		h.sendError(http.StatusInternalServerError, tErr.Code(), tErr.Redacted())
 
 		return nil, false
 	}
@@ -173,6 +158,24 @@ func (h *httpHandler) getTransfer(isSend bool) (*model.Transfer, bool) {
 	}
 
 	return trans, true
+}
+
+func (h *httpHandler) mkTransfer(remoteID, filepath string) (*model.Transfer, *pipeline.Error) {
+	if trans, err := pipeline.GetOldTransferByRemoteID(h.db, remoteID, h.account,
+		&h.rule); err == nil {
+		return trans, nil
+	} else if !database.IsNotFound(err) {
+		return nil, err
+	}
+
+	if trans, err := pipeline.GetAvailableTransferByFilename(h.db, filepath, remoteID,
+		h.account, &h.rule); err == nil {
+		return trans, nil
+	} else if !database.IsNotFound(err) {
+		return nil, err
+	}
+
+	return pipeline.MakeServerTransfer(remoteID, filepath, h.account, &h.rule), nil
 }
 
 func (h *httpHandler) handleHead() {
@@ -253,7 +256,7 @@ func (h *httpHandler) handle(isSend bool) {
 		pip.Trace = h.tracer()
 	}
 
-	h.logger.Info("%s of file %s requested by %s using rule %s, transfer "+
+	h.logger.Infof("%s of file %s requested by %s using rule %s, transfer "+
 		"was given ID n°%d", op, path.Base(h.req.URL.Path), h.account.Login,
 		h.rule.Name, trans.ID)
 

@@ -33,6 +33,24 @@ func (g *GetQuery) And(sql string, args ...any) *GetQuery {
 	return g
 }
 
+// In add a 'WHERE col IN' condition to the 'SELECT' query. Because the database/sql
+// package cannot handle variadic placeholders in the Where function, a separate
+// method is required.
+func (g *GetQuery) In(col string, vals ...any) *GetQuery {
+	if len(vals) == 0 {
+		return g
+	}
+
+	sql := &inCond{Builder: &strings.Builder{}}
+	if builder.In(col, vals...).WriteTo(sql) != nil {
+		return g
+	}
+
+	g.conds = append(g.conds, &condition{sql: sql.String(), args: sql.args})
+
+	return g
+}
+
 // OrderBy adds an 'ORDER BY' clause to the 'SELECT' query with the given order
 // and direction.
 func (g *GetQuery) OrderBy(order string, asc bool) *GetQuery {
@@ -58,7 +76,7 @@ func (g *GetQuery) Run() error {
 
 		var err error
 		if condsStr[i], err = builder.ConvertToBoundSQL(cond.sql, cond.args); err != nil {
-			logger.Debug("Failed to serialize the SQL condition: %v", err)
+			logger.Debugf("Failed to serialize the SQL condition: %v", err)
 		}
 	}
 
@@ -72,7 +90,7 @@ func (g *GetQuery) Run() error {
 
 	exist, getErr := query.Get(g.bean)
 	if getErr != nil {
-		logger.Error("Failed to retrieve the %s entry: %s", g.bean.Appellation(), getErr)
+		logger.Errorf("Failed to retrieve the %s entry: %v", g.bean.Appellation(), getErr)
 
 		return NewInternalError(getErr)
 	}
@@ -80,14 +98,14 @@ func (g *GetQuery) Run() error {
 	if !exist {
 		where := strings.Join(condsStr, " AND ")
 
-		logger.Debug("No %s found with conditions (%s)", g.bean.Appellation(), where)
+		logger.Debugf("No %s found with conditions (%s)", g.bean.Appellation(), where)
 
 		return NewNotFoundError(g.bean)
 	}
 
 	if callBack, ok := g.bean.(ReadCallback); ok {
 		if err := callBack.AfterRead(g.db); err != nil {
-			logger.Error("%s entry GET callback failed: %s", g.bean.Appellation(), err)
+			logger.Errorf("%s entry GET callback failed: %v", g.bean.Appellation(), err)
 
 			return fmt.Errorf("%s entry GET callback failed: %w", g.bean.Appellation(), err)
 		}

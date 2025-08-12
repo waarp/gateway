@@ -43,4 +43,4 @@ du même nom existe déjà, elle sera écrasée.
 
 .. code-block:: shell
 
-   waarp-gateway partner credential 'openssh' add -n 'openssh_hostkey' -t 'ssh_public_key' -v './ssh.pub'
+   waarp-gateway partner credential "openssh" add -n "openssh_hostkey" -t "ssh_public_key" -v "./ssh.pub"

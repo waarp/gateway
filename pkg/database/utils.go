@@ -6,7 +6,7 @@ import (
 
 	"code.waarp.fr/lib/log"
 	"xorm.io/xorm"
-	xLog "xorm.io/xorm/log"
+	xlog "xorm.io/xorm/log"
 	"xorm.io/xorm/names"
 
 	vers "code.waarp.fr/apps/gateway/gateway/pkg/version"
@@ -24,7 +24,7 @@ func (db *DB) checkVersion() error {
 
 	ok, err := db.engine.IsTableExist(dbVer.TableName())
 	if err != nil {
-		db.logger.Error("Failed to query database version table: %v", err)
+		db.logger.Errorf("Failed to query database version table: %v", err)
 
 		return NewInternalError(err)
 	}
@@ -33,14 +33,14 @@ func (db *DB) checkVersion() error {
 		return nil
 	}
 
-	if err := db.Get(dbVer, "").Run(); err != nil {
-		db.logger.Error("Failed to retrieve database version: %v", err)
+	if err = db.Get(dbVer, "").Run(); err != nil {
+		db.logger.Errorf("Failed to retrieve database version: %v", err)
 
 		return err
 	}
 
 	if dbVer.Current != vers.Num {
-		db.logger.Critical("Mismatch between database (%s) and program (%s) versions.",
+		db.logger.Criticalf("Mismatch between database (%s) and program (%s) versions.",
 			dbVer.Current, vers.Num)
 
 		return errBadVersion
@@ -55,13 +55,13 @@ func checkExists(db Access, bean exister) error {
 	exist, err := db.getUnderlying().NoAutoCondition().
 		Where("id=?", bean.GetID()).Exist(bean)
 	if err != nil {
-		logger.Error("Failed to check if the %s exists: %s", bean.Appellation(), err)
+		logger.Errorf("Failed to check if the %s exists: %v", bean.Appellation(), err)
 
 		return NewInternalError(err)
 	}
 
 	if !exist {
-		logger.Debug("No %s found with ID %d", bean.Appellation(), bean.GetID())
+		logger.Debugf("No %s found with ID %d", bean.Appellation(), bean.GetID())
 
 		return NewNotFoundError(bean)
 	}
@@ -71,18 +71,19 @@ func checkExists(db Access, bean exister) error {
 
 type inCond struct {
 	*strings.Builder
-	args []interface{}
+
+	args []any
 }
 
-func (i *inCond) Append(args ...interface{}) {
+func (i *inCond) Append(args ...any) {
 	i.args = append(i.args, args...)
 }
 
-func exec(ses *xorm.Session, logger *log.Logger, query string, args ...interface{}) error {
-	elems := append([]interface{}{query}, args...)
+func exec(ses *xorm.Session, logger *log.Logger, query string, args ...any) error {
+	elems := append([]any{query}, args...)
 
 	if _, err := ses.Exec(elems...); err != nil {
-		logger.Error("Failed to execute the query: %s", err)
+		logger.Errorf("Failed to execute the query: %v", err)
 
 		return NewInternalError(err)
 	}
@@ -91,7 +92,7 @@ func exec(ses *xorm.Session, logger *log.Logger, query string, args ...interface
 }
 
 func (db *DB) setLogger(engine *xorm.Engine) {
-	xormLogger := xLog.NewSimpleLogger2(db.logger.AsStdLogger(log.LevelTrace).
+	xormLogger := xlog.NewSimpleLogger2(db.logger.AsStdLogger(log.LevelTrace).
 		Writer(), "", 0)
 
 	xormLogger.ERR.SetPrefix("xorm: ")

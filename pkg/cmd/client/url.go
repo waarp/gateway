@@ -2,7 +2,6 @@ package wg
 
 import (
 	"errors"
-	"fmt"
 	"net/url"
 	"strings"
 )
@@ -17,20 +16,20 @@ type AddrOpt struct{}
 
 func (*AddrOpt) UnmarshalFlag(value string) error {
 	if value == "" {
-		return fmt.Errorf("the address flags '-a' is missing") //nolint:goerr113 // too specific base error
+		return errors.New("the address flags '-a' is missing") //nolint:err113 // too specific base error
 	}
 
 	if !strings.HasPrefix(value, "http://") && !strings.HasPrefix(value, "https://") {
 		value = "http://" + value
 	}
 
-	parsedURL, err := url.ParseRequestURI(value)
-	if err != nil {
-		var err2 *url.Error
+	parsedURL, parsErr := url.ParseRequestURI(value)
+	if parsErr != nil {
+		var uErr *url.Error
 
-		errors.As(err, &err2)
+		errors.As(parsErr, &uErr)
 
-		return err2.Err
+		return uErr.Err
 	}
 
 	if _, hasPwd := parsedURL.User.Password(); !hasPwd {

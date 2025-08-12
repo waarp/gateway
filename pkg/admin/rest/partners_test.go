@@ -442,7 +442,7 @@ func TestUpdatePartner(t *testing.T) {
 
 						Convey("Then the response body should state that "+
 							"the agent was not found", func() {
-							So(w.Body.String(), ShouldEqual, "partner 'toto' not found\n")
+							So(w.Body.String(), ShouldEqual, "partner \"toto\" not found\n")
 						})
 
 						Convey("Then the old agent should still exist", func() {
@@ -539,7 +539,7 @@ func TestReplacePartner(t *testing.T) {
 
 						Convey("Then the response body should state that "+
 							"the agent was not found", func() {
-							So(w.Body.String(), ShouldEqual, "partner 'toto' not found\n")
+							So(w.Body.String(), ShouldEqual, "partner \"toto\" not found\n")
 						})
 
 						Convey("Then the old agent should still exist", func() {

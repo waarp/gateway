@@ -1,6 +1,7 @@
 package model
 
 import (
+	"database/sql"
 	"errors"
 	"fmt"
 
@@ -33,11 +34,12 @@ type LocalAgent struct {
 	ProtoConfig map[string]any `xorm:"proto_config"`
 }
 
-func (*LocalAgent) TableName() string   { return TableLocAgents }
-func (*LocalAgent) Appellation() string { return "server" }
-func (l *LocalAgent) GetID() int64      { return l.ID }
-func (*LocalAgent) IsServer() bool      { return true }
-func (l *LocalAgent) Host() string      { return l.Address.Host }
+func (*LocalAgent) TableName() string          { return TableLocAgents }
+func (*LocalAgent) Appellation() string        { return "server" }
+func (l *LocalAgent) GetID() int64             { return l.ID }
+func (l *LocalAgent) GetNullID() sql.NullInt64 { return utils.NewNullInt64(l.ID) }
+func (*LocalAgent) IsServer() bool             { return true }
+func (l *LocalAgent) Host() string             { return l.Address.Host }
 
 func (l *LocalAgent) validateProtoConfig() error {
 	if err := ConfigChecker.CheckServerConfig(l.Protocol, l.ProtoConfig); err != nil {
@@ -100,7 +102,7 @@ func (l *LocalAgent) BeforeWrite(db database.Access) error {
 	}
 
 	if err := l.Address.Validate(); err != nil {
-		return database.NewValidationError("address validation failed: %w", err)
+		return database.NewValidationErrorf("address validation failed: %w", err)
 	}
 
 	if l.ProtoConfig == nil {
@@ -115,7 +117,7 @@ func (l *LocalAgent) BeforeWrite(db database.Access) error {
 		l.Name).Run(); err != nil {
 		return fmt.Errorf("failed to check for duplicate local agents: %w", err)
 	} else if n > 0 {
-		return database.NewValidationError(
+		return database.NewValidationErrorf(
 			"a local agent with the same name %q already exist", l.Name)
 	}
 
@@ -123,8 +125,8 @@ func (l *LocalAgent) BeforeWrite(db database.Access) error {
 		l.ID, l.Owner, l.Address.String()).Run(); err != nil {
 		return fmt.Errorf("failed to check for duplicate local agent addresses: %w", err)
 	} else if n > 0 {
-		return database.NewValidationError(
-			"a local agent with the same address %q already exist", &l.Address)
+		return database.NewValidationErrorf(
+			"a local agent with the same address %q already exist", l.Address.String())
 	}
 
 	return nil

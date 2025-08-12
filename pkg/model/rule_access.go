@@ -20,6 +20,7 @@ type AccessTarget interface {
 	// with the target type.
 	GenAccessSelectCond() (string, int64)
 
+	// GetAuthorizedRules returns the rules the target is allowed to use.
 	GetAuthorizedRules(db database.ReadAccess) ([]*Rule, error)
 }
 
@@ -46,7 +47,7 @@ func (r *RuleAccess) BeforeWrite(db database.Access) error {
 	if n, err := db.Count(&Rule{}).Where("id=?", r.RuleID).Run(); err != nil {
 		return fmt.Errorf("failed to check access rule: %w", err)
 	} else if n < 1 {
-		return database.NewValidationError("no rule found with ID %d", r.RuleID)
+		return database.NewValidationErrorf("no rule found with ID %d", r.RuleID)
 	}
 
 	if sum := countTrue(r.LocalAgentID.Valid, r.RemoteAgentID.Valid,
@@ -77,7 +78,7 @@ func (r *RuleAccess) BeforeWrite(db database.Access) error {
 	if n, err := db.Count(target).Where("id=?", target.GetID()).Run(); err != nil {
 		return fmt.Errorf("failed to check access target: %w", err)
 	} else if n == 0 {
-		return database.NewValidationError("no %s found with ID %q", target.Appellation(),
+		return database.NewValidationErrorf("no %s found with ID %q", target.Appellation(),
 			target.GetID())
 	}
 

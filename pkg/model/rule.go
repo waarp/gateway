@@ -44,7 +44,7 @@ func (r *Rule) checkAncestor(db database.ReadAccess, rulePath string) error {
 		return fmt.Errorf("failed to check for ancestor rule paths: %w", err)
 	}
 
-	return database.NewValidationError("the rule's path cannot be the descendant of "+
+	return database.NewValidationErrorf("the rule's path cannot be the descendant of "+
 		"another rule's path (the path %q is already used by rule %q)", rulePath, rule.Name)
 }
 
@@ -53,7 +53,7 @@ func (r *Rule) checkPath(db database.ReadAccess) error {
 		r.IsSend).Run(); err != nil {
 		return fmt.Errorf("failed to check for duplicate rule paths: %w", err)
 	} else if n > 0 {
-		return database.NewValidationError("a rule with path: %s already exist", r.Path)
+		return database.NewValidationErrorf("a rule with path: %s already exist", r.Path)
 	}
 
 	// check descendants
@@ -79,7 +79,7 @@ func (r *Rule) BeforeWrite(db database.Access) error {
 	if err != nil {
 		return fmt.Errorf("failed to check for duplicate rules: %w", err)
 	} else if n > 0 {
-		return database.NewValidationError("a %s rule named %q already exist",
+		return database.NewValidationErrorf("a %s rule named %q already exist",
 			r.Direction(), r.Name)
 	}
 
@@ -134,6 +134,7 @@ func (r *Rule) IsAuthorized(db database.ReadAccess, target database.IterateBean)
 	}
 
 	var query *database.CountQuery
+
 	switch object := target.(type) {
 	case *LocalAgent:
 		query = db.Count(&perms).Where("rule_id=? AND local_agent_id=?", r.ID, object.ID)
@@ -146,12 +147,13 @@ func (r *Rule) IsAuthorized(db database.ReadAccess, target database.IterateBean)
 		query = db.Count(&perms).Where("rule_id=? AND ( remote_account_id=? OR "+
 			"remote_agent_id=? )", r.ID, object.ID, object.RemoteAgentID)
 	default:
-		return false, database.NewValidationError("%T is not a valid target model for RuleAccess", target)
+		return false, database.NewValidationErrorf("%T is not a valid target model for RuleAccess", target)
 	}
 
-	if permCount, err := query.Run(); err != nil {
+	permCount, err := query.Run()
+	if err != nil {
 		return false, fmt.Errorf("failed to count rule accesses: %w", err)
-	} else {
-		return permCount != 0, nil
 	}
+
+	return permCount != 0, nil
 }

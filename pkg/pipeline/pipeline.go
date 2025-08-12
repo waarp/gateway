@@ -8,6 +8,8 @@ import (
 	"context"
 	"fmt"
 	"maps"
+	"math"
+	"reflect"
 	"sync"
 	"time"
 
@@ -21,6 +23,7 @@ import (
 	"code.waarp.fr/apps/gateway/gateway/pkg/snmp"
 	"code.waarp.fr/apps/gateway/gateway/pkg/tasks"
 	"code.waarp.fr/apps/gateway/gateway/pkg/tk/statemachine"
+	"code.waarp.fr/apps/gateway/gateway/pkg/utils"
 )
 
 const TransferUpdateInterval = time.Second
@@ -75,6 +78,10 @@ func newPipeline(db *database.DB, logger *log.Logger, transCtx *model.TransferCo
 		transCtx.Transfer.Filesize = getFilesize(transCtx.Transfer.LocalPath)
 	}
 
+	if transCtx.Transfer.Status == types.StatusAvailable {
+		transCtx.Transfer.Start = time.Now()
+	}
+
 	if transCtx.Transfer.Status != types.StatusRunning {
 		transCtx.Transfer.Status = types.StatusRunning
 	}
@@ -93,7 +100,7 @@ func newPipeline(db *database.DB, logger *log.Logger, transCtx *model.TransferCo
 
 	if transCtx.Transfer.ID == 0 {
 		if err := db.Insert(transCtx.Transfer).Run(); err != nil {
-			logger.Error("failed to insert the new transfer entry: %s", err)
+			logger.Errorf("failed to insert the new transfer entry: %v", err)
 
 			return nil, NewErrorWith(types.TeInternal, "failed to insert the new transfer entry", err)
 		}
@@ -101,13 +108,13 @@ func newPipeline(db *database.DB, logger *log.Logger, transCtx *model.TransferCo
 		logger = logging.NewLogger(fmt.Sprintf("Pipeline %d (server)", transCtx.Transfer.ID))
 		pipeline.Logger = logger
 	} else if err := pipeline.UpdateTrans(); err != nil {
-		logger.Error("Failed to update the transfer details: %s", err)
+		logger.Errorf("Failed to update the transfer details: %v", err)
 
 		return nil, NewErrorWith(types.TeInternal, "Failed to update the transfer details", err)
 	}
 
 	if err := List.add(pipeline); err != nil {
-		logger.Error("Failed to add the pipeline to the list: %s", err)
+		logger.Errorf("Failed to add the pipeline to the list: %v", err)
 
 		return nil, err
 	}
@@ -120,9 +127,7 @@ func newPipeline(db *database.DB, logger *log.Logger, transCtx *model.TransferCo
 }
 
 func (p *Pipeline) SetInterruptionHandlers(
-	pause func(context.Context) error,
-	interrupt func(context.Context) error,
-	cancel func(context.Context) error,
+	pause, interrupt, cancel func(context.Context) error,
 ) {
 	p.interruption = interruption{
 		Pause:     pause,
@@ -131,12 +136,20 @@ func (p *Pipeline) SetInterruptionHandlers(
 	}
 }
 
+func (p *Pipeline) forceUpdateTrans() *Error {
+	if dbErr := p.DB.Update(p.TransCtx.Transfer).Run(); dbErr != nil {
+		return NewErrorWith(types.TeInternal, "Failed to update transfer", dbErr)
+	}
+
+	return p.updateTransferInfo()
+}
+
 func (p *Pipeline) updateTransferInfo() *Error {
-	if maps.Equal(p.TransCtx.TransInfo, p.lastTransferInfo) {
+	if reflect.DeepEqual(p.TransCtx.TransInfo, p.lastTransferInfo) {
 		return nil
 	}
 
-	if err := p.TransCtx.Transfer.SetTransferInfo(p.DB, p.lastTransferInfo); err != nil {
+	if err := p.TransCtx.Transfer.SetTransferInfo(p.DB, p.TransCtx.TransInfo); err != nil {
 		return p.internalError(types.TeInternal, "failed to update the transfer info", err)
 	}
 
@@ -149,12 +162,10 @@ func (p *Pipeline) updateTransferInfo() *Error {
 func (p *Pipeline) UpdateTrans() *Error {
 	select {
 	case <-p.updTicker.C:
-		if dbErr := p.DB.Update(p.TransCtx.Transfer).Run(); dbErr != nil {
+		if err := p.forceUpdateTrans(); err != nil {
 			return p.internalErrorWithMsg(types.TeInternal, "Failed to update transfer",
-				"database error", dbErr)
+				"database error", err)
 		}
-
-		return p.updateTransferInfo()
 	default:
 	}
 
@@ -204,19 +215,6 @@ func (p *Pipeline) StartData() (*FileStream, *Error) {
 		return nil, p.stateErr("StartData", p.machine.Current())
 	}
 
-	transitionData := func() *Error {
-		newState := stateWriting
-		if p.TransCtx.Rule.IsSend {
-			newState = stateReading
-		}
-
-		if err := p.machine.Transition(newState); err != nil {
-			return p.stateErr("StartData", p.machine.Current())
-		}
-
-		return nil
-	}
-
 	isResume := false
 	if p.TransCtx.Transfer.Step >= types.StepData {
 		isResume = true
@@ -236,13 +234,18 @@ func (p *Pipeline) StartData() (*FileStream, *Error) {
 
 	if p.Trace.OnDataStart != nil {
 		if err := p.Trace.OnDataStart(); err != nil {
+			_ = p.Stream.file.Close() //nolint:errcheck //we don't care about the error here
+
 			return nil, p.internalErrorWithMsg(types.TeInternal,
 				"data start trace error", "failed to open file", err)
 		}
 	}
 
-	if err := transitionData(); err != nil {
-		return nil, err
+	exitState := utils.If(p.TransCtx.Rule.IsSend, stateReading, stateWriting)
+	if err := p.machine.Transition(exitState); err != nil {
+		_ = p.Stream.file.Close() //nolint:errcheck //we don't care about the error here
+
+		return nil, p.stateErr("StartData", p.machine.Current())
 	}
 
 	return p.Stream, nil
@@ -334,12 +337,20 @@ func (p *Pipeline) EndTransfer() *Error {
 		p.TransCtx.Transfer.Step = types.StepNone
 		p.TransCtx.Transfer.TaskNumber = 0
 
+		if err := p.updateTransferInfo(); err != nil {
+			p.Logger.Errorf("Failed to update transfer infos: %v", err)
+			p.errorTasks()
+			p.storedErr = sErr
+
+			return
+		}
+
 		if err := p.TransCtx.Transfer.MoveToHistory(p.DB, p.Logger, time.Now()); err != nil {
 			sErr = NewErrorWith(types.TeInternal, "Failed to move transfer to history", err)
-			p.Logger.Error("Failed to move transfer to history: %s", err)
+			p.Logger.Errorf("Failed to move transfer to history: %v", err)
 
 			if mErr := p.machine.Transition(stateError); mErr != nil {
-				p.Logger.Warning("Failed to transition to 'error' state: %v", mErr)
+				p.Logger.Warningf(`Failed to transition to "error" state: %v`, mErr)
 			}
 
 			p.errorTasks()
@@ -362,20 +373,20 @@ func (p *Pipeline) errorTasks() {
 		p.TransCtx.Transfer.Step = oldStep
 		p.TransCtx.Transfer.TaskNumber = oldTask
 
-		if dbErr := p.UpdateTrans(); dbErr != nil {
-			p.Logger.Error("Failed to reset transfer step after error-tasks: %s", dbErr)
+		if dbErr := p.forceUpdateTrans(); dbErr != nil {
+			p.Logger.Errorf("Failed to reset transfer step after error-tasks: %v", dbErr)
 		}
 	}()
 
 	p.TransCtx.Transfer.TaskNumber = 0
 	p.TransCtx.Transfer.Step = types.StepErrorTasks
 
-	if dbErr := p.UpdateTrans(); dbErr != nil {
-		p.Logger.Error("Failed to update transfer step for error-tasks: %s", dbErr)
+	if dbErr := p.forceUpdateTrans(); dbErr != nil {
+		p.Logger.Errorf("Failed to update transfer step for error-tasks: %v", dbErr)
 	}
 
 	if err := p.Runner.ErrorTasks(p.Trace.OnErrorTask); err != nil {
-		p.Logger.Error("Error-tasks failed: %s", err.Details)
+		p.Logger.Errorf("Error-tasks failed: %s", err.Details)
 	}
 }
 
@@ -421,7 +432,7 @@ func (p *Pipeline) halt(ctx context.Context, err *Error, status types.TransferSt
 		p.storedErr = err
 
 		if mErr := p.machine.Transition(stateError); mErr != nil {
-			p.Logger.Warning("Failed to transition to 'error' state: %v", mErr)
+			p.Logger.Warningf("Failed to transition to 'error' state: %v", mErr)
 			haltErr = fmt.Errorf("failed to transition to 'error' state: %w", mErr)
 		}
 
@@ -447,7 +458,7 @@ func (p *Pipeline) Cancel(ctx context.Context) error {
 		p.storedErr = errCanceled
 
 		if mErr := p.machine.Transition(stateError); mErr != nil {
-			p.Logger.Warning("Failed to transition to 'error' state: %v", mErr)
+			p.Logger.Warningf("Failed to transition to 'error' state: %v", mErr)
 			cancelErr = fmt.Errorf("failed to transition to 'error' state: %w", mErr)
 		}
 
@@ -457,7 +468,7 @@ func (p *Pipeline) Cancel(ctx context.Context) error {
 
 		if p.interruption.Cancel != nil {
 			if err := p.interruption.Cancel(ctx); err != nil {
-				p.Logger.Warning("Failed to cancel transfer: %v", err)
+				p.Logger.Warningf("Failed to cancel transfer: %v", err)
 				cancelErr = fmt.Errorf("failed to cancel transfer: %w", err)
 			}
 		}
@@ -466,7 +477,7 @@ func (p *Pipeline) Cancel(ctx context.Context) error {
 
 		p.TransCtx.Transfer.Status = types.StatusCancelled
 		if err := p.TransCtx.Transfer.MoveToHistory(p.DB, p.Logger, time.Now()); err != nil {
-			p.Logger.Error("Failed to move canceled transfer to history: %s", err)
+			p.Logger.Errorf("Failed to move canceled transfer to history: %v", err)
 			cancelErr = fmt.Errorf("failed to move canceled transfer to history: %w", err)
 		}
 
@@ -499,22 +510,27 @@ func (p *Pipeline) RebuildFilepaths(newFile string) *Error {
 			"filesystem error", err)
 	}
 
-	if err := p.UpdateTrans(); err != nil {
-		return err
-	}
-
-	return nil
+	return p.UpdateTrans()
 }
 
 func (p *Pipeline) doneErr(status types.TransferStatus) {
 	defer func() {
-		p.Logger.Debug("Transfer ended in error in %s",
+		p.Logger.Debugf("Transfer ended in error in %v",
 			time.Since(p.TransCtx.Transfer.Start))
 	}()
 
 	p.TransCtx.Transfer.Status = status
-	if err := p.DB.Update(p.TransCtx.Transfer).Run(); err != nil {
-		p.Logger.Error("Failed to update transfer status to %v: %s", status, err)
+
+	if p.TransCtx.Transfer.RemainingTries > 0 {
+		p.TransCtx.Transfer.NextRetry = time.Now().UTC().
+			Add(time.Second * time.Duration(p.TransCtx.Transfer.NextRetryDelay))
+		incrementRetryDelay(p.TransCtx.Transfer)
+	} else {
+		p.TransCtx.Transfer.NextRetry = time.Time{}
+	}
+
+	if err := p.forceUpdateTrans(); err != nil {
+		p.Logger.Errorf("Failed to update transfer status to %v: %v", status, err)
 	}
 
 	if p.snmp != nil {
@@ -526,7 +542,7 @@ func (p *Pipeline) doneErr(status types.TransferStatus) {
 
 func (p *Pipeline) doneOK() {
 	defer func() {
-		p.Logger.Info("Transfer ended without errors in %s",
+		p.Logger.Infof("Transfer ended without errors in %s",
 			time.Since(p.TransCtx.Transfer.Start))
 	}()
 
@@ -535,7 +551,7 @@ func (p *Pipeline) doneOK() {
 
 func (p *Pipeline) done(state statemachine.State) {
 	if mErr := p.machine.Transition(state); mErr != nil {
-		p.Logger.Warning("Failed to transition to '%s' state: %v", state, mErr)
+		p.Logger.Warningf("Failed to transition to %q state: %v", state, mErr)
 	}
 
 	if p.Trace.OnTransferEnd != nil {
@@ -546,5 +562,17 @@ func (p *Pipeline) done(state statemachine.State) {
 
 	if analytics.GlobalService != nil {
 		analytics.GlobalService.RunningTransfers.Add(-1)
+	}
+}
+
+func (p *Pipeline) IsServer() bool { return p.TransCtx.Transfer.IsServer() }
+func (p *Pipeline) IsSend() bool   { return p.TransCtx.Rule.IsSend }
+
+func incrementRetryDelay(trans *model.Transfer) {
+	newDelay := float32(trans.NextRetryDelay) * trans.RetryIncrementFactor
+	if newDelay > float32(math.MaxInt32) {
+		trans.NextRetryDelay = math.MaxInt32
+	} else {
+		trans.NextRetryDelay = int32(newDelay)
 	}
 }

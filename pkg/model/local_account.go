@@ -1,6 +1,7 @@
 package model
 
 import (
+	"database/sql"
 	"fmt"
 
 	"code.waarp.fr/apps/gateway/gateway/pkg/database"
@@ -19,11 +20,12 @@ type LocalAccount struct {
 	IPAddresses types.IPList `xorm:"ip_addresses"` // The account's allowed IP addresses.
 }
 
-func (*LocalAccount) TableName() string   { return TableLocAccounts }
-func (*LocalAccount) Appellation() string { return NameLocalAccount }
-func (l *LocalAccount) GetID() int64      { return l.ID }
-func (l *LocalAccount) Host() string      { return "" }
-func (*LocalAccount) IsServer() bool      { return false }
+func (*LocalAccount) TableName() string          { return TableLocAccounts }
+func (*LocalAccount) Appellation() string        { return NameLocalAccount }
+func (l *LocalAccount) GetID() int64             { return l.ID }
+func (l *LocalAccount) GetNullID() sql.NullInt64 { return utils.NewNullInt64(l.ID) }
+func (l *LocalAccount) Host() string             { return "" }
+func (*LocalAccount) IsServer() bool             { return false }
 
 // GetCredentials fetch in the database then return the associated Credentials if they exist.
 func (l *LocalAccount) GetCredentials(db database.ReadAccess, authTypes ...string,
@@ -49,14 +51,14 @@ func (l *LocalAccount) BeforeWrite(db database.Access) error {
 	}
 
 	if err := l.IPAddresses.Validate(); err != nil {
-		return database.NewValidationError("invalid account IP address: %w", err)
+		return database.NewValidationErrorf("invalid account IP address: %w", err)
 	}
 
 	if n, err := db.Count(l).Where("id<>? AND local_agent_id=? AND login=?",
 		l.ID, l.LocalAgentID, l.Login).Run(); err != nil {
 		return fmt.Errorf("failed to check for duplicate local accounts: %w", err)
 	} else if n > 0 {
-		return database.NewValidationError("a local account with the same login %q "+
+		return database.NewValidationErrorf("a local account with the same login %q "+
 			"already exist", l.Login)
 	}
 
@@ -101,7 +103,7 @@ func (l *LocalAccount) getParent(db database.ReadAccess) (*LocalAgent, error) {
 	var parent LocalAgent
 	if err := db.Get(&parent, "id=?", l.LocalAgentID).Run(); err != nil {
 		if database.IsNotFound(err) {
-			return nil, database.NewValidationError(`no local agent found with the ID "%v"`, l.LocalAgentID)
+			return nil, database.NewValidationErrorf(`no local agent found with the ID "%v"`, l.LocalAgentID)
 		}
 
 		return nil, fmt.Errorf("failed to check parent local agent: %w", err)

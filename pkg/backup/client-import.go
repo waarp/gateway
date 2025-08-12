@@ -38,6 +38,9 @@ func importClients(logger *log.Logger, db database.Access, clients []file.Client
 		dbClient.Protocol = client.Protocol
 		dbClient.Disabled = client.Disabled
 		dbClient.ProtoConfig = client.ProtoConfig
+		dbClient.NbOfAttempts = client.NbOfAttempts
+		dbClient.FirstRetryDelay = client.FirstRetryDelay
+		dbClient.RetryIncrementFactor = client.RetryIncrementFactor
 
 		if err := dbClient.LocalAddress.Set(client.LocalAddress); err != nil {
 			return fmt.Errorf("invalid client local address: %w", err)
@@ -46,10 +49,10 @@ func importClients(logger *log.Logger, db database.Access, clients []file.Client
 		var dbErr error
 
 		if isNew {
-			logger.Info("Inserting new client %q", dbClient.Name)
+			logger.Infof("Inserting new client %q", dbClient.Name)
 			dbErr = db.Insert(&dbClient).Run()
 		} else {
-			logger.Info("Updating existing client %q", dbClient.Name)
+			logger.Infof("Updating existing client %q", dbClient.Name)
 			dbErr = db.Update(&dbClient).Run()
 		}
 

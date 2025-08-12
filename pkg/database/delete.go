@@ -19,7 +19,7 @@ type DeleteQuery struct {
 func (d *DeleteQuery) run(s *Session) error {
 	if hook, ok := d.bean.(DeletionHook); ok {
 		if err := hook.BeforeDelete(s); err != nil {
-			s.logger.Error("%s deletion hook failed: %s", d.bean.Appellation(), err)
+			s.logger.Errorf("%s deletion hook failed: %v", d.bean.Appellation(), err)
 
 			return fmt.Errorf("%s deletion hook failed: %w", d.bean.Appellation(), err)
 		}
@@ -29,7 +29,7 @@ func (d *DeleteQuery) run(s *Session) error {
 		Where("id=?", d.bean.GetID())
 
 	if _, err := query.Delete(d.bean); err != nil {
-		s.logger.Error("Failed to delete the %s entry: %s", d.bean.Appellation(), err)
+		s.logger.Errorf("Failed to delete the %s entry: %v", d.bean.Appellation(), err)
 
 		return NewInternalError(err)
 	}

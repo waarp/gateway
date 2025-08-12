@@ -17,8 +17,22 @@ func expectedOutput(tb testing.TB, data any, text ...string) string {
 	functions := template.FuncMap{
 		"join":       join,
 		"flatten":    mapFlatten,
+		"way":        direction,
+		"role":       transferRole,
+		"bytes":      prettyBytes[int],
 		"getServer":  func() string { return Server },
 		"getPartner": func() string { return Partner },
+		"lines":      lines,
+		"local": func(str string) string {
+			t, err := time.Parse(time.RFC3339Nano, str)
+			require.NoError(tb, err)
+
+			return t.Local().String()
+		},
+		"duration": func(sec int) string {
+			return (time.Duration(sec) * time.Second).String()
+		},
+		"enabledStatus": enabledStatus,
 	}
 
 	fulltext := strings.Join(text, "\n") + "\n"
@@ -44,4 +58,8 @@ func parseAsLocalTime(tb testing.TB, str string) time.Time {
 
 func enabledStatus(enabled bool) string {
 	return ifElse(enabled, TextEnabled, TextDisabled)
+}
+
+func lines(s string, indent int) string {
+	return strings.ReplaceAll("\n"+s, "\n", "\n"+strings.Repeat(" ", indent))
 }

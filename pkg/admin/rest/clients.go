@@ -9,7 +9,6 @@ import (
 	"github.com/gorilla/mux"
 
 	"code.waarp.fr/apps/gateway/gateway/pkg/admin/rest/api"
-	"code.waarp.fr/apps/gateway/gateway/pkg/conf"
 	"code.waarp.fr/apps/gateway/gateway/pkg/database"
 	"code.waarp.fr/apps/gateway/gateway/pkg/gatewayd/services"
 	"code.waarp.fr/apps/gateway/gateway/pkg/model"
@@ -20,11 +19,14 @@ import (
 
 func ClientDBToREST(client *model.Client) *api.OutClient {
 	return &api.OutClient{
-		Name:         client.Name,
-		Enabled:      !client.Disabled,
-		Protocol:     client.Protocol,
-		LocalAddress: client.LocalAddress.String(),
-		ProtoConfig:  client.ProtoConfig,
+		Name:                 client.Name,
+		Enabled:              !client.Disabled,
+		Protocol:             client.Protocol,
+		LocalAddress:         client.LocalAddress.String(),
+		NbOfAttempts:         client.NbOfAttempts,
+		FirstRetryDelay:      client.FirstRetryDelay,
+		RetryIncrementFactor: client.RetryIncrementFactor,
+		ProtoConfig:          client.ProtoConfig,
 	}
 }
 
@@ -41,11 +43,17 @@ func ClientsDBToREST(dbClients model.Clients) []*api.OutClient {
 }
 
 func ClientRESTToDB(client *api.InClient) (*model.Client, error) {
-	cli := &model.Client{
-		Name:        client.Name.Value,
-		Protocol:    client.Protocol.Value,
-		Disabled:    client.Disabled,
-		ProtoConfig: client.ProtoConfig,
+	cli := &model.Client{}
+
+	setIfValid(&cli.Name, client.Name)
+	setIfValid(&cli.Protocol, client.Protocol)
+	setIfValid(&cli.Disabled, client.Disabled)
+	setIfValid(&cli.NbOfAttempts, client.NbOfAttempts)
+	setIfValid(&cli.FirstRetryDelay, client.FirstRetryDelay)
+	setIfValid(&cli.RetryIncrementFactor, client.RetryIncrementFactor)
+
+	if client.ProtoConfig != nil {
+		cli.ProtoConfig = client.ProtoConfig
 	}
 
 	if client.LocalAddress.Valid {
@@ -64,10 +72,9 @@ func getDBClient(r *http.Request, db *database.DB) (*model.Client, error) {
 	}
 
 	var client model.Client
-	if err := db.Get(&client, "owner=? AND name=?", conf.GlobalConfig.GatewayName,
-		clientName).Run(); err != nil {
+	if err := db.Get(&client, "name=?", clientName).Owner().Run(); err != nil {
 		if database.IsNotFound(err) {
-			return nil, notFound("client %q not found", clientName)
+			return nil, notFoundf("client %q not found", clientName)
 		}
 
 		return nil, fmt.Errorf("failed to retrieve client %q: %w", clientName, err)
@@ -134,8 +141,8 @@ func createClient(logger *log.Logger, db *database.DB) http.HandlerFunc {
 			return
 		}
 
-		service, err := makeClientService(db, dbClient)
-		if handleError(w, logger, err) {
+		service, mkErr := makeClientService(db, dbClient)
+		if handleError(w, logger, mkErr) {
 			return
 		}
 
@@ -153,8 +160,8 @@ func createClient(logger *log.Logger, db *database.DB) http.HandlerFunc {
 //nolint:dupl //duplicate is for servers, best keep separate
 func deleteClient(logger *log.Logger, db *database.DB) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		dbClient, service, err := getClientService(r, db)
-		if handleError(w, logger, err) {
+		dbClient, service, getErr := getClientService(r, db)
+		if handleError(w, logger, getErr) {
 			return
 		}
 
@@ -187,32 +194,28 @@ func updateClient(logger *log.Logger, db *database.DB) http.HandlerFunc {
 		}
 
 		restClient := &api.InClient{
-			Name:         asNullableStr(oldDBClient.Name),
-			Protocol:     asNullableStr(oldDBClient.Protocol),
-			LocalAddress: asNullableStr(oldDBClient.LocalAddress.String()),
-			ProtoConfig:  oldDBClient.ProtoConfig,
+			Name:                 asNullable(oldDBClient.Name),
+			Protocol:             asNullable(oldDBClient.Protocol),
+			LocalAddress:         asNullable(oldDBClient.LocalAddress.String()),
+			ProtoConfig:          oldDBClient.ProtoConfig,
+			Disabled:             asNullableBool(oldDBClient.Disabled),
+			NbOfAttempts:         asNullable(oldDBClient.NbOfAttempts),
+			FirstRetryDelay:      asNullable(oldDBClient.FirstRetryDelay),
+			RetryIncrementFactor: asNullable(oldDBClient.RetryIncrementFactor),
 		}
 		if err := readJSON(r, restClient); handleError(w, logger, err) {
 			return
 		}
 
-		dbClient := &model.Client{
-			ID:          oldDBClient.ID,
-			Name:        restClient.Name.Value,
-			Protocol:    restClient.Protocol.Value,
-			ProtoConfig: restClient.ProtoConfig,
-			Disabled:    oldDBClient.Disabled,
+		dbClient, convErr := ClientRESTToDB(restClient)
+		if handleError(w, logger, convErr) {
+			return
 		}
 
-		if restClient.LocalAddress.Valid {
-			if err := dbClient.LocalAddress.Set(restClient.LocalAddress.
-				Value); handleError(w, logger, err) {
-				return
-			}
-		}
+		dbClient.ID = oldDBClient.ID
 
-		newService, err := makeClientService(db, dbClient)
-		if handleError(w, logger, err) {
+		newService, mkErr := makeClientService(db, dbClient)
+		if handleError(w, logger, mkErr) {
 			return
 		}
 
@@ -261,8 +264,8 @@ func replaceClient(logger *log.Logger, db *database.DB) http.HandlerFunc {
 
 		dbClient.ID = oldDBClient.ID
 
-		newService, err := makeClientService(db, dbClient)
-		if handleError(w, logger, err) {
+		newService, mkErr := makeClientService(db, dbClient)
+		if handleError(w, logger, mkErr) {
 			return
 		}
 
@@ -352,8 +355,8 @@ func startClient(logger *log.Logger, db *database.DB) http.HandlerFunc {
 //nolint:dupl //duplicate is for servers, best keep separate
 func stopClient(logger *log.Logger, db *database.DB) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		dbClient, client, err := getClientService(r, db)
-		if handleError(w, logger, err) {
+		dbClient, client, getErr := getClientService(r, db)
+		if handleError(w, logger, getErr) {
 			return
 		}
 

@@ -49,7 +49,7 @@ func TestValidAuth(t *testing.T) {
 			db:      db,
 			logger:  logger,
 			agent:   r66Server,
-			r66Conf: &serverConfig{},
+			r66Conf: &tlsServerConfig{},
 		}}
 
 		Convey("Given an authentication packet", func() {
@@ -273,9 +273,7 @@ func TestUpdateTransferInfo(t *testing.T) {
 	Convey("Given an R66 transfer handler", t, func(c C) {
 		logger := testhelpers.TestLogger(c, "test_valid_request")
 		db := database.TestDatabase(c)
-		conf.GlobalConfig.Paths = conf.PathsConfig{
-			GatewayHome: root,
-		}
+		conf.GlobalConfig.Paths.GatewayHome = root
 
 		send := &model.Rule{Name: "send", IsSend: true, LocalDir: "send_dir"}
 		So(db.Insert(send).Run(), ShouldBeNil)

@@ -12,7 +12,9 @@ import (
 // SelectBean is the interface that a model must implement in order to be
 // selectable via the Select query builder. The model MUST be a slice.
 type SelectBean interface {
+	// TableName returns the table's name.
 	TableName() string
+	// Elem returns the display name for a single table row.
 	Elem() string
 }
 
@@ -36,7 +38,7 @@ type SelectQuery struct {
 //
 // If the function is called multiple times, all the conditions will be chained
 // using the 'AND' operator.
-func (s *SelectQuery) Where(sql string, args ...interface{}) *SelectQuery {
+func (s *SelectQuery) Where(sql string, args ...any) *SelectQuery {
 	s.conds = append(s.conds, &condition{sql: sql, args: args})
 
 	return s
@@ -50,7 +52,7 @@ func (s *SelectQuery) Owner() *SelectQuery {
 // In add a 'WHERE col IN' condition to the 'SELECT' query. Because the database/sql
 // package cannot handle variadic placeholders in the Where function, a separate
 // method is required.
-func (s *SelectQuery) In(col string, vals ...interface{}) *SelectQuery {
+func (s *SelectQuery) In(col string, vals ...any) *SelectQuery {
 	if len(vals) == 0 {
 		return s
 	}
@@ -131,14 +133,14 @@ func (s *SelectQuery) Run() error {
 	}
 
 	if err := query.Find(s.bean); err != nil {
-		logger.Error("Failed to retrieve the %s entries: %s", s.bean.Elem(), err)
+		logger.Errorf("Failed to retrieve the %s entries: %v", s.bean.Elem(), err)
 
 		return NewInternalError(err)
 	}
 
 	if callBack, ok := s.bean.(ReadCallback); ok {
 		if err := callBack.AfterRead(s.db); err != nil {
-			logger.Error("%s entry SELECT callback failed: %s", s.bean.Elem(), err)
+			logger.Errorf("%s entry SELECT callback failed: %v", s.bean.Elem(), err)
 
 			return fmt.Errorf("%s entry GET callback failed: %w", s.bean.Elem(), err)
 		}

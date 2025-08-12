@@ -67,11 +67,11 @@ func ver0_5_0CheckRulePathParentUp(db Actions) error {
 
 	if rows.Next() {
 		var aName, aPath, bName, bPath string
-		if err := rows.Scan(&aName, &aPath, &bName, &bPath); err != nil {
+		if err = rows.Scan(&aName, &aPath, &bName, &bPath); err != nil {
 			return fmt.Errorf("failed to parse the rule entry: %w", err)
 		}
 
-		//nolint:goerr113 //this is a base error
+		//nolint:err113 //this is a base error
 		return fmt.Errorf("the path of the rule '%s' (%s) must be changed so "+
 			"that it is no longer a parent of the path of rule '%s' (%s)",
 			aName, aPath, bName, bPath)
@@ -218,12 +218,12 @@ func ver0_5_0LocalAgentsDisallowReservedNamesUp(db Actions) error {
 
 	for rows.Next() {
 		var name string
-		if err := rows.Scan(&name); err != nil {
+		if err = rows.Scan(&name); err != nil {
 			return fmt.Errorf("failed to retrieve server name: %w", err)
 		}
 
 		if name == "Database" || name == "Admin" || name == "Controller" {
-			//nolint:goerr113 //this is a base error
+			//nolint:err113 //this is a base error
 			return fmt.Errorf("%q is a reserved service name, this server should be renamed",
 				name)
 		}
@@ -399,7 +399,7 @@ func ver0_5_0TransferChangePathsUp(db Actions) error {
 		return fmt.Errorf("failed to format the `remote_path` transfer values: %w", err)
 	}
 
-	if err := db.AlterTable("transfers", DropColumn{Name: "dest_file"}); err != nil {
+	if err = db.AlterTable("transfers", DropColumn{Name: "dest_file"}); err != nil {
 		return fmt.Errorf("failed to drop the 'dest_file' transfer column: %w", err)
 	}
 
@@ -568,11 +568,11 @@ func ver0_5_0HistoryPathsChangeDown(db Actions) (err error) {
 		return fmt.Errorf("failed to reformat the history local path: %w", err)
 	}
 
-	if err := db.SwapColumns("transfer_history", "local_path", "remote_path", "is_send=true"); err != nil {
+	if err = db.SwapColumns("transfer_history", "local_path", "remote_path", "is_send=true"); err != nil {
 		return fmt.Errorf("failed to reswap the new history path columns: %w", err)
 	}
 
-	if err := db.AlterTable("transfer_history",
+	if err = db.AlterTable("transfer_history",
 		RenameColumn{OldName: "local_path", NewName: "dest_filename"},
 		RenameColumn{OldName: "remote_path", NewName: "source_filename"},
 	); err != nil {
@@ -661,7 +661,7 @@ func ver0_5_0UserPasswordChangeUp(db Actions) error {
 	return nil
 }
 
-func ver0_5_0UserPasswordChangeDown(db Actions) (err error) {
+func ver0_5_0UserPasswordChangeDown(db Actions) error {
 	if err := db.AlterTable("users",
 		AddColumn{Name: "password", Type: Blob{}, NotNull: true, Default: []byte{}},
 	); err != nil {

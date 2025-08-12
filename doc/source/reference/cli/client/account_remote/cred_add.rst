@@ -4,8 +4,8 @@ Ajouter une méthode d'authentification
 
 .. program:: waarp-gateway account remote credential add
 
-Ajoute une nouvelle valeur d'authentification au compte local donné. Si une
-valeur du même nom existe déjà, elle sera écrasée.
+Ajoute une nouvelle valeur d'authentification au compte distant donné. Si une valeur
+du même nom existe déjà, elle sera écrasée.
 
 **Commande**
 
@@ -23,7 +23,7 @@ valeur du même nom existe déjà, elle sera écrasée.
 
    Le type d'authentification. Voir la :ref:`liste des méthodes d'authentification
    <reference-auth-methods>` pour la liste des différents types d'authentification.
-   Pour les comptes locaux, une méthode d'authentification interne est requise.
+   Pour les compte distants, une méthode d'authentification interne est requise.
 
 .. option:: -v <VALUE>, --value=<VALUE>
 
@@ -43,4 +43,4 @@ valeur du même nom existe déjà, elle sera écrasée.
 
 .. code-block:: shell
 
-   waarp-gateway account remote 'openssh' credential 'titi' add -t 'password' -v 'sesame'
+   waarp-gateway account remote "openssh" credential "waarp_ssh" add -t "password" -v "sesame"

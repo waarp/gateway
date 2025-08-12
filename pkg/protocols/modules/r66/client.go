@@ -26,7 +26,7 @@ type Client struct {
 	disableConnGrace bool
 
 	logger       *log.Logger
-	clientConfig *clientConfig
+	clientConfig *tlsClientConfig
 	conns        *internal.ConnPool
 	state        utils.State
 }
@@ -37,7 +37,7 @@ func (c *Client) Start() error {
 	}
 
 	if err := c.start(); err != nil {
-		c.logger.Error("Failed to start R66 client: %v", err)
+		c.logger.Errorf("Failed to start R66 client: %v", err)
 		c.state.Set(utils.StateError, err.Error())
 		snmp.ReportServiceFailure(c.cli.Name, err)
 
@@ -52,7 +52,7 @@ func (c *Client) Start() error {
 func (c *Client) start() error {
 	c.logger = logging.NewLogger(c.cli.Name)
 
-	var conf clientConfig
+	var conf tlsClientConfig
 	if err := utils.JSONConvert(c.cli.ProtoConfig, &conf); err != nil {
 		return fmt.Errorf("failed to parse the R66 client's config: %w", err)
 	}
@@ -100,9 +100,9 @@ func (c *Client) InitTransfer(pip *pipeline.Pipeline) (protocol.TransferClient, 
 
 //nolint:funlen //can't easily be split
 func (c *Client) initTransfer(pip *pipeline.Pipeline) (*transferClient, *pipeline.Error) {
-	var partConf partnerConfig
+	var partConf tlsPartnerConfig
 	if err := utils.JSONConvert(pip.TransCtx.RemoteAgent.ProtoConfig, &partConf); err != nil {
-		pip.Logger.Error("Failed to parse R66 partner proto config: %v", err)
+		pip.Logger.Errorf("Failed to parse R66 partner proto config: %v", err)
 
 		return nil, pipeline.NewErrorWith(types.TeInternal,
 			"failed to parse R66 partner proto config", err)
@@ -113,9 +113,9 @@ func (c *Client) initTransfer(pip *pipeline.Pipeline) (*transferClient, *pipelin
 	if c.cli.Protocol == R66TLS {
 		var err error
 
-		tlsConf, err = makeClientTLSConfig(pip)
+		tlsConf, err = makeClientTLSConfig(pip, &partConf, c.clientConfig)
 		if err != nil {
-			pip.Logger.Error("Failed to parse R66 TLS config: %v", err)
+			pip.Logger.Errorf("Failed to parse R66 TLS config: %v", err)
 
 			return nil, pipeline.NewErrorWith(types.TeInternal, "invalid R66 TLS config", err)
 		}
@@ -134,7 +134,7 @@ func (c *Client) initTransfer(pip *pipeline.Pipeline) (*transferClient, *pipelin
 		noFinalHash = *partConf.CheckBlockHash
 	}
 
-	var finalHashAlgo string = internal.HashSHA256
+	finalHashAlgo := internal.HashSHA256
 	if c.clientConfig.FinalHashAlgo != "" {
 		finalHashAlgo = c.clientConfig.FinalHashAlgo
 		if partConf.FinalHashAlgo != "" {

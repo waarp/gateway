@@ -70,7 +70,10 @@ func TestAddTransfer(t *testing.T) {
 						"key2": 2,
 						"key3": true,
 						"__followID__": 12345
-					}
+					},
+					"nbOfAttempts": 5,
+					"firstRetryDelay": 90,
+				    "retryIncrementFactor": 1.5
 				}`)
 
 				Convey("When calling the handler", func() {
@@ -118,6 +121,9 @@ func TestAddTransfer(t *testing.T) {
 						So(transfers[0].TaskNumber, ShouldEqual, 0)
 						So(transfers[0].ErrCode, ShouldBeZeroValue)
 						So(transfers[0].ErrDetails, ShouldBeBlank)
+						So(transfers[0].RemainingTries, ShouldEqual, 5)
+						So(transfers[0].NextRetryDelay, ShouldEqual, 90)
+						So(transfers[0].RetryIncrementFactor, ShouldEqual, 1.5)
 
 						info, err := transfers[0].GetTransferInfo(db)
 						So(err, ShouldBeNil)
@@ -219,7 +225,7 @@ func TestAddTransfer(t *testing.T) {
 					})
 
 					Convey("Then the response body should say the partner is invalid", func() {
-						So(w.Body.String(), ShouldEqual, "no rule 'tata' found\n")
+						So(w.Body.String(), ShouldEqual, "no rule \"tata\" found\n")
 					})
 				})
 			})
@@ -245,7 +251,7 @@ func TestAddTransfer(t *testing.T) {
 					})
 
 					Convey("Then the response body should say the partner is invalid", func() {
-						So(w.Body.String(), ShouldEqual, "no partner 'tata' found\n")
+						So(w.Body.String(), ShouldEqual, "no partner \"tata\" found\n")
 					})
 				})
 			})
@@ -271,8 +277,8 @@ func TestAddTransfer(t *testing.T) {
 					})
 
 					Convey("Then the response body should say the partner is invalid", func() {
-						So(w.Body.String(), ShouldEqual, "no account 'tata' found "+
-							"for partner "+partner.Name+"\n")
+						So(w.Body.String(), ShouldEqual, fmt.Sprintf(
+							"no account %q found for partner %q\n", "tata", partner.Name))
 					})
 				})
 			})
@@ -350,12 +356,16 @@ func TestGetTransfer(t *testing.T) {
 			conf.GlobalConfig.GatewayName = owner
 
 			trans := &model.Transfer{
-				RuleID:          push.ID,
-				ClientID:        utils.NewNullInt64(client.ID),
-				RemoteAccountID: utils.NewNullInt64(account.ID),
-				SrcFilename:     "/source/file2.test",
-				DestFilename:    "/dest/file2.test",
-				Start:           time.Date(2021, 1, 1, 1, 0, 0, 0, time.Local),
+				RuleID:               push.ID,
+				ClientID:             utils.NewNullInt64(client.ID),
+				RemoteAccountID:      utils.NewNullInt64(account.ID),
+				SrcFilename:          "/source/file2.test",
+				DestFilename:         "/dest/file2.test",
+				Start:                time.Date(2021, 1, 1, 1, 0, 0, 0, time.Local),
+				RemainingTries:       5,
+				NextRetry:            time.Date(2021, 1, 1, 1, 0, 0, 0, time.Local),
+				NextRetryDelay:       90,
+				RetryIncrementFactor: 1.5,
 			}
 			So(db.Insert(trans).Run(), ShouldBeNil)
 
@@ -389,7 +399,7 @@ func TestGetTransfer(t *testing.T) {
 
 						exp, err := json.Marshal(jsonObj)
 						So(err, ShouldBeNil)
-						So(w.Body.String(), ShouldResemble, string(exp)+"\n")
+						So(w.Body.String(), ShouldEqual, string(exp)+"\n")
 					})
 				})
 			})
@@ -719,21 +729,20 @@ func TestResumeTransfer(t *testing.T) {
 
 						So(db.Select(&transfers).Run(), ShouldBeNil)
 						So(transfers, ShouldNotBeEmpty)
-						So(transfers[0], ShouldResemble, &model.Transfer{
-							ID:               trans.ID,
-							Owner:            conf.GlobalConfig.GatewayName,
-							RemoteTransferID: trans.RemoteTransferID,
-							RuleID:           rule.ID,
-							ClientID:         utils.NewNullInt64(client.ID),
-							RemoteAccountID:  utils.NewNullInt64(account.ID),
-							SrcFilename:      "file.src",
-							DestFilename:     "file.dst",
-							Start:            trans.Start.Local(),
-							Status:           types.StatusPlanned,
-							Step:             types.StepData,
-							Progress:         10,
-							TaskNumber:       0,
-						})
+						So(transfers[0].ID, ShouldEqual, trans.ID)
+						So(transfers[0].Owner, ShouldEqual, conf.GlobalConfig.GatewayName)
+						So(transfers[0].RemoteTransferID, ShouldEqual, trans.RemoteTransferID)
+						So(transfers[0].RuleID, ShouldEqual, rule.ID)
+						So(transfers[0].ClientID, ShouldEqual, utils.NewNullInt64(client.ID))
+						So(transfers[0].RemoteAccountID, ShouldEqual, utils.NewNullInt64(account.ID))
+						So(transfers[0].SrcFilename, ShouldEqual, "file.src")
+						So(transfers[0].DestFilename, ShouldEqual, "file.dst")
+						So(transfers[0].Start, ShouldEqual, trans.Start.Local())
+						So(transfers[0].Status, ShouldEqual, types.StatusPlanned)
+						So(transfers[0].Step, ShouldEqual, types.StepData)
+						So(transfers[0].Progress, ShouldEqual, 10)
+						So(transfers[0].TaskNumber, ShouldEqual, 0)
+						So(transfers[0].NextRetry, ShouldHappenWithin, time.Second, time.Now())
 					})
 				})
 			})
@@ -818,6 +827,7 @@ func TestPauseTransfer(t *testing.T) {
 							Step:             types.StepData,
 							Progress:         10,
 							TaskNumber:       0,
+							NextRetry:        trans.Start.Local(),
 						})
 					})
 				})

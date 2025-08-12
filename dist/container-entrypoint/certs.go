@@ -36,7 +36,7 @@ func generateCertificates(key, cert string) error {
 
 	defer func() {
 		if err2 := certFile.Close(); err2 != nil {
-			logger.Warning("The following error occurred whie closing the certificate file: %v", err2)
+			logger.Warningf("The following error occurred whie closing the certificate file: %v", err2)
 		}
 	}()
 
@@ -47,7 +47,7 @@ func generateCertificates(key, cert string) error {
 
 	defer func() {
 		if err2 := keyFile.Close(); err2 != nil {
-			logger.Warning("The following error occurred while closing the key file: %v", err2)
+			logger.Warningf("The following error occurred while closing the key file: %v", err2)
 		}
 	}()
 
@@ -92,14 +92,14 @@ func certificatesExist(key, cert string) bool {
 	logger := getLogger()
 
 	if !pathExists(key) {
-		logger.Info("The TLS key %q for the administration interface does not exist",
+		logger.Infof("The TLS key %q for the administration interface does not exist",
 			key)
 
 		return false
 	}
 
 	if !pathExists(cert) {
-		logger.Info("The TLS certificate %q for the administration interface does not exist",
+		logger.Infof("The TLS certificate %q for the administration interface does not exist",
 			cert)
 
 		return false

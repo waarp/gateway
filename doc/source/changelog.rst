@@ -3,6 +3,115 @@
 Historique des versions
 =======================
 
+* :feature:`449` Les commandes d'import/export acceptent désormais les fichiers en
+  format YAML. Si le fichier à importer ou exporter possède l'extension *.yml*
+  ou *.yaml*, alors le format YAML sera utilisé au lieu du format JSON par défaut.
+  YAML a l'avantage d'être plus lisible pour les utilisateurs et permet également
+  d'ajouter des commentaires au fichier.
+* :feature:`-` Le comportement par défaut de la tâche ``DECRYPT`` a été légèrement
+  changé. En l'absence d'un ``outputFile`` explicite, si le nom du fichier chiffré
+  termine par l'extension ``.crypt``, alors le fichier destination aura le même nom
+  avec cette extension retirée. Si l'extension n'est pas présente, alors le fichier
+  destination sera suffixé de l'extension ``.plain`` comme c'était déjà le cas.
+  Le comportement lorsqu'un ``outputFile`` explicite est fourni reste inchangé.
+* :bug:`485` Correction d'une erreur de droits lors du déplacement de fichiers
+  vers un dossier qui n'éxistait pas, générant des erreurs de permission.
+* :bug:`463` Les mots de passe vides sont désormais acceptés pour l'authentification.
+  Si un partenaire souhaite s'authentifier avec un mot de passe vide, alors un
+  mot de passe vide doit explicitement avoir été attaché au compte local correspondant.
+* :feature:`-` Correction du mode de compatibilité non-standard de PeSIT.
+  Celui-ci gère maintenant correctement les noms de fichiers en émission et en
+  réception. Les modes de compatibilité pour PeSIT ont par ailleurs été renommés
+  en "standard" et "non-standard", ce dernier servant pour la compatibilité avec
+  les applications PeSIT tierces.
+* :feature:`-` Le découpage en article des transferts PeSIT est désormais
+  correctement traité et stocké dans les infos de transfert.
+* :feature:`464` Il est désormais possible de préenregistrer un transfert serveur.
+  Préenregistrer un transfert permet, entre autres, de conserver les informations
+  de transfert dans le cas d'un rebond vers un transfert serveur. Cela permet
+  également de spécifier une date limite de disponibilité pour un fichier.
+  Un transfert serveur peut être préenregistré via la commande terminal
+  :ref:`"transfer preregister"<ref-cli-transfer-preregister>` ou bien via la
+  nouvelle tâche :ref:`PREGEGISTER <ref-tasks-preregister>`.
+* :feature:`467` Certains attributs PeSIT sont désormais stockés sous forme
+  d'informations de transfert. Ces informations sont : l'encodage du fichier,
+  le type de fichier, l'organisation du fichier, l'identifiant de banque et
+  l'identifiant de client. Pour plus de détails, voir la page sur
+  :ref:`l'implémentation de PeSIT<ref-proto-pesit>` dans la Gateway.
+* :bug:`-` Correction d'une erreur du serveur REST faisant que les entêtes
+  "Server" et "Waarp-Gateway-Date" n'étaient pas correctement renvoyés en
+  réponse aux requêtes faites sur l'API REST.
+* :feature:`-` Ajout d'une option ``-r, --raw`` aux commandes d'affichage des
+  certificats et clés SSH permettant d'afficher la valeur brute de ces éléments
+  (typiquement un fichier PEM) au lieu d'afficher leurs métadonnées comme c'est
+  le cas par défaut.
+* :feature:`448` Ajout d'une tâche "EMAIL" permettant d'envoyer un email.
+  Particulièrement utile en tant que tâche d'erreur pour notifier d'une erreur
+  de transfert. Pour configurer cette tâche, deux nouvelles tables, ainsi que
+  leurs :ref:`handlers REST<ref-rest-emails>` et leurs :ref:`commandes terminal
+  <ref-cli-client-email>` ont été ajoutées. Ces tables permettent de configurer
+  les identifiants de connexion SMTP, ainsi que les templates d'email à envoyer.
+* :feature:`435` Ajout d'une commande CLI et d'un handler REST permettant
+  d'envoyer des notifications SNMP de test afin de valider la configuration des
+  moniteurs SNMP.
+* :feature:`438` Ajout du nom de l'instance Gateway dans les *traps* SNMP.
+  Consulter :ref:`la MIB SNMP <reference-snmp-mib>` pour plus d'information.
+* :feature:`429` Ajout d'une variable de substitution ``#TIMESTAMP#`` utilisable
+  dans les traitement pré ou post transfert. Cette variable combine les variables
+  existantes ``#DATE#`` et ``#HOUR#`` en une seule valeur plus facilement utilisable.
+* :feature:`452` Les nouvelles valeurs de substitution ``#BASEFILENAME#`` et
+  ``#FILEEXTENSION#`` ont été rajoutées, permettant de récupérer, respectivement
+  et séparément, le nom du fichier de transfert et son extension.
+* :feature:`456` Ajout d'un paramètre ``output`` à la tâche TRANSFER permettant
+  de spécifier le nom/chemin de destination du fichier lorsque celui diffère du
+  nom d'origine.
+* :feature:`464` Il est désormais possible de configurer la version minimale de
+  TLS pour R66-TLS et HTTPS. Cette version minimale peut être renseignée dans
+  la configuration protocolaire des client, serveurs et partenaires concernés.
+  Pour l'heure, la version minimale par défaut reste toujours la v1.2.
+* :feature:`478` Ajout des options ``FilePermissions`` et ``DirectoryPermissions``
+  permettant de spécifier les droits attribués au fichiers et dossiers créés par
+  la Gateway. Les droits par défauts restent toujours respectivement 0640 pour
+  les fichiers et 0750 pour les dossiers.
+* :feature:`470` Ajout d'un mécanisme de reprise de transfert automatique en cas
+  d'erreur. Pour chaque transfer, il est possible de configurer un nombre d'essais,
+  un délai entre chaque essai, et un facteur d'incrément pour ce délai. Il est
+  également possible de configurer ces paramètres plus globalement au niveau des
+  clients de transfert.
+* :feature:`469` Les programmes externes appelés par la tâche EXEC (ou ses variantes)
+  héritent désormais des :ref:`valeurs de remplacement<reference-tasks-substitutions>`
+  sous forme de variables d'environnement. Il est donc désormais possible de
+  référencer ces valeurs dans des programmes externes sans avoir à les fournir via
+  les paramètres du programme. Ces variables d'environnement ont exactement le même
+  nom que leur valeurs de substitution correspondante (ex: ``#TRUEFULLPATH#``).
+
+* :release:`0.12.9 <2025-07-18>`
+* :bug:`482` L'échec du démarrage d'un transfert planifié n'empêche désormais
+  plus les autres transferts planifiés de démarrer.
+* :bug:`482` Correction d'un bug qui faisait rester les transferts indéfiniment
+  en statut *"RUNNING"* sans avancement en cas d'erreur de base de données.
+* :bug:`482` Un bug qui empêchait, sous certaines conditions, l'annulation au
+  la mise en pause de transferts en cours a été corrigé. Une conséquence de ce
+  correctif est que le fonctionnement en grappe **requiert** désormais
+  obligatoirement qu'un nom d'instance soit fournis dans le commande de
+  lancement (voir :ref:`la documentation<ref-gatewayd-server>` de la commande
+  pour plus de détails).
+* :feature:`482` Une commande permettant d'exécuter directement des requêtes SQL
+  a été ajoutée à l'exécutable serveur ``waarp-gatewayd`` afin de permettre de
+  résoudre d'éventuels problèmes de base de données lorsque des outils externes
+  ne sont pas disponibles à cette fin.
+
+* :release:`0.12.8 <2025-04-25>`
+* :bug:`480` Les clients créés automatiquement lors de l'ajout d'un nouveau
+  transfert sont désormais automatiquement démarrés après leur création.
+  Précédemment, ces clients n'étaient pas démarrés après création, ce qui les
+  rendaient inutilisables sans un redémarrage de l'application.
+* :bug:`479` Les droits par défaut des fichiers et dossiers de transfert ont été
+  relaxés. Les fichiers reçus ont désormais les droits 640 au lieu de 600. Les
+  dossiers créés pour recevoir des fichiers ont eux désormais les droits 750 au
+  lieu de 700. À noter que ces changements n'affectent que les systèmes Linux
+  (Windows ayant une gestion des droits très différente).
+
 * :release:`0.12.6 <2025-04-25>`
 * :bug:`473` Les commandes SNMP prennent désormais les bonnes valeurs pour les
   options SNMPv3 "auth-protocol" et "priv-protocol".
@@ -56,7 +165,7 @@ Historique des versions
   Celle-ci n'avait pas été ajoutée en 0.12.0 comme elle aurait dû.
 
 * :release:`0.12.0 <2025-03-04>`
-* :feature:`-` Mise à jour des pré-requis système. Côté Windows, Waarp Gateway
+* :support:`-` Mise à jour des pré-requis système. Côté Windows, Waarp Gateway
   requiert désormais au minimum Windows 10 ou Windows Server 2016. Côté Linux,
   un kernel version 3.2 minimum est désormais requis. Toutes les versions
   antérieures de ces OS ne sont désormais plus supportées.

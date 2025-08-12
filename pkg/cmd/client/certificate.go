@@ -17,16 +17,16 @@ func warnCertDeprecated() {
 	fmt.Fprintln(stdOutput, color.Red.Sprint(certDeprecatedMsg))
 }
 
-func displayCrypto(w io.Writer, cert *api.OutCrypto) error {
+func displayCrypto(w io.Writer, cert *api.OutCrypto, raw bool) error {
 	switch {
 	case cert.Certificate != "":
-		return displayTLSInfo(w, Style1, cert.Name, cert.Certificate)
+		return displayTLSInfo(w, Style1, cert.Name, cert.Certificate, raw)
 	case cert.PublicKey != "":
-		return displaySSHKeyInfo(w, Style1, cert.Name, cert.PublicKey)
+		return displaySSHKeyInfo(w, Style1, cert.Name, cert.PublicKey, raw)
 	case cert.PrivateKey != "":
-		return displayPrivateKeyInfo(w, Style1, cert.Name, cert.PrivateKey)
+		return displayPrivateKeyInfo(w, Style1, cert.Name, cert.PrivateKey, raw)
 	default:
-		//nolint:goerr113 //too specific
+		//nolint:err113 //too specific
 		return fmt.Errorf("entry %q: <unknown authentication type>", cert.Name)
 	}
 }
@@ -52,6 +52,7 @@ type CertGet struct {
 	Args struct {
 		Cert string `required:"yes" positional-arg-name:"cert" description:"The certificate's name"`
 	} `positional-args:"yes"`
+	Raw bool `short:"r" long:"raw" description:"Display the raw certificate data"`
 }
 
 func (c *CertGet) Execute([]string) error {
@@ -68,7 +69,7 @@ func (c *CertGet) execute(w io.Writer) error {
 		return err
 	}
 
-	return displayCrypto(w, cert)
+	return displayCrypto(w, cert, c.Raw)
 }
 
 // ######################## ADD ##########################
@@ -132,7 +133,9 @@ func (c *CertDelete) execute(w io.Writer) error {
 //nolint:lll // struct tags for command line arguments can be long
 type CertList struct {
 	ListOptions
+
 	SortBy string `short:"s" long:"sort" description:"Attribute used to sort the returned entries" choice:"name+" choice:"name-" default:"name+"`
+	Raw    bool   `short:"r" long:"raw" description:"Display the raw certificates data"`
 }
 
 func (c *CertList) Execute([]string) error {
@@ -155,7 +158,7 @@ func (c *CertList) execute(w io.Writer) error {
 		Style0.Printf(w, "=== Certificates ===")
 
 		for _, cert := range certs {
-			if err := displayCrypto(w, cert); err != nil {
+			if err := displayCrypto(w, cert, c.Raw); err != nil {
 				return err
 			}
 		}

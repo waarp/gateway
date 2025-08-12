@@ -43,18 +43,22 @@ func userKeyCallback(db *database.DB, logger *log.Logger, agent *model.LocalAgen
 		var acc model.LocalAccount
 		if err := db.Get(&acc, "local_agent_id=? AND login=?", agent.ID,
 			conn.User()).Run(); err != nil && !database.IsNotFound(err) {
-			logger.Error("Failed to retrieve user credentials: %s", err)
+			logger.Errorf("Failed to retrieve user credentials: %v", err)
 
 			return nil, ErrDatabase
 		}
 
 		if res, err := acc.Authenticate(db, agent, AuthSSHPublicKey, key); err != nil {
-			logger.Error("Failed to authenticate account %q: %v", acc.Login, err)
+			logger.Errorf("Failed to authenticate account %q: %v", acc.Login, err)
 
 			return nil, ErrInternal
 		} else if !res.Success {
-			logger.Warning("Authentication failed for account %q: %s",
-				conn.User(), res.Reason)
+			if acc.ID == 0 {
+				logger.Warningf("Authentication failed for account %q: unknown user", conn.User())
+			} else {
+				logger.Warningf("Authentication failed for account %q: %v",
+					conn.User(), res.Reason)
+			}
 
 			return nil, ErrAuthFailed
 		}
@@ -76,7 +80,7 @@ func passwordCallback(db *database.DB, logger *log.Logger, agent *model.LocalAge
 		var acc model.LocalAccount
 		if err := db.Get(&acc, "local_agent_id=? AND login=?", agent.ID,
 			conn.User()).Run(); err != nil && !database.IsNotFound(err) {
-			logger.Error("Failed to retrieve user credentials: %s", err)
+			logger.Errorf("Failed to retrieve user credentials: %v", err)
 
 			return nil, ErrDatabase
 		}
@@ -89,11 +93,11 @@ func passwordCallback(db *database.DB, logger *log.Logger, agent *model.LocalAge
 		}
 
 		if res, err := acc.Authenticate(db, agent, auth.Password, pass); err != nil {
-			logger.Error("Failed to authenticate account %q: %v", acc.Login, err)
+			logger.Errorf("Failed to authenticate account %q: %v", acc.Login, err)
 
 			return nil, ErrInternal
 		} else if !res.Success {
-			logger.Warning("Authentication failed for account %q: %s",
+			logger.Warningf("Authentication failed for account %q: %v",
 				conn.User(), res.Reason)
 
 			return nil, ErrAuthFailed
@@ -155,19 +159,19 @@ func acceptRequests(in <-chan *ssh.Request, l *log.Logger) {
 		}
 
 		if err := req.Reply(ok, nil); err != nil {
-			l.Warning("An error occurred while replying to a request: %v", err)
+			l.Warningf("An error occurred while replying to a request: %v", err)
 		}
 	}
 }
 
 func closeTCPConn(nConn net.Conn, logger *log.Logger) {
 	if err := nConn.Close(); err != nil && !errors.Is(err, net.ErrClosed) {
-		logger.Warning("An error occurred while closing the TCP connection: %v", err)
+		logger.Warningf("An error occurred while closing the TCP connection: %v", err)
 	}
 }
 
 func closeSSHConn(servConn *ssh.ServerConn, logger *log.Logger) {
 	if err := servConn.Close(); err != nil && !errors.Is(err, net.ErrClosed) {
-		logger.Warning("An error occurred while closing the SFTP connection: %v", err)
+		logger.Warningf("An error occurred while closing the SFTP connection: %v", err)
 	}
 }

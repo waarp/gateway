@@ -37,25 +37,24 @@ func (s *server) listen() (string, error) {
 		utils.FormatUint(s.localAgent.Address.Port))
 
 	var (
-		list net.Listener
-		err  error
+		list    net.Listener
+		listErr error
 	)
 
 	if s.localAgent.Protocol == PesitTLS {
-		//nolint:gosec //TLS min version is set by the user
 		tlsConfig := &tls.Config{
-			MinVersion:            protoutils.ParseTLSVersion(s.conf.MinTLSVersion),
+			MinVersion:            s.conf.MinTLSVersion.TLS(),
 			GetCertificate:        s.getCertificate,
 			VerifyPeerCertificate: auth.VerifyClientCert(s.db, s.logger, s.localAgent),
 		}
 
-		list, err = tls.Listen("tcp", realAddr, tlsConfig)
+		list, listErr = tls.Listen("tcp", realAddr, tlsConfig)
 	} else {
-		list, err = net.Listen("tcp", realAddr)
+		list, listErr = net.Listen("tcp", realAddr)
 	}
 
-	if err != nil {
-		return "", fmt.Errorf("failed to open listener: %w", err)
+	if listErr != nil {
+		return "", fmt.Errorf("failed to open listener: %w", listErr)
 	}
 
 	list = &protoutils.TraceListener{Listener: list}
@@ -64,7 +63,7 @@ func (s *server) listen() (string, error) {
 
 	go func() {
 		if err := s.server.Serve(list); err != nil {
-			s.logger.Error("unexpected error: %v", err)
+			s.logger.Errorf("unexpected error: %v", err)
 			s.state.Set(utils.StateError, err.Error())
 		}
 	}()
@@ -82,7 +81,7 @@ func (s *server) stop(ctx context.Context) error {
 
 func (s *server) Connect(conn *pesit.ServerConnection) (pesit.TransferHandler, error) {
 	if serverLogin := conn.ServerLogin(); serverLogin != s.localAgent.Name {
-		s.logger.Warning("connection with invalid server identifier %q", serverLogin)
+		s.logger.Warningf("connection with invalid server identifier %q", serverLogin)
 
 		return nil, pesit.NewDiagnostic(pesit.CodeUnknownIdentification, "invalid server identifier")
 	}
@@ -97,8 +96,8 @@ func (s *server) Connect(conn *pesit.ServerConnection) (pesit.TransferHandler, e
 		if s.conf.DisableCheckpoints {
 			conn.AllowCheckpoints(pesit.CheckpointDisabled, 0)
 		} else {
-			size := utils.Min(s.conf.CheckpointSize, conn.CheckpointSize())
-			window := utils.Min(s.conf.CheckpointWindow, conn.CheckpointWindow())
+			size := min(s.conf.CheckpointSize, conn.CheckpointSize())
+			window := min(s.conf.CheckpointWindow, conn.CheckpointWindow())
 
 			conn.AllowCheckpoints(size, window)
 		}
@@ -109,7 +108,7 @@ func (s *server) Connect(conn *pesit.ServerConnection) (pesit.TransferHandler, e
 	}
 
 	if conn.NewClientPassword() != "" {
-		s.logger.Warning("Connection from %q refused, clients are not allowed to change their password",
+		s.logger.Warningf("Connection from %q refused, clients are not allowed to change their password",
 			conn.ClientLogin())
 
 		return nil, pesit.NewDiagnostic(pesit.CodeMessageTypeRefused,
@@ -121,7 +120,7 @@ func (s *server) Connect(conn *pesit.ServerConnection) (pesit.TransferHandler, e
 		return nil, authErr
 	}
 
-	s.logger.Debug("Connection from %q successful", conn.ClientLogin())
+	s.logger.Debugf("Connection from %q successful", conn.ClientLogin())
 
 	return &transferHandler{
 		db:           s.db,
@@ -136,7 +135,7 @@ func (s *server) Connect(conn *pesit.ServerConnection) (pesit.TransferHandler, e
 }
 
 func (s *server) Release(conn *pesit.ServerConnection) {
-	s.logger.Debug("Connection closed to %v", conn)
+	s.logger.Debugf("Connection closed to %v", conn)
 }
 
 var ErrPasswordDBError = errors.New("failed to retrieve the server password")
@@ -148,7 +147,7 @@ func (s *server) getPassword() (string, error) {
 			return "", nil
 		}
 
-		s.logger.Error("Failed to retrieve the server password: %v", err)
+		s.logger.Errorf("Failed to retrieve the server password: %v", err)
 
 		return "", ErrPasswordDBError
 	}
@@ -160,18 +159,18 @@ func (s *server) authenticate(login, password string) (*model.LocalAccount, erro
 	var user model.LocalAccount
 	if err := s.db.Get(&user, "local_agent_id=? AND login=?", s.localAgent.ID,
 		login).Run(); err != nil && !database.IsNotFound(err) {
-		s.logger.Error("Failed to retrieve the local account: %v", err)
+		s.logger.Errorf("Failed to retrieve the local account: %v", err)
 
 		return nil, pesit.NewDiagnostic(pesit.CodeInternalError, "failed to check the authentication")
 	}
 
 	res, authErr := user.Authenticate(s.db, s.localAgent, auth.Password, password)
 	if authErr != nil {
-		s.logger.Error("Failed to authenticate account %q: %v", login, authErr)
+		s.logger.Errorf("Failed to authenticate account %q: %v", login, authErr)
 
 		return nil, pesit.NewDiagnostic(pesit.CodeInternalError, "failed to check the authentication")
 	} else if !res.Success {
-		s.logger.Warning("authentication of account %q failed: %s", login, res.Reason)
+		s.logger.Warningf("authentication of account %q failed: %s", login, res.Reason)
 
 		return nil, pesit.NewDiagnostic(pesit.CodeUnauthorizedCaller, "invalid credentials")
 	}

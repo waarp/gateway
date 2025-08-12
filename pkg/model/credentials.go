@@ -97,7 +97,7 @@ func (c *Credential) getOwner(db database.ReadAccess) (CredOwnerTable, authentic
 
 	if err := db.Get(owner, "id=?", owner.GetID()).Run(); err != nil {
 		if database.IsNotFound(err) {
-			return nil, nil, database.NewValidationError(`no %s found with ID "%v"`,
+			return nil, nil, database.NewValidationErrorf(`no %s found with ID "%v"`,
 				owner.Appellation(), owner.GetID())
 		}
 
@@ -131,7 +131,7 @@ func (c *Credential) getHandler(protocol string) (authentication.Handler, error)
 	}
 
 	if handler == nil {
-		return nil, database.NewValidationError(
+		return nil, database.NewValidationErrorf(
 			"protocol %q does not support the authentication method %q", protocol, c.Type)
 	}
 
@@ -139,17 +139,17 @@ func (c *Credential) getHandler(protocol string) (authentication.Handler, error)
 }
 
 func (c *Credential) validate(db database.ReadAccess) error {
-	owner, handler, err := c.getOwner(db)
-	if err != nil {
-		return err
+	owner, handler, ownErr := c.getOwner(db)
+	if ownErr != nil {
+		return ownErr
 	}
 
 	if n, err := db.Count(c).Where(owner.GetCredCond()).Where("id<>? AND name=?",
 		c.ID, c.Name).Run(); err != nil {
 		return fmt.Errorf("failed to check for duplicate credentials: %w", err)
 	} else if n > 0 {
-		return database.NewValidationError("an authentication method with the same "+
-			"name %q already exist", c.Name)
+		return database.NewValidationErrorf(
+			"an authentication method with the same name %q already exist", c.Name)
 	}
 
 	if handler.CanOnlyHaveOne() {
@@ -157,19 +157,19 @@ func (c *Credential) validate(db database.ReadAccess) error {
 			c.Type, c.ID).Run(); err != nil {
 			return fmt.Errorf("failed to check for duplicate credentials: %w", err)
 		} else if n > 0 {
-			return database.NewValidationError("this %s already has a %s authentication method",
-				owner.Appellation(), c.Name)
+			return database.NewValidationErrorf("this %s already has a %s authentication method",
+				owner.Appellation(), c.Type)
 		}
 	}
 
 	if err := handler.Validate(c.Value, c.Value2, "", owner.Host(), owner.IsServer()); err != nil {
-		return database.NewValidationError("failed to validate authentication value: %s", err)
+		return database.NewValidationErrorf("failed to validate authentication value: %w", err)
 	}
 
 	if ser, ok := handler.(authentication.Serializer); ok {
 		var err error
 		if c.Value, c.Value2, err = ser.ToDB(c.Value, c.Value2); err != nil {
-			return database.NewValidationError("failed to serialize the authentication value: %s", err)
+			return fmt.Errorf("failed to serialize the authentication value: %w", err)
 		}
 	}
 
@@ -195,7 +195,8 @@ func (c *Credential) AfterRead(db database.ReadAccess) error {
 		var err error
 
 		if c.Value, c.Value2, err = des.FromDB(c.Value, c.Value2); err != nil {
-			return database.NewValidationError("failed to deserialize the authentication value: %s", err)
+			return database.NewValidationErrorf(
+				"failed to deserialize the authentication value: %w", err)
 		}
 	}
 

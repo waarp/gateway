@@ -54,9 +54,15 @@ func NewNotFoundError(elem Table) *NotFoundError {
 	}
 }
 
-// NewValidationError returns a new validation `Error` with the given formatted message.
-func NewValidationError(msg string, args ...interface{}) *ValidationError {
-	//nolint:goerr113 //this is used to wrap errors
+// NewValidationError returns a new validation `Error` with the given message.
+func NewValidationError(msg string) *ValidationError {
+	//nolint:err113 //this is used to wrap errors
+	return &ValidationError{err: errors.New(msg)}
+}
+
+// NewValidationErrorf returns a new validation `Error` with the given formatted message.
+func NewValidationErrorf(msg string, args ...any) *ValidationError {
+	//nolint:err113 //this is used to wrap errors
 	return &ValidationError{err: fmt.Errorf(msg, args...)}
 }
 

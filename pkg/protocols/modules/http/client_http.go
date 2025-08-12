@@ -30,6 +30,7 @@ var (
 type httpClient struct {
 	db     *database.DB
 	client *model.Client
+	conf   httpsClientConfig
 
 	logger    *log.Logger
 	transport *http.Transport
@@ -44,7 +45,7 @@ func (h *httpClient) Start() error {
 	}
 
 	if err := h.start(); err != nil {
-		h.logger.Error("Failed to start HTTP client: %s", err)
+		h.logger.Errorf("Failed to start HTTP client: %v", err)
 		h.state.Set(utils.StateError, err.Error())
 		snmp.ReportServiceFailure(h.client.Name, err)
 
@@ -60,10 +61,16 @@ func (h *httpClient) start() error {
 	h.logger = logging.NewLogger(h.client.Name)
 	dialer := &protoutils.TraceDialer{Dialer: &net.Dialer{}}
 
+	if err := utils.JSONConvert(h.client.ProtoConfig, &h.conf); err != nil {
+		h.logger.Errorf("Failed to parse the HTTP client's configuration: %v", err)
+
+		return fmt.Errorf("failed to parse the HTTP client's configuration: %w", err)
+	}
+
 	if h.client.LocalAddress.IsSet() {
 		localAddr, err := net.ResolveTCPAddr("tcp", h.client.LocalAddress.String())
 		if err != nil {
-			h.logger.Error("Failed to parse the HTTP client's local address: %v", err)
+			h.logger.Errorf("Failed to parse the HTTP client's local address: %v", err)
 
 			return fmt.Errorf("failed to parse the HTTP client's local address: %w", err)
 		}
@@ -89,7 +96,7 @@ func (h *httpClient) Stop(ctx context.Context) error {
 	}
 
 	if err := pipeline.List.StopAllFromClient(ctx, h.client.ID); err != nil {
-		h.logger.Error("Failed to interrupt HTTP client's running transfers: %v", err)
+		h.logger.Errorf("Failed to interrupt HTTP client's running transfers: %v", err)
 		h.state.Set(utils.StateError, err.Error())
 		snmp.ReportServiceFailure(h.client.Name, err)
 

@@ -3,7 +3,10 @@
 
 package model
 
-import "code.waarp.fr/apps/gateway/gateway/pkg/database"
+import (
+	"code.waarp.fr/apps/gateway/gateway/pkg/database"
+	"fmt"
+)
 
 // FileInfo represents the file_info database table, which contains all the
 // protocol-specific information attached to a transfer.
@@ -28,18 +31,18 @@ func (*FileInfo) Appellation() string {
 func (t *FileInfo) BeforeWrite(db database.ReadAccess) error {
 	n, err := db.Count(&Transfer{}).Where("id=?", t.TransferID).Run()
 	if err != nil {
-		return database.NewValidationError("failed to retrieve transfer list: %s", err)
+		return fmt.Errorf("failed to retrieve transfer list: %w", err)
 	}
 	if n == 0 {
-		return database.NewValidationError("no transfer %d found", t.TransferID)
+		return database.NewValidationErrorf("no transfer %d found", t.TransferID)
 	}
 
 	n, err = db.Count(&FileInfo{}).Where("transfer_id=? AND name=?", t.TransferID, t.Name).Run()
 	if err != nil {
-		return database.NewValidationError("failed to retrieve info list: %s", err)
+		return fmt.Errorf("failed to retrieve info list: %w", err)
 	}
 	if n > 0 {
-		return database.NewValidationError("transfer %d already has a property %q",
+		return database.NewValidationErrorf("transfer %d already has a property %q",
 			t.TransferID, t.Name)
 	}
 

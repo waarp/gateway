@@ -16,3 +16,7 @@ nouveau chemin du fichier sur la sortie standard. Les arguments sont:
    - une valeur de 0 signifie un succès
    - une valeur de 1 signifie un succès avec message d'avertissement
    - toute autre valeur est considérée comme un échec
+
+À noter que les :ref:`valeurs de remplacement<reference-tasks-substitutions>` du
+transfert seront passées au programme externe sous la forme de variables
+d'environnement.

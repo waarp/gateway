@@ -23,9 +23,9 @@ import (
 
 // restTransferToDB transforms the JSON transfer into its database equivalent.
 func restTransferToDB(jTrans *api.InTransfer, db *database.DB, logger *log.Logger) (*model.Transfer, error) {
-	ruleID, accountID, clientID, err := getTransInfo(db, jTrans)
-	if err != nil {
-		return nil, err
+	ruleID, accountID, clientID, infoErr := getTransInfo(db, jTrans)
+	if infoErr != nil {
+		return nil, infoErr
 	}
 
 	srcFile := jTrans.File
@@ -58,13 +58,16 @@ func restTransferToDB(jTrans *api.InTransfer, db *database.DB, logger *log.Logge
 	}
 
 	return &model.Transfer{
-		RuleID:          ruleID,
-		ClientID:        clientID,
-		RemoteAccountID: accountID,
-		SrcFilename:     srcFile,
-		DestFilename:    destFile,
-		Filesize:        model.UnknownSize,
-		Start:           start,
+		RuleID:               ruleID,
+		ClientID:             clientID,
+		RemoteAccountID:      accountID,
+		SrcFilename:          srcFile,
+		DestFilename:         destFile,
+		Filesize:             model.UnknownSize,
+		Start:                start,
+		RemainingTries:       jTrans.NbOfAttempts,
+		NextRetryDelay:       jTrans.FirstRetryDelay,
+		RetryIncrementFactor: jTrans.RetryIncrementFactor,
 	}, nil
 }
 
@@ -80,7 +83,7 @@ func DBTransferToREST(db *database.DB, trans *model.NormalizedTransferView) (*ap
 
 	var stop api.Nullable[time.Time]
 	if !trans.Stop.IsZero() {
-		stop = asNullableTime(trans.Stop)
+		stop = asNullable(trans.Stop)
 	}
 
 	info, iErr := trans.GetTransferInfo(db)
@@ -89,33 +92,38 @@ func DBTransferToREST(db *database.DB, trans *model.NormalizedTransferView) (*ap
 	}
 
 	return &api.OutTransfer{
-		ID:             trans.ID,
-		RemoteID:       trans.RemoteTransferID,
-		Rule:           trans.Rule,
-		IsServer:       trans.IsServer,
-		IsSend:         trans.IsSend,
-		Requested:      trans.Agent,
-		Requester:      trans.Account,
-		Client:         trans.Client,
-		Protocol:       trans.Protocol,
-		SrcFilename:    trans.SrcFilename,
-		DestFilename:   trans.DestFilename,
-		LocalFilepath:  trans.LocalPath,
-		RemoteFilepath: trans.RemotePath,
-		Filesize:       trans.Filesize,
-		Start:          trans.Start,
-		Stop:           stop,
-		Status:         trans.Status,
-		Step:           trans.Step.String(),
-		Progress:       trans.Progress,
-		TaskNumber:     trans.TaskNumber,
-		ErrorCode:      trans.ErrCode.String(),
-		ErrorMsg:       trans.ErrDetails,
-		TransferInfo:   info,
-		TrueFilepath:   trans.LocalPath,
-		SourcePath:     src,
-		DestPath:       dst,
-		StartDate:      trans.Start,
+		ID:                   trans.ID,
+		RemoteID:             trans.RemoteTransferID,
+		Rule:                 trans.Rule,
+		IsServer:             trans.IsServer,
+		IsSend:               trans.IsSend,
+		Requested:            trans.Agent,
+		Requester:            trans.Account,
+		Client:               trans.Client,
+		Protocol:             trans.Protocol,
+		SrcFilename:          trans.SrcFilename,
+		DestFilename:         trans.DestFilename,
+		LocalFilepath:        trans.LocalPath,
+		RemoteFilepath:       trans.RemotePath,
+		Filesize:             trans.Filesize,
+		Start:                trans.Start,
+		Stop:                 stop,
+		Status:               trans.Status,
+		Step:                 trans.Step.String(),
+		Progress:             trans.Progress,
+		TaskNumber:           trans.TaskNumber,
+		ErrorCode:            trans.ErrCode.String(),
+		ErrorMsg:             trans.ErrDetails,
+		RemainingAttempts:    trans.RemainingTries,
+		NextAttempt:          trans.NextRetry,
+		NextRetryDelay:       trans.NextRetryDelay,
+		RetryIncrementFactor: trans.RetryIncrementFactor,
+
+		TransferInfo: info,
+		TrueFilepath: trans.LocalPath,
+		SourcePath:   src,
+		DestPath:     dst,
+		StartDate:    trans.Start,
 	}, nil
 }
 
@@ -140,16 +148,16 @@ func DBTransfersToREST(db *database.DB, models []*model.NormalizedTransferView) 
 func getDBTrans(r *http.Request, db *database.DB) (*model.Transfer, error) {
 	val := mux.Vars(r)["transfer"]
 
-	id, parsErr := strconv.ParseUint(val, 10, 64) //nolint:gomnd // useless to add a constant for that
+	id, parsErr := strconv.ParseUint(val, 10, 64) //nolint:mnd // useless to add a constant for that
 	if parsErr != nil || id == 0 {
-		return nil, notFound("'%s' is not a valid transfer ID", val)
+		return nil, notFoundf("%q is not a valid transfer ID", val)
 	}
 
 	var transfer model.Transfer
 	if err := db.Get(&transfer, "id=? AND owner=?", id, conf.GlobalConfig.GatewayName).
 		Run(); err != nil {
 		if database.IsNotFound(err) {
-			return nil, notFound("transfer %v not found", id)
+			return nil, notFoundf("transfer %v not found", id)
 		}
 
 		return nil, fmt.Errorf("failed to retrieve transfer %d: %w", id, err)
@@ -162,16 +170,16 @@ func getDBTrans(r *http.Request, db *database.DB) (*model.Transfer, error) {
 func getDBTransView(r *http.Request, db *database.DB) (*model.NormalizedTransferView, error) {
 	val := mux.Vars(r)["transfer"]
 
-	id, parsErr := strconv.ParseUint(val, 10, 64) //nolint:gomnd // useless to add a constant for that
+	id, parsErr := strconv.ParseUint(val, 10, 64) //nolint:mnd // useless to add a constant for that
 	if parsErr != nil || id == 0 {
-		return nil, notFound("'%s' is not a valid transfer ID", val)
+		return nil, notFoundf("%q is not a valid transfer ID", val)
 	}
 
 	var transfer model.NormalizedTransferView
 	if err := db.Get(&transfer, "id=? AND owner=?", id, conf.GlobalConfig.GatewayName).
 		Run(); err != nil {
 		if database.IsNotFound(err) {
-			return nil, notFound("transfer %v not found", id)
+			return nil, notFoundf("transfer %v not found", id)
 		}
 
 		return nil, fmt.Errorf("failed to retrieve transfer %d: %w", id, err)
@@ -187,8 +195,8 @@ func addTransfer(logger *log.Logger, db *database.DB) http.HandlerFunc {
 			return
 		}
 
-		trans, err := restTransferToDB(&jsonTrans, db, logger)
-		if handleError(w, logger, err) {
+		trans, convErr := restTransferToDB(&jsonTrans, db, logger)
+		if handleError(w, logger, convErr) {
 			return
 		}
 
@@ -265,7 +273,20 @@ func pauseTransfer(logger *log.Logger, db *database.DB) http.HandlerFunc {
 		case types.StatusRunning:
 			pip := pipeline.List.Get(trans.ID)
 			if pip == nil {
-				handleError(w, logger, internal("pipeline for transfer %d not found", trans.ID))
+				if conf.GlobalConfig.NodeID != "" {
+					handleError(w, logger, internalf("pipeline for transfer %d not found", trans.ID))
+
+					return
+				}
+
+				logger.Warningf("Pipeline for transfer %d not found", trans.ID)
+
+				trans.Status = types.StatusPaused
+				if err := db.Update(trans).Cols("status").Run(); handleError(w, logger, err) {
+					return
+				}
+
+				w.WriteHeader(http.StatusAccepted)
 
 				return
 			}
@@ -298,27 +319,44 @@ func cancelTransfer(logger *log.Logger, db *database.DB) http.HandlerFunc {
 			return
 		}
 
-		if trans.Status == types.StatusRunning {
-			pip := pipeline.List.Get(trans.ID)
-			if pip == nil {
-				handleError(w, logger, internal("pipeline for transfer %d not found", trans.ID))
-
-				return
-			}
-
-			ctx, cancel := context.WithTimeout(r.Context(), time.Second)
-			defer cancel()
-
-			if err := pip.Cancel(ctx); err != nil {
-				handleError(w, logger, err)
-
-				return
-			}
-		} else {
+		if trans.Status != types.StatusRunning {
 			trans.Status = types.StatusCancelled
 			if err := trans.MoveToHistory(db, logger, time.Time{}); handleError(w, logger, err) {
 				return
 			}
+
+			r.URL.Path = "/api/history"
+			w.Header().Set("Location", location(r.URL, utils.FormatInt(trans.ID)))
+			w.WriteHeader(http.StatusAccepted)
+
+			return
+		}
+
+		pip := pipeline.List.Get(trans.ID)
+		if pip == nil {
+			if conf.GlobalConfig.NodeID != "" {
+				handleError(w, logger, internalf("pipeline for transfer %d not found", trans.ID))
+
+				return
+			}
+
+			logger.Warningf("Pipeline for transfer %d not found", trans.ID)
+
+			trans.Status = types.StatusCancelled
+			if err := trans.MoveToHistory(db, logger, time.Time{}); handleError(w, logger, err) {
+				return
+			}
+
+			return
+		}
+
+		ctx, cancel := context.WithTimeout(r.Context(), time.Second)
+		defer cancel()
+
+		if err := pip.Cancel(ctx); err != nil {
+			handleError(w, logger, err)
+
+			return
 		}
 
 		r.URL.Path = "/api/history"
@@ -353,17 +391,17 @@ func resumeTransfer(logger *log.Logger, db *database.DB) http.HandlerFunc {
 			return
 		}
 
-		var dbHist model.Transfer
-		if err := db.Get(&dbHist, "id=?", dbTransView.ID).Run(); handleError(w, logger, err) {
+		var dbTrans model.Transfer
+		if err := db.Get(&dbTrans, "id=?", dbTransView.ID).Run(); handleError(w, logger, err) {
 			return
 		}
 
-		dbHist.Status = types.StatusPlanned
-		dbHist.ErrCode = types.TeOk
-		dbHist.ErrDetails = ""
+		dbTrans.NextRetry = time.Now()
+		dbTrans.Status = types.StatusPlanned
+		dbTrans.ErrCode = types.TeOk
+		dbTrans.ErrDetails = ""
 
-		if err := db.Update(&dbHist).Cols("status", "error_code", "error_details").
-			Run(); handleError(w, logger, err) {
+		if err := db.Update(&dbTrans).Run(); handleError(w, logger, err) {
 			return
 		}
 
@@ -378,17 +416,6 @@ func retryTransfer(logger *log.Logger, db *database.DB) http.HandlerFunc {
 			return
 		}
 
-		if dbTransView.IsTransfer {
-			handleError(w, logger, badRequest("cannot retry non-ended transfer"))
-
-			return
-		}
-
-		var dbHist model.HistoryEntry
-		if err := db.Get(&dbHist, "id=?", dbTransView.ID).Run(); handleError(w, logger, err) {
-			return
-		}
-
 		date := time.Now()
 
 		if dateStr := r.FormValue("date"); dateStr != "" {
@@ -398,7 +425,7 @@ func retryTransfer(logger *log.Logger, db *database.DB) http.HandlerFunc {
 			}
 		}
 
-		trans, restartErr := dbHist.Restart(db, date)
+		trans, restartErr := dbTransView.Restart(db, date)
 		if handleError(w, logger, restartErr) {
 			return
 		}
@@ -416,17 +443,19 @@ func retryTransfer(logger *log.Logger, db *database.DB) http.HandlerFunc {
 func cancelDBTransfer(db *database.DB, logger *log.Logger, w http.ResponseWriter,
 	status ...types.TransferStatus,
 ) bool {
-	statuses := make([]interface{}, len(status))
+	statuses := make([]any, len(status))
 
 	for i := range status {
 		statuses[i] = status[i]
 	}
 
 	tErr := db.Transaction(func(ses *database.Session) error {
-		for i := 0; ; i += 20 {
+		const batchSize = 20
+
+		for i := 0; ; i += batchSize {
 			var transfers model.Transfers
-			if err := ses.Select(&transfers).Limit(0, i).Run(); err != nil {
-				logger.Error("Failed to retrieve transfers: %v", err)
+			if err := ses.Select(&transfers).Limit(batchSize, i).Run(); err != nil {
+				logger.Errorf("Failed to retrieve transfers: %v", err)
 
 				return fmt.Errorf("failed to retrieve transfers: %w", err)
 			}
@@ -454,17 +483,19 @@ func cancelDBTransfer(db *database.DB, logger *log.Logger, w http.ResponseWriter
 	return !handleError(w, logger, tErr)
 }
 
-func cancelRunningTransfers(r *http.Request) bool {
+func cancelRunningTransfers(rCtx context.Context, db *database.DB,
+	logger *log.Logger, w http.ResponseWriter,
+) bool {
 	const cancelTimeout = 2 * time.Second
 
-	ctx, cancel := context.WithTimeout(r.Context(), cancelTimeout)
+	ctx, cancel := context.WithTimeout(rCtx, cancelTimeout)
 	defer cancel()
 
 	if err := pipeline.List.CancelAll(ctx); err != nil {
 		return false
 	}
 
-	return true
+	return cancelDBTransfer(db, logger, w, types.StatusRunning)
 }
 
 //nolint:gocognit //there is no way to further simplify this function
@@ -492,7 +523,7 @@ func cancelTransfers(logger *log.Logger, db *database.DB) http.HandlerFunc {
 				return
 			}
 		case "running":
-			if !cancelRunningTransfers(r) {
+			if !cancelRunningTransfers(r.Context(), db, logger, w) {
 				return
 			}
 		case "all":
@@ -501,11 +532,11 @@ func cancelTransfers(logger *log.Logger, db *database.DB) http.HandlerFunc {
 				return
 			}
 
-			if !cancelRunningTransfers(r) {
+			if !cancelRunningTransfers(r.Context(), db, logger, w) {
 				return
 			}
 		default:
-			handleError(w, logger, badRequest("unknown cancel target '%s'", target))
+			handleError(w, logger, badRequestf("unknown cancel target %q", target))
 
 			return
 		}

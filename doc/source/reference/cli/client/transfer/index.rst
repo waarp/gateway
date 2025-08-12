@@ -8,6 +8,7 @@ Gestion des transfers
    :maxdepth: 1
 
    add
+   preregister
    list
    get
    pause

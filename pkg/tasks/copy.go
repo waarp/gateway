@@ -44,7 +44,7 @@ func (*copyTask) Run(_ context.Context, args map[string]string, _ *database.DB,
 		return fmt.Errorf("COPY task failed: %w", err)
 	}
 
-	logger.Debug("Copied file %q to %q", source, dest)
+	logger.Debugf("Copied file %q to %q", source, dest)
 
 	return nil
 }

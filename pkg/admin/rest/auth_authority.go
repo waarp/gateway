@@ -95,8 +95,8 @@ func listAuthAuthorities(logger *log.Logger, db *database.DB) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		var dbAuthorities model.Authorities
 
-		query, err := parseSelectQuery(r, db, validSorting, &dbAuthorities)
-		if handleError(w, logger, err) {
+		query, queryErr := parseSelectQuery(r, db, validSorting, &dbAuthorities)
+		if handleError(w, logger, queryErr) {
 			return
 		}
 
@@ -114,15 +114,15 @@ func listAuthAuthorities(logger *log.Logger, db *database.DB) http.HandlerFunc {
 //nolint:dupl //partners and authorities have nothing in common
 func updateAuthAuthority(logger *log.Logger, db *database.DB) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		old, err := getAuthority(r, db)
-		if handleError(w, logger, err) {
+		old, dbErr := getAuthority(r, db)
+		if handleError(w, logger, dbErr) {
 			return
 		}
 
 		jAuth := &api.InAuthority{
-			Name:           asNullableStr(old.Name),
-			Type:           asNullableStr(old.Type),
-			PublicIdentity: asNullableStr(old.PublicIdentity),
+			Name:           asNullable(old.Name),
+			Type:           asNullable(old.Type),
+			PublicIdentity: asNullable(old.PublicIdentity),
 			ValidHosts:     old.ValidHosts,
 		}
 		if err := readJSON(r, jAuth); handleError(w, logger, err) {
@@ -141,8 +141,8 @@ func updateAuthAuthority(logger *log.Logger, db *database.DB) http.HandlerFunc {
 
 func replaceAuthAuthority(logger *log.Logger, db *database.DB) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		old, err := getAuthority(r, db)
-		if handleError(w, logger, err) {
+		old, dbErr := getAuthority(r, db)
+		if handleError(w, logger, dbErr) {
 			return
 		}
 
@@ -163,8 +163,8 @@ func replaceAuthAuthority(logger *log.Logger, db *database.DB) http.HandlerFunc 
 
 func deleteAuthAuthority(logger *log.Logger, db *database.DB) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		old, err := getAuthority(r, db)
-		if handleError(w, logger, err) {
+		old, dbErr := getAuthority(r, db)
+		if handleError(w, logger, dbErr) {
 			return
 		}
 

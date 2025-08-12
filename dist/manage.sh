@@ -21,7 +21,7 @@ do_start() {
     if do_status >/dev/null ; then
         echo "Waarp Gateway is already running."
         rv=2
-    else 
+    else
         nohup "$DAEMONPATH" $DAEMON_PARAMS >> "$STARTLOG" 2>&1 &
         local pid=$!
         sleep 2

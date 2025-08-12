@@ -5,6 +5,7 @@ package conf
 import (
 	"errors"
 	"fmt"
+	"io/fs"
 	"os"
 	"path/filepath"
 	"time"
@@ -38,10 +39,12 @@ type ServerConfig struct {
 //
 //nolint:lll // cannot split struct tags
 type PathsConfig struct {
-	GatewayHome   string `ini-name:"GatewayHome" description:"The root directory of the gateway. By default, it is the working directory of the process."`
-	DefaultInDir  string `ini-name:"DefaultInDir" default:"in" description:"The directory for all incoming files."`
-	DefaultOutDir string `ini-name:"DefaultOutDir" default:"out" description:"The directory for all outgoing files."`
-	DefaultTmpDir string `ini-name:"DefaultTmpDir" default:"tmp" description:"The directory for all running transfer files."`
+	GatewayHome   string      `ini-name:"GatewayHome" description:"The root directory of the gateway. By default, it is the working directory of the process."`
+	DefaultInDir  string      `ini-name:"DefaultInDir" default:"in" description:"The directory for all incoming files."`
+	DefaultOutDir string      `ini-name:"DefaultOutDir" default:"out" description:"The directory for all outgoing files."`
+	DefaultTmpDir string      `ini-name:"DefaultTmpDir" default:"tmp" description:"The directory for all running transfer files."`
+	FilePerms     fs.FileMode `ini-name:"FilePermissions" default:"0640" description:"The permissions of the files created by the gateway."`
+	DirPerms      fs.FileMode `ini-name:"DirectoryPermissions" default:"0750" description:"The permissions of the directories created by the gateway."`
 
 	// Deprecated fields.
 	InDirectory   string `ini-name:"InDirectory" default:"" description:"DEPRECATED, use DefaultInDir instead"`    // Deprecated: replaced by DefaultInDir
@@ -137,9 +140,9 @@ var ErrNoConfigFile = errors.New("no config file found")
 func ParseServerConfig(userConfig string) (*ServerConfig, error) {
 	c := &ServerConfig{}
 
-	p, err := config.NewParser(c)
-	if err != nil {
-		return nil, fmt.Errorf("failed to initialize the config parser: %w", err)
+	p, pErr := config.NewParser(c)
+	if pErr != nil {
+		return nil, fmt.Errorf("failed to initialize the config parser: %w", pErr)
 	}
 
 	if userConfig != "" {
@@ -170,9 +173,9 @@ func ParseServerConfig(userConfig string) (*ServerConfig, error) {
 }
 
 func loadServerConfig(userConfig string) (*ServerConfig, string, error) {
-	c, err := ParseServerConfig(userConfig)
-	if err != nil {
-		return nil, "", err
+	c, pErr := ParseServerConfig(userConfig)
+	if pErr != nil {
+		return nil, "", pErr
 	}
 
 	if err := logging.AddLogBackend(c.Log.Level, c.Log.LogTo, c.Log.SyslogFacility,
@@ -208,9 +211,9 @@ func LoadServerConfig(userConfig string) (*ServerConfig, error) {
 func UpdateServerConfig(configFile string) error {
 	c := &ServerConfig{}
 
-	p, err := config.NewParser(c)
-	if err != nil {
-		return fmt.Errorf("cannot initialize a parser for the server configuration: %w", err)
+	p, pErr := config.NewParser(c)
+	if pErr != nil {
+		return fmt.Errorf("cannot initialize a parser for the server configuration: %w", pErr)
 	}
 
 	if err := p.ParseFile(configFile); err != nil {
@@ -228,9 +231,9 @@ func UpdateServerConfig(configFile string) error {
 func CreateServerConfig(configFile string) error {
 	c := &ServerConfig{}
 
-	p, err := config.NewParser(c)
-	if err != nil {
-		return fmt.Errorf("cannot initialize a parser for the server configuration: %w", err)
+	p, pErr := config.NewParser(c)
+	if pErr != nil {
+		return fmt.Errorf("cannot initialize a parser for the server configuration: %w", pErr)
 	}
 
 	if err := p.WriteFile(configFile); err != nil {

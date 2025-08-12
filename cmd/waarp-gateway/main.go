@@ -9,7 +9,7 @@ import (
 	wg "code.waarp.fr/apps/gateway/gateway/pkg/cmd/client"
 )
 
-//nolint:lll // struct tags for command line arguments can be long
+//nolint:lll,embeddedstructfieldcheck // struct tags for command line arguments can be long
 type commands struct {
 	Connection struct {
 		Address  wg.AddrOpt     `short:"a" long:"address" required:"yes" description:"The address of the gateway" env:"WAARP_GATEWAY_ADDRESS"`
@@ -141,14 +141,15 @@ type commands struct {
 	} `command:"rule" description:"Manage the transfer rules"`
 
 	Transfer struct {
-		Add    wg.TransferAdd       `command:"add" description:"Add a new transfer to be executed"`
-		Get    wg.TransferGet       `command:"get" description:"Consult a transfer"`
-		List   wg.TransferList      `command:"list" description:"List the transfers"`
-		Pau    wg.TransferPause     `command:"pause" description:"Pause a running transfer"`
-		Res    wg.TransferResume    `command:"resume" description:"Resume a paused transfer"`
-		Can    wg.TransferCancel    `command:"cancel" description:"Cancel a transfer"`
-		Ret    wg.TransferRetry     `command:"retry" description:"Reprogram a canceled transfer"`
-		CanAll wg.TransferCancelAll `command:"cancel-all" description:"Cancel all transfers in the given status"`
+		Add    wg.TransferAdd         `command:"add" description:"Add a new client transfer to be executed"`
+		Reg    wg.TransferPreregister `command:"preregister" description:"Register a server transfer"`
+		Get    wg.TransferGet         `command:"get" description:"Consult a transfer"`
+		List   wg.TransferList        `command:"list" description:"List the transfers"`
+		Pau    wg.TransferPause       `command:"pause" description:"Pause a running transfer"`
+		Res    wg.TransferResume      `command:"resume" description:"Resume a paused transfer"`
+		Can    wg.TransferCancel      `command:"cancel" description:"Cancel a transfer"`
+		Ret    wg.TransferRetry       `command:"retry" description:"Reprogram a canceled transfer"`
+		CanAll wg.TransferCancelAll   `command:"cancel-all" description:"Cancel all transfers in the given status"`
 	} `command:"transfer" description:"Manage the running transfers"`
 
 	History struct {
@@ -188,6 +189,7 @@ type commands struct {
 			List wg.SnmpMonitorList   `command:"list" description:"List the known SNMP monitors"`
 			Upd  wg.SnmpMonitorUpdate `command:"update" description:"Update an existing SNMP monitor"`
 			Del  wg.SnmpMonitorDelete `command:"delete" description:"Delete an SNMP monitor"`
+			Test wg.SnmpTestMonitors  `command:"test" description:"Send a test notification to the SNMP monitors"`
 		} `command:"monitor" description:"Manage the SNMP monitors"`
 		Server struct {
 			Set wg.SnmpServerSet    `command:"set" description:"Set the SNMP server configuration"`
@@ -211,6 +213,23 @@ type commands struct {
 		Upd  wg.CryptoKeysUpdate `command:"update" description:"Update an existing cryptographic key"`
 		Del  wg.CryptoKeysDelete `command:"delete" description:"Delete a cryptographic key"`
 	} `command:"key" description:"Manage the cryptographic keys"`
+
+	Email struct {
+		Template struct {
+			Add  wg.EmailTemplateAdd    `command:"add" description:"Add a new email template"`
+			Get  wg.EmailTemplateGet    `command:"get" description:"Retrieve an email template"`
+			List wg.EmailTemplateList   `command:"list" description:"List the email templates"`
+			Upd  wg.EmailTemplateUpdate `command:"update" description:"Update an existing email template"`
+			Del  wg.EmailTemplateDelete `command:"delete" description:"Delete an email template"`
+		} `command:"template" description:"Manage the email templates"`
+		Credential struct {
+			Add  wg.SMTPCredentialAdd    `command:"add" description:"Add a new SMTP credential"`
+			Get  wg.SMTPCredentialGet    `command:"get" description:"Retrieve an SMTP credential"`
+			List wg.SMTPCredentialList   `command:"list" description:"List the SMTP credentials"`
+			Upd  wg.SMTPCredentialUpdate `command:"update" description:"Update an existing SMTP credential"`
+			Del  wg.SMTPCredentialDelete `command:"delete" description:"Delete an SMTP credential"`
+		} `command:"credential" description:"Manage the SMTP credentials"`
+	} `command:"email" description:"Manage the gateway's email configuration"`
 
 	Version wg.Version `command:"version" description:"Print the program version and exit"`
 }

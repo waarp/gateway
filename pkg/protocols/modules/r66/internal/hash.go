@@ -30,7 +30,7 @@ const (
 	HashSHA512  = "SHA-512"
 )
 
-var errUnknownHashAlgo error = errors.New("unsuported hash algorithm")
+var errUnknownHashAlgo = errors.New("unsupported hash algorithm")
 
 func GetHasher(h string) (hash.Hash, error) {
 	switch h {
@@ -63,20 +63,20 @@ func MakeHash(ctx context.Context, hashAlgo string, logger *log.Logger, path str
 
 	file, opErr := fs.Open(path)
 	if opErr != nil {
-		logger.Error("Failed to open file for hash calculation: %s", opErr)
+		logger.Errorf("Failed to open file for hash calculation: %v", opErr)
 
 		return nil, pipeline.NewErrorWith(types.TeInternal, "failed to open file for hash", opErr)
 	}
 
 	defer func() {
 		if fErr := file.Close(); fErr != nil {
-			logger.Warning("Failed to close file: %s", fErr)
+			logger.Warningf("Failed to close file: %v", fErr)
 		}
 	}()
 
 	if err := utils.RunWithCtx(ctx, func() error {
 		if _, err := io.Copy(hasher, file); err != nil {
-			logger.Error("Failed to read file content to hash: %s", err)
+			logger.Errorf("Failed to read file content to hash: %v", err)
 
 			return pipeline.NewErrorWith(types.TeInternal, "failed to read file", err)
 		}

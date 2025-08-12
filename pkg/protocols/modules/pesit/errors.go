@@ -53,11 +53,11 @@ func pesitErrToPipErr(msg string, pErr pesit.Diagnostic) *pipeline.Error {
 	case pesit.CodeOtherTransferError:
 		code = types.TeExternalOperation
 	default:
-		return pipeline.NewError(types.TeUnknownRemote, "%s: (%s) %s",
+		return pipeline.NewErrorf(types.TeUnknownRemote, "%s: (%s) %s",
 			msg, pErr.GetCode().String(), pErr.GetMessage())
 	}
 
-	return pipeline.NewError(code, "%s: %s", msg, pErr.GetMessage())
+	return pipeline.NewErrorf(code, "%s: %s", msg, pErr.GetMessage())
 }
 
 //nolint:unparam //leave the default code parameter, we might need it later

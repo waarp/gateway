@@ -39,7 +39,7 @@ type SnmpMonitorAdd struct {
 	Community       string `short:"c" long:"community" description:"The SNMP monitor's community string. Defaults to 'public'" json:"community,omitempty"`
 	ContextName     string `long:"context-name" description:"The SNMPv3 context name." json:"contextName,omitempty"`
 	ContextEngineID string `long:"context-engine-id" description:"The SNMPv3 context engine ID" json:"contextEngineID,omitempty"`
-	SNMPv3Security  string `long:"snmpv3-sec" choice:"noAuthNoPriv" choice:"authNoPriv" choice:"authPriv" description:"The SNMPv3 security level" json:"snmpv3Security,omitempty"`
+	SNMPV3Security  string `long:"snmpv3-sec" choice:"noAuthNoPriv" choice:"authNoPriv" choice:"authPriv" description:"The SNMPv3 security level" json:"snmpv3Security,omitempty"`
 	AuthEngineID    string `long:"auth-engine-id" description:"The SNMPv3 authentication engine ID" json:"authEngineID,omitempty"`
 	AuthUsername    string `long:"auth-username" description:"The SNMPv3 authentication username" json:"authUsername,omitempty"`
 	AuthProtocol    string `long:"auth-protocol" description:"The SNMPv3 authentication protocol" choice:"MD5" choice:"SHA" choice:"SHA-224" choice:"SHA-256" choice:"SHA-384" choice:"SHA-512" json:"authProtocol,omitempty"`
@@ -70,6 +70,7 @@ func (s *SnmpMonitorAdd) execute(w io.Writer) error {
 //nolint:lll // tags can be long for flags
 type SnmpMonitorList struct {
 	ListOptions
+
 	SortBy string `short:"s" long:"sort" description:"Attribute used to sort the returned entries" choice:"name+" choice:"name-" choice:"address+" choice:"address-" default:"name+" `
 }
 
@@ -130,7 +131,7 @@ type SnmpMonitorUpdate struct {
 	Community       *string `short:"c" long:"community" description:"The SNMP monitor's community string." json:"community,omitempty"`
 	ContextName     *string `long:"context-name" description:"The SNMPv3 context name." json:"contextName,omitempty"`
 	ContextEngineID *string `long:"context-engine-id" description:"The SNMPv3 context engine ID" json:"contextEngineID,omitempty"`
-	SNMPv3Security  *string `long:"snmpv3-sec" choice:"noAuthNoPriv" choice:"authNoPriv" choice:"authPriv" description:"The SNMPv3 security level" json:"snmpv3Security,omitempty"`
+	SNMPV3Security  *string `long:"snmpv3-sec" choice:"noAuthNoPriv" choice:"authNoPriv" choice:"authPriv" description:"The SNMPv3 security level" json:"snmpv3Security,omitempty"`
 	AuthEngineID    *string `long:"auth-engine-id" description:"The SNMPv3 authentication engine ID" json:"authEngineID,omitempty"`
 	AuthUsername    *string `long:"auth-username" description:"The SNMPv3 authentication username" json:"authUsername,omitempty"`
 	AuthProtocol    *string `long:"auth-protocol" description:"The SNMPv3 authentication protocol" choice:"MD5" choice:"SHA" choice:"SHA-224" choice:"SHA-256" choice:"SHA-384" choice:"SHA-512" json:"authProtocol,omitempty"`
@@ -250,6 +251,19 @@ func (s *SnmpServerDelete) execute(w io.Writer) error {
 	}
 
 	fmt.Fprintln(w, "The SNMP server config was successfully deleted.")
+
+	return nil
+}
+
+type SnmpTestMonitors struct{}
+
+func (s *SnmpTestMonitors) Execute([]string) error { return s.execute(stdOutput) }
+func (s *SnmpTestMonitors) execute(w io.Writer) error {
+	if err := exec(w, "/api/snmp/test/monitors"); err != nil {
+		return err
+	}
+
+	fmt.Fprintln(w, "The SNMP test notification was successfully sent.")
 
 	return nil
 }

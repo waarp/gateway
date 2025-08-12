@@ -18,25 +18,33 @@ Programmer un transfert
 
    :reqheader Authorization: Les identifiants de l'utilisateur
 
-   :reqjson bool isServer: Précise si la gateway était à l'origine du transfert
    :reqjson string rule: L'identifiant de la règle utilisée
    :reqjson bool isSend: Indique le transfert est un envoi (``true``) ou une
      réception (``false``).
    :reqjson string client: Le nom du client avec lequel effectuer le transfert.
      Peut être omit si la gateway ne possède qu'un seul client du protocole concerné,
      auquel cas, le client en question sera sélectionné automatiquement.
-   :reqjson string account: Le nom du compte ayant demandé le transfert
-   :reqjson string partner: Le nom du serveur/partenaire auquel le transfert a été demandé
-   :reqjson string partner: Le nom du serveur/partenaire auquel le transfert a été demandé
-   :reqjson string sourcePath: *Déprécié*. Le chemin du fichier source 
+   :reqjson string account: Le nom du compte avec lequel le transfert sera demandé
+   :reqjson string partner: Le nom du partenaire auquel le transfert sera demandé
+   :reqjson string sourcePath: *Déprécié*. Le chemin du fichier source
    :reqjson string destPath: *Déprécié*. Le chemin de destination du fichier 
    :reqjson string file: Le chemin du fichier à transférer
    :reqjson string output: Le chemin de destination du fichier
    :reqjson date start: La date de début du transfert (en format ISO 8601)
    :reqjson object transferInfo: Des informations de transfert personnalisées sous
      la forme d'une liste de pairs clé:valeur, c'est-à-dire sous forme d'un objet JSON.
+   :reqjson number numberOfTries: Le nombre de fois que le transfert sera automatiquement
+     retenté en cas d'échec.
+   :reqjson number firstRetryDelay: Le délai (en secondes) entre la tentative de transfert
+     initiale et la première reprise automatique.
+   :reqjson number retryIncrementFactor: Le facteur par lequel le délai décris ci-dessus
+     sera multiplié entre chaque nouvelle tentative. Par exemple, si le délai initial est de
+     30s et que le facteur est de 2, alors le délai entre chaque tentative sera respectivement
+     de 30s, puis 60s, 120s, 240s, etc jusqu'à ce que le transfert réussisse ou bien que
+     le nombre de tentatives soit épuisé.
 
-   :statuscode 202: Le transfert a été lancé avec succès
+
+   :statuscode 201: Le transfert a été lancé avec succès
    :statuscode 400: Un ou plusieurs des paramètres du transfert sont invalides
    :statuscode 401: Authentification d'utilisateur invalide
 
@@ -53,8 +61,8 @@ Programmer un transfert
       Content-Length: 212
 
       {
-        "isServer": false,
         "rule": "règle_1",
+        "isSend": true,
         "account": "toto",
         "partner": "waarp_sftp",
         "file": "chemin/du/fichier",
@@ -67,5 +75,5 @@ Programmer un transfert
 
    .. code-block:: http
 
-      HTTP/1.1 202 ACCEPTED
+      HTTP/1.1 201 CREATED
       Location: https://my_waarp_gateway.net/api/transfers/123

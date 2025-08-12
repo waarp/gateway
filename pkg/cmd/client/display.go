@@ -6,6 +6,7 @@ import (
 	"reflect"
 	"sort"
 	"strings"
+	"unicode/utf8"
 
 	"github.com/dustin/go-humanize"
 	"github.com/gookit/color"
@@ -36,12 +37,19 @@ type style struct {
 	bulletPrefix string
 }
 
+func (s *style) PrintV(w io.Writer, msg string) {
+	fmt.Fprintln(w, s.sprint(msg))
+}
+
 func (s *style) Printf(w io.Writer, format string, args ...any) {
 	fmt.Fprintln(w, s.sprintf(format, args...))
 }
 
 func (s *style) sprintf(format string, args ...any) string {
-	text := fmt.Sprintf(format, args...)
+	return s.sprint(fmt.Sprintf(format, args...))
+}
+
+func (s *style) sprint(text string) string {
 	text = strings.ReplaceAll(text, color.ResetSet, color.StartSet+s.color.Code()+"m")
 	text = strings.ReplaceAll(text, color.StartSet, color.StartSet+"0;")
 
@@ -65,6 +73,30 @@ func (s *style) sprintL(name string, value any) string {
 func (s *style) Option(w io.Writer, name string, value any) {
 	if value != nil && !reflect.ValueOf(value).IsZero() {
 		s.PrintL(w, name, value)
+	}
+}
+
+func (s *style) Defaul(w io.Writer, name string, value, defaultVal any) {
+	if value != nil && !reflect.ValueOf(value).IsZero() {
+		s.PrintL(w, name, value)
+	} else {
+		s.PrintL(w, name, defaultVal)
+	}
+}
+
+func (s *style) MultiL(w io.Writer, name, value string) {
+	lines := strings.Split(value, "\n")
+	if len(lines) <= 1 {
+		s.PrintL(w, name, value)
+
+		return
+	}
+
+	indent := strings.Repeat(" ", utf8.RuneCountInString(nextStyle(s).bulletPrefix))
+	s.PrintV(w, name+":")
+
+	for _, line := range lines {
+		fmt.Fprintln(w, indent+line)
 	}
 }
 
@@ -183,7 +215,7 @@ func displayTaskChain(w io.Writer, title string, chain []*api.Task) {
 		return
 	}
 
-	Style22.Printf(w, title+":")
+	Style22.PrintV(w, title+":")
 
 	for i, task := range chain {
 		displayTask(w, i, task)

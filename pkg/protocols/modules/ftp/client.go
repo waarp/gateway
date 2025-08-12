@@ -17,7 +17,6 @@ import (
 	"code.waarp.fr/apps/gateway/gateway/pkg/model/types"
 	"code.waarp.fr/apps/gateway/gateway/pkg/pipeline"
 	"code.waarp.fr/apps/gateway/gateway/pkg/protocols/protocol"
-	"code.waarp.fr/apps/gateway/gateway/pkg/protocols/protoutils"
 	"code.waarp.fr/apps/gateway/gateway/pkg/snmp"
 	"code.waarp.fr/apps/gateway/gateway/pkg/utils"
 )
@@ -46,7 +45,7 @@ func (c *client) Start() error {
 	c.logger = logging.NewLogger(c.dbClient.Name)
 	if err := c.start(); err != nil {
 		c.state.Set(utils.StateError, err.Error())
-		c.logger.Error("failed to start the SFTP client: %v", err)
+		c.logger.Errorf("failed to start the SFTP client: %v", err)
 		snmp.ReportServiceFailure(c.dbClient.Name, err)
 
 		return err
@@ -85,7 +84,7 @@ func (c *client) Stop(ctx context.Context) error {
 
 func (c *client) stop(ctx context.Context) error {
 	if err := pipeline.List.StopAllFromClient(ctx, c.dbClient.ID); err != nil {
-		c.logger.Error("Failed to stop the FTP client: %v", err)
+		c.logger.Errorf("Failed to stop the FTP client: %v", err)
 
 		return fmt.Errorf("failed to stop the FTP client: %w", err)
 	}
@@ -110,7 +109,6 @@ func (c *client) InitTransfer(pip *pipeline.Pipeline) (protocol.TransferClient, 
 	return &clientRetrTransfer{client: ftpClient, pip: pip}, nil
 }
 
-//nolint:funlen //too much hassle to split
 func (c *client) connect(pip *pipeline.Pipeline) (*goftp.Client, *pipeline.Error) {
 	partner := pip.TransCtx.RemoteAgent
 	account := pip.TransCtx.RemoteAccount
@@ -153,49 +151,10 @@ func (c *client) connect(pip *pipeline.Pipeline) (*goftp.Client, *pipeline.Error
 		tlsMode   goftp.TLSMode
 	)
 
-	if partner.Protocol == "ftps" {
-		//nolint:errcheck //error is guaranteed to be nil
-		serverName, _, _ := net.SplitHostPort(addr)
-
-		//nolint:gosec //TLS version is set by the user
-		tlsConfig = &tls.Config{
-			ServerName: serverName,
-			ClientAuth: tls.NoClientCert,
-			MinVersion: utils.Max(
-				protoutils.ParseTLSVersion(c.conf.MinTLSVersion),
-				protoutils.ParseTLSVersion(partConf.MinTLSVersion)),
-		}
-
-		if auth.AddTLSAuthorities(pip.DB, tlsConfig) != nil {
-			return nil, pipeline.NewError(types.TeInternal, "failed to setup the TLS authorities")
-		}
-
-		for _, dbCert := range pip.TransCtx.RemoteAccountCreds {
-			if dbCert.Type == auth.TLSCertificate {
-				cert, err := tls.X509KeyPair([]byte(dbCert.Value), []byte(dbCert.Value2))
-				if err != nil {
-					pip.Logger.Warning("failed to parse TLS certificate %q: %v", dbCert.Name, err)
-
-					continue
-				}
-
-				tlsConfig.Certificates = append(tlsConfig.Certificates, cert)
-			}
-		}
-
-		for _, dbCert := range pip.TransCtx.RemoteAgentCreds {
-			if dbCert.Type == auth.TLSTrustedCertificate {
-				tlsConfig.RootCAs.AppendCertsFromPEM([]byte(dbCert.Value))
-			}
-		}
-
-		if !partConf.DisableTLSSessionReuse {
-			tlsConfig.SessionTicketsDisabled = false
-			tlsConfig.ClientSessionCache = tls.NewLRUClientSessionCache(0)
-		}
-
-		if partConf.UseImplicitTLS {
-			tlsMode = goftp.TLSImplicit
+	if partner.Protocol == FTPS {
+		var err *pipeline.Error
+		if tlsConfig, tlsMode, err = c.mkTLSConfig(pip, &partConf, addr); err != nil {
+			return nil, err
 		}
 	}
 
@@ -217,4 +176,54 @@ func (c *client) connect(pip *pipeline.Pipeline) (*goftp.Client, *pipeline.Error
 	}
 
 	return cli, nil
+}
+
+func (c *client) mkTLSConfig(pip *pipeline.Pipeline, partConf *PartnerConfigTLS, addr string,
+) (tlsConfig *tls.Config, tlsMode goftp.TLSMode, pErr *pipeline.Error) {
+	//nolint:errcheck //error is guaranteed to be nil
+	serverName, _, _ := net.SplitHostPort(addr)
+
+	tlsConfig = &tls.Config{
+		ServerName: serverName,
+		ClientAuth: tls.NoClientCert,
+		MinVersion: c.conf.MinTLSVersion.TLS(),
+	}
+
+	if partConf.MinTLSVersion != 0 {
+		tlsConfig.MinVersion = partConf.MinTLSVersion.TLS()
+	}
+
+	if auth.AddTLSAuthorities(pip.DB, tlsConfig) != nil {
+		return nil, 0, pipeline.NewError(types.TeInternal, "failed to setup the TLS authorities")
+	}
+
+	for _, dbCert := range pip.TransCtx.RemoteAccountCreds {
+		if dbCert.Type == auth.TLSCertificate {
+			cert, err := tls.X509KeyPair([]byte(dbCert.Value), []byte(dbCert.Value2))
+			if err != nil {
+				pip.Logger.Warningf("failed to parse TLS certificate %q: %v", dbCert.Name, err)
+
+				continue
+			}
+
+			tlsConfig.Certificates = append(tlsConfig.Certificates, cert)
+		}
+	}
+
+	for _, dbCert := range pip.TransCtx.RemoteAgentCreds {
+		if dbCert.Type == auth.TLSTrustedCertificate {
+			tlsConfig.RootCAs.AppendCertsFromPEM([]byte(dbCert.Value))
+		}
+	}
+
+	if !partConf.DisableTLSSessionReuse {
+		tlsConfig.SessionTicketsDisabled = false
+		tlsConfig.ClientSessionCache = tls.NewLRUClientSessionCache(0)
+	}
+
+	if partConf.UseImplicitTLS {
+		tlsMode = goftp.TLSImplicit
+	}
+
+	return tlsConfig, tlsMode, nil
 }

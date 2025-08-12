@@ -123,17 +123,17 @@ func handleConfigFile() *conf.ServerConfig {
 
 	parser, err := config.NewParser(serverConf)
 	if err != nil {
-		logger.Critical("Cannot initialize the configuration parser: %v\n", err)
+		logger.Criticalf("Cannot initialize the configuration parser: %v\n", err)
 		os.Exit(ExitBadConfFile)
 	}
 
 	if pathExists(confFile) {
-		logger.Info("Reading configuration file %q", confFile)
+		logger.Infof("Reading configuration file %q", confFile)
 
 		// load configuration
 		err = parser.ParseFile(confFile)
 		if err != nil {
-			logger.Critical("Cannot parse the configuration file: %v\n", err)
+			logger.Criticalf("Cannot parse the configuration file: %v\n", err)
 			os.Exit(ExitBadConfFile)
 		}
 	}
@@ -143,11 +143,11 @@ func handleConfigFile() *conf.ServerConfig {
 	updateConfig(serverConf)
 
 	// write config
-	logger.Info("Writing configuration file %q", confFile)
+	logger.Infof("Writing configuration file %q", confFile)
 
 	err = parser.WriteFile(confFile)
 	if err != nil {
-		logger.Critical("Cannot write the configuration file: %v", err)
+		logger.Criticalf("Cannot write the configuration file: %v", err)
 		os.Exit(ExitBadConfFile)
 	}
 

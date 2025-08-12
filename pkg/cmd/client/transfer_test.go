@@ -2,7 +2,6 @@ package wg
 
 import (
 	"fmt"
-	"maps"
 	"net/http"
 	"net/url"
 	"slices"
@@ -14,26 +13,31 @@ import (
 	"code.waarp.fr/apps/gateway/gateway/pkg/model"
 	"code.waarp.fr/apps/gateway/gateway/pkg/model/types"
 	"code.waarp.fr/apps/gateway/gateway/pkg/utils"
+	"code.waarp.fr/apps/gateway/gateway/pkg/utils/testhelpers"
 )
 
 func TestTransferAdd(t *testing.T) {
 	const (
-		rule    = "push"
-		isSend  = true
-		client  = "cli"
-		partner = "pard"
-		account = "acc"
-		file    = "dir/file"
-		output  = "dir/out"
-		start   = "2020-01-01T00:00:00Z"
-
-		key = "key"
-		val = "val"
+		rule        = "push"
+		isSend      = true
+		client      = "cli"
+		partner     = "pard"
+		account     = "acc"
+		file        = "dir/file"
+		output      = "dir/out"
+		start       = "2020-01-01T00:00:00Z"
+		key         = "key"
+		val         = "val"
+		nbRetries   = 3
+		retryDelay  = "1m30s"
+		retryFactor = 1.5
 
 		id       = "1234"
 		path     = "/api/transfers"
 		location = path + "/" + id
 	)
+
+	retryDelaySec := testhelpers.MustParseDuration(t, retryDelay).Seconds()
 
 	t.Run(`Testing the transfer "add" command`, func(t *testing.T) {
 		w := newTestOutput()
@@ -43,15 +47,18 @@ func TestTransferAdd(t *testing.T) {
 			method: http.MethodPost,
 			path:   path,
 			body: map[string]any{
-				"rule":         rule,
-				"isSend":       isSend,
-				"client":       client,
-				"partner":      partner,
-				"account":      account,
-				"file":         file,
-				"output":       output,
-				"start":        start,
-				"transferInfo": map[string]any{key: val},
+				"rule":                 rule,
+				"isSend":               isSend,
+				"client":               client,
+				"partner":              partner,
+				"account":              account,
+				"file":                 file,
+				"output":               output,
+				"start":                start,
+				"transferInfo":         map[string]any{key: val},
+				"numberOfTries":        float64(nbRetries),
+				"firstRetryDelay":      retryDelaySec,
+				"retryIncrementFactor": retryFactor,
 			},
 		}
 
@@ -74,6 +81,9 @@ func TestTransferAdd(t *testing.T) {
 					"--out", output,
 					"--date", start,
 					"--info", key+":"+val,
+					"--nb-of-attempts", utils.FormatInt(nbRetries),
+					"--retry-delay", retryDelay,
+					"--retry-increment-factor", utils.FormatFloat(retryFactor),
 				),
 					"Then it should not return an error",
 				)
@@ -91,28 +101,32 @@ func TestTransferAdd(t *testing.T) {
 
 func TestTransferGet(t *testing.T) {
 	const (
-		id         = 1234
-		remoteID   = "9876"
-		rule       = "push"
-		isServer   = false
-		isSend     = true
-		proto      = "proto"
-		client     = "cli"
-		partner    = "pard"
-		account    = "acc"
-		file       = "dir/file"
-		output     = "dir/out"
-		localPath  = "local/" + file
-		remotePath = "remote/" + file
-		filesize   = 2048
-		start      = "2020-01-01T00:00:00Z"
-		stop       = "2021-01-01T00:00:00Z"
-		status     = types.StatusDone
-		step       = types.StepData
-		progress   = 512
-		taskNb     = 3
-		errCode    = types.TeDataTransfer
-		errMsg     = "some error"
+		id             = 1234
+		remoteID       = "9876"
+		rule           = "push"
+		isServer       = false
+		isSend         = true
+		proto          = "proto"
+		client         = "cli"
+		partner        = "pard"
+		account        = "acc"
+		file           = "dir/file"
+		output         = "dir/out"
+		localPath      = "local/" + file
+		remotePath     = "remote/" + file
+		filesize       = 2048
+		start          = "2020-01-01T00:00:00Z"
+		stop           = "2021-01-01T00:00:00Z"
+		status         = types.StatusDone
+		step           = types.StepData
+		progress       = 512
+		taskNb         = 3
+		errCode        = types.TeDataTransfer
+		errMsg         = "some error"
+		remainingTries = 5
+		retryDelay     = 90
+		retryFactor    = 1.5
+		nextAttempt    = "2022-01-01T00:00:00Z"
 
 		key1, key2 = "key1", "key2"
 		val1, val2 = "val1", "val2"
@@ -132,29 +146,33 @@ func TestTransferGet(t *testing.T) {
 		result := &expectedResponse{
 			status: http.StatusOK,
 			body: map[string]any{
-				"id":             id,
-				"remoteID":       remoteID,
-				"rule":           rule,
-				"isServer":       isServer,
-				"isSend":         isSend,
-				"client":         client,
-				"requester":      account,
-				"requested":      partner,
-				"protocol":       proto,
-				"srcFilename":    file,
-				"destFilename":   output,
-				"localFilepath":  localPath,
-				"remoteFilepath": remotePath,
-				"filesize":       filesize,
-				"start":          start,
-				"stop":           stop,
-				"status":         status,
-				"step":           step,
-				"progress":       progress,
-				"taskNumber":     taskNb,
-				"errorCode":      errCode,
-				"errorMsg":       errMsg,
-				"transferInfo":   map[string]any{key1: val1, key2: val2},
+				"id":                   id,
+				"remoteID":             remoteID,
+				"rule":                 rule,
+				"isServer":             isServer,
+				"isSend":               isSend,
+				"client":               client,
+				"requester":            account,
+				"requested":            partner,
+				"protocol":             proto,
+				"srcFilename":          file,
+				"destFilename":         output,
+				"localFilepath":        localPath,
+				"remoteFilepath":       remotePath,
+				"filesize":             filesize,
+				"start":                start,
+				"stop":                 stop,
+				"status":               status,
+				"step":                 step,
+				"progress":             progress,
+				"taskNumber":           taskNb,
+				"errorCode":            errCode,
+				"errorMsg":             errMsg,
+				"transferInfo":         map[string]any{key1: val1, key2: val2},
+				"remainingAttempts":    remainingTries,
+				"nextRetryDelay":       retryDelay,
+				"retryIncrementFactor": retryFactor,
+				"nextAttempt":          nextAttempt,
 			},
 		}
 
@@ -165,21 +183,9 @@ func TestTransferGet(t *testing.T) {
 				require.NoError(t, executeCommand(t, w, command, utils.FormatInt(id)),
 					"Then it should not return an error")
 
-				outputData := maps.Clone(result.body)
-				outputData["way"] = direction(isSend)
-				outputData["role"] = transferRole(isServer)
-				outputData["startTime"] = parseAsLocalTime(t, start)
-				outputData["stopTime"] = parseAsLocalTime(t, stop)
-				outputData["prettySize"] = prettyBytes(filesize)
-				outputData["prettyProgress"] = prettyBytes(progress)
-				outputData["key1"] = key1
-				outputData["key2"] = key2
-				outputData["val1"] = val1
-				outputData["val2"] = val2
-
 				assert.Equal(t,
-					expectedOutput(t, outputData,
-						`‣Transfer {{.id}} ({{.way}} as {{.role}}) [{{.status}}]`,
+					expectedOutput(t, result.body,
+						`‣Transfer {{.id}} ({{way .isSend}} as {{role .isServer}}) [{{.status}}]`,
 						`  •Remote ID: {{.remoteID}}`,
 						`  •Protocol: {{.protocol}}`,
 						`  •File to send: {{.srcFilename}}`,
@@ -190,10 +196,14 @@ func TestTransferGet(t *testing.T) {
 						`  •With client: {{.client}}`,
 						`  •Full local path: {{.localFilepath}}`,
 						`  •Full remote path: {{.remoteFilepath}}`,
-						`  •File size: {{.prettySize}}`,
-						`  •Start date: {{.startTime}}`,
-						`  •End date: {{.stopTime}}`,
-						`  •Data transferred: {{.prettyProgress}}`,
+						`  •File size: {{bytes .filesize}}`,
+						`  •Start date: {{local .start}}`,
+						`  •End date: {{local .stop}}`,
+						`  •Next attempt: {{local .nextAttempt}}`,
+						`  •Remaining attempts: {{.remainingAttempts}}`,
+						`  •Next retry delay: {{duration .nextRetryDelay}}`,
+						`  •Retry increment factor: {{.retryIncrementFactor}}`,
+						`  •Data transferred: {{bytes .progress}}`,
 						`  •Current step: {{.step}}`,
 						`  •Current task: #{{.taskNumber}}`,
 						`  •Error code: {{.errorCode}}`,
@@ -357,6 +367,7 @@ func TestTransferList(t *testing.T) {
 						`  •File size: {{.prettySize}}`,
 						`  •Start date: {{.startTime}}`,
 						`  •End date: N/A`,
+						`  •Next attempt: N/A`,
 						`  •Data transferred: {{.prettyProgress}}`,
 						`{{- end }}`,
 						`{{- with (index . 1) }}`,
@@ -372,6 +383,7 @@ func TestTransferList(t *testing.T) {
 						`  •File size: <unknown>`,
 						`  •Start date: {{.startTime}}`,
 						`  •End date: N/A`,
+						`  •Next attempt: N/A`,
 						`  •Data transferred: {{.prettyProgress}}`,
 						`{{- end }}`,
 					),
@@ -410,7 +422,7 @@ func TestTransferPause(t *testing.T) {
 
 				assert.Equal(t,
 					fmt.Sprintf("The transfer %q was successfully paused. "+
-						"It can be resumed using the 'resume' command.\n", id),
+						"It can be resumed using the \"resume\" command.\n", id),
 					w.String(),
 					"Then it should display a message saying the transfer was paused",
 				)
@@ -559,6 +571,73 @@ func TestTransfersCancelAll(t *testing.T) {
 					"The transfers were successfully canceled.\n",
 					w.String(),
 					"Then it should display a message saying the transfers were canceled",
+				)
+			})
+		})
+	})
+}
+
+func TestTransferRegister(t *testing.T) {
+	const (
+		rule    = "push"
+		isSend  = true
+		server  = "server"
+		account = "acc"
+		file    = "dir/file"
+		date    = "2026-01-01T00:00:00Z"
+
+		key = "key"
+		val = "val"
+
+		id       = "1234"
+		path     = "/api/transfers"
+		location = "/api/transfers/" + id
+	)
+
+	t.Run(`Testing the transfer "preregister" command`, func(t *testing.T) {
+		w := newTestOutput()
+		command := &TransferPreregister{}
+
+		expected := &expectedRequest{
+			method: http.MethodPut,
+			path:   path,
+			body: map[string]any{
+				"rule":         rule,
+				"isSend":       isSend,
+				"server":       server,
+				"account":      account,
+				"file":         file,
+				"dueDate":      date,
+				"transferInfo": map[string]any{key: val},
+			},
+		}
+
+		result := &expectedResponse{
+			status:  http.StatusCreated,
+			headers: http.Header{"Location": []string{location}},
+		}
+
+		t.Run("Given a dummy gateway REST interface", func(t *testing.T) {
+			testServer(t, expected, result)
+
+			t.Run("When executing the command", func(t *testing.T) {
+				require.NoError(t, executeCommand(t, w, command,
+					"--server", server,
+					"--login", account,
+					"--way", direction(isSend),
+					"--rule", rule,
+					"--file", file,
+					"--due-date", date,
+					"--info", key+":"+val,
+				),
+					"Then it should not return an error",
+				)
+
+				assert.Equal(t,
+					fmt.Sprintf("The transfer of file %q was successfully preregistered under the ID: %s\n",
+						file, id),
+					w.String(),
+					"Then it should display a message saying the transfer was preregistered",
 				)
 			})
 		})

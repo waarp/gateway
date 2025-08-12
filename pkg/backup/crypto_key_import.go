@@ -38,10 +38,10 @@ func importCryptoKeys(logger *log.Logger, db database.Access, keys []*file.Crypt
 		var dbErr error
 
 		if isNew {
-			logger.Info("Inserting new crypto key %q", dbKey.Name)
+			logger.Infof("Inserting new crypto key %q", dbKey.Name)
 			dbErr = db.Insert(&dbKey).Run()
 		} else {
-			logger.Info("Updating existing crypto key %q", dbKey.Name)
+			logger.Infof("Updating existing crypto key %q", dbKey.Name)
 			dbErr = db.Update(&dbKey).Run()
 		}
 

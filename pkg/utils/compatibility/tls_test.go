@@ -164,10 +164,10 @@ func TestLogSha1(t *testing.T) {
 					bytes, err := io.ReadAll(reader)
 					So(err, ShouldBeNil)
 
-					So(string(bytes), ShouldContainSubstring, "[WARNING ] test_log_sha1: "+
-						"The certificate of partner 'localhost' is signed using "+
-						"SHA-1 which is deprecated. All SHA-1 based signature "+
-						"algorithms will be disallowed out shortly.")
+					So(string(bytes), ShouldContainSubstring, `[WARNING ] test_log_sha1: `+
+						`The certificate of partner "localhost" is signed using `+
+						`SHA-1 which is deprecated. All SHA-1 based signature `+
+						`algorithms will be disallowed out shortly.`)
 				})
 			})
 		})

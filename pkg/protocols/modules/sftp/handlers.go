@@ -29,7 +29,7 @@ func (l *sshListener) makeFileCmder(acc *model.LocalAccount) internal.CmdFunc {
 }
 
 func (l *sshListener) mkdir(r *sftp.Request, acc *model.LocalAccount) error {
-	l.Logger.Debug("Received 'Mkdir' request on %s", r.Filepath)
+	l.Logger.Debugf("Received 'Mkdir' request on %s", r.Filepath)
 
 	realDir, dirErr := l.getRealPath(acc, r.Filepath)
 	if dirErr != nil {
@@ -37,7 +37,7 @@ func (l *sshListener) mkdir(r *sftp.Request, acc *model.LocalAccount) error {
 	}
 
 	if err := fs.MkdirAll(realDir); err != nil {
-		//nolint:goerr113 //too specific
+		//nolint:err113 //too specific
 		return errors.New("failed to create directory")
 	}
 
@@ -60,7 +60,7 @@ func (l *sshListener) makeFileLister(acc *model.LocalAccount) internal.FileListe
 func (l *sshListener) listAt(r *sftp.Request, acc *model.LocalAccount,
 ) internal.ListerAtFunc {
 	return func(fileInfos []os.FileInfo, offset int64) (int, error) {
-		l.Logger.Debug("Received 'List' request on %s", r.Filepath)
+		l.Logger.Debugf(`Received "List" request on %q`, r.Filepath)
 
 		var infos []os.FileInfo
 
@@ -98,24 +98,24 @@ func (l *sshListener) listAt(r *sftp.Request, acc *model.LocalAccount,
 
 func (l *sshListener) statAt(r *sftp.Request, acc *model.LocalAccount,
 ) internal.ListerAtFunc {
-	return func(fileInfos []os.FileInfo, offset int64) (int, error) {
-		l.Logger.Debug("Received 'Stat' request on %s", r.Filepath)
+	return func(fileInfos []os.FileInfo, _ int64) (int, error) {
+		l.Logger.Debugf(`Received "Stat" request on %q`, r.Filepath)
 
 		var infos os.FileInfo
 
-		realDir, err := l.getRealPath(acc, r.Filepath)
-		if err != nil {
-			return 0, err
+		realDir, pathErr := l.getRealPath(acc, r.Filepath)
+		if pathErr != nil {
+			return 0, pathErr
 		}
 
 		if realDir != "" {
-			infos, err = fs.Stat(realDir)
-			if err != nil {
+			var err error
+			if infos, err = fs.Stat(realDir); err != nil {
 				if errors.Is(err, fs.ErrNotExist) {
 					return 0, sftp.ErrSSHFxNoSuchFile
 				}
 
-				l.Logger.Error("Failed to stat file %s", err)
+				l.Logger.Errorf("Failed to stat file %q", err)
 
 				return 0, ErrFileSystem
 			}
@@ -143,7 +143,7 @@ func (l *sshListener) listReadDir(realDir string) ([]os.FileInfo, error) {
 			return nil, sftp.ErrSSHFxNoSuchFile
 		}
 
-		l.Logger.Error("Failed to list directory: %s", readErr)
+		l.Logger.Errorf("Failed to list directory: %v", readErr)
 
 		return nil, ErrFileSystem
 	}
@@ -153,7 +153,7 @@ func (l *sshListener) listReadDir(realDir string) ([]os.FileInfo, error) {
 	for i, entry := range entries {
 		var err error
 		if infos[i], err = entry.Info(); err != nil {
-			l.Logger.Error("Failed to retrieve the file info: %v", err)
+			l.Logger.Errorf("Failed to retrieve the file info: %v", err)
 
 			return nil, ErrFileSystem
 		}
@@ -187,26 +187,26 @@ func (l *sshListener) getClosestRule(acc *model.LocalAccount, rulePath string,
 	}
 
 	var rule model.Rule
-	if err := l.DB.Get(&rule, "path=? AND is_send=?", rulePath, isSendPriority).Run(); err != nil {
-		if !database.IsNotFound(err) {
-			l.Logger.Error("Failed to retrieve rule: %s", err)
+	if err1 := l.DB.Get(&rule, "path=? AND is_send=?", rulePath, isSendPriority).Run(); err1 != nil {
+		if !database.IsNotFound(err1) {
+			l.Logger.Errorf("Failed to retrieve rule: %v", err1)
 
 			return nil, ErrDatabase
 		}
 
-		if err := l.DB.Get(&rule, "path=? AND is_send=?", rulePath, !isSendPriority).Run(); err != nil {
-			if database.IsNotFound(err) {
+		if err2 := l.DB.Get(&rule, "path=? AND is_send=?", rulePath, !isSendPriority).Run(); err2 != nil {
+			if database.IsNotFound(err2) {
 				return l.getClosestRule(acc, path.Dir(rulePath), isSendPriority)
 			}
 
-			l.Logger.Error("Failed to retrieve rule: %s", err)
+			l.Logger.Errorf("Failed to retrieve rule: %v", err2)
 
 			return nil, ErrDatabase
 		}
 	}
 
 	if ok, err := rule.IsAuthorized(l.DB, acc); err != nil {
-		l.Logger.Error("Failed to check rule permissions: %s", err)
+		l.Logger.Errorf("Failed to check rule permissions: %v", err)
 
 		return nil, ErrDatabase
 	} else if !ok {
@@ -222,7 +222,7 @@ func (l *sshListener) getRulesPaths(acc *model.LocalAccount, dir string,
 	if errors.Is(err, protoutils.ErrRuleNotFound) {
 		return nil, sftp.ErrSSHFxNoSuchFile
 	} else if err != nil {
-		l.Logger.Error("Failed to retrieve rules list: %s", err)
+		l.Logger.Errorf("Failed to retrieve rules list: %v", err)
 
 		return nil, err //nolint:wrapcheck //no need to wrap here
 	}

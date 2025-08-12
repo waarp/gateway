@@ -104,14 +104,14 @@ func (v *verify) Run(_ context.Context, params map[string]string, db *database.D
 
 	sig, sigErr := fs.ReadFullFile(v.SignatureFile)
 	if sigErr != nil {
-		logger.Error("Failed to read signature file: %v", sigErr)
+		logger.Errorf("Failed to read signature file: %v", sigErr)
 
 		return fmt.Errorf("failed to read signature file: %w", sigErr)
 	}
 
 	file, openErr := fs.Open(transCtx.Transfer.LocalPath)
 	if openErr != nil {
-		logger.Error("Failed to open signature file: %v", openErr)
+		logger.Errorf("Failed to open signature file: %v", openErr)
 
 		return fmt.Errorf("failed to open signature file: %w", openErr)
 	}
@@ -119,7 +119,7 @@ func (v *verify) Run(_ context.Context, params map[string]string, db *database.D
 	defer file.Close() //nolint:errcheck //this error is inconsequential
 
 	if err := v.verify(file, sig); err != nil {
-		logger.Error("Failed to check signature: %v", err)
+		logger.Errorf("Failed to check signature: %v", err)
 
 		return fmt.Errorf("failed to check signature: %w", err)
 	}

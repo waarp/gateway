@@ -26,18 +26,31 @@ type serverPipeline struct {
 	cancel func(cause error)
 }
 
-// initPipeline initializes the pipeline.
-func initPipeline(db *database.DB, logger *log.Logger, trans *model.Transfer,
-	setTrace func() pipeline.Trace,
-) (*serverPipeline, error) {
-	var tErr *pipeline.Error
-	if trans, tErr = pipeline.GetOldTransfer(db, logger, trans); tErr != nil {
-		return nil, toSFTPErr(tErr)
+func mkServerTransfer(db *database.DB, filepath string, account *model.LocalAccount,
+	rule *model.Rule,
+) (*model.Transfer, error) {
+	if trans, err := pipeline.GetAvailableTransferByFilename(db, filepath, "",
+		account, rule); err == nil {
+		return trans, nil
+	} else if !database.IsNotFound(err) {
+		return nil, toSFTPErr(err)
 	}
 
-	pip, tErr := pipeline.NewServerPipeline(db, logger, trans, snmp.GlobalService)
+	return pipeline.MakeServerTransfer("", filepath, account, rule), nil
+}
+
+// initPipeline initializes the pipeline.
+func initPipeline(db *database.DB, logger *log.Logger, filepath string,
+	account *model.LocalAccount, rule *model.Rule, setTrace func() pipeline.Trace,
+) (*serverPipeline, error) {
+	trans, tErr := mkServerTransfer(db, filepath, account, rule)
 	if tErr != nil {
-		return nil, toSFTPErr(tErr)
+		return nil, tErr
+	}
+
+	pip, pErr := pipeline.NewServerPipeline(db, logger, trans, snmp.GlobalService)
+	if pErr != nil {
+		return nil, toSFTPErr(pErr)
 	}
 
 	if setTrace != nil {
@@ -59,12 +72,12 @@ func initPipeline(db *database.DB, logger *log.Logger, trans *model.Transfer,
 
 // newServerPipeline creates a new serverPipeline, executes the transfer's
 // pre-tasks, and returns the pipeline.
-func newServerPipeline(db *database.DB, logger *log.Logger, trans *model.Transfer,
-	setTrace func() pipeline.Trace,
+func newServerPipeline(db *database.DB, logger *log.Logger, filepath string,
+	account *model.LocalAccount, rule *model.Rule, setTrace func() pipeline.Trace,
 ) (*serverPipeline, error) {
-	servPip, err := initPipeline(db, logger, trans, setTrace)
-	if err != nil {
-		return nil, err
+	servPip, pErr := initPipeline(db, logger, filepath, account, rule, setTrace)
+	if pErr != nil {
+		return nil, pErr
 	}
 
 	if err := servPip.init(); err != nil {

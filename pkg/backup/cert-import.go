@@ -62,10 +62,10 @@ func importCerts(logger *log.Logger, db database.Access, list []file.Certificate
 
 		// Create/Update
 		if exist {
-			logger.Info("Update certificate %s", crypto.Name)
+			logger.Infof("Update certificate %q", crypto.Name)
 			dbErr = db.Update(&crypto).Run()
 		} else {
-			logger.Info("Create certificate %s", crypto.Name)
+			logger.Infof("Create certificate %q", crypto.Name)
 			dbErr = db.Insert(&crypto).Run()
 		}
 

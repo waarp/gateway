@@ -17,8 +17,9 @@ const (
 	ExecMove   = "EXECMOVE"
 	ExecOutput = "EXECOUTPUT"
 
-	Rename   = "RENAME"
-	Transfer = "TRANSFER"
+	Rename      = "RENAME"
+	Transfer    = "TRANSFER"
+	Preregister = "PREREGISTER"
 
 	Encrypt          = "ENCRYPT"
 	Decrypt          = "DECRYPT"
@@ -30,7 +31,11 @@ const (
 	Archive = "ARCHIVE"
 	Extract = "EXTRACT"
 
+	Transcode     = "TRANSCODE"
+	ChangeNewline = "CHNEWLINE"
+
 	Icap = "ICAP"
+	Mail = "MAIL"
 )
 
 //nolint:gochecknoinits //init is required here
@@ -50,6 +55,7 @@ func init() {
 	// Transfer tasks
 	model.ValidTasks[Rename] = newRunner[*renameTask] // "RENAME" is in fact a "change target" task
 	model.ValidTasks[Transfer] = newRunner[*TransferTask]
+	model.ValidTasks[Preregister] = newRunner[*TransferPreregister]
 
 	// File encryption & signing
 	model.ValidTasks[Encrypt] = newRunner[*encrypt]
@@ -63,8 +69,13 @@ func init() {
 	model.ValidTasks[Archive] = newRunner[*archiveTask]
 	model.ValidTasks[Extract] = newRunner[*extractTask]
 
+	// Content manipulation
+	model.ValidTasks[Transcode] = newRunner[*transcodeTask]
+	model.ValidTasks[ChangeNewline] = newRunner[*chNewlineTask]
+
 	// Network
 	model.ValidTasks[Icap] = newRunner[*icapTask]
+	model.ValidTasks[Mail] = newRunner[*mailTask]
 }
 
 func newRunner[T model.TaskRunner]() model.TaskRunner {

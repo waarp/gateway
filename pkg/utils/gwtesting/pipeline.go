@@ -105,6 +105,9 @@ func (ctx *TransferCtx) checkTransfersOK(tb testing.TB, trans *model.Transfer,
 
 	ctx.checkTransferOK(tb, &serverTrans)
 
+	var check model.NormalizedTransfers
+	require.NoError(tb, ctx.db.Select(&check).Run())
+
 	assert.Equal(tb, clientTrans.RemoteTransferID, serverTrans.RemoteTransferID)
 }
 
@@ -120,6 +123,6 @@ func (ctx *TransferCtx) checkTransferOK(tb testing.TB, entry *model.HistoryEntry
 		"Then the file size should be correct")
 	assert.Zero(tb, entry.ErrCode,
 		"Then there shouldn't be any error")
-	assert.Zero(tb, entry.ErrDetails,
+	assert.Empty(tb, entry.ErrDetails,
 		"Then there shouldn't be any error message")
 }

@@ -5,7 +5,6 @@ import (
 	"fmt"
 
 	"code.waarp.fr/apps/gateway/gateway/pkg/model/authentication/auth"
-	"code.waarp.fr/apps/gateway/gateway/pkg/protocols/protoutils"
 	"code.waarp.fr/apps/gateway/gateway/pkg/utils"
 )
 
@@ -20,7 +19,7 @@ func (c *clientTransfer) makeTLSConfig(servName string, conf *PartnerConfigTLS,
 
 		cert, err := utils.X509KeyPair(cred.Value, cred.Value2)
 		if err != nil {
-			c.pip.Logger.Warning("Failed to parse the TLS certificate %q: %v", cred.Name, err)
+			c.pip.Logger.Warningf("Failed to parse the TLS certificate %q: %v", cred.Name, err)
 
 			continue
 		}
@@ -36,14 +35,13 @@ func (c *clientTransfer) makeTLSConfig(servName string, conf *PartnerConfigTLS,
 		}
 
 		if !rootCAs.AppendCertsFromPEM([]byte(cred.Value)) {
-			c.pip.Logger.Warning("Failed to parse the remote TLS certificate %q", cred.Name)
+			c.pip.Logger.Warningf("Failed to parse the remote TLS certificate %q", cred.Name)
 		}
 	}
 
-	//nolint:gosec //the TLS min version is set by the user
 	tlsConfig := &tls.Config{
 		ServerName:   servName,
-		MinVersion:   protoutils.ParseTLSVersion(conf.MinTLSVersion),
+		MinVersion:   conf.MinTLSVersion.TLS(),
 		Certificates: certs,
 		RootCAs:      rootCAs,
 	}

@@ -516,7 +516,7 @@ func TestUpdateServer(t *testing.T) {
 
 					Convey("Then the response body should state that "+
 						"the agent was not found", func() {
-						So(w.Body.String(), ShouldEqual, "server 'toto' not found\n")
+						So(w.Body.String(), ShouldEqual, "server \"toto\" not found\n")
 					})
 
 					Convey("Then the old agent should still exist", func() {
@@ -630,7 +630,7 @@ func TestReplaceServer(t *testing.T) {
 
 					Convey("Then the response body should state that "+
 						"the agent was not found", func() {
-						So(w.Body.String(), ShouldEqual, "server 'toto' not found\n")
+						So(w.Body.String(), ShouldEqual, "server \"toto\" not found\n")
 					})
 
 					Convey("Then the old agent should still exist", func() {
@@ -729,7 +729,7 @@ func TestStartServer(t *testing.T) {
 
 				Convey("Then it should have replied with a 404 code", func() {
 					So(w.Code, ShouldEqual, http.StatusNotFound)
-					So(w.Body.String(), ShouldEqual, "server 'toto' not found\n")
+					So(w.Body.String(), ShouldEqual, "server \"toto\" not found\n")
 				})
 			})
 		})
@@ -778,7 +778,7 @@ func TestStopServer(t *testing.T) {
 
 				Convey("Then it should have replied with a 404 code", func() {
 					So(w.Code, ShouldEqual, http.StatusNotFound)
-					So(w.Body.String(), ShouldEqual, "server 'toto' not found\n")
+					So(w.Body.String(), ShouldEqual, "server \"toto\" not found\n")
 				})
 			})
 		})
@@ -829,7 +829,7 @@ func TestRestartServer(t *testing.T) {
 
 				Convey("Then it should have replied with a 404 code", func() {
 					So(w.Code, ShouldEqual, http.StatusNotFound)
-					So(w.Body.String(), ShouldEqual, "server 'toto' not found\n")
+					So(w.Body.String(), ShouldEqual, "server \"toto\" not found\n")
 				})
 			})
 		})

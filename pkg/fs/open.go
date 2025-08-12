@@ -3,6 +3,8 @@ package fs
 import (
 	"io"
 	"io/fs"
+
+	"code.waarp.fr/apps/gateway/gateway/pkg/conf"
 )
 
 type File interface {
@@ -20,7 +22,7 @@ func Open(path string) (File, error) {
 }
 
 func Create(path string) (File, error) {
-	const createPerms FileMode = 0o600
+	createPerms := conf.GlobalConfig.Paths.FilePerms
 
 	return OpenFile(path, FlagReadWrite|FlagCreate|FlagTruncate, createPerms)
 }

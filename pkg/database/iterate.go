@@ -39,7 +39,7 @@ type IterateQuery struct {
 //
 // If the function is called multiple times, all the conditions will be chained
 // using the 'AND' operator.
-func (i *IterateQuery) Where(sql string, args ...interface{}) *IterateQuery {
+func (i *IterateQuery) Where(sql string, args ...any) *IterateQuery {
 	i.conds = append(i.conds, &condition{sql: sql, args: args})
 
 	return i
@@ -52,7 +52,7 @@ func (i *IterateQuery) Owner() *IterateQuery {
 // In add a 'WHERE col IN' condition to the 'SELECT' query. Because the database/sql
 // package cannot handle variadic placeholders in the Where function, a separate
 // method is required.
-func (i *IterateQuery) In(col string, vals ...interface{}) *IterateQuery {
+func (i *IterateQuery) In(col string, vals ...any) *IterateQuery {
 	sql := &inCond{Builder: &strings.Builder{}}
 	if builder.In(col, vals...).WriteTo(sql) != nil {
 		return i
@@ -120,7 +120,7 @@ func (i *IterateQuery) Run() (*Iterator, error) {
 
 	rows, err := query.Rows(i.bean)
 	if err != nil {
-		logger.Error("Failed to retrieve the %s entries: %s", i.bean.Appellation(), err)
+		logger.Errorf("Failed to retrieve the %s entries: %v", i.bean.Appellation(), err)
 
 		return nil, NewInternalError(err)
 	}
