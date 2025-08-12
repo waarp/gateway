@@ -210,4 +210,9 @@ var (
 			Funcs(funcs).
 			ParseFS(webFS, index, header, multiLanguage, "front-end/html/status_services_page.html"),
 	)
+	cloudInstanceManagementTemplate = template.Must(
+		template.New("cloud_instance_management_page.html").
+			Funcs(funcs).
+			ParseFS(webFS, index, header, multiLanguage, "front-end/html/cloud_instance_management_page.html"),
+	)
 )

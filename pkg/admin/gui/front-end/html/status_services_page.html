@@ -7,8 +7,7 @@
 {{ end }}
 
 {{ define "CoreService" }}
-    {{ if contains .myPermission.Administration "r" }}
-      <table class="table table-sm align-middle mb-4 rounded-3 mt-3">
+    <table class="table table-sm align-middle mb-4 rounded-3 mt-3">
         <thead class="table-light">
           <tr>
             <th></th>
@@ -38,11 +37,9 @@
           {{ end }}
         </tbody>
       </table>
-    {{ end }}
 {{ end }}
 
 {{ define "ServerService" }}
-    {{ if contains .myPermission.Administration "r" }}
       <table class="table table-sm align-middle mb-4 rounded-3 mt-3">
         <thead class="table-light">
           <tr>
@@ -73,11 +70,9 @@
           {{ end }}
         </tbody>
       </table>
-    {{ end }}
 {{ end }}
 
 {{ define "ClientService" }}
-    {{ if contains .myPermission.Administration "r" }}
       <table class="table table-sm align-middle mb-4 rounded-3 mt-3">
         <thead class="table-light">
           <tr>
@@ -108,8 +103,7 @@
           {{ end }}
         </tbody>
       </table>
-    {{ end }}
-{{ end }}
+${{ end }}
 
 {{ define "content" }}
     <div class="d-flex align-items-center justify-content-between">

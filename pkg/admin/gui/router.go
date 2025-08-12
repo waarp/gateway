@@ -113,6 +113,7 @@ func AddGUIRouter(router *mux.Router, logger *log.Logger, db *database.DB) {
 		managementUsageRightsRulesPage(logger, db)).Methods("GET", "POST")
 	secureRouter.HandleFunc("/transfer_monitoring", transferMonitoringPage(logger, db)).Methods("GET", "POST")
 	secureRouter.HandleFunc("/status_services", statusServicesPage(logger, db)).Methods("GET", "POST")
+	secureRouter.HandleFunc("/cloud_instance_management", cloudInstanceManagementPage(logger, db)).Methods("GET", "POST")
 }
 
 func logout() http.HandlerFunc {
