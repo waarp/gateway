@@ -70,7 +70,7 @@ func GetPartnerCredentialByID(db database.ReadAccess, partnerName string, id int
 	return GetCredentialByID(db, partner, id)
 }
 
-func ListPartnerCredentials(db database.ReadAccess, partnerName string,
+func ListPartnerCredentials(db database.ReadAccess, partnerName,
 	orderByCol string, orderByAsc bool, limit, offset int, types ...string,
 ) ([]*model.Credential, error) {
 	partner, pErr := GetPartner(db, partnerName)

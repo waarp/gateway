@@ -207,7 +207,7 @@ func loginPage(logger *log.Logger, db *database.DB) http.HandlerFunc {
 
 		if r.Method == http.MethodPost { //nolint:nestif // loginpage
 			if err := r.ParseForm(); err != nil {
-				logger.Error("Error: %v", err)
+				logger.Errorf("Error: %v", err)
 				errorMessage = tabTranslated["error"]
 			} else {
 				username := r.FormValue("username")
@@ -215,12 +215,12 @@ func loginPage(logger *log.Logger, db *database.DB) http.HandlerFunc {
 
 				user, err := checkUser(db, username, password)
 				if err != nil {
-					logger.Error("Incorrect username or password: %v", err)
+					logger.Errorf("Incorrect username or password: %v", err)
 					errorMessage = tabTranslated["errorUser"]
 				} else {
 					token, err := CreateSession(int(user.ID), validTimeToken)
 					if err != nil {
-						logger.Error("Error creating session: %v", err)
+						logger.Errorf("Error creating session: %v", err)
 						errorMessage = tabTranslated["errorSession"]
 					} else {
 						TokenMaxPerUser(user)
@@ -251,7 +251,7 @@ func loginPage(logger *log.Logger, db *database.DB) http.HandlerFunc {
 			"Error":    errorMessage,
 			"language": userLanguage,
 		}); err != nil {
-			logger.Error("render login_page: %v", err)
+			logger.Errorf("render login_page: %v", err)
 			http.Error(w, "Internal error", http.StatusInternalServerError)
 		}
 	}

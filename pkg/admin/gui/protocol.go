@@ -51,7 +51,7 @@ func supportedProtocolExternal(protocol string) []string {
 //nolint:gochecknoglobals // Constant
 var (
 	TLSVersions            = []string{protoutils.TLSv10, protoutils.TLSv11, protoutils.TLSv12, protoutils.TLSv13}
-	CompatibilityModePeSIT = []string{pesit.CompatibilityModeAxway, pesit.CompatibilityModeNone}
+	CompatibilityModePeSIT = []string{pesit.CompatibilityModeStandard, pesit.CompatibilityModeNonStandard}
 	TLSRequirement         = []string{string(ftp.TLSOptional), string(ftp.TLSMandatory), string(ftp.TLSImplicit)}
 )
 

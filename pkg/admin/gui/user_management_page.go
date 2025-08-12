@@ -383,7 +383,7 @@ func callMethodsUserManagement(logger *log.Logger, db *database.DB, w http.Respo
 ) (bool, string, string) {
 	if r.Method == http.MethodPost && r.FormValue("newUserUsername") != "" {
 		if newUserErr := addUser(db, r); newUserErr != nil {
-			logger.Error("failed to add user: %v", newUserErr)
+			logger.Errorf("failed to add user: %v", newUserErr)
 
 			return false, newUserErr.Error(), "addUserModal"
 		}
@@ -398,13 +398,13 @@ func callMethodsUserManagement(logger *log.Logger, db *database.DB, w http.Respo
 
 		id, err := strconv.Atoi(idEdit)
 		if err != nil {
-			logger.Error("failed to convert id to int: %v", err)
+			logger.Errorf("failed to convert id to int: %v", err)
 
 			return false, "", ""
 		}
 
 		if editUserErr := editUser(db, r); editUserErr != nil {
-			logger.Error("failed to edit user: %v", editUserErr)
+			logger.Errorf("failed to edit user: %v", editUserErr)
 
 			return false, editUserErr.Error(), fmt.Sprintf("editUserModal_%d", id)
 		}
@@ -416,7 +416,7 @@ func callMethodsUserManagement(logger *log.Logger, db *database.DB, w http.Respo
 
 	if r.Method == http.MethodPost && r.FormValue("deleteUser") != "" {
 		if deleteUserErr := deleteUser(db, r); deleteUserErr != nil {
-			logger.Error("failed to delete user: %v", deleteUserErr)
+			logger.Errorf("failed to delete user: %v", deleteUserErr)
 
 			return false, deleteUserErr.Error(), ""
 		}
@@ -452,7 +452,7 @@ func userManagementPage(logger *log.Logger, db *database.DB) http.HandlerFunc {
 
 		user, err := GetUserByToken(r, db)
 		if err != nil {
-			logger.Error("failed to get user by token: %v", err)
+			logger.Errorf("failed to get user by token: %v", err)
 		}
 
 		myPermission := model.MaskToPerms(user.Permissions)
@@ -470,7 +470,7 @@ func userManagementPage(logger *log.Logger, db *database.DB) http.HandlerFunc {
 			"errMsg":          errMsg,
 			"modalOpen":       modalOpen,
 		}); err != nil {
-			logger.Error("render user_management_page: %v", err)
+			logger.Errorf("render user_management_page: %v", err)
 			http.Error(w, "Internal error", http.StatusInternalServerError)
 		}
 	}

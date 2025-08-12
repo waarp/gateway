@@ -234,7 +234,7 @@ func callMethodsPartnerAuthentication(logger *log.Logger, db *database.DB, w htt
 	if r.Method == http.MethodPost && r.FormValue("deleteCredentialPartner") != "" {
 		deleteCredentialPartnerErr := deleteCredentialPartner(partner.Name, db, r)
 		if deleteCredentialPartnerErr != nil {
-			logger.Error("failed to delete credential partner: %v", deleteCredentialPartnerErr)
+			logger.Errorf("failed to delete credential partner: %v", deleteCredentialPartnerErr)
 
 			return false, deleteCredentialPartnerErr.Error(), ""
 		}
@@ -247,7 +247,7 @@ func callMethodsPartnerAuthentication(logger *log.Logger, db *database.DB, w htt
 	if r.Method == http.MethodPost && r.FormValue("addCredentialPartnerName") != "" {
 		addCredentialPartnerErr := addCredentialPartner(partner.Name, db, r)
 		if addCredentialPartnerErr != nil {
-			logger.Error("failed to add partner: %v", addCredentialPartnerErr)
+			logger.Errorf("failed to add partner: %v", addCredentialPartnerErr)
 
 			return false, addCredentialPartnerErr.Error(), "addCredentialPartnerModal"
 		}
@@ -262,14 +262,14 @@ func callMethodsPartnerAuthentication(logger *log.Logger, db *database.DB, w htt
 
 		id, err := strconv.Atoi(idEdit)
 		if err != nil {
-			logger.Error("failed to convert id to int: %v", err)
+			logger.Errorf("failed to convert id to int: %v", err)
 
 			return false, "", ""
 		}
 
 		editredentialPartnerErr := editCredentialPartner(partner.Name, db, r)
 		if editredentialPartnerErr != nil {
-			logger.Error("failed to edit credential partner: %v", editredentialPartnerErr)
+			logger.Errorf("failed to edit credential partner: %v", editredentialPartnerErr)
 
 			return false, editredentialPartnerErr.Error(), fmt.Sprintf("editCredentialInternalModal_%d", id)
 		}
@@ -289,7 +289,7 @@ func partnerAuthenticationPage(logger *log.Logger, db *database.DB) http.Handler
 
 		user, err := GetUserByToken(r, db)
 		if err != nil {
-			logger.Error("Internal error: %v", err)
+			logger.Errorf("Internal error: %v", err)
 		}
 
 		myPermission := model.MaskToPerms(user.Permissions)
@@ -300,12 +300,12 @@ func partnerAuthenticationPage(logger *log.Logger, db *database.DB) http.Handler
 		if partnerID != "" {
 			id, err = strconv.Atoi(partnerID)
 			if err != nil {
-				logger.Error("failed to convert id to int: %v", err)
+				logger.Errorf("failed to convert id to int: %v", err)
 			}
 
 			partner, err = internal.GetPartnerByID(db, int64(id))
 			if err != nil {
-				logger.Error("failed to get id: %v", err)
+				logger.Errorf("failed to get id: %v", err)
 			}
 		}
 
@@ -334,7 +334,7 @@ func partnerAuthenticationPage(logger *log.Logger, db *database.DB) http.Handler
 			"modalOpen":              modalOpen,
 			"hasPartnerID":           true,
 		}); err != nil {
-			logger.Error("render partner_management_page: %v", err)
+			logger.Errorf("render partner_management_page: %v", err)
 			http.Error(w, "Internal error", http.StatusInternalServerError)
 		}
 	}

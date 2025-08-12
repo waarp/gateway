@@ -34,7 +34,7 @@ func GetPartnerAccountsLike(db *database.DB, partnerName, prefix string) ([]*mod
 		OrderBy("login", true).Limit(LimitLike, 0).Run()
 }
 
-func ListPartnerAccounts(db database.ReadAccess, partnerName string,
+func ListPartnerAccounts(db database.ReadAccess, partnerName,
 	orderByCol string, orderByAsc bool, limit, offset int,
 ) ([]*model.RemoteAccount, error) {
 	partner, pErr := GetPartner(db, partnerName)
@@ -70,7 +70,7 @@ func GetPartnerAccountCredential(db database.ReadAccess, partnerName, login, nam
 	return getCredential(db, partnerAccount, name)
 }
 
-func ListPartnerAccountCredentials(db database.ReadAccess, partnerName, login string,
+func ListPartnerAccountCredentials(db database.ReadAccess, partnerName, login,
 	orderByCol string, orderByAsc bool, limit, offset int, types ...string,
 ) ([]*model.Credential, error) {
 	partnerAccount, pErr := GetPartnerAccount(db, partnerName, login)

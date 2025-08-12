@@ -245,7 +245,7 @@ func callMethodsLocalClientManagement(logger *log.Logger, db *database.DB, w htt
 ) (bool, string, string) {
 	if r.Method == http.MethodPost && r.FormValue("addLocalClientName") != "" {
 		if newLocalClientErr := addLocalClient(db, r); newLocalClientErr != nil {
-			logger.Error("failed to add localClient: %v", newLocalClientErr)
+			logger.Errorf("failed to add localClient: %v", newLocalClientErr)
 
 			return false, newLocalClientErr.Error(), "addLocalClientModal"
 		}
@@ -258,7 +258,7 @@ func callMethodsLocalClientManagement(logger *log.Logger, db *database.DB, w htt
 	if r.Method == http.MethodPost && r.FormValue("deleteLocalClient") != "" {
 		deleteLocalClientErr := deleteLocalClient(db, r)
 		if deleteLocalClientErr != nil {
-			logger.Error("failed to delete localClient: %v", deleteLocalClientErr)
+			logger.Errorf("failed to delete localClient: %v", deleteLocalClientErr)
 
 			return false, deleteLocalClientErr.Error(), ""
 		}
@@ -273,13 +273,13 @@ func callMethodsLocalClientManagement(logger *log.Logger, db *database.DB, w htt
 
 		id, err := strconv.Atoi(idEdit)
 		if err != nil {
-			logger.Error("failed to convert id to int: %v", err)
+			logger.Errorf("failed to convert id to int: %v", err)
 
 			return false, "", ""
 		}
 
 		if editLocalClientErr := editLocalClient(db, r); editLocalClientErr != nil {
-			logger.Error("failed to edit localClient: %v", editLocalClientErr)
+			logger.Errorf("failed to edit localClient: %v", editLocalClientErr)
 
 			return false, editLocalClientErr.Error(), fmt.Sprintf("editLocalClientModal_%d", id)
 		}
@@ -296,7 +296,7 @@ func localClientManagementPage(logger *log.Logger, db *database.DB) http.Handler
 	return func(w http.ResponseWriter, r *http.Request) {
 		userLanguage := r.Context().Value(ContextLanguageKey)
 		tabTranslated := //nolint:forcetypeassert //u
-			pageTranslated("local_client_management_page", userLanguage.(string)) //nolint:errcheck //u
+		pageTranslated("local_client_management_page", userLanguage.(string)) //nolint:errcheck //u
 		localClientList, filter, localClientFound := listLocalClient(db, r)
 
 		value, errMsg, modalOpen := callMethodsLocalClientManagement(logger, db, w, r)
@@ -306,7 +306,7 @@ func localClientManagementPage(logger *log.Logger, db *database.DB) http.Handler
 
 		user, err := GetUserByToken(r, db)
 		if err != nil {
-			logger.Error("Internal error: %v", err)
+			logger.Errorf("Internal error: %v", err)
 		}
 
 		myPermission := model.MaskToPerms(user.Permissions)
@@ -329,7 +329,7 @@ func localClientManagementPage(logger *log.Logger, db *database.DB) http.Handler
 			"errMsg":                 errMsg,
 			"modalOpen":              modalOpen,
 		}); err != nil {
-			logger.Error("render local_client_management_page: %v", err)
+			logger.Errorf("render local_client_management_page: %v", err)
 			http.Error(w, "Internal error", http.StatusInternalServerError)
 		}
 	}

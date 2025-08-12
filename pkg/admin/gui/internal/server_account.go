@@ -34,7 +34,7 @@ func GetServerAccountsLike(db *database.DB, serverName, prefix string) ([]*model
 		OrderBy("login", true).Limit(LimitLike, 0).Run()
 }
 
-func ListServerAccounts(db database.ReadAccess, serverName string,
+func ListServerAccounts(db database.ReadAccess, serverName,
 	orderByCol string, orderByAsc bool, limit, offset int,
 ) ([]*model.LocalAccount, error) {
 	server, pErr := GetServer(db, serverName)
@@ -70,7 +70,7 @@ func GetServerAccountCredential(db database.ReadAccess, serverAccountName, login
 	return getCredential(db, serverAccount, name)
 }
 
-func ListServerAccountCredentials(db database.ReadAccess, serverAccountName, login string,
+func ListServerAccountCredentials(db database.ReadAccess, serverAccountName, login,
 	orderByCol string, orderByAsc bool, limit, offset int, types ...string,
 ) ([]*model.Credential, error) {
 	serverAccount, pErr := GetServerAccount(db, serverAccountName, login)

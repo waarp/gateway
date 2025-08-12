@@ -211,7 +211,7 @@ func callMethodsLocalAccount(logger *log.Logger, db *database.DB, w http.Respons
 	if r.Method == http.MethodPost && r.FormValue("deleteLocalAccount") != "" {
 		deleteLocalAccountErr := deleteLocalAccount(db, r)
 		if deleteLocalAccountErr != nil {
-			logger.Error("failed to delete local account: %v", deleteLocalAccountErr)
+			logger.Errorf("failed to delete local account: %v", deleteLocalAccountErr)
 
 			return false, deleteLocalAccountErr.Error(), ""
 		}
@@ -224,7 +224,7 @@ func callMethodsLocalAccount(logger *log.Logger, db *database.DB, w http.Respons
 	if r.Method == http.MethodPost && r.FormValue("addLocalAccountLogin") != "" {
 		addLocalAccountErr := addLocalAccount(server.Name, db, r)
 		if addLocalAccountErr != nil {
-			logger.Error("failed to add local account: %v", addLocalAccountErr)
+			logger.Errorf("failed to add local account: %v", addLocalAccountErr)
 
 			return false, addLocalAccountErr.Error(), "addLocalAccountModal"
 		}
@@ -239,14 +239,14 @@ func callMethodsLocalAccount(logger *log.Logger, db *database.DB, w http.Respons
 
 		id, err := strconv.Atoi(idEdit)
 		if err != nil {
-			logger.Error("failed to convert id to int: %v", err)
+			logger.Errorf("failed to convert id to int: %v", err)
 
 			return false, "", ""
 		}
 
 		editLocalAccountErr := editLocalAccount(db, r)
 		if editLocalAccountErr != nil {
-			logger.Error("failed to edit local account: %v", editLocalAccountErr)
+			logger.Errorf("failed to edit local account: %v", editLocalAccountErr)
 
 			return false, editLocalAccountErr.Error(), fmt.Sprintf("editLocalAccountModal_%d", id)
 		}
@@ -263,11 +263,11 @@ func localAccountPage(logger *log.Logger, db *database.DB) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		userLanguage := r.Context().Value(ContextLanguageKey)
 		tTranslated := //nolint:forcetypeassert //u
-			pageTranslated("local_account_management_page", userLanguage.(string)) //nolint:errcheck //u
+		pageTranslated("local_account_management_page", userLanguage.(string)) //nolint:errcheck //u
 
 		user, err := GetUserByToken(r, db)
 		if err != nil {
-			logger.Error("Internal error: %v", err)
+			logger.Errorf("Internal error: %v", err)
 		}
 
 		myPermission := model.MaskToPerms(user.Permissions)
@@ -278,12 +278,12 @@ func localAccountPage(logger *log.Logger, db *database.DB) http.HandlerFunc {
 		if serverID != "" {
 			id, err = strconv.Atoi(serverID)
 			if err != nil {
-				logger.Error("failed to convert id to int: %v", err)
+				logger.Errorf("failed to convert id to int: %v", err)
 			}
 
 			server, err = internal.GetServerByID(db, int64(id))
 			if err != nil {
-				logger.Error("failed to get id: %v", err)
+				logger.Errorf("failed to get id: %v", err)
 			}
 		}
 
@@ -310,7 +310,7 @@ func localAccountPage(logger *log.Logger, db *database.DB) http.HandlerFunc {
 			"modalOpen":         modalOpen,
 			"hasServerID":       true,
 		}); err != nil {
-			logger.Error("render server_management_page: %v", err)
+			logger.Errorf("render server_management_page: %v", err)
 			http.Error(w, "Internal error", http.StatusInternalServerError)
 		}
 	}

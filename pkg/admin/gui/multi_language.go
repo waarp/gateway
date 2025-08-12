@@ -159,8 +159,8 @@ func translateDateShort(t time.Time, r *http.Request, userLanguage string) strin
 func translateTime(t time.Time, r *http.Request, userLanguage string) string {
 	tag := tagLanguage(r, userLanguage).String()
 	if tag == "en-US" {
-		return t.Format("03:04:05")
+		return t.Format("03:04:05 PM")
 	}
 
-	return t.Format("15:04:05")
+	return t.Format(time.TimeOnly)
 }

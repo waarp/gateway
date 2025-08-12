@@ -27,10 +27,12 @@ func makeAESCTREncryptor(cryptoKey *model.CryptoKey) (encryptFunc, error) {
 }
 
 func makeAESCFBEncryptor(cryptoKey *model.CryptoKey) (encryptFunc, error) {
+	//nolint:staticcheck // CFB is needed here
 	return makeAESEncryptor(cryptoKey, cipher.NewCFBEncrypter)
 }
 
 func makeAESOFBEncryptor(cryptoKey *model.CryptoKey) (encryptFunc, error) {
+	//nolint:staticcheck // OFB is needed here
 	return makeAESEncryptor(cryptoKey, cipher.NewOFB)
 }
 

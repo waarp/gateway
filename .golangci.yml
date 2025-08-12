@@ -434,7 +434,7 @@ linters:
       ignore-string-values: []
       # Detects constants with identical values.
       # Default: false
-      find-duplicates: true
+      find-duplicates: false
       # Evaluates of constant expressions like Prefix + "suffix".
       # Default: false
       eval-const-expressions: false
@@ -3005,6 +3005,15 @@ linters:
       - linters:
           - gochecknoglobals
         path: pkg/snmp/oids\.go
+
+      # Exclude "wrapcheck" & "evalOrder" from the WebUI helper module.
+      - linters:
+          - wrapcheck
+        path: pkg/admin/gui/internal/
+      - linters:
+          - gocritic
+        text: "evalOrder: may want to evaluate"
+        path: pkg/admin/gui/internal/
 
     # Which file paths to exclude: they will be analyzed, but issues from them won't be reported.
     # "/" will be replaced by the current OS file path separator to properly work on Windows.

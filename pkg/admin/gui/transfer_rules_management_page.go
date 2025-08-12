@@ -229,7 +229,7 @@ func callMethodsRuleManagement(logger *log.Logger, db *database.DB, w http.Respo
 ) (bool, string, string) {
 	if r.Method == http.MethodPost && r.FormValue("addRuleName") != "" {
 		if newRuleErr := addRule(db, r); newRuleErr != nil {
-			logger.Error("failed to add rule: %v", newRuleErr)
+			logger.Errorf("failed to add rule: %v", newRuleErr)
 
 			return false, newRuleErr.Error(), "addRuleModal"
 		}
@@ -242,7 +242,7 @@ func callMethodsRuleManagement(logger *log.Logger, db *database.DB, w http.Respo
 	if r.Method == http.MethodPost && r.FormValue("deleteRule") != "" {
 		deleteRuleErr := deleteRule(db, r)
 		if deleteRuleErr != nil {
-			logger.Error("failed to delete rule: %v", deleteRuleErr)
+			logger.Errorf("failed to delete rule: %v", deleteRuleErr)
 
 			return false, deleteRuleErr.Error(), ""
 		}
@@ -257,13 +257,13 @@ func callMethodsRuleManagement(logger *log.Logger, db *database.DB, w http.Respo
 
 		id, err := strconv.Atoi(idEdit)
 		if err != nil {
-			logger.Error("failed to convert id to int: %v", err)
+			logger.Errorf("failed to convert id to int: %v", err)
 
 			return false, "", ""
 		}
 
 		if editRuleErr := editRule(db, r); editRuleErr != nil {
-			logger.Error("failed to edit rule: %v", editRuleErr)
+			logger.Errorf("failed to edit rule: %v", editRuleErr)
 
 			return false, editRuleErr.Error(), fmt.Sprintf("editRuleModal_%d", id)
 		}
@@ -280,7 +280,7 @@ func ruleManagementPage(logger *log.Logger, db *database.DB) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		userLanguage := r.Context().Value(ContextLanguageKey)
 		tabTranslated := //nolint:forcetypeassert //u
-			pageTranslated("transfer_rules_management_page", userLanguage.(string)) //nolint:errcheck //u
+		pageTranslated("transfer_rules_management_page", userLanguage.(string)) //nolint:errcheck //u
 		ruleList, filter, ruleFound := listRule(db, r)
 
 		value, errMsg, modalOpen := callMethodsRuleManagement(logger, db, w, r)
@@ -290,7 +290,7 @@ func ruleManagementPage(logger *log.Logger, db *database.DB) http.HandlerFunc {
 
 		user, err := GetUserByToken(r, db)
 		if err != nil {
-			logger.Error("Internal error: %v", err)
+			logger.Errorf("Internal error: %v", err)
 		}
 
 		myPermission := model.MaskToPerms(user.Permissions)
@@ -308,7 +308,7 @@ func ruleManagementPage(logger *log.Logger, db *database.DB) http.HandlerFunc {
 			"errMsg":       errMsg,
 			"modalOpen":    modalOpen,
 		}); err != nil {
-			logger.Error("render transfer_rules_management_page: %v", err)
+			logger.Errorf("render transfer_rules_management_page: %v", err)
 			http.Error(w, "Internal error", http.StatusInternalServerError)
 		}
 	}

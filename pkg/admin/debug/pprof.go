@@ -38,7 +38,7 @@ func AddDebugHandler(router *mux.Router, logger *log.Logger, db *database.DB) {
 func AuthenticationMiddleware(logger *log.Logger, db *database.DB) mux.MiddlewareFunc {
 	return func(next http.Handler) http.Handler {
 		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-			logger.Debug("Received %s on %s", r.Method, r.URL)
+			logger.Debugf("Received %s on %s", r.Method, r.URL)
 
 			login, password, ok := r.BasicAuth()
 			if !ok {
@@ -51,7 +51,7 @@ func AuthenticationMiddleware(logger *log.Logger, db *database.DB) mux.Middlewar
 			var user model.User
 			if err := db.Get(&user, "username=?", login).Owner().Run(); err != nil &&
 				!database.IsNotFound(err) {
-				logger.Error("Database error: %v", err)
+				logger.Errorf("Database error: %v", err)
 				http.Error(w, "internal database error", http.StatusInternalServerError)
 
 				return
@@ -59,7 +59,7 @@ func AuthenticationMiddleware(logger *log.Logger, db *database.DB) mux.Middlewar
 
 			if err := bcrypt.CompareHashAndPassword([]byte(user.PasswordHash),
 				[]byte(password)); err != nil {
-				logger.Warning("Invalid credentials for user %q", login)
+				logger.Warningf("Invalid credentials for user %q", login)
 				w.Header().Set("WWW-Authenticate", "Basic")
 				http.Error(w, "the given credentials are invalid", http.StatusUnauthorized)
 
@@ -67,8 +67,10 @@ func AuthenticationMiddleware(logger *log.Logger, db *database.DB) mux.Middlewar
 			}
 
 			if !user.Permissions.HasPermission(model.PermAdminRead) {
-				logger.Warning("Unauthorized access for user %q", login)
+				logger.Warningf("Unauthorized access for user %q", login)
 				http.Error(w, "the given credentials are invalid", http.StatusForbidden)
+
+				return
 			}
 
 			next.ServeHTTP(w, r)

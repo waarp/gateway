@@ -276,7 +276,7 @@ func callMethodsServerManagement(logger *log.Logger, db *database.DB, w http.Res
 ) (bool, string, string) {
 	if r.Method == http.MethodPost && r.FormValue("addServerName") != "" {
 		if newServerErr := addServer(db, r); newServerErr != nil {
-			logger.Error("failed to add server: %v", newServerErr)
+			logger.Errorf("failed to add server: %v", newServerErr)
 
 			return false, newServerErr.Error(), "addServerModal"
 		}
@@ -289,7 +289,7 @@ func callMethodsServerManagement(logger *log.Logger, db *database.DB, w http.Res
 	if r.Method == http.MethodPost && r.FormValue("deleteServer") != "" {
 		deleteServerErr := deleteServer(db, r)
 		if deleteServerErr != nil {
-			logger.Error("failed to delete server: %v", deleteServerErr)
+			logger.Errorf("failed to delete server: %v", deleteServerErr)
 
 			return false, deleteServerErr.Error(), ""
 		}
@@ -304,13 +304,13 @@ func callMethodsServerManagement(logger *log.Logger, db *database.DB, w http.Res
 
 		id, err := strconv.Atoi(idEdit)
 		if err != nil {
-			logger.Error("failed to convert id to int: %v", err)
+			logger.Errorf("failed to convert id to int: %v", err)
 
 			return false, "", ""
 		}
 
 		if editServerErr := editServer(db, r); editServerErr != nil {
-			logger.Error("failed to edit server: %v", editServerErr)
+			logger.Errorf("failed to edit server: %v", editServerErr)
 
 			return false, editServerErr.Error(), fmt.Sprintf("editServerModal_%d", id)
 		}
@@ -336,7 +336,7 @@ func serverManagementPage(logger *log.Logger, db *database.DB) http.HandlerFunc 
 
 		user, err := GetUserByToken(r, db)
 		if err != nil {
-			logger.Error("Internal error: %v", err)
+			logger.Errorf("Internal error: %v", err)
 		}
 
 		myPermission := model.MaskToPerms(user.Permissions)
@@ -360,7 +360,7 @@ func serverManagementPage(logger *log.Logger, db *database.DB) http.HandlerFunc 
 			"errMsg":                 errMsg,
 			"modalOpen":              modalOpen,
 		}); err != nil {
-			logger.Error("render server_management_page: %v", err)
+			logger.Errorf("render server_management_page: %v", err)
 			http.Error(w, "Internal error", http.StatusInternalServerError)
 		}
 	}

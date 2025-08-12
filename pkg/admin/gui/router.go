@@ -69,7 +69,7 @@ func AddGUIRouter(router *mux.Router, logger *log.Logger, db *database.DB) {
 
 	subFS, err := fs.Sub(webFS, "front-end")
 	if err != nil {
-		logger.Error("error accessing css file: %v", err)
+		logger.Errorf("error accessing css file: %v", err)
 
 		return
 	}
@@ -158,7 +158,7 @@ func AuthenticationMiddleware(logger *log.Logger, db *database.DB) mux.Middlewar
 
 			user, err := internal.GetUserByID(db, int64(userID))
 			if err != nil {
-				logger.Error("erreur: %v", err)
+				logger.Errorf("erreur: %v", err)
 				http.Error(w, "erreur interne", http.StatusInternalServerError)
 
 				return

@@ -244,7 +244,7 @@ func callMethodsPartnerManagement(logger *log.Logger, db *database.DB, w http.Re
 ) (bool, string, string) {
 	if r.Method == http.MethodPost && r.FormValue("addPartnerName") != "" {
 		if newPartnerErr := addPartner(db, r); newPartnerErr != nil {
-			logger.Error("failed to add partner: %v", newPartnerErr)
+			logger.Errorf("failed to add partner: %v", newPartnerErr)
 
 			return false, newPartnerErr.Error(), "addPartnerModal"
 		}
@@ -257,7 +257,7 @@ func callMethodsPartnerManagement(logger *log.Logger, db *database.DB, w http.Re
 	if r.Method == http.MethodPost && r.FormValue("deletePartner") != "" {
 		deletePartnerErr := deletePartner(db, r)
 		if deletePartnerErr != nil {
-			logger.Error("failed to delete partner: %v", deletePartnerErr)
+			logger.Errorf("failed to delete partner: %v", deletePartnerErr)
 
 			return false, deletePartnerErr.Error(), ""
 		}
@@ -272,13 +272,13 @@ func callMethodsPartnerManagement(logger *log.Logger, db *database.DB, w http.Re
 
 		id, err := strconv.Atoi(idEdit)
 		if err != nil {
-			logger.Error("failed to convert id to int: %v", err)
+			logger.Errorf("failed to convert id to int: %v", err)
 
 			return false, "", ""
 		}
 
 		if editPartnerErr := editPartner(db, r); editPartnerErr != nil {
-			logger.Error("failed to edit partner: %v", editPartnerErr)
+			logger.Errorf("failed to edit partner: %v", editPartnerErr)
 
 			return false, editPartnerErr.Error(), fmt.Sprintf("editPartnerModal_%d", id)
 		}
@@ -304,7 +304,7 @@ func partnerManagementPage(logger *log.Logger, db *database.DB) http.HandlerFunc
 
 		user, err := GetUserByToken(r, db)
 		if err != nil {
-			logger.Error("Internal error: %v", err)
+			logger.Errorf("Internal error: %v", err)
 		}
 
 		myPermission := model.MaskToPerms(user.Permissions)
@@ -327,7 +327,7 @@ func partnerManagementPage(logger *log.Logger, db *database.DB) http.HandlerFunc
 			"errMsg":                 errMsg,
 			"modalOpen":              modalOpen,
 		}); err != nil {
-			logger.Error("render partner_management_page: %v", err)
+			logger.Errorf("render partner_management_page: %v", err)
 			http.Error(w, "Internal error", http.StatusInternalServerError)
 		}
 	}

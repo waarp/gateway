@@ -49,6 +49,40 @@ func InsertNewTransfer(db *database.DB,
 	})
 }
 
+func RegisterNewTransfer(db *database.DB,
+	filename string,
+	rule *model.Rule,
+	account *model.LocalAccount,
+	dueDate time.Time,
+	transferInfos map[string]any,
+) error {
+	trans := &model.Transfer{
+		LocalAccountID: utils.NewNullInt64(account.ID),
+		RuleID:         rule.ID,
+		Start:          dueDate,
+	}
+
+	if rule.IsSend {
+		trans.SrcFilename = filename
+	} else {
+		trans.DestFilename = filename
+	}
+
+	return db.Transaction(func(ses *database.Session) error {
+		if err := ses.Insert(trans).Run(); err != nil {
+			return fmt.Errorf("failed to insert transfer: %w", err)
+		}
+
+		if len(transferInfos) != 0 {
+			if err := trans.SetTransferInfo(ses, transferInfos); err != nil {
+				return fmt.Errorf("failed to set transfer info: %w", err)
+			}
+		}
+
+		return nil
+	})
+}
+
 func PauseTransfer(ctx context.Context, db database.Access, view *model.NormalizedTransferView,
 ) error {
 	if view.Status != types.StatusRunning {

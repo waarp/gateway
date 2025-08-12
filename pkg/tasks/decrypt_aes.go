@@ -17,10 +17,12 @@ func makeAESCTRDecryptor(cryptoKey *model.CryptoKey) (decryptFunc, error) {
 }
 
 func makeAESCFBDecryptor(cryptoKey *model.CryptoKey) (decryptFunc, error) {
+	//nolint:staticcheck // CFB is needed here
 	return makeAESDecryptor(cryptoKey, cipher.NewCFBDecrypter)
 }
 
 func makeAESOFBDecryptor(cryptoKey *model.CryptoKey) (decryptFunc, error) {
+	//nolint:staticcheck // OFB is needed here
 	return makeAESDecryptor(cryptoKey, cipher.NewOFB)
 }
 

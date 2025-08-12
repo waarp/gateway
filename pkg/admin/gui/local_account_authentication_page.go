@@ -236,7 +236,7 @@ func callMethodsLocalAccountAuthentication(logger *log.Logger, db *database.DB, 
 	if r.Method == http.MethodPost && r.FormValue("deleteCredentialAccount") != "" {
 		deleteCredentialAccountErr := deleteCredentialLocalAccount(account, db, r)
 		if deleteCredentialAccountErr != nil {
-			logger.Error("failed to delete credential account: %v", deleteCredentialAccountErr)
+			logger.Errorf("failed to delete credential account: %v", deleteCredentialAccountErr)
 
 			return false, deleteCredentialAccountErr.Error(), ""
 		}
@@ -250,7 +250,7 @@ func callMethodsLocalAccountAuthentication(logger *log.Logger, db *database.DB, 
 	if r.Method == http.MethodPost && r.FormValue("addCredentialAccountName") != "" {
 		addCredentialAccountErr := addCredentialLocalAccount(server.Name, account.Login, db, r)
 		if addCredentialAccountErr != nil {
-			logger.Error("failed to add credential account: %v", addCredentialAccountErr)
+			logger.Errorf("failed to add credential account: %v", addCredentialAccountErr)
 
 			return false, addCredentialAccountErr.Error(), "addCredentialAccountModal"
 		}
@@ -266,14 +266,14 @@ func callMethodsLocalAccountAuthentication(logger *log.Logger, db *database.DB, 
 
 		id, err := strconv.Atoi(idEdit)
 		if err != nil {
-			logger.Error("failed to convert id to int: %v", err)
+			logger.Errorf("failed to convert id to int: %v", err)
 
 			return false, "", ""
 		}
 
 		editCredentialAccountErr := editCredentialLocalAccount(account, db, r)
 		if editCredentialAccountErr != nil {
-			logger.Error("failed to edit credential account: %v", editCredentialAccountErr)
+			logger.Errorf("failed to edit credential account: %v", editCredentialAccountErr)
 
 			return false, editCredentialAccountErr.Error(), fmt.Sprintf("editCredentialInternalModal_%d", id)
 		}
@@ -296,28 +296,28 @@ func getServerAndAccount(db *database.DB, serverID, accountID string, logger *lo
 	if serverID != "" && accountID != "" {
 		idS, err := strconv.Atoi(serverID)
 		if err != nil {
-			logger.Error("failed to convert server id to int: %v", err)
+			logger.Errorf("failed to convert server id to int: %v", err)
 
 			return nil, nil
 		}
 
 		server, err = internal.GetServerByID(db, int64(idS))
 		if err != nil {
-			logger.Error("failed to get server by id: %v", err)
+			logger.Errorf("failed to get server by id: %v", err)
 
 			return nil, nil
 		}
 
 		idA, err := strconv.Atoi(accountID)
 		if err != nil {
-			logger.Error("failed to convert account id to int: %v", err)
+			logger.Errorf("failed to convert account id to int: %v", err)
 
 			return nil, nil
 		}
 
 		account, err = internal.GetServerAccountByID(db, int64(idA))
 		if err != nil {
-			logger.Error("failed to get account by id: %v", err)
+			logger.Errorf("failed to get account by id: %v", err)
 
 			return nil, nil
 		}
@@ -330,11 +330,11 @@ func localAccountAuthenticationPage(logger *log.Logger, db *database.DB) http.Ha
 	return func(w http.ResponseWriter, r *http.Request) {
 		userLanguage := r.Context().Value(ContextLanguageKey)
 		tTranslated := //nolint:forcetypeassert //u
-			pageTranslated("local_account_authentication_page", userLanguage.(string)) //nolint:errcheck //u
+		pageTranslated("local_account_authentication_page", userLanguage.(string)) //nolint:errcheck //u
 
 		user, err := GetUserByToken(r, db)
 		if err != nil {
-			logger.Error("Internal error: %v", err)
+			logger.Errorf("Internal error: %v", err)
 		}
 
 		myPermission := model.MaskToPerms(user.Permissions)
@@ -370,7 +370,7 @@ func localAccountAuthenticationPage(logger *log.Logger, db *database.DB) http.Ha
 			"hasServerID":            true,
 			"hasAccountID":           true,
 		}); err != nil {
-			logger.Error("render local_account_authentication_page: %v", err)
+			logger.Errorf("render local_account_authentication_page: %v", err)
 			http.Error(w, "Internal error", http.StatusInternalServerError)
 		}
 	}

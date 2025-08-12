@@ -16,7 +16,7 @@ func homePage(logger *log.Logger, db *database.DB) http.HandlerFunc {
 
 		user, err := GetUserByToken(r, db)
 		if err != nil {
-			logger.Error("Internal error loading user session: %v", err)
+			logger.Errorf("Internal error loading user session: %v", err)
 		}
 
 		if err := homeTemplate.ExecuteTemplate(w, "home_page", map[string]any{
@@ -24,7 +24,7 @@ func homePage(logger *log.Logger, db *database.DB) http.HandlerFunc {
 			"username": user.Username,
 			"language": userLanguage,
 		}); err != nil {
-			logger.Error("render home_page: %v", err)
+			logger.Errorf("render home_page: %v", err)
 			http.Error(w, "Internal error", http.StatusInternalServerError)
 		}
 	}

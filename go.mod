@@ -2,14 +2,15 @@ module code.waarp.fr/apps/gateway/gateway
 
 go 1.24
 
-toolchain go1.24.5
+toolchain go1.24.6
 
 require (
 	code.waarp.fr/lib/goftp v0.1.1-0.20240801120050-932aa2b2f9a7
 	code.waarp.fr/lib/log v1.4.0
 	code.waarp.fr/lib/migration v1.0.0
-	code.waarp.fr/lib/pesit v0.1.4-0.20250806120609-9700fd4023a8
+	code.waarp.fr/lib/pesit v0.1.4-0.20250809190903-1a7274f4766b
 	code.waarp.fr/lib/r66 v0.1.7
+	github.com/Masterminds/sprig/v3 v3.3.0
 	github.com/ProtonMail/gopenpgp/v3 v3.3.0
 	github.com/bwmarrin/snowflake v0.3.0
 	github.com/dsnet/compress v0.0.1
@@ -18,7 +19,7 @@ require (
 	github.com/fclairamb/ftpserverlib v0.26.0
 	github.com/fclairamb/go-log v0.6.0
 	github.com/go-sql-driver/mysql v1.9.3
-	github.com/golang-jwt/jwt/v5 v5.2.1
+	github.com/golang-jwt/jwt/v5 v5.3.0
 	github.com/google/uuid v1.6.0
 	github.com/gookit/color v1.5.4
 	github.com/gorilla/mux v1.8.1
@@ -29,7 +30,6 @@ require (
 	github.com/jessevdk/go-flags v1.6.1
 	github.com/karrick/tparse/v2 v2.8.2
 	github.com/klauspost/compress v1.18.0
-	github.com/Masterminds/sprig/v3 v3.3.0
 	github.com/mattn/go-colorable v0.1.14
 	github.com/pbnjay/memory v0.0.0-20210728143218-7b4eea64cf58
 	github.com/pkg/sftp v1.13.9
@@ -41,11 +41,11 @@ require (
 	github.com/spf13/afero v1.14.0
 	github.com/stretchr/testify v1.10.0
 	github.com/ulikunitz/xz v0.5.12
-	golang.org/x/crypto v0.40.0
-	golang.org/x/exp v0.0.0-20250718183923-645b1fa84792
-	golang.org/x/net v0.42.0
-	golang.org/x/term v0.33.0
-	golang.org/x/text v0.27.0
+	golang.org/x/crypto v0.41.0
+	golang.org/x/exp v0.0.0-20250811191247-51f88131bc50
+	golang.org/x/net v0.43.0
+	golang.org/x/term v0.34.0
+	golang.org/x/text v0.28.0
 	modernc.org/sqlite v1.38.2
 	xorm.io/builder v0.3.13
 	xorm.io/xorm v1.3.2 //do not update, newer versions break "SELECT FOR UPDATE" on sqlite & postgres
@@ -58,6 +58,8 @@ require (
 	dario.cat/mergo v1.0.1 // indirect
 	filippo.io/edwards25519 v1.1.0 // indirect
 	github.com/IBM/go-sdk-core/v5 v5.20.0 // indirect
+	github.com/Masterminds/goutils v1.1.1 // indirect
+	github.com/Masterminds/semver/v3 v3.3.0 // indirect
 	github.com/Max-Sum/base32768 v0.0.0-20230304063302-18e6ce5945fd // indirect
 	github.com/ProtonMail/go-crypto v1.3.0 // indirect
 	github.com/abbot/go-http-auth v0.4.0 // indirect
@@ -104,6 +106,7 @@ require (
 	github.com/gopherjs/gopherjs v1.17.2 // indirect
 	github.com/hashicorp/go-cleanhttp v0.5.2 // indirect
 	github.com/hashicorp/go-retryablehttp v0.7.7 // indirect
+	github.com/huandu/xstrings v1.5.0 // indirect
 	github.com/jackc/pgpassfile v1.0.0 // indirect
 	github.com/jackc/pgservicefile v0.0.0-20240606120523-5a60cdf6a761 // indirect
 	github.com/jackc/puddle/v2 v2.2.2 // indirect
@@ -120,6 +123,7 @@ require (
 	github.com/mitchellh/copystructure v1.2.0 // indirect
 	github.com/mitchellh/go-homedir v1.1.0 // indirect
 	github.com/mitchellh/mapstructure v1.5.0 // indirect
+	github.com/mitchellh/reflectwalk v1.0.2 // indirect
 	github.com/modern-go/concurrent v0.0.0-20180306012644-bacd9c7ef1dd // indirect
 	github.com/modern-go/reflect2 v1.0.2 // indirect
 	github.com/munnerz/goautoneg v0.0.0-20191010083416-a7dc8b61c822 // indirect
@@ -140,8 +144,10 @@ require (
 	github.com/shirou/gopsutil/v3 v3.24.5 // indirect
 	github.com/shirou/gopsutil/v4 v4.25.5 // indirect
 	github.com/shoenig/go-m1cpu v0.1.6 // indirect
+	github.com/shopspring/decimal v1.4.0 // indirect
 	github.com/sirupsen/logrus v1.9.3 // indirect
 	github.com/smarty/assertions v1.15.0 // indirect
+	github.com/spf13/cast v1.7.0 // indirect
 	github.com/spf13/pflag v1.0.6 // indirect
 	github.com/syndtr/goleveldb v1.0.0 // indirect
 	github.com/tklauser/go-sysconf v0.3.15 // indirect
@@ -150,13 +156,13 @@ require (
 	github.com/yusufpapurcu/wmi v1.2.4 // indirect
 	go.mongodb.org/mongo-driver v1.17.4 // indirect
 	golang.org/x/sync v0.16.0 // indirect
-	golang.org/x/sys v0.34.0 // indirect
+	golang.org/x/sys v0.35.0 // indirect
 	golang.org/x/time v0.12.0 // indirect
 	google.golang.org/genproto/googleapis/rpc v0.0.0-20250603155806-513f23925822 // indirect
 	google.golang.org/protobuf v1.36.6 // indirect
 	gopkg.in/alexcesaro/quotedprintable.v3 v3.0.0-20150716171945-2caba252f4dc // indirect
 	gopkg.in/gomail.v2 v2.0.0-20160411212932-81ebce5c23df
-	gopkg.in/yaml.v3 v3.0.1 // indirect
+	gopkg.in/yaml.v3 v3.0.1
 	modernc.org/libc v1.66.3 // indirect
 	modernc.org/mathutil v1.7.1 // indirect
 	modernc.org/memory v1.11.0 // indirect

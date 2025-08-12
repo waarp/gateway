@@ -211,7 +211,7 @@ func callMethodsRemoteAccount(logger *log.Logger, db *database.DB, w http.Respon
 	if r.Method == http.MethodPost && r.FormValue("deleteRemoteAccount") != "" {
 		deleteRemoteAccountErr := deleteRemoteAccount(db, r)
 		if deleteRemoteAccountErr != nil {
-			logger.Error("failed to delete remote account: %v", deleteRemoteAccountErr)
+			logger.Errorf("failed to delete remote account: %v", deleteRemoteAccountErr)
 
 			return false, deleteRemoteAccountErr.Error(), ""
 		}
@@ -224,7 +224,7 @@ func callMethodsRemoteAccount(logger *log.Logger, db *database.DB, w http.Respon
 	if r.Method == http.MethodPost && r.FormValue("addRemoteAccountLogin") != "" {
 		addRemoteAccountErr := addRemoteAccount(partner.Name, db, r)
 		if addRemoteAccountErr != nil {
-			logger.Error("failed to add remote account: %v", addRemoteAccountErr)
+			logger.Errorf("failed to add remote account: %v", addRemoteAccountErr)
 
 			return false, addRemoteAccountErr.Error(), "addRemoteAccountModal"
 		}
@@ -239,14 +239,14 @@ func callMethodsRemoteAccount(logger *log.Logger, db *database.DB, w http.Respon
 
 		id, err := strconv.Atoi(idEdit)
 		if err != nil {
-			logger.Error("failed to convert id to int: %v", err)
+			logger.Errorf("failed to convert id to int: %v", err)
 
 			return false, "", ""
 		}
 
 		editRemoteAccountErr := editRemoteAccount(db, r)
 		if editRemoteAccountErr != nil {
-			logger.Error("failed to edit remote account: %v", editRemoteAccountErr)
+			logger.Errorf("failed to edit remote account: %v", editRemoteAccountErr)
 
 			return false, editRemoteAccountErr.Error(), fmt.Sprintf("editRemoteAccountModal_%d", id)
 		}
@@ -263,11 +263,11 @@ func remoteAccountPage(logger *log.Logger, db *database.DB) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		userLanguage := r.Context().Value(ContextLanguageKey)
 		tTranslated := //nolint:forcetypeassert //u
-			pageTranslated("remote_account_management_page", userLanguage.(string)) //nolint:errcheck //u
+		pageTranslated("remote_account_management_page", userLanguage.(string)) //nolint:errcheck //u
 
 		user, err := GetUserByToken(r, db)
 		if err != nil {
-			logger.Error("Internal error: %v", err)
+			logger.Errorf("Internal error: %v", err)
 		}
 
 		myPermission := model.MaskToPerms(user.Permissions)
@@ -278,12 +278,12 @@ func remoteAccountPage(logger *log.Logger, db *database.DB) http.HandlerFunc {
 		if partnerID != "" {
 			id, err = strconv.Atoi(partnerID)
 			if err != nil {
-				logger.Error("failed to convert id to int: %v", err)
+				logger.Errorf("failed to convert id to int: %v", err)
 			}
 
 			partner, err = internal.GetPartnerByID(db, int64(id))
 			if err != nil {
-				logger.Error("failed to get id: %v", err)
+				logger.Errorf("failed to get id: %v", err)
 			}
 		}
 
@@ -310,7 +310,7 @@ func remoteAccountPage(logger *log.Logger, db *database.DB) http.HandlerFunc {
 			"modalOpen":          modalOpen,
 			"hasPartnerID":       true,
 		}); err != nil {
-			logger.Error("render partner_management_page: %v", err)
+			logger.Errorf("render partner_management_page: %v", err)
 			http.Error(w, "Internal error", http.StatusInternalServerError)
 		}
 	}

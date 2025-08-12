@@ -44,6 +44,7 @@ func MakeRESTHandler(logger *log.Logger, db *database.DB, router *mux.Router) {
 	makeAuthoritiesHandlers(mkHandler)
 	makeSNMPHandlers(mkHandler)
 	makeKeysHandlers(mkHandler)
+	makeEmailHanddlers(mkHandler)
 }
 
 func makeUserHandlers(mkHandler HandlerFactory) {
@@ -361,5 +362,4 @@ func makeEmailHanddlers(mkHandler HandlerFactory) {
 	mkHandler(smtpCredentialPath, getSMTPCredential, model.PermRulesRead, http.MethodGet)
 	mkHandler(smtpCredentialPath, updateSMTPCredential, model.PermRulesWrite, http.MethodPatch)
 	mkHandler(smtpCredentialPath, deleteSMTPCredential, model.PermRulesDelete, http.MethodDelete)
-
 }

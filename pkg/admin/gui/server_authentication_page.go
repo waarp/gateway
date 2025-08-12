@@ -249,7 +249,7 @@ func callMethodsServerAuthentication(logger *log.Logger, db *database.DB, w http
 	if r.Method == http.MethodPost && r.FormValue("deleteCredentialServer") != "" {
 		deleteCredentialServerErr := deleteCredentialServer(server.Name, db, r)
 		if deleteCredentialServerErr != nil {
-			logger.Error("failed to delete credential server: %v", deleteCredentialServerErr)
+			logger.Errorf("failed to delete credential server: %v", deleteCredentialServerErr)
 
 			return false, deleteCredentialServerErr.Error(), ""
 		}
@@ -263,7 +263,7 @@ func callMethodsServerAuthentication(logger *log.Logger, db *database.DB, w http
 	if r.Method == http.MethodPost && r.FormValue("addCredentialServerName") != "" {
 		addCredentialServerErr := addCredentialServer(server.Name, db, r)
 		if addCredentialServerErr != nil {
-			logger.Error("failed to add credential server: %v", addCredentialServerErr)
+			logger.Errorf("failed to add credential server: %v", addCredentialServerErr)
 
 			return false, addCredentialServerErr.Error(), "addCredentialServerModal"
 		}
@@ -279,14 +279,14 @@ func callMethodsServerAuthentication(logger *log.Logger, db *database.DB, w http
 
 		id, err := strconv.Atoi(idEdit)
 		if err != nil {
-			logger.Error("failed to convert id to int: %v", err)
+			logger.Errorf("failed to convert id to int: %v", err)
 
 			return false, "", ""
 		}
 
 		editCredentialServerErr := editCredentialServer(server.Name, db, r)
 		if editCredentialServerErr != nil {
-			logger.Error("failed to edit credential server: %v", editCredentialServerErr)
+			logger.Errorf("failed to edit credential server: %v", editCredentialServerErr)
 
 			return false, editCredentialServerErr.Error(), fmt.Sprintf("editCredentialExternalModal_%d", id)
 		}
@@ -304,11 +304,11 @@ func serverAuthenticationPage(logger *log.Logger, db *database.DB) http.HandlerF
 	return func(w http.ResponseWriter, r *http.Request) {
 		userLanguage := r.Context().Value(ContextLanguageKey)
 		tTranslated := //nolint:forcetypeassert //u
-			pageTranslated("server_authentication_page", userLanguage.(string)) //nolint:errcheck //u
+		pageTranslated("server_authentication_page", userLanguage.(string)) //nolint:errcheck //u
 
 		user, err := GetUserByToken(r, db)
 		if err != nil {
-			logger.Error("Internal error: %v", err)
+			logger.Errorf("Internal error: %v", err)
 		}
 
 		myPermission := model.MaskToPerms(user.Permissions)
@@ -319,12 +319,12 @@ func serverAuthenticationPage(logger *log.Logger, db *database.DB) http.HandlerF
 		if serverID != "" {
 			id, err = strconv.Atoi(serverID)
 			if err != nil {
-				logger.Error("failed to convert id to int: %v", err)
+				logger.Errorf("failed to convert id to int: %v", err)
 			}
 
 			server, err = internal.GetServerByID(db, int64(id))
 			if err != nil {
-				logger.Error("failed to get id: %v", err)
+				logger.Errorf("failed to get id: %v", err)
 			}
 		}
 
@@ -356,7 +356,7 @@ func serverAuthenticationPage(logger *log.Logger, db *database.DB) http.HandlerF
 			"modalOpen":             modalOpen,
 			"hasServerID":           true,
 		}); err != nil {
-			logger.Error("render server_authentication_page: %v", err)
+			logger.Errorf("render server_authentication_page: %v", err)
 			http.Error(w, "Internal error", http.StatusInternalServerError)
 		}
 	}

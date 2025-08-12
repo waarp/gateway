@@ -24,14 +24,14 @@ func makePGPEncryptor(cryptoKey *model.CryptoKey) (encryptFunc, error) {
 		return nil, ErrEncryptNotPGPKey
 	}
 
-	pgpKey, err := pgp.NewKeyFromArmored(cryptoKey.Key.String())
-	if err != nil {
-		return nil, fmt.Errorf("failed to parse PGP encryption key: %w", err)
+	pgpKey, parsErr := pgp.NewKeyFromArmored(cryptoKey.Key.String())
+	if parsErr != nil {
+		return nil, fmt.Errorf("failed to parse PGP encryption key: %w", parsErr)
 	}
 
 	if pgpKey.IsPrivate() {
-		if pgpKey, err = pgpKey.ToPublic(); err != nil {
-			return nil, fmt.Errorf("failed to parse PGP encryption key: %w", err)
+		if pgpKey, parsErr = pgpKey.ToPublic(); parsErr != nil {
+			return nil, fmt.Errorf("failed to parse PGP encryption key: %w", parsErr)
 		}
 	}
 
