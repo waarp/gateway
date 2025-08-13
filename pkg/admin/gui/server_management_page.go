@@ -153,9 +153,9 @@ func deleteServer(db *database.DB, r *http.Request) error {
 	if err := r.ParseForm(); err != nil {
 		return fmt.Errorf("failed to parse form: %w", err)
 	}
-	ServerID := r.FormValue("deleteServer")
+	serverID := r.FormValue("deleteServer")
 
-	id, err := strconv.Atoi(ServerID)
+	id, err := strconv.Atoi(serverID)
 	if err != nil {
 		return fmt.Errorf("internal error: %w", err)
 	}
@@ -265,7 +265,7 @@ func autocompletionServersFunc(db *database.DB) http.HandlerFunc {
 
 		w.Header().Set("Content-Type", "application/json")
 
-		if err := json.NewEncoder(w).Encode(names); err != nil {
+		if jsonErr := json.NewEncoder(w).Encode(names); jsonErr != nil {
 			http.Error(w, "error json", http.StatusInternalServerError)
 		}
 	}
@@ -273,7 +273,7 @@ func autocompletionServersFunc(db *database.DB) http.HandlerFunc {
 
 //nolint:dupl // no similar func
 func callMethodsServerManagement(logger *log.Logger, db *database.DB, w http.ResponseWriter, r *http.Request,
-) (bool, string, string) {
+) (value bool, errMsg, modalOpen string) {
 	if r.Method == http.MethodPost && r.FormValue("addServerName") != "" {
 		if newServerErr := addServer(db, r); newServerErr != nil {
 			logger.Errorf("failed to add server: %v", newServerErr)
@@ -342,7 +342,7 @@ func serverManagementPage(logger *log.Logger, db *database.DB) http.HandlerFunc 
 		myPermission := model.MaskToPerms(user.Permissions)
 		currentPage := filter.Offset + 1
 
-		if err := serverManagementTemplate.ExecuteTemplate(w, "server_management_page", map[string]any{
+		if tmplErr := serverManagementTemplate.ExecuteTemplate(w, "server_management_page", map[string]any{
 			"myPermission":           myPermission,
 			"tab":                    tabTranslated,
 			"username":               user.Username,
@@ -359,8 +359,8 @@ func serverManagementPage(logger *log.Logger, db *database.DB) http.HandlerFunc 
 			"MACs":                   sftp.ValidMACs,
 			"errMsg":                 errMsg,
 			"modalOpen":              modalOpen,
-		}); err != nil {
-			logger.Errorf("render server_management_page: %v", err)
+		}); tmplErr != nil {
+			logger.Errorf("render server_management_page: %v", tmplErr)
 			http.Error(w, "Internal error", http.StatusInternalServerError)
 		}
 	}

@@ -103,8 +103,8 @@ func editRule(db *database.DB, r *http.Request) error {
 		editRule.TmpLocalRcvDir = editRuleTmpLocalRcvDir
 	}
 
-	if err := internal.UpdateRule(db, editRule); err != nil {
-		return fmt.Errorf("failed to edit rule: %w", err)
+	if upErr := internal.UpdateRule(db, editRule); upErr != nil {
+		return fmt.Errorf("failed to edit rule: %w", upErr)
 	}
 
 	return nil
@@ -127,8 +127,8 @@ func deleteRule(db *database.DB, r *http.Request) error {
 		return fmt.Errorf("failed to get rule: %w", err)
 	}
 
-	if err := internal.DeleteRule(db, rule); err != nil {
-		return fmt.Errorf("failed to delete rule: %w", err)
+	if dlErr := internal.DeleteRule(db, rule); dlErr != nil {
+		return fmt.Errorf("failed to delete rule: %w", dlErr)
 	}
 
 	return nil
@@ -218,7 +218,7 @@ func autocompletionRulesFunc(db *database.DB) http.HandlerFunc {
 
 		w.Header().Set("Content-Type", "application/json")
 
-		if err := json.NewEncoder(w).Encode(names); err != nil {
+		if jsonErr := json.NewEncoder(w).Encode(names); jsonErr != nil {
 			http.Error(w, "error json", http.StatusInternalServerError)
 		}
 	}
@@ -226,7 +226,7 @@ func autocompletionRulesFunc(db *database.DB) http.HandlerFunc {
 
 //nolint:dupl // no similar func
 func callMethodsRuleManagement(logger *log.Logger, db *database.DB, w http.ResponseWriter, r *http.Request,
-) (bool, string, string) {
+) (value bool, errMsg, modalOpen string) {
 	if r.Method == http.MethodPost && r.FormValue("addRuleName") != "" {
 		if newRuleErr := addRule(db, r); newRuleErr != nil {
 			logger.Errorf("failed to add rule: %v", newRuleErr)
@@ -280,7 +280,7 @@ func ruleManagementPage(logger *log.Logger, db *database.DB) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		userLanguage := r.Context().Value(ContextLanguageKey)
 		tabTranslated := //nolint:forcetypeassert //u
-		pageTranslated("transfer_rules_management_page", userLanguage.(string)) //nolint:errcheck //u
+			pageTranslated("transfer_rules_management_page", userLanguage.(string)) //nolint:errcheck //u
 		ruleList, filter, ruleFound := listRule(db, r)
 
 		value, errMsg, modalOpen := callMethodsRuleManagement(logger, db, w, r)
@@ -296,7 +296,7 @@ func ruleManagementPage(logger *log.Logger, db *database.DB) http.HandlerFunc {
 		myPermission := model.MaskToPerms(user.Permissions)
 		currentPage := filter.Offset + 1
 
-		if err := ruleManagementTemplate.ExecuteTemplate(w, "transfer_rules_management_page", map[string]any{
+		if tmplErr := ruleManagementTemplate.ExecuteTemplate(w, "transfer_rules_management_page", map[string]any{
 			"myPermission": myPermission,
 			"tab":          tabTranslated,
 			"username":     user.Username,
@@ -307,7 +307,7 @@ func ruleManagementPage(logger *log.Logger, db *database.DB) http.HandlerFunc {
 			"currentPage":  currentPage,
 			"errMsg":       errMsg,
 			"modalOpen":    modalOpen,
-		}); err != nil {
+		}); tmplErr != nil {
 			logger.Errorf("render transfer_rules_management_page: %v", err)
 			http.Error(w, "Internal error", http.StatusInternalServerError)
 		}

@@ -14,7 +14,7 @@ import (
 	"code.waarp.fr/apps/gateway/gateway/pkg/model"
 )
 
-//nolint:dupl, gocyclo, cyclop, funlen // method for pre-task (gocyclo 20 differents tasks)
+//nolint:dupl, gocyclo, cyclop, funlen, gocritic // method for pre-task (gocyclo 20 differents tasks)
 func addPreTask(ruleID int, preTasks []*model.Task, db *database.DB, r *http.Request) error {
 	var newPreTask model.Task
 
@@ -27,43 +27,43 @@ func addPreTask(ruleID int, preTasks []*model.Task, db *database.DB, r *http.Req
 	}
 
 	switch newPreTask.Type {
-	case "COPY":
+	case TaskCopy:
 		newPreTask.Args = taskCOPY(r)
-	case "COPYRENAME":
+	case TaskCopyRename:
 		newPreTask.Args = taskCOPYRENAME(r)
-	case "EXEC":
+	case TaskExec:
 		newPreTask.Args = taskEXEC(r)
-	case "EXECMOVE":
+	case TaskExecMove:
 		newPreTask.Args = taskEXECMOVE(r)
-	case "EXECOUTPUT":
+	case TaskExecOutput:
 		newPreTask.Args = taskEXECOUTPUT(r)
-	case "MOVE":
+	case TaskMove:
 		newPreTask.Args = taskMOVE(r)
-	case "MOVERENAME":
+	case TaskMoveRename:
 		newPreTask.Args = taskMOVERENAME(r)
-	case "RENAME":
+	case TaskRename:
 		newPreTask.Args = taskRENAME(r)
-	case "TRANSFER":
+	case TaskTransfer:
 		newPreTask.Args = taskTRANSFER(r)
-	case "TRANSCODE":
+	case TaskTranscode:
 		newPreTask.Args = taskTRANSCODE(r)
-	case "ARCHIVE":
+	case TaskArchive:
 		newPreTask.Args = taskARCHIVE(r)
-	case "EXTRACT":
+	case TaskExtract:
 		newPreTask.Args = taskEXTRACT(r)
-	case "ICAP":
+	case TaskIcap:
 		newPreTask.Args = taskICAP(r)
-	case "ENCRYPT":
+	case TaskEncrypt:
 		newPreTask.Args = taskENCRYPT(r)
-	case "DECRYPT":
+	case TaskDecrypt:
 		newPreTask.Args = taskDECRYPT(r)
-	case "SIGN":
+	case TaskSign:
 		newPreTask.Args = taskSIGN(r)
-	case "VERIFY":
+	case TaskVerify:
 		newPreTask.Args = taskVERIFY(r)
-	case "ENCRYPT&SIGN":
+	case TaskEncryptSign:
 		newPreTask.Args = taskENCRYPTandSIGN(r)
-	case "DECRYPT&VERIFY":
+	case TaskDecryptVerify:
 		newPreTask.Args = taskDECRYPTandVERIFY(r)
 	}
 
@@ -80,7 +80,7 @@ func addPreTask(ruleID int, preTasks []*model.Task, db *database.DB, r *http.Req
 	return nil
 }
 
-//nolint:gocyclo, cyclop, funlen // 20 differents tasks
+//nolint:gocyclo, cyclop, funlen, gocritic // 20 differents tasks
 func editPreTask(ruleID int, preTasks []*model.Task, db *database.DB, r *http.Request) error {
 	var editPreTask model.Task
 
@@ -101,43 +101,43 @@ func editPreTask(ruleID int, preTasks []*model.Task, db *database.DB, r *http.Re
 
 	//nolint:dupl // switch for pre-task
 	switch editPreTask.Type {
-	case "COPY":
+	case TaskCopy:
 		editPreTask.Args = taskCOPY(r)
-	case "COPYRENAME":
+	case TaskCopyRename:
 		editPreTask.Args = taskCOPYRENAME(r)
-	case "EXEC":
+	case TaskExec:
 		editPreTask.Args = taskEXEC(r)
-	case "EXECMOVE":
+	case TaskExecMove:
 		editPreTask.Args = taskEXECMOVE(r)
-	case "EXECOUTPUT":
+	case TaskExecOutput:
 		editPreTask.Args = taskEXECOUTPUT(r)
-	case "MOVE":
+	case TaskMove:
 		editPreTask.Args = taskMOVE(r)
-	case "MOVERENAME":
+	case TaskMoveRename:
 		editPreTask.Args = taskMOVERENAME(r)
-	case "RENAME":
+	case TaskRename:
 		editPreTask.Args = taskRENAME(r)
-	case "TRANSFER":
+	case TaskTransfer:
 		editPreTask.Args = taskTRANSFER(r)
-	case "TRANSCODE":
+	case TaskTranscode:
 		editPreTask.Args = taskTRANSCODE(r)
-	case "ARCHIVE":
+	case TaskArchive:
 		editPreTask.Args = taskARCHIVE(r)
-	case "EXTRACT":
+	case TaskExtract:
 		editPreTask.Args = taskEXTRACT(r)
-	case "ICAP":
+	case TaskIcap:
 		editPreTask.Args = taskICAP(r)
-	case "ENCRYPT":
+	case TaskEncrypt:
 		editPreTask.Args = taskENCRYPT(r)
-	case "DECRYPT":
+	case TaskDecrypt:
 		editPreTask.Args = taskDECRYPT(r)
-	case "SIGN":
+	case TaskSign:
 		editPreTask.Args = taskSIGN(r)
-	case "VERIFY":
+	case TaskVerify:
 		editPreTask.Args = taskVERIFY(r)
-	case "ENCRYPT&SIGN":
+	case TaskEncryptSign:
 		editPreTask.Args = taskENCRYPTandSIGN(r)
-	case "DECRYPT&VERIFY":
+	case TaskDecryptVerify:
 		editPreTask.Args = taskDECRYPTandVERIFY(r)
 	}
 
@@ -200,20 +200,21 @@ func newOrderPreTasks(db *database.DB, r *http.Request, tasks []*model.Task, rul
 		return fmt.Errorf("failed to rule id: %w", err)
 	}
 
-	if err := internal.SetPreTasks(db, rule, preTasks); err != nil {
-		return fmt.Errorf("failed set pre-tasks: %w", err)
+	if taskErr := internal.SetPreTasks(db, rule, preTasks); taskErr != nil {
+		return fmt.Errorf("failed set pre-tasks: %w", taskErr)
 	}
 
 	return nil
 }
 
+//nolint:dupl // method for preTasks
 func callMethodsPreTasks(logger *log.Logger, db *database.DB, w http.ResponseWriter, r *http.Request,
 	preTasks []*model.Task, ruleID int,
-) (bool, string, string) {
+) (value bool, errMsg, modalOpen string) {
 	if r.Method == http.MethodPost && r.FormValue("addPreTaskType") != "" {
 		addPreTaskErr := addPreTask(ruleID, preTasks, db, r)
 		if addPreTaskErr != nil {
-			logger.Error("failed to add pre-task: %v", addPreTaskErr)
+			logger.Errorf("failed to add pre-task: %v", addPreTaskErr)
 
 			return false, addPreTaskErr.Error(), "addPreTaskModal"
 		}
@@ -226,7 +227,7 @@ func callMethodsPreTasks(logger *log.Logger, db *database.DB, w http.ResponseWri
 	if r.Method == http.MethodPost && r.FormValue("editPreTaskRank") != "" {
 		editPreTaskErr := editPreTask(ruleID, preTasks, db, r)
 		if editPreTaskErr != nil {
-			logger.Error("failed to edit pre-task: %v", editPreTaskErr)
+			logger.Errorf("failed to edit pre-task: %v", editPreTaskErr)
 
 			return false, editPreTaskErr.Error(), "editPreTaskModal_" + r.FormValue("editPreTaskRank")
 		}
@@ -239,7 +240,7 @@ func callMethodsPreTasks(logger *log.Logger, db *database.DB, w http.ResponseWri
 	if r.Method == http.MethodPost && r.FormValue("deletePreTask") != "" {
 		deletePreTaskErr := deletePreTask(ruleID, preTasks, db, r)
 		if deletePreTaskErr != nil {
-			logger.Error("failed to delete pre-task: %v", deletePreTaskErr)
+			logger.Errorf("failed to delete pre-task: %v", deletePreTaskErr)
 
 			return false, deletePreTaskErr.Error(), ""
 		}
@@ -252,7 +253,7 @@ func callMethodsPreTasks(logger *log.Logger, db *database.DB, w http.ResponseWri
 	if r.Method == http.MethodPost && r.FormValue("newOrderPreTasks") != "" {
 		orderPreTaskErr := newOrderPreTasks(db, r, preTasks, ruleID)
 		if orderPreTaskErr != nil {
-			logger.Error("failed to set new order pre-task: %v", orderPreTaskErr)
+			logger.Errorf("failed to set new order pre-task: %v", orderPreTaskErr)
 
 			return false, orderPreTaskErr.Error(), ""
 		}
@@ -265,7 +266,7 @@ func callMethodsPreTasks(logger *log.Logger, db *database.DB, w http.ResponseWri
 	return false, "", ""
 }
 
-//nolint:dupl, gocyclo, cyclop, funlen // method for post-task (20 differents tasks)
+//nolint:dupl, gocyclo, cyclop, funlen, gocritic // method for post-task (20 differents tasks)
 func addPostTask(ruleID int, postTasks []*model.Task, db *database.DB, r *http.Request) error {
 	var newPostTask model.Task
 
@@ -279,43 +280,43 @@ func addPostTask(ruleID int, postTasks []*model.Task, db *database.DB, r *http.R
 
 	//nolint:dupl // switch for post-task
 	switch newPostTask.Type {
-	case "COPY":
+	case TaskCopy:
 		newPostTask.Args = taskCOPY(r)
-	case "COPYRENAME":
+	case TaskCopyRename:
 		newPostTask.Args = taskCOPYRENAME(r)
-	case "EXEC":
+	case TaskExec:
 		newPostTask.Args = taskEXEC(r)
-	case "EXECMOVE":
+	case TaskExecMove:
 		newPostTask.Args = taskEXECMOVE(r)
-	case "EXECOUTPUT":
+	case TaskExecOutput:
 		newPostTask.Args = taskEXECOUTPUT(r)
-	case "MOVE":
+	case TaskMove:
 		newPostTask.Args = taskMOVE(r)
-	case "MOVERENAME":
+	case TaskMoveRename:
 		newPostTask.Args = taskMOVERENAME(r)
-	case "RENAME":
+	case TaskRename:
 		newPostTask.Args = taskRENAME(r)
-	case "TRANSFER":
+	case TaskTransfer:
 		newPostTask.Args = taskTRANSFER(r)
-	case "TRANSCODE":
+	case TaskTranscode:
 		newPostTask.Args = taskTRANSCODE(r)
-	case "ARCHIVE":
+	case TaskArchive:
 		newPostTask.Args = taskARCHIVE(r)
-	case "EXTRACT":
+	case TaskExtract:
 		newPostTask.Args = taskEXTRACT(r)
-	case "ICAP":
+	case TaskIcap:
 		newPostTask.Args = taskICAP(r)
-	case "ENCRYPT":
+	case TaskEncrypt:
 		newPostTask.Args = taskENCRYPT(r)
-	case "DECRYPT":
+	case TaskDecrypt:
 		newPostTask.Args = taskDECRYPT(r)
-	case "SIGN":
+	case TaskSign:
 		newPostTask.Args = taskSIGN(r)
-	case "VERIFY":
+	case TaskVerify:
 		newPostTask.Args = taskVERIFY(r)
-	case "ENCRYPT&SIGN":
+	case TaskEncryptSign:
 		newPostTask.Args = taskENCRYPTandSIGN(r)
-	case "DECRYPT&VERIFY":
+	case TaskDecryptVerify:
 		newPostTask.Args = taskDECRYPTandVERIFY(r)
 	}
 
@@ -332,7 +333,7 @@ func addPostTask(ruleID int, postTasks []*model.Task, db *database.DB, r *http.R
 	return nil
 }
 
-//nolint:gocyclo, cyclop, funlen // 20 differents tasks
+//nolint:gocyclo, cyclop, funlen, gocritic // 20 differents tasks includes
 func editPostTask(ruleID int, postTasks []*model.Task, db *database.DB, r *http.Request) error {
 	var editPostTask model.Task
 
@@ -353,43 +354,43 @@ func editPostTask(ruleID int, postTasks []*model.Task, db *database.DB, r *http.
 
 	//nolint:dupl // switch for post-task
 	switch editPostTask.Type {
-	case "COPY":
+	case TaskCopy:
 		editPostTask.Args = taskCOPY(r)
-	case "COPYRENAME":
+	case TaskCopyRename:
 		editPostTask.Args = taskCOPYRENAME(r)
-	case "EXEC":
+	case TaskExec:
 		editPostTask.Args = taskEXEC(r)
-	case "EXECMOVE":
+	case TaskExecMove:
 		editPostTask.Args = taskEXECMOVE(r)
-	case "EXECOUTPUT":
+	case TaskExecOutput:
 		editPostTask.Args = taskEXECOUTPUT(r)
-	case "MOVE":
+	case TaskMove:
 		editPostTask.Args = taskMOVE(r)
-	case "MOVERENAME":
+	case TaskMoveRename:
 		editPostTask.Args = taskMOVERENAME(r)
-	case "RENAME":
+	case TaskRename:
 		editPostTask.Args = taskRENAME(r)
-	case "TRANSFER":
+	case TaskTransfer:
 		editPostTask.Args = taskTRANSFER(r)
-	case "TRANSCODE":
+	case TaskTranscode:
 		editPostTask.Args = taskTRANSCODE(r)
-	case "ARCHIVE":
+	case TaskArchive:
 		editPostTask.Args = taskARCHIVE(r)
-	case "EXTRACT":
+	case TaskExtract:
 		editPostTask.Args = taskEXTRACT(r)
-	case "ICAP":
+	case TaskIcap:
 		editPostTask.Args = taskICAP(r)
-	case "ENCRYPT":
+	case TaskEncrypt:
 		editPostTask.Args = taskENCRYPT(r)
-	case "DECRYPT":
+	case TaskDecrypt:
 		editPostTask.Args = taskDECRYPT(r)
-	case "SIGN":
+	case TaskSign:
 		editPostTask.Args = taskSIGN(r)
-	case "VERIFY":
+	case TaskVerify:
 		editPostTask.Args = taskVERIFY(r)
-	case "ENCRYPT&SIGN":
+	case TaskEncryptSign:
 		editPostTask.Args = taskENCRYPTandSIGN(r)
-	case "DECRYPT&VERIFY":
+	case TaskDecryptVerify:
 		editPostTask.Args = taskDECRYPTandVERIFY(r)
 	}
 
@@ -452,20 +453,21 @@ func newOrderPostTasks(db *database.DB, r *http.Request, tasks []*model.Task, ru
 		return fmt.Errorf("failed to rule id: %w", err)
 	}
 
-	if err := internal.SetPostTasks(db, rule, postTasks); err != nil {
-		return fmt.Errorf("failed to set post tasks: %w", err)
+	if taskErr := internal.SetPostTasks(db, rule, postTasks); taskErr != nil {
+		return fmt.Errorf("failed to set post tasks: %w", taskErr)
 	}
 
 	return nil
 }
 
+//nolint:dupl // method for postTasks
 func callMethodsPostTasks(logger *log.Logger, db *database.DB, w http.ResponseWriter, r *http.Request,
 	postTasks []*model.Task, ruleID int,
-) (bool, string, string) {
+) (value bool, errMsg, modalOpen string) {
 	if r.Method == http.MethodPost && r.FormValue("addPostTaskType") != "" {
 		addPostTaskErr := addPostTask(ruleID, postTasks, db, r)
 		if addPostTaskErr != nil {
-			logger.Error("failed to add post-task: %v", addPostTaskErr)
+			logger.Errorf("failed to add post-task: %v", addPostTaskErr)
 
 			return false, addPostTaskErr.Error(), "addPostTaskModal"
 		}
@@ -478,7 +480,7 @@ func callMethodsPostTasks(logger *log.Logger, db *database.DB, w http.ResponseWr
 	if r.Method == http.MethodPost && r.FormValue("editPostTaskRank") != "" {
 		editPostTaskErr := editPostTask(ruleID, postTasks, db, r)
 		if editPostTaskErr != nil {
-			logger.Error("failed to edit post-task: %v", editPostTaskErr)
+			logger.Errorf("failed to edit post-task: %v", editPostTaskErr)
 
 			return false, editPostTaskErr.Error(), "editPostTaskModal_" + r.FormValue("editPostTaskRank")
 		}
@@ -491,7 +493,7 @@ func callMethodsPostTasks(logger *log.Logger, db *database.DB, w http.ResponseWr
 	if r.Method == http.MethodPost && r.FormValue("deletePostTask") != "" {
 		deletePostTaskErr := deletePostTask(ruleID, postTasks, db, r)
 		if deletePostTaskErr != nil {
-			logger.Error("failed to delete post-task: %v", deletePostTaskErr)
+			logger.Errorf("failed to delete post-task: %v", deletePostTaskErr)
 
 			return false, deletePostTaskErr.Error(), ""
 		}
@@ -504,7 +506,7 @@ func callMethodsPostTasks(logger *log.Logger, db *database.DB, w http.ResponseWr
 	if r.Method == http.MethodPost && r.FormValue("newOrderPostTasks") != "" {
 		orderPostTaskErr := newOrderPostTasks(db, r, postTasks, ruleID)
 		if orderPostTaskErr != nil {
-			logger.Error("failed to set new order post-task: %v", orderPostTaskErr)
+			logger.Errorf("failed to set new order post-task: %v", orderPostTaskErr)
 
 			return false, orderPostTaskErr.Error(), ""
 		}
@@ -517,7 +519,7 @@ func callMethodsPostTasks(logger *log.Logger, db *database.DB, w http.ResponseWr
 	return false, "", ""
 }
 
-//nolint:dupl, gocyclo, cyclop, funlen // method for error-task (20 differents tasks)
+//nolint:dupl, gocyclo, cyclop, funlen, gocritic // method for error-task (20 differents tasks)
 func addErrorTask(ruleID int, errorTasks []*model.Task, db *database.DB, r *http.Request) error {
 	var newErrorTask model.Task
 
@@ -531,43 +533,43 @@ func addErrorTask(ruleID int, errorTasks []*model.Task, db *database.DB, r *http
 
 	//nolint:dupl // switch for error-task
 	switch newErrorTask.Type {
-	case "COPY":
+	case TaskCopy:
 		newErrorTask.Args = taskCOPY(r)
-	case "COPYRENAME":
+	case TaskCopyRename:
 		newErrorTask.Args = taskCOPYRENAME(r)
-	case "EXEC":
+	case TaskExec:
 		newErrorTask.Args = taskEXEC(r)
-	case "EXECMOVE":
+	case TaskExecMove:
 		newErrorTask.Args = taskEXECMOVE(r)
-	case "EXECOUTPUT":
+	case TaskExecOutput:
 		newErrorTask.Args = taskEXECOUTPUT(r)
-	case "MOVE":
+	case TaskMove:
 		newErrorTask.Args = taskMOVE(r)
-	case "MOVERENAME":
+	case TaskMoveRename:
 		newErrorTask.Args = taskMOVERENAME(r)
-	case "RENAME":
+	case TaskRename:
 		newErrorTask.Args = taskRENAME(r)
-	case "TRANSFER":
+	case TaskTransfer:
 		newErrorTask.Args = taskTRANSFER(r)
-	case "TRANSCODE":
+	case TaskTranscode:
 		newErrorTask.Args = taskTRANSCODE(r)
-	case "ARCHIVE":
+	case TaskArchive:
 		newErrorTask.Args = taskARCHIVE(r)
-	case "EXTRACT":
+	case TaskExtract:
 		newErrorTask.Args = taskEXTRACT(r)
-	case "ICAP":
+	case TaskIcap:
 		newErrorTask.Args = taskICAP(r)
-	case "ENCRYPT":
+	case TaskEncrypt:
 		newErrorTask.Args = taskENCRYPT(r)
-	case "DECRYPT":
+	case TaskDecrypt:
 		newErrorTask.Args = taskDECRYPT(r)
-	case "SIGN":
+	case TaskSign:
 		newErrorTask.Args = taskSIGN(r)
-	case "VERIFY":
+	case TaskVerify:
 		newErrorTask.Args = taskVERIFY(r)
-	case "ENCRYPT&SIGN":
+	case TaskEncryptSign:
 		newErrorTask.Args = taskENCRYPTandSIGN(r)
-	case "DECRYPT&VERIFY":
+	case TaskDecryptVerify:
 		newErrorTask.Args = taskDECRYPTandVERIFY(r)
 	}
 
@@ -584,7 +586,7 @@ func addErrorTask(ruleID int, errorTasks []*model.Task, db *database.DB, r *http
 	return nil
 }
 
-//nolint:gocyclo, cyclop, funlen // 20 differents tasks
+//nolint:gocyclo, cyclop, funlen, gocritic // 20 differents tasks includes
 func editErrorTask(ruleID int, errorTasks []*model.Task, db *database.DB, r *http.Request) error {
 	var editErrorTask model.Task
 
@@ -605,43 +607,43 @@ func editErrorTask(ruleID int, errorTasks []*model.Task, db *database.DB, r *htt
 
 	//nolint:dupl // switch for error-task
 	switch editErrorTask.Type {
-	case "COPY":
+	case TaskCopy:
 		editErrorTask.Args = taskCOPY(r)
-	case "COPYRENAME":
+	case TaskCopyRename:
 		editErrorTask.Args = taskCOPYRENAME(r)
-	case "EXEC":
+	case TaskExec:
 		editErrorTask.Args = taskEXEC(r)
-	case "EXECMOVE":
+	case TaskExecMove:
 		editErrorTask.Args = taskEXECMOVE(r)
-	case "EXECOUTPUT":
+	case TaskExecOutput:
 		editErrorTask.Args = taskEXECOUTPUT(r)
-	case "MOVE":
+	case TaskMove:
 		editErrorTask.Args = taskMOVE(r)
-	case "MOVERENAME":
+	case TaskMoveRename:
 		editErrorTask.Args = taskMOVERENAME(r)
-	case "RENAME":
+	case TaskRename:
 		editErrorTask.Args = taskRENAME(r)
-	case "TRANSFER":
+	case TaskTransfer:
 		editErrorTask.Args = taskTRANSFER(r)
-	case "TRANSCODE":
+	case TaskTranscode:
 		editErrorTask.Args = taskTRANSCODE(r)
-	case "ARCHIVE":
+	case TaskArchive:
 		editErrorTask.Args = taskARCHIVE(r)
-	case "EXTRACT":
+	case TaskExtract:
 		editErrorTask.Args = taskEXTRACT(r)
-	case "ICAP":
+	case TaskIcap:
 		editErrorTask.Args = taskICAP(r)
-	case "ENCRYPT":
+	case TaskEncrypt:
 		editErrorTask.Args = taskENCRYPT(r)
-	case "DECRYPT":
+	case TaskDecrypt:
 		editErrorTask.Args = taskDECRYPT(r)
-	case "SIGN":
+	case TaskSign:
 		editErrorTask.Args = taskSIGN(r)
-	case "VERIFY":
+	case TaskVerify:
 		editErrorTask.Args = taskVERIFY(r)
-	case "ENCRYPT&SIGN":
+	case TaskEncryptSign:
 		editErrorTask.Args = taskENCRYPTandSIGN(r)
-	case "DECRYPT&VERIFY":
+	case TaskDecryptVerify:
 		editErrorTask.Args = taskDECRYPTandVERIFY(r)
 	}
 
@@ -704,20 +706,21 @@ func newOrderErrorTasks(db *database.DB, r *http.Request, tasks []*model.Task, r
 		return fmt.Errorf("failed to rule id: %w", err)
 	}
 
-	if err := internal.SetErrorTasks(db, rule, errorTasks); err != nil {
-		return fmt.Errorf("failed to set error tasks: %w", err)
+	if taskErr := internal.SetErrorTasks(db, rule, errorTasks); taskErr != nil {
+		return fmt.Errorf("failed to set error tasks: %w", taskErr)
 	}
 
 	return nil
 }
 
+//nolint:dupl // method for errorTasks
 func callMethodsErrorTasks(logger *log.Logger, db *database.DB, w http.ResponseWriter, r *http.Request,
 	errorTasks []*model.Task, ruleID int,
-) (bool, string, string) {
+) (value bool, errMsg, modalOpen string) {
 	if r.Method == http.MethodPost && r.FormValue("addErrorTaskType") != "" {
 		addErrorTaskErr := addErrorTask(ruleID, errorTasks, db, r)
 		if addErrorTaskErr != nil {
-			logger.Error("failed to add error-task: %v", addErrorTaskErr)
+			logger.Errorf("failed to add error-task: %v", addErrorTaskErr)
 
 			return false, addErrorTaskErr.Error(), "addErrorTaskModal"
 		}
@@ -730,7 +733,7 @@ func callMethodsErrorTasks(logger *log.Logger, db *database.DB, w http.ResponseW
 	if r.Method == http.MethodPost && r.FormValue("editErrorTaskRank") != "" {
 		editErrorTaskErr := editErrorTask(ruleID, errorTasks, db, r)
 		if editErrorTaskErr != nil {
-			logger.Error("failed to edit error-task: %v", editErrorTaskErr)
+			logger.Errorf("failed to edit error-task: %v", editErrorTaskErr)
 
 			return false, editErrorTaskErr.Error(), "editErrorTaskModal_" + r.FormValue("editErrorTaskRank")
 		}
@@ -743,7 +746,7 @@ func callMethodsErrorTasks(logger *log.Logger, db *database.DB, w http.ResponseW
 	if r.Method == http.MethodPost && r.FormValue("deleteErrorTask") != "" {
 		deleteErrorTaskErr := deleteErrorTask(ruleID, errorTasks, db, r)
 		if deleteErrorTaskErr != nil {
-			logger.Error("failed to delete error-task: %v", deleteErrorTaskErr)
+			logger.Errorf("failed to delete error-task: %v", deleteErrorTaskErr)
 
 			return false, deleteErrorTaskErr.Error(), ""
 		}
@@ -756,7 +759,7 @@ func callMethodsErrorTasks(logger *log.Logger, db *database.DB, w http.ResponseW
 	if r.Method == http.MethodPost && r.FormValue("newOrderErrorTasks") != "" {
 		orderErrorTaskErr := newOrderErrorTasks(db, r, errorTasks, ruleID)
 		if orderErrorTaskErr != nil {
-			logger.Error("failed to set new order error-task: %v", orderErrorTaskErr)
+			logger.Errorf("failed to set new order error-task: %v", orderErrorTaskErr)
 
 			return false, orderErrorTaskErr.Error(), ""
 		}
@@ -778,7 +781,7 @@ func tasksTransferRulesPage(logger *log.Logger, db *database.DB) http.HandlerFun
 
 		user, err := GetUserByToken(r, db)
 		if err != nil {
-			logger.Error("Internal error: %v", err)
+			logger.Errorf("Internal error: %v", err)
 		}
 
 		myPermission := model.MaskToPerms(user.Permissions)
@@ -789,12 +792,12 @@ func tasksTransferRulesPage(logger *log.Logger, db *database.DB) http.HandlerFun
 		if ruleID != "" {
 			id, err = strconv.Atoi(ruleID)
 			if err != nil {
-				logger.Error("failed to convert id to int: %v", err)
+				logger.Errorf("failed to convert id to int: %v", err)
 			}
 
 			rule, err = internal.GetRuleByID(db, int64(id))
 			if err != nil {
-				logger.Error("failed to get id: %v", err)
+				logger.Errorf("failed to get id: %v", err)
 			}
 		}
 
@@ -832,7 +835,7 @@ func tasksTransferRulesPage(logger *log.Logger, db *database.DB) http.HandlerFun
 			errMsg, modalOpen = em, mo
 		}
 
-		if err := tasksTransferRulesTemplate.ExecuteTemplate(w, "tasks_transfer_rules_page", map[string]any{
+		if tmplErr := tasksTransferRulesTemplate.ExecuteTemplate(w, "tasks_transfer_rules_page", map[string]any{
 			"myPermission":          myPermission,
 			"tab":                   tTranslated,
 			"username":              user.Username,
@@ -861,8 +864,8 @@ func tasksTransferRulesPage(logger *log.Logger, db *database.DB) http.HandlerFun
 			"errMsg":                errMsg,
 			"modalOpen":             modalOpen,
 			"hasRuleID":             true,
-		}); err != nil {
-			logger.Error("render tasks_transfer_rules_page: %v", err)
+		}); tmplErr != nil {
+			logger.Errorf("render tasks_transfer_rules_page: %v", tmplErr)
 			http.Error(w, "Internal error", http.StatusInternalServerError)
 		}
 	}

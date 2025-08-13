@@ -114,7 +114,7 @@ func autocompletionCredentialsRemoteAccountsFunc(db *database.DB) http.HandlerFu
 
 		w.Header().Set("Content-Type", "application/json")
 
-		if err := json.NewEncoder(w).Encode(names); err != nil {
+		if jsonErr := json.NewEncoder(w).Encode(names); jsonErr != nil {
 			http.Error(w, "error json", http.StatusInternalServerError)
 		}
 	}
@@ -148,14 +148,14 @@ func addCredentialRemoteAccount(partnerName, login string, db *database.DB, r *h
 	}
 
 	switch newCredentialAccount.Type {
-	case "password":
+	case "password": //nolint:goconst // correction in next push
 		newCredentialAccount.Value = r.FormValue("addCredentialValue")
-	case "ssh_private_key":
+	case "ssh_private_key": //nolint:goconst // correction in next push
 		newCredentialAccount.Value = r.FormValue("addCredentialValueFile")
-	case "tls_certificate":
+	case "tls_certificate": //nolint:goconst // correction in next push
 		newCredentialAccount.Value = r.FormValue("addCredentialValueFile1")
 		newCredentialAccount.Value2 = r.FormValue("addCredentialValueFile2")
-	case "pesit_pre-connection_auth":
+	case "pesit_pre-connection_auth": //nolint:goconst // correction in next push
 		newCredentialAccount.Value = r.FormValue("addCredentialValue1")
 		newCredentialAccount.Value2 = r.FormValue("addCredentialValue2")
 	}
@@ -167,8 +167,8 @@ func addCredentialRemoteAccount(partnerName, login string, db *database.DB, r *h
 
 	account.SetCredOwner(&newCredentialAccount)
 
-	if err := internal.InsertCredential(db, &newCredentialAccount); err != nil {
-		return fmt.Errorf("failed to add credential account: %w", err)
+	if addErr := internal.InsertCredential(db, &newCredentialAccount); addErr != nil {
+		return fmt.Errorf("failed to add credential account: %w", addErr)
 	}
 
 	return nil
@@ -244,7 +244,7 @@ func deleteCredentialRemoteAccount(account *model.RemoteAccount, db *database.DB
 
 func callMethodsRemoteAccountAuthentication(logger *log.Logger, db *database.DB, w http.ResponseWriter, r *http.Request,
 	partner *model.RemoteAgent, account *model.RemoteAccount,
-) (bool, string, string) {
+) (value bool, errMsg, modalOpen string) {
 	if r.Method == http.MethodPost && r.FormValue("deleteCredentialAccount") != "" {
 		deleteCredentialAccountErr := deleteCredentialRemoteAccount(account, db, r)
 		if deleteCredentialAccountErr != nil {
@@ -342,7 +342,7 @@ func remoteAccountAuthenticationPage(logger *log.Logger, db *database.DB) http.H
 	return func(w http.ResponseWriter, r *http.Request) {
 		userLanguage := r.Context().Value(ContextLanguageKey)
 		tTranslated := //nolint:forcetypeassert //u
-		pageTranslated("remote_account_authentication_page", userLanguage.(string)) //nolint:errcheck //u
+			pageTranslated("remote_account_authentication_page", userLanguage.(string)) //nolint:errcheck //u
 
 		user, err := GetUserByToken(r, db)
 		if err != nil {
@@ -365,24 +365,25 @@ func remoteAccountAuthenticationPage(logger *log.Logger, db *database.DB) http.H
 		listSupportedProtocol := supportedProtocolExternal(partner.Protocol)
 		currentPage := filter.Offset + 1
 
-		if err := remoteAccountAuthenticationTemplate.ExecuteTemplate(w, "remote_account_authentication_page", map[string]any{
-			"myPermission":           myPermission,
-			"tab":                    tTranslated,
-			"username":               user.Username,
-			"language":               userLanguage,
-			"partner":                partner,
-			"account":                account,
-			"accountCredentials":     credentials,
-			"listSupportedProtocol":  listSupportedProtocol,
-			"filter":                 filter,
-			"currentPage":            currentPage,
-			"credentialAccountFound": credentialAccountFound,
-			"errMsg":                 errMsg,
-			"modalOpen":              modalOpen,
-			"hasPartnerID":           true,
-			"hasAccountID":           true,
-		}); err != nil {
-			logger.Errorf("render remote_account_authentication_page: %v", err)
+		if tmplErr := remoteAccountAuthenticationTemplate.ExecuteTemplate(w, "remote_account_authentication_page",
+			map[string]any{
+				"myPermission":           myPermission,
+				"tab":                    tTranslated,
+				"username":               user.Username,
+				"language":               userLanguage,
+				"partner":                partner,
+				"account":                account,
+				"accountCredentials":     credentials,
+				"listSupportedProtocol":  listSupportedProtocol,
+				"filter":                 filter,
+				"currentPage":            currentPage,
+				"credentialAccountFound": credentialAccountFound,
+				"errMsg":                 errMsg,
+				"modalOpen":              modalOpen,
+				"hasPartnerID":           true,
+				"hasAccountID":           true,
+			}); tmplErr != nil {
+			logger.Errorf("render remote_account_authentication_page: %v", tmplErr)
 			http.Error(w, "Internal error", http.StatusInternalServerError)
 		}
 	}

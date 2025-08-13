@@ -114,7 +114,7 @@ func autocompletionCredentialsLocalAccountsFunc(db *database.DB) http.HandlerFun
 
 		w.Header().Set("Content-Type", "application/json")
 
-		if err := json.NewEncoder(w).Encode(names); err != nil {
+		if jsonErr := json.NewEncoder(w).Encode(names); jsonErr != nil {
 			http.Error(w, "error json", http.StatusInternalServerError)
 		}
 	}
@@ -161,8 +161,8 @@ func addCredentialLocalAccount(serverName, login string, db *database.DB, r *htt
 
 	account.SetCredOwner(&newCredentialAccount)
 
-	if err := internal.InsertCredential(db, &newCredentialAccount); err != nil {
-		return fmt.Errorf("failed to add credential account: %w", err)
+	if addErr := internal.InsertCredential(db, &newCredentialAccount); addErr != nil {
+		return fmt.Errorf("failed to add credential account: %w", addErr)
 	}
 
 	return nil
@@ -232,7 +232,7 @@ func deleteCredentialLocalAccount(account *model.LocalAccount, db *database.DB, 
 
 func callMethodsLocalAccountAuthentication(logger *log.Logger, db *database.DB, w http.ResponseWriter, r *http.Request,
 	server *model.LocalAgent, account *model.LocalAccount,
-) (bool, string, string) {
+) (value bool, errMsg, modalOpen string) {
 	if r.Method == http.MethodPost && r.FormValue("deleteCredentialAccount") != "" {
 		deleteCredentialAccountErr := deleteCredentialLocalAccount(account, db, r)
 		if deleteCredentialAccountErr != nil {
@@ -330,7 +330,7 @@ func localAccountAuthenticationPage(logger *log.Logger, db *database.DB) http.Ha
 	return func(w http.ResponseWriter, r *http.Request) {
 		userLanguage := r.Context().Value(ContextLanguageKey)
 		tTranslated := //nolint:forcetypeassert //u
-		pageTranslated("local_account_authentication_page", userLanguage.(string)) //nolint:errcheck //u
+			pageTranslated("local_account_authentication_page", userLanguage.(string)) //nolint:errcheck //u
 
 		user, err := GetUserByToken(r, db)
 		if err != nil {
@@ -353,24 +353,25 @@ func localAccountAuthenticationPage(logger *log.Logger, db *database.DB) http.Ha
 		listSupportedProtocol := supportedProtocolInternal(server.Protocol)
 		currentPage := filter.Offset + 1
 
-		if err := localAccountAuthenticationTemplate.ExecuteTemplate(w, "local_account_authentication_page", map[string]any{
-			"myPermission":           myPermission,
-			"tab":                    tTranslated,
-			"username":               user.Username,
-			"language":               userLanguage,
-			"server":                 server,
-			"account":                account,
-			"accountCredentials":     credentials,
-			"listSupportedProtocol":  listSupportedProtocol,
-			"filter":                 filter,
-			"currentPage":            currentPage,
-			"credentialAccountFound": credentialAccountFound,
-			"errMsg":                 errMsg,
-			"modalOpen":              modalOpen,
-			"hasServerID":            true,
-			"hasAccountID":           true,
-		}); err != nil {
-			logger.Errorf("render local_account_authentication_page: %v", err)
+		if tmplErr := localAccountAuthenticationTemplate.ExecuteTemplate(w, "local_account_authentication_page",
+			map[string]any{
+				"myPermission":           myPermission,
+				"tab":                    tTranslated,
+				"username":               user.Username,
+				"language":               userLanguage,
+				"server":                 server,
+				"account":                account,
+				"accountCredentials":     credentials,
+				"listSupportedProtocol":  listSupportedProtocol,
+				"filter":                 filter,
+				"currentPage":            currentPage,
+				"credentialAccountFound": credentialAccountFound,
+				"errMsg":                 errMsg,
+				"modalOpen":              modalOpen,
+				"hasServerID":            true,
+				"hasAccountID":           true,
+			}); tmplErr != nil {
+			logger.Errorf("render local_account_authentication_page: %v", tmplErr)
 			http.Error(w, "Internal error", http.StatusInternalServerError)
 		}
 	}

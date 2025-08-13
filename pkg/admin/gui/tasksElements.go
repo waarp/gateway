@@ -10,6 +10,29 @@ import (
 	"code.waarp.fr/apps/gateway/gateway/pkg/tasks"
 )
 
+const (
+	TaskCopy          = "COPY"
+	TaskCopyRename    = "COPYRENAME"
+	TaskDelete        = "DELETE"
+	TaskExec          = "EXEC"
+	TaskExecMove      = "EXECMOVE"
+	TaskExecOutput    = "EXECOUTPUT"
+	TaskMove          = "MOVE"
+	TaskMoveRename    = "MOVERENAME"
+	TaskRename        = "RENAME"
+	TaskTransfer      = "TRANSFER"
+	TaskTranscode     = "TRANSCODE"
+	TaskArchive       = "ARCHIVE"
+	TaskExtract       = "EXTRACT"
+	TaskIcap          = "ICAP"
+	TaskEncrypt       = "ENCRYPT"
+	TaskDecrypt       = "DECRYPT"
+	TaskSign          = "SIGN"
+	TaskVerify        = "VERIFY"
+	TaskEncryptSign   = "ENCRYPT&SIGN"
+	TaskDecryptVerify = "DECRYPT&VERIFY"
+)
+
 //nolint:gochecknoglobals // Constant
 var (
 	TranscodeFormats      []string
@@ -36,7 +59,7 @@ var (
 	}
 )
 
-//nolint:gochecknoinits, exptostd // to initialie map needed
+//nolint:gochecknoinits, exptostd, gocritic // to initialie map needed
 func init() {
 	TranscodeFormats = maps.Keys(tasks.TranscodeFormats)
 	slices.Sort(TranscodeFormats)
@@ -101,26 +124,26 @@ func init() {
 
 //nolint:gochecknoglobals // Constant
 var TaskTypes = []string{
-	"COPY",
-	"COPYRENAME",
-	"DELETE",
-	"EXEC",
-	"EXECMOVE",
-	"EXECOUTPUT",
-	"MOVE",
-	"MOVERENAME",
-	"RENAME",
-	"TRANSFER",
-	"TRANSCODE",
-	"ARCHIVE",
-	"EXTRACT",
-	"ICAP",
-	"ENCRYPT",
-	"DECRYPT",
-	"SIGN",
-	"VERIFY",
-	"ENCRYPT&SIGN",
-	"DECRYPT&VERIFY",
+	TaskCopy,
+	TaskCopyRename,
+	TaskDelete,
+	TaskExec,
+	TaskExecMove,
+	TaskExecOutput,
+	TaskMove,
+	TaskMoveRename,
+	TaskRename,
+	TaskTransfer,
+	TaskTranscode,
+	TaskArchive,
+	TaskExtract,
+	TaskIcap,
+	TaskEncrypt,
+	TaskDecrypt,
+	TaskSign,
+	TaskVerify,
+	TaskEncryptSign,
+	TaskDecryptVerify,
 }
 
 func taskCOPY(r *http.Request) map[string]string {

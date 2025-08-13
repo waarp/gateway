@@ -87,12 +87,12 @@ func editAuthorizedServers(ruleID int, db *database.DB, r *http.Request) error {
 		return fmt.Errorf("failed to get new server: %w", err)
 	}
 
-	if err := internal.DeleteRuleAccess(db, rule, oldServer); err != nil {
-		return fmt.Errorf("failed to remove old access: %w", err)
+	if dlErr := internal.DeleteRuleAccess(db, rule, oldServer); dlErr != nil {
+		return fmt.Errorf("failed to remove old access: %w", dlErr)
 	}
 
-	if err := internal.AddRuleAccess(db, rule, newServer); err != nil {
-		return fmt.Errorf("failed to add new access: %w", err)
+	if addErr := internal.AddRuleAccess(db, rule, newServer); addErr != nil {
+		return fmt.Errorf("failed to add new access: %w", addErr)
 	}
 
 	return nil
@@ -126,11 +126,11 @@ func deleteAuthorizedServers(ruleID int, db *database.DB, r *http.Request) error
 //nolint:dupl // method for authorized servers
 func callMethodsAuthorizedServersRules(logger *log.Logger, db *database.DB, w http.ResponseWriter, r *http.Request,
 	ruleID int,
-) (bool, string, string) {
+) (value bool, errMsg, modalOpen string) {
 	if r.Method == http.MethodPost && r.FormValue("addAuthorizedServerName") != "" {
 		addAuthorizedServerErr := addAuthorizedServers(ruleID, db, r)
 		if addAuthorizedServerErr != nil {
-			logger.Error("failed to add authorized server: %v", addAuthorizedServerErr)
+			logger.Errorf("failed to add authorized server: %v", addAuthorizedServerErr)
 
 			return false, addAuthorizedServerErr.Error(), "addAuthorizedServerModal"
 		}
@@ -142,7 +142,7 @@ func callMethodsAuthorizedServersRules(logger *log.Logger, db *database.DB, w ht
 
 	if r.Method == http.MethodPost && r.FormValue("editAuthorizedServerOldName") != "" {
 		if editAuthorizedServerErr := editAuthorizedServers(ruleID, db, r); editAuthorizedServerErr != nil {
-			logger.Error("failed to edit authorized server: %v", editAuthorizedServerErr)
+			logger.Errorf("failed to edit authorized server: %v", editAuthorizedServerErr)
 
 			return false, editAuthorizedServerErr.Error(),
 				"editAuthorizedServerModal_" + r.FormValue("editAuthorizedServerOldName")
@@ -155,7 +155,7 @@ func callMethodsAuthorizedServersRules(logger *log.Logger, db *database.DB, w ht
 
 	if r.Method == http.MethodPost && r.FormValue("deleteAuthorizedServer") != "" {
 		if deleteAuthorizedServerErr := deleteAuthorizedServers(ruleID, db, r); deleteAuthorizedServerErr != nil {
-			logger.Error("failed to delete authorized server: %v", deleteAuthorizedServerErr)
+			logger.Errorf("failed to delete authorized server: %v", deleteAuthorizedServerErr)
 
 			return false, deleteAuthorizedServerErr.Error(), ""
 		}
@@ -230,12 +230,12 @@ func editAuthorizedPartners(ruleID int, db *database.DB, r *http.Request) error 
 		return fmt.Errorf("failed to get new partner: %w", err)
 	}
 
-	if err := internal.DeleteRuleAccess(db, rule, oldPartner); err != nil {
-		return fmt.Errorf("failed to remove old access: %w", err)
+	if dlErr := internal.DeleteRuleAccess(db, rule, oldPartner); dlErr != nil {
+		return fmt.Errorf("failed to remove old access: %w", dlErr)
 	}
 
-	if err := internal.AddRuleAccess(db, rule, newPartner); err != nil {
-		return fmt.Errorf("failed to add new access: %w", err)
+	if addErr := internal.AddRuleAccess(db, rule, newPartner); addErr != nil {
+		return fmt.Errorf("failed to add new access: %w", addErr)
 	}
 
 	return nil
@@ -269,11 +269,11 @@ func deleteAuthorizedPartners(ruleID int, db *database.DB, r *http.Request) erro
 //nolint:dupl // method for authorized partners
 func callMethodsAuthorizedPartnersRules(logger *log.Logger, db *database.DB, w http.ResponseWriter, r *http.Request,
 	ruleID int,
-) (bool, string, string) {
+) (value bool, errMsg, modalOpen string) {
 	if r.Method == http.MethodPost && r.FormValue("addAuthorizedPartnerName") != "" {
 		addAuthorizedPartnerErr := addAuthorizedPartners(ruleID, db, r)
 		if addAuthorizedPartnerErr != nil {
-			logger.Error("failed to add authorized partner: %v", addAuthorizedPartnerErr)
+			logger.Errorf("failed to add authorized partner: %v", addAuthorizedPartnerErr)
 
 			return false, addAuthorizedPartnerErr.Error(), "addAuthorizedPartnerModal"
 		}
@@ -285,7 +285,7 @@ func callMethodsAuthorizedPartnersRules(logger *log.Logger, db *database.DB, w h
 
 	if r.Method == http.MethodPost && r.FormValue("editAuthorizedPartnerOldName") != "" {
 		if editAuthorizedPartnerErr := editAuthorizedPartners(ruleID, db, r); editAuthorizedPartnerErr != nil {
-			logger.Error("failed to edit authorized partner: %v", editAuthorizedPartnerErr)
+			logger.Errorf("failed to edit authorized partner: %v", editAuthorizedPartnerErr)
 
 			return false, editAuthorizedPartnerErr.Error(),
 				"editAuthorizedPartnerModal_" + r.FormValue("editAuthorizedPartnerOldName")
@@ -298,7 +298,7 @@ func callMethodsAuthorizedPartnersRules(logger *log.Logger, db *database.DB, w h
 
 	if r.Method == http.MethodPost && r.FormValue("deleteAuthorizedPartner") != "" {
 		if deleteAuthorizedPartnerErr := deleteAuthorizedPartners(ruleID, db, r); deleteAuthorizedPartnerErr != nil {
-			logger.Error("failed to delete authorized partner: %v", deleteAuthorizedPartnerErr)
+			logger.Errorf("failed to delete authorized partner: %v", deleteAuthorizedPartnerErr)
 
 			return false, deleteAuthorizedPartnerErr.Error(), ""
 		}
@@ -376,12 +376,12 @@ func editAuthorizedLocalAccounts(ruleID int, db *database.DB, r *http.Request) e
 		return fmt.Errorf("failed to get new localAccount: %w", err)
 	}
 
-	if err := internal.DeleteRuleAccess(db, rule, oldLocalAccount); err != nil {
-		return fmt.Errorf("failed to remove old access: %w", err)
+	if dlErr := internal.DeleteRuleAccess(db, rule, oldLocalAccount); dlErr != nil {
+		return fmt.Errorf("failed to remove old access: %w", dlErr)
 	}
 
-	if err := internal.AddRuleAccess(db, rule, newLocalAccount); err != nil {
-		return fmt.Errorf("failed to add new access: %w", err)
+	if addErr := internal.AddRuleAccess(db, rule, newLocalAccount); addErr != nil {
+		return fmt.Errorf("failed to add new access: %w", addErr)
 	}
 
 	return nil
@@ -420,11 +420,11 @@ func deleteAuthorizedLocalAccounts(ruleID int, db *database.DB, r *http.Request)
 //nolint:dupl // method for local accounts
 func callMethodsAuthorizedLocalAccountsRules(logger *log.Logger, db *database.DB, w http.ResponseWriter,
 	r *http.Request, ruleID int,
-) (bool, string, string) {
+) (value bool, errMsg, modalOpen string) {
 	if r.Method == http.MethodPost && r.FormValue("addAuthorizedLocalAccountsName") != "" {
 		addAuthorizedLocalAccountsErr := addAuthorizedLocalAccounts(ruleID, db, r)
 		if addAuthorizedLocalAccountsErr != nil {
-			logger.Error("failed to add authorized localAccount: %v", addAuthorizedLocalAccountsErr)
+			logger.Errorf("failed to add authorized localAccount: %v", addAuthorizedLocalAccountsErr)
 
 			return false, addAuthorizedLocalAccountsErr.Error(), "addAuthorizedLocalAccountModal"
 		}
@@ -436,7 +436,7 @@ func callMethodsAuthorizedLocalAccountsRules(logger *log.Logger, db *database.DB
 
 	if r.Method == http.MethodPost && r.FormValue("editAuthorizedLocalAccountOldName") != "" {
 		if editAuthLocalAccErr := editAuthorizedLocalAccounts(ruleID, db, r); editAuthLocalAccErr != nil {
-			logger.Error("failed to edit authorized localAccount: %v", editAuthLocalAccErr)
+			logger.Errorf("failed to edit authorized localAccount: %v", editAuthLocalAccErr)
 
 			return false, editAuthLocalAccErr.Error(),
 				"editAuthorizedLocalAccountModal_" + r.FormValue("editAuthorizedLocalAccountOldName")
@@ -449,7 +449,7 @@ func callMethodsAuthorizedLocalAccountsRules(logger *log.Logger, db *database.DB
 
 	if r.Method == http.MethodPost && r.FormValue("deleteAuthorizedLocalAccount") != "" {
 		if deleteAuthLocalAccErr := deleteAuthorizedLocalAccounts(ruleID, db, r); deleteAuthLocalAccErr != nil {
-			logger.Error("failed to delete authorized localAccount: %v", deleteAuthLocalAccErr)
+			logger.Errorf("failed to delete authorized localAccount: %v", deleteAuthLocalAccErr)
 
 			return false, deleteAuthLocalAccErr.Error(), ""
 		}
@@ -527,12 +527,12 @@ func editAuthorizedRemoteAccounts(ruleID int, db *database.DB, r *http.Request) 
 		return fmt.Errorf("failed to get new remoteAccount: %w", err)
 	}
 
-	if err := internal.DeleteRuleAccess(db, rule, oldRemoteAccount); err != nil {
-		return fmt.Errorf("failed to remove old access: %w", err)
+	if dlErr := internal.DeleteRuleAccess(db, rule, oldRemoteAccount); dlErr != nil {
+		return fmt.Errorf("failed to remove old access: %w", dlErr)
 	}
 
-	if err := internal.AddRuleAccess(db, rule, newRemoteAccount); err != nil {
-		return fmt.Errorf("failed to add new access: %w", err)
+	if addErr := internal.AddRuleAccess(db, rule, newRemoteAccount); addErr != nil {
+		return fmt.Errorf("failed to add new access: %w", addErr)
 	}
 
 	return nil
@@ -571,11 +571,11 @@ func deleteAuthorizedRemoteAccounts(ruleID int, db *database.DB, r *http.Request
 //nolint:dupl // method for authorized remote accounts
 func callMethodsAuthorizedRemoteAccountsRules(logger *log.Logger, db *database.DB, w http.ResponseWriter,
 	r *http.Request, ruleID int,
-) (bool, string, string) {
+) (value bool, errMsg, modalOpen string) {
 	if r.Method == http.MethodPost && r.FormValue("addAuthorizedRemoteAccountsName") != "" {
 		addAuthorizedRemoteAccountsErr := addAuthorizedRemoteAccounts(ruleID, db, r)
 		if addAuthorizedRemoteAccountsErr != nil {
-			logger.Error("failed to add authorized remoteAccount: %v", addAuthorizedRemoteAccountsErr)
+			logger.Errorf("failed to add authorized remoteAccount: %v", addAuthorizedRemoteAccountsErr)
 
 			return false, addAuthorizedRemoteAccountsErr.Error(), "addAuthorizedRemoteAccountModal"
 		}
@@ -587,7 +587,7 @@ func callMethodsAuthorizedRemoteAccountsRules(logger *log.Logger, db *database.D
 
 	if r.Method == http.MethodPost && r.FormValue("editAuthorizedRemoteAccountOldName") != "" {
 		if editAuthRemoteAccErr := editAuthorizedRemoteAccounts(ruleID, db, r); editAuthRemoteAccErr != nil {
-			logger.Error("failed to edit authorized remoteAccount: %v", editAuthRemoteAccErr)
+			logger.Errorf("failed to edit authorized remoteAccount: %v", editAuthRemoteAccErr)
 
 			return false, editAuthRemoteAccErr.Error(),
 				"editAuthorizedRemoteAccountModal_" + r.FormValue("editAuthorizedRemoteAccountOldName")
@@ -600,7 +600,7 @@ func callMethodsAuthorizedRemoteAccountsRules(logger *log.Logger, db *database.D
 
 	if r.Method == http.MethodPost && r.FormValue("deleteAuthorizedRemoteAccount") != "" {
 		if dlAuthRemoteAccErr := deleteAuthorizedRemoteAccounts(ruleID, db, r); dlAuthRemoteAccErr != nil {
-			logger.Error("failed to delete authorized remoteAccount: %v", dlAuthRemoteAccErr)
+			logger.Errorf("failed to delete authorized remoteAccount: %v", dlAuthRemoteAccErr)
 
 			return false, dlAuthRemoteAccErr.Error(), ""
 		}
@@ -616,17 +616,17 @@ func callMethodsAuthorizedRemoteAccountsRules(logger *log.Logger, db *database.D
 func NewFuncMap(db *database.DB) template.FuncMap {
 	return template.FuncMap{
 		"contains": strings.Contains,
-		"isArray": func(value interface{}) bool {
+		"isArray": func(value any) bool {
 			return reflect.TypeOf(value).Kind() == reflect.Slice
 		},
-		"isBool": func(value interface{}) bool {
+		"isBool": func(value any) bool {
 			return reflect.TypeOf(value).Kind() == reflect.Bool
 		},
 		"add": func(a, b int) int {
 			return a + b
 		},
 		"dict": sprig.TxtFuncMap()["dict"],
-		"marshalJSON": func(v interface{}) template.JS {
+		"marshalJSON": func(v any) template.JS {
 			b, err := json.Marshal(v)
 			if err != nil {
 				return "null"
@@ -774,7 +774,7 @@ func managementUsageRightsRulesPage(logger *log.Logger, db *database.DB) http.Ha
 
 		user, err := GetUserByToken(r, db)
 		if err != nil {
-			logger.Error("Internal error: %v", err)
+			logger.Errorf("Internal error: %v", err)
 		}
 
 		myPermission := model.MaskToPerms(user.Permissions)
@@ -785,12 +785,12 @@ func managementUsageRightsRulesPage(logger *log.Logger, db *database.DB) http.Ha
 		if ruleID != "" {
 			id, err = strconv.Atoi(ruleID)
 			if err != nil {
-				logger.Error("failed to convert id to int: %v", err)
+				logger.Errorf("failed to convert id to int: %v", err)
 			}
 
 			rule, err = internal.GetRuleByID(db, int64(id))
 			if err != nil {
-				logger.Error("failed to get id: %v", err)
+				logger.Errorf("failed to get id: %v", err)
 			}
 		}
 
@@ -822,26 +822,27 @@ func managementUsageRightsRulesPage(logger *log.Logger, db *database.DB) http.Ha
 					"front-end/html/management_usage_rights_rules_page.html"),
 		)
 
-		if err := managementUsageRightsRulesTemplate.ExecuteTemplate(w, "management_usage_rights_rules_page", map[string]any{
-			"myPermission":             myPermission,
-			"tab":                      tTranslated,
-			"username":                 user.Username,
-			"language":                 userLanguage,
-			"rule":                     rule,
-			"taskTypes":                TaskTypes,
-			"authorizedServers":        authorizedServers,
-			"listServers":              serverNames,
-			"authorizedPartners":       authorizedPartners,
-			"listPartners":             partnerNames,
-			"authorizedLocalAccounts":  authorizedLocalAccounts,
-			"listLocalAccounts":        listLocalAccounts,
-			"authorizedRemoteAccounts": authorizedRemoteAccounts,
-			"listRemoteAccounts":       listRemoteAccounts,
-			"errMsg":                   errMsg,
-			"modalOpen":                modalOpen,
-			"hasRuleID":                true,
-		}); err != nil {
-			logger.Error("render management_usage_rights_rules_page: %v", err)
+		if tmplErr := managementUsageRightsRulesTemplate.ExecuteTemplate(w, "management_usage_rights_rules_page",
+			map[string]any{
+				"myPermission":             myPermission,
+				"tab":                      tTranslated,
+				"username":                 user.Username,
+				"language":                 userLanguage,
+				"rule":                     rule,
+				"taskTypes":                TaskTypes,
+				"authorizedServers":        authorizedServers,
+				"listServers":              serverNames,
+				"authorizedPartners":       authorizedPartners,
+				"listPartners":             partnerNames,
+				"authorizedLocalAccounts":  authorizedLocalAccounts,
+				"listLocalAccounts":        listLocalAccounts,
+				"authorizedRemoteAccounts": authorizedRemoteAccounts,
+				"listRemoteAccounts":       listRemoteAccounts,
+				"errMsg":                   errMsg,
+				"modalOpen":                modalOpen,
+				"hasRuleID":                true,
+			}); tmplErr != nil {
+			logger.Errorf("render management_usage_rights_rules_page: %v", tmplErr)
 			http.Error(w, "Internal error", http.StatusInternalServerError)
 		}
 	}

@@ -19,12 +19,12 @@ func homePage(logger *log.Logger, db *database.DB) http.HandlerFunc {
 			logger.Errorf("Internal error loading user session: %v", err)
 		}
 
-		if err := homeTemplate.ExecuteTemplate(w, "home_page", map[string]any{
+		if tmplErr := homeTemplate.ExecuteTemplate(w, "home_page", map[string]any{
 			"tab":      tabTranslated,
 			"username": user.Username,
 			"language": userLanguage,
-		}); err != nil {
-			logger.Errorf("render home_page: %v", err)
+		}); tmplErr != nil {
+			logger.Errorf("render home_page: %v", tmplErr)
 			http.Error(w, "Internal error", http.StatusInternalServerError)
 		}
 	}

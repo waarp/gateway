@@ -25,10 +25,10 @@ const (
 
 var funcs = template.FuncMap{
 	"contains": strings.Contains,
-	"isArray": func(value interface{}) bool {
+	"isArray": func(value any) bool {
 		return reflect.TypeOf(value).Kind() == reflect.Slice
 	},
-	"isBool": func(value interface{}) bool {
+	"isBool": func(value any) bool {
 		return reflect.TypeOf(value).Kind() == reflect.Bool
 	},
 	"add": func(a, b int) int {
@@ -52,16 +52,17 @@ var funcs = template.FuncMap{
 	"splitExtensions": func(fileName, part string) string {
 		i := strings.Index(fileName, ".")
 		if i != -1 {
-			if part == "before" {
+			switch part {
+			case "before":
 				return fileName[:i]
-			} else if part == "after" {
+			case "after":
 				return fileName[i:]
 			}
 		}
 
 		return ""
 	},
-	"marshalJSON": func(v interface{}) template.JS {
+	"marshalJSON": func(v any) template.JS {
 		b, err := json.Marshal(v)
 		if err != nil {
 			return "null"

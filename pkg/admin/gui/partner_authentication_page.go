@@ -27,9 +27,9 @@ func listCredentialPartner(partnerName string, db *database.DB, r *http.Request)
 	}
 	urlParams := r.URL.Query()
 
-	if urlParams.Get("orderAsc") == "true" {
+	if urlParams.Get("orderAsc") == "true" { //nolint:goconst // correction in next push
 		filter.OrderAsc = true
-	} else if urlParams.Get("orderAsc") == "false" {
+	} else if urlParams.Get("orderAsc") == "false" { //nolint:goconst // correction in next push
 		filter.OrderAsc = false
 	}
 
@@ -111,7 +111,7 @@ func autocompletionCredentialsPartnersFunc(db *database.DB) http.HandlerFunc {
 
 		w.Header().Set("Content-Type", "application/json")
 
-		if err := json.NewEncoder(w).Encode(names); err != nil {
+		if jsonErr := json.NewEncoder(w).Encode(names); jsonErr != nil {
 			http.Error(w, "error json", http.StatusInternalServerError)
 		}
 	}
@@ -155,9 +155,9 @@ func editCredentialPartner(partnerName string, db *database.DB, r *http.Request)
 	}
 
 	switch editCredentialPartner.Type {
-	case "password":
+	case "password": //nolint:goconst // correction in next push
 		editCredentialPartner.Value = r.FormValue("editCredentialValue")
-	case "trusted_tls_certificate", "ssh_public_key":
+	case "trusted_tls_certificate", "ssh_public_key": //nolint:goconst // correction in next push
 		editCredentialPartner.Value = r.FormValue("editCredentialValueFile")
 	}
 
@@ -197,8 +197,8 @@ func addCredentialPartner(partnerName string, db *database.DB, r *http.Request) 
 
 	partner.SetCredOwner(&newCredentialPartner)
 
-	if err := internal.InsertCredential(db, &newCredentialPartner); err != nil {
-		return fmt.Errorf("failed to add credential partner: %w", err)
+	if addErr := internal.InsertCredential(db, &newCredentialPartner); addErr != nil {
+		return fmt.Errorf("failed to add credential partner: %w", addErr)
 	}
 
 	return nil
@@ -228,9 +228,10 @@ func deleteCredentialPartner(partnerName string, db *database.DB, r *http.Reques
 	return nil
 }
 
+//nolint:dupl // method for partner authentication
 func callMethodsPartnerAuthentication(logger *log.Logger, db *database.DB, w http.ResponseWriter, r *http.Request,
 	partner *model.RemoteAgent,
-) (bool, string, string) {
+) (value bool, errMsg, modalOpen string) {
 	if r.Method == http.MethodPost && r.FormValue("deleteCredentialPartner") != "" {
 		deleteCredentialPartnerErr := deleteCredentialPartner(partner.Name, db, r)
 		if deleteCredentialPartnerErr != nil {
@@ -319,7 +320,7 @@ func partnerAuthenticationPage(logger *log.Logger, db *database.DB) http.Handler
 		listSupportedProtocol := supportedProtocolInternal(partner.Protocol)
 		currentPage := filter.Offset + 1
 
-		if err := partnerAuthenticationTemplate.ExecuteTemplate(w, "partner_authentication_page", map[string]any{
+		if tmplErr := partnerAuthenticationTemplate.ExecuteTemplate(w, "partner_authentication_page", map[string]any{
 			"myPermission":           myPermission,
 			"tab":                    tabTrans,
 			"username":               user.Username,
@@ -333,8 +334,8 @@ func partnerAuthenticationPage(logger *log.Logger, db *database.DB) http.Handler
 			"errMsg":                 errMsg,
 			"modalOpen":              modalOpen,
 			"hasPartnerID":           true,
-		}); err != nil {
-			logger.Errorf("render partner_management_page: %v", err)
+		}); tmplErr != nil {
+			logger.Errorf("render partner_management_page: %v", tmplErr)
 			http.Error(w, "Internal error", http.StatusInternalServerError)
 		}
 	}

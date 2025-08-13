@@ -25,14 +25,14 @@ func init() {
 	}
 
 	for _, e := range entries {
-		file, err := webFS.ReadFile("front-end/multi_language/" + e.Name())
-		if err != nil {
-			log.Fatal(err)
+		file, readErr := webFS.ReadFile("front-end/multi_language/" + e.Name())
+		if readErr != nil {
+			log.Fatal(readErr)
 		}
 
 		page := make(map[string]map[string]string)
-		if err := json.Unmarshal(file, &page); err != nil {
-			log.Fatal(err)
+		if jsonErr := json.Unmarshal(file, &page); jsonErr != nil {
+			log.Fatal(jsonErr)
 		}
 		id := strings.TrimSuffix(e.Name(), ".json")
 		mapLanguage[id] = page
