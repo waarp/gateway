@@ -187,7 +187,7 @@ func listServer(db *database.DB, r *http.Request) ([]*model.LocalAgent, Filters,
 
 	urlParams := r.URL.Query()
 
-	filter.OrderAsc = urlParams.Get("orderAsc") == "true"
+	filter.OrderAsc = urlParams.Get("orderAsc") == True
 
 	if limitRes := urlParams.Get("limit"); limitRes != "" {
 		if l, err := strconv.ParseUint(limitRes, 10, 64); err == nil {
@@ -207,11 +207,11 @@ func listServer(db *database.DB, r *http.Request) ([]*model.LocalAgent, Filters,
 	}
 
 	if search := urlParams.Get("search"); search != "" && searchServer(search, server) == nil {
-		serverFound = "false"
+		serverFound = False
 	} else if search != "" {
 		filter.DisableNext = true
 		filter.DisablePrevious = true
-		serverFound = "true"
+		serverFound = True
 
 		return []*model.LocalAgent{searchServer(search, server)}, filter, serverFound
 	}

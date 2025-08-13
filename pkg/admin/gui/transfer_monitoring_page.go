@@ -568,14 +568,14 @@ func transferMonitoringPage(logger *log.Logger, db *database.DB) http.HandlerFun
 			"errMsg":                   errMsg,
 			"modalOpen":                modalOpen,
 		}
-		if r.URL.Query().Get("partial") == "true" {
-			if err := transferMonitoringTemplate.ExecuteTemplate(w, "transfer_monitoring_tbody", data); err == nil {
+		if r.URL.Query().Get("partial") == True {
+			if tableErr := transferMonitoringTemplate.ExecuteTemplate(w, "transfer_monitoring_tbody", data); tableErr == nil {
 				return
 			}
 		}
 
-		if err := transferMonitoringTemplate.ExecuteTemplate(w, "transfer_monitoring_page", data); err != nil {
-			logger.Error("render transfer_monitoring_page: %v", err)
+		if tmplErr := transferMonitoringTemplate.ExecuteTemplate(w, "transfer_monitoring_page", data); tmplErr != nil {
+			logger.Errorf("render transfer_monitoring_page: %v", tmplErr)
 			http.Error(w, "Internal error", http.StatusInternalServerError)
 		}
 	}

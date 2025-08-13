@@ -29,7 +29,7 @@ func listCredentialPartner(partnerName string, db *database.DB, r *http.Request)
 	}
 	urlParams := r.URL.Query()
 
-	filter.OrderAsc = urlParams.Get("orderAsc") == "true"
+	filter.OrderAsc = urlParams.Get("orderAsc") == True
 
 	if limitRes := urlParams.Get("limit"); limitRes != "" {
 		if l, err := strconv.ParseUint(limitRes, 10, 64); err == nil {
@@ -49,11 +49,11 @@ func listCredentialPartner(partnerName string, db *database.DB, r *http.Request)
 	}
 
 	if search := urlParams.Get("search"); search != "" && searchCredentialPartner(search, partnersCredentials) == nil {
-		credentialPartnerFound = "false"
+		credentialPartnerFound = False
 	} else if search != "" {
 		filter.DisableNext = true
 		filter.DisablePrevious = true
-		credentialPartnerFound = "true"
+		credentialPartnerFound = True
 
 		return []*model.Credential{searchCredentialPartner(search, partnersCredentials)}, filter, credentialPartnerFound
 	}

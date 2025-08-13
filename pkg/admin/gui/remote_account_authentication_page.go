@@ -31,7 +31,7 @@ func listCredentialRemoteAccount(partnerName, login string, db *database.DB, r *
 
 	urlParams := r.URL.Query()
 
-	filter.OrderAsc = urlParams.Get("orderAsc") == "true"
+	filter.OrderAsc = urlParams.Get("orderAsc") == True
 
 	if limitRes := urlParams.Get("limit"); limitRes != "" {
 		if l, err := strconv.ParseUint(limitRes, 10, 64); err == nil {
@@ -52,11 +52,11 @@ func listCredentialRemoteAccount(partnerName, login string, db *database.DB, r *
 
 	if search := urlParams.Get("search"); search != "" && searchCredentialRemoteAccount(search,
 		accountsCredentials) == nil {
-		credentialAccountFound = "false"
+		credentialAccountFound = False
 	} else if search != "" {
 		filter.DisableNext = true
 		filter.DisablePrevious = true
-		credentialAccountFound = "true"
+		credentialAccountFound = True
 
 		return []*model.Credential{searchCredentialRemoteAccount(search, accountsCredentials)}, filter, credentialAccountFound
 	}

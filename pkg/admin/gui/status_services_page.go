@@ -21,7 +21,7 @@ func statusServicesPage(logger *log.Logger, db *database.DB) http.HandlerFunc {
 
 		user, err := GetUserByToken(r, db)
 		if err != nil {
-			logger.Error("Internal error: %v", err)
+			logger.Errorf("Internal error: %v", err)
 		}
 
 		myPermission := model.MaskToPerms(user.Permissions)
@@ -34,21 +34,21 @@ func statusServicesPage(logger *log.Logger, db *database.DB) http.HandlerFunc {
 			"cores":        cores,
 			"servers":      servers,
 			"clients":      clients,
-			"Offline":		utils.StateOffline.String(),
-			"Running":		utils.StateRunning.String(),
-			"Error":		utils.StateError.String(),
+			"Offline":      utils.StateOffline.String(),
+			"Running":      utils.StateRunning.String(),
+			"Error":        utils.StateError.String(),
 		}
-		if r.URL.Query().Get("partial") == "true" {
-			if err := statusServicesTemplate.ExecuteTemplate(w, "status_services_partial", data); err != nil {
-				logger.Error("render status_services_partial: %v", err)
+		if r.URL.Query().Get("partial") == True {
+			if tmplErr := statusServicesTemplate.ExecuteTemplate(w, "status_services_partial", data); tmplErr != nil {
+				logger.Errorf("render status_services_partial: %v", tmplErr)
 				http.Error(w, "Internal error", http.StatusInternalServerError)
 			}
 
 			return
 		}
 
-		if err := statusServicesTemplate.ExecuteTemplate(w, "status_services_page", data); err != nil {
-			logger.Error("render status_services_page: %v", err)
+		if tmplErr := statusServicesTemplate.ExecuteTemplate(w, "status_services_page", data); tmplErr != nil {
+			logger.Errorf("render status_services_page: %v", tmplErr)
 			http.Error(w, "Internal error", http.StatusInternalServerError)
 		}
 	}

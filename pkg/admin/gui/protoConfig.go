@@ -24,9 +24,9 @@ func protoConfigR66Partner(r *http.Request) map[string]any {
 		r66ProtoConfig["blockSize"] = uint32(size)
 	}
 
-	r66ProtoConfig["noFinalHash"] = r.FormValue("noFinalHash") == "true"
+	r66ProtoConfig["noFinalHash"] = r.FormValue("noFinalHash") == True
 
-	r66ProtoConfig["checkBlockHash"] = r.FormValue("checkBlockHash") == "true"
+	r66ProtoConfig["checkBlockHash"] = r.FormValue("checkBlockHash") == True
 
 	return r66ProtoConfig
 }
@@ -47,9 +47,9 @@ func protoConfigR66Server(r *http.Request) map[string]any {
 		r66ProtoConfig["blockSize"] = uint32(size)
 	}
 
-	r66ProtoConfig["noFinalHash"] = r.FormValue("noFinalHash") == "true"
+	r66ProtoConfig["noFinalHash"] = r.FormValue("noFinalHash") == True
 
-	r66ProtoConfig["checkBlockHash"] = r.FormValue("checkBlockHash") == "true"
+	r66ProtoConfig["checkBlockHash"] = r.FormValue("checkBlockHash") == True
 
 	return r66ProtoConfig
 }
@@ -65,9 +65,9 @@ func protoConfigR66Client(r *http.Request) map[string]any {
 		r66ProtoConfig["blockSize"] = uint32(size)
 	}
 
-	r66ProtoConfig["noFinalHash"] = r.FormValue("noFinalHash") == "true"
+	r66ProtoConfig["noFinalHash"] = r.FormValue("noFinalHash") == True
 
-	r66ProtoConfig["checkBlockHash"] = r.FormValue("checkBlockHash") == "true"
+	r66ProtoConfig["checkBlockHash"] = r.FormValue("checkBlockHash") == True
 
 	return r66ProtoConfig
 }
@@ -87,9 +87,9 @@ func protoConfigSFTPpartner(r *http.Request) map[string]any {
 		sftpProtoConfig["macs"] = macs
 	}
 
-	sftpProtoConfig["useStat"] = r.FormValue("useStat") == "true"
+	sftpProtoConfig["useStat"] = r.FormValue("useStat") == True
 
-	sftpProtoConfig["disableClientConcurrentReads"] = r.FormValue("disableClientConcurrentReads") == "true"
+	sftpProtoConfig["disableClientConcurrentReads"] = r.FormValue("disableClientConcurrentReads") == True
 
 	return sftpProtoConfig
 }
@@ -133,17 +133,17 @@ func protoConfigSFTPClient(r *http.Request) map[string]any {
 func protoConfigFTPpartner(r *http.Request, protocol string) map[string]any {
 	ftpProtoConfig := make(map[string]any)
 
-	ftpProtoConfig["disableActiveMode"] = r.FormValue("disableActiveMode") == "true"
+	ftpProtoConfig["disableActiveMode"] = r.FormValue("disableActiveMode") == True
 
-	ftpProtoConfig["disableEPSV"] = r.FormValue("disableEPSV") == "true"
+	ftpProtoConfig["disableEPSV"] = r.FormValue("disableEPSV") == True
 
 	if protocol == ftp.FTPS {
-		ftpProtoConfig["useImplicitTLS"] = r.FormValue("useImplicitTLS") == "true"
+		ftpProtoConfig["useImplicitTLS"] = r.FormValue("useImplicitTLS") == True
 		if minTLSVersion := r.FormValue("protoConfigFTPSminTLSVersion"); minTLSVersion != "" {
 			ftpProtoConfig["minTLSVersion"] = minTLSVersion
 		}
 
-		ftpProtoConfig["disableTLSSessionReuse"] = r.FormValue("disableTLSSessionReuse") == "true"
+		ftpProtoConfig["disableTLSSessionReuse"] = r.FormValue("disableTLSSessionReuse") == True
 	}
 
 	return ftpProtoConfig
@@ -152,9 +152,9 @@ func protoConfigFTPpartner(r *http.Request, protocol string) map[string]any {
 func protoConfigFTPServer(r *http.Request, protocol string) map[string]any {
 	ftpProtoConfig := make(map[string]any)
 
-	ftpProtoConfig["disablePassiveMode"] = r.FormValue("disablePassiveMode") == "true"
+	ftpProtoConfig["disablePassiveMode"] = r.FormValue("disablePassiveMode") == True
 
-	ftpProtoConfig["disableActiveMode"] = r.FormValue("disableActiveMode") == "true"
+	ftpProtoConfig["disableActiveMode"] = r.FormValue("disableActiveMode") == True
 
 	if passiveModeMinPort := r.FormValue("passiveModeMinPort"); passiveModeMinPort != "" {
 		size, err := strconv.ParseUint(passiveModeMinPort, 10, 64)
@@ -188,7 +188,7 @@ func protoConfigFTPServer(r *http.Request, protocol string) map[string]any {
 func protoConfigFTPClient(r *http.Request, protocol string) map[string]any {
 	ftpProtoConfig := make(map[string]any)
 
-	ftpProtoConfig["enablePassiveMode"] = r.FormValue("enablePassiveMode") == "true"
+	ftpProtoConfig["enablePassiveMode"] = r.FormValue("enablePassiveMode") == True
 
 	if activeModeAddress := r.FormValue("activeModeAddress"); activeModeAddress != "" {
 		ftpProtoConfig["activeModeAddress"] = activeModeAddress
@@ -227,9 +227,9 @@ func protoConfigPeSITPartner(r *http.Request, protocol string) map[string]any {
 		pesitProtoConfig["login"] = login
 	}
 
-	pesitProtoConfig["disableRestart"] = r.FormValue("disableRestart") == "true"
+	pesitProtoConfig["disableRestart"] = r.FormValue("disableRestart") == True
 
-	pesitProtoConfig["disableCheckpoints"] = r.FormValue("disableCheckpoints") == "true"
+	pesitProtoConfig["disableCheckpoints"] = r.FormValue("disableCheckpoints") == True
 
 	if checkpointSize := r.FormValue("protoConfigPeSITcheckpointSize"); checkpointSize != "" {
 		size, err := strconv.ParseUint(checkpointSize, 10, 64)
@@ -247,7 +247,7 @@ func protoConfigPeSITPartner(r *http.Request, protocol string) map[string]any {
 		pesitProtoConfig["checkpointWindow"] = uint32(size)
 	}
 
-	pesitProtoConfig["useNSDU"] = r.FormValue("useNSDU") == "true"
+	pesitProtoConfig["useNSDU"] = r.FormValue("useNSDU") == True
 
 	if compatibilityMode := r.FormValue("protoConfigPeSITcompatibilityMode"); compatibilityMode != "" {
 		pesitProtoConfig["compatibilityMode"] = compatibilityMode
@@ -261,7 +261,7 @@ func protoConfigPeSITPartner(r *http.Request, protocol string) map[string]any {
 		pesitProtoConfig["maxMessageSize"] = uint32(size)
 	}
 
-	pesitProtoConfig["disablePreConnection"] = r.FormValue("disablePreConnection") == "true"
+	pesitProtoConfig["disablePreConnection"] = r.FormValue("disablePreConnection") == True
 
 	if protocol == pesit.PesitTLS {
 		if minTLSVersion := r.FormValue("protoConfigFTPSminTLSVersion"); minTLSVersion != "" {
@@ -276,9 +276,9 @@ func protoConfigPeSITPartner(r *http.Request, protocol string) map[string]any {
 func protoConfigPeSITServer(r *http.Request, protocol string) map[string]any {
 	pesitProtoConfig := make(map[string]any)
 
-	pesitProtoConfig["disableRestart"] = r.FormValue("disableRestart") == "true"
+	pesitProtoConfig["disableRestart"] = r.FormValue("disableRestart") == True
 
-	pesitProtoConfig["disableCheckpoints"] = r.FormValue("disableCheckpoints") == "true"
+	pesitProtoConfig["disableCheckpoints"] = r.FormValue("disableCheckpoints") == True
 
 	if checkpointSize := r.FormValue("protoConfigPeSITcheckpointSize"); checkpointSize != "" {
 		size, err := strconv.ParseUint(checkpointSize, 10, 64)
@@ -304,7 +304,7 @@ func protoConfigPeSITServer(r *http.Request, protocol string) map[string]any {
 		pesitProtoConfig["maxMessageSize"] = uint32(size)
 	}
 
-	pesitProtoConfig["disablePreConnection"] = r.FormValue("disablePreConnection") == "true"
+	pesitProtoConfig["disablePreConnection"] = r.FormValue("disablePreConnection") == True
 
 	if protocol == pesit.PesitTLS {
 		if minTLSVersion := r.FormValue("protoConfigFTPSminTLSVersion"); minTLSVersion != "" {
@@ -318,9 +318,9 @@ func protoConfigPeSITServer(r *http.Request, protocol string) map[string]any {
 func protoConfigPeSITClient(r *http.Request) map[string]any {
 	pesitProtoConfig := make(map[string]any)
 
-	pesitProtoConfig["disableRestart"] = r.FormValue("disableRestart") == "true"
+	pesitProtoConfig["disableRestart"] = r.FormValue("disableRestart") == True
 
-	pesitProtoConfig["disableCheckpoints"] = r.FormValue("disableCheckpoints") == "true"
+	pesitProtoConfig["disableCheckpoints"] = r.FormValue("disableCheckpoints") == True
 
 	if checkpointSize := r.FormValue("protoConfigPeSITcheckpointSize"); checkpointSize != "" {
 		size, err := strconv.ParseUint(checkpointSize, 10, 64)
