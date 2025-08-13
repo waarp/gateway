@@ -43,6 +43,10 @@ lint:
   script:
   - golangci-lint cache status
   - golangci-lint run --timeout 10m --output.junit-xml.path lint.junit.xml  --output.text.path /dev/null
+  cache:
+    key: go_dependencies_cache
+    paths:
+    - $CI_PROJECT_DIR/.gocache/
   artifacts:
     reports:
       junit: lint.junit.xml
