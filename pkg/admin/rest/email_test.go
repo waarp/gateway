@@ -19,6 +19,12 @@ import (
 )
 
 // Email templates
+const (
+	EmailTemplatesPath  = "/email/templates"
+	EmailTemplatePath   = "/email/templates/{email_template}"
+	SMTPCredentialsPath = "/email/credentials"
+	SMTPCredentialPath  = "/email/credentials/{smtp_credential}"
+)
 
 func TestAddEmailTemplate(t *testing.T) {
 	db := dbtest.TestDatabase(t)
