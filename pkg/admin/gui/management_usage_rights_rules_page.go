@@ -609,46 +609,6 @@ func callMethodsAuthorizedRemoteAccountsRules(logger *log.Logger, db *database.D
 	return false, "", ""
 }
 
-func NewFuncMap(db *database.DB) template.FuncMap {
-	return template.FuncMap{
-		"contains": strings.Contains,
-		"isArray": func(value any) bool {
-			return reflect.TypeOf(value).Kind() == reflect.Slice
-		},
-		"isBool": func(value any) bool {
-			return reflect.TypeOf(value).Kind() == reflect.Bool
-		},
-		"add": func(a, b int) int {
-			return a + b
-		},
-		"dict": sprig.TxtFuncMap()["dict"],
-		"marshalJSON": func(v any) template.JS {
-			b, err := json.Marshal(v)
-			if err != nil {
-				return "null"
-			}
-
-			return template.JS(b) //nolint:gosec // template.JS is necessary
-		},
-		"getServerName": func(id int64) string {
-			server, err := internal.GetServerByID(db, id)
-			if err != nil {
-				return ""
-			}
-
-			return server.Name
-		},
-		"getPartnerName": func(id int64) string {
-			partner, err := internal.GetPartnerByID(db, id)
-			if err != nil {
-				return ""
-			}
-
-			return partner.Name
-		},
-	}
-}
-
 func listAuthorizedServers(db *database.DB, rule *model.Rule, listServers []*model.LocalAgent,
 ) ([]string, []*model.LocalAgent) {
 	serverNames := make([]string, len(listServers))

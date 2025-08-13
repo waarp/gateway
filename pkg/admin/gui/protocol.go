@@ -5,7 +5,7 @@ import (
 
 	"code.waarp.fr/apps/gateway/gateway/pkg/model/authentication/auth"
 	"code.waarp.fr/apps/gateway/gateway/pkg/protocols/modules/ftp"
-	httpConst "code.waarp.fr/apps/gateway/gateway/pkg/protocols/modules/http"
+	httpconst "code.waarp.fr/apps/gateway/gateway/pkg/protocols/modules/http"
 	"code.waarp.fr/apps/gateway/gateway/pkg/protocols/modules/pesit"
 	"code.waarp.fr/apps/gateway/gateway/pkg/protocols/modules/r66"
 	"code.waarp.fr/apps/gateway/gateway/pkg/protocols/modules/sftp"
@@ -28,8 +28,8 @@ func supportedProtocolInternal(protocol string) []string {
 	supportedProtocolsInternal := map[string][]string{
 		r66.R66:         {auth.Password},
 		r66.R66TLS:      {auth.Password, auth.TLSTrustedCertificate, r66.AuthLegacyCertificate},
-		httpConst.HTTP:  {auth.Password},
-		httpConst.HTTPS: {auth.Password, auth.TLSTrustedCertificate},
+		httpconst.HTTP:  {auth.Password},
+		httpconst.HTTPS: {auth.Password, auth.TLSTrustedCertificate},
 		sftp.SFTP:       {auth.Password, sftp.AuthSSHPublicKey},
 		pesit.Pesit:     {auth.Password},
 		pesit.PesitTLS:  {auth.Password, auth.TLSTrustedCertificate},
@@ -42,8 +42,8 @@ func supportedProtocolExternal(protocol string) []string {
 	supportedProtocolsExternal := map[string][]string{
 		r66.R66:         {auth.Password},
 		r66.R66TLS:      {auth.Password, auth.TLSCertificate, r66.AuthLegacyCertificate},
-		httpConst.HTTP:  {auth.Password},
-		httpConst.HTTPS: {auth.Password, auth.TLSCertificate},
+		httpconst.HTTP:  {auth.Password},
+		httpconst.HTTPS: {auth.Password, auth.TLSCertificate},
 		sftp.SFTP:       {auth.Password, sftp.AuthSSHPrivateKey},
 		pesit.Pesit:     {auth.Password, pesit.PreConnectionAuth},
 		pesit.PesitTLS:  {auth.TLSCertificate, pesit.PreConnectionAuth},
@@ -76,11 +76,11 @@ func protocolsFilter(r *http.Request, filter *Filters) (*Filters, []string) {
 	}
 
 	if filter.Protocols.HTTP = urlParams.Get("filterProtocolHTTP"); filter.Protocols.HTTP == "true" {
-		filterProtocol = append(filterProtocol, httpConst.HTTP)
+		filterProtocol = append(filterProtocol, httpconst.HTTP)
 	}
 
 	if filter.Protocols.HTTPS = urlParams.Get("filterProtocolHTTPS"); filter.Protocols.HTTPS == "true" {
-		filterProtocol = append(filterProtocol, httpConst.HTTPS)
+		filterProtocol = append(filterProtocol, httpconst.HTTPS)
 	}
 
 	if filter.Protocols.FTP = urlParams.Get("filterProtocolFTP"); filter.Protocols.FTP == "true" {

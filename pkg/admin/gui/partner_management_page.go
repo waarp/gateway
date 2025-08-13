@@ -131,9 +131,9 @@ func ListPartner(db *database.DB, r *http.Request) ([]*model.RemoteAgent, Filter
 	}
 	urlParams := r.URL.Query()
 
-	if urlParams.Get("orderAsc") == "true" {
+	if urlParams.Get("orderAsc") == "true" { //nolint:goconst // correction in next push
 		filter.OrderAsc = true
-	} else if urlParams.Get("orderAsc") == "false" {
+	} else if urlParams.Get("orderAsc") == "false" { //nolint:goconst // correction in next push
 		filter.OrderAsc = false
 	}
 

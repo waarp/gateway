@@ -12,7 +12,16 @@ import (
 	"golang.org/x/text/message"
 )
 
-const hoursDay = 24
+const (
+	hoursDay  = 24
+	English   = "en"
+	EnglishUS = "en-US"
+	EnglishGB = "en-GB"
+	EnglishAU = "en-AU"
+	French    = "fr"
+	FrenchFR  = "fr-FR"
+	FrenchCA  = "fr-CA"
+)
 
 //nolint:gochecknoglobals // map
 var mapLanguage = make(map[string]map[string]map[string]string)
@@ -76,29 +85,29 @@ func detectLanguage(r *http.Request) string {
 	languageAl := strings.Split(res, ",")
 
 	for _, v := range languageAl {
-		if strings.HasPrefix(v, "en") {
-			return "en"
+		if strings.HasPrefix(v, English) {
+			return English
 		}
 
-		if strings.HasPrefix(v, "fr") {
-			return "fr"
+		if strings.HasPrefix(v, French) {
+			return French
 		}
 	}
 
-	return "en"
+	return English
 }
 
 //nolint:unused // method for later
 func tagLanguage(r *http.Request, userLanguage string) language.Tag {
 	matcher := language.NewMatcher([]language.Tag{
-		language.MustParse("en"),
-		language.MustParse("en-US"),
-		language.MustParse("en-GB"),
-		language.MustParse("en-AU"),
+		language.MustParse(English),
+		language.MustParse(EnglishUS),
+		language.MustParse(EnglishGB),
+		language.MustParse(EnglishAU),
 
-		language.MustParse("fr"),
-		language.MustParse("fr-FR"),
-		language.MustParse("fr-CA"),
+		language.MustParse(French),
+		language.MustParse(FrenchFR),
+		language.MustParse(FrenchCA),
 	})
 
 	res := r.Header.Get("Accept-Language")
@@ -147,7 +156,7 @@ func translateCurrency(nb float64, r *http.Request, currencyStr, userLanguage st
 
 func translateDateTime(t time.Time, r *http.Request, userLanguage string) string {
 	tag := tagLanguage(r, userLanguage).String()
-	if tag == "en-US" {
+	if tag == EnglishUS {
 		return t.Format("03:04:05 PM - 01-02-2006")
 	}
 
@@ -157,7 +166,7 @@ func translateDateTime(t time.Time, r *http.Request, userLanguage string) string
 //nolint:unused // method for later
 func translateDateShort(t time.Time, r *http.Request, userLanguage string) string {
 	tag := tagLanguage(r, userLanguage).String()
-	if tag == "en-US" {
+	if tag == EnglishUS {
 		return t.Format("01-02-2006")
 	}
 
@@ -167,7 +176,7 @@ func translateDateShort(t time.Time, r *http.Request, userLanguage string) strin
 //nolint:unused // method for later
 func translateTime(t time.Time, r *http.Request, userLanguage string) string {
 	tag := tagLanguage(r, userLanguage).String()
-	if tag == "en-US" {
+	if tag == EnglishUS {
 		return t.Format("03:04:05 PM")
 	}
 

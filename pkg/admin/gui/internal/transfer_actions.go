@@ -90,11 +90,11 @@ func RegisterNewTransfer(db *database.DB,
 
 func PauseTransfer(ctx context.Context, db database.Access, view *model.NormalizedTransferView,
 ) error {
-	if transfer.Status != types.StatusRunning {
+	if view.Status != types.StatusRunning {
 		return ErrPauseTransferNotRunning
 	}
 
-	if pip := pipeline.List.Get(transfer.ID); pip != nil {
+	if pip := pipeline.List.Get(view.ID); pip != nil {
 		if err := pip.Pause(ctx); err != nil {
 			return fmt.Errorf("failed to pause transfer: %w", err)
 		}
@@ -102,8 +102,13 @@ func PauseTransfer(ctx context.Context, db database.Access, view *model.Normaliz
 		return nil
 	}
 
+	var transfer model.Transfer
+	if err := db.Get(&transfer, "id=?", view.ID).Run(); err != nil {
+		return fmt.Errorf("failed to retrieve transfer: %w", err)
+	}
+
 	transfer.Status = types.StatusPaused
-	if err := db.Update(transfer).Run(); err != nil {
+	if err := db.Update(&transfer).Run(); err != nil {
 		return fmt.Errorf("failed to update transfer: %w", err)
 	}
 

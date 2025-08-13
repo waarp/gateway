@@ -366,7 +366,7 @@ func callMethodsTransferMonitoring(logger *log.Logger, db *database.DB, w http.R
 		var newTransferErr error
 
 		if newTransferID, newTransferErr = addTransfer(db, r); newTransferErr != nil {
-			logger.Error("failed to add transfer: %v", newTransferErr)
+			logger.Errorf("failed to add transfer: %v", newTransferErr)
 
 			return false, newTransferErr.Error(), "addTransferModal"
 		}
@@ -378,7 +378,7 @@ func callMethodsTransferMonitoring(logger *log.Logger, db *database.DB, w http.R
 
 	if r.Method == http.MethodPost && r.FormValue("pauseTransferID") != "" {
 		if pauseTransferErr := pauseTransfer(db, r); pauseTransferErr != nil {
-			logger.Error("transfer pause failed : %v", pauseTransferErr)
+			logger.Errorf("transfer pause failed : %v", pauseTransferErr)
 
 			return false, pauseTransferErr.Error(), ""
 		}
@@ -390,7 +390,7 @@ func callMethodsTransferMonitoring(logger *log.Logger, db *database.DB, w http.R
 
 	if r.Method == http.MethodPost && r.FormValue("resumeTransferID") != "" {
 		if resumeTransferErr := resumeTransfer(db, r); resumeTransferErr != nil {
-			logger.Error("transfer resume failed : %v", resumeTransferErr)
+			logger.Errorf("transfer resume failed : %v", resumeTransferErr)
 
 			return false, resumeTransferErr.Error(), ""
 		}
@@ -402,7 +402,7 @@ func callMethodsTransferMonitoring(logger *log.Logger, db *database.DB, w http.R
 
 	if r.Method == http.MethodPost && r.FormValue("cancelTransferID") != "" {
 		if cancelTransferErr := cancelTransfer(db, r); cancelTransferErr != nil {
-			logger.Error("transfer cancel failed : %v", cancelTransferErr)
+			logger.Errorf("transfer cancel failed : %v", cancelTransferErr)
 
 			return false, cancelTransferErr.Error(), ""
 		}
@@ -417,7 +417,7 @@ func callMethodsTransferMonitoring(logger *log.Logger, db *database.DB, w http.R
 		var rescheduleTransferErr error
 
 		if newTransferID, rescheduleTransferErr = rescheduleTransfer(db, r); rescheduleTransferErr != nil {
-			logger.Error("reschesule cancel failed : %v", rescheduleTransferErr)
+			logger.Errorf("reschesule cancel failed : %v", rescheduleTransferErr)
 
 			return false, rescheduleTransferErr.Error(), ""
 		}
@@ -430,10 +430,9 @@ func callMethodsTransferMonitoring(logger *log.Logger, db *database.DB, w http.R
 	return false, "", ""
 }
 
-func mapUtilsTemplate(db *database.DB, listPartners []*model.RemoteAgent,
-	listServers []*model.LocalAgent,
-) (map[string][]string, map[string][]string) {
-	listAccountsNames := make(map[string][]string)
+func mapUtilsTemplate(db *database.DB, listPartners []*model.RemoteAgent, listServers []*model.LocalAgent,
+) (listAccountsNames, listAgentsNames map[string][]string) {
+	listAccountsNames = make(map[string][]string)
 
 	for _, p := range listPartners {
 		accounts, err := internal.ListPartnerAccounts(db, p.Name, "login", true, 0, 0)
@@ -446,7 +445,7 @@ func mapUtilsTemplate(db *database.DB, listPartners []*model.RemoteAgent,
 		}
 	}
 
-	listAgentsNames := make(map[string][]string)
+	listAgentsNames = make(map[string][]string)
 
 	for _, p := range listPartners {
 		if accs, err := internal.ListPartnerAccounts(db, p.Name, "login", true, 0, 0); len(accs) > 0 && err == nil {
@@ -467,55 +466,51 @@ func mapUtilsTemplate(db *database.DB, listPartners []*model.RemoteAgent,
 	return listAccountsNames, listAgentsNames
 }
 
-func listUtilsTemplate(logger *log.Logger, db *database.DB) ([]*model.RemoteAgent,
-	[]*model.LocalAgent, []string, []string, []string, []string, []string,
+func listUtilsTemplate(logger *log.Logger, db *database.DB) (
+	listPartners []*model.RemoteAgent, listServers []*model.LocalAgent,
+	listPartnersNames, listServersNames, listClientsNames, ruleSendNames, ruleReceiveNames []string,
 ) {
 	listPartners, err := internal.ListPartners(db, "name", true, 0, 0)
 	if err != nil {
-		logger.Error("failed to get list partner: %v", err)
+		logger.Errorf("failed to get list partner: %v", err)
 	}
 
-	listServers, err := internal.ListServers(db, "name", true, 0, 0)
+	listServers, err = internal.ListServers(db, "name", true, 0, 0)
 	if err != nil {
-		logger.Error("failed to get list server: %v", err)
+		logger.Errorf("failed to get list server: %v", err)
 	}
 
 	listClients, err := internal.ListClients(db, "name", true, 0, 0)
 	if err != nil {
-		logger.Error("failed to get list client: %v", err)
+		logger.Errorf("failed to get list client: %v", err)
 	}
 
 	ruleSend, err := internal.ListRulesByDirection(db, "name", true, 0, 0, true)
 	if err != nil {
-		logger.Error("failed to get list sending rules: %v", err)
+		logger.Errorf("failed to get list sending rules: %v", err)
 	}
 
 	ruleReceive, err := internal.ListRulesByDirection(db, "name", true, 0, 0, false)
 	if err != nil {
-		logger.Error("failed to get list reception rules: %v", err)
+		logger.Errorf("failed to get list reception rules: %v", err)
 	}
 
-	var ruleSendNames []string
 	for _, r := range ruleSend {
 		ruleSendNames = append(ruleSendNames, r.Name)
 	}
 
-	var ruleReceiveNames []string
 	for _, r := range ruleReceive {
 		ruleReceiveNames = append(ruleReceiveNames, r.Name)
 	}
 
-	var listPartnersNames []string
 	for _, r := range listPartners {
 		listPartnersNames = append(listPartnersNames, r.Name)
 	}
 
-	var listServersNames []string
 	for _, r := range listServers {
 		listServersNames = append(listServersNames, r.Name)
 	}
 
-	var listClientsNames []string
 	for _, r := range listClients {
 		listClientsNames = append(listClientsNames, r.Name)
 	}
@@ -539,7 +534,7 @@ func transferMonitoringPage(logger *log.Logger, db *database.DB) http.HandlerFun
 
 		user, err := GetUserByToken(r, db)
 		if err != nil {
-			logger.Error("Internal error: %v", err)
+			logger.Errorf("Internal error: %v", err)
 		}
 
 		successAddTransfer := r.URL.Query().Get("successAddTransfer")
@@ -553,7 +548,7 @@ func transferMonitoringPage(logger *log.Logger, db *database.DB) http.HandlerFun
 		currentPage := filter.Offset + 1
 
 		if r.URL.Query().Get("partial") == "true" {
-			if err := transferMonitoringTemplate.ExecuteTemplate(w, "transfer_monitoring_tbody", map[string]any{
+			if tmplErr := transferMonitoringTemplate.ExecuteTemplate(w, "transfer_monitoring_tbody", map[string]any{
 				"myPermission":             myPermission,
 				"tab":                      tabTranslated,
 				"username":                 user.Username,
@@ -573,12 +568,12 @@ func transferMonitoringPage(logger *log.Logger, db *database.DB) http.HandlerFun
 				"successReprogramTransfer": successReprogramTransfer,
 				"errMsg":                   errMsg,
 				"modalOpen":                modalOpen,
-			}); err == nil {
+			}); tmplErr == nil {
 				return
 			}
 		}
 
-		if err := transferMonitoringTemplate.ExecuteTemplate(w, "transfer_monitoring_page", map[string]any{
+		if tmplErr := transferMonitoringTemplate.ExecuteTemplate(w, "transfer_monitoring_page", map[string]any{
 			"myPermission":             myPermission,
 			"tab":                      tabTranslated,
 			"username":                 user.Username,
@@ -598,8 +593,8 @@ func transferMonitoringPage(logger *log.Logger, db *database.DB) http.HandlerFun
 			"successReprogramTransfer": successReprogramTransfer,
 			"errMsg":                   errMsg,
 			"modalOpen":                modalOpen,
-		}); err != nil {
-			logger.Error("render transfer_monitoring_page: %v", err)
+		}); tmplErr != nil {
+			logger.Errorf("render transfer_monitoring_page: %v", tmplErr)
 			http.Error(w, "Internal error", http.StatusInternalServerError)
 		}
 	}
