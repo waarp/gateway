@@ -168,11 +168,7 @@ func listUser(db *database.DB, r *http.Request) ([]*model.User, Filters, string)
 	}
 	urlParams := r.URL.Query()
 
-	if urlParams.Get("orderAsc") == "true" {
-		filter.OrderAsc = true
-	} else if urlParams.Get("orderAsc") == "false" {
-		filter.OrderAsc = false
-	}
+	filter.OrderAsc = urlParams.Get("orderAsc") == True
 
 	if limitRes := urlParams.Get("limit"); limitRes != "" {
 		if l, err := strconv.ParseUint(limitRes, 10, 64); err == nil {
@@ -195,11 +191,11 @@ func listUser(db *database.DB, r *http.Request) ([]*model.User, Filters, string)
 		if userSearch := searchUser(search, user); userSearch != nil {
 			filter.DisableNext = true
 			filter.DisablePrevious = true
-			userFound = "true"
+			userFound = True
 
 			return []*model.User{userSearch}, filter, userFound
 		}
-		userFound = "false"
+		userFound = False
 	}
 
 	filter.Permissions = urlParams.Get("permissions")
@@ -219,11 +215,11 @@ func paginationFunc(r *http.Request, user []*model.User, filter *Filters) ([]*mo
 	nbUsers := uint64(len(user))
 	urlParams := r.URL.Query()
 
-	if urlParams.Get("previous") == "true" && filter.Offset > 0 {
+	if urlParams.Get("previous") == True && filter.Offset > 0 {
 		filter.Offset--
 	}
 
-	if urlParams.Get("next") == "true" {
+	if urlParams.Get("next") == True {
 		if filter.Limit*(filter.Offset+1) <= nbUsers {
 			filter.Offset++
 		}

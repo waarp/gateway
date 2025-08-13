@@ -28,11 +28,7 @@ func listLocalAccount(serverName string, db *database.DB, r *http.Request) (
 
 	urlParams := r.URL.Query()
 
-	if urlParams.Get("orderAsc") == "true" {
-		filter.OrderAsc = true
-	} else if urlParams.Get("orderAsc") == "false" {
-		filter.OrderAsc = false
-	}
+	filter.OrderAsc = urlParams.Get("orderAsc") == True
 
 	if limitRes := urlParams.Get("limit"); limitRes != "" {
 		if l, err := strconv.ParseUint(limitRes, 10, 64); err == nil {
@@ -52,11 +48,11 @@ func listLocalAccount(serverName string, db *database.DB, r *http.Request) (
 	}
 
 	if search := urlParams.Get("search"); search != "" && searchLocalAccount(search, localsAccounts) == nil {
-		localAccountFound = "false"
+		localAccountFound = False
 	} else if search != "" {
 		filter.DisableNext = true
 		filter.DisablePrevious = true
-		localAccountFound = "true"
+		localAccountFound = True
 
 		return []*model.LocalAccount{searchLocalAccount(search, localsAccounts)}, filter, localAccountFound
 	}

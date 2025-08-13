@@ -24,7 +24,7 @@ func addRule(db *database.DB, r *http.Request) error {
 		newRule.Name = newRuleName
 	}
 
-	newRule.IsSend = r.FormValue("addRuleIsSend") == "true"
+	newRule.IsSend = r.FormValue("addRuleIsSend") == True
 
 	if addRuleComment := r.FormValue("addRuleComment"); addRuleComment != "" {
 		newRule.Comment = addRuleComment
@@ -73,7 +73,7 @@ func editRule(db *database.DB, r *http.Request) error {
 		editRule.Name = editRuleName
 	}
 
-	editRule.IsSend = r.FormValue("editRuleIsSend") == "true"
+	editRule.IsSend = r.FormValue("editRuleIsSend") == True
 
 	if editRuleComment := r.FormValue("editRuleComment"); editRuleComment != "" {
 		editRule.Comment = editRuleComment
@@ -137,11 +137,8 @@ func listRule(db *database.DB, r *http.Request) ([]*model.Rule, Filters, string)
 	}
 
 	urlParams := r.URL.Query()
-	if urlParams.Get("orderAsc") == "true" {
-		filter.OrderAsc = true
-	} else if urlParams.Get("orderAsc") == "false" {
-		filter.OrderAsc = false
-	}
+
+	filter.OrderAsc = urlParams.Get("orderAsc") == True
 
 	if limitRes := urlParams.Get("limit"); limitRes != "" {
 		if l, err := strconv.ParseUint(limitRes, 10, 64); err == nil {
@@ -161,11 +158,11 @@ func listRule(db *database.DB, r *http.Request) ([]*model.Rule, Filters, string)
 	}
 
 	if search := urlParams.Get("search"); search != "" && searchRule(search, rule) == nil {
-		ruleFound = "false"
+		ruleFound = False
 	} else if search != "" {
 		filter.DisableNext = true
 		filter.DisablePrevious = true
-		ruleFound = "true"
+		ruleFound = True
 
 		return []*model.Rule{searchRule(search, rule)}, filter, ruleFound
 	}

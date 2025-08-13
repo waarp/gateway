@@ -1,5 +1,5 @@
 document.addEventListener('DOMContentLoaded', function () {
-    const container = document.getElementById('container-tasks');
+    const container = document.getElementById('container-collapse');
     if (!container)
         return;
 

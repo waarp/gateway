@@ -155,11 +155,8 @@ func listLocalClient(db *database.DB, r *http.Request) ([]*model.Client, Filters
 	}
 
 	urlParams := r.URL.Query()
-	if urlParams.Get("orderAsc") == "true" {
-		filter.OrderAsc = true
-	} else if urlParams.Get("orderAsc") == "false" {
-		filter.OrderAsc = false
-	}
+
+	filter.OrderAsc = urlParams.Get("orderAsc") == True
 
 	if limitRes := urlParams.Get("limit"); limitRes != "" {
 		if l, err := strconv.ParseUint(limitRes, 10, 64); err == nil {
@@ -179,11 +176,11 @@ func listLocalClient(db *database.DB, r *http.Request) ([]*model.Client, Filters
 	}
 
 	if search := urlParams.Get("search"); search != "" && searchLocalClient(search, localClient) == nil {
-		localClientFound = "false"
+		localClientFound = False
 	} else if search != "" {
 		filter.DisableNext = true
 		filter.DisablePrevious = true
-		localClientFound = "true"
+		localClientFound = True
 
 		return []*model.Client{searchLocalClient(search, localClient)}, filter, localClientFound
 	}

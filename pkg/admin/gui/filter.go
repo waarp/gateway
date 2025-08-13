@@ -23,14 +23,18 @@ type Filters struct {
 	FilterAccount     string
 }
 
-const DefaultLimitPagination = 30
+const (
+	DefaultLimitPagination = 30
+	True                   = "true"
+	False                  = "false"
+)
 
 func paginationPage(filter *Filters, lenList uint64, r *http.Request) {
-	if r.URL.Query().Get("previous") == "true" && filter.Offset > 0 {
+	if r.URL.Query().Get("previous") == True && filter.Offset > 0 {
 		filter.Offset--
 	}
 
-	if r.URL.Query().Get("next") == "true" {
+	if r.URL.Query().Get("next") == True {
 		if filter.Limit*(filter.Offset+1) <= lenList {
 			filter.Offset++
 		}

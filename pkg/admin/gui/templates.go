@@ -205,4 +205,9 @@ var (
 			Funcs(funcs).
 			ParseFS(webFS, index, header, multiLanguage, "front-end/html/transfer_monitoring_page.html"),
 	)
+	statusServicesTemplate = template.Must(
+		template.New("status_services_page.html").
+			Funcs(funcs).
+			ParseFS(webFS, index, header, multiLanguage, "front-end/html/status_services_page.html"),
+	)
 )

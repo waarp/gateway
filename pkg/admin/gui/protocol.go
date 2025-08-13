@@ -63,39 +63,39 @@ func protocolsFilter(r *http.Request, filter *Filters) (*Filters, []string) {
 	var filterProtocol []string
 	urlParams := r.URL.Query()
 
-	if filter.Protocols.R66 = urlParams.Get("filterProtocolR66"); filter.Protocols.R66 == "true" {
+	if filter.Protocols.R66 = urlParams.Get("filterProtocolR66"); filter.Protocols.R66 == True {
 		filterProtocol = append(filterProtocol, r66.R66)
 	}
 
-	if filter.Protocols.R66TLS = urlParams.Get("filterProtocolR66-TLS"); filter.Protocols.R66TLS == "true" {
+	if filter.Protocols.R66TLS = urlParams.Get("filterProtocolR66-TLS"); filter.Protocols.R66TLS == True {
 		filterProtocol = append(filterProtocol, r66.R66TLS)
 	}
 
-	if filter.Protocols.SFTP = urlParams.Get("filterProtocolSFTP"); filter.Protocols.SFTP == "true" {
+	if filter.Protocols.SFTP = urlParams.Get("filterProtocolSFTP"); filter.Protocols.SFTP == True {
 		filterProtocol = append(filterProtocol, sftp.SFTP)
 	}
 
-	if filter.Protocols.HTTP = urlParams.Get("filterProtocolHTTP"); filter.Protocols.HTTP == "true" {
+	if filter.Protocols.HTTP = urlParams.Get("filterProtocolHTTP"); filter.Protocols.HTTP == True {
 		filterProtocol = append(filterProtocol, httpconst.HTTP)
 	}
 
-	if filter.Protocols.HTTPS = urlParams.Get("filterProtocolHTTPS"); filter.Protocols.HTTPS == "true" {
+	if filter.Protocols.HTTPS = urlParams.Get("filterProtocolHTTPS"); filter.Protocols.HTTPS == True {
 		filterProtocol = append(filterProtocol, httpconst.HTTPS)
 	}
 
-	if filter.Protocols.FTP = urlParams.Get("filterProtocolFTP"); filter.Protocols.FTP == "true" {
+	if filter.Protocols.FTP = urlParams.Get("filterProtocolFTP"); filter.Protocols.FTP == True {
 		filterProtocol = append(filterProtocol, ftp.FTP)
 	}
 
-	if filter.Protocols.FTPS = urlParams.Get("filterProtocolFTPS"); filter.Protocols.FTPS == "true" {
+	if filter.Protocols.FTPS = urlParams.Get("filterProtocolFTPS"); filter.Protocols.FTPS == True {
 		filterProtocol = append(filterProtocol, ftp.FTPS)
 	}
 
-	if filter.Protocols.PeSIT = urlParams.Get("filterProtocolPeSIT"); filter.Protocols.PeSIT == "true" {
+	if filter.Protocols.PeSIT = urlParams.Get("filterProtocolPeSIT"); filter.Protocols.PeSIT == True {
 		filterProtocol = append(filterProtocol, pesit.Pesit)
 	}
 
-	if filter.Protocols.PeSITTLS = urlParams.Get("filterProtocolPeSIT-TLS"); filter.Protocols.PeSITTLS == "true" {
+	if filter.Protocols.PeSITTLS = urlParams.Get("filterProtocolPeSIT-TLS"); filter.Protocols.PeSITTLS == True {
 		filterProtocol = append(filterProtocol, pesit.PesitTLS)
 	}
 

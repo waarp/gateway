@@ -547,33 +547,7 @@ func transferMonitoringPage(logger *log.Logger, db *database.DB) http.HandlerFun
 		myPermission := model.MaskToPerms(user.Permissions)
 		currentPage := filter.Offset + 1
 
-		if r.URL.Query().Get("partial") == "true" {
-			if tmplErr := transferMonitoringTemplate.ExecuteTemplate(w, "transfer_monitoring_tbody", map[string]any{
-				"myPermission":             myPermission,
-				"tab":                      tabTranslated,
-				"username":                 user.Username,
-				"language":                 userLanguage,
-				"transfer":                 transferList,
-				"filter":                   filter,
-				"Request":                  r,
-				"currentPage":              currentPage,
-				"listPartners":             listPartnersNames,
-				"listServers":              listServersNames,
-				"listAccounts":             listAccountsNames,
-				"listAgents":               listAgentsNames,
-				"listClients":              listClientsNames,
-				"ruleSend":                 ruleSendNames,
-				"ruleReceive":              ruleReceiveNames,
-				"successAddTransfer":       successAddTransfer,
-				"successReprogramTransfer": successReprogramTransfer,
-				"errMsg":                   errMsg,
-				"modalOpen":                modalOpen,
-			}); tmplErr == nil {
-				return
-			}
-		}
-
-		if tmplErr := transferMonitoringTemplate.ExecuteTemplate(w, "transfer_monitoring_page", map[string]any{
+		data := map[string]any{
 			"myPermission":             myPermission,
 			"tab":                      tabTranslated,
 			"username":                 user.Username,
@@ -593,7 +567,14 @@ func transferMonitoringPage(logger *log.Logger, db *database.DB) http.HandlerFun
 			"successReprogramTransfer": successReprogramTransfer,
 			"errMsg":                   errMsg,
 			"modalOpen":                modalOpen,
-		}); tmplErr != nil {
+		}
+		if r.URL.Query().Get("partial") == True {
+			if tableErr := transferMonitoringTemplate.ExecuteTemplate(w, "transfer_monitoring_tbody", data); tableErr == nil {
+				return
+			}
+		}
+
+		if tmplErr := transferMonitoringTemplate.ExecuteTemplate(w, "transfer_monitoring_page", data); tmplErr != nil {
 			logger.Errorf("render transfer_monitoring_page: %v", tmplErr)
 			http.Error(w, "Internal error", http.StatusInternalServerError)
 		}

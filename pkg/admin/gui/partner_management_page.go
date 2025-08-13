@@ -131,11 +131,7 @@ func ListPartner(db *database.DB, r *http.Request) ([]*model.RemoteAgent, Filter
 	}
 	urlParams := r.URL.Query()
 
-	if urlParams.Get("orderAsc") == "true" { //nolint:goconst // correction in next push
-		filter.OrderAsc = true
-	} else if urlParams.Get("orderAsc") == "false" { //nolint:goconst // correction in next push
-		filter.OrderAsc = false
-	}
+	filter.OrderAsc = urlParams.Get("orderAsc") == True
 
 	if limitRes := urlParams.Get("limit"); limitRes != "" {
 		if l, err := strconv.ParseUint(limitRes, 10, 64); err == nil {
@@ -155,11 +151,11 @@ func ListPartner(db *database.DB, r *http.Request) ([]*model.RemoteAgent, Filter
 	}
 
 	if search := urlParams.Get("search"); search != "" && searchPartner(search, partner) == nil {
-		partnerFound = "false"
+		partnerFound = False
 	} else if search != "" {
 		filter.DisableNext = true
 		filter.DisablePrevious = true
-		partnerFound = "true"
+		partnerFound = True
 
 		return []*model.RemoteAgent{searchPartner(search, partner)}, filter, partnerFound
 	}
