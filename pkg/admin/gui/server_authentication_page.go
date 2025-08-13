@@ -114,7 +114,7 @@ func autocompletionCredentialsServersFunc(db *database.DB) http.HandlerFunc {
 
 		w.Header().Set("Content-Type", "application/json")
 
-		if err := json.NewEncoder(w).Encode(names); err != nil {
+		if jsonErr := json.NewEncoder(w).Encode(names); jsonErr != nil {
 			http.Error(w, "error json", http.StatusInternalServerError)
 		}
 	}
@@ -167,8 +167,8 @@ func addCredentialServer(serverName string, db *database.DB, r *http.Request) er
 
 	server.SetCredOwner(&newCredentialServer)
 
-	if err := internal.InsertCredential(db, &newCredentialServer); err != nil {
-		return fmt.Errorf("failed to add credential server: %w", err)
+	if addErr := internal.InsertCredential(db, &newCredentialServer); addErr != nil {
+		return fmt.Errorf("failed to add credential server: %w", addErr)
 	}
 
 	return nil
@@ -243,9 +243,10 @@ func deleteCredentialServer(serverName string, db *database.DB, r *http.Request)
 	return nil
 }
 
+//nolint:dupl // method for server authentication
 func callMethodsServerAuthentication(logger *log.Logger, db *database.DB, w http.ResponseWriter, r *http.Request,
 	server *model.LocalAgent,
-) (bool, string, string) {
+) (value bool, errMsg, modalOpen string) {
 	if r.Method == http.MethodPost && r.FormValue("deleteCredentialServer") != "" {
 		deleteCredentialServerErr := deleteCredentialServer(server.Name, db, r)
 		if deleteCredentialServerErr != nil {
@@ -304,7 +305,7 @@ func serverAuthenticationPage(logger *log.Logger, db *database.DB) http.HandlerF
 	return func(w http.ResponseWriter, r *http.Request) {
 		userLanguage := r.Context().Value(ContextLanguageKey)
 		tTranslated := //nolint:forcetypeassert //u
-		pageTranslated("server_authentication_page", userLanguage.(string)) //nolint:errcheck //u
+			pageTranslated("server_authentication_page", userLanguage.(string)) //nolint:errcheck //u
 
 		user, err := GetUserByToken(r, db)
 		if err != nil {
@@ -341,7 +342,7 @@ func serverAuthenticationPage(logger *log.Logger, db *database.DB) http.HandlerF
 		})
 		currentPage := filter.Offset + 1
 
-		if err := serverAuthenticationTemplate.ExecuteTemplate(w, "server_authentication_page", map[string]any{
+		if tmplErr := serverAuthenticationTemplate.ExecuteTemplate(w, "server_authentication_page", map[string]any{
 			"myPermission":          myPermission,
 			"tab":                   tTranslated,
 			"username":              user.Username,
@@ -355,8 +356,8 @@ func serverAuthenticationPage(logger *log.Logger, db *database.DB) http.HandlerF
 			"errMsg":                errMsg,
 			"modalOpen":             modalOpen,
 			"hasServerID":           true,
-		}); err != nil {
-			logger.Errorf("render server_authentication_page: %v", err)
+		}); tmplErr != nil {
+			logger.Errorf("render server_authentication_page: %v", tmplErr)
 			http.Error(w, "Internal error", http.StatusInternalServerError)
 		}
 	}

@@ -122,9 +122,9 @@ func deleteLocalClient(db *database.DB, r *http.Request) error {
 	if err := r.ParseForm(); err != nil {
 		return fmt.Errorf("failed to parse form: %w", err)
 	}
-	LocalClientID := r.FormValue("deleteLocalClient")
+	localClientID := r.FormValue("deleteLocalClient")
 
-	id, err := strconv.Atoi(LocalClientID)
+	id, err := strconv.Atoi(localClientID)
 	if err != nil {
 		return fmt.Errorf("internal error: %w", err)
 	}
@@ -234,7 +234,7 @@ func autocompletionLocalClientsFunc(db *database.DB) http.HandlerFunc {
 
 		w.Header().Set("Content-Type", "application/json")
 
-		if err := json.NewEncoder(w).Encode(names); err != nil {
+		if jsonErr := json.NewEncoder(w).Encode(names); jsonErr != nil {
 			http.Error(w, "error json", http.StatusInternalServerError)
 		}
 	}
@@ -242,7 +242,7 @@ func autocompletionLocalClientsFunc(db *database.DB) http.HandlerFunc {
 
 //nolint:dupl // no similar func
 func callMethodsLocalClientManagement(logger *log.Logger, db *database.DB, w http.ResponseWriter, r *http.Request,
-) (bool, string, string) {
+) (value bool, errMsg, modalOpen string) {
 	if r.Method == http.MethodPost && r.FormValue("addLocalClientName") != "" {
 		if newLocalClientErr := addLocalClient(db, r); newLocalClientErr != nil {
 			logger.Errorf("failed to add localClient: %v", newLocalClientErr)
@@ -296,7 +296,7 @@ func localClientManagementPage(logger *log.Logger, db *database.DB) http.Handler
 	return func(w http.ResponseWriter, r *http.Request) {
 		userLanguage := r.Context().Value(ContextLanguageKey)
 		tabTranslated := //nolint:forcetypeassert //u
-		pageTranslated("local_client_management_page", userLanguage.(string)) //nolint:errcheck //u
+			pageTranslated("local_client_management_page", userLanguage.(string)) //nolint:errcheck //u
 		localClientList, filter, localClientFound := listLocalClient(db, r)
 
 		value, errMsg, modalOpen := callMethodsLocalClientManagement(logger, db, w, r)
@@ -312,7 +312,7 @@ func localClientManagementPage(logger *log.Logger, db *database.DB) http.Handler
 		myPermission := model.MaskToPerms(user.Permissions)
 		currentPage := filter.Offset + 1
 
-		if err := localClientManagementTemplate.ExecuteTemplate(w, "local_client_management_page", map[string]any{
+		if tmplErr := localClientManagementTemplate.ExecuteTemplate(w, "local_client_management_page", map[string]any{
 			"myPermission":           myPermission,
 			"tab":                    tabTranslated,
 			"username":               user.Username,
@@ -328,8 +328,8 @@ func localClientManagementPage(logger *log.Logger, db *database.DB) http.Handler
 			"MACs":                   sftp.ValidMACs,
 			"errMsg":                 errMsg,
 			"modalOpen":              modalOpen,
-		}); err != nil {
-			logger.Errorf("render local_client_management_page: %v", err)
+		}); tmplErr != nil {
+			logger.Errorf("render local_client_management_page: %v", tmplErr)
 			http.Error(w, "Internal error", http.StatusInternalServerError)
 		}
 	}

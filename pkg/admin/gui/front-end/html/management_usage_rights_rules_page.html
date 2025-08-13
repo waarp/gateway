@@ -1,0 +1,494 @@
+{{ define "head" }}
+    <title>{{ index .tab "title" }}</title>
+    <link rel="stylesheet" href="/webui/static/css/style.css">
+    <script src="/webui/static/javaScript/tooltip.js"></script>
+    <script src="/webui/static/javaScript/animationCollapseUsageRights.js"></script>
+    <script>
+        window.listLocalAccounts = {{ marshalJSON .listLocalAccounts }};
+        window.listRemoteAccounts = {{ marshalJSON .listRemoteAccounts }};
+    </script>
+    <script src="/webui/static/javaScript/showDynamicsOptions.js"></script>
+    <script>window.modalOpen = "{{ .modalOpen }}";</script>
+    <script src="/webui/static/javaScript/displayErr.js"></script>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css" rel="stylesheet">
+{{ end }}
+
+{{ define "AuthorizedServers" }}
+    {{ if contains .myPermission.Rules "w" }}
+        <button class="btn btn-primary mb-3 btn-add" type="button" data-bs-toggle="modal" data-bs-target="#addAuthorizedServerModal">
+            {{ index .tab "addAuthorizedServerTitle" }}
+        </button>
+        <div class="modal fade" id="addAuthorizedServerModal" tabindex="-1" aria-labelledby="addAuthorizedServerModalLabel" aria-hidden="true">
+            <div class="modal-dialog modal-lg">
+            <div class="modal-content">
+                <form method="post" class="p-3 border rounded bg-light">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="addAuthorizedServerModalLabel">{{ index .tab "addAuthorizedServerTitle" }}</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+                    <div class="form-input">
+                        <label class="col-form-label">{{ index .tab "name" }} :</label>
+                        <select name="addAuthorizedServerName" id="addAuthorizedServerName" class="form-select">
+                            <option value="" disabled selected>{{ index .tab "selectServers" }}</option>
+                            {{ range .listServers }}
+                            <option value="{{ . }}">{{ . }}</option>
+                            {{ end }}
+                        </select>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">{{ index .tab "close" }}</button>
+                    <button type="submit" class="btn btn-success ms-3">{{ index .tab "apply" }}</button>
+                </div>
+                </form>
+            </div>
+            </div>
+        </div>
+    {{ end }}
+
+    <table class="table table-sm align-middle mb-4 rounded-3 mt-3">
+        <thead class="table-light">
+            <tr>
+                <th></th>
+                <th>{{ index $.tab "name" }}</th>
+                <th class="text-end"></th>
+            </tr>
+        </thead>
+        <tbody>
+            {{ range .authorizedServers }}
+            <tr>
+                <td><i class="bi bi-hdd-network me-1"></i></td>
+                <td><strong>{{ .Name }}</strong></td>
+                <td class="text-end">
+                    {{ if contains $.myPermission.Rules "w" }}
+                        <button class="btn btn-outline-primary btn-sm me-1" data-bs-toggle="modal" data-bs-target="#editAuthorizedServerModal_{{ .Name }}">
+                            <i class="bi bi-pencil"></i>
+                        </button>
+                            <div class="modal fade" id="editAuthorizedServerModal_{{ .Name }}" tabindex="-1" aria-labelledby="editAuthorizedServerModalLabel_{{ .Name }}" aria-hidden="true">
+                            <div class="modal-dialog modal-lg">
+                                <div class="modal-content">
+                                    <form method="post" class="p-3 border rounded bg-light">
+                                        <input type="hidden" name="editAuthorizedServerOldName" value="{{ .Name }}">
+                                        <div class="modal-header">
+                                            <h5 class="modal-title" id="editAuthorizedServerModalLabel_{{ .Name }}"> {{ index $.tab "edit" }}</h5>
+                                            <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                                        </div>
+                                        <div class="modal-body">
+                                            <div class="form-input">
+                                                <label class="col-form-label">{{ index $.tab "name" }} :</label>
+                                                <select name="editAuthorizedServerName" id="editAuthorizedServerName" class="form-select">
+                                                    <option value="" disabled selected>{{ index $.tab "selectServers" }}</option>
+                                                    {{ $current := .Name }}
+                                                    {{ range $.listServers }}
+                                                    <option value="{{ . }}" {{ if eq . $current }}selected{{ end }}>{{ . }}</option>
+                                                    {{ end }}
+                                                </select>
+                                            </div>
+                                        </div>
+                                        <div class="modal-footer">
+                                            <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">{{ index $.tab "close" }}</button>
+                                            <button type="submit" class="btn btn-success ms-3">{{ index $.tab "apply" }}</button>
+                                        </div>
+                                    </form>
+                                </div>
+                            </div>
+                        </div>
+                    {{ end }}
+                    {{ if contains $.myPermission.Rules "d" }}
+                        <form method="post" class="d-inline">
+                            <input type="hidden" name="deleteAuthorizedServer" value="{{ .Name }}">
+                            <button type="submit" class="btn btn-outline-danger btn-sm" onclick="return confirm('{{ index $.tab "confirmDelete" }}')">
+                                <i class="bi bi-trash"></i>
+                            </button>
+                        </form>
+                    {{ end }}
+                </td>
+            </tr>
+            {{ end }}
+        </tbody>
+    </table>
+{{ end }}
+
+{{ define "AuthorizedPartners" }}
+    {{ if contains .myPermission.Rules "w" }}
+        <button class="btn btn-primary mb-3 btn-add" type="button" data-bs-toggle="modal" data-bs-target="#addAuthorizedPartnerModal">
+            {{ index .tab "addAuthorizedPartnerTitle" }}
+        </button>
+        <div class="modal fade" id="addAuthorizedPartnerModal" tabindex="-1" aria-labelledby="addAuthorizedPartnerModalLabel" aria-hidden="true">
+            <div class="modal-dialog modal-lg">
+            <div class="modal-content">
+                <form method="post" class="p-3 border rounded bg-light">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="addAuthorizedPartnerModalLabel">{{ index .tab "addAuthorizedPartnerTitle" }}</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+                    <div class="form-input">
+                        <label class="col-form-label">{{ index .tab "name" }} :</label>
+                        <select name="addAuthorizedPartnerName" id="addAuthorizedPartnerName" class="form-select">
+                            <option value="" disabled selected>{{ index .tab "selectPartners" }}</option>
+                            {{ range .listPartners }}
+                            <option value="{{ . }}">{{ . }}</option>
+                            {{ end }}
+                        </select>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">{{ index .tab "close" }}</button>
+                    <button type="submit" class="btn btn-success ms-3">{{ index .tab "apply" }}</button>
+                </div>
+                </form>
+            </div>
+            </div>
+        </div>
+    {{ end }}
+
+    <table class="table table-sm align-middle mb-4 rounded-3 mt-3">
+        <thead class="table-light">
+            <tr>
+                <th></th>
+                <th>{{ index $.tab "name" }}</th>
+                <th class="text-end"></th>
+            </tr>
+        </thead>
+        <tbody>
+            {{ range .authorizedPartners }}
+            <tr>
+                <td><i class="bi bi-hdd-network me-1"></i></td>
+                <td><strong>{{ .Name }}</strong></td>
+                <td class="text-end">
+                    {{ if contains $.myPermission.Rules "w" }}
+                        <button class="btn btn-outline-primary btn-sm me-1" data-bs-toggle="modal" data-bs-target="#editAuthorizedPartnerModal_{{ .Name }}">
+                            <i class="bi bi-pencil"></i>
+                        </button>
+                            <div class="modal fade" id="editAuthorizedPartnerModal_{{ .Name }}" tabindex="-1" aria-labelledby="editAuthorizedPartnerModalLabel_{{ .Name }}" aria-hidden="true">
+                            <div class="modal-dialog modal-lg">
+                                <div class="modal-content">
+                                    <form method="post" class="p-3 border rounded bg-light">
+                                        <input type="hidden" name="editAuthorizedPartnerOldName" value="{{ .Name }}">
+                                        <div class="modal-header">
+                                            <h5 class="modal-title" id="editAuthorizedPartnerModalLabel_{{ .Name }}"> {{ index $.tab "edit" }}</h5>
+                                            <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                                        </div>
+                                        <div class="modal-body">
+                                            <div class="form-input">
+                                                <label class="col-form-label">{{ index $.tab "name" }} :</label>
+                                                <select name="editAuthorizedPartnerName" id="editAuthorizedPartnerName" class="form-select">
+                                                    <option value="" disabled selected>{{ index $.tab "selectPartners" }}</option>
+                                                    {{ $current := .Name }}
+                                                    {{ range $.listPartners }}
+                                                    <option value="{{ . }}" {{ if eq . $current }}selected{{ end }}>{{ . }}</option>
+                                                    {{ end }}
+                                                </select>
+                                            </div>
+                                        </div>
+                                        <div class="modal-footer">
+                                            <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">{{ index $.tab "close" }}</button>
+                                            <button type="submit" class="btn btn-success ms-3">{{ index $.tab "apply" }}</button>
+                                        </div>
+                                    </form>
+                                </div>
+                            </div>
+                        </div>
+                    {{ end }}
+                    {{ if contains $.myPermission.Rules "d" }}
+                        <form method="post" class="d-inline">
+                            <input type="hidden" name="deleteAuthorizedPartner" value="{{ .Name }}">
+                            <button type="submit" class="btn btn-outline-danger btn-sm" onclick="return confirm('{{ index $.tab "confirmDelete" }}')">
+                                <i class="bi bi-trash"></i>
+                            </button>
+                        </form>
+                    {{ end }}
+                </td>
+            </tr>
+            {{ end }}
+        </tbody>
+    </table>
+{{ end }}
+
+{{ define "AuthorizedLocalAccounts" }}
+    {{ if contains .myPermission.Rules "w" }}
+        <button class="btn btn-primary mb-3 btn-add" type="button" data-bs-toggle="modal" data-bs-target="#addAuthorizedLocalAccountModal">
+            {{ index .tab "addAuthorizedLocalAccountTitle" }}
+        </button>
+        <div class="modal fade" id="addAuthorizedLocalAccountModal" tabindex="-1" aria-labelledby="addAuthorizedLocalAccountModalLabel" aria-hidden="true">
+            <div class="modal-dialog modal-lg">
+            <div class="modal-content">
+                <form method="post" class="p-3 border rounded bg-light">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="addAuthorizedLocalAccountModalLabel">{{ index .tab "addAuthorizedLocalAccountTitle" }}</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+                    <div class="form-input">
+                        <div class="form-input">
+                            <label class="col-form-label">{{ index .tab "server" }} :</label>
+                            <select name="addAuthorizedLocalAccountsServerName" id="addLocalAccountServer" class="form-select">
+                                <option value="" disabled selected>{{ index .tab "selectServers" }}</option>
+                                {{ range .listServers }}
+                                <option value="{{ . }}">{{ . }}</option>
+                                {{ end }}
+                            </select>
+                        </div>
+                        <div class="form-input mt-2">
+                            <label class="col-form-label">{{ index .tab "name" }} :</label>
+                            <select name="addAuthorizedLocalAccountsName" id="localAccountNameList" class="form-select">
+                                <option value="" disabled selected>{{ index .tab "selectLocalAccounts" }}</option>
+                            </select>
+                        </div>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">{{ index .tab "close" }}</button>
+                    <button type="submit" class="btn btn-success ms-3">{{ index .tab "apply" }}</button>
+                </div>
+                </form>
+            </div>
+            </div>
+        </div>
+    {{ end }}
+
+    <table class="table table-sm align-middle mb-4 rounded-3 mt-3">
+        <thead class="table-light">
+            <tr>
+                <th></th>
+                <th>Nom du serveur</th>
+                <th>Nom du compte local</th>
+                <th class="text-end"></th>
+            </tr>
+        </thead>
+        <tbody>
+            {{ range .authorizedLocalAccounts }}
+            <tr>
+                {{ $serverName := getServerName .LocalAgentID }}
+                <td><i class="bi bi-hdd-network me-1"></i></td>
+                <td><strong>{{ $serverName }}</strong></td>
+                <td><strong>{{ .Login }}</strong></td>
+                <td class="text-end">
+                    {{ if contains $.myPermission.Rules "w" }}
+                        <button class="btn btn-outline-primary btn-sm me-1" data-bs-toggle="modal" data-bs-target="#editAuthorizedLocalAccountModal_{{ .Login }}">
+                            <i class="bi bi-pencil"></i>
+                        </button>
+                            <div class="modal fade" id="editAuthorizedLocalAccountModal_{{ .Login }}" tabindex="-1" aria-labelledby="editAuthorizedLocalAccountModalLabel_{{ .Login }}" aria-hidden="true">
+                            <div class="modal-dialog modal-lg">
+                                <div class="modal-content">
+                                    <form method="post" class="p-3 border rounded bg-light">
+                                        <input type="hidden" name="editAuthorizedLocalAccountOldName" value="{{ .Login }}">
+                                        <div class="modal-header">
+                                            <h5 class="modal-title" id="editAuthorizedLocalAccountModalLabel_{{ .Login }}"> {{ index $.tab "edit" }}</h5>
+                                            <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                                        </div>
+                                        <div class="modal-body">
+                                            <div class="form-input">
+                                                <div class="form-input">
+                                                    <label class="col-form-label">{{ index $.tab "server" }} :</label>
+                                                    <select name="editAuthorizedLocalAccountsServerName" id="editLocalAccountServer_{{ .Login }}" class="form-select">
+                                                        <option value="" disabled selected>{{ index $.tab "selectServers" }}</option>
+                                                        {{ range $.listServers }}
+                                                        <option value="{{ . }}" {{ if eq . $serverName }}selected{{ end }}>{{ . }}</option>
+                                                        {{ end }}
+                                                    </select>
+                                                </div>
+                                                <div class="form-input mt-2">
+                                                    <label class="col-form-label">{{ index $.tab "name" }} :</label>
+                                                    <select name="editAuthorizedLocalAccountsName" id="editLocalAccountName_{{ .Login }}" data-selected="{{ .Login }}" class="form-select">
+                                                        <option value="" disabled selected>{{ index $.tab "selectLocalAccounts" }}</option>
+                                                    </select>
+                                                </div>
+                                            </div>
+                                        </div>
+                                        <div class="modal-footer">
+                                            <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">{{ index $.tab "close" }}</button>
+                                            <button type="submit" class="btn btn-success ms-3">{{ index $.tab "apply" }}</button>
+                                        </div>
+                                    </form>
+                                </div>
+                            </div>
+                        </div>
+                    {{ end }}
+                    {{ if contains $.myPermission.Rules "d" }}
+                        <form method="post" class="d-inline">
+                            <input type="hidden" name="deleteAuthorizedLocalAccount" value="{{ .ID }}">
+                            <button type="submit" class="btn btn-outline-danger btn-sm" onclick="return confirm('{{ index $.tab "confirmDelete" }}')">
+                                <i class="bi bi-trash"></i>
+                            </button>
+                        </form>
+                    {{ end }}
+                </td>
+            </tr>
+            {{ end }}
+        </tbody>
+    </table>
+{{ end }}
+
+{{ define "AuthorizedRemoteAccounts" }}
+    {{ if contains .myPermission.Rules "w" }}
+        <button class="btn btn-primary mb-3 btn-add" type="button" data-bs-toggle="modal" data-bs-target="#addAuthorizedRemoteAccountModal">
+            {{ index .tab "addAuthorizedRemoteAccountTitle" }}
+        </button>
+        <div class="modal fade" id="addAuthorizedRemoteAccountModal" tabindex="-1" aria-labelledby="addAuthorizedRemoteAccountModalLabel" aria-hidden="true">
+            <div class="modal-dialog modal-lg">
+            <div class="modal-content">
+                <form method="post" class="p-3 border rounded bg-light">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="addAuthorizedRemoteAccountModalLabel">{{ index .tab "addAuthorizedRemoteAccountTitle" }}</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+                    <div class="form-input">
+                        <div class="form-input">
+                            <label class="col-form-label">{{ index .tab "partner" }} :</label>
+                            <select name="addAuthorizedRemoteAccountsPartnerName" id="addRemoteAccountPartner" class="form-select">
+                                <option value="" disabled selected>{{ index .tab "selectPartners" }}</option>
+                                {{ range .listPartners }}
+                                <option value="{{ . }}">{{ . }}</option>
+                                {{ end }}
+                            </select>
+                        </div>
+                        <div class="form-input mt-2">
+                            <label class="col-form-label">{{ index .tab "name" }} :</label>
+                            <select name="addAuthorizedRemoteAccountsName" id="remoteAccountNameList" class="form-select">
+                                <option value="" disabled selected>{{ index .tab "selectRemoteAccounts" }}</option>
+                            </select>
+                        </div>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">{{ index .tab "close" }}</button>
+                    <button type="submit" class="btn btn-success ms-3">{{ index .tab "apply" }}</button>
+                </div>
+                </form>
+            </div>
+            </div>
+        </div>
+    {{ end }}
+
+    <table class="table table-sm align-middle mb-4 rounded-3 mt-3">
+        <thead class="table-light">
+            <tr>
+                <th></th>
+                <th>Nom du partner</th>
+                <th>Nom du compte distant</th>
+                <th class="text-end"></th>
+            </tr>
+        </thead>
+        <tbody>
+            {{ range .authorizedRemoteAccounts }}
+            <tr>
+                {{ $partnerName := getPartnerName .RemoteAgentID }}
+                <td><i class="bi bi-hdd-network me-1"></i></td>
+                <td><strong>{{ $partnerName }}</strong></td>
+                <td><strong>{{ .Login }}</strong></td>
+                <td class="text-end">
+                    {{ if contains $.myPermission.Rules "w" }}
+                        <button class="btn btn-outline-primary btn-sm me-1" data-bs-toggle="modal" data-bs-target="#editAuthorizedRemoteAccountModal_{{ .Login }}">
+                            <i class="bi bi-pencil"></i>
+                        </button>
+                            <div class="modal fade" id="editAuthorizedRemoteAccountModal_{{ .Login }}" tabindex="-1" aria-labelledby="editAuthorizedRemoteAccountModalLabel_{{ .Login }}" aria-hidden="true">
+                            <div class="modal-dialog modal-lg">
+                                <div class="modal-content">
+                                    <form method="post" class="p-3 border rounded bg-light">
+                                        <input type="hidden" name="editAuthorizedRemoteAccountOldName" value="{{ .Login }}">
+                                        <div class="modal-header">
+                                            <h5 class="modal-title" id="editAuthorizedRemoteAccountModalLabel_{{ .Login }}"> {{ index $.tab "edit" }}</h5>
+                                            <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                                        </div>
+                                        <div class="modal-body">
+                                            <div class="form-input">
+                                                <div class="form-input">
+                                                    <label class="col-form-label">{{ index $.tab "partner" }} :</label>
+                                                    <select name="editAuthorizedRemoteAccountsPartnerName" id="editRemoteAccountPartner_{{ .Login }}" class="form-select">
+                                                        <option value="" disabled selected>{{ index $.tab "selectPartners" }}</option>
+                                                        {{ range $.listPartners }}
+                                                        <option value="{{ . }}" {{ if eq . $partnerName }}selected{{ end }}>{{ . }}</option>
+                                                        {{ end }}
+                                                    </select>
+                                                </div>
+                                                <div class="form-input mt-2">
+                                                    <label class="col-form-label">{{ index $.tab "name" }} :</label>
+                                                    <select name="editAuthorizedRemoteAccountsName" id="editRemoteAccountName_{{ .Login }}" data-selected="{{ .Login }}" class="form-select">
+                                                        <option value="" disabled selected>{{ index $.tab "selectRemoteAccounts" }}</option>
+                                                    </select>
+                                                </div>
+                                            </div>
+                                        </div>
+                                        <div class="modal-footer">
+                                            <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">{{ index $.tab "close" }}</button>
+                                            <button type="submit" class="btn btn-success ms-3">{{ index $.tab "apply" }}</button>
+                                        </div>
+                                    </form>
+                                </div>
+                            </div>
+                        </div>
+                    {{ end }}
+                    {{ if contains $.myPermission.Rules "d" }}
+                        <form method="post" class="d-inline">
+                            <input type="hidden" name="deleteAuthorizedRemoteAccount" value="{{ .ID }}">
+                            <button type="submit" class="btn btn-outline-danger btn-sm" onclick="return confirm('{{ index $.tab "confirmDelete" }}')">
+                                <i class="bi bi-trash"></i>
+                            </button>
+                        </form>
+                    {{ end }}
+                </td>
+            </tr>
+            {{ end }}
+        </tbody>
+    </table>
+{{ end }}
+
+{{ define "content" }}
+  {{ if .errMsg }}
+    <div id="errorPopup" class="alert alert-danger alert-dismissible fade show" role="alert">
+      {{ .errMsg }}
+      <button type="button" class="btn-close error-close-btn" data-bs-dismiss="alert" aria-label="Close"></button>
+    </div>
+  {{ end }}
+    {{ if .rule }}
+        <div class="d-flex align-items-center justify-content-between">
+            <h2 class="mb-0">{{ index .tab "title" }} : {{ .rule.Name }}</h2>
+            <button class="btn btn-outline-secondary ms-3 back-btn" type="button" onclick="window.location='transfer_rules_management'">
+                <i class="bi bi-arrow-left"></i>
+            </button>
+        </div>
+        <hr style="border-top: 1px solid #ababab;">
+        
+    <div id="container-usage-rights">
+        <div class="d-flex gap-2 mb-3">
+            <button class="btn btn-light btn-lg w-100 d-flex justify-content-between align-items-center btn-task-border" type="button" data-bs-toggle="collapse" data-bs-target="#authorizedServersCollapse" aria-expanded="false" aria-controls="authorizedServersCollapse">
+                {{ index .tab "authorizedServers" }}
+                <i class="bi bi-chevron-right"></i>
+            </button>
+            <button class="btn btn-light btn-lg w-100 d-flex justify-content-between align-items-center btn-task-border" type="button" data-bs-toggle="collapse" data-bs-target="#authorizedPartnersCollapse" aria-expanded="false" aria-controls="authorizedPartnersCollapse">
+                {{ index .tab "authorizedPartners" }}
+                <i class="bi bi-chevron-right"></i>
+            </button>
+            <button class="btn btn-light btn-lg w-100 d-flex justify-content-between align-items-center btn-task-border" type="button" data-bs-toggle="collapse" data-bs-target="#authorizedLocalAccountsCollapse" aria-expanded="false" aria-controls="authorizedLocalAccountsCollapse">
+                {{ index .tab "authorizedLocalAccounts" }}
+                <i class="bi bi-chevron-right"></i>
+            </button>
+            <button class="btn btn-light btn-lg w-100 d-flex justify-content-between align-items-center btn-task-border" type="button" data-bs-toggle="collapse" data-bs-target="#authorizedRemoteAccountsCollapse" aria-expanded="false" aria-controls="authorizedRemoteAccountsCollapse">
+                {{ index .tab "authorizedRemoteAccounts" }}
+                <i class="bi bi-chevron-right"></i>
+            </button>
+        </div>
+
+        <div class="no-anim-collapse collapse border rounded p-3 mb-3" id="authorizedServersCollapse">
+            {{ template "AuthorizedServers" . }}
+        </div>
+        <div class="no-anim-collapse collapse border rounded p-3 mb-3" id="authorizedPartnersCollapse">
+            {{ template "AuthorizedPartners" . }}
+        </div>
+        <div class="no-anim-collapse collapse border rounded p-3 mb-3" id="authorizedLocalAccountsCollapse">
+            {{ template "AuthorizedLocalAccounts" . }}
+        </div>
+        <div class="no-anim-collapse collapse border rounded p-3 mb-3" id="authorizedRemoteAccountsCollapse">
+            {{ template "AuthorizedRemoteAccounts" . }}
+        </div>
+    </div>
+    {{ end }}
+{{ end }}
+
+{{ define "management_usage_rights_rules_page" }}
+  {{ template "index" . }}
+{{ end }}

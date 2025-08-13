@@ -111,7 +111,7 @@ func autocompletionLocalAccountFunc(db *database.DB) http.HandlerFunc {
 
 		w.Header().Set("Content-Type", "application/json")
 
-		if err := json.NewEncoder(w).Encode(names); err != nil {
+		if jsonErr := json.NewEncoder(w).Encode(names); jsonErr != nil {
 			http.Error(w, "error json", http.StatusInternalServerError)
 		}
 	}
@@ -174,8 +174,8 @@ func addLocalAccount(serverName string, db *database.DB, r *http.Request) error 
 
 	newLocalAccount.LocalAgentID = server.ID
 
-	if err := internal.InsertServerAccount(db, &newLocalAccount); err != nil {
-		return fmt.Errorf("failed to add local account: %w", err)
+	if addErr := internal.InsertServerAccount(db, &newLocalAccount); addErr != nil {
+		return fmt.Errorf("failed to add local account: %w", addErr)
 	}
 
 	return nil
@@ -207,7 +207,7 @@ func deleteLocalAccount(db *database.DB, r *http.Request) error {
 
 func callMethodsLocalAccount(logger *log.Logger, db *database.DB, w http.ResponseWriter, r *http.Request,
 	server *model.LocalAgent,
-) (bool, string, string) {
+) (value bool, errMsg, modalOpen string) {
 	if r.Method == http.MethodPost && r.FormValue("deleteLocalAccount") != "" {
 		deleteLocalAccountErr := deleteLocalAccount(db, r)
 		if deleteLocalAccountErr != nil {
@@ -263,7 +263,7 @@ func localAccountPage(logger *log.Logger, db *database.DB) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		userLanguage := r.Context().Value(ContextLanguageKey)
 		tTranslated := //nolint:forcetypeassert //u
-		pageTranslated("local_account_management_page", userLanguage.(string)) //nolint:errcheck //u
+			pageTranslated("local_account_management_page", userLanguage.(string)) //nolint:errcheck //u
 
 		user, err := GetUserByToken(r, db)
 		if err != nil {
@@ -296,7 +296,7 @@ func localAccountPage(logger *log.Logger, db *database.DB) http.HandlerFunc {
 
 		currentPage := filter.Offset + 1
 
-		if err := localAccountTemplate.ExecuteTemplate(w, "local_account_management_page", map[string]any{
+		if tmplErr := localAccountTemplate.ExecuteTemplate(w, "local_account_management_page", map[string]any{
 			"myPermission":      myPermission,
 			"username":          user.Username,
 			"language":          userLanguage,
@@ -309,8 +309,8 @@ func localAccountPage(logger *log.Logger, db *database.DB) http.HandlerFunc {
 			"errMsg":            errMsg,
 			"modalOpen":         modalOpen,
 			"hasServerID":       true,
-		}); err != nil {
-			logger.Errorf("render server_management_page: %v", err)
+		}); tmplErr != nil {
+			logger.Errorf("render server_management_page: %v", tmplErr)
 			http.Error(w, "Internal error", http.StatusInternalServerError)
 		}
 	}

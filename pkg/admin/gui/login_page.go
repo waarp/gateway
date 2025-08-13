@@ -24,18 +24,6 @@ type Session struct {
 	Expiration time.Time
 }
 
-func CreateSecretKey() []byte {
-	b := 32
-	key := make([]byte, b)
-
-	_, err := rand.Read(key)
-	if err != nil {
-		panic(fmt.Errorf("error: %w", err))
-	}
-
-	return []byte(base64.StdEncoding.EncodeToString(key))
-}
-
 const validTimeToken = 20 * time.Minute
 
 //nolint:gochecknoglobals // secretKey & sessionStore
@@ -48,6 +36,18 @@ var (
 func init() {
 	const cleaner = 5 * time.Minute
 	CleanOldSession(cleaner)
+}
+
+func CreateSecretKey() []byte {
+	b := 32
+	key := make([]byte, b)
+
+	_, err := rand.Read(key)
+	if err != nil {
+		panic(fmt.Errorf("error: %w", err))
+	}
+
+	return []byte(base64.StdEncoding.EncodeToString(key))
 }
 
 func CleanOldSession(interval time.Duration) {
@@ -87,7 +87,7 @@ func TokenMaxPerUser(user *model.User) {
 	var userSessions []Session
 	maxPerUser := 5
 
-	sessionStore.Range(func(key, value any) bool {
+	sessionStore.Range(func(_, value any) bool {
 		session, ok := value.(Session)
 		if ok && session.UserID == int(user.ID) {
 			userSessions = append(userSessions, session)
@@ -213,14 +213,14 @@ func loginPage(logger *log.Logger, db *database.DB) http.HandlerFunc {
 				username := r.FormValue("username")
 				password := r.FormValue("password")
 
-				user, err := checkUser(db, username, password)
-				if err != nil {
-					logger.Errorf("Incorrect username or password: %v", err)
+				user, checkErr := checkUser(db, username, password)
+				if checkErr != nil {
+					logger.Errorf("Incorrect username or password: %v", checkErr)
 					errorMessage = tabTranslated["errorUser"]
 				} else {
-					token, err := CreateSession(int(user.ID), validTimeToken)
-					if err != nil {
-						logger.Errorf("Error creating session: %v", err)
+					token, createErr := CreateSession(int(user.ID), validTimeToken)
+					if createErr != nil {
+						logger.Errorf("Error creating session: %v", createErr)
 						errorMessage = tabTranslated["errorSession"]
 					} else {
 						TokenMaxPerUser(user)

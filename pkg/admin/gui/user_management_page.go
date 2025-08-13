@@ -198,9 +198,8 @@ func listUser(db *database.DB, r *http.Request) ([]*model.User, Filters, string)
 			userFound = "true"
 
 			return []*model.User{userSearch}, filter, userFound
-		} else {
-			userFound = "false"
 		}
+		userFound = "false"
 	}
 
 	filter.Permissions = urlParams.Get("permissions")
@@ -363,7 +362,7 @@ func autocompletionFunc(db *database.DB) http.HandlerFunc {
 
 		w.Header().Set("Content-Type", "application/json")
 
-		if err := json.NewEncoder(w).Encode(names); err != nil {
+		if jsonErr := json.NewEncoder(w).Encode(names); jsonErr != nil {
 			http.Error(w, "error json", http.StatusInternalServerError)
 		}
 	}
@@ -380,7 +379,7 @@ func searchUser(userNameSearch string, listUserSearch []*model.User) *model.User
 }
 
 func callMethodsUserManagement(logger *log.Logger, db *database.DB, w http.ResponseWriter, r *http.Request,
-) (bool, string, string) {
+) (value bool, errMsg, modalOpen string) {
 	if r.Method == http.MethodPost && r.FormValue("newUserUsername") != "" {
 		if newUserErr := addUser(db, r); newUserErr != nil {
 			logger.Errorf("failed to add user: %v", newUserErr)
@@ -458,7 +457,7 @@ func userManagementPage(logger *log.Logger, db *database.DB) http.HandlerFunc {
 		myPermission := model.MaskToPerms(user.Permissions)
 		currentPage := filter.Offset + 1
 
-		if err := userManagementTemplate.ExecuteTemplate(w, "user_management_page", map[string]any{
+		if tmplErr := userManagementTemplate.ExecuteTemplate(w, "user_management_page", map[string]any{
 			"userPermissions": uPermissionsList,
 			"myPermission":    myPermission,
 			"tab":             tabTranslated,
@@ -469,8 +468,8 @@ func userManagementPage(logger *log.Logger, db *database.DB) http.HandlerFunc {
 			"currentPage":     currentPage,
 			"errMsg":          errMsg,
 			"modalOpen":       modalOpen,
-		}); err != nil {
-			logger.Errorf("render user_management_page: %v", err)
+		}); tmplErr != nil {
+			logger.Errorf("render user_management_page: %v", tmplErr)
 			http.Error(w, "Internal error", http.StatusInternalServerError)
 		}
 	}

@@ -54,13 +54,13 @@ func editPartner(db *database.DB, r *http.Request) error {
 	}
 
 	switch editPartner.Protocol {
-	case "r66", "r66-tls":
+	case "r66", "r66-tls": //nolint:goconst // correction in next push
 		editPartner.ProtoConfig = protoConfigR66Partner(r)
-	case "sftp":
+	case "sftp": //nolint:goconst // correction in next push
 		editPartner.ProtoConfig = protoConfigSFTPpartner(r)
-	case "ftp", "ftps":
+	case "ftp", "ftps": //nolint:goconst // correction in next push
 		editPartner.ProtoConfig = protoConfigFTPpartner(r, editPartner.Protocol)
-	case "pesit", "pesit-tls":
+	case "pesit", "pesit-tls": //nolint:goconst // correction in next push
 		editPartner.ProtoConfig = protoConfigPeSITPartner(r, editPartner.Protocol)
 	}
 
@@ -199,7 +199,7 @@ func autocompletionPartnersFunc(db *database.DB) http.HandlerFunc {
 
 		w.Header().Set("Content-Type", "application/json")
 
-		if err := json.NewEncoder(w).Encode(names); err != nil {
+		if jsonErr := json.NewEncoder(w).Encode(names); jsonErr != nil {
 			http.Error(w, "error json", http.StatusInternalServerError)
 		}
 	}
@@ -241,7 +241,7 @@ func deletePartner(db *database.DB, r *http.Request) error {
 
 //nolint:dupl // no similar func
 func callMethodsPartnerManagement(logger *log.Logger, db *database.DB, w http.ResponseWriter, r *http.Request,
-) (bool, string, string) {
+) (value bool, errMsg, modalOpen string) {
 	if r.Method == http.MethodPost && r.FormValue("addPartnerName") != "" {
 		if newPartnerErr := addPartner(db, r); newPartnerErr != nil {
 			logger.Errorf("failed to add partner: %v", newPartnerErr)
@@ -310,7 +310,7 @@ func partnerManagementPage(logger *log.Logger, db *database.DB) http.HandlerFunc
 		myPermission := model.MaskToPerms(user.Permissions)
 		currentPage := filter.Offset + 1
 
-		if err := partnerManagementTemplate.ExecuteTemplate(w, "partner_management_page", map[string]any{
+		if tmplErr := partnerManagementTemplate.ExecuteTemplate(w, "partner_management_page", map[string]any{
 			"myPermission":           myPermission,
 			"tab":                    tTranslated,
 			"username":               user.Username,
@@ -326,8 +326,8 @@ func partnerManagementPage(logger *log.Logger, db *database.DB) http.HandlerFunc
 			"MACs":                   sftp.ValidMACs,
 			"errMsg":                 errMsg,
 			"modalOpen":              modalOpen,
-		}); err != nil {
-			logger.Errorf("render partner_management_page: %v", err)
+		}); tmplErr != nil {
+			logger.Errorf("render partner_management_page: %v", tmplErr)
 			http.Error(w, "Internal error", http.StatusInternalServerError)
 		}
 	}

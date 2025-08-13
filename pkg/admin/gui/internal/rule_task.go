@@ -38,7 +38,11 @@ func setTasks(db *database.DB, rule *model.Rule, chain model.Chain, tasks []*mod
 			return err
 		}
 
-		for _, task := range tasks {
+		for i, task := range tasks {
+			task.RuleID = rule.ID
+			task.Chain = chain
+			task.Rank = int8(i)
+
 			if err := db.Insert(task).Run(); err != nil {
 				return err
 			}

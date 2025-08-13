@@ -111,7 +111,7 @@ func autocompletionRemoteAccountFunc(db *database.DB) http.HandlerFunc {
 
 		w.Header().Set("Content-Type", "application/json")
 
-		if err := json.NewEncoder(w).Encode(names); err != nil {
+		if jsonErr := json.NewEncoder(w).Encode(names); jsonErr != nil {
 			http.Error(w, "error json", http.StatusInternalServerError)
 		}
 	}
@@ -174,8 +174,8 @@ func addRemoteAccount(partnerName string, db *database.DB, r *http.Request) erro
 
 	newRemoteAccount.RemoteAgentID = partner.ID
 
-	if err := internal.InsertPartnerAccount(db, &newRemoteAccount); err != nil {
-		return fmt.Errorf("failed to add remote account: %w", err)
+	if addErr := internal.InsertPartnerAccount(db, &newRemoteAccount); addErr != nil {
+		return fmt.Errorf("failed to add remote account: %w", addErr)
 	}
 
 	return nil
@@ -207,7 +207,7 @@ func deleteRemoteAccount(db *database.DB, r *http.Request) error {
 
 func callMethodsRemoteAccount(logger *log.Logger, db *database.DB, w http.ResponseWriter, r *http.Request,
 	partner *model.RemoteAgent,
-) (bool, string, string) {
+) (value bool, errMsg, modalOpen string) {
 	if r.Method == http.MethodPost && r.FormValue("deleteRemoteAccount") != "" {
 		deleteRemoteAccountErr := deleteRemoteAccount(db, r)
 		if deleteRemoteAccountErr != nil {
@@ -263,7 +263,7 @@ func remoteAccountPage(logger *log.Logger, db *database.DB) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		userLanguage := r.Context().Value(ContextLanguageKey)
 		tTranslated := //nolint:forcetypeassert //u
-		pageTranslated("remote_account_management_page", userLanguage.(string)) //nolint:errcheck //u
+			pageTranslated("remote_account_management_page", userLanguage.(string)) //nolint:errcheck //u
 
 		user, err := GetUserByToken(r, db)
 		if err != nil {
@@ -296,7 +296,7 @@ func remoteAccountPage(logger *log.Logger, db *database.DB) http.HandlerFunc {
 
 		currentPage := filter.Offset + 1
 
-		if err := remoteAccountTemplate.ExecuteTemplate(w, "remote_account_management_page", map[string]any{
+		if tmplErr := remoteAccountTemplate.ExecuteTemplate(w, "remote_account_management_page", map[string]any{
 			"myPermission":       myPermission,
 			"username":           user.Username,
 			"language":           userLanguage,
@@ -309,8 +309,8 @@ func remoteAccountPage(logger *log.Logger, db *database.DB) http.HandlerFunc {
 			"errMsg":             errMsg,
 			"modalOpen":          modalOpen,
 			"hasPartnerID":       true,
-		}); err != nil {
-			logger.Errorf("render partner_management_page: %v", err)
+		}); tmplErr != nil {
+			logger.Errorf("render partner_management_page: %v", tmplErr)
 			http.Error(w, "Internal error", http.StatusInternalServerError)
 		}
 	}

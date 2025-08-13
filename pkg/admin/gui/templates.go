@@ -2,6 +2,7 @@
 package gui
 
 import (
+	"encoding/json"
 	"html/template"
 	"reflect"
 	"strings"
@@ -17,20 +18,58 @@ const (
 	editProtoConfig    = "front-end/html/editProtoConfig.html"
 	displayProtoConfig = "front-end/html/displayProtoConfig.html"
 	displayFormAuth    = "front-end/html/typeCredential.html"
+	addTasks           = "front-end/html/addTasks.html"
+	editTasks          = "front-end/html/editTasks.html"
+	displayTasks       = "front-end/html/displayTasks.html"
 )
 
 var funcs = template.FuncMap{
 	"contains": strings.Contains,
-	"isArray": func(value interface{}) bool {
+	"isArray": func(value any) bool {
 		return reflect.TypeOf(value).Kind() == reflect.Slice
 	},
-	"isBool": func(value interface{}) bool {
+	"isBool": func(value any) bool {
 		return reflect.TypeOf(value).Kind() == reflect.Bool
 	},
 	"add": func(a, b int) int {
 		return a + b
 	},
-	"dict": sprig.TxtFuncMap()["dict"],
+	"dict":  sprig.TxtFuncMap()["dict"],
+	"split": strings.Split,
+	"splitTime": func(timeout, part string) string {
+		i := strings.Index(timeout, part)
+		if i != -1 {
+			start := i - 1
+			for start >= 0 && timeout[start] >= '0' && timeout[start] <= '9' {
+				start--
+			}
+
+			return timeout[start+1 : i]
+		}
+
+		return ""
+	},
+	"splitExtensions": func(fileName, part string) string {
+		i := strings.Index(fileName, ".")
+		if i != -1 {
+			switch part {
+			case "before":
+				return fileName[:i]
+			case "after":
+				return fileName[i:]
+			}
+		}
+
+		return ""
+	},
+	"marshalJSON": func(v any) template.JS {
+		b, err := json.Marshal(v)
+		if err != nil {
+			return "null"
+		}
+
+		return template.JS(b) //nolint:gosec // template.JS is necessary
+	},
 }
 
 var (
@@ -99,5 +138,11 @@ var (
 		template.New("transfer_rules_management_page.html").
 			Funcs(funcs).
 			ParseFS(webFS, index, header, multiLanguage, "front-end/html/transfer_rules_management_page.html"),
+	)
+	tasksTransferRulesTemplate = template.Must(
+		template.New("tasks_transfer_rules_page.html").
+			Funcs(funcs).
+			ParseFS(webFS, index, header, multiLanguage, addTasks, editTasks, displayTasks,
+				"front-end/html/tasks_transfer_rules_page.html"),
 	)
 )

@@ -19,8 +19,24 @@
       </a>
     </div>
     <div class="col-sm-4">
+      <a href="local_client_management" class="text-decoration-none text-dark">
+        <div class="card text-center p-3">
+          <i class="bi bi-people-fill fs-2"></i>
+          <div>{{ index .tab "local_client_management" }}</div>
+        </div>
+      </a>
+    </div>
+    <div class="col-sm-4">
       <a href="partner_management" class="text-decoration-none text-dark">
         <div class="card text-center p-3">
+          <i class="bi bi-people-fill fs-2"></i>
+          <div>{{ index .tab "local_client_management" }}</div>
+        </div>
+      </a>
+    </div>
+    <div class="col-sm-4">
+      <a href="partner_management" class="text-decoration-none text-dark">
+        <div class="SignMethodscard text-center p-3">
           <i class="bi bi-person-check-fill fs-2"></i>
           <div>{{ index .tab "remote_partner_management" }}</div>
         </div>
@@ -31,22 +47,6 @@
         <div class="card text-center p-3">
           <i class="bi bi-cloud-fill fs-2"></i>
           <div>{{ index .tab "cloud_instance_management" }}</div>
-        </div>
-      </a>
-    </div>
-    <div class="col-sm-4">
-      <a href="managing_authentication_authorities.html" class="text-decoration-none text-dark">
-        <div class="card text-center p-3">
-          <i class="bi bi-shield-lock-fill fs-2"></i>
-          <div>{{ index .tab "managing_authentication_authorities" }}</div>
-        </div>
-      </a>
-    </div>
-    <div class="col-sm-4">
-      <a href="cryptographic_key_management.html" class="text-decoration-none text-dark">
-        <div class="card text-center p-3">
-          <i class="bi bi-key-fill fs-2"></i>
-          <div>{{ index .tab "cryptographic_key_management" }}</div>
         </div>
       </a>
     </div>
@@ -65,10 +65,10 @@
       </a>
     </div>
     <div class="col-sm-4">
-      <a href="managing_configuration_overrides.html" class="text-decoration-none text-dark">
+      <a href="cryptographic_key_management.html" class="text-decoration-none text-dark">
         <div class="card text-center p-3">
-          <i class="bi bi-sliders fs-2"></i>
-          <div>{{ index .tab "managing_configuration_overrides" }}</div>
+          <i class="bi bi-key-fill fs-2"></i>
+          <div>{{ index .tab "cryptographic_key_management" }}</div>
         </div>
       </a>
     </div>
@@ -117,10 +117,18 @@
       </a>
     </div>
     <div class="col-sm-4">
-      <a href="local_client_management" class="text-decoration-none text-dark">
+      <a href="managing_authentication_authorities.html" class="text-decoration-none text-dark">
         <div class="card text-center p-3">
-          <i class="bi bi-people-fill fs-2"></i>
-          <div>{{ index .tab "local_client_management" }}</div>
+          <i class="bi bi-shield-lock-fill fs-2"></i>
+          <div>{{ index .tab "managing_authentication_authorities" }}</div>
+        </div>
+      </a>
+    </div>
+    <div class="col-sm-4">
+      <a href="managing_configuration_overrides.html" class="text-decoration-none text-dark">
+        <div class="card text-center p-3">
+          <i class="bi bi-sliders fs-2"></i>
+          <div>{{ index .tab "managing_configuration_overrides" }}</div>
         </div>
       </a>
     </div>
