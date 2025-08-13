@@ -308,7 +308,7 @@ func ruleManagementPage(logger *log.Logger, db *database.DB) http.HandlerFunc {
 			"errMsg":       errMsg,
 			"modalOpen":    modalOpen,
 		}); tmplErr != nil {
-			logger.Errorf("render transfer_rules_management_page: %v", err)
+			logger.Errorf("render transfer_rules_management_page: %v", tmplErr)
 			http.Error(w, "Internal error", http.StatusInternalServerError)
 		}
 	}
