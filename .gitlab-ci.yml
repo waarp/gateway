@@ -42,7 +42,7 @@ lint:
   image: golangci/golangci-lint:latest
   script:
   - golangci-lint cache status
-  - golangci-lint run --timeout 5m --output.junit-xml.path lint.junit.xml  --output.text.path /dev/null
+  - golangci-lint run --timeout 10m --output.junit-xml.path lint.junit.xml  --output.text.path /dev/null
   artifacts:
     reports:
       junit: lint.junit.xml
