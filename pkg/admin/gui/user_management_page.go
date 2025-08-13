@@ -93,7 +93,7 @@ func editUser(db *database.DB, r *http.Request) error {
 
 	userID := r.FormValue("editUserID")
 
-	id, err := strconv.Atoi(userID)
+	id, err := strconv.ParseUint(userID, 10, 64)
 	if err != nil {
 		return fmt.Errorf("failed to convert id to int: %w", err)
 	}
@@ -140,7 +140,7 @@ func deleteUser(db *database.DB, r *http.Request) error {
 	}
 	userID := r.FormValue("deleteUser")
 
-	id, err := strconv.Atoi(userID)
+	id, err := strconv.ParseUint(userID, 10, 64)
 	if err != nil {
 		return fmt.Errorf("failed to convert id to int: %w", err)
 	}
@@ -161,7 +161,7 @@ func listUser(db *database.DB, r *http.Request) ([]*model.User, Filters, string)
 	userFound := ""
 	filter := Filters{
 		Offset:          0,
-		Limit:           LimitPagination,
+		Limit:           DefaultLimitPagination,
 		OrderAsc:        true,
 		DisableNext:     false,
 		DisablePrevious: false,
@@ -175,13 +175,13 @@ func listUser(db *database.DB, r *http.Request) ([]*model.User, Filters, string)
 	}
 
 	if limitRes := urlParams.Get("limit"); limitRes != "" {
-		if l, err := strconv.Atoi(limitRes); err == nil {
+		if l, err := strconv.ParseUint(limitRes, 10, 64); err == nil {
 			filter.Limit = l
 		}
 	}
 
 	if offsetRes := urlParams.Get("offset"); offsetRes != "" {
-		if o, err := strconv.Atoi(offsetRes); err == nil {
+		if o, err := strconv.ParseUint(offsetRes, 10, 64); err == nil {
 			filter.Offset = o
 		}
 	}
@@ -216,7 +216,7 @@ func listUser(db *database.DB, r *http.Request) ([]*model.User, Filters, string)
 }
 
 func paginationFunc(r *http.Request, user []*model.User, filter *Filters) ([]*model.User, *Filters) {
-	nbUsers := len(user)
+	nbUsers := uint64(len(user))
 	urlParams := r.URL.Query()
 
 	if urlParams.Get("previous") == "true" && filter.Offset > 0 {
@@ -395,7 +395,7 @@ func callMethodsUserManagement(logger *log.Logger, db *database.DB, w http.Respo
 	if r.Method == http.MethodPost && r.FormValue("editUserID") != "" {
 		idEdit := r.FormValue("editUserID")
 
-		id, err := strconv.Atoi(idEdit)
+		id, err := strconv.ParseUint(idEdit, 10, 64)
 		if err != nil {
 			logger.Errorf("failed to convert id to int: %v", err)
 

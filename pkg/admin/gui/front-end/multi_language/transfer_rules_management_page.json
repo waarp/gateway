@@ -6,6 +6,7 @@
     "treatment": { "fr": "Traitement", "en": "Treatment" },
     "monitoring": { "fr": "Supervision", "en": "Monitoring" },
     "administration": { "fr": "Administration", "en": "Administration" },
+    "undefined": { "fr": "<non définie>", "en": "<undefined>" },
     "addRuleTitle": { "fr": "Ajouter une nouvelle règle de transfert", "en": "Add a new transfer rule" },
     "rules": { "fr": "Règle de transfert", "en": "Transfer rule" },
     "isSend": { "fr": "Direction de la règle", "en": "Rule direction" },

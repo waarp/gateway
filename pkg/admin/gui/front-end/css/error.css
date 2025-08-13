@@ -12,3 +12,18 @@
 #errorPopup .error-close-btn {
     position: absolute;
 }
+
+#successPopup {
+    position: fixed;
+    top: 8%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    width: 50%;
+    z-index: 2000;
+    text-align: center;
+    box-shadow: 0 4px 8px rgba(0,0,0,0.2);
+}
+
+#successPopup .success-close-btn {
+    position: absolute;
+}

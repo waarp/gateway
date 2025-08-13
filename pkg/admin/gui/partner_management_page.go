@@ -11,6 +11,9 @@ import (
 	"code.waarp.fr/apps/gateway/gateway/pkg/admin/gui/internal"
 	"code.waarp.fr/apps/gateway/gateway/pkg/database"
 	"code.waarp.fr/apps/gateway/gateway/pkg/model"
+	"code.waarp.fr/apps/gateway/gateway/pkg/protocols/modules/ftp"
+	"code.waarp.fr/apps/gateway/gateway/pkg/protocols/modules/pesit"
+	"code.waarp.fr/apps/gateway/gateway/pkg/protocols/modules/r66"
 	"code.waarp.fr/apps/gateway/gateway/pkg/protocols/modules/sftp"
 )
 
@@ -21,7 +24,7 @@ func editPartner(db *database.DB, r *http.Request) error {
 	}
 	partnerID := r.FormValue("editPartnerID")
 
-	id, err := strconv.Atoi(partnerID)
+	id, err := strconv.ParseUint(partnerID, 10, 64)
 	if err != nil {
 		return fmt.Errorf("failed to convert id to int: %w", err)
 	}
@@ -44,9 +47,9 @@ func editPartner(db *database.DB, r *http.Request) error {
 	}
 
 	if editPartnerPort := r.FormValue("editPartnerPort"); editPartnerPort != "" {
-		var port int
+		var port uint64
 
-		port, err = strconv.Atoi(editPartnerPort)
+		port, err = strconv.ParseUint(editPartnerPort, 10, 64)
 		if err != nil {
 			return fmt.Errorf("failed to get port: %w", err)
 		}
@@ -54,13 +57,13 @@ func editPartner(db *database.DB, r *http.Request) error {
 	}
 
 	switch editPartner.Protocol {
-	case "r66", "r66-tls": //nolint:goconst // correction in next push
+	case r66.R66, r66.R66TLS:
 		editPartner.ProtoConfig = protoConfigR66Partner(r)
-	case "sftp": //nolint:goconst // correction in next push
+	case sftp.SFTP:
 		editPartner.ProtoConfig = protoConfigSFTPpartner(r)
-	case "ftp", "ftps": //nolint:goconst // correction in next push
+	case ftp.FTP, ftp.FTPS:
 		editPartner.ProtoConfig = protoConfigFTPpartner(r, editPartner.Protocol)
-	case "pesit", "pesit-tls": //nolint:goconst // correction in next push
+	case pesit.Pesit, pesit.PesitTLS:
 		editPartner.ProtoConfig = protoConfigPeSITPartner(r, editPartner.Protocol)
 	}
 
@@ -92,7 +95,7 @@ func addPartner(db *database.DB, r *http.Request) error {
 	}
 
 	if newPartnerPort := r.FormValue("addPartnerPort"); newPartnerPort != "" {
-		port, err := strconv.Atoi(newPartnerPort)
+		port, err := strconv.ParseUint(newPartnerPort, 10, 64)
 		if err != nil {
 			return fmt.Errorf("failed to get port: %w", err)
 		}
@@ -100,13 +103,13 @@ func addPartner(db *database.DB, r *http.Request) error {
 	}
 
 	switch newPartner.Protocol {
-	case "r66", "r66-tls":
+	case r66.R66, r66.R66TLS:
 		newPartner.ProtoConfig = protoConfigR66Partner(r)
-	case "sftp":
+	case sftp.SFTP:
 		newPartner.ProtoConfig = protoConfigSFTPpartner(r)
-	case "ftp", "ftps":
+	case ftp.FTP, ftp.FTPS:
 		newPartner.ProtoConfig = protoConfigFTPpartner(r, newPartner.Protocol)
-	case "pesit", "pesit-tls":
+	case pesit.Pesit, pesit.PesitTLS:
 		newPartner.ProtoConfig = protoConfigPeSITPartner(r, newPartner.Protocol)
 	}
 
@@ -117,38 +120,38 @@ func addPartner(db *database.DB, r *http.Request) error {
 	return nil
 }
 
-func ListPartner(db *database.DB, r *http.Request) ([]*model.RemoteAgent, FiltersPagination, string) {
+func ListPartner(db *database.DB, r *http.Request) ([]*model.RemoteAgent, Filters, string) {
 	partnerFound := ""
-	filter := FiltersPagination{
+	filter := Filters{
 		Offset:          0,
-		Limit:           LimitPagination,
+		Limit:           DefaultLimitPagination,
 		OrderAsc:        true,
 		DisableNext:     false,
 		DisablePrevious: false,
 	}
 	urlParams := r.URL.Query()
 
-	if urlParams.Get("orderAsc") == "true" {
+	if urlParams.Get("orderAsc") == "true" { //nolint:goconst // correction in next push
 		filter.OrderAsc = true
-	} else if urlParams.Get("orderAsc") == "false" {
+	} else if urlParams.Get("orderAsc") == "false" { //nolint:goconst // correction in next push
 		filter.OrderAsc = false
 	}
 
 	if limitRes := urlParams.Get("limit"); limitRes != "" {
-		if l, err := strconv.Atoi(limitRes); err == nil {
+		if l, err := strconv.ParseUint(limitRes, 10, 64); err == nil {
 			filter.Limit = l
 		}
 	}
 
 	if offsetRes := urlParams.Get("offset"); offsetRes != "" {
-		if o, err := strconv.Atoi(offsetRes); err == nil {
+		if o, err := strconv.ParseUint(offsetRes, 10, 64); err == nil {
 			filter.Offset = o
 		}
 	}
 
 	partner, err := internal.ListPartners(db, "name", filter.OrderAsc, 0, 0)
 	if err != nil {
-		return nil, FiltersPagination{}, partnerFound
+		return nil, Filters{}, partnerFound
 	}
 
 	if search := urlParams.Get("search"); search != "" && searchPartner(search, partner) == nil {
@@ -162,19 +165,19 @@ func ListPartner(db *database.DB, r *http.Request) ([]*model.RemoteAgent, Filter
 	}
 
 	filtersPtr, filterProtocol := protocolsFilter(r, &filter)
-	paginationPage(&filter, len(partner), r)
+	paginationPage(&filter, uint64(len(partner)), r)
 
 	if len(filterProtocol) > 0 {
 		var partners []*model.RemoteAgent
-		if partners, err = internal.ListPartners(db, "name", filter.OrderAsc, filter.Limit,
-			filter.Offset*filter.Limit, filterProtocol...); err == nil {
+		if partners, err = internal.ListPartners(db, "name", filter.OrderAsc, int(filter.Limit),
+			int(filter.Offset*filter.Limit), filterProtocol...); err == nil {
 			return partners, *filtersPtr, partnerFound
 		}
 	}
 
-	partners, err := internal.ListPartners(db, "name", filter.OrderAsc, filter.Limit, filter.Offset*filter.Limit)
+	partners, err := internal.ListPartners(db, "name", filter.OrderAsc, int(filter.Limit), int(filter.Offset*filter.Limit))
 	if err != nil {
-		return nil, FiltersPagination{}, partnerFound
+		return nil, Filters{}, partnerFound
 	}
 
 	return partners, *filtersPtr, partnerFound
@@ -222,7 +225,7 @@ func deletePartner(db *database.DB, r *http.Request) error {
 	}
 	partnerID := r.FormValue("deletePartner")
 
-	id, err := strconv.Atoi(partnerID)
+	id, err := strconv.ParseUint(partnerID, 10, 64)
 	if err != nil {
 		return fmt.Errorf("internal error: %w", err)
 	}
@@ -270,7 +273,7 @@ func callMethodsPartnerManagement(logger *log.Logger, db *database.DB, w http.Re
 	if r.Method == http.MethodPost && r.FormValue("editPartnerID") != "" {
 		idEdit := r.FormValue("editPartnerID")
 
-		id, err := strconv.Atoi(idEdit)
+		id, err := strconv.ParseUint(idEdit, 10, 64)
 		if err != nil {
 			logger.Errorf("failed to convert id to int: %v", err)
 

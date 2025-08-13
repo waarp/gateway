@@ -45,7 +45,12 @@
                 <div class="form-input d-flex align-items-center">
                     <label class="col-form-label me-3">{{ index .tab "isSend" }} <i class="bi bi-info-circle ms-1" data-bs-toggle="tooltip" data-bs-placement="right" data-bs-title="{{ index .tab "tooltipIsSend" }}"></i> :</label>
                     <div class="form-check form-check-inline">
-                        <input class="form-check-input" type="checkbox" name="addRuleIsSend" id="addRuleIsSend" value="true">
+                        <input class="form-check-input" type="radio" name="addRuleIsSend" id="addRuleIsSendTrue" value="true">
+                        <label class="form-check-label me-2" for="addRuleIsSendTrue">{{ index .tab "send" }}</label>
+                    </div>
+                    <div class="form-check form-check-inline">
+                        <input class="form-check-input" type="radio" name="addRuleIsSend" id="addRuleIsSendFalse" value="false">
+                        <label class="form-check-label" for="addRuleIsSendFalse">{{ index .tab "receive" }}</label>
                     </div>
                 </div>
                 <hr style="border-top: 1px solid #ababab;">
@@ -182,24 +187,24 @@
                       <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
                     </div>
                     <div class="modal-body">
-                      <div class="form-input mb-2">
-                        <label class="col-form-label">{{ index $.tab "path" }} <i class="bi bi-info-circle ms-1" data-bs-toggle="tooltip" data-bs-placement="right" data-bs-title="{{ index $.tab "tooltipPath" }}"></i> :</label>
-                        <input type="text" class="form-control-plaintext" value="{{ .Path }}" readonly>
+                      <div class="flex-label-input">
+                        <label class="col-form-label label-light-bold me-3">{{ index $.tab "path" }} <i class="bi bi-info-circle ms-1" data-bs-toggle="tooltip" data-bs-placement="right" data-bs-title="{{ index $.tab "tooltipPath" }}"></i> :</label>
+                        <input type="text" class="form-control-plaintext input-auto-width" value="{{ displayOrDefault .Path (index $.tab "undefined") }}" readonly>
                       </div>
                       <hr style="border-top: 1px solid #ababab;">
-                      <div class="form-input mb-2">
-                        <label class="col-form-label">{{ index $.tab "localDir" }} <i class="bi bi-info-circle ms-1" data-bs-toggle="tooltip" data-bs-placement="right" data-bs-title="{{ index $.tab "tooltipLocalDir" }}"></i> :</label>
-                        <input type="text" class="form-control-plaintext" value="{{ .LocalDir }}" readonly>
+                      <div class="flex-label-input">
+                        <label class="col-form-label label-light-bold me-3">{{ index $.tab "localDir" }} <i class="bi bi-info-circle ms-1" data-bs-toggle="tooltip" data-bs-placement="right" data-bs-title="{{ index $.tab "tooltipLocalDir" }}"></i> :</label>
+                        <input type="text" class="form-control-plaintext input-auto-width" value="{{ displayOrDefault .LocalDir (index $.tab "undefined") }}" readonly>
                       </div>
                       <hr style="border-top: 1px solid #ababab;">
-                      <div class="form-input mb-2">
-                        <label class="col-form-label">{{ index $.tab "remoteDir" }} <i class="bi bi-info-circle ms-1" data-bs-toggle="tooltip" data-bs-placement="right" data-bs-title="{{ index $.tab "tooltipRemoteDir" }}"></i> :</label>
-                        <input type="text" class="form-control-plaintext" value="{{ .RemoteDir }}" readonly>
+                      <div class="flex-label-input">
+                        <label class="col-form-label label-light-bold me-3">{{ index $.tab "remoteDir" }} <i class="bi bi-info-circle ms-1" data-bs-toggle="tooltip" data-bs-placement="right" data-bs-title="{{ index $.tab "tooltipRemoteDir" }}"></i> :</label>
+                        <input type="text" class="form-control-plaintext input-auto-width" value="{{ displayOrDefault .RemoteDir (index $.tab "undefined") }}" readonly>
                       </div>
                       <hr style="border-top: 1px solid #ababab;">
-                      <div class="form-input mb-2">
-                        <label class="col-form-label">{{ index $.tab "tmpLocalRcvDir" }} <i class="bi bi-info-circle ms-1" data-bs-toggle="tooltip" data-bs-placement="right" data-bs-title="{{ index $.tab "tooltipTmpLocalRcvDir" }}"></i> :</label>
-                        <input type="text" class="form-control-plaintext" value="{{ .TmpLocalRcvDir }}" readonly>
+                      <div class="flex-label-input">
+                        <label class="col-form-label label-light-bold me-3">{{ index $.tab "tmpLocalRcvDir" }} <i class="bi bi-info-circle ms-1" data-bs-toggle="tooltip" data-bs-placement="right" data-bs-title="{{ index $.tab "tooltipTmpLocalRcvDir" }}"></i> :</label>
+                        <input type="text" class="form-control-plaintext input-auto-width" value="{{ displayOrDefault .TmpLocalRcvDir (index $.tab "undefined") }}" readonly>
                       </div>
                     </div>
                     <div class="modal-footer">
@@ -228,7 +233,7 @@
                     <div class="modal-dialog modal-lg">
                     <div class="modal-content">
                         <form method="post" class="p-3 border rounded bg-light">
-                        <input type="hidden" name="editRuleID" value="{{ .ID }}">
+                        <input type="hidden" name="ruleID" value="{{ .ID }}">
                         <div class="modal-header">
                             <h5 class="modal-title" id="editRuleModalLabel_{{ .ID }}">{{ index $.tab "edit" }}: {{ .Name }}</h5>
                             <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
@@ -242,8 +247,13 @@
                             <div class="form-input d-flex align-items-center">
                                 <label class="col-form-label me-3">{{ index $.tab "isSend" }} <i class="bi bi-info-circle ms-1" data-bs-toggle="tooltip" data-bs-placement="right" data-bs-title="{{ index $.tab "tooltipIsSend" }}"></i> :</label>
                                 <div class="form-check form-check-inline">
-                                    <input class="form-check-input" type="checkbox" name="editRuleIsSend" id="editRuleIsSend" value="true" {{ if .IsSend }}checked{{ end }}>
-                                </div>
+                                  <input class="form-check-input" type="radio" name="editRuleIsSend" id="editRuleIsSendTrue_{{ .ID }}" value="true" {{ if .IsSend }}checked{{ end }}>
+                                  <label class="form-check-label me-2" for="editRuleIsSendTrue_{{ .ID }}">{{ index $.tab "send" }}</label>
+                              </div>
+                              <div class="form-check form-check-inline">
+                                  <input class="form-check-input" type="radio" name="editRuleIsSend" id="editRuleIsSendFalse_{{ .ID }}" value="false" {{ if not .IsSend }}checked{{ end }}>
+                                  <label class="form-check-label" for="editRuleIsSendFalse_{{ .ID }}">{{ index $.tab "receive" }}</label>
+                              </div>
                             </div>
                             <hr style="border-top: 1px solid #ababab;">
                             <div class="form-input">

@@ -6,6 +6,7 @@
     "treatment": { "fr": "Traitement", "en": "Treatment" },
     "monitoring": { "fr": "Supervision", "en": "Monitoring" },
     "administration": { "fr": "Administration", "en": "Administration" },
+    "undefined": { "fr": "<non définie>", "en": "<undefined>" },
     "filter": { "fr": "Filtre", "en": "Filter", "es": "Filtrar" },
     "sort": { "fr": "Trier par ordre alphabétique:", "en": "Sort alphabetically:", "es": "Ordenar alfabéticamente:" },
     "limit": { "fr": "Limite:", "en": "Limit:", "es": "Límite:" },

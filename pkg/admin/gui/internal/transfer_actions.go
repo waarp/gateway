@@ -20,7 +20,7 @@ func InsertNewTransfer(db *database.DB,
 	client *model.Client,
 	date time.Time,
 	transferInfos map[string]any,
-) error {
+) (*model.Transfer, error) {
 	trans := &model.Transfer{
 		SrcFilename:     srcFilename,
 		DestFilename:    dstFilename,
@@ -34,7 +34,7 @@ func InsertNewTransfer(db *database.DB,
 		trans.Start = time.Now()
 	}
 
-	return db.Transaction(func(ses *database.Session) error {
+	err := db.Transaction(func(ses *database.Session) error {
 		if err := ses.Insert(trans).Run(); err != nil {
 			return fmt.Errorf("failed to insert transfer: %w", err)
 		}
@@ -47,6 +47,11 @@ func InsertNewTransfer(db *database.DB,
 
 		return nil
 	})
+	if err != nil {
+		return nil, err
+	}
+
+	return trans, nil
 }
 
 func RegisterNewTransfer(db *database.DB,
@@ -148,7 +153,7 @@ func CancelTransfer(ctx context.Context, db *database.DB, transfer *model.Normal
 	}
 
 	trans.Status = types.StatusCancelled
-	if err := trans.MoveToHistory(db, logging.Discard(), time.Now()); err != nil {
+	if err := trans.MoveToHistory(db, logging.Discard(), time.Time{}); err != nil {
 		return fmt.Errorf("failed to move transfer to history: %w", err)
 	}
 

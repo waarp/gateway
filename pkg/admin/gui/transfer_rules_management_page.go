@@ -24,11 +24,7 @@ func addRule(db *database.DB, r *http.Request) error {
 		newRule.Name = newRuleName
 	}
 
-	if addRuleIsSend := r.FormValue("addRuleIsSend"); addRuleIsSend == "true" {
-		newRule.IsSend = true
-	} else {
-		newRule.IsSend = false
-	}
+	newRule.IsSend = r.FormValue("addRuleIsSend") == "true"
 
 	if addRuleComment := r.FormValue("addRuleComment"); addRuleComment != "" {
 		newRule.Comment = addRuleComment
@@ -63,7 +59,7 @@ func editRule(db *database.DB, r *http.Request) error {
 	}
 	ruleID := r.FormValue("editRuleID")
 
-	id, err := strconv.Atoi(ruleID)
+	id, err := strconv.ParseUint(ruleID, 10, 64)
 	if err != nil {
 		return fmt.Errorf("failed to convert id to int: %w", err)
 	}
@@ -77,11 +73,7 @@ func editRule(db *database.DB, r *http.Request) error {
 		editRule.Name = editRuleName
 	}
 
-	if editRuleIsSend := r.FormValue("editRuleIsSend"); editRuleIsSend == "true" {
-		editRule.IsSend = true
-	} else {
-		editRule.IsSend = false
-	}
+	editRule.IsSend = r.FormValue("editRuleIsSend") == "true"
 
 	if editRuleComment := r.FormValue("editRuleComment"); editRuleComment != "" {
 		editRule.Comment = editRuleComment
@@ -117,7 +109,7 @@ func deleteRule(db *database.DB, r *http.Request) error {
 	}
 	ruleID := r.FormValue("deleteRule")
 
-	id, err := strconv.Atoi(ruleID)
+	id, err := strconv.ParseUint(ruleID, 10, 64)
 	if err != nil {
 		return fmt.Errorf("failed to convert id to int: %w", err)
 	}
@@ -134,11 +126,11 @@ func deleteRule(db *database.DB, r *http.Request) error {
 	return nil
 }
 
-func listRule(db *database.DB, r *http.Request) ([]*model.Rule, FiltersPagination, string) {
+func listRule(db *database.DB, r *http.Request) ([]*model.Rule, Filters, string) {
 	ruleFound := ""
-	filter := FiltersPagination{
+	filter := Filters{
 		Offset:          0,
-		Limit:           LimitPagination,
+		Limit:           DefaultLimitPagination,
 		OrderAsc:        true,
 		DisableNext:     false,
 		DisablePrevious: false,
@@ -152,20 +144,20 @@ func listRule(db *database.DB, r *http.Request) ([]*model.Rule, FiltersPaginatio
 	}
 
 	if limitRes := urlParams.Get("limit"); limitRes != "" {
-		if l, err := strconv.Atoi(limitRes); err == nil {
+		if l, err := strconv.ParseUint(limitRes, 10, 64); err == nil {
 			filter.Limit = l
 		}
 	}
 
 	if offsetRes := urlParams.Get("offset"); offsetRes != "" {
-		if o, err := strconv.Atoi(offsetRes); err == nil {
+		if o, err := strconv.ParseUint(offsetRes, 10, 64); err == nil {
 			filter.Offset = o
 		}
 	}
 
 	rule, err := internal.ListRules(db, "name", true, 0, 0)
 	if err != nil {
-		return nil, FiltersPagination{}, ruleFound
+		return nil, Filters{}, ruleFound
 	}
 
 	if search := urlParams.Get("search"); search != "" && searchRule(search, rule) == nil {
@@ -178,11 +170,11 @@ func listRule(db *database.DB, r *http.Request) ([]*model.Rule, FiltersPaginatio
 		return []*model.Rule{searchRule(search, rule)}, filter, ruleFound
 	}
 
-	paginationPage(&filter, len(rule), r)
+	paginationPage(&filter, uint64(len(rule)), r)
 
-	rules, err := internal.ListRules(db, "name", filter.OrderAsc, filter.Limit, filter.Offset*filter.Limit)
+	rules, err := internal.ListRules(db, "name", filter.OrderAsc, int(filter.Limit), int(filter.Offset*filter.Limit))
 	if err != nil {
-		return nil, FiltersPagination{}, ruleFound
+		return nil, Filters{}, ruleFound
 	}
 
 	return rules, filter, ruleFound
@@ -255,7 +247,7 @@ func callMethodsRuleManagement(logger *log.Logger, db *database.DB, w http.Respo
 	if r.Method == http.MethodPost && r.FormValue("editRuleID") != "" {
 		idEdit := r.FormValue("editRuleID")
 
-		id, err := strconv.Atoi(idEdit)
+		id, err := strconv.ParseUint(idEdit, 10, 64)
 		if err != nil {
 			logger.Errorf("failed to convert id to int: %v", err)
 

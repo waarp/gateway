@@ -32,6 +32,7 @@ function showCredentialTypeBlock(selectElem) {
 document.addEventListener('DOMContentLoaded', function () {
     readFile('addCredentialValueFile', 'addCredentialFile');
     readFile('editCredentialValueFile', 'editCredentialFile');
+
     document.querySelectorAll('.add-credential-type-select, .edit-credential-type-select').forEach(sel => {
         sel.addEventListener('change', function() {
             showCredentialTypeBlock(this);

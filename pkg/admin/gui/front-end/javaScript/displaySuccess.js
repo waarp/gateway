@@ -11,13 +11,19 @@ document.addEventListener("DOMContentLoaded", function() {
         }
     }
 
-    var errorPopup = document.getElementById('errorPopup');
-    if (errorPopup) {
+    var successPopup = document.getElementById('successPopup');
+    if (successPopup) {
         setTimeout(function() {
-            errorPopup.classList.remove('show');
+            successPopup.classList.remove('show');
             setTimeout(function() { 
-                errorPopup.remove(); 
+                successPopup.remove(); 
             }, 500);
-        }, 5000);
+        }, 3000);
+
+        if (window.location.search.includes('success=')) {
+            var url = new URL(window.location);
+            url.searchParams.delete('success');
+            window.history.replaceState({}, '', url);
+        }
     }
 });

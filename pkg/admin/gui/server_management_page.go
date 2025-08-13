@@ -11,6 +11,9 @@ import (
 	"code.waarp.fr/apps/gateway/gateway/pkg/admin/gui/internal"
 	"code.waarp.fr/apps/gateway/gateway/pkg/database"
 	"code.waarp.fr/apps/gateway/gateway/pkg/model"
+	"code.waarp.fr/apps/gateway/gateway/pkg/protocols/modules/ftp"
+	"code.waarp.fr/apps/gateway/gateway/pkg/protocols/modules/pesit"
+	"code.waarp.fr/apps/gateway/gateway/pkg/protocols/modules/r66"
 	"code.waarp.fr/apps/gateway/gateway/pkg/protocols/modules/sftp"
 )
 
@@ -34,7 +37,7 @@ func addServer(db *database.DB, r *http.Request) error {
 	}
 
 	if newServerPort := r.FormValue("addServerPort"); newServerPort != "" {
-		port, err := strconv.Atoi(newServerPort)
+		port, err := strconv.ParseUint(newServerPort, 10, 64)
 		if err != nil {
 			return fmt.Errorf("failed to get port: %w", err)
 		}
@@ -58,13 +61,13 @@ func addServer(db *database.DB, r *http.Request) error {
 	}
 
 	switch newServer.Protocol {
-	case "r66", "r66-tls":
+	case r66.R66, r66.R66TLS:
 		newServer.ProtoConfig = protoConfigR66Server(r)
-	case "sftp":
+	case sftp.SFTP:
 		newServer.ProtoConfig = protoConfigSFTPServer(r)
-	case "ftp", "ftps":
+	case ftp.FTP, ftp.FTPS:
 		newServer.ProtoConfig = protoConfigFTPServer(r, newServer.Protocol)
-	case "pesit", "pesit-tls":
+	case pesit.Pesit, pesit.PesitTLS:
 		newServer.ProtoConfig = protoConfigPeSITServer(r, newServer.Protocol)
 	}
 
@@ -82,7 +85,7 @@ func editServer(db *database.DB, r *http.Request) error {
 	}
 	serverID := r.FormValue("editServerID")
 
-	id, err := strconv.Atoi(serverID)
+	id, err := strconv.ParseUint(serverID, 10, 64)
 	if err != nil {
 		return fmt.Errorf("failed to convert id to int: %w", err)
 	}
@@ -105,9 +108,9 @@ func editServer(db *database.DB, r *http.Request) error {
 	}
 
 	if editServerPort := r.FormValue("editServerPort"); editServerPort != "" {
-		var port int
+		var port uint64
 
-		port, err = strconv.Atoi(editServerPort)
+		port, err = strconv.ParseUint(editServerPort, 10, 64)
 		if err != nil {
 			return fmt.Errorf("failed to get port: %w", err)
 		}
@@ -131,13 +134,13 @@ func editServer(db *database.DB, r *http.Request) error {
 	}
 
 	switch editServer.Protocol {
-	case "r66", "r66-tls":
+	case r66.R66, r66.R66TLS:
 		editServer.ProtoConfig = protoConfigR66Server(r)
-	case "sftp":
+	case sftp.SFTP:
 		editServer.ProtoConfig = protoConfigSFTPServer(r)
-	case "ftp", "ftps":
+	case ftp.FTP, ftp.FTPS:
 		editServer.ProtoConfig = protoConfigFTPServer(r, editServer.Protocol)
-	case "pesit", "pesit-tls":
+	case pesit.Pesit, pesit.PesitTLS:
 		editServer.ProtoConfig = protoConfigPeSITServer(r, editServer.Protocol)
 	}
 
@@ -155,9 +158,9 @@ func deleteServer(db *database.DB, r *http.Request) error {
 	}
 	serverID := r.FormValue("deleteServer")
 
-	id, err := strconv.Atoi(serverID)
+	id, err := strconv.ParseUint(serverID, 10, 64)
 	if err != nil {
-		return fmt.Errorf("internal error: %w", err)
+		return fmt.Errorf("failed to convert id to int: %w", err)
 	}
 
 	server, err := internal.GetServerByID(db, int64(id))
@@ -172,11 +175,11 @@ func deleteServer(db *database.DB, r *http.Request) error {
 	return nil
 }
 
-func listServer(db *database.DB, r *http.Request) ([]*model.LocalAgent, FiltersPagination, string) {
+func listServer(db *database.DB, r *http.Request) ([]*model.LocalAgent, Filters, string) {
 	serverFound := ""
-	filter := FiltersPagination{
+	filter := Filters{
 		Offset:          0,
-		Limit:           LimitPagination,
+		Limit:           DefaultLimitPagination,
 		OrderAsc:        true,
 		DisableNext:     false,
 		DisablePrevious: false,
@@ -190,20 +193,20 @@ func listServer(db *database.DB, r *http.Request) ([]*model.LocalAgent, FiltersP
 	}
 
 	if limitRes := urlParams.Get("limit"); limitRes != "" {
-		if l, err := strconv.Atoi(limitRes); err == nil {
+		if l, err := strconv.ParseUint(limitRes, 10, 64); err == nil {
 			filter.Limit = l
 		}
 	}
 
 	if offsetRes := urlParams.Get("offset"); offsetRes != "" {
-		if o, err := strconv.Atoi(offsetRes); err == nil {
+		if o, err := strconv.ParseUint(offsetRes, 10, 64); err == nil {
 			filter.Offset = o
 		}
 	}
 
 	server, err := internal.ListServers(db, "name", true, 0, 0)
 	if err != nil {
-		return nil, FiltersPagination{}, serverFound
+		return nil, Filters{}, serverFound
 	}
 
 	if search := urlParams.Get("search"); search != "" && searchServer(search, server) == nil {
@@ -217,19 +220,19 @@ func listServer(db *database.DB, r *http.Request) ([]*model.LocalAgent, FiltersP
 	}
 
 	filtersPtr, filterProtocol := protocolsFilter(r, &filter)
-	paginationPage(&filter, len(server), r)
+	paginationPage(&filter, uint64(len(server)), r)
 
 	if len(filterProtocol) > 0 {
 		var servers []*model.LocalAgent
-		if servers, err = internal.ListServers(db, "name", filter.OrderAsc, filter.Limit,
-			filter.Offset*filter.Limit, filterProtocol...); err == nil {
+		if servers, err = internal.ListServers(db, "name", filter.OrderAsc, int(filter.Limit),
+			int(filter.Offset*filter.Limit), filterProtocol...); err == nil {
 			return servers, *filtersPtr, serverFound
 		}
 	}
 
-	servers, err := internal.ListServers(db, "name", filter.OrderAsc, filter.Limit, filter.Offset*filter.Limit)
+	servers, err := internal.ListServers(db, "name", filter.OrderAsc, int(filter.Limit), int(filter.Offset*filter.Limit))
 	if err != nil {
-		return nil, FiltersPagination{}, serverFound
+		return nil, Filters{}, serverFound
 	}
 
 	return servers, filter, serverFound
@@ -302,7 +305,7 @@ func callMethodsServerManagement(logger *log.Logger, db *database.DB, w http.Res
 	if r.Method == http.MethodPost && r.FormValue("editServerID") != "" {
 		idEdit := r.FormValue("editServerID")
 
-		id, err := strconv.Atoi(idEdit)
+		id, err := strconv.ParseUint(idEdit, 10, 64)
 		if err != nil {
 			logger.Errorf("failed to convert id to int: %v", err)
 

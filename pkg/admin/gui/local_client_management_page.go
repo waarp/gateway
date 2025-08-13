@@ -11,6 +11,9 @@ import (
 	"code.waarp.fr/apps/gateway/gateway/pkg/admin/gui/internal"
 	"code.waarp.fr/apps/gateway/gateway/pkg/database"
 	"code.waarp.fr/apps/gateway/gateway/pkg/model"
+	"code.waarp.fr/apps/gateway/gateway/pkg/protocols/modules/ftp"
+	"code.waarp.fr/apps/gateway/gateway/pkg/protocols/modules/pesit"
+	"code.waarp.fr/apps/gateway/gateway/pkg/protocols/modules/r66"
 	"code.waarp.fr/apps/gateway/gateway/pkg/protocols/modules/sftp"
 )
 
@@ -35,7 +38,7 @@ func addLocalClient(db *database.DB, r *http.Request) error {
 	}
 
 	if newLocalClientPort := r.FormValue("addLocalClientPort"); newLocalClientPort != "" {
-		port, err := strconv.Atoi(newLocalClientPort)
+		port, err := strconv.ParseUint(newLocalClientPort, 10, 64)
 		if err != nil {
 			return fmt.Errorf("failed to get port: %w", err)
 		}
@@ -43,13 +46,13 @@ func addLocalClient(db *database.DB, r *http.Request) error {
 	}
 
 	switch newLocalClient.Protocol {
-	case "r66", "r66-tls":
+	case r66.R66, r66.R66TLS:
 		newLocalClient.ProtoConfig = protoConfigR66Client(r)
-	case "sftp":
+	case sftp.SFTP:
 		newLocalClient.ProtoConfig = protoConfigSFTPClient(r)
-	case "ftp", "ftps":
+	case ftp.FTP, ftp.FTPS:
 		newLocalClient.ProtoConfig = protoConfigFTPClient(r, newLocalClient.Protocol)
-	case "pesit", "pesit-tls":
+	case pesit.Pesit, pesit.PesitTLS:
 		newLocalClient.ProtoConfig = protoConfigPeSITClient(r)
 	}
 
@@ -67,7 +70,7 @@ func editLocalClient(db *database.DB, r *http.Request) error {
 	}
 	localClientID := r.FormValue("editLocalClientID")
 
-	id, err := strconv.Atoi(localClientID)
+	id, err := strconv.ParseUint(localClientID, 10, 64)
 	if err != nil {
 		return fmt.Errorf("failed to convert id to int: %w", err)
 	}
@@ -90,9 +93,9 @@ func editLocalClient(db *database.DB, r *http.Request) error {
 	}
 
 	if editLocalClientPort := r.FormValue("editLocalClientPort"); editLocalClientPort != "" {
-		var port int
+		var port uint64
 
-		port, err = strconv.Atoi(editLocalClientPort)
+		port, err = strconv.ParseUint(editLocalClientPort, 10, 64)
 		if err != nil {
 			return fmt.Errorf("failed to get port: %w", err)
 		}
@@ -100,13 +103,13 @@ func editLocalClient(db *database.DB, r *http.Request) error {
 	}
 
 	switch editLocalClient.Protocol {
-	case "r66", "r66-tls":
+	case r66.R66, r66.R66TLS:
 		editLocalClient.ProtoConfig = protoConfigR66Client(r)
-	case "sftp":
+	case sftp.SFTP:
 		editLocalClient.ProtoConfig = protoConfigSFTPClient(r)
-	case "ftp", "ftps":
+	case ftp.FTP, ftp.FTPS:
 		editLocalClient.ProtoConfig = protoConfigFTPClient(r, editLocalClient.Protocol)
-	case "pesit", "pesit-tls":
+	case pesit.Pesit, pesit.PesitTLS:
 		editLocalClient.ProtoConfig = protoConfigPeSITClient(r)
 	}
 
@@ -124,7 +127,7 @@ func deleteLocalClient(db *database.DB, r *http.Request) error {
 	}
 	localClientID := r.FormValue("deleteLocalClient")
 
-	id, err := strconv.Atoi(localClientID)
+	id, err := strconv.ParseUint(localClientID, 10, 64)
 	if err != nil {
 		return fmt.Errorf("internal error: %w", err)
 	}
@@ -141,11 +144,11 @@ func deleteLocalClient(db *database.DB, r *http.Request) error {
 	return nil
 }
 
-func listLocalClient(db *database.DB, r *http.Request) ([]*model.Client, FiltersPagination, string) {
+func listLocalClient(db *database.DB, r *http.Request) ([]*model.Client, Filters, string) {
 	localClientFound := ""
-	filter := FiltersPagination{
+	filter := Filters{
 		Offset:          0,
-		Limit:           LimitPagination,
+		Limit:           DefaultLimitPagination,
 		OrderAsc:        true,
 		DisableNext:     false,
 		DisablePrevious: false,
@@ -159,20 +162,20 @@ func listLocalClient(db *database.DB, r *http.Request) ([]*model.Client, Filters
 	}
 
 	if limitRes := urlParams.Get("limit"); limitRes != "" {
-		if l, err := strconv.Atoi(limitRes); err == nil {
+		if l, err := strconv.ParseUint(limitRes, 10, 64); err == nil {
 			filter.Limit = l
 		}
 	}
 
 	if offsetRes := urlParams.Get("offset"); offsetRes != "" {
-		if o, err := strconv.Atoi(offsetRes); err == nil {
+		if o, err := strconv.ParseUint(offsetRes, 10, 64); err == nil {
 			filter.Offset = o
 		}
 	}
 
 	localClient, err := internal.ListClients(db, "name", true, 0, 0)
 	if err != nil {
-		return nil, FiltersPagination{}, localClientFound
+		return nil, Filters{}, localClientFound
 	}
 
 	if search := urlParams.Get("search"); search != "" && searchLocalClient(search, localClient) == nil {
@@ -184,21 +187,21 @@ func listLocalClient(db *database.DB, r *http.Request) ([]*model.Client, Filters
 
 		return []*model.Client{searchLocalClient(search, localClient)}, filter, localClientFound
 	}
-
 	filtersPtr, filterProtocol := protocolsFilter(r, &filter)
-	paginationPage(&filter, len(localClient), r)
+	paginationPage(&filter, uint64(len(localClient)), r)
 
 	if len(filterProtocol) > 0 {
 		var localClients []*model.Client
-		if localClients, err = internal.ListClients(db, "name", filter.OrderAsc, filter.Limit,
-			filter.Offset*filter.Limit, filterProtocol...); err == nil {
+		if localClients, err = internal.ListClients(db, "name", filter.OrderAsc, int(filter.Limit),
+			int(filter.Offset*filter.Limit), filterProtocol...); err == nil {
 			return localClients, *filtersPtr, localClientFound
 		}
 	}
 
-	localClients, err := internal.ListClients(db, "name", filter.OrderAsc, filter.Limit, filter.Offset*filter.Limit)
+	localClients, err := internal.ListClients(db, "name",
+		filter.OrderAsc, int(filter.Limit), int(filter.Offset*filter.Limit))
 	if err != nil {
-		return nil, FiltersPagination{}, localClientFound
+		return nil, Filters{}, localClientFound
 	}
 
 	return localClients, filter, localClientFound
@@ -271,7 +274,7 @@ func callMethodsLocalClientManagement(logger *log.Logger, db *database.DB, w htt
 	if r.Method == http.MethodPost && r.FormValue("editLocalClientID") != "" {
 		idEdit := r.FormValue("editLocalClientID")
 
-		id, err := strconv.Atoi(idEdit)
+		id, err := strconv.ParseUint(idEdit, 10, 64)
 		if err != nil {
 			logger.Errorf("failed to convert id to int: %v", err)
 

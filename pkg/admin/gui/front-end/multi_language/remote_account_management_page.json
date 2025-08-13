@@ -6,6 +6,7 @@
     "treatment": { "fr": "Traitement", "en": "Treatment" },
     "monitoring": { "fr": "Supervision", "en": "Monitoring" },
     "administration": { "fr": "Administration", "en": "Administration" },
+    "undefined": { "fr": "<non définie>", "en": "<undefined>" },
     "search": { "fr": "Recherche", "en": "Search" },
     "addRemoteAccount": { "fr": "Ajouter un compte distant", "en": "Add Remote Account" },
     "close": { "fr": "Fermer", "en": "Close" },

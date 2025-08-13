@@ -3,6 +3,9 @@ package gui
 import (
 	"net/http"
 	"strconv"
+
+	"code.waarp.fr/apps/gateway/gateway/pkg/protocols/modules/ftp"
+	"code.waarp.fr/apps/gateway/gateway/pkg/protocols/modules/pesit"
 )
 
 //nolint:dupl // is for partner protoConfig
@@ -14,24 +17,16 @@ func protoConfigR66Partner(r *http.Request) map[string]any {
 	}
 
 	if blockSize := r.FormValue("protoConfigR66blockSize"); blockSize != "" {
-		size, err := strconv.Atoi(blockSize)
+		size, err := strconv.ParseUint(blockSize, 10, 64)
 		if err != nil {
 			return nil
 		}
 		r66ProtoConfig["blockSize"] = uint32(size)
 	}
 
-	if noFinalHash := r.FormValue("noFinalHash"); noFinalHash == "true" {
-		r66ProtoConfig["noFinalHash"] = true
-	} else {
-		r66ProtoConfig["noFinalHash"] = false
-	}
+	r66ProtoConfig["noFinalHash"] = r.FormValue("noFinalHash") == "true"
 
-	if checkBlockHash := r.FormValue("checkBlockHash"); checkBlockHash == "true" {
-		r66ProtoConfig["checkBlockHash"] = true
-	} else {
-		r66ProtoConfig["checkBlockHash"] = false
-	}
+	r66ProtoConfig["checkBlockHash"] = r.FormValue("checkBlockHash") == "true"
 
 	return r66ProtoConfig
 }
@@ -45,24 +40,16 @@ func protoConfigR66Server(r *http.Request) map[string]any {
 	}
 
 	if blockSize := r.FormValue("protoConfigR66blockSize"); blockSize != "" {
-		size, err := strconv.Atoi(blockSize)
+		size, err := strconv.ParseUint(blockSize, 10, 64)
 		if err != nil {
 			return nil
 		}
 		r66ProtoConfig["blockSize"] = uint32(size)
 	}
 
-	if noFinalHash := r.FormValue("noFinalHash"); noFinalHash == "true" {
-		r66ProtoConfig["noFinalHash"] = true
-	} else {
-		r66ProtoConfig["noFinalHash"] = false
-	}
+	r66ProtoConfig["noFinalHash"] = r.FormValue("noFinalHash") == "true"
 
-	if checkBlockHash := r.FormValue("checkBlockHash"); checkBlockHash == "true" {
-		r66ProtoConfig["checkBlockHash"] = true
-	} else {
-		r66ProtoConfig["checkBlockHash"] = false
-	}
+	r66ProtoConfig["checkBlockHash"] = r.FormValue("checkBlockHash") == "true"
 
 	return r66ProtoConfig
 }
@@ -71,24 +58,16 @@ func protoConfigR66Client(r *http.Request) map[string]any {
 	r66ProtoConfig := make(map[string]any)
 
 	if blockSize := r.FormValue("protoConfigR66blockSize"); blockSize != "" {
-		size, err := strconv.Atoi(blockSize)
+		size, err := strconv.ParseUint(blockSize, 10, 64)
 		if err != nil {
 			return nil
 		}
 		r66ProtoConfig["blockSize"] = uint32(size)
 	}
 
-	if noFinalHash := r.FormValue("noFinalHash"); noFinalHash == "true" {
-		r66ProtoConfig["noFinalHash"] = true
-	} else {
-		r66ProtoConfig["noFinalHash"] = false
-	}
+	r66ProtoConfig["noFinalHash"] = r.FormValue("noFinalHash") == "true"
 
-	if checkBlockHash := r.FormValue("checkBlockHash"); checkBlockHash == "true" {
-		r66ProtoConfig["checkBlockHash"] = true
-	} else {
-		r66ProtoConfig["checkBlockHash"] = false
-	}
+	r66ProtoConfig["checkBlockHash"] = r.FormValue("checkBlockHash") == "true"
 
 	return r66ProtoConfig
 }
@@ -108,17 +87,9 @@ func protoConfigSFTPpartner(r *http.Request) map[string]any {
 		sftpProtoConfig["macs"] = macs
 	}
 
-	if useStat := r.FormValue("useStat"); useStat == "true" {
-		sftpProtoConfig["useStat"] = true
-	} else {
-		sftpProtoConfig["useStat"] = false
-	}
+	sftpProtoConfig["useStat"] = r.FormValue("useStat") == "true"
 
-	if dCCR := r.FormValue("disableClientConcurrentReads"); dCCR == "true" {
-		sftpProtoConfig["disableClientConcurrentReads"] = true
-	} else {
-		sftpProtoConfig["disableClientConcurrentReads"] = false
-	}
+	sftpProtoConfig["disableClientConcurrentReads"] = r.FormValue("disableClientConcurrentReads") == "true"
 
 	return sftpProtoConfig
 }
@@ -162,34 +133,17 @@ func protoConfigSFTPClient(r *http.Request) map[string]any {
 func protoConfigFTPpartner(r *http.Request, protocol string) map[string]any {
 	ftpProtoConfig := make(map[string]any)
 
-	if disableActiveMode := r.FormValue("disableActiveMode"); disableActiveMode == "true" {
-		ftpProtoConfig["disableActiveMode"] = true
-	} else {
-		ftpProtoConfig["disableActiveMode"] = false
-	}
+	ftpProtoConfig["disableActiveMode"] = r.FormValue("disableActiveMode") == "true"
 
-	if disableEPSV := r.FormValue("disableEPSV"); disableEPSV == "true" {
-		ftpProtoConfig["disableEPSV"] = true
-	} else {
-		ftpProtoConfig["disableEPSV"] = false
-	}
+	ftpProtoConfig["disableEPSV"] = r.FormValue("disableEPSV") == "true"
 
-	if protocol == "ftps" { //nolint:nestif // call ftps
-		if useImplicitTLS := r.FormValue("useImplicitTLS"); useImplicitTLS == "true" {
-			ftpProtoConfig["useImplicitTLS"] = true
-		} else {
-			ftpProtoConfig["useImplicitTLS"] = false
-		}
-
+	if protocol == ftp.FTPS {
+		ftpProtoConfig["useImplicitTLS"] = r.FormValue("useImplicitTLS") == "true"
 		if minTLSVersion := r.FormValue("protoConfigFTPSminTLSVersion"); minTLSVersion != "" {
 			ftpProtoConfig["minTLSVersion"] = minTLSVersion
 		}
 
-		if disableTLSSessionReuse := r.FormValue("disableTLSSessionReuse"); disableTLSSessionReuse == "true" {
-			ftpProtoConfig["disableTLSSessionReuse"] = true
-		} else {
-			ftpProtoConfig["disableTLSSessionReuse"] = false
-		}
+		ftpProtoConfig["disableTLSSessionReuse"] = r.FormValue("disableTLSSessionReuse") == "true"
 	}
 
 	return ftpProtoConfig
@@ -198,20 +152,12 @@ func protoConfigFTPpartner(r *http.Request, protocol string) map[string]any {
 func protoConfigFTPServer(r *http.Request, protocol string) map[string]any {
 	ftpProtoConfig := make(map[string]any)
 
-	if disablePassiveMode := r.FormValue("disablePassiveMode"); disablePassiveMode == "true" {
-		ftpProtoConfig["disablePassiveMode"] = true
-	} else {
-		ftpProtoConfig["disablePassiveMode"] = false
-	}
+	ftpProtoConfig["disablePassiveMode"] = r.FormValue("disablePassiveMode") == "true"
 
-	if disableActiveMode := r.FormValue("disableActiveMode"); disableActiveMode == "true" {
-		ftpProtoConfig["disableActiveMode"] = true
-	} else {
-		ftpProtoConfig["disableActiveMode"] = false
-	}
+	ftpProtoConfig["disableActiveMode"] = r.FormValue("disableActiveMode") == "true"
 
 	if passiveModeMinPort := r.FormValue("passiveModeMinPort"); passiveModeMinPort != "" {
-		size, err := strconv.Atoi(passiveModeMinPort)
+		size, err := strconv.ParseUint(passiveModeMinPort, 10, 64)
 		if err != nil {
 			return nil
 		}
@@ -219,14 +165,14 @@ func protoConfigFTPServer(r *http.Request, protocol string) map[string]any {
 	}
 
 	if passiveModeMaxPort := r.FormValue("passiveModeMaxPort"); passiveModeMaxPort != "" {
-		size, err := strconv.Atoi(passiveModeMaxPort)
+		size, err := strconv.ParseUint(passiveModeMaxPort, 10, 64)
 		if err != nil {
 			return nil
 		}
 		ftpProtoConfig["passiveModeMaxPort"] = uint32(size)
 	}
 
-	if protocol == "ftps" { //nolint:nestif // call ftps
+	if protocol == ftp.FTPS {
 		if tlsRequirement := r.FormValue("tlsRequirement"); tlsRequirement != "" {
 			ftpProtoConfig["tlsRequirement"] = tlsRequirement
 		}
@@ -242,18 +188,14 @@ func protoConfigFTPServer(r *http.Request, protocol string) map[string]any {
 func protoConfigFTPClient(r *http.Request, protocol string) map[string]any {
 	ftpProtoConfig := make(map[string]any)
 
-	if enablePassiveMode := r.FormValue("enablePassiveMode"); enablePassiveMode == "true" {
-		ftpProtoConfig["enablePassiveMode"] = true
-	} else {
-		ftpProtoConfig["enablePassiveMode"] = false
-	}
+	ftpProtoConfig["enablePassiveMode"] = r.FormValue("enablePassiveMode") == "true"
 
 	if activeModeAddress := r.FormValue("activeModeAddress"); activeModeAddress != "" {
 		ftpProtoConfig["activeModeAddress"] = activeModeAddress
 	}
 
 	if activeModeMinPort := r.FormValue("activeModeMinPort"); activeModeMinPort != "" {
-		size, err := strconv.Atoi(activeModeMinPort)
+		size, err := strconv.ParseUint(activeModeMinPort, 10, 64)
 		if err != nil {
 			return nil
 		}
@@ -261,14 +203,14 @@ func protoConfigFTPClient(r *http.Request, protocol string) map[string]any {
 	}
 
 	if activeModeMaxPort := r.FormValue("activeModeMaxPort"); activeModeMaxPort != "" {
-		size, err := strconv.Atoi(activeModeMaxPort)
+		size, err := strconv.ParseUint(activeModeMaxPort, 10, 64)
 		if err != nil {
 			return nil
 		}
 		ftpProtoConfig["activeModeMaxPort"] = uint32(size)
 	}
 
-	if protocol == "ftps" {
+	if protocol == ftp.FTPS {
 		if minTLSVersion := r.FormValue("protoConfigFTPSminTLSVersion"); minTLSVersion != "" {
 			ftpProtoConfig["minTLSVersion"] = minTLSVersion
 		}
@@ -285,20 +227,12 @@ func protoConfigPeSITPartner(r *http.Request, protocol string) map[string]any {
 		pesitProtoConfig["login"] = login
 	}
 
-	if disableRestart := r.FormValue("disableRestart"); disableRestart == "true" {
-		pesitProtoConfig["disableRestart"] = true
-	} else {
-		pesitProtoConfig["disableRestart"] = false
-	}
+	pesitProtoConfig["disableRestart"] = r.FormValue("disableRestart") == "true"
 
-	if disableCheckpoints := r.FormValue("disableCheckpoints"); disableCheckpoints == "true" {
-		pesitProtoConfig["disableCheckpoints"] = true
-	} else {
-		pesitProtoConfig["disableCheckpoints"] = false
-	}
+	pesitProtoConfig["disableCheckpoints"] = r.FormValue("disableCheckpoints") == "true"
 
 	if checkpointSize := r.FormValue("protoConfigPeSITcheckpointSize"); checkpointSize != "" {
-		size, err := strconv.Atoi(checkpointSize)
+		size, err := strconv.ParseUint(checkpointSize, 10, 64)
 		if err != nil {
 			return nil
 		}
@@ -306,38 +240,30 @@ func protoConfigPeSITPartner(r *http.Request, protocol string) map[string]any {
 	}
 
 	if checkpointWindow := r.FormValue("protoConfigPeSITcheckpointWindow"); checkpointWindow != "" {
-		size, err := strconv.Atoi(checkpointWindow)
+		size, err := strconv.ParseUint(checkpointWindow, 10, 64)
 		if err != nil {
 			return nil
 		}
 		pesitProtoConfig["checkpointWindow"] = uint32(size)
 	}
 
-	if useNSDU := r.FormValue("useNSDU"); useNSDU == "true" {
-		pesitProtoConfig["useNSDU"] = true
-	} else {
-		pesitProtoConfig["useNSDU"] = false
-	}
+	pesitProtoConfig["useNSDU"] = r.FormValue("useNSDU") == "true"
 
 	if compatibilityMode := r.FormValue("protoConfigPeSITcompatibilityMode"); compatibilityMode != "" {
 		pesitProtoConfig["compatibilityMode"] = compatibilityMode
 	}
 
 	if maxMessageSize := r.FormValue("protoConfigPeSITmaxMessageSize"); maxMessageSize != "" {
-		size, err := strconv.Atoi(maxMessageSize)
+		size, err := strconv.ParseUint(maxMessageSize, 10, 64)
 		if err != nil {
 			return nil
 		}
 		pesitProtoConfig["maxMessageSize"] = uint32(size)
 	}
 
-	if disablePreConnection := r.FormValue("disablePreConnection"); disablePreConnection == "true" {
-		pesitProtoConfig["disablePreConnection"] = true
-	} else {
-		pesitProtoConfig["disablePreConnection"] = false
-	}
+	pesitProtoConfig["disablePreConnection"] = r.FormValue("disablePreConnection") == "true"
 
-	if protocol == "pesit-tls" {
+	if protocol == pesit.PesitTLS {
 		if minTLSVersion := r.FormValue("protoConfigFTPSminTLSVersion"); minTLSVersion != "" {
 			pesitProtoConfig["minTLSVersion"] = minTLSVersion
 		}
@@ -350,20 +276,12 @@ func protoConfigPeSITPartner(r *http.Request, protocol string) map[string]any {
 func protoConfigPeSITServer(r *http.Request, protocol string) map[string]any {
 	pesitProtoConfig := make(map[string]any)
 
-	if disableRestart := r.FormValue("disableRestart"); disableRestart == "true" {
-		pesitProtoConfig["disableRestart"] = true
-	} else {
-		pesitProtoConfig["disableRestart"] = false
-	}
+	pesitProtoConfig["disableRestart"] = r.FormValue("disableRestart") == "true"
 
-	if disableCheckpoints := r.FormValue("disableCheckpoints"); disableCheckpoints == "true" {
-		pesitProtoConfig["disableCheckpoints"] = true
-	} else {
-		pesitProtoConfig["disableCheckpoints"] = false
-	}
+	pesitProtoConfig["disableCheckpoints"] = r.FormValue("disableCheckpoints") == "true"
 
 	if checkpointSize := r.FormValue("protoConfigPeSITcheckpointSize"); checkpointSize != "" {
-		size, err := strconv.Atoi(checkpointSize)
+		size, err := strconv.ParseUint(checkpointSize, 10, 64)
 		if err != nil {
 			return nil
 		}
@@ -371,7 +289,7 @@ func protoConfigPeSITServer(r *http.Request, protocol string) map[string]any {
 	}
 
 	if checkpointWindow := r.FormValue("protoConfigPeSITcheckpointWindow"); checkpointWindow != "" {
-		size, err := strconv.Atoi(checkpointWindow)
+		size, err := strconv.ParseUint(checkpointWindow, 10, 64)
 		if err != nil {
 			return nil
 		}
@@ -379,20 +297,16 @@ func protoConfigPeSITServer(r *http.Request, protocol string) map[string]any {
 	}
 
 	if maxMessageSize := r.FormValue("protoConfigPeSITmaxMessageSize"); maxMessageSize != "" {
-		size, err := strconv.Atoi(maxMessageSize)
+		size, err := strconv.ParseUint(maxMessageSize, 10, 64)
 		if err != nil {
 			return nil
 		}
 		pesitProtoConfig["maxMessageSize"] = uint32(size)
 	}
 
-	if disablePreConnection := r.FormValue("disablePreConnection"); disablePreConnection == "true" {
-		pesitProtoConfig["disablePreConnection"] = true
-	} else {
-		pesitProtoConfig["disablePreConnection"] = false
-	}
+	pesitProtoConfig["disablePreConnection"] = r.FormValue("disablePreConnection") == "true"
 
-	if protocol == "pesit-tls" {
+	if protocol == pesit.PesitTLS {
 		if minTLSVersion := r.FormValue("protoConfigFTPSminTLSVersion"); minTLSVersion != "" {
 			pesitProtoConfig["minTLSVersion"] = minTLSVersion
 		}
@@ -404,20 +318,12 @@ func protoConfigPeSITServer(r *http.Request, protocol string) map[string]any {
 func protoConfigPeSITClient(r *http.Request) map[string]any {
 	pesitProtoConfig := make(map[string]any)
 
-	if disableRestart := r.FormValue("disableRestart"); disableRestart == "true" {
-		pesitProtoConfig["disableRestart"] = true
-	} else {
-		pesitProtoConfig["disableRestart"] = false
-	}
+	pesitProtoConfig["disableRestart"] = r.FormValue("disableRestart") == "true"
 
-	if disableCheckpoints := r.FormValue("disableCheckpoints"); disableCheckpoints == "true" {
-		pesitProtoConfig["disableCheckpoints"] = true
-	} else {
-		pesitProtoConfig["disableCheckpoints"] = false
-	}
+	pesitProtoConfig["disableCheckpoints"] = r.FormValue("disableCheckpoints") == "true"
 
 	if checkpointSize := r.FormValue("protoConfigPeSITcheckpointSize"); checkpointSize != "" {
-		size, err := strconv.Atoi(checkpointSize)
+		size, err := strconv.ParseUint(checkpointSize, 10, 64)
 		if err != nil {
 			return nil
 		}
@@ -425,7 +331,7 @@ func protoConfigPeSITClient(r *http.Request) map[string]any {
 	}
 
 	if checkpointWindow := r.FormValue("protoConfigPeSITcheckpointWindow"); checkpointWindow != "" {
-		size, err := strconv.Atoi(checkpointWindow)
+		size, err := strconv.ParseUint(checkpointWindow, 10, 64)
 		if err != nil {
 			return nil
 		}

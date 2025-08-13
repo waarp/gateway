@@ -1,17 +1,13 @@
 package gui
 
 import (
-	"encoding/json"
 	"errors"
 	"fmt"
 	"html/template"
 	"net/http"
-	"reflect"
 	"strconv"
-	"strings"
 
 	"code.waarp.fr/lib/log"
-	"github.com/Masterminds/sprig/v3"
 
 	"code.waarp.fr/apps/gateway/gateway/pkg/admin/gui/internal"
 	"code.waarp.fr/apps/gateway/gateway/pkg/database"
@@ -395,7 +391,7 @@ func deleteAuthorizedLocalAccounts(ruleID int, db *database.DB, r *http.Request)
 
 	errorTaskID := r.FormValue("deleteAuthorizedLocalAccount")
 
-	id, err := strconv.Atoi(errorTaskID)
+	id, err := strconv.ParseUint(errorTaskID, 10, 64)
 	if err != nil {
 		return fmt.Errorf("failed to get id: %w", err)
 	}
@@ -546,7 +542,7 @@ func deleteAuthorizedRemoteAccounts(ruleID int, db *database.DB, r *http.Request
 
 	errorTaskID := r.FormValue("deleteAuthorizedRemoteAccount")
 
-	id, err := strconv.Atoi(errorTaskID)
+	id, err := strconv.ParseUint(errorTaskID, 10, 64)
 	if err != nil {
 		return fmt.Errorf("failed to get id: %w", err)
 	}
@@ -611,46 +607,6 @@ func callMethodsAuthorizedRemoteAccountsRules(logger *log.Logger, db *database.D
 	}
 
 	return false, "", ""
-}
-
-func NewFuncMap(db *database.DB) template.FuncMap {
-	return template.FuncMap{
-		"contains": strings.Contains,
-		"isArray": func(value any) bool {
-			return reflect.TypeOf(value).Kind() == reflect.Slice
-		},
-		"isBool": func(value any) bool {
-			return reflect.TypeOf(value).Kind() == reflect.Bool
-		},
-		"add": func(a, b int) int {
-			return a + b
-		},
-		"dict": sprig.TxtFuncMap()["dict"],
-		"marshalJSON": func(v any) template.JS {
-			b, err := json.Marshal(v)
-			if err != nil {
-				return "null"
-			}
-
-			return template.JS(b) //nolint:gosec // template.JS is necessary
-		},
-		"getServerName": func(id int64) string {
-			server, err := internal.GetServerByID(db, id)
-			if err != nil {
-				return ""
-			}
-
-			return server.Name
-		},
-		"getPartnerName": func(id int64) string {
-			partner, err := internal.GetPartnerByID(db, id)
-			if err != nil {
-				return ""
-			}
-
-			return partner.Name
-		},
-	}
 }
 
 func listAuthorizedServers(db *database.DB, rule *model.Rule, listServers []*model.LocalAgent,
@@ -779,11 +735,11 @@ func managementUsageRightsRulesPage(logger *log.Logger, db *database.DB) http.Ha
 
 		myPermission := model.MaskToPerms(user.Permissions)
 		var rule *model.Rule
-		var id int
+		var id uint64
 
 		ruleID := r.URL.Query().Get("ruleID")
 		if ruleID != "" {
-			id, err = strconv.Atoi(ruleID)
+			id, err = strconv.ParseUint(ruleID, 10, 64)
 			if err != nil {
 				logger.Errorf("failed to convert id to int: %v", err)
 			}
@@ -817,7 +773,7 @@ func managementUsageRightsRulesPage(logger *log.Logger, db *database.DB) http.Ha
 
 		managementUsageRightsRulesTemplate := template.Must(
 			template.New("management_usage_rights_rules_page.html").
-				Funcs(NewFuncMap(db)).
+				Funcs(CombinedFuncMap(db)).
 				ParseFS(webFS, index, header, multiLanguage,
 					"front-end/html/management_usage_rights_rules_page.html"),
 		)

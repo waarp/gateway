@@ -11,16 +11,18 @@ import (
 	"code.waarp.fr/apps/gateway/gateway/pkg/admin/gui/internal"
 	"code.waarp.fr/apps/gateway/gateway/pkg/database"
 	"code.waarp.fr/apps/gateway/gateway/pkg/model"
+	"code.waarp.fr/apps/gateway/gateway/pkg/model/authentication/auth"
+	"code.waarp.fr/apps/gateway/gateway/pkg/protocols/modules/sftp"
 )
 
 //nolint:dupl // it is not the same function, the calls are different
 func listCredentialPartner(partnerName string, db *database.DB, r *http.Request) (
-	[]*model.Credential, FiltersPagination, string,
+	[]*model.Credential, Filters, string,
 ) {
 	credentialPartnerFound := ""
-	filter := FiltersPagination{
+	filter := Filters{
 		Offset:          0,
-		Limit:           LimitPagination,
+		Limit:           DefaultLimitPagination,
 		OrderAsc:        true,
 		DisableNext:     false,
 		DisablePrevious: false,
@@ -34,20 +36,20 @@ func listCredentialPartner(partnerName string, db *database.DB, r *http.Request)
 	}
 
 	if limitRes := urlParams.Get("limit"); limitRes != "" {
-		if l, err := strconv.Atoi(limitRes); err == nil {
+		if l, err := strconv.ParseUint(limitRes, 10, 64); err == nil {
 			filter.Limit = l
 		}
 	}
 
 	if offsetRes := urlParams.Get("offset"); offsetRes != "" {
-		if o, err := strconv.Atoi(offsetRes); err == nil {
+		if o, err := strconv.ParseUint(offsetRes, 10, 64); err == nil {
 			filter.Offset = o
 		}
 	}
 
 	partnersCredentials, err := internal.ListPartnerCredentials(db, partnerName, "name", true, 0, 0)
 	if err != nil {
-		return nil, FiltersPagination{}, credentialPartnerFound
+		return nil, Filters{}, credentialPartnerFound
 	}
 
 	if search := urlParams.Get("search"); search != "" && searchCredentialPartner(search, partnersCredentials) == nil {
@@ -60,12 +62,12 @@ func listCredentialPartner(partnerName string, db *database.DB, r *http.Request)
 		return []*model.Credential{searchCredentialPartner(search, partnersCredentials)}, filter, credentialPartnerFound
 	}
 
-	paginationPage(&filter, len(partnersCredentials), r)
+	paginationPage(&filter, uint64(len(partnersCredentials)), r)
 
 	partnersCredentialsList, err := internal.ListPartnerCredentials(db, partnerName, "name",
-		filter.OrderAsc, filter.Limit, filter.Offset*filter.Limit)
+		filter.OrderAsc, int(filter.Limit), int(filter.Offset*filter.Limit))
 	if err != nil {
-		return nil, FiltersPagination{}, credentialPartnerFound
+		return nil, Filters{}, credentialPartnerFound
 	}
 
 	return partnersCredentialsList, filter, credentialPartnerFound
@@ -78,11 +80,11 @@ func autocompletionCredentialsPartnersFunc(db *database.DB) http.HandlerFunc {
 		prefix := urlParams.Get("q")
 		var err error
 		var partner *model.RemoteAgent
-		var id int
+		var id uint64
 
 		partnerID := urlParams.Get("partnerID")
 		if partnerID != "" {
-			id, err = strconv.Atoi(partnerID)
+			id, err = strconv.ParseUint(partnerID, 10, 64)
 			if err != nil {
 				http.Error(w, "failed to convert id to int", http.StatusInternalServerError)
 
@@ -136,7 +138,7 @@ func editCredentialPartner(partnerName string, db *database.DB, r *http.Request)
 	}
 	credentialPartnerID := r.FormValue("editCredentialPartnerID")
 
-	id, err := strconv.Atoi(credentialPartnerID)
+	id, err := strconv.ParseUint(credentialPartnerID, 10, 64)
 	if err != nil {
 		return fmt.Errorf("failed to convert id to int: %w", err)
 	}
@@ -155,9 +157,9 @@ func editCredentialPartner(partnerName string, db *database.DB, r *http.Request)
 	}
 
 	switch editCredentialPartner.Type {
-	case "password": //nolint:goconst // correction in next push
+	case auth.Password:
 		editCredentialPartner.Value = r.FormValue("editCredentialValue")
-	case "trusted_tls_certificate", "ssh_public_key": //nolint:goconst // correction in next push
+	case auth.TLSTrustedCertificate, sftp.AuthSSHPublicKey:
 		editCredentialPartner.Value = r.FormValue("editCredentialValueFile")
 	}
 
@@ -184,9 +186,9 @@ func addCredentialPartner(partnerName string, db *database.DB, r *http.Request) 
 	}
 
 	switch newCredentialPartner.Type {
-	case "password":
+	case auth.Password:
 		newCredentialPartner.Value = r.FormValue("addCredentialValue")
-	case "trusted_tls_certificate", "ssh_public_key":
+	case auth.TLSTrustedCertificate, sftp.AuthSSHPublicKey:
 		newCredentialPartner.Value = r.FormValue("addCredentialValueFile")
 	}
 
@@ -211,7 +213,7 @@ func deleteCredentialPartner(partnerName string, db *database.DB, r *http.Reques
 	}
 	credentialPartnerID := r.FormValue("deleteCredentialPartner")
 
-	id, err := strconv.Atoi(credentialPartnerID)
+	id, err := strconv.ParseUint(credentialPartnerID, 10, 64)
 	if err != nil {
 		return fmt.Errorf("internal error: %w", err)
 	}
@@ -261,7 +263,7 @@ func callMethodsPartnerAuthentication(logger *log.Logger, db *database.DB, w htt
 	if r.Method == http.MethodPost && r.FormValue("editCredentialPartnerID") != "" {
 		idEdit := r.FormValue("editCredentialPartnerID")
 
-		id, err := strconv.Atoi(idEdit)
+		id, err := strconv.ParseUint(idEdit, 10, 64)
 		if err != nil {
 			logger.Errorf("failed to convert id to int: %v", err)
 
@@ -295,11 +297,11 @@ func partnerAuthenticationPage(logger *log.Logger, db *database.DB) http.Handler
 
 		myPermission := model.MaskToPerms(user.Permissions)
 		var partner *model.RemoteAgent
-		var id int
+		var id uint64
 
 		partnerID := r.URL.Query().Get("partnerID")
 		if partnerID != "" {
-			id, err = strconv.Atoi(partnerID)
+			id, err = strconv.ParseUint(partnerID, 10, 64)
 			if err != nil {
 				logger.Errorf("failed to convert id to int: %v", err)
 			}

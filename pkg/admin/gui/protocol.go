@@ -3,8 +3,12 @@ package gui
 import (
 	"net/http"
 
+	"code.waarp.fr/apps/gateway/gateway/pkg/model/authentication/auth"
 	"code.waarp.fr/apps/gateway/gateway/pkg/protocols/modules/ftp"
+	httpconst "code.waarp.fr/apps/gateway/gateway/pkg/protocols/modules/http"
 	"code.waarp.fr/apps/gateway/gateway/pkg/protocols/modules/pesit"
+	"code.waarp.fr/apps/gateway/gateway/pkg/protocols/modules/r66"
+	"code.waarp.fr/apps/gateway/gateway/pkg/protocols/modules/sftp"
 	"code.waarp.fr/apps/gateway/gateway/pkg/protocols/protoutils"
 )
 
@@ -22,13 +26,13 @@ type Protocols struct {
 
 func supportedProtocolInternal(protocol string) []string {
 	supportedProtocolsInternal := map[string][]string{
-		"r66":       {"password"},
-		"r66-tls":   {"password", "trusted_tls_certificate", "r66_legacy_certificate"},
-		"http":      {"password"},
-		"https":     {"password", "trusted_tls_certificate"},
-		"sftp":      {"password", "ssh_public_key"},
-		"pesit":     {"password"},
-		"pesit-tls": {"password", "trusted_tls_certificate"},
+		r66.R66:         {auth.Password},
+		r66.R66TLS:      {auth.Password, auth.TLSTrustedCertificate, r66.AuthLegacyCertificate},
+		httpconst.HTTP:  {auth.Password},
+		httpconst.HTTPS: {auth.Password, auth.TLSTrustedCertificate},
+		sftp.SFTP:       {auth.Password, sftp.AuthSSHPublicKey},
+		pesit.Pesit:     {auth.Password},
+		pesit.PesitTLS:  {auth.Password, auth.TLSTrustedCertificate},
 	}
 
 	return supportedProtocolsInternal[protocol]
@@ -36,13 +40,13 @@ func supportedProtocolInternal(protocol string) []string {
 
 func supportedProtocolExternal(protocol string) []string {
 	supportedProtocolsExternal := map[string][]string{
-		"r66":       {"password"},
-		"r66-tls":   {"password", "tls_certificate", "r66_legacy_certificate"},
-		"http":      {"password"},
-		"https":     {"password", "tls_certificate"},
-		"sftp":      {"password", "ssh_private_key"},
-		"pesit":     {"password", "pesit_pre-connection_auth"},
-		"pesit-tls": {"tls_certificate", "pesit_pre-connection_auth"},
+		r66.R66:         {auth.Password},
+		r66.R66TLS:      {auth.Password, auth.TLSCertificate, r66.AuthLegacyCertificate},
+		httpconst.HTTP:  {auth.Password},
+		httpconst.HTTPS: {auth.Password, auth.TLSCertificate},
+		sftp.SFTP:       {auth.Password, sftp.AuthSSHPrivateKey},
+		pesit.Pesit:     {auth.Password, pesit.PreConnectionAuth},
+		pesit.PesitTLS:  {auth.TLSCertificate, pesit.PreConnectionAuth},
 	}
 
 	return supportedProtocolsExternal[protocol]
@@ -55,44 +59,44 @@ var (
 	TLSRequirement         = []string{string(ftp.TLSOptional), string(ftp.TLSMandatory), string(ftp.TLSImplicit)}
 )
 
-func protocolsFilter(r *http.Request, filter *FiltersPagination) (*FiltersPagination, []string) {
+func protocolsFilter(r *http.Request, filter *Filters) (*Filters, []string) {
 	var filterProtocol []string
 	urlParams := r.URL.Query()
 
 	if filter.Protocols.R66 = urlParams.Get("filterProtocolR66"); filter.Protocols.R66 == "true" {
-		filterProtocol = append(filterProtocol, "r66")
+		filterProtocol = append(filterProtocol, r66.R66)
 	}
 
 	if filter.Protocols.R66TLS = urlParams.Get("filterProtocolR66-TLS"); filter.Protocols.R66TLS == "true" {
-		filterProtocol = append(filterProtocol, "r66-tls")
+		filterProtocol = append(filterProtocol, r66.R66TLS)
 	}
 
 	if filter.Protocols.SFTP = urlParams.Get("filterProtocolSFTP"); filter.Protocols.SFTP == "true" {
-		filterProtocol = append(filterProtocol, "sftp")
+		filterProtocol = append(filterProtocol, sftp.SFTP)
 	}
 
 	if filter.Protocols.HTTP = urlParams.Get("filterProtocolHTTP"); filter.Protocols.HTTP == "true" {
-		filterProtocol = append(filterProtocol, "http")
+		filterProtocol = append(filterProtocol, httpconst.HTTP)
 	}
 
 	if filter.Protocols.HTTPS = urlParams.Get("filterProtocolHTTPS"); filter.Protocols.HTTPS == "true" {
-		filterProtocol = append(filterProtocol, "https")
+		filterProtocol = append(filterProtocol, httpconst.HTTPS)
 	}
 
 	if filter.Protocols.FTP = urlParams.Get("filterProtocolFTP"); filter.Protocols.FTP == "true" {
-		filterProtocol = append(filterProtocol, "ftp")
+		filterProtocol = append(filterProtocol, ftp.FTP)
 	}
 
 	if filter.Protocols.FTPS = urlParams.Get("filterProtocolFTPS"); filter.Protocols.FTPS == "true" {
-		filterProtocol = append(filterProtocol, "ftps")
+		filterProtocol = append(filterProtocol, ftp.FTPS)
 	}
 
 	if filter.Protocols.PeSIT = urlParams.Get("filterProtocolPeSIT"); filter.Protocols.PeSIT == "true" {
-		filterProtocol = append(filterProtocol, "pesit")
+		filterProtocol = append(filterProtocol, pesit.Pesit)
 	}
 
 	if filter.Protocols.PeSITTLS = urlParams.Get("filterProtocolPeSIT-TLS"); filter.Protocols.PeSITTLS == "true" {
-		filterProtocol = append(filterProtocol, "pesit-tls")
+		filterProtocol = append(filterProtocol, pesit.PesitTLS)
 	}
 
 	return filter, filterProtocol

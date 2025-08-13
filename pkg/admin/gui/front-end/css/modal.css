@@ -25,3 +25,24 @@
 .modal-body .form-group .index-value .form-select {
   flex:0 0 60%;
 }
+
+.flex-label-input {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    width: 100%;
+}
+
+.flex-label-input label {
+    margin-bottom: 0;
+}
+
+.input-auto-width {
+    flex: 1 1 0%;
+    min-width: 0;
+    display: block;
+    white-space: nowrap;
+    text-overflow: ellipsis;
+    overflow: hidden;
+    width: auto;
+}

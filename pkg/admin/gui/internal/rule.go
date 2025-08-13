@@ -11,6 +11,12 @@ func GetRule(db database.ReadAccess, name string, isSend bool) (*model.Rule, err
 	return &rule, db.Get(&rule, "name=? AND is_send=?", name, isSend).Run()
 }
 
+func GetRuleByName(db database.ReadAccess, name string) (*model.Rule, error) {
+	var rule model.Rule
+
+	return &rule, db.Get(&rule, "name=?", name).Run()
+}
+
 func GetRuleByID(db database.ReadAccess, id int64) (*model.Rule, error) {
 	var rule model.Rule
 

@@ -6,6 +6,7 @@
     "treatment": { "fr": "Traitement", "en": "Treatment" },
     "monitoring": { "fr": "Supervision", "en": "Monitoring" },
     "administration": { "fr": "Administration", "en": "Administration" },
+    "undefined": { "fr": "<non définie>", "en": "<undefined>" },
     "authorizedServers": { "fr": "Serveurs autorisés", "en": "Authorized servers" },
     "authorizedPartners": { "fr": "Partenaires autorisés", "en": "Authorized partners" },
     "authorizedLocalAccounts": { "fr": "Comptes locaux autorisés", "en": "Authorized local accounts" },

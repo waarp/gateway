@@ -11,16 +11,19 @@ import (
 	"code.waarp.fr/apps/gateway/gateway/pkg/admin/gui/internal"
 	"code.waarp.fr/apps/gateway/gateway/pkg/database"
 	"code.waarp.fr/apps/gateway/gateway/pkg/model"
+	"code.waarp.fr/apps/gateway/gateway/pkg/model/authentication/auth"
+	"code.waarp.fr/apps/gateway/gateway/pkg/protocols/modules/pesit"
+	"code.waarp.fr/apps/gateway/gateway/pkg/protocols/modules/sftp"
 )
 
 //nolint:dupl // no similar func (is for remote_account)
 func listCredentialRemoteAccount(partnerName, login string, db *database.DB, r *http.Request) (
-	[]*model.Credential, FiltersPagination, string,
+	[]*model.Credential, Filters, string,
 ) {
 	credentialAccountFound := ""
-	filter := FiltersPagination{
+	filter := Filters{
 		Offset:          0,
-		Limit:           LimitPagination,
+		Limit:           DefaultLimitPagination,
 		OrderAsc:        true,
 		DisableNext:     false,
 		DisablePrevious: false,
@@ -35,20 +38,20 @@ func listCredentialRemoteAccount(partnerName, login string, db *database.DB, r *
 	}
 
 	if limitRes := urlParams.Get("limit"); limitRes != "" {
-		if l, err := strconv.Atoi(limitRes); err == nil {
+		if l, err := strconv.ParseUint(limitRes, 10, 64); err == nil {
 			filter.Limit = l
 		}
 	}
 
 	if offsetRes := urlParams.Get("offset"); offsetRes != "" {
-		if o, err := strconv.Atoi(offsetRes); err == nil {
+		if o, err := strconv.ParseUint(offsetRes, 10, 64); err == nil {
 			filter.Offset = o
 		}
 	}
 
 	accountsCredentials, err := internal.ListPartnerAccountCredentials(db, partnerName, login, "name", true, 0, 0)
 	if err != nil {
-		return nil, FiltersPagination{}, credentialAccountFound
+		return nil, Filters{}, credentialAccountFound
 	}
 
 	if search := urlParams.Get("search"); search != "" && searchCredentialRemoteAccount(search,
@@ -62,12 +65,12 @@ func listCredentialRemoteAccount(partnerName, login string, db *database.DB, r *
 		return []*model.Credential{searchCredentialRemoteAccount(search, accountsCredentials)}, filter, credentialAccountFound
 	}
 
-	paginationPage(&filter, len(accountsCredentials), r)
+	paginationPage(&filter, uint64(len(accountsCredentials)), r)
 
 	accountsCredentialsList, err := internal.ListPartnerAccountCredentials(db, partnerName, login, "name",
-		filter.OrderAsc, filter.Limit, filter.Offset*filter.Limit)
+		filter.OrderAsc, int(filter.Limit), int(filter.Offset*filter.Limit))
 	if err != nil {
-		return nil, FiltersPagination{}, credentialAccountFound
+		return nil, Filters{}, credentialAccountFound
 	}
 
 	return accountsCredentialsList, filter, credentialAccountFound
@@ -80,12 +83,12 @@ func autocompletionCredentialsRemoteAccountsFunc(db *database.DB) http.HandlerFu
 		prefix := urlParams.Get("q")
 		var err error
 		var account *model.RemoteAccount
-		var idA int
+		var idA uint64
 
 		accountID := urlParams.Get("accountID")
 
 		if accountID != "" {
-			idA, err = strconv.Atoi(accountID)
+			idA, err = strconv.ParseUint(accountID, 10, 64)
 			if err != nil {
 				http.Error(w, "failed to convert account id to int", http.StatusInternalServerError)
 
@@ -148,14 +151,14 @@ func addCredentialRemoteAccount(partnerName, login string, db *database.DB, r *h
 	}
 
 	switch newCredentialAccount.Type {
-	case "password": //nolint:goconst // correction in next push
+	case auth.Password:
 		newCredentialAccount.Value = r.FormValue("addCredentialValue")
-	case "ssh_private_key": //nolint:goconst // correction in next push
+	case sftp.AuthSSHPrivateKey:
 		newCredentialAccount.Value = r.FormValue("addCredentialValueFile")
-	case "tls_certificate": //nolint:goconst // correction in next push
+	case auth.TLSCertificate:
 		newCredentialAccount.Value = r.FormValue("addCredentialValueFile1")
 		newCredentialAccount.Value2 = r.FormValue("addCredentialValueFile2")
-	case "pesit_pre-connection_auth": //nolint:goconst // correction in next push
+	case pesit.PreConnectionAuth:
 		newCredentialAccount.Value = r.FormValue("addCredentialValue1")
 		newCredentialAccount.Value2 = r.FormValue("addCredentialValue2")
 	}
@@ -181,7 +184,7 @@ func editCredentialRemoteAccount(account *model.RemoteAccount, db *database.DB, 
 	}
 	credentialAccountID := r.FormValue("editCredentialAccountID")
 
-	id, err := strconv.Atoi(credentialAccountID)
+	id, err := strconv.ParseUint(credentialAccountID, 10, 64)
 	if err != nil {
 		return fmt.Errorf("failed to convert id to int: %w", err)
 	}
@@ -200,14 +203,14 @@ func editCredentialRemoteAccount(account *model.RemoteAccount, db *database.DB, 
 	}
 
 	switch editCredentialAccount.Type {
-	case "password":
+	case auth.Password:
 		editCredentialAccount.Value = r.FormValue("editCredentialValue")
-	case "ssh_private_key":
+	case sftp.AuthSSHPrivateKey:
 		editCredentialAccount.Value = r.FormValue("editCredentialValueFile")
-	case "tls_certificate":
+	case auth.TLSCertificate:
 		editCredentialAccount.Value = r.FormValue("editCredentialValueFile1")
 		editCredentialAccount.Value2 = r.FormValue("editCredentialValueFile2")
-	case "pesit_pre-connection_auth":
+	case pesit.PreConnectionAuth:
 		editCredentialAccount.Value = r.FormValue("editCredentialValue1")
 		editCredentialAccount.Value2 = r.FormValue("editCredentialValue2")
 	}
@@ -225,7 +228,7 @@ func deleteCredentialRemoteAccount(account *model.RemoteAccount, db *database.DB
 	}
 	credentialAccountID := r.FormValue("deleteCredentialAccount")
 
-	id, err := strconv.Atoi(credentialAccountID)
+	id, err := strconv.ParseUint(credentialAccountID, 10, 64)
 	if err != nil {
 		return fmt.Errorf("internal error: %w", err)
 	}
@@ -276,7 +279,7 @@ func callMethodsRemoteAccountAuthentication(logger *log.Logger, db *database.DB,
 	if r.Method == http.MethodPost && r.FormValue("editCredentialAccountID") != "" {
 		idEdit := r.FormValue("editCredentialAccountID")
 
-		id, err := strconv.Atoi(idEdit)
+		id, err := strconv.ParseUint(idEdit, 10, 64)
 		if err != nil {
 			logger.Errorf("failed to convert id to int: %v", err)
 
@@ -306,7 +309,7 @@ func getPartnerAndAccount(db *database.DB, partnerID, accountID string, logger *
 	var account *model.RemoteAccount
 
 	if partnerID != "" && accountID != "" {
-		idP, err := strconv.Atoi(partnerID)
+		idP, err := strconv.ParseUint(partnerID, 10, 64)
 		if err != nil {
 			logger.Errorf("failed to convert partner id to int: %v", err)
 
@@ -320,7 +323,7 @@ func getPartnerAndAccount(db *database.DB, partnerID, accountID string, logger *
 			return nil, nil
 		}
 
-		idA, err := strconv.Atoi(accountID)
+		idA, err := strconv.ParseUint(accountID, 10, 64)
 		if err != nil {
 			logger.Errorf("failed to convert account id to int: %v", err)
 

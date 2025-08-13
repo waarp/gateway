@@ -11,16 +11,18 @@ import (
 	"code.waarp.fr/apps/gateway/gateway/pkg/admin/gui/internal"
 	"code.waarp.fr/apps/gateway/gateway/pkg/database"
 	"code.waarp.fr/apps/gateway/gateway/pkg/model"
+	"code.waarp.fr/apps/gateway/gateway/pkg/model/authentication/auth"
+	"code.waarp.fr/apps/gateway/gateway/pkg/protocols/modules/sftp"
 )
 
 //nolint:dupl // no similar func (is for account)
 func listCredentialLocalAccount(serverName, login string, db *database.DB, r *http.Request) (
-	[]*model.Credential, FiltersPagination, string,
+	[]*model.Credential, Filters, string,
 ) {
 	credentialAccountFound := ""
-	filter := FiltersPagination{
+	filter := Filters{
 		Offset:          0,
-		Limit:           LimitPagination,
+		Limit:           DefaultLimitPagination,
 		OrderAsc:        true,
 		DisableNext:     false,
 		DisablePrevious: false,
@@ -35,20 +37,20 @@ func listCredentialLocalAccount(serverName, login string, db *database.DB, r *ht
 	}
 
 	if limitRes := urlParams.Get("limit"); limitRes != "" {
-		if l, err := strconv.Atoi(limitRes); err == nil {
+		if l, err := strconv.ParseUint(limitRes, 10, 64); err == nil {
 			filter.Limit = l
 		}
 	}
 
 	if offsetRes := urlParams.Get("offset"); offsetRes != "" {
-		if o, err := strconv.Atoi(offsetRes); err == nil {
+		if o, err := strconv.ParseUint(offsetRes, 10, 64); err == nil {
 			filter.Offset = o
 		}
 	}
 
 	accountsCredentials, err := internal.ListServerAccountCredentials(db, serverName, login, "name", true, 0, 0)
 	if err != nil {
-		return nil, FiltersPagination{}, credentialAccountFound
+		return nil, Filters{}, credentialAccountFound
 	}
 
 	if search := urlParams.Get("search"); search != "" && searchCredentialLocalAccount(search,
@@ -62,12 +64,12 @@ func listCredentialLocalAccount(serverName, login string, db *database.DB, r *ht
 		return []*model.Credential{searchCredentialLocalAccount(search, accountsCredentials)}, filter, credentialAccountFound
 	}
 
-	paginationPage(&filter, len(accountsCredentials), r)
+	paginationPage(&filter, uint64(len(accountsCredentials)), r)
 
 	accountsCredentialsList, err := internal.ListServerAccountCredentials(db, serverName, login, "name",
-		filter.OrderAsc, filter.Limit, filter.Offset*filter.Limit)
+		filter.OrderAsc, int(filter.Limit), int(filter.Offset*filter.Limit))
 	if err != nil {
-		return nil, FiltersPagination{}, credentialAccountFound
+		return nil, Filters{}, credentialAccountFound
 	}
 
 	return accountsCredentialsList, filter, credentialAccountFound
@@ -80,12 +82,12 @@ func autocompletionCredentialsLocalAccountsFunc(db *database.DB) http.HandlerFun
 		prefix := urlParams.Get("q")
 		var err error
 		var account *model.LocalAccount
-		var idA int
+		var idA uint64
 
 		accountID := urlParams.Get("accountID")
 
 		if accountID != "" {
-			idA, err = strconv.Atoi(accountID)
+			idA, err = strconv.ParseUint(accountID, 10, 64)
 			if err != nil {
 				http.Error(w, "failed to convert account id to int", http.StatusInternalServerError)
 
@@ -148,9 +150,9 @@ func addCredentialLocalAccount(serverName, login string, db *database.DB, r *htt
 	}
 
 	switch newCredentialAccount.Type {
-	case "password":
+	case auth.Password:
 		newCredentialAccount.Value = r.FormValue("addCredentialValue")
-	case "trusted_tls_certificate", "ssh_public_key":
+	case auth.TLSTrustedCertificate, sftp.AuthSSHPublicKey:
 		newCredentialAccount.Value = r.FormValue("addCredentialValueFile")
 	}
 
@@ -175,7 +177,7 @@ func editCredentialLocalAccount(account *model.LocalAccount, db *database.DB, r 
 	}
 	credentialAccountID := r.FormValue("editCredentialAccountID")
 
-	id, err := strconv.Atoi(credentialAccountID)
+	id, err := strconv.ParseUint(credentialAccountID, 10, 64)
 	if err != nil {
 		return fmt.Errorf("failed to convert id to int: %w", err)
 	}
@@ -194,9 +196,9 @@ func editCredentialLocalAccount(account *model.LocalAccount, db *database.DB, r 
 	}
 
 	switch editCredentialAccount.Type {
-	case "password":
+	case auth.Password:
 		editCredentialAccount.Value = r.FormValue("editCredentialValue")
-	case "trusted_tls_certificate", "ssh_public_key":
+	case auth.TLSTrustedCertificate, sftp.AuthSSHPublicKey:
 		editCredentialAccount.Value = r.FormValue("editCredentialValueFile")
 	}
 
@@ -213,7 +215,7 @@ func deleteCredentialLocalAccount(account *model.LocalAccount, db *database.DB, 
 	}
 	credentialAccountID := r.FormValue("deleteCredentialAccount")
 
-	id, err := strconv.Atoi(credentialAccountID)
+	id, err := strconv.ParseUint(credentialAccountID, 10, 64)
 	if err != nil {
 		return fmt.Errorf("internal error: %w", err)
 	}
@@ -264,7 +266,7 @@ func callMethodsLocalAccountAuthentication(logger *log.Logger, db *database.DB, 
 	if r.Method == http.MethodPost && r.FormValue("editCredentialAccountID") != "" {
 		idEdit := r.FormValue("editCredentialAccountID")
 
-		id, err := strconv.Atoi(idEdit)
+		id, err := strconv.ParseUint(idEdit, 10, 64)
 		if err != nil {
 			logger.Errorf("failed to convert id to int: %v", err)
 
@@ -294,7 +296,7 @@ func getServerAndAccount(db *database.DB, serverID, accountID string, logger *lo
 	var account *model.LocalAccount
 
 	if serverID != "" && accountID != "" {
-		idS, err := strconv.Atoi(serverID)
+		idS, err := strconv.ParseUint(serverID, 10, 64)
 		if err != nil {
 			logger.Errorf("failed to convert server id to int: %v", err)
 
@@ -308,7 +310,7 @@ func getServerAndAccount(db *database.DB, serverID, accountID string, logger *lo
 			return nil, nil
 		}
 
-		idA, err := strconv.Atoi(accountID)
+		idA, err := strconv.ParseUint(accountID, 10, 64)
 		if err != nil {
 			logger.Errorf("failed to convert account id to int: %v", err)
 

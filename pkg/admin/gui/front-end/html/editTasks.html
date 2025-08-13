@@ -176,7 +176,7 @@
         <button type="button"
                 class="btn btn-outline-primary btn-sm"
                 onclick="addField(this)">
-            add
+            {{ index .tab "add" }}
         </button>
     </div>
 </div>
@@ -304,7 +304,7 @@
             {{ $args := .Args }}
             {{ range .IcapOnErrorOptions }}
             <option value="{{ . }}" {{ if eq (index $args "onError") . }}selected{{ end }}>
-                {{ if eq . "" }}vide{{ else }}{{ . }}{{ end }}
+                {{ if eq . "" }}do nothing{{ else }}{{ . }}{{ end }}
             </option>
             {{ end }}
         </select>
