@@ -86,11 +86,6 @@ func RegisterNewTransfer(db *database.DB,
 
 		return nil
 	})
-	if err != nil {
-		return nil, err
-	}
-
-	return trans, nil
 }
 
 func PauseTransfer(ctx context.Context, db database.Access, view *model.NormalizedTransferView,
