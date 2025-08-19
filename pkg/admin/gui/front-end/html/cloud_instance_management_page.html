@@ -2,6 +2,7 @@
     <title>{{ index .tab "title" }}</title>
     <link rel="stylesheet" href="/webui/static/css/style.css">
     <script src="/webui/static/javaScript/autoCompleteSearch.js"></script>
+    <script src="/webui/static/javaScript/fields.js "></script>
     <script>window.modalOpen = "{{ .modalOpen }}";</script>
     <script src="/webui/static/javaScript/displayErr.js"></script>
 {{ end }}
@@ -22,10 +23,75 @@
   <hr style="border-top: 1px solid #ababab;">
 
     {{ if contains .myPermission.Administration "w" }}
-    <button class="btn btn-primary mb-3 btn-add" type="button" data-bs-toggle="modal" data-bs-target="#addInstanceCloudModal">
-        {{ index .tab "addInstanceCloudTitle" }}
+    <button class="btn btn-primary mb-3 btn-add" type="button" data-bs-toggle="modal" data-bs-target="#addCloudInstanceModal">
+        {{ index .tab "addCloudInstanceTitle" }}
     </button>
-    {{ end }}
+    <div class="modal fade" id="addCloudInstanceModal" tabindex="-1" aria-labelledby="addCloudInstanceModalLabel" aria-hidden="true">
+      <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+          <form method="post" class="p-3 border rounded bg-light">
+          <div class="modal-header">
+            <h5 class="modal-title" id="addCloudInstanceModalLabel">{{ index .tab "addCloudInstanceTitle" }}</h5>
+            <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+          </div>
+          <div class="modal-body">
+          <div class="form-input">
+            <label class="col-form-label">{{ index .tab "name" }} :</label>
+            <input type="text" name="addCloudInstanceName" class="form-control" required>
+          </div>
+          <hr style="border-top: 1px solid #ababab;">
+          <div class="form-input">
+            <label class="col-form-label">{{ index .tab "type" }} :</label>
+            <select name="addCloudInstanceType" id="addCloudInstanceType" class="form-select">
+              <option value="" disabled selected>{{ index .tab "selectTypeCloudInstance" }}</option>
+              {{ range .ListTypeCloudInstance }}
+                  <option value="{{ . }}">{{ . }}</option>
+              {{ end }}
+            </select>
+        </div>
+          <hr style="border-top: 1px solid #ababab;">
+          <div class="form-input">
+            <label class="col-form-label">{{ index .tab "key" }} :</label>
+            <input type="text" name="addCloudInstanceKey" class="form-control">
+          </div>
+          <hr style="border-top: 1px solid #ababab;">
+          <div class="form-input">
+            <label class="col-form-label">{{ index .tab "secretKey" }} :</label>
+            <input type="text" name="addCloudInstanceSecret" class="form-control">
+          </div>
+          <hr style="border-top: 1px solid #ababab;">
+          <div class="form-input">
+            <label class="col-form-label">{{ index .tab "bucket" }} :</label>
+            <input type="text" name="addCloudInstanceBucket" class="form-control" required>
+          </div>
+          <hr style="border-top: 1px solid #ababab;">
+          <div class="form-input">
+              <label class="col-form-label">{{ index .tab "options" }} :</label>
+              <div id="infoContainer">
+                  <div class="input-group mb-2">
+                      <input type="text" name="optionsKey[]" class="form-control" placeholder="{{ index .tab "fieldName" }}">
+                      <input type="text" name="optionsValue[]" class="form-control" placeholder="{{ index .tab "value" }}">
+                    <button type="button" class="btn btn-outline-danger btn-sm" onclick="removeField(this)">
+                        <i class="bi bi-trash"></i>
+                      </button>
+                  </div>
+              </div>
+              <button type="button"
+                      class="btn btn-outline-primary btn-sm"
+                      onclick="addField(this)">
+                  {{ index .tab "add" }}
+              </button>
+          </div>
+          </div>
+          <div class="modal-footer">
+            <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">{{ index .tab "close" }}</button>
+            <button type="submit" class="btn btn-success ms-3">{{ index .tab "apply" }}</button>
+          </div>
+          </form>
+        </div>
+      </div>
+    </div>
+  {{ end }}
 
   {{ if contains .myPermission.Administration "r" }}
     <button class="btn btn-primary mb-3 ms-1-5 btn-filter" type="button" data-bs-toggle="collapse" data-bs-target="#filterCollapse" aria-expanded="false" aria-controls="filterCollapse">
@@ -51,17 +117,17 @@
         </label>
         <div style="float:right">
           <button id="applyBtn" type="submit" class="btn btn-success">{{ index .tab "apply" }}</button>
-          <button id="resetBtn" type="button" class="btn btn-secondary ms-2" onclick="window.location='instance_cloud_management'">{{ index .tab "reset" }}</button>
+          <button id="resetBtn" type="button" class="btn btn-secondary ms-2" onclick="window.location='cloud_instance_management'">{{ index .tab "reset" }}</button>
         </div>
       </form>
     </div>
     <nav class="navbar navbar-light bg-light">
-      <input type="hidden" id="pageType" value="InstanceClouds">
+      <input type="hidden" id="pageType" value="instanceCloud">
       <form method="get" class="d-flex ms-auto position-relative" onsubmit="return true">
         {{ if eq .cloudFound "false" }}
-          <div class="invalid-feedback d-block mt-2">{{ index .tab "InstanceCloudNotFound" }}</div>
+          <div class="invalid-feedback d-block mt-2">{{ index .tab "CloudInstanceNotFound" }}</div>
         {{ else if eq .cloudFound "true" }}
-          <button id="resetBtn" type="button" class="btn reset-btn" onclick="window.location='instance_cloud_management'"><i class="bi bi-x fs"></i></button>
+          <button id="resetBtn" type="button" class="btn reset-btn" onclick="window.location='cloud_instance_management'"><i class="bi bi-x fs"></i></button>
         {{ end }}
         <input class="navbar-partner form-control {{ if eq .cloudFound "false" }}is-invalid{{ end }}" type="search" placeholder="{{ index .tab "search" }}" name="search" id="search" autocomplete="off">
         <button class="btn btn-primary ms-2 btn-navbar" type="submit">{{ index .tab "search" }}</button>
@@ -72,30 +138,167 @@
       <thead class="table-light">
         <tr>
             <th></th>
-            <th>{{ index .tab "ID" }}</th>
-            <th>{{ index .tab "Name" }}</th>
-            <th>{{ index .tab "Type" }}</th>
-            <th>{{ index .tab "Key" }}</th>
+            <th>{{ index .tab "id" }}</th>
+            <th>{{ index .tab "name" }}</th>
+            <th>{{ index .tab "type" }}</th>
+            <th>{{ index .tab "key" }}</th>
+            <th>{{ index .tab "secretKey" }}</th>
+            <th>{{ index .tab "bucket" }}</th>
+            <th>{{ index .tab "options" }}</th>
             <th class="text-end"></th>
         </tr>
         </thead>
         <tbody>
         {{ range .cloudInstanceList }}
         <tr>
-            <td><i class="bi bi-cloud"></i></td>
+            <td><i class="bi bi-cloud-fill"></i></td>
             <td><strong>{{ .ID }}</strong></td>
             <td>{{ .Name }}</td>
             <td>{{ .Type }}</td>
             <td>{{ .Key }}</td>
+            <td>{{ maskSecret .Secret }}</td>
+            <td>{{ index .Options "bucket" }}</td>
+            <td>
+              <button class="btn btn-outline-primary modal-btn" type="button" data-bs-toggle="modal" data-bs-target="#optionsModal_{{ .ID }}">
+                <i class="bi bi-gear-fill"></i>
+              </button>
+              <div class="modal fade" id="optionsModal_{{ .ID }}" tabindex="-1" aria-labelledby="optionsModalLabel_{{ .ID }}" aria-hidden="true">
+                <div class="modal-dialog modal-lg">
+                  <div class="modal-content p-3 border rounded bg-light">
+                    <div class="modal-header">
+                      <h5 class="modal-title" id="optionsModalLabel_{{ .ID }}">
+                        {{ index $.tab "options" }}: {{ .Name }}
+                      </h5>
+                      <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                    </div>
+                    <div class="modal-body">
+                      <div class="flex-label-input">
+                        <label class="col-form-label label-light-bold me-3">{{ index $.tab "key" }} :</label>
+                        <input type="text" class="form-control-plaintext input-auto-width" value="{{ index .Options "access_key_id" }}" disabled>
+                      </div>
+                      <hr style="border-top: 1px solid #ababab;">
+                      <div class="flex-label-input">
+                        <label class="col-form-label label-light-bold me-3">{{ index $.tab "secretKey" }} :</label>
+                        <input type="text" class="form-control-plaintext input-auto-width" value="{{ maskSecret (index .Options "secret_access_key") }}" disabled>
+                      </div>
+                      <hr style="border-top: 1px solid #ababab;">
+                      <div class="flex-label-input">
+                        <label class="col-form-label label-light-bold me-3">{{ index $.tab "bucket" }} :</label>
+                        <input type="text" class="form-control-plaintext input-auto-width" value="{{ index .Options "bucket" }}" disabled>
+                      </div>
+                      <hr style="border-top: 1px solid #ababab;">
+                      <div class="flex-label-input">
+                        <label class="col-form-label label-light-bold me-3">{{ index $.tab "endpoint" }} :</label>
+                        <input type="text" class="form-control-plaintext input-auto-width" value="{{ index .Options "endpoint" }}" disabled>
+                      </div>
+                      <hr style="border-top: 1px solid #ababab;">
+                      <div class="flex-label-input">
+                        <label class="col-form-label label-light-bold me-3">{{ index $.tab "region" }} :</label>
+                        <input type="text" class="form-control-plaintext input-auto-width" value="{{ index .Options "region" }}" disabled>
+                      </div>
+                      {{ range $key, $value := .Options }}
+                        {{ if not (or (eq $key "access_key_id") (eq $key "secret_access_key") (eq $key "endpoint") (eq $key "region") (eq $key "bucket")) }}
+                          <hr style="border-top: 1px solid #ababab;">
+                          <div class="flex-label-input">
+                            <label class="col-form-label label-light-bold me-3">
+                              {{ if eq $key "chunk_size" }}{{ index $.tab "chunkSize" }}
+                              {{ else if eq $key "copy_cutoff" }}{{ index $.tab "copyCutoff" }}
+                              {{ else if eq $key "directory_markers" }}{{ index $.tab "directoryMarkers" }}
+                              {{ else if eq $key "env_auth" }}{{ index $.tab "envAuth" }}
+                              {{ else if eq $key "list_chunk" }}{{ index $.tab "listChunk" }}
+                              {{ else if eq $key "list_version" }}{{ index $.tab "listVersion" }}
+                              {{ else }}{{ $key }}
+                              {{ end }} :
+                            </label>
+                            <input type="text" class="form-control-plaintext input-auto-width" value="{{ $value }}" disabled>
+                          </div>
+                        {{ end }}
+                      {{ end }}
+                    </div>
+                    <div class="modal-footer">
+                      <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">{{ index $.tab "close" }}</button>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </td>
             <td class="text-end">
                 {{ if contains $.myPermission.Administration "w" }}
-                <button class="btn btn-outline-primary btn-sm me-1" data-bs-toggle="modal" data-bs-target="#editInstanceCloudModal_{{ .ID }}">
+                <button class="btn btn-outline-primary btn-sm me-1" data-bs-toggle="modal" data-bs-target="#editCloudInstanceModal_{{ .ID }}">
                     <i class="bi bi-pencil"></i>
                 </button>
+                <div class="modal fade" id="editCloudInstanceModal_{{ .ID }}" tabindex="-1" aria-labelledby="editCloudInstanceModalLabel_{{ .ID }}" aria-hidden="true">
+                  <div class="modal-dialog modal-lg">
+                    <div class="modal-content">
+                      <form method="post" class="p-3 border rounded bg-light">
+                        <input type="hidden" name="editCloudInstanceID" value="{{ .ID }}">
+                        <div class="modal-header">
+                          <h5 class="modal-title" id="editCloudInstanceModalLabel">{{ index $.tab "edit" }}: {{ .Name }}</h5>
+                          <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                        </div>
+                        <div class="modal-body">
+                          <div class="form-input">
+                            <label class="col-form-label">{{ index $.tab "name" }} :</label>
+                            <input type="text" name="editCloudInstanceName" class="form-control" required value="{{ .Name }}">
+                          </div>
+                          <hr style="border-top: 1px solid #ababab;">
+                          <div class="form-input">
+                            <label class="col-form-label">{{ index $.tab "type" }} :</label>
+                            <select name="editCloudInstanceType" class="form-select">
+                              <option value="" disabled>{{ index $.tab "selectTypeCloudInstance" }}</option>
+                              {{ range $.ListTypeCloudInstance }}
+                                  <option value="{{ . }}" {{ if eq $.Type . }}selected{{ end }}>{{ . }}</option>
+                              {{ end }}
+                            </select>
+                          </div>
+                          <hr style="border-top: 1px solid #ababab;">
+                          <div class="form-input">
+                            <label class="col-form-label">{{ index $.tab "key" }} :</label>
+                            <input type="text" name="editCloudInstanceKey" class="form-control" value="{{ .Key }}">
+                          </div>
+                          <hr style="border-top: 1px solid #ababab;">
+                          <div class="form-input">
+                            <label class="col-form-label">{{ index $.tab "secretKey" }} :</label>
+                            <input type="text" name="editCloudInstanceSecret" class="form-control" value="{{ .Secret }}">
+                          </div>
+                          <hr style="border-top: 1px solid #ababab;">
+                          <div class="form-input">
+                            <label class="col-form-label">{{ index $.tab "bucket" }} :</label>
+                            <input type="text" name="editCloudInstanceBucket" class="form-control" value="{{ index .Options "bucket" }}">
+                          </div>
+                          <hr style="border-top: 1px solid #ababab;">
+                          <div class="form-input">
+                            <label class="col-form-label">{{ index $.tab "options" }} :</label>
+                            <div id="editInfoContainer_{{ .ID }}">
+                              {{ range $key, $value := .Options }}
+                                <div class="input-group mb-2">
+                                  <input type="text" name="editOptionsKey[]" class="form-control" value="{{ $key }}">
+                                  <input type="text" name="editOptionsValue[]" class="form-control" value="{{ $value }}">
+                                  <button type="button" class="btn btn-outline-danger btn-sm" onclick="removeField(this)">
+                                    <i class="bi bi-trash"></i>
+                                  </button>
+                                </div>
+                              {{ end }}
+                            </div>
+                            <button type="button"
+                                    class="btn btn-outline-primary btn-sm"
+                                    onclick="addField(this)">
+                                {{ index $.tab "add" }}
+                            </button>
+                          </div>
+                        </div>
+                        <div class="modal-footer">
+                          <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">{{ index $.tab "close" }}</button>
+                          <button type="submit" class="btn btn-success ms-3">{{ index $.tab "apply" }}</button>
+                        </div>
+                      </form>
+                    </div>
+                  </div>
+                </div>
                 {{ end }}
                 {{ if contains $.myPermission.Administration "d" }}
                 <form method="post" class="d-inline">
-                    <input type="hidden" name="deleteInstanceCloud" value="{{ .ID }}">
+                    <input type="hidden" name="deleteCloudInstance" value="{{ .ID }}">
                     <button type="submit" class="btn btn-outline-danger btn-sm" onclick="return confirm('{{ index $.tab "confirmDelete" }}')">
                     <i class="bi bi-trash"></i>
                     </button>
