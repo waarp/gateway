@@ -1,0 +1,12 @@
+{
+    "title": { "fr": "Gestion de SNMP", "en": "SNMP Management" },
+    "about": { "fr": "À propos", "en": "About" },
+    "logout": { "fr": "Déconnexion", "en": "Logout" },
+    "connection": { "fr": "Connexion", "en": "Connection" },
+    "treatment": { "fr": "Traitement", "en": "Treatment" },
+    "monitoring": { "fr": "Supervision", "en": "Monitoring" },
+    "administration": { "fr": "Administration", "en": "Administration" },
+    "prodPage": { "fr": "Cette page est en cours de production et sera disponible très prochainement.", "en": "This page is currently under production and will be available very soon." },
+    "useCLi": { "fr": "Pour le moment, veuillez utiliser la CLI.", "en": "For now, please use the CLI." },
+    "docCLi": { "fr": "Documentation CLI (Gestion de SNMP)", "en": "CLI Documentation (SNMP Management)" }
+}

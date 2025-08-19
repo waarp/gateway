@@ -59,25 +59,7 @@ func LanguageMiddleware(next http.Handler) http.Handler {
 	})
 }
 
-func AddGUIRouter(router *mux.Router, logger *log.Logger, db *database.DB) {
-	router.StrictSlash(true)
-	router.Use(LanguageMiddleware)
-	// Add HTTP handlers to the router here.
-	// Example:
-	router.HandleFunc("/login", loginPage(logger, db)).Methods("GET", "POST")
-	router.HandleFunc("/logout", logout()).Methods("GET")
-
-	subFS, err := fs.Sub(webFS, "front-end")
-	if err != nil {
-		logger.Errorf("error accessing css file: %v", err)
-
-		return
-	}
-
-	router.PathPrefix("/static/").Handler(http.StripPrefix(Prefix+"/static/", http.FileServer(http.FS(subFS))))
-
-	secureRouter := router.PathPrefix("/").Subrouter()
-	secureRouter.Use(AuthenticationMiddleware(logger, db))
+func RouterAutocompletions(secureRouter *mux.Router, db *database.DB) {
 	secureRouter.HandleFunc("/autocompletion/users", autocompletionFunc(db)).Methods("GET")
 	secureRouter.HandleFunc("/autocompletion/partners", autocompletionPartnersFunc(db)).Methods("GET")
 	secureRouter.HandleFunc("/autocompletion/credentialPartner", autocompletionCredentialsPartnersFunc(db)).Methods("GET")
@@ -91,9 +73,10 @@ func AddGUIRouter(router *mux.Router, logger *log.Logger, db *database.DB) {
 		autocompletionCredentialsLocalAccountsFunc(db)).Methods("GET")
 	secureRouter.HandleFunc("/autocompletion/localClients", autocompletionLocalClientsFunc(db)).Methods("GET")
 	secureRouter.HandleFunc("/autocompletion/rules", autocompletionRulesFunc(db)).Methods("GET")
-	secureRouter.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
-		http.Redirect(w, r, "home", http.StatusFound)
-	})
+	secureRouter.HandleFunc("/autocompletion/instanceCloud", autocompletionCloudFunc(db)).Methods("GET")
+}
+
+func RouterPages(secureRouter *mux.Router, db *database.DB, logger *log.Logger) {
 	secureRouter.HandleFunc("/home", homePage(logger, db)).Methods("GET")
 	secureRouter.HandleFunc("/user_management", userManagementPage(logger, db)).Methods("GET", "POST")
 	secureRouter.HandleFunc("/partner_management", partnerManagementPage(logger, db)).Methods("GET", "POST")
@@ -114,6 +97,42 @@ func AddGUIRouter(router *mux.Router, logger *log.Logger, db *database.DB) {
 	secureRouter.HandleFunc("/transfer_monitoring", transferMonitoringPage(logger, db)).Methods("GET", "POST")
 	secureRouter.HandleFunc("/status_services", statusServicesPage(logger, db)).Methods("GET", "POST")
 	secureRouter.HandleFunc("/cloud_instance_management", cloudInstanceManagementPage(logger, db)).Methods("GET", "POST")
+	secureRouter.HandleFunc("/cryptographic_key_management",
+		cryptographicKeyManagementPage(logger, db)).Methods("GET", "POST")
+	secureRouter.HandleFunc("/snmp_management", snmpManagementPage(logger, db)).Methods("GET", "POST")
+	secureRouter.HandleFunc("/managing_authentication_authorities",
+		managingAuthenticationAuthoritiesPage(logger, db)).Methods("GET", "POST")
+	secureRouter.HandleFunc("/managing_configuration_overrides",
+		managingConfigurationOverridesPage(logger, db)).Methods("GET", "POST")
+}
+
+func AddGUIRouter(router *mux.Router, logger *log.Logger, db *database.DB) {
+	router.StrictSlash(true)
+	router.Use(LanguageMiddleware)
+	// Add HTTP handlers to the router here.
+	// Example:
+	router.HandleFunc("/login", loginPage(logger, db)).Methods("GET", "POST")
+	router.HandleFunc("/logout", logout()).Methods("GET")
+
+	subFS, err := fs.Sub(webFS, "front-end")
+	if err != nil {
+		logger.Errorf("error accessing css file: %v", err)
+
+		return
+	}
+
+	router.PathPrefix("/static/").Handler(http.StripPrefix(Prefix+"/static/", http.FileServer(http.FS(subFS))))
+
+	secureRouter := router.PathPrefix("/").Subrouter()
+	secureRouter.Use(AuthenticationMiddleware(logger, db))
+
+	RouterAutocompletions(secureRouter, db)
+
+	secureRouter.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
+		http.Redirect(w, r, "home", http.StatusFound)
+	})
+
+	RouterPages(secureRouter, db, logger)
 }
 
 func logout() http.HandlerFunc {

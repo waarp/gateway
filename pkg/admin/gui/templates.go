@@ -15,6 +15,10 @@ import (
 )
 
 const (
+	secret1            = 1
+	secret2            = 2
+	secret3            = 3
+	secret4            = 4
 	index              = "front-end/html/index.html"
 	header             = "front-end/html/header.html"
 	multiLanguage      = "front-end/html/multi_language.html"
@@ -89,6 +93,33 @@ var funcs = template.FuncMap{
 	},
 	"humanizeSize": func(size int64) string {
 		return humanize.Bytes(uint64(size))
+	},
+	"maskSecret": func(secret any) string {
+		switch v := secret.(type) {
+		case database.SecretText:
+			str := string(v)
+			if len(str) <= secret1 {
+				return strings.Repeat("*", len(str))
+			} else if len(str) <= secret3 && len(str) >= secret2 {
+				return strings.Repeat("*", len(str)-secret1) + str[len(str)-secret1:]
+			} else if len(str) == secret4 {
+				return strings.Repeat("*", len(str)-secret2) + str[len(str)-secret2:]
+			}
+
+			return strings.Repeat("*", len(str)-secret3) + str[len(str)-secret3:]
+		case string:
+			if len(v) <= secret1 {
+				return strings.Repeat("*", len(v))
+			} else if len(v) <= secret3 && len(v) >= secret2 {
+				return strings.Repeat("*", len(v)-secret1) + v[len(v)-secret1:]
+			} else if len(v) == secret4 {
+				return strings.Repeat("*", len(v)-secret2) + v[len(v)-secret2:]
+			}
+
+			return strings.Repeat("*", len(v)-secret3) + v[len(v)-secret3:]
+		default:
+			return ""
+		}
 	},
 }
 
@@ -214,5 +245,25 @@ var (
 		template.New("cloud_instance_management_page.html").
 			Funcs(funcs).
 			ParseFS(webFS, index, header, multiLanguage, "front-end/html/cloud_instance_management_page.html"),
+	)
+	cryptographicKeyManagementTemplate = template.Must(
+		template.New("cryptographic_key_management_page.html").
+			Funcs(funcs).
+			ParseFS(webFS, index, header, multiLanguage, "front-end/html/cryptographic_key_management_page.html"),
+	)
+	snmpManagementTemplate = template.Must(
+		template.New("snmp_management_page.html").
+			Funcs(funcs).
+			ParseFS(webFS, index, header, multiLanguage, "front-end/html/snmp_management_page.html"),
+	)
+	managingAuthenticationAuthoritiesTemplate = template.Must(
+		template.New("managing_authentication_authorities_page.html").
+			Funcs(funcs).
+			ParseFS(webFS, index, header, multiLanguage, "front-end/html/managing_authentication_authorities_page.html"),
+	)
+	managingConfigurationOverridesTemplate = template.Must(
+		template.New("managing_configuration_overrides_page.html").
+			Funcs(funcs).
+			ParseFS(webFS, index, header, multiLanguage, "front-end/html/managing_configuration_overrides_page.html"),
 	)
 )
