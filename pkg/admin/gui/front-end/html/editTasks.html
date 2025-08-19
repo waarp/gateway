@@ -148,15 +148,15 @@
     <hr style="border-top: 1px solid #ababab;">
     <div class="form-input">
         <label class="col-form-label">{{ index .tab "info" }} <i class="bi bi-info-circle ms-1" data-bs-toggle="tooltip" data-bs-placement="right" data-bs-title="{{ index $.tab "tooltipInfo" }}"></i> :</label>
-        <div id="infoTransferContainer">
+        <div id="infoContainer">
             {{ $infos := split (index .Args "info") "\n" }}
             {{ $count := 0 }}
             {{ range $i, $info := $infos }}
                 {{ if ne $info "" }}
                     {{ $count = add $count 1 }}
                     <div class="input-group mb-2">
-                        <input type="text" name="infoTransferKey[]" class="form-control" value="{{ index (split $info ":") 0 }}" placeholder="clé">
-                        <input type="text" name="infoTransferValue[]" class="form-control" value="{{ index (split $info ":") 1 }}" placeholder="valeur">
+                        <input type="text" name="infoTransferKey[]" class="form-control" value="{{ index (split $info ":") 0 }}" placeholder="{{ index .tab "fieldName" }}">
+                        <input type="text" name="infoTransferValue[]" class="form-control" value="{{ index (split $info ":") 1 }}" placeholder="{{ index .tab "value" }}">
                         <button type="button" class="btn btn-outline-danger btn-sm" onclick="removeField(this)">
                             <i class="bi bi-trash"></i>
                         </button>
@@ -165,8 +165,8 @@
             {{ end }}
             {{ if eq $count 0 }}
                 <div class="input-group mb-2">
-                    <input type="text" name="infoTransferKey[]" class="form-control" placeholder="clé">
-                    <input type="text" name="infoTransferValue[]" class="form-control" placeholder="valeur">
+                    <input type="text" name="infoTransferKey[]" class="form-control" placeholder="{{ index .tab "fieldName" }}">
+                    <input type="text" name="infoTransferValue[]" class="form-control" placeholder="{{ index .tab "value" }}">
                     <button type="button" class="btn btn-outline-danger btn-sm" onclick="removeField(this)">
                         <i class="bi bi-trash"></i>
                     </button>
