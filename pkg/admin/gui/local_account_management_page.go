@@ -28,7 +28,9 @@ func listLocalAccount(serverName string, db *database.DB, r *http.Request) (
 
 	urlParams := r.URL.Query()
 
-	filter.OrderAsc = urlParams.Get("orderAsc") == True
+	if urlParams.Get("orderAsc") != "" {
+		filter.OrderAsc = urlParams.Get("orderAsc") == True
+	}
 
 	if limitRes := urlParams.Get("limit"); limitRes != "" {
 		if l, err := strconv.ParseUint(limitRes, 10, 64); err == nil {
