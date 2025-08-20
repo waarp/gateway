@@ -89,8 +89,18 @@
                     {{ $percent }}%
                 </div>
               </div>
+            {{ else if eq .Status "ERROR" }}
+              <div class="progress" style="width: 80%;">
+                <div class="progress-bar bg-grey-light text-dark" role="progressbar" style="width: 100%;" aria-valuenow="100" aria-valuemin="0" aria-valuemax="100">
+                  {{ index $.tab "unknown" }}
+                </div>
+              </div>
             {{ else }}
-              <span class="text-muted">{{ index $.tab "unknown" }}</span>
+              <div class="progress" style="width: 80%;">
+                <div class="progress-bar bg-grey-light text-dark" role="progressbar" style="width: 100%;" aria-valuenow="100" aria-valuemin="0" aria-valuemax="100">
+                  {{ humanizeSize .Progress }}
+                </div>
+              </div>
             {{ end }}
         </td>
         <td>
