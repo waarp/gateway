@@ -246,12 +246,12 @@ func loginPage(logger *log.Logger, db *database.DB) http.HandlerFunc {
 			}
 		}
 
-		if err := loginTemplate.ExecuteTemplate(w, "login_page", map[string]any{
+		if tmplErr := loginTemplate.ExecuteTemplate(w, "login_page", map[string]any{
 			"tab":      tabTranslated,
 			"Error":    errorMessage,
 			"language": userLanguage,
-		}); err != nil {
-			logger.Errorf("render login_page: %v", err)
+		}); tmplErr != nil {
+			logger.Errorf("render login_page: %v", tmplErr)
 			http.Error(w, "Internal error", http.StatusInternalServerError)
 		}
 	}

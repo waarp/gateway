@@ -1,5 +1,5 @@
 function addField(button) {
-    const container = button.parentElement.querySelector('#infoTransferContainer');
+    const container = button.parentElement.querySelector('#infoContainer');
     if (!container) return;
 
     const firstGroup = container.querySelector('.input-group');

@@ -290,7 +290,7 @@
                   <hr style="border-top: 1px solid #ababab;">
                   <div class="form-input mb-2">
                     <label class="col-form-label">({{ index .tab "optional" }}) {{ index .tab "pathDestination" }} :</label>
-                    <input type="text" name="transferOut" class="form-control" required>
+                    <input type="text" name="transferOut" class="form-control">
                   </div>
                   <hr style="border-top: 1px solid #ababab;">
                   <div class="form-input mb-2 d-flex align-items-center">
@@ -348,7 +348,7 @@
                   <hr style="border-top: 1px solid #ababab;">
                   <div class="form-input mb-2">
                       <label class="col-form-label">({{ index .tab "optional" }}) {{ index .tab "infosTransfer" }} :</label>
-                      <div id="infoTransferContainer">
+                      <div id="infoContainer">
                           <div class="input-group mb-2">
                               <input type="text" name="transferInfosKeys[]" class="form-control" placeholder="{{ index .tab "fieldName" }}">
                               <input type="text" name="transferInfosValues[]" class="form-control" placeholder="{{ index .tab "value" }}">
@@ -499,7 +499,8 @@
       <thead class="table-light">
         <tr>
             <th>
-              <i class="bi bi-question-circle" 
+              <i class="bi bi-question-circle"
+                id="tableHelpTooltip"
                 data-bs-toggle="tooltip"
                 data-bs-html="true"
                 data-bs-placement="right"
