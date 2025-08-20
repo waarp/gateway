@@ -9,7 +9,7 @@
     "undefined": { "fr": "<non définie>", "en": "<undefined>" },
     "addTransferTitle": { "fr": "Ajouter un nouveau transfert", "en": "Add a new transfer" },
     "confirmDelete": { "fr": "Confirmer la suppression ?", "en": "Confirm deletion?" },
-    "filter": { "fr": "Filtre", "en": "Filter" },
+    "filter": { "fr": "Filtres", "en": "Filters" },
     "agentFilter": { "fr": "Par agent", "en": "By agent" },
     "agent": { "fr": "Agent", "en": "Agent" },
     "sort": { "fr": "Trier par", "en": "Sort by" },

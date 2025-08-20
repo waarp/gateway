@@ -168,13 +168,13 @@
         </button>
         <div class="collapse" id="filterCollapse">
         <form method="get" class="p-3 border rounded bg-light">
-            <label class="ms-3">{{ index .tab "sort" }}
+            <label class="ms-3">{{ index .tab "sort" }} :
             <select name="orderAsc" class="form-select d-inline w-auto">
                 <option value="true" {{ if .filter.OrderAsc }}selected{{ end }}>A → Z</option>
                 <option value="false" {{ if not .filter.OrderAsc }}selected{{ end }}>Z → A</option>
             </select>
             </label>
-            <label class="ms-3">{{ index .tab "limit" }}
+            <label class="ms-3">{{ index .tab "limit" }} :
             <select name="limit" class="form-select d-inline w-auto">
                 <option value="0" disabled selected>--</option>
                 <option value="5" {{ if eq .filter.Limit 5 }}selected{{ end }}>5</option>

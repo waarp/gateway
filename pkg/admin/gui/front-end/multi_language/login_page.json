@@ -1,10 +1,10 @@
 {
-    "title": { "fr": "Se connecter", "en": "Log in", "es": "Acceso" },
-    "username": { "fr": "Nom d'utilisateur", "en": "Username", "es": "Nombre de usuario" },
-    "password": { "fr": "Mot de passe", "en": "Password", "es": "Contraseña" },
-    "submit": { "fr": "Connexion", "en": "Log in", "es": "Entrar" },
-    "error": { "fr": "Erreur", "en": "Error", "es": "Error" },
-    "errorUser": { "fr": "Nom d'utilisateur ou mot de passe incorrect", "en": "Incorrect username or password", "es": "Nombre de usuario o contraseña incorrectos" },
-    "errorSession": { "fr": "Erreur de la création de la session", "en": "Error creating session", "es": "Error al crear sesión" },
-    "forgotPassword": { "fr": "Mot de passe oublié ?", "en": "Forgot your password?", "es": "¿Olvidaste tu contraseña?" }
+    "title": { "fr": "Se connecter", "en": "Log in" },
+    "username": { "fr": "Nom d'utilisateur", "en": "Username" },
+    "password": { "fr": "Mot de passe", "en": "Password" },
+    "submit": { "fr": "Connexion", "en": "Log in" },
+    "error": { "fr": "Erreur", "en": "Error" },
+    "errorUser": { "fr": "Nom d'utilisateur ou mot de passe incorrect", "en": "Incorrect username or password" },
+    "errorSession": { "fr": "Erreur de la création de la session", "en": "Error creating session" },
+    "forgotPassword": { "fr": "Mot de passe oublié ?", "en": "Forgot your password?" }
 }

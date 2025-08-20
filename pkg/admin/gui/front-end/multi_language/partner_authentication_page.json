@@ -1,7 +1,7 @@
 {
     "title": { "fr": "Authentification du partenaire", "en": "Partner authentication" },
-    "about": { "fr": "À propos", "en": "About", "es": "Acerca de" },
-    "logout": { "fr": "Déconnexion", "en": "Logout", "es": "Salir" },
+    "about": { "fr": "À propos", "en": "About" },
+    "logout": { "fr": "Déconnexion", "en": "Logout" },
     "connection": { "fr": "Connexion", "en": "Connection" },
     "treatment": { "fr": "Traitement", "en": "Treatment" },
     "monitoring": { "fr": "Supervision", "en": "Monitoring" },
@@ -11,7 +11,7 @@
     "credentialPartnerNotFound": { "fr": "Partenaire d'identification non trouvé", "en": "Credential partner not found" },
     "addCredentialPartnerTitle": { "fr": "Ajouter une nouvelle méthode d'authentification", "en": "Add a new authentication method" },
     "close": { "fr": "Fermer", "en": "Close" },
-    "filter": { "fr": "Filtre", "en": "Filter" },
+    "filter": { "fr": "Filtres", "en": "Filters" },
     "search": { "fr": "Recherche", "en": "Search" },
     "apply": { "fr": "Appliquer", "en": "Apply" },
     "nameStr": { "fr": "Nom", "en": "Name" },

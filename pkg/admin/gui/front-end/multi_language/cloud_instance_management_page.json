@@ -1,7 +1,7 @@
 {
     "title": { "fr": "Gestion des instances cloud", "en": "Cloud Instance Management" },
-    "about": { "fr": "À propos", "en": "About", "es": "Acerca de" },
-    "logout": { "fr": "Déconnexion", "en": "Logout", "es": "Salir" },
+    "about": { "fr": "À propos", "en": "About" },
+    "logout": { "fr": "Déconnexion", "en": "Logout" },
     "connection": { "fr": "Connexion", "en": "Connection" },
     "treatment": { "fr": "Traitement", "en": "Treatment" },
     "monitoring": { "fr": "Supervision", "en": "Monitoring" },
@@ -17,7 +17,7 @@
     "value": { "fr": "Valeur", "en": "Value" },
     "secretKey": { "fr": "Clé secrète", "en": "Secret key" },
     "options": { "fr": "Options", "en": "Options" },
-    "filter": { "fr": "Filtre", "en": "Filter" },
+    "filter": { "fr": "Filtres", "en": "Filters" },
     "sort": { "fr": "Trier par ordre alphabétique", "en": "Sort alphabetically" },
     "limit": { "fr": "Limite", "en": "Limit" },
     "add": { "fr": "Ajouter", "en": "Add" },
