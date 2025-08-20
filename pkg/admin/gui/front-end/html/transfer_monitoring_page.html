@@ -81,16 +81,24 @@
         </td>
         <td>
             {{ $percent := 0 }}
-            {{ if gt .Filesize 0 }}
+            {{ if ge .Filesize 0 }}
                 {{ $percent = div (mul .Progress 100) .Filesize }}
-            {{ end }}
-            <div class="progress" style="width: 80%;">
-              <div class="progress-bar bg-success-subtle text-dark" role="progressbar" style="width: {{ $percent }}%;" aria-valuenow="{{ $percent }}" aria-valuemin="0" aria-valuemax="100">
-                  {{ $percent }}%
+              <div class="progress" style="width: 80%;">
+                <div class="progress-bar bg-success-subtle text-dark" role="progressbar" style="width: {{ $percent }}%;" aria-valuenow="{{ $percent }}" aria-valuemin="0" aria-valuemax="100">
+                    {{ $percent }}%
+                </div>
               </div>
-            </div>
+            {{ else }}
+              <span class="text-muted">{{ index $.tab "unknown" }}</span>
+            {{ end }}
         </td>
-        <td>{{ humanizeSize .Filesize }}</td>
+        <td>
+            {{ if ge .Filesize 0 }}
+              {{ humanizeSize .Filesize }}
+            {{ else }}
+              <span class="text-muted">{{ index $.tab "none" }}</span>
+            {{ end }}
+        </td>
         <td>
             <button class="btn btn-outline-primary modal-btn" type="button" data-bs-toggle="modal" data-bs-target="#moreInfosModal_{{ .ID }}">
             <i class="bi bi-three-dots"></i>
@@ -167,7 +175,7 @@
                     <hr style="border-top: 1px solid #ababab;">
                     <div class="flex-label-input mb-2">
                         <label class="col-form-label label-light-bold me-3">{{ index $.tab "fileSize" }} :</label>
-                        <input type="text" class="form-control-plaintext input-auto-width" value="{{ displayOrDefault .Filesize (index $.tab "undefined") }} ({{ humanizeSize .Filesize }})" readonly>
+                        <input type="text" class="form-control-plaintext input-auto-width" value="{{ if ge .Filesize 0 }}{{ displayOrDefault .Filesize (index $.tab "undefined") }} ({{ humanizeSize .Filesize }}){{ else }}{{ index $.tab "none" }}{{ end }}" readonly>
                     </div>
                     <hr style="border-top: 1px solid #ababab;">
                     <div class="flex-label-input mb-2">
