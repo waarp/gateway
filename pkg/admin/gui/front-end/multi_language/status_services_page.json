@@ -13,5 +13,8 @@
     "name": { "fr": "Nom", "en": "Name" },
     "state": { "fr": "État", "en": "State" },
     "reason": { "fr": "Raison", "en": "Reason" },
+    "offline": { "fr": "Hors ligne", "en": "Offline" },
+    "running": { "fr": "En cours", "en": "Running" },
+    "error": { "fr": "Erreur", "en": "Error" },
     "syncUpdate": { "fr": "Synchronisation effectuée", "en": "Sync update" }
 }

@@ -24,11 +24,11 @@
             <td><strong>{{ .Name }}</strong></td>
             <td>
               {{ if eq .State $.Offline }}
-                <span class="fw-bold text-secondary">{{ .State }}</span>
+                <span class="fw-bold text-secondary">{{ index $.tab "offline" }}</span>
               {{ else if eq .State $.Running }}
-                <span class="fw-bold text-primary">{{ .State }}</span>
+                <span class="fw-bold text-primary">{{ index $.tab "running" }}</span>
               {{ else if eq .State $.Error }}
-                <span class="fw-bold text-danger">{{ .State }}</span>
+                <span class="fw-bold text-danger">{{ index $.tab "error" }}</span>
               {{ else }}
                 <span class="fw-bold">{{ .State }}</span>
               {{ end }}
@@ -57,11 +57,11 @@
             <td><strong>{{ .Name }}</strong></td>
             <td>
               {{ if eq .State $.Offline }}
-                <span class="fw-bold text-secondary">{{ .State }}</span>
+                <span class="fw-bold text-secondary">{{ index $.tab "offline" }}</span>
               {{ else if eq .State $.Running }}
-                <span class="fw-bold text-primary">{{ .State }}</span>
+                <span class="fw-bold text-primary">{{ index $.tab "running" }}</span>
               {{ else if eq .State $.Error }}
-                <span class="fw-bold text-danger">{{ .State }}</span>
+                <span class="fw-bold text-danger">{{ index $.tab "error" }}</span>
               {{ else }}
                 <span class="fw-bold">{{ .State }}</span>
               {{ end }}
@@ -90,11 +90,11 @@
             <td><strong>{{ .Name }}</strong></td>
             <td>
               {{ if eq .State $.Offline }}
-                <span class="fw-bold text-secondary">{{ .State }}</span>
+                <span class="fw-bold text-secondary">{{ index $.tab "offline" }}</span>
               {{ else if eq .State $.Running }}
-                <span class="fw-bold text-primary">{{ .State }}</span>
+                <span class="fw-bold text-primary">{{ index $.tab "running" }}</span>
               {{ else if eq .State $.Error }}
-                <span class="fw-bold text-danger">{{ .State }}</span>
+                <span class="fw-bold text-danger">{{ index $.tab "error" }}</span>
               {{ else }}
                 <span class="fw-bold">{{ .State }}</span>
               {{ end }}
