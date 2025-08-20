@@ -6,6 +6,7 @@
     "treatment": { "fr": "Traitement", "en": "Treatment" },
     "monitoring": { "fr": "Supervision", "en": "Monitoring" },
     "administration": { "fr": "Administration", "en": "Administration" },
+    "pathGateway": { "fr": "Serveur", "en": "Server" },
     "undefined": { "fr": "<non définie>", "en": "<undefined>" },
     "addServerTitle": { "fr": "Ajouter un nouveau serveur", "en": "Add a new server" },
     "filter": { "fr": "Filtres", "en": "Filters" },

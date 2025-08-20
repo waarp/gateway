@@ -114,9 +114,12 @@
                 <i class="bi bi-arrow-repeat ms-2 me-2"></i>{{ index .tab "syncUpdate" }}
             </span>
         </div>
-        <button class="btn btn-outline-secondary ms-3 back-btn" type="button" onclick="window.location='home'">
-            <i class="bi bi-arrow-left"></i>
-        </button>
+        <div class="d-flex align-items-center">
+          <span class="text-muted small me-3">{{ index .tab "pathGateway" }}</span>
+          <button class="btn btn-outline-secondary ms-3 back-btn" type="button" onclick="window.location='home'">
+              <i class="bi bi-arrow-left"></i>
+          </button>
+        </div>
     </div>
     <hr style="border-top: 1px solid #ababab;">
     <div id="status">

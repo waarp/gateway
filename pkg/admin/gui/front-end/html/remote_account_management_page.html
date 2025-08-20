@@ -18,9 +18,12 @@
     {{ if .partner }}
       <div class="d-flex align-items-center justify-content-between">
         <h2 class="mb-0">{{ index .tab "title" }} : {{ .partner.Name }}</h2>
-        <button class="btn btn-outline-secondary ms-3 back-btn" type="button" onclick="window.location='partner_management'">
-          <i class="bi bi-arrow-left"></i>
-        </button>
+        <div class="d-flex align-items-center">
+          <span class="text-muted small me-3">{{ index .tab "pathGateway" }}</span>
+          <button class="btn btn-outline-secondary ms-3 back-btn" type="button" onclick="window.location='partner_management'">
+            <i class="bi bi-arrow-left"></i>
+          </button>
+        </div>
       </div>
       <hr style="border-top: 1px solid #ababab;">
 

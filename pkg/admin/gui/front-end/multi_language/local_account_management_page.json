@@ -6,6 +6,7 @@
     "treatment": { "fr": "Traitement", "en": "Treatment" },
     "monitoring": { "fr": "Supervision", "en": "Monitoring" },
     "administration": { "fr": "Administration", "en": "Administration" },
+    "pathGateway": { "fr": "Serveur > Comptes locaux", "en": "Server > Local account" },
     "undefined": { "fr": "<non définie>", "en": "<undefined>" },
     "search": { "fr": "Recherche", "en": "Search" },
     "addLocalAccount": { "fr": "Ajouter un compte Local", "en": "Add Local Account" },

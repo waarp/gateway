@@ -7,6 +7,7 @@
     "monitoring": { "fr": "Supervision", "en": "Monitoring" },
     "administration": { "fr": "Administration", "en": "Administration" },
     "undefined": { "fr": "<non définie>", "en": "<undefined>" },
+    "pathGateway": { "fr": "Gestion des utilisateurs", "en": "User management" },
     "filter": { "fr": "Filtres", "en": "Filters" },
     "sort": { "fr": "Trier par ordre alphabétique", "en": "Sort alphabetically" },
     "limit": { "fr": "Limite", "en": "Limit" },

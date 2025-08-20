@@ -1,11 +1,12 @@
 {
-    "title": { "fr": "Authentification du serveur", "en": "Server authentication" },
+    "title": { "fr": "Gestion des tâches de transfert", "en": "Transfer tasks management" },
     "about": { "fr": "À propos", "en": "About" },
     "logout": { "fr": "Déconnexion", "en": "Logout" },
     "connection": { "fr": "Connexion", "en": "Connection" },
     "treatment": { "fr": "Traitement", "en": "Treatment" },
     "monitoring": { "fr": "Supervision", "en": "Monitoring" },
     "administration": { "fr": "Administration", "en": "Administration" },
+    "pathGateway": { "fr": "Règles de transfert > Tâches de transfert", "en": "Transfer rules > Transfer tasks" },
     "undefined": { "fr": "<non définie>", "en": "<undefined>" },
     "addPreTaskTitle": { "fr": "Ajouter une nouvelle pré-tâche", "en": "Add a new pre-task" },
     "confirmDelete": { "fr": "Confirmer la suppression ?", "en": "Confirm deletion?" },

@@ -6,6 +6,7 @@
     "treatment": { "fr": "Traitement", "en": "Treatment" },
     "monitoring": { "fr": "Supervision", "en": "Monitoring" },
     "administration": { "fr": "Administration", "en": "Administration" },
+    "pathGateway": { "fr": "Monitoring des transferts", "en": "Transfer monitoring" },
     "undefined": { "fr": "<non définie>", "en": "<undefined>" },
     "unknown": { "fr": "Inconnu", "en": "Unknown" },
     "none": { "fr": "Aucune", "en": "None" },

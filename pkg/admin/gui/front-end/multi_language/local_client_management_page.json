@@ -6,6 +6,7 @@
     "treatment": { "fr": "Traitement", "en": "Treatment" },
     "monitoring": { "fr": "Supervision", "en": "Monitoring" },
     "administration": { "fr": "Administration", "en": "Administration" },
+    "pathGateway": { "fr": "Clients locaux", "en": "Local client" },
     "undefined": { "fr": "<non définie>", "en": "<undefined>" },
     "addLocalClientTitle": { "fr": "Ajouter un nouveau client local", "en": "Add a new local client" },
     "filter": { "fr": "Filtres", "en": "Filters" },

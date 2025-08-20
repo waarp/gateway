@@ -1,11 +1,12 @@
 {
-    "title": { "fr": "Gestion des instances cloud", "en": "Cloud Instance Management" },
+    "title": { "fr": "Gestion des instances cloud", "en": "Cloud instance management" },
     "about": { "fr": "À propos", "en": "About" },
     "logout": { "fr": "Déconnexion", "en": "Logout" },
     "connection": { "fr": "Connexion", "en": "Connection" },
     "treatment": { "fr": "Traitement", "en": "Treatment" },
     "monitoring": { "fr": "Supervision", "en": "Monitoring" },
     "administration": { "fr": "Administration", "en": "Administration" },
+    "pathGateway": { "fr": "Instances cloud", "en": "Cloud instance" },
     "undefined": { "fr": "<non définie>", "en": "<undefined>" },
     "addCloudInstanceTitle": { "fr": "Ajouter une nouvelle instance cloud", "en": "Add a new cloud instance" },
     "id": { "fr": "ID", "en": "ID" },

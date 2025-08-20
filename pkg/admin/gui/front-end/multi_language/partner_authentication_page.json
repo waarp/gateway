@@ -6,6 +6,7 @@
     "treatment": { "fr": "Traitement", "en": "Treatment" },
     "monitoring": { "fr": "Supervision", "en": "Monitoring" },
     "administration": { "fr": "Administration", "en": "Administration" },
+    "pathGateway": { "fr": "Partenaire > Authentification", "en": "Partner > Authentication" },
     "undefined": { "fr": "<non définie>", "en": "<undefined>" },
     "confirmDelete": { "fr": "Confirmer la suppression ?", "en": "Confirm deletion?" },
     "credentialPartnerNotFound": { "fr": "Partenaire d'identification non trouvé", "en": "Credential partner not found" },

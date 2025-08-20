@@ -1,11 +1,12 @@
 {
-    "title": { "fr": "Authentification du compte local", "en": "Local Account Authentication" },
+    "title": { "fr": "Authentification du compte local", "en": "Local account authentication" },
     "about": { "fr": "À propos", "en": "About" },
     "logout": { "fr": "Déconnexion", "en": "Logout" },
     "connection": { "fr": "Connexion", "en": "Connection" },
     "treatment": { "fr": "Traitement", "en": "Treatment" },
     "monitoring": { "fr": "Supervision", "en": "Monitoring" },
     "administration": { "fr": "Administration", "en": "Administration" },
+    "pathGateway": { "fr": "Serveur > Comptes locaux > Authentification", "en": "Server > Local account > Authentication" },
     "undefined": { "fr": "<non définie>", "en": "<undefined>" },
     "close": { "fr": "Fermer", "en": "Close" },
     "filter": { "fr": "Filtres", "en": "Filters" },

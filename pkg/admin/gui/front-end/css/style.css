@@ -92,3 +92,16 @@
 .label-light-bold {
     font-weight: 500;
 }
+
+#sync-update i {
+    display: inline-block;
+}
+
+.sync-rotate {
+    animation: sync-rotate 1s linear infinite;
+}
+
+@keyframes sync-rotate {
+  from { transform: rotate(0deg); }
+  to { transform: rotate(360deg); }
+}
