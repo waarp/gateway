@@ -146,7 +146,13 @@
         <tbody>
         {{ range .rule }}
         <tr>
-            <td><i class="bi bi-arrow-left-right me-1"></i></td>
+            <td>
+            {{ if .IsSend }}
+                <i class="bi bi-box-arrow-right"></i>
+            {{ else }}
+                <i class="bi bi-box-arrow-in-right"></i>
+            {{ end }}
+            </td>
             <td><strong>{{ .Name }}</strong></td>
             <td>
             {{ if .IsSend }}
@@ -156,7 +162,7 @@
             {{ end }}
             </td>
             <td>
-              <button class="btn btn-outline-primary modal-btn" type="button" data-bs-toggle="modal" data-bs-target="#commentTypeModal_{{ .ID }}">
+              <button class="btn btn-outline-primary modal-btn" type="button" data-bs-toggle="tooltip" data-bs-placement="top" data-bs-title="{{ if .Comment }}{{ if gt (len .Comment) 30 }}{{ slice .Comment 0 30 }}...{{ else }}{{ .Comment }}{{ end }}{{ else }}{{ index $.tab "noComment" }}{{ end }}" onclick="bootstrap.Modal.getOrCreateInstance(document.getElementById('commentTypeModal_{{ .ID }}')).show();">
                 <i class="bi bi-three-dots"></i>
               </button>
               <div class="modal fade" id="commentTypeModal_{{ .ID }}" tabindex="-1" aria-labelledby="commentTypeModalLabel_{{ .ID }}" aria-hidden="true">
