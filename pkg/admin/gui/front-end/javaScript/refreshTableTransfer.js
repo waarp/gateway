@@ -34,6 +34,7 @@ function refreshTransfers () {
     fetch('/webui/transfer_monitoring?' + params.toString()).then(response => response.text()).then(html => {
         document.querySelector('tbody').innerHTML = html;
         initTooltips();
+        showSyncUpdate();
         const helpTooltip = document.getElementById('tableHelpTooltip');
         if (helpTooltip) {
             const instance = bootstrap.Tooltip.getOrCreateInstance(helpTooltip);

@@ -1,4 +1,4 @@
-function initCollapseTasks() {
+function initCollapse() {
     const container = document.getElementById('container-collapse');
     if (!container)
         return;
@@ -45,9 +45,10 @@ function refreshServices() {
     fetch('/webui/status_services?partial=true')
         .then(response => response.text())
         .then(html => {
-        document.getElementById('status').innerHTML = html;
-            if (window.initCollapseTasks) {
-                window.initCollapseTasks(true);
+            document.getElementById('status').innerHTML = html;
+            showSyncUpdate();
+            if (window.initCollapse) {
+                window.initCollapse(true);
             }
         })
         .catch(err => {
@@ -55,4 +56,4 @@ function refreshServices() {
         });
 }
 
-setInterval(refreshServices, 5000);
+setInterval(refreshServices, 10000);

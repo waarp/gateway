@@ -5,6 +5,7 @@
   <script src="/webui/static/javaScript/tooltip.js"></script>
   <script src="/webui/static/javaScript/fields.js "></script>
   <script src="/webui/static/javaScript/refreshTableTransfer.js"></script>
+  <script src="/webui/static/javaScript/syncUpdate.js"></script>
   <script>window.modalOpen = "{{ .modalOpen }}";</script>
   <script src="/webui/static/javaScript/displayErr.js"></script>
   <script src="/webui/static/javaScript/displaySuccess.js"></script>
@@ -271,7 +272,12 @@
         </div>
     {{ end }}
   <div class="d-flex align-items-center justify-content-between">
-    <h2 class="mb-0">{{ index .tab "title" }}</h2>
+    <div class="d-flex align-items-center">
+      <h2 class="mb-0">{{ index .tab "title" }}</h2>
+      <span id="sync-update" class="d-none text-dark ms-3" style="transition: opacity 0.3s;">
+        <i class="bi bi-arrow-repeat me-2"></i>{{ index .tab "syncUpdate" }}
+      </span>
+    </div>
     <button class="btn btn-outline-secondary ms-3 back-btn" type="button" onclick="window.location='home'">
       <i class="bi bi-arrow-left"></i>
     </button>

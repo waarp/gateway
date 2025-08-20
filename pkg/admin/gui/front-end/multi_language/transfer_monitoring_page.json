@@ -10,6 +10,7 @@
     "unknown": { "fr": "Inconnu", "en": "Unknown" },
     "none": { "fr": "Aucune", "en": "None" },
     "addTransferTitle": { "fr": "Ajouter un nouveau transfert", "en": "Add a new transfer" },
+    "syncUpdate": { "fr": "Synchronisation effectuée", "en": "Sync update" },
     "confirmDelete": { "fr": "Confirmer la suppression ?", "en": "Confirm deletion?" },
     "filter": { "fr": "Filtres", "en": "Filters" },
     "agentFilter": { "fr": "Par agent", "en": "By agent" },
