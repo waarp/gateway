@@ -382,12 +382,12 @@
                                         {{ template "editTaskARCHIVE" (dict "tab" $.tab "ArchiveExtensions" $.ArchiveExtensions "CompressionLevelList" $.CompressionLevelList "Args" $current.Args) }}
                                         {{ template "editTaskEXTRACT" (dict "tab" $.tab "ArchiveExtensions" $.ArchiveExtensions "Args" $current.Args) }}
                                         {{ template "editTaskICAP" (dict "tab" $.tab "IcapOnErrorOptions" $.IcapOnErrorOptions "Args" $current.Args) }}
-                                        {{ template "editTaskENCRYPT" (dict "tab" $.tab "EncryptMethods" $.EncryptMethods "Args" $current.Args) }}
-                                        {{ template "editTaskDECRYPT" (dict "tab" $.tab "EncryptMethods" $.EncryptMethods "Args" $current.Args) }}
-                                        {{ template "editTaskSIGN" (dict "tab" $.tab "SignMethods" $.SignMethods "Args" $current.Args) }}
-                                        {{ template "editTaskVERIFY" (dict "tab" $.tab "SignMethods" $.SignMethods "Args" $current.Args) }}
-                                        {{ template "editTaskENCRYPT&SIGN" (dict "tab" $.tab "EncryptSignMethods" $.EncryptSignMethods "Args" $current.Args) }}
-                                        {{ template "editTaskDECRYPT&VERIFY" (dict "tab" $.tab "EncryptSignMethods" $.EncryptSignMethods "Args" $current.Args) }}
+                                        {{ template "editTaskENCRYPT" (dict "tab" $.tab "EncryptMethods" $.EncryptMethods "EncryptKeyTypes" $.EncryptKeyTypes "listAesKey" $.listAesKey "listHmacKey" $.listHmacKey "listPgpPubKey" $.listPgpPubKey "listPgpPrivKey" $.listPgpPrivKey "Args" $current.Args) }}
+                                        {{ template "editTaskDECRYPT" (dict "tab" $.tab "DecryptMethods" $.DecryptMethods "DecryptKeyTypes" $.DecryptKeyTypes "listAesKey" $.listAesKey "listHmacKey" $.listHmacKey "listPgpPubKey" $.listPgpPubKey "listPgpPrivKey" $.listPgpPrivKey "Args" $current.Args) }}
+                                        {{ template "editTaskSIGN" (dict "tab" $.tab "SignMethods" $.SignMethods "SignKeyTypes" $.SignKeyTypes "listAesKey" $.listAesKey "listHmacKey" $.listHmacKey "listPgpPubKey" $.listPgpPubKey "listPgpPrivKey" $.listPgpPrivKey "Args" $current.Args) }}
+                                        {{ template "editTaskVERIFY" (dict "tab" $.tab "VerifyMethods" $.VerifyMethods "VerifyKeyTypes" $.VerifyKeyTypes "listAesKey" $.listAesKey "listHmacKey" $.listHmacKey "listPgpPubKey" $.listPgpPubKey "listPgpPrivKey" $.listPgpPrivKey "Args" $current.Args) }}
+                                        {{ template "editTaskENCRYPT&SIGN" (dict "tab" $.tab "EncryptSignMethods" $.EncryptSignMethods "EncryptSignKeyTypes" $.EncryptSignKeyTypes "listAesKey" $.listAesKey "listHmacKey" $.listHmacKey "listPgpPubKey" $.listPgpPubKey "listPgpPrivKey" $.listPgpPrivKey "Args" $current.Args) }}
+                                        {{ template "editTaskDECRYPT&VERIFY" (dict "tab" $.tab "DecryptVerifyMethods" $.DecryptVerifyMethods "DecryptVerifyKeyTypes" $.DecryptVerifyKeyTypes "listAesKey" $.listAesKey "listHmacKey" $.listHmacKey "listPgpPubKey" $.listPgpPubKey "listPgpPrivKey" $.listPgpPrivKey "Args" $current.Args) }}
                                     </div>
                                     <div class="modal-footer">
                                         <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">{{ index $.tab "close" }}</button>
@@ -775,12 +775,12 @@
                                         {{ template "editTaskARCHIVE" (dict "tab" $.tab "ArchiveExtensions" $.ArchiveExtensions "CompressionLevelList" $.CompressionLevelList "Args" $current.Args) }}
                                         {{ template "editTaskEXTRACT" (dict "tab" $.tab "ArchiveExtensions" $.ArchiveExtensions "Args" $current.Args) }}
                                         {{ template "editTaskICAP" (dict "tab" $.tab "IcapOnErrorOptions" $.IcapOnErrorOptions "Args" $current.Args) }}
-                                        {{ template "editTaskENCRYPT" (dict "tab" $.tab "EncryptMethods" $.EncryptMethods "Args" $current.Args) }}
-                                        {{ template "editTaskDECRYPT" (dict "tab" $.tab "EncryptMethods" $.EncryptMethods "Args" $current.Args) }}
-                                        {{ template "editTaskSIGN" (dict "tab" $.tab "SignMethods" $.SignMethods "Args" $current.Args) }}
-                                        {{ template "editTaskVERIFY" (dict "tab" $.tab "SignMethods" $.SignMethods "Args" $current.Args) }}
-                                        {{ template "editTaskENCRYPT&SIGN" (dict "tab" $.tab "EncryptSignMethods" $.EncryptSignMethods "Args" $current.Args) }}
-                                        {{ template "editTaskDECRYPT&VERIFY" (dict "tab" $.tab "EncryptSignMethods" $.EncryptSignMethods "Args" $current.Args) }}
+                                        {{ template "editTaskENCRYPT" (dict "tab" $.tab "EncryptMethods" $.EncryptMethods "EncryptKeyTypes" $.EncryptKeyTypes "listAesKey" $.listAesKey "listHmacKey" $.listHmacKey "listPgpPubKey" $.listPgpPubKey "listPgpPrivKey" $.listPgpPrivKey "Args" $current.Args) }}
+                                        {{ template "editTaskDECRYPT" (dict "tab" $.tab "DecryptMethods" $.DecryptMethods "DecryptKeyTypes" $.DecryptKeyTypes "listAesKey" $.listAesKey "listHmacKey" $.listHmacKey "listPgpPubKey" $.listPgpPubKey "listPgpPrivKey" $.listPgpPrivKey "Args" $current.Args) }}
+                                        {{ template "editTaskSIGN" (dict "tab" $.tab "SignMethods" $.SignMethods "SignKeyTypes" $.SignKeyTypes "listAesKey" $.listAesKey "listHmacKey" $.listHmacKey "listPgpPubKey" $.listPgpPubKey "listPgpPrivKey" $.listPgpPrivKey "Args" $current.Args) }}
+                                        {{ template "editTaskVERIFY" (dict "tab" $.tab "VerifyMethods" $.VerifyMethods "VerifyKeyTypes" $.VerifyKeyTypes "listAesKey" $.listAesKey "listHmacKey" $.listHmacKey "listPgpPubKey" $.listPgpPubKey "listPgpPrivKey" $.listPgpPrivKey "Args" $current.Args) }}
+                                        {{ template "editTaskENCRYPT&SIGN" (dict "tab" $.tab "EncryptSignMethods" $.EncryptSignMethods "EncryptSignKeyTypes" $.EncryptSignKeyTypes "listAesKey" $.listAesKey "listHmacKey" $.listHmacKey "listPgpPubKey" $.listPgpPubKey "listPgpPrivKey" $.listPgpPrivKey "Args" $current.Args) }}
+                                        {{ template "editTaskDECRYPT&VERIFY" (dict "tab" $.tab "DecryptVerifyMethods" $.DecryptVerifyMethods "DecryptVerifyKeyTypes" $.DecryptVerifyKeyTypes "listAesKey" $.listAesKey "listHmacKey" $.listHmacKey "listPgpPubKey" $.listPgpPubKey "listPgpPrivKey" $.listPgpPrivKey "Args" $current.Args) }}
                                     </div>
                                     <div class="modal-footer">
                                         <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">{{ index $.tab "close" }}</button>
@@ -1168,12 +1168,12 @@
                                         {{ template "editTaskARCHIVE" (dict "tab" $.tab "ArchiveExtensions" $.ArchiveExtensions "CompressionLevelList" $.CompressionLevelList "Args" $current.Args) }}
                                         {{ template "editTaskEXTRACT" (dict "tab" $.tab "ArchiveExtensions" $.ArchiveExtensions "Args" $current.Args) }}
                                         {{ template "editTaskICAP" (dict "tab" $.tab "IcapOnErrorOptions" $.IcapOnErrorOptions "Args" $current.Args) }}
-                                        {{ template "editTaskENCRYPT" (dict "tab" $.tab "EncryptMethods" $.EncryptMethods "Args" $current.Args) }}
-                                        {{ template "editTaskDECRYPT" (dict "tab" $.tab "EncryptMethods" $.EncryptMethods "Args" $current.Args) }}
-                                        {{ template "editTaskSIGN" (dict "tab" $.tab "SignMethods" $.SignMethods "Args" $current.Args) }}
-                                        {{ template "editTaskVERIFY" (dict "tab" $.tab "SignMethods" $.SignMethods "Args" $current.Args) }}
-                                        {{ template "editTaskENCRYPT&SIGN" (dict "tab" $.tab "EncryptSignMethods" $.EncryptSignMethods "Args" $current.Args) }}
-                                        {{ template "editTaskDECRYPT&VERIFY" (dict "tab" $.tab "EncryptSignMethods" $.EncryptSignMethods "Args" $current.Args) }}
+                                        {{ template "editTaskENCRYPT" (dict "tab" $.tab "EncryptMethods" $.EncryptMethods "EncryptKeyTypes" $.EncryptKeyTypes "listAesKey" $.listAesKey "listHmacKey" $.listHmacKey "listPgpPubKey" $.listPgpPubKey "listPgpPrivKey" $.listPgpPrivKey "Args" $current.Args) }}
+                                        {{ template "editTaskDECRYPT" (dict "tab" $.tab "DecryptMethods" $.DecryptMethods "DecryptKeyTypes" $.DecryptKeyTypes "listAesKey" $.listAesKey "listHmacKey" $.listHmacKey "listPgpPubKey" $.listPgpPubKey "listPgpPrivKey" $.listPgpPrivKey "Args" $current.Args) }}
+                                        {{ template "editTaskSIGN" (dict "tab" $.tab "SignMethods" $.SignMethods "SignKeyTypes" $.SignKeyTypes "listAesKey" $.listAesKey "listHmacKey" $.listHmacKey "listPgpPubKey" $.listPgpPubKey "listPgpPrivKey" $.listPgpPrivKey "Args" $current.Args) }}
+                                        {{ template "editTaskVERIFY" (dict "tab" $.tab "VerifyMethods" $.VerifyMethods "VerifyKeyTypes" $.VerifyKeyTypes "listAesKey" $.listAesKey "listHmacKey" $.listHmacKey "listPgpPubKey" $.listPgpPubKey "listPgpPrivKey" $.listPgpPrivKey "Args" $current.Args) }}
+                                        {{ template "editTaskENCRYPT&SIGN" (dict "tab" $.tab "EncryptSignMethods" $.EncryptSignMethods "EncryptSignKeyTypes" $.EncryptSignKeyTypes "listAesKey" $.listAesKey "listHmacKey" $.listHmacKey "listPgpPubKey" $.listPgpPubKey "listPgpPrivKey" $.listPgpPrivKey "Args" $current.Args) }}
+                                        {{ template "editTaskDECRYPT&VERIFY" (dict "tab" $.tab "DecryptVerifyMethods" $.DecryptVerifyMethods "DecryptVerifyKeyTypes" $.DecryptVerifyKeyTypes "listAesKey" $.listAesKey "listHmacKey" $.listHmacKey "listPgpPubKey" $.listPgpPubKey "listPgpPrivKey" $.listPgpPrivKey "Args" $current.Args) }}
                                     </div>
                                     <div class="modal-footer">
                                         <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">{{ index $.tab "close" }}</button>

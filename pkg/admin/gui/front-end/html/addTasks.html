@@ -312,18 +312,39 @@
     <hr style="border-top: 1px solid #ababab;">
     <div class="form-input">
         <label class="col-form-label">{{ index .tab "method" }} <i class="bi bi-info-circle ms-1" data-bs-toggle="tooltip" data-bs-placement="right" data-bs-title="{{ index $.tab "tooltipMethodEncrypt" }}"></i> :</label>
-        <select name="methodEncrypt" id="methodEncrypt" class="form-select">
+        <select name="methodEncrypt" id="methodEncryptAdd" class="form-select">
             <option value="" disabled selected>{{ index .tab "selectMethod" }}</option>
             {{ range .EncryptMethods }}
-            <option value="{{ . }}">{{ . }}</option>
+                {{ $m := . }}
+                <option value="{{ . }}" data-keytypes="{{ range $i, $t := index $.EncryptKeyTypes $m }}{{ if $i }},{{ end }}{{ $t }}{{ end }}">{{ . }}</option>
             {{ end }}
         </select>
     </div>
     <hr style="border-top: 1px solid #ababab;">
     <div class="form-input">
         <label class="col-form-label">{{ index .tab "keyName" }} <i class="bi bi-info-circle ms-1" data-bs-toggle="tooltip" data-bs-placement="right" data-bs-title="{{ index $.tab "tooltipKeyNameEncrypt" }}"></i> :</label>
-        <select id="keyTypeEncrypt" name="keyNameEncrypt" class="form-select">
+        <select id="keyNameEncryptAdd" name="keyNameEncrypt" class="form-select">
             <option value="" disabled selected>{{ index .tab "selectKeyType" }}</option>
+            <optgroup label="AES">
+                {{ range .listAesKey }}
+                    <option value="{{ . }}">{{ . }}</option>
+                {{ end }}
+            </optgroup>
+            <optgroup label="HMAC">
+                {{ range .listHmacKey }}
+                    <option value="{{ . }}">{{ . }}</option>
+                {{ end }}
+            </optgroup>
+            <optgroup label="PGP-PUBLIC">
+                {{ range .listPgpPubKey }}
+                    <option value="{{ . }}">{{ . }}</option>
+                {{ end }}
+            </optgroup>
+            <optgroup label="PGP-PRIVATE">
+                {{ range .listPgpPrivKey }}
+                    <option value="{{ . }}">{{ . }}</option>
+                {{ end }}
+            </optgroup>
         </select>
     </div>
 </div>
@@ -346,18 +367,39 @@
     <hr style="border-top: 1px solid #ababab;">
     <div class="form-input">
         <label class="col-form-label">{{ index .tab "method" }} <i class="bi bi-info-circle ms-1" data-bs-toggle="tooltip" data-bs-placement="right" data-bs-title="{{ index $.tab "tooltipMethodDecrypt" }}"></i> :</label>
-        <select name="methodDecrypt" id="methodDecrypt" class="form-select">
+        <select name="methodDecrypt" id="methodDecryptAdd" class="form-select">
             <option value="" disabled selected>{{ index .tab "selectMethod" }}</option>
             {{ range .DecryptMethods }}
-            <option value="{{ . }}">{{ . }}</option>
+                {{ $m := . }}
+                <option value="{{ . }}" data-keytypes="{{ range $i, $t := index $.DecryptKeyTypes $m }}{{ if $i }},{{ end }}{{ $t }}{{ end }}">{{ . }}</option>
             {{ end }}
         </select>
     </div>
     <hr style="border-top: 1px solid #ababab;">
     <div class="form-input">
         <label class="col-form-label">{{ index .tab "keyName" }} <i class="bi bi-info-circle ms-1" data-bs-toggle="tooltip" data-bs-placement="right" data-bs-title="{{ index $.tab "tooltipKeyNameDecrypt" }}"></i> :</label>
-        <select id="keyTypeDecrypt" name="keyNameDecrypt" class="form-select">
+        <select id="keyNameDecryptAdd" name="keyNameDecrypt" class="form-select">
             <option value="" disabled selected>{{ index .tab "selectKeyType" }}</option>
+            <optgroup label="AES">
+                {{ range .listAesKey }}
+                    <option value="{{ . }}">{{ . }}</option>
+                {{ end }}
+            </optgroup>
+            <optgroup label="HMAC">
+                {{ range .listHmacKey }}
+                    <option value="{{ . }}">{{ . }}</option>
+                {{ end }}
+            </optgroup>
+            <optgroup label="PGP-PUBLIC">
+                {{ range .listPgpPubKey }}
+                    <option value="{{ . }}">{{ . }}</option>
+                {{ end }}
+            </optgroup>
+            <optgroup label="PGP-PRIVATE">
+                {{ range .listPgpPrivKey }}
+                    <option value="{{ . }}">{{ . }}</option>
+                {{ end }}
+            </optgroup>
         </select>
     </div>
 </div>
@@ -373,18 +415,39 @@
     <hr style="border-top: 1px solid #ababab;">
     <div class="form-input">
         <label class="col-form-label">{{ index .tab "method" }} <i class="bi bi-info-circle ms-1" data-bs-toggle="tooltip" data-bs-placement="right" data-bs-title="{{ index $.tab "tooltipMethodSign" }}"></i> :</label>
-        <select name="methodSign" id="methodSign" class="form-select">
+        <select name="methodSign" id="methodSignAdd" class="form-select">
             <option value="" disabled selected>{{ index .tab "selectMethodSign" }}</option>
             {{ range .SignMethods }}
-            <option value="{{ . }}">{{ . }}</option>
+                {{ $m := . }}
+                <option value="{{ . }}" data-keytypes="{{ range $i, $t := index $.SignKeyTypes $m }}{{ if $i }},{{ end }}{{ $t }}{{ end }}">{{ . }}</option>
             {{ end }}
         </select>
     </div>
     <hr style="border-top: 1px solid #ababab;">
     <div class="form-input">
         <label class="col-form-label">{{ index .tab "keyName" }} <i class="bi bi-info-circle ms-1" data-bs-toggle="tooltip" data-bs-placement="right" data-bs-title="{{ index $.tab "tooltipKeyNameSign" }}"></i> :</label>
-        <select id="keyTypeSign" name="keyNameSign" class="form-select">
+        <select id="keyNameSignAdd" name="keyNameSign" class="form-select">
             <option value="" disabled selected>{{ index .tab "selectKeyType" }}</option>
+            <optgroup label="AES">
+                {{ range .listAesKey }}
+                    <option value="{{ . }}">{{ . }}</option>
+                {{ end }}
+            </optgroup>
+            <optgroup label="HMAC">
+                {{ range .listHmacKey }}
+                    <option value="{{ . }}">{{ . }}</option>
+                {{ end }}
+            </optgroup>
+            <optgroup label="PGP-PUBLIC">
+                {{ range .listPgpPubKey }}
+                    <option value="{{ . }}">{{ . }}</option>
+                {{ end }}
+            </optgroup>
+            <optgroup label="PGP-PRIVATE">
+                {{ range .listPgpPrivKey }}
+                    <option value="{{ . }}">{{ . }}</option>
+                {{ end }}
+            </optgroup>
         </select>
     </div>
 </div>
@@ -400,18 +463,39 @@
     <hr style="border-top: 1px solid #ababab;">
     <div class="form-input">
         <label class="col-form-label">{{ index .tab "method" }} <i class="bi bi-info-circle ms-1" data-bs-toggle="tooltip" data-bs-placement="right" data-bs-title="{{ index $.tab "tooltipMethodVerify" }}"></i> :</label>
-        <select name="methodVerify" id="methodVerify" class="form-select">
+        <select name="methodVerify" id="methodVerifyAdd" class="form-select">
             <option value="" disabled selected>{{ index .tab "selectMethodVerify" }}</option>
             {{ range .VerifyMethods }}
-            <option value="{{ . }}">{{ . }}</option>
+                {{ $m := . }}
+                <option value="{{ . }}" data-keytypes="{{ range $i, $t := index $.VerifyKeyTypes $m }}{{ if $i }},{{ end }}{{ $t }}{{ end }}">{{ . }}</option>
             {{ end }}
         </select>
     </div>
     <hr style="border-top: 1px solid #ababab;">
     <div class="form-input">
         <label class="col-form-label">{{ index .tab "keyName" }} <i class="bi bi-info-circle ms-1" data-bs-toggle="tooltip" data-bs-placement="right" data-bs-title="{{ index $.tab "tooltipKeyNameVerify" }}"></i> :</label>
-        <select id="keyTypeVerify" name="keyNameVerify" class="form-select">
+        <select id="keyNameVerifyAdd" name="keyNameVerify" class="form-select">
             <option value="" disabled selected>{{ index .tab "selectKeyType" }}</option>
+            <optgroup label="AES">
+                {{ range .listAesKey }}
+                    <option value="{{ . }}">{{ . }}</option>
+                {{ end }}
+            </optgroup>
+            <optgroup label="HMAC">
+                {{ range .listHmacKey }}
+                    <option value="{{ . }}">{{ . }}</option>
+                {{ end }}
+            </optgroup>
+            <optgroup label="PGP-PUBLIC">
+                {{ range .listPgpPubKey }}
+                    <option value="{{ . }}">{{ . }}</option>
+                {{ end }}
+            </optgroup>
+            <optgroup label="PGP-PRIVATE">
+                {{ range .listPgpPrivKey }}
+                    <option value="{{ . }}">{{ . }}</option>
+                {{ end }}
+            </optgroup>
         </select>
     </div>
 </div>
@@ -434,25 +518,69 @@
     <hr style="border-top: 1px solid #ababab;">
     <div class="form-input">
         <label class="col-form-label">{{ index .tab "method" }} <i class="bi bi-info-circle ms-1" data-bs-toggle="tooltip" data-bs-placement="right" data-bs-title="{{ index $.tab "tooltipMethodEncrypt&Sign" }}"></i> :</label>
-        <select name="methodEncrypt&Sign" id="methodEncryptSign" class="form-select">
+        <select name="methodEncrypt&Sign" id="methodEncryptSignAdd" class="form-select">
             <option value="" disabled selected>{{ index .tab "selectMethodEncrypt&Sign" }}</option>
             {{ range .EncryptSignMethods }}
-            <option value="{{ . }}">{{ . }}</option>
+                {{ $m := . }}
+                {{ $kt := index $.EncryptSignKeyTypes $m }}
+                <option value="{{ . }}" data-keytypes-encrypt="{{- range $i, $t := index $kt "encrypt" -}}{{ if $i }},{{ end }}{{ $t }}{{- end -}}" data-keytypes-sign="{{- range $i, $t := index $kt "sign" -}}{{ if $i }},{{ end }}{{ $t }}{{- end -}}">
+                    {{ . }}
+                </option>
             {{ end }}
         </select>
     </div>
     <hr style="border-top: 1px solid #ababab;">
     <div class="form-input">
         <label class="col-form-label">{{ index .tab "encryptKeyName" }} <i class="bi bi-info-circle ms-1" data-bs-toggle="tooltip" data-bs-placement="right" data-bs-title="{{ index $.tab "tooltipEncryptKeyName" }}"></i> :</label>
-        <select id="keyTypeEncryptSignEncrypt" name="encryptKeyNameEncrypt&Sign" class="form-select">
+        <select id="encryptKeyNameEncrypt&SignAdd" name="encryptKeyNameEncrypt&Sign" class="form-select">
             <option value="" disabled selected>{{ index .tab "selectKeyType" }}</option>
+            <optgroup label="AES">
+                {{ range .listAesKey }}
+                    <option value="{{ . }}">{{ . }}</option>
+                {{ end }}
+            </optgroup>
+            <optgroup label="HMAC">
+                {{ range .listHmacKey }}
+                    <option value="{{ . }}">{{ . }}</option>
+                {{ end }}
+            </optgroup>
+            <optgroup label="PGP-PUBLIC">
+                {{ range .listPgpPubKey }}
+                    <option value="{{ . }}">{{ . }}</option>
+                {{ end }}
+            </optgroup>
+            <optgroup label="PGP-PRIVATE">
+                {{ range .listPgpPrivKey }}
+                    <option value="{{ . }}">{{ . }}</option>
+                {{ end }}
+            </optgroup>
         </select>
     </div>
     <hr style="border-top: 1px solid #ababab;">
     <div class="form-input">
         <label class="col-form-label">{{ index .tab "signKeyName" }} <i class="bi bi-info-circle ms-1" data-bs-toggle="tooltip" data-bs-placement="right" data-bs-title="{{ index $.tab "tooltipSignKeyNameEncrypt&Sign" }}"></i> :</label>
-        <select id="keyTypeEncryptSignSign" name="signKeyNameEncrypt&Sign" class="form-select">
+        <select id="signKeyNameEncrypt&SignAdd" name="signKeyNameEncrypt&Sign" class="form-select">
             <option value="" disabled selected>{{ index .tab "selectKeyType" }}</option>
+            <optgroup label="AES">
+                {{ range .listAesKey }}
+                    <option value="{{ . }}">{{ . }}</option>
+                {{ end }}
+            </optgroup>
+            <optgroup label="HMAC">
+                {{ range .listHmacKey }}
+                    <option value="{{ . }}">{{ . }}</option>
+                {{ end }}
+            </optgroup>
+            <optgroup label="PGP-PUBLIC">
+                {{ range .listPgpPubKey }}
+                    <option value="{{ . }}">{{ . }}</option>
+                {{ end }}
+            </optgroup>
+            <optgroup label="PGP-PRIVATE">
+                {{ range .listPgpPrivKey }}
+                    <option value="{{ . }}">{{ . }}</option>
+                {{ end }}
+            </optgroup>
         </select>
     </div>
 </div>
@@ -475,25 +603,69 @@
     <hr style="border-top: 1px solid #ababab;">
     <div class="form-input">
         <label class="col-form-label">{{ index .tab "method" }} <i class="bi bi-info-circle ms-1" data-bs-toggle="tooltip" data-bs-placement="right" data-bs-title="{{ index $.tab "tooltipMethodDecrypt&verify" }}"></i> :</label>
-        <select name="methodDecrypt&verify" id="methodDecryptVerify" class="form-select">
+        <select name="methodDecrypt&verify" id="methodDecryptVerifyAdd" class="form-select">
             <option value="" disabled selected>{{ index .tab "selectMethodDecrypt&verify" }}</option>
             {{ range .DecryptVerifyMethods }}
-            <option value="{{ . }}">{{ . }}</option>
+                {{ $m := . }}
+                {{ $kt := index $.DecryptVerifyKeyTypes $m }}
+                <option value="{{ . }}" data-keytypes-decrypt="{{- range $i, $t := index $kt "decrypt" -}}{{ if $i }},{{ end }}{{ $t }}{{- end -}}" data-keytypes-verify="{{- range $i, $t := index $kt "verify" -}}{{ if $i }},{{ end }}{{ $t }}{{- end -}}">
+                    {{ . }}
+                </option>
             {{ end }}
         </select>
     </div>
     <hr style="border-top: 1px solid #ababab;">
     <div class="form-input">
-    <label class="col-form-label">{{ index .tab "decryptKeyName" }} <i class="bi bi-info-circle ms-1" data-bs-toggle="tooltip" data-bs-placement="right" data-bs-title="{{ index $.tab "tooltipDecryptKeyName" }}"></i> :</label>
-    <select id="keyTypeDecryptVerifyDecrypt" name="decryptKeyNameDecrypt&verify" class="form-select">
-        <option value="" disabled selected>{{ index .tab "selectKeyType" }}</option>
-    </select>
+        <label class="col-form-label">{{ index .tab "decryptKeyName" }} <i class="bi bi-info-circle ms-1" data-bs-toggle="tooltip" data-bs-placement="right" data-bs-title="{{ index $.tab "tooltipDecryptKeyName" }}"></i> :</label>
+        <select id="decryptKeyNameDecrypt&verifyAdd" name="decryptKeyNameDecrypt&verify" class="form-select">
+            <option value="" disabled selected>{{ index .tab "selectKeyType" }}</option>
+            <optgroup label="AES">
+                {{ range .listAesKey }}
+                    <option value="{{ . }}">{{ . }}</option>
+                {{ end }}
+            </optgroup>
+            <optgroup label="HMAC">
+                {{ range .listHmacKey }}
+                    <option value="{{ . }}">{{ . }}</option>
+                {{ end }}
+            </optgroup>
+            <optgroup label="PGP-PUBLIC">
+                {{ range .listPgpPubKey }}
+                    <option value="{{ . }}">{{ . }}</option>
+                {{ end }}
+            </optgroup>
+            <optgroup label="PGP-PRIVATE">
+                {{ range .listPgpPrivKey }}
+                    <option value="{{ . }}">{{ . }}</option>
+                {{ end }}
+            </optgroup>
+        </select>
     </div>
     <hr style="border-top: 1px solid #ababab;">
     <div class="form-input">
         <label class="col-form-label">{{ index .tab "verifyKeyName" }} <i class="bi bi-info-circle ms-1" data-bs-toggle="tooltip" data-bs-placement="right" data-bs-title="{{ index $.tab "tooltipVerifyKeyName" }}"></i> :</label>
-        <select id="keyTypeDecryptVerifyVerify" name="verifyKeyNameDecrypt&verify" class="form-select">
+        <select id="verifyKeyNameDecrypt&verifyAdd" name="verifyKeyNameDecrypt&verify" class="form-select">
             <option value="" disabled selected>{{ index .tab "selectKeyType" }}</option>
+            <optgroup label="AES">
+                {{ range .listAesKey }}
+                    <option value="{{ . }}">{{ . }}</option>
+                {{ end }}
+            </optgroup>
+            <optgroup label="HMAC">
+                {{ range .listHmacKey }}
+                    <option value="{{ . }}">{{ . }}</option>
+                {{ end }}
+            </optgroup>
+            <optgroup label="PGP-PUBLIC">
+                {{ range .listPgpPubKey }}
+                    <option value="{{ . }}">{{ . }}</option>
+                {{ end }}
+            </optgroup>
+            <optgroup label="PGP-PRIVATE">
+                {{ range .listPgpPrivKey }}
+                    <option value="{{ . }}">{{ . }}</option>
+                {{ end }}
+            </optgroup>
         </select>
     </div>
 </div>

@@ -334,25 +334,40 @@
     <hr style="border-top: 1px solid #ababab;">
     <div class="form-input">
         <label class="col-form-label">{{ index .tab "method" }} <i class="bi bi-info-circle ms-1" data-bs-toggle="tooltip" data-bs-placement="right" data-bs-title="{{ index $.tab "tooltipMethodEncrypt" }}"></i> :</label>
-        <select name="methodEncrypt" id="methodEncrypt" class="form-select">
+        <select name="methodEncrypt" id="methodEncryptEdit" class="form-select">
             <option value="" disabled selected>{{ index .tab "selectMethod" }}</option>
             {{ $args := .Args }}
             {{ range .EncryptMethods }}
-            <option value="{{ . }}" {{ if eq (index $args "method") . }}selected{{ end }}>{{ . }}</option>
+                {{ $m := . }}
+                <option value="{{ . }}" {{ if eq (index $args "method") . }}selected{{ end }} data-keytypes="{{ range $i, $t := index $.EncryptKeyTypes $m }}{{ if $i }},{{ end }}{{ $t }}{{ end }}">{{ . }}</option>
             {{ end }}
         </select>
     </div>
     <hr style="border-top: 1px solid #ababab;">
     <div class="form-input">
         <label class="col-form-label">{{ index .tab "keyName" }} <i class="bi bi-info-circle ms-1" data-bs-toggle="tooltip" data-bs-placement="right" data-bs-title="{{ index $.tab "tooltipKeyNameEncrypt" }}"></i> :</label>
-        <select id="keyTypeEncrypt" name="keyNameEncrypt" class="form-select">
+        <select id="keyNameEncryptEdit" name="keyNameEncrypt" class="form-select">
             <option value="" disabled selected>{{ index .tab "selectKeyType" }}</option>
-            {{ $args := .Args }}
-            {{ range $type, $list := .EncryptKeyTypes }}
-            {{ range $list }}
-                <option value="{{ . }}" {{ if eq (index $args "keyName") . }}selected{{ end }}>{{ . }}</option>
-            {{ end }}
-        {{ end }}
+            <optgroup label="AES" data-type="AES">
+                {{ range .listAesKey }}
+                    <option value="{{ . }}" {{ if eq (index $args "keyName") . }}selected{{ end }}>{{ . }}</option>
+                {{ end }}
+            </optgroup>
+            <optgroup label="HMAC" data-type="HMAC">
+                {{ range .listHmacKey }}
+                    <option value="{{ . }}" {{ if eq (index $args "keyName") . }}selected{{ end }}>{{ . }}</option>
+                {{ end }}
+            </optgroup>
+            <optgroup label="PGP-PUBLIC" data-type="PGP-PUBLIC">
+                {{ range .listPgpPubKey }}
+                    <option value="{{ . }}" {{ if eq (index $args "keyName") . }}selected{{ end }}>{{ . }}</option>
+                {{ end }}
+            </optgroup>
+            <optgroup label="PGP-PRIVATE" data-type="PGP-PRIVATE">
+                {{ range .listPgpPrivKey }}
+                    <option value="{{ . }}" {{ if eq (index $args "keyName") . }}selected{{ end }}>{{ . }}</option>
+                {{ end }}
+            </optgroup>
         </select>
     </div>
 </div>
@@ -375,29 +390,45 @@
     <hr style="border-top: 1px solid #ababab;">
     <div class="form-input">
         <label class="col-form-label">{{ index .tab "method" }} <i class="bi bi-info-circle ms-1" data-bs-toggle="tooltip" data-bs-placement="right" data-bs-title="{{ index $.tab "tooltipMethodDecrypt" }}"></i> :</label>
-        <select name="methodDecrypt" id="methodDecrypt" class="form-select">
+        <select name="methodDecrypt" id="methodDecryptEdit" class="form-select">
             <option value="" disabled selected>{{ index .tab "selectMethod" }}</option>
             {{ $args := .Args }}
             {{ range .DecryptMethods }}
-            <option value="{{ . }}" {{ if eq (index $args "method") . }}selected{{ end }}>{{ . }}</option>
+                {{ $m := . }}
+                <option value="{{ . }}" {{ if eq (index $args "method") . }}selected{{ end }} data-keytypes="{{ range $i, $t := index $.DecryptKeyTypes $m }}{{ if $i }},{{ end }}{{ $t }}{{ end }}">{{ . }}</option>
             {{ end }}
         </select>
     </div>
     <hr style="border-top: 1px solid #ababab;">
     <div class="form-input">
         <label class="col-form-label">{{ index .tab "keyName" }} <i class="bi bi-info-circle ms-1" data-bs-toggle="tooltip" data-bs-placement="right" data-bs-title="{{ index $.tab "tooltipKeyNameDecrypt" }}"></i> :</label>
-        <select id="keyTypeDecrypt" name="keyNameDecrypt" class="form-select">
+        <select id="keyNameDecryptEdit" name="keyNameDecrypt" class="form-select">
             <option value="" disabled selected>{{ index .tab "selectKeyType" }}</option>
-            {{ $args := .Args }}
-            {{ range $type, $list := .DecryptKeyTypes }}
-                {{ range $list }}
+            <optgroup label="AES" data-type="AES">
+                {{ range .listAesKey }}
                     <option value="{{ . }}" {{ if eq (index $args "keyName") . }}selected{{ end }}>{{ . }}</option>
                 {{ end }}
-            {{ end }}
+            </optgroup>
+            <optgroup label="HMAC" data-type="HMAC">
+                {{ range .listHmacKey }}
+                    <option value="{{ . }}" {{ if eq (index $args "keyName") . }}selected{{ end }}>{{ . }}</option>
+                {{ end }}
+            </optgroup>
+            <optgroup label="PGP-PUBLIC" data-type="PGP-PUBLIC">
+                {{ range .listPgpPubKey }}
+                    <option value="{{ . }}" {{ if eq (index $args "keyName") . }}selected{{ end }}>{{ . }}</option>
+                {{ end }}
+            </optgroup>
+            <optgroup label="PGP-PRIVATE" data-type="PGP-PRIVATE">
+                {{ range .listPgpPrivKey }}
+                    <option value="{{ . }}" {{ if eq (index $args "keyName") . }}selected{{ end }}>{{ . }}</option>
+                {{ end }}
+            </optgroup>
         </select>
     </div>
 </div>
 {{ end}}
+
 
 {{ define "editTaskSIGN" }}
 <div id="taskSIGN" class="taskBlock" style="display:none;">
@@ -409,29 +440,44 @@
     <hr style="border-top: 1px solid #ababab;">
     <div class="form-input">
         <label class="col-form-label">{{ index .tab "method" }} <i class="bi bi-info-circle ms-1" data-bs-toggle="tooltip" data-bs-placement="right" data-bs-title="{{ index $.tab "tooltipMethodSign" }}"></i> :</label>
-        <select name="methodSign" id="methodSign" class="form-select">
+        <select name="methodSign" id="methodSignEdit" class="form-select">
             <option value="" disabled selected>{{ index .tab "selectMethodSign" }}</option>
             {{ $args := .Args }}
             {{ range .SignMethods }}
-            <option value="{{ . }}" {{ if eq (index $args "method") . }}selected{{ end }}>{{ . }}</option>
+                {{ $m := . }}
+                <option value="{{ . }}" {{ if eq (index $args "method") . }}selected{{ end }} data-keytypes="{{ range $i, $t := index $.SignKeyTypes $m }}{{ if $i }},{{ end }}{{ $t }}{{ end }}">{{ . }}</option>
             {{ end }}
         </select>
     </div>
     <hr style="border-top: 1px solid #ababab;">
     <div class="form-input">
         <label class="col-form-label">{{ index .tab "keyName" }} <i class="bi bi-info-circle ms-1" data-bs-toggle="tooltip" data-bs-placement="right" data-bs-title="{{ index $.tab "tooltipKeyNameSign" }}"></i> :</label>
-        <select id="keyTypeSign" name="keyNameSign" class="form-select">
+        <select id="keyNameSignEdit" name="keyNameSign" class="form-select">
             <option value="" disabled selected>{{ index .tab "selectKeyType" }}</option>
-            {{ $args := .Args }}
-            {{ range $type, $list := .SignKeyTypes }}
-                {{ range $list }}
+            <optgroup label="AES" data-type="AES">
+                {{ range .listAesKey }}
                     <option value="{{ . }}" {{ if eq (index $args "keyName") . }}selected{{ end }}>{{ . }}</option>
                 {{ end }}
-            {{ end }}
+            </optgroup>
+            <optgroup label="HMAC" data-type="HMAC">
+                {{ range .listHmacKey }}
+                    <option value="{{ . }}" {{ if eq (index $args "keyName") . }}selected{{ end }}>{{ . }}</option>
+                {{ end }}
+            </optgroup>
+            <optgroup label="PGP-PUBLIC" data-type="PGP-PUBLIC">
+                {{ range .listPgpPubKey }}
+                    <option value="{{ . }}" {{ if eq (index $args "keyName") . }}selected{{ end }}>{{ . }}</option>
+                {{ end }}
+            </optgroup>
+            <optgroup label="PGP-PRIVATE" data-type="PGP-PRIVATE">
+                {{ range .listPgpPrivKey }}
+                    <option value="{{ . }}" {{ if eq (index $args "keyName") . }}selected{{ end }}>{{ . }}</option>
+                {{ end }}
+            </optgroup>
         </select>
     </div>
 </div>
-{{ end}}
+{{ end }}
 
 {{ define "editTaskVERIFY" }}
 <div id="taskVERIFY" class="taskBlock" style="display:none;">
@@ -443,29 +489,44 @@
     <hr style="border-top: 1px solid #ababab;">
     <div class="form-input">
         <label class="col-form-label">{{ index .tab "method" }} <i class="bi bi-info-circle ms-1" data-bs-toggle="tooltip" data-bs-placement="right" data-bs-title="{{ index $.tab "tooltipMethodVerify" }}"></i> :</label>
-        <select name="methodVerify" id="methodVerify" class="form-select">
+        <select name="methodVerify" id="methodVerifyEdit" class="form-select">
             <option value="" disabled selected>{{ index .tab "selectMethodVerify" }}</option>
             {{ $args := .Args }}
             {{ range .VerifyMethods }}
-            <option value="{{ . }}" {{ if eq (index $args "method") . }}selected{{ end }}>{{ . }}</option>
+                {{ $m := . }}
+                <option value="{{ . }}" {{ if eq (index $args "method") . }}selected{{ end }} data-keytypes="{{ range $i, $t := index $.VerifyKeyTypes $m }}{{ if $i }},{{ end }}{{ $t }}{{ end }}">{{ . }}</option>
             {{ end }}
         </select>
     </div>
     <hr style="border-top: 1px solid #ababab;">
     <div class="form-input">
         <label class="col-form-label">{{ index .tab "keyName" }} <i class="bi bi-info-circle ms-1" data-bs-toggle="tooltip" data-bs-placement="right" data-bs-title="{{ index $.tab "tooltipKeyNameVerify" }}"></i> :</label>
-        <select id="keyTypeVerify" name="keyNameVerify" class="form-select">
+        <select id="keyNameVerifyEdit" name="keyNameVerify" class="form-select">
             <option value="" disabled selected>{{ index .tab "selectKeyType" }}</option>
-            {{ $args := .Args }}
-            {{ range $type, $list := .VerifyKeyTypes }}
-                {{ range $list }}
+            <optgroup label="AES" data-type="AES">
+                {{ range .listAesKey }}
                     <option value="{{ . }}" {{ if eq (index $args "keyName") . }}selected{{ end }}>{{ . }}</option>
                 {{ end }}
-            {{ end }}
+            </optgroup>
+            <optgroup label="HMAC" data-type="HMAC">
+                {{ range .listHmacKey }}
+                    <option value="{{ . }}" {{ if eq (index $args "keyName") . }}selected{{ end }}>{{ . }}</option>
+                {{ end }}
+            </optgroup>
+            <optgroup label="PGP-PUBLIC" data-type="PGP-PUBLIC">
+                {{ range .listPgpPubKey }}
+                    <option value="{{ . }}" {{ if eq (index $args "keyName") . }}selected{{ end }}>{{ . }}</option>
+                {{ end }}
+            </optgroup>
+            <optgroup label="PGP-PRIVATE" data-type="PGP-PRIVATE">
+                {{ range .listPgpPrivKey }}
+                    <option value="{{ . }}" {{ if eq (index $args "keyName") . }}selected{{ end }}>{{ . }}</option>
+                {{ end }}
+            </optgroup>
         </select>
     </div>
 </div>
-{{ end}}
+{{ end }}
 
 {{ define "editTaskENCRYPT&SIGN" }}
 <div id="taskENCRYPT&SIGN" class="taskBlock" style="display:none;">
@@ -484,42 +545,74 @@
     <hr style="border-top: 1px solid #ababab;">
     <div class="form-input">
         <label class="col-form-label">{{ index .tab "method" }} <i class="bi bi-info-circle ms-1" data-bs-toggle="tooltip" data-bs-placement="right" data-bs-title="{{ index $.tab "tooltipMethodEncrypt&Sign" }}"></i> :</label>
-        <select name="methodEncrypt&Sign" id="methodEncryptSign" class="form-select">
+        <select name="methodEncrypt&Sign" id="methodEncryptSignEdit" class="form-select">
             <option value="" disabled selected>{{ index .tab "selectMethodEncrypt&Sign" }}</option>
             {{ $args := .Args }}
             {{ range .EncryptSignMethods }}
-            <option value="{{ . }}" {{ if eq (index $args "method") . }}selected{{ end }}>{{ . }}</option>
+                {{ $m := . }}
+                {{ $kt := index $.EncryptSignKeyTypes $m }}
+                <option value="{{ . }}" {{ if eq (index $args "method") . }}selected{{ end }} data-keytypes-encrypt="{{- range $i, $t := index $kt "encrypt" -}}{{ if $i }},{{ end }}{{ $t }}{{- end -}}" data-keytypes-sign="{{- range $i, $t := index $kt "sign" -}}{{ if $i }},{{ end }}{{ $t }}{{- end -}}">{{ . }}</option>
             {{ end }}
         </select>
     </div>
     <hr style="border-top: 1px solid #ababab;">
     <div class="form-input">
         <label class="col-form-label">{{ index .tab "encryptKeyName" }} <i class="bi bi-info-circle ms-1" data-bs-toggle="tooltip" data-bs-placement="right" data-bs-title="{{ index $.tab "tooltipEncryptKeyName" }}"></i> :</label>
-        <select id="keyTypeEncryptSignEncrypt" name="encryptKeyNameEncrypt&Sign" class="form-select">
+        <select id="encryptKeyNameEncrypt&SignEdit" name="encryptKeyNameEncrypt&Sign" class="form-select">
             <option value="" disabled selected>{{ index .tab "selectKeyType" }}</option>
             {{ $args := .Args }}
-            {{ range $method, $types := .EncryptSignKeyTypes }}
-                {{ range $types.encrypt }}
+            <optgroup label="AES" data-type="AES">
+                {{ range .listAesKey }}
                     <option value="{{ . }}" {{ if eq (index $args "encryptKeyName") . }}selected{{ end }}>{{ . }}</option>
                 {{ end }}
-            {{ end }}
+            </optgroup>
+            <optgroup label="HMAC" data-type="HMAC">
+                {{ range .listHmacKey }}
+                    <option value="{{ . }}" {{ if eq (index $args "encryptKeyName") . }}selected{{ end }}>{{ . }}</option>
+                {{ end }}
+            </optgroup>
+            <optgroup label="PGP-PUBLIC" data-type="PGP-PUBLIC">
+                {{ range .listPgpPubKey }}
+                    <option value="{{ . }}" {{ if eq (index $args "encryptKeyName") . }}selected{{ end }}>{{ . }}</option>
+                {{ end }}
+            </optgroup>
+            <optgroup label="PGP-PRIVATE" data-type="PGP-PRIVATE">
+                {{ range .listPgpPrivKey }}
+                    <option value="{{ . }}" {{ if eq (index $args "encryptKeyName") . }}selected{{ end }}>{{ . }}</option>
+                {{ end }}
+            </optgroup>
         </select>
     </div>
     <hr style="border-top: 1px solid #ababab;">
     <div class="form-input">
         <label class="col-form-label">{{ index .tab "signKeyName" }} <i class="bi bi-info-circle ms-1" data-bs-toggle="tooltip" data-bs-placement="right" data-bs-title="{{ index $.tab "tooltipSignKeyNameEncrypt&Sign" }}"></i> :</label>
-        <select id="keyTypeEncryptSignSign" name="signKeyNameEncrypt&Sign" class="form-select">
+        <select id="signKeyNameEncrypt&SignEdit" name="signKeyNameEncrypt&Sign" class="form-select">
             <option value="" disabled selected>{{ index .tab "selectKeyType" }}</option>
             {{ $args := .Args }}
-            {{ range $method, $types := .EncryptSignKeyTypes }}
-                {{ range $types.sign }}
+            <optgroup label="AES" data-type="AES">
+                {{ range .listAesKey }}
                     <option value="{{ . }}" {{ if eq (index $args "signKeyName") . }}selected{{ end }}>{{ . }}</option>
                 {{ end }}
-            {{ end }}
+            </optgroup>
+            <optgroup label="HMAC" data-type="HMAC">
+                {{ range .listHmacKey }}
+                    <option value="{{ . }}" {{ if eq (index $args "signKeyName") . }}selected{{ end }}>{{ . }}</option>
+                {{ end }}
+            </optgroup>
+            <optgroup label="PGP-PUBLIC" data-type="PGP-PUBLIC">
+                {{ range .listPgpPubKey }}
+                    <option value="{{ . }}" {{ if eq (index $args "signKeyName") . }}selected{{ end }}>{{ . }}</option>
+                {{ end }}
+            </optgroup>
+            <optgroup label="PGP-PRIVATE" data-type="PGP-PRIVATE">
+                {{ range .listPgpPrivKey }}
+                    <option value="{{ . }}" {{ if eq (index $args "signKeyName") . }}selected{{ end }}>{{ . }}</option>
+                {{ end }}
+            </optgroup>
         </select>
     </div>
 </div>
-{{ end}}
+{{ end }}
 
 {{ define "editTaskDECRYPT&VERIFY" }}
 <div id="taskDECRYPT&VERIFY" class="taskBlock" style="display:none;">
@@ -538,39 +631,71 @@
     <hr style="border-top: 1px solid #ababab;">
     <div class="form-input">
         <label class="col-form-label">{{ index .tab "method" }} <i class="bi bi-info-circle ms-1" data-bs-toggle="tooltip" data-bs-placement="right" data-bs-title="{{ index $.tab "tooltipMethodDecrypt&verify" }}"></i> :</label>
-        <select name="methodDecrypt&verify" id="methodDecryptVerify" class="form-select">
+        <select name="methodDecrypt&verify" id="methodDecryptVerifyEdit" class="form-select">
             <option value="" disabled selected>{{ index .tab "selectMethodDecrypt&verify" }}</option>
             {{ $args := .Args }}
             {{ range .DecryptVerifyMethods }}
-            <option value="{{ . }}" {{ if eq (index $args "method") . }}selected{{ end }}>{{ . }}</option>
+                {{ $m := . }}
+                {{ $kt := index $.DecryptVerifyKeyTypes $m }}
+                <option value="{{ . }}" {{ if eq (index $args "method") . }}selected{{ end }} data-keytypes-decrypt="{{- range $i, $t := index $kt "decrypt" -}}{{ if $i }},{{ end }}{{ $t }}{{- end -}}" data-keytypes-verify="{{- range $i, $t := index $kt "verify" -}}{{ if $i }},{{ end }}{{ $t }}{{- end -}}">{{ . }}</option>
             {{ end }}
         </select>
     </div>
     <hr style="border-top: 1px solid #ababab;">
     <div class="form-input">
         <label class="col-form-label">{{ index .tab "decryptKeyName" }} <i class="bi bi-info-circle ms-1" data-bs-toggle="tooltip" data-bs-placement="right" data-bs-title="{{ index $.tab "tooltipDecryptKeyName" }}"></i> :</label>
-        <select id="keyTypeDecryptVerifyDecrypt" name="decryptKeyNameDecrypt&verify" class="form-select">
+        <select id="decryptKeyNameDecrypt&verifyEdit" name="decryptKeyNameDecrypt&verify" class="form-select">
             <option value="" disabled selected>{{ index .tab "selectKeyType" }}</option>
             {{ $args := .Args }}
-            {{ range $method, $types := .DecryptVerifyKeyTypes }}
-                {{ range $types.decrypt }}
+            <optgroup label="AES" data-type="AES">
+                {{ range .listAesKey }}
                     <option value="{{ . }}" {{ if eq (index $args "decryptKeyName") . }}selected{{ end }}>{{ . }}</option>
                 {{ end }}
-            {{ end }}
+            </optgroup>
+            <optgroup label="HMAC" data-type="HMAC">
+                {{ range .listHmacKey }}
+                    <option value="{{ . }}" {{ if eq (index $args "decryptKeyName") . }}selected{{ end }}>{{ . }}</option>
+                {{ end }}
+            </optgroup>
+            <optgroup label="PGP-PUBLIC" data-type="PGP-PUBLIC">
+                {{ range .listPgpPubKey }}
+                    <option value="{{ . }}" {{ if eq (index $args "decryptKeyName") . }}selected{{ end }}>{{ . }}</option>
+                {{ end }}
+            </optgroup>
+            <optgroup label="PGP-PRIVATE" data-type="PGP-PRIVATE">
+                {{ range .listPgpPrivKey }}
+                    <option value="{{ . }}" {{ if eq (index $args "decryptKeyName") . }}selected{{ end }}>{{ . }}</option>
+                {{ end }}
+            </optgroup>
         </select>
     </div>
     <hr style="border-top: 1px solid #ababab;">
     <div class="form-input">
         <label class="col-form-label">{{ index .tab "verifyKeyName" }} <i class="bi bi-info-circle ms-1" data-bs-toggle="tooltip" data-bs-placement="right" data-bs-title="{{ index $.tab "tooltipVerifyKeyName" }}"></i> :</label>
-        <select id="keyTypeDecryptVerifyVerify" name="verifyKeyNameDecrypt&verify" class="form-select">
+        <select id="verifyKeyNameDecrypt&verifyEdit" name="verifyKeyNameDecrypt&verify" class="form-select">
             <option value="" disabled selected>{{ index .tab "selectKeyType" }}</option>
             {{ $args := .Args }}
-            {{ range $method, $types := .DecryptVerifyKeyTypes }}
-                {{ range $types.verify }}
+            <optgroup label="AES" data-type="AES">
+                {{ range .listAesKey }}
                     <option value="{{ . }}" {{ if eq (index $args "verifyKeyName") . }}selected{{ end }}>{{ . }}</option>
                 {{ end }}
-            {{ end }}
+            </optgroup>
+            <optgroup label="HMAC" data-type="HMAC">
+                {{ range .listHmacKey }}
+                    <option value="{{ . }}" {{ if eq (index $args "verifyKeyName") . }}selected{{ end }}>{{ . }}</option>
+                {{ end }}
+            </optgroup>
+            <optgroup label="PGP-PUBLIC" data-type="PGP-PUBLIC">
+                {{ range .listPgpPubKey }}
+                    <option value="{{ . }}" {{ if eq (index $args "verifyKeyName") . }}selected{{ end }}>{{ . }}</option>
+                {{ end }}
+            </optgroup>
+            <optgroup label="PGP-PRIVATE" data-type="PGP-PRIVATE">
+                {{ range .listPgpPrivKey }}
+                    <option value="{{ . }}" {{ if eq (index $args "verifyKeyName") . }}selected{{ end }}>{{ . }}</option>
+                {{ end }}
+            </optgroup>
         </select>
     </div>
 </div>
-{{ end}}
+{{ end }}
