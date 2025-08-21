@@ -195,6 +195,7 @@
         <tr>
             <th></th>
             <th>{{ index .tab "servers" }}</th>
+            <th>{{ index .tab "state" }}</th>
             <th>{{ index .tab "protocol" }} <i class="bi bi-info-circle ms-1" data-bs-toggle="tooltip" data-bs-placement="right" data-bs-title="{{ index $.tab "tooltipProtocol" }}"></i></th>
             <th>{{ index .tab "address" }} ({{ index .tab "host" }}) <i class="bi bi-info-circle ms-1" data-bs-toggle="tooltip" data-bs-placement="right" data-bs-title="{{ index $.tab "tooltipHost" }}"></i></th>
             <th>{{ index .tab "address" }} ({{ index .tab "port" }}) <i class="bi bi-info-circle ms-1" data-bs-toggle="tooltip" data-bs-placement="right" data-bs-title="{{ index $.tab "tooltipPort" }}"></i></th>
@@ -208,6 +209,20 @@
         <tr>
             <td><i class="bi bi-hdd-network me-1"></i></td>
             <td><strong>{{ .Name }}</strong></td>
+            <td>
+              {{ $state := getServerState . }}
+              <span data-bs-toggle="tooltip" data-bs-placement="top" title="{{ index $state 1 }}">
+                {{ if eq (index $state 0) "Offline" }}
+                  <span class="fw-bold text-secondary">{{ index $.tab "offline" }}</span>
+                {{ else if eq (index $state 0) "Running" }}
+                  <span class="fw-bold text-primary">{{ index $.tab "running" }}</span>
+                {{ else if eq (index $state 0) "Error" }}
+                  <span class="fw-bold text-danger">{{ index $.tab "error" }}</span>
+                {{ else }}
+                  <span class="fw-bold">{{ .State }}</span>
+                {{ end }}
+              </span>
+            </td>
             <td>{{ .Protocol }}</td>
             <td>{{ .Address.Host }}</td>
             <td>{{ .Address.Port }}</td>
@@ -287,6 +302,21 @@
                 </div>
               </td>
             <td class="text-end">
+              <div class="d-inline-flex">
+                {{ if contains $.myPermission.Servers "w" }}
+                <form method="post">
+                  <input type="hidden" name="switchServerStatus" value="{{ .ID }}">
+                  {{ if eq (index $state 0) "Running" }}
+                    <button type="submit" class="btn btn-outline-secondary btn-sm me-1" data-bs-toggle="tooltip" data-bs-placement="top" data-bs-title="{{ index $.tab "pause" }}">
+                      <i class="bi bi-pause"></i>
+                    </button>
+                  {{ else if eq (index $state 0) "Offline" }}
+                    <button type="submit" class="btn btn-outline-success btn-sm me-1" data-bs-toggle="tooltip" data-bs-placement="top" data-bs-title="{{ index $.tab "resume" }}">
+                      <i class="bi bi-play"></i>
+                    </button>
+                  {{ end }}
+                </form>
+                {{ end }}
                 <a class="btn btn-outline-warning btn-sm me-1" href="server_authentication?serverID={{ .ID }}" data-bs-toggle="tooltip" data-bs-placement="top" data-bs-title="{{ index $.tab "tooltipServerAuthentication" }}">
                   <i class="bi bi-shield-lock"></i>
                 </a>
@@ -378,6 +408,7 @@
                     </button>
                 </form>
                 {{ end }}
+              </div>
             </td>
         </tr>
         {{ end }}

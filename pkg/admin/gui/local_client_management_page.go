@@ -3,6 +3,7 @@ package gui
 import (
 	"encoding/json"
 	"fmt"
+	"html/template"
 	"net/http"
 	"strconv"
 
@@ -15,6 +16,7 @@ import (
 	"code.waarp.fr/apps/gateway/gateway/pkg/protocols/modules/pesit"
 	"code.waarp.fr/apps/gateway/gateway/pkg/protocols/modules/r66"
 	"code.waarp.fr/apps/gateway/gateway/pkg/protocols/modules/sftp"
+	"code.waarp.fr/apps/gateway/gateway/pkg/utils"
 )
 
 //nolint:dupl // is not similar, is method for local client
@@ -291,7 +293,53 @@ func callMethodsLocalClientManagement(logger *log.Logger, db *database.DB, w htt
 		return true, "", ""
 	}
 
+	if r.Method == http.MethodPost && r.FormValue("switchClientStatus") != "" {
+		statusClientErr := switchClientStatus(db, r)
+		if statusClientErr != nil {
+			logger.Errorf("failed to switch client status: %v", statusClientErr)
+
+			return false, statusClientErr.Error(), ""
+		}
+
+		http.Redirect(w, r, r.URL.Path, http.StatusSeeOther)
+
+		return true, "", ""
+	}
+
 	return false, "", ""
+}
+
+func switchClientStatus(db *database.DB, r *http.Request) error {
+	if err := r.ParseForm(); err != nil {
+		return fmt.Errorf("failed to parse form: %w", err)
+	}
+	clientID := r.FormValue("switchClientStatus")
+
+	id, err := strconv.ParseUint(clientID, 10, 64)
+	if err != nil {
+		return fmt.Errorf("failed to convert id to int: %w", err)
+	}
+
+	client, err := internal.GetClientByID(db, int64(id))
+	if err != nil {
+		return fmt.Errorf("failed to get client by id: %w", err)
+	}
+
+	state, _ := internal.GetClientStatus(client)
+
+	if state == utils.StateOffline {
+		if restartErr := internal.RestartClient(r.Context(), db, client); restartErr != nil {
+			return fmt.Errorf("failed to restart client: %w", restartErr)
+		}
+	}
+
+	if state == utils.StateRunning {
+		if stopErr := internal.StopClient(r.Context(), client); stopErr != nil {
+			return fmt.Errorf("failed to stop client: %w", stopErr)
+		}
+	}
+
+	return nil
 }
 
 func localClientManagementPage(logger *log.Logger, db *database.DB) http.HandlerFunc {
@@ -313,6 +361,13 @@ func localClientManagementPage(logger *log.Logger, db *database.DB) http.Handler
 
 		myPermission := model.MaskToPerms(user.Permissions)
 		currentPage := filter.Offset + 1
+
+		localClientManagementTemplate := template.Must(
+			template.New("local_client_management_page.html").
+				Funcs(CombinedFuncMap(db)).
+				ParseFS(webFS, index, header, multiLanguage, addProtoConfig, editProtoConfig, displayProtoConfig,
+					"front-end/html/local_client_management_page.html"),
+		)
 
 		if tmplErr := localClientManagementTemplate.ExecuteTemplate(w, "local_client_management_page", map[string]any{
 			"myPermission":           myPermission,

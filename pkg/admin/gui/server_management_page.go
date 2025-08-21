@@ -3,6 +3,7 @@ package gui
 import (
 	"encoding/json"
 	"fmt"
+	"html/template"
 	"net/http"
 	"strconv"
 
@@ -15,6 +16,7 @@ import (
 	"code.waarp.fr/apps/gateway/gateway/pkg/protocols/modules/pesit"
 	"code.waarp.fr/apps/gateway/gateway/pkg/protocols/modules/r66"
 	"code.waarp.fr/apps/gateway/gateway/pkg/protocols/modules/sftp"
+	"code.waarp.fr/apps/gateway/gateway/pkg/utils"
 )
 
 func addServer(db *database.DB, r *http.Request) error {
@@ -322,7 +324,53 @@ func callMethodsServerManagement(logger *log.Logger, db *database.DB, w http.Res
 		return true, "", ""
 	}
 
+	if r.Method == http.MethodPost && r.FormValue("switchServerStatus") != "" {
+		statusServerErr := switchServerStatus(db, r)
+		if statusServerErr != nil {
+			logger.Errorf("failed to switch server status: %v", statusServerErr)
+
+			return false, statusServerErr.Error(), ""
+		}
+
+		http.Redirect(w, r, r.URL.Path, http.StatusSeeOther)
+
+		return true, "", ""
+	}
+
 	return false, "", ""
+}
+
+func switchServerStatus(db *database.DB, r *http.Request) error {
+	if err := r.ParseForm(); err != nil {
+		return fmt.Errorf("failed to parse form: %w", err)
+	}
+	serverID := r.FormValue("switchServerStatus")
+
+	id, err := strconv.ParseUint(serverID, 10, 64)
+	if err != nil {
+		return fmt.Errorf("failed to convert id to int: %w", err)
+	}
+
+	server, err := internal.GetServerByID(db, int64(id))
+	if err != nil {
+		return fmt.Errorf("internal error: %w", err)
+	}
+
+	state, _ := internal.GetServerStatus(server)
+
+	if state == utils.StateOffline {
+		if restartErr := internal.RestartServer(r.Context(), db, server); restartErr != nil {
+			return fmt.Errorf("failed to restart client: %w", restartErr)
+		}
+	}
+
+	if state == utils.StateRunning {
+		if stopErr := internal.StopServer(r.Context(), server); stopErr != nil {
+			return fmt.Errorf("failed to stop client: %w", stopErr)
+		}
+	}
+
+	return nil
 }
 
 func serverManagementPage(logger *log.Logger, db *database.DB) http.HandlerFunc {
@@ -344,6 +392,12 @@ func serverManagementPage(logger *log.Logger, db *database.DB) http.HandlerFunc 
 		myPermission := model.MaskToPerms(user.Permissions)
 		currentPage := filter.Offset + 1
 
+		serverManagementTemplate := template.Must(
+			template.New("server_management_page.html").
+				Funcs(CombinedFuncMap(db)).
+				ParseFS(webFS, index, header, multiLanguage, addProtoConfig, editProtoConfig, displayProtoConfig,
+					"front-end/html/server_management_page.html"),
+		)
 		if tmplErr := serverManagementTemplate.ExecuteTemplate(w, "server_management_page", map[string]any{
 			"myPermission":           myPermission,
 			"tab":                    tabTranslated,

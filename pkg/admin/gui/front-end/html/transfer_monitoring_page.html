@@ -82,7 +82,7 @@
         </td>
         <td>
             {{ $percent := 0 }}
-            {{ if ge .Filesize 0 }}
+            {{ if gt .Filesize 0 }}
                 {{ $percent = div (mul .Progress 100) .Filesize }}
               <div class="progress" style="width: 80%;">
                 <div class="progress-bar bg-success-subtle text-dark" role="progressbar" style="width: {{ $percent }}%;" aria-valuenow="{{ $percent }}" aria-valuemin="0" aria-valuemax="100">

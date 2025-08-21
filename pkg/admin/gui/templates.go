@@ -12,6 +12,8 @@ import (
 
 	"code.waarp.fr/apps/gateway/gateway/pkg/admin/gui/internal"
 	"code.waarp.fr/apps/gateway/gateway/pkg/database"
+	"code.waarp.fr/apps/gateway/gateway/pkg/model"
+	"code.waarp.fr/apps/gateway/gateway/pkg/utils"
 )
 
 const (
@@ -154,6 +156,38 @@ func NewFuncMap(db *database.DB) template.FuncMap {
 
 			return partner.Name
 		},
+		"getServerState": func(server *model.LocalAgent) (any, error) {
+			state, reason := internal.GetServerStatus(server)
+			var status string
+			switch state {
+			case utils.StateOffline:
+				status = "Offline"
+			case utils.StateRunning:
+				status = "Running"
+			case utils.StateError:
+				status = "Error"
+			default:
+				status = ""
+			}
+
+			return []string{status, reason}, nil
+		},
+		"getClientState": func(client *model.Client) (any, error) {
+			state, reason := internal.GetClientStatus(client)
+			var status string
+			switch state {
+			case utils.StateOffline:
+				status = "Offline"
+			case utils.StateRunning:
+				status = "Running"
+			case utils.StateError:
+				status = "Error"
+			default:
+				status = ""
+			}
+
+			return []string{status, reason}, nil
+		},
 	}
 }
 
@@ -191,12 +225,7 @@ var (
 			ParseFS(webFS, index, header, multiLanguage, displayFormAuth,
 				"front-end/html/remote_account_authentication_page.html"),
 	)
-	serverManagementTemplate = template.Must(
-		template.New("server_management_page.html").
-			Funcs(funcs).
-			ParseFS(webFS, index, header, multiLanguage, addProtoConfig, editProtoConfig, displayProtoConfig,
-				"front-end/html/server_management_page.html"),
-	)
+	// ServerManagementTemplate in .go, for dynamics template (with db).
 	serverAuthenticationTemplate = template.Must(
 		template.New("server_authentication_page.html").
 			Funcs(funcs).
@@ -213,12 +242,7 @@ var (
 			ParseFS(webFS, index, header, multiLanguage, displayFormAuth,
 				"front-end/html/local_account_authentication_page.html"),
 	)
-	localClientManagementTemplate = template.Must(
-		template.New("local_client_management_page.html").
-			Funcs(funcs).
-			ParseFS(webFS, index, header, multiLanguage, addProtoConfig, editProtoConfig, displayProtoConfig,
-				"front-end/html/local_client_management_page.html"),
-	)
+	// LocalClientManagementTemplate in .go, for dynamics template (with db).
 	ruleManagementTemplate = template.Must(
 		template.New("transfer_rules_management_page.html").
 			Funcs(funcs).
