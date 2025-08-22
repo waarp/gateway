@@ -23,7 +23,7 @@ const (
 	secret4            = 4
 	index              = "front-end/html/index.html"
 	header             = "front-end/html/header.html"
-	multiLanguage      = "front-end/html/multi_language.html"
+	sidebar            = "front-end/html/sidebar.html"
 	addProtoConfig     = "front-end/html/addProtoConfig.html"
 	editProtoConfig    = "front-end/html/editProtoConfig.html"
 	displayProtoConfig = "front-end/html/displayProtoConfig.html"
@@ -193,101 +193,103 @@ func NewFuncMap(db *database.DB) template.FuncMap {
 
 var (
 	homeTemplate = template.Must(
-		template.ParseFS(webFS, index, header, multiLanguage, "front-end/html/home_page.html"),
+		template.New("home_page.html").
+			Funcs(funcs).
+			ParseFS(webFS, index, header, sidebar, "front-end/html/home_page.html"),
 	)
 	loginTemplate = template.Must(
-		template.ParseFS(webFS, multiLanguage, "front-end/html/login_page.html"),
+		template.ParseFS(webFS, "front-end/html/login_page.html"),
 	)
 	userManagementTemplate = template.Must(
 		template.New("user_management_page.html").
 			Funcs(funcs).
-			ParseFS(webFS, index, header, multiLanguage, "front-end/html/user_management_page.html"),
+			ParseFS(webFS, index, header, sidebar, "front-end/html/user_management_page.html"),
 	)
 	partnerManagementTemplate = template.Must(
 		template.New("partner_management_page.html").
 			Funcs(funcs).
-			ParseFS(webFS, index, header, multiLanguage, addProtoConfig, editProtoConfig, displayProtoConfig,
+			ParseFS(webFS, index, header, sidebar, addProtoConfig, editProtoConfig, displayProtoConfig,
 				"front-end/html/partner_management_page.html"),
 	)
 	partnerAuthenticationTemplate = template.Must(
 		template.New("partner_management_page.html").
 			Funcs(funcs).
-			ParseFS(webFS, index, header, multiLanguage, displayFormAuth, "front-end/html/partner_authentication_page.html"),
+			ParseFS(webFS, index, header, sidebar, displayFormAuth, "front-end/html/partner_authentication_page.html"),
 	)
 	remoteAccountTemplate = template.Must(
 		template.New("remote_account_management_page.html").
 			Funcs(funcs).
-			ParseFS(webFS, index, header, multiLanguage, "front-end/html/remote_account_management_page.html"),
+			ParseFS(webFS, index, header, sidebar, "front-end/html/remote_account_management_page.html"),
 	)
 	remoteAccountAuthenticationTemplate = template.Must(
 		template.New("remote_account_authentication_page.html").
 			Funcs(funcs).
-			ParseFS(webFS, index, header, multiLanguage, displayFormAuth,
+			ParseFS(webFS, index, header, sidebar, displayFormAuth,
 				"front-end/html/remote_account_authentication_page.html"),
 	)
 	// ServerManagementTemplate in .go, for dynamics template (with db).
 	serverAuthenticationTemplate = template.Must(
 		template.New("server_authentication_page.html").
 			Funcs(funcs).
-			ParseFS(webFS, index, header, multiLanguage, displayFormAuth, "front-end/html/server_authentication_page.html"),
+			ParseFS(webFS, index, header, sidebar, displayFormAuth, "front-end/html/server_authentication_page.html"),
 	)
 	localAccountTemplate = template.Must(
 		template.New("local_account_management_page.html").
 			Funcs(funcs).
-			ParseFS(webFS, index, header, multiLanguage, "front-end/html/local_account_management_page.html"),
+			ParseFS(webFS, index, header, sidebar, "front-end/html/local_account_management_page.html"),
 	)
 	localAccountAuthenticationTemplate = template.Must(
 		template.New("local_account_authentication_page.html").
 			Funcs(funcs).
-			ParseFS(webFS, index, header, multiLanguage, displayFormAuth,
+			ParseFS(webFS, index, header, sidebar, displayFormAuth,
 				"front-end/html/local_account_authentication_page.html"),
 	)
 	// LocalClientManagementTemplate in .go, for dynamics template (with db).
 	ruleManagementTemplate = template.Must(
 		template.New("transfer_rules_management_page.html").
 			Funcs(funcs).
-			ParseFS(webFS, index, header, multiLanguage, "front-end/html/transfer_rules_management_page.html"),
+			ParseFS(webFS, index, header, sidebar, "front-end/html/transfer_rules_management_page.html"),
 	)
 	tasksTransferRulesTemplate = template.Must(
 		template.New("tasks_transfer_rules_page.html").
 			Funcs(funcs).
-			ParseFS(webFS, index, header, multiLanguage, addTasks, editTasks, displayTasks,
+			ParseFS(webFS, index, header, sidebar, addTasks, editTasks, displayTasks,
 				"front-end/html/tasks_transfer_rules_page.html"),
 	)
 	// ManagementUsageRightsRulesTemplate in .go, for dynamics template (with db).
 	transferMonitoringTemplate = template.Must(
 		template.New("transfer_monitoring_page.html").
 			Funcs(funcs).
-			ParseFS(webFS, index, header, multiLanguage, "front-end/html/transfer_monitoring_page.html"),
+			ParseFS(webFS, index, header, sidebar, "front-end/html/transfer_monitoring_page.html"),
 	)
 	statusServicesTemplate = template.Must(
 		template.New("status_services_page.html").
 			Funcs(funcs).
-			ParseFS(webFS, index, header, multiLanguage, "front-end/html/status_services_page.html"),
+			ParseFS(webFS, index, header, sidebar, "front-end/html/status_services_page.html"),
 	)
 	cloudInstanceManagementTemplate = template.Must(
 		template.New("cloud_instance_management_page.html").
 			Funcs(funcs).
-			ParseFS(webFS, index, header, multiLanguage, "front-end/html/cloud_instance_management_page.html"),
+			ParseFS(webFS, index, header, sidebar, "front-end/html/cloud_instance_management_page.html"),
 	)
 	cryptographicKeyManagementTemplate = template.Must(
 		template.New("cryptographic_key_management_page.html").
 			Funcs(funcs).
-			ParseFS(webFS, index, header, multiLanguage, "front-end/html/cryptographic_key_management_page.html"),
+			ParseFS(webFS, index, header, sidebar, "front-end/html/cryptographic_key_management_page.html"),
 	)
 	snmpManagementTemplate = template.Must(
 		template.New("snmp_management_page.html").
 			Funcs(funcs).
-			ParseFS(webFS, index, header, multiLanguage, "front-end/html/snmp_management_page.html"),
+			ParseFS(webFS, index, header, sidebar, "front-end/html/snmp_management_page.html"),
 	)
 	managingAuthenticationAuthoritiesTemplate = template.Must(
 		template.New("managing_authentication_authorities_page.html").
 			Funcs(funcs).
-			ParseFS(webFS, index, header, multiLanguage, "front-end/html/managing_authentication_authorities_page.html"),
+			ParseFS(webFS, index, header, sidebar, "front-end/html/managing_authentication_authorities_page.html"),
 	)
 	managingConfigurationOverridesTemplate = template.Must(
 		template.New("managing_configuration_overrides_page.html").
 			Funcs(funcs).
-			ParseFS(webFS, index, header, multiLanguage, "front-end/html/managing_configuration_overrides_page.html"),
+			ParseFS(webFS, index, header, sidebar, "front-end/html/managing_configuration_overrides_page.html"),
 	)
 )

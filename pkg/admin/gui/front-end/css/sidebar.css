@@ -1,0 +1,112 @@
+:root {
+  --sidebar-width: 18rem;
+}
+
+#appSidebar {
+  --bs-collapse-width: var(--sidebar-width);
+}
+
+.sidebar {
+  min-height: calc(100vh - var(--header-height));
+  overflow-y: auto;
+  width: var(--sidebar-width);
+  min-width: var(--sidebar-width);
+  flex: 0 0 var(--sidebar-width);
+}
+
+.btn-toggle {
+  display: inline-flex;
+  align-items: center;
+  padding: .25rem .5rem;
+  font-weight: 600;
+  color: rgba(0,0,0,.85);
+  background-color: transparent;
+  border: 0;
+}
+
+.btn-toggle:hover, .btn-toggle:focus {
+  color: rgba(0,0,0,.85);
+  background-color: #e9ecef;
+}
+
+.btn-toggle.current {
+  background-color: #e9ecef;
+}
+
+.btn-toggle-nav a {
+  display: inline-flex;
+  padding: .1875rem .5rem;
+  margin: .125rem 0 .125rem 1.25rem;
+  text-decoration: none;
+  border-radius: .25rem;
+  color: inherit;
+}
+.btn-toggle-nav a:hover, .btn-toggle-nav a:focus {
+  background-color: #e9ecef;
+}
+
+.btn-toggle-nav .active {
+  font-weight: 600;
+  background-color: #e9ecef;
+}
+
+#sidebarCollapse[aria-expanded="true"] {
+  cursor: w-resize;
+}
+
+#sidebarCollapse[aria-expanded="false"] {
+  cursor: e-resize;
+}
+
+#sidebarCollapse {
+  border: none;
+  background: transparent;
+  color: #fff;
+  padding: .15rem .35rem;
+  font-size: 1rem;
+  min-width: 0;
+  height: 2rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+#sidebarCollapse i {
+  font-size: 1.3rem;
+}
+
+#sidebarCollapse:hover, #sidebarCollapse:focus {
+  background: #fff;
+  color: #f54b15;
+}
+
+.btn-toggle::after {
+  content: "";
+  margin-left: auto;
+  transition: transform .35s ease;
+  width: 1em;
+  height: 1em;
+  background-repeat: no-repeat;
+  background-size: 1em;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' fill='none' stroke='currentColor' stroke-linecap='round' stroke-linejoin='round' stroke-width='2' viewBox='0 0 16 16'%3E%3Cpath d='M5 3l6 5-6 5'/%3E%3C/svg%3E");
+}
+
+.btn-toggle[aria-expanded="true"]::after {
+  transform: rotate(90deg);
+}
+
+.btn-toggle::after {
+  transition: none;
+}
+
+.sb-restoring #appSidebar, .sb-restoring #appSidebar .collapse {
+  transition: none !important;
+}
+
+.sb-restoring .btn-toggle::after {
+  transition: none !important;
+}
+
+.sb-animate .btn-toggle::after {
+  transition: transform .25s ease;
+}
