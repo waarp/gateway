@@ -395,7 +395,7 @@ func serverManagementPage(logger *log.Logger, db *database.DB) http.HandlerFunc 
 		serverManagementTemplate := template.Must(
 			template.New("server_management_page.html").
 				Funcs(CombinedFuncMap(db)).
-				ParseFS(webFS, index, header, multiLanguage, addProtoConfig, editProtoConfig, displayProtoConfig,
+				ParseFS(webFS, index, header, sidebar, addProtoConfig, editProtoConfig, displayProtoConfig,
 					"front-end/html/server_management_page.html"),
 		)
 		if tmplErr := serverManagementTemplate.ExecuteTemplate(w, "server_management_page", map[string]any{

@@ -774,8 +774,7 @@ func managementUsageRightsRulesPage(logger *log.Logger, db *database.DB) http.Ha
 		managementUsageRightsRulesTemplate := template.Must(
 			template.New("management_usage_rights_rules_page.html").
 				Funcs(CombinedFuncMap(db)).
-				ParseFS(webFS, index, header, multiLanguage,
-					"front-end/html/management_usage_rights_rules_page.html"),
+				ParseFS(webFS, index, header, sidebar, "front-end/html/management_usage_rights_rules_page.html"),
 		)
 
 		if tmplErr := managementUsageRightsRulesTemplate.ExecuteTemplate(w, "management_usage_rights_rules_page",

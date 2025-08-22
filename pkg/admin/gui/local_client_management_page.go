@@ -365,7 +365,7 @@ func localClientManagementPage(logger *log.Logger, db *database.DB) http.Handler
 		localClientManagementTemplate := template.Must(
 			template.New("local_client_management_page.html").
 				Funcs(CombinedFuncMap(db)).
-				ParseFS(webFS, index, header, multiLanguage, addProtoConfig, editProtoConfig, displayProtoConfig,
+				ParseFS(webFS, index, header, sidebar, addProtoConfig, editProtoConfig, displayProtoConfig,
 					"front-end/html/local_client_management_page.html"),
 		)
 
