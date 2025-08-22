@@ -1,16 +1,16 @@
 {
+    "userlogin": { "fr": "Connecté", "en": "Logged in" },
     "title": { "fr": "Accueil", "en": "Home" },
     "about": { "fr": "À propos", "en": "About" },
     "logout": { "fr": "Déconnexion", "en": "Logout" },
-    "connection": { "fr": "Connexion", "en": "Connection" },
-    "treatment": { "fr": "Traitement", "en": "Treatment" },
+    "connection_settings": { "fr": "Paramètres de connexion", "en": "Connection settings" },
+    "treatment_settings": {"fr": "Paramètres des traitements", "en": "Treatment settings" },
     "monitoring": { "fr": "Supervision", "en": "Monitoring" },
     "administration": { "fr": "Administration", "en": "Administration" },
-    "connection_settings": { "fr": "Paramètres de connexion", "en": "Connection settings" },
     "status_of_services": { "fr": "Status des services", "en": "Status of services" },
     "user_management": { "fr": "Gestion des utilisateurs", "en": "User management" },
     "local_client_management": { "fr": "Gestion des clients locaux", "en": "Local client management" },
-    "managing_local_servers": { "fr": "Gestion des serveurs locaux", "en": "Managing local servers" },
+    "managing_local_servers": { "fr": "Gestion des serveurs locaux", "en": "Local server management" },
     "local_account_anagement": { "fr": "Gestion des comptes locaux", "en": "Local account management" },
     "remote_partner_management": { "fr": "Gestion des partenaires distants", "en": "Remote partner management" },
     "remote_account_management": { "fr": "Gestion des comptes distants", "en": "Remote account management" },
@@ -20,6 +20,5 @@
     "managing_authentication_authorities": { "fr": "Gestion des autorités d'authentification", "en": "Managing authentication authorities" },
     "cloud_instance_management": { "fr": "Gestion des instances cloud", "en": "Cloud instance management" },
     "snmp_management": { "fr": "Gestion de SNMP", "en": "SNMP Management" },
-    "cryptographic_key_management": { "fr": "Gestion des clés cryptographiques", "en": "Cryptographic key management" },
-    "treatment_settings": {"fr": "Paramètres des traitements", "en": "Treatment settings" }
+    "cryptographic_key_management": { "fr": "Gestion des clés cryptographiques", "en": "Cryptographic key management" }
 }
