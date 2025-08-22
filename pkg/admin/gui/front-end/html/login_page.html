@@ -10,7 +10,19 @@
 </head>
 
   <body class="bg-light d-flex flex-column justify-content-center" style="min-height: 100vh;">
-    {{ template "multi_language" . }}
+    <div style="position: absolute; top: 10px; right: 20px;">
+      <form method="GET" id="dropDownLanguage" class="ms-3 mb-0">
+        <select name="language" class="select-lang form-select form-select-sm" style="width:auto" onchange="this.form.submit()">
+          <option value="en" {{if eq .language "en"}}selected{{end}}>English</option>
+          <option value="fr" {{if eq .language "fr"}}selected{{end}}>Français</option>
+        </select>
+
+        {{ if .hasPartnerID }}<input type="hidden" name="partnerID" value="{{ .partner.ID }}">{{ end }}
+        {{ if .hasAccountID }}<input type="hidden" name="accountID" value="{{ .account.ID }}">{{ end }}
+        {{ if .hasServerID }}<input type="hidden" name="serverID" value="{{ .server.ID }}">{{ end }}
+        {{ if .hasRuleID }}<input type="hidden" name="ruleID" value="{{ .rule.ID }}">{{ end }}
+      </form>
+    </div>
     <div class="container">
       <div class="text-center mb-3">
         <img src="/webui/static/assets/Logo_Waarp_Banner.png" alt="Logo" style="max-width: 20%">
