@@ -22,6 +22,7 @@
     "cryptographic_key_management": { "fr": "Gestion des clés cryptographiques", "en": "Cryptographic key management" },
 
     "title": { "fr": "Gestion des comptes distants", "en": "Remote account management" },
+    "accesRight": { "fr": "Droits d'accès refusés", "en": "Access rights denied" },
     "pathGateway": { "fr": "Partenaire > Comptes distants", "en": "Partner > Remote account" },
     "undefined": { "fr": "<non définie>", "en": "<undefined>" },
     "search": { "fr": "Recherche", "en": "Search" },

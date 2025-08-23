@@ -22,6 +22,7 @@
     "cryptographic_key_management": { "fr": "Gestion des clés cryptographiques", "en": "Cryptographic key management" },
 
     "title": { "fr": "Gestion des serveurs locaux", "en": "Local server management" },
+    "accesRight": { "fr": "Droits d'accès refusés", "en": "Access rights denied" },
     "pathGateway": { "fr": "Serveur", "en": "Server" },
     "undefined": { "fr": "<non définie>", "en": "<undefined>" },
     "addServerTitle": { "fr": "Ajouter un nouveau serveur", "en": "Add a new server" },

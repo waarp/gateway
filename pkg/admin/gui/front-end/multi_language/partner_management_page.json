@@ -22,6 +22,7 @@
     "cryptographic_key_management": { "fr": "Gestion des clés cryptographiques", "en": "Cryptographic key management" },
 
     "title": { "fr": "Gestion des partenaires distants", "en": "Remote partner management" },
+    "accesRight": { "fr": "Droits d'accès refusés", "en": "Access rights denied" },
     "pathGateway": { "fr": "Partenaire", "en": "Partner" },
     "undefined": { "fr": "<non définie>", "en": "<undefined>" },
     "addPartnerTitle": { "fr": "Ajouter un nouveau partenaire", "en": "Add a new partner" },

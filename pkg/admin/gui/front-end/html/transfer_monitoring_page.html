@@ -12,15 +12,10 @@
   <script src="/webui/static/javaScript/dynamicsSelect.js"></script>
   <script src="/webui/static/javaScript/filterRuleSelect.js"></script>
   <script>
-  window.listAccounts = {{ marshalJSON .listAccounts }};
-</script>
-<script>
-  window.listAgents = {{ marshalJSON .listAgents }};
-</script>
-<script>
-  window.filterAccountValue = "{{ .filter.FilterAccount }}";
-</script>
-
+    window.listAccounts = {{ marshalJSON .listAccounts }};
+    window.listAgents = {{ marshalJSON .listAgents }};
+    window.filterAccountValue = "{{ .filter.FilterAccount }}";
+  </script>
 {{ end }}
 
 {{ define "transfer_monitoring_tbody" }}
@@ -212,6 +207,7 @@
             </div>
         </td>
         <td class="text-end">
+          {{ if contains $.myPermission.Transfers "w" }}
             <form method="post" style="display:inline;">
               <input type="hidden" name="pauseTransferID" value="{{ .ID }}">
               <button type="submit" class="btn btn-outline-warning btn-sm me-1" data-bs-toggle="tooltip" data-bs-placement="top" data-bs-title="{{ index $.tab "pause" }}" {{if eq .Status "RUNNING"}}{{else}}disabled{{end}}>
@@ -257,12 +253,14 @@
               </div>
             </div>
           </div>
+        {{ end }}
         </td>
     </tr>
     {{ end }}
 {{ end }}
 
 {{ define "content" }}
+  {{ if contains .myPermission.Transfers "r" }}
     {{ if .errMsg }}
         <div id="errorPopup" class="alert alert-danger alert-dismissible fade show" role="alert">
             {{ .errMsg }}
@@ -567,6 +565,11 @@
         <li class="page-item {{ if .filter.DisableNext }}disabled{{ end }}"><button class="page-link" name="next" type="submit" value="true">{{ index .tab "next" }}</button></li>
       </ul>
     </form>
+  {{ end }}
+  {{ else if not (contains .myPermission.Transfers "r") }}
+    <div class="d-flex align-items-center justify-content-between">
+      <h2 class="mb-0">{{ index .tab "accesRight" }} </h2>
+    </div>
   {{ end }}
 {{ end }}
 

@@ -837,13 +837,6 @@ func tasksTransferRulesPage(logger *log.Logger, db *database.DB) http.HandlerFun
 			errMsg, modalOpen = em, mo
 		}
 
-		fmt.Println("EncryptKeyTypes:", EncryptKeyTypes)
-		fmt.Println("DecryptKeyTypes:", DecryptKeyTypes)
-		fmt.Println("SignKeyTypes:", SignKeyTypes)
-		fmt.Println("VerifyKeyTypes:", VerifyKeyTypes)
-		fmt.Println("EncryptSignKeyTypes:", EncryptSignKeyTypes)
-		fmt.Println("DecryptVerifyKeyTypes:", DecryptVerifyKeyTypes)
-
 		if tmplErr := tasksTransferRulesTemplate.ExecuteTemplate(w, "tasks_transfer_rules_page", map[string]any{
 			"myPermission":          myPermission,
 			"tab":                   tTranslated,

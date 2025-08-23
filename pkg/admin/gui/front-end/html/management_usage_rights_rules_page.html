@@ -253,8 +253,8 @@
         <thead class="table-light">
             <tr>
                 <th></th>
-                <th>Nom du serveur</th>
-                <th>Nom du compte local</th>
+                <th>{{ index .tab "serverName" }}</th>
+                <th>{{ index .tab "localAccountName" }}</th>
                 <th class="text-end"></th>
             </tr>
         </thead>
@@ -368,8 +368,8 @@
         <thead class="table-light">
             <tr>
                 <th></th>
-                <th>Nom du partner</th>
-                <th>Nom du compte distant</th>
+                <th>{{ index .tab "partnerName" }}</th>
+                <th>{{ index .tab "remoteAccountName" }}</th>
                 <th class="text-end"></th>
             </tr>
         </thead>
@@ -438,6 +438,7 @@
 {{ end }}
 
 {{ define "content" }}
+  {{ if contains .myPermission.Rules "r" }}
   {{ if .errMsg }}
     <div id="errorPopup" class="alert alert-danger alert-dismissible fade show" role="alert">
       {{ .errMsg }}
@@ -490,6 +491,11 @@
         </div>
     </div>
     {{ end }}
+  {{ else if not (contains .myPermission.Rules "r") }}
+    <div class="d-flex align-items-center justify-content-between">
+      <h2 class="mb-0">{{ index .tab "accesRight" }} </h2>
+    </div>
+  {{ end }}
 {{ end }}
 
 {{ define "management_usage_rights_rules_page" }}

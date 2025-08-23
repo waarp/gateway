@@ -22,6 +22,7 @@
     "cryptographic_key_management": { "fr": "Gestion des clés cryptographiques", "en": "Cryptographic key management" },
 
     "title": { "fr": "Gestion des clients locaux", "en": "Local client management" },
+    "accesRight": { "fr": "Droits d'accès refusés", "en": "Access rights denied" },
     "pathGateway": { "fr": "Clients locaux", "en": "Local client" },
     "undefined": { "fr": "<non définie>", "en": "<undefined>" },
     "addLocalClientTitle": { "fr": "Ajouter un nouveau client local", "en": "Add a new local client" },

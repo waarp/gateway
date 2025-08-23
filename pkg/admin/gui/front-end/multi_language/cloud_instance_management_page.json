@@ -22,6 +22,7 @@
     "cryptographic_key_management": { "fr": "Gestion des clés cryptographiques", "en": "Cryptographic key management" },
 
     "title": { "fr": "Gestion des instances cloud", "en": "Cloud instance management" },
+    "accesRight": { "fr": "Droits d'accès refusés", "en": "Access rights denied" },
     "pathGateway": { "fr": "Instances cloud", "en": "Cloud instance" },
     "undefined": { "fr": "<non définie>", "en": "<undefined>" },
     "addCloudInstanceTitle": { "fr": "Ajouter une nouvelle instance cloud", "en": "Add a new cloud instance" },

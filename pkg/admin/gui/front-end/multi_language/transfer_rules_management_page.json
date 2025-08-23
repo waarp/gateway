@@ -22,6 +22,7 @@
     "cryptographic_key_management": { "fr": "Gestion des clés cryptographiques", "en": "Cryptographic key management" },
 
     "title": { "fr": "Gestion des règles de transfert", "en": "Transfer rules management" },
+    "accesRight": { "fr": "Droits d'accès refusés", "en": "Access rights denied" },
     "pathGateway": { "fr": "Règles de transfert", "en": "Transfer rules" },
     "undefined": { "fr": "<non définie>", "en": "<undefined>" },
     "addRuleTitle": { "fr": "Ajouter une nouvelle règle de transfert", "en": "Add a new transfer rule" },

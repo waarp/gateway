@@ -22,6 +22,7 @@
     "cryptographic_key_management": { "fr": "Gestion des clés cryptographiques", "en": "Cryptographic key management" },
 
     "title": { "fr": "Gestion des comptes locaux", "en": "Local account management" },
+    "accesRight": { "fr": "Droits d'accès refusés", "en": "Access rights denied" },
     "pathGateway": { "fr": "Serveur > Comptes locaux", "en": "Server > Local account" },
     "undefined": { "fr": "<non définie>", "en": "<undefined>" },
     "search": { "fr": "Recherche", "en": "Search" },

@@ -22,6 +22,7 @@
     "cryptographic_key_management": { "fr": "Gestion des clés cryptographiques", "en": "Cryptographic key management" },
 
     "title": { "fr": "Monitoring des transferts", "en": "Transfer monitoring" },
+    "accesRight": { "fr": "Droits d'accès refusés", "en": "Access rights denied" },
     "pathGateway": { "fr": "Monitoring des transferts", "en": "Transfer monitoring" },
     "undefined": { "fr": "<non définie>", "en": "<undefined>" },
     "unknown": { "fr": "Inconnu", "en": "Unknown" },

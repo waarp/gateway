@@ -22,6 +22,7 @@
     "cryptographic_key_management": { "fr": "Gestion des clés cryptographiques", "en": "Cryptographic key management" },
 
     "title": { "fr": "Gestion des utilisateurs", "en": "User management" },
+    "accesRight": { "fr": "Droits d'accès refusés", "en": "Access rights denied" },
     "undefined": { "fr": "<non définie>", "en": "<undefined>" },
     "pathGateway": { "fr": "Gestion des utilisateurs", "en": "User management" },
     "filter": { "fr": "Filtres", "en": "Filters" },

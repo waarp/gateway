@@ -22,6 +22,7 @@
     "cryptographic_key_management": { "fr": "Gestion des clés cryptographiques", "en": "Cryptographic key management" },
 
     "title": { "fr": "Gestion de droits d'utilisation des règles", "en": "Management of usage rights of rules" },
+    "accesRight": { "fr": "Droits d'accès refusés", "en": "Access rights denied" },
     "undefined": { "fr": "<non définie>", "en": "<undefined>" },
     "pathGateway": { "fr": "Règles de transfert > Droits d'utilisation", "en": "Transfer rules > Usage rights" },
     "authorizedServers": { "fr": "Serveurs autorisés", "en": "Authorized servers" },
@@ -38,6 +39,10 @@
     "partner": { "fr": "Partenaire", "en": "Partner" },
     "apply": { "fr": "Appliquer", "en": "Apply" },
     "close": { "fr": "Fermer", "en": "Close" },
+    "serverName": { "fr": "Nom du serveur", "en": "Server name" },
+    "localAccountName": { "fr": "Nom du compte local", "en": "Local account name" },
+    "partnerName": { "fr": "Nom du partenaire", "en": "Partner name" },
+    "remoteAccountName": { "fr": "Nom du compte distant", "en": "Remote account name" },
     "edit": { "fr": "Modifier la pré-tâche", "en": "Edit pre-task" },
     "selectServers": { "fr": "Sélectionnez le serveur", "en": "Select the server" },
     "selectPartners": { "fr": "Sélectionnez le partenaire", "en": "Select the partner" },

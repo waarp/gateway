@@ -22,6 +22,7 @@
     "cryptographic_key_management": { "fr": "Gestion des clés cryptographiques", "en": "Cryptographic key management" },
 
     "title": { "fr": "Authentification du partenaire", "en": "Partner authentication" },
+    "accesRight": { "fr": "Droits d'accès refusés", "en": "Access rights denied" },
     "undefined": { "fr": "<non définie>", "en": "<undefined>" },
     "confirmDelete": { "fr": "Confirmer la suppression ?", "en": "Confirm deletion?" },
     "credentialPartnerNotFound": { "fr": "Partenaire d'identification non trouvé", "en": "Credential partner not found" },

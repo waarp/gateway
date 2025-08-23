@@ -22,6 +22,7 @@
     "cryptographic_key_management": { "fr": "Gestion des clés cryptographiques", "en": "Cryptographic key management" },
 
     "title": { "fr": "Gestion des tâches de transfert", "en": "Transfer tasks management" },
+    "accesRight": { "fr": "Droits d'accès refusés", "en": "Access rights denied" },
     "pathGateway": { "fr": "Règles de transfert > Tâches de transfert", "en": "Transfer rules > Transfer tasks" },
     "undefined": { "fr": "<non définie>", "en": "<undefined>" },
     "addPreTaskTitle": { "fr": "Ajouter une nouvelle pré-tâche", "en": "Add a new pre-task" },

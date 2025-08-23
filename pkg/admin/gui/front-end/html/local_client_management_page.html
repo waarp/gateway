@@ -10,6 +10,7 @@
 {{ end }}
 
 {{ define "content" }}
+  {{ if contains .myPermission.Servers "r" }}
     {{ if .errMsg }}
         <div id="errorPopup" class="alert alert-danger alert-dismissible fade show" role="alert">
             {{ .errMsg }}
@@ -332,6 +333,11 @@
         <li class="page-item {{ if .filter.DisableNext }}disabled{{ end }}"><button class="page-link" name="next" type="submit" value="true">{{ index .tab "next" }}</button></li>
       </ul>
     </form>
+  {{ end }}
+  {{ else if not (contains .myPermission.Servers "r") }}
+    <div class="d-flex align-items-center justify-content-between">
+      <h2 class="mb-0">{{ index .tab "accesRight" }} </h2>
+    </div>
   {{ end }}
 {{ end }}
 
