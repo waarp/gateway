@@ -231,31 +231,32 @@ func deleteCredentialPartner(partnerName string, db *database.DB, r *http.Reques
 //nolint:dupl // method for partner authentication
 func callMethodsPartnerAuthentication(logger *log.Logger, db *database.DB, w http.ResponseWriter, r *http.Request,
 	partner *model.RemoteAgent,
-) (value bool, errMsg, modalOpen string) {
+) (value bool, errMsg, modalOpen string, modalElement map[string]any) {
 	if r.Method == http.MethodPost && r.FormValue("deleteCredentialPartner") != "" {
 		deleteCredentialPartnerErr := deleteCredentialPartner(partner.Name, db, r)
 		if deleteCredentialPartnerErr != nil {
 			logger.Errorf("failed to delete credential partner: %v", deleteCredentialPartnerErr)
 
-			return false, deleteCredentialPartnerErr.Error(), ""
+			return false, deleteCredentialPartnerErr.Error(), "", nil
 		}
 
 		http.Redirect(w, r, fmt.Sprintf("%s?partnerID=%d", r.URL.Path, partner.ID), http.StatusSeeOther)
 
-		return true, "", ""
+		return true, "", "", nil
 	}
 
 	if r.Method == http.MethodPost && r.FormValue("addCredentialPartnerName") != "" {
 		addCredentialPartnerErr := addCredentialPartner(partner.Name, db, r)
 		if addCredentialPartnerErr != nil {
 			logger.Errorf("failed to add partner: %v", addCredentialPartnerErr)
+			modalElement = getFormValues(r)
 
-			return false, addCredentialPartnerErr.Error(), "addCredentialPartnerModal"
+			return false, addCredentialPartnerErr.Error(), "addCredentialPartnerModal", modalElement
 		}
 
 		http.Redirect(w, r, fmt.Sprintf("%s?partnerID=%d", r.URL.Path, partner.ID), http.StatusSeeOther)
 
-		return true, "", ""
+		return true, "", "", nil
 	}
 
 	if r.Method == http.MethodPost && r.FormValue("editCredentialPartnerID") != "" {
@@ -265,22 +266,23 @@ func callMethodsPartnerAuthentication(logger *log.Logger, db *database.DB, w htt
 		if err != nil {
 			logger.Errorf("failed to convert id to int: %v", err)
 
-			return false, "", ""
+			return false, "", "", nil
 		}
 
 		editredentialPartnerErr := editCredentialPartner(partner.Name, db, r)
 		if editredentialPartnerErr != nil {
 			logger.Errorf("failed to edit credential partner: %v", editredentialPartnerErr)
+			modalElement = getFormValues(r)
 
-			return false, editredentialPartnerErr.Error(), fmt.Sprintf("editCredentialInternalModal_%d", id)
+			return false, editredentialPartnerErr.Error(), fmt.Sprintf("editCredentialInternalModal_%d", id), modalElement
 		}
 
 		http.Redirect(w, r, fmt.Sprintf("%s?partnerID=%d", r.URL.Path, partner.ID), http.StatusSeeOther)
 
-		return true, "", ""
+		return true, "", "", nil
 	}
 
-	return false, "", ""
+	return false, "", "", nil
 }
 
 func partnerAuthenticationPage(logger *log.Logger, db *database.DB) http.HandlerFunc {
@@ -312,7 +314,7 @@ func partnerAuthenticationPage(logger *log.Logger, db *database.DB) http.Handler
 
 		partnersCredentials, filter, credentialPartnerFound := listCredentialPartner(partner.Name, db, r)
 
-		value, errMsg, modalOpen := callMethodsPartnerAuthentication(logger, db, w, r, partner)
+		value, errMsg, modalOpen, modalElement := callMethodsPartnerAuthentication(logger, db, w, r, partner)
 		if value {
 			return
 		}
@@ -333,6 +335,7 @@ func partnerAuthenticationPage(logger *log.Logger, db *database.DB) http.Handler
 			"credentialPartnerFound": credentialPartnerFound,
 			"errMsg":                 errMsg,
 			"modalOpen":              modalOpen,
+			"modalElement":           modalElement,
 			"hasPartnerID":           true,
 		}); tmplErr != nil {
 			logger.Errorf("render partner_management_page: %v", tmplErr)

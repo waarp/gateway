@@ -246,17 +246,18 @@ func autocompletionLocalClientsFunc(db *database.DB) http.HandlerFunc {
 
 //nolint:dupl // no similar func
 func callMethodsLocalClientManagement(logger *log.Logger, db *database.DB, w http.ResponseWriter, r *http.Request,
-) (value bool, errMsg, modalOpen string) {
+) (value bool, errMsg, modalOpen string, modalElement map[string]any) {
 	if r.Method == http.MethodPost && r.FormValue("addLocalClientName") != "" {
 		if newLocalClientErr := addLocalClient(db, r); newLocalClientErr != nil {
 			logger.Errorf("failed to add localClient: %v", newLocalClientErr)
+			modalElement = getFormValues(r)
 
-			return false, newLocalClientErr.Error(), "addLocalClientModal"
+			return false, newLocalClientErr.Error(), "addLocalClientModal", modalElement
 		}
 
 		http.Redirect(w, r, r.URL.Path, http.StatusSeeOther)
 
-		return true, "", ""
+		return true, "", "", nil
 	}
 
 	if r.Method == http.MethodPost && r.FormValue("deleteLocalClient") != "" {
@@ -264,12 +265,12 @@ func callMethodsLocalClientManagement(logger *log.Logger, db *database.DB, w htt
 		if deleteLocalClientErr != nil {
 			logger.Errorf("failed to delete localClient: %v", deleteLocalClientErr)
 
-			return false, deleteLocalClientErr.Error(), ""
+			return false, deleteLocalClientErr.Error(), "", nil
 		}
 
 		http.Redirect(w, r, r.URL.Path, http.StatusSeeOther)
 
-		return true, "", ""
+		return true, "", "", nil
 	}
 
 	if r.Method == http.MethodPost && r.FormValue("editLocalClientID") != "" {
@@ -279,18 +280,19 @@ func callMethodsLocalClientManagement(logger *log.Logger, db *database.DB, w htt
 		if err != nil {
 			logger.Errorf("failed to convert id to int: %v", err)
 
-			return false, "", ""
+			return false, "", "", nil
 		}
 
 		if editLocalClientErr := editLocalClient(db, r); editLocalClientErr != nil {
 			logger.Errorf("failed to edit localClient: %v", editLocalClientErr)
+			modalElement = getFormValues(r)
 
-			return false, editLocalClientErr.Error(), fmt.Sprintf("editLocalClientModal_%d", id)
+			return false, editLocalClientErr.Error(), fmt.Sprintf("editLocalClientModal_%d", id), modalElement
 		}
 
 		http.Redirect(w, r, r.URL.Path, http.StatusSeeOther)
 
-		return true, "", ""
+		return true, "", "", nil
 	}
 
 	if r.Method == http.MethodPost && r.FormValue("switchClientStatus") != "" {
@@ -298,15 +300,15 @@ func callMethodsLocalClientManagement(logger *log.Logger, db *database.DB, w htt
 		if statusClientErr != nil {
 			logger.Errorf("failed to switch client status: %v", statusClientErr)
 
-			return false, statusClientErr.Error(), ""
+			return false, statusClientErr.Error(), "", nil
 		}
 
 		http.Redirect(w, r, r.URL.Path, http.StatusSeeOther)
 
-		return true, "", ""
+		return true, "", "", nil
 	}
 
-	return false, "", ""
+	return false, "", "", nil
 }
 
 func switchClientStatus(db *database.DB, r *http.Request) error {
@@ -349,7 +351,7 @@ func localClientManagementPage(logger *log.Logger, db *database.DB) http.Handler
 			pageTranslated("local_client_management_page", userLanguage.(string)) //nolint:errcheck //u
 		localClientList, filter, localClientFound := listLocalClient(db, r)
 
-		value, errMsg, modalOpen := callMethodsLocalClientManagement(logger, db, w, r)
+		value, errMsg, modalOpen, modalElement := callMethodsLocalClientManagement(logger, db, w, r)
 		if value {
 			return
 		}
@@ -385,6 +387,7 @@ func localClientManagementPage(logger *log.Logger, db *database.DB) http.Handler
 			"MACs":                   sftp.ValidMACs,
 			"errMsg":                 errMsg,
 			"modalOpen":              modalOpen,
+			"modalElement":           modalElement,
 		}); tmplErr != nil {
 			logger.Errorf("render local_client_management_page: %v", tmplErr)
 			http.Error(w, "Internal error", http.StatusInternalServerError)

@@ -232,33 +232,34 @@ func deleteCredentialLocalAccount(account *model.LocalAccount, db *database.DB, 
 
 func callMethodsLocalAccountAuthentication(logger *log.Logger, db *database.DB, w http.ResponseWriter, r *http.Request,
 	server *model.LocalAgent, account *model.LocalAccount,
-) (value bool, errMsg, modalOpen string) {
+) (value bool, errMsg, modalOpen string, modalElement map[string]any) {
 	if r.Method == http.MethodPost && r.FormValue("deleteCredentialAccount") != "" {
 		deleteCredentialAccountErr := deleteCredentialLocalAccount(account, db, r)
 		if deleteCredentialAccountErr != nil {
 			logger.Errorf("failed to delete credential account: %v", deleteCredentialAccountErr)
 
-			return false, deleteCredentialAccountErr.Error(), ""
+			return false, deleteCredentialAccountErr.Error(), "", nil
 		}
 
 		http.Redirect(w, r, fmt.Sprintf("%s?serverID=%d&accountID=%d", r.URL.Path, server.ID, account.ID),
 			http.StatusSeeOther)
 
-		return true, "", ""
+		return true, "", "", nil
 	}
 
 	if r.Method == http.MethodPost && r.FormValue("addCredentialAccountName") != "" {
 		addCredentialAccountErr := addCredentialLocalAccount(server.Name, account.Login, db, r)
 		if addCredentialAccountErr != nil {
 			logger.Errorf("failed to add credential account: %v", addCredentialAccountErr)
+			modalElement = getFormValues(r)
 
-			return false, addCredentialAccountErr.Error(), "addCredentialAccountModal"
+			return false, addCredentialAccountErr.Error(), "addCredentialAccountModal", modalElement
 		}
 
 		http.Redirect(w, r, fmt.Sprintf("%s?serverID=%d&accountID=%d", r.URL.Path, server.ID, account.ID),
 			http.StatusSeeOther)
 
-		return true, "", ""
+		return true, "", "", nil
 	}
 
 	if r.Method == http.MethodPost && r.FormValue("editCredentialAccountID") != "" {
@@ -268,23 +269,24 @@ func callMethodsLocalAccountAuthentication(logger *log.Logger, db *database.DB, 
 		if err != nil {
 			logger.Errorf("failed to convert id to int: %v", err)
 
-			return false, "", ""
+			return false, "", "", nil
 		}
 
 		editCredentialAccountErr := editCredentialLocalAccount(account, db, r)
 		if editCredentialAccountErr != nil {
 			logger.Errorf("failed to edit credential account: %v", editCredentialAccountErr)
+			modalElement = getFormValues(r)
 
-			return false, editCredentialAccountErr.Error(), fmt.Sprintf("editCredentialInternalModal_%d", id)
+			return false, editCredentialAccountErr.Error(), fmt.Sprintf("editCredentialInternalModal_%d", id), modalElement
 		}
 
 		http.Redirect(w, r, fmt.Sprintf("%s?serverID=%d&accountID=%d", r.URL.Path, server.ID, account.ID),
 			http.StatusSeeOther)
 
-		return true, "", ""
+		return true, "", "", nil
 	}
 
-	return false, "", ""
+	return false, "", "", nil
 }
 
 func getServerAndAccount(db *database.DB, serverID, accountID string, logger *log.Logger) (
@@ -345,7 +347,7 @@ func localAccountAuthenticationPage(logger *log.Logger, db *database.DB) http.Ha
 
 		credentials, filter, credentialAccountFound := listCredentialLocalAccount(server.Name, account.Login, db, r)
 
-		value, errMsg, modalOpen := callMethodsLocalAccountAuthentication(logger, db, w, r, server, account)
+		value, errMsg, modalOpen, modalElement := callMethodsLocalAccountAuthentication(logger, db, w, r, server, account)
 		if value {
 			return
 		}
@@ -368,6 +370,7 @@ func localAccountAuthenticationPage(logger *log.Logger, db *database.DB) http.Ha
 				"credentialAccountFound": credentialAccountFound,
 				"errMsg":                 errMsg,
 				"modalOpen":              modalOpen,
+				"modalElement":           modalElement,
 				"hasServerID":            true,
 				"hasAccountID":           true,
 			}); tmplErr != nil {

@@ -232,17 +232,18 @@ func deleteCloudInstance(db *database.DB, r *http.Request) error {
 
 //nolint:dupl // method for cloud instance
 func callMethodsCloudInstance(logger *log.Logger, db *database.DB, w http.ResponseWriter, r *http.Request,
-) (value bool, errMsg, modalOpen string) {
+) (value bool, errMsg, modalOpen string, modalElement map[string]any) {
 	if r.Method == http.MethodPost && r.FormValue("addCloudInstanceName") != "" {
 		if newCloudInstanceErr := addCloudInstance(db, r); newCloudInstanceErr != nil {
 			logger.Errorf("failed to add instance cloud: %v", newCloudInstanceErr)
+			modalElement = getFormValues(r)
 
-			return false, newCloudInstanceErr.Error(), "addCloudInstanceModal"
+			return false, newCloudInstanceErr.Error(), "addCloudInstanceModal", modalElement
 		}
 
 		http.Redirect(w, r, r.URL.Path, http.StatusSeeOther)
 
-		return true, "", ""
+		return true, "", "", nil
 	}
 
 	if r.Method == http.MethodPost && r.FormValue("deleteCloudInstance") != "" {
@@ -250,12 +251,12 @@ func callMethodsCloudInstance(logger *log.Logger, db *database.DB, w http.Respon
 		if deleteCloudInstanceErr != nil {
 			logger.Errorf("failed to delete instance cloud: %v", deleteCloudInstanceErr)
 
-			return false, deleteCloudInstanceErr.Error(), ""
+			return false, deleteCloudInstanceErr.Error(), "", nil
 		}
 
 		http.Redirect(w, r, r.URL.Path, http.StatusSeeOther)
 
-		return true, "", ""
+		return true, "", "", nil
 	}
 
 	if r.Method == http.MethodPost && r.FormValue("editCloudInstanceID") != "" {
@@ -265,21 +266,22 @@ func callMethodsCloudInstance(logger *log.Logger, db *database.DB, w http.Respon
 		if err != nil {
 			logger.Errorf("failed to convert id to int: %v", err)
 
-			return false, "", ""
+			return false, "", "", nil
 		}
 
 		if editCloudInstanceErr := editCloudInstance(db, r); editCloudInstanceErr != nil {
 			logger.Errorf("failed to edit cloud instance: %v", editCloudInstanceErr)
+			modalElement = getFormValues(r)
 
-			return false, editCloudInstanceErr.Error(), fmt.Sprintf("editCloudInstanceModal_%d", id)
+			return false, editCloudInstanceErr.Error(), fmt.Sprintf("editCloudInstanceModal_%d", id), modalElement
 		}
 
 		http.Redirect(w, r, r.URL.Path, http.StatusSeeOther)
 
-		return true, "", ""
+		return true, "", "", nil
 	}
 
-	return false, "", ""
+	return false, "", "", nil
 }
 
 func cloudInstanceManagementPage(logger *log.Logger, db *database.DB) http.HandlerFunc {
@@ -289,7 +291,7 @@ func cloudInstanceManagementPage(logger *log.Logger, db *database.DB) http.Handl
 			pageTranslated("cloud_instance_management_page", userLanguage.(string)) //nolint:errcheck //u
 		cloudInstanceList, filter, cloudFound := ListCLoudInstance(db, r)
 
-		value, errMsg, modalOpen := callMethodsCloudInstance(logger, db, w, r)
+		value, errMsg, modalOpen, modalElement := callMethodsCloudInstance(logger, db, w, r)
 		if value {
 			return
 		}
@@ -314,6 +316,7 @@ func cloudInstanceManagementPage(logger *log.Logger, db *database.DB) http.Handl
 			"currentPage":           currentPage,
 			"errMsg":                errMsg,
 			"modalOpen":             modalOpen,
+			"modalElement":          modalElement,
 		}); tmplErr != nil {
 			logger.Errorf("render cloud_instance_management_page: %v", tmplErr)
 			http.Error(w, "Internal error", http.StatusInternalServerError)

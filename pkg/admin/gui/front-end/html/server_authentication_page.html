@@ -47,15 +47,15 @@
                         <div class="modal-body">
                             <div class="form-input">
                                 <label class="col-form-label">{{ index .tab "nameStr" }} :</label>
-                                <input type="text" name="addCredentialServerName" class="form-control" required>
+                                <input type="text" name="addCredentialServerName" class="form-control" required value="{{ index .modalElement "addCredentialServerName" }}">
                             </div>
                             <hr style="border-top: 1px solid #ababab;">
                             <div class="form-input">
                                 <label class="col-form-label">{{ index .tab "type" }} <i class="bi bi-info-circle ms-1" data-bs-toggle="tooltip" data-bs-placement="right" data-bs-title="{{ index .tab "typeTooltip" }}"></i> :</label>
                                 <select name="addCredentialServerType" id="addCredentialServerType" class="form-select add-credential-type-select" required>
-                                    <option value="" disabled selected>{{ index .tab "selectType" }}</option>
+                                    <option value="" disabled {{ if not (index .modalElement "addCredentialServerType") }}selected{{ end }}>{{ index .tab "selectType" }}</option>
                                     {{ range .listSupportedProtocol }}
-                                        <option value="{{ . }}">
+                                        <option value="{{ . }}" {{ if eq (index $.modalElement "addCredentialServerType") . }}selected{{ end }}>{{ if eq . "password" }}{{ index $.tab "passwordStr" }}{{ else if eq . "tls_certificate" }}{{ index $.tab "tlsCertificate" }}{{ else if eq . "ssh_private_key" }}{{ index $.tab "sshPrivateKey" }}{{ else if eq . "r66_legacy_certificate" }}{{ index $.tab "r66LegacyCertificate" }}{{ else }}{{ . }}{{ end }}</option>
                                             {{ if eq . "password" }}
                                                 {{ index $.tab "passwordStr" }}
                                             {{ else if eq . "tls_certificate" }}
@@ -187,6 +187,7 @@
                                         <form method="post" class="p-3 border rounded bg-light">
                                             <input type="hidden" name="serverID" value="{{ $.server.ID }}">
                                             <input type="hidden" name="editCredentialServerID" value="{{ .ID }}">
+                                            {{ $me := and (eq $.modalOpen (printf "editCredentialExternalModal_%d" .ID)) $.modalElement }}
                                             <div class="modal-header">
                                                 <h5 class="modal-title" id="editCredentialServerModalLabel_{{ .ID }}">{{ index $.tab "edit" }}: {{ .Name }}</h5>
                                                 <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
@@ -194,16 +195,16 @@
                                             <div class="modal-body">
                                                 <div class="form-input">
                                                     <label class="col-form-label">{{ index $.tab "nameStr" }} :</label>
-                                                    <input type="text" name="editCredentialServerName" class="form-control" required value="{{ .Name }}">
+                                                    <input type="text" name="editCredentialServerName" class="form-control" required value="{{ if $me }}{{ index $me "editCredentialServerName" }}{{ else }}{{ .Name }}{{ end }}">
                                                 </div>
                                                 <hr style="border-top: 1px solid #ababab;">
                                                 <div class="form-input">
                                                     <label class="col-form-label">{{ index $.tab "type" }} <i class="bi bi-info-circle ms-1" data-bs-toggle="tooltip" data-bs-placement="right" data-bs-title="{{ index $.tab "typeTooltip" }}"></i> :</label>
                                                     <select name="editCredentialServerType" class="form-select edit-credential-type-select" required>
-                                                        <option value="" disabled>{{ index $.tab "selectType" }}</option>
+                                                        <option value="" disabled {{ if $me }}{{ if eq (index $me "editCredentialServerType") "" }}selected{{ end }}{{ end }}>{{ index $.tab "selectType" }}</option>
                                                         {{ $credential := . }}
                                                         {{ range $.listSupportedProtocol }}
-                                                            <option value="{{ . }}" {{ if eq $credential.Type . }}selected{{ end }}>
+                                                            <option value="{{ . }}" {{ if $me }}{{ if eq (index $me "editCredentialServerType") . }}selected{{ end }}{{ else if eq $credential.Type . }}selected{{ end }}>
                                                                 {{ if eq . "password" }}
                                                                     {{ index $.tab "passwordStr" }}
                                                                 {{ else if eq . "tls_certificate" }}
@@ -219,10 +220,10 @@
                                                         {{ end }}
                                                     </select>
                                                 </div>
-                                                {{ template "editTextType" (dict "ID" .ID "tab" $.tab) }}
-                                                {{ template "editFileType" (dict "ID" .ID "tab" $.tab) }}
-                                                {{ template "editTwoFileType" (dict "ID" .ID "tab" $.tab) }}
-                                                {{ template "editLoginAndPwdType" (dict "ID" .ID "tab" $.tab) }}
+                                                {{ template "editTextType" (dict "ID" .ID "tab" $.tab "modalElement" $me "Value" .Value) }}
+                                                {{ template "editFileType" (dict "ID" .ID "tab" $.tab "modalElement" $me "Value" .Value) }}
+                                                {{ template "editTwoFileType" (dict "ID" .ID "tab" $.tab "modalElement" $me "Value" .Value) }}
+                                                {{ template "editLoginAndPwdType" (dict "ID" .ID "tab" $.tab "modalElement" $me "Value" .Value) }}
                                             </div>
                                             <div class="modal-footer">
                                                 <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">{{ index $.tab "close" }}</button>

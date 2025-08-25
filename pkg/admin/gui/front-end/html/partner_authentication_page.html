@@ -47,15 +47,15 @@
               <div class="modal-body">
               <div class="form-input">
                   <label class="col-form-label">{{ index .tab "nameStr" }} :</label>
-                  <input type="text" name="addCredentialPartnerName" class="form-control" required>
+                  <input type="text" name="addCredentialPartnerName" class="form-control" required value="{{ index $.modalElement "addCredentialPartnerName" }}">
               </div>
               <hr style="border-top: 1px solid #ababab;">
               <div class="form-input">
                 <label class="col-form-label">{{ index .tab "type" }} <i class="bi bi-info-circle ms-1" data-bs-toggle="tooltip" data-bs-placement="right" data-bs-title="{{ index .tab "typeTooltip" }}"></i> :</label>
                 <select name="addCredentialPartnerType" id="addCredentialPartnerType" class="form-select add-credential-type-select" required>
-                  <option value="" disabled selected>{{ index .tab "selectType" }}</option>
+                  <option value="" disabled {{ if $.modalElement }}{{ if eq (index $.modalElement "addCredentialPartnerType") "" }}selected{{ end }}{{ else }}selected{{ end }}>{{ index .tab "selectType" }}</option>
                   {{ range .listSupportedProtocol }}
-                    <option value="{{ . }}">
+                    <option value="{{ . }}" {{ if $.modalElement }}{{ if eq (index $.modalElement "addCredentialPartnerType") . }}selected{{ end }}{{ end }}>
                       {{ if eq . "password" }}
                         {{ index $.tab "passwordStr" }}
                       {{ else if eq . "trusted_tls_certificate" }}
@@ -173,6 +173,7 @@
                       <form method="post" class="p-3 border rounded bg-light">
                         <input type="hidden" name="partnerID" value="{{ $.partner.ID }}">
                         <input type="hidden" name="editCredentialPartnerID" value="{{ .ID }}">
+                        {{ $me := and (eq $.modalOpen (printf "editCredentialInternalModal_%d" .ID)) $.modalElement }}
                         <div class="modal-header">
                           <h5 class="modal-title" id="editCredentialPartnerModalLabel_{{ .ID }}">{{ index $.tab "edit" }}: {{ .Name }}</h5>
                           <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
@@ -180,16 +181,16 @@
                         <div class="modal-body">
                           <div class="form-input">
                             <label class="col-form-label">{{ index $.tab "nameStr" }} :</label>
-                            <input type="text" name="editCredentialPartnerName" class="form-control" required value="{{ .Name }}">
+                            <input type="text" name="editCredentialPartnerName" class="form-control" required value="{{ if $me }}{{ index $me "editCredentialPartnerName" }}{{ else }}{{ .Name }}{{ end }}">
                           </div>
                           <hr style="border-top: 1px solid #ababab;">
                           <div class="form-input">
                             <label class="col-form-label">{{ index $.tab "type" }} <i class="bi bi-info-circle ms-1" data-bs-toggle="tooltip" data-bs-placement="right" data-bs-title="{{ index $.tab "typeTooltip" }}"></i> :</label>
                             {{ $credential := . }}
                             <select name="editCredentialPartnerType" class="form-select edit-credential-type-select" required>
-                              <option value="" disabled>{{ index $.tab "selectType" }}</option>
+                              <option value="" disabled {{ if $me }}{{ if eq (index $me "editCredentialPartnerType") "" }}selected{{ end }}{{ end }}>{{ index $.tab "selectType" }}</option>
                               {{ range $.listSupportedProtocol }}
-                                <option value="{{ . }}" {{ if eq $credential.Type . }}selected{{ end }}>
+                                <option value="{{ . }}" {{ if $me }}{{ if eq (index $me "editCredentialPartnerType") . }}selected{{ end }}{{ else if eq $credential.Type . }}selected{{ end }}>
                                   {{ if eq . "password" }}
                                     {{ index $.tab "passwordStr" }}
                                   {{ else if eq . "trusted_tls_certificate" }}
@@ -205,8 +206,8 @@
                               {{ end }}
                             </select>
                           </div>
-                          {{ template "editTextType" (dict "ID" .ID "tab" $.tab) }}
-                          {{ template "editFileType" (dict "ID" .ID "tab" $.tab) }}
+                          {{ template "editTextType" (dict "ID" .ID "tab" $.tab "modalElement" $me "Value" .Value) }}
+                          {{ template "editFileType" (dict "ID" .ID "tab" $.tab "modalElement" $me "Value" .Value) }}
                         </div>
                         <div class="modal-footer">
                           <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">{{ index $.tab "close" }}</button>

@@ -277,17 +277,18 @@ func autocompletionServersFunc(db *database.DB) http.HandlerFunc {
 
 //nolint:dupl // no similar func
 func callMethodsServerManagement(logger *log.Logger, db *database.DB, w http.ResponseWriter, r *http.Request,
-) (value bool, errMsg, modalOpen string) {
+) (value bool, errMsg, modalOpen string, modalElement map[string]any) {
 	if r.Method == http.MethodPost && r.FormValue("addServerName") != "" {
 		if newServerErr := addServer(db, r); newServerErr != nil {
 			logger.Errorf("failed to add server: %v", newServerErr)
+			modalElement = getFormValues(r)
 
-			return false, newServerErr.Error(), "addServerModal"
+			return false, newServerErr.Error(), "addServerModal", modalElement
 		}
 
 		http.Redirect(w, r, r.URL.Path, http.StatusSeeOther)
 
-		return true, "", ""
+		return true, "", "", nil
 	}
 
 	if r.Method == http.MethodPost && r.FormValue("deleteServer") != "" {
@@ -295,12 +296,12 @@ func callMethodsServerManagement(logger *log.Logger, db *database.DB, w http.Res
 		if deleteServerErr != nil {
 			logger.Errorf("failed to delete server: %v", deleteServerErr)
 
-			return false, deleteServerErr.Error(), ""
+			return false, deleteServerErr.Error(), "", nil
 		}
 
 		http.Redirect(w, r, r.URL.Path, http.StatusSeeOther)
 
-		return true, "", ""
+		return true, "", "", nil
 	}
 
 	if r.Method == http.MethodPost && r.FormValue("editServerID") != "" {
@@ -310,18 +311,19 @@ func callMethodsServerManagement(logger *log.Logger, db *database.DB, w http.Res
 		if err != nil {
 			logger.Errorf("failed to convert id to int: %v", err)
 
-			return false, "", ""
+			return false, "", "", nil
 		}
 
 		if editServerErr := editServer(db, r); editServerErr != nil {
 			logger.Errorf("failed to edit server: %v", editServerErr)
+			modalElement = getFormValues(r)
 
-			return false, editServerErr.Error(), fmt.Sprintf("editServerModal_%d", id)
+			return false, editServerErr.Error(), fmt.Sprintf("editServerModal_%d", id), modalElement
 		}
 
 		http.Redirect(w, r, r.URL.Path, http.StatusSeeOther)
 
-		return true, "", ""
+		return true, "", "", nil
 	}
 
 	if r.Method == http.MethodPost && r.FormValue("switchServerStatus") != "" {
@@ -329,15 +331,15 @@ func callMethodsServerManagement(logger *log.Logger, db *database.DB, w http.Res
 		if statusServerErr != nil {
 			logger.Errorf("failed to switch server status: %v", statusServerErr)
 
-			return false, statusServerErr.Error(), ""
+			return false, statusServerErr.Error(), "", nil
 		}
 
 		http.Redirect(w, r, r.URL.Path, http.StatusSeeOther)
 
-		return true, "", ""
+		return true, "", "", nil
 	}
 
-	return false, "", ""
+	return false, "", "", nil
 }
 
 func switchServerStatus(db *database.DB, r *http.Request) error {
@@ -379,7 +381,7 @@ func serverManagementPage(logger *log.Logger, db *database.DB) http.HandlerFunc 
 		tabTranslated := pageTranslated("server_management_page", userLanguage.(string)) //nolint:errcheck,forcetypeassert //u
 		serverList, filter, serverFound := listServer(db, r)
 
-		value, errMsg, modalOpen := callMethodsServerManagement(logger, db, w, r)
+		value, errMsg, modalOpen, modalElement := callMethodsServerManagement(logger, db, w, r)
 		if value {
 			return
 		}
@@ -415,6 +417,7 @@ func serverManagementPage(logger *log.Logger, db *database.DB) http.HandlerFunc 
 			"MACs":                   sftp.ValidMACs,
 			"errMsg":                 errMsg,
 			"modalOpen":              modalOpen,
+			"modalElement":           modalElement,
 		}); tmplErr != nil {
 			logger.Errorf("render server_management_page: %v", tmplErr)
 			http.Error(w, "Internal error", http.StatusInternalServerError)

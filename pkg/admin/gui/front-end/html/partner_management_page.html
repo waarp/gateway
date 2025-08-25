@@ -44,33 +44,33 @@
 
               <div class="form-input">
                   <label class="col-form-label">{{ index .tab "nameStr" }} :</label>
-                  <input type="text" name="addPartnerName" class="form-control" required>
+                  <input type="text" name="addPartnerName" class="form-control" required value="{{ index $.modalElement "addPartnerName" }}">
               </div>
               <hr style="border-top: 1px solid #ababab;">
               <div class="form-input">
                 <label class="col-form-label">{{ index .tab "protocol" }} <i class="bi bi-info-circle ms-1" data-bs-toggle="tooltip" data-bs-placement="right" data-bs-title="{{ index $.tab "tooltipProtocol" }}"></i> :</label>
                 <select name="addPartnerProtocol" id="addPartnerProtocol" class="form-select protocolConfiguration-select" required>
-                  <option value="" disabled selected>{{ index .tab "selectProto" }}</option>
-                  <option value="r66">R66</option>
-                  <option value="r66-tls">R66-TLS</option>
-                  <option value="sftp">SFTP</option>
-                  <option value="http">HTTP</option>
-                  <option value="https">HTTPS</option>
-                  <option value="ftp">FTP</option>
-                  <option value="ftps">FTPS</option>
-                  <option value="pesit">PeSIT</option>
-                  <option value="pesit-tls">PeSIT-TLS</option>
+                  <option value="" disabled {{ if $.modalElement }}{{ if eq (index $.modalElement "addPartnerProtocol") "" }}selected{{ end }}{{ else }}selected{{ end }}>{{ index .tab "selectProto" }}</option>
+                  <option value="r66" {{ if $.modalElement }}{{ if eq (index $.modalElement "addPartnerProtocol") "r66" }}selected{{ end }}{{ end }}>R66</option>
+                  <option value="r66-tls" {{ if $.modalElement }}{{ if eq (index $.modalElement "addPartnerProtocol") "r66-tls" }}selected{{ end }}{{ end }}>R66-TLS</option>
+                  <option value="sftp" {{ if $.modalElement }}{{ if eq (index $.modalElement "addPartnerProtocol") "sftp" }}selected{{ end }}{{ end }}>SFTP</option>
+                  <option value="http" {{ if $.modalElement }}{{ if eq (index $.modalElement "addPartnerProtocol") "http" }}selected{{ end }}{{ end }}>HTTP</option>
+                  <option value="https" {{ if $.modalElement }}{{ if eq (index $.modalElement "addPartnerProtocol") "https" }}selected{{ end }}{{ end }}>HTTPS</option>
+                  <option value="ftp" {{ if $.modalElement }}{{ if eq (index $.modalElement "addPartnerProtocol") "ftp" }}selected{{ end }}{{ end }}>FTP</option>
+                  <option value="ftps" {{ if $.modalElement }}{{ if eq (index $.modalElement "addPartnerProtocol") "ftps" }}selected{{ end }}{{ end }}>FTPS</option>
+                  <option value="pesit" {{ if $.modalElement }}{{ if eq (index $.modalElement "addPartnerProtocol") "pesit" }}selected{{ end }}{{ end }}>PeSIT</option>
+                  <option value="pesit-tls" {{ if $.modalElement }}{{ if eq (index $.modalElement "addPartnerProtocol") "pesit-tls" }}selected{{ end }}{{ end }}>PeSIT-TLS</option>
                 </select>
               </div>
               <hr style="border-top: 1px solid #ababab;">
               <div class="form-input">
                   <label class="col-form-label">{{ index .tab "address" }} ({{ index .tab "host" }}) <i class="bi bi-info-circle ms-1" data-bs-toggle="tooltip" data-bs-placement="right" data-bs-title="{{ index $.tab "tooltipHost" }}"></i> :</label>
-                  <input type="text" name="addPartnerHost" class="form-control" required>
+                  <input type="text" name="addPartnerHost" class="form-control" required value="{{ index $.modalElement "addPartnerHost" }}">
               </div>
               <hr style="border-top: 1px solid #ababab;">
                 <div class="form-input">
                     <label class="col-form-label">{{ index .tab "address" }} ({{ index .tab "port" }}) <i class="bi bi-info-circle ms-1" data-bs-toggle="tooltip" data-bs-placement="right" data-bs-title="{{ index $.tab "tooltipPort" }}"></i> :</label>
-                  <input type="text" name="addPartnerPort" class="form-control" required>
+                    <input type="text" name="addPartnerPort" class="form-control" required value="{{ index $.modalElement "addPartnerPort" }}">
               </div>
               {{ template "addR66Partner" . }}
               {{ template "addSftpPartner" . }}
@@ -239,6 +239,7 @@
                       <div class="modal-content">
                       <form method="post" class="p-3 border rounded bg-light">
                       <input type="hidden" name="editPartnerID" value="{{ .ID }}">
+                      {{ $me := and (eq $.modalOpen (printf "editPartnerModal_%d" .ID)) $.modalElement }}
                       <div class="modal-header">
                       <h5 class="modal-title" id="editPartnerModalLabel">{{ index $.tab "edit" }}: {{ .Name }}</h5>
                       <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
@@ -246,37 +247,37 @@
                       <div class="modal-body">
                       <div class="form-input">
                           <label class="col-form-label">{{ index $.tab "nameStr" }} :</label>
-                          <input type="text" name="editPartnerName" class="form-control" required value="{{ .Name }}">
+                          <input type="text" name="editPartnerName" class="form-control" required value="{{ if $me }}{{ index $me "editPartnerName" }}{{ else }}{{ .Name }}{{ end }}">
                       </div>
                       <hr style="border-top: 1px solid #ababab;">
                       <div class="form-input mt-4">
                         <label class="col-form-label">{{ index $.tab "protocol" }} <i class="bi bi-info-circle ms-1" data-bs-toggle="tooltip" data-bs-placement="right" data-bs-title="{{ index $.tab "tooltipProtocol" }}"></i> :</label>
                         <select name="editPartnerProtocol" class="form-select protocolConfiguration-select" required>
-                          <option value="r66" {{ if eq .Protocol "r66" }}selected{{ end }}>R66</option>
-                          <option value="r66-tls" {{ if eq .Protocol "r66-tls" }}selected{{ end }}>R66-TLS</option>
-                          <option value="sftp" {{ if eq .Protocol "sftp" }}selected{{ end }}>SFTP</option>
-                          <option value="http" {{ if eq .Protocol "http" }}selected{{ end }}>HTTP</option>
-                          <option value="https" {{ if eq .Protocol "https" }}selected{{ end }}>HTTPS</option>
-                          <option value="ftp" {{ if eq .Protocol "ftp" }}selected{{ end }}>FTP</option>
-                          <option value="ftps" {{ if eq .Protocol "ftps" }}selected{{ end }}>FTPS</option>
-                          <option value="pesit" {{ if eq .Protocol "pesit" }}selected{{ end }}>PeSIT</option>
-                          <option value="pesit-tls" {{ if eq .Protocol "pesit-tls" }}selected{{ end }}>PeSIT-TLS</option>
+                          <option value="r66" {{ if $me }}{{ if eq (index $me "editPartnerProtocol") "r66" }}selected{{ end }}{{ else if eq .Protocol "r66" }}selected{{ end }}>R66</option>
+                          <option value="r66-tls" {{ if $me }}{{ if eq (index $me "editPartnerProtocol") "r66-tls" }}selected{{ end }}{{ else if eq .Protocol "r66-tls" }}selected{{ end }}>R66-TLS</option>
+                          <option value="sftp" {{ if $me }}{{ if eq (index $me "editPartnerProtocol") "sftp" }}selected{{ end }}{{ else if eq .Protocol "sftp" }}selected{{ end }}>SFTP</option>
+                          <option value="http" {{ if $me }}{{ if eq (index $me "editPartnerProtocol") "http" }}selected{{ end }}{{ else if eq .Protocol "http" }}selected{{ end }}>HTTP</option>
+                          <option value="https" {{ if $me }}{{ if eq (index $me "editPartnerProtocol") "https" }}selected{{ end }}{{ else if eq .Protocol "https" }}selected{{ end }}>HTTPS</option>
+                          <option value="ftp" {{ if $me }}{{ if eq (index $me "editPartnerProtocol") "ftp" }}selected{{ end }}{{ else if eq .Protocol "ftp" }}selected{{ end }}>FTP</option>
+                          <option value="ftps" {{ if $me }}{{ if eq (index $me "editPartnerProtocol") "ftps" }}selected{{ end }}{{ else if eq .Protocol "ftps" }}selected{{ end }}>FTPS</option>
+                          <option value="pesit" {{ if $me }}{{ if eq (index $me "editPartnerProtocol") "pesit" }}selected{{ end }}{{ else if eq .Protocol "pesit" }}selected{{ end }}>PeSIT</option>
+                          <option value="pesit-tls" {{ if $me }}{{ if eq (index $me "editPartnerProtocol") "pesit-tls" }}selected{{ end }}{{ else if eq .Protocol "pesit-tls" }}selected{{ end }}>PeSIT-TLS</option>
                         </select>
                       </div>
                       <hr style="border-top: 1px solid #ababab;">
                       <div class="form-input mt-4">
                           <label class="col-form-label">{{ index $.tab "address" }} ({{ index $.tab "host" }}) <i class="bi bi-info-circle ms-1" data-bs-toggle="tooltip" data-bs-placement="right" data-bs-title="{{ index $.tab "tooltipHost" }}"></i> :</label>
-                          <input type="text" name="editPartnerHost" class="form-control" required value="{{ .Address.Host }}">
+                          <input type="text" name="editPartnerHost" class="form-control" required value="{{ if $me }}{{ index $me "editPartnerHost" }}{{ else }}{{ .Address.Host }}{{ end }}">
                       </div>
                       <hr style="border-top: 1px solid #ababab;">
                       <div class="form-input mt-4">
                           <label class="col-form-label">{{ index $.tab "address" }} ({{ index $.tab "port" }}) <i class="bi bi-info-circle ms-1" data-bs-toggle="tooltip" data-bs-placement="right" data-bs-title="{{ index $.tab "tooltipPort" }}"></i> :</label>
-                          <input type="text" name="editPartnerPort" class="form-control" required value="{{ .Address.Port }}">
+                          <input type="text" name="editPartnerPort" class="form-control" required value="{{ if $me }}{{ index $me "editPartnerPort" }}{{ else }}{{ .Address.Port }}{{ end }}">
                       </div>
-                      {{ template "editR66Partner" (dict "tab" $.tab "ProtoConfig" .ProtoConfig) }}
-                      {{ template "editFtpPartner" (dict "tab" $.tab "ProtoConfig" .ProtoConfig "TLSVersions" $.TLSVersions) }}
-                      {{ template "editPesitPartner" (dict "tab" $.tab "ProtoConfig" .ProtoConfig "TLSVersions" $.TLSVersions "CompatibilityModePeSIT" $.CompatibilityModePeSIT) }}
-                      {{ template "editSftpPartner" (dict "tab" $.tab "ProtoConfig" .ProtoConfig "KeyExchanges" $.KeyExchanges "Ciphers" $.Ciphers "MACs" $.MACs) }}
+                      {{ template "editR66Partner" (dict "tab" $.tab "ProtoConfig" .ProtoConfig "modalElement" $me) }}
+                      {{ template "editFtpPartner" (dict "tab" $.tab "ProtoConfig" .ProtoConfig "TLSVersions" $.TLSVersions "modalElement" $me) }}
+                      {{ template "editPesitPartner" (dict "tab" $.tab "ProtoConfig" .ProtoConfig "TLSVersions" $.TLSVersions "CompatibilityModePeSIT" $.CompatibilityModePeSIT "modalElement" $me) }}
+                      {{ template "editSftpPartner" (dict "tab" $.tab "ProtoConfig" .ProtoConfig "KeyExchanges" $.KeyExchanges "Ciphers" $.Ciphers "MACs" $.MACs "modalElement" $me) }}
                     </div>
                       <div class="modal-footer">
                           <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">{{ index $.tab "close" }}</button>

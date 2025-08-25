@@ -41,39 +41,38 @@
                 <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
             </div>
             <div class="modal-body">
-
                 <div class="form-input">
                 <label class="col-form-label">{{ index .tab "localClientStr" }} :</label>
-                <input type="text" name="addLocalClientName" class="form-control" required>
+                <input type="text" name="addLocalClientName" class="form-control" required value="{{ index $.modalElement "addLocalClientName" }}">
                 </div>
                 <hr style="border-top: 1px solid #ababab;">
 
                 <div class="form-input">
                 <label class="col-form-label">{{ index .tab "protocol" }} <i class="bi bi-info-circle ms-1" data-bs-toggle="tooltip" data-bs-placement="right" data-bs-title="{{ index $.tab "tooltipProtocol" }}"></i> :</label>
                 <select name="addLocalClientProtocol" id="addLocalClientProtocol" class="form-select protocolConfiguration-select" required>
-                    <option value="" disabled selected>{{ index .tab "selectProto" }}</option>
-                    <option value="r66">R66</option>
-                    <option value="r66-tls">R66-TLS</option>
-                    <option value="sftp">SFTP</option>
-                    <option value="http">HTTP</option>
-                    <option value="https">HTTPS</option>
-                    <option value="ftp">FTP</option>
-                    <option value="ftps">FTPS</option>
-                    <option value="pesit">PeSIT</option>
-                    <option value="pesit-tls">PeSIT-TLS</option>
+                    <option value="" disabled {{ if $.modalElement }}{{ if eq (index $.modalElement "addLocalClientProtocol") "" }}selected{{ end }}{{ else }}selected{{ end }}>{{ index .tab "selectProto" }}</option>
+                    <option value="r66" {{ if $.modalElement }}{{ if eq (index $.modalElement "addLocalClientProtocol") "r66" }}selected{{ end }}{{ end }}>R66</option>
+                    <option value="r66-tls" {{ if $.modalElement }}{{ if eq (index $.modalElement "addLocalClientProtocol") "r66-tls" }}selected{{ end }}{{ end }}>R66-TLS</option>
+                    <option value="sftp" {{ if $.modalElement }}{{ if eq (index $.modalElement "addLocalClientProtocol") "sftp" }}selected{{ end }}{{ end }}>SFTP</option>
+                    <option value="http" {{ if $.modalElement }}{{ if eq (index $.modalElement "addLocalClientProtocol") "http" }}selected{{ end }}{{ end }}>HTTP</option>
+                    <option value="https" {{ if $.modalElement }}{{ if eq (index $.modalElement "addLocalClientProtocol") "https" }}selected{{ end }}{{ end }}>HTTPS</option>
+                    <option value="ftp" {{ if $.modalElement }}{{ if eq (index $.modalElement "addLocalClientProtocol") "ftp" }}selected{{ end }}{{ end }}>FTP</option>
+                    <option value="ftps" {{ if $.modalElement }}{{ if eq (index $.modalElement "addLocalClientProtocol") "ftps" }}selected{{ end }}{{ end }}>FTPS</option>
+                    <option value="pesit" {{ if $.modalElement }}{{ if eq (index $.modalElement "addLocalClientProtocol") "pesit" }}selected{{ end }}{{ end }}>PeSIT</option>
+                    <option value="pesit-tls" {{ if $.modalElement }}{{ if eq (index $.modalElement "addLocalClientProtocol") "pesit-tls" }}selected{{ end }}{{ end }}>PeSIT-TLS</option>
                 </select>
                 </div>
                 <hr style="border-top: 1px solid #ababab;">
 
                 <div class="form-input">
                 <label class="col-form-label">{{ index .tab "address" }} ({{ index .tab "host" }}) <i class="bi bi-info-circle ms-1" data-bs-toggle="tooltip" data-bs-placement="right" data-bs-title="{{ index $.tab "tooltipHost" }}"></i> :</label>
-                <input type="text" name="addLocalClientHost" class="form-control" required>
+                <input type="text" name="addLocalClientHost" class="form-control" required value="{{ index $.modalElement "addLocalClientHost" }}">
                 </div>
                 <hr style="border-top: 1px solid #ababab;">
 
                 <div class="form-input">
                 <label class="col-form-label">{{ index .tab "address" }} ({{ index .tab "port" }}) <i class="bi bi-info-circle ms-1" data-bs-toggle="tooltip" data-bs-placement="right" data-bs-title="{{ index $.tab "tooltipPort" }}"></i> :</label>
-                <input type="text" name="addLocalClientPort" class="form-control" required>
+                <input type="text" name="addLocalClientPort" class="form-control" required value="{{ index $.modalElement "addLocalClientPort" }}">
                 </div>
                 {{ template "addR66Client" . }}
                 {{ template "addSftpClient" . }}
@@ -262,6 +261,7 @@
                     <div class="modal-content">
                         <form method="post" class="p-3 border rounded bg-light">
                         <input type="hidden" name="editLocalClientID" value="{{ .ID }}">
+                        {{ $me := and (eq $.modalOpen (printf "editLocalClientModal_%d" .ID)) $.modalElement }}
                         <div class="modal-header">
                             <h5 class="modal-title" id="editLocalClientModalLabel_{{ .ID }}">{{ index $.tab "edit" }}: {{ .Name }}</h5>
                             <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
@@ -269,37 +269,37 @@
                         <div class="modal-body">
                             <div class="form-input">
                             <label class="col-form-label">{{ index $.tab "localClientStr" }} :</label>
-                            <input type="text" name="editLocalClientName" class="form-control" required value="{{ .Name }}">
+                            <input type="text" name="editLocalClientName" class="form-control" required value="{{ if $me }}{{ index $me "editLocalClientName" }}{{ else }}{{ .Name }}{{ end }}">
                             </div>
                             <hr style="border-top: 1px solid #ababab;">
                             <div class="form-input mt-4">
                             <label class="col-form-label">{{ index $.tab "protocol" }} <i class="bi bi-info-circle ms-1" data-bs-toggle="tooltip" data-bs-placement="right" data-bs-title="{{ index $.tab "tooltipProtocol" }}"></i> :</label>
                             <select name="editLocalClientProtocol" class="form-select protocolConfiguration-select" required>
-                                <option value="r66" {{ if eq .Protocol "r66" }}selected{{ end }}>R66</option>
-                                <option value="r66-tls" {{ if eq .Protocol "r66-tls" }}selected{{ end }}>R66-TLS</option>
-                                <option value="sftp" {{ if eq .Protocol "sftp" }}selected{{ end }}>SFTP</option>
-                                <option value="http" {{ if eq .Protocol "http" }}selected{{ end }}>HTTP</option>
-                                <option value="https" {{ if eq .Protocol "https" }}selected{{ end }}>HTTPS</option>
-                                <option value="ftp" {{ if eq .Protocol "ftp" }}selected{{ end }}>FTP</option>
-                                <option value="ftps" {{ if eq .Protocol "ftps" }}selected{{ end }}>FTPS</option>
-                                <option value="pesit" {{ if eq .Protocol "pesit" }}selected{{ end }}>PeSIT</option>
-                                <option value="pesit-tls" {{ if eq .Protocol "pesit-tls" }}selected{{ end }}>PeSIT-TLS</option>
+                                <option value="r66" {{ if $me }}{{ if eq (index $me "editLocalClientProtocol") "r66" }}selected{{ end }}{{ else if eq .Protocol "r66" }}selected{{ end }}>R66</option>
+                                <option value="r66-tls" {{ if $me }}{{ if eq (index $me "editLocalClientProtocol") "r66-tls" }}selected{{ end }}{{ else if eq .Protocol "r66-tls" }}selected{{ end }}>R66-TLS</option>
+                                <option value="sftp" {{ if $me }}{{ if eq (index $me "editLocalClientProtocol") "sftp" }}selected{{ end }}{{ else if eq .Protocol "sftp" }}selected{{ end }}>SFTP</option>
+                                <option value="http" {{ if $me }}{{ if eq (index $me "editLocalClientProtocol") "http" }}selected{{ end }}{{ else if eq .Protocol "http" }}selected{{ end }}>HTTP</option>
+                                <option value="https" {{ if $me }}{{ if eq (index $me "editLocalClientProtocol") "https" }}selected{{ end }}{{ else if eq .Protocol "https" }}selected{{ end }}>HTTPS</option>
+                                <option value="ftp" {{ if $me }}{{ if eq (index $me "editLocalClientProtocol") "ftp" }}selected{{ end }}{{ else if eq .Protocol "ftp" }}selected{{ end }}>FTP</option>
+                                <option value="ftps" {{ if $me }}{{ if eq (index $me "editLocalClientProtocol") "ftps" }}selected{{ end }}{{ else if eq .Protocol "ftps" }}selected{{ end }}>FTPS</option>
+                                <option value="pesit" {{ if $me }}{{ if eq (index $me "editLocalClientProtocol") "pesit" }}selected{{ end }}{{ else if eq .Protocol "pesit" }}selected{{ end }}>PeSIT</option>
+                                <option value="pesit-tls" {{ if $me }}{{ if eq (index $me "editLocalClientProtocol") "pesit-tls" }}selected{{ end }}{{ else if eq .Protocol "pesit-tls" }}selected{{ end }}>PeSIT-TLS</option>
                             </select>
                             </div>
                             <hr style="border-top: 1px solid #ababab;">
                             <div class="form-input mt-4">
                             <label class="col-form-label">{{ index $.tab "address" }} ({{ index $.tab "host" }}) <i class="bi bi-info-circle ms-1" data-bs-toggle="tooltip" data-bs-placement="right" data-bs-title="{{ index $.tab "tooltipHost" }}"></i> :</label>
-                            <input type="text" name="editLocalClientHost" class="form-control" required value="{{ .LocalAddress.Host }}">
+                            <input type="text" name="editLocalClientHost" class="form-control" required value="{{ if $me }}{{ index $me "editLocalClientHost" }}{{ else }}{{ .LocalAddress.Host }}{{ end }}">
                             </div>
                             <hr style="border-top: 1px solid #ababab;">
                             <div class="form-input mt-4">
                             <label class="col-form-label">{{ index $.tab "address" }} ({{ index $.tab "port" }}) <i class="bi bi-info-circle ms-1" data-bs-toggle="tooltip" data-bs-placement="right" data-bs-title="{{ index $.tab "tooltipPort" }}"></i> :</label>
-                            <input type="text" name="editLocalClientPort" class="form-control" required value="{{ .LocalAddress.Port }}">
+                            <input type="text" name="editLocalClientPort" class="form-control" required value="{{ if $me }}{{ index $me "editLocalClientPort" }}{{ else }}{{ .LocalAddress.Port }}{{ end }}">
                             </div>
-                            {{ template "editR66Client" (dict "tab" $.tab "ProtoConfig" .ProtoConfig) }}
-                            {{ template "editFtpClient" (dict "tab" $.tab "ProtoConfig" .ProtoConfig "TLSVersions" $.TLSVersions) }}
-                            {{ template "editPesitClient" (dict "tab" $.tab "ProtoConfig" .ProtoConfig "TLSVersions" $.TLSVersions "CompatibilityModePeSIT" $.CompatibilityModePeSIT) }}
-                            {{ template "editSftpClient" (dict "tab" $.tab "ProtoConfig" .ProtoConfig "KeyExchanges" $.KeyExchanges "Ciphers" $.Ciphers "MACs" $.MACs) }}
+                            {{ template "editR66Client" (dict "tab" $.tab "ProtoConfig" .ProtoConfig "modalElement" $me) }}
+                            {{ template "editFtpClient" (dict "tab" $.tab "ProtoConfig" .ProtoConfig "TLSVersions" $.TLSVersions "modalElement" $me) }}
+                            {{ template "editPesitClient" (dict "tab" $.tab "ProtoConfig" .ProtoConfig "TLSVersions" $.TLSVersions "CompatibilityModePeSIT" $.CompatibilityModePeSIT "modalElement" $me) }}
+                            {{ template "editSftpClient" (dict "tab" $.tab "ProtoConfig" .ProtoConfig "KeyExchanges" $.KeyExchanges "Ciphers" $.Ciphers "MACs" $.MACs "modalElement" $me) }}
                         </div>
                         <div class="modal-footer">
                             <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">{{ index $.tab "close" }}</button>

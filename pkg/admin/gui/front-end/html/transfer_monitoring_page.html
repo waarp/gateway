@@ -310,31 +310,31 @@
                 <div class="modal-body">
                   <div class="form-input mb-2">
                     <label class="col-form-label">{{ index .tab "pathFile" }} :</label>
-                    <input type="text" name="transferFile" class="form-control" required>
+                    <input type="text" name="transferFile" class="form-control" required value="{{ index $.modalElement "transferFile" }}">
                   </div>
                   <hr style="border-top: 1px solid #ababab;">
                   <div class="form-input mb-2">
                     <label class="col-form-label">({{ index .tab "optional" }}) {{ index .tab "pathDestination" }} :</label>
-                    <input type="text" name="transferOut" class="form-control">
+                    <input type="text" name="transferOut" class="form-control" value="{{ index $.modalElement "transferOut" }}">
                   </div>
                   <hr style="border-top: 1px solid #ababab;">
                   <div class="form-input mb-2 d-flex align-items-center">
                     <label class="col-form-label me-3">{{ index .tab "rule" }} :</label>
                     <div class="form-check form-check-inline me-3">
-                        <input class="form-check-input" type="radio" name="ruleDirection" id="ruleSendRadio" value="send" checked>
+                        <input class="form-check-input" type="radio" name="ruleDirection" id="ruleSendRadio" value="send" {{ if $.modalElement }}{{ if eq (index $.modalElement "ruleDirection") "send" }}checked{{ end }}{{ else }}checked{{ end }}>
                         <label class="form-check-label" for="ruleSendRadio">{{ index .tab "send" }}</label>
                     </div>
                     <div class="form-check form-check-inline me-3">
-                        <input class="form-check-input" type="radio" name="ruleDirection" id="ruleReceiveRadio" value="receive">
+                        <input class="form-check-input" type="radio" name="ruleDirection" id="ruleReceiveRadio" value="receive" {{ if $.modalElement }}{{ if eq (index $.modalElement "ruleDirection") "receive" }}checked{{ end }}{{ end }}>
                         <label class="form-check-label" for="ruleReceiveRadio">{{ index .tab "receive" }}</label>
                     </div>
                     <select name="transferRule" id="transferRuleSelect" class="form-select ms-2" required style="max-width: 40%;">
-                      <option value="" disabled selected>{{ index .tab "selectRule" }}</option>
+                      <option value="" disabled {{ if $.modalElement }}{{ if eq (index $.modalElement "transferRule") "" }}selected{{ end }}{{ else }}selected{{ end }}>{{ index .tab "selectRule" }}</option>
                       {{ range .ruleSend }}
-                        <option data-dir="send" value="{{ . }}">{{ . }}</option>
+                        <option data-dir="send" value="{{ . }}" {{ if $.modalElement }}{{ if eq (index $.modalElement "transferRule") . }}selected{{ end }}{{ end }}>{{ . }}</option>
                       {{ end }}
                       {{ range .ruleReceive }}
-                        <option data-dir="receive" value="{{ . }}">{{ . }}</option>
+                        <option data-dir="receive" value="{{ . }}" {{ if $.modalElement }}{{ if eq (index $.modalElement "transferRule") . }}selected{{ end }}{{ end }}>{{ . }}</option>
                       {{ end }}
                     </select>
                   </div>
@@ -342,16 +342,16 @@
                   <div class="form-input mt-2">
                     <label class="col-form-label">{{ index .tab "remotePartnerName" }} :</label>
                     <select name="transferPartner" id="transferPartner" class="form-select" required>
-                      <option value="" disabled selected>{{ index .tab "selectPartner" }}</option>
+                      <option value="" disabled {{ if $.modalElement }}{{ if eq (index $.modalElement "transferPartner") "" }}selected{{ end }}{{ else }}selected{{ end }}>{{ index .tab "selectPartner" }}</option>
                       {{ range .listPartners }}
-                          <option value="{{ . }}">{{ . }}</option>
+                          <option value="{{ . }}" {{ if $.modalElement }}{{ if eq (index $.modalElement "transferPartner") . }}selected{{ end }}{{ end }}>{{ . }}</option>
                       {{ end }}
                     </select>
                   </div>
                   <hr style="border-top: 1px solid #ababab;">
                   <div class="form-input mb-2">
                     <label class="col-form-label">{{ index .tab "remoteAccountName" }} :</label>
-                      <select name="transferLogin" id="transferLogin" class="form-select" required>
+                      <select name="transferLogin" id="transferLogin" class="form-select" required data-selected="{{ index $.modalElement "transferLogin" }}">
                         <option value="" disabled selected>{{ index .tab "selectRemoteAccount" }}</option>
                       </select>
                   </div>
@@ -359,32 +359,44 @@
                   <div class="form-input mb-2">
                     <label class="col-form-label">{{ index .tab "localClientName" }} :</label>
                     <select name="transferClient" id="transferClient" class="form-select" required>
-                      <option value="" disabled selected>{{ index .tab "selectLocalClient" }}</option>
+                      <option value="" disabled {{ if $.modalElement }}{{ if eq (index $.modalElement "transferClient") "" }}selected{{ end }}{{ else }}selected{{ end }}>{{ index .tab "selectLocalClient" }}</option>
                       {{ range .listClients }}
-                          <option value="{{ . }}">{{ . }}</option>
+                          <option value="{{ . }}" {{ if $.modalElement }}{{ if eq (index $.modalElement "transferClient") . }}selected{{ end }}{{ end }}>{{ . }}</option>
                       {{ end }}
                     </select>
                   </div>
                   <hr style="border-top: 1px solid #ababab;">
                   <div class="form-input mb-2">
                     <label class="col-form-label">{{ index .tab "date" }} <i class="bi bi-info-circle ms-1" data-bs-toggle="tooltip" data-bs-placement="right" data-bs-title="{{ index .tab "tooltipDate" }}"></i> :</label>
-                    <input type="datetime-local" name="transferDate" class="form-control">
+                    <input type="datetime-local" name="transferDate" class="form-control" value="{{ index $.modalElement "transferDate" }}">
                   </div>
                   <hr style="border-top: 1px solid #ababab;">
                   <div class="form-input mb-2">
                       <label class="col-form-label">({{ index .tab "optional" }}) {{ index .tab "infosTransfer" }} :</label>
                       <div id="infoContainer">
-                          <div class="input-group mb-2">
-                              <input type="text" name="transferInfosKeys[]" class="form-control" placeholder="{{ index .tab "fieldName" }}">
-                              <input type="text" name="transferInfosValues[]" class="form-control" placeholder="{{ index .tab "value" }}">
-                            <button type="button" class="btn btn-outline-danger btn-sm" onclick="removeField(this)">
+                        {{ $keys := index $.modalElement "transferInfosKeys[]" }}
+                        {{ $vals := index $.modalElement "transferInfosValues[]" }}
+                        {{ if or $keys $vals }}
+                          {{ range $i,$k := $keys }}
+                            <div class="input-group mb-2">
+                              <input type="text" name="transferInfosKeys[]" class="form-control" value="{{ $k }}" placeholder="{{ index $.tab "fieldName" }}">
+                              <input type="text" name="transferInfosValues[]" class="form-control" value="{{ if $vals }}{{ index $vals $i }}{{ end }}" placeholder="{{ index $.tab "value" }}">
+                              <button type="button" class="btn btn-outline-danger btn-sm" onclick="removeField(this)">
                                 <i class="bi bi-trash"></i>
                               </button>
+                            </div>
+                          {{ end }}
+                        {{ else }}
+                          <div class="input-group mb-2">
+                            <input type="text" name="transferInfosKeys[]" class="form-control" placeholder="{{ index $.tab "fieldName" }}">
+                            <input type="text" name="transferInfosValues[]" class="form-control" placeholder="{{ index $.tab "value" }}">
+                            <button type="button" class="btn btn-outline-danger btn-sm" onclick="removeField(this)">
+                              <i class="bi bi-trash"></i>
+                            </button>
                           </div>
+                        {{ end }}
                       </div>
-                      <button type="button"
-                              class="btn btn-outline-primary btn-sm"
-                              onclick="addField(this)">
+                      <button type="button" class="btn btn-outline-primary btn-sm" onclick="addField(this)">
                           {{ index .tab "add" }}
                       </button>
                   </div>

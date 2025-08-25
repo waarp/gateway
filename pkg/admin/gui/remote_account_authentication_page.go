@@ -245,33 +245,34 @@ func deleteCredentialRemoteAccount(account *model.RemoteAccount, db *database.DB
 
 func callMethodsRemoteAccountAuthentication(logger *log.Logger, db *database.DB, w http.ResponseWriter, r *http.Request,
 	partner *model.RemoteAgent, account *model.RemoteAccount,
-) (value bool, errMsg, modalOpen string) {
+) (value bool, errMsg, modalOpen string, modalElement map[string]any) {
 	if r.Method == http.MethodPost && r.FormValue("deleteCredentialAccount") != "" {
 		deleteCredentialAccountErr := deleteCredentialRemoteAccount(account, db, r)
 		if deleteCredentialAccountErr != nil {
 			logger.Errorf("failed to delete credential account: %v", deleteCredentialAccountErr)
 
-			return false, deleteCredentialAccountErr.Error(), ""
+			return false, deleteCredentialAccountErr.Error(), "", nil
 		}
 
 		http.Redirect(w, r, fmt.Sprintf("%s?partnerID=%d&accountID=%d", r.URL.Path, partner.ID, account.ID),
 			http.StatusSeeOther)
 
-		return true, "", ""
+		return true, "", "", nil
 	}
 
 	if r.Method == http.MethodPost && r.FormValue("addCredentialAccountName") != "" {
 		addCredentialAccountErr := addCredentialRemoteAccount(partner.Name, account.Login, db, r)
 		if addCredentialAccountErr != nil {
 			logger.Errorf("failed to add credential account: %v", addCredentialAccountErr)
+			modalElement = getFormValues(r)
 
-			return false, addCredentialAccountErr.Error(), "addCredentialAccountModal"
+			return false, addCredentialAccountErr.Error(), "addCredentialAccountModal", modalElement
 		}
 
 		http.Redirect(w, r, fmt.Sprintf("%s?partnerID=%d&accountID=%d", r.URL.Path, partner.ID, account.ID),
 			http.StatusSeeOther)
 
-		return true, "", ""
+		return true, "", "", nil
 	}
 
 	if r.Method == http.MethodPost && r.FormValue("editCredentialAccountID") != "" {
@@ -281,23 +282,24 @@ func callMethodsRemoteAccountAuthentication(logger *log.Logger, db *database.DB,
 		if err != nil {
 			logger.Errorf("failed to convert id to int: %v", err)
 
-			return false, "", ""
+			return false, "", "", nil
 		}
 
 		editCredentialAccountErr := editCredentialRemoteAccount(account, db, r)
 		if editCredentialAccountErr != nil {
 			logger.Errorf("failed to edit credential account: %v", editCredentialAccountErr)
+			modalElement = getFormValues(r)
 
-			return false, editCredentialAccountErr.Error(), fmt.Sprintf("editCredentialExternalModal_%d", id)
+			return false, editCredentialAccountErr.Error(), fmt.Sprintf("editCredentialExternalModal_%d", id), modalElement
 		}
 
 		http.Redirect(w, r, fmt.Sprintf("%s?partnerID=%d&accountID=%d", r.URL.Path, partner.ID, account.ID),
 			http.StatusSeeOther)
 
-		return true, "", ""
+		return true, "", "", nil
 	}
 
-	return false, "", ""
+	return false, "", "", nil
 }
 
 func getPartnerAndAccount(db *database.DB, partnerID, accountID string, logger *log.Logger) (
@@ -358,7 +360,7 @@ func remoteAccountAuthenticationPage(logger *log.Logger, db *database.DB) http.H
 
 		credentials, filter, credentialAccountFound := listCredentialRemoteAccount(partner.Name, account.Login, db, r)
 
-		value, errMsg, modalOpen := callMethodsRemoteAccountAuthentication(logger, db, w, r, partner, account)
+		value, errMsg, modalOpen, modalElement := callMethodsRemoteAccountAuthentication(logger, db, w, r, partner, account)
 		if value {
 			return
 		}
@@ -381,6 +383,7 @@ func remoteAccountAuthenticationPage(logger *log.Logger, db *database.DB) http.H
 				"credentialAccountFound": credentialAccountFound,
 				"errMsg":                 errMsg,
 				"modalOpen":              modalOpen,
+				"modalElement":           modalElement,
 				"hasPartnerID":           true,
 				"hasAccountID":           true,
 			}); tmplErr != nil {

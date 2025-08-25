@@ -247,33 +247,34 @@ func deleteCredentialServer(serverName string, db *database.DB, r *http.Request)
 //nolint:dupl // method for server authentication
 func callMethodsServerAuthentication(logger *log.Logger, db *database.DB, w http.ResponseWriter, r *http.Request,
 	server *model.LocalAgent,
-) (value bool, errMsg, modalOpen string) {
+) (value bool, errMsg, modalOpen string, modalElement map[string]any) {
 	if r.Method == http.MethodPost && r.FormValue("deleteCredentialServer") != "" {
 		deleteCredentialServerErr := deleteCredentialServer(server.Name, db, r)
 		if deleteCredentialServerErr != nil {
 			logger.Errorf("failed to delete credential server: %v", deleteCredentialServerErr)
 
-			return false, deleteCredentialServerErr.Error(), ""
+			return false, deleteCredentialServerErr.Error(), "", nil
 		}
 
 		http.Redirect(w, r, fmt.Sprintf("%s?&serverID=%d", r.URL.Path, server.ID),
 			http.StatusSeeOther)
 
-		return true, "", ""
+		return true, "", "", nil
 	}
 
 	if r.Method == http.MethodPost && r.FormValue("addCredentialServerName") != "" {
 		addCredentialServerErr := addCredentialServer(server.Name, db, r)
 		if addCredentialServerErr != nil {
 			logger.Errorf("failed to add credential server: %v", addCredentialServerErr)
+			modalElement = getFormValues(r)
 
-			return false, addCredentialServerErr.Error(), "addCredentialServerModal"
+			return false, addCredentialServerErr.Error(), "addCredentialServerModal", modalElement
 		}
 
 		http.Redirect(w, r, fmt.Sprintf("%s?serverID=%d", r.URL.Path, server.ID),
 			http.StatusSeeOther)
 
-		return true, "", ""
+		return true, "", "", nil
 	}
 
 	if r.Method == http.MethodPost && r.FormValue("editCredentialServerID") != "" {
@@ -283,23 +284,24 @@ func callMethodsServerAuthentication(logger *log.Logger, db *database.DB, w http
 		if err != nil {
 			logger.Errorf("failed to convert id to int: %v", err)
 
-			return false, "", ""
+			return false, "", "", nil
 		}
 
 		editCredentialServerErr := editCredentialServer(server.Name, db, r)
 		if editCredentialServerErr != nil {
 			logger.Errorf("failed to edit credential server: %v", editCredentialServerErr)
+			modalElement = getFormValues(r)
 
-			return false, editCredentialServerErr.Error(), fmt.Sprintf("editCredentialExternalModal_%d", id)
+			return false, editCredentialServerErr.Error(), fmt.Sprintf("editCredentialExternalModal_%d", id), modalElement
 		}
 
 		http.Redirect(w, r, fmt.Sprintf("%s?serverID=%d", r.URL.Path, server.ID),
 			http.StatusSeeOther)
 
-		return true, "", ""
+		return true, "", "", nil
 	}
 
-	return false, "", ""
+	return false, "", "", nil
 }
 
 func serverAuthenticationPage(logger *log.Logger, db *database.DB) http.HandlerFunc {
@@ -332,7 +334,7 @@ func serverAuthenticationPage(logger *log.Logger, db *database.DB) http.HandlerF
 
 		serversCredentials, filter, credentialServerFound := listCredentialServer(server.Name, db, r)
 
-		value, errMsg, modalOpen := callMethodsServerAuthentication(logger, db, w, r, server)
+		value, errMsg, modalOpen, modalElement := callMethodsServerAuthentication(logger, db, w, r, server)
 		if value {
 			return
 		}
@@ -356,6 +358,7 @@ func serverAuthenticationPage(logger *log.Logger, db *database.DB) http.HandlerF
 			"credentialServerFound": credentialServerFound,
 			"errMsg":                errMsg,
 			"modalOpen":             modalOpen,
+			"modalElement":          modalElement,
 			"hasServerID":           true,
 		}); tmplErr != nil {
 			logger.Errorf("render server_authentication_page: %v", tmplErr)

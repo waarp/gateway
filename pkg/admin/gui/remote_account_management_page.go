@@ -205,31 +205,32 @@ func deleteRemoteAccount(db *database.DB, r *http.Request) error {
 
 func callMethodsRemoteAccount(logger *log.Logger, db *database.DB, w http.ResponseWriter, r *http.Request,
 	partner *model.RemoteAgent,
-) (value bool, errMsg, modalOpen string) {
+) (value bool, errMsg, modalOpen string, modalElement map[string]any) {
 	if r.Method == http.MethodPost && r.FormValue("deleteRemoteAccount") != "" {
 		deleteRemoteAccountErr := deleteRemoteAccount(db, r)
 		if deleteRemoteAccountErr != nil {
 			logger.Errorf("failed to delete remote account: %v", deleteRemoteAccountErr)
 
-			return false, deleteRemoteAccountErr.Error(), ""
+			return false, deleteRemoteAccountErr.Error(), "", nil
 		}
 
 		http.Redirect(w, r, fmt.Sprintf("%s?partnerID=%d", r.URL.Path, partner.ID), http.StatusSeeOther)
 
-		return true, "", ""
+		return true, "", "", nil
 	}
 
 	if r.Method == http.MethodPost && r.FormValue("addRemoteAccountLogin") != "" {
 		addRemoteAccountErr := addRemoteAccount(partner.Name, db, r)
 		if addRemoteAccountErr != nil {
 			logger.Errorf("failed to add remote account: %v", addRemoteAccountErr)
+			modalElement = getFormValues(r)
 
-			return false, addRemoteAccountErr.Error(), "addRemoteAccountModal"
+			return false, addRemoteAccountErr.Error(), "addRemoteAccountModal", modalElement
 		}
 
 		http.Redirect(w, r, fmt.Sprintf("%s?partnerID=%d", r.URL.Path, partner.ID), http.StatusSeeOther)
 
-		return true, "", ""
+		return true, "", "", nil
 	}
 
 	if r.Method == http.MethodPost && r.FormValue("editRemoteAccountID") != "" {
@@ -239,22 +240,23 @@ func callMethodsRemoteAccount(logger *log.Logger, db *database.DB, w http.Respon
 		if err != nil {
 			logger.Errorf("failed to convert id to int: %v", err)
 
-			return false, "", ""
+			return false, "", "", nil
 		}
 
 		editRemoteAccountErr := editRemoteAccount(db, r)
 		if editRemoteAccountErr != nil {
 			logger.Errorf("failed to edit remote account: %v", editRemoteAccountErr)
+			modalElement = getFormValues(r)
 
-			return false, editRemoteAccountErr.Error(), fmt.Sprintf("editRemoteAccountModal_%d", id)
+			return false, editRemoteAccountErr.Error(), fmt.Sprintf("editRemoteAccountModal_%d", id), modalElement
 		}
 
 		http.Redirect(w, r, fmt.Sprintf("%s?partnerID=%d", r.URL.Path, partner.ID), http.StatusSeeOther)
 
-		return true, "", ""
+		return true, "", "", nil
 	}
 
-	return false, "", ""
+	return false, "", "", nil
 }
 
 func remoteAccountPage(logger *log.Logger, db *database.DB) http.HandlerFunc {
@@ -287,7 +289,7 @@ func remoteAccountPage(logger *log.Logger, db *database.DB) http.HandlerFunc {
 
 		remoteAccounts, filter, remoteAccountFound := listRemoteAccount(partner.Name, db, r)
 
-		value, errMsg, modalOpen := callMethodsRemoteAccount(logger, db, w, r, partner)
+		value, errMsg, modalOpen, modalElement := callMethodsRemoteAccount(logger, db, w, r, partner)
 		if value {
 			return
 		}
@@ -306,6 +308,7 @@ func remoteAccountPage(logger *log.Logger, db *database.DB) http.HandlerFunc {
 			"tab":                tTranslated,
 			"errMsg":             errMsg,
 			"modalOpen":          modalOpen,
+			"modalElement":       modalElement,
 			"hasPartnerID":       true,
 		}); tmplErr != nil {
 			logger.Errorf("render partner_management_page: %v", tmplErr)

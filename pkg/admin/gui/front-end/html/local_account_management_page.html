@@ -44,7 +44,7 @@
                 <div class="modal-body">
                   <div class="form-input">
                     <label class="col-form-label">{{ index .tab "loginStr" }} :</label>
-                    <input type="text" name="addLocalAccountLogin" class="form-control" required>
+                    <input type="text" name="addLocalAccountLogin" class="form-control" required value="{{ index .modalElement "addLocalAccountLogin" }}">
                   </div>
                 </div>
                 <div class="modal-footer">
@@ -128,6 +128,7 @@
                       <form method="post" class="p-3 border rounded bg-light">
                         <input type="hidden" name="serverID" value="{{ $.server.ID }}">
                         <input type="hidden" name="editLocalAccountID" value="{{ .ID }}">
+                        {{ $me := and (eq $.modalOpen (printf "editLocalAccountModal_%d" .ID)) $.modalElement }}
                         <div class="modal-header">
                           <h5 class="modal-title" id="editLocalAccountModalLabel_{{ .ID }}">{{ index $.tab "edit" }}: {{ .Login }}</h5>
                           <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
@@ -135,7 +136,7 @@
                         <div class="modal-body">
                           <div class="form-input">
                             <label class="col-form-label">{{ index $.tab "loginStr" }} :</label>
-                            <input type="text" name="editLocalAccountLogin" class="form-control" required value="{{ .Login }}">
+                            <input type="text" name="editLocalAccountLogin" class="form-control" required value="{{ if $me }}{{ index $me "editLocalAccountLogin" }}{{ else }}{{ .Login }}{{ end }}">
                           </div>
                         </div>
                         <div class="modal-footer">

@@ -37,53 +37,53 @@
                     <div class="form-input">
                         <label class="col-form-label">{{ index .tab "type" }} <i class="bi bi-info-circle ms-1" data-bs-toggle="tooltip" data-bs-placement="right" data-bs-title="{{ index $.tab "tooltipType" }}"></i> :</label>
                         <select name="addPreTaskType" id="addPreTaskType" class="form-select taskType-select" required>
-                            <option value="" disabled selected>{{ index .tab "selectType" }}</option>
+                            <option value="" disabled {{ if $.modalElement }}{{ if eq (index $.modalElement "addPreTaskType") "" }}selected{{ end }}{{ else }}selected{{ end }}>{{ index .tab "selectType" }}</option>
                             <optgroup label="{{ index .tab "fileOperation" }}">
                                 {{ range .taskTypes }}
-                                    {{ if eq . "COPY" }}<option value="COPY">Copy</option>{{ end }}
-                                    {{ if eq . "COPYRENAME" }}<option value="COPYRENAME">Copy Rename</option>{{ end }}
-                                    {{ if eq . "MOVE" }}<option value="MOVE">Move</option>{{ end }}
-                                    {{ if eq . "MOVERENAME" }}<option value="MOVERENAME">Move Rename</option>{{ end }}
-                                    {{ if eq . "DELETE" }}<option value="DELETE">Delete</option>{{ end }}
+                                    {{ if eq . "COPY" }}<option value="COPY" {{ if $.modalElement }}{{ if eq (index $.modalElement "addPreTaskType") "COPY" }}selected{{ end }}{{ end }}>Copy</option>{{ end }}
+                                    {{ if eq . "COPYRENAME" }}<option value="COPYRENAME" {{ if $.modalElement }}{{ if eq (index $.modalElement "addPreTaskType") "COPYRENAME" }}selected{{ end }}{{ end }}>Copy Rename</option>{{ end }}
+                                    {{ if eq . "MOVE" }}<option value="MOVE" {{ if $.modalElement }}{{ if eq (index $.modalElement "addPreTaskType") "MOVE" }}selected{{ end }}{{ end }}>Move</option>{{ end }}
+                                    {{ if eq . "MOVERENAME" }}<option value="MOVERENAME" {{ if $.modalElement }}{{ if eq (index $.modalElement "addPreTaskType") "MOVERENAME" }}selected{{ end }}{{ end }}>Move Rename</option>{{ end }}
+                                    {{ if eq . "DELETE" }}<option value="DELETE" {{ if $.modalElement }}{{ if eq (index $.modalElement "addPreTaskType") "DELETE" }}selected{{ end }}{{ end }}>Delete</option>{{ end }}
                                 {{ end }}
                             </optgroup>
                             <optgroup label="{{ index .tab "executable" }}">
                                 {{ range .taskTypes }}
-                                    {{ if eq . "EXEC" }}<option value="EXEC">Exec</option>{{ end }}
-                                    {{ if eq . "EXECMOVE" }}<option value="EXECMOVE">Exec Move</option>{{ end }}
-                                    {{ if eq . "EXECOUTPUT" }}<option value="EXECOUTPUT">Exec Output</option>{{ end }}
+                                    {{ if eq . "EXEC" }}<option value="EXEC" {{ if $.modalElement }}{{ if eq (index $.modalElement "addPreTaskType") "EXEC" }}selected{{ end }}{{ end }}>Exec</option>{{ end }}
+                                    {{ if eq . "EXECMOVE" }}<option value="EXECMOVE" {{ if $.modalElement }}{{ if eq (index $.modalElement "addPreTaskType") "EXECMOVE" }}selected{{ end }}{{ end }}>Exec Move</option>{{ end }}
+                                    {{ if eq . "EXECOUTPUT" }}<option value="EXECOUTPUT" {{ if $.modalElement }}{{ if eq (index $.modalElement "addPreTaskType") "EXECOUTPUT" }}selected{{ end }}{{ end }}>Exec Output</option>{{ end }}
                                 {{ end }}
                             </optgroup>
                             <optgroup label="{{ index .tab "transfer" }}">
                                 {{ range .taskTypes }}
-                                    {{ if eq . "TRANSFER" }}<option value="TRANSFER">Transfer</option>{{ end }}
-                                    {{ if eq . "RENAME" }}<option value="RENAME">Rename</option>{{ end }}
+                                    {{ if eq . "TRANSFER" }}<option value="TRANSFER" {{ if $.modalElement }}{{ if eq (index $.modalElement "addPreTaskType") "TRANSFER" }}selected{{ end }}{{ end }}>Transfer</option>{{ end }}
+                                    {{ if eq . "RENAME" }}<option value="RENAME" {{ if $.modalElement }}{{ if eq (index $.modalElement "addPreTaskType") "RENAME" }}selected{{ end }}{{ end }}>Rename</option>{{ end }}
                                 {{ end }}
                             </optgroup>
                             <optgroup label="{{ index .tab "fileAlteration" }}">
                                 {{ range .taskTypes }}
-                                    {{ if eq . "TRANSCODE" }}<option value="TRANSCODE">Transcode</option>{{ end }}
+                                    {{ if eq . "TRANSCODE" }}<option value="TRANSCODE" {{ if $.modalElement }}{{ if eq (index $.modalElement "addPreTaskType") "TRANSCODE" }}selected{{ end }}{{ end }}>Transcode</option>{{ end }}
                                 {{ end }}
                             </optgroup>
                             <optgroup label="{{ index .tab "archivingAndCompression" }}">
                                 {{ range .taskTypes }}
-                                    {{ if eq . "ARCHIVE" }}<option value="ARCHIVE">Archive</option>{{ end }}
-                                    {{ if eq . "EXTRACT" }}<option value="EXTRACT">Extract</option>{{ end }}
+                                    {{ if eq . "ARCHIVE" }}<option value="ARCHIVE" {{ if $.modalElement }}{{ if eq (index $.modalElement "addPreTaskType") "ARCHIVE" }}selected{{ end }}{{ end }}>Archive</option>{{ end }}
+                                    {{ if eq . "EXTRACT" }}<option value="EXTRACT" {{ if $.modalElement }}{{ if eq (index $.modalElement "addPreTaskType") "EXTRACT" }}selected{{ end }}{{ end }}>Extract</option>{{ end }}
                                 {{ end }}
                             </optgroup>
                             <optgroup label="{{ index .tab "network" }}">
                                 {{ range .taskTypes }}
-                                    {{ if eq . "ICAP" }}<option value="ICAP">ICAP (Beta)</option>{{ end }}
+                                    {{ if eq . "ICAP" }}<option value="ICAP" {{ if $.modalElement }}{{ if eq (index $.modalElement "addPreTaskType") "ICAP" }}selected{{ end }}{{ end }}>ICAP (Beta)</option>{{ end }}
                                 {{ end }}
                             </optgroup>
                             <optgroup label="{{ index .tab "cryptographicTask" }}">
                                 {{ range .taskTypes }}
-                                    {{ if eq . "ENCRYPT" }}<option value="ENCRYPT">Encrypt</option>{{ end }}
-                                    {{ if eq . "DECRYPT" }}<option value="DECRYPT">Decrypt</option>{{ end }}
-                                    {{ if eq . "SIGN" }}<option value="SIGN">Sign</option>{{ end }}
-                                    {{ if eq . "VERIFY" }}<option value="VERIFY">Verify</option>{{ end }}
-                                    {{ if eq . "ENCRYPT&SIGN" }}<option value="ENCRYPT&SIGN">Encrypt &amp; Sign</option>{{ end }}
-                                    {{ if eq . "DECRYPT&VERIFY" }}<option value="DECRYPT&VERIFY">Decrypt &amp; Verify</option>{{ end }}
+                                    {{ if eq . "ENCRYPT" }}<option value="ENCRYPT" {{ if $.modalElement }}{{ if eq (index $.modalElement "addPreTaskType") "ENCRYPT" }}selected{{ end }}{{ end }}>Encrypt</option>{{ end }}
+                                    {{ if eq . "DECRYPT" }}<option value="DECRYPT" {{ if $.modalElement }}{{ if eq (index $.modalElement "addPreTaskType") "DECRYPT" }}selected{{ end }}{{ end }}>Decrypt</option>{{ end }}
+                                    {{ if eq . "SIGN" }}<option value="SIGN" {{ if $.modalElement }}{{ if eq (index $.modalElement "addPreTaskType") "SIGN" }}selected{{ end }}{{ end }}>Sign</option>{{ end }}
+                                    {{ if eq . "VERIFY" }}<option value="VERIFY" {{ if $.modalElement }}{{ if eq (index $.modalElement "addPreTaskType") "VERIFY" }}selected{{ end }}{{ end }}>Verify</option>{{ end }}
+                                    {{ if eq . "ENCRYPT&SIGN" }}<option value="ENCRYPT&SIGN" {{ if $.modalElement }}{{ if eq (index $.modalElement "addPreTaskType") "ENCRYPT&SIGN" }}selected{{ end }}{{ end }}>Encrypt &amp; Sign</option>{{ end }}
+                                    {{ if eq . "DECRYPT&VERIFY" }}<option value="DECRYPT&VERIFY" {{ if $.modalElement }}{{ if eq (index $.modalElement "addPreTaskType") "DECRYPT&VERIFY" }}selected{{ end }}{{ end }}>Decrypt &amp; Verify</option>{{ end }}
                                 {{ end }}
                             </optgroup>
                         </select>
@@ -308,6 +308,7 @@
                                 <div class="modal-content">
                                 <form method="post" class="p-3 border rounded bg-light">
                                     <input type="hidden" name="editPreTaskRank" value="{{ .Rank }}">
+                                    {{ $me := and (eq $.modalOpen (printf "editPreTaskModal_%d" .Rank)) $.modalElement }}
                                     <div class="modal-header">
                                         <h5 class="modal-title" id="editPreTaskModalLabel_{{ .Rank }}">{{ index $.tab "edit" }}</h5>
                                         <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
@@ -316,78 +317,78 @@
                                         <div class="form-input">
                                             <label class="col-form-label">{{ index $.tab "type" }} <i class="bi bi-info-circle ms-1" data-bs-toggle="tooltip" data-bs-placement="right" data-bs-title="{{ index $.tab "tooltipType" }}"></i> :</label>
                                             <select name="editPreTaskType" id="editPreTaskType_{{ .Rank }}" class="form-select taskType-select" required>
-                                                <option value="" disabled>{{ index $.tab "selectType" }}</option>
+                                                <option value="" disabled {{ if $me }}{{ if eq (index $me "editPreTaskType") "" }}selected{{ end }}{{ end }}>{{ index $.tab "selectType" }}</option>
                                                 {{ $current := . }}
                                                 <optgroup label="{{ index $.tab "fileOperation" }}">
                                                     {{ range $.taskTypes }}
-                                                        {{ if eq . "COPY" }}<option value="COPY" {{ if eq $current.Type "COPY" }}selected{{ end }}>Copy</option>{{ end }}
-                                                        {{ if eq . "COPYRENAME" }}<option value="COPYRENAME" {{ if eq $current.Type "COPYRENAME" }}selected{{ end }}>Copy Rename</option>{{ end }}
-                                                        {{ if eq . "MOVE" }}<option value="MOVE" {{ if eq $current.Type "MOVE" }}selected{{ end }}>Move</option>{{ end }}
-                                                        {{ if eq . "MOVERENAME" }}<option value="MOVERENAME" {{ if eq $current.Type "MOVERENAME" }}selected{{ end }}>Move Rename</option>{{ end }}
-                                                        {{ if eq . "DELETE" }}<option value="DELETE" {{ if eq $current.Type "DELETE" }}selected{{ end }}>Delete</option>{{ end }}
+                                                        {{ if eq . "COPY" }}<option value="COPY" {{ if $me }}{{ if eq (index $me "editPreTaskType") "COPY" }}selected{{ end }}{{ else if eq $current.Type "COPY" }}selected{{ end }}>Copy</option>{{ end }}
+                                                        {{ if eq . "COPYRENAME" }}<option value="COPYRENAME" {{ if $me }}{{ if eq (index $me "editPreTaskType") "COPYRENAME" }}selected{{ end }}{{ else if eq $current.Type "COPYRENAME" }}selected{{ end }}>Copy Rename</option>{{ end }}
+                                                        {{ if eq . "MOVE" }}<option value="MOVE" {{ if $me }}{{ if eq (index $me "editPreTaskType") "MOVE" }}selected{{ end }}{{ else if eq $current.Type "MOVE" }}selected{{ end }}>Move</option>{{ end }}
+                                                        {{ if eq . "MOVERENAME" }}<option value="MOVERENAME" {{ if $me }}{{ if eq (index $me "editPreTaskType") "MOVERENAME" }}selected{{ end }}{{ else if eq $current.Type "MOVERENAME" }}selected{{ end }}>Move Rename</option>{{ end }}
+                                                        {{ if eq . "DELETE" }}<option value="DELETE" {{ if $me }}{{ if eq (index $me "editPreTaskType") "DELETE" }}selected{{ end }}{{ else if eq $current.Type "DELETE" }}selected{{ end }}>Delete</option>{{ end }}
                                                     {{ end }}
                                                 </optgroup>
                                                 <optgroup label="{{ index $.tab "executable" }}">
                                                     {{ range $.taskTypes }}
-                                                        {{ if eq . "EXEC" }}<option value="EXEC" {{ if eq $current.Type "EXEC" }}selected{{ end }}>Exec</option>{{ end }}
-                                                        {{ if eq . "EXECMOVE" }}<option value="EXECMOVE" {{ if eq $current.Type "EXECMOVE" }}selected{{ end }}>Exec Move</option>{{ end }}
-                                                        {{ if eq . "EXECOUTPUT" }}<option value="EXECOUTPUT" {{ if eq $current.Type "EXECOUTPUT" }}selected{{ end }}>Exec Output</option>{{ end }}
+                                                        {{ if eq . "EXEC" }}<option value="EXEC" {{ if $me }}{{ if eq (index $me "editPreTaskType") "EXEC" }}selected{{ end }}{{ else if eq $current.Type "EXEC" }}selected{{ end }}>Exec</option>{{ end }}
+                                                        {{ if eq . "EXECMOVE" }}<option value="EXECMOVE" {{ if $me }}{{ if eq (index $me "editPreTaskType") "EXECMOVE" }}selected{{ end }}{{ else if eq $current.Type "EXECMOVE" }}selected{{ end }}>Exec Move</option>{{ end }}
+                                                        {{ if eq . "EXECOUTPUT" }}<option value="EXECOUTPUT" {{ if $me }}{{ if eq (index $me "editPreTaskType") "EXECOUTPUT" }}selected{{ end }}{{ else if eq $current.Type "EXECOUTPUT" }}selected{{ end }}>Exec Output</option>{{ end }}
                                                     {{ end }}
                                                 </optgroup>
                                                 <optgroup label="{{ index $.tab "transfer" }}">
                                                     {{ range $.taskTypes }}
-                                                        {{ if eq . "TRANSFER" }}<option value="TRANSFER" {{ if eq $current.Type "TRANSFER" }}selected{{ end }}>Transfer</option>{{ end }}
-                                                        {{ if eq . "RENAME" }}<option value="RENAME" {{ if eq $current.Type "RENAME" }}selected{{ end }}>Rename</option>{{ end }}
+                                                        {{ if eq . "TRANSFER" }}<option value="TRANSFER" {{ if $me }}{{ if eq (index $me "editPreTaskType") "TRANSFER" }}selected{{ end }}{{ else if eq $current.Type "TRANSFER" }}selected{{ end }}>Transfer</option>{{ end }}
+                                                        {{ if eq . "RENAME" }}<option value="RENAME" {{ if $me }}{{ if eq (index $me "editPreTaskType") "RENAME" }}selected{{ end }}{{ else if eq $current.Type "RENAME" }}selected{{ end }}>Rename</option>{{ end }}
                                                     {{ end }}
                                                 </optgroup>
                                                 <optgroup label="{{ index $.tab "fileAlteration" }}">
                                                     {{ range $.taskTypes }}
-                                                        {{ if eq . "TRANSCODE" }}<option value="TRANSCODE" {{ if eq $current.Type "TRANSCODE" }}selected{{ end }}>Transcode</option>{{ end }}
+                                                        {{ if eq . "TRANSCODE" }}<option value="TRANSCODE" {{ if $me }}{{ if eq (index $me "editPreTaskType") "TRANSCODE" }}selected{{ end }}{{ else if eq $current.Type "TRANSCODE" }}selected{{ end }}>Transcode</option>{{ end }}
                                                     {{ end }}
                                                 </optgroup>
                                                 <optgroup label="{{ index $.tab "archivingAndCompression" }}">
                                                     {{ range $.taskTypes }}
-                                                        {{ if eq . "ARCHIVE" }}<option value="ARCHIVE" {{ if eq $current.Type "ARCHIVE" }}selected{{ end }}>Archive</option>{{ end }}
-                                                        {{ if eq . "EXTRACT" }}<option value="EXTRACT" {{ if eq $current.Type "EXTRACT" }}selected{{ end }}>Extract</option>{{ end }}
+                                                        {{ if eq . "ARCHIVE" }}<option value="ARCHIVE" {{ if $me }}{{ if eq (index $me "editPreTaskType") "ARCHIVE" }}selected{{ end }}{{ else if eq $current.Type "ARCHIVE" }}selected{{ end }}>Archive</option>{{ end }}
+                                                        {{ if eq . "EXTRACT" }}<option value="EXTRACT" {{ if $me }}{{ if eq (index $me "editPreTaskType") "EXTRACT" }}selected{{ end }}{{ else if eq $current.Type "EXTRACT" }}selected{{ end }}>Extract</option>{{ end }}
                                                     {{ end }}
                                                 </optgroup>
                                                 <optgroup label="{{ index $.tab "network" }}">
                                                     {{ range $.taskTypes }}
-                                                        {{ if eq . "ICAP" }}<option value="ICAP" {{ if eq $current.Type "ICAP" }}selected{{ end }}>ICAP (Beta)</option>{{ end }}
+                                                        {{ if eq . "ICAP" }}<option value="ICAP" {{ if $me }}{{ if eq (index $me "editPreTaskType") "ICAP" }}selected{{ end }}{{ else if eq $current.Type "ICAP" }}selected{{ end }}>ICAP (Beta)</option>{{ end }}
                                                     {{ end }}
                                                 </optgroup>
                                                 <optgroup label="{{ index $.tab "cryptographicTask" }}">
                                                     {{ range $.taskTypes }}
-                                                        {{ if eq . "ENCRYPT" }}<option value="ENCRYPT" {{ if eq $current.Type "ENCRYPT" }}selected{{ end }}>Encrypt</option>{{ end }}
-                                                        {{ if eq . "DECRYPT" }}<option value="DECRYPT" {{ if eq $current.Type "DECRYPT" }}selected{{ end }}>Decrypt</option>{{ end }}
-                                                        {{ if eq . "SIGN" }}<option value="SIGN" {{ if eq $current.Type "SIGN" }}selected{{ end }}>Sign</option>{{ end }}
-                                                        {{ if eq . "VERIFY" }}<option value="VERIFY" {{ if eq $current.Type "VERIFY" }}selected{{ end }}>Verify</option>{{ end }}
-                                                        {{ if eq . "ENCRYPT&SIGN" }}<option value="ENCRYPT&SIGN" {{ if eq $current.Type "ENCRYPT&SIGN" }}selected{{ end }}>Encrypt &amp; Sign</option>{{ end }}
-                                                        {{ if eq . "DECRYPT&VERIFY" }}<option value="DECRYPT&VERIFY" {{ if eq $current.Type "DECRYPT&VERIFY" }}selected{{ end }}>Decrypt &amp; Verify</option>{{ end }}
+                                                        {{ if eq . "ENCRYPT" }}<option value="ENCRYPT" {{ if $me }}{{ if eq (index $me "editPreTaskType") "ENCRYPT" }}selected{{ end }}{{ else if eq $current.Type "ENCRYPT" }}selected{{ end }}>Encrypt</option>{{ end }}
+                                                        {{ if eq . "DECRYPT" }}<option value="DECRYPT" {{ if $me }}{{ if eq (index $me "editPreTaskType") "DECRYPT" }}selected{{ end }}{{ else if eq $current.Type "DECRYPT" }}selected{{ end }}>Decrypt</option>{{ end }}
+                                                        {{ if eq . "SIGN" }}<option value="SIGN" {{ if $me }}{{ if eq (index $me "editPreTaskType") "SIGN" }}selected{{ end }}{{ else if eq $current.Type "SIGN" }}selected{{ end }}>Sign</option>{{ end }}
+                                                        {{ if eq . "VERIFY" }}<option value="VERIFY" {{ if $me }}{{ if eq (index $me "editPreTaskType") "VERIFY" }}selected{{ end }}{{ else if eq $current.Type "VERIFY" }}selected{{ end }}>Verify</option>{{ end }}
+                                                        {{ if eq . "ENCRYPT&SIGN" }}<option value="ENCRYPT&SIGN" {{ if $me }}{{ if eq (index $me "editPreTaskType") "ENCRYPT&SIGN" }}selected{{ end }}{{ else if eq $current.Type "ENCRYPT&SIGN" }}selected{{ end }}>Encrypt &amp; Sign</option>{{ end }}
+                                                        {{ if eq . "DECRYPT&VERIFY" }}<option value="DECRYPT&VERIFY" {{ if $me }}{{ if eq (index $me "editPreTaskType") "DECRYPT&VERIFY" }}selected{{ end }}{{ else if eq $current.Type "DECRYPT&VERIFY" }}selected{{ end }}>Decrypt &amp; Verify</option>{{ end }}
                                                     {{ end }}
                                                 </optgroup>
                                             </select>
                                         </div>
-                                        {{ template "editTaskCOPY" (dict "tab" $.tab "Args" $current.Args) }}
-                                        {{ template "editTaskCOPYRENAME" (dict "tab" $.tab "Args" $current.Args) }}
-                                        {{ template "editTaskDelete" (dict "tab" $.tab "Args" $current.Args) }}
-                                        {{ template "editTaskEXEC" (dict "tab" $.tab "Args" $current.Args) }}
-                                        {{ template "editTaskEXECMOVE" (dict "tab" $.tab "Args" $current.Args) }}
-                                        {{ template "editTaskEXECOUTPUT" (dict "tab" $.tab "Args" $current.Args) }}
-                                        {{ template "editTaskMOVE" (dict "tab" $.tab "Args" $current.Args) }}
-                                        {{ template "editTaskMOVERENAME" (dict "tab" $.tab "Args" $current.Args) }}
-                                        {{ template "editTaskRENAME" (dict "tab" $.tab "Args" $current.Args) }}
-                                        {{ template "editTaskTRANSFER" (dict "tab" $.tab "Args" $current.Args) }}
-                                        {{ template "editTaskTRANSCODE" (dict "tab" $.tab "TranscodeFormats" $.TranscodeFormats "Args" $current.Args) }}
-                                        {{ template "editTaskARCHIVE" (dict "tab" $.tab "ArchiveExtensions" $.ArchiveExtensions "CompressionLevelList" $.CompressionLevelList "Args" $current.Args) }}
-                                        {{ template "editTaskEXTRACT" (dict "tab" $.tab "ArchiveExtensions" $.ArchiveExtensions "Args" $current.Args) }}
-                                        {{ template "editTaskICAP" (dict "tab" $.tab "IcapOnErrorOptions" $.IcapOnErrorOptions "Args" $current.Args) }}
-                                        {{ template "editTaskENCRYPT" (dict "tab" $.tab "EncryptMethods" $.EncryptMethods "EncryptKeyTypes" $.EncryptKeyTypes "listAesKey" $.listAesKey "listHmacKey" $.listHmacKey "listPgpPubKey" $.listPgpPubKey "listPgpPrivKey" $.listPgpPrivKey "Args" $current.Args) }}
-                                        {{ template "editTaskDECRYPT" (dict "tab" $.tab "DecryptMethods" $.DecryptMethods "DecryptKeyTypes" $.DecryptKeyTypes "listAesKey" $.listAesKey "listHmacKey" $.listHmacKey "listPgpPubKey" $.listPgpPubKey "listPgpPrivKey" $.listPgpPrivKey "Args" $current.Args) }}
-                                        {{ template "editTaskSIGN" (dict "tab" $.tab "SignMethods" $.SignMethods "SignKeyTypes" $.SignKeyTypes "listAesKey" $.listAesKey "listHmacKey" $.listHmacKey "listPgpPubKey" $.listPgpPubKey "listPgpPrivKey" $.listPgpPrivKey "Args" $current.Args) }}
-                                        {{ template "editTaskVERIFY" (dict "tab" $.tab "VerifyMethods" $.VerifyMethods "VerifyKeyTypes" $.VerifyKeyTypes "listAesKey" $.listAesKey "listHmacKey" $.listHmacKey "listPgpPubKey" $.listPgpPubKey "listPgpPrivKey" $.listPgpPrivKey "Args" $current.Args) }}
-                                        {{ template "editTaskENCRYPT&SIGN" (dict "tab" $.tab "EncryptSignMethods" $.EncryptSignMethods "EncryptSignKeyTypes" $.EncryptSignKeyTypes "listAesKey" $.listAesKey "listHmacKey" $.listHmacKey "listPgpPubKey" $.listPgpPubKey "listPgpPrivKey" $.listPgpPrivKey "Args" $current.Args) }}
-                                        {{ template "editTaskDECRYPT&VERIFY" (dict "tab" $.tab "DecryptVerifyMethods" $.DecryptVerifyMethods "DecryptVerifyKeyTypes" $.DecryptVerifyKeyTypes "listAesKey" $.listAesKey "listHmacKey" $.listHmacKey "listPgpPubKey" $.listPgpPubKey "listPgpPrivKey" $.listPgpPrivKey "Args" $current.Args) }}
+                                        {{ template "editTaskCOPY" (dict "tab" $.tab "Args" $current.Args "modalElement" $me) }}
+                                        {{ template "editTaskCOPYRENAME" (dict "tab" $.tab "Args" $current.Args "modalElement" $me) }}
+                                        {{ template "editTaskDelete" (dict "tab" $.tab "Args" $current.Args "modalElement" $me) }}
+                                        {{ template "editTaskEXEC" (dict "tab" $.tab "Args" $current.Args "modalElement" $me) }}
+                                        {{ template "editTaskEXECMOVE" (dict "tab" $.tab "Args" $current.Args "modalElement" $me) }}
+                                        {{ template "editTaskEXECOUTPUT" (dict "tab" $.tab "Args" $current.Args "modalElement" $me) }}
+                                        {{ template "editTaskMOVE" (dict "tab" $.tab "Args" $current.Args "modalElement" $me) }}
+                                        {{ template "editTaskMOVERENAME" (dict "tab" $.tab "Args" $current.Args "modalElement" $me) }}
+                                        {{ template "editTaskRENAME" (dict "tab" $.tab "Args" $current.Args "modalElement" $me) }}
+                                        {{ template "editTaskTRANSFER" (dict "tab" $.tab "Args" $current.Args "modalElement" $me) }}
+                                        {{ template "editTaskTRANSCODE" (dict "tab" $.tab "TranscodeFormats" $.TranscodeFormats "Args" $current.Args "modalElement" $me) }}
+                                        {{ template "editTaskARCHIVE" (dict "tab" $.tab "ArchiveExtensions" $.ArchiveExtensions "CompressionLevelList" $.CompressionLevelList "Args" $current.Args "modalElement" $me) }}
+                                        {{ template "editTaskEXTRACT" (dict "tab" $.tab "ArchiveExtensions" $.ArchiveExtensions "Args" $current.Args "modalElement" $me) }}
+                                        {{ template "editTaskICAP" (dict "tab" $.tab "IcapOnErrorOptions" $.IcapOnErrorOptions "Args" $current.Args "modalElement" $me) }}
+                                        {{ template "editTaskENCRYPT" (dict "tab" $.tab "EncryptMethods" $.EncryptMethods "EncryptKeyTypes" $.EncryptKeyTypes "listAesKey" $.listAesKey "listHmacKey" $.listHmacKey "listPgpPubKey" $.listPgpPubKey "listPgpPrivKey" $.listPgpPrivKey "Args" $current.Args "modalElement" $me) }}
+                                        {{ template "editTaskDECRYPT" (dict "tab" $.tab "DecryptMethods" $.DecryptMethods "DecryptKeyTypes" $.DecryptKeyTypes "listAesKey" $.listAesKey "listHmacKey" $.listHmacKey "listPgpPubKey" $.listPgpPubKey "listPgpPrivKey" $.listPgpPrivKey "Args" $current.Args "modalElement" $me) }}
+                                        {{ template "editTaskSIGN" (dict "tab" $.tab "SignMethods" $.SignMethods "SignKeyTypes" $.SignKeyTypes "listAesKey" $.listAesKey "listHmacKey" $.listHmacKey "listPgpPubKey" $.listPgpPubKey "listPgpPrivKey" $.listPgpPrivKey "Args" $current.Args "modalElement" $me) }}
+                                        {{ template "editTaskVERIFY" (dict "tab" $.tab "VerifyMethods" $.VerifyMethods "VerifyKeyTypes" $.VerifyKeyTypes "listAesKey" $.listAesKey "listHmacKey" $.listHmacKey "listPgpPubKey" $.listPgpPubKey "listPgpPrivKey" $.listPgpPrivKey "Args" $current.Args "modalElement" $me) }}
+                                        {{ template "editTaskENCRYPT&SIGN" (dict "tab" $.tab "EncryptSignMethods" $.EncryptSignMethods "EncryptSignKeyTypes" $.EncryptSignKeyTypes "listAesKey" $.listAesKey "listHmacKey" $.listHmacKey "listPgpPubKey" $.listPgpPubKey "listPgpPrivKey" $.listPgpPrivKey "Args" $current.Args "modalElement" $me) }}
+                                        {{ template "editTaskDECRYPT&VERIFY" (dict "tab" $.tab "DecryptVerifyMethods" $.DecryptVerifyMethods "DecryptVerifyKeyTypes" $.DecryptVerifyKeyTypes "listAesKey" $.listAesKey "listHmacKey" $.listHmacKey "listPgpPubKey" $.listPgpPubKey "listPgpPrivKey" $.listPgpPrivKey "Args" $current.Args "modalElement" $me) }}
                                     </div>
                                     <div class="modal-footer">
                                         <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">{{ index $.tab "close" }}</button>
@@ -430,53 +431,53 @@
                     <div class="form-input">
                         <label class="col-form-label">{{ index .tab "type" }} <i class="bi bi-info-circle ms-1" data-bs-toggle="tooltip" data-bs-placement="right" data-bs-title="{{ index $.tab "tooltipType" }}"></i> :</label>
                         <select name="addPostTaskType" id="addPostTaskType" class="form-select taskType-select" required>
-                            <option value="" disabled selected>{{ index .tab "selectType" }}</option>
+                            <option value="" disabled {{ if $.modalElement }}{{ if eq (index $.modalElement "addPostTaskType") "" }}selected{{ end }}{{ else }}selected{{ end }}>{{ index .tab "selectType" }}</option>
                             <optgroup label="{{ index .tab "fileOperation" }}">
                                 {{ range .taskTypes }}
-                                    {{ if eq . "COPY" }}<option value="COPY">Copy</option>{{ end }}
-                                    {{ if eq . "COPYRENAME" }}<option value="COPYRENAME">Copy Rename</option>{{ end }}
-                                    {{ if eq . "MOVE" }}<option value="MOVE">Move</option>{{ end }}
-                                    {{ if eq . "MOVERENAME" }}<option value="MOVERENAME">Move Rename</option>{{ end }}
-                                    {{ if eq . "DELETE" }}<option value="DELETE">Delete</option>{{ end }}
+                                    {{ if eq . "COPY" }}<option value="COPY" {{ if $.modalElement }}{{ if eq (index $.modalElement "addPostTaskType") "COPY" }}selected{{ end }}{{ end }}>Copy</option>{{ end }}
+                                    {{ if eq . "COPYRENAME" }}<option value="COPYRENAME" {{ if $.modalElement }}{{ if eq (index $.modalElement "addPostTaskType") "COPYRENAME" }}selected{{ end }}{{ end }}>Copy Rename</option>{{ end }}
+                                    {{ if eq . "MOVE" }}<option value="MOVE" {{ if $.modalElement }}{{ if eq (index $.modalElement "addPostTaskType") "MOVE" }}selected{{ end }}{{ end }}>Move</option>{{ end }}
+                                    {{ if eq . "MOVERENAME" }}<option value="MOVERENAME" {{ if $.modalElement }}{{ if eq (index $.modalElement "addPostTaskType") "MOVERENAME" }}selected{{ end }}{{ end }}>Move Rename</option>{{ end }}
+                                    {{ if eq . "DELETE" }}<option value="DELETE" {{ if $.modalElement }}{{ if eq (index $.modalElement "addPostTaskType") "DELETE" }}selected{{ end }}{{ end }}>Delete</option>{{ end }}
                                 {{ end }}
                             </optgroup>
                             <optgroup label="{{ index .tab "executable" }}">
                                 {{ range .taskTypes }}
-                                    {{ if eq . "EXEC" }}<option value="EXEC">Exec</option>{{ end }}
-                                    {{ if eq . "EXECMOVE" }}<option value="EXECMOVE">Exec Move</option>{{ end }}
-                                    {{ if eq . "EXECOUTPUT" }}<option value="EXECOUTPUT">Exec Output</option>{{ end }}
+                                    {{ if eq . "EXEC" }}<option value="EXEC" {{ if $.modalElement }}{{ if eq (index $.modalElement "addPostTaskType") "EXEC" }}selected{{ end }}{{ end }}>Exec</option>{{ end }}
+                                    {{ if eq . "EXECMOVE" }}<option value="EXECMOVE" {{ if $.modalElement }}{{ if eq (index $.modalElement "addPostTaskType") "EXECMOVE" }}selected{{ end }}{{ end }}>Exec Move</option>{{ end }}
+                                    {{ if eq . "EXECOUTPUT" }}<option value="EXECOUTPUT" {{ if $.modalElement }}{{ if eq (index $.modalElement "addPostTaskType") "EXECOUTPUT" }}selected{{ end }}{{ end }}>Exec Output</option>{{ end }}
                                 {{ end }}
                             </optgroup>
                             <optgroup label="{{ index .tab "transfer" }}">
                                 {{ range .taskTypes }}
-                                    {{ if eq . "TRANSFER" }}<option value="TRANSFER">Transfer</option>{{ end }}
-                                    {{ if eq . "RENAME" }}<option value="RENAME">Rename</option>{{ end }}
+                                    {{ if eq . "TRANSFER" }}<option value="TRANSFER" {{ if $.modalElement }}{{ if eq (index $.modalElement "addPostTaskType") "TRANSFER" }}selected{{ end }}{{ end }}>Transfer</option>{{ end }}
+                                    {{ if eq . "RENAME" }}<option value="RENAME" {{ if $.modalElement }}{{ if eq (index $.modalElement "addPostTaskType") "RENAME" }}selected{{ end }}{{ end }}>Rename</option>{{ end }}
                                 {{ end }}
                             </optgroup>
                             <optgroup label="{{ index .tab "fileAlteration" }}">
                                 {{ range .taskTypes }}
-                                    {{ if eq . "TRANSCODE" }}<option value="TRANSCODE">Transcode</option>{{ end }}
+                                    {{ if eq . "TRANSCODE" }}<option value="TRANSCODE" {{ if $.modalElement }}{{ if eq (index $.modalElement "addPostTaskType") "TRANSCODE" }}selected{{ end }}{{ end }}>Transcode</option>{{ end }}
                                 {{ end }}
                             </optgroup>
                             <optgroup label="{{ index .tab "archivingAndCompression" }}">
                                 {{ range .taskTypes }}
-                                    {{ if eq . "ARCHIVE" }}<option value="ARCHIVE">Archive</option>{{ end }}
-                                    {{ if eq . "EXTRACT" }}<option value="EXTRACT">Extract</option>{{ end }}
+                                    {{ if eq . "ARCHIVE" }}<option value="ARCHIVE" {{ if $.modalElement }}{{ if eq (index $.modalElement "addPostTaskType") "ARCHIVE" }}selected{{ end }}{{ end }}>Archive</option>{{ end }}
+                                    {{ if eq . "EXTRACT" }}<option value="EXTRACT" {{ if $.modalElement }}{{ if eq (index $.modalElement "addPostTaskType") "EXTRACT" }}selected{{ end }}{{ end }}>Extract</option>{{ end }}
                                 {{ end }}
                             </optgroup>
                             <optgroup label="{{ index .tab "network" }}">
                                 {{ range .taskTypes }}
-                                    {{ if eq . "ICAP" }}<option value="ICAP">ICAP (Beta)</option>{{ end }}
+                                    {{ if eq . "ICAP" }}<option value="ICAP" {{ if $.modalElement }}{{ if eq (index $.modalElement "addPostTaskType") "ICAP" }}selected{{ end }}{{ end }}>ICAP (Beta)</option>{{ end }}
                                 {{ end }}
                             </optgroup>
                             <optgroup label="{{ index .tab "cryptographicTask" }}">
                                 {{ range .taskTypes }}
-                                    {{ if eq . "ENCRYPT" }}<option value="ENCRYPT">Encrypt</option>{{ end }}
-                                    {{ if eq . "DECRYPT" }}<option value="DECRYPT">Decrypt</option>{{ end }}
-                                    {{ if eq . "SIGN" }}<option value="SIGN">Sign</option>{{ end }}
-                                    {{ if eq . "VERIFY" }}<option value="VERIFY">Verify</option>{{ end }}
-                                    {{ if eq . "ENCRYPT&SIGN" }}<option value="ENCRYPT&SIGN">Encrypt &amp; Sign</option>{{ end }}
-                                    {{ if eq . "DECRYPT&VERIFY" }}<option value="DECRYPT&VERIFY">Decrypt &amp; Verify</option>{{ end }}
+                                    {{ if eq . "ENCRYPT" }}<option value="ENCRYPT" {{ if $.modalElement }}{{ if eq (index $.modalElement "addPostTaskType") "ENCRYPT" }}selected{{ end }}{{ end }}>Encrypt</option>{{ end }}
+                                    {{ if eq . "DECRYPT" }}<option value="DECRYPT" {{ if $.modalElement }}{{ if eq (index $.modalElement "addPostTaskType") "DECRYPT" }}selected{{ end }}{{ end }}>Decrypt</option>{{ end }}
+                                    {{ if eq . "SIGN" }}<option value="SIGN" {{ if $.modalElement }}{{ if eq (index $.modalElement "addPostTaskType") "SIGN" }}selected{{ end }}{{ end }}>Sign</option>{{ end }}
+                                    {{ if eq . "VERIFY" }}<option value="VERIFY" {{ if $.modalElement }}{{ if eq (index $.modalElement "addPostTaskType") "VERIFY" }}selected{{ end }}{{ end }}>Verify</option>{{ end }}
+                                    {{ if eq . "ENCRYPT&SIGN" }}<option value="ENCRYPT&SIGN" {{ if $.modalElement }}{{ if eq (index $.modalElement "addPostTaskType") "ENCRYPT&SIGN" }}selected{{ end }}{{ end }}>Encrypt &amp; Sign</option>{{ end }}
+                                    {{ if eq . "DECRYPT&VERIFY" }}<option value="DECRYPT&VERIFY" {{ if $.modalElement }}{{ if eq (index $.modalElement "addPostTaskType") "DECRYPT&VERIFY" }}selected{{ end }}{{ end }}>Decrypt &amp; Verify</option>{{ end }}
                                 {{ end }}
                             </optgroup>
                         </select>
@@ -701,6 +702,7 @@
                                 <div class="modal-content">
                                 <form method="post" class="p-3 border rounded bg-light">
                                     <input type="hidden" name="editPostTaskRank" value="{{ .Rank }}">
+                                    {{ $me := and (eq $.modalOpen (printf "editPostTaskModal_%d" .Rank)) $.modalElement }}
                                     <div class="modal-header">
                                         <h5 class="modal-title" id="editPostTaskModalLabel_{{ .Rank }}">{{ index $.tab "edit" }}</h5>
                                         <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
@@ -708,79 +710,79 @@
                                     <div class="modal-body">
                                         <div class="form-input">
                                             <label class="col-form-label">{{ index $.tab "type" }} <i class="bi bi-info-circle ms-1" data-bs-toggle="tooltip" data-bs-placement="right" data-bs-title="{{ index $.tab "tooltipType" }}"></i> :</label>
-                                            <select name="editPostTaskType" id="editPostTaskType_{{ .Rank }}" class="form-select taskType-select" required>
+                                            <option value="" disabled {{ if $me }}{{ if eq (index $me "editPostTaskType") "" }}selected{{ end }}{{ end }}>{{ index $.tab "selectType" }}</option>
                                                 <option value="" disabled>{{ index $.tab "selectType" }}</option>
                                                 {{ $current := . }}
                                                 <optgroup label="{{ index $.tab "fileOperation" }}">
                                                     {{ range $.taskTypes }}
-                                                        {{ if eq . "COPY" }}<option value="COPY" {{ if eq $current.Type "COPY" }}selected{{ end }}>Copy</option>{{ end }}
-                                                        {{ if eq . "COPYRENAME" }}<option value="COPYRENAME" {{ if eq $current.Type "COPYRENAME" }}selected{{ end }}>Copy Rename</option>{{ end }}
-                                                        {{ if eq . "MOVE" }}<option value="MOVE" {{ if eq $current.Type "MOVE" }}selected{{ end }}>Move</option>{{ end }}
-                                                        {{ if eq . "MOVERENAME" }}<option value="MOVERENAME" {{ if eq $current.Type "MOVERENAME" }}selected{{ end }}>Move Rename</option>{{ end }}
-                                                        {{ if eq . "DELETE" }}<option value="DELETE" {{ if eq $current.Type "DELETE" }}selected{{ end }}>Delete</option>{{ end }}
+                                                        {{ if eq . "COPY" }}<option value="COPY" {{ if $me }}{{ if eq (index $me "editPostTaskType") "COPY" }}selected{{ end }}{{ else if eq $current.Type "COPY" }}selected{{ end }}>Copy</option>{{ end }}
+                                                        {{ if eq . "COPYRENAME" }}<option value="COPYRENAME" {{ if $me }}{{ if eq (index $me "editPostTaskType") "COPYRENAME" }}selected{{ end }}{{ else if eq $current.Type "COPYRENAME" }}selected{{ end }}>Copy Rename</option>{{ end }}
+                                                        {{ if eq . "MOVE" }}<option value="MOVE" {{ if $me }}{{ if eq (index $me "editPostTaskType") "MOVE" }}selected{{ end }}{{ else if eq $current.Type "MOVE" }}selected{{ end }}>Move</option>{{ end }}
+                                                        {{ if eq . "MOVERENAME" }}<option value="MOVERENAME" {{ if $me }}{{ if eq (index $me "editPostTaskType") "MOVERENAME" }}selected{{ end }}{{ else if eq $current.Type "MOVERENAME" }}selected{{ end }}>Move Rename</option>{{ end }}
+                                                        {{ if eq . "DELETE" }}<option value="DELETE" {{ if $me }}{{ if eq (index $me "editPostTaskType") "DELETE" }}selected{{ end }}{{ else if eq $current.Type "DELETE" }}selected{{ end }}>Delete</option>{{ end }}
                                                     {{ end }}
                                                 </optgroup>
                                                 <optgroup label="{{ index $.tab "executable" }}">
                                                     {{ range $.taskTypes }}
-                                                        {{ if eq . "EXEC" }}<option value="EXEC" {{ if eq $current.Type "EXEC" }}selected{{ end }}>Exec</option>{{ end }}
-                                                        {{ if eq . "EXECMOVE" }}<option value="EXECMOVE" {{ if eq $current.Type "EXECMOVE" }}selected{{ end }}>Exec Move</option>{{ end }}
-                                                        {{ if eq . "EXECOUTPUT" }}<option value="EXECOUTPUT" {{ if eq $current.Type "EXECOUTPUT" }}selected{{ end }}>Exec Output</option>{{ end }}
+                                                        {{ if eq . "EXEC" }}<option value="EXEC" {{ if $me }}{{ if eq (index $me "editPostTaskType") "EXEC" }}selected{{ end }}{{ else if eq $current.Type "EXEC" }}selected{{ end }}>Exec</option>{{ end }}
+                                                        {{ if eq . "EXECMOVE" }}<option value="EXECMOVE" {{ if $me }}{{ if eq (index $me "editPostTaskType") "EXECMOVE" }}selected{{ end }}{{ else if eq $current.Type "EXECMOVE" }}selected{{ end }}>Exec Move</option>{{ end }}
+                                                        {{ if eq . "EXECOUTPUT" }}<option value="EXECOUTPUT" {{ if $me }}{{ if eq (index $me "editPostTaskType") "EXECOUTPUT" }}selected{{ end }}{{ else if eq $current.Type "EXECOUTPUT" }}selected{{ end }}>Exec Output</option>{{ end }}
                                                     {{ end }}
                                                 </optgroup>
                                                 <optgroup label="{{ index $.tab "transfer" }}">
                                                     {{ range $.taskTypes }}
-                                                        {{ if eq . "TRANSFER" }}<option value="TRANSFER" {{ if eq $current.Type "TRANSFER" }}selected{{ end }}>Transfer</option>{{ end }}
-                                                        {{ if eq . "RENAME" }}<option value="RENAME" {{ if eq $current.Type "RENAME" }}selected{{ end }}>Rename</option>{{ end }}
+                                                        {{ if eq . "TRANSFER" }}<option value="TRANSFER" {{ if $me }}{{ if eq (index $me "editPostTaskType") "TRANSFER" }}selected{{ end }}{{ else if eq $current.Type "TRANSFER" }}selected{{ end }}>Transfer</option>{{ end }}
+                                                        {{ if eq . "RENAME" }}<option value="RENAME" {{ if $me }}{{ if eq (index $me "editPostTaskType") "RENAME" }}selected{{ end }}{{ else if eq $current.Type "RENAME" }}selected{{ end }}>Rename</option>{{ end }}
                                                     {{ end }}
                                                 </optgroup>
                                                 <optgroup label="{{ index $.tab "fileAlteration" }}">
                                                     {{ range $.taskTypes }}
-                                                        {{ if eq . "TRANSCODE" }}<option value="TRANSCODE" {{ if eq $current.Type "TRANSCODE" }}selected{{ end }}>Transcode</option>{{ end }}
+                                                        {{ if eq . "TRANSCODE" }}<option value="TRANSCODE" {{ if $me }}{{ if eq (index $me "editPostTaskType") "TRANSCODE" }}selected{{ end }}{{ else if eq $current.Type "TRANSCODE" }}selected{{ end }}>Transcode</option>{{ end }}
                                                     {{ end }}
                                                 </optgroup>
                                                 <optgroup label="{{ index $.tab "archivingAndCompression" }}">
                                                     {{ range $.taskTypes }}
-                                                        {{ if eq . "ARCHIVE" }}<option value="ARCHIVE" {{ if eq $current.Type "ARCHIVE" }}selected{{ end }}>Archive</option>{{ end }}
-                                                        {{ if eq . "EXTRACT" }}<option value="EXTRACT" {{ if eq $current.Type "EXTRACT" }}selected{{ end }}>Extract</option>{{ end }}
+                                                        {{ if eq . "ARCHIVE" }}<option value="ARCHIVE" {{ if $me }}{{ if eq (index $me "editPostTaskType") "ARCHIVE" }}selected{{ end }}{{ else if eq $current.Type "ARCHIVE" }}selected{{ end }}>Archive</option>{{ end }}
+                                                        {{ if eq . "EXTRACT" }}<option value="EXTRACT" {{ if $me }}{{ if eq (index $me "editPostTaskType") "EXTRACT" }}selected{{ end }}{{ else if eq $current.Type "EXTRACT" }}selected{{ end }}>Extract</option>{{ end }}
                                                     {{ end }}
                                                 </optgroup>
                                                 <optgroup label="{{ index $.tab "network" }}">
                                                     {{ range $.taskTypes }}
-                                                        {{ if eq . "ICAP" }}<option value="ICAP" {{ if eq $current.Type "ICAP" }}selected{{ end }}>ICAP (Beta)</option>{{ end }}
+                                                        {{ if eq . "ICAP" }}<option value="ICAP" {{ if $me }}{{ if eq (index $me "editPostTaskType") "ICAP" }}selected{{ end }}{{ else if eq $current.Type "ICAP" }}selected{{ end }}>ICAP (Beta)</option>{{ end }}
                                                     {{ end }}
                                                 </optgroup>
                                                 <optgroup label="{{ index $.tab "cryptographicTask" }}">
                                                     {{ range $.taskTypes }}
-                                                        {{ if eq . "ENCRYPT" }}<option value="ENCRYPT" {{ if eq $current.Type "ENCRYPT" }}selected{{ end }}>Encrypt</option>{{ end }}
-                                                        {{ if eq . "DECRYPT" }}<option value="DECRYPT" {{ if eq $current.Type "DECRYPT" }}selected{{ end }}>Decrypt</option>{{ end }}
-                                                        {{ if eq . "SIGN" }}<option value="SIGN" {{ if eq $current.Type "SIGN" }}selected{{ end }}>Sign</option>{{ end }}
-                                                        {{ if eq . "VERIFY" }}<option value="VERIFY" {{ if eq $current.Type "VERIFY" }}selected{{ end }}>Verify</option>{{ end }}
-                                                        {{ if eq . "ENCRYPT&SIGN" }}<option value="ENCRYPT&SIGN" {{ if eq $current.Type "ENCRYPT&SIGN" }}selected{{ end }}>Encrypt &amp; Sign</option>{{ end }}
-                                                        {{ if eq . "DECRYPT&VERIFY" }}<option value="DECRYPT&VERIFY" {{ if eq $current.Type "DECRYPT&VERIFY" }}selected{{ end }}>Decrypt &amp; Verify</option>{{ end }}
+                                                        {{ if eq . "ENCRYPT" }}<option value="ENCRYPT" {{ if $me }}{{ if eq (index $me "editPostTaskType") "ENCRYPT" }}selected{{ end }}{{ else if eq $current.Type "ENCRYPT" }}selected{{ end }}>Encrypt</option>{{ end }}
+                                                        {{ if eq . "DECRYPT" }}<option value="DECRYPT" {{ if $me }}{{ if eq (index $me "editPostTaskType") "DECRYPT" }}selected{{ end }}{{ else if eq $current.Type "DECRYPT" }}selected{{ end }}>Decrypt</option>{{ end }}
+                                                        {{ if eq . "SIGN" }}<option value="SIGN" {{ if $me }}{{ if eq (index $me "editPostTaskType") "SIGN" }}selected{{ end }}{{ else if eq $current.Type "SIGN" }}selected{{ end }}>Sign</option>{{ end }}
+                                                        {{ if eq . "VERIFY" }}<option value="VERIFY" {{ if $me }}{{ if eq (index $me "editPostTaskType") "VERIFY" }}selected{{ end }}{{ else if eq $current.Type "VERIFY" }}selected{{ end }}>Verify</option>{{ end }}
+                                                        {{ if eq . "ENCRYPT&SIGN" }}<option value="ENCRYPT&SIGN" {{ if $me }}{{ if eq (index $me "editPostTaskType") "ENCRYPT&SIGN" }}selected{{ end }}{{ else if eq $current.Type "ENCRYPT&SIGN" }}selected{{ end }}>Encrypt &amp; Sign</option>{{ end }}
+                                                        {{ if eq . "DECRYPT&VERIFY" }}<option value="DECRYPT&VERIFY" {{ if $me }}{{ if eq (index $me "editPostTaskType") "DECRYPT&VERIFY" }}selected{{ end }}{{ else if eq $current.Type "DECRYPT&VERIFY" }}selected{{ end }}>Decrypt &amp; Verify</option>{{ end }}
                                                     {{ end }}
                                                 </optgroup>
                                             </select>
                                         </div>
-                                        {{ template "editTaskCOPY" (dict "tab" $.tab "Args" $current.Args) }}
-                                        {{ template "editTaskCOPYRENAME" (dict "tab" $.tab "Args" $current.Args) }}
-                                        {{ template "editTaskDelete" (dict "tab" $.tab "Args" $current.Args) }}
-                                        {{ template "editTaskEXEC" (dict "tab" $.tab "Args" $current.Args) }}
-                                        {{ template "editTaskEXECMOVE" (dict "tab" $.tab "Args" $current.Args) }}
-                                        {{ template "editTaskEXECOUTPUT" (dict "tab" $.tab "Args" $current.Args) }}
-                                        {{ template "editTaskMOVE" (dict "tab" $.tab "Args" $current.Args) }}
-                                        {{ template "editTaskMOVERENAME" (dict "tab" $.tab "Args" $current.Args) }}
-                                        {{ template "editTaskRENAME" (dict "tab" $.tab "Args" $current.Args) }}
-                                        {{ template "editTaskTRANSFER" (dict "tab" $.tab "Args" $current.Args) }}
-                                        {{ template "editTaskTRANSCODE" (dict "tab" $.tab "TranscodeFormats" $.TranscodeFormats "Args" $current.Args) }}
-                                        {{ template "editTaskARCHIVE" (dict "tab" $.tab "ArchiveExtensions" $.ArchiveExtensions "CompressionLevelList" $.CompressionLevelList "Args" $current.Args) }}
-                                        {{ template "editTaskEXTRACT" (dict "tab" $.tab "ArchiveExtensions" $.ArchiveExtensions "Args" $current.Args) }}
-                                        {{ template "editTaskICAP" (dict "tab" $.tab "IcapOnErrorOptions" $.IcapOnErrorOptions "Args" $current.Args) }}
-                                        {{ template "editTaskENCRYPT" (dict "tab" $.tab "EncryptMethods" $.EncryptMethods "EncryptKeyTypes" $.EncryptKeyTypes "listAesKey" $.listAesKey "listHmacKey" $.listHmacKey "listPgpPubKey" $.listPgpPubKey "listPgpPrivKey" $.listPgpPrivKey "Args" $current.Args) }}
-                                        {{ template "editTaskDECRYPT" (dict "tab" $.tab "DecryptMethods" $.DecryptMethods "DecryptKeyTypes" $.DecryptKeyTypes "listAesKey" $.listAesKey "listHmacKey" $.listHmacKey "listPgpPubKey" $.listPgpPubKey "listPgpPrivKey" $.listPgpPrivKey "Args" $current.Args) }}
-                                        {{ template "editTaskSIGN" (dict "tab" $.tab "SignMethods" $.SignMethods "SignKeyTypes" $.SignKeyTypes "listAesKey" $.listAesKey "listHmacKey" $.listHmacKey "listPgpPubKey" $.listPgpPubKey "listPgpPrivKey" $.listPgpPrivKey "Args" $current.Args) }}
-                                        {{ template "editTaskVERIFY" (dict "tab" $.tab "VerifyMethods" $.VerifyMethods "VerifyKeyTypes" $.VerifyKeyTypes "listAesKey" $.listAesKey "listHmacKey" $.listHmacKey "listPgpPubKey" $.listPgpPubKey "listPgpPrivKey" $.listPgpPrivKey "Args" $current.Args) }}
-                                        {{ template "editTaskENCRYPT&SIGN" (dict "tab" $.tab "EncryptSignMethods" $.EncryptSignMethods "EncryptSignKeyTypes" $.EncryptSignKeyTypes "listAesKey" $.listAesKey "listHmacKey" $.listHmacKey "listPgpPubKey" $.listPgpPubKey "listPgpPrivKey" $.listPgpPrivKey "Args" $current.Args) }}
-                                        {{ template "editTaskDECRYPT&VERIFY" (dict "tab" $.tab "DecryptVerifyMethods" $.DecryptVerifyMethods "DecryptVerifyKeyTypes" $.DecryptVerifyKeyTypes "listAesKey" $.listAesKey "listHmacKey" $.listHmacKey "listPgpPubKey" $.listPgpPubKey "listPgpPrivKey" $.listPgpPrivKey "Args" $current.Args) }}
+                                        {{ template "editTaskCOPY" (dict "tab" $.tab "Args" $current.Args "modalElement" $me) }}
+                                        {{ template "editTaskCOPYRENAME" (dict "tab" $.tab "Args" $current.Args "modalElement" $me) }}
+                                        {{ template "editTaskDelete" (dict "tab" $.tab "Args" $current.Args "modalElement" $me) }}
+                                        {{ template "editTaskEXEC" (dict "tab" $.tab "Args" $current.Args "modalElement" $me) }}
+                                        {{ template "editTaskEXECMOVE" (dict "tab" $.tab "Args" $current.Args "modalElement" $me) }}
+                                        {{ template "editTaskEXECOUTPUT" (dict "tab" $.tab "Args" $current.Args "modalElement" $me) }}
+                                        {{ template "editTaskMOVE" (dict "tab" $.tab "Args" $current.Args "modalElement" $me) }}
+                                        {{ template "editTaskMOVERENAME" (dict "tab" $.tab "Args" $current.Args "modalElement" $me) }}
+                                        {{ template "editTaskRENAME" (dict "tab" $.tab "Args" $current.Args "modalElement" $me) }}
+                                        {{ template "editTaskTRANSFER" (dict "tab" $.tab "Args" $current.Args "modalElement" $me) }}
+                                        {{ template "editTaskTRANSCODE" (dict "tab" $.tab "TranscodeFormats" $.TranscodeFormats "Args" $current.Args "modalElement" $me) }}
+                                        {{ template "editTaskARCHIVE" (dict "tab" $.tab "ArchiveExtensions" $.ArchiveExtensions "CompressionLevelList" $.CompressionLevelList "Args" $current.Args "modalElement" $me) }}
+                                        {{ template "editTaskEXTRACT" (dict "tab" $.tab "ArchiveExtensions" $.ArchiveExtensions "Args" $current.Args "modalElement" $me) }}
+                                        {{ template "editTaskICAP" (dict "tab" $.tab "IcapOnErrorOptions" $.IcapOnErrorOptions "Args" $current.Args "modalElement" $me) }}
+                                        {{ template "editTaskENCRYPT" (dict "tab" $.tab "EncryptMethods" $.EncryptMethods "EncryptKeyTypes" $.EncryptKeyTypes "listAesKey" $.listAesKey "listHmacKey" $.listHmacKey "listPgpPubKey" $.listPgpPubKey "listPgpPrivKey" $.listPgpPrivKey "Args" $current.Args "modalElement" $me) }}
+                                        {{ template "editTaskDECRYPT" (dict "tab" $.tab "DecryptMethods" $.DecryptMethods "DecryptKeyTypes" $.DecryptKeyTypes "listAesKey" $.listAesKey "listHmacKey" $.listHmacKey "listPgpPubKey" $.listPgpPubKey "listPgpPrivKey" $.listPgpPrivKey "Args" $current.Args "modalElement" $me) }}
+                                        {{ template "editTaskSIGN" (dict "tab" $.tab "SignMethods" $.SignMethods "SignKeyTypes" $.SignKeyTypes "listAesKey" $.listAesKey "listHmacKey" $.listHmacKey "listPgpPubKey" $.listPgpPubKey "listPgpPrivKey" $.listPgpPrivKey "Args" $current.Args "modalElement" $me) }}
+                                        {{ template "editTaskVERIFY" (dict "tab" $.tab "VerifyMethods" $.VerifyMethods "VerifyKeyTypes" $.VerifyKeyTypes "listAesKey" $.listAesKey "listHmacKey" $.listHmacKey "listPgpPubKey" $.listPgpPubKey "listPgpPrivKey" $.listPgpPrivKey "Args" $current.Args "modalElement" $me) }}
+                                        {{ template "editTaskENCRYPT&SIGN" (dict "tab" $.tab "EncryptSignMethods" $.EncryptSignMethods "EncryptSignKeyTypes" $.EncryptSignKeyTypes "listAesKey" $.listAesKey "listHmacKey" $.listHmacKey "listPgpPubKey" $.listPgpPubKey "listPgpPrivKey" $.listPgpPrivKey "Args" $current.Args "modalElement" $me) }}
+                                        {{ template "editTaskDECRYPT&VERIFY" (dict "tab" $.tab "DecryptVerifyMethods" $.DecryptVerifyMethods "DecryptVerifyKeyTypes" $.DecryptVerifyKeyTypes "listAesKey" $.listAesKey "listHmacKey" $.listHmacKey "listPgpPubKey" $.listPgpPubKey "listPgpPrivKey" $.listPgpPrivKey "Args" $current.Args "modalElement" $me) }}
                                     </div>
                                     <div class="modal-footer">
                                         <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">{{ index $.tab "close" }}</button>
@@ -823,53 +825,53 @@
                     <div class="form-input">
                         <label class="col-form-label">{{ index .tab "type" }} <i class="bi bi-info-circle ms-1" data-bs-toggle="tooltip" data-bs-placement="right" data-bs-title="{{ index $.tab "tooltipType" }}"></i> :</label>
                         <select name="addErrorTaskType" id="addErrorTaskType" class="form-select taskType-select" required>
-                            <option value="" disabled selected>{{ index .tab "selectType" }}</option>
+                            <option value="" disabled {{ if $.modalElement }}{{ if eq (index $.modalElement "addErrorTaskType") "" }}selected{{ end }}{{ else }}selected{{ end }}>{{ index .tab "selectType" }}</option>
                             <optgroup label="{{ index .tab "fileOperation" }}">
                                 {{ range .taskTypes }}
-                                    {{ if eq . "COPY" }}<option value="COPY">Copy</option>{{ end }}
-                                    {{ if eq . "COPYRENAME" }}<option value="COPYRENAME">Copy Rename</option>{{ end }}
-                                    {{ if eq . "MOVE" }}<option value="MOVE">Move</option>{{ end }}
-                                    {{ if eq . "MOVERENAME" }}<option value="MOVERENAME">Move Rename</option>{{ end }}
-                                    {{ if eq . "DELETE" }}<option value="DELETE">Delete</option>{{ end }}
+                                    {{ if eq . "COPY" }}<option value="COPY" {{ if $.modalElement }}{{ if eq (index $.modalElement "addErrorTaskType") "COPY" }}selected{{ end }}{{ end }}>Copy</option>{{ end }}
+                                    {{ if eq . "COPYRENAME" }}<option value="COPYRENAME" {{ if $.modalElement }}{{ if eq (index $.modalElement "addErrorTaskType") "COPYRENAME" }}selected{{ end }}{{ end }}>Copy Rename</option>{{ end }}
+                                    {{ if eq . "MOVE" }}<option value="MOVE" {{ if $.modalElement }}{{ if eq (index $.modalElement "addErrorTaskType") "MOVE" }}selected{{ end }}{{ end }}>Move</option>{{ end }}
+                                    {{ if eq . "MOVERENAME" }}<option value="MOVERENAME" {{ if $.modalElement }}{{ if eq (index $.modalElement "addErrorTaskType") "MOVERENAME" }}selected{{ end }}{{ end }}>Move Rename</option>{{ end }}
+                                    {{ if eq . "DELETE" }}<option value="DELETE" {{ if $.modalElement }}{{ if eq (index $.modalElement "addErrorTaskType") "DELETE" }}selected{{ end }}{{ end }}>Delete</option>{{ end }}
                                 {{ end }}
                             </optgroup>
                             <optgroup label="{{ index .tab "executable" }}">
                                 {{ range .taskTypes }}
-                                    {{ if eq . "EXEC" }}<option value="EXEC">Exec</option>{{ end }}
-                                    {{ if eq . "EXECMOVE" }}<option value="EXECMOVE">Exec Move</option>{{ end }}
-                                    {{ if eq . "EXECOUTPUT" }}<option value="EXECOUTPUT">Exec Output</option>{{ end }}
+                                    {{ if eq . "EXEC" }}<option value="EXEC" {{ if $.modalElement }}{{ if eq (index $.modalElement "addErrorTaskType") "EXEC" }}selected{{ end }}{{ end }}>Exec</option>{{ end }}
+                                    {{ if eq . "EXECMOVE" }}<option value="EXECMOVE" {{ if $.modalElement }}{{ if eq (index $.modalElement "addErrorTaskType") "EXECMOVE" }}selected{{ end }}{{ end }}>Exec Move</option>{{ end }}
+                                    {{ if eq . "EXECOUTPUT" }}<option value="EXECOUTPUT" {{ if $.modalElement }}{{ if eq (index $.modalElement "addErrorTaskType") "EXECOUTPUT" }}selected{{ end }}{{ end }}>Exec Output</option>{{ end }}
                                 {{ end }}
                             </optgroup>
                             <optgroup label="{{ index .tab "transfer" }}">
                                 {{ range .taskTypes }}
-                                    {{ if eq . "TRANSFER" }}<option value="TRANSFER">Transfer</option>{{ end }}
-                                    {{ if eq . "RENAME" }}<option value="RENAME">Rename</option>{{ end }}
+                                    {{ if eq . "TRANSFER" }}<option value="TRANSFER" {{ if $.modalElement }}{{ if eq (index $.modalElement "addErrorTaskType") "TRANSFER" }}selected{{ end }}{{ end }}>Transfer</option>{{ end }}
+                                    {{ if eq . "RENAME" }}<option value="RENAME" {{ if $.modalElement }}{{ if eq (index $.modalElement "addErrorTaskType") "RENAME" }}selected{{ end }}{{ end }}>Rename</option>{{ end }}
                                 {{ end }}
                             </optgroup>
                             <optgroup label="{{ index .tab "fileAlteration" }}">
                                 {{ range .taskTypes }}
-                                    {{ if eq . "TRANSCODE" }}<option value="TRANSCODE">Transcode</option>{{ end }}
+                                    {{ if eq . "TRANSCODE" }}<option value="TRANSCODE" {{ if $.modalElement }}{{ if eq (index $.modalElement "addErrorTaskType") "TRANSCODE" }}selected{{ end }}{{ end }}>Transcode</option>{{ end }}
                                 {{ end }}
                             </optgroup>
                             <optgroup label="{{ index .tab "archivingAndCompression" }}">
                                 {{ range .taskTypes }}
-                                    {{ if eq . "ARCHIVE" }}<option value="ARCHIVE">Archive</option>{{ end }}
-                                    {{ if eq . "EXTRACT" }}<option value="EXTRACT">Extract</option>{{ end }}
+                                    {{ if eq . "ARCHIVE" }}<option value="ARCHIVE" {{ if $.modalElement }}{{ if eq (index $.modalElement "addErrorTaskType") "ARCHIVE" }}selected{{ end }}{{ end }}>Archive</option>{{ end }}
+                                    {{ if eq . "EXTRACT" }}<option value="EXTRACT" {{ if $.modalElement }}{{ if eq (index $.modalElement "addErrorTaskType") "EXTRACT" }}selected{{ end }}{{ end }}>Extract</option>{{ end }}
                                 {{ end }}
                             </optgroup>
                             <optgroup label="{{ index .tab "network" }}">
                                 {{ range .taskTypes }}
-                                    {{ if eq . "ICAP" }}<option value="ICAP">ICAP (Beta)</option>{{ end }}
+                                    {{ if eq . "ICAP" }}<option value="ICAP" {{ if $.modalElement }}{{ if eq (index $.modalElement "addErrorTaskType") "ICAP" }}selected{{ end }}{{ end }}>ICAP (Beta)</option>{{ end }}
                                 {{ end }}
                             </optgroup>
                             <optgroup label="{{ index .tab "cryptographicTask" }}">
                                 {{ range .taskTypes }}
-                                    {{ if eq . "ENCRYPT" }}<option value="ENCRYPT">Encrypt</option>{{ end }}
-                                    {{ if eq . "DECRYPT" }}<option value="DECRYPT">Decrypt</option>{{ end }}
-                                    {{ if eq . "SIGN" }}<option value="SIGN">Sign</option>{{ end }}
-                                    {{ if eq . "VERIFY" }}<option value="VERIFY">Verify</option>{{ end }}
-                                    {{ if eq . "ENCRYPT&SIGN" }}<option value="ENCRYPT&SIGN">Encrypt &amp; Sign</option>{{ end }}
-                                    {{ if eq . "DECRYPT&VERIFY" }}<option value="DECRYPT&VERIFY">Decrypt &amp; Verify</option>{{ end }}
+                                    {{ if eq . "ENCRYPT" }}<option value="ENCRYPT" {{ if $.modalElement }}{{ if eq (index $.modalElement "addErrorTaskType") "ENCRYPT" }}selected{{ end }}{{ end }}>Encrypt</option>{{ end }}
+                                    {{ if eq . "DECRYPT" }}<option value="DECRYPT" {{ if $.modalElement }}{{ if eq (index $.modalElement "addErrorTaskType") "DECRYPT" }}selected{{ end }}{{ end }}>Decrypt</option>{{ end }}
+                                    {{ if eq . "SIGN" }}<option value="SIGN" {{ if $.modalElement }}{{ if eq (index $.modalElement "addErrorTaskType") "SIGN" }}selected{{ end }}{{ end }}>Sign</option>{{ end }}
+                                    {{ if eq . "VERIFY" }}<option value="VERIFY" {{ if $.modalElement }}{{ if eq (index $.modalElement "addErrorTaskType") "VERIFY" }}selected{{ end }}{{ end }}>Verify</option>{{ end }}
+                                    {{ if eq . "ENCRYPT&SIGN" }}<option value="ENCRYPT&SIGN" {{ if $.modalElement }}{{ if eq (index $.modalElement "addErrorTaskType") "ENCRYPT&SIGN" }}selected{{ end }}{{ end }}>Encrypt &amp; Sign</option>{{ end }}
+                                    {{ if eq . "DECRYPT&VERIFY" }}<option value="DECRYPT&VERIFY" {{ if $.modalElement }}{{ if eq (index $.modalElement "addErrorTaskType") "DECRYPT&VERIFY" }}selected{{ end }}{{ end }}>Decrypt &amp; Verify</option>{{ end }}
                                 {{ end }}
                             </optgroup>
                         </select>
@@ -1094,6 +1096,7 @@
                                 <div class="modal-content">
                                 <form method="post" class="p-3 border rounded bg-light">
                                     <input type="hidden" name="editErrorTaskRank" value="{{ .Rank }}">
+                                    {{ $me := and (eq $.modalOpen (printf "editErrorTaskModal_%d" .Rank)) $.modalElement }}
                                     <div class="modal-header">
                                         <h5 class="modal-title" id="editErrorTaskModalLabel_{{ .Rank }}">{{ index $.tab "edit" }}</h5>
                                         <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
@@ -1102,78 +1105,78 @@
                                         <div class="form-input">
                                             <label class="col-form-label">{{ index $.tab "type" }} <i class="bi bi-info-circle ms-1" data-bs-toggle="tooltip" data-bs-placement="right" data-bs-title="{{ index $.tab "tooltipType" }}"></i> :</label>
                                             <select name="editErrorTaskType" id="editErrorTaskType_{{ .Rank }}" class="form-select taskType-select" required>
-                                                <option value="" disabled>{{ index $.tab "selectType" }}</option>
+                                                <option value="" disabled {{ if $me }}{{ if eq (index $me "editErrorTaskType") "" }}selected{{ end }}{{ end }}>{{ index $.tab "selectType" }}</option>
                                                 {{ $current := . }}
                                                 <optgroup label="{{ index $.tab "fileOperation" }}">
                                                     {{ range $.taskTypes }}
-                                                        {{ if eq . "COPY" }}<option value="COPY" {{ if eq $current.Type "COPY" }}selected{{ end }}>Copy</option>{{ end }}
-                                                        {{ if eq . "COPYRENAME" }}<option value="COPYRENAME" {{ if eq $current.Type "COPYRENAME" }}selected{{ end }}>Copy Rename</option>{{ end }}
-                                                        {{ if eq . "MOVE" }}<option value="MOVE" {{ if eq $current.Type "MOVE" }}selected{{ end }}>Move</option>{{ end }}
-                                                        {{ if eq . "MOVERENAME" }}<option value="MOVERENAME" {{ if eq $current.Type "MOVERENAME" }}selected{{ end }}>Move Rename</option>{{ end }}
-                                                        {{ if eq . "DELETE" }}<option value="DELETE" {{ if eq $current.Type "DELETE" }}selected{{ end }}>Delete</option>{{ end }}
+                                                        {{ if eq . "COPY" }}<option value="COPY" {{ if $me }}{{ if eq (index $me "editErrorTaskType") "COPY" }}selected{{ end }}{{ else if eq $current.Type "COPY" }}selected{{ end }}>Copy</option>{{ end }}
+                                                        {{ if eq . "COPYRENAME" }}<option value="COPYRENAME" {{ if $me }}{{ if eq (index $me "editErrorTaskType") "COPYRENAME" }}selected{{ end }}{{ else if eq $current.Type "COPYRENAME" }}selected{{ end }}>Copy Rename</option>{{ end }}
+                                                        {{ if eq . "MOVE" }}<option value="MOVE" {{ if $me }}{{ if eq (index $me "editErrorTaskType") "MOVE" }}selected{{ end }}{{ else if eq $current.Type "MOVE" }}selected{{ end }}>Move</option>{{ end }}
+                                                        {{ if eq . "MOVERENAME" }}<option value="MOVERENAME" {{ if $me }}{{ if eq (index $me "editErrorTaskType") "MOVERENAME" }}selected{{ end }}{{ else if eq $current.Type "MOVERENAME" }}selected{{ end }}>Move Rename</option>{{ end }}
+                                                        {{ if eq . "DELETE" }}<option value="DELETE" {{ if $me }}{{ if eq (index $me "editErrorTaskType") "DELETE" }}selected{{ end }}{{ else if eq $current.Type "DELETE" }}selected{{ end }}>Delete</option>{{ end }}
                                                     {{ end }}
                                                 </optgroup>
                                                 <optgroup label="{{ index $.tab "executable" }}">
                                                     {{ range $.taskTypes }}
-                                                        {{ if eq . "EXEC" }}<option value="EXEC" {{ if eq $current.Type "EXEC" }}selected{{ end }}>Exec</option>{{ end }}
-                                                        {{ if eq . "EXECMOVE" }}<option value="EXECMOVE" {{ if eq $current.Type "EXECMOVE" }}selected{{ end }}>Exec Move</option>{{ end }}
-                                                        {{ if eq . "EXECOUTPUT" }}<option value="EXECOUTPUT" {{ if eq $current.Type "EXECOUTPUT" }}selected{{ end }}>Exec Output</option>{{ end }}
+                                                        {{ if eq . "EXEC" }}<option value="EXEC" {{ if $me }}{{ if eq (index $me "editErrorTaskType") "EXEC" }}selected{{ end }}{{ else if eq $current.Type "EXEC" }}selected{{ end }}>Exec</option>{{ end }}
+                                                        {{ if eq . "EXECMOVE" }}<option value="EXECMOVE" {{ if $me }}{{ if eq (index $me "editErrorTaskType") "EXECMOVE" }}selected{{ end }}{{ else if eq $current.Type "EXECMOVE" }}selected{{ end }}>Exec Move</option>{{ end }}
+                                                        {{ if eq . "EXECOUTPUT" }}<option value="EXECOUTPUT" {{ if $me }}{{ if eq (index $me "editErrorTaskType") "EXECOUTPUT" }}selected{{ end }}{{ else if eq $current.Type "EXECOUTPUT" }}selected{{ end }}>Exec Output</option>{{ end }}
                                                     {{ end }}
                                                 </optgroup>
                                                 <optgroup label="{{ index $.tab "transfer" }}">
                                                     {{ range $.taskTypes }}
-                                                        {{ if eq . "TRANSFER" }}<option value="TRANSFER" {{ if eq $current.Type "TRANSFER" }}selected{{ end }}>Transfer</option>{{ end }}
-                                                        {{ if eq . "RENAME" }}<option value="RENAME" {{ if eq $current.Type "RENAME" }}selected{{ end }}>Rename</option>{{ end }}
+                                                        {{ if eq . "TRANSFER" }}<option value="TRANSFER" {{ if $me }}{{ if eq (index $me "editErrorTaskType") "TRANSFER" }}selected{{ end }}{{ else if eq $current.Type "TRANSFER" }}selected{{ end }}>Transfer</option>{{ end }}
+                                                        {{ if eq . "RENAME" }}<option value="RENAME" {{ if $me }}{{ if eq (index $me "editErrorTaskType") "RENAME" }}selected{{ end }}{{ else if eq $current.Type "RENAME" }}selected{{ end }}>Rename</option>{{ end }}
                                                     {{ end }}
                                                 </optgroup>
                                                 <optgroup label="{{ index $.tab "fileAlteration" }}">
                                                     {{ range $.taskTypes }}
-                                                        {{ if eq . "TRANSCODE" }}<option value="TRANSCODE" {{ if eq $current.Type "TRANSCODE" }}selected{{ end }}>Transcode</option>{{ end }}
+                                                        {{ if eq . "TRANSCODE" }}<option value="TRANSCODE" {{ if $me }}{{ if eq (index $me "editErrorTaskType") "TRANSCODE" }}selected{{ end }}{{ else if eq $current.Type "TRANSCODE" }}selected{{ end }}>Transcode</option>{{ end }}
                                                     {{ end }}
                                                 </optgroup>
                                                 <optgroup label="{{ index $.tab "archivingAndCompression" }}">
                                                     {{ range $.taskTypes }}
-                                                        {{ if eq . "ARCHIVE" }}<option value="ARCHIVE" {{ if eq $current.Type "ARCHIVE" }}selected{{ end }}>Archive</option>{{ end }}
-                                                        {{ if eq . "EXTRACT" }}<option value="EXTRACT" {{ if eq $current.Type "EXTRACT" }}selected{{ end }}>Extract</option>{{ end }}
+                                                        {{ if eq . "ARCHIVE" }}<option value="ARCHIVE" {{ if $me }}{{ if eq (index $me "editErrorTaskType") "ARCHIVE" }}selected{{ end }}{{ else if eq $current.Type "ARCHIVE" }}selected{{ end }}>Archive</option>{{ end }}
+                                                        {{ if eq . "EXTRACT" }}<option value="EXTRACT" {{ if $me }}{{ if eq (index $me "editErrorTaskType") "EXTRACT" }}selected{{ end }}{{ else if eq $current.Type "EXTRACT" }}selected{{ end }}>Extract</option>{{ end }}
                                                     {{ end }}
                                                 </optgroup>
                                                 <optgroup label="{{ index $.tab "network" }}">
                                                     {{ range $.taskTypes }}
-                                                        {{ if eq . "ICAP" }}<option value="ICAP" {{ if eq $current.Type "ICAP" }}selected{{ end }}>ICAP (Beta)</option>{{ end }}
+                                                        {{ if eq . "ICAP" }}<option value="ICAP" {{ if $me }}{{ if eq (index $me "editErrorTaskType") "ICAP" }}selected{{ end }}{{ else if eq $current.Type "ICAP" }}selected{{ end }}>ICAP (Beta)</option>{{ end }}
                                                     {{ end }}
                                                 </optgroup>
                                                 <optgroup label="{{ index $.tab "cryptographicTask" }}">
                                                     {{ range $.taskTypes }}
-                                                        {{ if eq . "ENCRYPT" }}<option value="ENCRYPT" {{ if eq $current.Type "ENCRYPT" }}selected{{ end }}>Encrypt</option>{{ end }}
-                                                        {{ if eq . "DECRYPT" }}<option value="DECRYPT" {{ if eq $current.Type "DECRYPT" }}selected{{ end }}>Decrypt</option>{{ end }}
-                                                        {{ if eq . "SIGN" }}<option value="SIGN" {{ if eq $current.Type "SIGN" }}selected{{ end }}>Sign</option>{{ end }}
-                                                        {{ if eq . "VERIFY" }}<option value="VERIFY" {{ if eq $current.Type "VERIFY" }}selected{{ end }}>Verify</option>{{ end }}
-                                                        {{ if eq . "ENCRYPT&SIGN" }}<option value="ENCRYPT&SIGN" {{ if eq $current.Type "ENCRYPT&SIGN" }}selected{{ end }}>Encrypt &amp; Sign</option>{{ end }}
-                                                        {{ if eq . "DECRYPT&VERIFY" }}<option value="DECRYPT&VERIFY" {{ if eq $current.Type "DECRYPT&VERIFY" }}selected{{ end }}>Decrypt &amp; Verify</option>{{ end }}
+                                                        {{ if eq . "ENCRYPT" }}<option value="ENCRYPT" {{ if $me }}{{ if eq (index $me "editErrorTaskType") "ENCRYPT" }}selected{{ end }}{{ else if eq $current.Type "ENCRYPT" }}selected{{ end }}>Encrypt</option>{{ end }}
+                                                        {{ if eq . "DECRYPT" }}<option value="DECRYPT" {{ if $me }}{{ if eq (index $me "editErrorTaskType") "DECRYPT" }}selected{{ end }}{{ else if eq $current.Type "DECRYPT" }}selected{{ end }}>Decrypt</option>{{ end }}
+                                                        {{ if eq . "SIGN" }}<option value="SIGN" {{ if $me }}{{ if eq (index $me "editErrorTaskType") "SIGN" }}selected{{ end }}{{ else if eq $current.Type "SIGN" }}selected{{ end }}>Sign</option>{{ end }}
+                                                        {{ if eq . "VERIFY" }}<option value="VERIFY" {{ if $me }}{{ if eq (index $me "editErrorTaskType") "VERIFY" }}selected{{ end }}{{ else if eq $current.Type "VERIFY" }}selected{{ end }}>Verify</option>{{ end }}
+                                                        {{ if eq . "ENCRYPT&SIGN" }}<option value="ENCRYPT&SIGN" {{ if $me }}{{ if eq (index $me "editErrorTaskType") "ENCRYPT&SIGN" }}selected{{ end }}{{ else if eq $current.Type "ENCRYPT&SIGN" }}selected{{ end }}>Encrypt &amp; Sign</option>{{ end }}
+                                                        {{ if eq . "DECRYPT&VERIFY" }}<option value="DECRYPT&VERIFY" {{ if $me }}{{ if eq (index $me "editErrorTaskType") "DECRYPT&VERIFY" }}selected{{ end }}{{ else if eq $current.Type "DECRYPT&VERIFY" }}selected{{ end }}>Decrypt &amp; Verify</option>{{ end }}
                                                     {{ end }}
                                                 </optgroup>
                                             </select>
                                         </div>
-                                        {{ template "editTaskCOPY" (dict "tab" $.tab "Args" $current.Args) }}
-                                        {{ template "editTaskCOPYRENAME" (dict "tab" $.tab "Args" $current.Args) }}
-                                        {{ template "editTaskDelete" (dict "tab" $.tab "Args" $current.Args) }}
-                                        {{ template "editTaskEXEC" (dict "tab" $.tab "Args" $current.Args) }}
-                                        {{ template "editTaskEXECMOVE" (dict "tab" $.tab "Args" $current.Args) }}
-                                        {{ template "editTaskEXECOUTPUT" (dict "tab" $.tab "Args" $current.Args) }}
-                                        {{ template "editTaskMOVE" (dict "tab" $.tab "Args" $current.Args) }}
-                                        {{ template "editTaskMOVERENAME" (dict "tab" $.tab "Args" $current.Args) }}
-                                        {{ template "editTaskRENAME" (dict "tab" $.tab "Args" $current.Args) }}
-                                        {{ template "editTaskTRANSFER" (dict "tab" $.tab "Args" $current.Args) }}
-                                        {{ template "editTaskTRANSCODE" (dict "tab" $.tab "TranscodeFormats" $.TranscodeFormats "Args" $current.Args) }}
-                                        {{ template "editTaskARCHIVE" (dict "tab" $.tab "ArchiveExtensions" $.ArchiveExtensions "CompressionLevelList" $.CompressionLevelList "Args" $current.Args) }}
-                                        {{ template "editTaskEXTRACT" (dict "tab" $.tab "ArchiveExtensions" $.ArchiveExtensions "Args" $current.Args) }}
-                                        {{ template "editTaskICAP" (dict "tab" $.tab "IcapOnErrorOptions" $.IcapOnErrorOptions "Args" $current.Args) }}
-                                        {{ template "editTaskENCRYPT" (dict "tab" $.tab "EncryptMethods" $.EncryptMethods "EncryptKeyTypes" $.EncryptKeyTypes "listAesKey" $.listAesKey "listHmacKey" $.listHmacKey "listPgpPubKey" $.listPgpPubKey "listPgpPrivKey" $.listPgpPrivKey "Args" $current.Args) }}
-                                        {{ template "editTaskDECRYPT" (dict "tab" $.tab "DecryptMethods" $.DecryptMethods "DecryptKeyTypes" $.DecryptKeyTypes "listAesKey" $.listAesKey "listHmacKey" $.listHmacKey "listPgpPubKey" $.listPgpPubKey "listPgpPrivKey" $.listPgpPrivKey "Args" $current.Args) }}
-                                        {{ template "editTaskSIGN" (dict "tab" $.tab "SignMethods" $.SignMethods "SignKeyTypes" $.SignKeyTypes "listAesKey" $.listAesKey "listHmacKey" $.listHmacKey "listPgpPubKey" $.listPgpPubKey "listPgpPrivKey" $.listPgpPrivKey "Args" $current.Args) }}
-                                        {{ template "editTaskVERIFY" (dict "tab" $.tab "VerifyMethods" $.VerifyMethods "VerifyKeyTypes" $.VerifyKeyTypes "listAesKey" $.listAesKey "listHmacKey" $.listHmacKey "listPgpPubKey" $.listPgpPubKey "listPgpPrivKey" $.listPgpPrivKey "Args" $current.Args) }}
-                                        {{ template "editTaskENCRYPT&SIGN" (dict "tab" $.tab "EncryptSignMethods" $.EncryptSignMethods "EncryptSignKeyTypes" $.EncryptSignKeyTypes "listAesKey" $.listAesKey "listHmacKey" $.listHmacKey "listPgpPubKey" $.listPgpPubKey "listPgpPrivKey" $.listPgpPrivKey "Args" $current.Args) }}
-                                        {{ template "editTaskDECRYPT&VERIFY" (dict "tab" $.tab "DecryptVerifyMethods" $.DecryptVerifyMethods "DecryptVerifyKeyTypes" $.DecryptVerifyKeyTypes "listAesKey" $.listAesKey "listHmacKey" $.listHmacKey "listPgpPubKey" $.listPgpPubKey "listPgpPrivKey" $.listPgpPrivKey "Args" $current.Args) }}
+                                        {{ template "editTaskCOPY" (dict "tab" $.tab "Args" $current.Args "modalElement" $me) }}
+                                        {{ template "editTaskCOPYRENAME" (dict "tab" $.tab "Args" $current.Args "modalElement" $me) }}
+                                        {{ template "editTaskDelete" (dict "tab" $.tab "Args" $current.Args "modalElement" $me) }}
+                                        {{ template "editTaskEXEC" (dict "tab" $.tab "Args" $current.Args "modalElement" $me) }}
+                                        {{ template "editTaskEXECMOVE" (dict "tab" $.tab "Args" $current.Args "modalElement" $me) }}
+                                        {{ template "editTaskEXECOUTPUT" (dict "tab" $.tab "Args" $current.Args "modalElement" $me) }}
+                                        {{ template "editTaskMOVE" (dict "tab" $.tab "Args" $current.Args "modalElement" $me) }}
+                                        {{ template "editTaskMOVERENAME" (dict "tab" $.tab "Args" $current.Args "modalElement" $me) }}
+                                        {{ template "editTaskRENAME" (dict "tab" $.tab "Args" $current.Args "modalElement" $me) }}
+                                        {{ template "editTaskTRANSFER" (dict "tab" $.tab "Args" $current.Args "modalElement" $me) }}
+                                        {{ template "editTaskTRANSCODE" (dict "tab" $.tab "TranscodeFormats" $.TranscodeFormats "Args" $current.Args "modalElement" $me) }}
+                                        {{ template "editTaskARCHIVE" (dict "tab" $.tab "ArchiveExtensions" $.ArchiveExtensions "CompressionLevelList" $.CompressionLevelList "Args" $current.Args "modalElement" $me) }}
+                                        {{ template "editTaskEXTRACT" (dict "tab" $.tab "ArchiveExtensions" $.ArchiveExtensions "Args" $current.Args "modalElement" $me) }}
+                                        {{ template "editTaskICAP" (dict "tab" $.tab "IcapOnErrorOptions" $.IcapOnErrorOptions "Args" $current.Args "modalElement" $me) }}
+                                        {{ template "editTaskENCRYPT" (dict "tab" $.tab "EncryptMethods" $.EncryptMethods "EncryptKeyTypes" $.EncryptKeyTypes "listAesKey" $.listAesKey "listHmacKey" $.listHmacKey "listPgpPubKey" $.listPgpPubKey "listPgpPrivKey" $.listPgpPrivKey "Args" $current.Args "modalElement" $me) }}
+                                        {{ template "editTaskDECRYPT" (dict "tab" $.tab "DecryptMethods" $.DecryptMethods "DecryptKeyTypes" $.DecryptKeyTypes "listAesKey" $.listAesKey "listHmacKey" $.listHmacKey "listPgpPubKey" $.listPgpPubKey "listPgpPrivKey" $.listPgpPrivKey "Args" $current.Args "modalElement" $me) }}
+                                        {{ template "editTaskSIGN" (dict "tab" $.tab "SignMethods" $.SignMethods "SignKeyTypes" $.SignKeyTypes "listAesKey" $.listAesKey "listHmacKey" $.listHmacKey "listPgpPubKey" $.listPgpPubKey "listPgpPrivKey" $.listPgpPrivKey "Args" $current.Args "modalElement" $me) }}
+                                        {{ template "editTaskVERIFY" (dict "tab" $.tab "VerifyMethods" $.VerifyMethods "VerifyKeyTypes" $.VerifyKeyTypes "listAesKey" $.listAesKey "listHmacKey" $.listHmacKey "listPgpPubKey" $.listPgpPubKey "listPgpPrivKey" $.listPgpPrivKey "Args" $current.Args "modalElement" $me) }}
+                                        {{ template "editTaskENCRYPT&SIGN" (dict "tab" $.tab "EncryptSignMethods" $.EncryptSignMethods "EncryptSignKeyTypes" $.EncryptSignKeyTypes "listAesKey" $.listAesKey "listHmacKey" $.listHmacKey "listPgpPubKey" $.listPgpPubKey "listPgpPrivKey" $.listPgpPrivKey "Args" $current.Args "modalElement" $me) }}
+                                        {{ template "editTaskDECRYPT&VERIFY" (dict "tab" $.tab "DecryptVerifyMethods" $.DecryptVerifyMethods "DecryptVerifyKeyTypes" $.DecryptVerifyKeyTypes "listAesKey" $.listAesKey "listHmacKey" $.listHmacKey "listPgpPubKey" $.listPgpPubKey "listPgpPrivKey" $.listPgpPrivKey "Args" $current.Args "modalElement" $me) }}
                                     </div>
                                     <div class="modal-footer">
                                         <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">{{ index $.tab "close" }}</button>
