@@ -60,7 +60,7 @@ func (c *clientTransfer) configureClient(config *PartnerConfig) *pipeline.Error 
 			config.DisableRestart.Valid, c.clientConf.DisableRestart))
 	}
 
-	if config.UseNSDU {
+	if config.UseNSDU.Valid && config.UseNSDU.Value {
 		c.client.SetNSDUUsage(true)
 	}
 

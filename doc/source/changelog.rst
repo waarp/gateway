@@ -3,6 +3,8 @@
 Historique des versions
 =======================
 
+* :bug:`-` L'option ``useNSDU`` de la configuration protocolaire des partenaires
+  PeSIT est désormais ``true`` par défaut.
 * :feature:`449` Les commandes d'import/export acceptent désormais les fichiers en
   format YAML. Si le fichier à importer ou exporter possède l'extension *.yml*
   ou *.yaml*, alors le format YAML sera utilisé au lieu du format JSON par défaut.

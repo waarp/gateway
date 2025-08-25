@@ -113,7 +113,7 @@ type PartnerConfig struct {
 
 	// UseNSDU specifies whether NSDU meta-packets should be used when making
 	// transfers with that partner. By default, NSDU packets are not used.
-	UseNSDU bool `json:"useNSDU"` //nolint:tagliatelle //does not recognize NSDU as an acronym
+	UseNSDU api.Nullable[bool] `json:"useNSDU"` //nolint:tagliatelle //does not recognize NSDU as an acronym
 	// The PeSIT compatibility mode to use when communicating with this partner.
 	// Accepted values are: "none" or "axway". Default is "none".
 	CompatibilityMode string `json:"compatibilityMode,omitempty"`
@@ -129,6 +129,10 @@ type PartnerConfig struct {
 func (p *PartnerConfig) ValidPartner() error {
 	if p.DisableCheckpoints.Valid && p.DisableCheckpoints.Value {
 		p.DisableRestart = api.Nullable[bool]{Value: true, Valid: true}
+	}
+
+	if !p.UseNSDU.Valid {
+		p.UseNSDU = api.NewNullable(true)
 	}
 
 	if p.CompatibilityMode == "" {
