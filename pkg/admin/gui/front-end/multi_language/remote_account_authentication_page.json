@@ -25,6 +25,7 @@
     "accesRight": { "fr": "Droits d'accès refusés", "en": "Access rights denied" },
     "pathGateway": { "fr": "Partenaire > Comptes distants > Authentification", "en": "Partner > Remote account > Authentication" },
     "undefined": { "fr": "<non définie>", "en": "<undefined>" },
+    "partner": { "fr": "partenaire", "en": "partner" },
     "close": { "fr": "Fermer", "en": "Close" },
     "filter": { "fr": "Filtres", "en": "Filters" },
     "search": { "fr": "Recherche", "en": "Search" },

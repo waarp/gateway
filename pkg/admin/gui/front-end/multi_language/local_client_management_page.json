@@ -29,7 +29,7 @@
     "state": { "fr": "État", "en": "State" },
     "reason": { "fr": "Raison", "en": "Reason" },
     "offline": { "fr": "Hors ligne", "en": "Offline" },
-    "running": { "fr": "En cours", "en": "Running" },
+    "running": { "fr": "En ligne", "en": "Running" },
     "error": { "fr": "Erreur", "en": "Error" },
     "pause": { "fr": "Pause", "en": "Pause" },
     "resume": { "fr": "Reprendre", "en": "Resume" },

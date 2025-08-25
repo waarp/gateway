@@ -44,7 +44,7 @@
     "done": { "fr": "Terminé", "en": "Done" },
     "error": { "fr": "Erreur", "en": "Error" },
     "planned": { "fr": "Prévu", "en": "Planned" },
-    "running": { "fr": "En cours", "en": "Running" },
+    "running": { "fr": "En ligne", "en": "Running" },
     "paused": { "fr": "En pause", "en": "Paused" },
     "interrupted": { "fr": "Interrompu", "en": "Interrupted" },
     "cancelled": { "fr": "Annulé", "en": "Cancelled" },

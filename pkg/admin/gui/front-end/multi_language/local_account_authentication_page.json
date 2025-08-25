@@ -29,6 +29,7 @@
     "filter": { "fr": "Filtres", "en": "Filters" },
     "search": { "fr": "Recherche", "en": "Search" },
     "apply": { "fr": "Appliquer", "en": "Apply" },
+    "server": { "fr": "serveur", "en": "server" },
     "nameStr": { "fr": "Nom", "en": "Name" },
     "sort": { "fr": "Trier par ordre alphabétique", "en": "Sort alphabetically" },
     "edit": { "fr": "Modifier", "en": "Edit" },
