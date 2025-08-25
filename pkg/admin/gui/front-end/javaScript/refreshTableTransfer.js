@@ -1,12 +1,14 @@
 function disposeAllTooltips () {
     document.querySelectorAll('[data-bs-toggle="tooltip"], button[title]').forEach(el => {
         const instance = bootstrap.Tooltip.getInstance(el);
-        if (instance) instance.dispose();
+        if (instance)
+            instance.dispose();
     });
     const helpTooltip = document.getElementById('tableHelpTooltip');
     if (helpTooltip) {
         const instance = bootstrap.Tooltip.getInstance(helpTooltip);
-        if (instance) instance.dispose();
+        if (instance)
+            instance.dispose();
     }
 }
 
@@ -38,9 +40,8 @@ function refreshTransfers () {
         const helpTooltip = document.getElementById('tableHelpTooltip');
         if (helpTooltip) {
             const instance = bootstrap.Tooltip.getOrCreateInstance(helpTooltip);
-            if (helpTooltip.matches(':hover')) {
+            if (helpTooltip.matches(':hover'))
                 instance.show();
-            }
         }
         document.querySelectorAll('input.form-control-plaintext, input.form-control-plaintext[readonly], input.form-control-plaintext[disabled]').forEach(function(input) {
             if (input.value === '<non définie>' || input.value === '<undefined>') {

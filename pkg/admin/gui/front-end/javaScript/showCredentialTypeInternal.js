@@ -4,27 +4,36 @@ function showCredentialTypeBlock(selectElem) {
     if (selectElem.classList.contains('add-credential-type-select')) {
         const passwordBlock = document.getElementById('addTextType');
         const fileBlock = document.getElementById('addFileType');
-        if (passwordBlock) passwordBlock.style.display = 'none';
-        if (fileBlock) fileBlock.style.display = 'none';
+        if (passwordBlock)
+            passwordBlock.style.display = 'none';
+        if (fileBlock)
+            fileBlock.style.display = 'none';
         if (val === 'password') {
-            if (passwordBlock) passwordBlock.style.display = 'block';
+            if (passwordBlock)
+                passwordBlock.style.display = 'block';
         } else if (val === 'trusted_tls_certificate' || val === 'ssh_public_key') {
-            if (fileBlock) fileBlock.style.display = 'block';
+            if (fileBlock)
+                fileBlock.style.display = 'block';
         }
     }
 
     if (selectElem.classList.contains('edit-credential-type-select')) {
         const modal = selectElem.closest('.modal');
-        if (!modal) return;
+        if (!modal)
+            return;
         const id = modal.id.replace('editCredentialInternalModal_', '');
         const passwordBlock = document.getElementById('editTextType_' + id);
         const fileBlock = document.getElementById('editFileType_' + id);
-        if (passwordBlock) passwordBlock.style.display = 'none';
-        if (fileBlock) fileBlock.style.display = 'none';
+        if (passwordBlock)
+            passwordBlock.style.display = 'none';
+        if (fileBlock)
+            fileBlock.style.display = 'none';
         if (val === 'password') {
-            if (passwordBlock) passwordBlock.style.display = 'block';
+            if (passwordBlock)
+                passwordBlock.style.display = 'block';
         } else if (val === 'trusted_tls_certificate' || val === 'ssh_public_key') {
-            if (fileBlock) fileBlock.style.display = 'block';
+            if (fileBlock)
+                fileBlock.style.display = 'block';
         }
     }
 }

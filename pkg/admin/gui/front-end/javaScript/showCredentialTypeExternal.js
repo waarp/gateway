@@ -6,19 +6,27 @@ function showCredentialTypeBlock(selectElem) {
         const fileBlock = document.getElementById('addFileType');
         const fileAndPwdBlock = document.getElementById('addTwoFileType');
         const loginAndPwdBlock = document.getElementById('addLoginAndPwdType');
-        if (passwordBlock) passwordBlock.style.display = 'none';
-        if (fileBlock) fileBlock.style.display = 'none';
-        if (fileAndPwdBlock) fileAndPwdBlock.style.display = 'none';
-        if (loginAndPwdBlock) loginAndPwdBlock.style.display = 'none';
+        if (passwordBlock)
+            passwordBlock.style.display = 'none';
+        if (fileBlock)
+            fileBlock.style.display = 'none';
+        if (fileAndPwdBlock)
+            fileAndPwdBlock.style.display = 'none';
+        if (loginAndPwdBlock)
+            loginAndPwdBlock.style.display = 'none';
 
         if (val === 'password') {
-            if (passwordBlock) passwordBlock.style.display = 'block';
+            if (passwordBlock)
+                passwordBlock.style.display = 'block';
         } else if (val === 'ssh_private_key') {
-            if (fileBlock) fileBlock.style.display = 'block';
+            if (fileBlock)
+                fileBlock.style.display = 'block';
         } else if (val === 'tls_certificate') {
-            if (fileAndPwdBlock) fileAndPwdBlock.style.display = 'block';
+            if (fileAndPwdBlock)
+                fileAndPwdBlock.style.display = 'block';
         } else if (val === 'pesit_pre-connection_auth') {
-            if (loginAndPwdBlock) loginAndPwdBlock.style.display = 'block';
+            if (loginAndPwdBlock)
+                loginAndPwdBlock.style.display = 'block';
         }
     }
 
@@ -30,19 +38,27 @@ function showCredentialTypeBlock(selectElem) {
         const fileBlock = document.getElementById('editFileType_' + id);
         const fileAndPwdBlock = document.getElementById('editTwoFileType_' + id);
         const loginAndPwdBlock = document.getElementById('editLoginAndPwdType_' + id);
-        if (passwordBlock) passwordBlock.style.display = 'none';
-        if (fileBlock) fileBlock.style.display = 'none';
-        if (fileAndPwdBlock) fileAndPwdBlock.style.display = 'none';
-        if (loginAndPwdBlock) loginAndPwdBlock.style.display = 'none';
+        if (passwordBlock)
+            passwordBlock.style.display = 'none';
+        if (fileBlock)
+            fileBlock.style.display = 'none';
+        if (fileAndPwdBlock)
+            fileAndPwdBlock.style.display = 'none';
+        if (loginAndPwdBlock)
+            loginAndPwdBlock.style.display = 'none';
 
         if (val === 'password') {
-            if (passwordBlock) passwordBlock.style.display = 'block';
+            if (passwordBlock)
+                passwordBlock.style.display = 'block';
         } else if (val === 'ssh_private_key') {
-            if (fileBlock) fileBlock.style.display = 'block';
+            if (fileBlock)
+                fileBlock.style.display = 'block';
         } else if (val === 'tls_certificate') {
-            if (fileAndPwdBlock) fileAndPwdBlock.style.display = 'block';
+            if (fileAndPwdBlock)
+                fileAndPwdBlock.style.display = 'block';
         } else if (val === 'pesit_pre-connection_auth') {
-            if (loginAndPwdBlock) loginAndPwdBlock.style.display = 'block';
+            if (loginAndPwdBlock)
+                loginAndPwdBlock.style.display = 'block';
         }
     }
 }

@@ -1,19 +1,19 @@
-document.addEventListener('DOMContentLoaded', function () {
-    const container = document.getElementById('container-usage-rights');
-    if (!container)
+document.addEventListener('DOMContentLoaded', () => {
+    const usageRightsContainer = document.getElementById('container-usage-rights');
+    if (!usageRightsContainer) 
         return;
 
-    const panels = Array.from(container.querySelectorAll('.no-anim-collapse'));
+    const usageRightsPanels = Array.from(usageRightsContainer.querySelectorAll('.no-anim-collapse'));
 
-    panels.forEach(panel =>
+    usageRightsPanels.forEach(panel =>
         bootstrap.Collapse.getOrCreateInstance(panel, { toggle: false }).hide()
     );
 
-    panels.forEach(panel => {
+    usageRightsPanels.forEach(panel => {
         panel.addEventListener('show.bs.collapse', () => {
-            panels.forEach(other => {
-                if (other !== panel && other.classList.contains('show')) {
-                    bootstrap.Collapse.getInstance(other).hide();
+            usageRightsPanels.forEach(otherPanel => {
+                if (otherPanel !== panel && otherPanel.classList.contains('show')) {
+                    bootstrap.Collapse.getInstance(otherPanel).hide();
                 }
             });
             panel.classList.add('animate');
@@ -24,11 +24,11 @@ document.addEventListener('DOMContentLoaded', function () {
         });
     });
 
-    const last = localStorage.getItem('lastOpenCollapseUsageRights');
-    if (last) {
-        const toOpen = document.getElementById(last);
-        if (toOpen) {
-            bootstrap.Collapse.getOrCreateInstance(toOpen, { toggle: false }).show();
+    const lastOpenPanelId = localStorage.getItem('lastOpenCollapseUsageRights');
+    if (lastOpenPanelId) {
+        const lastOpenPanel = document.getElementById(lastOpenPanelId);
+        if (lastOpenPanel) {
+            bootstrap.Collapse.getOrCreateInstance(lastOpenPanel, { toggle: false }).show();
         }
     }
 });

@@ -1,46 +1,54 @@
 document.addEventListener('DOMContentLoaded', () => {
     document.querySelectorAll('table tbody').forEach(tbody => {
-        const section   = tbody.closest('.no-anim-collapse');
-        if (!section)
+        const collapseSection = tbody.closest('.no-anim-collapse');
+        if (!collapseSection)
             return;
-        const controls  = section.querySelector('.dragControls');
-        const btnCancel = controls.querySelector('button.btn-secondary');
-        const btnApply  = controls.querySelector('button.btn-success');
-        let draggedRow  = null;
 
-        tbody.querySelectorAll('tr[draggable="true"]').forEach(tr => {
-            tr.style.cursor = 'grab';
+        const dragControls = collapseSection.querySelector('.dragControls');
+        const btnCancel = dragControls.querySelector('button.btn-secondary');
+        const btnApply = dragControls.querySelector('button.btn-success');
+        let draggedRow = null;
+
+        // grab cursor
+        tbody.querySelectorAll('tr[draggable="true"]').forEach(row => {
+            row.style.cursor = 'grab';
         });
 
+        // drag started
         tbody.addEventListener('dragstart', e => {
-            const tr = e.target.closest('tr[draggable="true"]');
-            if (!tr) return;
-            draggedRow = tr;
-            tr.style.cursor = 'grabbing';
+            const row = e.target.closest('tr[draggable="true"]');
+            if (!row)
+                return;
+            draggedRow = row;
+            row.style.cursor = 'grabbing';
             e.dataTransfer.setData('text/plain', '');
             e.dataTransfer.effectAllowed = 'move';
-            tr.classList.add('opacity-25');
-            controls.style.display = 'block';
+            row.classList.add('opacity-25');
+            dragControls.style.display = 'block';
         });
 
+        // drag over
         tbody.addEventListener('dragover', e => {
             e.preventDefault();
-            if (!draggedRow) return;
-            const target = e.target.closest('tr[draggable="true"]');
-            if (!target || target === draggedRow) return;
-            const rect  = target.getBoundingClientRect();
+            if (!draggedRow)
+                return;
+            const targetRow = e.target.closest('tr[draggable="true"]');
+            if (!targetRow || targetRow === draggedRow)
+                return;
+            const rect = targetRow.getBoundingClientRect();
             const after = (e.clientY - rect.top) > rect.height / 2;
-            after ? target.after(draggedRow) : target.before(draggedRow);
+            after ? targetRow.after(draggedRow) : targetRow.before(draggedRow);
         });
 
         tbody.addEventListener('drop', e => e.preventDefault());
 
         tbody.addEventListener('dragend', () => {
-            if (!draggedRow) return;
+            if (!draggedRow)
+                return;
             draggedRow.classList.remove('opacity-25');
             draggedRow.style.cursor = 'grab';
-            [...tbody.rows].forEach((tr, idx) => {
-                tr.dataset.rank = idx;
+            [...tbody.rows].forEach((row, idx) => {
+                row.dataset.rank = idx;
             });
             draggedRow = null;
         });
@@ -48,19 +56,19 @@ document.addEventListener('DOMContentLoaded', () => {
         btnCancel.addEventListener('click', () => location.reload());
 
         btnApply.addEventListener('click', () => {
-            const orderArr = Array.from(tbody.querySelectorAll('tr')).map(tr => tr.dataset.taskId);
+            const orderArr = Array.from(tbody.querySelectorAll('tr')).map(row => row.dataset.taskId);
             let fieldName = '';
-            switch (section.id) {
-                case 'preTasksCollapse':  fieldName = 'newOrderPreTasks';  break;
+            switch (collapseSection.id) {
+                case 'preTasksCollapse': fieldName = 'newOrderPreTasks'; break;
                 case 'postTasksCollapse': fieldName = 'newOrderPostTasks'; break;
-                case 'errorTasksCollapse':fieldName = 'newOrderErrorTasks';break;
+                case 'errorTasksCollapse': fieldName = 'newOrderErrorTasks'; break;
             }
-            const form  = document.createElement('form');
+            const form = document.createElement('form');
             form.method = 'post';
             form.action = window.location.pathname + window.location.search;
             const input = document.createElement('input');
-            input.type  = 'hidden';
-            input.name  = fieldName;
+            input.type = 'hidden';
+            input.name = fieldName;
             input.value = orderArr.join(',');
             form.appendChild(input);
             document.body.appendChild(form);
