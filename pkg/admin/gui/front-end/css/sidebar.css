@@ -110,3 +110,7 @@
 .sb-animate .btn-toggle::after {
   transition: transform .25s ease;
 }
+
+.sb-restoring #appSidebar {
+  visibility: hidden;
+}
