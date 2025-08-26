@@ -4,6 +4,7 @@ import (
 	"net/http"
 
 	"code.waarp.fr/apps/gateway/gateway/pkg/model/authentication/auth"
+	"code.waarp.fr/apps/gateway/gateway/pkg/protocols"
 	"code.waarp.fr/apps/gateway/gateway/pkg/protocols/modules/ftp"
 	httpconst "code.waarp.fr/apps/gateway/gateway/pkg/protocols/modules/http"
 	"code.waarp.fr/apps/gateway/gateway/pkg/protocols/modules/pesit"
@@ -52,11 +53,21 @@ func supportedProtocolExternal(protocol string) []string {
 	return supportedProtocolsExternal[protocol]
 }
 
+func getProtocolsList() []string {
+	var protocolsList []string
+	for protocol := range protocols.List {
+		protocolsList = append(protocolsList, protocol)
+	}
+
+	return protocolsList
+}
+
 //nolint:gochecknoglobals // Constant
 var (
 	TLSVersions            = []string{protoutils.TLSv10, protoutils.TLSv11, protoutils.TLSv12, protoutils.TLSv13}
 	CompatibilityModePeSIT = []string{pesit.CompatibilityModeStandard, pesit.CompatibilityModeNonStandard}
 	TLSRequirement         = []string{string(ftp.TLSOptional), string(ftp.TLSMandatory), string(ftp.TLSImplicit)}
+	ProtocolsList          = getProtocolsList()
 )
 
 func protocolsFilter(r *http.Request, filter *Filters) (*Filters, []string) {

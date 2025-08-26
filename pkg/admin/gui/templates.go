@@ -123,6 +123,15 @@ var funcs = template.FuncMap{
 			return ""
 		}
 	},
+	"in": func(list []string, val string) bool {
+		for _, v := range list {
+			if v == val {
+				return true
+			}
+		}
+
+		return false
+	},
 }
 
 func CombinedFuncMap(db *database.DB) template.FuncMap {

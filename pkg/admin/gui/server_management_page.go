@@ -415,6 +415,7 @@ func serverManagementPage(logger *log.Logger, db *database.DB) http.HandlerFunc 
 			"KeyExchanges":           sftp.ValidKeyExchanges,
 			"Ciphers":                sftp.ValidCiphers,
 			"MACs":                   sftp.ValidMACs,
+			"protocolsList":          ProtocolsList,
 			"errMsg":                 errMsg,
 			"modalOpen":              modalOpen,
 			"modalElement":           modalElement,
