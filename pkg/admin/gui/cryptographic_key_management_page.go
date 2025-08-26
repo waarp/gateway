@@ -6,6 +6,7 @@ import (
 	"code.waarp.fr/lib/log"
 
 	"code.waarp.fr/apps/gateway/gateway/pkg/database"
+	"code.waarp.fr/apps/gateway/gateway/pkg/model"
 )
 
 func cryptographicKeyManagementPage(logger *log.Logger, db *database.DB) http.HandlerFunc {
@@ -19,8 +20,11 @@ func cryptographicKeyManagementPage(logger *log.Logger, db *database.DB) http.Ha
 			logger.Errorf("Internal error: %v", err)
 		}
 
+		myPermission := model.MaskToPerms(user.Permissions)
+
 		if tmplErr := cryptographicKeyManagementTemplate.ExecuteTemplate(w, "cryptographic_key_management_page",
 			map[string]any{
+				"myPermission":           myPermission,
 				"tab":      tTranslated,
 				"username": user.Username,
 				"language": userLanguage,

@@ -6,6 +6,7 @@ import (
 	"code.waarp.fr/lib/log"
 
 	"code.waarp.fr/apps/gateway/gateway/pkg/database"
+	"code.waarp.fr/apps/gateway/gateway/pkg/model"
 )
 
 func managingAuthenticationAuthoritiesPage(logger *log.Logger, db *database.DB) http.HandlerFunc {
@@ -19,8 +20,11 @@ func managingAuthenticationAuthoritiesPage(logger *log.Logger, db *database.DB) 
 			logger.Errorf("Internal error: %v", err)
 		}
 
+		myPermission := model.MaskToPerms(user.Permissions)
+
 		if tmplErr := managingAuthenticationAuthoritiesTemplate.ExecuteTemplate(w, "managing_authentication_authorities_page",
 			map[string]any{
+				"myPermission":           myPermission,
 				"tab":      tTranslated,
 				"username": user.Username,
 				"language": userLanguage,
