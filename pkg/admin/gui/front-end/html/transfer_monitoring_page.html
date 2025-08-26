@@ -24,9 +24,9 @@
         <td>
           {{ if .IsServer }}
             {{ if .IsSend }}
-              <i class="bi bi-cloud-upload me-1" data-bs-toggle="tooltip" data-bs-title="{{ index $.tab "serverSend" }}"></i>
+              <i class="bi bi-cloud-download me-1" data-bs-toggle="tooltip" data-bs-title="{{ index $.tab "serverSend" }}"></i>
             {{ else }}
-              <i class="bi bi-cloud-download me-1" data-bs-toggle="tooltip" data-bs-title="{{ index $.tab "serverReceive" }}"></i>
+              <i class="bi bi-cloud-upload me-1" data-bs-toggle="tooltip" data-bs-title="{{ index $.tab "serverReceive" }}"></i>
             {{ end }}
           {{ else }}
             {{ if .IsSend }}
@@ -536,17 +536,12 @@
       <thead class="table-light">
         <tr>
             <th>
-              <i class="bi bi-question-circle"
-                id="tableHelpTooltip"
-                data-bs-toggle="tooltip"
-                data-bs-html="true"
-                data-bs-placement="right"
-                data-bs-title='
+              <i class="bi bi-question-circle" id="tableHelpTooltip" data-bs-toggle="tooltip" data-bs-html="true" data-bs-placement="right" data-bs-title='
                   <div>
                     <div><i class="bi bi-box-arrow-up me-2"></i><b>{{ index .tab "clientSend" }}</b> : {{ index .tab "tooltipClientSend" }}</div>
                     <div><i class="bi bi-box-arrow-in-down me-2"></i><b>{{ index .tab "clientReceive" }}</b> : {{ index .tab "tooltipClientReceive" }}</div>
-                    <div><i class="bi bi-cloud-upload me-2"></i><b>{{ index .tab "serverSend" }}</b> : {{ index .tab "tooltipServerSend" }}</div>
-                    <div><i class="bi bi-cloud-download me-2"></i><b>{{ index .tab "serverReceive" }}</b> : {{ index .tab "tooltipServerReceive" }}</div>
+                    <div><i class="bi bi-cloud-download me-2"></i><b>{{ index .tab "serverSend" }}</b> : {{ index .tab "tooltipServerSend" }}</div>
+                    <div><i class="bi bi-cloud-upload me-2"></i><b>{{ index .tab "serverReceive" }}</b> : {{ index .tab "tooltipServerReceive" }}</div>
                   </div>
                 '
                 style="cursor: help;"></i>

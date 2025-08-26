@@ -55,67 +55,63 @@
   </section>
 {{ end }}
 
-{{ if contains .myPermission.Rules "r" }}
-  <section id="treatment">
-    <h4>{{ index .tab "treatment_settings" }}</h4>
-    <div class="row g-3 mb-4">
-    {{ if contains .myPermission.Rules "r" }}
-      <div class="col-sm-4">
-        <a href="transfer_rules_management" class="text-decoration-none text-dark">
-          <div class="card text-center p-3">
-            <i class="bi bi-shuffle fs-2"></i>
-            <div>{{ index .tab "transfer_rules_management" }}</div>
-          </div>
-        </a>
-      </div>
-      {{ end }}
-      <div class="col-sm-4">
-        <a href="cryptographic_key_management" class="text-decoration-none text-dark">
-          <div class="card text-center p-3">
-            <i class="bi bi-key-fill fs-2"></i>
-            <div>{{ index .tab "cryptographic_key_management" }}</div>
-          </div>
-        </a>
-      </div>
+<section id="treatment">
+  <h4>{{ index .tab "treatment_settings" }}</h4>
+  <div class="row g-3 mb-4">
+  {{ if contains .myPermission.Rules "r" }}
+    <div class="col-sm-4">
+      <a href="transfer_rules_management" class="text-decoration-none text-dark">
+        <div class="card text-center p-3">
+          <i class="bi bi-shuffle fs-2"></i>
+          <div>{{ index .tab "transfer_rules_management" }}</div>
+        </div>
+      </a>
     </div>
-  </section>
-{{ end }}
+    {{ end }}
+    <div class="col-sm-4">
+      <a href="cryptographic_key_management" class="text-decoration-none text-dark">
+        <div class="card text-center p-3">
+          <i class="bi bi-key-fill fs-2"></i>
+          <div>{{ index .tab "cryptographic_key_management" }}</div>
+        </div>
+      </a>
+    </div>
+  </div>
+</section>
 
-{{ if or (contains .myPermission.Administration "r") (contains .myPermission.Transfers "r") }}
-  <section id="monitoring">
-    <h4>{{ index .tab "monitoring" }}</h4>
-    <div class="row g-3 mb-4">
-    {{ if contains .myPermission.Administration "r" }}
-      <div class="col-sm-4">
-        <a href="status_services" class="text-decoration-none text-dark">
-          <div class="card text-center p-3">
-            <i class="bi bi-list-check fs-2"></i>
-            <div>{{ index .tab "status_of_services" }}</div>
-          </div>
-        </a>
-      </div>
-    {{ end }}
-    {{ if contains .myPermission.Transfers "r" }}
-      <div class="col-sm-4">
-        <a href="transfer_monitoring" class="text-decoration-none text-dark">
-          <div class="card text-center p-3">
-            <i class="bi bi-arrow-left-right fs-2"></i>
-            <div>{{ index .tab "transfer_monitoring" }}</div>
-          </div>
-        </a>
-      </div>
-    {{ end }}
-      <div class="col-sm-4">
-        <a href="snmp_management" class="text-decoration-none text-dark">
-          <div class="card text-center p-3">
-            <i class="bi bi-diagram-3-fill fs-2"></i>
-            <div>{{ index .tab "snmp_management" }}</div>
-          </div>
-        </a>
-      </div>
+<section id="monitoring">
+  <h4>{{ index .tab "monitoring" }}</h4>
+  <div class="row g-3 mb-4">
+  {{ if contains .myPermission.Administration "r" }}
+    <div class="col-sm-4">
+      <a href="status_services" class="text-decoration-none text-dark">
+        <div class="card text-center p-3">
+          <i class="bi bi-list-check fs-2"></i>
+          <div>{{ index .tab "status_of_services" }}</div>
+        </div>
+      </a>
     </div>
-  </section>
-{{ end }}
+  {{ end }}
+  {{ if contains .myPermission.Transfers "r" }}
+    <div class="col-sm-4">
+      <a href="transfer_monitoring" class="text-decoration-none text-dark">
+        <div class="card text-center p-3">
+          <i class="bi bi-arrow-left-right fs-2"></i>
+          <div>{{ index .tab "transfer_monitoring" }}</div>
+        </div>
+      </a>
+    </div>
+  {{ end }}
+    <div class="col-sm-4">
+      <a href="snmp_management" class="text-decoration-none text-dark">
+        <div class="card text-center p-3">
+          <i class="bi bi-diagram-3-fill fs-2"></i>
+          <div>{{ index .tab "snmp_management" }}</div>
+        </div>
+      </a>
+    </div>
+  </div>
+</section>
 
 <section id="administration">
   <h4>{{ index .tab "administration" }}</h4>

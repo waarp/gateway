@@ -51,15 +51,33 @@
                 <label class="col-form-label">{{ index .tab "protocol" }} <i class="bi bi-info-circle ms-1" data-bs-toggle="tooltip" data-bs-placement="right" data-bs-title="{{ index $.tab "tooltipProtocol" }}"></i> :</label>
                 <select name="addServerProtocol" id="addServerProtocol" class="form-select protocolConfiguration-select" required>
                     <option value="" disabled {{ if not (index .modalElement "addServerProtocol") }}selected{{ end }}>{{ index .tab "selectProto" }}</option>
-                    <option value="r66" {{ if eq (index .modalElement "addServerProtocol") "r66" }}selected{{ end }}>R66</option>
-                    <option value="r66-tls" {{ if eq (index .modalElement "addServerProtocol") "r66-tls" }}selected{{ end }}>R66-TLS</option>
-                    <option value="sftp" {{ if eq (index .modalElement "addServerProtocol") "sftp" }}selected{{ end }}>SFTP</option>
-                    <option value="http" {{ if eq (index .modalElement "addServerProtocol") "http" }}selected{{ end }}>HTTP</option>
-                    <option value="https" {{ if eq (index .modalElement "addServerProtocol") "https" }}selected{{ end }}>HTTPS</option>
-                    <option value="ftp" {{ if eq (index .modalElement "addServerProtocol") "ftp" }}selected{{ end }}>FTP</option>
-                    <option value="ftps" {{ if eq (index .modalElement "addServerProtocol") "ftps" }}selected{{ end }}>FTPS</option>
-                    <option value="pesit" {{ if eq (index .modalElement "addServerProtocol") "pesit" }}selected{{ end }}>PeSIT</option>
-                    <option value="pesit-tls" {{ if eq (index .modalElement "addServerProtocol") "pesit-tls" }}selected{{ end }}>PeSIT-TLS</option>
+                    {{ if in $.protocolsList "r66" }}
+                        <option value="r66" {{ if eq (index .modalElement "addServerProtocol") "r66" }}selected{{ end }}>R66</option>
+                    {{ end }}
+                    {{ if in $.protocolsList "r66-tls" }}
+                        <option value="r66-tls" {{ if eq (index .modalElement "addServerProtocol") "r66-tls" }}selected{{ end }}>R66-TLS</option>
+                    {{ end }}
+                    {{ if in $.protocolsList "sftp" }}
+                        <option value="sftp" {{ if eq (index .modalElement "addServerProtocol") "sftp" }}selected{{ end }}>SFTP</option>
+                    {{ end }}
+                    {{ if in $.protocolsList "http" }}
+                        <option value="http" {{ if eq (index .modalElement "addServerProtocol") "http" }}selected{{ end }}>HTTP</option>
+                    {{ end }}
+                    {{ if in $.protocolsList "https" }}
+                        <option value="https" {{ if eq (index .modalElement "addServerProtocol") "https" }}selected{{ end }}>HTTPS</option>
+                    {{ end }}
+                    {{ if in $.protocolsList "ftp" }}
+                        <option value="ftp" {{ if eq (index .modalElement "addServerProtocol") "ftp" }}selected{{ end }}>FTP</option>
+                    {{ end }}
+                    {{ if in $.protocolsList "ftps" }}
+                        <option value="ftps" {{ if eq (index .modalElement "addServerProtocol") "ftps" }}selected{{ end }}>FTPS</option>
+                    {{ end }}
+                    {{ if in $.protocolsList "pesit" }}
+                        <option value="pesit" {{ if eq (index .modalElement "addServerProtocol") "pesit" }}selected{{ end }}>PeSIT</option>
+                    {{ end }}
+                    {{ if in $.protocolsList "pesit-tls" }}
+                        <option value="pesit-tls" {{ if eq (index .modalElement "addServerProtocol") "pesit-tls" }}selected{{ end }}>PeSIT-TLS</option>
+                    {{ end }}
                 </select>
                 </div>
 
@@ -349,15 +367,33 @@
                             <div class="form-input mt-4">
                             <label class="col-form-label">{{ index $.tab "protocol" }} <i class="bi bi-info-circle ms-1" data-bs-toggle="tooltip" data-bs-placement="right" data-bs-title="{{ index $.tab "tooltipProtocol" }}"></i> :</label>
                             <select name="editServerProtocol" class="form-select protocolConfiguration-select" required>
-                                <option value="r66" {{ if $me }}{{ if eq (index $me "editServerProtocol") "r66" }}selected{{ end }}{{ else if eq .Protocol "r66" }}selected{{ end }}>R66</option>
-                                <option value="r66-tls" {{ if $me }}{{ if eq (index $me "editServerProtocol") "r66-tls" }}selected{{ end }}{{ else if eq .Protocol "r66-tls" }}selected{{ end }}>R66-TLS</option>
-                                <option value="sftp" {{ if $me }}{{ if eq (index $me "editServerProtocol") "sftp" }}selected{{ end }}{{ else if eq .Protocol "sftp" }}selected{{ end }}>SFTP</option>
-                                <option value="http" {{ if $me }}{{ if eq (index $me "editServerProtocol") "http" }}selected{{ end }}{{ else if eq .Protocol "http" }}selected{{ end }}>HTTP</option>
-                                <option value="https" {{ if $me }}{{ if eq (index $me "editServerProtocol") "https" }}selected{{ end }}{{ else if eq .Protocol "https" }}selected{{ end }}>HTTPS</option>
-                                <option value="ftp" {{ if $me }}{{ if eq (index $me "editServerProtocol") "ftp" }}selected{{ end }}{{ else if eq .Protocol "ftp" }}selected{{ end }}>FTP</option>
-                                <option value="ftps" {{ if $me }}{{ if eq (index $me "editServerProtocol") "ftps" }}selected{{ end }}{{ else if eq .Protocol "ftps" }}selected{{ end }}>FTPS</option>
-                                <option value="pesit" {{ if $me }}{{ if eq (index $me "editServerProtocol") "pesit" }}selected{{ end }}{{ else if eq .Protocol "pesit" }}selected{{ end }}>PeSIT</option>
-                                <option value="pesit-tls" {{ if $me }}{{ if eq (index $me "editServerProtocol") "pesit-tls" }}selected{{ end }}{{ else if eq .Protocol "pesit-tls" }}selected{{ end }}>PeSIT-TLS</option>
+                                {{ if in $.protocolsList "r66" }}
+                                    <option value="r66" {{ if $me }}{{ if eq (index $me "editServerProtocol") "r66" }}selected{{ end }}{{ else if eq .Protocol "r66" }}selected{{ end }}>R66</option>
+                                {{ end }}
+                                {{ if in $.protocolsList "r66-tls" }}
+                                    <option value="r66-tls" {{ if $me }}{{ if eq (index $me "editServerProtocol") "r66-tls" }}selected{{ end }}{{ else if eq .Protocol "r66-tls" }}selected{{ end }}>R66-TLS</option>
+                                {{ end }}
+                                {{ if in $.protocolsList "sftp" }}
+                                    <option value="sftp" {{ if $me }}{{ if eq (index $me "editServerProtocol") "sftp" }}selected{{ end }}{{ else if eq .Protocol "sftp" }}selected{{ end }}>SFTP</option>
+                                {{ end }}
+                                {{ if in $.protocolsList "http" }}
+                                    <option value="http" {{ if $me }}{{ if eq (index $me "editServerProtocol") "http" }}selected{{ end }}{{ else if eq .Protocol "http" }}selected{{ end }}>HTTP</option>
+                                {{ end }}
+                                {{ if in $.protocolsList "https" }}
+                                    <option value="https" {{ if $me }}{{ if eq (index $me "editServerProtocol") "https" }}selected{{ end }}{{ else if eq .Protocol "https" }}selected{{ end }}>HTTPS</option>
+                                {{ end }}
+                                {{ if in $.protocolsList "ftp" }}
+                                    <option value="ftp" {{ if $me }}{{ if eq (index $me "editServerProtocol") "ftp" }}selected{{ end }}{{ else if eq .Protocol "ftp" }}selected{{ end }}>FTP</option>
+                                {{ end }}
+                                {{ if in $.protocolsList "ftps" }}
+                                    <option value="ftps" {{ if $me }}{{ if eq (index $me "editServerProtocol") "ftps" }}selected{{ end }}{{ else if eq .Protocol "ftps" }}selected{{ end }}>FTPS</option>
+                                {{ end }}
+                                {{ if in $.protocolsList "pesit" }}
+                                    <option value="pesit" {{ if $me }}{{ if eq (index $me "editServerProtocol") "pesit" }}selected{{ end }}{{ else if eq .Protocol "pesit" }}selected{{ end }}>PeSIT</option>
+                                {{ end }}
+                                {{ if in $.protocolsList "pesit-tls" }}
+                                    <option value="pesit-tls" {{ if $me }}{{ if eq (index $me "editServerProtocol") "pesit-tls" }}selected{{ end }}{{ else if eq .Protocol "pesit-tls" }}selected{{ end }}>PeSIT-TLS</option>
+                                {{ end }}
                             </select>
                             </div>
                             <hr style="border-top: 1px solid #ababab;">

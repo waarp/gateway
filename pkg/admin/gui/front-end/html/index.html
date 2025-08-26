@@ -8,14 +8,18 @@
     <link rel="icon" type="image/png" href="/webui/static/assets/icon_waarp.png">
     <script src="/webui/static/javaScript/undefined.js"></script>
     <script src="/webui/static/javaScript/sidebar.js" defer></script>
+    <script src="/webui/static/javaScript/tooltip.js"></script>
     {{ block "head" . }}{{ end }}
-    <img src="/webui/static/assets/Logo_Waarp_Banner.png" alt="Waarp Logo" class="logo-waarp">
   </head>
 
   <body class="bg-light">
   {{ template "header" . }}
   <div class="d-flex">
     {{ template "sidebar" . }}
+    <img src="/webui/static/assets/Logo_Waarp_Banner.png" alt="Waarp Logo" class="logo-waarp">
+    <a href="https://doc.waarp.org/waarp-gateway/latest/fr/" class="doc-waarp" aria-label="doc" data-bs-toggle="tooltip" data-bs-placement="top" target="_blank" title="{{ index .tab "docWaarp" }}">
+      <i class="bi bi-book"></i>
+    </a>
     <div class="flex-grow-1 p-3" id="mainContent">
       <div class="container">
         {{ block "content" . }}{{ end }}

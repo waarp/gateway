@@ -31,18 +31,6 @@
     border-radius: 13px;
 }
 
-.logo-waarp {
-    position: fixed;
-    right: 1%;
-    bottom: 1%;
-    z-index: -2000;
-    opacity: 0.5;
-    pointer-events: none;
-    width: 10%;
-    height: auto;
-    user-select: none;
-}
-
 .btn-task-border {
     border: 1px solid #e4e4e4 !important;
     box-shadow: none;
