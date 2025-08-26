@@ -2,6 +2,7 @@
     "userlogin": { "fr": "Connecté", "en": "Logged in" },
     "about": { "fr": "À propos", "en": "About" },
     "logout": { "fr": "Déconnexion", "en": "Logout" },
+    "docWaarp": { "fr": "Documentation Waarp", "en": "Waarp Documentation" },
     "connection_settings": { "fr": "Paramètres de connexion", "en": "Connection settings" },
     "treatment_settings": {"fr": "Paramètres des traitements", "en": "Treatment settings" },
     "monitoring": { "fr": "Supervision", "en": "Monitoring" },
