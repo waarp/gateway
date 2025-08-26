@@ -24,10 +24,10 @@ func managingConfigurationOverridesPage(logger *log.Logger, db *database.DB) htt
 
 		if tmplErr := managingConfigurationOverridesTemplate.ExecuteTemplate(w, "managing_configuration_overrides_page",
 			map[string]any{
-				"myPermission":           myPermission,
-				"tab":      tTranslated,
-				"username": user.Username,
-				"language": userLanguage,
+				"myPermission": myPermission,
+				"tab":          tTranslated,
+				"username":     user.Username,
+				"language":     userLanguage,
 			}); tmplErr != nil {
 			logger.Errorf("render managing_configuration_overrides_page: %v", tmplErr)
 			http.Error(w, "Internal error", http.StatusInternalServerError)

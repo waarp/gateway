@@ -24,10 +24,10 @@ func managingAuthenticationAuthoritiesPage(logger *log.Logger, db *database.DB) 
 
 		if tmplErr := managingAuthenticationAuthoritiesTemplate.ExecuteTemplate(w, "managing_authentication_authorities_page",
 			map[string]any{
-				"myPermission":           myPermission,
-				"tab":      tTranslated,
-				"username": user.Username,
-				"language": userLanguage,
+				"myPermission": myPermission,
+				"tab":          tTranslated,
+				"username":     user.Username,
+				"language":     userLanguage,
 			}); tmplErr != nil {
 			logger.Errorf("render managing_authentication_authorities_page: %v", tmplErr)
 			http.Error(w, "Internal error", http.StatusInternalServerError)

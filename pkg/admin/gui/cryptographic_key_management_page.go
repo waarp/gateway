@@ -24,10 +24,10 @@ func cryptographicKeyManagementPage(logger *log.Logger, db *database.DB) http.Ha
 
 		if tmplErr := cryptographicKeyManagementTemplate.ExecuteTemplate(w, "cryptographic_key_management_page",
 			map[string]any{
-				"myPermission":           myPermission,
-				"tab":      tTranslated,
-				"username": user.Username,
-				"language": userLanguage,
+				"myPermission": myPermission,
+				"tab":          tTranslated,
+				"username":     user.Username,
+				"language":     userLanguage,
 			}); tmplErr != nil {
 			logger.Errorf("render cryptographic_key_management_page: %v", tmplErr)
 			http.Error(w, "Internal error", http.StatusInternalServerError)

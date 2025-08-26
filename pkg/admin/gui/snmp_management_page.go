@@ -24,10 +24,10 @@ func snmpManagementPage(logger *log.Logger, db *database.DB) http.HandlerFunc {
 
 		if tmplErr := snmpManagementTemplate.ExecuteTemplate(w, "snmp_management_page",
 			map[string]any{
-				"myPermission":           myPermission,
-				"tab":      tTranslated,
-				"username": user.Username,
-				"language": userLanguage,
+				"myPermission": myPermission,
+				"tab":          tTranslated,
+				"username":     user.Username,
+				"language":     userLanguage,
 			}); tmplErr != nil {
 			logger.Errorf("render snmp_management_page: %v", tmplErr)
 			http.Error(w, "Internal error", http.StatusInternalServerError)
