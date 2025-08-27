@@ -92,6 +92,7 @@
         <form method="get" class="p-3 border rounded bg-light">
           <input type="hidden" name="serverID" value="{{ $.server.ID }}">
             <input type="hidden" name="accountID" value="{{ .account.ID }}">
+            <input type="hidden" name="applyFilters" value="true">
             <label class="ms-3">{{ index .tab "sort" }}:
             <select name="orderAsc" class="form-select d-inline w-auto">
                 <option value="true" {{ if .filter.OrderAsc }}selected{{ end }}>A → Z</option>
@@ -110,7 +111,7 @@
             </label>
             <div style="float:right">
               <button id="applyBtn" type="submit" class="btn btn-success">{{ index .tab "apply" }}</button>
-              <button id="resetBtn" type="button" class="btn btn-secondary ms-2" onclick="window.location='local_account_authentication?serverID={{ .server.ID }}&accountID={{ .account.ID }}'">{{ index .tab "reset" }}</button>
+              <button id="resetBtn" type="button" class="btn btn-secondary ms-2" onclick="window.location='local_account_authentication?serverID={{ .server.ID }}&accountID={{ .account.ID }}?clearFiltersPage=local_account_authentication_page'">{{ index .tab "reset" }}</button>
             </div>
         </form>
         </div>

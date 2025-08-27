@@ -20,12 +20,21 @@ func listCredentialLocalAccount(serverName, login string, db *database.DB, r *ht
 	[]*model.Credential, Filters, string,
 ) {
 	credentialAccountFound := ""
-	filter := Filters{
+	defaultFilter := Filters{
 		Offset:          0,
 		Limit:           DefaultLimitPagination,
 		OrderAsc:        true,
 		DisableNext:     false,
 		DisablePrevious: false,
+	}
+
+	filter := defaultFilter
+	if saved, ok := GetPageFilters(r, "local_account_authentication_page"); ok {
+		filter = saved
+	}
+
+	if r.URL.Query().Get("applyFilters") == True {
+		filter = defaultFilter
 	}
 
 	urlParams := r.URL.Query()
@@ -230,6 +239,7 @@ func deleteCredentialLocalAccount(account *model.LocalAccount, db *database.DB, 
 	return nil
 }
 
+//nolint:dupl // method local account authentication
 func callMethodsLocalAccountAuthentication(logger *log.Logger, db *database.DB, w http.ResponseWriter, r *http.Request,
 	server *model.LocalAgent, account *model.LocalAccount,
 ) (value bool, errMsg, modalOpen string, modalElement map[string]any) {
@@ -334,25 +344,33 @@ func localAccountAuthenticationPage(logger *log.Logger, db *database.DB) http.Ha
 		tTranslated := //nolint:forcetypeassert //u
 			pageTranslated("local_account_authentication_page", userLanguage.(string)) //nolint:errcheck //u
 
-		user, err := GetUserByToken(r, db)
-		if err != nil {
-			logger.Errorf("Internal error: %v", err)
-		}
-
-		myPermission := model.MaskToPerms(user.Permissions)
-
 		serverID := r.URL.Query().Get("serverID")
 		accountID := r.URL.Query().Get("accountID")
 		server, account := getServerAndAccount(db, serverID, accountID, logger)
 
 		credentials, filter, credentialAccountFound := listCredentialLocalAccount(server.Name, account.Login, db, r)
 
+		if pageName := r.URL.Query().Get("clearFiltersPage"); pageName != "" {
+			ClearPageFilters(r, pageName)
+			http.Redirect(w, r, r.URL.Path, http.StatusSeeOther)
+
+			return
+		}
+
+		PersistPageFilters(r, "local_account_authentication_page", &filter)
+
 		value, errMsg, modalOpen, modalElement := callMethodsLocalAccountAuthentication(logger, db, w, r, server, account)
 		if value {
 			return
 		}
 
+		user, err := GetUserByToken(r, db)
+		if err != nil {
+			logger.Errorf("Internal error: %v", err)
+		}
+
 		listSupportedProtocol := supportedProtocolInternal(server.Protocol)
+		myPermission := model.MaskToPerms(user.Permissions)
 		currentPage := filter.Offset + 1
 
 		if tmplErr := localAccountAuthenticationTemplate.ExecuteTemplate(w, "local_account_authentication_page",

@@ -179,12 +179,22 @@ func deleteServer(db *database.DB, r *http.Request) error {
 
 func listServer(db *database.DB, r *http.Request) ([]*model.LocalAgent, Filters, string) {
 	serverFound := ""
-	filter := Filters{
+	defaultFilter := Filters{
 		Offset:          0,
 		Limit:           DefaultLimitPagination,
 		OrderAsc:        true,
 		DisableNext:     false,
 		DisablePrevious: false,
+	}
+
+	filter := defaultFilter
+	if saved, ok := GetPageFilters(r, "server_management_page"); ok {
+		filter = saved
+	}
+
+	isApply := r.URL.Query().Get("applyFilters") == True
+	if isApply {
+		filter = defaultFilter
 	}
 
 	urlParams := r.URL.Query()
@@ -220,7 +230,7 @@ func listServer(db *database.DB, r *http.Request) ([]*model.LocalAgent, Filters,
 		return []*model.LocalAgent{searchServer(search, server)}, filter, serverFound
 	}
 
-	filtersPtr, filterProtocol := protocolsFilter(r, &filter)
+	filtersPtr, filterProtocol := checkProtocolsFilter(r, isApply, &filter)
 	paginationPage(&filter, uint64(len(server)), r)
 
 	if len(filterProtocol) > 0 {
@@ -380,6 +390,15 @@ func serverManagementPage(logger *log.Logger, db *database.DB) http.HandlerFunc 
 		userLanguage := r.Context().Value(ContextLanguageKey)
 		tabTranslated := pageTranslated("server_management_page", userLanguage.(string)) //nolint:errcheck,forcetypeassert //u
 		serverList, filter, serverFound := listServer(db, r)
+
+		if pageName := r.URL.Query().Get("clearFiltersPage"); pageName != "" {
+			ClearPageFilters(r, pageName)
+			http.Redirect(w, r, r.URL.Path, http.StatusSeeOther)
+
+			return
+		}
+
+		PersistPageFilters(r, "server_management_page", &filter)
 
 		value, errMsg, modalOpen, modalElement := callMethodsServerManagement(logger, db, w, r)
 		if value {

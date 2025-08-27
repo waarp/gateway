@@ -1,3 +1,4 @@
+//nolint:dupl // method local account management
 package gui
 
 import (
@@ -18,12 +19,21 @@ func listLocalAccount(serverName string, db *database.DB, r *http.Request) (
 	[]*model.LocalAccount, Filters, string,
 ) {
 	localAccountFound := ""
-	filter := Filters{
+	defaultFilter := Filters{
 		Offset:          0,
 		Limit:           DefaultLimitPagination,
 		OrderAsc:        true,
 		DisableNext:     false,
 		DisablePrevious: false,
+	}
+
+	filter := defaultFilter
+	if saved, ok := GetPageFilters(r, "local_account_management_page"); ok {
+		filter = saved
+	}
+
+	if r.URL.Query().Get("applyFilters") == True {
+		filter = defaultFilter
 	}
 
 	urlParams := r.URL.Query()
@@ -288,6 +298,15 @@ func localAccountPage(logger *log.Logger, db *database.DB) http.HandlerFunc {
 		}
 
 		localAccounts, filter, localAccountFound := listLocalAccount(server.Name, db, r)
+
+		if pageName := r.URL.Query().Get("clearFiltersPage"); pageName != "" {
+			ClearPageFilters(r, pageName)
+			http.Redirect(w, r, r.URL.Path, http.StatusSeeOther)
+
+			return
+		}
+
+		PersistPageFilters(r, "local_account_management_page", &filter)
 
 		value, errMsg, modalOpen, modalElement := callMethodsLocalAccount(logger, db, w, r, server)
 		if value {

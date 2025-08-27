@@ -237,9 +237,9 @@ func filterTransfer(filter *Filters, statuses []string, r *http.Request) {
 	}
 }
 
-//nolint:gocyclo,cyclop,funlen // all filter
+//nolint:gocyclo,cyclop,gocognit,funlen // all filter
 func listTransfer(db *database.DB, r *http.Request) ([]*model.NormalizedTransferView, Filters) {
-	filter := Filters{
+	defaultFilter := Filters{
 		Offset:            0,
 		Limit:             LimitTransfer,
 		OrderAsc:          false,
@@ -249,6 +249,15 @@ func listTransfer(db *database.DB, r *http.Request) ([]*model.NormalizedTransfer
 		Status:            Status{},
 		FilterRuleSend:    "",
 		FilterRuleReceive: "",
+	}
+
+	filter := defaultFilter
+	if saved, ok := GetPageFilters(r, "transfer_monitoring_page"); ok {
+		filter = saved
+	}
+
+	if r.URL.Query().Get("applyFilters") == True {
+		filter = defaultFilter
 	}
 
 	urlParams := r.URL.Query()
@@ -527,6 +536,15 @@ func transferMonitoringPage(logger *log.Logger, db *database.DB) http.HandlerFun
 		tabTranslated := //nolint:forcetypeassert //u
 			pageTranslated("transfer_monitoring_page", userLanguage.(string)) //nolint:errcheck //u
 		transferList, filter := listTransfer(db, r)
+
+		if pageName := r.URL.Query().Get("clearFiltersPage"); pageName != "" {
+			ClearPageFilters(r, pageName)
+			http.Redirect(w, r, r.URL.Path, http.StatusSeeOther)
+
+			return
+		}
+
+		PersistPageFilters(r, "transfer_monitoring_page", &filter)
 
 		value, errMsg, modalOpen, modalElement := callMethodsTransferMonitoring(logger, db, w, r)
 		if value {

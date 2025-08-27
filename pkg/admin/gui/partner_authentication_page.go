@@ -20,13 +20,23 @@ func listCredentialPartner(partnerName string, db *database.DB, r *http.Request)
 	[]*model.Credential, Filters, string,
 ) {
 	credentialPartnerFound := ""
-	filter := Filters{
+	defaultFilter := Filters{
 		Offset:          0,
 		Limit:           DefaultLimitPagination,
 		OrderAsc:        true,
 		DisableNext:     false,
 		DisablePrevious: false,
 	}
+
+	filter := defaultFilter
+	if saved, ok := GetPageFilters(r, "partner_authentication_page"); ok {
+		filter = saved
+	}
+
+	if r.URL.Query().Get("applyFilters") == True {
+		filter = defaultFilter
+	}
+
 	urlParams := r.URL.Query()
 
 	if urlParams.Get("orderAsc") != "" {
@@ -313,6 +323,15 @@ func partnerAuthenticationPage(logger *log.Logger, db *database.DB) http.Handler
 		}
 
 		partnersCredentials, filter, credentialPartnerFound := listCredentialPartner(partner.Name, db, r)
+
+		if pageName := r.URL.Query().Get("clearFiltersPage"); pageName != "" {
+			ClearPageFilters(r, pageName)
+			http.Redirect(w, r, r.URL.Path, http.StatusSeeOther)
+
+			return
+		}
+
+		PersistPageFilters(r, "partner_authentication_page", &filter)
 
 		value, errMsg, modalOpen, modalElement := callMethodsPartnerAuthentication(logger, db, w, r, partner)
 		if value {

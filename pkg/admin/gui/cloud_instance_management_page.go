@@ -20,13 +20,23 @@ var ListTypeCloudInstance = []string{
 
 func ListCLoudInstance(db *database.DB, r *http.Request) ([]*model.CloudInstance, Filters, string) {
 	cloudFound := ""
-	filter := Filters{
+	defaultFilter := Filters{
 		Offset:          0,
 		Limit:           DefaultLimitPagination,
 		OrderAsc:        true,
 		DisableNext:     false,
 		DisablePrevious: false,
 	}
+
+	filter := defaultFilter
+	if saved, ok := GetPageFilters(r, "cloud_instance_management_page"); ok {
+		filter = saved
+	}
+
+	if r.URL.Query().Get("applyFilters") == True {
+		filter = defaultFilter
+	}
+
 	urlParams := r.URL.Query()
 
 	if urlParams.Get("orderAsc") != "" {
@@ -60,7 +70,7 @@ func ListCLoudInstance(db *database.DB, r *http.Request) ([]*model.CloudInstance
 		return []*model.CloudInstance{searchCloudInstance(search, cloudInstance)}, filter, cloudFound
 	}
 
-	paginationPage(&filter, uint64(len(cloudFound)), r)
+	paginationPage(&filter, uint64(len(cloudInstance)), r)
 
 	cloudInstances, err := internal.ListClouds(db, "name",
 		filter.OrderAsc, int(filter.Limit), int(filter.Offset*filter.Limit))
@@ -290,6 +300,15 @@ func cloudInstanceManagementPage(logger *log.Logger, db *database.DB) http.Handl
 		tTranslated := //nolint:forcetypeassert //u
 			pageTranslated("cloud_instance_management_page", userLanguage.(string)) //nolint:errcheck //u
 		cloudInstanceList, filter, cloudFound := ListCLoudInstance(db, r)
+
+		if pageName := r.URL.Query().Get("clearFiltersPage"); pageName != "" {
+			ClearPageFilters(r, pageName)
+			http.Redirect(w, r, r.URL.Path, http.StatusSeeOther)
+
+			return
+		}
+
+		PersistPageFilters(r, "cloud_instance_management_page", &filter)
 
 		value, errMsg, modalOpen, modalElement := callMethodsCloudInstance(logger, db, w, r)
 		if value {

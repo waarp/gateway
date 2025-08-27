@@ -128,12 +128,21 @@ func deleteRule(db *database.DB, r *http.Request) error {
 
 func listRule(db *database.DB, r *http.Request) ([]*model.Rule, Filters, string) {
 	ruleFound := ""
-	filter := Filters{
+	defaultFilter := Filters{
 		Offset:          0,
 		Limit:           DefaultLimitPagination,
 		OrderAsc:        true,
 		DisableNext:     false,
 		DisablePrevious: false,
+	}
+
+	filter := defaultFilter
+	if saved, ok := GetPageFilters(r, "transfer_rules_management_page"); ok {
+		filter = saved
+	}
+
+	if r.URL.Query().Get("applyFilters") == True {
+		filter = defaultFilter
 	}
 
 	urlParams := r.URL.Query()
@@ -275,6 +284,15 @@ func ruleManagementPage(logger *log.Logger, db *database.DB) http.HandlerFunc {
 		tabTranslated := //nolint:forcetypeassert //u
 			pageTranslated("transfer_rules_management_page", userLanguage.(string)) //nolint:errcheck //u
 		ruleList, filter, ruleFound := listRule(db, r)
+
+		if pageName := r.URL.Query().Get("clearFiltersPage"); pageName != "" {
+			ClearPageFilters(r, pageName)
+			http.Redirect(w, r, r.URL.Path, http.StatusSeeOther)
+
+			return
+		}
+
+		PersistPageFilters(r, "transfer_rules_management_page", &filter)
 
 		value, errMsg, modalOpen, modalElement := callMethodsRuleManagement(logger, db, w, r)
 		if value {

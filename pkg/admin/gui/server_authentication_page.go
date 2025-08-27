@@ -22,12 +22,21 @@ func listCredentialServer(serverName string, db *database.DB, r *http.Request) (
 	[]*model.Credential, Filters, string,
 ) {
 	credentialServerFound := ""
-	filter := Filters{
+	defaultFilter := Filters{
 		Offset:          0,
 		Limit:           DefaultLimitPagination,
 		OrderAsc:        true,
 		DisableNext:     false,
 		DisablePrevious: false,
+	}
+
+	filter := defaultFilter
+	if saved, ok := GetPageFilters(r, "server_authentication_page"); ok {
+		filter = saved
+	}
+
+	if r.URL.Query().Get("applyFilters") == True {
+		filter = defaultFilter
 	}
 
 	urlParams := r.URL.Query()
@@ -333,6 +342,15 @@ func serverAuthenticationPage(logger *log.Logger, db *database.DB) http.HandlerF
 		}
 
 		serversCredentials, filter, credentialServerFound := listCredentialServer(server.Name, db, r)
+
+		if pageName := r.URL.Query().Get("clearFiltersPage"); pageName != "" {
+			ClearPageFilters(r, pageName)
+			http.Redirect(w, r, r.URL.Path, http.StatusSeeOther)
+
+			return
+		}
+
+		PersistPageFilters(r, "server_authentication_page", &filter)
 
 		value, errMsg, modalOpen, modalElement := callMethodsServerAuthentication(logger, db, w, r, server)
 		if value {

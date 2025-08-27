@@ -1,3 +1,4 @@
+//nolint:dupl // method remote account management
 package gui
 
 import (
@@ -18,12 +19,21 @@ func listRemoteAccount(partnerName string, db *database.DB, r *http.Request) (
 	[]*model.RemoteAccount, Filters, string,
 ) {
 	remoteAccountFound := ""
-	filter := Filters{
+	defaultFilter := Filters{
 		Offset:          0,
 		Limit:           DefaultLimitPagination,
 		OrderAsc:        true,
 		DisableNext:     false,
 		DisablePrevious: false,
+	}
+
+	filter := defaultFilter
+	if saved, ok := GetPageFilters(r, "remote_account_management_page"); ok {
+		filter = saved
+	}
+
+	if r.URL.Query().Get("applyFilters") == True {
+		filter = defaultFilter
 	}
 
 	urlParams := r.URL.Query()
@@ -288,6 +298,15 @@ func remoteAccountPage(logger *log.Logger, db *database.DB) http.HandlerFunc {
 		}
 
 		remoteAccounts, filter, remoteAccountFound := listRemoteAccount(partner.Name, db, r)
+
+		if pageName := r.URL.Query().Get("clearFiltersPage"); pageName != "" {
+			ClearPageFilters(r, pageName)
+			http.Redirect(w, r, r.URL.Path, http.StatusSeeOther)
+
+			return
+		}
+
+		PersistPageFilters(r, "remote_account_management_page", &filter)
 
 		value, errMsg, modalOpen, modalElement := callMethodsRemoteAccount(logger, db, w, r, partner)
 		if value {

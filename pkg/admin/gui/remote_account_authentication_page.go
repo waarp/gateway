@@ -21,12 +21,21 @@ func listCredentialRemoteAccount(partnerName, login string, db *database.DB, r *
 	[]*model.Credential, Filters, string,
 ) {
 	credentialAccountFound := ""
-	filter := Filters{
+	defaultFilter := Filters{
 		Offset:          0,
 		Limit:           DefaultLimitPagination,
 		OrderAsc:        true,
 		DisableNext:     false,
 		DisablePrevious: false,
+	}
+
+	filter := defaultFilter
+	if saved, ok := GetPageFilters(r, "remote_account_authentication_page"); ok {
+		filter = saved
+	}
+
+	if r.URL.Query().Get("applyFilters") == True {
+		filter = defaultFilter
 	}
 
 	urlParams := r.URL.Query()
@@ -243,6 +252,7 @@ func deleteCredentialRemoteAccount(account *model.RemoteAccount, db *database.DB
 	return nil
 }
 
+//nolint:dupl // method remote account authentication
 func callMethodsRemoteAccountAuthentication(logger *log.Logger, db *database.DB, w http.ResponseWriter, r *http.Request,
 	partner *model.RemoteAgent, account *model.RemoteAccount,
 ) (value bool, errMsg, modalOpen string, modalElement map[string]any) {
@@ -359,6 +369,15 @@ func remoteAccountAuthenticationPage(logger *log.Logger, db *database.DB) http.H
 		partner, account := getPartnerAndAccount(db, partnerID, accountID, logger)
 
 		credentials, filter, credentialAccountFound := listCredentialRemoteAccount(partner.Name, account.Login, db, r)
+
+		if pageName := r.URL.Query().Get("clearFiltersPage"); pageName != "" {
+			ClearPageFilters(r, pageName)
+			http.Redirect(w, r, r.URL.Path, http.StatusSeeOther)
+
+			return
+		}
+
+		PersistPageFilters(r, "remote_account_authentication_page", &filter)
 
 		value, errMsg, modalOpen, modalElement := callMethodsRemoteAccountAuthentication(logger, db, w, r, partner, account)
 		if value {

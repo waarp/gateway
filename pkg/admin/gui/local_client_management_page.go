@@ -148,12 +148,22 @@ func deleteLocalClient(db *database.DB, r *http.Request) error {
 
 func listLocalClient(db *database.DB, r *http.Request) ([]*model.Client, Filters, string) {
 	localClientFound := ""
-	filter := Filters{
+	defaultFilter := Filters{
 		Offset:          0,
 		Limit:           DefaultLimitPagination,
 		OrderAsc:        true,
 		DisableNext:     false,
 		DisablePrevious: false,
+	}
+
+	filter := defaultFilter
+	if saved, ok := GetPageFilters(r, "local_client_management_page"); ok {
+		filter = saved
+	}
+
+	isApply := r.URL.Query().Get("applyFilters") == True
+	if isApply {
+		filter = defaultFilter
 	}
 
 	urlParams := r.URL.Query()
@@ -188,7 +198,7 @@ func listLocalClient(db *database.DB, r *http.Request) ([]*model.Client, Filters
 
 		return []*model.Client{searchLocalClient(search, localClient)}, filter, localClientFound
 	}
-	filtersPtr, filterProtocol := protocolsFilter(r, &filter)
+	filtersPtr, filterProtocol := checkProtocolsFilter(r, isApply, &filter)
 	paginationPage(&filter, uint64(len(localClient)), r)
 
 	if len(filterProtocol) > 0 {
@@ -350,6 +360,15 @@ func localClientManagementPage(logger *log.Logger, db *database.DB) http.Handler
 		tabTranslated := //nolint:forcetypeassert //u
 			pageTranslated("local_client_management_page", userLanguage.(string)) //nolint:errcheck //u
 		localClientList, filter, localClientFound := listLocalClient(db, r)
+
+		if pageName := r.URL.Query().Get("clearFiltersPage"); pageName != "" {
+			ClearPageFilters(r, pageName)
+			http.Redirect(w, r, r.URL.Path, http.StatusSeeOther)
+
+			return
+		}
+
+		PersistPageFilters(r, "local_client_management_page", &filter)
 
 		value, errMsg, modalOpen, modalElement := callMethodsLocalClientManagement(logger, db, w, r)
 		if value {

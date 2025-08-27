@@ -25,6 +25,63 @@ type Protocols struct {
 	PeSITTLS string
 }
 
+func applyProtocolsFilter(filter *Filters) []string {
+	var filterProtocol []string
+	if filter.Protocols.R66 == True {
+		filterProtocol = append(filterProtocol, r66.R66)
+	}
+
+	if filter.Protocols.R66TLS == True {
+		filterProtocol = append(filterProtocol, r66.R66TLS)
+	}
+
+	if filter.Protocols.SFTP == True {
+		filterProtocol = append(filterProtocol, sftp.SFTP)
+	}
+
+	if filter.Protocols.HTTP == True {
+		filterProtocol = append(filterProtocol, httpconst.HTTP)
+	}
+
+	if filter.Protocols.HTTPS == True {
+		filterProtocol = append(filterProtocol, httpconst.HTTPS)
+	}
+
+	if filter.Protocols.FTP == True {
+		filterProtocol = append(filterProtocol, ftp.FTP)
+	}
+
+	if filter.Protocols.FTPS == True {
+		filterProtocol = append(filterProtocol, ftp.FTPS)
+	}
+
+	if filter.Protocols.PeSIT == True {
+		filterProtocol = append(filterProtocol, pesit.Pesit)
+	}
+
+	if filter.Protocols.PeSITTLS == True {
+		filterProtocol = append(filterProtocol, pesit.PesitTLS)
+	}
+
+	return filterProtocol
+}
+
+func checkProtocolsFilter(r *http.Request, isApply bool, filter *Filters) (*Filters, []string) {
+	urlParams := r.URL.Query()
+	hasProtoParams := urlParams.Has("filterProtocolR66") ||
+		urlParams.Has("filterProtocolR66-TLS") || urlParams.Has("filterProtocolSFTP") ||
+		urlParams.Has("filterProtocolHTTP") || urlParams.Has("filterProtocolHTTPS") ||
+		urlParams.Has("filterProtocolFTP") || urlParams.Has("filterProtocolFTPS") ||
+		urlParams.Has("filterProtocolPeSIT") || urlParams.Has("filterProtocolPeSIT-TLS")
+
+	if isApply || hasProtoParams {
+		return protocolsFilter(r, filter)
+	}
+	filterProtocol := applyProtocolsFilter(filter)
+
+	return filter, filterProtocol
+}
+
 func supportedProtocolInternal(protocol string) []string {
 	supportedProtocolsInternal := map[string][]string{
 		r66.R66:         {auth.Password},

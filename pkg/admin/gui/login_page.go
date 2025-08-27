@@ -22,14 +22,16 @@ type Session struct {
 	Token      string
 	UserID     int
 	Expiration time.Time
+	Filters    filtersCookieMap
 }
 
 const validTimeToken = 20 * time.Minute
 
 //nolint:gochecknoglobals // secretKey & sessionStore
 var (
-	secretKey    = CreateSecretKey()
-	sessionStore sync.Map
+	secretKey        = CreateSecretKey()
+	sessionStore     sync.Map
+	userFiltersStore sync.Map
 )
 
 //nolint:gochecknoinits // init
@@ -142,10 +144,19 @@ func CreateSession(userID int, validTime time.Duration) (token string, err error
 	if err != nil {
 		return "", err
 	}
+
+	sessionFilters := make(filtersCookieMap)
+	if value, ok := userFiltersStore.Load(userID); ok {
+		if cookieMap, hasValue := value.(filtersCookieMap); hasValue {
+			sessionFilters = cookieMap
+		}
+	}
+
 	session := Session{
 		Token:      token,
 		UserID:     userID,
 		Expiration: time.Now().Add(validTime),
+		Filters:    sessionFilters,
 	}
 	sessionStore.Store(token, session)
 

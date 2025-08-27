@@ -122,13 +122,24 @@ func addPartner(db *database.DB, r *http.Request) error {
 
 func ListPartner(db *database.DB, r *http.Request) ([]*model.RemoteAgent, Filters, string) {
 	partnerFound := ""
-	filter := Filters{
+	defaultFilter := Filters{
 		Offset:          0,
 		Limit:           DefaultLimitPagination,
 		OrderAsc:        true,
 		DisableNext:     false,
 		DisablePrevious: false,
 	}
+
+	filter := defaultFilter
+	if saved, ok := GetPageFilters(r, "partner_management_page"); ok {
+		filter = saved
+	}
+
+	isApply := r.URL.Query().Get("applyFilters") == True
+	if isApply {
+		filter = defaultFilter
+	}
+
 	urlParams := r.URL.Query()
 
 	if urlParams.Get("orderAsc") != "" {
@@ -162,7 +173,7 @@ func ListPartner(db *database.DB, r *http.Request) ([]*model.RemoteAgent, Filter
 		return []*model.RemoteAgent{searchPartner(search, partner)}, filter, partnerFound
 	}
 
-	filtersPtr, filterProtocol := protocolsFilter(r, &filter)
+	filtersPtr, filterProtocol := checkProtocolsFilter(r, isApply, &filter)
 	paginationPage(&filter, uint64(len(partner)), r)
 
 	if len(filterProtocol) > 0 {
@@ -299,6 +310,15 @@ func partnerManagementPage(logger *log.Logger, db *database.DB) http.HandlerFunc
 		userLanguage := r.Context().Value(ContextLanguageKey)
 		tTranslated := pageTranslated("partner_management_page", userLanguage.(string)) //nolint:errcheck,forcetypeassert //u
 		partnerList, filter, partnerFound := ListPartner(db, r)
+
+		if pageName := r.URL.Query().Get("clearFiltersPage"); pageName != "" {
+			ClearPageFilters(r, pageName)
+			http.Redirect(w, r, r.URL.Path, http.StatusSeeOther)
+
+			return
+		}
+
+		PersistPageFilters(r, "partner_management_page", &filter)
 
 		value, errMsg, modalOpen, modalElement := callMethodsPartnerManagement(logger, db, w, r)
 		if value {

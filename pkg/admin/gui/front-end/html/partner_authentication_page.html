@@ -90,6 +90,7 @@
         <div class="collapse" id="filterCollapse">
         <form method="get" class="p-3 border rounded bg-light">
           <input type="hidden" name="partnerID" value="{{ $.partner.ID }}">
+          <input type="hidden" name="applyFilters" value="true">
             <label class="ms-3">{{ index .tab "sort" }}:
             <select name="orderAsc" class="form-select d-inline w-auto">
                 <option value="true" {{ if .filter.OrderAsc }}selected{{ end }}>A → Z</option>
@@ -108,7 +109,8 @@
             </label>
             <div style="float:right">
               <button id="applyBtn" type="submit" class="btn btn-success">{{ index .tab "apply" }}</button>
-              <button id="resetBtn" type="button" class="btn btn-secondary ms-2" onclick="window.location='partner_authentication?partnerID={{ .partner.ID }}'">{{ index .tab "reset" }}</button>
+              <button id="resetBtn" type="button" class="btn btn-secondary ms-2" onclick="window.location='transfer_monitoring?clearFiltersPage=transfer_monitoring_page'">{{ index .tab "reset" }}</button>
+              <button id="resetBtn" type="button" class="btn btn-secondary ms-2" onclick="window.location='partner_authentication?partnerID={{ .partner.ID }}?clearFiltersPage=partner_authentication_page'">{{ index .tab "reset" }}</button>
             </div>
         </form>
         </div>
