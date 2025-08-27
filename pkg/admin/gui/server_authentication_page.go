@@ -378,6 +378,8 @@ func serverAuthenticationPage(logger *log.Logger, db *database.DB) http.HandlerF
 			"modalOpen":             modalOpen,
 			"modalElement":          modalElement,
 			"hasServerID":           true,
+			"sidebarSection":        "connection",
+			"sidebarLink":           "server_management",
 		}); tmplErr != nil {
 			logger.Errorf("render server_authentication_page: %v", tmplErr)
 			http.Error(w, "Internal error", http.StatusInternalServerError)

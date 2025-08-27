@@ -39,7 +39,16 @@ document.addEventListener('DOMContentLoaded', () => {
     document.querySelectorAll('#appSidebar .collapse[id]').forEach(section => {
         const sectionStateKey = 'waarp:sb:sec:' + section.id;
         const defaultOpen = section.classList.contains('show');
-        const wantOpen = getState(sectionStateKey, defaultOpen ? '1' : '0') === '1';
+        let wantOpen = getState(sectionStateKey, defaultOpen ? '1' : '0') === '1';
+
+        const forceOpen = (section.dataset.forceOpen === 'true');
+        if (forceOpen) {
+            wantOpen = true;
+            try {
+                localStorage.setItem(sectionStateKey, '1');
+            } catch (_) {}
+        }
+
         applyStateSilently(section, wantOpen);
 
         section.addEventListener('shown.bs.collapse', () => setState(sectionStateKey, '1'));

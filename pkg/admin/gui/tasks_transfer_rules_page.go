@@ -878,6 +878,8 @@ func tasksTransferRulesPage(logger *log.Logger, db *database.DB) http.HandlerFun
 			"modalOpen":             modalOpen,
 			"modalElement":          modalElement,
 			"hasRuleID":             true,
+			"sidebarSection":        "treatment",
+			"sidebarLink":           "transfer_rules_management",
 		}); tmplErr != nil {
 			logger.Errorf("render tasks_transfer_rules_page: %v", tmplErr)
 			http.Error(w, "Internal error", http.StatusInternalServerError)

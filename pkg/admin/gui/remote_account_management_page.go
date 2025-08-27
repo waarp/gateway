@@ -329,6 +329,8 @@ func remoteAccountPage(logger *log.Logger, db *database.DB) http.HandlerFunc {
 			"modalOpen":          modalOpen,
 			"modalElement":       modalElement,
 			"hasPartnerID":       true,
+			"sidebarSection":     "connection",
+			"sidebarLink":        "partner_management",
 		}); tmplErr != nil {
 			logger.Errorf("render partner_management_page: %v", tmplErr)
 			http.Error(w, "Internal error", http.StatusInternalServerError)

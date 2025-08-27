@@ -405,6 +405,8 @@ func remoteAccountAuthenticationPage(logger *log.Logger, db *database.DB) http.H
 				"modalElement":           modalElement,
 				"hasPartnerID":           true,
 				"hasAccountID":           true,
+				"sidebarSection":         "connection",
+				"sidebarLink":            "partner_management",
 			}); tmplErr != nil {
 			logger.Errorf("render remote_account_authentication_page: %v", tmplErr)
 			http.Error(w, "Internal error", http.StatusInternalServerError)

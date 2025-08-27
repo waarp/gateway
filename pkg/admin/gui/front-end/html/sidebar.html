@@ -3,19 +3,19 @@
   <nav class="sidebar d-flex flex-column flex-shrink-0 p-3 bg-white border-end h-100">
     {{ if or (contains .myPermission.Servers "r") (contains .myPermission.Partners "r") (contains .myPermission.Administration "r") }}
         <div class="mb-2">
-            <button class="btn btn-toggle align-items-center rounded w-100 text-start" data-bs-toggle="collapse" data-bs-target="#sec-connection" aria-expanded="true">
+            <button class="btn btn-toggle align-items-center rounded w-100 text-start {{ if eq $.sidebarSection "connection" }}current{{ end }}" data-bs-toggle="collapse" data-bs-target="#sec-connection" aria-expanded="true">
                 {{ index .tab "connection_settings" }}
             </button>
-            <div class="collapse show" id="sec-connection">
+            <div class="collapse show" id="sec-connection" data-force-open="{{ if eq $.sidebarSection "connection" }}true{{ else }}false{{ end }}">
             <ul class="btn-toggle-nav list-unstyled fw-normal pb-1 small">
                 {{ if contains .myPermission.Servers "r" }}
-                    <li><i class="bi bi-hdd-stack-fill fs-8 ms-0 me-1"></i><a class="link-dark rounded ms-0" href="server_management">{{ index .tab "managing_local_servers" }}</a></li>
+                    <li><i class="bi bi-hdd-stack-fill fs-8 ms-0 me-1"></i><a class="link-dark rounded ms-0 {{ if eq $.sidebarLink "server_management" }}active{{ end }}" href="server_management">{{ index .tab "managing_local_servers" }}</a></li>
                 {{ end }}
                 {{ if contains .myPermission.Servers "r" }}
                     <li><i class="bi bi-people-fill fs-8 ms-0 me-1"></i><a class="link-dark rounded ms-0" href="local_client_management">{{ index .tab "local_client_management" }}</a></li>
                 {{ end }}
                 {{ if contains .myPermission.Partners "r" }}
-                    <li><i class="bi bi-person-check-fill fs-8 ms-0 me-1"></i><a class="link-dark rounded ms-0" href="partner_management">{{ index .tab "remote_partner_management" }}</a></li>
+                    <li><i class="bi bi-person-check-fill fs-8 ms-0 me-1"></i><a class="link-dark rounded ms-0 {{ if eq $.sidebarLink "partner_management" }}active{{ end }}" href="partner_management">{{ index .tab "remote_partner_management" }}</a></li>
                 {{ end }}
                 {{ if contains .myPermission.Administration "r" }}
                     <li><i class="bi bi-cloud-fill fs-8 ms-0 me-1"></i><a class="link-dark rounded ms-0" href="cloud_instance_management">{{ index .tab "cloud_instance_management" }}</a></li>
@@ -25,13 +25,13 @@
         </div>
     {{ end }}
     <div class="mb-2">
-        <button class="btn btn-toggle align-items-center rounded w-100 text-start" data-bs-toggle="collapse" data-bs-target="#sec-treatment" aria-expanded="true">
+        <button class="btn btn-toggle align-items-center rounded w-100 text-start {{ if eq $.sidebarSection "treatment" }}current{{ end }}" data-bs-toggle="collapse" data-bs-target="#sec-treatment" aria-expanded="true">
             {{ index .tab "treatment_settings" }}
         </button>
-        <div class="collapse show" id="sec-treatment">
+        <div class="collapse show" id="sec-treatment" data-force-open="{{ if eq $.sidebarSection "treatment" }}true{{ else }}false{{ end }}">
         <ul class="btn-toggle-nav list-unstyled fw-normal pb-1 small">
             {{ if contains .myPermission.Rules "r" }}
-                <li><i class="bi bi-shuffle fs-8 ms-0 me-1"></i><a class="link-dark rounded ms-0" href="transfer_rules_management">{{ index .tab "transfer_rules_management" }}</a></li>
+                <li><i class="bi bi-shuffle fs-8 ms-0 me-1"></i><a class="link-dark rounded ms-0 {{ if eq $.sidebarLink "transfer_rules_management" }}active{{ end }}" href="transfer_rules_management">{{ index .tab "transfer_rules_management" }}</a></li>
             {{ end }}
             <li><i class="bi bi-key-fill fs-8 ms-0 me-1"></i><a class="link-dark rounded ms-0" href="cryptographic_key_management">{{ index .tab "cryptographic_key_management" }}</a></li>
         </ul>

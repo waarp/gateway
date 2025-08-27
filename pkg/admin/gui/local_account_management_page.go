@@ -329,6 +329,8 @@ func localAccountPage(logger *log.Logger, db *database.DB) http.HandlerFunc {
 			"modalOpen":         modalOpen,
 			"modalElement":      modalElement,
 			"hasServerID":       true,
+			"sidebarSection":    "connection",
+			"sidebarLink":       "server_management",
 		}); tmplErr != nil {
 			logger.Errorf("render server_management_page: %v", tmplErr)
 			http.Error(w, "Internal error", http.StatusInternalServerError)

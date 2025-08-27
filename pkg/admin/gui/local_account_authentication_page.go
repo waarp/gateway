@@ -391,6 +391,8 @@ func localAccountAuthenticationPage(logger *log.Logger, db *database.DB) http.Ha
 				"modalElement":           modalElement,
 				"hasServerID":            true,
 				"hasAccountID":           true,
+				"sidebarSection":         "connection",
+				"sidebarLink":            "server_management",
 			}); tmplErr != nil {
 			logger.Errorf("render local_account_authentication_page: %v", tmplErr)
 			http.Error(w, "Internal error", http.StatusInternalServerError)
