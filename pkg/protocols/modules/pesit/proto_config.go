@@ -112,10 +112,10 @@ type PartnerConfig struct {
 	CheckpointWindow uint8 `json:"checkpointWindow,omitempty"`
 
 	// UseNSDU specifies whether NSDU meta-packets should be used when making
-	// transfers with that partner. By default, NSDU packets are not used.
+	// transfers with that partner. By default, NSDU packets are used.
 	UseNSDU api.Nullable[bool] `json:"useNSDU"` //nolint:tagliatelle //does not recognize NSDU as an acronym
 	// The PeSIT compatibility mode to use when communicating with this partner.
-	// Accepted values are: "none" or "axway". Default is "none".
+	// Accepted values are: "standard" or "non-standard". Default is "standard".
 	CompatibilityMode string `json:"compatibilityMode,omitempty"`
 	// MaxMessageSize defines the maximum allowed size for PeSIT packages sent to
 	// this partner. Default is 65535.

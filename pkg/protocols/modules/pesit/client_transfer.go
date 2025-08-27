@@ -57,7 +57,7 @@ func (c *clientTransfer) configureClient(config *PartnerConfig) *pipeline.Error 
 
 		// configure restarts
 		c.client.AllowRestart(!utils.If(config.DisableRestart.Valid,
-			config.DisableRestart.Valid, c.clientConf.DisableRestart))
+			config.DisableRestart.Value, c.clientConf.DisableRestart))
 	}
 
 	if config.UseNSDU.Valid && config.UseNSDU.Value {

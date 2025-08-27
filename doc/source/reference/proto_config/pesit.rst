@@ -95,7 +95,7 @@ JSON de configuration du protocole pour un partenaire PeSIT est donc la suivante
      "checkpointWindow": 2,
      "useNSDU": true,
      "compatibilityMode": "axway",
-     "maxMessageSize": "65535",
+     "maxMessageSize": 65535,
      "minTLSVersion": "v1.2"
    }
 
@@ -140,7 +140,7 @@ est la suivante :
      "disableCheckpoints": false,
      "checkpointSize": 65535,
      "checkpointWindow": 1,
-     "maxMessageSize**: 65535,
+     "maxMessageSize": 65535,
      "disablePreConnection": false,
      "minTLSVersion": "v1.2"
    }
