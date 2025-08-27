@@ -30,9 +30,12 @@ func ListClients(db database.ReadAccess, orderByCol string, orderByAsc bool, lim
 	var clients model.Clients
 	query := db.Select(&clients).Limit(limit, offset).OrderBy(orderByCol, orderByAsc)
 
-	for _, protocol := range protocols {
-		query = query.Where("protocol=?", protocol)
+	protoSlice := make([]any, len(protocols))
+	for i, protocol := range protocols {
+		protoSlice[i] = protocol
 	}
+
+	query.In("protocol", protoSlice...)
 
 	return clients, query.Run()
 }
