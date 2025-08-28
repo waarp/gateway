@@ -301,4 +301,14 @@ var (
 			Funcs(funcs).
 			ParseFS(webFS, index, header, sidebar, "front-end/html/managing_configuration_overrides_page.html"),
 	)
+	EmailTemplateManagementTemplate = template.Must(
+		template.New("email_templates_management_page.html").
+			Funcs(funcs).
+			ParseFS(webFS, index, header, sidebar, "front-end/html/email_templates_management_page.html"),
+	)
+	SMTPCredentialManagementTemplate = template.Must(
+		template.New("smtp_credentials_management_page.html").
+			Funcs(funcs).
+			ParseFS(webFS, index, header, sidebar, "front-end/html/smtp_credentials_management_page.html"),
+	)
 )

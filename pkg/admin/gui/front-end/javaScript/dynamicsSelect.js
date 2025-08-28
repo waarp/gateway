@@ -1,34 +1,55 @@
 document.addEventListener('DOMContentLoaded', () => {
-    const radios = document.querySelectorAll('input[name="ruleDirection"]');
-    const select = document.getElementById('transferRuleSelect');
-    const options = select.querySelectorAll('option');
+    const radiosTransfer = document.querySelectorAll('input[name="ruleDirection"]');
+    const radiosPreRegister = document.querySelectorAll('input[name="ruleDirectionPreRegister"]');
+    const transferSelect = document.getElementById('transferRuleSelect');
+    const preRegisterSelect = document.getElementById('preRegisterRuleSelect');
+    const transferOptions = transferSelect.querySelectorAll('option');
+    const preRegisterOptions = preRegisterSelect.querySelectorAll('option');
 
-    function filterOptions() {
-        const dir = document.querySelector('input[name="ruleDirection"]:checked').value;
+    let transferDir = document.querySelector('input[name="ruleDirection"]:checked').value;
+    radiosTransfer.forEach(radio => radio.addEventListener('change', () => {
+        transferDir = document.querySelector('input[name="ruleDirection"]:checked').value;
+        filterOptions(transferSelect, transferOptions, transferDir);
+    }));
 
-        options.forEach(opt => {
+    let preRegisterDir = document.querySelector('input[name="ruleDirectionPreRegister"]:checked').value;
+    radiosPreRegister.forEach(radio => radio.addEventListener('change', () => {
+        preRegisterDir = document.querySelector('input[name="ruleDirectionPreRegister"]:checked').value;
+        filterOptions(preRegisterSelect, preRegisterOptions, preRegisterDir);
+    }));
+
+    function filterOptions(selectElement, optionsElement, dirElement) {
+        optionsElement.forEach(opt => {
             if (!opt.dataset.dir)
                 opt.hidden = false;
             else {
-                const shouldShow = opt.dataset.dir === dir;
+                const shouldShow = opt.dataset.dir === dirElement;
                 opt.hidden = !shouldShow;
                 if (!shouldShow && opt.selected)
-                    select.value = [...options].find(o => !o.hidden).value;
+                    selectElement.value = [...optionsElement].find(o => !o.hidden).value;
             }
         });
     }
 
     const partnerSelect = document.getElementById('transferPartner');
-    const accountSelect = document.getElementById('transferLogin');
+    const partnerAccountSelect = document.getElementById('transferLogin');
 
-    function updateAccounts() {
-        const partner = partnerSelect.value;
-        accountSelect.innerHTML = '';
-        (window.listAccounts[partner] || []).forEach(name => {
+    const serverSelect = document.getElementById('preRegisterServer');
+    const serverAccountSelect = document.getElementById('preRegisterLogin');
+
+    function updateAccounts(element, accountElement, listElement) {
+        const endPoint = element.value;
+        const placeholder = accountElement.querySelector('option[value=""]');
+        accountElement.innerHTML = '';
+        if (placeholder) {
+            accountElement.appendChild(placeholder.cloneNode(true));
+        }
+        
+        (listElement[endPoint] || []).forEach(name => {
             const opt = document.createElement('option');
             opt.value = name;
             opt.textContent = name;
-            accountSelect.appendChild(opt);
+            accountElement.appendChild(opt);
         });
     }
 
@@ -59,9 +80,15 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     updateFilterAccounts();
-    filterOptions();
-    updateAccounts();
-    radios.forEach(radio => radio.addEventListener('change', filterOptions));
-    partnerSelect.addEventListener('change', updateAccounts);
+    filterOptions(transferSelect, transferOptions, transferDir);
+    filterOptions(preRegisterSelect, preRegisterOptions, preRegisterDir);
+    updateAccounts(partnerSelect, partnerAccountSelect, window.listAccountsPartner);
+    updateAccounts(serverSelect, serverAccountSelect, window.listAccountsServer);
+    partnerSelect.addEventListener('change', () => {
+        updateAccounts(partnerSelect, partnerAccountSelect, window.listAccountsPartner);
+    });
+    serverSelect.addEventListener('change', () => {
+        updateAccounts(serverSelect, serverAccountSelect, window.listAccountsServer);
+    });
     srcSelect.addEventListener('change', updateFilterAccounts);
 });

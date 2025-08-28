@@ -75,12 +75,99 @@ func addTransfer(db *database.DB, r *http.Request) (int, error) {
 		}
 	}
 
-	transfer, err := internal.InsertNewTransfer(db, srcFilename, dstFilename, rule, account, client, date, transferInfos)
+	var remainingTries int64
+	if nbOfAttempts := r.FormValue("nbOfAttempts"); nbOfAttempts != "" {
+		remainingTries, err = strconv.ParseInt(nbOfAttempts, 10, 8)
+		if err != nil {
+			return -1, fmt.Errorf("failed to parse remainingTries in int: %w", err)
+		}
+	}
+
+	retryDelay := ""
+	if h := r.FormValue("retryDelaypH"); h != "" {
+		retryDelay += h + "h"
+	}
+
+	if m := r.FormValue("retryDelayM"); m != "" {
+		retryDelay += m + "m"
+	}
+
+	if s := r.FormValue("timeoutIcapS"); s != "" {
+		retryDelay += s + "s"
+	}
+	var retryDelayS int32
+
+	if retryDelay != "" {
+		firstRetryDelay, retryErr := time.ParseDuration(retryDelay)
+		if retryErr == nil {
+			retryDelayS = int32(firstRetryDelay.Seconds())
+		}
+	}
+
+	var retryIncrementFloat float64
+	if retryIncrementFactor := r.FormValue("retryIncrementFactor"); retryIncrementFactor != "" {
+		retryIncrementFloat, err = strconv.ParseFloat(retryIncrementFactor, 32)
+		if err != nil {
+			return -1, fmt.Errorf("failed to parse retryIncrement in float: %w", err)
+		}
+	}
+
+	transfer, err := internal.InsertNewTransfer(db, srcFilename, dstFilename, rule, account, client, date,
+		int8(remainingTries), retryDelayS, float32(retryIncrementFloat), transferInfos)
 	if err != nil {
 		return -1, fmt.Errorf("add transfer failed: %w", err)
 	}
 
 	return int(transfer.ID), nil
+}
+
+func addRegisterTransfer(db *database.DB, r *http.Request) (int, error) {
+	if err := r.ParseForm(); err != nil {
+		return -1, fmt.Errorf("failed to parse form: %w", err)
+	}
+
+	filename := r.FormValue("preRegisterFile")
+	ruleName := r.FormValue("preRegisterRule")
+	serverName := r.FormValue("preRegisterServer")
+	accountName := r.FormValue("preRegisterLogin")
+	dateStr := r.FormValue("preRegisterDate")
+	preRegisterInfosKeys := r.Form["preRegisterInfosKeys[]"]
+	preRegisterInfosValues := r.Form["preRegisterInfosValues[]"]
+
+	rule, err := internal.GetRuleByName(db, ruleName)
+	if err != nil {
+		return -1, fmt.Errorf("failed to get rule: %w", err)
+	}
+
+	account, err := internal.GetServerAccount(db, serverName, accountName)
+	if err != nil {
+		return -1, fmt.Errorf("failed to get local account: %w", err)
+	}
+
+	var date time.Time
+	if dateStr != "" {
+		date, err = time.ParseInLocation("2006-01-02T15:04", dateStr, time.Local)
+		if err != nil {
+			date = time.Now()
+		}
+	} else {
+		date = time.Now()
+	}
+
+	transferInfos := make(map[string]any)
+
+	for i := range preRegisterInfosKeys {
+		if i < len(preRegisterInfosValues) {
+			transferInfos[preRegisterInfosKeys[i]] = preRegisterInfosValues[i]
+		}
+	}
+
+	register, registerErr := internal.RegisterNewTransfer(db, filename, rule, account, date, transferInfos)
+	if registerErr != nil {
+		return -1, fmt.Errorf("add register transfer failed: %w", registerErr)
+	}
+
+	return int(register.ID), nil
 }
 
 func pauseTransfer(db *database.DB, r *http.Request) error {
@@ -386,6 +473,22 @@ func callMethodsTransferMonitoring(logger *log.Logger, db *database.DB, w http.R
 		return true, "", "", nil
 	}
 
+	if r.Method == http.MethodPost && r.FormValue("preRegisterFile") != "" {
+		var newRegisterID int
+		var newRegisterErr error
+
+		if newRegisterID, newRegisterErr = addRegisterTransfer(db, r); newRegisterErr != nil {
+			logger.Errorf("failed to register transfer: %v", newRegisterErr)
+			modalElement = getFormValues(r)
+
+			return false, newRegisterErr.Error(), "preRegisterTransferModal", modalElement
+		}
+
+		http.Redirect(w, r, r.URL.Path+"?successAddRegister="+strconv.Itoa(newRegisterID), http.StatusSeeOther)
+
+		return true, "", "", nil
+	}
+
 	if r.Method == http.MethodPost && r.FormValue("pauseTransferID") != "" {
 		if pauseTransferErr := pauseTransfer(db, r); pauseTransferErr != nil {
 			logger.Errorf("transfer pause failed : %v", pauseTransferErr)
@@ -441,8 +544,8 @@ func callMethodsTransferMonitoring(logger *log.Logger, db *database.DB, w http.R
 }
 
 func mapUtilsTemplate(db *database.DB, listPartners []*model.RemoteAgent, listServers []*model.LocalAgent,
-) (listAccountsNames, listAgentsNames map[string][]string) {
-	listAccountsNames = make(map[string][]string)
+) (listAccountsPartnerNames, listAccountsServerNames, listAgentsNames map[string][]string) {
+	listAccountsPartnerNames = make(map[string][]string)
 
 	for _, p := range listPartners {
 		accounts, err := internal.ListPartnerAccounts(db, p.Name, "login", true, 0, 0)
@@ -451,7 +554,20 @@ func mapUtilsTemplate(db *database.DB, listPartners []*model.RemoteAgent, listSe
 			for _, acc := range accounts {
 				accountNames = append(accountNames, acc.Login)
 			}
-			listAccountsNames[p.Name] = accountNames
+			listAccountsPartnerNames[p.Name] = accountNames
+		}
+	}
+
+	listAccountsServerNames = make(map[string][]string)
+
+	for _, p := range listServers {
+		accounts, err := internal.ListServerAccounts(db, p.Name, "login", true, 0, 0)
+		if err == nil {
+			var accountNames []string
+			for _, acc := range accounts {
+				accountNames = append(accountNames, acc.Login)
+			}
+			listAccountsServerNames[p.Name] = accountNames
 		}
 	}
 
@@ -473,7 +589,7 @@ func mapUtilsTemplate(db *database.DB, listPartners []*model.RemoteAgent, listSe
 		}
 	}
 
-	return listAccountsNames, listAgentsNames
+	return listAccountsPartnerNames, listAccountsServerNames, listAgentsNames
 }
 
 func listUtilsTemplate(logger *log.Logger, db *database.DB) (
@@ -557,11 +673,12 @@ func transferMonitoringPage(logger *log.Logger, db *database.DB) http.HandlerFun
 		}
 
 		successAddTransfer := r.URL.Query().Get("successAddTransfer")
+		successAddRegister := r.URL.Query().Get("successAddRegister")
 		successReprogramTransfer := r.URL.Query().Get("successReprogramTransfer")
 
 		listPartners, listServers, listPartnersNames, listServersNames, listClientsNames,
 			ruleSendNames, ruleReceiveNames := listUtilsTemplate(logger, db)
-		listAccountsNames, listAgentsNames := mapUtilsTemplate(db, listPartners, listServers)
+		listAccountsPartnerNames, listAccountsServerNames, listAgentsNames := mapUtilsTemplate(db, listPartners, listServers)
 
 		myPermission := model.MaskToPerms(user.Permissions)
 		currentPage := filter.Offset + 1
@@ -576,13 +693,15 @@ func transferMonitoringPage(logger *log.Logger, db *database.DB) http.HandlerFun
 			"Request":                  r,
 			"currentPage":              currentPage,
 			"listPartners":             listPartnersNames,
+			"listAccountsPartner":      listAccountsPartnerNames,
 			"listServers":              listServersNames,
-			"listAccounts":             listAccountsNames,
+			"listAccountsServer":       listAccountsServerNames,
 			"listAgents":               listAgentsNames,
 			"listClients":              listClientsNames,
 			"ruleSend":                 ruleSendNames,
 			"ruleReceive":              ruleReceiveNames,
 			"successAddTransfer":       successAddTransfer,
+			"successAddRegister":       successAddRegister,
 			"successReprogramTransfer": successReprogramTransfer,
 			"errMsg":                   errMsg,
 			"modalOpen":                modalOpen,

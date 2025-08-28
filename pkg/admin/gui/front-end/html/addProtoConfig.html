@@ -25,6 +25,18 @@
             <input class="form-check-input" type="checkbox" name="checkBlockHash" id="checkBlockHash" value="true" {{ if eq (index .modalElement "checkBlockHash") "true" }}checked{{ end }}>
         </div>
     </div>
+    <div id="r66-tlsForm">
+        <hr style="border-top: 1px solid #ababab;">
+        <div class="form-input">
+            <label class="col-form-label">{{ index .tab "minTLSVersion" }} <i class="bi bi-info-circle ms-1" data-bs-toggle="tooltip" data-bs-placement="right" data-bs-title="{{ index $.tab "tooltipMinFtpsTLSVersion" }}"></i> :</label>
+            <select name="protoConfigR66-tlsMinTLSVersion" id="protoConfigR66-tlsMinTLSVersion" class="form-select">
+                <option value="" disabled {{ if not (index .modalElement "protoConfigR66-tlsMinTLSVersion") }}selected{{ end }}>{{ index .tab "selectTLSVersion" }}</option>
+                {{ range .TLSVersions }}
+                    <option value="{{ . }}" {{ if eq (index $.modalElement "protoConfigR66-tlsMinTLSVersion") . }}selected{{ end }}>{{ . }}</option>
+                {{ end }}
+            </select>
+        </div>
+    </div>
 </div>
 {{ end }}
 
@@ -55,6 +67,18 @@
             <input class="form-check-input" type="checkbox" name="checkBlockHash" id="checkBlockHash" value="true" {{ if eq (index .modalElement "checkBlockHash") "true" }}checked{{ end }}>
         </div>
     </div>
+    <div id="r66-tlsForm">
+        <hr style="border-top: 1px solid #ababab;">
+        <div class="form-input">
+            <label class="col-form-label">{{ index .tab "minTLSVersion" }} <i class="bi bi-info-circle ms-1" data-bs-toggle="tooltip" data-bs-placement="right" data-bs-title="{{ index $.tab "tooltipMinFtpsTLSVersion" }}"></i> :</label>
+            <select name="protoConfigR66-tlsMinTLSVersion" id="protoConfigR66-tlsMinTLSVersion" class="form-select">
+                <option value="" disabled {{ if not (index .modalElement "protoConfigR66-tlsMinTLSVersion") }}selected{{ end }}>{{ index .tab "selectTLSVersion" }}</option>
+                {{ range .TLSVersions }}
+                    <option value="{{ . }}" {{ if eq (index $.modalElement "protoConfigR66-tlsMinTLSVersion") . }}selected{{ end }}>{{ . }}</option>
+                {{ end }}
+            </select>
+        </div>
+    </div>
 </div>
 {{ end }}
 
@@ -78,6 +102,18 @@
         <label class="col-form-label me-3">{{ index .tab "checkBlockHash" }} <i class="bi bi-info-circle ms-1" data-bs-toggle="tooltip" data-bs-placement="right" data-bs-title="{{ index $.tab "tooltipCheckBlockHash" }}"></i> :</label>
         <div class="form-check form-check-inline">
             <input class="form-check-input" type="checkbox" name="checkBlockHash" id="checkBlockHash" value="true" {{ if eq (index .modalElement "checkBlockHash") "true" }}checked{{ end }}>
+        </div>
+    </div>
+    <div id="r66-tlsForm">
+        <hr style="border-top: 1px solid #ababab;">
+        <div class="form-input">
+            <label class="col-form-label">{{ index .tab "minTLSVersion" }} <i class="bi bi-info-circle ms-1" data-bs-toggle="tooltip" data-bs-placement="right" data-bs-title="{{ index $.tab "tooltipMinFtpsTLSVersion" }}"></i> :</label>
+            <select name="protoConfigR66-tlsMinTLSVersion" id="protoConfigR66-tlsMinTLSVersion" class="form-select">
+                <option value="" disabled {{ if not (index .modalElement "protoConfigR66-tlsMinTLSVersion") }}selected{{ end }}>{{ index .tab "selectTLSVersion" }}</option>
+                {{ range .TLSVersions }}
+                    <option value="{{ . }}" {{ if eq (index $.modalElement "protoConfigR66-tlsMinTLSVersion") . }}selected{{ end }}>{{ . }}</option>
+                {{ end }}
+            </select>
         </div>
     </div>
 </div>
@@ -266,7 +302,7 @@
         <select name="protoConfigPeSITcompatibilityMode" id="protoConfigPeSITcompatibilityMode" class="form-select">
             <option value="" disabled {{ if not (index .modalElement "protoConfigPeSITcompatibilityMode") }}selected{{ end }}>{{ index .tab "selectCompatibilityMode" }}</option>
             {{ range .CompatibilityModePeSIT }}
-                <option value="{{ . }}" {{ if eq (index $.modalElement "protoConfigPeSITcompatibilityMode") . }}selected{{ end }}> {{ if eq . "axway" }}{{ index $.tab "standardParameterPesit" }}{{ else if eq . "none" }}{{ index $.tab "noneStandardParameterPesit" }}{{ else }}{{ . }}{{ end }}</option>
+                <option value="{{ . }}" {{ if eq (index $.modalElement "protoConfigPeSITcompatibilityMode") . }}selected{{ end }}> {{ if eq . "standard" }}{{ index $.tab "standardParameterPesit" }}{{ else if eq . "non-standard" }}{{ index $.tab "noneStandardParameterPesit" }}{{ else }}{{ . }}{{ end }}</option>
             {{ end }}
         </select>
     </div>
@@ -712,6 +748,60 @@
         {{ end }}
         </div>
         <button type="button" class="btn btn-outline-primary btn-sm" onclick="addField(this,'macs[]')">{{ index .tab "add" }}</button>
+    </div>
+</div>
+{{ end }}
+
+{{ define "addHttpPartner" }}
+<div id="protoConfig_http" class="protoConfigBlock" style="display:none;">
+    <div id="httpsForm">
+        <hr style="border-top: 1px solid #ababab;">
+        <div class="mt-4 mb-2"><strong>{{ index .tab "protocolConfiguration" }} <i class="bi bi-info-circle ms-1" data-bs-toggle="tooltip" data-bs-placement="right" data-bs-title="{{ index $.tab "tooltipProtocolConfiguration" }}"></i> :</strong></div>
+        <div class="form-input">
+            <label class="col-form-label">{{ index .tab "minTLSVersion" }} <i class="bi bi-info-circle ms-1" data-bs-toggle="tooltip" data-bs-placement="right" data-bs-title="{{ index $.tab "tooltipMinFtpsTLSVersion" }}"></i> :</label>
+            <select name="protoConfigHttpsMinTLSVersion" id="protoConfigHttpsMinTLSVersion" class="form-select">
+                <option value="" disabled {{ if not (index .modalElement "protoConfigHttpsMinTLSVersion") }}selected{{ end }}>{{ index .tab "selectTLSVersion" }}</option>
+                {{ range .TLSVersions }}
+                    <option value="{{ . }}" {{ if eq (index $.modalElement "protoConfigHttpsMinTLSVersion") . }}selected{{ end }}>{{ . }}</option>
+                {{ end }}
+            </select>
+        </div>
+    </div>
+</div>
+{{ end }}
+
+{{ define "addHttpServer" }}
+<div id="protoConfig_http" class="protoConfigBlock" style="display:none;">
+    <div id="httpsForm">
+        <hr style="border-top: 1px solid #ababab;">
+        <div class="mt-4 mb-2"><strong>{{ index .tab "protocolConfiguration" }} <i class="bi bi-info-circle ms-1" data-bs-toggle="tooltip" data-bs-placement="right" data-bs-title="{{ index $.tab "tooltipProtocolConfiguration" }}"></i> :</strong></div>
+        <div class="form-input">
+            <label class="col-form-label">{{ index .tab "minTLSVersion" }} <i class="bi bi-info-circle ms-1" data-bs-toggle="tooltip" data-bs-placement="right" data-bs-title="{{ index $.tab "tooltipMinFtpsTLSVersion" }}"></i> :</label>
+            <select name="protoConfigHttpsMinTLSVersion" id="protoConfigHttpsMinTLSVersion" class="form-select">
+                <option value="" disabled {{ if not (index .modalElement "protoConfigHttpsMinTLSVersion") }}selected{{ end }}>{{ index .tab "selectTLSVersion" }}</option>
+                {{ range .TLSVersions }}
+                    <option value="{{ . }}" {{ if eq (index $.modalElement "protoConfigHttpsMinTLSVersion") . }}selected{{ end }}>{{ . }}</option>
+                {{ end }}
+            </select>
+        </div>
+    </div>
+</div>
+{{ end }}
+
+{{ define "addHttpClient" }}
+<div id="protoConfig_http" class="protoConfigBlock" style="display:none;">
+    <div id="httpsForm">
+        <hr style="border-top: 1px solid #ababab;">
+        <div class="mt-4 mb-2"><strong>{{ index .tab "protocolConfiguration" }} <i class="bi bi-info-circle ms-1" data-bs-toggle="tooltip" data-bs-placement="right" data-bs-title="{{ index $.tab "tooltipProtocolConfiguration" }}"></i> :</strong></div>
+        <div class="form-input">
+            <label class="col-form-label">{{ index .tab "minTLSVersion" }} <i class="bi bi-info-circle ms-1" data-bs-toggle="tooltip" data-bs-placement="right" data-bs-title="{{ index $.tab "tooltipMinFtpsTLSVersion" }}"></i> :</label>
+            <select name="protoConfigHttpsMinTLSVersion" id="protoConfigHttpsMinTLSVersion" class="form-select">
+                <option value="" disabled {{ if not (index .modalElement "protoConfigHttpsMinTLSVersion") }}selected{{ end }}>{{ index .tab "selectTLSVersion" }}</option>
+                {{ range .TLSVersions }}
+                    <option value="{{ . }}" {{ if eq (index $.modalElement "protoConfigHttpsMinTLSVersion") . }}selected{{ end }}>{{ . }}</option>
+                {{ end }}
+            </select>
+        </div>
     </div>
 </div>
 {{ end }}

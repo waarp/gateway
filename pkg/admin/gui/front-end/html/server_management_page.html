@@ -120,6 +120,7 @@
                 {{ template "addSftpServer" . }}
                 {{ template "addFtpServer" . }}
                 {{ template "addPesitServer" . }}
+                {{ template "addHttpServer" . }}
             </div>
             <div class="modal-footer">
                 <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">{{ index .tab "close" }}</button>
@@ -290,6 +291,7 @@
               </div>
             </td>
             <td>
+              {{ if ne .Protocol "http" }}
               <button class="btn btn-outline-primary modal-btn" type="button" data-bs-toggle="modal" data-bs-target="#protoConfigModal_{{ .ID }}">
                     <i class="bi bi-gear-wide-connected"></i>
                 </button>
@@ -304,7 +306,7 @@
                         </div>
                         <div class="modal-body">
                         {{ if or (eq .Protocol "r66") (eq .Protocol "r66-tls") }}
-                            {{ template "displayR66Server" (dict "tab" $.tab "ProtoConfig" .ProtoConfig) }}
+                            {{ template "displayR66Server" (dict "tab" $.tab "ProtoConfig" .ProtoConfig "Protocol" .Protocol) }}
                         {{ end }}
                         {{ if or (eq .Protocol "ftp") (eq .Protocol "ftps") }}
                             {{ template "displayFtpServer" (dict "tab" $.tab "ProtoConfig" .ProtoConfig "TLSVersions" $.TLSVersions "TLSRequirement" $.TLSRequirement "Protocol" .Protocol) }}
@@ -315,6 +317,9 @@
                         {{ if eq .Protocol "sftp" }}
                             {{ template "displaySftpServer" (dict "tab" $.tab "ProtoConfig" .ProtoConfig "KeyExchanges" $.KeyExchanges "Ciphers" $.Ciphers "MACs" $.MACs) }}
                         {{ end }}
+                        {{ if eq .Protocol "https" }}
+                          {{ template "displayHttpServer" (dict "tab" $.tab "ProtoConfig" .ProtoConfig "TLSVersions" $.TLSVersions "Protocol" .Protocol) }}
+                        {{ end }}
                         </div>
                         <div class="modal-footer">
                         <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">{{ index $.tab "close" }}</button>
@@ -322,6 +327,7 @@
                     </div>
                     </div>
                 </div>
+                {{ end }}
               </td>
             <td class="text-end">
               <div class="d-inline-flex">
@@ -427,10 +433,11 @@
                               <label class="col-form-label">{{ index $.tab "tmpReceiveDir" }} :</label>
                               <input type="text" name="editServerTmpReceiveDir" class="form-control" required value="{{ if $me }}{{ index $me "editServerTmpReceiveDir" }}{{ else }}{{ .TmpReceiveDir }}{{ end }}">
                             </div>
-                            {{ template "editR66Server" (dict "tab" $.tab "ProtoConfig" .ProtoConfig "modalElement" $me) }}
+                            {{ template "editR66Server" (dict "tab" $.tab "ProtoConfig" .ProtoConfig "TLSVersions" $.TLSVersions "modalElement" $me) }}
                             {{ template "editFtpServer" (dict "tab" $.tab "ProtoConfig" .ProtoConfig "TLSVersions" $.TLSVersions "TLSRequirement" $.TLSRequirement "modalElement" $me) }}
                             {{ template "editPesitServer" (dict "tab" $.tab "ProtoConfig" .ProtoConfig "TLSVersions" $.TLSVersions "CompatibilityModePeSIT" $.CompatibilityModePeSIT "modalElement" $me) }}
                             {{ template "editSftpServer" (dict "tab" $.tab "ProtoConfig" .ProtoConfig "KeyExchanges" $.KeyExchanges "Ciphers" $.Ciphers "MACs" $.MACs "modalElement" $me) }}
+                            {{ template "editHttpServer" (dict "tab" $.tab "ProtoConfig" .ProtoConfig "TLSVersions" $.TLSVersions "modalElement" $me) }}
                         </div>
                         <div class="modal-footer">
                             <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">{{ index $.tab "close" }}</button>

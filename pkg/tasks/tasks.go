@@ -35,7 +35,7 @@ const (
 	ChangeNewline = "CHNEWLINE"
 
 	Icap = "ICAP"
-	Mail = "MAIL"
+	Mail = "EMAIL"
 )
 
 //nolint:gochecknoinits //init is required here

@@ -5,11 +5,13 @@ import (
 	"strconv"
 
 	"code.waarp.fr/apps/gateway/gateway/pkg/protocols/modules/ftp"
+	httpconst "code.waarp.fr/apps/gateway/gateway/pkg/protocols/modules/http"
 	"code.waarp.fr/apps/gateway/gateway/pkg/protocols/modules/pesit"
+	"code.waarp.fr/apps/gateway/gateway/pkg/protocols/modules/r66"
 )
 
 //nolint:dupl // is for partner protoConfig
-func protoConfigR66Partner(r *http.Request) map[string]any {
+func protoConfigR66Partner(r *http.Request, protocol string) map[string]any {
 	r66ProtoConfig := make(map[string]any)
 
 	if serverLogin := r.FormValue("protoConfigR66serverLogin"); serverLogin != "" {
@@ -27,12 +29,18 @@ func protoConfigR66Partner(r *http.Request) map[string]any {
 	r66ProtoConfig["noFinalHash"] = r.FormValue("noFinalHash") == True
 
 	r66ProtoConfig["checkBlockHash"] = r.FormValue("checkBlockHash") == True
+
+	if protocol == r66.R66TLS {
+		if minTLSVersion := r.FormValue("protoConfigR66-tlsMinTLSVersion"); minTLSVersion != "" {
+			r66ProtoConfig["minTLSVersion"] = minTLSVersion
+		}
+	}
 
 	return r66ProtoConfig
 }
 
 //nolint:dupl // is for server protoConfig
-func protoConfigR66Server(r *http.Request) map[string]any {
+func protoConfigR66Server(r *http.Request, protocol string) map[string]any {
 	r66ProtoConfig := make(map[string]any)
 
 	if serverLogin := r.FormValue("protoConfigR66serverLogin"); serverLogin != "" {
@@ -51,10 +59,16 @@ func protoConfigR66Server(r *http.Request) map[string]any {
 
 	r66ProtoConfig["checkBlockHash"] = r.FormValue("checkBlockHash") == True
 
+	if protocol == r66.R66TLS {
+		if minTLSVersion := r.FormValue("protoConfigR66-tlsMinTLSVersion"); minTLSVersion != "" {
+			r66ProtoConfig["minTLSVersion"] = minTLSVersion
+		}
+	}
+
 	return r66ProtoConfig
 }
 
-func protoConfigR66Client(r *http.Request) map[string]any {
+func protoConfigR66Client(r *http.Request, protocol string) map[string]any {
 	r66ProtoConfig := make(map[string]any)
 
 	if blockSize := r.FormValue("protoConfigR66blockSize"); blockSize != "" {
@@ -69,7 +83,49 @@ func protoConfigR66Client(r *http.Request) map[string]any {
 
 	r66ProtoConfig["checkBlockHash"] = r.FormValue("checkBlockHash") == True
 
+	if protocol == r66.R66TLS {
+		if minTLSVersion := r.FormValue("protoConfigR66-tlsMinTLSVersion"); minTLSVersion != "" {
+			r66ProtoConfig["minTLSVersion"] = minTLSVersion
+		}
+	}
+
 	return r66ProtoConfig
+}
+
+func protoConfigHTTPpartner(r *http.Request, protocol string) map[string]any {
+	httpProtoConfig := make(map[string]any)
+
+	if protocol == httpconst.HTTPS {
+		if minTLSVersion := r.FormValue("protoConfigHttpsMinTLSVersion"); minTLSVersion != "" {
+			httpProtoConfig["minTLSVersion"] = minTLSVersion
+		}
+	}
+
+	return httpProtoConfig
+}
+
+func protoConfigHTTPserver(r *http.Request, protocol string) map[string]any {
+	httpProtoConfig := make(map[string]any)
+
+	if protocol == httpconst.HTTPS {
+		if minTLSVersion := r.FormValue("protoConfigHttpsMinTLSVersion"); minTLSVersion != "" {
+			httpProtoConfig["minTLSVersion"] = minTLSVersion
+		}
+	}
+
+	return httpProtoConfig
+}
+
+func protoConfigHTTPclient(r *http.Request, protocol string) map[string]any {
+	httpProtoConfig := make(map[string]any)
+
+	if protocol == httpconst.HTTPS {
+		if minTLSVersion := r.FormValue("protoConfigHttpsMinTLSVersion"); minTLSVersion != "" {
+			httpProtoConfig["minTLSVersion"] = minTLSVersion
+		}
+	}
+
+	return httpProtoConfig
 }
 
 func protoConfigSFTPpartner(r *http.Request) map[string]any {

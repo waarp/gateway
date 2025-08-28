@@ -23,6 +23,13 @@
             <input class="form-check-input" type="checkbox" {{ if eq .ProtoConfig.checkBlockHash true }}checked{{ end }} disabled>
         </div>
     </div>
+    {{ if eq .Protocol "r66-tls" }}
+        <hr style="border-top: 1px solid #ababab;">
+        <div class="flex-label-input mt-4">
+            <label class="col-form-label label-light-bold me-3">{{ index .tab "minTLSVersion" }} <i class="bi bi-info-circle ms-1" data-bs-toggle="tooltip" data-bs-placement="right" data-bs-title="{{ index $.tab "tooltipMinFtpsTLSVersion" }}"></i> :</label>
+            <input type="text" class="form-control-plaintext input-auto-width" value="{{ displayOrDefault .ProtoConfig.minTLSVersion (index $.tab "undefined") }}" disabled>
+        </div>
+    {{ end }}
 </div>
 {{ end }}
 
@@ -51,6 +58,13 @@
             <input class="form-check-input" type="checkbox" {{ if eq .ProtoConfig.checkBlockHash true }}checked{{ end }} disabled>
         </div>
     </div>
+    {{ if eq .Protocol "r66-tls" }}
+        <hr style="border-top: 1px solid #ababab;">
+        <div class="flex-label-input mt-4">
+            <label class="col-form-label label-light-bold me-3">{{ index .tab "minTLSVersion" }} <i class="bi bi-info-circle ms-1" data-bs-toggle="tooltip" data-bs-placement="right" data-bs-title="{{ index $.tab "tooltipMinFtpsTLSVersion" }}"></i> :</label>
+            <input type="text" class="form-control-plaintext input-auto-width" value="{{ displayOrDefault .ProtoConfig.minTLSVersion (index $.tab "undefined") }}" disabled>
+        </div>
+    {{ end }}
 </div>
 {{ end }}
 
@@ -74,6 +88,13 @@
             <input class="form-check-input" type="checkbox" {{ if eq .ProtoConfig.checkBlockHash true }}checked{{ end }} disabled>
         </div>
     </div>
+    {{ if eq .Protocol "r66-tls" }}
+        <hr style="border-top: 1px solid #ababab;">
+        <div class="flex-label-input mt-4">
+            <label class="col-form-label label-light-bold me-3">{{ index .tab "minTLSVersion" }} <i class="bi bi-info-circle ms-1" data-bs-toggle="tooltip" data-bs-placement="right" data-bs-title="{{ index $.tab "tooltipMinFtpsTLSVersion" }}"></i> :</label>
+            <input type="text" class="form-control-plaintext input-auto-width" value="{{ displayOrDefault .ProtoConfig.minTLSVersion (index $.tab "undefined") }}" disabled>
+        </div>
+    {{ end }}
 </div>
 {{ end }}
 
@@ -229,7 +250,7 @@
     <hr style="border-top: 1px solid #ababab;">
     <div class="flex-label-input mt-2">
         <label class="col-form-label label-light-bold me-3">{{ index .tab "compatibilityMode" }} <i class="bi bi-info-circle ms-1" data-bs-toggle="tooltip" data-bs-placement="right" data-bs-title="{{ index $.tab "tooltipCompatibilityMode" }}"></i> :</label>
-        <input type="text" class="form-control-plaintext input-auto-width" value='{{ if eq .ProtoConfig.compatibilityMode "axway" }}{{ index $.tab "standardParameterPesit" }}{{ else if eq .ProtoConfig.compatibilityMode "none" }}{{ index $.tab "noneStandardParameterPesit" }}{{ else }}{{ displayOrDefault .ProtoConfig.compatibilityMode (index $.tab "undefined") }}{{ end }}' disabled>
+        <input type="text" class="form-control-plaintext input-auto-width" value='{{ if eq .ProtoConfig.compatibilityMode "standard" }}{{ index $.tab "standardParameterPesit" }}{{ else if eq .ProtoConfig.compatibilityMode "non-standard" }}{{ index $.tab "noneStandardParameterPesit" }}{{ else }}{{ displayOrDefault .ProtoConfig.compatibilityMode (index $.tab "undefined") }}{{ end }}' disabled>
     </div>
     <hr style="border-top: 1px solid #ababab;">
     <div class="flex-label-input mt-2">
@@ -505,4 +526,31 @@
         </div>
     </div>
 </div>
+{{ end }}
+
+{{ define "displayHttpPartner" }}
+    {{ if eq .Protocol "https" }}
+        <div class="flex-label-input mt-2">
+            <label class="col-form-label label-light-bold me-3">{{ index .tab "minTLSVersion" }} <i class="bi bi-info-circle ms-1" data-bs-toggle="tooltip" data-bs-placement="right" data-bs-title="{{ index $.tab "tooltipMinFtpsTLSVersion" }}"></i> :</label>
+            <input type="text" class="form-control-plaintext input-auto-width" value="{{ displayOrDefault .ProtoConfig.minTLSVersion (index $.tab "undefined") }}" disabled>
+        </div>
+    {{ end }}
+{{ end }}
+
+{{ define "displayHttpServer" }}
+    {{ if eq .Protocol "https" }}
+        <div class="flex-label-input mt-2">
+            <label class="col-form-label label-light-bold me-3">{{ index .tab "minTLSVersion" }} <i class="bi bi-info-circle ms-1" data-bs-toggle="tooltip" data-bs-placement="right" data-bs-title="{{ index $.tab "tooltipMinFtpsTLSVersion" }}"></i> :</label>
+            <input type="text" class="form-control-plaintext input-auto-width" value="{{ displayOrDefault .ProtoConfig.minTLSVersion (index $.tab "undefined") }}" disabled>
+        </div>
+    {{ end }}
+{{ end }}
+
+{{ define "displayHttpClient" }}
+    {{ if eq .Protocol "https" }}
+        <div class="flex-label-input mt-2">
+            <label class="col-form-label label-light-bold me-3">{{ index .tab "minTLSVersion" }} <i class="bi bi-info-circle ms-1" data-bs-toggle="tooltip" data-bs-placement="right" data-bs-title="{{ index $.tab "tooltipMinFtpsTLSVersion" }}"></i> :</label>
+            <input type="text" class="form-control-plaintext input-auto-width" value="{{ displayOrDefault .ProtoConfig.minTLSVersion (index $.tab "undefined") }}" disabled>
+        </div>
+    {{ end }}
 {{ end }}

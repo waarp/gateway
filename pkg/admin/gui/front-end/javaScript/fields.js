@@ -1,4 +1,4 @@
-function addFieldCloudOptions(button) {
+function addField(button) {
     let container = button.parentElement.querySelector('#infoContainer');
     if (!container)
         container = button.parentElement.querySelector('[id^="editInfoContainer_"]');
@@ -15,7 +15,7 @@ function addFieldCloudOptions(button) {
     container.appendChild(newGroup);
 }
 
-function removeFieldCloudOptions(button) {
+function removeField(button) {
     const group = button.closest('.input-group');
     const container = group.parentElement;
     const groups = container.querySelectorAll('.input-group');
@@ -28,4 +28,27 @@ function removeFieldCloudOptions(button) {
             else
                 el.value = '';
         });
+}
+
+function addFieldEmailRecipient(button) {
+    const container = button.parentElement.querySelector('#recipientsContainer');
+    if (!container)
+        return;
+    const firstGroup = container.querySelector('.input-group');
+    if (!firstGroup)
+        return;
+    const newGroup = firstGroup.cloneNode(true);
+    newGroup.querySelector('input').value = '';
+    container.appendChild(newGroup);
+}
+
+function removeFieldEmailRecipient(button) {
+    const group = button.closest('.input-group');
+    const container = group.parentElement;
+    const groups = container.querySelectorAll('.input-group');
+    if (groups.length > 1) {
+        group.remove();
+    } else {
+        group.querySelector('input').value = '';
+    }
 }
