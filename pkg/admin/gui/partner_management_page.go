@@ -12,6 +12,7 @@ import (
 	"code.waarp.fr/apps/gateway/gateway/pkg/database"
 	"code.waarp.fr/apps/gateway/gateway/pkg/model"
 	"code.waarp.fr/apps/gateway/gateway/pkg/protocols/modules/ftp"
+	httpconst "code.waarp.fr/apps/gateway/gateway/pkg/protocols/modules/http"
 	"code.waarp.fr/apps/gateway/gateway/pkg/protocols/modules/pesit"
 	"code.waarp.fr/apps/gateway/gateway/pkg/protocols/modules/r66"
 	"code.waarp.fr/apps/gateway/gateway/pkg/protocols/modules/sftp"
@@ -58,7 +59,9 @@ func editPartner(db *database.DB, r *http.Request) error {
 
 	switch editPartner.Protocol {
 	case r66.R66, r66.R66TLS:
-		editPartner.ProtoConfig = protoConfigR66Partner(r)
+		editPartner.ProtoConfig = protoConfigR66Partner(r, editPartner.Protocol)
+	case httpconst.HTTP, httpconst.HTTPS:
+		editPartner.ProtoConfig = protoConfigHTTPpartner(r, editPartner.Protocol)
 	case sftp.SFTP:
 		editPartner.ProtoConfig = protoConfigSFTPpartner(r)
 	case ftp.FTP, ftp.FTPS:
@@ -104,7 +107,9 @@ func addPartner(db *database.DB, r *http.Request) error {
 
 	switch newPartner.Protocol {
 	case r66.R66, r66.R66TLS:
-		newPartner.ProtoConfig = protoConfigR66Partner(r)
+		newPartner.ProtoConfig = protoConfigR66Partner(r, newPartner.Protocol)
+	case httpconst.HTTP, httpconst.HTTPS:
+		newPartner.ProtoConfig = protoConfigHTTPpartner(r, newPartner.Protocol)
 	case sftp.SFTP:
 		newPartner.ProtoConfig = protoConfigSFTPpartner(r)
 	case ftp.FTP, ftp.FTPS:

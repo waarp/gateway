@@ -158,7 +158,11 @@
                   <div class="modal-dialog modal-lg">
                     <div class="modal-content">
                       <div class="modal-body text-break">
-                        {{ .Value }}
+                        {{ if eq (displayOrDefault .Value (index $.tab "undefined")) (index $.tab "undefined") }}
+                            <span class="input-undefined">{{ displayOrDefault .Value (index $.tab "undefined") }}</span>
+                        {{ else }}
+                            {{ .Value }}
+                        {{ end }}
                       </div>
                     </div>
                   </div>

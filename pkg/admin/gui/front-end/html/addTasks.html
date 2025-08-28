@@ -120,13 +120,28 @@
     </div>
     <hr style="border-top: 1px solid #ababab;">
     <div class="form-input">
+        <label class="col-form-label">{{ index .tab "outputPath" }} <i class="bi bi-info-circle ms-1" data-bs-toggle="tooltip" data-bs-placement="right" data-bs-title="{{ index $.tab "tooltipOutput" }}"></i> :</label>
+        <input type="text" name="outputTransfer" class="form-control" value="{{ index $.modalElement "outputTransfer" }}">
+    </div>
+    <hr style="border-top: 1px solid #ababab;">
+    <div class="form-input">
         <label class="col-form-label">{{ index .tab "using" }} <i class="bi bi-info-circle ms-1" data-bs-toggle="tooltip" data-bs-placement="right" data-bs-title="{{ index $.tab "tooltipUsing" }}"></i> :</label>
-        <input type="text" name="usingTransfer" class="form-control" value="{{ index $.modalElement "usingTransfer" }}">
+        <select name="usingTransfer" class="form-select">
+            <option value="" disabled {{ if $.modalElement }}{{ if eq (index $.modalElement "usingTransfer") "" }}selected{{ end }}{{ else }}selected{{ end }}>{{ index .tab "selectClient" }}</option>
+            {{ range .listClient }}
+                <option value="{{ . }}" {{ if $.modalElement }}{{ if eq (index $.modalElement "usingTransfer") . }}selected{{ end }}{{ end }}>{{ . }}</option>
+            {{ end }}
+        </select>
     </div>
     <hr style="border-top: 1px solid #ababab;">
     <div class="form-input">
         <label class="col-form-label">{{ index .tab "to" }} <i class="bi bi-info-circle ms-1" data-bs-toggle="tooltip" data-bs-placement="right" data-bs-title="{{ index $.tab "tooltipTo" }}"></i> :</label>
-        <input type="text" name="toTransfer" class="form-control" value="{{ index $.modalElement "toTransfer" }}">
+        <select name="toTransfer" class="form-select">
+            <option value="" disabled {{ if $.modalElement }}{{ if eq (index $.modalElement "toTransfer") "" }}selected{{ end }}{{ else }}selected{{ end }}>{{ index .tab "selectPartner" }}</option>
+            {{ range .listPartner }}
+                <option value="{{ . }}" {{ if $.modalElement }}{{ if eq (index $.modalElement "toTransfer") . }}selected{{ end }}{{ end }}>{{ . }}</option>
+            {{ end }}
+        </select>
     </div>
     <hr style="border-top: 1px solid #ababab;">
     <div class="form-input">
@@ -304,6 +319,58 @@
     </div>
 </div>
 {{ end}}
+
+{{ define "addTaskEMAIL" }}
+<div id="taskEMAIL" class="taskBlock" style="display:none;">
+    <hr style="border-top: 1px solid #ababab;">
+    <div class="form-input">
+        <label class="col-form-label">{{ index .tab "sender" }} :</label>
+        <select name="senderEmail" class="form-select">
+            <option value="" disabled {{ if $.modalElement }}{{ if eq (index $.modalElement "senderEmail") "" }}selected{{ end }}{{ else }}selected{{ end }}>{{ index .tab "selectSMTP" }}</option>
+            {{ range .listSMTP }}
+                <option value="{{ . }}" {{ if $.modalElement }}{{ if eq (index $.modalElement "senderEmail") . }}selected{{ end }}{{ end }}>{{ . }}</option>
+            {{ end }}
+        </select>
+    </div>
+    <hr style="border-top: 1px solid #ababab;">
+    <div class="form-input">
+        <label class="col-form-label">{{ index .tab "recipients" }} :</label>
+        <div id="recipientsContainer">
+            {{ $recipients := index $.modalElement "recipients[]" }}
+            {{ if $recipients }}
+                {{ range $i, $r := $recipients }}
+                    <div class="input-group mb-2">
+                        <input type="text" name="recipients[]" class="form-control" value="{{ $r }}" placeholder="{{ index $.tab "recipientEmail" }}">
+                        <button type="button" class="btn btn-outline-danger btn-sm" onclick="removeFieldEmailRecipient(this)">
+                            <i class="bi bi-trash"></i>
+                        </button>
+                    </div>
+                {{ end }}
+            {{ else }}
+                <div class="input-group mb-2">
+                    <input type="text" name="recipients[]" class="form-control" placeholder="{{ index $.tab "recipientEmail" }}">
+                    <button type="button" class="btn btn-outline-danger btn-sm" onclick="removeFieldEmailRecipient(this)">
+                        <i class="bi bi-trash"></i>
+                    </button>
+                </div>
+            {{ end }}
+        </div>
+        <button type="button" class="btn btn-outline-primary btn-sm" onclick="addFieldEmailRecipient(this)">
+            {{ index .tab "add" }}
+        </button>
+    </div>
+    <hr style="border-top: 1px solid #ababab;">
+    <div class="form-input">
+        <label class="col-form-label">{{ index .tab "template" }} :</label>
+        <select name="templateEmail" class="form-select">
+            <option value="" disabled {{ if $.modalElement }}{{ if eq (index $.modalElement "templateEmail") "" }}selected{{ end }}{{ else }}selected{{ end }}>{{ index .tab "selectTmplEmail" }}</option>
+            {{ range .listTmplEmail }}
+                <option value="{{ . }}" {{ if $.modalElement }}{{ if eq (index $.modalElement "templateEmail") . }}selected{{ end }}{{ end }}>{{ . }}</option>
+            {{ end }}
+        </select>
+    </div>
+</div>
+{{ end }}
 
 {{ define "addTaskENCRYPT" }}
 <div id="taskENCRYPT" class="taskBlock" style="display:none;">

@@ -4,6 +4,7 @@ function showProtoConfig (selectElem) {
     const match = proto => (
         (proto === 'r66'   && (selected === 'r66'   || selected === 'r66-tls')) ||
         (proto === 'ftp'   && (selected === 'ftp'   || selected === 'ftps')) ||
+        (proto === 'http'   && (selected === 'http'   || selected === 'https')) ||
         (proto === 'pesit' && (selected === 'pesit' || selected === 'pesit-tls')) ||
         (proto === selected)
     );
@@ -29,6 +30,8 @@ function showProtoConfig (selectElem) {
 
     container.querySelector('#ftpsForm')?.style.setProperty('display', selected === 'ftps' ? 'block' : 'none');
     container.querySelector('#pesit-tlsForm')?.style.setProperty('display', selected === 'pesit-tls' ? 'block' : 'none');
+    container.querySelector('#r66-tlsForm')?.style.setProperty('display', selected === 'r66-tls' ? 'block' : 'none');
+    container.querySelector('#httpsForm')?.style.setProperty('display', selected === 'https' ? 'block' : 'none');
 }
 
 function addField(button, fieldName) {

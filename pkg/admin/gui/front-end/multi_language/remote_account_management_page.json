@@ -20,6 +20,8 @@
     "managing_authentication_authorities": { "fr": "Gestion des autorités d'authentification", "en": "Managing authentication authorities" },
     "cloud_instance_management": { "fr": "Gestion des instances cloud", "en": "Cloud instance management" },
     "snmp_management": { "fr": "Gestion de SNMP", "en": "SNMP Management" },
+    "smtp_credentials_management": { "fr": "Gestion des identifiants SMTP", "en": "SMTP credentials management" },
+    "email_templates_management": { "fr": "Gestion des templates d'email", "en": "Email templates management" },
     "cryptographic_key_management": { "fr": "Gestion des clés cryptographiques", "en": "Cryptographic key management" },
 
     "title": { "fr": "Gestion des comptes distants", "en": "Remote account management" },

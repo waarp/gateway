@@ -94,6 +94,7 @@
               {{ template "addSftpPartner" . }}
               {{ template "addFtpPartner" . }}
               {{ template "addPesitPartner" . }}
+              {{ template "addHttpPartner" . }}
             </div>
               <div class="modal-footer">
                   <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">{{ index .tab "close" }}</button>
@@ -207,7 +208,7 @@
               <td>{{ .Address.Host }}</td>
               <td>{{ .Address.Port }}</td>
               <td>
-              {{ if and (ne .Protocol "http") (ne .Protocol "https") }}
+              {{ if ne .Protocol "http" }}
               <button class="btn btn-outline-primary modal-btn" type="button" data-bs-toggle="modal" data-bs-target="#protoConfigModal_{{ .ID }}">
                 <i class="bi bi-gear-wide-connected"></i>
               </button>
@@ -222,7 +223,7 @@
                     </div>
                     <div class="modal-body">
                       {{ if or (eq .Protocol "r66") (eq .Protocol "r66-tls") }}
-                        {{ template "displayR66Partner" (dict "tab" $.tab "ProtoConfig" .ProtoConfig) }}
+                        {{ template "displayR66Partner" (dict "tab" $.tab "ProtoConfig" .ProtoConfig "Protocol" .Protocol) }}
                       {{ end }}
                       {{ if or (eq .Protocol "ftp") (eq .Protocol "ftps") }}
                         {{ template "displayFtpPartner" (dict "tab" $.tab "ProtoConfig" .ProtoConfig "TLSVersions" $.TLSVersions "Protocol" .Protocol) }}
@@ -232,6 +233,9 @@
                       {{ end }}
                       {{ if eq .Protocol "sftp" }}
                         {{ template "displaySftpPartner" (dict "tab" $.tab "ProtoConfig" .ProtoConfig "KeyExchanges" $.KeyExchanges "Ciphers" $.Ciphers "MACs" $.MACs) }}
+                      {{ end }}
+                      {{ if eq .Protocol "https" }}
+                        {{ template "displayHttpPartner" (dict "tab" $.tab "ProtoConfig" .ProtoConfig "TLSVersions" $.TLSVersions "Protocol" .Protocol) }}
                       {{ end }}
                     </div>
                     <div class="modal-footer">
@@ -311,10 +315,11 @@
                           <label class="col-form-label">{{ index $.tab "address" }} ({{ index $.tab "port" }}) <i class="bi bi-info-circle ms-1" data-bs-toggle="tooltip" data-bs-placement="right" data-bs-title="{{ index $.tab "tooltipPort" }}"></i> :</label>
                           <input type="text" name="editPartnerPort" class="form-control" required value="{{ if $me }}{{ index $me "editPartnerPort" }}{{ else }}{{ .Address.Port }}{{ end }}">
                       </div>
-                      {{ template "editR66Partner" (dict "tab" $.tab "ProtoConfig" .ProtoConfig "modalElement" $me) }}
+                      {{ template "editR66Partner" (dict "tab" $.tab "ProtoConfig" .ProtoConfig "TLSVersions" $.TLSVersions "modalElement" $me) }}
                       {{ template "editFtpPartner" (dict "tab" $.tab "ProtoConfig" .ProtoConfig "TLSVersions" $.TLSVersions "modalElement" $me) }}
                       {{ template "editPesitPartner" (dict "tab" $.tab "ProtoConfig" .ProtoConfig "TLSVersions" $.TLSVersions "CompatibilityModePeSIT" $.CompatibilityModePeSIT "modalElement" $me) }}
                       {{ template "editSftpPartner" (dict "tab" $.tab "ProtoConfig" .ProtoConfig "KeyExchanges" $.KeyExchanges "Ciphers" $.Ciphers "MACs" $.MACs "modalElement" $me) }}
+                      {{ template "editHttpPartner" (dict "tab" $.tab "ProtoConfig" .ProtoConfig "TLSVersions" $.TLSVersions "modalElement" $me) }}
                     </div>
                       <div class="modal-footer">
                           <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">{{ index $.tab "close" }}</button>

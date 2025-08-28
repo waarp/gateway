@@ -27,6 +27,7 @@ const (
 	TaskArchive       = "ARCHIVE"
 	TaskExtract       = "EXTRACT"
 	TaskIcap          = "ICAP"
+	TaskEmail         = "EMAIL"
 	TaskEncrypt       = "ENCRYPT"
 	TaskDecrypt       = "DECRYPT"
 	TaskSign          = "SIGN"
@@ -178,6 +179,7 @@ var TaskTypes = []string{
 	TaskArchive,
 	TaskExtract,
 	TaskIcap,
+	TaskEmail,
 	TaskEncrypt,
 	TaskDecrypt,
 	TaskSign,
@@ -295,6 +297,10 @@ func taskTRANSFER(r *http.Request) map[string]string {
 
 	if fileTransfer := r.FormValue("fileTransfer"); fileTransfer != "" {
 		taskTransfer["file"] = fileTransfer
+	}
+
+	if outputTransfer := r.FormValue("outputTransfer"); outputTransfer != "" {
+		taskTransfer["output"] = outputTransfer
 	}
 
 	if usingTransfer := r.FormValue("usingTransfer"); usingTransfer != "" {
@@ -428,6 +434,25 @@ func taskICAP(r *http.Request) map[string]string {
 	}
 
 	return taskIcap
+}
+
+func taskEMAIL(r *http.Request) map[string]string {
+	taskEmail := make(map[string]string)
+
+	if senderEmail := r.FormValue("senderEmail"); senderEmail != "" {
+		taskEmail["sender"] = senderEmail
+	}
+
+	recipients := r.Form["recipients[]"]
+	if len(recipients) > 0 {
+		taskEmail["recipients"] = strings.Join(recipients, "\n")
+	}
+
+	if templateEmail := r.FormValue("templateEmail"); templateEmail != "" {
+		taskEmail["template"] = templateEmail
+	}
+
+	return taskEmail
 }
 
 func taskENCRYPT(r *http.Request) map[string]string {

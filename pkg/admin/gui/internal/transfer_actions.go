@@ -19,15 +19,21 @@ func InsertNewTransfer(db *database.DB,
 	account *model.RemoteAccount,
 	client *model.Client,
 	date time.Time,
+	remainingTries int8,
+	nextRetryDelay int32,
+	retryIncrementFactor float32,
 	transferInfos map[string]any,
 ) (*model.Transfer, error) {
 	trans := &model.Transfer{
-		SrcFilename:     srcFilename,
-		DestFilename:    dstFilename,
-		RemoteAccountID: utils.NewNullInt64(account.ID),
-		ClientID:        utils.NewNullInt64(client.ID),
-		RuleID:          rule.ID,
-		Start:           date,
+		SrcFilename:          srcFilename,
+		DestFilename:         dstFilename,
+		RemoteAccountID:      utils.NewNullInt64(account.ID),
+		ClientID:             utils.NewNullInt64(client.ID),
+		RuleID:               rule.ID,
+		Start:                date,
+		RemainingTries:       remainingTries,
+		NextRetryDelay:       nextRetryDelay,
+		RetryIncrementFactor: retryIncrementFactor,
 	}
 
 	if date.IsZero() {
@@ -60,7 +66,7 @@ func RegisterNewTransfer(db *database.DB,
 	account *model.LocalAccount,
 	dueDate time.Time,
 	transferInfos map[string]any,
-) error {
+) (*model.Transfer, error) {
 	trans := &model.Transfer{
 		LocalAccountID: utils.NewNullInt64(account.ID),
 		RuleID:         rule.ID,
@@ -73,7 +79,7 @@ func RegisterNewTransfer(db *database.DB,
 		trans.DestFilename = filename
 	}
 
-	return db.Transaction(func(ses *database.Session) error {
+	err := db.Transaction(func(ses *database.Session) error {
 		if err := ses.Insert(trans).Run(); err != nil {
 			return fmt.Errorf("failed to insert transfer: %w", err)
 		}
@@ -86,6 +92,11 @@ func RegisterNewTransfer(db *database.DB,
 
 		return nil
 	})
+	if err != nil {
+		return nil, err
+	}
+
+	return trans, nil
 }
 
 func PauseTransfer(ctx context.Context, db database.Access, view *model.NormalizedTransferView,

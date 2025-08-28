@@ -92,10 +92,33 @@
                 <label class="col-form-label">{{ index .tab "address" }} ({{ index .tab "port" }}) <i class="bi bi-info-circle ms-1" data-bs-toggle="tooltip" data-bs-placement="right" data-bs-title="{{ index $.tab "tooltipPort" }}"></i> :</label>
                 <input type="text" name="addLocalClientPort" class="form-control" required value="{{ index $.modalElement "addLocalClientPort" }}">
                 </div>
+                <hr style="border-top: 1px solid #ababab;">
+                <div class="form-input mb-2">
+                  <label class="col-form-label">{{ index .tab "nbOfAttempts" }} :</label>
+                  <input type="text" name="nbOfAttempts" class="form-control" value="{{ index $.modalElement "nbOfAttempts" }}">
+                </div>
+                <hr style="border-top: 1px solid #ababab;">
+                <div class="form-input d-flex align-items-center">
+                    <label class="col-form-label me-3">{{ index .tab "firstRetryDelay" }} :</label>
+                    <div class="input-group" style="max-width: 60%;">
+                        <span class="input-group-text">h</span>
+                        <input type="text" name="retryDelaypH" class="form-control" placeholder="00" value="{{ index $.modalElement "retryDelaypH" }}">
+                        <span class="input-group-text">m</span>
+                        <input type="text" name="retryDelayM" class="form-control" placeholder="00" value="{{ index $.modalElement "retryDelayM" }}">
+                        <span class="input-group-text">s</span>
+                        <input type="text" name="retryDelayS" class="form-control" placeholder="00" value="{{ index $.modalElement "retryDelayS" }}">
+                    </div>
+                </div>
+                <hr style="border-top: 1px solid #ababab;">
+                <div class="form-input mb-2">
+                  <label class="col-form-label">{{ index .tab "retryIncrementFactor" }} :</label>
+                  <input type="text" name="retryIncrementFactor" class="form-control" value="{{ index $.modalElement "retryIncrementFactor" }}">
+                </div>
                 {{ template "addR66Client" . }}
                 {{ template "addSftpClient" . }}
                 {{ template "addFtpClient" . }}
                 {{ template "addPesitClient" . }}
+                {{ template "addHttpClient" . }}
             </div>
             <div class="modal-footer">
                 <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">{{ index .tab "close" }}</button>
@@ -198,6 +221,7 @@
             <th>{{ index .tab "address" }} ({{ index .tab "host" }}) <i class="bi bi-info-circle ms-1" data-bs-toggle="tooltip" data-bs-placement="right" data-bs-title="{{ index $.tab "tooltipHost" }}"></i></th>
             <th>{{ index .tab "address" }} ({{ index .tab "port" }}) <i class="bi bi-info-circle ms-1" data-bs-toggle="tooltip" data-bs-placement="right" data-bs-title="{{ index $.tab "tooltipPort" }}"></i></th>
             <th>{{ index .tab "protoConfig" }} <i class="bi bi-info-circle ms-1" data-bs-toggle="tooltip" data-bs-placement="right" data-bs-title="{{ index $.tab "tooltipProtocolConfiguration" }}"></i></th>
+            <th>{{ index .tab "moreInfo" }}</th>
             <th class="text-end"></th>
         </tr>
         </thead>
@@ -224,6 +248,7 @@
             <td>{{ .LocalAddress.Host }}</td>
             <td>{{ .LocalAddress.Port }}</td>
             <td>
+              {{ if ne .Protocol "http" }}
               <button class="btn btn-outline-primary modal-btn" type="button" data-bs-toggle="modal" data-bs-target="#protoConfigModal_{{ .ID }}">
                     <i class="bi bi-gear-wide-connected"></i>
                 </button>
@@ -238,7 +263,7 @@
                         </div>
                         <div class="modal-body">
                         {{ if or (eq .Protocol "r66") (eq .Protocol "r66-tls") }}
-                            {{ template "displayR66Client" (dict "tab" $.tab "ProtoConfig" .ProtoConfig) }}
+                            {{ template "displayR66Client" (dict "tab" $.tab "ProtoConfig" .ProtoConfig "Protocol" .Protocol) }}
                         {{ end }}
                         {{ if or (eq .Protocol "ftp") (eq .Protocol "ftps") }}
                             {{ template "displayFtpClient" (dict "tab" $.tab "ProtoConfig" .ProtoConfig "TLSVersions" $.TLSVersions "Protocol" .Protocol) }}
@@ -249,6 +274,9 @@
                         {{ if eq .Protocol "sftp" }}
                             {{ template "displaySftpClient" (dict "tab" $.tab "ProtoConfig" .ProtoConfig "KeyExchanges" $.KeyExchanges "Ciphers" $.Ciphers "MACs" $.MACs) }}
                         {{ end }}
+                        {{ if eq .Protocol "https" }}
+                          {{ template "displayHttpClient" (dict "tab" $.tab "ProtoConfig" .ProtoConfig "TLSVersions" $.TLSVersions "Protocol" .Protocol) }}
+                        {{ end }}
                         </div>
                         <div class="modal-footer">
                         <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">{{ index $.tab "close" }}</button>
@@ -256,7 +284,44 @@
                     </div>
                     </div>
                 </div>
+              {{ end }} 
               </td>
+              <td>
+                <button class="btn btn-outline-primary modal-btn" type="button" data-bs-toggle="modal" data-bs-target="#moreInfosModal_{{ .ID }}">
+                  <i class="bi bi-three-dots"></i>
+                </button>
+                <div class="modal fade" id="moreInfosModal_{{ .ID }}" tabindex="-1" aria-labelledby="moreInfosModalLabel_{{ .ID }}" aria-hidden="true">
+                  <div class="modal-dialog modal-lg">
+                      <div class="modal-content p-3 border rounded bg-light">
+                        <div class="modal-header">
+                            <h5 class="modal-title" id="moreInfosModalLabel_{{ .ID }}">
+                            {{ index $.tab "additionalInformation" }} : {{ .Name }}
+                            </h5>
+                            <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                        </div>
+                        <div class="modal-body">
+                            <div class="flex-label-input mb-2">
+                                <label class="col-form-label label-light-bold me-3">{{ index $.tab "nbOfAttempts" }} :</label>
+                                <input type="text" class="form-control-plaintext input-auto-width" value="{{ displayOrDefault .NbOfAttempts (index $.tab "undefined") }}" readonly>
+                            </div>
+                            <hr style="border-top: 1px solid #ababab;">
+                            <div class="flex-label-input mb-2">
+                                <label class="col-form-label label-light-bold me-3">{{ index $.tab "firstRetryDelay" }} {{ index $.tab "second" }}{{ if gt .FirstRetryDelay 1 }}s{{ end }} :</label>
+                                <input type="text" class="form-control-plaintext input-auto-width" value="{{ displayOrDefault .FirstRetryDelay (index $.tab "undefined") }}" readonly>
+                            </div>
+                            <hr style="border-top: 1px solid #ababab;">
+                            <div class="flex-label-input mb-2">
+                                <label class="col-form-label label-light-bold me-3">{{ index $.tab "retryIncrementFactor" }} :</label>
+                                <input type="text" class="form-control-plaintext input-auto-width" value="{{ displayOrDefault .RetryIncrementFactor (index $.tab "undefined") }}" readonly>
+                            </div>
+                        </div>
+                        <div class="modal-footer">
+                            <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">{{ index $.tab "close" }}</button>
+                        </div>
+                      </div>
+                  </div>
+                </div>
+            </td>
             <td class="text-end">
               <div class="d-inline-flex">
                 {{ if contains $.myPermission.Servers "w" }}
@@ -333,10 +398,26 @@
                             <label class="col-form-label">{{ index $.tab "address" }} ({{ index $.tab "port" }}) <i class="bi bi-info-circle ms-1" data-bs-toggle="tooltip" data-bs-placement="right" data-bs-title="{{ index $.tab "tooltipPort" }}"></i> :</label>
                             <input type="text" name="editLocalClientPort" class="form-control" required value="{{ if $me }}{{ index $me "editLocalClientPort" }}{{ else }}{{ .LocalAddress.Port }}{{ end }}">
                             </div>
-                            {{ template "editR66Client" (dict "tab" $.tab "ProtoConfig" .ProtoConfig "modalElement" $me) }}
+                            <hr style="border-top: 1px solid #ababab;">
+                            <div class="form-input mb-2">
+                              <label class="col-form-label">{{ index $.tab "nbOfAttempts" }} :</label>
+                              <input type="text" name="editNbOfAttempts" class="form-control" value="{{ if $me }}{{ index $me "editNbOfAttempts" }}{{ else }}{{ .NbOfAttempts }}{{ end }}">
+                            </div>
+                            <hr style="border-top: 1px solid #ababab;">
+                            <div class="form-input mb-2x">
+                                <label class="col-form-label me-3">{{ index $.tab "firstRetryDelay" }} :</label>
+                                <input type="text" name="editRetryDelay" class="form-control" value="{{ if $me }}{{ index $me "editRetryDelay" }}{{ else }}{{ .FirstRetryDelay }}{{ end }}">
+                            </div>
+                            <hr style="border-top: 1px solid #ababab;">
+                            <div class="form-input mb-2">
+                              <label class="col-form-label">{{ index $.tab "retryIncrementFactor" }} :</label>
+                              <input type="text" name="editRetryIncrementFactor" class="form-control" value="{{ if $me }}{{ index $me "editRetryIncrementFactor" }}{{ else }}{{ .RetryIncrementFactor }}{{ end }}">
+                            </div>
+                            {{ template "editR66Client" (dict "tab" $.tab "ProtoConfig" .ProtoConfig "TLSVersions" $.TLSVersions "modalElement" $me) }}
                             {{ template "editFtpClient" (dict "tab" $.tab "ProtoConfig" .ProtoConfig "TLSVersions" $.TLSVersions "modalElement" $me) }}
                             {{ template "editPesitClient" (dict "tab" $.tab "ProtoConfig" .ProtoConfig "TLSVersions" $.TLSVersions "CompatibilityModePeSIT" $.CompatibilityModePeSIT "modalElement" $me) }}
                             {{ template "editSftpClient" (dict "tab" $.tab "ProtoConfig" .ProtoConfig "KeyExchanges" $.KeyExchanges "Ciphers" $.Ciphers "MACs" $.MACs "modalElement" $me) }}
+                            {{ template "editHttpClient" (dict "tab" $.tab "ProtoConfig" .ProtoConfig "TLSVersions" $.TLSVersions "modalElement" $me) }}
                         </div>
                         <div class="modal-footer">
                             <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">{{ index $.tab "close" }}</button>

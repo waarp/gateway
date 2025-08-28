@@ -53,6 +53,8 @@ func addPreTask(ruleID int, preTasks []*model.Task, db *database.DB, r *http.Req
 		newPreTask.Args = taskEXTRACT(r)
 	case TaskIcap:
 		newPreTask.Args = taskICAP(r)
+	case TaskEmail:
+		newPreTask.Args = taskEMAIL(r)
 	case TaskEncrypt:
 		newPreTask.Args = taskENCRYPT(r)
 	case TaskDecrypt:
@@ -127,6 +129,8 @@ func editPreTask(ruleID int, preTasks []*model.Task, db *database.DB, r *http.Re
 		editPreTask.Args = taskEXTRACT(r)
 	case TaskIcap:
 		editPreTask.Args = taskICAP(r)
+	case TaskEmail:
+		editPreTask.Args = taskEMAIL(r)
 	case TaskEncrypt:
 		editPreTask.Args = taskENCRYPT(r)
 	case TaskDecrypt:
@@ -308,6 +312,8 @@ func addPostTask(ruleID int, postTasks []*model.Task, db *database.DB, r *http.R
 		newPostTask.Args = taskEXTRACT(r)
 	case TaskIcap:
 		newPostTask.Args = taskICAP(r)
+	case TaskEmail:
+		newPostTask.Args = taskEMAIL(r)
 	case TaskEncrypt:
 		newPostTask.Args = taskENCRYPT(r)
 	case TaskDecrypt:
@@ -382,6 +388,8 @@ func editPostTask(ruleID int, postTasks []*model.Task, db *database.DB, r *http.
 		editPostTask.Args = taskEXTRACT(r)
 	case TaskIcap:
 		editPostTask.Args = taskICAP(r)
+	case TaskEmail:
+		editPostTask.Args = taskEMAIL(r)
 	case TaskEncrypt:
 		editPostTask.Args = taskENCRYPT(r)
 	case TaskDecrypt:
@@ -563,6 +571,8 @@ func addErrorTask(ruleID int, errorTasks []*model.Task, db *database.DB, r *http
 		newErrorTask.Args = taskEXTRACT(r)
 	case TaskIcap:
 		newErrorTask.Args = taskICAP(r)
+	case TaskEmail:
+		newErrorTask.Args = taskEMAIL(r)
 	case TaskEncrypt:
 		newErrorTask.Args = taskENCRYPT(r)
 	case TaskDecrypt:
@@ -637,6 +647,8 @@ func editErrorTask(ruleID int, errorTasks []*model.Task, db *database.DB, r *htt
 		editErrorTask.Args = taskEXTRACT(r)
 	case TaskIcap:
 		editErrorTask.Args = taskICAP(r)
+	case TaskEmail:
+		editErrorTask.Args = taskEMAIL(r)
 	case TaskEncrypt:
 		editErrorTask.Args = taskENCRYPT(r)
 	case TaskDecrypt:
@@ -778,6 +790,62 @@ func callMethodsErrorTasks(logger *log.Logger, db *database.DB, w http.ResponseW
 	return false, "", "", nil
 }
 
+func listPartnerName(db *database.DB) []string {
+	listPartners, err := internal.ListPartners(db, "name", true, 0, 0)
+	if err != nil {
+		return nil
+	}
+
+	partnerNames := make([]string, len(listPartners))
+	for i, s := range listPartners {
+		partnerNames[i] = s.Name
+	}
+
+	return partnerNames
+}
+
+func listClientName(db *database.DB) []string {
+	listClients, err := internal.ListClients(db, "name", true, 0, 0)
+	if err != nil {
+		return nil
+	}
+
+	clientNames := make([]string, len(listClients))
+	for i, s := range listClients {
+		clientNames[i] = s.Name
+	}
+
+	return clientNames
+}
+
+func listSMTPName(db *database.DB) []string {
+	listSMTP, err := internal.ListSMTPCredentials(db)
+	if err != nil {
+		return nil
+	}
+
+	smtpNames := make([]string, len(listSMTP))
+	for i, s := range listSMTP {
+		smtpNames[i] = s.EmailAddress
+	}
+
+	return smtpNames
+}
+
+func listTmplEmail(db *database.DB) []string {
+	listTmplEmail, err := internal.ListEmailTemplates(db)
+	if err != nil {
+		return nil
+	}
+
+	tmplEmailNames := make([]string, len(listTmplEmail))
+	for i, s := range listTmplEmail {
+		tmplEmailNames[i] = s.Name
+	}
+
+	return tmplEmailNames
+}
+
 //nolint:funlen // is for one page
 func tasksTransferRulesPage(logger *log.Logger, db *database.DB) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
@@ -854,6 +922,10 @@ func tasksTransferRulesPage(logger *log.Logger, db *database.DB) http.HandlerFun
 			"preTasks":              preTasks,
 			"postTasks":             postTasks,
 			"errorTasks":            errorTasks,
+			"listPartner":           listPartnerName(db),
+			"listClient":            listClientName(db),
+			"listSMTP":              listSMTPName(db),
+			"listTmplEmail":         listTmplEmail(db),
 			"TranscodeFormats":      TranscodeFormats,
 			"ArchiveExtensions":     ArchiveExtensions,
 			"EncryptMethods":        EncryptMethods,

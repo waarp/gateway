@@ -104,6 +104,9 @@ func RouterPages(secureRouter *mux.Router, db *database.DB, logger *log.Logger) 
 		managingAuthenticationAuthoritiesPage(logger, db)).Methods("GET", "POST")
 	secureRouter.HandleFunc("/managing_configuration_overrides",
 		managingConfigurationOverridesPage(logger, db)).Methods("GET", "POST")
+	secureRouter.HandleFunc("/email_templates_management", EmailTemplateManagementPage(logger, db)).Methods("GET", "POST")
+	secureRouter.HandleFunc("/smtp_credentials_management",
+		SMTPCredentialManagementPage(logger, db)).Methods("GET", "POST")
 }
 
 func AddGUIRouter(router *mux.Router, logger *log.Logger, db *database.DB) {

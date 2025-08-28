@@ -24,8 +24,8 @@
     "email_templates_management": { "fr": "Gestion des templates d'email", "en": "Email templates management" },
     "cryptographic_key_management": { "fr": "Gestion des clés cryptographiques", "en": "Cryptographic key management" },
 
-    "title": { "fr": "Gestion des autorités d'authentification", "en": "Managing authentication authorities" },
+    "title": { "fr": "Gestion des templates d'email", "en": "Email templates management" },
     "prodPage": { "fr": "Cette page est en cours de production et sera disponible très prochainement.", "en": "This page is currently under production and will be available very soon." },
     "useCLi": { "fr": "Pour le moment, veuillez utiliser la CLI.", "en": "For now, please use the CLI." },
-    "docCLi": { "fr": "Documentation CLI (Gestion des autorités d'authentification)", "en": "CLI Documentation (Managing authentication authorities)" }
+    "docCLi": { "fr": "Documentation CLI (Gestion des templates d'email)", "en": "CLI Documentation (Email templates management)" }
 }

@@ -12,7 +12,8 @@
   <script src="/webui/static/javaScript/dynamicsSelect.js"></script>
   <script src="/webui/static/javaScript/filterRuleSelect.js"></script>
   <script>
-    window.listAccounts = {{ marshalJSON .listAccounts }};
+    window.listAccountsPartner = {{ marshalJSON .listAccountsPartner }};
+    window.listAccountsServer = {{ marshalJSON .listAccountsServer }};
     window.listAgents = {{ marshalJSON .listAgents }};
     window.filterAccountValue = "{{ .filter.FilterAccount }}";
   </script>
@@ -107,7 +108,7 @@
         </td>
         <td>
             <button class="btn btn-outline-primary modal-btn" type="button" data-bs-toggle="modal" data-bs-target="#moreInfosModal_{{ .ID }}">
-            <i class="bi bi-three-dots"></i>
+              <i class="bi bi-three-dots"></i>
             </button>
             <div class="modal fade" id="moreInfosModal_{{ .ID }}" tabindex="-1" aria-labelledby="moreInfosModalLabel_{{ .ID }}" aria-hidden="true">
             <div class="modal-dialog modal-lg">
@@ -142,6 +143,21 @@
                     <div class="flex-label-input mb-2">
                         <label class="col-form-label label-light-bold me-3">{{ index $.tab "client" }} :</label>
                         <input type="text" class="form-control-plaintext input-auto-width" value="{{ displayOrDefault .Client (index $.tab "undefined") }}" readonly>
+                    </div>
+                    <hr style="border-top: 1px solid #ababab;">
+                    <div class="flex-label-input mb-2">
+                        <label class="col-form-label label-light-bold me-3">{{ index $.tab "nbOfAttempts" }} :</label>
+                        <input type="text" class="form-control-plaintext input-auto-width" value="{{ displayOrDefault .RemainingTries (index $.tab "undefined") }}" readonly>
+                    </div>
+                    <hr style="border-top: 1px solid #ababab;">
+                    <div class="flex-label-input mb-2">
+                        <label class="col-form-label label-light-bold me-3">{{ index $.tab "firstRetryDelay" }} {{ index $.tab "second" }}{{ if gt .NextRetryDelay 1 }}s{{ end }} :</label>
+                        <input type="text" class="form-control-plaintext input-auto-width" value="{{ displayOrDefault .NextRetryDelay (index $.tab "undefined") }}" readonly>
+                    </div>
+                    <hr style="border-top: 1px solid #ababab;">
+                    <div class="flex-label-input mb-2">
+                        <label class="col-form-label label-light-bold me-3">{{ index $.tab "retryIncrementFactor" }} :</label>
+                        <input type="text" class="form-control-plaintext input-auto-width" value="{{ displayOrDefault .RetryIncrementFactor (index $.tab "undefined") }}" readonly>
                     </div>
                     <hr style="border-top: 1px solid #ababab;">
                     <div class="flex-label-input mb-2">
@@ -273,6 +289,12 @@
             <button type="button" class="btn-close success-close-btn" data-bs-dismiss="alert" aria-label="Close"></button>
         </div>
     {{ end }}
+      {{ if .successAddRegister }}
+        <div id="successPopup" class="alert alert-success alert-dismissible fade show" role="alert">
+            {{ index .tab "addingRegisterTransfer" }}{{ .successAddRegister }}
+            <button type="button" class="btn-close success-close-btn" data-bs-dismiss="alert" aria-label="Close"></button>
+        </div>
+    {{ end }}
     {{ if .successReprogramTransfer }}
         <div id="successPopup" class="alert alert-success alert-dismissible fade show" role="alert">
             {{ index .tab "reprogTransfer" }}{{ .successReprogramTransfer }}
@@ -372,6 +394,28 @@
                   </div>
                   <hr style="border-top: 1px solid #ababab;">
                   <div class="form-input mb-2">
+                    <label class="col-form-label">{{ index .tab "nbOfAttempts" }} :</label>
+                    <input type="text" name="nbOfAttempts" class="form-control" value="{{ index $.modalElement "nbOfAttempts" }}">
+                  </div>
+                  <hr style="border-top: 1px solid #ababab;">
+                  <div class="form-input d-flex align-items-center">
+                      <label class="col-form-label me-3">{{ index .tab "firstRetryDelay" }} :</label>
+                      <div class="input-group" style="max-width: 60%;">
+                          <span class="input-group-text">h</span>
+                          <input type="text" name="retryDelaypH" class="form-control" placeholder="00" value="{{ index $.modalElement "retryDelaypH" }}">
+                          <span class="input-group-text">m</span>
+                          <input type="text" name="retryDelayM" class="form-control" placeholder="00" value="{{ index $.modalElement "retryDelayM" }}">
+                          <span class="input-group-text">s</span>
+                          <input type="text" name="retryDelayS" class="form-control" placeholder="00" value="{{ index $.modalElement "retryDelayS" }}">
+                      </div>
+                  </div>
+                  <hr style="border-top: 1px solid #ababab;">
+                  <div class="form-input mb-2">
+                    <label class="col-form-label">{{ index .tab "retryIncrementFactor" }} :</label>
+                    <input type="text" name="retryIncrementFactor" class="form-control" value="{{ index $.modalElement "retryIncrementFactor" }}">
+                  </div>
+                  <hr style="border-top: 1px solid #ababab;">
+                  <div class="form-input mb-2">
                       <label class="col-form-label">({{ index .tab "optional" }}) {{ index .tab "infosTransfer" }} :</label>
                       <div id="infoContainer">
                         {{ $keys := index $.modalElement "transferInfosKeys[]" }}
@@ -390,6 +434,105 @@
                           <div class="input-group mb-2">
                             <input type="text" name="transferInfosKeys[]" class="form-control" placeholder="{{ index $.tab "fieldName" }}">
                             <input type="text" name="transferInfosValues[]" class="form-control" placeholder="{{ index $.tab "value" }}">
+                            <button type="button" class="btn btn-outline-danger btn-sm" onclick="removeField(this)">
+                              <i class="bi bi-trash"></i>
+                            </button>
+                          </div>
+                        {{ end }}
+                      </div>
+                      <button type="button" class="btn btn-outline-primary btn-sm" onclick="addField(this)">
+                          {{ index .tab "add" }}
+                      </button>
+                  </div>
+                </div>
+                <div class="modal-footer">
+                  <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">{{ index .tab "close" }}</button>
+                  <button type="submit" class="btn btn-success ms-3">{{ index .tab "apply" }}</button>
+                </div>
+              </form>
+            </div>
+          </div>
+        </div>
+
+        <button class="btn btn-primary mb-3 btn-add" type="button" data-bs-toggle="modal" data-bs-target="#preRegisterTransferModal">
+            {{ index .tab "preRegisterServerTransfer" }}
+        </button>
+        <div class="modal fade" id="preRegisterTransferModal" tabindex="-1" aria-labelledby="preRegisterTransferModalLabel" aria-hidden="true">
+          <div class="modal-dialog modal-lg">
+            <div class="modal-content">
+              <form method="post" class="p-3 border rounded bg-light">
+                <div class="modal-header">
+                  <h5 class="modal-title" id="preRegisterTransferModalLabel">{{ index .tab "preRegisterServerTransfer" }}</h5>
+                  <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+                  <div class="form-input mb-2">
+                    <label class="col-form-label">{{ index .tab "pathFile" }} :</label>
+                    <input type="text" name="preRegisterFile" class="form-control" required value="{{ index $.modalElement "preRegisterFile" }}">
+                  </div>
+                  <hr style="border-top: 1px solid #ababab;">
+                  <div class="form-input mb-2 d-flex align-items-center">
+                    <label class="col-form-label me-3">{{ index .tab "rule" }} :</label>
+                    <div class="form-check form-check-inline me-3">
+                        <input class="form-check-input" type="radio" name="ruleDirectionPreRegister" id="ruleSendRadio" value="send" {{ if $.modalElement }}{{ if eq (index $.modalElement "ruleDirectionPreRegister") "send" }}checked{{ end }}{{ else }}checked{{ end }}>
+                        <label class="form-check-label" for="ruleSendRadio">{{ index .tab "send" }}</label>
+                    </div>
+                    <div class="form-check form-check-inline me-3">
+                        <input class="form-check-input" type="radio" name="ruleDirectionPreRegister" id="ruleReceiveRadio" value="receive" {{ if $.modalElement }}{{ if eq (index $.modalElement "ruleDirectionPreRegister") "receive" }}checked{{ end }}{{ end }}>
+                        <label class="form-check-label" for="ruleReceiveRadio">{{ index .tab "receive" }}</label>
+                    </div>
+                    <select name="preRegisterRule" id="preRegisterRuleSelect" class="form-select ms-2" required style="max-width: 40%;">
+                      <option value="" disabled {{ if $.modalElement }}{{ if eq (index $.modalElement "preRegisterRule") "" }}selected{{ end }}{{ else }}selected{{ end }}>{{ index .tab "selectRule" }}</option>
+                      {{ range .ruleSend }}
+                        <option data-dir="send" value="{{ . }}" {{ if $.modalElement }}{{ if eq (index $.modalElement "preRegisterRule") . }}selected{{ end }}{{ end }}>{{ . }}</option>
+                      {{ end }}
+                      {{ range .ruleReceive }}
+                        <option data-dir="receive" value="{{ . }}" {{ if $.modalElement }}{{ if eq (index $.modalElement "preRegisterRule") . }}selected{{ end }}{{ end }}>{{ . }}</option>
+                      {{ end }}
+                    </select>
+                  </div>
+                  <hr style="border-top: 1px solid #ababab;">
+                  <div class="form-input mt-2">
+                    <label class="col-form-label">{{ index .tab "localServerName" }} :</label>
+                    <select name="preRegisterServer" id="preRegisterServer" class="form-select" required>
+                      <option value="" disabled {{ if $.modalElement }}{{ if eq (index $.modalElement "preRegisterServer") "" }}selected{{ end }}{{ else }}selected{{ end }}>{{ index .tab "selectServer" }}</option>
+                      {{ range .listServers }}
+                          <option value="{{ . }}" {{ if $.modalElement }}{{ if eq (index $.modalElement "preRegisterServer") . }}selected{{ end }}{{ end }}>{{ . }}</option>
+                      {{ end }}
+                    </select>
+                  </div>
+                  <hr style="border-top: 1px solid #ababab;">
+                  <div class="form-input mb-2">
+                    <label class="col-form-label">{{ index .tab "localAccountName" }} :</label>
+                      <select name="preRegisterLogin" id="preRegisterLogin" class="form-select" required data-selected="{{ index $.modalElement "preRegisterLogin" }}">
+                        <option value="" disabled selected>{{ index .tab "selectLocalAccount" }}</option>
+                      </select>
+                  </div>
+                  <hr style="border-top: 1px solid #ababab;">
+                  <div class="form-input mb-2">
+                    <label class="col-form-label">{{ index .tab "dateLimit" }} <i class="bi bi-info-circle ms-1" data-bs-toggle="tooltip" data-bs-placement="right" data-bs-title="{{ index .tab "tooltipDateLimite" }}"></i> :</label>
+                    <input type="datetime-local" name="preRegisterDate" class="form-control" required value="{{ index $.modalElement "transferDate" }}">
+                  </div>
+                  <hr style="border-top: 1px solid #ababab;">
+                  <div class="form-input mb-2">
+                      <label class="col-form-label">({{ index .tab "optional" }}) {{ index .tab "infosTransfer" }} :</label>
+                      <div id="infoContainer">
+                        {{ $keys := index $.modalElement "preRegisterInfosKeys[]" }}
+                        {{ $vals := index $.modalElement "preRegisterInfosValues[]" }}
+                        {{ if or $keys $vals }}
+                          {{ range $i,$k := $keys }}
+                            <div class="input-group mb-2">
+                              <input type="text" name="preRegisterInfosKeys[]" class="form-control" value="{{ $k }}" placeholder="{{ index $.tab "fieldName" }}">
+                              <input type="text" name="preRegisterInfosValues[]" class="form-control" value="{{ if $vals }}{{ index $vals $i }}{{ end }}" placeholder="{{ index $.tab "value" }}">
+                              <button type="button" class="btn btn-outline-danger btn-sm" onclick="removeField(this)">
+                                <i class="bi bi-trash"></i>
+                              </button>
+                            </div>
+                          {{ end }}
+                        {{ else }}
+                          <div class="input-group mb-2">
+                            <input type="text" name="preRegisterInfosKeys[]" class="form-control" placeholder="{{ index $.tab "fieldName" }}">
+                            <input type="text" name="preRegisterInfosValues[]" class="form-control" placeholder="{{ index $.tab "value" }}">
                             <button type="button" class="btn btn-outline-danger btn-sm" onclick="removeField(this)">
                               <i class="bi bi-trash"></i>
                             </button>

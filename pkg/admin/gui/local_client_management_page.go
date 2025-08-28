@@ -6,6 +6,7 @@ import (
 	"html/template"
 	"net/http"
 	"strconv"
+	"time"
 
 	"code.waarp.fr/lib/log"
 
@@ -13,13 +14,14 @@ import (
 	"code.waarp.fr/apps/gateway/gateway/pkg/database"
 	"code.waarp.fr/apps/gateway/gateway/pkg/model"
 	"code.waarp.fr/apps/gateway/gateway/pkg/protocols/modules/ftp"
+	httpconst "code.waarp.fr/apps/gateway/gateway/pkg/protocols/modules/http"
 	"code.waarp.fr/apps/gateway/gateway/pkg/protocols/modules/pesit"
 	"code.waarp.fr/apps/gateway/gateway/pkg/protocols/modules/r66"
 	"code.waarp.fr/apps/gateway/gateway/pkg/protocols/modules/sftp"
 	"code.waarp.fr/apps/gateway/gateway/pkg/utils"
 )
 
-//nolint:dupl // is not similar, is method for local client
+//nolint:dupl,cyclop // is not similar, is method for local client
 func addLocalClient(db *database.DB, r *http.Request) error {
 	var newLocalClient model.Client
 
@@ -47,9 +49,47 @@ func addLocalClient(db *database.DB, r *http.Request) error {
 		newLocalClient.LocalAddress.Port = uint16(port)
 	}
 
+	if nbOfAttempts := r.FormValue("nbOfAttempts"); nbOfAttempts != "" {
+		remainingTries, err := strconv.ParseInt(nbOfAttempts, 10, 8)
+		if err != nil {
+			return fmt.Errorf("failed to parse remainingTries in int: %w", err)
+		}
+		newLocalClient.NbOfAttempts = int8(remainingTries)
+	}
+
+	retryDelay := ""
+	if h := r.FormValue("retryDelaypH"); h != "" {
+		retryDelay += h + "h"
+	}
+
+	if m := r.FormValue("retryDelayM"); m != "" {
+		retryDelay += m + "m"
+	}
+
+	if s := r.FormValue("timeoutIcapS"); s != "" {
+		retryDelay += s + "s"
+	}
+
+	if retryDelay != "" {
+		firstRetryDelay, err := time.ParseDuration(retryDelay)
+		if err == nil {
+			newLocalClient.FirstRetryDelay = int32(firstRetryDelay.Seconds())
+		}
+	}
+
+	if retryIncrementFactor := r.FormValue("retryIncrementFactor"); retryIncrementFactor != "" {
+		retryIncrementFloat, err := strconv.ParseFloat(retryIncrementFactor, 32)
+		if err != nil {
+			return fmt.Errorf("failed to parse retryIncrement in float: %w", err)
+		}
+		newLocalClient.RetryIncrementFactor = float32(retryIncrementFloat)
+	}
+
 	switch newLocalClient.Protocol {
 	case r66.R66, r66.R66TLS:
-		newLocalClient.ProtoConfig = protoConfigR66Client(r)
+		newLocalClient.ProtoConfig = protoConfigR66Client(r, newLocalClient.Protocol)
+	case httpconst.HTTP, httpconst.HTTPS:
+		newLocalClient.ProtoConfig = protoConfigHTTPclient(r, newLocalClient.Protocol)
 	case sftp.SFTP:
 		newLocalClient.ProtoConfig = protoConfigSFTPClient(r)
 	case ftp.FTP, ftp.FTPS:
@@ -65,7 +105,7 @@ func addLocalClient(db *database.DB, r *http.Request) error {
 	return nil
 }
 
-//nolint:dupl // is not similar, is method for local client
+//nolint:dupl,cyclop // is not similar, is method for local client
 func editLocalClient(db *database.DB, r *http.Request) error {
 	if err := r.ParseForm(); err != nil {
 		return fmt.Errorf("failed to parse form: %w", err)
@@ -104,9 +144,35 @@ func editLocalClient(db *database.DB, r *http.Request) error {
 		editLocalClient.LocalAddress.Port = uint16(port)
 	}
 
+	if editNbOfAttempts := r.FormValue("editNbOfAttempts"); editNbOfAttempts != "" {
+		attempts, attemptsErr := strconv.ParseInt(editNbOfAttempts, 10, 8)
+		if attemptsErr != nil {
+			return fmt.Errorf("failed to parse remainingTries in int: %w", attemptsErr)
+		}
+		editLocalClient.NbOfAttempts = int8(attempts)
+	}
+
+	if editRetryDelay := r.FormValue("editRetryDelay"); editRetryDelay != "" {
+		remainingTries, remainingErr := strconv.ParseInt(editRetryDelay, 10, 32)
+		if remainingErr != nil {
+			return fmt.Errorf("failed to parse remainingTries in int: %w", remainingErr)
+		}
+		editLocalClient.FirstRetryDelay = int32(remainingTries)
+	}
+
+	if editRetryIncrementFactor := r.FormValue("editRetryIncrementFactor"); editRetryIncrementFactor != "" {
+		retryIncrementFloat, retryErr := strconv.ParseFloat(editRetryIncrementFactor, 32)
+		if retryErr != nil {
+			return fmt.Errorf("failed to parse retryIncrement in float: %w", retryErr)
+		}
+		editLocalClient.RetryIncrementFactor = float32(retryIncrementFloat)
+	}
+
 	switch editLocalClient.Protocol {
 	case r66.R66, r66.R66TLS:
-		editLocalClient.ProtoConfig = protoConfigR66Client(r)
+		editLocalClient.ProtoConfig = protoConfigR66Client(r, editLocalClient.Protocol)
+	case httpconst.HTTP, httpconst.HTTPS:
+		editLocalClient.ProtoConfig = protoConfigHTTPclient(r, editLocalClient.Protocol)
 	case sftp.SFTP:
 		editLocalClient.ProtoConfig = protoConfigSFTPClient(r)
 	case ftp.FTP, ftp.FTPS:

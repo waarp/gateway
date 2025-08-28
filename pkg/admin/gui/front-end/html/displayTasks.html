@@ -94,6 +94,11 @@
 </div>
 <hr style="border-top: 1px solid #ababab;">
 <div class="flex-label-input">
+    <label class="col-form-label label-light-bold me-3">{{ index .tab "outputPath" }} <i class="bi bi-info-circle ms-1" data-bs-toggle="tooltip" data-bs-placement="right" data-bs-title="{{ index $.tab "tooltipOutput" }}"></i> :</label>
+    <input type="text" class="form-control-plaintext input-auto-width" value="{{ displayOrDefault (index .Args "output") (index $.tab "undefined") }}" disabled>
+</div>
+<hr style="border-top: 1px solid #ababab;">
+<div class="flex-label-input">
     <label class="col-form-label label-light-bold me-3">{{ index .tab "using" }} <i class="bi bi-info-circle ms-1" data-bs-toggle="tooltip" data-bs-placement="right" data-bs-title="{{ index $.tab "tooltipUsing" }}"></i> :</label>
     <input type="text" class="form-control-plaintext input-auto-width" value="{{ displayOrDefault (index .Args "using") (index $.tab "undefined") }}" disabled>
 </div>
@@ -198,6 +203,35 @@
 <div class="flex-label-input">
     <label class="col-form-label label-light-bold me-3">{{ index .tab "onErrorMovePath" }} <i class="bi bi-info-circle ms-1" data-bs-toggle="tooltip" data-bs-placement="right" data-bs-title="{{ index $.tab "tooltipOnErrorMovePath" }}"></i> :</label>
     <input type="text" class="form-control-plaintext input-auto-width" value="{{ displayOrDefault (index .Args "onErrorMovePath") (index $.tab "undefined") }}" disabled>
+</div>
+{{ end }}
+
+{{ define "displayTaskEMAIL" }}
+<div class="flex-label-input">
+    <label class="col-form-label label-light-bold me-3">{{ index .tab "sender" }} <i class="bi bi-info-circle ms-1" data-bs-toggle="tooltip" data-bs-placement="right" data-bs-title="{{ index $.tab "tooltipSender" }}"></i> :</label>
+    <input type="text" class="form-control-plaintext input-auto-width" value="{{ displayOrDefault (index .Args "sender") (index $.tab "undefined") }}" disabled>
+</div>
+<hr style="border-top: 1px solid #ababab;">
+<div class="form-input mt-2">
+    <label class="col-form-label label-light-bold"><strong>{{ index .tab "recipients" }} <i class="bi bi-info-circle ms-1" data-bs-toggle="tooltip" data-bs-placement="right" data-bs-title="{{ index $.tab "tooltipRecipients" }}"></i> :</strong></label>
+    <div id="recipientsContainer">
+        {{ $raw := index .Args "recipients" }}
+            {{ if eq $raw "" }}
+            <input type="text" class="form-control-plaintext input-auto-width mb-1" value="{{ index $.tab "undefined" }}" disabled>
+            {{ else }}
+        {{ $recipients := split $raw "\n" }}
+            {{ range $i, $r := $recipients }}
+                {{ if ne $r "" }}
+                <input type="text" class="form-control-plaintext input-auto-width mb-1" value="{{ $r }}" disabled>
+                {{ end }}
+            {{ end }}
+        {{ end }}
+    </div>
+</div>
+<hr style="border-top: 1px solid #ababab;">
+<div class="flex-label-input">
+    <label class="col-form-label label-light-bold me-3">{{ index .tab "template" }} <i class="bi bi-info-circle ms-1" data-bs-toggle="tooltip" data-bs-placement="right" data-bs-title="{{ index $.tab "tooltipTemplate" }}"></i> :</label>
+    <input type="text" class="form-control-plaintext input-auto-width" value="{{ displayOrDefault (index .Args "template") (index $.tab "undefined") }}" disabled>
 </div>
 {{ end }}
 
