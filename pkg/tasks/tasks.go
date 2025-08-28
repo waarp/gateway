@@ -34,8 +34,8 @@ const (
 	Transcode     = "TRANSCODE"
 	ChangeNewline = "CHNEWLINE"
 
-	Icap = "ICAP"
-	Mail = "EMAIL"
+	Icap  = "ICAP"
+	Email = "EMAIL"
 )
 
 //nolint:gochecknoinits //init is required here
@@ -75,7 +75,7 @@ func init() {
 
 	// Network
 	model.ValidTasks[Icap] = newRunner[*icapTask]
-	model.ValidTasks[Mail] = newRunner[*mailTask]
+	model.ValidTasks[Email] = newRunner[*emailTask]
 }
 
 func newRunner[T model.TaskRunner]() model.TaskRunner {

@@ -44,7 +44,7 @@ func TestMail(t *testing.T) {
 	require.NoError(t, json.Unmarshal(cont, &args))
 
 	db := dbtest.TestDatabase(t)
-	task := &mailTask{}
+	task := &emailTask{}
 	ctx := t.Context()
 
 	servAddr, sErr := types.NewAddress(args.Credential.ServerAddress)

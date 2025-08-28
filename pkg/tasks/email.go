@@ -6,6 +6,7 @@ import (
 	"errors"
 	"fmt"
 	"io"
+	"net/mail"
 	"path"
 
 	"code.waarp.fr/lib/log"
@@ -19,12 +20,13 @@ import (
 )
 
 var (
-	ErrMailNoTemplate   = errors.New("missing email message template")
-	ErrMailNoRecipients = errors.New("missing email recipients")
-	ErrMailNoAuth       = errors.New("missing email authentication")
+	ErrMailNoTemplate     = errors.New("missing email message template")
+	ErrMailNoRecipients   = errors.New("missing email recipients")
+	ErrMailNoAuth         = errors.New("missing email authentication")
+	ErrMailInvalidAddress = errors.New("invalid email recipient address")
 )
 
-type mailTask struct {
+type emailTask struct {
 	Sender     string   `json:"sender"`
 	Recipients jsonList `json:"recipients"`
 	Template   string   `json:"template"`
@@ -33,9 +35,9 @@ type mailTask struct {
 	template model.EmailTemplate
 }
 
-func (m *mailTask) parseParams(db database.ReadAccess, params map[string]string) error {
+func (m *emailTask) parseParams(db database.ReadAccess, params map[string]string) error {
 	if err := utils.JSONConvert(params, m); err != nil {
-		return fmt.Errorf("failed to parse MAIL task params: %w", err)
+		return fmt.Errorf("failed to parse EMAIL task params: %w", err)
 	}
 
 	if m.Sender == "" {
@@ -44,6 +46,12 @@ func (m *mailTask) parseParams(db database.ReadAccess, params map[string]string)
 
 	if m.Recipients == nil {
 		return ErrMailNoRecipients
+	}
+
+	for _, addr := range m.Recipients {
+		if _, err := mail.ParseAddress(addr); err != nil {
+			return fmt.Errorf("%w: %q", ErrMailInvalidAddress, addr)
+		}
 	}
 
 	if m.Template == "" {
@@ -61,11 +69,11 @@ func (m *mailTask) parseParams(db database.ReadAccess, params map[string]string)
 	return nil
 }
 
-func (m *mailTask) ValidateDB(db database.ReadAccess, args map[string]string) error {
+func (m *emailTask) ValidateDB(db database.ReadAccess, args map[string]string) error {
 	return m.parseParams(db, args)
 }
 
-func (m *mailTask) Run(_ context.Context, params map[string]string, db *database.DB,
+func (m *emailTask) Run(_ context.Context, params map[string]string, db *database.DB,
 	logger *log.Logger, transCtx *model.TransferContext,
 ) error {
 	if err := m.parseParams(db, params); err != nil {
@@ -109,7 +117,7 @@ func (m *mailTask) Run(_ context.Context, params map[string]string, db *database
 	return nil
 }
 
-func (*mailTask) copyFileFunc(name string) gomail.FileSetting {
+func (*emailTask) copyFileFunc(name string) gomail.FileSetting {
 	//nolint:wrapcheck //wrapping adds nothing here
 	return gomail.SetCopyFunc(func(w io.Writer) error {
 		h, opErr := fs.Open(name)
@@ -126,7 +134,7 @@ func (*mailTask) copyFileFunc(name string) gomail.FileSetting {
 	})
 }
 
-func (m *mailTask) replaceTemplateVars(transCtx *model.TransferContext) error {
+func (m *emailTask) replaceTemplateVars(transCtx *model.TransferContext) error {
 	var err error
 
 	if m.template.Subject, err = replaceVars(m.template.Subject, transCtx); err != nil {
