@@ -122,46 +122,48 @@ func deleteAuthorizedServers(ruleID int, db *database.DB, r *http.Request) error
 //nolint:dupl // method for authorized servers
 func callMethodsAuthorizedServersRules(logger *log.Logger, db *database.DB, w http.ResponseWriter, r *http.Request,
 	ruleID int,
-) (value bool, errMsg, modalOpen string) {
+) (value bool, errMsg, modalOpen string, modalElement map[string]any) {
 	if r.Method == http.MethodPost && r.FormValue("addAuthorizedServerName") != "" {
 		addAuthorizedServerErr := addAuthorizedServers(ruleID, db, r)
 		if addAuthorizedServerErr != nil {
 			logger.Errorf("failed to add authorized server: %v", addAuthorizedServerErr)
+			modalElement = getFormValues(r)
 
-			return false, addAuthorizedServerErr.Error(), "addAuthorizedServerModal"
+			return false, addAuthorizedServerErr.Error(), "addAuthorizedServerModal", modalElement
 		}
 
 		http.Redirect(w, r, fmt.Sprintf("%s?ruleID=%d", r.URL.Path, ruleID), http.StatusSeeOther)
 
-		return true, "", ""
+		return true, "", "", nil
 	}
 
 	if r.Method == http.MethodPost && r.FormValue("editAuthorizedServerOldName") != "" {
 		if editAuthorizedServerErr := editAuthorizedServers(ruleID, db, r); editAuthorizedServerErr != nil {
 			logger.Errorf("failed to edit authorized server: %v", editAuthorizedServerErr)
+			modalElement = getFormValues(r)
 
 			return false, editAuthorizedServerErr.Error(),
-				"editAuthorizedServerModal_" + r.FormValue("editAuthorizedServerOldName")
+				"editAuthorizedServerModal_" + r.FormValue("editAuthorizedServerOldName"), modalElement
 		}
 
 		http.Redirect(w, r, fmt.Sprintf("%s?ruleID=%d", r.URL.Path, ruleID), http.StatusSeeOther)
 
-		return true, "", ""
+		return true, "", "", nil
 	}
 
 	if r.Method == http.MethodPost && r.FormValue("deleteAuthorizedServer") != "" {
 		if deleteAuthorizedServerErr := deleteAuthorizedServers(ruleID, db, r); deleteAuthorizedServerErr != nil {
 			logger.Errorf("failed to delete authorized server: %v", deleteAuthorizedServerErr)
 
-			return false, deleteAuthorizedServerErr.Error(), ""
+			return false, deleteAuthorizedServerErr.Error(), "", nil
 		}
 
 		http.Redirect(w, r, fmt.Sprintf("%s?ruleID=%d", r.URL.Path, ruleID), http.StatusSeeOther)
 
-		return true, "", ""
+		return true, "", "", nil
 	}
 
-	return false, "", ""
+	return false, "", "", nil
 }
 
 //nolint:dupl // method for partners
@@ -265,46 +267,48 @@ func deleteAuthorizedPartners(ruleID int, db *database.DB, r *http.Request) erro
 //nolint:dupl // method for authorized partners
 func callMethodsAuthorizedPartnersRules(logger *log.Logger, db *database.DB, w http.ResponseWriter, r *http.Request,
 	ruleID int,
-) (value bool, errMsg, modalOpen string) {
+) (value bool, errMsg, modalOpen string, modalElement map[string]any) {
 	if r.Method == http.MethodPost && r.FormValue("addAuthorizedPartnerName") != "" {
 		addAuthorizedPartnerErr := addAuthorizedPartners(ruleID, db, r)
 		if addAuthorizedPartnerErr != nil {
 			logger.Errorf("failed to add authorized partner: %v", addAuthorizedPartnerErr)
+			modalElement = getFormValues(r)
 
-			return false, addAuthorizedPartnerErr.Error(), "addAuthorizedPartnerModal"
+			return false, addAuthorizedPartnerErr.Error(), "addAuthorizedPartnerModal", modalElement
 		}
 
 		http.Redirect(w, r, fmt.Sprintf("%s?ruleID=%d", r.URL.Path, ruleID), http.StatusSeeOther)
 
-		return true, "", ""
+		return true, "", "", nil
 	}
 
 	if r.Method == http.MethodPost && r.FormValue("editAuthorizedPartnerOldName") != "" {
 		if editAuthorizedPartnerErr := editAuthorizedPartners(ruleID, db, r); editAuthorizedPartnerErr != nil {
 			logger.Errorf("failed to edit authorized partner: %v", editAuthorizedPartnerErr)
+			modalElement = getFormValues(r)
 
 			return false, editAuthorizedPartnerErr.Error(),
-				"editAuthorizedPartnerModal_" + r.FormValue("editAuthorizedPartnerOldName")
+				"editAuthorizedPartnerModal_" + r.FormValue("editAuthorizedPartnerOldName"), modalElement
 		}
 
 		http.Redirect(w, r, fmt.Sprintf("%s?ruleID=%d", r.URL.Path, ruleID), http.StatusSeeOther)
 
-		return true, "", ""
+		return true, "", "", nil
 	}
 
 	if r.Method == http.MethodPost && r.FormValue("deleteAuthorizedPartner") != "" {
 		if deleteAuthorizedPartnerErr := deleteAuthorizedPartners(ruleID, db, r); deleteAuthorizedPartnerErr != nil {
 			logger.Errorf("failed to delete authorized partner: %v", deleteAuthorizedPartnerErr)
 
-			return false, deleteAuthorizedPartnerErr.Error(), ""
+			return false, deleteAuthorizedPartnerErr.Error(), "", nil
 		}
 
 		http.Redirect(w, r, fmt.Sprintf("%s?ruleID=%d", r.URL.Path, ruleID), http.StatusSeeOther)
 
-		return true, "", ""
+		return true, "", "", nil
 	}
 
-	return false, "", ""
+	return false, "", "", nil
 }
 
 func addAuthorizedLocalAccounts(ruleID int, db *database.DB, r *http.Request) error {
@@ -416,46 +420,48 @@ func deleteAuthorizedLocalAccounts(ruleID int, db *database.DB, r *http.Request)
 //nolint:dupl // method for local accounts
 func callMethodsAuthorizedLocalAccountsRules(logger *log.Logger, db *database.DB, w http.ResponseWriter,
 	r *http.Request, ruleID int,
-) (value bool, errMsg, modalOpen string) {
+) (value bool, errMsg, modalOpen string, modalElement map[string]any) {
 	if r.Method == http.MethodPost && r.FormValue("addAuthorizedLocalAccountsName") != "" {
 		addAuthorizedLocalAccountsErr := addAuthorizedLocalAccounts(ruleID, db, r)
 		if addAuthorizedLocalAccountsErr != nil {
 			logger.Errorf("failed to add authorized localAccount: %v", addAuthorizedLocalAccountsErr)
+			modalElement = getFormValues(r)
 
-			return false, addAuthorizedLocalAccountsErr.Error(), "addAuthorizedLocalAccountModal"
+			return false, addAuthorizedLocalAccountsErr.Error(), "addAuthorizedLocalAccountModal", modalElement
 		}
 
 		http.Redirect(w, r, fmt.Sprintf("%s?ruleID=%d", r.URL.Path, ruleID), http.StatusSeeOther)
 
-		return true, "", ""
+		return true, "", "", nil
 	}
 
 	if r.Method == http.MethodPost && r.FormValue("editAuthorizedLocalAccountOldName") != "" {
 		if editAuthLocalAccErr := editAuthorizedLocalAccounts(ruleID, db, r); editAuthLocalAccErr != nil {
 			logger.Errorf("failed to edit authorized localAccount: %v", editAuthLocalAccErr)
+			modalElement = getFormValues(r)
 
 			return false, editAuthLocalAccErr.Error(),
-				"editAuthorizedLocalAccountModal_" + r.FormValue("editAuthorizedLocalAccountOldName")
+				"editAuthorizedLocalAccountModal_" + r.FormValue("editAuthorizedLocalAccountOldName"), modalElement
 		}
 
 		http.Redirect(w, r, fmt.Sprintf("%s?ruleID=%d", r.URL.Path, ruleID), http.StatusSeeOther)
 
-		return true, "", ""
+		return true, "", "", nil
 	}
 
 	if r.Method == http.MethodPost && r.FormValue("deleteAuthorizedLocalAccount") != "" {
 		if deleteAuthLocalAccErr := deleteAuthorizedLocalAccounts(ruleID, db, r); deleteAuthLocalAccErr != nil {
 			logger.Errorf("failed to delete authorized localAccount: %v", deleteAuthLocalAccErr)
 
-			return false, deleteAuthLocalAccErr.Error(), ""
+			return false, deleteAuthLocalAccErr.Error(), "", nil
 		}
 
 		http.Redirect(w, r, fmt.Sprintf("%s?ruleID=%d", r.URL.Path, ruleID), http.StatusSeeOther)
 
-		return true, "", ""
+		return true, "", "", nil
 	}
 
-	return false, "", ""
+	return false, "", "", nil
 }
 
 func addAuthorizedRemoteAccounts(ruleID int, db *database.DB, r *http.Request) error {
@@ -567,46 +573,48 @@ func deleteAuthorizedRemoteAccounts(ruleID int, db *database.DB, r *http.Request
 //nolint:dupl // method for authorized remote accounts
 func callMethodsAuthorizedRemoteAccountsRules(logger *log.Logger, db *database.DB, w http.ResponseWriter,
 	r *http.Request, ruleID int,
-) (value bool, errMsg, modalOpen string) {
+) (value bool, errMsg, modalOpen string, modalElement map[string]any) {
 	if r.Method == http.MethodPost && r.FormValue("addAuthorizedRemoteAccountsName") != "" {
 		addAuthorizedRemoteAccountsErr := addAuthorizedRemoteAccounts(ruleID, db, r)
 		if addAuthorizedRemoteAccountsErr != nil {
 			logger.Errorf("failed to add authorized remoteAccount: %v", addAuthorizedRemoteAccountsErr)
+			modalElement = getFormValues(r)
 
-			return false, addAuthorizedRemoteAccountsErr.Error(), "addAuthorizedRemoteAccountModal"
+			return false, addAuthorizedRemoteAccountsErr.Error(), "addAuthorizedRemoteAccountModal", modalElement
 		}
 
 		http.Redirect(w, r, fmt.Sprintf("%s?ruleID=%d", r.URL.Path, ruleID), http.StatusSeeOther)
 
-		return true, "", ""
+		return true, "", "", nil
 	}
 
 	if r.Method == http.MethodPost && r.FormValue("editAuthorizedRemoteAccountOldName") != "" {
 		if editAuthRemoteAccErr := editAuthorizedRemoteAccounts(ruleID, db, r); editAuthRemoteAccErr != nil {
 			logger.Errorf("failed to edit authorized remoteAccount: %v", editAuthRemoteAccErr)
+			modalElement = getFormValues(r)
 
 			return false, editAuthRemoteAccErr.Error(),
-				"editAuthorizedRemoteAccountModal_" + r.FormValue("editAuthorizedRemoteAccountOldName")
+				"editAuthorizedRemoteAccountModal_" + r.FormValue("editAuthorizedRemoteAccountOldName"), modalElement
 		}
 
 		http.Redirect(w, r, fmt.Sprintf("%s?ruleID=%d", r.URL.Path, ruleID), http.StatusSeeOther)
 
-		return true, "", ""
+		return true, "", "", nil
 	}
 
 	if r.Method == http.MethodPost && r.FormValue("deleteAuthorizedRemoteAccount") != "" {
 		if dlAuthRemoteAccErr := deleteAuthorizedRemoteAccounts(ruleID, db, r); dlAuthRemoteAccErr != nil {
 			logger.Errorf("failed to delete authorized remoteAccount: %v", dlAuthRemoteAccErr)
 
-			return false, dlAuthRemoteAccErr.Error(), ""
+			return false, dlAuthRemoteAccErr.Error(), "", nil
 		}
 
 		http.Redirect(w, r, fmt.Sprintf("%s?ruleID=%d", r.URL.Path, ruleID), http.StatusSeeOther)
 
-		return true, "", ""
+		return true, "", "", nil
 	}
 
-	return false, "", ""
+	return false, "", "", nil
 }
 
 func listAuthorizedServers(db *database.DB, rule *model.Rule, listServers []*model.LocalAgent,
@@ -693,32 +701,32 @@ func listAuthorizedRemoteAccounts(db *database.DB, rule *model.Rule, listPartner
 
 func callMethodsAllAuthorizedRules(logger *log.Logger, db *database.DB, w http.ResponseWriter, r *http.Request,
 	ruleID int,
-) (handled bool, errMsg, modalOpen string) {
-	if h, em, mo := callMethodsAuthorizedServersRules(logger, db, w, r, ruleID); h {
-		return true, "", ""
+) (handled bool, errMsg, modalOpen string, modalElement map[string]any) {
+	if h, em, mo, me := callMethodsAuthorizedServersRules(logger, db, w, r, ruleID); h {
+		return true, "", "", nil
 	} else if em != "" {
-		return false, em, mo
+		return false, em, mo, me
 	}
 
-	if h, em, mo := callMethodsAuthorizedPartnersRules(logger, db, w, r, ruleID); h {
-		return true, "", ""
+	if h, em, mo, me := callMethodsAuthorizedPartnersRules(logger, db, w, r, ruleID); h {
+		return true, "", "", nil
 	} else if em != "" {
-		return false, em, mo
+		return false, em, mo, me
 	}
 
-	if h, em, mo := callMethodsAuthorizedLocalAccountsRules(logger, db, w, r, ruleID); h {
-		return true, "", ""
+	if h, em, mo, me := callMethodsAuthorizedLocalAccountsRules(logger, db, w, r, ruleID); h {
+		return true, "", "", nil
 	} else if em != "" {
-		return false, em, mo
+		return false, em, mo, me
 	}
 
-	if h, em, mo := callMethodsAuthorizedRemoteAccountsRules(logger, db, w, r, ruleID); h {
-		return true, "", ""
+	if h, em, mo, me := callMethodsAuthorizedRemoteAccountsRules(logger, db, w, r, ruleID); h {
+		return true, "", "", nil
 	} else if em != "" {
-		return false, em, mo
+		return false, em, mo, me
 	}
 
-	return false, "", ""
+	return false, "", "", nil
 }
 
 //nolint:funlen // is for one page
@@ -766,7 +774,7 @@ func managementUsageRightsRulesPage(logger *log.Logger, db *database.DB) http.Ha
 
 		listRemoteAccounts, authorizedRemoteAccounts := listAuthorizedRemoteAccounts(db, rule, listPartners)
 
-		handled, errMsg, modalOpen := callMethodsAllAuthorizedRules(logger, db, w, r, int(rule.ID))
+		handled, errMsg, modalOpen, modalElement := callMethodsAllAuthorizedRules(logger, db, w, r, int(rule.ID))
 		if handled {
 			return
 		}
@@ -774,8 +782,7 @@ func managementUsageRightsRulesPage(logger *log.Logger, db *database.DB) http.Ha
 		managementUsageRightsRulesTemplate := template.Must(
 			template.New("management_usage_rights_rules_page.html").
 				Funcs(CombinedFuncMap(db)).
-				ParseFS(webFS, index, header, multiLanguage,
-					"front-end/html/management_usage_rights_rules_page.html"),
+				ParseFS(webFS, index, header, sidebar, "front-end/html/management_usage_rights_rules_page.html"),
 		)
 
 		if tmplErr := managementUsageRightsRulesTemplate.ExecuteTemplate(w, "management_usage_rights_rules_page",
@@ -796,7 +803,10 @@ func managementUsageRightsRulesPage(logger *log.Logger, db *database.DB) http.Ha
 				"listRemoteAccounts":       listRemoteAccounts,
 				"errMsg":                   errMsg,
 				"modalOpen":                modalOpen,
+				"modalElement":             modalElement,
 				"hasRuleID":                true,
+				"sidebarSection":           "treatment",
+				"sidebarLink":              "transfer_rules_management",
 			}); tmplErr != nil {
 			logger.Errorf("render management_usage_rights_rules_page: %v", tmplErr)
 			http.Error(w, "Internal error", http.StatusInternalServerError)

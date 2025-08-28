@@ -128,12 +128,21 @@ func deleteRule(db *database.DB, r *http.Request) error {
 
 func listRule(db *database.DB, r *http.Request) ([]*model.Rule, Filters, string) {
 	ruleFound := ""
-	filter := Filters{
+	defaultFilter := Filters{
 		Offset:          0,
 		Limit:           DefaultLimitPagination,
 		OrderAsc:        true,
 		DisableNext:     false,
 		DisablePrevious: false,
+	}
+
+	filter := defaultFilter
+	if saved, ok := GetPageFilters(r, "transfer_rules_management_page"); ok {
+		filter = saved
+	}
+
+	if r.URL.Query().Get("applyFilters") == True {
+		filter = defaultFilter
 	}
 
 	urlParams := r.URL.Query()
@@ -217,17 +226,18 @@ func autocompletionRulesFunc(db *database.DB) http.HandlerFunc {
 
 //nolint:dupl // no similar func
 func callMethodsRuleManagement(logger *log.Logger, db *database.DB, w http.ResponseWriter, r *http.Request,
-) (value bool, errMsg, modalOpen string) {
+) (value bool, errMsg, modalOpen string, modalElement map[string]any) {
 	if r.Method == http.MethodPost && r.FormValue("addRuleName") != "" {
 		if newRuleErr := addRule(db, r); newRuleErr != nil {
 			logger.Errorf("failed to add rule: %v", newRuleErr)
+			modalElement = getFormValues(r)
 
-			return false, newRuleErr.Error(), "addRuleModal"
+			return false, newRuleErr.Error(), "addRuleModal", modalElement
 		}
 
 		http.Redirect(w, r, r.URL.Path, http.StatusSeeOther)
 
-		return true, "", ""
+		return true, "", "", nil
 	}
 
 	if r.Method == http.MethodPost && r.FormValue("deleteRule") != "" {
@@ -235,12 +245,12 @@ func callMethodsRuleManagement(logger *log.Logger, db *database.DB, w http.Respo
 		if deleteRuleErr != nil {
 			logger.Errorf("failed to delete rule: %v", deleteRuleErr)
 
-			return false, deleteRuleErr.Error(), ""
+			return false, deleteRuleErr.Error(), "", nil
 		}
 
 		http.Redirect(w, r, r.URL.Path, http.StatusSeeOther)
 
-		return true, "", ""
+		return true, "", "", nil
 	}
 
 	if r.Method == http.MethodPost && r.FormValue("editRuleID") != "" {
@@ -250,21 +260,22 @@ func callMethodsRuleManagement(logger *log.Logger, db *database.DB, w http.Respo
 		if err != nil {
 			logger.Errorf("failed to convert id to int: %v", err)
 
-			return false, "", ""
+			return false, "", "", nil
 		}
 
 		if editRuleErr := editRule(db, r); editRuleErr != nil {
 			logger.Errorf("failed to edit rule: %v", editRuleErr)
+			modalElement = getFormValues(r)
 
-			return false, editRuleErr.Error(), fmt.Sprintf("editRuleModal_%d", id)
+			return false, editRuleErr.Error(), fmt.Sprintf("editRuleModal_%d", id), modalElement
 		}
 
 		http.Redirect(w, r, r.URL.Path, http.StatusSeeOther)
 
-		return true, "", ""
+		return true, "", "", nil
 	}
 
-	return false, "", ""
+	return false, "", "", nil
 }
 
 func ruleManagementPage(logger *log.Logger, db *database.DB) http.HandlerFunc {
@@ -274,7 +285,16 @@ func ruleManagementPage(logger *log.Logger, db *database.DB) http.HandlerFunc {
 			pageTranslated("transfer_rules_management_page", userLanguage.(string)) //nolint:errcheck //u
 		ruleList, filter, ruleFound := listRule(db, r)
 
-		value, errMsg, modalOpen := callMethodsRuleManagement(logger, db, w, r)
+		if pageName := r.URL.Query().Get("clearFiltersPage"); pageName != "" {
+			ClearPageFilters(r, pageName)
+			http.Redirect(w, r, r.URL.Path, http.StatusSeeOther)
+
+			return
+		}
+
+		PersistPageFilters(r, "transfer_rules_management_page", &filter)
+
+		value, errMsg, modalOpen, modalElement := callMethodsRuleManagement(logger, db, w, r)
 		if value {
 			return
 		}
@@ -298,6 +318,7 @@ func ruleManagementPage(logger *log.Logger, db *database.DB) http.HandlerFunc {
 			"currentPage":  currentPage,
 			"errMsg":       errMsg,
 			"modalOpen":    modalOpen,
+			"modalElement": modalElement,
 		}); tmplErr != nil {
 			logger.Errorf("render transfer_rules_management_page: %v", tmplErr)
 			http.Error(w, "Internal error", http.StatusInternalServerError)

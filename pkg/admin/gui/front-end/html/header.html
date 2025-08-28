@@ -1,24 +1,31 @@
 {{ define "header" }}
   <link rel="stylesheet" href="/webui/static/css/style.css">
-  <header class="py-2 mb-4 border-bottom" style="background-color: #f54b15 !important;">
-    <div class="container d-flex w-100 align-items-center justify-content-between">
-      <a href="home" class="d-flex align-items-center text-decoration-none text-white">
+  <header class="py-2 border-bottom" style="background-color:#f54b15!important;">
+    <div class="container-fluid d-flex align-items-center px-0">
+      <button id="sidebarCollapse" class="btn me-3 ms-2" data-bs-toggle="collapse" data-bs-target="#appSidebar" aria-controls="appSidebar" aria-expanded="true" aria-label="Toggle sidebar">
+        <i class="bi bi-layout-sidebar-inset"></i>
+      </button>
+      <a href="home" class="ms-3 d-flex align-items-center text-decoration-none text-white">
         <span class="fs-4">Waarp Gateway</span>
       </a>
-      <ul class="nav nav-pills mx-auto">
-        <li class="nav-item"><a href="#connection" class="nav-link text-white">{{ index .tab "connection" }}</a></li>
-        <li class="nav-item"><a href="#treatment" class="nav-link text-white">{{ index .tab "treatment" }}</a></li>
-        <li class="nav-item"><a href="#monitoring" class="nav-link text-white">{{ index .tab "monitoring" }}</a></li>
-        <li class="nav-item"><a href="#administration" class="nav-link text-white">{{ index .tab "administration" }}</a></li>
-      </ul>
-      <ul class="nav nav-pills me-5">
-        <li class="nav-item"><a href="home" class="nav-link text-white d-flex align-items-center"><i class="bi bi-person-fill fs-6 me-2"></i>{{ index .username }}</a></li>
+      <ul class="nav nav-pills ms-auto me-5">
+        <li class="nav-item"><a href="home" class="nav-link text-white d-flex align-items-center"><i class="bi bi-person-fill fs-6 me-2"></i>{{ index .tab "userlogin" }} - {{ index .username }}</a></li>
         <li class="nav-item"><a href="home" class="nav-link text-white">{{ index .tab "about" }}</a></li>
         <li class="nav-item"><a href="logout" class="nav-link text-white">{{ index .tab "logout" }}</a></li>
       </ul>
-      <ul class="nav nav-pills">
-       {{ template "multi_language" . }}
-       </ul>
+      <div class="d-flex align-items-center">
+        <form method="GET" id="dropDownLanguage" class="me-2">
+          <select name="language" class="select-lang form-select form-select-sm" style="width:auto" onchange="this.form.submit()">
+            <option value="en" {{if eq .language "en"}}selected{{end}}>English</option>
+            <option value="fr" {{if eq .language "fr"}}selected{{end}}>Français</option>
+          </select>
+
+          {{ if .hasPartnerID }}<input type="hidden" name="partnerID" value="{{ .partner.ID }}">{{ end }}
+          {{ if .hasAccountID }}<input type="hidden" name="accountID" value="{{ .account.ID }}">{{ end }}
+          {{ if .hasServerID }}<input type="hidden" name="serverID" value="{{ .server.ID }}">{{ end }}
+          {{ if .hasRuleID }}<input type="hidden" name="ruleID" value="{{ .rule.ID }}">{{ end }}
+        </form>
+      </div>
     </div>
   </header>
 {{ end }}

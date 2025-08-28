@@ -7,6 +7,8 @@ import (
 
 	"golang.org/x/exp/maps" //nolint:exptostd // does not work when I put only "maps"
 
+	"code.waarp.fr/apps/gateway/gateway/pkg/admin/gui/internal"
+	"code.waarp.fr/apps/gateway/gateway/pkg/database"
 	"code.waarp.fr/apps/gateway/gateway/pkg/tasks"
 )
 
@@ -57,6 +59,10 @@ var (
 	CompressionLevelList = []string{
 		"0", "1", "2", "3", "4", "5", "6", "7", "8", "9",
 	}
+	ListAesKeyName     []string
+	ListHmacKeyName    []string
+	ListPgpPubKeyName  []string
+	ListPgpPrivKeyName []string
 )
 
 //nolint:gochecknoinits, exptostd, gocritic // to initialie map needed
@@ -118,6 +124,40 @@ func init() {
 		DecryptVerifyKeyTypes[m] = map[string][]string{
 			"decrypt": tab.KeyTypesEncrypt,
 			"verify":  tab.KeyTypesSign,
+		}
+	}
+}
+
+func listKeyname(db *database.DB) {
+	listAesKey, err := internal.ListCryptoKeys(db, "name", true, 0, 0, "AES")
+	if err == nil {
+		ListAesKeyName = make([]string, 0, len(listAesKey))
+		for _, key := range listAesKey {
+			ListAesKeyName = append(ListAesKeyName, key.Name)
+		}
+	}
+
+	listHmacKey, err := internal.ListCryptoKeys(db, "name", true, 0, 0, "HMAC")
+	if err == nil {
+		ListHmacKeyName = make([]string, 0, len(listHmacKey))
+		for _, key := range listHmacKey {
+			ListHmacKeyName = append(ListHmacKeyName, key.Name)
+		}
+	}
+
+	listPgpPubKey, err := internal.ListCryptoKeys(db, "name", true, 0, 0, "PGP-PUBLIC")
+	if err == nil {
+		ListPgpPubKeyName = make([]string, 0, len(listPgpPubKey))
+		for _, key := range listPgpPubKey {
+			ListPgpPubKeyName = append(ListPgpPubKeyName, key.Name)
+		}
+	}
+
+	listPgpPrivKey, err := internal.ListCryptoKeys(db, "name", true, 0, 0, "PGP-PRIVATE")
+	if err == nil {
+		ListPgpPrivKeyName = make([]string, 0, len(listPgpPrivKey))
+		for _, key := range listPgpPrivKey {
+			ListPgpPrivKeyName = append(ListPgpPrivKeyName, key.Name)
 		}
 	}
 }

@@ -9,6 +9,7 @@
 {{ end }}
 
 {{ define "content" }}
+  {{ if contains .myPermission.Servers "r" }}
     {{ if .errMsg }}
         <div id="errorPopup" class="alert alert-danger alert-dismissible fade show" role="alert">
             {{ .errMsg }}
@@ -18,9 +19,12 @@
     {{ if .server }}
       <div class="d-flex align-items-center justify-content-between">
         <h2 class="mb-0">{{ index .tab "title" }} : {{ .server.Name }}</h2>
-        <button class="btn btn-outline-secondary ms-3 back-btn" type="button" onclick="window.location='server_management'">
-          <i class="bi bi-arrow-left"></i>
-        </button>
+        <div class="d-flex align-items-center">
+          <span class="text-muted small me-3">{{ index .tab "pathGateway" }}</span>
+          <button class="btn btn-outline-secondary ms-3 back-btn" type="button" onclick="window.location='server_management'">
+            <i class="bi bi-arrow-left"></i>
+          </button>
+        </div>
       </div>
       <hr style="border-top: 1px solid #ababab;">
 
@@ -40,7 +44,7 @@
                 <div class="modal-body">
                   <div class="form-input">
                     <label class="col-form-label">{{ index .tab "loginStr" }} :</label>
-                    <input type="text" name="addLocalAccountLogin" class="form-control" required>
+                    <input type="text" name="addLocalAccountLogin" class="form-control" required value="{{ index .modalElement "addLocalAccountLogin" }}">
                   </div>
                 </div>
                 <div class="modal-footer">
@@ -59,6 +63,7 @@
         <div class="collapse" id="filterCollapse">
         <form method="get" class="p-3 border rounded bg-light">
           <input type="hidden" name="serverID" value="{{ $.server.ID }}">
+          <input type="hidden" name="applyFilters" value="true">
             <label class="ms-3">{{ index .tab "sort" }}:
             <select name="orderAsc" class="form-select d-inline w-auto">
                 <option value="true" {{ if .filter.OrderAsc }}selected{{ end }}>A → Z</option>
@@ -77,7 +82,7 @@
             </label>
             <div style="float:right">
               <button id="applyBtn" type="submit" class="btn btn-success">{{ index .tab "apply" }}</button>
-              <button id="resetBtn" type="button" class="btn btn-secondary ms-2" onclick="window.location='local_account_management?serverID={{ .server.ID }}'">{{ index .tab "reset" }}</button>
+              <button id="resetBtn" type="button" class="btn btn-secondary ms-2" onclick="window.location='local_account_management?serverID={{ .server.ID }}?clearFiltersPage=local_account_management_page'">{{ index .tab "reset" }}</button>
             </div>
         </form>
         </div>
@@ -124,6 +129,7 @@
                       <form method="post" class="p-3 border rounded bg-light">
                         <input type="hidden" name="serverID" value="{{ $.server.ID }}">
                         <input type="hidden" name="editLocalAccountID" value="{{ .ID }}">
+                        {{ $me := and (eq $.modalOpen (printf "editLocalAccountModal_%d" .ID)) $.modalElement }}
                         <div class="modal-header">
                           <h5 class="modal-title" id="editLocalAccountModalLabel_{{ .ID }}">{{ index $.tab "edit" }}: {{ .Login }}</h5>
                           <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
@@ -131,7 +137,7 @@
                         <div class="modal-body">
                           <div class="form-input">
                             <label class="col-form-label">{{ index $.tab "loginStr" }} :</label>
-                            <input type="text" name="editLocalAccountLogin" class="form-control" required value="{{ .Login }}">
+                            <input type="text" name="editLocalAccountLogin" class="form-control" required value="{{ if $me }}{{ index $me "editLocalAccountLogin" }}{{ else }}{{ .Login }}{{ end }}">
                           </div>
                         </div>
                         <div class="modal-footer">
@@ -172,6 +178,11 @@
     {{ else }}
       <div class="alert alert-warning mt-4">{{ index .tab "serverAuthenticationNotFound" }}</div>
     {{ end }}
+  {{ else if not (contains .myPermission.Servers "r") }}
+    <div class="d-flex align-items-center justify-content-between">
+      <h2 class="mb-0">{{ index .tab "accesRight" }} </h2>
+    </div>
+  {{ end }}
 {{ end }}
 
 {{ define "local_account_management_page" }}

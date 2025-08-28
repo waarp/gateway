@@ -4,6 +4,7 @@ import (
 	"net/http"
 
 	"code.waarp.fr/apps/gateway/gateway/pkg/model/authentication/auth"
+	"code.waarp.fr/apps/gateway/gateway/pkg/protocols"
 	"code.waarp.fr/apps/gateway/gateway/pkg/protocols/modules/ftp"
 	httpconst "code.waarp.fr/apps/gateway/gateway/pkg/protocols/modules/http"
 	"code.waarp.fr/apps/gateway/gateway/pkg/protocols/modules/pesit"
@@ -22,6 +23,63 @@ type Protocols struct {
 	FTPS     string
 	PeSIT    string
 	PeSITTLS string
+}
+
+func applyProtocolsFilter(filter *Filters) []string {
+	var filterProtocol []string
+	if filter.Protocols.R66 == True {
+		filterProtocol = append(filterProtocol, r66.R66)
+	}
+
+	if filter.Protocols.R66TLS == True {
+		filterProtocol = append(filterProtocol, r66.R66TLS)
+	}
+
+	if filter.Protocols.SFTP == True {
+		filterProtocol = append(filterProtocol, sftp.SFTP)
+	}
+
+	if filter.Protocols.HTTP == True {
+		filterProtocol = append(filterProtocol, httpconst.HTTP)
+	}
+
+	if filter.Protocols.HTTPS == True {
+		filterProtocol = append(filterProtocol, httpconst.HTTPS)
+	}
+
+	if filter.Protocols.FTP == True {
+		filterProtocol = append(filterProtocol, ftp.FTP)
+	}
+
+	if filter.Protocols.FTPS == True {
+		filterProtocol = append(filterProtocol, ftp.FTPS)
+	}
+
+	if filter.Protocols.PeSIT == True {
+		filterProtocol = append(filterProtocol, pesit.Pesit)
+	}
+
+	if filter.Protocols.PeSITTLS == True {
+		filterProtocol = append(filterProtocol, pesit.PesitTLS)
+	}
+
+	return filterProtocol
+}
+
+func checkProtocolsFilter(r *http.Request, isApply bool, filter *Filters) (*Filters, []string) {
+	urlParams := r.URL.Query()
+	hasProtoParams := urlParams.Has("filterProtocolR66") ||
+		urlParams.Has("filterProtocolR66-TLS") || urlParams.Has("filterProtocolSFTP") ||
+		urlParams.Has("filterProtocolHTTP") || urlParams.Has("filterProtocolHTTPS") ||
+		urlParams.Has("filterProtocolFTP") || urlParams.Has("filterProtocolFTPS") ||
+		urlParams.Has("filterProtocolPeSIT") || urlParams.Has("filterProtocolPeSIT-TLS")
+
+	if isApply || hasProtoParams {
+		return protocolsFilter(r, filter)
+	}
+	filterProtocol := applyProtocolsFilter(filter)
+
+	return filter, filterProtocol
 }
 
 func supportedProtocolInternal(protocol string) []string {
@@ -52,11 +110,21 @@ func supportedProtocolExternal(protocol string) []string {
 	return supportedProtocolsExternal[protocol]
 }
 
+func getProtocolsList() []string {
+	var protocolsList []string
+	for protocol := range protocols.List {
+		protocolsList = append(protocolsList, protocol)
+	}
+
+	return protocolsList
+}
+
 //nolint:gochecknoglobals // Constant
 var (
 	TLSVersions            = []string{protoutils.TLSv10, protoutils.TLSv11, protoutils.TLSv12, protoutils.TLSv13}
 	CompatibilityModePeSIT = []string{pesit.CompatibilityModeStandard, pesit.CompatibilityModeNonStandard}
 	TLSRequirement         = []string{string(ftp.TLSOptional), string(ftp.TLSMandatory), string(ftp.TLSImplicit)}
+	ProtocolsList          = getProtocolsList()
 )
 
 func protocolsFilter(r *http.Request, filter *Filters) (*Filters, []string) {

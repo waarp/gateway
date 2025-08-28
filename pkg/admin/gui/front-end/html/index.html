@@ -1,21 +1,32 @@
 {{ define "index" }}
 <!DOCTYPE html>
   <head>
+    <script>document.documentElement.classList.add('sb-restoring');</script>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.css">
     <link rel="stylesheet" href="/webui/static/css/style.css">
     <link rel="icon" type="image/png" href="/webui/static/assets/icon_waarp.png">
     <script src="/webui/static/javaScript/undefined.js"></script>
+    <script src="/webui/static/javaScript/sidebar.js" defer></script>
+    <script src="/webui/static/javaScript/tooltip.js"></script>
     {{ block "head" . }}{{ end }}
-    <img src="/webui/static/assets/Logo_Waarp_Banner.png" alt="Waarp Logo" class="logo-waarp">
   </head>
 
   <body class="bg-light">
   {{ template "header" . }}
-    <div class="container">
-      {{ block "content" . }}{{ end }}
+  <div class="d-flex">
+    {{ template "sidebar" . }}
+    <img src="/webui/static/assets/Logo_Waarp_Banner.png" alt="Waarp Logo" class="logo-waarp">
+    <a href="https://doc.waarp.org/waarp-gateway/latest/fr/" class="doc-waarp" aria-label="doc" data-bs-toggle="tooltip" data-bs-placement="top" target="_blank" title="{{ index .tab "docWaarp" }}">
+      <i class="bi bi-book"></i>
+    </a>
+    <div class="flex-grow-1 p-3" id="mainContent">
+      <div class="container">
+        {{ block "content" . }}{{ end }}
+      </div>
     </div>
-    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+  </div>
+  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
   </body>
 </html>
 {{ end }}

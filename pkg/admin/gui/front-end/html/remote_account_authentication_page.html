@@ -12,6 +12,7 @@
 {{ end }}
 
 {{ define "content" }}
+  {{ if contains .myPermission.Partners "r" }}
     {{ if .errMsg }}
         <div id="errorPopup" class="alert alert-danger alert-dismissible fade show" role="alert">
             {{ .errMsg }}
@@ -20,10 +21,13 @@
     {{ end }}
     {{ if .account }}
         <div class="d-flex align-items-center justify-content-between">
-            <h2 class="mb-0">{{ index .tab "title" }} : {{ .account.Login }}</h2>
-            <button class="btn btn-outline-secondary ms-3 back-btn" type="button" onclick="window.location='remote_account_management?partnerID={{ .partner.ID }}'">
-                <i class="bi bi-arrow-left"></i>
-            </button>
+            <h3 class="mb-0">{{ index .tab "title" }} : {{ .account.Login }} | {{ index .tab "partner" }} : {{ .partner.Name }}</h3>
+            <div class="d-flex align-items-center">
+                <span class="text-muted small me-3">{{ index .tab "pathGateway" }}</span>
+                <button class="btn btn-outline-secondary ms-3 back-btn" type="button" onclick="window.location='remote_account_management?partnerID={{ .partner.ID }}'">
+                    <i class="bi bi-arrow-left"></i>
+                </button>
+            </div>
         </div>
         <hr style="border-top: 1px solid #ababab;">
 
@@ -44,15 +48,15 @@
                         <div class="modal-body">
                             <div class="form-input">
                                 <label class="col-form-label">{{ index .tab "nameStr" }} :</label>
-                                <input type="text" name="addCredentialAccountName" class="form-control" required>
+                                <input type="text" name="addCredentialAccountName" class="form-control" required value="{{ index $.modalElement "addCredentialAccountName" }}">
                             </div>
                             <hr style="border-top: 1px solid #ababab;">
                             <div class="form-input">
                                 <label class="col-form-label">{{ index .tab "type" }} <i class="bi bi-info-circle ms-1" data-bs-toggle="tooltip" data-bs-placement="right" data-bs-title="{{ index .tab "typeTooltip" }}"></i> :</label>
                                 <select name="addCredentialAccountType" id="addCredentialAccountType" class="form-select add-credential-type-select" required>
-                                    <option value="" disabled selected>{{ index .tab "selectType" }}</option>
+                                    <option value="" disabled {{ if $.modalElement }}{{ if eq (index $.modalElement "addCredentialAccountType") "" }}selected{{ end }}{{ else }}selected{{ end }}>{{ index .tab "selectType" }}</option>
                                     {{ range .listSupportedProtocol }}
-                                        <option value="{{ . }}">
+                                        <option value="{{ . }}" {{ if $.modalElement }}{{ if eq (index $.modalElement "addCredentialAccountType") . }}selected{{ end }}{{ end }}>
                                             {{ if eq . "password" }}
                                                 {{ index $.tab "passwordStr" }}
                                             {{ else if eq . "tls_certificate" }}
@@ -92,6 +96,7 @@
             <form method="get" class="p-3 border rounded bg-light">
                 <input type="hidden" name="partnerID" value="{{ .partner.ID }}">
                 <input type="hidden" name="accountID" value="{{ .account.ID }}">
+                <input type="hidden" name="applyFilters" value="true">
                 <label class="ms-3">{{ index .tab "sort" }}:
                     <select name="orderAsc" class="form-select d-inline w-auto">
                         <option value="true" {{ if .filter.OrderAsc }}selected{{ end }}>A → Z</option>
@@ -110,7 +115,7 @@
                 </label>
                 <div style="float:right">
                     <button id="applyBtn" type="submit" class="btn btn-success">{{ index .tab "apply" }}</button>
-                    <button id="resetBtn" type="button" class="btn btn-secondary ms-2" onclick="window.location='remote_account_authentication?partnerID={{ .partner.ID }}&accountID={{ .account.ID }}'">{{ index .tab "reset" }}</button>
+                    <button id="resetBtn" type="button" class="btn btn-secondary ms-2" onclick="window.location='remote_account_authentication?partnerID={{ .partner.ID }}&accountID={{ .account.ID }}?clearFiltersPage=remote_account_authentication_page'">{{ index .tab "reset" }}</button>
                 </div>
             </form>
         </div>
@@ -192,6 +197,7 @@
                                             <input type="hidden" name="partnerID" value="{{ $.partner.ID }}">
                                             <input type="hidden" name="accountID" value="{{ $.account.ID }}">
                                             <input type="hidden" name="editCredentialAccountID" value="{{ .ID }}">
+                                            {{ $me := and (eq $.modalOpen (printf "editCredentialExternalModal_%d" .ID)) $.modalElement }}
                                             <div class="modal-header">
                                                 <h5 class="modal-title" id="editCredentialAccountModalLabel_{{ .ID }}">{{ index $.tab "edit" }}: {{ .Name }}</h5>
                                                 <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
@@ -199,16 +205,16 @@
                                             <div class="modal-body">
                                                 <div class="form-input">
                                                     <label class="col-form-label">{{ index $.tab "nameStr" }} :</label>
-                                                    <input type="text" name="editCredentialAccountName" class="form-control" required value="{{ .Name }}">
+                                                    <input type="text" name="editCredentialAccountName" class="form-control" required value="{{ if $me }}{{ index $me "editCredentialAccountName" }}{{ else }}{{ .Name }}{{ end }}">
                                                 </div>
                                                 <hr style="border-top: 1px solid #ababab;">
                                                 <div class="form-input">
                                                     <label class="col-form-label">{{ index $.tab "type" }} <i class="bi bi-info-circle ms-1" data-bs-toggle="tooltip" data-bs-placement="right" data-bs-title="{{ index $.tab "typeTooltip" }}"></i> :</label>
                                                     <select name="editCredentialAccountType" class="form-select edit-credential-type-select" required>
-                                                        <option value="" disabled>{{ index $.tab "selectType" }}</option>
+                                                        <option value="" disabled {{ if $me }}{{ if eq (index $me "editCredentialAccountType") "" }}selected{{ end }}{{ end }}>{{ index $.tab "selectType" }}</option>
                                                         {{ $credential := . }}
                                                         {{ range $.listSupportedProtocol }}
-                                                            <option value="{{ . }}" {{ if eq $credential.Type . }}selected{{ end }}>
+                                                            <option value="{{ . }}" {{ if $me }}{{ if eq (index $me "editCredentialAccountType") . }}selected{{ end }}{{ else if eq $credential.Type . }}selected{{ end }}>{{ if eq . "password" }}{{ index $.tab "passwordStr" }}{{ else if eq . "tls_certificate" }}{{ index $.tab "tlsCertificate" }}{{ else if eq . "ssh_private_key" }}{{ index $.tab "sshPrivateKey" }}{{ else if eq . "r66_legacy_certificate" }}{{ index $.tab "r66LegacyCertificate" }}{{ else if eq . "pesit_pre-connection_auth" }}{{ index $.tab "pesitPreConnectionAuth" }}{{ else }}{{ . }}{{ end }}</option>
                                                                 {{ if eq . "password" }}
                                                                     {{ index $.tab "passwordStr" }}
                                                                 {{ else if eq . "tls_certificate" }}
@@ -226,10 +232,10 @@
                                                         {{ end }}
                                                     </select>
                                                 </div>
-                                                {{ template "editTextType" (dict "ID" .ID "tab" $.tab) }}
-                                                {{ template "editFileType" (dict "ID" .ID "tab" $.tab) }}
-                                                {{ template "editTwoFileType" (dict "ID" .ID "tab" $.tab) }}
-                                                {{ template "editLoginAndPwdType" (dict "ID" .ID "tab" $.tab) }}
+                                                {{ template "editTextType" (dict "ID" .ID "tab" $.tab "modalElement" $me "Value" .Value) }}
+                                                {{ template "editFileType" (dict "ID" .ID "tab" $.tab "modalElement" $me "Value" .Value) }}
+                                                {{ template "editTwoFileType" (dict "ID" .ID "tab" $.tab "modalElement" $me "Value" .Value) }}
+                                                {{ template "editLoginAndPwdType" (dict "ID" .ID "tab" $.tab "modalElement" $me "Value" .Value) }}
                                             </div>
                                             <div class="modal-footer">
                                                 <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">{{ index $.tab "close" }}</button>
@@ -268,8 +274,12 @@
             </ul>
         </form>
     {{ end }}
-    {{ else }}
     {{ end }}
+  {{ else if not (contains .myPermission.Partners "r") }}
+    <div class="d-flex align-items-center justify-content-between">
+      <h2 class="mb-0">{{ index .tab "accesRight" }} </h2>
+    </div>
+  {{ end }}
 {{ end }}
 
 {{ define "remote_account_authentication_page" }}

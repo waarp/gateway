@@ -10,6 +10,7 @@
 {{ end }}
 
 {{ define "content" }}
+  {{ if contains .myPermission.Servers "r" }}
     {{ if .errMsg }}
         <div id="errorPopup" class="alert alert-danger alert-dismissible fade show" role="alert">
             {{ .errMsg }}
@@ -18,9 +19,12 @@
     {{ end }}
   <div class="d-flex align-items-center justify-content-between">
     <h2 class="mb-0">{{ index .tab "title" }}</h2>
-    <button class="btn btn-outline-secondary ms-3 back-btn" type="button" onclick="window.location='home'">
-      <i class="bi bi-arrow-left"></i>
-    </button>
+    <div class="d-flex align-items-center">
+      <span class="text-muted small me-3">{{ index .tab "pathGateway" }}</span>
+      <button class="btn btn-outline-secondary ms-3 back-btn" type="button" onclick="window.location='home'">
+        <i class="bi bi-arrow-left"></i>
+      </button>
+    </div>
   </div>
   <hr style="border-top: 1px solid #ababab;">
 
@@ -37,39 +41,56 @@
                 <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
             </div>
             <div class="modal-body">
-
                 <div class="form-input">
                 <label class="col-form-label">{{ index .tab "localClientStr" }} :</label>
-                <input type="text" name="addLocalClientName" class="form-control" required>
+                <input type="text" name="addLocalClientName" class="form-control" required value="{{ index $.modalElement "addLocalClientName" }}">
                 </div>
                 <hr style="border-top: 1px solid #ababab;">
 
                 <div class="form-input">
                 <label class="col-form-label">{{ index .tab "protocol" }} <i class="bi bi-info-circle ms-1" data-bs-toggle="tooltip" data-bs-placement="right" data-bs-title="{{ index $.tab "tooltipProtocol" }}"></i> :</label>
                 <select name="addLocalClientProtocol" id="addLocalClientProtocol" class="form-select protocolConfiguration-select" required>
-                    <option value="" disabled selected>{{ index .tab "selectProto" }}</option>
-                    <option value="r66">R66</option>
-                    <option value="r66-tls">R66-TLS</option>
-                    <option value="sftp">SFTP</option>
-                    <option value="http">HTTP</option>
-                    <option value="https">HTTPS</option>
-                    <option value="ftp">FTP</option>
-                    <option value="ftps">FTPS</option>
-                    <option value="pesit">PeSIT</option>
-                    <option value="pesit-tls">PeSIT-TLS</option>
+                  <option value="" disabled {{ if $.modalElement }}{{ if eq (index $.modalElement "addLocalClientProtocol") "" }}selected{{ end }}{{ else }}selected{{ end }}>{{ index .tab "selectProto" }}</option>
+                    {{ if in $.protocolsList "r66" }}
+                        <option value="r66" {{ if $.modalElement }}{{ if eq (index $.modalElement "addLocalClientProtocol") "r66" }}selected{{ end }}{{ end }}>R66</option>
+                    {{ end }}
+                    {{ if in $.protocolsList "r66-tls" }}
+                        <option value="r66-tls" {{ if $.modalElement }}{{ if eq (index $.modalElement "addLocalClientProtocol") "r66-tls" }}selected{{ end }}{{ end }}>R66-TLS</option>
+                    {{ end }}
+                    {{ if in $.protocolsList "sftp" }}
+                        <option value="sftp" {{ if $.modalElement }}{{ if eq (index $.modalElement "addLocalClientProtocol") "sftp" }}selected{{ end }}{{ end }}>SFTP</option>
+                    {{ end }}
+                    {{ if in $.protocolsList "http" }}
+                        <option value="http" {{ if $.modalElement }}{{ if eq (index $.modalElement "addLocalClientProtocol") "http" }}selected{{ end }}{{ end }}>HTTP</option>
+                    {{ end }}
+                    {{ if in $.protocolsList "https" }}
+                        <option value="https" {{ if $.modalElement }}{{ if eq (index $.modalElement "addLocalClientProtocol") "https" }}selected{{ end }}{{ end }}>HTTPS</option>
+                    {{ end }}
+                    {{ if in $.protocolsList "ftp" }}
+                        <option value="ftp" {{ if $.modalElement }}{{ if eq (index $.modalElement "addLocalClientProtocol") "ftp" }}selected{{ end }}{{ end }}>FTP</option>
+                    {{ end }}
+                    {{ if in $.protocolsList "ftps" }}
+                        <option value="ftps" {{ if $.modalElement }}{{ if eq (index $.modalElement "addLocalClientProtocol") "ftps" }}selected{{ end }}{{ end }}>FTPS</option>
+                    {{ end }}
+                    {{ if in $.protocolsList "pesit" }}
+                        <option value="pesit" {{ if $.modalElement }}{{ if eq (index $.modalElement "addLocalClientProtocol") "pesit" }}selected{{ end }}{{ end }}>PeSIT</option>
+                    {{ end }}
+                    {{ if in $.protocolsList "pesit-tls" }}
+                        <option value="pesit-tls" {{ if $.modalElement }}{{ if eq (index $.modalElement "addLocalClientProtocol") "pesit-tls" }}selected{{ end }}{{ end }}>PeSIT-TLS</option>
+                    {{ end }}
                 </select>
                 </div>
                 <hr style="border-top: 1px solid #ababab;">
 
                 <div class="form-input">
                 <label class="col-form-label">{{ index .tab "address" }} ({{ index .tab "host" }}) <i class="bi bi-info-circle ms-1" data-bs-toggle="tooltip" data-bs-placement="right" data-bs-title="{{ index $.tab "tooltipHost" }}"></i> :</label>
-                <input type="text" name="addLocalClientHost" class="form-control" required>
+                <input type="text" name="addLocalClientHost" class="form-control" required value="{{ index $.modalElement "addLocalClientHost" }}">
                 </div>
                 <hr style="border-top: 1px solid #ababab;">
 
                 <div class="form-input">
                 <label class="col-form-label">{{ index .tab "address" }} ({{ index .tab "port" }}) <i class="bi bi-info-circle ms-1" data-bs-toggle="tooltip" data-bs-placement="right" data-bs-title="{{ index $.tab "tooltipPort" }}"></i> :</label>
-                <input type="text" name="addLocalClientPort" class="form-control" required>
+                <input type="text" name="addLocalClientPort" class="form-control" required value="{{ index $.modalElement "addLocalClientPort" }}">
                 </div>
                 {{ template "addR66Client" . }}
                 {{ template "addSftpClient" . }}
@@ -92,6 +113,7 @@
     </button>
     <div class="collapse" id="filterCollapse">
       <form method="get" class="p-3 border rounded bg-light">
+        <input type="hidden" name="applyFilters" value="true">
         <label class="ms-3">{{ index .tab "sort" }}:
           <select name="orderAsc" class="form-select d-inline w-auto">
             <option value="true" {{ if .filter.OrderAsc }}selected{{ end }}>A → Z</option>
@@ -110,7 +132,7 @@
         </label>
         <div style="float:right">
           <button id="applyBtn" type="submit" class="btn btn-success">{{ index .tab "apply" }}</button>
-          <button id="resetBtn" type="button" class="btn btn-secondary ms-2" onclick="window.location='local_client_management'">{{ index .tab "reset" }}</button>
+          <button id="resetBtn" type="button" class="btn btn-secondary ms-2" onclick="window.location='local_client_management?clearFiltersPage=local_client_management_page'">{{ index .tab "reset" }}</button>
         </div>
         <div class="mt-3">
             <label class="ms-3 me-3">{{ index .tab "protocol" }}: </label>
@@ -171,6 +193,7 @@
         <tr>
             <th></th>
             <th>{{ index .tab "localClientStr" }}</th>
+            <th>{{ index .tab "state" }}</th>
             <th>{{ index .tab "protocol" }} <i class="bi bi-info-circle ms-1" data-bs-toggle="tooltip" data-bs-placement="right" data-bs-title="{{ index $.tab "tooltipProtocol" }}"></i></th>
             <th>{{ index .tab "address" }} ({{ index .tab "host" }}) <i class="bi bi-info-circle ms-1" data-bs-toggle="tooltip" data-bs-placement="right" data-bs-title="{{ index $.tab "tooltipHost" }}"></i></th>
             <th>{{ index .tab "address" }} ({{ index .tab "port" }}) <i class="bi bi-info-circle ms-1" data-bs-toggle="tooltip" data-bs-placement="right" data-bs-title="{{ index $.tab "tooltipPort" }}"></i></th>
@@ -183,6 +206,20 @@
         <tr>
             <td><i class="bi bi-person"></i></td>
             <td><strong>{{ .Name }}</strong></td>
+            <td>
+              {{ $state := getClientState . }}
+              <span data-bs-toggle="tooltip" data-bs-placement="top" title="{{ index $state 1 }}">
+                {{ if eq (index $state 0) "Offline" }}
+                  <span class="fw-bold text-secondary">{{ index $.tab "offline" }}</span>
+                {{ else if eq (index $state 0) "Running" }}
+                  <span class="fw-bold text-primary">{{ index $.tab "running" }}</span>
+                {{ else if eq (index $state 0) "Error" }}
+                  <span class="fw-bold text-danger">{{ index $.tab "error" }}</span>
+                {{ else }}
+                  <span class="fw-bold">{{ .State }}</span>
+                {{ end }}
+              </span>
+            </td>
             <td>{{ .Protocol }}</td>
             <td>{{ .LocalAddress.Host }}</td>
             <td>{{ .LocalAddress.Port }}</td>
@@ -221,7 +258,20 @@
                 </div>
               </td>
             <td class="text-end">
+              <div class="d-inline-flex">
                 {{ if contains $.myPermission.Servers "w" }}
+                <form method="post">
+                  <input type="hidden" name="switchClientStatus" value="{{ .ID }}">
+                  {{ if eq (index $state 0) "Running" }}
+                    <button type="submit" class="btn btn-outline-secondary btn-sm me-1" data-bs-toggle="tooltip" data-bs-placement="top" data-bs-title="{{ index $.tab "pause" }}">
+                      <i class="bi bi-pause"></i>
+                    </button>
+                  {{ else if eq (index $state 0) "Offline" }}
+                    <button type="submit" class="btn btn-outline-success btn-sm me-1" data-bs-toggle="tooltip" data-bs-placement="top" data-bs-title="{{ index $.tab "resume" }}">
+                      <i class="bi bi-play"></i>
+                    </button>
+                  {{ end }}
+                </form>
                 <button class="btn btn-outline-primary btn-sm me-1" data-bs-toggle="modal" data-bs-target="#editLocalClientModal_{{ .ID }}">
                     <i class="bi bi-pencil"></i>
                 </button>
@@ -230,6 +280,7 @@
                     <div class="modal-content">
                         <form method="post" class="p-3 border rounded bg-light">
                         <input type="hidden" name="editLocalClientID" value="{{ .ID }}">
+                        {{ $me := and (eq $.modalOpen (printf "editLocalClientModal_%d" .ID)) $.modalElement }}
                         <div class="modal-header">
                             <h5 class="modal-title" id="editLocalClientModalLabel_{{ .ID }}">{{ index $.tab "edit" }}: {{ .Name }}</h5>
                             <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
@@ -237,37 +288,55 @@
                         <div class="modal-body">
                             <div class="form-input">
                             <label class="col-form-label">{{ index $.tab "localClientStr" }} :</label>
-                            <input type="text" name="editLocalClientName" class="form-control" required value="{{ .Name }}">
+                            <input type="text" name="editLocalClientName" class="form-control" required value="{{ if $me }}{{ index $me "editLocalClientName" }}{{ else }}{{ .Name }}{{ end }}">
                             </div>
                             <hr style="border-top: 1px solid #ababab;">
                             <div class="form-input mt-4">
                             <label class="col-form-label">{{ index $.tab "protocol" }} <i class="bi bi-info-circle ms-1" data-bs-toggle="tooltip" data-bs-placement="right" data-bs-title="{{ index $.tab "tooltipProtocol" }}"></i> :</label>
                             <select name="editLocalClientProtocol" class="form-select protocolConfiguration-select" required>
-                                <option value="r66" {{ if eq .Protocol "r66" }}selected{{ end }}>R66</option>
-                                <option value="r66-tls" {{ if eq .Protocol "r66-tls" }}selected{{ end }}>R66-TLS</option>
-                                <option value="sftp" {{ if eq .Protocol "sftp" }}selected{{ end }}>SFTP</option>
-                                <option value="http" {{ if eq .Protocol "http" }}selected{{ end }}>HTTP</option>
-                                <option value="https" {{ if eq .Protocol "https" }}selected{{ end }}>HTTPS</option>
-                                <option value="ftp" {{ if eq .Protocol "ftp" }}selected{{ end }}>FTP</option>
-                                <option value="ftps" {{ if eq .Protocol "ftps" }}selected{{ end }}>FTPS</option>
-                                <option value="pesit" {{ if eq .Protocol "pesit" }}selected{{ end }}>PeSIT</option>
-                                <option value="pesit-tls" {{ if eq .Protocol "pesit-tls" }}selected{{ end }}>PeSIT-TLS</option>
+                              {{ if in $.protocolsList "r66" }}
+                                  <option value="r66" {{ if $me }}{{ if eq (index $me "editLocalClientProtocol") "r66" }}selected{{ end }}{{ else if eq .Protocol "r66" }}selected{{ end }}>R66</option>
+                              {{ end }}
+                              {{ if in $.protocolsList "r66-tls" }}
+                                  <option value="r66-tls" {{ if $me }}{{ if eq (index $me "editLocalClientProtocol") "r66-tls" }}selected{{ end }}{{ else if eq .Protocol "r66-tls" }}selected{{ end }}>R66-TLS</option>
+                              {{ end }}
+                              {{ if in $.protocolsList "sftp" }}
+                                  <option value="sftp" {{ if $me }}{{ if eq (index $me "editLocalClientProtocol") "sftp" }}selected{{ end }}{{ else if eq .Protocol "sftp" }}selected{{ end }}>SFTP</option>
+                              {{ end }}
+                              {{ if in $.protocolsList "http" }}
+                                  <option value="http" {{ if $me }}{{ if eq (index $me "editLocalClientProtocol") "http" }}selected{{ end }}{{ else if eq .Protocol "http" }}selected{{ end }}>HTTP</option>
+                              {{ end }}
+                              {{ if in $.protocolsList "https" }}
+                                  <option value="https" {{ if $me }}{{ if eq (index $me "editLocalClientProtocol") "https" }}selected{{ end }}{{ else if eq .Protocol "https" }}selected{{ end }}>HTTPS</option>
+                              {{ end }}
+                              {{ if in $.protocolsList "ftp" }}
+                                  <option value="ftp" {{ if $me }}{{ if eq (index $me "editLocalClientProtocol") "ftp" }}selected{{ end }}{{ else if eq .Protocol "ftp" }}selected{{ end }}>FTP</option>
+                              {{ end }}
+                              {{ if in $.protocolsList "ftps" }}
+                                  <option value="ftps" {{ if $me }}{{ if eq (index $me "editLocalClientProtocol") "ftps" }}selected{{ end }}{{ else if eq .Protocol "ftps" }}selected{{ end }}>FTPS</option>
+                              {{ end }}
+                              {{ if in $.protocolsList "pesit" }}
+                                  <option value="pesit" {{ if $me }}{{ if eq (index $me "editLocalClientProtocol") "pesit" }}selected{{ end }}{{ else if eq .Protocol "pesit" }}selected{{ end }}>PeSIT</option>
+                              {{ end }}
+                              {{ if in $.protocolsList "pesit-tls" }}
+                                  <option value="pesit-tls" {{ if $me }}{{ if eq (index $me "editLocalClientProtocol") "pesit-tls" }}selected{{ end }}{{ else if eq .Protocol "pesit-tls" }}selected{{ end }}>PeSIT-TLS</option>
+                              {{ end }}
                             </select>
                             </div>
                             <hr style="border-top: 1px solid #ababab;">
                             <div class="form-input mt-4">
                             <label class="col-form-label">{{ index $.tab "address" }} ({{ index $.tab "host" }}) <i class="bi bi-info-circle ms-1" data-bs-toggle="tooltip" data-bs-placement="right" data-bs-title="{{ index $.tab "tooltipHost" }}"></i> :</label>
-                            <input type="text" name="editLocalClientHost" class="form-control" required value="{{ .LocalAddress.Host }}">
+                            <input type="text" name="editLocalClientHost" class="form-control" required value="{{ if $me }}{{ index $me "editLocalClientHost" }}{{ else }}{{ .LocalAddress.Host }}{{ end }}">
                             </div>
                             <hr style="border-top: 1px solid #ababab;">
                             <div class="form-input mt-4">
                             <label class="col-form-label">{{ index $.tab "address" }} ({{ index $.tab "port" }}) <i class="bi bi-info-circle ms-1" data-bs-toggle="tooltip" data-bs-placement="right" data-bs-title="{{ index $.tab "tooltipPort" }}"></i> :</label>
-                            <input type="text" name="editLocalClientPort" class="form-control" required value="{{ .LocalAddress.Port }}">
+                            <input type="text" name="editLocalClientPort" class="form-control" required value="{{ if $me }}{{ index $me "editLocalClientPort" }}{{ else }}{{ .LocalAddress.Port }}{{ end }}">
                             </div>
-                            {{ template "editR66Client" (dict "tab" $.tab "ProtoConfig" .ProtoConfig) }}
-                            {{ template "editFtpClient" (dict "tab" $.tab "ProtoConfig" .ProtoConfig "TLSVersions" $.TLSVersions) }}
-                            {{ template "editPesitClient" (dict "tab" $.tab "ProtoConfig" .ProtoConfig "TLSVersions" $.TLSVersions "CompatibilityModePeSIT" $.CompatibilityModePeSIT) }}
-                            {{ template "editSftpClient" (dict "tab" $.tab "ProtoConfig" .ProtoConfig "KeyExchanges" $.KeyExchanges "Ciphers" $.Ciphers "MACs" $.MACs) }}
+                            {{ template "editR66Client" (dict "tab" $.tab "ProtoConfig" .ProtoConfig "modalElement" $me) }}
+                            {{ template "editFtpClient" (dict "tab" $.tab "ProtoConfig" .ProtoConfig "TLSVersions" $.TLSVersions "modalElement" $me) }}
+                            {{ template "editPesitClient" (dict "tab" $.tab "ProtoConfig" .ProtoConfig "TLSVersions" $.TLSVersions "CompatibilityModePeSIT" $.CompatibilityModePeSIT "modalElement" $me) }}
+                            {{ template "editSftpClient" (dict "tab" $.tab "ProtoConfig" .ProtoConfig "KeyExchanges" $.KeyExchanges "Ciphers" $.Ciphers "MACs" $.MACs "modalElement" $me) }}
                         </div>
                         <div class="modal-footer">
                             <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">{{ index $.tab "close" }}</button>
@@ -286,6 +355,7 @@
                     </button>
                 </form>
                 {{ end }}
+              </div>
             </td>
         </tr>
         {{ end }}
@@ -300,6 +370,11 @@
         <li class="page-item {{ if .filter.DisableNext }}disabled{{ end }}"><button class="page-link" name="next" type="submit" value="true">{{ index .tab "next" }}</button></li>
       </ul>
     </form>
+  {{ end }}
+  {{ else if not (contains .myPermission.Servers "r") }}
+    <div class="d-flex align-items-center justify-content-between">
+      <h2 class="mb-0">{{ index .tab "accesRight" }} </h2>
+    </div>
   {{ end }}
 {{ end }}
 

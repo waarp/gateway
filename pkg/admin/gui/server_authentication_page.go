@@ -22,12 +22,21 @@ func listCredentialServer(serverName string, db *database.DB, r *http.Request) (
 	[]*model.Credential, Filters, string,
 ) {
 	credentialServerFound := ""
-	filter := Filters{
+	defaultFilter := Filters{
 		Offset:          0,
 		Limit:           DefaultLimitPagination,
 		OrderAsc:        true,
 		DisableNext:     false,
 		DisablePrevious: false,
+	}
+
+	filter := defaultFilter
+	if saved, ok := GetPageFilters(r, "server_authentication_page"); ok {
+		filter = saved
+	}
+
+	if r.URL.Query().Get("applyFilters") == True {
+		filter = defaultFilter
 	}
 
 	urlParams := r.URL.Query()
@@ -247,33 +256,34 @@ func deleteCredentialServer(serverName string, db *database.DB, r *http.Request)
 //nolint:dupl // method for server authentication
 func callMethodsServerAuthentication(logger *log.Logger, db *database.DB, w http.ResponseWriter, r *http.Request,
 	server *model.LocalAgent,
-) (value bool, errMsg, modalOpen string) {
+) (value bool, errMsg, modalOpen string, modalElement map[string]any) {
 	if r.Method == http.MethodPost && r.FormValue("deleteCredentialServer") != "" {
 		deleteCredentialServerErr := deleteCredentialServer(server.Name, db, r)
 		if deleteCredentialServerErr != nil {
 			logger.Errorf("failed to delete credential server: %v", deleteCredentialServerErr)
 
-			return false, deleteCredentialServerErr.Error(), ""
+			return false, deleteCredentialServerErr.Error(), "", nil
 		}
 
 		http.Redirect(w, r, fmt.Sprintf("%s?&serverID=%d", r.URL.Path, server.ID),
 			http.StatusSeeOther)
 
-		return true, "", ""
+		return true, "", "", nil
 	}
 
 	if r.Method == http.MethodPost && r.FormValue("addCredentialServerName") != "" {
 		addCredentialServerErr := addCredentialServer(server.Name, db, r)
 		if addCredentialServerErr != nil {
 			logger.Errorf("failed to add credential server: %v", addCredentialServerErr)
+			modalElement = getFormValues(r)
 
-			return false, addCredentialServerErr.Error(), "addCredentialServerModal"
+			return false, addCredentialServerErr.Error(), "addCredentialServerModal", modalElement
 		}
 
 		http.Redirect(w, r, fmt.Sprintf("%s?serverID=%d", r.URL.Path, server.ID),
 			http.StatusSeeOther)
 
-		return true, "", ""
+		return true, "", "", nil
 	}
 
 	if r.Method == http.MethodPost && r.FormValue("editCredentialServerID") != "" {
@@ -283,23 +293,24 @@ func callMethodsServerAuthentication(logger *log.Logger, db *database.DB, w http
 		if err != nil {
 			logger.Errorf("failed to convert id to int: %v", err)
 
-			return false, "", ""
+			return false, "", "", nil
 		}
 
 		editCredentialServerErr := editCredentialServer(server.Name, db, r)
 		if editCredentialServerErr != nil {
 			logger.Errorf("failed to edit credential server: %v", editCredentialServerErr)
+			modalElement = getFormValues(r)
 
-			return false, editCredentialServerErr.Error(), fmt.Sprintf("editCredentialExternalModal_%d", id)
+			return false, editCredentialServerErr.Error(), fmt.Sprintf("editCredentialExternalModal_%d", id), modalElement
 		}
 
 		http.Redirect(w, r, fmt.Sprintf("%s?serverID=%d", r.URL.Path, server.ID),
 			http.StatusSeeOther)
 
-		return true, "", ""
+		return true, "", "", nil
 	}
 
-	return false, "", ""
+	return false, "", "", nil
 }
 
 func serverAuthenticationPage(logger *log.Logger, db *database.DB) http.HandlerFunc {
@@ -332,7 +343,16 @@ func serverAuthenticationPage(logger *log.Logger, db *database.DB) http.HandlerF
 
 		serversCredentials, filter, credentialServerFound := listCredentialServer(server.Name, db, r)
 
-		value, errMsg, modalOpen := callMethodsServerAuthentication(logger, db, w, r, server)
+		if pageName := r.URL.Query().Get("clearFiltersPage"); pageName != "" {
+			ClearPageFilters(r, pageName)
+			http.Redirect(w, r, r.URL.Path, http.StatusSeeOther)
+
+			return
+		}
+
+		PersistPageFilters(r, "server_authentication_page", &filter)
+
+		value, errMsg, modalOpen, modalElement := callMethodsServerAuthentication(logger, db, w, r, server)
 		if value {
 			return
 		}
@@ -356,7 +376,10 @@ func serverAuthenticationPage(logger *log.Logger, db *database.DB) http.HandlerF
 			"credentialServerFound": credentialServerFound,
 			"errMsg":                errMsg,
 			"modalOpen":             modalOpen,
+			"modalElement":          modalElement,
 			"hasServerID":           true,
+			"sidebarSection":        "connection",
+			"sidebarLink":           "server_management",
 		}); tmplErr != nil {
 			logger.Errorf("render server_authentication_page: %v", tmplErr)
 			http.Error(w, "Internal error", http.StatusInternalServerError)

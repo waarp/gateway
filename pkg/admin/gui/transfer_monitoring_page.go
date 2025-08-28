@@ -237,9 +237,9 @@ func filterTransfer(filter *Filters, statuses []string, r *http.Request) {
 	}
 }
 
-//nolint:gocyclo,cyclop,funlen // all filter
+//nolint:gocyclo,cyclop,gocognit,funlen // all filter
 func listTransfer(db *database.DB, r *http.Request) ([]*model.NormalizedTransferView, Filters) {
-	filter := Filters{
+	defaultFilter := Filters{
 		Offset:            0,
 		Limit:             LimitTransfer,
 		OrderAsc:          false,
@@ -249,6 +249,15 @@ func listTransfer(db *database.DB, r *http.Request) ([]*model.NormalizedTransfer
 		Status:            Status{},
 		FilterRuleSend:    "",
 		FilterRuleReceive: "",
+	}
+
+	filter := defaultFilter
+	if saved, ok := GetPageFilters(r, "transfer_monitoring_page"); ok {
+		filter = saved
+	}
+
+	if r.URL.Query().Get("applyFilters") == True {
+		filter = defaultFilter
 	}
 
 	urlParams := r.URL.Query()
@@ -360,56 +369,57 @@ func listTransfer(db *database.DB, r *http.Request) ([]*model.NormalizedTransfer
 
 //nolint:funlen // unique method
 func callMethodsTransferMonitoring(logger *log.Logger, db *database.DB, w http.ResponseWriter, r *http.Request,
-) (value bool, errMsg, modalOpen string) {
+) (value bool, errMsg, modalOpen string, modalElement map[string]any) {
 	if r.Method == http.MethodPost && r.FormValue("transferFile") != "" {
 		var newTransferID int
 		var newTransferErr error
 
 		if newTransferID, newTransferErr = addTransfer(db, r); newTransferErr != nil {
 			logger.Errorf("failed to add transfer: %v", newTransferErr)
+			modalElement = getFormValues(r)
 
-			return false, newTransferErr.Error(), "addTransferModal"
+			return false, newTransferErr.Error(), "addTransferModal", modalElement
 		}
 
 		http.Redirect(w, r, r.URL.Path+"?successAddTransfer="+strconv.Itoa(newTransferID), http.StatusSeeOther)
 
-		return true, "", ""
+		return true, "", "", nil
 	}
 
 	if r.Method == http.MethodPost && r.FormValue("pauseTransferID") != "" {
 		if pauseTransferErr := pauseTransfer(db, r); pauseTransferErr != nil {
 			logger.Errorf("transfer pause failed : %v", pauseTransferErr)
 
-			return false, pauseTransferErr.Error(), ""
+			return false, pauseTransferErr.Error(), "", nil
 		}
 
 		http.Redirect(w, r, r.URL.Path, http.StatusSeeOther)
 
-		return true, "", ""
+		return true, "", "", nil
 	}
 
 	if r.Method == http.MethodPost && r.FormValue("resumeTransferID") != "" {
 		if resumeTransferErr := resumeTransfer(db, r); resumeTransferErr != nil {
 			logger.Errorf("transfer resume failed : %v", resumeTransferErr)
 
-			return false, resumeTransferErr.Error(), ""
+			return false, resumeTransferErr.Error(), "", nil
 		}
 
 		http.Redirect(w, r, r.URL.Path, http.StatusSeeOther)
 
-		return true, "", ""
+		return true, "", "", nil
 	}
 
 	if r.Method == http.MethodPost && r.FormValue("cancelTransferID") != "" {
 		if cancelTransferErr := cancelTransfer(db, r); cancelTransferErr != nil {
 			logger.Errorf("transfer cancel failed : %v", cancelTransferErr)
 
-			return false, cancelTransferErr.Error(), ""
+			return false, cancelTransferErr.Error(), "", nil
 		}
 
 		http.Redirect(w, r, r.URL.Path, http.StatusSeeOther)
 
-		return true, "", ""
+		return true, "", "", nil
 	}
 
 	if r.Method == http.MethodPost && r.FormValue("rescheduleTransferID") != "" {
@@ -419,15 +429,15 @@ func callMethodsTransferMonitoring(logger *log.Logger, db *database.DB, w http.R
 		if newTransferID, rescheduleTransferErr = rescheduleTransfer(db, r); rescheduleTransferErr != nil {
 			logger.Errorf("reschesule cancel failed : %v", rescheduleTransferErr)
 
-			return false, rescheduleTransferErr.Error(), ""
+			return false, rescheduleTransferErr.Error(), "", nil
 		}
 
 		http.Redirect(w, r, r.URL.Path+"?successReprogramTransfer="+strconv.Itoa(newTransferID), http.StatusSeeOther)
 
-		return true, "", ""
+		return true, "", "", nil
 	}
 
-	return false, "", ""
+	return false, "", "", nil
 }
 
 func mapUtilsTemplate(db *database.DB, listPartners []*model.RemoteAgent, listServers []*model.LocalAgent,
@@ -527,7 +537,16 @@ func transferMonitoringPage(logger *log.Logger, db *database.DB) http.HandlerFun
 			pageTranslated("transfer_monitoring_page", userLanguage.(string)) //nolint:errcheck //u
 		transferList, filter := listTransfer(db, r)
 
-		value, errMsg, modalOpen := callMethodsTransferMonitoring(logger, db, w, r)
+		if pageName := r.URL.Query().Get("clearFiltersPage"); pageName != "" {
+			ClearPageFilters(r, pageName)
+			http.Redirect(w, r, r.URL.Path, http.StatusSeeOther)
+
+			return
+		}
+
+		PersistPageFilters(r, "transfer_monitoring_page", &filter)
+
+		value, errMsg, modalOpen, modalElement := callMethodsTransferMonitoring(logger, db, w, r)
 		if value {
 			return
 		}
@@ -567,6 +586,7 @@ func transferMonitoringPage(logger *log.Logger, db *database.DB) http.HandlerFun
 			"successReprogramTransfer": successReprogramTransfer,
 			"errMsg":                   errMsg,
 			"modalOpen":                modalOpen,
+			"modalElement":             modalElement,
 		}
 		if r.URL.Query().Get("partial") == True {
 			if tableErr := transferMonitoringTemplate.ExecuteTemplate(w, "transfer_monitoring_tbody", data); tableErr == nil {

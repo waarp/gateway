@@ -20,12 +20,21 @@ func listCredentialLocalAccount(serverName, login string, db *database.DB, r *ht
 	[]*model.Credential, Filters, string,
 ) {
 	credentialAccountFound := ""
-	filter := Filters{
+	defaultFilter := Filters{
 		Offset:          0,
 		Limit:           DefaultLimitPagination,
 		OrderAsc:        true,
 		DisableNext:     false,
 		DisablePrevious: false,
+	}
+
+	filter := defaultFilter
+	if saved, ok := GetPageFilters(r, "local_account_authentication_page"); ok {
+		filter = saved
+	}
+
+	if r.URL.Query().Get("applyFilters") == True {
+		filter = defaultFilter
 	}
 
 	urlParams := r.URL.Query()
@@ -230,35 +239,37 @@ func deleteCredentialLocalAccount(account *model.LocalAccount, db *database.DB, 
 	return nil
 }
 
+//nolint:dupl // method local account authentication
 func callMethodsLocalAccountAuthentication(logger *log.Logger, db *database.DB, w http.ResponseWriter, r *http.Request,
 	server *model.LocalAgent, account *model.LocalAccount,
-) (value bool, errMsg, modalOpen string) {
+) (value bool, errMsg, modalOpen string, modalElement map[string]any) {
 	if r.Method == http.MethodPost && r.FormValue("deleteCredentialAccount") != "" {
 		deleteCredentialAccountErr := deleteCredentialLocalAccount(account, db, r)
 		if deleteCredentialAccountErr != nil {
 			logger.Errorf("failed to delete credential account: %v", deleteCredentialAccountErr)
 
-			return false, deleteCredentialAccountErr.Error(), ""
+			return false, deleteCredentialAccountErr.Error(), "", nil
 		}
 
 		http.Redirect(w, r, fmt.Sprintf("%s?serverID=%d&accountID=%d", r.URL.Path, server.ID, account.ID),
 			http.StatusSeeOther)
 
-		return true, "", ""
+		return true, "", "", nil
 	}
 
 	if r.Method == http.MethodPost && r.FormValue("addCredentialAccountName") != "" {
 		addCredentialAccountErr := addCredentialLocalAccount(server.Name, account.Login, db, r)
 		if addCredentialAccountErr != nil {
 			logger.Errorf("failed to add credential account: %v", addCredentialAccountErr)
+			modalElement = getFormValues(r)
 
-			return false, addCredentialAccountErr.Error(), "addCredentialAccountModal"
+			return false, addCredentialAccountErr.Error(), "addCredentialAccountModal", modalElement
 		}
 
 		http.Redirect(w, r, fmt.Sprintf("%s?serverID=%d&accountID=%d", r.URL.Path, server.ID, account.ID),
 			http.StatusSeeOther)
 
-		return true, "", ""
+		return true, "", "", nil
 	}
 
 	if r.Method == http.MethodPost && r.FormValue("editCredentialAccountID") != "" {
@@ -268,23 +279,24 @@ func callMethodsLocalAccountAuthentication(logger *log.Logger, db *database.DB, 
 		if err != nil {
 			logger.Errorf("failed to convert id to int: %v", err)
 
-			return false, "", ""
+			return false, "", "", nil
 		}
 
 		editCredentialAccountErr := editCredentialLocalAccount(account, db, r)
 		if editCredentialAccountErr != nil {
 			logger.Errorf("failed to edit credential account: %v", editCredentialAccountErr)
+			modalElement = getFormValues(r)
 
-			return false, editCredentialAccountErr.Error(), fmt.Sprintf("editCredentialInternalModal_%d", id)
+			return false, editCredentialAccountErr.Error(), fmt.Sprintf("editCredentialInternalModal_%d", id), modalElement
 		}
 
 		http.Redirect(w, r, fmt.Sprintf("%s?serverID=%d&accountID=%d", r.URL.Path, server.ID, account.ID),
 			http.StatusSeeOther)
 
-		return true, "", ""
+		return true, "", "", nil
 	}
 
-	return false, "", ""
+	return false, "", "", nil
 }
 
 func getServerAndAccount(db *database.DB, serverID, accountID string, logger *log.Logger) (
@@ -332,25 +344,33 @@ func localAccountAuthenticationPage(logger *log.Logger, db *database.DB) http.Ha
 		tTranslated := //nolint:forcetypeassert //u
 			pageTranslated("local_account_authentication_page", userLanguage.(string)) //nolint:errcheck //u
 
-		user, err := GetUserByToken(r, db)
-		if err != nil {
-			logger.Errorf("Internal error: %v", err)
-		}
-
-		myPermission := model.MaskToPerms(user.Permissions)
-
 		serverID := r.URL.Query().Get("serverID")
 		accountID := r.URL.Query().Get("accountID")
 		server, account := getServerAndAccount(db, serverID, accountID, logger)
 
 		credentials, filter, credentialAccountFound := listCredentialLocalAccount(server.Name, account.Login, db, r)
 
-		value, errMsg, modalOpen := callMethodsLocalAccountAuthentication(logger, db, w, r, server, account)
+		if pageName := r.URL.Query().Get("clearFiltersPage"); pageName != "" {
+			ClearPageFilters(r, pageName)
+			http.Redirect(w, r, r.URL.Path, http.StatusSeeOther)
+
+			return
+		}
+
+		PersistPageFilters(r, "local_account_authentication_page", &filter)
+
+		value, errMsg, modalOpen, modalElement := callMethodsLocalAccountAuthentication(logger, db, w, r, server, account)
 		if value {
 			return
 		}
 
+		user, err := GetUserByToken(r, db)
+		if err != nil {
+			logger.Errorf("Internal error: %v", err)
+		}
+
 		listSupportedProtocol := supportedProtocolInternal(server.Protocol)
+		myPermission := model.MaskToPerms(user.Permissions)
 		currentPage := filter.Offset + 1
 
 		if tmplErr := localAccountAuthenticationTemplate.ExecuteTemplate(w, "local_account_authentication_page",
@@ -368,8 +388,11 @@ func localAccountAuthenticationPage(logger *log.Logger, db *database.DB) http.Ha
 				"credentialAccountFound": credentialAccountFound,
 				"errMsg":                 errMsg,
 				"modalOpen":              modalOpen,
+				"modalElement":           modalElement,
 				"hasServerID":            true,
 				"hasAccountID":           true,
+				"sidebarSection":         "connection",
+				"sidebarLink":            "server_management",
 			}); tmplErr != nil {
 			logger.Errorf("render local_account_authentication_page: %v", tmplErr)
 			http.Error(w, "Internal error", http.StatusInternalServerError)

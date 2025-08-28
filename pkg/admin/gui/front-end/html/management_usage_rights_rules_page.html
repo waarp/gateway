@@ -30,9 +30,9 @@
                     <div class="form-input">
                         <label class="col-form-label">{{ index .tab "name" }} :</label>
                         <select name="addAuthorizedServerName" id="addAuthorizedServerName" class="form-select">
-                            <option value="" disabled selected>{{ index .tab "selectServers" }}</option>
+                            <option value="" disabled {{ if $.modalElement }}{{ if eq (index $.modalElement "addAuthorizedServerName") "" }}selected{{ end }}{{ else }}selected{{ end }}>{{ index .tab "selectServers" }}</option>
                             {{ range .listServers }}
-                            <option value="{{ . }}">{{ . }}</option>
+                                <option value="{{ . }}" {{ if $.modalElement }}{{ if eq (index $.modalElement "addAuthorizedServerName") . }}selected{{ end }}{{ end }}>{{ . }}</option>
                             {{ end }}
                         </select>
                     </div>
@@ -70,6 +70,7 @@
                                 <div class="modal-content">
                                     <form method="post" class="p-3 border rounded bg-light">
                                         <input type="hidden" name="editAuthorizedServerOldName" value="{{ .Name }}">
+                                        {{ $me := and (eq $.modalOpen (printf "editAuthorizedServerModal_%s" .Name)) $.modalElement }}
                                         <div class="modal-header">
                                             <h5 class="modal-title" id="editAuthorizedServerModalLabel_{{ .Name }}"> {{ index $.tab "edit" }}</h5>
                                             <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
@@ -78,10 +79,10 @@
                                             <div class="form-input">
                                                 <label class="col-form-label">{{ index $.tab "name" }} :</label>
                                                 <select name="editAuthorizedServerName" id="editAuthorizedServerName" class="form-select">
-                                                    <option value="" disabled selected>{{ index $.tab "selectServers" }}</option>
+                                                    <option value="" disabled {{ if $me }}{{ if eq (index $me "editAuthorizedServerName") "" }}selected{{ end }}{{ end }}>{{ index $.tab "selectServers" }}</option>
                                                     {{ $current := .Name }}
                                                     {{ range $.listServers }}
-                                                    <option value="{{ . }}" {{ if eq . $current }}selected{{ end }}>{{ . }}</option>
+                                                        <option value="{{ . }}" {{ if $me }}{{ if eq (index $me "editAuthorizedServerName") . }}selected{{ end }}{{ else if eq . $current }}selected{{ end }}>{{ . }}</option>
                                                     {{ end }}
                                                 </select>
                                             </div>
@@ -127,9 +128,9 @@
                     <div class="form-input">
                         <label class="col-form-label">{{ index .tab "name" }} :</label>
                         <select name="addAuthorizedPartnerName" id="addAuthorizedPartnerName" class="form-select">
-                            <option value="" disabled selected>{{ index .tab "selectPartners" }}</option>
+                            <option value="" disabled {{ if $.modalElement }}{{ if eq (index $.modalElement "addAuthorizedPartnerName") "" }}selected{{ end }}{{ else }}selected{{ end }}>{{ index .tab "selectPartners" }}</option>
                             {{ range .listPartners }}
-                            <option value="{{ . }}">{{ . }}</option>
+                                <option value="{{ . }}" {{ if $.modalElement }}{{ if eq (index $.modalElement "addAuthorizedPartnerName") . }}selected{{ end }}{{ end }}>{{ . }}</option>
                             {{ end }}
                         </select>
                     </div>
@@ -167,6 +168,7 @@
                                 <div class="modal-content">
                                     <form method="post" class="p-3 border rounded bg-light">
                                         <input type="hidden" name="editAuthorizedPartnerOldName" value="{{ .Name }}">
+                                        {{ $me := and (eq $.modalOpen (printf "editAuthorizedPartnerModal_%s" .Name)) $.modalElement }}
                                         <div class="modal-header">
                                             <h5 class="modal-title" id="editAuthorizedPartnerModalLabel_{{ .Name }}"> {{ index $.tab "edit" }}</h5>
                                             <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
@@ -175,10 +177,10 @@
                                             <div class="form-input">
                                                 <label class="col-form-label">{{ index $.tab "name" }} :</label>
                                                 <select name="editAuthorizedPartnerName" id="editAuthorizedPartnerName" class="form-select">
-                                                    <option value="" disabled selected>{{ index $.tab "selectPartners" }}</option>
+                                                    <option value="" disabled {{ if $me }}{{ if eq (index $me "editAuthorizedPartnerName") "" }}selected{{ end }}{{ end }}>{{ index $.tab "selectPartners" }}</option>
                                                     {{ $current := .Name }}
                                                     {{ range $.listPartners }}
-                                                    <option value="{{ . }}" {{ if eq . $current }}selected{{ end }}>{{ . }}</option>
+                                                        <option value="{{ . }}" {{ if $me }}{{ if eq (index $me "editAuthorizedPartnerName") . }}selected{{ end }}{{ else if eq . $current }}selected{{ end }}>{{ . }}</option>
                                                     {{ end }}
                                                 </select>
                                             </div>
@@ -225,16 +227,16 @@
                         <div class="form-input">
                             <label class="col-form-label">{{ index .tab "server" }} :</label>
                             <select name="addAuthorizedLocalAccountsServerName" id="addLocalAccountServer" class="form-select">
-                                <option value="" disabled selected>{{ index .tab "selectServers" }}</option>
+                                <option value="" disabled {{ if $.modalElement }}{{ if eq (index $.modalElement "addAuthorizedLocalAccountsServerName") "" }}selected{{ end }}{{ else }}selected{{ end }}>{{ index .tab "selectServers" }}</option>
                                 {{ range .listServers }}
-                                <option value="{{ . }}">{{ . }}</option>
+                                    <option value="{{ . }}" {{ if $.modalElement }}{{ if eq (index $.modalElement "addAuthorizedLocalAccountsServerName") . }}selected{{ end }}{{ end }}>{{ . }}</option>
                                 {{ end }}
                             </select>
                         </div>
                         <div class="form-input mt-2">
                             <label class="col-form-label">{{ index .tab "name" }} :</label>
-                            <select name="addAuthorizedLocalAccountsName" id="localAccountNameList" class="form-select">
-                                <option value="" disabled selected>{{ index .tab "selectLocalAccounts" }}</option>
+                            <select name="addAuthorizedLocalAccountsName" id="localAccountNameList" class="form-select" data-selected="{{ index $.modalElement "addAuthorizedLocalAccountsName" }}">
+                                <option value="" disabled {{ if $.modalElement }}{{ if eq (index $.modalElement "addAuthorizedLocalAccountsName") "" }}selected{{ end }}{{ else }}selected{{ end }}>{{ index .tab "selectLocalAccounts" }}</option>
                             </select>
                         </div>
                     </div>
@@ -253,8 +255,8 @@
         <thead class="table-light">
             <tr>
                 <th></th>
-                <th>Nom du serveur</th>
-                <th>Nom du compte local</th>
+                <th>{{ index .tab "serverName" }}</th>
+                <th>{{ index .tab "localAccountName" }}</th>
                 <th class="text-end"></th>
             </tr>
         </thead>
@@ -275,6 +277,7 @@
                                 <div class="modal-content">
                                     <form method="post" class="p-3 border rounded bg-light">
                                         <input type="hidden" name="editAuthorizedLocalAccountOldName" value="{{ .Login }}">
+                                        {{ $me := and (eq $.modalOpen (printf "editAuthorizedLocalAccountModal_%s" .Login)) $.modalElement }}
                                         <div class="modal-header">
                                             <h5 class="modal-title" id="editAuthorizedLocalAccountModalLabel_{{ .Login }}"> {{ index $.tab "edit" }}</h5>
                                             <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
@@ -284,16 +287,16 @@
                                                 <div class="form-input">
                                                     <label class="col-form-label">{{ index $.tab "server" }} :</label>
                                                     <select name="editAuthorizedLocalAccountsServerName" id="editLocalAccountServer_{{ .Login }}" class="form-select">
-                                                        <option value="" disabled selected>{{ index $.tab "selectServers" }}</option>
+                                                        <option value="" disabled {{ if $me }}{{ if eq (index $me "editAuthorizedLocalAccountsServerName") "" }}selected{{ end }}{{ else }}selected{{ end }}>{{ index $.tab "selectServers" }}</option>
                                                         {{ range $.listServers }}
-                                                        <option value="{{ . }}" {{ if eq . $serverName }}selected{{ end }}>{{ . }}</option>
+                                                            <option value="{{ . }}" {{ if $me }}{{ if eq (index $me "editAuthorizedLocalAccountsServerName") . }}selected{{ end }}{{ else if eq . $serverName }}selected{{ end }}>{{ . }}</option>
                                                         {{ end }}
                                                     </select>
                                                 </div>
                                                 <div class="form-input mt-2">
                                                     <label class="col-form-label">{{ index $.tab "name" }} :</label>
-                                                    <select name="editAuthorizedLocalAccountsName" id="editLocalAccountName_{{ .Login }}" data-selected="{{ .Login }}" class="form-select">
-                                                        <option value="" disabled selected>{{ index $.tab "selectLocalAccounts" }}</option>
+                                                    <select name="editAuthorizedLocalAccountsName" id="editLocalAccountName_{{ .Login }}" class="form-select" data-selected="{{ if $me }}{{ index $me "editAuthorizedLocalAccountsName" }}{{ else }}{{ .Login }}{{ end }}">
+                                                        <option value="" disabled {{ if $me }}{{ if eq (index $me "editAuthorizedLocalAccountsName") "" }}selected{{ end }}{{ end }}>{{ index $.tab "selectLocalAccounts" }}</option>
                                                     </select>
                                                 </div>
                                             </div>
@@ -340,16 +343,16 @@
                         <div class="form-input">
                             <label class="col-form-label">{{ index .tab "partner" }} :</label>
                             <select name="addAuthorizedRemoteAccountsPartnerName" id="addRemoteAccountPartner" class="form-select">
-                                <option value="" disabled selected>{{ index .tab "selectPartners" }}</option>
+                                <option value="" disabled {{ if $.modalElement }}{{ if eq (index $.modalElement "addAuthorizedRemoteAccountsPartnerName") "" }}selected{{ end }}{{ else }}selected{{ end }}>{{ index .tab "selectPartners" }}</option>
                                 {{ range .listPartners }}
-                                <option value="{{ . }}">{{ . }}</option>
+                                    <option value="{{ . }}" {{ if $.modalElement }}{{ if eq (index $.modalElement "addAuthorizedRemoteAccountsPartnerName") . }}selected{{ end }}{{ end }}>{{ . }}</option>
                                 {{ end }}
                             </select>
                         </div>
                         <div class="form-input mt-2">
                             <label class="col-form-label">{{ index .tab "name" }} :</label>
-                            <select name="addAuthorizedRemoteAccountsName" id="remoteAccountNameList" class="form-select">
-                                <option value="" disabled selected>{{ index .tab "selectRemoteAccounts" }}</option>
+                            <select name="addAuthorizedRemoteAccountsName" id="remoteAccountNameList" class="form-select" data-selected="{{ index $.modalElement "addAuthorizedRemoteAccountsName" }}">
+                                <option value="" disabled {{ if $.modalElement }}{{ if eq (index $.modalElement "addAuthorizedRemoteAccountsName") "" }}selected{{ end }}{{ else }}selected{{ end }}>{{ index .tab "selectRemoteAccounts" }}</option>
                             </select>
                         </div>
                     </div>
@@ -368,8 +371,8 @@
         <thead class="table-light">
             <tr>
                 <th></th>
-                <th>Nom du partner</th>
-                <th>Nom du compte distant</th>
+                <th>{{ index .tab "partnerName" }}</th>
+                <th>{{ index .tab "remoteAccountName" }}</th>
                 <th class="text-end"></th>
             </tr>
         </thead>
@@ -390,6 +393,7 @@
                                 <div class="modal-content">
                                     <form method="post" class="p-3 border rounded bg-light">
                                         <input type="hidden" name="editAuthorizedRemoteAccountOldName" value="{{ .Login }}">
+                                        {{ $me := and (eq $.modalOpen (printf "editAuthorizedRemoteAccountModal_%s" .Login)) $.modalElement }}
                                         <div class="modal-header">
                                             <h5 class="modal-title" id="editAuthorizedRemoteAccountModalLabel_{{ .Login }}"> {{ index $.tab "edit" }}</h5>
                                             <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
@@ -399,16 +403,16 @@
                                                 <div class="form-input">
                                                     <label class="col-form-label">{{ index $.tab "partner" }} :</label>
                                                     <select name="editAuthorizedRemoteAccountsPartnerName" id="editRemoteAccountPartner_{{ .Login }}" class="form-select">
-                                                        <option value="" disabled selected>{{ index $.tab "selectPartners" }}</option>
+                                                        <option value="" disabled {{ if $me }}{{ if eq (index $me "editAuthorizedRemoteAccountsPartnerName") "" }}selected{{ end }}{{ else }}selected{{ end }}>{{ index $.tab "selectPartners" }}</option>
                                                         {{ range $.listPartners }}
-                                                        <option value="{{ . }}" {{ if eq . $partnerName }}selected{{ end }}>{{ . }}</option>
+                                                            <option value="{{ . }}" {{ if $me }}{{ if eq (index $me "editAuthorizedRemoteAccountsPartnerName") . }}selected{{ end }}{{ else if eq . $partnerName }}selected{{ end }}>{{ . }}</option>
                                                         {{ end }}
                                                     </select>
                                                 </div>
                                                 <div class="form-input mt-2">
                                                     <label class="col-form-label">{{ index $.tab "name" }} :</label>
-                                                    <select name="editAuthorizedRemoteAccountsName" id="editRemoteAccountName_{{ .Login }}" data-selected="{{ .Login }}" class="form-select">
-                                                        <option value="" disabled selected>{{ index $.tab "selectRemoteAccounts" }}</option>
+                                                    <select name="editAuthorizedRemoteAccountsName" id="editRemoteAccountName_{{ .Login }}" class="form-select" data-selected="{{ if $me }}{{ index $me "editAuthorizedRemoteAccountsName" }}{{ else }}{{ .Login }}{{ end }}">
+                                                        <option value="" disabled {{ if $me }}{{ if eq (index $me "editAuthorizedRemoteAccountsName") "" }}selected{{ end }}{{ end }}>{{ index $.tab "selectRemoteAccounts" }}</option>
                                                     </select>
                                                 </div>
                                             </div>
@@ -438,6 +442,7 @@
 {{ end }}
 
 {{ define "content" }}
+  {{ if contains .myPermission.Rules "r" }}
   {{ if .errMsg }}
     <div id="errorPopup" class="alert alert-danger alert-dismissible fade show" role="alert">
       {{ .errMsg }}
@@ -447,9 +452,12 @@
     {{ if .rule }}
         <div class="d-flex align-items-center justify-content-between">
             <h2 class="mb-0">{{ index .tab "title" }} : {{ .rule.Name }}</h2>
-            <button class="btn btn-outline-secondary ms-3 back-btn" type="button" onclick="window.location='transfer_rules_management'">
-                <i class="bi bi-arrow-left"></i>
-            </button>
+            <div class="d-flex align-items-center">
+                <span class="text-muted small me-3">{{ index .tab "pathGateway" }}</span>
+                <button class="btn btn-outline-secondary ms-3 back-btn" type="button" onclick="window.location='transfer_rules_management'">
+                    <i class="bi bi-arrow-left"></i>
+                </button>
+            </div>
         </div>
         <hr style="border-top: 1px solid #ababab;">
         
@@ -487,6 +495,11 @@
         </div>
     </div>
     {{ end }}
+  {{ else if not (contains .myPermission.Rules "r") }}
+    <div class="d-flex align-items-center justify-content-between">
+      <h2 class="mb-0">{{ index .tab "accesRight" }} </h2>
+    </div>
+  {{ end }}
 {{ end }}
 
 {{ define "management_usage_rights_rules_page" }}

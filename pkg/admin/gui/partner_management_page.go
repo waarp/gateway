@@ -122,13 +122,24 @@ func addPartner(db *database.DB, r *http.Request) error {
 
 func ListPartner(db *database.DB, r *http.Request) ([]*model.RemoteAgent, Filters, string) {
 	partnerFound := ""
-	filter := Filters{
+	defaultFilter := Filters{
 		Offset:          0,
 		Limit:           DefaultLimitPagination,
 		OrderAsc:        true,
 		DisableNext:     false,
 		DisablePrevious: false,
 	}
+
+	filter := defaultFilter
+	if saved, ok := GetPageFilters(r, "partner_management_page"); ok {
+		filter = saved
+	}
+
+	isApply := r.URL.Query().Get("applyFilters") == True
+	if isApply {
+		filter = defaultFilter
+	}
+
 	urlParams := r.URL.Query()
 
 	if urlParams.Get("orderAsc") != "" {
@@ -162,7 +173,7 @@ func ListPartner(db *database.DB, r *http.Request) ([]*model.RemoteAgent, Filter
 		return []*model.RemoteAgent{searchPartner(search, partner)}, filter, partnerFound
 	}
 
-	filtersPtr, filterProtocol := protocolsFilter(r, &filter)
+	filtersPtr, filterProtocol := checkProtocolsFilter(r, isApply, &filter)
 	paginationPage(&filter, uint64(len(partner)), r)
 
 	if len(filterProtocol) > 0 {
@@ -242,17 +253,18 @@ func deletePartner(db *database.DB, r *http.Request) error {
 
 //nolint:dupl // no similar func
 func callMethodsPartnerManagement(logger *log.Logger, db *database.DB, w http.ResponseWriter, r *http.Request,
-) (value bool, errMsg, modalOpen string) {
+) (value bool, errMsg, modalOpen string, modalElement map[string]any) {
 	if r.Method == http.MethodPost && r.FormValue("addPartnerName") != "" {
 		if newPartnerErr := addPartner(db, r); newPartnerErr != nil {
 			logger.Errorf("failed to add partner: %v", newPartnerErr)
+			modalElement = getFormValues(r)
 
-			return false, newPartnerErr.Error(), "addPartnerModal"
+			return false, newPartnerErr.Error(), "addPartnerModal", modalElement
 		}
 
 		http.Redirect(w, r, r.URL.Path, http.StatusSeeOther)
 
-		return true, "", ""
+		return true, "", "", nil
 	}
 
 	if r.Method == http.MethodPost && r.FormValue("deletePartner") != "" {
@@ -260,12 +272,12 @@ func callMethodsPartnerManagement(logger *log.Logger, db *database.DB, w http.Re
 		if deletePartnerErr != nil {
 			logger.Errorf("failed to delete partner: %v", deletePartnerErr)
 
-			return false, deletePartnerErr.Error(), ""
+			return false, deletePartnerErr.Error(), "", nil
 		}
 
 		http.Redirect(w, r, r.URL.Path, http.StatusSeeOther)
 
-		return true, "", ""
+		return true, "", "", nil
 	}
 
 	if r.Method == http.MethodPost && r.FormValue("editPartnerID") != "" {
@@ -275,21 +287,22 @@ func callMethodsPartnerManagement(logger *log.Logger, db *database.DB, w http.Re
 		if err != nil {
 			logger.Errorf("failed to convert id to int: %v", err)
 
-			return false, "", ""
+			return false, "", "", nil
 		}
 
 		if editPartnerErr := editPartner(db, r); editPartnerErr != nil {
 			logger.Errorf("failed to edit partner: %v", editPartnerErr)
+			modalElement = getFormValues(r)
 
-			return false, editPartnerErr.Error(), fmt.Sprintf("editPartnerModal_%d", id)
+			return false, editPartnerErr.Error(), fmt.Sprintf("editPartnerModal_%d", id), modalElement
 		}
 
 		http.Redirect(w, r, r.URL.Path, http.StatusSeeOther)
 
-		return true, "", ""
+		return true, "", "", nil
 	}
 
-	return false, "", ""
+	return false, "", "", nil
 }
 
 func partnerManagementPage(logger *log.Logger, db *database.DB) http.HandlerFunc {
@@ -298,7 +311,16 @@ func partnerManagementPage(logger *log.Logger, db *database.DB) http.HandlerFunc
 		tTranslated := pageTranslated("partner_management_page", userLanguage.(string)) //nolint:errcheck,forcetypeassert //u
 		partnerList, filter, partnerFound := ListPartner(db, r)
 
-		value, errMsg, modalOpen := callMethodsPartnerManagement(logger, db, w, r)
+		if pageName := r.URL.Query().Get("clearFiltersPage"); pageName != "" {
+			ClearPageFilters(r, pageName)
+			http.Redirect(w, r, r.URL.Path, http.StatusSeeOther)
+
+			return
+		}
+
+		PersistPageFilters(r, "partner_management_page", &filter)
+
+		value, errMsg, modalOpen, modalElement := callMethodsPartnerManagement(logger, db, w, r)
 		if value {
 			return
 		}
@@ -325,8 +347,10 @@ func partnerManagementPage(logger *log.Logger, db *database.DB) http.HandlerFunc
 			"KeyExchanges":           sftp.ValidKeyExchanges,
 			"Ciphers":                sftp.ValidCiphers,
 			"MACs":                   sftp.ValidMACs,
+			"protocolsList":          ProtocolsList,
 			"errMsg":                 errMsg,
 			"modalOpen":              modalOpen,
+			"modalElement":           modalElement,
 		}); tmplErr != nil {
 			logger.Errorf("render partner_management_page: %v", tmplErr)
 			http.Error(w, "Internal error", http.StatusInternalServerError)

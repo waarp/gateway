@@ -3,7 +3,7 @@
     <hr style="border-top: 1px solid #ababab;">
     <div class="form-input">
         <label class="col-form-label">{{ index .tab "path" }} <i class="bi bi-info-circle ms-1" data-bs-toggle="tooltip" data-bs-placement="right" data-bs-title="{{ index $.tab "tooltipDestinationPath" }}"></i> :</label>
-        <input type="text" name="pathCopy" class="form-control">
+        <input type="text" name="pathCopy" class="form-control" value="{{ index $.modalElement "pathCopy" }}">
     </div>
 </div>
 {{ end }}
@@ -13,7 +13,7 @@
     <hr style="border-top: 1px solid #ababab;">
     <div class="form-input">
         <label class="col-form-label">{{ index .tab "path" }} <i class="bi bi-info-circle ms-1" data-bs-toggle="tooltip" data-bs-placement="right" data-bs-title="{{ index $.tab "tooltipDestinationPath" }}"></i> :</label>
-        <input type="text" name="pathCopyRename" class="form-control">
+        <input type="text" name="pathCopyRename" class="form-control" value="{{ index $.modalElement "pathCopyRename" }}">
     </div>
 </div>
 {{ end }}
@@ -26,17 +26,17 @@
     <hr style="border-top: 1px solid #ababab;">
     <div class="form-input">
         <label class="col-form-label">{{ index .tab "path" }} <i class="bi bi-info-circle ms-1" data-bs-toggle="tooltip" data-bs-placement="right" data-bs-title="{{ index $.tab "tooltipExecutedPath" }}"></i> :</label>
-        <input type="text" name="pathExec" class="form-control">
+        <input type="text" name="pathExec" class="form-control" value="{{ index $.modalElement "pathExec" }}">
     </div>
     <hr style="border-top: 1px solid #ababab;">
     <div class="form-input">
         <label class="col-form-label">{{ index .tab "args" }} <i class="bi bi-info-circle ms-1" data-bs-toggle="tooltip" data-bs-placement="right" data-bs-title="{{ index $.tab "tooltipArgs" }}"></i> :</label>
-        <input type="text" name="argsExec" class="form-control">
+        <input type="text" name="argsExec" class="form-control" value="{{ index $.modalElement "argsExec" }}">
     </div>
     <hr style="border-top: 1px solid #ababab;">
     <div class="form-input">
         <label class="col-form-label">{{ index .tab "delay" }} <i class="bi bi-info-circle ms-1" data-bs-toggle="tooltip" data-bs-placement="right" data-bs-title="{{ index $.tab "tooltipDelay" }}"></i> :</label>
-        <input type="text" name="delayExec" class="form-control">
+        <input type="text" name="delayExec" class="form-control" value="{{ index $.modalElement "delayExec" }}">
     </div>
 </div>
 {{ end }}
@@ -46,17 +46,17 @@
     <hr style="border-top: 1px solid #ababab;">
     <div class="form-input">
         <label class="col-form-label">{{ index .tab "path" }} <i class="bi bi-info-circle ms-1" data-bs-toggle="tooltip" data-bs-placement="right" data-bs-title="{{ index $.tab "tooltipExecutedPath" }}"></i> :</label>
-        <input type="text" name="pathExecMove" class="form-control">
+        <input type="text" name="pathExecMove" class="form-control" value="{{ index $.modalElement "pathExecMove" }}">
     </div>
     <hr style="border-top: 1px solid #ababab;">
     <div class="form-input">
         <label class="col-form-label">{{ index .tab "args" }} <i class="bi bi-info-circle ms-1" data-bs-toggle="tooltip" data-bs-placement="right" data-bs-title="{{ index $.tab "tooltipArgs" }}"></i> :</label>
-        <input type="text" name="argsExecMove" class="form-control">
+        <input type="text" name="argsExecMove" class="form-control" value="{{ index $.modalElement "argsExecMove" }}">
     </div>
     <hr style="border-top: 1px solid #ababab;">
     <div class="form-input">
         <label class="col-form-label">{{ index .tab "delay" }} <i class="bi bi-info-circle ms-1" data-bs-toggle="tooltip" data-bs-placement="right" data-bs-title="{{ index $.tab "tooltipDelay" }}"></i> :</label>
-        <input type="text" name="delayExecMove" class="form-control">
+        <input type="text" name="delayExecMove" class="form-control" value="{{ index $.modalElement "delayExecMove" }}">
     </div>
 </div>
 {{ end }}
@@ -66,17 +66,17 @@
     <hr style="border-top: 1px solid #ababab;">
     <div class="form-input">
         <label class="col-form-label">{{ index .tab "path" }} <i class="bi bi-info-circle ms-1" data-bs-toggle="tooltip" data-bs-placement="right" data-bs-title="{{ index $.tab "tooltipExecutedPath" }}"></i> :</label>
-        <input type="text" name="pathExecOutput" class="form-control">
+        <input type="text" name="pathExecOutput" class="form-control" value="{{ index $.modalElement "pathExecOutput" }}">
     </div>
     <hr style="border-top: 1px solid #ababab;">
     <div class="form-input">
         <label class="col-form-label">{{ index .tab "args" }} <i class="bi bi-info-circle ms-1" data-bs-toggle="tooltip" data-bs-placement="right" data-bs-title="{{ index $.tab "tooltipArgs" }}"></i> :</label>
-        <input type="text" name="argsExecOutput" class="form-control">
+        <input type="text" name="argsExecOutput" class="form-control" value="{{ index $.modalElement "argsExecOutput" }}">
     </div>
     <hr style="border-top: 1px solid #ababab;">
     <div class="form-input">
         <label class="col-form-label">{{ index .tab "delay" }} <i class="bi bi-info-circle ms-1" data-bs-toggle="tooltip" data-bs-placement="right" data-bs-title="{{ index $.tab "tooltipDelay" }}"></i> :</label>
-        <input type="text" name="delayExecOutput" class="form-control">
+        <input type="text" name="delayExecOutput" class="form-control" value="{{ index $.modalElement "delayExecOutput" }}">
     </div>
 </div>
 {{ end }}
@@ -86,7 +86,7 @@
     <hr style="border-top: 1px solid #ababab;">
     <div class="form-input">
         <label class="col-form-label">{{ index .tab "path" }} <i class="bi bi-info-circle ms-1" data-bs-toggle="tooltip" data-bs-placement="right" data-bs-title="{{ index $.tab "tooltipDestinationPath" }}"></i> :</label>
-        <input type="text" name="pathMove" class="form-control">
+        <input type="text" name="pathMove" class="form-control" value="{{ index $.modalElement "pathMove" }}">
     </div>
 </div>
 {{ end }}
@@ -96,7 +96,7 @@
     <hr style="border-top: 1px solid #ababab;">
     <div class="form-input">
         <label class="col-form-label">{{ index .tab "path" }} <i class="bi bi-info-circle ms-1" data-bs-toggle="tooltip" data-bs-placement="right" data-bs-title="{{ index $.tab "tooltipNewPath" }}"></i> :</label>
-        <input type="text" name="pathMoveRename" class="form-control">
+        <input type="text" name="pathMoveRename" class="form-control" value="{{ index $.modalElement "pathMoveRename" }}">
     </div>
 </div>
 {{ end }}
@@ -106,7 +106,7 @@
     <hr style="border-top: 1px solid #ababab;">
     <div class="form-input">
         <label class="col-form-label">{{ index .tab "path" }} <i class="bi bi-info-circle ms-1" data-bs-toggle="tooltip" data-bs-placement="right" data-bs-title="{{ index $.tab "tooltipNewFilePath" }}"></i> :</label>
-        <input type="text" name="pathRename" class="form-control">
+        <input type="text" name="pathRename" class="form-control" value="{{ index $.modalElement "pathRename" }}">
     </div>
 </div>
 {{ end }}
@@ -116,50 +116,62 @@
     <hr style="border-top: 1px solid #ababab;">
     <div class="form-input">
         <label class="col-form-label">{{ index .tab "file" }} <i class="bi bi-info-circle ms-1" data-bs-toggle="tooltip" data-bs-placement="right" data-bs-title="{{ index $.tab "tooltipFile" }}"></i> :</label>
-        <input type="text" name="fileTransfer" class="form-control">
+        <input type="text" name="fileTransfer" class="form-control" value="{{ index $.modalElement "fileTransfer" }}">
     </div>
     <hr style="border-top: 1px solid #ababab;">
     <div class="form-input">
         <label class="col-form-label">{{ index .tab "using" }} <i class="bi bi-info-circle ms-1" data-bs-toggle="tooltip" data-bs-placement="right" data-bs-title="{{ index $.tab "tooltipUsing" }}"></i> :</label>
-        <input type="text" name="usingTransfer" class="form-control">
+        <input type="text" name="usingTransfer" class="form-control" value="{{ index $.modalElement "usingTransfer" }}">
     </div>
     <hr style="border-top: 1px solid #ababab;">
     <div class="form-input">
         <label class="col-form-label">{{ index .tab "to" }} <i class="bi bi-info-circle ms-1" data-bs-toggle="tooltip" data-bs-placement="right" data-bs-title="{{ index $.tab "tooltipTo" }}"></i> :</label>
-        <input type="text" name="toTransfer" class="form-control">
+        <input type="text" name="toTransfer" class="form-control" value="{{ index $.modalElement "toTransfer" }}">
     </div>
     <hr style="border-top: 1px solid #ababab;">
     <div class="form-input">
         <label class="col-form-label">{{ index .tab "as" }} <i class="bi bi-info-circle ms-1" data-bs-toggle="tooltip" data-bs-placement="right" data-bs-title="{{ index $.tab "tooltipAs" }}"></i> :</label>
-        <input type="text" name="asTransfer" class="form-control">
+        <input type="text" name="asTransfer" class="form-control" value="{{ index $.modalElement "asTransfer" }}">
     </div>
     <hr style="border-top: 1px solid #ababab;">
     <div class="form-input">
         <label class="col-form-label">{{ index .tab "rule" }} <i class="bi bi-info-circle ms-1" data-bs-toggle="tooltip" data-bs-placement="right" data-bs-title="{{ index $.tab "tooltipRule" }}"></i> :</label>
-        <input type="text" name="ruleTransfer" class="form-control">
+        <input type="text" name="ruleTransfer" class="form-control" value="{{ index $.modalElement "ruleTransfer" }}">
     </div>
     <hr style="border-top: 1px solid #ababab;">
     <div class="form-input d-flex align-items-center">
         <label class="col-form-label me-3">{{ index .tab "copyInfo" }} <i class="bi bi-info-circle ms-1" data-bs-toggle="tooltip" data-bs-placement="right" data-bs-title="{{ index $.tab "tooltipCopyInfo" }}"></i> :</label>
         <div class="form-check form-check-inline">
-            <input class="form-check-input" type="checkbox" name="copyInfoTransfer" id="copyInfoTransfer" value="true">
+            <input class="form-check-input" type="checkbox" name="copyInfoTransfer" id="copyInfoTransfer" value="true" {{ if $.modalElement }}{{ $v := index $.modalElement "copyInfoTransfer" }}{{ if or (eq $v "true") (eq $v true) (eq $v "on") }}checked{{ end }}{{ end }}>
         </div>
     </div>
     <hr style="border-top: 1px solid #ababab;">
     <div class="form-input">
         <label class="col-form-label">{{ index .tab "info" }} <i class="bi bi-info-circle ms-1" data-bs-toggle="tooltip" data-bs-placement="right" data-bs-title="{{ index $.tab "tooltipInfo" }}"></i> :</label>
         <div id="infoContainer">
-            <div class="input-group mb-2">
-                <input type="text" name="infoTransferKey[]" class="form-control" placeholder="{{ index .tab "fieldName" }}">
-                <input type="text" name="infoTransferValue[]" class="form-control" placeholder="{{ index .tab "value" }}">
-               <button type="button" class="btn btn-outline-danger btn-sm" onclick="removeField(this)">
-                   <i class="bi bi-trash"></i>
-                </button>
-            </div>
-        </div>
-        <button type="button"
-                class="btn btn-outline-primary btn-sm"
-                onclick="addField(this)">
+            {{ $keys := index $.modalElement "infoTransferKey[]" }}
+            {{ $vals := index $.modalElement "infoTransferValue[]" }}
+            {{ if or $keys $vals }}
+                {{ range $i,$k := $keys }}
+                        <div class="input-group mb-2">
+                            <input type="text" name="infoTransferKey[]" class="form-control" value="{{ $k }}" placeholder="{{ index $.tab "fieldName" }}">
+                            <input type="text" name="infoTransferValue[]" class="form-control" value="{{ if $vals }}{{ index $vals $i }}{{ end }}" placeholder="{{ index $.tab "value" }}">
+                            <button type="button" class="btn btn-outline-danger btn-sm" onclick="removeField(this)">
+                                <i class="bi bi-trash"></i>
+                            </button>
+                        </div>
+                    {{ end }}
+                    {{ else }}
+                        <div class="input-group mb-2">
+                            <input type="text" name="infoTransferKey[]" class="form-control" placeholder="{{ index $.tab "fieldName" }}">
+                            <input type="text" name="infoTransferValue[]" class="form-control" placeholder="{{ index $.tab "value" }}">
+                            <button type="button" class="btn btn-outline-danger btn-sm" onclick="removeField(this)">
+                                <i class="bi bi-trash"></i>
+                            </button>
+                        </div>
+                    {{ end }}
+                    </div>
+        <button type="button" class="btn btn-outline-primary btn-sm" onclick="addField(this)">
             {{ index .tab "add" }}
         </button>
     </div>
@@ -172,9 +184,9 @@
     <div class="form-input">
         <label class="col-form-label">{{ index .tab "fromCharset" }} <i class="bi bi-info-circle ms-1" data-bs-toggle="tooltip" data-bs-placement="right" data-bs-title="{{ index $.tab "tooltipFromCharset" }}"></i> :</label>
         <select name="fromCharsetTranscode" id="fromCharsetTranscode" class="form-select">
-            <option value="" disabled selected>{{ index .tab "selectTranscode" }}</option>
+            <option value="" disabled {{ if $.modalElement }}{{ if eq (index $.modalElement "fromCharsetTranscode") "" }}selected{{ end }}{{ else }}selected{{ end }}>{{ index .tab "selectTranscode" }}</option>
             {{ range .TranscodeFormats }}
-                <option value="{{ . }}">{{ . }}</option>
+                <option value="{{ . }}" {{ if $.modalElement }}{{ if eq (index $.modalElement "fromCharsetTranscode") . }}selected{{ end }}{{ end }}>{{ . }}</option>
             {{ end }}
         </select>
     </div>
@@ -182,9 +194,9 @@
        <div class="form-input">
         <label class="col-form-label">{{ index .tab "toCharset" }} <i class="bi bi-info-circle ms-1" data-bs-toggle="tooltip" data-bs-placement="right" data-bs-title="{{ index $.tab "tooltipToCharset" }}"></i> :</label>
         <select name="toCharsetTranscode" id="toCharsetTranscode" class="form-select">
-            <option value="" disabled selected>{{ index .tab "selectTranscode" }}</option>
+            <option value="" disabled {{ if $.modalElement }}{{ if eq (index $.modalElement "toCharsetTranscode") "" }}selected{{ end }}{{ else }}selected{{ end }}>{{ index .tab "selectTranscode" }}</option>
             {{ range .TranscodeFormats }}
-                <option value="{{ . }}">{{ . }}</option>
+                <option value="{{ . }}" {{ if $.modalElement }}{{ if eq (index $.modalElement "toCharsetTranscode") . }}selected{{ end }}{{ end }}>{{ . }}</option>
             {{ end }}
         </select>
     </div>
@@ -196,15 +208,15 @@
     <hr style="border-top: 1px solid #ababab;">
     <div class="form-input">
         <label class="col-form-label">{{ index .tab "files" }} <i class="bi bi-info-circle ms-1" data-bs-toggle="tooltip" data-bs-placement="right" data-bs-title="{{ index $.tab "tooltipFiles" }}"></i> :</label>
-        <input type="text" name="filesArchive" class="form-control">
+        <input type="text" name="filesArchive" class="form-control" value="{{ index $.modalElement "filesArchive" }}">
     </div>
     <hr style="border-top: 1px solid #ababab;">
     <div class="form-input">
         <label class="col-form-label">{{ index .tab "compressionLevel" }} <i class="bi bi-info-circle ms-1" data-bs-toggle="tooltip" data-bs-placement="right" data-bs-title="{{ index $.tab "tooltipCompressionLevel" }}"></i> :</label>
         <select name="compressionLevelArchive" id="compressionLevelArchive" class="form-select">
-            <option value="" disabled selected>{{ index .tab "selectcompressionLevel" }}</option>
+            <option value="" disabled {{ if $.modalElement }}{{ if eq (index $.modalElement "compressionLevelArchive") "" }}selected{{ end }}{{ else }}selected{{ end }}>{{ index .tab "selectcompressionLevel" }}</option>
             {{ range .CompressionLevelList }}
-                <option value="{{ . }}">{{ . }}</option>
+                <option value="{{ . }}" {{ if $.modalElement }}{{ if eq (index $.modalElement "compressionLevelArchive") . }}selected{{ end }}{{ end }}>{{ . }}</option>
             {{ end }}
         </select>
     </div>
@@ -212,11 +224,11 @@
     <div class="form-input">
         <label class="col-form-label">{{ index .tab "outputPath" }} <i class="bi bi-info-circle ms-1" data-bs-toggle="tooltip" data-bs-placement="right" data-bs-title="{{ index $.tab "tooltipOutputPath" }}"></i> :</label>
         <div class="input-group">
-        <input type="text" name="outputPathArchiveName" class="form-control">
+        <input type="text" name="outputPathArchiveName" class="form-control" value="{{ index $.modalElement "outputPathArchiveName" }}">
         <select name="outputPathArchiveExt" id="outputPathArchiveExt" class="form-select" style="max-width: 20%;">
-            <option value="" disabled selected>{{ index .tab "extensions" }}</option>
+            <option value="" disabled {{ if $.modalElement }}{{ if eq (index $.modalElement "outputPathArchiveExt") "" }}selected{{ end }}{{ else }}selected{{ end }}>{{ index .tab "extensions" }}</option>
             {{ range .ArchiveExtensions }}
-                <option value="{{ . }}">{{ . }}</option>
+                <option value="{{ . }}" {{ if $.modalElement }}{{ if eq (index $.modalElement "outputPathArchiveExt") . }}selected{{ end }}{{ end }}>{{ . }}</option>
             {{ end }}
         </select>
         </div>
@@ -230,11 +242,11 @@
     <div class="form-input">
          <label class="col-form-label">{{ index .tab "archive" }} <i class="bi bi-info-circle ms-1" data-bs-toggle="tooltip" data-bs-placement="right" data-bs-title="{{ index $.tab "tooltipArchive" }}"></i> :</label>
         <div class="input-group">
-        <input type="text" name="archiveExtractName" class="form-control">
+        <input type="text" name="archiveExtractName" class="form-control" value="{{ index $.modalElement "archiveExtractName" }}">
         <select name="archiveExtractExt" id="archiveExtractExt" class="form-select" style="max-width: 20%;">
-            <option value="" disabled selected>{{ index .tab "extensions" }}</option>
+            <option value="" disabled {{ if $.modalElement }}{{ if eq (index $.modalElement "archiveExtractExt") "" }}selected{{ end }}{{ else }}selected{{ end }}>{{ index .tab "extensions" }}</option>
             {{ range .ArchiveExtensions }}
-                <option value="{{ . }}">{{ . }}</option>
+                <option value="{{ . }}" {{ if $.modalElement }}{{ if eq (index $.modalElement "archiveExtractExt") . }}selected{{ end }}{{ end }}>{{ . }}</option>
             {{ end }}
         </select>
         </div>
@@ -242,7 +254,7 @@
     <hr style="border-top: 1px solid #ababab;">
     <div class="form-input">
         <label class="col-form-label">{{ index .tab "outputDir" }} <i class="bi bi-info-circle ms-1" data-bs-toggle="tooltip" data-bs-placement="right" data-bs-title="{{ index $.tab "tooltipOutputDir" }}"></i> :</label>
-        <input type="text" name="outputDirExtract" class="form-control">
+        <input type="text" name="outputDirExtract" class="form-control" value="{{ index $.modalElement "outputDirExtract" }}">
     </div>
 </div>
 {{ end}}
@@ -252,45 +264,43 @@
     <hr style="border-top: 1px solid #ababab;">
     <div class="form-input">
         <label class="col-form-label">{{ index .tab "uploadURL" }} <i class="bi bi-info-circle ms-1" data-bs-toggle="tooltip" data-bs-placement="right" data-bs-title="{{ index $.tab "tooltipUploadURL" }}"></i> :</label>
-        <input type="text" name="uploadURLIcap" class="form-control">
+        <input type="text" name="uploadURLIcap" class="form-control" value="{{ index $.modalElement "uploadURLIcap" }}">
     </div>
     <hr style="border-top: 1px solid #ababab;">
     <div class="form-input d-flex align-items-center">
         <label class="col-form-label me-3">{{ index .tab "timeout" }} <i class="bi bi-info-circle ms-1" data-bs-toggle="tooltip" data-bs-placement="right" data-bs-title="{{ index $.tab "tooltipTimeout" }}"></i> :</label>
         <div class="input-group" style="max-width: 60%;">
             <span class="input-group-text">h</span>
-            <input type="text" name="timeoutIcapH" class="form-control" placeholder="00">
+            <input type="text" name="timeoutIcapH" class="form-control" placeholder="00" value="{{ index $.modalElement "timeoutIcapH" }}">
             <span class="input-group-text">m</span>
-            <input type="text" name="timeoutIcapM" class="form-control" placeholder="00">
+            <input type="text" name="timeoutIcapM" class="form-control" placeholder="00" value="{{ index $.modalElement "timeoutIcapM" }}">
             <span class="input-group-text">s</span>
-            <input type="text" name="timeoutIcapS" class="form-control" placeholder="00">
+            <input type="text" name="timeoutIcapS" class="form-control" placeholder="00" value="{{ index $.modalElement "timeoutIcapS" }}">
             <span class="input-group-text">ms</span>
-            <input type="text" name="timeoutIcapMS" class="form-control" placeholder="00">
+            <input type="text" name="timeoutIcapMS" class="form-control" placeholder="00" value="{{ index $.modalElement "timeoutIcapMS" }}">
         </div>
     </div>
     <hr style="border-top: 1px solid #ababab;">
     <div class="form-input d-flex align-items-center">
         <label class="col-form-label me-3">{{ index .tab "allowFileModifications" }} <i class="bi bi-info-circle ms-1" data-bs-toggle="tooltip" data-bs-placement="right" data-bs-title="{{ index $.tab "tooltipAllowFileModifications" }}"></i> :</label>
         <div class="form-check form-check-inline">
-            <input class="form-check-input" type="checkbox" name="allowFileModificationsIcap" id="allowFileModificationsIcap" value="true">
+            <input class="form-check-input" type="checkbox" name="allowFileModificationsIcap" id="allowFileModificationsIcap" value="true" {{ if $.modalElement }}{{ $v := index $.modalElement "allowFileModificationsIcap" }}{{ if or (eq $v "true") (eq $v true) (eq $v "on") }}checked{{ end }}{{ end }}>
         </div>
     </div>
     <hr style="border-top: 1px solid #ababab;">
     <div class="form-input">
         <label class="col-form-label">{{ index .tab "onError" }} <i class="bi bi-info-circle ms-1" data-bs-toggle="tooltip" data-bs-placement="right" data-bs-title="{{ index $.tab "tooltipOnError" }}"></i> :</label>
         <select name="onErrorIcap" id="onErrorIcap" class="form-select">
-            <option value="" disabled selected>{{ index .tab "selectOnError" }}</option>
+            <option value="" disabled {{ if $.modalElement }}{{ if eq (index $.modalElement "onErrorIcap") "" }}selected{{ end }}{{ else }}selected{{ end }}>{{ index .tab "selectOnError" }}</option>
             {{ range .IcapOnErrorOptions }}
-            <option value="{{ . }}">
-                {{ if eq . "" }}do nothing{{ else }}{{ . }}{{ end }}
-            </option>
+            <option value="{{ . }}" {{ if $.modalElement }}{{ if eq (index $.modalElement "onErrorIcap") . }}selected{{ end }}{{ end }}>{{ if eq . "" }}do nothing{{ else }}{{ . }}{{ end }}</option>
             {{ end }}
         </select>
     </div>
     <hr style="border-top: 1px solid #ababab;">
     <div class="form-input">
         <label class="col-form-label">{{ index .tab "onErrorMovePath" }} <i class="bi bi-info-circle ms-1" data-bs-toggle="tooltip" data-bs-placement="right" data-bs-title="{{ index $.tab "tooltipOnErrorMovePath" }}"></i> :</label>
-        <input type="text" name="onErrorMovePathIcap" class="form-control">
+        <input type="text" name="onErrorMovePathIcap" class="form-control" value="{{ index $.modalElement "onErrorMovePathIcap" }}">
     </div>
 </div>
 {{ end}}
@@ -300,30 +310,51 @@
     <hr style="border-top: 1px solid #ababab;">
     <div class="form-input">
         <label class="col-form-label">{{ index .tab "outputFile" }} <i class="bi bi-info-circle ms-1" data-bs-toggle="tooltip" data-bs-placement="right" data-bs-title="{{ index $.tab "tooltipOutputFileEncrypt" }}"></i> :</label>
-        <input type="text" name="outputFileEncrypt" class="form-control">
+        <input type="text" name="outputFileEncrypt" class="form-control" value="{{ index $.modalElement "outputFileEncrypt" }}">
     </div>
     <hr style="border-top: 1px solid #ababab;">
     <div class="form-input d-flex align-items-center">
         <label class="col-form-label me-3">{{ index .tab "keepOriginal" }} <i class="bi bi-info-circle ms-1" data-bs-toggle="tooltip" data-bs-placement="right" data-bs-title="{{ index $.tab "tooltipKeepOriginalEncrypt" }}"></i> :</label>
         <div class="form-check form-check-inline">
-            <input class="form-check-input" type="checkbox" name="keepOriginalEncrypt" id="keepOriginalEncrypt" value="true">
+            <input class="form-check-input" type="checkbox" name="keepOriginalEncrypt" id="keepOriginalEncrypt" value="true" {{ if $.modalElement }}{{ $v := index $.modalElement "keepOriginalEncrypt" }}{{ if or (eq $v "true") (eq $v true) (eq $v "on") }}checked{{ end }}{{ end }}>
         </div>
     </div>
     <hr style="border-top: 1px solid #ababab;">
     <div class="form-input">
         <label class="col-form-label">{{ index .tab "method" }} <i class="bi bi-info-circle ms-1" data-bs-toggle="tooltip" data-bs-placement="right" data-bs-title="{{ index $.tab "tooltipMethodEncrypt" }}"></i> :</label>
-        <select name="methodEncrypt" id="methodEncrypt" class="form-select">
-            <option value="" disabled selected>{{ index .tab "selectMethod" }}</option>
+        <select name="methodEncrypt" id="methodEncryptAdd" class="form-select">
+            <option value="" disabled {{ if $.modalElement }}{{ if eq (index $.modalElement "methodEncrypt") "" }}selected{{ end }}{{ else }}selected{{ end }}>{{ index .tab "selectMethod" }}</option>
             {{ range .EncryptMethods }}
-            <option value="{{ . }}">{{ . }}</option>
+                {{ $m := . }}
+                <option value="{{ . }}" data-keytypes="{{ range $i, $t := index $.EncryptKeyTypes $m }}{{ if $i }},{{ end }}{{ $t }}{{ end }}" {{ if $.modalElement }}{{ if eq (index $.modalElement "methodEncrypt") . }}selected{{ end }}{{ end }}>{{ . }}</option>
             {{ end }}
         </select>
     </div>
     <hr style="border-top: 1px solid #ababab;">
     <div class="form-input">
         <label class="col-form-label">{{ index .tab "keyName" }} <i class="bi bi-info-circle ms-1" data-bs-toggle="tooltip" data-bs-placement="right" data-bs-title="{{ index $.tab "tooltipKeyNameEncrypt" }}"></i> :</label>
-        <select id="keyTypeEncrypt" name="keyNameEncrypt" class="form-select">
-            <option value="" disabled selected>{{ index .tab "selectKeyType" }}</option>
+        <select id="keyNameEncryptAdd" name="keyNameEncrypt" class="form-select">
+            <option value="" disabled {{ if $.modalElement }}{{ if eq (index $.modalElement "keyNameEncrypt") "" }}selected{{ end }}{{ else }}selected{{ end }}>{{ index .tab "selectKeyType" }}</option>
+            <optgroup label="AES">
+                {{ range .listAesKey }}
+                    <option value="{{ . }}" {{ if $.modalElement }}{{ if eq (index $.modalElement "keyNameEncrypt") . }}selected{{ end }}{{ end }}>{{ . }}</option>
+                {{ end }}
+            </optgroup>
+            <optgroup label="HMAC">
+                {{ range .listHmacKey }}
+                    <option value="{{ . }}" {{ if $.modalElement }}{{ if eq (index $.modalElement "keyNameEncrypt") . }}selected{{ end }}{{ end }}>{{ . }}</option>
+                {{ end }}
+            </optgroup>
+            <optgroup label="PGP-PUBLIC">
+                {{ range .listPgpPubKey }}
+                    <option value="{{ . }}" {{ if $.modalElement }}{{ if eq (index $.modalElement "keyNameEncrypt") . }}selected{{ end }}{{ end }}>{{ . }}</option>
+                {{ end }}
+            </optgroup>
+            <optgroup label="PGP-PRIVATE">
+                {{ range .listPgpPrivKey }}
+                    <option value="{{ . }}" {{ if $.modalElement }}{{ if eq (index $.modalElement "keyNameEncrypt") . }}selected{{ end }}{{ end }}>{{ . }}</option>
+                {{ end }}
+            </optgroup>
         </select>
     </div>
 </div>
@@ -334,30 +365,51 @@
     <hr style="border-top: 1px solid #ababab;">
     <div class="form-input">
         <label class="col-form-label">{{ index .tab "outputFile" }} <i class="bi bi-info-circle ms-1" data-bs-toggle="tooltip" data-bs-placement="right" data-bs-title="{{ index $.tab "tooltipOutputFileDecrypt" }}"></i> :</label>
-        <input type="text" name="outputFileDecrypt" class="form-control">
+        <input type="text" name="outputFileDecrypt" class="form-control" value="{{ index $.modalElement "outputFileDecrypt" }}">
     </div>
     <hr style="border-top: 1px solid #ababab;">
     <div class="form-input d-flex align-items-center">
         <label class="col-form-label me-3">{{ index .tab "keepOriginal" }} <i class="bi bi-info-circle ms-1" data-bs-toggle="tooltip" data-bs-placement="right" data-bs-title="{{ index $.tab "tooltipKeepOriginalDecrypt" }}"></i> :</label>
         <div class="form-check form-check-inline">
-            <input class="form-check-input" type="checkbox" name="keepOriginalDecrypt" id="keepOriginalDecrypt" value="true">
+            <input class="form-check-input" type="checkbox" name="keepOriginalDecrypt" id="keepOriginalDecrypt" value="true" {{ if $.modalElement }}{{ $v := index $.modalElement "keepOriginalDecrypt" }}{{ if or (eq $v "true") (eq $v true) (eq $v "on") }}checked{{ end }}{{ end }}>
         </div>
     </div>
     <hr style="border-top: 1px solid #ababab;">
     <div class="form-input">
         <label class="col-form-label">{{ index .tab "method" }} <i class="bi bi-info-circle ms-1" data-bs-toggle="tooltip" data-bs-placement="right" data-bs-title="{{ index $.tab "tooltipMethodDecrypt" }}"></i> :</label>
-        <select name="methodDecrypt" id="methodDecrypt" class="form-select">
-            <option value="" disabled selected>{{ index .tab "selectMethod" }}</option>
+        <select name="methodDecrypt" id="methodDecryptAdd" class="form-select">
+            <option value="" disabled {{ if $.modalElement }}{{ if eq (index $.modalElement "methodDecrypt") "" }}selected{{ end }}{{ else }}selected{{ end }}>{{ index .tab "selectMethod" }}</option>
             {{ range .DecryptMethods }}
-            <option value="{{ . }}">{{ . }}</option>
+                {{ $m := . }}
+                <option value="{{ . }}" data-keytypes="{{ range $i, $t := index $.DecryptKeyTypes $m }}{{ if $i }},{{ end }}{{ $t }}{{ end }}" {{ if $.modalElement }}{{ if eq (index $.modalElement "methodDecrypt") . }}selected{{ end }}{{ end }}>{{ . }}</option>
             {{ end }}
         </select>
     </div>
     <hr style="border-top: 1px solid #ababab;">
     <div class="form-input">
         <label class="col-form-label">{{ index .tab "keyName" }} <i class="bi bi-info-circle ms-1" data-bs-toggle="tooltip" data-bs-placement="right" data-bs-title="{{ index $.tab "tooltipKeyNameDecrypt" }}"></i> :</label>
-        <select id="keyTypeDecrypt" name="keyNameDecrypt" class="form-select">
-            <option value="" disabled selected>{{ index .tab "selectKeyType" }}</option>
+        <select id="keyNameDecryptAdd" name="keyNameDecrypt" class="form-select">
+            <option value="" disabled {{ if $.modalElement }}{{ if eq (index $.modalElement "keyNameDecrypt") "" }}selected{{ end }}{{ else }}selected{{ end }}>{{ index .tab "selectKeyType" }}</option>
+            <optgroup label="AES">
+                {{ range .listAesKey }}
+                    <option value="{{ . }}" {{ if $.modalElement }}{{ if eq (index $.modalElement "keyNameDecrypt") . }}selected{{ end }}{{ end }}>{{ . }}</option>
+                {{ end }}
+            </optgroup>
+            <optgroup label="HMAC">
+                {{ range .listHmacKey }}
+                    <option value="{{ . }}" {{ if $.modalElement }}{{ if eq (index $.modalElement "keyNameDecrypt") . }}selected{{ end }}{{ end }}>{{ . }}</option>
+                {{ end }}
+            </optgroup>
+            <optgroup label="PGP-PUBLIC">
+                {{ range .listPgpPubKey }}
+                    <option value="{{ . }}" {{ if $.modalElement }}{{ if eq (index $.modalElement "keyNameDecrypt") . }}selected{{ end }}{{ end }}>{{ . }}</option>
+                {{ end }}
+            </optgroup>
+            <optgroup label="PGP-PRIVATE">
+                {{ range .listPgpPrivKey }}
+                    <option value="{{ . }}" {{ if $.modalElement }}{{ if eq (index $.modalElement "keyNameDecrypt") . }}selected{{ end }}{{ end }}>{{ . }}</option>
+                {{ end }}
+            </optgroup>
         </select>
     </div>
 </div>
@@ -368,23 +420,44 @@
     <hr style="border-top: 1px solid #ababab;">
     <div class="form-input">
         <label class="col-form-label">{{ index .tab "outputFile" }} <i class="bi bi-info-circle ms-1" data-bs-toggle="tooltip" data-bs-placement="right" data-bs-title="{{ index $.tab "tooltipOutputFileSign" }}"></i> :</label>
-        <input type="text" name="outputFileSign" class="form-control">
+        <input type="text" name="outputFileSign" class="form-control" value="{{ index $.modalElement "outputFileSign" }}">
     </div>
     <hr style="border-top: 1px solid #ababab;">
     <div class="form-input">
         <label class="col-form-label">{{ index .tab "method" }} <i class="bi bi-info-circle ms-1" data-bs-toggle="tooltip" data-bs-placement="right" data-bs-title="{{ index $.tab "tooltipMethodSign" }}"></i> :</label>
-        <select name="methodSign" id="methodSign" class="form-select">
-            <option value="" disabled selected>{{ index .tab "selectMethodSign" }}</option>
+        <select name="methodSign" id="methodSignAdd" class="form-select">
+            <option value="" disabled {{ if $.modalElement }}{{ if eq (index $.modalElement "methodSign") "" }}selected{{ end }}{{ else }}selected{{ end }}>{{ index .tab "selectMethodSign" }}</option>
             {{ range .SignMethods }}
-            <option value="{{ . }}">{{ . }}</option>
+                {{ $m := . }}
+                <option value="{{ . }}" data-keytypes="{{ range $i, $t := index $.SignKeyTypes $m }}{{ if $i }},{{ end }}{{ $t }}{{ end }}" {{ if $.modalElement }}{{ if eq (index $.modalElement "methodSign") . }}selected{{ end }}{{ end }}>{{ . }}</option>
             {{ end }}
         </select>
     </div>
     <hr style="border-top: 1px solid #ababab;">
     <div class="form-input">
         <label class="col-form-label">{{ index .tab "keyName" }} <i class="bi bi-info-circle ms-1" data-bs-toggle="tooltip" data-bs-placement="right" data-bs-title="{{ index $.tab "tooltipKeyNameSign" }}"></i> :</label>
-        <select id="keyTypeSign" name="keyNameSign" class="form-select">
-            <option value="" disabled selected>{{ index .tab "selectKeyType" }}</option>
+        <select id="keyNameSignAdd" name="keyNameSign" class="form-select">
+            <option value="" disabled {{ if $.modalElement }}{{ if eq (index $.modalElement "keyNameSign") "" }}selected{{ end }}{{ else }}selected{{ end }}>{{ index .tab "selectKeyType" }}</option>
+            <optgroup label="AES">
+                {{ range .listAesKey }}
+                    <option value="{{ . }}" {{ if $.modalElement }}{{ if eq (index $.modalElement "keyNameSign") . }}selected{{ end }}{{ end }}>{{ . }}</option>
+                {{ end }}
+            </optgroup>
+            <optgroup label="HMAC">
+                {{ range .listHmacKey }}
+                    <option value="{{ . }}" {{ if $.modalElement }}{{ if eq (index $.modalElement "keyNameSign") . }}selected{{ end }}{{ end }}>{{ . }}</option>
+                {{ end }}
+            </optgroup>
+            <optgroup label="PGP-PUBLIC">
+                {{ range .listPgpPubKey }}
+                    <option value="{{ . }}" {{ if $.modalElement }}{{ if eq (index $.modalElement "keyNameSign") . }}selected{{ end }}{{ end }}>{{ . }}</option>
+                {{ end }}
+            </optgroup>
+            <optgroup label="PGP-PRIVATE">
+                {{ range .listPgpPrivKey }}
+                    <option value="{{ . }}" {{ if $.modalElement }}{{ if eq (index $.modalElement "keyNameSign") . }}selected{{ end }}{{ end }}>{{ . }}</option>
+                {{ end }}
+            </optgroup>
         </select>
     </div>
 </div>
@@ -395,23 +468,44 @@
     <hr style="border-top: 1px solid #ababab;">
     <div class="form-input">
         <label class="col-form-label">{{ index .tab "signatureFile" }} <i class="bi bi-info-circle ms-1" data-bs-toggle="tooltip" data-bs-placement="right" data-bs-title="{{ index $.tab "tooltipSignatureFile" }}"></i> :</label>
-        <input type="text" name="signatureFileVerify" class="form-control">
+        <input type="text" name="signatureFileVerify" class="form-control" value="{{ index $.modalElement "signatureFileVerify" }}">
     </div>
     <hr style="border-top: 1px solid #ababab;">
     <div class="form-input">
         <label class="col-form-label">{{ index .tab "method" }} <i class="bi bi-info-circle ms-1" data-bs-toggle="tooltip" data-bs-placement="right" data-bs-title="{{ index $.tab "tooltipMethodVerify" }}"></i> :</label>
-        <select name="methodVerify" id="methodVerify" class="form-select">
-            <option value="" disabled selected>{{ index .tab "selectMethodVerify" }}</option>
+        <select name="methodVerify" id="methodVerifyAdd" class="form-select">
+            <option value="" disabled {{ if $.modalElement }}{{ if eq (index $.modalElement "methodVerify") "" }}selected{{ end }}{{ else }}selected{{ end }}>{{ index .tab "selectMethodVerify" }}</option>
             {{ range .VerifyMethods }}
-            <option value="{{ . }}">{{ . }}</option>
+                {{ $m := . }}
+                <option value="{{ . }}" data-keytypes="{{ range $i, $t := index $.VerifyKeyTypes $m }}{{ if $i }},{{ end }}{{ $t }}{{ end }}" {{ if $.modalElement }}{{ if eq (index $.modalElement "methodVerify") . }}selected{{ end }}{{ end }}>{{ . }}</option>
             {{ end }}
         </select>
     </div>
     <hr style="border-top: 1px solid #ababab;">
     <div class="form-input">
         <label class="col-form-label">{{ index .tab "keyName" }} <i class="bi bi-info-circle ms-1" data-bs-toggle="tooltip" data-bs-placement="right" data-bs-title="{{ index $.tab "tooltipKeyNameVerify" }}"></i> :</label>
-        <select id="keyTypeVerify" name="keyNameVerify" class="form-select">
-            <option value="" disabled selected>{{ index .tab "selectKeyType" }}</option>
+        <select id="keyNameVerifyAdd" name="keyNameVerify" class="form-select">
+            <option value="" disabled {{ if $.modalElement }}{{ if eq (index $.modalElement "keyNameVerify") "" }}selected{{ end }}{{ else }}selected{{ end }}>{{ index .tab "selectKeyType" }}</option>
+            <optgroup label="AES">
+                {{ range .listAesKey }}
+                    <option value="{{ . }}" {{ if $.modalElement }}{{ if eq (index $.modalElement "keyNameVerify") . }}selected{{ end }}{{ end }}>{{ . }}</option>
+                {{ end }}
+            </optgroup>
+            <optgroup label="HMAC">
+                {{ range .listHmacKey }}
+                    <option value="{{ . }}" {{ if $.modalElement }}{{ if eq (index $.modalElement "keyNameVerify") . }}selected{{ end }}{{ end }}>{{ . }}</option>
+                {{ end }}
+            </optgroup>
+            <optgroup label="PGP-PUBLIC">
+                {{ range .listPgpPubKey }}
+                    <option value="{{ . }}" {{ if $.modalElement }}{{ if eq (index $.modalElement "keyNameVerify") . }}selected{{ end }}{{ end }}>{{ . }}</option>
+                {{ end }}
+            </optgroup>
+            <optgroup label="PGP-PRIVATE">
+                {{ range .listPgpPrivKey }}
+                    <option value="{{ . }}" {{ if $.modalElement }}{{ if eq (index $.modalElement "keyNameVerify") . }}selected{{ end }}{{ end }}>{{ . }}</option>
+                {{ end }}
+            </optgroup>
         </select>
     </div>
 </div>
@@ -422,37 +516,79 @@
     <hr style="border-top: 1px solid #ababab;">
     <div class="form-input">
         <label class="col-form-label">{{ index .tab "outputFile" }} <i class="bi bi-info-circle ms-1" data-bs-toggle="tooltip" data-bs-placement="right" data-bs-title="{{ index $.tab "tooltipOutputFileEncrypt" }}"></i> :</label>
-        <input type="text" name="outputFileEncrypt&Sign" class="form-control">
+        <input type="text" name="outputFileEncrypt&Sign" class="form-control" value="{{ index $.modalElement "outputFileEncrypt&Sign" }}">
     </div>
     <hr style="border-top: 1px solid #ababab;">
     <div class="form-input d-flex align-items-center">
         <label class="col-form-label me-3">{{ index .tab "keepOriginal" }} <i class="bi bi-info-circle ms-1" data-bs-toggle="tooltip" data-bs-placement="right" data-bs-title="{{ index $.tab "tooltipKeepOriginalEncrypt" }}"></i> :</label>
         <div class="form-check form-check-inline">
-            <input class="form-check-input" type="checkbox" name="keepOriginalEncrypt&Sign" id="keepOriginalEncrypt&Sign" value="true">
+            <input class="form-check-input" type="checkbox" name="keepOriginalEncrypt&Sign" id="keepOriginalEncrypt&Sign" value="true" {{ if $.modalElement }}{{ $v := index $.modalElement "keepOriginalEncrypt&Sign" }}{{ if or (eq $v "true") (eq $v true) (eq $v "on") }}checked{{ end }}{{ end }}>
         </div>
     </div>
     <hr style="border-top: 1px solid #ababab;">
     <div class="form-input">
         <label class="col-form-label">{{ index .tab "method" }} <i class="bi bi-info-circle ms-1" data-bs-toggle="tooltip" data-bs-placement="right" data-bs-title="{{ index $.tab "tooltipMethodEncrypt&Sign" }}"></i> :</label>
-        <select name="methodEncrypt&Sign" id="methodEncryptSign" class="form-select">
-            <option value="" disabled selected>{{ index .tab "selectMethodEncrypt&Sign" }}</option>
+        <select name="methodEncrypt&Sign" id="methodEncryptSignAdd" class="form-select">
+            <option value="" disabled {{ if $.modalElement }}{{ if eq (index $.modalElement "methodEncrypt&Sign") "" }}selected{{ end }}{{ else }}selected{{ end }}>{{ index .tab "selectMethodEncrypt&Sign" }}</option>
             {{ range .EncryptSignMethods }}
-            <option value="{{ . }}">{{ . }}</option>
+                {{ $m := . }}
+                {{ $kt := index $.EncryptSignKeyTypes $m }}
+                <option value="{{ . }}" data-keytypes-encrypt="{{- range $i, $t := index $kt "encrypt" -}}{{ if $i }},{{ end }}{{ $t }}{{- end -}}" data-keytypes-sign="{{- range $i, $t := index $kt "sign" -}}{{ if $i }},{{ end }}{{ $t }}{{- end -}}" {{ if $.modalElement }}{{ if eq (index $.modalElement "methodEncrypt&Sign") . }}selected{{ end }}{{ end }}>{{ . }}</option>
             {{ end }}
         </select>
     </div>
     <hr style="border-top: 1px solid #ababab;">
     <div class="form-input">
         <label class="col-form-label">{{ index .tab "encryptKeyName" }} <i class="bi bi-info-circle ms-1" data-bs-toggle="tooltip" data-bs-placement="right" data-bs-title="{{ index $.tab "tooltipEncryptKeyName" }}"></i> :</label>
-        <select id="keyTypeEncryptSignEncrypt" name="encryptKeyNameEncrypt&Sign" class="form-select">
-            <option value="" disabled selected>{{ index .tab "selectKeyType" }}</option>
+        <select id="encryptKeyNameEncrypt&SignAdd" name="encryptKeyNameEncrypt&Sign" class="form-select">
+            <option value="" disabled {{ if $.modalElement }}{{ if eq (index $.modalElement "encryptKeyNameEncrypt&Sign") "" }}selected{{ end }}{{ else }}selected{{ end }}>{{ index .tab "selectKeyType" }}</option>
+            <optgroup label="AES">
+                {{ range .listAesKey }}
+                    <option value="{{ . }}" {{ if $.modalElement }}{{ if eq (index $.modalElement "encryptKeyNameEncrypt&Sign") . }}selected{{ end }}{{ end }}>{{ . }}</option>
+                {{ end }}
+            </optgroup>
+            <optgroup label="HMAC">
+                {{ range .listHmacKey }}
+                    <option value="{{ . }}" {{ if $.modalElement }}{{ if eq (index $.modalElement "encryptKeyNameEncrypt&Sign") . }}selected{{ end }}{{ end }}>{{ . }}</option>
+                {{ end }}
+            </optgroup>
+            <optgroup label="PGP-PUBLIC">
+                {{ range .listPgpPubKey }}
+                    <option value="{{ . }}" {{ if $.modalElement }}{{ if eq (index $.modalElement "encryptKeyNameEncrypt&Sign") . }}selected{{ end }}{{ end }}>{{ . }}</option>
+                {{ end }}
+            </optgroup>
+            <optgroup label="PGP-PRIVATE">
+                {{ range .listPgpPrivKey }}
+                    <option value="{{ . }}" {{ if $.modalElement }}{{ if eq (index $.modalElement "encryptKeyNameEncrypt&Sign") . }}selected{{ end }}{{ end }}>{{ . }}</option>
+                {{ end }}
+            </optgroup>
         </select>
     </div>
     <hr style="border-top: 1px solid #ababab;">
     <div class="form-input">
         <label class="col-form-label">{{ index .tab "signKeyName" }} <i class="bi bi-info-circle ms-1" data-bs-toggle="tooltip" data-bs-placement="right" data-bs-title="{{ index $.tab "tooltipSignKeyNameEncrypt&Sign" }}"></i> :</label>
-        <select id="keyTypeEncryptSignSign" name="signKeyNameEncrypt&Sign" class="form-select">
-            <option value="" disabled selected>{{ index .tab "selectKeyType" }}</option>
+        <select id="signKeyNameEncrypt&SignAdd" name="signKeyNameEncrypt&Sign" class="form-select">
+            <option value="" disabled {{ if $.modalElement }}{{ if eq (index $.modalElement "signKeyNameEncrypt&Sign") "" }}selected{{ end }}{{ else }}selected{{ end }}>{{ index .tab "selectKeyType" }}</option>
+            <optgroup label="AES">
+                {{ range .listAesKey }}
+                    <option value="{{ . }}" {{ if $.modalElement }}{{ if eq (index $.modalElement "signKeyNameEncrypt&Sign") . }}selected{{ end }}{{ end }}>{{ . }}</option>
+                {{ end }}
+            </optgroup>
+            <optgroup label="HMAC">
+                {{ range .listHmacKey }}
+                    <option value="{{ . }}" {{ if $.modalElement }}{{ if eq (index $.modalElement "signKeyNameEncrypt&Sign") . }}selected{{ end }}{{ end }}>{{ . }}</option>
+                {{ end }}
+            </optgroup>
+            <optgroup label="PGP-PUBLIC">
+                {{ range .listPgpPubKey }}
+                    <option value="{{ . }}" {{ if $.modalElement }}{{ if eq (index $.modalElement "signKeyNameEncrypt&Sign") . }}selected{{ end }}{{ end }}>{{ . }}</option>
+                {{ end }}
+            </optgroup>
+            <optgroup label="PGP-PRIVATE">
+                {{ range .listPgpPrivKey }}
+                    <option value="{{ . }}" {{ if $.modalElement }}{{ if eq (index $.modalElement "signKeyNameEncrypt&Sign") . }}selected{{ end }}{{ end }}>{{ . }}</option>
+                {{ end }}
+            </optgroup>
         </select>
     </div>
 </div>
@@ -463,37 +599,81 @@
     <hr style="border-top: 1px solid #ababab;">
     <div class="form-input">
         <label class="col-form-label">{{ index .tab "outputFile" }} <i class="bi bi-info-circle ms-1" data-bs-toggle="tooltip" data-bs-placement="right" data-bs-title="{{ index $.tab "tooltipOutputFileDecrypt" }}"></i> :</label>
-        <input type="text" name="outputFileDecrypt&verify" class="form-control">
+        <input type="text" name="outputFileDecrypt&verify" class="form-control" value="{{ index $.modalElement "outputFileDecrypt&verify" }}">
     </div>
     <hr style="border-top: 1px solid #ababab;">
     <div class="form-input d-flex align-items-center">
         <label class="col-form-label me-3">{{ index .tab "keepOriginal" }} <i class="bi bi-info-circle ms-1" data-bs-toggle="tooltip" data-bs-placement="right" data-bs-title="{{ index $.tab "tooltipKeepOriginalDecrypt" }}"></i> :</label>
         <div class="form-check form-check-inline">
-            <input class="form-check-input" type="checkbox" name="keepOriginalDecrypt&verify" id="keepOriginalDecrypt&verify" value="true">
+            <input class="form-check-input" type="checkbox" name="keepOriginalDecrypt&verify" id="keepOriginalDecrypt&verify" value="true" {{ if $.modalElement }}{{ $v := index $.modalElement "keepOriginalDecrypt&verify" }}{{ if or (eq $v "true") (eq $v true) (eq $v "on") }}checked{{ end }}{{ end }}>
         </div>
     </div>
     <hr style="border-top: 1px solid #ababab;">
     <div class="form-input">
         <label class="col-form-label">{{ index .tab "method" }} <i class="bi bi-info-circle ms-1" data-bs-toggle="tooltip" data-bs-placement="right" data-bs-title="{{ index $.tab "tooltipMethodDecrypt&verify" }}"></i> :</label>
-        <select name="methodDecrypt&verify" id="methodDecryptVerify" class="form-select">
-            <option value="" disabled selected>{{ index .tab "selectMethodDecrypt&verify" }}</option>
+        <select name="methodDecrypt&verify" id="methodDecryptVerifyAdd" class="form-select">
+            <option value="" disabled {{ if $.modalElement }}{{ if eq (index $.modalElement "methodDecrypt&verify") "" }}selected{{ end }}{{ else }}selected{{ end }}>{{ index .tab "selectMethodDecrypt&verify" }}</option>
             {{ range .DecryptVerifyMethods }}
-            <option value="{{ . }}">{{ . }}</option>
+                {{ $m := . }}
+                {{ $kt := index $.DecryptVerifyKeyTypes $m }}
+                <option value="{{ . }}" data-keytypes-decrypt="{{- range $i, $t := index $kt "decrypt" -}}{{ if $i }},{{ end }}{{ $t }}{{- end -}}" data-keytypes-verify="{{- range $i, $t := index $kt "verify" -}}{{ if $i }},{{ end }}{{ $t }}{{- end -}}" {{ if $.modalElement }}{{ if eq (index $.modalElement "methodDecrypt&verify") . }}selected{{ end }}{{ end }}>{{ . }}</option>
+                    {{ . }}
+                </option>
             {{ end }}
         </select>
     </div>
     <hr style="border-top: 1px solid #ababab;">
     <div class="form-input">
-    <label class="col-form-label">{{ index .tab "decryptKeyName" }} <i class="bi bi-info-circle ms-1" data-bs-toggle="tooltip" data-bs-placement="right" data-bs-title="{{ index $.tab "tooltipDecryptKeyName" }}"></i> :</label>
-    <select id="keyTypeDecryptVerifyDecrypt" name="decryptKeyNameDecrypt&verify" class="form-select">
-        <option value="" disabled selected>{{ index .tab "selectKeyType" }}</option>
-    </select>
+        <label class="col-form-label">{{ index .tab "decryptKeyName" }} <i class="bi bi-info-circle ms-1" data-bs-toggle="tooltip" data-bs-placement="right" data-bs-title="{{ index $.tab "tooltipDecryptKeyName" }}"></i> :</label>
+        <select id="decryptKeyNameDecrypt&verifyAdd" name="decryptKeyNameDecrypt&verify" class="form-select">
+            <option value="" disabled {{ if $.modalElement }}{{ if eq (index $.modalElement "decryptKeyNameDecrypt&verify") "" }}selected{{ end }}{{ else }}selected{{ end }}>{{ index .tab "selectKeyType" }}</option>
+            <optgroup label="AES">
+                {{ range .listAesKey }}
+                    <option value="{{ . }}" {{ if $.modalElement }}{{ if eq (index $.modalElement "decryptKeyNameDecrypt&verify") . }}selected{{ end }}{{ end }}>{{ . }}</option>
+                {{ end }}
+            </optgroup>
+            <optgroup label="HMAC">
+                {{ range .listHmacKey }}
+                    <option value="{{ . }}" {{ if $.modalElement }}{{ if eq (index $.modalElement "decryptKeyNameDecrypt&verify") . }}selected{{ end }}{{ end }}>{{ . }}</option>
+                {{ end }}
+            </optgroup>
+            <optgroup label="PGP-PUBLIC">
+                {{ range .listPgpPubKey }}
+                    <option value="{{ . }}" {{ if $.modalElement }}{{ if eq (index $.modalElement "decryptKeyNameDecrypt&verify") . }}selected{{ end }}{{ end }}>{{ . }}</option>
+                {{ end }}
+            </optgroup>
+            <optgroup label="PGP-PRIVATE">
+                {{ range .listPgpPrivKey }}
+                    <option value="{{ . }}" {{ if $.modalElement }}{{ if eq (index $.modalElement "decryptKeyNameDecrypt&verify") . }}selected{{ end }}{{ end }}>{{ . }}</option>
+                {{ end }}
+            </optgroup>
+        </select>
     </div>
     <hr style="border-top: 1px solid #ababab;">
     <div class="form-input">
         <label class="col-form-label">{{ index .tab "verifyKeyName" }} <i class="bi bi-info-circle ms-1" data-bs-toggle="tooltip" data-bs-placement="right" data-bs-title="{{ index $.tab "tooltipVerifyKeyName" }}"></i> :</label>
-        <select id="keyTypeDecryptVerifyVerify" name="verifyKeyNameDecrypt&verify" class="form-select">
-            <option value="" disabled selected>{{ index .tab "selectKeyType" }}</option>
+        <select id="verifyKeyNameDecrypt&verifyAdd" name="verifyKeyNameDecrypt&verify" class="form-select">
+            <option value="" disabled {{ if $.modalElement }}{{ if eq (index $.modalElement "verifyKeyNameDecrypt&verify") "" }}selected{{ end }}{{ else }}selected{{ end }}>{{ index .tab "selectKeyType" }}</option>
+            <optgroup label="AES">
+                {{ range .listAesKey }}
+                    <option value="{{ . }}" {{ if $.modalElement }}{{ if eq (index $.modalElement "verifyKeyNameDecrypt&verify") . }}selected{{ end }}{{ end }}>{{ . }}</option>
+                {{ end }}
+            </optgroup>
+            <optgroup label="HMAC">
+                {{ range .listHmacKey }}
+                    <option value="{{ . }}" {{ if $.modalElement }}{{ if eq (index $.modalElement "verifyKeyNameDecrypt&verify") . }}selected{{ end }}{{ end }}>{{ . }}</option>
+                {{ end }}
+            </optgroup>
+            <optgroup label="PGP-PUBLIC">
+                {{ range .listPgpPubKey }}
+                    <option value="{{ . }}" {{ if $.modalElement }}{{ if eq (index $.modalElement "verifyKeyNameDecrypt&verify") . }}selected{{ end }}{{ end }}>{{ . }}</option>
+                {{ end }}
+            </optgroup>
+            <optgroup label="PGP-PRIVATE">
+                {{ range .listPgpPrivKey }}
+                    <option value="{{ . }}" {{ if $.modalElement }}{{ if eq (index $.modalElement "verifyKeyNameDecrypt&verify") . }}selected{{ end }}{{ end }}>{{ . }}</option>
+                {{ end }}
+            </optgroup>
         </select>
     </div>
 </div>

@@ -30,9 +30,12 @@ func ListServers(db database.ReadAccess, orderByCol string, orderByAsc bool, lim
 	var servers model.LocalAgents
 	query := db.Select(&servers).Limit(limit, offset).OrderBy(orderByCol, orderByAsc)
 
-	for _, protocol := range protocols {
-		query = query.Where("protocol=?", protocol)
+	protoSlice := make([]any, len(protocols))
+	for i, protocol := range protocols {
+		protoSlice[i] = protocol
 	}
+
+	query.In("protocol", protoSlice...)
 
 	return servers, query.Run()
 }

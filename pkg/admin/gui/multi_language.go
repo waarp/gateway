@@ -62,12 +62,17 @@ func changeLanguage(w http.ResponseWriter, r *http.Request) string {
 	userLanguage := r.URL.Query().Get("language")
 	const durationCookie = (hoursDay * time.Hour) * 365
 
+	secure := r.TLS != nil
+
 	if userLanguage != "" {
 		http.SetCookie(w, &http.Cookie{
-			Name:    "language",
-			Value:   userLanguage,
-			Path:    "/",
-			Expires: time.Now().Add(durationCookie),
+			Name:     "language",
+			Value:    userLanguage,
+			Path:     "/",
+			Expires:  time.Now().Add(durationCookie),
+			Secure:   secure,
+			HttpOnly: true,
+			SameSite: http.SameSiteLaxMode,
 		})
 
 		return userLanguage

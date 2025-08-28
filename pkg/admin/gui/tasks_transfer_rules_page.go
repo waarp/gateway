@@ -210,31 +210,33 @@ func newOrderPreTasks(db *database.DB, r *http.Request, tasks []*model.Task, rul
 //nolint:dupl // method for preTasks
 func callMethodsPreTasks(logger *log.Logger, db *database.DB, w http.ResponseWriter, r *http.Request,
 	preTasks []*model.Task, ruleID int,
-) (value bool, errMsg, modalOpen string) {
+) (value bool, errMsg, modalOpen string, modalElement map[string]any) {
 	if r.Method == http.MethodPost && r.FormValue("addPreTaskType") != "" {
 		addPreTaskErr := addPreTask(ruleID, preTasks, db, r)
 		if addPreTaskErr != nil {
 			logger.Errorf("failed to add pre-task: %v", addPreTaskErr)
+			modalElement = getFormValues(r)
 
-			return false, addPreTaskErr.Error(), "addPreTaskModal"
+			return false, addPreTaskErr.Error(), "addPreTaskModal", modalElement
 		}
 
 		http.Redirect(w, r, fmt.Sprintf("%s?ruleID=%d", r.URL.Path, ruleID), http.StatusSeeOther)
 
-		return true, "", ""
+		return true, "", "", nil
 	}
 
 	if r.Method == http.MethodPost && r.FormValue("editPreTaskRank") != "" {
 		editPreTaskErr := editPreTask(ruleID, preTasks, db, r)
 		if editPreTaskErr != nil {
 			logger.Errorf("failed to edit pre-task: %v", editPreTaskErr)
+			modalElement = getFormValues(r)
 
-			return false, editPreTaskErr.Error(), "editPreTaskModal_" + r.FormValue("editPreTaskRank")
+			return false, editPreTaskErr.Error(), "editPreTaskModal_" + r.FormValue("editPreTaskRank"), modalElement
 		}
 
 		http.Redirect(w, r, fmt.Sprintf("%s?ruleID=%d", r.URL.Path, ruleID), http.StatusSeeOther)
 
-		return true, "", ""
+		return true, "", "", nil
 	}
 
 	if r.Method == http.MethodPost && r.FormValue("deletePreTask") != "" {
@@ -242,12 +244,12 @@ func callMethodsPreTasks(logger *log.Logger, db *database.DB, w http.ResponseWri
 		if deletePreTaskErr != nil {
 			logger.Errorf("failed to delete pre-task: %v", deletePreTaskErr)
 
-			return false, deletePreTaskErr.Error(), ""
+			return false, deletePreTaskErr.Error(), "", nil
 		}
 
 		http.Redirect(w, r, fmt.Sprintf("%s?ruleID=%d", r.URL.Path, ruleID), http.StatusSeeOther)
 
-		return true, "", ""
+		return true, "", "", nil
 	}
 
 	if r.Method == http.MethodPost && r.FormValue("newOrderPreTasks") != "" {
@@ -255,15 +257,15 @@ func callMethodsPreTasks(logger *log.Logger, db *database.DB, w http.ResponseWri
 		if orderPreTaskErr != nil {
 			logger.Errorf("failed to set new order pre-task: %v", orderPreTaskErr)
 
-			return false, orderPreTaskErr.Error(), ""
+			return false, orderPreTaskErr.Error(), "", nil
 		}
 
 		http.Redirect(w, r, fmt.Sprintf("%s?ruleID=%d", r.URL.Path, ruleID), http.StatusSeeOther)
 
-		return true, "", ""
+		return true, "", "", nil
 	}
 
-	return false, "", ""
+	return false, "", "", nil
 }
 
 //nolint:dupl, gocyclo, cyclop, funlen, gocritic // method for post-task (20 differents tasks)
@@ -463,31 +465,33 @@ func newOrderPostTasks(db *database.DB, r *http.Request, tasks []*model.Task, ru
 //nolint:dupl // method for postTasks
 func callMethodsPostTasks(logger *log.Logger, db *database.DB, w http.ResponseWriter, r *http.Request,
 	postTasks []*model.Task, ruleID int,
-) (value bool, errMsg, modalOpen string) {
+) (value bool, errMsg, modalOpen string, modalElement map[string]any) {
 	if r.Method == http.MethodPost && r.FormValue("addPostTaskType") != "" {
 		addPostTaskErr := addPostTask(ruleID, postTasks, db, r)
 		if addPostTaskErr != nil {
 			logger.Errorf("failed to add post-task: %v", addPostTaskErr)
+			modalElement = getFormValues(r)
 
-			return false, addPostTaskErr.Error(), "addPostTaskModal"
+			return false, addPostTaskErr.Error(), "addPostTaskModal", modalElement
 		}
 
 		http.Redirect(w, r, fmt.Sprintf("%s?ruleID=%d", r.URL.Path, ruleID), http.StatusSeeOther)
 
-		return true, "", ""
+		return true, "", "", nil
 	}
 
 	if r.Method == http.MethodPost && r.FormValue("editPostTaskRank") != "" {
 		editPostTaskErr := editPostTask(ruleID, postTasks, db, r)
 		if editPostTaskErr != nil {
 			logger.Errorf("failed to edit post-task: %v", editPostTaskErr)
+			modalElement = getFormValues(r)
 
-			return false, editPostTaskErr.Error(), "editPostTaskModal_" + r.FormValue("editPostTaskRank")
+			return false, editPostTaskErr.Error(), "editPostTaskModal_" + r.FormValue("editPostTaskRank"), modalElement
 		}
 
 		http.Redirect(w, r, fmt.Sprintf("%s?ruleID=%d", r.URL.Path, ruleID), http.StatusSeeOther)
 
-		return true, "", ""
+		return true, "", "", nil
 	}
 
 	if r.Method == http.MethodPost && r.FormValue("deletePostTask") != "" {
@@ -495,12 +499,12 @@ func callMethodsPostTasks(logger *log.Logger, db *database.DB, w http.ResponseWr
 		if deletePostTaskErr != nil {
 			logger.Errorf("failed to delete post-task: %v", deletePostTaskErr)
 
-			return false, deletePostTaskErr.Error(), ""
+			return false, deletePostTaskErr.Error(), "", nil
 		}
 
 		http.Redirect(w, r, fmt.Sprintf("%s?ruleID=%d", r.URL.Path, ruleID), http.StatusSeeOther)
 
-		return true, "", ""
+		return true, "", "", nil
 	}
 
 	if r.Method == http.MethodPost && r.FormValue("newOrderPostTasks") != "" {
@@ -508,15 +512,15 @@ func callMethodsPostTasks(logger *log.Logger, db *database.DB, w http.ResponseWr
 		if orderPostTaskErr != nil {
 			logger.Errorf("failed to set new order post-task: %v", orderPostTaskErr)
 
-			return false, orderPostTaskErr.Error(), ""
+			return false, orderPostTaskErr.Error(), "", nil
 		}
 
 		http.Redirect(w, r, fmt.Sprintf("%s?ruleID=%d", r.URL.Path, ruleID), http.StatusSeeOther)
 
-		return true, "", ""
+		return true, "", "", nil
 	}
 
-	return false, "", ""
+	return false, "", "", nil
 }
 
 //nolint:dupl, gocyclo, cyclop, funlen, gocritic // method for error-task (20 differents tasks)
@@ -716,31 +720,33 @@ func newOrderErrorTasks(db *database.DB, r *http.Request, tasks []*model.Task, r
 //nolint:dupl // method for errorTasks
 func callMethodsErrorTasks(logger *log.Logger, db *database.DB, w http.ResponseWriter, r *http.Request,
 	errorTasks []*model.Task, ruleID int,
-) (value bool, errMsg, modalOpen string) {
+) (value bool, errMsg, modalOpen string, modalElement map[string]any) {
 	if r.Method == http.MethodPost && r.FormValue("addErrorTaskType") != "" {
 		addErrorTaskErr := addErrorTask(ruleID, errorTasks, db, r)
 		if addErrorTaskErr != nil {
 			logger.Errorf("failed to add error-task: %v", addErrorTaskErr)
+			modalElement = getFormValues(r)
 
-			return false, addErrorTaskErr.Error(), "addErrorTaskModal"
+			return false, addErrorTaskErr.Error(), "addErrorTaskModal", modalElement
 		}
 
 		http.Redirect(w, r, fmt.Sprintf("%s?ruleID=%d", r.URL.Path, ruleID), http.StatusSeeOther)
 
-		return true, "", ""
+		return true, "", "", nil
 	}
 
 	if r.Method == http.MethodPost && r.FormValue("editErrorTaskRank") != "" {
 		editErrorTaskErr := editErrorTask(ruleID, errorTasks, db, r)
 		if editErrorTaskErr != nil {
 			logger.Errorf("failed to edit error-task: %v", editErrorTaskErr)
+			modalElement = getFormValues(r)
 
-			return false, editErrorTaskErr.Error(), "editErrorTaskModal_" + r.FormValue("editErrorTaskRank")
+			return false, editErrorTaskErr.Error(), "editErrorTaskModal_" + r.FormValue("editErrorTaskRank"), modalElement
 		}
 
 		http.Redirect(w, r, fmt.Sprintf("%s?ruleID=%d", r.URL.Path, ruleID), http.StatusSeeOther)
 
-		return true, "", ""
+		return true, "", "", nil
 	}
 
 	if r.Method == http.MethodPost && r.FormValue("deleteErrorTask") != "" {
@@ -748,12 +754,12 @@ func callMethodsErrorTasks(logger *log.Logger, db *database.DB, w http.ResponseW
 		if deleteErrorTaskErr != nil {
 			logger.Errorf("failed to delete error-task: %v", deleteErrorTaskErr)
 
-			return false, deleteErrorTaskErr.Error(), ""
+			return false, deleteErrorTaskErr.Error(), "", nil
 		}
 
 		http.Redirect(w, r, fmt.Sprintf("%s?ruleID=%d", r.URL.Path, ruleID), http.StatusSeeOther)
 
-		return true, "", ""
+		return true, "", "", nil
 	}
 
 	if r.Method == http.MethodPost && r.FormValue("newOrderErrorTasks") != "" {
@@ -761,15 +767,15 @@ func callMethodsErrorTasks(logger *log.Logger, db *database.DB, w http.ResponseW
 		if orderErrorTaskErr != nil {
 			logger.Errorf("failed to set new order error-task: %v", orderErrorTaskErr)
 
-			return false, orderErrorTaskErr.Error(), ""
+			return false, orderErrorTaskErr.Error(), "", nil
 		}
 
 		http.Redirect(w, r, fmt.Sprintf("%s?ruleID=%d", r.URL.Path, ruleID), http.StatusSeeOther)
 
-		return true, "", ""
+		return true, "", "", nil
 	}
 
-	return false, "", ""
+	return false, "", "", nil
 }
 
 //nolint:funlen // is for one page
@@ -801,6 +807,8 @@ func tasksTransferRulesPage(logger *log.Logger, db *database.DB) http.HandlerFun
 			}
 		}
 
+		listKeyname(db)
+
 		preTasks, err := internal.ListPreTasks(db, rule)
 		if err != nil {
 			return
@@ -816,23 +824,24 @@ func tasksTransferRulesPage(logger *log.Logger, db *database.DB) http.HandlerFun
 			return
 		}
 		var errMsg, modalOpen string
+		var modalElement map[string]any
 
-		if handled, em, mo := callMethodsPreTasks(logger, db, w, r, preTasks, int(rule.ID)); handled {
+		if handled, em, mo, me := callMethodsPreTasks(logger, db, w, r, preTasks, int(rule.ID)); handled {
 			return
 		} else if em != "" {
-			errMsg, modalOpen = em, mo
+			errMsg, modalOpen, modalElement = em, mo, me
 		}
 
-		if handled, em, mo := callMethodsPostTasks(logger, db, w, r, postTasks, int(rule.ID)); handled {
+		if handled, em, mo, me := callMethodsPostTasks(logger, db, w, r, postTasks, int(rule.ID)); handled {
 			return
 		} else if em != "" {
-			errMsg, modalOpen = em, mo
+			errMsg, modalOpen, modalElement = em, mo, me
 		}
 
-		if handled, em, mo := callMethodsErrorTasks(logger, db, w, r, errorTasks, int(rule.ID)); handled {
+		if handled, em, mo, me := callMethodsErrorTasks(logger, db, w, r, errorTasks, int(rule.ID)); handled {
 			return
 		} else if em != "" {
-			errMsg, modalOpen = em, mo
+			errMsg, modalOpen, modalElement = em, mo, me
 		}
 
 		if tmplErr := tasksTransferRulesTemplate.ExecuteTemplate(w, "tasks_transfer_rules_page", map[string]any{
@@ -861,9 +870,16 @@ func tasksTransferRulesPage(logger *log.Logger, db *database.DB) http.HandlerFun
 			"DecryptVerifyKeyTypes": DecryptVerifyKeyTypes,
 			"IcapOnErrorOptions":    IcapOnErrorOptions,
 			"CompressionLevelList":  CompressionLevelList,
+			"listAesKey":            ListAesKeyName,
+			"listHmacKey":           ListHmacKeyName,
+			"listPgpPubKey":         ListPgpPubKeyName,
+			"listPgpPrivKey":        ListPgpPrivKeyName,
 			"errMsg":                errMsg,
 			"modalOpen":             modalOpen,
+			"modalElement":          modalElement,
 			"hasRuleID":             true,
+			"sidebarSection":        "treatment",
+			"sidebarLink":           "transfer_rules_management",
 		}); tmplErr != nil {
 			logger.Errorf("render tasks_transfer_rules_page: %v", tmplErr)
 			http.Error(w, "Internal error", http.StatusInternalServerError)

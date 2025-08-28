@@ -20,10 +20,13 @@
     {{ end }}
     <div class="d-flex align-items-center justify-content-between">
         <h2 class="mb-0">{{ index .tab "title" }}</h2>
-        <button class="btn btn-outline-secondary ms-3 back-btn" type="button" onclick="window.location='home'">
-          <i class="bi bi-arrow-left"></i>
-        </button>
-      </div>
+        <div class="d-flex align-items-center">
+        <span class="text-muted small me-3">{{ index .tab "pathGateway" }}</span>
+            <button class="btn btn-outline-secondary ms-3 back-btn" type="button" onclick="window.location='home'">
+                <i class="bi bi-arrow-left"></i>
+            </button>
+        </div>
+    </div>
     <hr style="border-top: 1px solid #ababab;">
     
     {{ if contains .myPermission.Users "w" }}
@@ -41,13 +44,13 @@
                 <div class="modal-body">
                 <div class="form-input">
                     <label class="col-form-label">{{ index .tab "usernameStr" }} :</label>
-                    <input type="text" name="newUserUsername" class="form-control" required>
+                    <input type="text" name="newUserUsername" class="form-control" required value="{{ index $.modalElement "newUserUsername" }}">
                 </div>
                 <hr style="border-top: 1px solid #ababab;">
                 <div class="form-input">
                     <label class="col-form-label">{{ index .tab "passwordStr" }} :</label>
                     <div class="input-group">
-                        <input type="password" id="newUserPassword_{{ .ID }}" class="form-control" required>
+                        <input type="password" id="newUserPassword_{{ .ID }}" class="form-control" required value="{{ index $.modalElement "newUserPassword" }}">
                         <button class="btn btn-outline-secondary eye-button" type="button" onclick="eyePassword('newUserPassword_{{ .ID }}', this)"><i class="far fa-eye-slash"></i></button>
                     </div>
                 </div>
@@ -55,7 +58,7 @@
                 <div class="form-input">
                     <label class="col-form-label">{{ index .tab "passwordConfirmStr" }} :</label>
                     <div class="input-group">
-                        <input type="password" id="newUserPasswordConfirm_{{ .ID }}" name="newUserPassword" class="form-control" required>
+                        <input type="password" id="newUserPasswordConfirm_{{ .ID }}" name="newUserPassword" class="form-control" required value="{{ index $.modalElement "newUserPassword" }}">
                         <button class="btn btn-outline-secondary eye-button" type="button" onclick="eyePassword('newUserPasswordConfirm_{{ .ID }}', this)"><i class="far fa-eye-slash"></i></button>
                     </div>
                 </div>
@@ -64,90 +67,90 @@
                 <div class="form-group mt-2">
                 <label class="col-form-label">{{ index .tab "transfers" }} <i class="bi bi-info-circle ms-1" data-bs-toggle="tooltip" data-bs-placement="right" data-bs-title="{{ index .tab "tooltipTransfers" }}"></i> :</label>
                     <div class="form-check form-check-inline">
-                        <input class="form-check-input" type="checkbox" name="newUserPermissionsTransfers" id="transfers_r" value="r">
+                        <input class="form-check-input" type="checkbox" name="newUserPermissionsTransfers[]" id="transfers_r" value="r" {{ if $.modalElement }}{{ $v := printf "%v" (index $.modalElement "newUserPermissionsTransfers[]") }}{{ if contains $v "r" }}checked{{ end }}{{ end }}>
                         <label class="form-check-label" for="transfers_r">{{ index .tab "read" }}</label>
                     </div>
                     <div class="form-check form-check-inline">
-                        <input class="form-check-input" type="checkbox" name="newUserPermissionsTransfers" id="transfers_w" value="w">
+                        <input class="form-check-input" type="checkbox" name="newUserPermissionsTransfers[]" id="transfers_w" value="w" {{ if $.modalElement }}{{ $v := printf "%v" (index $.modalElement "newUserPermissionsTransfers[]") }}{{ if contains $v "w" }}checked{{ end }}{{ end }}>
                         <label class="form-check-label" for="transfers_w">{{ index .tab "write" }}</label>
                     </div>
                     <div class="form-check form-check-inline">
-                        <input class="form-check-input" type="checkbox" name="newUserPermissionsTransfers" id="transfers_d" value="d">
+                        <input class="form-check-input" type="checkbox" name="newUserPermissionsTransfers[]" id="transfers_d" value="d" {{ if $.modalElement }}{{ $v := printf "%v" (index $.modalElement "newUserPermissionsTransfers[]") }}{{ if contains $v "d" }}checked{{ end }}{{ end }}>
                         <label class="form-check-label" for="transfers_d">{{ index .tab "delete" }}</label>
                     </div>
                     </div>
                 <div class="form-group mt-2">
                 <label class="col-form-label">{{ index .tab "servers" }} <i class="bi bi-info-circle ms-1" data-bs-toggle="tooltip" data-bs-placement="right" data-bs-title="{{ index .tab "tooltipServers" }}"></i> :</label>
                     <div class="form-check form-check-inline">
-                        <input class="form-check-input" type="checkbox" name="newUserPermissionsServers" id="servers_r" value="r">
+                        <input class="form-check-input" type="checkbox" name="newUserPermissionsServers[]" id="servers_r" value="r" {{ if $.modalElement }}{{ $v := printf "%v" (index $.modalElement "newUserPermissionsServers[]") }}{{ if contains $v "r" }}checked{{ end }}{{ end }}>
                         <label class="form-check-label" for="servers_r">{{ index .tab "read" }}</label>
                     </div>
                     <div class="form-check form-check-inline">
-                        <input class="form-check-input" type="checkbox" name="newUserPermissionsServers" id="servers_w" value="w">
+                        <input class="form-check-input" type="checkbox" name="newUserPermissionsServers[]" id="servers_w" value="w" {{ if $.modalElement }}{{ $v := printf "%v" (index $.modalElement "newUserPermissionsServers[]") }}{{ if contains $v "w" }}checked{{ end }}{{ end }}>
                         <label class="form-check-label" for="servers_w">{{ index .tab "write" }}</label>
                     </div>
                     <div class="form-check form-check-inline">
-                        <input class="form-check-input" type="checkbox" name="newUserPermissionsServers" id="servers_d" value="rd">
+                        <input class="form-check-input" type="checkbox" name="newUserPermissionsServers[]" id="servers_d" value="d" {{ if $.modalElement }}{{ $v := printf "%v" (index $.modalElement "newUserPermissionsServers[]") }}{{ if contains $v "d" }}checked{{ end }}{{ end }}>
                         <label class="form-check-label" for="servers_d">{{ index .tab "delete" }}</label>
                     </div>
                     </div>
                 <div class="form-group mt-2">
                 <label class="col-form-label">{{ index .tab "partners" }} <i class="bi bi-info-circle ms-1" data-bs-toggle="tooltip" data-bs-placement="right" data-bs-title="{{ index .tab "tooltipPartners" }}"></i> :</label>
                     <div class="form-check form-check-inline">
-                        <input class="form-check-input" type="checkbox" name="newUserPermissionsPartners" id="partners_r" value="r">
+                        <input class="form-check-input" type="checkbox" name="newUserPermissionsPartners[]" id="partners_r" value="r" {{ if $.modalElement }}{{ $v := printf "%v" (index $.modalElement "newUserPermissionsPartners[]") }}{{ if contains $v "r" }}checked{{ end }}{{ end }}>
                         <label class="form-check-label" for="partners_r">{{ index .tab "read" }}</label>
                     </div>
                     <div class="form-check form-check-inline">
-                        <input class="form-check-input" type="checkbox" name="newUserPermissionsPartners" id="partners_w" value="w">
+                        <input class="form-check-input" type="checkbox" name="newUserPermissionsPartners[]" id="partners_w" value="w" {{ if $.modalElement }}{{ $v := printf "%v" (index $.modalElement "newUserPermissionsPartners[]") }}{{ if contains $v "w" }}checked{{ end }}{{ end }}>
                         <label class="form-check-label" for="partners_w">{{ index .tab "write" }}</label>
                     </div>
                     <div class="form-check form-check-inline">
-                        <input class="form-check-input" type="checkbox" name="newUserPermissionsPartners" id="partners_d" value="d">
+                        <input class="form-check-input" type="checkbox" name="newUserPermissionsPartners[]" id="partners_d" value="d" {{ if $.modalElement }}{{ $v := printf "%v" (index $.modalElement "newUserPermissionsPartners[]") }}{{ if contains $v "d" }}checked{{ end }}{{ end }}>
                         <label class="form-check-label" for="partners_d">{{ index .tab "delete" }}</label>
                     </div>
                     </div>
                 <div class="form-group mt-2">
                 <label class="col-form-label">{{ index .tab "rules" }} <i class="bi bi-info-circle ms-1" data-bs-toggle="tooltip" data-bs-placement="right" data-bs-title="{{ index .tab "tooltipRules" }}"></i> :</label>
                     <div class="form-check form-check-inline">
-                        <input class="form-check-input" type="checkbox" name="newUserPermissionsRules" id="rules_r" value="r">
+                        <input class="form-check-input" type="checkbox" name="newUserPermissionsRules[]" id="rules_r" value="r" {{ if $.modalElement }}{{ $v := printf "%v" (index $.modalElement "newUserPermissionsRules[]") }}{{ if contains $v "r" }}checked{{ end }}{{ end }}>
                         <label class="form-check-label" for="rules_r">{{ index .tab "read" }}</label>
                     </div>
                     <div class="form-check form-check-inline">
-                        <input class="form-check-input" type="checkbox" name="newUserPermissionsRules" id="rules_w" value="w">
+                        <input class="form-check-input" type="checkbox" name="newUserPermissionsRules[]" id="rules_w" value="w" {{ if $.modalElement }}{{ $v := printf "%v" (index $.modalElement "newUserPermissionsRules[]") }}{{ if contains $v "w" }}checked{{ end }}{{ end }}>
                         <label class="form-check-label" for="rules_w">{{ index .tab "write" }}</label>
                     </div>
                     <div class="form-check form-check-inline">
-                        <input class="form-check-input" type="checkbox" name="newUserPermissionsRules" id="rules_d" value="d">
+                        <input class="form-check-input" type="checkbox" name="newUserPermissionsRules[]" id="rules_d" value="d" {{ if $.modalElement }}{{ $v := printf "%v" (index $.modalElement "newUserPermissionsRules[]") }}{{ if contains $v "d" }}checked{{ end }}{{ end }}>
                         <label class="form-check-label" for="rules_d">{{ index .tab "delete" }}</label>
                     </div>
                     </div>
                 <div class="form-group mt-2">
                 <label class="col-form-label">{{ index .tab "users" }} <i class="bi bi-info-circle ms-1" data-bs-toggle="tooltip" data-bs-placement="right" data-bs-title="{{ index .tab "tooltipUsers" }}"></i> :</label>
                     <div class="form-check form-check-inline">
-                        <input class="form-check-input" type="checkbox" name="newUserPermissionsUsers" id="users_r" value="r">
+                        <input class="form-check-input" type="checkbox" name="newUserPermissionsUsers[]" id="users_r" value="r" {{ if $.modalElement }}{{ $v := printf "%v" (index $.modalElement "newUserPermissionsUsers[]") }}{{ if contains $v "r" }}checked{{ end }}{{ end }}>
                         <label class="form-check-label" for="users_r">{{ index .tab "read" }}</label>
                     </div>
                     <div class="form-check form-check-inline">
-                        <input class="form-check-input" type="checkbox" name="newUserPermissionsUsers" id="users_w" value="w">
+                        <input class="form-check-input" type="checkbox" name="newUserPermissionsUsers[]" id="users_w" value="w" {{ if $.modalElement }}{{ $v := printf "%v" (index $.modalElement "newUserPermissionsUsers[]") }}{{ if contains $v "w" }}checked{{ end }}{{ end }}>
                         <label class="form-check-label" for="users_w">{{ index .tab "write" }}</label>
                     </div>
                     <div class="form-check form-check-inline">
-                        <input class="form-check-input" type="checkbox" name="newUserPermissionsUsers" id="users_d" value="d">
+                        <input class="form-check-input" type="checkbox" name="newUserPermissionsUsers[]" id="users_d" value="d" {{ if $.modalElement }}{{ $v := printf "%v" (index $.modalElement "newUserPermissionsUsers[]") }}{{ if contains $v "d" }}checked{{ end }}{{ end }}>
                         <label class="form-check-label" for="users_d">{{ index .tab "delete" }}</label>
                     </div>
                     </div>
                 <div class="form-group mt-2">
                 <label class="col-form-label">{{ index .tab "administration" }} <i class="bi bi-info-circle ms-1" data-bs-toggle="tooltip" data-bs-placement="right" data-bs-title="{{ index .tab "tooltipAdministration" }}"></i> :</label>
                     <div class="form-check form-check-inline">
-                        <input class="form-check-input" type="checkbox" name="newUserPermissionsAdministration" id="administration_r" value="r">
+                        <input class="form-check-input" type="checkbox" name="newUserPermissionsAdministration[]" id="administration_r" value="r" {{ if $.modalElement }}{{ $v := printf "%v" (index $.modalElement "newUserPermissionsAdministration[]") }}{{ if contains $v "r" }}checked{{ end }}{{ end }}>
                         <label class="form-check-label" for="administration_r">{{ index .tab "read" }}</label>
                     </div>
                     <div class="form-check form-check-inline">
-                        <input class="form-check-input" type="checkbox" name="newUserPermissionsAdministration" id="administration_w" value="w">
+                        <input class="form-check-input" type="checkbox" name="newUserPermissionsAdministration[]" id="administration_w" value="w" {{ if $.modalElement }}{{ $v := printf "%v" (index $.modalElement "newUserPermissionsAdministration[]") }}{{ if contains $v "w" }}checked{{ end }}{{ end }}>
                         <label class="form-check-label" for="administration_w">{{ index .tab "write" }}</label>
                     </div>
                     <div class="form-check form-check-inline">
-                        <input class="form-check-input" type="checkbox" name="newUserPermissionsAdministration" id="administration_d" value="d">
+                        <input class="form-check-input" type="checkbox" name="newUserPermissionsAdministration[]" id="administration_d" value="d" {{ if $.modalElement }}{{ $v := printf "%v" (index $.modalElement "newUserPermissionsAdministration[]") }}{{ if contains $v "d" }}checked{{ end }}{{ end }}>
                         <label class="form-check-label" for="administration_d">{{ index .tab "delete" }}</label>
                     </div>
                     </div>
@@ -168,13 +171,14 @@
         </button>
         <div class="collapse" id="filterCollapse">
         <form method="get" class="p-3 border rounded bg-light">
-            <label class="ms-3">{{ index .tab "sort" }}
+            <input type="hidden" name="applyFilters" value="true">
+            <label class="ms-3">{{ index .tab "sort" }} :
             <select name="orderAsc" class="form-select d-inline w-auto">
                 <option value="true" {{ if .filter.OrderAsc }}selected{{ end }}>A → Z</option>
                 <option value="false" {{ if not .filter.OrderAsc }}selected{{ end }}>Z → A</option>
             </select>
             </label>
-            <label class="ms-3">{{ index .tab "limit" }}
+            <label class="ms-3">{{ index .tab "limit" }} :
             <select name="limit" class="form-select d-inline w-auto">
                 <option value="0" disabled selected>--</option>
                 <option value="5" {{ if eq .filter.Limit 5 }}selected{{ end }}>5</option>
@@ -210,7 +214,7 @@
             </label>
             <div style="float:right">
                 <button id="applyBtn" type="submit" class="btn btn-success ms-3">{{ index .tab "apply" }}</button>
-                <button id="resetBtn" type="button" class="btn btn-secondary ms-1" onclick="window.location='user_management'">{{ index .tab "reset" }}</button>
+                <button id="resetBtn" type="button" class="btn btn-secondary ms-1" onclick="window.location='user_management?clearFiltersPage=user_management_page'">{{ index .tab "reset" }}</button>
             </div>
         </form>
         </div>
@@ -265,6 +269,7 @@
                             <div class="modal-content">
                             <form method="post" class="p-3 border rounded bg-light">
                             <input type="hidden" name="editUserID" value="{{ .ID }}">
+                            {{ $me := and (eq $.modalOpen (printf "editUserModal_%d" .ID)) $.modalElement }}
                             <div class="modal-header">
                             <h5 class="modal-title" id="editUserModalLabel">{{ index $.tab "edit" }}</h5>
                             <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
@@ -273,13 +278,13 @@
 
                             <div class="form-input">
                                 <label class="col-form-label">{{ index $.tab "usernameStr" }} :</label>
-                                <input type="text" name="editUserUsername" class="form-control" required value="{{ .Username }}">
+                                <input type="text" name="editUserUsername" class="form-control" required value="{{ if $me }}{{ index $me "editUserUsername" }}{{ else }}{{ .Username }}{{ end }}">
                             </div>
                             <hr style="border-top: 1px solid #ababab;">
                             <div class="form-input">
                                 <label class="col-form-label">{{ index $.tab "passwordStr" }} :</label>
                                 <div class="input-group">
-                                    <input type="password" id="editUserPassword_{{ .ID }}" class="form-control">
+                                    <input type="password" id="editUserPassword_{{ .ID }}" class="form-control" value="{{ if $me }}{{ index $me "editUserPassword" }}{{ end }}">
                                     <button class="btn btn-outline-secondary eye-button" type="button" onclick="eyePassword('editUserPassword_{{ .ID }}', this)"><i class="far fa-eye-slash"></i></button>
                                 </div>
                             </div>
@@ -287,7 +292,7 @@
                             <div class="form-input">
                                 <label class="col-form-label">{{ index $.tab "passwordConfirmStr" }} :</label>
                                 <div class="input-group">
-                                    <input type="password" id="editUserPasswordConfirm_{{ .ID }}" name="editUserPassword" class="form-control">
+                                    <input type="password" id="editUserPasswordConfirm_{{ .ID }}" name="editUserPassword" class="form-control" value="{{ if $me }}{{ index $me "editUserPassword" }}{{ end }}">
                                     <button class="btn btn-outline-secondary eye-button" type="button" onclick="eyePassword('editUserPasswordConfirm_{{ .ID }}', this)"><i class="far fa-eye-slash"></i></button>
                                 </div>
                             </div>
@@ -296,90 +301,90 @@
                                 <div class="form-group mt-2">
                                     <label class="col-form-label">{{ index $.tab "transfers" }} <i class="bi bi-info-circle ms-1" data-bs-toggle="tooltip" data-bs-placement="right" data-bs-title="{{ index $.tab "tooltipTransfers" }}"></i> :</label>
                                     <div class="form-check form-check-inline">
-                                    <input class="form-check-input" type="checkbox" name="editUserPermissionsTransfers" id="edit_transfers_r" value="r" {{ if (contains .Permissions.Transfers "r") }}checked{{ end }}>
+                                    <input class="form-check-input" type="checkbox" name="editUserPermissionsTransfers[]" id="edit_transfers_r" value="r" {{ if $me }}{{ $v := printf "%v" (index $me "editUserPermissionsTransfers[]") }}{{ if contains $v "r" }}checked{{ end }}{{ else if (contains .Permissions.Transfers "r") }}checked{{ end }}>
                                     <label class="form-check-label" for="edit_transfers_r">{{ index $.tab "read" }}</label>
                                     </div>
                                     <div class="form-check form-check-inline">
-                                    <input class="form-check-input" type="checkbox" name="editUserPermissionsTransfers" id="edit_transfers_w" value="w" {{ if (contains .Permissions.Transfers "w") }}checked{{ end }}>
+                                    <input class="form-check-input" type="checkbox" name="editUserPermissionsTransfers[]" id="edit_transfers_w" value="w" {{ if $me }}{{ $v := printf "%v" (index $me "editUserPermissionsTransfers[]") }}{{ if contains $v "w" }}checked{{ end }}{{ else if (contains .Permissions.Transfers "w") }}checked{{ end }}>
                                     <label class="form-check-label" for="edit_transfers_w">{{ index $.tab "write" }}</label>
                                     </div>
                                     <div class="form-check form-check-inline">
-                                    <input class="form-check-input" type="checkbox" name="editUserPermissionsTransfers" id="edit_transfers_d" value="d" {{ if (contains .Permissions.Transfers "d") }}checked{{ end }}>
+                                    <input class="form-check-input" type="checkbox" name="editUserPermissionsTransfers[]" id="edit_transfers_d" value="d" {{ if $me }}{{ $v := printf "%v" (index $me "editUserPermissionsTransfers[]") }}{{ if contains $v "d" }}checked{{ end }}{{ else if (contains .Permissions.Transfers "d") }}checked{{ end }}>
                                     <label class="form-check-label" for="edit_transfers_d">{{ index $.tab "delete" }}</label>
                                     </div>
                                 </div>
                                 <div class="form-group mt-2">
                                     <label class="col-form-label">{{ index $.tab "servers" }} <i class="bi bi-info-circle ms-1" data-bs-toggle="tooltip" data-bs-placement="right" data-bs-title="{{ index $.tab "tooltipServers" }}"></i> :</label>
                                     <div class="form-check form-check-inline">
-                                    <input class="form-check-input" type="checkbox" name="editUserPermissionsServers" id="edit_servers_r" value="r" {{ if (contains .Permissions.Servers "r") }}checked{{ end }}>
+                                    <input class="form-check-input" type="checkbox" name="editUserPermissionsServers[]" id="edit_servers_r" value="r" {{ if $me }}{{ $v := printf "%v" (index $me "editUserPermissionsServers[]") }}{{ if contains $v "r" }}checked{{ end }}{{ else if (contains .Permissions.Servers "r") }}checked{{ end }}>
                                     <label class="form-check-label" for="edit_servers_r">{{ index $.tab "read" }}</label>
                                     </div>
                                     <div class="form-check form-check-inline">
-                                    <input class="form-check-input" type="checkbox" name="editUserPermissionsServers" id="edit_servers_w" value="w" {{ if (contains .Permissions.Servers "w") }}checked{{ end }}>
+                                    <input class="form-check-input" type="checkbox" name="editUserPermissionsServers[]" id="edit_servers_w" value="w" {{ if $me }}{{ $v := printf "%v" (index $me "editUserPermissionsServers[]") }}{{ if contains $v "w" }}checked{{ end }}{{ else if (contains .Permissions.Servers "w") }}checked{{ end }}>
                                     <label class="form-check-label" for="edit_servers_w">{{ index $.tab "write" }}</label>
                                     </div>
                                     <div class="form-check form-check-inline">
-                                    <input class="form-check-input" type="checkbox" name="editUserPermissionsServers" id="edit_servers_d" value="d" {{ if (contains .Permissions.Servers "d") }}checked{{ end }}>
+                                    <input class="form-check-input" type="checkbox" name="editUserPermissionsServers[]" id="edit_servers_d" value="d" {{ if $me }}{{ $v := printf "%v" (index $me "editUserPermissionsServers[]") }}{{ if contains $v "d" }}checked{{ end }}{{ else if (contains .Permissions.Servers "d") }}checked{{ end }}>
                                     <label class="form-check-label" for="edit_servers_d">{{ index $.tab "delete" }}</label>
                                     </div>
                                 </div>
                                 <div class="form-group mt-2">
                                     <label class="col-form-label">{{ index $.tab "partners" }} <i class="bi bi-info-circle ms-1" data-bs-toggle="tooltip" data-bs-placement="right" data-bs-title="{{ index $.tab "tooltipPartners" }}"></i> :</label>
                                     <div class="form-check form-check-inline">
-                                    <input class="form-check-input" type="checkbox" name="editUserPermissionsPartners" id="edit_partners_r" value="r" {{ if (contains .Permissions.Partners "r") }}checked{{ end }}>
+                                    <input class="form-check-input" type="checkbox" name="editUserPermissionsPartners[]" id="edit_partners_r" value="r" {{ if $me }}{{ $v := printf "%v" (index $me "editUserPermissionsPartners[]") }}{{ if contains $v "r" }}checked{{ end }}{{ else if (contains .Permissions.Partners "r") }}checked{{ end }}>
                                     <label class="form-check-label" for="edit_partners_r">{{ index $.tab "read" }}</label>
                                     </div>
                                     <div class="form-check form-check-inline">
-                                    <input class="form-check-input" type="checkbox" name="editUserPermissionsPartners" id="edit_partners_w" value="w" {{ if (contains .Permissions.Partners "w") }}checked{{ end }}>
+                                    <input class="form-check-input" type="checkbox" name="editUserPermissionsPartners[]" id="edit_partners_w" value="w" {{ if $me }}{{ $v := printf "%v" (index $me "editUserPermissionsPartners[]") }}{{ if contains $v "w" }}checked{{ end }}{{ else if (contains .Permissions.Partners "w") }}checked{{ end }}>
                                     <label class="form-check-label" for="edit_partners_w">{{ index $.tab "write" }}</label>
                                     </div>
                                     <div class="form-check form-check-inline">
-                                    <input class="form-check-input" type="checkbox" name="editUserPermissionsPartners" id="edit_partners_d" value="d" {{ if (contains .Permissions.Partners "d") }}checked{{ end }}>
+                                    <input class="form-check-input" type="checkbox" name="editUserPermissionsPartners[]" id="edit_partners_d" value="d" {{ if $me }}{{ $v := printf "%v" (index $me "editUserPermissionsPartners[]") }}{{ if contains $v "d" }}checked{{ end }}{{ else if (contains .Permissions.Partners "d") }}checked{{ end }}>
                                     <label class="form-check-label" for="edit_partners_d">{{ index $.tab "delete" }}</label>
                                     </div>
                                 </div>
                                 <div class="form-group mt-2">
                                     <label class="col-form-label">{{ index $.tab "rules" }} <i class="bi bi-info-circle ms-1" data-bs-toggle="tooltip" data-bs-placement="right" data-bs-title="{{ index $.tab "tooltipRules" }}"></i> :</label>
                                     <div class="form-check form-check-inline">
-                                    <input class="form-check-input" type="checkbox" name="editUserPermissionsRules" id="edit_rules_r" value="r" {{ if (contains .Permissions.Rules "r") }}checked{{ end }}>
+                                    <input class="form-check-input" type="checkbox" name="editUserPermissionsRules[]" id="edit_rules_r" value="r" {{ if $me }}{{ $v := printf "%v" (index $me "editUserPermissionsRules[]") }}{{ if contains $v "r" }}checked{{ end }}{{ else if (contains .Permissions.Rules "r") }}checked{{ end }}>
                                     <label class="form-check-label" for="edit_rules_r">{{ index $.tab "read" }}</label>
                                     </div>
                                     <div class="form-check form-check-inline">
-                                    <input class="form-check-input" type="checkbox" name="editUserPermissionsRules" id="edit_rules_w" value="w" {{ if (contains .Permissions.Rules "w") }}checked{{ end }}>
+                                    <input class="form-check-input" type="checkbox" name="editUserPermissionsRules[]" id="edit_rules_w" value="w" {{ if $me }}{{ $v := printf "%v" (index $me "editUserPermissionsRules[]") }}{{ if contains $v "w" }}checked{{ end }}{{ else if (contains .Permissions.Rules "w") }}checked{{ end }}>
                                     <label class="form-check-label" for="edit_rules_w">{{ index $.tab "write" }}</label>
                                     </div>
                                     <div class="form-check form-check-inline">
-                                    <input class="form-check-input" type="checkbox" name="editUserPermissionsRules" id="edit_rules_d" value="d" {{ if (contains .Permissions.Rules "d") }}checked{{ end }}>
+                                    <input class="form-check-input" type="checkbox" name="editUserPermissionsRules[]" id="edit_rules_d" value="d" {{ if $me }}{{ $v := printf "%v" (index $me "editUserPermissionsRules[]") }}{{ if contains $v "d" }}checked{{ end }}{{ else if (contains .Permissions.Rules "d") }}checked{{ end }}>
                                     <label class="form-check-label" for="edit_rules_d">{{ index $.tab "delete" }}</label>
                                     </div>
                                 </div>
                                 <div class="form-group mt-2">
                                     <label class="col-form-label">{{ index $.tab "users" }} <i class="bi bi-info-circle ms-1" data-bs-toggle="tooltip" data-bs-placement="right" data-bs-title="{{ index $.tab "tooltipUsers" }}"></i> :</label>
                                     <div class="form-check form-check-inline">
-                                    <input class="form-check-input" type="checkbox" name="editUserPermissionsUsers" id="edit_users_r" value="r" {{ if (contains .Permissions.Users "r") }}checked{{ end }}>
+                                    <input class="form-check-input" type="checkbox" name="editUserPermissionsUsers[]" id="edit_users_r" value="r" {{ if $me }}{{ $v := printf "%v" (index $me "editUserPermissionsUsers[]") }}{{ if contains $v "r" }}checked{{ end }}{{ else if (contains .Permissions.Users "r") }}checked{{ end }}>
                                     <label class="form-check-label" for="edit_users_r">{{ index $.tab "read" }}</label>
                                     </div>
                                     <div class="form-check form-check-inline">
-                                    <input class="form-check-input" type="checkbox" name="editUserPermissionsUsers" id="edit_users_w" value="w" {{ if (contains .Permissions.Users "w") }}checked{{ end }}>
+                                    <input class="form-check-input" type="checkbox" name="editUserPermissionsUsers[]" id="edit_users_w" value="w" {{ if $me }}{{ $v := printf "%v" (index $me "editUserPermissionsUsers[]") }}{{ if contains $v "w" }}checked{{ end }}{{ else if (contains .Permissions.Users "w") }}checked{{ end }}>
                                     <label class="form-check-label" for="edit_users_w">{{ index $.tab "write" }}</label>
                                     </div>
                                     <div class="form-check form-check-inline">
-                                    <input class="form-check-input" type="checkbox" name="editUserPermissionsUsers" id="edit_users_d" value="d" {{ if (contains .Permissions.Users "d") }}checked{{ end }}>
+                                    <input class="form-check-input" type="checkbox" name="editUserPermissionsUsers[]" id="edit_users_d" value="d" {{ if $me }}{{ $v := printf "%v" (index $me "editUserPermissionsUsers[]") }}{{ if contains $v "d" }}checked{{ end }}{{ else if (contains .Permissions.Users "d") }}checked{{ end }}>
                                     <label class="form-check-label" for="edit_users_d">{{ index $.tab "delete" }}</label>
                                     </div>
                                 </div>
                                 <div class="form-group mt-2">
                                     <label class="col-form-label">{{ index $.tab "administration" }} <i class="bi bi-info-circle ms-1" data-bs-toggle="tooltip" data-bs-placement="right" data-bs-title="{{ index $.tab "tooltipAdministration" }}"></i> :</label>
                                     <div class="form-check form-check-inline">
-                                    <input class="form-check-input" type="checkbox" name="editUserPermissionsAdministration" id="edit_administration_r" value="r" {{ if (contains .Permissions.Administration "r") }}checked{{ end }}>
+                                    <input class="form-check-input" type="checkbox" name="editUserPermissionsAdministration[]" id="edit_administration_r" value="r" {{ if $me }}{{ $v := printf "%v" (index $me "editUserPermissionsAdministration[]") }}{{ if contains $v "r" }}checked{{ end }}{{ else if (contains .Permissions.Administration "r") }}checked{{ end }}>
                                     <label class="form-check-label" for="edit_administration_r">{{ index $.tab "read" }}</label>
                                     </div>
                                     <div class="form-check form-check-inline">
-                                    <input class="form-check-input" type="checkbox" name="editUserPermissionsAdministration" id="edit_administration_w" value="w" {{ if (contains .Permissions.Administration "w") }}checked{{ end }}>
+                                    <input class="form-check-input" type="checkbox" name="editUserPermissionsAdministration[]" id="edit_administration_w" value="w" {{ if $me }}{{ $v := printf "%v" (index $me "editUserPermissionsAdministration[]") }}{{ if contains $v "w" }}checked{{ end }}{{ else if (contains .Permissions.Administration "w") }}checked{{ end }}>
                                     <label class="form-check-label" for="edit_administration_w">{{ index $.tab "write" }}</label>
                                     </div>
                                     <div class="form-check form-check-inline">
-                                    <input class="form-check-input" type="checkbox" name="editUserPermissionsAdministration" id="edit_administration_d" value="d" {{ if (contains .Permissions.Administration "d") }}checked{{ end }}>
+                                    <input class="form-check-input" type="checkbox" name="editUserPermissionsAdministration[]" id="edit_administration_d" value="d" {{ if $me }}{{ $v := printf "%v" (index $me "editUserPermissionsAdministration[]") }}{{ if contains $v "d" }}checked{{ end }}{{ else if (contains .Permissions.Administration "d") }}checked{{ end }}>
                                     <label class="form-check-label" for="edit_administration_d">{{ index $.tab "delete" }}</label>
                                     </div>
                                 </div>

@@ -20,13 +20,23 @@ func listCredentialPartner(partnerName string, db *database.DB, r *http.Request)
 	[]*model.Credential, Filters, string,
 ) {
 	credentialPartnerFound := ""
-	filter := Filters{
+	defaultFilter := Filters{
 		Offset:          0,
 		Limit:           DefaultLimitPagination,
 		OrderAsc:        true,
 		DisableNext:     false,
 		DisablePrevious: false,
 	}
+
+	filter := defaultFilter
+	if saved, ok := GetPageFilters(r, "partner_authentication_page"); ok {
+		filter = saved
+	}
+
+	if r.URL.Query().Get("applyFilters") == True {
+		filter = defaultFilter
+	}
+
 	urlParams := r.URL.Query()
 
 	if urlParams.Get("orderAsc") != "" {
@@ -231,31 +241,32 @@ func deleteCredentialPartner(partnerName string, db *database.DB, r *http.Reques
 //nolint:dupl // method for partner authentication
 func callMethodsPartnerAuthentication(logger *log.Logger, db *database.DB, w http.ResponseWriter, r *http.Request,
 	partner *model.RemoteAgent,
-) (value bool, errMsg, modalOpen string) {
+) (value bool, errMsg, modalOpen string, modalElement map[string]any) {
 	if r.Method == http.MethodPost && r.FormValue("deleteCredentialPartner") != "" {
 		deleteCredentialPartnerErr := deleteCredentialPartner(partner.Name, db, r)
 		if deleteCredentialPartnerErr != nil {
 			logger.Errorf("failed to delete credential partner: %v", deleteCredentialPartnerErr)
 
-			return false, deleteCredentialPartnerErr.Error(), ""
+			return false, deleteCredentialPartnerErr.Error(), "", nil
 		}
 
 		http.Redirect(w, r, fmt.Sprintf("%s?partnerID=%d", r.URL.Path, partner.ID), http.StatusSeeOther)
 
-		return true, "", ""
+		return true, "", "", nil
 	}
 
 	if r.Method == http.MethodPost && r.FormValue("addCredentialPartnerName") != "" {
 		addCredentialPartnerErr := addCredentialPartner(partner.Name, db, r)
 		if addCredentialPartnerErr != nil {
 			logger.Errorf("failed to add partner: %v", addCredentialPartnerErr)
+			modalElement = getFormValues(r)
 
-			return false, addCredentialPartnerErr.Error(), "addCredentialPartnerModal"
+			return false, addCredentialPartnerErr.Error(), "addCredentialPartnerModal", modalElement
 		}
 
 		http.Redirect(w, r, fmt.Sprintf("%s?partnerID=%d", r.URL.Path, partner.ID), http.StatusSeeOther)
 
-		return true, "", ""
+		return true, "", "", nil
 	}
 
 	if r.Method == http.MethodPost && r.FormValue("editCredentialPartnerID") != "" {
@@ -265,22 +276,23 @@ func callMethodsPartnerAuthentication(logger *log.Logger, db *database.DB, w htt
 		if err != nil {
 			logger.Errorf("failed to convert id to int: %v", err)
 
-			return false, "", ""
+			return false, "", "", nil
 		}
 
 		editredentialPartnerErr := editCredentialPartner(partner.Name, db, r)
 		if editredentialPartnerErr != nil {
 			logger.Errorf("failed to edit credential partner: %v", editredentialPartnerErr)
+			modalElement = getFormValues(r)
 
-			return false, editredentialPartnerErr.Error(), fmt.Sprintf("editCredentialInternalModal_%d", id)
+			return false, editredentialPartnerErr.Error(), fmt.Sprintf("editCredentialInternalModal_%d", id), modalElement
 		}
 
 		http.Redirect(w, r, fmt.Sprintf("%s?partnerID=%d", r.URL.Path, partner.ID), http.StatusSeeOther)
 
-		return true, "", ""
+		return true, "", "", nil
 	}
 
-	return false, "", ""
+	return false, "", "", nil
 }
 
 func partnerAuthenticationPage(logger *log.Logger, db *database.DB) http.HandlerFunc {
@@ -312,7 +324,16 @@ func partnerAuthenticationPage(logger *log.Logger, db *database.DB) http.Handler
 
 		partnersCredentials, filter, credentialPartnerFound := listCredentialPartner(partner.Name, db, r)
 
-		value, errMsg, modalOpen := callMethodsPartnerAuthentication(logger, db, w, r, partner)
+		if pageName := r.URL.Query().Get("clearFiltersPage"); pageName != "" {
+			ClearPageFilters(r, pageName)
+			http.Redirect(w, r, r.URL.Path, http.StatusSeeOther)
+
+			return
+		}
+
+		PersistPageFilters(r, "partner_authentication_page", &filter)
+
+		value, errMsg, modalOpen, modalElement := callMethodsPartnerAuthentication(logger, db, w, r, partner)
 		if value {
 			return
 		}
@@ -333,7 +354,10 @@ func partnerAuthenticationPage(logger *log.Logger, db *database.DB) http.Handler
 			"credentialPartnerFound": credentialPartnerFound,
 			"errMsg":                 errMsg,
 			"modalOpen":              modalOpen,
+			"modalElement":           modalElement,
 			"hasPartnerID":           true,
+			"sidebarSection":         "connection",
+			"sidebarLink":            "partner_management",
 		}); tmplErr != nil {
 			logger.Errorf("render partner_management_page: %v", tmplErr)
 			http.Error(w, "Internal error", http.StatusInternalServerError)

@@ -2,6 +2,7 @@ package gui
 
 import (
 	"net/http"
+	"sort"
 
 	"code.waarp.fr/lib/log"
 
@@ -11,6 +12,12 @@ import (
 	"code.waarp.fr/apps/gateway/gateway/pkg/utils"
 )
 
+func sortServicesByName(services []internal.Service) {
+	sort.Slice(services, func(i, j int) bool {
+		return services[i].Name < services[j].Name
+	})
+}
+
 func statusServicesPage(logger *log.Logger, db *database.DB) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		userLanguage := r.Context().Value(ContextLanguageKey)
@@ -18,6 +25,10 @@ func statusServicesPage(logger *log.Logger, db *database.DB) http.HandlerFunc {
 			pageTranslated("status_services_page", userLanguage.(string)) //nolint:errcheck //u
 
 		cores, servers, clients := internal.ListServices()
+
+		sortServicesByName(cores)
+		sortServicesByName(servers)
+		sortServicesByName(clients)
 
 		user, err := GetUserByToken(r, db)
 		if err != nil {

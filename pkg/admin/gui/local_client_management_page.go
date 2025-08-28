@@ -3,6 +3,7 @@ package gui
 import (
 	"encoding/json"
 	"fmt"
+	"html/template"
 	"net/http"
 	"strconv"
 
@@ -15,6 +16,7 @@ import (
 	"code.waarp.fr/apps/gateway/gateway/pkg/protocols/modules/pesit"
 	"code.waarp.fr/apps/gateway/gateway/pkg/protocols/modules/r66"
 	"code.waarp.fr/apps/gateway/gateway/pkg/protocols/modules/sftp"
+	"code.waarp.fr/apps/gateway/gateway/pkg/utils"
 )
 
 //nolint:dupl // is not similar, is method for local client
@@ -146,12 +148,22 @@ func deleteLocalClient(db *database.DB, r *http.Request) error {
 
 func listLocalClient(db *database.DB, r *http.Request) ([]*model.Client, Filters, string) {
 	localClientFound := ""
-	filter := Filters{
+	defaultFilter := Filters{
 		Offset:          0,
 		Limit:           DefaultLimitPagination,
 		OrderAsc:        true,
 		DisableNext:     false,
 		DisablePrevious: false,
+	}
+
+	filter := defaultFilter
+	if saved, ok := GetPageFilters(r, "local_client_management_page"); ok {
+		filter = saved
+	}
+
+	isApply := r.URL.Query().Get("applyFilters") == True
+	if isApply {
+		filter = defaultFilter
 	}
 
 	urlParams := r.URL.Query()
@@ -186,7 +198,7 @@ func listLocalClient(db *database.DB, r *http.Request) ([]*model.Client, Filters
 
 		return []*model.Client{searchLocalClient(search, localClient)}, filter, localClientFound
 	}
-	filtersPtr, filterProtocol := protocolsFilter(r, &filter)
+	filtersPtr, filterProtocol := checkProtocolsFilter(r, isApply, &filter)
 	paginationPage(&filter, uint64(len(localClient)), r)
 
 	if len(filterProtocol) > 0 {
@@ -244,17 +256,18 @@ func autocompletionLocalClientsFunc(db *database.DB) http.HandlerFunc {
 
 //nolint:dupl // no similar func
 func callMethodsLocalClientManagement(logger *log.Logger, db *database.DB, w http.ResponseWriter, r *http.Request,
-) (value bool, errMsg, modalOpen string) {
+) (value bool, errMsg, modalOpen string, modalElement map[string]any) {
 	if r.Method == http.MethodPost && r.FormValue("addLocalClientName") != "" {
 		if newLocalClientErr := addLocalClient(db, r); newLocalClientErr != nil {
 			logger.Errorf("failed to add localClient: %v", newLocalClientErr)
+			modalElement = getFormValues(r)
 
-			return false, newLocalClientErr.Error(), "addLocalClientModal"
+			return false, newLocalClientErr.Error(), "addLocalClientModal", modalElement
 		}
 
 		http.Redirect(w, r, r.URL.Path, http.StatusSeeOther)
 
-		return true, "", ""
+		return true, "", "", nil
 	}
 
 	if r.Method == http.MethodPost && r.FormValue("deleteLocalClient") != "" {
@@ -262,12 +275,12 @@ func callMethodsLocalClientManagement(logger *log.Logger, db *database.DB, w htt
 		if deleteLocalClientErr != nil {
 			logger.Errorf("failed to delete localClient: %v", deleteLocalClientErr)
 
-			return false, deleteLocalClientErr.Error(), ""
+			return false, deleteLocalClientErr.Error(), "", nil
 		}
 
 		http.Redirect(w, r, r.URL.Path, http.StatusSeeOther)
 
-		return true, "", ""
+		return true, "", "", nil
 	}
 
 	if r.Method == http.MethodPost && r.FormValue("editLocalClientID") != "" {
@@ -277,21 +290,68 @@ func callMethodsLocalClientManagement(logger *log.Logger, db *database.DB, w htt
 		if err != nil {
 			logger.Errorf("failed to convert id to int: %v", err)
 
-			return false, "", ""
+			return false, "", "", nil
 		}
 
 		if editLocalClientErr := editLocalClient(db, r); editLocalClientErr != nil {
 			logger.Errorf("failed to edit localClient: %v", editLocalClientErr)
+			modalElement = getFormValues(r)
 
-			return false, editLocalClientErr.Error(), fmt.Sprintf("editLocalClientModal_%d", id)
+			return false, editLocalClientErr.Error(), fmt.Sprintf("editLocalClientModal_%d", id), modalElement
 		}
 
 		http.Redirect(w, r, r.URL.Path, http.StatusSeeOther)
 
-		return true, "", ""
+		return true, "", "", nil
 	}
 
-	return false, "", ""
+	if r.Method == http.MethodPost && r.FormValue("switchClientStatus") != "" {
+		statusClientErr := switchClientStatus(db, r)
+		if statusClientErr != nil {
+			logger.Errorf("failed to switch client status: %v", statusClientErr)
+
+			return false, statusClientErr.Error(), "", nil
+		}
+
+		http.Redirect(w, r, r.URL.Path, http.StatusSeeOther)
+
+		return true, "", "", nil
+	}
+
+	return false, "", "", nil
+}
+
+func switchClientStatus(db *database.DB, r *http.Request) error {
+	if err := r.ParseForm(); err != nil {
+		return fmt.Errorf("failed to parse form: %w", err)
+	}
+	clientID := r.FormValue("switchClientStatus")
+
+	id, err := strconv.ParseUint(clientID, 10, 64)
+	if err != nil {
+		return fmt.Errorf("failed to convert id to int: %w", err)
+	}
+
+	client, err := internal.GetClientByID(db, int64(id))
+	if err != nil {
+		return fmt.Errorf("failed to get client by id: %w", err)
+	}
+
+	state, _ := internal.GetClientStatus(client)
+
+	if state == utils.StateOffline {
+		if restartErr := internal.RestartClient(r.Context(), db, client); restartErr != nil {
+			return fmt.Errorf("failed to restart client: %w", restartErr)
+		}
+	}
+
+	if state == utils.StateRunning {
+		if stopErr := internal.StopClient(r.Context(), client); stopErr != nil {
+			return fmt.Errorf("failed to stop client: %w", stopErr)
+		}
+	}
+
+	return nil
 }
 
 func localClientManagementPage(logger *log.Logger, db *database.DB) http.HandlerFunc {
@@ -301,7 +361,16 @@ func localClientManagementPage(logger *log.Logger, db *database.DB) http.Handler
 			pageTranslated("local_client_management_page", userLanguage.(string)) //nolint:errcheck //u
 		localClientList, filter, localClientFound := listLocalClient(db, r)
 
-		value, errMsg, modalOpen := callMethodsLocalClientManagement(logger, db, w, r)
+		if pageName := r.URL.Query().Get("clearFiltersPage"); pageName != "" {
+			ClearPageFilters(r, pageName)
+			http.Redirect(w, r, r.URL.Path, http.StatusSeeOther)
+
+			return
+		}
+
+		PersistPageFilters(r, "local_client_management_page", &filter)
+
+		value, errMsg, modalOpen, modalElement := callMethodsLocalClientManagement(logger, db, w, r)
 		if value {
 			return
 		}
@@ -313,6 +382,13 @@ func localClientManagementPage(logger *log.Logger, db *database.DB) http.Handler
 
 		myPermission := model.MaskToPerms(user.Permissions)
 		currentPage := filter.Offset + 1
+
+		localClientManagementTemplate := template.Must(
+			template.New("local_client_management_page.html").
+				Funcs(CombinedFuncMap(db)).
+				ParseFS(webFS, index, header, sidebar, addProtoConfig, editProtoConfig, displayProtoConfig,
+					"front-end/html/local_client_management_page.html"),
+		)
 
 		if tmplErr := localClientManagementTemplate.ExecuteTemplate(w, "local_client_management_page", map[string]any{
 			"myPermission":           myPermission,
@@ -328,8 +404,10 @@ func localClientManagementPage(logger *log.Logger, db *database.DB) http.Handler
 			"KeyExchanges":           sftp.ValidKeyExchanges,
 			"Ciphers":                sftp.ValidCiphers,
 			"MACs":                   sftp.ValidMACs,
+			"protocolsList":          ProtocolsList,
 			"errMsg":                 errMsg,
 			"modalOpen":              modalOpen,
+			"modalElement":           modalElement,
 		}); tmplErr != nil {
 			logger.Errorf("render local_client_management_page: %v", tmplErr)
 			http.Error(w, "Internal error", http.StatusInternalServerError)
