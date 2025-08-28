@@ -4,7 +4,18 @@ document.addEventListener('DOMContentLoaded', () => {
         sidebarBtn.addEventListener('click', () => {
             sidebarBtn.blur();
         });
+    const aboutBtn = document.getElementById('aboutButton');
+    const aboutModal = document.getElementById('aboutModal');
+    if (aboutBtn)
+        aboutBtn.addEventListener('click', () => {
+            setTimeout(() => aboutBtn.blur(), 0);
+        });
 
+    if (aboutModal && aboutBtn) {
+        aboutModal.addEventListener('hidden.bs.modal', () => {
+            setTimeout(() => aboutBtn.blur(), 0);
+        });
+    }
     const header = document.querySelector('header');
     if (header)
         document.documentElement.style.setProperty('--header-height', `${header.offsetHeight}px`);

@@ -306,7 +306,7 @@
                             </div>
                             <hr style="border-top: 1px solid #ababab;">
                             <div class="flex-label-input mb-2">
-                                <label class="col-form-label label-light-bold me-3">{{ index $.tab "firstRetryDelay" }} {{ index $.tab "second" }}{{ if gt .FirstRetryDelay 1 }}s{{ end }} :</label>
+                                <label class="col-form-label label-light-bold me-3">{{ index $.tab "firstRetryDelay" }} {{ index $.tab "second" }} :</label>
                                 <input type="text" class="form-control-plaintext input-auto-width" value="{{ displayOrDefault .FirstRetryDelay (index $.tab "undefined") }}" readonly>
                             </div>
                             <hr style="border-top: 1px solid #ababab;">
@@ -405,7 +405,7 @@
                             </div>
                             <hr style="border-top: 1px solid #ababab;">
                             <div class="form-input mb-2x">
-                                <label class="col-form-label me-3">{{ index $.tab "firstRetryDelay" }} :</label>
+                                <label class="col-form-label me-3">{{ index $.tab "firstRetryDelay" }} {{ index $.tab "second" }}:</label>
                                 <input type="text" name="editRetryDelay" class="form-control" value="{{ if $me }}{{ index $me "editRetryDelay" }}{{ else }}{{ .FirstRetryDelay }}{{ end }}">
                             </div>
                             <hr style="border-top: 1px solid #ababab;">

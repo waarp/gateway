@@ -151,7 +151,7 @@
                     </div>
                     <hr style="border-top: 1px solid #ababab;">
                     <div class="flex-label-input mb-2">
-                        <label class="col-form-label label-light-bold me-3">{{ index $.tab "firstRetryDelay" }} {{ index $.tab "second" }}{{ if gt .NextRetryDelay 1 }}s{{ end }} :</label>
+                        <label class="col-form-label label-light-bold me-3">{{ index $.tab "firstRetryDelay" }} {{ index $.tab "second" }} :</label>
                         <input type="text" class="form-control-plaintext input-auto-width" value="{{ displayOrDefault .NextRetryDelay (index $.tab "undefined") }}" readonly>
                     </div>
                     <hr style="border-top: 1px solid #ababab;">
