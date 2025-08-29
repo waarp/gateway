@@ -42,7 +42,7 @@ func addLocalClient(db *database.DB, r *http.Request) error {
 	}
 
 	if newLocalClientPort := r.FormValue("addLocalClientPort"); newLocalClientPort != "" {
-		port, err := strconv.ParseUint(newLocalClientPort, 10, 64)
+		port, err := strconv.ParseUint(newLocalClientPort, 10, 16)
 		if err != nil {
 			return fmt.Errorf("failed to get port: %w", err)
 		}
@@ -137,7 +137,7 @@ func editLocalClient(db *database.DB, r *http.Request) error {
 	if editLocalClientPort := r.FormValue("editLocalClientPort"); editLocalClientPort != "" {
 		var port uint64
 
-		port, err = strconv.ParseUint(editLocalClientPort, 10, 64)
+		port, err = strconv.ParseUint(editLocalClientPort, 10, 16)
 		if err != nil {
 			return fmt.Errorf("failed to get port: %w", err)
 		}

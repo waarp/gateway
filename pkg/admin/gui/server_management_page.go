@@ -40,7 +40,7 @@ func addServer(db *database.DB, r *http.Request) error {
 	}
 
 	if newServerPort := r.FormValue("addServerPort"); newServerPort != "" {
-		port, err := strconv.ParseUint(newServerPort, 10, 64)
+		port, err := strconv.ParseUint(newServerPort, 10, 16)
 		if err != nil {
 			return fmt.Errorf("failed to get port: %w", err)
 		}
@@ -115,7 +115,7 @@ func editServer(db *database.DB, r *http.Request) error {
 	if editServerPort := r.FormValue("editServerPort"); editServerPort != "" {
 		var port uint64
 
-		port, err = strconv.ParseUint(editServerPort, 10, 64)
+		port, err = strconv.ParseUint(editServerPort, 10, 16)
 		if err != nil {
 			return fmt.Errorf("failed to get port: %w", err)
 		}

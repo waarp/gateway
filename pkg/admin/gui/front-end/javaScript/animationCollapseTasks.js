@@ -11,11 +11,6 @@ document.addEventListener('DOMContentLoaded', () => {
 
     collapsePanels.forEach(panel => {
         panel.addEventListener('show.bs.collapse', () => {
-            collapsePanels.forEach(otherPanel => {
-                if (otherPanel !== panel && otherPanel.classList.contains('show')) {
-                    bootstrap.Collapse.getInstance(otherPanel).hide();
-                }
-            });
             panel.classList.add('animate');
             localStorage.setItem('lastOpenCollapseTasks', panel.id);
         });

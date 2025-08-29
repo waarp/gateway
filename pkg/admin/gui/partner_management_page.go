@@ -50,7 +50,7 @@ func editPartner(db *database.DB, r *http.Request) error {
 	if editPartnerPort := r.FormValue("editPartnerPort"); editPartnerPort != "" {
 		var port uint64
 
-		port, err = strconv.ParseUint(editPartnerPort, 10, 64)
+		port, err = strconv.ParseUint(editPartnerPort, 10, 16)
 		if err != nil {
 			return fmt.Errorf("failed to get port: %w", err)
 		}
@@ -98,7 +98,7 @@ func addPartner(db *database.DB, r *http.Request) error {
 	}
 
 	if newPartnerPort := r.FormValue("addPartnerPort"); newPartnerPort != "" {
-		port, err := strconv.ParseUint(newPartnerPort, 10, 64)
+		port, err := strconv.ParseUint(newPartnerPort, 10, 16)
 		if err != nil {
 			return fmt.Errorf("failed to get port: %w", err)
 		}
