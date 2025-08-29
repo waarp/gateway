@@ -338,7 +338,7 @@ func partnerAuthenticationPage(logger *log.Logger, db *database.DB) http.Handler
 			return
 		}
 
-		listSupportedProtocol := supportedProtocolInternal(partner.Protocol)
+		listSupportedProtocol := supportedProtocolPartner(partner.Protocol)
 		currentPage := filter.Offset + 1
 
 		if tmplErr := partnerAuthenticationTemplate.ExecuteTemplate(w, "partner_authentication_page", map[string]any{

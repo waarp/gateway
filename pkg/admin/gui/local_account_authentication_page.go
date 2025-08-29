@@ -342,7 +342,7 @@ func localAccountAuthenticationPage(logger *log.Logger, db *database.DB) http.Ha
 	return func(w http.ResponseWriter, r *http.Request) {
 		userLanguage := r.Context().Value(ContextLanguageKey)
 		tTranslated := //nolint:forcetypeassert //u
-			pageTranslated("local_account_authentication_page", userLanguage.(string)) //nolint:errcheck //u
+		pageTranslated("local_account_authentication_page", userLanguage.(string)) //nolint:errcheck //u
 
 		serverID := r.URL.Query().Get("serverID")
 		accountID := r.URL.Query().Get("accountID")
@@ -369,7 +369,7 @@ func localAccountAuthenticationPage(logger *log.Logger, db *database.DB) http.Ha
 			logger.Errorf("Internal error: %v", err)
 		}
 
-		listSupportedProtocol := supportedProtocolInternal(server.Protocol)
+		listSupportedProtocol := supportedProtocolLocalAccount(server.Protocol)
 		myPermission := model.MaskToPerms(user.Permissions)
 		currentPage := filter.Offset + 1
 

@@ -355,7 +355,7 @@ func remoteAccountAuthenticationPage(logger *log.Logger, db *database.DB) http.H
 	return func(w http.ResponseWriter, r *http.Request) {
 		userLanguage := r.Context().Value(ContextLanguageKey)
 		tTranslated := //nolint:forcetypeassert //u
-			pageTranslated("remote_account_authentication_page", userLanguage.(string)) //nolint:errcheck //u
+		pageTranslated("remote_account_authentication_page", userLanguage.(string)) //nolint:errcheck //u
 
 		user, err := GetUserByToken(r, db)
 		if err != nil {
@@ -384,7 +384,7 @@ func remoteAccountAuthenticationPage(logger *log.Logger, db *database.DB) http.H
 			return
 		}
 
-		listSupportedProtocol := supportedProtocolExternal(partner.Protocol)
+		listSupportedProtocol := supportedProtocolRemoteAccount(partner.Protocol)
 		currentPage := filter.Offset + 1
 
 		if tmplErr := remoteAccountAuthenticationTemplate.ExecuteTemplate(w, "remote_account_authentication_page",

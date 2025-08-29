@@ -82,7 +82,39 @@ func checkProtocolsFilter(r *http.Request, isApply bool, filter *Filters) (*Filt
 	return filter, filterProtocol
 }
 
-func supportedProtocolInternal(protocol string) []string {
+func supportedProtocolServer(protocol string) []string {
+	supportedProtocolsExternal := map[string][]string{
+		r66.R66:         {auth.Password},
+		r66.R66TLS:      {auth.Password, auth.TLSCertificate, r66.AuthLegacyCertificate},
+		httpconst.HTTP:  {},
+		httpconst.HTTPS: {auth.TLSCertificate},
+		sftp.SFTP:       {sftp.AuthSSHPrivateKey},
+		pesit.Pesit:     {pesit.PreConnectionAuth},
+		pesit.PesitTLS:  {auth.TLSCertificate, pesit.PreConnectionAuth},
+		ftp.FTP:         {},
+		ftp.FTPS:        {auth.TLSCertificate},
+	}
+
+	return supportedProtocolsExternal[protocol]
+}
+
+func supportedProtocolPartner(protocol string) []string {
+	supportedProtocolsInternal := map[string][]string{
+		r66.R66:         {auth.Password},
+		r66.R66TLS:      {auth.Password, auth.TLSTrustedCertificate, r66.AuthLegacyCertificate},
+		httpconst.HTTP:  {},
+		httpconst.HTTPS: {auth.TLSTrustedCertificate},
+		sftp.SFTP:       {sftp.AuthSSHPublicKey},
+		pesit.Pesit:     {},
+		pesit.PesitTLS:  {auth.TLSTrustedCertificate},
+		ftp.FTP:         {},
+		ftp.FTPS:        {auth.TLSTrustedCertificate},
+	}
+
+	return supportedProtocolsInternal[protocol]
+}
+
+func supportedProtocolLocalAccount(protocol string) []string {
 	supportedProtocolsInternal := map[string][]string{
 		r66.R66:         {auth.Password},
 		r66.R66TLS:      {auth.Password, auth.TLSTrustedCertificate, r66.AuthLegacyCertificate},
@@ -91,12 +123,14 @@ func supportedProtocolInternal(protocol string) []string {
 		sftp.SFTP:       {auth.Password, sftp.AuthSSHPublicKey},
 		pesit.Pesit:     {auth.Password},
 		pesit.PesitTLS:  {auth.Password, auth.TLSTrustedCertificate},
+		ftp.FTP:         {auth.Password},
+		ftp.FTPS:        {auth.Password, auth.TLSTrustedCertificate},
 	}
 
 	return supportedProtocolsInternal[protocol]
 }
 
-func supportedProtocolExternal(protocol string) []string {
+func supportedProtocolRemoteAccount(protocol string) []string {
 	supportedProtocolsExternal := map[string][]string{
 		r66.R66:         {auth.Password},
 		r66.R66TLS:      {auth.Password, auth.TLSCertificate, r66.AuthLegacyCertificate},
@@ -105,6 +139,8 @@ func supportedProtocolExternal(protocol string) []string {
 		sftp.SFTP:       {auth.Password, sftp.AuthSSHPrivateKey},
 		pesit.Pesit:     {auth.Password, pesit.PreConnectionAuth},
 		pesit.PesitTLS:  {auth.TLSCertificate, pesit.PreConnectionAuth},
+		ftp.FTP:         {auth.Password},
+		ftp.FTPS:        {auth.Password, auth.TLSCertificate},
 	}
 
 	return supportedProtocolsExternal[protocol]

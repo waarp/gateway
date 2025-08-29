@@ -317,7 +317,7 @@ func serverAuthenticationPage(logger *log.Logger, db *database.DB) http.HandlerF
 	return func(w http.ResponseWriter, r *http.Request) {
 		userLanguage := r.Context().Value(ContextLanguageKey)
 		tTranslated := //nolint:forcetypeassert //u
-			pageTranslated("server_authentication_page", userLanguage.(string)) //nolint:errcheck //u
+		pageTranslated("server_authentication_page", userLanguage.(string)) //nolint:errcheck //u
 
 		user, err := GetUserByToken(r, db)
 		if err != nil {
@@ -357,7 +357,7 @@ func serverAuthenticationPage(logger *log.Logger, db *database.DB) http.HandlerF
 			return
 		}
 
-		listSupportedProtocol := supportedProtocolExternal(server.Protocol)
+		listSupportedProtocol := supportedProtocolServer(server.Protocol)
 		listSupportedProtocol = slices.DeleteFunc(listSupportedProtocol, func(method_auth string) bool {
 			return method_auth == pesit.PreConnectionAuth
 		})
