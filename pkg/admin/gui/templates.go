@@ -132,6 +132,7 @@ var funcs = template.FuncMap{
 
 		return false
 	},
+	"protocolDisplayName": protocolDisplayName,
 }
 
 func CombinedFuncMap(db *database.DB) template.FuncMap {

@@ -205,3 +205,28 @@ func protocolsFilter(r *http.Request, filter *Filters) (*Filters, []string) {
 
 	return filter, filterProtocol
 }
+
+func protocolDisplayName(protocol string) string {
+	switch protocol {
+	case httpconst.HTTP:
+		return "HTTP"
+	case httpconst.HTTPS:
+		return "HTTPS"
+	case r66.R66:
+		return "R66"
+	case r66.R66TLS:
+		return "R66-TLS"
+	case sftp.SFTP:
+		return "SFTP"
+	case pesit.Pesit:
+		return "PeSIT"
+	case pesit.PesitTLS:
+		return "PeSIT-TLS"
+	case ftp.FTP:
+		return "FTP"
+	case ftp.FTPS:
+		return "FTPS"
+	default:
+		return protocol
+	}
+}
