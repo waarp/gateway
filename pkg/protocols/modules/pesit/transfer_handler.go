@@ -39,7 +39,7 @@ type transferHandler struct {
 	file   *pipeline.FileStream
 }
 
-func (t *transferHandler) getRule(filepath string, isSend bool) (*model.Rule, error) {
+func (t *transferHandler) getRuleByPrefix(filepath string, isSend bool) (*model.Rule, error) {
 	dir := path.Dir(filepath)
 
 	rule, err := protoutils.GetClosestRule(t.db, t.logger, t.agent, t.account, dir, isSend)
@@ -123,7 +123,7 @@ func (t *transferHandler) SelectFile(req *pesit.ServerTransfer) error {
 	if t.cftMode {
 		rule, ruleErr = t.getRuleByName(req.FilenamePI12(), isSend)
 	} else {
-		rule, ruleErr = t.getRule(req.Filename(), isSend)
+		rule, ruleErr = t.getRuleByPrefix(req.Filename(), isSend)
 	}
 
 	if ruleErr != nil {
