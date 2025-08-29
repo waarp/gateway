@@ -5,7 +5,6 @@ import (
 	"encoding/json"
 	"fmt"
 	"net/http"
-	"strconv"
 
 	"code.waarp.fr/lib/log"
 
@@ -43,13 +42,13 @@ func listRemoteAccount(partnerName string, db *database.DB, r *http.Request) (
 	}
 
 	if limitRes := urlParams.Get("limit"); limitRes != "" {
-		if l, err := strconv.ParseUint(limitRes, 10, 64); err == nil {
+		if l, err := internal.ParseUint[uint64](limitRes); err == nil {
 			filter.Limit = l
 		}
 	}
 
 	if offsetRes := urlParams.Get("offset"); offsetRes != "" {
-		if o, err := strconv.ParseUint(offsetRes, 10, 64); err == nil {
+		if o, err := internal.ParseUint[uint64](offsetRes); err == nil {
 			filter.Offset = o
 		}
 	}
@@ -90,7 +89,7 @@ func autocompletionRemoteAccountFunc(db *database.DB) http.HandlerFunc {
 
 		partnerID := urlParams.Get("partnerID")
 		if partnerID != "" {
-			id, err = strconv.ParseUint(partnerID, 10, 64)
+			id, err = internal.ParseUint[uint64](partnerID)
 			if err != nil {
 				http.Error(w, "failed to convert id to int", http.StatusInternalServerError)
 
@@ -143,7 +142,7 @@ func editRemoteAccount(db *database.DB, r *http.Request) error {
 	}
 	remoteAccountID := r.FormValue("editRemoteAccountID")
 
-	id, err := strconv.ParseUint(remoteAccountID, 10, 64)
+	id, err := internal.ParseUint[uint64](remoteAccountID)
 	if err != nil {
 		return fmt.Errorf("failed to convert id to int: %w", err)
 	}
@@ -196,7 +195,7 @@ func deleteRemoteAccount(db *database.DB, r *http.Request) error {
 	}
 	remoteAccountID := r.FormValue("deleteRemoteAccount")
 
-	id, err := strconv.ParseUint(remoteAccountID, 10, 64)
+	id, err := internal.ParseUint[uint64](remoteAccountID)
 	if err != nil {
 		return fmt.Errorf("internal error: %w", err)
 	}
@@ -246,7 +245,7 @@ func callMethodsRemoteAccount(logger *log.Logger, db *database.DB, w http.Respon
 	if r.Method == http.MethodPost && r.FormValue("editRemoteAccountID") != "" {
 		idEdit := r.FormValue("editRemoteAccountID")
 
-		id, err := strconv.ParseUint(idEdit, 10, 64)
+		id, err := internal.ParseUint[uint64](idEdit)
 		if err != nil {
 			logger.Errorf("failed to convert id to int: %v", err)
 
@@ -286,7 +285,7 @@ func remoteAccountPage(logger *log.Logger, db *database.DB) http.HandlerFunc {
 
 		partnerID := r.URL.Query().Get("partnerID")
 		if partnerID != "" {
-			id, err = strconv.ParseUint(partnerID, 10, 64)
+			id, err = internal.ParseUint[uint64](partnerID)
 			if err != nil {
 				logger.Errorf("failed to convert id to int: %v", err)
 			}

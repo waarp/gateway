@@ -5,7 +5,6 @@ import (
 	"encoding/json"
 	"fmt"
 	"net/http"
-	"strconv"
 
 	"code.waarp.fr/lib/log"
 
@@ -43,13 +42,13 @@ func listLocalAccount(serverName string, db *database.DB, r *http.Request) (
 	}
 
 	if limitRes := urlParams.Get("limit"); limitRes != "" {
-		if l, err := strconv.ParseUint(limitRes, 10, 64); err == nil {
+		if l, err := internal.ParseUint[uint64](limitRes); err == nil {
 			filter.Limit = l
 		}
 	}
 
 	if offsetRes := urlParams.Get("offset"); offsetRes != "" {
-		if o, err := strconv.ParseUint(offsetRes, 10, 64); err == nil {
+		if o, err := internal.ParseUint[uint64](offsetRes); err == nil {
 			filter.Offset = o
 		}
 	}
@@ -90,7 +89,7 @@ func autocompletionLocalAccountFunc(db *database.DB) http.HandlerFunc {
 
 		serverID := urlParams.Get("serverID")
 		if serverID != "" {
-			id, err = strconv.ParseUint(serverID, 10, 64)
+			id, err = internal.ParseUint[uint64](serverID)
 			if err != nil {
 				http.Error(w, "failed to convert id to int", http.StatusInternalServerError)
 
@@ -143,7 +142,7 @@ func editLocalAccount(db *database.DB, r *http.Request) error {
 	}
 	localAccountID := r.FormValue("editLocalAccountID")
 
-	id, err := strconv.ParseUint(localAccountID, 10, 64)
+	id, err := internal.ParseUint[uint64](localAccountID)
 	if err != nil {
 		return fmt.Errorf("failed to convert id to int: %w", err)
 	}
@@ -196,7 +195,7 @@ func deleteLocalAccount(db *database.DB, r *http.Request) error {
 	}
 	localAccountID := r.FormValue("deleteLocalAccount")
 
-	id, err := strconv.ParseUint(localAccountID, 10, 64)
+	id, err := internal.ParseUint[uint64](localAccountID)
 	if err != nil {
 		return fmt.Errorf("internal error: %w", err)
 	}
@@ -246,7 +245,7 @@ func callMethodsLocalAccount(logger *log.Logger, db *database.DB, w http.Respons
 	if r.Method == http.MethodPost && r.FormValue("editLocalAccountID") != "" {
 		idEdit := r.FormValue("editLocalAccountID")
 
-		id, err := strconv.ParseUint(idEdit, 10, 64)
+		id, err := internal.ParseUint[uint64](idEdit)
 		if err != nil {
 			logger.Errorf("failed to convert id to int: %v", err)
 
@@ -286,7 +285,7 @@ func localAccountPage(logger *log.Logger, db *database.DB) http.HandlerFunc {
 
 		serverID := r.URL.Query().Get("serverID")
 		if serverID != "" {
-			id, err = strconv.ParseUint(serverID, 10, 64)
+			id, err = internal.ParseUint[uint64](serverID)
 			if err != nil {
 				logger.Errorf("failed to convert id to int: %v", err)
 			}

@@ -90,7 +90,7 @@
                 <hr style="border-top: 1px solid #ababab;">
                 <div class="form-input">
                   <label class="col-form-label">{{ index .tab "address" }} ({{ index .tab "host" }}) <i class="bi bi-info-circle ms-1" data-bs-toggle="tooltip" data-bs-placement="right" data-bs-title="{{ index $.tab "tooltipHost" }}"></i> :</label>
-                  <input type="text" name="addServerHost" class="form-control" required value="{{ index .modalElement "addServerHost" }}">
+                  <input type="text" name="addServerHost" class="form-control" value="{{ index .modalElement "addServerHost" }}">
                 </div>
 
                 <hr style="border-top: 1px solid #ababab;">
@@ -102,25 +102,25 @@
                 <hr style="border-top: 1px solid #ababab;">
                 <div class="form-input">
                   <label class="col-form-label">{{ index .tab "rootDir" }} :</label>
-                  <input type="text" name="addServerRootDir" class="form-control" required value="{{ index .modalElement "addServerRootDir" }}">
+                  <input type="text" name="addServerRootDir" class="form-control"  value="{{ index .modalElement "addServerRootDir" }}">
                 </div>
 
                 <hr style="border-top: 1px solid #ababab;">
                 <div class="form-input">
                   <label class="col-form-label">{{ index .tab "receiveDir" }} :</label>
-                  <input type="text" name="addServerReceiveDir" class="form-control" required value="{{ index .modalElement "addServerReceiveDir" }}">
+                  <input type="text" name="addServerReceiveDir" class="form-control"  value="{{ index .modalElement "addServerReceiveDir" }}">
                 </div>
 
                 <hr style="border-top: 1px solid #ababab;">
                 <div class="form-input">
                   <label class="col-form-label">{{ index .tab "sendDir" }} :</label>
-                  <input type="text" name="addServerSendDir" class="form-control" required value="{{ index .modalElement "addServerSendDir" }}">
+                  <input type="text" name="addServerSendDir" class="form-control"  value="{{ index .modalElement "addServerSendDir" }}">
                 </div>
 
                 <hr style="border-top: 1px solid #ababab;">
                 <div class="form-input">
                   <label class="col-form-label">{{ index .tab "tmpReceiveDir" }} :</label>
-                  <input type="text" name="addServerTmpReceiveDir" class="form-control" required value="{{ index .modalElement "addServerTmpReceiveDir" }}">
+                  <input type="text" name="addServerTmpReceiveDir" class="form-control"  value="{{ index .modalElement "addServerTmpReceiveDir" }}">
                 </div>
                 {{ template "addR66Server" . }}
                 {{ template "addSftpServer" . }}
@@ -419,7 +419,7 @@
                             <hr style="border-top: 1px solid #ababab;">
                             <div class="form-input mt-4">
                               <label class="col-form-label">{{ index $.tab "address" }} ({{ index $.tab "host" }}) <i class="bi bi-info-circle ms-1" data-bs-toggle="tooltip" data-bs-placement="right" data-bs-title="{{ index $.tab "tooltipHost" }}"></i> :</label>
-                              <input type="text" name="editServerHost" class="form-control" required value="{{ if $me }}{{ index $me "editServerHost" }}{{ else }}{{ .Address.Host }}{{ end }}">
+                              <input type="text" name="editServerHost" class="form-control" value="{{ if $me }}{{ index $me "editServerHost" }}{{ else }}{{ .Address.Host }}{{ end }}">
                             </div>
                             <hr style="border-top: 1px solid #ababab;">
                             <div class="form-input mt-4">
@@ -429,22 +429,22 @@
                             <hr style="border-top: 1px solid #ababab;">
                             <div class="form-input mt-4">
                               <label class="col-form-label">{{ index $.tab "rootDir" }} :</label>
-                              <input type="text" name="editServerRootDir" class="form-control" required value="{{ if $me }}{{ index $me "editServerRootDir" }}{{ else }}{{ .RootDir }}{{ end }}">
+                              <input type="text" name="editServerRootDir" class="form-control" value="{{ if $me }}{{ index $me "editServerRootDir" }}{{ else }}{{ .RootDir }}{{ end }}">
                             </div>
                             <hr style="border-top: 1px solid #ababab;">
                             <div class="form-input mt-4">
                               <label class="col-form-label">{{ index $.tab "receiveDir" }} :</label>
-                              <input type="text" name="editServerReceiveDir" class="form-control" required value="{{ if $me }}{{ index $me "editServerReceiveDir" }}{{ else }}{{ .ReceiveDir }}{{ end }}">
+                              <input type="text" name="editServerReceiveDir" class="form-control" value="{{ if $me }}{{ index $me "editServerReceiveDir" }}{{ else }}{{ .ReceiveDir }}{{ end }}">
                             </div>
                             <hr style="border-top: 1px solid #ababab;">
                             <div class="form-input mt-4">
                               <label class="col-form-label">{{ index $.tab "sendDir" }} :</label>
-                              <input type="text" name="editServerSendDir" class="form-control" required value="{{ if $me }}{{ index $me "editServerSendDir" }}{{ else }}{{ .SendDir }}{{ end }}">
+                              <input type="text" name="editServerSendDir" class="form-control" value="{{ if $me }}{{ index $me "editServerSendDir" }}{{ else }}{{ .SendDir }}{{ end }}">
                             </div>
                             <hr style="border-top: 1px solid #ababab;">
                             <div class="form-input mt-4">
                               <label class="col-form-label">{{ index $.tab "tmpReceiveDir" }} :</label>
-                              <input type="text" name="editServerTmpReceiveDir" class="form-control" required value="{{ if $me }}{{ index $me "editServerTmpReceiveDir" }}{{ else }}{{ .TmpReceiveDir }}{{ end }}">
+                              <input type="text" name="editServerTmpReceiveDir" class="form-control" value="{{ if $me }}{{ index $me "editServerTmpReceiveDir" }}{{ else }}{{ .TmpReceiveDir }}{{ end }}">
                             </div>
                             {{ template "editR66Server" (dict "tab" $.tab "ProtoConfig" .ProtoConfig "TLSVersions" $.TLSVersions "modalElement" $me) }}
                             {{ template "editFtpServer" (dict "tab" $.tab "ProtoConfig" .ProtoConfig "TLSVersions" $.TLSVersions "TLSRequirement" $.TLSRequirement "modalElement" $me) }}

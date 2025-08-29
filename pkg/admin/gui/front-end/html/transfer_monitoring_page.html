@@ -152,7 +152,12 @@
                     <hr style="border-top: 1px solid #ababab;">
                     <div class="flex-label-input mb-2">
                         <label class="col-form-label label-light-bold me-3">{{ index $.tab "firstRetryDelay" }} {{ index $.tab "second" }} :</label>
-                        <input type="text" class="form-control-plaintext input-auto-width" value="{{ displayOrDefault .NextRetryDelay (index $.tab "undefined") }}" readonly>
+                        {{ $t := secondFormat (.NextRetryDelay) }}
+                        {{ if and (eq (index $t 0) 0) (eq (index $t 1) 0) (eq (index $t 2) 0) }}
+                          <input type="text" class="form-control-plaintext input-auto-width" value="{{ index $.tab "undefined" }}" readonly>
+                        {{ else }}
+                          <input type="text" class="form-control-plaintext input-auto-width" value="{{ printf "%dh %02dm %02ds" (index $t 0) (index $t 1) (index $t 2) }}" readonly>
+                        {{ end }}
                     </div>
                     <hr style="border-top: 1px solid #ababab;">
                     <div class="flex-label-input mb-2">
@@ -340,26 +345,26 @@
                     <input type="text" name="transferOut" class="form-control" value="{{ index $.modalElement "transferOut" }}">
                   </div>
                   <hr style="border-top: 1px solid #ababab;">
-                  <div class="form-input mb-2 d-flex align-items-center">
-                    <label class="col-form-label me-3">{{ index .tab "rule" }} :</label>
-                    <div class="form-check form-check-inline me-3">
-                        <input class="form-check-input" type="radio" name="ruleDirection" id="ruleSendRadio" value="send" {{ if $.modalElement }}{{ if eq (index $.modalElement "ruleDirection") "send" }}checked{{ end }}{{ else }}checked{{ end }}>
-                        <label class="form-check-label" for="ruleSendRadio">{{ index .tab "send" }}</label>
+                    <div class="form-input mb-2 d-flex align-items-center">
+                      <label class="col-form-label me-3">{{ index .tab "rule" }} :</label>
+                      <div class="form-check form-check-inline me-3">
+                          <input class="form-check-input" type="radio" name="ruleDirection" id="ruleSendRadio" value="send" {{ if $.modalElement }}{{ if eq (index $.modalElement "ruleDirection") "send" }}checked{{ end }}{{ else }}checked{{ end }}>
+                          <label class="form-check-label" for="ruleSendRadio">{{ index .tab "send" }}</label>
+                      </div>
+                      <div class="form-check form-check-inline me-3">
+                          <input class="form-check-input" type="radio" name="ruleDirection" id="ruleReceiveRadio" value="receive" {{ if $.modalElement }}{{ if eq (index $.modalElement "ruleDirection") "receive" }}checked{{ end }}{{ end }}>
+                          <label class="form-check-label" for="ruleReceiveRadio">{{ index .tab "receive" }}</label>
+                      </div>
+                      <select name="transferRule" id="transferRuleSelect" class="form-select ms-2" required style="max-width: 40%;">
+                        <option value="" disabled {{ if $.modalElement }}{{ if eq (index $.modalElement "transferRule") "" }}selected{{ end }}{{ else }}selected{{ end }}>{{ index .tab "selectRule" }}</option>
+                        {{ range .ruleSend }}
+                          <option data-dir="send" value="{{ . }}" {{ if $.modalElement }}{{ if eq (index $.modalElement "transferRule") . }}selected{{ end }}{{ end }}>{{ . }}</option>
+                        {{ end }}
+                        {{ range .ruleReceive }}
+                          <option data-dir="receive" value="{{ . }}" {{ if $.modalElement }}{{ if eq (index $.modalElement "transferRule") . }}selected{{ end }}{{ end }}>{{ . }}</option>
+                        {{ end }}
+                      </select>
                     </div>
-                    <div class="form-check form-check-inline me-3">
-                        <input class="form-check-input" type="radio" name="ruleDirection" id="ruleReceiveRadio" value="receive" {{ if $.modalElement }}{{ if eq (index $.modalElement "ruleDirection") "receive" }}checked{{ end }}{{ end }}>
-                        <label class="form-check-label" for="ruleReceiveRadio">{{ index .tab "receive" }}</label>
-                    </div>
-                    <select name="transferRule" id="transferRuleSelect" class="form-select ms-2" required style="max-width: 40%;">
-                      <option value="" disabled {{ if $.modalElement }}{{ if eq (index $.modalElement "transferRule") "" }}selected{{ end }}{{ else }}selected{{ end }}>{{ index .tab "selectRule" }}</option>
-                      {{ range .ruleSend }}
-                        <option data-dir="send" value="{{ . }}" {{ if $.modalElement }}{{ if eq (index $.modalElement "transferRule") . }}selected{{ end }}{{ end }}>{{ . }}</option>
-                      {{ end }}
-                      {{ range .ruleReceive }}
-                        <option data-dir="receive" value="{{ . }}" {{ if $.modalElement }}{{ if eq (index $.modalElement "transferRule") . }}selected{{ end }}{{ end }}>{{ . }}</option>
-                      {{ end }}
-                    </select>
-                  </div>
                   <hr style="border-top: 1px solid #ababab;">
                   <div class="form-input mt-2">
                     <label class="col-form-label">{{ index .tab "remotePartnerName" }} :</label>

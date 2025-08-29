@@ -3,6 +3,7 @@ package gui
 import (
 	"net/http"
 	"slices"
+	"strconv"
 	"strings"
 
 	"golang.org/x/exp/maps" //nolint:exptostd // does not work when I put only "maps"
@@ -208,6 +209,7 @@ func taskCOPYRENAME(r *http.Request) map[string]string {
 	return taskCopyRenameMap
 }
 
+//nolint:dupl // method for exec
 func taskEXEC(r *http.Request) map[string]string {
 	taskExec := make(map[string]string)
 
@@ -219,13 +221,40 @@ func taskEXEC(r *http.Request) map[string]string {
 		taskExec["args"] = argsExec
 	}
 
-	if delayExec := r.FormValue("delayExec"); delayExec != "" {
-		taskExec["delay"] = delayExec
+	totalMs := 0
+
+	if h := r.FormValue("delayExecH"); h != "" {
+		if v, err := internal.ParseInt[int](h); err == nil {
+			totalMs += v * sHours * msSeconde
+		}
+	}
+
+	if m := r.FormValue("delayExecM"); m != "" {
+		if v, err := internal.ParseInt[int](m); err == nil {
+			totalMs += v * sMinute * msSeconde
+		}
+	}
+
+	if s := r.FormValue("delayExecS"); s != "" {
+		if v, err := internal.ParseInt[int](s); err == nil {
+			totalMs += v * msSeconde
+		}
+	}
+
+	if ms := r.FormValue("delayExecMS"); ms != "" {
+		if v, err := internal.ParseInt[int](ms); err == nil {
+			totalMs += v
+		}
+	}
+
+	if totalMs > 0 {
+		taskExec["delay"] = strconv.Itoa(totalMs)
 	}
 
 	return taskExec
 }
 
+//nolint:dupl // method for exec move
 func taskEXECMOVE(r *http.Request) map[string]string {
 	taskExecMove := make(map[string]string)
 
@@ -237,13 +266,40 @@ func taskEXECMOVE(r *http.Request) map[string]string {
 		taskExecMove["args"] = argsExecMove
 	}
 
-	if delayExecMove := r.FormValue("delayExecMove"); delayExecMove != "" {
-		taskExecMove["delay"] = delayExecMove
+	totalMs := 0
+
+	if h := r.FormValue("delayExecMoveH"); h != "" {
+		if v, err := internal.ParseInt[int](h); err == nil {
+			totalMs += v * sHours * msSeconde
+		}
+	}
+
+	if m := r.FormValue("delayExecMoveM"); m != "" {
+		if v, err := internal.ParseInt[int](m); err == nil {
+			totalMs += v * sMinute * msSeconde
+		}
+	}
+
+	if s := r.FormValue("delayExecMoveS"); s != "" {
+		if v, err := internal.ParseInt[int](s); err == nil {
+			totalMs += v * msSeconde
+		}
+	}
+
+	if ms := r.FormValue("delayExecMoveMS"); ms != "" {
+		if v, err := internal.ParseInt[int](ms); err == nil {
+			totalMs += v
+		}
+	}
+
+	if totalMs > 0 {
+		taskExecMove["delay"] = strconv.Itoa(totalMs)
 	}
 
 	return taskExecMove
 }
 
+//nolint:dupl // method for exec output
 func taskEXECOUTPUT(r *http.Request) map[string]string {
 	taskExecOutput := make(map[string]string)
 
@@ -255,8 +311,34 @@ func taskEXECOUTPUT(r *http.Request) map[string]string {
 		taskExecOutput["args"] = argsExecOutput
 	}
 
-	if delayExecOutput := r.FormValue("delayExecOutput"); delayExecOutput != "" {
-		taskExecOutput["delay"] = delayExecOutput
+	totalMs := 0
+
+	if h := r.FormValue("delayExecOutputH"); h != "" {
+		if v, err := internal.ParseInt[int](h); err == nil {
+			totalMs += v * sHours * msSeconde
+		}
+	}
+
+	if m := r.FormValue("delayExecOutputM"); m != "" {
+		if v, err := internal.ParseInt[int](m); err == nil {
+			totalMs += v * sMinute * msSeconde
+		}
+	}
+
+	if s := r.FormValue("delayExecOutputS"); s != "" {
+		if v, err := internal.ParseInt[int](s); err == nil {
+			totalMs += v * msSeconde
+		}
+	}
+
+	if ms := r.FormValue("delayExecOutputMS"); ms != "" {
+		if v, err := internal.ParseInt[int](ms); err == nil {
+			totalMs += v
+		}
+	}
+
+	if totalMs > 0 {
+		taskExecOutput["delay"] = strconv.Itoa(totalMs)
 	}
 
 	return taskExecOutput
@@ -307,16 +389,24 @@ func taskTRANSFER(r *http.Request) map[string]string {
 		taskTransfer["using"] = usingTransfer
 	}
 
+	ruleDirection := r.FormValue("ruleDirection")
+	taskTransfer["ruleDirection"] = ruleDirection
+
+	if ruleTransfer := r.FormValue("ruleTransfer"); ruleTransfer != "" {
+		taskTransfer["rule"] = ruleTransfer
+	}
+
 	if toTransfer := r.FormValue("toTransfer"); toTransfer != "" {
-		taskTransfer["to"] = toTransfer
+		switch ruleDirection {
+		case "send":
+			taskTransfer["to"] = toTransfer
+		case "receive":
+			taskTransfer["from"] = toTransfer
+		}
 	}
 
 	if asTransfer := r.FormValue("asTransfer"); asTransfer != "" {
 		taskTransfer["as"] = asTransfer
-	}
-
-	if ruleTransfer := r.FormValue("ruleTransfer"); ruleTransfer != "" {
-		taskTransfer["rule"] = ruleTransfer
 	}
 
 	if copyInfoTransfer := r.FormValue("copyInfoTransfer"); copyInfoTransfer != "" {

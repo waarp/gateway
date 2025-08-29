@@ -4,7 +4,6 @@ import (
 	"fmt"
 	"net/http"
 	"slices"
-	"strconv"
 	"strings"
 
 	"code.waarp.fr/lib/log"
@@ -92,7 +91,7 @@ func editPreTask(ruleID int, preTasks []*model.Task, db *database.DB, r *http.Re
 
 	preTaskRank := r.FormValue("editPreTaskRank")
 
-	rank, err := strconv.ParseUint(preTaskRank, 10, 64)
+	rank, err := internal.ParseUint[uint64](preTaskRank)
 	if err != nil {
 		return fmt.Errorf("failed to get rank: %w", err)
 	}
@@ -166,7 +165,7 @@ func deletePreTask(ruleID int, preTasks []*model.Task, db *database.DB, r *http.
 
 	preTaskRank := r.FormValue("deletePreTask")
 
-	rank, err := strconv.ParseUint(preTaskRank, 10, 64)
+	rank, err := internal.ParseUint[uint64](preTaskRank)
 	if err != nil {
 		return fmt.Errorf("failed to get rank: %w", err)
 	}
@@ -192,7 +191,7 @@ func newOrderPreTasks(db *database.DB, r *http.Request, tasks []*model.Task, rul
 	preTasks := make([]*model.Task, len(newOrderTasks))
 
 	for i, str := range newOrderTasks {
-		rank, err := strconv.ParseUint(str, 10, 64)
+		rank, err := internal.ParseUint[uint64](str)
 		if err != nil || int(rank) < 0 || int(rank) >= len(tasks) {
 			continue
 		}
@@ -351,7 +350,7 @@ func editPostTask(ruleID int, postTasks []*model.Task, db *database.DB, r *http.
 
 	postTaskRank := r.FormValue("editPostTaskRank")
 
-	rank, err := strconv.ParseUint(postTaskRank, 10, 64)
+	rank, err := internal.ParseUint[uint64](postTaskRank)
 	if err != nil {
 		return fmt.Errorf("failed to get rank: %w", err)
 	}
@@ -425,7 +424,7 @@ func deletePostTask(ruleID int, postTasks []*model.Task, db *database.DB, r *htt
 
 	postTaskRank := r.FormValue("deletePostTask")
 
-	rank, err := strconv.ParseUint(postTaskRank, 10, 64)
+	rank, err := internal.ParseUint[uint64](postTaskRank)
 	if err != nil {
 		return fmt.Errorf("failed to get rank: %w", err)
 	}
@@ -451,7 +450,7 @@ func newOrderPostTasks(db *database.DB, r *http.Request, tasks []*model.Task, ru
 	postTasks := make([]*model.Task, len(newOrderTasks))
 
 	for i, str := range newOrderTasks {
-		rank, err := strconv.ParseUint(str, 10, 64)
+		rank, err := internal.ParseUint[uint64](str)
 		if err != nil || int(rank) < 0 || int(rank) >= len(tasks) {
 			continue
 		}
@@ -610,7 +609,7 @@ func editErrorTask(ruleID int, errorTasks []*model.Task, db *database.DB, r *htt
 
 	errorTaskRank := r.FormValue("editErrorTaskRank")
 
-	rank, err := strconv.ParseUint(errorTaskRank, 10, 64)
+	rank, err := internal.ParseUint[uint64](errorTaskRank)
 	if err != nil {
 		return fmt.Errorf("failed to get rank: %w", err)
 	}
@@ -684,7 +683,7 @@ func deleteErrorTask(ruleID int, errorTasks []*model.Task, db *database.DB, r *h
 
 	errorTaskRank := r.FormValue("deleteErrorTask")
 
-	rank, err := strconv.ParseUint(errorTaskRank, 10, 64)
+	rank, err := internal.ParseUint[uint64](errorTaskRank)
 	if err != nil {
 		return fmt.Errorf("failed to get rank: %w", err)
 	}
@@ -710,7 +709,7 @@ func newOrderErrorTasks(db *database.DB, r *http.Request, tasks []*model.Task, r
 	errorTasks := make([]*model.Task, len(newOrderTasks))
 
 	for i, str := range newOrderTasks {
-		rank, err := strconv.ParseUint(str, 10, 64)
+		rank, err := internal.ParseUint[uint64](str)
 		if err != nil || int(rank) < 0 || int(rank) >= len(tasks) {
 			continue
 		}
@@ -846,6 +845,51 @@ func listTmplEmail(db *database.DB) []string {
 	return tmplEmailNames
 }
 
+func utilsTransferTasks(logger *log.Logger, db *database.DB,
+) (listPartnersNames, ruleSendNames, ruleReceiveNames []string, listAccountsPartnerNames map[string][]string) {
+	ruleSend, err := internal.ListRulesByDirection(db, "name", true, 0, 0, true)
+	if err != nil {
+		logger.Errorf("failed to get list sending rules: %v", err)
+	}
+
+	ruleReceive, err := internal.ListRulesByDirection(db, "name", true, 0, 0, false)
+	if err != nil {
+		logger.Errorf("failed to get list reception rules: %v", err)
+	}
+
+	for _, r := range ruleSend {
+		ruleSendNames = append(ruleSendNames, r.Name)
+	}
+
+	for _, r := range ruleReceive {
+		ruleReceiveNames = append(ruleReceiveNames, r.Name)
+	}
+
+	listPartners, err := internal.ListPartners(db, "name", true, 0, 0)
+	if err != nil {
+		logger.Errorf("failed to get list partner: %v", err)
+	}
+
+	for _, r := range listPartners {
+		listPartnersNames = append(listPartnersNames, r.Name)
+	}
+
+	listAccountsPartnerNames = make(map[string][]string)
+
+	for _, p := range listPartners {
+		accounts, accErr := internal.ListPartnerAccounts(db, p.Name, "login", true, 0, 0)
+		if accErr == nil {
+			var accountNames []string
+			for _, acc := range accounts {
+				accountNames = append(accountNames, acc.Login)
+			}
+			listAccountsPartnerNames[p.Name] = accountNames
+		}
+	}
+
+	return listPartnersNames, ruleSendNames, ruleReceiveNames, listAccountsPartnerNames
+}
+
 //nolint:funlen // is for one page
 func tasksTransferRulesPage(logger *log.Logger, db *database.DB) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
@@ -864,7 +908,7 @@ func tasksTransferRulesPage(logger *log.Logger, db *database.DB) http.HandlerFun
 
 		ruleID := r.URL.Query().Get("ruleID")
 		if ruleID != "" {
-			id, err = strconv.ParseUint(ruleID, 10, 64)
+			id, err = internal.ParseUint[uint64](ruleID)
 			if err != nil {
 				logger.Errorf("failed to convert id to int: %v", err)
 			}
@@ -912,6 +956,8 @@ func tasksTransferRulesPage(logger *log.Logger, db *database.DB) http.HandlerFun
 			errMsg, modalOpen, modalElement = em, mo, me
 		}
 
+		listPartnersNames, ruleSendNames, ruleReceiveNames, listAccountsPartnerNames := utilsTransferTasks(logger, db)
+
 		if tmplErr := tasksTransferRulesTemplate.ExecuteTemplate(w, "tasks_transfer_rules_page", map[string]any{
 			"myPermission":          myPermission,
 			"tab":                   tTranslated,
@@ -926,6 +972,10 @@ func tasksTransferRulesPage(logger *log.Logger, db *database.DB) http.HandlerFun
 			"listClient":            listClientName(db),
 			"listSMTP":              listSMTPName(db),
 			"listTmplEmail":         listTmplEmail(db),
+			"listPartners":          listPartnersNames,
+			"listAccountsPartner":   listAccountsPartnerNames,
+			"ruleSend":              ruleSendNames,
+			"ruleReceive":           ruleReceiveNames,
 			"TranscodeFormats":      TranscodeFormats,
 			"ArchiveExtensions":     ArchiveExtensions,
 			"EncryptMethods":        EncryptMethods,

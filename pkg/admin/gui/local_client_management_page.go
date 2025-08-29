@@ -44,19 +44,19 @@ func addLocalClient(db *database.DB, r *http.Request) error {
 	}
 
 	if newLocalClientPort := r.FormValue("addLocalClientPort"); newLocalClientPort != "" {
-		port, err := strconv.ParseUint(newLocalClientPort, 10, 16)
+		port, err := internal.ParseUint[uint16](newLocalClientPort)
 		if err != nil {
 			return fmt.Errorf("failed to get port: %w", err)
 		}
-		newLocalClient.LocalAddress.Port = uint16(port)
+		newLocalClient.LocalAddress.Port = port
 	}
 
 	if nbOfAttempts := r.FormValue("nbOfAttempts"); nbOfAttempts != "" {
-		remainingTries, err := strconv.ParseInt(nbOfAttempts, 10, 8)
+		remainingTries, err := internal.ParseInt[int8](nbOfAttempts)
 		if err != nil {
 			return fmt.Errorf("failed to parse remainingTries in int: %w", err)
 		}
-		newLocalClient.NbOfAttempts = int8(remainingTries)
+		newLocalClient.NbOfAttempts = remainingTries
 	}
 
 	retryDelay := ""
@@ -68,7 +68,7 @@ func addLocalClient(db *database.DB, r *http.Request) error {
 		retryDelay += m + "m"
 	}
 
-	if s := r.FormValue("timeoutIcapS"); s != "" {
+	if s := r.FormValue("retryDelayS"); s != "" {
 		retryDelay += s + "s"
 	}
 
@@ -114,7 +114,7 @@ func editLocalClient(db *database.DB, r *http.Request) error {
 	}
 	localClientID := r.FormValue("editLocalClientID")
 
-	id, err := strconv.ParseUint(localClientID, 10, 64)
+	id, err := internal.ParseUint[uint64](localClientID)
 	if err != nil {
 		return fmt.Errorf("failed to convert id to int: %w", err)
 	}
@@ -134,43 +134,51 @@ func editLocalClient(db *database.DB, r *http.Request) error {
 		editLocalClient.Protocol = editLocalClientProtocol
 	}
 
-	if editLocalClientHost := r.FormValue("editLocalClientHost"); editLocalClientHost != "" {
-		editLocalClient.LocalAddress.Host = editLocalClientHost
-	}
+	editLocalClient.LocalAddress.Host = r.FormValue("editLocalClientHost")
 
 	if editLocalClientPort := r.FormValue("editLocalClientPort"); editLocalClientPort != "" {
-		var port uint64
-
-		port, err = strconv.ParseUint(editLocalClientPort, 10, 16)
-		if err != nil {
-			return fmt.Errorf("failed to get port: %w", err)
+		port, portErr := internal.ParseUint[uint16](editLocalClientPort)
+		if portErr != nil {
+			return fmt.Errorf("failed to get port: %w", portErr)
 		}
-		editLocalClient.LocalAddress.Port = uint16(port)
+		editLocalClient.LocalAddress.Port = port
 	}
 
-	if editNbOfAttempts := r.FormValue("editNbOfAttempts"); editNbOfAttempts != "" {
-		attempts, attemptsErr := strconv.ParseInt(editNbOfAttempts, 10, 8)
-		if attemptsErr != nil {
-			return fmt.Errorf("failed to parse remainingTries in int: %w", attemptsErr)
-		}
-		editLocalClient.NbOfAttempts = int8(attempts)
+	editNbOfAttempts := r.FormValue("editNbOfAttempts")
+
+	attempts, attemptsErr := internal.ParseInt[int8](editNbOfAttempts)
+	if attemptsErr != nil {
+		return fmt.Errorf("failed to parse remainingTries in int: %w", attemptsErr)
+	}
+	editLocalClient.NbOfAttempts = attempts
+
+	editRetryDelay := ""
+	if h := r.FormValue("editRetryDelayH"); h != "" {
+		editRetryDelay += h + "h"
 	}
 
-	if editRetryDelay := r.FormValue("editRetryDelay"); editRetryDelay != "" {
-		remainingTries, remainingErr := strconv.ParseInt(editRetryDelay, 10, 32)
-		if remainingErr != nil {
-			return fmt.Errorf("failed to parse remainingTries in int: %w", remainingErr)
-		}
-		editLocalClient.FirstRetryDelay = int32(remainingTries)
+	if m := r.FormValue("editRetryDelayM"); m != "" {
+		editRetryDelay += m + "m"
 	}
 
-	if editRetryIncrementFactor := r.FormValue("editRetryIncrementFactor"); editRetryIncrementFactor != "" {
-		retryIncrementFloat, retryErr := strconv.ParseFloat(editRetryIncrementFactor, 32)
-		if retryErr != nil {
-			return fmt.Errorf("failed to parse retryIncrement in float: %w", retryErr)
-		}
-		editLocalClient.RetryIncrementFactor = float32(retryIncrementFloat)
+	if s := r.FormValue("editRetryDelayS"); s != "" {
+		editRetryDelay += s + "s"
 	}
+
+	firstRetryDelay, err := time.ParseDuration(editRetryDelay)
+	if err == nil && editRetryDelay != "" {
+		editLocalClient.FirstRetryDelay = int32(firstRetryDelay.Seconds())
+	} else {
+		editLocalClient.FirstRetryDelay = 0
+	}
+
+	editRetryIncrementFactor := r.FormValue("editRetryIncrementFactor")
+
+	retryIncrementFloat, retryErr := strconv.ParseFloat(editRetryIncrementFactor, 32)
+	if retryErr != nil {
+		return fmt.Errorf("failed to parse retryIncrement in float: %w", retryErr)
+	}
+	editLocalClient.RetryIncrementFactor = float32(retryIncrementFloat)
 
 	switch editLocalClient.Protocol {
 	case r66.R66, r66.R66TLS:
@@ -199,7 +207,7 @@ func deleteLocalClient(db *database.DB, r *http.Request) error {
 	}
 	localClientID := r.FormValue("deleteLocalClient")
 
-	id, err := strconv.ParseUint(localClientID, 10, 64)
+	id, err := internal.ParseUint[uint64](localClientID)
 	if err != nil {
 		return fmt.Errorf("internal error: %w", err)
 	}
@@ -243,13 +251,13 @@ func listLocalClient(db *database.DB, r *http.Request) ([]*model.Client, Filters
 	}
 
 	if limitRes := urlParams.Get("limit"); limitRes != "" {
-		if l, err := strconv.ParseUint(limitRes, 10, 64); err == nil {
+		if l, err := internal.ParseUint[uint64](limitRes); err == nil {
 			filter.Limit = l
 		}
 	}
 
 	if offsetRes := urlParams.Get("offset"); offsetRes != "" {
-		if o, err := strconv.ParseUint(offsetRes, 10, 64); err == nil {
+		if o, err := internal.ParseUint[uint64](offsetRes); err == nil {
 			filter.Offset = o
 		}
 	}
@@ -356,7 +364,7 @@ func callMethodsLocalClientManagement(logger *log.Logger, db *database.DB, w htt
 	if r.Method == http.MethodPost && r.FormValue("editLocalClientID") != "" {
 		idEdit := r.FormValue("editLocalClientID")
 
-		id, err := strconv.ParseUint(idEdit, 10, 64)
+		id, err := internal.ParseUint[uint64](idEdit)
 		if err != nil {
 			logger.Errorf("failed to convert id to int: %v", err)
 
@@ -397,7 +405,7 @@ func switchClientStatus(db *database.DB, r *http.Request) error {
 	}
 	clientID := r.FormValue("switchClientStatus")
 
-	id, err := strconv.ParseUint(clientID, 10, 64)
+	id, err := internal.ParseUint[uint64](clientID)
 	if err != nil {
 		return fmt.Errorf("failed to convert id to int: %w", err)
 	}

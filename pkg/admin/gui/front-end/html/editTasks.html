@@ -33,9 +33,19 @@
         <input type="text" name="argsExec" class="form-control" value="{{ if $.modalElement }}{{ index $.modalElement "argsExec" }}{{ else }}{{ index .Args "args" }}{{ end }}">
     </div>
     <hr style="border-top: 1px solid #ababab;">
-    <div class="form-input">
+    {{ $t := msFormat (index .Args "delay") }}
+    <div class="form-input d-flex align-items-center me-3">
         <label class="col-form-label">{{ index .tab "delay" }} <i class="bi bi-info-circle ms-1" data-bs-toggle="tooltip" data-bs-placement="right" data-bs-title="{{ index $.tab "tooltipDelay" }}"></i> :</label>
-        <input type="text" name="delayExec" class="form-control" value="{{ if $.modalElement }}{{ index $.modalElement "delayExec" }}{{ else }}{{ index .Args "delay" }}{{ end }}">
+        <div class="input-group" style="max-width: 60%;">
+            <span class="input-group-text">h</span>
+            <input type="text" name="delayExecH" class="form-control" placeholder="00" value="{{ if $.modalElement }}{{ index $.modalElement "delayExecH" }}{{ else }}{{ index $t 0 }}{{ end }}">
+            <span class="input-group-text">m</span>
+            <input type="text" name="delayExecM" class="form-control" placeholder="00" value="{{ if $.modalElement }}{{ index $.modalElement "delayExecM" }}{{ else }}{{ index $t 1 }}{{ end }}">
+            <span class="input-group-text">s</span>
+            <input type="text" name="delayExecS" class="form-control" placeholder="00" value="{{ if $.modalElement }}{{ index $.modalElement "delayExecS" }}{{ else }}{{ index $t 2 }}{{ end }}">
+            <span class="input-group-text">ms</span>
+            <input type="text" name="delayExecMS" class="form-control" placeholder="00" value="{{ if $.modalElement }}{{ index $.modalElement "delayExecMS" }}{{ else }}{{ index $t 3 }}{{ end }}">
+        </div>
     </div>
 </div>
 {{ end }}
@@ -53,9 +63,19 @@
         <input type="text" name="argsExecMove" class="form-control" value="{{ if $.modalElement }}{{ index $.modalElement "argsExecMove" }}{{ else }}{{ index .Args "args" }}{{ end }}">
     </div>
     <hr style="border-top: 1px solid #ababab;">
-    <div class="form-input">
+    {{ $t := msFormat (index .Args "delay") }}
+    <div class="form-input d-flex align-items-center me-3">
         <label class="col-form-label">{{ index .tab "delay" }} <i class="bi bi-info-circle ms-1" data-bs-toggle="tooltip" data-bs-placement="right" data-bs-title="{{ index $.tab "tooltipDelay" }}"></i> :</label>
-        <input type="text" name="delayExecMove" class="form-control" value="{{ if $.modalElement }}{{ index $.modalElement "delayExecMove" }}{{ else }}{{ index .Args "delay" }}{{ end }}">
+        <div class="input-group" style="max-width: 60%;">
+            <span class="input-group-text">h</span>
+            <input type="text" name="delayExecMoveH" class="form-control" placeholder="00" value="{{ if $.modalElement }}{{ index $.modalElement "delayExecMoveH" }}{{ else }}{{ index $t 0 }}{{ end }}">
+            <span class="input-group-text">m</span>
+            <input type="text" name="delayExecMoveM" class="form-control" placeholder="00" value="{{ if $.modalElement }}{{ index $.modalElement "delayExecMoveM" }}{{ else }}{{ index $t 1 }}{{ end }}">
+            <span class="input-group-text">s</span>
+            <input type="text" name="delayExecMoveS" class="form-control" placeholder="00" value="{{ if $.modalElement }}{{ index $.modalElement "delayExecMoveS" }}{{ else }}{{ index $t 2 }}{{ end }}">
+            <span class="input-group-text">ms</span>
+            <input type="text" name="delayExecMoveMS" class="form-control" placeholder="00" value="{{ if $.modalElement }}{{ index $.modalElement "delayExecMoveMS" }}{{ else }}{{ index $t 3 }}{{ end }}">
+        </div>
     </div>
 </div>
 {{ end }}
@@ -73,9 +93,19 @@
         <input type="text" name="argsExecOutput" class="form-control" value="{{ if $.modalElement }}{{ index $.modalElement "argsExecOutput" }}{{ else }}{{ index .Args "args" }}{{ end }}">
     </div>
     <hr style="border-top: 1px solid #ababab;">
-    <div class="form-input">
+    {{ $t := msFormat (index .Args "delay") }}
+    <div class="form-input d-flex align-items-center me-3">
         <label class="col-form-label">{{ index .tab "delay" }} <i class="bi bi-info-circle ms-1" data-bs-toggle="tooltip" data-bs-placement="right" data-bs-title="{{ index $.tab "tooltipDelay" }}"></i> :</label>
-        <input type="text" name="delayExecOutput" class="form-control" value="{{ if $.modalElement }}{{ index $.modalElement "delayExecOutput" }}{{ else }}{{ index .Args "delay" }}{{ end }}">
+        <div class="input-group" style="max-width: 60%;">
+            <span class="input-group-text">h</span>
+            <input type="text" name="delayExecOutputH" class="form-control" placeholder="00" value="{{ if $.modalElement }}{{ index $.modalElement "delayExecOutputH" }}{{ else }}{{ index $t 0 }}{{ end }}">
+            <span class="input-group-text">m</span>
+            <input type="text" name="delayExecOutputM" class="form-control" placeholder="00" value="{{ if $.modalElement }}{{ index $.modalElement "delayExecOutputM" }}{{ else }}{{ index $t 1 }}{{ end }}">
+            <span class="input-group-text">s</span>
+            <input type="text" name="delayExecOutputS" class="form-control" placeholder="00" value="{{ if $.modalElement }}{{ index $.modalElement "delayExecOutputS" }}{{ else }}{{ index $t 2 }}{{ end }}">
+            <span class="input-group-text">ms</span>
+            <input type="text" name="delayExecOutputMS" class="form-control" placeholder="00" value="{{ if $.modalElement }}{{ index $.modalElement "delayExecOutputMS" }}{{ else }}{{ index $t 3 }}{{ end }}">
+        </div>
     </div>
 </div>
 {{ end }}
@@ -112,6 +142,8 @@
 
 {{ define "editTaskTRANSFER" }}
 <div id="taskTRANSFER" class="taskBlock" style="display:none;">
+    <script src="/webui/static/javaScript/dynamicsEditTaskTransfer.js"></script>
+    {{ $args := .Args }}
     <hr style="border-top: 1px solid #ababab;">
     <div class="form-input">
         <label class="col-form-label">{{ index .tab "file" }} <i class="bi bi-info-circle ms-1" data-bs-toggle="tooltip" data-bs-placement="right" data-bs-title="{{ index $.tab "tooltipFile" }}"></i> :</label>
@@ -145,14 +177,67 @@
         </select>
     </div>
     <hr style="border-top: 1px solid #ababab;">
-    <div class="form-input">
-        <label class="col-form-label">{{ index .tab "as" }} <i class="bi bi-info-circle ms-1" data-bs-toggle="tooltip" data-bs-placement="right" data-bs-title="{{ index $.tab "tooltipAs" }}"></i> :</label>
-        <input type="text" name="asTransfer" class="form-control" value="{{ if $.modalElement }}{{ index $.modalElement "asTransfer" }}{{ else }}{{ index .Args "as" }}{{ end }}">
+    <div class="form-input mb-2 d-flex align-items-center">
+        <label class="col-form-label">{{ index .tab "rule" }} <i class="bi bi-info-circle ms-1" data-bs-toggle="tooltip" data-bs-placement="right" data-bs-title="{{ index $.tab "tooltipRule" }}"></i> :</label>
+        <div class="form-check form-check-inline ms-3 me-3">
+            <input class="form-check-input" type="radio" name="ruleDirection" id="ruleSendRadio" value="send"
+              {{ if $.modalElement }}{{ if eq (index $.modalElement "ruleDirection") "send" }}checked{{ end }}{{ else if eq (index $args "ruleDirection") "send" }}checked{{ else if ne (index $args "ruleDirection") "receive" }}checked{{ end }}>
+            <label class="form-check-label" for="ruleSendRadio">{{ index .tab "send" }}</label>
+        </div>
+        <div class="form-check form-check-inline me-3">
+            <input class="form-check-input" type="radio" name="ruleDirection" id="ruleReceiveRadio" value="receive"
+              {{ if $.modalElement }}{{ if eq (index $.modalElement "ruleDirection") "receive" }}checked{{ end }}{{ else if eq (index $args "ruleDirection") "receive" }}checked{{ end }}>
+            <label class="form-check-label" for="ruleReceiveRadio">{{ index .tab "receive" }}</label>
+        </div>
+        <select name="ruleTransfer" id="transferRuleSelect" class="form-select ms-2" required style="max-width: 40%;" data-rules-send='{{ marshalJSON .ruleSend }}' data-rules-receive='{{ marshalJSON .ruleReceive }}' data-selected='{{ if $.modalElement }}{{ index $.modalElement "ruleTransfer" }}{{ else }}{{ index .Args "rule" }}{{ end }}'>
+          <option value="" disabled {{ if $.modalElement }}{{ if eq (index $.modalElement "ruleTransfer") "" }}selected{{ end }}{{ else }}selected{{ end }}>{{ index .tab "selectRule" }}</option>
+            {{ if $.modalElement }}
+                {{ if eq (index $.modalElement "ruleDirection") "receive" }}
+                    {{ range .ruleReceive }}
+                        <option data-dir="receive" value="{{ . }}" {{ if eq (index $.modalElement "ruleTransfer") . }}selected{{ end }}>{{ . }}</option>
+                    {{ end }}
+                {{ else }}
+                    {{ range .ruleSend }}
+                        <option data-dir="send" value="{{ . }}" {{ if eq (index $.modalElement "ruleTransfer") . }}selected{{ end }}>{{ . }}</option>
+                    {{ end }}
+                {{ end }}
+            {{ else }}
+                {{ if eq (index $args "ruleDirection") "receive" }}
+                    {{ range .ruleReceive }}
+                        <option data-dir="receive" value="{{ . }}" {{ if eq (index $args "rule") . }}selected{{ end }}>{{ . }}</option>
+                    {{ end }}
+                {{ else }}
+                    {{ range .ruleSend }}
+                        <option data-dir="send" value="{{ . }}" {{ if eq (index $args "rule") . }}selected{{ end }}>{{ . }}</option>
+                    {{ end }}
+                {{ end }}
+            {{ end }}
+        </select>
     </div>
     <hr style="border-top: 1px solid #ababab;">
     <div class="form-input">
-        <label class="col-form-label">{{ index .tab "rule" }} <i class="bi bi-info-circle ms-1" data-bs-toggle="tooltip" data-bs-placement="right" data-bs-title="{{ index $.tab "tooltipRule" }}"></i> :</label>
-        <input type="text" name="ruleTransfer" class="form-control" value="{{ if $.modalElement }}{{ index $.modalElement "ruleTransfer" }}{{ else }}{{ index .Args "rule" }}{{ end }}">
+        <label class="col-form-label">{{ index .tab "as" }} <i class="bi bi-info-circle ms-1" data-bs-toggle="tooltip" data-bs-placement="right" data-bs-title="{{ index $.tab "tooltipAs" }}"></i> :</label>
+        {{ $to := "" }}
+        {{ if $.modalElement }}
+            {{ $to = index $.modalElement "toTransfer" }}
+        {{ else if index $args "to" }}
+            {{ $to = index $args "to" }}
+        {{ end }}
+        {{ $as := "" }}
+        {{ if $.modalElement }}
+           {{ $as = index $.modalElement "asTransfer" }}
+        {{ else if index $args "as" }}
+            {{ $as = index $args "as" }}
+        {{ end }}
+    <select name="asTransfer" id="asTransfer" class="form-select" required data-selected="{{ $as }}">
+        <option value="" disabled {{ if not $as }}selected{{ end }}>Account</option>
+        {{ $accounts := index .listAccountsPartner $to }}
+        {{ if $accounts }}
+            {{ range $acc := $accounts }}
+                <option value="{{ $acc }}" {{ if eq $acc $as }}selected{{ end }}>{{ $acc }}</option>
+            {{ end }}
+        {{ end }}
+    </select>
     </div>
     <hr style="border-top: 1px solid #ababab;">
     <div class="form-input d-flex align-items-center">

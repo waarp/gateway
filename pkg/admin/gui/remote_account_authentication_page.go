@@ -4,7 +4,6 @@ import (
 	"encoding/json"
 	"fmt"
 	"net/http"
-	"strconv"
 
 	"code.waarp.fr/lib/log"
 
@@ -45,13 +44,13 @@ func listCredentialRemoteAccount(partnerName, login string, db *database.DB, r *
 	}
 
 	if limitRes := urlParams.Get("limit"); limitRes != "" {
-		if l, err := strconv.ParseUint(limitRes, 10, 64); err == nil {
+		if l, err := internal.ParseUint[uint64](limitRes); err == nil {
 			filter.Limit = l
 		}
 	}
 
 	if offsetRes := urlParams.Get("offset"); offsetRes != "" {
-		if o, err := strconv.ParseUint(offsetRes, 10, 64); err == nil {
+		if o, err := internal.ParseUint[uint64](offsetRes); err == nil {
 			filter.Offset = o
 		}
 	}
@@ -95,7 +94,7 @@ func autocompletionCredentialsRemoteAccountsFunc(db *database.DB) http.HandlerFu
 		accountID := urlParams.Get("accountID")
 
 		if accountID != "" {
-			idA, err = strconv.ParseUint(accountID, 10, 64)
+			idA, err = internal.ParseUint[uint64](accountID)
 			if err != nil {
 				http.Error(w, "failed to convert account id to int", http.StatusInternalServerError)
 
@@ -191,7 +190,7 @@ func editCredentialRemoteAccount(account *model.RemoteAccount, db *database.DB, 
 	}
 	credentialAccountID := r.FormValue("editCredentialAccountID")
 
-	id, err := strconv.ParseUint(credentialAccountID, 10, 64)
+	id, err := internal.ParseUint[uint64](credentialAccountID)
 	if err != nil {
 		return fmt.Errorf("failed to convert id to int: %w", err)
 	}
@@ -235,7 +234,7 @@ func deleteCredentialRemoteAccount(account *model.RemoteAccount, db *database.DB
 	}
 	credentialAccountID := r.FormValue("deleteCredentialAccount")
 
-	id, err := strconv.ParseUint(credentialAccountID, 10, 64)
+	id, err := internal.ParseUint[uint64](credentialAccountID)
 	if err != nil {
 		return fmt.Errorf("internal error: %w", err)
 	}
@@ -288,7 +287,7 @@ func callMethodsRemoteAccountAuthentication(logger *log.Logger, db *database.DB,
 	if r.Method == http.MethodPost && r.FormValue("editCredentialAccountID") != "" {
 		idEdit := r.FormValue("editCredentialAccountID")
 
-		id, err := strconv.ParseUint(idEdit, 10, 64)
+		id, err := internal.ParseUint[uint64](idEdit)
 		if err != nil {
 			logger.Errorf("failed to convert id to int: %v", err)
 
@@ -319,7 +318,7 @@ func getPartnerAndAccount(db *database.DB, partnerID, accountID string, logger *
 	var account *model.RemoteAccount
 
 	if partnerID != "" && accountID != "" {
-		idP, err := strconv.ParseUint(partnerID, 10, 64)
+		idP, err := internal.ParseUint[uint64](partnerID)
 		if err != nil {
 			logger.Errorf("failed to convert partner id to int: %v", err)
 
@@ -333,7 +332,7 @@ func getPartnerAndAccount(db *database.DB, partnerID, accountID string, logger *
 			return nil, nil
 		}
 
-		idA, err := strconv.ParseUint(accountID, 10, 64)
+		idA, err := internal.ParseUint[uint64](accountID)
 		if err != nil {
 			logger.Errorf("failed to convert account id to int: %v", err)
 

@@ -15,6 +15,9 @@
     <script>window.verifyKeyTypes = {{ marshalJSON .VerifyKeyTypes }};</script>
     <script>window.encryptSignKeyTypes = {{ marshalJSON .EncryptSignKeyTypes }};</script>
     <script>window.decryptVerifyKeyTypes = {{ marshalJSON .DecryptVerifyKeyTypes }};</script>
+      <script>
+        window.listAccountsPartner = {{ marshalJSON .listAccountsPartner }};
+    </script>
     <script src="/webui/static/javaScript/showDynamicsKeyname.js"></script>
     <script src="/webui/static/javaScript/displayErr.js"></script>
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css" rel="stylesheet">
@@ -388,7 +391,7 @@
                                         {{ template "editTaskMOVE" (dict "tab" $.tab "Args" $current.Args "modalElement" $me) }}
                                         {{ template "editTaskMOVERENAME" (dict "tab" $.tab "Args" $current.Args "modalElement" $me) }}
                                         {{ template "editTaskRENAME" (dict "tab" $.tab "Args" $current.Args "modalElement" $me) }}
-                                        {{ template "editTaskTRANSFER" (dict "tab" $.tab "Args" $current.Args "modalElement" $me "listClient" $.listClient "listPartner" $.listPartner) }}
+                                        {{ template "editTaskTRANSFER" (dict "tab" $.tab "Args" $current.Args "modalElement" $me "listClient" $.listClient "listPartner" $.listPartner "ruleSend" $.ruleSend "ruleReceive" $.ruleReceive "listAccountsPartner" $.listAccountsPartner) }}
                                         {{ template "editTaskTRANSCODE" (dict "tab" $.tab "TranscodeFormats" $.TranscodeFormats "Args" $current.Args "modalElement" $me) }}
                                         {{ template "editTaskARCHIVE" (dict "tab" $.tab "ArchiveExtensions" $.ArchiveExtensions "CompressionLevelList" $.CompressionLevelList "Args" $current.Args "modalElement" $me) }}
                                         {{ template "editTaskEXTRACT" (dict "tab" $.tab "ArchiveExtensions" $.ArchiveExtensions "Args" $current.Args "modalElement" $me) }}
@@ -793,7 +796,7 @@
                                         {{ template "editTaskMOVE" (dict "tab" $.tab "Args" $current.Args "modalElement" $me) }}
                                         {{ template "editTaskMOVERENAME" (dict "tab" $.tab "Args" $current.Args "modalElement" $me) }}
                                         {{ template "editTaskRENAME" (dict "tab" $.tab "Args" $current.Args "modalElement" $me) }}
-                                        {{ template "editTaskTRANSFER" (dict "tab" $.tab "Args" $current.Args "modalElement" $me "listClient" $.listClient "listPartner" $.listPartner) }}
+                                        {{ template "editTaskTRANSFER" (dict "tab" $.tab "Args" $current.Args "modalElement" $me "listClient" $.listClient "listPartner" $.listPartner "ruleSend" $.ruleSend "ruleReceive" $.ruleReceive "listAccountsPartner" $.listAccountsPartner) }}
                                         {{ template "editTaskTRANSCODE" (dict "tab" $.tab "TranscodeFormats" $.TranscodeFormats "Args" $current.Args "modalElement" $me) }}
                                         {{ template "editTaskARCHIVE" (dict "tab" $.tab "ArchiveExtensions" $.ArchiveExtensions "CompressionLevelList" $.CompressionLevelList "Args" $current.Args "modalElement" $me) }}
                                         {{ template "editTaskEXTRACT" (dict "tab" $.tab "ArchiveExtensions" $.ArchiveExtensions "Args" $current.Args "modalElement" $me) }}
@@ -1198,7 +1201,7 @@
                                         {{ template "editTaskMOVE" (dict "tab" $.tab "Args" $current.Args "modalElement" $me) }}
                                         {{ template "editTaskMOVERENAME" (dict "tab" $.tab "Args" $current.Args "modalElement" $me) }}
                                         {{ template "editTaskRENAME" (dict "tab" $.tab "Args" $current.Args "modalElement" $me) }}
-                                        {{ template "editTaskTRANSFER" (dict "tab" $.tab "Args" $current.Args "modalElement" $me "listClient" $.listClient "listPartner" $.listPartner) }}
+                                        {{ template "editTaskTRANSFER" (dict "tab" $.tab "Args" $current.Args "modalElement" $me "listClient" $.listClient "listPartner" $.listPartner "ruleSend" $.ruleSend "ruleReceive" $.ruleReceive "listAccountsPartner" $.listAccountsPartner) }}
                                         {{ template "editTaskTRANSCODE" (dict "tab" $.tab "TranscodeFormats" $.TranscodeFormats "Args" $current.Args "modalElement" $me) }}
                                         {{ template "editTaskARCHIVE" (dict "tab" $.tab "ArchiveExtensions" $.ArchiveExtensions "CompressionLevelList" $.CompressionLevelList "Args" $current.Args "modalElement" $me) }}
                                         {{ template "editTaskEXTRACT" (dict "tab" $.tab "ArchiveExtensions" $.ArchiveExtensions "Args" $current.Args "modalElement" $me) }}

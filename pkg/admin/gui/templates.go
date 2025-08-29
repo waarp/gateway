@@ -21,6 +21,11 @@ const (
 	secret2            = 2
 	secret3            = 3
 	secret4            = 4
+	sHours             = 3600
+	sMinute            = 60
+	msHours            = 3600000
+	msMinute           = 60000
+	msSeconde          = 1000
 	index              = "front-end/html/index.html"
 	header             = "front-end/html/header.html"
 	sidebar            = "front-end/html/sidebar.html"
@@ -131,6 +136,32 @@ var funcs = template.FuncMap{
 		}
 
 		return false
+	},
+	"secondFormat": func(second int32) []int32 {
+		if second == 0 {
+			return []int32{0, 0, 0}
+		}
+
+		h := second / sHours
+		m := (second % sHours) / sMinute
+		s := second % sMinute
+
+		return []int32{h, m, s}
+	},
+	"msFormat": func(ms string) []int32 {
+		if ms == "" {
+			return []int32{0, 0, 0, 0}
+		}
+		val, err := internal.ParseInt[int64](ms)
+		if err != nil || val <= 0 {
+			return []int32{0, 0, 0, 0}
+		}
+		h := int32(val / msHours)
+		m := int32((val % msHours) / msMinute)
+		s := int32((val % msMinute) / msSeconde)
+		res := int32(val % msSeconde)
+
+		return []int32{h, m, s, res}
 	},
 	"protocolDisplayName": protocolDisplayName,
 }

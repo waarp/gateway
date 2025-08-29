@@ -4,7 +4,6 @@ import (
 	"encoding/json"
 	"fmt"
 	"net/http"
-	"strconv"
 
 	"code.waarp.fr/lib/log"
 
@@ -44,13 +43,13 @@ func ListCLoudInstance(db *database.DB, r *http.Request) ([]*model.CloudInstance
 	}
 
 	if limitRes := urlParams.Get("limit"); limitRes != "" {
-		if l, err := strconv.ParseUint(limitRes, 10, 64); err == nil {
+		if l, err := internal.ParseUint[uint64](limitRes); err == nil {
 			filter.Limit = l
 		}
 	}
 
 	if offsetRes := urlParams.Get("offset"); offsetRes != "" {
-		if o, err := strconv.ParseUint(offsetRes, 10, 64); err == nil {
+		if o, err := internal.ParseUint[uint64](offsetRes); err == nil {
 			filter.Offset = o
 		}
 	}
@@ -168,7 +167,7 @@ func editCloudInstance(db *database.DB, r *http.Request) error {
 
 	cloudInstanceID := r.FormValue("editCloudInstanceID")
 
-	id, err := strconv.ParseUint(cloudInstanceID, 10, 64)
+	id, err := internal.ParseUint[uint64](cloudInstanceID)
 	if err != nil {
 		return fmt.Errorf("failed to convert id to int: %w", err)
 	}
@@ -223,7 +222,7 @@ func deleteCloudInstance(db *database.DB, r *http.Request) error {
 	}
 	cloudID := r.FormValue("deleteCloudInstance")
 
-	id, err := strconv.ParseUint(cloudID, 10, 64)
+	id, err := internal.ParseUint[uint64](cloudID)
 	if err != nil {
 		return fmt.Errorf("failed to parse int: %w", err)
 	}
@@ -272,7 +271,7 @@ func callMethodsCloudInstance(logger *log.Logger, db *database.DB, w http.Respon
 	if r.Method == http.MethodPost && r.FormValue("editCloudInstanceID") != "" {
 		idEdit := r.FormValue("editCloudInstanceID")
 
-		id, err := strconv.ParseUint(idEdit, 10, 64)
+		id, err := internal.ParseUint[uint64](idEdit)
 		if err != nil {
 			logger.Errorf("failed to convert id to int: %v", err)
 

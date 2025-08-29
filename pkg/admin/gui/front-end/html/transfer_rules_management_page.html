@@ -49,7 +49,7 @@
                 <div class="form-input d-flex align-items-center">
                     <label class="col-form-label me-3">{{ index .tab "isSend" }} <i class="bi bi-info-circle ms-1" data-bs-toggle="tooltip" data-bs-placement="right" data-bs-title="{{ index .tab "tooltipIsSend" }}"></i> :</label>
                     <div class="form-check form-check-inline">
-                        <input class="form-check-input" type="radio" name="addRuleIsSend" id="addRuleIsSendTrue" value="true" {{ if $.modalElement }}{{ if or (eq (index $.modalElement "addRuleIsSend") "true") (eq (index $.modalElement "addRuleIsSend") true) }}checked{{ end }}{{ end }}>
+                        <input class="form-check-input" type="radio" name="addRuleIsSend" id="addRuleIsSendTrue" value="true" required {{ if $.modalElement }}{{ if or (eq (index $.modalElement "addRuleIsSend") "true") (eq (index $.modalElement "addRuleIsSend") true) }}checked{{ end }}{{ end }}>
                         <label class="form-check-label me-2" for="addRuleIsSendTrue">{{ index .tab "send" }}</label>
                     </div>
                     <div class="form-check form-check-inline">
@@ -259,7 +259,7 @@
                             <div class="form-input d-flex align-items-center">
                                 <label class="col-form-label me-3">{{ index $.tab "isSend" }} <i class="bi bi-info-circle ms-1" data-bs-toggle="tooltip" data-bs-placement="right" data-bs-title="{{ index $.tab "tooltipIsSend" }}"></i> :</label>
                                 <div class="form-check form-check-inline">
-                                  <input class="form-check-input" type="radio" name="editRuleIsSend" id="editRuleIsSendTrue_{{ .ID }}" value="true" {{ if $me }}{{ $v := index $me "editRuleIsSend" }}{{ if or (eq $v "true") (eq $v true) }}checked{{ end }}{{ else if .IsSend }}checked{{ end }}>
+                                  <input class="form-check-input" type="radio" name="editRuleIsSend" id="editRuleIsSendTrue_{{ .ID }}" value="true" required {{ if $me }}{{ $v := index $me "editRuleIsSend" }}{{ if or (eq $v "true") (eq $v true) }}checked{{ end }}{{ else if .IsSend }}checked{{ end }}>
                                   <label class="form-check-label me-2" for="editRuleIsSendTrue_{{ .ID }}">{{ index $.tab "send" }}</label>
                               </div>
                               <div class="form-check form-check-inline">

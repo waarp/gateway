@@ -91,7 +91,7 @@
 
                 <div class="form-input">
                 <label class="col-form-label">{{ index .tab "address" }} ({{ index .tab "host" }}) <i class="bi bi-info-circle ms-1" data-bs-toggle="tooltip" data-bs-placement="right" data-bs-title="{{ index $.tab "tooltipHost" }}"></i> :</label>
-                <input type="text" name="addLocalClientHost" class="form-control" required value="{{ index $.modalElement "addLocalClientHost" }}">
+                <input type="text" name="addLocalClientHost" class="form-control" value="{{ index $.modalElement "addLocalClientHost" }}">
                 </div>
                 <hr style="border-top: 1px solid #ababab;">
 
@@ -314,7 +314,12 @@
                             <hr style="border-top: 1px solid #ababab;">
                             <div class="flex-label-input mb-2">
                                 <label class="col-form-label label-light-bold me-3">{{ index $.tab "firstRetryDelay" }} {{ index $.tab "second" }} :</label>
-                                <input type="text" class="form-control-plaintext input-auto-width" value="{{ displayOrDefault .FirstRetryDelay (index $.tab "undefined") }}" readonly>
+                                {{ $t := secondFormat (.FirstRetryDelay) }}
+                                {{ if and (eq (index $t 0) 0) (eq (index $t 1) 0) (eq (index $t 2) 0) }}
+                                  <input type="text" class="form-control-plaintext input-auto-width" value="{{ index $.tab "undefined" }}" readonly>
+                                {{ else }}
+                                  <input type="text" class="form-control-plaintext input-auto-width" value="{{ printf "%dh %02dm %02ds" (index $t 0) (index $t 1) (index $t 2) }}" readonly>
+                                {{ end }}
                             </div>
                             <hr style="border-top: 1px solid #ababab;">
                             <div class="flex-label-input mb-2">
@@ -406,7 +411,7 @@
                             <hr style="border-top: 1px solid #ababab;">
                             <div class="form-input mt-4">
                             <label class="col-form-label">{{ index $.tab "address" }} ({{ index $.tab "host" }}) <i class="bi bi-info-circle ms-1" data-bs-toggle="tooltip" data-bs-placement="right" data-bs-title="{{ index $.tab "tooltipHost" }}"></i> :</label>
-                            <input type="text" name="editLocalClientHost" class="form-control" required value="{{ if $me }}{{ index $me "editLocalClientHost" }}{{ else }}{{ .LocalAddress.Host }}{{ end }}">
+                            <input type="text" name="editLocalClientHost" class="form-control" value="{{ if $me }}{{ index $me "editLocalClientHost" }}{{ else }}{{ .LocalAddress.Host }}{{ end }}">
                             </div>
                             <hr style="border-top: 1px solid #ababab;">
                             <div class="form-input mt-4">
@@ -419,9 +424,17 @@
                               <input type="text" name="editNbOfAttempts" class="form-control" value="{{ if $me }}{{ index $me "editNbOfAttempts" }}{{ else }}{{ .NbOfAttempts }}{{ end }}">
                             </div>
                             <hr style="border-top: 1px solid #ababab;">
-                            <div class="form-input mb-2x">
-                                <label class="col-form-label me-3">{{ index $.tab "firstRetryDelay" }} {{ index $.tab "second" }}:</label>
-                                <input type="text" name="editRetryDelay" class="form-control" value="{{ if $me }}{{ index $me "editRetryDelay" }}{{ else }}{{ .FirstRetryDelay }}{{ end }}">
+                            {{ $t := secondFormat (.FirstRetryDelay) }}
+                            <div class="form-input d-flex align-items-center">
+                              <label class="col-form-label me-3">{{ index $.tab "firstRetryDelay" }} {{ index $.tab "second" }}:</label>
+                              <div class="input-group" style="max-width: 60%;">
+                                <span class="input-group-text">h</span>
+                                <input type="text" name="editRetryDelayH" class="form-control" value="{{ if $me }}{{ index $me "editRetryDelayH" }}{{ else }}{{ index $t 0 }}{{ end }}">
+                                <span class="input-group-text">m</span>
+                                <input type="text" name="editRetryDelayM" class="form-control" value="{{ if $me }}{{ index $me "editRetryDelayM" }}{{ else }}{{ index $t 1 }}{{ end }}">
+                                <span class="input-group-text">s</span>
+                                <input type="text" name="editRetryDelayS" class="form-control" value="{{ if $me }}{{ index $me "editRetryDelayS" }}{{ else }}{{ index $t 2 }}{{ end }}">
+                              </div>
                             </div>
                             <hr style="border-top: 1px solid #ababab;">
                             <div class="form-input mb-2">
