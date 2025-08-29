@@ -375,7 +375,7 @@ func switchServerStatus(db *database.DB, r *http.Request) error {
 
 	state, _ := internal.GetServerStatus(server)
 
-	if state == utils.StateOffline {
+	if state == utils.StateOffline || state == utils.StateError {
 		if restartErr := internal.RestartServer(r.Context(), db, server); restartErr != nil {
 			return fmt.Errorf("failed to restart client: %w", restartErr)
 		}

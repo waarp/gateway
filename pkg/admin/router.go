@@ -34,5 +34,5 @@ func MakeHandler(logger *log.Logger, db *database.DB) *mux.Router {
 }
 
 func guiRedirect(w http.ResponseWriter, r *http.Request) {
-	http.Redirect(w, r, gui.Prefix, http.StatusPermanentRedirect)
+	http.Redirect(w, r, gui.Prefix + "/", http.StatusPermanentRedirect)
 }

@@ -405,7 +405,7 @@ func switchClientStatus(db *database.DB, r *http.Request) error {
 
 	state, _ := internal.GetClientStatus(client)
 
-	if state == utils.StateOffline {
+	if state == utils.StateOffline || state == utils.StateError {
 		if restartErr := internal.RestartClient(r.Context(), db, client); restartErr != nil {
 			return fmt.Errorf("failed to restart client: %w", restartErr)
 		}
