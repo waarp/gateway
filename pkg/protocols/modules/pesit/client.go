@@ -38,7 +38,7 @@ func (c *client) Start() error {
 	c.logger = logging.NewLogger(c.dbClient.Name)
 	if err := c.start(); err != nil {
 		c.state.Set(utils.StateError, err.Error())
-		c.logger.Errorf("failed to start the SFTP client: %v", err)
+		c.logger.Errorf("failed to start the PeSIT client: %v", err)
 
 		return err
 	}
@@ -59,7 +59,7 @@ func (c *client) start() error {
 	if c.dbClient.LocalAddress.IsSet() {
 		var err error
 		if c.dialer.LocalAddr, err = net.ResolveTCPAddr("tcp", c.dbClient.LocalAddress.String()); err != nil {
-			return fmt.Errorf("failed to parse the PESIT client's local address: %w", err)
+			return fmt.Errorf("failed to parse the PeSIT client's local address: %w", err)
 		}
 	}
 
@@ -84,9 +84,9 @@ func (c *client) Stop(ctx context.Context) error {
 
 func (c *client) stop(ctx context.Context) error {
 	if err := pipeline.List.StopAllFromClient(ctx, c.dbClient.ID); err != nil {
-		c.logger.Errorf("Failed to stop the Pesit client: %v", err)
+		c.logger.Errorf("Failed to stop the PeSIT client: %v", err)
 
-		return fmt.Errorf("failed to stop the Pesit client: %w", err)
+		return fmt.Errorf("failed to stop the PeSIT client: %w", err)
 	}
 
 	return nil
@@ -106,7 +106,7 @@ func (c *client) initTransfer(pip *pipeline.Pipeline) (*clientTransfer, *pipelin
 	if pip.TransCtx.Rule.IsSend || pip.TransCtx.Transfer.Step > types.StepSetup {
 		pesitID64, convErr := strconv.ParseUint(pip.TransCtx.Transfer.RemoteTransferID, 10, 32)
 		if convErr != nil {
-			return nil, pipeline.NewErrorWith(types.TeInternal, "failed to parse Pesit transfer ID", convErr)
+			return nil, pipeline.NewErrorWith(types.TeInternal, "failed to parse PeSIT transfer ID", convErr)
 		}
 
 		pesitID = uint32(pesitID64)

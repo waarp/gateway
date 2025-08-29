@@ -80,6 +80,7 @@ func (t *transferHandler) SelectFile(req *pesit.ServerTransfer) error {
 
 	t.logger.Debugf("Request received for file %q by %q", req.Filename(), req.ClientLogin())
 
+	req.SetArticleFormat(pesit.FormatVariable)
 	req.SetArticleSize(defaultArticleSize)
 
 	if t.conf.MaxMessageSize < req.MessageSize() {
@@ -113,6 +114,12 @@ func (t *transferHandler) SelectFile(req *pesit.ServerTransfer) error {
 		remoteTransferID string
 	)
 
+	if req.TransferID() == 0 {
+		req.SetTransferID(uint32(1))
+	}
+
+	t.cftMode = true
+
 	if t.cftMode {
 		rule, ruleErr = t.getRuleByName(req.FilenamePI12(), isSend)
 	} else {
@@ -120,6 +127,7 @@ func (t *transferHandler) SelectFile(req *pesit.ServerTransfer) error {
 	}
 
 	if ruleErr != nil {
+		t.logger.Errorf("Failed to get the transfer rule: %v", ruleErr)
 		return ruleErr
 	}
 
@@ -238,18 +246,16 @@ func (t *transferHandler) initPipeline(req *pesit.ServerTransfer,
 		if err := setFileEncoding(t.pip, req); err != nil {
 			return err
 		}
-	} else {
-		setTransInfo(t.pip, fileEncodingKey, req.DataCoding().String())
-		setTransInfo(t.pip, fileTypeKey, req.FileType())
-		setTransInfo(t.pip, organizationKey, req.FileOrganization().String())
-	}
 
-	if t.pip.TransCtx.Rule.IsSend {
 		if err := setFreetext(pip, serverTransFreetextKey, req); err != nil {
 			t.logger.Errorf("Failed to set server transfer freetext: %v", err)
 
 			return transErrToPesitErr(err)
 		}
+	} else {
+		setTransInfo(t.pip, fileEncodingKey, req.DataCoding().String())
+		setTransInfo(t.pip, fileTypeKey, req.FileType())
+		setTransInfo(t.pip, organizationKey, req.FileOrganization().String())
 	}
 
 	return utils.RunWithCtx(t.ctx, func() error {

@@ -130,7 +130,8 @@ func (s *server) Connect(conn *pesit.ServerConnection) (pesit.TransferHandler, e
 		conf:         &s.conf.ServerConfig,
 		tracer:       s.tracer,
 		connFreetext: conn.FreeText(),
-		cftMode:      conn.UseCFTCompatibility(),
+		// cftMode:      conn.UseCFTCompatibility(),
+		cftMode: true,
 	}, nil
 }
 
