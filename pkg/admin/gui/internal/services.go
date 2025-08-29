@@ -49,6 +49,36 @@ func restartService(ctx context.Context, service services.Service) error {
 	return nil
 }
 
+func AddServer(db *database.DB, server *model.LocalAgent) error {
+	if err := InsertServer(db, server); err != nil {
+		return err
+	}
+
+	module := protocols.Get(server.Protocol)
+	if module == nil {
+		return fmt.Errorf("%w %q", ErrUnknownProtocol, server.Protocol)
+	}
+
+	services.Servers[server.Name] = module.NewServer(db, server)
+
+	return nil
+}
+
+func AddClient(db *database.DB, client *model.Client) error {
+	if err := InsertClient(db, client); err != nil {
+		return err
+	}
+
+	module := protocols.Get(client.Protocol)
+	if module == nil {
+		return fmt.Errorf("%w %q", ErrUnknownProtocol, client.Protocol)
+	}
+
+	services.Clients[client.Name] = module.NewClient(db, client)
+
+	return nil
+}
+
 func RestartServer(ctx context.Context, db *database.DB, server *model.LocalAgent) error {
 	service, hasService := services.Servers[server.Name]
 	if !hasService {
@@ -109,4 +139,24 @@ func StopClient(ctx context.Context, client *model.Client) error {
 	}
 
 	return nil
+}
+
+func RemoveServer(ctx context.Context, db *database.DB, server *model.LocalAgent) error {
+	if err := StopServer(ctx, server); err != nil && !errors.Is(err, ErrServerNotRunning) {
+		return err
+	}
+
+	delete(services.Servers, server.Name)
+
+	return DeleteServer(db, server)
+}
+
+func RemoveClient(ctx context.Context, db *database.DB, client *model.Client) error {
+	if err := StopClient(ctx, client); err != nil && !errors.Is(err, ErrClientNotRunning) {
+		return err
+	}
+
+	delete(services.Clients, client.Name)
+
+	return DeleteClient(db, client)
 }

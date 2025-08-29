@@ -98,7 +98,7 @@ func addLocalClient(db *database.DB, r *http.Request) error {
 		newLocalClient.ProtoConfig = protoConfigPeSITClient(r)
 	}
 
-	if err := internal.InsertClient(db, &newLocalClient); err != nil {
+	if err := internal.AddClient(db, &newLocalClient); err != nil {
 		return fmt.Errorf("failed to add local client: %w", err)
 	}
 
@@ -205,7 +205,7 @@ func deleteLocalClient(db *database.DB, r *http.Request) error {
 		return fmt.Errorf("internal error: %w", err)
 	}
 
-	if err = internal.DeleteClient(db, localClient); err != nil {
+	if err = internal.RemoveClient(r.Context(), db, localClient); err != nil {
 		return fmt.Errorf("internal error: %w", err)
 	}
 
@@ -424,7 +424,7 @@ func localClientManagementPage(logger *log.Logger, db *database.DB) http.Handler
 	return func(w http.ResponseWriter, r *http.Request) {
 		userLanguage := r.Context().Value(ContextLanguageKey)
 		tabTranslated := //nolint:forcetypeassert //u
-			pageTranslated("local_client_management_page", userLanguage.(string)) //nolint:errcheck //u
+		pageTranslated("local_client_management_page", userLanguage.(string)) //nolint:errcheck //u
 		localClientList, filter, localClientFound := listLocalClient(db, r)
 
 		if pageName := r.URL.Query().Get("clearFiltersPage"); pageName != "" {

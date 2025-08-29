@@ -76,7 +76,7 @@ func addServer(db *database.DB, r *http.Request) error {
 		newServer.ProtoConfig = protoConfigPeSITServer(r, newServer.Protocol)
 	}
 
-	if err := internal.InsertServer(db, &newServer); err != nil {
+	if err := internal.AddServer(db, &newServer); err != nil {
 		return fmt.Errorf("failed to add server: %w", err)
 	}
 
@@ -175,7 +175,7 @@ func deleteServer(db *database.DB, r *http.Request) error {
 		return fmt.Errorf("internal error: %w", err)
 	}
 
-	if err = internal.DeleteServer(db, server); err != nil {
+	if err = internal.RemoveServer(r.Context(), db, server); err != nil {
 		return fmt.Errorf("internal error: %w", err)
 	}
 
