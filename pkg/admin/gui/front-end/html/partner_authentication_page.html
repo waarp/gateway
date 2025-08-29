@@ -159,7 +159,7 @@
                         {{ if eq (displayOrDefault .Value (index $.tab "undefined")) (index $.tab "undefined") }}
                             <span class="input-undefined">{{ displayOrDefault .Value (index $.tab "undefined") }}</span>
                         {{ else }}
-                            {{ .Value }}
+                            <span style="white-space: pre-wrap;">{{ .Value }}</span>
                         {{ end }}
                       </div>
                     </div>

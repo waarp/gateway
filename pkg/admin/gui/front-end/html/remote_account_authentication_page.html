@@ -165,7 +165,7 @@
                                         {{ if eq (displayOrDefault .Value (index $.tab "undefined")) (index $.tab "undefined") }}
                                             <span class="input-undefined">{{ displayOrDefault .Value (index $.tab "undefined") }}</span>
                                         {{ else }}
-                                            {{ .Value }}
+                                            <span style="white-space: pre-wrap;">{{ .Value }}</span>
                                         {{ end }}
                                     </div>
                                 </div>
@@ -185,7 +185,7 @@
                                         {{ if eq (displayOrDefault .Value2 (index $.tab "undefined")) (index $.tab "undefined") }}
                                             <span class="input-undefined">{{ displayOrDefault .Value2 (index $.tab "undefined") }}</span>
                                         {{ else }}
-                                            {{ .Value2 }}
+                                            <span style="white-space: pre-wrap;">{{ .Value2 }}</span>
                                         {{ end }}
                                     </div>
                                 </div>
