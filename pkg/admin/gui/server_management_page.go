@@ -31,6 +31,8 @@ func addServer(db *database.DB, r *http.Request) error {
 		newServer.Name = newServerName
 	}
 
+	newServer.Disabled = r.FormValue("addNoAutoStart") == True
+
 	if newServerProtocol := r.FormValue("addServerProtocol"); newServerProtocol != "" {
 		newServer.Protocol = newServerProtocol
 	}
@@ -103,6 +105,8 @@ func editServer(db *database.DB, r *http.Request) error {
 	if editServerName := r.FormValue("editServerName"); editServerName != "" {
 		editServer.Name = editServerName
 	}
+
+	editServer.Disabled = r.FormValue("editNoAutoStart") == True
 
 	if editServerProtocol := r.FormValue("editServerProtocol"); editServerProtocol != "" {
 		editServer.Protocol = editServerProtocol

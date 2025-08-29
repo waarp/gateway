@@ -33,6 +33,8 @@ func addLocalClient(db *database.DB, r *http.Request) error {
 		newLocalClient.Name = newLocalClientName
 	}
 
+	newLocalClient.Disabled = r.FormValue("addNoAutoStart") == True
+
 	if newLocalClientProtocol := r.FormValue("addLocalClientProtocol"); newLocalClientProtocol != "" {
 		newLocalClient.Protocol = newLocalClientProtocol
 	}
@@ -125,6 +127,8 @@ func editLocalClient(db *database.DB, r *http.Request) error {
 	if editLocalClientName := r.FormValue("editLocalClientName"); editLocalClientName != "" {
 		editLocalClient.Name = editLocalClientName
 	}
+
+	editLocalClient.Disabled = r.FormValue("editNoAutoStart") == True
 
 	if editLocalClientProtocol := r.FormValue("editLocalClientProtocol"); editLocalClientProtocol != "" {
 		editLocalClient.Protocol = editLocalClientProtocol

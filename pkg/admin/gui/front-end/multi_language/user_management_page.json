@@ -42,7 +42,7 @@
     "usernameStr": { "fr": "Nom d'utilisateur", "en": "User name" },
     "passwordStr": { "fr": "Mot de passe", "en": "Password" },
     "passwordConfirmStr": { "fr": "Confirmer le mot de passe", "en": "Confirm password" },
-    "addUserTitle": { "fr": "Ajouter un nouvelle utilisateur", "en": "Add a new user" },
+    "addUserTitle": { "fr": "Ajouter un nouvel utilisateur", "en": "Add a new user" },
     "revision": { "fr": "Révision", "en": "Revision" },
     "license": { "fr": "Licence", "en": "License" },
     "links": { "fr": "Liens", "en": "Links" },
