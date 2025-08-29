@@ -336,7 +336,7 @@
                   <input type="hidden" name="switchClientStatus" value="{{ .ID }}">
                   {{ if eq (index $state 0) "Running" }}
                     <button type="submit" class="btn btn-outline-secondary btn-sm me-1" data-bs-toggle="tooltip" data-bs-placement="top" data-bs-title="{{ index $.tab "pause" }}">
-                      <i class="bi bi-pause"></i>
+                      <i class="bi bi-stop"></i>
                     </button>
                   {{ else if or (eq (index $state 0) "Offline") (eq (index $state 0) "Error") }}
                     <button type="submit" class="btn btn-outline-success btn-sm me-1" data-bs-toggle="tooltip" data-bs-placement="top" data-bs-title="{{ index $.tab "resume" }}">
