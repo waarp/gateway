@@ -4,7 +4,6 @@ import (
 	"encoding/json"
 	"fmt"
 	"net/http"
-	"strconv"
 
 	"code.waarp.fr/lib/log"
 
@@ -44,13 +43,13 @@ func listCredentialPartner(partnerName string, db *database.DB, r *http.Request)
 	}
 
 	if limitRes := urlParams.Get("limit"); limitRes != "" {
-		if l, err := strconv.ParseUint(limitRes, 10, 64); err == nil {
+		if l, err := internal.ParseUint[uint64](limitRes); err == nil {
 			filter.Limit = l
 		}
 	}
 
 	if offsetRes := urlParams.Get("offset"); offsetRes != "" {
-		if o, err := strconv.ParseUint(offsetRes, 10, 64); err == nil {
+		if o, err := internal.ParseUint[uint64](offsetRes); err == nil {
 			filter.Offset = o
 		}
 	}
@@ -92,7 +91,7 @@ func autocompletionCredentialsPartnersFunc(db *database.DB) http.HandlerFunc {
 
 		partnerID := urlParams.Get("partnerID")
 		if partnerID != "" {
-			id, err = strconv.ParseUint(partnerID, 10, 64)
+			id, err = internal.ParseUint[uint64](partnerID)
 			if err != nil {
 				http.Error(w, "failed to convert id to int", http.StatusInternalServerError)
 
@@ -146,7 +145,7 @@ func editCredentialPartner(partnerName string, db *database.DB, r *http.Request)
 	}
 	credentialPartnerID := r.FormValue("editCredentialPartnerID")
 
-	id, err := strconv.ParseUint(credentialPartnerID, 10, 64)
+	id, err := internal.ParseUint[uint64](credentialPartnerID)
 	if err != nil {
 		return fmt.Errorf("failed to convert id to int: %w", err)
 	}
@@ -221,7 +220,7 @@ func deleteCredentialPartner(partnerName string, db *database.DB, r *http.Reques
 	}
 	credentialPartnerID := r.FormValue("deleteCredentialPartner")
 
-	id, err := strconv.ParseUint(credentialPartnerID, 10, 64)
+	id, err := internal.ParseUint[uint64](credentialPartnerID)
 	if err != nil {
 		return fmt.Errorf("internal error: %w", err)
 	}
@@ -272,7 +271,7 @@ func callMethodsPartnerAuthentication(logger *log.Logger, db *database.DB, w htt
 	if r.Method == http.MethodPost && r.FormValue("editCredentialPartnerID") != "" {
 		idEdit := r.FormValue("editCredentialPartnerID")
 
-		id, err := strconv.ParseUint(idEdit, 10, 64)
+		id, err := internal.ParseUint[uint64](idEdit)
 		if err != nil {
 			logger.Errorf("failed to convert id to int: %v", err)
 
@@ -311,7 +310,7 @@ func partnerAuthenticationPage(logger *log.Logger, db *database.DB) http.Handler
 
 		partnerID := r.URL.Query().Get("partnerID")
 		if partnerID != "" {
-			id, err = strconv.ParseUint(partnerID, 10, 64)
+			id, err = internal.ParseUint[uint64](partnerID)
 			if err != nil {
 				logger.Errorf("failed to convert id to int: %v", err)
 			}

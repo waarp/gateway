@@ -28,7 +28,13 @@
 <hr style="border-top: 1px solid #ababab;">
 <div class="flex-label-input">
     <label class="col-form-label label-light-bold me-3">{{ index .tab "delay" }} <i class="bi bi-info-circle ms-1" data-bs-toggle="tooltip" data-bs-placement="right" data-bs-title="{{ index $.tab "tooltipDelay" }}"></i> :</label>
-    <input type="text" class="form-control-plaintext input-auto-width" value="{{ displayOrDefault (index .Args "delay") (index $.tab "undefined") }}" disabled>
+    {{ $delay := index .Args "delay" }}
+    {{ if eq $delay "" }}
+      <input type="text" class="form-control-plaintext input-auto-width" value="{{ index $.tab "undefined" }}" disabled>
+    {{ else }}
+      {{ $t := msFormat $delay }}
+      <input type="text" class="form-control-plaintext input-auto-width" value="{{ printf "%dh %02dm %02ds %02dms" (index $t 0) (index $t 1) (index $t 2) (index $t 3) }}" disabled>
+    {{ end }}
 </div>
 {{ end }}
 
@@ -45,7 +51,13 @@
 <hr style="border-top: 1px solid #ababab;">
 <div class="flex-label-input">
     <label class="col-form-label label-light-bold me-3">{{ index .tab "delay" }} <i class="bi bi-info-circle ms-1" data-bs-toggle="tooltip" data-bs-placement="right" data-bs-title="{{ index $.tab "tooltipDelay" }}"></i> :</label>
-    <input type="text" class="form-control-plaintext input-auto-width" value="{{ displayOrDefault (index .Args "delay") (index $.tab "undefined") }}" disabled>
+    {{ $delay := index .Args "delay" }}
+    {{ if eq $delay "" }}
+      <input type="text" class="form-control-plaintext input-auto-width" value="{{ index $.tab "undefined" }}" disabled>
+    {{ else }}
+      {{ $t := msFormat $delay }}
+      <input type="text" class="form-control-plaintext input-auto-width" value="{{ printf "%dh %02dm %02ds %02dms" (index $t 0) (index $t 1) (index $t 2) (index $t 3) }}" disabled>
+    {{ end }}
 </div>
 {{ end }}
 
@@ -62,7 +74,13 @@
 <hr style="border-top: 1px solid #ababab;">
 <div class="flex-label-input">
     <label class="col-form-label label-light-bold me-3">{{ index .tab "delay" }} <i class="bi bi-info-circle ms-1" data-bs-toggle="tooltip" data-bs-placement="right" data-bs-title="{{ index $.tab "tooltipDelay" }}"></i> :</label>
-    <input type="text" class="form-control-plaintext input-auto-width" value="{{ displayOrDefault (index .Args "delay") (index $.tab "undefined") }}" disabled>
+    {{ $delay := index .Args "delay" }}
+    {{ if eq $delay "" }}
+      <input type="text" class="form-control-plaintext input-auto-width" value="{{ index $.tab "undefined" }}" disabled>
+    {{ else }}
+      {{ $t := msFormat $delay }}
+      <input type="text" class="form-control-plaintext input-auto-width" value="{{ printf "%dh %02dm %02ds %02dms" (index $t 0) (index $t 1) (index $t 2) (index $t 3) }}" disabled>
+    {{ end }}
 </div>
 {{ end }}
 
@@ -104,8 +122,13 @@
 </div>
 <hr style="border-top: 1px solid #ababab;">
 <div class="flex-label-input">
-    <label class="col-form-label label-light-bold me-3">{{ index .tab "to" }} <i class="bi bi-info-circle ms-1" data-bs-toggle="tooltip" data-bs-placement="right" data-bs-title="{{ index $.tab "tooltipTo" }}"></i> :</label>
-    <input type="text" class="form-control-plaintext input-auto-width" value="{{ displayOrDefault (index .Args "to") (index $.tab "undefined") }}" disabled>
+    {{ if eq (index .Args "ruleDirection") "send" }}
+        <label class="col-form-label label-light-bold me-3">{{ index .tab "to" }} <i class="bi bi-info-circle ms-1" data-bs-toggle="tooltip" data-bs-placement="right" data-bs-title="{{ index $.tab "tooltipTo" }}"></i> :</label>
+        <input type="text" class="form-control-plaintext input-auto-width" value="{{ displayOrDefault (index .Args "to") (index $.tab "undefined") }}" disabled>
+    {{ else if eq (index .Args "ruleDirection") "receive" }}
+        <label class="col-form-label label-light-bold me-3">{{ index .tab "from" }} <i class="bi bi-info-circle ms-1" data-bs-toggle="tooltip" data-bs-placement="right" data-bs-title="{{ index $.tab "tooltipFrom" }}"></i> :</label>
+        <input type="text" class="form-control-plaintext input-auto-width" value="{{ displayOrDefault (index .Args "from") (index $.tab "undefined") }}" disabled>
+    {{ end }}
 </div>
 <hr style="border-top: 1px solid #ababab;">
 <div class="flex-label-input">

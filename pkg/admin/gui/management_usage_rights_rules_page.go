@@ -5,7 +5,6 @@ import (
 	"fmt"
 	"html/template"
 	"net/http"
-	"strconv"
 
 	"code.waarp.fr/lib/log"
 
@@ -395,7 +394,7 @@ func deleteAuthorizedLocalAccounts(ruleID int, db *database.DB, r *http.Request)
 
 	errorTaskID := r.FormValue("deleteAuthorizedLocalAccount")
 
-	id, err := strconv.ParseUint(errorTaskID, 10, 64)
+	id, err := internal.ParseUint[uint64](errorTaskID)
 	if err != nil {
 		return fmt.Errorf("failed to get id: %w", err)
 	}
@@ -548,7 +547,7 @@ func deleteAuthorizedRemoteAccounts(ruleID int, db *database.DB, r *http.Request
 
 	errorTaskID := r.FormValue("deleteAuthorizedRemoteAccount")
 
-	id, err := strconv.ParseUint(errorTaskID, 10, 64)
+	id, err := internal.ParseUint[uint64](errorTaskID)
 	if err != nil {
 		return fmt.Errorf("failed to get id: %w", err)
 	}
@@ -747,7 +746,7 @@ func managementUsageRightsRulesPage(logger *log.Logger, db *database.DB) http.Ha
 
 		ruleID := r.URL.Query().Get("ruleID")
 		if ruleID != "" {
-			id, err = strconv.ParseUint(ruleID, 10, 64)
+			id, err = internal.ParseUint[uint64](ruleID)
 			if err != nil {
 				logger.Errorf("failed to convert id to int: %v", err)
 			}

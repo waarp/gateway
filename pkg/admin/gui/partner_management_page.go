@@ -4,7 +4,6 @@ import (
 	"encoding/json"
 	"fmt"
 	"net/http"
-	"strconv"
 
 	"code.waarp.fr/lib/log"
 
@@ -25,7 +24,7 @@ func editPartner(db *database.DB, r *http.Request) error {
 	}
 	partnerID := r.FormValue("editPartnerID")
 
-	id, err := strconv.ParseUint(partnerID, 10, 64)
+	id, err := internal.ParseUint[uint64](partnerID)
 	if err != nil {
 		return fmt.Errorf("failed to convert id to int: %w", err)
 	}
@@ -48,13 +47,11 @@ func editPartner(db *database.DB, r *http.Request) error {
 	}
 
 	if editPartnerPort := r.FormValue("editPartnerPort"); editPartnerPort != "" {
-		var port uint64
-
-		port, err = strconv.ParseUint(editPartnerPort, 10, 16)
-		if err != nil {
-			return fmt.Errorf("failed to get port: %w", err)
+		port, portErr := internal.ParseUint[uint16](editPartnerPort)
+		if portErr != nil {
+			return fmt.Errorf("failed to get port: %w", portErr)
 		}
-		editPartner.Address.Port = uint16(port)
+		editPartner.Address.Port = port
 	}
 
 	switch editPartner.Protocol {
@@ -98,11 +95,11 @@ func addPartner(db *database.DB, r *http.Request) error {
 	}
 
 	if newPartnerPort := r.FormValue("addPartnerPort"); newPartnerPort != "" {
-		port, err := strconv.ParseUint(newPartnerPort, 10, 16)
+		port, err := internal.ParseUint[uint16](newPartnerPort)
 		if err != nil {
 			return fmt.Errorf("failed to get port: %w", err)
 		}
-		newPartner.Address.Port = uint16(port)
+		newPartner.Address.Port = port
 	}
 
 	switch newPartner.Protocol {
@@ -152,13 +149,13 @@ func ListPartner(db *database.DB, r *http.Request) ([]*model.RemoteAgent, Filter
 	}
 
 	if limitRes := urlParams.Get("limit"); limitRes != "" {
-		if l, err := strconv.ParseUint(limitRes, 10, 64); err == nil {
+		if l, err := internal.ParseUint[uint64](limitRes); err == nil {
 			filter.Limit = l
 		}
 	}
 
 	if offsetRes := urlParams.Get("offset"); offsetRes != "" {
-		if o, err := strconv.ParseUint(offsetRes, 10, 64); err == nil {
+		if o, err := internal.ParseUint[uint64](offsetRes); err == nil {
 			filter.Offset = o
 		}
 	}
@@ -239,7 +236,7 @@ func deletePartner(db *database.DB, r *http.Request) error {
 	}
 	partnerID := r.FormValue("deletePartner")
 
-	id, err := strconv.ParseUint(partnerID, 10, 64)
+	id, err := internal.ParseUint[uint64](partnerID)
 	if err != nil {
 		return fmt.Errorf("internal error: %w", err)
 	}
@@ -288,7 +285,7 @@ func callMethodsPartnerManagement(logger *log.Logger, db *database.DB, w http.Re
 	if r.Method == http.MethodPost && r.FormValue("editPartnerID") != "" {
 		idEdit := r.FormValue("editPartnerID")
 
-		id, err := strconv.ParseUint(idEdit, 10, 64)
+		id, err := internal.ParseUint[uint64](idEdit)
 		if err != nil {
 			logger.Errorf("failed to convert id to int: %v", err)
 

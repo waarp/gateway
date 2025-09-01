@@ -6,7 +6,6 @@ import (
 	"fmt"
 	"net/http"
 	"slices"
-	"strconv"
 
 	"code.waarp.fr/lib/log"
 
@@ -93,7 +92,7 @@ func editUser(db *database.DB, r *http.Request) error {
 
 	userID := r.FormValue("editUserID")
 
-	id, err := strconv.ParseUint(userID, 10, 64)
+	id, err := internal.ParseUint[uint64](userID)
 	if err != nil {
 		return fmt.Errorf("failed to convert id to int: %w", err)
 	}
@@ -140,7 +139,7 @@ func deleteUser(db *database.DB, r *http.Request) error {
 	}
 	userID := r.FormValue("deleteUser")
 
-	id, err := strconv.ParseUint(userID, 10, 64)
+	id, err := internal.ParseUint[uint64](userID)
 	if err != nil {
 		return fmt.Errorf("failed to convert id to int: %w", err)
 	}
@@ -184,13 +183,13 @@ func listUser(db *database.DB, r *http.Request) ([]*model.User, Filters, string)
 	}
 
 	if limitRes := urlParams.Get("limit"); limitRes != "" {
-		if l, err := strconv.ParseUint(limitRes, 10, 64); err == nil {
+		if l, err := internal.ParseUint[uint64](limitRes); err == nil {
 			filter.Limit = l
 		}
 	}
 
 	if offsetRes := urlParams.Get("offset"); offsetRes != "" {
-		if o, err := strconv.ParseUint(offsetRes, 10, 64); err == nil {
+		if o, err := internal.ParseUint[uint64](offsetRes); err == nil {
 			filter.Offset = o
 		}
 	}
@@ -408,7 +407,7 @@ func callMethodsUserManagement(logger *log.Logger, db *database.DB, w http.Respo
 	if r.Method == http.MethodPost && r.FormValue("editUserID") != "" {
 		idEdit := r.FormValue("editUserID")
 
-		id, err := strconv.ParseUint(idEdit, 10, 64)
+		id, err := internal.ParseUint[uint64](idEdit)
 		if err != nil {
 			logger.Errorf("failed to convert id to int: %v", err)
 

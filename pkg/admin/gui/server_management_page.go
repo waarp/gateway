@@ -5,7 +5,6 @@ import (
 	"fmt"
 	"html/template"
 	"net/http"
-	"strconv"
 
 	"code.waarp.fr/lib/log"
 
@@ -42,11 +41,11 @@ func addServer(db *database.DB, r *http.Request) error {
 	}
 
 	if newServerPort := r.FormValue("addServerPort"); newServerPort != "" {
-		port, err := strconv.ParseUint(newServerPort, 10, 16)
+		port, err := internal.ParseUint[uint16](newServerPort)
 		if err != nil {
 			return fmt.Errorf("failed to get port: %w", err)
 		}
-		newServer.Address.Port = uint16(port)
+		newServer.Address.Port = port
 	}
 
 	if newServerRootDir := r.FormValue("addServerRootDir"); newServerRootDir != "" {
@@ -92,7 +91,7 @@ func editServer(db *database.DB, r *http.Request) error {
 	}
 	serverID := r.FormValue("editServerID")
 
-	id, err := strconv.ParseUint(serverID, 10, 64)
+	id, err := internal.ParseUint[uint64](serverID)
 	if err != nil {
 		return fmt.Errorf("failed to convert id to int: %w", err)
 	}
@@ -112,35 +111,23 @@ func editServer(db *database.DB, r *http.Request) error {
 		editServer.Protocol = editServerProtocol
 	}
 
-	if editServerHost := r.FormValue("editServerHost"); editServerHost != "" {
-		editServer.Address.Host = editServerHost
-	}
+	editServer.Address.Host = r.FormValue("editServerHost")
 
 	if editServerPort := r.FormValue("editServerPort"); editServerPort != "" {
-		var port uint64
-
-		port, err = strconv.ParseUint(editServerPort, 10, 16)
-		if err != nil {
-			return fmt.Errorf("failed to get port: %w", err)
+		port, portErr := internal.ParseUint[uint16](editServerPort)
+		if portErr != nil {
+			return fmt.Errorf("failed to get port: %w", portErr)
 		}
-		editServer.Address.Port = uint16(port)
+		editServer.Address.Port = port
 	}
 
-	if editServerRootDir := r.FormValue("editServerRootDir"); editServerRootDir != "" {
-		editServer.RootDir = editServerRootDir
-	}
+	editServer.RootDir = r.FormValue("editServerRootDir")
 
-	if editServerReceiveDir := r.FormValue("editServerReceiveDir"); editServerReceiveDir != "" {
-		editServer.ReceiveDir = editServerReceiveDir
-	}
+	editServer.ReceiveDir = r.FormValue("editServerReceiveDir")
 
-	if editServerSendDir := r.FormValue("editServerSendDir"); editServerSendDir != "" {
-		editServer.SendDir = editServerSendDir
-	}
+	editServer.SendDir = r.FormValue("editServerSendDir")
 
-	if editServerTmpReceiveDir := r.FormValue("editServerTmpReceiveDir"); editServerTmpReceiveDir != "" {
-		editServer.TmpReceiveDir = editServerTmpReceiveDir
-	}
+	editServer.TmpReceiveDir = r.FormValue("editServerTmpReceiveDir")
 
 	switch editServer.Protocol {
 	case r66.R66, r66.R66TLS:
@@ -169,7 +156,7 @@ func deleteServer(db *database.DB, r *http.Request) error {
 	}
 	serverID := r.FormValue("deleteServer")
 
-	id, err := strconv.ParseUint(serverID, 10, 64)
+	id, err := internal.ParseUint[uint64](serverID)
 	if err != nil {
 		return fmt.Errorf("failed to convert id to int: %w", err)
 	}
@@ -213,13 +200,13 @@ func listServer(db *database.DB, r *http.Request) ([]*model.LocalAgent, Filters,
 	}
 
 	if limitRes := urlParams.Get("limit"); limitRes != "" {
-		if l, err := strconv.ParseUint(limitRes, 10, 64); err == nil {
+		if l, err := internal.ParseUint[uint64](limitRes); err == nil {
 			filter.Limit = l
 		}
 	}
 
 	if offsetRes := urlParams.Get("offset"); offsetRes != "" {
-		if o, err := strconv.ParseUint(offsetRes, 10, 64); err == nil {
+		if o, err := internal.ParseUint[uint64](offsetRes); err == nil {
 			filter.Offset = o
 		}
 	}
@@ -326,7 +313,7 @@ func callMethodsServerManagement(logger *log.Logger, db *database.DB, w http.Res
 	if r.Method == http.MethodPost && r.FormValue("editServerID") != "" {
 		idEdit := r.FormValue("editServerID")
 
-		id, err := strconv.ParseUint(idEdit, 10, 64)
+		id, err := internal.ParseUint[uint64](idEdit)
 		if err != nil {
 			logger.Errorf("failed to convert id to int: %v", err)
 
@@ -367,7 +354,7 @@ func switchServerStatus(db *database.DB, r *http.Request) error {
 	}
 	serverID := r.FormValue("switchServerStatus")
 
-	id, err := strconv.ParseUint(serverID, 10, 64)
+	id, err := internal.ParseUint[uint64](serverID)
 	if err != nil {
 		return fmt.Errorf("failed to convert id to int: %w", err)
 	}

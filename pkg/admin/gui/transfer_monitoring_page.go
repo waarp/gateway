@@ -75,9 +75,9 @@ func addTransfer(db *database.DB, r *http.Request) (int, error) {
 		}
 	}
 
-	var remainingTries int64
+	var remainingTries int8
 	if nbOfAttempts := r.FormValue("nbOfAttempts"); nbOfAttempts != "" {
-		remainingTries, err = strconv.ParseInt(nbOfAttempts, 10, 8)
+		remainingTries, err = internal.ParseInt[int8](nbOfAttempts)
 		if err != nil {
 			return -1, fmt.Errorf("failed to parse remainingTries in int: %w", err)
 		}
@@ -92,7 +92,7 @@ func addTransfer(db *database.DB, r *http.Request) (int, error) {
 		retryDelay += m + "m"
 	}
 
-	if s := r.FormValue("timeoutIcapS"); s != "" {
+	if s := r.FormValue("retryDelayS"); s != "" {
 		retryDelay += s + "s"
 	}
 	var retryDelayS int32
@@ -113,7 +113,7 @@ func addTransfer(db *database.DB, r *http.Request) (int, error) {
 	}
 
 	transfer, err := internal.InsertNewTransfer(db, srcFilename, dstFilename, rule, account, client, date,
-		int8(remainingTries), retryDelayS, float32(retryIncrementFloat), transferInfos)
+		remainingTries, retryDelayS, float32(retryIncrementFloat), transferInfos)
 	if err != nil {
 		return -1, fmt.Errorf("add transfer failed: %w", err)
 	}
@@ -173,7 +173,7 @@ func addRegisterTransfer(db *database.DB, r *http.Request) (int, error) {
 func pauseTransfer(db *database.DB, r *http.Request) error {
 	transferID := r.FormValue("pauseTransferID")
 
-	id, err := strconv.ParseUint(transferID, 10, 64)
+	id, err := internal.ParseUint[uint64](transferID)
 	if err != nil {
 		return fmt.Errorf("failed to convert id to int: %w", err)
 	}
@@ -194,7 +194,7 @@ func pauseTransfer(db *database.DB, r *http.Request) error {
 func resumeTransfer(db *database.DB, r *http.Request) error {
 	transferID := r.FormValue("resumeTransferID")
 
-	id, err := strconv.ParseUint(transferID, 10, 64)
+	id, err := internal.ParseUint[uint64](transferID)
 	if err != nil {
 		return fmt.Errorf("failed to convert id to int: %w", err)
 	}
@@ -215,7 +215,7 @@ func resumeTransfer(db *database.DB, r *http.Request) error {
 func cancelTransfer(db *database.DB, r *http.Request) error {
 	transferID := r.FormValue("cancelTransferID")
 
-	id, err := strconv.ParseUint(transferID, 10, 64)
+	id, err := internal.ParseUint[uint64](transferID)
 	if err != nil {
 		return fmt.Errorf("failed to convert id to int: %w", err)
 	}
@@ -236,7 +236,7 @@ func cancelTransfer(db *database.DB, r *http.Request) error {
 func rescheduleTransfer(db *database.DB, r *http.Request) (int, error) {
 	transferID := r.FormValue("rescheduleTransferID")
 
-	id, err := strconv.ParseUint(transferID, 10, 64)
+	id, err := internal.ParseUint[uint64](transferID)
 	if err != nil {
 		return -1, fmt.Errorf("failed to convert id to int: %w", err)
 	}
@@ -369,13 +369,13 @@ func listTransfer(db *database.DB, r *http.Request) ([]*model.NormalizedTransfer
 	}
 
 	if limitRes := urlParams.Get("limit"); limitRes != "" {
-		if l, err := strconv.ParseUint(limitRes, 10, 64); err == nil {
+		if l, err := internal.ParseUint[uint64](limitRes); err == nil {
 			filter.Limit = l
 		}
 	}
 
 	if offsetRes := urlParams.Get("offset"); offsetRes != "" {
-		if o, err := strconv.ParseUint(offsetRes, 10, 64); err == nil {
+		if o, err := internal.ParseUint[uint64](offsetRes); err == nil {
 			filter.Offset = o
 		}
 	}

@@ -5,7 +5,6 @@ import (
 	"fmt"
 	"net/http"
 	"slices"
-	"strconv"
 
 	"code.waarp.fr/lib/log"
 
@@ -46,13 +45,13 @@ func listCredentialServer(serverName string, db *database.DB, r *http.Request) (
 	}
 
 	if limitRes := urlParams.Get("limit"); limitRes != "" {
-		if l, err := strconv.ParseUint(limitRes, 10, 64); err == nil {
+		if l, err := internal.ParseUint[uint64](limitRes); err == nil {
 			filter.Limit = l
 		}
 	}
 
 	if offsetRes := urlParams.Get("offset"); offsetRes != "" {
-		if o, err := strconv.ParseUint(offsetRes, 10, 64); err == nil {
+		if o, err := internal.ParseUint[uint64](offsetRes); err == nil {
 			filter.Offset = o
 		}
 	}
@@ -95,7 +94,7 @@ func autocompletionCredentialsServersFunc(db *database.DB) http.HandlerFunc {
 		serverID := urlParams.Get("serverID")
 
 		if serverID != "" {
-			idA, err = strconv.ParseUint(serverID, 10, 64)
+			idA, err = internal.ParseUint[uint64](serverID)
 			if err != nil {
 				http.Error(w, "failed to convert server id to int", http.StatusInternalServerError)
 
@@ -191,7 +190,7 @@ func editCredentialServer(serverName string, db *database.DB, r *http.Request) e
 	}
 	credentialServerID := r.FormValue("editCredentialServerID")
 
-	id, err := strconv.ParseUint(credentialServerID, 10, 64)
+	id, err := internal.ParseUint[uint64](credentialServerID)
 	if err != nil {
 		return fmt.Errorf("failed to convert id to int: %w", err)
 	}
@@ -236,7 +235,7 @@ func deleteCredentialServer(serverName string, db *database.DB, r *http.Request)
 	}
 	credentialServerID := r.FormValue("deleteCredentialServer")
 
-	id, err := strconv.ParseUint(credentialServerID, 10, 64)
+	id, err := internal.ParseUint[uint64](credentialServerID)
 	if err != nil {
 		return fmt.Errorf("internal error: %w", err)
 	}
@@ -289,7 +288,7 @@ func callMethodsServerAuthentication(logger *log.Logger, db *database.DB, w http
 	if r.Method == http.MethodPost && r.FormValue("editCredentialServerID") != "" {
 		idEdit := r.FormValue("editCredentialServerID")
 
-		id, err := strconv.ParseUint(idEdit, 10, 64)
+		id, err := internal.ParseUint[uint64](idEdit)
 		if err != nil {
 			logger.Errorf("failed to convert id to int: %v", err)
 
@@ -330,7 +329,7 @@ func serverAuthenticationPage(logger *log.Logger, db *database.DB) http.HandlerF
 
 		serverID := r.URL.Query().Get("serverID")
 		if serverID != "" {
-			id, err = strconv.ParseUint(serverID, 10, 64)
+			id, err = internal.ParseUint[uint64](serverID)
 			if err != nil {
 				logger.Errorf("failed to convert id to int: %v", err)
 			}

@@ -4,7 +4,6 @@ import (
 	"encoding/json"
 	"fmt"
 	"net/http"
-	"strconv"
 
 	"code.waarp.fr/lib/log"
 
@@ -59,7 +58,7 @@ func editRule(db *database.DB, r *http.Request) error {
 	}
 	ruleID := r.FormValue("editRuleID")
 
-	id, err := strconv.ParseUint(ruleID, 10, 64)
+	id, err := internal.ParseUint[uint64](ruleID)
 	if err != nil {
 		return fmt.Errorf("failed to convert id to int: %w", err)
 	}
@@ -75,25 +74,15 @@ func editRule(db *database.DB, r *http.Request) error {
 
 	editRule.IsSend = r.FormValue("editRuleIsSend") == True
 
-	if editRuleComment := r.FormValue("editRuleComment"); editRuleComment != "" {
-		editRule.Comment = editRuleComment
-	}
+	editRule.Comment = r.FormValue("editRuleComment")
 
-	if editRulePath := r.FormValue("editRulePath"); editRulePath != "" {
-		editRule.Path = editRulePath
-	}
+	editRule.Path = r.FormValue("editRulePath")
 
-	if editRuleLocalDir := r.FormValue("editRuleLocalDir"); editRuleLocalDir != "" {
-		editRule.LocalDir = editRuleLocalDir
-	}
+	editRule.LocalDir = r.FormValue("editRuleLocalDir")
 
-	if editRuleRemoteDir := r.FormValue("editRuleRemoteDir"); editRuleRemoteDir != "" {
-		editRule.RemoteDir = editRuleRemoteDir
-	}
+	editRule.RemoteDir = r.FormValue("editRuleRemoteDir")
 
-	if editRuleTmpLocalRcvDir := r.FormValue("editRuleTmpLocalRcvDir"); editRuleTmpLocalRcvDir != "" {
-		editRule.TmpLocalRcvDir = editRuleTmpLocalRcvDir
-	}
+	editRule.TmpLocalRcvDir = r.FormValue("editRuleTmpLocalRcvDir")
 
 	if upErr := internal.UpdateRule(db, editRule); upErr != nil {
 		return fmt.Errorf("failed to edit rule: %w", upErr)
@@ -109,7 +98,7 @@ func deleteRule(db *database.DB, r *http.Request) error {
 	}
 	ruleID := r.FormValue("deleteRule")
 
-	id, err := strconv.ParseUint(ruleID, 10, 64)
+	id, err := internal.ParseUint[uint64](ruleID)
 	if err != nil {
 		return fmt.Errorf("failed to convert id to int: %w", err)
 	}
@@ -152,13 +141,13 @@ func listRule(db *database.DB, r *http.Request) ([]*model.Rule, Filters, string)
 	}
 
 	if limitRes := urlParams.Get("limit"); limitRes != "" {
-		if l, err := strconv.ParseUint(limitRes, 10, 64); err == nil {
+		if l, err := internal.ParseUint[uint64](limitRes); err == nil {
 			filter.Limit = l
 		}
 	}
 
 	if offsetRes := urlParams.Get("offset"); offsetRes != "" {
-		if o, err := strconv.ParseUint(offsetRes, 10, 64); err == nil {
+		if o, err := internal.ParseUint[uint64](offsetRes); err == nil {
 			filter.Offset = o
 		}
 	}
@@ -256,7 +245,7 @@ func callMethodsRuleManagement(logger *log.Logger, db *database.DB, w http.Respo
 	if r.Method == http.MethodPost && r.FormValue("editRuleID") != "" {
 		idEdit := r.FormValue("editRuleID")
 
-		id, err := strconv.ParseUint(idEdit, 10, 64)
+		id, err := internal.ParseUint[uint64](idEdit)
 		if err != nil {
 			logger.Errorf("failed to convert id to int: %v", err)
 
