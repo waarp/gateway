@@ -354,8 +354,8 @@ func getPartnerAndAccount(db *database.DB, partnerID, accountID string, logger *
 func remoteAccountAuthenticationPage(logger *log.Logger, db *database.DB) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		userLanguage := r.Context().Value(ContextLanguageKey)
-		tTranslated := //nolint:forcetypeassert //u
-		pageTranslated("remote_account_authentication_page", userLanguage.(string)) //nolint:errcheck //u
+		//nolint:forcetypeassert //assertion always succeeds
+		tTranslated := pageTranslated("remote_account_authentication_page", userLanguage.(string))
 
 		user, err := GetUserByToken(r, db)
 		if err != nil {

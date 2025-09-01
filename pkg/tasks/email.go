@@ -88,14 +88,14 @@ func (m *emailTask) Run(_ context.Context, params map[string]string, db *databas
 		return fmt.Errorf("failed to replace email template variables: %w", err)
 	}
 
-	mail := gomail.NewMessage()
-	mail.SetHeader("From", m.connInfo.EmailAddress)
-	mail.SetHeader("To", m.Recipients...)
-	mail.SetHeader("Subject", m.template.Subject)
-	mail.SetBody("text/plain", m.template.Body)
+	email := gomail.NewMessage()
+	email.SetHeader("From", m.connInfo.EmailAddress)
+	email.SetHeader("To", m.Recipients...)
+	email.SetHeader("Subject", m.template.Subject)
+	email.SetBody("text/plain", m.template.Body)
 
 	for _, attachement := range m.template.Attachments {
-		mail.Attach(path.Base(attachement), m.copyFileFunc(attachement))
+		email.Attach(path.Base(attachement), m.copyFileFunc(attachement))
 	}
 
 	d := gomail.NewDialer(m.connInfo.ServerAddress.Host, int(m.connInfo.ServerAddress.Port),
@@ -106,7 +106,7 @@ func (m *emailTask) Run(_ context.Context, params map[string]string, db *databas
 		logger.Warningf("Failed to add TLS authorities: %v", err)
 	}
 
-	if err := d.DialAndSend(mail); err != nil {
+	if err := d.DialAndSend(email); err != nil {
 		logger.Errorf("Failed to send email: %v", err)
 
 		return fmt.Errorf("failed to send email: %w", err)

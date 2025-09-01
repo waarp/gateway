@@ -341,8 +341,8 @@ func getServerAndAccount(db *database.DB, serverID, accountID string, logger *lo
 func localAccountAuthenticationPage(logger *log.Logger, db *database.DB) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		userLanguage := r.Context().Value(ContextLanguageKey)
-		tTranslated := //nolint:forcetypeassert //u
-		pageTranslated("local_account_authentication_page", userLanguage.(string)) //nolint:errcheck //u
+		//nolint:forcetypeassert //assertion always succeeds
+		tTranslated := pageTranslated("local_account_authentication_page", userLanguage.(string))
 
 		serverID := r.URL.Query().Get("serverID")
 		accountID := r.URL.Query().Get("accountID")

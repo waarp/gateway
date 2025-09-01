@@ -40,7 +40,7 @@ const (
 
 // WG is the top level service handler. It manages all other components.
 type WG struct {
-	*log.Logger
+	Logger *log.Logger
 
 	DBService    *database.DB
 	AdminService *admin.Server
@@ -268,13 +268,13 @@ func (wg *WG) stopServices() {
 func (wg *WG) Start() error {
 	gwName := conf.GlobalConfig.GatewayName
 
-	wg.Infof("Waarp Gateway %q is starting", gwName)
+	wg.Logger.Infof("Waarp Gateway %q is starting", gwName)
 
 	if err := wg.startServices(); err != nil {
 		return err
 	}
 
-	wg.Infof("Waarp Gateway %q has started", gwName)
+	wg.Logger.Infof("Waarp Gateway %q has started", gwName)
 
 	c := make(chan os.Signal, 1)
 	signal.Notify(c, syscall.SIGTERM, syscall.SIGQUIT, syscall.SIGINT)
@@ -289,7 +289,7 @@ mainloop:
 		}
 	}
 
-	wg.Info("Server is exiting...")
+	wg.Logger.Info("Server is exiting...")
 
 	return nil
 }

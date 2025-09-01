@@ -427,8 +427,8 @@ func switchClientStatus(db *database.DB, r *http.Request) error {
 func localClientManagementPage(logger *log.Logger, db *database.DB) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		userLanguage := r.Context().Value(ContextLanguageKey)
-		tabTranslated := //nolint:forcetypeassert //u
-		pageTranslated("local_client_management_page", userLanguage.(string)) //nolint:errcheck //u
+		//nolint:forcetypeassert //assertion always succeeds
+		tabTranslated := pageTranslated("local_client_management_page", userLanguage.(string))
 		localClientList, filter, localClientFound := listLocalClient(db, r)
 
 		if pageName := r.URL.Query().Get("clearFiltersPage"); pageName != "" {

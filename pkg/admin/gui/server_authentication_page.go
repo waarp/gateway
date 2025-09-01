@@ -316,8 +316,8 @@ func callMethodsServerAuthentication(logger *log.Logger, db *database.DB, w http
 func serverAuthenticationPage(logger *log.Logger, db *database.DB) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		userLanguage := r.Context().Value(ContextLanguageKey)
-		tTranslated := //nolint:forcetypeassert //u
-		pageTranslated("server_authentication_page", userLanguage.(string)) //nolint:errcheck //u
+		//nolint:forcetypeassert //assertion always succeeds
+		tTranslated := pageTranslated("server_authentication_page", userLanguage.(string))
 
 		user, err := GetUserByToken(r, db)
 		if err != nil {
