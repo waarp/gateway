@@ -3,6 +3,11 @@
 Historique des versions
 =======================
 
+* :bug:`-` Les chemins des requêtes reçues par le serveur R66 sont désormais
+  tronquées pour ne garder que le nom de fichier si le chemin reçu est absolu.
+  Cela est pour palier à un problème de compatibilité avec l'ancienne application
+  Waarp R66 qui envoie des chemins locaux dans ses requêtes.
+
 * :release:`0.12.9 <2025-07-18>`
 * :bug:`482` L'échec du démarrage d'un transfert planifié n'empêche désormais
   plus les autres transferts planifiés de démarrer.

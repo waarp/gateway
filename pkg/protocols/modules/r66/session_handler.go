@@ -38,10 +38,10 @@ func (s *sessionHandler) ValidRequest(req *r66.Request) (r66.TransferHandler, er
 
 	if !rule.IsSend {
 		s.logger.Info("Upload of file %s was requested by %s, using rule %s",
-			path.Base(req.Filepath), s.account.Login, req.Rule)
+			req.Filepath, s.account.Login, req.Rule)
 	} else {
 		s.logger.Info("Download of file %s was requested by %s, using rule %s",
-			path.Base(req.Filepath), s.account.Login, req.Rule)
+			req.Filepath, s.account.Login, req.Rule)
 	}
 
 	trans, err := s.getTransfer(req, rule)
@@ -106,6 +106,10 @@ func (s *sessionHandler) checkRequest(req *r66.Request) *r66.Error {
 			return internal.NewR66Error(r66.IncorrectCommand, "missing file size")
 		}
 	*/
+
+	if path.IsAbs(req.Filepath) || !fs.IsLocalPath(req.Filepath) || fs.IsAbsPath(req.Filepath) {
+		req.Filepath = path.Base(req.Filepath)
+	}
 
 	return nil
 }
