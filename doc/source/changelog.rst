@@ -3,6 +3,7 @@
 Historique des versions
 =======================
 
+* :release:`0.12.10 <2025-09-19>`
 * :bug:`-` Les chemins des requêtes reçues par le serveur R66 sont désormais
   tronquées pour ne garder que le nom de fichier si le chemin reçu est absolu.
   Cela est pour palier à un problème de compatibilité avec l'ancienne application
