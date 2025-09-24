@@ -107,9 +107,7 @@ func (s *sessionHandler) checkRequest(req *r66.Request) *r66.Error {
 		}
 	*/
 
-	if path.IsAbs(req.Filepath) || !fs.IsLocalPath(req.Filepath) || fs.IsAbsPath(req.Filepath) {
-		req.Filepath = path.Base(req.Filepath)
-	}
+	req.Filepath = trimRequestPath(req.Filepath)
 
 	return nil
 }

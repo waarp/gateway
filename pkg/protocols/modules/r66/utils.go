@@ -1,6 +1,9 @@
 package r66
 
 import (
+	"path"
+	"strings"
+
 	"code.waarp.fr/lib/r66"
 
 	"code.waarp.fr/apps/gateway/gateway/pkg/database"
@@ -33,4 +36,14 @@ func usesLegacyCert(db database.ReadAccess, owner authentication.Owner) bool {
 	}
 
 	return false
+}
+
+func trimRequestPath(filename string) string {
+	filename = strings.ReplaceAll(filename, `\`, `/`)
+
+	if path.IsAbs(filename) || !fs.IsLocalPath(filename) || fs.IsAbsPath(filename) {
+		filename = path.Base(filename)
+	}
+
+	return filename
 }

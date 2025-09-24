@@ -3,6 +3,14 @@
 Historique des versions
 =======================
 
+* :release:`0.12.11 <2025-09-25>`
+* :bug:`-` Pour des raisons de compatibilité avec Waarp R66, les *backslashs*
+  (`\`) dans les chemins de requête R66 sont désormais toujours traité comme
+  des séparateur de chemin, au même titre que les *forward-slash* (`/`),
+  **y compris sous Linux**. En conséquence, les *backslashes* sont désormais
+  proscris dans les noms de fichiers transmis en R66, car ceux-ci seront traités
+  comme des séparateurs.
+
 * :release:`0.12.10 <2025-09-19>`
 * :bug:`-` Les chemins des requêtes reçues par le serveur R66 sont désormais
   tronquées pour ne garder que le nom de fichier si le chemin reçu est absolu.
