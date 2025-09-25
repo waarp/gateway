@@ -2,7 +2,6 @@ package fs
 
 import (
 	"context"
-	"errors"
 	"fmt"
 	"io/fs"
 	"os"
@@ -16,9 +15,8 @@ import (
 var _ FS = &LocalFS{}
 
 type LocalFS struct {
-	root        string
-	openedFiles []*os.File
-	locRFS      rfs.Fs
+	root   string
+	locRFS rfs.Fs
 }
 
 func GetTestFS(root string) (*LocalFS, error) {
@@ -28,9 +26,8 @@ func GetTestFS(root string) (*LocalFS, error) {
 	}
 
 	return &LocalFS{
-		root:        root,
-		openedFiles: []*os.File{},
-		locRFS:      localFS,
+		root:   root,
+		locRFS: localFS,
 	}, nil
 }
 
@@ -56,16 +53,10 @@ func (l *LocalFS) Open(name string) (fs.File, error) {
 	return os.Open(filepath.Join(l.root, name))
 }
 
+//nolint:wrapcheck //no need to wrap here
 func (l *LocalFS) OpenFile(name string, flags Flags, perm FileMode) (File, error) {
 	//nolint:gosec //file inclusion is checked elsewhere
-	file, err := os.OpenFile(filepath.Join(l.root, name), flags, perm)
-
-	if file != nil && l.openedFiles != nil {
-		l.openedFiles = append(l.openedFiles, file)
-	}
-
-	//nolint:wrapcheck //no need to wrap here
-	return file, err
+	return os.OpenFile(filepath.Join(l.root, name), flags, perm)
 }
 
 func (l *LocalFS) Stat(name string) (FileInfo, error) {
@@ -96,18 +87,4 @@ func (l *LocalFS) Remove(path string) error {
 func (l *LocalFS) RemoveAll(path string) error {
 	//nolint:wrapcheck //no need to wrap here
 	return os.RemoveAll(filepath.Join(l.root, path))
-}
-
-func (l *LocalFS) Flush() error {
-	var errs []error
-
-	for _, f := range l.openedFiles {
-		if err := f.Close(); err != nil && !errors.Is(err, os.ErrClosed) {
-			errs = append(errs, err)
-		}
-	}
-
-	l.openedFiles = nil
-
-	return errors.Join(errs...)
 }
