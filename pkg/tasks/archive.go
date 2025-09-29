@@ -96,7 +96,7 @@ func (a *archiveTask) Run(_ context.Context, params map[string]string,
 
 //nolint:dupl //simpler to keep archive & extract separate
 func (a *archiveTask) makeArchive() error {
-	for ext, mkArchive := range ArchiveExtensions {
+	for ext, mkArchive := range ArchiveExtensions.Iter() {
 		if hasExtension(a.OutputPath, ext) {
 			return mkArchive(a)
 		}

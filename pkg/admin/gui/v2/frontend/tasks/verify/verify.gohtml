@@ -1,0 +1,41 @@
+<script>
+    function uptKeyList(methodEl) {
+        uptKeyListWith("verify", methodEl.value, "", "verifyTaskKeyName")
+    }
+</script>
+
+<!-- Task description -->
+<p class="task-description">{{ .Text.description }}</p>
+
+<!-- Signature File -->
+{{ template "textInputRow" dict
+    "label" .Text.signatureFile
+    "tooltip" .Text.signatureFileTooltip
+    "fieldName" "signatureFile"
+    "fieldType" "text"
+    "value" .Task.Args.signatureFile
+}}
+
+<!-- Method -->
+{{ template "listInputRow" dict
+    "label" .Text.method
+    "tooltip" .Text.methodTooltip
+    "fieldName" "method"
+    "value" .Task.Args.method
+    "list" verifyMethods
+    "placeholder" .Text.methodPlaceholder
+    "onchange" "uptKeyList"
+}}
+
+<!-- Key name -->
+{{ template "listInputRow" dict
+    "id" "verifyTaskKeyName"
+    "label" .Text.keyName
+    "tooltip" .Text.keyNameTooltip
+    "fieldName" "keyName"
+    "placeholder" .Text.keyNamePlaceholder
+}}
+<script>
+    uptKeyListWith("verify", {{.Task.Args.method}}, {{.Task.Args.keyName}},
+        "verifyTaskKeyName")
+</script>

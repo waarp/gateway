@@ -348,6 +348,7 @@ Available actions:
   test               Run tests
   test watch         Starts convey to watch code and run tests when
                      it has been changed
+
   doc                Builds the doc
   doc watch          Watch the source of the documentation and builds it when
   doc dist           Builds doc for distribution

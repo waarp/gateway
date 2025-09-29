@@ -1,0 +1,20 @@
+<!-- Task description -->
+<p class="task-description">{{ .Text.description }}</p>
+
+<!-- Source character -->
+{{ template "textInputRow" dict
+    "label" .Text.from
+    "tooltip" .Text.fromTooltip
+    "fieldName" "from"
+    "fieldType" "text"
+    "value" .Task.Args.from
+}}
+
+<!-- Destination character -->
+{{ template "textInputRow" dict
+    "label" .Text.to
+    "tooltip" .Text.toTooltip
+    "fieldName" "to"
+    "fieldType" "text"
+    "value" .Task.Args.to
+}}

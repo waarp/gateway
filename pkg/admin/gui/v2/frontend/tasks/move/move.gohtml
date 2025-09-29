@@ -1,0 +1,11 @@
+<!-- Task description -->
+<p class="task-description">{{ .Text.description }}</p>
+
+<!-- Path -->
+{{ template "textInputRow" dict
+    "label" .Text.path
+    "tooltip" .Text.pathTooltip
+    "fieldName" "path"
+    "fieldType" "text"
+    "value" .Task.Args.path
+}}

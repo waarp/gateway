@@ -11,6 +11,8 @@ import (
 	"code.waarp.fr/lib/log"
 
 	"code.waarp.fr/apps/gateway/gateway/pkg/admin/gui/internal"
+	"code.waarp.fr/apps/gateway/gateway/pkg/admin/gui/v2/backend/constants"
+	"code.waarp.fr/apps/gateway/gateway/pkg/admin/gui/v2/backend/locale"
 	"code.waarp.fr/apps/gateway/gateway/pkg/database"
 	"code.waarp.fr/apps/gateway/gateway/pkg/model"
 	"code.waarp.fr/apps/gateway/gateway/pkg/protocols/modules/ftp"
@@ -19,6 +21,7 @@ import (
 	"code.waarp.fr/apps/gateway/gateway/pkg/protocols/modules/r66"
 	"code.waarp.fr/apps/gateway/gateway/pkg/protocols/modules/sftp"
 	"code.waarp.fr/apps/gateway/gateway/pkg/utils"
+	"code.waarp.fr/apps/gateway/gateway/pkg/version"
 )
 
 //nolint:dupl,cyclop // is not similar, is method for local client
@@ -434,9 +437,8 @@ func switchClientStatus(db *database.DB, r *http.Request) error {
 
 func localClientManagementPage(logger *log.Logger, db *database.DB) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		userLanguage := r.Context().Value(ContextLanguageKey)
-		//nolint:forcetypeassert //assertion always succeeds
-		tabTranslated := pageTranslated("local_client_management_page", userLanguage.(string))
+		userLanguage := locale.GetLanguage(r)
+		tabTranslated := pageTranslated("local_client_management_page", userLanguage)
 		localClientList, filter, localClientFound := listLocalClient(db, r)
 
 		if pageName := r.URL.Query().Get("clearFiltersPage"); pageName != "" {
@@ -469,6 +471,11 @@ func localClientManagementPage(logger *log.Logger, db *database.DB) http.Handler
 		)
 
 		if tmplErr := localClientManagementTemplate.ExecuteTemplate(w, "local_client_management_page", map[string]any{
+			"appName":                constants.AppName,
+			"version":                version.Num,
+			"compileDate":            version.Date,
+			"revision":               version.Commit,
+			"docLink":                constants.DocLink(userLanguage),
 			"myPermission":           myPermission,
 			"tab":                    tabTranslated,
 			"username":               user.Username,

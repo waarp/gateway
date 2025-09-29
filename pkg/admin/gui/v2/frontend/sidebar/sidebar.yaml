@@ -1,0 +1,80 @@
+# Header & footer
+docWaarp:
+  en: Waarp documentation
+  fr: Documentation Waarp
+
+# Connection section
+connectionSection:
+  en: Connection settings
+  fr: Paramètres de connexion
+
+manageLocalServers: 
+  en: Local servers
+  fr: Serveurs locaux
+
+manageLocalClients:
+  en: Local clients
+  fr: Clients locaux
+
+manageRemotePartners:
+  en: Remote partners
+  fr: Partenaires distants
+
+manageCloudInstances:
+  en: Cloud instances
+  fr: Instances cloud
+
+# Treatment section
+treatmentSection:
+  en: Treatment settings
+  fr: Paramètres de traitement
+
+manageRules:
+  en: Transfer rules
+  fr: Règles de transfert
+
+manageCryptoKeys:
+  en: Cryptographic keys
+  fr: Clés cryptographiques
+
+manageSMTPCredentials:
+  en: SMTP credentials
+  fr: Identifiants SMTP
+
+manageEmailTemplates:
+  en: Email templates
+  fr: Templates d'email
+
+# Monitoring section
+monitoringSection:
+  en: Monitoring
+  fr: Supervision
+
+servicesStatus:
+  en: Services status
+  fr: Statut des services
+
+transferMonitoring:
+  en: Transfer monitoring
+  fr: Supervision des transferts
+
+manageSNMP:
+  en: SNMP settings
+  fr: Paramètres SNMP
+
+# Admin section
+adminSection:
+  en: Administration
+  fr: Administration
+
+manageUsers:
+  en: Users
+  fr: Utilisateurs
+
+manageAuthorities:
+  en: Authentication authorities
+  fr: Autorités d'authentification
+
+manageConfOverrides:
+  en: Configuration overrides
+  fr: Surcharges de configuration

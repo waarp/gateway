@@ -362,6 +362,17 @@
         <input type="text" name="protoConfigPeSITmaxMessageSize" class="form-control" value="{{ if $.modalElement }}{{ index $.modalElement "protoConfigPeSITmaxMessageSize" }}{{ else }}{{ .ProtoConfig.maxMessageSize }}{{ end }}">
     </div>
     <hr style="border-top: 1px solid #ababab;">
+    <div class="form-input mt-2">
+        <label class="col-form-label">{{ index .tab "compatibilityMode" }} <i class="bi bi-info-circle ms-1" data-bs-toggle="tooltip" data-bs-placement="right" data-bs-title="{{ index $.tab "tooltipCompatibilityMode" }}"></i> :</label>
+        <select name="protoConfigPeSITcompatibilityMode" class="form-select">
+            {{ range $.CompatibilityModePeSIT }}
+            <option value="{{ . }}" {{ if $.modalElement }}{{ if eq (index $.modalElement "protoConfigPeSITcompatibilityMode") . }}selected{{ end }}{{ else if eq $.ProtoConfig.compatibilityMode . }}selected{{ end }}>
+            {{ if eq . "standard" }}{{ index $.tab "standardParameterPesit" }}{{ else if eq . "non-standard" }}{{ index $.tab "noneStandardParameterPesit" }}{{ else }}{{ . }}{{ end }}
+            </option>
+            {{ end }}
+        </select>
+    </div>
+    <hr style="border-top: 1px solid #ababab;">
     <div class="form-input mt-2 d-flex align-items-center">
         <label class="col-form-label me-3">{{ index .tab "disablePreConnection" }} <i class="bi bi-info-circle ms-1" data-bs-toggle="tooltip" data-bs-placement="right" data-bs-title="{{ index $.tab "tooltipDisablePreConnection" }}"></i> :</label>
         <div class="form-check form-check-inline">

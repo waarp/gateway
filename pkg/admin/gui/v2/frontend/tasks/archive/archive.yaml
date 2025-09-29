@@ -1,0 +1,47 @@
+description:
+  en: Make an archive with the provided files.
+  fr: Crée une archive avec les fichiers fournis.
+
+files:
+  en: Files
+  fr: Fichiers
+
+filesTooltip:
+  en: The comma-separated list of the files to add to the archive.
+  fr: La liste, séparée par virgules, des fichiers à ajouter à l'archive.
+
+addFile:
+  en: Add file
+  fr: Ajouter un fichier
+
+removeFile:
+  en: Remove file
+  fr: Enlever le fichier
+
+compressionLevel:
+  en: Compression level
+  fr: Niveau de compression
+
+compressionLevelTooltip:
+  en: >
+    The compression level on a scale from 0 (no compression) to 9 
+    (maximum compression).
+  fr: >
+    Le niveau de compression sur une échelle de 0 (aucune compression) à 9 
+    (compression maximale).
+
+outputPath:
+  en: Output path
+  fr: Chemin de destination
+
+outputPathTooltip:
+  en: >
+    The archive's output path. The archive's extension will determine the archive
+    type and the compression method.
+  fr: >
+    Le chemin de destination de l'archive. L'extension de l'archive déterminera
+    le type d'archive et la méthode de compression.
+
+outputExtPlaceholder:
+  en: Extension
+  fr: Extension

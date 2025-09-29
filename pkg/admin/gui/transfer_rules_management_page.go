@@ -8,8 +8,11 @@ import (
 	"code.waarp.fr/lib/log"
 
 	"code.waarp.fr/apps/gateway/gateway/pkg/admin/gui/internal"
+	"code.waarp.fr/apps/gateway/gateway/pkg/admin/gui/v2/backend/constants"
+	"code.waarp.fr/apps/gateway/gateway/pkg/admin/gui/v2/backend/locale"
 	"code.waarp.fr/apps/gateway/gateway/pkg/database"
 	"code.waarp.fr/apps/gateway/gateway/pkg/model"
+	"code.waarp.fr/apps/gateway/gateway/pkg/version"
 )
 
 func addRule(db *database.DB, r *http.Request) error {
@@ -269,9 +272,8 @@ func callMethodsRuleManagement(logger *log.Logger, db *database.DB, w http.Respo
 
 func ruleManagementPage(logger *log.Logger, db *database.DB) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		userLanguage := r.Context().Value(ContextLanguageKey)
-		tabTranslated := //nolint:forcetypeassert //u
-			pageTranslated("transfer_rules_management_page", userLanguage.(string)) //nolint:errcheck //u
+		userLanguage := locale.GetLanguage(r)
+		tabTranslated := pageTranslated("transfer_rules_management_page", userLanguage)
 		ruleList, filter, ruleFound := listRule(db, r)
 
 		if pageName := r.URL.Query().Get("clearFiltersPage"); pageName != "" {
@@ -297,6 +299,11 @@ func ruleManagementPage(logger *log.Logger, db *database.DB) http.HandlerFunc {
 		currentPage := filter.Offset + 1
 
 		if tmplErr := ruleManagementTemplate.ExecuteTemplate(w, "transfer_rules_management_page", map[string]any{
+			"appName":      constants.AppName,
+			"version":      version.Num,
+			"compileDate":  version.Date,
+			"revision":     version.Commit,
+			"docLink":      constants.DocLink(userLanguage),
 			"myPermission": myPermission,
 			"tab":          tabTranslated,
 			"username":     user.Username,

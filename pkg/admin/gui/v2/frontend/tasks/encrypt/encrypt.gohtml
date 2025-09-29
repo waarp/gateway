@@ -1,0 +1,49 @@
+<script>
+    function uptKeyList(methodEl) {
+        uptKeyListWith("encrypt", methodEl.value, "", "encryptTaskKeyName")
+    }
+</script>
+
+<!-- Task description -->
+<p class="task-description">{{ .Text.description }}</p>
+
+<!-- Output File -->
+{{ template "textInputRow" dict
+    "label" .Text.outputFile
+    "tooltip" .Text.outputFileTooltip
+    "fieldName" "outputFile"
+    "fieldType" "text"
+    "value" .Task.Args.outputFile
+}}
+
+<!-- Keep original -->
+{{ template "checkInputRow" dict
+    "label" .Text.keepOriginal
+    "tooltip" .Text.keepOriginalTooltip
+    "fieldName" "keepOriginal"
+    "value" .Task.Args.keepOriginal
+}}
+
+<!-- Method -->
+{{ template "listInputRow" dict
+    "label" .Text.method
+    "tooltip" .Text.methodTooltip
+    "fieldName" "method"
+    "value" .Task.Args.method
+    "list" encryptMethods
+    "placeholder" .Text.methodPlaceholder
+    "onchange" "uptKeyList"
+}}
+
+<!-- Key name -->
+{{ template "listInputRow" dict
+    "id" "encryptTaskKeyName"
+    "label" .Text.keyName
+    "tooltip" .Text.keyNameTooltip
+    "fieldName" "keyName"
+    "placeholder" .Text.keyNamePlaceholder
+}}
+<script>
+    uptKeyListWith("encrypt", {{.Task.Args.method}}, {{.Task.Args.keyName}},
+        "encryptTaskKeyName")
+</script>

@@ -2,14 +2,14 @@ module code.waarp.fr/apps/gateway/gateway
 
 go 1.24
 
-toolchain go1.24.6
+toolchain go1.25.1
 
 require (
 	code.waarp.fr/lib/goftp v0.1.1-0.20240801120050-932aa2b2f9a7
 	code.waarp.fr/lib/log v1.4.0
 	code.waarp.fr/lib/migration v1.4.0
-	code.waarp.fr/lib/pesit v0.1.4-0.20250809190903-1a7274f4766b
-	code.waarp.fr/lib/r66 v0.1.7
+	code.waarp.fr/lib/pesit v0.1.4
+	code.waarp.fr/lib/r66 v1.0.8
 	github.com/Masterminds/sprig/v3 v3.3.0
 	github.com/ProtonMail/gopenpgp/v3 v3.3.0
 	github.com/bwmarrin/snowflake v0.3.0
@@ -54,6 +54,7 @@ require (
 require (
 	cloud.google.com/go/compute/metadata v0.7.0 // indirect
 	code.bcarlin.net/go/logging v0.5.1 // indirect
+	code.waarp.fr/lib/Sqlite3CreateTableParser v0.0.0-20221122183218-24f478e49362 // indirect
 	dario.cat/mergo v1.0.1 // indirect
 	filippo.io/edwards25519 v1.1.0 // indirect
 	github.com/IBM/go-sdk-core/v5 v5.20.0 // indirect
@@ -82,7 +83,9 @@ require (
 	github.com/aws/aws-sdk-go-v2/service/ssooidc v1.30.1 // indirect
 	github.com/aws/aws-sdk-go-v2/service/sts v1.33.19 // indirect
 	github.com/aws/smithy-go v1.22.3 // indirect
+	github.com/bahlo/generic-list-go v0.2.0 // indirect
 	github.com/beorn7/perks v1.0.1 // indirect
+	github.com/buger/jsonparser v1.1.1 // indirect
 	github.com/cespare/xxhash/v2 v2.3.0 // indirect
 	github.com/cloudflare/circl v1.6.1 // indirect
 	github.com/coreos/go-semver v0.3.1 // indirect
@@ -117,6 +120,7 @@ require (
 	github.com/lanrat/extsort v1.0.2 // indirect
 	github.com/leodido/go-urn v1.4.0 // indirect
 	github.com/lufia/plan9stats v0.0.0-20250317134145-8bc96cf8fc35 // indirect
+	github.com/mailru/easyjson v0.7.7 // indirect
 	github.com/mattn/go-isatty v0.0.20 // indirect
 	github.com/mattn/go-sqlite3 v1.14.17 // indirect
 	github.com/mitchellh/copystructure v1.2.0 // indirect
@@ -167,5 +171,3 @@ require (
 	modernc.org/memory v1.11.0 // indirect
 	sigs.k8s.io/yaml v1.4.0 // indirect
 )
-
-require code.waarp.fr/lib/Sqlite3CreateTableParser v0.0.0-20221122183218-24f478e49362 // indirect

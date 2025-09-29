@@ -1,0 +1,53 @@
+<!-- Task description -->
+<p class="task-description">{{ .Text.description }}</p>
+
+<script>
+    function aggregateTimeMS(timeRow) {
+        const hEl = timeRow.querySelector('.time-input-h')
+        const mEl = timeRow.querySelector('.time-input-m')
+        const sEl = timeRow.querySelector('.time-input-s')
+        const msEl = timeRow.querySelector('.time-input-ms')
+
+        const msPerS = 1000
+        const msPerM = msPerS * 60
+        const msPerH = msPerM * 60
+
+        let delay = 0
+
+        if (msEl) delay += Number(msEl.value)
+        if (sEl) delay += Number(sEl.value) * msPerS
+        if (mEl) delay += Number(mEl.value) * msPerM
+        if (hEl) delay += Number(hEl.value) * msPerH
+
+        return delay
+    }
+</script>
+
+<!-- Executable path input field -->
+{{ template "textInputRow" dict
+    "label" .Text.path
+    "tooltip" .Text.pathTooltip
+    "fieldName" "path"
+    "fieldType" "text"
+    "value" .Task.Args.path
+}}
+
+<!-- Arguments input field -->
+{{ template "textInputRow" dict
+    "label" .Text.args
+    "tooltip" .Text.argsTooltip
+    "fieldName" "args"
+    "fieldType" "text"
+    "value" .Task.Args.args
+}}
+
+<!-- Delay input fields group -->
+{{ template "timeInputRow" dict
+    "label" .Text.delay
+    "tooltip" .Text.delayTooltip
+    "fieldName" "delay"
+    "value" (mkDur .Task.Args.delay `ms`)
+    "aggregate" "aggregateTimeMS"
+    "optional" true
+    "units" (list "h" "m" "s" "ms")
+}}

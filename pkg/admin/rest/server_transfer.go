@@ -24,7 +24,7 @@ type restServerTransfer struct {
 	TransferInfo map[string]any `json:"transferInfo"`
 }
 
-//nolint:err113 //these are base errors
+//nolint:err113,wrapcheck //these are base errors
 func (r *restServerTransfer) UnmarshalJSON(bytes []byte) error {
 	type rst restServerTransfer
 	var t rst

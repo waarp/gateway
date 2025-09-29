@@ -79,7 +79,7 @@ func (e *extractTask) extractArchive() error {
 	default:
 	}
 
-	for ext, decompress := range ExtractExtensions {
+	for ext, decompress := range ExtractExtensions.Iter() {
 		if hasExtension(e.Archive, ext) {
 			return decompress(e)
 		}

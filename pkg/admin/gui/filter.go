@@ -5,9 +5,6 @@ import (
 	"net/http"
 )
 
-//nolint:gochecknoglobals //global needed
-var DocLink = "https://doc.waarp.org/waarp-gateway/latest/fr/"
-
 type Filters struct {
 	Offset            uint64
 	Limit             uint64

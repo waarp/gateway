@@ -38,6 +38,18 @@ func UpdateFileInfo(info *r66.UpdateInfo, pip *pipeline.Pipeline) *pipeline.Erro
 		pip.TransCtx.Transfer.Filesize = info.FileSize
 	}
 
+	if info.FileInfo != nil {
+		if info.FileInfo.SystemData.FollowID > 0 {
+			pip.TransCtx.TransInfo[model.FollowID] = info.FileInfo.SystemData.FollowID
+		}
+
+		if info.FileInfo.UserContent != "" {
+			if err := UpdateTransferInfo(info.FileInfo.UserContent, pip); err != nil {
+				return err
+			}
+		}
+	}
+
 	return pip.UpdateTrans()
 }
 

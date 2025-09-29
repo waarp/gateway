@@ -1,0 +1,25 @@
+description:
+  en: >
+    Change the transfer file's encoding.
+  fr: >
+    Change l'encodage du fichier de transfert.
+
+from:
+  en: From
+  fr: Depuis
+
+fromTooltip:
+  en: The current (source) charset of the file.
+  fr: L’encodage actuel (source) du fichier.
+
+to:
+  en: To
+  fr: Vers
+
+toTooltip:
+  en: The desired (destination) charset of the file.
+  fr: L’encodage souhaité (destination) du fichier.
+
+charsetPlaceholder:
+  en: Choose a charset
+  fr: Choisir un encodage

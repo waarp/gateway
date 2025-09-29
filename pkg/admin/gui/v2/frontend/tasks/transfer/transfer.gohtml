@@ -1,0 +1,218 @@
+{{ $rule := .Task.Args.rule }}
+{{ $client := .Task.Args.using }}
+{{ $account := .Task.Args.as }}
+
+{{ $partner := "" }}
+{{ $direction := "" }}
+{{ if .Task.Args.to }}
+    {{ $partner = .Task.Args.to }}
+    {{ $direction = "send"}}
+{{ else if .Task.Args.from }}
+    {{ $partner = .Task.Args.from }}
+    {{ $direction = "receive"}}
+{{ end }}
+
+<!-- Task description -->
+<p class="task-description">{{ .Text.description }}</p>
+
+<!-- File -->
+{{ template "textInputRow" dict
+    "label" .Text.file
+    "tooltip" .Text.fileTooltip
+    "fieldName" "file"
+    "fieldType" "text"
+    "value" .Task.Args.file
+}}
+
+<!-- Output -->
+{{ template "textInputRow" dict
+    "label" .Text.output
+    "tooltip" .Text.outputTooltip
+    "fieldName" "output"
+    "fieldType" "text"
+    "value" .Task.Args.output
+    "optional" true
+}}
+
+<!-- Direction -->
+<script>
+    function changeDirection(direction) {
+        const partnerField = document.getElementById("transferTaskPartner")
+
+        if (direction === "send") partnerField.name = "to"
+        if (direction === "receive") partnerField.name = "from"
+
+        fillSelect(`listing/rules?direction=${direction}`,
+            document.getElementById("transferTaskRule"), {{$rule}})
+    }
+</script>
+<div class="form-input">
+    <label class="col-form-label me-3">
+        {{ .Text.direction }}
+        <i class="bi bi-info-circle"
+           data-bs-toggle="tooltip"
+           data-bs-placement="right"
+           data-bs-title="{{ .Text.directionTooltip }}">
+        </i> :
+    </label>
+    <div class="form-check form-check-inline">
+        <input class="form-check-input" name="direction" required
+               type="radio" id="directionSend" value="send" form=""
+               onclick="changeDirection(this.value)"
+               {{ if eq $direction "send" }}checked{{ end }}>
+        <label class="form-check-label" for="directionSend">{{ .Text.send }}</label>
+    </div>
+    <div class="form-check form-check-inline">
+        <input class="form-check-input" name="direction" required
+               type="radio" id="directionReceive" value="receive" form=""
+               onclick="changeDirection(this.value)"
+               {{ if eq $direction "receive" }}checked{{ end }}>
+        <label class="form-check-label" for="directionReceive">{{ .Text.receive }}</label>
+    </div>
+</div>
+{{ if $partner }}
+<script defer>
+    changeDirection({{$direction}})
+</script>
+{{ end }}
+
+<!-- Rule -->
+{{ template "listInputRow" dict
+    "id" "transferTaskRule"
+    "label" .Text.rule
+    "tooltip" .Text.ruleTooltip
+    "fieldName" "rule"
+    "value" $rule
+    "placeholder" .Text.rulePlaceholder
+    "disabled" true
+}}
+
+<!-- Client -->
+<script>
+    function fillPartnerList(clientEl) {
+        const client = clientEl.value
+        if (!client) return
+
+        fillSelect(`listing/partners?client=${client}`,
+            document.getElementById("transferTaskPartner"), "{{ $partner }}")
+        emptySelect(document.getElementById("transferTaskAccount"))
+    }
+</script>
+{{ template "listInputRow" dict
+    "id" "transferTaskClient"
+    "label" .Text.client
+    "tooltip" .Text.clientTooltip
+    "fieldName" "using"
+    "value" $client
+    "placeholder" .Text.clientPlaceholder
+    "onchange" "fillPartnerList"
+}}
+<script defer>
+    fillSelect("listing/clients",
+        document.getElementById("transferTaskClient"),
+        "{{ $client }}")
+</script>
+
+<!-- Partner -->
+<script>
+    function fillAccountList(partnerEl) {
+        const partner = partnerEl.value
+        if (!partner) return
+
+        fillSelect(`listing/remote_accounts?partner=${partner}`,
+            document.getElementById("transferTaskAccount"), "{{ $account }}"
+        )
+    }
+</script>
+{{ template "listInputRow" dict
+    "id" "transferTaskPartner"
+    "label" .Text.partner
+    "tooltip" .Text.partnerTooltip
+    "value" $partner
+    "placeholder" .Text.partnerPlaceholder
+    "disabled" true
+    "onchange" "fillAccountList"
+}}
+
+<!-- Account -->
+{{ template "listInputRow" dict
+    "id" "transferTaskAccount"
+    "label" .Text.account
+    "tooltip" .Text.accountTooltip
+    "fieldName" "as"
+    "value" $account
+    "placeholder" .Text.accountPlaceholder
+    "disabled" true
+}}
+
+<!-- Transfer info -->
+{{ template "textInputRow" dict
+    "label" .Text.info
+    "tooltip" .Text.infoTooltip
+    "fieldName" "info"
+    "fieldType" "text"
+    "value" .Task.Args.info
+    "optional" true
+}}
+
+<!-- Copy info -->
+{{ template "checkInputRow" dict
+    "label" .Text.copyInfo
+    "tooltip" .Text.copyInfoTooltip
+    "fieldName" "copyInfo"
+    "value" .Task.Args.copyInfo
+}}
+
+<!-- Retry parameters -->
+<script>
+    function toggleRetrySettings(value) {
+        toggleInputs(value, "transferTaskRetrySettings")
+    }
+</script>
+{{ template "checkInputRow" dict
+    "id" "retrySettingsCheck"
+    "label" .Text.autoRetry
+    "tooltip" .Text.autoRetryTooltip
+    "fieldName" ""
+    "onchange" "toggleRetrySettings"
+}}
+<div id="transferTaskRetrySettings" hidden>
+    <!-- Number of attempts -->
+    {{ template "numberInputRow" dict
+        "label" .Text.attempts
+        "tooltip" .Text.attemptsTooltip
+        "fieldName" "nbOfAttempts"
+        "value" .Task.Args.nbOfAttempts
+        "min" 0     "step" 1
+        "placeholder" "0"
+        "optional" true
+    }}
+
+    <!-- Retry delay -->
+    {{ template "timeInputRow" dict
+        "label" .Text.retryDelay
+        "tooltip" .Text.retryDelayTooltip
+        "fieldName" "firstRetryDelay"
+        "value" .Task.Args.firstRetryDelay
+        "aggregate" "aggregateDuration"
+        "optional" true
+        "units" (list "h" "m" "s")
+    }}
+
+    <!-- Retry increment -->
+    {{ template "numberInputRow" dict
+        "label" .Text.retryIncrement
+        "tooltip" .Text.retryIncrementTooltip
+        "fieldName" "retryIncrementFactor"
+        "value" .Task.Args.retryIncrementFactor
+        "min" 1     "step" 0.1
+        "placeholder" 1.0
+        "optional" true
+    }}
+</div>
+{{ if .Task.Args.nbOfAttempts }}
+<script defer>
+    document.getElementById("retrySettingsCheck").checked = true
+    toggleRetrySettings("true")
+</script>
+{{ end }}

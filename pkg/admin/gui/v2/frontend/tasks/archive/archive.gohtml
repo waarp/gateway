@@ -1,0 +1,68 @@
+<!-- Task description -->
+<p class="task-description">{{ .Text.description }}</p>
+
+<!-- Files input -->
+{{ template "textInputRow" dict
+    "label" .Text.files
+    "tooltip" .Text.filesTooltip
+    "fieldName" "files"
+    "fieldType" "text"
+    "value" .Task.Args.files
+}}
+
+<!-- Compression level -->
+{{ template "numberInputRow" dict
+    "label" .Text.compressionLevel
+    "tooltip" .Text.compressionLevelTooltip
+    "fieldName" "compressionLevel"
+    "value" .Task.Args.compressionLevel
+    "min" 0     "max" 9     "step" 1
+    "placeholder" 0
+    "optional" true
+}}
+
+<!-- Output path -->
+<div class="form-input">
+    <script>
+        function makeArchiveOutputPath(elem) {
+            const base = document.getElementById("outputPathBase")
+            const ext = document.getElementById("outputPathExt")
+
+            elem.value = base.value + ext.value
+        }
+    </script>
+    <label class="col-form-label">
+        {{ .Text.outputPath }}
+        <i class="bi bi-info-circle"
+           data-bs-toggle="tooltip"
+           data-bs-placement="right"
+           data-bs-title="{{ .Text.outputPathTooltip }}">
+        </i> :
+    </label>
+    <div class="input-group">
+        {{ $base := archiveBase .Task.Args.outputPath }}
+        {{ $ext := archiveExt .Task.Args.outputPath }}
+        <input type="hidden" name="outputPath" onsubmit="makeArchiveOutputPath(this)">
+        <div class="input-group">
+            <input type="text"
+                   class="form-control"
+                   id="outputPathBase"
+                   {{ if $base }}value="{{$base}}"{{ end }}
+                   required>
+            <select class="form-select form-row-append"
+                    id="outputPathExt"
+                    style="max-width:fit-content"
+                    required>
+                 <option value="" disabled {{ if not $ext }}selected{{ end }}>
+                    {{ .Text.outputExtPlaceholder }}
+                </option>
+                {{ range listArchiveExtensions }}
+                    <option value="{{.}}"
+                            {{ if eq . $ext }}selected{{ end }}>
+                        {{.}}
+                    </option>
+                {{ end }}
+            </select>
+        </div>
+    </div>
+</div>

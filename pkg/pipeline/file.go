@@ -135,7 +135,7 @@ func (p *Pipeline) setCustomFilePaths(srcFilename, destFilename string) error {
 		}
 
 		if !p.TransCtx.Rule.IsSend && !fs.IsLocalPath(fPath) {
-			return ErrNonLocalTmpFile
+			return fmt.Errorf("%q: %w", fPath, ErrNonLocalTmpFile)
 		}
 
 		p.TransCtx.Transfer.LocalPath = fPath

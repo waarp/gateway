@@ -1,0 +1,95 @@
+title:
+  en: Transfer tasks management
+  fr: Gestion des tâches de transfert
+
+pageParents:
+  en: Transfer rules > Transfer tasks
+  fr: Règles de transfert > Tâches de transfert
+
+preTasks:
+  en: Pre-tasks
+  fr: Pré-tâches
+
+postTasks:
+  en: Post-tasks
+  fr: Post-tâches
+
+errorTasks:
+  en: Error tasks
+  fr: Tâches d'erreur
+
+addTask:
+  en: Add a new task
+  fr: Ajouter une nouvelle tâche
+
+apply:
+  en: Apply
+  fr: Appliquer
+
+cancel:
+  en: Cancel
+  fr: Annuler
+
+dragTooltip:
+  en: Use the handles to reorder the tasks
+  fr: Utilisez les poignées pour réordonner les tâches
+
+dragHelp:
+  en: Drag and drop to reorder
+  fr: Faire glisser pour réordonner
+
+type:
+  en: Type
+  fr: Type
+
+typeTooltip:
+  en: The type of task
+  fr: Le type de tâche
+
+args:
+  en: Arguments
+  fr: Arguments
+
+argsTooltip:
+  en: The task's arguments
+  fr: Les arguments de la tâche
+
+selectType:
+  en: Select task type
+  fr: Sélectionner le type de tâche
+
+close:
+  en: Close
+  fr: Fermer
+
+confirmDelete:
+  en: Are you sure you want to delete this task?
+  fr: Voulez-vous vraiment supprimer cette tâche ?
+
+fileOperations:
+  en: File operations
+  fr: Opérations de fichiers
+
+executables:
+  en: Executables
+  fr: Exécutables
+
+transfer:
+  en: Transfer
+  fr: Transfert
+
+fileAlterations:
+  en: File alterations
+  fr: Altérations de fichiers
+
+archiving:
+  en: Archiving & compression
+  fr: Archivage & compression
+
+network:
+  en: Network
+  fr: Réseau
+
+crypto:
+  en: Cryptography
+  fr: Cryptographie

@@ -1,4 +1,5 @@
 {{ define "addR66Partner" }}
+<!--suppress XmlDuplicatedId -->
 <div id="protoConfig_r66" class="protoConfigBlock" style="display:none;">
     <hr style="border-top: 1px solid #ababab;">
     <div class="mt-4 mb-2"><strong>{{ index .tab "protocolConfiguration" }} <i class="bi bi-info-circle ms-1" data-bs-toggle="tooltip" data-bs-placement="right" data-bs-title="{{ index $.tab "tooltipProtocolConfiguration" }}"></i> :</strong></div>
@@ -364,6 +365,16 @@
     <div class="form-input mt-2">
         <label class="col-form-label">{{ index .tab "maxMessageSize" }} <i class="bi bi-info-circle ms-1" data-bs-toggle="tooltip" data-bs-placement="right" data-bs-title="{{ index $.tab "tooltipMaxMessageSize" }}"></i> :</label>
         <input type="text" name="protoConfigPeSITmaxMessageSize" class="form-control" value="{{ index .modalElement "protoConfigPeSITmaxMessageSize" }}">
+    </div>
+    <hr style="border-top: 1px solid #ababab;">
+    <div class="form-input mt-2">
+        <label class="col-form-label">{{ index .tab "compatibilityMode" }} <i class="bi bi-info-circle ms-1" data-bs-toggle="tooltip" data-bs-placement="right" data-bs-title="{{ index $.tab "tooltipCompatibilityMode" }}"></i> :</label>
+        <select name="protoConfigPeSITcompatibilityMode" id="protoConfigPeSITcompatibilityMode" class="form-select">
+            <option value="" disabled {{ if not (index .modalElement "protoConfigPeSITcompatibilityMode") }}selected{{ end }}>{{ index .tab "selectCompatibilityMode" }}</option>
+            {{ range .CompatibilityModePeSIT }}
+            <option value="{{ . }}" {{ if eq (index $.modalElement "protoConfigPeSITcompatibilityMode") . }}selected{{ end }}> {{ if eq . "standard" }}{{ index $.tab "standardParameterPesit" }}{{ else if eq . "non-standard" }}{{ index $.tab "noneStandardParameterPesit" }}{{ else }}{{ . }}{{ end }}</option>
+            {{ end }}
+        </select>
     </div>
     <hr style="border-top: 1px solid #ababab;">
     <div class="form-input mt-2 d-flex align-items-center">

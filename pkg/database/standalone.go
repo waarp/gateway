@@ -1,8 +1,8 @@
 package database
 
 import (
+	"context"
 	"database/sql"
-	"runtime/debug"
 	"sync"
 	"time"
 
@@ -46,6 +46,11 @@ func (s *Standalone) Transaction(fun TransactionFunc) error {
 		return NewInternalError(err)
 	}
 
+	ctx, cancel := context.WithTimeout(context.Background(), warnDuration)
+	defer cancel()
+
+	ses.session.Context(ctx)
+
 	s.sessions.Store(ses.id, ses)
 	defer s.sessions.Delete(ses.id)
 
@@ -57,20 +62,6 @@ func (s *Standalone) Transaction(fun TransactionFunc) error {
 		}
 
 		close(done)
-	}()
-
-	stack := debug.Stack()
-
-	go func() {
-		timer := time.NewTimer(warnDuration)
-		defer timer.Stop()
-
-		select {
-		case <-timer.C:
-			s.logger.Warningf("transaction is taking an unusually long time, "+
-				"printing stack for debugging purposes:\n%s", stack)
-		case <-done:
-		}
 	}()
 
 	if err := fun(ses); err != nil {

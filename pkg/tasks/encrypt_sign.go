@@ -12,19 +12,25 @@ import (
 	"code.waarp.fr/apps/gateway/gateway/pkg/database"
 	"code.waarp.fr/apps/gateway/gateway/pkg/model"
 	"code.waarp.fr/apps/gateway/gateway/pkg/utils"
+	"code.waarp.fr/apps/gateway/gateway/pkg/utils/ordered"
 )
 
-//nolint:gochecknoglobals //global var is needed here for future-proofing
-var EncryptSignMethods = map[string]struct {
+type encryptSignMethod struct {
 	KeyTypesEncrypt []string
 	KeyTypesSign    []string
 	mkEncryptSigner func(*model.CryptoKey, *model.CryptoKey) (encryptSignFunc, error)
-}{
-	EncryptSignMethodPGP: {
+}
+
+//nolint:gochecknoglobals //global var is needed here for future-proofing
+var EncryptSignMethods = ordered.Map[string, *encryptSignMethod]{}
+
+//nolint:gochecknoinits //init is needed here to initialize constants
+func init() {
+	EncryptSignMethods.Add(EncryptSignMethodPGP, &encryptSignMethod{
 		KeyTypesEncrypt: []string{model.CryptoKeyTypePGPPublic, model.CryptoKeyTypePGPPrivate},
 		KeyTypesSign:    []string{model.CryptoKeyTypePGPPrivate},
 		mkEncryptSigner: makePGPSignEncryptor,
-	},
+	})
 }
 
 var (
@@ -80,7 +86,7 @@ func (e *encryptSign) ValidateDB(db database.ReadAccess, params map[string]strin
 		return fmt.Errorf("failed to retrieve signature key from database: %w", err)
 	}
 
-	method, ok := EncryptSignMethods[e.Method]
+	method, ok := EncryptSignMethods.Get(e.Method)
 	if !ok {
 		return fmt.Errorf("%w %q", ErrEncryptSignUnknownMethod, e.Method)
 	}

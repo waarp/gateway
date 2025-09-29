@@ -1,0 +1,86 @@
+<!-- Task description -->
+<p class="task-description">{{ .Text.description }}</p>
+
+<!-- Upload URL -->
+{{ template "textInputRow" dict
+    "label" .Text.uploadURL
+    "tooltip" .Text.uploadURLTooltip
+    "fieldName" "uploadURL"
+    "fieldType" "url"
+    "value" .Task.Args.uploadURL
+}}
+
+<!-- Timeout -->
+{{ template "timeInputRow" dict
+    "label" .Text.timeout
+    "tooltip" .Text.timeoutTooltip
+    "fieldName" "timeout"
+    "value" .Task.Args.timeout
+    "aggregate" "aggregateDuration"
+    "units" (list "h" "m" "s")
+    "optional" true
+}}
+
+<!-- Allow modifications -->
+{{ template "checkInputRow" dict
+    "label" .Text.allowFileModifications
+    "tooltip" .Text.allowFileModificationsTooltip
+    "fieldName" "allowFileModifications"
+    "value" .Task.Args.allowFileModifications
+}}
+
+<!-- On error -->
+{{ $onError := .Task.Args.onError }}
+<div class="form-input">
+    <label class="col-form-label">
+        {{ .Text.onError }}
+        <i class="bi bi-info-circle"
+           data-bs-toggle="tooltip"
+           data-bs-placement="right"
+           data-bs-title="{{ .Text.onError }}">
+        </i> :
+    </label>
+    <select class="form-select"
+            name="onError"
+            onchange="showOnErrorMovePath(this)">
+        <option value="" {{ if not $onError }}selected{{ end }}>
+            {{ .Text.onErrorNothing }}
+        </option>
+        <option value="delete" {{ if eq $onError "delete" }}selected{{ end }}>
+            {{ .Text.onErrorDelete }}
+        </option>
+        <option value="move" {{ if eq $onError "move" }}selected{{ end }}>
+            {{ .Text.onErrorMove }}
+        </option>
+    </select>
+</div>
+<div class="form-input" id="icapOnErrorMovePath"
+     {{ if ne $onError "move" }}hidden{{ end }}>
+    <label class="col-form-label">
+        {{ .Text.onErrorMovePath }}
+        <i class="bi bi-info-circle"
+           data-bs-toggle="tooltip"
+           data-bs-placement="right"
+           data-bs-title="{{ .Text.onErrorMovePathTooltip }}">
+        </i> :
+    </label>
+    <input type="text"
+           name="onErrorMovePath"
+           class="form-control"
+           value="{{ .Task.Args.onErrorMovePath }}"
+           {{ if eq $onError "move" }}required{{ end }}>
+</div>
+<script>
+    const divElem = document.getElementById("icapOnErrorMovePath")
+    const inputElem = divElem.querySelector("input")
+
+    function showOnErrorMovePath(selectEl) {
+        if (selectEl.value === "move") {
+            divElem.hidden = false
+            inputElem.required = true
+        } else {
+            divElem.hidden = true
+            inputElem.required = false
+        }
+    }
+</script>

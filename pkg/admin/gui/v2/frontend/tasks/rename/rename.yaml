@@ -1,0 +1,11 @@
+description:
+  en: Change the transfer's target file.
+  fr: Change le fichier cible du transfert.
+
+path:
+  en: New transfer file
+  fr: Nouveau fichier de transfert
+
+pathTooltip:
+  en: The path of the new transfer file.
+  fr: Le chemin du nouveau fichier de transfert.

@@ -1,0 +1,42 @@
+description:
+  en: >
+    Send an email to the given recipient with the given sender and template.
+  fr: >
+    Envoie un email au destinataire donné depuis l'expéditeur donné et avec le
+    template d'email donné.
+
+sender:
+  en: Sender
+  fr: Expéditeur
+
+senderTooltip:
+  en: > 
+    The address of the email's sender. Must have been previously registered along
+    with the SMTP authentication information.
+  fr: >
+    L'adresse de l'expéditeur de l'email. Doit avoir été préalablement enregistré
+    avec les informations d'authentification SMTP.
+
+senderPlaceholder:
+  en: Choose a sender
+  fr: Choisir un expéditeur
+
+recipient:
+  en: Recipients
+  fr: Destinataires
+
+recipientTooltip:
+  en: The comma-separated list of the addresses of the email's recipients.
+  fr: La liste, séparée par virgules, des adresses des destinataires de l'email.
+
+template:
+  en: Template
+  fr: Template
+
+templateTooltip:
+  en: The email's template. Must have been previously registered.
+  fr: Le template d'email. Doit avoir été préalablement enregistré.
+
+templatePlaceholder:
+  en: Choose a template
+  fr: Choisir un template

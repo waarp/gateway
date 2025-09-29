@@ -17,7 +17,7 @@
   <div class="d-flex">
     {{ template "sidebar" . }}
     <img src="/webui/static/assets/Logo_Waarp_Banner.png" alt="Waarp Logo" class="logo-waarp">
-    <a href="https://doc.waarp.org/waarp-gateway/latest/fr/" class="doc-waarp" aria-label="doc" data-bs-toggle="tooltip" data-bs-placement="top" target="_blank" title="{{ index .tab "docWaarp" }}">
+    <a href="{{.docLink}}" class="doc-waarp" aria-label="doc" data-bs-toggle="tooltip" data-bs-placement="top" target="_blank" title="{{ index .tab "docWaarp" }}">
       <i class="bi bi-book"></i>
     </a>
     <div class="flex-grow-1 p-3" id="mainContent">

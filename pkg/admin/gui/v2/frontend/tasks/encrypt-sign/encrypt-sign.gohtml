@@ -1,0 +1,62 @@
+<script>
+    function uptKeyList(methodEl) {
+        uptKeyListWith("encrypt-sign", methodEl.value, "", "encryptSignTaskEKeyName")
+        uptKeyListWith("sign-encrypt", methodEl.value, "", "encryptSignTaskSKeyName")
+    }
+</script>
+
+<!-- Task description -->
+<p class="task-description">{{ .Text.description }}</p>
+
+<!-- Output File -->
+{{ template "textInputRow" dict
+    "label" .Text.outputFile
+    "tooltip" .Text.outputFileTooltip
+    "fieldName" "outputFile"
+    "fieldType" "text"
+    "value" .Task.Args.outputFile
+}}
+
+<!-- Keep original -->
+{{ template "checkInputRow" dict
+    "label" .Text.keepOriginal
+    "tooltip" .Text.keepOriginalTooltip
+    "fieldName" "keepOriginal"
+    "value" .Task.Args.keepOriginal
+}}
+
+<!-- Method -->
+{{ template "listInputRow" dict
+    "label" .Text.method
+    "tooltip" .Text.methodTooltip
+    "fieldName" "method"
+    "value" .Task.Args.method
+    "list" encryptSignMethods
+    "placeholder" .Text.methodPlaceholder
+    "onchange" "uptKeyList"
+}}
+
+<!-- Encrypt key name -->
+{{ template "listInputRow" dict
+    "id" "encryptSignTaskEKeyName"
+    "label" .Text.encryptKeyName
+    "tooltip" .Text.encryptKeyNameTooltip
+    "fieldName" "encryptKeyName"
+    "placeholder" .Text.keyNamePlaceholder
+}}
+
+<!-- Signature key name -->
+{{ template "listInputRow" dict
+    "id" "encryptSignTaskSKeyName"
+    "label" .Text.signKeyName
+    "tooltip" .Text.signKeyNameTooltip
+    "fieldName" "signKeyName"
+    "placeholder" .Text.keyNamePlaceholder
+}}
+
+<script>
+    uptKeyListWith("encrypt-sign", {{.Task.Args.method}}, {{.Task.Args.encryptKeyName}},
+        "encryptSignTaskEKeyName")
+    uptKeyListWith("sign-encrypt", {{.Task.Args.method}}, {{.Task.Args.signKeyName}},
+        "encryptSignTaskSKeyName")
+</script>

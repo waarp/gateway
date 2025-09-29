@@ -10,8 +10,11 @@ import (
 	"code.waarp.fr/lib/log"
 
 	"code.waarp.fr/apps/gateway/gateway/pkg/admin/gui/internal"
+	"code.waarp.fr/apps/gateway/gateway/pkg/admin/gui/v2/backend/constants"
+	"code.waarp.fr/apps/gateway/gateway/pkg/admin/gui/v2/backend/locale"
 	"code.waarp.fr/apps/gateway/gateway/pkg/database"
 	"code.waarp.fr/apps/gateway/gateway/pkg/model"
+	"code.waarp.fr/apps/gateway/gateway/pkg/version"
 )
 
 type userPermissions struct {
@@ -444,8 +447,8 @@ func callMethodsUserManagement(logger *log.Logger, db *database.DB, w http.Respo
 //nolint:funlen // pattern
 func userManagementPage(logger *log.Logger, db *database.DB) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		userLanguage := r.Context().Value(ContextLanguageKey)
-		tabTranslated := pageTranslated("user_management_page", userLanguage.(string)) //nolint:errcheck,forcetypeassert //u
+		userLanguage := locale.GetLanguage(r)
+		tabTranslated := pageTranslated("user_management_page", userLanguage)
 		userList, filter, userFound := listUser(db, r)
 
 		if pageName := r.URL.Query().Get("clearFiltersPage"); pageName != "" {
@@ -480,6 +483,11 @@ func userManagementPage(logger *log.Logger, db *database.DB) http.HandlerFunc {
 		currentPage := filter.Offset + 1
 
 		if tmplErr := userManagementTemplate.ExecuteTemplate(w, "user_management_page", map[string]any{
+			"appName":         constants.AppName,
+			"version":         version.Num,
+			"compileDate":     version.Date,
+			"revision":        version.Commit,
+			"docLink":         constants.DocLink(userLanguage),
 			"userPermissions": uPermissionsList,
 			"myPermission":    myPermission,
 			"tab":             tabTranslated,

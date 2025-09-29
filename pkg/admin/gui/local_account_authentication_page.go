@@ -8,10 +8,13 @@ import (
 	"code.waarp.fr/lib/log"
 
 	"code.waarp.fr/apps/gateway/gateway/pkg/admin/gui/internal"
+	"code.waarp.fr/apps/gateway/gateway/pkg/admin/gui/v2/backend/constants"
+	"code.waarp.fr/apps/gateway/gateway/pkg/admin/gui/v2/backend/locale"
 	"code.waarp.fr/apps/gateway/gateway/pkg/database"
 	"code.waarp.fr/apps/gateway/gateway/pkg/model"
 	"code.waarp.fr/apps/gateway/gateway/pkg/model/authentication/auth"
 	"code.waarp.fr/apps/gateway/gateway/pkg/protocols/modules/sftp"
+	"code.waarp.fr/apps/gateway/gateway/pkg/version"
 )
 
 //nolint:dupl // no similar func (is for account)
@@ -339,9 +342,8 @@ func getServerAndAccount(db *database.DB, serverID, accountID string, logger *lo
 
 func localAccountAuthenticationPage(logger *log.Logger, db *database.DB) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		userLanguage := r.Context().Value(ContextLanguageKey)
-		//nolint:forcetypeassert //assertion always succeeds
-		tTranslated := pageTranslated("local_account_authentication_page", userLanguage.(string))
+		userLanguage := locale.GetLanguage(r)
+		tTranslated := pageTranslated("local_account_authentication_page", userLanguage)
 
 		serverID := r.URL.Query().Get("serverID")
 		accountID := r.URL.Query().Get("accountID")
@@ -374,6 +376,11 @@ func localAccountAuthenticationPage(logger *log.Logger, db *database.DB) http.Ha
 
 		if tmplErr := localAccountAuthenticationTemplate.ExecuteTemplate(w, "local_account_authentication_page",
 			map[string]any{
+				"appName":                constants.AppName,
+				"version":                version.Num,
+				"compileDate":            version.Date,
+				"revision":               version.Commit,
+				"docLink":                constants.DocLink(userLanguage),
 				"myPermission":           myPermission,
 				"tab":                    tTranslated,
 				"username":               user.Username,

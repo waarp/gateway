@@ -8,6 +8,8 @@ import (
 	"code.waarp.fr/lib/log"
 
 	"code.waarp.fr/apps/gateway/gateway/pkg/admin/gui/internal"
+	"code.waarp.fr/apps/gateway/gateway/pkg/admin/gui/v2/backend/constants"
+	"code.waarp.fr/apps/gateway/gateway/pkg/admin/gui/v2/backend/locale"
 	"code.waarp.fr/apps/gateway/gateway/pkg/database"
 	"code.waarp.fr/apps/gateway/gateway/pkg/model"
 	"code.waarp.fr/apps/gateway/gateway/pkg/protocols/modules/ftp"
@@ -15,6 +17,7 @@ import (
 	"code.waarp.fr/apps/gateway/gateway/pkg/protocols/modules/pesit"
 	"code.waarp.fr/apps/gateway/gateway/pkg/protocols/modules/r66"
 	"code.waarp.fr/apps/gateway/gateway/pkg/protocols/modules/sftp"
+	"code.waarp.fr/apps/gateway/gateway/pkg/version"
 )
 
 //nolint:dupl // is not similar, is method for partner
@@ -309,8 +312,8 @@ func callMethodsPartnerManagement(logger *log.Logger, db *database.DB, w http.Re
 
 func partnerManagementPage(logger *log.Logger, db *database.DB) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		userLanguage := r.Context().Value(ContextLanguageKey)
-		tTranslated := pageTranslated("partner_management_page", userLanguage.(string)) //nolint:errcheck,forcetypeassert //u
+		userLanguage := locale.GetLanguage(r)
+		tTranslated := pageTranslated("partner_management_page", userLanguage)
 		partnerList, filter, partnerFound := ListPartner(db, r)
 
 		if pageName := r.URL.Query().Get("clearFiltersPage"); pageName != "" {
@@ -336,6 +339,11 @@ func partnerManagementPage(logger *log.Logger, db *database.DB) http.HandlerFunc
 		currentPage := filter.Offset + 1
 
 		if tmplErr := partnerManagementTemplate.ExecuteTemplate(w, "partner_management_page", map[string]any{
+			"appName":                constants.AppName,
+			"version":                version.Num,
+			"compileDate":            version.Date,
+			"revision":               version.Commit,
+			"docLink":                constants.DocLink(userLanguage),
 			"myPermission":           myPermission,
 			"tab":                    tTranslated,
 			"username":               user.Username,

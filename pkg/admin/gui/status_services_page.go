@@ -7,9 +7,12 @@ import (
 	"code.waarp.fr/lib/log"
 
 	"code.waarp.fr/apps/gateway/gateway/pkg/admin/gui/internal"
+	"code.waarp.fr/apps/gateway/gateway/pkg/admin/gui/v2/backend/constants"
+	"code.waarp.fr/apps/gateway/gateway/pkg/admin/gui/v2/backend/locale"
 	"code.waarp.fr/apps/gateway/gateway/pkg/database"
 	"code.waarp.fr/apps/gateway/gateway/pkg/model"
 	"code.waarp.fr/apps/gateway/gateway/pkg/utils"
+	"code.waarp.fr/apps/gateway/gateway/pkg/version"
 )
 
 func sortServicesByName(services []internal.Service) {
@@ -20,9 +23,8 @@ func sortServicesByName(services []internal.Service) {
 
 func statusServicesPage(logger *log.Logger, db *database.DB) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		userLanguage := r.Context().Value(ContextLanguageKey)
-		tTranslated := //nolint:forcetypeassert //u
-			pageTranslated("status_services_page", userLanguage.(string)) //nolint:errcheck //u
+		userLanguage := locale.GetLanguage(r)
+		tTranslated := pageTranslated("status_services_page", userLanguage)
 
 		cores, servers, clients := internal.ListServices()
 
@@ -38,6 +40,11 @@ func statusServicesPage(logger *log.Logger, db *database.DB) http.HandlerFunc {
 		myPermission := model.MaskToPerms(user.Permissions)
 
 		data := map[string]any{
+			"appName":      constants.AppName,
+			"version":      version.Num,
+			"compileDate":  version.Date,
+			"revision":     version.Commit,
+			"docLink":      constants.DocLink(userLanguage),
 			"myPermission": myPermission,
 			"tab":          tTranslated,
 			"username":     user.Username,

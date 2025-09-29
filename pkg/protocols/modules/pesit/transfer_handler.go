@@ -31,7 +31,6 @@ type transferHandler struct {
 	tracer  func() pipeline.Trace
 
 	connFreetext string
-	cftMode      bool
 
 	ctx    context.Context
 	cancel context.CancelCauseFunc
@@ -113,7 +112,7 @@ func (t *transferHandler) SelectFile(req *pesit.ServerTransfer) error {
 		remoteTransferID string
 	)
 
-	if t.cftMode {
+	if t.conf.CompatibilityMode == CompatibilityModeNonStandard {
 		rule, ruleErr = t.getRuleByName(req.FilenamePI12(), isSend)
 	} else {
 		rule, ruleErr = t.getRule(req.Filename(), isSend)

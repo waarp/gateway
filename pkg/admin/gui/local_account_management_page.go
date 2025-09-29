@@ -9,8 +9,11 @@ import (
 	"code.waarp.fr/lib/log"
 
 	"code.waarp.fr/apps/gateway/gateway/pkg/admin/gui/internal"
+	"code.waarp.fr/apps/gateway/gateway/pkg/admin/gui/v2/backend/constants"
+	"code.waarp.fr/apps/gateway/gateway/pkg/admin/gui/v2/backend/locale"
 	"code.waarp.fr/apps/gateway/gateway/pkg/database"
 	"code.waarp.fr/apps/gateway/gateway/pkg/model"
+	"code.waarp.fr/apps/gateway/gateway/pkg/version"
 )
 
 //nolint:dupl // it is not the same function, the calls are different
@@ -270,9 +273,8 @@ func callMethodsLocalAccount(logger *log.Logger, db *database.DB, w http.Respons
 
 func localAccountPage(logger *log.Logger, db *database.DB) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		userLanguage := r.Context().Value(ContextLanguageKey)
-		tTranslated := //nolint:forcetypeassert //u
-			pageTranslated("local_account_management_page", userLanguage.(string)) //nolint:errcheck //u
+		userLanguage := locale.GetLanguage(r)
+		tTranslated := pageTranslated("local_account_management_page", userLanguage)
 
 		user, err := GetUserByToken(r, db)
 		if err != nil {
@@ -315,6 +317,11 @@ func localAccountPage(logger *log.Logger, db *database.DB) http.HandlerFunc {
 		currentPage := filter.Offset + 1
 
 		if tmplErr := localAccountTemplate.ExecuteTemplate(w, "local_account_management_page", map[string]any{
+			"appName":           constants.AppName,
+			"version":           version.Num,
+			"compileDate":       version.Date,
+			"revision":          version.Commit,
+			"docLink":           constants.DocLink(userLanguage),
 			"myPermission":      myPermission,
 			"username":          user.Username,
 			"language":          userLanguage,

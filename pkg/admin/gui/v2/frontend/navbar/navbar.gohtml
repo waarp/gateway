@@ -1,0 +1,171 @@
+<!-- Stylesheet -->
+<link rel="stylesheet" href="static_v2/navbar/navbar.css">
+
+<!-- Header Navigation Bar -->
+<header>
+    <div class="navbar">
+        <!-- Sidebar Toggle Button and Brand grouped on tde left -->
+        <div class="nav-left">
+            <button id="sidebarCollapseButton"
+                    class="nav-item sidebar-toggle"
+                    data-bs-toggle="collapse"
+                    data-bs-target="#app-sidebar"
+                    aria-controls="app-sidebar"
+                    aria-expanded="true"
+                    aria-label="Toggle sidebar">
+                <i class="bi bi-layout-sidebar-inset"></i>
+            </button>
+
+            <a href="home" class="nav-item brand-name">
+                {{ .InstanceName }} - {{ .AppName }}
+            </a>
+        </div>
+
+        <div class="nav-right">
+            <!-- User Profile -->
+            <div class="nav-item">
+                <i class="bi bi-person-fill"></i>
+                {{ .Username }}
+            </div>
+
+            <!-- Logout Link -->
+            <a href="logout" class="nav-item nav-button">
+                <i class="bi bi-power"></i>
+                {{ .Text.logout }}
+            </a>
+
+            <!-- About Modal Link -->
+            <a href="#" id="aboutButton" class="nav-item nav-button"
+               data-bs-toggle="modal" data-bs-target="#aboutModal">
+                <i class="bi bi-question-circle"></i>
+                {{ .Text.about }}
+            </a>
+
+            <!-- Language Selector -->
+            <form method="GET" id="dropDownLanguage">
+                <script>
+                    function setLanguage(elem) {
+                        const paramName = 'language';
+                        const url = new URL(window.location.href);
+                        const params = url.searchParams;
+
+                        params.set(paramName, elem.value);
+
+                        url.search = params.toString();
+                        window.location.href = url.toString();
+                    }
+                </script>
+                <select name="language" id="language"
+                        class="nav-item nav-button lang-select"
+                        onchange="setLanguage(this)">
+                    <option value="en" {{ if eq .Language `en` }}selected{{ end }}>
+                        English
+                    </option>
+                    <option value="fr" {{ if eq .Language `fr` }}selected{{ end }}>
+                        Français
+                    </option>
+                </select>
+            </form>
+        </div>
+
+
+        <!-- About Modal -->
+        <div class="modal fade" id="aboutModal" tabindex="-1" aria-labelledby="aboutModalLabel" aria-hidden="true">
+            <div class="modal-dialog modal-lg">
+                <div class="modal-content">
+                    <!-- Modal Header -->
+                    <div class="modal-header">
+                        <h5 class="modal-title" id="aboutModalLabel">
+                            <i class="bi bi-question-circle"></i>
+                            {{ .Text.about }} {{ .AppName }}
+                        </h5>
+                        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                    </div>
+
+                    <!-- Modal Body -->
+                    <div class="modal-body">
+                        <table class="about-content">
+                            <!-- Version -->
+                            <tr>
+                                <th>{{ .Text.version }} :</th>
+                                <td>{{ .Version }}</td>
+                            </tr>
+
+                            <!-- Compile date -->
+                            <tr>
+                                <th>{{ .Text.compileDate }} :</th>
+                                <td>{{ .CompileDate }}</td>
+                            </tr>
+
+                            <!-- Revision -->
+                            <tr>
+                                <th>{{ .Text.revision }}  :</th>
+                                <td>{{ .Revision }}</td>
+                            </tr>
+
+                            <!-- Support -->
+                            <tr>
+                                <th>{{ .Text.support }}  :</th>
+                                <td>
+                                    {{ .Text.supportDesc }}
+                                    <a href="https://waarp.fr">waarp.fr</a>.
+                                </td>
+                            </tr>
+
+                            <!-- License -->
+                            <tr>
+                                <th>{{ .Text.license }}  :</th>
+                                <td>
+                                    {{ .Text.licenseDesc }}
+                                    <a href="https://www.gnu.org/licenses/gpl-3.0.html">{{ .Text.licenseLink }}</a>.
+                                </td>
+                            </tr>
+
+                            <!-- Links -->
+                            <tr>
+                                <th>{{ .Text.links }}  :</th>
+                                <td>
+                                    <ul>
+                                        <!-- Download -->
+                                        <li>
+                                            <strong>{{ .Text.downloads }}</strong>:
+                                            <a href="https://dl.waarp.org/dist/waarp-gateway/" target="_blank" rel="noopener">
+                                                dl.waarp.org
+                                            </a>
+                                        </li>
+                                        <!-- Documentation -->
+                                        <li>
+                                            <strong>{{ .Text.documentation }}</strong>:
+                                            <a href="https://doc.waarp.org/waarp-gateway/latest" target="_blank" rel="noopener">
+                                                doc.waarp.org
+                                            </a>
+                                        </li>
+                                        <!-- Forum -->
+                                        <li>
+                                            <strong>{{ .Text.forums }}</strong>:
+                                            <a href="https://discuss.waarp.org/" target="_blank" rel="noopener">
+                                                discuss.waarp.org
+                                            </a>
+                                        </li>
+                                        <!-- Contact -->
+                                        <li>
+                                            <strong>{{ .Text.contact }}</strong>:
+                                            <a href="mailto:info@waarp.fr">info@waarp.fr</a>
+                                        </li>
+                                    </ul>
+                                </td>
+                            </tr>
+                        </table>
+                    </div>
+
+                    <!-- Modal Footer -->
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">
+                            {{ .Text.close }}
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</header>

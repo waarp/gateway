@@ -249,7 +249,12 @@ func loginPage(logger *log.Logger, db *database.DB) http.HandlerFunc {
 							HttpOnly: true,
 							SameSite: http.SameSiteLaxMode,
 						})
-						http.Redirect(w, r, "home", http.StatusFound)
+
+						if redirect := r.URL.Query().Get("redirect"); redirect != "" {
+							http.Redirect(w, r, redirect, http.StatusFound)
+						} else {
+							http.Redirect(w, r, "home", http.StatusFound)
+						}
 
 						return
 					}

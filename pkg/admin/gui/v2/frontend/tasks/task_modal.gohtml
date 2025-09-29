@@ -1,0 +1,62 @@
+<div class="modal-dialog">
+    <!-- Modal content -->
+    <div class="modal-content" style="background-color:whitesmoke">
+        <form method="post"
+              id="taskForm"
+              onsubmit="return onSubmitForm(this)"
+              action="?ruleID={{.Task.RuleID}}&chain={{.Task.Chain}}&rank={{.Task.Rank}}">
+            <div class="modal-header">
+                <h5 class="modal-title" id="addTaskModalLabel">{{ .Title }}</h5>
+                <button type="button" class="btn btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <!-- Task type select -->
+                <div class="form-input">
+                    <label class="form-label">
+                        {{ .Text.type }}
+                        <i class="bi bi-info-circle"
+                           data-bs-toggle="tooltip"
+                           data-bs-placement="right"
+                           data-bs-title="{{ .Text.typeTooltip }}">
+                        </i> :
+                    </label>
+                    <select class="form-select"
+                            name="type"
+                            onchange="changeTaskForm(
+                                '{{.Task.RuleID}}',
+                                '{{.Task.Chain}}',
+                                '{{.Task.Rank}}',
+                                this.value)"
+                            required>
+                        <option value="" disabled {{if not .Task.Type}}selected{{end}}>
+                            {{ .Text.selectType }}
+                        </option>
+                        {{ $text := .Text }}
+                        {{ $task := .Task }}
+                        {{ range .TaskTypes }}
+                        <optgroup label="{{ index $text .Name }}">
+                            {{ range .Tasks }}
+                            <option value="{{ .Name }}"
+                                    {{if (eq .Name $task.Type)}}selected{{end}}>
+                                {{ .Name }}
+                            </option>
+                            {{ end }}
+                        </optgroup>
+                        {{ end }}
+                    </select>
+                </div>
+
+                <!-- Task's arguments -->
+                <div id="taskTypeFields">
+                    {{ if .Task.Type }}
+                    {{ template "taskForm" .FormData }}
+                    {{ end }}
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">{{ .Text.close }}</button>
+                <button type="submit" class="btn btn-primary">{{ .Text.apply }}</button>
+            </div>
+        </form>
+    </div>
+</div>

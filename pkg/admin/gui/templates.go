@@ -291,12 +291,6 @@ var (
 			Funcs(funcs).
 			ParseFS(webFS, index, header, sidebar, "front-end/html/transfer_rules_management_page.html"),
 	)
-	tasksTransferRulesTemplate = template.Must(
-		template.New("tasks_transfer_rules_page.html").
-			Funcs(funcs).
-			ParseFS(webFS, index, header, sidebar, addTasks, editTasks, displayTasks,
-				"front-end/html/tasks_transfer_rules_page.html"),
-	)
 	// ManagementUsageRightsRulesTemplate in .go, for dynamics template (with db).
 	transferMonitoringTemplate = template.Must(
 		template.New("transfer_monitoring_page.html").

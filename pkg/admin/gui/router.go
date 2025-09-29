@@ -7,24 +7,25 @@ import (
 	"fmt"
 	"io/fs"
 	"net/http"
+	"net/url"
 	"time"
 
 	"code.waarp.fr/lib/log"
 	"github.com/gorilla/mux"
 
 	"code.waarp.fr/apps/gateway/gateway/pkg/admin/gui/internal"
+	"code.waarp.fr/apps/gateway/gateway/pkg/admin/gui/v2/backend"
+	"code.waarp.fr/apps/gateway/gateway/pkg/admin/gui/v2/backend/constants"
 	"code.waarp.fr/apps/gateway/gateway/pkg/database"
 	"code.waarp.fr/apps/gateway/gateway/pkg/model"
 )
 
-const Prefix = "/webui"
-
-type ContextKey string
+const Prefix = constants.WebuiPrefix
 
 //nolint:gochecknoglobals // global
 const (
-	ContextUserKey     ContextKey = "user"
-	ContextLanguageKey ContextKey = "language"
+	ContextUserKey     = constants.ContextUserKey
+	ContextLanguageKey = constants.ContextLanguageKey
 )
 
 func GetUserByToken(r *http.Request, db database.ReadAccess) (*model.User, error) {
@@ -91,7 +92,7 @@ func RouterPages(secureRouter *mux.Router, db *database.DB, logger *log.Logger) 
 		localAccountAuthenticationPage(logger, db)).Methods("GET", "POST")
 	secureRouter.HandleFunc("/local_client_management", localClientManagementPage(logger, db)).Methods("GET", "POST")
 	secureRouter.HandleFunc("/transfer_rules_management", ruleManagementPage(logger, db)).Methods("GET", "POST")
-	secureRouter.HandleFunc("/tasks_transfer_rules", tasksTransferRulesPage(logger, db)).Methods("GET", "POST")
+	// secureRouter.HandleFunc("/tasks_transfer_rules", tasksTransferRulesPage(logger, db)).Methods("GET", "POST")
 	secureRouter.HandleFunc("/management_usage_rights_rules",
 		managementUsageRightsRulesPage(logger, db)).Methods("GET", "POST")
 	secureRouter.HandleFunc("/transfer_monitoring", transferMonitoringPage(logger, db)).Methods("GET", "POST")
@@ -107,6 +108,8 @@ func RouterPages(secureRouter *mux.Router, db *database.DB, logger *log.Logger) 
 	secureRouter.HandleFunc("/email_templates_management", EmailTemplateManagementPage(logger, db)).Methods("GET", "POST")
 	secureRouter.HandleFunc("/smtp_credentials_management",
 		SMTPCredentialManagementPage(logger, db)).Methods("GET", "POST")
+
+	backend.MakeRouter(secureRouter, db, logger)
 }
 
 func AddGUIRouter(router *mux.Router, logger *log.Logger, db *database.DB) {
@@ -124,7 +127,7 @@ func AddGUIRouter(router *mux.Router, logger *log.Logger, db *database.DB) {
 		return
 	}
 
-	router.PathPrefix("/static/").Handler(http.StripPrefix(Prefix+"/static/", http.FileServer(http.FS(subFS))))
+	router.PathPrefix("/static/").Handler(http.StripPrefix(Prefix+"/static/", http.FileServerFS(subFS)))
 
 	secureRouter := router.PathPrefix("/").Subrouter()
 	secureRouter.Use(AuthenticationMiddleware(logger, db))
@@ -168,9 +171,16 @@ func logout() http.HandlerFunc {
 func AuthenticationMiddleware(logger *log.Logger, db *database.DB) mux.MiddlewareFunc {
 	return func(next http.Handler) http.Handler {
 		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			loginURL := url.URL{Path: "login"}
+			if curPage := r.URL.RequestURI(); curPage != Prefix {
+				params := loginURL.Query()
+				params.Set("redirect", curPage)
+				loginURL.RawQuery = params.Encode()
+			}
+
 			token, err := r.Cookie("token")
 			if err != nil || token.Value == "" {
-				http.Redirect(w, r, "login", http.StatusFound)
+				http.Redirect(w, r, loginURL.String(), http.StatusFound)
 
 				return
 			}
@@ -179,7 +189,7 @@ func AuthenticationMiddleware(logger *log.Logger, db *database.DB) mux.Middlewar
 
 			userID, found := ValidateSession(token.Value)
 			if !found {
-				http.Redirect(w, r, "login", http.StatusFound)
+				http.Redirect(w, r, loginURL.String(), http.StatusFound)
 
 				return
 			}

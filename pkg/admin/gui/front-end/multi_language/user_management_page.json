@@ -63,7 +63,7 @@
     "tooltipPartners": { "fr": "Permet de gérer la liste des partenaires : création, clés, certificats et quotas.", "en": "Allows you to manage the list of partners: creation, keys, certificates and quotas." },
     "tooltipRules": { "fr": "Autorise la définition et l'édition des règles de routage et de sécurité.", "en": "Allows definition and editing of routing and security rules." },
     "tooltipUsers": { "fr": "Ajouter, modifier, supprimer les comptes utilisateurs Gateway et leur attribuer des rôles ou permissions.", "en": "Add, modify, delete Gateway user accounts and assign them roles or permissions." },
-    "tooltipAdministration": { "fr": "Accès aux fonctions d'administration avancées de Waarp Gateway.", "en": "Access to advanced administration functions of Waarp Gateway." },
+    "tooltipAdministration": { "fr": "Accès aux fonctions d'administration avancées de l'application.", "en": "Access to the application's advanced administration functions." },
     "userNotFound": { "fr": "Utilisateur introuvable", "en": "User not found" },
     "next": { "fr": "Suivant", "en": "Next" },
     "previous": { "fr": "Précédent", "en": "Previous" }

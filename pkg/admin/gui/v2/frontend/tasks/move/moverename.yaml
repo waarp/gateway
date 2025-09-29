@@ -1,0 +1,11 @@
+description:
+  en: Move the transfer file to another folder.
+  fr: Déplace le fichier de transfert dans un autre dossier.
+
+path:
+  en: Destination path
+  fr: Chemin de destination
+
+pathTooltip:
+  en: The destination path of the file.
+  fr: Le chemin de destination du fichier.

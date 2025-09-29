@@ -3,6 +3,7 @@ package pesit
 import (
 	"fmt"
 	"math"
+	"strings"
 
 	"code.waarp.fr/apps/gateway/gateway/pkg/admin/rest/api"
 )
@@ -21,10 +22,26 @@ const (
 	defaultArticleSize = 0xFF00
 )
 
+type CompatibilityMode string
+
 const (
 	CompatibilityModeStandard    = "standard"
 	CompatibilityModeNonStandard = "non-standard"
 )
+
+func (m *CompatibilityMode) UnmarshalJSON(b []byte) error {
+	val := strings.Trim(string(b), "\"")
+
+	switch val {
+	case CompatibilityModeStandard, CompatibilityModeNonStandard:
+		*m = CompatibilityMode(val)
+
+		return nil
+	default:
+		//nolint:err113 // this is a base error
+		return fmt.Errorf("unknown compatibility mode %q", val)
+	}
+}
 
 type CheckPointConfig struct {
 	// DisableRestart will disable restarts on this agent if set to true.
@@ -62,6 +79,9 @@ func (c *CheckPointConfig) validCheckpoints() {
 type ServerConfig struct {
 	CheckPointConfig
 
+	// The PeSIT compatibility mode to use when communicating with this server.
+	// Accepted values are: "standard" or "non-standard". Default is "standard".
+	CompatibilityMode CompatibilityMode `json:"compatibilityMode,omitempty"`
 	// DisablePreConnection disables the pre-connection authentication when
 	// connecting to this server. By default, the pre-connection authentication
 	// is activated.
@@ -115,8 +135,8 @@ type PartnerConfig struct {
 	// transfers with that partner. By default, NSDU packets are not used.
 	UseNSDU bool `json:"useNSDU"` //nolint:tagliatelle //does not recognize NSDU as an acronym
 	// The PeSIT compatibility mode to use when communicating with this partner.
-	// Accepted values are: "none" or "axway". Default is "none".
-	CompatibilityMode string `json:"compatibilityMode,omitempty"`
+	// Accepted values are: "standard" or "non-standard". Default is "standard".
+	CompatibilityMode CompatibilityMode `json:"compatibilityMode,omitempty"`
 	// MaxMessageSize defines the maximum allowed size for PeSIT packages sent to
 	// this partner. Default is 65535.
 	MaxMessageSize uint16 `json:"maxMessageSize,omitempty"`
@@ -139,15 +159,5 @@ func (p *PartnerConfig) ValidPartner() error {
 		p.MaxMessageSize = DefaultMessageSize
 	}
 
-	return checkCompatibilityMode(p.CompatibilityMode)
-}
-
-func checkCompatibilityMode(mode string) error {
-	switch mode {
-	case CompatibilityModeStandard, CompatibilityModeNonStandard:
-		return nil
-	default:
-		//nolint:err113 // this is a base error
-		return fmt.Errorf("unknown compatibility mode %q", mode)
-	}
+	return nil
 }

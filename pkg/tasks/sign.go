@@ -13,33 +13,39 @@ import (
 	"code.waarp.fr/apps/gateway/gateway/pkg/fs"
 	"code.waarp.fr/apps/gateway/gateway/pkg/model"
 	"code.waarp.fr/apps/gateway/gateway/pkg/utils"
+	"code.waarp.fr/apps/gateway/gateway/pkg/utils/ordered"
 )
 
-//nolint:gochecknoglobals //global var is needed here for future-proofing
-var SignMethods = map[string]struct {
+type signMethod struct {
 	KeyTypes []string
 	mkSigner func(*model.CryptoKey) (signFunc, error)
-}{
-	SignMethodHMACSHA256: {
+}
+
+//nolint:gochecknoglobals //global var is needed here for future-proofing
+var SignMethods = ordered.Map[string, *signMethod]{}
+
+//nolint:gochecknoinits //init is needed here to initialize constants
+func init() {
+	SignMethods.Add(SignMethodHMACSHA256, &signMethod{
 		KeyTypes: []string{model.CryptoKeyTypeHMAC},
 		mkSigner: makeHMACSHA256Signer,
-	},
-	SignMethodHMACSHA384: {
+	})
+	SignMethods.Add(SignMethodHMACSHA384, &signMethod{
 		KeyTypes: []string{model.CryptoKeyTypeHMAC},
 		mkSigner: makeHMACSHA384Signer,
-	},
-	SignMethodHMACSHA512: {
+	})
+	SignMethods.Add(SignMethodHMACSHA512, &signMethod{
 		KeyTypes: []string{model.CryptoKeyTypeHMAC},
 		mkSigner: makeHMACSHA512Signer,
-	},
-	SignMethodHMACMD5: {
+	})
+	SignMethods.Add(SignMethodHMACMD5, &signMethod{
 		KeyTypes: []string{model.CryptoKeyTypeHMAC},
 		mkSigner: makeHMACMD5Signer,
-	},
-	SignMethodPGP: {
+	})
+	SignMethods.Add(SignMethodPGP, &signMethod{
 		KeyTypes: []string{model.CryptoKeyTypePGPPrivate},
 		mkSigner: makePGPSigner,
-	},
+	})
 }
 
 var (
@@ -80,7 +86,7 @@ func (s *sign) ValidateDB(db database.ReadAccess, params map[string]string) erro
 		return fmt.Errorf("failed to retrieve signature key from database: %w", err)
 	}
 
-	method, ok := SignMethods[s.Method]
+	method, ok := SignMethods.Get(s.Method)
 	if !ok {
 		return fmt.Errorf("%w %q", ErrSignUnknownMethod, s.Method)
 	}

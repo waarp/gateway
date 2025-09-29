@@ -1,0 +1,42 @@
+description:
+  en: >
+    Execute an external program. The program must move the transfer file during
+    its execution, and must output its new path so the standard output.
+  fr: >
+    Exécute un programme externe. Le programme doit déplacer le fichier de
+    transfert au cour de son exécution, et doit également afficher le nouveau
+    chemin du fichier sur la sortie standard.
+
+path:
+  en: Executable path
+  fr: Chemin de l'exécutable
+
+pathTooltip:
+  en: >
+    The path of the executable to run. If the executable is in your $PATH,
+    you can just type its name.
+  fr: >
+    Le chemin de l'exécutable à lancer. Si l'exécutable est dans votre $PATH,
+    vous pouvez simplement taper son nom.
+
+args:
+  en: Program arguments
+  fr: Arguments du programme
+
+argsTooltip:
+  en: The program's raw arguments, given as they would be typed in a terminal.
+  fr: Les argument bruts du programme, donnés comme ils seraient tapés dans un terminal.
+
+delay:
+  en: Execution timeout
+  fr: Délai d'exécution
+
+delayTooltip:
+  en: >
+    The program's maximum execution delay. If the program hasn't finished after
+    this duration has elapsed, the program will be stopped, and the task will 
+    be considered a failure.
+  fr: >
+    Durée maximale d'exécution du programme. Si le programme n'a par terminé 
+    après que cette durée soit écoulée, le programme sera interrompu et le 
+    traitement sera considéré comme ayant échoué.

@@ -8,8 +8,11 @@ import (
 	"code.waarp.fr/lib/log"
 
 	"code.waarp.fr/apps/gateway/gateway/pkg/admin/gui/internal"
+	"code.waarp.fr/apps/gateway/gateway/pkg/admin/gui/v2/backend/constants"
+	"code.waarp.fr/apps/gateway/gateway/pkg/admin/gui/v2/backend/locale"
 	"code.waarp.fr/apps/gateway/gateway/pkg/database"
 	"code.waarp.fr/apps/gateway/gateway/pkg/model"
+	"code.waarp.fr/apps/gateway/gateway/pkg/version"
 )
 
 //nolint:gochecknoglobals //a global var is required here
@@ -295,9 +298,8 @@ func callMethodsCloudInstance(logger *log.Logger, db *database.DB, w http.Respon
 
 func cloudInstanceManagementPage(logger *log.Logger, db *database.DB) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		userLanguage := r.Context().Value(ContextLanguageKey)
-		tTranslated := //nolint:forcetypeassert //u
-			pageTranslated("cloud_instance_management_page", userLanguage.(string)) //nolint:errcheck //u
+		userLanguage := locale.GetLanguage(r)
+		tTranslated := pageTranslated("cloud_instance_management_page", userLanguage)
 		cloudInstanceList, filter, cloudFound := ListCLoudInstance(db, r)
 
 		if pageName := r.URL.Query().Get("clearFiltersPage"); pageName != "" {
@@ -323,6 +325,11 @@ func cloudInstanceManagementPage(logger *log.Logger, db *database.DB) http.Handl
 		currentPage := filter.Offset + 1
 
 		if tmplErr := cloudInstanceManagementTemplate.ExecuteTemplate(w, "cloud_instance_management_page", map[string]any{
+			"appName":               constants.AppName,
+			"version":               version.Num,
+			"compileDate":           version.Date,
+			"revision":              version.Commit,
+			"docLink":               constants.DocLink(userLanguage),
 			"myPermission":          myPermission,
 			"tab":                   tTranslated,
 			"username":              user.Username,

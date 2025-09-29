@@ -13,33 +13,39 @@ import (
 	"code.waarp.fr/apps/gateway/gateway/pkg/fs"
 	"code.waarp.fr/apps/gateway/gateway/pkg/model"
 	"code.waarp.fr/apps/gateway/gateway/pkg/utils"
+	"code.waarp.fr/apps/gateway/gateway/pkg/utils/ordered"
 )
 
-//nolint:gochecknoglobals //global var is needed here for future-proofing
-var VerifyMethods = map[string]struct {
+type verifyMethod struct {
 	KeyTypes   []string
 	mkVerifier func(*model.CryptoKey) (verifyFunc, error)
-}{
-	SignMethodHMACSHA256: {
+}
+
+//nolint:gochecknoglobals //global var is needed here for future-proofing
+var VerifyMethods = ordered.Map[string, *verifyMethod]{}
+
+//nolint:gochecknoinits //init is needed here to initialize constants
+func init() {
+	VerifyMethods.Add(SignMethodHMACSHA256, &verifyMethod{
 		KeyTypes:   []string{model.CryptoKeyTypeHMAC},
 		mkVerifier: makeHMACSHA256Verifier,
-	},
-	SignMethodHMACSHA384: {
+	})
+	VerifyMethods.Add(SignMethodHMACSHA384, &verifyMethod{
 		KeyTypes:   []string{model.CryptoKeyTypeHMAC},
 		mkVerifier: makeHMACSHA384Verifier,
-	},
-	SignMethodHMACSHA512: {
+	})
+	VerifyMethods.Add(SignMethodHMACSHA512, &verifyMethod{
 		KeyTypes:   []string{model.CryptoKeyTypeHMAC},
 		mkVerifier: makeHMACSHA512Verifier,
-	},
-	SignMethodHMACMD5: {
+	})
+	VerifyMethods.Add(SignMethodHMACMD5, &verifyMethod{
 		KeyTypes:   []string{model.CryptoKeyTypeHMAC},
 		mkVerifier: makeHMACMD5Verifier,
-	},
-	SignMethodPGP: {
+	})
+	VerifyMethods.Add(SignMethodPGP, &verifyMethod{
 		KeyTypes:   []string{model.CryptoKeyTypePGPPrivate, model.CryptoKeyTypePGPPublic},
 		mkVerifier: makePGPVerifier,
-	},
+	})
 }
 
 var (
@@ -80,7 +86,7 @@ func (v *verify) ValidateDB(db database.ReadAccess, params map[string]string) er
 		return fmt.Errorf("failed to retrieve verification key from database: %w", err)
 	}
 
-	method, ok := VerifyMethods[v.Method]
+	method, ok := VerifyMethods.Get(v.Method)
 	if !ok {
 		return fmt.Errorf("%w: %s", ErrVerifyUnknownMethod, v.Method)
 	}

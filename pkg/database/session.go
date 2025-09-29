@@ -29,6 +29,8 @@ func (s *Session) GetLogger() *log.Logger {
 	return s.logger
 }
 
+func (s *Session) Transaction(fun TransactionFunc) error { return fun(s) }
+
 // Iterate starts building a SQL 'SELECT' query to retrieve entries of the given
 // model from the database. The request can be narrowed using the IterateQuery
 // methods.

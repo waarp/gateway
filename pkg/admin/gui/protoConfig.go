@@ -352,6 +352,10 @@ func protoConfigPeSITServer(r *http.Request, protocol string) map[string]any {
 		pesitProtoConfig["checkpointWindow"] = size
 	}
 
+	if compatibilityMode := r.FormValue("protoConfigPeSITcompatibilityMode"); compatibilityMode != "" {
+		pesitProtoConfig["compatibilityMode"] = compatibilityMode
+	}
+
 	if maxMessageSize := r.FormValue("protoConfigPeSITmaxMessageSize"); maxMessageSize != "" {
 		size, err := internal.ParseUint[uint32](maxMessageSize)
 		if err != nil {

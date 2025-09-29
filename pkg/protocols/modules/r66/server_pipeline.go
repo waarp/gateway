@@ -68,10 +68,23 @@ func (t *serverTransfer) runPreTask() (*r66.UpdateInfo, error) {
 	}
 
 	if t.pip.TransCtx.Rule.IsSend {
+		followID, idErr := utils.GetAsNum[int](t.pip.TransCtx.TransInfo, model.FollowID)
+		if idErr != nil && !errors.Is(idErr, utils.ErrKeyNotFound) {
+			return nil, internal.ToR66Error(idErr)
+		}
+
+		userContent, contErr := internal.MakeUserContent(t.pip.Logger, t.pip.TransCtx.TransInfo)
+		if contErr != nil {
+			return nil, internal.ToR66Error(contErr)
+		}
+
 		return &r66.UpdateInfo{
 			Filename: t.pip.TransCtx.Transfer.SrcFilename,
 			FileSize: t.pip.TransCtx.Transfer.Filesize,
-			FileInfo: &r66.TransferData{},
+			FileInfo: &r66.TransferData{
+				UserContent: userContent,
+				SystemData:  r66.SystemData{FollowID: followID},
+			},
 		}, nil
 	}
 

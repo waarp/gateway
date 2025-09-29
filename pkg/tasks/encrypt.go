@@ -12,29 +12,35 @@ import (
 	"code.waarp.fr/apps/gateway/gateway/pkg/database"
 	"code.waarp.fr/apps/gateway/gateway/pkg/model"
 	"code.waarp.fr/apps/gateway/gateway/pkg/utils"
+	"code.waarp.fr/apps/gateway/gateway/pkg/utils/ordered"
 )
 
-//nolint:gochecknoglobals //global var is needed here for future-proofing
-var EncryptMethods = map[string]struct {
+type encryptMethod struct {
 	KeyTypes    []string
 	mkEncryptor func(*model.CryptoKey) (encryptFunc, error)
-}{
-	EncryptMethodAESCFB: {
+}
+
+//nolint:gochecknoglobals //global var is needed here for future-proofing
+var EncryptMethods = ordered.Map[string, *encryptMethod]{}
+
+//nolint:gochecknoinits //init is needed here to initialize constants
+func init() {
+	EncryptMethods.Add(EncryptMethodAESCFB, &encryptMethod{
 		KeyTypes:    []string{model.CryptoKeyTypeAES},
 		mkEncryptor: makeAESCFBEncryptor,
-	},
-	EncryptMethodAESCTR: {
+	})
+	EncryptMethods.Add(EncryptMethodAESCTR, &encryptMethod{
 		KeyTypes:    []string{model.CryptoKeyTypeAES},
 		mkEncryptor: makeAESCTREncryptor,
-	},
-	EncryptMethodAESOFB: {
+	})
+	EncryptMethods.Add(EncryptMethodAESOFB, &encryptMethod{
 		KeyTypes:    []string{model.CryptoKeyTypeAES},
 		mkEncryptor: makeAESOFBEncryptor,
-	},
-	EncryptMethodPGP: {
+	})
+	EncryptMethods.Add(EncryptMethodPGP, &encryptMethod{
 		KeyTypes:    []string{model.CryptoKeyTypePGPPublic, model.CryptoKeyTypePGPPrivate},
 		mkEncryptor: makePGPEncryptor,
-	},
+	})
 }
 
 var (
@@ -76,7 +82,7 @@ func (e *encrypt) ValidateDB(db database.ReadAccess, params map[string]string) e
 		return fmt.Errorf("failed to retrieve encryption key from database: %w", err)
 	}
 
-	method, ok := EncryptMethods[e.Method]
+	method, ok := EncryptMethods.Get(e.Method)
 	if !ok {
 		return fmt.Errorf("%w %q", ErrEncryptUnknownMethod, e.Method)
 	}
