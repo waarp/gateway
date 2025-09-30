@@ -35,6 +35,7 @@ func lockFileR(file *os.File) error {
 	return nil
 }
 
+//nolint:wrapcheck //no need to wrap here
 func unlockFile(file *os.File) error {
 	ol := new(windows.Overlapped)
 

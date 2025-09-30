@@ -17,6 +17,7 @@ func lockFileR(file *os.File) error {
 	return syscall.Flock(int(file.Fd()), syscall.LOCK_SH)
 }
 
+//nolint:wrapcheck //no need to wrap here
 func unlockFile(file *os.File) error {
 	return syscall.Flock(int(file.Fd()), syscall.LOCK_UN)
 }

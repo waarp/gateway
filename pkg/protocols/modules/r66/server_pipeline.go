@@ -46,6 +46,8 @@ type serverTransfer struct {
 
 func (t *serverTransfer) updTransInfo(info *r66.UpdateInfo) error {
 	if !t.pip.TransCtx.Rule.IsSend {
+		info.Filename = trimRequestPath(info.Filename)
+
 		if err := internal.UpdateFileInfo(info, t.pip); err != nil {
 			return internal.ToR66Error(err)
 		}

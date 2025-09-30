@@ -200,6 +200,7 @@ func NewFuncMap(db *database.DB) template.FuncMap {
 		"getServerState": func(server *model.LocalAgent) (any, error) {
 			state, reason := internal.GetServerStatus(server)
 			var status string
+
 			switch state {
 			case utils.StateOffline:
 				status = "Offline"
@@ -216,6 +217,7 @@ func NewFuncMap(db *database.DB) template.FuncMap {
 		"getClientState": func(client *model.Client) (any, error) {
 			state, reason := internal.GetClientStatus(client)
 			var status string
+
 			switch state {
 			case utils.StateOffline:
 				status = "Offline"
