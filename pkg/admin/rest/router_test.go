@@ -16,14 +16,14 @@ func TestRouterChange(t *testing.T) {
 	Convey("Given a gateway router", t, func(c C) {
 		db := database.TestDatabase(c)
 		logger := testhelpers.TestLogger(c, "test_router")
-		router := mux.NewRouter()
 
+		router := mux.NewRouter()
 		MakeRESTHandler(logger, db, router)
 
 		serv := httptest.NewServer(router)
 
 		Convey("Given a request made to the server", func() {
-			req, err := http.NewRequest(http.MethodGet, serv.URL+"/api/users", nil)
+			req, err := http.NewRequest(http.MethodGet, serv.URL+"/about", nil)
 			So(err, ShouldBeNil)
 
 			req.SetBasicAuth("admin", "admin_password")
@@ -40,8 +40,10 @@ func TestRouterChange(t *testing.T) {
 			})
 
 			Convey("When changing the target handler", func() {
-				route := router.Get("GET /api/users")
+				route := router.Get("GET /about")
 				newStatus := http.StatusResetContent
+
+				So(route, ShouldNotBeNil)
 
 				route.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 					w.WriteHeader(newStatus)

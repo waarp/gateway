@@ -1,0 +1,21 @@
+<!-- Task description -->
+<p class="task-description">{{ .Text.description }}</p>
+
+<!-- Archive -->
+{{ template "textInputRow" dict
+    "label" .Text.archive
+    "tooltip" .Text.archiveTooltip
+    "fieldName" "archive"
+    "fieldType" "text"
+    "value" .Task.Args.archive
+    "placeholder" "#TRUEFULLPATH#"
+}}
+
+<!-- Output directory -->
+{{ template "textInputRow" dict
+    "label" .Text.outputDir
+    "tooltip" .Text.outputDirTooltip
+    "fieldName" "outputDir"
+    "fieldType" "text"
+    "value" .Task.Args.outputDir
+}}

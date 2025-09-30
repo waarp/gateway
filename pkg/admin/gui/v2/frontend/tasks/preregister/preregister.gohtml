@@ -1,0 +1,136 @@
+{{ $rule := .Task.Args.rule }}
+{{ $account := .Task.Args.account }}
+{{ $server := .Task.Args.server }}
+{{ $duration := .Task.Args.validFor }}
+{{ $direction := "" }}
+{{ if eq .Task.Args.isSend "true" }}
+    {{ $direction = "send" }}
+{{ else if eq .Task.Args.isSend "false" }}
+    {{ $direction = "receive" }}
+{{ end }}
+
+<!-- Task description -->
+<p class="task-description">{{ .Text.description }}</p>
+
+<!-- File -->
+{{ template "textInputRow" dict
+    "label" .Text.file
+    "tooltip" .Text.fileTooltip
+    "fieldName" "file"
+    "fieldType" "text"
+    "value" .Task.Args.file
+}}
+
+<!-- Direction -->
+<script>
+    function changeDirection(direction) {
+        fillSelect(`listing/rules?direction=${direction}`,
+            document.getElementById("preregisterTaskRule"), {{$rule}})
+    }
+</script>
+<div class="form-input">
+    <label class="col-form-label me-3">
+        {{ .Text.direction }}
+        <i class="bi bi-info-circle"
+           data-bs-toggle="tooltip"
+           data-bs-placement="right"
+           data-bs-title="{{ .Text.directionTooltip }}">
+        </i> :
+    </label>
+    <div class="form-check form-check-inline">
+        <input class="form-check-input" name="isSend" required
+               type="radio" id="directionSend" value="true"
+               onclick="changeDirection('send')"
+               {{ if eq $direction "send" }}checked{{ end }}>
+        <label class="form-check-label" for="directionSend">{{ .Text.send }}</label>
+    </div>
+    <div class="form-check form-check-inline">
+        <input class="form-check-input" name="isSend" required
+               type="radio" id="directionReceive" value="false"
+               onclick="changeDirection('receive')"
+               {{ if eq $direction "receive" }}checked{{ end }}>
+        <label class="form-check-label" for="directionReceive">{{ .Text.receive }}</label>
+    </div>
+</div>
+{{ if $direction }}
+<script defer>
+    changeDirection({{$direction}})
+</script>
+{{ end }}
+
+<!-- Rule -->
+{{ template "listInputRow" dict
+    "id" "preregisterTaskRule"
+    "label" .Text.rule
+    "tooltip" .Text.ruleTooltip
+    "fieldName" "rule"
+    "value" $rule
+    "placeholder" .Text.rulePlaceholder
+    "disabled" true
+}}
+
+<!-- Server -->
+<script>
+    function fillAccountList(serverEl) {
+        const server = serverEl.value
+        if (!server) return
+
+        fillSelect(`listing/local_accounts?server=${server}`,
+            document.getElementById("preregisterTaskAccount"), "{{ $account }}"
+        )
+    }
+</script>
+{{ template "listInputRow" dict
+    "id" "preregisterTaskServer"
+    "label" .Text.server
+    "tooltip" .Text.serverTooltip
+    "fieldName" "server"
+    "value" $server
+    "placeholder" .Text.serverPlaceholder
+    "onchange" "fillAccountList"
+}}
+<script defer>
+    fillSelect("listing/servers",
+        document.getElementById("preregisterTaskServer"),
+        "{{ $server }}")
+</script>
+
+<!-- Account -->
+{{ template "listInputRow" dict
+    "id" "preregisterTaskAccount"
+    "label" .Text.account
+    "tooltip" .Text.accountTooltip
+    "fieldName" "account"
+    "value" $account
+    "placeholder" .Text.accountPlaceholder
+    "disabled" true
+}}
+
+<!-- Valid for -->
+{{ template "timeInputRow" dict
+    "label" .Text.validFor
+    "tooltip" .Text.validForTooltip
+    "fieldName" "validFor"
+    "value" $duration
+    "optional" true
+    "aggregate" "aggregateDuration"
+    "units" (list "d" "h" "m" "s")
+}}
+
+<!-- Transfer info -->
+{{ template "textInputRow" dict
+    "label" .Text.info
+    "tooltip" .Text.infoTooltip
+    "fieldName" "info"
+    "fieldType" "text"
+    "value" .Task.Args.info
+    "optional" true
+}}
+
+<!-- Copy info -->
+{{ template "checkInputRow" dict
+    "label" .Text.copyInfo
+    "tooltip" .Text.copyInfoTooltip
+    "fieldName" "copyInfo"
+    "value" .Task.Args.copyInfo
+}}

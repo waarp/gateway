@@ -1,0 +1,174 @@
+<!-- Page style -->
+<link rel="stylesheet" href="static_v2/tasks/tasks.css">
+
+<!-- Page Javascript -->
+<script src="static_v2/tasks/tasks.js"></script>
+
+<!-- Modal style -->
+<link rel="stylesheet" href="static_v2/tasks/task_modal.css">
+
+<!-- Modal Javascript -->
+<script src="static_v2/tasks/task_modal.js"></script>
+
+<!-- Page content -->
+<div>
+    <!-- Header -->
+    <div class="page-header">
+        <h2>{{ .Text.title }} : {{ .Rule.Name }}</h2>
+        <div>
+            <span class="page-path">{{ .Text.pageParents }}</span>
+            <button class="btn btn-outline-secondary" type="button"
+                    onclick="window.location='transfer_rules_management'">
+                <i class="bi bi-arrow-left"></i>
+            </button>
+        </div>
+    </div>
+
+    <hr class="divider">
+
+    <!-- Tasks collapses -->
+    <div class="task-container">
+        <button class="btn btn-lg btn-task-collapse"
+                type="button"
+                data-bs-toggle="collapse"
+                data-bs-target="#preTasksCollapse"
+                aria-expanded="true"
+                aria-controls="preTasksCollapse">
+            {{ .Text.preTasks }}
+            <i class="bi bi-chevron-right"></i>
+        </button>
+        <div class="collapse show" id="preTasksCollapse">
+            {{ template "tasksTable" .PreTasks }}
+        </div>
+    </div>
+    <div class="task-container">
+        <button class="btn btn-lg btn-task-collapse"
+                type="button"
+                data-bs-toggle="collapse"
+                data-bs-target="#postTasksCollapse"
+                aria-expanded="true"
+                aria-controls="postTasksCollapse">
+            {{ .Text.postTasks }}
+            <i class="bi bi-chevron-right"></i>
+        </button>
+        <div class="collapse show" id="postTasksCollapse">
+            {{ template "tasksTable" .PostTasks }}
+        </div>
+    </div>
+    <div class="task-container">
+        <button class="btn btn-lg btn-task-collapse"
+                type="button"
+                data-bs-toggle="collapse"
+                data-bs-target="#errorTasksCollapse"
+                aria-expanded="true"
+                aria-controls="errorTasksCollapse">
+            {{ .Text.errorTasks }}
+            <i class="bi bi-chevron-right"></i>
+        </button>
+        <div class="collapse show" id="errorTasksCollapse">
+            {{ template "tasksTable" .ErrorTasks }}
+        </div>
+    </div>
+
+    <!-- Task modal -->
+    <div class="modal fade" id="addTaskModal" aria-hidden="true">
+    </div>
+</div>
+
+{{ define "tasksTable" }}
+<!-- Tasks list -->
+<div class="tasks-table-container">
+    <table class="table table-sm align-middle">
+        <thead class="table-light">
+        <tr>
+            <th style="width: 60px">
+                {{ if .UserRights.Rules.CanWrite }}
+                <i class="bi bi-question-circle"
+                   data-bs-toggle="tooltip"
+                   data-bs-placement="right"
+                   style="cursor: help;"
+                   data-bs-title="{{ .Text.dragTooltip }}">
+                </i>
+                {{ end }}
+            </th>
+            <th style="width: 150px">
+                {{ .Text.type }}
+                <i class="bi bi-info-circle"
+                   data-bs-toggle="tooltip"
+                   data-bs-placement="right"
+                   data-bs-title="{{ .Text.typeTooltip }}">
+                </i>
+            </th>
+            <th>
+                {{ .Text.args }}
+                <i class="bi bi-info-circle"
+                   data-bs-toggle="tooltip"
+                   data-bs-placement="right"
+                   data-bs-title="{{ .Text.argsTooltip }}">
+                </i>
+            </th>
+            <th style="width: 100px">
+                Actions
+            </th>
+        </tr>
+        </thead>
+        <tbody>
+        {{ range .Tasks }}
+            <tr data-task-id="{{.RuleID}}"
+                data-chain="{{.Chain}}"
+                data-rank="{{.Rank}}"
+                draggable="false">
+                <td>
+                {{ if $.UserRights.Rules.CanWrite }}
+                    <i class="bi bi-grip-vertical drag-handle" title="{{ $.Text.dragHelp }}"></i>
+                {{ end }}
+                </td>
+                <td>{{ .Type }}</td>
+                <td>
+                    <div class="task-args-list">
+                    {{ range $arg, $val := .Args }}
+                        <span class="task-arg-pair">
+                            <span class="task-arg-key">{{ $arg }}:</span>
+                            <span class="task-arg-value">{{ $val }}</span>
+                        </span>
+                    {{ end }}
+                    </div>
+                </td>
+                <td>
+                {{ if $.UserRights.Rules.CanWrite }}
+                    <button class="btn btn-outline-primary"
+                            onclick="openTaskModal('{{.RuleID}}',
+                                    '{{.Chain}}','{{.Rank}}')">
+                        <i class="bi bi-pencil"></i>
+                    </button>
+                {{ end }}
+                {{ if $.UserRights.Rules.CanDelete }}
+                    <button class="btn btn-outline-danger"
+                            onclick="deleteTask('{{.RuleID}}','{{.Chain}}',
+                                    '{{.Rank}}','{{$.Text.confirmDelete}}')">
+                        <i class="bi bi-trash"></i>
+                    </button>
+                {{ end }}
+                </td>
+            </tr>
+        {{ end }}
+        </tbody>
+    </table>
+
+    {{ if .UserRights.Rules.CanWrite }}
+    <!-- Add task button -->
+    <button class="btn btn-primary add-task-button"
+            type="button"
+            onclick="openTaskModal('{{.Rule.ID}}','{{.Chain}}','{{len .Tasks}}')">
+        <i class="bi bi-plus-lg"></i>
+        {{ .Text.addTask }}
+    </button>
+    {{ end }}
+
+    <!-- Apply/Cancel buttons -->
+    <div class="drag-controls" style="display:none; float:right">
+        <button type="button" class="btn btn-secondary">{{ .Text.cancel }}</button>
+        <button type="button" class="btn btn-success">{{ .Text.apply }}</button>
+    </div>
+</div>
+{{ end }}

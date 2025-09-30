@@ -1,0 +1,399 @@
+{{ define "displayTaskCOPY" }}
+<div class="flex-label-input">
+    <label class="col-form-label label-light-bold me-3">{{ index .tab "path" }} <i class="bi bi-info-circle ms-1" data-bs-toggle="tooltip" data-bs-placement="right" data-bs-title="{{ index $.tab "tooltipDestinationPath" }}"></i> :</label>
+    <input type="text" class="form-control-plaintext input-auto-width" value="{{ displayOrDefault (index .Args "path") (index $.tab "undefined") }}" disabled>
+</div>
+{{ end }}
+
+{{ define "displayTaskCOPYRENAME" }}
+<div class="flex-label-input">
+    <label class="col-form-label label-light-bold me-3">{{ index .tab "path" }} <i class="bi bi-info-circle ms-1" data-bs-toggle="tooltip" data-bs-placement="right" data-bs-title="{{ index $.tab "tooltipDestinationPath" }}"></i> :</label>
+    <input type="text" class="form-control-plaintext input-auto-width" value="{{ displayOrDefault (index .Args "path") (index $.tab "undefined") }}" disabled>
+</div>
+{{ end }}
+
+{{ define "displayTaskDelete" }}
+{{ end }}
+
+{{ define "displayTaskEXEC" }}
+<div class="flex-label-input">
+    <label class="col-form-label label-light-bold me-3">{{ index .tab "path" }} <i class="bi bi-info-circle ms-1" data-bs-toggle="tooltip" data-bs-placement="right" data-bs-title="{{ index $.tab "tooltipExecutedPath" }}"></i> :</label>
+    <input type="text" class="form-control-plaintext input-auto-width" value="{{ displayOrDefault (index .Args "path") (index $.tab "undefined") }}" disabled>
+</div>
+<hr style="border-top: 1px solid #ababab;">
+<div class="flex-label-input">
+    <label class="col-form-label label-light-bold me-3">{{ index .tab "args" }} <i class="bi bi-info-circle ms-1" data-bs-toggle="tooltip" data-bs-placement="right" data-bs-title="{{ index $.tab "tooltipArgs" }}"></i> :</label>
+    <input type="text" class="form-control-plaintext input-auto-width" value="{{ displayOrDefault (index .Args "args") (index $.tab "undefined") }}" disabled>
+</div>
+<hr style="border-top: 1px solid #ababab;">
+<div class="flex-label-input">
+    <label class="col-form-label label-light-bold me-3">{{ index .tab "delay" }} <i class="bi bi-info-circle ms-1" data-bs-toggle="tooltip" data-bs-placement="right" data-bs-title="{{ index $.tab "tooltipDelay" }}"></i> :</label>
+    {{ $delay := index .Args "delay" }}
+    {{ if eq $delay "" }}
+      <input type="text" class="form-control-plaintext input-auto-width" value="{{ index $.tab "undefined" }}" disabled>
+    {{ else }}
+      {{ $t := msFormat $delay }}
+      <input type="text" class="form-control-plaintext input-auto-width" value="{{ printf "%dh %02dm %02ds %02dms" (index $t 0) (index $t 1) (index $t 2) (index $t 3) }}" disabled>
+    {{ end }}
+</div>
+{{ end }}
+
+{{ define "displayTaskEXECMOVE" }}
+<div class="flex-label-input">
+    <label class="col-form-label label-light-bold me-3">{{ index .tab "path" }} <i class="bi bi-info-circle ms-1" data-bs-toggle="tooltip" data-bs-placement="right" data-bs-title="{{ index $.tab "tooltipExecutedPath" }}"></i> :</label>
+    <input type="text" class="form-control-plaintext input-auto-width" value="{{ displayOrDefault (index .Args "path") (index $.tab "undefined") }}" disabled>
+</div>
+<hr style="border-top: 1px solid #ababab;">
+<div class="flex-label-input">
+    <label class="col-form-label label-light-bold me-3">{{ index .tab "args" }} <i class="bi bi-info-circle ms-1" data-bs-toggle="tooltip" data-bs-placement="right" data-bs-title="{{ index $.tab "tooltipArgs" }}"></i> :</label>
+    <input type="text" class="form-control-plaintext input-auto-width" value="{{ displayOrDefault (index .Args "args") (index $.tab "undefined") }}" disabled>
+</div>
+<hr style="border-top: 1px solid #ababab;">
+<div class="flex-label-input">
+    <label class="col-form-label label-light-bold me-3">{{ index .tab "delay" }} <i class="bi bi-info-circle ms-1" data-bs-toggle="tooltip" data-bs-placement="right" data-bs-title="{{ index $.tab "tooltipDelay" }}"></i> :</label>
+    {{ $delay := index .Args "delay" }}
+    {{ if eq $delay "" }}
+      <input type="text" class="form-control-plaintext input-auto-width" value="{{ index $.tab "undefined" }}" disabled>
+    {{ else }}
+      {{ $t := msFormat $delay }}
+      <input type="text" class="form-control-plaintext input-auto-width" value="{{ printf "%dh %02dm %02ds %02dms" (index $t 0) (index $t 1) (index $t 2) (index $t 3) }}" disabled>
+    {{ end }}
+</div>
+{{ end }}
+
+{{ define "displayTaskEXECOUTPUT" }}
+<div class="flex-label-input">
+    <label class="col-form-label label-light-bold me-3">{{ index .tab "path" }} <i class="bi bi-info-circle ms-1" data-bs-toggle="tooltip" data-bs-placement="right" data-bs-title="{{ index $.tab "tooltipExecutedPath" }}"></i> :</label>
+    <input type="text" class="form-control-plaintext input-auto-width" value="{{ displayOrDefault (index .Args "path") (index $.tab "undefined") }}" disabled>
+</div>
+<hr style="border-top: 1px solid #ababab;">
+<div class="flex-label-input">
+    <label class="col-form-label label-light-bold me-3">{{ index .tab "args" }} <i class="bi bi-info-circle ms-1" data-bs-toggle="tooltip" data-bs-placement="right" data-bs-title="{{ index $.tab "tooltipArgs" }}"></i> :</label>
+    <input type="text" class="form-control-plaintext input-auto-width" value="{{ displayOrDefault (index .Args "args") (index $.tab "undefined") }}" disabled>
+</div>
+<hr style="border-top: 1px solid #ababab;">
+<div class="flex-label-input">
+    <label class="col-form-label label-light-bold me-3">{{ index .tab "delay" }} <i class="bi bi-info-circle ms-1" data-bs-toggle="tooltip" data-bs-placement="right" data-bs-title="{{ index $.tab "tooltipDelay" }}"></i> :</label>
+    {{ $delay := index .Args "delay" }}
+    {{ if eq $delay "" }}
+      <input type="text" class="form-control-plaintext input-auto-width" value="{{ index $.tab "undefined" }}" disabled>
+    {{ else }}
+      {{ $t := msFormat $delay }}
+      <input type="text" class="form-control-plaintext input-auto-width" value="{{ printf "%dh %02dm %02ds %02dms" (index $t 0) (index $t 1) (index $t 2) (index $t 3) }}" disabled>
+    {{ end }}
+</div>
+{{ end }}
+
+{{ define "displayTaskMOVE" }}
+<div class="flex-label-input">
+    <label class="col-form-label label-light-bold me-3">{{ index .tab "path" }} <i class="bi bi-info-circle ms-1" data-bs-toggle="tooltip" data-bs-placement="right" data-bs-title="{{ index $.tab "tooltipDestinationPath" }}"></i> :</label>
+    <input type="text" class="form-control-plaintext input-auto-width" value="{{ displayOrDefault (index .Args "path") (index $.tab "undefined") }}" disabled>
+</div>
+{{ end }}
+
+{{ define "displayTaskMOVERENAME" }}
+<div class="flex-label-input">
+    <label class="col-form-label label-light-bold me-3">{{ index .tab "path" }} <i class="bi bi-info-circle ms-1" data-bs-toggle="tooltip" data-bs-placement="right" data-bs-title="{{ index $.tab "tooltipNewPath" }}"></i> :</label>
+    <input type="text" class="form-control-plaintext input-auto-width" value="{{ displayOrDefault (index .Args "path") (index $.tab "undefined") }}" disabled>
+</div>
+{{ end }}
+
+{{ define "displayTaskRENAME" }}
+<div class="flex-label-input">
+    <label class="col-form-label label-light-bold me-3">{{ index .tab "path" }} <i class="bi bi-info-circle ms-1" data-bs-toggle="tooltip" data-bs-placement="right" data-bs-title="{{ index $.tab "tooltipNewFilePath" }}"></i> :</label>
+    <input type="text" class="form-control-plaintext input-auto-width" value="{{ displayOrDefault (index .Args "path") (index $.tab "undefined") }}" disabled>
+</div>
+{{ end }}
+
+{{ define "displayTaskTRANSFER" }}
+<div class="flex-label-input">
+    <label class="col-form-label label-light-bold me-3">{{ index .tab "file" }} <i class="bi bi-info-circle ms-1" data-bs-toggle="tooltip" data-bs-placement="right" data-bs-title="{{ index $.tab "tooltipFile" }}"></i> :</label>
+    <input type="text" class="form-control-plaintext input-auto-width" value="{{ displayOrDefault (index .Args "file") (index $.tab "undefined") }}" disabled>
+</div>
+<hr style="border-top: 1px solid #ababab;">
+<div class="flex-label-input">
+    <label class="col-form-label label-light-bold me-3">{{ index .tab "outputPath" }} <i class="bi bi-info-circle ms-1" data-bs-toggle="tooltip" data-bs-placement="right" data-bs-title="{{ index $.tab "tooltipOutput" }}"></i> :</label>
+    <input type="text" class="form-control-plaintext input-auto-width" value="{{ displayOrDefault (index .Args "output") (index $.tab "undefined") }}" disabled>
+</div>
+<hr style="border-top: 1px solid #ababab;">
+<div class="flex-label-input">
+    <label class="col-form-label label-light-bold me-3">{{ index .tab "using" }} <i class="bi bi-info-circle ms-1" data-bs-toggle="tooltip" data-bs-placement="right" data-bs-title="{{ index $.tab "tooltipUsing" }}"></i> :</label>
+    <input type="text" class="form-control-plaintext input-auto-width" value="{{ displayOrDefault (index .Args "using") (index $.tab "undefined") }}" disabled>
+</div>
+<hr style="border-top: 1px solid #ababab;">
+<div class="flex-label-input">
+    {{ if eq (index .Args "ruleDirection") "send" }}
+        <label class="col-form-label label-light-bold me-3">{{ index .tab "to" }} <i class="bi bi-info-circle ms-1" data-bs-toggle="tooltip" data-bs-placement="right" data-bs-title="{{ index $.tab "tooltipTo" }}"></i> :</label>
+        <input type="text" class="form-control-plaintext input-auto-width" value="{{ displayOrDefault (index .Args "to") (index $.tab "undefined") }}" disabled>
+    {{ else if eq (index .Args "ruleDirection") "receive" }}
+        <label class="col-form-label label-light-bold me-3">{{ index .tab "from" }} <i class="bi bi-info-circle ms-1" data-bs-toggle="tooltip" data-bs-placement="right" data-bs-title="{{ index $.tab "tooltipFrom" }}"></i> :</label>
+        <input type="text" class="form-control-plaintext input-auto-width" value="{{ displayOrDefault (index .Args "from") (index $.tab "undefined") }}" disabled>
+    {{ end }}
+</div>
+<hr style="border-top: 1px solid #ababab;">
+<div class="flex-label-input">
+    <label class="col-form-label label-light-bold me-3">{{ index .tab "as" }} <i class="bi bi-info-circle ms-1" data-bs-toggle="tooltip" data-bs-placement="right" data-bs-title="{{ index $.tab "tooltipAs" }}"></i> :</label>
+    <input type="text" class="form-control-plaintext input-auto-width" value="{{ displayOrDefault (index .Args "as") (index $.tab "undefined") }}" disabled>
+</div>
+<hr style="border-top: 1px solid #ababab;">
+<div class="flex-label-input">
+    <label class="col-form-label label-light-bold me-3">{{ index .tab "rule" }} <i class="bi bi-info-circle ms-1" data-bs-toggle="tooltip" data-bs-placement="right" data-bs-title="{{ index $.tab "tooltipRule" }}"></i> :</label>
+    <input type="text" class="form-control-plaintext input-auto-width" value="{{ displayOrDefault (index .Args "rule") (index $.tab "undefined") }}" disabled>
+</div>
+<hr style="border-top: 1px solid #ababab;">
+<div class="flex-label-input">
+    <label class="col-form-label label-light-bold me-3">{{ index .tab "copyInfo" }} <i class="bi bi-info-circle ms-1" data-bs-toggle="tooltip" data-bs-placement="right" data-bs-title="{{ index $.tab "tooltipCopyInfo" }}"></i> :</label>
+    <div class="form-check form-check-inline">
+        <input class="form-check-input" type="checkbox" {{ if eq (index .Args "copyInfo") "true" }}checked{{ end }} disabled>
+    </div>
+</div>
+<hr style="border-top: 1px solid #ababab;">
+<div class="flex-label-input">
+    <label class="col-form-label label-light-bold me-3">{{ index .tab "info" }} <i class="bi bi-info-circle ms-1" data-bs-toggle="tooltip" data-bs-placement="right" data-bs-title="{{ index $.tab "tooltipInfo" }}"></i> :</label>
+    <div>
+        {{ $infos := split (index .Args "info") "\n" }}
+        {{ range $i, $info := $infos }}
+            <input type="text" class="form-control-plaintext input-auto-width mb-1" value="{{ displayOrDefault $info (index $.tab "undefined") }}" disabled>
+        {{ end }}
+    </div>
+</div>
+{{ end }}
+
+{{ define "displayTaskTRANSCODE" }}
+<div class="flex-label-input">
+    <label class="col-form-label label-light-bold me-3">{{ index .tab "fromCharset" }} <i class="bi bi-info-circle ms-1" data-bs-toggle="tooltip" data-bs-placement="right" data-bs-title="{{ index $.tab "tooltipFromCharset" }}"></i> :</label>
+    <input type="text" class="form-control-plaintext input-auto-width" value="{{ displayOrDefault (index .Args "fromCharset") (index $.tab "undefined") }}" disabled>
+</div>
+<hr style="border-top: 1px solid #ababab;">
+<div class="flex-label-input">
+    <label class="col-form-label label-light-bold me-3">{{ index .tab "toCharset" }} <i class="bi bi-info-circle ms-1" data-bs-toggle="tooltip" data-bs-placement="right" data-bs-title="{{ index $.tab "tooltipToCharset" }}"></i> :</label>
+    <input type="text" class="form-control-plaintext input-auto-width" value="{{ displayOrDefault (index .Args "toCharset") (index $.tab "undefined") }}" disabled>
+</div>
+{{ end }}
+
+{{ define "displayTaskARCHIVE" }}
+<div class="flex-label-input">
+    <label class="col-form-label label-light-bold me-3">{{ index .tab "files" }} <i class="bi bi-info-circle ms-1" data-bs-toggle="tooltip" data-bs-placement="right" data-bs-title="{{ index $.tab "tooltipFiles" }}"></i> :</label>
+    <input type="text" class="form-control-plaintext input-auto-width" value="{{ displayOrDefault (index .Args "files") (index $.tab "undefined") }}" disabled>
+</div>
+<hr style="border-top: 1px solid #ababab;">
+<div class="flex-label-input">
+    <label class="col-form-label label-light-bold me-3">{{ index .tab "compressionLevel" }} <i class="bi bi-info-circle ms-1" data-bs-toggle="tooltip" data-bs-placement="right" data-bs-title="{{ index $.tab "tooltipCompressionLevel" }}"></i> :</label>
+    <input type="text" class="form-control-plaintext input-auto-width" value="{{ displayOrDefault (index .Args "compressionLevel") (index $.tab "undefined") }}" disabled>
+</div>
+<hr style="border-top: 1px solid #ababab;">
+<div class="flex-label-input">
+    <label class="col-form-label label-light-bold me-3">{{ index .tab "outputPath" }} <i class="bi bi-info-circle ms-1" data-bs-toggle="tooltip" data-bs-placement="right" data-bs-title="{{ index $.tab "tooltipOutputPath" }}"></i> :</label>
+    <input type="text" class="form-control-plaintext input-auto-width" value="{{ displayOrDefault (index .Args "outputPath") (index $.tab "undefined") }}" disabled>
+</div>
+{{ end }}
+
+{{ define "displayTaskEXTRACT" }}
+<div class="flex-label-input">
+    <label class="col-form-label label-light-bold me-3">{{ index .tab "archive" }} <i class="bi bi-info-circle ms-1" data-bs-toggle="tooltip" data-bs-placement="right" data-bs-title="{{ index $.tab "tooltipArchive" }}"></i> :</label>
+    <input type="text" class="form-control-plaintext input-auto-width" value="{{ displayOrDefault (index .Args "archive") (index $.tab "undefined") }}" disabled>
+</div>
+<hr style="border-top: 1px solid #ababab;">
+<div class="flex-label-input">
+    <label class="col-form-label label-light-bold me-3">{{ index .tab "outputDir" }} <i class="bi bi-info-circle ms-1" data-bs-toggle="tooltip" data-bs-placement="right" data-bs-title="{{ index $.tab "tooltipOutputDir" }}"></i> :</label>
+    <input type="text" class="form-control-plaintext input-auto-width" value="{{ displayOrDefault (index .Args "outputDir") (index $.tab "undefined") }}" disabled>
+</div>
+{{ end }}
+
+{{ define "displayTaskICAP" }}
+<div class="flex-label-input">
+    <label class="col-form-label label-light-bold me-3">{{ index .tab "uploadURL" }} <i class="bi bi-info-circle ms-1" data-bs-toggle="tooltip" data-bs-placement="right" data-bs-title="{{ index $.tab "tooltipUploadURL" }}"></i> :</label>
+    <input type="text" class="form-control-plaintext input-auto-width" value="{{ displayOrDefault (index .Args "uploadURL") (index $.tab "undefined") }}" disabled>
+</div>
+<hr style="border-top: 1px solid #ababab;">
+<div class="flex-label-input">
+    <label class="col-form-label label-light-bold me-3">{{ index .tab "timeout" }} <i class="bi bi-info-circle ms-1" data-bs-toggle="tooltip" data-bs-placement="right" data-bs-title="{{ index $.tab "tooltipTimeout" }}"></i> :</label>
+    <input type="text" class="form-control-plaintext input-auto-width" value="{{ displayOrDefault (index .Args "timeout") (index $.tab "undefined") }}" disabled>
+</div>
+<hr style="border-top: 1px solid #ababab;">
+<div class="flex-label-input">
+    <label class="col-form-label label-light-bold me-3">{{ index .tab "allowFileModifications" }} <i class="bi bi-info-circle ms-1" data-bs-toggle="tooltip" data-bs-placement="right" data-bs-title="{{ index $.tab "tooltipAllowFileModifications" }}"></i> :</label>
+    <div class="form-check form-check-inline">
+        <input class="form-check-input" type="checkbox" {{ if eq (index .Args "allowFileModifications") "true" }}checked{{ end }} disabled>
+    </div>
+</div>
+<hr style="border-top: 1px solid #ababab;">
+<div class="flex-label-input">
+    <label class="col-form-label label-light-bold me-3">{{ index .tab "onError" }} <i class="bi bi-info-circle ms-1" data-bs-toggle="tooltip" data-bs-placement="right" data-bs-title="{{ index $.tab "tooltipOnError" }}"></i> :</label>
+    <input type="text" class="form-control-plaintext input-auto-width" value="{{ displayOrDefault (index .Args "onError") (index $.tab "undefined") }}" disabled>
+</div>
+<hr style="border-top: 1px solid #ababab;">
+<div class="flex-label-input">
+    <label class="col-form-label label-light-bold me-3">{{ index .tab "onErrorMovePath" }} <i class="bi bi-info-circle ms-1" data-bs-toggle="tooltip" data-bs-placement="right" data-bs-title="{{ index $.tab "tooltipOnErrorMovePath" }}"></i> :</label>
+    <input type="text" class="form-control-plaintext input-auto-width" value="{{ displayOrDefault (index .Args "onErrorMovePath") (index $.tab "undefined") }}" disabled>
+</div>
+{{ end }}
+
+{{ define "displayTaskEMAIL" }}
+<div class="flex-label-input">
+    <label class="col-form-label label-light-bold me-3">{{ index .tab "sender" }} <i class="bi bi-info-circle ms-1" data-bs-toggle="tooltip" data-bs-placement="right" data-bs-title="{{ index $.tab "tooltipSender" }}"></i> :</label>
+    <input type="text" class="form-control-plaintext input-auto-width" value="{{ displayOrDefault (index .Args "sender") (index $.tab "undefined") }}" disabled>
+</div>
+<hr style="border-top: 1px solid #ababab;">
+<div class="form-input mt-2">
+    <label class="col-form-label label-light-bold"><strong>{{ index .tab "recipients" }} <i class="bi bi-info-circle ms-1" data-bs-toggle="tooltip" data-bs-placement="right" data-bs-title="{{ index $.tab "tooltipRecipients" }}"></i> :</strong></label>
+    <div id="recipientsContainer">
+        {{ $raw := index .Args "recipients" }}
+            {{ if eq $raw "" }}
+            <input type="text" class="form-control-plaintext input-auto-width mb-1" value="{{ index $.tab "undefined" }}" disabled>
+            {{ else }}
+        {{ $recipients := split $raw "\n" }}
+            {{ range $i, $r := $recipients }}
+                {{ if ne $r "" }}
+                <input type="text" class="form-control-plaintext input-auto-width mb-1" value="{{ $r }}" disabled>
+                {{ end }}
+            {{ end }}
+        {{ end }}
+    </div>
+</div>
+<hr style="border-top: 1px solid #ababab;">
+<div class="flex-label-input">
+    <label class="col-form-label label-light-bold me-3">{{ index .tab "template" }} <i class="bi bi-info-circle ms-1" data-bs-toggle="tooltip" data-bs-placement="right" data-bs-title="{{ index $.tab "tooltipTemplate" }}"></i> :</label>
+    <input type="text" class="form-control-plaintext input-auto-width" value="{{ displayOrDefault (index .Args "template") (index $.tab "undefined") }}" disabled>
+</div>
+{{ end }}
+
+{{ define "displayTaskENCRYPT" }}
+<div class="flex-label-input">
+    <label class="col-form-label label-light-bold me-3">{{ index .tab "outputFile" }} <i class="bi bi-info-circle ms-1" data-bs-toggle="tooltip" data-bs-placement="right" data-bs-title="{{ index $.tab "tooltipOutputFileEncrypt" }}"></i> :</label>
+    <input type="text" class="form-control-plaintext input-auto-width" value="{{ displayOrDefault (index .Args "outputFile") (index $.tab "undefined") }}" disabled>
+</div>
+<hr style="border-top: 1px solid #ababab;">
+<div class="flex-label-input">
+    <label class="col-form-label label-light-bold me-3">{{ index .tab "keepOriginal" }} <i class="bi bi-info-circle ms-1" data-bs-toggle="tooltip" data-bs-placement="right" data-bs-title="{{ index $.tab "tooltipKeepOriginalEncrypt" }}"></i> :</label>
+    <div class="form-check form-check-inline">
+        <input class="form-check-input" type="checkbox" {{ if eq (index .Args "keepOriginal") "true" }}checked{{ end }} disabled>
+    </div>
+</div>
+<hr style="border-top: 1px solid #ababab;">
+<div class="flex-label-input">
+    <label class="col-form-label label-light-bold me-3">{{ index .tab "method" }} <i class="bi bi-info-circle ms-1" data-bs-toggle="tooltip" data-bs-placement="right" data-bs-title="{{ index $.tab "tooltipMethodEncrypt" }}"></i> :</label>
+    <input type="text" class="form-control-plaintext input-auto-width" value="{{ displayOrDefault (index .Args "method") (index $.tab "undefined") }}" disabled>
+</div>
+<hr style="border-top: 1px solid #ababab;">
+<div class="flex-label-input">
+    <label class="col-form-label label-light-bold me-3">{{ index .tab "keyName" }} <i class="bi bi-info-circle ms-1" data-bs-toggle="tooltip" data-bs-placement="right" data-bs-title="{{ index $.tab "tooltipKeyNameEncrypt" }}"></i> :</label>
+    <input type="text" class="form-control-plaintext input-auto-width" value="{{ displayOrDefault (index .Args "keyName") (index $.tab "undefined") }}" disabled>
+</div>
+{{ end }}
+
+{{ define "displayTaskDECRYPT" }}
+<div class="flex-label-input">
+    <label class="col-form-label label-light-bold me-3">{{ index .tab "outputFile" }} <i class="bi bi-info-circle ms-1" data-bs-toggle="tooltip" data-bs-placement="right" data-bs-title="{{ index $.tab "tooltipOutputFileDecrypt" }}"></i> :</label>
+    <input type="text" class="form-control-plaintext input-auto-width" value="{{ displayOrDefault (index .Args "outputFile") (index $.tab "undefined") }}" disabled>
+</div>
+<hr style="border-top: 1px solid #ababab;">
+<div class="flex-label-input">
+    <label class="col-form-label label-light-bold me-3">{{ index .tab "keepOriginal" }} <i class="bi bi-info-circle ms-1" data-bs-toggle="tooltip" data-bs-placement="right" data-bs-title="{{ index $.tab "tooltipKeepOriginalDecrypt" }}"></i> :</label>
+    <div class="form-check form-check-inline">
+        <input class="form-check-input" type="checkbox" {{ if eq (index .Args "keepOriginal") "true" }}checked{{ end }} disabled>
+    </div>
+</div>
+<hr style="border-top: 1px solid #ababab;">
+<div class="flex-label-input">
+    <label class="col-form-label label-light-bold me-3">{{ index .tab "method" }} <i class="bi bi-info-circle ms-1" data-bs-toggle="tooltip" data-bs-placement="right" data-bs-title="{{ index $.tab "tooltipMethodDecrypt" }}"></i> :</label>
+    <input type="text" class="form-control-plaintext input-auto-width" value="{{ displayOrDefault (index .Args "method") (index $.tab "undefined") }}" disabled>
+</div>
+<hr style="border-top: 1px solid #ababab;">
+<div class="flex-label-input">
+    <label class="col-form-label label-light-bold me-3">{{ index .tab "keyName" }} <i class="bi bi-info-circle ms-1" data-bs-toggle="tooltip" data-bs-placement="right" data-bs-title="{{ index $.tab "tooltipKeyNameDecrypt" }}"></i> :</label>
+    <input type="text" class="form-control-plaintext input-auto-width" value="{{ displayOrDefault (index .Args "keyName") (index $.tab "undefined") }}" disabled>
+</div>
+{{ end }}
+
+{{ define "displayTaskSIGN" }}
+<div class="flex-label-input">
+    <label class="col-form-label label-light-bold me-3">{{ index .tab "outputFile" }} <i class="bi bi-info-circle ms-1" data-bs-toggle="tooltip" data-bs-placement="right" data-bs-title="{{ index $.tab "tooltipOutputFileSign" }}"></i> :</label>
+    <input type="text" class="form-control-plaintext input-auto-width" value="{{ displayOrDefault (index .Args "outputFile") (index $.tab "undefined") }}" disabled>
+</div>
+<hr style="border-top: 1px solid #ababab;">
+<div class="flex-label-input">
+    <label class="col-form-label label-light-bold me-3">{{ index .tab "method" }} <i class="bi bi-info-circle ms-1" data-bs-toggle="tooltip" data-bs-placement="right" data-bs-title="{{ index $.tab "tooltipMethodSign" }}"></i> :</label>
+    <input type="text" class="form-control-plaintext input-auto-width" value="{{ displayOrDefault (index .Args "method") (index $.tab "undefined") }}" disabled>
+</div>
+<hr style="border-top: 1px solid #ababab;">
+<div class="flex-label-input">
+    <label class="col-form-label label-light-bold me-3">{{ index .tab "keyName" }} <i class="bi bi-info-circle ms-1" data-bs-toggle="tooltip" data-bs-placement="right" data-bs-title="{{ index $.tab "tooltipKeyNameSign" }}"></i> :</label>
+    <input type="text" class="form-control-plaintext input-auto-width" value="{{ displayOrDefault (index .Args "keyName") (index $.tab "undefined") }}" disabled>
+</div>
+{{ end }}
+
+{{ define "displayTaskVERIFY" }}
+<div class="flex-label-input">
+    <label class="col-form-label label-light-bold me-3">{{ index .tab "signatureFile" }} <i class="bi bi-info-circle ms-1" data-bs-toggle="tooltip" data-bs-placement="right" data-bs-title="{{ index $.tab "tooltipSignatureFile" }}"></i> :</label>
+    <input type="text" class="form-control-plaintext input-auto-width" value="{{ displayOrDefault (index .Args "signatureFile") (index $.tab "undefined") }}" disabled>
+</div>
+<hr style="border-top: 1px solid #ababab;">
+<div class="flex-label-input">
+    <label class="col-form-label label-light-bold me-3">{{ index .tab "method" }} <i class="bi bi-info-circle ms-1" data-bs-toggle="tooltip" data-bs-placement="right" data-bs-title="{{ index $.tab "tooltipMethodVerify" }}"></i> :</label>
+    <input type="text" class="form-control-plaintext input-auto-width" value="{{ displayOrDefault (index .Args "method") (index $.tab "undefined") }}" disabled>
+</div>
+<hr style="border-top: 1px solid #ababab;">
+<div class="flex-label-input">
+    <label class="col-form-label label-light-bold me-3">{{ index .tab "keyName" }} <i class="bi bi-info-circle ms-1" data-bs-toggle="tooltip" data-bs-placement="right" data-bs-title="{{ index $.tab "tooltipKeyNameVerify" }}"></i> :</label>
+    <input type="text" class="form-control-plaintext input-auto-width" value="{{ displayOrDefault (index .Args "keyName") (index $.tab "undefined") }}" disabled>
+</div>
+{{ end }}
+
+{{ define "displayTaskENCRYPT&SIGN" }}
+<div class="flex-label-input">
+    <label class="col-form-label label-light-bold me-3">{{ index .tab "outputFile" }} <i class="bi bi-info-circle ms-1" data-bs-toggle="tooltip" data-bs-placement="right" data-bs-title="{{ index $.tab "tooltipOutputFileEncrypt" }}"></i> :</label>
+    <input type="text" class="form-control-plaintext input-auto-width" value="{{ displayOrDefault (index .Args "outputFile") (index $.tab "undefined") }}" disabled>
+</div>
+<hr style="border-top: 1px solid #ababab;">
+<div class="flex-label-input">
+    <label class="col-form-label label-light-bold me-3">{{ index .tab "keepOriginal" }} <i class="bi bi-info-circle ms-1" data-bs-toggle="tooltip" data-bs-placement="right" data-bs-title="{{ index $.tab "tooltipKeepOriginalEncrypt" }}"></i> :</label>
+    <div class="form-check form-check-inline">
+        <input class="form-check-input" type="checkbox" {{ if eq (index .Args "keepOriginal") "true" }}checked{{ end }} disabled>
+    </div>
+</div>
+<hr style="border-top: 1px solid #ababab;">
+<div class="flex-label-input">
+    <label class="col-form-label label-light-bold me-3">{{ index .tab "method" }} <i class="bi bi-info-circle ms-1" data-bs-toggle="tooltip" data-bs-placement="right" data-bs-title="{{ index $.tab "tooltipMethodEncrypt&Sign" }}"></i> :</label>
+    <input type="text" class="form-control-plaintext input-auto-width" value="{{ displayOrDefault (index .Args "method") (index $.tab "undefined") }}" disabled>
+</div>
+<hr style="border-top: 1px solid #ababab;">
+<div class="flex-label-input">
+    <label class="col-form-label label-light-bold me-3">{{ index .tab "encryptKeyName" }} <i class="bi bi-info-circle ms-1" data-bs-toggle="tooltip" data-bs-placement="right" data-bs-title="{{ index $.tab "tooltipEncryptKeyName" }}"></i> :</label>
+    <input type="text" class="form-control-plaintext input-auto-width" value="{{ displayOrDefault (index .Args "encryptKeyName") (index $.tab "undefined") }}" disabled>
+</div>
+<hr style="border-top: 1px solid #ababab;">
+<div class="flex-label-input">
+    <label class="col-form-label label-light-bold me-3">{{ index .tab "signKeyName" }} <i class="bi bi-info-circle ms-1" data-bs-toggle="tooltip" data-bs-placement="right" data-bs-title="{{ index $.tab "tooltipSignKeyNameEncrypt&Sign" }}"></i> :</label>
+    <input type="text" class="form-control-plaintext input-auto-width" value="{{ displayOrDefault (index .Args "signKeyName") (index $.tab "undefined") }}" disabled>
+</div>
+{{ end }}
+
+{{ define "displayTaskDECRYPT&VERIFY" }}
+<div class="flex-label-input">
+    <label class="col-form-label label-light-bold me-3">{{ index .tab "outputFile" }} <i class="bi bi-info-circle ms-1" data-bs-toggle="tooltip" data-bs-placement="right" data-bs-title="{{ index $.tab "tooltipOutputFileDecrypt" }}"></i> :</label>
+    <input type="text" class="form-control-plaintext input-auto-width" value="{{ displayOrDefault (index .Args "outputFile") (index $.tab "undefined") }}" disabled>
+</div>
+<hr style="border-top: 1px solid #ababab;">
+<div class="flex-label-input">
+    <label class="col-form-label label-light-bold me-3">{{ index .tab "keepOriginal" }} <i class="bi bi-info-circle ms-1" data-bs-toggle="tooltip" data-bs-placement="right" data-bs-title="{{ index $.tab "tooltipKeepOriginalDecrypt" }}"></i> :</label>
+    <div class="form-check form-check-inline">
+        <input class="form-check-input" type="checkbox" {{ if eq (index .Args "keepOriginal") "true" }}checked{{ end }} disabled>
+    </div>
+</div>
+<hr style="border-top: 1px solid #ababab;">
+<div class="flex-label-input">
+    <label class="col-form-label label-light-bold me-3">{{ index .tab "method" }} <i class="bi bi-info-circle ms-1" data-bs-toggle="tooltip" data-bs-placement="right" data-bs-title="{{ index $.tab "tooltipMethodDecrypt&verify" }}"></i> :</label>
+    <input type="text" class="form-control-plaintext input-auto-width" value="{{ displayOrDefault (index .Args "method") (index $.tab "undefined") }}" disabled>
+</div>
+<hr style="border-top: 1px solid #ababab;">
+<div class="flex-label-input">
+    <label class="col-form-label label-light-bold me-3">{{ index .tab "decryptKeyName" }} <i class="bi bi-info-circle ms-1" data-bs-toggle="tooltip" data-bs-placement="right" data-bs-title="{{ index $.tab "tooltipDecryptKeyName" }}"></i> :</label>
+    <input type="text" class="form-control-plaintext input-auto-width" value="{{ displayOrDefault (index .Args "decryptKeyName") (index $.tab "undefined") }}" disabled>
+</div>
+<hr style="border-top: 1px solid #ababab;">
+<div class="flex-label-input">
+    <label class="col-form-label label-light-bold me-3">{{ index .tab "verifyKeyName" }} <i class="bi bi-info-circle ms-1" data-bs-toggle="tooltip" data-bs-placement="right" data-bs-title="{{ index $.tab "tooltipVerifyKeyName" }}"></i> :</label>
+    <input type="text" class="form-control-plaintext input-auto-width" value="{{ displayOrDefault (index .Args "verifyKeyName") (index $.tab "undefined") }}" disabled>
+</div>
+{{ end }}

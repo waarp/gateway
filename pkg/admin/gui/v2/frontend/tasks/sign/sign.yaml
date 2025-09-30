@@ -1,0 +1,35 @@
+description:
+  en: Make a cryptographic signature of the transfer file using the provided key.
+  fr: Crée une signature cryptographique du fichier de transfert avec la clé donnée.
+
+outputFile:
+  en: Output file
+  fr: Fichier de sortie
+
+outputFileTooltip:
+  en: The file to which the signature will be written.
+  fr: Le fichier dans lequel la signature sera écrite.
+
+method:
+  en: Signature method
+  fr: Méthode de signature
+
+methodTooltip:
+  en: The signature method to use.
+  fr: La méthode de signature à utiliser.
+
+methodPlaceholder:
+  en: Chose an algorithm
+  fr: Choisir un algorithme
+
+keyName:
+  en: Signature key
+  fr: Clé de signature
+
+keyNameTooltip:
+  en: The key to use for signing. Must have been previously registered.
+  fr: La clé à utiliser pour signer. Doit avoir été préalablement enregistrée.
+
+keyNamePlaceholder:
+  en: Choose a key
+  fr: Choisir une clé

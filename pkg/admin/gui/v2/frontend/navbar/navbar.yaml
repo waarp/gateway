@@ -1,0 +1,69 @@
+# Navbar buttons
+logout:
+  en: Logout
+  fr: Déconnexion
+
+about:
+  en: About
+  fr: À propos
+
+# About menu
+version:
+  en: Version
+  fr: Version
+
+compileDate:
+  en: Compiled on
+  fr: Compilé le
+
+revision:
+  en: Revision
+  fr: Révision
+
+support:
+  en: Support
+  fr: Support
+
+supportDesc:
+  en: >
+    Waarp provides professional support and assistance for this application,
+    available at
+  fr: >
+    Waarp fournit support et assistance professionnels pour cette application,
+    disponible sur 
+
+license:
+  en: License
+  fr: Licence
+
+licenseDesc:
+  en: This software is distributed under the terms of the
+  fr: Ce logiciel est distribué sous les termes de la
+
+licenseLink:
+  en: GPLv3 license
+  fr: licence GPLv3
+
+links:
+  en: Links
+  fr: Liens
+
+downloads:
+  en: Downloads
+  fr: Téléchargements
+
+documentation:
+  en: Documentation
+  fr: Documentation
+
+forums:
+  en: Forums
+  fr: Forums
+
+contact:
+  en: Contact
+  fr: Contact
+
+close:
+  en: Close
+  fr: Fermer

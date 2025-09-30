@@ -158,7 +158,7 @@ func TestClientPreConn(t *testing.T) {
 		preConnCreds := &model.Credential{
 			RemoteAccountID: utils.NewNullInt64(ctx.RemoteAccount.ID),
 			Name:            "pre-conn-cred",
-			Type:            preConnectionAuth,
+			Type:            PreConnectionAuth,
 			Value:           "foobar",
 			Value2:          "sesame",
 		}

@@ -9,11 +9,12 @@ import (
 	"path"
 	"time"
 
-	"code.waarp.fr/apps/gateway/gateway/pkg/admin/rest"
 	"code.waarp.fr/apps/gateway/gateway/pkg/admin/rest/api"
 	"code.waarp.fr/apps/gateway/gateway/pkg/model/types"
 	"code.waarp.fr/apps/gateway/gateway/pkg/utils"
 )
+
+const apiTransfersPath = "/api/transfers"
 
 func transferRole(isServer bool) string {
 	return utils.If[string](isServer, roleServer, roleClient)
@@ -114,7 +115,7 @@ func (t *TransferAdd) execute(w io.Writer) error {
 			"the source and the destination")
 	}
 
-	addr.Path = rest.TransfersPath
+	addr.Path = apiTransfersPath
 
 	loc, addErr := add(w, t)
 	if addErr != nil {
@@ -164,7 +165,7 @@ type TransferList struct {
 }
 
 func (t *TransferList) listURL() error {
-	addr.Path = rest.TransfersPath
+	addr.Path = apiTransfersPath
 	query := url.Values{}
 	query.Set("limit", utils.FormatUint(t.Limit))
 	query.Set("offset", utils.FormatUint(t.Offset))
@@ -330,7 +331,7 @@ type TransferCancelAll struct {
 
 func (t *TransferCancelAll) Execute([]string) error { return execute(t) }
 func (t *TransferCancelAll) execute(w io.Writer) error {
-	addr.Path = rest.TransfersPath
+	addr.Path = apiTransfersPath
 	query := url.Values{}
 	query.Set("target", t.Target)
 	addr.RawQuery = query.Encode()
@@ -374,7 +375,7 @@ type TransferPreregister struct {
 func (t *TransferPreregister) Execute([]string) error { return execute(t) }
 func (t *TransferPreregister) execute(w io.Writer) error {
 	t.IsSend = t.Way == directionSend
-	addr.Path = rest.TransfersPath
+	addr.Path = apiTransfersPath
 
 	ctx, cancel := context.WithTimeout(context.Background(), httpTimeout)
 	defer cancel()

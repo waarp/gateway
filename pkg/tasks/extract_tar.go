@@ -10,7 +10,9 @@ import (
 	"code.waarp.fr/apps/gateway/gateway/pkg/fs"
 )
 
-func (e *extractTask) extractTar(mkDecompressor func(fs.File) (io.Reader, error)) error {
+type decompressorFunc func(fs.File) (io.Reader, error)
+
+func (e *extractTask) extractTar(mkDecompressor decompressorFunc) error {
 	archiveFile, opErr := fs.Open(e.Archive)
 	if opErr != nil {
 		return fmt.Errorf("failed to open archive file: %w", opErr)

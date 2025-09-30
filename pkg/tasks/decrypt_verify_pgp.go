@@ -10,33 +10,35 @@ import (
 	"code.waarp.fr/apps/gateway/gateway/pkg/model"
 )
 
-func (d *decryptVerify) makePGPVerifyDecryptor(dCryptoKey, vCryptoKey *model.CryptoKey) error {
+const DecryptVerifyMethodPGP = "PGP"
+
+func makePGPVerifyDecryptor(dCryptoKey, vCryptoKey *model.CryptoKey) (decryptVerifyFunc, error) {
 	if !isPGPPrivateKey(dCryptoKey) {
-		return ErrDecryptNotPGPKey
+		return nil, ErrDecryptNotPGPKey
 	}
 
 	if !isPGPPublicKey(vCryptoKey) {
-		return ErrVerifyNotPGPKey
+		return nil, ErrVerifyNotPGPKey
 	}
 
 	decryptKey, parsErr := pgp.NewKeyFromArmored(dCryptoKey.Key.String())
 	if parsErr != nil {
-		return fmt.Errorf("failed to parse PGP decryption key: %w", parsErr)
+		return nil, fmt.Errorf("failed to parse PGP decryption key: %w", parsErr)
 	}
 
 	verifyKey, parsErr := pgp.NewKeyFromArmored(vCryptoKey.Key.String())
 	if parsErr != nil {
-		return fmt.Errorf("failed to parse PGP verification key: %w", parsErr)
+		return nil, fmt.Errorf("failed to parse PGP verification key: %w", parsErr)
 	}
 
 	if verifyKey.IsPrivate() {
 		verifyKey, parsErr = verifyKey.ToPublic()
 		if parsErr != nil {
-			return fmt.Errorf("failed to parse PGP verification key: %w", parsErr)
+			return nil, fmt.Errorf("failed to parse PGP verification key: %w", parsErr)
 		}
 	}
 
-	d.decryptVerify = func(src io.Reader, dst io.Writer) error {
+	return func(src io.Reader, dst io.Writer) error {
 		builder := pgp.PGPWithProfile(pgpprofile.RFC4880()).Decryption()
 
 		decryptHandler, handlerErr := builder.DecryptionKey(decryptKey).VerificationKey(verifyKey).New()
@@ -58,7 +60,5 @@ func (d *decryptVerify) makePGPVerifyDecryptor(dCryptoKey, vCryptoKey *model.Cry
 		}
 
 		return nil
-	}
-
-	return nil
+	}, nil
 }

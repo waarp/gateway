@@ -1,0 +1,100 @@
+@import url('auto-complete.css');
+@import url('button.css');
+@import url('card.css');
+@import url('error-animated.css');
+@import url('form.css');
+@import url('modal.css');
+@import url('navbar.css');
+@import url('select.css');
+@import url('shake.css');
+@import url('table.css');
+@import url('error.css');
+@import url('sidebar.css');
+
+.ms-1-5 {
+    margin-left: 0.2rem;
+}
+
+.page-link {
+  color: black !important;
+}
+
+.nav-pills .nav-link.text-white {
+    border-radius: 13px;
+}
+
+.nav-pills .nav-link.text-white:hover,
+.nav-pills .nav-link.text-white:focus {
+    background-color: #fff;
+    color: #f54b15 !important;
+    transition: background 0.2s, color 0.2s;
+    border-radius: 13px;
+}
+
+.btn-task-border {
+    border: 1px solid #e4e4e4 !important;
+    box-shadow: none;
+}
+
+.no-anim-collapse {
+  transition: none !important;
+}
+
+.no-anim-collapse.animate {
+  transition: height 0.35s ease !important;
+}
+
+.btn-task-border {
+    transition: background-color 0.2s, color 0.2s;
+}
+.btn-task-border:hover,
+.btn-task-border[aria-expanded="true"] {
+    background-color: #e9ecef;
+    color: inherit;
+}
+
+.btn-task-border .bi-chevron-right {
+    transition: transform 0.35s ease;
+}
+.btn-task-border[aria-expanded="true"] .bi-chevron-right {
+    transform: rotate(90deg);
+}
+
+.drag-handle {
+    cursor: grab;
+}
+
+.opacity-25  {
+    opacity: .25;
+}
+
+.bg-success-subtle {
+    background-color: #41c288 !important;
+    color: #19191a !important;
+}
+
+.input-undefined {
+    color: #6c757d !important;
+    font-style: italic;
+}
+
+.label-light-bold {
+    font-weight: 500;
+}
+
+#sync-update i {
+    display: inline-block;
+}
+
+.sync-rotate {
+    animation: sync-rotate 1s linear infinite;
+}
+
+@keyframes sync-rotate {
+  from { transform: rotate(0deg); }
+  to { transform: rotate(360deg); }
+}
+
+.bg-grey-light {
+  background-color: #ededed !important;
+}

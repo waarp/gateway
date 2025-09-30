@@ -21,10 +21,11 @@ sont :
   transfert devra être reçue.
 * ``account`` (*string*) - Le login du partenaire qui sera utilisé par le partenaire
   pour faire la requête de transfert.
-* ``dueDate`` (*string*) - La date limite (en format ISO-8601) du transfert. Au
-  delà de cette date, le transfert expirera et tombera en erreur.
+* ``validFor`` (*string*) - La durée pour laquelle le transfert est valide. Au delà,
+  le transfert tombera en erreur. Les unités de temps acceptées sont ``d`` (jours),
+  ``h`` (heures), ``m`` (minutes) et ``s`` (secondes).
 * ``copyInfo`` (*boolean*) - Indique si les informations du transfert en cours
-  doit être copiées sur le nouveau transfert pré-enregistré.
+  doivent être copiées sur le nouveau transfert pré-enregistré.
 * ``info`` (*object*) - Les informations de transfert du nouveau transfert. Si
   les informations du transfert en cours ont été copiées sur le nouveau transfert
   (via le paramètre **copyInfo** décris ci-dessus), les nouvelles informations

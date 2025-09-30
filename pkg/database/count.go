@@ -6,6 +6,10 @@ import (
 	"code.waarp.fr/apps/gateway/gateway/pkg/conf"
 )
 
+type selectCountBean struct{ SelectBean }
+
+func (s *selectCountBean) Appellation() string { return s.Elem() }
+
 // CountQuery is the type representing a SQL COUNT statement.
 type CountQuery struct {
 	db   Access

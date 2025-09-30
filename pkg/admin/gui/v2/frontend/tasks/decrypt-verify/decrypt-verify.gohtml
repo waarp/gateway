@@ -1,0 +1,62 @@
+<script>
+    function uptKeyList(methodEl) {
+        uptKeyListWith("decrypt-verify", methodEl.value, "", "decryptVerifyTaskDKeyName")
+        uptKeyListWith("verify-decrypt", methodEl.value, "", "decryptVerifyTaskVKeyName")
+    }
+</script>
+
+<!-- Task description -->
+<p class="task-description">{{ .Text.description }}</p>
+
+<!-- Output File -->
+{{ template "textInputRow" dict
+    "label" .Text.outputFile
+    "tooltip" .Text.outputFileTooltip
+    "fieldName" "outputFile"
+    "fieldType" "text"
+    "value" .Task.Args.outputFile
+}}
+
+<!-- Keep original -->
+{{ template "checkInputRow" dict
+    "label" .Text.keepOriginal
+    "tooltip" .Text.keepOriginalTooltip
+    "fieldName" "keepOriginal"
+    "value" .Task.Args.keepOriginal
+}}
+
+<!-- Method -->
+{{ template "listInputRow" dict
+    "label" .Text.method
+    "tooltip" .Text.methodTooltip
+    "fieldName" "method"
+    "value" .Task.Args.method
+    "list" decryptVerifyMethods
+    "placeholder" .Text.methodPlaceholder
+    "onchange" "uptKeyList"
+}}
+
+<!-- Decrypt key name -->
+{{ template "listInputRow" dict
+    "id" "decryptVerifyTaskDKeyName"
+    "label" .Text.decryptKeyName
+    "tooltip" .Text.decryptKeyNameTooltip
+    "fieldName" "decryptKeyName"
+    "placeholder" .Text.keyNamePlaceholder
+}}
+
+<!-- Verify key name -->
+{{ template "listInputRow" dict
+    "id" "decryptVerifyTaskVKeyName"
+    "label" .Text.verifyKeyName
+    "tooltip" .Text.verifyKeyNameTooltip
+    "fieldName" "verifyKeyName"
+    "placeholder" .Text.keyNamePlaceholder
+}}
+
+<script>
+    uptKeyListWith("decrypt-verify", {{.Task.Args.method}}, {{.Task.Args.decryptKeyName}},
+        "decryptVerifyTaskDKeyName")
+    uptKeyListWith("verify-decrypt", {{.Task.Args.method}}, {{.Task.Args.verifyKeyName}},
+        "decryptVerifyTaskVKeyName")
+</script>

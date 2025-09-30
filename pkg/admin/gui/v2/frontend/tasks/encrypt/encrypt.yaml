@@ -1,0 +1,51 @@
+description:
+  en: Encrypt the transfer file using the provided key.
+  fr: Chiffre le fichier de transfert à l'aide de la clé donnée.
+
+outputFile:
+  en: Output file (optional)
+  fr: Fichier de sortie (optionnel)
+
+outputFileTooltip:
+  en: >
+    The output file for the encrypted data. By default, it will be the same path
+    as the original file, with the ".crypt" extension added.
+  fr: >
+    Le fichier de destination pour les données chiffrées. Par défaut, ce sera le
+    même chemin que le fichier original, avec l'extension ".crypt" ajoutée.
+
+keepOriginal:
+  en: Keep original file
+  fr: Conserver le fichier original
+
+keepOriginalTooltip:
+  en: >
+    Specifies whether to keep the original plain file or not. By default, the 
+    plain file is deleted after encryption.
+  fr: >
+    Spécifie si le fichier original clair doit être conservé ou non. Par défaut,
+    le fichier clair est supprimé après chiffrement.
+
+method:
+  en: Encryption method
+  fr: Méthode de chiffrement
+
+methodTooltip:
+  en: The encryption method to use.
+  fr: La méthode de chiffrement à utiliser.
+
+methodPlaceholder:
+  en: Chose an algorithm
+  fr: Choisir un algorithme
+
+keyName:
+  en: Encryption key
+  fr: Clé de chiffrement
+
+keyNameTooltip:
+  en: The key to use for encrypting. Must have been previously registered.
+  fr: La clé de chiffrement à utiliser. Doit avoir été préalablement enregistrée.
+
+keyNamePlaceholder:
+  en: Choose a key
+  fr: Choisir une clé

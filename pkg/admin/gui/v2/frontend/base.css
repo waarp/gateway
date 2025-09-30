@@ -1,0 +1,31 @@
+html, body {
+    height: 100%;
+}
+
+body {
+    display: flex;
+    flex-direction: column;
+    overflow: hidden; /* prevent page scroll; we'll scroll main content */
+    background-color: #f8f9fa;
+}
+
+.page-layout {
+    display: flex;
+    flex-wrap: nowrap;
+    align-items: stretch;
+    min-height: 0;
+    flex: 1 1 auto;
+}
+
+.page-layout main {
+    display: flex;
+    flex: 1 1 auto;
+    min-width: 0;
+    min-height: 0;
+    flex-direction: column;
+    align-content: center;
+    padding-left: 2rem;
+    padding-right: 2rem;
+    padding-top: 1rem;
+    overflow: auto;
+}

@@ -2,20 +2,20 @@ package r66
 
 import (
 	"context"
+	"encoding/json"
 	"testing"
 	"time"
 
-	"code.waarp.fr/apps/gateway/gateway/pkg/model"
-	"code.waarp.fr/apps/gateway/gateway/pkg/utils/gwtesting"
+	. "github.com/smartystreets/goconvey/convey"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
-	. "github.com/smartystreets/goconvey/convey"
-
+	"code.waarp.fr/apps/gateway/gateway/pkg/model"
 	"code.waarp.fr/apps/gateway/gateway/pkg/model/types"
 	"code.waarp.fr/apps/gateway/gateway/pkg/pipeline/pipelinetest"
 	"code.waarp.fr/apps/gateway/gateway/pkg/protocols/modules/r66/internal"
 	"code.waarp.fr/apps/gateway/gateway/pkg/protocols/protocol"
+	"code.waarp.fr/apps/gateway/gateway/pkg/utils/gwtesting"
 )
 
 func resetClient(client protocol.Client) {
@@ -485,8 +485,6 @@ func TestSelfPullServerPostTasksFail(t *testing.T) {
 }
 
 func TestTransOnHold(t *testing.T) {
-	t.Skip("Re-enable once the R66 lib gets fixed to actually send transfer info")
-
 	db := gwtesting.Database(t)
 	ctx := gwtesting.TestTransferCtx(t, db, R66, servConf, cliConf, partConf)
 	ctx.AddCred(t, partnerPassword(ctx.Partner))
@@ -501,6 +499,9 @@ func TestTransOnHold(t *testing.T) {
 		}
 		require.NoError(t, db.Insert(serverPullTrans).Run())
 
+		servUserContent := map[string]any{internal.UserContent: "R66 user content sample"}
+		require.NoError(t, serverPullTrans.SetTransferInfo(db, servUserContent))
+
 		pip := ctx.PullPipeline(t)
 
 		t.Run("When executing the transfer", func(t *testing.T) {
@@ -513,7 +514,10 @@ func TestTransOnHold(t *testing.T) {
 				infoCheck, infoErr := hist.GetTransferInfo(db)
 				require.NoError(t, infoErr)
 
-				assert.Subset(t, infoCheck, map[string]any{model.FollowID: serverPullTrans.RemoteTransferID})
+				assert.Subset(t, infoCheck, servUserContent)
+				assert.Subset(t, infoCheck, map[string]any{
+					model.FollowID: json.Number(serverPullTrans.RemoteTransferID),
+				})
 			})
 		})
 	})

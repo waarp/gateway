@@ -14,7 +14,7 @@ func TestAddCryptoKey(t *testing.T) {
 		key     = testhelpers.TestPGPPrivateKey
 	)
 
-	testAdd(t, addCryptoKey, CryptoKeysPath, keyName,
+	testAdd(t, addCryptoKey, "/keys", keyName,
 		map[string]any{
 			"name": keyName,
 			"type": keyType,
@@ -36,7 +36,7 @@ func TestGetCryptoKey(t *testing.T) {
 		key     = testhelpers.TestPGPPublicKey
 	)
 
-	testGet(t, getCryptoKey, CryptoKeyPath, keyName,
+	testGet(t, getCryptoKey, "/keys/{crypto_key}", keyName,
 		&model.CryptoKey{
 			Name: keyName,
 			Type: keyType,
@@ -53,7 +53,7 @@ func TestGetCryptoKey(t *testing.T) {
 func TestDeleteCryptoKey(t *testing.T) {
 	const keyName = "keyname"
 
-	testDelete(t, deleteCryptoKey, CryptoKeyPath, keyName,
+	testDelete(t, deleteCryptoKey, "/keys/{crypto_key}", keyName,
 		&model.CryptoKey{
 			Name: keyName,
 			Type: model.CryptoKeyTypePGPPrivate,
@@ -71,7 +71,7 @@ func TestUpdateCryptoKey(t *testing.T) {
 		newKey     = testhelpers.TestPGPPublicKey
 	)
 
-	testUpdate(t, updateCryptoKey, CryptoKeyPath, oldKeyName, newKeyName,
+	testUpdate(t, updateCryptoKey, "/keys/{crypto_key}", oldKeyName, newKeyName,
 		&model.CryptoKey{
 			Name: oldKeyName,
 			Type: model.CryptoKeyTypePGPPrivate,

@@ -20,11 +20,6 @@ import (
 
 var ErrMissingBucket = errors.New("no S3 bucket specified")
 
-//nolint:gochecknoinits //init is used by design
-func init() {
-	fs.Register("s3", newS3FS)
-}
-
 func parseOpts(opts map[string]string) (configmap.Simple, *vfscommon.Options) {
 	const (
 		envAuthKey = "env_auth"
@@ -85,12 +80,13 @@ func parseVFSOpts() *vfscommon.Options {
 	return vfsOpts
 }
 
-func newS3FS(name, key, secret string, opts map[string]string) (fs.FS, error) {
-	if s3vfs, err := newS3FSWithRoot(name, key, secret, "", opts); err != nil {
+func NewFS(name, key, secret string, opts map[string]string) (fs.FS, error) {
+	s3vfs, err := newS3FSWithRoot(name, key, secret, "", opts)
+	if err != nil {
 		return nil, err
-	} else {
-		return &fs.VFS{VFS: s3vfs}, nil
 	}
+
+	return &fs.VFS{VFS: s3vfs}, nil
 }
 
 func newS3FSWithRoot(name, key, secret, root string, opts map[string]string) (*vfs.VFS, error) {

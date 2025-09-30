@@ -1,9 +1,13 @@
 package utils
 
 import (
+	"encoding/json"
 	"errors"
 	"fmt"
+	"reflect"
 	"slices"
+
+	"golang.org/x/exp/constraints"
 )
 
 // If simulates a ternary operator.
@@ -53,10 +57,36 @@ func GetAs[T any](m map[string]any, key string) (t T, _ error) {
 	return t, fmt.Errorf("key %q: %w", key, ErrKeyNotFound)
 }
 
-func Must[T any](val T, err error) T {
-	if err != nil {
-		panic(err)
+func GetAsNum[T constraints.Integer | constraints.Float](m map[string]any, key string) (t T, _ error) {
+	if asAny, hasProperty := m[key]; hasProperty {
+		if asT, isT := asAny.(T); isT {
+			return asT, nil
+		}
+
+		int64Typ := reflect.TypeFor[int64]()
+		tTyp := reflect.TypeFor[T]()
+
+		if asJNum, isJNum := asAny.(json.Number); isJNum && int64Typ.ConvertibleTo(tTyp) {
+			asInt64, convErr := asJNum.Int64()
+			if convErr != nil {
+				return t, fmt.Errorf("failed to parse JSON number %q: %w", asJNum, convErr)
+			}
+
+			return T(asInt64), nil
+		}
+
+		return t, fmt.Errorf("key %q: %w: expected %T, got %T", key,
+			ErrIncorrectValueType, t, asAny)
 	}
 
-	return val
+	return t, fmt.Errorf("key %q: %w", key, ErrKeyNotFound)
+}
+
+func AsAny[T any](slice []T) []any {
+	anySlice := make([]any, len(slice))
+	for i, elem := range slice {
+		anySlice[i] = elem
+	}
+
+	return anySlice
 }

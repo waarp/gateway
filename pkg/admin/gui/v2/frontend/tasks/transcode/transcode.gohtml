@@ -1,0 +1,22 @@
+<!-- Task description -->
+<p class="task-description">{{ .Text.description }}</p>
+
+<!-- Source charset -->
+{{ template "listInputRow" dict
+    "label" .Text.from
+    "tooltip" .Text.fromTooltip
+    "fieldName" "fromCharset"
+    "value" .Task.Args.fromCharset
+    "list" listCharsets
+    "placeholder" .Text.charsetPlaceholder
+}}
+
+<!-- Destination charset -->
+{{ template "listInputRow" dict
+    "label" .Text.to
+    "tooltip" .Text.toTooltip
+    "fieldName" "toCharset"
+    "value" .Task.Args.toCharset
+    "list" listCharsets
+    "placeholder" .Text.charsetPlaceholder
+}}

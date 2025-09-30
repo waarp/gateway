@@ -1,0 +1,59 @@
+description:
+  en: >
+    Make a copy the transfer file to another folder. The new file's name will 
+    remain identical to the original file.
+  fr: >
+    Crée une copie du fichier de transfert dans un autre dossier. Le nom du 
+    nouveau fichier restera identique au fichier d'origine.
+
+uploadURL:
+  en: Upload URL
+  fr: URL d'upload
+
+uploadURLTooltip:
+  en: The Icap URL to which the transfer file will be uploaded.
+  fr: L'URL Icap à laquelle le fichier de transfert sera envoyé.
+
+timeout:
+  en: Timeout
+  fr: Timeout
+
+timeoutTooltip:
+  en: The maximum allowed duration for the task.
+  fr: La durée maximale autorisée pour la tâche.
+  
+allowFileModifications:
+  en: Allow file modifications
+  fr: Permettre les modifications de fichier
+
+allowFileModificationsTooltip:
+  en: Specifies if the Icap server is allowed to modify the file uploaded to it.
+  fr: Spécifie si le serveur Icap est autorisé à modifier le fichier qui lui est envoyé.
+
+onError:
+  en: On error
+  fr: En cas d'erreur
+
+onErrorTooltip:
+  en: What to do with the file in case the Icap server refuses the file.
+  fr: Que faire avec le fichier si le serveur Icap le refuse.
+
+onErrorNothing:
+  en: Do nothing
+  fr: Ne rien faire
+
+onErrorDelete:
+  en: Delete the file
+  fr: Supprimer le fichier
+
+onErrorMove:
+  en: Déplacer le fichier
+  fr: Move the file
+
+onErrorMovePath:
+  en: Quarantine path
+  fr: Chemin de quarantaine
+
+onErrorMovePathTooltip:
+  en: The path to which the file should be move if refused by the server.
+  fr: Le chemin où le fichier doit être déplacé si refusé par le serveur.

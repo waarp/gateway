@@ -1,0 +1,7 @@
+description:
+  en: Delete the transfer file.
+  fr: Supprime le fichier de transfert.
+
+noArgs:
+  en: This task has no arguments.
+  fr: Cette tâche n'a aucun argument.

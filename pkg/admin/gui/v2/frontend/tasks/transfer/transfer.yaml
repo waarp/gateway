@@ -1,0 +1,135 @@
+description:
+  en: Program a new client transfer with the given parameters.
+  fr: Programme un nouveau transfert client avec les paramètres fournis.
+
+file:
+  en: File
+  fr: Fichier
+
+fileTooltip:
+  en: The path of the file to transfer.
+  fr: Le chemin du fichier à transférer.
+
+output:
+  en: Output path (optional)
+  fr: Chemin destination (optionnel)
+
+outputTooltip:
+  en: The output path of the file.
+  fr: Le chemin de destination du fichier.
+
+direction:
+  en: Direction
+  fr: Direction
+
+directionTooltip:
+  en: The transfer's direction.
+  fr: La direction du transfert.
+
+send:
+  en: Send
+  fr: Envoi
+
+receive:
+  en: Receive
+  fr: Réception
+
+rule:
+  en: Rule
+  fr: Règle
+
+ruleTooltip:
+  en: The rule to use for the transfer.
+  fr: La règle à utiliser pour le transfert.
+
+rulePlaceholder:
+  en: Choose a rule
+  fr: Choisir une règle
+
+client:
+  en: Client
+  fr: Client
+
+clientTooltip:
+  en: The client to use for the transfer.
+  fr: Le client à utiliser pour le transfert.
+
+clientPlaceholder:
+  en: Choose a client
+  fr: Choisir un client
+
+partner:
+  en: Partner
+  fr: Partenaire
+
+partnerTooltip:
+  en: The partner to connect to for the transfer.
+  fr: Le partenaire auquel se connecter pour le transfert.
+
+partnerPlaceholder:
+  en: Choose a partner
+  fr: Choisir un partenaire
+
+account:
+  en: Login
+  fr: Login
+
+accountTooltip:
+  en: The login of the account to use for the transfer.
+  fr: Le login du compte à utiliser pour le transfert.
+
+accountPlaceholder:
+  en: Choose an account
+  fr: Choisir un compte
+
+info:
+  en: Transfer info (optional)
+  fr: Informations de transfert (optionnel)
+
+infoTooltip:
+  en: Metadata about the transfer as a JSON object.
+  fr: Informations sur le transfert sous forme d'un objet JSON.
+
+copyInfo:
+  en: Copy transfer info
+  fr: Copier les informations
+
+copyInfoTooltip:
+  en: Copy the current transfer's info onto the new one.
+  fr: Copie les informations du transfert courant sur le nouveau.
+
+autoRetry:
+  en: Enable auto-retry
+  fr: Activer retry automatique
+
+autoRetryTooltip:
+  en: Allow the transfer to be retried automatically in case of error.
+  fr: Autorise le transfert à être retenté automatiquement en cas d'erreur.
+
+attempts:
+  en: Number of attempts
+  fr: Nombre d'essais
+
+attemptsTooltip:
+  en: The number of times the transfer will be attempted automatically.
+  fr: Le nombre de fois que le transfert sera tenté automatiquement.
+
+retryDelay:
+  en: First retry delay
+  fr: Délai du premier essai
+
+retryDelayTooltip:
+  en: The delay between the original attempt an the first retry.
+  fr: Le délai entre le transfer original et la première nouvelle tentative.
+
+retryIncrement:
+  en: Retry increment factor
+  fr: Facteur d'incrément
+
+retryIncrementTooltip:
+  en: >
+    The factor by which the delay between each new attempts will be multiplied.
+    Decimal numbers are allowed.
+  fr: >
+    Le facteur par lequel le délai entre chaque nouvelle tentative sera multiplié.
+    Les nombres décimaux sont acceptés.

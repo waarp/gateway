@@ -1,0 +1,71 @@
+<!-- Task description -->
+<p class="task-description">{{ .Text.description }}</p>
+
+<!-- Sender -->
+<div class="form-input">
+    <label class="col-form-label">
+        {{ .Text.sender }}
+        <i class="bi bi-info-circle"
+           data-bs-toggle="tooltip"
+           data-bs-placement="right"
+           data-bs-title="{{ .Text.senderTooltip }}">
+        </i> :
+    </label>
+    <select class="form-select"
+            id="emailTaskSender"
+            name="sender"
+            onchange=""
+            required>
+        {{ $sender := .Task.Args.sender }}
+        <option value="" disabled {{ if not $sender }}selected{{ end }}>
+            {{ .Text.senderPlaceholder }}
+        </option>
+
+        <script>
+            fillSelect(
+                'listing/smtp_credentials',
+                document.getElementById("emailTaskSender"),
+                '{{ $sender }}'
+            )
+        </script>
+    </select>
+</div>
+
+<!-- Recipient -->
+{{ template "textInputRow" dict
+    "label" .Text.recipient
+    "tooltip" .Text.recipientTooltip
+    "fieldName" "recipients"
+    "fieldType" "text"
+    "value" .Task.Args.recipients
+}}
+
+<!-- Template -->
+<div class="form-input">
+    <label class="col-form-label">
+        {{ index .Text "template" }}
+        <i class="bi bi-info-circle"
+           data-bs-toggle="tooltip"
+           data-bs-placement="right"
+           data-bs-title="{{ .Text.templateTooltip }}">
+        </i> :
+    </label>
+    <select class="form-select"
+            id="emailTaskTemplate"
+            name="template"
+            onchange=""
+            required>
+        {{ $temp :=  index .Task.Args "template" }}
+        <option value="" disabled {{ if not $temp }}selected{{ end }}>
+            {{ .Text.templatePlaceholder }}
+        </option>
+
+        <script>
+            fillSelect(
+                'listing/email_templates',
+                document.getElementById("emailTaskTemplate"),
+                '{{ $temp }}'
+            )
+        </script>
+    </select>
+</div>

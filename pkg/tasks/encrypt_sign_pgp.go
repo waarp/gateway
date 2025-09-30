@@ -12,32 +12,32 @@ import (
 
 const EncryptSignMethodPGP = "PGP"
 
-func (e *encryptSign) makePGPSignEncryptor(eCryptoKey, sCryptoKey *model.CryptoKey) error {
+func makePGPSignEncryptor(eCryptoKey, sCryptoKey *model.CryptoKey) (encryptSignFunc, error) {
 	if !isPGPPublicKey(eCryptoKey) {
-		return ErrEncryptNotPGPKey
+		return nil, ErrEncryptNotPGPKey
 	}
 
 	if !isPGPPrivateKey(sCryptoKey) {
-		return ErrSignNotPGPKey
+		return nil, ErrSignNotPGPKey
 	}
 
 	encryptKey, parsErr := pgp.NewKeyFromArmored(eCryptoKey.Key.String())
 	if parsErr != nil {
-		return fmt.Errorf("failed to parse PGP encryption key: %w", parsErr)
+		return nil, fmt.Errorf("failed to parse PGP encryption key: %w", parsErr)
 	}
 
 	if encryptKey.IsPrivate() {
 		if encryptKey, parsErr = encryptKey.ToPublic(); parsErr != nil {
-			return fmt.Errorf("failed to parse PGP encryption key: %w", parsErr)
+			return nil, fmt.Errorf("failed to parse PGP encryption key: %w", parsErr)
 		}
 	}
 
 	signKey, parsErr := pgp.NewKeyFromArmored(sCryptoKey.Key.String())
 	if parsErr != nil {
-		return fmt.Errorf("failed to parse PGP signing key: %w", parsErr)
+		return nil, fmt.Errorf("failed to parse PGP signing key: %w", parsErr)
 	}
 
-	e.encryptSign = func(src io.Reader, dst io.Writer) error {
+	return func(src io.Reader, dst io.Writer) error {
 		builder := pgp.PGPWithProfile(pgpprofile.RFC4880()).Encryption()
 
 		encryptHandler, handlerErr := builder.Recipient(encryptKey).SigningKey(signKey).New()
@@ -59,7 +59,5 @@ func (e *encryptSign) makePGPSignEncryptor(eCryptoKey, sCryptoKey *model.CryptoK
 		}
 
 		return nil
-	}
-
-	return nil
+	}, nil
 }

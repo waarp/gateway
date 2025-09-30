@@ -434,7 +434,7 @@ linters:
       ignore-string-values: []
       # Detects constants with identical values.
       # Default: false
-      find-duplicates: true
+      find-duplicates: false
       # Evaluates of constant expressions like Prefix + "suffix".
       # Default: false
       eval-const-expressions: false
@@ -2851,39 +2851,27 @@ linters:
       # This allows you to add specific signatures to the ignore list
       # while retaining the defaults or any items in 'ignore-sigs'.
       # Default: []
-      extra-ignore-sigs: []
+      extra-ignore-sigs:
+        - utils.RunWithCtx(
+        - utils.CheckCtx(
+        - utils.RWWithCtx(
+        - utils.RWatWithCtx(
+        - .Transaction(
 
       # An array of strings that specify substrings of signatures to ignore.
       # If this set, it will override the default set of ignored signatures.
       # See https://github.com/tomarrell/wrapcheck#configuration for more information.
       # Default: [".Errorf(", "errors.New(", "errors.Unwrap(", "errors.Join(", ".Wrap(", ".Wrapf(", ".WithMessage(", ".WithMessagef(", ".WithStack("]
-      ignore-sigs:
-        - .Errorf(
-        - errors.New(
-        - errors.Unwrap(
-        - errors.Join(
-        - .Wrap(
-        - .Wrapf(
-        - .WithMessage(
-        - .WithMessagef(
-        - .WithStack(
-        - utils.RunWithCtx(
-        - utils.CheckCtx(
-        - utils.RWWithCtx(
-        - utils.RWatWithCtx(
+      #ignore-sigs: []
       # An array of strings that specify regular expressions of signatures to ignore.
       # Default: []
-      ignore-sig-regexps:
-        - \.New.*Error\(
+      ignore-sig-regexps: []
       # An array of strings that specify globs of packages to ignore.
       # Default: []
-      ignore-package-globs:
-        - encoding/*
-        - github.com/pkg/*
+      ignore-package-globs: []
       # An array of strings that specify regular expressions of interfaces to ignore.
       # Default: []
-      ignore-interface-regexps:
-        - ^(?i)c(?-i)ach(ing|e)
+      ignore-interface-regexps: []
       # Determines whether wrapcheck should report errors returned from inside the package.
       # Default: false
       report-internal-errors: false
@@ -3005,6 +2993,20 @@ linters:
       - linters:
           - gochecknoglobals
         path: pkg/snmp/oids\.go
+
+      # Exclude "wrapcheck" & "evalOrder" from the WebUI helper module.
+      - linters:
+          - wrapcheck
+        path: pkg/admin/gui/internal/
+      - linters:
+          - gocritic
+        text: "evalOrder: may want to evaluate"
+        path: pkg/admin/gui/internal/
+
+      # Disable "contextcheck" on the database "Transaction" method.
+      - linters:
+          - contextcheck
+        text: "Function `.*Transaction`"
 
     # Which file paths to exclude: they will be analyzed, but issues from them won't be reported.
     # "/" will be replaced by the current OS file path separator to properly work on Windows.

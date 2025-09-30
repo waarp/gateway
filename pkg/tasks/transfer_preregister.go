@@ -8,6 +8,7 @@ import (
 	"time"
 
 	"code.waarp.fr/lib/log"
+	"github.com/karrick/tparse/v2"
 
 	"code.waarp.fr/apps/gateway/gateway/pkg/database"
 	"code.waarp.fr/apps/gateway/gateway/pkg/model"
@@ -20,7 +21,6 @@ var (
 	ErrTransferPreregisterNoRule    = errors.New("missing rule name")
 	ErrTransferPreregisterNoServer  = errors.New("missing server name")
 	ErrTransferPreregisterNoAccount = errors.New("missing account name")
-	ErrTransferPreregisterNoDueDate = errors.New("missing due date")
 )
 
 type TransferPreregister struct {
@@ -29,10 +29,11 @@ type TransferPreregister struct {
 	IsSend   jsonBool   `json:"isSend"`
 	Server   string     `json:"server"`
 	Account  string     `json:"account"`
-	DueDate  time.Time  `json:"dueDate"`
+	ValidFor string     `json:"validFor"`
 	Info     jsonObject `json:"info"`
 	CopyInfo jsonBool   `json:"copyInfo"`
 
+	dueDate time.Time
 	rule    model.Rule
 	server  model.LocalAgent
 	account model.LocalAccount
@@ -61,8 +62,11 @@ func (t *TransferPreregister) ValidateDB(db database.ReadAccess, params map[stri
 		return ErrTransferPreregisterNoAccount
 	}
 
-	if t.DueDate.IsZero() {
-		return ErrTransferPreregisterNoDueDate
+	if t.ValidFor != "" {
+		var err error
+		if t.dueDate, err = tparse.AddDuration(time.Now(), t.ValidFor); err != nil {
+			return fmt.Errorf(`failed to parse the "validFor" duration: %w`, err)
+		}
 	}
 
 	if err := db.Get(&t.rule, "name=? AND is_send=?", t.Rule, t.IsSend).Run(); err != nil {
@@ -101,7 +105,7 @@ func (t *TransferPreregister) Run(_ context.Context, args map[string]string,
 		Status:         types.StatusAvailable,
 		RuleID:         t.rule.ID,
 		LocalAccountID: utils.NewNullInt64(t.account.ID),
-		Start:          t.DueDate,
+		Start:          t.dueDate,
 	}
 
 	var kind string

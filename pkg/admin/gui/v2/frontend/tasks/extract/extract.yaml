@@ -1,0 +1,19 @@
+description:
+  en: Extract the files from an archive.
+  fr: Extrait les fichiers d'une archive.
+
+archive:
+  en: Archive (optional)
+  fr: Archive (optionnel)
+
+archiveTooltip:
+  en: The path of the archive to extract. By default, the transfer file will be used.
+  fr: Le chemin de l'archive à extraire. Par défaut, le fichier de transfert sera utilisé.
+
+outputDir:
+  en: Output directory
+  fr: Dossier de destination
+
+outputDirTooltip:
+  en: The path of the directory to which the files should be extracted.
+  fr: Le chemin du dossier dans lequel les fichiers doivent être extraits.

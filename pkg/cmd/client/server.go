@@ -9,7 +9,6 @@ import (
 	"path"
 	"strings"
 
-	"code.waarp.fr/apps/gateway/gateway/pkg/admin/rest"
 	"code.waarp.fr/apps/gateway/gateway/pkg/admin/rest/api"
 )
 
@@ -157,6 +156,7 @@ func (s *ServerDelete) execute(w io.Writer) error {
 //nolint:lll // struct tags can be long for command line args
 type ServerList struct {
 	ListOptions
+
 	SortBy    string   `short:"s" long:"sort" description:"Attribute used to sort the returned entries" choice:"name+" choice:"name-" choice:"protocol+" choice:"protocol-" default:"name+" `
 	Protocols []string `short:"p" long:"protocol" description:"Filter the agents based on the protocol they use. Can be repeated multiple times to filter multiple protocols."`
 }
@@ -295,9 +295,9 @@ func (s *serverEnableDisable) run(w io.Writer, isEnable bool) error {
 		return ErrMissingServerName
 	}
 
-	handlerPath, status := rest.ServerPathEnable, "enabled"
+	handlerPath, status := "/api/servers/{server}/enable", "enabled"
 	if !isEnable {
-		handlerPath, status = rest.ServerPathDisable, "disabled"
+		handlerPath, status = "/api/servers/{server}/disable", "disabled"
 	}
 
 	addr.Path = strings.ReplaceAll(handlerPath, "{server}", server)

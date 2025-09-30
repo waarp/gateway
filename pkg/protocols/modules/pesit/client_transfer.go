@@ -74,7 +74,7 @@ func (c *clientTransfer) configureClient(config *PartnerConfig) *pipeline.Error 
 		c.client.SetPreConnectionUsage(true)
 
 		for _, cred := range c.pip.TransCtx.RemoteAccountCreds {
-			if cred.Type == preConnectionAuth {
+			if cred.Type == PreConnectionAuth {
 				c.client.SetPreConnectLogin(cred.Value)
 				c.client.SetPreConnectPassword(cred.Value2)
 
