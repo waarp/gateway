@@ -3,6 +3,8 @@
 Historique des versions
 =======================
 
+* :feature:`-` Ajout d'une interface Web d'administration, accessible à l'adresse
+  du serveur d'administration existant.
 * :bug:`-` L'option ``useNSDU`` de la configuration protocolaire des partenaires
   PeSIT est désormais ``true`` par défaut.
 * :feature:`449` Les commandes d'import/export acceptent désormais les fichiers en

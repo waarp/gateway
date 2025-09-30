@@ -3,6 +3,7 @@ package admin
 import (
 	"net/http"
 
+	"code.waarp.fr/apps/gateway/gateway/pkg/conf"
 	"code.waarp.fr/lib/log"
 	"github.com/gorilla/mux"
 
@@ -22,13 +23,16 @@ func MakeHandler(logger *log.Logger, db *database.DB) *mux.Router {
 
 	restRouter := adminHandler.PathPrefix(rest.Prefix).Subrouter()
 	debugRouter := adminHandler.PathPrefix(debug.Prefix).Subrouter()
-	guiRouter := adminHandler.PathPrefix(gui.Prefix).Subrouter()
 
 	rest.MakeRESTHandler(logger, db, restRouter)
 	debug.AddDebugHandler(debugRouter, logger, db)
-	gui.AddGUIRouter(guiRouter, logger, db)
 
-	adminHandler.HandleFunc("/", guiRedirect)
+	if !conf.GlobalConfig.Admin.DisableWebUI {
+		guiRouter := adminHandler.PathPrefix(gui.Prefix).Subrouter()
+
+		gui.AddGUIRouter(guiRouter, logger, db)
+		adminHandler.HandleFunc("/", guiRedirect)
+	}
 
 	return adminHandler
 }

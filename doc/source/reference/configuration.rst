@@ -150,6 +150,10 @@ d'administration et l'API REST.
 
    Valeur par défaut : ``8080``
 
+.. confval:: DisableWebUI
+
+   Désactive l'interface Web d'administration.
+
 .. confval:: TLSCert
 
    Le chemin du certificat TLS pour le serveur HTTP. Si ce paramètre n'est pas

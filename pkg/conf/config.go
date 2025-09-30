@@ -67,6 +67,7 @@ type LogConfig struct {
 type AdminConfig struct {
 	Host          string `ini-name:"Host" default:"0.0.0.0" description:"The address used by the admin interface."`
 	Port          uint16 `ini-name:"Port" default:"8080" description:"The port used by the admin interface. If the port is 0, a random free port will automatically be chosen."`
+	DisableWebUI  bool   `ini-name:"DisableWebUI" default:"false" description:"If set to true, the web admin interface will be disabled."`
 	TLSCert       string `ini-name:"TLSCert" description:"Path of the TLS certificate for the admin interface."`
 	TLSKey        string `ini-name:"TLSKey" description:"Path of the key of the TLS certificate."`
 	TLSPassphrase string `ini-name:"TLSPassphrase" description:""`
