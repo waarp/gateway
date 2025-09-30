@@ -16,3 +16,7 @@ func lockFile(file *os.File) error {
 func lockFileR(file *os.File) error {
 	return syscall.Flock(int(file.Fd()), syscall.LOCK_SH)
 }
+
+func unlockFile(file *os.File) error {
+	return syscall.Flock(int(file.Fd()), syscall.LOCK_UN)
+}

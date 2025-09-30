@@ -3,13 +3,13 @@ package admin
 import (
 	"net/http"
 
-	"code.waarp.fr/apps/gateway/gateway/pkg/conf"
 	"code.waarp.fr/lib/log"
 	"github.com/gorilla/mux"
 
 	"code.waarp.fr/apps/gateway/gateway/pkg/admin/debug"
 	"code.waarp.fr/apps/gateway/gateway/pkg/admin/gui"
 	"code.waarp.fr/apps/gateway/gateway/pkg/admin/rest"
+	"code.waarp.fr/apps/gateway/gateway/pkg/conf"
 	"code.waarp.fr/apps/gateway/gateway/pkg/database"
 )
 

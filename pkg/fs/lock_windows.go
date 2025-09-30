@@ -34,3 +34,13 @@ func lockFileR(file *os.File) error {
 
 	return nil
 }
+
+func unlockFile(file *os.File) error {
+	ol := new(windows.Overlapped)
+
+	if err := windows.UnlockFileEx(windows.Handle(file.Fd()), 0, allBytes, allBytes, ol); err != nil {
+		return &PathError{Op: "Unlock", Path: file.Name(), Err: err}
+	}
+
+	return nil
+}

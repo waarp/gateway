@@ -19,3 +19,12 @@ func LockFileR(file File) error {
 
 	return lockFileR(localFile)
 }
+
+func UnlockFile(file File) error {
+	localFile, isLocal := file.(*os.File)
+	if !isLocal {
+		return nil
+	}
+
+	return unlockFile(localFile)
+}
