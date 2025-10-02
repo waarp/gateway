@@ -3,6 +3,7 @@
 Historique des versions
 =======================
 
+* :release:`0.13.0 <2025-10-02>`
 * :feature:`-` Ajout d'une interface Web d'administration, accessible à l'adresse
   du serveur d'administration existant.
 * :bug:`-` L'option ``useNSDU`` de la configuration protocolaire des partenaires
