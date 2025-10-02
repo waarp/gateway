@@ -1,8 +1,8 @@
 package database
 
 import (
+	"context"
 	"database/sql"
-	"runtime/debug"
 	"sync"
 	"time"
 
@@ -46,6 +46,11 @@ func (s *Standalone) Transaction(fun TransactionFunc) error {
 		return NewInternalError(err)
 	}
 
+	ctx, cancel := context.WithTimeout(context.Background(), warnDuration)
+	defer cancel()
+
+	ses.session.Context(ctx)
+
 	s.sessions.Store(ses.id, ses)
 	defer s.sessions.Delete(ses.id)
 
@@ -57,20 +62,6 @@ func (s *Standalone) Transaction(fun TransactionFunc) error {
 		}
 
 		close(done)
-	}()
-
-	stack := debug.Stack()
-
-	go func() {
-		timer := time.NewTimer(warnDuration)
-		defer timer.Stop()
-
-		select {
-		case <-timer.C:
-			s.logger.Warningf("transaction is taking an unusually long time, "+
-				"printing stack for debugging purposes:\n%s", stack)
-		case <-done:
-		}
 	}()
 
 	if err := fun(ses); err != nil {
@@ -136,8 +127,7 @@ func (s *Standalone) Get(bean GetBean, where string, args ...any) *GetQuery {
 // of the given model from the database. The request can be narrowed using
 // the CountQuery.Where method.
 //
-// The request can then be executed using the IterateQuery.Run method. The
-// selected entries will be returned inside an Iterator instance.
+// The request can then be executed using the CountQuery.Run method.
 func (s *Standalone) Count(bean IterateBean) *CountQuery {
 	return &CountQuery{db: s, bean: bean}
 }

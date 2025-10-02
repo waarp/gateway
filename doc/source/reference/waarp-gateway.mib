@@ -429,7 +429,7 @@ applicationInfoGroup OBJECT-GROUP
         { appVersion, appUptime }
     STATUS          current
     DESCRIPTION
-        "Properties of the gateway application itself"
+        "Properties of the Gateway application itself"
     ::= { gwGroups 4 }
 
 ressourcesInfoGroup OBJECT-GROUP
@@ -453,7 +453,7 @@ lastTransferInfoGroup OBJECT-GROUP
         { lastTransferID, lastTransferDate, lastTransferStatus }
     STATUS          current
     DESCRIPTION
-        "Properties of the gateway's last transfer"
+        "Properties of the last transfer"
     ::= { gwGroups 6 }
 
 transferStatsGroup OBJECT-GROUP

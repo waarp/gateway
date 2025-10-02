@@ -24,7 +24,7 @@ type restServerTransfer struct {
 	TransferInfo map[string]any `json:"transferInfo"`
 }
 
-//nolint:err113 //these are base errors
+//nolint:err113,wrapcheck //these are base errors
 func (r *restServerTransfer) UnmarshalJSON(bytes []byte) error {
 	type rst restServerTransfer
 	var t rst
@@ -71,16 +71,16 @@ func preregisterServerTransfer(logger *log.Logger, db *database.DB) http.Handler
 			return
 		}
 
-		if handleError(w, logger, db.Get(&account, "local_agent_id=? AND name=?",
+		if handleError(w, logger, db.Get(&account, "local_agent_id=? AND login=?",
 			server.ID, rTrans.Account).Run()) {
 			return
 		}
 
 		dbTrans := &model.Transfer{
-			RuleID:          rule.ID,
-			RemoteAccountID: utils.NewNullInt64(account.ID),
-			Start:           rTrans.DueDate,
-			Status:          types.StatusAvailable,
+			RuleID:         rule.ID,
+			LocalAccountID: utils.NewNullInt64(account.ID),
+			Start:          rTrans.DueDate,
+			Status:         types.StatusAvailable,
 		}
 
 		if *rTrans.IsSend {

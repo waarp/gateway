@@ -306,6 +306,7 @@ func TestStreamWrite(t *testing.T) {
 
 				Convey("Then the file should contain the array content", func(c C) {
 					So(stream.Sync(), ShouldBeNil)
+					So(fs.UnlockFile(stream.file), ShouldBeNil)
 
 					content, err := fs.ReadFullFile(trans.LocalPath)
 					So(err, ShouldBeNil)
@@ -634,6 +635,7 @@ func TestStreamSync(t *testing.T) {
 
 		Convey("When calling the Sync function", func(c C) {
 			So(stream.Sync(), ShouldBeNil)
+			So(fs.UnlockFile(stream.file), ShouldBeNil)
 
 			Convey("Then the content should have written to storage", func(c C) {
 				content, err := fs.ReadFullFile(trans.LocalPath)

@@ -1,0 +1,61 @@
+description:
+  en: > 
+    Decrypt and verify the signature of the transfer file using the provided keys.
+  fr: > 
+    Déchiffre et valide la signature du fichier de transfert à l'aide des clés données.
+
+outputFile:
+  en: Output file (optional)
+  fr: Fichier de sortie (optionnel)
+
+outputFileTooltip:
+  en: >
+    The output file for the decrypted data. By default, it will be
+    the same path as the encrypted file, with the ".plain" extension added.
+  fr: >
+    Le fichier de destination pour les données déchiffrées. Par défaut, ce sera
+    le même chemin que le fichier chiffré, avec l'extension ".plain" ajoutée.
+
+keepOriginal:
+  en: Keep original file
+  fr: Conserver le fichier original
+
+keepOriginalTooltip:
+  en: >
+    Specifies whether to keep the original encrypted file or not. By default, 
+    the encrypted file is deleted after decryption.
+  fr: >
+    Spécifie si le fichier original chiffré doit être conservé ou non. Par défaut,
+    le fichier chiffré est supprimé après déchiffrement.
+
+method:
+  en: Decryption/verification method
+  fr: Méthode de déchiffrement/vérification
+
+methodTooltip:
+  en: The decryption/verification method to use.
+  fr: La méthode de déchiffrement/vérification à utiliser.
+
+methodPlaceholder:
+  en: Chose an algorithm
+  fr: Choisir un algorithme
+
+decryptKeyName:
+  en: Decryption key
+  fr: Clé de déchiffrement
+
+decryptKeyNameTooltip:
+  en: The key to use for decrypting. Must have been previously registered.
+  fr: La clé de déchiffrement à utiliser. Doit avoir été préalablement enregistrée.
+
+verifyKeyName:
+  en: Verification key
+  fr: Clé de vérification
+
+verifyKeyNameTooltip:
+  en: The key to use for verifying the signature. Must have been previously registered.
+  fr: La clé à utiliser pour vérifier la signature. Doit avoir été préalablement enregistrée.
+
+keyNamePlaceholder:
+  en: Choose a key
+  fr: Choisir une clé

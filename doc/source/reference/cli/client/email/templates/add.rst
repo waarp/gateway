@@ -43,4 +43,4 @@ Ajoute un nouveau template d'email.
 
 .. code-block:: shell
 
-   waarp-gateway email template add -n "alert_erreur" -s "Notification d'erreur de transfert" -m "text/plain" -b "Le transfer n°#TRANSFERID# a échoué le #DATE# à #HOUR# avec l'erreur #ERRORMSG#" -a "gateway.log"
+   waarp-gateway email template add -n "alert_erreur" -s "Notification d'erreur de transfert" -m "text/plain" -b "Le transfert n°#TRANSFERID# a échoué le #DATE# à #HOUR# avec l'erreur #ERRORMSG#" -a "gateway.log"

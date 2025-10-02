@@ -1,0 +1,60 @@
+description:
+  en: Encrypt and sign the transfer file using the provided keys.
+  fr: Chiffre et signe le fichier de transfert à l'aide des clés données.
+
+outputFile:
+  en: Output file (optional)
+  fr: Fichier de sortie (optionnel)
+
+outputFileTooltip:
+  en: >
+    The output file for the encrypted data and signature. By default, it will be
+    the same path as the original file, with the ".crypt" extension added.
+  fr: >
+    Le fichier de destination pour les données chiffrées et la signature. 
+    Par défaut, ce sera le même chemin que le fichier original, avec l'extension
+    ".crypt" ajoutée.
+
+keepOriginal:
+  en: Keep original file
+  fr: Conserver le fichier original
+
+keepOriginalTooltip:
+  en: >
+    Specifies whether to keep the original plain file or not. By default, the 
+    plain file is deleted after encryption.
+  fr: >
+    Spécifie si le fichier original clair doit être conservé ou non. Par défaut,
+    le fichier clair est supprimé après chiffrement.
+
+method:
+  en: Encryption/signature method
+  fr: Méthode de chiffrement/signature
+
+methodTooltip:
+  en: The encryption/signature method to use.
+  fr: La méthode de chiffrement/signature à utiliser.
+
+methodPlaceholder:
+  en: Chose an algorithm
+  fr: Choisir un algorithme
+
+encryptKeyName:
+  en: Encryption key
+  fr: Clé de chiffrement
+
+encryptKeyNameTooltip:
+  en: The key to use for encrypting. Must have been previously registered.
+  fr: La clé de chiffrement à utiliser. Doit avoir été préalablement enregistrée.
+
+signKeyName:
+  en: Signature key
+  fr: Clé de signature
+
+signKeyNameTooltip:
+  en: The key to use for signing. Must have been previously registered.
+  fr: La clé à utiliser pour signer. Doit avoir été préalablement enregistrée.
+
+keyNamePlaceholder:
+  en: Choose a key
+  fr: Choisir une clé

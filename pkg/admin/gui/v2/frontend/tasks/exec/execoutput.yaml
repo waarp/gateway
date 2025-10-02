@@ -1,0 +1,51 @@
+description:
+  en: >
+    Execute an external program. If any error occurs during the execution, the
+    program's standard output will be taken as the error message.
+    
+    The program can also move the transfer file. If it does, the last line 
+    written by the program to the standard output must start with "NEWFILENAME:"
+    followed by the new file's path.
+  fr: >
+    Exécute un programme externe. Si une erreur survient durant exécution, les 
+    lignes écrites dans la sortie standard seront interprétées comme message 
+    d’erreur.
+    
+    Il est également possible pour le programme de déplacer le fichier de transfert
+    durant l’exécution. Dans ce cas, la dernière ligne écrite sur la sortie standard
+    par le programme doit commencer par NEWFILENAME:, suivi du nouveau chemin du fichier.
+
+path:
+  en: Executable path
+  fr: Chemin de l'exécutable
+
+pathTooltip:
+  en: >
+    The path of the executable to run. If the executable is in your $PATH,
+    you can just type its name.
+  fr: >
+    Le chemin de l'exécutable à lancer. Si l'exécutable est dans votre $PATH,
+    vous pouvez simplement taper son nom.
+
+args:
+  en: Program arguments
+  fr: Arguments du programme
+
+argsTooltip:
+  en: The program's raw arguments, given as they would be typed in a terminal.
+  fr: Les argument bruts du programme, donnés comme ils seraient tapés dans un terminal.
+
+delay:
+  en: Execution timeout
+  fr: Délai d'exécution
+
+delayTooltip:
+  en: >
+    The program's maximum execution delay. If the program hasn't finished after
+    this duration has elapsed, the program will be stopped, and the task will 
+    be considered a failure.
+  fr: >
+    Durée maximale d'exécution du programme. Si le programme n'a par terminé 
+    après que cette durée soit écoulée, le programme sera interrompu et le 
+    traitement sera considéré comme ayant échoué.
+    

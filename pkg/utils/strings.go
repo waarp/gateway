@@ -5,6 +5,7 @@
 package utils
 
 import (
+	"reflect"
 	"strconv"
 	"strings"
 
@@ -30,6 +31,24 @@ func FormatUint[T constraints.Unsigned](i T) string {
 // to specify the format, precision and bit size.
 func FormatFloat[T constraints.Float](f T) string {
 	return strconv.FormatFloat(float64(f), 'f', -1, 64)
+}
+
+// ParseInt parses an integer from a string. It is a shortcut for strconv.ParseInt
+// but without the need to specify the base and without the need to cast the result
+// into the desired type.
+func ParseInt[T constraints.Signed](s string) (T, error) {
+	i, err := strconv.ParseInt(s, 10, reflect.TypeFor[T]().Bits())
+
+	return T(i), err
+}
+
+// ParseUint parses an integer from a string. It is a shortcut for strconv.ParseUint
+// but without the need to specify the base and without the need to cast the result
+// into the desired type.
+func ParseUint[T constraints.Unsigned](s string) (T, error) {
+	i, err := strconv.ParseUint(s, 10, reflect.TypeFor[T]().Bits())
+
+	return T(i), err
 }
 
 // TrimSplit splits the string by the given separator and trims the resulting

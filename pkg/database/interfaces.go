@@ -105,6 +105,11 @@ type Access interface {
 	// Be aware that, since this method bypasses the data models, all the models'
 	// hooks will be skipped. Thus, this method should be used with extreme caution.
 	Exec(query string, args ...any) error
+
+	// Transaction executes all the commands in the given function as a transaction.
+	// The transaction will be then be roll-backed or committed, depending on whether
+	// the function returned an error or not.
+	Transaction(fun TransactionFunc) error
 }
 
 // DeletionHook is an interface which adds a function which will be run before

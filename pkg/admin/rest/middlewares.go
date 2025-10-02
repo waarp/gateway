@@ -1,4 +1,4 @@
-package admin
+package rest
 
 import (
 	"bytes"
@@ -69,11 +69,13 @@ func (r *responseRecorder) WriteHeader(statusCode int) {
 //nolint:wrapcheck //wrapping the error adds nothing here
 func (r *responseRecorder) Write(p []byte) (int, error) {
 	if r.statusCode == 0 {
-		r.WriteHeader(http.StatusOK)
+		r.statusCode = http.StatusOK
 	}
 
 	if r.statusCode >= http.StatusBadRequest {
-		return r.errMsg.Write(p)
+		if n, err := r.errMsg.Write(p); err != nil {
+			return n, err
+		}
 	}
 
 	return r.ResponseWriter.Write(p)

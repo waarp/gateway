@@ -3,6 +3,11 @@
 Historique des versions
 =======================
 
+* :release:`0.13.0 <2025-10-02>`
+* :feature:`-` Ajout d'une interface Web d'administration, accessible à l'adresse
+  du serveur d'administration existant.
+* :bug:`-` L'option ``useNSDU`` de la configuration protocolaire des partenaires
+  PeSIT est désormais ``true`` par défaut.
 * :feature:`449` Les commandes d'import/export acceptent désormais les fichiers en
   format YAML. Si le fichier à importer ou exporter possède l'extension *.yml*
   ou *.yaml*, alors le format YAML sera utilisé au lieu du format JSON par défaut.
@@ -84,6 +89,20 @@ Historique des versions
   référencer ces valeurs dans des programmes externes sans avoir à les fournir via
   les paramètres du programme. Ces variables d'environnement ont exactement le même
   nom que leur valeurs de substitution correspondante (ex: ``#TRUEFULLPATH#``).
+
+* :release:`0.12.11 <2025-09-25>`
+* :bug:`-` Pour des raisons de compatibilité avec Waarp R66, les *backslashs*
+  (`\`) dans les chemins de requête R66 sont désormais toujours traité comme
+  des séparateur de chemin, au même titre que les *forward-slash* (`/`),
+  **y compris sous Linux**. En conséquence, les *backslashes* sont désormais
+  proscris dans les noms de fichiers transmis en R66, car ceux-ci seront traités
+  comme des séparateurs.
+
+* :release:`0.12.10 <2025-09-19>`
+* :bug:`-` Les chemins des requêtes reçues par le serveur R66 sont désormais
+  tronquées pour ne garder que le nom de fichier si le chemin reçu est absolu.
+  Cela est pour palier à un problème de compatibilité avec l'ancienne application
+  Waarp R66 qui envoie des chemins locaux dans ses requêtes.
 
 * :release:`0.12.9 <2025-07-18>`
 * :bug:`482` L'échec du démarrage d'un transfert planifié n'empêche désormais

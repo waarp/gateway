@@ -391,17 +391,17 @@ func resumeTransfer(logger *log.Logger, db *database.DB) http.HandlerFunc {
 			return
 		}
 
-		var dbHist model.Transfer
-		if err := db.Get(&dbHist, "id=?", dbTransView.ID).Run(); handleError(w, logger, err) {
+		var dbTrans model.Transfer
+		if err := db.Get(&dbTrans, "id=?", dbTransView.ID).Run(); handleError(w, logger, err) {
 			return
 		}
 
-		dbHist.Status = types.StatusPlanned
-		dbHist.ErrCode = types.TeOk
-		dbHist.ErrDetails = ""
+		dbTrans.NextRetry = time.Now()
+		dbTrans.Status = types.StatusPlanned
+		dbTrans.ErrCode = types.TeOk
+		dbTrans.ErrDetails = ""
 
-		if err := db.Update(&dbHist).Cols("status", "error_code", "error_details").
-			Run(); handleError(w, logger, err) {
+		if err := db.Update(&dbTrans).Run(); handleError(w, logger, err) {
 			return
 		}
 

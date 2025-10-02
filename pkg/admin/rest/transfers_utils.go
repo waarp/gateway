@@ -59,7 +59,7 @@ func getTransInfo(db *database.DB, trans *api.InTransfer,
 	if err := db.Get(&account, "remote_agent_id=? AND login=?", partner.ID,
 		trans.Account).Run(); err != nil {
 		if database.IsNotFound(err) {
-			return 0, null, null, badRequestf("no account %q found for partner %s",
+			return 0, null, null, badRequestf("no account %q found for partner %q",
 				trans.Account, trans.Partner)
 		}
 
@@ -143,7 +143,8 @@ func parseTransferListQuery(r *http.Request, db *database.DB,
 	}
 
 	if followIDs, ok := r.Form["followID"]; ok && len(followIDs) > 0 {
-		query.Where("id IN (SELECT transfer_id FROM transfer_info WHERE name=? AND value=?)",
+		query.Where("id IN (SELECT CONCAT(transfer_id, history_id) "+
+			"FROM transfer_info WHERE name=? AND value=?)",
 			model.FollowID, followIDs[0])
 	}
 

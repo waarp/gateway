@@ -1,0 +1,14 @@
+description:
+  en: >
+    Move the transfer file to another folder. The file's name will remain unchanged.
+  fr: >
+    Déplace le fichier de transfert dans un autre dossier. Le nom du fichier restera
+    inchangé.
+
+path:
+  en: Destination folder
+  fr: Dossier de destination
+
+pathTooltip:
+  en: The destination folder of the file.
+  fr: Le dossier de destination du fichier.

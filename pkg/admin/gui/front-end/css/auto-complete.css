@@ -1,0 +1,11 @@
+#autocomplete {
+    position: absolute;
+    top: 115%;
+    box-shadow: 0px 4px 6px rgba(0, 0, 0, 0.1);
+    border-radius: 5px;
+}
+
+#autocomplete li:hover {
+    background-color: #f6f6f6;
+    cursor: pointer;
+}

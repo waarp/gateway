@@ -6,14 +6,13 @@ import (
 	"testing"
 	"time"
 
+	"github.com/karrick/tparse/v2"
 	"github.com/stretchr/testify/assert"
-
-	"code.waarp.fr/apps/gateway/gateway/pkg/model/types"
-
 	"github.com/stretchr/testify/require"
 
 	"code.waarp.fr/apps/gateway/gateway/pkg/database/dbtest"
 	"code.waarp.fr/apps/gateway/gateway/pkg/model"
+	"code.waarp.fr/apps/gateway/gateway/pkg/model/types"
 	"code.waarp.fr/apps/gateway/gateway/pkg/utils/testhelpers"
 )
 
@@ -43,7 +42,8 @@ func TestTransferPreregister(t *testing.T) {
 
 	// Test
 	const (
-		file = "test/file.txt"
+		file     = "test/file.txt"
+		validFor = "3d12h"
 
 		oldKey     = "foo"
 		oldVal     = "bar"
@@ -53,7 +53,8 @@ func TestTransferPreregister(t *testing.T) {
 		newKey     = "toto"
 		newVal     = "tata"
 	)
-	dueDate := time.Date(2026, 1, 1, 12, 0, 0, 0, time.Local)
+	dueDate, dErr := tparse.AddDuration(time.Now(), validFor)
+	require.NoError(t, dErr)
 
 	runner := TransferPreregister{}
 	transCtx := &model.TransferContext{
@@ -69,7 +70,7 @@ func TestTransferPreregister(t *testing.T) {
 		"isSend":   strconv.FormatBool(rule.IsSend),
 		"server":   server.Name,
 		"account":  account.Login,
-		"dueDate":  dueDate.Format(time.RFC3339Nano),
+		"validFor": validFor,
 		"copyInfo": "true",
 		"info": fmt.Sprintf(`{"%s": "%s", "%s": "%s"}`,
 			updKey, newUpdVal, newKey, newVal),
@@ -89,7 +90,7 @@ func TestTransferPreregister(t *testing.T) {
 	assert.Equal(t, types.StatusAvailable, check.Status)
 	assert.Equal(t, rule.ID, check.RuleID)
 	assert.Equal(t, account.ID, check.LocalAccountID.Int64)
-	assert.Equal(t, dueDate, check.Start)
+	assert.WithinDuration(t, dueDate, check.Start, time.Second)
 	assert.Subset(t, checkInfo, map[string]any{
 		oldKey: oldVal,
 		updKey: newUpdVal,

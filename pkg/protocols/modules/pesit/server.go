@@ -80,12 +80,6 @@ func (s *server) stop(ctx context.Context) error {
 }
 
 func (s *server) Connect(conn *pesit.ServerConnection) (pesit.TransferHandler, error) {
-	if serverLogin := conn.ServerLogin(); serverLogin != s.localAgent.Name {
-		s.logger.Warningf("connection with invalid server identifier %q", serverLogin)
-
-		return nil, pesit.NewDiagnostic(pesit.CodeUnknownIdentification, "invalid server identifier")
-	}
-
 	if pass, err := s.getPassword(); err != nil {
 		return nil, err
 	} else if pass != "" {
@@ -130,7 +124,6 @@ func (s *server) Connect(conn *pesit.ServerConnection) (pesit.TransferHandler, e
 		conf:         &s.conf.ServerConfig,
 		tracer:       s.tracer,
 		connFreetext: conn.FreeText(),
-		cftMode:      conn.UseCFTCompatibility(),
 	}, nil
 }
 

@@ -30,9 +30,9 @@ func (e *contentRangeError) Error() string {
 }
 
 func unauthorized(w http.ResponseWriter, msg string) {
-	http.Error(w, msg, http.StatusUnauthorized)
 	w.Header().Add("WWW-Authenticate", "Basic")
 	w.Header().Add("WWW-Authenticate", `Transport mode="tls-client-certificate"`)
+	http.Error(w, msg, http.StatusUnauthorized)
 }
 
 func getRemoteError(headers http.Header, body io.ReadCloser) *pipeline.Error {

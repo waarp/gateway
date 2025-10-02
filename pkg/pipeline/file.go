@@ -39,6 +39,12 @@ func (f *FileStream) getFile() (fs.File, *Error) {
 			return nil, FileErrToTransferErr(opErr)
 		}
 
+		if err := fs.LockFileR(file); err != nil {
+			f.Logger.Errorf("Failed to lock file: %v", err)
+
+			return nil, FileErrToTransferErr(err)
+		}
+
 		stat, statErr := file.Stat()
 		if statErr != nil {
 			f.Logger.Errorf("Failed to retrieve the file's info: %v", statErr)
@@ -72,6 +78,12 @@ func (f *FileStream) getFile() (fs.File, *Error) {
 		f.Logger.Errorf("Failed to create destination file %q: %v", trans.LocalPath, fsErr)
 
 		return nil, FileErrToTransferErr(fsErr)
+	}
+
+	if err := fs.LockFile(file); err != nil {
+		f.Logger.Errorf("Failed to lock file: %v", err)
+
+		return nil, FileErrToTransferErr(err)
 	}
 
 	if trans.Progress != 0 {
@@ -135,7 +147,7 @@ func (p *Pipeline) setCustomFilePaths(srcFilename, destFilename string) error {
 		}
 
 		if !p.TransCtx.Rule.IsSend && !fs.IsLocalPath(fPath) {
-			return ErrNonLocalTmpFile
+			return fmt.Errorf("%q: %w", fPath, ErrNonLocalTmpFile)
 		}
 
 		p.TransCtx.Transfer.LocalPath = fPath

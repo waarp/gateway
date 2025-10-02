@@ -1,0 +1,41 @@
+<script>
+    function uptKeyList(methodEl) {
+        uptKeyListWith("sign", methodEl.value, "", "signTaskKeyName")
+    }
+</script>
+
+<!-- Task description -->
+<p class="task-description">{{ .Text.description }}</p>
+
+<!-- Output File -->
+{{ template "textInputRow" dict
+    "label" .Text.outputFile
+    "tooltip" .Text.outputFileTooltip
+    "fieldName" "outputFile"
+    "fieldType" "text"
+    "value" .Task.Args.outputFile
+}}
+
+<!-- Method -->
+{{ template "listInputRow" dict
+    "label" .Text.method
+    "tooltip" .Text.methodTooltip
+    "fieldName" "method"
+    "value" .Task.Args.method
+    "list" signMethods
+    "placeholder" .Text.methodPlaceholder
+    "onchange" "uptKeyList"
+}}
+
+<!-- Key name -->
+{{ template "listInputRow" dict
+    "id" "signTaskKeyName"
+    "label" .Text.keyName
+    "tooltip" .Text.keyNameTooltip
+    "fieldName" "keyName"
+    "placeholder" .Text.keyNamePlaceholder
+}}
+<script>
+    uptKeyListWith("sign", {{.Task.Args.method}}, {{.Task.Args.keyName}},
+        "signTaskKeyName")
+</script>

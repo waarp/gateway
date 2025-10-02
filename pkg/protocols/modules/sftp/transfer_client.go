@@ -156,15 +156,15 @@ func (*transferClient) makeClientAuthMethods(creds model.Credentials,
 
 func setDefaultClientAlgos(sshConf *ssh.ClientConfig) {
 	if len(sshConf.KeyExchanges) == 0 {
-		sshConf.KeyExchanges = validKeyExchanges.ClientDefaults()
+		sshConf.KeyExchanges = ValidKeyExchanges.ClientDefaults()
 	}
 
 	if len(sshConf.Ciphers) == 0 {
-		sshConf.Ciphers = validCiphers.ClientDefaults()
+		sshConf.Ciphers = ValidCiphers.ClientDefaults()
 	}
 
 	if len(sshConf.MACs) == 0 {
-		sshConf.MACs = validMACs.ClientDefaults()
+		sshConf.MACs = ValidMACs.ClientDefaults()
 	}
 }
 

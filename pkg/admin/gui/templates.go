@@ -1,0 +1,342 @@
+//nolint:gochecknoglobals // template
+package gui
+
+import (
+	"encoding/json"
+	"html/template"
+	"reflect"
+	"strings"
+
+	"github.com/Masterminds/sprig/v3"
+	"github.com/dustin/go-humanize"
+
+	"code.waarp.fr/apps/gateway/gateway/pkg/admin/gui/internal"
+	"code.waarp.fr/apps/gateway/gateway/pkg/database"
+	"code.waarp.fr/apps/gateway/gateway/pkg/model"
+	"code.waarp.fr/apps/gateway/gateway/pkg/utils"
+)
+
+const (
+	secret1            = 1
+	secret2            = 2
+	secret3            = 3
+	secret4            = 4
+	sHours             = 3600
+	sMinute            = 60
+	msHours            = 3600000
+	msMinute           = 60000
+	msSeconde          = 1000
+	index              = "front-end/html/index.html"
+	header             = "front-end/html/header.html"
+	sidebar            = "front-end/html/sidebar.html"
+	addProtoConfig     = "front-end/html/addProtoConfig.html"
+	editProtoConfig    = "front-end/html/editProtoConfig.html"
+	displayProtoConfig = "front-end/html/displayProtoConfig.html"
+	displayFormAuth    = "front-end/html/typeCredential.html"
+	addTasks           = "front-end/html/addTasks.html"
+	editTasks          = "front-end/html/editTasks.html"
+	displayTasks       = "front-end/html/displayTasks.html"
+)
+
+var funcs = template.FuncMap{
+	"contains": strings.Contains,
+	"isArray": func(value any) bool {
+		return reflect.TypeOf(value).Kind() == reflect.Slice
+	},
+	"isBool": func(value any) bool {
+		return reflect.TypeOf(value).Kind() == reflect.Bool
+	},
+	"add": func(a, b int) int {
+		return a + b
+	},
+	"dict":  sprig.TxtFuncMap()["dict"],
+	"split": strings.Split,
+	"splitTime": func(timeout, part string) string {
+		i := strings.Index(timeout, part)
+		if i != -1 {
+			start := i - 1
+			for start >= 0 && timeout[start] >= '0' && timeout[start] <= '9' {
+				start--
+			}
+
+			return timeout[start+1 : i]
+		}
+
+		return ""
+	},
+	"splitExtensions": func(fileName, part string) string {
+		i := strings.Index(fileName, ".")
+		if i != -1 {
+			switch part {
+			case "before":
+				return fileName[:i]
+			case "after":
+				return fileName[i:]
+			}
+		}
+
+		return ""
+	},
+	"marshalJSON": func(v any) template.JS {
+		b, err := json.Marshal(v)
+		if err != nil {
+			return "null"
+		}
+
+		return template.JS(b) //nolint:gosec // template.JS is necessary
+	},
+	"formatDateTime": translateDateTime,
+	"div":            sprig.TxtFuncMap()["div"],
+	"mul":            sprig.TxtFuncMap()["mul"],
+	"displayOrDefault": func(val any, def string) any {
+		if val == nil {
+			return def
+		}
+		if s, ok := val.(string); ok && s == "" {
+			return def
+		}
+
+		return val
+	},
+	"humanizeSize": func(size int64) string {
+		return humanize.Bytes(uint64(size))
+	},
+	"maskSecret": func(secret any) string {
+		switch v := secret.(type) {
+		case database.SecretText:
+			str := string(v)
+			if len(str) <= secret1 {
+				return strings.Repeat("*", len(str))
+			} else if len(str) <= secret3 && len(str) >= secret2 {
+				return strings.Repeat("*", len(str)-secret1) + str[len(str)-secret1:]
+			} else if len(str) == secret4 {
+				return strings.Repeat("*", len(str)-secret2) + str[len(str)-secret2:]
+			}
+
+			return strings.Repeat("*", len(str)-secret3) + str[len(str)-secret3:]
+		case string:
+			if len(v) <= secret1 {
+				return strings.Repeat("*", len(v))
+			} else if len(v) <= secret3 && len(v) >= secret2 {
+				return strings.Repeat("*", len(v)-secret1) + v[len(v)-secret1:]
+			} else if len(v) == secret4 {
+				return strings.Repeat("*", len(v)-secret2) + v[len(v)-secret2:]
+			}
+
+			return strings.Repeat("*", len(v)-secret3) + v[len(v)-secret3:]
+		default:
+			return ""
+		}
+	},
+	"in": func(list []string, val string) bool {
+		for _, v := range list {
+			if v == val {
+				return true
+			}
+		}
+
+		return false
+	},
+	"secondFormat": func(second int32) []int32 {
+		if second == 0 {
+			return []int32{0, 0, 0}
+		}
+
+		h := second / sHours
+		m := (second % sHours) / sMinute
+		s := second % sMinute
+
+		return []int32{h, m, s}
+	},
+	"msFormat": func(ms string) []int32 {
+		if ms == "" {
+			return []int32{0, 0, 0, 0}
+		}
+		val, err := internal.ParseInt[int64](ms)
+		if err != nil || val <= 0 {
+			return []int32{0, 0, 0, 0}
+		}
+		h := int32(val / msHours)
+		m := int32((val % msHours) / msMinute)
+		s := int32((val % msMinute) / msSeconde)
+		res := int32(val % msSeconde)
+
+		return []int32{h, m, s, res}
+	},
+	"protocolDisplayName": protocolDisplayName,
+}
+
+func CombinedFuncMap(db *database.DB) template.FuncMap {
+	funcMap := template.FuncMap{}
+	for k, v := range funcs {
+		funcMap[k] = v
+	}
+
+	for k, v := range NewFuncMap(db) {
+		funcMap[k] = v
+	}
+
+	return funcMap
+}
+
+func NewFuncMap(db *database.DB) template.FuncMap {
+	return template.FuncMap{
+		"getServerName": func(id int64) string {
+			server, err := internal.GetServerByID(db, id)
+			if err != nil {
+				return ""
+			}
+
+			return server.Name
+		},
+		"getPartnerName": func(id int64) string {
+			partner, err := internal.GetPartnerByID(db, id)
+			if err != nil {
+				return ""
+			}
+
+			return partner.Name
+		},
+		"getServerState": func(server *model.LocalAgent) (any, error) {
+			state, reason := internal.GetServerStatus(server)
+			var status string
+
+			switch state {
+			case utils.StateOffline:
+				status = "Offline"
+			case utils.StateRunning:
+				status = "Running"
+			case utils.StateError:
+				status = "Error"
+			default:
+				status = ""
+			}
+
+			return []string{status, reason}, nil
+		},
+		"getClientState": func(client *model.Client) (any, error) {
+			state, reason := internal.GetClientStatus(client)
+			var status string
+
+			switch state {
+			case utils.StateOffline:
+				status = "Offline"
+			case utils.StateRunning:
+				status = "Running"
+			case utils.StateError:
+				status = "Error"
+			default:
+				status = ""
+			}
+
+			return []string{status, reason}, nil
+		},
+	}
+}
+
+var (
+	homeTemplate = template.Must(
+		template.New("home_page.html").
+			Funcs(funcs).
+			ParseFS(webFS, index, header, sidebar, "front-end/html/home_page.html"),
+	)
+	loginTemplate = template.Must(
+		template.ParseFS(webFS, "front-end/html/login_page.html"),
+	)
+	userManagementTemplate = template.Must(
+		template.New("user_management_page.html").
+			Funcs(funcs).
+			ParseFS(webFS, index, header, sidebar, "front-end/html/user_management_page.html"),
+	)
+	partnerManagementTemplate = template.Must(
+		template.New("partner_management_page.html").
+			Funcs(funcs).
+			ParseFS(webFS, index, header, sidebar, addProtoConfig, editProtoConfig, displayProtoConfig,
+				"front-end/html/partner_management_page.html"),
+	)
+	partnerAuthenticationTemplate = template.Must(
+		template.New("partner_management_page.html").
+			Funcs(funcs).
+			ParseFS(webFS, index, header, sidebar, displayFormAuth, "front-end/html/partner_authentication_page.html"),
+	)
+	remoteAccountTemplate = template.Must(
+		template.New("remote_account_management_page.html").
+			Funcs(funcs).
+			ParseFS(webFS, index, header, sidebar, "front-end/html/remote_account_management_page.html"),
+	)
+	remoteAccountAuthenticationTemplate = template.Must(
+		template.New("remote_account_authentication_page.html").
+			Funcs(funcs).
+			ParseFS(webFS, index, header, sidebar, displayFormAuth,
+				"front-end/html/remote_account_authentication_page.html"),
+	)
+	// ServerManagementTemplate in .go, for dynamics template (with db).
+	serverAuthenticationTemplate = template.Must(
+		template.New("server_authentication_page.html").
+			Funcs(funcs).
+			ParseFS(webFS, index, header, sidebar, displayFormAuth, "front-end/html/server_authentication_page.html"),
+	)
+	localAccountTemplate = template.Must(
+		template.New("local_account_management_page.html").
+			Funcs(funcs).
+			ParseFS(webFS, index, header, sidebar, "front-end/html/local_account_management_page.html"),
+	)
+	localAccountAuthenticationTemplate = template.Must(
+		template.New("local_account_authentication_page.html").
+			Funcs(funcs).
+			ParseFS(webFS, index, header, sidebar, displayFormAuth,
+				"front-end/html/local_account_authentication_page.html"),
+	)
+	// LocalClientManagementTemplate in .go, for dynamics template (with db).
+	ruleManagementTemplate = template.Must(
+		template.New("transfer_rules_management_page.html").
+			Funcs(funcs).
+			ParseFS(webFS, index, header, sidebar, "front-end/html/transfer_rules_management_page.html"),
+	)
+	// ManagementUsageRightsRulesTemplate in .go, for dynamics template (with db).
+	transferMonitoringTemplate = template.Must(
+		template.New("transfer_monitoring_page.html").
+			Funcs(funcs).
+			ParseFS(webFS, index, header, sidebar, "front-end/html/transfer_monitoring_page.html"),
+	)
+	statusServicesTemplate = template.Must(
+		template.New("status_services_page.html").
+			Funcs(funcs).
+			ParseFS(webFS, index, header, sidebar, "front-end/html/status_services_page.html"),
+	)
+	cloudInstanceManagementTemplate = template.Must(
+		template.New("cloud_instance_management_page.html").
+			Funcs(funcs).
+			ParseFS(webFS, index, header, sidebar, "front-end/html/cloud_instance_management_page.html"),
+	)
+	cryptographicKeyManagementTemplate = template.Must(
+		template.New("cryptographic_key_management_page.html").
+			Funcs(funcs).
+			ParseFS(webFS, index, header, sidebar, "front-end/html/cryptographic_key_management_page.html"),
+	)
+	snmpManagementTemplate = template.Must(
+		template.New("snmp_management_page.html").
+			Funcs(funcs).
+			ParseFS(webFS, index, header, sidebar, "front-end/html/snmp_management_page.html"),
+	)
+	managingAuthenticationAuthoritiesTemplate = template.Must(
+		template.New("managing_authentication_authorities_page.html").
+			Funcs(funcs).
+			ParseFS(webFS, index, header, sidebar, "front-end/html/managing_authentication_authorities_page.html"),
+	)
+	managingConfigurationOverridesTemplate = template.Must(
+		template.New("managing_configuration_overrides_page.html").
+			Funcs(funcs).
+			ParseFS(webFS, index, header, sidebar, "front-end/html/managing_configuration_overrides_page.html"),
+	)
+	EmailTemplateManagementTemplate = template.Must(
+		template.New("email_templates_management_page.html").
+			Funcs(funcs).
+			ParseFS(webFS, index, header, sidebar, "front-end/html/email_templates_management_page.html"),
+	)
+	SMTPCredentialManagementTemplate = template.Must(
+		template.New("smtp_credentials_management_page.html").
+			Funcs(funcs).
+			ParseFS(webFS, index, header, sidebar, "front-end/html/smtp_credentials_management_page.html"),
+	)
+)

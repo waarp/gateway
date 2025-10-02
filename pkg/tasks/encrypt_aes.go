@@ -22,33 +22,33 @@ func isAESKey(key *model.CryptoKey) bool {
 	return key.Type == model.CryptoKeyTypeAES
 }
 
-func (e *encrypt) makeAESCTREncryptor(cryptoKey *model.CryptoKey) error {
-	return e.makeAESEncryptor(cryptoKey, cipher.NewCTR)
+func makeAESCTREncryptor(cryptoKey *model.CryptoKey) (encryptFunc, error) {
+	return makeAESEncryptor(cryptoKey, cipher.NewCTR)
 }
 
-func (e *encrypt) makeAESCFBEncryptor(cryptoKey *model.CryptoKey) error {
-	return e.makeAESEncryptor(cryptoKey, cipher.NewCFBEncrypter)
+func makeAESCFBEncryptor(cryptoKey *model.CryptoKey) (encryptFunc, error) {
+	//nolint:staticcheck // CFB is needed here
+	return makeAESEncryptor(cryptoKey, cipher.NewCFBEncrypter)
 }
 
-func (e *encrypt) makeAESOFBEncryptor(cryptoKey *model.CryptoKey) error {
-	return e.makeAESEncryptor(cryptoKey, cipher.NewOFB)
+func makeAESOFBEncryptor(cryptoKey *model.CryptoKey) (encryptFunc, error) {
+	//nolint:staticcheck // OFB is needed here
+	return makeAESEncryptor(cryptoKey, cipher.NewOFB)
 }
 
-func (e *encrypt) makeAESEncryptor(cryptoKey *model.CryptoKey,
+func makeAESEncryptor(cryptoKey *model.CryptoKey,
 	mkStream func(cipher.Block, []byte) cipher.Stream,
-) error {
+) (encryptFunc, error) {
 	if !isAESKey(cryptoKey) {
-		return ErrEncryptNotAESKey
+		return nil, ErrEncryptNotAESKey
 	}
 
 	block, aesErr := aes.NewCipher([]byte(cryptoKey.Key))
 	if aesErr != nil {
-		return fmt.Errorf("failed to create AES cipher: %w", aesErr)
+		return nil, fmt.Errorf("failed to create AES cipher: %w", aesErr)
 	}
 
-	e.encrypt = func(src io.Reader, dst io.Writer) error {
+	return func(src io.Reader, dst io.Writer) error {
 		return encryptStream(src, dst, block, mkStream)
-	}
-
-	return nil
+	}, nil
 }

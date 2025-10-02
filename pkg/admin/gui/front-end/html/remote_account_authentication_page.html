@@ -1,0 +1,295 @@
+{{ define "head" }}
+    <title>{{ index .tab "title" }}</title>
+    <link rel="stylesheet" href="/webui/static/css/style.css">
+    <script src="/webui/static/javaScript/autoCompleteSearch.js"></script>
+    <script src="/webui/static/javaScript/showCredentialTypeExternal.js"></script>
+    <script src="/webui/static/javaScript/eyePassword.js"></script>
+    <script src="/webui/static/javaScript/readFile.js"></script>
+    <script src="/webui/static/javaScript/tooltip.js"></script>
+    <script>window.modalOpen = "{{ .modalOpen }}";</script>
+    <script src="/webui/static/javaScript/displayErr.js"></script>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css" rel="stylesheet">
+{{ end }}
+
+{{ define "content" }}
+  {{ if contains .myPermission.Partners "r" }}
+    {{ if .errMsg }}
+        <div id="errorPopup" class="alert alert-danger alert-dismissible fade show" role="alert">
+            {{ .errMsg }}
+            <button type="button" class="btn-close error-close-btn" data-bs-dismiss="alert" aria-label="Close"></button>
+        </div>
+    {{ end }}
+    {{ if .account }}
+        <div class="d-flex align-items-center justify-content-between">
+            <h3 class="mb-0">{{ index .tab "title" }} : {{ .account.Login }} | {{ index .tab "partner" }} : {{ .partner.Name }}</h3>
+            <div class="d-flex align-items-center">
+                <span class="text-muted small me-3">{{ index .tab "pathGateway" }}</span>
+                <button class="btn btn-outline-secondary ms-3 back-btn" type="button" onclick="window.location='remote_account_management?partnerID={{ .partner.ID }}'">
+                    <i class="bi bi-arrow-left"></i>
+                </button>
+            </div>
+        </div>
+        <hr style="border-top: 1px solid #ababab;">
+
+        {{ if contains .myPermission.Partners "w" }}
+            <button class="btn btn-primary mb-3 btn-add" type="button" data-bs-toggle="modal" data-bs-target="#addCredentialAccountModal">
+                {{ index .tab "addCredentialAccountTitle" }}
+            </button>
+            <div class="modal fade" id="addCredentialAccountModal" tabindex="-1" aria-labelledby="addCredentialAccountModalLabel" aria-hidden="true">
+                <div class="modal-dialog modal-lg">
+                    <div class="modal-content">
+                    <form method="post" class="p-3 border rounded bg-light">
+                        <input type="hidden" name="partnerID" value="{{ .partner.ID }}">
+                        <input type="hidden" name="accountID" value="{{ .account.ID }}">
+                        <div class="modal-header">
+                            <h5 class="modal-title" id="addCredentialAccountModalLabel">{{ index .tab "addCredentialAccountTitle" }}</h5>
+                            <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                        </div>
+                        <div class="modal-body">
+                            <div class="form-input">
+                                <label class="col-form-label">{{ index .tab "nameStr" }} :</label>
+                                <input type="text" name="addCredentialAccountName" class="form-control" required value="{{ index $.modalElement "addCredentialAccountName" }}">
+                            </div>
+                            <hr style="border-top: 1px solid #ababab;">
+                            <div class="form-input">
+                                <label class="col-form-label">{{ index .tab "type" }} <i class="bi bi-info-circle ms-1" data-bs-toggle="tooltip" data-bs-placement="right" data-bs-title="{{ index .tab "typeTooltip" }}"></i> :</label>
+                                <select name="addCredentialAccountType" id="addCredentialAccountType" class="form-select add-credential-type-select" required>
+                                    <option value="" disabled {{ if $.modalElement }}{{ if eq (index $.modalElement "addCredentialAccountType") "" }}selected{{ end }}{{ else }}selected{{ end }}>{{ index .tab "selectType" }}</option>
+                                    {{ range .listSupportedProtocol }}
+                                        <option value="{{ . }}" {{ if $.modalElement }}{{ if eq (index $.modalElement "addCredentialAccountType") . }}selected{{ end }}{{ end }}>
+                                            {{ if eq . "password" }}
+                                                {{ index $.tab "passwordStr" }}
+                                            {{ else if eq . "tls_certificate" }}
+                                                {{ index $.tab "tlsCertificate" }}
+                                            {{ else if eq . "ssh_private_key" }}
+                                                {{ index $.tab "sshPrivateKey" }}
+                                            {{ else if eq . "r66_legacy_certificate" }}
+                                                {{ index $.tab "r66LegacyCertificate" }}
+                                            {{ else if eq . "pesit_pre-connection_auth" }}
+                                                {{ index $.tab "pesitPreConnectionAuth" }}
+                                            {{ else }}
+                                                {{ . }}
+                                            {{ end }}
+                                        </option>
+                                    {{ end }}
+                                </select>
+                            </div>
+                            {{ template "addFileType" . }}
+                            {{ template "addTextType" . }}
+                            {{ template "addTwoFileType" . }}
+                            {{ template "addLoginAndPwdType" . }}
+                        </div>
+                        <div class="modal-footer">
+                            <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">{{ index .tab "close" }}</button>
+                            <button type="submit" class="btn btn-success ms-3">{{ index .tab "apply" }}</button>
+                        </div>
+                    </form>
+                    </div>
+                </div>
+            </div>
+        {{ end }}
+        {{ if contains .myPermission.Partners "r" }}
+        <button class="btn btn-primary mb-3 ms-1-5 btn-filter" type="button" data-bs-toggle="collapse" data-bs-target="#filterCollapse" aria-expanded="false" aria-controls="filterCollapse">
+            {{ index .tab "filter" }}
+        </button>
+        <div class="collapse" id="filterCollapse">
+            <form method="get" class="p-3 border rounded bg-light">
+                <input type="hidden" name="partnerID" value="{{ .partner.ID }}">
+                <input type="hidden" name="accountID" value="{{ .account.ID }}">
+                <input type="hidden" name="applyFilters" value="true">
+                <label class="ms-3">{{ index .tab "sort" }}:
+                    <select name="orderAsc" class="form-select d-inline w-auto">
+                        <option value="true" {{ if .filter.OrderAsc }}selected{{ end }}>A → Z</option>
+                        <option value="false" {{ if not .filter.OrderAsc }}selected{{ end }}>Z → A</option>
+                    </select>
+                </label>
+                <label class="ms-3">{{ index .tab "limit" }}:
+                    <select name="limit" class="form-select d-inline w-auto">
+                        <option value="0" disabled selected>--</option>
+                        <option value="5" {{ if eq .filter.Limit 5 }}selected{{ end }}>5</option>
+                        <option value="10" {{ if eq .filter.Limit 10 }}selected{{ end }}>10</option>
+                        <option value="15" {{ if eq .filter.Limit 15 }}selected{{ end }}>15</option>
+                        <option value="20" {{ if eq .filter.Limit 20 }}selected{{ end }}>20</option>
+                        <option value="25" {{ if eq .filter.Limit 25 }}selected{{ end }}>25</option>
+                    </select>
+                </label>
+                <div style="float:right">
+                    <button id="applyBtn" type="submit" class="btn btn-success">{{ index .tab "apply" }}</button>
+                    <button id="resetBtn" type="button" class="btn btn-secondary ms-2" onclick="window.location='remote_account_authentication?partnerID={{ .partner.ID }}&accountID={{ .account.ID }}?clearFiltersPage=remote_account_authentication_page'">{{ index .tab "reset" }}</button>
+                </div>
+            </form>
+        </div>
+        <nav class="navbar navbar-light bg-light">
+            <input type="hidden" id="pageType" value="credentialRemoteAccount">
+            <form method="get" class="d-flex ms-auto position-relative" onsubmit="return true">
+                <input type="hidden" name="partnerID" value="{{ .partner.ID }}">
+                <input type="hidden" name="accountID" value="{{ .account.ID }}">
+                {{ if eq .credentialAccountFound "false" }}
+                    <div class="invalid-feedback d-block mt-2">{{ index .tab "credentialAccountNotFound" }}</div>
+                {{ else if eq .credentialAccountFound "true" }}
+                    <button id="resetBtn" type="button" class="btn reset-btn" onclick="window.location='remote_account_authentication?partnerID={{ .partner.ID }}&accountID={{ .account.ID }}'"><i class="bi bi-x fs"></i></button>
+                {{ end }}
+                <input class="navbar-partner form-control {{ if eq .credentialAccountFound "false" }}is-invalid{{ end }}" type="search" placeholder="{{ index .tab "search" }}" name="search" id="search" autocomplete="off">
+                <button class="btn btn-primary ms-2 btn-navbar" type="submit">{{ index .tab "search" }}</button>
+                <ul id="autocomplete" class="list-group"></ul>
+            </form>
+        </nav>
+      {{ end }}
+      {{ if contains .myPermission.Partners "r" }}
+        <table class="table table-sm align-middle mb-4 rounded-3 mt-3">
+            <thead class="table-light">
+                <tr>
+                    <th></th>
+                    <th>{{ index $.tab "nameStr" }}</th>
+                    <th>{{ index $.tab "type" }} <i class="bi bi-info-circle ms-1" data-bs-toggle="tooltip" data-bs-placement="right" data-bs-title="{{ index $.tab "typeTooltip" }}"></i></th>
+                    <th>{{ index $.tab "primaryValue" }} <i class="bi bi-info-circle ms-1" data-bs-toggle="tooltip" data-bs-placement="right" data-bs-title="{{ index $.tab "primaryValueTooltip" }}"></i></th>
+                    <th>{{ index $.tab "secondaryValue" }} <i class="bi bi-info-circle ms-1" data-bs-toggle="tooltip" data-bs-placement="right" data-bs-title="{{ index $.tab "secondaryValueTooltip" }}"></i></th>
+                    <th class="text-end"></th>
+                </tr>
+            </thead>
+            <tbody>
+                {{ range .accountCredentials }}
+                <tr>
+                    <td><i class="bi bi-person-fill"></i></td>
+                    <td><strong>{{ .Name }}</strong></td>
+                    <td>{{ .Type }}</td>
+                    <td>
+                        {{ if ne .Type "r66_legacy_certificate" }}
+                        <button class="btn btn-outline-primary modal-btn" type="button" data-bs-toggle="modal" data-bs-target="#valueTypeModal1_{{ .ID }}">
+                            <i class="bi bi-three-dots"></i>
+                        </button>
+                        <div class="modal fade" id="valueTypeModal1_{{ .ID }}" tabindex="-1" aria-labelledby="valueTypeModalLabel1_{{ .ID }}" aria-hidden="true">
+                            <div class="modal-dialog modal-lg">
+                                <div class="modal-content">
+                                    <div class="modal-body text-break">
+                                        {{ if eq (displayOrDefault .Value (index $.tab "undefined")) (index $.tab "undefined") }}
+                                            <span class="input-undefined">{{ displayOrDefault .Value (index $.tab "undefined") }}</span>
+                                        {{ else }}
+                                            <span style="white-space: pre-wrap;">{{ .Value }}</span>
+                                        {{ end }}
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        {{ end }}
+                    </td>
+                    <td>
+                        {{ if or (eq .Type "tls_certificate") (eq .Type "pesit_pre-connection_auth") }}
+                        <button class="btn btn-outline-primary modal-btn" type="button" data-bs-toggle="modal" data-bs-target="#valueTypeModal2_{{ .ID }}">
+                            <i class="bi bi-three-dots"></i>
+                        </button>
+                        <div class="modal fade" id="valueTypeModal2_{{ .ID }}" tabindex="-1" aria-labelledby="valueTypeModalLabel2_{{ .ID }}" aria-hidden="true">
+                            <div class="modal-dialog modal-lg">
+                                <div class="modal-content">
+                                    <div class="modal-body text-break">
+                                        {{ if eq (displayOrDefault .Value2 (index $.tab "undefined")) (index $.tab "undefined") }}
+                                            <span class="input-undefined">{{ displayOrDefault .Value2 (index $.tab "undefined") }}</span>
+                                        {{ else }}
+                                            <span style="white-space: pre-wrap;">{{ .Value2 }}</span>
+                                        {{ end }}
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        {{ end }}
+                    </td>
+                    <td class="text-end">
+                        {{ if contains $.myPermission.Partners "w" }}
+                            <button class="btn btn-outline-primary btn-sm me-1" data-bs-toggle="modal" data-bs-target="#editCredentialExternalModal_{{ .ID }}">
+                                <i class="bi bi-pencil"></i>
+                            </button>
+                            <div class="modal fade" id="editCredentialExternalModal_{{ .ID }}" tabindex="-1" aria-labelledby="editCredentialAccountModalLabel_{{ .ID }}" aria-hidden="true">
+                                <div class="modal-dialog modal-lg">
+                                    <div class="modal-content">
+                                        <form method="post" class="p-3 border rounded bg-light">
+                                            <input type="hidden" name="partnerID" value="{{ $.partner.ID }}">
+                                            <input type="hidden" name="accountID" value="{{ $.account.ID }}">
+                                            <input type="hidden" name="editCredentialAccountID" value="{{ .ID }}">
+                                            {{ $me := and (eq $.modalOpen (printf "editCredentialExternalModal_%d" .ID)) $.modalElement }}
+                                            <div class="modal-header">
+                                                <h5 class="modal-title" id="editCredentialAccountModalLabel_{{ .ID }}">{{ index $.tab "edit" }}: {{ .Name }}</h5>
+                                                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                                            </div>
+                                            <div class="modal-body">
+                                                <div class="form-input">
+                                                    <label class="col-form-label">{{ index $.tab "nameStr" }} :</label>
+                                                    <input type="text" name="editCredentialAccountName" class="form-control" required value="{{ if $me }}{{ index $me "editCredentialAccountName" }}{{ else }}{{ .Name }}{{ end }}">
+                                                </div>
+                                                <hr style="border-top: 1px solid #ababab;">
+                                                <div class="form-input">
+                                                    <label class="col-form-label">{{ index $.tab "type" }} <i class="bi bi-info-circle ms-1" data-bs-toggle="tooltip" data-bs-placement="right" data-bs-title="{{ index $.tab "typeTooltip" }}"></i> :</label>
+                                                    <select name="editCredentialAccountType" class="form-select edit-credential-type-select" required>
+                                                        <option value="" disabled {{ if $me }}{{ if eq (index $me "editCredentialAccountType") "" }}selected{{ end }}{{ end }}>{{ index $.tab "selectType" }}</option>
+                                                        {{ $credential := . }}
+                                                        {{ range $.listSupportedProtocol }}
+                                                            <option value="{{ . }}" {{ if $me }}{{ if eq (index $me "editCredentialAccountType") . }}selected{{ end }}{{ else if eq $credential.Type . }}selected{{ end }}>{{ if eq . "password" }}{{ index $.tab "passwordStr" }}{{ else if eq . "tls_certificate" }}{{ index $.tab "tlsCertificate" }}{{ else if eq . "ssh_private_key" }}{{ index $.tab "sshPrivateKey" }}{{ else if eq . "r66_legacy_certificate" }}{{ index $.tab "r66LegacyCertificate" }}{{ else if eq . "pesit_pre-connection_auth" }}{{ index $.tab "pesitPreConnectionAuth" }}{{ else }}{{ . }}{{ end }}</option>
+                                                                {{ if eq . "password" }}
+                                                                    {{ index $.tab "passwordStr" }}
+                                                                {{ else if eq . "tls_certificate" }}
+                                                                    {{ index $.tab "tlsCertificate" }}
+                                                                {{ else if eq . "ssh_private_key" }}
+                                                                    {{ index $.tab "sshPrivateKey" }}
+                                                                {{ else if eq . "r66_legacy_certificate" }}
+                                                                    {{ index $.tab "r66LegacyCertificate" }}
+                                                                {{ else if eq . "pesit_pre-connection_auth" }}
+                                                                    {{ index $.tab "pesitPreConnectionAuth" }}
+                                                                {{ else }}
+                                                                    {{ . }}
+                                                                {{ end }}
+                                                            </option>
+                                                        {{ end }}
+                                                    </select>
+                                                </div>
+                                                {{ template "editTextType" (dict "ID" .ID "tab" $.tab "modalElement" $me "Value" .Value) }}
+                                                {{ template "editFileType" (dict "ID" .ID "tab" $.tab "modalElement" $me "Value" .Value) }}
+                                                {{ template "editTwoFileType" (dict "ID" .ID "tab" $.tab "modalElement" $me "Value" .Value) }}
+                                                {{ template "editLoginAndPwdType" (dict "ID" .ID "tab" $.tab "modalElement" $me "Value" .Value) }}
+                                            </div>
+                                            <div class="modal-footer">
+                                                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">{{ index $.tab "close" }}</button>
+                                                <button type="submit" class="btn btn-success ms-3">{{ index $.tab "apply" }}</button>
+                                            </div>
+                                        </form>
+                                    </div>
+                                </div>
+                            </div>
+                        {{ end }}
+                        {{ if contains $.myPermission.Partners "d" }}
+                            <form method="post" class="d-inline">
+                                <input type="hidden" name="partnerID" value="{{ $.partner.ID }}">
+                                <input type="hidden" name="accountID" value="{{ $.account.ID }}">
+                                <input type="hidden" name="deleteCredentialAccount" value="{{ .ID }}">
+                                <button type="submit" class="btn btn-outline-danger btn-sm" onclick="return confirm('{{ index $.tab "confirmDelete" }}')">
+                                    <i class="bi bi-trash"></i>
+                                </button>
+                            </form>
+                        {{ end }}
+                    </td>
+                </tr>
+                {{ end }}
+            </tbody>
+        </table>
+        <form method="get">
+            <ul class="pagination">
+                <input type="hidden" name="partnerID" value="{{ .partner.ID }}">
+                <input type="hidden" name="accountID" value="{{ .account.ID }}">
+                <input type="hidden" name="orderAsc" value="{{ .filter.OrderAsc }}">
+                <input type="hidden" name="limit" value="{{ .filter.Limit }}">
+                <input type="hidden" name="offset" value="{{ .filter.Offset }}">
+                <li class="page-item {{ if .filter.DisablePrevious }}disabled{{ end }}"><button class="page-link" name="previous" type="submit" value="true">{{ index .tab "previous" }}</button></li>
+                <li class="page-item"><button class="page-link disabled">{{ .currentPage }}</button></li>
+                <li class="page-item {{ if .filter.DisableNext }}disabled{{ end }}"><button class="page-link" name="next" type="submit" value="true">{{ index .tab "next" }}</button></li>
+            </ul>
+        </form>
+    {{ end }}
+    {{ end }}
+  {{ else if not (contains .myPermission.Partners "r") }}
+    <div class="d-flex align-items-center justify-content-between">
+      <h2 class="mb-0">{{ index .tab "accesRight" }} </h2>
+    </div>
+  {{ end }}
+{{ end }}
+
+{{ define "remote_account_authentication_page" }}
+  {{ template "index" . }}
+{{ end }}

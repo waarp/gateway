@@ -2,6 +2,8 @@ package r66
 
 import (
 	"fmt"
+	"path"
+	"strings"
 
 	"code.waarp.fr/lib/r66"
 	"golang.org/x/crypto/bcrypt"
@@ -75,4 +77,14 @@ func encryptServerPassword(field *string) error {
 	*field = pwd
 
 	return nil
+}
+
+func trimRequestPath(filename string) string {
+	filename = strings.ReplaceAll(filename, `\`, `/`)
+
+	if path.IsAbs(filename) || !fs.IsLocalPath(filename) || fs.IsAbsPath(filename) {
+		filename = path.Base(filename)
+	}
+
+	return filename
 }

@@ -1,0 +1,734 @@
+{{ define "head" }}
+  <title>{{ index .tab "title" }}</title>
+  <link rel="stylesheet" href="/webui/static/css/style.css">
+  <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css" rel="stylesheet">
+  <script src="/webui/static/javaScript/tooltip.js"></script>
+  <script src="/webui/static/javaScript/fields.js "></script>
+  <script src="/webui/static/javaScript/refreshTableTransfer.js"></script>
+  <script src="/webui/static/javaScript/syncUpdate.js"></script>
+  <script>window.modalOpen = "{{ .modalOpen }}";</script>
+  <script src="/webui/static/javaScript/displayErr.js"></script>
+  <script src="/webui/static/javaScript/displaySuccess.js"></script>
+  <script src="/webui/static/javaScript/dynamicsSelect.js"></script>
+  <script src="/webui/static/javaScript/filterRuleSelect.js"></script>
+  <script>
+    window.listAccountsPartner = {{ marshalJSON .listAccountsPartner }};
+    window.listAccountsServer = {{ marshalJSON .listAccountsServer }};
+    window.listAgents = {{ marshalJSON .listAgents }};
+    window.filterAccountValue = "{{ .filter.FilterAccount }}";
+  </script>
+{{ end }}
+
+{{ define "transfer_monitoring_tbody" }}
+    {{ range .transfer }}
+    <tr>
+        <td>
+          {{ if .IsServer }}
+            {{ if .IsSend }}
+              <i class="bi bi-cloud-download me-1" data-bs-toggle="tooltip" data-bs-title="{{ index $.tab "serverSend" }}"></i>
+            {{ else }}
+              <i class="bi bi-cloud-upload me-1" data-bs-toggle="tooltip" data-bs-title="{{ index $.tab "serverReceive" }}"></i>
+            {{ end }}
+          {{ else }}
+            {{ if .IsSend }}
+              <i class="bi bi-box-arrow-up me-1" data-bs-toggle="tooltip" data-bs-title="{{ index $.tab "clientSend" }}"></i>
+            {{ else }}
+              <i class="bi bi-box-arrow-in-down me-1" data-bs-toggle="tooltip" data-bs-title="{{ index $.tab "clientReceive" }}"></i>
+            {{ end }}
+          {{ end }}
+        </td>
+        <td><strong>{{ .ID }}</strong></td>
+        <td data-bs-toggle="tooltip" data-bs-placement="top" data-bs-title="{{ .ErrCode }}{{ if .ErrDetails }} : {{ .ErrDetails }}{{ end }}">
+          {{ if eq .Status "DONE" }}
+              <span class="fw-bold text-success">{{ index $.tab "done" }}</span>
+          {{ else if eq .Status "ERROR" }}
+              <span class="fw-bold text-danger">{{ index $.tab "error" }}</span>
+          {{ else if eq .Status "PLANNED" }}
+              <span class="fw-bold text-info">{{ index $.tab "planned" }}</span>
+          {{ else if eq .Status "RUNNING" }}
+              <span class="fw-bold text-primary">{{ index $.tab "running" }}</span>
+          {{ else if eq .Status "PAUSED" }}
+              <span class="fw-bold text-warning">{{ index $.tab "paused" }}</span>
+          {{ else if eq .Status "INTERRUPTED" }}
+              <span class="fw-bold text-secondary">{{ index $.tab "interrupted" }}</span>
+          {{ else if eq .Status "CANCELLED" }}
+              <span class="fw-bold text-muted">{{ index $.tab "cancelled" }}</span>
+          {{ else }}
+              <span class="fw-bold">{{ .Status }}</span>
+          {{ end }}
+      </td>
+        <td {{ if gt (len .SrcFilename) 15 }} title="{{ .SrcFilename }}" data-bs-toggle="tooltip" {{ end }}>
+        {{ if gt (len .SrcFilename) 15 }}
+            {{ slice .SrcFilename 0 15 }}...
+        {{ else if .SrcFilename }}
+            {{ .SrcFilename }}
+        {{ else }}
+          {{ .DestFilename }}
+        {{ end }}
+        </td>
+        <td>{{ .Rule }}</td>
+        <td>{{ formatDateTime .Start $.Request $.language }}</td>
+        <td>
+          {{ $stopTime := print (formatDateTime .Stop $.Request $.language) }}
+          {{ if contains $stopTime "01/01/0001" }}
+            n/a
+          {{ else }}
+            {{ $stopTime }}
+          {{ end }}
+        </td>
+        <td>
+            {{ $percent := 0 }}
+            {{ if gt .Filesize 0 }}
+                {{ $percent = div (mul .Progress 100) .Filesize }}
+              <div class="progress" style="width: 80%;">
+                <div class="progress-bar bg-success-subtle text-dark" role="progressbar" style="width: {{ $percent }}%;" aria-valuenow="{{ $percent }}" aria-valuemin="0" aria-valuemax="100">
+                    {{ $percent }}%
+                </div>
+              </div>
+            {{ else if eq .Status "ERROR" }}
+              <div class="progress" style="width: 80%;">
+                <div class="progress-bar bg-grey-light text-dark" role="progressbar" style="width: 100%;" aria-valuenow="100" aria-valuemin="0" aria-valuemax="100">
+                  {{ index $.tab "unknown" }}
+                </div>
+              </div>
+            {{ else }}
+              <div class="progress" style="width: 80%;">
+                <div class="progress-bar bg-grey-light text-dark" role="progressbar" style="width: 100%;" aria-valuenow="100" aria-valuemin="0" aria-valuemax="100">
+                  {{ humanizeSize .Progress }}
+                </div>
+              </div>
+            {{ end }}
+        </td>
+        <td>
+            {{ if ge .Filesize 0 }}
+              {{ humanizeSize .Filesize }}
+            {{ else }}
+              <span class="text-muted">{{ index $.tab "none" }}</span>
+            {{ end }}
+        </td>
+        <td>
+            <button class="btn btn-outline-primary modal-btn" type="button" data-bs-toggle="modal" data-bs-target="#moreInfosModal_{{ .ID }}">
+              <i class="bi bi-three-dots"></i>
+            </button>
+            <div class="modal fade" id="moreInfosModal_{{ .ID }}" tabindex="-1" aria-labelledby="moreInfosModalLabel_{{ .ID }}" aria-hidden="true">
+            <div class="modal-dialog modal-lg">
+                <div class="modal-content p-3 border rounded bg-light">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="moreInfosModalLabel_{{ .ID }}">
+                    {{ index $.tab "additionalInformation" }} : {{ .SrcFilename }}
+                    </h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+                    <div class="flex-label-input mb-2">
+                        <label class="col-form-label label-light-bold me-3">{{ index $.tab "nameTransferAgent" }} :</label>
+                        <input type="text" class="form-control-plaintext input-auto-width" value="{{ displayOrDefault .Agent (index $.tab "undefined") }}" readonly>
+                    </div>
+                    <hr style="border-top: 1px solid #ababab;">
+                    <div class="flex-label-input mb-2">
+                        <label class="col-form-label label-light-bold me-3">{{ index $.tab "account" }} :</label>
+                        <input type="text" class="form-control-plaintext input-auto-width" value="{{ displayOrDefault .Account (index $.tab "undefined") }}" readonly>
+                    </div>
+                    <hr style="border-top: 1px solid #ababab;">
+                    <div class="flex-label-input mb-2">
+                        <label class="col-form-label label-light-bold me-3">{{ index $.tab "step" }} :</label>
+                        <input type="text" class="form-control-plaintext input-auto-width" value="{{ displayOrDefault .Step (index $.tab "undefined") }}" readonly>
+                    </div>
+                    <hr style="border-top: 1px solid #ababab;">
+                    <div class="flex-label-input mb-2">
+                        <label class="col-form-label label-light-bold me-3">{{ index $.tab "protocol" }} :</label>
+                        <input type="text" class="form-control-plaintext input-auto-width" value="{{ displayOrDefault .Protocol (index $.tab "undefined") }}" readonly>
+                    </div>
+                    <hr style="border-top: 1px solid #ababab;">
+                    <div class="flex-label-input mb-2">
+                        <label class="col-form-label label-light-bold me-3">{{ index $.tab "client" }} :</label>
+                        <input type="text" class="form-control-plaintext input-auto-width" value="{{ displayOrDefault .Client (index $.tab "undefined") }}" readonly>
+                    </div>
+                    <hr style="border-top: 1px solid #ababab;">
+                    <div class="flex-label-input mb-2">
+                        <label class="col-form-label label-light-bold me-3">{{ index $.tab "nbOfAttempts" }} :</label>
+                        <input type="text" class="form-control-plaintext input-auto-width" value="{{ displayOrDefault .RemainingTries (index $.tab "undefined") }}" readonly>
+                    </div>
+                    <hr style="border-top: 1px solid #ababab;">
+                    <div class="flex-label-input mb-2">
+                        <label class="col-form-label label-light-bold me-3">{{ index $.tab "firstRetryDelay" }} {{ index $.tab "second" }} :</label>
+                        {{ $t := secondFormat (.NextRetryDelay) }}
+                        {{ if and (eq (index $t 0) 0) (eq (index $t 1) 0) (eq (index $t 2) 0) }}
+                          <input type="text" class="form-control-plaintext input-auto-width" value="{{ index $.tab "undefined" }}" readonly>
+                        {{ else }}
+                          <input type="text" class="form-control-plaintext input-auto-width" value="{{ printf "%dh %02dm %02ds" (index $t 0) (index $t 1) (index $t 2) }}" readonly>
+                        {{ end }}
+                    </div>
+                    <hr style="border-top: 1px solid #ababab;">
+                    <div class="flex-label-input mb-2">
+                        <label class="col-form-label label-light-bold me-3">{{ index $.tab "retryIncrementFactor" }} :</label>
+                        <input type="text" class="form-control-plaintext input-auto-width" value="{{ displayOrDefault .RetryIncrementFactor (index $.tab "undefined") }}" readonly>
+                    </div>
+                    <hr style="border-top: 1px solid #ababab;">
+                    <div class="flex-label-input mb-2">
+                        <label class="col-form-label label-light-bold me-3">{{ index $.tab "destFilename" }} :</label>
+                        <input type="text" class="form-control-plaintext input-auto-width" value="{{ displayOrDefault .DestFilename (index $.tab "undefined") }}" readonly>
+                    </div>
+                    <hr style="border-top: 1px solid #ababab;">
+                    <div class="flex-label-input mb-2">
+                      <label class="col-form-label label-light-bold me-3">{{ index $.tab "localPath" }} :</label>
+                      <input type="text" class="form-control-plaintext input-auto-width" value="{{ displayOrDefault .LocalPath (index $.tab "undefined") }}" readonly>
+                    </div>
+                    <hr style="border-top: 1px solid #ababab;">
+                    <div class="flex-label-input mb-2">
+                      <label class="col-form-label label-light-bold me-3">{{ index $.tab "remotePath" }} :</label>
+                      <input type="text" class="form-control-plaintext input-auto-width" value="{{ displayOrDefault .RemotePath (index $.tab "undefined") }}" readonly>
+                    </div>
+                    <hr style="border-top: 1px solid #ababab;">
+                    <div class="flex-label-input mb-2">
+                        <label class="col-form-label label-light-bold me-3">{{ index $.tab "rule" }} :</label>
+                        <input type="text" class="form-control-plaintext input-auto-width" value="{{ displayOrDefault .Rule (index $.tab "undefined") }}" readonly>
+                    </div>
+                    <hr style="border-top: 1px solid #ababab;">
+                    <div class="flex-label-input mb-2">
+                        <label class="col-form-label label-light-bold me-3">{{ index $.tab "start" }} :</label>
+                        <input type="text" class="form-control-plaintext input-auto-width" value="{{ displayOrDefault (formatDateTime .Start $.Request $.language) (index $.tab "undefined") }}" readonly>
+                    </div>
+                    <hr style="border-top: 1px solid #ababab;">
+                    <div class="flex-label-input mb-2">
+                        <label class="col-form-label label-light-bold me-3">{{ index $.tab "end" }} :</label>
+                        <input type="text" class="form-control-plaintext input-auto-width" value="{{ if contains (formatDateTime .Stop $.Request $.language) "01/01/0001" }}{{ index $.tab "undefined" }}{{ else }}{{ formatDateTime .Stop $.Request $.language }}{{ end }}" readonly>
+                    </div>
+                    <hr style="border-top: 1px solid #ababab;">
+                    <div class="flex-label-input mb-2">
+                      <label class="col-form-label label-light-bold me-3">{{ index $.tab "bytesTransferred" }} :</label>
+                      <input type="text" class="form-control-plaintext input-auto-width" value="{{ displayOrDefault .Progress (index $.tab "undefined") }} ({{ humanizeSize .Progress }})" readonly>
+                    </div>
+                    <hr style="border-top: 1px solid #ababab;">
+                    <div class="flex-label-input mb-2">
+                        <label class="col-form-label label-light-bold me-3">{{ index $.tab "fileSize" }} :</label>
+                        <input type="text" class="form-control-plaintext input-auto-width" value="{{ if ge .Filesize 0 }}{{ displayOrDefault .Filesize (index $.tab "undefined") }} ({{ humanizeSize .Filesize }}){{ else }}{{ index $.tab "none" }}{{ end }}" readonly>
+                    </div>
+                    <hr style="border-top: 1px solid #ababab;">
+                    <div class="flex-label-input mb-2">
+                        <label class="col-form-label label-light-bold me-3">{{ index $.tab "taskNumber" }} :</label>
+                        <input type="text" class="form-control-plaintext input-auto-width" value="{{ displayOrDefault .TaskNumber (index $.tab "undefined") }}" readonly>
+                    </div>
+                    <hr style="border-top: 1px solid #ababab;">
+                    <div class="flex-label-input mb-2">
+                        <label class="col-form-label label-light-bold me-3">{{ index $.tab "errCode" }} :</label>
+                        <input type="text" class="form-control-plaintext input-auto-width" value="{{ displayOrDefault .ErrCode (index $.tab "undefined") }}" readonly>
+                    </div>
+                    <hr style="border-top: 1px solid #ababab;">
+                    <div class="flex-label-input mb-2">
+                        <label class="col-form-label label-light-bold me-3">{{ index $.tab "errDetails" }} :</label>
+                        <input type="text" class="form-control-plaintext input-auto-width" value="{{ displayOrDefault .ErrDetails (index $.tab "undefined") }}" readonly>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">{{ index $.tab "close" }}</button>
+                </div>
+                </div>
+            </div>
+            </div>
+        </td>
+        <td class="text-end">
+          {{ if contains $.myPermission.Transfers "w" }}
+            <form method="post" style="display:inline;">
+              <input type="hidden" name="pauseTransferID" value="{{ .ID }}">
+              <button type="submit" class="btn btn-outline-warning btn-sm me-1" data-bs-toggle="tooltip" data-bs-placement="top" data-bs-title="{{ index $.tab "pause" }}" {{if eq .Status "RUNNING"}}{{else}}disabled{{end}}>
+                <i class="bi bi-pause"></i>
+              </button>
+            </form>
+            <form method="post" style="display:inline;">
+              <input type="hidden" name="resumeTransferID" value="{{ .ID }}">
+              <button class="btn btn-outline-success btn-sm me-1" data-bs-toggle="tooltip" data-bs-placement="top" data-bs-title="{{ index $.tab "resume" }}" {{if or (eq .Status "PAUSED") (eq .Status "ERROR") (eq .Status "INTERRUPTED")}} {{else}}disabled{{end}}>
+                  <i class="bi bi-play"></i>
+              </button>
+            </form>
+            <form method="post" style="display:inline;">
+              <input type="hidden" name="cancelTransferID" value="{{ .ID }}">
+              <button class="btn btn-outline-danger btn-sm me-1" data-bs-toggle="tooltip" data-bs-placement="top" data-bs-title="{{ index $.tab "cancel" }}" {{if not (or (eq .Status "DONE") (eq .Status "CANCELLED"))}}{{else}}disabled{{end}}>
+                  <i class="bi bi-x-circle"></i>
+              </button>
+            </form>
+            <button class="btn btn-outline-info btn-sm me-1" data-bs-toggle="tooltip" data-bs-placement="top" data-bs-title="{{ index $.tab "reschedule" }} {{if or (eq .Status "PAUSED") (eq .Status "ERROR") (eq .Status "INTERRUPTED") (eq .Status "PLANNED")}} {{else}}disabled{{end}}"
+                    onclick="bootstrap.Modal.getOrCreateInstance(document.getElementById('rescheduleTransferModal_{{ .ID }}')).show();">
+                <i class="bi bi-arrow-repeat"></i>
+            </button>
+            <div class="modal fade" id="rescheduleTransferModal_{{ .ID }}" tabindex="-1" aria-labelledby="rescheduleTransferModalLabel_{{ .ID }}" aria-hidden="true">
+            <div class="modal-dialog modal-lg">
+              <div class="modal-content">
+                <form method="post" class="p-3 border rounded bg-light">
+                  <input type="hidden" name="rescheduleTransferID" value="{{ .ID }}">
+                  <div class="modal-header">
+                    <h5 class="modal-title" id="rescheduleTransferModalLabel_{{ .ID }}">{{ index $.tab "reschedule" }}: {{ .SrcFilename }}</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                  </div>
+                  <div class="modal-body">
+                    <div class="form-input">
+                      <label class="col-form-label">{{ index $.tab "date" }} :</label>
+                      <input type="datetime-local" name="rescheduleTransferDate" class="form-control" required>
+                    </div>
+                  </div>
+                  <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">{{ index $.tab "close" }}</button>
+                    <button type="submit" class="btn btn-success ms-3">{{ index $.tab "apply" }}</button>
+                  </div>
+                </form>
+              </div>
+            </div>
+          </div>
+        {{ end }}
+        </td>
+    </tr>
+    {{ end }}
+{{ end }}
+
+{{ define "content" }}
+  {{ if contains .myPermission.Transfers "r" }}
+    {{ if .errMsg }}
+        <div id="errorPopup" class="alert alert-danger alert-dismissible fade show" role="alert">
+            {{ .errMsg }}
+            <button type="button" class="btn-close error-close-btn" data-bs-dismiss="alert" aria-label="Close"></button>
+        </div>
+    {{ end }}
+    {{ if .successAddTransfer }}
+        <div id="successPopup" class="alert alert-success alert-dismissible fade show" role="alert">
+            {{ index .tab "addingTransfer" }}{{ .successAddTransfer }}
+            <button type="button" class="btn-close success-close-btn" data-bs-dismiss="alert" aria-label="Close"></button>
+        </div>
+    {{ end }}
+      {{ if .successAddRegister }}
+        <div id="successPopup" class="alert alert-success alert-dismissible fade show" role="alert">
+            {{ index .tab "addingRegisterTransfer" }}{{ .successAddRegister }}
+            <button type="button" class="btn-close success-close-btn" data-bs-dismiss="alert" aria-label="Close"></button>
+        </div>
+    {{ end }}
+    {{ if .successReprogramTransfer }}
+        <div id="successPopup" class="alert alert-success alert-dismissible fade show" role="alert">
+            {{ index .tab "reprogTransfer" }}{{ .successReprogramTransfer }}
+            <button type="button" class="btn-close success-close-btn" data-bs-dismiss="alert" aria-label="Close"></button>
+        </div>
+    {{ end }}
+  <div class="d-flex align-items-center justify-content-between">
+    <div class="d-flex align-items-center">
+      <h2 class="mb-0">{{ index .tab "title" }}</h2>
+      <span id="sync-update" class="d-none text-dark ms-3" style="transition: opacity 0.3s;">
+        <i class="bi bi-arrow-repeat me-2"></i>{{ index .tab "syncUpdate" }}
+      </span>
+    </div>
+    <div class="d-flex align-items-center">
+      <span class="text-muted small me-3">{{ index .tab "pathGateway" }}</span>
+      <button class="btn btn-outline-secondary ms-3 back-btn" type="button" onclick="window.location='home'">
+        <i class="bi bi-arrow-left"></i>
+      </button>
+    </div>
+  </div>
+  <hr style="border-top: 1px solid #ababab;">
+
+    {{ if contains .myPermission.Transfers "w" }}
+        <button class="btn btn-primary mb-3 btn-add" type="button" data-bs-toggle="modal" data-bs-target="#addTransferModal">
+            {{ index .tab "addTransferTitle" }}
+        </button>
+        <div class="modal fade" id="addTransferModal" tabindex="-1" aria-labelledby="addTransferModalLabel" aria-hidden="true">
+          <div class="modal-dialog modal-lg">
+            <div class="modal-content">
+              <form method="post" class="p-3 border rounded bg-light">
+                <div class="modal-header">
+                  <h5 class="modal-title" id="addTransferModalLabel">{{ index .tab "addTransferTitle" }}</h5>
+                  <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+                  <div class="form-input mb-2">
+                    <label class="col-form-label">{{ index .tab "pathFile" }} :</label>
+                    <input type="text" name="transferFile" class="form-control" required value="{{ index $.modalElement "transferFile" }}">
+                  </div>
+                  <hr style="border-top: 1px solid #ababab;">
+                  <div class="form-input mb-2">
+                    <label class="col-form-label">({{ index .tab "optional" }}) {{ index .tab "pathDestination" }} :</label>
+                    <input type="text" name="transferOut" class="form-control" value="{{ index $.modalElement "transferOut" }}">
+                  </div>
+                  <hr style="border-top: 1px solid #ababab;">
+                    <div class="form-input mb-2 d-flex align-items-center">
+                      <label class="col-form-label me-3">{{ index .tab "rule" }} :</label>
+                      <div class="form-check form-check-inline me-3">
+                          <input class="form-check-input" type="radio" name="ruleDirection" id="ruleSendRadio" value="send" {{ if $.modalElement }}{{ if eq (index $.modalElement "ruleDirection") "send" }}checked{{ end }}{{ else }}checked{{ end }}>
+                          <label class="form-check-label" for="ruleSendRadio">{{ index .tab "send" }}</label>
+                      </div>
+                      <div class="form-check form-check-inline me-3">
+                          <input class="form-check-input" type="radio" name="ruleDirection" id="ruleReceiveRadio" value="receive" {{ if $.modalElement }}{{ if eq (index $.modalElement "ruleDirection") "receive" }}checked{{ end }}{{ end }}>
+                          <label class="form-check-label" for="ruleReceiveRadio">{{ index .tab "receive" }}</label>
+                      </div>
+                      <select name="transferRule" id="transferRuleSelect" class="form-select ms-2" required style="max-width: 40%;">
+                        <option value="" disabled {{ if $.modalElement }}{{ if eq (index $.modalElement "transferRule") "" }}selected{{ end }}{{ else }}selected{{ end }}>{{ index .tab "selectRule" }}</option>
+                        {{ range .ruleSend }}
+                          <option data-dir="send" value="{{ . }}" {{ if $.modalElement }}{{ if eq (index $.modalElement "transferRule") . }}selected{{ end }}{{ end }}>{{ . }}</option>
+                        {{ end }}
+                        {{ range .ruleReceive }}
+                          <option data-dir="receive" value="{{ . }}" {{ if $.modalElement }}{{ if eq (index $.modalElement "transferRule") . }}selected{{ end }}{{ end }}>{{ . }}</option>
+                        {{ end }}
+                      </select>
+                    </div>
+                  <hr style="border-top: 1px solid #ababab;">
+                  <div class="form-input mt-2">
+                    <label class="col-form-label">{{ index .tab "remotePartnerName" }} :</label>
+                    <select name="transferPartner" id="transferPartner" class="form-select" required>
+                      <option value="" disabled {{ if $.modalElement }}{{ if eq (index $.modalElement "transferPartner") "" }}selected{{ end }}{{ else }}selected{{ end }}>{{ index .tab "selectPartner" }}</option>
+                      {{ range .listPartners }}
+                          <option value="{{ . }}" {{ if $.modalElement }}{{ if eq (index $.modalElement "transferPartner") . }}selected{{ end }}{{ end }}>{{ . }}</option>
+                      {{ end }}
+                    </select>
+                  </div>
+                  <hr style="border-top: 1px solid #ababab;">
+                  <div class="form-input mb-2">
+                    <label class="col-form-label">{{ index .tab "remoteAccountName" }} :</label>
+                      <select name="transferLogin" id="transferLogin" class="form-select" required data-selected="{{ index $.modalElement "transferLogin" }}">
+                        <option value="" disabled selected>{{ index .tab "selectRemoteAccount" }}</option>
+                      </select>
+                  </div>
+                  <hr style="border-top: 1px solid #ababab;">
+                  <div class="form-input mb-2">
+                    <label class="col-form-label">{{ index .tab "localClientName" }} :</label>
+                    <select name="transferClient" id="transferClient" class="form-select" required>
+                      <option value="" disabled {{ if $.modalElement }}{{ if eq (index $.modalElement "transferClient") "" }}selected{{ end }}{{ else }}selected{{ end }}>{{ index .tab "selectLocalClient" }}</option>
+                      {{ range .listClients }}
+                          <option value="{{ . }}" {{ if $.modalElement }}{{ if eq (index $.modalElement "transferClient") . }}selected{{ end }}{{ end }}>{{ . }}</option>
+                      {{ end }}
+                    </select>
+                  </div>
+                  <hr style="border-top: 1px solid #ababab;">
+                  <div class="form-input mb-2">
+                    <label class="col-form-label">{{ index .tab "date" }} <i class="bi bi-info-circle ms-1" data-bs-toggle="tooltip" data-bs-placement="right" data-bs-title="{{ index .tab "tooltipDate" }}"></i> :</label>
+                    <input type="datetime-local" name="transferDate" class="form-control" value="{{ index $.modalElement "transferDate" }}">
+                  </div>
+                  <hr style="border-top: 1px solid #ababab;">
+                  <div class="form-input mb-2">
+                    <label class="col-form-label">{{ index .tab "nbOfAttempts" }} :</label>
+                    <input type="text" name="nbOfAttempts" class="form-control" value="{{ index $.modalElement "nbOfAttempts" }}">
+                  </div>
+                  <hr style="border-top: 1px solid #ababab;">
+                  <div class="form-input d-flex align-items-center">
+                      <label class="col-form-label me-3">{{ index .tab "firstRetryDelay" }} :</label>
+                      <div class="input-group" style="max-width: 60%;">
+                          <span class="input-group-text">h</span>
+                          <input type="text" name="retryDelaypH" class="form-control" placeholder="00" value="{{ index $.modalElement "retryDelaypH" }}">
+                          <span class="input-group-text">m</span>
+                          <input type="text" name="retryDelayM" class="form-control" placeholder="00" value="{{ index $.modalElement "retryDelayM" }}">
+                          <span class="input-group-text">s</span>
+                          <input type="text" name="retryDelayS" class="form-control" placeholder="00" value="{{ index $.modalElement "retryDelayS" }}">
+                      </div>
+                  </div>
+                  <hr style="border-top: 1px solid #ababab;">
+                  <div class="form-input mb-2">
+                    <label class="col-form-label">{{ index .tab "retryIncrementFactor" }} :</label>
+                    <input type="text" name="retryIncrementFactor" class="form-control" value="{{ index $.modalElement "retryIncrementFactor" }}">
+                  </div>
+                  <hr style="border-top: 1px solid #ababab;">
+                  <div class="form-input mb-2">
+                      <label class="col-form-label">({{ index .tab "optional" }}) {{ index .tab "infosTransfer" }} :</label>
+                      <div id="infoContainer">
+                        {{ $keys := index $.modalElement "transferInfosKeys[]" }}
+                        {{ $vals := index $.modalElement "transferInfosValues[]" }}
+                        {{ if or $keys $vals }}
+                          {{ range $i,$k := $keys }}
+                            <div class="input-group mb-2">
+                              <input type="text" name="transferInfosKeys[]" class="form-control" value="{{ $k }}" placeholder="{{ index $.tab "fieldName" }}">
+                              <input type="text" name="transferInfosValues[]" class="form-control" value="{{ if $vals }}{{ index $vals $i }}{{ end }}" placeholder="{{ index $.tab "value" }}">
+                              <button type="button" class="btn btn-outline-danger btn-sm" onclick="removeField(this)">
+                                <i class="bi bi-trash"></i>
+                              </button>
+                            </div>
+                          {{ end }}
+                        {{ else }}
+                          <div class="input-group mb-2">
+                            <input type="text" name="transferInfosKeys[]" class="form-control" placeholder="{{ index $.tab "fieldName" }}">
+                            <input type="text" name="transferInfosValues[]" class="form-control" placeholder="{{ index $.tab "value" }}">
+                            <button type="button" class="btn btn-outline-danger btn-sm" onclick="removeField(this)">
+                              <i class="bi bi-trash"></i>
+                            </button>
+                          </div>
+                        {{ end }}
+                      </div>
+                      <button type="button" class="btn btn-outline-primary btn-sm" onclick="addField(this)">
+                          {{ index .tab "add" }}
+                      </button>
+                  </div>
+                </div>
+                <div class="modal-footer">
+                  <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">{{ index .tab "close" }}</button>
+                  <button type="submit" class="btn btn-success ms-3">{{ index .tab "apply" }}</button>
+                </div>
+              </form>
+            </div>
+          </div>
+        </div>
+
+        <button class="btn btn-primary mb-3 btn-add" type="button" data-bs-toggle="modal" data-bs-target="#preRegisterTransferModal">
+            {{ index .tab "preRegisterServerTransfer" }}
+        </button>
+        <div class="modal fade" id="preRegisterTransferModal" tabindex="-1" aria-labelledby="preRegisterTransferModalLabel" aria-hidden="true">
+          <div class="modal-dialog modal-lg">
+            <div class="modal-content">
+              <form method="post" class="p-3 border rounded bg-light">
+                <div class="modal-header">
+                  <h5 class="modal-title" id="preRegisterTransferModalLabel">{{ index .tab "preRegisterServerTransfer" }}</h5>
+                  <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+                  <div class="form-input mb-2">
+                    <label class="col-form-label">{{ index .tab "pathFile" }} :</label>
+                    <input type="text" name="preRegisterFile" class="form-control" required value="{{ index $.modalElement "preRegisterFile" }}">
+                  </div>
+                  <hr style="border-top: 1px solid #ababab;">
+                  <div class="form-input mb-2 d-flex align-items-center">
+                    <label class="col-form-label me-3">{{ index .tab "rule" }} :</label>
+                    <div class="form-check form-check-inline me-3">
+                        <input class="form-check-input" type="radio" name="ruleDirectionPreRegister" id="ruleSendRadio" value="send" {{ if $.modalElement }}{{ if eq (index $.modalElement "ruleDirectionPreRegister") "send" }}checked{{ end }}{{ else }}checked{{ end }}>
+                        <label class="form-check-label" for="ruleSendRadio">{{ index .tab "send" }}</label>
+                    </div>
+                    <div class="form-check form-check-inline me-3">
+                        <input class="form-check-input" type="radio" name="ruleDirectionPreRegister" id="ruleReceiveRadio" value="receive" {{ if $.modalElement }}{{ if eq (index $.modalElement "ruleDirectionPreRegister") "receive" }}checked{{ end }}{{ end }}>
+                        <label class="form-check-label" for="ruleReceiveRadio">{{ index .tab "receive" }}</label>
+                    </div>
+                    <select name="preRegisterRule" id="preRegisterRuleSelect" class="form-select ms-2" required style="max-width: 40%;">
+                      <option value="" disabled {{ if $.modalElement }}{{ if eq (index $.modalElement "preRegisterRule") "" }}selected{{ end }}{{ else }}selected{{ end }}>{{ index .tab "selectRule" }}</option>
+                      {{ range .ruleSend }}
+                        <option data-dir="send" value="{{ . }}" {{ if $.modalElement }}{{ if eq (index $.modalElement "preRegisterRule") . }}selected{{ end }}{{ end }}>{{ . }}</option>
+                      {{ end }}
+                      {{ range .ruleReceive }}
+                        <option data-dir="receive" value="{{ . }}" {{ if $.modalElement }}{{ if eq (index $.modalElement "preRegisterRule") . }}selected{{ end }}{{ end }}>{{ . }}</option>
+                      {{ end }}
+                    </select>
+                  </div>
+                  <hr style="border-top: 1px solid #ababab;">
+                  <div class="form-input mt-2">
+                    <label class="col-form-label">{{ index .tab "localServerName" }} :</label>
+                    <select name="preRegisterServer" id="preRegisterServer" class="form-select" required>
+                      <option value="" disabled {{ if $.modalElement }}{{ if eq (index $.modalElement "preRegisterServer") "" }}selected{{ end }}{{ else }}selected{{ end }}>{{ index .tab "selectServer" }}</option>
+                      {{ range .listServers }}
+                          <option value="{{ . }}" {{ if $.modalElement }}{{ if eq (index $.modalElement "preRegisterServer") . }}selected{{ end }}{{ end }}>{{ . }}</option>
+                      {{ end }}
+                    </select>
+                  </div>
+                  <hr style="border-top: 1px solid #ababab;">
+                  <div class="form-input mb-2">
+                    <label class="col-form-label">{{ index .tab "localAccountName" }} :</label>
+                      <select name="preRegisterLogin" id="preRegisterLogin" class="form-select" required data-selected="{{ index $.modalElement "preRegisterLogin" }}">
+                        <option value="" disabled selected>{{ index .tab "selectLocalAccount" }}</option>
+                      </select>
+                  </div>
+                  <hr style="border-top: 1px solid #ababab;">
+                  <div class="form-input mb-2">
+                    <label class="col-form-label">{{ index .tab "dateLimit" }} <i class="bi bi-info-circle ms-1" data-bs-toggle="tooltip" data-bs-placement="right" data-bs-title="{{ index .tab "tooltipDateLimite" }}"></i> :</label>
+                    <input type="datetime-local" name="preRegisterDate" class="form-control" required value="{{ index $.modalElement "transferDate" }}">
+                  </div>
+                  <hr style="border-top: 1px solid #ababab;">
+                  <div class="form-input mb-2">
+                      <label class="col-form-label">({{ index .tab "optional" }}) {{ index .tab "infosTransfer" }} :</label>
+                      <div id="infoContainer">
+                        {{ $keys := index $.modalElement "preRegisterInfosKeys[]" }}
+                        {{ $vals := index $.modalElement "preRegisterInfosValues[]" }}
+                        {{ if or $keys $vals }}
+                          {{ range $i,$k := $keys }}
+                            <div class="input-group mb-2">
+                              <input type="text" name="preRegisterInfosKeys[]" class="form-control" value="{{ $k }}" placeholder="{{ index $.tab "fieldName" }}">
+                              <input type="text" name="preRegisterInfosValues[]" class="form-control" value="{{ if $vals }}{{ index $vals $i }}{{ end }}" placeholder="{{ index $.tab "value" }}">
+                              <button type="button" class="btn btn-outline-danger btn-sm" onclick="removeField(this)">
+                                <i class="bi bi-trash"></i>
+                              </button>
+                            </div>
+                          {{ end }}
+                        {{ else }}
+                          <div class="input-group mb-2">
+                            <input type="text" name="preRegisterInfosKeys[]" class="form-control" placeholder="{{ index $.tab "fieldName" }}">
+                            <input type="text" name="preRegisterInfosValues[]" class="form-control" placeholder="{{ index $.tab "value" }}">
+                            <button type="button" class="btn btn-outline-danger btn-sm" onclick="removeField(this)">
+                              <i class="bi bi-trash"></i>
+                            </button>
+                          </div>
+                        {{ end }}
+                      </div>
+                      <button type="button" class="btn btn-outline-primary btn-sm" onclick="addField(this)">
+                          {{ index .tab "add" }}
+                      </button>
+                  </div>
+                </div>
+                <div class="modal-footer">
+                  <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">{{ index .tab "close" }}</button>
+                  <button type="submit" class="btn btn-success ms-3">{{ index .tab "apply" }}</button>
+                </div>
+              </form>
+            </div>
+          </div>
+        </div>
+    {{ end }}
+    {{ if contains .myPermission.Transfers "r" }}
+    <button class="btn btn-primary mb-3 ms-1-5 btn-filter" type="button" data-bs-toggle="collapse" data-bs-target="#filterCollapse" aria-expanded="false" aria-controls="filterCollapse">
+      {{ index .tab "filter" }}
+    </button>
+    <div class="collapse" id="filterCollapse">
+      <form method="get" class="p-3 border rounded bg-light">
+        <input type="hidden" name="applyFilters" value="true">
+        <label class="ms-3">{{ index .tab "sort" }} :
+          <select name="order" class="form-select d-inline w-auto">
+            <option value="date-start" {{ if and (eq .filter.OrderBy "start") (not .filter.OrderAsc) }}selected{{ end }}>Date ↓</option>
+            <option value="date-end" {{ if and (eq .filter.OrderBy "start") (.filter.OrderAsc) }}selected{{ end }}>Date ↑</option>
+            <option value="id-start" {{ if and (eq .filter.OrderBy "id") (not .filter.OrderAsc) }}selected{{ end }}>ID ↓</option>
+            <option value="id-end" {{ if and (eq .filter.OrderBy "id") (.filter.OrderAsc) }}selected{{ end }}>ID ↑</option>
+          </select>
+        </label>
+        <label class="ms-3">{{ index .tab "limit" }} :
+          <select name="limit" class="form-select d-inline w-auto">
+            <option value="0" disabled selected>--</option>
+            <option value="5" {{ if eq .filter.Limit 5 }}selected{{ end }}>5</option>
+            <option value="10" {{ if eq .filter.Limit 10 }}selected{{ end }}>10</option>
+            <option value="15" {{ if eq .filter.Limit 15 }}selected{{ end }}>15</option>
+            <option value="20" {{ if eq .filter.Limit 20 }}selected{{ end }}>20</option>
+            <option value="25" {{ if eq .filter.Limit 25 }}selected{{ end }}>25</option>
+          </select>
+        </label>
+        <div style="float:right">
+          <button id="applyBtn" type="submit" class="btn btn-success">{{ index .tab "apply" }}</button>
+          <button id="resetBtn" type="button" class="btn btn-secondary ms-2" onclick="window.location='transfer_monitoring?clearFiltersPage=transfer_monitoring_page'">{{ index .tab "reset" }}</button>
+        </div>
+        <hr style="border-top: 1px solid #ababab;">
+        <div>
+          <label class="ms-3 me-3">{{ index .tab "status" }} :</label>
+          <div class="form-check form-check-inline">
+            <input class="form-check-input" type="checkbox" name="status" value="DONE" {{ if .filter.Status.DONE }}checked{{ end }}>
+            <label class="form-check-label" for="statusDone">{{ index .tab "done" }}</label>
+          </div>
+          <div class="form-check form-check-inline">
+            <input class="form-check-input" type="checkbox" name="status" value="ERROR" {{ if .filter.Status.ERROR }}checked{{ end }}>
+            <label class="form-check-label" for="statusError">{{ index .tab "error" }}</label>
+          </div>
+          <div class="form-check form-check-inline">
+            <input class="form-check-input" type="checkbox" name="status" value="PLANNED" {{ if .filter.Status.PLANNED }}checked{{ end }}>
+            <label class="form-check-label" for="statusPlanned">{{ index .tab "planned" }}</label>
+          </div>
+          <div class="form-check form-check-inline">
+            <input class="form-check-input" type="checkbox" name="status" value="RUNNING" {{ if .filter.Status.RUNNING }}checked{{ end }}>
+            <label class="form-check-label" for="statusRunning">{{ index .tab "running" }}</label>
+          </div>
+          <div class="form-check form-check-inline">
+            <input class="form-check-input" type="checkbox" name="status" value="PAUSED" {{ if .filter.Status.PAUSED }}checked{{ end }}>
+            <label class="form-check-label" for="statusPaused">{{ index .tab "paused" }}</label>
+          </div>
+          <div class="form-check form-check-inline">
+            <input class="form-check-input" type="checkbox" name="status" value="INTERRUPTED" {{ if .filter.Status.INTERRUPTED }}checked{{ end }}>
+            <label class="form-check-label" for="statusInterrupted">{{ index .tab "interrupted" }}</label>
+          </div>
+          <div class="form-check form-check-inline">
+            <input class="form-check-input" type="checkbox" name="status" value="CANCELLED" {{ if .filter.Status.CANCELLED }}checked{{ end }}>
+            <label class="form-check-label" for="statusCancelled">{{ index .tab "cancelled" }}</label>
+          </div>
+        </div>
+        <hr style="border-top: 1px solid #ababab;">
+        <div>
+          <label class="ms-3 me-3">{{ index .tab "sendingRule" }} :
+            <select name="filterRuleSend" id="filterRuleSend" class="form-select d-inline w-auto" onchange="filterRuleSelect()">
+              <option value="" disabled selected style="display:none;">{{ index .tab "sendingRuleSelect" }}</option>
+              <option value="">None</option>
+              {{ range .ruleSend }}
+                <option value="{{ . }}" {{ if eq $.filter.FilterRuleSend . }}selected{{ end }}>{{ . }}</option>
+              {{ end }}
+            </select>
+          </label>
+          <label class="ms-3 me-3">{{ index .tab "receptionRule" }} :
+            <select name="filterRuleReceive" id="filterRuleReceive" class="form-select d-inline w-auto" onchange="filterRuleSelect()">
+              <option value="" disabled selected style="display:none;">{{ index .tab "receptionRuleSelect" }}</option>
+              <option value="">None</option>
+              {{ range .ruleReceive }}
+                <option value="{{ . }}" {{ if eq $.filter.FilterRuleReceive . }}selected{{ end }}>{{ . }}</option>
+              {{ end }}
+            </select>
+          </label>
+        </div>
+        <hr style="border-top: 1px solid #ababab;">
+        <div>
+        <label class="ms-3">{{ index .tab "timeSlot" }} :
+            <input type="datetime-local" name="dateStart" class="form-control d-inline w-auto" value="{{ .filter.DateStart }}">
+          </label>
+          <label class="ms-3">
+            <input type="datetime-local" name="dateEnd" class="form-control d-inline w-auto" value="{{ .filter.DateEnd }}">
+          </label>
+        </div>
+        <hr style="border-top: 1px solid #ababab;">
+        <div>
+          <label class="ms-3 me-3">{{ index .tab "fileFilter" }} :
+            <div class="input-group d-inline-flex w-auto">
+              <input type="text" name="filterFilePattern" id="filterFilePatternInput" class="form-control d-inline w-auto" placeholder="{{ index .tab "file" }}" value="{{ .filter.FilterFilePattern }}">
+              <button type="button" class="btn btn-outline-secondary" onclick="document.getElementById('filterFilePatternInput').value='';"> <i class="fa fa-times"></i></button>
+            </div>
+          </label>
+        </div>
+        <hr style="border-top: 1px solid #ababab;">
+        <div>
+        <label class="ms-3 me-3">{{ index .tab "agentFilter" }} :
+          <select id="filterAgent" name="filterAgent" class="form-select d-inline w-auto">
+            <option value="" disabled selected>{{ index .tab "agent" }}</option>
+            <optgroup label="Partners">
+              {{ range .listPartners }}
+                <option value="partner:{{ . }}" {{ if eq $.filter.FilterAgent (print "partner:" .) }}selected{{ end }}>{{ . }}</option>
+              {{ end }}
+            </optgroup>
+            <optgroup label="Servers">
+              {{ range .listServers }}
+                <option value="server:{{ . }}" {{ if eq $.filter.FilterAgent (print "server:" .) }}selected{{ end }}>{{ . }}</option>
+              {{ end }}
+            </optgroup>
+          </select>
+            <select id="filterAccount" name="filterAccount" class="form-select d-inline w-auto">
+            <option value="" disabled selected>{{ index .tab "account" }}</option>
+          </select>
+        </label>
+      </div>
+      </form>
+    </div>
+    <table class="table table-sm align-middle mb-4 rounded-3 mt-3">
+      <thead class="table-light">
+        <tr>
+            <th>
+              <i class="bi bi-question-circle" id="tableHelpTooltip" data-bs-toggle="tooltip" data-bs-html="true" data-bs-placement="right" data-bs-title='
+                  <div>
+                    <div><i class="bi bi-box-arrow-up me-2"></i><b>{{ index .tab "clientSend" }}</b> : {{ index .tab "tooltipClientSend" }}</div>
+                    <div><i class="bi bi-box-arrow-in-down me-2"></i><b>{{ index .tab "clientReceive" }}</b> : {{ index .tab "tooltipClientReceive" }}</div>
+                    <div><i class="bi bi-cloud-download me-2"></i><b>{{ index .tab "serverSend" }}</b> : {{ index .tab "tooltipServerSend" }}</div>
+                    <div><i class="bi bi-cloud-upload me-2"></i><b>{{ index .tab "serverReceive" }}</b> : {{ index .tab "tooltipServerReceive" }}</div>
+                  </div>
+                '
+                style="cursor: help;"></i>
+            </th>
+            <th>{{ index .tab "id" }}</th>
+            <th>{{ index .tab "status" }}</th>
+            <th>{{ index .tab "file" }}</th>
+            <th>{{ index .tab "rule" }}</th>
+            <th>{{ index .tab "start" }}</th>
+            <th>{{ index .tab "end" }}</th>
+            <th>{{ index .tab "progress" }}</th>
+            <th>{{ index .tab "size" }}</th>
+            <th>{{ index .tab "moreInfo" }}</th>
+            <th class="text-end"></th>
+        </tr>
+      </thead>
+      <tbody>
+        {{ template "transfer_monitoring_tbody" . }}
+      </tbody>
+    </table>
+    <form method="get">
+      <ul class="pagination">
+        <input type="hidden" name="orderAsc" value="{{ .filter.OrderAsc }}">
+        <input type="hidden" name="limit" value="{{ .filter.Limit }}">
+        <input type="hidden" name="offset" value="{{ .filter.Offset }}">
+        <li class="page-item {{ if .filter.DisablePrevious }}disabled{{ end }}"><button class="page-link" name="previous" type="submit" value="true">{{ index .tab "previous" }}</button></li>
+        <li class="page-item"><button class="page-link disabled">{{ .currentPage }}</button></li>
+        <li class="page-item {{ if .filter.DisableNext }}disabled{{ end }}"><button class="page-link" name="next" type="submit" value="true">{{ index .tab "next" }}</button></li>
+      </ul>
+    </form>
+  {{ end }}
+  {{ else if not (contains .myPermission.Transfers "r") }}
+    <div class="d-flex align-items-center justify-content-between">
+      <h2 class="mb-0">{{ index .tab "accesRight" }} </h2>
+    </div>
+  {{ end }}
+{{ end }}
+
+{{ define "transfer_monitoring_page" }}
+  {{ template "index" . }}
+{{ end }}

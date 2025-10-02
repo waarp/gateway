@@ -33,6 +33,16 @@ const (
 	PermAll = math.MaxInt32 &^ permTransferDelete
 )
 
+func (m PermsMask) HasPermission(perms ...PermsMask) bool {
+	for _, perm := range perms {
+		if m&perm == perm {
+			return true
+		}
+	}
+
+	return false
+}
+
 // Permissions is a structured representation of a PermMask which regroups
 // permissions into categories depending on their target. Each attribute
 // represents 1 target. The attributes are strings which give a chmod-like

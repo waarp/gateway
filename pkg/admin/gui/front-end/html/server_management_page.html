@@ -1,0 +1,497 @@
+{{ define "head" }}
+  <title>{{ index .tab "title" }}</title>
+  <link rel="stylesheet" href="/webui/static/css/style.css">
+  <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css" rel="stylesheet">
+  <script src="/webui/static/javaScript/autoCompleteSearch.js"></script>
+  <script src="/webui/static/javaScript/tooltip.js"></script>
+  <script src="/webui/static/javaScript/showProtoConfig.js"></script>
+  <script>window.modalOpen = "{{ .modalOpen }}";</script>
+  <script src="/webui/static/javaScript/displayErr.js"></script>
+{{ end }}
+
+{{ define "content" }}
+  {{ if contains .myPermission.Servers "r" }}
+    {{ if .errMsg }}
+        <div id="errorPopup" class="alert alert-danger alert-dismissible fade show" role="alert">
+            {{ .errMsg }}
+            <button type="button" class="btn-close error-close-btn" data-bs-dismiss="alert" aria-label="Close"></button>
+        </div>
+    {{ end }}
+  <div class="d-flex align-items-center justify-content-between">
+    <h2 class="mb-0">{{ index .tab "title" }}</h2>
+    <div class="d-flex align-items-center">
+      <span class="text-muted small me-3">{{ index .tab "pathGateway" }}</span>
+      <button class="btn btn-outline-secondary ms-3 back-btn" type="button" onclick="window.location='home'">
+        <i class="bi bi-arrow-left"></i>
+      </button>
+    </div>
+  </div>
+  <hr style="border-top: 1px solid #ababab;">
+
+    {{ if contains .myPermission.Servers "w" }}
+    <button class="btn btn-primary mb-3 btn-add" type="button" data-bs-toggle="modal" data-bs-target="#addServerModal">
+        {{ index .tab "addServerTitle" }}
+    </button>
+    <div class="modal fade" id="addServerModal" tabindex="-1" aria-labelledby="addServerModalLabel" aria-hidden="true">
+        <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <form method="post" class="p-3 border rounded bg-light">
+            <div class="modal-header">
+                <h5 class="modal-title" id="addServerModalLabel">{{ index .tab "addServerTitle" }}</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <div class="form-input">
+                  <label class="col-form-label">{{ index .tab "servers" }} :</label>
+                  <input type="text" name="addServerName" class="form-control" required value="{{ index .modalElement "addServerName" }}">
+                </div>
+                <hr style="border-top: 1px solid #ababab;">
+                <div class="form-input mt-2 d-flex align-items-center">
+                    <label class="col-form-label me-3">{{ index .tab "noAutoStart" }} <i class="bi bi-info-circle ms-1" data-bs-toggle="tooltip" data-bs-placement="right" data-bs-title="{{ index $.tab "tooltipNoAutoStart" }}"></i> :</label>
+                    <div class="form-check-inline">
+                        <input class="form-check-input" type="checkbox" name="addNoAutoStart" value="true">
+                    </div>
+                </div>
+                <hr style="border-top: 1px solid #ababab;">
+                <div class="form-input">
+                <label class="col-form-label">{{ index .tab "protocol" }} <i class="bi bi-info-circle ms-1" data-bs-toggle="tooltip" data-bs-placement="right" data-bs-title="{{ index $.tab "tooltipProtocol" }}"></i> :</label>
+                <select name="addServerProtocol" id="addServerProtocol" class="form-select protocolConfiguration-select" required>
+                    <option value="" disabled {{ if not (index .modalElement "addServerProtocol") }}selected{{ end }}>{{ index .tab "selectProto" }}</option>
+                    {{ if in $.protocolsList "r66" }}
+                        <option value="r66" {{ if eq (index .modalElement "addServerProtocol") "r66" }}selected{{ end }}>R66</option>
+                    {{ end }}
+                    {{ if in $.protocolsList "r66-tls" }}
+                        <option value="r66-tls" {{ if eq (index .modalElement "addServerProtocol") "r66-tls" }}selected{{ end }}>R66-TLS</option>
+                    {{ end }}
+                    {{ if in $.protocolsList "sftp" }}
+                        <option value="sftp" {{ if eq (index .modalElement "addServerProtocol") "sftp" }}selected{{ end }}>SFTP</option>
+                    {{ end }}
+                    {{ if in $.protocolsList "http" }}
+                        <option value="http" {{ if eq (index .modalElement "addServerProtocol") "http" }}selected{{ end }}>HTTP</option>
+                    {{ end }}
+                    {{ if in $.protocolsList "https" }}
+                        <option value="https" {{ if eq (index .modalElement "addServerProtocol") "https" }}selected{{ end }}>HTTPS</option>
+                    {{ end }}
+                    {{ if in $.protocolsList "ftp" }}
+                        <option value="ftp" {{ if eq (index .modalElement "addServerProtocol") "ftp" }}selected{{ end }}>FTP</option>
+                    {{ end }}
+                    {{ if in $.protocolsList "ftps" }}
+                        <option value="ftps" {{ if eq (index .modalElement "addServerProtocol") "ftps" }}selected{{ end }}>FTPS</option>
+                    {{ end }}
+                    {{ if in $.protocolsList "pesit" }}
+                        <option value="pesit" {{ if eq (index .modalElement "addServerProtocol") "pesit" }}selected{{ end }}>PeSIT</option>
+                    {{ end }}
+                    {{ if in $.protocolsList "pesit-tls" }}
+                        <option value="pesit-tls" {{ if eq (index .modalElement "addServerProtocol") "pesit-tls" }}selected{{ end }}>PeSIT-TLS</option>
+                    {{ end }}
+                </select>
+                </div>
+
+                <hr style="border-top: 1px solid #ababab;">
+                <div class="form-input">
+                  <label class="col-form-label">{{ index .tab "address" }} ({{ index .tab "host" }}) <i class="bi bi-info-circle ms-1" data-bs-toggle="tooltip" data-bs-placement="right" data-bs-title="{{ index $.tab "tooltipHost" }}"></i> :</label>
+                  <input type="text" name="addServerHost" class="form-control" value="{{ index .modalElement "addServerHost" }}">
+                </div>
+
+                <hr style="border-top: 1px solid #ababab;">
+                <div class="form-input">
+                  <label class="col-form-label">{{ index .tab "address" }} ({{ index .tab "port" }}) <i class="bi bi-info-circle ms-1" data-bs-toggle="tooltip" data-bs-placement="right" data-bs-title="{{ index $.tab "tooltipPort" }}"></i> :</label>
+                  <input type="text" name="addServerPort" class="form-control" required value="{{ index .modalElement "addServerPort" }}">
+                </div>
+
+                <hr style="border-top: 1px solid #ababab;">
+                <div class="form-input">
+                  <label class="col-form-label">{{ index .tab "rootDir" }} :</label>
+                  <input type="text" name="addServerRootDir" class="form-control"  value="{{ index .modalElement "addServerRootDir" }}">
+                </div>
+
+                <hr style="border-top: 1px solid #ababab;">
+                <div class="form-input">
+                  <label class="col-form-label">{{ index .tab "receiveDir" }} :</label>
+                  <input type="text" name="addServerReceiveDir" class="form-control"  value="{{ index .modalElement "addServerReceiveDir" }}">
+                </div>
+
+                <hr style="border-top: 1px solid #ababab;">
+                <div class="form-input">
+                  <label class="col-form-label">{{ index .tab "sendDir" }} :</label>
+                  <input type="text" name="addServerSendDir" class="form-control"  value="{{ index .modalElement "addServerSendDir" }}">
+                </div>
+
+                <hr style="border-top: 1px solid #ababab;">
+                <div class="form-input">
+                  <label class="col-form-label">{{ index .tab "tmpReceiveDir" }} :</label>
+                  <input type="text" name="addServerTmpReceiveDir" class="form-control"  value="{{ index .modalElement "addServerTmpReceiveDir" }}">
+                </div>
+                {{ template "addR66Server" . }}
+                {{ template "addSftpServer" . }}
+                {{ template "addFtpServer" . }}
+                {{ template "addPesitServer" . }}
+                {{ template "addHttpServer" . }}
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">{{ index .tab "close" }}</button>
+                <button type="submit" class="btn btn-success ms-3">{{ index .tab "apply" }}</button>
+            </div>
+            </form>
+        </div>
+        </div>
+    </div>
+    {{ end }}
+
+  {{ if contains .myPermission.Servers "r" }}
+    <button class="btn btn-primary mb-3 ms-1-5 btn-filter" type="button" data-bs-toggle="collapse" data-bs-target="#filterCollapse" aria-expanded="false" aria-controls="filterCollapse">
+      {{ index .tab "filter" }}
+    </button>
+    <div class="collapse" id="filterCollapse">
+      <form method="get" class="p-3 border rounded bg-light">
+        <input type="hidden" name="applyFilters" value="true">
+        <label class="ms-3">{{ index .tab "sort" }}:
+          <select name="orderAsc" class="form-select d-inline w-auto">
+            <option value="true" {{ if .filter.OrderAsc }}selected{{ end }}>A → Z</option>
+            <option value="false" {{ if not .filter.OrderAsc }}selected{{ end }}>Z → A</option>
+          </select>
+        </label>
+        <label class="ms-3">{{ index .tab "limit" }}:
+          <select name="limit" class="form-select d-inline w-auto">
+            <option value="0" disabled selected>--</option>
+            <option value="5" {{ if eq .filter.Limit 5 }}selected{{ end }}>5</option>
+            <option value="10" {{ if eq .filter.Limit 10 }}selected{{ end }}>10</option>
+            <option value="15" {{ if eq .filter.Limit 15 }}selected{{ end }}>15</option>
+            <option value="20" {{ if eq .filter.Limit 20 }}selected{{ end }}>20</option>
+            <option value="25" {{ if eq .filter.Limit 25 }}selected{{ end }}>25</option>
+          </select>
+        </label>
+        <div style="float:right">
+          <button id="applyBtn" type="submit" class="btn btn-success">{{ index .tab "apply" }}</button>
+          <button id="resetBtn" type="button" class="btn btn-secondary ms-2" onclick="window.location='server_management?clearFiltersPage=server_management_page'">{{ index .tab "reset" }}</button>
+        </div>
+        <div class="mt-3">
+            <label class="ms-3 me-3">{{ index .tab "protocol" }}: </label>
+            <div class="form-check form-check-inline">
+              <input class="form-check-input" type="checkbox" name="filterProtocolR66" id="filterProtocolR66" value="true" {{ if .filter.Protocols.R66 }}checked{{ end }}>
+              <label class="form-check-label" for="filterProtocolR66">R66</label>
+            </div>
+            <div class="form-check form-check-inline">
+              <input class="form-check-input" type="checkbox" name="filterProtocolR66-TLS" id="filterProtocolR66-TLS" value="true" {{ if .filter.Protocols.R66TLS }}checked{{ end }}>
+              <label class="form-check-label" for="filterProtocolR66-TLS">R66-TLS</label>
+            </div>
+            <div class="form-check form-check-inline">
+              <input class="form-check-input" type="checkbox" name="filterProtocolSFTP" id="filterProtocolSFTP" value="true" {{ if .filter.Protocols.SFTP }}checked{{ end }}>
+              <label class="form-check-label" for="filterProtocolSFTP">SFTP</label>
+            </div>
+            <div class="form-check form-check-inline">
+              <input class="form-check-input" type="checkbox" name="filterProtocolHTTP" id="filterProtocolHTTP" value="true" {{ if .filter.Protocols.HTTP }}checked{{ end }}>
+              <label class="form-check-label" for="filterProtocolHTTP">HTTP</label>
+            </div>
+            <div class="form-check form-check-inline">
+              <input class="form-check-input" type="checkbox" name="filterProtocolHTTPS" id="filterProtocolHTTPS" value="true" {{ if .filter.Protocols.HTTPS }}checked{{ end }}>
+              <label class="form-check-label" for="filterProtocolHTTPS">HTTPS</label>
+            </div>
+            <div class="form-check form-check-inline">
+              <input class="form-check-input" type="checkbox" name="filterProtocolFTP" id="filterProtocolFTP" value="true" {{ if .filter.Protocols.FTP }}checked{{ end }}>
+              <label class="form-check-label" for="filterProtocolFTP">FTP</label>
+            </div>
+            <div class="form-check form-check-inline">
+              <input class="form-check-input" type="checkbox" name="filterProtocolFTPS" id="filterProtocolFTPS" value="true" {{ if .filter.Protocols.FTPS }}checked{{ end }}>
+              <label class="form-check-label" for="filterProtocolFTPS">FTPS</label>
+            </div>
+            <div class="form-check form-check-inline">
+              <input class="form-check-input" type="checkbox" name="filterProtocolPeSIT" id="filterProtocolPeSIT" value="true" {{ if .filter.Protocols.PeSIT }}checked{{ end }}>
+              <label class="form-check-label" for="filterProtocolPeSIT">PeSIT</label>
+            </div>
+            <div class="form-check form-check-inline">
+              <input class="form-check-input" type="checkbox" name="filterProtocolPeSIT-TLS" id="filterProtocolPeSIT-TLS" value="true" {{ if .filter.Protocols.PeSITTLS }}checked{{ end }}>
+              <label class="form-check-label" for="filterProtocolPeSIT-TLS">PeSIT-TLS</label>
+            </div>
+        </div>
+      </form>
+    </div>
+    <nav class="navbar navbar-light bg-light">
+      <input type="hidden" id="pageType" value="servers">
+      <form method="get" class="d-flex ms-auto position-relative" onsubmit="return true">
+        {{ if eq .serverFound "false" }}
+          <div class="invalid-feedback d-block mt-2">{{ index .tab "ServerNotFound" }}</div>
+        {{ else if eq .serverFound "true" }}
+          <button id="resetBtn" type="button" class="btn reset-btn" onclick="window.location='server_management'"><i class="bi bi-x fs"></i></button>
+        {{ end }}
+        <input class="navbar-partner form-control {{ if eq .serverFound "false" }}is-invalid{{ end }}" type="search" placeholder="{{ index .tab "search" }}" name="search" id="search" autocomplete="off">
+        <button class="btn btn-primary ms-2 btn-navbar" type="submit">{{ index .tab "search" }}</button>
+        <ul id="autocomplete" class="list-group"></ul>
+      </form>
+    </nav>
+    <table class="table table-sm align-middle mb-4 rounded-3 mt-3">
+      <thead class="table-light">
+        <tr>
+            <th></th>
+            <th>{{ index .tab "servers" }}</th>
+            <th>{{ index .tab "state" }}</th>
+            <th>{{ index .tab "protocol" }} <i class="bi bi-info-circle ms-1" data-bs-toggle="tooltip" data-bs-placement="right" data-bs-title="{{ index $.tab "tooltipProtocol" }}"></i></th>
+            <th>{{ index .tab "address" }} ({{ index .tab "host" }}) <i class="bi bi-info-circle ms-1" data-bs-toggle="tooltip" data-bs-placement="right" data-bs-title="{{ index $.tab "tooltipHost" }}"></i></th>
+            <th>{{ index .tab "address" }} ({{ index .tab "port" }}) <i class="bi bi-info-circle ms-1" data-bs-toggle="tooltip" data-bs-placement="right" data-bs-title="{{ index $.tab "tooltipPort" }}"></i></th>
+            <th>{{ index .tab "directoryConfiguration" }} <i class="bi bi-info-circle ms-1" data-bs-toggle="tooltip" data-bs-placement="right" data-bs-title="{{ index $.tab "tooltipDirectoryConfiguration" }}"></i></th>
+            <th>{{ index .tab "protoConfig" }} <i class="bi bi-info-circle ms-1" data-bs-toggle="tooltip" data-bs-placement="right" data-bs-title="{{ index $.tab "tooltipProtocolConfiguration" }}"></i></th>
+            <th class="text-end"></th>
+        </tr>
+        </thead>
+        <tbody>
+        {{ range .server }}
+        <tr>
+            <td><i class="bi bi-hdd-network me-1"></i></td>
+            <td><strong>{{ .Name }}</strong></td>
+            <td>
+              {{ $state := getServerState . }}
+              <span data-bs-toggle="tooltip" data-bs-placement="top" title="{{ index $state 1 }}">
+                {{ if eq (index $state 0) "Offline" }}
+                  <span class="fw-bold text-secondary">{{ index $.tab "offline" }}</span>
+                {{ else if eq (index $state 0) "Running" }}
+                  <span class="fw-bold text-primary">{{ index $.tab "running" }}</span>
+                {{ else if eq (index $state 0) "Error" }}
+                  <span class="fw-bold text-danger">{{ index $.tab "error" }}</span>
+                {{ else }}
+                  <span class="fw-bold">{{ .State }}</span>
+                {{ end }}
+              </span>
+            </td>
+            <td>{{ protocolDisplayName .Protocol }}</td>
+            <td>{{ .Address.Host }}</td>
+            <td>{{ .Address.Port }}</td>
+            <td>
+              <button class="btn btn-outline-primary modal-btn" type="button" data-bs-toggle="modal" data-bs-target="#directoriesModal_{{ .ID }}">
+                <i class="bi bi-folder2-open"></i>
+              </button>
+              <div class="modal fade" id="directoriesModal_{{ .ID }}" tabindex="-1" aria-labelledby="directoriesModalLabel_{{ .ID }}" aria-hidden="true">
+                <div class="modal-dialog modal-lg">
+                  <div class="modal-content p-3 border rounded bg-light">
+                    <div class="modal-header">
+                      <h5 class="modal-title" id="directoriesModalLabel_{{ .ID }}">
+                        {{ index $.tab "directoryConfiguration" }} : {{ .Name }}
+                      </h5>
+                      <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                    </div>
+                    <div class="modal-body">
+                      <div class="flex-label-input mb-2">
+                        <label class="col-form-label label-light-bold me-3">{{ index $.tab "rootDir" }} :</label>
+                        <input type="text" class="form-control-plaintext input-auto-width" value="{{ displayOrDefault .RootDir (index $.tab "undefined") }}" readonly>
+                      </div>
+                      <hr style="border-top: 1px solid #ababab;">
+                      <div class="flex-label-input mb-2">
+                        <label class="col-form-label label-light-bold me-3">{{ index $.tab "receiveDir" }} :</label>
+                        <input type="text" class="form-control-plaintext input-auto-width" value="{{ displayOrDefault .ReceiveDir (index $.tab "undefined") }}" readonly>
+                      </div>
+                      <hr style="border-top: 1px solid #ababab;">
+                      <div class="flex-label-input mb-2">
+                        <label class="col-form-label label-light-bold me-3">{{ index $.tab "sendDir" }} :</label>
+                        <input type="text" class="form-control-plaintext input-auto-width" value="{{ displayOrDefault .SendDir (index $.tab "undefined") }}" readonly>
+                      </div>
+                      <hr style="border-top: 1px solid #ababab;">
+                      <div class="flex-label-input mb-2">
+                        <label class="col-form-label label-light-bold me-3">{{ index $.tab "tmpReceiveDir" }} :</label>
+                        <input type="text" class="form-control-plaintext input-auto-width" value="{{ displayOrDefault .TmpReceiveDir (index $.tab "undefined") }}" readonly>
+                      </div>
+                    </div>
+                    <div class="modal-footer">
+                      <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">{{ index $.tab "close" }}</button>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </td>
+            <td>
+              {{ if ne .Protocol "http" }}
+              <button class="btn btn-outline-primary modal-btn" type="button" data-bs-toggle="modal" data-bs-target="#protoConfigModal_{{ .ID }}">
+                    <i class="bi bi-gear-wide-connected"></i>
+                </button>
+                <div class="modal fade" id="protoConfigModal_{{ .ID }}" tabindex="-1" aria-labelledby="protoConfigModalLabel_{{ .ID }}" aria-hidden="true">
+                    <div class="modal-dialog modal-lg">
+                    <div class="modal-content p-3 border rounded bg-light">
+                        <div class="modal-header">
+                        <h5 class="modal-title" id="protoConfigModalLabel_{{ .ID }}">
+                            {{ index $.tab "protoConfig" }} : {{ .Name }}
+                        </h5>
+                        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                        </div>
+                        <div class="modal-body">
+                        {{ if or (eq .Protocol "r66") (eq .Protocol "r66-tls") }}
+                            {{ template "displayR66Server" (dict "tab" $.tab "ProtoConfig" .ProtoConfig "Protocol" .Protocol) }}
+                        {{ end }}
+                        {{ if or (eq .Protocol "ftp") (eq .Protocol "ftps") }}
+                            {{ template "displayFtpServer" (dict "tab" $.tab "ProtoConfig" .ProtoConfig "TLSVersions" $.TLSVersions "TLSRequirement" $.TLSRequirement "Protocol" .Protocol) }}
+                        {{ end }}
+                        {{ if or (eq .Protocol "pesit") (eq .Protocol "pesit-tls") }}
+                            {{ template "displayPesitServer" (dict "tab" $.tab "ProtoConfig" .ProtoConfig "TLSVersions" $.TLSVersions "Protocol" .Protocol) }}
+                        {{ end }}
+                        {{ if eq .Protocol "sftp" }}
+                            {{ template "displaySftpServer" (dict "tab" $.tab "ProtoConfig" .ProtoConfig "KeyExchanges" $.KeyExchanges "Ciphers" $.Ciphers "MACs" $.MACs) }}
+                        {{ end }}
+                        {{ if eq .Protocol "https" }}
+                          {{ template "displayHttpServer" (dict "tab" $.tab "ProtoConfig" .ProtoConfig "TLSVersions" $.TLSVersions "Protocol" .Protocol) }}
+                        {{ end }}
+                        </div>
+                        <div class="modal-footer">
+                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">{{ index $.tab "close" }}</button>
+                        </div>
+                    </div>
+                    </div>
+                </div>
+                {{ end }}
+              </td>
+            <td class="text-end">
+              <div class="d-inline-flex">
+                {{ if contains $.myPermission.Servers "w" }}
+                <form method="post">
+                  <input type="hidden" name="switchServerStatus" value="{{ .ID }}">
+                  {{ if eq (index $state 0) "Running" }}
+                    <button type="submit" class="btn btn-outline-secondary btn-sm me-1" data-bs-toggle="tooltip" data-bs-placement="top" data-bs-title="{{ index $.tab "pause" }}">
+                      <i class="bi bi-stop"></i>
+                    </button>
+                  {{ else if or (eq (index $state 0) "Offline") (eq (index $state 0) "Error") }}
+                    <button type="submit" class="btn btn-outline-success btn-sm me-1" data-bs-toggle="tooltip" data-bs-placement="top" data-bs-title="{{ index $.tab "resume" }}">
+                      <i class="bi bi-play"></i>
+                    </button>
+                  {{ end }}
+                </form>
+                {{ end }}
+                <a class="btn btn-outline-warning btn-sm me-1" href="server_authentication?serverID={{ .ID }}" data-bs-toggle="tooltip" data-bs-placement="top" data-bs-title="{{ index $.tab "tooltipServerAuthentication" }}">
+                  <i class="bi bi-shield-lock"></i>
+                </a>
+                <a class="btn btn-outline-info btn-sm me-1" href="local_account_management?serverID={{ .ID }}" data-bs-toggle="tooltip" data-bs-placement="top" data-bs-title="{{ index $.tab "tooltipLocalAccountManagement" }}">
+                  <i class="bi bi-person-gear"></i>
+                </a>
+                {{ if contains $.myPermission.Servers "w" }}
+                <button class="btn btn-outline-primary btn-sm me-1" data-bs-toggle="modal" data-bs-target="#editServerModal_{{ .ID }}">
+                    <i class="bi bi-pencil"></i>
+                </button>
+                <div class="modal fade" id="editServerModal_{{ .ID }}" tabindex="-1" aria-labelledby="editServerModalLabel_{{ .ID }}" aria-hidden="true">
+                    <div class="modal-dialog modal-lg">
+                    <div class="modal-content">
+                        <form method="post" class="p-3 border rounded bg-light">
+                        <input type="hidden" name="editServerID" value="{{ .ID }}">
+                        {{ $me := and (eq $.modalOpen (printf "editServerModal_%d" .ID)) $.modalElement }}
+                        <div class="modal-header">
+                            <h5 class="modal-title" id="editServerModalLabel_{{ .ID }}">{{ index $.tab "edit" }}: {{ .Name }}</h5>
+                            <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                        </div>
+                        <div class="modal-body">
+                            <div class="form-input">
+                              <label class="col-form-label">{{ index $.tab "servers" }} :</label>
+                              <input type="text" name="editServerName" class="form-control" required value="{{ if $me }}{{ index $me "editServerName" }}{{ else }}{{ .Name }}{{ end }}">
+                            </div>
+                            <hr style="border-top: 1px solid #ababab;">
+                            <div class="form-input mt-2 d-flex align-items-center">
+                                <label class="col-form-label me-3">{{ index $.tab "noAutoStart" }} <i class="bi bi-info-circle ms-1" data-bs-toggle="tooltip" data-bs-placement="right" data-bs-title="{{ index $.tab "tooltipNoAutoStart" }}"></i> :</label>
+                                <div class="form-check-inline">
+                                    <input class="form-check-input" type="checkbox" name="editNoAutoStart" value="true" {{ if .Disabled }}checked{{ end }}>
+                                </div>
+                            </div>
+                            <hr style="border-top: 1px solid #ababab;">
+                            <div class="form-input mt-4">
+                            <label class="col-form-label">{{ index $.tab "protocol" }} <i class="bi bi-info-circle ms-1" data-bs-toggle="tooltip" data-bs-placement="right" data-bs-title="{{ index $.tab "tooltipProtocol" }}"></i> :</label>
+                            <select name="editServerProtocol" class="form-select protocolConfiguration-select" required>
+                                {{ if in $.protocolsList "r66" }}
+                                    <option value="r66" {{ if $me }}{{ if eq (index $me "editServerProtocol") "r66" }}selected{{ end }}{{ else if eq .Protocol "r66" }}selected{{ end }}>R66</option>
+                                {{ end }}
+                                {{ if in $.protocolsList "r66-tls" }}
+                                    <option value="r66-tls" {{ if $me }}{{ if eq (index $me "editServerProtocol") "r66-tls" }}selected{{ end }}{{ else if eq .Protocol "r66-tls" }}selected{{ end }}>R66-TLS</option>
+                                {{ end }}
+                                {{ if in $.protocolsList "sftp" }}
+                                    <option value="sftp" {{ if $me }}{{ if eq (index $me "editServerProtocol") "sftp" }}selected{{ end }}{{ else if eq .Protocol "sftp" }}selected{{ end }}>SFTP</option>
+                                {{ end }}
+                                {{ if in $.protocolsList "http" }}
+                                    <option value="http" {{ if $me }}{{ if eq (index $me "editServerProtocol") "http" }}selected{{ end }}{{ else if eq .Protocol "http" }}selected{{ end }}>HTTP</option>
+                                {{ end }}
+                                {{ if in $.protocolsList "https" }}
+                                    <option value="https" {{ if $me }}{{ if eq (index $me "editServerProtocol") "https" }}selected{{ end }}{{ else if eq .Protocol "https" }}selected{{ end }}>HTTPS</option>
+                                {{ end }}
+                                {{ if in $.protocolsList "ftp" }}
+                                    <option value="ftp" {{ if $me }}{{ if eq (index $me "editServerProtocol") "ftp" }}selected{{ end }}{{ else if eq .Protocol "ftp" }}selected{{ end }}>FTP</option>
+                                {{ end }}
+                                {{ if in $.protocolsList "ftps" }}
+                                    <option value="ftps" {{ if $me }}{{ if eq (index $me "editServerProtocol") "ftps" }}selected{{ end }}{{ else if eq .Protocol "ftps" }}selected{{ end }}>FTPS</option>
+                                {{ end }}
+                                {{ if in $.protocolsList "pesit" }}
+                                    <option value="pesit" {{ if $me }}{{ if eq (index $me "editServerProtocol") "pesit" }}selected{{ end }}{{ else if eq .Protocol "pesit" }}selected{{ end }}>PeSIT</option>
+                                {{ end }}
+                                {{ if in $.protocolsList "pesit-tls" }}
+                                    <option value="pesit-tls" {{ if $me }}{{ if eq (index $me "editServerProtocol") "pesit-tls" }}selected{{ end }}{{ else if eq .Protocol "pesit-tls" }}selected{{ end }}>PeSIT-TLS</option>
+                                {{ end }}
+                            </select>
+                            </div>
+                            <hr style="border-top: 1px solid #ababab;">
+                            <div class="form-input mt-4">
+                              <label class="col-form-label">{{ index $.tab "address" }} ({{ index $.tab "host" }}) <i class="bi bi-info-circle ms-1" data-bs-toggle="tooltip" data-bs-placement="right" data-bs-title="{{ index $.tab "tooltipHost" }}"></i> :</label>
+                              <input type="text" name="editServerHost" class="form-control" value="{{ if $me }}{{ index $me "editServerHost" }}{{ else }}{{ .Address.Host }}{{ end }}">
+                            </div>
+                            <hr style="border-top: 1px solid #ababab;">
+                            <div class="form-input mt-4">
+                              <label class="col-form-label">{{ index $.tab "address" }} ({{ index $.tab "port" }}) <i class="bi bi-info-circle ms-1" data-bs-toggle="tooltip" data-bs-placement="right" data-bs-title="{{ index $.tab "tooltipPort" }}"></i> :</label>
+                              <input type="text" name="editServerPort" class="form-control" required value="{{ if $me }}{{ index $me "editServerPort" }}{{ else }}{{ .Address.Port }}{{ end }}">
+                            </div>
+                            <hr style="border-top: 1px solid #ababab;">
+                            <div class="form-input mt-4">
+                              <label class="col-form-label">{{ index $.tab "rootDir" }} :</label>
+                              <input type="text" name="editServerRootDir" class="form-control" value="{{ if $me }}{{ index $me "editServerRootDir" }}{{ else }}{{ .RootDir }}{{ end }}">
+                            </div>
+                            <hr style="border-top: 1px solid #ababab;">
+                            <div class="form-input mt-4">
+                              <label class="col-form-label">{{ index $.tab "receiveDir" }} :</label>
+                              <input type="text" name="editServerReceiveDir" class="form-control" value="{{ if $me }}{{ index $me "editServerReceiveDir" }}{{ else }}{{ .ReceiveDir }}{{ end }}">
+                            </div>
+                            <hr style="border-top: 1px solid #ababab;">
+                            <div class="form-input mt-4">
+                              <label class="col-form-label">{{ index $.tab "sendDir" }} :</label>
+                              <input type="text" name="editServerSendDir" class="form-control" value="{{ if $me }}{{ index $me "editServerSendDir" }}{{ else }}{{ .SendDir }}{{ end }}">
+                            </div>
+                            <hr style="border-top: 1px solid #ababab;">
+                            <div class="form-input mt-4">
+                              <label class="col-form-label">{{ index $.tab "tmpReceiveDir" }} :</label>
+                              <input type="text" name="editServerTmpReceiveDir" class="form-control" value="{{ if $me }}{{ index $me "editServerTmpReceiveDir" }}{{ else }}{{ .TmpReceiveDir }}{{ end }}">
+                            </div>
+                            {{ template "editR66Server" (dict "tab" $.tab "ProtoConfig" .ProtoConfig "TLSVersions" $.TLSVersions "modalElement" $me) }}
+                            {{ template "editFtpServer" (dict "tab" $.tab "ProtoConfig" .ProtoConfig "TLSVersions" $.TLSVersions "TLSRequirement" $.TLSRequirement "modalElement" $me) }}
+                            {{ template "editPesitServer" (dict "tab" $.tab "ProtoConfig" .ProtoConfig "TLSVersions" $.TLSVersions "CompatibilityModePeSIT" $.CompatibilityModePeSIT "modalElement" $me) }}
+                            {{ template "editSftpServer" (dict "tab" $.tab "ProtoConfig" .ProtoConfig "KeyExchanges" $.KeyExchanges "Ciphers" $.Ciphers "MACs" $.MACs "modalElement" $me) }}
+                            {{ template "editHttpServer" (dict "tab" $.tab "ProtoConfig" .ProtoConfig "TLSVersions" $.TLSVersions "modalElement" $me) }}
+                        </div>
+                        <div class="modal-footer">
+                            <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">{{ index $.tab "close" }}</button>
+                            <button type="submit" class="btn btn-success ms-3">{{ index $.tab "apply" }}</button>
+                        </div>
+                        </form>
+                    </div>
+                    </div>
+                </div>
+                {{ end }}
+                {{ if contains $.myPermission.Servers "d" }}
+                <form method="post" class="d-inline">
+                    <input type="hidden" name="deleteServer" value="{{ .ID }}">
+                    <button type="submit" class="btn btn-outline-danger btn-sm" onclick="return confirm('{{ index $.tab "confirmDelete" }}')">
+                    <i class="bi bi-trash"></i>
+                    </button>
+                </form>
+                {{ end }}
+              </div>
+            </td>
+        </tr>
+        {{ end }}
+    </table>
+    <form method="get">
+      <ul class="pagination">
+        <input type="hidden" name="orderAsc" value="{{ .filter.OrderAsc }}">
+        <input type="hidden" name="limit" value="{{ .filter.Limit }}">
+        <input type="hidden" name="offset" value="{{ .filter.Offset }}">
+        <li class="page-item {{ if .filter.DisablePrevious }}disabled{{ end }}"><button class="page-link" name="previous" type="submit" value="true">{{ index .tab "previous" }}</button></li>
+        <li class="page-item"><button class="page-link disabled">{{ .currentPage }}</button></li>
+        <li class="page-item {{ if .filter.DisableNext }}disabled{{ end }}"><button class="page-link" name="next" type="submit" value="true">{{ index .tab "next" }}</button></li>
+      </ul>
+    </form>
+  {{ end }}
+  {{ else if not (contains .myPermission.Servers "r") }}
+    <div class="d-flex align-items-center justify-content-between">
+      <h2 class="mb-0">{{ index .tab "accesRight" }} </h2>
+    </div>
+  {{ end }}
+{{ end }}
+
+{{ define "server_management_page" }}
+  {{ template "index" . }}
+{{ end }}

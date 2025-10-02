@@ -1,6 +1,6 @@
-====================
-Retenter un transfer
-====================
+=====================
+Retenter un transfert
+=====================
 
 .. program:: waarp-gateway transfer retry
 

@@ -1,0 +1,15 @@
+description:
+  en: >
+    Make a copy the transfer file to another folder. The new file's name will 
+    remain identical to the original file.
+  fr: >
+    Crée une copie du fichier de transfert dans un autre dossier. Le nom du 
+    nouveau fichier restera identique au fichier d'origine.
+
+path:
+  en: Destination folder
+  fr: Dossier de destination
+
+pathTooltip:
+  en: The destination folder of the copied file.
+  fr: Le dossier de destination du fichier copié.

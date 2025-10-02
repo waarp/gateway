@@ -1,0 +1,11 @@
+description:
+  en: Make a copy of the transfer file.
+  fr: Crée une copie du fichier de transfert.
+
+path:
+  en: Destination path
+  fr: Chemin de destination
+
+pathTooltip:
+  en: The destination path of the copied file.
+  fr: Le chemin de destination du fichier copié.

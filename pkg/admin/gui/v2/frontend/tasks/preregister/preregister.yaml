@@ -1,0 +1,91 @@
+description:
+  en: Preregister a new server transfer with the given parameters.
+  fr: Pré-enregistre un nouveau transfert serveur avec les paramètres fournis.
+
+file:
+  en: File
+  fr: Fichier
+
+fileTooltip:
+  en: The path of the file to transfer.
+  fr: Le chemin du fichier à transférer.
+
+direction:
+  en: Direction
+  fr: Direction
+
+directionTooltip:
+  en: The transfer's direction.
+  fr: La direction du transfert.
+
+send:
+  en: Send
+  fr: Envoi
+
+receive:
+  en: Receive
+  fr: Réception
+
+rule:
+  en: Rule
+  fr: Règle
+
+ruleTooltip:
+  en: The rule to use for the transfer.
+  fr: La règle à utiliser pour le transfert.
+
+rulePlaceholder:
+  en: Choose a rule
+  fr: Choisir une règle
+
+server:
+  en: Server
+  fr: Serveur
+
+serverTooltip:
+  en: The server which will receive the transfer request.
+  fr: Le serveur qui recevra la requête de transfert.
+
+serverPlaceholder:
+  en: Choose a server
+  fr: Choisir un serveur
+
+account:
+  en: Login
+  fr: Login
+
+accountTooltip:
+  en: The login of the account which will make the transfer request.
+  fr: Le login du compte fera la requête de transfert.
+
+accountPlaceholder:
+  en: Choose an account
+  fr: Choisir un compte
+
+validFor:
+  en: Valid for
+  fr: Valide pour
+
+validForTooltip:
+  en: >
+    The transfer's validity period. Past this duration, the transfer will be in
+    error. By default, the transfer is valid for an unlimited period.
+  fr: >
+    La période de validité du transfert. Passé cette durée, le transfert tombera
+    en erreur. Par défaut, le transfert est valide pour une durée illimitée.
+
+info:
+  en: Transfer info (optional)
+  fr: Informations de transfert (optionnel)
+
+infoTooltip:
+  en: Metadata about the transfer as a JSON object.
+  fr: Informations sur le transfert sous forme d'un objet JSON.
+
+copyInfo:
+  en: Copy transfer info
+  fr: Copier les informations
+
+copyInfoTooltip:
+  en: Copy the current transfer's info onto the new one.
+  fr: Copie les informations du transfert courant sur le nouveau.

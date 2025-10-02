@@ -18,30 +18,30 @@ var (
 	ErrVerifyHMACInvalidSignature = errors.New("the provided HMAC signature does not match the transfer file")
 )
 
-func (v *verify) makeHMACSHA256Verifier(cryptoKey *model.CryptoKey) error {
-	return v.makeHMACVerifier(cryptoKey, sha256.New)
+func makeHMACSHA256Verifier(cryptoKey *model.CryptoKey) (verifyFunc, error) {
+	return makeHMACVerifier(cryptoKey, sha256.New)
 }
 
-func (v *verify) makeHMACSHA384Verifier(cryptoKey *model.CryptoKey) error {
-	return v.makeHMACVerifier(cryptoKey, sha512.New384)
+func makeHMACSHA384Verifier(cryptoKey *model.CryptoKey) (verifyFunc, error) {
+	return makeHMACVerifier(cryptoKey, sha512.New384)
 }
 
-func (v *verify) makeHMACSHA512Verifier(cryptoKey *model.CryptoKey) error {
-	return v.makeHMACVerifier(cryptoKey, sha512.New)
+func makeHMACSHA512Verifier(cryptoKey *model.CryptoKey) (verifyFunc, error) {
+	return makeHMACVerifier(cryptoKey, sha512.New)
 }
 
-func (v *verify) makeHMACMD5Verifier(cryptoKey *model.CryptoKey) error {
-	return v.makeHMACVerifier(cryptoKey, md5.New)
+func makeHMACMD5Verifier(cryptoKey *model.CryptoKey) (verifyFunc, error) {
+	return makeHMACVerifier(cryptoKey, md5.New)
 }
 
-func (v *verify) makeHMACVerifier(cryptoKey *model.CryptoKey, mkHash func() hash.Hash) error {
+func makeHMACVerifier(cryptoKey *model.CryptoKey, mkHash func() hash.Hash) (verifyFunc, error) {
 	if !isHMACKey(cryptoKey) {
-		return ErrVerifyNotHMACKey
+		return nil, ErrVerifyNotHMACKey
 	}
 
 	hasher := hmac.New(mkHash, []byte(cryptoKey.Key))
 
-	v.verify = func(file io.Reader, expected []byte) error {
+	return func(file io.Reader, expected []byte) error {
 		if _, err := io.Copy(hasher, file); err != nil {
 			return fmt.Errorf("failed to compute file signature: %w", err)
 		}
@@ -52,7 +52,5 @@ func (v *verify) makeHMACVerifier(cryptoKey *model.CryptoKey, mkHash func() hash
 		}
 
 		return nil
-	}
-
-	return nil
+	}, nil
 }

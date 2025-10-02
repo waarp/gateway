@@ -18,24 +18,24 @@ func isPGPVerifyKey(cryptoKey *model.CryptoKey) bool {
 	return cryptoKey.Type == model.CryptoKeyTypePGPPublic || cryptoKey.Type == model.CryptoKeyTypePGPPrivate
 }
 
-func (v *verify) makePGPVerifier(cryptoKey *model.CryptoKey) error {
+func makePGPVerifier(cryptoKey *model.CryptoKey) (verifyFunc, error) {
 	if !isPGPVerifyKey(cryptoKey) {
-		return ErrVerifyNotPGPKey
+		return nil, ErrVerifyNotPGPKey
 	}
 
 	pgpKey, parsErr := pgp.NewKeyFromArmored(cryptoKey.Key.String())
 	if parsErr != nil {
-		return fmt.Errorf("failed to parse PGP verification key: %w", parsErr)
+		return nil, fmt.Errorf("failed to parse PGP verification key: %w", parsErr)
 	}
 
 	if pgpKey.IsPrivate() {
 		pgpKey, parsErr = pgpKey.ToPublic()
 		if parsErr != nil {
-			return fmt.Errorf("failed to parse PGP public key: %w", parsErr)
+			return nil, fmt.Errorf("failed to parse PGP public key: %w", parsErr)
 		}
 	}
 
-	v.verify = func(file io.Reader, expected []byte) error {
+	return func(file io.Reader, expected []byte) error {
 		builder := pgp.PGPWithProfile(pgpprofile.RFC4880()).Verify()
 		sigReader := bytes.NewReader(expected)
 
@@ -54,7 +54,5 @@ func (v *verify) makePGPVerifier(cryptoKey *model.CryptoKey) error {
 		}
 
 		return nil
-	}
-
-	return nil
+	}, nil
 }

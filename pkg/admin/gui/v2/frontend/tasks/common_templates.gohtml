@@ -1,0 +1,130 @@
+{{ define "textInputRow" }}
+<div class="form-input">
+    <label class="col-form-label">
+        {{ .label }}
+        <i class="bi bi-info-circle"
+           data-bs-toggle="tooltip"
+           data-bs-placement="right"
+           data-bs-title="{{ .tooltip }}">
+        </i> :
+    </label>
+    <input type="{{ .fieldType }}"
+           name="{{ .fieldName }}"
+           class="form-control"
+           value="{{ .value }}"
+           placeholder="{{ .placeholder }}"
+           {{ if not .optional }}required{{ end }}>
+</div>
+{{ end }}
+
+{{ define "timeInputRow" }}
+<script>
+    function setTimeInput(timeEl) {
+        const inputRow = timeEl.parentElement.querySelector(".time-inputs-row");
+        timeEl.value = window[{{.aggregate}}](inputRow)
+    }
+</script>
+<div class="form-input">
+    <label class="col-form-label">
+        {{ .label }}
+        <i class="bi bi-info-circle"
+           data-bs-toggle="tooltip"
+           data-bs-placement="right"
+           data-bs-title="{{ .tooltip }}"></i> :
+    </label>
+    <input type="hidden" name="{{ .fieldName }}" value=""
+           onsubmit="setTimeInput(this)">
+
+    <div class="time-inputs-row">
+        {{ $optional := .optional }}
+        {{ $value := .value }}
+        {{ range $unit := .units }}
+        <div class="input-group">
+            <input type="number"
+                   class="form-control time-input-{{$unit}}"
+                   step="1"
+                   min="0"
+                   placeholder="0"
+                   value="{{ timePart $value $unit }}"
+                   {{ if not $optional }}required{{ end }}>
+            <span class="input-group-text input-group-append">{{$unit}}</span>
+        </div>
+        {{ end }}
+    </div>
+</div>
+{{ end }}
+
+{{ define "listInputRow" }}
+<div class="form-input">
+    <label class="col-form-label">
+        {{ .label }}
+        <i class="bi bi-info-circle"
+           data-bs-toggle="tooltip"
+           data-bs-placement="right"
+           data-bs-title="{{ .tooltip }}">
+        </i> :
+    </label>
+    <select class="form-select"
+            {{ if .id }}id="{{.id}}"{{ end }}
+            name="{{ .fieldName }}"
+            {{ if .onchange }}onchange="window[{{ .onchange }}](this)"{{ end }}
+            {{ if .disabled }}disabled{{ end }}
+            {{ if not .optional }}required{{ end }}>
+        <option value="" disabled {{ if not .value }}selected{{ end }}>
+            {{ .placeholder }}
+        </option>
+
+        {{ range .list }}
+            <option value="{{.}}" {{ if eq . $.value }}selected{{ end }}>
+                {{.}}
+            </option>
+        {{ end }}
+    </select>
+</div>
+{{ end }}
+
+{{ define "checkInputRow" }}
+<div class="form-input">
+    <label class="form-check-label me-2">
+        {{ .label }}
+        <i class="bi bi-info-circle"
+           data-bs-toggle="tooltip"
+           data-bs-placement="right"
+           data-bs-title="{{ .tooltip }}">
+        </i> :
+    </label>
+    <input class="form-check-input"
+           {{ if .id }}id="{{.id}}"{{ end }}
+           style="height: 1.2rem; width: 1.2rem"
+           name="{{ .fieldName }}"
+           type="checkbox"
+           value="true"
+           {{ if .onchange }}onchange="window[{{.onchange}}](this.checked)"{{ end }}
+           {{ if .value }}checked{{ end }}>
+</div>
+{{ end }}
+
+{{ define "numberInputRow" }}
+<div class="form-input">
+    <label class="col-form-label me-3">
+        {{ .label }}
+        <i class="bi bi-info-circle"
+           data-bs-toggle="tooltip"
+           data-bs-placement="right"
+           data-bs-title="{{ .tooltip }}">
+        </i> :
+    </label>
+    <div style="display:inline-block">
+        <input type="number"
+               class="form-control"
+               style="max-width: 5rem"
+               name="{{ .fieldName }}"
+               {{ if .placeholder }}placeholder="{{ .placeholder }}"{{ end }}
+               {{ if .min }}min="{{ .min }}"{{ end }}
+               {{ if .max }}max="{{ .max }}"{{ end }}
+               {{ if .step}}step="{{ .step }}"{{ end }}
+               {{ if .value }}value="{{.value}}"{{ end }}
+               {{ if not .optional }}required{{ end }}>
+    </div>
+</div>
+{{ end }}

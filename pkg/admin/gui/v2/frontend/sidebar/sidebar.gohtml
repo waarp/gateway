@@ -1,0 +1,223 @@
+<!-- Stylesheet -->
+<link rel="stylesheet" href="static_v2/sidebar/sidebar.css">
+
+<!-- Javascript -->
+<script src="static_v2/sidebar/sidebar.js"></script>
+
+<!-- Navigation sidebar -->
+<div id="app-sidebar" class="collapse collapse-horizontal show">
+    <div class="sidebar-content">
+        <nav class="sidebar-menu">
+            {{ if or .UserRights.Rules.CanRead .UserRights.Partners.CanRead .UserRights.Admin.CanRead}}
+            <div>
+                <button class="btn btn-toggle sidebar-category {{ if eq .ActiveSection `connection` }}active{{ end }}"
+                        id="sidebarButtonConnection"
+                        data-bs-toggle="collapse"
+                        data-bs-target="#sidebarSectionConnection"
+                        aria-expanded="true"
+                        onclick="flipSectionState(this)">
+                    {{ .Text.connectionSection }}
+                    <i class="bi bi-chevron-right"></i>
+                </button>
+                <div class="collapse show"
+                     id="sidebarSectionConnection"
+                     data-force-open="true">
+                    <ul>
+                        {{ if .UserRights.Servers.CanRead }}
+                        <li>
+                            <i class="bi bi-hdd-stack-fill"></i>
+                            <a class="sidebar-menu-text {{ if eq .ActiveMenu `servers` }}active{{ end }}"
+                               href="server_management">
+                                {{ .Text.manageLocalServers }}
+                            </a>
+                        </li>
+                        {{ end }}
+                        {{ if .UserRights.Servers.CanRead }}
+                        <li>
+                            <i class="bi bi-router-fill"></i>
+                            <a class="sidebar-menu-text {{ if eq .ActiveMenu `clients` }}active{{ end }}"
+                               href="local_client_management">
+                                {{ .Text.manageLocalClients }}
+                            </a>
+                        </li>
+                        {{ end }}
+                        {{ if .UserRights.Partners.CanRead }}
+                        <li>
+                            <i class="bi bi-globe"></i>
+                            <a class="sidebar-menu-text {{ if eq .ActiveMenu `partners` }}active{{ end }}"
+                               href="partner_management">
+                                {{ .Text.manageRemotePartners }}
+                            </a>
+                        </li>
+                        {{ end }}
+                        {{ if .UserRights.Admin.CanRead }}
+                        <li>
+                            <i class="bi bi-cloud-fill"></i>
+                            <a class="sidebar-menu-text {{ if eq .ActiveMenu `clouds` }}active{{ end }}"
+                               href="cloud_instance_management">
+                                {{ .Text.manageCloudInstances }}
+                            </a>
+                        </li>
+                        {{ end }}
+                    </ul>
+                </div>
+            </div>
+            {{ end }}
+            {{ if .UserRights.Rules.CanRead }}
+            <div>
+                <button class="btn btn-toggle sidebar-category {{ if eq .ActiveSection `treatments` }}active{{ end }}"
+                        id="sidebarButtonTreatment"
+                        data-bs-toggle="collapse"
+                        data-bs-target="#sidebarSectionTreatment"
+                        aria-expanded="true"
+                        onclick="flipSectionState(this)">
+                    {{ .Text.treatmentSection }}
+                    <i class="bi bi-chevron-right"></i>
+                </button>
+                <div class="collapse show"
+                     id="sidebarSectionTreatment"
+                     data-force-open="true">
+                    <ul>
+                        {{ if .UserRights.Rules.CanRead }}
+                        <li>
+                            <i class="bi bi-shuffle"></i>
+                            <a class="sidebar-menu-text {{ if eq .ActiveMenu `rules` }}active{{ end }}"
+                               href="transfer_rules_management">
+                                {{ .Text.manageRules }}
+                            </a>
+                        </li>
+                        {{ end }}
+                        {{ if .UserRights.Rules.CanRead }}
+                        <li>
+                            <i class="bi bi-key-fill"></i>
+                            <a class="sidebar-menu-text {{ if eq .ActiveMenu `crypto_keys` }}active{{ end }}"
+                               href="cryptographic_key_management">
+                                {{ .Text.manageCryptoKeys }}
+                            </a>
+                        </li>
+                        {{ end }}
+                        {{ if .UserRights.Rules.CanRead }}
+                        <li>
+                            <i class="bi bi-envelope-at-fill"></i>
+                            <a class="sidebar-menu-text {{ if eq .ActiveMenu `smtp_creds` }}active{{ end }}"
+                               href="smtp_credentials_management">
+                                {{ .Text.manageSMTPCredentials }}
+                            </a>
+                        </li>
+                        {{ end }}
+                        {{ if .UserRights.Rules.CanRead }}
+                        <li>
+                            <i class="bi bi-file-earmark-text-fill"></i>
+                            <a class="sidebar-menu-text {{ if eq .ActiveMenu `email_templates` }}active{{ end }}"
+                               href="email_templates_management">
+                                {{ .Text.manageEmailTemplates }}
+                            </a>
+                        </li>
+                        {{ end }}
+                    </ul>
+                </div>
+            </div>
+            {{ end }}
+            <div>
+                <button class="btn btn-toggle sidebar-category {{ if eq .ActiveSection `monitoring` }}active{{ end }}"
+                        id="sidebarButtonMonitoring"
+                        data-bs-toggle="collapse"
+                        data-bs-target="#sidebarSectionMonitoring"
+                        aria-expanded="true"
+                        onclick="flipSectionState(this)">
+                    {{ .Text.monitoringSection }}
+                    <i class="bi bi-chevron-right"></i>
+                </button>
+                <div class="collapse show"
+                     id="sidebarSectionMonitoring"
+                     data-force-open="true">
+                    <ul>
+                        <li>
+                            <i class="bi bi-list-check"></i>
+                            <a class="sidebar-menu-text {{ if eq .ActiveMenu `status` }}active{{ end }}"
+                               href="status_services">
+                                {{ .Text.servicesStatus }}
+                            </a>
+                        </li>
+                        {{ if .UserRights.Transfers.CanRead }}
+                        <li>
+                            <i class="bi bi-arrow-left-right"></i>
+                            <a class="sidebar-menu-text {{ if eq .ActiveMenu `transfers` }}active{{ end }}"
+                               href="transfer_monitoring">
+                                {{ .Text.transferMonitoring }}
+                            </a>
+                        </li>
+                        {{ end }}
+                        {{ if .UserRights.Admin.CanRead }}
+                        <li>
+                            <i class="bi bi-diagram-3-fill"></i>
+                            <a class="sidebar-menu-text {{ if eq .ActiveMenu `snmp` }}active{{ end }}"
+                               href="snmp_management">
+                                {{ .Text.manageSNMP }}
+                            </a>
+                        </li>
+                        {{ end }}
+                    </ul>
+                </div>
+            </div>
+            {{ if .UserRights.Admin.CanRead }}
+            <div>
+                <button class="btn btn-toggle sidebar-category {{ if eq .ActiveSection `admin` }}active{{ end }}"
+                        id="sidebarButtonAdmin"
+                        data-bs-toggle="collapse"
+                        data-bs-target="#sidebarSectionAdmin"
+                        aria-expanded="true"
+                        onclick="flipSectionState(this)">
+                    {{ .Text.adminSection }}
+                    <i class="bi bi-chevron-right"></i>
+                </button>
+                <div class="collapse show"
+                     id="sidebarSectionAdmin"
+                     data-force-open="true">
+                    <ul>
+                        {{ if .UserRights.Users.CanRead }}
+                        <li>
+                            <i class="bi bi-person-fill"></i>
+                            <a class="sidebar-menu-text {{ if eq .ActiveMenu `users` }}active{{ end }}"
+                               href="user_management">
+                                {{ .Text.manageUsers }}
+                            </a>
+                        </li>
+                        {{ end }}
+                        {{ if .UserRights.Admin.CanRead }}
+                        <li>
+                            <i class="bi bi-shield-lock-fill"></i>
+                            <a class="sidebar-menu-text {{ if eq .ActiveMenu `authorities` }}active{{ end }}"
+                               href="managing_authentication_authorities">
+                                {{ .Text.manageAuthorities }}
+                            </a>
+                        </li>
+                        {{ end }}
+                        {{ if .UserRights.Admin.CanRead }}
+                        <li>
+                            <i class="bi bi-sliders"></i>
+                            <a class="sidebar-menu-text {{ if eq .ActiveMenu `overrides` }}active{{ end }}"
+                               href="managing_configuration_overrides">
+                                {{ .Text.manageConfOverrides }}
+                            </a>
+                        </li>
+                        {{ end }}
+                    </ul>
+                </div>
+            </div>
+            {{ end }}
+        </nav>
+        <div class="sidebar-footer">
+            <img src="static_v2/assets/banner.png" alt="Waarp Banner" class="waarp-banner">
+            <a href="{{ .DocLink }}"
+               class="doc-link"
+               target="_blank"
+               aria-label="doc"
+               data-bs-toggle="tooltip"
+               data-bs-placement="top"
+               title="{{ .Text.docWaarp }}">
+                <i class="bi bi-book"></i>
+            </a>
+        </div>
+    </div>
+</div>

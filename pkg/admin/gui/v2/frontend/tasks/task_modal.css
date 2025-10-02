@@ -1,0 +1,35 @@
+#taskTypeFields .task-description {
+    margin-top: 0.5rem;
+    font-style: italic;
+    border-bottom: #e0e0e0 1px solid;
+    padding-bottom: 1rem;
+}
+
+#taskTypeFields .form-input {
+    margin-bottom: 1rem;
+}
+
+#taskTypeFields .time-inputs-row {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.5rem;
+}
+
+#taskTypeFields .time-inputs-row .input-group {
+    width: auto;
+    flex: 0 0 auto;
+    align-items: center;
+}
+
+#taskTypeFields .time-inputs-row .input-group input {
+    max-width: 6ch;
+    min-width: 6ch;
+    text-align: right;
+    -webkit-appearance: none;
+    -moz-appearance: textfield;
+}
+
+#taskTypeFields .time-inputs-row .input-group .input-group-append {
+    text-align: left;
+    padding-inline: 0.5rem;
+}

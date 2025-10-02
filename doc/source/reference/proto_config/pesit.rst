@@ -68,7 +68,7 @@ JSON de configuration du protocole pour un partenaire PeSIT est donc la suivante
   configuration du client est utilisée.
 * **useNSDU** (*boolean*) - Spécifie si les méta-paquets NSDU du protocole PeSIT
   doivent être utilisés lors des transferts avec ce partenaire. Par défaut, les
-  paquets NSDU ne sont pas utilisés.
+  paquets NSDU sont utilisés.
 * **compatibilityMode** (*string*) - Spécifie le mode de compatibilité à utiliser
   lors des communications avec le partenaire, dans le cas où celui-ci ne respecterait
   pas la spécification du protocole PeSIT. Les valeurs autorisés sont : ``none``
@@ -95,7 +95,7 @@ JSON de configuration du protocole pour un partenaire PeSIT est donc la suivante
      "checkpointWindow": 2,
      "useNSDU": true,
      "compatibilityMode": "axway",
-     "maxMessageSize": "65535",
+     "maxMessageSize": 65535,
      "minTLSVersion": "v1.2"
    }
 
@@ -140,7 +140,7 @@ est la suivante :
      "disableCheckpoints": false,
      "checkpointSize": 65535,
      "checkpointWindow": 1,
-     "maxMessageSize**: 65535,
+     "maxMessageSize": 65535,
      "disablePreConnection": false,
      "minTLSVersion": "v1.2"
    }

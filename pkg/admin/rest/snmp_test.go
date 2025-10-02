@@ -82,9 +82,9 @@ func TestAddSNMPMonitor(t *testing.T) {
 			PrivProtocol:    monitorPrivProtocol,
 			PrivPassphrase:  monitorPrivPassphrase,
 		}
-		expectedLoc := path.Join(SNMPMonitorsPath, monitorName)
+		expectedLoc := path.Join("/snmp/monitors", monitorName)
 
-		req := httptest.NewRequest(http.MethodPost, SNMPMonitorsPath, &reqBody)
+		req := httptest.NewRequest(http.MethodPost, "/snmp/monitors", &reqBody)
 		w := httptest.NewRecorder()
 		handle.ServeHTTP(w, req)
 
@@ -149,7 +149,7 @@ func TestListSNMPMonitors(t *testing.T) {
 			},
 		})
 
-		req := httptest.NewRequest(http.MethodGet, SNMPMonitorsPath, nil)
+		req := httptest.NewRequest(http.MethodGet, "/snmp/monitors", nil)
 		w := httptest.NewRecorder()
 		handle.ServeHTTP(w, req)
 
@@ -199,7 +199,7 @@ func TestGetSNMPMonitor(t *testing.T) {
 			"privPassphrase":  dbMonitor.PrivPassphrase,
 		})
 
-		req := makeRequest(http.MethodGet, nil, SNMPMonitorPath, dbMonitor.Name)
+		req := makeRequest(http.MethodGet, nil, "/snmp/monitors/{snmp_monitor}", dbMonitor.Name)
 		w := httptest.NewRecorder()
 		handle.ServeHTTP(w, req)
 
@@ -253,9 +253,9 @@ func TestUpdateSNMPMonitor(t *testing.T) {
 			SNMPv3Security: newV3Security,
 			AuthUsername:   newAuthUsername,
 		}
-		expectedLoc := path.Join(SNMPMonitorsPath, expectedDBMonitor.Name)
+		expectedLoc := path.Join("/snmp/monitors", expectedDBMonitor.Name)
 
-		req := makeRequest(http.MethodPatch, &reqBody, SNMPMonitorPath, oldDBMonitor.Name)
+		req := makeRequest(http.MethodPatch, &reqBody, "/snmp/monitors/{snmp_monitor}", oldDBMonitor.Name)
 		w := httptest.NewRecorder()
 		handle.ServeHTTP(w, req)
 
@@ -289,7 +289,7 @@ func TestDeleteSnmpMonitor(t *testing.T) {
 		}
 		require.NoError(t, db.Insert(&dbMonitor).Run())
 
-		req := makeRequest(http.MethodDelete, nil, SNMPMonitorPath, dbMonitor.Name)
+		req := makeRequest(http.MethodDelete, nil, "/snmp/monitors/{snmp_monitor}", dbMonitor.Name)
 		w := httptest.NewRecorder()
 		handle.ServeHTTP(w, req)
 
@@ -348,7 +348,7 @@ func TestGetSNMPServer(t *testing.T) {
 			"v3PrivPassphrase": dbSnmpConf.SNMPv3PrivPassphrase,
 		})
 
-		req := httptest.NewRequest(http.MethodGet, SNMPServerPath, nil)
+		req := httptest.NewRequest(http.MethodGet, "/snmp/server", nil)
 		w := httptest.NewRecorder()
 		handle.ServeHTTP(w, req)
 
@@ -403,9 +403,9 @@ func TestAddNewSNMPServer(t *testing.T) {
 			SNMPv3PrivProtocol:   v3PrivProtocol,
 			SNMPv3PrivPassphrase: v3PrivPassphrase,
 		}
-		expectedLoc := SNMPServerPath
+		expectedLoc := "/snmp/server"
 
-		req := httptest.NewRequest(http.MethodPut, SNMPServerPath, &reqBody)
+		req := httptest.NewRequest(http.MethodPut, "/snmp/server", &reqBody)
 		w := httptest.NewRecorder()
 		handle.ServeHTTP(w, req)
 
@@ -474,9 +474,9 @@ func TestUpdateSNMPServer(t *testing.T) {
 			SNMPv3PrivProtocol:   oldDBSnmpConf.SNMPv3PrivProtocol,
 			SNMPv3PrivPassphrase: oldDBSnmpConf.SNMPv3PrivPassphrase,
 		}
-		expectedLoc := SNMPServerPath
+		expectedLoc := "/snmp/server"
 
-		req := httptest.NewRequest(http.MethodPut, SNMPServerPath, &reqBody)
+		req := httptest.NewRequest(http.MethodPut, "/snmp/server", &reqBody)
 		w := httptest.NewRecorder()
 		handle.ServeHTTP(w, req)
 
@@ -519,7 +519,7 @@ func TestDeleteSnmpServer(t *testing.T) {
 		setupSnmpService(t, db)
 		require.Equal(t, dbSnmpConf.LocalUDPAddress, snmp.GlobalService.GetServerAddr())
 
-		req := httptest.NewRequest(http.MethodGet, SNMPServerPath, nil)
+		req := httptest.NewRequest(http.MethodGet, "/snmp/server", nil)
 		w := httptest.NewRecorder()
 		handle.ServeHTTP(w, req)
 

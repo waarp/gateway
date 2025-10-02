@@ -12,6 +12,7 @@ import (
 	"code.waarp.fr/apps/gateway/gateway/pkg/database"
 	"code.waarp.fr/apps/gateway/gateway/pkg/model"
 	"code.waarp.fr/apps/gateway/gateway/pkg/utils"
+	"code.waarp.fr/apps/gateway/gateway/pkg/utils/ordered"
 )
 
 var (
@@ -23,6 +24,24 @@ var (
 )
 
 type decryptVerifyFunc func(src io.Reader, dst io.Writer) error
+
+type decryptVerifyMethod struct {
+	KeyTypesDecrypt   []string
+	KeyTypesVerify    []string
+	mkDecryptVerifier func(*model.CryptoKey, *model.CryptoKey) (decryptVerifyFunc, error)
+}
+
+//nolint:gochecknoglobals //global var is needed here for future-proofing
+var DecryptVerifyMethods = ordered.Map[string, *decryptVerifyMethod]{}
+
+//nolint:gochecknoinits //init is needed here to initialize constants
+func init() {
+	DecryptVerifyMethods.Add(DecryptVerifyMethodPGP, &decryptVerifyMethod{
+		KeyTypesDecrypt:   []string{model.CryptoKeyTypePGPPrivate},
+		KeyTypesVerify:    []string{model.CryptoKeyTypePGPPublic, model.CryptoKeyTypePGPPrivate},
+		mkDecryptVerifier: makePGPVerifyDecryptor,
+	})
+}
 
 type decryptVerify struct {
 	KeepOriginal jsonBool `json:"keepOriginal"`
@@ -67,12 +86,17 @@ func (d *decryptVerify) ValidateDB(db database.ReadAccess, params map[string]str
 		return fmt.Errorf("failed to retrieve verification key from database: %w", err)
 	}
 
-	switch d.Method {
-	case EncryptSignMethodPGP:
-		return d.makePGPVerifyDecryptor(&dCryptoKey, &vCryptoKey)
-	default:
-		return fmt.Errorf("%w: %s", ErrDecryptVerifyInvalidMethod, d.Method)
+	method, ok := DecryptVerifyMethods.Get(d.Method)
+	if !ok {
+		return fmt.Errorf("%w %q", ErrEncryptSignUnknownMethod, d.Method)
 	}
+
+	var err error
+	if d.decryptVerify, err = method.mkDecryptVerifier(&dCryptoKey, &vCryptoKey); err != nil {
+		return err
+	}
+
+	return nil
 }
 
 func (d *decryptVerify) Run(_ context.Context, params map[string]string,

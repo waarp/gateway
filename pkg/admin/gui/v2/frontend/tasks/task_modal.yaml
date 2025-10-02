@@ -1,0 +1,75 @@
+addTask:
+  en: Add a new task
+  fr: Ajouter une nouvelle tâche
+
+addPreTask:
+  en: Add a new pre-task
+  fr: Ajouter une nouvelle pré-tâche
+
+addPostTask:
+  en: Add a new post-task
+  fr: Ajouter une nouvelle post-tâche
+
+addErrorTask:
+  en: Add a new error task
+  fr: Ajouter une nouvelle tâche d'erreur
+
+editPreTask:
+  en: Edit a pre-task
+  fr: Modifier une pré-tâche
+
+editPostTask:
+  en: Edit a post-task
+  fr: Modifier une post-tâche
+
+editErrorTask:
+  en: Edit a error task
+  fr: Modifier une tâche d'erreur
+
+type:
+  en: Type
+  fr: Type
+
+typeTooltip:
+  en: The type of task
+  fr: Le type de tâche
+
+selectType:
+  en: Select task type
+  fr: Sélectionner le type de tâche
+
+apply:
+  en: Apply
+  fr: Appliquer
+
+close:
+  en: Close
+  fr: Fermer
+
+fileOperations:
+  en: File operations
+  fr: Opérations de fichiers
+
+executables:
+  en: Executables
+  fr: Exécutables
+
+transfer:
+  en: Transfer
+  fr: Transfert
+
+fileAlterations:
+  en: File alterations
+  fr: Altérations de fichiers
+
+archiving:
+  en: Archiving & compression
+  fr: Archivage & compression
+
+network:
+  en: Network
+  fr: Réseau
+
+crypto:
+  en: Cryptography
+  fr: Cryptographie

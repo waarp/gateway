@@ -1,0 +1,19 @@
+description:
+  en: Change the newline character used in the transfer file.
+  fr: Change le caractère de fin de ligne dans le fichier de transfert.
+
+from:
+  en: From
+  fr: Depuis
+
+fromTooltip:
+  en: The current newline character of the file.
+  fr: Le caractère de fin de ligne actuel du fichier.
+
+to:
+  en: To
+  fr: Vers
+
+toTooltip:
+  en: The desired newline character for the file.
+  fr: Le caractère de fin de ligne souhaité pour le fichier.

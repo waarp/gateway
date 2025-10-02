@@ -109,15 +109,15 @@ func passwordCallback(db *database.DB, logger *log.Logger, agent *model.LocalAge
 
 func setServerDefaultAlgos(conf *ssh.ServerConfig) {
 	if len(conf.KeyExchanges) == 0 {
-		conf.KeyExchanges = validKeyExchanges.ServerDefaults()
+		conf.KeyExchanges = ValidKeyExchanges.ServerDefaults()
 	}
 
 	if len(conf.Ciphers) == 0 {
-		conf.Ciphers = validCiphers.ServerDefaults()
+		conf.Ciphers = ValidCiphers.ServerDefaults()
 	}
 
 	if len(conf.MACs) == 0 {
-		conf.MACs = validMACs.ServerDefaults()
+		conf.MACs = ValidMACs.ServerDefaults()
 	}
 }
 

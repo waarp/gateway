@@ -13,13 +13,46 @@ import (
 	"code.waarp.fr/apps/gateway/gateway/pkg/fs"
 	"code.waarp.fr/apps/gateway/gateway/pkg/model"
 	"code.waarp.fr/apps/gateway/gateway/pkg/utils"
+	"code.waarp.fr/apps/gateway/gateway/pkg/utils/ordered"
 )
+
+type signMethod struct {
+	KeyTypes []string
+	mkSigner func(*model.CryptoKey) (signFunc, error)
+}
+
+//nolint:gochecknoglobals //global var is needed here for future-proofing
+var SignMethods = ordered.Map[string, *signMethod]{}
+
+//nolint:gochecknoinits //init is needed here to initialize constants
+func init() {
+	SignMethods.Add(SignMethodHMACSHA256, &signMethod{
+		KeyTypes: []string{model.CryptoKeyTypeHMAC},
+		mkSigner: makeHMACSHA256Signer,
+	})
+	SignMethods.Add(SignMethodHMACSHA384, &signMethod{
+		KeyTypes: []string{model.CryptoKeyTypeHMAC},
+		mkSigner: makeHMACSHA384Signer,
+	})
+	SignMethods.Add(SignMethodHMACSHA512, &signMethod{
+		KeyTypes: []string{model.CryptoKeyTypeHMAC},
+		mkSigner: makeHMACSHA512Signer,
+	})
+	SignMethods.Add(SignMethodHMACMD5, &signMethod{
+		KeyTypes: []string{model.CryptoKeyTypeHMAC},
+		mkSigner: makeHMACMD5Signer,
+	})
+	SignMethods.Add(SignMethodPGP, &signMethod{
+		KeyTypes: []string{model.CryptoKeyTypePGPPrivate},
+		mkSigner: makePGPSigner,
+	})
+}
 
 var (
 	ErrSignNoKeyName     = errors.New("missing signature key name")
 	ErrSignNoMethod      = errors.New("missing signature method")
 	ErrSignKeyNotFound   = errors.New("signature key not found")
-	ErrSignInvalidMethod = errors.New("invalid signature method")
+	ErrSignUnknownMethod = errors.New("unknown signature method")
 )
 
 type signFunc func(file io.Reader) ([]byte, error)
@@ -53,20 +86,17 @@ func (s *sign) ValidateDB(db database.ReadAccess, params map[string]string) erro
 		return fmt.Errorf("failed to retrieve signature key from database: %w", err)
 	}
 
-	switch s.Method {
-	case SignMethodHMACSHA256:
-		return s.makeHMACSHA256Signer(&cryptoKey)
-	case SignMethodHMACSHA384:
-		return s.makeHMACSHA384Signer(&cryptoKey)
-	case SignMethodHMACSHA512:
-		return s.makeHMACSHA512Signer(&cryptoKey)
-	case SignMethodHMACMD5:
-		return s.makeHMACMD5Signer(&cryptoKey)
-	case SignMethodPGP:
-		return s.makePGPSigner(&cryptoKey)
-	default:
-		return fmt.Errorf("%w: %s", ErrSignInvalidMethod, s.Method)
+	method, ok := SignMethods.Get(s.Method)
+	if !ok {
+		return fmt.Errorf("%w %q", ErrSignUnknownMethod, s.Method)
 	}
+
+	var err error
+	if s.sign, err = method.mkSigner(&cryptoKey); err != nil {
+		return err
+	}
+
+	return nil
 }
 
 func (s *sign) Run(_ context.Context, params map[string]string,

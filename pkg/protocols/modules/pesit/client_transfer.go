@@ -57,10 +57,10 @@ func (c *clientTransfer) configureClient(config *PartnerConfig) *pipeline.Error 
 
 		// configure restarts
 		c.client.AllowRestart(!utils.If(config.DisableRestart.Valid,
-			config.DisableRestart.Valid, c.clientConf.DisableRestart))
+			config.DisableRestart.Value, c.clientConf.DisableRestart))
 	}
 
-	if config.UseNSDU {
+	if config.UseNSDU.Valid && config.UseNSDU.Value {
 		c.client.SetNSDUUsage(true)
 	}
 
@@ -74,7 +74,7 @@ func (c *clientTransfer) configureClient(config *PartnerConfig) *pipeline.Error 
 		c.client.SetPreConnectionUsage(true)
 
 		for _, cred := range c.pip.TransCtx.RemoteAccountCreds {
-			if cred.Type == preConnectionAuth {
+			if cred.Type == PreConnectionAuth {
 				c.client.SetPreConnectLogin(cred.Value)
 				c.client.SetPreConnectPassword(cred.Value2)
 
@@ -194,14 +194,15 @@ func (c *clientTransfer) request(fileInfo fs.FileInfo, partConf *PartnerConfigTL
 		}
 	}
 
-	// c.pTrans.UseClientLogin(true)
 	c.pTrans.SetTransferID(c.pesitID)
+	c.pTrans.SetMessageSize(partConf.MaxMessageSize)
+	c.pTrans.SetArticleFormat(pesit.FormatVariable)
+	c.pTrans.SetArticleSize(defaultArticleSize)
+
 	c.pTrans.StopReceived = stopReceived(c.pip)
 	c.pTrans.ConnectionAborted = connectionAborted(c.pip)
 	c.pTrans.RestartReceived = restartReceived(c.pip)
 	c.pTrans.CheckpointRequestReceived = checkpointRequestReceived(c.pip)
-	c.pTrans.SetMessageSize(partConf.MaxMessageSize)
-	c.pTrans.SetArticleSize(defaultArticleSize)
 
 	if err := setFreetext(c.pip, clientTransFreetextKey, c.pTrans); err != nil {
 		return err
@@ -306,7 +307,6 @@ func (c *clientTransfer) Send(fullFile protocol.SendFile) *pipeline.Error {
 			return copyArticle(c.pTrans, fullFile)
 		}
 
-		c.pTrans.SetArticleFormat(pesit.FormatVariable)
 		c.pTrans.SetManualArticleHandling(true)
 
 		for _, length := range articleLengths {

@@ -19,6 +19,12 @@ func (v *ValidationError) Error() string {
 
 func (v *ValidationError) Unwrap() error { return errors.Unwrap(v.err) }
 
+func IsValidationError(err error) bool {
+	var ve *ValidationError
+
+	return errors.As(err, &ve)
+}
+
 // InternalError is the error encapsulating the database driver errors.
 type InternalError struct {
 	msg   string

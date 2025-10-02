@@ -422,7 +422,7 @@ func TestTransferPause(t *testing.T) {
 
 				assert.Equal(t,
 					fmt.Sprintf("The transfer %q was successfully paused. "+
-						"It can be resumed using the 'resume' command.\n", id),
+						"It can be resumed using the \"resume\" command.\n", id),
 					w.String(),
 					"Then it should display a message saying the transfer was paused",
 				)

@@ -108,9 +108,9 @@ func TestAddCloud(t *testing.T) {
 			Secret:  database.SecretText(input.Secret),
 			Options: input.Options,
 		}
-		expectedLoc := path.Join(CloudInstancesPath, input.Name)
+		expectedLoc := path.Join("clouds", input.Name)
 
-		r, err := http.NewRequest(http.MethodPost, CloudInstancesPath, &body)
+		r, err := http.NewRequest(http.MethodPost, "clouds", &body)
 		require.NoError(t, err)
 
 		w := httptest.NewRecorder()
@@ -137,7 +137,7 @@ func TestAddCloud(t *testing.T) {
 		handle := addCloud(logger, db)
 		body := bytes.NewBufferString("this is a string")
 
-		r, err := http.NewRequest(http.MethodPost, CloudInstancesPath, body)
+		r, err := http.NewRequest(http.MethodPost, "clouds", body)
 		require.NoError(t, err)
 
 		w := httptest.NewRecorder()
@@ -308,9 +308,9 @@ func testUpdateReplaceCloud(t *testing.T, isReplace bool) {
 		require.NoError(t, encoder.Encode(input))
 
 		expectedCloud := mkExpected(old)
-		expectedLoc := path.Join(CloudInstancesPath, input.Name)
+		expectedLoc := path.Join("clouds", input.Name)
 
-		r, err := http.NewRequest(method, CloudInstancesPath, &body)
+		r, err := http.NewRequest(method, "clouds", &body)
 		require.NoError(t, err)
 
 		r = mux.SetURLVars(r, map[string]string{"cloud": old.Name})

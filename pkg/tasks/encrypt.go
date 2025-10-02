@@ -12,13 +12,42 @@ import (
 	"code.waarp.fr/apps/gateway/gateway/pkg/database"
 	"code.waarp.fr/apps/gateway/gateway/pkg/model"
 	"code.waarp.fr/apps/gateway/gateway/pkg/utils"
+	"code.waarp.fr/apps/gateway/gateway/pkg/utils/ordered"
 )
+
+type encryptMethod struct {
+	KeyTypes    []string
+	mkEncryptor func(*model.CryptoKey) (encryptFunc, error)
+}
+
+//nolint:gochecknoglobals //global var is needed here for future-proofing
+var EncryptMethods = ordered.Map[string, *encryptMethod]{}
+
+//nolint:gochecknoinits //init is needed here to initialize constants
+func init() {
+	EncryptMethods.Add(EncryptMethodAESCFB, &encryptMethod{
+		KeyTypes:    []string{model.CryptoKeyTypeAES},
+		mkEncryptor: makeAESCFBEncryptor,
+	})
+	EncryptMethods.Add(EncryptMethodAESCTR, &encryptMethod{
+		KeyTypes:    []string{model.CryptoKeyTypeAES},
+		mkEncryptor: makeAESCTREncryptor,
+	})
+	EncryptMethods.Add(EncryptMethodAESOFB, &encryptMethod{
+		KeyTypes:    []string{model.CryptoKeyTypeAES},
+		mkEncryptor: makeAESOFBEncryptor,
+	})
+	EncryptMethods.Add(EncryptMethodPGP, &encryptMethod{
+		KeyTypes:    []string{model.CryptoKeyTypePGPPublic, model.CryptoKeyTypePGPPrivate},
+		mkEncryptor: makePGPEncryptor,
+	})
+}
 
 var (
 	ErrEncryptNoKeyName     = errors.New("missing encryption key name")
 	ErrEncryptNoMethod      = errors.New("missing encryption method")
 	ErrEncryptKeyNotFound   = errors.New("encryption key not found")
-	ErrEncryptInvalidMethod = errors.New("invalid encryption method")
+	ErrEncryptUnknownMethod = errors.New("unknown encryption method")
 )
 
 type encryptFunc func(src io.Reader, dst io.Writer) error
@@ -53,18 +82,17 @@ func (e *encrypt) ValidateDB(db database.ReadAccess, params map[string]string) e
 		return fmt.Errorf("failed to retrieve encryption key from database: %w", err)
 	}
 
-	switch e.Method {
-	case EncryptMethodAESCFB:
-		return e.makeAESCFBEncryptor(&cryptoKey)
-	case EncryptMethodAESCTR:
-		return e.makeAESCTREncryptor(&cryptoKey)
-	case EncryptMethodAESOFB:
-		return e.makeAESOFBEncryptor(&cryptoKey)
-	case EncryptMethodPGP:
-		return e.makePGPEncryptor(&cryptoKey)
-	default:
-		return fmt.Errorf("%w: %s", ErrEncryptInvalidMethod, e.Method)
+	method, ok := EncryptMethods.Get(e.Method)
+	if !ok {
+		return fmt.Errorf("%w %q", ErrEncryptUnknownMethod, e.Method)
 	}
+
+	var err error
+	if e.encrypt, err = method.mkEncryptor(&cryptoKey); err != nil {
+		return err
+	}
+
+	return nil
 }
 
 func (e *encrypt) Run(_ context.Context, params map[string]string,

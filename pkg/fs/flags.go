@@ -38,3 +38,7 @@ const (
 	FlagSync      = os.O_SYNC
 	FlagTruncate  = os.O_TRUNC
 )
+
+func HasFlag(flags, flag Flags) bool {
+	return flags&flag != 0
+}

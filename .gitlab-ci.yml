@@ -17,10 +17,10 @@ variables:
   GOPRIVATE: "code.waarp.fr/*"
 
 stages:
-    - test
-    - build
-    - upload
-    - release
+  - test
+  - build
+  - upload
+  - release
 
 code_navigation:
   stage: test
@@ -40,8 +40,8 @@ lint:
   stage: test
   image: golangci/golangci-lint:latest
   script:
-  - golangci-lint cache status
-  - golangci-lint run --timeout 15m --output.junit-xml.path lint.junit.xml --output.text.path stdout --output.code-climate.path=gl-code-quality-report.json
+    - golangci-lint cache status
+    - golangci-lint run --timeout 15m --output.junit-xml.path lint.junit.xml --output.text.path stdout --output.code-climate.path=gl-code-quality-report.json
   cache:
     - key: go_dependencies_cache
       paths:

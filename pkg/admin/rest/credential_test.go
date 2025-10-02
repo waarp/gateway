@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"net/http"
 	"net/http/httptest"
+	"path"
 	"testing"
 
 	"github.com/gorilla/mux"
@@ -47,13 +48,16 @@ func TestAddRemoveCred(t *testing.T) {
 				credVal  = "sesame"
 			)
 
+			serverCredsPath := path.Join("/servers", server.Name, "credentials")
+			serverCredPath := path.Join("/servers", server.Name, "credentials", credName)
+
 			body := map[string]any{
 				"name":  credName,
 				"type":  credType,
 				"value": credVal,
 			}
 
-			req1 := httptest.NewRequest(http.MethodPost, ServerCredsPath,
+			req1 := httptest.NewRequest(http.MethodPost, serverCredsPath,
 				utils.ToJSONBody(body))
 			req1 = mux.SetURLVars(req1, map[string]string{"server": server.Name})
 
@@ -75,7 +79,7 @@ func TestAddRemoveCred(t *testing.T) {
 				})
 
 				Convey("When retrieving the server's credential", func() {
-					req2 := httptest.NewRequest(http.MethodGet, ServerCredPath, nil)
+					req2 := httptest.NewRequest(http.MethodGet, serverCredPath, nil)
 					req2 = mux.SetURLVars(req2, map[string]string{
 						"server":     server.Name,
 						"credential": agAuth.Name,
@@ -99,7 +103,7 @@ func TestAddRemoveCred(t *testing.T) {
 				})
 
 				Convey("When removing the server's credential", func() {
-					req2 := httptest.NewRequest(http.MethodDelete, ServerCredPath, nil)
+					req2 := httptest.NewRequest(http.MethodDelete, serverCredPath, nil)
 					req2 = mux.SetURLVars(req2, map[string]string{
 						"server":     server.Name,
 						"credential": agAuth.Name,
@@ -128,13 +132,16 @@ func TestAddRemoveCred(t *testing.T) {
 				credVal  = "sesame"
 			)
 
+			partnerCredsPath := path.Join("/partners", partner.Name, "credentials")
+			partnerCredPath := path.Join("/partners", partner.Name, "credentials", credName)
+
 			body := map[string]any{
 				"name":  credName,
 				"type":  credType,
 				"value": credVal,
 			}
 
-			req1 := httptest.NewRequest(http.MethodPost, PartnerCredsPath,
+			req1 := httptest.NewRequest(http.MethodPost, partnerCredsPath,
 				utils.ToJSONBody(body))
 			req1 = mux.SetURLVars(req1, map[string]string{"partner": partner.Name})
 
@@ -155,7 +162,7 @@ func TestAddRemoveCred(t *testing.T) {
 				So(authRes.Success, ShouldBeTrue)
 
 				Convey("When retrieving the partner's credential", func() {
-					req2 := httptest.NewRequest(http.MethodGet, PartnerCredPath, nil)
+					req2 := httptest.NewRequest(http.MethodGet, partnerCredPath, nil)
 					req2 = mux.SetURLVars(req2, map[string]string{
 						"partner":    partner.Name,
 						"credential": agAuth.Name,
@@ -179,7 +186,7 @@ func TestAddRemoveCred(t *testing.T) {
 				})
 
 				Convey("When removing the partner's credential", func() {
-					req2 := httptest.NewRequest(http.MethodDelete, PartnerCredPath, nil)
+					req2 := httptest.NewRequest(http.MethodDelete, partnerCredPath, nil)
 					req2 = mux.SetURLVars(req2, map[string]string{
 						"partner":    partner.Name,
 						"credential": agAuth.Name,
@@ -208,13 +215,16 @@ func TestAddRemoveCred(t *testing.T) {
 				credVal  = "sesame"
 			)
 
+			locAccCredsPath := path.Join("/servers", server.Name, "accounts", locAcc.Login, "credentials")
+			locAccCredPath := path.Join("/servers", server.Name, "accounts", locAcc.Login, "credentials", credName)
+
 			body := map[string]any{
 				"name":  credName,
 				"type":  credType,
 				"value": credVal,
 			}
 
-			req1 := httptest.NewRequest(http.MethodPost, LocAccCredsPath,
+			req1 := httptest.NewRequest(http.MethodPost, locAccCredsPath,
 				utils.ToJSONBody(body))
 			req1 = mux.SetURLVars(req1, map[string]string{
 				"server":        server.Name,
@@ -238,7 +248,7 @@ func TestAddRemoveCred(t *testing.T) {
 				So(authRes.Success, ShouldBeTrue)
 
 				Convey("When retrieving the partner's credential", func() {
-					req2 := httptest.NewRequest(http.MethodGet, LocAccCredPath, nil)
+					req2 := httptest.NewRequest(http.MethodGet, locAccCredPath, nil)
 					req2 = mux.SetURLVars(req2, map[string]string{
 						"server":        server.Name,
 						"local_account": locAcc.Login,
@@ -263,7 +273,7 @@ func TestAddRemoveCred(t *testing.T) {
 				})
 
 				Convey("When removing the account's credential", func() {
-					req2 := httptest.NewRequest(http.MethodDelete, LocAccCredPath, nil)
+					req2 := httptest.NewRequest(http.MethodDelete, locAccCredPath, nil)
 					req2 = mux.SetURLVars(req2, map[string]string{
 						"server":        server.Name,
 						"local_account": locAcc.Login,
@@ -293,13 +303,16 @@ func TestAddRemoveCred(t *testing.T) {
 				credVal  = "sesame"
 			)
 
+			remAccCredsPath := path.Join("/partners", partner.Name, "accounts", remAcc.Login, "credentials")
+			remAccCredPath := path.Join("/partners", partner.Name, "accounts", remAcc.Login, "credentials", credName)
+
 			body := map[string]any{
 				"name":  credName,
 				"type":  credType,
 				"value": credVal,
 			}
 
-			req1 := httptest.NewRequest(http.MethodPost, RemAccCredsPath,
+			req1 := httptest.NewRequest(http.MethodPost, remAccCredsPath,
 				utils.ToJSONBody(body))
 			req1 = mux.SetURLVars(req1, map[string]string{
 				"partner":        partner.Name,
@@ -324,7 +337,7 @@ func TestAddRemoveCred(t *testing.T) {
 				})
 
 				Convey("When retrieving the partner's credential", func() {
-					req2 := httptest.NewRequest(http.MethodGet, RemAccCredPath, nil)
+					req2 := httptest.NewRequest(http.MethodGet, remAccCredPath, nil)
 					req2 = mux.SetURLVars(req2, map[string]string{
 						"partner":        partner.Name,
 						"remote_account": remAcc.Login,
@@ -349,7 +362,7 @@ func TestAddRemoveCred(t *testing.T) {
 				})
 
 				Convey("When removing the account's credential", func() {
-					req2 := httptest.NewRequest(http.MethodDelete, RemAccCredPath, nil)
+					req2 := httptest.NewRequest(http.MethodDelete, remAccCredPath, nil)
 					req2 = mux.SetURLVars(req2, map[string]string{
 						"partner":        partner.Name,
 						"remote_account": remAcc.Login,

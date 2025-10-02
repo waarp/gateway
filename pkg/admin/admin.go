@@ -16,7 +16,6 @@ import (
 	"time"
 
 	"code.waarp.fr/lib/log"
-	"github.com/gorilla/mux"
 
 	"code.waarp.fr/apps/gateway/gateway/pkg/conf"
 	"code.waarp.fr/apps/gateway/gateway/pkg/database"
@@ -31,8 +30,7 @@ var ErrMissingKeyFile = errors.New("missing certificate private key")
 
 // Server is the administration service.
 type Server struct {
-	DB        *database.DB
-	MkHandler func(*log.Logger, *database.DB) *mux.Router
+	DB *database.DB
 
 	state  utils.State
 	logger *log.Logger
@@ -133,10 +131,6 @@ func initServer(serv *Server) error {
 	config := &conf.GlobalConfig.Admin
 	addr := conf.GetRealAddress(config.Host, utils.FormatUint(config.Port))
 
-	if serv.MkHandler == nil {
-		serv.MkHandler = MakeHandler
-	}
-
 	var tlsConfig *tls.Config
 
 	if conf.GlobalConfig.Admin.TLSCert != "" {
@@ -150,7 +144,7 @@ func initServer(serv *Server) error {
 		serv.logger.Info("No TLS certificate configured, using plain HTTP.")
 	}
 
-	handler := serv.MkHandler(serv.logger, serv.DB)
+	handler := MakeHandler(serv.logger, serv.DB)
 
 	// Create http.Server instance
 	serv.server = http.Server{

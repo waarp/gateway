@@ -1,0 +1,120 @@
+:root {
+    --waarp-color: #f54b15;
+    --waarp-color-text: #ffffff;
+}
+
+.navbar {
+    background-color: var(--waarp-color);
+    display: flex;
+    align-items: center;
+    flex-wrap: nowrap;
+    flex-direction: row ;
+    white-space: nowrap;
+    justify-content: space-between;
+    box-shadow: black 0 0 5px;
+}
+
+.nav-item {
+    color: var(--waarp-color-text);
+}
+
+.nav-left {
+    display: flex;
+    flex: 0 1 auto;
+    align-items: center;
+    min-width: 0;
+}
+
+.nav-right {
+    display: flex;
+    align-items: center;
+    flex: 0 0 auto;
+    margin-right: 10px;
+    gap: 10px;
+}
+
+.sidebar-toggle {
+    flex: 0 0 auto;
+    border: none;
+    background: transparent;
+    margin-left: 7px;
+    padding: 4px 8px;
+    border-radius: 0.5rem;
+    font-size: 1.2rem;
+}
+
+.sidebar-toggle:hover,
+.sidebar-toggle:focus {
+    background-color: var(--waarp-color-text);
+    color: var(--waarp-color);
+    box-shadow: darkgray 0 0 5px;
+}
+
+/* Brand name truncation to keep single line */
+.brand-name {
+    margin-left: 10px;
+    display: block;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    text-decoration: none;
+    white-space: nowrap;
+    font-size: 1.5rem;
+    font-weight: 600;
+    flex: 0 1 auto;
+    min-width: 0;
+}
+
+.brand-name:hover,
+.brand-name:focus {
+    text-decoration: underline;
+    text-decoration-thickness: 2px;
+    text-underline-offset: 3px;
+}
+
+/* Links and buttons keep one line and inherit colors */
+.nav-button {
+    color: var(--waarp-color-text);
+    text-decoration: none;
+    padding: 7px 14px;
+    border-radius: 0.5rem;
+    transition: background 0.2s, color 0.2s;
+}
+
+.nav-button:hover,
+.nav-button:focus {
+    background: var(--waarp-color-text);
+    color: var(--waarp-color);
+}
+
+.lang-select {
+    border: none !important;
+    background: transparent;
+    padding-inline-end: 1px;
+}
+
+/* Ensure the About table content wraps within the modal */
+.about-content {
+    width: 100%;
+}
+
+/* Slightly increase the vertical spacing of rows in the About modal table */
+.about-content th,
+.about-content td {
+    padding-top: 0.4rem;
+    padding-bottom: 0.4rem;
+    line-height: 1.4;
+}
+
+/* Add a small right padding to the first column and center labels vertically */
+.about-content th {
+    padding-right: 0.75rem;
+    vertical-align: top;
+}
+
+/* Allow long words/URLs to wrap instead of overflowing */
+.about-content td {
+    white-space: normal;
+    overflow-wrap: anywhere;
+    word-break: break-word;
+}
+

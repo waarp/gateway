@@ -31,7 +31,6 @@ type transferHandler struct {
 	tracer  func() pipeline.Trace
 
 	connFreetext string
-	cftMode      bool
 
 	ctx    context.Context
 	cancel context.CancelCauseFunc
@@ -39,7 +38,7 @@ type transferHandler struct {
 	file   *pipeline.FileStream
 }
 
-func (t *transferHandler) getRule(filepath string, isSend bool) (*model.Rule, error) {
+func (t *transferHandler) getRuleByPrefix(filepath string, isSend bool) (*model.Rule, error) {
 	dir := path.Dir(filepath)
 
 	rule, err := protoutils.GetClosestRule(t.db, t.logger, t.agent, t.account, dir, isSend)
@@ -80,6 +79,7 @@ func (t *transferHandler) SelectFile(req *pesit.ServerTransfer) error {
 
 	t.logger.Debugf("Request received for file %q by %q", req.Filename(), req.ClientLogin())
 
+	req.SetArticleFormat(pesit.FormatVariable)
 	req.SetArticleSize(defaultArticleSize)
 
 	if t.conf.MaxMessageSize < req.MessageSize() {
@@ -113,13 +113,14 @@ func (t *transferHandler) SelectFile(req *pesit.ServerTransfer) error {
 		remoteTransferID string
 	)
 
-	if t.cftMode {
+	if t.conf.CompatibilityMode == CompatibilityModeNonStandard {
 		rule, ruleErr = t.getRuleByName(req.FilenamePI12(), isSend)
 	} else {
-		rule, ruleErr = t.getRule(req.Filename(), isSend)
+		rule, ruleErr = t.getRuleByPrefix(req.Filename(), isSend)
 	}
 
 	if ruleErr != nil {
+		t.logger.Errorf("Failed to get the transfer rule: %v", ruleErr)
 		return ruleErr
 	}
 
@@ -174,13 +175,17 @@ func (t *transferHandler) mkTransfer(remoteID, filepath string, rule *model.Rule
 
 	// CFT mode -> no filename, so we use the rule instead
 	if filepath == "" {
-		if trans, err := pipeline.GetAvailableTransferByRule(t.db, remoteID, t.account, rule); err == nil {
-			return trans, nil
-		} else if !database.IsNotFound(err) {
-			return nil, transErrToPesitErr(err)
+		if rule.IsSend {
+			if trans, err := pipeline.GetAvailableTransferByRule(t.db, remoteID, t.account, rule); err == nil {
+				return trans, nil
+			} else if !database.IsNotFound(err) {
+				return nil, transErrToPesitErr(err)
+			}
+
+			return nil, pesit.NewDiagnostic(pesit.CodeFileNotExists, "no available transfer found")
 		}
 
-		return nil, pesit.NewDiagnostic(pesit.CodeFileNotExists, "no available transfer found")
+		filepath = generateDestFilename(remoteID, t.account, rule)
 	}
 
 	if trans, err := pipeline.GetAvailableTransferByFilename(t.db, filepath, remoteID,
@@ -234,18 +239,16 @@ func (t *transferHandler) initPipeline(req *pesit.ServerTransfer,
 		if err := setFileEncoding(t.pip, req); err != nil {
 			return err
 		}
-	} else {
-		setTransInfo(t.pip, fileEncodingKey, req.DataCoding().String())
-		setTransInfo(t.pip, fileTypeKey, req.FileType())
-		setTransInfo(t.pip, organizationKey, req.FileOrganization().String())
-	}
 
-	if t.pip.TransCtx.Rule.IsSend {
 		if err := setFreetext(pip, serverTransFreetextKey, req); err != nil {
 			t.logger.Errorf("Failed to set server transfer freetext: %v", err)
 
 			return transErrToPesitErr(err)
 		}
+	} else {
+		setTransInfo(t.pip, fileEncodingKey, req.DataCoding().String())
+		setTransInfo(t.pip, fileTypeKey, req.FileType())
+		setTransInfo(t.pip, organizationKey, req.FileOrganization().String())
 	}
 
 	return utils.RunWithCtx(t.ctx, func() error {
