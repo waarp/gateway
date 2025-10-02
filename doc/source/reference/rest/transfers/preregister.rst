@@ -10,7 +10,7 @@ Préenregistrer un transfert serveur
    :reqjson string rule: L'identifiant de la règle utilisée.
    :reqjson bool isSend: Indique si transfert est un envoi (``true``) ou une
      réception (``false``).
-   :reqjson string server: Le nom du serveur local auquel le transfer est rattaché.
+   :reqjson string server: Le nom du serveur local auquel le transfert est rattaché.
    :reqjson string account: Le nom du compte local qui fera la demande de transfert.
    :reqjson string file: Le nom du fichier à transférer.
    :reqjson date dueDate: La date d'expiration du transfert (en format ISO 8601).

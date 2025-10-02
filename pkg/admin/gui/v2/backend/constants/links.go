@@ -26,9 +26,9 @@ func DocLink(language string) string {
 		num = "latest"
 	}
 
-	return path.Join(DocLinkHome, num, language)
+	return path.Join(DocLinkHome, num, language) + "/"
 }
 
 func DocPage(language, page string) string {
-	return path.Join(DocLink(language), page)
+	return DocLink(language) + "/" + page
 }

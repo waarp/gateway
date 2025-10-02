@@ -40,7 +40,7 @@ Consulter un template d'email
         "mimeType": "text/plain",
         "body": "!! ALERTE !!
 
-          Le transfer n°#TRANSFERID# du fichier #TRUEFILENAME#
+          Le transfert n°#TRANSFERID# du fichier #TRUEFILENAME#
           a échoué le #DATE# à #HOUR#
           avec le code #ERRORCODE# et le message \"#ERRORMSG#\".
 

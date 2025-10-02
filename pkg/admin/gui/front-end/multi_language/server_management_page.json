@@ -12,7 +12,7 @@
     "local_client_management": { "fr": "Clients locaux", "en": "Local client" },
     "managing_local_servers": { "fr": "Serveurs locaux", "en": "Local server" },
     "local_account_anagement": { "fr": "Comptes locaux", "en": "Local account" },
-    "remote_server_management": { "fr": "serveurs distants", "en": "Remote server" },
+    "remote_partner_management": { "fr": "Partenaires distants", "en": "Remote partner" },
     "remote_account_management": { "fr": "Comptes distants", "en": "Remote account" },
     "transfer_rules_management": { "fr": "Règles de transfert", "en": "Transfer rules" },
     "transfer_monitoring": { "fr": "Monitoring des transferts", "en": "Transfer monitoring" },

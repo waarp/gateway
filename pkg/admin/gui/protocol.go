@@ -146,7 +146,7 @@ func supportedProtocolRemoteAccount(protocol string) []string {
 	return supportedProtocolsExternal[protocol]
 }
 
-func getProtocolsList() []string {
+func ProtocolsList() []string {
 	var protocolsList []string
 	for protocol := range protocols.List {
 		protocolsList = append(protocolsList, protocol)
@@ -160,7 +160,6 @@ var (
 	TLSVersions            = []string{protoutils.TLSv10, protoutils.TLSv11, protoutils.TLSv12, protoutils.TLSv13}
 	CompatibilityModePeSIT = []string{pesit.CompatibilityModeStandard, pesit.CompatibilityModeNonStandard}
 	TLSRequirement         = []string{string(ftp.TLSOptional), string(ftp.TLSMandatory), string(ftp.TLSImplicit)}
-	ProtocolsList          = getProtocolsList()
 )
 
 func protocolsFilter(r *http.Request, filter *Filters) (*Filters, []string) {

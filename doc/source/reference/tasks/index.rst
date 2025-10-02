@@ -124,16 +124,6 @@ appelés par les tâches EXEC sous forme de variables d'environnement. Ces varia
 d'environnement ont exactement le même nom que leurs variables de substitution
 correspondantes (ex: ``#TRUEFULLPATH#``).
 
-.. ``#ARCHPATH#``
-   ``#REMOTEHOSTIP#``
-   ``#LOCALIP#`` 
-   ``#RANKTRANSFER#`` 
-   ``#BLOCKSIZE#`` 
-   ``#ERRORSTRCODE#`` mauvaise définition
-   ``#NOWAIT#`` 
-   ``#LOCALEXEC#`` 
-   définition de LOCALHOST et de REMOTEHOST ?
-
 .. _ref-timestamp-format:
 
 Formatage des *timestamps*

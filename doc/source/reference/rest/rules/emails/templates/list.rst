@@ -47,7 +47,7 @@ Lister les templates d'email
         "mimeType": "text/plain",
         "body": "!! ALERTE !!
 
-          Le transfer n°#TRANSFERID# du fichier #TRUEFILENAME#
+          Le transfert n°#TRANSFERID# du fichier #TRUEFILENAME#
           a échoué le #DATE# à #HOUR#
           avec le code #ERRORCODE# et le message \"#ERRORMSG#\".
 
@@ -59,7 +59,7 @@ Lister les templates d'email
         "mimeType": "text/plain",
         "body": "Notification:
 
-          Le transfer n°#TRANSFERID# du fichier #TRUEFILENAME#
+          Le transfert n°#TRANSFERID# du fichier #TRUEFILENAME#
           s'est terminé sans erreur le #DATE# à #HOUR#.
 
           Waarp"

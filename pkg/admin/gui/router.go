@@ -131,6 +131,7 @@ func AddGUIRouter(router *mux.Router, logger *log.Logger, db *database.DB) {
 
 	secureRouter := router.PathPrefix("/").Subrouter()
 	secureRouter.Use(AuthenticationMiddleware(logger, db))
+	secureRouter.StrictSlash(true)
 
 	RouterAutocompletions(secureRouter, db)
 
@@ -172,7 +173,7 @@ func AuthenticationMiddleware(logger *log.Logger, db *database.DB) mux.Middlewar
 	return func(next http.Handler) http.Handler {
 		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 			loginURL := url.URL{Path: "login"}
-			if curPage := r.URL.RequestURI(); curPage != Prefix {
+			if curPage := r.URL.RequestURI(); curPage != Prefix+"/" {
 				params := loginURL.Query()
 				params.Set("redirect", curPage)
 				loginURL.RawQuery = params.Encode()
