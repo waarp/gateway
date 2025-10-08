@@ -8,12 +8,6 @@ import (
 
 const LimitLike = 5
 
-func GetUser(db database.ReadAccess, username string) (*model.User, error) {
-	var user model.User
-
-	return &user, db.Get(&user, "username=?", username).Owner().Run()
-}
-
 func GetUserByID(db database.ReadAccess, id int64) (*model.User, error) {
 	var user model.User
 

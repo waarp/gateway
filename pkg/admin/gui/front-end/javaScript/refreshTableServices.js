@@ -1,3 +1,6 @@
+const refreshID = setInterval(refreshServices, 10000);
+document.addEventListener('DOMContentLoaded', () => initCollapses());
+
 function initCollapses(root = document) {
     root.querySelectorAll('#status .collapse').forEach(el => {
         try {
@@ -10,9 +13,13 @@ function initCollapses(root = document) {
 
 function refreshServices() {
     const openIds = Array.from(document.querySelectorAll('#status .collapse.show')).map(el => el.id);
+    const request = new Request('/webui/status_services?partial=true', {redirect: 'error'})
 
-    fetch('/webui/status_services?partial=true')
-        .then(response => response.text())
+    fetch(request)
+        .then(resp => {
+            if (!resp.ok) return Promise.reject(resp)
+            return resp.text()
+        })
         .then(html => {
             const container = document.getElementById('status');
             if (!container)
@@ -28,9 +35,8 @@ function refreshServices() {
             showSyncUpdate();
         })
         .catch(err => {
+            clearInterval(refreshID);
             console.error('Internal error during services refresh:', err);
         });
 }
 
-setInterval(refreshServices, 10000);
-document.addEventListener('DOMContentLoaded', () => initCollapses());

@@ -3,6 +3,13 @@
 Historique des versions
 =======================
 
+* :bug:`-` Correction d'un bug dans la tâche ICAP qui faisait que le schéma ``icap://``
+  était rajouté devant les URL ICAP, même lorsque ceux-ci l'incluaient déjà.
+* :bug:`488` L'écran de login n'apparait plus inopinément au milieu de la page
+  de supervision des transferts de l'interface Web lorsque l'utilisateur a été
+  timed out. Dorénavant, l'auto-rafraichissement de la page s'arrête lorsque
+  l'utilisateur se fait déconnecter.
+
 * :release:`0.13.0 <2025-10-02>`
 * :feature:`-` Ajout d'une interface Web d'administration, accessible à l'adresse
   du serveur d'administration existant.

@@ -9,6 +9,7 @@ import (
 	"code.waarp.fr/lib/log"
 
 	"code.waarp.fr/apps/gateway/gateway/pkg/admin/gui/internal"
+	"code.waarp.fr/apps/gateway/gateway/pkg/admin/gui/v2/backend/common"
 	"code.waarp.fr/apps/gateway/gateway/pkg/admin/gui/v2/backend/constants"
 	"code.waarp.fr/apps/gateway/gateway/pkg/admin/gui/v2/backend/locale"
 	"code.waarp.fr/apps/gateway/gateway/pkg/database"
@@ -18,10 +19,10 @@ import (
 
 //nolint:dupl // it is not the same function, the calls are different
 func listLocalAccount(serverName string, db *database.DB, r *http.Request) (
-	[]*model.LocalAccount, Filters, string,
+	[]*model.LocalAccount, *Filters, string,
 ) {
 	localAccountFound := ""
-	defaultFilter := Filters{
+	defaultFilter := &Filters{
 		Offset:          0,
 		Limit:           DefaultLimitPagination,
 		OrderAsc:        true,
@@ -58,7 +59,7 @@ func listLocalAccount(serverName string, db *database.DB, r *http.Request) (
 
 	localsAccounts, err := internal.ListServerAccounts(db, serverName, "login", true, 0, 0)
 	if err != nil {
-		return nil, Filters{}, localAccountFound
+		return nil, nil, localAccountFound
 	}
 
 	if search := urlParams.Get("search"); search != "" && searchLocalAccount(search, localsAccounts) == nil {
@@ -71,12 +72,12 @@ func listLocalAccount(serverName string, db *database.DB, r *http.Request) (
 		return []*model.LocalAccount{searchLocalAccount(search, localsAccounts)}, filter, localAccountFound
 	}
 
-	paginationPage(&filter, uint64(len(localAccountFound)), r)
+	paginationPage(filter, uint64(len(localAccountFound)), r)
 
 	localsAccountsList, err := internal.ListServerAccounts(db, serverName, "login",
 		filter.OrderAsc, int(filter.Limit), int(filter.Offset*filter.Limit))
 	if err != nil {
-		return nil, Filters{}, localAccountFound
+		return nil, nil, localAccountFound
 	}
 
 	return localsAccountsList, filter, localAccountFound
@@ -273,13 +274,9 @@ func callMethodsLocalAccount(logger *log.Logger, db *database.DB, w http.Respons
 
 func localAccountPage(logger *log.Logger, db *database.DB) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
+		user := common.GetUser(r)
 		userLanguage := locale.GetLanguage(r)
 		tTranslated := pageTranslated("local_account_management_page", userLanguage)
-
-		user, err := GetUserByToken(r, db)
-		if err != nil {
-			logger.Errorf("Internal error: %v", err)
-		}
 
 		myPermission := model.MaskToPerms(user.Permissions)
 		var server *model.LocalAgent
@@ -287,13 +284,12 @@ func localAccountPage(logger *log.Logger, db *database.DB) http.HandlerFunc {
 
 		serverID := r.URL.Query().Get("serverID")
 		if serverID != "" {
-			id, err = internal.ParseUint[uint64](serverID)
-			if err != nil {
+			var err error
+			if id, err = internal.ParseUint[uint64](serverID); err != nil {
 				logger.Errorf("failed to convert id to int: %v", err)
 			}
 
-			server, err = internal.GetServerByID(db, int64(id))
-			if err != nil {
+			if server, err = internal.GetServerByID(db, int64(id)); err != nil {
 				logger.Errorf("failed to get id: %v", err)
 			}
 		}
@@ -307,7 +303,7 @@ func localAccountPage(logger *log.Logger, db *database.DB) http.HandlerFunc {
 			return
 		}
 
-		PersistPageFilters(r, "local_account_management_page", &filter)
+		PersistPageFilters(r, "local_account_management_page", filter)
 
 		value, errMsg, modalOpen, modalElement := callMethodsLocalAccount(logger, db, w, r, server)
 		if value {

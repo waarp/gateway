@@ -9,6 +9,7 @@ import (
 	"code.waarp.fr/lib/log"
 
 	"code.waarp.fr/apps/gateway/gateway/pkg/admin/gui/internal"
+	"code.waarp.fr/apps/gateway/gateway/pkg/admin/gui/v2/backend/common"
 	"code.waarp.fr/apps/gateway/gateway/pkg/admin/gui/v2/backend/constants"
 	"code.waarp.fr/apps/gateway/gateway/pkg/admin/gui/v2/backend/locale"
 	"code.waarp.fr/apps/gateway/gateway/pkg/database"
@@ -21,10 +22,10 @@ import (
 
 //nolint:dupl // no similar func (is for server)
 func listCredentialServer(serverName string, db *database.DB, r *http.Request) (
-	[]*model.Credential, Filters, string,
+	[]*model.Credential, *Filters, string,
 ) {
 	credentialServerFound := ""
-	defaultFilter := Filters{
+	defaultFilter := &Filters{
 		Offset:          0,
 		Limit:           DefaultLimitPagination,
 		OrderAsc:        true,
@@ -61,7 +62,7 @@ func listCredentialServer(serverName string, db *database.DB, r *http.Request) (
 
 	serversCredentials, err := internal.ListServerCredentials(db, serverName, "name", true, 0, 0)
 	if err != nil {
-		return nil, Filters{}, credentialServerFound
+		return nil, nil, credentialServerFound
 	}
 
 	if search := urlParams.Get("search"); search != "" && searchCredentialServer(search, serversCredentials) == nil {
@@ -74,12 +75,12 @@ func listCredentialServer(serverName string, db *database.DB, r *http.Request) (
 		return []*model.Credential{searchCredentialServer(search, serversCredentials)}, filter, credentialServerFound
 	}
 
-	paginationPage(&filter, uint64(len(serversCredentials)), r)
+	paginationPage(filter, uint64(len(serversCredentials)), r)
 
 	serversCredentialsList, err := internal.ListServerCredentials(db, serverName, "name",
 		filter.OrderAsc, int(filter.Limit), int(filter.Offset*filter.Limit))
 	if err != nil {
-		return nil, Filters{}, credentialServerFound
+		return nil, nil, credentialServerFound
 	}
 
 	return serversCredentialsList, filter, credentialServerFound
@@ -317,13 +318,9 @@ func callMethodsServerAuthentication(logger *log.Logger, db *database.DB, w http
 
 func serverAuthenticationPage(logger *log.Logger, db *database.DB) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
+		user := common.GetUser(r)
 		userLanguage := locale.GetLanguage(r)
 		tTranslated := pageTranslated("server_authentication_page", userLanguage)
-
-		user, err := GetUserByToken(r, db)
-		if err != nil {
-			logger.Errorf("Internal error: %v", err)
-		}
 
 		myPermission := model.MaskToPerms(user.Permissions)
 		var server *model.LocalAgent
@@ -331,13 +328,12 @@ func serverAuthenticationPage(logger *log.Logger, db *database.DB) http.HandlerF
 
 		serverID := r.URL.Query().Get("serverID")
 		if serverID != "" {
-			id, err = internal.ParseUint[uint64](serverID)
-			if err != nil {
+			var err error
+			if id, err = internal.ParseUint[uint64](serverID); err != nil {
 				logger.Errorf("failed to convert id to int: %v", err)
 			}
 
-			server, err = internal.GetServerByID(db, int64(id))
-			if err != nil {
+			if server, err = internal.GetServerByID(db, int64(id)); err != nil {
 				logger.Errorf("failed to get id: %v", err)
 			}
 		}
@@ -351,7 +347,7 @@ func serverAuthenticationPage(logger *log.Logger, db *database.DB) http.HandlerF
 			return
 		}
 
-		PersistPageFilters(r, "server_authentication_page", &filter)
+		PersistPageFilters(r, "server_authentication_page", filter)
 
 		value, errMsg, modalOpen, modalElement := callMethodsServerAuthentication(logger, db, w, r, server)
 		if value {

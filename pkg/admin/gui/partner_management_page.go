@@ -8,6 +8,7 @@ import (
 	"code.waarp.fr/lib/log"
 
 	"code.waarp.fr/apps/gateway/gateway/pkg/admin/gui/internal"
+	"code.waarp.fr/apps/gateway/gateway/pkg/admin/gui/v2/backend/common"
 	"code.waarp.fr/apps/gateway/gateway/pkg/admin/gui/v2/backend/constants"
 	"code.waarp.fr/apps/gateway/gateway/pkg/admin/gui/v2/backend/locale"
 	"code.waarp.fr/apps/gateway/gateway/pkg/database"
@@ -125,9 +126,9 @@ func addPartner(db *database.DB, r *http.Request) error {
 	return nil
 }
 
-func ListPartner(db *database.DB, r *http.Request) ([]*model.RemoteAgent, Filters, string) {
+func ListPartner(db *database.DB, r *http.Request) ([]*model.RemoteAgent, *Filters, string) {
 	partnerFound := ""
-	defaultFilter := Filters{
+	defaultFilter := &Filters{
 		Offset:          0,
 		Limit:           DefaultLimitPagination,
 		OrderAsc:        true,
@@ -165,7 +166,7 @@ func ListPartner(db *database.DB, r *http.Request) ([]*model.RemoteAgent, Filter
 
 	partner, err := internal.ListPartners(db, "name", filter.OrderAsc, 0, 0)
 	if err != nil {
-		return nil, Filters{}, partnerFound
+		return nil, nil, partnerFound
 	}
 
 	if search := urlParams.Get("search"); search != "" && searchPartner(search, partner) == nil {
@@ -178,23 +179,23 @@ func ListPartner(db *database.DB, r *http.Request) ([]*model.RemoteAgent, Filter
 		return []*model.RemoteAgent{searchPartner(search, partner)}, filter, partnerFound
 	}
 
-	filtersPtr, filterProtocol := checkProtocolsFilter(r, isApply, &filter)
-	paginationPage(&filter, uint64(len(partner)), r)
+	filtersPtr, filterProtocol := checkProtocolsFilter(r, isApply, filter)
+	paginationPage(filter, uint64(len(partner)), r)
 
 	if len(filterProtocol) > 0 {
 		var partners []*model.RemoteAgent
 		if partners, err = internal.ListPartners(db, "name", filter.OrderAsc, int(filter.Limit),
 			int(filter.Offset*filter.Limit), filterProtocol...); err == nil {
-			return partners, *filtersPtr, partnerFound
+			return partners, filtersPtr, partnerFound
 		}
 	}
 
 	partners, err := internal.ListPartners(db, "name", filter.OrderAsc, int(filter.Limit), int(filter.Offset*filter.Limit))
 	if err != nil {
-		return nil, Filters{}, partnerFound
+		return nil, nil, partnerFound
 	}
 
-	return partners, *filtersPtr, partnerFound
+	return partners, filtersPtr, partnerFound
 }
 
 //nolint:dupl // is not the same, GetPartnersLike is called
@@ -312,6 +313,7 @@ func callMethodsPartnerManagement(logger *log.Logger, db *database.DB, w http.Re
 
 func partnerManagementPage(logger *log.Logger, db *database.DB) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
+		user := common.GetUser(r)
 		userLanguage := locale.GetLanguage(r)
 		tTranslated := pageTranslated("partner_management_page", userLanguage)
 		partnerList, filter, partnerFound := ListPartner(db, r)
@@ -323,16 +325,11 @@ func partnerManagementPage(logger *log.Logger, db *database.DB) http.HandlerFunc
 			return
 		}
 
-		PersistPageFilters(r, "partner_management_page", &filter)
+		PersistPageFilters(r, "partner_management_page", filter)
 
 		value, errMsg, modalOpen, modalElement := callMethodsPartnerManagement(logger, db, w, r)
 		if value {
 			return
-		}
-
-		user, err := GetUserByToken(r, db)
-		if err != nil {
-			logger.Errorf("Internal error: %v", err)
 		}
 
 		myPermission := model.MaskToPerms(user.Permissions)

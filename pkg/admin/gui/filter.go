@@ -1,8 +1,11 @@
 package gui
 
 import (
-	"errors"
 	"net/http"
+
+	"github.com/puzpuzpuz/xsync/v4"
+
+	"code.waarp.fr/apps/gateway/gateway/pkg/admin/gui/v2/backend/common"
 )
 
 type Filters struct {
@@ -32,86 +35,40 @@ const (
 	False                  = "false"
 )
 
-type filtersCookieMap map[string]Filters
+type filtersCookieMap map[string]*Filters
 
-var (
-	ErrNoToken       = errors.New("no token found")
-	ErrLoadSession   = errors.New("failed to load session")
-	ErrAccessSession = errors.New("failed access session")
-)
+//nolint:gochecknoglobals //filters map
+var userFiltersStore = xsync.NewMap[int64, filtersCookieMap]()
 
-func sessionFilter(r *http.Request) (*Session, string, error) {
-	cookie, err := r.Cookie("token")
-	if err != nil || cookie.Value == "" {
-		return nil, "", ErrNoToken
-	}
+func GetPageFilters(r *http.Request, page string) (*Filters, bool) {
+	user := common.GetUser(r)
 
-	value, ok := sessionStore.Load(cookie.Value)
-	if !ok {
-		return nil, "", ErrLoadSession
-	}
-
-	session, ok := value.(Session)
-	if !ok {
-		return nil, "", ErrAccessSession
-	}
-
-	return &session, cookie.Value, nil
-}
-
-func GetPageFilters(r *http.Request, page string) (Filters, bool) {
-	if session, _, err := sessionFilter(r); err == nil && session.Filters != nil {
-		if filter, ok := session.Filters[page]; ok {
+	if cookieMap, ok := userFiltersStore.Load(user.ID); ok {
+		if filter, ok2 := cookieMap[page]; ok2 {
 			return filter, true
 		}
-
-		if value, ok := userFiltersStore.Load(session.UserID); ok {
-			if cookieMap, hasValue := value.(filtersCookieMap); hasValue {
-				if filter, ok2 := cookieMap[page]; ok2 {
-					return filter, true
-				}
-			}
-		}
 	}
 
-	return Filters{}, false
+	return nil, false
 }
 
 func PersistPageFilters(r *http.Request, page string, filter *Filters) {
-	if session, token, err := sessionFilter(r); err == nil {
-		if session.Filters == nil {
-			session.Filters = make(filtersCookieMap)
-		}
-		session.Filters[page] = *filter
-		sessionStore.Store(token, *session)
+	user := common.GetUser(r)
 
-		if value, ok := userFiltersStore.Load(session.UserID); ok {
-			if cookieMap, hasValue := value.(filtersCookieMap); hasValue {
-				cookieMap[page] = *filter
-				userFiltersStore.Store(session.UserID, cookieMap)
-			} else {
-				userFiltersStore.Store(session.UserID, filtersCookieMap{page: *filter})
-			}
-		} else {
-			userFiltersStore.Store(session.UserID, filtersCookieMap{page: *filter})
-		}
+	if cookieMap, ok := userFiltersStore.Load(user.ID); ok {
+		cookieMap[page] = filter
+		userFiltersStore.Store(user.ID, cookieMap)
+	} else {
+		userFiltersStore.Store(user.ID, filtersCookieMap{page: filter})
 	}
 }
 
 func ClearPageFilters(r *http.Request, page string) {
-	if session, token, err := sessionFilter(r); err == nil {
-		if session.Filters != nil {
-			delete(session.Filters, page)
-		}
+	user := common.GetUser(r)
 
-		sessionStore.Store(token, *session)
-
-		if value, ok := userFiltersStore.Load(session.UserID); ok {
-			if cookieMap, hasValue := value.(filtersCookieMap); hasValue {
-				delete(cookieMap, page)
-				userFiltersStore.Store(session.UserID, cookieMap)
-			}
-		}
+	if cookieMap, ok := userFiltersStore.Load(user.ID); ok {
+		delete(cookieMap, page)
+		userFiltersStore.Store(user.ID, cookieMap)
 	}
 }
 

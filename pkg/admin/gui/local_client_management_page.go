@@ -11,6 +11,7 @@ import (
 	"code.waarp.fr/lib/log"
 
 	"code.waarp.fr/apps/gateway/gateway/pkg/admin/gui/internal"
+	"code.waarp.fr/apps/gateway/gateway/pkg/admin/gui/v2/backend/common"
 	"code.waarp.fr/apps/gateway/gateway/pkg/admin/gui/v2/backend/constants"
 	"code.waarp.fr/apps/gateway/gateway/pkg/admin/gui/v2/backend/locale"
 	"code.waarp.fr/apps/gateway/gateway/pkg/database"
@@ -227,9 +228,9 @@ func deleteLocalClient(db *database.DB, r *http.Request) error {
 	return nil
 }
 
-func listLocalClient(db *database.DB, r *http.Request) ([]*model.Client, Filters, string) {
+func listLocalClient(db *database.DB, r *http.Request) ([]*model.Client, *Filters, string) {
 	localClientFound := ""
-	defaultFilter := Filters{
+	defaultFilter := &Filters{
 		Offset:          0,
 		Limit:           DefaultLimitPagination,
 		OrderAsc:        true,
@@ -267,7 +268,7 @@ func listLocalClient(db *database.DB, r *http.Request) ([]*model.Client, Filters
 
 	localClient, err := internal.ListClients(db, "name", true, 0, 0)
 	if err != nil {
-		return nil, Filters{}, localClientFound
+		return nil, nil, localClientFound
 	}
 
 	if search := urlParams.Get("search"); search != "" && searchLocalClient(search, localClient) == nil {
@@ -279,21 +280,21 @@ func listLocalClient(db *database.DB, r *http.Request) ([]*model.Client, Filters
 
 		return []*model.Client{searchLocalClient(search, localClient)}, filter, localClientFound
 	}
-	filtersPtr, filterProtocol := checkProtocolsFilter(r, isApply, &filter)
-	paginationPage(&filter, uint64(len(localClient)), r)
+	filtersPtr, filterProtocol := checkProtocolsFilter(r, isApply, filter)
+	paginationPage(filter, uint64(len(localClient)), r)
 
 	if len(filterProtocol) > 0 {
 		var localClients []*model.Client
 		if localClients, err = internal.ListClients(db, "name", filter.OrderAsc, int(filter.Limit),
 			int(filter.Offset*filter.Limit), filterProtocol...); err == nil {
-			return localClients, *filtersPtr, localClientFound
+			return localClients, filtersPtr, localClientFound
 		}
 	}
 
 	localClients, err := internal.ListClients(db, "name",
 		filter.OrderAsc, int(filter.Limit), int(filter.Offset*filter.Limit))
 	if err != nil {
-		return nil, Filters{}, localClientFound
+		return nil, nil, localClientFound
 	}
 
 	return localClients, filter, localClientFound
@@ -437,6 +438,7 @@ func switchClientStatus(db *database.DB, r *http.Request) error {
 
 func localClientManagementPage(logger *log.Logger, db *database.DB) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
+		user := common.GetUser(r)
 		userLanguage := locale.GetLanguage(r)
 		tabTranslated := pageTranslated("local_client_management_page", userLanguage)
 		localClientList, filter, localClientFound := listLocalClient(db, r)
@@ -448,16 +450,11 @@ func localClientManagementPage(logger *log.Logger, db *database.DB) http.Handler
 			return
 		}
 
-		PersistPageFilters(r, "local_client_management_page", &filter)
+		PersistPageFilters(r, "local_client_management_page", filter)
 
 		value, errMsg, modalOpen, modalElement := callMethodsLocalClientManagement(logger, db, w, r)
 		if value {
 			return
-		}
-
-		user, err := GetUserByToken(r, db)
-		if err != nil {
-			logger.Errorf("Internal error: %v", err)
 		}
 
 		myPermission := model.MaskToPerms(user.Permissions)

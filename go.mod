@@ -33,7 +33,7 @@ require (
 	github.com/mattn/go-colorable v0.1.14
 	github.com/pbnjay/memory v0.0.0-20210728143218-7b4eea64cf58
 	github.com/pkg/sftp v1.13.9
-	github.com/puzpuzpuz/xsync v1.5.2
+	github.com/puzpuzpuz/xsync/v4 v4.2.0
 	github.com/rclone/rclone v1.71.1
 	github.com/slayercat/GoSNMPServer v0.5.2
 	github.com/smartystreets/goconvey v1.8.1
@@ -42,10 +42,10 @@ require (
 	github.com/stretchr/testify v1.11.1
 	github.com/ulikunitz/xz v0.5.15
 	golang.org/x/crypto v0.42.0
-	golang.org/x/exp v0.0.0-20250911091902-df9299821621
-	golang.org/x/net v0.44.0
-	golang.org/x/term v0.35.0
-	golang.org/x/text v0.29.0
+	golang.org/x/exp v0.0.0-20251002181428-27f1f14c8bb9
+	golang.org/x/net v0.45.0
+	golang.org/x/term v0.36.0
+	golang.org/x/text v0.30.0
 	modernc.org/sqlite v1.39.0
 	xorm.io/builder v0.3.13
 	xorm.io/xorm v1.3.2 //do not update, newer versions break "SELECT FOR UPDATE" on sqlite & postgres
@@ -165,7 +165,7 @@ require (
 	go.mongodb.org/mongo-driver v1.17.4 // indirect
 	go.yaml.in/yaml/v2 v2.4.2 // indirect
 	golang.org/x/sync v0.17.0 // indirect
-	golang.org/x/sys v0.36.0
+	golang.org/x/sys v0.37.0
 	golang.org/x/time v0.12.0 // indirect
 	google.golang.org/genproto/googleapis/rpc v0.0.0-20250811230008-5f3141c8851a // indirect
 	google.golang.org/protobuf v1.36.7 // indirect
@@ -178,3 +178,5 @@ require (
 	modernc.org/memory v1.11.0 // indirect
 	sigs.k8s.io/yaml v1.6.0 // indirect
 )
+
+require github.com/puzpuzpuz/xsync v1.5.2 // indirect

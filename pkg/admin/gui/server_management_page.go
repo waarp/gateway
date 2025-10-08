@@ -9,6 +9,7 @@ import (
 	"code.waarp.fr/lib/log"
 
 	"code.waarp.fr/apps/gateway/gateway/pkg/admin/gui/internal"
+	"code.waarp.fr/apps/gateway/gateway/pkg/admin/gui/v2/backend/common"
 	"code.waarp.fr/apps/gateway/gateway/pkg/admin/gui/v2/backend/constants"
 	"code.waarp.fr/apps/gateway/gateway/pkg/admin/gui/v2/backend/locale"
 	"code.waarp.fr/apps/gateway/gateway/pkg/database"
@@ -176,9 +177,9 @@ func deleteServer(db *database.DB, r *http.Request) error {
 	return nil
 }
 
-func listServer(db *database.DB, r *http.Request) ([]*model.LocalAgent, Filters, string) {
+func listServer(db *database.DB, r *http.Request) ([]*model.LocalAgent, *Filters, string) {
 	serverFound := ""
-	defaultFilter := Filters{
+	defaultFilter := &Filters{
 		Offset:          0,
 		Limit:           DefaultLimitPagination,
 		OrderAsc:        true,
@@ -216,7 +217,7 @@ func listServer(db *database.DB, r *http.Request) ([]*model.LocalAgent, Filters,
 
 	server, err := internal.ListServers(db, "name", true, 0, 0)
 	if err != nil {
-		return nil, Filters{}, serverFound
+		return nil, nil, serverFound
 	}
 
 	if search := urlParams.Get("search"); search != "" && searchServer(search, server) == nil {
@@ -229,20 +230,20 @@ func listServer(db *database.DB, r *http.Request) ([]*model.LocalAgent, Filters,
 		return []*model.LocalAgent{searchServer(search, server)}, filter, serverFound
 	}
 
-	filtersPtr, filterProtocol := checkProtocolsFilter(r, isApply, &filter)
-	paginationPage(&filter, uint64(len(server)), r)
+	filtersPtr, filterProtocol := checkProtocolsFilter(r, isApply, filter)
+	paginationPage(filter, uint64(len(server)), r)
 
 	if len(filterProtocol) > 0 {
 		var servers []*model.LocalAgent
 		if servers, err = internal.ListServers(db, "name", filter.OrderAsc, int(filter.Limit),
 			int(filter.Offset*filter.Limit), filterProtocol...); err == nil {
-			return servers, *filtersPtr, serverFound
+			return servers, filtersPtr, serverFound
 		}
 	}
 
 	servers, err := internal.ListServers(db, "name", filter.OrderAsc, int(filter.Limit), int(filter.Offset*filter.Limit))
 	if err != nil {
-		return nil, Filters{}, serverFound
+		return nil, nil, serverFound
 	}
 
 	return servers, filter, serverFound
@@ -386,6 +387,7 @@ func switchServerStatus(db *database.DB, r *http.Request) error {
 
 func serverManagementPage(logger *log.Logger, db *database.DB) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
+		user := common.GetUser(r)
 		userLanguage := locale.GetLanguage(r)
 		tabTranslated := pageTranslated("server_management_page", userLanguage)
 		serverList, filter, serverFound := listServer(db, r)
@@ -397,16 +399,11 @@ func serverManagementPage(logger *log.Logger, db *database.DB) http.HandlerFunc 
 			return
 		}
 
-		PersistPageFilters(r, "server_management_page", &filter)
+		PersistPageFilters(r, "server_management_page", filter)
 
 		value, errMsg, modalOpen, modalElement := callMethodsServerManagement(logger, db, w, r)
 		if value {
 			return
-		}
-
-		user, err := GetUserByToken(r, db)
-		if err != nil {
-			logger.Errorf("Internal error: %v", err)
 		}
 
 		myPermission := model.MaskToPerms(user.Permissions)

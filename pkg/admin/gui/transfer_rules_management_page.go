@@ -8,6 +8,7 @@ import (
 	"code.waarp.fr/lib/log"
 
 	"code.waarp.fr/apps/gateway/gateway/pkg/admin/gui/internal"
+	"code.waarp.fr/apps/gateway/gateway/pkg/admin/gui/v2/backend/common"
 	"code.waarp.fr/apps/gateway/gateway/pkg/admin/gui/v2/backend/constants"
 	"code.waarp.fr/apps/gateway/gateway/pkg/admin/gui/v2/backend/locale"
 	"code.waarp.fr/apps/gateway/gateway/pkg/database"
@@ -118,9 +119,9 @@ func deleteRule(db *database.DB, r *http.Request) error {
 	return nil
 }
 
-func listRule(db *database.DB, r *http.Request) ([]*model.Rule, Filters, string) {
+func listRule(db *database.DB, r *http.Request) ([]*model.Rule, *Filters, string) {
 	ruleFound := ""
-	defaultFilter := Filters{
+	defaultFilter := &Filters{
 		Offset:          0,
 		Limit:           DefaultLimitPagination,
 		OrderAsc:        true,
@@ -157,7 +158,7 @@ func listRule(db *database.DB, r *http.Request) ([]*model.Rule, Filters, string)
 
 	rule, err := internal.ListRules(db, "name", true, 0, 0)
 	if err != nil {
-		return nil, Filters{}, ruleFound
+		return nil, nil, ruleFound
 	}
 
 	if search := urlParams.Get("search"); search != "" && searchRule(search, rule) == nil {
@@ -170,11 +171,11 @@ func listRule(db *database.DB, r *http.Request) ([]*model.Rule, Filters, string)
 		return []*model.Rule{searchRule(search, rule)}, filter, ruleFound
 	}
 
-	paginationPage(&filter, uint64(len(rule)), r)
+	paginationPage(filter, uint64(len(rule)), r)
 
 	rules, err := internal.ListRules(db, "name", filter.OrderAsc, int(filter.Limit), int(filter.Offset*filter.Limit))
 	if err != nil {
-		return nil, Filters{}, ruleFound
+		return nil, nil, ruleFound
 	}
 
 	return rules, filter, ruleFound
@@ -272,6 +273,7 @@ func callMethodsRuleManagement(logger *log.Logger, db *database.DB, w http.Respo
 
 func ruleManagementPage(logger *log.Logger, db *database.DB) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
+		user := common.GetUser(r)
 		userLanguage := locale.GetLanguage(r)
 		tabTranslated := pageTranslated("transfer_rules_management_page", userLanguage)
 		ruleList, filter, ruleFound := listRule(db, r)
@@ -283,16 +285,11 @@ func ruleManagementPage(logger *log.Logger, db *database.DB) http.HandlerFunc {
 			return
 		}
 
-		PersistPageFilters(r, "transfer_rules_management_page", &filter)
+		PersistPageFilters(r, "transfer_rules_management_page", filter)
 
 		value, errMsg, modalOpen, modalElement := callMethodsRuleManagement(logger, db, w, r)
 		if value {
 			return
-		}
-
-		user, err := GetUserByToken(r, db)
-		if err != nil {
-			logger.Errorf("Internal error: %v", err)
 		}
 
 		myPermission := model.MaskToPerms(user.Permissions)

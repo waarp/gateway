@@ -56,6 +56,10 @@ func (i *icapTask) parseParams(params map[string]string) error {
 		return ErrIcapMissingUploadURL
 	}
 
+	if !strings.HasPrefix(i.UploadURL, "icap://") {
+		i.UploadURL = "icap://" + i.UploadURL
+	}
+
 	switch i.OnError {
 	case IcapOnErrorDelete:
 		i.deleteOnError = true
@@ -168,7 +172,7 @@ func (i *icapTask) run(logger *log.Logger, transCtx *model.TransferContext, prev
 func (i *icapTask) options(filepath string) (int64, error) {
 	fileExt := path.Ext(filepath)
 
-	req, reqErr := ic.NewRequest(ic.MethodOPTIONS, "icap://"+i.UploadURL, nil, nil)
+	req, reqErr := ic.NewRequest(ic.MethodOPTIONS, i.UploadURL, nil, nil)
 	if reqErr != nil {
 		return 0, fmt.Errorf("failed to create icap OPTIONS request: %w", reqErr)
 	}
@@ -288,7 +292,7 @@ func (i *icapTask) makeReqmodRequest(file io.Reader, originServer string, length
 
 	httpReq.ContentLength = length
 
-	req, err := ic.NewRequest(ic.MethodREQMOD, "icap://"+i.UploadURL, httpReq, nil)
+	req, err := ic.NewRequest(ic.MethodREQMOD, i.UploadURL, httpReq, nil)
 	if err != nil {
 		return nil, fmt.Errorf("failed to create icap request: %w", err)
 	}
@@ -311,7 +315,7 @@ func (i *icapTask) makeRespmodRequest(file io.Reader, length int64) (*ic.Request
 		ContentLength: length,
 	}
 
-	req, err := ic.NewRequest(ic.MethodRESPMOD, "icap://"+i.UploadURL, nil, httpResp)
+	req, err := ic.NewRequest(ic.MethodRESPMOD, i.UploadURL, nil, httpResp)
 	if err != nil {
 		return nil, fmt.Errorf("failed to create icap request: %w", err)
 	}

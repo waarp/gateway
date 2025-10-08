@@ -6,22 +6,18 @@ import (
 
 	"code.waarp.fr/lib/log"
 
+	"code.waarp.fr/apps/gateway/gateway/pkg/admin/gui/v2/backend/common"
 	"code.waarp.fr/apps/gateway/gateway/pkg/admin/gui/v2/backend/constants"
 	"code.waarp.fr/apps/gateway/gateway/pkg/admin/gui/v2/backend/locale"
-	"code.waarp.fr/apps/gateway/gateway/pkg/database"
 	"code.waarp.fr/apps/gateway/gateway/pkg/model"
 	"code.waarp.fr/apps/gateway/gateway/pkg/version"
 )
 
-func EmailTemplateManagementPage(logger *log.Logger, db *database.DB) http.HandlerFunc {
+func EmailTemplateManagementPage(logger *log.Logger) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
+		user := common.GetUser(r)
 		userLanguage := locale.GetLanguage(r)
 		tTranslated := pageTranslated("email_templates_management_page", userLanguage)
-
-		user, err := GetUserByToken(r, db)
-		if err != nil {
-			logger.Errorf("Internal error: %v", err)
-		}
 
 		myPermission := model.MaskToPerms(user.Permissions)
 

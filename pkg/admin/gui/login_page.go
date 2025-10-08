@@ -2,79 +2,102 @@ package gui
 
 import (
 	"crypto/rand"
-	"encoding/base64"
 	"errors"
 	"fmt"
 	"net/http"
-	"sort"
-	"sync"
 	"time"
 
 	"code.waarp.fr/lib/log"
 	"github.com/golang-jwt/jwt/v5"
+	"github.com/puzpuzpuz/xsync/v4"
 
 	"code.waarp.fr/apps/gateway/gateway/pkg/admin/gui/internal"
+	"code.waarp.fr/apps/gateway/gateway/pkg/admin/gui/v2/backend/locale"
+	"code.waarp.fr/apps/gateway/gateway/pkg/conf"
 	"code.waarp.fr/apps/gateway/gateway/pkg/database"
 	"code.waarp.fr/apps/gateway/gateway/pkg/model"
+	"code.waarp.fr/apps/gateway/gateway/pkg/utils"
 )
 
 type Session struct {
 	Token      string
-	UserID     int
+	UserID     int64
 	Expiration time.Time
 	Filters    filtersCookieMap
 }
 
-const validTimeToken = 20 * time.Minute
-
-//nolint:gochecknoglobals // secretKey & sessionStore
-var (
-	secretKey        = CreateSecretKey()
-	sessionStore     sync.Map
-	userFiltersStore sync.Map
+const (
+	validTimeToken  = 10 * time.Second
+	tokenCookieName = "token"
+	secretKeyLen    = 32
 )
 
-//nolint:gochecknoinits // init
-func init() {
-	const cleaner = 5 * time.Minute
-	CleanOldSession(cleaner)
+var ErrTokenInvalid = errors.New("token has been invalidated")
+
+//nolint:gochecknoglobals // secret key & invalid tokens
+var (
+	secretKey     = CreateSecretKey()
+	invalidTokens = xsync.NewMap[string, time.Time]()
+)
+
+func clearInvalidTokens() {
+	now := time.Now()
+	invalidTokens.Range(func(token string, exp time.Time) bool {
+		if exp.Before(now) {
+			invalidTokens.Delete(token)
+		}
+
+		return true
+	})
+}
+
+func isTokenIvalidated(candidate string) bool {
+	clearInvalidTokens()
+
+	if _, ok := invalidTokens.Load(candidate); ok {
+		return false
+	}
+
+	return true
+}
+
+func invalidateToken(tokenString string) {
+	if _, ok := invalidTokens.Load(tokenString); ok {
+		return // already invalidated
+	}
+
+	token, err := parseToken(tokenString)
+	if err != nil {
+		return // invalid token
+	}
+
+	exp, err := token.Claims.GetExpirationTime()
+	if err != nil {
+		exp = &jwt.NumericDate{Time: time.Now().Add(validTimeToken)}
+	}
+
+	invalidTokens.Store(tokenString, exp.Time)
 }
 
 func CreateSecretKey() []byte {
-	b := 32
-	key := make([]byte, b)
-
-	_, err := rand.Read(key)
-	if err != nil {
-		panic(fmt.Errorf("error: %w", err))
+	key := make([]byte, secretKeyLen)
+	if _, err := rand.Read(key); err != nil {
+		panic(fmt.Errorf("failed to make JWT secret key: %w", err))
 	}
 
-	return []byte(base64.StdEncoding.EncodeToString(key))
+	return key
 }
 
-func CleanOldSession(interval time.Duration) {
-	go func() {
-		for {
-			time.Sleep(interval)
-			now := time.Now()
+func CreateToken(userID int64) (string, error) {
+	now := time.Now()
 
-			sessionStore.Range(func(key, value any) bool {
-				session, ok := value.(Session)
-				if ok && session.Expiration.Before(now) {
-					sessionStore.Delete(key)
-				}
-
-				return true
-			})
-		}
-	}()
-}
-
-func CreateToken(userID int, validTime time.Duration) (string, error) {
 	token := jwt.NewWithClaims(jwt.SigningMethodHS256,
 		jwt.MapClaims{
-			"userID": userID,
-			"exp":    time.Now().Add(validTime).Unix(),
+			"iss": conf.GlobalConfig.GatewayName,
+			"sub": utils.FormatInt(userID),
+			"iat": now.Unix(),
+			"nbf": now.Unix(),
+			"exp": now.Add(validTimeToken).Unix(),
 		})
 
 	tokenString, err := token.SignedString(secretKey)
@@ -85,190 +108,157 @@ func CreateToken(userID int, validTime time.Duration) (string, error) {
 	return tokenString, nil
 }
 
-func TokenMaxPerUser(user *model.User) {
-	var userSessions []Session
-	maxPerUser := 5
-
-	sessionStore.Range(func(_, value any) bool {
-		session, ok := value.(Session)
-		if ok && session.UserID == int(user.ID) {
-			userSessions = append(userSessions, session)
-		}
-
-		return true
-	})
-	sort.Slice(userSessions, func(i, j int) bool {
-		return userSessions[i].Expiration.Before(userSessions[j].Expiration)
-	})
-
-	if len(userSessions) > maxPerUser {
-		sessionStore.Delete(userSessions[0].Token)
-	}
-}
-
-func RefreshExpirationToken(token string, w http.ResponseWriter, r *http.Request) {
-	secure := false
-
-	value, ok := sessionStore.Load(token)
-	if !ok {
-		return
-	}
-
-	session, ok := value.(Session)
-	if !ok {
-		return
-	}
-
-	if session.Expiration.After(time.Now()) {
-		session.Expiration = time.Now().Add(validTimeToken)
-		sessionStore.Store(token, session)
-
-		if r.TLS != nil {
-			secure = true
-		}
-
-		http.SetCookie(w, &http.Cookie{
-			Name:     "token",
-			Value:    token,
-			Path:     "/",
-			Expires:  session.Expiration,
-			Secure:   secure,
-			HttpOnly: true,
-			SameSite: http.SameSiteLaxMode,
-		})
-	}
-}
-
-func CreateSession(userID int, validTime time.Duration) (token string, err error) {
-	token, err = CreateToken(userID, validTime)
+func RefreshExpirationToken(logger *log.Logger, w http.ResponseWriter,
+	r *http.Request, userID int64,
+) {
+	token, err := CreateToken(userID)
 	if err != nil {
-		return "", err
+		logger.Warningf("Failed to create token: %v", err)
+
+		return
 	}
 
-	sessionFilters := make(filtersCookieMap)
-	if value, ok := userFiltersStore.Load(userID); ok {
-		if cookieMap, hasValue := value.(filtersCookieMap); hasValue {
-			sessionFilters = cookieMap
-		}
+	secure := r.TLS != nil
+
+	http.SetCookie(w, &http.Cookie{
+		Name:     tokenCookieName,
+		Value:    token,
+		Path:     "/",
+		Expires:  time.Now().Add(validTimeToken),
+		Secure:   secure,
+		HttpOnly: true,
+		SameSite: http.SameSiteLaxMode,
+	})
+}
+
+func parseToken(tokenString string) (*jwt.Token, error) {
+	parser := jwt.NewParser(
+		jwt.WithIssuedAt(),
+		jwt.WithExpirationRequired(),
+		jwt.WithIssuer(conf.GlobalConfig.GatewayName),
+	)
+
+	token, err := parser.Parse(tokenString, func(*jwt.Token) (any, error) {
+		return secretKey, nil
+	})
+	if err != nil {
+		return nil, fmt.Errorf("failed to parse JWT: %w", err)
 	}
 
-	session := Session{
-		Token:      token,
-		UserID:     userID,
-		Expiration: time.Now().Add(validTime),
-		Filters:    sessionFilters,
+	if isTokenIvalidated(tokenString) {
+		return nil, ErrTokenInvalid
 	}
-	sessionStore.Store(token, session)
 
 	return token, nil
 }
 
-func ValidateSession(token string) (userID int, found bool) {
-	value, ok := sessionStore.Load(token)
-	if !ok {
-		return 0, false
-	}
-
-	session, ok := value.(Session)
-	if !ok {
-		return 0, false
-	}
-
-	if session.Expiration.Before(time.Now()) {
-		sessionStore.Delete(token)
-
-		return 0, false
-	}
-
-	return session.UserID, true
-}
-
-func DeleteSession(token string) {
-	sessionStore.Delete(token)
-}
-
-var errAuthentication = errors.New("incorrect username or password")
-
-func checkUser(db *database.DB, username, password string) (*model.User, error) {
-	user, err := internal.GetUser(db, username)
-
-	passwordHash := ""
-	if err == nil {
-		passwordHash = user.PasswordHash
-	}
-
-	pwd := internal.CheckHash(password, passwordHash)
-	if !pwd {
-		return nil, errAuthentication
-	}
-
+//nolint:err113 // these are base errors
+func ValidateSession(db database.ReadAccess, tokenString string) (*model.User, error) {
+	token, err := parseToken(tokenString)
 	if err != nil {
-		return nil, errAuthentication
+		return nil, err
+	}
+
+	subject, err := token.Claims.GetSubject()
+	if err != nil || subject == "" {
+		return nil, errors.New(`missing "sub" in JWT`)
+	}
+
+	userID, err := utils.ParseInt[int64](subject)
+	if err != nil {
+		return nil, fmt.Errorf("failed to parse subject %q in JWT: %w", subject, err)
+	}
+
+	user, err := internal.GetUserByID(db, userID)
+	if database.IsNotFound(err) {
+		return nil, errors.New("user not found")
+	} else if err != nil {
+		return nil, fmt.Errorf("failed to get user with ID %d: %w", userID, err)
 	}
 
 	return user, nil
 }
 
+var errAuthentication = errors.New("incorrect username or password")
+
+func checkUser(db database.ReadAccess, username, password string) (*model.User, error) {
+	var user model.User
+
+	err := db.Get(&user, "username=?", username).Owner().Run()
+	if err != nil && !database.IsNotFound(err) {
+		return nil, fmt.Errorf("failed to retrieve user: %w", err)
+	}
+
+	if ok := internal.CheckHash(password, user.PasswordHash); err != nil || !ok {
+		return nil, errAuthentication
+	}
+
+	return &user, nil
+}
+
 func loginPage(logger *log.Logger, db *database.DB) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		userLanguage := r.Context().Value(ContextLanguageKey)
-		tabTranslated := pageTranslated("login_page", userLanguage.(string)) //nolint:errcheck,forcetypeassert // userLanguage
-		var errorMessage string
-		secure := false
+		userLanguage := locale.GetLanguage(r)
+		tabTranslated := pageTranslated("login_page", userLanguage)
 
-		if r.Method == http.MethodPost { //nolint:nestif // loginpage
-			if err := r.ParseForm(); err != nil {
-				logger.Errorf("Error: %v", err)
-				errorMessage = tabTranslated["error"]
-			} else {
-				username := r.FormValue("username")
-				password := r.FormValue("password")
+		if r.Method == http.MethodGet {
+			makeLoginPage(w, logger, userLanguage, tabTranslated, "")
 
-				user, checkErr := checkUser(db, username, password)
-				if checkErr != nil {
-					logger.Errorf("Incorrect username or password: %v", checkErr)
-					errorMessage = tabTranslated["errorUser"]
-				} else {
-					token, createErr := CreateSession(int(user.ID), validTimeToken)
-					if createErr != nil {
-						logger.Errorf("Error creating session: %v", createErr)
-						errorMessage = tabTranslated["errorSession"]
-					} else {
-						TokenMaxPerUser(user)
-
-						if r.TLS != nil {
-							secure = true
-						}
-
-						http.SetCookie(w, &http.Cookie{
-							Name:     "token",
-							Value:    token,
-							Path:     "/",
-							Expires:  time.Now().Add(validTimeToken),
-							Secure:   secure,
-							HttpOnly: true,
-							SameSite: http.SameSiteLaxMode,
-						})
-
-						if redirect := r.URL.Query().Get("redirect"); redirect != "" {
-							http.Redirect(w, r, redirect, http.StatusFound)
-						} else {
-							http.Redirect(w, r, "home", http.StatusFound)
-						}
-
-						return
-					}
-				}
-			}
+			return
 		}
 
-		if tmplErr := loginTemplate.ExecuteTemplate(w, "login_page", map[string]any{
-			"tab":      tabTranslated,
-			"Error":    errorMessage,
-			"language": userLanguage,
-		}); tmplErr != nil {
-			logger.Errorf("render login_page: %v", tmplErr)
-			http.Error(w, "Internal error", http.StatusInternalServerError)
+		user, errorMsg := authenticateUser(db, logger, r, tabTranslated)
+		if errorMsg != "" {
+			makeLoginPage(w, logger, userLanguage, tabTranslated, errorMsg)
+
+			return
+		}
+
+		RefreshExpirationToken(logger, w, r, user.ID)
+
+		if redirect := r.URL.Query().Get("redirect"); redirect != "" {
+			http.Redirect(w, r, redirect, http.StatusFound)
+		} else {
+			http.Redirect(w, r, "home", http.StatusFound)
 		}
 	}
+}
+
+func makeLoginPage(w http.ResponseWriter, logger *log.Logger, lang string,
+	tabTranslated map[string]string, errorMsg string,
+) {
+	if tmplErr := loginTemplate.ExecuteTemplate(w, "login_page", map[string]any{
+		"tab":      tabTranslated,
+		"Error":    errorMsg,
+		"language": lang,
+	}); tmplErr != nil {
+		logger.Errorf("render login_page: %v", tmplErr)
+		http.Error(w, "Internal error", http.StatusInternalServerError)
+	}
+}
+
+func authenticateUser(db database.ReadAccess, logger *log.Logger, r *http.Request,
+	translation map[string]string,
+) (user *model.User, msg string) {
+	if err := r.ParseForm(); err != nil {
+		logger.Warningf("Failed to parse login form: %v", err)
+
+		return nil, translation["error"]
+	}
+
+	username := r.FormValue("username")
+	password := r.FormValue("password")
+
+	user, checkErr := checkUser(db, username, password)
+	if errors.Is(checkErr, errAuthentication) {
+		logger.Warning("Incorrect username or password")
+
+		return nil, translation["errorUser"]
+	} else if checkErr != nil {
+		logger.Errorf("Failed to check user: %v", checkErr)
+
+		return nil, checkErr.Error()
+	}
+
+	return user, ""
 }

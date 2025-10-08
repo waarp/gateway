@@ -9,6 +9,7 @@ import (
 	"code.waarp.fr/lib/log"
 
 	"code.waarp.fr/apps/gateway/gateway/pkg/admin/gui/internal"
+	"code.waarp.fr/apps/gateway/gateway/pkg/admin/gui/v2/backend/common"
 	"code.waarp.fr/apps/gateway/gateway/pkg/admin/gui/v2/backend/constants"
 	"code.waarp.fr/apps/gateway/gateway/pkg/admin/gui/v2/backend/locale"
 	"code.waarp.fr/apps/gateway/gateway/pkg/database"
@@ -18,10 +19,10 @@ import (
 
 //nolint:dupl // it is not the same function, the calls are different
 func listRemoteAccount(partnerName string, db *database.DB, r *http.Request) (
-	[]*model.RemoteAccount, Filters, string,
+	[]*model.RemoteAccount, *Filters, string,
 ) {
 	remoteAccountFound := ""
-	defaultFilter := Filters{
+	defaultFilter := &Filters{
 		Offset:          0,
 		Limit:           DefaultLimitPagination,
 		OrderAsc:        true,
@@ -58,7 +59,7 @@ func listRemoteAccount(partnerName string, db *database.DB, r *http.Request) (
 
 	remotesAccounts, err := internal.ListPartnerAccounts(db, partnerName, "login", true, 0, 0)
 	if err != nil {
-		return nil, Filters{}, remoteAccountFound
+		return nil, nil, remoteAccountFound
 	}
 
 	if search := urlParams.Get("search"); search != "" && searchRemoteAccount(search, remotesAccounts) == nil {
@@ -71,12 +72,12 @@ func listRemoteAccount(partnerName string, db *database.DB, r *http.Request) (
 		return []*model.RemoteAccount{searchRemoteAccount(search, remotesAccounts)}, filter, remoteAccountFound
 	}
 
-	paginationPage(&filter, uint64(len(remoteAccountFound)), r)
+	paginationPage(filter, uint64(len(remoteAccountFound)), r)
 
 	remotesAccountsList, err := internal.ListPartnerAccounts(db, partnerName, "login",
 		filter.OrderAsc, int(filter.Limit), int(filter.Offset*filter.Limit))
 	if err != nil {
-		return nil, Filters{}, remoteAccountFound
+		return nil, nil, remoteAccountFound
 	}
 
 	return remotesAccountsList, filter, remoteAccountFound
@@ -273,27 +274,22 @@ func callMethodsRemoteAccount(logger *log.Logger, db *database.DB, w http.Respon
 
 func remoteAccountPage(logger *log.Logger, db *database.DB) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
+		user := common.GetUser(r)
 		userLanguage := locale.GetLanguage(r)
 		tTranslated := pageTranslated("remote_account_management_page", userLanguage)
-
-		user, err := GetUserByToken(r, db)
-		if err != nil {
-			logger.Errorf("Internal error: %v", err)
-		}
-
 		myPermission := model.MaskToPerms(user.Permissions)
+
 		var partner *model.RemoteAgent
 		var id uint64
 
 		partnerID := r.URL.Query().Get("partnerID")
 		if partnerID != "" {
-			id, err = internal.ParseUint[uint64](partnerID)
-			if err != nil {
+			var err error
+			if id, err = internal.ParseUint[uint64](partnerID); err != nil {
 				logger.Errorf("failed to convert id to int: %v", err)
 			}
 
-			partner, err = internal.GetPartnerByID(db, int64(id))
-			if err != nil {
+			if partner, err = internal.GetPartnerByID(db, int64(id)); err != nil {
 				logger.Errorf("failed to get id: %v", err)
 			}
 		}
@@ -307,7 +303,7 @@ func remoteAccountPage(logger *log.Logger, db *database.DB) http.HandlerFunc {
 			return
 		}
 
-		PersistPageFilters(r, "remote_account_management_page", &filter)
+		PersistPageFilters(r, "remote_account_management_page", filter)
 
 		value, errMsg, modalOpen, modalElement := callMethodsRemoteAccount(logger, db, w, r, partner)
 		if value {

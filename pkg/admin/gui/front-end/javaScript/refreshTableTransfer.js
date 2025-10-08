@@ -1,3 +1,5 @@
+const refreshID = setInterval(refreshTransfers, 5000);
+
 function disposeAllTooltips () {
     document.querySelectorAll('[data-bs-toggle="tooltip"], button[title]').forEach(el => {
         const instance = bootstrap.Tooltip.getInstance(el);
@@ -26,32 +28,36 @@ function initTooltips () {
 }
 
 function refreshTransfers () {
-    if (document.querySelector('.modal.show'))
-        return;
+    if (document.querySelector('.modal.show')) return
 
     disposeAllTooltips();
 
-    const params = new URLSearchParams(window.location.search);
-    params.set('partial', 'true');
-    fetch('/webui/transfer_monitoring?' + params.toString()).then(response => response.text()).then(html => {
-        document.querySelector('tbody').innerHTML = html;
-        initTooltips();
-        showSyncUpdate();
-        const helpTooltip = document.getElementById('tableHelpTooltip');
-        if (helpTooltip) {
-            const instance = bootstrap.Tooltip.getOrCreateInstance(helpTooltip);
-            if (helpTooltip.matches(':hover'))
-                instance.show();
-        }
-        document.querySelectorAll('input.form-control-plaintext, input.form-control-plaintext[readonly], input.form-control-plaintext[disabled]').forEach(function(input) {
-            if (input.value === '<non définie>' || input.value === '<undefined>') {
-                input.classList.add('input-undefined');
+    const request = new Request('/webui/transfer_monitoring?partial=true', {redirect: 'error'})
+
+    fetch(request)
+        .then(resp => {
+            if (!resp.ok) return Promise.reject(resp)
+            return resp.text()
+        })
+        .then(html => {
+            document.querySelector('tbody').innerHTML = html;
+            initTooltips();
+            showSyncUpdate();
+            const helpTooltip = document.getElementById('tableHelpTooltip');
+            if (helpTooltip) {
+                const instance = bootstrap.Tooltip.getOrCreateInstance(helpTooltip);
+                if (helpTooltip.matches(':hover'))
+                    instance.show();
             }
+            document.querySelectorAll('input.form-control-plaintext, input.form-control-plaintext[readonly], input.form-control-plaintext[disabled]').forEach(function(input) {
+                if (input.value === '<non définie>' || input.value === '<undefined>') {
+                    input.classList.add('input-undefined');
+                }
+            });
+        })
+        .catch(err => {
+            clearInterval(refreshID);
+            console.error('Error during page refresh:', err);
         });
-    })
-    .catch(err => {
-      console.error('Internal error during page refresh:', err);
-    });
 }
 
-setInterval(refreshTransfers, 5000);
