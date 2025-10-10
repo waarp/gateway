@@ -83,11 +83,6 @@ func paginationPage(filter *Filters, lenList uint64, r *http.Request) {
 		}
 	}
 
-	if filter.Offset == 0 {
-		filter.DisablePrevious = true
-	}
-
-	if (filter.Offset+1)*filter.Limit >= lenList {
-		filter.DisableNext = true
-	}
+	filter.DisablePrevious = filter.Offset == 0
+	filter.DisableNext = (filter.Offset+1)*filter.Limit >= lenList
 }

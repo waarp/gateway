@@ -18,6 +18,7 @@ import (
 // executed using the `Run` function.
 type ReadAccess interface {
 	getUnderlying() xorm.Interface
+	AsDB() *DB
 
 	// GetLogger returns the database logger instance.
 	GetLogger() *log.Logger

@@ -116,9 +116,7 @@ func AddGUIRouter(router *mux.Router, logger *log.Logger, db *database.DB) {
 func logout() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		if cookie, err := r.Cookie(tokenCookieName); err == nil {
-			if _, err = parseToken(cookie.Value); err == nil {
-				invalidateToken(cookie.Value)
-			}
+			invalidateToken(cookie.Value)
 		}
 
 		http.SetCookie(w, &http.Cookie{
@@ -143,14 +141,14 @@ func AuthenticationMiddleware(logger *log.Logger, db *database.DB) mux.Middlewar
 				loginURL.RawQuery = params.Encode()
 			}
 
-			token, err := r.Cookie(tokenCookieName)
-			if err != nil || token.Value == "" {
+			tokenCookie, err := r.Cookie(tokenCookieName)
+			if err != nil || tokenCookie.Value == "" {
 				http.Redirect(w, r, loginURL.String(), http.StatusFound)
 
 				return
 			}
 
-			user, err := ValidateSession(db, token.Value)
+			user, err := validateSession(db, tokenCookie.Value)
 			if err != nil {
 				logger.Infof("Failed to validate session: %v", err)
 				http.Redirect(w, r, loginURL.String(), http.StatusFound)
@@ -159,7 +157,7 @@ func AuthenticationMiddleware(logger *log.Logger, db *database.DB) mux.Middlewar
 			}
 
 			if r.URL.Query().Get("partial") == "" {
-				RefreshExpirationToken(logger, w, r, user.ID)
+				refreshToken(r, w, tokenCookie.Value)
 			}
 
 			ctx := context.WithValue(r.Context(), ContextUserKey, user)

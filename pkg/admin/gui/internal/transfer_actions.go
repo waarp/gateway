@@ -68,6 +68,7 @@ func RegisterNewTransfer(db *database.DB,
 	transferInfos map[string]any,
 ) (*model.Transfer, error) {
 	trans := &model.Transfer{
+		Status:         types.StatusAvailable,
 		LocalAccountID: utils.NewNullInt64(account.ID),
 		RuleID:         rule.ID,
 		Start:          dueDate,

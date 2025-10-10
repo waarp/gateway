@@ -16,6 +16,7 @@ import (
 // can be performed using the Standalone.Transaction method.
 type Session struct {
 	id      int64
+	db      *DB
 	session *xorm.Session
 	logger  *log.Logger
 }
@@ -23,6 +24,7 @@ type Session struct {
 func (s *Session) getUnderlying() xorm.Interface {
 	return s.session
 }
+func (s *Session) AsDB() *DB { return s.db }
 
 // GetLogger returns the database logger instance.
 func (s *Session) GetLogger() *log.Logger {

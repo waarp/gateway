@@ -12,6 +12,7 @@ import (
 	"path/filepath"
 
 	"code.waarp.fr/lib/log"
+	"github.com/puzpuzpuz/xsync/v4"
 	"xorm.io/xorm"
 	xnames "xorm.io/xorm/names"
 
@@ -37,8 +38,8 @@ var (
 // DB is the database service. It encapsulates a data connection and implements
 // Accessor.
 type DB struct {
-	// The database accessor.
-	*Standalone
+	engine   *xorm.Engine
+	sessions *xsync.Map[int64, *Session]
 
 	// The service Logger
 	logger *log.Logger
@@ -114,19 +115,19 @@ type DBInfo struct {
 //nolint:gochecknoglobals // global var is used by design
 var SupportedRBMS = map[string]func() *DBInfo{}
 
-func (db *DB) initEngine() (*xorm.Engine, error) {
+func (db *DB) initEngine() error {
 	connInfo, err := db.createConnectionInfo()
 	if err != nil {
 		db.logger.Criticalf("Database configuration invalid: %v", err)
 
-		return nil, err
+		return err
 	}
 
 	engine, err := xorm.NewEngine(connInfo.Driver, connInfo.DSN)
 	if err != nil {
 		db.logger.Criticalf("Failed to open database: %v", err)
 
-		return nil, fmt.Errorf("cannot initialize database access: %w", err)
+		return fmt.Errorf("cannot initialize database access: %w", err)
 	}
 
 	db.setLogger(engine)
@@ -135,14 +136,17 @@ func (db *DB) initEngine() (*xorm.Engine, error) {
 	if err = engine.Ping(); err != nil {
 		db.logger.Errorf("Failed to access database: %v", err)
 
-		return nil, fmt.Errorf("cannot access database: %w", err)
+		return fmt.Errorf("cannot access database: %w", err)
 	}
 
 	if connInfo.ConnLimit > 0 {
 		engine.SetMaxOpenConns(connInfo.ConnLimit)
 	}
 
-	return engine, nil
+	db.engine = engine
+	db.sessions = xsync.NewMap[int64, *Session]()
+
+	return nil
 }
 
 // Start launches the database service using the configuration given in the
@@ -175,18 +179,12 @@ func (db *DB) start(withInit bool) error {
 		return err
 	}
 
-	engine, err := db.initEngine()
-	if err != nil {
+	if err := db.initEngine(); err != nil {
 		return err
 	}
 
-	db.Standalone = &Standalone{
-		engine: engine,
-		logger: db.logger,
-	}
-
 	if err1 := db.checkVersion(); err1 != nil {
-		if err2 := engine.Close(); err2 != nil {
+		if err2 := db.engine.Close(); err2 != nil {
 			db.logger.Warningf("an error occurred while closing the database: %v", err2)
 		}
 
@@ -194,8 +192,8 @@ func (db *DB) start(withInit bool) error {
 	}
 
 	if withInit {
-		if err1 := initDatabase(db.Standalone); err1 != nil {
-			if err2 := engine.Close(); err2 != nil {
+		if err1 := db.initDatabase(); err1 != nil {
+			if err2 := db.engine.Close(); err2 != nil {
 				db.logger.Warningf("an error occurred while closing the database: %v", err2)
 			}
 
@@ -228,11 +226,11 @@ func (db *DB) Stop(ctx context.Context) error {
 }
 
 func (db *DB) stop(ctx context.Context) error {
-	defer func() { db.Standalone = nil }()
+	defer func() { db.engine = nil }()
 
 	db.logger.Info("Shutting down...")
 
-	if err := db.Standalone.engine.Close(); err != nil {
+	if err := db.engine.Close(); err != nil {
 		db.logger.Infof("Error while closing the database: %v", err)
 
 		return fmt.Errorf("an error occurred while closing the database: %w", err)
@@ -245,9 +243,8 @@ func (db *DB) stop(ctx context.Context) error {
 	case <-func() chan bool {
 		done := make(chan bool)
 
-		db.sessions.Range(func(_, ses any) bool {
-			//nolint:forcetypeassert,errcheck //type assert will always succeed
-			if err := ses.(*Session).session.Close(); err != nil {
+		db.sessions.Range(func(_ int64, ses *Session) bool {
+			if err := ses.session.Close(); err != nil {
 				db.logger.Warningf("Failed to close session: %v", err)
 			}
 
@@ -261,7 +258,7 @@ func (db *DB) stop(ctx context.Context) error {
 	}
 
 	db.logger.Info("Shutdown complete")
-	db.Standalone.engine = nil
+	db.engine = nil
 
 	return nil
 }
@@ -270,5 +267,3 @@ func (db *DB) stop(ctx context.Context) error {
 func (db *DB) State() (utils.StateCode, string) {
 	return db.state.Get()
 }
-
-func (db *DB) Xorm() *xorm.Engine { return db.Standalone.engine }

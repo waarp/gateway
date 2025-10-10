@@ -94,8 +94,7 @@ func (t *TransferTask) parseArgs(db database.ReadAccess, args map[string]string)
 	}
 
 	if t.Using == "" {
-		//nolint:forcetypeassert //assertion always succeeds here
-		client, err := GetDefaultTransferClient(db.(*database.DB), t.partner.Protocol)
+		client, err := GetDefaultTransferClient(db.AsDB(), t.partner.Protocol)
 		if err != nil {
 			return fmt.Errorf("failed to retrieve default transfer client: %w", err)
 		}

@@ -44,7 +44,7 @@ func (d *DeleteQuery) Run() error {
 	}
 
 	switch db := d.db.(type) {
-	case *Standalone:
+	case *DB:
 		return db.Transaction(d.run)
 	case *Session:
 		return d.run(db)

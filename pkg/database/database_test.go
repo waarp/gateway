@@ -516,7 +516,7 @@ func testDelete(db *DB) {
 				So(beans, ShouldNotBeEmpty)
 				So(beans[0], ShouldResemble, testDeleteFail{ID: 1})
 
-				if _, ok := db.(*Standalone); ok {
+				if _, ok := db.(*DB); ok {
 					Convey("Then the hook changes should have been reverted", func() {
 						So(beans, ShouldHaveLength, 1)
 					})
