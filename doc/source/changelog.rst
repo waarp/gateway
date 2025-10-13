@@ -3,6 +3,9 @@
 Historique des versions
 =======================
 
+* :bug:`494` Correction d'une régression de la v0.13.0 faisant que la tâche
+  TRANSFER échouait parfois pour des raisons d'ID incorrect.
+
 * :release:`0.13.1 <2025-10-13>`
 * :bug:`-` Correction des URLs de documentation dans l'interface Web.
 * :bug:`-` Correction d'un crash de l'application qui se produisait lors de
