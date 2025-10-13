@@ -8,7 +8,7 @@ import (
 
 //nolint:gochecknoglobals //global vars are required here
 var (
-	addr     *url.URL
+	addr     url.URL
 	insecure bool
 )
 
@@ -49,7 +49,7 @@ func (*AddrOpt) UnmarshalFlag(value string) error {
 		parsedURL.User = url.UserPassword(user, pwd)
 	}
 
-	addr = parsedURL
+	addr = *parsedURL
 
 	return nil
 }

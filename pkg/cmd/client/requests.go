@@ -32,7 +32,7 @@ func getHTTPClient(insecure bool) *http.Client {
 }
 
 func sendRequest(ctx context.Context, object any, method string) (*http.Response, error) {
-	return SendRequest(ctx, object, method, addr, insecure)
+	return SendRequest(ctx, object, method, &addr, insecure)
 }
 
 func SendRequest(ctx context.Context, object any, method string,
@@ -76,9 +76,9 @@ func add(w io.Writer, object any) (*url.URL, error) {
 	ctx, cancel := context.WithTimeout(context.Background(), httpTimeout)
 	defer cancel()
 
-	resp, err := sendRequest(ctx, object, http.MethodPost)
-	if err != nil {
-		return nil, err
+	resp, reqErr := sendRequest(ctx, object, http.MethodPost)
+	if reqErr != nil {
+		return nil, reqErr
 	}
 	defer resp.Body.Close() //nolint:errcheck // nothing to handle the error
 

@@ -3,6 +3,7 @@
 Historique des versions
 =======================
 
+* :release:`0.13.1 <2025-10-13>`
 * :bug:`-` Correction des URLs de documentation dans l'interface Web.
 * :bug:`-` Correction d'un crash de l'application qui se produisait lors de
   l'import d'une tâche "TRANSFER" sans l'argument "*using*".

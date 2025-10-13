@@ -88,6 +88,6 @@ func testServer(tb testing.TB, expected *expectedRequest, result *expectedRespon
 	host, err := url.Parse(serv.URL)
 	require.NoError(tb, err)
 
-	addr = host
+	addr = *host
 	addr.User = url.UserPassword(testUser, testPswd)
 }

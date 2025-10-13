@@ -57,6 +57,10 @@ locals:
     credentials:
       # The R66 server's SSH private key. Since this private key is publicly
       # available as part of this example file, it should NOT be used in production.
+      #
+      # Here is the public key associated with it (in "authorized key" format) in
+      # case it is needed:
+      #   ssh-rsa AAAAB3NzaC1yc2EAAAADAQABAAAAgQDCDQpcvPhLRQXhBGAOn5ZNbMJ7BL6wtS1nRotBIA3YdZ0Kyyb8u7STaAvEfdcmNgl3jTS1z8IxxZb4hRWuEyF8s1HWmNWLGoZU9LFeMak2B/DPHJnlALSjpo1sFNmXVTy/+qLv7EVsRfuA1MycCBDLv0HMKiof4IhdQeMeXkISLw==
       - name: sftp-hostkey
         type: ssh_private_key
         value: |
