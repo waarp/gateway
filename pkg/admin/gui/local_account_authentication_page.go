@@ -8,6 +8,7 @@ import (
 	"code.waarp.fr/lib/log"
 
 	"code.waarp.fr/apps/gateway/gateway/pkg/admin/gui/internal"
+	"code.waarp.fr/apps/gateway/gateway/pkg/admin/gui/v2/backend/common"
 	"code.waarp.fr/apps/gateway/gateway/pkg/admin/gui/v2/backend/constants"
 	"code.waarp.fr/apps/gateway/gateway/pkg/admin/gui/v2/backend/locale"
 	"code.waarp.fr/apps/gateway/gateway/pkg/database"
@@ -19,10 +20,10 @@ import (
 
 //nolint:dupl // no similar func (is for account)
 func listCredentialLocalAccount(serverName, login string, db *database.DB, r *http.Request) (
-	[]*model.Credential, Filters, string,
+	[]*model.Credential, *Filters, string,
 ) {
 	credentialAccountFound := ""
-	defaultFilter := Filters{
+	defaultFilter := &Filters{
 		Offset:          0,
 		Limit:           DefaultLimitPagination,
 		OrderAsc:        true,
@@ -59,7 +60,7 @@ func listCredentialLocalAccount(serverName, login string, db *database.DB, r *ht
 
 	accountsCredentials, err := internal.ListServerAccountCredentials(db, serverName, login, "name", true, 0, 0)
 	if err != nil {
-		return nil, Filters{}, credentialAccountFound
+		return nil, nil, credentialAccountFound
 	}
 
 	if search := urlParams.Get("search"); search != "" && searchCredentialLocalAccount(search,
@@ -73,12 +74,12 @@ func listCredentialLocalAccount(serverName, login string, db *database.DB, r *ht
 		return []*model.Credential{searchCredentialLocalAccount(search, accountsCredentials)}, filter, credentialAccountFound
 	}
 
-	paginationPage(&filter, uint64(len(accountsCredentials)), r)
+	paginationPage(filter, uint64(len(accountsCredentials)), r)
 
 	accountsCredentialsList, err := internal.ListServerAccountCredentials(db, serverName, login, "name",
 		filter.OrderAsc, int(filter.Limit), int(filter.Offset*filter.Limit))
 	if err != nil {
-		return nil, Filters{}, credentialAccountFound
+		return nil, nil, credentialAccountFound
 	}
 
 	return accountsCredentialsList, filter, credentialAccountFound
@@ -342,6 +343,7 @@ func getServerAndAccount(db *database.DB, serverID, accountID string, logger *lo
 
 func localAccountAuthenticationPage(logger *log.Logger, db *database.DB) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
+		user := common.GetUser(r)
 		userLanguage := locale.GetLanguage(r)
 		tTranslated := pageTranslated("local_account_authentication_page", userLanguage)
 
@@ -358,16 +360,11 @@ func localAccountAuthenticationPage(logger *log.Logger, db *database.DB) http.Ha
 			return
 		}
 
-		PersistPageFilters(r, "local_account_authentication_page", &filter)
+		PersistPageFilters(r, "local_account_authentication_page", filter)
 
 		value, errMsg, modalOpen, modalElement := callMethodsLocalAccountAuthentication(logger, db, w, r, server, account)
 		if value {
 			return
-		}
-
-		user, err := GetUserByToken(r, db)
-		if err != nil {
-			logger.Errorf("Internal error: %v", err)
 		}
 
 		listSupportedProtocol := supportedProtocolLocalAccount(server.Protocol)

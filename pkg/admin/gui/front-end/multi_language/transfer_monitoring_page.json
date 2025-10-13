@@ -58,6 +58,7 @@
     "done": { "fr": "Terminé", "en": "Done" },
     "error": { "fr": "Erreur", "en": "Error" },
     "planned": { "fr": "Prévu", "en": "Planned" },
+    "available": { "fr": "Disponible", "en": "Available" },
     "running": { "fr": "En ligne", "en": "Running" },
     "paused": { "fr": "En pause", "en": "Paused" },
     "interrupted": { "fr": "Interrompu", "en": "Interrupted" },

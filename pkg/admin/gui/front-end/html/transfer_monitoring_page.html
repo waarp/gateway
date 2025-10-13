@@ -45,6 +45,8 @@
               <span class="fw-bold text-danger">{{ index $.tab "error" }}</span>
           {{ else if eq .Status "PLANNED" }}
               <span class="fw-bold text-info">{{ index $.tab "planned" }}</span>
+          {{ else if eq .Status "AVAILABLE" }}
+            <span class="fw-bold text-info">{{ index $.tab "available" }}</span>
           {{ else if eq .Status "RUNNING" }}
               <span class="fw-bold text-primary">{{ index $.tab "running" }}</span>
           {{ else if eq .Status "PAUSED" }}

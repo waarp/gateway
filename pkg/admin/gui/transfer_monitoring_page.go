@@ -10,6 +10,7 @@ import (
 	"code.waarp.fr/lib/log"
 
 	"code.waarp.fr/apps/gateway/gateway/pkg/admin/gui/internal"
+	"code.waarp.fr/apps/gateway/gateway/pkg/admin/gui/v2/backend/common"
 	"code.waarp.fr/apps/gateway/gateway/pkg/admin/gui/v2/backend/constants"
 	"code.waarp.fr/apps/gateway/gateway/pkg/admin/gui/v2/backend/locale"
 	"code.waarp.fr/apps/gateway/gateway/pkg/database"
@@ -328,8 +329,8 @@ func filterTransfer(filter *Filters, statuses []string, r *http.Request) {
 }
 
 //nolint:gocyclo,cyclop,gocognit,funlen // all filter
-func listTransfer(db *database.DB, r *http.Request) ([]*model.NormalizedTransferView, Filters) {
-	defaultFilter := Filters{
+func listTransfer(db *database.DB, r *http.Request) ([]*model.NormalizedTransferView, *Filters) {
+	defaultFilter := &Filters{
 		Offset:            0,
 		Limit:             LimitTransfer,
 		OrderAsc:          false,
@@ -353,7 +354,7 @@ func listTransfer(db *database.DB, r *http.Request) ([]*model.NormalizedTransfer
 	urlParams := r.URL.Query()
 	statuses := urlParams["status"]
 
-	filterTransfer(&filter, statuses, r)
+	filterTransfer(filter, statuses, r)
 
 	order := urlParams.Get("order")
 	switch order {
@@ -446,7 +447,7 @@ func listTransfer(db *database.DB, r *http.Request) ([]*model.NormalizedTransfer
 		return nil, filter
 	}
 
-	paginationPage(&filter, totalTransfers, r)
+	paginationPage(filter, totalTransfers, r)
 	transfer.Limit(int(filter.Limit), int(filter.Offset*filter.Limit))
 
 	transfers, err := transfer.Run()
@@ -651,6 +652,7 @@ func listUtilsTemplate(logger *log.Logger, db *database.DB) (
 //nolint:funlen // map template is too long
 func transferMonitoringPage(logger *log.Logger, db *database.DB) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
+		user := common.GetUser(r)
 		userLanguage := locale.GetLanguage(r)
 		tabTranslated := pageTranslated("transfer_monitoring_page", userLanguage)
 		transferList, filter := listTransfer(db, r)
@@ -662,16 +664,11 @@ func transferMonitoringPage(logger *log.Logger, db *database.DB) http.HandlerFun
 			return
 		}
 
-		PersistPageFilters(r, "transfer_monitoring_page", &filter)
+		PersistPageFilters(r, "transfer_monitoring_page", filter)
 
 		value, errMsg, modalOpen, modalElement := callMethodsTransferMonitoring(logger, db, w, r)
 		if value {
 			return
-		}
-
-		user, err := GetUserByToken(r, db)
-		if err != nil {
-			logger.Errorf("Internal error: %v", err)
 		}
 
 		successAddTransfer := r.URL.Query().Get("successAddTransfer")

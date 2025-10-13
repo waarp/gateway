@@ -4,7 +4,7 @@ import (
 	"errors"
 	"fmt"
 
-	"github.com/puzpuzpuz/xsync"
+	"github.com/puzpuzpuz/xsync/v4"
 )
 
 var (
@@ -14,8 +14,8 @@ var (
 
 //nolint:gochecknoglobals //global vars are needed here
 var (
-	FileSystems = xsync.NewMapOf[FS]()
-	fsMakers    = xsync.NewMapOf[FSMaker]()
+	FileSystems = xsync.NewMap[string, FS]()
+	fsMakers    = xsync.NewMap[string, FSMaker]()
 )
 
 type FSMaker func(name, key, secret string, opts map[string]string) (FS, error)

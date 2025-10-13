@@ -158,7 +158,7 @@ func TestControllerListen(t *testing.T) {
 				pipeline.List.SetLimits(1, 1)
 
 				Convey("When the controller retrieves new transfers", func() {
-					plannedTrans, dbErr := cont.retrieveTransfers()
+					plannedTrans, dbErr := cont.retrieveClientTransfers()
 					So(dbErr, ShouldBeNil)
 
 					Convey("Then it should return a limited amount of transfers", func() {

@@ -8,6 +8,7 @@ import (
 	"code.waarp.fr/lib/log"
 
 	"code.waarp.fr/apps/gateway/gateway/pkg/admin/gui/internal"
+	"code.waarp.fr/apps/gateway/gateway/pkg/admin/gui/v2/backend/common"
 	"code.waarp.fr/apps/gateway/gateway/pkg/admin/gui/v2/backend/constants"
 	"code.waarp.fr/apps/gateway/gateway/pkg/admin/gui/v2/backend/locale"
 	"code.waarp.fr/apps/gateway/gateway/pkg/database"
@@ -20,9 +21,9 @@ var ListTypeCloudInstance = []string{
 	"s3",
 }
 
-func ListCLoudInstance(db *database.DB, r *http.Request) ([]*model.CloudInstance, Filters, string) {
+func ListCLoudInstance(db *database.DB, r *http.Request) ([]*model.CloudInstance, *Filters, string) {
 	cloudFound := ""
-	defaultFilter := Filters{
+	defaultFilter := &Filters{
 		Offset:          0,
 		Limit:           DefaultLimitPagination,
 		OrderAsc:        true,
@@ -59,7 +60,7 @@ func ListCLoudInstance(db *database.DB, r *http.Request) ([]*model.CloudInstance
 
 	cloudInstance, err := internal.ListClouds(db, "name", filter.OrderAsc, 0, 0)
 	if err != nil {
-		return nil, Filters{}, cloudFound
+		return nil, nil, cloudFound
 	}
 
 	if search := urlParams.Get("search"); search != "" && searchCloudInstance(search, cloudInstance) == nil {
@@ -72,12 +73,12 @@ func ListCLoudInstance(db *database.DB, r *http.Request) ([]*model.CloudInstance
 		return []*model.CloudInstance{searchCloudInstance(search, cloudInstance)}, filter, cloudFound
 	}
 
-	paginationPage(&filter, uint64(len(cloudInstance)), r)
+	paginationPage(filter, uint64(len(cloudInstance)), r)
 
 	cloudInstances, err := internal.ListClouds(db, "name",
 		filter.OrderAsc, int(filter.Limit), int(filter.Offset*filter.Limit))
 	if err != nil {
-		return nil, Filters{}, cloudFound
+		return nil, nil, cloudFound
 	}
 
 	return cloudInstances, filter, cloudFound
@@ -298,6 +299,7 @@ func callMethodsCloudInstance(logger *log.Logger, db *database.DB, w http.Respon
 
 func cloudInstanceManagementPage(logger *log.Logger, db *database.DB) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
+		user := common.GetUser(r)
 		userLanguage := locale.GetLanguage(r)
 		tTranslated := pageTranslated("cloud_instance_management_page", userLanguage)
 		cloudInstanceList, filter, cloudFound := ListCLoudInstance(db, r)
@@ -309,16 +311,11 @@ func cloudInstanceManagementPage(logger *log.Logger, db *database.DB) http.Handl
 			return
 		}
 
-		PersistPageFilters(r, "cloud_instance_management_page", &filter)
+		PersistPageFilters(r, "cloud_instance_management_page", filter)
 
 		value, errMsg, modalOpen, modalElement := callMethodsCloudInstance(logger, db, w, r)
 		if value {
 			return
-		}
-
-		user, err := GetUserByToken(r, db)
-		if err != nil {
-			logger.Errorf("Internal error: %v", err)
 		}
 
 		myPermission := model.MaskToPerms(user.Permissions)

@@ -2,6 +2,7 @@ package constants
 
 import (
 	"path"
+	"strings"
 
 	"code.waarp.fr/apps/gateway/gateway/pkg/version"
 )
@@ -26,9 +27,14 @@ func DocLink(language string) string {
 		num = "latest"
 	}
 
-	return path.Join(DocLinkHome, num, language) + "/"
+	return DocLinkHome + path.Join(num, language) + "/"
 }
 
 func DocPage(language, page string) string {
-	return DocLink(language) + "/" + page
+	url := path.Join(DocLink(language), page)
+	if !strings.HasSuffix(url, "/") {
+		url += "/"
+	}
+
+	return url
 }

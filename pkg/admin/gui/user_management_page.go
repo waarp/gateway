@@ -10,6 +10,7 @@ import (
 	"code.waarp.fr/lib/log"
 
 	"code.waarp.fr/apps/gateway/gateway/pkg/admin/gui/internal"
+	"code.waarp.fr/apps/gateway/gateway/pkg/admin/gui/v2/backend/common"
 	"code.waarp.fr/apps/gateway/gateway/pkg/admin/gui/v2/backend/constants"
 	"code.waarp.fr/apps/gateway/gateway/pkg/admin/gui/v2/backend/locale"
 	"code.waarp.fr/apps/gateway/gateway/pkg/database"
@@ -159,9 +160,9 @@ func deleteUser(db *database.DB, r *http.Request) error {
 	return nil
 }
 
-func listUser(db *database.DB, r *http.Request) ([]*model.User, Filters, string) {
+func listUser(db *database.DB, r *http.Request) ([]*model.User, *Filters, string) {
 	userFound := ""
-	defaultFilter := Filters{
+	defaultFilter := &Filters{
 		Offset:          0,
 		Limit:           DefaultLimitPagination,
 		OrderAsc:        true,
@@ -199,7 +200,7 @@ func listUser(db *database.DB, r *http.Request) ([]*model.User, Filters, string)
 
 	user, err := internal.ListUsers(db, "username", filter.OrderAsc, 0, 0)
 	if err != nil {
-		return nil, Filters{}, userFound
+		return nil, nil, userFound
 	}
 
 	if search := urlParams.Get("search"); search != "" {
@@ -224,9 +225,9 @@ func listUser(db *database.DB, r *http.Request) ([]*model.User, Filters, string)
 		user = permissionsFilter(filter.Permissions, filter.PermissionsType, filter.PermissionsValue, user)
 	}
 
-	users, filtersPtr := paginationFunc(r, user, &filter)
+	users, filtersPtr := paginationFunc(r, user, filter)
 
-	return users, *filtersPtr, userFound
+	return users, filtersPtr, userFound
 }
 
 func paginationFunc(r *http.Request, user []*model.User, filter *Filters) ([]*model.User, *Filters) {
@@ -447,6 +448,7 @@ func callMethodsUserManagement(logger *log.Logger, db *database.DB, w http.Respo
 //nolint:funlen // pattern
 func userManagementPage(logger *log.Logger, db *database.DB) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
+		user := common.GetUser(r)
 		userLanguage := locale.GetLanguage(r)
 		tabTranslated := pageTranslated("user_management_page", userLanguage)
 		userList, filter, userFound := listUser(db, r)
@@ -458,7 +460,7 @@ func userManagementPage(logger *log.Logger, db *database.DB) http.HandlerFunc {
 			return
 		}
 
-		PersistPageFilters(r, "user_management_page", &filter)
+		PersistPageFilters(r, "user_management_page", filter)
 
 		var uPermissionsList []userPermissions
 		for _, u := range userList {
@@ -472,11 +474,6 @@ func userManagementPage(logger *log.Logger, db *database.DB) http.HandlerFunc {
 		value, errMsg, modalOpen, modalElement := callMethodsUserManagement(logger, db, w, r)
 		if value {
 			return
-		}
-
-		user, err := GetUserByToken(r, db)
-		if err != nil {
-			logger.Errorf("failed to get user by token: %v", err)
 		}
 
 		myPermission := model.MaskToPerms(user.Permissions)

@@ -8,6 +8,7 @@ import (
 	"code.waarp.fr/lib/log"
 
 	"code.waarp.fr/apps/gateway/gateway/pkg/admin/gui/internal"
+	"code.waarp.fr/apps/gateway/gateway/pkg/admin/gui/v2/backend/common"
 	"code.waarp.fr/apps/gateway/gateway/pkg/admin/gui/v2/backend/constants"
 	"code.waarp.fr/apps/gateway/gateway/pkg/admin/gui/v2/backend/locale"
 	"code.waarp.fr/apps/gateway/gateway/pkg/database"
@@ -19,10 +20,10 @@ import (
 
 //nolint:dupl // it is not the same function, the calls are different
 func listCredentialPartner(partnerName string, db *database.DB, r *http.Request) (
-	[]*model.Credential, Filters, string,
+	[]*model.Credential, *Filters, string,
 ) {
 	credentialPartnerFound := ""
-	defaultFilter := Filters{
+	defaultFilter := &Filters{
 		Offset:          0,
 		Limit:           DefaultLimitPagination,
 		OrderAsc:        true,
@@ -59,7 +60,7 @@ func listCredentialPartner(partnerName string, db *database.DB, r *http.Request)
 
 	partnersCredentials, err := internal.ListPartnerCredentials(db, partnerName, "name", true, 0, 0)
 	if err != nil {
-		return nil, Filters{}, credentialPartnerFound
+		return nil, nil, credentialPartnerFound
 	}
 
 	if search := urlParams.Get("search"); search != "" && searchCredentialPartner(search, partnersCredentials) == nil {
@@ -72,12 +73,12 @@ func listCredentialPartner(partnerName string, db *database.DB, r *http.Request)
 		return []*model.Credential{searchCredentialPartner(search, partnersCredentials)}, filter, credentialPartnerFound
 	}
 
-	paginationPage(&filter, uint64(len(partnersCredentials)), r)
+	paginationPage(filter, uint64(len(partnersCredentials)), r)
 
 	partnersCredentialsList, err := internal.ListPartnerCredentials(db, partnerName, "name",
 		filter.OrderAsc, int(filter.Limit), int(filter.Offset*filter.Limit))
 	if err != nil {
-		return nil, Filters{}, credentialPartnerFound
+		return nil, nil, credentialPartnerFound
 	}
 
 	return partnersCredentialsList, filter, credentialPartnerFound
@@ -299,27 +300,22 @@ func callMethodsPartnerAuthentication(logger *log.Logger, db *database.DB, w htt
 
 func partnerAuthenticationPage(logger *log.Logger, db *database.DB) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
+		user := common.GetUser(r)
 		userLanguage := locale.GetLanguage(r)
 		tabTrans := pageTranslated("partner_authentication_page", userLanguage)
-
-		user, err := GetUserByToken(r, db)
-		if err != nil {
-			logger.Errorf("Internal error: %v", err)
-		}
-
 		myPermission := model.MaskToPerms(user.Permissions)
+
 		var partner *model.RemoteAgent
 		var id uint64
 
 		partnerID := r.URL.Query().Get("partnerID")
 		if partnerID != "" {
-			id, err = internal.ParseUint[uint64](partnerID)
-			if err != nil {
+			var err error
+			if id, err = internal.ParseUint[uint64](partnerID); err != nil {
 				logger.Errorf("failed to convert id to int: %v", err)
 			}
 
-			partner, err = internal.GetPartnerByID(db, int64(id))
-			if err != nil {
+			if partner, err = internal.GetPartnerByID(db, int64(id)); err != nil {
 				logger.Errorf("failed to get id: %v", err)
 			}
 		}
@@ -333,7 +329,7 @@ func partnerAuthenticationPage(logger *log.Logger, db *database.DB) http.Handler
 			return
 		}
 
-		PersistPageFilters(r, "partner_authentication_page", &filter)
+		PersistPageFilters(r, "partner_authentication_page", filter)
 
 		value, errMsg, modalOpen, modalElement := callMethodsPartnerAuthentication(logger, db, w, r, partner)
 		if value {

@@ -8,6 +8,7 @@ import (
 	"code.waarp.fr/lib/log"
 
 	"code.waarp.fr/apps/gateway/gateway/pkg/admin/gui/internal"
+	"code.waarp.fr/apps/gateway/gateway/pkg/admin/gui/v2/backend/common"
 	"code.waarp.fr/apps/gateway/gateway/pkg/admin/gui/v2/backend/constants"
 	"code.waarp.fr/apps/gateway/gateway/pkg/admin/gui/v2/backend/locale"
 	"code.waarp.fr/apps/gateway/gateway/pkg/database"
@@ -20,10 +21,10 @@ import (
 
 //nolint:dupl // no similar func (is for remote_account)
 func listCredentialRemoteAccount(partnerName, login string, db *database.DB, r *http.Request) (
-	[]*model.Credential, Filters, string,
+	[]*model.Credential, *Filters, string,
 ) {
 	credentialAccountFound := ""
-	defaultFilter := Filters{
+	defaultFilter := &Filters{
 		Offset:          0,
 		Limit:           DefaultLimitPagination,
 		OrderAsc:        true,
@@ -60,7 +61,7 @@ func listCredentialRemoteAccount(partnerName, login string, db *database.DB, r *
 
 	accountsCredentials, err := internal.ListPartnerAccountCredentials(db, partnerName, login, "name", true, 0, 0)
 	if err != nil {
-		return nil, Filters{}, credentialAccountFound
+		return nil, nil, credentialAccountFound
 	}
 
 	if search := urlParams.Get("search"); search != "" && searchCredentialRemoteAccount(search,
@@ -74,12 +75,12 @@ func listCredentialRemoteAccount(partnerName, login string, db *database.DB, r *
 		return []*model.Credential{searchCredentialRemoteAccount(search, accountsCredentials)}, filter, credentialAccountFound
 	}
 
-	paginationPage(&filter, uint64(len(accountsCredentials)), r)
+	paginationPage(filter, uint64(len(accountsCredentials)), r)
 
 	accountsCredentialsList, err := internal.ListPartnerAccountCredentials(db, partnerName, login, "name",
 		filter.OrderAsc, int(filter.Limit), int(filter.Offset*filter.Limit))
 	if err != nil {
-		return nil, Filters{}, credentialAccountFound
+		return nil, nil, credentialAccountFound
 	}
 
 	return accountsCredentialsList, filter, credentialAccountFound
@@ -355,13 +356,9 @@ func getPartnerAndAccount(db *database.DB, partnerID, accountID string, logger *
 
 func remoteAccountAuthenticationPage(logger *log.Logger, db *database.DB) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
+		user := common.GetUser(r)
 		userLanguage := locale.GetLanguage(r)
 		tTranslated := pageTranslated("remote_account_authentication_page", userLanguage)
-
-		user, err := GetUserByToken(r, db)
-		if err != nil {
-			logger.Errorf("Internal error: %v", err)
-		}
 
 		myPermission := model.MaskToPerms(user.Permissions)
 
@@ -378,7 +375,7 @@ func remoteAccountAuthenticationPage(logger *log.Logger, db *database.DB) http.H
 			return
 		}
 
-		PersistPageFilters(r, "remote_account_authentication_page", &filter)
+		PersistPageFilters(r, "remote_account_authentication_page", filter)
 
 		value, errMsg, modalOpen, modalElement := callMethodsRemoteAccountAuthentication(logger, db, w, r, partner, account)
 		if value {

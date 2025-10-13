@@ -9,6 +9,7 @@ import (
 	"code.waarp.fr/lib/log"
 
 	"code.waarp.fr/apps/gateway/gateway/pkg/admin/gui/internal"
+	"code.waarp.fr/apps/gateway/gateway/pkg/admin/gui/v2/backend/common"
 	"code.waarp.fr/apps/gateway/gateway/pkg/admin/gui/v2/backend/constants"
 	"code.waarp.fr/apps/gateway/gateway/pkg/admin/gui/v2/backend/locale"
 	"code.waarp.fr/apps/gateway/gateway/pkg/database"
@@ -734,27 +735,22 @@ func callMethodsAllAuthorizedRules(logger *log.Logger, db *database.DB, w http.R
 //nolint:funlen // is for one page
 func managementUsageRightsRulesPage(logger *log.Logger, db *database.DB) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
+		user := common.GetUser(r)
 		userLanguage := locale.GetLanguage(r)
 		tTranslated := pageTranslated("management_usage_rights_rules_page", userLanguage)
-
-		user, err := GetUserByToken(r, db)
-		if err != nil {
-			logger.Errorf("Internal error: %v", err)
-		}
-
 		myPermission := model.MaskToPerms(user.Permissions)
+
 		var rule *model.Rule
 		var id uint64
 
 		ruleID := r.URL.Query().Get("ruleID")
 		if ruleID != "" {
-			id, err = internal.ParseUint[uint64](ruleID)
-			if err != nil {
+			var err error
+			if id, err = internal.ParseUint[uint64](ruleID); err != nil {
 				logger.Errorf("failed to convert id to int: %v", err)
 			}
 
-			rule, err = internal.GetRuleByID(db, int64(id))
-			if err != nil {
+			if rule, err = internal.GetRuleByID(db, int64(id)); err != nil {
 				logger.Errorf("failed to get id: %v", err)
 			}
 		}

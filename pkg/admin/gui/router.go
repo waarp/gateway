@@ -3,21 +3,16 @@ package gui
 
 import (
 	"context"
-	"errors"
-	"fmt"
 	"io/fs"
 	"net/http"
 	"net/url"
-	"time"
 
 	"code.waarp.fr/lib/log"
 	"github.com/gorilla/mux"
 
-	"code.waarp.fr/apps/gateway/gateway/pkg/admin/gui/internal"
 	"code.waarp.fr/apps/gateway/gateway/pkg/admin/gui/v2/backend"
 	"code.waarp.fr/apps/gateway/gateway/pkg/admin/gui/v2/backend/constants"
 	"code.waarp.fr/apps/gateway/gateway/pkg/database"
-	"code.waarp.fr/apps/gateway/gateway/pkg/model"
 )
 
 const Prefix = constants.WebuiPrefix
@@ -27,30 +22,6 @@ const (
 	ContextUserKey     = constants.ContextUserKey
 	ContextLanguageKey = constants.ContextLanguageKey
 )
-
-func GetUserByToken(r *http.Request, db database.ReadAccess) (*model.User, error) {
-	cookie, err := r.Cookie("token")
-	if err != nil {
-		return nil, fmt.Errorf("error cookie: %w", err)
-	}
-
-	value, ok := sessionStore.Load(cookie.Value)
-	if !ok {
-		return nil, errors.New("error loading session") //nolint:err113 // error
-	}
-
-	session, ok := value.(Session)
-	if !ok {
-		return nil, errors.New("internal error") //nolint:err113 // error
-	}
-
-	user, err := internal.GetUserByID(db, int64(session.UserID))
-	if err != nil {
-		return nil, fmt.Errorf("error: %w", err)
-	}
-
-	return user, nil
-}
 
 func LanguageMiddleware(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
@@ -78,7 +49,7 @@ func RouterAutocompletions(secureRouter *mux.Router, db *database.DB) {
 }
 
 func RouterPages(secureRouter *mux.Router, db *database.DB, logger *log.Logger) {
-	secureRouter.HandleFunc("/home", homePage(logger, db)).Methods("GET")
+	secureRouter.HandleFunc("/home", homePage(logger)).Methods("GET")
 	secureRouter.HandleFunc("/user_management", userManagementPage(logger, db)).Methods("GET", "POST")
 	secureRouter.HandleFunc("/partner_management", partnerManagementPage(logger, db)).Methods("GET", "POST")
 	secureRouter.HandleFunc("/partner_authentication", partnerAuthenticationPage(logger, db)).Methods("GET", "POST")
@@ -96,18 +67,18 @@ func RouterPages(secureRouter *mux.Router, db *database.DB, logger *log.Logger) 
 	secureRouter.HandleFunc("/management_usage_rights_rules",
 		managementUsageRightsRulesPage(logger, db)).Methods("GET", "POST")
 	secureRouter.HandleFunc("/transfer_monitoring", transferMonitoringPage(logger, db)).Methods("GET", "POST")
-	secureRouter.HandleFunc("/status_services", statusServicesPage(logger, db)).Methods("GET", "POST")
+	secureRouter.HandleFunc("/status_services", statusServicesPage(logger)).Methods("GET", "POST")
 	secureRouter.HandleFunc("/cloud_instance_management", cloudInstanceManagementPage(logger, db)).Methods("GET", "POST")
 	secureRouter.HandleFunc("/cryptographic_key_management",
-		cryptographicKeyManagementPage(logger, db)).Methods("GET", "POST")
-	secureRouter.HandleFunc("/snmp_management", snmpManagementPage(logger, db)).Methods("GET", "POST")
+		cryptographicKeyManagementPage(logger)).Methods("GET", "POST")
+	secureRouter.HandleFunc("/snmp_management", snmpManagementPage(logger)).Methods("GET", "POST")
 	secureRouter.HandleFunc("/managing_authentication_authorities",
-		managingAuthenticationAuthoritiesPage(logger, db)).Methods("GET", "POST")
+		managingAuthenticationAuthoritiesPage(logger)).Methods("GET", "POST")
 	secureRouter.HandleFunc("/managing_configuration_overrides",
-		managingConfigurationOverridesPage(logger, db)).Methods("GET", "POST")
-	secureRouter.HandleFunc("/email_templates_management", EmailTemplateManagementPage(logger, db)).Methods("GET", "POST")
+		managingConfigurationOverridesPage(logger)).Methods("GET", "POST")
+	secureRouter.HandleFunc("/email_templates_management", EmailTemplateManagementPage(logger)).Methods("GET", "POST")
 	secureRouter.HandleFunc("/smtp_credentials_management",
-		SMTPCredentialManagementPage(logger, db)).Methods("GET", "POST")
+		SMTPCredentialManagementPage(logger)).Methods("GET", "POST")
 
 	backend.MakeRouter(secureRouter, db, logger)
 }
@@ -144,26 +115,17 @@ func AddGUIRouter(router *mux.Router, logger *log.Logger, db *database.DB) {
 
 func logout() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		secure := false
-
-		token, err := r.Cookie("token")
-		if err == nil {
-			DeleteSession(token.Value)
-
-			if r.TLS != nil {
-				secure = true
-			}
-
-			http.SetCookie(w, &http.Cookie{
-				Name:     "token",
-				Value:    "",
-				Path:     "/",
-				Expires:  time.Unix(0, 0),
-				Secure:   secure,
-				HttpOnly: true,
-				SameSite: http.SameSiteLaxMode,
-			})
+		if cookie, err := r.Cookie(tokenCookieName); err == nil {
+			invalidateToken(cookie.Value)
 		}
+
+		http.SetCookie(w, &http.Cookie{
+			Name:     tokenCookieName,
+			Value:    "",
+			Path:     "/",
+			MaxAge:   -1,
+			HttpOnly: true,
+		})
 
 		http.Redirect(w, r, "login", http.StatusFound)
 	}
@@ -179,28 +141,23 @@ func AuthenticationMiddleware(logger *log.Logger, db *database.DB) mux.Middlewar
 				loginURL.RawQuery = params.Encode()
 			}
 
-			token, err := r.Cookie("token")
-			if err != nil || token.Value == "" {
+			tokenCookie, err := r.Cookie(tokenCookieName)
+			if err != nil || tokenCookie.Value == "" {
 				http.Redirect(w, r, loginURL.String(), http.StatusFound)
 
 				return
 			}
 
-			RefreshExpirationToken(token.Value, w, r)
-
-			userID, found := ValidateSession(token.Value)
-			if !found {
-				http.Redirect(w, r, loginURL.String(), http.StatusFound)
-
-				return
-			}
-
-			user, err := internal.GetUserByID(db, int64(userID))
+			user, err := validateSession(db, tokenCookie.Value)
 			if err != nil {
-				logger.Errorf("erreur: %v", err)
-				http.Error(w, "erreur interne", http.StatusInternalServerError)
+				logger.Infof("Failed to validate session: %v", err)
+				http.Redirect(w, r, loginURL.String(), http.StatusFound)
 
 				return
+			}
+
+			if r.URL.Query().Get("partial") == "" {
+				refreshToken(r, w, tokenCookie.Value)
 			}
 
 			ctx := context.WithValue(r.Context(), ContextUserKey, user)

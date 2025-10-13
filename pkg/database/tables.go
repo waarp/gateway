@@ -62,7 +62,7 @@ func (e *Executor) Query(query string, args ...any) ([]map[string]any, error) {
 }
 
 // initDatabase initializes the database and then updates it to the latest version.
-func initDatabase(db *Standalone) error {
+func (db *DB) initDatabase() error {
 	sqlDB := db.engine.DB().DB
 	dialect := conf.GlobalConfig.Database.Type
 	logger := db.logger

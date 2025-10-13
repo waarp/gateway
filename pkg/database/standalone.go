@@ -3,25 +3,18 @@ package database
 import (
 	"context"
 	"database/sql"
-	"sync"
 	"time"
 
 	"code.waarp.fr/lib/log"
 	"xorm.io/xorm"
 )
 
-// Standalone is a struct used to execute standalone commands on the database.
-type Standalone struct {
-	engine   *xorm.Engine
-	logger   *log.Logger
-	sessions sync.Map
-}
-
-func (s *Standalone) newSession() *Session {
+func (db *DB) newSession() *Session {
 	return &Session{
 		id:      time.Now().UnixNano(),
-		session: s.engine.NewSession(),
-		logger:  s.logger,
+		db:      db,
+		session: db.engine.NewSession(),
+		logger:  db.logger,
 	}
 }
 
@@ -37,11 +30,11 @@ type TransactionFunc func(*Session) error
 // Transaction executes all the commands in the given function as a transaction.
 // The transaction will be then be roll-backed or committed, depending on whether
 // the function returned an error or not.
-func (s *Standalone) Transaction(fun TransactionFunc) error {
-	ses := s.newSession()
+func (db *DB) Transaction(fun TransactionFunc) error {
+	ses := db.newSession()
 
 	if err := ses.session.Begin(); err != nil {
-		s.logger.Errorf("Failed to start transaction: %v", err)
+		db.logger.Errorf("Failed to start transaction: %v", err)
 
 		return NewInternalError(err)
 	}
@@ -51,31 +44,31 @@ func (s *Standalone) Transaction(fun TransactionFunc) error {
 
 	ses.session.Context(ctx)
 
-	s.sessions.Store(ses.id, ses)
-	defer s.sessions.Delete(ses.id)
+	db.sessions.Store(ses.id, ses)
+	defer db.sessions.Delete(ses.id)
 
 	done := make(chan bool)
 
 	defer func() {
 		if err := ses.session.Close(); err != nil {
-			s.logger.Warningf("an error occurred while closing the session: %v", err)
+			db.logger.Warningf("an error occurred while closing the session: %v", err)
 		}
 
 		close(done)
 	}()
 
 	if err := fun(ses); err != nil {
-		s.logger.Trace("Transaction failed, changes have been rolled back")
+		db.logger.Trace("Transaction failed, changes have been rolled back")
 
 		if rbErr := ses.session.Rollback(); rbErr != nil {
-			s.logger.Warningf("an error occurred while rolling back the transaction: %v", rbErr)
+			db.logger.Warningf("an error occurred while rolling back the transaction: %v", rbErr)
 		}
 
 		return err
 	}
 
 	if err := ses.session.Commit(); err != nil {
-		s.logger.Errorf("Failed to commit changes: %v", err)
+		db.logger.Errorf("Failed to commit changes: %v", err)
 
 		return NewInternalError(err)
 	}
@@ -83,14 +76,16 @@ func (s *Standalone) Transaction(fun TransactionFunc) error {
 	return nil
 }
 
-func (s *Standalone) getUnderlying() xorm.Interface {
-	return s.engine
+func (db *DB) getUnderlying() xorm.Interface {
+	return db.engine
 }
 
 // GetLogger returns the database logger instance.
-func (s *Standalone) GetLogger() *log.Logger {
-	return s.logger
+func (db *DB) GetLogger() *log.Logger {
+	return db.logger
 }
+
+func (db *DB) AsDB() *DB { return db }
 
 // Iterate starts building a SQL 'SELECT' query to retrieve entries of the given
 // model from the database. The request can be narrowed using the IterateQuery
@@ -98,8 +93,8 @@ func (s *Standalone) GetLogger() *log.Logger {
 //
 // The request can then be executed using the IterateQuery.Run method. The
 // selected entries will be returned inside an Iterator instance.
-func (s *Standalone) Iterate(bean IterateBean) *IterateQuery {
-	return &IterateQuery{db: s, bean: bean}
+func (db *DB) Iterate(bean IterateBean) *IterateQuery {
+	return &IterateQuery{db: db, bean: bean}
 }
 
 // Select starts building a SQL 'SELECT' query to retrieve entries of the given
@@ -108,8 +103,8 @@ func (s *Standalone) Iterate(bean IterateBean) *IterateQuery {
 //
 // The request can then be executed using the SelectQuery.Run method. The
 // selected entries will be returned inside the SelectBean parameter.
-func (s *Standalone) Select(bean SelectBean) *SelectQuery {
-	return &SelectQuery{db: s, bean: bean}
+func (db *DB) Select(bean SelectBean) *SelectQuery {
+	return &SelectQuery{db: db, bean: bean}
 }
 
 // Get starts building a SQL 'SELECT' query to retrieve a single entry of
@@ -119,8 +114,8 @@ func (s *Standalone) Select(bean SelectBean) *SelectQuery {
 //
 // The request can then be executed using the GetQuery.Run method. The bean
 // parameter will be filled with the values retrieved from the database.
-func (s *Standalone) Get(bean GetBean, where string, args ...any) *GetQuery {
-	return &GetQuery{db: s, bean: bean, conds: []*condition{{sql: where, args: args}}}
+func (db *DB) Get(bean GetBean, where string, args ...any) *GetQuery {
+	return &GetQuery{db: db, bean: bean, conds: []*condition{{sql: where, args: args}}}
 }
 
 // Count starts building a SQL 'SELECT COUNT' query to count specific entries
@@ -128,16 +123,16 @@ func (s *Standalone) Get(bean GetBean, where string, args ...any) *GetQuery {
 // the CountQuery.Where method.
 //
 // The request can then be executed using the CountQuery.Run method.
-func (s *Standalone) Count(bean IterateBean) *CountQuery {
-	return &CountQuery{db: s, bean: bean}
+func (db *DB) Count(bean IterateBean) *CountQuery {
+	return &CountQuery{db: db, bean: bean}
 }
 
 // Insert starts building a SQL 'INSERT' query to add the given model entry
 // to the database.
 //
 // The request can then be executed using the InsertQuery.Run method.
-func (s *Standalone) Insert(bean InsertBean) *InsertQuery {
-	return &InsertQuery{db: s, bean: bean}
+func (db *DB) Insert(bean InsertBean) *InsertQuery {
+	return &InsertQuery{db: db, bean: bean}
 }
 
 // Update starts building a SQL 'UPDATE' query to update single entry in
@@ -145,16 +140,16 @@ func (s *Standalone) Insert(bean InsertBean) *InsertQuery {
 // an error if the entry does not exist.
 //
 // The request can then be executed using the UpdateQuery.Run method.
-func (s *Standalone) Update(bean UpdateBean) *UpdateQuery {
-	return &UpdateQuery{db: s, bean: bean}
+func (db *DB) Update(bean UpdateBean) *UpdateQuery {
+	return &UpdateQuery{db: db, bean: bean}
 }
 
 // Delete starts building a SQL 'DELETE' query to delete a single entry of
 // the given model from the database, using the entry's ID as parameter.
 //
 // The request can then be executed using the DeleteQuery.Run method.
-func (s *Standalone) Delete(bean DeleteBean) *DeleteQuery {
-	return &DeleteQuery{db: s, bean: bean}
+func (db *DB) Delete(bean DeleteBean) *DeleteQuery {
+	return &DeleteQuery{db: db, bean: bean}
 }
 
 // DeleteAll starts building a SQL 'DELETE' query to delete entries of the
@@ -167,8 +162,8 @@ func (s *Standalone) Delete(bean DeleteBean) *DeleteQuery {
 // no DeletionHook.
 //
 // The request can then be executed using the DeleteAllQuery.Run method.
-func (s *Standalone) DeleteAll(bean DeleteAllBean) *DeleteAllQuery {
-	return &DeleteAllQuery{db: s, bean: bean}
+func (db *DB) DeleteAll(bean DeleteAllBean) *DeleteAllQuery {
+	return &DeleteAllQuery{db: db, bean: bean}
 }
 
 // Exec executes the given custom SQL query, and returns any error encountered.
@@ -176,14 +171,14 @@ func (s *Standalone) DeleteAll(bean DeleteAllBean) *DeleteAllQuery {
 //
 // Be aware that, since this method bypasses the data models, all the models'
 // hooks will be skipped. Thus, this method should be used with extreme caution.
-func (s *Standalone) Exec(query string, args ...any) error {
-	return exec(s.engine.NewSession(), s.logger, query, args...)
+func (db *DB) Exec(query string, args ...any) error {
+	return exec(db.engine.NewSession(), db.logger, query, args...)
 }
 
 // QueryRow returns a single row from the database, which can then be scanned.
 //
 // Be aware that, since this method bypasses the data models, all the models'
 // hooks will be skipped. Thus, this method should be used with caution.
-func (s *Standalone) QueryRow(query string, args ...any) *sql.Row {
-	return s.engine.DB().DB.QueryRow(query, args...)
+func (db *DB) QueryRow(query string, args ...any) *sql.Row {
+	return db.engine.DB().DB.QueryRow(query, args...)
 }

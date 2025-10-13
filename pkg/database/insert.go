@@ -45,7 +45,7 @@ func (i *InsertQuery) run(s *Session) error {
 // Run executes the 'INSERT' query.
 func (i *InsertQuery) Run() error {
 	switch db := i.db.(type) {
-	case *Standalone:
+	case *DB:
 		return db.Transaction(i.run)
 	case *Session:
 		return i.run(db)

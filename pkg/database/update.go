@@ -68,7 +68,7 @@ func (u *UpdateQuery) Run() error {
 	}
 
 	switch db := u.db.(type) {
-	case *Standalone:
+	case *DB:
 		return db.Transaction(u.run)
 	case *Session:
 		return u.run(db)
