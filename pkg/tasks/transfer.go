@@ -152,7 +152,7 @@ func (t *TransferTask) Run(_ context.Context, args map[string]string,
 	trans := &model.Transfer{
 		RuleID:               t.rule.ID,
 		ClientID:             utils.NewNullInt64(t.client.ID),
-		RemoteAccountID:      utils.NewNullInt64(t.client.ID),
+		RemoteAccountID:      utils.NewNullInt64(t.account.ID),
 		SrcFilename:          t.File,
 		DestFilename:         output,
 		RemainingTries:       int8(t.NbOfAttempts),
