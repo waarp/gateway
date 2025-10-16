@@ -1,8 +1,6 @@
 module code.waarp.fr/apps/gateway/gateway
 
-go 1.25
-
-toolchain go1.25.1
+go 1.25.3
 
 require (
 	code.waarp.fr/lib/goftp v0.1.1-0.20240801120050-932aa2b2f9a7

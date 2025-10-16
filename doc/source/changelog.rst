@@ -3,6 +3,7 @@
 Historique des versions
 =======================
 
+* :release:`0.13.2 <2025-10-16>`
 * :bug:`496` Correction d'une régression de la v0.13 faisant que les champs du
   fichier d'import était devenu sensibles à la casse (majuscule ou minuscule).
   Les champs sont désormais de nouveau insensibles à la casse.
