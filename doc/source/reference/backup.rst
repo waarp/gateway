@@ -37,7 +37,7 @@ stockées dans un fichier en format JSON ou YAML. Ce fichier a la forme suivante
 
     * ``name`` (*string*) - Le nom du certificat.
     * ``privateKey`` (*string*) - La clé privée du serveur en format PEM.
-    * ``certificat`` (*string*) - La chaîne de certification du serveur en
+    * ``Certificate`` (*string*) - La chaîne de certification du serveur en
       format PEM.
 
   * ``accounts`` (*array*) - La liste des comptes rattaché au serveur.
@@ -65,7 +65,7 @@ stockées dans un fichier en format JSON ou YAML. Ce fichier a la forme suivante
       du compte. [**OBSOLÈTE**] Remplacé par ``credentials``.
 
       * ``name`` (*string*) - Le nom du certificat.
-      * ``certificate`` (*string*) - La chaîne de certification du compte en
+      * ``Certificate`` (*string*) - La chaîne de certification du compte en
         format PEM (mutuellement exclusif avec ``public_key``).
       * ``publicKey`` (*string*) - La clé publique SSH du compte (*hostkey*) en
         format *authorized_key* (mutuellement exclusif avec ``certificate``)
@@ -94,7 +94,7 @@ stockées dans un fichier en format JSON ou YAML. Ce fichier a la forme suivante
     <certificat>` du partenaire. [**OBSOLÈTE**] Remplacé par ``credentials``.
 
     * ``name`` (*string*) - Le nom du certificat.
-    * ``Certificat`` (*string*) - La chaîne de certification du partenaire en
+    * ``Certificate`` (*string*) - La chaîne de certification du partenaire en
       format PEM (mutuellement exclusif avec ``public_key``).
     * ``publicKey`` (*string*) - La clé publique SSH du partenaire (*hostkey*) en
       format *authorized_key* (mutuellement exclusif avec ``certificate``)
@@ -121,7 +121,7 @@ stockées dans un fichier en format JSON ou YAML. Ce fichier a la forme suivante
 
       * ``name`` (*string*) - Le nom du certificat.
       * ``privateKey`` (*string*) - La clé privée du compte en format PEM.
-      * ``certificat`` (*string*) - La chaîne de certification du compte en
+      * ``Certificate`` (*string*) - La chaîne de certification du compte en
         format PEM.
 
 * ``clients`` (*array*) - La liste des :term:`clients<client>` de transfert de

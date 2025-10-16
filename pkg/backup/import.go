@@ -4,10 +4,12 @@
 package backup
 
 import (
+	"encoding/json"
 	"errors"
 	"fmt"
 	"io"
 	"os"
+	"path/filepath"
 
 	"gopkg.in/yaml.v3"
 
@@ -38,7 +40,7 @@ func ImportData(db *database.DB, r *os.File, targets []string, dry, reset bool) 
 	logger := logging.NewLogger("import")
 
 	var data file.Data
-	if err := yaml.NewDecoder(r).Decode(&data); err != nil {
+	if err := deserializeFile(r, &data); err != nil {
 		return fmt.Errorf("cannot read data: %w", err)
 	}
 
@@ -164,6 +166,26 @@ func ImportHistory(db *database.DB, r io.Reader, dry bool) error {
 		}
 
 		return fmt.Errorf("cannot import file: %w", tErr)
+	}
+
+	return nil
+}
+
+func deserializeFile(f *os.File, data *file.Data) error {
+	var decErr error
+
+	ext := filepath.Ext(f.Name())
+	switch ext {
+	case ".yaml", ".yml":
+		decoder := yaml.NewDecoder(f)
+		decErr = decoder.Decode(data)
+	default:
+		decoder := json.NewDecoder(f)
+		decErr = decoder.Decode(&data)
+	}
+
+	if decErr != nil {
+		return fmt.Errorf("failed to deserialize file %q: %w", f.Name(), decErr)
 	}
 
 	return nil
