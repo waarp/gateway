@@ -4,6 +4,7 @@ go 1.25.3
 
 require (
 	code.waarp.fr/lib/goftp v0.1.1-0.20240801120050-932aa2b2f9a7
+	code.waarp.fr/lib/icap v1.0.0
 	code.waarp.fr/lib/log v1.4.0
 	code.waarp.fr/lib/migration v1.4.0
 	code.waarp.fr/lib/pesit v0.1.4
@@ -13,9 +14,9 @@ require (
 	github.com/bwmarrin/snowflake v0.3.0
 	github.com/dsnet/compress v0.0.1
 	github.com/dustin/go-humanize v1.0.1
-	github.com/egirna/icap v0.3.2
 	github.com/fclairamb/ftpserverlib v0.27.0
 	github.com/fclairamb/go-log v0.6.0
+	github.com/go-icap/icap v0.0.0-20151011115316-ca4fad4ebb28
 	github.com/go-sql-driver/mysql v1.9.3
 	github.com/google/shlex v0.0.0-20191202100458-e7afc7fbc510
 	github.com/google/uuid v1.6.0
@@ -29,13 +30,11 @@ require (
 	github.com/karrick/tparse/v2 v2.8.2
 	github.com/klauspost/compress v1.18.1
 	github.com/mattn/go-colorable v0.1.14
-	github.com/pbnjay/memory v0.0.0-20210728143218-7b4eea64cf58
 	github.com/pkg/sftp v1.13.10
 	github.com/puzpuzpuz/xsync/v4 v4.2.0
 	github.com/rclone/rclone v1.71.2
 	github.com/slayercat/GoSNMPServer v0.5.2
 	github.com/smartystreets/goconvey v1.8.1
-	github.com/solidwall/icap-client v0.0.0-20250630122835-d3ca1e8c4269
 	github.com/spf13/afero v1.15.0
 	github.com/stretchr/testify v1.11.1
 	github.com/ulikunitz/xz v0.5.15

@@ -3,6 +3,9 @@
 Historique des versions
 =======================
 
+* :feature:`490` La tâche ICAP supporte désormais TLS via l'option *"useTLS"*.
+  La limitation sur la taille des fichiers pouvant être traités via la tâche
+  ICAP a également été levée.
 * :feature:`428` Ajout d'une tâche REMOTEDELETE permettant de supprimer à distance
   un fichier sur le partenaire de transfert si le protocole le permet. Voir la
   :doc:`documentation<reference/tasks/remotedelete>` de la tâche pour plus de détails.
