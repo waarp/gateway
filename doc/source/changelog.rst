@@ -3,6 +3,10 @@
 Historique des versions
 =======================
 
+* :feature:`497` Ajout d'une option ``synchronous`` à la tâche *TRANSFER*
+  permettant d'exécuter des transferts de façon synchrone. Voir la :ref:`documentation
+  <reference-tasks-transfer>` de la tâche *TRANSFER* pour plus de détails.
+
 * :release:`0.13.3 <2025-11-05>`
 * :bug:`500` Correction d'un bug de l'interface Web empêchant la modification
   des tâches de règles.

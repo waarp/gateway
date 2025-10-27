@@ -15,8 +15,16 @@ import (
 	"code.waarp.fr/apps/gateway/gateway/pkg/pipeline"
 	"code.waarp.fr/apps/gateway/gateway/pkg/protocols/protocol"
 	"code.waarp.fr/apps/gateway/gateway/pkg/snmp"
+	"code.waarp.fr/apps/gateway/gateway/pkg/tasks"
 	"code.waarp.fr/apps/gateway/gateway/pkg/utils"
 )
+
+//nolint:gochecknoinits //needed to avoid import cycles with tasks module
+func init() {
+	tasks.NewClientPipeline = func(db *database.DB, trans *model.Transfer) (tasks.ClientPipeline, error) {
+		return NewClientPipeline(db, trans)
+	}
+}
 
 type Error = pipeline.Error
 

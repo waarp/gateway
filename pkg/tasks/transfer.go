@@ -11,11 +11,19 @@ import (
 
 	"code.waarp.fr/apps/gateway/gateway/pkg/database"
 	"code.waarp.fr/apps/gateway/gateway/pkg/model"
+	"code.waarp.fr/apps/gateway/gateway/pkg/model/types"
 	"code.waarp.fr/apps/gateway/gateway/pkg/utils"
 )
 
+type ClientPipeline interface {
+	Run() error
+}
+
 //nolint:gochecknoglobals //yes, this is very ugly, but there is really no other way to avoid an import cycle
-var GetDefaultTransferClient func(db *database.DB, protocol string) (*model.Client, error)
+var (
+	GetDefaultTransferClient func(db *database.DB, protocol string) (*model.Client, error)
+	NewClientPipeline        func(db *database.DB, trans *model.Transfer) (ClientPipeline, error)
+)
 
 var (
 	ErrTransferNoFile       = errors.New(`missing transfer source file`)
@@ -32,6 +40,7 @@ var (
 
 // TransferTask is a task which schedules a new transfer.
 type TransferTask struct {
+	Synchronous          jsonBool     `json:"synchronous"`
 	File                 string       `json:"file"`
 	Output               string       `json:"output"`
 	To                   string       `json:"to"`
@@ -160,6 +169,10 @@ func (t *TransferTask) Run(_ context.Context, args map[string]string,
 		RetryIncrementFactor: float32(t.RetryIncrementFactor),
 	}
 
+	if t.Synchronous {
+		trans.Status = types.StatusRunning
+	}
+
 	if err := db.Transaction(func(ses *database.Session) error {
 		if err := ses.Insert(trans).Run(); err != nil {
 			return fmt.Errorf("failed to insert transfer: %w", err)
@@ -174,8 +187,24 @@ func (t *TransferTask) Run(_ context.Context, args map[string]string,
 		return fmt.Errorf("failed to create transfer: %w", err)
 	}
 
-	logger.Debugf("Programmed new transfer n°%d of file %q, %s as %q using rule %q",
+	if !t.Synchronous {
+		logger.Debugf("Programmed new transfer n°%d of file %q, %s as %q using rule %q",
+			trans.ID, t.File, t.partner.Name, t.account.Login, t.rule.Name)
+
+		return nil
+	}
+
+	logger.Debugf("Executing new transfer n°%d of file %q, %s as %q using rule %q",
 		trans.ID, t.File, t.partner.Name, t.account.Login, t.rule.Name)
+
+	pip, err := NewClientPipeline(db, trans)
+	if err != nil {
+		return fmt.Errorf("failed to initialize the client transfer pipeline: %w", err)
+	}
+
+	if err = pip.Run(); err != nil {
+		return fmt.Errorf("failed to run the client transfer pipeline: %w", err)
+	}
 
 	return nil
 }

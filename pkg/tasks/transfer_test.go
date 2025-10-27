@@ -16,6 +16,14 @@ import (
 	"code.waarp.fr/apps/gateway/gateway/pkg/utils/testhelpers"
 )
 
+type testClientPipeline bool
+
+func (t *testClientPipeline) Run() error {
+	*t = true
+
+	return nil
+}
+
 func TestTransferRun(t *testing.T) {
 	replaceArg := func(tb testing.TB, args map[string]string, key, value string) {
 		oldVal := args[key]
@@ -162,6 +170,20 @@ func TestTransferRun(t *testing.T) {
 
 			err := runner.Run(context.Background(), args, db, logger, transCtx)
 			require.NoError(t, err)
+		})
+
+		t.Run("Synchronous transfer", func(t *testing.T) {
+			args["synchronous"] = "true"
+
+			var check testClientPipeline
+			NewClientPipeline = func(db *database.DB, trans *model.Transfer) (ClientPipeline, error) {
+				return &check, nil
+			}
+
+			err := runner.Run(context.Background(), args, db, logger, transCtx)
+			require.NoError(t, err)
+
+			assert.True(t, bool(check))
 		})
 	})
 
