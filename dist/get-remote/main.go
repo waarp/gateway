@@ -3,15 +3,12 @@ package main
 import (
 	"errors"
 	"fmt"
-	"io/ioutil"
+	"net/url"
 	"os"
-	"os/exec"
-	"path"
 	"path/filepath"
 	"strings"
 
-	"github.com/pkg/sftp"
-	"golang.org/x/crypto/ssh"
+	"code.waarp.fr/apps/gateway/gateway/pkg/admin/rest/api"
 )
 
 const (
@@ -26,10 +23,13 @@ var errUnknownProtocol = errors.New("unknown protocol")
 
 //nolint:forbidigo // main function must be able to print
 func main() {
-	if os.Getenv("WAARP_GATEWAY_ADDRESS") == "" {
-		fmt.Println("The environment variable WAARP_GATEWAY_ADDRESS must be defined")
+	gw_address := os.Getenv("WAARP_GATEWAY_ADDRESS")
+	if gw_address == "" {
+		fmt.Print("The environment variable WAARP_GATEWAY_ADDRESS must be defined.\n")
 		os.Exit(exitNoEnvVar)
 	}
+
+	gw_insecure := os.Getenv("WAARP_GATEWAY_INSECURE") != ""
 
 	// find out env
 	files, err := getPaths()
@@ -48,20 +48,20 @@ func main() {
 	// lock/unlock
 	l := lock{files.lockFile()}
 	if l.isLocked() {
-		log.Print("Another instance of get-remote is already running.")
+		fmt.Print("Another instance of get-remote is already running.\n")
 		os.Exit(exitLockFile)
 	}
 
 	// parse file
 	if !pathExists(files.listFile()) {
-		log.Printf("No file get-files.list found")
+		log.Printf("No file get-files.list found.\n")
 
 		return
 	}
 
 	checklist, err := parseListFile(files.listFile())
 	if err != nil {
-		log.Printf("Cannot parse list file: %v", err)
+		fmt.Printf("Cannot parse list file: %v\n", err)
 		os.Exit(exitBadListFile)
 	}
 
@@ -72,35 +72,43 @@ func main() {
 
 	defer func() {
 		if err2 := l.release(); err2 != nil {
-			log.Printf("Cannot release lock: %v\n", err2)
+			fmt.Printf("Cannot release lock: %v\n", err2)
 			os.Exit(exitLockFile)
 		}
 	}()
 
-	processChecks(log, files, checklist)
+	processChecks(checklist, gw_address, gw_insecure)
 }
 
-func processChecks(log *logger, p paths, checklist []check) {
+func processChecks(checklist []check, addr string, insecure bool) {
 	for i := range checklist {
 		c := &checklist[i]
 
-		log.Printf("Checking files on %q for flow %q",
-			c.remoteHost, c.flowID)
+		fmt.Printf("Checking files on %q for flow %q.\n",
+			c.hostid, c.flowID)
 
-		files, err := listFiles(c)
-		if err != nil {
-			log.Printf("Cannot check files on %s for flow %s: %v",
-				c.remoteHost, c.flowID, err)
+		files, listErr := listFiles(c, addr, insecure)
+		if listErr != nil {
+			fmt.Printf("Cannot check files on %s for flow %s: %v\n",
+				c.hostid, c.flowID, listErr)
 
 			continue
 		}
 
 		// create dl
 		for _, file := range files {
-			log.Printf("Add transfer for file %q", file)
+			fmt.Printf("Add transfer for file %q.\n", file)
 
-			if err := addTransfer(c, p, file); err != nil {
-				log.Printf("Cannot add transfer for file %q: %v", file, err)
+			transfer := api.InTransfer{
+				Rule:    c.rule,
+				Partner: c.hostid,
+				Account: c.user,
+				File:    file,
+				IsSend:  api.Nullable[bool]{Valid: true, Value: false},
+			}
+
+			if err := addTransfer(&transfer, addr, insecure); err != nil {
+				fmt.Printf("Cannot add transfer for file %q: %v\n", file, err)
 
 				continue
 			}
@@ -122,7 +130,7 @@ type check struct {
 }
 
 func parseListFile(p string) ([]check, error) {
-	content, err := ioutil.ReadFile(filepath.Clean(p))
+	content, err := os.ReadFile(filepath.Clean(p))
 	if err != nil {
 		return nil, fmt.Errorf("cannot read file %q: %w", p, err)
 	}
@@ -159,98 +167,91 @@ func parseLine(line string) check {
 	}
 }
 
-func listFiles(c *check) ([]string, error) {
-	switch c.proto {
-	case "sftp":
-		return listFilesSftp(c)
-	default:
-		return nil, fmt.Errorf("unsupported protocol %q: %w", c.proto, errUnknownProtocol)
+func listFiles(c *check, addr string, insecure bool) ([]string, error) {
+	partner, err := getPartner(c.hostid, addr, insecure)
+	if err != nil {
+		return nil, fmt.Errorf("could not find partner %s: %w", c.hostid, err)
 	}
+
+	account, err := getAccount(partner.Name, c.user, addr, insecure)
+	if err != nil {
+		return nil, fmt.Errorf("could not find account %s: %w", c.user, err)
+	}
+
+	rule, err := getRule(c.rule, addr, insecure)
+	if err != nil {
+		return nil, fmt.Errorf("could not find rule %s: %w", c.rule, err)
+	}
+
+	client, err := newClient(partner.Protocol)
+	if err != nil {
+		return nil, fmt.Errorf("could not initialize client for %s: %w", c.hostid, err)
+	}
+
+	if netErr := client.Connect(partner, account, addr, insecure); netErr != nil {
+		return nil, fmt.Errorf("could not connect to partner %s: %w", c.hostid, netErr)
+	}
+
+	defer client.Close()
+
+	files, err := client.List(rule, c.pattern)
+	if err != nil {
+		return nil, fmt.Errorf("could not list file from partner %s: %w", c.hostid, err)
+	}
+
+	return files, nil
 }
 
-func listFilesSftp(c *check) ([]string, error) {
-	sshconfig := &ssh.ClientConfig{
-		User: c.user,
-		Auth: []ssh.AuthMethod{
-			ssh.Password(c.password),
-		},
-		HostKeyCallback: ssh.InsecureIgnoreHostKey(), //nolint:gosec // ignore for now
+func getPartner(partner, addr string, insecure bool) (*api.OutPartner, error) {
+	restPath, urlErr := url.JoinPath(addr, "/api/partners", partner)
+	if urlErr != nil {
+		return nil, fmt.Errorf("failed to build URL: %w", urlErr)
+	}
+	apiPartner := &api.OutPartner{}
+
+	if err := get(apiPartner, restPath, insecure); err != nil {
+		return nil, err
 	}
 
-	conn, err := ssh.Dial("tcp", c.remoteHost+":"+c.remotePort, sshconfig)
-	if err != nil {
-		return nil, fmt.Errorf("cannot connect to %q: %w", c.remoteHost, err)
-	}
-	defer conn.Close() //nolint:errcheck // nothing to handle the error
-
-	// create new SFTP client
-	client, err := sftp.NewClient(conn)
-	if err != nil {
-		return nil, fmt.Errorf("cannot create SFTP session for %q: %w", c.remoteHost, err)
-	}
-	defer client.Close() //nolint:errcheck // nothing to handle the error
-
-	dir := c.pattern
-	if strings.Contains(c.pattern, "*") {
-		dir = path.Dir(c.pattern)
-		c.pattern = path.Base(c.pattern)
-	}
-
-	fileinfoList, err := client.ReadDir(dir)
-	if err != nil {
-		return nil, fmt.Errorf("cannot list remote files: %w", err)
-	}
-
-	fileinfoList, err = filterFileInfoList(fileinfoList, c.pattern)
-	if err != nil {
-		return nil, fmt.Errorf("cannot filter remote files: %w", err)
-	}
-
-	filelist := make([]string, len(fileinfoList))
-	for i := range fileinfoList {
-		filelist[i] = path.Join(dir, fileinfoList[i].Name())
-	}
-
-	return filelist, nil
+	return apiPartner, nil
 }
 
-func filterFileInfoList(fil []os.FileInfo, pattern string) ([]os.FileInfo, error) {
-	rv := []os.FileInfo{}
+func getAccount(partner, account, addr string, insecure bool) (*api.OutRemoteAccount, error) {
+	restPath, urlErr := url.JoinPath(addr, "/api/partners", partner, "accounts", account)
+	if urlErr != nil {
+		return nil, fmt.Errorf("failed to build URL: %w", urlErr)
+	}
+	apiAccount := &api.OutRemoteAccount{}
 
-	for _, fi := range fil {
-		if fi.IsDir() || strings.HasPrefix(fi.Name(), ".") {
-			continue
-		}
-
-		matches, err := path.Match(pattern, fi.Name())
-		if err != nil {
-			return rv, fmt.Errorf("an error occurred while testing path %q: %w", fi.Name(), err)
-		}
-
-		if !matches {
-			continue
-		}
-
-		rv = append(rv, fi)
+	if err := get(apiAccount, restPath, insecure); err != nil {
+		return nil, err
 	}
 
-	return rv, nil
+	return apiAccount, nil
 }
 
-func addTransfer(c *check, p paths, file string) error {
-	//nolint: gosec // ignore for now
-	cmd := exec.Command(filepath.Join(p.binDir, "waarp-gateway"),
-		"transfer", "add",
-		"--file", path.Base(file),
-		"--partner", c.hostid,
-		"--login", c.user,
-		"--rule", c.rule,
-		"--way", "receive")
+func getRule(rule, addr string, insecure bool) (*api.OutRule, error) {
+	restPath, urlErr := url.JoinPath(addr, "/api/rules", rule, "receive")
+	if urlErr != nil {
+		return nil, fmt.Errorf("failed to build URL: %w", urlErr)
+	}
+	apiRule := &api.OutRule{}
 
-	out, err := cmd.CombinedOutput()
-	if err != nil {
-		return fmt.Errorf("command failed with output %q and error: %w",
-			string(out), err)
+	if err := get(apiRule, restPath, insecure); err != nil {
+		return nil, err
+	}
+
+	return apiRule, nil
+}
+
+func addTransfer(inTransfer *api.InTransfer, addr string, insecure bool) error {
+	restPath, urlErr := url.JoinPath(addr, "/api/transfers")
+	if urlErr != nil {
+		return fmt.Errorf("failed to build URL: %w", urlErr)
+	}
+
+	if err := add(inTransfer, restPath, insecure); err != nil {
+		return fmt.Errorf("failed to add transfer for file %s: %w", inTransfer.File, err)
 	}
 
 	return nil
