@@ -3,6 +3,8 @@
 Historique des versions
 =======================
 
+* :bug:`236` get-remote récupère les informations de connexion depuis l'interface
+  REST de la gateway et supporte les protocols R66(-TLS) et FTP(S).
 * :feature:`383` Ajout du support pour Google Cloud Storage comme instance cloud.
   Voir la :doc:`documentation<reference/cloud/gcs>` de l'implémentation pour
   plus de détails.
@@ -36,7 +38,6 @@ Historique des versions
 * :feature:`497` Ajout d'une option ``synchronous`` à la tâche *TRANSFER*
   permettant d'exécuter des transferts de façon synchrone. Voir la :ref:`documentation
   <reference-tasks-transfer>` de la tâche *TRANSFER* pour plus de détails.
-
 * :release:`0.13.3 <2025-11-05>`
 * :bug:`500` Correction d'un bug de l'interface Web empêchant la modification
   des tâches de règles.
@@ -46,7 +47,6 @@ Historique des versions
 * :bug:`498` Correction de l'ordre d'import des éléments des fichiers d'import.
   Les éléments d'un fichier d'import référençant d'autres éléments du même fichier
   sont désormais correctement importés *après* les éléments qu'ils référencent.
-
 * :release:`0.13.2 <2025-10-16>`
 * :bug:`496` Correction d'une régression de la v0.13 faisant que les champs du
   fichier d'import était devenu sensibles à la casse (majuscule ou minuscule).
