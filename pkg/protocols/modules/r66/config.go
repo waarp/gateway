@@ -29,8 +29,8 @@ func (c *serverConfig) ValidServer() error {
 	return c.ValidShared()
 }
 
-// partnerConfig represents the configuration of a remote R66 partner.
-type partnerConfig struct {
+// PartnerConfig represents the configuration of a remote R66 partner.
+type PartnerConfig struct {
 	sharedPartnerConfig
 
 	// The server's password for server authentication.
@@ -45,7 +45,7 @@ type partnerConfig struct {
 // ValidPartner checks if the configuration is valid for a R66 partner.
 //
 //nolint:dupl //It's better to keep the TLS & non-TLS config separated, as they will probably differ in the future
-func (c *partnerConfig) ValidPartner() error {
+func (c *PartnerConfig) ValidPartner() error {
 	if c.ServerPassword == "" {
 		return nil
 	}
