@@ -86,7 +86,7 @@ func (t *TransferPreregister) ValidateDB(db database.ReadAccess, params map[stri
 }
 
 func (t *TransferPreregister) Run(_ context.Context, args map[string]string,
-	db *database.DB, logger *log.Logger, transCtx *model.TransferContext,
+	db *database.DB, logger *log.Logger, transCtx *model.TransferContext, _ any,
 ) error {
 	if err := t.ValidateDB(db, args); err != nil {
 		logger.Error(err.Error())

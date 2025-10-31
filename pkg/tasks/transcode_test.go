@@ -1,7 +1,6 @@
 package tasks
 
 import (
-	"context"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
@@ -35,7 +34,7 @@ func TestTranscode(t *testing.T) {
 	}
 
 	task := &transcodeTask{}
-	require.NoError(t, task.Run(context.Background(), params, nil, logger, transCtx))
+	require.NoError(t, task.Run(t.Context(), params, nil, logger, transCtx, nil))
 
 	content, err := fs.ReadFullFile(transCtx.Transfer.LocalPath)
 	require.NoError(t, err)

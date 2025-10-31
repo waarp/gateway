@@ -230,7 +230,7 @@ func TestActiveSelfPushServerDataFail(t *testing.T) {
 
 				ctx.CheckClientTransferError(c,
 					types.TeConnectionReset,
-					"data connection closed unexpectedly",
+					"connection closed unexpectedly",
 					types.StepData)
 				ctx.CheckServerTransferError(c,
 					types.TeInternal,
@@ -300,7 +300,7 @@ func TestActiveSelfPullServerDataFail(t *testing.T) {
 
 				ctx.CheckClientTransferError(c,
 					types.TeConnectionReset,
-					"data connection closed unexpectedly",
+					"connection closed unexpectedly",
 					types.StepData)
 				ctx.CheckServerTransferError(c,
 					types.TeInternal,

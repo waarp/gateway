@@ -42,7 +42,7 @@ func (e *extractTask) Validate(args map[string]string) error {
 }
 
 func (e *extractTask) Run(_ context.Context, params map[string]string, _ *database.DB,
-	logger *log.Logger, transCtx *model.TransferContext,
+	logger *log.Logger, transCtx *model.TransferContext, _ any,
 ) error {
 	if err := e.parseParams(params); err != nil {
 		logger.Errorf("%v", err)

@@ -21,7 +21,7 @@ func (*deleteTask) Validate(map[string]string) error {
 
 // Run deletes the current file from the system.
 func (*deleteTask) Run(_ context.Context, _ map[string]string, _ *database.DB,
-	logger *log.Logger, transCtx *model.TransferContext,
+	logger *log.Logger, transCtx *model.TransferContext, _ any,
 ) error {
 	filepath := transCtx.Transfer.LocalPath
 

@@ -168,6 +168,10 @@ func (s *SelfContext) StartService(c convey.C) {
 
 		c.So(s.ServerService.Stop(ctx), convey.ShouldBeNil)
 	})
+
+	if graceSetter, ok := s.ClientService.(interface{ SetGracePeriod(time.Duration) }); ok {
+		graceSetter.SetGracePeriod(0)
+	}
 }
 
 // AddCreds adds the given credentials to the test database.

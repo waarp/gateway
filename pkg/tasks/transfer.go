@@ -143,7 +143,7 @@ func (t *TransferTask) ValidateDB(db database.ReadAccess, args map[string]string
 
 // Run executes the task by scheduling a new transfer with the given parameters.
 func (t *TransferTask) Run(ctx context.Context, args map[string]string,
-	db *database.DB, logger *log.Logger, transCtx *model.TransferContext,
+	db *database.DB, logger *log.Logger, transCtx *model.TransferContext, _ any,
 ) error {
 	if err := t.parseArgs(db, args); err != nil {
 		logger.Error(err.Error())

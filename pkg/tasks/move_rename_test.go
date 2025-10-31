@@ -1,7 +1,6 @@
 package tasks
 
 import (
-	"context"
 	"path"
 	"testing"
 
@@ -78,7 +77,7 @@ func TestMoveRenameTaskRun(t *testing.T) {
 
 			Convey("Given that the file exists", func() {
 				Convey("When calling the `Run` method", func() {
-					err := task.Run(context.Background(), args, nil, logger, transCtx)
+					err := task.Run(t.Context(), args, nil, logger, transCtx, nil)
 
 					Convey("Then it should NOT return an error", func() {
 						So(err, ShouldBeNil)
@@ -103,7 +102,7 @@ func TestMoveRenameTaskRun(t *testing.T) {
 				So(fs.RemoveAll(srcPath), ShouldBeNil)
 
 				Convey("When calling the 'Run' method", func() {
-					err := task.Run(context.Background(), args, nil, logger, transCtx)
+					err := task.Run(t.Context(), args, nil, logger, transCtx, nil)
 
 					Convey("Then error should say `no such file`", func() {
 						So(err, ShouldWrap, fs.ErrNotExist)

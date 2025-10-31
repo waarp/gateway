@@ -64,7 +64,6 @@ func TestPushClientPreError(t *testing.T) {
 			Convey("Then it should have executed all the tasks in order", func(c C) {
 				ctx.ServerShouldHavePreTasked(c)
 				ctx.ClientShouldHavePreTasked(c)
-				ctx.ServerShouldHavePostTasked(c)
 				ctx.ClientShouldHaveErrorTasked(c)
 
 				ctx.CheckClientTransferError(c,
@@ -121,7 +120,6 @@ func TestPullClientPreError(t *testing.T) {
 			Convey("Then it should have executed all the tasks in order", func(c C) {
 				ctx.ServerShouldHavePreTasked(c)
 				ctx.ClientShouldHavePreTasked(c)
-				ctx.ServerShouldHavePostTasked(c)
 				ctx.ClientShouldHaveErrorTasked(c)
 
 				ctx.CheckClientTransferError(c,
@@ -179,7 +177,6 @@ func TestSelfPushClientDataFail(t *testing.T) {
 				ctx.ServerShouldHavePreTasked(c)
 				ctx.ClientShouldHavePreTasked(c)
 				ctx.ClientShouldHaveErrorTasked(c)
-				ctx.ServerShouldHavePostTasked(c)
 
 				ctx.CheckClientTransferError(c,
 					types.TeInternal,
@@ -237,7 +234,6 @@ func TestSelfPullClientDataFail(t *testing.T) {
 				ctx.ServerShouldHavePreTasked(c)
 				ctx.ClientShouldHavePreTasked(c)
 				ctx.ClientShouldHaveErrorTasked(c)
-				ctx.ServerShouldHavePostTasked(c)
 
 				ctx.CheckClientTransferError(c,
 					types.TeInternal,
@@ -323,14 +319,13 @@ func TestPushServerPostError(t *testing.T) {
 			Convey("Then it should have executed all the tasks in order", func(c C) {
 				ctx.ServerShouldHavePreTasked(c)
 				ctx.ClientShouldHavePreTasked(c)
-				ctx.ClientShouldHavePostTasked(c)
 				ctx.ServerShouldHavePostTasked(c)
 				ctx.ClientShouldHaveErrorTasked(c)
 
 				ctx.CheckClientTransferError(c,
 					types.TeExternalOperation,
 					"Error on remote partner: post-tasks failed",
-					types.StepPostTasks)
+					types.StepData)
 				ctx.CheckServerTransferError(c,
 					types.TeExternalOperation,
 					"Task TASKERR @ PUSH POST[1]: task failed",
@@ -382,7 +377,6 @@ func TestPullServerPostError(t *testing.T) {
 			Convey("Then it should have executed all the tasks in order", func(c C) {
 				ctx.ServerShouldHavePreTasked(c)
 				ctx.ClientShouldHavePreTasked(c)
-				ctx.ClientShouldHavePostTasked(c)
 				ctx.ServerShouldHavePostTasked(c)
 				ctx.ServerShouldHaveErrorTasked(c)
 				ctx.ClientShouldHaveErrorTasked(c)
@@ -390,7 +384,7 @@ func TestPullServerPostError(t *testing.T) {
 				ctx.CheckClientTransferError(c,
 					types.TeExternalOperation,
 					"Error on remote partner: post-tasks failed",
-					types.StepPostTasks)
+					types.StepData)
 				ctx.CheckServerTransferError(c,
 					types.TeExternalOperation,
 					"Task TASKERR @ PULL POST[1]: task failed",

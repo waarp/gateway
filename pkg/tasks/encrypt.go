@@ -96,7 +96,7 @@ func (e *encrypt) ValidateDB(db database.ReadAccess, params map[string]string) e
 }
 
 func (e *encrypt) Run(_ context.Context, params map[string]string,
-	db *database.DB, logger *log.Logger, transCtx *model.TransferContext,
+	db *database.DB, logger *log.Logger, transCtx *model.TransferContext, _ any,
 ) error {
 	if err := e.ValidateDB(db, params); err != nil {
 		logger.Error(err.Error())

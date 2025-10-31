@@ -99,8 +99,8 @@ func (d *decryptVerify) ValidateDB(db database.ReadAccess, params map[string]str
 	return nil
 }
 
-func (d *decryptVerify) Run(_ context.Context, params map[string]string,
-	db *database.DB, logger *log.Logger, transCtx *model.TransferContext,
+func (d *decryptVerify) Run(_ context.Context, params map[string]string, db *database.DB,
+	logger *log.Logger, transCtx *model.TransferContext, _ any,
 ) error {
 	if err := d.ValidateDB(db, params); err != nil {
 		logger.Error(err.Error())

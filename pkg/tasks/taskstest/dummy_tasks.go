@@ -34,7 +34,9 @@ var ErrTaskFailed = errors.New("task failed")
 type TestTask struct{}
 
 // Run executes the dummy task, which will always succeed.
-func (t *TestTask) Run(context.Context, map[string]string, *database.DB, *log.Logger, *model.TransferContext) error {
+func (t *TestTask) Run(context.Context, map[string]string, *database.DB,
+	*log.Logger, *model.TransferContext, any,
+) error {
 	return nil
 }
 
@@ -43,7 +45,7 @@ type TestTaskError struct{}
 
 // Run executes the dummy task, which will always return an error.
 func (t *TestTaskError) Run(context.Context, map[string]string, *database.DB,
-	*log.Logger, *model.TransferContext,
+	*log.Logger, *model.TransferContext, any,
 ) error {
 	return ErrTaskFailed
 }

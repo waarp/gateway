@@ -133,6 +133,10 @@ func (p *Pipeline) SetInterruptionHandlers(
 	}
 }
 
+func (p *Pipeline) SetProtocolAgent(agent any) {
+	p.Runner.Remote = agent
+}
+
 func (p *Pipeline) forceUpdateTrans() *Error {
 	if dbErr := p.DB.Update(p.TransCtx.Transfer).Run(); dbErr != nil {
 		return NewErrorWith(types.TeInternal, "Failed to update transfer", dbErr)

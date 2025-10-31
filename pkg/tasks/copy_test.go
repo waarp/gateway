@@ -1,7 +1,6 @@
 package tasks
 
 import (
-	"context"
 	"path"
 	"runtime"
 	"testing"
@@ -75,7 +74,7 @@ func TestCopyTaskRun(t *testing.T) {
 			So(fs.RemoveAll(srcFile), ShouldBeNil)
 
 			Convey("When calling the run method", func() {
-				err := task.Run(context.Background(), args, nil, logger, transCtx)
+				err := task.Run(t.Context(), args, nil, logger, transCtx, nil)
 
 				Convey("Then it should return an error", func() {
 					So(err, ShouldNotBeNil)
@@ -92,7 +91,7 @@ func TestCopyTaskRun(t *testing.T) {
 			args["path"] = dstPath
 
 			Convey("When calling the run method", func() {
-				err := task.Run(context.Background(), args, nil, logger, transCtx)
+				err := task.Run(t.Context(), args, nil, logger, transCtx, nil)
 				So(err, ShouldBeNil)
 
 				Convey("Then the file should NOT be empty", func() {
@@ -109,7 +108,7 @@ func TestCopyTaskRun(t *testing.T) {
 
 			Convey("Given the target can be created", func() {
 				Convey("When the task is run", func() {
-					err := task.Run(context.Background(), args, nil, logger, transCtx)
+					err := task.Run(t.Context(), args, nil, logger, transCtx, nil)
 					So(err, ShouldBeNil)
 
 					Convey("Then the target file exists", func() {
@@ -123,7 +122,7 @@ func TestCopyTaskRun(t *testing.T) {
 				So(fs.WriteFullFile(dstDir, []byte("hello")), ShouldBeNil)
 
 				Convey("When the task is run", func() {
-					err := task.Run(context.Background(), args, nil, logger, transCtx)
+					err := task.Run(t.Context(), args, nil, logger, transCtx, nil)
 
 					Convey("Then it should return an error", func() {
 						So(err, ShouldBeError)

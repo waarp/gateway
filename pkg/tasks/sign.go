@@ -99,8 +99,8 @@ func (s *sign) ValidateDB(db database.ReadAccess, params map[string]string) erro
 	return nil
 }
 
-func (s *sign) Run(_ context.Context, params map[string]string,
-	db *database.DB, logger *log.Logger, transCtx *model.TransferContext,
+func (s *sign) Run(_ context.Context, params map[string]string, db *database.DB,
+	logger *log.Logger, transCtx *model.TransferContext, _ any,
 ) error {
 	if err := s.ValidateDB(db, params); err != nil {
 		logger.Error(err.Error())

@@ -49,7 +49,7 @@ func (t *TestTaskDelay) Validate(args map[string]string) error {
 
 // Run executes the dummy task, which will always succeed.
 func (t *TestTaskDelay) Run(_ context.Context, args map[string]string,
-	_ *database.DB, _ *log.Logger, _ *model.TransferContext,
+	_ *database.DB, _ *log.Logger, _ *model.TransferContext, _ any,
 ) error {
 	delay, err := t.getDelay(args)
 	if err != nil {

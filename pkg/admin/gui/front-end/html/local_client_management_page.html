@@ -97,7 +97,7 @@
 
                 <div class="form-input">
                 <label class="col-form-label">{{ index .tab "address" }} ({{ index .tab "port" }}) <i class="bi bi-info-circle ms-1" data-bs-toggle="tooltip" data-bs-placement="right" data-bs-title="{{ index $.tab "tooltipPort" }}"></i> :</label>
-                <input type="text" name="addLocalClientPort" class="form-control" required value="{{ index $.modalElement "addLocalClientPort" }}">
+                <input type="text" name="addLocalClientPort" class="form-control" value="{{ index $.modalElement "addLocalClientPort" }}">
                 </div>
                 <hr style="border-top: 1px solid #ababab;">
                 <div class="form-input mb-2">
@@ -416,7 +416,7 @@
                             <hr style="border-top: 1px solid #ababab;">
                             <div class="form-input mt-4">
                             <label class="col-form-label">{{ index $.tab "address" }} ({{ index $.tab "port" }}) <i class="bi bi-info-circle ms-1" data-bs-toggle="tooltip" data-bs-placement="right" data-bs-title="{{ index $.tab "tooltipPort" }}"></i> :</label>
-                            <input type="text" name="editLocalClientPort" class="form-control" required value="{{ if $me }}{{ index $me "editLocalClientPort" }}{{ else }}{{ .LocalAddress.Port }}{{ end }}">
+                            <input type="text" name="editLocalClientPort" class="form-control" value="{{ if $me }}{{ index $me "editLocalClientPort" }}{{ else }}{{ .LocalAddress.Port }}{{ end }}">
                             </div>
                             <hr style="border-top: 1px solid #ababab;">
                             <div class="form-input mb-2">

@@ -23,9 +23,9 @@ import (
 const resumeTimeout = 3 * time.Second
 
 type postClient struct {
-	pip     *pipeline.Pipeline
-	client  *http.Client
-	isHTTPS bool
+	pip    *pipeline.Pipeline
+	client *http.Client
+	scheme string
 
 	writer *io.PipeWriter
 	req    *http.Request
@@ -159,14 +159,9 @@ func (p *postClient) setRequestHeaders(req *http.Request) *pipeline.Error {
 }
 
 func (p *postClient) prepareRequest(ready chan struct{}) *pipeline.Error {
-	scheme := schemeHTTP
-	if p.isHTTPS {
-		scheme = schemeHTTPS
-	}
-
 	addr := conf.GetRealAddress(p.pip.TransCtx.RemoteAgent.Address.Host,
 		utils.FormatUint(p.pip.TransCtx.RemoteAgent.Address.Port))
-	url := scheme + path.Join(addr, p.pip.TransCtx.Transfer.RemotePath)
+	url := p.scheme + path.Join(addr, p.pip.TransCtx.Transfer.RemotePath)
 
 	if err := p.checkResume(url); err != nil {
 		return err
@@ -346,4 +341,10 @@ func discardResponse(resp *http.Response) {
 		io.Copy(io.Discard, resp.Body)
 		resp.Body.Close()
 	}
+}
+
+func (p *postClient) Delete(ctx context.Context, filepath string, recursive bool) error {
+	url := makeRequestURL(p.scheme, p.pip.TransCtx, filepath)
+
+	return deleteRemoteFile(ctx, p.client, url, recursive)
 }

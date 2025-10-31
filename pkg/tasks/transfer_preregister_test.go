@@ -76,7 +76,7 @@ func TestTransferPreregister(t *testing.T) {
 		"copyInfo": "true",
 		"info": fmt.Sprintf(`{"%s": "%s", "%s": "%s"}`,
 			updKey, newUpdVal, newKey, newVal),
-	}, db, logger, transCtx))
+	}, db, logger, transCtx, nil))
 
 	var check model.Transfer
 	require.NoError(t, db.Get(&check, "rule_id=?", rule.ID).Run())

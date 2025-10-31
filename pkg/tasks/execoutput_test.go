@@ -1,7 +1,6 @@
 package tasks
 
 import (
-	"context"
 	"os"
 	"path/filepath"
 	"testing"
@@ -102,7 +101,7 @@ func TestExecOutputRun(t *testing.T) {
 				So(err, ShouldBeNil)
 
 				Convey("When running the task", func() {
-					err := exec.Run(context.Background(), args, nil, logger, transCtx)
+					err := exec.Run(t.Context(), args, nil, logger, transCtx, nil)
 
 					Convey("Then it should NOT return an error", func() {
 						So(err, ShouldBeNil)
@@ -115,7 +114,7 @@ func TestExecOutputRun(t *testing.T) {
 				So(err, ShouldBeNil)
 
 				Convey("When running the task", func() {
-					err := exec.Run(context.Background(), args, nil, logger, transCtx)
+					err := exec.Run(t.Context(), args, nil, logger, transCtx, nil)
 
 					Convey("Then it should return a 'warning' error", func() {
 						So(err, ShouldHaveSameTypeAs, &WarningError{})
@@ -128,7 +127,7 @@ func TestExecOutputRun(t *testing.T) {
 					0o700), ShouldBeNil)
 
 				Convey("When running the task", func() {
-					err := exec.Run(context.Background(), args, nil, logger, transCtx)
+					err := exec.Run(t.Context(), args, nil, logger, transCtx, nil)
 
 					Convey("Then it should return an error", func() {
 						So(err, ShouldBeError)
@@ -148,7 +147,7 @@ func TestExecOutputRun(t *testing.T) {
 				args["delay"] = "100"
 
 				Convey("When running the task", func() {
-					err := exec.Run(context.Background(), args, nil, logger, transCtx)
+					err := exec.Run(t.Context(), args, nil, logger, transCtx, nil)
 
 					Convey("Then it should return an error", func() {
 						So(err, ShouldBeError, ErrExecTimeout)

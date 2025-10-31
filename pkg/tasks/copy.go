@@ -30,7 +30,7 @@ func (*copyTask) Validate(args map[string]string) error {
 
 // Run copies the current file to the destination.
 func (*copyTask) Run(_ context.Context, args map[string]string, _ *database.DB,
-	logger *log.Logger, transCtx *model.TransferContext,
+	logger *log.Logger, transCtx *model.TransferContext, _ any,
 ) error {
 	newDir := args["path"]
 	if newDir == "" {

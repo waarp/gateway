@@ -34,6 +34,7 @@ var formFiles = []taskCategory{
 			{tasknames.Move, "tasks/move/move.gohtml", "tasks/move/move.yaml"},
 			{tasknames.MoveRename, "tasks/move/move.gohtml", "tasks/move/moverename.yaml"},
 			{tasknames.Delete, "tasks/delete/delete.gohtml", "tasks/delete/delete.yaml"},
+			{tasknames.RemoteDelete, "tasks/remote-delete/remote-delete.gohtml", "tasks/remote-delete/remote-delete.yaml"},
 		},
 	}, {
 		Name: "executables",

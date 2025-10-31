@@ -1,6 +1,7 @@
 package ftp
 
 import (
+	"context"
 	"errors"
 
 	"code.waarp.fr/lib/goftp"
@@ -54,7 +55,7 @@ func (t *clientRetrTransfer) Receive(file protocol.ReceiveFile) *pipeline.Error 
 
 		if errors.Is(err, goftp.ErrInvalidFileSize) {
 			return pipeline.NewError(types.TeConnectionReset,
-				"data connection closed unexpectedly")
+				"connection closed unexpectedly")
 		}
 
 		return toPipelineError(err, "FTP transfer receive failed")
@@ -92,4 +93,8 @@ func (t *clientRetrTransfer) sendError() {
 	if err := t.client.Close(); err != nil {
 		t.pip.Logger.Warningf("Failed to close FTP connection: %v", err)
 	}
+}
+
+func (t *clientRetrTransfer) Delete(ctx context.Context, path string, recursive bool) error {
+	return deleteRemoteCtx(ctx, t.client, path, recursive)
 }

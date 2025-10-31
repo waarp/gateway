@@ -1,7 +1,6 @@
 package tasks
 
 import (
-	"context"
 	"path"
 	"testing"
 
@@ -64,7 +63,7 @@ func TestCopyRenameTaskRun(t *testing.T) {
 
 		Convey("Given a valid new path", func() {
 			Convey("When the task is run", func() {
-				err := task.Run(context.Background(), args, nil, logger, transCtx)
+				err := task.Run(t.Context(), args, nil, logger, transCtx, nil)
 				So(err, ShouldBeNil)
 
 				Convey("Then the destination file should exist", func() {
@@ -78,7 +77,7 @@ func TestCopyRenameTaskRun(t *testing.T) {
 			So(fs.RemoveAll(srcPath), ShouldBeNil)
 
 			Convey("When calling the run method", func() {
-				err := task.Run(context.Background(), args, nil, logger, transCtx)
+				err := task.Run(t.Context(), args, nil, logger, transCtx, nil)
 				So(err, ShouldNotBeNil)
 
 				Convey("Then error should say `no such file`", func() {
@@ -91,7 +90,7 @@ func TestCopyRenameTaskRun(t *testing.T) {
 			args["path"] = srcPath
 
 			Convey("When calling the run method", func() {
-				err := task.Run(context.Background(), args, nil, logger, transCtx)
+				err := task.Run(t.Context(), args, nil, logger, transCtx, nil)
 				So(err, ShouldBeNil)
 
 				Convey("Then the file should NOT be empty", func() {
@@ -108,7 +107,7 @@ func TestCopyRenameTaskRun(t *testing.T) {
 
 			Convey("Given the target can be created", func() {
 				Convey("When the task is run", func() {
-					err := task.Run(context.Background(), args, nil, logger, transCtx)
+					err := task.Run(t.Context(), args, nil, logger, transCtx, nil)
 					So(err, ShouldBeNil)
 
 					Convey("Then the target file exists", func() {
@@ -123,7 +122,7 @@ func TestCopyRenameTaskRun(t *testing.T) {
 				So(fs.WriteFullFile(dummyPath, []byte("hello")), ShouldBeNil)
 
 				Convey("When the task is run", func() {
-					err := task.Run(context.Background(), args, nil, logger, transCtx)
+					err := task.Run(t.Context(), args, nil, logger, transCtx, nil)
 					So(err, ShouldBeError)
 
 					Convey("Then the target file does not exist", func() {

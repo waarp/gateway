@@ -40,7 +40,7 @@ func (t *testTaskSuccess) Validate(map[string]string) error {
 }
 
 func (t *testTaskSuccess) Run(context.Context, map[string]string, *database.DB,
-	*log.Logger, *model.TransferContext,
+	*log.Logger, *model.TransferContext, any,
 ) error {
 	dummyTaskCheck <- "SUCCESS"
 
@@ -54,7 +54,7 @@ func (t *testTaskWarning) Validate(map[string]string) error {
 }
 
 func (t *testTaskWarning) Run(context.Context, map[string]string, *database.DB,
-	*log.Logger, *model.TransferContext,
+	*log.Logger, *model.TransferContext, any,
 ) error {
 	dummyTaskCheck <- "WARNING"
 
@@ -68,7 +68,7 @@ func (t *testTaskFail) Validate(map[string]string) error {
 }
 
 func (t *testTaskFail) Run(context.Context, map[string]string, *database.DB,
-	*log.Logger, *model.TransferContext,
+	*log.Logger, *model.TransferContext, any,
 ) error {
 	dummyTaskCheck <- "FAILURE"
 
@@ -82,7 +82,7 @@ func (t *testTaskLong) Validate(map[string]string) error {
 }
 
 func (t *testTaskLong) Run(context.Context, map[string]string, *database.DB,
-	*log.Logger, *model.TransferContext,
+	*log.Logger, *model.TransferContext, any,
 ) error {
 	dummyTaskCheck <- "LONG"
 
