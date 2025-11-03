@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"maps"
 	"path/filepath"
+	"time"
 
 	"code.waarp.fr/lib/log"
 
@@ -15,8 +16,11 @@ import (
 	"code.waarp.fr/apps/gateway/gateway/pkg/utils"
 )
 
+const transferCancelTimeout = 5 * time.Second
+
 type ClientPipeline interface {
 	Run() error
+	Interrupt(context.Context) error
 }
 
 //nolint:gochecknoglobals //yes, this is very ugly, but there is really no other way to avoid an import cycle
@@ -53,6 +57,7 @@ type TransferTask struct {
 	NbOfAttempts         jsonInt      `json:"nbOfAttempts"`
 	FirstRetryDelay      jsonDuration `json:"firstRetryDelay"`
 	RetryIncrementFactor jsonFloat    `json:"retryIncrementFactor"`
+	Timeout              jsonDuration `json:"timeout"`
 
 	partner model.RemoteAgent
 	account model.RemoteAccount
@@ -194,17 +199,48 @@ func (t *TransferTask) Run(_ context.Context, args map[string]string,
 		return nil
 	}
 
+	return nil
+}
+
+func (t *TransferTask) runSynchronousTransfer(ctx context.Context,
+	db *database.DB, logger *log.Logger, trans *model.Transfer,
+) error {
 	logger.Debugf("Executing new transfer n°%d of file %q, %s as %q using rule %q",
 		trans.ID, t.File, t.partner.Name, t.account.Login, t.rule.Name)
 
-	pip, err := NewClientPipeline(db, trans)
-	if err != nil {
-		return fmt.Errorf("failed to initialize the client transfer pipeline: %w", err)
+	pip, pipErr := NewClientPipeline(db, trans)
+	if pipErr != nil {
+		return fmt.Errorf("failed to initialize the client transfer pipeline: %w", pipErr)
 	}
 
-	if err = pip.Run(); err != nil {
-		return fmt.Errorf("failed to run the client transfer pipeline: %w", err)
+	if !t.Timeout.IsZero() {
+		var cancel context.CancelFunc
+		ctx, cancel = context.WithTimeout(ctx, t.Timeout.Duration)
+		defer cancel()
 	}
 
-	return nil
+	result := make(chan error)
+	go func() {
+		defer close(result)
+		result <- pip.Run()
+	}()
+
+	select {
+	case err := <-result:
+		if err != nil {
+			return fmt.Errorf("failed to run the client transfer pipeline: %w", pipErr)
+		}
+
+		return nil
+	case <-ctx.Done():
+		var cancel context.CancelFunc
+		ctx, cancel = context.WithTimeout(ctx, transferCancelTimeout)
+		defer cancel()
+
+		if err := pip.Interrupt(ctx); err != nil {
+			logger.Warningf("Failed to cancel transfer: %v", err)
+		}
+
+		return fmt.Errorf("transfer cancelled: %w", ctx.Err())
+	}
 }

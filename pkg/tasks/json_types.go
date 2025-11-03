@@ -10,6 +10,7 @@ import (
 
 type jsonDuration struct{ time.Duration }
 
+func (j *jsonDuration) IsZero() bool { return j.Duration == 0 }
 func (j *jsonDuration) UnmarshalJSON(bytes []byte) error {
 	str, err := strconv.Unquote(string(bytes))
 	if err != nil {

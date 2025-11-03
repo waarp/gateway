@@ -2,6 +2,40 @@ description:
   en: Program a new client transfer with the given parameters.
   fr: Programme un nouveau transfert client avec les paramètres fournis.
 
+mode:
+  en: Mode
+  fr: Mode
+
+modeTooltip:
+  en: The transfer's mode.
+  fr: Le mode de transfert.
+
+async:
+  en: Asynchronous
+  fr: Asynchrone
+
+asyncTooltip:
+  en: >
+    In asynchronous mode, the task will return once the transfert has been programmed.
+    The new transfer will be executed separately, and the transfer's status will
+    not affect the task's status.
+  fr: >
+    En mode asynchrone, la tâche termine une fois le transfert programmé. Le transfert
+    sera exécuté séparément, et le statut du transfert n'affectera pas le statut de la
+    tâche.
+
+sync:
+  en: Synchronous
+  fr: Synchrone
+
+syncTooltip:
+  en: >
+    In synchronous mode, the task will wait for the transfer to finish before
+    returning. If the transfer fails, the task will be considered a failure too.
+  fr: >
+    En mode synchrone, la tâche attendra que le transfert termine avant de renvoyer
+    un résultat. Si le transfert échoue, la tâche sera aussi considérée comme échouée.
+
 file:
   en: File
   fr: Fichier
@@ -133,3 +167,11 @@ retryIncrementTooltip:
   fr: >
     Le facteur par lequel le délai entre chaque nouvelle tentative sera multiplié.
     Les nombres décimaux sont acceptés.
+
+timeout:
+  en: Transfer timeout
+  fr: Durée limite de transfert
+
+timeoutTooltip:
+  en: The maximum allowed duration for the new transfer (only in synchronous mode).
+  fr: La durée limite autorisée pour le nouveau transfert (uniquement en mode synchrone).

@@ -37,6 +37,10 @@ instance de Gateway avec une date de démarrage immédiate. Les arguments sont 
   ``s`` (secondes), par exemple "1h30m15s". Ne peut être inférieur à 1s.
 * ``retryIncrementFactor`` (*number*) - Le facteur par lequel le délai ci-dessus sera
   multiplié à chaque nouvelle tentative. Les nombres décimaux sont acceptés.
+* ``timeout`` (*string*) - La durée limite pour le transfert en mode synchrone.
+  Passé cette durée, le transfert sera interrompu, et la tâche retournera une erreur.
+  N'a pas d'effet pour les transferts asynchrones. Les unités de temps acceptées
+  sont : ``s`` (secondes), ``m`` (minutes), et ``h`` (heures).
 
 Mode synchrone et asynchrone
 ============================
