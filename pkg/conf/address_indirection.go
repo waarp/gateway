@@ -3,6 +3,7 @@ package conf
 import (
 	"errors"
 	"fmt"
+	"maps"
 	"net"
 	"strings"
 )
@@ -170,12 +171,7 @@ func GetAllIndirections() map[string]string {
 	LocalOverrides.overrideLock.RLock()
 	defer LocalOverrides.overrideLock.RUnlock()
 
-	newMap := map[string]string{}
-	for k, v := range LocalOverrides.ListenAddresses.addressMap {
-		newMap[k] = v
-	}
-
-	return newMap
+	return maps.Clone(LocalOverrides.ListenAddresses.addressMap)
 }
 
 // AddIndirection adds the given address indirection to the global LocalOverrides

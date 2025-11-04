@@ -16,7 +16,7 @@
     "monitoring": { "fr": "Supervision", "en": "Monitoring" },
     "administration": { "fr": "Administration", "en": "Administration" },
     "status_of_services": { "fr": "Status des services", "en": "Status of services" },
-    "user_management": { "fr": "Utilisateurs", "en": "User" },
+    "user_management": { "fr": "Utilisateurs", "en": "Users" },
     "local_client_management": { "fr": "Clients locaux", "en": "Local clients" },
     "managing_local_servers": { "fr": "Serveurs locaux", "en": "Local servers" },
     "local_account_anagement": { "fr": "Comptes locaux", "en": "Local accounts" },

@@ -105,7 +105,6 @@
 {{ end }}
 
 {{ define "content" }}
-  {{ if contains .myPermission.Administration "r" }}
     <div class="d-flex align-items-center justify-content-between">
         <div class="d-flex align-items-center">
             <h2 class="mb-0">{{ index .tab "title" }}</h2>
@@ -124,11 +123,6 @@
     <div id="status">
       {{ template "status_services_partial" . }}
     </div>
-  {{ else if not (contains .myPermission.Administration "r") }}
-    <div class="d-flex align-items-center justify-content-between">
-      <h2 class="mb-0">{{ index .tab "accesRight" }} </h2>
-    </div>
-  {{ end }}
 {{ end }}
 
 {{ define "status_services_partial" }}
